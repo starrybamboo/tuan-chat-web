@@ -66,8 +66,8 @@ function ForwardWindow({
     const targetSpace = spaces.find(space => space.spaceId === selectedSpaceId);
     if (!targetSpace)
       return "";
-    return headers[`space:${selectedSpaceId}`]?.title || targetSpace.name || "未命名空间";
-  }, [headers, selectedSpaceId, spaces]);
+    return targetSpace.name || "未命名空间";
+  }, [selectedSpaceId, spaces]);
 
   const handleForwardRoom = async (roomId: number) => {
     if (roomId <= 0 || forwardingRoomId !== null)
@@ -185,7 +185,7 @@ function ForwardWindow({
         <div className="mt-3 flex gap-2 overflow-x-auto pb-1">
           {spaces.map((space, index) => {
             const spaceId = space.spaceId ?? -1;
-            const displayName = headers[`space:${spaceId}`]?.title || space.name || "未命名空间";
+            const displayName = space.name || "未命名空间";
             const isActive = selectedSpaceId === spaceId;
             return (
               <button

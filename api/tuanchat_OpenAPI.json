@@ -23,16 +23,20 @@
   ],
   "tags": [
     {
+      "name": "websocket-doc",
+      "description": "WebSocket文档生成（调试）"
+    },
+    {
+      "name": "DatabaseBackup",
+      "description": "数据库备份管理（调试）"
+    },
+    {
       "name": "UserController",
       "description": "用户相关接口"
     },
     {
-      "name": "AIWritingController",
-      "description": "AI帮写相关接口"
-    },
-    {
-      "name": "DatabaseBackup",
-      "description": "数据库备份管理"
+      "name": "StickerController",
+      "description": "表情包相关接口"
     },
     {
       "name": "AvatarController",
@@ -43,8 +47,8 @@
       "description": "资源管理相关接口"
     },
     {
-      "name": "websocket-doc",
-      "description": "WebSocket文档生成"
+      "name": "AiGatewayOpenAiController",
+      "description": "OpenAI 兼容 AI 网关接口"
     },
     {
       "name": "ClassificationController",
@@ -53,10 +57,6 @@
     {
       "name": "repositoryController",
       "description": "Repository 相关接口"
-    },
-    {
-      "name": "EmojiController",
-      "description": "表情包相关接口"
     },
     {
       "name": "AbilityController",
@@ -71,16 +71,8 @@
       "description": "消息会话相关接口"
     },
     {
-      "name": "UserPreference",
-      "description": "用户偏好接口"
-    },
-    {
       "name": "counter",
       "description": "计数器接口"
-    },
-    {
-      "name": "RoleGenerationController",
-      "description": "角色能力生成相关的接口"
     },
     {
       "name": "CommunityPostController",
@@ -89,6 +81,10 @@
     {
       "name": "RuleController",
       "description": "提供规则的增删改查功能"
+    },
+    {
+      "name": "AiGatewayController",
+      "description": "AI网关中转接口"
     },
     {
       "name": "FeedController",
@@ -128,292 +124,12 @@
     }
   ],
   "paths": {
-    "/user/preference": {
-      "get": {
-        "tags": [
-          "UserPreference"
-        ],
-        "summary": "获取用户偏好",
-        "operationId": "getUserPreference",
-        "parameters": [
-          {
-            "name": "userId",
-            "in": "query",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "format": "int64"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultUserPreferenceResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResult"
-                }
-              }
-            }
-          },
-          "405": {
-            "description": "Method Not Allowed",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultVoid"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Too Many Requests",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultObject"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResult"
-                }
-              }
-            }
-          }
-        }
-      },
-      "put": {
-        "tags": [
-          "UserPreference"
-        ],
-        "summary": "更新用户偏好",
-        "operationId": "updateUserPreference",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UserPreferenceRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultUserPreferenceResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResult"
-                }
-              }
-            }
-          },
-          "405": {
-            "description": "Method Not Allowed",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultVoid"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Too Many Requests",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultObject"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResult"
-                }
-              }
-            }
-          }
-        }
-      },
-      "post": {
-        "tags": [
-          "UserPreference"
-        ],
-        "summary": "创建用户偏好",
-        "operationId": "createUserPreference",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UserPreferenceRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultUserPreferenceResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResult"
-                }
-              }
-            }
-          },
-          "405": {
-            "description": "Method Not Allowed",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultVoid"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Too Many Requests",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultObject"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResult"
-                }
-              }
-            }
-          }
-        }
-      },
-      "delete": {
-        "tags": [
-          "UserPreference"
-        ],
-        "summary": "删除用户偏好",
-        "operationId": "deleteUserPreference",
-        "parameters": [
-          {
-            "name": "userId",
-            "in": "query",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "format": "int64"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultBoolean"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResult"
-                }
-              }
-            }
-          },
-          "405": {
-            "description": "Method Not Allowed",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultVoid"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Too Many Requests",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultObject"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResult"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/user/info": {
       "get": {
         "tags": [
           "UserController"
         ],
-        "summary": "获取用户信息",
+        "summary": "获取用户必要信息",
         "operationId": "getUserInfo",
         "parameters": [
           {
@@ -489,7 +205,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/UserInfoResponse"
+                "$ref": "#/components/schemas/UserUpdateInfoRequest"
               }
             }
           },
@@ -501,7 +217,7 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiResultUserInfoResponse"
+                  "$ref": "#/components/schemas/ApiResultUserPrivateInfoResponse"
                 }
               }
             }
@@ -1540,151 +1256,10 @@
         }
       }
     },
-    "/space/docFolder/tree": {
-      "get": {
-        "tags": [
-          "space-user-doc-folder-controller"
-        ],
-        "summary": "获取 Space 用户文档夹树",
-        "operationId": "getTree",
-        "parameters": [
-          {
-            "name": "spaceId",
-            "in": "query",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "format": "int64"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultSpaceUserDocFolderTreeResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResult"
-                }
-              }
-            }
-          },
-          "405": {
-            "description": "Method Not Allowed",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultVoid"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Too Many Requests",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultObject"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResult"
-                }
-              }
-            }
-          }
-        }
-      },
-      "put": {
-        "tags": [
-          "space-user-doc-folder-controller"
-        ],
-        "summary": "设置 Space 用户文档夹树",
-        "operationId": "setTree",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/SpaceUserDocFolderTreeSetRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultSpaceUserDocFolderTreeResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResult"
-                }
-              }
-            }
-          },
-          "405": {
-            "description": "Method Not Allowed",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultVoid"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Too Many Requests",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultObject"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResult"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/space/docFolder/doc/title": {
       "put": {
         "tags": [
-          "space-user-doc-folder-controller"
+          "space-user-doc-controller"
         ],
         "summary": "重命名 Space 用户文档",
         "operationId": "renameDoc",
@@ -1752,13 +1327,226 @@
         }
       }
     },
+    "/space/userDoc/doc/title": {
+      "put": {
+        "tags": [
+          "space-user-doc-controller"
+        ],
+        "summary": "重命名 Space 用户文档",
+        "operationId": "renameDoc_1",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SpaceUserDocRenameRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/space/docFolder/doc/tag": {
+      "put": {
+        "tags": [
+          "space-user-doc-controller"
+        ],
+        "summary": "更新 Space 用户文档标签",
+        "operationId": "updateDocTag",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SpaceUserDocTagUpdateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/space/userDoc/doc/tag": {
+      "put": {
+        "tags": [
+          "space-user-doc-controller"
+        ],
+        "summary": "更新 Space 用户文档标签",
+        "operationId": "updateDocTag_1",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SpaceUserDocTagUpdateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/space/doc/title": {
       "put": {
         "tags": [
           "space-doc-controller"
         ],
         "summary": "重命名 Space 共享文档",
-        "operationId": "renameDoc_1",
+        "operationId": "renameDoc_2",
         "requestBody": {
           "content": {
             "application/json": {
@@ -4614,16 +4402,8 @@
           "blocksuite-doc-controller"
         ],
         "summary": "删除Blocksuite文档快照（硬删除）",
-        "operationId": "deleteDoc_2",
+        "operationId": "deleteDoc_3",
         "parameters": [
-          {
-            "name": "entityType",
-            "in": "query",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
           {
             "name": "entityId",
             "in": "query",
@@ -4632,16 +4412,26 @@
               "type": "integer",
               "format": "int64"
             }
-          },
-          {
-            "name": "docType",
-            "in": "query",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "entityType": {
+                    "type": "string"
+                  },
+                  "docType": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "description": "OK",
@@ -5848,6 +5638,147 @@
         }
       }
     },
+    "/sticker": {
+      "post": {
+        "tags": [
+          "StickerController"
+        ],
+        "summary": "创建表情包",
+        "operationId": "createSticker",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StickerCreateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultLong"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "StickerController"
+        ],
+        "summary": "删除表情包",
+        "operationId": "deleteSticker",
+        "parameters": [
+          {
+            "name": "stickerId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/space/room": {
       "post": {
         "tags": [
@@ -6424,7 +6355,7 @@
     "/space/docFolder/doc": {
       "post": {
         "tags": [
-          "space-user-doc-folder-controller"
+          "space-user-doc-controller"
         ],
         "summary": "创建 Space 用户文档",
         "operationId": "createDoc_1",
@@ -6493,10 +6424,151 @@
       },
       "delete": {
         "tags": [
-          "space-user-doc-folder-controller"
+          "space-user-doc-controller"
         ],
         "summary": "删除 Space 用户文档（软删除）",
         "operationId": "deleteDoc_1",
+        "parameters": [
+          {
+            "name": "docId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/space/userDoc/doc": {
+      "post": {
+        "tags": [
+          "space-user-doc-controller"
+        ],
+        "summary": "创建 Space 用户文档",
+        "operationId": "createDoc_2",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SpaceUserDocCreateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultSpaceUserDocResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "space-user-doc-controller"
+        ],
+        "summary": "删除 Space 用户文档（软删除）",
+        "operationId": "deleteDoc_2",
         "parameters": [
           {
             "name": "docId",
@@ -8626,13 +8698,13 @@
         }
       }
     },
-    "/like": {
+    "/marks": {
       "get": {
         "tags": [
-          "LikeRecordController"
+          "MarkController"
         ],
-        "summary": "查询是否点赞过",
-        "operationId": "isLiked",
+        "summary": "查询是否已标记",
+        "operationId": "isMarked",
         "parameters": [
           {
             "name": "targetId",
@@ -8650,6 +8722,14 @@
             "schema": {
               "type": "string",
               "format": "byte"
+            }
+          },
+          {
+            "name": "markType",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
             }
           }
         ],
@@ -8708,15 +8788,15 @@
       },
       "post": {
         "tags": [
-          "LikeRecordController"
+          "MarkController"
         ],
-        "summary": "点赞",
-        "operationId": "like",
+        "summary": "添加标记",
+        "operationId": "mark",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/LikeRecordRequest"
+                "$ref": "#/components/schemas/MarkRecordRequest"
               }
             }
           },
@@ -8777,15 +8857,15 @@
       },
       "delete": {
         "tags": [
-          "LikeRecordController"
+          "MarkController"
         ],
-        "summary": "取消点赞",
-        "operationId": "unlike",
+        "summary": "取消标记",
+        "operationId": "unmark",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/LikeRecordRequest"
+                "$ref": "#/components/schemas/MarkRecordRequest"
               }
             }
           },
@@ -8845,89 +8925,18 @@
         }
       }
     },
-    "/like/user/page": {
+    "/marks/count/batch": {
       "post": {
         "tags": [
-          "LikeRecordController"
+          "MarkController"
         ],
-        "summary": "获取用户点赞的内容",
-        "operationId": "getUserLikedPage",
+        "summary": "批量获取标记数量",
+        "operationId": "batchGetMarkCount",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/PageBaseRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultPageBaseRespLikeRecord"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResult"
-                }
-              }
-            }
-          },
-          "405": {
-            "description": "Method Not Allowed",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultVoid"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Too Many Requests",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultObject"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResult"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/like/count/batch": {
-      "post": {
-        "tags": [
-          "LikeRecordController"
-        ],
-        "summary": "批量获取点赞数量",
-        "operationId": "batchGetLikeCount",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/LikeCountRequest"
+                "$ref": "#/components/schemas/MarkCountRequest"
               }
             }
           },
@@ -8987,18 +8996,18 @@
         }
       }
     },
-    "/like/batch": {
+    "/marks/batch": {
       "post": {
         "tags": [
-          "LikeRecordController"
+          "MarkController"
         ],
-        "summary": "批量查询是否点赞过",
-        "operationId": "batchIsLiked",
+        "summary": "批量查询标记状态",
+        "operationId": "batchIsMarked",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/BatchLikeRecordRequest"
+                "$ref": "#/components/schemas/BatchMarkStatusRequest"
               }
             }
           },
@@ -9010,7 +9019,7 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiResultListLikeStatusResp"
+                  "$ref": "#/components/schemas/ApiResultListMarkStatusResp"
                 }
               }
             }
@@ -10228,217 +10237,6 @@
               "*/*": {
                 "schema": {
                   "$ref": "#/components/schemas/ApiResultFeedWithStatsResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResult"
-                }
-              }
-            }
-          },
-          "405": {
-            "description": "Method Not Allowed",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultVoid"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Too Many Requests",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultObject"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResult"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/emoji": {
-      "get": {
-        "tags": [
-          "EmojiController"
-        ],
-        "summary": "根据ID获取表情包",
-        "operationId": "getEmoji",
-        "parameters": [
-          {
-            "name": "emojiId",
-            "in": "query",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "format": "int64"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultEmoji"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResult"
-                }
-              }
-            }
-          },
-          "405": {
-            "description": "Method Not Allowed",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultVoid"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Too Many Requests",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultObject"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResult"
-                }
-              }
-            }
-          }
-        }
-      },
-      "post": {
-        "tags": [
-          "EmojiController"
-        ],
-        "summary": "创建表情包",
-        "operationId": "createEmoji",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/EmojiCreateRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultLong"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResult"
-                }
-              }
-            }
-          },
-          "405": {
-            "description": "Method Not Allowed",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultVoid"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Too Many Requests",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultObject"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResult"
-                }
-              }
-            }
-          }
-        }
-      },
-      "delete": {
-        "tags": [
-          "EmojiController"
-        ],
-        "summary": "删除表情包",
-        "operationId": "deleteEmoji",
-        "parameters": [
-          {
-            "name": "emojiId",
-            "in": "query",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "format": "int64"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultVoid"
                 }
               }
             }
@@ -13197,150 +12995,6 @@
         }
       }
     },
-    "/capi/ai/generateBasicInfoByRule": {
-      "post": {
-        "tags": [
-          "RoleGenerationController"
-        ],
-        "summary": "AI 根据规则生成角色基本信息",
-        "description": "根据规则生成角色基本信息。",
-        "operationId": "generateBasicInfoByRule",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/RoleGenerationRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultMapObjectObject"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResult"
-                }
-              }
-            }
-          },
-          "405": {
-            "description": "Method Not Allowed",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultVoid"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Too Many Requests",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultObject"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResult"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/capi/ai/generateAbilityByRule": {
-      "post": {
-        "tags": [
-          "RoleGenerationController"
-        ],
-        "summary": "AI 根据规则生成角色基本属性",
-        "description": "根据规则生成角色基本属性。",
-        "operationId": "generateAbilityByRule",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/RoleGenerationRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultMapObjectObject"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResult"
-                }
-              }
-            }
-          },
-          "405": {
-            "description": "Method Not Allowed",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultVoid"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Too Many Requests",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultObject"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResult"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/blocksuite/doc/update": {
       "post": {
         "tags": [
@@ -13605,19 +13259,91 @@
         }
       }
     },
-    "/ai/writing/rewrite": {
+    "/ai/gateway/v1/chat/completions": {
       "post": {
         "tags": [
-          "AIWritingController"
+          "AiGatewayOpenAiController"
         ],
-        "summary": "ai润色",
-        "description": "根据跑团聊天记录和用户输入润色文本",
-        "operationId": "rewrite",
+        "summary": "OpenAI兼容对话补全",
+        "description": "兼容 OpenAI chat/completions 非流式请求",
+        "operationId": "chatCompletions",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/RewriteRequest"
+                "$ref": "#/components/schemas/OpenAiChatCompletionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/OpenAiChatCompletionResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/ai/gateway/relay": {
+      "post": {
+        "tags": [
+          "AiGatewayController"
+        ],
+        "summary": "统一AI中转",
+        "description": "按 model 路由到目标模型并透传 prompt",
+        "operationId": "relay",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AiGatewayRelayRequest"
               }
             }
           },
@@ -13677,93 +13403,21 @@
         }
       }
     },
-    "/ai/writing/middleCompletion": {
-      "post": {
+    "/user/info/profile": {
+      "get": {
         "tags": [
-          "AIWritingController"
+          "UserController"
         ],
-        "summary": "虚影补全（中间插入）",
-        "description": "根据跑团聊天记录和用户上下文输入自动补全文本",
-        "operationId": "middleCompletion",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/MiddleCompletionRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultString"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResult"
-                }
-              }
-            }
-          },
-          "405": {
-            "description": "Method Not Allowed",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultVoid"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Too Many Requests",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultObject"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResult"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/ai/writing/max": {
-      "post": {
-        "tags": [
-          "AIWritingController"
-        ],
-        "summary": "直接调用qwen-max",
-        "description": "直接调用ai生成文本，无预设提示词",
-        "operationId": "max",
+        "summary": "获取用户主页信息",
+        "operationId": "getUserProfileInfo",
         "parameters": [
           {
-            "name": "result",
+            "name": "userId",
             "in": "query",
             "required": true,
             "schema": {
-              "type": "string"
+              "type": "integer",
+              "format": "int64"
             }
           }
         ],
@@ -13773,7 +13427,7 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiResultString"
+                  "$ref": "#/components/schemas/ApiResultUserProfileInfoResponse"
                 }
               }
             }
@@ -13821,103 +13475,20 @@
         }
       }
     },
-    "/ai/writing/flash": {
-      "post": {
+    "/user/info/me": {
+      "get": {
         "tags": [
-          "AIWritingController"
+          "UserController"
         ],
-        "summary": "直接调用qwen-flash",
-        "description": "直接调用ai生成文本，无预设提示词",
-        "operationId": "flash",
-        "parameters": [
-          {
-            "name": "result",
-            "in": "query",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
+        "summary": "获取当前登录用户信息（仅本人）",
+        "operationId": "getMyUserInfo",
         "responses": {
           "200": {
             "description": "OK",
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiResultString"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResult"
-                }
-              }
-            }
-          },
-          "405": {
-            "description": "Method Not Allowed",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultVoid"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Too Many Requests",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultObject"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResult"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/ai/writing/completion": {
-      "post": {
-        "tags": [
-          "AIWritingController"
-        ],
-        "summary": "虚影补全",
-        "description": "根据跑团聊天记录自动补全文本",
-        "operationId": "completion",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CompletionRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultString"
+                  "$ref": "#/components/schemas/ApiResultUserPrivateInfoResponse"
                 }
               }
             }
@@ -13970,7 +13541,7 @@
         "tags": [
           "UserController"
         ],
-        "summary": "通过用户名获取用户信息",
+        "summary": "通过用户名获取用户必要信息",
         "operationId": "getUserInfoByUsername",
         "parameters": [
           {
@@ -14061,6 +13632,67 @@
               "*/*": {
                 "schema": {
                   "$ref": "#/components/schemas/ApiResultListTag"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sticker/list": {
+      "get": {
+        "tags": [
+          "StickerController"
+        ],
+        "summary": "获取用户表情包列表",
+        "operationId": "getUserStickers",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultListSticker"
                 }
               }
             }
@@ -14548,9 +14180,9 @@
     "/space/docFolder/docs": {
       "get": {
         "tags": [
-          "space-user-doc-folder-controller"
+          "space-user-doc-controller"
         ],
-        "summary": "获取 Space 用户文档列表",
+        "summary": "获取 Space 用户文档列表（支持按 tag 过滤）",
         "operationId": "listDocs",
         "parameters": [
           {
@@ -14560,6 +14192,94 @@
             "schema": {
               "type": "integer",
               "format": "int64"
+            }
+          },
+          {
+            "name": "tag",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultListSpaceUserDocResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/space/userDoc/docs": {
+      "get": {
+        "tags": [
+          "space-user-doc-controller"
+        ],
+        "summary": "获取 Space 用户文档列表（支持按 tag 过滤）",
+        "operationId": "listDocs_1",
+        "parameters": [
+          {
+            "name": "spaceId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "tag",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
             }
           }
         ],
@@ -14623,7 +14343,7 @@
           "space-doc-controller"
         ],
         "summary": "获取 Space 共享文档列表",
-        "operationId": "listDocs_1",
+        "operationId": "listDocs_2",
         "parameters": [
           {
             "name": "spaceId",
@@ -15921,13 +15641,13 @@
         }
       }
     },
-    "/like/count": {
+    "/marks/count": {
       "get": {
         "tags": [
-          "LikeRecordController"
+          "MarkController"
         ],
-        "summary": "获取点赞数量",
-        "operationId": "getLikeCount",
+        "summary": "获取标记数量",
+        "operationId": "getMarkCount",
         "parameters": [
           {
             "name": "targetId",
@@ -15945,6 +15665,14 @@
             "schema": {
               "type": "string",
               "format": "byte"
+            }
+          },
+          {
+            "name": "markType",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
             }
           }
         ],
@@ -16027,67 +15755,6 @@
               "*/*": {
                 "schema": {
                   "$ref": "#/components/schemas/ApiResultFeedWithStatsResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResult"
-                }
-              }
-            }
-          },
-          "405": {
-            "description": "Method Not Allowed",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultVoid"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Too Many Requests",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultObject"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResult"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/emoji/list": {
-      "get": {
-        "tags": [
-          "EmojiController"
-        ],
-        "summary": "获取用户表情包列表",
-        "operationId": "getUserEmojis",
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultListEmoji"
                 }
               }
             }
@@ -17829,34 +17496,49 @@
         },
         "description": "基础返回体"
       },
-      "UserPreferenceRequest": {
+      "UserUpdateInfoRequest": {
+        "required": [
+          "userId"
+        ],
         "type": "object",
         "properties": {
-          "gameplayScore": {
-            "type": "string",
-            "description": "游戏性(G)得分(0-10)",
-            "format": "byte"
+          "userId": {
+            "type": "integer",
+            "description": "用户ID",
+            "format": "int64"
           },
-          "narrativeScore": {
+          "username": {
             "type": "string",
-            "description": "叙事性(N)得分(0-10)",
-            "format": "byte"
+            "description": "用户名"
           },
-          "simulationScore": {
+          "avatar": {
             "type": "string",
-            "description": "模拟性(S)得分(0-10)",
-            "format": "byte"
+            "description": "头像URL"
           },
-          "preferenceDesc": {
-            "maxLength": 500,
-            "minLength": 0,
+          "avatarThumbUrl": {
             "type": "string",
-            "description": "偏好描述"
+            "description": "头像缩略图URL"
+          },
+          "description": {
+            "type": "string",
+            "description": "用户描述信息,个人签名"
+          },
+          "gender": {
+            "type": "string",
+            "description": "性别: 隐藏(null) 男 女"
+          },
+          "extra": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "object",
+              "description": "扩展字段，JSON 格式"
+            },
+            "description": "扩展字段，JSON 格式"
           }
         },
-        "description": "用户偏好请求"
+        "description": "用户信息更新请求"
       },
-      "ApiResultUserPreferenceResponse": {
+      "ApiResultUserPrivateInfoResponse": {
         "required": [
           "success"
         ],
@@ -17876,42 +17558,12 @@
             "description": "错误消息"
           },
           "data": {
-            "$ref": "#/components/schemas/UserPreferenceResponse"
+            "$ref": "#/components/schemas/UserPrivateInfoResponse"
           }
         },
         "description": "基础返回体"
       },
-      "UserPreferenceResponse": {
-        "type": "object",
-        "properties": {
-          "userId": {
-            "type": "integer",
-            "description": "用户ID",
-            "format": "int64"
-          },
-          "gameplayScore": {
-            "type": "string",
-            "description": "游戏性(G)得分(0-10)",
-            "format": "byte"
-          },
-          "narrativeScore": {
-            "type": "string",
-            "description": "叙事性(N)得分(0-10)",
-            "format": "byte"
-          },
-          "simulationScore": {
-            "type": "string",
-            "description": "模拟性(S)得分(0-10)",
-            "format": "byte"
-          },
-          "preferenceDesc": {
-            "type": "string",
-            "description": "偏好描述"
-          }
-        },
-        "description": "用户偏好响应"
-      },
-      "UserInfoResponse": {
+      "UserPrivateInfoResponse": {
         "required": [
           "userId"
         ],
@@ -17958,37 +17610,13 @@
           "extra": {
             "type": "object",
             "additionalProperties": {
-              "type": "string",
-              "description": "用户"
+              "type": "object",
+              "description": "私有扩展字段，JSON 格式"
             },
-            "description": "用户"
-          }
-        }
-      },
-      "ApiResultUserInfoResponse": {
-        "required": [
-          "success"
-        ],
-        "type": "object",
-        "properties": {
-          "success": {
-            "type": "boolean",
-            "description": "成功标识true or false"
-          },
-          "errCode": {
-            "type": "integer",
-            "description": "错误码",
-            "format": "int32"
-          },
-          "errMsg": {
-            "type": "string",
-            "description": "错误消息"
-          },
-          "data": {
-            "$ref": "#/components/schemas/UserInfoResponse"
+            "description": "私有扩展字段，JSON 格式"
           }
         },
-        "description": "基础返回体"
+        "description": "返回对象"
       },
       "TagUpdateRequest": {
         "required": [
@@ -18271,80 +17899,6 @@
           }
         }
       },
-      "SpaceUserDocFolderTreeSetRequest": {
-        "required": [
-          "expectedVersion",
-          "spaceId",
-          "treeJson"
-        ],
-        "type": "object",
-        "properties": {
-          "spaceId": {
-            "type": "integer",
-            "description": "空间ID",
-            "format": "int64"
-          },
-          "expectedVersion": {
-            "type": "integer",
-            "description": "期望版本号（乐观锁）",
-            "format": "int64"
-          },
-          "treeJson": {
-            "type": "string",
-            "description": "文档夹树JSON"
-          }
-        }
-      },
-      "ApiResultSpaceUserDocFolderTreeResponse": {
-        "required": [
-          "success"
-        ],
-        "type": "object",
-        "properties": {
-          "success": {
-            "type": "boolean",
-            "description": "成功标识true or false"
-          },
-          "errCode": {
-            "type": "integer",
-            "description": "错误码",
-            "format": "int32"
-          },
-          "errMsg": {
-            "type": "string",
-            "description": "错误消息"
-          },
-          "data": {
-            "$ref": "#/components/schemas/SpaceUserDocFolderTreeResponse"
-          }
-        },
-        "description": "基础返回体"
-      },
-      "SpaceUserDocFolderTreeResponse": {
-        "type": "object",
-        "properties": {
-          "spaceId": {
-            "type": "integer",
-            "description": "空间ID",
-            "format": "int64"
-          },
-          "userId": {
-            "type": "integer",
-            "description": "用户ID（所有者）",
-            "format": "int64"
-          },
-          "version": {
-            "type": "integer",
-            "description": "当前版本号",
-            "format": "int64"
-          },
-          "treeJson": {
-            "type": "string",
-            "description": "文档夹树JSON（为 null 表示尚未初始化）"
-          }
-        },
-        "description": "Space 用户文档夹树返回"
-      },
       "SpaceUserDocRenameRequest": {
         "required": [
           "docId",
@@ -18362,6 +17916,26 @@
             "description": "标题"
           }
         }
+      },
+      "SpaceUserDocTagUpdateRequest": {
+        "required": [
+          "docId"
+        ],
+        "type": "object",
+        "properties": {
+          "docId": {
+            "type": "integer",
+            "description": "文档ID",
+            "format": "int64"
+          },
+          "tag": {
+            "maxLength": 64,
+            "minLength": 0,
+            "type": "string",
+            "description": "标签（可选，留空表示清除）"
+          }
+        },
+        "description": "更新 Space 用户文档标签请求"
       },
       "SpaceDocRenameRequest": {
         "required": [
@@ -19095,6 +18669,10 @@
             "type": "string",
             "description": "用户收藏注释"
           },
+          "markType": {
+            "type": "string",
+            "description": "标记类型"
+          },
           "isDeleted": {
             "type": "boolean",
             "description": "逻辑删除"
@@ -19252,13 +18830,6 @@
         "properties": {
           "message": {
             "$ref": "#/components/schemas/Message"
-          },
-          "messageMark": {
-            "type": "array",
-            "description": "消息标记",
-            "items": {
-              "$ref": "#/components/schemas/MessageMark"
-            }
           }
         },
         "description": "转发的消息列表，json写死的，不会随着原来的消息而改变"
@@ -19599,46 +19170,6 @@
           }
         },
         "description": "不同类型消息持有的额外信息"
-      },
-      "MessageMark": {
-        "type": "object",
-        "properties": {
-          "messageMarkId": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "messageId": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "userId": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "roleId": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "type": {
-            "type": "integer",
-            "description": "消息类型",
-            "format": "int64"
-          },
-          "avatarId": {
-            "type": "integer",
-            "description": "回复的",
-            "format": "int64"
-          },
-          "createTime": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "updateTime": {
-            "type": "string",
-            "format": "date-time"
-          }
-        },
-        "description": "MessageMark"
       },
       "SoundMessage": {
         "required": [
@@ -20274,6 +19805,77 @@
         },
         "description": "基础返回体"
       },
+      "StickerCreateRequest": {
+        "required": [
+          "fileSize",
+          "format",
+          "imageUrl",
+          "name"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "maxLength": 100,
+            "minLength": 0,
+            "type": "string",
+            "description": "表情包名称"
+          },
+          "imageUrl": {
+            "type": "string",
+            "description": "图片URL"
+          },
+          "fileSize": {
+            "minimum": 1,
+            "type": "integer",
+            "description": "文件大小(bytes)",
+            "format": "int64"
+          },
+          "width": {
+            "minimum": 1,
+            "type": "integer",
+            "description": "图片宽度",
+            "format": "int32"
+          },
+          "height": {
+            "minimum": 1,
+            "type": "integer",
+            "description": "图片高度",
+            "format": "int32"
+          },
+          "format": {
+            "pattern": "^(jpg|jpeg|png|gif|webp)$",
+            "type": "string",
+            "description": "图片格式"
+          }
+        }
+      },
+      "ApiResultLong": {
+        "required": [
+          "success"
+        ],
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "description": "成功标识true or false"
+          },
+          "errCode": {
+            "type": "integer",
+            "description": "错误码",
+            "format": "int32"
+          },
+          "errMsg": {
+            "type": "string",
+            "description": "错误消息"
+          },
+          "data": {
+            "type": "integer",
+            "description": "返回对象",
+            "format": "int64"
+          }
+        },
+        "description": "基础返回体"
+      },
       "RoomAddRequest": {
         "required": [
           "spaceId"
@@ -20418,33 +20020,6 @@
         },
         "description": "空间角色映射"
       },
-      "ApiResultLong": {
-        "required": [
-          "success"
-        ],
-        "type": "object",
-        "properties": {
-          "success": {
-            "type": "boolean",
-            "description": "成功标识true or false"
-          },
-          "errCode": {
-            "type": "integer",
-            "description": "错误码",
-            "format": "int32"
-          },
-          "errMsg": {
-            "type": "string",
-            "description": "错误消息"
-          },
-          "data": {
-            "type": "integer",
-            "description": "返回对象",
-            "format": "int64"
-          }
-        },
-        "description": "基础返回体"
-      },
       "SpaceMemberAddRequest": {
         "required": [
           "spaceId",
@@ -20560,6 +20135,12 @@
           "title": {
             "type": "string",
             "description": "文档标题（可选）"
+          },
+          "tag": {
+            "maxLength": 64,
+            "minLength": 0,
+            "type": "string",
+            "description": "文档分类标签（可选）"
           }
         }
       },
@@ -20609,6 +20190,10 @@
           "title": {
             "type": "string",
             "description": "标题"
+          },
+          "tag": {
+            "type": "string",
+            "description": "标签（可选）"
           },
           "createTime": {
             "type": "string",
@@ -22533,8 +22118,9 @@
         },
         "description": "基础返回体"
       },
-      "LikeRecordRequest": {
+      "MarkRecordRequest": {
         "required": [
+          "markType",
           "targetId",
           "targetType"
         ],
@@ -22542,107 +22128,28 @@
         "properties": {
           "targetId": {
             "type": "integer",
-            "description": "目标内容ID",
+            "description": "目标ID",
             "format": "int64"
           },
           "targetType": {
             "type": "string",
-            "description": "目标类型(1-feed, 2-post, 3-repository等)",
-            "format": "byte"
-          }
-        },
-        "description": "点赞请求参数"
-      },
-      "ApiResultPageBaseRespLikeRecord": {
-        "required": [
-          "success"
-        ],
-        "type": "object",
-        "properties": {
-          "success": {
-            "type": "boolean",
-            "description": "成功标识true or false"
-          },
-          "errCode": {
-            "type": "integer",
-            "description": "错误码",
-            "format": "int32"
-          },
-          "errMsg": {
-            "type": "string",
-            "description": "错误消息"
-          },
-          "data": {
-            "$ref": "#/components/schemas/PageBaseRespLikeRecord"
-          }
-        },
-        "description": "基础返回体"
-      },
-      "LikeRecord": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "integer",
-            "description": "主键ID",
-            "format": "int64"
-          },
-          "userId": {
-            "type": "integer",
-            "description": "用户ID",
-            "format": "int64"
-          },
-          "targetId": {
-            "type": "integer",
-            "description": "目标内容ID",
-            "format": "int64"
-          },
-          "targetType": {
-            "type": "string",
-            "description": "目标类型(1-feed, 2-post, 3-repository等)",
+            "description": "目标类型",
             "format": "byte"
           },
-          "createTime": {
+          "markType": {
             "type": "string",
-            "description": "创建时间",
-            "format": "date-time"
+            "description": "标记类型：like/collect",
+            "enum": [
+              "like",
+              "collect"
+            ]
           }
         },
-        "description": "点赞记录表"
+        "description": "标记操作请求"
       },
-      "PageBaseRespLikeRecord": {
-        "type": "object",
-        "properties": {
-          "pageNo": {
-            "type": "integer",
-            "description": "当前页数",
-            "format": "int32"
-          },
-          "pageSize": {
-            "type": "integer",
-            "description": "每页查询数量",
-            "format": "int32"
-          },
-          "totalRecords": {
-            "type": "integer",
-            "description": "总记录数",
-            "format": "int64"
-          },
-          "isLast": {
-            "type": "boolean",
-            "description": "是否最后一页"
-          },
-          "list": {
-            "type": "array",
-            "description": "数据列表",
-            "items": {
-              "$ref": "#/components/schemas/LikeRecord"
-            }
-          }
-        },
-        "description": "基础翻页返回"
-      },
-      "LikeCountRequest": {
+      "MarkCountRequest": {
         "required": [
+          "markType",
           "targetIds",
           "targetType"
         ],
@@ -22650,20 +22157,28 @@
         "properties": {
           "targetIds": {
             "type": "array",
-            "description": "目标内容ID列表",
+            "description": "目标ID列表",
             "items": {
               "type": "integer",
-              "description": "目标内容ID列表",
+              "description": "目标ID列表",
               "format": "int64"
             }
           },
           "targetType": {
             "type": "string",
-            "description": "目标类型(1-feed, 2-post, 3-repository等)",
+            "description": "目标类型",
             "format": "byte"
+          },
+          "markType": {
+            "type": "string",
+            "description": "标记类型：like/collect",
+            "enum": [
+              "like",
+              "collect"
+            ]
           }
         },
-        "description": "点赞计数查询请求参数"
+        "description": "批量标记计数查询请求"
       },
       "ApiResultMapLongInteger": {
         "required": [
@@ -22696,39 +22211,52 @@
         },
         "description": "基础返回体"
       },
-      "BatchLikeRecordRequest": {
+      "BatchMarkStatusRequest": {
         "required": [
+          "markType",
           "targets"
         ],
         "type": "object",
         "properties": {
+          "markType": {
+            "type": "string",
+            "description": "标记类型：like/collect",
+            "enum": [
+              "like",
+              "collect"
+            ]
+          },
           "targets": {
             "type": "array",
-            "description": "目标内容列表",
+            "description": "目标列表",
             "items": {
-              "$ref": "#/components/schemas/LikeTarget"
+              "$ref": "#/components/schemas/MarkTarget"
             }
           }
         },
-        "description": "批量点赞查询请求参数"
+        "description": "批量标记状态查询请求"
       },
-      "LikeTarget": {
+      "MarkTarget": {
+        "required": [
+          "targetId",
+          "targetType"
+        ],
         "type": "object",
         "properties": {
           "targetId": {
             "type": "integer",
-            "description": "目标内容ID",
+            "description": "目标ID",
             "format": "int64"
           },
           "targetType": {
             "type": "string",
-            "description": "目标类型(1-feed, 2-post, 3-repository等)",
+            "description": "目标类型",
             "format": "byte"
           }
         },
-        "description": "点赞目标"
+        "description": "标记目标"
       },
-      "ApiResultListLikeStatusResp": {
+      "ApiResultListMarkStatusResp": {
         "required": [
           "success"
         ],
@@ -22751,18 +22279,18 @@
             "type": "array",
             "description": "返回对象",
             "items": {
-              "$ref": "#/components/schemas/LikeStatusResp"
+              "$ref": "#/components/schemas/MarkStatusResp"
             }
           }
         },
         "description": "基础返回体"
       },
-      "LikeStatusResp": {
+      "MarkStatusResp": {
         "type": "object",
         "properties": {
           "targetId": {
             "type": "integer",
-            "description": "目标内容ID",
+            "description": "目标ID",
             "format": "int64"
           },
           "targetType": {
@@ -22770,12 +22298,12 @@
             "description": "目标类型",
             "format": "byte"
           },
-          "isLiked": {
+          "marked": {
             "type": "boolean",
-            "description": "是否点赞"
+            "description": "是否已标记"
           }
         },
-        "description": "点赞状态响应"
+        "description": "标记状态响应"
       },
       "ShortLinkCreateRequest": {
         "required": [
@@ -23314,50 +22842,6 @@
           }
         },
         "description": "基础返回体"
-      },
-      "EmojiCreateRequest": {
-        "required": [
-          "fileSize",
-          "format",
-          "imageUrl",
-          "name"
-        ],
-        "type": "object",
-        "properties": {
-          "name": {
-            "maxLength": 100,
-            "minLength": 0,
-            "type": "string",
-            "description": "表情包名称"
-          },
-          "imageUrl": {
-            "type": "string",
-            "description": "图片URL"
-          },
-          "fileSize": {
-            "minimum": 1,
-            "type": "integer",
-            "description": "文件大小(bytes)",
-            "format": "int64"
-          },
-          "width": {
-            "minimum": 1,
-            "type": "integer",
-            "description": "图片宽度",
-            "format": "int32"
-          },
-          "height": {
-            "minimum": 1,
-            "type": "integer",
-            "description": "图片高度",
-            "format": "int32"
-          },
-          "format": {
-            "pattern": "^(jpg|jpeg|png|gif|webp)$",
-            "type": "string",
-            "description": "图片格式"
-          }
-        }
       },
       "UVOperationDTO": {
         "required": [
@@ -24987,57 +24471,6 @@
         },
         "description": "Repository fork 翻页请求"
       },
-      "RoleGenerationRequest": {
-        "required": [
-          "prompt",
-          "ruleId"
-        ],
-        "type": "object",
-        "properties": {
-          "prompt": {
-            "type": "string",
-            "description": "用户提示词和上下文",
-            "example": "一个活泼开朗的女高中生角色"
-          },
-          "ruleId": {
-            "type": "integer",
-            "description": "规则模板ID",
-            "format": "int64",
-            "example": 1
-          }
-        },
-        "description": "AI角色生成请求"
-      },
-      "ApiResultMapObjectObject": {
-        "required": [
-          "success"
-        ],
-        "type": "object",
-        "properties": {
-          "success": {
-            "type": "boolean",
-            "description": "成功标识true or false"
-          },
-          "errCode": {
-            "type": "integer",
-            "description": "错误码",
-            "format": "int32"
-          },
-          "errMsg": {
-            "type": "string",
-            "description": "错误消息"
-          },
-          "data": {
-            "type": "object",
-            "additionalProperties": {
-              "type": "object",
-              "description": "返回对象"
-            },
-            "description": "返回对象"
-          }
-        },
-        "description": "基础返回体"
-      },
       "BlocksuiteDocUpdatePushRequest": {
         "required": [
           "docType",
@@ -25156,72 +24589,327 @@
         },
         "description": "创建角色头像的请求"
       },
-      "RewriteRequest": {
+      "OpenAiChatCompletionRequest": {
         "required": [
-          "chatHistory",
-          "roleName",
-          "userInput"
+          "messages",
+          "model"
         ],
         "type": "object",
         "properties": {
-          "roleName": {
+          "model": {
             "type": "string",
-            "description": "角色姓名"
+            "description": "模型别名（支持 qwen-flash/qwen-max/gpt-4o-mini/gpt-4o/gpt-5/gpt-5-mini/gemini-2.5-flash/gemini-2.5-flash-image/gemini-3-flash-preview/gemini-3-pro-image-preview/gemini-3-pro-preview）",
+            "example": "qwen-flash"
           },
-          "chatHistory": {
-            "type": "string",
-            "description": "聊天记录"
+          "messages": {
+            "type": "array",
+            "description": "消息列表，至少包含一条消息",
+            "items": {
+              "$ref": "#/components/schemas/Message"
+            }
           },
-          "userInput": {
-            "type": "string",
-            "description": "用户输入"
+          "temperature": {
+            "maximum": 2,
+            "exclusiveMaximum": false,
+            "minimum": 0,
+            "exclusiveMinimum": false,
+            "type": "number",
+            "description": "采样温度，范围 [0,2]，可选",
+            "example": 0.7
+          },
+          "stream": {
+            "type": "boolean",
+            "description": "是否流式输出。阶段1仅支持 false",
+            "example": false
+          },
+          "top_p": {
+            "maximum": 1,
+            "exclusiveMaximum": false,
+            "minimum": 0,
+            "exclusiveMinimum": false,
+            "type": "number",
+            "description": "核采样参数，范围 [0,1]，可选",
+            "example": 1
           }
         },
-        "description": "ai润色请求"
+        "description": "OpenAI 兼容 chat/completions 请求"
       },
-      "MiddleCompletionRequest": {
-        "required": [
-          "chatHistory",
-          "roleName"
-        ],
+      "Choice": {
         "type": "object",
         "properties": {
-          "roleName": {
-            "type": "string",
-            "description": "角色姓名"
+          "index": {
+            "type": "integer",
+            "format": "int32"
           },
-          "chatHistory": {
-            "type": "string",
-            "description": "聊天记录"
+          "message": {
+            "$ref": "#/components/schemas/Message"
           },
-          "preInput": {
-            "type": "string",
-            "description": "插入前文本"
-          },
-          "postInput": {
-            "type": "string",
-            "description": "插入后文本"
+          "finish_reason": {
+            "type": "string"
           }
-        },
-        "description": "虚影补全请求（中间插入）"
+        }
       },
-      "CompletionRequest": {
+      "OpenAiChatCompletionResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "object": {
+            "type": "string"
+          },
+          "created": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "model": {
+            "type": "string"
+          },
+          "choices": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Choice"
+            }
+          },
+          "usage": {
+            "$ref": "#/components/schemas/Usage"
+          }
+        },
+        "description": "OpenAI 兼容 chat/completions 响应"
+      },
+      "Usage": {
+        "type": "object",
+        "properties": {
+          "prompt_tokens": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "completion_tokens": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "total_tokens": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "AiGatewayRelayRequest": {
         "required": [
-          "chatHistory",
-          "roleName"
+          "model",
+          "prompt"
         ],
         "type": "object",
         "properties": {
-          "roleName": {
+          "model": {
             "type": "string",
-            "description": "角色姓名"
+            "description": "目标模型别名（支持 qwen-flash/qwen-max/gpt-4o-mini/gpt-4o/gpt-5/gpt-5-mini/gemini-2.5-flash/gemini-2.5-flash-image/gemini-3-flash-preview/gemini-3-pro-image-preview/gemini-3-pro-preview）",
+            "example": "qwen-flash"
           },
-          "chatHistory": {
+          "prompt": {
             "type": "string",
-            "description": "聊天记录"
+            "description": "要转发给模型的用户输入文本"
           }
         },
-        "description": "虚影补全请求"
+        "description": "AI网关文本中转请求"
+      },
+      "ApiResultUserInfoResponse": {
+        "required": [
+          "success"
+        ],
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "description": "成功标识true or false"
+          },
+          "errCode": {
+            "type": "integer",
+            "description": "错误码",
+            "format": "int32"
+          },
+          "errMsg": {
+            "type": "string",
+            "description": "错误消息"
+          },
+          "data": {
+            "$ref": "#/components/schemas/UserInfoResponse"
+          }
+        },
+        "description": "基础返回体"
+      },
+      "UserInfoResponse": {
+        "required": [
+          "userId"
+        ],
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "integer",
+            "description": "用户的uid，全局唯一",
+            "format": "int64"
+          },
+          "username": {
+            "type": "string"
+          },
+          "avatar": {
+            "type": "string",
+            "description": "头像的url"
+          },
+          "avatarThumbUrl": {
+            "type": "string",
+            "description": "头像缩略图的url"
+          },
+          "activeStatus": {
+            "type": "string",
+            "description": "1 在线 0 离线",
+            "format": "byte"
+          }
+        },
+        "description": "返回对象"
+      },
+      "ApiResultUserProfileInfoResponse": {
+        "required": [
+          "success"
+        ],
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "description": "成功标识true or false"
+          },
+          "errCode": {
+            "type": "integer",
+            "description": "错误码",
+            "format": "int32"
+          },
+          "errMsg": {
+            "type": "string",
+            "description": "错误消息"
+          },
+          "data": {
+            "$ref": "#/components/schemas/UserProfileInfoResponse"
+          }
+        },
+        "description": "基础返回体"
+      },
+      "UserProfileInfoResponse": {
+        "required": [
+          "userId"
+        ],
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "integer",
+            "description": "用户的uid，全局唯一",
+            "format": "int64"
+          },
+          "username": {
+            "type": "string"
+          },
+          "avatar": {
+            "type": "string",
+            "description": "头像的url"
+          },
+          "avatarThumbUrl": {
+            "type": "string",
+            "description": "头像缩略图的url"
+          },
+          "activeStatus": {
+            "type": "string",
+            "description": "1 在线 0 离线",
+            "format": "byte"
+          },
+          "description": {
+            "type": "string",
+            "description": "用户描述信息,个人签名"
+          },
+          "gender": {
+            "type": "string",
+            "description": "性别: 隐藏(null) 男 女"
+          },
+          "extra": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "object",
+              "description": "公开扩展字段，JSON 格式（例如 gnsPreference）"
+            },
+            "description": "公开扩展字段，JSON 格式（例如 gnsPreference）"
+          }
+        },
+        "description": "返回对象"
+      },
+      "ApiResultListSticker": {
+        "required": [
+          "success"
+        ],
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "description": "成功标识true or false"
+          },
+          "errCode": {
+            "type": "integer",
+            "description": "错误码",
+            "format": "int32"
+          },
+          "errMsg": {
+            "type": "string",
+            "description": "错误消息"
+          },
+          "data": {
+            "type": "array",
+            "description": "返回对象",
+            "items": {
+              "$ref": "#/components/schemas/Sticker"
+            }
+          }
+        },
+        "description": "基础返回体"
+      },
+      "Sticker": {
+        "type": "object",
+        "properties": {
+          "stickerId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "userId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "name": {
+            "type": "string"
+          },
+          "imageUrl": {
+            "type": "string"
+          },
+          "fileSize": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "width": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "height": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "format": {
+            "type": "string"
+          },
+          "createTime": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updateTime": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "description": "返回对象"
       },
       "ApiResultListUserRole": {
         "required": [
@@ -25595,103 +25283,6 @@
             "type": "number",
             "description": "返回对象",
             "format": "double"
-          }
-        },
-        "description": "基础返回体"
-      },
-      "ApiResultEmoji": {
-        "required": [
-          "success"
-        ],
-        "type": "object",
-        "properties": {
-          "success": {
-            "type": "boolean",
-            "description": "成功标识true or false"
-          },
-          "errCode": {
-            "type": "integer",
-            "description": "错误码",
-            "format": "int32"
-          },
-          "errMsg": {
-            "type": "string",
-            "description": "错误消息"
-          },
-          "data": {
-            "$ref": "#/components/schemas/Emoji"
-          }
-        },
-        "description": "基础返回体"
-      },
-      "Emoji": {
-        "type": "object",
-        "properties": {
-          "emojiId": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "userId": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "name": {
-            "type": "string"
-          },
-          "imageUrl": {
-            "type": "string"
-          },
-          "fileSize": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "width": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "height": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "format": {
-            "type": "string"
-          },
-          "createTime": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "updateTime": {
-            "type": "string",
-            "format": "date-time"
-          }
-        },
-        "description": "返回对象"
-      },
-      "ApiResultListEmoji": {
-        "required": [
-          "success"
-        ],
-        "type": "object",
-        "properties": {
-          "success": {
-            "type": "boolean",
-            "description": "成功标识true or false"
-          },
-          "errCode": {
-            "type": "integer",
-            "description": "错误码",
-            "format": "int32"
-          },
-          "errMsg": {
-            "type": "string",
-            "description": "错误消息"
-          },
-          "data": {
-            "type": "array",
-            "description": "返回对象",
-            "items": {
-              "$ref": "#/components/schemas/Emoji"
-            }
           }
         },
         "description": "基础返回体"

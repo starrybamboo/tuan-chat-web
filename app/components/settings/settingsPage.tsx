@@ -1,102 +1,100 @@
-// import { useLocalStorage } from "@/components/common/customHooks/useLocalStorage";
-// import { useState } from "react";
-// import toast from "react-hot-toast";
-//
-// export interface LLMProperty {
-//   openaiApiKey?: string;
-//   openaiApiBaseUrl?: string;
-//   openaiModelName?: string;
-// }
-//
-// export default function SettingsPage() {
-//   const [storedLlmSettings, setStoredLlmSettings] = useLocalStorage<LLMProperty>("llmSettings", {
-//     openaiApiKey: "",
-//     openaiApiBaseUrl: "",
-//     openaiModelName: "",
-//   });
-//
-//   const [llmSettings, setLlmSettings] = useState(storedLlmSettings);
-//
-//   const handleLlmSettingChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-//     const { name, value } = e.target;
-//     setLlmSettings(prevSettings => ({
-//       ...prevSettings,
-//       [name]: value,
-//     }));
-//   };
-//
-//   const saveLlmSettings = (e: React.FormEvent) => {
-//     e.preventDefault();
-//     toast.success("保存成功");
-//     setStoredLlmSettings(llmSettings);
-//   };
-//
-//   return (
-//     <div className="min-h-screen bg-base-200 p-6">
-//       <div className="max-w-md mx-auto bg-base-100 rounded-box shadow-lg p-6">
-//         <h1 className="text-2xl font-bold mb-6 text-center">大语言模型设置</h1>
-//         <form onSubmit={saveLlmSettings} className="space-y-4">
-//           <div className="form-control">
-//             <label className="label" htmlFor="openaiApiKey">
-//               <span className="label-text">OpenAI API密钥</span>
-//             </label>
-//             <input
-//               type="password"
-//               id="openaiApiKey"
-//               name="openaiApiKey"
-//               value={llmSettings.openaiApiKey}
-//               onChange={handleLlmSettingChange}
-//               className="input input-bordered w-full"
-//               placeholder="输入您的OpenAI API密钥"
-//             />
-//           </div>
-//
-//           <div className="form-control">
-//             <label className="label" htmlFor="openaiApiBaseUrl">
-//               <span className="label-text">API基础URL</span>
-//             </label>
-//             <input
-//               type="url"
-//               id="openaiApiBaseUrl"
-//               name="openaiApiBaseUrl"
-//               value={llmSettings.openaiApiBaseUrl}
-//               onChange={handleLlmSettingChange}
-//               className="input input-bordered w-full"
-//               placeholder="https://api.openai.com/v1"
-//             />
-//           </div>
-//
-//           <div className="form-control">
-//             <label className="label" htmlFor="openaiModelName">
-//               <span className="label-text">模型名称</span>
-//             </label>
-//             <input
-//               type="text"
-//               id="openaiModelName"
-//               name="openaiModelName"
-//               value={llmSettings.openaiModelName}
-//               onChange={handleLlmSettingChange}
-//               className="input input-bordered w-full"
-//               placeholder="gpt-3.5-turbo"
-//             />
-//           </div>
-//
-//           <div className="form-control pt-4">
-//             <button
-//               type="submit"
-//               className="btn btn-primary w-full"
-//             >
-//               保存设置
-//             </button>
-//           </div>
-//         </form>
-//       </div>
-//     </div>
-//   );
-// }
+import { useGetMyUserInfoQuery, useUpdateUserInfoMutation } from "api/hooks/UserHooks";
+import { useEffect, useMemo, useState } from "react";
+import toast from "react-hot-toast";
+import { useGlobalContext } from "@/components/globalContextProvider";
+import {
+  buildUserExtraWithNotificationSettings,
+  readGroupMessagePopupEnabledFromLocalStorage,
+  readNotificationSettingsFromUserExtra,
+  writeGroupMessagePopupEnabledToLocalStorage,
+} from "@/components/settings/notificationPreferences";
 
 export default function SettingsPage() {
+  const globalContext = useGlobalContext();
+  const currentUserId = globalContext.userId ?? -1;
+  const isLoggedIn = currentUserId > 0;
+
+  const userInfoQuery = useGetMyUserInfoQuery(isLoggedIn);
+  const updateUserInfoMutation = useUpdateUserInfoMutation();
+
+  const localDefaultGroupPopupEnabled = useMemo(() => readGroupMessagePopupEnabledFromLocalStorage(), []);
+  const [groupMessagePopupEnabled, setGroupMessagePopupEnabled] = useState(localDefaultGroupPopupEnabled);
+  const [initializedFromServer, setInitializedFromServer] = useState(false);
+
+  useEffect(() => {
+    if (!isLoggedIn) {
+      return;
+    }
+    if (initializedFromServer) {
+      return;
+    }
+
+    const userInfo = userInfoQuery.data?.data;
+    if (!userInfo) {
+      return;
+    }
+
+    const settingsFromServer = readNotificationSettingsFromUserExtra(userInfo.extra);
+    setGroupMessagePopupEnabled(settingsFromServer.groupMessagePopupEnabled);
+    writeGroupMessagePopupEnabledToLocalStorage(settingsFromServer.groupMessagePopupEnabled);
+    setInitializedFromServer(true);
+  }, [initializedFromServer, isLoggedIn, userInfoQuery.data]);
+
+  const onGroupMessagePopupToggle = async (enabled: boolean) => {
+    setGroupMessagePopupEnabled(enabled);
+    writeGroupMessagePopupEnabledToLocalStorage(enabled);
+
+    if (!isLoggedIn) {
+      toast("设置已保存在当前设备");
+      return;
+    }
+
+    const userInfo = userInfoQuery.data?.data;
+    if (!userInfo) {
+      return;
+    }
+
+    try {
+      await updateUserInfoMutation.mutateAsync({
+        userId: userInfo.userId,
+        extra: buildUserExtraWithNotificationSettings(userInfo.extra, { groupMessagePopupEnabled: enabled }),
+      });
+      toast.success("通知设置已保存");
+    }
+    catch {
+      toast.error("通知设置保存失败，已保留本地设置");
+    }
+  };
+
   return (
-    <div className="h-full w-full items-center text-center">页面开发中</div>
+    <div className="mx-auto w-full max-w-3xl p-6">
+      <div className="rounded-2xl border border-base-300 bg-base-100 shadow-sm">
+        <div className="border-b border-base-300 px-6 py-5">
+          <h1 className="text-xl font-semibold">设置中心</h1>
+          <p className="mt-1 text-sm opacity-70">管理你的消息提醒偏好。</p>
+        </div>
+
+        <div className="px-6 py-5">
+          <h2 className="text-lg font-medium">消息通知</h2>
+          <label className="mt-4 flex cursor-pointer items-center justify-between gap-4 rounded-xl border border-base-300 px-4 py-3">
+            <div className="min-w-0">
+              <div className="font-medium">其他群聊新消息弹窗</div>
+              <div className="mt-1 text-sm opacity-70">开启后，当前未打开的其他群聊来消息时会弹出提示，点击可跳转。</div>
+            </div>
+            <input
+              type="checkbox"
+              className="toggle toggle-primary"
+              checked={groupMessagePopupEnabled}
+              disabled={updateUserInfoMutation.isPending}
+              onChange={e => void onGroupMessagePopupToggle(e.target.checked)}
+            />
+          </label>
+
+          {!isLoggedIn
+            ? <p className="mt-3 text-xs text-warning">未登录状态下仅保存到本地浏览器。</p>
+            : null}
+        </div>
+      </div>
+    </div>
   );
 }

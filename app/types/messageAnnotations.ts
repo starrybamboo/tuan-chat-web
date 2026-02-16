@@ -36,23 +36,7 @@ const EFFECT_ANNOTATION_FRAMES: Record<string, number> = {
   "effect.13": 20,
   "effect.14": 26,
 };
-const EFFECT_SOUND_FILE_ALIASES_BY_LEGACY_ID: Record<string, string[]> = {
-  "effect.1": ["飞书20260208-171542.mp3"],
-  "effect.2": ["飞书20260208-171543.mp3"],
-  "effect.3": ["飞书20260208-171545.mp3"],
-  "effect.4": ["飞书20260208-171546.mp3"],
-  "effect.5": ["飞书20260208-171548.mp3"],
-  "effect.6": ["飞书20260208-171549.mp3"],
-  "effect.7": ["飞书20260208-171550.mp3"],
-  "effect.8": ["飞书20260208-171552.mp3"],
-  "effect.9": ["飞书20260208-171553.mp3"],
-  "effect.10": ["飞书20260208-171555.mp3"],
-  "effect.11": ["飞书20260208-171556.mp3"],
-  "effect.12": ["飞书20260208-171557.mp3"],
-  "effect.13": ["飞书20260208-171558.mp3"],
-  "effect.14": ["飞书20260208-171627.mp3"],
-};
-const EFFECT_TEXTURE_FILE_BY_LEGACY_ID: Record<string, string> = {
+const EFFECT_TEXTURE_FILE_BY_ID: Record<string, string> = {
   "effect.1": "en_hmm.webp",
   "effect.2": "en_doubt.webp",
   "effect.3": "en_answer.webp",
@@ -68,31 +52,10 @@ const EFFECT_TEXTURE_FILE_BY_LEGACY_ID: Record<string, string> = {
   "effect.13": "en_getit.webp",
   "effect.14": "en_angry.webp",
 };
-const EFFECT_TEXTURE_FILE_ALIASES_BY_LEGACY_ID: Record<string, string[]> = {
-  "effect.1": ["飞书20260208-171542.webp"],
-  "effect.2": ["飞书20260208-171543.webp"],
-  "effect.3": ["飞书20260208-171545.webp"],
-  "effect.4": ["飞书20260208-171546.webp"],
-  "effect.5": ["飞书20260208-171548.webp"],
-  "effect.6": ["飞书20260208-171549.webp"],
-  "effect.7": ["飞书20260208-171550.webp"],
-  "effect.8": ["飞书20260208-171552.webp"],
-  "effect.9": ["飞书20260208-171553.webp"],
-  "effect.10": ["飞书20260208-171555.webp"],
-  "effect.11": ["飞书20260208-171556.webp"],
-  "effect.12": ["飞书20260208-171557.webp"],
-  "effect.13": ["飞书20260208-171558.webp"],
-  "effect.14": ["飞书20260208-171627.webp"],
-};
-const LEGACY_EFFECT_ID_BY_TEXTURE_FILE = (() => {
+const EFFECT_ID_BY_TEXTURE_FILE = (() => {
   const map: Record<string, string> = {};
-  for (const [legacyId, fileName] of Object.entries(EFFECT_TEXTURE_FILE_BY_LEGACY_ID)) {
-    map[fileName] = legacyId;
-  }
-  for (const [legacyId, aliases] of Object.entries(EFFECT_TEXTURE_FILE_ALIASES_BY_LEGACY_ID)) {
-    for (const alias of aliases) {
-      map[alias] = legacyId;
-    }
+  for (const [effectId, fileName] of Object.entries(EFFECT_TEXTURE_FILE_BY_ID)) {
+    map[fileName] = effectId;
   }
   return map;
 })();
@@ -104,37 +67,33 @@ function toEffectTextureFile(effectIdOrName: string | undefined) {
   if (!raw)
     return undefined;
 
-  const directByLegacy = EFFECT_TEXTURE_FILE_BY_LEGACY_ID[raw];
-  if (directByLegacy)
-    return directByLegacy;
+  const directById = EFFECT_TEXTURE_FILE_BY_ID[raw];
+  if (directById)
+    return directById;
 
   if (raw.startsWith(EFFECT_ANNOTATION_PREFIX)) {
     const suffix = raw.slice(EFFECT_ANNOTATION_PREFIX.length).trim();
     if (!suffix)
       return undefined;
-    const byNumeric = EFFECT_TEXTURE_FILE_BY_LEGACY_ID[`${EFFECT_ANNOTATION_PREFIX}${suffix}`];
+    const byNumeric = EFFECT_TEXTURE_FILE_BY_ID[`${EFFECT_ANNOTATION_PREFIX}${suffix}`];
     if (byNumeric)
       return byNumeric;
     const withExt = suffix.endsWith(".webp") ? suffix : `${suffix}.webp`;
-    const legacyId = LEGACY_EFFECT_ID_BY_TEXTURE_FILE[suffix] ?? LEGACY_EFFECT_ID_BY_TEXTURE_FILE[withExt];
-    if (legacyId) {
-      return EFFECT_TEXTURE_FILE_BY_LEGACY_ID[legacyId];
-    }
+    if (EFFECT_ID_BY_TEXTURE_FILE[withExt])
+      return withExt;
     // 兼容 effect.<文件名> / effect.<文件名>.webp 形式的自定义特效
     return withExt;
   }
 
   const withExt = raw.endsWith(".webp") ? raw : `${raw}.webp`;
-  const legacyId = LEGACY_EFFECT_ID_BY_TEXTURE_FILE[raw] ?? LEGACY_EFFECT_ID_BY_TEXTURE_FILE[withExt];
-  if (legacyId) {
-    return EFFECT_TEXTURE_FILE_BY_LEGACY_ID[legacyId];
-  }
+  if (EFFECT_ID_BY_TEXTURE_FILE[withExt])
+    return withExt;
   return undefined;
 }
 
-function toLegacyEffectId(effectIdOrName: string | undefined) {
+function toEffectId(effectIdOrName: string | undefined) {
   const fileName = toEffectTextureFile(effectIdOrName);
-  return fileName ? LEGACY_EFFECT_ID_BY_TEXTURE_FILE[fileName] : undefined;
+  return fileName ? EFFECT_ID_BY_TEXTURE_FILE[fileName] : undefined;
 }
 
 export function normalizeEffectAnnotationId(id: string) {
@@ -151,10 +110,12 @@ export const ANNOTATION_IDS = {
   BACKGROUND_CLEAR: "background.clear",
   CG: "sys:cg",
   IMAGE_SHOW: "image.show",
+  IMAGE_CLEAR: "image.clear",
   INTRO_HOLD: "intro.hold",
   DIALOG_NOTEND: "dialog.notend",
   DIALOG_CONCAT: "dialog.concat",
   DIALOG_NEXT: "dialog.next",
+  VIDEO_SKIP_OFF: "video.skipoff",
   FIGURE_POS_LEFT: "figure.pos.left",
   FIGURE_POS_LEFT_CENTER: "figure.pos.left-center",
   FIGURE_POS_CENTER: "figure.pos.center",
@@ -257,6 +218,10 @@ export function isImageMessageShown(annotations: string[] | undefined) {
   return list.includes(ANNOTATION_IDS.IMAGE_SHOW);
 }
 
+export function hasClearImageAnnotation(annotations: string[] | undefined) {
+  return normalizeAnnotations(annotations).includes(ANNOTATION_IDS.IMAGE_CLEAR);
+}
+
 export function setAnnotation(annotations: string[] | undefined, id: string, enabled: boolean) {
   const list = normalizeAnnotations(annotations);
   const normalizedId = normalizeEffectAnnotationId(id) ?? id;
@@ -313,9 +278,9 @@ export function getEffectFromAnnotations(annotations: string[] | undefined) {
   const list = normalizeAnnotations(annotations);
   for (let i = list.length - 1; i >= 0; i -= 1) {
     const id = list[i];
-    const legacyId = toLegacyEffectId(id);
-    if (legacyId) {
-      return legacyId;
+    const effectId = toEffectId(id);
+    if (effectId) {
+      return effectId;
     }
     if (id.startsWith(EFFECT_ANNOTATION_PREFIX)) {
       return id; // 兼容未来自定义 effect.* 标注
@@ -325,20 +290,20 @@ export function getEffectFromAnnotations(annotations: string[] | undefined) {
 }
 
 export function getEffectFrameCount(effectId: string | undefined) {
-  const legacyId = toLegacyEffectId(effectId) ?? effectId;
-  if (!legacyId)
+  const normalizedEffectId = toEffectId(effectId) ?? effectId;
+  if (!normalizedEffectId)
     return undefined;
-  return EFFECT_ANNOTATION_FRAMES[legacyId];
+  return EFFECT_ANNOTATION_FRAMES[normalizedEffectId];
 }
 
 export function getEffectDurationMs(effectId: string | undefined) {
-  const legacyId = toLegacyEffectId(effectId) ?? effectId;
-  if (!legacyId)
+  const normalizedEffectId = toEffectId(effectId) ?? effectId;
+  if (!normalizedEffectId)
     return undefined;
-  const fixedDuration = EFFECT_DURATION_MS_BY_ID[legacyId];
+  const fixedDuration = EFFECT_DURATION_MS_BY_ID[normalizedEffectId];
   if (typeof fixedDuration === "number")
     return fixedDuration;
-  const frames = getEffectFrameCount(legacyId);
+  const frames = getEffectFrameCount(normalizedEffectId);
   if (!frames)
     return undefined;
   return Math.max(1, frames) * EFFECT_FRAME_DURATION_MS;
@@ -351,14 +316,9 @@ export function getEffectSoundFileCandidates(effectId: string | undefined) {
   if (!textureFile)
     return undefined;
   const baseName = textureFile.replace(/\.webp$/i, "");
-  const legacyId = toLegacyEffectId(effectId);
-  const legacyAliases = legacyId
-    ? EFFECT_SOUND_FILE_ALIASES_BY_LEGACY_ID[legacyId] ?? []
-    : [];
   const candidates = Array.from(new Set([
     `${baseName}.mp3`,
     `${baseName}.webm`,
-    ...legacyAliases,
   ]));
   return candidates.length > 0 ? candidates : undefined;
 }

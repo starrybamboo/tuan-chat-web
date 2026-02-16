@@ -432,7 +432,7 @@ export function formatAnkoDiceMessage(message: string, diceSize: number): string
 
   const lines = normalized.split("\n");
   const lineMatches = lines.map(line => extractHeaderDiceMatch(line));
-  const lineResults: Array<number | null | undefined> = Array.from({ length: lines.length }).fill(undefined);
+  const lineResults: Array<number | null | undefined> = new Array<number | null | undefined>(lines.length).fill(undefined);
   const getLineResult = (index: number) => {
     if (lineResults[index] !== undefined) {
       return lineResults[index] ?? null;

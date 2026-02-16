@@ -220,20 +220,35 @@ function ChatInputArea({ ref, ...props }: ChatInputAreaProps & { ref?: React.Ref
     if (items.length === 0)
       return;
 
-    // 优先检查是否含图片：如果有图片，则只处理图片（并阻止默认），避免文本/HTML 同时被插入多次
-    const imageItems = items.filter(i => i.type.startsWith("image/"));
-    if (imageItems.length > 0) {
+    // 优先检查文件项：如果有文件（图片/音频/视频/其他），只处理文件并阻止默认，
+    // 避免浏览器把 HTML/text 一并插入导致重复内容。
+    const fileItems = items.filter(item => item.kind === "file");
+    if (fileItems.length > 0) {
       e.preventDefault();
       const files: File[] = [];
-      for (const item of imageItems) {
+      for (const item of fileItems) {
         const blob = item.getAsFile();
         if (blob) {
-          const file = new File([blob], `pasted-image-${Date.now()}`, { type: blob.type });
+          const mime = blob.type || "application/octet-stream";
+          const ext = (() => {
+            const subType = mime.split("/")[1] || "bin";
+            const normalized = subType.split(";")[0]?.trim() || "bin";
+            return normalized.replace(/[^a-z0-9.+-]/gi, "") || "bin";
+          })();
+          const typePrefix = mime.startsWith("image/")
+            ? "pasted-image"
+            : mime.startsWith("audio/")
+              ? "pasted-audio"
+              : mime.startsWith("video/")
+                ? "pasted-video"
+                : "pasted-file";
+          const file = new File([blob], `${typePrefix}-${Date.now()}.${ext}`, { type: mime });
           files.push(file);
         }
       }
-      if (files.length > 0)
+      if (files.length > 0) {
         props.onPasteFiles(files);
+      }
       return;
     }
 

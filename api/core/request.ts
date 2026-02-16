@@ -8,6 +8,8 @@ import type { ApiResult } from './ApiResult';
 import { CancelablePromise } from './CancelablePromise';
 import type { OnCancel } from './CancelablePromise';
 import type { OpenAPIConfig } from './OpenAPI';
+import { recoverAuthTokenFromSession } from './authRecovery';
+import { handleUnauthorized } from '../../app/utils/auth/unauthorized';
 
 export const isDefined = <T>(value: T | null | undefined): value is Exclude<T, null | undefined> => {
     return value !== undefined && value !== null;
@@ -283,6 +285,32 @@ export const catchErrorCodes = (options: ApiRequestOptions, result: ApiResult): 
     }
 };
 
+const AUTH_RECOVERY_SKIP_PATHS = new Set<string>([
+    '/user/login',
+    '/user/register',
+    '/user/logout',
+    '/user/token',
+]);
+
+const normalizeUrlPath = (url: string): string => {
+    const trimmed = String(url ?? '').trim();
+    const withoutQuery = trimmed.split('?')[0].split('#')[0];
+    return withoutQuery.replace(/\/+$/, '');
+};
+
+const shouldAttemptAuthRecovery = (options: ApiRequestOptions): boolean => {
+    if (typeof window === 'undefined') {
+        return false;
+    }
+
+    const path = normalizeUrlPath(options.url);
+    return !AUTH_RECOVERY_SKIP_PATHS.has(path);
+};
+
+const isUnauthorizedError = (error: unknown): error is ApiError => {
+    return error instanceof ApiError && error.status === 401;
+};
+
 /**
  * Request method
  * @param config The OpenAPI configuration object
@@ -292,30 +320,58 @@ export const catchErrorCodes = (options: ApiRequestOptions, result: ApiResult): 
  */
 export const request = <T>(config: OpenAPIConfig, options: ApiRequestOptions): CancelablePromise<T> => {
     return new CancelablePromise(async (resolve, reject, onCancel) => {
-        try {
+        const requestOnce = async (): Promise<T> => {
             const url = getUrl(config, options);
             const formData = getFormData(options);
             const body = getRequestBody(options);
             const headers = await getHeaders(config, options);
 
+            const response = await sendRequest(config, options, url, body, formData, headers, onCancel);
+            const responseBody = await getResponseBody(response);
+            const responseHeader = getResponseHeader(response, options.responseHeader);
+
+            const result: ApiResult = {
+                url,
+                ok: response.ok,
+                status: response.status,
+                statusText: response.statusText,
+                body: responseHeader ?? responseBody,
+            };
+
+            catchErrorCodes(options, result);
+            return result.body as T;
+        };
+
+        try {
             if (!onCancel.isCancelled) {
-                const response = await sendRequest(config, options, url, body, formData, headers, onCancel);
-                const responseBody = await getResponseBody(response);
-                const responseHeader = getResponseHeader(response, options.responseHeader);
-
-                const result: ApiResult = {
-                    url,
-                    ok: response.ok,
-                    status: response.status,
-                    statusText: response.statusText,
-                    body: responseHeader ?? responseBody,
-                };
-
-                catchErrorCodes(options, result);
-
-                resolve(result.body);
+                const result = await requestOnce();
+                resolve(result);
             }
         } catch (error) {
+            if (onCancel.isCancelled) {
+                reject(error);
+                return;
+            }
+
+            if (isUnauthorizedError(error) && shouldAttemptAuthRecovery(options)) {
+                const recoveredToken = await recoverAuthTokenFromSession(config.BASE);
+                if (recoveredToken && !onCancel.isCancelled) {
+                    try {
+                        const result = await requestOnce();
+                        resolve(result);
+                        return;
+                    } catch (retryError) {
+                        if (isUnauthorizedError(retryError)) {
+                            handleUnauthorized({ source: 'http' });
+                        }
+                        reject(retryError);
+                        return;
+                    }
+                }
+
+                handleUnauthorized({ source: 'http' });
+            }
+
             reject(error);
         }
     });

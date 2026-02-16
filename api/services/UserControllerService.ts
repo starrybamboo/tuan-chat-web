@@ -4,16 +4,18 @@
 /* eslint-disable */
 import type { ApiResultString } from '../models/ApiResultString';
 import type { ApiResultUserInfoResponse } from '../models/ApiResultUserInfoResponse';
+import type { ApiResultUserPrivateInfoResponse } from '../models/ApiResultUserPrivateInfoResponse';
+import type { ApiResultUserProfileInfoResponse } from '../models/ApiResultUserProfileInfoResponse';
 import type { ApiResultVoid } from '../models/ApiResultVoid';
-import type { UserInfoResponse } from '../models/UserInfoResponse';
 import type { UserLoginRequest } from '../models/UserLoginRequest';
 import type { UserRegisterRequest } from '../models/UserRegisterRequest';
+import type { UserUpdateInfoRequest } from '../models/UserUpdateInfoRequest';
 import type { CancelablePromise } from '../core/CancelablePromise';
 import type { BaseHttpRequest } from '../core/BaseHttpRequest';
 export class UserControllerService {
     constructor(public readonly httpRequest: BaseHttpRequest) {}
     /**
-     * 获取用户信息
+     * 获取用户必要信息
      * @param userId
      * @returns ApiResultUserInfoResponse OK
      * @throws ApiError
@@ -38,12 +40,12 @@ export class UserControllerService {
     /**
      * 修改用户信息
      * @param requestBody
-     * @returns ApiResultUserInfoResponse OK
+     * @returns ApiResultUserPrivateInfoResponse OK
      * @throws ApiError
      */
     public updateUserInfo(
-        requestBody: UserInfoResponse,
-    ): CancelablePromise<ApiResultUserInfoResponse> {
+        requestBody: UserUpdateInfoRequest,
+    ): CancelablePromise<ApiResultUserPrivateInfoResponse> {
         return this.httpRequest.request({
             method: 'PUT',
             url: '/user/info',
@@ -121,7 +123,47 @@ export class UserControllerService {
         });
     }
     /**
-     * 通过用户名获取用户信息
+     * 获取用户主页信息
+     * @param userId
+     * @returns ApiResultUserProfileInfoResponse OK
+     * @throws ApiError
+     */
+    public getUserProfileInfo(
+        userId: number,
+    ): CancelablePromise<ApiResultUserProfileInfoResponse> {
+        return this.httpRequest.request({
+            method: 'GET',
+            url: '/user/info/profile',
+            query: {
+                'userId': userId,
+            },
+            errors: {
+                400: `Bad Request`,
+                405: `Method Not Allowed`,
+                429: `Too Many Requests`,
+                500: `Internal Server Error`,
+            },
+        });
+    }
+    /**
+     * 获取当前登录用户信息（仅本人）
+     * @returns ApiResultUserPrivateInfoResponse OK
+     * @throws ApiError
+     */
+    public getMyUserInfo(): CancelablePromise<ApiResultUserPrivateInfoResponse> {
+        return this.httpRequest.request({
+            method: 'GET',
+            url: '/user/info/me',
+            errors: {
+                400: `Bad Request`,
+                405: `Method Not Allowed`,
+                429: `Too Many Requests`,
+                500: `Internal Server Error`,
+            },
+        });
+    }
+    /**
+     * 通过用户名获取用户必要信息
      * @param username
      * @returns ApiResultUserInfoResponse OK
      * @throws ApiError

@@ -2,6 +2,9 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
+/**
+ * 返回对象
+ */
 export type UserInfoResponse = {
     /**
      * 用户的uid，全局唯一
@@ -20,25 +23,5 @@ export type UserInfoResponse = {
      * 1 在线 0 离线
      */
     activeStatus?: string;
-    /**
-     * 最后一次上下线时间
-     */
-    lastLoginTime?: string;
-    /**
-     * 用户描述信息,个人签名
-     */
-    description?: string;
-    /**
-     * 性别: 隐藏(null) 男 女
-     */
-    gender?: string;
-    /**
-     * 用户邮箱
-     */
-    email?: string;
-    /**
-     * 用户
-     */
-    extra?: Record<string, string>;
 };
 

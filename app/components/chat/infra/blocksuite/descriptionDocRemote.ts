@@ -185,10 +185,12 @@ export async function deleteRemoteSnapshot(params: {
     return inflight;
   }
 
-  const task = tuanchat.blocksuiteDocController.deleteDoc2(
-    params.entityType,
+  const task = tuanchat.blocksuiteDocController.deleteDoc3(
     params.entityId,
-    params.docType,
+    {
+      entityType: params.entityType,
+      docType: params.docType,
+    },
   ).then(() => {
     snapshotCache.set(cacheKey, { at: Date.now(), value: null });
     snapshotInflight.delete(cacheKey);

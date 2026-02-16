@@ -15,7 +15,7 @@ export default function ChatToolbarFromStore({
   notMember,
   isSubmitting,
   ...rest
-}: Omit<ChatToolbarProps, "disableSendMessage" | "disableImportChatText" | "isRealtimeRenderActive" | "updateEmojiUrls" | "updateImgFiles" | "setAudioFile" | "roomId" | "isKP" | "onStopBgmForAll"> & {
+}: Omit<ChatToolbarProps, "disableSendMessage" | "disableImportChatText" | "isRealtimeRenderActive" | "updateEmojiUrls" | "updateImgFiles" | "updateFileAttachments" | "setAudioFile" | "roomId" | "isKP" | "onStopBgmForAll"> & {
   roomId: number;
   isKP?: boolean;
   onStopBgmForAll?: () => void;
@@ -27,6 +27,7 @@ export default function ChatToolbarFromStore({
   const webgalLinkMode = useRoomPreferenceStore(state => state.webgalLinkMode);
   const updateEmojiUrls = useChatComposerStore(state => state.updateEmojiUrls);
   const updateImgFiles = useChatComposerStore(state => state.updateImgFiles);
+  const updateFileAttachments = useChatComposerStore(state => state.updateFileAttachments);
   const setAudioFile = useChatComposerStore(state => state.setAudioFile);
   const setTempAnnotations = useChatComposerStore(state => state.setTempAnnotations);
 
@@ -49,8 +50,10 @@ export default function ChatToolbarFromStore({
   }, [setTempAnnotations]);
 
   const disableSendMessage = React.useMemo(() => {
-    return noRole || notMember || isSubmitting;
-  }, [noRole, notMember, isSubmitting]);
+    // 与 useChatMessageSubmit 的实际可发送条件保持一致：
+    // KP 在旁白模式（noRole=true）下仍可发送，不应显示为置灰。
+    return notMember || isSubmitting || (noRole && !isKP);
+  }, [isKP, noRole, notMember, isSubmitting]);
 
   const disableImportChatText = React.useMemo(() => {
     return notMember || isSubmitting;
@@ -65,6 +68,7 @@ export default function ChatToolbarFromStore({
       webgalLinkMode={webgalLinkMode}
       updateEmojiUrls={updateEmojiUrls}
       updateImgFiles={updateImgFiles}
+      updateFileAttachments={updateFileAttachments}
       setAudioFile={setAudioFile}
       onAddTempAnnotations={addTempAnnotations}
       disableSendMessage={disableSendMessage}

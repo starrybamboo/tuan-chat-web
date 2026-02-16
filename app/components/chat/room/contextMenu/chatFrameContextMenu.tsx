@@ -148,7 +148,6 @@ export default function ChatFrameContextMenu({
       imageUrl: params.imageUrl,
     });
     queryClient.invalidateQueries({ queryKey: ["listSpaceUserDocs", params.spaceId] });
-    queryClient.invalidateQueries({ queryKey: ["getSpaceUserDocFolderTree", params.spaceId] });
 
     return { newDocEntityId, newDocId, title };
   }, [queryClient]);
@@ -381,7 +380,7 @@ export default function ChatFrameContextMenu({
         if (!created) {
           return;
         }
-        roomContext.chatHistory?.addOrUpdateMessage({ message: created, messageMark: [] });
+        roomContext.chatHistory?.addOrUpdateMessage({ message: created });
         handleOpenThread(created.messageId);
         onClose();
       },

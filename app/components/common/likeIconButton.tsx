@@ -1,7 +1,7 @@
 /**
  * 喜欢的图标
  */
-import type { LikeRecordRequest } from "../../../api";
+import type { MarkTarget } from "../../../api";
 import React from "react";
 import { toast } from "react-hot-toast";
 import { useGlobalContext } from "@/components/globalContextProvider";
@@ -13,7 +13,7 @@ import {
 } from "../../../api/hooks/likeQueryHooks";
 
 interface LikeIconButtonProps {
-  targetInfo: LikeRecordRequest;
+  targetInfo: MarkTarget;
   className?: string;
   icon?: React.ReactNode;
   direction?: "row" | "column";

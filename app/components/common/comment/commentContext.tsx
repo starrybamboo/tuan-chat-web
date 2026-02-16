@@ -1,8 +1,8 @@
-import type { LikeRecordRequest } from "api";
+import type { MarkTarget } from "api";
 import { createContext } from "react";
 
 export interface CommentContextType {
-  targetInfo: LikeRecordRequest;
+  targetInfo: MarkTarget;
 }
 
 export const CommentContext = createContext<CommentContextType>({

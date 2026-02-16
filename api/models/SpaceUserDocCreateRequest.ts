@@ -11,5 +11,9 @@ export type SpaceUserDocCreateRequest = {
      * 文档标题（可选）
      */
     title?: string;
+    /**
+     * 文档分类标签（可选）
+     */
+    tag?: string;
 };
 

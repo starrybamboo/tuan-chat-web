@@ -1,4 +1,5 @@
 import React from "react";
+import { FilmSlateIcon } from "@phosphor-icons/react";
 import MessageAnnotationsBar from "@/components/chat/message/annotations/messageAnnotationsBar";
 import { openMessageAnnotationPicker } from "@/components/chat/message/annotations/openMessageAnnotationPicker";
 import { useChatComposerStore } from "@/components/chat/stores/chatComposerStore";
@@ -15,6 +16,7 @@ export default function ChatAttachmentsPreviewFromStore() {
   const tempAnnotations = useChatComposerStore(state => state.tempAnnotations);
   const updateImgFiles = useChatComposerStore(state => state.updateImgFiles);
   const updateEmojiUrls = useChatComposerStore(state => state.updateEmojiUrls);
+  const removeEmojiMetaByUrl = useChatComposerStore(state => state.removeEmojiMetaByUrl);
   const updateFileAttachments = useChatComposerStore(state => state.updateFileAttachments);
   const setAudioFile = useChatComposerStore(state => state.setAudioFile);
   const setTempAnnotations = useChatComposerStore(state => state.setTempAnnotations);
@@ -58,19 +60,25 @@ export default function ChatAttachmentsPreviewFromStore() {
           <BetterImg
             src={url}
             className="h-12 w-max rounded"
-            onClose={() => updateEmojiUrls(draft => void draft.splice(index, 1))}
+            onClose={() => {
+              updateEmojiUrls(draft => void draft.splice(index, 1));
+              removeEmojiMetaByUrl(url);
+            }}
             key={url}
           />
         ))}
         {fileAttachments.map((file, index) => {
           const fileKey = `${file.name}-${file.size}-${file.lastModified}-${index}`;
+          const isVideo = file.type.startsWith("video/");
           return (
             <div className="relative group flex-shrink-0 max-w-48" key={fileKey}>
               <div
                 className="h-12 rounded bg-base-200 border border-base-300 px-2 pr-6 min-w-28 max-w-48 flex items-center gap-1.5"
                 title={file.name}
               >
-                <ArticleIcon className="size-4 opacity-70 shrink-0" />
+                {isVideo
+                  ? <FilmSlateIcon className="size-4 opacity-70 shrink-0" />
+                  : <ArticleIcon className="size-4 opacity-70 shrink-0" />}
                 <span className="text-xs truncate">{file.name}</span>
               </div>
               <div
@@ -82,7 +90,7 @@ export default function ChatAttachmentsPreviewFromStore() {
                 </svg>
               </div>
               <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-[10px] px-1 truncate rounded-b">
-                文件
+                {isVideo ? "视频" : "文件"}
               </div>
             </div>
           );

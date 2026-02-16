@@ -403,7 +403,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
         if (!created) {
           return;
         }
-        roomContext.chatHistory?.addOrUpdateMessage({ message: created, messageMark: [] });
+        roomContext.chatHistory?.addOrUpdateMessage({ message: created });
         handleOpenThreadById(created.messageId);
       },
       onError: () => {
@@ -851,7 +851,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
             onClick={handleReplyPreviewClick}
           >
             <span className="text-[10px] text-base-content/50">回复</span>
-            <PreviewMessage message={message.replyMessageId} className="block" />
+            <PreviewMessage message={message.replyMessageId} className="block" withMediaPreview />
           </button>
         )
       : null;
@@ -1014,6 +1014,39 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
                 </a>
               )
             : contentNode;
+        }
+        case MESSAGE_TYPE.VIDEO: {
+          const videoMessage = extra?.videoMessage ?? extra?.fileMessage ?? extra;
+          const videoUrl = typeof videoMessage?.url === "string" ? videoMessage.url : "";
+          const fileName = videoMessage?.fileName || message.content || "视频";
+          const sizeLabel = formatFileSize(videoMessage?.size);
+          return (
+            <div className="flex flex-col gap-2 min-w-0">
+              {videoUrl
+                ? (
+                    <video
+                      src={videoUrl}
+                      controls={true}
+                      preload="metadata"
+                      className="rounded max-w-full max-h-[360px] bg-black"
+                      onClick={event => event.stopPropagation()}
+                    />
+                  )
+                : (
+                    <span className="text-xs text-base-content/60">[视频]</span>
+                  )}
+              <div className="flex items-center gap-2 min-w-0">
+                <span className="badge badge-outline badge-xs">视频</span>
+                <span className="truncate">{fileName}</span>
+                {sizeLabel && <span className="text-[10px] text-base-content/50">{sizeLabel}</span>}
+              </div>
+              {message.content && (
+                <div className="text-sm text-base-content/80 whitespace-pre-wrap break-words">
+                  {message.content}
+                </div>
+              )}
+            </div>
+          );
         }
         case MESSAGE_TYPE.FORWARD:
           return <ForwardMessage messageResponse={chatMessageResponse} />;
@@ -1425,6 +1458,10 @@ export const ChatBubble = React.memo(ChatBubbleComponent, (prevProps, nextProps)
     }
 
     if (JSON.stringify(prevExtra.soundMessage) !== JSON.stringify(nextExtra.soundMessage)) {
+      return false;
+    }
+
+    if (JSON.stringify((prevExtra as any).videoMessage) !== JSON.stringify((nextExtra as any).videoMessage)) {
       return false;
     }
 

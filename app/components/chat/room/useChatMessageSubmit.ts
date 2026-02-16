@@ -84,12 +84,14 @@ export default function useChatMessageSubmit({
     const {
       imgFiles,
       emojiUrls,
+      emojiMetaByUrl,
       fileAttachments,
       audioFile,
       annotations: composerAnnotations,
       tempAnnotations,
       setImgFiles,
       setEmojiUrls,
+      clearEmojiMeta,
       setFileAttachments,
       setAudioFile,
       setTempAnnotations,
@@ -148,7 +150,17 @@ export default function useChatMessageSubmit({
 
     setIsSubmitting(true);
     try {
+      const isVideoAttachment = (file: File) => {
+        if (file.type.startsWith("video/")) {
+          return true;
+        }
+        if (file.type.startsWith("audio/")) {
+          return false;
+        }
+        return /\.(?:mp4|mov|m4v|avi|mkv|wmv|flv|mpeg|mpg|webm)$/i.test(file.name || "");
+      };
       const uploadedImages: any[] = [];
+      const uploadedVideos: Array<{ url: string; fileName: string; size: number; second?: number }> = [];
       const uploadedFiles: Array<{ url: string; fileName: string; size: number }> = [];
       const resolvedAvatarId = await ensureRuntimeAvatarIdForRole(curRoleId);
 
@@ -160,16 +172,41 @@ export default function useChatMessageSubmit({
       setImgFiles([]);
 
       for (let i = 0; i < emojiUrls.length; i++) {
-        const { width, height, size } = await getImageSize(emojiUrls[i]);
-        uploadedImages.push({ url: emojiUrls[i], width, height, size, fileName: "emoji" });
+        const emojiUrl = emojiUrls[i];
+        const meta = emojiMetaByUrl[emojiUrl];
+        let width = meta?.width ?? -1;
+        let height = meta?.height ?? -1;
+        let size = meta?.size ?? -1;
+
+        // 元数据缺失时再回退到 fetch 图片探测尺寸，避免每次发送都请求远端 URL。
+        if (width <= 0 || height <= 0 || size <= 0) {
+          const measured = await getImageSize(emojiUrl);
+          width = width > 0 ? width : measured.width;
+          height = height > 0 ? height : measured.height;
+          size = size > 0 ? size : measured.size;
+        }
+
+        uploadedImages.push({
+          url: emojiUrl,
+          width,
+          height,
+          size,
+          fileName: meta?.fileName || "emoji",
+        });
       }
       setEmojiUrls([]);
+      clearEmojiMeta();
 
       if (fileAttachments.length > 0) {
-        const fileToastId = toast.loading("正在上传文件...");
+        const fileToastId = toast.loading("正在上传文件/视频...");
         try {
           for (let i = 0; i < fileAttachments.length; i++) {
             const file = fileAttachments[i];
+            if (isVideoAttachment(file)) {
+              const uploadedVideo = await uploadUtilsRef.current.uploadVideo(file, 1);
+              uploadedVideos.push(uploadedVideo);
+              continue;
+            }
             const url = await uploadUtilsRef.current.uploadFile(file, 1);
             uploadedFiles.push({
               url,
@@ -460,6 +497,25 @@ export default function useChatMessageSubmit({
         textContent = "";
       }
 
+      for (const video of uploadedVideos) {
+        const commonFields = getCommonFields() as ChatMessageRequest;
+        const nextAnnotations = mergedComposerAnnotations;
+        const videoMsg: ChatMessageRequest = {
+          ...commonFields,
+          ...(Array.isArray(nextAnnotations) ? { annotations: nextAnnotations } : {}),
+          content: textContent,
+          messageType: MessageType.VIDEO,
+          extra: {
+            url: video.url,
+            fileName: video.fileName,
+            size: video.size,
+            ...(typeof video.second === "number" ? { second: video.second } : {}),
+          },
+        };
+        await sendMessageWithInsert(videoMsg);
+        textContent = "";
+      }
+
       for (const file of uploadedFiles) {
         const commonFields = getCommonFields() as ChatMessageRequest;
         const fileMsg: ChatMessageRequest = {
@@ -479,13 +535,17 @@ export default function useChatMessageSubmit({
       // Allow explicit blank messages when there's no other payload to send.
       const shouldSendEmptyTextMessage = isBlankInput
         && uploadedImages.length === 0
+        && uploadedVideos.length === 0
         && uploadedFiles.length === 0
         && !soundMessageData
         && !shouldSendCommandRequest
         && !webgalVarPayload;
 
       if (textContent || shouldSendEmptyTextMessage) {
-        const isPureTextSend = uploadedImages.length === 0 && uploadedFiles.length === 0 && !soundMessageData;
+        const isPureTextSend = uploadedImages.length === 0
+          && uploadedVideos.length === 0
+          && uploadedFiles.length === 0
+          && !soundMessageData;
         const isWebgalCommandInput = isPureTextSend && textContent.startsWith("%");
         const normalizedContent = isWebgalCommandInput ? textContent.slice(1).trim() : textContent;
 

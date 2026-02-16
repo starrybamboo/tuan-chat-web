@@ -45,10 +45,10 @@ Windows 下 `nsis` / `winCodeSign` 等工具会在首次构建时由 electron-bu
 在项目根目录创建 .env （或 .env.development)文件，把下面的文字粘贴进去。
 
 ```plain&#x20;text
-VITE_API_BASE_URL=http://39.103.58.31:8081
-VITE_API_WS_URL=ws://39.103.58.31:8090
-VITE_TERRE_URL=http://localhost:3001
-VITE_TERRE_WS=ws://localhost:3001/api/webgalsync
+VITE_API_BASE_URL=https://tuan.chat/api
+VITE_API_WS_URL=wss://tuan.chat/ws
+VITE_TERRE_URL=https://tuan.chat/terre
+VITE_TERRE_WS=wss://tuan.chat/terre/api/webgalsync
 ```
 
 ### IDE设置
@@ -88,7 +88,7 @@ pnpm lint:fix
 
 自动化测试
 
-自动部署（main分支会同步到http://47.119.147.6:84/)
+自动部署（main分支会同步到https://tuan.chat/)
 
 # 文件架构
 

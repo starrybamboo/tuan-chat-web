@@ -93,6 +93,8 @@ const BUILTIN_ANNOTATIONS: AnnotationDefinition[] = [
   { id: "dialog.notend", label: "不暂停", category: "控制", tone: "neutral", source: "builtin" },
   { id: "dialog.concat", label: "续接", category: "控制", tone: "neutral", source: "builtin" },
   { id: "dialog.next", label: "立即下一句", category: "控制", tone: "neutral", source: "builtin" },
+  { id: "video.skipoff", label: "禁止跳过", category: "控制", tone: "warning", source: "builtin" },
+  { id: "image.clear", label: "清除展示图", category: "控制", tone: "warning", source: "builtin" },
   { id: "background.clear", label: "清除背景", category: "控制", tone: "warning", source: "builtin" },
   { id: "figure.clear", label: "清除立绘", category: "控制", tone: "warning", source: "builtin" },
 ];

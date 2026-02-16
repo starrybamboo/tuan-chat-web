@@ -45,7 +45,7 @@ function clampWidth(value: number) {
 type DroppedTarget = { tab: "room"; roomId: number } | { tab: "doc"; docId: string } | null;
 
 function resolveAllowedDropEffect(dataTransfer: DataTransfer | null | undefined): "copy" | "move" {
-  const effectAllowed = dataTransfer?.effectAllowed ?? "";
+  const effectAllowed = String(dataTransfer?.effectAllowed ?? "");
   const canCopy = (
     effectAllowed === "all"
     || effectAllowed === "copy"
@@ -218,7 +218,7 @@ export default function ChatPageSubWindow({
     setDocId(target.docId);
   }, [setDocId, setIsOpen, setRoomId]);
 
-  const handleDragOver = useCallback((event: React.DragEvent<HTMLDivElement>) => {
+  const handleDragOver = useCallback((event: React.DragEvent<HTMLElement>) => {
     const target = parseDroppedTarget(event.dataTransfer);
     const hasHint = hasDroppedTargetHint(event.dataTransfer);
     const dropEffect = resolveAllowedDropEffect(event.dataTransfer);
@@ -230,7 +230,7 @@ export default function ChatPageSubWindow({
     event.dataTransfer.dropEffect = dropEffect;
   }, []);
 
-  const handleDrop = useCallback((event: React.DragEvent<HTMLDivElement>) => {
+  const handleDrop = useCallback((event: React.DragEvent<HTMLElement>) => {
     const target = parseDroppedTarget(event.dataTransfer);
     if (!target) {
       return;
@@ -241,7 +241,7 @@ export default function ChatPageSubWindow({
     applyDroppedTarget(target);
   }, [applyDroppedTarget]);
 
-  const handleOpenEdgePointerDown = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
+  const handleOpenEdgePointerDown = useCallback((e: React.PointerEvent<HTMLElement>) => {
     if (!activeSpaceId || !isDesktop) {
       return;
     }

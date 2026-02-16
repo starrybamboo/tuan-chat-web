@@ -8,15 +8,14 @@ interface MessageBubbleProps {
 }
 
 export default function MessageBubble({ message, isOwn }: MessageBubbleProps) {
-  // 渲染消息内容（文本或图片）
+  const extra: any = message.extra as any;
+
+  // 渲染消息内容（文本/图片/视频）
   const renderMessageContent = () => {
     if (message.messageType === 2) {
-      // 图片消息
-      const imgData = message.extra?.imageMessage;
+      const imgData = extra?.imageMessage ?? extra;
       return (
-        <div
-          data-message-id={message.messageId}
-        >
+        <div data-message-id={message.messageId}>
           <BetterImg
             src={imgData?.url}
             size={{ width: imgData?.width, height: imgData?.height }}
@@ -25,35 +24,49 @@ export default function MessageBubble({ message, isOwn }: MessageBubbleProps) {
         </div>
       );
     }
-    else {
-      // 文本消息
-      return (
-        <div
-          className="whitespace-pre-wrap break-words"
-          data-message-id={message.messageId}
-        >
-          {message.content}
-        </div>
-      );
+
+    if (message.messageType === 14) {
+      const videoMessage = extra?.videoMessage ?? extra?.fileMessage ?? extra;
+      const videoUrl = typeof videoMessage?.url === "string" ? videoMessage.url : "";
+      if (videoUrl) {
+        return (
+          <div data-message-id={message.messageId}>
+            <video
+              src={videoUrl}
+              controls={true}
+              preload="metadata"
+              className="max-h-[40vh] max-w-[245px] rounded-lg bg-black"
+            />
+          </div>
+        );
+      }
+      return <div className="whitespace-pre-wrap break-words">[视频]</div>;
     }
+
+    return (
+      <div
+        className="whitespace-pre-wrap break-words"
+        data-message-id={message.messageId}
+      >
+        {message.content}
+      </div>
+    );
   };
 
-  // 获取消息气泡的样式类
+  const isMediaMessage = message.messageType === 2 || message.messageType === 14;
+
   const getMessageBubbleClass = () => {
     const baseClass = "rounded-lg max-w-[70%] h-full";
 
-    if (message.messageType === 2) {
-      // 图片消息减少内边距
+    if (isMediaMessage) {
       return baseClass;
     }
+
+    if (isOwn) {
+      return `${baseClass} bg-blue-300 dark:bg-blue-500 text-info-content dark:text-white p-2`;
+    }
     else {
-      // 文本消息正常内边距
-      if (isOwn) {
-        return `${baseClass} bg-blue-300 dark:bg-blue-500 text-info-content dark:text-white p-2`;
-      }
-      else {
-        return `${baseClass} bg-base-300 dark:bg-gray-700 text-base-content p-2`;
-      }
+      return `${baseClass} bg-base-300 dark:bg-gray-700 text-base-content p-2`;
     }
   };
 

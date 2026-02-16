@@ -4,6 +4,7 @@ import { isAudioUploadDebugEnabled } from "@/utils/audioDebugFlags";
 import { transcodeAudioFileToOpusOrThrow } from "@/utils/audioTranscodeUtils";
 import { assertAudioUploadInputSizeOrThrow, buildDefaultAudioUploadTranscodeOptions } from "@/utils/audioUploadPolicy";
 import { compressImage } from "@/utils/imgCompressUtils";
+import { transcodeVideoFileToWebmOrThrow } from "@/utils/videoTranscodeUtils";
 
 import { tuanchat } from "../../api/instance";
 
@@ -130,6 +131,70 @@ export class UploadUtils {
     }
 
     return ossData.data.downloadUrl;
+  }
+
+  /**
+   * 上传视频文件（统一转码为 webm）
+   */
+  async uploadVideo(
+    file: File,
+    scene: 1 | 2 | 3 | 4 = 1,
+  ): Promise<{ url: string; fileName: string; size: number }> {
+    const extension = ((file.name || "").toLowerCase().match(/\.([a-z0-9]+)$/)?.[1] || "").trim();
+    const inferredVideoMimeByExt: Record<string, string> = {
+      mp4: "video/mp4",
+      m4v: "video/mp4",
+      mov: "video/quicktime",
+      webm: "video/webm",
+      mkv: "video/x-matroska",
+      avi: "video/x-msvideo",
+      wmv: "video/x-ms-wmv",
+      flv: "video/x-flv",
+      mpg: "video/mpeg",
+      mpeg: "video/mpeg",
+    };
+
+    let videoFile = file;
+    if (!videoFile.type.startsWith("video/")) {
+      const inferredType = inferredVideoMimeByExt[extension];
+      if (!inferredType) {
+        throw new Error("只支持视频文件格式");
+      }
+      videoFile = new File([file], file.name, {
+        type: inferredType,
+        lastModified: file.lastModified,
+      });
+    }
+
+    const processedFile = await transcodeVideoFileToWebmOrThrow(videoFile, {
+      maxHeight: 1080,
+      maxFps: 30,
+      crf: 34,
+    });
+
+    const hash = await this.calculateFileHash(processedFile);
+    const fileSize = processedFile.size;
+    const newFileName = `${hash}_${fileSize}.webm`;
+
+    const ossData = await tuanchat.ossController.getUploadUrl({
+      fileName: newFileName,
+      scene,
+      dedupCheck: true,
+    });
+
+    if (!ossData.data?.downloadUrl) {
+      throw new Error("获取下载地址失败");
+    }
+
+    if (ossData.data.uploadUrl) {
+      await this.executeUpload(ossData.data.uploadUrl, processedFile);
+    }
+
+    return {
+      url: ossData.data.downloadUrl,
+      fileName: processedFile.name,
+      size: fileSize,
+    };
   }
 
   /**

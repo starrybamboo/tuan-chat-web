@@ -77,7 +77,6 @@ function RoomWindow({
 
   const space = useGetSpaceInfoQuery(spaceId).data?.data;
   const room = useGetRoomInfoQuery(roomId).data?.data;
-  const spaceHeaderOverride = useEntityHeaderOverrideStore(state => state.headers[`space:${spaceId}`]);
   const roomHeaderOverride = useEntityHeaderOverrideStore(state => state.headers[`room:${roomId}`]);
 
   const globalContext = useGlobalContext();
@@ -320,7 +319,7 @@ function RoomWindow({
     setLLMMessage,
   });
   const roomName = roomHeaderOverride?.title ?? room?.name;
-  const spaceName = spaceHeaderOverride?.title ?? space?.name;
+  const spaceName = space?.name;
 
   const chatFrameProps = React.useMemo(() => ({
     virtuosoRef,
@@ -389,6 +388,7 @@ function RoomWindow({
         <RoomSideDrawerGuards spaceId={spaceId} />
         <RealtimeRenderOrchestrator
           spaceId={spaceId}
+          spaceName={spaceName}
           roomId={roomId}
           room={room}
           roles={roomAllRoles}

@@ -12,14 +12,41 @@ export function isFileDrag(dataTransfer: DataTransfer | null | undefined) {
 
 type DroppedFileSummary = {
   images: number;
+  videos: number;
   audios: number;
   files: number;
   total: number;
 };
 
+function classifyFileKind(input: { type?: string; name?: string }): "image" | "video" | "audio" | "file" {
+  const type = (input.type || "").toLowerCase();
+  if (type.startsWith("image/")) {
+    return "image";
+  }
+  if (type.startsWith("video/")) {
+    return "video";
+  }
+  if (type.startsWith("audio/")) {
+    return "audio";
+  }
+
+  const name = (input.name || "").toLowerCase();
+  if (/\.(?:png|jpe?g|gif|webp|bmp|svg|avif)$/.test(name)) {
+    return "image";
+  }
+  if (/\.(?:mp4|mov|m4v|avi|mkv|wmv|flv|mpeg|mpg|webm)$/.test(name)) {
+    return "video";
+  }
+  if (/\.(?:mp3|wav|m4a|aac|ogg|opus|flac)$/.test(name)) {
+    return "audio";
+  }
+  return "file";
+}
+
 function summarizeDroppedFiles(dataTransfer: DataTransfer | null | undefined): DroppedFileSummary {
   const summary: DroppedFileSummary = {
     images: 0,
+    videos: 0,
     audios: 0,
     files: 0,
     total: 0,
@@ -32,11 +59,14 @@ function summarizeDroppedFiles(dataTransfer: DataTransfer | null | undefined): D
   if (items.length > 0) {
     for (const item of items) {
       summary.total += 1;
-      const type = (item.type || "").toLowerCase();
-      if (type.startsWith("image/")) {
+      const kind = classifyFileKind({ type: item.type });
+      if (kind === "image") {
         summary.images += 1;
       }
-      else if (type.startsWith("audio/")) {
+      else if (kind === "video") {
+        summary.videos += 1;
+      }
+      else if (kind === "audio") {
         summary.audios += 1;
       }
       else {
@@ -48,10 +78,14 @@ function summarizeDroppedFiles(dataTransfer: DataTransfer | null | undefined): D
 
   for (const file of Array.from(dataTransfer.files ?? [])) {
     summary.total += 1;
-    if (file.type?.startsWith("image/")) {
+    const kind = classifyFileKind(file);
+    if (kind === "image") {
       summary.images += 1;
     }
-    else if (file.type?.startsWith("audio/")) {
+    else if (kind === "video") {
+      summary.videos += 1;
+    }
+    else if (kind === "audio") {
       summary.audios += 1;
     }
     else {
@@ -64,45 +98,40 @@ function summarizeDroppedFiles(dataTransfer: DataTransfer | null | undefined): D
 export function getFileDragOverlayText(dataTransfer: DataTransfer | null | undefined): string {
   const summary = summarizeDroppedFiles(dataTransfer);
   if (summary.total <= 0) {
-    return "松开添加文件/音频/图片";
+    return "松开添加文件/视频/音频/图片";
   }
-  if (summary.images > 0 && summary.audios === 0 && summary.files === 0) {
-    return "松开添加图片";
-  }
-  if (summary.images === 0 && summary.audios > 0 && summary.files === 0) {
-    return "松开添加音频";
-  }
-  if (summary.images === 0 && summary.audios === 0 && summary.files > 0) {
-    return "松开添加文件";
-  }
-  if (summary.files === 0) {
-    return "松开添加图片和音频";
-  }
-  if (summary.images === 0) {
-    return "松开添加音频和文件";
-  }
-  if (summary.audios === 0) {
-    return "松开添加图片和文件";
-  }
-  return "松开添加文件、音频和图片";
+  const kinds: string[] = [];
+  if (summary.images > 0)
+    kinds.push("图片");
+  if (summary.videos > 0)
+    kinds.push("视频");
+  if (summary.audios > 0)
+    kinds.push("音频");
+  if (summary.files > 0)
+    kinds.push("文件");
+  return `松开添加${kinds.join("、")}`;
 }
 
 function splitDroppedFiles(fileList: FileList | null | undefined) {
   const images: File[] = [];
+  const videos: File[] = [];
   const audios: File[] = [];
   const files: File[] = [];
   if (!fileList)
-    return { images, audios, files };
+    return { images, videos, audios, files };
 
   for (const file of Array.from(fileList)) {
-    if (file.type?.startsWith("image/"))
+    const kind = classifyFileKind(file);
+    if (kind === "image")
       images.push(file);
-    else if (file.type?.startsWith("audio/"))
+    else if (kind === "video")
+      videos.push(file);
+    else if (kind === "audio")
       audios.push(file);
     else
       files.push(file);
   }
-  return { images, audios, files };
+  return { images, videos, audios, files };
 }
 
 /**
@@ -114,8 +143,8 @@ export function addDroppedFilesToComposer(dataTransfer: DataTransfer | null | un
     return false;
   }
 
-  const { images, audios, files } = splitDroppedFiles(dataTransfer?.files);
-  if (images.length === 0 && audios.length === 0 && files.length === 0) {
+  const { images, videos, audios, files } = splitDroppedFiles(dataTransfer?.files);
+  if (images.length === 0 && videos.length === 0 && audios.length === 0 && files.length === 0) {
     toast.error("未检测到可用文件");
     return true;
   }
@@ -132,9 +161,9 @@ export function addDroppedFilesToComposer(dataTransfer: DataTransfer | null | un
     }
   }
 
-  if (files.length > 0) {
+  if (videos.length > 0 || files.length > 0) {
     useChatComposerStore.getState().updateFileAttachments((draft) => {
-      draft.push(...files);
+      draft.push(...videos, ...files);
     });
   }
 
@@ -159,6 +188,9 @@ export function addDroppedFilesToComposer(dataTransfer: DataTransfer | null | un
   }
   if (audios.length > 0) {
     summaryParts.push("1个音频");
+  }
+  if (videos.length > 0) {
+    summaryParts.push(`${videos.length}个视频`);
   }
   if (files.length > 0) {
     summaryParts.push(`${files.length}个文件`);

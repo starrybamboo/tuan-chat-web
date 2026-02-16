@@ -91,10 +91,10 @@ function GNSPreferenceEditor({
             </div>
           </div>
 
-          <div className="min-w-[10rem] p-2 bg-base-100 rounded-md shadow-sm text-center dark:bg-base-300">
+          <div className="min-w-[10rem] p-2 rounded-md border border-base-300 bg-base-200/70 text-center">
             <div className="text-xs text-base-content/60">当前排序</div>
             <div
-              className="font-semibold text-sm mt-1 text-pink-500"
+              className="mt-1 text-sm font-semibold text-primary"
               aria-live="polite"
               role="status"
               title={`当前 GNS 排序：${order}`}
@@ -109,7 +109,7 @@ function GNSPreferenceEditor({
           {categories.map(category => (
             <div
               key={category.key}
-              className="p-3 bg-base-100 rounded-lg shadow-sm flex flex-col justify-between dark:bg-base-300"
+              className="flex flex-col justify-between rounded-lg border border-base-300 bg-base-100 p-3"
             >
               <div className="flex items-start justify-between gap-3">
                 <div>

@@ -123,14 +123,12 @@ export default function ChatPage() {
     spaces,
     rooms,
   });
-  const activeSpaceHeaderOverride = useEntityHeaderOverrideStore(state => (activeSpaceId ? state.headers[`space:${activeSpaceId}`] : undefined));
   const {
     activeSpace,
     activeSpaceAvatar,
     activeSpaceIsArchived,
     activeSpaceNameForUi,
   } = useChatPageActiveSpaceInfo({
-    activeSpaceHeaderOverride,
     activeSpaceId,
     activeSpaceInfo,
     spaces,

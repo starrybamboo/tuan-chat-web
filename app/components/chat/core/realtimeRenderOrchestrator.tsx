@@ -37,6 +37,7 @@ export interface RealtimeRenderOrchestratorApi {
 
 interface Props {
   spaceId: number;
+  spaceName?: string;
   roomId: number;
   room: Room | undefined;
   roles: UserRole[];
@@ -47,6 +48,7 @@ interface Props {
 
 export default function RealtimeRenderOrchestrator({
   spaceId,
+  spaceName,
   roomId,
   room,
   roles,
@@ -71,6 +73,7 @@ export default function RealtimeRenderOrchestrator({
   const realtimeTTSEnabled = useRealtimeRenderStore(state => state.ttsEnabled);
   const realtimeMiniAvatarEnabled = useRealtimeRenderStore(state => state.miniAvatarEnabled);
   const realtimeAutoFigureEnabled = useRealtimeRenderStore(state => state.autoFigureEnabled);
+  const realtimeGameConfig = useRealtimeRenderStore(state => state.gameConfig);
   const ttsApiUrl = useRealtimeRenderStore(state => state.ttsApiUrl);
 
   const realtimeTTSConfig = useMemo(() => ({
@@ -86,12 +89,14 @@ export default function RealtimeRenderOrchestrator({
 
   const realtimeRender = useRealtimeRender({
     spaceId,
+    spaceName,
     enabled: isRealtimeRenderEnabled,
     roles,
     rooms: room ? [room] : [],
     ttsConfig: realtimeTTSConfig,
     miniAvatarEnabled: realtimeMiniAvatarEnabled,
     autoFigureEnabled: realtimeAutoFigureEnabled,
+    gameConfig: realtimeGameConfig,
   });
 
   const setRealtimeRenderRuntime = useRealtimeRenderStore(state => state.setRuntime);

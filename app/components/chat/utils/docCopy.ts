@@ -121,6 +121,7 @@ export async function copyDocToSpaceUserDoc(params: {
   sourceDocId: string;
   title?: string;
   imageUrl?: string;
+  tag?: string;
 }): Promise<{ newDocEntityId: number; newDocId: string; title: string }> {
   const createTitle = (params.title ?? "").trim();
   const title = createTitle ? `${createTitle}（副本）` : "新文档（副本）";
@@ -129,7 +130,11 @@ export async function copyDocToSpaceUserDoc(params: {
   const createDocWithRetry = async (): Promise<number> => {
     let lastErr = "";
     for (let attempt = 0; attempt < 3; attempt += 1) {
-      const createRes = await tuanchat.spaceUserDocFolderController.createDoc({ spaceId: params.spaceId, title });
+      const createRes = await tuanchat.spaceUserDocController.createDoc1({
+        spaceId: params.spaceId,
+        title,
+        ...(params.tag ? { tag: params.tag } : {}),
+      });
       if (createRes?.success && createRes.data?.docId) {
         return createRes.data.docId;
       }

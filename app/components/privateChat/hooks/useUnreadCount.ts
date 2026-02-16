@@ -4,16 +4,34 @@ import { useUpdateReadPositionMutation } from "api/hooks/MessageDirectQueryHooks
 
 import type { MessageDirectType } from "../types/messageDirect";
 
-export function useUnreadCount({ realTimeContacts, sortedRealTimeMessages, userId, urlRoomId }: { realTimeContacts: number[]; sortedRealTimeMessages: [string, MessageDirectType[]][]; userId: number; urlRoomId: string | undefined }) {
+export function useUnreadCount({ realTimeContacts, sortedRealTimeMessages, userId, urlRoomId, isInboxReady }: { realTimeContacts: number[]; sortedRealTimeMessages: [string, MessageDirectType[]][]; userId: number; urlRoomId: string | undefined; isInboxReady: boolean }) {
   const prevUrlRoomIdRef = useRef<string | undefined>(urlRoomId);
+  const stableUnreadRef = useRef<Record<number, number>>({});
 
   const unreadMessageNumbers = useMemo(() => {
+    // 历史数据未就绪时，沿用最近一次稳定结果，避免 readLine 未注入造成误判。
+    if (userId <= 0 || !isInboxReady) {
+      return stableUnreadRef.current;
+    }
+
     const counts: Record<number, number> = {};
     for (const contactId of realTimeContacts) {
       counts[contactId] = getUnreadMessageNumber(sortedRealTimeMessages, contactId, userId);
     }
     return counts;
-  }, [realTimeContacts, sortedRealTimeMessages, userId]);
+  }, [realTimeContacts, sortedRealTimeMessages, userId, isInboxReady]);
+
+  useEffect(() => {
+    if (userId > 0 && isInboxReady) {
+      stableUnreadRef.current = unreadMessageNumbers;
+    }
+  }, [unreadMessageNumbers, userId, isInboxReady]);
+
+  useEffect(() => {
+    if (userId <= 0) {
+      stableUnreadRef.current = {};
+    }
+  }, [userId]);
 
   // 更新未读消息 Readline 位置
   const updateReadPositionMutation = useUpdateReadPositionMutation();

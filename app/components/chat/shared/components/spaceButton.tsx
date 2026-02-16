@@ -1,6 +1,5 @@
 import type { Space } from "../../../../../api";
 import React from "react";
-import { useEntityHeaderOverrideStore } from "@/components/chat/stores/entityHeaderOverrideStore";
 import PortalTooltip from "@/components/common/portalTooltip";
 
 export default function SpaceButton({ space, unreadMessageNumber, onclick, isActive }: {
@@ -9,9 +8,10 @@ export default function SpaceButton({ space, unreadMessageNumber, onclick, isAct
   onclick: () => void;
   isActive: boolean;
 }) {
-  const headerOverride = useEntityHeaderOverrideStore(state => state.headers[`space:${space.spaceId}`]);
-  const displayName = headerOverride?.title || space.name;
-  const displayAvatar = headerOverride?.imageUrl || space.avatar;
+  const displayName = space.name || "未命名空间";
+  const fallbackAvatar = "/favicon.ico";
+  const displayAvatar = (space.avatar || "").trim() || fallbackAvatar;
+  const isDev = typeof import.meta !== "undefined" && Boolean(import.meta.env?.DEV);
 
   return (
     <div
@@ -45,6 +45,21 @@ export default function SpaceButton({ space, unreadMessageNumber, onclick, isAct
               <img
                 src={displayAvatar}
                 alt={displayName}
+                draggable={false}
+                onError={(e) => {
+                  const img = e.currentTarget;
+                  if (img.dataset.fallbackApplied)
+                    return;
+                  if (isDev) {
+                    console.warn("[SpaceButton] avatar load failed, fallback applied", {
+                      spaceId: space.spaceId,
+                      spaceName: displayName,
+                      avatar: displayAvatar,
+                    });
+                  }
+                  img.dataset.fallbackApplied = "1";
+                  img.src = fallbackAvatar;
+                }}
               />
             </div>
           </div>

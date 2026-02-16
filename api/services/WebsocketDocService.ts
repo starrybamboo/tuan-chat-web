@@ -8,7 +8,7 @@ import type { BaseHttpRequest } from '../core/BaseHttpRequest';
 export class WebsocketDocService {
     constructor(public readonly httpRequest: BaseHttpRequest) {}
     /**
-     * 生成WebSocket API文档
+     * 生成WebSocket API文档（调试接口）
      * @returns ApiResultString OK
      * @throws ApiError
      */

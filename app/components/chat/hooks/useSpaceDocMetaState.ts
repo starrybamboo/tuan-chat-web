@@ -132,7 +132,7 @@ export default function useSpaceDocMetaState({
             if (last && last.docId === pending.docId && last.title === pending.title)
               return;
 
-            void tuanchat.spaceDocController.renameDoc1({
+            void tuanchat.spaceDocController.renameDoc2({
               docId: pending.docId,
               title: pending.title,
             }).then(() => {

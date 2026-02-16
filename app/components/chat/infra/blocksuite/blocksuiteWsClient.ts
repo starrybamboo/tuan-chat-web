@@ -1,5 +1,6 @@
 import { base64ToUint8Array, uint8ArrayToBase64 } from "@/components/chat/infra/blocksuite/base64";
 import { handleUnauthorized } from "@/utils/auth/unauthorized";
+import { recoverAuthTokenFromSession } from "api/core/authRecovery";
 
 export type BlocksuiteDocKey = {
   entityType: string;
@@ -56,6 +57,12 @@ class BlocksuiteWsClient {
 
     const token = this.readCurrentToken();
     if (!token) {
+      void recoverAuthTokenFromSession(import.meta.env.VITE_API_BASE_URL).then((recoveredToken) => {
+        if (recoveredToken) {
+          this.connect();
+        }
+      });
+
       this.stopHeartbeat();
       if (this.reconnectTimer != null) {
         window.clearTimeout(this.reconnectTimer);
@@ -145,7 +152,14 @@ class BlocksuiteWsClient {
       this.ws.close();
       this.ws = null;
     }
-    handleUnauthorized({ source: "ws" });
+    void recoverAuthTokenFromSession(import.meta.env.VITE_API_BASE_URL).then((recoveredToken) => {
+      if (recoveredToken) {
+        this.suppressReconnect = false;
+        this.connect();
+        return;
+      }
+      handleUnauthorized({ source: "ws" });
+    });
   }
 
   private sendRaw(msg: WsMessage<any>) {

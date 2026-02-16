@@ -10,7 +10,7 @@ import ChatFrameView from "@/components/chat/chatFrameView";
 import { RoomContext } from "@/components/chat/core/roomContext";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
 import useChatFrameDragAndDrop from "@/components/chat/hooks/useChatFrameDragAndDrop";
-import useChatFrameEmojiActions from "@/components/chat/hooks/useChatFrameEmojiActions";
+import useChatFrameStickerActions from "@/components/chat/hooks/useChatFrameStickerActions";
 import useChatFrameIndexing from "@/components/chat/hooks/useChatFrameIndexing";
 import useChatFrameMessageActions from "@/components/chat/hooks/useChatFrameMessageActions";
 import useChatFrameMessageMutations from "@/components/chat/hooks/useChatFrameMessageMutations";
@@ -132,7 +132,7 @@ function ChatFrame(props: ChatFrameProps) {
     updateMessageMutation,
   });
 
-  const { handleAddEmoji } = useChatFrameEmojiActions();
+  const { handleAddSticker } = useChatFrameStickerActions();
   const chatHistory = roomContext.chatHistory;
   const {
     send,
@@ -531,7 +531,7 @@ function ChatFrame(props: ChatFrameProps) {
         onReply: handleReply,
         onMoveMessages: handleMoveMessages,
         onEditMessage: handleEditMessage,
-        onAddEmoji: handleAddEmoji,
+        onAddEmoji: handleAddSticker,
         onOpenAnnotations: handleOpenAnnotations,
         onInsertAfter: setInsertAfterMessageId,
         onToggleNarrator: handleToggleNarrator,

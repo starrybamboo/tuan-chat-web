@@ -21,9 +21,9 @@
   default: false;
   prefersdark: false;
   color-scheme: "light";
-  --radius-selector: 0.5rem;
-  --radius-field: 1rem;
-  --radius-box: 0.5rem;
+  --radius-selector: 0.375rem;
+  --radius-field: 0.375rem;
+  --radius-box: 0.375rem;
   --size-selector: 0.25rem;
   --size-field: 0.25rem;
   --border: 1px;
@@ -36,9 +36,9 @@
   default: true;
   prefersdark: true;
   color-scheme: "dark";
-  --radius-selector: 0.5rem;
-  --radius-field: 1rem;
-  --radius-box: 0.5rem;
+  --radius-selector: 0.375rem;
+  --radius-field: 0.375rem;
+  --radius-box: 0.375rem;
   --size-selector: 0.25rem;
   --size-field: 0.25rem;
   --border: 1px;
