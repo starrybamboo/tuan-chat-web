@@ -385,7 +385,7 @@ const PostsCard: React.FC<PostsCardProps> = ({
           </div>
 
           <div className="flex items-center space-x-1 text-sm cursor-pointer hover:bg-blue-500/10 transition-colors px-2 py-1 rounded-full data-html-image-exclude">
-            <ShareIconButton targetRef={postRef as React.RefObject<HTMLDivElement>} qrLink={targetType === "2" ? `http://47.119.147.6:84/community/${actualCommunityId}/${actualId}` : targetType === "3" ? `http://47.119.147.6:84/repository/detail/${actualId}` : "http://47.119.147.6:84/chat"} searchKey={`feedShowSharePop${actualId}`} className="cursor-pointer w-9 h-6" />
+            <ShareIconButton targetRef={postRef as React.RefObject<HTMLDivElement>} qrLink={targetType === "2" ? `https://tuan.chat/community/${actualCommunityId}/${actualId}` : targetType === "3" ? `https://tuan.chat/repository/detail/${actualId}` : "https://tuan.chat/chat"} searchKey={`feedShowSharePop${actualId}`} className="cursor-pointer w-9 h-6" />
           </div>
         </div>
 

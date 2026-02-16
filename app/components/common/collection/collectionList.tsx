@@ -67,11 +67,11 @@ export default function CollectionList({ selectedId, onSelect, onAddCollection }
 
   // 封面图，暂时用社区头像代替
   const tuanPicsUrls = [
-    "http://101.126.143.129:9000/avatar/avatar/b51e8b24e434946fa7daac7f43da2ff1_7450.webp",
-    "http://101.126.143.129:9000/avatar/avatar/bedc6e7259afd1b00dcecaebff6d75c7_11256.webp",
-    "http://101.126.143.129:9000/avatar/avatar/2482bc79c85235e3d8c84417293dac8f_13192.webp",
-    "http://101.126.143.129:9000/avatar/avatar/9a9760f951b59d50571e3c136ba55a2e_15012.webp",
-    "http://101.126.143.129:9000/avatar/avatar/1ada3a88c27d7629dbb59faaa4a2e265_16514.webp",
+    "https://tuan.chat/avatar/avatar/b51e8b24e434946fa7daac7f43da2ff1_7450.webp",
+    "https://tuan.chat/avatar/avatar/bedc6e7259afd1b00dcecaebff6d75c7_11256.webp",
+    "https://tuan.chat/avatar/avatar/2482bc79c85235e3d8c84417293dac8f_13192.webp",
+    "https://tuan.chat/avatar/avatar/9a9760f951b59d50571e3c136ba55a2e_15012.webp",
+    "https://tuan.chat/avatar/avatar/1ada3a88c27d7629dbb59faaa4a2e265_16514.webp",
   ];
   const tuanPicsUrl = tuanPicsUrls[Math.floor(Math.random() * tuanPicsUrls.length)];
 

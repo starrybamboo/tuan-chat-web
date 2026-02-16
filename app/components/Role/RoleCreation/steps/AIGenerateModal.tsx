@@ -1,7 +1,7 @@
 import { useState } from "react";
 
 // AI生成的预览数据类型
-export interface AIGeneratedData {
+interface AIGeneratedData {
   act?: Record<string, string>;
   basic?: Record<string, string>;
   ability?: Record<string, string>;
@@ -15,6 +15,17 @@ interface AIGenerateModalProps {
   onApply: (data: AIGeneratedData) => void;
   generateBasicInfoByRule: (params: { ruleId: number; prompt: string }, options: { onSuccess: (data: any) => void; onError: (error: any) => void }) => void;
   generateAbilityByRule: (params: { ruleId: number; prompt: string }, options: { onSuccess: (data: any) => void; onError: (error: any) => void }) => void;
+}
+
+function toStringRecord(input: unknown): Record<string, string> {
+  if (!input || typeof input !== "object" || Array.isArray(input))
+    return {};
+
+  const out: Record<string, string> = {};
+  Object.entries(input as Record<string, unknown>).forEach(([key, value]) => {
+    out[key] = typeof value === "object" ? JSON.stringify(value) : String(value);
+  });
+  return out;
 }
 
 export default function AIGenerateModal({
@@ -44,72 +55,54 @@ export default function AIGenerateModal({
     };
 
     try {
-      // 生成表演能力数据
-      await new Promise((resolve) => {
+      // 并行请求：基础表演信息 + 属性能力信息
+      const basicTask = new Promise<any>((resolve, reject) => {
         generateBasicInfoByRule(
           { ruleId, prompt },
           {
-            onSuccess: (data) => {
-              if (data?.data) {
-                const actData: Record<string, string> = {};
-                Object.entries(data.data).forEach(([key, value]) => {
-                  actData[key] = typeof value === "object" ? JSON.stringify(value) : String(value);
-                });
-                generatedData.act = actData;
-              }
-              resolve(data);
-            },
-            onError: (error) => {
-              console.error("生成角色表演能力失败:", error);
-              resolve(null);
-            },
+            onSuccess: data => resolve(data),
+            onError: error => reject(error),
           },
         );
       });
-
-      // 生成能力数据
-      await new Promise((resolve) => {
+      const abilityTask = new Promise<any>((resolve, reject) => {
         generateAbilityByRule(
           { ruleId, prompt },
           {
-            onSuccess: (data) => {
-              if (data?.data) {
-                const responseData = data.data;
-                const basicData: Record<string, string> = {};
-                if (responseData.basic) {
-                  Object.entries(responseData.basic).forEach(([key, value]) => {
-                    basicData[key] = String(value);
-                  });
-                }
-                generatedData.basic = basicData;
-
-                const abilityData: Record<string, string> = {};
-                if (responseData.属性 || responseData.ability) {
-                  const abilitySource = responseData.属性 || responseData.ability;
-                  Object.entries(abilitySource).forEach(([key, value]) => {
-                    abilityData[key] = String(value);
-                  });
-                }
-                generatedData.ability = abilityData;
-
-                const skillData: Record<string, string> = {};
-                if (responseData.技能 || responseData.skill) {
-                  const skillSource = responseData.技能 || responseData.skill;
-                  Object.entries(skillSource).forEach(([key, value]) => {
-                    skillData[key] = String(value);
-                  });
-                }
-                generatedData.skill = skillData;
-              }
-              resolve(data);
-            },
-            onError: (error) => {
-              console.error("生成能力数据失败:", error);
-              resolve(null);
-            },
+            onSuccess: data => resolve(data),
+            onError: error => reject(error),
           },
         );
       });
+
+      const [basicResult, abilityResult] = await Promise.allSettled([basicTask, abilityTask]);
+      let hasAnySuccess = false;
+
+      if (basicResult.status === "fulfilled") {
+        if (basicResult.value?.data) {
+          generatedData.act = toStringRecord(basicResult.value.data);
+          hasAnySuccess = true;
+        }
+      }
+      else {
+        console.error("生成角色表演能力失败:", basicResult.reason);
+      }
+
+      if (abilityResult.status === "fulfilled") {
+        if (abilityResult.value?.data) {
+          const responseData = abilityResult.value.data;
+          generatedData.basic = toStringRecord(responseData.basic);
+          generatedData.ability = toStringRecord(responseData.属性 || responseData.ability);
+          generatedData.skill = toStringRecord(responseData.技能 || responseData.skill);
+          hasAnySuccess = true;
+        }
+      }
+      else {
+        console.error("生成能力数据失败:", abilityResult.reason);
+      }
+
+      if (!hasAnySuccess)
+        throw new Error("AI生成失败：未返回有效数据");
 
       setPreviewData(generatedData);
     }

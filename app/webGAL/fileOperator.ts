@@ -1,6 +1,7 @@
 import type { GameInfoDto } from "@/webGAL/apis";
 
 import { transcodeAudioBlobToOpusOrThrow } from "@/utils/audioTranscodeUtils";
+import { assertAudioUploadInputSizeOrThrow, buildDefaultAudioUploadTranscodeOptions } from "@/utils/audioUploadPolicy";
 import { getTerreApis } from "@/webGAL/index";
 import { getTerreBaseUrl } from "@/webGAL/terreConfig";
 
@@ -144,7 +145,7 @@ export async function uploadFile(url: string, path: string, fileName?: string | 
 
   /*
   if (shouldTranscodeAudio && !shouldTranscodeAudioByName) {
-    targetFileName = replaceFileExtension(newFileName, "opus");
+    targetFileName = replaceFileExtension(newFileName, "webm");
     safeFileName = targetFileName.replace(/\P{ASCII}/gu, char =>
       encodeURIComponent(char).replace(/%/g, ""));
 
@@ -153,16 +154,25 @@ export async function uploadFile(url: string, path: string, fileName?: string | 
   }
   */
 
+  if (shouldTranscodeAudio) {
+    assertAudioUploadInputSizeOrThrow(data.size);
+  }
+
   const file = shouldTranscodeAudio
-    ? await transcodeAudioBlobToOpusOrThrow(data, safeFileName)
+    ? await transcodeAudioBlobToOpusOrThrow(
+        data,
+        safeFileName,
+        buildDefaultAudioUploadTranscodeOptions(data.size),
+      )
     : new File([data], safeFileName, { type: data.type || "application/octet-stream" });
+  const uploadedFileName = shouldTranscodeAudio ? file.name : safeFileName;
 
   const formData = new FormData();
   formData.append("files", file);
   formData.append("targetDirectory", path);
 
   await getTerreApis().assetsControllerUpload(formData);
-  return safeFileName;
+  return uploadedFileName;
 };
 
 export async function readTextFile(game: string, path: string): Promise<string> {

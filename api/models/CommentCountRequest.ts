@@ -11,7 +11,7 @@ export type CommentCountRequest = {
      */
     targetIds: Array<number>;
     /**
-     * 目标类型(2-post, 3-module等)
+     * 目标类型(2-post, 3-repository等)
      */
     targetType: string;
 };

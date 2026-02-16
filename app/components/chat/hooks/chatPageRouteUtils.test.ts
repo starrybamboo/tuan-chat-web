@@ -20,6 +20,7 @@ describe("chatPageRouteUtils", () => {
     it("returns tab for valid space detail route", () => {
       expect(getSpaceDetailRouteTab({ isPrivateChatMode: false, urlRoomId: "members" })).toBe("members");
       expect(getSpaceDetailRouteTab({ isPrivateChatMode: false, urlRoomId: "workflow" })).toBe("workflow");
+      expect(getSpaceDetailRouteTab({ isPrivateChatMode: false, urlRoomId: "webgal" })).toBe("webgal");
     });
 
     it("returns null when private chat or message id provided", () => {

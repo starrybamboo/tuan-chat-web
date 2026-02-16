@@ -27,11 +27,3 @@ export function initAliasMapOnce(): void {
   UTILS.initAliasMap(ALIAS_MAP_SET);
   initialized = true;
 }
-
-// 可选：动态注册新规则执行器，同时更新别名映射集
-export function registerExecutor(ruleId: number, executor: RuleNameSpace): void {
-  RULES.set(ruleId, executor);
-  ALIAS_MAP_SET[String(ruleId)] = executor.aliasMap;
-  // 标记为未初始化，下一次显式调用 initAliasMapOnce 时会重新初始化
-  initialized = false;
-}

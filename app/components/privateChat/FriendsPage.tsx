@@ -1,19 +1,22 @@
 import type { FriendResponse } from "api/models/FriendResponse";
 import {
   useAcceptFriendRequestMutation,
+  useBlockFriendMutation,
   useCheckFriendQuery,
   useDeleteFriendMutation,
+  useGetBlackListQuery,
   useGetFriendListQuery,
   useGetFriendRequestPageQuery,
   useRejectFriendRequestMutation,
   useSendFriendRequestMutation,
+  useUnblockFriendMutation,
 } from "api/hooks/friendQueryHooks";
 import { useGetUserInfoByUsernameQuery, useGetUserInfoQuery } from "api/hooks/UserHooks";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 import { BaselineDeleteOutline, ChevronRight, HomeIcon, Search, SearchFilled, XMarkICon } from "@/icons";
 
-type FriendsTab = "all" | "pending" | "add";
+type FriendsTab = "all" | "pending" | "add" | "blacklist";
 type AddFriendSearchMode = "id" | "username";
 
 export default function FriendsPage({
@@ -28,10 +31,10 @@ export default function FriendsPage({
   const [friendKeyword, setFriendKeyword] = useState("");
   const friendSearchInputRef = useRef<HTMLInputElement>(null);
 
-  // 允许通过 URL 控制默认页签：/chat/private?tab=pending
+  // 允许通过 URL 控制默认页签：/chat/private?tab=pending|blacklist|add|all
   useEffect(() => {
     const tabParam = searchParams.get("tab");
-    if (tabParam === "all" || tabParam === "pending" || tabParam === "add") {
+    if (tabParam === "all" || tabParam === "pending" || tabParam === "add" || tabParam === "blacklist") {
       setTab(tabParam);
     }
     else {
@@ -54,6 +57,11 @@ export default function FriendsPage({
     () => (Array.isArray(friendListQuery.data?.data) ? friendListQuery.data.data : []),
     [friendListQuery.data],
   );
+  const blackListQuery = useGetBlackListQuery({ pageNo: 1, pageSize: 100 });
+  const blackListUserInfos: FriendResponse[] = useMemo(
+    () => (Array.isArray(blackListQuery.data?.data) ? blackListQuery.data.data : []),
+    [blackListQuery.data],
+  );
 
   // 待处理好友申请（received + status=1）
   const friendRequestPageQuery = useGetFriendRequestPageQuery({ pageNo: 1, pageSize: 50 });
@@ -62,13 +70,19 @@ export default function FriendsPage({
     return list.filter((r: any) => r?.type === "received" && r?.status === 1);
   }, [friendRequestPageQuery.data]);
 
-  const showTopSubBar = tab === "all" || tab === "pending";
-  const topSubBarLabel = tab === "pending" ? "待处理请求" : "好友总数";
-  const topSubBarCount = tab === "pending" ? pendingReceivedRequests.length : friendUserInfos.length;
+  const showTopSubBar = tab === "all" || tab === "pending" || tab === "blacklist";
+  const topSubBarLabel = tab === "pending" ? "待处理请求" : tab === "blacklist" ? "黑名单人数" : "好友总数";
+  const topSubBarCount = tab === "pending"
+    ? pendingReceivedRequests.length
+    : tab === "blacklist"
+      ? blackListUserInfos.length
+      : friendUserInfos.length;
 
   const acceptFriendRequestMutation = useAcceptFriendRequestMutation();
   const rejectFriendRequestMutation = useRejectFriendRequestMutation();
   const deleteFriendMutation = useDeleteFriendMutation();
+  const blockFriendMutation = useBlockFriendMutation();
+  const unblockFriendMutation = useUnblockFriendMutation();
 
   const searchUserInfoById = useGetUserInfoQuery(searchUserId).data?.data || null;
   const searchUserInfoByUsername = useGetUserInfoByUsernameQuery(searchUsername).data?.data || null;
@@ -194,6 +208,13 @@ export default function FriendsPage({
                   <span>待处理</span>
                 </span>
               </button>
+              <button
+                type="button"
+                className={`btn btn-sm rounded-md border border-gray-300 dark:border-gray-700 ${tab === "blacklist" ? "btn-active" : "btn-ghost"}`}
+                onClick={() => setTab("blacklist")}
+              >
+                黑名单
+              </button>
             </div>
           </div>
         </div>
@@ -259,6 +280,13 @@ export default function FriendsPage({
               </div>
             </div>
           )}
+          {notice && (
+            <div className="pt-3">
+              <div className={`alert ${noticeType === "success" ? "alert-success" : "alert-warning"} py-2`}>
+                <span className="text-sm">{notice}</span>
+              </div>
+            </div>
+          )}
 
           <div className="flex-1 min-h-0 overflow-auto pb-2">
             {tab === "all" && (
@@ -314,13 +342,45 @@ export default function FriendsPage({
 
                         <button
                           type="button"
+                          className="btn btn-ghost btn-xs text-warning"
+                          disabled={blockFriendMutation.isPending || !friend?.userId}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (!friend?.userId) {
+                              return;
+                            }
+                            // eslint-disable-next-line no-alert
+                            const ok = window.confirm(`确定拉黑好友「${friend?.username || friend.userId}」吗？`);
+                            if (!ok)
+                              return;
+                            blockFriendMutation.mutate(
+                              { targetUserId: friend.userId },
+                              {
+                                onSuccess: () => {
+                                  showNotice("已加入黑名单", "success");
+                                },
+                                onError: (error) => {
+                                  showNotice(getErrorMessage(error) || "拉黑失败，请稍后重试", "warning");
+                                },
+                              },
+                            );
+                          }}
+                          aria-label="拉黑好友"
+                          title="拉黑好友"
+                        >
+                          拉黑
+                        </button>
+
+                        <button
+                          type="button"
                           className="btn btn-ghost btn-xs btn-square text-error"
                           disabled={deleteFriendMutation.isPending || !friend?.userId}
                           onClick={(e) => {
                             e.stopPropagation();
-                            if (!friend?.userId)
+                            if (!friend?.userId) {
                               return;
-                              // eslint-disable-next-line no-alert
+                            }
+                            // eslint-disable-next-line no-alert
                             const ok = window.confirm(`确定删除好友「${friend?.username || friend.userId}」吗？`);
                             if (!ok)
                               return;
@@ -413,6 +473,84 @@ export default function FriendsPage({
               </div>
             )}
 
+            {/* 黑名单 */}
+            {tab === "blacklist" && (
+              <div className="flex flex-col gap-2 w-full py-2">
+                {blackListUserInfos.map((friend, index) => (
+                  <div
+                    key={friend?.userId || index}
+                    className="w-full text-left flex items-center justify-between rounded-md h-16"
+                  >
+                    <div className="flex items-center gap-3 min-w-0 justify-between w-full">
+                      <div className="flex items-center gap-4 min-w-0 flex-1">
+                        <div className="avatar w-12">
+                          <img
+                            className="rounded-full"
+                            src={friend?.avatar}
+                            alt={friend?.username}
+                          />
+                        </div>
+                        <div className="min-w-0 flex items-center gap-2">
+                          <div className="min-w-0">
+                            <div className="font-medium truncate">
+                              {friend?.username || `用户${friend?.userId}`}
+                            </div>
+                            <div className="text-xs opacity-70 truncate">{friend?.userId}</div>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex gap-2 flex-shrink-0 items-center">
+                        <button
+                          type="button"
+                          className="btn btn-ghost btn-xs btn-square"
+                          onClick={() => navigate(`/profile/${friend?.userId}`)}
+                          aria-label="查看主页"
+                          title="前往主页"
+                        >
+                          <HomeIcon className="size-6" />
+                        </button>
+                        <button
+                          type="button"
+                          className="btn btn-ghost btn-xs text-success"
+                          disabled={unblockFriendMutation.isPending || !friend?.userId}
+                          onClick={() => {
+                            if (!friend?.userId) {
+                              return;
+                            }
+                            // eslint-disable-next-line no-alert
+                            const ok = window.confirm(`确定取消拉黑「${friend?.username || friend.userId}」吗？`);
+                            if (!ok)
+                              return;
+                            unblockFriendMutation.mutate(
+                              { targetUserId: friend.userId },
+                              {
+                                onSuccess: () => {
+                                  showNotice("已移出黑名单", "success");
+                                },
+                                onError: (error) => {
+                                  showNotice(getErrorMessage(error) || "取消拉黑失败，请稍后重试", "warning");
+                                },
+                              },
+                            );
+                          }}
+                          aria-label="取消拉黑"
+                          title="取消拉黑"
+                        >
+                          取消拉黑
+                        </button>
+                      </div>
+                    </div>
+                    <div className="w-2"></div>
+                  </div>
+                ))}
+                {blackListUserInfos.length === 0 && (
+                  <div className="flex items-center justify-center h-32 opacity-70 text-sm">
+                    黑名单为空
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* 添加好友 */}
             {tab === "add" && (
               <div className="px-4 pt-4">
@@ -471,14 +609,6 @@ export default function FriendsPage({
                       </div>
                     </div>
                   </div>
-
-                  {notice && (
-                    <div className="mt-3">
-                      <div className={`alert ${noticeType === "success" ? "alert-success" : "alert-warning"} py-2`}>
-                        <span className="text-sm">{notice}</span>
-                      </div>
-                    </div>
-                  )}
 
                   {searching && (
                     <div className="mt-4">

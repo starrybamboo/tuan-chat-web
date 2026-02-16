@@ -1,4 +1,4 @@
-import type { CommentVO, LikeRecordRequest } from "../../../api";
+import type { CommentVO, MarkTarget } from "../../../api";
 import { useMemo } from "react";
 import CommentComponent from "@/components/common/comment/commentComponent";
 import { CommentContext } from "@/components/common/comment/commentContext";
@@ -17,7 +17,7 @@ export default function PostCommentPanel({
   className,
   onReply,
 }: {
-  targetInfo: LikeRecordRequest;
+  targetInfo: MarkTarget;
   className?: string;
   onReply?: (userName: string, commentId: number) => void;
 }) {

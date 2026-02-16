@@ -1,8 +1,11 @@
-import type { MouseEvent } from "react";
+import type { DragEvent, MouseEvent } from "react";
 import type { Room } from "../../../../api";
 import type { DraggingItem, DropTarget } from "./useRoomSidebarDragState";
 
 import RoomButton from "@/components/chat/shared/components/roomButton";
+import { setSubWindowDragPayload } from "@/components/chat/utils/subWindowDragPayload";
+
+const ROOM_DRAG_MIME = "application/x-tuanchat-room-id";
 
 interface RoomSidebarRoomItemProps {
   room: Room;
@@ -41,6 +44,36 @@ export default function RoomSidebarRoomItem({
   onSelectRoom,
   onCloseLeftDrawer,
 }: RoomSidebarRoomItemProps) {
+  const handleItemDragStart = (e: DragEvent<HTMLDivElement>) => {
+    const el = e.target as HTMLElement | null;
+    if (el && (el.closest("input") || el.closest("select") || el.closest("textarea"))) {
+      e.preventDefault();
+      return;
+    }
+    e.dataTransfer.effectAllowed = canEdit ? "move" : "copy";
+    e.dataTransfer.setData(ROOM_DRAG_MIME, String(roomId));
+    e.dataTransfer.setData("text/plain", `room:${roomId}`);
+    setSubWindowDragPayload({ tab: "room", roomId });
+    if (!canEdit) {
+      return;
+    }
+    resetDropHandled();
+    setDragging({
+      kind: "node",
+      nodeId,
+      type: "room",
+      fromCategoryId: categoryId,
+      fromIndex: index,
+    });
+    setDropTarget(null);
+  };
+
+  const handleItemDragEnd = () => {
+    setSubWindowDragPayload(null);
+    setDragging(null);
+    setDropTarget(null);
+  };
+
   return (
     <div
       className={`flex items-center gap-1 group w-full ${canEdit ? "" : ""}`}
@@ -49,31 +82,6 @@ export default function RoomSidebarRoomItem({
         e.preventDefault();
         e.stopPropagation();
         onContextMenu(e);
-      }}
-      draggable={canEdit}
-      onDragStart={(e) => {
-        if (!canEdit)
-          return;
-        const el = e.target as HTMLElement | null;
-        if (el && (el.closest("input") || el.closest("select") || el.closest("textarea"))) {
-          e.preventDefault();
-          return;
-        }
-        resetDropHandled();
-        e.dataTransfer.effectAllowed = "move";
-        e.dataTransfer.setData("text/plain", nodeId);
-        setDragging({
-          kind: "node",
-          nodeId,
-          type: "room",
-          fromCategoryId: categoryId,
-          fromIndex: index,
-        });
-        setDropTarget(null);
-      }}
-      onDragEnd={() => {
-        setDragging(null);
-        setDropTarget(null);
       }}
       onDragOver={(e) => {
         if (!canEdit)
@@ -102,6 +110,9 @@ export default function RoomSidebarRoomItem({
           onCloseLeftDrawer();
         }}
         isActive={activeRoomId === roomId}
+        draggable
+        onDragStart={handleItemDragStart}
+        onDragEnd={handleItemDragEnd}
       >
       </RoomButton>
     </div>

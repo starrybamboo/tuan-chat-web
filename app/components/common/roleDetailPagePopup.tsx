@@ -28,11 +28,19 @@ function toRoleViewModel(roleId: number, raw: any): Role {
 
 export function RoleDetailPagePopup({
   roleId,
+  roleTypeHint,
+  roleOwnerUserIdHint,
+  roleStateHint,
   allowKickOut = true,
+  kickOutByManagerOnly = false,
   onClose,
 }: {
   roleId: number;
+  roleTypeHint?: number;
+  roleOwnerUserIdHint?: number;
+  roleStateHint?: number;
   allowKickOut?: boolean;
+  kickOutByManagerOnly?: boolean;
   onClose: () => void;
 }) {
   const roomContext = use(RoomContext);
@@ -42,8 +50,11 @@ export function RoleDetailPagePopup({
   const spaceContext = use(SpaceContext);
   const ruleIdFromSpace = spaceContext?.ruleId ?? 0;
 
-  const roleQuery = useGetRoleQuery(roleId);
-  const fetchedRole = roleQuery.data?.data;
+  const shouldFetchRole = roleStateHint == null || roleStateHint === 0;
+  const roleQuery = useGetRoleQuery(shouldFetchRole ? roleId : -1);
+  const fetchedRole = shouldFetchRole ? roleQuery.data?.data : undefined;
+  const isRoleLoading = shouldFetchRole ? roleQuery.isLoading : false;
+  const isRoleMissing = !isRoleLoading && !fetchedRole;
 
   const [role, setRole] = useState<Role | null>(null);
 
@@ -85,9 +96,17 @@ export function RoleDetailPagePopup({
       return false;
     if (!roomId || roomId <= 0)
       return false;
+    if (isManager)
+      return true;
+    if (kickOutByManagerOnly)
+      return false;
+    if (roleTypeHint === 2)
+      return false;
+    if (roleOwnerUserIdHint != null && userId > 0)
+      return roleOwnerUserIdHint === userId;
     const ownRole = Boolean(userRole.data?.data?.find(r => r.roleId === roleId));
-    return Boolean(isManager || ownRole);
-  }, [allowKickOut, isManager, roleId, roomId, userRole.data?.data]);
+    return ownRole;
+  }, [allowKickOut, isManager, kickOutByManagerOnly, roleId, roleOwnerUserIdHint, roleTypeHint, roomId, userId, userRole.data?.data]);
 
   const handleRemoveRole = () => {
     if (!roomId || roomId <= 0) {
@@ -112,7 +131,7 @@ export function RoleDetailPagePopup({
     );
   };
 
-  if (!role) {
+  if (!role && !isRoleMissing) {
     return (
       <div className="bg-base-100 w-full">
         <div className="p-6">
@@ -123,6 +142,56 @@ export function RoleDetailPagePopup({
         </div>
       </div>
     );
+  }
+
+  if (isRoleMissing) {
+    return (
+      <div className="bg-base-100 flex flex-col gap-3 w-[960px] max-w-[90vw]">
+        <div className="card card-compact border border-base-200 shadow-sm">
+          <div className="card-body gap-3">
+            <div className="flex items-center justify-between gap-4">
+              <div className="min-w-0">
+                <div className="text-lg font-semibold truncate">
+                  角色已删除或不可用
+                </div>
+                <div className="text-xs text-base-content/60 mt-1">
+                  角色ID：
+                  {" "}
+                  {roleId}
+                </div>
+              </div>
+              {canKick && (
+                <button
+                  type="button"
+                  className="btn btn-error btn-xs sm:btn-sm"
+                  onClick={() => setIsKickConfirmOpen(true)}
+                >
+                  踢出角色
+                </button>
+              )}
+            </div>
+            <div className="text-sm text-base-content/70">
+              无法加载角色详情，但仍可将其从当前房间移除。
+            </div>
+          </div>
+        </div>
+
+        <ConfirmModal
+          isOpen={isKickConfirmOpen}
+          onClose={() => setIsKickConfirmOpen(false)}
+          title="确认踢出角色"
+          message="确定要将该角色从当前房间移除吗？此操作将解除该角色与房间的关联。"
+          onConfirm={handleRemoveRole}
+          confirmText="确认踢出"
+          cancelText="取消"
+          variant="warning"
+        />
+      </div>
+    );
+  }
+
+  if (!role) {
+    return null;
   }
 
   return (

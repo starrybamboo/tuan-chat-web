@@ -2,12 +2,7 @@ import { useMemo } from "react";
 
 import type { Space } from "../../../../api";
 
-type SpaceHeaderOverride = {
-  title?: string | null;
-};
-
 type UseChatPageActiveSpaceInfoParams = {
-  activeSpaceHeaderOverride?: SpaceHeaderOverride | null;
   activeSpaceId?: number | null;
   activeSpaceInfo?: Space | null;
   spaces: Space[];
@@ -21,7 +16,6 @@ type UseChatPageActiveSpaceInfoResult = {
 };
 
 export default function useChatPageActiveSpaceInfo({
-  activeSpaceHeaderOverride,
   activeSpaceId,
   activeSpaceInfo,
   spaces,
@@ -34,6 +28,6 @@ export default function useChatPageActiveSpaceInfo({
     activeSpace,
     activeSpaceAvatar: activeSpace?.avatar,
     activeSpaceIsArchived: activeSpace?.status === 2,
-    activeSpaceNameForUi: activeSpaceHeaderOverride?.title ?? activeSpace?.name,
+    activeSpaceNameForUi: activeSpace?.name,
   };
 }

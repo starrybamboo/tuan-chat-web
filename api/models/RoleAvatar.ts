@@ -16,7 +16,7 @@ export type RoleAvatar = {
      */
     avatarTitle?: Record<string, string>;
     /**
-     * avatar category
+     * 头像分类
      */
     category?: string;
     /**

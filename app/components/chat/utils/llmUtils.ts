@@ -1,6 +1,6 @@
 import { toast } from "react-hot-toast";
 
-import { tuanchat } from "../../../../api/instance";
+import { relayAiGatewayText } from "../../../utils/aiRelay";
 
 /**
  * 补全
@@ -10,8 +10,11 @@ import { tuanchat } from "../../../../api/instance";
 export async function sendLlmStreamMessage(prompt: string, handleReceiveMessage: (message: string) => boolean) {
   try {
     handleReceiveMessage("正在生成...");
-    const response = await tuanchat.aiWritingController.flash(prompt);
-    handleReceiveMessage(response.data ?? "");
+    const content = await relayAiGatewayText({
+      model: "gpt-5.1",
+      prompt,
+    });
+    handleReceiveMessage(content);
   }
   catch (error) {
     toast.error(`API请求错误: ${error}`);

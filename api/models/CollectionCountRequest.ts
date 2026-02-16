@@ -11,7 +11,7 @@ export type CollectionCountRequest = {
      */
     resourceIds: Array<number>;
     /**
-     * 资源类型(1-feed, 2-post, 3-module等)
+     * 资源类型(1-feed, 2-post, 3-repository等)
      */
     resourceType: string;
 };

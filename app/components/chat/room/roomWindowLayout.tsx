@@ -15,12 +15,16 @@ interface RoomWindowLayoutProps {
   roomId: number;
   roomName?: string;
   toggleLeftDrawer: () => void;
+  onCloseSubWindow?: () => void;
   backgroundUrl: string | null;
   displayedBgUrl: string | null;
   currentEffect: string | null;
   chatFrameProps: ChatFrameProps;
   composerPanelProps: RoomComposerPanelProps;
   hideComposer?: boolean;
+  hideSecondaryPanels?: boolean;
+  /** 点击消息区域时，输入框默认切换到哪个发送目标 */
+  chatAreaComposerTarget?: "main" | "thread";
   onExportPremiere?: () => void;
 }
 
@@ -28,12 +32,15 @@ export default function RoomWindowLayout({
   roomId,
   roomName,
   toggleLeftDrawer,
+  onCloseSubWindow,
   backgroundUrl,
   displayedBgUrl,
   currentEffect,
   chatFrameProps,
   composerPanelProps,
   hideComposer = false,
+  hideSecondaryPanels = false,
+  chatAreaComposerTarget = "main",
   onExportPremiere,
 }: RoomWindowLayoutProps) {
   const setComposerTarget = useRoomUiStore(state => state.setComposerTarget);
@@ -61,13 +68,14 @@ export default function RoomWindowLayout({
           <RoomHeaderBar
             roomName={roomName}
             toggleLeftDrawer={toggleLeftDrawer}
+            onCloseSubWindow={onCloseSubWindow}
             onExportPremiere={onExportPremiere}
           />
           <div className="flex-1 w-full flex bg-transparent relative min-h-0">
             <div className="flex-1 min-w-0 flex flex-col min-h-0" data-tc-doc-ref-drop-zone>
               <div
                 className="bg-transparent flex-1 min-w-0 min-h-0"
-                onMouseDown={() => setComposerTarget("main")}
+                onMouseDown={() => setComposerTarget(chatAreaComposerTarget)}
               >
                 <ChatFrame
                   key={roomId}
@@ -78,11 +86,11 @@ export default function RoomWindowLayout({
               {!hideComposer && <RoomComposerPanel {...composerPanelProps} />}
             </div>
 
-            <RoomSideDrawers />
+            {!hideSecondaryPanels && <RoomSideDrawers />}
           </div>
         </div>
 
-        <SubRoomWindow />
+        {!hideSecondaryPanels && <SubRoomWindow />}
       </div>
     </div>
   );

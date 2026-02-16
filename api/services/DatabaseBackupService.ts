@@ -8,7 +8,7 @@ import type { BaseHttpRequest } from '../core/BaseHttpRequest';
 export class DatabaseBackupService {
     constructor(public readonly httpRequest: BaseHttpRequest) {}
     /**
-     * 手动触发数据库备份（用于测试）
+     * 手动触发数据库备份（调试接口，仅用户10001可用）
      * @returns ApiResultString OK
      * @throws ApiError
      */

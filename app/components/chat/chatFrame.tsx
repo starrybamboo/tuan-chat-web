@@ -1,5 +1,6 @@
 import type { VirtuosoHandle } from "react-virtuoso";
 import type { ChatMessageResponse, Message } from "../../../api";
+import type { ChatFrameMessageScope } from "@/components/chat/hooks/useChatFrameMessages";
 import type { WebgalChooseOptionDraft } from "@/components/chat/shared/webgal/webgalChooseDraft";
 
 import React, { memo, use, useCallback, useEffect, useMemo, useState } from "react";
@@ -9,7 +10,7 @@ import ChatFrameView from "@/components/chat/chatFrameView";
 import { RoomContext } from "@/components/chat/core/roomContext";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
 import useChatFrameDragAndDrop from "@/components/chat/hooks/useChatFrameDragAndDrop";
-import useChatFrameEmojiActions from "@/components/chat/hooks/useChatFrameEmojiActions";
+import useChatFrameStickerActions from "@/components/chat/hooks/useChatFrameStickerActions";
 import useChatFrameIndexing from "@/components/chat/hooks/useChatFrameIndexing";
 import useChatFrameMessageActions from "@/components/chat/hooks/useChatFrameMessageActions";
 import useChatFrameMessageMutations from "@/components/chat/hooks/useChatFrameMessageMutations";
@@ -42,6 +43,8 @@ import {
 interface ChatFrameProps {
   virtuosoRef: React.RefObject<VirtuosoHandle | null>;
   messagesOverride?: ChatMessageResponse[];
+  messageScope?: ChatFrameMessageScope;
+  threadRootMessageId?: number | null;
   enableWsSync?: boolean;
   enableEffects?: boolean;
   enableUnreadIndicator?: boolean;
@@ -53,6 +56,7 @@ interface ChatFrameProps {
     threadId?: number;
     requestMessageId: number;
   }) => void;
+  onOpenThread?: (threadRootMessageId: number) => void;
   spaceName?: string;
   roomName?: string;
 }
@@ -61,6 +65,8 @@ function ChatFrame(props: ChatFrameProps) {
   const {
     virtuosoRef,
     messagesOverride,
+    messageScope = "main",
+    threadRootMessageId,
     enableWsSync = true,
     enableEffects = true,
     enableUnreadIndicator = true,
@@ -68,6 +74,7 @@ function ChatFrame(props: ChatFrameProps) {
     onBackgroundUrlChange,
     onEffectChange,
     onExecuteCommandRequest,
+    onOpenThread,
     spaceName,
     roomName,
   } = props;
@@ -100,9 +107,11 @@ function ChatFrame(props: ChatFrameProps) {
     isForwardWindowOpen,
     isExportFileWindowOpen,
     isExportImageWindowOpen,
+    isRegexSelectWindowOpen,
     setIsForwardWindowOpen,
     setIsExportFileWindowOpen,
     setIsExportImageWindowOpen,
+    setIsRegexSelectWindowOpen,
   } = useChatFrameOverlayState();
   const [isWebgalChooseEditorOpen, setIsWebgalChooseEditorOpen] = useState(false);
   const [webgalChooseEditorOptions, setWebgalChooseEditorOptions] = useState<WebgalChooseOptionDraft[]>(() => [
@@ -123,7 +132,7 @@ function ChatFrame(props: ChatFrameProps) {
     updateMessageMutation,
   });
 
-  const { handleAddEmoji } = useChatFrameEmojiActions();
+  const { handleAddSticker } = useChatFrameStickerActions();
   const chatHistory = roomContext.chatHistory;
   const {
     send,
@@ -134,6 +143,8 @@ function ChatFrame(props: ChatFrameProps) {
 
   const { historyMessages, threadHintMetaByMessageId } = useChatFrameMessages({
     messagesOverride,
+    messageScope,
+    threadRootMessageId,
     enableWsSync,
     roomId,
     chatHistory,
@@ -358,6 +369,28 @@ function ChatFrame(props: ChatFrameProps) {
     updateSelectedMessageIds(next);
   }, [historyMessages, updateSelectedMessageIds]);
 
+  const handleApplyRegexFilter = useCallback((matchedIds: Set<number>) => {
+    if (matchedIds.size === 0) {
+      toast.error("未命中过滤条件");
+      return;
+    }
+
+    const nextSelection = new Set(selectedMessageIds);
+    let removedCount = 0;
+    for (const messageId of matchedIds) {
+      if (nextSelection.delete(messageId)) {
+        removedCount++;
+      }
+    }
+    updateSelectedMessageIds(nextSelection);
+
+    if (removedCount > 0) {
+      toast.success(`已过滤 ${removedCount} 条消息`);
+      return;
+    }
+    toast.error("命中消息不在当前已选范围");
+  }, [selectedMessageIds, updateSelectedMessageIds]);
+
   const handleExportFile = useCallback(() => {
     if (selectedMessages.length === 0) {
       toast.error("请选择要导出的消息");
@@ -368,11 +401,9 @@ function ChatFrame(props: ChatFrameProps) {
 
   const {
     handleForward,
-    generateForwardMessage,
   } = useChatFrameMessageActions({
     historyMessages,
     selectedMessageIds,
-    roomId,
     curRoleId,
     curAvatarId,
     send,
@@ -418,6 +449,7 @@ function ChatFrame(props: ChatFrameProps) {
     isMessageMovable,
     threadHintMetaByMessageId,
     onExecuteCommandRequest,
+    onOpenThread,
     onEditWebgalChoose: openWebgalChooseEditor,
     onMessageClick: handleMessageClick,
     onToggleSelection: toggleMessageSelection,
@@ -457,6 +489,7 @@ function ChatFrame(props: ChatFrameProps) {
         isSpaceOwner: Boolean(spaceContext.isSpaceOwner),
         isSelecting,
         onSelectAll: handleSelectAll,
+        onRegexFilter: () => setIsRegexSelectWindowOpen(true),
         onExportFile: handleExportFile,
         onCancelSelection: exitSelection,
       }}
@@ -467,11 +500,13 @@ function ChatFrame(props: ChatFrameProps) {
         setIsExportFileWindowOpen,
         isExportImageWindowOpen,
         setIsExportImageWindowOpen,
+        isRegexSelectWindowOpen,
+        setIsRegexSelectWindowOpen,
         historyMessages,
         selectedMessageIds,
         exitSelection,
         onForward: handleForward,
-        generateForwardMessage,
+        onApplyRegexFilter: handleApplyRegexFilter,
         spaceName,
         roomName,
         webgalChooseEditor: {
@@ -496,10 +531,11 @@ function ChatFrame(props: ChatFrameProps) {
         onReply: handleReply,
         onMoveMessages: handleMoveMessages,
         onEditMessage: handleEditMessage,
-        onAddEmoji: handleAddEmoji,
+        onAddEmoji: handleAddSticker,
         onOpenAnnotations: handleOpenAnnotations,
         onInsertAfter: setInsertAfterMessageId,
         onToggleNarrator: handleToggleNarrator,
+        onOpenThread,
       }}
     />
   );

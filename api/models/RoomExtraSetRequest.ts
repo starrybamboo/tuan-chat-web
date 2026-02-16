@@ -12,7 +12,7 @@ export type RoomExtraSetRequest = {
      */
     key: string;
     /**
-     * ֵ
+     * 值
      */
     value: string;
 };

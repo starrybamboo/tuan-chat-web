@@ -18,6 +18,7 @@ interface UseChatFrameMessageRendererParams {
     threadId?: number;
     requestMessageId: number;
   }) => void;
+  onOpenThread?: (threadRootMessageId: number) => void;
   onEditWebgalChoose?: (messageId: number) => void;
   onMessageClick: (event: MouseEvent<HTMLElement>, messageId: number) => void;
   onToggleSelection?: (messageId: number) => void;
@@ -38,6 +39,7 @@ export default function useChatFrameMessageRenderer({
   isMessageMovable,
   threadHintMetaByMessageId,
   onExecuteCommandRequest,
+  onOpenThread,
   onEditWebgalChoose,
   onMessageClick,
   onToggleSelection,
@@ -66,6 +68,7 @@ export default function useChatFrameMessageRenderer({
         isSelecting={isSelecting}
         threadHintMeta={threadHintMeta}
         onExecuteCommandRequest={onExecuteCommandRequest}
+        onOpenThread={onOpenThread}
         onEditWebgalChoose={onEditWebgalChoose}
         onToggleSelection={onToggleSelection}
         onMessageClick={event => onMessageClick(event, messageId)}
@@ -89,6 +92,7 @@ export default function useChatFrameMessageRenderer({
     onDrop,
     onEditWebgalChoose,
     onExecuteCommandRequest,
+    onOpenThread,
     onMessageClick,
     onToggleSelection,
     selectedMessageIds,

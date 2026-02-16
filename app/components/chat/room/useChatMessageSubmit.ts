@@ -1,12 +1,12 @@
 import { useCallback, useRef } from "react";
 import { toast } from "react-hot-toast";
 
+import type { RoomUiStoreApi } from "@/components/chat/stores/roomUiStore";
 import type { SpaceWebgalVarsRecord } from "@/types/webgalVar";
 
 import { useChatComposerStore } from "@/components/chat/stores/chatComposerStore";
 import { useChatInputUiStore } from "@/components/chat/stores/chatInputUiStore";
 import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
-import { useRoomUiStore } from "@/components/chat/stores/roomUiStore";
 import { isCommand } from "@/components/common/dicer/cmdPre";
 import { formatAnkoDiceMessage } from "@/components/common/dicer/diceTable";
 import { ANNOTATION_IDS, getFigurePositionFromAnnotations, hasAnnotation, hasClearFigureAnnotation, normalizeAnnotations, setAnnotation, setFigurePositionAnnotation } from "@/types/messageAnnotations";
@@ -45,6 +45,7 @@ type UseChatMessageSubmitParams = {
   extractFirstCommandText: (text: string) => string | null;
   setInputText: (text: string) => void;
   setSpaceExtra: (payload: { spaceId: number; key: string; value: string }) => Promise<unknown>;
+  roomUiStoreApi: RoomUiStoreApi;
 };
 
 type UseChatMessageSubmitResult = {
@@ -69,6 +70,7 @@ export default function useChatMessageSubmit({
   extractFirstCommandText,
   setInputText,
   setSpaceExtra,
+  roomUiStoreApi,
 }: UseChatMessageSubmitParams): UseChatMessageSubmitResult {
   const uploadUtilsRef = useRef(new UploadUtils());
 
@@ -82,11 +84,15 @@ export default function useChatMessageSubmit({
     const {
       imgFiles,
       emojiUrls,
+      emojiMetaByUrl,
+      fileAttachments,
       audioFile,
       annotations: composerAnnotations,
       tempAnnotations,
       setImgFiles,
       setEmojiUrls,
+      clearEmojiMeta,
+      setFileAttachments,
       setAudioFile,
       setTempAnnotations,
     } = useChatComposerStore.getState();
@@ -144,7 +150,18 @@ export default function useChatMessageSubmit({
 
     setIsSubmitting(true);
     try {
+      const isVideoAttachment = (file: File) => {
+        if (file.type.startsWith("video/")) {
+          return true;
+        }
+        if (file.type.startsWith("audio/")) {
+          return false;
+        }
+        return /\.(?:mp4|mov|m4v|avi|mkv|wmv|flv|mpeg|mpg|webm)$/i.test(file.name || "");
+      };
       const uploadedImages: any[] = [];
+      const uploadedVideos: Array<{ url: string; fileName: string; size: number; second?: number }> = [];
+      const uploadedFiles: Array<{ url: string; fileName: string; size: number }> = [];
       const resolvedAvatarId = await ensureRuntimeAvatarIdForRole(curRoleId);
 
       for (let i = 0; i < imgFiles.length; i++) {
@@ -155,10 +172,54 @@ export default function useChatMessageSubmit({
       setImgFiles([]);
 
       for (let i = 0; i < emojiUrls.length; i++) {
-        const { width, height, size } = await getImageSize(emojiUrls[i]);
-        uploadedImages.push({ url: emojiUrls[i], width, height, size, fileName: "emoji" });
+        const emojiUrl = emojiUrls[i];
+        const meta = emojiMetaByUrl[emojiUrl];
+        let width = meta?.width ?? -1;
+        let height = meta?.height ?? -1;
+        let size = meta?.size ?? -1;
+
+        // 元数据缺失时再回退到 fetch 图片探测尺寸，避免每次发送都请求远端 URL。
+        if (width <= 0 || height <= 0 || size <= 0) {
+          const measured = await getImageSize(emojiUrl);
+          width = width > 0 ? width : measured.width;
+          height = height > 0 ? height : measured.height;
+          size = size > 0 ? size : measured.size;
+        }
+
+        uploadedImages.push({
+          url: emojiUrl,
+          width,
+          height,
+          size,
+          fileName: meta?.fileName || "emoji",
+        });
       }
       setEmojiUrls([]);
+      clearEmojiMeta();
+
+      if (fileAttachments.length > 0) {
+        const fileToastId = toast.loading("正在上传文件/视频...");
+        try {
+          for (let i = 0; i < fileAttachments.length; i++) {
+            const file = fileAttachments[i];
+            if (isVideoAttachment(file)) {
+              const uploadedVideo = await uploadUtilsRef.current.uploadVideo(file, 1);
+              uploadedVideos.push(uploadedVideo);
+              continue;
+            }
+            const url = await uploadUtilsRef.current.uploadFile(file, 1);
+            uploadedFiles.push({
+              url,
+              fileName: file.name,
+              size: file.size,
+            });
+          }
+        }
+        finally {
+          toast.dismiss(fileToastId);
+        }
+      }
+      setFileAttachments([]);
 
       let soundMessageData: any = null;
       if (audioFile) {
@@ -241,7 +302,7 @@ export default function useChatMessageSubmit({
         }
       }
 
-      const finalReplyId = useRoomUiStore.getState().replyMessage?.messageId || undefined;
+      const finalReplyId = roomUiStoreApi.getState().replyMessage?.messageId || undefined;
       let isFirstMessage = true;
 
       const getCommonFields = () => {
@@ -251,7 +312,7 @@ export default function useChatMessageSubmit({
           avatarId: resolvedAvatarId,
         };
 
-        const { threadRootMessageId: activeThreadRootId, composerTarget } = useRoomUiStore.getState();
+        const { threadRootMessageId: activeThreadRootId, composerTarget } = roomUiStoreApi.getState();
         if (composerTarget === "thread" && activeThreadRootId) {
           fields.threadId = activeThreadRootId;
         }
@@ -436,15 +497,55 @@ export default function useChatMessageSubmit({
         textContent = "";
       }
 
+      for (const video of uploadedVideos) {
+        const commonFields = getCommonFields() as ChatMessageRequest;
+        const nextAnnotations = mergedComposerAnnotations;
+        const videoMsg: ChatMessageRequest = {
+          ...commonFields,
+          ...(Array.isArray(nextAnnotations) ? { annotations: nextAnnotations } : {}),
+          content: textContent,
+          messageType: MessageType.VIDEO,
+          extra: {
+            url: video.url,
+            fileName: video.fileName,
+            size: video.size,
+            ...(typeof video.second === "number" ? { second: video.second } : {}),
+          },
+        };
+        await sendMessageWithInsert(videoMsg);
+        textContent = "";
+      }
+
+      for (const file of uploadedFiles) {
+        const commonFields = getCommonFields() as ChatMessageRequest;
+        const fileMsg: ChatMessageRequest = {
+          ...commonFields,
+          content: textContent,
+          messageType: MessageType.FILE,
+          extra: {
+            url: file.url,
+            fileName: file.fileName,
+            size: file.size,
+          },
+        };
+        await sendMessageWithInsert(fileMsg);
+        textContent = "";
+      }
+
       // Allow explicit blank messages when there's no other payload to send.
       const shouldSendEmptyTextMessage = isBlankInput
         && uploadedImages.length === 0
+        && uploadedVideos.length === 0
+        && uploadedFiles.length === 0
         && !soundMessageData
         && !shouldSendCommandRequest
         && !webgalVarPayload;
 
       if (textContent || shouldSendEmptyTextMessage) {
-        const isPureTextSend = uploadedImages.length === 0 && !soundMessageData;
+        const isPureTextSend = uploadedImages.length === 0
+          && uploadedVideos.length === 0
+          && uploadedFiles.length === 0
+          && !soundMessageData;
         const isWebgalCommandInput = isPureTextSend && textContent.startsWith("%");
         const normalizedContent = isWebgalCommandInput ? textContent.slice(1).trim() : textContent;
 
@@ -497,8 +598,8 @@ export default function useChatMessageSubmit({
 
       setInputText("");
       setTempAnnotations([]);
-      useRoomUiStore.getState().setReplyMessage(undefined);
-      useRoomUiStore.getState().setInsertAfterMessageId(undefined);
+      roomUiStoreApi.getState().setReplyMessage(undefined);
+      roomUiStoreApi.getState().setInsertAfterMessageId(undefined);
     }
     catch (e: any) {
       toast.error(e.message + e.stack, { duration: 3000 });
@@ -517,6 +618,7 @@ export default function useChatMessageSubmit({
     noRole,
     notMember,
     roomId,
+    roomUiStoreApi,
     sendMessageWithInsert,
     setInputText,
     setIsSubmitting,

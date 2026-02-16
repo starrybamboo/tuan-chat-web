@@ -1,4 +1,6 @@
-import { create } from "zustand";
+import React from "react";
+import { useStore } from "zustand";
+import { createStore } from "zustand/vanilla";
 
 import type { Message } from "api";
 
@@ -25,38 +27,58 @@ type RoomUiState = {
 
   setComposerTarget: (target: "main" | "thread") => void;
 
-  /** 切换房间时重置临时 UI ״̬ */
+  /** 切换房间时重置临时 UI 状态 */
   reset: () => void;
 };
 
-export const useRoomUiStore = create<RoomUiState>(set => ({
-  replyMessage: undefined,
-  threadRootMessageId: undefined,
-  composerTarget: "main",
-  insertAfterMessageId: undefined,
-  isAvatarSamplerActive: false,
-  isMultiSelecting: false,
-  setReplyMessage: message => set(state => (state.replyMessage === message ? state : { replyMessage: message })),
-  setThreadRootMessageId: messageId => set(state => (state.threadRootMessageId === messageId ? state : { threadRootMessageId: messageId })),
-  setInsertAfterMessageId: messageId => set(state => (state.insertAfterMessageId === messageId ? state : { insertAfterMessageId: messageId })),
-  setComposerTarget: target => set(state => (state.composerTarget === target ? state : { composerTarget: target })),
-  setAvatarSamplerActive: active => set(state => (state.isAvatarSamplerActive === active ? state : { isAvatarSamplerActive: active })),
-  setMultiSelecting: active => set(state => (state.isMultiSelecting === active ? state : { isMultiSelecting: active })),
-  reset: () => set(state => (
-    state.replyMessage === undefined
-    && state.threadRootMessageId === undefined
-    && state.composerTarget === "main"
-    && state.insertAfterMessageId === undefined
-    && state.isAvatarSamplerActive === false
-    && state.isMultiSelecting === false
-      ? state
-      : {
-          replyMessage: undefined,
-          threadRootMessageId: undefined,
-          composerTarget: "main",
-          insertAfterMessageId: undefined,
-          isAvatarSamplerActive: false,
-          isMultiSelecting: false,
-        }
-  )),
-}));
+export type RoomUiStoreApi = ReturnType<typeof createRoomUiStore>;
+
+export function createRoomUiStore() {
+  return createStore<RoomUiState>(set => ({
+    replyMessage: undefined,
+    threadRootMessageId: undefined,
+    composerTarget: "main",
+    insertAfterMessageId: undefined,
+    isAvatarSamplerActive: false,
+    isMultiSelecting: false,
+    setReplyMessage: message => set(state => (state.replyMessage === message ? state : { replyMessage: message })),
+    setThreadRootMessageId: messageId => set(state => (state.threadRootMessageId === messageId ? state : { threadRootMessageId: messageId })),
+    setInsertAfterMessageId: messageId => set(state => (state.insertAfterMessageId === messageId ? state : { insertAfterMessageId: messageId })),
+    setComposerTarget: target => set(state => (state.composerTarget === target ? state : { composerTarget: target })),
+    setAvatarSamplerActive: active => set(state => (state.isAvatarSamplerActive === active ? state : { isAvatarSamplerActive: active })),
+    setMultiSelecting: active => set(state => (state.isMultiSelecting === active ? state : { isMultiSelecting: active })),
+    reset: () => set(state => (
+      state.replyMessage === undefined
+      && state.threadRootMessageId === undefined
+      && state.composerTarget === "main"
+      && state.insertAfterMessageId === undefined
+      && state.isAvatarSamplerActive === false
+      && state.isMultiSelecting === false
+        ? state
+        : {
+            replyMessage: undefined,
+            threadRootMessageId: undefined,
+            composerTarget: "main",
+            insertAfterMessageId: undefined,
+            isAvatarSamplerActive: false,
+            isMultiSelecting: false,
+          }
+    )),
+  }));
+}
+
+const defaultRoomUiStore = createRoomUiStore();
+const RoomUiStoreContext = React.createContext<RoomUiStoreApi | null>(null);
+
+export function RoomUiStoreProvider({ store, children }: { store: RoomUiStoreApi; children: React.ReactNode }) {
+  return React.createElement(RoomUiStoreContext.Provider, { value: store }, children);
+}
+
+export function useRoomUiStoreApi(): RoomUiStoreApi {
+  return React.use(RoomUiStoreContext) ?? defaultRoomUiStore;
+}
+
+export function useRoomUiStore<T>(selector: (state: RoomUiState) => T): T {
+  const store = useRoomUiStoreApi();
+  return useStore(store, selector);
+}

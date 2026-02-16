@@ -1,4 +1,4 @@
-import type { LikeRecordRequest } from "../../../../api";
+import type { MarkTarget } from "../../../../api";
 import type { CommentContextType } from "@/components/common/comment/commentContext";
 import { useMemo } from "react";
 import CommentComponent from "@/components/common/comment/commentComponent";
@@ -8,7 +8,7 @@ import UserAvatarComponent from "@/components/common/userAvatar";
 import { useGetCommentPageInfiniteQuery } from "../../../../api/hooks/commentQueryHooks";
 
 interface CommentPanelProps {
-  targetInfo: LikeRecordRequest;
+  targetInfo: MarkTarget;
   className?: string;
   loginUserId: number;
 }

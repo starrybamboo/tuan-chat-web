@@ -104,6 +104,12 @@ function formatMessageContent(
       const size = formatFileSize(fileMessage?.size);
       return `[文件] ${name}${size ? ` (${size})` : ""}`;
     }
+    case MessageType.VIDEO: {
+      const videoMessage = (extra as any)?.videoMessage ?? extra?.fileMessage;
+      const name = videoMessage?.fileName || content || "视频";
+      const size = formatFileSize(videoMessage?.size);
+      return `[视频] ${name}${size ? ` (${size})` : ""}`;
+    }
     case MessageType.FORWARD:
       return formatForwardContent(message, roleMap, userMap, includeUsername);
     case MessageType.DICE: {

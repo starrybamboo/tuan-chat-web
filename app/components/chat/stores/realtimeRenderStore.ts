@@ -5,6 +5,44 @@ import type { InitProgress, RealtimeRenderStatus } from "@/webGAL/useRealtimeRen
 import { getRealtimeRenderSettings, setRealtimeRenderSettings } from "@/components/chat/infra/indexedDB/realtimeRenderSettingsDb";
 import { getDefaultTerrePort, setTerrePortOverride as setTerrePortOverrideInConfig } from "@/webGAL/terreConfig";
 
+export type RealtimeWebgalDefaultLanguage = "" | "zh_CN" | "zh_TW" | "en" | "ja" | "fr" | "de";
+
+export type RealtimeWebgalGameConfig = {
+  /** 是否将群聊头像同步为 WebGAL 标题背景图（Title_img） */
+  coverFromRoomAvatarEnabled: boolean;
+  /** 是否将群聊头像同步为 WebGAL 启动图（Game_Logo） */
+  startupLogoFromRoomAvatarEnabled: boolean;
+  /** 是否将群聊头像同步为 WebGAL 游戏图标（icons/*） */
+  gameIconFromRoomAvatarEnabled: boolean;
+  /** 是否将空间名称+spaceId 同步为 WebGAL 游戏名（Game_name） */
+  gameNameFromRoomNameEnabled: boolean;
+  /** WebGAL 游戏简介（Description） */
+  description: string;
+  /** WebGAL 游戏包名（Package_name） */
+  packageName: string;
+  /** 是否启用紧急回避（Show_panic） */
+  showPanicEnabled: boolean;
+  /** 默认语言（Default_Language） */
+  defaultLanguage: RealtimeWebgalDefaultLanguage;
+  /** 是否开启鉴赏模式（Enable_Appreciation） */
+  enableAppreciation: boolean;
+  /** 是否开启打字音（TypingSoundEnabled） */
+  typingSoundEnabled: boolean;
+};
+
+const DEFAULT_REALTIME_WEBGAL_GAME_CONFIG: RealtimeWebgalGameConfig = {
+  coverFromRoomAvatarEnabled: true,
+  startupLogoFromRoomAvatarEnabled: true,
+  gameIconFromRoomAvatarEnabled: false,
+  gameNameFromRoomNameEnabled: true,
+  description: "",
+  packageName: "",
+  showPanicEnabled: false,
+  defaultLanguage: "",
+  enableAppreciation: true,
+  typingSoundEnabled: true,
+};
+
 type RealtimeRenderState = {
   /** 是否启用实时渲染（仅表示前端渲染器运行状态，具体连接状态由渲染器内部维护） */
   enabled: boolean;
@@ -27,6 +65,9 @@ type RealtimeRenderState = {
   /** Terre 实际端口（用于启动探测/连接） */
   terrePort: number;
 
+  /** WebGAL 游戏配置（写入 config.txt） */
+  gameConfig: RealtimeWebgalGameConfig;
+
   /** IndexedDB 配置是否已加载 */
   hydrated: boolean;
 
@@ -48,6 +89,7 @@ type RealtimeRenderState = {
   setAutoFigureEnabled: (value: boolean) => void;
   setTtsApiUrl: (value: string) => void;
   setTerrePortOverride: (port: number | null) => void;
+  setGameConfig: (next: Partial<RealtimeWebgalGameConfig>) => void;
   ensureHydrated: () => Promise<void>;
 
   setRuntime: (runtime: {
@@ -58,34 +100,6 @@ type RealtimeRenderState = {
   }) => void;
   resetRuntime: () => void;
 };
-
-function canUseLocalStorage(): boolean {
-  return typeof window !== "undefined" && typeof window.localStorage !== "undefined";
-}
-
-function readLegacyTtsApiUrl(): string {
-  if (!canUseLocalStorage()) {
-    return "";
-  }
-  try {
-    return window.localStorage.getItem("tts_api_url") || "";
-  }
-  catch {
-    return "";
-  }
-}
-
-function clearLegacyTtsApiUrl(): void {
-  if (!canUseLocalStorage()) {
-    return;
-  }
-  try {
-    window.localStorage.removeItem("tts_api_url");
-  }
-  catch {
-    // ignore
-  }
-}
 
 function normalizePort(port: number | null): number | null {
   if (port == null) {
@@ -101,6 +115,13 @@ function normalizePort(port: number | null): number | null {
   return normalized;
 }
 
+function normalizeDefaultLanguage(value: unknown): RealtimeWebgalDefaultLanguage {
+  if (value === "zh_CN" || value === "zh_TW" || value === "en" || value === "ja" || value === "fr" || value === "de") {
+    return value;
+  }
+  return "";
+}
+
 let hydratePromise: Promise<void> | null = null;
 
 export const useRealtimeRenderStore = create<RealtimeRenderState>((set, get) => ({
@@ -111,6 +132,7 @@ export const useRealtimeRenderStore = create<RealtimeRenderState>((set, get) => 
   ttsApiUrl: "",
   terrePortOverride: null,
   terrePort: getDefaultTerrePort(),
+  gameConfig: DEFAULT_REALTIME_WEBGAL_GAME_CONFIG,
   hydrated: false,
 
   status: "idle",
@@ -149,6 +171,42 @@ export const useRealtimeRenderStore = create<RealtimeRenderState>((set, get) => 
       terrePort: nextOverride,
     });
   },
+  setGameConfig: (next) => {
+    const current = get().gameConfig;
+    const merged: RealtimeWebgalGameConfig = {
+      ...current,
+      ...next,
+    };
+
+    if (
+      current.coverFromRoomAvatarEnabled === merged.coverFromRoomAvatarEnabled
+      && current.startupLogoFromRoomAvatarEnabled === merged.startupLogoFromRoomAvatarEnabled
+      && current.gameIconFromRoomAvatarEnabled === merged.gameIconFromRoomAvatarEnabled
+      && current.gameNameFromRoomNameEnabled === merged.gameNameFromRoomNameEnabled
+      && current.description === merged.description
+      && current.packageName === merged.packageName
+      && current.showPanicEnabled === merged.showPanicEnabled
+      && current.defaultLanguage === merged.defaultLanguage
+      && current.enableAppreciation === merged.enableAppreciation
+      && current.typingSoundEnabled === merged.typingSoundEnabled
+    ) {
+      return;
+    }
+
+    set({ gameConfig: merged });
+    void setRealtimeRenderSettings({
+      coverFromRoomAvatarEnabled: merged.coverFromRoomAvatarEnabled,
+      startupLogoFromRoomAvatarEnabled: merged.startupLogoFromRoomAvatarEnabled,
+      gameIconFromRoomAvatarEnabled: merged.gameIconFromRoomAvatarEnabled,
+      gameNameFromRoomNameEnabled: merged.gameNameFromRoomNameEnabled,
+      description: merged.description,
+      packageName: merged.packageName,
+      showPanicEnabled: merged.showPanicEnabled,
+      defaultLanguage: merged.defaultLanguage,
+      enableAppreciation: merged.enableAppreciation,
+      typingSoundEnabled: merged.typingSoundEnabled,
+    });
+  },
   ensureHydrated: async () => {
     if (get().hydrated) {
       return;
@@ -164,13 +222,52 @@ export const useRealtimeRenderStore = create<RealtimeRenderState>((set, get) => 
       const persistedTtsApiUrl = (persisted?.ttsApiUrl ?? "").trim();
       const persistedTerrePortOverride = normalizePort(persisted?.terrePort ?? null);
       const persistedAutoFigureEnabled = persisted?.autoFigureEnabled;
+      const persistedCoverFromRoomAvatarEnabled = persisted?.coverFromRoomAvatarEnabled;
+      const persistedStartupLogoFromRoomAvatarEnabled = persisted?.startupLogoFromRoomAvatarEnabled;
+      const persistedGameIconFromRoomAvatarEnabled = persisted?.gameIconFromRoomAvatarEnabled;
+      const persistedGameNameFromRoomNameEnabled = persisted?.gameNameFromRoomNameEnabled;
+      const persistedDescription = persisted?.description;
+      const persistedPackageName = persisted?.packageName;
+      const persistedShowPanicEnabled = persisted?.showPanicEnabled;
+      const persistedDefaultLanguage = persisted?.defaultLanguage;
+      const persistedEnableAppreciation = persisted?.enableAppreciation;
+      const persistedTypingSoundEnabled = persisted?.typingSoundEnabled;
 
-      const legacyTtsApiUrl = !persistedTtsApiUrl ? readLegacyTtsApiUrl().trim() : "";
-      const nextTtsApiUrl = persistedTtsApiUrl || legacyTtsApiUrl || "";
+      const nextTtsApiUrl = persistedTtsApiUrl;
       const nextTerrePortOverride = persistedTerrePortOverride;
       const nextAutoFigureEnabled = typeof persistedAutoFigureEnabled === "boolean"
         ? persistedAutoFigureEnabled
         : get().autoFigureEnabled;
+      const nextGameConfig: RealtimeWebgalGameConfig = {
+        coverFromRoomAvatarEnabled: typeof persistedCoverFromRoomAvatarEnabled === "boolean"
+          ? persistedCoverFromRoomAvatarEnabled
+          : DEFAULT_REALTIME_WEBGAL_GAME_CONFIG.coverFromRoomAvatarEnabled,
+        startupLogoFromRoomAvatarEnabled: typeof persistedStartupLogoFromRoomAvatarEnabled === "boolean"
+          ? persistedStartupLogoFromRoomAvatarEnabled
+          : DEFAULT_REALTIME_WEBGAL_GAME_CONFIG.startupLogoFromRoomAvatarEnabled,
+        gameIconFromRoomAvatarEnabled: typeof persistedGameIconFromRoomAvatarEnabled === "boolean"
+          ? persistedGameIconFromRoomAvatarEnabled
+          : DEFAULT_REALTIME_WEBGAL_GAME_CONFIG.gameIconFromRoomAvatarEnabled,
+        gameNameFromRoomNameEnabled: typeof persistedGameNameFromRoomNameEnabled === "boolean"
+          ? persistedGameNameFromRoomNameEnabled
+          : DEFAULT_REALTIME_WEBGAL_GAME_CONFIG.gameNameFromRoomNameEnabled,
+        description: typeof persistedDescription === "string"
+          ? persistedDescription
+          : DEFAULT_REALTIME_WEBGAL_GAME_CONFIG.description,
+        packageName: typeof persistedPackageName === "string"
+          ? persistedPackageName
+          : DEFAULT_REALTIME_WEBGAL_GAME_CONFIG.packageName,
+        showPanicEnabled: typeof persistedShowPanicEnabled === "boolean"
+          ? persistedShowPanicEnabled
+          : DEFAULT_REALTIME_WEBGAL_GAME_CONFIG.showPanicEnabled,
+        defaultLanguage: normalizeDefaultLanguage(persistedDefaultLanguage),
+        enableAppreciation: typeof persistedEnableAppreciation === "boolean"
+          ? persistedEnableAppreciation
+          : DEFAULT_REALTIME_WEBGAL_GAME_CONFIG.enableAppreciation,
+        typingSoundEnabled: typeof persistedTypingSoundEnabled === "boolean"
+          ? persistedTypingSoundEnabled
+          : DEFAULT_REALTIME_WEBGAL_GAME_CONFIG.typingSoundEnabled,
+      };
 
       setTerrePortOverrideInConfig(nextTerrePortOverride);
       set({
@@ -178,17 +275,9 @@ export const useRealtimeRenderStore = create<RealtimeRenderState>((set, get) => 
         terrePortOverride: nextTerrePortOverride,
         terrePort: nextTerrePortOverride ?? getDefaultTerrePort(),
         autoFigureEnabled: nextAutoFigureEnabled,
+        gameConfig: nextGameConfig,
         hydrated: true,
       });
-
-      if (!persisted && legacyTtsApiUrl) {
-        await setRealtimeRenderSettings({
-          ttsApiUrl: legacyTtsApiUrl,
-          terrePort: null,
-          autoFigureEnabled: nextAutoFigureEnabled,
-        });
-        clearLegacyTtsApiUrl();
-      }
     })()
       .catch((e) => {
         hydratePromise = null;

@@ -11,6 +11,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
  * - 初始化时导入历史消息
  * - 增量更新新消息
  */
+import type { RealtimeWebgalGameConfig } from "@/components/chat/stores/realtimeRenderStore";
+
 import type { ChatMessageResponse, RoleAvatar, Room, UserRole } from "../../api";
 import type { RealtimeTTSConfig } from "./realtimeRenderer";
 
@@ -29,6 +31,8 @@ export type InitProgress = {
 
 type UseRealtimeRenderOptions = {
   spaceId: number;
+  spaceName?: string;
+  workflowRoomMap?: Record<string, Array<string>>;
   enabled?: boolean;
   roles?: UserRole[];
   avatars?: RoleAvatar[];
@@ -41,6 +45,8 @@ type UseRealtimeRenderOptions = {
   voiceFiles?: Map<number, File>;
   /** 自动填充立绘是否启用（没有设置立绘时自动填充左侧立绘） */
   autoFigureEnabled?: boolean;
+  /** 游戏配置（写入 config.txt） */
+  gameConfig?: RealtimeWebgalGameConfig;
 };
 
 type UseRealtimeRenderReturn = {
@@ -90,7 +96,9 @@ type UseRealtimeRenderReturn = {
 
 function useRealtimeRender({
   spaceId,
-  enabled = false,
+  spaceName,
+  workflowRoomMap,
+  enabled,
   roles = [],
   avatars = [],
   rooms = [],
@@ -98,6 +106,7 @@ function useRealtimeRender({
   miniAvatarEnabled = false,
   voiceFiles,
   autoFigureEnabled = true,
+  gameConfig,
 }: UseRealtimeRenderOptions): UseRealtimeRenderReturn {
   const [status, setStatus] = useState<RealtimeRenderStatus>("idle");
   const [initProgress, setInitProgress] = useState<InitProgress | null>(null);
@@ -106,13 +115,23 @@ function useRealtimeRender({
   const rendererRef = useRef<RealtimeRenderer | null>(null);
   const queryClient = useQueryClient();
   const roomsRef = useRef<Room[]>(rooms);
+  const spaceNameRef = useRef<string | undefined>(spaceName);
   const ttsConfigRef = useRef<RealtimeTTSConfig | undefined>(ttsConfig);
   const voiceFilesRef = useRef<Map<number, File> | undefined>(voiceFiles);
+  const gameConfigRef = useRef<RealtimeWebgalGameConfig | undefined>(gameConfig);
+  const workflowRoomMapRef = useRef<Record<string, Array<string>> | undefined>(workflowRoomMap);
 
   // 保持 refs 最新
   useEffect(() => {
     roomsRef.current = rooms;
   }, [rooms]);
+
+  useEffect(() => {
+    spaceNameRef.current = spaceName;
+    if (rendererRef.current) {
+      rendererRef.current.setSpaceName(spaceName);
+    }
+  }, [spaceName]);
 
   useEffect(() => {
     ttsConfigRef.current = ttsConfig;
@@ -133,6 +152,20 @@ function useRealtimeRender({
       rendererRef.current.setAutoFigureEnabled(autoFigureEnabled);
     }
   }, [autoFigureEnabled]);
+
+  useEffect(() => {
+    gameConfigRef.current = gameConfig;
+    if (rendererRef.current && gameConfig) {
+      rendererRef.current.setGameConfig(gameConfig);
+    }
+  }, [gameConfig]);
+
+  useEffect(() => {
+    workflowRoomMapRef.current = workflowRoomMap;
+    if (rendererRef.current) {
+      rendererRef.current.setWorkflowRoomMap(workflowRoomMap);
+    }
+  }, [workflowRoomMap]);
 
   useEffect(() => {
     voiceFilesRef.current = voiceFiles;
@@ -195,12 +228,19 @@ function useRealtimeRender({
       const renderer = RealtimeRenderer.getInstance(spaceId);
       rendererRef.current = renderer;
       renderer.setQueryClient(queryClient);
+      renderer.setSpaceName(spaceNameRef.current);
+      renderer.setWorkflowRoomMap(workflowRoomMapRef.current);
 
       // 设置小头像配置
       renderer.setMiniAvatarEnabled(miniAvatarEnabled);
 
       // 设置自动填充立绘配置
       renderer.setAutoFigureEnabled(autoFigureEnabled);
+
+      // 设置 config.txt 同步配置
+      if (gameConfigRef.current) {
+        renderer.setGameConfig(gameConfigRef.current);
+      }
 
       // 设置进度回调
       renderer.setProgressCallback((progress) => {
@@ -542,6 +582,9 @@ function useRealtimeRender({
 
   // 自动启动（如果 enabled 为 true）
   useEffect(() => {
+    if (typeof enabled !== "boolean") {
+      return;
+    }
     if (enabled && status === "idle") {
       start();
     }

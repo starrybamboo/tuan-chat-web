@@ -17,17 +17,20 @@ export class RoleControllerService {
     /**
      * 根据id获取角色
      * @param roleId
+     * @param commitId
      * @returns ApiResultUserRole OK
      * @throws ApiError
      */
     public getRole(
         roleId: number,
+        commitId?: number,
     ): CancelablePromise<ApiResultUserRole> {
         return this.httpRequest.request({
             method: 'GET',
             url: '/role',
             query: {
                 'roleId': roleId,
+                'commitId': commitId,
             },
             errors: {
                 400: `Bad Request`,
