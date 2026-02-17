@@ -8,7 +8,7 @@ import WorkflowWindow from "@/components/chat/window/workflowWindow";
 import { isElectronEnv } from "@/utils/isElectronEnv";
 import launchWebGal from "@/utils/launchWebGal";
 import { pollPort } from "@/utils/pollPort";
-import { getTerreBaseUrl } from "@/webGAL/terreConfig";
+import { getTerreBaseUrl, getTerreHealthcheckUrl } from "@/webGAL/terreConfig";
 import useRealtimeRender from "@/webGAL/useRealtimeRender";
 import { tuanchat } from "../../../../api/instance";
 
@@ -325,7 +325,7 @@ export default function SpaceWebgalRenderWindow({ spaceId }: SpaceWebgalRenderWi
     if (realtimeStatus === "initializing") {
       return false;
     }
-    if (isRealtimeActive && realtimeStatus === "connected") {
+    if (isRealtimeActive) {
       return true;
     }
 
@@ -338,7 +338,7 @@ export default function SpaceWebgalRenderWindow({ spaceId }: SpaceWebgalRenderWi
     toast.loading("正在启动 WebGAL...", { id: "space-webgal-init" });
     try {
       await pollPort(
-        getTerreBaseUrl(),
+        getTerreHealthcheckUrl(),
         electronEnv ? 15000 : 500,
         100,
       );

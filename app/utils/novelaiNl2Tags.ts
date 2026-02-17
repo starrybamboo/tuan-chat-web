@@ -61,14 +61,12 @@ export async function convertNaturalLanguageToNovelAiTags(args: {
     "2) JSON 结构固定为：{\"prompt\":\"...\",\"negativePrompt\":\"...\"}。",
     "3) prompt 必须是英文 tags，逗号分隔，可包含 NovelAI 常用质量词（如 masterpiece, best quality）。",
     "4) negativePrompt 也必须是英文 tags，逗号分隔；如果用户没有要求，可给出常见负面词（如 lowres, blurry）。",
-    "5) 不要生成涉及未成年人/违法/仇恨/暴力等不当内容的标签；若用户输入明显不当，请返回空 prompt 与原因写入 negativePrompt。",
     "",
     `用户描述：${safeUserInput}`,
     safeNegativeHint ? `用户不希望出现：${safeNegativeHint}` : "",
   ].filter(Boolean).join("\n");
 
   const raw = (await relayAiGatewayText({
-    model: "qwen-flash",
     prompt: promptText,
   })).trim();
   if (!raw)
@@ -76,18 +74,21 @@ export async function convertNaturalLanguageToNovelAiTags(args: {
 
   const jsonText = tryExtractJsonObject(raw);
   if (jsonText) {
+    let parsed: { prompt?: unknown; negativePrompt?: unknown };
     try {
-      const parsed = JSON.parse(jsonText) as { prompt?: unknown; negativePrompt?: unknown };
-      const prompt = normalizeTagsLine(String(parsed?.prompt ?? ""));
-      const negativePrompt = normalizeTagsLine(String(parsed?.negativePrompt ?? ""));
-      if (!prompt)
-        throw new Error("NL→tags 转换失败：解析结果为空 prompt");
-      return { prompt, negativePrompt, raw };
+      parsed = JSON.parse(jsonText) as { prompt?: unknown; negativePrompt?: unknown };
     }
     catch (e) {
       const message = e instanceof Error ? e.message : String(e);
       throw new Error(`NL→tags 转换失败：无法解析 JSON（${message}）`);
     }
+
+    const prompt = normalizeTagsLine(String(parsed?.prompt ?? ""));
+    const negativePrompt = normalizeTagsLine(String(parsed?.negativePrompt ?? ""));
+    if (!prompt) {
+      throw new Error("NL→tags 转换失败：解析结果为空 prompt");
+    }
+    return { prompt, negativePrompt, raw };
   }
 
   const fallbackPrompt = normalizeTagsLine(raw);

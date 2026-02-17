@@ -12,10 +12,8 @@ import {
   listAiImageHistory,
 } from "@/utils/aiImageHistoryDb";
 import { getAiImageStylePresets } from "@/utils/aiImageStylePresets";
-import { isElectronEnv } from "@/utils/isElectronEnv";
 import { convertNaturalLanguageToNovelAiTags } from "@/utils/novelaiNl2Tags";
 
-type RequestMode = "direct" | "proxy";
 type UiMode = "simple" | "pro";
 
 interface V4PromptCenter {
@@ -35,10 +33,8 @@ interface V4CharEditorRow extends V4CharPayload {
 }
 
 const DEFAULT_IMAGE_ENDPOINT = "https://image.novelai.net";
-const STORAGE_TOKEN_KEY = "tc:ai-image:novelai-token";
-const STORAGE_REQUEST_MODE_KEY = "tc:ai-image:request-mode";
 const STORAGE_UI_MODE_KEY = "tc:ai-image:ui-mode";
-const LOCKED_IMAGE_MODEL = "nai-diffusion-4-5-full";
+const LOCKED_IMAGE_MODEL = "nai-diffusion-4-5-curated";
 
 const SAMPLERS_NAI3 = [
   "k_euler",
@@ -126,11 +122,39 @@ function normalizeEndpoint(input: string) {
   return value.replace(/\/+$/, "");
 }
 
-function maybeCorsHintFromError(error: unknown) {
-  const message = error instanceof Error ? error.message : String(error);
-  if (/failed to fetch/i.test(message) || /networkerror/i.test(message) || /fetch failed/i.test(message))
-    return "（可能是浏览器跨域/CORS 拦截或网络被阻断）";
-  return "";
+function resolveBackendGenerateImageUrl() {
+  const path = "/api/novelapi/ai/generate-image";
+  const envBase = String(import.meta.env.VITE_API_BASE_URL || "").trim();
+  if (!envBase)
+    return path;
+
+  const appendPath = (basePath: string) => {
+    const normalized = basePath.replace(/\/+$/, "");
+    if (!normalized || normalized === "/")
+      return path;
+    if (normalized.endsWith("/api"))
+      return `${normalized}/novelapi/ai/generate-image`;
+    return `${normalized}${path}`;
+  };
+
+  try {
+    const baseUrl = typeof window === "undefined"
+      ? new URL(envBase, "http://localhost")
+      : new URL(envBase, window.location.href);
+
+    baseUrl.pathname = appendPath(baseUrl.pathname);
+    baseUrl.search = "";
+    baseUrl.hash = "";
+    return baseUrl.toString();
+  }
+  catch {
+    const normalizedBase = envBase.replace(/\/+$/, "");
+    if (!normalizedBase)
+      return path;
+    if (normalizedBase.endsWith("/api"))
+      return `${normalizedBase}/novelapi/ai/generate-image`;
+    return `${normalizedBase}${path}`;
+  }
 }
 
 function clampToMultipleOf64(value: number, fallback: number) {
@@ -269,7 +293,6 @@ function isNaiV4Family(model: string) {
 }
 
 async function generateNovelImageViaProxy(args: {
-  token: string;
   endpoint: string;
   mode: AiImageHistoryMode;
   sourceImageBase64?: string;
@@ -293,10 +316,6 @@ async function generateNovelImageViaProxy(args: {
   qualityToggle: boolean;
   seed?: number;
 }) {
-  const token = String(args.token || "").trim();
-  if (!token)
-    throw new Error("缺少 NovelAI token（Bearer）");
-
   const endpoint = normalizeEndpoint(args.endpoint) || DEFAULT_IMAGE_ENDPOINT;
   const prompt = String(args.prompt || "").trim();
   if (!prompt)
@@ -427,10 +446,16 @@ async function generateNovelImageViaProxy(args: {
   };
 
   const endpointHeader = normalizeEndpoint(endpoint);
-  const res = await fetch("/api/novelapi/ai/generate-image", {
+  const requestUrl = resolveBackendGenerateImageUrl();
+  console.warn("[ai-image] request generate-image via backend", {
+    requestUrl,
+    endpoint: endpointHeader || DEFAULT_IMAGE_ENDPOINT,
+    action: payload.action,
+    model: payload.model,
+  });
+  const res = await fetch(requestUrl, {
     method: "POST",
     headers: {
-      "Authorization": `Bearer ${token}`,
       "Content-Type": "application/json",
       "Accept": "application/octet-stream",
       "X-NovelAPI-Endpoint": endpointHeader,
@@ -441,195 +466,6 @@ async function generateNovelImageViaProxy(args: {
   if (!res.ok) {
     const text = await res.text().catch(() => "");
     throw new Error(`请求失败: ${res.status} ${res.statusText}${text ? ` - ${text}` : ""}`);
-  }
-
-  const bytes = new Uint8Array(await res.arrayBuffer());
-  let dataUrl = detectBinaryDataUrl(bytes);
-  if (!dataUrl && looksLikeZip(bytes))
-    dataUrl = firstImageFromZip(bytes);
-
-  if (!dataUrl) {
-    const text = await new Response(bytes).text().catch(() => "");
-    throw new Error(`响应不是可识别的图片/ZIP${text ? `: ${text.slice(0, 200)}` : ""}`);
-  }
-
-  return { dataUrl, seed, width, height, model };
-}
-
-async function generateNovelImageDirect(args: {
-  token: string;
-  endpoint: string;
-  mode: AiImageHistoryMode;
-  sourceImageBase64?: string;
-  strength: number;
-  noise: number;
-  prompt: string;
-  negativePrompt: string;
-  v4Chars?: V4CharPayload[];
-  v4UseCoords?: boolean;
-  v4UseOrder?: boolean;
-  model: string;
-  width: number;
-  height: number;
-  steps: number;
-  scale: number;
-  sampler: string;
-  noiseSchedule: string;
-  cfgRescale: number;
-  smea: boolean;
-  smeaDyn: boolean;
-  qualityToggle: boolean;
-  seed?: number;
-}) {
-  const token = String(args.token || "").trim();
-  if (!token)
-    throw new Error("缺少 NovelAI token（Bearer）");
-
-  const endpoint = normalizeEndpoint(args.endpoint) || DEFAULT_IMAGE_ENDPOINT;
-  const prompt = String(args.prompt || "").trim();
-  if (!prompt)
-    throw new Error("缺少 prompt");
-
-  const negativePrompt = String(args.negativePrompt || "");
-  const model = String(args.model || LOCKED_IMAGE_MODEL);
-
-  const isNAI3 = model === "nai-diffusion-3";
-  const isNAI4 = isNaiV4Family(model);
-
-  const seed = typeof args.seed === "number" ? args.seed : Math.floor(Math.random() * 2 ** 32);
-  const width = clampToMultipleOf64(args.width, 1024);
-  const height = clampToMultipleOf64(args.height, 1024);
-
-  const resolvedSampler = args.sampler === "k_euler_a" ? "k_euler_ancestral" : args.sampler;
-
-  const parameters: Record<string, any> = {
-    seed,
-    width,
-    height,
-    n_samples: 1,
-    steps: Math.max(1, Math.floor(args.steps)),
-    scale: Number(args.scale),
-    sampler: resolvedSampler,
-    negative_prompt: negativePrompt,
-    ucPreset: 2,
-    qualityToggle: Boolean(args.qualityToggle),
-  };
-
-  if (args.mode === "img2img") {
-    const imageBase64 = String(args.sourceImageBase64 || "").trim();
-    if (!imageBase64)
-      throw new Error("img2img 缺少源图片（sourceImageBase64）");
-
-    const strength = Number.isFinite(args.strength) ? Number(args.strength) : 0.7;
-    const noise = Number.isFinite(args.noise) ? Number(args.noise) : 0.2;
-    parameters.image = imageBase64;
-    parameters.strength = Math.max(0, Math.min(1, strength));
-    parameters.noise = Math.max(0, Math.min(1, noise));
-  }
-
-  if (isNAI3 || isNAI4) {
-    parameters.params_version = 3;
-    parameters.legacy = false;
-    parameters.legacy_v3_extend = false;
-    parameters.noise_schedule = args.noiseSchedule;
-
-    if (isNAI4) {
-      const cfgRescale = Number.isFinite(args.cfgRescale) ? Number(args.cfgRescale) : 0;
-      const useCoords = Boolean(args.v4UseCoords);
-      const useOrder = args.v4UseOrder == null ? true : Boolean(args.v4UseOrder);
-      const v4Chars = Array.isArray(args.v4Chars) ? args.v4Chars : [];
-      const charCenters: V4PromptCenter[] = [];
-      const charCaptionsPositive = v4Chars.map((item) => {
-        const center: V4PromptCenter = {
-          x: clamp01(item.centerX, 0.5),
-          y: clamp01(item.centerY, 0.5),
-        };
-        charCenters.push(center);
-        return {
-          char_caption: String(item.prompt || ""),
-          centers: [center],
-        };
-      });
-      const charCaptionsNegative = v4Chars.map((item, idx) => {
-        const center = charCenters[idx] || { x: 0.5, y: 0.5 };
-        return {
-          char_caption: String(item.negativePrompt || ""),
-          centers: [center],
-        };
-      });
-
-      parameters.add_original_image = true;
-      parameters.cfg_rescale = cfgRescale;
-      parameters.characterPrompts = [];
-      parameters.controlnet_strength = 1;
-      parameters.deliberate_euler_ancestral_bug = false;
-      parameters.prefer_brownian = true;
-      parameters.reference_image_multiple = [];
-      parameters.reference_information_extracted_multiple = [];
-      parameters.reference_strength_multiple = [];
-      parameters.skip_cfg_above_sigma = null;
-      parameters.use_coords = useCoords;
-      parameters.v4_prompt = {
-        caption: {
-          base_caption: prompt,
-          char_captions: charCaptionsPositive,
-        },
-        use_coords: parameters.use_coords,
-        use_order: useOrder,
-      };
-      parameters.v4_negative_prompt = {
-        caption: {
-          base_caption: negativePrompt,
-          char_captions: charCaptionsNegative,
-        },
-      };
-    }
-    else if (isNAI3) {
-      const smea = Boolean(args.smea);
-      const smeaDyn = Boolean(args.smeaDyn);
-      parameters.sm_dyn = smeaDyn;
-      parameters.sm = smea || smeaDyn;
-
-      if (
-        (resolvedSampler === "k_euler_ancestral" || resolvedSampler === "k_dpmpp_2s_ancestral")
-        && args.noiseSchedule === "karras"
-      ) {
-        parameters.noise_schedule = "native";
-      }
-      if (resolvedSampler === "ddim_v3") {
-        parameters.sm = false;
-        parameters.sm_dyn = false;
-        delete parameters.noise_schedule;
-      }
-      if (Number.isFinite(parameters.scale) && parameters.scale > 10) {
-        parameters.scale = parameters.scale / 2;
-      }
-    }
-  }
-
-  const payload: AiGenerateImageRequest = {
-    input: prompt,
-    model: model as unknown as AiGenerateImageRequest.model,
-    action: (args.mode === "img2img" ? "img2img" : "generate") as AiGenerateImageRequest.action,
-    parameters,
-    url: endpoint,
-  };
-
-  const url = `${endpoint}/ai/generate-image`;
-  const res = await fetch(url, {
-    method: "POST",
-    headers: {
-      "Authorization": `Bearer ${token}`,
-      "Content-Type": "application/json",
-      "Accept": "application/octet-stream",
-    },
-    body: JSON.stringify(payload),
-  });
-
-  if (!res.ok) {
-    const text = await res.text().catch(() => "");
-    const hint = maybeCorsHintFromError(text);
-    throw new Error(`请求失败: ${res.status} ${res.statusText}${text ? ` - ${text}` : ""}${hint ? ` ${hint}` : ""}`);
   }
 
   const bytes = new Uint8Array(await res.arrayBuffer());
@@ -691,20 +527,7 @@ export default function AiImagePage() {
     writeLocalStorageString(STORAGE_UI_MODE_KEY, uiMode);
   }, [uiMode]);
 
-  const [token, setToken] = useState(() => readLocalStorageString(STORAGE_TOKEN_KEY, ""));
   const [endpoint, setEndpoint] = useState(DEFAULT_IMAGE_ENDPOINT);
-  const [requestMode, setRequestMode] = useState<RequestMode>(() => {
-    const stored = readLocalStorageString(STORAGE_REQUEST_MODE_KEY, "proxy").trim();
-    return stored === "direct" ? "direct" : "proxy";
-  });
-
-  useEffect(() => {
-    writeLocalStorageString(STORAGE_TOKEN_KEY, token);
-  }, [token]);
-
-  useEffect(() => {
-    writeLocalStorageString(STORAGE_REQUEST_MODE_KEY, requestMode);
-  }, [requestMode]);
 
   const [mode, setMode] = useState<AiImageHistoryMode>("txt2img");
   const [sourceImageDataUrl, setSourceImageDataUrl] = useState("");
@@ -837,9 +660,7 @@ export default function AiImagePage() {
 
       const seedInput = Number(seed);
       const seedValue = Number.isFinite(seedInput) && seedInput >= 0 ? Math.floor(seedInput) : undefined;
-      const generator = requestMode === "direct" ? generateNovelImageDirect : generateNovelImageViaProxy;
-      const res = await generator({
-        token,
+      const res = await generateNovelImageViaProxy({
         endpoint,
         mode: effectiveMode,
         sourceImageBase64: effectiveMode === "img2img" ? sourceImageBase64 : undefined,
@@ -903,7 +724,6 @@ export default function AiImagePage() {
     prompt,
     qualityToggle,
     refreshHistory,
-    requestMode,
     sampler,
     scale,
     selectedStyleNegativeTags,
@@ -915,7 +735,6 @@ export default function AiImagePage() {
     sourceImageDataUrl,
     steps,
     strength,
-    token,
     uiMode,
     v4Chars,
     v4UseCoords,
@@ -1871,38 +1690,7 @@ export default function AiImagePage() {
           </div>
 
           <div className="flex flex-col gap-4">
-            <div className="flex items-center gap-2">
-              <div className="font-medium">请求方式</div>
-              <div className="ml-auto join">
-                <button
-                  type="button"
-                  className={`btn btn-sm join-item ${requestMode === "proxy" ? "btn-primary" : "btn-ghost"}`}
-                  onClick={() => setRequestMode("proxy")}
-                  title="通过本地后端代理请求（推荐，避免浏览器 CORS）"
-                >
-                  代理
-                </button>
-                <button
-                  type="button"
-                  className={`btn btn-sm join-item ${requestMode === "direct" ? "btn-primary" : "btn-ghost"}`}
-                  onClick={() => setRequestMode("direct")}
-                  title="浏览器直连 NovelAI（可能被 CORS 拦截；Electron 里通常可用）"
-                >
-                  直连
-                </button>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <div className="form-control">
-                <label className="label"><span className="label-text">NovelAI Token（Bearer）</span></label>
-                <input
-                  className="input input-bordered"
-                  value={token}
-                  onChange={e => setToken(e.target.value)}
-                  placeholder="pst-... 或其它 token"
-                />
-              </div>
+            <div className="grid grid-cols-1 gap-3">
               <div className="form-control">
                 <label className="label"><span className="label-text">Endpoint</span></label>
                 <div className="join">
@@ -1924,9 +1712,7 @@ export default function AiImagePage() {
             </div>
 
             <div className="text-xs opacity-70">
-              {requestMode === "direct" && !isElectronEnv()
-                ? "提示：浏览器直连通常会遇到 CORS，建议切换到“代理”。"
-                : "提示：Token 仅保存在本地 localStorage。"}
+              提示：生图 Token 已由后端托管，前端不再保存或输入。
             </div>
           </div>
 

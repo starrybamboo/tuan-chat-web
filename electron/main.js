@@ -292,7 +292,7 @@ app.whenReady().then(async () => {
     }
 
     const negativePrompt = String(req?.negativePrompt || "");
-    const model = String(req?.model || "nai-diffusion-3");
+    const model = String(req?.model || "nai-diffusion-4-5-curated");
     const seed = Number.isFinite(req?.seed) ? Number(req.seed) : Math.floor(Math.random() * 2 ** 32);
     const steps = Number.isFinite(req?.steps) ? Math.max(1, Math.floor(req.steps)) : 28;
     const scale = Number.isFinite(req?.scale) ? Number(req.scale) : 5;
