@@ -58,6 +58,14 @@ export function handleUnauthorized(params?: {
   if (typeof window === "undefined")
     return;
 
+  const isLoginPage = window.location.pathname === "/login";
+  clearAuthStorage();
+
+  // 登录页里的 401 多为未登录态下的受保护请求，不应污染“登录过期”提示。
+  if (isLoginPage) {
+    return;
+  }
+
   // Avoid redirect storms when multiple requests fail concurrently.
   if (shouldThrottle(1500))
     return;
@@ -68,13 +76,6 @@ export function handleUnauthorized(params?: {
       ? "登录已失效（连接已断开），请重新登录"
       : "登录已过期，请重新登录");
   persistToast(toastMessage);
-
-  clearAuthStorage();
-
-  // If already on /login, don't keep bouncing.
-  if (window.location.pathname === "/login") {
-    return;
-  }
 
   const currentPath = `${window.location.pathname}${window.location.search}${window.location.hash}`;
   const redirect = params?.redirect ?? currentPath;

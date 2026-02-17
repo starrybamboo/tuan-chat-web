@@ -1,5 +1,6 @@
-import { spawn } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import { existsSync, rmSync } from "node:fs";
+import { createRequire } from "node:module";
 import { dirname, join, resolve } from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
@@ -8,6 +9,7 @@ import detectPort from "detect-port";
 
 const scriptDir = dirname(fileURLToPath(import.meta.url));
 const projectRoot = resolve(scriptDir, "..");
+const require = createRequire(import.meta.url);
 
 process.chdir(projectRoot);
 
@@ -21,7 +23,7 @@ function delay(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-async function waitForElectronPing(baseUrl, { totalTimeoutMs = 15_000, perRequestTimeoutMs = 500 } = {}) {
+async function waitForElectronPing(baseUrl, { totalTimeoutMs = 30_000, perRequestTimeoutMs = 500 } = {}) {
   const deadline = Date.now() + totalTimeoutMs;
 
   while (Date.now() < deadline) {
@@ -67,6 +69,130 @@ function resolveBin(name) {
   return name;
 }
 
+function parseWmicProcessList(rawOutput) {
+  const text = String(rawOutput || "");
+  const blocks = text.split(/\r?\n\r?\n+/);
+  const entries = [];
+
+  for (const block of blocks) {
+    const lines = block
+      .split(/\r?\n/)
+      .map(line => line.trim())
+      .filter(Boolean);
+
+    let processId = 0;
+    let commandLine = "";
+
+    for (const line of lines) {
+      if (line.startsWith("ProcessId=")) {
+        processId = Number(line.slice("ProcessId=".length).trim());
+      }
+      else if (line.startsWith("CommandLine=")) {
+        commandLine = line.slice("CommandLine=".length);
+      }
+    }
+
+    if (Number.isFinite(processId) && processId > 0) {
+      entries.push({ processId, commandLine });
+    }
+  }
+
+  return entries;
+}
+
+function listWindowsProcessesByName(imageName) {
+  if (process.platform !== "win32")
+    return [];
+
+  try {
+    const result = spawnSync(
+      "wmic",
+      ["process", "where", `name='${imageName}'`, "get", "ProcessId,CommandLine", "/format:list"],
+      {
+        encoding: "utf8",
+        windowsHide: true,
+      },
+    );
+
+    if (result.status !== 0)
+      return [];
+
+    return parseWmicProcessList(result.stdout);
+  }
+  catch {
+    return [];
+  }
+}
+
+function resolveElectronExecutable() {
+  try {
+    const electronPath = require("electron");
+    if (typeof electronPath === "string" && electronPath.trim())
+      return electronPath;
+  }
+  catch {
+    // ignore and fallback to bin path
+  }
+  return resolveBin("electron");
+}
+
+function killChildProcessTree(child) {
+  if (!child || !child.pid)
+    return;
+  if (child.exitCode != null || child.signalCode != null)
+    return;
+
+  try {
+    if (process.platform === "win32") {
+      spawnSync("taskkill", ["/PID", String(child.pid), "/T", "/F"], {
+        stdio: "ignore",
+        windowsHide: true,
+      });
+      return;
+    }
+    child.kill("SIGTERM");
+  }
+  catch {
+    // ignore
+  }
+}
+
+function cleanupStaleProjectElectronProcesses() {
+  if (process.platform !== "win32")
+    return;
+
+  const projectRootLower = projectRoot.replace(/\//g, "\\").toLowerCase();
+  const candidates = [
+    ...listWindowsProcessesByName("electron.exe"),
+    ...listWindowsProcessesByName("node.exe"),
+  ].filter((entry) => {
+    const cmd = String(entry.commandLine || "").toLowerCase();
+    if (!cmd || !cmd.includes(projectRootLower))
+      return false;
+
+    return cmd.includes("\\node_modules\\electron\\dist\\electron.exe")
+      || cmd.includes("\\node_modules\\.bin\\\\..\\electron\\cli.js");
+  });
+
+  const pidSet = new Set(candidates.map(entry => entry.processId).filter(pid => pid !== process.pid));
+  if (pidSet.size === 0)
+    return;
+
+  for (const pid of pidSet) {
+    try {
+      spawnSync("taskkill", ["/PID", String(pid), "/T", "/F"], {
+        stdio: "ignore",
+        windowsHide: true,
+      });
+    }
+    catch {
+      // ignore
+    }
+  }
+
+  console.warn(`[electron:dev] cleaned stale Electron processes: ${Array.from(pidSet).join(", ")}`);
+}
+
 function hasArg(args, key) {
   return args.some(arg => arg === key || arg.startsWith(`${key}=`));
 }
@@ -96,14 +222,17 @@ const requestedPort = Number(requestedPortRaw);
 const basePortRaw = Number(process.env.PORT || process.env.VITE_PORT || 5177);
 const basePort = Number.isFinite(basePortRaw) && basePortRaw > 0 ? basePortRaw : 5177;
 
+cleanupStaleProjectElectronProcesses();
+
 const port = hasPortArg && Number.isFinite(requestedPort) && requestedPort > 0
   ? requestedPort
   : await detectPort(basePort);
 
 const devServerUrl = `http://localhost:${port}`;
 
+const reactRouterEntry = join(projectRoot, "node_modules", "@react-router", "dev", "bin.js");
 const reactRouterBin = resolveBin("react-router");
-const electronBin = resolveBin("electron");
+const electronExecutable = resolveElectronExecutable();
 
 const devArgs = ["dev"];
 
@@ -129,12 +258,19 @@ const devEnv = {
 
 console.log(`[electron:dev] starting dev server at ${devServerUrl}`);
 
-const devChild = spawn(reactRouterBin, devArgs, {
-  stdio: "inherit",
-  shell: process.platform === "win32" || reactRouterBin === "react-router",
-  cwd: projectRoot,
-  env: devEnv,
-});
+const devChild = existsSync(reactRouterEntry)
+  ? spawn(process.execPath, [reactRouterEntry, ...devArgs], {
+      stdio: "inherit",
+      shell: false,
+      cwd: projectRoot,
+      env: devEnv,
+    })
+  : spawn(reactRouterBin, devArgs, {
+      stdio: "inherit",
+      shell: process.platform === "win32" || reactRouterBin === "react-router",
+      cwd: projectRoot,
+      env: devEnv,
+    });
 
 let electronChild = null;
 let shuttingDown = false;
@@ -144,21 +280,8 @@ function shutdown(code = 0) {
     return;
   shuttingDown = true;
 
-  try {
-    if (electronChild && !electronChild.killed)
-      electronChild.kill("SIGTERM");
-  }
-  catch {
-    // ignore
-  }
-
-  try {
-    if (devChild && !devChild.killed)
-      devChild.kill("SIGTERM");
-  }
-  catch {
-    // ignore
-  }
+  killChildProcessTree(electronChild);
+  killChildProcessTree(devChild);
 
   process.exit(code);
 }
@@ -189,10 +312,17 @@ const electronEnv = {
   PORT: String(port),
   VITE_PORT: String(port),
 };
+// 某些环境会意外携带 ELECTRON_RUN_AS_NODE=1，导致 Electron 以 Node 模式启动并崩溃。
+delete electronEnv.ELECTRON_RUN_AS_NODE;
 
-electronChild = spawn(electronBin, ["."], {
+const useShellForElectron = process.platform === "win32" && (
+  electronExecutable === "electron"
+  || electronExecutable.toLowerCase().endsWith(".cmd")
+);
+
+electronChild = spawn(electronExecutable, ["."], {
   stdio: "inherit",
-  shell: process.platform === "win32" || electronBin === "electron",
+  shell: useShellForElectron,
   cwd: projectRoot,
   env: electronEnv,
 });

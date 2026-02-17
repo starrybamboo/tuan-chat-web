@@ -364,6 +364,7 @@ $RECYCLE.BIN/
 # End of https://www.toptal.com/developers/gitignore/api/windows,macos,webstorm+all,node,react,linux,visualstudiocode
 
 /release/
+/release_local_latest/
 # Ignore everything in the extraResource directory
 /extraResources/
 # But don't ignore the readme.md file

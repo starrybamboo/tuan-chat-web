@@ -5,7 +5,6 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import { useRealtimeRenderStore } from "@/components/chat/stores/realtimeRenderStore";
 import WorkflowWindow from "@/components/chat/window/workflowWindow";
-import { isElectronEnv } from "@/utils/isElectronEnv";
 import launchWebGal from "@/utils/launchWebGal";
 import { pollPort } from "@/utils/pollPort";
 import { getTerreBaseUrl, getTerreHealthcheckUrl } from "@/webGAL/terreConfig";
@@ -330,18 +329,24 @@ export default function SpaceWebgalRenderWindow({ spaceId }: SpaceWebgalRenderWi
     }
 
     await ensureHydrated(spaceId);
-    const electronEnv = isElectronEnv();
-    if (electronEnv) {
-      launchWebGal();
+    const launchResult = await launchWebGal({
+      gameDir: `realtime_${spaceId}`,
+    });
+    const electronEnv = launchResult.runtime === "electron";
+    if (electronEnv && !launchResult.ok) {
+      toast.error(launchResult.error || "WebGAL 启动失败", { id: "space-webgal-init" });
+      return false;
     }
 
     toast.loading("正在启动 WebGAL...", { id: "space-webgal-init" });
     try {
-      await pollPort(
-        getTerreHealthcheckUrl(),
-        electronEnv ? 15000 : 500,
-        100,
-      );
+      if (!electronEnv) {
+        await pollPort(
+          getTerreHealthcheckUrl(),
+          20_000,
+          200,
+        );
+      }
 
       toast.loading("正在初始化空间渲染器...", { id: "space-webgal-init" });
       const success = await startRealtimeRender();
@@ -352,8 +357,11 @@ export default function SpaceWebgalRenderWindow({ spaceId }: SpaceWebgalRenderWi
       toast.success("WebGAL 渲染器已启动", { id: "space-webgal-init" });
       return true;
     }
-    catch {
-      toast.error("WebGAL 启动超时", { id: "space-webgal-init" });
+    catch (error) {
+      const message = error instanceof Error && error.message
+        ? `WebGAL 启动失败：${error.message}`
+        : "WebGAL 启动超时";
+      toast.error(message, { id: "space-webgal-init" });
       return false;
     }
   }, [ensureHydrated, isRealtimeActive, realtimeStatus, spaceId, startRealtimeRender]);
