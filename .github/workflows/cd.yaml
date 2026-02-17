@@ -4,16 +4,33 @@ on:
   push:
     branches: [ "main", "dev" ]
   workflow_dispatch:  # 允许手动触发
+    inputs:
+      deploy_env:
+        description: "部署环境（auto=按分支，dev=>test，main=>production）"
+        required: true
+        default: auto
+        type: choice
+        options:
+          - auto
+          - test
+          - production
+      source_ref:
+        description: "构建代码来源（分支/tag/commit，留空则使用当前触发分支）"
+        required: false
+        default: ""
+        type: string
 
 jobs:
   build-and-deploy:
     name: tuan-chat-web构建与部署
     runs-on: ubuntu-latest
     env:
-      DEPLOY_TARGET: ${{ github.ref_name == 'dev' && '/www/wwwroot/tuan-chat-web-test' || '/www/wwwroot/tuan-chat-web' }}
-      BUILD_MODE: ${{ github.ref_name == 'dev' && 'test' || 'production' }}
+      DEPLOY_TARGET: ${{ (github.event_name == 'workflow_dispatch' && inputs.deploy_env == 'test' && '/www/wwwroot/tuan-chat-web-test') || (github.event_name == 'workflow_dispatch' && inputs.deploy_env == 'production' && '/www/wwwroot/tuan-chat-web') || (github.ref_name == 'dev' && '/www/wwwroot/tuan-chat-web-test') || '/www/wwwroot/tuan-chat-web' }}
+      BUILD_MODE: ${{ (github.event_name == 'workflow_dispatch' && inputs.deploy_env == 'test' && 'test') || (github.event_name == 'workflow_dispatch' && inputs.deploy_env == 'production' && 'production') || (github.ref_name == 'dev' && 'test') || 'production' }}
     steps:
       - uses: actions/checkout@v4 # 将目标分支 checkout 到运行环境
+        with:
+          ref: ${{ (github.event_name == 'workflow_dispatch' && inputs.source_ref) || github.ref_name }}
       - name: Install pnpm
         uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4 # 安装 node
