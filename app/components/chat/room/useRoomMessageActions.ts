@@ -20,7 +20,6 @@ type UseRoomMessageActionsParams = {
   isSubmitting: boolean;
   notMember: boolean;
   mainHistoryMessages: ChatMessageResponse[] | undefined;
-  send: (message: ChatMessageRequest) => void;
   sendMessage: (message: ChatMessageRequest) => Promise<{ success: boolean; data?: ChatMessageResponse["message"] }>;
   addOrUpdateMessage?: (message: ChatMessageResponse) => void;
   ensureRuntimeAvatarIdForRole: (roleId: number) => Promise<number>;
@@ -29,7 +28,7 @@ type UseRoomMessageActionsParams = {
 };
 
 type UseRoomMessageActionsResult = {
-  sendMessageWithInsert: (message: ChatMessageRequest) => Promise<void>;
+  sendMessageWithInsert: (message: ChatMessageRequest) => Promise<ChatMessageResponse["message"] | null>;
   handleSetWebgalVar: (key: string, expr: string) => Promise<void>;
   handleSendWebgalChoose: (payload: WebgalChoosePayload) => Promise<void>;
 };
@@ -43,7 +42,6 @@ export default function useRoomMessageActions({
   isSubmitting,
   notMember,
   mainHistoryMessages,
-  send,
   sendMessage,
   addOrUpdateMessage,
   ensureRuntimeAvatarIdForRole,
@@ -59,8 +57,15 @@ export default function useRoomMessageActions({
     if (insertAfterMessageId && mainHistoryMessages?.length) {
       const targetIndex = mainHistoryMessages.findIndex(m => m.message.messageId === insertAfterMessageId);
       if (targetIndex === -1) {
-        send(message);
-        return;
+        const fallbackResult = await sendMessage(message);
+        if (!fallbackResult.success || !fallbackResult.data) {
+          toast.error("发送消息失败");
+          return null;
+        }
+        const created = fallbackResult.data;
+        addOrUpdateMessage?.({ message: created });
+        roomUiStoreApi.getState().pushMessageUndo({ type: "send", after: created });
+        return created;
       }
 
       try {
@@ -77,27 +82,47 @@ export default function useRoomMessageActions({
         });
         if (!result.success || !result.data) {
           toast.error("发送消息失败");
-          return;
+          return null;
         }
+
+        const created = {
+          ...result.data,
+          position: result.data.position ?? newPosition,
+        };
 
         if (addOrUpdateMessage) {
           addOrUpdateMessage({
-            message: {
-              ...result.data,
-              position: newPosition,
-            },
+            message: created,
           });
         }
+        roomUiStoreApi.getState().pushMessageUndo({ type: "send", after: created });
+        return created;
       }
       catch (error) {
         console.error("插入消息失败", error);
         toast.error("发送消息失败");
+        return null;
       }
     }
     else {
-      send(message);
+      try {
+        const result = await sendMessage(message);
+        if (!result.success || !result.data) {
+          toast.error("发送消息失败");
+          return null;
+        }
+        const created = result.data;
+        addOrUpdateMessage?.({ message: created });
+        roomUiStoreApi.getState().pushMessageUndo({ type: "send", after: created });
+        return created;
+      }
+      catch (error) {
+        console.error("发送消息失败", error);
+        toast.error("发送消息失败");
+        return null;
+      }
     }
-  }, [addOrUpdateMessage, mainHistoryMessages, roomUiStoreApi, send, sendMessage]);
+  }, [addOrUpdateMessage, mainHistoryMessages, roomUiStoreApi, sendMessage]);
 
   const handleSetWebgalVar = useCallback(async (key: string, expr: string) => {
     const rawKey = String(key ?? "").trim();

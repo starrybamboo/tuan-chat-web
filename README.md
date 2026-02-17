@@ -51,6 +51,8 @@ VITE_TERRE_URL=https://tuan.chat/terre
 VITE_TERRE_WS=wss://tuan.chat/terre/api/webgalsync
 ```
 
+测试环境可使用 `.env.test`（已提供），默认域名为 `https://test.tuan.chat`，并且会开启 `VITE_ENABLE_REACT_SCAN=true`。
+
 ### IDE设置
 
 #### Vscode 设置
@@ -88,7 +90,9 @@ pnpm lint:fix
 
 自动化测试
 
-自动部署（main分支会同步到https://tuan.chat/)
+自动部署：
+- `main` 推送：生产部署到 `https://tuan.chat/`
+- `dev` 推送：测试部署到 `https://test.tuan.chat/`（test 模式构建，开启 React Scan）
 
 # 文件架构
 

@@ -66,26 +66,25 @@ export class BlocksuiteDocControllerService {
     }
     /**
      * 删除Blocksuite文档快照（硬删除）
+     * @param entityType
      * @param entityId
-     * @param requestBody
+     * @param docType
      * @returns ApiResultVoid OK
      * @throws ApiError
      */
     public deleteDoc3(
+        entityType: string,
         entityId: number,
-        requestBody: {
-            entityType?: string;
-            docType?: string;
-        },
+        docType: string,
     ): CancelablePromise<ApiResultVoid> {
         return this.httpRequest.request({
             method: 'DELETE',
             url: '/blocksuite/doc',
             query: {
+                'entityType': entityType,
                 'entityId': entityId,
+                'docType': docType,
             },
-            body: requestBody,
-            mediaType: 'application/json',
             errors: {
                 400: `Bad Request`,
                 405: `Method Not Allowed`,

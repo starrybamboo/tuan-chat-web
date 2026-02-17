@@ -30,7 +30,7 @@ export default function RoomButton({
     <div
       key={room.roomId}
       className={`group relative font-bold text-sm rounded-lg p-1 pr-10 flex justify-start items-center gap-2 w-full
-                               min-w-0 select-none ${isActive ? "bg-info-content/10" : "hover:bg-base-300"}`}
+                               min-w-0 select-none transition-colors ${isActive ? "bg-primary/20 dark:bg-primary/30 ring-1 ring-primary/40 dark:ring-primary/60 text-base-content" : "hover:bg-base-300"}`}
       role="button"
       tabIndex={0}
       aria-pressed={isActive}

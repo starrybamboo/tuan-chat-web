@@ -74,28 +74,64 @@ export default function useChatFrameMessages({
       const lastLength = lastLengthMapRef.current[roomId] ?? 0;
       if (lastLength < receivedMessages.length) {
         const newMessages = receivedMessages.slice(lastLength);
+        const processedMessages = lastLength > 0
+          ? receivedMessages.slice(0, lastLength)
+          : [];
 
-        // 补洞逻辑：检查新消息的第一条是否与历史消息的最后一条连接
+        // 补洞逻辑：遍历新消息，检测 syncId 是否存在断点
         const historyMsgs = chatHistory.messages;
         if (historyMsgs.length > 0 && newMessages.length > 0) {
-          const firstNewMsg = newMessages[0];
           let maxHistorySyncId = -1;
-          const historyMessageIds = new Set<number>();
+          const knownMessageIds = new Set<number>();
 
           for (const msg of historyMsgs) {
             const syncId = msg.message.syncId ?? -1;
             if (syncId > maxHistorySyncId)
               maxHistorySyncId = syncId;
-            historyMessageIds.add(msg.message.messageId);
+            knownMessageIds.add(msg.message.messageId);
           }
 
-          const isNewMessage = !historyMessageIds.has(firstNewMsg.message.messageId);
-          if (isNewMessage && firstNewMsg.message.syncId > maxHistorySyncId + 1) {
-            console.warn(`[ChatFrame] Detected gap between history (${maxHistorySyncId}) and new messages (${firstNewMsg.message.syncId}). Fetching missing messages...`);
+          let maxProcessedSyncId = -1;
+          for (const msg of processedMessages) {
+            const syncId = msg.message.syncId ?? -1;
+            if (syncId > maxProcessedSyncId)
+              maxProcessedSyncId = syncId;
+            knownMessageIds.add(msg.message.messageId);
+          }
+
+          let maxKnownSyncId = Math.max(maxHistorySyncId, maxProcessedSyncId);
+          let missingStartSyncId: number | null = null;
+          let gapIncomingSyncId: number | null = null;
+
+          for (const msg of newMessages) {
+            const syncId = msg.message.syncId ?? -1;
+            const messageId = msg.message.messageId;
+
+            if (knownMessageIds.has(messageId)) {
+              if (syncId > maxKnownSyncId) {
+                maxKnownSyncId = syncId;
+              }
+              continue;
+            }
+
+            if (syncId > maxKnownSyncId + 1) {
+              missingStartSyncId = maxKnownSyncId + 1;
+              gapIncomingSyncId = syncId;
+              break;
+            }
+
+            if (syncId > maxKnownSyncId) {
+              maxKnownSyncId = syncId;
+            }
+            knownMessageIds.add(messageId);
+          }
+
+          if (missingStartSyncId !== null && gapIncomingSyncId !== null) {
+            console.warn(`[ChatFrame] Detected gap from syncId ${missingStartSyncId} before incoming message syncId ${gapIncomingSyncId}. Fetching missing messages...`);
             try {
               const missingMessagesRes = await tuanchat.chatController.getHistoryMessages({
                 roomId,
-                syncId: maxHistorySyncId + 1,
+                syncId: missingStartSyncId,
               });
               if (missingMessagesRes.data && missingMessagesRes.data.length > 0) {
                 await chatHistory.addOrUpdateMessages(missingMessagesRes.data);

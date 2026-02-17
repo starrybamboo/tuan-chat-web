@@ -11,7 +11,6 @@ export async function sendLlmStreamMessage(prompt: string, handleReceiveMessage:
   try {
     handleReceiveMessage("正在生成...");
     const content = await relayAiGatewayText({
-      model: "gpt-5.1",
       prompt,
     });
     handleReceiveMessage(content);
