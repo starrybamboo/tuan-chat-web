@@ -78,12 +78,12 @@ if (typeof window !== "undefined" && import.meta.env.DEV) {
 }
 
 // React Scan 在 test 与本地开发环境可启用；生产环境始终关闭。
-// 本地开发默认启用，可通过 VITE_ENABLE_REACT_SCAN=false 手动关闭。
+// test 环境始终启用；本地开发默认启用，可通过 VITE_ENABLE_REACT_SCAN=false 手动关闭。
 const isTestBuild = import.meta.env.MODE === "test";
 const shouldEnableReactScan
   = typeof window !== "undefined"
     && (
-      (isTestBuild && import.meta.env.VITE_ENABLE_REACT_SCAN === "true")
+      isTestBuild
       || (import.meta.env.DEV && import.meta.env.VITE_ENABLE_REACT_SCAN !== "false")
     );
 
