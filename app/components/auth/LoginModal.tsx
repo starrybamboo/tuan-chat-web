@@ -2,6 +2,7 @@ import { QueryClient, useMutation, useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { useSearchParams } from "react-router";
 import { checkAuthStatus, loginUser, logoutUser, registerUser } from "@/utils/auth/authapi";
+import { normalizeAuthRedirectPath } from "@/utils/auth/redirect";
 import { AlertMessage } from "./AlertMessage";
 import { LoggedInView } from "./LoggedInView";
 import { LoginForm } from "./LoginForm";
@@ -69,9 +70,9 @@ export default function LoginModal({ isOpen, onClose }: { isOpen: boolean; onClo
 
     // 兼容：/login?redirect=...（例如 401 自动跳转或邀请链接跳转）
     try {
-      const redirect = searchParams.get("redirect");
+      const redirect = normalizeAuthRedirectPath(searchParams.get("redirect"));
       if (window.location.pathname === "/login") {
-        window.location.assign(redirect || "/chat");
+        window.location.assign(redirect);
         return;
       }
     }

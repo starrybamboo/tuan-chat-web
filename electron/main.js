@@ -1,5 +1,5 @@
 /* eslint-disable node/no-process-env */
-import { app, BrowserWindow, ipcMain, Menu, protocol } from "electron";
+import electron from "electron";
 import electronUpdater from "electron-updater";
 import fs from "node:fs";
 import { createRequire } from "node:module";
@@ -14,6 +14,7 @@ import { registerWebGalIpc, stopWebGAL } from "./utils/webgal.js";
 // @ganyudedog electron-updater 使用 autoUpdater 来管理更新
 // @entropy622构建electron
 
+const { app, BrowserWindow, ipcMain, Menu, protocol } = electron;
 const { autoUpdater } = electronUpdater;
 
 const __filename = fileURLToPath(import.meta.url);
@@ -64,6 +65,34 @@ protocol.registerSchemesAsPrivileged([
   },
 ]);
 
+function rewriteUnexpectedLocalhostNavigationUrl(url, devServerUrl) {
+  if (!url || !devServerUrl) {
+    return "";
+  }
+
+  try {
+    const target = new URL(url);
+    const devServer = new URL(devServerUrl);
+    const isLocalhostHost = host =>
+      host === "localhost" || host === "127.0.0.1" || host === "::1" || host === "[::1]";
+
+    if (!isLocalhostHost(target.hostname) || !isLocalhostHost(devServer.hostname)) {
+      return "";
+    }
+    if (target.origin === devServer.origin) {
+      return "";
+    }
+
+    target.protocol = devServer.protocol;
+    target.hostname = devServer.hostname;
+    target.port = devServer.port;
+    return target.toString();
+  }
+  catch {
+    return "";
+  }
+}
+
 async function createWindow() {
   // 创建浏览器窗口
   mainWindow = new BrowserWindow({
@@ -74,7 +103,7 @@ async function createWindow() {
       // 书写渲染进程中的配置
       contextIsolation: true, // 注意：这会隔离上下文，不等于“可以使用 require”
       enableRemoteModule: true,
-      preload: path.join(__dirname, "preload.js"), // 指定 preload 脚本
+      preload: path.join(__dirname, "preload.cjs"), // 指定 preload 脚本
     },
   });
 
@@ -105,16 +134,21 @@ async function createWindow() {
 
   if (isDev) {
     // 开发环境：必须加载 dev server（否则 app://./ 会指向 build/client，而 dev 并不存在该目录）
-    try {
-      // electron-reload 仅用于开发态；依赖不存在时直接跳过。
-      const require = createRequire(import.meta.url);
-      const elePath = path.join(__dirname, "../node_modules/electron");
-      require("electron-reload")("../", {
-        electron: require(elePath),
-      });
-    }
-    catch {
-      // ignore
+    // 某些 Node/Electron 版本组合下 electron-reload 会触发 ESM/CJS 解析异常。
+    // 默认关闭，仅在明确需要时通过 ENABLE_ELECTRON_RELOAD=1 开启。
+    if (process.env.ENABLE_ELECTRON_RELOAD === "1") {
+      try {
+        // electron-reload 仅用于开发态；依赖不存在时直接跳过。
+        const require = createRequire(import.meta.url);
+        const elePath = path.join(__dirname, "../node_modules/electron");
+        // 只监听 electron 目录，避免扫描 release/win-unpacked/resources/app.asar 导致异常。
+        require("electron-reload")(path.join(__dirname), {
+          electron: require(elePath),
+        });
+      }
+      catch {
+        // ignore
+      }
     }
 
     mainWindow.webContents.on("did-fail-load", (_e, errorCode, errorDescription, validatedURL) => {
@@ -122,6 +156,18 @@ async function createWindow() {
     });
     mainWindow.webContents.on("render-process-gone", (_e, details) => {
       console.error("[mainWindow] render-process-gone", details);
+    });
+    mainWindow.webContents.on("will-navigate", (event, url) => {
+      const rewritten = rewriteUnexpectedLocalhostNavigationUrl(
+        url,
+        resolvedDevServerUrl || preferredDevServerUrl,
+      );
+      if (!rewritten) {
+        return;
+      }
+      event.preventDefault();
+      console.warn("[electron] rewrite unexpected localhost navigation", { from: url, to: rewritten });
+      void mainWindow.loadURL(rewritten);
     });
 
     const candidatePorts = buildCandidatePorts({
@@ -138,6 +184,13 @@ async function createWindow() {
       concurrency: 10,
     });
 
+    // electron:dev 启动脚本已经先验证过 ELECTRON_START_URL 对应的 /__electron_ping，
+    // 这里探测失败时允许直接回退到它，避免主进程 fetch 探测误判导致白屏。
+    if (!resolvedDevServerUrl && preferredDevServerUrl) {
+      resolvedDevServerUrl = preferredDevServerUrl.replace(/\/+$/, "");
+      console.warn("[electron] fallback to preferred dev server url", { preferredDevServerUrl });
+    }
+
     if (!resolvedDevServerUrl) {
       const msg = `未能连接到前端 dev server。\n\n你可以：\n1) 先运行 pnpm dev\n2) 或设置环境变量 VITE_DEV_SERVER_URL / ELECTRON_START_URL\n\n尝试过的端口范围：${candidatePorts[0]}-${candidatePorts[candidatePorts.length - 1]}`;
       console.error("[electron] dev server not reachable", { preferredDevServerUrl, defaultPort, candidatePorts });
@@ -145,7 +198,15 @@ async function createWindow() {
       return;
     }
 
-    await mainWindow.loadURL(resolvedDevServerUrl);
+    try {
+      await mainWindow.loadURL(resolvedDevServerUrl);
+    }
+    catch (err) {
+      const msg = `加载 dev server 失败：\n${resolvedDevServerUrl}\n\n${err instanceof Error ? err.message : String(err)}`;
+      console.error("[electron] load dev server failed", { resolvedDevServerUrl, err });
+      await mainWindow.loadURL(`data:text/plain;charset=utf-8,${encodeURIComponent(msg)}`);
+      return;
+    }
 
     try {
       fs.writeFileSync(devServerCachePath, JSON.stringify({ url: resolvedDevServerUrl, ts: Date.now() }, null, 2), "utf8");

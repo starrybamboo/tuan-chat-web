@@ -26,7 +26,10 @@ node node_modules/electron/install.js
 ```
 
 如果要执行 electron 打包（electron-builder）
-请先把 WebGAL_Terre 的 Windows 发行版（包含 `WebGAL_Terre.exe` 及其依赖文件）解压/拷贝到 `extraResources/` 目录下（`WebGAL_Terre.exe` 与该目录同级）。
+会自动先执行 `pnpm electron:prepare:resources`，默认从 `../WebGAL_Terre/release` 同步 WebGAL_Terre 发行文件到 `extraResources/`。
+
+- 如果 `WebGAL_Terre` 不在默认位置，可设置环境变量 `WEBGAL_TERRE_RELEASE_DIR` 指向发行目录。
+- 若未找到发行目录，但本地 `extraResources/` 已有 `WebGAL_Terre.exe`，会沿用现有文件继续打包。
 
 #### electron-builder 工具下载不稳定（Windows）
 

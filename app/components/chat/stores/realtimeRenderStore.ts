@@ -36,15 +36,15 @@ export type RealtimeWebgalGameConfig = {
 
 const DEFAULT_REALTIME_WEBGAL_GAME_CONFIG: RealtimeWebgalGameConfig = {
   coverFromRoomAvatarEnabled: true,
-  startupLogoFromRoomAvatarEnabled: true,
-  gameIconFromRoomAvatarEnabled: false,
+  startupLogoFromRoomAvatarEnabled: false,
+  gameIconFromRoomAvatarEnabled: true,
   gameNameFromRoomNameEnabled: true,
   description: "",
   packageName: "",
   showPanicEnabled: false,
   defaultLanguage: "",
   enableAppreciation: true,
-  typingSoundEnabled: true,
+  typingSoundEnabled: false,
 };
 
 type RealtimeRenderState = {

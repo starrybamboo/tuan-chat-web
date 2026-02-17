@@ -2,6 +2,8 @@ import bundledCoreJsUrl from "@ffmpeg/core?url";
 import bundledCoreWasmUrl from "@ffmpeg/core/wasm?url";
 import bundledWorkerUrl from "@ffmpeg/ffmpeg/worker?worker&url";
 
+import { resolveFfmpegLoadTimeoutMs } from "@/utils/ffmpegLoadTimeoutConfig";
+
 export type VideoTranscodeOptions = {
   loadTimeoutMs?: number;
   execTimeoutMs?: number;
@@ -31,7 +33,6 @@ type VideoTranscodePreset = {
   deadline: "good" | "realtime";
 };
 
-const DEFAULT_LOAD_TIMEOUT_MS = 45_000;
 const DEFAULT_EXEC_TIMEOUT_MS = 180_000;
 const DEFAULT_CRF = 34;
 const MIN_CRF = 10;
@@ -211,7 +212,7 @@ function buildVideoTranscodePresets(base: { maxHeight?: number; maxFps?: number;
   return deduped;
 }
 
-async function getFfmpeg(): Promise<import("@ffmpeg/ffmpeg").FFmpeg> {
+async function getFfmpeg(loadTimeoutMs: number): Promise<import("@ffmpeg/ffmpeg").FFmpeg> {
   if (ffmpegSingletonPromise) {
     return ffmpegSingletonPromise;
   }
@@ -231,7 +232,7 @@ async function getFfmpeg(): Promise<import("@ffmpeg/ffmpeg").FFmpeg> {
         wasmURL: bundledCoreWasmUrl,
         classWorkerURL,
       }),
-      DEFAULT_LOAD_TIMEOUT_MS,
+      loadTimeoutMs,
       "FFmpeg 核心加载",
     );
 
@@ -368,9 +369,7 @@ export async function transcodeVideoFileToWebmOrThrow(inputFile: File, options: 
     return inputFile;
   }
 
-  const loadTimeoutMs = options.loadTimeoutMs && options.loadTimeoutMs > 0
-    ? options.loadTimeoutMs
-    : DEFAULT_LOAD_TIMEOUT_MS;
+  const loadTimeoutMs = resolveFfmpegLoadTimeoutMs(options.loadTimeoutMs);
   const execTimeoutMs = options.execTimeoutMs && options.execTimeoutMs > 0
     ? options.execTimeoutMs
     : DEFAULT_EXEC_TIMEOUT_MS;
@@ -378,7 +377,7 @@ export async function transcodeVideoFileToWebmOrThrow(inputFile: File, options: 
   const maxFps = toPositiveInt(options.maxFps);
   const crf = Number.isFinite(options.crf) ? clamp(Math.round(options.crf!), MIN_CRF, MAX_CRF) : DEFAULT_CRF;
 
-  let ffmpeg = await withTimeout(getFfmpeg(), loadTimeoutMs, "FFmpeg 初始化");
+  let ffmpeg = await withTimeout(getFfmpeg(loadTimeoutMs), loadTimeoutMs, "FFmpeg 初始化");
   const { fetchFile } = await import("@ffmpeg/util");
   const presets = buildVideoTranscodePresets({ maxHeight, maxFps, crf });
 
@@ -402,7 +401,7 @@ export async function transcodeVideoFileToWebmOrThrow(inputFile: File, options: 
       if (isWasmMemoryOutOfBounds(error)) {
         await terminateFfmpegAndResetSingleton(ffmpeg);
         try {
-          ffmpeg = await withTimeout(getFfmpeg(), loadTimeoutMs, "FFmpeg 初始化（重试）");
+          ffmpeg = await withTimeout(getFfmpeg(loadTimeoutMs), loadTimeoutMs, "FFmpeg 初始化（重试）");
           return await runVideoTranscodeOnce({
             ffmpeg,
             inputFile,
