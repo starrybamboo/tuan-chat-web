@@ -13,8 +13,7 @@ interface AIGenerateModalProps {
   onClose: () => void;
   ruleId: number;
   onApply: (data: AIGeneratedData) => void;
-  generateBasicInfoByRule: (params: { ruleId: number; prompt: string }, options: { onSuccess: (data: any) => void; onError: (error: any) => void }) => void;
-  generateAbilityByRule: (params: { ruleId: number; prompt: string }, options: { onSuccess: (data: any) => void; onError: (error: any) => void }) => void;
+  generateRoleByRule: (params: { ruleId: number; prompt: string }, options: { onSuccess: (data: any) => void; onError: (error: any) => void }) => void;
 }
 
 function toStringRecord(input: unknown): Record<string, string> {
@@ -33,8 +32,7 @@ export default function AIGenerateModal({
   onClose,
   ruleId,
   onApply,
-  generateBasicInfoByRule,
-  generateAbilityByRule,
+  generateRoleByRule,
 }: AIGenerateModalProps) {
   const [prompt, setPrompt] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
@@ -47,26 +45,9 @@ export default function AIGenerateModal({
     setIsGenerating(true);
     setPreviewData(null);
 
-    const generatedData: AIGeneratedData = {
-      act: {},
-      basic: {},
-      ability: {},
-      skill: {},
-    };
-
     try {
-      // 并行请求：基础表演信息 + 属性能力信息
-      const basicTask = new Promise<any>((resolve, reject) => {
-        generateBasicInfoByRule(
-          { ruleId, prompt },
-          {
-            onSuccess: data => resolve(data),
-            onError: error => reject(error),
-          },
-        );
-      });
-      const abilityTask = new Promise<any>((resolve, reject) => {
-        generateAbilityByRule(
+      const result = await new Promise<any>((resolve, reject) => {
+        generateRoleByRule(
           { ruleId, prompt },
           {
             onSuccess: data => resolve(data),
@@ -75,31 +56,20 @@ export default function AIGenerateModal({
         );
       });
 
-      const [basicResult, abilityResult] = await Promise.allSettled([basicTask, abilityTask]);
-      let hasAnySuccess = false;
+      const responseData = result?.data ?? {};
+      const generatedData: AIGeneratedData = {
+        act: toStringRecord(responseData.act),
+        basic: toStringRecord(responseData.basic),
+        ability: toStringRecord(responseData.属性 || responseData.ability),
+        skill: toStringRecord(responseData.技能 || responseData.skill),
+      };
 
-      if (basicResult.status === "fulfilled") {
-        if (basicResult.value?.data) {
-          generatedData.act = toStringRecord(basicResult.value.data);
-          hasAnySuccess = true;
-        }
-      }
-      else {
-        console.error("生成角色表演能力失败:", basicResult.reason);
-      }
-
-      if (abilityResult.status === "fulfilled") {
-        if (abilityResult.value?.data) {
-          const responseData = abilityResult.value.data;
-          generatedData.basic = toStringRecord(responseData.basic);
-          generatedData.ability = toStringRecord(responseData.属性 || responseData.ability);
-          generatedData.skill = toStringRecord(responseData.技能 || responseData.skill);
-          hasAnySuccess = true;
-        }
-      }
-      else {
-        console.error("生成能力数据失败:", abilityResult.reason);
-      }
+      const hasAnySuccess = Boolean(
+        Object.keys(generatedData.act ?? {}).length
+        || Object.keys(generatedData.basic ?? {}).length
+        || Object.keys(generatedData.ability ?? {}).length
+        || Object.keys(generatedData.skill ?? {}).length,
+      );
 
       if (!hasAnySuccess)
         throw new Error("AI生成失败：未返回有效数据");

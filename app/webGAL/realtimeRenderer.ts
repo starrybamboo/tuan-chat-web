@@ -278,6 +278,7 @@ const DICE_COMMAND_PATTERN = /^\.|(?:^|\s)\d*\s*d\s*(?:100|%)(?:\s|$)/i;
 const REALTIME_GAME_ENGINE_MARKER_FILE = ".tuanchat_engine_marker.txt";
 const REALTIME_GAME_ENGINE_MARKER_VERSION = "realtime-trpg-dice-v2";
 const WORKFLOW_START_KEY = "start";
+const WORKFLOW_END_NODE_VALUE_PREFIX = "end:";
 const WORKFLOW_END_NODE_LIST_KEY = "endNodes";
 const WORKFLOW_END_NODE_LINK_KEY_PREFIX = "endNode:";
 
@@ -297,9 +298,16 @@ type WorkflowLink = {
   condition?: string;
 };
 
+type WorkflowTransitionOption = {
+  label: string;
+  targetScene: string;
+};
+
 type WorkflowGraph = {
   startRoomIds: number[];
   links: Record<number, WorkflowLink[]>;
+  endNodeIds: number[];
+  endNodeIncomingRoomIds: Record<number, number[]>;
 };
 
 function hasFileExtension(fileName: string): boolean {
@@ -411,14 +419,34 @@ function parseWorkflowLink(raw: unknown): WorkflowLink | null {
   };
 }
 
+function parseWorkflowEndNodeId(raw: unknown): number | null {
+  const value = String(raw ?? "").trim();
+  if (!value) {
+    return null;
+  }
+  const normalized = value.startsWith(WORKFLOW_END_NODE_VALUE_PREFIX)
+    ? value.slice(WORKFLOW_END_NODE_VALUE_PREFIX.length)
+    : value;
+  const id = Number(normalized);
+  if (!Number.isFinite(id) || id <= 0) {
+    return null;
+  }
+  return id;
+}
+
 function parseWorkflowRoomMap(roomMap?: Record<string, Array<string>>): WorkflowGraph {
   const result: WorkflowGraph = {
     startRoomIds: [],
     links: {},
+    endNodeIds: [],
+    endNodeIncomingRoomIds: {},
   };
   if (!roomMap) {
     return result;
   }
+
+  const parsedEndNodeIds: number[] = [];
+  const parsedEndNodeIncomingRoomIds: Record<number, number[]> = {};
 
   Object.entries(roomMap).forEach(([key, value]) => {
     if (key === WORKFLOW_START_KEY) {
@@ -434,7 +462,29 @@ function parseWorkflowRoomMap(roomMap?: Record<string, Array<string>>): Workflow
       );
       return;
     }
-    if (key === WORKFLOW_END_NODE_LIST_KEY || key.startsWith(WORKFLOW_END_NODE_LINK_KEY_PREFIX)) {
+    if (key === WORKFLOW_END_NODE_LIST_KEY) {
+      const ids = (Array.isArray(value) ? value : [])
+        .map(entry => parseWorkflowEndNodeId(entry))
+        .filter((id): id is number => id != null);
+      parsedEndNodeIds.push(...ids);
+      return;
+    }
+    if (key.startsWith(WORKFLOW_END_NODE_LINK_KEY_PREFIX)) {
+      const endNodeId = Number(key.slice(WORKFLOW_END_NODE_LINK_KEY_PREFIX.length));
+      if (!Number.isFinite(endNodeId) || endNodeId <= 0) {
+        return;
+      }
+      const incomingRoomIds = normalizeWorkflowRoomIds(
+        (Array.isArray(value) ? value : [])
+          .map((entry) => {
+            if (typeof entry === "number") {
+              return entry;
+            }
+            return Number(String(entry ?? "").trim());
+          })
+          .filter(id => Number.isFinite(id) && id > 0),
+      );
+      parsedEndNodeIncomingRoomIds[endNodeId] = incomingRoomIds;
       return;
     }
 
@@ -465,6 +515,19 @@ function parseWorkflowRoomMap(roomMap?: Record<string, Array<string>>): Workflow
       result.links[sourceRoomId] = parsedLinks;
     }
   });
+
+  const normalizedEndNodeIds = normalizeWorkflowRoomIds([
+    ...parsedEndNodeIds,
+    ...Object.keys(parsedEndNodeIncomingRoomIds)
+      .map(id => Number(id))
+      .filter(id => Number.isFinite(id) && id > 0),
+  ]);
+  const normalizedIncoming: Record<number, number[]> = {};
+  normalizedEndNodeIds.forEach((endNodeId) => {
+    normalizedIncoming[endNodeId] = normalizeWorkflowRoomIds(parsedEndNodeIncomingRoomIds[endNodeId] ?? []);
+  });
+  result.endNodeIds = normalizedEndNodeIds;
+  result.endNodeIncomingRoomIds = normalizedIncoming;
 
   return result;
 }
@@ -573,13 +636,16 @@ const FIGURE_SLOT_OFFSET_X = 420;
 const EFFECT_OFFSET_X = -200;
 const EFFECT_SCREEN_WIDTH = 2560;
 const EFFECT_SCREEN_Y = 1440 * 0.25;
-const IMAGE_FIGURE_BASE_SCALE = 0.62;
-const IMAGE_FIGURE_LANDSCAPE_SCALE = 0.44;
-const IMAGE_FIGURE_SQUARE_SCALE = 0.52;
-const IMAGE_FIGURE_ULTRA_PORTRAIT_SCALE = 0.76;
-const IMAGE_FIGURE_BASE_OFFSET_Y = 180;
-const IMAGE_FIGURE_LANDSCAPE_OFFSET_Y = 260;
-const IMAGE_FIGURE_SQUARE_OFFSET_Y = 220;
+// 展示图层使用固定档位缩放（不按原图像素自适应），避免小图被过度放大。
+const IMAGE_FIGURE_BASE_SCALE = 0.72;
+const IMAGE_FIGURE_LANDSCAPE_SCALE = 0.84;
+const IMAGE_FIGURE_SQUARE_SCALE = 0.62;
+const IMAGE_FIGURE_ULTRA_PORTRAIT_SCALE = 0.78;
+// 展示图层统一定位到屏幕上半区域，避免被对话框遮挡。
+const IMAGE_FIGURE_BASE_OFFSET_Y = -180;
+const IMAGE_FIGURE_LANDSCAPE_OFFSET_Y = -120;
+const IMAGE_FIGURE_SQUARE_OFFSET_Y = -150;
+const IMAGE_FIGURE_ULTRA_PORTRAIT_OFFSET_Y = -220;
 
 const FIGURE_SLOT_MAP: Record<FigurePositionKey, FigureSlot> = {
   "left": {
@@ -640,7 +706,7 @@ function resolveImageFigureLayout(imageMessage?: ImageFigureMessageShape | null)
     return { scale: IMAGE_FIGURE_SQUARE_SCALE, offsetY: IMAGE_FIGURE_SQUARE_OFFSET_Y };
   }
   if (ratio <= 0.6) {
-    return { scale: IMAGE_FIGURE_ULTRA_PORTRAIT_SCALE, offsetY: IMAGE_FIGURE_BASE_OFFSET_Y };
+    return { scale: IMAGE_FIGURE_ULTRA_PORTRAIT_SCALE, offsetY: IMAGE_FIGURE_ULTRA_PORTRAIT_OFFSET_Y };
   }
   return { scale: IMAGE_FIGURE_BASE_SCALE, offsetY: IMAGE_FIGURE_BASE_OFFSET_Y };
 }
@@ -724,12 +790,12 @@ export class RealtimeRenderer {
   private gameName: string;
   private currentRoomId: number | null = null;
   private sceneContextMap = new Map<number, RendererContext>(); // roomId -> context
-  private uploadedSpritesMap = new Map<number, string>(); // avatarId -> fileName
+  private uploadedSpritesMap = new Map<string, string>(); // `${roleDir}_${avatarId}` -> `roleDir/fileName`
   private uploadedBackgroundsMap = new Map<string, string>(); // url -> fileName
   private uploadedImageFiguresMap = new Map<string, string>(); // url -> fileName
   private uploadedBgmsMap = new Map<string, string>(); // url -> fileName
   private uploadedVideosMap = new Map<string, string>(); // url -> fileName
-  private uploadedMiniAvatarsMap = new Map<number, string>(); // avatarId -> fileName
+  private uploadedMiniAvatarsMap = new Map<string, string>(); // `${roleDir}_${avatarId}` -> `roleDir/fileName`
   private roleMap = new Map<number, UserRole>();
   private queryClient: QueryClient | null = null;
   private roomMap = new Map<number, Room>(); // roomId -> Room
@@ -753,7 +819,8 @@ export class RealtimeRenderer {
   private autoFigureEnabled: boolean = true;
   // 游戏配置相关（写入 config.txt）
   private gameConfig: RealtimeGameConfig = DEFAULT_REALTIME_GAME_CONFIG;
-  private workflowGraph: WorkflowGraph = { startRoomIds: [], links: {} };
+  private workflowGraph: WorkflowGraph = { startRoomIds: [], links: {}, endNodeIds: [], endNodeIncomingRoomIds: {} };
+  private readyWorkflowEndSceneIds = new Set<number>();
 
   // TTS 相关
   private ttsConfig: RealtimeTTSConfig = { enabled: false };
@@ -849,6 +916,12 @@ export class RealtimeRenderer {
    */
   public setWorkflowRoomMap(roomMap?: Record<string, Array<string>>): void {
     this.workflowGraph = parseWorkflowRoomMap(roomMap);
+    const validEndNodeIds = new Set(this.workflowGraph.endNodeIds);
+    this.readyWorkflowEndSceneIds.forEach((endNodeId) => {
+      if (!validEndNodeIds.has(endNodeId)) {
+        this.readyWorkflowEndSceneIds.delete(endNodeId);
+      }
+    });
   }
 
   /**
@@ -920,6 +993,7 @@ export class RealtimeRenderer {
       await this.syncGameConfigWithRoomContext();
 
       await this.writeEngineMarker();
+      this.readyWorkflowEndSceneIds.clear();
 
       // 初始化场景
       await this.initScene();
@@ -944,19 +1018,31 @@ export class RealtimeRenderer {
    * 全量预加载所有角色的立绘资源
    */
   private async preloadSprites(): Promise<void> {
-    const avatars: RoleAvatar[] = [];
-    const seenAvatarIds = new Set<number>();
-    for (const role of this.roleMap.values()) {
+    const preloadTargets: Array<{ roleId: number; avatarId: number; spriteUrl: string }> = [];
+    const seenTargets = new Set<string>();
+
+    for (const [roleId, role] of this.roleMap.entries()) {
       const avatarId = Number(role.avatarId ?? 0);
-      if (avatarId > 0 && !seenAvatarIds.has(avatarId)) {
-        const avatar = this.getCachedRoleAvatar(avatarId);
-        if (avatar) {
-          avatars.push(avatar);
-          seenAvatarIds.add(avatarId);
-        }
+      if (avatarId <= 0) {
+        continue;
       }
+      const avatar = this.getCachedRoleAvatar(avatarId);
+      if (!avatar) {
+        continue;
+      }
+      const spriteUrl = avatar.spriteUrl || avatar.avatarUrl;
+      if (!spriteUrl) {
+        continue;
+      }
+      const targetKey = this.buildRoleAvatarCacheKey(roleId, avatarId);
+      if (seenTargets.has(targetKey)) {
+        continue;
+      }
+      seenTargets.add(targetKey);
+      preloadTargets.push({ roleId, avatarId, spriteUrl });
     }
-    if (avatars.length === 0) {
+
+    if (preloadTargets.length === 0) {
       console.warn("[RealtimeRenderer] 没有头像需要预加载");
       return;
     }
@@ -964,40 +1050,26 @@ export class RealtimeRenderer {
     this.updateProgress({
       phase: "uploading_sprites",
       current: 0,
-      total: avatars.length,
-      message: `正在预加载立绘 (0/${avatars.length})`,
+      total: preloadTargets.length,
+      message: `正在预加载立绘 (0/${preloadTargets.length})`,
     });
 
-    for (let i = 0; i < avatars.length; i++) {
-      const avatar = avatars[i];
-      if (!avatar.avatarId)
-        continue;
+    for (let i = 0; i < preloadTargets.length; i++) {
+      const target = preloadTargets[i];
 
-      const spriteUrl = avatar.spriteUrl || avatar.avatarUrl;
-      if (spriteUrl) {
-        try {
-          // 查找对应的角色ID
-          let roleId = 0;
-          for (const [rid, role] of this.roleMap) {
-            if (role.avatarId === avatar.avatarId) {
-              roleId = rid;
-              break;
-            }
-          }
-
-          await this.uploadSprite(avatar.avatarId, spriteUrl, roleId);
-          console.warn(`[RealtimeRenderer] 预加载立绘 ${i + 1}/${avatars.length}: ${avatar.avatarId}`);
-        }
-        catch (error) {
-          console.error(`[RealtimeRenderer] 预加载立绘失败:`, error);
-        }
+      try {
+        await this.uploadSprite(target.avatarId, target.spriteUrl, target.roleId);
+        console.warn(`[RealtimeRenderer] 预加载立绘 ${i + 1}/${preloadTargets.length}: role=${target.roleId}, avatar=${target.avatarId}`);
+      }
+      catch (error) {
+        console.error(`[RealtimeRenderer] 预加载立绘失败:`, error);
       }
 
       this.updateProgress({
         phase: "uploading_sprites",
         current: i + 1,
-        total: avatars.length,
-        message: `正在预加载立绘 (${i + 1}/${avatars.length})`,
+        total: preloadTargets.length,
+        message: `正在预加载立绘 (${i + 1}/${preloadTargets.length})`,
       });
     }
   }
@@ -1054,10 +1126,20 @@ export class RealtimeRenderer {
     return this.buildRoomChoiceFallback(rooms);
   }
 
-  private buildWorkflowTransitionLine(roomId: number): string | null {
+  private buildWorkflowTransitionCommand(options: WorkflowTransitionOption[]): string | null {
+    if (options.length === 0) {
+      return null;
+    }
+    if (options.length === 1) {
+      return `changeScene:${options[0].targetScene};`;
+    }
+    return `choose:${options.map(option => `${option.label}:${option.targetScene}`).join("|")};`;
+  }
+
+  private buildWorkflowRoomTransitionOptions(roomId: number): WorkflowTransitionOption[] {
     const links = this.workflowGraph.links[roomId] ?? [];
     if (links.length === 0) {
-      return null;
+      return [];
     }
 
     const options = links
@@ -1072,19 +1154,78 @@ export class RealtimeRenderer {
         if (!label) {
           return null;
         }
-        return `${label}:${targetScene}`;
+        return {
+          label,
+          targetScene,
+        };
       })
-      .filter((option): option is string => Boolean(option));
+      .filter((option): option is WorkflowTransitionOption => Boolean(option));
+    return options;
+  }
 
-    if (options.length === 0) {
-      return null;
+  private buildWorkflowTransitionLine(roomId: number): string | null {
+    const options = this.buildWorkflowRoomTransitionOptions(roomId);
+    return this.buildWorkflowTransitionCommand(options);
+  }
+
+  private getWorkflowEndNodeIdsForRoom(roomId: number): number[] {
+    return this.workflowGraph.endNodeIds.filter((endNodeId) => {
+      const incomingRoomIds = this.workflowGraph.endNodeIncomingRoomIds[endNodeId] ?? [];
+      return incomingRoomIds.includes(roomId);
+    });
+  }
+
+  private getWorkflowEndSceneName(endNodeId: number): string {
+    return `__tc_end_${endNodeId}`;
+  }
+
+  private buildWorkflowEndOptionLabel(endNodeId: number, endOptionCount: number): string {
+    const fallback = endOptionCount > 1 ? `结束${endNodeId}` : "结束";
+    const normalized = sanitizeChooseOptionLabel(fallback);
+    return normalized || `结束${endNodeId}`;
+  }
+
+  private buildWorkflowTransitionLineWithEnd(roomId: number): string | null {
+    const roomOptions = this.buildWorkflowRoomTransitionOptions(roomId);
+    const endNodeIds = this.getWorkflowEndNodeIdsForRoom(roomId);
+    const endOptions = endNodeIds
+      .map((endNodeId) => {
+        const label = this.buildWorkflowEndOptionLabel(endNodeId, endNodeIds.length);
+        if (!label) {
+          return null;
+        }
+        return {
+          label,
+          targetScene: `${this.getWorkflowEndSceneName(endNodeId)}.txt`,
+        };
+      })
+      .filter((option): option is WorkflowTransitionOption => Boolean(option));
+
+    return this.buildWorkflowTransitionCommand([...roomOptions, ...endOptions]);
+  }
+
+  private async ensureWorkflowEndScenes(): Promise<void> {
+    for (const endNodeId of this.workflowGraph.endNodeIds) {
+      if (this.readyWorkflowEndSceneIds.has(endNodeId)) {
+        continue;
+      }
+      const sceneName = this.getWorkflowEndSceneName(endNodeId);
+      try {
+        await getTerreApis().manageGameControllerEditTextFile({
+          path: `games/${this.gameName}/game/scene/${sceneName}.txt`,
+          textFile: "end;",
+        });
+        this.readyWorkflowEndSceneIds.add(endNodeId);
+      }
+      catch (error) {
+        console.warn(`[RealtimeRenderer] 创建结束场景失败: ${sceneName}`, error);
+      }
     }
-
-    return `choose:${options.join("|")};`;
   }
 
   private async appendWorkflowTransitionIfNeeded(roomId: number): Promise<void> {
-    const transitionLine = this.buildWorkflowTransitionLine(roomId);
+    await this.ensureWorkflowEndScenes();
+    const transitionLine = this.buildWorkflowTransitionLineWithEnd(roomId);
     if (!transitionLine) {
       return;
     }
@@ -1521,9 +1662,27 @@ export class RealtimeRenderer {
     this.queryClient = queryClient;
   }
 
+  private getRoleFigureDirName(roleId: number): string {
+    const normalizedRoleId = Number.isFinite(roleId) && roleId > 0 ? Math.floor(roleId) : 0;
+    return normalizedRoleId > 0 ? `role_${normalizedRoleId}` : "role_unknown";
+  }
+
+  private buildRoleAvatarCacheKey(roleId: number, avatarId: number): string {
+    return `${this.getRoleFigureDirName(roleId)}_${avatarId}`;
+  }
+
+  private deleteAvatarScopedCacheEntries(cache: Map<string, string>, avatarId: number): void {
+    const suffix = `_${avatarId}`;
+    for (const key of Array.from(cache.keys())) {
+      if (key.endsWith(suffix)) {
+        cache.delete(key);
+      }
+    }
+  }
+
   public invalidateAvatarCaches(avatarId: number): void {
-    this.uploadedSpritesMap.delete(avatarId);
-    this.uploadedMiniAvatarsMap.delete(avatarId);
+    this.deleteAvatarScopedCacheEntries(this.uploadedSpritesMap, avatarId);
+    this.deleteAvatarScopedCacheEntries(this.uploadedMiniAvatarsMap, avatarId);
   }
 
   private getCachedRoleAvatar(avatarId: number): RoleAvatar | undefined {
@@ -1852,17 +2011,20 @@ export class RealtimeRenderer {
    * 上传立绘
    */
   private async uploadSprite(avatarId: number, spriteUrl: string, roleId: number): Promise<string | null> {
-    if (this.uploadedSpritesMap.has(avatarId)) {
-      return this.uploadedSpritesMap.get(avatarId) || null;
+    const cacheKey = this.buildRoleAvatarCacheKey(roleId, avatarId);
+    if (this.uploadedSpritesMap.has(cacheKey)) {
+      return this.uploadedSpritesMap.get(cacheKey) || null;
     }
 
     try {
-      const path = `games/${this.gameName}/game/figure/`;
+      const roleFigureDir = this.getRoleFigureDirName(roleId);
+      const path = `games/${this.gameName}/game/figure/${roleFigureDir}/`;
       const fileExtension = getFileExtensionFromUrl(spriteUrl, "webp");
-      const spriteName = `role_${roleId}_sprites_${avatarId}`;
+      const spriteName = `sprite_${avatarId}`;
       const fileName = await uploadFile(spriteUrl, path, `${spriteName}.${fileExtension}`);
-      this.uploadedSpritesMap.set(avatarId, fileName);
-      return fileName;
+      const relativePath = `${roleFigureDir}/${fileName}`;
+      this.uploadedSpritesMap.set(cacheKey, relativePath);
+      return relativePath;
     }
     catch (error) {
       console.error("上传立绘失败:", error);
@@ -2056,9 +2218,10 @@ export class RealtimeRenderer {
    * 获取立绘文件名（如果未上传则上传）
    */
   private async getAndUploadSprite(avatarId: number, roleId: number): Promise<string | null> {
+    const cacheKey = this.buildRoleAvatarCacheKey(roleId, avatarId);
     // 已上传的直接返回
-    if (this.uploadedSpritesMap.has(avatarId)) {
-      return this.uploadedSpritesMap.get(avatarId) || null;
+    if (this.uploadedSpritesMap.has(cacheKey)) {
+      return this.uploadedSpritesMap.get(cacheKey) || null;
     }
 
     // 获取头像信息
@@ -2081,9 +2244,10 @@ export class RealtimeRenderer {
    * 获取小头像文件名（如果未上传则上传）
    */
   private async getAndUploadMiniAvatar(avatarId: number, roleId: number): Promise<string | null> {
+    const cacheKey = this.buildRoleAvatarCacheKey(roleId, avatarId);
     // 已上传的直接返回
-    if (this.uploadedMiniAvatarsMap.has(avatarId)) {
-      return this.uploadedMiniAvatarsMap.get(avatarId) || null;
+    if (this.uploadedMiniAvatarsMap.has(cacheKey)) {
+      return this.uploadedMiniAvatarsMap.get(cacheKey) || null;
     }
 
     // 获取头像信息
@@ -2098,12 +2262,14 @@ export class RealtimeRenderer {
     }
 
     try {
-      const path = `games/${this.gameName}/game/figure/`;
+      const roleFigureDir = this.getRoleFigureDirName(roleId);
+      const path = `games/${this.gameName}/game/figure/${roleFigureDir}/`;
       const fileExtension = getFileExtensionFromUrl(avatarUrl, "webp");
-      const miniAvatarName = `role_${roleId}_mini_${avatarId}`;
+      const miniAvatarName = `mini_${avatarId}`;
       const fileName = await uploadFile(avatarUrl, path, `${miniAvatarName}.${fileExtension}`);
-      this.uploadedMiniAvatarsMap.set(avatarId, fileName);
-      return fileName;
+      const relativePath = `${roleFigureDir}/${fileName}`;
+      this.uploadedMiniAvatarsMap.set(cacheKey, relativePath);
+      return relativePath;
     }
     catch (error) {
       console.error("上传小头像失败:", error);
@@ -2378,7 +2544,7 @@ export class RealtimeRenderer {
         }
         // 普通图片：作为常驻展示图层（直到显式清除）
         if (!isBackground && !unlockCg && isImageMessageShown(msg.annotations)) {
-          // 展示图固定中间位，忽略 figure.pos.*（更贴近 AVG 中置演出）
+          // 展示图固定上半屏居中，忽略 figure.pos.*（避免与底部对话框重叠）
           const imageSlot = resolveFigureSlot("center");
           const figureFileName = await this.uploadImageFigure(imageMessage.url, imageMessage.fileName);
           if (figureFileName) {

@@ -7,6 +7,7 @@ import toast from "react-hot-toast";
 
 import { RoomContext } from "@/components/chat/core/roomContext";
 import RoleChooser from "@/components/chat/input/roleChooser";
+import { useRoomUiStoreApi } from "@/components/chat/stores/roomUiStore";
 import toastWindow from "@/components/common/toastWindow/toastWindow";
 
 interface UseChatFrameNarratorToggleParams {
@@ -23,6 +24,8 @@ export default function useChatFrameNarratorToggle({
   spaceContext,
   updateMessageMutation,
 }: UseChatFrameNarratorToggleParams) {
+  const roomUiStoreApi = useRoomUiStoreApi();
+
   const applyUpdatedMessage = useCallback((messageId: number, response?: ApiResultMessage | null) => {
     if (!response?.data || !roomContext.chatHistory)
       return;
@@ -66,6 +69,11 @@ export default function useChatFrameNarratorToggle({
                   roleId: role.roleId,
                   avatarId: roomContext.roomRolesThatUserOwn.find(r => r.roleId === role.roleId)?.avatarId ?? -1,
                 };
+                roomUiStoreApi.getState().pushMessageUndo({
+                  type: "update",
+                  before: message,
+                  after: newMessage,
+                });
                 updateMessageMutation.mutate(newMessage, {
                   onSuccess: response => applyUpdatedMessage(messageId, response),
                 });
@@ -79,13 +87,21 @@ export default function useChatFrameNarratorToggle({
       return;
     }
 
+    roomUiStoreApi.getState().pushMessageUndo({
+      type: "update",
+      before: message,
+      after: {
+        ...message,
+        roleId: -1,
+      },
+    });
     updateMessageMutation.mutate({
       ...message,
       roleId: -1,
     }, {
       onSuccess: response => applyUpdatedMessage(messageId, response),
     });
-  }, [applyUpdatedMessage, roomContext, spaceContext.isSpaceOwner, updateMessageMutation]);
+  }, [applyUpdatedMessage, roomContext, roomUiStoreApi, spaceContext.isSpaceOwner, updateMessageMutation]);
 
   return { handleToggleNarrator };
 }

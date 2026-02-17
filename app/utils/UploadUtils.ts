@@ -382,8 +382,7 @@ export class UploadUtils {
         body: file,
         signal: controller.signal,
         headers: {
-          "Content-Type": file.type || "application/octet-stream",
-          "x-oss-acl": "public-read",
+          ...(file.type ? { "Content-Type": file.type } : {}),
         },
       });
     }

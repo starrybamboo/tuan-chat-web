@@ -204,9 +204,29 @@ async function fetchFolder(folderPath: string) {
   }
 }
 
+function getHttpStatusFromError(error: unknown): number | null {
+  if (!(error instanceof Error))
+    return null;
+  const match = error.message.match(/status:\s*(\d+)/i);
+  if (!match)
+    return null;
+  const parsed = Number.parseInt(match[1], 10);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
 export async function checkFileExist(currentPathString: string, fileName: string): Promise<boolean> {
-  const files = await fetchFolder(currentPathString);
-  return files.some(item => item.name === fileName);
+  try {
+    const files = await fetchFolder(currentPathString);
+    return files.some(item => item.name === fileName);
+  }
+  catch (error) {
+    const status = getHttpStatusFromError(error);
+    if (status === 404 || status === 500) {
+      console.warn(`[fileOperator] 读取目录失败(${status})，按文件不存在处理: ${currentPathString}`);
+      return false;
+    }
+    throw error;
+  }
 }
 
 /**

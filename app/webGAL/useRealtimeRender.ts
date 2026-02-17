@@ -382,7 +382,7 @@ function useRealtimeRender({
 
   // 渲染单条消息
   const renderMessage = useCallback(async (message: ChatMessageResponse, roomId?: number): Promise<void> => {
-    if (!rendererRef.current || status !== "connected") {
+    if (!rendererRef.current) {
       console.warn("实时渲染器未就绪，无法渲染消息");
       return;
     }
@@ -406,11 +406,11 @@ function useRealtimeRender({
     }
 
     await rendererRef.current.renderMessage(message, roomId);
-  }, [status, queryClient]);
+  }, [queryClient]);
 
   // 渲染历史消息
   const renderHistory = useCallback(async (messages: ChatMessageResponse[], roomId?: number): Promise<void> => {
-    if (!rendererRef.current || status !== "connected") {
+    if (!rendererRef.current) {
       console.warn("实时渲染器未就绪，无法渲染历史消息");
       return;
     }
@@ -451,7 +451,7 @@ function useRealtimeRender({
     }
 
     await rendererRef.current.renderHistory(messages, roomId);
-  }, [status, queryClient]);
+  }, [queryClient]);
 
   // 重置场景
   const resetScene = useCallback(async (roomId?: number): Promise<void> => {
@@ -520,12 +520,12 @@ function useRealtimeRender({
 
   // 跳转到指定消息
   const jumpToMessage = useCallback((messageId: number, roomId?: number): boolean => {
-    if (!rendererRef.current || status !== "connected") {
+    if (!rendererRef.current) {
       console.warn("实时渲染器未就绪，无法跳转");
       return false;
     }
     return rendererRef.current.jumpToMessage(messageId, roomId);
-  }, [status]);
+  }, []);
 
   // 更新 TTS 配置
   const updateTTSConfig = useCallback((config: RealtimeTTSConfig) => {
@@ -556,7 +556,7 @@ function useRealtimeRender({
     roomId?: number,
     regenerateTTS: boolean = false,
   ): Promise<boolean> => {
-    if (!rendererRef.current || status !== "connected") {
+    if (!rendererRef.current) {
       console.warn("实时渲染器未就绪，无法更新渲染");
       return false;
     }
@@ -578,7 +578,7 @@ function useRealtimeRender({
     }
 
     return rendererRef.current.updateAndRerenderMessage(message, roomId, regenerateTTS);
-  }, [status, queryClient]);
+  }, [queryClient]);
 
   // 自动启动（如果 enabled 为 true）
   useEffect(() => {

@@ -73,7 +73,12 @@ function getFfmpegCoreBaseUrlCandidates(): string[] {
   const envCandidates = fromEnv
     ? splitUrlCandidates(fromEnv).map(url => url.replace(/\/+$/, ""))
     : [];
-  const defaultCandidates = DEFAULT_FFMPEG_CORE_BASE_URLS.map(url => url.replace(/\/+$/, ""));
+  const useDefaultCdnFallback = typeof env?.VITE_FFMPEG_CORE_USE_DEFAULT_CDN_FALLBACK === "string"
+    ? env.VITE_FFMPEG_CORE_USE_DEFAULT_CDN_FALLBACK.toLowerCase() === "true"
+    : env?.VITE_FFMPEG_CORE_USE_DEFAULT_CDN_FALLBACK === true;
+  const defaultCandidates = useDefaultCdnFallback
+    ? DEFAULT_FFMPEG_CORE_BASE_URLS.map(url => url.replace(/\/+$/, ""))
+    : [];
   return Array.from(new Set([...envCandidates, ...defaultCandidates]));
 }
 
@@ -107,11 +112,41 @@ function isFfmpegWrapperStrict(): boolean {
   return env?.VITE_FFMPEG_WRAPPER_STRICT === true;
 }
 
+function shouldPreferRemoteFfmpegWrapper(): boolean {
+  const env = import.meta.env as any;
+  if (typeof env?.VITE_FFMPEG_WRAPPER_PREFER_REMOTE === "string")
+    return env.VITE_FFMPEG_WRAPPER_PREFER_REMOTE.toLowerCase() === "true";
+  return env?.VITE_FFMPEG_WRAPPER_PREFER_REMOTE === true;
+}
+
 async function loadFfmpegModule(debugEnabled: boolean, debugPrefix: string): Promise<typeof import("@ffmpeg/ffmpeg")> {
   const wrapperUrls = getFfmpegWrapperUrlCandidates();
   const strict = isFfmpegWrapperStrict();
+  const preferRemote = shouldPreferRemoteFfmpegWrapper();
+  const errors: string[] = [];
+
+  const tryBundled = async () => {
+    try {
+      if (debugEnabled)
+        console.warn(`${debugPrefix} ffmpeg wrapper bundled`);
+      return await import("@ffmpeg/ffmpeg");
+    }
+    catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      errors.push(`bundled: ${msg}`);
+      if (debugEnabled)
+        console.warn(`${debugPrefix} ffmpeg wrapper bundled failed`, { msg });
+      return null;
+    }
+  };
+
+  if (!preferRemote) {
+    const bundled = await tryBundled();
+    if (bundled)
+      return bundled;
+  }
+
   if (wrapperUrls.length > 0) {
-    const errors: string[] = [];
     for (const wrapperUrl of wrapperUrls) {
       try {
         if (debugEnabled)
@@ -125,12 +160,21 @@ async function loadFfmpegModule(debugEnabled: boolean, debugPrefix: string): Pro
           console.warn(`${debugPrefix} ffmpeg wrapper url failed`, { wrapperUrl, msg });
       }
     }
-    if (strict) {
-      const detail = errors.length > 0 ? `\n${errors.join("\n")}` : "";
-      throw new Error(`FFmpeg wrapper 加载失败（严格模式，不回退）：${detail || "未知错误"}`);
-    }
   }
-  return await import("@ffmpeg/ffmpeg");
+
+  if (strict && wrapperUrls.length > 0) {
+    const detail = errors.length > 0 ? `\n${errors.join("\n")}` : "";
+    throw new Error(`FFmpeg wrapper 加载失败（严格模式，不回退）：${detail || "未知错误"}`);
+  }
+
+  if (preferRemote) {
+    const bundled = await tryBundled();
+    if (bundled)
+      return bundled;
+  }
+
+  const detail = errors.length > 0 ? `\n${errors.join("\n")}` : "";
+  throw new Error(`FFmpeg wrapper 加载失败：${detail || "未知错误"}`);
 }
 
 function logFfmpegDebugConfig(debugEnabled: boolean, debugPrefix: string): void {
@@ -141,7 +185,11 @@ function logFfmpegDebugConfig(debugEnabled: boolean, debugPrefix: string): void 
   const mode = typeof env?.MODE === "string" ? env.MODE : "unknown";
   const wrapperUrls = getFfmpegWrapperUrlCandidates();
   const strict = isFfmpegWrapperStrict();
+  const preferRemote = shouldPreferRemoteFfmpegWrapper();
   const coreBase = typeof env?.VITE_FFMPEG_CORE_BASE_URL === "string" ? env.VITE_FFMPEG_CORE_BASE_URL.trim() : "";
+  const useDefaultCoreCdnFallback = typeof env?.VITE_FFMPEG_CORE_USE_DEFAULT_CDN_FALLBACK === "string"
+    ? env.VITE_FFMPEG_CORE_USE_DEFAULT_CDN_FALLBACK.toLowerCase() === "true"
+    : env?.VITE_FFMPEG_CORE_USE_DEFAULT_CDN_FALLBACK === true;
   const skipBundled = typeof env?.VITE_FFMPEG_CORE_SKIP_BUNDLED === "string"
     ? env.VITE_FFMPEG_CORE_SKIP_BUNDLED.toLowerCase() === "true"
     : env?.VITE_FFMPEG_CORE_SKIP_BUNDLED === true;
@@ -149,7 +197,9 @@ function logFfmpegDebugConfig(debugEnabled: boolean, debugPrefix: string): void 
     mode,
     wrapperUrl: wrapperUrls.length > 0 ? wrapperUrls : "(empty)",
     wrapperStrict: strict,
+    wrapperPreferRemote: preferRemote,
     coreBaseUrl: coreBase || "(empty)",
+    coreUseDefaultCdnFallback: useDefaultCoreCdnFallback,
     coreSkipBundled: skipBundled,
   });
 }
