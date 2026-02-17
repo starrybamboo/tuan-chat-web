@@ -27,6 +27,10 @@ jobs:
     env:
       DEPLOY_TARGET: ${{ (github.event_name == 'workflow_dispatch' && inputs.deploy_env == 'test' && '/www/wwwroot/tuan-chat-web-test') || (github.event_name == 'workflow_dispatch' && inputs.deploy_env == 'production' && '/www/wwwroot/tuan-chat-web') || (github.ref_name == 'dev' && '/www/wwwroot/tuan-chat-web-test') || '/www/wwwroot/tuan-chat-web' }}
       BUILD_MODE: ${{ (github.event_name == 'workflow_dispatch' && inputs.deploy_env == 'test' && 'test') || (github.event_name == 'workflow_dispatch' && inputs.deploy_env == 'production' && 'production') || (github.ref_name == 'dev' && 'test') || 'production' }}
+      # 后端统一为 test 环境：前端无论 prod/test 构建都连接 test 后端。
+      BACKEND_API_BASE_URL: https://test.tuan.chat/api
+      BACKEND_WS_URL: wss://test.tuan.chat/ws
+      BACKEND_TTS_URL: https://test.tuan.chat/tts
     steps:
       - uses: actions/checkout@v4 # 将目标分支 checkout 到运行环境
         with:
@@ -43,6 +47,10 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: build
+        env:
+          VITE_API_BASE_URL: ${{ env.BACKEND_API_BASE_URL }}
+          VITE_API_WS_URL: ${{ env.BACKEND_WS_URL }}
+          VITE_TTS_URL: ${{ env.BACKEND_TTS_URL }}
         run: pnpm build --mode $BUILD_MODE
 
       - name: 部署到服务器
