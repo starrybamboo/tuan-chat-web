@@ -64,8 +64,8 @@ export default function RealtimeRenderOrchestrator({
 }: Props) {
   const ensureHydrated = useRealtimeRenderStore(state => state.ensureHydrated);
   useEffect(() => {
-    void ensureHydrated();
-  }, [ensureHydrated]);
+    void ensureHydrated(spaceId);
+  }, [ensureHydrated, spaceId]);
 
   const isRealtimeRenderEnabled = useRealtimeRenderStore(state => state.enabled);
   const setIsRealtimeRenderEnabled = useRealtimeRenderStore(state => state.setEnabled);
@@ -261,7 +261,7 @@ export default function RealtimeRenderOrchestrator({
 
     isStartingRealtimeRenderRef.current = true;
     try {
-      await ensureHydrated();
+      await ensureHydrated(spaceId);
       const electronEnv = isElectronEnv();
       if (electronEnv) {
         launchWebGal();
@@ -296,7 +296,7 @@ export default function RealtimeRenderOrchestrator({
     finally {
       isStartingRealtimeRenderRef.current = false;
     }
-  }, [ensureHydrated, realtimeRender, renderHistoryMessages, setIsRealtimeRenderEnabled, setSideDrawerState]);
+  }, [ensureHydrated, realtimeRender, renderHistoryMessages, setIsRealtimeRenderEnabled, setSideDrawerState, spaceId]);
 
   const handleToggleRealtimeRender = useCallback(async () => {
     if (realtimeRender.isActive) {
