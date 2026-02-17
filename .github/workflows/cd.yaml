@@ -51,6 +51,7 @@ jobs:
           VITE_API_BASE_URL: ${{ env.BACKEND_API_BASE_URL }}
           VITE_API_WS_URL: ${{ env.BACKEND_WS_URL }}
           VITE_TTS_URL: ${{ env.BACKEND_TTS_URL }}
+          VITE_ENABLE_REACT_SCAN: ${{ env.BUILD_MODE == 'test' && 'true' || 'false' }}
         run: pnpm build --mode $BUILD_MODE
 
       - name: 部署到服务器
