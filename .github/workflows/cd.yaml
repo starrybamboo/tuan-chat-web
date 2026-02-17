@@ -54,6 +54,23 @@ jobs:
           VITE_ENABLE_REACT_SCAN: ${{ env.BUILD_MODE == 'test' && 'true' || 'false' }}
         run: pnpm build --mode $BUILD_MODE
 
+      - name: 清理旧部署产物
+        uses: appleboy/ssh-action@v1
+        with:
+          host: 38.14.195.6
+          username: ${{ secrets.SERVER_USERNAME || secrets.SSH_USERNAME }}
+          password: ${{ secrets.SERVER_PASSWORD || secrets.SSH_PASSWORD }}
+          script: |
+            set -euo pipefail
+            TARGET="${{ env.DEPLOY_TARGET }}"
+            mkdir -p "$TARGET"
+
+            # 清理旧版静态产物，避免哈希文件残留；保留站点常见系统目录/文件。
+            find "$TARGET" -mindepth 1 -maxdepth 1 \
+              ! -name '.well-known' \
+              ! -name '.user.ini' \
+              -exec rm -rf {} +
+
       - name: 部署到服务器
         uses: appleboy/scp-action@v1
         with:
@@ -65,6 +82,27 @@ jobs:
           target: ${{ env.DEPLOY_TARGET }}
           overwrite: true
           strip_components: 2
+
+      - name: 校验部署产物
+        uses: appleboy/ssh-action@v1
+        with:
+          host: 38.14.195.6
+          username: ${{ secrets.SERVER_USERNAME || secrets.SSH_USERNAME }}
+          password: ${{ secrets.SERVER_PASSWORD || secrets.SSH_PASSWORD }}
+          script: |
+            set -euo pipefail
+            TARGET="${{ env.DEPLOY_TARGET }}"
+
+            test -f "$TARGET/index.html"
+            test -d "$TARGET/assets"
+
+            ASSET_FILE_COUNT="$(find "$TARGET/assets" -type f | wc -l)"
+            if [[ "${ASSET_FILE_COUNT}" -le 0 ]]; then
+              echo "部署校验失败：assets 目录为空" >&2
+              exit 1
+            fi
+
+            echo "✅ 部署校验通过：index.html 存在，assets 文件数=${ASSET_FILE_COUNT}"
 #        uses: burnett01/rsync-deployments@7.0.2 # 使用专门的 rsync action
 #        with:
 #          # rsync 的参数开关
