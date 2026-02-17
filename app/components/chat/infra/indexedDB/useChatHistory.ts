@@ -37,7 +37,7 @@ export function useChatHistory(roomId: number | null): UseChatHistoryReturn {
   }, [roomId]);
 
   /**
-   * 批量添加或更新消息到当前房间，并同步更新UI״̬
+   * 批量添加或更新消息到当前房间，并同步更新UI状态
    * @param newMessages 要处理的消息数组
    */
   const addOrUpdateMessages = useCallback(
@@ -185,6 +185,18 @@ export function useChatHistory(roomId: number | null): UseChatHistoryReturn {
         const localMaxSyncId = localHistory.length > 0
           ? Math.max(...localHistory.map(msg => msg.message.syncId))
           : -1;
+
+        // 有本地缓存时直接展示，服务端增量同步改为后台进行，避免切房间被网络请求阻塞。
+        if (sortedLocalHistory.length > 0) {
+          setLoading(false);
+          void fetchNewestMessages(localMaxSyncId).catch((err) => {
+            if (!isCancelled) {
+              setError(err as Error);
+            }
+          });
+          return;
+        }
+
         await fetchNewestMessages(localMaxSyncId);
       }
       catch (err) {

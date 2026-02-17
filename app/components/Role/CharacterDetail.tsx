@@ -3,8 +3,7 @@ import type { Role } from "./types";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   useAbilityByRuleAndRole,
-  useGenerateAbilityByRuleMutation,
-  useGenerateBasicInfoByRuleMutation,
+  useGenerateRoleByRuleMutation,
   useUpdateRoleAbilityByRoleIdMutation,
 } from "api/hooks/abilityQueryHooks";
 import { useCopyRoleMutation, useGetRoleAvatarsQuery, useGetRoleQuery, useUpdateRoleWithLocalMutation } from "api/hooks/RoleAndAvatarHooks";
@@ -159,8 +158,7 @@ function CharacterDetailInner({
   // 获取骰娘文案配置数据
   const abilityQuery = useAbilityByRuleAndRole(role.id, selectedRuleId || 0);
   const { mutate: updateFieldAbility } = useUpdateRoleAbilityByRoleIdMutation();
-  const { mutate: generateBasicInfoByRule } = useGenerateBasicInfoByRuleMutation();
-  const { mutate: generateAbilityByRule } = useGenerateAbilityByRuleMutation();
+  const { mutate: generateRoleByRule } = useGenerateRoleByRuleMutation();
 
   // 接口部分
   // 发送post数据部分,保存角色数据
@@ -776,8 +774,7 @@ function CharacterDetailInner({
         onClose={() => setIsAIGenerateModalOpen(false)}
         ruleId={selectedRuleId}
         onApply={handleAIApply}
-        generateBasicInfoByRule={generateBasicInfoByRule}
-        generateAbilityByRule={generateAbilityByRule}
+        generateRoleByRule={generateRoleByRule}
       />
 
       {/* 复制角色模态框 */}

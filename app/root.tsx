@@ -77,14 +77,55 @@ if (typeof window !== "undefined" && import.meta.env.DEV) {
   };
 }
 
-if (typeof window !== "undefined" && import.meta.env.VITE_ENABLE_REACT_SCAN === "true") {
+// React Scan 在 test 与本地开发环境可启用；生产环境始终关闭。
+// test 环境始终启用；本地开发默认启用，可通过 VITE_ENABLE_REACT_SCAN=false 手动关闭。
+const isTestBuild = import.meta.env.MODE === "test";
+const shouldEnableReactScan
+  = typeof window !== "undefined"
+    && (
+      isTestBuild
+      || (import.meta.env.DEV && import.meta.env.VITE_ENABLE_REACT_SCAN !== "false")
+    );
+
+if (shouldEnableReactScan) {
   void import("react-scan")
     .then(({ scan }) => {
-      scan();
+      scan(
+        {
+          enabled: true,
+          showToolbar: true,
+          // test 站点是 production build，需要显式强制开启。
+          dangerouslyForceRunInProduction: isTestBuild,
+        },
+      );
     })
     .catch(() => {
       // ignore
     });
+}
+
+if (typeof window !== "undefined" && import.meta.env.MODE === "test" && !(window as any).__tcTestTitleTagInstalled) {
+  // test 环境为标签页标题追加标识，避免与正式环境混淆。
+  const TEST_TITLE_TAG = " · 测试环境";
+  const applyTestTitleTag = () => {
+    const currentTitle = document.title.trim();
+    if (!currentTitle) {
+      document.title = `tuan-chat${TEST_TITLE_TAG}`;
+      return;
+    }
+    if (!currentTitle.includes(TEST_TITLE_TAG)) {
+      document.title = `${currentTitle}${TEST_TITLE_TAG}`;
+    }
+  };
+
+  (window as any).__tcTestTitleTagInstalled = true;
+  applyTestTitleTag();
+  const titleObserver = new MutationObserver(() => applyTestTitleTag());
+  titleObserver.observe(document.head, {
+    subtree: true,
+    childList: true,
+    characterData: true,
+  });
 }
 
 const queryClient = new QueryClient(

@@ -133,6 +133,10 @@ export function getTerreBaseUrl(): string {
   return normalizeBaseUrl(parsed.toString());
 }
 
+export function getTerreHealthcheckUrl(): string {
+  return `${getTerreBaseUrl()}/api/test`;
+}
+
 export function getTerreWsUrl(): string {
   const baseUrl = getTerreBaseUrl();
   const wsBase = baseUrl.replace(/^http/, "ws");
