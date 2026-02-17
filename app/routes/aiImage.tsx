@@ -35,6 +35,35 @@ interface V4CharEditorRow extends V4CharPayload {
 const DEFAULT_IMAGE_ENDPOINT = "https://image.novelai.net";
 const STORAGE_UI_MODE_KEY = "tc:ai-image:ui-mode";
 const LOCKED_IMAGE_MODEL = "nai-diffusion-4-5-curated";
+const DEFAULT_PROXY_IMAGE_COMPRESSION = "jpeg";
+const DEFAULT_PROXY_JPEG_QUALITY = 82;
+
+function clampJpegQuality(input: number, fallback = DEFAULT_PROXY_JPEG_QUALITY) {
+  const value = Number(input);
+  if (!Number.isFinite(value))
+    return fallback;
+  return Math.max(1, Math.min(100, Math.round(value)));
+}
+
+function resolveProxyImageCompressionHeader() {
+  const modeRaw = String(
+    import.meta.env.VITE_NOVELAPI_IMAGE_COMPRESSION || DEFAULT_PROXY_IMAGE_COMPRESSION,
+  ).trim().toLowerCase();
+  if (!modeRaw || modeRaw === "off" || modeRaw === "none")
+    return "";
+
+  const mode = modeRaw === "jpg" ? "jpeg" : modeRaw;
+  if (mode !== "jpeg")
+    return "";
+
+  const quality = clampJpegQuality(
+    Number(import.meta.env.VITE_NOVELAPI_IMAGE_JPEG_QUALITY || DEFAULT_PROXY_JPEG_QUALITY),
+    DEFAULT_PROXY_JPEG_QUALITY,
+  );
+  return `${mode};q=${quality}`;
+}
+
+const PROXY_IMAGE_COMPRESSION_HEADER = resolveProxyImageCompressionHeader();
 
 const SAMPLERS_NAI3 = [
   "k_euler",
@@ -452,16 +481,35 @@ async function generateNovelImageViaProxy(args: {
     endpoint: endpointHeader || DEFAULT_IMAGE_ENDPOINT,
     action: payload.action,
     model: payload.model,
+    compression: PROXY_IMAGE_COMPRESSION_HEADER || "off",
   });
-  const res = await fetch(requestUrl, {
-    method: "POST",
-    headers: {
+  const requestWithCompression = async (withCompression: boolean) => {
+    const headers: Record<string, string> = {
       "Content-Type": "application/json",
       "Accept": "application/octet-stream",
       "X-NovelAPI-Endpoint": endpointHeader,
-    },
-    body: JSON.stringify(payload),
-  });
+    };
+    if (withCompression && PROXY_IMAGE_COMPRESSION_HEADER)
+      headers["X-TC-Image-Compression"] = PROXY_IMAGE_COMPRESSION_HEADER;
+
+    return await fetch(requestUrl, {
+      method: "POST",
+      headers,
+      body: JSON.stringify(payload),
+    });
+  };
+
+  const shouldTryCompression = Boolean(PROXY_IMAGE_COMPRESSION_HEADER);
+  let res: Response;
+  try {
+    res = await requestWithCompression(shouldTryCompression);
+  }
+  catch (e) {
+    if (!shouldTryCompression)
+      throw e;
+    console.warn("[ai-image] compressed request failed, retrying without compression header");
+    res = await requestWithCompression(false);
+  }
 
   if (!res.ok) {
     const text = await res.text().catch(() => "");

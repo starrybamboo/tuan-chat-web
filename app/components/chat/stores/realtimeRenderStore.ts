@@ -1,8 +1,12 @@
 import { create } from "zustand";
 
+import type { RealtimeRenderCloudSettings } from "@/components/chat/infra/cloud/realtimeRenderSettingsCloud";
 import type { InitProgress, RealtimeRenderStatus } from "@/webGAL/useRealtimeRender";
 
-import { getRealtimeRenderSettings, setRealtimeRenderSettings } from "@/components/chat/infra/indexedDB/realtimeRenderSettingsDb";
+import {
+  getRealtimeRenderSettingsFromCloud,
+  setRealtimeRenderSettingsToCloud,
+} from "@/components/chat/infra/cloud/realtimeRenderSettingsCloud";
 import { getDefaultTerrePort, setTerrePortOverride as setTerrePortOverrideInConfig } from "@/webGAL/terreConfig";
 
 export type RealtimeWebgalDefaultLanguage = "" | "zh_CN" | "zh_TW" | "en" | "ja" | "fr" | "de";
@@ -56,7 +60,7 @@ type RealtimeRenderState = {
   /** 实时渲染自动填充立绘开关 */
   autoFigureEnabled: boolean;
 
-  /** TTS API URL（持久化到 IndexedDB） */
+  /** TTS API URL（云端：space.extra） */
   ttsApiUrl: string;
 
   /** Terre 端口覆盖值（null 表示使用默认端口：环境变量 VITE_TERRE_URL） */
@@ -68,7 +72,10 @@ type RealtimeRenderState = {
   /** WebGAL 游戏配置（写入 config.txt） */
   gameConfig: RealtimeWebgalGameConfig;
 
-  /** IndexedDB 配置是否已加载 */
+  /** 当前已加载配置对应的 spaceId（用于云端保存） */
+  activeSpaceId: number | null;
+
+  /** 云端配置是否已加载 */
   hydrated: boolean;
 
   /** 渲染器运行状态（镜像自 useRealtimeRender） */
@@ -90,7 +97,7 @@ type RealtimeRenderState = {
   setTtsApiUrl: (value: string) => void;
   setTerrePortOverride: (port: number | null) => void;
   setGameConfig: (next: Partial<RealtimeWebgalGameConfig>) => void;
-  ensureHydrated: () => Promise<void>;
+  ensureHydrated: (spaceId?: number | null) => Promise<void>;
 
   setRuntime: (runtime: {
     status?: RealtimeRenderStatus;
@@ -115,6 +122,13 @@ function normalizePort(port: number | null): number | null {
   return normalized;
 }
 
+function normalizeSpaceId(spaceId?: number | null): number | null {
+  if (typeof spaceId !== "number" || !Number.isFinite(spaceId) || spaceId <= 0) {
+    return null;
+  }
+  return Math.floor(spaceId);
+}
+
 function normalizeDefaultLanguage(value: unknown): RealtimeWebgalDefaultLanguage {
   if (value === "zh_CN" || value === "zh_TW" || value === "en" || value === "ja" || value === "fr" || value === "de") {
     return value;
@@ -122,7 +136,40 @@ function normalizeDefaultLanguage(value: unknown): RealtimeWebgalDefaultLanguage
   return "";
 }
 
+function buildCloudSettingsSnapshot(state: Pick<RealtimeRenderState, "ttsApiUrl" | "terrePortOverride" | "autoFigureEnabled" | "gameConfig">): RealtimeRenderCloudSettings {
+  return {
+    ttsApiUrl: state.ttsApiUrl,
+    terrePort: state.terrePortOverride,
+    autoFigureEnabled: state.autoFigureEnabled,
+    coverFromRoomAvatarEnabled: state.gameConfig.coverFromRoomAvatarEnabled,
+    startupLogoFromRoomAvatarEnabled: state.gameConfig.startupLogoFromRoomAvatarEnabled,
+    gameIconFromRoomAvatarEnabled: state.gameConfig.gameIconFromRoomAvatarEnabled,
+    gameNameFromRoomNameEnabled: state.gameConfig.gameNameFromRoomNameEnabled,
+    description: state.gameConfig.description,
+    packageName: state.gameConfig.packageName,
+    showPanicEnabled: state.gameConfig.showPanicEnabled,
+    defaultLanguage: state.gameConfig.defaultLanguage,
+    enableAppreciation: state.gameConfig.enableAppreciation,
+    typingSoundEnabled: state.gameConfig.typingSoundEnabled,
+  };
+}
+
 let hydratePromise: Promise<void> | null = null;
+let hydrateSpaceId: number | null = null;
+let persistQueue: Promise<void> = Promise.resolve();
+
+function enqueuePersist(spaceId: number, settings: RealtimeRenderCloudSettings): void {
+  persistQueue = persistQueue
+    .catch(() => {})
+    .then(async () => {
+      try {
+        await setRealtimeRenderSettingsToCloud(spaceId, settings);
+      }
+      catch (error) {
+        console.warn("[realtimeRenderStore] 保存 WebGAL 实时渲染配置失败:", error);
+      }
+    });
+}
 
 export const useRealtimeRenderStore = create<RealtimeRenderState>((set, get) => ({
   enabled: false,
@@ -133,6 +180,7 @@ export const useRealtimeRenderStore = create<RealtimeRenderState>((set, get) => 
   terrePortOverride: null,
   terrePort: getDefaultTerrePort(),
   gameConfig: DEFAULT_REALTIME_WEBGAL_GAME_CONFIG,
+  activeSpaceId: null,
   hydrated: false,
 
   status: "idle",
@@ -147,16 +195,24 @@ export const useRealtimeRenderStore = create<RealtimeRenderState>((set, get) => 
     if (get().autoFigureEnabled === value)
       return;
     set({ autoFigureEnabled: value });
-    void setRealtimeRenderSettings({ autoFigureEnabled: value });
+
+    const state = get();
+    const spaceId = state.activeSpaceId;
+    if (spaceId != null) {
+      enqueuePersist(spaceId, buildCloudSettingsSnapshot(state));
+    }
   },
   setTtsApiUrl: (value) => {
     const nextValue = String(value ?? "");
     if (get().ttsApiUrl === nextValue)
       return;
     set({ ttsApiUrl: nextValue });
-    void setRealtimeRenderSettings({
-      ttsApiUrl: nextValue,
-    });
+
+    const state = get();
+    const spaceId = state.activeSpaceId;
+    if (spaceId != null) {
+      enqueuePersist(spaceId, buildCloudSettingsSnapshot(state));
+    }
   },
   setTerrePortOverride: (port) => {
     const nextOverride = normalizePort(port);
@@ -167,9 +223,12 @@ export const useRealtimeRenderStore = create<RealtimeRenderState>((set, get) => 
       terrePortOverride: nextOverride,
       terrePort: nextOverride ?? getDefaultTerrePort(),
     });
-    void setRealtimeRenderSettings({
-      terrePort: nextOverride,
-    });
+
+    const state = get();
+    const spaceId = state.activeSpaceId;
+    if (spaceId != null) {
+      enqueuePersist(spaceId, buildCloudSettingsSnapshot(state));
+    }
   },
   setGameConfig: (next) => {
     const current = get().gameConfig;
@@ -194,30 +253,44 @@ export const useRealtimeRenderStore = create<RealtimeRenderState>((set, get) => 
     }
 
     set({ gameConfig: merged });
-    void setRealtimeRenderSettings({
-      coverFromRoomAvatarEnabled: merged.coverFromRoomAvatarEnabled,
-      startupLogoFromRoomAvatarEnabled: merged.startupLogoFromRoomAvatarEnabled,
-      gameIconFromRoomAvatarEnabled: merged.gameIconFromRoomAvatarEnabled,
-      gameNameFromRoomNameEnabled: merged.gameNameFromRoomNameEnabled,
-      description: merged.description,
-      packageName: merged.packageName,
-      showPanicEnabled: merged.showPanicEnabled,
-      defaultLanguage: merged.defaultLanguage,
-      enableAppreciation: merged.enableAppreciation,
-      typingSoundEnabled: merged.typingSoundEnabled,
-    });
+
+    const state = get();
+    const spaceId = state.activeSpaceId;
+    if (spaceId != null) {
+      enqueuePersist(spaceId, buildCloudSettingsSnapshot(state));
+    }
   },
-  ensureHydrated: async () => {
-    if (get().hydrated) {
+  ensureHydrated: async (spaceId) => {
+    const normalizedSpaceId = normalizeSpaceId(spaceId) ?? get().activeSpaceId;
+    if (normalizedSpaceId == null) {
+      if (!get().hydrated) {
+        set({ hydrated: true });
+      }
       return;
     }
-    if (hydratePromise) {
+
+    if (get().hydrated && get().activeSpaceId === normalizedSpaceId) {
+      return;
+    }
+
+    if (hydratePromise && hydrateSpaceId === normalizedSpaceId) {
       await hydratePromise;
       return;
     }
 
+    if (hydratePromise) {
+      await hydratePromise;
+    }
+
+    hydrateSpaceId = normalizedSpaceId;
     hydratePromise = (async () => {
-      const persisted = await getRealtimeRenderSettings();
+      let persisted: RealtimeRenderCloudSettings | null = null;
+      try {
+        persisted = await getRealtimeRenderSettingsFromCloud(normalizedSpaceId);
+      }
+      catch (error) {
+        console.warn("[realtimeRenderStore] 加载 WebGAL 实时渲染配置失败，回退默认配置:", error);
+      }
 
       const persistedTtsApiUrl = (persisted?.ttsApiUrl ?? "").trim();
       const persistedTerrePortOverride = normalizePort(persisted?.terrePort ?? null);
@@ -237,7 +310,7 @@ export const useRealtimeRenderStore = create<RealtimeRenderState>((set, get) => 
       const nextTerrePortOverride = persistedTerrePortOverride;
       const nextAutoFigureEnabled = typeof persistedAutoFigureEnabled === "boolean"
         ? persistedAutoFigureEnabled
-        : get().autoFigureEnabled;
+        : false;
       const nextGameConfig: RealtimeWebgalGameConfig = {
         coverFromRoomAvatarEnabled: typeof persistedCoverFromRoomAvatarEnabled === "boolean"
           ? persistedCoverFromRoomAvatarEnabled
@@ -271,6 +344,7 @@ export const useRealtimeRenderStore = create<RealtimeRenderState>((set, get) => 
 
       setTerrePortOverrideInConfig(nextTerrePortOverride);
       set({
+        activeSpaceId: normalizedSpaceId,
         ttsApiUrl: nextTtsApiUrl,
         terrePortOverride: nextTerrePortOverride,
         terrePort: nextTerrePortOverride ?? getDefaultTerrePort(),
@@ -279,9 +353,9 @@ export const useRealtimeRenderStore = create<RealtimeRenderState>((set, get) => 
         hydrated: true,
       });
     })()
-      .catch((e) => {
+      .finally(() => {
         hydratePromise = null;
-        throw e;
+        hydrateSpaceId = null;
       });
 
     await hydratePromise;

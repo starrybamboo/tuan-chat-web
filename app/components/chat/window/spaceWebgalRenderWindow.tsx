@@ -200,8 +200,8 @@ export default function SpaceWebgalRenderWindow({ spaceId }: SpaceWebgalRenderWi
   const [sectionExpandedMap, setSectionExpandedMap] = useState<Record<CollapsibleSectionKey, boolean>>(DEFAULT_SECTION_EXPANDED);
 
   useEffect(() => {
-    void ensureHydrated();
-  }, [ensureHydrated]);
+    void ensureHydrated(spaceId);
+  }, [ensureHydrated, spaceId]);
 
   useEffect(() => {
     setTtsApiInput(ttsApiUrl);
@@ -329,7 +329,7 @@ export default function SpaceWebgalRenderWindow({ spaceId }: SpaceWebgalRenderWi
       return true;
     }
 
-    await ensureHydrated();
+    await ensureHydrated(spaceId);
     const electronEnv = isElectronEnv();
     if (electronEnv) {
       launchWebGal();
@@ -356,7 +356,7 @@ export default function SpaceWebgalRenderWindow({ spaceId }: SpaceWebgalRenderWi
       toast.error("WebGAL 启动超时", { id: "space-webgal-init" });
       return false;
     }
-  }, [ensureHydrated, isRealtimeActive, realtimeStatus, startRealtimeRender]);
+  }, [ensureHydrated, isRealtimeActive, realtimeStatus, spaceId, startRealtimeRender]);
 
   const handleStopRealtimeRender = useCallback(() => {
     stopRealtimeRender();

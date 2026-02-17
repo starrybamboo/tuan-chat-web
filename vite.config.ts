@@ -415,7 +415,11 @@ export default defineConfig(({ command, mode }) => {
           const filename = id.split("?")[0];
           const result = await babelCore.transformAsync(code, {
             filename,
-            sourceMaps: true,
+            // BlockSuite 发布包的 *.map 指向了未随 npm 分发的 src/* 文件。
+            // 一旦继续传递 sourcemap，Rollup 在报告 warning 时会反复尝试回溯并产生日志噪音。
+            // 这里显式关闭输入/输出 sourcemap，保持构建可读性。
+            sourceMaps: false,
+            inputSourceMap: false,
             presets: [
               [
                 "@babel/preset-env",
@@ -435,7 +439,9 @@ export default defineConfig(({ command, mode }) => {
 
           if (!result?.code)
             return null;
-          return { code: result.code, map: result.map ?? null };
+          // 防止上游文件尾部 `//# sourceMappingURL=...` 继续触发 sourcemap 回溯。
+          const codeWithoutSourceMapUrl = result.code.replace(/\n\/\/# sourceMappingURL=.*$/gm, "");
+          return { code: codeWithoutSourceMapUrl, map: null };
         },
       },
 
