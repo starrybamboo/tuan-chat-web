@@ -32,6 +32,25 @@ function loadImage(imgUrl: string): Promise<HTMLImageElement> {
   });
 }
 
+function isTransparentColor(color: string | null | undefined): boolean {
+  if (!color) {
+    return true;
+  }
+  const normalized = color.replace(/\s+/g, "").toLowerCase();
+  return normalized === "transparent" || normalized === "rgba(0,0,0,0)";
+}
+
+function isDarkThemeActive(): boolean {
+  if (typeof document === "undefined") {
+    return false;
+  }
+  const root = document.documentElement;
+  const theme = root.dataset.theme?.toLowerCase() ?? "";
+  return theme.includes("dark") || root.classList.contains("dark");
+}
+
+const TRANSPARENT_IMAGE_PLACEHOLDER = "data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=";
+
 /**
  * 导出聊天消息为图片的窗口组件
  */
@@ -124,6 +143,14 @@ export default function ExportImageWindow({
 
     try {
       setIsExporting(true);
+      const contentStyle = window.getComputedStyle(contentRef.current);
+      const bodyStyle = window.getComputedStyle(document.body);
+      const isDarkTheme = isDarkThemeActive();
+      const exportBackgroundColor = !isTransparentColor(contentStyle.backgroundColor)
+        ? contentStyle.backgroundColor
+        : (!isTransparentColor(bodyStyle.backgroundColor) ? bodyStyle.backgroundColor : "#ffffff");
+      const footerTextColor = isDarkTheme ? "rgba(229, 231, 235, 0.85)" : "#666666";
+      const watermarkColor = isDarkTheme ? "rgba(229, 231, 235, 0.5)" : "rgba(128, 128, 128, 0.5)";
 
       // 暂时移除 Google Fonts 链接以避免跨域问题
       const googleFonts = Array.from(document.querySelectorAll("link[href*=\"fonts.googleapis.com\"]"));
@@ -143,19 +170,31 @@ export default function ExportImageWindow({
       tempContainer.style.top = "0";
       tempContainer.style.zIndex = "-1";
       tempContainer.style.width = `${contentWidth}px`;
-      tempContainer.style.background = "#ffffff";
+      tempContainer.style.background = exportBackgroundColor;
       tempContainer.style.padding = "20px";
       tempContainer.appendChild(cloneNode);
       document.body.appendChild(tempContainer);
 
-      // 生成消息内容图片
-      const contentImageUrl = await htmltoimage.toPng(cloneNode, {
-        backgroundColor: "#ffffff",
-        pixelRatio: 2,
-      });
-
-      // 恢复 Google Fonts
-      googleFonts.forEach(link => document.head.appendChild(link));
+      let contentImageUrl = "";
+      try {
+        // 生成消息内容图片
+        contentImageUrl = await htmltoimage.toPng(cloneNode, {
+          backgroundColor: exportBackgroundColor,
+          pixelRatio: 2,
+          imagePlaceholder: TRANSPARENT_IMAGE_PLACEHOLDER,
+          // 某些资源 URL 会返回 HTML 而不是图片，导致解码失败。这里降级为透明占位，避免整次导出失败。
+          onImageErrorHandler: (event) => {
+            const target = (event as Event | undefined)?.target as HTMLImageElement | null;
+            if (target && target.tagName === "IMG") {
+              target.src = TRANSPARENT_IMAGE_PLACEHOLDER;
+            }
+          },
+        });
+      }
+      finally {
+        // 恢复 Google Fonts
+        googleFonts.forEach(link => document.head.appendChild(link));
+      }
 
       // 加载消息内容图片
       const contentImage = await loadImage(contentImageUrl);
@@ -177,8 +216,8 @@ export default function ExportImageWindow({
       canvas.width = canvasWidth;
       canvas.height = canvasHeight;
 
-      // 绘制白色背景
-      ctx.fillStyle = "#ffffff";
+      // 绘制主题背景
+      ctx.fillStyle = exportBackgroundColor;
       ctx.fillRect(0, 0, canvasWidth, canvasHeight);
 
       // 绘制消息内容
@@ -205,7 +244,7 @@ export default function ExportImageWindow({
 
         // 绘制提示文字
         ctx.font = "14px Arial, sans-serif";
-        ctx.fillStyle = "#666666";
+        ctx.fillStyle = footerTextColor;
         ctx.textAlign = "center";
         ctx.fillText("扫码查看更多", canvasWidth / 2, canvasHeight - 15);
       }
@@ -213,7 +252,7 @@ export default function ExportImageWindow({
       // 绘制底部水印
       ctx.save();
       ctx.font = "12px Arial, sans-serif";
-      ctx.fillStyle = "rgba(128, 128, 128, 0.5)";
+      ctx.fillStyle = watermarkColor;
       ctx.textAlign = "right";
       ctx.fillText("tuan-chat", canvasWidth - 20, canvasHeight - 10);
       ctx.restore();
@@ -282,11 +321,11 @@ export default function ExportImageWindow({
       </div>
 
       {/* 预览区域 */}
-      <div className="overflow-auto max-h-[50vh] border border-base-300 rounded-lg bg-white">
-        <div ref={contentRef} className="p-4 bg-white text-black">
+      <div className="overflow-auto max-h-[50vh] border border-base-300 rounded-lg bg-base-100">
+        <div ref={contentRef} className="p-4 bg-base-100 text-base-content">
           {hasHeader && (
-            <div className="mb-3 pb-3 border-b border-gray-200">
-              <div className="text-base font-bold text-gray-800">{headerText}</div>
+            <div className="mb-3 pb-3 border-b border-base-300">
+              <div className="text-base font-bold text-base-content">{headerText}</div>
             </div>
           )}
           {sortedMessages.map(msg => (
@@ -301,7 +340,7 @@ export default function ExportImageWindow({
 
         {/* 预览二维码区域 */}
         {showQRCode && (
-          <div className="flex flex-col items-center py-4 bg-white border-t border-base-300">
+          <div className="flex flex-col items-center py-4 bg-base-100 border-t border-base-300">
             {qrCodeDataUrl
               ? (
                   <img
@@ -311,11 +350,11 @@ export default function ExportImageWindow({
                   />
                 )
               : (
-                  <div className="w-[120px] h-[120px] bg-gray-200 flex items-center justify-center rounded">
+                  <div className="w-[120px] h-[120px] bg-base-200 flex items-center justify-center rounded">
                     <span className="loading loading-spinner loading-sm"></span>
                   </div>
                 )}
-            <span className="text-sm text-gray-500 mt-2">扫码查看更多</span>
+            <span className="text-sm text-base-content/60 mt-2">扫码查看更多</span>
           </div>
         )}
       </div>

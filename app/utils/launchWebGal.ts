@@ -10,6 +10,36 @@ export type LaunchWebGalResult = {
   runtime: "electron" | "web";
 };
 
+const WEBGAL_TIMEOUT_HINT = "请检查是否开启 WebGAL";
+
+/**
+ * 仅在超时类错误中追加启动提醒，避免普通报错被误导。
+ */
+export function appendWebgalTimeoutHint(message: string): string {
+  const normalizedMessage = message.trim();
+  if (!normalizedMessage) {
+    return normalizedMessage;
+  }
+
+  const lowerMessage = normalizedMessage.toLowerCase();
+  const isTimeout = normalizedMessage.includes("超时")
+    || lowerMessage.includes("timeout")
+    || lowerMessage.includes("timed out")
+    || lowerMessage.includes("etimedout");
+  if (!isTimeout) {
+    return normalizedMessage;
+  }
+
+  if (
+    /检查是否开启\s*webgal/i.test(normalizedMessage)
+    || /确认\s*webgal\s*已启动/i.test(normalizedMessage)
+  ) {
+    return normalizedMessage;
+  }
+
+  return `${normalizedMessage}，${WEBGAL_TIMEOUT_HINT}`;
+}
+
 function isElectronUserAgent() {
   if (typeof navigator === "undefined")
     return false;
@@ -49,7 +79,7 @@ export default async function launchWebGal(options: LaunchWebGalOptions = {}): P
       ok: Boolean(result.ok),
       runtime: "electron",
       port: typeof result.port === "number" ? result.port : undefined,
-      error: typeof result.error === "string" ? result.error : undefined,
+      error: typeof result.error === "string" ? appendWebgalTimeoutHint(result.error) : undefined,
       openedUrl: typeof result.openedUrl === "string" ? result.openedUrl : undefined,
     };
   }
@@ -57,7 +87,7 @@ export default async function launchWebGal(options: LaunchWebGalOptions = {}): P
     return {
       ok: false,
       runtime: "electron",
-      error: error instanceof Error ? error.message : String(error),
+      error: appendWebgalTimeoutHint(error instanceof Error ? error.message : String(error)),
     };
   }
 }

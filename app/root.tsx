@@ -14,6 +14,7 @@ import {
   useNavigate,
 } from "react-router";
 import BgmPlaybackRegistry from "@/components/chat/infra/bgm/bgmPlaybackRegistry";
+import { installMediaDebugBridge } from "@/components/chat/infra/media/mediaDebug";
 import { useDrawerPreferenceStore } from "@/components/chat/stores/drawerPreferenceStore";
 import AudioFloatingBall from "@/components/common/audioFloatingBall";
 import { ToastWindowRenderer } from "@/components/common/toastWindow/toastWindowRenderer";
@@ -31,6 +32,10 @@ if (typeof window !== "undefined" && window.customElements) {
     }
     originalDefine.call(this, name, constructor, options);
   };
+}
+
+if (typeof window !== "undefined") {
+  installMediaDebugBridge();
 }
 
 // DEV-only: help diagnose "Multiple versions of Lit loaded".

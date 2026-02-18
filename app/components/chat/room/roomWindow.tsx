@@ -302,11 +302,15 @@ function RoomWindow({
     setIsImportChatTextOpen,
     isRoleHandleOpen,
     setIsRoleAddWindowOpen,
+    isNpcRoleHandleOpen,
+    setIsNpcRoleAddWindowOpen,
     isRenderWindowOpen,
     setIsRenderWindowOpen,
     handleAddRole,
+    handleAddNpcRole,
     handleImportChatItems,
     openRoleAddWindow,
+    openNpcAddWindow,
   } = useRoomOverlaysController({
     roomId,
     handleImportChatText,
@@ -897,9 +901,13 @@ function RoomWindow({
             availableRoles={roomRolesThatUserOwn}
             onImportChatText={handleImportChatItems}
             onOpenRoleAddWindow={openRoleAddWindow}
+            onOpenNpcAddWindow={spaceContext.isSpaceOwner ? openNpcAddWindow : undefined}
             isRoleHandleOpen={isRoleHandleOpen}
             setIsRoleAddWindowOpen={setIsRoleAddWindowOpen}
             handleAddRole={handleAddRole}
+            isNpcRoleHandleOpen={isNpcRoleHandleOpen}
+            setIsNpcRoleAddWindowOpen={setIsNpcRoleAddWindowOpen}
+            handleAddNpcRole={handleAddNpcRole}
             isRenderWindowOpen={isRenderWindowOpen}
             setIsRenderWindowOpen={setIsRenderWindowOpen}
           />

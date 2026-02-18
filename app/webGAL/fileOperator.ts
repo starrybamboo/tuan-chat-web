@@ -251,7 +251,7 @@ export async function checkGameExist(game: string): Promise<boolean> {
   const gameList: GameInfoDto[] = await getTerreApis().manageGameControllerGetGameList();
   if (!gameList)
     return false;
-  return gameList.some(item => item.name === game);
+  return gameList.some(item => item.dir === game);
 }
 
 async function fetchFolder(folderPath: string) {

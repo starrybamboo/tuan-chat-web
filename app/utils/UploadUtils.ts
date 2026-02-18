@@ -17,6 +17,8 @@ export class UploadUtils {
   private static readonly imagePrepareCache = new WeakMap<File, Map<string, Promise<PreparedImagePayload>>>();
   private static readonly videoPrepareCache = new WeakMap<File, Promise<File>>();
   private static readonly audioPrepareCache = new WeakMap<File, Map<string, Promise<File>>>();
+  private static readonly devOssUploadProxyPath = "/api/oss-upload-proxy";
+  private static readonly defaultEnableBrowserVideoTranscode = true;
 
   private static getOrCreateNestedPromise<T>(
     cache: WeakMap<File, Map<string, Promise<T>>>,
@@ -34,8 +36,7 @@ export class UploadUtils {
       return existed;
     }
 
-    let createdPromise: Promise<T>;
-    createdPromise = create().catch((error) => {
+    const createdPromise = create().catch((error) => {
       const latest = perFileCache.get(key);
       if (latest === createdPromise) {
         perFileCache.delete(key);
@@ -60,8 +61,7 @@ export class UploadUtils {
       return existed;
     }
 
-    let createdPromise: Promise<T>;
-    createdPromise = create().catch((error) => {
+    const createdPromise = create().catch((error) => {
       const latest = cache.get(file);
       if (latest === createdPromise) {
         cache.delete(file);
@@ -131,6 +131,72 @@ export class UploadUtils {
     });
   }
 
+  private shouldFallbackToOriginalVideoUpload(error: unknown): boolean {
+    const message = (error instanceof Error ? error.message : String(error)).toLowerCase();
+    return message.includes("memory access out of bounds");
+  }
+
+  private isBrowserVideoTranscodeEnabled(): boolean {
+    const env = import.meta.env as any;
+    const envFlag = typeof env?.VITE_VIDEO_UPLOAD_ENABLE_TRANSCODE === "string"
+      ? ["1", "true", "yes", "on"].includes(env.VITE_VIDEO_UPLOAD_ENABLE_TRANSCODE.toLowerCase())
+      : typeof env?.VITE_VIDEO_UPLOAD_ENABLE_TRANSCODE === "boolean"
+        ? env.VITE_VIDEO_UPLOAD_ENABLE_TRANSCODE
+        : undefined;
+    if (typeof envFlag === "boolean") {
+      return envFlag;
+    }
+
+    try {
+      const g = globalThis as any;
+      if (typeof g?.__TC_VIDEO_UPLOAD_ENABLE_TRANSCODE === "boolean") {
+        return g.__TC_VIDEO_UPLOAD_ENABLE_TRANSCODE;
+      }
+    }
+    catch {
+      // ignore
+    }
+
+    return UploadUtils.defaultEnableBrowserVideoTranscode;
+  }
+
+  private shouldBypassVideoTranscode(file: File): boolean {
+    if (!this.isBrowserVideoTranscodeEnabled()) {
+      return true;
+    }
+
+    const type = (file.type || "").toLowerCase();
+    if (type === "video/webm")
+      return true;
+    return false;
+  }
+
+  private getVideoExtension(file: File): string {
+    const type = (file.type || "").toLowerCase();
+    if (type === "video/webm")
+      return "webm";
+    if (type === "video/mp4")
+      return "mp4";
+    if (type === "video/quicktime")
+      return "mov";
+    if (type === "video/x-matroska")
+      return "mkv";
+    if (type === "video/x-msvideo")
+      return "avi";
+    if (type === "video/x-ms-wmv")
+      return "wmv";
+    if (type === "video/x-flv")
+      return "flv";
+    if (type === "video/mpeg")
+      return "mpeg";
+
+    const match = (file.name || "").toLowerCase().match(/\.([a-z0-9]+)$/);
+    if (match?.[1])
+      return match[1];
+
+    return "mp4";
+  }
+
   private async prepareImageForUpload(file: File, quality = 0.7, maxSize = 2560): Promise<PreparedImagePayload> {
     const prepareKey = UploadUtils.buildImagePrepareKey(quality, maxSize);
     return await UploadUtils.getOrCreateNestedPromise(
@@ -168,6 +234,10 @@ export class UploadUtils {
   private async prepareVideoForUpload(file: File): Promise<File> {
     return await UploadUtils.getOrCreatePromise(UploadUtils.videoPrepareCache, file, async () => {
       const normalizedVideoFile = this.normalizeVideoInputFileOrThrow(file);
+      // 小体积常见格式优先直传，避免浏览器 ffmpeg.wasm 内存峰值导致 OOM。
+      if (this.shouldBypassVideoTranscode(normalizedVideoFile)) {
+        return normalizedVideoFile;
+      }
       return await transcodeVideoFileToWebmOrThrow(normalizedVideoFile, {
         maxHeight: 1080,
         maxFps: 30,
@@ -339,17 +409,38 @@ export class UploadUtils {
   }
 
   /**
-   * 上传视频文件（统一转码为 webm）
+   * 上传视频文件
+   * - 优先转码为 webm（压缩体积与播放兼容性）
+   * - 若浏览器 FFmpeg WASM 内存越界，则回退上传原视频（保留原音轨，不做无声回退）
    */
   async uploadVideo(
     file: File,
     scene: 1 | 2 | 3 | 4 = 1,
   ): Promise<{ url: string; fileName: string; size: number }> {
-    const processedFile = await this.prepareVideoForUpload(file);
+    const normalizedVideoFile = this.normalizeVideoInputFileOrThrow(file);
 
-    const hash = await this.calculateFileHash(processedFile);
-    const fileSize = processedFile.size;
-    const newFileName = `${hash}_${fileSize}.webm`;
+    let uploadCandidate = normalizedVideoFile;
+    try {
+      uploadCandidate = await this.prepareVideoForUpload(file);
+    }
+    catch (error) {
+      if (!this.shouldFallbackToOriginalVideoUpload(error)) {
+        throw error;
+      }
+      // 仅在 ffmpeg.wasm OOM 时回退原视频，避免直接阻断发送。
+      console.warn("[视频上传] 转码出现 WASM 内存越界，回退为原视频上传（保留音轨）", {
+        name: normalizedVideoFile.name,
+        type: normalizedVideoFile.type,
+        size: normalizedVideoFile.size,
+        error: error instanceof Error ? error.message : String(error),
+      });
+      uploadCandidate = normalizedVideoFile;
+    }
+
+    const hash = await this.calculateFileHash(uploadCandidate);
+    const fileSize = uploadCandidate.size;
+    const extension = this.getVideoExtension(uploadCandidate);
+    const newFileName = `${hash}_${fileSize}.${extension}`;
 
     const ossData = await tuanchat.ossController.getUploadUrl({
       fileName: newFileName,
@@ -362,12 +453,12 @@ export class UploadUtils {
     }
 
     if (ossData.data.uploadUrl) {
-      await this.executeUpload(ossData.data.uploadUrl, processedFile);
+      await this.executeUpload(ossData.data.uploadUrl, uploadCandidate);
     }
 
     return {
       url: ossData.data.downloadUrl,
-      fileName: processedFile.name,
+      fileName: uploadCandidate.name,
       size: fileSize,
     };
   }
@@ -523,26 +614,76 @@ export class UploadUtils {
     });
   }
 
-  private async executeUpload(url: string, file: File): Promise<void> {
+  private resolveUploadTarget(url: string, file: File): {
+    targetUrl: string;
+    headers?: Record<string, string>;
+    viaDevProxy: boolean;
+  } {
+    const directHeaders = file.type ? { "Content-Type": file.type } : undefined;
+    if (!import.meta.env.DEV || typeof window === "undefined") {
+      return {
+        targetUrl: url,
+        headers: directHeaders,
+        viaDevProxy: false,
+      };
+    }
+
+    try {
+      const target = new URL(url, window.location.href);
+      if (target.origin === window.location.origin) {
+        return {
+          targetUrl: url,
+          headers: directHeaders,
+          viaDevProxy: false,
+        };
+      }
+    }
+    catch {
+      return {
+        targetUrl: url,
+        headers: directHeaders,
+        viaDevProxy: false,
+      };
+    }
+
+    return {
+      targetUrl: UploadUtils.devOssUploadProxyPath,
+      headers: {
+        "X-TC-OSS-Upload-Url": encodeURIComponent(url),
+        ...(file.type ? { "Content-Type": file.type } : {}),
+      },
+      viaDevProxy: true,
+    };
+  }
+
+  private async uploadWithTimeout(url: string, file: File, headers?: Record<string, string>): Promise<Response> {
     const controller = new AbortController();
     const t = globalThis.setTimeout(() => controller.abort(), 120_000);
 
-    let response: Response;
     try {
-      response = await fetch(url, {
+      return await fetch(url, {
         method: "PUT",
         body: file,
         signal: controller.signal,
-        headers: {
-          ...(file.type ? { "Content-Type": file.type } : {}),
-        },
+        headers,
       });
     }
     finally {
       globalThis.clearTimeout(t);
     }
+  }
 
+  private async executeUpload(url: string, file: File): Promise<void> {
+    const { targetUrl, headers, viaDevProxy } = this.resolveUploadTarget(url, file);
+    const response = await this.uploadWithTimeout(targetUrl, file, headers);
     if (!response.ok) {
+      if (response.status === 413) {
+        const prefix = viaDevProxy ? "文件传输失败(开发代理)" : "文件传输失败";
+        throw new Error(`${prefix}: 413（请求体过大）`);
+      }
+      if (viaDevProxy) {
+        throw new Error(`文件传输失败(开发代理): ${response.status}`);
+      }
       throw new Error(`文件传输失败: ${response.status}`);
     }
   }

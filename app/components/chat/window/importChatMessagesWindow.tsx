@@ -32,6 +32,7 @@ interface ImportChatMessagesWindowProps {
   onImport: (messages: ResolvedImportChatMessage[], onProgress?: (sent: number, total: number) => void) => Promise<void>;
   onClose: () => void;
   onOpenRoleAddWindow?: () => void;
+  onOpenNpcAddWindow?: () => void;
 }
 
 export default function ImportChatMessagesWindow({
@@ -40,6 +41,7 @@ export default function ImportChatMessagesWindow({
   onImport,
   onClose,
   onOpenRoleAddWindow,
+  onOpenNpcAddWindow,
 }: ImportChatMessagesWindowProps) {
   const [rawText, setRawText] = useState("");
   const [fileName, setFileName] = useState<string | null>(null);
@@ -186,6 +188,15 @@ export default function ImportChatMessagesWindow({
     }
     onClose();
     setTimeout(() => onOpenRoleAddWindow(), 0);
+  };
+
+  const handleQuickCreateNpc = () => {
+    if (!onOpenNpcAddWindow) {
+      toast.error("当前页面无法打开创建NPC入口");
+      return;
+    }
+    onClose();
+    setTimeout(() => onOpenNpcAddWindow(), 0);
   };
 
   const handleClear = () => {
@@ -346,16 +357,31 @@ export default function ImportChatMessagesWindow({
               {speakers.length}
               )
             </div>
-            {onOpenRoleAddWindow && (
-              <button
-                type="button"
-                className="btn btn-xs btn-outline btn-primary gap-1"
-                onClick={handleQuickCreateRole}
-                disabled={isImporting}
-              >
-                <UserPlus size={14} />
-                导入角色
-              </button>
+            {(onOpenRoleAddWindow || onOpenNpcAddWindow) && (
+              <div className="flex items-center gap-2">
+                {onOpenRoleAddWindow && (
+                  <button
+                    type="button"
+                    className="btn btn-xs btn-outline btn-primary gap-1"
+                    onClick={handleQuickCreateRole}
+                    disabled={isImporting}
+                  >
+                    <UserPlus size={14} />
+                    新建角色
+                  </button>
+                )}
+                {onOpenNpcAddWindow && (
+                  <button
+                    type="button"
+                    className="btn btn-xs btn-outline btn-secondary gap-1"
+                    onClick={handleQuickCreateNpc}
+                    disabled={isImporting}
+                  >
+                    <UserPlus size={14} />
+                    新建NPC
+                  </button>
+                )}
+              </div>
             )}
           </div>
 
