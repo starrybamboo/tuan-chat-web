@@ -752,8 +752,25 @@ function buildClearFigureLines(options: ClearFigureOptions = {}): string[] {
   return lines;
 }
 
+function buildDisableFigureEnterTransitionLines(): string[] {
+  const targets = new Set<string>();
+  FIGURE_POSITION_ORDER.forEach((position) => {
+    targets.add(resolveFigureSlot(position).id);
+  });
+  targets.add(IMAGE_MESSAGE_FIGURE_ID);
+  // 兼容 legacy -left/-center/-right 槽位。
+  targets.add("fig-left");
+  targets.add("fig-center");
+  targets.add("fig-right");
+  return Array.from(targets).map(target => `setTransition: -target=${target} -enter=none -keepOffset -next;`);
+}
+
 function buildSceneInitLines(): string[] {
-  return ["changeBg:none -next;", ...buildClearFigureLines({ includeLegacy: true, includeImage: true })];
+  return [
+    "changeBg:none -next;",
+    ...buildDisableFigureEnterTransitionLines(),
+    ...buildClearFigureLines({ includeLegacy: true, includeImage: true }),
+  ];
 }
 
 type RendererContext = {
