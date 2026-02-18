@@ -10,7 +10,6 @@ import ChatFrameView from "@/components/chat/chatFrameView";
 import { RoomContext } from "@/components/chat/core/roomContext";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
 import useChatFrameDragAndDrop from "@/components/chat/hooks/useChatFrameDragAndDrop";
-import useChatFrameStickerActions from "@/components/chat/hooks/useChatFrameStickerActions";
 import useChatFrameIndexing from "@/components/chat/hooks/useChatFrameIndexing";
 import useChatFrameMessageActions from "@/components/chat/hooks/useChatFrameMessageActions";
 import useChatFrameMessageMutations from "@/components/chat/hooks/useChatFrameMessageMutations";
@@ -20,6 +19,7 @@ import useChatFrameNarratorToggle from "@/components/chat/hooks/useChatFrameNarr
 import useChatFrameOverlayState from "@/components/chat/hooks/useChatFrameOverlayState";
 import useChatFrameScrollState from "@/components/chat/hooks/useChatFrameScrollState";
 import useChatFrameSelectionContext from "@/components/chat/hooks/useChatFrameSelectionContext";
+import useChatFrameStickerActions from "@/components/chat/hooks/useChatFrameStickerActions";
 import useChatFrameVisualEffects from "@/components/chat/hooks/useChatFrameVisualEffects";
 import useChatFrameWebSocket from "@/components/chat/hooks/useChatFrameWebSocket";
 import { openMessageAnnotationPicker } from "@/components/chat/message/annotations/openMessageAnnotationPicker";

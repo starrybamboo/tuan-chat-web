@@ -4,10 +4,10 @@ import { createStore } from "zustand/vanilla";
 
 import type { Message } from "api";
 
-export type MessageUndoAction =
-  | { type: "send"; after: Message }
-  | { type: "delete"; before: Message }
-  | { type: "update"; before: Message; after: Message };
+export type MessageUndoAction
+  = | { type: "send"; after: Message }
+    | { type: "delete"; before: Message }
+    | { type: "update"; before: Message; after: Message };
 
 const MAX_MESSAGE_UNDO_STACK_SIZE = 100;
 
@@ -92,7 +92,7 @@ export function createRoomUiStore() {
       return action;
     },
     restoreMessageUndo: (action) => {
-      set((state) => ({
+      set(state => ({
         messageUndoStack: [...state.messageUndoStack, action],
       }));
     },
@@ -106,7 +106,7 @@ export function createRoomUiStore() {
       return action;
     },
     restoreMessageRedo: (action) => {
-      set((state) => ({
+      set(state => ({
         messageRedoStack: [...state.messageRedoStack, action],
       }));
     },

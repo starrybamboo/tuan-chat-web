@@ -419,7 +419,6 @@ export default defineConfig(({ command, mode }) => {
             // 一旦继续传递 sourcemap，Rollup 在报告 warning 时会反复尝试回溯并产生日志噪音。
             // 这里显式关闭输入/输出 sourcemap，保持构建可读性。
             sourceMaps: false,
-            inputSourceMap: false,
             presets: [
               [
                 "@babel/preset-env",

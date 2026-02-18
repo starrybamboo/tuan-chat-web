@@ -1,3 +1,5 @@
+import { vi } from "vitest";
+
 import { consumeAuthToast, handleUnauthorized } from "./unauthorized";
 
 class MemoryStorage implements Storage {

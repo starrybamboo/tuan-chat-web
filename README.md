@@ -25,11 +25,11 @@ Electron failed to install correctly,
 node node_modules/electron/install.js
 ```
 
-如果要执行 electron 打包（electron-builder）
-会自动先执行 `pnpm electron:prepare:resources`，默认从 `../WebGAL_Terre/release` 同步 WebGAL_Terre 发行文件到 `extraResources/`。
-
-- 如果 `WebGAL_Terre` 不在默认位置，可设置环境变量 `WEBGAL_TERRE_RELEASE_DIR` 指向发行目录。
-- 若未找到发行目录，但本地 `extraResources/` 已有 `WebGAL_Terre.exe`，会沿用现有文件继续打包。
+如果要执行 electron 打包（electron-builder）：
+- 安装包会携带 `WebGAL_Terre` 运行时。
+- `pnpm electron:prepare:resources` 会从 `../WebGAL_Terre/release` 同步运行时到 `extraResources/`。
+- 如果 `WebGAL_Terre` 不在默认位置，可设置环境变量 `WEBGAL_TERRE_RELEASE_DIR` 指向 release 目录。
+- 也可以手动把 `WebGAL_Terre` release 内容放到 `extraResources/`，并确保 `WebGAL_Terre.exe` 位于该目录根层级。
 
 #### electron-builder 工具下载不稳定（Windows）
 
@@ -96,6 +96,16 @@ pnpm lint:fix
 自动部署：
 - `main` 推送：生产部署到 `https://tuan.chat/`
 - `dev` 推送：测试部署到 `https://test.tuan.chat/`（test 模式构建，开启 React Scan）
+
+Electron 增量更新发布：
+- `main` 推送会触发 `.github/workflows/electron-update-publish.yml`
+- 工作流会构建 NSIS 包并发布以下文件：`latest.yml`、`*Setup*.exe`、`*Setup*.exe.blockmap`
+- 需要在 GitHub 仓库 Secrets 中配置：
+- `UPDATE_SERVER_HOST`：更新服务器 SSH 地址
+- `UPDATE_SERVER_PORT`：更新服务器 SSH 端口（可选，默认 `22`）
+- `UPDATE_SERVER_USERNAME`：SSH 用户名
+- `UPDATE_SERVER_PASSWORD`：SSH 密码
+- `UPDATE_SERVER_PATH`：远端发布目录（应对应 `electron-builder.json` 中 `publish.url` 的站点根目录）
 
 # 文件架构
 
