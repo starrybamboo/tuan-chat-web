@@ -68,6 +68,7 @@ export default function RealtimeRenderOrchestrator({
 
   const isRealtimeRenderEnabled = useRealtimeRenderStore(state => state.enabled);
   const setIsRealtimeRenderEnabled = useRealtimeRenderStore(state => state.setEnabled);
+  const setTerrePortOverride = useRealtimeRenderStore(state => state.setTerrePortOverride);
 
   const sideDrawerState = useSideDrawerStore(state => state.state);
   const setSideDrawerState = useSideDrawerStore(state => state.setState);
@@ -299,6 +300,10 @@ export default function RealtimeRenderOrchestrator({
         setIsRealtimeRenderEnabled(false);
         return;
       }
+      if (electronEnv && typeof launchResult.port === "number" && Number.isFinite(launchResult.port)) {
+        // Electron 启动成功后，强制对齐到主进程实际监听端口，避免前端仍连接旧端口。
+        setTerrePortOverride(launchResult.port);
+      }
 
       toast.loading("正在启动 WebGAL...", { id: "webgal-init" });
       try {
@@ -351,7 +356,7 @@ export default function RealtimeRenderOrchestrator({
     finally {
       isStartingRealtimeRenderRef.current = false;
     }
-  }, [dismissRealtimeRenderToasts, ensureHydrated, realtimeRender, renderHistoryMessages, setIsRealtimeRenderEnabled, setSideDrawerState, spaceId, stopRealtimeRender]);
+  }, [dismissRealtimeRenderToasts, ensureHydrated, realtimeRender, renderHistoryMessages, setIsRealtimeRenderEnabled, setSideDrawerState, setTerrePortOverride, spaceId, stopRealtimeRender]);
 
   const handleToggleRealtimeRender = useCallback(async () => {
     if (realtimeRender.isActive) {
