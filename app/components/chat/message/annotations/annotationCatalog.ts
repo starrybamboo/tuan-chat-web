@@ -96,6 +96,7 @@ const BUILTIN_ANNOTATIONS: AnnotationDefinition[] = [
   { id: "video.skipoff", label: "禁止跳过", category: "控制", tone: "warning", source: "builtin" },
   { id: "image.clear", label: "清除展示图", category: "控制", tone: "warning", source: "builtin" },
   { id: "background.clear", label: "清除背景", category: "控制", tone: "warning", source: "builtin" },
+  { id: "bgm.clear", label: "清除BGM", category: "控制", tone: "warning", source: "builtin" },
   { id: "figure.clear", label: "清除立绘", category: "控制", tone: "warning", source: "builtin" },
 ];
 

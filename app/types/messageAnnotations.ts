@@ -105,6 +105,7 @@ export function normalizeEffectAnnotationId(id: string) {
 
 export const ANNOTATION_IDS = {
   BGM: "sys:bgm",
+  BGM_CLEAR: "bgm.clear",
   SE: "sys:se",
   BACKGROUND: "sys:bg",
   BACKGROUND_CLEAR: "background.clear",
@@ -258,6 +259,10 @@ export function hasClearFigureAnnotation(annotations: string[] | undefined) {
 
 export function hasClearBackgroundAnnotation(annotations: string[] | undefined) {
   return normalizeAnnotations(annotations).includes(ANNOTATION_IDS.BACKGROUND_CLEAR);
+}
+
+export function hasClearBgmAnnotation(annotations: string[] | undefined) {
+  return normalizeAnnotations(annotations).includes(ANNOTATION_IDS.BGM_CLEAR);
 }
 
 export function getFigurePositionFromAnnotations(annotations: string[] | undefined) {
