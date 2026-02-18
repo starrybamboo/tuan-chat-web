@@ -14,7 +14,7 @@ import UTILS from "@/components/common/dicer/utils/utils";
 import { setFigurePositionAnnotation } from "@/types/messageAnnotations";
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
 
-import type { ChatMessageRequest } from "../../../../api";
+import type { ChatMessageRequest, ChatMessageResponse } from "../../../../api";
 
 import { MessageType } from "../../../../api/wsModels";
 
@@ -27,7 +27,7 @@ type UseRoomImportActionsParams = {
   isSubmitting: boolean;
   setIsSubmitting: (value: boolean) => void;
   roomContext: RoomContextType;
-  sendMessageWithInsert: (message: ChatMessageRequest) => Promise<void>;
+  sendMessageWithInsert: (message: ChatMessageRequest) => Promise<ChatMessageResponse["message"] | null>;
   ensureRuntimeAvatarIdForRole: (roleId: number) => Promise<number>;
   roomUiStoreApi: RoomUiStoreApi;
 };

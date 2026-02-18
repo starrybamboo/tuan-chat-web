@@ -27,6 +27,7 @@ jobs:
             console.log('Preparing Push notification payload');
             
             // 构建消息内容
+            const branchName = context.ref.replace('refs/heads/', '');
             const payload = {
               timestamp: String(timestamp), // 转为字符串
               sign: sign,
@@ -38,7 +39,7 @@ jobs:
                 header: {
                   title: {
                     tag: "plain_text",
-                    content: "🚀 Dev分支有新的Push"
+                    content: `🚀 ${branchName}分支有新的Push`
                   },
                   template: "green"
                 },
@@ -54,7 +55,7 @@ jobs:
                     tag: "div",
                     text: {
                       tag: "lark_md",
-                      content: `**分支**: ${context.ref.replace('refs/heads/', '')}`
+                      content: `**分支**: ${branchName}`
                     }
                   }
                 ]

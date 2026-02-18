@@ -4,14 +4,14 @@ import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
 
 import { getMessagePreviewText } from "./getMessagePreviewText";
 
-type MessagePreviewContentProps = {
+interface MessagePreviewContentProps {
   message?: Message | null;
   /**
    * 是否展示媒体缩略图（目前仅图片）。
    * 默认不展示，避免在列表预览中导致布局抖动。
    */
   withMediaPreview?: boolean;
-};
+}
 
 export function MessagePreviewContent({
   message,

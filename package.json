@@ -24,11 +24,12 @@
     "openapi": "openapi --input ./api/tuanchat_OpenAPI.json --output ./api --client fetch --name TuanChat",
     "electron:dev": "node ./scripts/electron-dev.mjs",
     "electron:dev:only": "electron .",
-    "electron:build": "pnpm -s build && electron-builder build --config electron-builder.json",
-    "electron:build:win:zip": "pnpm -s build && electron-builder build --config electron-builder.json --win zip",
-    "electron:build:win:nsis": "pnpm -s build && electron-builder build --config electron-builder.json --win nsis",
-    "electron:build:mac:zip": "pnpm -s build && electron-builder build --config electron-builder.json --mac zip",
-    "electron:build:mac:dmg": "pnpm -s build && electron-builder build --config electron-builder.json --mac dmg"
+    "electron:prepare:resources": "node ./scripts/prepare-electron-extra-resources.mjs",
+    "electron:build": "pnpm -s electron:prepare:resources && pnpm -s build && pnpm exec electron-builder build --config electron-builder.json",
+    "electron:build:win:zip": "pnpm -s electron:prepare:resources && pnpm -s build && pnpm exec electron-builder build --config electron-builder.json --win zip",
+    "electron:build:win:nsis": "pnpm -s electron:prepare:resources && pnpm -s build && pnpm exec electron-builder build --config electron-builder.json --win nsis",
+    "electron:build:mac:zip": "pnpm -s electron:prepare:resources && pnpm -s build && pnpm exec electron-builder build --config electron-builder.json --mac zip",
+    "electron:build:mac:dmg": "pnpm -s electron:prepare:resources && pnpm -s build && pnpm exec electron-builder build --config electron-builder.json --mac dmg"
   },
   "build": {
     "appId": "com.tuanchat.tuanchat",

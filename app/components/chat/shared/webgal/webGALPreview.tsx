@@ -32,8 +32,8 @@ export default function WebGALPreview({
 
   const ensureHydrated = useRealtimeRenderStore(state => state.ensureHydrated);
   useEffect(() => {
-    void ensureHydrated();
-  }, [ensureHydrated]);
+    void ensureHydrated(spaceId);
+  }, [ensureHydrated, spaceId]);
 
   const realtimeStatus = useRealtimeRenderStore(state => state.status);
   const sideDrawerState = useSideDrawerStore(state => state.state);

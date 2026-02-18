@@ -11,7 +11,6 @@ import {
 import { useRealtimeRenderStore } from "@/components/chat/stores/realtimeRenderStore";
 import { useSideDrawerStore } from "@/components/chat/stores/sideDrawerStore";
 import { isImageMessageBackground } from "@/types/messageAnnotations";
-import { isElectronEnv } from "@/utils/isElectronEnv";
 import launchWebGal from "@/utils/launchWebGal";
 import { pollPort } from "@/utils/pollPort";
 import { getTerreHealthcheckUrl } from "@/webGAL/terreConfig";
@@ -64,8 +63,8 @@ export default function RealtimeRenderOrchestrator({
 }: Props) {
   const ensureHydrated = useRealtimeRenderStore(state => state.ensureHydrated);
   useEffect(() => {
-    void ensureHydrated();
-  }, [ensureHydrated]);
+    void ensureHydrated(spaceId);
+  }, [ensureHydrated, spaceId]);
 
   const isRealtimeRenderEnabled = useRealtimeRenderStore(state => state.enabled);
   const setIsRealtimeRenderEnabled = useRealtimeRenderStore(state => state.setEnabled);
@@ -261,19 +260,27 @@ export default function RealtimeRenderOrchestrator({
 
     isStartingRealtimeRenderRef.current = true;
     try {
-      await ensureHydrated();
-      const electronEnv = isElectronEnv();
-      if (electronEnv) {
-        launchWebGal();
+      await ensureHydrated(spaceId);
+
+      const launchResult = await launchWebGal({
+        gameDir: `realtime_${spaceId}`,
+      });
+      const electronEnv = launchResult.runtime === "electron";
+      if (electronEnv && !launchResult.ok) {
+        toast.error(launchResult.error || "WebGAL 启动失败", { id: "webgal-init" });
+        setIsRealtimeRenderEnabled(false);
+        return;
       }
 
       toast.loading("正在启动 WebGAL...", { id: "webgal-init" });
       try {
-        await pollPort(
-          getTerreHealthcheckUrl(),
-          electronEnv ? 15000 : 500,
-          100,
-        );
+        if (!electronEnv) {
+          await pollPort(
+            getTerreHealthcheckUrl(),
+            20_000,
+            200,
+          );
+        }
 
         toast.loading("正在初始化实时渲染...", { id: "webgal-init" });
         const success = await realtimeRender.start();
@@ -288,15 +295,18 @@ export default function RealtimeRenderOrchestrator({
           setIsRealtimeRenderEnabled(false);
         }
       }
-      catch {
-        toast.error("WebGAL 启动超时", { id: "webgal-init" });
+      catch (error) {
+        const message = error instanceof Error && error.message
+          ? `WebGAL 启动失败：${error.message}`
+          : "WebGAL 启动超时";
+        toast.error(message, { id: "webgal-init" });
         setIsRealtimeRenderEnabled(false);
       }
     }
     finally {
       isStartingRealtimeRenderRef.current = false;
     }
-  }, [ensureHydrated, realtimeRender, renderHistoryMessages, setIsRealtimeRenderEnabled, setSideDrawerState]);
+  }, [ensureHydrated, realtimeRender, renderHistoryMessages, setIsRealtimeRenderEnabled, setSideDrawerState, spaceId]);
 
   const handleToggleRealtimeRender = useCallback(async () => {
     if (realtimeRender.isActive) {

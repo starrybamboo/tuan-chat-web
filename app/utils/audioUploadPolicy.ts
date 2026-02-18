@@ -1,5 +1,7 @@
 import type { AudioTranscodeOptions } from "@/utils/audioTranscodeUtils";
 
+import { resolveFfmpegLoadTimeoutMs } from "@/utils/ffmpegLoadTimeoutConfig";
+
 const AUDIO_UPLOAD_MAX_INPUT_BYTES = 30 * 1024 * 1024;
 const AUDIO_UPLOAD_PREFER_SMALLER_MIN_BYTES = 48 * 1024;
 
@@ -42,7 +44,7 @@ export function buildDefaultAudioUploadTranscodeOptions(inputBytes: number, maxD
   const normalizedDuration = normalizeMaxDurationSec(maxDurationSec);
   return {
     maxDurationSec: normalizedDuration,
-    loadTimeoutMs: 45_000,
+    loadTimeoutMs: resolveFfmpegLoadTimeoutMs(),
     execTimeoutMs: resolveAudioTranscodeExecTimeoutMs(inputBytes, normalizedDuration),
     bitrateKbps: 48,
     sampleRateHz: 32000,

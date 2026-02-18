@@ -129,8 +129,8 @@ RealtimeRenderer 转换为 WebGAL 场景
 - ttsEnabled：实时渲染 TTS 开关
 - miniAvatarEnabled：实时渲染小头像开关
 - autoFigureEnabled：实时渲染自动填充立绘开关
-- ttsApiUrl：TTS API URL（IndexedDB：realtimeRenderSettings）
-- terrePortOverride：WebGAL(Terre) 端口覆盖值（IndexedDB：realtimeRenderSettings）
+- ttsApiUrl：TTS API URL（云端：`space.extra.webgalRealtimeRenderSettings`）
+- terrePortOverride：WebGAL(Terre) 端口覆盖值（云端：`space.extra.webgalRealtimeRenderSettings`）
 - terrePort：WebGAL(Terre) 实际端口（用于启动探测/连接）
 
 运行态（不持久化，镜像自 `useRealtimeRender`）：

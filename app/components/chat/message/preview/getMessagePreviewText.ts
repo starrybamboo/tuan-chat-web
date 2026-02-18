@@ -1,8 +1,8 @@
-import type { Message } from "../../../../../api";
-
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
 import { extractWebgalChoosePayload, formatWebgalChooseSummary } from "@/types/webgalChoose";
 import { extractWebgalVarPayload, formatWebgalVarSummary } from "@/types/webgalVar";
+
+import type { Message } from "../../../../../api";
 
 function safeTrim(value: unknown): string {
   return typeof value === "string" ? value.trim() : "";
@@ -22,7 +22,7 @@ function isProbablyOpaqueFileName(fileName: string): boolean {
   if (/^[0-9a-f]+$/i.test(base) && base.length >= 24) {
     return true;
   }
-  if (/^[0-9]+$/.test(base) && base.length >= 16) {
+  if (/^\d+$/.test(base) && base.length >= 16) {
     return true;
   }
   return false;

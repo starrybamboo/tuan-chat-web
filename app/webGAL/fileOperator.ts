@@ -36,6 +36,20 @@ type IFile = {
   pathFromBase?: string;
 };
 
+type UploadByUrlResponse = {
+  fileName?: string;
+};
+
+class TerreUploadByUrlError extends Error {
+  readonly status: number;
+
+  constructor(status: number, message: string) {
+    super(message);
+    this.name = "TerreUploadByUrlError";
+    this.status = status;
+  }
+}
+
 export type IDebugMessage = {
   event: string;
   data: {
@@ -70,14 +84,14 @@ function getFileExtension(fileName: string): string {
   return fileName.slice(dotIndex + 1).toLowerCase();
 }
 
-function replaceFileExtension(fileName: string, nextExt: string): string {
+function _replaceFileExtension(fileName: string, nextExt: string): string {
   const dotIndex = fileName.lastIndexOf(".");
   if (dotIndex > 0)
     return `${fileName.slice(0, dotIndex)}.${nextExt}`;
   return `${fileName}.${nextExt}`;
 }
 
-function isLikelyAudioFileName(fileName: string): boolean {
+function _isLikelyAudioFileName(fileName: string): boolean {
   const ext = getFileExtension(fileName);
   return Boolean(ext && AUDIO_EXTENSIONS.has(ext));
 }
@@ -112,6 +126,42 @@ export function getFileExtensionFromUrl(url: string, defaultExt: string = "webp"
   }
 }
 
+function isHttpSourceUrl(url: string): boolean {
+  try {
+    const parsed = new URL(url);
+    return parsed.protocol === "http:" || parsed.protocol === "https:";
+  }
+  catch {
+    return false;
+  }
+}
+
+async function uploadFileByTerreSourceUrl(sourceUrl: string, targetDirectory: string, fileName: string): Promise<string> {
+  const response = await fetch(`${getTerreBaseUrl()}/api/assets/uploadByUrl`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      sourceUrl,
+      targetDirectory,
+      fileName,
+    }),
+  });
+
+  if (!response.ok) {
+    const errorText = (await response.text()).trim();
+    throw new TerreUploadByUrlError(response.status, errorText || `uploadByUrl failed, status: ${response.status}`);
+  }
+
+  const result = await response.json() as UploadByUrlResponse;
+  if (!result.fileName) {
+    throw new Error("uploadByUrl returned empty fileName");
+  }
+
+  return result.fileName;
+}
+
 /**
  * 上传文件的通用函数
  * @param url 文件的url
@@ -126,13 +176,27 @@ export async function uploadFile(url: string, path: string, fileName?: string | 
   // const shouldTranscodeAudioByName = isLikelyAudioFileName(newFileName);
   // let targetFileName = shouldTranscodeAudioByName ? replaceFileExtension(newFileName, "opus") : newFileName;
   // 暂时禁用强制转码 Opus，使用原文件格式（如 wav）
-  let targetFileName = newFileName;
+  const targetFileName = newFileName;
 
-  let safeFileName = targetFileName.replace(/\P{ASCII}/gu, char =>
+  const safeFileName = targetFileName.replace(/\P{ASCII}/gu, char =>
     encodeURIComponent(char).replace(/%/g, ""));
 
   if (await checkFileExist(path, safeFileName))
     return safeFileName;
+
+  if (isHttpSourceUrl(url)) {
+    try {
+      return await uploadFileByTerreSourceUrl(url, path, safeFileName);
+    }
+    catch (error) {
+      const unsupported = error instanceof TerreUploadByUrlError
+        && (error.status === 404 || error.status === 405);
+      if (!unsupported) {
+        throw error;
+      }
+      console.warn("[fileOperator] 当前 Terre 不支持 uploadByUrl，回退到浏览器上传流程", error);
+    }
+  }
 
   const response = await fetch(url);
   if (!response.ok)
