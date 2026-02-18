@@ -151,8 +151,8 @@ export default function WebGALPreview({
         </div>
       </div>
       <div className="flex-1 relative bg-black">
-        <div className="absolute inset-0 flex items-start justify-center">
-          <div className={`${isResizing ? "pointer-events-none" : ""} flex items-start justify-center w-full h-full`}>
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className={`${isResizing ? "pointer-events-none" : ""} flex items-center justify-center w-full h-full`}>
             <iframe
               src={previewUrl}
               title="WebGAL 实时预览"
