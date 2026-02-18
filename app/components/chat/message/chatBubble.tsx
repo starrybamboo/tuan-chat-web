@@ -327,7 +327,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
     });
   }, [annotations, handleUpdateAnnotations]);
 
-  const annotationsBar = (
+  const renderAnnotationsBar = (className?: string) => (
     <MessageAnnotationsBar
       annotations={annotations}
       canEdit={canEdit}
@@ -335,6 +335,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
       onOpenPicker={handleOpenAnnotations}
       showWhenEmpty={true}
       alwaysShowAddButton={true}
+      className={className}
     />
   );
 
@@ -1210,8 +1211,8 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
                 >
                   {renderedContent}
                   {threadHintNode}
-                  {annotationsBar}
                 </div>
+                {renderAnnotationsBar("max-w-[calc(100vw-5rem)] sm:max-w-md mt-1.5")}
               </div>
             </div>
           )
@@ -1316,7 +1317,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
                 >
                   {renderedContent}
                   {threadHintNode}
-                  {annotationsBar}
+                  {renderAnnotationsBar()}
                 </div>
               </div>
             </div>
