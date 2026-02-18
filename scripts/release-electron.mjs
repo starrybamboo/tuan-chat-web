@@ -35,7 +35,7 @@ function run(command, args, { env = process.env } = {}) {
   const result = spawnSync(command, args, {
     cwd: projectRoot,
     stdio: "inherit",
-    shell: process.platform === "win32",
+    shell: false,
     env,
   });
 
@@ -49,7 +49,7 @@ function runCapture(command, args, { allowFail = false } = {}) {
     cwd: projectRoot,
     stdio: ["ignore", "pipe", "pipe"],
     encoding: "utf8",
-    shell: process.platform === "win32",
+    shell: false,
   });
 
   if (result.status !== 0 && !allowFail) {
