@@ -12,3 +12,4 @@
 - store 的 set/更新函数在无变化时返回旧 state（或 prev），避免订阅者反复触发更新
 - 每完成一轮答复（实现/修改/修复）后，立即进行 git commit
 - 如果修改了 WebGAL 引擎（含 `WebGAL/packages/webgal` 或 `WebGAL/packages/parser`），需自动执行同步脚本：`D:\A_collection\WebGAL\sync-terre-engine.ps1`
+- Terre 连接地址在所有环境统一固定为：`VITE_TERRE_URL=http://localhost:3001`、`VITE_TERRE_WS=ws://localhost:3001/api/webgalsync`；除非用户明确要求，否则禁止修改这两个变量（包括 `.env.development`、`.env.production`、`.env.test` 与 CI/CD 注入值）
