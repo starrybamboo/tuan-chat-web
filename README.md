@@ -100,12 +100,15 @@ pnpm lint:fix
 Electron 增量更新发布：
 - `main` 推送会触发 `.github/workflows/electron-update-publish.yml`
 - 工作流会构建 NSIS 包并发布以下文件：`latest.yml`、`*Setup*.exe`、`*Setup*.exe.blockmap`
-- 需要在 GitHub 仓库 Secrets 中配置：
-- `UPDATE_SERVER_HOST`：更新服务器 SSH 地址
-- `UPDATE_SERVER_PORT`：更新服务器 SSH 端口（可选，默认 `22`）
-- `UPDATE_SERVER_USERNAME`：SSH 用户名
-- `UPDATE_SERVER_PASSWORD`：SSH 密码
-- `UPDATE_SERVER_PATH`：远端发布目录（应对应 `electron-builder.json` 中 `publish.url` 的站点根目录）
+- 客户端更新地址（electron-builder `publish.url`）：`https://tuan.chat/updates/`
+- 默认发布目录：`/www/wwwroot/tuan-chat-web/updates`
+- 工作流优先读取 `UPDATE_*`，未配置时会回退到 CD 使用的 `SERVER_*` / `SSH_*` 凭据。
+- 可选 Secrets：
+- `UPDATE_SERVER_HOST`：更新服务器 SSH 地址（默认 `38.14.195.6`）
+- `UPDATE_SERVER_PORT`：更新服务器 SSH 端口（默认 `22`）
+- `UPDATE_SERVER_USERNAME`：SSH 用户名（默认回退 `SERVER_USERNAME` / `SSH_USERNAME`）
+- `UPDATE_SERVER_PASSWORD`：SSH 密码（默认回退 `SERVER_PASSWORD` / `SSH_PASSWORD`）
+- `UPDATE_SERVER_PATH`：远端发布目录（默认 `/www/wwwroot/tuan-chat-web/updates`）
 
 # 文件架构
 
