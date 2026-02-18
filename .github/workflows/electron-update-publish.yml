@@ -34,7 +34,17 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Build NSIS package
-        run: pnpm electron:build:win:nsis
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          # 避免复用 release/win-unpacked 触发 app.asar 文件占用，使用本次运行专属输出目录。
+          $outputDir = "release_ci/windows-${{ github.run_id }}-${{ github.run_attempt }}"
+
+          pnpm -s electron:prepare:resources
+          pnpm -s build
+          pnpm exec electron-builder build --config electron-builder.json --win nsis --config.directories.output=$outputDir
+
+          "ELECTRON_OUTPUT_DIR=$outputDir" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
       - name: Collect update artifacts
         shell: pwsh
@@ -43,12 +53,20 @@ jobs:
 
           New-Item -ItemType Directory -Path dist-update -Force | Out-Null
 
-          $latest = Join-Path (Get-Location) "release/latest.yml"
-          if (-not (Test-Path $latest)) {
-            throw "未找到 release/latest.yml"
+          if ([string]::IsNullOrWhiteSpace($env:ELECTRON_OUTPUT_DIR)) {
+            throw "ELECTRON_OUTPUT_DIR 未设置"
+          }
+          $releaseDir = Join-Path (Get-Location) $env:ELECTRON_OUTPUT_DIR
+          if (-not (Test-Path $releaseDir)) {
+            throw "未找到输出目录：$releaseDir"
           }
 
-          $setupExe = Get-ChildItem -Path release -Filter "*Setup*.exe" |
+          $latest = Join-Path $releaseDir "latest.yml"
+          if (-not (Test-Path $latest)) {
+            throw "未找到 latest.yml：$latest"
+          }
+
+          $setupExe = Get-ChildItem -Path $releaseDir -Filter "*Setup*.exe" |
             Sort-Object LastWriteTime -Descending |
             Select-Object -First 1
           if ($null -eq $setupExe) {
