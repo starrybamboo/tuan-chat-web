@@ -1,4 +1,5 @@
 import type { Transform } from "../sprite/TransformControl";
+import type { PreviewAnchorPosition } from "../Preview/previewAnchor";
 // 导入必要的类型和组件
 import type { CropMode } from "@/utils/imgCropper/useCropPreview";
 
@@ -107,6 +108,7 @@ export function CharacterCopper({
 
   // Transform控制状态
   const [transform, setTransform] = useState<Transform>(createDefaultTransform);
+  const [previewAnchorPosition, setPreviewAnchorPosition] = useState<PreviewAnchorPosition>("center");
 
   // 获取当前裁剪模式（第一步为sprite全图裁剪，第二步为avatar头像裁剪）
   const getCropMode = useCallback((): CropMode => {
@@ -160,6 +162,7 @@ export function CharacterCopper({
     setPreviewRenderKey(0);
     // 重置Transform״̬
     setTransform(createDefaultTransform());
+    setPreviewAnchorPosition("center");
     // 重置裁剪状态
     resetCropState();
     // 清除图片引用
@@ -571,12 +574,15 @@ export function CharacterCopper({
                             <RenderPreview
                               previewCanvasRef={previewCanvasRef}
                               transform={transform}
+                              anchorPosition={previewAnchorPosition}
                               characterName="角色名"
                               dialogContent="对话内容"
                             />
                             <TransformControl
                               transform={transform}
                               setTransform={setTransform}
+                              anchorPosition={previewAnchorPosition}
+                              setAnchorPosition={setPreviewAnchorPosition}
                             />
                           </div>
                         </>
