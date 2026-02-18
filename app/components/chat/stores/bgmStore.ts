@@ -1,6 +1,7 @@
 import { create } from "zustand";
 
 import { pauseBgm, playBgm, stopBgm } from "@/components/chat/infra/bgm/bgmPlayer";
+import { mediaDebug } from "@/components/chat/infra/media/mediaDebug";
 
 type BgmTrack = {
   url: string;
@@ -110,6 +111,11 @@ export const useBgmStore = create<BgmState>((set, get) => ({
 
   setActiveRoomId: (roomId) => {
     const prevActive = get().activeRoomId;
+    mediaDebug("bgm-store", "set-active-room", {
+      prevActive,
+      nextActive: roomId,
+      playingRoomId: get().playingRoomId,
+    });
     // 切换房间视为“打断”：停止当前播放，但不做 dismiss
     if (prevActive != null && prevActive !== roomId) {
       get().onRoomInterrupted(prevActive);
@@ -117,6 +123,10 @@ export const useBgmStore = create<BgmState>((set, get) => ({
     // 进入新房间也视为打断：如果当前正在播放其它房间的 BGM，停止
     const playingRoomId = get().playingRoomId;
     if (playingRoomId != null && playingRoomId !== roomId) {
+      mediaDebug("bgm-store", "set-active-room-pause-playing-other-room", {
+        fromPlayingRoomId: playingRoomId,
+        toRoomId: roomId,
+      });
       pauseBgm();
       set(state => ({
         ...state,
@@ -133,6 +143,10 @@ export const useBgmStore = create<BgmState>((set, get) => ({
 
   onRoomInterrupted: (roomId) => {
     const { playingRoomId } = get();
+    mediaDebug("bgm-store", "on-room-interrupted", {
+      roomId,
+      playingRoomId,
+    });
     if (playingRoomId !== roomId)
       return;
 
@@ -149,6 +163,12 @@ export const useBgmStore = create<BgmState>((set, get) => ({
   },
 
   onBgmStartFromWs: async (roomId, track) => {
+    mediaDebug("bgm-store", "on-bgm-start-from-ws", {
+      roomId,
+      trackUrl: track.url,
+      messageId: track.messageId,
+      activeRoomId: get().activeRoomId,
+    });
     set(state => ({
       ...state,
       trackByRoomId: {
@@ -191,8 +211,16 @@ export const useBgmStore = create<BgmState>((set, get) => ({
         playingRoomId: roomId,
         isPlaying: true,
       }));
+      mediaDebug("bgm-store", "on-bgm-start-play-success", {
+        roomId,
+        trackUrl: track.url,
+      });
     }
     catch {
+      mediaDebug("bgm-store", "on-bgm-start-play-failed", {
+        roomId,
+        trackUrl: track.url,
+      });
       set(state => ({
         ...state,
         playingRoomId: null,
@@ -203,6 +231,11 @@ export const useBgmStore = create<BgmState>((set, get) => ({
 
   onBgmStopFromWs: (roomId) => {
     const isPlayingThisRoom = get().playingRoomId === roomId;
+    mediaDebug("bgm-store", "on-bgm-stop-from-ws", {
+      roomId,
+      isPlayingThisRoom,
+      playingRoomId: get().playingRoomId,
+    });
     if (isPlayingThisRoom) {
       stopBgm();
     }
@@ -248,6 +281,11 @@ export const useBgmStore = create<BgmState>((set, get) => ({
       },
     }));
 
+    mediaDebug("bgm-store", "user-start", {
+      roomId,
+      hasTrack: Boolean(track),
+      kpStopped: Boolean(state.kpStoppedByRoomId[roomId]),
+    });
     const userVolume = state.volumeByRoomId[roomId];
     try {
       await playBgm(track.url, {
@@ -259,8 +297,16 @@ export const useBgmStore = create<BgmState>((set, get) => ({
         playingRoomId: roomId,
         isPlaying: true,
       }));
+      mediaDebug("bgm-store", "user-start-play-success", {
+        roomId,
+        trackUrl: track.url,
+      });
     }
     catch {
+      mediaDebug("bgm-store", "user-start-play-failed", {
+        roomId,
+        trackUrl: track.url,
+      });
       // ignore
     }
   },
@@ -268,6 +314,10 @@ export const useBgmStore = create<BgmState>((set, get) => ({
   userStopAndDismiss: (roomId) => {
     const state = get();
     const isPlayingThisRoom = state.playingRoomId === roomId;
+    mediaDebug("bgm-store", "user-stop-and-dismiss", {
+      roomId,
+      isPlayingThisRoom,
+    });
     if (isPlayingThisRoom) {
       stopBgm();
     }
@@ -300,9 +350,15 @@ export const useBgmStore = create<BgmState>((set, get) => ({
 
     const isPlayingThisRoom = state.isPlaying && state.playingRoomId === roomId;
 
+    mediaDebug("bgm-store", "user-toggle", {
+      roomId,
+      isPlayingThisRoom,
+      hasTrack: Boolean(track),
+    });
     if (isPlayingThisRoom) {
       const isPlayingThis = state.playingRoomId === roomId;
       if (isPlayingThis) {
+        mediaDebug("bgm-store", "user-toggle-pause", { roomId });
         pauseBgm();
       }
       set(s => ({
@@ -334,6 +390,11 @@ export const useBgmStore = create<BgmState>((set, get) => ({
 
     const state = get();
     const isPlayingThisRoom = state.playingRoomId === roomId && state.isPlaying;
+    mediaDebug("bgm-store", "set-volume", {
+      roomId,
+      volume: clamped,
+      isPlayingThisRoom,
+    });
     if (isPlayingThisRoom) {
       const track = state.trackByRoomId[roomId];
       if (track) {

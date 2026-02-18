@@ -32,11 +32,15 @@ type UseRoomOverlaysControllerResult = {
   setIsImportChatTextOpen: (isOpen: boolean) => void;
   isRoleHandleOpen: boolean;
   setIsRoleAddWindowOpen: (isOpen: boolean) => void;
+  isNpcRoleHandleOpen: boolean;
+  setIsNpcRoleAddWindowOpen: (isOpen: boolean) => void;
   isRenderWindowOpen: boolean;
   setIsRenderWindowOpen: (isOpen: boolean) => void;
   handleAddRole: (roleId: number) => Promise<void> | void;
+  handleAddNpcRole: (roleId: number) => Promise<void> | void;
   handleImportChatItems: (items: ImportChatItem[], onProgress?: (sent: number, total: number) => void) => Promise<void>;
   openRoleAddWindow: () => void;
+  openNpcAddWindow: () => void;
 };
 
 export default function useRoomOverlaysController({
@@ -46,11 +50,18 @@ export default function useRoomOverlaysController({
   const [isRenderWindowOpen, setIsRenderWindowOpen] = useSearchParamsState<boolean>("renderPop", false);
   const [isImportChatTextOpen, setIsImportChatTextOpen] = useSearchParamsState<boolean>("importChatTextPop", false);
   const [isRoleHandleOpen, setIsRoleAddWindowOpen] = useSearchParamsState<boolean>("roleAddPop", false);
+  const [isNpcRoleHandleOpen, setIsNpcRoleAddWindowOpen] = useSearchParamsState<boolean>("npcRoleAddPop", false);
   const addRoleMutation = useAddRoomRoleMutation();
 
   const handleAddRole = useCallback(async (roleId: number) => {
     addRoleMutation.mutate({ roomId, roleIdList: [roleId] }, {
       onSettled: () => { toast("添加角色成功"); },
+    });
+  }, [addRoleMutation, roomId]);
+
+  const handleAddNpcRole = useCallback(async (roleId: number) => {
+    addRoleMutation.mutate({ roomId, roleIdList: [roleId] }, {
+      onSettled: () => { toast("添加NPC成功"); },
     });
   }, [addRoleMutation, roomId]);
 
@@ -70,15 +81,23 @@ export default function useRoomOverlaysController({
     setIsRoleAddWindowOpen(true);
   }, [setIsRoleAddWindowOpen]);
 
+  const openNpcAddWindow = useCallback(() => {
+    setIsNpcRoleAddWindowOpen(true);
+  }, [setIsNpcRoleAddWindowOpen]);
+
   return {
     isImportChatTextOpen,
     setIsImportChatTextOpen,
     isRoleHandleOpen,
     setIsRoleAddWindowOpen,
+    isNpcRoleHandleOpen,
+    setIsNpcRoleAddWindowOpen,
     isRenderWindowOpen,
     setIsRenderWindowOpen,
     handleAddRole,
+    handleAddNpcRole,
     handleImportChatItems,
     openRoleAddWindow,
+    openNpcAddWindow,
   };
 }

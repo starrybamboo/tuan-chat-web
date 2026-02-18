@@ -1,5 +1,7 @@
 // BGM 播放器封装，维护单例 Audio 与 WebAudio 增益控制。
 // 使用 metadata 预加载策略以支持边播边加载。
+import { mediaDebug } from "@/components/chat/infra/media/mediaDebug";
+
 type BgmPlayOptions = {
   loop?: boolean;
   /**
@@ -33,6 +35,7 @@ function ensureAudio(): HTMLAudioElement {
 
   // 允许跨域资源接入 WebAudio（否则 createMediaElementSource + 外链可能导致问题）
   audio.crossOrigin = "anonymous";
+  mediaDebug("bgm-player", "create-audio-element");
 
   return audio;
 }
@@ -127,6 +130,15 @@ export async function playBgm(src: string, options: BgmPlayOptions = {}): Promis
   }
 
   const isSameSrc = currentSrc === src;
+  mediaDebug("bgm-player", "play-called", {
+    src,
+    isSameSrc,
+    currentSrc,
+    requestedGain: nextGain,
+    loop: nextLoop,
+    paused: a.paused,
+    currentTime: a.currentTime,
+  });
 
   if (!isSameSrc) {
     currentSrc = src;
@@ -159,6 +171,11 @@ export async function playBgm(src: string, options: BgmPlayOptions = {}): Promis
 
   try {
     await a.play();
+    mediaDebug("bgm-player", "play-success", {
+      src,
+      currentTime: a.currentTime,
+      paused: a.paused,
+    });
   }
   catch (e) {
     // 某些情况下 WebAudio 连接导致 play 失败/无声，强制回退一次再试
@@ -167,6 +184,11 @@ export async function playBgm(src: string, options: BgmPlayOptions = {}): Promis
       destroyWebAudioGraph();
       try {
         await a.play();
+        mediaDebug("bgm-player", "play-success-after-fallback", {
+          src,
+          currentTime: a.currentTime,
+          paused: a.paused,
+        });
       }
       catch {
         throw e;
@@ -183,6 +205,11 @@ export function stopBgm(): void {
     return;
 
   try {
+    mediaDebug("bgm-player", "stop-called", {
+      src: currentSrc,
+      currentTime: audio.currentTime,
+      paused: audio.paused,
+    });
     audio.pause();
     audio.currentTime = 0;
     // stop：从头开始，清理续播进度
@@ -197,6 +224,11 @@ export function pauseBgm(): void {
     return;
 
   try {
+    mediaDebug("bgm-player", "pause-called", {
+      src: currentSrc,
+      currentTime: audio.currentTime,
+      paused: audio.paused,
+    });
     // pause：记录进度以便续播
     lastPausedTimeSec = Number.isFinite(audio.currentTime) ? audio.currentTime : null;
     audio.pause();
