@@ -103,6 +103,7 @@ Electron 增量更新发布：
 - 客户端更新地址（electron-builder `publish.url`）：`https://tuan.chat/updates/`
 - 默认发布目录：`/www/wwwroot/tuan-chat-web/updates`
 - 工作流优先读取 `UPDATE_*`，未配置时会回退到 CD 使用的 `SERVER_*` / `SSH_*` 凭据。
+- 若 `UPDATE_SERVER_PATH` 填的是站点根目录（如 `/www/wwwroot/tuan-chat-web`），工作流会自动追加 `/updates`。
 - 可选 Secrets：
 - `UPDATE_SERVER_HOST`：更新服务器 SSH 地址（默认 `38.14.195.6`）
 - `UPDATE_SERVER_PORT`：更新服务器 SSH 端口（默认 `22`）
