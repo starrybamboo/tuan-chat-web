@@ -50,8 +50,8 @@ Windows 下 `nsis` / `winCodeSign` 等工具会在首次构建时由 electron-bu
 ```plain&#x20;text
 VITE_API_BASE_URL=https://tuan.chat/api
 VITE_API_WS_URL=wss://tuan.chat/ws
-VITE_TERRE_URL=https://tuan.chat/terre
-VITE_TERRE_WS=wss://tuan.chat/terre/api/webgalsync
+VITE_TERRE_URL=http://localhost:3001
+VITE_TERRE_WS=ws://localhost:3001/api/webgalsync
 ```
 
 测试环境可使用 `.env.test`（已提供），默认域名为 `https://test.tuan.chat`，并且会开启 `VITE_ENABLE_REACT_SCAN=true`。
