@@ -635,7 +635,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
     toastWindow(
       onClose => (
         <RoomContext value={roomContext}>
-          <div className="flex flex-col">
+          <div className={fullScreen ? "flex h-full min-h-0 flex-col" : "flex flex-col"}>
             <ExpressionChooser
               roleId={message.roleId ?? -1}
               handleExpressionChange={(avatarId) => {
@@ -648,6 +648,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
               }}
               onRequestClose={onClose}
               defaultFullscreen={fullScreen}
+              fullscreenLayoutMode={fullScreen ? "fill" : "dialog"}
               onRequestFullscreen={(next) => {
                 onClose();
                 openExpressionChooser(next);

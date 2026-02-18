@@ -19,6 +19,7 @@ export function ExpressionChooser({
   showNarratorOption = true,
   onRequestClose,
   defaultFullscreen = false,
+  fullscreenLayoutMode = "dialog",
   onRequestFullscreen,
 }: {
   roleId: number;
@@ -28,6 +29,8 @@ export function ExpressionChooser({
   showNarratorOption?: boolean;
   onRequestClose?: () => void;
   defaultFullscreen?: boolean;
+  /** 全屏时的布局模式：`dialog` 保持原本固定高度；`fill` 填满父容器 */
+  fullscreenLayoutMode?: "dialog" | "fill";
   onRequestFullscreen?: (next: boolean) => void;
 }) {
   const roomContext = use(RoomContext);
@@ -87,7 +90,9 @@ export function ExpressionChooser({
     : "请选择你的角色后再发送消息";
 
   const containerSizeClassName = isAvatarFullscreen
-    ? "w-full max-w-full min-w-0 h-[80vh] max-h-[80vh]"
+    ? (fullscreenLayoutMode === "fill"
+        ? "w-full max-w-full min-w-0 h-full max-h-full min-h-0"
+        : "w-full max-w-full min-w-0 h-[80vh] max-h-[80vh]")
     : "max-w-[92vw] md:max-w-[560px] lg:max-w-[640px] max-h-[70vh] md:max-h-[50vh]";
   const containerLayoutClassName = isAvatarFullscreen ? "gap-3 md:gap-4" : "";
   const roleListClassName = isAvatarFullscreen
