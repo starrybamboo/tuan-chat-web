@@ -714,17 +714,11 @@ function resolveImageFigureLayout(imageMessage?: ImageFigureMessageShape | null)
 const DEFAULT_KEEP_OFFSET_PART = " -keepOffset";
 const DEFAULT_RESTORE_TRANSFORM_PART = " -restoreTransform";
 
-function buildFigureArgs(id: string, slot: FigureSlot, transform: string): string {
+function buildFigureArgs(id: string, transform: string): string {
   const parts: string[] = [];
   const trimmedId = id.trim();
   if (trimmedId) {
     parts.push(`-id=${trimmedId}`);
-  }
-  else if (slot.basePosition === "left") {
-    parts.push("-left");
-  }
-  else if (slot.basePosition === "right") {
-    parts.push("-right");
   }
   if (transform) {
     parts.push(transform);
@@ -733,19 +727,15 @@ function buildFigureArgs(id: string, slot: FigureSlot, transform: string): strin
 }
 
 type ClearFigureOptions = {
-  includeLegacy?: boolean;
   includeImage?: boolean;
 };
 
 function buildClearFigureLines(options: ClearFigureOptions = {}): string[] {
-  const { includeLegacy = false, includeImage = false } = options;
+  const { includeImage = false } = options;
   const lines = FIGURE_POSITION_ORDER.map((position) => {
     const slot = resolveFigureSlot(position);
     return `changeFigure:none -id=${slot.id} -next;`;
   });
-  if (includeLegacy) {
-    lines.push("changeFigure:none -left -next;", "changeFigure:none -center -next;", "changeFigure:none -right -next;");
-  }
   if (includeImage) {
     lines.push(`changeFigure:none -id=${IMAGE_MESSAGE_FIGURE_ID} -next;`);
   }
@@ -758,10 +748,6 @@ function buildDisableFigureEnterTransitionLines(): string[] {
     targets.add(resolveFigureSlot(position).id);
   });
   targets.add(IMAGE_MESSAGE_FIGURE_ID);
-  // 兼容 legacy -left/-center/-right 槽位。
-  targets.add("fig-left");
-  targets.add("fig-center");
-  targets.add("fig-right");
   return Array.from(targets).map(target => `setTransition: -target=${target} -enter=none -keepOffset -next;`);
 }
 
@@ -769,7 +755,7 @@ function buildSceneInitLines(): string[] {
   return [
     "changeBg:none -next;",
     ...buildDisableFigureEnterTransitionLines(),
-    ...buildClearFigureLines({ includeLegacy: true, includeImage: true }),
+    ...buildClearFigureLines({ includeImage: true }),
   ];
 }
 
@@ -2558,7 +2544,7 @@ export class RealtimeRenderer {
           const figureFileName = await this.uploadImageFigure(imageMessage.url, imageMessage.fileName);
           if (figureFileName) {
             const transform = this.buildImageFigureTransformString(imageMessage, imageSlot.offsetX);
-            const figureArgs = buildFigureArgs(IMAGE_MESSAGE_FIGURE_ID, imageSlot, transform);
+            const figureArgs = buildFigureArgs(IMAGE_MESSAGE_FIGURE_ID, transform);
             await this.appendLine(
               targetRoomId,
               `changeFigure:${figureFileName} ${figureArgs};`,
@@ -2674,7 +2660,7 @@ export class RealtimeRenderer {
         }
         else if (effectMessage.effectName === "clearFigure") {
           // 清除立绘：清除所有位置的立绘
-          for (const line of buildClearFigureLines({ includeLegacy: true, includeImage: true })) {
+          for (const line of buildClearFigureLines({ includeImage: true })) {
             await this.appendLine(targetRoomId, line, syncToFile);
           }
           finalizeMessageLineRange();
@@ -2799,7 +2785,7 @@ export class RealtimeRenderer {
 
     // 清除立绘需要在当前消息脚本的最前面，确保在本条对话之前生效
     if (shouldClearFigure) {
-      for (const line of buildClearFigureLines({ includeLegacy: true, includeImage: true })) {
+      for (const line of buildClearFigureLines({ includeImage: true })) {
         await this.appendLine(targetRoomId, line, syncToFile);
       }
       this.lastFigureSlotIdMap.delete(targetRoomId);
@@ -2865,14 +2851,6 @@ export class RealtimeRenderer {
 
     if (shouldShowFigure && spriteFileName && figurePosition) {
       // 不再自动清除立绘，立绘需要手动清除
-      // // 如果不是回复消息，则清除之前的立绘（单人发言模式）
-      // // 如果是回复消息，则保留之前的立绘（多人对话模式）
-      // if (!msg.replyMessageId) {
-      //   // WebGAL 中不同位置的立绘是独立的，需要分别清除
-      //   await this.appendLine(targetRoomId, "changeFigure:none -left -next;", syncToFile);
-      //   await this.appendLine(targetRoomId, "changeFigure:none -center -next;", syncToFile);
-      //   await this.appendLine(targetRoomId, "changeFigure:none -right -next;", syncToFile);
-      // }
       const figureSlot = resolveFigureSlot(figurePosition);
       this.lastFigureSlotIdMap.set(targetRoomId, figureSlot.id);
       const transform = this.buildFigureTransformString(avatar, figureSlot.offsetX, 0);
@@ -2883,7 +2861,7 @@ export class RealtimeRenderer {
           || previous.fileName !== spriteFileName
           || previous.transform !== transform;
       if (shouldUpdateFigure) {
-        const figureArgs = buildFigureArgs(figureSlot.id, figureSlot, transform);
+        const figureArgs = buildFigureArgs(figureSlot.id, transform);
         await this.appendLine(targetRoomId, `changeFigure:${spriteFileName} ${figureArgs} -next;`, syncToFile);
         renderedState.set(figureSlot.id, { fileName: spriteFileName, transform });
       }
@@ -2938,17 +2916,9 @@ export class RealtimeRenderer {
     }
     else if (isIntroText) {
       // 黑屏文字不再自动清除立绘，立绘需要手动清除
-      // // 黑屏文字需要清除立绘
-      // await this.appendLine(targetRoomId, "changeFigure:none -left -next;", syncToFile);
-      // await this.appendLine(targetRoomId, "changeFigure:none -center -next;", syncToFile);
-      // await this.appendLine(targetRoomId, "changeFigure:none -right -next;", syncToFile);
     }
     else if (!isNarrator && !isIntroText) {
       // 普通对话但不显示立绘时，不再自动清除立绘，立绘需要手动清除
-      // // 普通对话但不显示立绘（figurePosition 为 undefined 或 spriteFileName 为空），清除之前的立绘
-      // await this.appendLine(targetRoomId, "changeFigure:none -left -next;", syncToFile);
-      // await this.appendLine(targetRoomId, "changeFigure:none -center -next;", syncToFile);
-      // await this.appendLine(targetRoomId, "changeFigure:none -right -next;", syncToFile);
     }
 
     // 处理小头像（骰子消息可通过 showMiniAvatar 覆盖）
@@ -3193,7 +3163,7 @@ export class RealtimeRenderer {
       await this.initRoomScene(targetRoomId);
     }
 
-    for (const line of buildClearFigureLines({ includeLegacy: true, includeImage: true })) {
+    for (const line of buildClearFigureLines({ includeImage: true })) {
       await this.appendLine(targetRoomId, line, true);
     }
     this.renderedFigureStateMap.delete(targetRoomId);
