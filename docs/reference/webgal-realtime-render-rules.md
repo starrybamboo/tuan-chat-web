@@ -58,7 +58,7 @@
 2. `IMG(2)`
 - 背景图：`changeBg:{file} -next;`
 - 解锁 CG：`unlockCg:{file} -name={cgName};`
-- 普通展示图（`image.show`）：以固定 `image_message` 槽位在上半屏居中展示，并按横图/方图/竖图的固定档位缩放，再写入 `changeFigure` + `setAnimation`（两者都不追加 `-next`）
+- 普通展示图（`image.show`）：仅当消息显式带有 `image.show` 标注时才渲染；以固定 `image_message` 槽位在上半屏居中展示，并按横图/方图/竖图的固定档位缩放，再写入 `changeFigure` + `setAnimation`（两者都不追加 `-next`）
 
 3. `VIDEO(14)`
 - `playVideo:{file};`

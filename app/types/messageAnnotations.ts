@@ -212,10 +212,7 @@ export function isImageMessageBackground(
 }
 
 export function isImageMessageShown(annotations: string[] | undefined) {
-  const list = normalizeAnnotations(annotations);
-  if (list.length === 0)
-    return true;
-  return list.includes(ANNOTATION_IDS.IMAGE_SHOW);
+  return normalizeAnnotations(annotations).includes(ANNOTATION_IDS.IMAGE_SHOW);
 }
 
 export function hasClearImageAnnotation(annotations: string[] | undefined) {
