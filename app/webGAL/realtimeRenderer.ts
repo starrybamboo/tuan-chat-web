@@ -2552,13 +2552,13 @@ export class RealtimeRenderer {
             const figureArgs = buildFigureArgs(IMAGE_MESSAGE_FIGURE_ID, imageSlot, transform);
             await this.appendLine(
               targetRoomId,
-              `changeFigure:${figureFileName} ${figureArgs} -next;`,
+              `changeFigure:${figureFileName} ${figureArgs};`,
               syncToFile,
             );
             const imageEnterAnimation = resolveImageFigureEnterAnimation(imageSlot);
             await this.appendLine(
               targetRoomId,
-              `setAnimation:${imageEnterAnimation} -target=${IMAGE_MESSAGE_FIGURE_ID}${DEFAULT_KEEP_OFFSET_PART}${DEFAULT_RESTORE_TRANSFORM_PART} -next;`,
+              `setAnimation:${imageEnterAnimation} -target=${IMAGE_MESSAGE_FIGURE_ID}${DEFAULT_KEEP_OFFSET_PART}${DEFAULT_RESTORE_TRANSFORM_PART};`,
               syncToFile,
             );
             if (syncToFile)
