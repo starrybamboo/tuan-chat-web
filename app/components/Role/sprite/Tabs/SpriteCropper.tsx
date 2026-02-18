@@ -1,6 +1,7 @@
 import type { RoleAvatar } from "api";
 import type { PixelCrop } from "react-image-crop";
 import type { Transform } from "../TransformControl";
+import type { PreviewAnchorPosition } from "../../Preview/previewAnchor";
 import type { ImageLoadContext } from "@/utils/imgCropper";
 import { useApplyCropAvatarMutation, useApplyCropMutation, useUpdateAvatarTransformMutation } from "api/hooks/RoleAndAvatarHooks";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
@@ -205,6 +206,7 @@ export function SpriteCropper({
     alpha: 1,
     rotation: 0,
   }));
+  const [previewAnchorPosition, setPreviewAnchorPosition] = useState<PreviewAnchorPosition>("center");
 
   // 添加渲染key用于强制重新渲染
   const [renderKey, setRenderKey] = useState(0);
@@ -1015,6 +1017,7 @@ export function SpriteCropper({
                               <RenderPreview
                                 previewCanvasRef={previewCanvasRef}
                                 transform={transform}
+                                anchorPosition={previewAnchorPosition}
                                 characterName={characterName}
                                 dialogContent="这是一段示例对话内容。"
                               />
@@ -1023,6 +1026,8 @@ export function SpriteCropper({
                             <TransformControl
                               transform={transform}
                               setTransform={setDisplayTransform}
+                              anchorPosition={previewAnchorPosition}
+                              setAnchorPosition={setPreviewAnchorPosition}
                             />
                           </div>
                         </>
