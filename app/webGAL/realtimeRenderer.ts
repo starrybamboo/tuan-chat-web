@@ -2544,7 +2544,7 @@ export class RealtimeRenderer {
             const figureArgs = buildFigureArgs(IMAGE_MESSAGE_FIGURE_ID, imageSlot, transform);
             await this.appendLine(
               targetRoomId,
-              `changeFigure:${figureFileName} ${figureArgs} -enter=none;`,
+              `changeFigure:${figureFileName} ${figureArgs};`,
               syncToFile,
             );
             if (syncToFile)
@@ -2867,7 +2867,7 @@ export class RealtimeRenderer {
           || previous.transform !== transform;
       if (shouldUpdateFigure) {
         const figureArgs = buildFigureArgs(figureSlot.id, figureSlot, transform);
-        await this.appendLine(targetRoomId, `changeFigure:${spriteFileName} ${figureArgs} -enter=none -next;`, syncToFile);
+        await this.appendLine(targetRoomId, `changeFigure:${spriteFileName} ${figureArgs} -next;`, syncToFile);
         renderedState.set(figureSlot.id, { fileName: spriteFileName, transform });
       }
 

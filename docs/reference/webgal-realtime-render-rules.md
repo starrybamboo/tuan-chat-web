@@ -54,12 +54,11 @@
 - 支持 `-notend/-concat/-next`
 - 可能附带 TTS 语音文件参数（见第 5 节）
 - 角色立绘与小头像文件会按角色 ID 分目录存储在 `game/figure/role_{roleId}/`，脚本引用形如 `role_123/sprite_456.webp`
-- 角色立绘的 `changeFigure` 会默认追加 `-enter=none`，主动关闭 WebGAL 默认进场动画；如需进场动作，走显式 `setAnimation`
 
 2. `IMG(2)`
 - 背景图：`changeBg:{file} -next;`
 - 解锁 CG：`unlockCg:{file} -name={cgName};`
-- 普通展示图（`image.show`）：仅当消息显式带有 `image.show` 标注时才渲染；以固定 `image_message` 槽位在上半屏居中展示，并按横图/方图/竖图的固定档位缩放，只写入 `changeFigure`（默认追加 `-enter=none` 关闭进场动画，不追加 `setAnimation`，且不追加 `-next`）
+- 普通展示图（`image.show`）：仅当消息显式带有 `image.show` 标注时才渲染；以固定 `image_message` 槽位在上半屏居中展示，并按横图/方图/竖图的固定档位缩放，只写入 `changeFigure`（不再追加 `setAnimation`，且不追加 `-next`）
 
 3. `VIDEO(14)`
 - `playVideo:{file};`
