@@ -1,6 +1,7 @@
 import toast from "react-hot-toast";
 
 import { useChatComposerStore } from "@/components/chat/stores/chatComposerStore";
+import { preheatChatMediaPreprocess } from "@/components/chat/utils/attachmentPreprocess";
 import { ANNOTATION_IDS, normalizeAnnotations } from "@/types/messageAnnotations";
 
 export function isFileDrag(dataTransfer: DataTransfer | null | undefined) {
@@ -181,6 +182,12 @@ export function addDroppedFilesToComposer(dataTransfer: DataTransfer | null | un
   if (audios.length > 1) {
     toast.error("仅支持拖拽 1 个音频，已取第一个");
   }
+
+  preheatChatMediaPreprocess({
+    imageFiles: images,
+    videoFiles: videos,
+    audioFiles: audios.length > 0 ? [audios[0]] : [],
+  });
 
   const summaryParts: string[] = [];
   if (images.length > 0) {

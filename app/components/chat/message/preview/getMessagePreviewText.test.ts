@@ -1,6 +1,7 @@
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
 
 import type { Message } from "../../../../../api";
+
 import { getMessagePreviewText } from "./getMessagePreviewText";
 
 function createBaseMessage(overrides: Partial<Message>): Message {
@@ -86,7 +87,7 @@ describe("getMessagePreviewText", () => {
     expect(getMessagePreviewText(msg)).toBe("[视频] clip.webm");
   });
 
-  it("WebGAL 指令消息自动补全 % 前缀", () => {
+  it("webGAL 指令消息自动补全 % 前缀", () => {
     const msg = createBaseMessage({
       messageType: MESSAGE_TYPE.WEBGAL_COMMAND,
       content: "bgm:1",

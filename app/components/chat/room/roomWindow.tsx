@@ -1,10 +1,14 @@
-import { zip, strToU8 } from "fflate";
 import type { VirtuosoHandle } from "react-virtuoso";
 import type { ChatMessageRequest, ChatMessageResponse, Message } from "../../../../api";
-
 import type { RoomContextType } from "@/components/chat/core/roomContext";
+
 import type { ChatFrameMessageScope } from "@/components/chat/hooks/useChatFrameMessages";
+import { useQueryClient } from "@tanstack/react-query";
+import { tuanchat } from "api/instance";
+import { strToU8, zip } from "fflate";
 import React, { use, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { toast } from "react-hot-toast";
+import { useStore } from "zustand";
 // hooks (local)
 import RealtimeRenderOrchestrator from "@/components/chat/core/realtimeRenderOrchestrator";
 import { RoomContext } from "@/components/chat/core/roomContext";
@@ -33,13 +37,9 @@ import { useChatInputUiStore } from "@/components/chat/stores/chatInputUiStore";
 import { useEntityHeaderOverrideStore } from "@/components/chat/stores/entityHeaderOverrideStore";
 import { createRoomUiStore, RoomUiStoreProvider } from "@/components/chat/stores/roomUiStore";
 import useCommandExecutor from "@/components/common/dicer/cmdPre";
-import { PremiereExporter } from "@/webGAL";
-import { useQueryClient } from "@tanstack/react-query";
-import { tuanchat } from "api/instance";
-import { toast } from "react-hot-toast";
-import { useStore } from "zustand";
-
 import { useGlobalContext } from "@/components/globalContextProvider";
+
+import { PremiereExporter } from "@/webGAL";
 import {
   useDeleteMessageMutation,
   useGetRoomInfoQuery,
@@ -356,7 +356,7 @@ function RoomWindow({
       if (action.type === "send") {
         const messageId = action.after.messageId;
         const response = await deleteMessageMutation.mutateAsync(messageId);
-        const localTarget = chatHistory?.messages.find(m => m.message.messageId === messageId)?.message;
+        const localTarget = historyMessages?.find(m => m.message.messageId === messageId)?.message;
         const fallbackDeleted = {
           ...(localTarget ?? action.after),
           status: 1,
@@ -390,7 +390,7 @@ function RoomWindow({
       setIsApplyingMessageHistory(false);
       undoInProgressRef.current = false;
     }
-  }, [deleteMessageMutation, roomUiStore, syncMessageAfterHistoryApply, updateMessageMutation]);
+  }, [deleteMessageMutation, historyMessages, roomUiStore, syncMessageAfterHistoryApply, updateMessageMutation]);
 
   const handleRedoLastMessageAction = useCallback(async () => {
     if (undoInProgressRef.current || redoInProgressRef.current) {
@@ -422,7 +422,7 @@ function RoomWindow({
       if (action.type === "delete") {
         const messageId = action.before.messageId;
         const response = await deleteMessageMutation.mutateAsync(messageId);
-        const localTarget = chatHistory?.messages.find(m => m.message.messageId === messageId)?.message;
+        const localTarget = historyMessages?.find(m => m.message.messageId === messageId)?.message;
         const fallbackDeleted = {
           ...(localTarget ?? action.before),
           status: 1,
@@ -448,7 +448,7 @@ function RoomWindow({
       setIsApplyingMessageHistory(false);
       redoInProgressRef.current = false;
     }
-  }, [chatHistory, deleteMessageMutation, roomUiStore, syncMessageAfterHistoryApply, updateMessageMutation]);
+  }, [deleteMessageMutation, historyMessages, roomUiStore, syncMessageAfterHistoryApply, updateMessageMutation]);
 
   useEffect(() => {
     const handleGlobalUndoKeyDown = (event: KeyboardEvent) => {
@@ -508,13 +508,16 @@ function RoomWindow({
     // Updated UI Flow: Defaults to ZIP Export
     // const exportModeZip = window.confirm("选择导出模式：\n\n[确定] = 导出 ZIP 整合包（推荐，含 XML + 图片素材 + 可选语音）。\n[取消] = 仅导出 XML 工程文件（需手动运行脚本下载素材）。");
     const exportModeZip = true;
-    
+
     let ttsApiUrl: string | undefined;
-    
+
+    // eslint-disable-next-line no-alert
     const useVoice = window.confirm("是否生成 AI 语音？\n\n[确定] = 生成语音（需配置 API）。\n[取消] = 不生成语音（仅含图片和字幕）。");
     if (useVoice) {
-        const key = window.prompt("请输入 TTS API 地址", "http://127.0.0.1:9000");
-        if (key) ttsApiUrl = key;
+      // eslint-disable-next-line no-alert
+      const key = window.prompt("请输入 TTS API 地址", "http://127.0.0.1:9000");
+      if (key)
+        ttsApiUrl = key;
     }
 
     const loadToastId = toast.loading("正在处理导出...");
@@ -524,33 +527,35 @@ function RoomWindow({
         sequenceName: `Chat_${roomId}`,
         ttsApiUrl,
       });
-      
+
       // 头像获取回调
       const avatarCache = new Map<number, any>();
       const fetchAvatar = async (avatarId: number) => {
-          if (avatarCache.has(avatarId)) return avatarCache.get(avatarId);
+        if (avatarCache.has(avatarId))
+          return avatarCache.get(avatarId);
 
-          // 1. 尝试从缓存获取
-          const queryKey = ["getRoleAvatar", avatarId];
-          const cached = queryClient.getQueryData<{ data: any }>(queryKey);
-          if (cached?.data) {
-              avatarCache.set(avatarId, cached.data);
-              return cached.data;
-          }
+        // 1. 尝试从缓存获取
+        const queryKey = ["getRoleAvatar", avatarId];
+        const cached = queryClient.getQueryData<{ data: any }>(queryKey);
+        if (cached?.data) {
+          avatarCache.set(avatarId, cached.data);
+          return cached.data;
+        }
 
-          // 2. 调用 API
-          try {
-              const res = await tuanchat.avatarController.getRoleAvatar(avatarId);
-              if (res.data) {
-                  avatarCache.set(avatarId, res.data);
-                  // Optionally update query cache
-                  queryClient.setQueryData(queryKey, res);
-                  return res.data;
-              }
-          } catch (e) {
-              console.warn(`Fetch avatar ${avatarId} failed`, e);
+        // 2. 调用 API
+        try {
+          const res = await tuanchat.avatarController.getRoleAvatar(avatarId);
+          if (res.data) {
+            avatarCache.set(avatarId, res.data);
+            // Optionally update query cache
+            queryClient.setQueryData(queryKey, res);
+            return res.data;
           }
-          return null;
+        }
+        catch (e) {
+          console.warn(`Fetch avatar ${avatarId} failed`, e);
+        }
+        return null;
       };
 
       // 角色名获取回调
@@ -559,107 +564,119 @@ function RoomWindow({
       const roleVocalCache = new Map<number, File | undefined>();
 
       const fetchRoleName = async (roleId?: number) => {
-          if (!roleId) return null;
-          if (roleNameCache.has(roleId)) return roleNameCache.get(roleId);
-
-          // 尝试从缓存获取
-          const queryKey = ["getRole", roleId];
-          const cached = queryClient.getQueryData<{ data: any }>(queryKey);
-          if (cached?.data?.roleName) {
-             roleNameCache.set(roleId, cached.data.roleName);
-             return cached.data.roleName;
-          }
-
-          // 调用 API
-          try {
-              const res = await tuanchat.roleController.getRole(roleId);
-              if (res.data?.roleName) {
-                  roleNameCache.set(roleId, res.data.roleName);
-                  queryClient.setQueryData(queryKey, res);
-                  return res.data.roleName;
-              }
-          } catch (e) {
-              console.warn(`Fetch role name ${roleId} failed`, e);
-          }
+        if (!roleId)
           return null;
+        if (roleNameCache.has(roleId))
+          return roleNameCache.get(roleId);
+
+        // 尝试从缓存获取
+        const queryKey = ["getRole", roleId];
+        const cached = queryClient.getQueryData<{ data: any }>(queryKey);
+        if (cached?.data?.roleName) {
+          roleNameCache.set(roleId, cached.data.roleName);
+          return cached.data.roleName;
+        }
+
+        // 调用 API
+        try {
+          const res = await tuanchat.roleController.getRole(roleId);
+          if (res.data?.roleName) {
+            roleNameCache.set(roleId, res.data.roleName);
+            queryClient.setQueryData(queryKey, res);
+            return res.data.roleName;
+          }
+        }
+        catch (e) {
+          console.warn(`Fetch role name ${roleId} failed`, e);
+        }
+        return null;
       };
 
       const fetchRoleRefVocal = async (roleId: number) => {
-          if (roleVocalCache.has(roleId)) return roleVocalCache.get(roleId);
-          
-          try {
-              // Get Role Info first
-              let roleData: any = null;
-              const queryKey = ["getRole", roleId];
-              const cached = queryClient.getQueryData<{ data: any }>(queryKey);
-              
-              if (cached?.data) roleData = cached.data;
-              else {
-                  const res = await tuanchat.roleController.getRole(roleId);
-                  if (res.data) {
-                      roleData = res.data;
-                      queryClient.setQueryData(queryKey, res);
-                  }
-              }
+        if (roleVocalCache.has(roleId))
+          return roleVocalCache.get(roleId);
 
-              if (roleData?.voiceUrl) {
-                  // Fetch the file
-                  const fileRes = await fetch(roleData.voiceUrl);
-                  const blob = await fileRes.blob();
-                  const file = new File([blob], "ref.wav", { type: blob.type });
-                  roleVocalCache.set(roleId, file);
-                  return file;
-              }
-          } catch (e) {
-              console.warn(`Fetch role vocal ${roleId} failed`, e);
+        try {
+          // Get Role Info first
+          let roleData: any = null;
+          const queryKey = ["getRole", roleId];
+          const cached = queryClient.getQueryData<{ data: any }>(queryKey);
+
+          if (cached?.data) {
+            roleData = cached.data;
           }
-          roleVocalCache.set(roleId, undefined);
-          return undefined;
+          else {
+            const res = await tuanchat.roleController.getRole(roleId);
+            if (res.data) {
+              roleData = res.data;
+              queryClient.setQueryData(queryKey, res);
+            }
+          }
+
+          if (roleData?.voiceUrl) {
+            // Fetch the file
+            const fileRes = await fetch(roleData.voiceUrl);
+            const blob = await fileRes.blob();
+            const file = new File([blob], "ref.wav", { type: blob.type });
+            roleVocalCache.set(roleId, file);
+            return file;
+          }
+        }
+        catch (e) {
+          console.warn(`Fetch role vocal ${roleId} failed`, e);
+        }
+        roleVocalCache.set(roleId, undefined);
+        return undefined;
       };
 
       // 用户名获取回调 (Fallback)
       const userNameCache = new Map<number, string>();
       const fetchUserName = async (userId?: number) => {
-          if (!userId) return null;
-          if (userNameCache.has(userId)) return userNameCache.get(userId);
-
-          const queryKey = ["getUser", userId];
-          const cached = queryClient.getQueryData<{ data: any }>(queryKey);
-          if (cached?.data?.username) { // UserInfoResponse usually has 'username' or 'name' or 'nickname'
-              const name = cached.data.username;
-              userNameCache.set(userId, name);
-              return name;
-          }
-
-          try {
-              const res = await tuanchat.userController.getUserInfo(userId);
-              // Check return type UserInfoResponse
-              if (res.data) {
-                  const name = res.data.username || "Unknown";
-                  userNameCache.set(userId, name);
-                  queryClient.setQueryData(queryKey, res);
-                  return name;
-              }
-          } catch(e) {
-              console.warn(`Fetch user ${userId} failed`, e);
-          }
+        if (!userId)
           return null;
+        if (userNameCache.has(userId))
+          return userNameCache.get(userId);
+
+        const queryKey = ["getUser", userId];
+        const cached = queryClient.getQueryData<{ data: any }>(queryKey);
+        if (cached?.data?.username) { // UserInfoResponse usually has 'username' or 'name' or 'nickname'
+          const name = cached.data.username;
+          userNameCache.set(userId, name);
+          return name;
+        }
+
+        try {
+          const res = await tuanchat.userController.getUserInfo(userId);
+          // Check return type UserInfoResponse
+          if (res.data) {
+            const name = res.data.username || "Unknown";
+            userNameCache.set(userId, name);
+            queryClient.setQueryData(queryKey, res);
+            return name;
+          }
+        }
+        catch (e) {
+          console.warn(`Fetch user ${userId} failed`, e);
+        }
+        return null;
       };
 
       // 新增 Role Info Fetcher (for ID comparison)
       const fetchRole = async (roleId: number) => {
-          const queryKey = ["getRole", roleId];
-          const cached = queryClient.getQueryData<{ data: any }>(queryKey);
-          if (cached?.data) return cached.data;
-          try {
-             // Reuse existing RoleController API
-             const res = await tuanchat.roleController.getRole(roleId);
-             if (res.data) {
-                 queryClient.setQueryData(queryKey, res);
-                 return res.data;
-             }
-          } catch {}
-          return undefined;
+        const queryKey = ["getRole", roleId];
+        const cached = queryClient.getQueryData<{ data: any }>(queryKey);
+        if (cached?.data)
+          return cached.data;
+        try {
+          // Reuse existing RoleController API
+          const res = await tuanchat.roleController.getRole(roleId);
+          if (res.data) {
+            queryClient.setQueryData(queryKey, res);
+            return res.data;
+          }
+        }
+        catch {}
+        return undefined;
       };
 
       await exporter.processMessages(
@@ -673,92 +690,95 @@ function RoomWindow({
       );
 
       if (exportModeZip) {
-          // --- ZIP Export Mode ---
-          const xmlContent = exporter.generateXML();
-          const srtContent = exporter.generateSRT();
-          const nameSrtContent = exporter.generateNameSRT();
+        // --- ZIP Export Mode ---
+        const xmlContent = exporter.generateXML();
+        const srtContent = exporter.generateSRT();
+        const nameSrtContent = exporter.generateNameSRT();
 
-          const zipData: Record<string, Uint8Array> = {};
-          zipData[`TuanChat_Export_${roomId}.xml`] = strToU8(xmlContent);
-          zipData[`TuanChat_Subtitles_${roomId}.srt`] = strToU8(srtContent);
-          zipData[`TuanChat_Names_${roomId}.srt`] = strToU8(nameSrtContent);
-          
-          // Add generated Voice assets
-          for (const [name, data] of Object.entries(exporter.generatedAudioAssets)) {
-              zipData[`assets/${name}`] = data;
+        const zipData: Record<string, Uint8Array> = {};
+        zipData[`TuanChat_Export_${roomId}.xml`] = strToU8(xmlContent);
+        zipData[`TuanChat_Subtitles_${roomId}.srt`] = strToU8(srtContent);
+        zipData[`TuanChat_Names_${roomId}.srt`] = strToU8(nameSrtContent);
+
+        // Add generated Voice assets
+        for (const [name, data] of Object.entries(exporter.generatedAudioAssets)) {
+          zipData[`assets/${name}`] = data;
+        }
+
+        // Add Platform Image Assets (Sprites, Backgrounds)
+        const resources = exporter.getResources().filter(r => r.type === "image" || r.type === "video");
+        if (resources.length > 0) {
+          const fetchResult = await Promise.allSettled(resources.map(async (r) => {
+            try {
+              const res = await fetch(r.url, { mode: "cors" });
+              if (!res.ok)
+                throw new Error(`Fetch ${r.url} failed: ${res.status}`);
+              const blob = await res.blob();
+              return { name: r.name, data: new Uint8Array(await blob.arrayBuffer()) };
+            }
+            catch (e) {
+              console.error(e);
+              return null;
+            }
+          }));
+
+          for (const item of fetchResult) {
+            if (item.status === "fulfilled" && item.value) {
+              zipData[`assets/${item.value.name}`] = item.value.data;
+            }
           }
+        }
 
-          // Add Platform Image Assets (Sprites, Backgrounds)
-          const resources = exporter.getResources().filter(r => r.type === "image" || r.type === "video");
-          if (resources.length > 0) {
-              const fetchResult = await Promise.allSettled(resources.map(async (r) => {
-                  try {
-                       const res = await fetch(r.url, { mode: 'cors' });
-                       if (!res.ok) throw new Error(`Fetch ${r.url} failed: ${res.status}`);
-                       const blob = await res.blob();
-                       return { name: r.name, data: new Uint8Array(await blob.arrayBuffer()) };
-                  } catch (e) {
-                      console.error(e);
-                      return null; 
-                  }
-              }));
-              
-              for (const item of fetchResult) {
-                  if (item.status === 'fulfilled' && item.value) {
-                      zipData[`assets/${item.value.name}`] = item.value.data;
-                  }
-              }
+        // Generate Script fallback
+        // If we want to guarantee the user can download assets if they fail in zip.
+        // But Zip should work if domains are correct.
+        // The script is only needed for XML Only mode.
+
+        zip(zipData, (err, data) => {
+          if (err) {
+            console.error(err);
+            toast.error("压缩失败");
+            return;
           }
+          const blob = new Blob([data], { type: "application/zip" });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = `TuanChat_Export_${roomId}.zip`;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+          toast.success("导出成功！", { id: loadToastId });
+        });
+      }
+      else {
+        // --- XML Only Mode (Legacy) ---
+        const xmlContent = exporter.generateXML();
+        const downloadBlob = (content: string, filename: string, type: string) => {
+          const blob = new Blob([content], { type });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = filename;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+        };
 
-          // Generate Script fallback
-          // If we want to guarantee the user can download assets if they fail in zip.
-          // But Zip should work if domains are correct.
-          // The script is only needed for XML Only mode.
+        downloadBlob(xmlContent, `TuanChat_Export_${roomId}.xml`, "text/xml;charset=utf-8");
 
-          zip(zipData, (err, data) => {
-              if (err) {
-                  console.error(err);
-                  toast.error("压缩失败");
-                  return;
-              }
-              const blob = new Blob([data], { type: "application/zip" });
-              const url = URL.createObjectURL(blob);
-              const a = document.createElement("a");
-              a.href = url;
-              a.download = `TuanChat_Export_${roomId}.zip`;
-              document.body.appendChild(a);
-              a.click();
-              document.body.removeChild(a);
-              URL.revokeObjectURL(url);
-              toast.success("导出成功！", { id: loadToastId });
-          });
-      } else {
-          // --- XML Only Mode (Legacy) ---
-          const xmlContent = exporter.generateXML();
-          const downloadBlob = (content: string, filename: string, type: string) => {
-            const blob = new Blob([content], { type });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement("a");
-            a.href = url;
-            a.download = filename;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-          };
+        const scriptContent = exporter.generateDownloadScript();
+        downloadBlob(scriptContent, `download_assets_${roomId}.ps1`, "text/plain;charset=utf-8");
 
-          downloadBlob(xmlContent, `TuanChat_Export_${roomId}.xml`, "text/xml;charset=utf-8");
+        const srtContent = exporter.generateSRT();
+        downloadBlob(srtContent, `TuanChat_Subtitles_${roomId}.srt`, "text/plain;charset=utf-8");
 
-          const scriptContent = exporter.generateDownloadScript();
-          downloadBlob(scriptContent, `download_assets_${roomId}.ps1`, "text/plain;charset=utf-8");
+        const nameSrtContent = exporter.generateNameSRT();
+        downloadBlob(nameSrtContent, `TuanChat_Names_${roomId}.srt`, "text/plain;charset=utf-8");
 
-          const srtContent = exporter.generateSRT();
-          downloadBlob(srtContent, `TuanChat_Subtitles_${roomId}.srt`, "text/plain;charset=utf-8");
-
-          const nameSrtContent = exporter.generateNameSRT();
-          downloadBlob(nameSrtContent, `TuanChat_Names_${roomId}.srt`, "text/plain;charset=utf-8");
-
-          toast.success("导出成功！请查看下载的文件。", { id: loadToastId });
+        toast.success("导出成功！请查看下载的文件。", { id: loadToastId });
       }
     }
     catch (e) {

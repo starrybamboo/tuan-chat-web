@@ -15,7 +15,7 @@ import { isAudioUploadDebugEnabled } from "@/utils/audioDebugFlags";
 import { getImageSize } from "@/utils/getImgSize";
 import { UploadUtils } from "@/utils/UploadUtils";
 
-import type { ChatMessageRequest, UserRole } from "../../../../api";
+import type { ChatMessageRequest, ChatMessageResponse, UserRole } from "../../../../api";
 
 import { MessageType } from "../../../../api/wsModels";
 
@@ -37,7 +37,7 @@ type UseChatMessageSubmitParams = {
   noRole: boolean;
   isSubmitting: boolean;
   setIsSubmitting: (value: boolean) => void;
-  sendMessageWithInsert: (message: ChatMessageRequest) => Promise<void>;
+  sendMessageWithInsert: (message: ChatMessageRequest) => Promise<ChatMessageResponse["message"] | null>;
   ensureRuntimeAvatarIdForRole: (roleId: number) => Promise<number>;
   commandExecutor: CommandExecutor;
   containsCommandRequestAllToken: (text: string) => boolean;

@@ -10,6 +10,7 @@ import ChatToolbarDock from "@/components/chat/input/chatToolbarDock";
 import { createWebgalChooseOptionDraft } from "@/components/chat/shared/webgal/webgalChooseDraft";
 import WebgalChooseModal from "@/components/chat/shared/webgal/webgalChooseModal";
 import { useChatComposerStore } from "@/components/chat/stores/chatComposerStore";
+import { preheatChatMediaPreprocess } from "@/components/chat/utils/attachmentPreprocess";
 import StickerWindow from "@/components/chat/window/StickerWindow";
 import { useScreenSize } from "@/components/common/customHooks/useScreenSize";
 
@@ -235,6 +236,7 @@ function ChatToolbar({
       return;
 
     setAudioFile(file);
+    preheatChatMediaPreprocess({ audioFiles: [file] });
     onAddTempAnnotations?.([ANNOTATION_IDS.BGM]);
     // 重置 input value，允许重复选择同一文件
     e.target.value = "";
@@ -255,6 +257,7 @@ function ChatToolbar({
     updateFileAttachments((draft) => {
       draft.push(file);
     });
+    preheatChatMediaPreprocess({ videoFiles: [file] });
     e.target.value = "";
   };
 
@@ -556,6 +559,7 @@ function ChatToolbar({
                 updateImgFiles((draft) => {
                   draft.push(newImg);
                 });
+                preheatChatMediaPreprocess({ imageFiles: [newImg] });
                 onAddTempAnnotations?.([ANNOTATION_IDS.BACKGROUND]);
               }}
               >
