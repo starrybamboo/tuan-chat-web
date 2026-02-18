@@ -66,9 +66,11 @@ jobs:
             mkdir -p "$TARGET"
 
             # 清理旧版静态产物，避免哈希文件残留；保留站点常见系统目录/文件。
+            # `updates` 用于 Electron 自动更新元数据与安装包，不能被前端部署清理。
             find "$TARGET" -mindepth 1 -maxdepth 1 \
               ! -name '.well-known' \
               ! -name '.user.ini' \
+              ! -name 'updates' \
               -exec rm -rf {} +
 
       - name: 部署到服务器
