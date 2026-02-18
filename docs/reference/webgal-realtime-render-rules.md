@@ -15,6 +15,7 @@
 3. 启动阶段：`useRealtimeRender.start()` 完成 renderer 初始化、场景创建、资源预载、WebSocket 建连。  
 4. 历史导入：编排器在 renderer `isActive` 后触发历史消息渲染（不再要求 `status === connected`）。  
 5. 增量更新：新消息进入后优先走增量追加；出现重排/插入/删除/更新时走全量重建。  
+6. 场景初始化会先写入 `setTransition`（`-enter=none -keepOffset`）到所有实时渲染立绘目标（含 `image_message`），用于覆盖 WebGAL 默认进场动画。  
 
 ## 2. 流程图（roomMap）到场景跳转规则
 
