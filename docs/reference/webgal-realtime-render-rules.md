@@ -101,6 +101,7 @@
 
 1. 预处理清理
 - `background.clear`：在当前消息前写 `changeBg:none -next;`（背景图消息本身除外）
+- `bgm.clear`：在当前消息前写 `bgm:none -next;`
 - `image.clear`：清理 `image_message` 槽位
 - `figure.clear`：清理所有立绘槽位（在本消息脚本前执行）
 

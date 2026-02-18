@@ -17,6 +17,7 @@ import {
   getFigureAnimationFromAnnotations,
   getFigurePositionFromAnnotations,
   hasAnnotation,
+  hasClearBgmAnnotation,
   hasClearBackgroundAnnotation,
   hasClearImageAnnotation,
   isImageMessageBackground,
@@ -2507,6 +2508,10 @@ export class RealtimeRenderer {
       && isImageMessageBackground(msg.annotations, msg.extra?.imageMessage);
     if (shouldClearBackground && !isBackgroundImageMessage) {
       await this.appendLine(targetRoomId, "changeBg:none -next;", syncToFile);
+    }
+    const shouldClearBgm = hasClearBgmAnnotation(msg.annotations);
+    if (shouldClearBgm) {
+      await this.appendLine(targetRoomId, "bgm:none -next;", syncToFile);
     }
     const shouldClearImageFigure = hasClearImageAnnotation(msg.annotations);
     if (shouldClearImageFigure) {
