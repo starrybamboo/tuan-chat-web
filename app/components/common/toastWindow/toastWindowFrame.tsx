@@ -17,15 +17,23 @@ export function ToastWindowFrame({
   transparent = false,
   hiddenScrollbar = false,
 }: ToastWindowFrameProps) {
+  const supportsDynamicViewportUnit = typeof CSS !== "undefined" && CSS.supports("height: 100dvh");
+  const fullScreenHeight = fullScreen
+    ? (supportsDynamicViewportUnit ? "100dvh" : "100vh")
+    : undefined;
+  const modalMaxHeight = !fullScreen
+    ? (supportsDynamicViewportUnit ? "min(90vh, 100dvh - 2rem)" : "min(90vh, calc(100vh - 2rem))")
+    : undefined;
+
   return (
     <div className={`modal ${isOpen ? "modal-open" : ""}`}>
       <div
         className={`relative flex flex-col
-               ${transparent ? "bg-transparent w-full h-dvh" : "bg-base-100 dark:bg-base-300"}
-               ${fullScreen ? "w-full h-dvh" : "modal-box w-auto max-w-[100vw] lg:max-w-[80vw] lg:h-auto lg:max-h-[90vh]"}`}
+               ${transparent ? "bg-transparent w-full h-screen" : "bg-base-100 dark:bg-base-300"}
+               ${fullScreen ? "w-full h-screen" : "modal-box w-auto max-w-[100vw] lg:max-w-[80vw] lg:h-auto lg:max-h-[90vh]"}`}
         style={{
-          height: fullScreen ? "100dvh" : undefined,
-          maxHeight: !fullScreen ? "min(90vh, 100dvh - 2rem)" : undefined,
+          height: fullScreenHeight,
+          maxHeight: modalMaxHeight,
         }}
       >
         <button
