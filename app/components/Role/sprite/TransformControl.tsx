@@ -1,6 +1,8 @@
+import type { PreviewAnchorPosition } from "../Preview/previewAnchor";
 import React from "react";
 
 import { DoubleClickEditableText } from "@/components/common/DoubleClickEditableText";
+import { PREVIEW_ANCHOR_LABELS, PREVIEW_ANCHOR_ORDER } from "../Preview/previewAnchor";
 
 /**
  * Transform状态接口
@@ -21,6 +23,10 @@ interface TransformControlProps {
   transform: Transform;
   // Transform状态更新函数
   setTransform: React.Dispatch<React.SetStateAction<Transform>>;
+  // 预览中心点（仅影响 RenderPreview 锚点）
+  anchorPosition: PreviewAnchorPosition;
+  // 预览中心点更新函数
+  setAnchorPosition: React.Dispatch<React.SetStateAction<PreviewAnchorPosition>>;
   // 是否禁用控制
   disabled?: boolean;
 }
@@ -36,6 +42,8 @@ const clampNumber = (value: number, min: number, max: number) => Math.min(max, M
 export function TransformControl({
   transform,
   setTransform,
+  anchorPosition,
+  setAnchorPosition,
   disabled = false,
 }: TransformControlProps) {
   /**
@@ -43,6 +51,7 @@ export function TransformControl({
    */
   const handleReset = () => {
     setTransform({ scale: 1, positionX: 0, positionY: 0, alpha: 1, rotation: 0 });
+    setAnchorPosition("center");
   };
 
   /**
@@ -68,6 +77,23 @@ export function TransformControl({
 
   return (
     <div className={`w-full p-4 bg-base-200 rounded-lg space-y-3 ${disabled ? "opacity-50 pointer-events-none" : ""}`}>
+      <div className="flex items-center justify-between gap-3">
+        <label className="text-xs w-16 shrink-0">中心点:</label>
+        <div className="join flex-1">
+          {PREVIEW_ANCHOR_ORDER.map(position => (
+            <button
+              key={position}
+              type="button"
+              className={`join-item btn btn-xs flex-1 ${anchorPosition === position ? "btn-info" : "btn-outline"}`}
+              onClick={() => setAnchorPosition(position)}
+              disabled={disabled}
+            >
+              {PREVIEW_ANCHOR_LABELS[position]}
+            </button>
+          ))}
+        </div>
+      </div>
+
       {/* Scale控制 - 调整范围和步长，提供更精细的控制 */}
       <div className="flex items-center gap-3">
         <label className="text-xs w-16 shrink-0">缩放:</label>
