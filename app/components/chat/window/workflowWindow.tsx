@@ -426,7 +426,12 @@ function buildStartNode(options: { targetPosition?: { x: number; y: number }; st
 
 function buildEndNode(
   endNodeId: number,
-  options: { targetPosition?: { x: number; y: number }; storedPosition?: { x: number; y: number }; existing?: Node },
+  options: {
+    targetPosition?: { x: number; y: number };
+    storedPosition?: { x: number; y: number };
+    existing?: Node;
+    onDelete?: (endNodeId: number) => void;
+  },
 ): Node {
   const position = options.existing?.position
     ?? options.storedPosition
@@ -436,7 +441,11 @@ function buildEndNode(
   return {
     id: buildEndNodeId(endNodeId),
     type: "endNode",
-    data: { label: `${END_NODE_LABEL_PREFIX}${endNodeId}` },
+    data: {
+      label: `${END_NODE_LABEL_PREFIX}${endNodeId}`,
+      endNodeId,
+      onDelete: options.onDelete,
+    },
     position,
     draggable: true,
     selectable: true,
@@ -695,6 +704,32 @@ export default function WorkflowWindow() {
     });
   }, [updateEndNodeGraph]);
 
+  const removeEndNodes = useCallback(async (
+    removedEndNodeIds: number[],
+    persistMode: "sync" | "async" = "sync",
+  ) => {
+    const normalizedRemovedEndNodeIds = normalizeRoomIdList(removedEndNodeIds);
+    if (normalizedRemovedEndNodeIds.length === 0)
+      return;
+    const removedSet = new Set(normalizedRemovedEndNodeIds);
+    const nextEndNodeIds = endNodeIdsRef.current.filter(id => !removedSet.has(id));
+    const nextIncoming = Object.fromEntries(
+      Object.entries(endNodeIncomingRoomIdsRef.current)
+        .filter(([id]) => !removedSet.has(Number(id)))
+        .map(([id, roomIds]) => [Number(id), roomIds]),
+    ) as Record<number, number[]>;
+
+    await updateEndNodeGraph({
+      endNodeIds: nextEndNodeIds,
+      endNodeIncomingRoomIds: nextIncoming,
+      persistMode,
+    });
+  }, [updateEndNodeGraph]);
+
+  const handleDeleteEndNode = useCallback((endNodeId: number) => {
+    void removeEndNodes([endNodeId], "async");
+  }, [removeEndNodes]);
+
   useEffect(() => {
     const currentStartRoomIds = startRoomIdsRef.current;
     const validRoomIdSet = new Set(allRoomIds);
@@ -790,19 +825,8 @@ export default function WorkflowWindow() {
       .filter(change => change.type === "remove" && "id" in change)
       .map(change => parseEndNodeId(change.id))
       .filter((id): id is number => id != null);
-    if (removedEndNodeIds.length > 0) {
-      const removedSet = new Set(removedEndNodeIds);
-      const nextEndNodeIds = endNodeIdsRef.current.filter(id => !removedSet.has(id));
-      const nextIncoming = Object.fromEntries(
-        Object.entries(endNodeIncomingRoomIdsRef.current)
-          .filter(([id]) => !removedSet.has(Number(id)))
-          .map(([id, roomIds]) => [Number(id), roomIds]),
-      ) as Record<number, number[]>;
-      updateEndNodeGraph({
-        endNodeIds: nextEndNodeIds,
-        endNodeIncomingRoomIds: nextIncoming,
-      });
-    }
+    if (removedEndNodeIds.length > 0)
+      void removeEndNodes(removedEndNodeIds);
 
     let shouldPersist = false;
     if (changes.some(change => change.type === "position" || change.type === "dimensions"))
@@ -813,7 +837,7 @@ export default function WorkflowWindow() {
         persistNodePositions(next);
       return next;
     });
-  }, [persistNodePositions, updateEndNodeGraph]);
+  }, [persistNodePositions, removeEndNodes]);
 
   const onEdgesChange = useCallback((changes: EdgeChange[]) => {
     const removedEdges = changes.filter(change => change.type === "remove" && "id" in change) as Array<{ id: string; type: "remove" }>;
@@ -1451,6 +1475,7 @@ export default function WorkflowWindow() {
           return buildEndNode(endNodeId, {
             targetPosition: initialRoomNodes[index]?.position,
             storedPosition: persistedPositionsRef.current.get(buildEndNodeId(endNodeId)),
+            onDelete: handleDeleteEndNode,
           });
         })
         .filter((node): node is Node => node != null);
@@ -1579,6 +1604,7 @@ export default function WorkflowWindow() {
             targetPosition: nextNodes[index]?.position,
             storedPosition: persistedPositionsRef.current.get(buildEndNodeId(endNodeId)),
             existing: existingEndNode,
+            onDelete: handleDeleteEndNode,
           });
           if (!existingEndNode) {
             changed = true;
@@ -1606,7 +1632,7 @@ export default function WorkflowWindow() {
       persistNodePositions(nextNodes);
       return nextNodes;
     });
-  }, [allRoomIds, computePositionForNewNode, endNodeIds, persistNodePositions, positionsLoaded, roomAvatarMap, roomLabelMap, roomInfoMap, roomMapState, saveSceneDefaultDescription, startTargetIds]);
+  }, [allRoomIds, computePositionForNewNode, endNodeIds, handleDeleteEndNode, persistNodePositions, positionsLoaded, roomAvatarMap, roomLabelMap, roomInfoMap, roomMapState, saveSceneDefaultDescription, startTargetIds]);
 
   if (spaceId < 0) {
     return (

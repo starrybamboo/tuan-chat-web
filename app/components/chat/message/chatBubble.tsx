@@ -11,6 +11,7 @@ import MessageAnnotationsBar from "@/components/chat/message/annotations/message
 import { openMessageAnnotationPicker } from "@/components/chat/message/annotations/openMessageAnnotationPicker";
 import EditableMessageContent from "@/components/chat/message/editableMessageContent";
 import AudioMessage from "@/components/chat/message/media/AudioMessage";
+import CachedVideoMessage from "@/components/chat/message/media/CachedVideoMessage";
 import ForwardMessage from "@/components/chat/message/preview/forwardMessage";
 import { PreviewMessage } from "@/components/chat/message/preview/previewMessage";
 import WebgalChooseMessage from "@/components/chat/message/webgalChooseMessage";
@@ -976,12 +977,10 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
               {videoUrl
                 ? (
                     <div className="relative overflow-hidden rounded-2xl border border-base-300/70 bg-base-200/40 shadow-sm">
-                      <video
-                        src={videoUrl}
-                        controls={true}
-                        preload="metadata"
+                      <CachedVideoMessage
+                        cacheKey={`video:${message.messageId}`}
+                        url={videoUrl}
                         className="block w-full max-h-[360px] bg-black object-contain"
-                        onClick={event => event.stopPropagation()}
                       />
                       <div className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-black/55 via-black/20 to-transparent" />
                       <span className="pointer-events-none badge badge-neutral badge-xs absolute top-2 left-2 opacity-90">视频</span>
@@ -1032,6 +1031,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
               {audioUrl
                 ? (
                     <AudioMessage
+                      cacheKey={`audio:${message.messageId}`}
                       url={audioUrl}
                       duration={typeof duration === "number" ? duration : undefined}
                       title={soundMessage?.fileName}

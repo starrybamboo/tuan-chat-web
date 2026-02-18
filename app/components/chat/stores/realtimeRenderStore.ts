@@ -10,12 +10,19 @@ import {
 import { getDefaultTerrePort, setTerrePortOverride as setTerrePortOverrideInConfig } from "@/webGAL/terreConfig";
 
 export type RealtimeWebgalDefaultLanguage = "" | "zh_CN" | "zh_TW" | "en" | "ja" | "fr" | "de";
+export type RealtimeWebgalBaseTemplate = "none" | "black";
+const DEFAULT_TYPING_SOUND_INTERVAL = 1.5;
+const DEFAULT_TYPING_SOUND_PUNCTUATION_PAUSE = 100;
 
 export type RealtimeWebgalGameConfig = {
-  /** 是否将群聊头像同步为 WebGAL 标题背景图（Title_img） */
+  /** 未设置标题背景图 URL 时，是否将群聊头像同步为 WebGAL 标题背景图（Title_img） */
   coverFromRoomAvatarEnabled: boolean;
-  /** 是否将群聊头像同步为 WebGAL 启动图（Game_Logo） */
+  /** WebGAL 标题背景图 URL（Title_img，优先于“标题背景图使用群聊头像”） */
+  titleImageUrl: string;
+  /** 未设置启动图 URL 时，是否将群聊头像同步为 WebGAL 启动图（Game_Logo） */
   startupLogoFromRoomAvatarEnabled: boolean;
+  /** WebGAL 启动图 URL（Game_Logo，优先于“启动图使用群聊头像”） */
+  startupLogoUrl: string;
   /** 是否将群聊头像同步为 WebGAL 游戏图标（icons/*） */
   gameIconFromRoomAvatarEnabled: boolean;
   /** 是否将空间名称+spaceId 同步为 WebGAL 游戏名（Game_name） */
@@ -24,6 +31,8 @@ export type RealtimeWebgalGameConfig = {
   description: string;
   /** WebGAL 游戏包名（Package_name） */
   packageName: string;
+  /** WebGAL 底层模板（none=默认模板, black=黑色模板） */
+  baseTemplate: RealtimeWebgalBaseTemplate;
   /** 是否启用紧急回避（Show_panic） */
   showPanicEnabled: boolean;
   /** 默认语言（Default_Language） */
@@ -32,19 +41,31 @@ export type RealtimeWebgalGameConfig = {
   enableAppreciation: boolean;
   /** 是否开启打字音（TypingSoundEnabled） */
   typingSoundEnabled: boolean;
+  /** 打字音播放间隔（每隔多少个字符播放一次） */
+  typingSoundInterval: number;
+  /** 标点符号额外停顿（毫秒） */
+  typingSoundPunctuationPause: number;
+  /** 打字音效文件 URL（将上传同步为 TypingSoundSe） */
+  typingSoundSeUrl: string;
 };
 
 const DEFAULT_REALTIME_WEBGAL_GAME_CONFIG: RealtimeWebgalGameConfig = {
   coverFromRoomAvatarEnabled: true,
+  titleImageUrl: "",
   startupLogoFromRoomAvatarEnabled: false,
+  startupLogoUrl: "",
   gameIconFromRoomAvatarEnabled: true,
   gameNameFromRoomNameEnabled: true,
   description: "",
   packageName: "",
+  baseTemplate: "none",
   showPanicEnabled: false,
   defaultLanguage: "",
   enableAppreciation: true,
   typingSoundEnabled: false,
+  typingSoundInterval: DEFAULT_TYPING_SOUND_INTERVAL,
+  typingSoundPunctuationPause: DEFAULT_TYPING_SOUND_PUNCTUATION_PAUSE,
+  typingSoundSeUrl: "",
 };
 
 type RealtimeRenderState = {
@@ -136,21 +157,50 @@ function normalizeDefaultLanguage(value: unknown): RealtimeWebgalDefaultLanguage
   return "";
 }
 
+function normalizeBaseTemplate(value: unknown): RealtimeWebgalBaseTemplate {
+  if (value === "black") {
+    return "black";
+  }
+  return "none";
+}
+
+function normalizeTypingSoundInterval(value: unknown): number {
+  const raw = typeof value === "number" ? value : Number(value);
+  if (!Number.isFinite(raw)) {
+    return DEFAULT_TYPING_SOUND_INTERVAL;
+  }
+  return Math.max(0.1, Math.min(20, Number(raw.toFixed(2))));
+}
+
+function normalizeTypingSoundPunctuationPause(value: unknown): number {
+  const raw = typeof value === "number" ? value : Number(value);
+  if (!Number.isFinite(raw)) {
+    return DEFAULT_TYPING_SOUND_PUNCTUATION_PAUSE;
+  }
+  return Math.max(0, Math.min(5000, Math.floor(raw)));
+}
+
 function buildCloudSettingsSnapshot(state: Pick<RealtimeRenderState, "ttsApiUrl" | "terrePortOverride" | "autoFigureEnabled" | "gameConfig">): RealtimeRenderCloudSettings {
   return {
     ttsApiUrl: state.ttsApiUrl,
     terrePort: state.terrePortOverride,
     autoFigureEnabled: state.autoFigureEnabled,
     coverFromRoomAvatarEnabled: state.gameConfig.coverFromRoomAvatarEnabled,
+    titleImageUrl: state.gameConfig.titleImageUrl,
     startupLogoFromRoomAvatarEnabled: state.gameConfig.startupLogoFromRoomAvatarEnabled,
+    startupLogoUrl: state.gameConfig.startupLogoUrl,
     gameIconFromRoomAvatarEnabled: state.gameConfig.gameIconFromRoomAvatarEnabled,
     gameNameFromRoomNameEnabled: state.gameConfig.gameNameFromRoomNameEnabled,
     description: state.gameConfig.description,
     packageName: state.gameConfig.packageName,
+    baseTemplate: state.gameConfig.baseTemplate,
     showPanicEnabled: state.gameConfig.showPanicEnabled,
     defaultLanguage: state.gameConfig.defaultLanguage,
     enableAppreciation: state.gameConfig.enableAppreciation,
     typingSoundEnabled: state.gameConfig.typingSoundEnabled,
+    typingSoundInterval: state.gameConfig.typingSoundInterval,
+    typingSoundPunctuationPause: state.gameConfig.typingSoundPunctuationPause,
+    typingSoundSeUrl: state.gameConfig.typingSoundSeUrl,
   };
 }
 
@@ -239,15 +289,21 @@ export const useRealtimeRenderStore = create<RealtimeRenderState>((set, get) => 
 
     if (
       current.coverFromRoomAvatarEnabled === merged.coverFromRoomAvatarEnabled
+      && current.titleImageUrl === merged.titleImageUrl
       && current.startupLogoFromRoomAvatarEnabled === merged.startupLogoFromRoomAvatarEnabled
+      && current.startupLogoUrl === merged.startupLogoUrl
       && current.gameIconFromRoomAvatarEnabled === merged.gameIconFromRoomAvatarEnabled
       && current.gameNameFromRoomNameEnabled === merged.gameNameFromRoomNameEnabled
       && current.description === merged.description
       && current.packageName === merged.packageName
+      && current.baseTemplate === merged.baseTemplate
       && current.showPanicEnabled === merged.showPanicEnabled
       && current.defaultLanguage === merged.defaultLanguage
       && current.enableAppreciation === merged.enableAppreciation
       && current.typingSoundEnabled === merged.typingSoundEnabled
+      && current.typingSoundInterval === merged.typingSoundInterval
+      && current.typingSoundPunctuationPause === merged.typingSoundPunctuationPause
+      && current.typingSoundSeUrl === merged.typingSoundSeUrl
     ) {
       return;
     }
@@ -296,15 +352,21 @@ export const useRealtimeRenderStore = create<RealtimeRenderState>((set, get) => 
       const persistedTerrePortOverride = normalizePort(persisted?.terrePort ?? null);
       const persistedAutoFigureEnabled = persisted?.autoFigureEnabled;
       const persistedCoverFromRoomAvatarEnabled = persisted?.coverFromRoomAvatarEnabled;
+      const persistedTitleImageUrl = persisted?.titleImageUrl;
       const persistedStartupLogoFromRoomAvatarEnabled = persisted?.startupLogoFromRoomAvatarEnabled;
+      const persistedStartupLogoUrl = persisted?.startupLogoUrl;
       const persistedGameIconFromRoomAvatarEnabled = persisted?.gameIconFromRoomAvatarEnabled;
       const persistedGameNameFromRoomNameEnabled = persisted?.gameNameFromRoomNameEnabled;
       const persistedDescription = persisted?.description;
       const persistedPackageName = persisted?.packageName;
+      const persistedBaseTemplate = persisted?.baseTemplate;
       const persistedShowPanicEnabled = persisted?.showPanicEnabled;
       const persistedDefaultLanguage = persisted?.defaultLanguage;
       const persistedEnableAppreciation = persisted?.enableAppreciation;
       const persistedTypingSoundEnabled = persisted?.typingSoundEnabled;
+      const persistedTypingSoundInterval = persisted?.typingSoundInterval;
+      const persistedTypingSoundPunctuationPause = persisted?.typingSoundPunctuationPause;
+      const persistedTypingSoundSeUrl = persisted?.typingSoundSeUrl;
 
       const nextTtsApiUrl = persistedTtsApiUrl;
       const nextTerrePortOverride = persistedTerrePortOverride;
@@ -315,9 +377,15 @@ export const useRealtimeRenderStore = create<RealtimeRenderState>((set, get) => 
         coverFromRoomAvatarEnabled: typeof persistedCoverFromRoomAvatarEnabled === "boolean"
           ? persistedCoverFromRoomAvatarEnabled
           : DEFAULT_REALTIME_WEBGAL_GAME_CONFIG.coverFromRoomAvatarEnabled,
+        titleImageUrl: typeof persistedTitleImageUrl === "string"
+          ? persistedTitleImageUrl.trim()
+          : DEFAULT_REALTIME_WEBGAL_GAME_CONFIG.titleImageUrl,
         startupLogoFromRoomAvatarEnabled: typeof persistedStartupLogoFromRoomAvatarEnabled === "boolean"
           ? persistedStartupLogoFromRoomAvatarEnabled
           : DEFAULT_REALTIME_WEBGAL_GAME_CONFIG.startupLogoFromRoomAvatarEnabled,
+        startupLogoUrl: typeof persistedStartupLogoUrl === "string"
+          ? persistedStartupLogoUrl.trim()
+          : DEFAULT_REALTIME_WEBGAL_GAME_CONFIG.startupLogoUrl,
         gameIconFromRoomAvatarEnabled: typeof persistedGameIconFromRoomAvatarEnabled === "boolean"
           ? persistedGameIconFromRoomAvatarEnabled
           : DEFAULT_REALTIME_WEBGAL_GAME_CONFIG.gameIconFromRoomAvatarEnabled,
@@ -330,6 +398,7 @@ export const useRealtimeRenderStore = create<RealtimeRenderState>((set, get) => 
         packageName: typeof persistedPackageName === "string"
           ? persistedPackageName
           : DEFAULT_REALTIME_WEBGAL_GAME_CONFIG.packageName,
+        baseTemplate: normalizeBaseTemplate(persistedBaseTemplate),
         showPanicEnabled: typeof persistedShowPanicEnabled === "boolean"
           ? persistedShowPanicEnabled
           : DEFAULT_REALTIME_WEBGAL_GAME_CONFIG.showPanicEnabled,
@@ -340,6 +409,11 @@ export const useRealtimeRenderStore = create<RealtimeRenderState>((set, get) => 
         typingSoundEnabled: typeof persistedTypingSoundEnabled === "boolean"
           ? persistedTypingSoundEnabled
           : DEFAULT_REALTIME_WEBGAL_GAME_CONFIG.typingSoundEnabled,
+        typingSoundInterval: normalizeTypingSoundInterval(persistedTypingSoundInterval),
+        typingSoundPunctuationPause: normalizeTypingSoundPunctuationPause(persistedTypingSoundPunctuationPause),
+        typingSoundSeUrl: typeof persistedTypingSoundSeUrl === "string"
+          ? persistedTypingSoundSeUrl.trim()
+          : DEFAULT_REALTIME_WEBGAL_GAME_CONFIG.typingSoundSeUrl,
       };
 
       setTerrePortOverrideInConfig(nextTerrePortOverride);
