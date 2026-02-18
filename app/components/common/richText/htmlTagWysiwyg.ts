@@ -1,4 +1,4 @@
-﻿// 简单 HTML 标签识别（所见即所得预处理阶段）
+// 简单 HTML 标签识别（所见即所得预处理阶段）
 // 需求：在输入空格时（空格可位于标签中间或末尾），识别用户正在输入的部分/完整标签
 // 仅支持标签: span, div, a, img
 // 仅关注属性: src, href, id, width, height （其它属性忽略）
@@ -465,4 +465,3 @@ export function renderInlineHtmlUsingWysiwyg(html: string): string {
 
   return html;
 }
-

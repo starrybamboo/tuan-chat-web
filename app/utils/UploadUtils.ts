@@ -8,7 +8,215 @@ import { transcodeVideoFileToWebmOrThrow } from "@/utils/videoTranscodeUtils";
 
 import { tuanchat } from "../../api/instance";
 
+type PreparedImagePayload = {
+  processedFile: File;
+  isGif: boolean;
+};
+
 export class UploadUtils {
+  private static readonly imagePrepareCache = new WeakMap<File, Map<string, Promise<PreparedImagePayload>>>();
+  private static readonly videoPrepareCache = new WeakMap<File, Promise<File>>();
+  private static readonly audioPrepareCache = new WeakMap<File, Map<string, Promise<File>>>();
+
+  private static getOrCreateNestedPromise<T>(
+    cache: WeakMap<File, Map<string, Promise<T>>>,
+    file: File,
+    key: string,
+    create: () => Promise<T>,
+  ): Promise<T> {
+    const perFileCache = cache.get(file) ?? new Map<string, Promise<T>>();
+    if (!cache.has(file)) {
+      cache.set(file, perFileCache);
+    }
+
+    const existed = perFileCache.get(key);
+    if (existed) {
+      return existed;
+    }
+
+    let createdPromise: Promise<T>;
+    createdPromise = create().catch((error) => {
+      const latest = perFileCache.get(key);
+      if (latest === createdPromise) {
+        perFileCache.delete(key);
+      }
+      if (perFileCache.size === 0) {
+        cache.delete(file);
+      }
+      throw error;
+    });
+
+    perFileCache.set(key, createdPromise);
+    return createdPromise;
+  }
+
+  private static getOrCreatePromise<T>(
+    cache: WeakMap<File, Promise<T>>,
+    file: File,
+    create: () => Promise<T>,
+  ): Promise<T> {
+    const existed = cache.get(file);
+    if (existed) {
+      return existed;
+    }
+
+    let createdPromise: Promise<T>;
+    createdPromise = create().catch((error) => {
+      const latest = cache.get(file);
+      if (latest === createdPromise) {
+        cache.delete(file);
+      }
+      throw error;
+    });
+
+    cache.set(file, createdPromise);
+    return createdPromise;
+  }
+
+  private static buildImagePrepareKey(quality: number, maxSize: number): string {
+    return `${quality}|${maxSize}`;
+  }
+
+  private static normalizeAudioMaxDuration(maxDuration: number): number {
+    if (!Number.isFinite(maxDuration) || maxDuration <= 0) {
+      return 0;
+    }
+    return Math.floor(maxDuration);
+  }
+
+  private static buildAudioPrepareKey(maxDuration: number): string {
+    return String(UploadUtils.normalizeAudioMaxDuration(maxDuration));
+  }
+
+  public async preprocessImageForUpload(file: File, quality = 0.7, maxSize = 2560): Promise<File> {
+    const prepared = await this.prepareImageForUpload(file, quality, maxSize);
+    return prepared.processedFile;
+  }
+
+  public async preprocessVideoForUpload(file: File): Promise<File> {
+    return await this.prepareVideoForUpload(file);
+  }
+
+  public async preprocessAudioForUpload(file: File, maxDuration = 30): Promise<File> {
+    return await this.prepareAudioForUpload(file, maxDuration);
+  }
+
+  private normalizeVideoInputFileOrThrow(file: File): File {
+    const extension = ((file.name || "").toLowerCase().match(/\.([a-z0-9]+)$/)?.[1] || "").trim();
+    const inferredVideoMimeByExt: Record<string, string> = {
+      mp4: "video/mp4",
+      m4v: "video/mp4",
+      mov: "video/quicktime",
+      webm: "video/webm",
+      mkv: "video/x-matroska",
+      avi: "video/x-msvideo",
+      wmv: "video/x-ms-wmv",
+      flv: "video/x-flv",
+      mpg: "video/mpeg",
+      mpeg: "video/mpeg",
+    };
+
+    if (file.type.startsWith("video/")) {
+      return file;
+    }
+
+    const inferredType = inferredVideoMimeByExt[extension];
+    if (!inferredType) {
+      throw new Error("只支持视频文件格式");
+    }
+
+    return new File([file], file.name, {
+      type: inferredType,
+      lastModified: file.lastModified,
+    });
+  }
+
+  private async prepareImageForUpload(file: File, quality = 0.7, maxSize = 2560): Promise<PreparedImagePayload> {
+    const prepareKey = UploadUtils.buildImagePrepareKey(quality, maxSize);
+    return await UploadUtils.getOrCreateNestedPromise(
+      UploadUtils.imagePrepareCache,
+      file,
+      prepareKey,
+      async () => {
+        let processedFile = file;
+        const originalSize = file.size;
+
+        const isGif = await this.isGifFile(file);
+        if (file.type.startsWith("image/")) {
+          if (isGif) {
+            console.warn(`[图片上传] GIF 文件跳过压缩: ${file.name} (${(originalSize / 1024).toFixed(2)} KB)`);
+            processedFile = file;
+          }
+          else {
+            processedFile = await compressImage(file, quality, maxSize);
+            const compressedSize = processedFile.size;
+            const compressionRatio = Number.parseFloat(((1 - compressedSize / originalSize) * 100).toFixed(1));
+            console.warn(
+              `[图片上传] 压缩完成: ${file.name}\n`
+              + `  原始大小: ${(originalSize / 1024).toFixed(2)} KB\n`
+              + `  压缩后: ${(compressedSize / 1024).toFixed(2)} KB\n`
+              + `  压缩率: ${compressionRatio}% ${compressionRatio > 0 ? "✅" : "⚠️"}`,
+            );
+          }
+        }
+
+        return { processedFile, isGif };
+      },
+    );
+  }
+
+  private async prepareVideoForUpload(file: File): Promise<File> {
+    return await UploadUtils.getOrCreatePromise(UploadUtils.videoPrepareCache, file, async () => {
+      const normalizedVideoFile = this.normalizeVideoInputFileOrThrow(file);
+      return await transcodeVideoFileToWebmOrThrow(normalizedVideoFile, {
+        maxHeight: 1080,
+        maxFps: 30,
+        crf: 34,
+      });
+    });
+  }
+
+  private async prepareAudioForUpload(file: File, maxDuration = 30): Promise<File> {
+    if (!file.type.startsWith("audio/")) {
+      throw new Error("只支持音频文件格式");
+    }
+
+    assertAudioUploadInputSizeOrThrow(file.size);
+    const normalizedMaxDuration = UploadUtils.normalizeAudioMaxDuration(maxDuration);
+    const prepareKey = UploadUtils.buildAudioPrepareKey(normalizedMaxDuration);
+
+    return await UploadUtils.getOrCreateNestedPromise(
+      UploadUtils.audioPrepareCache,
+      file,
+      prepareKey,
+      async () => {
+        const debugEnabled = isAudioUploadDebugEnabled();
+        const debugPrefix = "[tc-audio-upload]";
+        if (debugEnabled) {
+          console.warn(`${debugPrefix} UploadUtils.uploadAudio input`, {
+            name: file.name,
+            type: file.type,
+            size: file.size,
+            maxDuration: normalizedMaxDuration > 0 ? normalizedMaxDuration : null,
+          });
+        }
+
+        const transcodeOptions = buildDefaultAudioUploadTranscodeOptions(file.size, normalizedMaxDuration);
+        const processedFile = await transcodeAudioFileToOpusOrThrow(file, transcodeOptions);
+        if (debugEnabled) {
+          console.warn(`${debugPrefix} processed`, {
+            name: processedFile.name,
+            type: processedFile.type,
+            size: processedFile.size,
+            transcodeOptions,
+          });
+        }
+
+        return processedFile;
+      },
+    );
+  }
+
   private getAudioExtension(file: File): string {
     const type = (file.type || "").toLowerCase();
     if (type === "audio/mpeg")
@@ -43,19 +251,16 @@ export class UploadUtils {
       throw new Error("只支持音频文件格式");
     }
 
-    assertAudioUploadInputSizeOrThrow(file.size);
-
-    // 统一转码压缩为 Opus（不兼容 Safari）；失败则阻止上传
     const debugEnabled = isAudioUploadDebugEnabled();
     const debugPrefix = "[tc-audio-upload]";
-    if (debugEnabled)
-      console.warn(`${debugPrefix} UploadUtils.uploadAudio input`, { name: file.name, type: file.type, size: file.size, maxDuration, scene });
-
-    const transcodeOptions = buildDefaultAudioUploadTranscodeOptions(file.size, maxDuration);
-
-    const processedFile = await transcodeAudioFileToOpusOrThrow(file, transcodeOptions);
-    if (debugEnabled)
-      console.warn(`${debugPrefix} processed`, { name: processedFile.name, type: processedFile.type, size: processedFile.size, transcodeOptions });
+    const processedFile = await this.prepareAudioForUpload(file, maxDuration);
+    if (debugEnabled) {
+      console.warn(`${debugPrefix} upload prepared file`, {
+        scene,
+        input: { name: file.name, size: file.size, type: file.type },
+        prepared: { name: processedFile.name, size: processedFile.size, type: processedFile.type },
+      });
+    }
 
     // 1. 计算文件内容的哈希值
     const hash = await this.calculateFileHash(processedFile);
@@ -140,37 +345,7 @@ export class UploadUtils {
     file: File,
     scene: 1 | 2 | 3 | 4 = 1,
   ): Promise<{ url: string; fileName: string; size: number }> {
-    const extension = ((file.name || "").toLowerCase().match(/\.([a-z0-9]+)$/)?.[1] || "").trim();
-    const inferredVideoMimeByExt: Record<string, string> = {
-      mp4: "video/mp4",
-      m4v: "video/mp4",
-      mov: "video/quicktime",
-      webm: "video/webm",
-      mkv: "video/x-matroska",
-      avi: "video/x-msvideo",
-      wmv: "video/x-ms-wmv",
-      flv: "video/x-flv",
-      mpg: "video/mpeg",
-      mpeg: "video/mpeg",
-    };
-
-    let videoFile = file;
-    if (!videoFile.type.startsWith("video/")) {
-      const inferredType = inferredVideoMimeByExt[extension];
-      if (!inferredType) {
-        throw new Error("只支持视频文件格式");
-      }
-      videoFile = new File([file], file.name, {
-        type: inferredType,
-        lastModified: file.lastModified,
-      });
-    }
-
-    const processedFile = await transcodeVideoFileToWebmOrThrow(videoFile, {
-      maxHeight: 1080,
-      maxFps: 30,
-      crf: 34,
-    });
+    const processedFile = await this.prepareVideoForUpload(file);
 
     const hash = await this.calculateFileHash(processedFile);
     const fileSize = processedFile.size;
@@ -232,30 +407,7 @@ export class UploadUtils {
    * @param maxSize 最大的宽高（px）
    */
   async uploadImg(file: File, scene: 1 | 2 | 3 | 4 = 1, quality = 0.7, maxSize = 2560): Promise<string> {
-    let new_file = file;
-    const originalSize = file.size;
-
-    const isGif = await this.isGifFile(file);
-    // 对于图片文件进行处理
-    if (file.type.startsWith("image/")) {
-      // 精确检测GIF文件，优先使用文件头检测
-      if (isGif) {
-        console.warn(`[图片上传] GIF 文件跳过压缩: ${file.name} (${(originalSize / 1024).toFixed(2)} KB)`);
-        new_file = file;
-      }
-      else {
-        // 其他图片格式进行压缩
-        new_file = await compressImage(file, quality, maxSize);
-        const compressedSize = new_file.size;
-        const compressionRatio = Number.parseFloat(((1 - compressedSize / originalSize) * 100).toFixed(1));
-        console.warn(
-          `[图片上传] 压缩完成: ${file.name}\n`
-          + `  原始大小: ${(originalSize / 1024).toFixed(2)} KB\n`
-          + `  压缩后: ${(compressedSize / 1024).toFixed(2)} KB\n`
-          + `  压缩率: ${compressionRatio}% ${compressionRatio > 0 ? "✅" : "⚠️"}`,
-        );
-      }
-    }
+    const { processedFile: new_file, isGif } = await this.prepareImageForUpload(file, quality, maxSize);
 
     // 1. 计算文件内容的 SHA-256 哈希值
     const hash = await this.calculateFileHash(new_file);

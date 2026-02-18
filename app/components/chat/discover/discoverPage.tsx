@@ -4,6 +4,7 @@ import { useNavigate, useSearchParams } from "react-router";
 import ChatPageLayout from "@/components/chat/chatPageLayout";
 import ChatDiscoverNavPanel from "@/components/chat/discover/chatDiscoverNavPanel";
 import DiscoverArchivedSpacesView from "@/components/chat/discover/discoverArchivedSpacesView";
+import DiscoverProductionPlaceholder from "@/components/chat/discover/discoverProductionPlaceholder";
 import useChatPageLeftDrawer from "@/components/chat/hooks/useChatPageLeftDrawer";
 import useChatPageNavigation from "@/components/chat/hooks/useChatPageNavigation";
 import useChatPageOrdering from "@/components/chat/hooks/useChatPageOrdering";
@@ -15,6 +16,7 @@ import { useScreenSize } from "@/components/common/customHooks/useScreenSize";
 import { useGlobalContext } from "@/components/globalContextProvider";
 
 const EMPTY_ARRAY: never[] = [];
+const isProductionMode = import.meta.env.MODE === "production";
 
 type DiscoverMode = "square" | "my";
 
@@ -130,7 +132,7 @@ export default function DiscoverPage({ mode }: DiscoverPageProps) {
           activeMode={mode}
         />
       )}
-      mainContent={<DiscoverArchivedSpacesView mode={mode} />}
+      mainContent={isProductionMode ? <DiscoverProductionPlaceholder /> : <DiscoverArchivedSpacesView mode={mode} />}
     />
   );
 }

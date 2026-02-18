@@ -35,6 +35,7 @@ interface V4CharEditorRow extends V4CharPayload {
 const DEFAULT_IMAGE_ENDPOINT = "https://image.novelai.net";
 const STORAGE_UI_MODE_KEY = "tc:ai-image:ui-mode";
 const LOCKED_IMAGE_MODEL = "nai-diffusion-4-5-curated";
+const JPEG_REJECT_ERROR = "上游返回 JPEG（有损），已按策略拒绝。请将 NovelAI 输出格式切换为 WebP 或 PNG。";
 
 const SAMPLERS_NAI3 = [
   "k_euler",
@@ -183,8 +184,6 @@ function mimeFromFilename(name: string) {
     return "image/png";
   if (lower.endsWith(".webp"))
     return "image/webp";
-  if (lower.endsWith(".jpg") || lower.endsWith(".jpeg"))
-    return "image/jpeg";
   return "application/octet-stream";
 }
 
@@ -212,9 +211,6 @@ function detectBinaryDataUrl(bytes: Uint8Array) {
   if (startsWithBytes(bytes, [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]))
     return base64DataUrl("image/png", bytes);
 
-  if (bytes.length >= 3 && bytes[0] === 0xFF && bytes[1] === 0xD8 && bytes[2] === 0xFF)
-    return base64DataUrl("image/jpeg", bytes);
-
   if (
     bytes.length >= 12
     && bytes[0] === 0x52
@@ -238,7 +234,13 @@ function firstImageFromZip(zipBytes: Uint8Array) {
   if (!names.length)
     throw new Error("ZIP 解包失败：未找到任何文件");
 
-  const preferred = names.find(n => /\.(?:png|webp|jpe?g)$/i.test(n)) || names[0];
+  const preferred = names.find(n => /\.(?:png|webp)$/i.test(n));
+  if (!preferred) {
+    const jpegEntry = names.find(n => /\.jpe?g$/i.test(n));
+    if (jpegEntry)
+      throw new Error(JPEG_REJECT_ERROR);
+    throw new Error("ZIP 解包失败：未找到 PNG/WebP 文件");
+  }
   return base64DataUrl(mimeFromFilename(preferred), files[preferred]);
 }
 
@@ -469,6 +471,9 @@ async function generateNovelImageViaProxy(args: {
   }
 
   const bytes = new Uint8Array(await res.arrayBuffer());
+  if (bytes.length >= 3 && bytes[0] === 0xFF && bytes[1] === 0xD8 && bytes[2] === 0xFF)
+    throw new Error(JPEG_REJECT_ERROR);
+
   let dataUrl = detectBinaryDataUrl(bytes);
   if (!dataUrl && looksLikeZip(bytes))
     dataUrl = firstImageFromZip(bytes);

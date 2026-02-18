@@ -1,9 +1,10 @@
 import type { UseMutationResult } from "@tanstack/react-query";
 
 import { useCallback } from "react";
-import { useRoomUiStoreApi } from "@/components/chat/stores/roomUiStore";
 
 import type { RoomContextType } from "@/components/chat/core/roomContext";
+
+import { useRoomUiStoreApi } from "@/components/chat/stores/roomUiStore";
 
 import type { ApiResultMessage, ChatMessageResponse, Message } from "../../../../api";
 

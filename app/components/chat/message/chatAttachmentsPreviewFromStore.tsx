@@ -1,5 +1,5 @@
-import React from "react";
 import { FilmSlateIcon } from "@phosphor-icons/react";
+import React from "react";
 import MessageAnnotationsBar from "@/components/chat/message/annotations/messageAnnotationsBar";
 import { openMessageAnnotationPicker } from "@/components/chat/message/annotations/openMessageAnnotationPicker";
 import { useChatComposerStore } from "@/components/chat/stores/chatComposerStore";

@@ -6,6 +6,7 @@ import { toast } from "react-hot-toast";
 import type { AtMentionHandle } from "@/components/atMentionController";
 
 import { useChatComposerStore } from "@/components/chat/stores/chatComposerStore";
+import { preheatChatMediaPreprocess } from "@/components/chat/utils/attachmentPreprocess";
 import { ANNOTATION_IDS, normalizeAnnotations } from "@/types/messageAnnotations";
 
 type UseChatInputHandlersParams = {
@@ -105,6 +106,12 @@ export default function useChatInputHandlers({
         toast.error("仅支持粘贴 1 个音频，已取第一个");
       }
     }
+
+    preheatChatMediaPreprocess({
+      imageFiles: imageFiles,
+      videoFiles: videoFiles,
+      audioFiles: audioFiles.length > 0 ? [audioFiles[0]] : [],
+    });
   }, []);
 
   const handleKeyDown = useCallback((e: KeyboardEvent) => {

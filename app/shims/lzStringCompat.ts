@@ -32,7 +32,7 @@ function getMethod<K extends keyof LzApi>(name: K): NonNullable<LzApi[K]> | null
   return null;
 }
 
-export const compressToBase64 = (input: string | null) => {
+export function compressToBase64(input: string | null) {
   const method = getMethod("compressToBase64");
   if (method) {
     return method(input);
@@ -43,9 +43,9 @@ export const compressToBase64 = (input: string | null) => {
   catch {
     return "";
   }
-};
+}
 
-export const decompressFromBase64 = (input: string | null) => {
+export function decompressFromBase64(input: string | null) {
   const method = getMethod("decompressFromBase64");
   if (method) {
     return method(input);
@@ -56,27 +56,27 @@ export const decompressFromBase64 = (input: string | null) => {
   catch {
     return null;
   }
-};
+}
 
-export const compressToUTF16 = (input: string | null) => {
+export function compressToUTF16(input: string | null) {
   const method = getMethod("compressToUTF16");
   return method ? method(input) : String(input ?? "");
-};
+}
 
-export const decompressFromUTF16 = (input: string | null) => {
+export function decompressFromUTF16(input: string | null) {
   const method = getMethod("decompressFromUTF16");
   return method ? method(input) : String(input ?? "");
-};
+}
 
-export const compressToUint8Array = (input: string) => {
+export function compressToUint8Array(input: string) {
   const method = getMethod("compressToUint8Array");
   if (method) {
     return method(input);
   }
   return new TextEncoder().encode(String(input ?? ""));
-};
+}
 
-export const decompressFromUint8Array = (input: Uint8Array | null | undefined) => {
+export function decompressFromUint8Array(input: Uint8Array | null | undefined) {
   const method = getMethod("decompressFromUint8Array");
   if (method) {
     return method(input);
@@ -85,9 +85,9 @@ export const decompressFromUint8Array = (input: Uint8Array | null | undefined) =
     return null;
   }
   return new TextDecoder().decode(input);
-};
+}
 
-export const compressToEncodedURIComponent = (input: string | null) => {
+export function compressToEncodedURIComponent(input: string | null) {
   const method = getMethod("compressToEncodedURIComponent");
   if (method) {
     try {
@@ -99,9 +99,9 @@ export const compressToEncodedURIComponent = (input: string | null) => {
   }
   const raw = String(input ?? "");
   return `${RAW_FALLBACK_PREFIX}${encodeURIComponent(raw)}`;
-};
+}
 
-export const decompressFromEncodedURIComponent = (input: string | null) => {
+export function decompressFromEncodedURIComponent(input: string | null) {
   const rawInput = String(input ?? "");
   if (rawInput.startsWith(RAW_FALLBACK_PREFIX)) {
     const encoded = rawInput.slice(RAW_FALLBACK_PREFIX.length);
@@ -129,17 +129,17 @@ export const decompressFromEncodedURIComponent = (input: string | null) => {
   catch {
     return rawInput || null;
   }
-};
+}
 
-export const compress = (input: string | null) => {
+export function compress(input: string | null) {
   const method = getMethod("compress");
   return method ? method(input) : String(input ?? "");
-};
+}
 
-export const decompress = (input: string | null) => {
+export function decompress(input: string | null) {
   const method = getMethod("decompress");
   return method ? method(input) : String(input ?? "");
-};
+}
 
 export default {
   compressToBase64,

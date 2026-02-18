@@ -154,16 +154,24 @@ export async function resolveDevServerUrl({ preferredUrl, host = "localhost", po
 
 export function buildCandidatePorts({ preferredPorts = [], defaultPort = 5177, scanRange = 20 } = {}) {
   const ports = [];
+  const seen = new Set();
+
+  const pushPort = (value) => {
+    const num = Number(value);
+    if (!Number.isFinite(num) || num <= 0 || seen.has(num))
+      return;
+    seen.add(num);
+    ports.push(num);
+  };
+
   for (const p of preferredPorts) {
-    const num = Number(p);
-    if (Number.isFinite(num) && num > 0)
-      ports.push(num);
+    pushPort(p);
   }
 
   const base = Number(defaultPort);
   if (Number.isFinite(base) && base > 0) {
     for (let i = 0; i < scanRange; i++) {
-      ports.push(base + i);
+      pushPort(base + i);
     }
   }
 

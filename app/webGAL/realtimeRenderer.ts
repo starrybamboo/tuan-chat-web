@@ -258,15 +258,15 @@ export type RealtimeGameConfig = {
 
 const DEFAULT_REALTIME_GAME_CONFIG: RealtimeGameConfig = {
   coverFromRoomAvatarEnabled: true,
-  startupLogoFromRoomAvatarEnabled: true,
-  gameIconFromRoomAvatarEnabled: false,
+  startupLogoFromRoomAvatarEnabled: false,
+  gameIconFromRoomAvatarEnabled: true,
   gameNameFromRoomNameEnabled: true,
   description: "",
   packageName: "",
   showPanicEnabled: false,
   defaultLanguage: "",
   enableAppreciation: true,
-  typingSoundEnabled: true,
+  typingSoundEnabled: false,
 };
 
 const IMAGE_MESSAGE_FIGURE_ID = "image_message";
