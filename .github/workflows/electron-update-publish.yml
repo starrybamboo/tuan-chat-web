@@ -102,8 +102,8 @@ jobs:
       UPDATE_SERVER_PORT: ${{ secrets.UPDATE_SERVER_PORT || '22' }}
       UPDATE_SERVER_USERNAME: ${{ secrets.UPDATE_SERVER_USERNAME || secrets.SERVER_USERNAME || secrets.SSH_USERNAME }}
       UPDATE_SERVER_PASSWORD: ${{ secrets.UPDATE_SERVER_PASSWORD || secrets.SERVER_PASSWORD || secrets.SSH_PASSWORD }}
-      # 默认发布到生产站点静态目录下的 updates 子目录，与 electron-builder publish.url 对应。
-      UPDATE_SERVER_PATH: ${{ secrets.UPDATE_SERVER_PATH || '/www/wwwroot/tuan-chat-web/updates' }}
+      # 兼容旧配置：允许把 UPDATE_SERVER_PATH 填成站点根目录，流程会自动补成 <root>/updates。
+      UPDATE_SERVER_PATH_RAW: ${{ secrets.UPDATE_SERVER_PATH || '/www/wwwroot/tuan-chat-web' }}
     steps:
       - name: Download artifacts
         uses: actions/download-artifact@v4
@@ -118,7 +118,15 @@ jobs:
           test -n "${UPDATE_SERVER_HOST}" || { echo "缺少 secret: UPDATE_SERVER_HOST"; exit 1; }
           test -n "${UPDATE_SERVER_USERNAME}" || { echo "缺少 secret: UPDATE_SERVER_USERNAME"; exit 1; }
           test -n "${UPDATE_SERVER_PASSWORD}" || { echo "缺少 secret: UPDATE_SERVER_PASSWORD"; exit 1; }
-          test -n "${UPDATE_SERVER_PATH}" || { echo "缺少 secret: UPDATE_SERVER_PATH"; exit 1; }
+          test -n "${UPDATE_SERVER_PATH_RAW}" || { echo "缺少 secret: UPDATE_SERVER_PATH"; exit 1; }
+
+          if [[ "${UPDATE_SERVER_PATH_RAW}" == */updates ]]; then
+            UPDATE_SERVER_PATH="${UPDATE_SERVER_PATH_RAW}"
+          else
+            UPDATE_SERVER_PATH="${UPDATE_SERVER_PATH_RAW%/}/updates"
+          fi
+          echo "UPDATE_SERVER_PATH=${UPDATE_SERVER_PATH}" >> "$GITHUB_ENV"
+          echo "使用更新发布目录：${UPDATE_SERVER_PATH}"
 
       - name: Upload update files
         uses: appleboy/scp-action@v1
