@@ -1,12 +1,13 @@
 import type { ChatMessageResponse, Room, UserRole } from "../../../../api";
 
 import { useGetSpaceInfoQuery, useGetUserRoomsQuery } from "api/hooks/chatQueryHooks";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import toast from "react-hot-toast";
 import { useRealtimeRenderStore } from "@/components/chat/stores/realtimeRenderStore";
 import WorkflowWindow from "@/components/chat/window/workflowWindow";
-import launchWebGal from "@/utils/launchWebGal";
+import launchWebGal, { appendWebgalTimeoutHint } from "@/utils/launchWebGal";
 import { pollPort } from "@/utils/pollPort";
+import { UploadUtils } from "@/utils/UploadUtils";
 import { getTerreBaseUrl, getTerreHealthcheckUrl } from "@/webGAL/terreConfig";
 import useRealtimeRender from "@/webGAL/useRealtimeRender";
 import { tuanchat } from "../../../../api/instance";
@@ -127,6 +128,51 @@ function SectionCollapseToggle({
   );
 }
 
+function ConfigHelpButton({ label, description }: { label: string; description: string }) {
+  const stopLabelToggle = (event: React.SyntheticEvent) => {
+    event.preventDefault();
+    event.stopPropagation();
+  };
+
+  return (
+    <span className="tooltip tooltip-top z-20" data-tip={description}>
+      <button
+        type="button"
+        className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-base-content/50 transition-colors hover:bg-info/15 hover:text-info focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-info/60"
+        title={description}
+        aria-label={`${label}说明：${description}`}
+        onClick={stopLabelToggle}
+        onPointerDown={stopLabelToggle}
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className="h-3.5 w-3.5"
+          aria-hidden="true"
+        >
+          <circle cx="12" cy="12" r="9"></circle>
+          <path d="M12 11v5"></path>
+          <path d="M12 8h.01"></path>
+        </svg>
+      </button>
+    </span>
+  );
+}
+
+function ConfigItemLabel({ label, description }: { label: string; description: string }) {
+  return (
+    <span className="flex items-center gap-1 text-sm">
+      <span>{label}</span>
+      <ConfigHelpButton label={label} description={description} />
+    </span>
+  );
+}
+
 interface SpaceWebgalRenderWindowProps {
   spaceId: number;
 }
@@ -157,6 +203,11 @@ const DEFAULT_LANGUAGE_OPTIONS = [
   { value: "de", label: "德语" },
 ] as const;
 
+const BASE_TEMPLATE_OPTIONS = [
+  { value: "none", label: "无（默认）" },
+  { value: "black", label: "Black" },
+] as const;
+
 export default function SpaceWebgalRenderWindow({ spaceId }: SpaceWebgalRenderWindowProps) {
   const spaceInfoQuery = useGetSpaceInfoQuery(spaceId);
   const roomsQuery = useGetUserRoomsQuery(spaceId);
@@ -185,14 +236,24 @@ export default function SpaceWebgalRenderWindow({ spaceId }: SpaceWebgalRenderWi
   const setGameConfig = useRealtimeRenderStore(state => state.setGameConfig);
   const setRealtimeRuntime = useRealtimeRenderStore(state => state.setRuntime);
   const resetRealtimeRuntime = useRealtimeRenderStore(state => state.resetRuntime);
+  const uploadUtilsRef = useRef(new UploadUtils());
+  const titleImageFileInputRef = useRef<HTMLInputElement | null>(null);
+  const startupLogoFileInputRef = useRef<HTMLInputElement | null>(null);
+  const typingSoundSeFileInputRef = useRef<HTMLInputElement | null>(null);
 
   const [allRoomRoles, setAllRoomRoles] = useState<UserRole[]>([]);
   const [isBatchRendering, setIsBatchRendering] = useState(false);
+  const [isTitleImageUploading, setIsTitleImageUploading] = useState(false);
+  const [isStartupLogoUploading, setIsStartupLogoUploading] = useState(false);
+  const [isTypingSoundSeUploading, setIsTypingSoundSeUploading] = useState(false);
   const [batchProgress, setBatchProgress] = useState<{ current: number; total: number; roomName?: string } | null>(null);
   const [roomRenderStateMap, setRoomRenderStateMap] = useState<Record<number, RoomRenderState>>({});
   const [ttsApiInput, setTtsApiInput] = useState("");
   const [descriptionInput, setDescriptionInput] = useState("");
   const [packageNameInput, setPackageNameInput] = useState("");
+  const [typingSoundIntervalInput, setTypingSoundIntervalInput] = useState("");
+  const [typingSoundPunctuationPauseInput, setTypingSoundPunctuationPauseInput] = useState("");
+  const [typingSoundDetailExpanded, setTypingSoundDetailExpanded] = useState(false);
   const [terrePortInput, setTerrePortInput] = useState("");
   const [terrePortError, setTerrePortError] = useState<string | null>(null);
   const [renderPortExpanded, setRenderPortExpanded] = useState(false);
@@ -213,6 +274,14 @@ export default function SpaceWebgalRenderWindow({ spaceId }: SpaceWebgalRenderWi
   useEffect(() => {
     setPackageNameInput(gameConfig.packageName);
   }, [gameConfig.packageName]);
+
+  useEffect(() => {
+    setTypingSoundIntervalInput(String(gameConfig.typingSoundInterval));
+  }, [gameConfig.typingSoundInterval]);
+
+  useEffect(() => {
+    setTypingSoundPunctuationPauseInput(String(gameConfig.typingSoundPunctuationPause));
+  }, [gameConfig.typingSoundPunctuationPause]);
 
   useEffect(() => {
     setTerrePortInput(terrePortOverride ? String(terrePortOverride) : "");
@@ -334,7 +403,7 @@ export default function SpaceWebgalRenderWindow({ spaceId }: SpaceWebgalRenderWi
     });
     const electronEnv = launchResult.runtime === "electron";
     if (electronEnv && !launchResult.ok) {
-      toast.error(launchResult.error || "WebGAL 启动失败", { id: "space-webgal-init" });
+      toast.error(appendWebgalTimeoutHint(launchResult.error || "WebGAL 启动失败"), { id: "space-webgal-init" });
       return false;
     }
 
@@ -358,9 +427,11 @@ export default function SpaceWebgalRenderWindow({ spaceId }: SpaceWebgalRenderWi
       return true;
     }
     catch (error) {
-      const message = error instanceof Error && error.message
-        ? `WebGAL 启动失败：${error.message}`
-        : "WebGAL 启动超时";
+      const message = appendWebgalTimeoutHint(
+        error instanceof Error && error.message
+          ? `WebGAL 启动失败：${error.message}`
+          : "WebGAL 启动超时",
+      );
       toast.error(message, { id: "space-webgal-init" });
       return false;
     }
@@ -482,6 +553,153 @@ export default function SpaceWebgalRenderWindow({ spaceId }: SpaceWebgalRenderWi
     toast.success("游戏包名已保存");
   }, [packageNameInput, setGameConfig]);
 
+  const handleSaveTypingSoundInterval = useCallback(() => {
+    const parsed = Number(typingSoundIntervalInput.trim());
+    if (!Number.isFinite(parsed) || parsed <= 0) {
+      toast.error("请输入大于 0 的数字");
+      return;
+    }
+    const normalized = Math.max(0.1, Math.min(20, Number(parsed.toFixed(2))));
+    setGameConfig({ typingSoundInterval: normalized });
+    setTypingSoundIntervalInput(String(normalized));
+    toast.success("打字音频率已保存");
+  }, [setGameConfig, typingSoundIntervalInput]);
+
+  const handleSaveTypingSoundPunctuationPause = useCallback(() => {
+    const parsed = Number(typingSoundPunctuationPauseInput.trim());
+    if (!Number.isFinite(parsed) || parsed < 0) {
+      toast.error("请输入大于等于 0 的毫秒数");
+      return;
+    }
+    const normalized = Math.max(0, Math.min(5000, Math.floor(parsed)));
+    setGameConfig({ typingSoundPunctuationPause: normalized });
+    setTypingSoundPunctuationPauseInput(String(normalized));
+    toast.success("标点停顿已保存");
+  }, [setGameConfig, typingSoundPunctuationPauseInput]);
+
+  const handlePickTypingSoundSe = useCallback(() => {
+    if (isTypingSoundSeUploading) {
+      return;
+    }
+    typingSoundSeFileInputRef.current?.click();
+  }, [isTypingSoundSeUploading]);
+
+  const handleTypingSoundSeFileChange = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) {
+      return;
+    }
+    if (!file.type.startsWith("audio/")) {
+      toast.error("请上传音频文件");
+      return;
+    }
+
+    setIsTypingSoundSeUploading(true);
+    toast.loading("正在上传打字音效...", { id: "space-webgal-typing-se-upload" });
+    try {
+      const uploadedUrl = await uploadUtilsRef.current.uploadAudioOriginal(file, 1);
+      setGameConfig({ typingSoundSeUrl: uploadedUrl.trim() });
+      toast.success("打字音效上传成功", { id: "space-webgal-typing-se-upload" });
+    }
+    catch (error) {
+      toast.error(`打字音效上传失败：${getErrorMessage(error)}`, { id: "space-webgal-typing-se-upload" });
+    }
+    finally {
+      setIsTypingSoundSeUploading(false);
+    }
+  }, [setGameConfig]);
+
+  const handleClearTypingSoundSe = useCallback(() => {
+    setGameConfig({ typingSoundSeUrl: "" });
+    if (typingSoundSeFileInputRef.current) {
+      typingSoundSeFileInputRef.current.value = "";
+    }
+    toast.success("打字音效已恢复默认");
+  }, [setGameConfig]);
+
+  const handlePickTitleImage = useCallback(() => {
+    if (isTitleImageUploading) {
+      return;
+    }
+    titleImageFileInputRef.current?.click();
+  }, [isTitleImageUploading]);
+
+  const handleTitleImageFileChange = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) {
+      return;
+    }
+    if (!file.type.startsWith("image/")) {
+      toast.error("请上传图片文件");
+      return;
+    }
+
+    setIsTitleImageUploading(true);
+    toast.loading("正在上传标题背景图...", { id: "space-webgal-title-image-upload" });
+    try {
+      const uploadedUrl = await uploadUtilsRef.current.uploadImg(file, 1);
+      setGameConfig({ titleImageUrl: uploadedUrl.trim() });
+      toast.success("标题背景图上传成功", { id: "space-webgal-title-image-upload" });
+    }
+    catch (error) {
+      toast.error(`标题背景图上传失败：${getErrorMessage(error)}`, { id: "space-webgal-title-image-upload" });
+    }
+    finally {
+      setIsTitleImageUploading(false);
+    }
+  }, [setGameConfig]);
+
+  const handleClearTitleImage = useCallback(() => {
+    setGameConfig({ titleImageUrl: "" });
+    if (titleImageFileInputRef.current) {
+      titleImageFileInputRef.current.value = "";
+    }
+    toast.success("标题背景图已清空");
+  }, [setGameConfig]);
+
+  const handlePickStartupLogo = useCallback(() => {
+    if (isStartupLogoUploading) {
+      return;
+    }
+    startupLogoFileInputRef.current?.click();
+  }, [isStartupLogoUploading]);
+
+  const handleStartupLogoFileChange = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) {
+      return;
+    }
+    if (!file.type.startsWith("image/")) {
+      toast.error("请上传图片文件");
+      return;
+    }
+
+    setIsStartupLogoUploading(true);
+    toast.loading("正在上传启动图...", { id: "space-webgal-startup-logo-upload" });
+    try {
+      const uploadedUrl = await uploadUtilsRef.current.uploadImg(file, 1);
+      setGameConfig({ startupLogoUrl: uploadedUrl.trim() });
+      toast.success("启动图上传成功", { id: "space-webgal-startup-logo-upload" });
+    }
+    catch (error) {
+      toast.error(`启动图上传失败：${getErrorMessage(error)}`, { id: "space-webgal-startup-logo-upload" });
+    }
+    finally {
+      setIsStartupLogoUploading(false);
+    }
+  }, [setGameConfig]);
+
+  const handleClearStartupLogo = useCallback(() => {
+    setGameConfig({ startupLogoUrl: "" });
+    if (startupLogoFileInputRef.current) {
+      startupLogoFileInputRef.current.value = "";
+    }
+    toast.success("启动图已清空");
+  }, [setGameConfig]);
+
   const handleSaveTerrePort = useCallback(() => {
     const trimmedPort = terrePortInput.trim();
     if (!trimmedPort) {
@@ -533,7 +751,7 @@ export default function SpaceWebgalRenderWindow({ spaceId }: SpaceWebgalRenderWi
   const isAllSectionsCollapsed = COLLAPSIBLE_SECTION_KEYS.every(key => !sectionExpandedMap[key]);
 
   const renderStatusMeta = buildStatusMeta(realtimeStatus);
-  const isTtsConfigVisible = sectionExpandedMap.ttsLayer && ttsEnabled;
+  const isTtsConfigVisible = sectionExpandedMap.ttsLayer;
   const webgalEditorUrl = useMemo(() => {
     const match = realtimePreviewUrl?.match(/\/games\/([^/]+)/);
     const gameDir = match?.[1] || `realtime_${spaceId}`;
@@ -663,7 +881,10 @@ export default function SpaceWebgalRenderWindow({ spaceId }: SpaceWebgalRenderWi
 
         <div className={`rounded-lg border border-base-300 bg-base-100 ${sectionExpandedMap.workflowLayer ? "p-4" : "px-4 py-2"}`}>
           <div className={`flex items-center justify-between gap-2${sectionExpandedMap.workflowLayer ? " mb-3" : ""}`}>
-            <div className="text-sm font-semibold">流程图</div>
+            <div className="flex items-center gap-2 min-w-0">
+              <div className="text-sm font-semibold shrink-0">流程图</div>
+              <span className="text-xs text-base-content/60 truncate">（修改流程图请打开全屏修改）</span>
+            </div>
             <SectionCollapseToggle
               expanded={sectionExpandedMap.workflowLayer}
               label="流程图"
@@ -771,7 +992,10 @@ export default function SpaceWebgalRenderWindow({ spaceId }: SpaceWebgalRenderWi
             <div className="space-y-3">
               <div className="grid gap-2 md:grid-cols-2">
                 <label className="flex items-center justify-between gap-2 rounded-md border border-base-300 px-3 py-2">
-                  <span className="text-sm">标题背景图使用群聊头像</span>
+                  <ConfigItemLabel
+                    label="未设置标题背景图时使用群聊头像"
+                    description="如果你没有上传标题背景图，就自动用群聊头像当首页背景。"
+                  />
                   <input
                     type="checkbox"
                     className="toggle toggle-sm toggle-primary"
@@ -780,7 +1004,10 @@ export default function SpaceWebgalRenderWindow({ spaceId }: SpaceWebgalRenderWi
                   />
                 </label>
                 <label className="flex items-center justify-between gap-2 rounded-md border border-base-300 px-3 py-2">
-                  <span className="text-sm">启动图使用群聊头像</span>
+                  <ConfigItemLabel
+                    label="未设置启动图时使用群聊头像"
+                    description="如果你没有上传启动图，就自动用群聊头像当启动图。"
+                  />
                   <input
                     type="checkbox"
                     className="toggle toggle-sm toggle-primary"
@@ -789,7 +1016,10 @@ export default function SpaceWebgalRenderWindow({ spaceId }: SpaceWebgalRenderWi
                   />
                 </label>
                 <label className="flex items-center justify-between gap-2 rounded-md border border-base-300 px-3 py-2">
-                  <span className="text-sm">游戏图标使用群聊头像</span>
+                  <ConfigItemLabel
+                    label="游戏图标使用群聊头像"
+                    description="让游戏图标和群聊头像保持一致。"
+                  />
                   <input
                     type="checkbox"
                     className="toggle toggle-sm toggle-primary"
@@ -798,7 +1028,10 @@ export default function SpaceWebgalRenderWindow({ spaceId }: SpaceWebgalRenderWi
                   />
                 </label>
                 <label className="flex items-center justify-between gap-2 rounded-md border border-base-300 px-3 py-2">
-                  <span className="text-sm">游戏名使用空间名+ID</span>
+                  <ConfigItemLabel
+                    label="游戏名使用空间名+ID"
+                    description="自动用“空间名 + 编号”当游戏名，避免重名。"
+                  />
                   <input
                     type="checkbox"
                     className="toggle toggle-sm toggle-primary"
@@ -807,7 +1040,10 @@ export default function SpaceWebgalRenderWindow({ spaceId }: SpaceWebgalRenderWi
                   />
                 </label>
                 <label className="flex items-center justify-between gap-2 rounded-md border border-base-300 px-3 py-2">
-                  <span className="text-sm">启用紧急回避</span>
+                  <ConfigItemLabel
+                    label="启用紧急回避"
+                    description="需要快速遮住画面时可以一键隐藏当前内容。"
+                  />
                   <input
                     type="checkbox"
                     className="toggle toggle-sm toggle-primary"
@@ -816,7 +1052,10 @@ export default function SpaceWebgalRenderWindow({ spaceId }: SpaceWebgalRenderWi
                   />
                 </label>
                 <label className="flex items-center justify-between gap-2 rounded-md border border-base-300 px-3 py-2">
-                  <span className="text-sm">启用鉴赏模式</span>
+                  <ConfigItemLabel
+                    label="启用鉴赏模式"
+                    description="开启后可在菜单里查看已看过的内容，方便回顾。"
+                  />
                   <input
                     type="checkbox"
                     className="toggle toggle-sm toggle-primary"
@@ -824,17 +1063,127 @@ export default function SpaceWebgalRenderWindow({ spaceId }: SpaceWebgalRenderWi
                     onChange={event => setGameConfig({ enableAppreciation: event.target.checked })}
                   />
                 </label>
+                <div className={`rounded-md border border-base-300 md:col-span-2 ${typingSoundDetailExpanded ? "p-3" : "px-3 py-2"}`}>
+                  <div className={`flex flex-wrap items-center justify-between gap-2${typingSoundDetailExpanded ? " mb-3" : ""}`}>
+                    <ConfigItemLabel
+                      label="启用打字音"
+                      description="文字一个个出现时会播放轻微按键音，展开后可以细调频率和音效。"
+                    />
+                    <div className="flex items-center gap-2">
+                      <label className="flex items-center gap-2 rounded-md border border-base-300 px-2 py-1 text-xs">
+                        <span>打字音</span>
+                        <input
+                          type="checkbox"
+                          className="toggle toggle-xs toggle-primary"
+                          checked={gameConfig.typingSoundEnabled}
+                          onChange={event => setGameConfig({ typingSoundEnabled: event.target.checked })}
+                        />
+                      </label>
+                      <SectionCollapseToggle
+                        expanded={typingSoundDetailExpanded}
+                        label="打字音细化设置"
+                        onClick={() => setTypingSoundDetailExpanded(prev => !prev)}
+                      />
+                    </div>
+                  </div>
+                  {typingSoundDetailExpanded && (
+                    <div className="rounded-md border border-base-300 px-3 py-2">
+                      <div className="grid gap-2 md:grid-cols-2">
+                        <div>
+                          <div className="mb-1 text-xs text-base-content/70">每隔多少个字播放一次</div>
+                          <div className="flex gap-2">
+                            <input
+                              type="number"
+                              min={0.1}
+                              max={20}
+                              step={0.1}
+                              className="input input-bordered input-sm flex-1"
+                              value={typingSoundIntervalInput}
+                              onChange={event => setTypingSoundIntervalInput(event.target.value)}
+                              onKeyDown={(event) => {
+                                if (event.key === "Enter") {
+                                  handleSaveTypingSoundInterval();
+                                }
+                              }}
+                            />
+                            <button
+                              type="button"
+                              className="btn btn-sm btn-outline"
+                              onClick={handleSaveTypingSoundInterval}
+                            >
+                              保存
+                            </button>
+                          </div>
+                        </div>
+                        <div>
+                          <div className="mb-1 text-xs text-base-content/70">标点额外停顿（毫秒）</div>
+                          <div className="flex gap-2">
+                            <input
+                              type="number"
+                              min={0}
+                              max={5000}
+                              step={10}
+                              className="input input-bordered input-sm flex-1"
+                              value={typingSoundPunctuationPauseInput}
+                              onChange={event => setTypingSoundPunctuationPauseInput(event.target.value)}
+                              onKeyDown={(event) => {
+                                if (event.key === "Enter") {
+                                  handleSaveTypingSoundPunctuationPause();
+                                }
+                              }}
+                            />
+                            <button
+                              type="button"
+                              className="btn btn-sm btn-outline"
+                              onClick={handleSaveTypingSoundPunctuationPause}
+                            >
+                              保存
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="mt-3">
+                        <div className="mb-1 text-xs text-base-content/70">打字音效文件</div>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <button
+                            type="button"
+                            className="btn btn-sm btn-outline"
+                            onClick={handlePickTypingSoundSe}
+                            disabled={isTypingSoundSeUploading}
+                          >
+                            {isTypingSoundSeUploading ? "上传中..." : "上传音频"}
+                          </button>
+                          <button
+                            type="button"
+                            className="btn btn-sm btn-ghost"
+                            onClick={handleClearTypingSoundSe}
+                            disabled={isTypingSoundSeUploading || !gameConfig.typingSoundSeUrl}
+                          >
+                            恢复默认
+                          </button>
+                          <span className="text-xs text-base-content/70">
+                            {gameConfig.typingSoundSeUrl ? "已设置自定义打字音" : "使用默认打字音"}
+                          </span>
+                        </div>
+                        {gameConfig.typingSoundSeUrl && (
+                          <audio className="mt-2 h-8 w-full max-w-sm" controls preload="none" src={gameConfig.typingSoundSeUrl} />
+                        )}
+                        <input
+                          ref={typingSoundSeFileInputRef}
+                          type="file"
+                          accept="audio/*"
+                          className="hidden"
+                          onChange={handleTypingSoundSeFileChange}
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
                 <label className="flex items-center justify-between gap-2 rounded-md border border-base-300 px-3 py-2">
-                  <span className="text-sm">启用打字音</span>
-                  <input
-                    type="checkbox"
-                    className="toggle toggle-sm toggle-primary"
-                    checked={gameConfig.typingSoundEnabled}
-                    onChange={event => setGameConfig({ typingSoundEnabled: event.target.checked })}
+                  <ConfigItemLabel
+                    label="默认语言"
+                    description="玩家第一次打开游戏时默认显示的语言。"
                   />
-                </label>
-                <label className="flex items-center justify-between gap-2 rounded-md border border-base-300 px-3 py-2">
-                  <span className="text-sm">默认语言</span>
                   <select
                     className="select select-bordered select-sm w-40"
                     value={gameConfig.defaultLanguage}
@@ -845,11 +1194,29 @@ export default function SpaceWebgalRenderWindow({ spaceId }: SpaceWebgalRenderWi
                     ))}
                   </select>
                 </label>
+                <label className="flex items-center justify-between gap-2 rounded-md border border-base-300 px-3 py-2">
+                  <ConfigItemLabel
+                    label="底层模板"
+                    description="none 为内置默认模板；black 会覆盖为 WebGAL Black。"
+                  />
+                  <select
+                    className="select select-bordered select-sm w-40"
+                    value={gameConfig.baseTemplate}
+                    onChange={event => setGameConfig({ baseTemplate: event.target.value as typeof gameConfig.baseTemplate })}
+                  >
+                    {BASE_TEMPLATE_OPTIONS.map(option => (
+                      <option key={option.value} value={option.value}>{option.label}</option>
+                    ))}
+                  </select>
+                </label>
               </div>
 
               <div className="grid gap-2 md:grid-cols-2">
                 <div className="rounded-md border border-base-300 px-3 py-2">
-                  <div className="text-sm mb-2">游戏简介（Description）</div>
+                  <div className="mb-2 flex items-center gap-1 text-sm">
+                    <span>游戏简介（Description）</span>
+                    <ConfigHelpButton label="游戏简介（Description）" description="给玩家看的简介文字，会显示在游戏信息里。" />
+                  </div>
                   <div className="flex gap-2">
                     <input
                       type="text"
@@ -874,7 +1241,10 @@ export default function SpaceWebgalRenderWindow({ spaceId }: SpaceWebgalRenderWi
                 </div>
 
                 <div className="rounded-md border border-base-300 px-3 py-2">
-                  <div className="text-sm mb-2">游戏包名（Package_name）</div>
+                  <div className="mb-2 flex items-center gap-1 text-sm">
+                    <span>游戏包名（Package_name）</span>
+                    <ConfigHelpButton label="游戏包名（Package_name）" description="打包发布时使用的应用标识；不确定可先保持当前值。" />
+                  </div>
                   <div className="flex gap-2">
                     <input
                       type="text"
@@ -896,6 +1266,102 @@ export default function SpaceWebgalRenderWindow({ spaceId }: SpaceWebgalRenderWi
                       保存
                     </button>
                   </div>
+                </div>
+
+                <div className="rounded-md border border-base-300 px-3 py-2 md:col-span-2">
+                  <div className="mb-2 flex items-center gap-1 text-sm">
+                    <span>标题背景图（Title_img）</span>
+                    <ConfigHelpButton
+                      label="标题背景图（Title_img）"
+                      description="进入游戏首页时看到的大背景图。"
+                    />
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <button
+                      type="button"
+                      className="btn btn-sm btn-outline"
+                      onClick={handlePickTitleImage}
+                      disabled={isTitleImageUploading}
+                    >
+                      {isTitleImageUploading ? "上传中..." : "上传图片"}
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-sm btn-ghost"
+                      onClick={handleClearTitleImage}
+                      disabled={isTitleImageUploading || !gameConfig.titleImageUrl}
+                    >
+                      清空
+                    </button>
+                    <span className="text-xs text-base-content/70">
+                      {gameConfig.titleImageUrl ? "已设置标题背景图" : "未设置标题背景图（可用上方头像兜底）"}
+                    </span>
+                  </div>
+                  {gameConfig.titleImageUrl && (
+                    <div className="mt-2 h-20 w-36 overflow-hidden rounded-md border border-base-300">
+                      <img
+                        src={gameConfig.titleImageUrl}
+                        alt="标题背景图预览"
+                        className="h-full w-full object-cover"
+                        loading="lazy"
+                      />
+                    </div>
+                  )}
+                  <input
+                    ref={titleImageFileInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleTitleImageFileChange}
+                  />
+                </div>
+
+                <div className="rounded-md border border-base-300 px-3 py-2 md:col-span-2">
+                  <div className="mb-2 flex items-center gap-1 text-sm">
+                    <span>启动图（Game_Logo）</span>
+                    <ConfigHelpButton
+                      label="启动图（Game_Logo）"
+                      description="游戏刚启动时显示的图片。"
+                    />
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <button
+                      type="button"
+                      className="btn btn-sm btn-outline"
+                      onClick={handlePickStartupLogo}
+                      disabled={isStartupLogoUploading}
+                    >
+                      {isStartupLogoUploading ? "上传中..." : "上传图片"}
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-sm btn-ghost"
+                      onClick={handleClearStartupLogo}
+                      disabled={isStartupLogoUploading || !gameConfig.startupLogoUrl}
+                    >
+                      清空
+                    </button>
+                    <span className="text-xs text-base-content/70">
+                      {gameConfig.startupLogoUrl ? "已设置启动图" : "未设置启动图（可用上方头像兜底）"}
+                    </span>
+                  </div>
+                  {gameConfig.startupLogoUrl && (
+                    <div className="mt-2 h-20 w-36 overflow-hidden rounded-md border border-base-300">
+                      <img
+                        src={gameConfig.startupLogoUrl}
+                        alt="启动图预览"
+                        className="h-full w-full object-cover"
+                        loading="lazy"
+                      />
+                    </div>
+                  )}
+                  <input
+                    ref={startupLogoFileInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleStartupLogoFileChange}
+                  />
                 </div>
               </div>
             </div>

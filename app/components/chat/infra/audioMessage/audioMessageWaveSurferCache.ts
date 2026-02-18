@@ -1,18 +1,21 @@
+import { mediaDebug } from "@/components/chat/infra/media/mediaDebug";
+
 type WaveSurferInstance = any;
 
 type CacheEntry = {
   ws: WaveSurferInstance;
   refs: number;
-  hiddenContainer: HTMLElement;
+  url: string;
+  root: HTMLDivElement;
 };
 
-const cacheByUrl = new Map<string, CacheEntry>();
+const cacheByKey = new Map<string, CacheEntry>();
 
-function ensureHiddenContainer(): HTMLElement {
+function ensureHiddenHost(): HTMLElement {
   if (typeof document === "undefined")
     throw new Error("document is not available");
 
-  const id = "tc-audio-message-hidden-wavesurfer-container";
+  const id = "tc-audio-message-hidden-wavesurfer-host";
   let el = document.getElementById(id) as HTMLDivElement | null;
   if (el)
     return el;
@@ -29,6 +32,7 @@ function ensureHiddenContainer(): HTMLElement {
   el.style.opacity = "0";
   el.style.pointerEvents = "none";
   document.body.appendChild(el);
+  mediaDebug("audio-cache", "create-hidden-host", { id });
   return el;
 }
 
@@ -52,99 +56,107 @@ async function createWaveSurfer(url: string, container: HTMLElement): Promise<Wa
   });
 }
 
-export function hasAudioMessageWaveSurfer(url: string): boolean {
-  return cacheByUrl.has(url);
+export function hasAudioMessageWaveSurfer(cacheKey: string): boolean {
+  return cacheByKey.has(cacheKey);
 }
 
-function releaseUrl(url: string, keepPlaying?: boolean) {
-  const entry = cacheByUrl.get(url);
+function releaseKey(cacheKey: string, opts?: { keepPlaying?: boolean }) {
+  const entry = cacheByKey.get(cacheKey);
   if (!entry)
     return;
 
+  const prevRefs = entry.refs;
   entry.refs = Math.max(0, entry.refs - 1);
+  mediaDebug("audio-cache", "release", {
+    cacheKey,
+    prevRefs,
+    nextRefs: entry.refs,
+    url: entry.url,
+    keepPlaying: Boolean(opts?.keepPlaying),
+    isPlaying: Boolean(entry.ws?.isPlaying?.()),
+  });
   if (entry.refs > 0)
     return;
 
-  const isPlaying = Boolean(entry.ws?.isPlaying?.());
-  const shouldKeep = Boolean(keepPlaying) || isPlaying;
-  if (shouldKeep) {
-    try {
-      entry.ws?.setOptions?.({ container: entry.hiddenContainer });
-    }
-    catch {
-      // ignore
-    }
-    return;
-  }
-
   try {
-    entry.ws?.destroy?.();
+    // 为了满足“滚动再远也不重载媒体”的体验要求，离屏后统一保留在 hidden host。
+    ensureHiddenHost().appendChild(entry.root);
+    mediaDebug("audio-cache", "move-to-hidden-host", {
+      cacheKey,
+      url: entry.url,
+      currentTime: entry.ws?.getCurrentTime?.(),
+      isPlaying: Boolean(entry.ws?.isPlaying?.()),
+      keepPlaying: Boolean(opts?.keepPlaying),
+    });
   }
   catch {
     // ignore
   }
-  cacheByUrl.delete(url);
 }
 
-export async function acquireAudioMessageWaveSurfer(params: { url: string; container: HTMLElement }) {
-  const { url, container } = params;
+export async function acquireAudioMessageWaveSurfer(params: { cacheKey: string; url: string; container: HTMLElement }) {
+  const { cacheKey, url, container } = params;
   if (!url)
     throw new Error("url is required");
+  if (!cacheKey)
+    throw new Error("cacheKey is required");
 
-  const existing = cacheByUrl.get(url);
+  const existing = cacheByKey.get(cacheKey);
   if (existing) {
-    existing.refs++;
-    try {
-      existing.ws?.setOptions?.({ container });
+    mediaDebug("audio-cache", "acquire-hit", {
+      cacheKey,
+      url,
+      cachedUrl: existing.url,
+      refs: existing.refs,
+      currentTime: existing.ws?.getCurrentTime?.(),
+      isPlaying: Boolean(existing.ws?.isPlaying?.()),
+    });
+    existing.refs = Math.max(0, existing.refs) + 1;
+
+    if (existing.url !== url) {
+      mediaDebug("audio-cache", "acquire-hit-url-changed", {
+        cacheKey,
+        prevUrl: existing.url,
+        nextUrl: url,
+      });
+      existing.url = url;
+      try {
+        existing.ws?.destroy?.();
+      }
+      catch {
+        // ignore
+      }
+      existing.root.innerHTML = "";
+      existing.ws = await createWaveSurfer(url, existing.root);
     }
-    catch {
-      // ignore
-    }
+
+    // Move the DOM node instead of calling ws.setOptions, to avoid playback interruptions.
+    container.appendChild(existing.root);
+    mediaDebug("audio-cache", "attach-to-container", {
+      cacheKey,
+      url: existing.url,
+      refs: existing.refs,
+      currentTime: existing.ws?.getCurrentTime?.(),
+      isPlaying: Boolean(existing.ws?.isPlaying?.()),
+    });
     return {
       ws: existing.ws,
-      release: (opts?: { keepPlaying?: boolean }) => releaseUrl(url, opts?.keepPlaying),
+      release: (opts?: { keepPlaying?: boolean }) => releaseKey(cacheKey, opts),
     };
   }
 
-  const hidden = ensureHiddenContainer();
-  const ws = await createWaveSurfer(url, container);
-  const entry: CacheEntry = { ws, refs: 1, hiddenContainer: hidden };
-  cacheByUrl.set(url, entry);
+  // Create a stable DOM root for the waveform; it will be moved between mount points.
+  const root = document.createElement("div");
+  root.style.width = "100%";
+  container.appendChild(root);
 
-  ws.on?.("finish", () => {
-    const current = cacheByUrl.get(url);
-    if (!current)
-      return;
-    if (current.refs > 0)
-      return;
-
-    try {
-      current.ws?.destroy?.();
-    }
-    catch {
-      // ignore
-    }
-    cacheByUrl.delete(url);
-  });
-
-  ws.on?.("error", () => {
-    const current = cacheByUrl.get(url);
-    if (!current)
-      return;
-    if (current.refs > 0)
-      return;
-
-    try {
-      current.ws?.destroy?.();
-    }
-    catch {
-      // ignore
-    }
-    cacheByUrl.delete(url);
-  });
+  const ws = await createWaveSurfer(url, root);
+  const entry: CacheEntry = { ws, refs: 1, url, root };
+  cacheByKey.set(cacheKey, entry);
+  mediaDebug("audio-cache", "acquire-miss-create", { cacheKey, url });
 
   return {
     ws,
-    release: (opts?: { keepPlaying?: boolean }) => releaseUrl(url, opts?.keepPlaying),
+    release: (opts?: { keepPlaying?: boolean }) => releaseKey(cacheKey, opts),
   };
 }

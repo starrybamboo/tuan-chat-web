@@ -21,10 +21,14 @@ interface RoomWindowOverlaysProps {
     onProgress?: (sent: number, total: number) => void,
   ) => Promise<void>;
   onOpenRoleAddWindow: () => void;
+  onOpenNpcAddWindow?: () => void;
 
   isRoleHandleOpen: boolean;
   setIsRoleAddWindowOpen: (isOpen: boolean) => void;
   handleAddRole: (roleId: number) => Promise<void> | void;
+  isNpcRoleHandleOpen: boolean;
+  setIsNpcRoleAddWindowOpen: (isOpen: boolean) => void;
+  handleAddNpcRole: (roleId: number) => Promise<void> | void;
   isRenderWindowOpen: boolean;
   setIsRenderWindowOpen: (isOpen: boolean) => void;
 }
@@ -36,9 +40,13 @@ export default function RoomWindowOverlays({
   availableRoles,
   onImportChatText,
   onOpenRoleAddWindow,
+  onOpenNpcAddWindow,
   isRoleHandleOpen,
   setIsRoleAddWindowOpen,
   handleAddRole,
+  isNpcRoleHandleOpen,
+  setIsNpcRoleAddWindowOpen,
+  handleAddNpcRole,
   isRenderWindowOpen,
   setIsRenderWindowOpen,
 }: RoomWindowOverlaysProps) {
@@ -54,6 +62,7 @@ export default function RoomWindowOverlays({
           onImport={onImportChatText}
           onClose={() => setIsImportChatTextOpen(false)}
           onOpenRoleAddWindow={onOpenRoleAddWindow}
+          onOpenNpcAddWindow={onOpenNpcAddWindow}
         />
       </ToastWindow>
 
@@ -61,6 +70,9 @@ export default function RoomWindowOverlays({
         isRoleHandleOpen={isRoleHandleOpen}
         setIsRoleAddWindowOpen={setIsRoleAddWindowOpen}
         handleAddRole={handleAddRole}
+        isNpcRoleHandleOpen={isNpcRoleHandleOpen}
+        setIsNpcRoleAddWindowOpen={setIsNpcRoleAddWindowOpen}
+        handleAddNpcRole={handleAddNpcRole}
         isRenderWindowOpen={isRenderWindowOpen}
         setIsRenderWindowOpen={setIsRenderWindowOpen}
       />

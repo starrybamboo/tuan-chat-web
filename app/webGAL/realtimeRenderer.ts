@@ -17,8 +17,8 @@ import {
   getFigureAnimationFromAnnotations,
   getFigurePositionFromAnnotations,
   hasAnnotation,
-  hasClearBgmAnnotation,
   hasClearBackgroundAnnotation,
+  hasClearBgmAnnotation,
   hasClearImageAnnotation,
   isImageMessageBackground,
   isImageMessageShown,
@@ -235,10 +235,14 @@ export type RealtimeTTSConfig = {
 };
 
 export type RealtimeGameConfig = {
-  /** 是否将群聊头像同步为标题背景图（Title_img） */
+  /** 未设置标题背景图 URL 时，是否将群聊头像同步为标题背景图（Title_img） */
   coverFromRoomAvatarEnabled: boolean;
-  /** 是否将群聊头像同步为启动图（Game_Logo） */
+  /** 标题背景图 URL（Title_img，优先于“标题背景图使用群聊头像”） */
+  titleImageUrl: string;
+  /** 未设置启动图 URL 时，是否将群聊头像同步为启动图（Game_Logo） */
   startupLogoFromRoomAvatarEnabled: boolean;
+  /** 启动图 URL（Game_Logo，优先于“启动图使用群聊头像”） */
+  startupLogoUrl: string;
   /** 是否将群聊头像同步为游戏图标（icons/*） */
   gameIconFromRoomAvatarEnabled: boolean;
   /** 是否将空间名称+spaceId 同步为游戏名（Game_name） */
@@ -247,6 +251,8 @@ export type RealtimeGameConfig = {
   description: string;
   /** 游戏包名（Package_name） */
   packageName: string;
+  /** 底层模板（none=默认模板，black=WebGAL Black） */
+  baseTemplate: "none" | "black";
   /** 是否开启紧急回避（Show_panic） */
   showPanicEnabled: boolean;
   /** 默认语言（Default_Language） */
@@ -255,19 +261,31 @@ export type RealtimeGameConfig = {
   enableAppreciation: boolean;
   /** 是否开启打字音（TypingSoundEnabled） */
   typingSoundEnabled: boolean;
+  /** 打字音播放间隔（每隔多少个字符播放一次） */
+  typingSoundInterval: number;
+  /** 标点符号额外停顿（毫秒） */
+  typingSoundPunctuationPause: number;
+  /** 打字音效文件 URL（将上传同步为 TypingSoundSe） */
+  typingSoundSeUrl: string;
 };
 
 const DEFAULT_REALTIME_GAME_CONFIG: RealtimeGameConfig = {
   coverFromRoomAvatarEnabled: true,
+  titleImageUrl: "",
   startupLogoFromRoomAvatarEnabled: false,
+  startupLogoUrl: "",
   gameIconFromRoomAvatarEnabled: true,
   gameNameFromRoomNameEnabled: true,
   description: "",
   packageName: "",
+  baseTemplate: "none",
   showPanicEnabled: false,
   defaultLanguage: "",
   enableAppreciation: true,
   typingSoundEnabled: false,
+  typingSoundInterval: 1.5,
+  typingSoundPunctuationPause: 100,
+  typingSoundSeUrl: "",
 };
 
 const IMAGE_MESSAGE_FIGURE_ID = "image_message";
@@ -278,6 +296,10 @@ const TRPG_DICE_PIXI_EFFECT = "effect.trpgDiceBurst";
 const DICE_COMMAND_PATTERN = /^\.|(?:^|\s)\d*\s*d\s*(?:100|%)(?:\s|$)/i;
 const REALTIME_GAME_ENGINE_MARKER_FILE = ".tuanchat_engine_marker.txt";
 const REALTIME_GAME_ENGINE_MARKER_VERSION = "realtime-trpg-dice-v2";
+const REALTIME_RENDERER_INIT_ABORT_ERROR = "__tc_realtime_init_aborted__";
+const DEFAULT_TYPING_SOUND_SE_FILE = "select07.mp3";
+const BLACK_TEMPLATE_DIR = "WebGAL Black";
+const BLACK_TEMPLATE_ID = "805c5f5a-8f52-461f-8931-613676d6a086";
 const WORKFLOW_START_KEY = "start";
 const WORKFLOW_END_NODE_VALUE_PREFIX = "end:";
 const WORKFLOW_END_NODE_LIST_KEY = "endNodes";
@@ -322,6 +344,24 @@ function hashString(input: string): string {
     hash = (hash * 33) ^ input.charCodeAt(i);
   }
   return (hash >>> 0).toString(36);
+}
+
+function getSafeExtensionFromUrl(url: string, defaultExt: string): string {
+  try {
+    const urlWithoutParams = String(url ?? "").split("?")[0].split("#")[0];
+    const lastSegment = urlWithoutParams.substring(urlWithoutParams.lastIndexOf("/") + 1);
+    const dotIndex = lastSegment.lastIndexOf(".");
+    if (dotIndex > 0 && dotIndex < lastSegment.length - 1) {
+      const ext = lastSegment.substring(dotIndex + 1).toLowerCase();
+      if (/^[a-z0-9]{1,8}$/.test(ext)) {
+        return ext;
+      }
+    }
+    return defaultExt;
+  }
+  catch {
+    return defaultExt;
+  }
 }
 
 type GameConfigEntry = {
@@ -632,11 +672,18 @@ type ImageFigureMessageShape = {
   height?: number;
 };
 
+type ImageFigureLayout = {
+  scale: number;
+  offsetY: number;
+};
+
 // 以 2560 参考宽度经验值换算，保证 5 个槽位有明确区分
 const FIGURE_SLOT_OFFSET_X = 420;
 const EFFECT_OFFSET_X = -200;
-const EFFECT_SCREEN_WIDTH = 2560;
-const EFFECT_SCREEN_Y = 1440 * 0.25;
+const WEBGAL_STAGE_WIDTH = 2560;
+const WEBGAL_STAGE_HEIGHT = 1440;
+const EFFECT_SCREEN_WIDTH = WEBGAL_STAGE_WIDTH;
+const EFFECT_SCREEN_Y = WEBGAL_STAGE_HEIGHT * 0.25;
 // 展示图层使用固定档位缩放（不按原图像素自适应），避免小图被过度放大。
 const IMAGE_FIGURE_BASE_SCALE = 0.72;
 const IMAGE_FIGURE_LANDSCAPE_SCALE = 0.84;
@@ -647,6 +694,8 @@ const IMAGE_FIGURE_BASE_OFFSET_Y = -180;
 const IMAGE_FIGURE_LANDSCAPE_OFFSET_Y = -120;
 const IMAGE_FIGURE_SQUARE_OFFSET_Y = -150;
 const IMAGE_FIGURE_ULTRA_PORTRAIT_OFFSET_Y = -220;
+const IMAGE_FIGURE_SAFE_TOP_Y = 80;
+const IMAGE_FIGURE_SAFE_BOTTOM_Y = 1020;
 
 const FIGURE_SLOT_MAP: Record<FigurePositionKey, FigureSlot> = {
   "left": {
@@ -693,7 +742,7 @@ function resolveSlotOffsetById(id: string): number | null {
   return null;
 }
 
-function resolveImageFigureLayout(imageMessage?: ImageFigureMessageShape | null): { scale: number; offsetY: number } {
+function resolveImageFigureLayout(imageMessage?: ImageFigureMessageShape | null): ImageFigureLayout {
   const width = Number(imageMessage?.width ?? 0);
   const height = Number(imageMessage?.height ?? 0);
   if (width <= 0 || height <= 0) {
@@ -710,6 +759,49 @@ function resolveImageFigureLayout(imageMessage?: ImageFigureMessageShape | null)
     return { scale: IMAGE_FIGURE_ULTRA_PORTRAIT_SCALE, offsetY: IMAGE_FIGURE_ULTRA_PORTRAIT_OFFSET_Y };
   }
   return { scale: IMAGE_FIGURE_BASE_SCALE, offsetY: IMAGE_FIGURE_BASE_OFFSET_Y };
+}
+
+function resolveImageFigureRenderedHeight(imageMessage: ImageFigureMessageShape | undefined, scale: number): number {
+  const width = Number(imageMessage?.width ?? 0);
+  const height = Number(imageMessage?.height ?? 0);
+  if (width > 0 && height > 0) {
+    const containScale = Math.min(WEBGAL_STAGE_WIDTH / width, WEBGAL_STAGE_HEIGHT / height);
+    return height * containScale * scale;
+  }
+  // 宽高缺失时按最保守高度估算，优先避免压到文本框区域。
+  return WEBGAL_STAGE_HEIGHT * scale;
+}
+
+function clampImageFigureLayoutToSafeZone(
+  imageMessage: ImageFigureMessageShape | undefined,
+  layout: ImageFigureLayout,
+): ImageFigureLayout {
+  if (IMAGE_FIGURE_SAFE_TOP_Y >= IMAGE_FIGURE_SAFE_BOTTOM_Y) {
+    return layout;
+  }
+  const safeHeight = IMAGE_FIGURE_SAFE_BOTTOM_Y - IMAGE_FIGURE_SAFE_TOP_Y;
+  let scale = layout.scale;
+  let renderedHeight = resolveImageFigureRenderedHeight(imageMessage, scale);
+  if (!Number.isFinite(renderedHeight) || renderedHeight <= 0) {
+    return layout;
+  }
+
+  if (renderedHeight > safeHeight) {
+    scale *= safeHeight / renderedHeight;
+    renderedHeight = safeHeight;
+  }
+
+  const baseCenterY = WEBGAL_STAGE_HEIGHT / 2 + layout.offsetY;
+  const minCenterY = IMAGE_FIGURE_SAFE_TOP_Y + renderedHeight / 2;
+  const maxCenterY = IMAGE_FIGURE_SAFE_BOTTOM_Y - renderedHeight / 2;
+  const centerY = minCenterY <= maxCenterY
+    ? Math.min(Math.max(baseCenterY, minCenterY), maxCenterY)
+    : baseCenterY;
+
+  return {
+    scale,
+    offsetY: centerY - WEBGAL_STAGE_HEIGHT / 2,
+  };
 }
 
 const DEFAULT_KEEP_OFFSET_PART = " -keepOffset";
@@ -779,6 +871,8 @@ type InitProgress = {
 
 export class RealtimeRenderer {
   private static instance: RealtimeRenderer | null = null;
+  private disposed = false;
+  private initEpoch = 0;
   private syncSocket: WebSocket | null = null;
   private isConnected = false;
   private spaceId: number;
@@ -856,6 +950,53 @@ export class RealtimeRenderer {
     }
     catch (error) {
       console.warn("[RealtimeRenderer] 写入引擎标记失败:", error);
+    }
+  }
+
+  private getDesiredBaseTemplate(): "none" | "black" {
+    return this.gameConfig.baseTemplate === "black" ? "black" : "none";
+  }
+
+  private isBlackTemplateConfig(config: unknown): boolean {
+    if (!config || typeof config !== "object") {
+      return false;
+    }
+    const templateConfig = config as { id?: unknown; name?: unknown };
+    const id = String(templateConfig.id ?? "").trim().toLowerCase();
+    if (id && id === BLACK_TEMPLATE_ID.toLowerCase()) {
+      return true;
+    }
+    const name = String(templateConfig.name ?? "").trim().toLowerCase();
+    return name.includes("black");
+  }
+
+  private async getCurrentTemplatePreset(): Promise<"none" | "black" | null> {
+    try {
+      const rawTemplateConfig = await readTextFile(this.gameName, "template/template.json");
+      const parsedTemplateConfig = JSON.parse(rawTemplateConfig) as unknown;
+      return this.isBlackTemplateConfig(parsedTemplateConfig) ? "black" : "none";
+    }
+    catch {
+      return null;
+    }
+  }
+
+  private async createGameWithTemplate(templatePreset: "none" | "black"): Promise<void> {
+    const createGamePayload: {
+      gameDir: string;
+      gameName: string;
+      templateDir?: string;
+    } = {
+      gameDir: this.gameName,
+      gameName: this.gameName,
+    };
+    if (templatePreset === "black") {
+      createGamePayload.templateDir = BLACK_TEMPLATE_DIR;
+    }
+
+    const createResult = await getTerreApis().manageGameControllerCreateGame(createGamePayload);
+    if (createResult?.status !== "success") {
+      throw new Error(`[RealtimeRenderer] 创建游戏失败: ${this.gameName}`);
     }
   }
 
@@ -960,13 +1101,45 @@ export class RealtimeRenderer {
    * 初始化渲染器（仅创建游戏和场景）
    */
   public async init(): Promise<boolean> {
+    const initEpoch = this.initEpoch + 1;
+    this.initEpoch = initEpoch;
+    const ensureInitActive = () => {
+      if (this.disposed || initEpoch !== this.initEpoch) {
+        throw new Error(REALTIME_RENDERER_INIT_ABORT_ERROR);
+      }
+    };
+
     try {
+      ensureInitActive();
       this.annotationEffectSoundCache.clear();
       this.updateProgress({ phase: "creating_game", message: "正在创建游戏..." });
+      const desiredBaseTemplate = this.getDesiredBaseTemplate();
 
       // 检查游戏是否存在
-      const gameExists = await checkGameExist(this.gameName);
+      let gameExists = await checkGameExist(this.gameName);
+      ensureInitActive();
       console.warn(`[RealtimeRenderer] 游戏 ${this.gameName} 存在: ${gameExists}`);
+
+      if (gameExists) {
+        const currentTemplatePreset = await this.getCurrentTemplatePreset();
+        ensureInitActive();
+
+        if (desiredBaseTemplate === "black" && currentTemplatePreset !== "black") {
+          await getTerreApis().manageTemplateControllerApplyTemplateToGame({
+            gameDir: this.gameName,
+            templateDir: BLACK_TEMPLATE_DIR,
+          });
+          ensureInitActive();
+          console.warn(`[RealtimeRenderer] 已切换到底层模板: black`);
+        }
+        else if (desiredBaseTemplate === "none" && currentTemplatePreset === "black") {
+          // 目标是 none 且当前为 black 时，需要重建 realtime 工程才能恢复默认模板。
+          await getTerreApis().manageGameControllerDelete({ gameName: this.gameName });
+          ensureInitActive();
+          gameExists = false;
+          console.warn(`[RealtimeRenderer] 已按模板配置重建游戏: ${this.gameName}`);
+        }
+      }
 
       // realtime_* 为临时渲染工程。若缺少当前引擎标记，重建以应用最新模板（例如 TRPG 骰子渲染升级）。
       if (gameExists) {
@@ -979,31 +1152,38 @@ export class RealtimeRenderer {
       // 创建游戏实例（如果不存在）
       if (!gameExists) {
         console.warn(`[RealtimeRenderer] 正在创建游戏: ${this.gameName}`);
-        await getTerreApis().manageGameControllerCreateGame({
-          gameDir: this.gameName,
-          gameName: this.gameName,
-        });
+        await this.createGameWithTemplate(desiredBaseTemplate);
+        ensureInitActive();
         console.warn(`[RealtimeRenderer] 游戏创建成功`);
       }
 
       await this.syncGameConfigWithRoomContext();
+      ensureInitActive();
 
       await this.writeEngineMarker();
+      ensureInitActive();
       this.readyWorkflowEndSceneIds.clear();
 
       // 初始化场景
       await this.initScene();
+      ensureInitActive();
 
       // 全量预加载立绘资源
-      await this.preloadSprites();
+      await this.preloadSprites(ensureInitActive);
+      ensureInitActive();
 
       // 连接 WebSocket
       this.connectWebSocket();
+      ensureInitActive();
 
       this.updateProgress({ phase: "ready", message: "初始化完成" });
       return true;
     }
     catch (error) {
+      if (error instanceof Error && error.message === REALTIME_RENDERER_INIT_ABORT_ERROR) {
+        console.warn("[RealtimeRenderer] 初始化已取消");
+        return false;
+      }
       console.error("[RealtimeRenderer] 初始化失败:", error);
       this.onStatusChange?.("error");
       return false;
@@ -1013,7 +1193,8 @@ export class RealtimeRenderer {
   /**
    * 全量预加载所有角色的立绘资源
    */
-  private async preloadSprites(): Promise<void> {
+  private async preloadSprites(ensureInitActive: () => void): Promise<void> {
+    ensureInitActive();
     const preloadTargets: Array<{ roleId: number; avatarId: number; spriteUrl: string }> = [];
     const seenTargets = new Set<string>();
 
@@ -1051,16 +1232,22 @@ export class RealtimeRenderer {
     });
 
     for (let i = 0; i < preloadTargets.length; i++) {
+      ensureInitActive();
       const target = preloadTargets[i];
 
       try {
         await this.uploadSprite(target.avatarId, target.spriteUrl, target.roleId);
+        ensureInitActive();
         console.warn(`[RealtimeRenderer] 预加载立绘 ${i + 1}/${preloadTargets.length}: role=${target.roleId}, avatar=${target.avatarId}`);
       }
       catch (error) {
+        if (error instanceof Error && error.message === REALTIME_RENDERER_INIT_ABORT_ERROR) {
+          throw error;
+        }
         console.error(`[RealtimeRenderer] 预加载立绘失败:`, error);
       }
 
+      ensureInitActive();
       this.updateProgress({
         phase: "uploading_sprites",
         current: i + 1,
@@ -1307,11 +1494,33 @@ export class RealtimeRenderer {
     upsertGameConfigEntry(configEntries, "Default_Language", this.gameConfig.defaultLanguage);
     upsertGameConfigEntry(configEntries, "Enable_Appreciation", this.gameConfig.enableAppreciation ? "true" : "false");
     upsertGameConfigEntry(configEntries, "TypingSoundEnabled", this.gameConfig.typingSoundEnabled ? "true" : "false");
+    const typingSoundInterval = Math.max(0.1, Number(this.gameConfig.typingSoundInterval || 1.5));
+    const typingSoundPunctuationPause = Math.max(0, Math.floor(Number(this.gameConfig.typingSoundPunctuationPause || 100)));
+    upsertGameConfigEntry(configEntries, "TypingSoundInterval", String(typingSoundInterval));
+    upsertGameConfigEntry(configEntries, "TypingSoundPunctuationPause", String(typingSoundPunctuationPause));
 
     const avatarUrl = String(primaryRoom?.avatar ?? "").trim();
+    const titleImageUrl = String(this.gameConfig.titleImageUrl ?? "").trim();
+    const startupLogoUrl = String(this.gameConfig.startupLogoUrl ?? "").trim();
+    const typingSoundSeUrl = String(this.gameConfig.typingSoundSeUrl ?? "").trim();
     const roomId = Number(primaryRoom?.roomId ?? 0);
 
-    if (this.gameConfig.coverFromRoomAvatarEnabled && avatarUrl) {
+    if (titleImageUrl) {
+      try {
+        const titleExt = getFileExtensionFromUrl(titleImageUrl, "webp");
+        const titleImageName = `custom_title_${hashString(titleImageUrl)}.${titleExt}`;
+        const uploadedTitleImage = await uploadFile(
+          titleImageUrl,
+          `games/${this.gameName}/game/background/`,
+          titleImageName,
+        );
+        upsertGameConfigEntry(configEntries, "Title_img", uploadedTitleImage);
+      }
+      catch (error) {
+        console.warn("[RealtimeRenderer] 同步标题背景图 URL 为 Title_img 失败:", error);
+      }
+    }
+    else if (this.gameConfig.coverFromRoomAvatarEnabled && avatarUrl) {
       try {
         const avatarExt = getFileExtensionFromUrl(avatarUrl, "webp");
         const titleImageName = `room_title_${roomId > 0 ? roomId : "default"}_${hashString(avatarUrl)}.${avatarExt}`;
@@ -1327,7 +1536,22 @@ export class RealtimeRenderer {
       }
     }
 
-    if (this.gameConfig.startupLogoFromRoomAvatarEnabled && avatarUrl) {
+    if (startupLogoUrl) {
+      try {
+        const logoExt = getFileExtensionFromUrl(startupLogoUrl, "webp");
+        const logoName = `custom_logo_${hashString(startupLogoUrl)}.${logoExt}`;
+        const uploadedLogo = await uploadFile(
+          startupLogoUrl,
+          `games/${this.gameName}/game/background/`,
+          logoName,
+        );
+        upsertGameConfigEntry(configEntries, "Game_Logo", uploadedLogo);
+      }
+      catch (error) {
+        console.warn("[RealtimeRenderer] 同步启动图 URL 为 Game_Logo 失败:", error);
+      }
+    }
+    else if (this.gameConfig.startupLogoFromRoomAvatarEnabled && avatarUrl) {
       try {
         const avatarExt = getFileExtensionFromUrl(avatarUrl, "webp");
         const logoName = `room_logo_${roomId > 0 ? roomId : "default"}_${hashString(avatarUrl)}.${avatarExt}`;
@@ -1350,6 +1574,25 @@ export class RealtimeRenderer {
       catch (error) {
         console.warn("[RealtimeRenderer] 同步群聊头像为游戏图标失败:", error);
       }
+    }
+
+    if (typingSoundSeUrl) {
+      try {
+        const seExt = getSafeExtensionFromUrl(typingSoundSeUrl, "webm");
+        const seFileName = `typing_se_${hashString(typingSoundSeUrl)}.${seExt}`;
+        const uploadedSeFile = await uploadFile(
+          typingSoundSeUrl,
+          `games/${this.gameName}/game/se/`,
+          seFileName,
+        );
+        upsertGameConfigEntry(configEntries, "TypingSoundSe", uploadedSeFile);
+      }
+      catch (error) {
+        console.warn("[RealtimeRenderer] 同步打字音效为 TypingSoundSe 失败:", error);
+      }
+    }
+    else {
+      upsertGameConfigEntry(configEntries, "TypingSoundSe", DEFAULT_TYPING_SOUND_SE_FILE);
     }
 
     const nextConfig = serializeGameConfig(configEntries);
@@ -1459,6 +1702,9 @@ export class RealtimeRenderer {
    * 连接 WebSocket
    */
   private connectWebSocket(): void {
+    if (this.disposed) {
+      return;
+    }
     if (this.syncSocket?.readyState === WebSocket.OPEN) {
       return;
     }
@@ -1474,6 +1720,9 @@ export class RealtimeRenderer {
       this.syncSocket = new WebSocket(wsUrl);
 
       this.syncSocket.onopen = () => {
+        if (this.disposed) {
+          return;
+        }
         console.warn("WebGAL 实时渲染 WebSocket 已连接");
         this.isConnected = true;
         this.onStatusChange?.("connected");
@@ -1487,6 +1736,9 @@ export class RealtimeRenderer {
       };
 
       this.syncSocket.onclose = () => {
+        if (this.disposed) {
+          return;
+        }
         console.warn("WebGAL 实时渲染 WebSocket 已断开");
         this.isConnected = false;
         this.onStatusChange?.("disconnected");
@@ -1496,6 +1748,9 @@ export class RealtimeRenderer {
       };
 
       this.syncSocket.onerror = (error) => {
+        if (this.disposed) {
+          return;
+        }
         console.error("WebGAL WebSocket 错误:", error);
         this.onStatusChange?.("error");
       };
@@ -1510,10 +1765,16 @@ export class RealtimeRenderer {
    * 安排重连
    */
   private scheduleReconnect(): void {
+    if (this.disposed) {
+      return;
+    }
     if (this.reconnectTimer) {
       clearTimeout(this.reconnectTimer);
     }
     this.reconnectTimer = setTimeout(() => {
+      if (this.disposed) {
+        return;
+      }
       console.warn("尝试重连 WebGAL WebSocket...");
       this.connectWebSocket();
     }, 3000);
@@ -1523,6 +1784,9 @@ export class RealtimeRenderer {
    * 发送同步消息到指定房间的场景（自动跳转关闭时不发送）
    */
   private sendSyncMessage(roomId: number): void {
+    if (this.disposed) {
+      return;
+    }
     if (!this.autoJumpEnabled) {
       return;
     }
@@ -1553,6 +1817,9 @@ export class RealtimeRenderer {
     syncToFile: boolean = true,
     allowEmpty: boolean = false,
   ): Promise<void> {
+    if (this.disposed) {
+      return;
+    }
     if (!allowEmpty && !line.trim())
       return;
 
@@ -1627,6 +1894,9 @@ export class RealtimeRenderer {
   }
 
   private async syncContextToFile(roomId: number): Promise<void> {
+    if (this.disposed) {
+      return;
+    }
     const context = this.sceneContextMap.get(roomId);
     if (!context)
       return;
@@ -1987,7 +2257,8 @@ export class RealtimeRenderer {
     imageMessage: ImageFigureMessageShape | undefined,
     offsetX = 0,
   ): string {
-    const layout = resolveImageFigureLayout(imageMessage);
+    const presetLayout = resolveImageFigureLayout(imageMessage);
+    const layout = clampImageFigureLayoutToSafeZone(imageMessage, presetLayout);
     const transform = {
       position: {
         x: offsetX,
@@ -2450,6 +2721,9 @@ export class RealtimeRenderer {
     syncToFile: boolean = true,
     options?: RenderMessageOptions,
   ): Promise<void> {
+    if (this.disposed) {
+      return;
+    }
     const msg = message.message;
     const targetRoomId = roomId ?? msg.roomId ?? this.currentRoomId;
 
@@ -2544,7 +2818,7 @@ export class RealtimeRenderer {
         }
         // 普通图片：作为常驻展示图层（直到显式清除）
         if (!isBackground && !unlockCg && isImageMessageShown(msg.annotations)) {
-          // 展示图固定上半屏居中，忽略 figure.pos.*（避免与底部对话框重叠）
+          // 展示图固定上半屏居中，忽略 figure.pos.*，并按安全区自动上移/缩放，避免与底部对话框重叠。
           const imageSlot = resolveFigureSlot("center");
           const figureFileName = await this.uploadImageFigure(imageMessage.url, imageMessage.fileName);
           if (figureFileName) {
@@ -3108,6 +3382,9 @@ export class RealtimeRenderer {
    * 批量渲染历史消息
    */
   public async renderHistory(messages: ChatMessageResponse[], roomId?: number): Promise<void> {
+    if (this.disposed) {
+      return;
+    }
     const targetRoomId = roomId ?? this.currentRoomId;
     if (!targetRoomId)
       return;
@@ -3115,22 +3392,43 @@ export class RealtimeRenderer {
 
     // 批量处理消息，不进行文件同步和 WebSocket 同步
     for (let index = 0; index < messages.length; index += 1) {
+      if (this.disposed) {
+        console.warn("[RealtimeRenderer] 渲染中止：实例已销毁");
+        return;
+      }
       const current = messages[index];
       const next = messages[index + 1];
       if (next && this.canMergeTrpgDicePair(current, next)) {
         const mergedMessage = this.buildMergedTrpgDiceMessage(current, next);
         await this.renderMessage(mergedMessage, targetRoomId, false, { bypassDiceMerge: true });
+        if (this.disposed) {
+          console.warn("[RealtimeRenderer] 渲染中止：实例已销毁");
+          return;
+        }
         index += 1;
         continue;
       }
       await this.renderMessage(current, targetRoomId, false, { bypassDiceMerge: true });
+      if (this.disposed) {
+        console.warn("[RealtimeRenderer] 渲染中止：实例已销毁");
+        return;
+      }
     }
 
     // 历史渲染完成后，按流程图补齐该房间的分支跳转
+    if (this.disposed) {
+      return;
+    }
     await this.appendWorkflowTransitionIfNeeded(targetRoomId);
 
     // 最后统一同步文件（自动跳转关闭时不会主动跳转）
+    if (this.disposed) {
+      return;
+    }
     await this.syncContextToFile(targetRoomId);
+    if (this.disposed) {
+      return;
+    }
     this.sendSyncMessage(targetRoomId);
   }
 
@@ -3373,6 +3671,9 @@ export class RealtimeRenderer {
    * 销毁资源
    */
   public dispose(): void {
+    this.disposed = true;
+    // 让正在进行的 init/preload 立即失效，避免页面切换后继续写入旧实例状态。
+    this.initEpoch += 1;
     this.annotationEffectSoundCache.clear();
     this.clearPendingDiceMerge();
     if (this.reconnectTimer) {
@@ -3380,10 +3681,15 @@ export class RealtimeRenderer {
       this.reconnectTimer = null;
     }
     if (this.syncSocket) {
+      this.syncSocket.onopen = null;
+      this.syncSocket.onclose = null;
+      this.syncSocket.onerror = null;
       this.syncSocket.close();
       this.syncSocket = null;
     }
+    this.messageQueue = [];
     this.isConnected = false;
     this.onStatusChange = undefined;
+    this.onProgressChange = undefined;
   }
 }

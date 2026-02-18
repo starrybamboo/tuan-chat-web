@@ -234,6 +234,122 @@ function novelApiProxyPlugin(config: { defaultEndpoint: string; allowAnyEndpoint
   };
 }
 
+function ossUploadProxyPlugin(): Plugin {
+  const readBody = async (req: any) => {
+    const chunks: Buffer[] = [];
+    for await (const chunk of req) {
+      chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+    }
+    return Buffer.concat(chunks);
+  };
+
+  return {
+    name: "tc-oss-upload-proxy",
+    apply: "serve",
+    configureServer(server) {
+      server.middlewares.use(async (req, res, next) => {
+        try {
+          const reqUrl = new URL(req.url || "/", `http://${req.headers.host || "localhost"}`);
+          const pathname = decodeURIComponent(reqUrl.pathname);
+          if (pathname !== "/api/oss-upload-proxy") {
+            next();
+            return;
+          }
+
+          if ((req.method || "").toUpperCase() !== "PUT") {
+            res.statusCode = 405;
+            res.setHeader("Content-Type", "text/plain; charset=utf-8");
+            res.end("Method Not Allowed");
+            return;
+          }
+
+          const encodedTargetUrl = String(req.headers["x-tc-oss-upload-url"] || "").trim();
+          if (!encodedTargetUrl) {
+            res.statusCode = 400;
+            res.setHeader("Content-Type", "text/plain; charset=utf-8");
+            res.end("Missing x-tc-oss-upload-url header");
+            return;
+          }
+
+          let targetUrlRaw = "";
+          try {
+            targetUrlRaw = decodeURIComponent(encodedTargetUrl);
+          }
+          catch {
+            res.statusCode = 400;
+            res.setHeader("Content-Type", "text/plain; charset=utf-8");
+            res.end("Invalid x-tc-oss-upload-url header");
+            return;
+          }
+
+          let targetUrl: URL;
+          try {
+            targetUrl = new URL(targetUrlRaw);
+          }
+          catch {
+            res.statusCode = 400;
+            res.setHeader("Content-Type", "text/plain; charset=utf-8");
+            res.end("Invalid upload target URL");
+            return;
+          }
+
+          if (!["http:", "https:"].includes(targetUrl.protocol)) {
+            res.statusCode = 400;
+            res.setHeader("Content-Type", "text/plain; charset=utf-8");
+            res.end("Upload target protocol must be http(s)");
+            return;
+          }
+
+          const body = await readBody(req);
+          const headers = new Headers();
+          const contentType = String(req.headers["content-type"] || "").trim();
+          if (contentType)
+            headers.set("content-type", contentType);
+
+          const upstreamRes = await undiciFetch(targetUrl.toString(), {
+            method: "PUT",
+            headers,
+            body,
+          });
+
+          const upstreamContentType = upstreamRes.headers.get("content-type");
+          if (upstreamContentType) {
+            res.setHeader("Content-Type", upstreamContentType);
+          }
+          res.statusCode = upstreamRes.status;
+
+          if (!upstreamRes.body) {
+            res.end();
+            return;
+          }
+
+          const upstreamBody = upstreamRes.body as any;
+          try {
+            await pipeline(Readable.fromWeb(upstreamBody), res as any);
+          }
+          catch (e) {
+            try {
+              res.destroy(e as any);
+            }
+            catch {
+              // ignore
+            }
+          }
+        }
+        catch (e) {
+          const err = e as any;
+          const message = err instanceof Error ? err.message : String(err);
+          const cause = err?.cause;
+          const causeMessage = cause instanceof Error ? cause.message : (cause ? String(cause) : "");
+          res.statusCode = 502;
+          res.setHeader("Content-Type", "text/plain; charset=utf-8");
+          res.end(`OSS upload proxy failed: ${message}${causeMessage ? ` (cause: ${causeMessage})` : ""}`);
+        }
+      });
+    },
+  };
+}
+
 function electronDevPingPlugin(): Plugin {
   return {
     name: "tc-electron-dev-ping",
@@ -399,6 +515,7 @@ export default defineConfig(({ command, mode }) => {
       tailwindcss(),
       fixCjsDefaultExportPlugin(),
       novelApiProxyPlugin(novelApiConfig),
+      ossUploadProxyPlugin(),
       electronDevPingPlugin(),
 
       // Downlevel BlockSuite ES2023 auto-accessor syntax in dist outputs.

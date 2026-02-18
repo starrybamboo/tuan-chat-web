@@ -28,7 +28,6 @@ type VideoTranscodePreset = {
   maxFps?: number;
   crf: number;
   audioBitrateKbps: number;
-  dropAudio: boolean;
   cpuUsed: number;
   deadline: "good" | "realtime";
 };
@@ -115,6 +114,11 @@ function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value));
 }
 
+function sanitizeFsName(name: string, fallback: string): string {
+  const safe = (name || "").replace(/[\\/]/g, "_").trim();
+  return safe.length > 0 ? safe : fallback;
+}
+
 function buildFilterChain(maxHeight?: number, maxFps?: number): string | undefined {
   const filters: string[] = [];
   if (maxHeight && maxHeight > 0) {
@@ -133,7 +137,6 @@ function buildPresetKey(preset: VideoTranscodePreset): string {
     preset.maxFps ?? 0,
     preset.crf,
     preset.audioBitrateKbps,
-    preset.dropAudio ? 1 : 0,
     preset.cpuUsed,
     preset.deadline,
   ].join("|");
@@ -147,10 +150,14 @@ function buildVideoTranscodePresets(base: { maxHeight?: number; maxFps?: number;
   const aggressiveHeightFromBase = baseHeight ? Math.min(baseHeight, 720) : 720;
   const mediumHeightFromBase = baseHeight ? Math.min(baseHeight, 540) : 540;
   const lowHeightFromBase = baseHeight ? Math.min(baseHeight, 480) : 480;
+  const lowerHeightFromBase = baseHeight ? Math.min(baseHeight, 360) : 360;
+  const lowestHeightFromBase = baseHeight ? Math.min(baseHeight, 240) : 240;
 
   const aggressiveFpsFromBase = baseFps ? Math.min(baseFps, 24) : 24;
   const mediumFpsFromBase = baseFps ? Math.min(baseFps, 20) : 20;
   const lowFpsFromBase = baseFps ? Math.min(baseFps, 15) : 15;
+  const lowerFpsFromBase = baseFps ? Math.min(baseFps, 12) : 12;
+  const lowestFpsFromBase = baseFps ? Math.min(baseFps, 10) : 10;
 
   const rawPresets: VideoTranscodePreset[] = [
     {
@@ -160,7 +167,6 @@ function buildVideoTranscodePresets(base: { maxHeight?: number; maxFps?: number;
       maxFps: baseFps,
       crf: baseCrf,
       audioBitrateKbps: 96,
-      dropAudio: false,
       cpuUsed: 2,
       deadline: "good",
     },
@@ -171,7 +177,6 @@ function buildVideoTranscodePresets(base: { maxHeight?: number; maxFps?: number;
       maxFps: aggressiveFpsFromBase,
       crf: clamp(Math.max(baseCrf, 36), MIN_CRF, MAX_CRF),
       audioBitrateKbps: 80,
-      dropAudio: false,
       cpuUsed: 6,
       deadline: "realtime",
     },
@@ -182,18 +187,36 @@ function buildVideoTranscodePresets(base: { maxHeight?: number; maxFps?: number;
       maxFps: mediumFpsFromBase,
       crf: clamp(Math.max(baseCrf, 38), MIN_CRF, MAX_CRF),
       audioBitrateKbps: 64,
-      dropAudio: false,
       cpuUsed: 8,
       deadline: "realtime",
     },
     {
-      tag: "fallback-vp8-noaudio",
+      tag: "fallback-vp8-3",
       videoCodec: "libvpx",
       maxHeight: lowHeightFromBase,
       maxFps: lowFpsFromBase,
       crf: clamp(Math.max(baseCrf, 40), MIN_CRF, MAX_CRF),
       audioBitrateKbps: 48,
-      dropAudio: true,
+      cpuUsed: 8,
+      deadline: "realtime",
+    },
+    {
+      tag: "fallback-vp8-4",
+      videoCodec: "libvpx",
+      maxHeight: lowerHeightFromBase,
+      maxFps: lowerFpsFromBase,
+      crf: clamp(Math.max(baseCrf, 42), MIN_CRF, MAX_CRF),
+      audioBitrateKbps: 40,
+      cpuUsed: 8,
+      deadline: "realtime",
+    },
+    {
+      tag: "fallback-vp8-5",
+      videoCodec: "libvpx",
+      maxHeight: lowestHeightFromBase,
+      maxFps: lowestFpsFromBase,
+      crf: clamp(Math.max(baseCrf, 44), MIN_CRF, MAX_CRF),
+      audioBitrateKbps: 32,
       cpuUsed: 8,
       deadline: "realtime",
     },
@@ -266,17 +289,33 @@ async function runVideoTranscodeOnce(params: {
     const ext = inputFile.name.includes(".") ? `.${inputFile.name.split(".").pop()}` : "";
     return ext || ".bin";
   })()}`;
+  const originalInputName = sanitizeFsName(inputFile.name, inputSafeName);
   const outputSafeName = `output-${Date.now()}-${Math.random().toString(16).slice(2)}.webm`;
+  const mountPoint = `/workerfs-input-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  let inputPath = inputSafeName;
+  let cleanupMountedInput = false;
+  let cleanupWrittenInput = false;
 
   try {
-    await ffmpeg.writeFile(inputSafeName, await fetchFile(inputFile));
+    try {
+      const { FFFSType } = await import("@ffmpeg/ffmpeg");
+      await ffmpeg.createDir(mountPoint);
+      await ffmpeg.mount(FFFSType.WORKERFS, { files: [new File([inputFile], originalInputName, { type: inputFile.type })] }, mountPoint);
+      inputPath = `${mountPoint}/${originalInputName}`;
+      cleanupMountedInput = true;
+    }
+    catch {
+      await ffmpeg.writeFile(inputSafeName, await fetchFile(inputFile));
+      cleanupWrittenInput = true;
+      inputPath = inputSafeName;
+    }
 
     const args: string[] = [
       "-hide_banner",
       "-nostdin",
       "-y",
       "-i",
-      inputSafeName,
+      inputPath,
       "-map",
       "0:v:0",
       "-map",
@@ -303,25 +342,22 @@ async function runVideoTranscodeOnce(params: {
       String(preset.cpuUsed),
       "-pix_fmt",
       "yuv420p",
+      "-threads",
+      "1",
     );
 
     if (preset.videoCodec === "libvpx-vp9") {
-      args.push("-row-mt", "1", "-threads", "1");
+      args.push("-row-mt", "1");
     }
 
-    if (preset.dropAudio) {
-      args.push("-an");
-    }
-    else {
-      args.push(
-        "-c:a",
-        "libopus",
-        "-b:a",
-        `${preset.audioBitrateKbps}k`,
-        "-ac",
-        "2",
-      );
-    }
+    args.push(
+      "-c:a",
+      "libopus",
+      "-b:a",
+      `${preset.audioBitrateKbps}k`,
+      "-ac",
+      "2",
+    );
 
     args.push("-f", "webm", outputSafeName);
 
@@ -348,10 +384,22 @@ async function runVideoTranscodeOnce(params: {
     return new File([outBlob], outputName, { type: "video/webm" });
   }
   finally {
-    try {
-      await ffmpeg.deleteFile(inputSafeName);
+    if (cleanupMountedInput) {
+      try {
+        await ffmpeg.unmount(mountPoint);
+      }
+      catch {}
+      try {
+        await ffmpeg.deleteDir(mountPoint);
+      }
+      catch {}
     }
-    catch {}
+    if (cleanupWrittenInput) {
+      try {
+        await ffmpeg.deleteFile(inputSafeName);
+      }
+      catch {}
+    }
     try {
       await ffmpeg.deleteFile(outputSafeName);
     }

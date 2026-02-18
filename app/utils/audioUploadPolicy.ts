@@ -4,6 +4,8 @@ import { resolveFfmpegLoadTimeoutMs } from "@/utils/ffmpegLoadTimeoutConfig";
 
 const AUDIO_UPLOAD_MAX_INPUT_BYTES = 30 * 1024 * 1024;
 const AUDIO_UPLOAD_PREFER_SMALLER_MIN_BYTES = 48 * 1024;
+// 线上/网关常见默认 client_max_body_size 为 1MB，这里预留一点头部与波动空间。
+const AUDIO_UPLOAD_MAX_OUTPUT_BYTES = 960 * 1024;
 
 function normalizeMaxDurationSec(maxDurationSec?: number): number | undefined {
   if (typeof maxDurationSec !== "number" || !Number.isFinite(maxDurationSec) || maxDurationSec <= 0)
@@ -42,12 +44,16 @@ function resolveAudioTranscodeExecTimeoutMs(inputBytes: number, maxDurationSec?:
  */
 export function buildDefaultAudioUploadTranscodeOptions(inputBytes: number, maxDurationSec?: number): AudioTranscodeOptions {
   const normalizedDuration = normalizeMaxDurationSec(maxDurationSec);
+  const shouldEnforceSmaller = inputBytes >= AUDIO_UPLOAD_PREFER_SMALLER_MIN_BYTES;
+  const preferSmallerThanBytes = shouldEnforceSmaller
+    ? Math.min(inputBytes, AUDIO_UPLOAD_MAX_OUTPUT_BYTES)
+    : undefined;
   return {
     maxDurationSec: normalizedDuration,
     loadTimeoutMs: resolveFfmpegLoadTimeoutMs(),
     execTimeoutMs: resolveAudioTranscodeExecTimeoutMs(inputBytes, normalizedDuration),
     bitrateKbps: 48,
     sampleRateHz: 32000,
-    preferSmallerThanBytes: inputBytes >= AUDIO_UPLOAD_PREFER_SMALLER_MIN_BYTES ? inputBytes : undefined,
+    preferSmallerThanBytes,
   };
 }

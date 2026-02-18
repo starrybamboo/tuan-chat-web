@@ -180,6 +180,10 @@ export default function ChatFrameList({
   isSpaceOwner,
 }: ChatFrameListProps) {
   const { handleDragOver, handleDrop } = useChatFrameListDragHandlers();
+  const computeItemKey = useCallback((index: number, item: ChatMessageResponse) => {
+    const messageId = item?.message?.messageId;
+    return typeof messageId === "number" ? messageId : index;
+  }, []);
 
   return (
     <>
@@ -208,7 +212,10 @@ export default function ChatFrameList({
             firstItemIndex={0}
             initialTopMostItemIndex={historyMessages.length - 1}
             followOutput={true}
-            overscan={10}
+            // 媒体消息（音频/视频）离开视区后若立即被回收，会导致播放状态丢失或重新加载。
+            // 适当增加 overscan，减少短距离滚动造成的卸载重建。
+            overscan={480}
+            computeItemKey={computeItemKey}
             ref={virtuosoRef}
             scrollerRef={(ref) => {
               scrollerRef.current = ref instanceof HTMLElement ? ref : null;

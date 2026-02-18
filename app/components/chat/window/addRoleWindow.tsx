@@ -8,6 +8,7 @@ import { useAddRoomRoleMutation, useGetRoomNpcRoleQuery, useGetRoomRoleQuery } f
 import { useGetUserRolesQuery } from "../../../../api/hooks/RoleAndAvatarHooks";
 import { useGetSpaceRepositoryRoleQuery } from "../../../../api/hooks/spaceRepositoryHooks";
 import CreateNpcRoleWindow from "./createNpcRoleWindow";
+import CreateRoleWindow from "./createRoleWindow";
 
 export function AddRoleWindow({
   handleAddRole,
@@ -48,6 +49,7 @@ export function AddRoleWindow({
 
   const addRoomRoleMutation = useAddRoomRoleMutation();
 
+  const [isCreatingRole, setIsCreatingRole] = useState(false);
   const [isCreatingNpc, setIsCreatingNpc] = useState(false);
   const [activeTab, setActiveTab] = useState<"my" | "space">("my");
   const [searchKeyword, setSearchKeyword] = useState("");
@@ -86,6 +88,10 @@ export function AddRoleWindow({
       return roleName.toLowerCase().includes(normalizedSearch) || String(role.roleId).includes(normalizedSearch);
     });
   }, [availableSpaceRoles, normalizedSearch]);
+
+  if (isCreatingRole) {
+    return <CreateRoleWindow onClose={() => setIsCreatingRole(false)} />;
+  }
 
   if (isCreatingNpc) {
     return <CreateNpcRoleWindow onClose={() => setIsCreatingNpc(false)} />;
@@ -188,11 +194,11 @@ export function AddRoleWindow({
                   ))}
                   <div
                     className="card shadow hover:shadow-lg transition-shadow cursor-pointer"
-                    onClick={() => setIsCreatingNpc(true)}
+                    onClick={() => setIsCreatingRole(true)}
                   >
                     <div className="flex flex-col items-center p-3">
                       <AddRingLight className="size-24 jump_icon" />
-                      <p className="text-center block">创建NPC</p>
+                      <p className="text-center block">创建角色</p>
                     </div>
                   </div>
                 </div>
@@ -250,6 +256,15 @@ export function AddRoleWindow({
                       </div>
                     </div>
                   ))}
+                  <div
+                    className="card shadow hover:shadow-lg transition-shadow cursor-pointer"
+                    onClick={() => setIsCreatingNpc(true)}
+                  >
+                    <div className="flex flex-col items-center p-3">
+                      <AddRingLight className="size-24 jump_icon" />
+                      <p className="text-center block">创建NPC</p>
+                    </div>
+                  </div>
                 </div>
               </>
             )}

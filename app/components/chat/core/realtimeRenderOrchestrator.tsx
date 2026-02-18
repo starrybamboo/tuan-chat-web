@@ -11,7 +11,7 @@ import {
 import { useRealtimeRenderStore } from "@/components/chat/stores/realtimeRenderStore";
 import { useSideDrawerStore } from "@/components/chat/stores/sideDrawerStore";
 import { isImageMessageBackground } from "@/types/messageAnnotations";
-import launchWebGal from "@/utils/launchWebGal";
+import launchWebGal, { appendWebgalTimeoutHint } from "@/utils/launchWebGal";
 import { pollPort } from "@/utils/pollPort";
 import { getTerreHealthcheckUrl } from "@/webGAL/terreConfig";
 import useRealtimeRender from "@/webGAL/useRealtimeRender";
@@ -115,12 +115,19 @@ export default function RealtimeRenderOrchestrator({
 
   const realtimeStatus = realtimeRender.status;
   const stopRealtimeRender = realtimeRender.stop;
+  const dismissRealtimeRenderToasts = useCallback(() => {
+    toast.dismiss("webgal-init");
+    toast.dismiss("webgal-history");
+    toast.dismiss("webgal-rerender-history");
+    toast.dismiss("webgal-error");
+  }, []);
 
   const lastRenderedMessageIdRef = useRef<number | null>(null);
   const hasRenderedHistoryRef = useRef<boolean>(false);
   const prevRoomIdRef = useRef<number | null>(null);
   const lastBackgroundMessageIdRef = useRef<number | null>(null);
   const isStartingRealtimeRenderRef = useRef(false);
+  const roomSessionRef = useRef(0);
 
   const isRenderingHistoryRef = useRef(false);
   const orderedHistoryMessages = useMemo(() => {
@@ -149,6 +156,7 @@ export default function RealtimeRenderOrchestrator({
     clearFullRerenderTimer();
   }, [clearFullRerenderTimer]);
   const renderHistoryMessages = useCallback(async () => {
+    const sessionId = roomSessionRef.current;
     if (!orderedHistoryMessages || orderedHistoryMessages.length === 0) {
       return;
     }
@@ -161,6 +169,10 @@ export default function RealtimeRenderOrchestrator({
       const messagesToRender = orderedHistoryMessages;
 
       await realtimeRender.renderHistory(messagesToRender, roomId);
+      if (sessionId !== roomSessionRef.current) {
+        toast.dismiss("webgal-history");
+        return;
+      }
 
       const lastMessage = messagesToRender[messagesToRender.length - 1];
       if (lastMessage) {
@@ -173,6 +185,10 @@ export default function RealtimeRenderOrchestrator({
       console.warn(`[RealtimeRender] 历史消息渲染完成`);
     }
     catch (error) {
+      if (sessionId !== roomSessionRef.current) {
+        toast.dismiss("webgal-history");
+        return;
+      }
       console.error(`[RealtimeRender] 渲染历史消息失败:`, error);
       toast.error(`渲染历史消息失败`, { id: "webgal-history" });
     }
@@ -188,14 +204,17 @@ export default function RealtimeRenderOrchestrator({
     }
 
     if (prevRoomIdRef.current !== roomId) {
+      roomSessionRef.current += 1;
       prevRoomIdRef.current = roomId;
+      dismissRealtimeRenderToasts();
+      stopRealtimeRender();
       setIsRealtimeRenderEnabled(false);
       resetHistoryTracking();
       if (sideDrawerState === "webgal") {
         setSideDrawerState("none");
       }
     }
-  }, [resetHistoryTracking, roomId, setIsRealtimeRenderEnabled, sideDrawerState, setSideDrawerState]);
+  }, [dismissRealtimeRenderToasts, resetHistoryTracking, roomId, setIsRealtimeRenderEnabled, sideDrawerState, setSideDrawerState, stopRealtimeRender]);
 
   useEffect(() => {
     if (!shouldRenderInitialHistory({
@@ -258,16 +277,25 @@ export default function RealtimeRenderOrchestrator({
       return;
     }
 
+    const sessionId = roomSessionRef.current;
     isStartingRealtimeRenderRef.current = true;
     try {
       await ensureHydrated(spaceId);
+      if (sessionId !== roomSessionRef.current) {
+        dismissRealtimeRenderToasts();
+        return;
+      }
 
       const launchResult = await launchWebGal({
         gameDir: `realtime_${spaceId}`,
       });
+      if (sessionId !== roomSessionRef.current) {
+        dismissRealtimeRenderToasts();
+        return;
+      }
       const electronEnv = launchResult.runtime === "electron";
       if (electronEnv && !launchResult.ok) {
-        toast.error(launchResult.error || "WebGAL 启动失败", { id: "webgal-init" });
+        toast.error(appendWebgalTimeoutHint(launchResult.error || "WebGAL 启动失败"), { id: "webgal-init" });
         setIsRealtimeRenderEnabled(false);
         return;
       }
@@ -280,10 +308,21 @@ export default function RealtimeRenderOrchestrator({
             20_000,
             200,
           );
+          if (sessionId !== roomSessionRef.current) {
+            dismissRealtimeRenderToasts();
+            return;
+          }
         }
 
         toast.loading("正在初始化实时渲染...", { id: "webgal-init" });
         const success = await realtimeRender.start();
+        if (sessionId !== roomSessionRef.current) {
+          if (success) {
+            stopRealtimeRender();
+          }
+          dismissRealtimeRenderToasts();
+          return;
+        }
         if (success) {
           toast.success("实时渲染已开启", { id: "webgal-init" });
           setIsRealtimeRenderEnabled(true);
@@ -296,9 +335,15 @@ export default function RealtimeRenderOrchestrator({
         }
       }
       catch (error) {
-        const message = error instanceof Error && error.message
-          ? `WebGAL 启动失败：${error.message}`
-          : "WebGAL 启动超时";
+        if (sessionId !== roomSessionRef.current) {
+          dismissRealtimeRenderToasts();
+          return;
+        }
+        const message = appendWebgalTimeoutHint(
+          error instanceof Error && error.message
+            ? `WebGAL 启动失败：${error.message}`
+            : "WebGAL 启动超时",
+        );
         toast.error(message, { id: "webgal-init" });
         setIsRealtimeRenderEnabled(false);
       }
@@ -306,10 +351,11 @@ export default function RealtimeRenderOrchestrator({
     finally {
       isStartingRealtimeRenderRef.current = false;
     }
-  }, [ensureHydrated, realtimeRender, renderHistoryMessages, setIsRealtimeRenderEnabled, setSideDrawerState, spaceId]);
+  }, [dismissRealtimeRenderToasts, ensureHydrated, realtimeRender, renderHistoryMessages, setIsRealtimeRenderEnabled, setSideDrawerState, spaceId, stopRealtimeRender]);
 
   const handleToggleRealtimeRender = useCallback(async () => {
     if (realtimeRender.isActive) {
+      dismissRealtimeRenderToasts();
       realtimeRender.stop();
       setIsRealtimeRenderEnabled(false);
       setSideDrawerState("none");
@@ -317,7 +363,7 @@ export default function RealtimeRenderOrchestrator({
       return;
     }
     await startRealtimeRender();
-  }, [realtimeRender, setIsRealtimeRenderEnabled, setSideDrawerState, startRealtimeRender]);
+  }, [dismissRealtimeRenderToasts, realtimeRender, setIsRealtimeRenderEnabled, setSideDrawerState, startRealtimeRender]);
 
   useEffect(() => {
     const prevSideDrawerState = prevSideDrawerStateRef.current;
@@ -452,8 +498,9 @@ export default function RealtimeRenderOrchestrator({
   useEffect(() => {
     return () => {
       clearFullRerenderTimer();
+      dismissRealtimeRenderToasts();
     };
-  }, [clearFullRerenderTimer]);
+  }, [clearFullRerenderTimer, dismissRealtimeRenderToasts]);
 
   useEffect(() => {
     const prevSettings = prevRealtimeSettingsRef.current;

@@ -120,6 +120,7 @@ function useRealtimeRender({
   const voiceFilesRef = useRef<Map<number, File> | undefined>(voiceFiles);
   const gameConfigRef = useRef<RealtimeWebgalGameConfig | undefined>(gameConfig);
   const workflowRoomMapRef = useRef<Record<string, Array<string>> | undefined>(workflowRoomMap);
+  const startRequestSeqRef = useRef(0);
 
   // 保持 refs 最新
   useEffect(() => {
@@ -216,6 +217,10 @@ function useRealtimeRender({
       return status === "connected";
     }
 
+    const requestSeq = startRequestSeqRef.current + 1;
+    startRequestSeqRef.current = requestSeq;
+    const isStaleStart = () => requestSeq !== startRequestSeqRef.current;
+
     setStatus("initializing");
     setInitProgress({
       phase: "idle",
@@ -225,6 +230,9 @@ function useRealtimeRender({
     });
 
     try {
+      if (isStaleStart()) {
+        return false;
+      }
       const renderer = RealtimeRenderer.getInstance(spaceId);
       rendererRef.current = renderer;
       renderer.setQueryClient(queryClient);
@@ -344,8 +352,19 @@ function useRealtimeRender({
         await renderer.fetchVoiceFilesFromRoles();
       }
 
+      if (isStaleStart()) {
+        return false;
+      }
+
       // 初始化渲染器（会自动预加载立绘并创建房间场景）
       const success = await renderer.init();
+      if (isStaleStart()) {
+        if (success) {
+          RealtimeRenderer.destroyInstance();
+          rendererRef.current = null;
+        }
+        return false;
+      }
       if (success) {
         setIsActive(true);
         setPreviewUrl(renderer.getPreviewUrl());
@@ -358,12 +377,18 @@ function useRealtimeRender({
         return true;
       }
       else {
+        if (isStaleStart()) {
+          return false;
+        }
         setStatus("error");
         setInitProgress(null);
         return false;
       }
     }
     catch (error) {
+      if (isStaleStart()) {
+        return false;
+      }
       console.error("启动实时渲染失败:", error);
       setStatus("error");
       setInitProgress(null);
@@ -373,6 +398,7 @@ function useRealtimeRender({
 
   // 停止实时渲染
   const stop = useCallback(() => {
+    startRequestSeqRef.current += 1;
     RealtimeRenderer.destroyInstance();
     rendererRef.current = null;
     setStatus("idle");
@@ -596,11 +622,14 @@ function useRealtimeRender({
   // 清理
   useEffect(() => {
     return () => {
-      if (isActive) {
+      startRequestSeqRef.current += 1;
+      // 组件卸载时无条件销毁：覆盖“初始化中离开页面”场景，避免残留实例继续预加载。
+      if (rendererRef.current) {
         RealtimeRenderer.destroyInstance();
+        rendererRef.current = null;
       }
     };
-  }, [isActive]);
+  }, []);
 
   return {
     status,
