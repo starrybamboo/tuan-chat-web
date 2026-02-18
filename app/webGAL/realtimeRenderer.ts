@@ -711,14 +711,6 @@ function resolveImageFigureLayout(imageMessage?: ImageFigureMessageShape | null)
   return { scale: IMAGE_FIGURE_BASE_SCALE, offsetY: IMAGE_FIGURE_BASE_OFFSET_Y };
 }
 
-function resolveImageFigureEnterAnimation(slot: FigureSlot): string {
-  if (slot.basePosition === "left")
-    return "position/ba-enter-from-left";
-  if (slot.basePosition === "right")
-    return "position/ba-enter-from-right";
-  return "position/enter";
-}
-
 const DEFAULT_KEEP_OFFSET_PART = " -keepOffset";
 const DEFAULT_RESTORE_TRANSFORM_PART = " -restoreTransform";
 
@@ -2553,12 +2545,6 @@ export class RealtimeRenderer {
             await this.appendLine(
               targetRoomId,
               `changeFigure:${figureFileName} ${figureArgs};`,
-              syncToFile,
-            );
-            const imageEnterAnimation = resolveImageFigureEnterAnimation(imageSlot);
-            await this.appendLine(
-              targetRoomId,
-              `setAnimation:${imageEnterAnimation} -target=${IMAGE_MESSAGE_FIGURE_ID}${DEFAULT_KEEP_OFFSET_PART}${DEFAULT_RESTORE_TRANSFORM_PART};`,
               syncToFile,
             );
             if (syncToFile)
