@@ -16,6 +16,10 @@ const sourceReleaseDir = isAbsolute(sourceReleaseDirRaw)
 
 const targetDir = resolve(projectRoot, "extraResources");
 const requiredExeName = "WebGAL_Terre.exe";
+const runtimeIgnoredDirs = [
+  "public/games",
+  "Exported_Games",
+];
 
 function hasWebGALTerreExe(dir) {
   return existsSync(resolve(dir, requiredExeName));
@@ -48,12 +52,20 @@ function copyReleaseContents(srcDir, destDir) {
   }
 }
 
+function pruneRuntimeUserContent(dir) {
+  for (const relPath of runtimeIgnoredDirs) {
+    const absolutePath = resolve(dir, relPath);
+    rmSync(absolutePath, { recursive: true, force: true });
+  }
+}
+
 function syncWebGALTerreRelease() {
   ensureDir(targetDir);
 
   const normalizedSourceDir = resolve(sourceReleaseDir).toLowerCase();
   const normalizedTargetDir = resolve(targetDir).toLowerCase();
   if (normalizedSourceDir === normalizedTargetDir) {
+    pruneRuntimeUserContent(targetDir);
     console.warn(`[electron:prepare:resources] source 与 target 相同，跳过同步：
   source: ${sourceReleaseDir}
   target: ${targetDir}`);
@@ -65,6 +77,7 @@ function syncWebGALTerreRelease() {
 
   if (!sourceHasExe) {
     if (hasWebGALTerreExe(targetDir)) {
+      pruneRuntimeUserContent(targetDir);
       console.warn(`[electron:prepare:resources] 未找到可用的 WebGAL_Terre release，沿用现有 extraResources：
   source: ${sourceReleaseDir}
   target: ${targetDir}`);
@@ -79,6 +92,7 @@ function syncWebGALTerreRelease() {
 
   clearTargetDir(targetDir);
   copyReleaseContents(sourceReleaseDir, targetDir);
+  pruneRuntimeUserContent(targetDir);
 
   if (!hasWebGALTerreExe(targetDir)) {
     throw new Error(`[electron:prepare:resources] 同步完成但目标目录缺少 ${requiredExeName}：
