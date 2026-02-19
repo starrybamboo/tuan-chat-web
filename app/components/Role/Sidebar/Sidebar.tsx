@@ -10,7 +10,6 @@ import toast from "react-hot-toast";
 import { Link, NavLink, useNavigate, useSearchParams } from "react-router";
 import { tuanchat } from "@/../api/instance";
 import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
-import { useScreenSize } from "@/components/common/customHooks/useScreenSize";
 import { getRoleRule } from "@/utils/roleRuleStorage";
 import { useGlobalContext } from "../../globalContextProvider";
 import { RoleListItem } from "./RoleListItem";
@@ -42,8 +41,6 @@ export function Sidebar({
   const [searchParams] = useSearchParams();
   // 获取用户数据
   const userId = useGlobalContext().userId;
-  const screenSize = useScreenSize();
-  const roleListAvatarThumbWidth = screenSize === "sm" ? 96 : 128;
   const diceRolesQuery = useGetUserRolesByTypeQuery(userId ?? -1, 1);
   const normalRolesQuery = useGetUserRolesByTypeQuery(userId ?? -1, 0);
   const ruleListQuery = useRuleListQuery();
@@ -81,6 +78,7 @@ export function Sidebar({
       name: role.roleName || "",
       description: role.description || "无描述",
       avatar: "",
+      avatarThumb: "",
       avatarId: role.avatarId || 0,
       modelName: role.modelName || "",
       speakerName: role.speakerName || "",
@@ -112,9 +110,12 @@ export function Sidebar({
       // 并行加载所有角色的头像
       const avatarPromises = filteredMappedRoles.map(async (role) => {
         // 检查角色的头像是否已经缓存
-        const cachedAvatar = queryClient.getQueryData<string>(["roleAvatar", role.id]);
-        if (cachedAvatar) {
-          return { id: role.id, avatar: cachedAvatar };
+        const cachedAvatar = queryClient.getQueryData<{ avatar?: string; avatarThumb?: string } | string>(["roleAvatar", role.id]);
+        if (typeof cachedAvatar === "string") {
+          return { id: role.id, avatar: cachedAvatar, avatarThumb: cachedAvatar };
+        }
+        if (cachedAvatar?.avatar) {
+          return { id: role.id, avatar: cachedAvatar.avatar, avatarThumb: cachedAvatar.avatarThumb || cachedAvatar.avatar };
         }
 
         try {
@@ -126,10 +127,11 @@ export function Sidebar({
 
           const res = await tuanchat.avatarController.getRoleAvatar(role.avatarId);
           if (res.success && res.data) {
-            const avatarUrl = res.data.avatarUrl;
+            const avatarUrl = res.data.avatarUrl || "/favicon.ico";
+            const avatarThumbUrl = res.data.avatarThumbUrl || avatarUrl;
             // 将头像URL缓存到React Query缓存中
-            queryClient.setQueryData(["roleAvatar", role.id], avatarUrl);
-            return { id: role.id, avatar: avatarUrl };
+            queryClient.setQueryData(["roleAvatar", role.id], { avatar: avatarUrl, avatarThumb: avatarThumbUrl });
+            return { id: role.id, avatar: avatarUrl, avatarThumb: avatarThumbUrl };
           }
           console.warn(`角色 ${role.id} 的头像数据无效或为空，avatarId: ${role.avatarId}`);
           return null;
@@ -148,7 +150,9 @@ export function Sidebar({
         setRoles((prevChars) => {
           return prevChars.map((char) => {
             const avatarData = validAvatars.find(avatar => avatar?.id === char.id);
-            return avatarData ? { ...char, avatar: avatarData.avatar } : char;
+            return avatarData
+              ? { ...char, avatar: avatarData.avatar, avatarThumb: avatarData.avatarThumb }
+              : char;
           });
         });
       }
@@ -695,7 +699,6 @@ export function Sidebar({
                             isSelected={isSelectionMode ? selectedRoles.has(role.id) : selectedRoleId === role.id}
                             onDelete={() => handleDelete(role.id)}
                             isSelectionMode={isSelectionMode}
-                            avatarThumbnailWidth={roleListAvatarThumbWidth}
                           />
                         </NavLink>
                       );
@@ -786,7 +789,6 @@ export function Sidebar({
                             isSelected={isSelectionMode ? selectedRoles.has(role.id) : selectedRoleId === role.id}
                             onDelete={() => handleDelete(role.id)}
                             isSelectionMode={isSelectionMode}
-                            avatarThumbnailWidth={roleListAvatarThumbWidth}
                           />
                         </NavLink>
                       );

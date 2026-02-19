@@ -24,6 +24,10 @@ export type RoleAvatar = {
      */
     avatarUrl?: string;
     /**
+     * 头像缩略图的url
+     */
+    avatarThumbUrl?: string;
+    /**
      * 立绘的url
      */
     spriteUrl?: string;
