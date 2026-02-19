@@ -27,6 +27,10 @@ function plainTextToHtml(value: string) {
   return escapeHtml(value).replace(/\r?\n/g, "<br>");
 }
 
+function normalizeEditorText(value: string) {
+  return value.replace(/\r\n?/g, "\n").replace(/\u00A0/g, " ");
+}
+
 function EditableMessageContent({
   content,
   className,
@@ -48,7 +52,8 @@ function EditableMessageContent({
     if (!raw) {
       return editContent;
     }
-    return (raw.textContent ?? "").replace(/\u00A0/g, " ");
+    const text = typeof raw.innerText === "string" ? raw.innerText : (raw.textContent ?? "");
+    return normalizeEditorText(text);
   }, [chatInputRef, editContent]);
 
   useEffect(() => {
@@ -117,6 +122,7 @@ function EditableMessageContent({
     <ChatInputArea
       ref={chatInputRef}
       className={editorClassName}
+      inputScope="message-edit"
       placeholder={placeholder}
       disabled={!canEdit}
       onInputSync={() => {

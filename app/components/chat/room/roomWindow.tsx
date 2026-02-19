@@ -475,6 +475,9 @@ function RoomWindow({
         const tagName = target.tagName;
         const isEditableTarget = target.isContentEditable || tagName === "INPUT" || tagName === "TEXTAREA";
         if (isEditableTarget) {
+          if (target.closest("[data-chat-input-scope=\"message-edit\"]")) {
+            return;
+          }
           if (target.closest(".editable-field")) {
             return;
           }

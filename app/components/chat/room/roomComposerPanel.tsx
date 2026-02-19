@@ -448,6 +448,7 @@ function RoomComposerPanelImpl({
   const inputArea = (
     <ChatInputArea
       ref={chatInputRef}
+      inputScope="composer"
       onInputSync={onInputSync}
       onPasteFiles={onPasteFiles}
       onKeyDown={onKeyDown}
