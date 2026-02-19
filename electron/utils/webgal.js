@@ -1,4 +1,4 @@
-/* eslint-disable no-console */
+/* eslint-disable no-console, node/no-process-env */
 import electron from "electron";
 import { spawn } from "node:child_process";
 import { existsSync } from "node:fs";
@@ -17,12 +17,51 @@ const WEBGAL_HEALTHCHECK_PATH = "/api/test";
 const WEBGAL_BOOT_TIMEOUT_MS = 20_000;
 const WEBGAL_HEALTHCHECK_INTERVAL_MS = 200;
 const WEBGAL_HEALTHCHECK_REQUEST_TIMEOUT_MS = 800;
+const WEBGAL_DEFAULT_ALLOWED_ORIGINS = [
+  "https://tuan.chat",
+  "https://www.tuan.chat",
+  "https://test.tuan.chat",
+  "https://www.test.tuan.chat",
+  "http://localhost:3000",
+  "http://127.0.0.1:3000",
+  "http://localhost:5177",
+  "http://127.0.0.1:5177",
+  // Electron 安装版渲染进程源。
+  "app://.",
+  "app://",
+];
 
 let webgalProcess = null;
 let webgalWindow = null;
 
 function delay(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+function normalizeOrigin(origin) {
+  const normalized = String(origin || "").trim().replace(/\/+$/, "");
+  return normalized.toLowerCase();
+}
+
+function buildWebgalAllowedOriginsEnv() {
+  const allowedOrigins = new Set();
+
+  const fromEnv = String(process.env.WEBGAL_ALLOWED_ORIGINS || "")
+    .split(",")
+    .map(origin => normalizeOrigin(origin))
+    .filter(Boolean);
+  for (const origin of fromEnv) {
+    allowedOrigins.add(origin);
+  }
+
+  for (const origin of WEBGAL_DEFAULT_ALLOWED_ORIGINS) {
+    const normalized = normalizeOrigin(origin);
+    if (normalized) {
+      allowedOrigins.add(normalized);
+    }
+  }
+
+  return Array.from(allowedOrigins).join(",");
 }
 
 function getWebGALHealthcheckUrl(port) {
@@ -162,6 +201,10 @@ function startWebGAL(app) {
       cwd: webgalDir,
       windowsHide: true,
       stdio: ["ignore", "pipe", "pipe"],
+      env: {
+        ...process.env,
+        WEBGAL_ALLOWED_ORIGINS: buildWebgalAllowedOriginsEnv(),
+      },
     });
   }
   catch (error) {
