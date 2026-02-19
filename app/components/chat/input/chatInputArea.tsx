@@ -77,6 +77,8 @@ interface ChatInputAreaProps {
 
   /** 可选：用于外层自定义高度/滚动等样式 */
   className?: string;
+  /** 输入框用途标记：用于区分主输入框和消息编辑框的快捷键行为 */
+  inputScope?: "composer" | "message-edit";
 }
 
 /**
@@ -351,6 +353,7 @@ function ChatInputArea({ ref, ...props }: ChatInputAreaProps & { ref?: React.Ref
       suppressContentEditableWarning={true}
       contentEditable={!props.disabled}
       data-placeholder={props.placeholder}
+      data-chat-input-scope={props.inputScope}
       onBlur={props.onBlur}
       onFocus={props.onFocus}
     />

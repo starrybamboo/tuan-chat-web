@@ -365,6 +365,7 @@ $RECYCLE.BIN/
 
 /release/
 /release_local_latest/
+/release_unified_*/
 # Ignore everything in the extraResource directory
 /extraResources/
 # But don't ignore the readme.md file

@@ -93,7 +93,7 @@ export default function LoginModal({ isOpen, onClose }: { isOpen: boolean; onClo
         setTimeout(handleSuccessAndClose, 1000);
       }
       else {
-        showTemporaryMessage(`登录失败：${res.errMsg}`, "error");
+        showTemporaryMessage(res.errMsg || "登录失败，请重试", "error");
       }
     },
     onError: (error) => {

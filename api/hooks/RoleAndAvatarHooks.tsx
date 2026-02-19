@@ -271,6 +271,7 @@ export function useCopyRoleMutation() {
             roleId: newRoleId,
             avatarId: newAvatarId,
             avatarUrl: sourceAvatar.avatarUrl,
+            avatarThumbUrl: sourceAvatar.avatarThumbUrl,
             spriteUrl: sourceAvatar.spriteUrl || "",
             spriteXPosition: sourceAvatar.spriteXPosition ?? 0,
             spriteYPosition: sourceAvatar.spriteYPosition ?? 0,
@@ -627,6 +628,7 @@ export function useApplyCropMutation() {
           roleId: roleId,
           avatarId,
           avatarUrl: currentAvatar.avatarUrl, // 保持原有的avatarUrl
+          avatarThumbUrl: currentAvatar.avatarThumbUrl,
           spriteUrl: newSpriteUrl, // 使用新的spriteUrl
           spriteXPosition: finalTransform.positionX,
           spriteYPosition: finalTransform.positionY,
@@ -698,7 +700,10 @@ export function useApplyCropAvatarMutation() {
         // 使用UploadUtils上传图片，场景2表示头像
         const { UploadUtils } = await import('../../app/utils/UploadUtils');
         const uploadUtils = new UploadUtils();
-        const newAvatarUrl = await uploadUtils.uploadImg(croppedFile, 2, 0.9, 2560);
+        const [newAvatarUrl, newAvatarThumbUrl] = await Promise.all([
+          uploadUtils.uploadImg(croppedFile, 2, 0.9, 2560),
+          uploadUtils.uploadImg(croppedFile, 2, 0.8, 128),
+        ]);
 
         console.log("头像图片上传成功，新URL:", newAvatarUrl);
 
@@ -707,6 +712,7 @@ export function useApplyCropAvatarMutation() {
           roleId: roleId,
           avatarId,
           avatarUrl: newAvatarUrl, // 使用新的avatarUrl
+          avatarThumbUrl: newAvatarThumbUrl,
         });
 
         if (!updateRes.success) {
@@ -761,6 +767,7 @@ export function useUpdateAvatarTransformMutation() {
           roleId: roleId,
           avatarId,
           avatarUrl: currentAvatar.avatarUrl,
+          avatarThumbUrl: currentAvatar.avatarThumbUrl,
           spriteUrl: currentAvatar.spriteUrl,
           spriteXPosition: t.positionX,
           spriteYPosition: t.positionY,
@@ -808,13 +815,15 @@ export function useUpdateAvatarTransformMutation() {
 
 export function useUploadAvatarMutation() {
   const queryClient = useQueryClient();
-  return useMutation<ApiResultRoleAvatar | undefined, Error, { avatarUrl: string; spriteUrl: string; roleId: number; originUrl?: string; transform?: Transform; autoApply?: boolean; autoNameFirst?: boolean; }>({
+  return useMutation<ApiResultRoleAvatar | undefined, Error, { avatarUrl: string; avatarThumbUrl?: string; spriteUrl: string; roleId: number; originUrl?: string; transform?: Transform; autoApply?: boolean; autoNameFirst?: boolean; }>({
     mutationKey: ["uploadAvatar"],
-    mutationFn: async ({ avatarUrl, spriteUrl, roleId, originUrl, transform, autoApply = true, autoNameFirst = false }) => {
+    mutationFn: async ({ avatarUrl, avatarThumbUrl, spriteUrl, roleId, originUrl, transform, autoApply = true, autoNameFirst = false }) => {
       if (!avatarUrl || !roleId || !spriteUrl) {
         console.error("参数错误：avatarUrl 或 roleId 为空");
         return undefined;
       }
+
+      const resolvedAvatarThumbUrl = avatarThumbUrl || avatarUrl;
 
       console.log("useUploadAvatarMutation: 开始上传", {
         hasTransform: !!transform,
@@ -822,6 +831,7 @@ export function useUploadAvatarMutation() {
         autoApply,
         autoNameFirst,
         avatarUrl: avatarUrl.substring(0, 50) + "...",
+        avatarThumbUrl: resolvedAvatarThumbUrl.substring(0, 50) + "...",
         spriteUrl: spriteUrl.substring(0, 50) + "...",
         originUrl: originUrl ? originUrl.substring(0, 50) + "..." : undefined,
       });
@@ -851,6 +861,7 @@ export function useUploadAvatarMutation() {
             roleId: roleId,
             avatarId,
             avatarUrl,
+            avatarThumbUrl: resolvedAvatarThumbUrl,
             spriteUrl,
             originUrl,
             spriteXPosition: t.positionX,
@@ -872,12 +883,14 @@ export function useUploadAvatarMutation() {
               avatarId,
               request: {
                 spriteUrl: spriteUrl ? `${spriteUrl.substring(0, 80)}...` : undefined,
+                avatarThumbUrl: resolvedAvatarThumbUrl ? `${resolvedAvatarThumbUrl.substring(0, 80)}...` : undefined,
                 originUrl: originUrl ? `${originUrl.substring(0, 80)}...` : undefined,
                 originEqualsSprite: !!originUrl && originUrl === spriteUrl,
               },
               saved: saved
                 ? {
                     spriteUrl: saved.spriteUrl ? `${saved.spriteUrl.substring(0, 80)}...` : undefined,
+                    avatarThumbUrl: saved.avatarThumbUrl ? `${saved.avatarThumbUrl.substring(0, 80)}...` : undefined,
                     originUrl: saved.originUrl ? `${saved.originUrl.substring(0, 80)}...` : undefined,
                     originEqualsSprite: !!saved.originUrl && saved.originUrl === saved.spriteUrl,
                   }

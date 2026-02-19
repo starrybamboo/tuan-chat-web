@@ -31,7 +31,7 @@ import type { ApiResultRoom } from "./models/ApiResultRoom";
 import type { ApiResultRoomListResponse } from "./models/ApiResultRoomListResponse";
 import type { ApiResultUserInfoResponse } from "./models/ApiResultUserInfoResponse";
 import { MessageType } from "./wsModels";
-import { useBgmStore } from "@/components/chat/stores/bgmStore";
+import { useAudioMessageAutoPlayStore } from "@/components/chat/stores/audioMessageAutoPlayStore";
 import { applyRoomDndMapChange, roomDndMapQueryKey } from "@/components/chat/shared/map/roomDndMapApi";
 import { readGroupMessagePopupEnabledFromLocalStorage } from "@/components/settings/notificationPreferences";
 
@@ -1032,32 +1032,48 @@ export function useWebSocket() {
         messagesToAdd.push(chatMessageResponse);
       }
 
-      // --- BGM 同步播放：在把消息写入本地缓存前先触发播放/停止副作用 ---
+      // --- 音频自动播放同步：在把消息写入本地缓存前先记录自动播放/停止事件 ---
       for (const msg of messagesToAdd) {
         const m = msg?.message;
         if (!m)
           continue;
 
-        // (1) KP 发起 BGM：SOUND + purpose=bgm
+        // (1) SOUND 自动播放：根据 purpose/标注/标签识别 bgm 或 se
         if (m.messageType === MessageType.SOUND) {
           const sound = (m.extra as any)?.soundMessage ?? (m.extra as any);
-          const purpose = sound?.purpose;
-          const url = sound?.url;
-          if (purpose === "bgm" && typeof url === "string" && url) {
-            void useBgmStore.getState().onBgmStartFromWs(m.roomId, {
-              url,
-              volume: sound?.volume,
-              fileName: sound?.fileName,
-              messageId: m.messageId,
-            });
+          const url = typeof sound?.url === "string" ? sound.url.trim() : "";
+          if (url && typeof m.messageId === "number") {
+            const rawPurpose = typeof sound?.purpose === "string"
+              ? sound.purpose.trim().toLowerCase()
+              : "";
+            const annotations = Array.isArray(m.annotations) ? m.annotations : [];
+            const hasBgmAnnotation = annotations.some(item => typeof item === "string" && item.toLowerCase() === "sys:bgm");
+            const hasSeAnnotation = annotations.some(item => typeof item === "string" && item.toLowerCase() === "sys:se");
+            const content = (m.content ?? "").toString();
+            const purpose = rawPurpose === "bgm" || hasBgmAnnotation || content.includes("[播放BGM]")
+              ? "bgm"
+              : rawPurpose === "se" || hasSeAnnotation || content.includes("[播放音效]")
+                ? "se"
+                : undefined;
+            if (purpose) {
+              useAudioMessageAutoPlayStore.getState().enqueueFromWs({
+                roomId: m.roomId,
+                messageId: m.messageId,
+                purpose,
+              });
+            }
           }
         }
 
-        // (2) KP ֹͣȫԱ BGM：SYSTEM 且 content 包含 [ֹͣBGM]
+        // (2) KP 停止全员 BGM：SYSTEM 且内容包含停止指令
         if (m.messageType === MessageType.SYSTEM) {
           const content = (m.content ?? "").toString();
-          if (content.includes("[ֹͣBGM]")) {
-            useBgmStore.getState().onBgmStopFromWs(m.roomId);
+          if (
+            content.includes("[ֹͣBGM]")
+            || content.includes("[停止全员BGM]")
+            || content.includes("[停止BGM]")
+          ) {
+            useAudioMessageAutoPlayStore.getState().markBgmStopFromWs(m.roomId);
           }
         }
       }

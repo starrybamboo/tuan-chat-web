@@ -1,7 +1,7 @@
 {
   "name": "tuan-chat-web",
   "type": "module",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "private": true,
   "packageManager": "pnpm@9.6.0",
   "author": "Tuan Chat",
@@ -29,8 +29,7 @@
     "electron:build:win:zip": "pnpm -s electron:prepare:resources && pnpm -s build && pnpm exec electron-builder build --config electron-builder.json --win zip",
     "electron:build:win:nsis": "pnpm -s electron:prepare:resources && pnpm -s build && pnpm exec electron-builder build --config electron-builder.json --win nsis",
     "electron:build:mac:zip": "pnpm -s electron:prepare:resources && pnpm -s build && pnpm exec electron-builder build --config electron-builder.json --mac zip",
-    "electron:build:mac:dmg": "pnpm -s electron:prepare:resources && pnpm -s build && pnpm exec electron-builder build --config electron-builder.json --mac dmg",
-    "release:electron": "node ./scripts/release-electron.mjs"
+    "electron:build:mac:dmg": "pnpm -s electron:prepare:resources && pnpm -s build && pnpm exec electron-builder build --config electron-builder.json --mac dmg"
   },
   "build": {
     "appId": "com.tuanchat.tuanchat",
