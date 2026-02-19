@@ -1,10 +1,9 @@
 // 通用音频播放器组件，提供流式播放、进度条与时间展示。
 // 适配不同尺寸的预览场景，避免整段音频下载后才播放。
 import type { CSSProperties } from "react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 
 import H5AudioPlayer, { RHAP_UI } from "react-h5-audio-player";
-import { useAudioPlaybackRegistration } from "@/components/common/useAudioPlaybackRegistration";
 import "react-h5-audio-player/lib/styles.css";
 import "./audioPlayer.css";
 
@@ -28,7 +27,6 @@ export default function AudioPlayer({
   height,
 }: AudioPlayerProps) {
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
-  const playerRef = useRef<any>(null);
 
   useEffect(() => {
     if (audioFile) {
@@ -53,20 +51,6 @@ export default function AudioPlayer({
     : undefined;
   const resolvedUrl = audioUrl ?? externalAudioUrl ?? "";
 
-  const playback = useAudioPlaybackRegistration({
-    kind: "unknown",
-    title: title || "音频",
-    url: hasAudio ? resolvedUrl : undefined,
-    pause: () => {
-      try {
-        playerRef.current?.audio?.current?.pause?.();
-      }
-      catch {
-        // ignore
-      }
-    },
-  });
-
   if (!hasAudio) {
     return null;
   }
@@ -88,7 +72,6 @@ export default function AudioPlayer({
 
       <div className="w-full bg-base-200 rounded-lg p-2">
         <H5AudioPlayer
-          ref={playerRef}
           className={`tc-audio-player ${sizeClass}`}
           src={resolvedUrl}
           autoPlayAfterSrcChange={false}
@@ -97,9 +80,6 @@ export default function AudioPlayer({
           customVolumeControls={[]}
           customControlsSection={[RHAP_UI.MAIN_CONTROLS]}
           customProgressBarSection={[RHAP_UI.CURRENT_TIME, RHAP_UI.PROGRESS_BAR, RHAP_UI.DURATION]}
-          onPlay={playback.onPlay}
-          onPause={playback.onPause}
-          onEnded={playback.onEnded}
           audioProps={{
             preload: "metadata",
             crossOrigin: "anonymous",

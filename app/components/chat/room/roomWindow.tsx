@@ -32,7 +32,7 @@ import useRoomMessageActions from "@/components/chat/room/useRoomMessageActions"
 import useRoomMessageScroll from "@/components/chat/room/useRoomMessageScroll";
 import useRoomOverlaysController from "@/components/chat/room/useRoomOverlaysController";
 import useRoomRoleState from "@/components/chat/room/useRoomRoleState";
-import { useBgmStore } from "@/components/chat/stores/bgmStore";
+import { useAudioMessageAutoPlayStore } from "@/components/chat/stores/audioMessageAutoPlayStore";
 import { useChatInputUiStore } from "@/components/chat/stores/chatInputUiStore";
 import { useEntityHeaderOverrideStore } from "@/components/chat/stores/entityHeaderOverrideStore";
 import { createRoomUiStore, RoomUiStoreProvider } from "@/components/chat/stores/roomUiStore";
@@ -78,9 +78,9 @@ function RoomWindow({
   const roomUiStore = roomUiStoreRef.current;
 
   useEffect(() => {
-    useBgmStore.getState().setActiveRoomId(roomId);
+    useAudioMessageAutoPlayStore.getState().setActiveRoomId(roomId);
     return () => {
-      useBgmStore.getState().setActiveRoomId(null);
+      useAudioMessageAutoPlayStore.getState().setActiveRoomId(null);
     };
   }, [roomId]);
 
