@@ -6,6 +6,7 @@ export type Role = {
   name: string;
   description: string;
   avatar?: string;
+  avatarThumb?: string;
   avatarId: number;
   type?: number; // 角色类型：0=普通角色，1=骰娘
   modelName?: string;

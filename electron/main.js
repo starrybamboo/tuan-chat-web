@@ -108,6 +108,30 @@ async function createWindow() {
   });
 
   Menu.setApplicationMenu(null);
+  const toggleDevTools = () => {
+    if (!mainWindow || mainWindow.isDestroyed()) {
+      return;
+    }
+    const { webContents } = mainWindow;
+    if (webContents.isDevToolsOpened()) {
+      webContents.closeDevTools();
+      return;
+    }
+    webContents.openDevTools({ mode: "detach" });
+  };
+  mainWindow.webContents.on("before-input-event", (event, input) => {
+    const key = String(input.key || "").toLowerCase();
+    const isF12 = key === "f12";
+    const isCtrlShiftI = key === "i" && input.control && input.shift;
+    const isCmdShiftI = key === "i" && input.meta && input.shift;
+
+    if (!isF12 && !isCtrlShiftI && !isCmdShiftI) {
+      return;
+    }
+
+    event.preventDefault();
+    toggleDevTools();
+  });
 
   const isDev = !app.isPackaged;
   const preferredDevServerUrl = String(

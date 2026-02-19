@@ -263,13 +263,15 @@ export function CharacterCopper({
       console.error("originUrl 上传失败:", error);
     }
 
-    const [spriteUrl, avatarUrl] = await Promise.all([
+    const [spriteUrl, avatarUrl, avatarThumbUrl] = await Promise.all([
       uploadUtils.uploadImg(spriteFile, scene),
       uploadUtils.uploadImg(avatarFile, scene, 60, 512),
+      uploadUtils.uploadImg(avatarFile, scene, 60, 128),
     ]);
 
     await Promise.resolve(mutate?.({
       avatarUrl,
+      avatarThumbUrl,
       spriteUrl,
       originUrl: originUrl || undefined,
       transform: createDefaultTransform(),
@@ -380,6 +382,7 @@ export function CharacterCopper({
     try {
       let downloadUrl = "";
       let copperedDownloadUrl = "";
+      let copperedThumbDownloadUrl = "";
 
       if (currentStep === 1) {
         // 第一步：只保存裁剪后的图片用于第二步使用
@@ -400,7 +403,10 @@ export function CharacterCopper({
         }
         if (shouldUploadAvatar) {
           const copperedImgFile = await getCroppedFile(`${fileName}-cropped.png`);
-          copperedDownloadUrl = await uploadUtils.uploadImg(copperedImgFile, scene, 60, 512);
+          [copperedDownloadUrl, copperedThumbDownloadUrl] = await Promise.all([
+            uploadUtils.uploadImg(copperedImgFile, scene, 60, 512),
+            uploadUtils.uploadImg(copperedImgFile, scene, 60, 128),
+          ]);
           setCopperedDownloadUrl?.(copperedDownloadUrl);
         }
 
@@ -422,6 +428,7 @@ export function CharacterCopper({
         if (mutate !== undefined) {
           await Promise.resolve(mutate({
             avatarUrl: copperedDownloadUrl,
+            avatarThumbUrl: copperedThumbDownloadUrl || undefined,
             spriteUrl: downloadUrl,
             originUrl: resolvedOriginUrl || undefined,
             transform,
