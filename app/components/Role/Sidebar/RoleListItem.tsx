@@ -1,5 +1,4 @@
 import type { Role } from "../types";
-import { withOssResizeProcess } from "@/utils/ossImageProcess";
 
 // 1. 从 Props 接口中移除 onSelect
 interface RoleListItemProps {
@@ -7,7 +6,6 @@ interface RoleListItemProps {
   isSelected: boolean;
   onDelete: (e?: React.MouseEvent) => void;
   isSelectionMode?: boolean;
-  avatarThumbnailWidth?: number;
 }
 
 // 2. 从函数参数中移除 onSelect
@@ -16,12 +14,8 @@ export function RoleListItem({
   isSelected,
   onDelete,
   isSelectionMode,
-  avatarThumbnailWidth = 128,
 }: RoleListItemProps) {
-  // 角色列表仅展示小图，使用 OSS 缩略图以减少下载体积。
-  const avatarSrc = role.avatar
-    ? withOssResizeProcess(role.avatar, avatarThumbnailWidth)
-    : "/favicon.ico";
+  const avatarSrc = role.avatarThumb || role.avatar || "/favicon.ico";
 
   return (
     // 3. 从根 div 中移除 onClick 事件
