@@ -2,14 +2,15 @@ import type { UserRole } from "api";
 import type { Rule } from "api/models/Rule";
 import type { Role } from "../types";
 import { useQueryClient } from "@tanstack/react-query";
-import { useDeleteRolesMutation, useGetInfiniteUserRolesByTypeQuery, useGetUserRolesByTypeQuery } from "api/hooks/RoleAndAvatarHooks";
+import { useDeleteRolesMutation, useGetUserRolesByTypeQuery } from "api/hooks/RoleAndAvatarHooks";
 import { useDeleteRuleMutation, useRuleListQuery } from "api/hooks/ruleQueryHooks";
 // import { useCreateRoleMutation, useDeleteRolesMutation, useGetInfiniteUserRolesQuery, useUpdateRoleWithLocalMutation, useUploadAvatarMutation } from "api/queryHooks";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import { Link, NavLink, useNavigate, useSearchParams } from "react-router";
 import { tuanchat } from "@/../api/instance";
 import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
+import { useScreenSize } from "@/components/common/customHooks/useScreenSize";
 import { getRoleRule } from "@/utils/roleRuleStorage";
 import { useGlobalContext } from "../../globalContextProvider";
 import { RoleListItem } from "./RoleListItem";
@@ -32,7 +33,6 @@ export function Sidebar({
   // setIsEditing,
   // onEnterCreateEntry,
 }: SidebarProps) {
-  const [isLoadingMore, setIsLoadingMore] = useState(false);
   // 已不再直接在 Sidebar 内创建角色
   const [searchQuery, setSearchQuery] = useState("");
   // 折叠状态：用于"全部"视图中的分组折叠
@@ -42,16 +42,11 @@ export function Sidebar({
   const [searchParams] = useSearchParams();
   // 获取用户数据
   const userId = useGlobalContext().userId;
+  const screenSize = useScreenSize();
+  const roleListAvatarThumbWidth = screenSize === "sm" ? 96 : 128;
   const diceRolesQuery = useGetUserRolesByTypeQuery(userId ?? -1, 1);
+  const normalRolesQuery = useGetUserRolesByTypeQuery(userId ?? -1, 0);
   const ruleListQuery = useRuleListQuery();
-  const {
-    data: normalRolesQuery,
-    isSuccess: isNormalSuccess,
-    fetchNextPage,
-    // isFetchingNextPage,
-    hasNextPage,
-    // status,
-  } = useGetInfiniteUserRolesByTypeQuery(userId ?? -1, 0);
   // 创建角色接口
   // const { mutateAsync: createRole } = useCreateRoleMutation();
   // 上传头像接口
@@ -98,7 +93,7 @@ export function Sidebar({
 
     // 有query数据时
     const diceUserRoles = diceRolesQuery.data ?? [];
-    const normalUserRoles = normalRolesQuery?.pages.flatMap(page => page.data?.list ?? []) ?? [];
+    const normalUserRoles = normalRolesQuery.data ?? [];
     if (diceUserRoles.length > 0 || normalUserRoles.length > 0) {
       // 将API返回的角色数据映射为前端使用的格式
       const mappedRoles = [...diceUserRoles, ...normalUserRoles].map(convertRole);
@@ -160,16 +155,6 @@ export function Sidebar({
     }
   };
 
-  // 添加加载更多角色的函数
-  const loadMoreRoles = useCallback(async () => {
-    if (isLoadingMore || !hasNextPage)
-      return;
-
-    setIsLoadingMore(true);
-    await fetchNextPage();
-    setIsLoadingMore(false);
-  }, [fetchNextPage, hasNextPage, isLoadingMore]);
-
   // 创建新角色
   // const handleCreate = async () => {
   //   if (isCreatingRole)
@@ -229,12 +214,12 @@ export function Sidebar({
 
   // 初始化角色数据
   useEffect(() => {
-    if (diceRolesQuery.isSuccess || isNormalSuccess) {
+    if (diceRolesQuery.isSuccess || normalRolesQuery.isSuccess) {
       loadRoles();
     }
-    // 监听 roleQuery.pages 的变化，当 infinite query 加载新页面时也会触发
+    // 监听两类角色查询结果变化，刷新侧边栏角色数据
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [diceRolesQuery.data?.length, isNormalSuccess, normalRolesQuery?.pages.length]);
+  }, [diceRolesQuery.data?.length, normalRolesQuery.data?.length, diceRolesQuery.isSuccess, normalRolesQuery.isSuccess]);
   // 过滤角色列表（按搜索）
   const filteredRoles = roles
     .filter(role => role.name.toLowerCase().includes(searchQuery.toLowerCase())
@@ -475,18 +460,11 @@ export function Sidebar({
 
         {/* 创建角色 - 虚线占位项，始终位于列表顶部 */}
 
-        {/* 角色列表 - 使用 InfiniteQuery */}
+        {/* 角色列表 */}
         <div className="flex-1 overflow-hidden">
 
           <div
             className="h-full overflow-y-auto"
-            onScroll={(e) => {
-              const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
-              // 当滚动到底部附近时加载更多
-              if (scrollHeight - scrollTop <= clientHeight + 100) {
-                loadMoreRoles();
-              }
-            }}
           >
             {/* "全部"视图：分组可折叠列表，顺序为规则->骰娘->角色 */}
             <>
@@ -717,6 +695,7 @@ export function Sidebar({
                             isSelected={isSelectionMode ? selectedRoles.has(role.id) : selectedRoleId === role.id}
                             onDelete={() => handleDelete(role.id)}
                             isSelectionMode={isSelectionMode}
+                            avatarThumbnailWidth={roleListAvatarThumbWidth}
                           />
                         </NavLink>
                       );
@@ -807,6 +786,7 @@ export function Sidebar({
                             isSelected={isSelectionMode ? selectedRoles.has(role.id) : selectedRoleId === role.id}
                             onDelete={() => handleDelete(role.id)}
                             isSelectionMode={isSelectionMode}
+                            avatarThumbnailWidth={roleListAvatarThumbWidth}
                           />
                         </NavLink>
                       );
@@ -816,11 +796,6 @@ export function Sidebar({
               </div>
             </>
 
-            {isLoadingMore && (
-              <div className="flex justify-center items-center py-4">
-                <span className="loading loading-spinner loading-md"></span>
-              </div>
-            )}
           </div>
         </div>
       </div>
