@@ -2,10 +2,8 @@
 // 支持删除角色音频并同步到外部状态。
 import type { MouseEvent } from "react";
 import type { Role } from "../types";
-import { useRef } from "react";
 
 import H5AudioPlayer, { RHAP_UI } from "react-h5-audio-player";
-import { useAudioPlaybackRegistration } from "@/components/common/useAudioPlaybackRegistration";
 import "react-h5-audio-player/lib/styles.css";
 import "../../common/audioPlayer.css";
 
@@ -19,21 +17,6 @@ interface AudioPlayerProps {
 export default function AudioPlayer({ role, size = "default", onRoleUpdate, onDelete }: AudioPlayerProps) {
   const isCompact = size === "compact";
   const sizeClass = isCompact ? "tc-audio-player--sm" : "tc-audio-player--md";
-  const playerRef = useRef<any>(null);
-
-  const playback = useAudioPlaybackRegistration({
-    kind: "role",
-    title: `${(role as any)?.name || "角色音频"} · 语音`,
-    url: role.voiceUrl,
-    pause: () => {
-      try {
-        playerRef.current?.audio?.current?.pause?.();
-      }
-      catch {
-        // ignore
-      }
-    },
-  });
 
   const handleDeleteAudio = (e: MouseEvent) => {
     e.stopPropagation();
@@ -58,7 +41,6 @@ export default function AudioPlayer({ role, size = "default", onRoleUpdate, onDe
         <div className={`flex items-center gap-2 ${isCompact ? "" : "gap-3"}`}>
           <div className={`flex-1 bg-base-200 rounded-lg ${isCompact ? "p-2" : "p-3"}`}>
             <H5AudioPlayer
-              ref={playerRef}
               className={`tc-audio-player ${sizeClass}`}
               src={role.voiceUrl}
               autoPlayAfterSrcChange={false}
@@ -67,9 +49,6 @@ export default function AudioPlayer({ role, size = "default", onRoleUpdate, onDe
               customVolumeControls={[]}
               customControlsSection={[RHAP_UI.MAIN_CONTROLS]}
               customProgressBarSection={[RHAP_UI.CURRENT_TIME, RHAP_UI.PROGRESS_BAR, RHAP_UI.DURATION]}
-              onPlay={playback.onPlay}
-              onPause={playback.onPause}
-              onEnded={playback.onEnded}
               audioProps={{
                 preload: "metadata",
                 crossOrigin: "anonymous",

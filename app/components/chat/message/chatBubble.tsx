@@ -1026,11 +1026,22 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
           const soundMessage = extra?.soundMessage ?? extra;
           const audioUrl = typeof soundMessage?.url === "string" ? soundMessage.url : "";
           const duration = soundMessage?.second ?? soundMessage?.duration;
+          const purposeFromPayload = typeof soundMessage?.purpose === "string"
+            ? soundMessage.purpose.trim().toLowerCase()
+            : "";
+          const purpose = purposeFromPayload === "bgm" || hasAnnotation(annotations, ANNOTATION_IDS.BGM)
+            ? "bgm"
+            : purposeFromPayload === "se" || hasAnnotation(annotations, ANNOTATION_IDS.SE)
+              ? "se"
+              : "voice";
           return (
             <div className="flex flex-col gap-2">
               {audioUrl
                 ? (
                     <AudioMessage
+                      roomId={message.roomId}
+                      messageId={message.messageId}
+                      purpose={purpose}
                       cacheKey={`audio:${message.messageId}`}
                       url={audioUrl}
                       duration={typeof duration === "number" ? duration : undefined}

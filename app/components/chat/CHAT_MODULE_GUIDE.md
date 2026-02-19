@@ -149,7 +149,7 @@ ChatFrame 负责“消息列表的业务协调”：
 - WebSocket：`api/useWebSocket.tsx`（由 globalContext 提供 websocketUtils）。
 - WebGAL：`core/realtimeRenderOrchestrator.tsx` + `webGAL/useRealtimeRender`。
 - Blocksuite：位于 `infra/blocksuite`（文档相关能力）。
-- BGM / 音频：`infra/bgm`、`infra/audioMessage`。
+- 音频消息播放：`infra/audioMessage`（含 BGM 切换协调器与消息波形缓存）。
 
 Infra 层通常“不会直接渲染 UI”，但支撑大部分核心功能。
 
@@ -284,7 +284,7 @@ Chat 模块同时使用了多种状态来源，各有侧重：
 - `chatComposerStore`：输入区附件与草稿相关状态。
 - `chatInputUiStore`：输入框纯文本、@提及等解析结果。
 - `realtimeRenderStore`：WebGAL 渲染配置与运行态。
-- `bgmStore`：背景音乐相关。
+- `audioMessageAutoPlayStore`：消息音频自动播放相关（BGM/音效）。
 - `docHeaderOverrideStore` / `entityHeaderOverrideStore`：标题覆盖信息。
 
 ### 5.4 React Query（服务端数据）
