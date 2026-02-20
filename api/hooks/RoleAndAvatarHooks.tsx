@@ -24,6 +24,7 @@ import { emitWebgalAvatarUpdated } from "../../app/webGAL/avatarSync";
 
 import {
   type ApiResultRoleAbility,
+  type ApiResultUserRole,
   type ApiResultRoleAvatar,
   type UserInfoResponse,
   type RoleCreateRequest
@@ -253,13 +254,64 @@ export function useCopyRoleMutation() {
   return useMutation({
     mutationKey: ["copyRole"],
     mutationFn: async ({ sourceRole, targetType, newName, newDescription }: CopyRoleArgs): Promise<Role> => {
-      const isSameType = sourceRole.type === (targetType === "dicer" ? 1 : 0);
+      if (targetType === "dicer") {
+        const copyRes = await tuanchat.request.request<ApiResultUserRole>({
+          method: "POST",
+          url: "/role/copy",
+          body: {
+            sourceRoleId: sourceRole.id,
+            newRoleName: newName?.trim() || undefined,
+            newRoleDescription: newDescription?.trim() || undefined,
+            targetType: 1,
+          },
+          mediaType: "application/json",
+        });
+
+        const copiedRole = copyRes?.data;
+        if (!copyRes?.success || !copiedRole?.roleId) {
+          throw new Error(copyRes?.errMsg || "角色复制失败");
+        }
+
+        let avatarUrl = sourceRole.avatar || "/favicon.ico";
+        let avatarThumb = sourceRole.avatarThumb || avatarUrl;
+        const copiedAvatarId = copiedRole.avatarId ?? 0;
+        if (copiedAvatarId > 0) {
+          try {
+            const avatarRes = await tuanchat.avatarController.getRoleAvatar(copiedAvatarId);
+            if (avatarRes?.success && avatarRes.data) {
+              avatarUrl = avatarRes.data.avatarUrl || avatarUrl;
+              avatarThumb = avatarRes.data.avatarThumbUrl || avatarUrl;
+            }
+          }
+          catch (error) {
+            console.warn("复制角色后获取头像失败", error);
+          }
+        }
+
+        return {
+          id: copiedRole.roleId,
+          name: copiedRole.roleName || newName,
+          description: copiedRole.description || newDescription || "",
+          avatar: avatarUrl,
+          avatarThumb,
+          avatarId: copiedAvatarId,
+          type: copiedRole.type,
+          modelName: copiedRole.modelName || sourceRole.modelName,
+          speakerName: copiedRole.speakerName || sourceRole.speakerName,
+          voiceUrl: copiedRole.voiceUrl || sourceRole.voiceUrl,
+          extra: copiedRole.extra ?? cleanDicerFields(sourceRole.extra),
+        };
+      }
+
+      // 走到这里表示目标为 normal（dicer 已在前面走后端 copy 接口直接返回）
+      const targetRoleType = 0;
+      const isSameType = sourceRole.type === targetRoleType;
 
       // 1. 创建新角色
       const createRes = await tuanchat.roleController.createRole({
         roleName: newName,
         description: newDescription,
-        type: targetType === "dicer" ? 1 : 0,
+        type: targetRoleType,
       });
       const newRoleId = createRes?.data;
       if (!createRes?.success || !newRoleId || newRoleId <= 0) {
@@ -363,7 +415,7 @@ export function useCopyRoleMutation() {
         description: newDescription,
         avatar: finalAvatarUrl,
         avatarId: finalAvatarId ?? 0,
-        type: targetType === "dicer" ? 1 : 0,
+        type: targetRoleType,
         modelName: sourceRole.modelName,
         speakerName: sourceRole.speakerName,
         voiceUrl: sourceRole.voiceUrl,
