@@ -897,6 +897,7 @@ function RoomWindow({
             onRedo={handleRedoLastMessageAction}
             canUndo={canUndo}
             canRedo={canRedo}
+            onSendDocCard={handleSendDocCard}
           />
         </RoomDocRefDropLayer>
         {!viewMode && (

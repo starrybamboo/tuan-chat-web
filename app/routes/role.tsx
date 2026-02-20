@@ -81,6 +81,8 @@ export default function RoleLayout() {
         <Drawer.Portal>
           <Drawer.Overlay className="fixed inset-0 bg-black/40 lg:hidden data-[state=closed]:pointer-events-none data-[state=open]:pointer-events-auto" />
           <Drawer.Content className="z-100 bg-base-300 flex flex-col fixed h-full w-80 left-0 top-0 lg:hidden data-[state=closed]:pointer-events-none data-[state=open]:pointer-events-auto">
+            <Drawer.Title className="sr-only">角色侧边栏</Drawer.Title>
+            <Drawer.Description className="sr-only">浏览并管理当前账号下的角色列表。</Drawer.Description>
             <div className="flex-1 overflow-y-auto ">
               <Sidebar
                 roles={roles}

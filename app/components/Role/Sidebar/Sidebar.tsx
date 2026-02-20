@@ -128,7 +128,6 @@ export function Sidebar({
         try {
           // 如果角色没有avatarId，跳过头像加载
           if (!role.avatarId) {
-            console.warn(`角色 ${role.id} 没有avatarId，跳过头像加载`);
             return null;
           }
 
@@ -140,7 +139,6 @@ export function Sidebar({
             queryClient.setQueryData(["roleAvatar", role.id], { avatar: avatarUrl, avatarThumb: avatarThumbUrl, avatarId: role.avatarId });
             return { id: role.id, avatar: avatarUrl, avatarThumb: avatarThumbUrl };
           }
-          console.warn(`角色 ${role.id} 的头像数据无效或为空，avatarId: ${role.avatarId}`);
           return null;
         }
         catch (error) {

@@ -1,3 +1,4 @@
+import type { DocRefDragPayload } from "@/components/chat/utils/docRef";
 import { CheckerboardIcon, FileTextIcon, SwordIcon } from "@phosphor-icons/react";
 import React from "react";
 import DocFolderForUser from "@/components/chat/room/drawers/docFolderForUser";
@@ -16,7 +17,11 @@ function isSubRoomDrawerState(state: string): state is "map" | "initiative" | "w
   return state === "map" || state === "initiative" || state === "webgal" || state === "doc";
 }
 
-function SubRoomWindowImpl() {
+interface SubRoomWindowProps {
+  onSendDocCard?: (payload: DocRefDragPayload) => Promise<void> | void;
+}
+
+function SubRoomWindowImpl({ onSendDocCard }: SubRoomWindowProps) {
   const sideDrawerState = useSideDrawerStore(state => state.state);
   const setSideDrawerState = useSideDrawerStore(state => state.setState);
 
@@ -180,7 +185,7 @@ function SubRoomWindowImpl() {
           )}
           {activePane === "doc" && (
             <div className="h-full overflow-hidden">
-              <DocFolderForUser />
+              <DocFolderForUser onSendDocCard={onSendDocCard} />
             </div>
           )}
           {activePane === "webgal" && (

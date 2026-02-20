@@ -51,7 +51,11 @@ export function VaulSideDrawer({
   const renderedWidthNumber = widthNumber != null ? clamp(widthNumber) : null;
   const widthStyle = renderedWidthNumber != null ? `${renderedWidthNumber}px` : width;
   const mobileMaxWidth = "calc(100vw - 1rem)";
-  const canResize = Boolean(onWidthChange) && widthNumber != null && Number.isFinite(resolvedMin) && Number.isFinite(resolvedMax);
+  const canResize = Boolean(onWidthChange)
+    && widthNumber != null
+    && Number.isFinite(resolvedMin)
+    && Number.isFinite(resolvedMax)
+    && !shouldOverlayOnMobile;
   const isDragging = React.useRef(false);
   const startX = React.useRef(0);
   const startWidth = React.useRef(0);
@@ -107,12 +111,12 @@ export function VaulSideDrawer({
 
   if (shouldOverlayOnMobile) {
     return (
-      <div className={`absolute inset-y-0 right-0 z-40 pointer-events-none ${className}`}>
+      <div className={`absolute inset-0 z-40 pointer-events-none ${className}`}>
         <div
-          className="h-full min-h-0 flex pointer-events-auto"
+          className="h-full min-h-0 w-full flex pointer-events-auto"
           style={{
-            width: widthStyle,
-            maxWidth: mobileMaxWidth,
+            width: "100%",
+            maxWidth: "100%",
           }}
         >
           <div
@@ -139,7 +143,7 @@ export function VaulSideDrawer({
 
   return (
     <div
-      className={`h-full min-h-0 shrink-0 flex ${className}`}
+      className={`relative z-40 h-full min-h-0 shrink-0 flex pointer-events-auto ${className}`}
       style={{
         width: widthStyle,
         maxWidth: mobileMaxWidth,

@@ -629,7 +629,6 @@ export function useApplyCropMutation() {
         const uploadUtils = new UploadUtils();
         const newSpriteUrl = await uploadUtils.uploadImg(croppedFile, 3, 0.9, 2560);
 
-        console.log("图片上传成功，新URL:", newSpriteUrl);
 
         // 直接使用传入的transform参数或默认值
         const finalTransform: Transform = transform || {
@@ -659,7 +658,6 @@ export function useApplyCropMutation() {
           return undefined;
         }
 
-        console.log("裁剪应用成功，头像记录已更新");
         const nextAvatar: RoleAvatar = updateRes.data ?? {
           ...currentAvatar,
           roleId,
@@ -675,7 +673,6 @@ export function useApplyCropMutation() {
         upsertRoleAvatarQueryCaches(queryClient, nextAvatar, roleId);
         emitWebgalAvatarUpdated({ avatarId, avatar: nextAvatar });
         await queryClient.invalidateQueries({ queryKey: ["getRoleAvatars", roleId] });
-        console.log("缓存已刷新，roleId:", roleId);
         return updateRes;
       }
       catch (error) {
@@ -722,7 +719,6 @@ export function useApplyCropAvatarMutation() {
           uploadUtils.uploadImg(croppedFile, 2, 0.8, 128),
         ]);
 
-        console.log("头像图片上传成功，新URL:", newAvatarUrl);
 
         // 使用新的avatarUrl更新头像记录，保持原有的spriteUrl和Transform参数
         const updateRes = await tuanchat.avatarController.updateRoleAvatar({
@@ -737,9 +733,7 @@ export function useApplyCropAvatarMutation() {
           return undefined;
         }
 
-        console.log("头像裁剪应用成功，头像记录已更新");
         await queryClient.invalidateQueries({ queryKey: ["getRoleAvatars", roleId] });
-        console.log("缓存已刷新，roleId:", roleId);
         return updateRes;
       }
       catch (error) {
@@ -798,9 +792,7 @@ export function useUpdateAvatarTransformMutation() {
           return undefined;
         }
 
-        console.log("Transform更新成功");
         await queryClient.invalidateQueries({ queryKey: ["getRoleAvatars", roleId] });
-        console.log("缓存已刷新，roleId:", roleId);
         return updateRes;
       }
       catch (error) {
@@ -842,17 +834,6 @@ export function useUploadAvatarMutation() {
 
       const resolvedAvatarThumbUrl = avatarThumbUrl || avatarUrl;
 
-      console.log("useUploadAvatarMutation: 开始上传", {
-        hasTransform: !!transform,
-        roleId,
-        autoApply,
-        autoNameFirst,
-        avatarUrl: avatarUrl.substring(0, 50) + "...",
-        avatarThumbUrl: resolvedAvatarThumbUrl.substring(0, 50) + "...",
-        spriteUrl: spriteUrl.substring(0, 50) + "...",
-        originUrl: originUrl ? originUrl.substring(0, 50) + "..." : undefined,
-      });
-
       try {
         const res = await tuanchat.avatarController.setRoleAvatar({
           roleId: roleId,
@@ -892,32 +873,6 @@ export function useUploadAvatarMutation() {
             return undefined;
           }
 
-          // 最小化调试信息：仅关注上传到后端的 spriteUrl/originUrl 以及后端返回体里保存的值
-          try {
-            const saved = uploadRes.data;
-            console.warn("Avatar upload origin/sprite", {
-              roleId,
-              avatarId,
-              request: {
-                spriteUrl: spriteUrl ? `${spriteUrl.substring(0, 80)}...` : undefined,
-                avatarThumbUrl: resolvedAvatarThumbUrl ? `${resolvedAvatarThumbUrl.substring(0, 80)}...` : undefined,
-                originUrl: originUrl ? `${originUrl.substring(0, 80)}...` : undefined,
-                originEqualsSprite: !!originUrl && originUrl === spriteUrl,
-              },
-              saved: saved
-                ? {
-                    spriteUrl: saved.spriteUrl ? `${saved.spriteUrl.substring(0, 80)}...` : undefined,
-                    avatarThumbUrl: saved.avatarThumbUrl ? `${saved.avatarThumbUrl.substring(0, 80)}...` : undefined,
-                    originUrl: saved.originUrl ? `${saved.originUrl.substring(0, 80)}...` : undefined,
-                    originEqualsSprite: !!saved.originUrl && saved.originUrl === saved.spriteUrl,
-                  }
-                : undefined,
-            });
-          }
-          catch (e) {
-            console.warn("Avatar upload origin/sprite: debug log failed", e);
-          }
-          
           // 根据 autoApply 参数决定是否自动应用头像
           if (autoApply) {
             try {
@@ -925,12 +880,9 @@ export function useUploadAvatarMutation() {
                 roleId: roleId,
                 avatarId: avatarId,
               });
-              console.log("角色avatarId已自动更新:", { roleId, avatarId });
             } catch (error) {
               console.error("更新角色avatarId失败:", error);
             }
-          } else {
-            console.log("跳过自动应用头像 (autoApply=false)");
           }
           
           // 如果是首次上传且需要自动命名
@@ -951,7 +903,6 @@ export function useUploadAvatarMutation() {
                       label: "默认",
                     },
                   });
-                  console.log("首次头像自动命名为'默认'");
                 }
               }
             } catch (error) {
@@ -963,7 +914,6 @@ export function useUploadAvatarMutation() {
           await queryClient.invalidateQueries({ queryKey: ["roleInfinite"] });
           await queryClient.invalidateQueries({ queryKey: ["getUserRoles"] });
           await queryClient.invalidateQueries({ queryKey: ["getUserRolesByTypes"] });
-          console.log("缓存已刷新，roleId:", roleId);
           return uploadRes;
         } else {
           console.error("头像ID无效");

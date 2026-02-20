@@ -1,5 +1,5 @@
+import type { DocRefDragPayload } from "@/components/chat/utils/docRef";
 import React from "react";
-
 import ChatFrame from "@/components/chat/chatFrame";
 import RoomComposerPanel from "@/components/chat/room/roomComposerPanel";
 import RoomHeaderBar from "@/components/chat/room/roomHeaderBar";
@@ -30,6 +30,7 @@ interface RoomWindowLayoutProps {
   onRedo?: () => void;
   canUndo?: boolean;
   canRedo?: boolean;
+  onSendDocCard?: (payload: DocRefDragPayload) => Promise<void> | void;
 }
 
 export default function RoomWindowLayout({
@@ -50,6 +51,7 @@ export default function RoomWindowLayout({
   onRedo,
   canUndo = false,
   canRedo = false,
+  onSendDocCard,
 }: RoomWindowLayoutProps) {
   const setComposerTarget = useRoomUiStore(state => state.setComposerTarget);
 
@@ -98,11 +100,11 @@ export default function RoomWindowLayout({
               {!hideComposer && <RoomComposerPanel {...composerPanelProps} />}
             </div>
 
-            {!hideSecondaryPanels && <RoomSideDrawers />}
+            {!hideSecondaryPanels && <RoomSideDrawers onSendDocCard={onSendDocCard} />}
           </div>
         </div>
 
-        {!hideSecondaryPanels && <SubRoomWindow />}
+        {!hideSecondaryPanels && <SubRoomWindow onSendDocCard={onSendDocCard} />}
       </div>
     </div>
   );

@@ -1,6 +1,7 @@
 import type { SpaceUserDocResponse } from "../../../../../api/models/SpaceUserDocResponse";
 import type { FolderNode } from "./docFolderTagTree";
 import type { BlocksuiteDocHeader } from "@/components/chat/infra/blocksuite/docHeader";
+import type { DocRefDragPayload } from "@/components/chat/utils/docRef";
 import { DotsThreeVerticalIcon, FileTextIcon } from "@phosphor-icons/react";
 import { useQueryClient } from "@tanstack/react-query";
 import {
@@ -20,10 +21,15 @@ import { getDocRefDragData, isDocRefDrag, setDocRefDragData } from "@/components
 import { useLocalStorage } from "@/components/common/customHooks/useLocalStorage";
 import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
 import { AddIcon, ChevronDown, FolderIcon } from "@/icons";
+import { useIsMobile } from "@/utils/getScreenSize";
 import { buildFolderNodes, normalizeTagPath, UNTAGGED_KEY } from "./docFolderTagTree";
 
 const LOCAL_TAG_STORAGE_KEY = "tc:space-user-doc-local-tags";
 const TAG_MAX_LENGTH = 64;
+
+interface DocFolderForUserProps {
+  onSendDocCard?: (payload: DocRefDragPayload) => Promise<void> | void;
+}
 
 function formatDateTime(raw: string | null | undefined): string {
   if (!raw)
@@ -35,9 +41,10 @@ function formatDateTime(raw: string | null | undefined): string {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
-export default function DocFolderForUser() {
+export default function DocFolderForUser({ onSendDocCard }: DocFolderForUserProps) {
   const spaceContext = use(SpaceContext);
   const spaceId = spaceContext.spaceId ?? -1;
+  const isMobile = useIsMobile();
   const queryClient = useQueryClient();
 
   const docsQuery = useListSpaceUserDocsQuery(spaceId);
@@ -334,6 +341,36 @@ export default function DocFolderForUser() {
     tagKey: string;
     mode: "copy" | "move";
   } | null>(null);
+  const handleSendDocToCurrentRoom = useCallback(async (doc: SpaceUserDocResponse) => {
+    if (!onSendDocCard) {
+      toast.error("当前页面不支持发送到群聊");
+      return;
+    }
+    const docEntityId = typeof doc.docId === "number" && Number.isFinite(doc.docId) ? doc.docId : null;
+    if (!docEntityId || docEntityId <= 0) {
+      toast.error("未检测到可用文档");
+      return;
+    }
+    const docId = buildDescriptionDocId({
+      entityType: "space_user_doc",
+      entityId: docEntityId,
+      docType: "description",
+    });
+    const title = (doc.title ?? "").trim();
+    const payload: DocRefDragPayload = {
+      docId,
+      ...(spaceId > 0 ? { spaceId } : {}),
+      ...(title ? { title } : {}),
+    };
+    try {
+      await onSendDocCard(payload);
+      toast.success("已发送到当前群聊");
+    }
+    catch (error) {
+      console.error("[DocFolderForUser] send doc card failed", error);
+      toast.error("发送到群聊失败");
+    }
+  }, [onSendDocCard, spaceId]);
   const refreshUserDocList = useCallback(async () => {
     if (!spaceId || spaceId <= 0)
       return;
@@ -457,7 +494,7 @@ export default function DocFolderForUser() {
         </span>
 
         <div
-          className="absolute right-1 top-1/2 z-50 -translate-y-1/2 flex items-center opacity-0 group-hover:opacity-100"
+          className="absolute right-1 top-1/2 z-50 -translate-y-1/2 flex items-center opacity-100"
           onClick={(e) => {
             e.stopPropagation();
           }}
@@ -472,6 +509,11 @@ export default function DocFolderForUser() {
               <DotsThreeVerticalIcon className="size-4" />
             </button>
             <ul tabIndex={0} className="dropdown-content z-50 menu p-2 shadow bg-base-100 rounded-box w-44">
+              <li>
+                <a onClick={() => void handleSendDocToCurrentRoom(doc)}>
+                  发送到群聊
+                </a>
+              </li>
               <li>
                 <a
                   onClick={() => {
@@ -762,26 +804,18 @@ export default function DocFolderForUser() {
       <ToastWindow
         isOpen={openDocId != null && openDocBlocksuiteId != null}
         onClose={() => setOpenDocId(null)}
+        fullScreen={isMobile}
       >
-        <div className="w-[min(1200px,96vw)] h-[min(86vh,900px)] bg-base-100 rounded-lg overflow-hidden flex flex-col">
-          <div className="flex items-center justify-between px-2 py-1 border-b border-base-300 bg-base-100">
-            <div className="text-sm opacity-80 truncate px-2">
-              {openDocTitle}
-            </div>
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                className="btn btn-ghost btn-sm"
-                onClick={() => setOpenDocId(null)}
-              >
-                关闭
-              </button>
-            </div>
-          </div>
-
-          <div className="flex-1 min-h-0 overflow-hidden p-2">
+        <div
+          className={`overflow-hidden bg-base-100 flex flex-col ${
+            isMobile
+              ? "w-full h-full"
+              : "w-[min(1280px,98vw)] h-[min(90vh,920px)] rounded-2xl border border-base-300/80 shadow-2xl"
+          }`}
+        >
+          <div className="flex-1 min-h-0 overflow-hidden">
             {openDocBlocksuiteId && (
-              <div className="w-full h-full overflow-hidden bg-base-100 border border-base-300 rounded-box">
+              <div className="w-full h-full overflow-hidden bg-base-100">
                 <BlocksuiteDescriptionEditor
                   workspaceId={`space:${spaceId}`}
                   spaceId={spaceId}

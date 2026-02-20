@@ -98,16 +98,6 @@ function CharacterDetailInner({
     [roleAvatarsResponse?.data],
   );
 
-  console.warn(
-    "角色头像列表(roleAvatars):",
-    roleAvatars.map(a => ({
-      avatarId: a.avatarId,
-      originEqualsSprite: !!a.originUrl && a.originUrl === a.spriteUrl,
-      spriteUrl: a.spriteUrl ? `${a.spriteUrl.substring(0, 80)}...` : a.spriteUrl,
-      originUrl: a.originUrl ? `${a.originUrl.substring(0, 80)}...` : a.originUrl,
-    })),
-  );
-
   // 判断是否为骰娘角色（使用实时数据）
   const isDiceMaiden = useMemo(() => {
     const roleData = currentRoleData?.data;
@@ -317,11 +307,6 @@ function CharacterDetailInner({
 
     // 使用updateRole保存到后端
     updateRole(updatedRole, {
-      onSuccess: () => {
-        console.warn("音频文件上传并保存成功:", audioUrl);
-        console.warn("更新后的角色数据:", updatedRole);
-        console.warn("更新后的本地数据", localRole);
-      },
       onError: (error) => {
         console.error("保存音频URL失败:", error);
       },
@@ -417,9 +402,8 @@ function CharacterDetailInner({
   };
 
   // 处理头像上传
-  const handleAvatarUpload = (data: any) => {
-    // 上传成功后可能需要重新获取头像列表
-    console.warn("头像上传数据:", data);
+  const handleAvatarUpload = (_data: any) => {
+    // 上传完成后由查询缓存自动刷新，这里不再输出调试日志
   };
 
   // 监听类型切换，自动更新名称（仅当用户未手动编辑时）

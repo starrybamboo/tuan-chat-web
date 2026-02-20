@@ -1,3 +1,4 @@
+import type { DocRefDragPayload } from "@/components/chat/utils/docRef";
 import React from "react";
 import DocFolderForUser from "@/components/chat/room/drawers/docFolderForUser";
 import ExportChatDrawer from "@/components/chat/room/drawers/exportChatDrawer";
@@ -6,7 +7,11 @@ import { useDrawerPreferenceStore } from "@/components/chat/stores/drawerPrefere
 import { useSideDrawerStore } from "@/components/chat/stores/sideDrawerStore";
 import { VaulSideDrawer } from "@/components/common/vaulSideDrawer";
 
-function RoomSideDrawersImpl() {
+interface RoomSideDrawersProps {
+  onSendDocCard?: (payload: DocRefDragPayload) => Promise<void> | void;
+}
+
+function RoomSideDrawersImpl({ onSendDocCard }: RoomSideDrawersProps) {
   const sideDrawerState = useSideDrawerStore(state => state.state);
   const userDrawerWidth = useDrawerPreferenceStore(state => state.userDrawerWidth);
   const roleDrawerWidth = useDrawerPreferenceStore(state => state.roleDrawerWidth);
@@ -73,7 +78,7 @@ function RoomSideDrawersImpl() {
         panelClassName={sidebarPanelClassName}
       >
         <div className="flex-1 min-h-0 overflow-hidden">
-          <DocFolderForUser />
+          <DocFolderForUser onSendDocCard={onSendDocCard} />
         </div>
       </VaulSideDrawer>
 

@@ -10,6 +10,7 @@ import { readBlocksuiteDocHeader, subscribeBlocksuiteDocHeader } from "@/compone
 import BlocksuiteDescriptionEditor from "@/components/chat/shared/components/blocksuiteDescriptionEditor";
 import { setDocRefDragData } from "@/components/chat/utils/docRef";
 import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
+import { useIsMobile } from "@/utils/getScreenSize";
 
 interface DocCardPayload {
   docId: string;
@@ -63,6 +64,7 @@ function DocCardMessageImpl({ messageResponse }: { messageResponse: ChatMessageR
     excerpt: payload?.excerpt ?? "",
   });
   const [isOpen, setIsOpen] = useState(false);
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     if (!docId || !isSameSpace || !isSupportedDocId)
@@ -212,16 +214,21 @@ function DocCardMessageImpl({ messageResponse }: { messageResponse: ChatMessageR
         </button>
       </div>
 
-      <ToastWindow isOpen={isOpen} onClose={() => setIsOpen(false)}>
-        <div className="w-[min(1200px,96vw)] h-[min(86vh,900px)] bg-base-100 rounded-lg overflow-hidden flex flex-col">
-          <div className="flex items-center justify-between px-2 py-1 border-b border-base-300 bg-base-100">
-            <div className="text-sm opacity-80 truncate px-2">{title}</div>
-            <button type="button" className="btn btn-ghost btn-sm" onClick={() => setIsOpen(false)}>关闭</button>
-          </div>
-
-          <div className="flex-1 min-h-0 overflow-hidden p-2">
+      <ToastWindow
+        isOpen={isOpen}
+        onClose={() => setIsOpen(false)}
+        fullScreen={isMobile}
+      >
+        <div
+          className={`overflow-hidden bg-base-100 flex flex-col ${
+            isMobile
+              ? "w-full h-full"
+              : "w-[min(1280px,98vw)] h-[min(90vh,920px)] rounded-2xl border border-base-300/80 shadow-2xl"
+          }`}
+        >
+          <div className="flex-1 min-h-0 overflow-hidden">
             {(!isDisabled && typeof currentSpaceId === "number" && currentSpaceId > 0) && (
-              <div className="w-full h-full overflow-hidden bg-base-100 border border-base-300 rounded-box">
+              <div className="w-full h-full overflow-hidden bg-base-100">
                 <BlocksuiteDescriptionEditor
                   workspaceId={`space:${currentSpaceId}`}
                   spaceId={currentSpaceId}
@@ -231,6 +238,7 @@ function DocCardMessageImpl({ messageResponse }: { messageResponse: ChatMessageR
                   tcHeader={{ enabled: true, fallbackTitle: title, fallbackImageUrl: coverUrl }}
                   allowModeSwitch
                   fullscreenEdgeless
+                  className="h-full min-h-0"
                 />
               </div>
             )}
