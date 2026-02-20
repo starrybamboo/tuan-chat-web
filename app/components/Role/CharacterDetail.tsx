@@ -122,6 +122,7 @@ function CharacterDetailInner({
   const charCount = useMemo(() => localRole.description?.length || 0, [localRole.description]);
   // 描述的最大储存量
   const MAX_DESCRIPTION_LENGTH = 140;
+  const MAX_ROLE_NAME_LENGTH = 50;
 
   // 已由SpriteRenderStudio内部管理transform相关状态
 
@@ -324,6 +325,15 @@ function CharacterDetailInner({
       .replace(/\s+$/g, ""); // 移除末尾空格
   };
 
+  const buildQuickDicerName = () => {
+    const cleaned = cleanText(localRole.name || "").trim();
+    const baseName = cleaned || `角色${localRole.id}`;
+    const withSuffix = baseName.endsWith("骰娘") ? baseName : `${baseName}-骰娘`;
+    // 后端 role_name 上限 50，快速复制时提前截断，避免提交失败。
+    const trimmed = withSuffix.slice(0, MAX_ROLE_NAME_LENGTH).trim();
+    return trimmed || `角色${localRole.id}-骰娘`;
+  };
+
   // 保存角色基础信息（名称、描述、头像等）
   const handleSaveRoleBase = (afterSave?: () => void) => {
     setIsTransitioning(true);
@@ -465,6 +475,44 @@ function CharacterDetailInner({
     }
   };
 
+  const handleQuickCopyToDiceMaiden = async () => {
+    if (isDiceMaiden) {
+      toast("当前角色已经是骰娘");
+      return;
+    }
+
+    if (isCloning) {
+      return;
+    }
+
+    const quickName = buildQuickDicerName();
+    const quickDescription = cleanText(localRole.description || "").slice(0, MAX_DESCRIPTION_LENGTH);
+
+    try {
+      setIsCloning(true);
+      const newRole = await copyRoleMutate({
+        sourceRole: localRole,
+        targetType: "dicer",
+        newName: quickName,
+        newDescription: quickDescription,
+      });
+
+      if (setRoles) {
+        setRoles(prevRoles => [newRole, ...prevRoles]);
+      }
+
+      toast.success("已复制为骰娘");
+      navigate(`/role/${newRole.id}`);
+    }
+    catch (e) {
+      console.error("一键复制成骰娘失败", e);
+      toast.error(`复制失败: ${e instanceof Error ? e.message : "未知错误"}`);
+    }
+    finally {
+      setIsCloning(false);
+    }
+  };
+
   const rightPanel = (
     <>
       {/* 扩展模块（右侧） */}
@@ -581,6 +629,21 @@ function CharacterDetailInner({
           </div>
         </div>
         <div className="flex items-center gap-2">
+          {!isDiceMaiden && (
+            <div className="tooltip tooltip-bottom" data-tip="基于当前角色快速复制一个骰娘">
+              <button
+                type="button"
+                onClick={() => void handleQuickCopyToDiceMaiden()}
+                className="btn btn-secondary btn-sm md:btn-lg rounded-lg"
+                disabled={isCloning}
+              >
+                <span className="flex items-center gap-1">
+                  <DiceD6Icon className="w-4 h-4" />
+                  复制成骰娘
+                </span>
+              </button>
+            </div>
+          )}
           {!isDiceMaiden && (
             <div className={`tooltip tooltip-bottom ${layout === "popup" ? "" : "hidden md:block"}`} data-tip="使用ST指令快速导入角色属性">
               <button
