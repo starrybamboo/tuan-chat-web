@@ -2,7 +2,7 @@ import type { RouteConfig } from "@react-router/dev/routes";
 
 import { index, layout, prefix, route } from "@react-router/dev/routes";
 
-const ENABLE_AI_IMAGE_ROUTE = import.meta.env.DEV;
+const ENABLE_AI_IMAGE_ROUTE = import.meta.env.DEV || import.meta.env.MODE === "test";
 
 export default [
   // Blocksuite iframe: used for strong style isolation.

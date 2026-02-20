@@ -35,7 +35,10 @@ export default function AnnotationChip({
   const hasLabel = !annotation.hideLabel;
   const hasImage = Boolean(annotation.iconUrl);
   const isEffect = annotation.category === "特效" && hasImage;
-  const sizeClass = hasLabel ? "px-3 min-w-[52px]" : "w-10";
+  const isFigurePositionTag = annotation.id.startsWith("figure.pos.");
+  const sizeClass = hasLabel
+    ? (isFigurePositionTag ? "px-2 min-w-[36px]" : "px-3 min-w-[52px]")
+    : "w-10";
   const interactiveClass = interactive ? "active:scale-95" : "";
   const activeClass = active ? "ring-2 ring-primary/30 shadow-sm" : "";
 
