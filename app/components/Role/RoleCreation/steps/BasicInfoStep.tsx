@@ -1,4 +1,5 @@
 import type { CharacterData } from "../types";
+import { ROLE_DESCRIPTION_MAX_LENGTH, ROLE_NAME_MAX_LENGTH } from "../constants";
 
 interface BasicInfoStepProps {
   characterData: CharacterData;
@@ -6,8 +7,10 @@ interface BasicInfoStepProps {
 }
 
 export default function BasicInfoStep({ characterData, onCharacterDataChange }: BasicInfoStepProps) {
-  const NAME_MAX = 32;
-  const DESC_MAX = 150;
+  const descriptionLength = characterData.description?.length ?? 0;
+  const isDescriptionTooLong = descriptionLength > ROLE_DESCRIPTION_MAX_LENGTH;
+  const descriptionCounterClass = isDescriptionTooLong ? "text-error" : "text-base-content/60";
+
   return (
     <div className="space-y-6 ">
       <div className="card bg-base-100 shadow-xs rounded-2xl border-2 border-base-content/10">
@@ -39,7 +42,7 @@ export default function BasicInfoStep({ characterData, onCharacterDataChange }: 
                 <span className="label-text-alt text-base-content/60">
                   {(characterData.name?.length ?? 0)}
                   /
-                  {NAME_MAX}
+                  {ROLE_NAME_MAX_LENGTH}
                 </span>
               </div>
               <input
@@ -47,7 +50,7 @@ export default function BasicInfoStep({ characterData, onCharacterDataChange }: 
                 className="input input-bordered bg-base-200 rounded-md w-full transition focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
                 placeholder="输入角色名称"
                 value={characterData.name}
-                maxLength={NAME_MAX}
+                maxLength={ROLE_NAME_MAX_LENGTH}
                 onChange={e => onCharacterDataChange({ name: e.target.value })}
               />
             </div>
@@ -56,19 +59,33 @@ export default function BasicInfoStep({ characterData, onCharacterDataChange }: 
             <div className="form-control">
               <div className="flex gap-2 mb-2 items-center font-semibold">
                 <span>角色简介</span>
-                <span className="label-text-alt text-base-content/60">
-                  {(characterData.description?.length ?? 0)}
+                <span className={`label-text-alt ${descriptionCounterClass}`}>
+                  {descriptionLength}
                   /
-                  {DESC_MAX}
+                  {ROLE_DESCRIPTION_MAX_LENGTH}
                 </span>
               </div>
               <textarea
                 className="textarea textarea-bordered bg-base-200 rounded-md min-h-[120px] resize-y w-full transition focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
                 placeholder="描述角色的背景故事、性格特点、说话风格等"
                 value={characterData.description}
-                maxLength={DESC_MAX}
+                maxLength={ROLE_DESCRIPTION_MAX_LENGTH}
+                aria-invalid={isDescriptionTooLong}
                 onChange={e => onCharacterDataChange({ description: e.target.value })}
               />
+              {isDescriptionTooLong && (
+                <span className="label-text-alt text-error mt-2">
+                  角色简介最多
+                  {" "}
+                  {ROLE_DESCRIPTION_MAX_LENGTH}
+                  {" "}
+                  字，当前
+                  {" "}
+                  {descriptionLength}
+                  {" "}
+                  字
+                </span>
+              )}
             </div>
           </div>
         </div>

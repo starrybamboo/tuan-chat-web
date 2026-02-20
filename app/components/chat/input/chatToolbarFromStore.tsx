@@ -3,7 +3,7 @@ import ChatToolbar from "@/components/chat/input/chatToolbar";
 import { useChatComposerStore } from "@/components/chat/stores/chatComposerStore";
 import { useRealtimeRenderStore } from "@/components/chat/stores/realtimeRenderStore";
 import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
-import { ANNOTATION_IDS, normalizeAnnotations } from "@/types/messageAnnotations";
+import { ANNOTATION_IDS, hasAudioPurposeAnnotation, normalizeAnnotations } from "@/types/messageAnnotations";
 
 type ChatToolbarProps = React.ComponentProps<typeof ChatToolbar>;
 
@@ -32,18 +32,17 @@ export default function ChatToolbarFromStore({
   const setTempAnnotations = useChatComposerStore(state => state.setTempAnnotations);
 
   const addTempAnnotations = React.useCallback((ids: string[]) => {
-    const current = useChatComposerStore.getState().tempAnnotations;
+    const state = useChatComposerStore.getState();
+    const current = normalizeAnnotations(state.tempAnnotations);
+    const hasAudioAnnotation = hasAudioPurposeAnnotation(current) || hasAudioPurposeAnnotation(state.annotations);
     const next = [...current];
-    let hasAudioAnnotation = next.includes(ANNOTATION_IDS.BGM) || next.includes(ANNOTATION_IDS.SE);
     ids.forEach((id) => {
-      if ((id === ANNOTATION_IDS.BGM || id === ANNOTATION_IDS.SE) && hasAudioAnnotation) {
+      // 音频文件默认补 BGM 时，若当前已存在音频用途（常驻或临时）则不再覆盖。
+      if (id === ANNOTATION_IDS.BGM && hasAudioAnnotation) {
         return;
       }
       if (!next.includes(id)) {
         next.push(id);
-        if (id === ANNOTATION_IDS.BGM || id === ANNOTATION_IDS.SE) {
-          hasAudioAnnotation = true;
-        }
       }
     });
     setTempAnnotations(normalizeAnnotations(next));

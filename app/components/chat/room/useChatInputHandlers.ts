@@ -7,7 +7,7 @@ import type { AtMentionHandle } from "@/components/atMentionController";
 
 import { useChatComposerStore } from "@/components/chat/stores/chatComposerStore";
 import { preheatChatMediaPreprocess } from "@/components/chat/utils/attachmentPreprocess";
-import { ANNOTATION_IDS, normalizeAnnotations } from "@/types/messageAnnotations";
+import { ANNOTATION_IDS, hasAudioPurposeAnnotation, normalizeAnnotations } from "@/types/messageAnnotations";
 
 type UseChatInputHandlersParams = {
   atMentionRef: RefObject<AtMentionHandle | null>;
@@ -97,8 +97,8 @@ export default function useChatInputHandlers({
 
     if (audioFiles.length > 0) {
       store.setAudioFile(audioFiles[0]);
-      const current = store.tempAnnotations;
-      const hasAudioAnnotation = current.includes(ANNOTATION_IDS.BGM) || current.includes(ANNOTATION_IDS.SE);
+      const current = normalizeAnnotations(store.tempAnnotations);
+      const hasAudioAnnotation = hasAudioPurposeAnnotation(current) || hasAudioPurposeAnnotation(store.annotations);
       if (!hasAudioAnnotation) {
         store.setTempAnnotations(normalizeAnnotations([...current, ANNOTATION_IDS.BGM]));
       }

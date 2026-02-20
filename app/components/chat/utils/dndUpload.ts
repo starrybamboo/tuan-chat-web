@@ -2,7 +2,7 @@ import toast from "react-hot-toast";
 
 import { useChatComposerStore } from "@/components/chat/stores/chatComposerStore";
 import { preheatChatMediaPreprocess } from "@/components/chat/utils/attachmentPreprocess";
-import { ANNOTATION_IDS, normalizeAnnotations } from "@/types/messageAnnotations";
+import { ANNOTATION_IDS, hasAudioPurposeAnnotation, normalizeAnnotations } from "@/types/messageAnnotations";
 
 export function isFileDrag(dataTransfer: DataTransfer | null | undefined) {
   if (!dataTransfer)
@@ -170,8 +170,9 @@ export function addDroppedFilesToComposer(dataTransfer: DataTransfer | null | un
 
   if (audios.length > 0) {
     useChatComposerStore.getState().setAudioFile(audios[0]);
-    const current = useChatComposerStore.getState().tempAnnotations;
-    const hasAudioAnnotation = current.includes(ANNOTATION_IDS.BGM) || current.includes(ANNOTATION_IDS.SE);
+    const composerState = useChatComposerStore.getState();
+    const current = normalizeAnnotations(composerState.tempAnnotations);
+    const hasAudioAnnotation = hasAudioPurposeAnnotation(current) || hasAudioPurposeAnnotation(composerState.annotations);
     if (!hasAudioAnnotation) {
       useChatComposerStore.getState().setTempAnnotations(
         normalizeAnnotations([...current, ANNOTATION_IDS.BGM]),

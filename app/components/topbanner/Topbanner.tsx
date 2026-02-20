@@ -119,7 +119,7 @@ export default function Topbar() {
   const navItems = [
     { to: "/chat/private", label: "聊天", icon: ChatsIcon },
     { to: "/role", label: "角色", icon: IdentificationCardIcon },
-    { to: "/ai-image", label: "AI生图", icon: PaintBrushBroadIcon },
+    ...(import.meta.env.DEV ? [{ to: "/ai-image", label: "AI生图", icon: PaintBrushBroadIcon }] : []),
   ];
 
   return (
