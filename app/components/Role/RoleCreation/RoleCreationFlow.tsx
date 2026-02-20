@@ -14,6 +14,7 @@ import { useState } from "react";
 import toast from "react-hot-toast";
 import { initAliasMapOnce } from "@/components/common/dicer/aliasRegistry";
 import RulesSection from "../rules/RulesSection";
+import { ROLE_DESCRIPTION_MAX_LENGTH, ROLE_DESCRIPTION_TOO_LONG_MESSAGE } from "./constants";
 import CreatePageHeader from "./CreatePageHeader";
 import BasicInfoStep from "./steps/BasicInfoStep";
 import { completeRoleCreation, evaluateCharacterDataExpressions } from "./utils/roleCreationHelpers";
@@ -61,13 +62,18 @@ export default function RoleCreationFlow({
   const { mutate: updateRole } = useUpdateRoleWithLocalMutation(onSave || (() => {}));
 
   const hasBasicInfo = characterData.name.trim().length > 0 && characterData.description.trim().length > 0;
+  const isDescriptionTooLong = characterData.description.trim().length > ROLE_DESCRIPTION_MAX_LENGTH;
   const hasRule = characterData.ruleId > 0;
-  const canCreate = hasBasicInfo && (hideRuleSelection || hasRule);
+  const canCreate = hasBasicInfo && !isDescriptionTooLong && (hideRuleSelection || hasRule);
 
   const handleComplete = async () => {
     if (isSaving)
       return;
     if (!hasBasicInfo) {
+      return;
+    }
+    if (isDescriptionTooLong) {
+      toast.error(ROLE_DESCRIPTION_TOO_LONG_MESSAGE, { position: "top-center" });
       return;
     }
     if (!hideRuleSelection && !hasRule) {

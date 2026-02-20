@@ -79,6 +79,19 @@ function releaseKey(cacheKey: string, opts?: { keepPlaying?: boolean }) {
     return;
 
   try {
+    if (!opts?.keepPlaying) {
+      try {
+        entry.ws?.stop?.();
+      }
+      catch {
+        try {
+          entry.ws?.pause?.();
+        }
+        catch {
+          // ignore
+        }
+      }
+    }
     // 为了满足“滚动再远也不重载媒体”的体验要求，离屏后统一保留在 hidden host。
     ensureHiddenHost().appendChild(entry.root);
     mediaDebug("audio-cache", "move-to-hidden-host", {
