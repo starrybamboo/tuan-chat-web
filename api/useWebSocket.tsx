@@ -31,6 +31,7 @@ import type { ApiResultRoom } from "./models/ApiResultRoom";
 import type { ApiResultRoomListResponse } from "./models/ApiResultRoomListResponse";
 import type { ApiResultUserInfoResponse } from "./models/ApiResultUserInfoResponse";
 import { MessageType } from "./wsModels";
+import { requestPlayBgmMessageWithUrl } from "@/components/chat/infra/audioMessage/audioMessageBgmCoordinator";
 import { useAudioMessageAutoPlayStore } from "@/components/chat/stores/audioMessageAutoPlayStore";
 import { applyRoomDndMapChange, roomDndMapQueryKey } from "@/components/chat/shared/map/roomDndMapApi";
 import { readGroupMessagePopupEnabledFromLocalStorage } from "@/components/settings/notificationPreferences";
@@ -75,6 +76,7 @@ export interface WebsocketUtils {
 const EMPTY_SESSIONS: MessageSessionResponse[] = [];
 
 const WS_URL = import.meta.env.VITE_API_WS_URL;
+const WS_RECONNECTED_EVENT = "tc:ws-reconnected";
 
 type WsDebugState = {
   implementedTypes: number[];
@@ -391,6 +393,7 @@ export function useWebSocket() {
   const wsRef = useRef<WebSocket | null>(null);
   const isConnected = useCallback(() => wsRef.current?.readyState === WebSocket.OPEN, []);
   const isConnecting = useCallback(() => wsRef.current?.readyState === WebSocket.CONNECTING, []);
+  const hasOpenedOnceRef = useRef(false);
   // 标记“组件主动关闭”（例如 React StrictMode 的 effect cleanup），避免误判为网络错误并触发重连/报错。
   const closingRef = useRef(false);
   const connectTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -641,6 +644,12 @@ export function useWebSocket() {
       wsRef.current.onopen = () => {
         console.log("WebSocket connected");
         syncWsDebugToWindow();
+        const isReconnected = hasOpenedOnceRef.current;
+        hasOpenedOnceRef.current = true;
+        if (isReconnected && typeof window !== "undefined") {
+          // 重连成功后通知各房间的历史管理器主动增量补拉，避免“无后续新消息”时漏同步。
+          window.dispatchEvent(new CustomEvent(WS_RECONNECTED_EVENT));
+        }
         reconnectAttempts.current = 0;
         if (reconnectTimer.current) {
           clearTimeout(reconnectTimer.current);
@@ -684,7 +693,6 @@ export function useWebSocket() {
       wsRef.current.onmessage = (event) => {
         try {
           const message: WsMessage<any> = JSON.parse(event.data);
-          console.log("Received message:", JSON.stringify(message));
           trackWsMessage(message);
           onMessage(message);
         }
@@ -1061,6 +1069,9 @@ export function useWebSocket() {
                 messageId: m.messageId,
                 purpose,
               });
+              if (purpose === "bgm") {
+                void requestPlayBgmMessageWithUrl(m.roomId, m.messageId, url);
+              }
             }
           }
         }

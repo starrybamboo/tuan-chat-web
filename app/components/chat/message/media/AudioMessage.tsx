@@ -4,6 +4,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import {
   createBgmControllerId,
+  handoverBgmPlaybackToFallback,
+  isBgmMessagePlaying,
   markBgmMessageStopped,
   registerBgmMessageController,
   requestPlayBgmMessage,
@@ -16,8 +18,6 @@ import {
 } from "@/components/chat/infra/audioMessage/audioMessageWaveSurferCache";
 import { mediaDebug } from "@/components/chat/infra/media/mediaDebug";
 import { useAudioMessageAutoPlayStore } from "@/components/chat/stores/audioMessageAutoPlayStore";
-
-import "./audioMessage.css";
 
 interface AudioMessageProps {
   url: string;
@@ -110,6 +110,23 @@ function seekToStart(ws: any) {
   }
 }
 
+function stopWavePlayback(ws: any) {
+  try {
+    ws.stop?.();
+    return;
+  }
+  catch {
+    // ignore and fallback
+  }
+  try {
+    ws.pause?.();
+    seekToStart(ws);
+  }
+  catch {
+    // ignore
+  }
+}
+
 export default function AudioMessage({
   url,
   roomId,
@@ -177,6 +194,52 @@ export default function AudioMessage({
 
   const getVolumeRatio = useCallback(() => volumeRatioRef.current, []);
 
+  const getCurrentTimeSec = useCallback(() => {
+    const ws = waveSurferRef.current;
+    if (!ws) {
+      return 0;
+    }
+    try {
+      const current = ws.getCurrentTime?.();
+      if (typeof current === "number" && Number.isFinite(current)) {
+        return Math.max(0, current);
+      }
+    }
+    catch {
+      // ignore
+    }
+    return 0;
+  }, []);
+
+  const setCurrentTimeSec = useCallback((timeSec: number) => {
+    const ws = waveSurferRef.current;
+    if (!ws) {
+      return;
+    }
+    const safe = Number.isFinite(timeSec) ? Math.max(0, timeSec) : 0;
+
+    try {
+      const media = ws.getMediaElement?.();
+      if (media && typeof media === "object" && "currentTime" in media) {
+        media.currentTime = safe;
+        return;
+      }
+    }
+    catch {
+      // ignore
+    }
+
+    try {
+      const durationSec = ws.getDuration?.();
+      if (typeof durationSec === "number" && Number.isFinite(durationSec) && durationSec > 0) {
+        ws.seekTo?.(Math.max(0, Math.min(1, safe / durationSec)));
+      }
+    }
+    catch {
+      // ignore
+    }
+  }, []);
+
   const isWavePlaying = useCallback(() => {
     if (isPlayingRef.current) {
       return true;
@@ -197,20 +260,9 @@ export default function AudioMessage({
   }, [isBgmMessage, messageIdNumber, roomIdNumber]);
 
   const shouldKeepWaveSurferAlive = useCallback(() => {
-    if (isBgmMessage) {
-      // BGM 改为消息内切换控制，卸载时不保留隐藏播放节点。
-      return false;
-    }
-    if (shouldAutoPlayRef.current || isPlayingRef.current) {
-      return true;
-    }
-    try {
-      return Boolean(waveSurferRef.current?.isPlaying?.());
-    }
-    catch {
-      return false;
-    }
-  }, [isBgmMessage]);
+    // 已移除全局悬浮控制，卸载后的音频不可见不可控，因此统一不保活播放。
+    return false;
+  }, []);
 
   const clearWaveSurferBindings = useCallback(() => {
     const unsubs = unsubsRef.current;
@@ -442,18 +494,7 @@ export default function AudioMessage({
   const stopCurrentMessage = useCallback(() => {
     const ws = waveSurferRef.current;
     if (ws) {
-      try {
-        ws.stop?.();
-      }
-      catch {
-        try {
-          ws.pause?.();
-          seekToStart(ws);
-        }
-        catch {
-          // ignore
-        }
-      }
+      stopWavePlayback(ws);
     }
     setIsPlaying(false);
     isPlayingRef.current = false;
@@ -490,16 +531,51 @@ export default function AudioMessage({
     return () => {
       mountedRef.current = false;
       const keepPlaying = shouldKeepWaveSurferAlive();
+      const shouldHandoverToFallback = Boolean(
+        isBgmMessage
+        && roomIdNumber != null
+        && messageIdNumber != null
+        && url
+        && isBgmMessagePlaying(roomIdNumber, messageIdNumber)
+        && isWavePlaying(),
+      );
+      if (shouldHandoverToFallback) {
+        const snapshot = {
+          currentTimeSec: getCurrentTimeSec(),
+          volumeRatio: getVolumeRatio(),
+        };
+        void handoverBgmPlaybackToFallback(
+          roomIdNumber!,
+          messageIdNumber!,
+          url,
+          snapshot,
+        );
+      }
       mediaDebug("audio-message", "effect-unmount", {
         cacheKey,
         url,
         instanceId: instanceIdRef.current,
         keepPlaying,
+        shouldHandoverToFallback,
       });
       cleanupWaveSurfer({ keepPlaying });
-      notifyBgmStopped();
+      if (!shouldHandoverToFallback) {
+        notifyBgmStopped();
+      }
     };
-  }, [cacheKey, cleanupWaveSurfer, notifyBgmStopped, shouldKeepWaveSurferAlive, url]);
+  }, [
+    cacheKey,
+    cleanupWaveSurfer,
+    getCurrentTimeSec,
+    getVolumeRatio,
+    isBgmMessage,
+    isWavePlaying,
+    messageIdNumber,
+    notifyBgmStopped,
+    roomIdNumber,
+    shouldKeepWaveSurferAlive,
+    url,
+  ]);
 
   useEffect(() => {
     if (!hasUrl) {
@@ -531,11 +607,14 @@ export default function AudioMessage({
       id: controllerId,
       roomId: roomIdNumber,
       messageId: messageIdNumber,
+      play: () => playCurrentMessage(),
       playFromStart: () => playCurrentMessage({ fromStart: true }),
       stop: stopCurrentMessage,
       isPlaying: isWavePlaying,
       getVolumeRatio,
       setVolumeRatio,
+      getCurrentTimeSec,
+      setCurrentTimeSec,
     });
 
     return () => {
@@ -546,11 +625,13 @@ export default function AudioMessage({
     };
   }, [
     getVolumeRatio,
+    getCurrentTimeSec,
     isBgmMessage,
     isWavePlaying,
     messageIdNumber,
     playCurrentMessage,
     roomIdNumber,
+    setCurrentTimeSec,
     setVolumeRatio,
     stopCurrentMessage,
   ]);
@@ -624,7 +705,7 @@ export default function AudioMessage({
     });
 
     if (isBgmMessage && roomIdNumber != null && messageIdNumber != null) {
-      if (isWavePlaying()) {
+      if (isBgmMessagePlaying(roomIdNumber, messageIdNumber)) {
         void requestStopRoomBgm(roomIdNumber);
       }
       else {
@@ -654,7 +735,7 @@ export default function AudioMessage({
       }
 
       if (ws.isPlaying?.()) {
-        ws.pause?.();
+        stopWavePlayback(ws);
       }
       else {
         ws.play?.();
@@ -700,7 +781,7 @@ export default function AudioMessage({
         </button>
 
         <div className="flex-1 min-w-0">
-          <div ref={waveContainerRef} className="tc-audio-wave" />
+          <div ref={waveContainerRef} className="w-full min-h-[28px]" />
           <div className="flex items-center justify-between text-[11px] text-slate-500 mt-1">
             <span>{currentTimeText}</span>
             <span>{durationText}</span>
