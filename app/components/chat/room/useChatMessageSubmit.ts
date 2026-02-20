@@ -16,6 +16,7 @@ import { ANNOTATION_IDS, getFigurePositionFromAnnotations, hasAnnotation, hasCle
 import { parseWebgalVarCommand } from "@/types/webgalVar";
 import { isAudioUploadDebugEnabled } from "@/utils/audioDebugFlags";
 import { getImageSize } from "@/utils/getImgSize";
+import { countTextEnhanceVisibleLength } from "@/utils/textEnhanceMetrics";
 import { UploadUtils } from "@/utils/UploadUtils";
 
 import type { ChatMessageRequest, ChatMessageResponse, UserRole } from "../../../../api";
@@ -125,6 +126,7 @@ export default function useChatMessageSubmit({
 
     const trimmedInputText = inputText.trim();
     const trimmedWithoutMentions = inputTextWithoutMentions.trim();
+    const inputVisibleLength = countTextEnhanceVisibleLength(inputText);
     const isBlankInput = trimmedInputText.length === 0;
 
     const {
@@ -170,14 +172,14 @@ export default function useChatMessageSubmit({
       return;
     }
     if (inputText.length > 1024) {
-      toast.error("消息长度不能超过 1024 字");
+      toast.error("消息长度不能超过 1024 字（含富文本标记）");
       return;
     }
     const roomContentAlertThreshold = useRealtimeRenderStore.getState().roomContentAlertThreshold;
     const isLikelyWebgalDialogue = trimmedInputText.length > 0
       && !isCommand(trimmedWithoutMentions)
       && !trimmedWithoutMentions.startsWith("%");
-    if (isLikelyWebgalDialogue && inputText.length > roomContentAlertThreshold) {
+    if (isLikelyWebgalDialogue && inputVisibleLength > roomContentAlertThreshold) {
       toast.error(`当前消息超过 WebGAL 单条阈值（${roomContentAlertThreshold} 字），请拆分后再发送`);
       return;
     }

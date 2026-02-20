@@ -1,4 +1,5 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useMemo } from "react";
+import { useScreenSize } from "@/components/common/customHooks/useScreenSize";
 import { BaselineArrowBackIosNew, ChevronRight } from "@/icons";
 
 /**
@@ -21,14 +22,7 @@ const Pagination: React.FC<PaginationProps> = ({
   className = "",
   responsive = true,
 }) => {
-  const [width, setWidth] = useState<number>(window.innerWidth);
-
-  // 监听窗口大小
-  useEffect(() => {
-    const handleResize = () => setWidth(window.innerWidth);
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, []);
+  const screenSize = useScreenSize();
 
   // 统一跳转
   const handleChange = (page: number) => {
@@ -39,7 +33,7 @@ const Pagination: React.FC<PaginationProps> = ({
     // 确保 totalPages 是有效数字
     const validTotalPages = Math.max(1, Number(totalPages) || 1);
     const pages: (number | string)[] = [];
-    const isMobile = responsive && width < 768;
+    const isMobile = responsive && screenSize === "sm";
 
     if (validTotalPages <= (isMobile ? 5 : 9)) {
       return Array.from({ length: validTotalPages }, (_, i) => i + 1);
@@ -85,7 +79,7 @@ const Pagination: React.FC<PaginationProps> = ({
     }
 
     return pages;
-  }, [totalPages, currentPage, width, responsive]);
+  }, [totalPages, currentPage, screenSize, responsive]);
 
   // 只有在总页数大于1时才渲染分页组件
   if (totalPages <= 1) {

@@ -2,6 +2,7 @@ import React from "react";
 
 import ChatStatusBar from "@/components/chat/chatStatusBar";
 import AvatarDropdownContent from "@/components/chat/input/avatarDropdownContent";
+import { useScreenSize } from "@/components/common/customHooks/useScreenSize";
 import RoleAvatarComponent from "@/components/common/roleAvatar";
 import { NarratorIcon } from "@/icons";
 
@@ -45,6 +46,8 @@ export default function RoomComposerHeader({
   const [isAvatarPopoverOpen, setIsAvatarPopoverOpen] = React.useState(false);
   const [isAvatarChooserFullscreen, setIsAvatarChooserFullscreen] = React.useState(false);
   const avatarPopoverRef = React.useRef<HTMLDivElement | null>(null);
+  const screenSize = useScreenSize();
+  const isMobile = screenSize === "sm";
   const showSelfStatus = Boolean(currentChatStatus && !isSpectator);
   const showOtherStatus = React.useMemo(() => {
     const raw = (webSocketUtils?.chatStatus?.[roomId] ?? []) as { userId: number; status: "input" | "wait" | "leave" | "idle" }[];
@@ -110,7 +113,13 @@ export default function RoomComposerHeader({
                 if (isSpectator) {
                   return;
                 }
-                setIsAvatarPopoverOpen(prev => !prev);
+                setIsAvatarPopoverOpen((prev) => {
+                  const next = !prev;
+                  if (next && isMobile) {
+                    setIsAvatarChooserFullscreen(true);
+                  }
+                  return next;
+                });
               }}
             >
               {curRoleId <= 0
@@ -146,20 +155,38 @@ export default function RoomComposerHeader({
                   )}
             </button>
             {isAvatarPopoverOpen && !isSpectator && (
-              <div className="absolute left-0 bottom-full mb-2 z-50 flex items-stretch">
+              <div
+                className={isMobile
+                  ? "fixed inset-x-2 top-14 bottom-2 z-[80] flex items-stretch"
+                  : "absolute left-0 bottom-full mb-2 z-50 flex items-stretch"}
+              >
                 <div
-                  className={`${isAvatarChooserFullscreen
-                    ? "w-[92vw] md:w-[92vw] max-w-[92vw]"
-                    : "w-[92vw] md:w-120 min-w-100 max-w-[92vw]"
+                  className={`${isMobile
+                    ? "w-full h-full"
+                    : (isAvatarChooserFullscreen
+                        ? "w-[92vw] md:w-[92vw] max-w-[92vw]"
+                        : "w-[92vw] md:w-120 min-w-100 max-w-[92vw]")
                   } rounded-box bg-base-100 border border-base-300 shadow-lg p-2 self-stretch flex flex-col`}
                 >
+                  {isMobile && (
+                    <div className="flex items-center justify-between px-1 pb-2 border-b border-base-300 mb-2">
+                      <span className="text-sm font-medium">切换角色与头像</span>
+                      <button
+                        type="button"
+                        className="btn btn-ghost btn-xs"
+                        onClick={() => setIsAvatarPopoverOpen(false)}
+                      >
+                        关闭
+                      </button>
+                    </div>
+                  )}
                   <div className="flex-1 min-h-0">
                     <AvatarDropdownContent
                       roleId={curRoleId}
                       onAvatarChange={setCurAvatarId}
                       onRoleChange={setCurRoleId}
                       onRequestClose={() => setIsAvatarPopoverOpen(false)}
-                      defaultFullscreen={isAvatarChooserFullscreen}
+                      defaultFullscreen={isAvatarChooserFullscreen || isMobile}
                       onRequestFullscreen={setIsAvatarChooserFullscreen}
                     />
                   </div>
@@ -249,13 +276,13 @@ export default function RoomComposerHeader({
             )}
           </div>
           {leftToolbar && (
-            <div className="flex items-center gap-2">
+            <div className={`flex items-center gap-2 min-w-0 ${isMobile ? "overflow-x-auto pb-0.5" : ""}`}>
               {leftToolbar}
             </div>
           )}
         </div>
         {headerToolbar && (
-          <div className="flex items-start gap-2">
+          <div className={`flex items-start gap-2 shrink-0 min-w-0 ${isMobile ? "max-w-[50vw]" : ""}`}>
             {headerToolbar}
           </div>
         )}

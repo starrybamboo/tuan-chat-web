@@ -39,6 +39,7 @@ import { extractWebgalChoosePayload } from "@/types/webgalChoose";
 import { extractWebgalVarPayload, formatWebgalVarSummary } from "@/types/webgalVar";
 import { formatTimeSmartly } from "@/utils/dateUtil";
 import { getScreenSize } from "@/utils/getScreenSize";
+import { countTextEnhanceVisibleLength } from "@/utils/textEnhanceMetrics";
 import { useSendMessageMutation, useUpdateMessageMutation } from "../../../../api/hooks/chatQueryHooks";
 import { useGetRoleQuery } from "../../../../api/hooks/RoleAndAvatarHooks";
 import DocCardMessage from "./docCard/docCardMessage";
@@ -238,7 +239,8 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
     isIntroText,
   });
   const roomContentAlertThreshold = useRealtimeRenderStore(state => state.roomContentAlertThreshold);
-  const messageContentLength = (message.content ?? "").toString().length;
+  const messageContent = (message.content ?? "").toString();
+  const messageContentLength = countTextEnhanceVisibleLength(messageContent);
   const isThresholdTrackedMessageType = (message.messageType === MESSAGE_TYPE.TEXT
     || message.messageType === MESSAGE_TYPE.INTRO_TEXT) && message.roleId !== 2;
   const isMessageOverRoomContentThreshold = isThresholdTrackedMessageType
@@ -360,6 +362,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
       onOpenPicker={handleOpenAnnotations}
       showWhenEmpty={true}
       alwaysShowAddButton={true}
+      compact={isMobile}
       className={className}
     />
   );
@@ -696,7 +699,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
     }
     if (canEdit) {
       // 打开表情选择器的 toast 窗口
-      openExpressionChooser(false);
+      openExpressionChooser(isMobile);
     }
   }
 
@@ -1249,13 +1252,15 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
                   className={`relative max-w-[calc(100vw-5rem)] sm:max-w-md break-words rounded-lg px-3 sm:px-4 py-1.5 sm:py-2 shadow-sm sm:shadow bg-base-200 text-sm sm:text-sm lg:text-base transition-all duration-200 hover:shadow-lg hover:bg-base-300 cursor-pointer ${isMessageOverRoomContentThreshold ? "outline outline-1 outline-warning/70" : ""}`}
                   onClick={triggerEffectPreview}
                 >
-                  {isMessageOverRoomContentThreshold && (
-                    <span className="pointer-events-none absolute right-2 bottom-1 z-10 rounded px-1 text-[11px] leading-4 font-medium bg-warning/20 text-warning shadow-sm">
-                      {thresholdCounterText}
-                    </span>
-                  )}
                   {renderedContent}
                   {threadHintNode}
+                  {isMessageOverRoomContentThreshold && (
+                    <div className="mt-1 flex justify-end">
+                      <span className="rounded px-1 text-[11px] leading-4 font-medium bg-warning/20 text-warning shadow-sm">
+                        {thresholdCounterText}
+                      </span>
+                    </div>
+                  )}
                 </div>
                 {renderAnnotationsBar("max-w-[calc(100vw-5rem)] sm:max-w-md mt-1.5")}
               </div>
@@ -1360,14 +1365,16 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
                   className={`relative transition-all duration-200 hover:bg-base-200/50 rounded-lg p-1.5 sm:p-2 cursor-pointer break-words text-sm sm:text-sm lg:text-base ${isMessageOverRoomContentThreshold ? "outline outline-1 outline-warning/70" : ""}`}
                   onClick={triggerEffectPreview}
                 >
-                  {isMessageOverRoomContentThreshold && (
-                    <span className="pointer-events-none absolute right-2 bottom-1 z-10 rounded px-1 text-[11px] leading-4 font-medium bg-warning/20 text-warning shadow-sm">
-                      {thresholdCounterText}
-                    </span>
-                  )}
                   {renderedContent}
                   {threadHintNode}
                   {renderAnnotationsBar()}
+                  {isMessageOverRoomContentThreshold && (
+                    <div className="mt-1 flex justify-end">
+                      <span className="rounded px-1 text-[11px] leading-4 font-medium bg-warning/20 text-warning shadow-sm">
+                        {thresholdCounterText}
+                      </span>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

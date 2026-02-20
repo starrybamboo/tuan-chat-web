@@ -4,9 +4,10 @@
 
 import type { Crop, PixelCrop } from "react-image-crop";
 
-import React, { useEffect, useRef, useState } from "react";
+import React, { useRef, useState } from "react";
 import { ReactCrop } from "react-image-crop";
 
+import { useScreenSize } from "@/components/common/customHooks/useScreenSize";
 import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
 import { canvasPreview, createCenteredAspectCrop, getCroppedImageFile, useDebounceEffect } from "@/utils/imgCropper";
 import { UploadUtils } from "@/utils/UploadUtils";
@@ -67,22 +68,10 @@ export function ImgUploaderWithCopper({ setDownloadUrl, setCopperedDownloadUrl, 
   const imgFile = useRef<File>(null);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
+  const isMobile = useScreenSize() === "sm";
 
   // 给用户的状态提示（加载中 / 生成预览 / 上传中 / 完成 / 错误）
   const [statusMessage, setStatusMessage] = useState<string>("");
-
-  useEffect(() => {
-    const checkMobile = () => {
-      requestAnimationFrame(() => {
-        setIsMobile(window.innerWidth < 768);
-      });
-    };
-
-    checkMobile();
-    window.addEventListener("resize", checkMobile);
-    return () => window.removeEventListener("resize", checkMobile);
-  }, []);
 
   function clearPreviewCanvas() {
     const canvas = previewCanvasRef.current;

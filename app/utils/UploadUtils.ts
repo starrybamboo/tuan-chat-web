@@ -19,6 +19,8 @@ export class UploadUtils {
   private static readonly audioPrepareCache = new WeakMap<File, Map<string, Promise<File>>>();
   private static readonly devOssUploadProxyPath = "/api/oss-upload-proxy";
   private static readonly defaultEnableBrowserVideoTranscode = true;
+  // 上传文件名采用 hash_size.ext，可视作内容寻址；同 URL 可长期强缓存。
+  private static readonly immutableUploadCacheControl = "public, max-age=31536000, immutable";
 
   private static getOrCreateNestedPromise<T>(
     cache: WeakMap<File, Map<string, Promise<T>>>,
@@ -619,7 +621,12 @@ export class UploadUtils {
     headers?: Record<string, string>;
     viaDevProxy: boolean;
   } {
-    const directHeaders = file.type ? { "Content-Type": file.type } : undefined;
+    const directHeaders: Record<string, string> = {
+      "Cache-Control": UploadUtils.immutableUploadCacheControl,
+    };
+    if (file.type) {
+      directHeaders["Content-Type"] = file.type;
+    }
     if (!import.meta.env.DEV || typeof window === "undefined") {
       return {
         targetUrl: url,
@@ -650,7 +657,7 @@ export class UploadUtils {
       targetUrl: UploadUtils.devOssUploadProxyPath,
       headers: {
         "X-TC-OSS-Upload-Url": encodeURIComponent(url),
-        ...(file.type ? { "Content-Type": file.type } : {}),
+        ...directHeaders,
       },
       viaDevProxy: true,
     };

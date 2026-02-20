@@ -120,10 +120,10 @@ export function ChatPageDocContent() {
 
   return (
     <div className="flex w-full h-full justify-center min-h-0 min-w-0">
-      <div className="w-full h-full overflow-hidden flex justify-center">
+      <div className="w-full h-full overflow-auto flex justify-center">
         {isKPInSpace
           ? (
-              <div className="w-full h-full overflow-hidden bg-base-100 border border-base-300 rounded-box">
+              <div className="w-full h-full overflow-x-auto overflow-y-hidden bg-base-100 border border-base-300 rounded-box">
                 <BlocksuiteDescriptionEditor
                   workspaceId={`space:${activeSpaceId ?? -1}`}
                   spaceId={activeSpaceId ?? -1}

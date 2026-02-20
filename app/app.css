@@ -54,6 +54,13 @@
     "Noto Color Emoji";
 }
 
+:root {
+  --tc-safe-area-top: env(safe-area-inset-top, 0px);
+  --tc-safe-area-right: env(safe-area-inset-right, 0px);
+  --tc-safe-area-bottom: env(safe-area-inset-bottom, 0px);
+  --tc-safe-area-left: env(safe-area-inset-left, 0px);
+}
+
 html,
 body {
   @apply bg-white dark:bg-gray-950;
@@ -100,7 +107,7 @@ body {
 }
 
 /* 全局缩放系数变量，用于优化移动端的组件大小*/
-@media (max-width: 768px) {
+@media (max-width: 639px) {
   :root {
     font-size: 15px; /* 基础缩放 (15/16=0.9375) */
     --scale-factor: 0.9375;

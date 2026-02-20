@@ -451,12 +451,17 @@ export function useGetDeletedRoleAvatarsQuery(roleId: number, options?: RoleAvat
  * 获取单个头像详情
  * @param avatarId 头像ID
  */
-export function useGetRoleAvatarQuery(avatarId: number) {
+type SingleRoleAvatarQueryOptions = {
+  enabled?: boolean;
+};
+
+export function useGetRoleAvatarQuery(avatarId: number, options?: SingleRoleAvatarQueryOptions) {
+  const enabled = (options?.enabled ?? true) && Boolean(avatarId);
   return useQuery({
     queryKey: ['getRoleAvatar', avatarId],
     queryFn: () => tuanchat.avatarController.getRoleAvatar(avatarId),
     staleTime: 86400000, // 24小时缓存
-    enabled: Boolean(avatarId) // 仅在avatarId存在时启用查询
+    enabled, // 仅在avatarId存在时启用查询
   });
 }
 

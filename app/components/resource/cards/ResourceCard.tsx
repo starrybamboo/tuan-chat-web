@@ -30,9 +30,6 @@ export function ResourceCard({
   const [isCollectionModalOpen, setIsCollectionModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
-  // Simple mobile detection based on window width
-  const isMobile = typeof window !== "undefined" ? window.innerWidth <= 768 : false;
-
   const handleDeleteClick = () => {
     if (onDelete && resource.resourceId) {
       onDelete(resource.resourceId);
@@ -101,7 +98,7 @@ export function ResourceCard({
             {resource.name || "未命名素材"}
           </h3>
 
-          <div className={`flex justify-between items-center text-base-content/60 ${isMobile ? "text-xs" : "text-xs"} gap-2`}>
+          <div className="flex justify-between items-center text-base-content/60 text-xs gap-2">
             <div className="flex items-center gap-2 min-w-0 flex-1">
               <UserAvatarComponent
                 userId={resource.userId ?? -1}

@@ -70,8 +70,8 @@ export default function RoomUserList({ type}: { type: string }) {
   };
 
   return (
-    <div className="h-full min-h-0 p-2 flex flex-col items-center">
-      <div className="flex flex-row justify-between items-center gap-2 min-w-60 mt-2">
+    <div className="h-full min-h-0 p-2 flex flex-col items-stretch">
+      <div className="flex flex-row justify-between items-center gap-2 w-full mt-2">
         <div className="flex items-center gap-2">
           {isRole
             ? (
@@ -127,15 +127,15 @@ export default function RoomUserList({ type}: { type: string }) {
       <div className="divider w-full" />
 
       <div
-        className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden w-full flex flex-col items-center gap-2"
+        className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden w-full flex flex-col items-stretch gap-2"
       >
         {isRole
           ? (
               <>
-                <RoleList roles={roomRoles} className={getScreenSize() === "sm" ? "w-full" : "w-56"} />
+                <RoleList roles={roomRoles} className={getScreenSize() === "sm" ? "w-full" : "w-full max-w-md"} />
                 <RoleList
                   roles={npcRoles}
-                  className={getScreenSize() === "sm" ? "w-full" : "w-56"}
+                  className={getScreenSize() === "sm" ? "w-full" : "w-full max-w-md"}
                   isNpcRole={true}
                   allowKickOut={true}
                   kickOutByManagerOnly={true}
@@ -145,7 +145,7 @@ export default function RoomUserList({ type}: { type: string }) {
           : (
               <MemberLists
                 members={members}
-                className={getScreenSize() === "sm" ? "w-full" : "w-56"}
+                className={getScreenSize() === "sm" ? "w-full" : "w-full max-w-md"}
                 isSpace={false}
               />
             )}

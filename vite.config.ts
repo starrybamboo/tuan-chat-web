@@ -305,6 +305,9 @@ function ossUploadProxyPlugin(): Plugin {
           const contentType = String(req.headers["content-type"] || "").trim();
           if (contentType)
             headers.set("content-type", contentType);
+          const cacheControl = String(req.headers["cache-control"] || "").trim();
+          if (cacheControl)
+            headers.set("cache-control", cacheControl);
 
           const upstreamRes = await undiciFetch(targetUrl.toString(), {
             method: "PUT",

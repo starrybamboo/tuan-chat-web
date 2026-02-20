@@ -41,6 +41,8 @@ const sizeMap = {
  */
 export default function RoleAvatarComponent({
   avatarId,
+  avatarUrl,
+  avatarThumbUrl,
   roleId,
   roleType,
   roleOwnerUserId,
@@ -58,6 +60,8 @@ export default function RoleAvatarComponent({
   detailVariant = "page",
 }: {
   avatarId: number;
+  avatarUrl?: string;
+  avatarThumbUrl?: string;
   roleId?: number;
   roleType?: number;
   roleOwnerUserId?: number;
@@ -74,15 +78,23 @@ export default function RoleAvatarComponent({
   hoverToScale?: boolean;
   detailVariant?: "simple" | "page";
 }) {
+  const providedAvatarThumbUrl = (avatarThumbUrl ?? "").trim();
+  const providedAvatarUrl = (avatarUrl ?? "").trim();
+  const hasProvidedAvatarUrl = Boolean(providedAvatarThumbUrl || providedAvatarUrl);
   const hasExplicitAvatarId = typeof avatarId === "number" && avatarId > 0;
   const safeAvatarId = hasExplicitAvatarId ? avatarId : 0;
-  const avatarQuery = useGetRoleAvatarQuery(safeAvatarId);
+  // 已有头像 URL 时优先直出，避免同一头像在列表场景再次触发 getRoleAvatar。
+  const shouldFetchAvatarById = hasExplicitAvatarId && !hasProvidedAvatarUrl;
+  const avatarQuery = useGetRoleAvatarQuery(safeAvatarId, { enabled: shouldFetchAvatarById });
   const roleAvatar = avatarQuery.data?.data;
-  const shouldUseFallback = !hasExplicitAvatarId && typeof roleId === "number" && roleId > 0;
+  const shouldUseFallback = !hasExplicitAvatarId && !hasProvidedAvatarUrl && typeof roleId === "number" && roleId > 0;
   const fallbackAvatarsQuery = useGetRoleAvatarsQuery(roleId ?? -1, { enabled: shouldUseFallback });
   const fallbackAvatar = shouldUseFallback ? fallbackAvatarsQuery.data?.data?.[0] : undefined;
   const defaultAvatarUrl = (hasExplicitAvatarId || useDefaultAvatarFallback) ? "/favicon.ico" : "";
-  const displayAvatarUrl = (hasExplicitAvatarId ? roleAvatar?.avatarUrl : fallbackAvatar?.avatarUrl) || defaultAvatarUrl;
+  const fetchedAvatarUrl = hasExplicitAvatarId
+    ? (roleAvatar?.avatarThumbUrl || roleAvatar?.avatarUrl)
+    : (fallbackAvatar?.avatarThumbUrl || fallbackAvatar?.avatarUrl);
+  const displayAvatarUrl = providedAvatarThumbUrl || providedAvatarUrl || fetchedAvatarUrl || defaultAvatarUrl;
   const roleIdTrue = roleId ?? roleAvatar?.roleId ?? fallbackAvatar?.roleId;
   const hasAvatar = Boolean(displayAvatarUrl);
 
