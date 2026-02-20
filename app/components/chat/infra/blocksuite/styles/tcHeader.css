@@ -31,7 +31,8 @@
 .tc-blocksuite-scope.tc-blocksuite-tc-header-enabled .tc-blocksuite-tc-header-top {
   display: flex !important;
   flex-direction: row !important;
-  flex-wrap: nowrap !important;
+  /* Allow fallback wrapping for narrow containers (desktop split view / resized modal). */
+  flex-wrap: wrap !important;
   align-items: center !important;
   gap: 16px !important;
   width: 100% !important;
@@ -87,17 +88,21 @@
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
-  min-width: 2.35em !important;
-  height: 1.85em !important;
-  padding: 0 0.4em !important;
-  border-radius: 9999px !important;
+  width: 34px !important;
+  height: 34px !important;
+  border-radius: 10px !important;
   border: 1px solid oklch(var(--bc) / 0.26) !important;
-  background-color: oklch(var(--b1) / 0.82) !important;
+  background-color: oklch(var(--b1) / 0.92) !important;
   color: oklch(var(--bc) / 0.9) !important;
-  font-size: 11px !important;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.15) !important;
+}
+
+.tc-blocksuite-scope.tc-blocksuite-tc-header-enabled .tc-blocksuite-tc-header-avatar-placeholder-icon {
+  width: 22px !important;
+  height: 22px !important;
+  color: currentColor !important;
+  flex: 0 0 auto !important;
   line-height: 1 !important;
-  letter-spacing: 0.06em !important;
-  font-weight: 700 !important;
   text-shadow: none !important;
 }
 
@@ -301,9 +306,13 @@
   }
 
   .tc-blocksuite-scope.tc-blocksuite-tc-header-enabled .tc-blocksuite-tc-header-avatar-placeholder-glyph {
-    min-width: 2.1em !important;
-    height: 1.7em !important;
-    font-size: 10px !important;
+    width: 30px !important;
+    height: 30px !important;
+  }
+
+  .tc-blocksuite-scope.tc-blocksuite-tc-header-enabled .tc-blocksuite-tc-header-avatar-placeholder-icon {
+    width: 20px !important;
+    height: 20px !important;
   }
 
   .tc-blocksuite-scope.tc-blocksuite-tc-header-enabled .tc-blocksuite-tc-header-title {
@@ -364,9 +373,13 @@
   }
 
   .tc-blocksuite-scope.tc-blocksuite-tc-header-enabled .tc-blocksuite-tc-header-avatar-placeholder-glyph {
-    min-width: 1.95em !important;
-    height: 1.6em !important;
-    font-size: 9px !important;
+    width: 26px !important;
+    height: 26px !important;
+  }
+
+  .tc-blocksuite-scope.tc-blocksuite-tc-header-enabled .tc-blocksuite-tc-header-avatar-placeholder-icon {
+    width: 18px !important;
+    height: 18px !important;
   }
 
   .tc-blocksuite-scope.tc-blocksuite-tc-header-enabled .tc-blocksuite-tc-header-title {

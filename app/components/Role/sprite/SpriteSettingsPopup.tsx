@@ -941,6 +941,9 @@ export function SpriteSettingsPopup({
               <div className="mx-auto mt-2 h-1.5 w-12 rounded-full bg-base-content/30" />
               <div className="flex items-center justify-between px-3 py-2">
                 <Drawer.Title className="text-base font-semibold">头像与工具</Drawer.Title>
+                <Drawer.Description className="sr-only">
+                  在移动端查看头像列表并切换预览、设置、回收站等工具面板。
+                </Drawer.Description>
                 <button
                   type="button"
                   className="btn btn-ghost btn-sm btn-square"

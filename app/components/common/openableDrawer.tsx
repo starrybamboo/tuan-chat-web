@@ -260,7 +260,7 @@ export function OpenAbleDrawer({
 
   if (screenSize === "sm" || overWrite) {
     return (
-      <div className={`w-full absolute ${className ?? ""}`}>
+      <div className={`absolute inset-0 z-40 w-full pointer-events-auto ${className ?? ""}`}>
         {children}
       </div>
     );
@@ -270,7 +270,7 @@ export function OpenAbleDrawer({
   return (
     <div
       ref={containerRef}
-      className={`relative min-w-0 ${className ?? ""}`}
+      className={`relative min-w-0 z-40 pointer-events-auto ${className ?? ""}`}
       style={{
         width: `${Math.max(0, renderedWidth)}px`,
         maxWidth: "100%",

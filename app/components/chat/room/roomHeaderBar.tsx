@@ -48,6 +48,7 @@ function RoomHeaderBarImpl({
   const isMobile = getScreenSize() === "sm";
   const location = useLocation();
   const [isMobileSearchOpen, setIsMobileSearchOpen] = React.useState(false);
+  const hasSideDrawerOpen = sideDrawerState !== "none";
 
   const closeThreadPane = () => {
     setComposerTarget("main");
@@ -103,6 +104,18 @@ function RoomHeaderBarImpl({
     blurActiveElement();
   };
 
+  const handleMobileBack = () => {
+    // 语义对齐 QQ：在“成员/角色/跑团工具”等右侧面板中，返回应先回到群聊主聊天。
+    if (hasSideDrawerOpen) {
+      closeThreadPane();
+      setSideDrawerState("none");
+      blurActiveElement();
+      return;
+    }
+    toggleLeftDrawer();
+    blurActiveElement();
+  };
+
   // 退出移动端或切路由时，避免搜索页保持打开状态
   React.useEffect(() => {
     if (!isMobile) {
@@ -139,9 +152,9 @@ function RoomHeaderBarImpl({
             <div className="sm:hidden">
               <button
                 type="button"
-                aria-label="打开左侧边栏"
+                aria-label={hasSideDrawerOpen ? "返回群聊" : "打开左侧边栏"}
                 className="btn btn-ghost btn-square btn-sm"
-                onClick={toggleLeftDrawer}
+                onClick={handleMobileBack}
               >
                 <BaselineArrowBackIosNew className="size-6" />
               </button>

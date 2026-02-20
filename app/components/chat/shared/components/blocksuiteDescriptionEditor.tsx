@@ -3,6 +3,7 @@ import type { DocModeProvider } from "@blocksuite/affine/shared/services";
 import type { DescriptionEntityType } from "@/components/chat/infra/blocksuite/descriptionDocId";
 import type { BlocksuiteDocHeader } from "@/components/chat/infra/blocksuite/docHeader";
 import type { BlocksuiteMentionProfilePopoverState } from "@/components/chat/infra/blocksuite/mentionProfilePopover";
+import { FileTextIcon } from "@phosphor-icons/react";
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import toast from "react-hot-toast";
 import { useLocation, useNavigate } from "react-router";
@@ -1026,7 +1027,9 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
                                   )
                                 : (
                                     <div className="tc-blocksuite-tc-header-avatar-placeholder" aria-hidden="true">
-                                      <span className="tc-blocksuite-tc-header-avatar-placeholder-glyph">头像</span>
+                                      <span className="tc-blocksuite-tc-header-avatar-placeholder-glyph">
+                                        <FileTextIcon className="tc-blocksuite-tc-header-avatar-placeholder-icon" weight="bold" />
+                                      </span>
                                     </div>
                                   )}
                               <div className="tc-blocksuite-tc-header-avatar-overlay">
@@ -1047,7 +1050,9 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
                                 )
                               : (
                                   <div className="tc-blocksuite-tc-header-avatar-placeholder" aria-hidden="true">
-                                    <span className="tc-blocksuite-tc-header-avatar-placeholder-glyph">头像</span>
+                                    <span className="tc-blocksuite-tc-header-avatar-placeholder-glyph">
+                                      <FileTextIcon className="tc-blocksuite-tc-header-avatar-placeholder-icon" weight="bold" />
+                                    </span>
                                   </div>
                                 )}
                           </div>

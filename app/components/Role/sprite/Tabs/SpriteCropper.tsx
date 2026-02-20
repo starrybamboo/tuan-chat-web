@@ -885,19 +885,33 @@ export function SpriteCropper({
     }
   }
 
+  const handlePreviewPanelClick = useCallback((event: React.MouseEvent<HTMLDivElement>) => {
+    if (!isMobile) {
+      return;
+    }
+
+    const target = event.target as HTMLElement | null;
+    // 交互控件（按钮/输入等）点击时不打开裁剪弹窗，避免移动端误触。
+    if (target?.closest("button, a, input, select, textarea, [role=\"button\"], [data-no-crop-modal=\"true\"]")) {
+      return;
+    }
+
+    setIsCropModalOpen(true);
+  }, [isMobile]);
+
   return (
     <div className="max-w-7xl mx-auto flex flex-col h-full">
       {/* 模式显示 */}
-      <div className="flex w-full justify-between items-center mb-2">
-        <h3 className="text-lg font-bold">
+      <div className="mb-2 flex w-full flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <h3 className="text-base font-bold leading-tight sm:text-lg">
           {operationMode === "single" ? "单体模式" : `批量模式 (已选 ${selectedIndices.size} 个)`}
           {isAvatarMode ? " - 从立绘裁剪头像" : " - 立绘裁剪"}
         </h3>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2 sm:justify-end">
           {isMutiAvatars && (
             <button
               type="button"
-              className="btn btn-sm btn-ghost gap-2"
+              className="btn btn-sm btn-ghost gap-2 whitespace-nowrap"
               disabled={!canUseOriginForCurrent}
               onClick={() => {
                 setSourceMode(prev => prev === "sprite" ? "origin" : "sprite");
@@ -988,15 +1002,10 @@ export function SpriteCropper({
               {/* 预览内容区域 */}
               <div
                 className="bg-info/30 rounded-lg p-4 flex flex-col relative cursor-pointer md:cursor-default max-h-[70vh]"
-                onClick={() => {
-                // 仅移动端点击时打开弹窗
-                  if (isMobileScreen()) {
-                    setIsCropModalOpen(true);
-                  }
-                }}
+                onClick={handlePreviewPanelClick}
               >
                 {/* 移动端点击提示 */}
-                <div className="absolute top-6 right-6 text-xs text-base-content/50 z-10 md:hidden">
+                <div className="absolute bottom-3 right-3 rounded bg-base-100/70 px-2 py-1 text-[11px] text-base-content/60 backdrop-blur-sm pointer-events-none z-10 md:hidden">
                   点击画布调整裁剪
                 </div>
 
@@ -1026,12 +1035,14 @@ export function SpriteCropper({
                               />
                             </div>
 
-                            <TransformControl
-                              transform={transform}
-                              setTransform={setDisplayTransform}
-                              anchorPosition={previewAnchorPosition}
-                              setAnchorPosition={setPreviewAnchorPosition}
-                            />
+                            <div data-no-crop-modal="true">
+                              <TransformControl
+                                transform={transform}
+                                setTransform={setDisplayTransform}
+                                anchorPosition={previewAnchorPosition}
+                                setAnchorPosition={setPreviewAnchorPosition}
+                              />
+                            </div>
                           </div>
                         </>
                       )}
@@ -1043,7 +1054,7 @@ export function SpriteCropper({
       </div>
 
       {/* 操作按钮区 - 固定在右下角 */}
-      <div className="mt-4 flex shrink-0 items-center gap-2">
+      <div className="mt-4 flex shrink-0 flex-col items-start gap-2 sm:flex-row sm:items-center">
         {operationMode === "batch" && (
           <div className="text-xs text-base-content/60 self-center">
             批量模式说明：
@@ -1051,7 +1062,7 @@ export function SpriteCropper({
             只会将当前裁剪框应用到所有立绘，切换后应用裁剪框不会分别生效。
           </div>
         )}
-        <div className="ml-auto flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2 sm:ml-auto sm:justify-end">
           {operationMode === "single"
             ? (
                 <>
