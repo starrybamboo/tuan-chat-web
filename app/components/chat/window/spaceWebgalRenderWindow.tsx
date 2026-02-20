@@ -420,6 +420,10 @@ export default function SpaceWebgalRenderWindow({ spaceId }: SpaceWebgalRenderWi
       toast.error(appendWebgalTimeoutHint(launchResult.error || "WebGAL 启动失败"), { id: "space-webgal-init" });
       return false;
     }
+    if (electronEnv && typeof launchResult.port === "number" && Number.isFinite(launchResult.port)) {
+      // Electron 启动成功后，强制对齐到主进程实际监听端口，避免连接到历史端口。
+      setTerrePortOverride(launchResult.port);
+    }
 
     toast.loading("正在启动 WebGAL...", { id: "space-webgal-init" });
     try {
@@ -449,7 +453,7 @@ export default function SpaceWebgalRenderWindow({ spaceId }: SpaceWebgalRenderWi
       toast.error(message, { id: "space-webgal-init" });
       return false;
     }
-  }, [ensureHydrated, isRealtimeActive, realtimeStatus, spaceId, startRealtimeRender]);
+  }, [ensureHydrated, isRealtimeActive, realtimeStatus, setTerrePortOverride, spaceId, startRealtimeRender]);
 
   const handleStopRealtimeRender = useCallback(() => {
     stopRealtimeRender();

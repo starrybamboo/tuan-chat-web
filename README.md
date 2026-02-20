@@ -42,6 +42,29 @@ Windows 下 `nsis` / `winCodeSign` 等工具会在首次构建时由 electron-bu
 
 这些设置只影响构建时下载工具，不影响应用运行。
 
+#### 一键自动化发布 Electron（本地 + 云端）
+
+当客户端需要发新版本时，建议统一使用以下命令：
+
+```bash
+pnpm release:electron -- --bump patch
+```
+
+该命令会按顺序执行：
+- 校验工作区干净且当前分支为 `main`
+- `git pull --rebase origin main`
+- 更新 `package.json` 版本号
+- 本地打包 Windows 客户端（默认 `zip + nsis`）
+- 自动提交版本号并 `git push origin main`
+- 触发云端增量更新工作流（`main` 推送自动触发）
+
+常用参数：
+- `--bump patch|minor|major`：按语义版本递增
+- `--version x.y.z`：直接指定版本号（与 `--bump` 二选一）
+- `--local-build all|zip|nsis|none`：本地打包策略（默认 `all`）
+- `--no-push`：只做本地提交，不推送
+- `--message "..."`：自定义提交信息
+
 
 ### 配置环境
 
