@@ -449,44 +449,6 @@ function CharacterDetailInner({
     }
   };
 
-  const handleQuickCopyToDiceMaiden = async () => {
-    if (isDiceMaiden) {
-      toast("当前角色已经是骰娘");
-      return;
-    }
-
-    if (isCloning) {
-      return;
-    }
-
-    const quickName = buildQuickDicerName();
-    const quickDescription = cleanText(localRole.description || "").slice(0, MAX_DESCRIPTION_LENGTH);
-
-    try {
-      setIsCloning(true);
-      const newRole = await copyRoleMutate({
-        sourceRole: localRole,
-        targetType: "dicer",
-        newName: quickName,
-        newDescription: quickDescription,
-      });
-
-      if (setRoles) {
-        setRoles(prevRoles => [newRole, ...prevRoles]);
-      }
-
-      toast.success("已复制为骰娘");
-      navigate(`/role/${newRole.id}`);
-    }
-    catch (e) {
-      console.error("一键复制成骰娘失败", e);
-      toast.error(`复制失败: ${e instanceof Error ? e.message : "未知错误"}`);
-    }
-    finally {
-      setIsCloning(false);
-    }
-  };
-
   const rightPanel = (
     <>
       {/* 扩展模块（右侧） */}
