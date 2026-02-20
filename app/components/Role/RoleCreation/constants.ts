@@ -1,0 +1,3 @@
+export const ROLE_NAME_MAX_LENGTH = 32;
+export const ROLE_DESCRIPTION_MAX_LENGTH = 140;
+export const ROLE_DESCRIPTION_TOO_LONG_MESSAGE = `角色简介最多 ${ROLE_DESCRIPTION_MAX_LENGTH} 字，请精简后再创建`;

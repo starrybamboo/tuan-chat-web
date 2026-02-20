@@ -9,6 +9,8 @@ import {
   getMessagesByRoomId as dbGetMessagesByRoomId,
 } from "./chatHistoryDb";
 
+const WS_RECONNECTED_EVENT = "tc:ws-reconnected";
+
 export type UseChatHistoryReturn = {
   messages: ChatMessageResponse[];
   loading: boolean;
@@ -222,25 +224,37 @@ export function useChatHistory(roomId: number | null): UseChatHistoryReturn {
     messagesRawRef.current = messagesRaw;
   }, [messagesRaw]);
 
+  const refreshNewestMessages = useCallback(() => {
+    const maxSyncId = messagesRawRef.current.length > 0
+      ? Math.max(...messagesRawRef.current.map(msg => msg.message.syncId))
+      : -1;
+    void fetchNewestMessages(maxSyncId).catch((err) => {
+      setError(err as Error);
+    });
+  }, [fetchNewestMessages]);
+
   useEffect(() => {
     const handleVisibilityChange = () => {
       // 当页面从后台切换到前台时
       if (document.visibilityState === "visible") {
-        const maxSyncId = messagesRawRef.current.length > 0
-          ? Math.max(...messagesRawRef.current.map(msg => msg.message.syncId))
-          : -1;
-        fetchNewestMessages(maxSyncId);
+        refreshNewestMessages();
       }
+    };
+    const handleWsReconnected = () => {
+      // WS 重连后立即做一次增量补拉，覆盖离线期间产生的消息变更。
+      refreshNewestMessages();
     };
 
     // 添加事件监听
     document.addEventListener("visibilitychange", handleVisibilityChange);
+    window.addEventListener(WS_RECONNECTED_EVENT, handleWsReconnected);
 
     // 组件卸载时，清理事件监听器，防止内存泄漏
     return () => {
       document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener(WS_RECONNECTED_EVENT, handleWsReconnected);
     };
-  }, [fetchNewestMessages]);
+  }, [refreshNewestMessages]);
 
   return {
     messages: messagesWithoutDeletedMessages,

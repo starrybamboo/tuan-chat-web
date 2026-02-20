@@ -1026,12 +1026,17 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
           const soundMessage = extra?.soundMessage ?? extra;
           const audioUrl = typeof soundMessage?.url === "string" ? soundMessage.url : "";
           const duration = soundMessage?.second ?? soundMessage?.duration;
+          const contentText = (message.content ?? "").toString();
+          const hasBgmTagInContent = contentText.includes("[播放BGM]");
+          const hasSeTagInContent = contentText.includes("[播放音效]");
+          const hasBgmAnnotation = annotations.some(item => item.toLowerCase() === ANNOTATION_IDS.BGM);
+          const hasSeAnnotation = annotations.some(item => item.toLowerCase() === ANNOTATION_IDS.SE);
           const purposeFromPayload = typeof soundMessage?.purpose === "string"
             ? soundMessage.purpose.trim().toLowerCase()
             : "";
-          const purpose = purposeFromPayload === "bgm" || hasAnnotation(annotations, ANNOTATION_IDS.BGM)
+          const purpose = purposeFromPayload === "bgm" || hasBgmAnnotation || hasBgmTagInContent
             ? "bgm"
-            : purposeFromPayload === "se" || hasAnnotation(annotations, ANNOTATION_IDS.SE)
+            : purposeFromPayload === "se" || hasSeAnnotation || hasSeTagInContent
               ? "se"
               : "voice";
           return (

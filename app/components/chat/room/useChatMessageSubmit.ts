@@ -4,6 +4,8 @@ import { toast } from "react-hot-toast";
 import type { RoomUiStoreApi } from "@/components/chat/stores/roomUiStore";
 import type { SpaceWebgalVarsRecord } from "@/types/webgalVar";
 
+import { requestPlayBgmMessageWithUrl } from "@/components/chat/infra/audioMessage/audioMessageBgmCoordinator";
+import { useAudioMessageAutoPlayStore } from "@/components/chat/stores/audioMessageAutoPlayStore";
 import { useChatComposerStore } from "@/components/chat/stores/chatComposerStore";
 import { useChatInputUiStore } from "@/components/chat/stores/chatInputUiStore";
 import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
@@ -51,6 +53,29 @@ type UseChatMessageSubmitParams = {
 type UseChatMessageSubmitResult = {
   handleMessageSubmit: () => Promise<void>;
 };
+
+function resolveAudioAutoPlayPurposeFromMessage(message: {
+  content?: string | null;
+  annotations?: string[];
+  extra?: unknown;
+}) {
+  const extra = message.extra as any;
+  const sound = extra?.soundMessage ?? extra;
+  const rawPurpose = typeof sound?.purpose === "string"
+    ? sound.purpose.trim().toLowerCase()
+    : "";
+  const annotations = Array.isArray(message.annotations) ? message.annotations : [];
+  const hasBgmAnnotation = annotations.some(item => typeof item === "string" && item.toLowerCase() === ANNOTATION_IDS.BGM);
+  const hasSeAnnotation = annotations.some(item => typeof item === "string" && item.toLowerCase() === ANNOTATION_IDS.SE);
+  const content = (message.content ?? "").toString();
+  if (rawPurpose === "bgm" || hasBgmAnnotation || content.includes("[播放BGM]")) {
+    return "bgm" as const;
+  }
+  if (rawPurpose === "se" || hasSeAnnotation || content.includes("[播放音效]")) {
+    return "se" as const;
+  }
+  return undefined;
+}
 
 export default function useChatMessageSubmit({
   roomId,
@@ -489,7 +514,29 @@ export default function useChatMessageSubmit({
             purpose: composerAudioPurpose,
           },
         };
-        await sendMessageWithInsert(audioMsg);
+        const createdAudioMsg = await sendMessageWithInsert(audioMsg);
+        if (createdAudioMsg && typeof createdAudioMsg.messageId === "number") {
+          const autoPlayPurpose = resolveAudioAutoPlayPurposeFromMessage({
+            content: createdAudioMsg.content,
+            annotations: createdAudioMsg.annotations,
+            extra: createdAudioMsg.extra,
+          });
+          if (autoPlayPurpose) {
+            useAudioMessageAutoPlayStore.getState().enqueueFromWs({
+              roomId,
+              messageId: createdAudioMsg.messageId,
+              purpose: autoPlayPurpose,
+            });
+            if (autoPlayPurpose === "bgm") {
+              const createdExtra = createdAudioMsg.extra as any;
+              const sound = createdExtra?.soundMessage ?? createdExtra;
+              const createdUrl = typeof sound?.url === "string" ? sound.url.trim() : "";
+              if (createdUrl) {
+                void requestPlayBgmMessageWithUrl(roomId, createdAudioMsg.messageId, createdUrl);
+              }
+            }
+          }
+        }
         textContent = "";
       }
 
