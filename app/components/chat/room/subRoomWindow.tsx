@@ -8,12 +8,12 @@ import { useDrawerPreferenceStore } from "@/components/chat/stores/drawerPrefere
 import { useRealtimeRenderStore } from "@/components/chat/stores/realtimeRenderStore";
 import { useSideDrawerStore } from "@/components/chat/stores/sideDrawerStore";
 import { OpenAbleDrawer } from "@/components/common/openableDrawer";
-import { WebgalIcon } from "@/icons";
+import { WebgalIcon, XMarkICon } from "@/icons";
 
 type SubPane = "map" | "initiative" | "webgal" | "doc";
 
-function isSubRoomDrawerState(state: string): state is "map" | "webgal" | "doc" {
-  return state === "map" || state === "webgal" || state === "doc";
+function isSubRoomDrawerState(state: string): state is "map" | "initiative" | "webgal" | "doc" {
+  return state === "map" || state === "initiative" || state === "webgal" || state === "doc";
 }
 
 function SubRoomWindowImpl() {
@@ -25,12 +25,10 @@ function SubRoomWindowImpl() {
   const userDrawerWidth = useDrawerPreferenceStore(state => state.userDrawerWidth);
   const roleDrawerWidth = useDrawerPreferenceStore(state => state.roleDrawerWidth);
   const docFolderDrawerWidth = useDrawerPreferenceStore(state => state.docFolderDrawerWidth);
-  const initiativeDrawerWidth = useDrawerPreferenceStore(state => state.initiativeDrawerWidth);
   const exportDrawerWidth = useDrawerPreferenceStore(state => state.exportDrawerWidth);
   const resolvedUserDrawerWidth = Math.min(620, Math.max(240, userDrawerWidth));
   const resolvedRoleDrawerWidth = Math.min(620, Math.max(240, roleDrawerWidth));
   const resolvedDocFolderDrawerWidth = Math.min(760, Math.max(280, docFolderDrawerWidth));
-  const resolvedInitiativeDrawerWidth = Math.min(760, Math.max(320, initiativeDrawerWidth));
   const resolvedExportDrawerWidth = Math.min(760, Math.max(280, exportDrawerWidth));
 
   const [isOpen, setIsOpen] = React.useState(false);
@@ -50,6 +48,10 @@ function SubRoomWindowImpl() {
       setIsOpen(true);
       setActivePane("map");
     }
+    else if (sideDrawerState === "initiative") {
+      setIsOpen(true);
+      setActivePane("initiative");
+    }
     else if (sideDrawerState === "webgal") {
       setIsOpen(true);
       setActivePane("webgal");
@@ -68,7 +70,7 @@ function SubRoomWindowImpl() {
 
   // 预留左侧聊天区的“最小可用宽度”。当左侧已经无法继续缩小时，
   // SubRoomWindow 也不允许继续拖宽，避免整体溢出。
-  // 这里额外考虑了 RoomSideDrawers（user/role/docFolder/initiative/export）当前占用宽度。
+  // 这里额外考虑了 RoomSideDrawers（user/role/docFolder/export）当前占用宽度。
   const minRemainingWidth = React.useMemo(() => {
     const baseMinChatWidth = 520;
 
@@ -82,9 +84,6 @@ function SubRoomWindowImpl() {
     else if (sideDrawerState === "docFolder") {
       lightDrawerWidth = resolvedDocFolderDrawerWidth;
     }
-    else if (sideDrawerState === "initiative") {
-      lightDrawerWidth = resolvedInitiativeDrawerWidth;
-    }
     else if (sideDrawerState === "export") {
       lightDrawerWidth = resolvedExportDrawerWidth;
     }
@@ -92,7 +91,6 @@ function SubRoomWindowImpl() {
   }, [
     resolvedDocFolderDrawerWidth,
     resolvedExportDrawerWidth,
-    resolvedInitiativeDrawerWidth,
     resolvedRoleDrawerWidth,
     resolvedUserDrawerWidth,
     sideDrawerState,
@@ -157,6 +155,15 @@ function SubRoomWindowImpl() {
                 {title}
               </span>
             </div>
+            <button
+              type="button"
+              className="btn btn-ghost btn-square btn-xs"
+              aria-label="关闭侧窗"
+              title="关闭侧窗"
+              onClick={close}
+            >
+              <XMarkICon className="size-4" />
+            </button>
           </div>
         </div>
 

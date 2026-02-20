@@ -32,9 +32,15 @@ export default function ChatPageLayout({
   subWindowContent,
 }: ChatPageLayoutProps) {
   return (
-    <div className={`flex flex-row flex-1 h-full min-h-0 min-w-0 relative overflow-x-hidden overflow-y-hidden ${screenSize === "sm" ? "bg-base-100" : "bg-base-200"}`}>
+    <div
+      className={`flex flex-row flex-1 h-full min-h-0 min-w-0 relative overflow-x-hidden overflow-y-hidden ${screenSize === "sm" ? "bg-base-100 pt-[var(--tc-safe-area-top)] pb-[var(--tc-safe-area-bottom)]" : "bg-base-200"}`}
+    >
       {shouldShowLeftDrawerToggle && (
-        <div className="tooltip tooltip-right absolute left-2 top-2 z-50" data-tip={leftDrawerToggleLabel}>
+        <div
+          className="tooltip tooltip-right fixed left-2 z-[70]"
+          data-tip={leftDrawerToggleLabel}
+          style={{ top: "calc(var(--tc-safe-area-top) + 0.25rem)" }}
+        >
           <button
             type="button"
             className="btn btn-ghost btn-sm btn-square bg-base-100/80"
@@ -66,6 +72,7 @@ export default function ChatPageLayout({
                   <div
                     id="chat-sidebar-user-card"
                     className="absolute left-2 right-2 bottom-2 z-20 pointer-events-auto"
+                    style={{ bottom: "max(0.5rem, var(--tc-safe-area-bottom))" }}
                   />
                 </div>
               </OpenAbleDrawer>
@@ -102,6 +109,7 @@ export default function ChatPageLayout({
                   <div
                     id="chat-sidebar-user-card"
                     className="absolute left-2 right-2 bottom-2 z-20 pointer-events-auto"
+                    style={{ bottom: "max(0.5rem, var(--tc-safe-area-bottom))" }}
                   />
                 </div>
                 <div className="flex-1 min-w-0 min-h-0">

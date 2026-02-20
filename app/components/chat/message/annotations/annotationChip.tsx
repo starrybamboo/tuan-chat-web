@@ -5,6 +5,7 @@ interface AnnotationChipProps {
   active?: boolean;
   interactive?: boolean;
   onClick?: () => void;
+  compact?: boolean;
 }
 
 const TONE_STYLES: Record<AnnotationTone, string> = {
@@ -30,6 +31,7 @@ export default function AnnotationChip({
   active = false,
   interactive = true,
   onClick,
+  compact = false,
 }: AnnotationChipProps) {
   const Icon = annotation.icon;
   const hasLabel = !annotation.hideLabel;
@@ -37,29 +39,29 @@ export default function AnnotationChip({
   const isEffect = annotation.category === "特效" && hasImage;
   const isFigurePositionTag = annotation.id.startsWith("figure.pos.");
   const sizeClass = hasLabel
-    ? (isFigurePositionTag ? "px-2 min-w-[36px]" : "px-3 min-w-[52px]")
-    : "w-10";
+    ? (isFigurePositionTag ? (compact ? "px-1.5 min-w-[28px]" : "px-2 min-w-[36px]") : (compact ? "px-2 min-w-[40px]" : "px-3 min-w-[52px]"))
+    : (compact ? "w-8" : "w-10");
   const interactiveClass = interactive ? "active:scale-95" : "";
   const activeClass = active ? "ring-2 ring-primary/30 shadow-sm" : "";
 
   return (
     <button
       type="button"
-      className={`inline-flex items-center justify-center h-9 rounded-md border transition-all select-none ${sizeClass} ${interactiveClass} ${getToneClass(annotation)} ${activeClass}`}
+      className={`inline-flex items-center justify-center ${compact ? "h-7" : "h-9"} rounded-md border transition-all select-none ${sizeClass} ${interactiveClass} ${getToneClass(annotation)} ${activeClass}`}
       onClick={onClick}
       title={annotation.label}
     >
       {Icon
         ? (
-            <Icon className="w-5 h-5" aria-hidden="true" />
+            <Icon className={compact ? "w-4 h-4" : "w-5 h-5"} aria-hidden="true" />
           )
         : hasImage
           ? (
-              <img src={annotation.iconUrl} alt="" className={isEffect ? "w-7 h-7 object-contain" : "w-6 h-6 object-contain"} />
+              <img src={annotation.iconUrl} alt="" className={isEffect ? (compact ? "w-6 h-6 object-contain" : "w-7 h-7 object-contain") : (compact ? "w-5 h-5 object-contain" : "w-6 h-6 object-contain")} />
             )
           : hasLabel
             ? (
-                <span className="text-xs font-semibold leading-none whitespace-nowrap">{annotation.label}</span>
+                <span className={`${compact ? "text-[11px]" : "text-xs"} font-semibold leading-none whitespace-nowrap`}>{annotation.label}</span>
               )
             : (
                 <span className="sr-only">{annotation.label}</span>

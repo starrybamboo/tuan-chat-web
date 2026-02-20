@@ -120,6 +120,7 @@ export default function ChatAttachmentsPreviewFromStore() {
           onOpenPicker={handleOpenTempAnnotations}
           showWhenEmpty={true}
           alwaysShowAddButton={true}
+          compact={true}
           className="mt-0"
         />
       </div>

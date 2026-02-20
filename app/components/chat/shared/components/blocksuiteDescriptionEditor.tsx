@@ -989,96 +989,7 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
   const canEditTcHeader = tcHeaderEnabled && !readOnly;
   const tcHeaderImageUrl = tcHeaderState?.header.imageUrl ?? tcHeader?.fallbackImageUrl ?? "";
   const tcHeaderTitle = tcHeaderState?.header.title ?? tcHeader?.fallbackTitle ?? "";
-
-  const resetBuiltinDocTitle = async () => {
-    const store = storeRef.current;
-    if (!store)
-      return;
-
-    try {
-      const { Text } = await import("@blocksuite/store");
-
-      const normalizeTitleText = (raw: string) => {
-        // Keep behavior stable for "empty but has zero-width placeholders".
-        return String(raw ?? "").replace(/[\s\u200B]+/g, "").trim();
-      };
-
-      const candidates: any[] = [];
-
-      // Prefer root when available (DocTitle reads from `doc.root.props.title`).
-      const rootModel = (store as any).root;
-      if (rootModel?.props?.title) {
-        candidates.push(rootModel);
-      }
-
-      // Fallback: explicit page models.
-      const pages = (store as any).getModelsByFlavour?.("affine:page") as any[] | undefined;
-      if (Array.isArray(pages)) {
-        candidates.push(...pages);
-      }
-
-      const seen = new Set<string>();
-      const uniqueCandidates = candidates.filter((m) => {
-        const key = String(m?.id ?? "");
-        if (!key)
-          return true;
-        if (seen.has(key))
-          return false;
-        seen.add(key);
-        return true;
-      });
-
-      const shouldReset = uniqueCandidates.some((m) => {
-        const titleObj = m?.props?.title;
-        const currentTitle = typeof titleObj?.toString === "function" ? titleObj.toString() : String(titleObj ?? "");
-        return Boolean(normalizeTitleText(currentTitle));
-      });
-
-      if (!shouldReset) {
-        toast("内置标题已为空");
-        return;
-      }
-
-      const doUpdate = () => {
-        for (const m of uniqueCandidates) {
-          try {
-            (store as any).updateBlock?.(m, { title: new Text("") });
-          }
-          catch {
-            // ignore
-          }
-        }
-      };
-
-      if (typeof (store as any).transact === "function") {
-        (store as any).transact(doUpdate);
-      }
-      else {
-        doUpdate();
-      }
-
-      // Best-effort: immediately remove any `<doc-title>` nodes if they exist.
-      try {
-        const nodes = document.querySelectorAll("[data-tc-blocksuite-root] doc-title");
-        for (const n of Array.from(nodes)) {
-          try {
-            n.remove();
-          }
-          catch {
-            // ignore
-          }
-        }
-      }
-      catch {
-        // ignore
-      }
-
-      toast.success("已清空内置标题");
-    }
-    catch {
-      // ignore
-    }
-  };
+  const hasTcHeaderImage = Boolean(tcHeaderImageUrl.trim());
 
   return (
     <div className={rootClassName}>
@@ -1104,8 +1015,8 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
                             fileName={`blocksuite-header-${docId.replaceAll(":", "-")}`}
                             aspect={1}
                           >
-                            <div className="tc-blocksuite-tc-header-avatar" aria-label="更换头像">
-                              {tcHeaderImageUrl
+                            <div className={`tc-blocksuite-tc-header-avatar${hasTcHeaderImage ? "" : " tc-blocksuite-tc-header-avatar-empty"}`} aria-label="更换头像">
+                              {hasTcHeaderImage
                                 ? (
                                     <img
                                       src={tcHeaderImageUrl}
@@ -1113,7 +1024,11 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
                                       className="tc-blocksuite-tc-header-avatar-img"
                                     />
                                   )
-                                : null}
+                                : (
+                                    <div className="tc-blocksuite-tc-header-avatar-placeholder" aria-hidden="true">
+                                      <span className="tc-blocksuite-tc-header-avatar-placeholder-glyph">头像</span>
+                                    </div>
+                                  )}
                               <div className="tc-blocksuite-tc-header-avatar-overlay">
                                 <span className="tc-blocksuite-tc-header-avatar-overlay-text">更换</span>
                               </div>
@@ -1121,8 +1036,8 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
                           </ImgUploaderWithCopper>
                         )
                       : (
-                          <div className="tc-blocksuite-tc-header-avatar tc-blocksuite-tc-header-avatar-readonly">
-                            {tcHeaderImageUrl
+                          <div className={`tc-blocksuite-tc-header-avatar tc-blocksuite-tc-header-avatar-readonly${hasTcHeaderImage ? "" : " tc-blocksuite-tc-header-avatar-empty"}`}>
+                            {hasTcHeaderImage
                               ? (
                                   <img
                                     src={tcHeaderImageUrl}
@@ -1130,7 +1045,11 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
                                     className="tc-blocksuite-tc-header-avatar-img"
                                   />
                                 )
-                              : null}
+                              : (
+                                  <div className="tc-blocksuite-tc-header-avatar-placeholder" aria-hidden="true">
+                                    <span className="tc-blocksuite-tc-header-avatar-placeholder-glyph">头像</span>
+                                  </div>
+                                )}
                           </div>
                         )}
 
@@ -1138,7 +1057,7 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
                       className="tc-blocksuite-tc-header-title"
                       value={tcHeaderTitle}
                       disabled={!canEditTcHeader}
-                      placeholder="Title"
+                      placeholder="标题"
                       onChange={(e) => {
                         const store = storeRef.current;
                         if (!store)
@@ -1154,18 +1073,6 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
                     />
 
                     <div className="tc-blocksuite-tc-header-actions">
-                      {canEditTcHeader
-                        ? (
-                            <button
-                              type="button"
-                              className="tc-blocksuite-tc-header-btn tc-blocksuite-tc-header-btn-ghost"
-                              title="清空 blocksuite 内置 doc-title（仅影响旧文档）"
-                              onClick={() => void resetBuiltinDocTitle()}
-                            >
-                              重置内置标题
-                            </button>
-                          )
-                        : null}
                       {currentMode === "edgeless"
                         ? (
                             <button
@@ -1186,7 +1093,7 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
                                 docModeProvider.togglePrimaryMode(docId);
                               }}
                             >
-                              {currentMode === "page" ? "切换到画布" : "退出画布"}
+                              {currentMode === "page" ? "切换画布" : "退出画布"}
                             </button>
                           )
                         : null}

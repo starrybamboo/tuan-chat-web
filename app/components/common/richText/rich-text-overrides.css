@@ -10,7 +10,7 @@
 }
 
 /* 桌面端基准:保持原有大小 18-26px */
-@media (min-width: 768px) {
+@media (min-width: 640px) {
   :root {
     --ql-base-size: clamp(18px, 1.2vmin, 26px);
   }

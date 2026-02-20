@@ -39,10 +39,18 @@ export function ExpressionChooser({
   const isAvatarSamplerActive = useRoomUiStore(state => state.isAvatarSamplerActive);
   const setAvatarSamplerActive = useRoomUiStore(state => state.setAvatarSamplerActive);
   const [manageRoleId, setManageRoleId] = useState<number | null>(null);
+  const isMobile = getScreenSize() === "sm";
+  const isMobileFullscreen = isMobile && isAvatarFullscreen;
+  // 移动端全屏下默认折叠角色列表，优先展示立绘差分。
+  const [isRoleListExpanded, setIsRoleListExpanded] = useState(!isMobileFullscreen);
 
   useEffect(() => {
     setIsAvatarFullscreen(Boolean(defaultFullscreen));
   }, [defaultFullscreen]);
+
+  useEffect(() => {
+    setIsRoleListExpanded(!isMobileFullscreen);
+  }, [isMobileFullscreen]);
 
   const isKP = (roomContext.curMember?.memberType ?? -1) === 1;
 
@@ -77,6 +85,10 @@ export function ExpressionChooser({
   const availableRoles = (isKP || !currentUserId)
     ? roomContext.roomRolesThatUserOwn
     : roomContext.roomRolesThatUserOwn.filter(role => role.userId === currentUserId);
+  const selectedRole = useMemo(
+    () => availableRoles.find(role => role.roleId === selectedRoleId),
+    [availableRoles, selectedRoleId],
+  );
   const manageRole = useMemo(
     () => availableRoles.find(role => role.roleId === manageRoleId),
     [availableRoles, manageRoleId],
@@ -93,33 +105,52 @@ export function ExpressionChooser({
     ? (fullscreenLayoutMode === "fill"
         ? "w-full max-w-full min-w-0 h-full max-h-full min-h-0"
         : "w-full max-w-full min-w-0 h-[80vh] max-h-[80vh]")
-    : "max-w-[92vw] md:max-w-[560px] lg:max-w-[640px] max-h-[70vh] md:max-h-[50vh]";
-  const containerLayoutClassName = isAvatarFullscreen ? "gap-3 md:gap-4" : "";
+    : "max-w-[96vw] md:max-w-[560px] lg:max-w-[640px] max-h-[78vh] md:max-h-[50vh]";
+  const containerLayoutClassName = isAvatarFullscreen
+    ? (isMobileFullscreen ? "gap-2" : "gap-3 md:gap-4")
+    : "";
   const roleListClassName = isAvatarFullscreen
-    ? "space-y-2 flex-1 min-h-0 overflow-y-auto px-1 -mx-1"
-    : "space-y-2 max-h-[22vh] md:max-h-[42vh] overflow-y-auto px-1 -mx-1";
+    ? (isMobile
+        ? "space-y-2 max-h-[42vh] overflow-y-auto px-1 -mx-1"
+        : "space-y-2 flex-1 min-h-0 overflow-y-auto px-1 -mx-1")
+    : "space-y-2 max-h-[28vh] md:max-h-[42vh] overflow-y-auto px-1 -mx-1";
   const avatarListClassName = isAvatarFullscreen
     ? "flex-1 min-h-0"
     : "max-h-[40vh] md:max-h-[35vh]";
   const avatarGridClassName = isAvatarFullscreen
-    ? "grid w-full grid-cols-[repeat(auto-fill,minmax(120px,1fr))] gap-2"
-    : "grid grid-cols-3 sm:grid-cols-4 gap-1";
-  const avatarSize = isAvatarFullscreen ? 30 : 12;
+    ? (isMobileFullscreen
+        ? "flex flex-wrap gap-0.5"
+        : "grid w-full grid-cols-[repeat(auto-fill,minmax(120px,1fr))] gap-2")
+    : "grid grid-cols-4 sm:grid-cols-5 gap-1.5";
+  const avatarSize = isMobileFullscreen ? 18 : (isAvatarFullscreen ? 30 : (isMobile ? 10 : 12));
   const leftPanelClassName = isAvatarFullscreen
-    ? "w-full md:w-[240px] lg:w-[260px] shrink-0 h-full min-h-0 flex flex-col border border-base-200/80 rounded-xl bg-base-100/90 shadow-sm p-2 md:pb-0 md:pr-3 overflow-hidden"
+    ? (isMobile
+        ? "w-full shrink-0 border border-base-200/80 rounded-xl bg-base-100/90 shadow-sm p-2"
+        : "w-full md:w-[240px] lg:w-[260px] shrink-0 h-full min-h-0 flex flex-col border border-base-200/80 rounded-xl bg-base-100/90 shadow-sm p-2 md:pb-0 md:pr-3 overflow-hidden")
     : "w-full md:w-3/5 min-w-0 md:min-w-[160px] lg:min-w-[200px] border-b md:border-b-0 md:border-r border-base-300 p-2 md:pb-0 md:pr-3";
   const rightPanelClassName = isAvatarFullscreen
-    ? "w-full md:flex-1 min-w-0 h-full min-h-0 overflow-hidden flex flex-col rounded-xl border border-base-200/80 bg-base-100/90 shadow-sm px-3 pt-2"
+    ? (isMobileFullscreen
+        ? "w-full min-w-0 h-full min-h-0 overflow-hidden flex flex-col rounded-xl border border-base-200/80 bg-base-100/90 shadow-sm px-1.5 pt-1.5"
+        : "w-full md:flex-1 min-w-0 h-full min-h-0 overflow-hidden flex flex-col rounded-xl border border-base-200/80 bg-base-100/90 shadow-sm px-3 pt-2")
     : "w-full md:w-3/5 min-w-0 md:pl-3";
+  const leftPanelOrderClassName = isMobileFullscreen ? "order-2 mt-2" : "order-1";
+  const rightPanelOrderClassName = isMobileFullscreen ? "order-1" : "order-2";
   const toolbarClassName = isAvatarFullscreen
-    ? "sticky top-0 z-10 -mx-3 px-3 py-2 bg-base-100/95 backdrop-blur border-b border-base-200/70 rounded-t-xl"
+    ? (isMobileFullscreen
+        ? "sticky top-0 z-10 -mx-1.5 px-1.5 py-1 bg-base-100/95 backdrop-blur border-b border-base-200/70 rounded-t-xl"
+        : "sticky top-0 z-10 -mx-3 px-3 py-2 bg-base-100/95 backdrop-blur border-b border-base-200/70 rounded-t-xl")
     : "";
   const avatarItemClassName = isAvatarFullscreen
-    ? "aspect-square rounded-xl bg-base-100/90 ring-1 ring-base-200/70 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all cursor-pointer flex items-center justify-center p-1"
+    ? (isMobileFullscreen
+        ? "w-18 h-18 overflow-hidden cursor-pointer leading-none"
+        : "aspect-square rounded-xl bg-base-100/90 ring-1 ring-base-200/70 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all cursor-pointer flex items-center justify-center p-1")
     : "aspect-square rounded-lg transition-all hover:bg-base-200 cursor-pointer flex items-center justify-center";
 
   const handleRoleSelect = (role: UserRole) => {
     handleRoleChange(role.roleId);
+    if (isMobileFullscreen) {
+      setIsRoleListExpanded(false);
+    }
   };
 
   // 切换到旁白模式
@@ -129,6 +160,9 @@ export function ExpressionChooser({
       return;
     }
     handleRoleChange(-1); // roleId <= 0 表示旁白
+    if (isMobileFullscreen) {
+      setIsRoleListExpanded(false);
+    }
   };
 
   const handleSamplerToggle = (event?: MouseEvent<HTMLButtonElement>) => {
@@ -154,83 +188,119 @@ export function ExpressionChooser({
   return (
     <div className={`flex flex-col md:flex-row w-full min-w-0 overflow-hidden ${containerSizeClassName} ${containerLayoutClassName} ${isAvatarFullscreen ? "items-stretch" : ""}`}>
       {/* 左侧：角色列表 */}
-      <div className={leftPanelClassName}>
-        <div className={roleListClassName}>
-          {/* 旁白选项（WebGAL 联动模式） */}
-          {showNarratorOption && (
-            <div
-              onClick={handleNarratorSelect}
-              className={`flex items-center gap-3 p-3 rounded-lg transition-colors ${
-                isKP ? "cursor-pointer hover:bg-base-200" : "cursor-not-allowed opacity-60"
-              } ${
-                isNarratorMode ? "bg-base-200 ring-2 ring-inset ring-secondary/30" : ""
-              }`}
-            >
-              <div className="size-10 rounded-full bg-transparent flex items-center justify-center flex-shrink-0">
-                <NarratorIcon className="size-6 text-base-content/60" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
-                  <div className="text-sm font-medium truncate">旁白</div>
+      <div className={`${leftPanelClassName} ${leftPanelOrderClassName}`}>
+        {isMobileFullscreen && (
+          <button
+            type="button"
+            className="w-full flex items-center justify-between gap-2 rounded-lg border border-base-300 px-2 py-2 hover:bg-base-200 transition-colors"
+            onClick={() => setIsRoleListExpanded(prev => !prev)}
+            aria-expanded={isRoleListExpanded}
+          >
+            <div className="flex items-center gap-2 min-w-0">
+              {isNarratorMode
+                ? (
+                    <div className="size-8 rounded-full bg-transparent flex items-center justify-center flex-shrink-0">
+                      <NarratorIcon className="size-5 text-base-content/60" />
+                    </div>
+                  )
+                : (
+                    <RoleAvatarComponent
+                      avatarId={selectedRole?.avatarId ?? 0}
+                      roleId={selectedRoleId > 0 ? selectedRoleId : undefined}
+                      width={8}
+                      isRounded={true}
+                      withTitle={false}
+                      stopToastWindow={true}
+                    />
+                  )}
+              <div className="min-w-0 text-left">
+                <div className="text-xs text-base-content/50">当前身份</div>
+                <div className="text-sm font-medium truncate">
+                  {isNarratorMode ? "旁白" : (selectedRole?.roleName ?? "未选择角色")}
                 </div>
-                <div className="text-xs text-base-content/50">{isKP ? "无角色叙述" : "仅KP可用"}</div>
               </div>
             </div>
-          )}
-          {
-            availableRoles.length === 0 && (!showNarratorOption || !isKP) && (
-              <div className="text-center text-sm text-gray-500 py-4">无可用角色</div>
-            )
-          }
-          {
-            availableRoles.map(role => (
+            <span className="text-xs text-base-content/70">{isRoleListExpanded ? "收起角色列表" : "切换角色"}</span>
+          </button>
+        )}
+        {(!isMobileFullscreen || isRoleListExpanded) && (
+          <div className={`${roleListClassName} ${isMobileFullscreen ? "mt-2" : ""}`}>
+            {/* 旁白选项（WebGAL 联动模式） */}
+            {showNarratorOption && (
               <div
-                key={role.roleId}
-                onClick={() => handleRoleSelect(role)}
-                className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer hover:bg-base-200 transition-colors ${
-                  selectedRoleId === role.roleId ? "bg-base-200 ring-2 ring-inset ring-primary/30" : ""
+                onClick={handleNarratorSelect}
+                className={`flex items-center gap-3 ${isMobile ? "p-2" : "p-3"} rounded-lg transition-colors ${
+                  isKP ? "cursor-pointer hover:bg-base-200" : "cursor-not-allowed opacity-60"
+                } ${
+                  isNarratorMode ? "bg-base-200 ring-2 ring-inset ring-secondary/30" : ""
                 }`}
               >
-                <RoleAvatarComponent
-                  avatarId={role.avatarId ?? 0}
-                  roleId={role.roleId}
-                  width={10}
-                  isRounded={true}
-                  withTitle={false}
-                  stopToastWindow={true}
-                />
+                <div className="size-10 rounded-full bg-transparent flex items-center justify-center flex-shrink-0">
+                  <NarratorIcon className="size-6 text-base-content/60" />
+                </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
-                    <div className="text-sm font-medium truncate">{role.roleName}</div>
+                    <div className="text-sm font-medium truncate">旁白</div>
                   </div>
+                  <div className="text-xs text-base-content/50">{isKP ? "无角色叙述" : "仅KP可用"}</div>
                 </div>
-                <button
-                  type="button"
-                  className="btn btn-ghost btn-xs shrink-0"
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    setManageRoleId(role.roleId);
-                  }}
-                  aria-label={`查看角色详情：${role.roleName}`}
-                  title="查看角色详情"
+              </div>
+            )}
+            {
+              availableRoles.length === 0 && (!showNarratorOption || !isKP) && (
+                <div className="text-center text-sm text-gray-500 py-4">无可用角色</div>
+              )
+            }
+            {
+              availableRoles.map(role => (
+                <div
+                  key={role.roleId}
+                  onClick={() => handleRoleSelect(role)}
+                  className={`flex items-center gap-3 ${isMobile ? "p-2" : "p-3"} rounded-lg cursor-pointer hover:bg-base-200 transition-colors ${
+                    selectedRoleId === role.roleId ? "bg-base-200 ring-2 ring-inset ring-primary/30" : ""
+                  }`}
                 >
-                  <IdentificationCardIcon className="size-4" />
-                </button>
-              </div>
-            ))
-          }
-          {
-            (roomContext.curMember?.memberType ?? 3) < 3 && (
-              <div
-                className="flex items-center gap-3 p-3 rounded-lg cursor-pointer hover:bg-base-200 transition-colors group border-2 border-dashed border-base-300"
-                onClick={() => setIsRoleAddWindowOpen(true)}
-              >
-                <AddRingLight className="size-10 group-hover:text-info" />
-                <div className="text-sm text-base-content/70 group-hover:text-info">添加新角色</div>
-              </div>
-            )
-          }
-        </div>
+                  <RoleAvatarComponent
+                    avatarId={role.avatarId ?? 0}
+                    roleId={role.roleId}
+                    width={10}
+                    isRounded={true}
+                    withTitle={false}
+                    stopToastWindow={true}
+                  />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <div className="text-sm font-medium truncate">{role.roleName}</div>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    className="btn btn-ghost btn-xs shrink-0"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      setManageRoleId(role.roleId);
+                    }}
+                    aria-label={`查看角色详情：${role.roleName}`}
+                    title="查看角色详情"
+                  >
+                    <IdentificationCardIcon className="size-4" />
+                  </button>
+                </div>
+              ))
+            }
+            {
+              (roomContext.curMember?.memberType ?? 3) < 3 && (
+                <div
+                  className={`flex items-center gap-3 ${isMobile ? "p-2.5" : "p-3"} rounded-lg cursor-pointer hover:bg-base-200 transition-colors group border-2 border-dashed border-base-300`}
+                  onClick={() => setIsRoleAddWindowOpen(true)}
+                >
+                  <AddRingLight className="size-10 group-hover:text-info" />
+                  <div className="text-sm text-base-content/70 group-hover:text-info">添加新角色</div>
+                </div>
+              )
+            }
+          </div>
+        )}
       </div>
 
       <ToastWindow
@@ -254,7 +324,7 @@ export function ExpressionChooser({
       </ToastWindow>
 
       {/* 右侧：表情列表 */}
-      <div className={rightPanelClassName}>
+      <div className={`${rightPanelClassName} ${rightPanelOrderClassName}`}>
         {/* 旁白模式也可选择头像（若已配置） */}
         {roleAvatars && roleAvatars.length > 0
           ? (
@@ -293,27 +363,32 @@ export function ExpressionChooser({
                   {avatarCategoryGroups.orderedCategories.map((category) => {
                     const avatars = avatarCategoryGroups.groups.get(category) ?? [];
                     return (
-                      <div key={category} className="mb-3 last:mb-0">
-                        <div className="flex items-center gap-2 text-xs font-semibold text-base-content/70 mb-2">
+                      <div key={category} className={isMobileFullscreen ? "mb-1.5 last:mb-0" : "mb-3 last:mb-0"}>
+                        <div className={`flex items-center gap-1.5 text-xs font-semibold text-base-content/70 ${isMobileFullscreen ? "mb-0.5" : "mb-2"}`}>
                           <span>{category}</span>
                           <span className="text-[10px] text-base-content/40">{avatars.length}</span>
                         </div>
                         <div className={avatarGridClassName}>
                           {avatars.map(avatar => (
                             <div
-                              onClick={() => handleExpressionChange(avatar.avatarId ?? -1)}
+                              onClick={() => {
+                                handleExpressionChange(avatar.avatarId ?? -1);
+                                onRequestClose?.();
+                              }}
                               className={avatarItemClassName}
                               key={avatar.avatarId}
                               title="点击选择头像"
                             >
                               <RoleAvatarComponent
                                 avatarId={avatar.avatarId || -1}
+                                avatarUrl={avatar.avatarUrl}
+                                avatarThumbUrl={avatar.avatarThumbUrl}
                                 roleId={selectedRoleId}
                                 width={avatarSize}
                                 isRounded={false}
                                 withTitle={false}
                                 stopToastWindow={true}
-                                hoverToScale={true}
+                                hoverToScale={!isMobile}
                               />
                             </div>
                           ))}

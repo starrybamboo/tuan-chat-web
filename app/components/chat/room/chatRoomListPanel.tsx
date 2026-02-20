@@ -74,7 +74,6 @@ export default function ChatRoomListPanel({
   docMetas,
   onSelectDoc,
   onSaveSidebarTree,
-  onResetSidebarTreeToDefault,
   activeRoomId,
   activeDocId,
   unreadMessagesNumber,
@@ -278,6 +277,7 @@ export default function ChatRoomListPanel({
                     isArchived={activeSpaceIsArchived}
                     isSpaceOwner={isSpaceOwner}
                     onOpenSpaceDetailPanel={onOpenSpaceDetailPanel}
+                    onAddCategory={canEdit ? openAddCategory : undefined}
                     onInviteMember={onInviteMember}
                     onToggleLeftDrawer={onToggleLeftDrawer}
                     isLeftDrawerOpen={isLeftDrawerOpen}
@@ -291,27 +291,6 @@ export default function ChatRoomListPanel({
                 onDragOverCapture={handleDocCopyDragOverCapture}
                 onDropCapture={handleDocCopyDropCapture}
               >
-                {canEdit && (
-                  <div className="flex items-center gap-2 px-2">
-                    <button
-                      type="button"
-                      className="btn btn-sm btn-ghost"
-                      onClick={openAddCategory}
-                    >
-                      新增分类
-                    </button>
-                    <button
-                      type="button"
-                      className="btn btn-sm btn-ghost"
-                      onClick={() => {
-                        onResetSidebarTreeToDefault?.();
-                      }}
-                    >
-                      重置默认
-                    </button>
-                  </div>
-                )}
-
                 {treeToRender.categories.map((cat, categoryIndex) => (
                   <RoomSidebarCategory
                     key={cat.categoryId}

@@ -25,6 +25,7 @@ import { addDroppedFilesToComposer, isFileDrag } from "@/components/chat/utils/d
 import { getDisplayRoleName } from "@/components/chat/utils/roleDisplayName";
 import { useScreenSize } from "@/components/common/customHooks/useScreenSize";
 import { getFigurePositionFromAnnotations, hasClearFigureAnnotation, normalizeAnnotations, setFigurePositionAnnotation, toggleAnnotation } from "@/types/messageAnnotations";
+import { countTextEnhanceVisibleLength } from "@/utils/textEnhanceMetrics";
 import { useGetRoleAvatarsQuery } from "../../../../api/hooks/RoleAndAvatarHooks";
 
 interface RoomComposerPanelProps {
@@ -303,7 +304,8 @@ function RoomComposerPanelImpl({
     }
     return "输入消息…（Shift+Enter 换行，Tab 触发 AI）";
   }, [composerTarget, curAvatarId, isKP, noRole, notMember, threadRootMessageId]);
-  const inputTextLength = useChatInputUiStore(state => state.plainText.length);
+  const inputPlainText = useChatInputUiStore(state => state.plainText);
+  const inputTextLength = React.useMemo(() => countTextEnhanceVisibleLength(inputPlainText), [inputPlainText]);
   const roomContentAlertThreshold = useRealtimeRenderStore(state => state.roomContentAlertThreshold);
   const isMessageOverThreshold = inputTextLength > roomContentAlertThreshold;
 
@@ -442,6 +444,7 @@ function RoomComposerPanelImpl({
           onOpenPicker={handleOpenComposerAnnotations}
           showWhenEmpty={true}
           alwaysShowAddButton={true}
+          compact={screenSize === "sm"}
           className="mt-0"
         />
       )
@@ -449,36 +452,41 @@ function RoomComposerPanelImpl({
 
   const headerToolbar = headerToolbarControls ?? null;
   const inputArea = (
-    <div className="relative min-w-0 flex-1">
-      <ChatInputArea
-        ref={chatInputRef}
-        inputScope="composer"
-        onInputSync={onInputSync}
-        onPasteFiles={onPasteFiles}
-        onKeyDown={onKeyDown}
-        onKeyUp={onKeyUp}
-        onMouseDown={onMouseDown}
-        onCompositionStart={onCompositionStart}
-        onCompositionEnd={onCompositionEnd}
-        disabled={inputDisabled}
-        placeholder={placeholderText}
-        className={`min-h-10 max-h-[20dvh] overflow-y-auto min-w-0 flex-1 ${isMessageOverThreshold ? "outline outline-1 outline-warning/70" : ""}`}
-      />
-      <div
-        className={`pointer-events-none absolute right-2 bottom-1 rounded px-1 text-[11px] leading-4 ${
-          isMessageOverThreshold
-            ? "bg-warning/20 text-warning"
-            : "bg-base-200/80 text-base-content/60"
-        }`}
-      >
-        {`${inputTextLength}/${roomContentAlertThreshold}`}
+    <div className="min-w-0 flex-1">
+      <div className="relative">
+        <ChatInputArea
+          ref={chatInputRef}
+          inputScope="composer"
+          onInputSync={onInputSync}
+          onPasteFiles={onPasteFiles}
+          onKeyDown={onKeyDown}
+          onKeyUp={onKeyUp}
+          onMouseDown={onMouseDown}
+          onCompositionStart={onCompositionStart}
+          onCompositionEnd={onCompositionEnd}
+          disabled={inputDisabled}
+          placeholder={placeholderText}
+          className={`min-h-10 ${screenSize === "sm" ? "max-h-[30dvh]" : "max-h-[20dvh]"} overflow-y-auto min-w-0 flex-1 ${isMessageOverThreshold ? "outline outline-1 outline-warning/70" : ""}`}
+        />
+        {!isMessageOverThreshold && (
+          <div className="pointer-events-none absolute right-2 bottom-1 rounded px-1 text-[11px] leading-4 bg-base-200/80 text-base-content/60">
+            {`${inputTextLength}/${roomContentAlertThreshold}`}
+          </div>
+        )}
       </div>
+      {isMessageOverThreshold && (
+        <div className="mt-1 flex justify-end">
+          <span className="rounded px-1 text-[11px] leading-4 font-medium bg-warning/20 text-warning shadow-sm">
+            {`${inputTextLength}/${roomContentAlertThreshold}`}
+          </span>
+        </div>
+      )}
     </div>
   );
 
   return (
     <div ref={composerRootRef} className="bg-transparent z-20">
-      <div className="relative flex-1 flex flex-col min-w-0 gap-2 p-2">
+      <div className={`relative flex-1 flex flex-col min-w-0 gap-2 ${screenSize === "sm" ? "p-1.5" : "p-2"}`}>
         <CommandPanelFromStore
           handleSelectCommand={handleSelectCommand}
           ruleId={ruleId}

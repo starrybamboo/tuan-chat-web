@@ -1,5 +1,5 @@
 import type { SpaceDetailTab } from "@/components/chat/chatPage.types";
-import { ArchiveIcon, HouseIcon } from "@phosphor-icons/react";
+import { ArchiveIcon, HouseIcon, PlusIcon } from "@phosphor-icons/react";
 import React from "react";
 import toast from "react-hot-toast";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
@@ -12,12 +12,13 @@ interface SpaceHeaderBarProps {
   isArchived?: boolean;
   isSpaceOwner: boolean;
   onOpenSpaceDetailPanel: (tab: SpaceDetailTab) => void;
+  onAddCategory?: () => void;
   onInviteMember: () => void;
   onToggleLeftDrawer?: () => void;
   isLeftDrawerOpen?: boolean;
 }
 
-export default function SpaceHeaderBar({ spaceName, isArchived, isSpaceOwner, onOpenSpaceDetailPanel, onInviteMember, onToggleLeftDrawer, isLeftDrawerOpen }: SpaceHeaderBarProps) {
+export default function SpaceHeaderBar({ spaceName, isArchived, isSpaceOwner, onOpenSpaceDetailPanel, onAddCategory, onInviteMember, onToggleLeftDrawer, isLeftDrawerOpen }: SpaceHeaderBarProps) {
   const spaceContext = React.use(SpaceContext);
   const spaceId = Number(spaceContext.spaceId ?? -1);
   const updateArchiveStatus = useUpdateSpaceArchiveStatusMutation();
@@ -117,6 +118,18 @@ export default function SpaceHeaderBar({ spaceName, isArchived, isSpaceOwner, on
                 <span className="flex-1 text-left">WebGAL 渲染</span>
               </button>
             </li>
+            {isSpaceOwner && onAddCategory && (
+              <li>
+                <button
+                  type="button"
+                  className="gap-3"
+                  onClick={onAddCategory}
+                >
+                  <PlusIcon className="size-4 opacity-70" weight="bold" />
+                  <span className="flex-1 text-left">新增分类</span>
+                </button>
+              </li>
+            )}
             {isSpaceOwner && (
               <li>
                 <button

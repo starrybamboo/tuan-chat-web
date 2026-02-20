@@ -1,7 +1,8 @@
 import type { CollectionList } from "../../../../api/models/CollectionList";
 import type { ResourceResponse } from "../../../../api/models/ResourceResponse";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { toast } from "react-hot-toast";
+import { useScreenSize } from "@/components/common/customHooks/useScreenSize";
 import UserAvatarComponent from "@/components/common/userAvatar";
 import { useGetResourcesInCollectionQuery } from "../../../../api/hooks/resourceQueryHooks";
 import { CollectionResourceCard } from "../cards/CollectionResourceCard";
@@ -315,13 +316,7 @@ export function CollectionListDetail(props: CollectionListDetailProps) {
     onDelete,
     onRemoveResource,
   } = props;
-
-  const [isMobile, setIsMobile] = useState(() => {
-    if (typeof window !== "undefined") {
-      return window.innerWidth < 768;
-    }
-    return false;
-  });
+  const isMobile = useScreenSize() === "sm";
 
   // 删除确认状态 - 移动端和桌面端共用
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -340,25 +335,6 @@ export function CollectionListDetail(props: CollectionListDetailProps) {
     onEdit,
     onRemoveResource,
   });
-
-  useEffect(() => {
-    const checkIsMobile = () => {
-      const isMobileView = window.innerWidth < 768;
-      setIsMobile((prev) => {
-        if (prev !== isMobileView) {
-          return isMobileView;
-        }
-        return prev;
-      });
-    };
-
-    // 监听窗口大小变化
-    window.addEventListener("resize", checkIsMobile);
-
-    return () => {
-      window.removeEventListener("resize", checkIsMobile);
-    };
-  }, []);
 
   // 删除处理 - 移动端和桌面端共用
   const handleDelete = useCallback(() => {

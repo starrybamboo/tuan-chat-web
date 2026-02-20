@@ -1,7 +1,6 @@
 import React from "react";
 import DocFolderForUser from "@/components/chat/room/drawers/docFolderForUser";
 import ExportChatDrawer from "@/components/chat/room/drawers/exportChatDrawer";
-import InitiativeList from "@/components/chat/room/drawers/initiativeList";
 import RoomUserList from "@/components/chat/room/drawers/roomUserList";
 import { useDrawerPreferenceStore } from "@/components/chat/stores/drawerPreferenceStore";
 import { useSideDrawerStore } from "@/components/chat/stores/sideDrawerStore";
@@ -13,12 +12,10 @@ function RoomSideDrawersImpl() {
   const roleDrawerWidth = useDrawerPreferenceStore(state => state.roleDrawerWidth);
   const docFolderDrawerWidth = useDrawerPreferenceStore(state => state.docFolderDrawerWidth);
   const exportDrawerWidth = useDrawerPreferenceStore(state => state.exportDrawerWidth);
-  const initiativeDrawerWidth = useDrawerPreferenceStore(state => state.initiativeDrawerWidth);
   const setUserDrawerWidth = useDrawerPreferenceStore(state => state.setUserDrawerWidth);
   const setRoleDrawerWidth = useDrawerPreferenceStore(state => state.setRoleDrawerWidth);
   const setDocFolderDrawerWidth = useDrawerPreferenceStore(state => state.setDocFolderDrawerWidth);
   const setExportDrawerWidth = useDrawerPreferenceStore(state => state.setExportDrawerWidth);
-  const setInitiativeDrawerWidth = useDrawerPreferenceStore(state => state.setInitiativeDrawerWidth);
 
   const sidebarPanelClassName = "shadow-none border-l border-base-300";
 
@@ -28,8 +25,8 @@ function RoomSideDrawersImpl() {
         isOpen={sideDrawerState === "user"}
         overlayOnMobile
         width={userDrawerWidth}
-        minWidth={240}
-        maxWidth={620}
+        minWidth={220}
+        maxWidth={520}
         onWidthChange={setUserDrawerWidth}
         panelClassName={sidebarPanelClassName}
       >
@@ -42,8 +39,8 @@ function RoomSideDrawersImpl() {
         isOpen={sideDrawerState === "role"}
         overlayOnMobile
         width={roleDrawerWidth}
-        minWidth={240}
-        maxWidth={620}
+        minWidth={220}
+        maxWidth={520}
         onWidthChange={setRoleDrawerWidth}
         panelClassName={sidebarPanelClassName}
       >
@@ -63,20 +60,6 @@ function RoomSideDrawersImpl() {
       >
         <div className="overflow-auto flex-1">
           <ExportChatDrawer />
-        </div>
-      </VaulSideDrawer>
-
-      <VaulSideDrawer
-        isOpen={sideDrawerState === "initiative"}
-        overlayOnMobile
-        width={initiativeDrawerWidth}
-        minWidth={320}
-        maxWidth={760}
-        onWidthChange={setInitiativeDrawerWidth}
-        panelClassName={sidebarPanelClassName}
-      >
-        <div className="overflow-auto flex-1">
-          <InitiativeList />
         </div>
       </VaulSideDrawer>
 

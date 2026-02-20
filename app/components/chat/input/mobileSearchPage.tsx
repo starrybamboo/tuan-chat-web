@@ -1,10 +1,11 @@
 import type { UserRole } from "../../../../api";
 import { useDebounce } from "ahooks";
 import { use, useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { RoomContext } from "@/components/chat/core/roomContext";
 import SearchedMessage from "@/components/chat/message/preview/searchedMessage";
 import useGetRoleSmartly from "@/components/chat/shared/components/useGetRoleName";
-import { BaselineArrowBackIosNew, SearchFilled } from "@/icons";
+import { BaselineArrowBackIosNew, SearchFilled, XMarkICon } from "@/icons";
 
 interface MobileSearchPageProps {
   isOpen: boolean;
@@ -117,40 +118,72 @@ export default function MobileSearchPage({ isOpen, onClose }: MobileSearchPagePr
     }
   }, [isOpen]);
 
+  // 打开搜索页时锁定页面滚动，避免底层内容穿透滚动
+  useEffect(() => {
+    if (!isOpen || typeof document === "undefined") {
+      return;
+    }
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [isOpen]);
+
   if (!isOpen) {
     return null;
   }
 
-  return (
-    <div className="fixed inset-0 bg-base-100 z-50 flex flex-col">
+  const mobileSearchContent = (
+    <div className="fixed inset-0 z-[10000] bg-base-100 flex flex-col">
       {/* 顶部搜索栏 */}
-      <div className="flex items-center gap-3 px-4 py-3 border-b border-base-300 bg-base-100">
-        <button
-          onClick={onClose}
-          className="text-base-content/70 hover:text-base-content transition-colors"
-          type="button"
-        >
-          <BaselineArrowBackIosNew className="size-6" />
-        </button>
+      <div
+        className="sticky top-0 z-10 border-b border-base-300 bg-base-100/95 backdrop-blur"
+        style={{ paddingTop: "max(8px, env(safe-area-inset-top))" }}
+      >
+        <div className="flex items-center gap-2 px-3 pb-2">
+          <button
+            onClick={onClose}
+            className="btn btn-ghost btn-square btn-sm shrink-0"
+            type="button"
+            aria-label="返回聊天"
+          >
+            <BaselineArrowBackIosNew className="size-5" />
+          </button>
 
-        <div className="flex items-center flex-1 bg-base-200 rounded-lg px-3 py-2">
-          <SearchFilled className="size-5 text-base-content/60 mr-2" />
-          <input
-            ref={inputRef}
-            type="text"
-            placeholder="搜索聊天记录..."
-            className="bg-transparent border-none outline-none flex-1 text-base placeholder:text-base-content/60"
-            value={searchText}
-            onChange={e => setSearchText(e.target.value)}
-          />
+          <div className="flex h-10 items-center flex-1 bg-base-200 rounded-xl px-3 border border-base-300">
+            <SearchFilled className="size-4 text-base-content/60 mr-2 shrink-0" />
+            <input
+              ref={inputRef}
+              type="text"
+              placeholder="搜索聊天记录..."
+              className="bg-transparent border-none outline-none flex-1 min-w-0 text-sm placeholder:text-base-content/60"
+              value={searchText}
+              onChange={e => setSearchText(e.target.value)}
+            />
+            {searchText && (
+              <button
+                type="button"
+                className="btn btn-ghost btn-xs btn-square ml-1"
+                onClick={() => setSearchText("")}
+                aria-label="清空搜索"
+              >
+                <XMarkICon className="size-3" />
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
       {/* 搜索结果内容 */}
-      <div className="flex-1 overflow-hidden">
+      <div
+        className="flex-1 min-h-0 overflow-hidden"
+        style={{ paddingBottom: "max(8px, env(safe-area-inset-bottom))" }}
+      >
         {debouncedSearchText
           ? (
-              <div className="h-full flex flex-col">
+              <div className="h-full min-h-0 flex flex-col">
                 {/* 结果统计 */}
                 <div className="px-4 py-3 bg-base-200 border-b border-base-300">
                   <div className="text-sm text-base-content/70">
@@ -196,13 +229,19 @@ export default function MobileSearchPage({ isOpen, onClose }: MobileSearchPagePr
           : (
               <div className="flex flex-col items-center justify-center h-full text-base-content/50 px-4">
                 <SearchFilled className="size-16 mb-4 text-base-content/30" />
-                <p className="text-lg font-medium mb-2">搜索聊天记录</p>
+                <p className="text-lg font-medium mb-2">搜索消息</p>
                 <p className="text-sm text-center">
-                  输入关键词来搜索历史消息和角色名称
+                  输入关键词搜索消息内容或角色名
                 </p>
               </div>
             )}
       </div>
     </div>
   );
+
+  if (typeof document === "undefined") {
+    return null;
+  }
+
+  return createPortal(mobileSearchContent, document.body);
 }

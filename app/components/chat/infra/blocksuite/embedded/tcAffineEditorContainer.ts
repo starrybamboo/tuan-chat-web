@@ -26,7 +26,7 @@ class TCAffineEditorContainer extends SignalWatcher(
       position: relative;
       display: flex;
       flex-direction: column;
-      overflow-x: hidden;
+      overflow-x: auto;
       overflow-y: auto;
       container-name: viewport;
       container-type: inline-size;
