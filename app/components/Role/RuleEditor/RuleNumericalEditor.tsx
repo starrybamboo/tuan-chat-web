@@ -235,18 +235,23 @@ export default function RuleNumericalEditor({
                 {isEditing ? "暂无字段，使用下方输入框添加" : "暂无字段，点击“编辑”开始添加"}
               </div>
             )
-          : Object.entries(localData).map(([key, value]) => (
-              <EditableField
-                key={key}
-                value={value}
-                fieldKey={key}
-                isEditing={isEditing}
-                onValueChange={handleFieldUpdate}
-                onDelete={handleDeleteField}
-                onRename={handleRenameField}
-                className={isEditing ? "" : ""}
-              />
-            ))}
+          : Object.entries(localData).map(([key, value]) => {
+              const shouldSpanFullRowOnMobile = !isEditing && Array.from(`${key}${String(value ?? "")}`).length >= 6;
+
+              return (
+                <div key={key} className={shouldSpanFullRowOnMobile ? "col-span-2 md:col-span-1" : ""}>
+                  <EditableField
+                    value={value}
+                    fieldKey={key}
+                    isEditing={isEditing}
+                    onValueChange={handleFieldUpdate}
+                    onDelete={handleDeleteField}
+                    onRename={handleRenameField}
+                    className={isEditing ? "" : ""}
+                  />
+                </div>
+              );
+            })}
       </div>
 
       {isEditing && (

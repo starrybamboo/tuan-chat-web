@@ -1,4 +1,5 @@
 import React from "react";
+import { useScreenSize } from "@/components/common/customHooks/useScreenSize";
 
 interface VaulSideDrawerProps {
   isOpen: boolean;
@@ -16,6 +17,8 @@ interface VaulSideDrawerProps {
   onWidthChange?: (width: number) => void;
   /** 拖拽手柄位置 */
   handlePosition?: "left" | "right";
+  /** 在移动端以覆盖层方式显示（不挤压布局） */
+  overlayOnMobile?: boolean;
 }
 
 /**
@@ -34,7 +37,10 @@ export function VaulSideDrawer({
   maxWidth,
   onWidthChange,
   handlePosition = "left",
+  overlayOnMobile = false,
 }: VaulSideDrawerProps) {
+  const screenSize = useScreenSize();
+  const shouldOverlayOnMobile = overlayOnMobile && screenSize === "sm";
   const widthNumber = typeof width === "number" ? width : null;
   const resolvedMin = Number.isFinite(minWidth) ? Math.max(0, minWidth!) : (widthNumber ?? 0);
   const resolvedMax = Number.isFinite(maxWidth) ? Math.max(resolvedMin, maxWidth!) : (widthNumber ?? resolvedMin);
@@ -97,6 +103,38 @@ export function VaulSideDrawer({
 
   if (!isOpen) {
     return null;
+  }
+
+  if (shouldOverlayOnMobile) {
+    return (
+      <div className={`absolute inset-y-0 right-0 z-40 pointer-events-none ${className}`}>
+        <div
+          className="h-full min-h-0 flex pointer-events-auto"
+          style={{
+            width: widthStyle,
+            maxWidth: mobileMaxWidth,
+          }}
+        >
+          <div
+            className={`bg-white/40 dark:bg-slate-950/25 backdrop-blur-xl border border-white/40 dark:border-white/10 h-full w-full grow flex flex-col rounded-none shadow-xl overflow-hidden relative ${panelClassName}`}
+          >
+            {canResize && (
+              <div
+                className={`absolute top-0 h-full w-3 cursor-col-resize z-50 ${handlePosition === "left" ? "left-0" : "right-0"} hover:bg-info/15 transition-colors`}
+                onPointerDown={handlePointerDown}
+                style={{ touchAction: "none" }}
+                title="拖拽调整宽度"
+              >
+                <div className={`absolute top-0 h-full w-px bg-base-300 ${handlePosition === "left" ? "left-0" : "right-0"}`} />
+              </div>
+            )}
+            <div className="flex-1 min-w-0 h-full flex flex-col">
+              {children}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (

@@ -7,6 +7,7 @@ type UseChatPageLeftDrawerParams = {
   isPrivateChatMode: boolean;
   urlSpaceId?: string;
   urlRoomId?: string;
+  mobileStateKey?: string;
 };
 
 type UseChatPageLeftDrawerResult = {
@@ -16,28 +17,50 @@ type UseChatPageLeftDrawerResult = {
   closeLeftDrawer: () => void;
 };
 
+const mobileDrawerStateCache = new Map<string, boolean>();
+
 export default function useChatPageLeftDrawer({
   screenSize,
   isPrivateChatMode,
   urlSpaceId,
   urlRoomId,
+  mobileStateKey,
 }: UseChatPageLeftDrawerParams): UseChatPageLeftDrawerResult {
-  const [isOpenLeftDrawer, setIsOpenLeftDrawer] = useState(() => {
+  const [isOpenLeftDrawer, setIsOpenLeftDrawerState] = useState(() => {
     if (screenSize !== "sm") {
       return true;
+    }
+    if (mobileStateKey && mobileDrawerStateCache.has(mobileStateKey)) {
+      return Boolean(mobileDrawerStateCache.get(mobileStateKey));
     }
     return !(urlSpaceId && urlRoomId) || (!urlRoomId && isPrivateChatMode) || !isPrivateChatMode;
   });
 
+  const setIsOpenLeftDrawer = useCallback((isOpen: boolean) => {
+    if (screenSize === "sm" && mobileStateKey) {
+      mobileDrawerStateCache.set(mobileStateKey, isOpen);
+    }
+    setIsOpenLeftDrawerState(isOpen);
+  }, [mobileStateKey, screenSize]);
+
   const toggleLeftDrawer = useCallback(() => {
-    setIsOpenLeftDrawer(prev => !prev);
-  }, []);
+    setIsOpenLeftDrawerState((prev) => {
+      const next = !prev;
+      if (screenSize === "sm" && mobileStateKey) {
+        mobileDrawerStateCache.set(mobileStateKey, next);
+      }
+      return next;
+    });
+  }, [mobileStateKey, screenSize]);
 
   const closeLeftDrawer = useCallback(() => {
     if (screenSize === "sm") {
-      setIsOpenLeftDrawer(false);
+      if (mobileStateKey) {
+        mobileDrawerStateCache.set(mobileStateKey, false);
+      }
+      setIsOpenLeftDrawerState(false);
     }
-  }, [screenSize]);
+  }, [mobileStateKey, screenSize]);
 
   useEffect(() => {
     if (typeof document === "undefined") {

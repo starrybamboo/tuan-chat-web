@@ -5,7 +5,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useDeleteRolesMutation, useGetUserRolesByTypeQuery } from "api/hooks/RoleAndAvatarHooks";
 import { useDeleteRuleMutation, useRuleListQuery } from "api/hooks/ruleQueryHooks";
 // import { useCreateRoleMutation, useDeleteRolesMutation, useGetInfiniteUserRolesQuery, useUpdateRoleWithLocalMutation, useUploadAvatarMutation } from "api/queryHooks";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import { Link, NavLink, useNavigate, useSearchParams } from "react-router";
 import { tuanchat } from "@/../api/instance";
@@ -72,7 +72,13 @@ export function Sidebar({
     setDeleteRuleId(null);
   };
 
-  const loadRoles = async () => {
+  const loadRoles = useCallback(async () => {
+    interface SidebarAvatarCache {
+      avatar?: string;
+      avatarThumb?: string;
+      avatarId?: number;
+    }
+
     const convertRole = (role: UserRole) => ({
       id: role.roleId || 0,
       name: role.roleName || "",
@@ -110,11 +116,12 @@ export function Sidebar({
       // 并行加载所有角色的头像
       const avatarPromises = filteredMappedRoles.map(async (role) => {
         // 检查角色的头像是否已经缓存
-        const cachedAvatar = queryClient.getQueryData<{ avatar?: string; avatarThumb?: string } | string>(["roleAvatar", role.id]);
-        if (typeof cachedAvatar === "string") {
-          return { id: role.id, avatar: cachedAvatar, avatarThumb: cachedAvatar };
-        }
-        if (cachedAvatar?.avatar) {
+        const cachedAvatar = queryClient.getQueryData<SidebarAvatarCache | string>(["roleAvatar", role.id]);
+        if (
+          typeof cachedAvatar !== "string"
+          && cachedAvatar?.avatar
+          && cachedAvatar.avatarId === role.avatarId
+        ) {
           return { id: role.id, avatar: cachedAvatar.avatar, avatarThumb: cachedAvatar.avatarThumb || cachedAvatar.avatar };
         }
 
@@ -130,7 +137,7 @@ export function Sidebar({
             const avatarUrl = res.data.avatarUrl || "/favicon.ico";
             const avatarThumbUrl = res.data.avatarThumbUrl || avatarUrl;
             // 将头像URL缓存到React Query缓存中
-            queryClient.setQueryData(["roleAvatar", role.id], { avatar: avatarUrl, avatarThumb: avatarThumbUrl });
+            queryClient.setQueryData(["roleAvatar", role.id], { avatar: avatarUrl, avatarThumb: avatarThumbUrl, avatarId: role.avatarId });
             return { id: role.id, avatar: avatarUrl, avatarThumb: avatarThumbUrl };
           }
           console.warn(`角色 ${role.id} 的头像数据无效或为空，avatarId: ${role.avatarId}`);
@@ -157,7 +164,7 @@ export function Sidebar({
         });
       }
     }
-  };
+  }, [diceRolesQuery.data, normalRolesQuery.data, queryClient, setRoles]);
 
   // 创建新角色
   // const handleCreate = async () => {
@@ -219,11 +226,15 @@ export function Sidebar({
   // 初始化角色数据
   useEffect(() => {
     if (diceRolesQuery.isSuccess || normalRolesQuery.isSuccess) {
-      loadRoles();
+      void loadRoles();
     }
-    // 监听两类角色查询结果变化，刷新侧边栏角色数据
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [diceRolesQuery.data?.length, normalRolesQuery.data?.length, diceRolesQuery.isSuccess, normalRolesQuery.isSuccess]);
+  }, [
+    diceRolesQuery.isSuccess,
+    normalRolesQuery.isSuccess,
+    diceRolesQuery.dataUpdatedAt,
+    normalRolesQuery.dataUpdatedAt,
+    loadRoles,
+  ]);
   // 过滤角色列表（按搜索）
   const filteredRoles = roles
     .filter(role => role.name.toLowerCase().includes(searchQuery.toLowerCase())

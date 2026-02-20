@@ -7,6 +7,7 @@ export interface ToastWindowFrameProps {
   fullScreen?: boolean;
   transparent?: boolean;
   hiddenScrollbar?: boolean;
+  showCloseButton?: boolean;
 }
 
 export function ToastWindowFrame({
@@ -16,6 +17,7 @@ export function ToastWindowFrame({
   fullScreen = false,
   transparent = false,
   hiddenScrollbar = false,
+  showCloseButton = true,
 }: ToastWindowFrameProps) {
   const supportsDynamicViewportUnit = typeof CSS !== "undefined" && CSS.supports("height: 100dvh");
   const fullScreenHeight = fullScreen
@@ -36,25 +38,27 @@ export function ToastWindowFrame({
           maxHeight: modalMaxHeight,
         }}
       >
-        <button
-          type="button"
-          className="btn btn-sm btn-circle absolute right-2 top-2 bg-base-200 hover:bg-base-300 dark:bg-base-200 dark:hover:bg-base-100 z-20"
-          onClick={onClose}
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            className="h-4 w-4"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
+        {showCloseButton && (
+          <button
+            type="button"
+            className="btn btn-sm btn-circle absolute right-2 top-2 bg-base-200 hover:bg-base-300 dark:bg-base-200 dark:hover:bg-base-100 z-20"
+            onClick={onClose}
           >
-            <path d="M18 6L6 18" />
-            <path d="M6 6l12 12" />
-          </svg>
-        </button>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-4 w-4"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M18 6L6 18" />
+              <path d="M6 6l12 12" />
+            </svg>
+          </button>
+        )}
         <div className={`${hiddenScrollbar ? "hidden-scrollbar" : "overflow-auto"} w-full h-full min-h-0`}>
           {children}
         </div>

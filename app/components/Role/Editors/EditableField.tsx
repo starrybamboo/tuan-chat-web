@@ -34,6 +34,8 @@ export default function EditableField({
   const [editingFieldKey, setEditingFieldKey] = useState<string | null>(null);
   const [tempFieldKey, setTempFieldKey] = useState("");
   const isCompact = size === "compact";
+  // 移动端统一使用“键名在上、值在下”的卡片布局
+  const shouldStackKeyOnMobile = true;
   const resolvedValueInputClassName
     = valueInputClassName
       || `${isCompact ? "text-xs" : ""} grow focus:outline-none border-none outline-none`;
@@ -64,8 +66,8 @@ export default function EditableField({
   return (
     <div className={`form-control ${className}`}>
       <label className={`input flex items-center gap-2 rounded-md transition focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary focus-within:outline-none ${
-        isCompact ? "input" : ""
-      }`}
+        isCompact ? "input max-md:pr-8" : "max-md:pr-8"
+      } ${shouldStackKeyOnMobile ? "max-md:flex-wrap max-md:items-start max-md:h-auto max-md:min-h-0 max-md:py-2" : ""}`}
       >
         {/* 字段名编辑 */}
         {editingFieldKey === fieldKey
@@ -88,13 +90,13 @@ export default function EditableField({
                     setEditingFieldKey(null);
                   }
                 }}
-                className={`${isCompact ? "text-xs" : "text-sm"} font-medium whitespace-nowrap bg-transparent border-none focus:outline-none outline-none shrink-0`}
+                className={`${isCompact ? "text-[10px] md:text-xs" : "text-xs md:text-sm"} font-medium whitespace-nowrap bg-transparent border-none focus:outline-none outline-none shrink-0 ${shouldStackKeyOnMobile ? "max-md:basis-full max-md:w-full max-md:pr-6" : ""}`}
                 autoFocus
               />
             )
           : (
               <span
-                className={`${isCompact ? "text-xs" : "text-sm"} font-medium whitespace-nowrap cursor-pointer hover:text-primary shrink-0 text-left`}
+                className={`${isCompact ? "text-[10px] md:text-xs" : "text-xs md:text-sm"} font-medium whitespace-nowrap cursor-pointer hover:text-primary shrink-0 text-left ${shouldStackKeyOnMobile ? "max-md:basis-full max-md:w-full max-md:pr-6" : ""}`}
                 onClick={() => {
                   setEditingFieldKey(fieldKey);
                   setTempFieldKey(fieldKey);
@@ -105,7 +107,7 @@ export default function EditableField({
               </span>
             )}
 
-        <div className="w-px h-4 bg-base-content/20"></div>
+        <div className={`w-px h-4 bg-base-content/20 ${shouldStackKeyOnMobile ? "max-md:hidden" : ""}`}></div>
 
         {/* 字段值编辑 */}
         <input
@@ -123,7 +125,7 @@ export default function EditableField({
             e.preventDefault();
             onValueCommit?.(fieldKey, (e.target as HTMLInputElement).value);
           }}
-          className={resolvedValueInputClassName}
+          className={`${resolvedValueInputClassName} ${shouldStackKeyOnMobile ? "max-md:basis-full max-md:w-full max-md:pt-1" : ""}`}
         />
 
         {/* 删除按钮 */}
@@ -131,7 +133,7 @@ export default function EditableField({
           <button
             type="button"
             onClick={() => onDelete(fieldKey)}
-            className={`btn btn-ghost ${isCompact ? "btn-xs" : "btn-xs"} text-error hover:bg-error/10`}
+            className={`btn btn-ghost ${isCompact ? "btn-xs" : "btn-xs"} text-error hover:bg-error/10 max-md:absolute max-md:top-1 max-md:right-1 max-md:z-10`}
             title="删除字段"
           >
             ✕

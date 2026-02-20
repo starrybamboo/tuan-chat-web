@@ -326,7 +326,7 @@ export function PreviewTab({
   return (
     <div className="h-full flex flex-col">
       {/* 预览标题和切换按钮 */}
-      <div className="flex justify-between items-center mb-2 shrink-0">
+      <div className="mb-2 shrink-0 flex items-center justify-between">
         <h3 className="text-lg font-semibold">
           {getPreviewModeLabel()}
         </h3>
@@ -381,7 +381,7 @@ export function PreviewTab({
                     mode="full"
                     className="h-full"
                     hideTitle={true}
-                    layout={isMobileScreen() ? "toggle" : "horizontal"}
+                    layout="vertical"
                   />
                 </div>
               )
@@ -428,7 +428,7 @@ export function PreviewTab({
       </div>
 
       {/* 操作按钮 */}
-      <div className="mt-4 flex justify-end gap-2 shrink-0">
+      <div className="mt-4 flex shrink-0 items-center justify-end gap-2">
         {currentAvatar?.avatarId && (
           <CharacterCopper
             fileName={`avatar-replace-${currentAvatar.avatarId}-${Date.now()}`}
