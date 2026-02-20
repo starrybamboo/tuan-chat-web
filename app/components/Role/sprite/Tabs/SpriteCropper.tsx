@@ -1,7 +1,7 @@
 import type { RoleAvatar } from "api";
 import type { PixelCrop } from "react-image-crop";
-import type { Transform } from "../TransformControl";
 import type { PreviewAnchorPosition } from "../../Preview/previewAnchor";
+import type { Transform } from "../TransformControl";
 import type { ImageLoadContext } from "@/utils/imgCropper";
 import { useApplyCropAvatarMutation, useApplyCropMutation, useUpdateAvatarTransformMutation } from "api/hooks/RoleAndAvatarHooks";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
@@ -67,6 +67,9 @@ export function SpriteCropper({
   selectedIndices = EMPTY_SET,
   isMultiSelectMode = false,
 }: SpriteCropperProps) {
+  const isMobile = isMobileScreen();
+  const actionButtonSizeClass = isMobile ? "btn-sm" : "";
+
   // 确定工作模式
   const isMutiAvatars = roleAvatars.length > 0;
   const isAvatarMode = cropMode === "avatar";
@@ -1007,7 +1010,7 @@ export function SpriteCropper({
                           currentAvatarUrl={currentAvatarUrl}
                           characterName={characterName}
                           hideTitle={true}
-                          layout={isMobileScreen() ? "toggle" : "vertical"}
+                          layout={isMobile ? "toggle" : "vertical"}
                         />
                       )
                     : (
@@ -1053,7 +1056,7 @@ export function SpriteCropper({
             ? (
                 <>
                   <button
-                    className="btn btn-outline rounded-md"
+                    className={`btn btn-outline rounded-md ${actionButtonSizeClass}`}
                     onClick={(e) => {
                       e.stopPropagation();
                       handleDownload();
@@ -1072,7 +1075,7 @@ export function SpriteCropper({
                   {!isAvatarMode && (
                     <>
                       <button
-                        className="btn btn-secondary rounded-md"
+                        className={`btn btn-secondary rounded-md ${actionButtonSizeClass}`}
                         onClick={(e) => {
                           e.stopPropagation();
                           handleApplyTransform();
@@ -1089,7 +1092,7 @@ export function SpriteCropper({
                             )}
                       </button>
                       <button
-                        className="btn btn-primary rounded-md "
+                        className={`btn btn-primary rounded-md ${actionButtonSizeClass}`}
                         onClick={(e) => {
                           e.stopPropagation();
                           handleApplyCrop(false);
@@ -1106,7 +1109,7 @@ export function SpriteCropper({
                             )}
                       </button>
                       <button
-                        className="btn btn-info rounded-md"
+                        className={`btn btn-info rounded-md ${actionButtonSizeClass}`}
                         onClick={(e) => {
                           e.stopPropagation();
                           handleApplyCrop(true);
@@ -1126,7 +1129,7 @@ export function SpriteCropper({
                   )}
                   {isAvatarMode && (
                     <button
-                      className="btn btn-primary rounded-md"
+                      className={`btn btn-primary rounded-md ${actionButtonSizeClass}`}
                       onClick={(e) => {
                         e.stopPropagation();
                         handleApplyCrop(false);
@@ -1148,7 +1151,7 @@ export function SpriteCropper({
             : (
                 <>
                   <button
-                    className="btn btn-outline btn-info rounded-md"
+                    className={`btn btn-outline btn-info rounded-md ${actionButtonSizeClass}`}
                     onClick={(e) => {
                       e.stopPropagation();
                       handleBatchDownload();
@@ -1167,7 +1170,7 @@ export function SpriteCropper({
                   {!isAvatarMode && (
                     <>
                       <button
-                        className="btn btn-info rounded-md"
+                        className={`btn btn-info rounded-md ${actionButtonSizeClass}`}
                         onClick={(e) => {
                           e.stopPropagation();
                           handleBatchCropAll(true);
@@ -1187,7 +1190,7 @@ export function SpriteCropper({
                   )}
                   {isAvatarMode && (
                     <button
-                      className="btn btn-info rounded-md"
+                      className={`btn btn-info rounded-md ${actionButtonSizeClass}`}
                       onClick={(e) => {
                         e.stopPropagation();
                         handleBatchCropAll(false);

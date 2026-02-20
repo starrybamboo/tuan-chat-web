@@ -135,12 +135,24 @@ export function useUpdateRoleWithLocalMutation(onSave: (localRole: Role) => void
       }
     },
     onSuccess: (_, variables) => {
+      const resolvedRoleId = variables?.roleId ?? variables?.id;
       onSave(variables);
+      if (resolvedRoleId && variables?.avatar) {
+        queryClient.setQueryData(["roleAvatar", resolvedRoleId], {
+          avatar: variables.avatar,
+          avatarThumb: variables.avatarThumb || variables.avatar,
+          avatarId: variables.avatarId,
+        });
+      }
       queryClient.invalidateQueries({ queryKey: ["roleInfinite"] });
       queryClient.invalidateQueries({ queryKey: ["getUserRolesByTypes"] });
-      queryClient.invalidateQueries({ queryKey: ['getRole', variables.roleId] });
+      queryClient.invalidateQueries({ queryKey: ["getUserRolesByType"] });
       queryClient.invalidateQueries({ queryKey: ['getUserRoles'] });
-      queryClient.invalidateQueries({ queryKey: ['getRoleAvatars', variables.roleId] });
+      if (resolvedRoleId) {
+        queryClient.invalidateQueries({ queryKey: ["getRole", resolvedRoleId] });
+        queryClient.invalidateQueries({ queryKey: ["getRoleAvatars", resolvedRoleId] });
+        queryClient.invalidateQueries({ queryKey: ["roleAvatar", resolvedRoleId] });
+      }
       queryClient.invalidateQueries({ queryKey: ["roomRole"] });
     },
     onError: (error: any) => {

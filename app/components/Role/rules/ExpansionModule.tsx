@@ -352,7 +352,7 @@ export default function ExpansionModule({
 
   const tabButtons = !isDiceMaiden
     ? (
-        <div className={`flex ${isSmall ? "flex-col gap-2" : "gap-2"} rounded-lg`}>
+        <div className={`flex ${isSmall ? "flex-col gap-2" : "flex-wrap justify-center md:justify-start gap-2"} rounded-lg`}>
           <button
             type="button"
             className={`btn ${isSmall ? "btn-sm w-full justify-start" : "btn-md"} rounded-lg ${activeTab === "basic" ? "btn-primary" : "btn-ghost"}`}

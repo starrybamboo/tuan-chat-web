@@ -305,18 +305,23 @@ export default function NumericalEditor({
 
       <div className="bg-base-200 rounded-lg">
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-          {Object.entries(localData).map(([key, value]) => (
-            <EditableField
-              key={key}
-              fieldKey={key}
-              value={value}
-              isEditing={isEditing}
-              onValueChange={handleFieldUpdate}
-              onDelete={handleDeleteField}
-              onRename={handleRenameField}
-              className={isEditing ? "form-control" : "flex flex-col gap-1 flex-shrink-0"}
-            />
-          ))}
+          {Object.entries(localData).map(([key, value]) => {
+            const shouldSpanFullRowOnMobile = !isEditing && Array.from(`${key}${String(value ?? "")}`).length >= 6;
+
+            return (
+              <div key={key} className={shouldSpanFullRowOnMobile ? "col-span-2 md:col-span-1" : ""}>
+                <EditableField
+                  fieldKey={key}
+                  value={value}
+                  isEditing={isEditing}
+                  onValueChange={handleFieldUpdate}
+                  onDelete={handleDeleteField}
+                  onRename={handleRenameField}
+                  className={isEditing ? "form-control" : "flex flex-col gap-1 flex-shrink-0"}
+                />
+              </div>
+            );
+          })}
 
           {/* 添加新字段区域 */}
           {isEditing && (

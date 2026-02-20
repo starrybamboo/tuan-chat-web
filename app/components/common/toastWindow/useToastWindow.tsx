@@ -14,6 +14,7 @@ export interface ToastWindowStateProps {
   fullScreen?: boolean;
   transparent?: boolean;
   hiddenScrollbar?: boolean;
+  showCloseButton?: boolean;
 }
 
 export function useToastWindow({
@@ -23,6 +24,7 @@ export function useToastWindow({
   fullScreen = false,
   transparent = false,
   hiddenScrollbar = false,
+  showCloseButton = true,
 }: ToastWindowStateProps) {
   const roomContext = use(RoomContext);
   const spaceContext = use(SpaceContext);
@@ -33,7 +35,7 @@ export function useToastWindow({
 
   const instanceRef = useRef<ReturnType<typeof toastWindow> | null>(null);
   const suppressOnCloseRef = useRef(false);
-  const prevOptionsRef = useRef<{ fullScreen: boolean; transparent: boolean; hiddenScrollbar: boolean } | null>(null);
+  const prevOptionsRef = useRef<{ fullScreen: boolean; transparent: boolean; hiddenScrollbar: boolean; showCloseButton: boolean } | null>(null);
   const onCloseRef = useRef(onClose);
   const isComposingRef = useRef(false);
   const pendingUpdateRef = useRef<React.ReactNode | null>(null);
@@ -100,11 +102,12 @@ export function useToastWindow({
       return;
     }
 
-    const nextOptions = { fullScreen, transparent, hiddenScrollbar };
+    const nextOptions = { fullScreen, transparent, hiddenScrollbar, showCloseButton };
     const shouldReopen = !prevOptionsRef.current
       || prevOptionsRef.current.fullScreen !== nextOptions.fullScreen
       || prevOptionsRef.current.transparent !== nextOptions.transparent
-      || prevOptionsRef.current.hiddenScrollbar !== nextOptions.hiddenScrollbar;
+      || prevOptionsRef.current.hiddenScrollbar !== nextOptions.hiddenScrollbar
+      || prevOptionsRef.current.showCloseButton !== nextOptions.showCloseButton;
 
     if (!instanceRef.current || shouldReopen) {
       if (instanceRef.current) {
@@ -115,6 +118,7 @@ export function useToastWindow({
         fullScreen,
         transparent,
         hiddenScrollbar,
+        showCloseButton,
         onclose: handleClose,
       });
     }
@@ -129,7 +133,7 @@ export function useToastWindow({
     }
 
     prevOptionsRef.current = nextOptions;
-  }, [isOpen, wrappedChildren, fullScreen, transparent, hiddenScrollbar, handleClose]);
+  }, [isOpen, wrappedChildren, fullScreen, transparent, hiddenScrollbar, showCloseButton, handleClose]);
 
   useEffect(() => {
     return () => {

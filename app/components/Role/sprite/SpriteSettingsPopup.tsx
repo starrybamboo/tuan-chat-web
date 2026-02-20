@@ -21,6 +21,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useClearDeletedRoleAvatarsMutation, useGetDeletedRoleAvatarsQuery, useRestoreRoleAvatarMutation, useUploadAvatarMutation } from "api/hooks/RoleAndAvatarHooks";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
+import { Drawer } from "vaul";
 import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
 import { isMobileScreen } from "@/utils/getScreenSize";
 import { useAvatarDeletion } from "./hooks/useAvatarDeletion";
@@ -71,6 +72,8 @@ export function SpriteSettingsPopup({
 }: SpriteSettingsPopupProps) {
   // 内部维护 tab ״̬
   const [activeTab, setActiveTab] = useState<SettingsTab>(defaultTab);
+  const isMobile = isMobileScreen();
+  const [isMobileControlDrawerOpen, setIsMobileControlDrawerOpen] = useState(false);
   const DEFAULT_CATEGORY = "默认";
   const [categoryFilter, setCategoryFilter] = useState<string>("");
 
@@ -408,9 +411,280 @@ export function SpriteSettingsPopup({
       // 同步外部索引到内部
       const validIndex = Math.max(0, Math.min(currentSpriteIndex, spritesAvatars.length - 1));
       setInternalIndex(validIndex);
+      setIsMobileControlDrawerOpen(isMobile);
     }
     setWasOpen(isOpen);
-  }, [isOpen, wasOpen, defaultTab, currentSpriteIndex, spritesAvatars.length]);
+  }, [isOpen, wasOpen, defaultTab, currentSpriteIndex, spritesAvatars.length, isMobile]);
+
+  useEffect(() => {
+    if (!isOpen) {
+      setIsMobileControlDrawerOpen(false);
+    }
+  }, [isOpen]);
+
+  const handleTabChange = useCallback((tab: SettingsTab) => {
+    setActiveTab(tab);
+    if (isMobile) {
+      setIsMobileControlDrawerOpen(false);
+    }
+  }, [isMobile]);
+
+  const activeTabLabel = useMemo(() => {
+    if (activeTab === "preview")
+      return "渲染预览";
+    if (activeTab === "cropper")
+      return "立绘校正";
+    if (activeTab === "avatarCropper")
+      return "头像校正";
+    if (activeTab === "setting")
+      return "头像设置";
+    if (activeTab === "library")
+      return "素材库";
+    return "回收站";
+  }, [activeTab]);
+
+  const avatarListPanel = (
+    <>
+      {/* 头像列表标题栏 */}
+      <div className="shrink-0 border-b border-base-300 bg-base-200/50">
+        <div className="flex justify-between items-center px-3 py-3">
+          <h3 className="text-lg font-semibold">头像列表</h3>
+          <div className="flex gap-2">
+            {isMultiSelectMode && (
+              <>
+                <button
+                  type="button"
+                  className="btn btn-soft bg-base-200 btn-square btn-xs"
+                  onClick={() => {
+                    const allSelected = visibleCount > 0 && selectedIndices.size === visibleCount;
+                    const newSelected = allSelected
+                      ? new Set<number>()
+                      : new Set(filteredIndices);
+                    setSelectedIndices(newSelected);
+                  }}
+                  title={
+                    visibleCount > 0 && selectedIndices.size === visibleCount
+                      ? "取消全选"
+                      : selectedIndices.size > 0 && selectedIndices.size < visibleCount
+                        ? `已选 ${selectedIndices.size}`
+                        : "全选"
+                  }
+                >
+                  <ChecksIcon className="h-5 w-5" aria-hidden="true" />
+                </button>
+                <button
+                  type="button"
+                  className={`btn btn-error btn-square btn-xs ${selectedIndices.size === 0 ? "btn-disabled" : ""}`}
+                  onClick={handleBatchDeleteRequest}
+                  disabled={selectedIndices.size === 0}
+                  title="删除所选头像"
+                >
+                  <TrashIcon className="h-5 w-5" aria-hidden="true" />
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-ghost btn-square btn-xs"
+                  onClick={() => {
+                    setIsMultiSelectMode(false);
+                    setSelectedIndices(new Set());
+                  }}
+                  title="退出选择模式"
+                >
+                  <XIcon className="h-5 w-5" aria-hidden="true" />
+                </button>
+              </>
+            )}
+            {!isMultiSelectMode && visibleCount > 1 && (
+              <button
+                type="button"
+                className={`btn btn-soft bg-base-200 btn-square btn-xs ${isMultiSelectDisabled ? "btn-disabled" : ""}`}
+                onClick={() => {
+                  if (!isMultiSelectDisabled)
+                    setIsMultiSelectMode(true);
+                }}
+                title="进入选择模式"
+                disabled={isMultiSelectDisabled}
+              >
+                <CheckCircleIcon className="h-5 w-5" aria-hidden="true" />
+              </button>
+            )}
+            <div className="dropdown dropdown-end">
+              <button
+                type="button"
+                tabIndex={0}
+                className={`btn btn-square btn-xs ${categoryFilter ? "btn-primary" : "btn-soft bg-base-200"}`}
+                title={categoryFilter ? `当前分类：${categoryFilter}` : "分类筛选"}
+                aria-label="头像分类筛选"
+              >
+                <FunnelIcon className="h-5 w-5" aria-hidden="true" />
+              </button>
+              <ul tabIndex={0} className="dropdown-content menu bg-base-100 rounded-box shadow-xl border border-base-300 z-40 w-44 p-2 mt-1">
+                <li>
+                  <button
+                    type="button"
+                    className={categoryFilter === "" ? "active font-semibold" : ""}
+                    onClick={() => setCategoryFilter("")}
+                  >
+                    全部
+                  </button>
+                </li>
+                {hasDefaultCategory && (
+                  <li>
+                    <button
+                      type="button"
+                      className={categoryFilter === DEFAULT_CATEGORY ? "active font-semibold" : ""}
+                      onClick={() => setCategoryFilter(DEFAULT_CATEGORY)}
+                    >
+                      默认
+                    </button>
+                  </li>
+                )}
+                {categoryOptions.map(category => (
+                  <li key={category}>
+                    <button
+                      type="button"
+                      className={categoryFilter === category ? "active font-semibold" : ""}
+                      onClick={() => setCategoryFilter(category)}
+                    >
+                      {category}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden p-2.5 md:p-3">
+        <SpriteListGrid
+          avatars={filteredSprites}
+          totalAvatarsCount={spritesAvatars.length}
+          selectedIndex={filteredIndexMap.get(internalIndex) ?? 0}
+          onSelect={(index) => {
+            const originalIndex = filteredIndices[index];
+            if (originalIndex === undefined)
+              return;
+            handleInternalIndexChange(originalIndex);
+          }}
+          mode="manage"
+          className="h-full w-full min-w-0"
+          gridCols="grid-cols-4 md:grid-cols-3"
+          role={role}
+          onAvatarChange={handleAvatarChange}
+          onAvatarSelect={handleAvatarSelectById}
+          onAvatarDeleted={handleAvatarDeleted}
+          onUpload={handleAvatarUpload}
+          fileName={role?.id ? `avatar-${role.id}-${Date.now()}` : undefined}
+          selectedIndices={filteredSelectedIndices}
+          isMultiSelectMode={isMultiSelectMode}
+          onMultiSelectChange={(indices, isMultiMode) => {
+            const nextSelected = new Set<number>();
+            indices.forEach((filteredIndex) => {
+              const originalIndex = filteredIndices[filteredIndex];
+              if (originalIndex !== undefined) {
+                nextSelected.add(originalIndex);
+              }
+            });
+            handleMultiSelectChange(nextSelected, isMultiMode);
+          }}
+        />
+      </div>
+    </>
+  );
+
+  const tabNavigation = (
+    <div className="shrink-0 border-b border-base-300 bg-base-200/50">
+      <nav className="flex flex-wrap gap-1.5 p-2 overflow-x-hidden md:flex-nowrap md:overflow-x-auto">
+        {/* 预览 Tab */}
+        <button
+          type="button"
+          onClick={() => handleTabChange("preview")}
+          className={`flex items-center gap-1.5 sm:gap-2 px-2.5 py-2 sm:px-3 rounded-lg text-xs sm:text-sm transition-colors whitespace-nowrap ${
+            activeTab === "preview"
+              ? "bg-primary text-primary-content"
+              : "hover:bg-base-300"
+          }`}
+        >
+          <EyeIcon className="h-4 w-4 sm:h-5 sm:w-5 shrink-0" aria-hidden="true" />
+          <span>渲染预览</span>
+        </button>
+
+        {/* 立绘校正 Tab */}
+        <button
+          type="button"
+          onClick={() => handleTabChange("cropper")}
+          className={`flex items-center gap-1.5 sm:gap-2 px-2.5 py-2 sm:px-3 rounded-lg text-xs sm:text-sm transition-colors whitespace-nowrap ${
+            activeTab === "cropper"
+              ? "bg-primary text-primary-content"
+              : "hover:bg-base-300"
+          }`}
+        >
+          <CropIcon className="h-4 w-4 sm:h-5 sm:w-5 shrink-0" aria-hidden="true" />
+          <span>立绘校正</span>
+        </button>
+
+        {/* 头像校正 Tab */}
+        <button
+          type="button"
+          onClick={() => handleTabChange("avatarCropper")}
+          className={`flex items-center gap-1.5 sm:gap-2 px-2.5 py-2 sm:px-3 rounded-lg text-xs sm:text-sm transition-colors whitespace-nowrap ${
+            activeTab === "avatarCropper"
+              ? "bg-primary text-primary-content"
+              : "hover:bg-base-300"
+          }`}
+        >
+          <UserFocusIcon className="h-4 w-4 sm:h-5 sm:w-5 shrink-0" aria-hidden="true" />
+          <span>头像校正</span>
+        </button>
+
+        {/* 头像设置 Tab */}
+        <button
+          type="button"
+          onClick={() => handleTabChange("setting")}
+          className={`flex items-center gap-1.5 sm:gap-2 px-2.5 py-2 sm:px-3 rounded-lg text-xs sm:text-sm transition-colors whitespace-nowrap ${
+            activeTab === "setting"
+              ? "bg-primary text-primary-content"
+              : "hover:bg-base-300"
+          }`}
+        >
+          <GearIcon className="h-4 w-4 sm:h-5 sm:w-5 shrink-0" aria-hidden="true" />
+          <span>头像设置</span>
+        </button>
+
+        {/* 素材库 Tab */}
+        <button
+          type="button"
+          onClick={() => handleTabChange("library")}
+          className={`flex items-center gap-1.5 sm:gap-2 px-2.5 py-2 sm:px-3 rounded-lg text-xs sm:text-sm transition-colors whitespace-nowrap ${
+            activeTab === "library"
+              ? "bg-primary text-primary-content"
+              : "hover:bg-base-300"
+          }`}
+        >
+          <PackageIcon className="h-4 w-4 sm:h-5 sm:w-5 shrink-0" aria-hidden="true" />
+          <span>素材库</span>
+        </button>
+        {/* 回收站 Tab */}
+        <button
+          type="button"
+          onClick={() => handleTabChange("trash")}
+          className={`flex items-center gap-1.5 sm:gap-2 px-2.5 py-2 sm:px-3 rounded-lg text-xs sm:text-sm transition-colors whitespace-nowrap ${
+            activeTab === "trash"
+              ? "bg-primary text-primary-content"
+              : "hover:bg-base-300"
+          }`}
+        >
+          <TrashIcon className="h-4 w-4 sm:h-5 sm:w-5 shrink-0" aria-hidden="true" />
+          <span>回收站</span>
+          {trashItems.length > 0 && (
+            <span className="badge badge-sm bg-base-100 text-base-content">
+              {trashItems.length}
+            </span>
+          )}
+        </button>
+      </nav>
+    </div>
+  );
 
   if (!isOpen)
     return null;
@@ -419,7 +693,8 @@ export function SpriteSettingsPopup({
     <ToastWindow
       isOpen={isOpen}
       onClose={onClose}
-      fullScreen={isMobileScreen()}
+      fullScreen={isMobile}
+      showCloseButton={!isMobile}
     >
       {/* Upload notification toast */}
       {uploadNotification && (
@@ -440,254 +715,50 @@ export function SpriteSettingsPopup({
         </div>
       )}
 
-      <div className="flex flex-col md:flex-row w-full h-full md:w-[80vw] md:max-w-6xl md:h-[80vh]">
-        {/* 左侧头像列表 - 固定显示 */}
-        <div className="md:w-80 shrink-0 border-b md:border-b-0 md:border-r border-base-300 bg-base-200/30 flex flex-col">
-          {/* 头像列表标题栏 */}
-          <div className="shrink-0 border-b border-base-300 bg-base-200/50">
-            <div className="flex justify-between items-center p-2 py-3.5">
-              <h3 className="text-lg font-semibold">头像列表</h3>
-              <div className="flex gap-2">
-                {isMultiSelectMode && (
-                  <>
-                    <button
-                      type="button"
-                      className="btn btn-soft bg-base-200 btn-square btn-xs"
-                      onClick={() => {
-                        const allSelected = visibleCount > 0 && selectedIndices.size === visibleCount;
-                        const newSelected = allSelected
-                          ? new Set<number>()
-                          : new Set(filteredIndices);
-                        setSelectedIndices(newSelected);
-                      }}
-                      title={
-                        visibleCount > 0 && selectedIndices.size === visibleCount
-                          ? "取消全选"
-                          : selectedIndices.size > 0 && selectedIndices.size < visibleCount
-                            ? `已选 ${selectedIndices.size}`
-                            : "全选"
-                      }
-                    >
-                      <ChecksIcon className="h-5 w-5" aria-hidden="true" />
-                    </button>
-                    <button
-                      type="button"
-                      className={`btn btn-error btn-square btn-xs ${selectedIndices.size === 0 ? "btn-disabled" : ""}`}
-                      onClick={handleBatchDeleteRequest}
-                      disabled={selectedIndices.size === 0}
-                      title="删除所选头像"
-                    >
-                      <TrashIcon className="h-5 w-5" aria-hidden="true" />
-                    </button>
-                    <button
-                      type="button"
-                      className="btn btn-ghost btn-square btn-xs"
-                      onClick={() => {
-                        setIsMultiSelectMode(false);
-                        setSelectedIndices(new Set());
-                      }}
-                      title="退出选择模式"
-                    >
-                      <XIcon className="h-5 w-5" aria-hidden="true" />
-                    </button>
-                  </>
-                )}
-                {!isMultiSelectMode && visibleCount > 1 && (
-                  <button
-                    type="button"
-                    className={`btn btn-soft bg-base-200 btn-square btn-xs ${isMultiSelectDisabled ? "btn-disabled" : ""}`}
-                    onClick={() => {
-                      if (!isMultiSelectDisabled)
-                        setIsMultiSelectMode(true);
-                    }}
-                    title="进入选择模式"
-                    disabled={isMultiSelectDisabled}
-                  >
-                    <CheckCircleIcon className="h-5 w-5" aria-hidden="true" />
-                  </button>
-                )}
-                <div className="dropdown dropdown-end">
-                  <button
-                    type="button"
-                    tabIndex={0}
-                    className={`btn btn-square btn-xs ${categoryFilter ? "btn-primary" : "btn-soft bg-base-200"}`}
-                    title={categoryFilter ? `当前分类：${categoryFilter}` : "分类筛选"}
-                    aria-label="头像分类筛选"
-                  >
-                    <FunnelIcon className="h-5 w-5" aria-hidden="true" />
-                  </button>
-                  <ul tabIndex={0} className="dropdown-content menu bg-base-100 rounded-box shadow-xl border border-base-300 z-40 w-44 p-2 mt-1">
-                    <li>
-                      <button
-                        type="button"
-                        className={categoryFilter === "" ? "active font-semibold" : ""}
-                        onClick={() => setCategoryFilter("")}
-                      >
-                        全部
-                      </button>
-                    </li>
-                    {hasDefaultCategory && (
-                      <li>
-                        <button
-                          type="button"
-                          className={categoryFilter === DEFAULT_CATEGORY ? "active font-semibold" : ""}
-                          onClick={() => setCategoryFilter(DEFAULT_CATEGORY)}
-                        >
-                          默认
-                        </button>
-                      </li>
-                    )}
-                    {categoryOptions.map(category => (
-                      <li key={category}>
-                        <button
-                          type="button"
-                          className={categoryFilter === category ? "active font-semibold" : ""}
-                          onClick={() => setCategoryFilter(category)}
-                        >
-                          {category}
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div className="flex-1 overflow-auto p-3">
-            <SpriteListGrid
-              avatars={filteredSprites}
-              totalAvatarsCount={spritesAvatars.length}
-              selectedIndex={filteredIndexMap.get(internalIndex) ?? 0}
-              onSelect={(index) => {
-                const originalIndex = filteredIndices[index];
-                if (originalIndex === undefined)
-                  return;
-                handleInternalIndexChange(originalIndex);
-              }}
-              mode="manage"
-              className="h-full"
-              gridCols="grid-cols-3"
-              gridTemplateColumns="repeat(3, minmax(0, 1fr))"
-              role={role}
-              onAvatarChange={handleAvatarChange}
-              onAvatarSelect={handleAvatarSelectById}
-              onAvatarDeleted={handleAvatarDeleted}
-              onUpload={handleAvatarUpload}
-              fileName={role?.id ? `avatar-${role.id}-${Date.now()}` : undefined}
-              selectedIndices={filteredSelectedIndices}
-              isMultiSelectMode={isMultiSelectMode}
-              onMultiSelectChange={(indices, isMultiMode) => {
-                const nextSelected = new Set<number>();
-                indices.forEach((filteredIndex) => {
-                  const originalIndex = filteredIndices[filteredIndex];
-                  if (originalIndex !== undefined) {
-                    nextSelected.add(originalIndex);
-                  }
-                });
-                handleMultiSelectChange(nextSelected, isMultiMode);
-              }}
-            />
-          </div>
+      <div className="flex h-full w-full min-h-0 min-w-0 flex-col overflow-x-hidden md:h-[80vh] md:w-[86vw] md:max-w-6xl md:flex-row">
+        {/* 左侧头像列表 - 桌面端固定显示 */}
+        <div className="hidden md:flex md:w-80 md:shrink-0 md:border-r border-base-300 bg-base-200/30 md:min-h-0 md:overflow-hidden md:flex-col">
+          {avatarListPanel}
         </div>
 
         {/* 右侧内容区域 */}
-        <div className="flex-1 flex flex-col min-h-0">
-          {/* Tab 导航栏 */}
-          <div className="shrink-0 border-b border-base-300 bg-base-200/50">
-            <nav className="flex p-2 gap-2 overflow-x-auto">
-              {/* 预览 Tab */}
-              <button
-                type="button"
-                onClick={() => setActiveTab("preview")}
-                className={`flex items-center gap-2 p-2 rounded-lg transition-colors whitespace-nowrap ${
-                  activeTab === "preview"
-                    ? "bg-primary text-primary-content"
-                    : "hover:bg-base-300"
-                }`}
-              >
-                <EyeIcon className="w-5 h-5 shrink-0" aria-hidden="true" />
-                <span>渲染预览</span>
-              </button>
-
-              {/* 立绘校正 Tab */}
-              <button
-                type="button"
-                onClick={() => setActiveTab("cropper")}
-                className={`flex items-center gap-2 p-2 rounded-lg transition-colors whitespace-nowrap ${
-                  activeTab === "cropper"
-                    ? "bg-primary text-primary-content"
-                    : "hover:bg-base-300"
-                }`}
-              >
-                <CropIcon className="w-5 h-5 shrink-0" aria-hidden="true" />
-                <span>立绘校正</span>
-              </button>
-
-              {/* 头像校正 Tab */}
-              <button
-                type="button"
-                onClick={() => setActiveTab("avatarCropper")}
-                className={`flex items-center gap-2 p-2 rounded-lg transition-colors whitespace-nowrap ${
-                  activeTab === "avatarCropper"
-                    ? "bg-primary text-primary-content"
-                    : "hover:bg-base-300"
-                }`}
-              >
-                <UserFocusIcon className="w-5 h-5 shrink-0" aria-hidden="true" />
-                <span>头像校正</span>
-              </button>
-
-              {/* 头像设置 Tab */}
-              <button
-                type="button"
-                onClick={() => setActiveTab("setting")}
-                className={`flex items-center gap-2 p-2 rounded-lg transition-colors whitespace-nowrap ${
-                  activeTab === "setting"
-                    ? "bg-primary text-primary-content"
-                    : "hover:bg-base-300"
-                }`}
-              >
-                <GearIcon className="w-5 h-5 shrink-0" aria-hidden="true" />
-                <span>头像设置</span>
-              </button>
-
-              {/* 素材库 Tab */}
-              <button
-                type="button"
-                onClick={() => setActiveTab("library")}
-                className={`flex items-center gap-2 p-2 rounded-lg transition-colors whitespace-nowrap ${
-                  activeTab === "library"
-                    ? "bg-primary text-primary-content"
-                    : "hover:bg-base-300"
-                }`}
-              >
-                <PackageIcon className="w-5 h-5 shrink-0" aria-hidden="true" />
-                <span>素材库</span>
-              </button>
-              {/* 回收站 Tab */}
-              <button
-                type="button"
-                onClick={() => setActiveTab("trash")}
-                className={`flex items-center gap-2 p-2 rounded-lg transition-colors whitespace-nowrap ${
-                  activeTab === "trash"
-                    ? "bg-primary text-primary-content"
-                    : "hover:bg-base-300"
-                }`}
-              >
-                <TrashIcon className="w-5 h-5 shrink-0" aria-hidden="true" />
-                <span>回收站</span>
-                {trashItems.length > 0 && (
-                  <span className="badge badge-sm bg-base-100 text-base-content">
-                    {trashItems.length}
+        <div className="flex-1 min-w-0 flex flex-col min-h-0 overflow-x-hidden">
+          {/* 移动端折叠控制按钮 */}
+          {isMobile && (
+            <div className="shrink-0 border-b border-base-300 bg-base-200/50 p-2.5">
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setIsMobileControlDrawerOpen(true)}
+                  className="btn btn-soft bg-base-200 flex-1 justify-between min-w-0"
+                >
+                  <span className="flex items-center gap-2">
+                    <ImageIcon className="h-5 w-5" aria-hidden="true" />
+                    <span>头像与工具</span>
                   </span>
-                )}
-              </button>
+                  <span className="text-sm text-base-content/70 truncate max-w-[7rem]">
+                    {activeTabLabel}
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="btn btn-ghost btn-square btn-sm shrink-0"
+                  aria-label="关闭头像弹窗"
+                >
+                  <XIcon className="h-5 w-5" aria-hidden="true" />
+                </button>
+              </div>
+            </div>
+          )}
 
-            </nav>
+          {/* 桌面端 Tab 导航栏 */}
+          <div className="hidden md:block">
+            {tabNavigation}
           </div>
 
           {/* Tab 内容区域 */}
-          <div className="flex-1 overflow-auto p-4 min-h-0">
+          <div className="flex-1 overflow-y-auto overflow-x-hidden p-3 md:p-4 min-h-0">
             {/* 预览内容 */}
             {activeTab === "preview" && (
               <PreviewTab
@@ -857,10 +928,43 @@ export function SpriteSettingsPopup({
         </div>
       </div>
 
+      {/* 移动端：头像与工具抽屉 */}
+      {isMobile && (
+        <Drawer.Root
+          open={isMobileControlDrawerOpen}
+          onOpenChange={setIsMobileControlDrawerOpen}
+          direction="bottom"
+        >
+          <Drawer.Portal>
+            <Drawer.Overlay className="fixed inset-0 z-[1200] bg-black/40 md:hidden pointer-events-auto" />
+            <Drawer.Content className="fixed inset-x-0 bottom-0 z-[1201] h-[75vh] rounded-t-2xl border border-base-300 bg-base-100 md:hidden flex flex-col pointer-events-auto">
+              <div className="mx-auto mt-2 h-1.5 w-12 rounded-full bg-base-content/30" />
+              <div className="flex items-center justify-between px-3 py-2">
+                <Drawer.Title className="text-base font-semibold">头像与工具</Drawer.Title>
+                <button
+                  type="button"
+                  className="btn btn-ghost btn-sm btn-square"
+                  onClick={() => setIsMobileControlDrawerOpen(false)}
+                  aria-label="关闭头像与工具抽屉"
+                >
+                  <XIcon className="h-5 w-5" aria-hidden="true" />
+                </button>
+              </div>
+              <div className="min-h-0 flex-1 overflow-hidden flex flex-col">
+                {tabNavigation}
+                <div className="w-full min-h-0 max-h-[46vh] overflow-hidden border-y border-base-300 bg-base-200/30 flex flex-col">
+                  {avatarListPanel}
+                </div>
+              </div>
+            </Drawer.Content>
+          </Drawer.Portal>
+        </Drawer.Root>
+      )}
+
       {/* Batch Delete Confirmation Dialog */}
       {batchDeleteConfirmOpen && (
         <div className="modal modal-open">
-          <div className="modal-box">
+          <div className="modal-box w-[92vw] max-w-md">
             <h3 className="font-bold text-lg">确认批量删除</h3>
             <p className="py-4">
               确定要删除选中的

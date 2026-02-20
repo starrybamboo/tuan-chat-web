@@ -55,7 +55,7 @@ export function SpriteListGrid({
   selectedIndex,
   onSelect,
   className = "",
-  gridCols = "grid-cols-4 md:grid-cols-3",
+  gridCols = "grid-cols-1 min-[420px]:grid-cols-2 sm:grid-cols-3 md:grid-cols-4",
   mode = "view",
   onUpload,
   fileName,
@@ -175,7 +175,7 @@ export function SpriteListGrid({
   if (avatars.length === 0) {
     return (
       <div
-        className={`flex flex-col ${className}`}
+        className={`flex min-w-0 flex-col ${className}`}
         onDragOver={(event) => {
           if (!showUpload) {
             return;
@@ -292,7 +292,7 @@ export function SpriteListGrid({
       >
 
         <div
-          className={`grid ${gridCols} gap-2 overflow-auto content-start ${isDragActive ? "ring-2 ring-primary/40 rounded-lg" : ""}`}
+          className={`grid w-full min-w-0 ${gridCols} gap-2 overflow-y-auto overflow-x-hidden content-start ${isDragActive ? "ring-2 ring-primary/40 rounded-lg" : ""}`}
           style={gridTemplateColumns ? { gridTemplateColumns } : undefined}
         >
           {avatars.map((avatar, index) => {
@@ -305,7 +305,7 @@ export function SpriteListGrid({
             );
 
             return (
-              <div key={avatar.avatarId} className="flex flex-col">
+              <div key={avatar.avatarId} className="min-w-0 flex flex-col">
                 <div className="relative group w-full overflow-visible">
                   {/* 头像名称 badge，绝对定位到左上角，z-index 保证在图片之上 */}
                   <button

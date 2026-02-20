@@ -410,7 +410,9 @@ export default function ChatPage() {
     onSpaceContextMenu: handleSpaceContextMenu,
   };
   const leftDrawerToggleLabel = isOpenLeftDrawer ? "收起侧边栏" : "展开侧边栏";
-  const shouldShowLeftDrawerToggle = screenSize === "sm" && !isOpenLeftDrawer;
+  const hasMainContentDrawerToggle = isPrivateChatMode
+    || (!isDocRoute && !isRoomSettingRoute && !isSpaceDetailRoute && Boolean(activeSpaceId));
+  const shouldShowLeftDrawerToggle = screenSize === "sm" && !isOpenLeftDrawer && !hasMainContentDrawerToggle;
   const layoutProps = {
     screenSize,
     isOpenLeftDrawer,

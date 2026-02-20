@@ -371,9 +371,13 @@ function CharacterDetailInner({
 
   // 更新url和avatarId,方便更改服务器数据
   const handleAvatarChange = (previewUrl: string, avatarId: number) => {
+    const selectedAvatar = roleAvatars.find(item => item.avatarId === avatarId);
+    const nextAvatarUrl = selectedAvatar?.avatarUrl || previewUrl;
+    const nextAvatarThumb = selectedAvatar?.avatarThumbUrl || nextAvatarUrl;
     const updatedRole = {
       ...localRole,
-      avatar: previewUrl,
+      avatar: nextAvatarUrl,
+      avatarThumb: nextAvatarThumb,
       avatarId,
     };
     setLocalRole(updatedRole);
@@ -523,13 +527,13 @@ function CharacterDetailInner({
   );
 
   return (
-    <div className={`transition-opacity duration-300 p-4 ease-in-out ${isTransitioning ? "opacity-50" : ""
+    <div className={`w-full min-w-0 overflow-x-hidden transition-opacity duration-300 p-4 ease-in-out ${isTransitioning ? "opacity-50" : ""
     }`}
     >
 
       {/* 顶部头部区域（包含总编辑入口） */}
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-        <div className="flex items-center gap-4">
+        <div className="flex w-full items-center justify-center gap-4 md:w-auto md:justify-start">
           {layout === "popup"
             ? (
                 <button
@@ -542,15 +546,49 @@ function CharacterDetailInner({
                 </button>
               )
             : (
-                <Link to="/role" type="button" className="btn btn-lg btn-outline rounded-md btn-ghost mr-4">
-                  ← 返回
-                </Link>
+                <>
+                  {isEditing
+                    ? (
+                        <button
+                          type="button"
+                          onClick={handleSaveAll}
+                          className={`btn btn-primary btn-md rounded-lg px-4 md:hidden ${isTransitioning ? "scale-95" : ""}`}
+                          disabled={isTransitioning}
+                        >
+                          {isTransitioning
+                            ? (
+                                <span className="loading loading-spinner loading-xs"></span>
+                              )
+                            : (
+                                <span className="flex items-center gap-1">
+                                  <SaveIcon className="w-5 h-5" />
+                                  保存
+                                </span>
+                              )}
+                        </button>
+                      )
+                    : (
+                        <button
+                          type="button"
+                          onClick={handleStartEditingAll}
+                          className="btn btn-accent btn-md rounded-lg px-4 md:hidden"
+                        >
+                          <span className="flex items-center gap-1">
+                            <EditIcon className="w-5 h-5" />
+                            编辑
+                          </span>
+                        </button>
+                      )}
+                  <Link to="/role" type="button" className="hidden md:inline-flex btn btn-lg btn-outline rounded-md btn-ghost mr-4">
+                    ← 返回
+                  </Link>
+                </>
               )}
-          <div>
-            <h1 className="font-semibold text-2xl md:text-3xl my-2">
+          <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 md:block md:justify-start">
+            <h1 className="font-semibold text-2xl md:text-3xl md:my-2">
               {localRole.name || "未命名角色"}
             </h1>
-            <p className="text-base-content/60">
+            <p className="text-base-content/60 md:block">
               {isDiceMaiden ? "骰娘展示" : "角色展示"}
               {" "}
               ·
@@ -560,7 +598,7 @@ function CharacterDetailInner({
         </div>
         <div className="flex items-center gap-2">
           {!isDiceMaiden && (
-            <div className="tooltip tooltip-bottom" data-tip="使用ST指令快速导入角色属性">
+            <div className={`tooltip tooltip-bottom ${layout === "popup" ? "" : "hidden md:block"}`} data-tip="使用ST指令快速导入角色属性">
               <button
                 type="button"
                 onClick={() => setIsStImportModalOpen(true)}
@@ -573,7 +611,7 @@ function CharacterDetailInner({
             </div>
           )}
           {!isDiceMaiden && (
-            <div className="tooltip tooltip-bottom" data-tip="通过描述批量生成角色属性">
+            <div className={`tooltip tooltip-bottom ${layout === "popup" ? "" : "hidden md:block"}`} data-tip="通过描述批量生成角色属性">
               <button
                 type="button"
                 onClick={handleOpenAIGenerateModal}
@@ -601,7 +639,7 @@ function CharacterDetailInner({
           )}
           {isEditing
             ? (
-                <div className="tooltip tooltip-bottom" data-tip="保存当前修改">
+                <div className={`tooltip tooltip-bottom ${layout === "popup" ? "" : "hidden md:block"}`} data-tip="保存当前修改">
                   <button
                     type="button"
                     onClick={handleSaveAll}
@@ -622,7 +660,7 @@ function CharacterDetailInner({
                 </div>
               )
             : (
-                <div className="tooltip tooltip-bottom" data-tip="编辑角色信息">
+                <div className={`tooltip tooltip-bottom ${layout === "popup" ? "" : "hidden md:block"}`} data-tip="编辑角色信息">
                   <button type="button" onClick={handleStartEditingAll} className="btn btn-accent btn-sm md:btn-lg rounded-lg">
                     <span className="flex items-center gap-1">
                       <EditIcon className="w-4 h-4" />
@@ -634,6 +672,7 @@ function CharacterDetailInner({
         </div>
       </div>
 
+      <div className="md:hidden divider my-0"></div>
       <div className="max-md:hidden divider"></div>
       {layout === "popup"
         ? (
@@ -678,40 +717,81 @@ function CharacterDetailInner({
           )
         : (
             <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-              {/* 左侧：立绘与简介、规则选择（固定） */}
-              <CharacterDetailLeftPanel
-                isQueryLoading={isQueryLoading}
-                isEditing={isEditing}
-                isDiceMaiden={isDiceMaiden}
-                localRole={localRole}
-                roleAvatars={roleAvatars}
-                selectedAvatarId={selectedAvatarId}
-                selectedAvatarUrl={selectedAvatarUrl}
-                selectedSpriteUrl={selectedSpriteUrl}
-                charCount={charCount}
-                maxDescriptionLength={MAX_DESCRIPTION_LENGTH}
-                currentRuleName={currentRuleData?.ruleName}
-                currentDicerRoleId={currentDicerRoleId}
-                dicerRoleError={dicerRoleError}
-                linkedDicerRoleName={linkedDicerRoleData?.data?.roleName}
-                onOpenRuleModal={handleOpenRuleModal}
-                onOpenAudioModal={handleOpenAudioModal}
-                onOpenDiceMaidenLinkModal={handleOpenDiceMaidenLinkModal}
-                onAvatarChange={handleAvatarChange}
-                onAvatarSelect={handleAvatarSelect}
-                onAvatarDelete={handleAvatarDelete}
-                onAvatarUpload={handleAvatarUpload}
-                setLocalRole={setLocalRole}
-                onAudioRoleUpdate={(updatedRole) => {
-                  setLocalRole(updatedRole);
-                  updateRole(updatedRole);
-                }}
-                onAudioDelete={() => {
-                  const updatedRole = { ...localRole, voiceUrl: undefined };
-                  setLocalRole(updatedRole);
-                  updateRole(updatedRole);
-                }}
-              />
+              {/* 移动端：使用水平布局版本 */}
+              <div className="lg:hidden">
+                <CharacterDetailLeftPanelHorizontal
+                  isQueryLoading={isQueryLoading}
+                  isEditing={isEditing}
+                  isDiceMaiden={isDiceMaiden}
+                  localRole={localRole}
+                  roleAvatars={roleAvatars}
+                  selectedAvatarId={selectedAvatarId}
+                  selectedAvatarUrl={selectedAvatarUrl}
+                  selectedSpriteUrl={selectedSpriteUrl}
+                  charCount={charCount}
+                  maxDescriptionLength={MAX_DESCRIPTION_LENGTH}
+                  currentRuleName={currentRuleData?.ruleName}
+                  currentDicerRoleId={currentDicerRoleId}
+                  dicerRoleError={dicerRoleError}
+                  linkedDicerRoleName={linkedDicerRoleData?.data?.roleName}
+                  onOpenRuleModal={handleOpenRuleModal}
+                  onOpenAudioModal={handleOpenAudioModal}
+                  onOpenDiceMaidenLinkModal={handleOpenDiceMaidenLinkModal}
+                  onAvatarChange={handleAvatarChange}
+                  onAvatarSelect={handleAvatarSelect}
+                  onAvatarDelete={handleAvatarDelete}
+                  onAvatarUpload={handleAvatarUpload}
+                  onOpenStImportModal={() => setIsStImportModalOpen(true)}
+                  onOpenAIGenerateModal={handleOpenAIGenerateModal}
+                  setLocalRole={setLocalRole}
+                  onAudioRoleUpdate={(updatedRole) => {
+                    setLocalRole(updatedRole);
+                    updateRole(updatedRole);
+                  }}
+                  onAudioDelete={() => {
+                    const updatedRole = { ...localRole, voiceUrl: undefined };
+                    setLocalRole(updatedRole);
+                    updateRole(updatedRole);
+                  }}
+                />
+              </div>
+
+              {/* 桌面端：使用原左侧布局 */}
+              <div className="hidden lg:block">
+                <CharacterDetailLeftPanel
+                  isQueryLoading={isQueryLoading}
+                  isEditing={isEditing}
+                  isDiceMaiden={isDiceMaiden}
+                  localRole={localRole}
+                  roleAvatars={roleAvatars}
+                  selectedAvatarId={selectedAvatarId}
+                  selectedAvatarUrl={selectedAvatarUrl}
+                  selectedSpriteUrl={selectedSpriteUrl}
+                  charCount={charCount}
+                  maxDescriptionLength={MAX_DESCRIPTION_LENGTH}
+                  currentRuleName={currentRuleData?.ruleName}
+                  currentDicerRoleId={currentDicerRoleId}
+                  dicerRoleError={dicerRoleError}
+                  linkedDicerRoleName={linkedDicerRoleData?.data?.roleName}
+                  onOpenRuleModal={handleOpenRuleModal}
+                  onOpenAudioModal={handleOpenAudioModal}
+                  onOpenDiceMaidenLinkModal={handleOpenDiceMaidenLinkModal}
+                  onAvatarChange={handleAvatarChange}
+                  onAvatarSelect={handleAvatarSelect}
+                  onAvatarDelete={handleAvatarDelete}
+                  onAvatarUpload={handleAvatarUpload}
+                  setLocalRole={setLocalRole}
+                  onAudioRoleUpdate={(updatedRole) => {
+                    setLocalRole(updatedRole);
+                    updateRole(updatedRole);
+                  }}
+                  onAudioDelete={() => {
+                    const updatedRole = { ...localRole, voiceUrl: undefined };
+                    setLocalRole(updatedRole);
+                    updateRole(updatedRole);
+                  }}
+                />
+              </div>
 
               {/* 右侧：编辑信息、预览、扩展模块 */}
               <div className="lg:col-span-3 space-y-6">

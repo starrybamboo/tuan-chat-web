@@ -142,7 +142,7 @@ export function AvatarSettingsTab({
   return (
     <div className="h-full flex flex-col">
       {/* 标题 */}
-      <div className="flex justify-between items-center mb-2 shrink-0 min-h-8">
+      <div className="mb-2 shrink-0 min-h-8 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <h3 className="text-lg font-semibold">头像设置</h3>
       </div>
 
@@ -160,13 +160,13 @@ export function AvatarSettingsTab({
                             <img
                               src={avatarDisplayUrl}
                               alt="头像预览"
-                              className="w-32 h-32 rounded-lg object-contain bg-base-200"
+                              className="w-28 h-28 sm:w-32 sm:h-32 rounded-lg object-contain bg-base-200"
                               loading="lazy"
                               decoding="async"
                             />
                           )
                         : (
-                            <div className="w-32 h-32 rounded-lg bg-base-200 flex items-center justify-center text-base-content/50">
+                            <div className="w-28 h-28 sm:w-32 sm:h-32 rounded-lg bg-base-200 flex items-center justify-center text-base-content/50">
                               暂无图片
                             </div>
                           )}
@@ -185,7 +185,7 @@ export function AvatarSettingsTab({
                           placeholder="请输入头像标题"
                         />
                       </div>
-                      <div className="flex items-center justify-between gap-3">
+                      <div className="flex flex-col items-start gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
                         <span className="font-semibold shrink-0">头像分类</span>
                         <DoubleClickEditableText
                           value={editingCategory}
@@ -237,10 +237,10 @@ export function AvatarSettingsTab({
       </div>
 
       {/* 应用按钮 */}
-      <div className="mt-4 flex justify-end gap-2 shrink-0">
+      <div className="mt-4 flex flex-col gap-2 shrink-0 sm:flex-row sm:justify-end">
         <button
           type="button"
-          className="btn btn-primary rounded-md"
+          className="btn btn-primary rounded-md w-full sm:w-auto"
           onClick={handleApplyMood}
           disabled={!currentAvatar || isSaving}
         >

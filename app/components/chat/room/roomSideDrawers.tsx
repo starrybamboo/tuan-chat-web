@@ -26,6 +26,7 @@ function RoomSideDrawersImpl() {
     <>
       <VaulSideDrawer
         isOpen={sideDrawerState === "user"}
+        overlayOnMobile
         width={userDrawerWidth}
         minWidth={240}
         maxWidth={620}
@@ -39,6 +40,7 @@ function RoomSideDrawersImpl() {
 
       <VaulSideDrawer
         isOpen={sideDrawerState === "role"}
+        overlayOnMobile
         width={roleDrawerWidth}
         minWidth={240}
         maxWidth={620}
@@ -52,6 +54,7 @@ function RoomSideDrawersImpl() {
 
       <VaulSideDrawer
         isOpen={sideDrawerState === "export"}
+        overlayOnMobile
         width={exportDrawerWidth}
         minWidth={280}
         maxWidth={760}
@@ -65,6 +68,7 @@ function RoomSideDrawersImpl() {
 
       <VaulSideDrawer
         isOpen={sideDrawerState === "initiative"}
+        overlayOnMobile
         width={initiativeDrawerWidth}
         minWidth={320}
         maxWidth={760}
@@ -78,6 +82,7 @@ function RoomSideDrawersImpl() {
 
       <VaulSideDrawer
         isOpen={sideDrawerState === "docFolder"}
+        overlayOnMobile
         width={docFolderDrawerWidth}
         minWidth={280}
         maxWidth={760}

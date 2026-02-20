@@ -42,6 +42,7 @@ export default function DiscoverPage({ mode }: DiscoverPageProps) {
   } = useChatPageLeftDrawer({
     screenSize,
     isPrivateChatMode: false,
+    mobileStateKey: "chat-discover",
   });
 
   const userSpacesQuery = useGetUserActiveSpacesQuery();
