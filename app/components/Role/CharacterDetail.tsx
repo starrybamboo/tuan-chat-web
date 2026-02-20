@@ -8,8 +8,8 @@ import {
 } from "api/hooks/abilityQueryHooks";
 import { useCopyRoleMutation, useGetRoleAvatarsQuery, useGetRoleQuery, useUpdateRoleWithLocalMutation } from "api/hooks/RoleAndAvatarHooks";
 import { useRuleDetailQuery } from "api/hooks/ruleQueryHooks";
-import { CloseIcon, DiceD6Icon, EditIcon, InfoIcon, RoleListIcon, SaveIcon, SlidersIcon } from "app/icons";
-import { useEffect, useMemo, useState } from "react";
+import { CloseIcon, DiceD6Icon, EditIcon, SaveIcon, SlidersIcon } from "app/icons";
+import { useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import { Link, useNavigate, useOutletContext } from "react-router";
 import CharacterDetailLeftPanel from "./CharacterDetailLeftPanel";
@@ -146,11 +146,6 @@ function CharacterDetailInner({
   const [isAIGenerateModalOpen, setIsAIGenerateModalOpen] = useState(false); // AI生成弹窗状态
   const [isDiceMaidenLinkModalOpen, setIsDiceMaidenLinkModalOpen] = useState(false); // 骰娘关联弹窗状态
   const [isDicerConfigJsonModalOpen, setIsDicerConfigJsonModalOpen] = useState(false); // 骰娘配置JSON弹窗状态
-  const [isCloneModalOpen, setIsCloneModalOpen] = useState(false); // 复制角色模态框状态
-  const [cloneTargetType, setCloneTargetType] = useState<"dicer" | "normal">("dicer"); // 目标类型
-  const [cloneName, setCloneName] = useState(""); // 新角色名称
-  const [cloneDescription, setCloneDescription] = useState(""); // 新角色描述
-  const [isCloneNameEdited, setIsCloneNameEdited] = useState(false); // 追踪名称是否被手动编辑
   const [isCloning, setIsCloning] = useState(false); // 复制中状态
 
   // 获取当前规则详情
@@ -426,65 +421,6 @@ function CharacterDetailInner({
   const handleAvatarUpload = (data: any) => {
     // 上传成功后可能需要重新获取头像列表
     console.warn("头像上传数据:", data);
-  };
-
-  // 监听类型切换，自动更新名称（仅当用户未手动编辑时）
-  useEffect(() => {
-    if (!isCloneModalOpen || isCloneNameEdited)
-      return;
-
-    const currentType = isDiceMaiden ? "dicer" : "normal";
-    const isSameType = cloneTargetType === currentType;
-
-    if (isSameType) {
-      // 同类型：添加-二周目后缀
-      setCloneName(`${localRole.name}-二周目`);
-    }
-    else {
-      // 跨类型：保持原名称
-      setCloneName(localRole.name);
-    }
-  }, [cloneTargetType, isCloneModalOpen, isDiceMaiden, localRole.name, isCloneNameEdited]);
-
-  // 执行复制角色逻辑
-  const handleCloneRole = async () => {
-    if (!cloneName.trim()) {
-      toast.error("请输入新角色名称");
-      return;
-    }
-
-    try {
-      setIsCloning(true);
-      const newRole = await copyRoleMutate({
-        sourceRole: localRole,
-        targetType: cloneTargetType,
-        newName: cloneName,
-        newDescription: cloneDescription,
-      });
-
-      // 更新角色列表
-      if (setRoles) {
-        setRoles(prevRoles => [newRole, ...prevRoles]);
-      }
-
-      // 缓存失效由hook统一处理
-
-      // 成功提示
-      toast.success(`已复制为${cloneTargetType === "dicer" ? "骰娘" : "普通"}角色`);
-
-      // 关闭模态框
-      setIsCloneModalOpen(false);
-
-      // 跳转到新角色页面
-      navigate(`/role/${newRole.id}`);
-    }
-    catch (e) {
-      console.error("复制角色失败", e);
-      toast.error(`复制失败: ${e instanceof Error ? e.message : "未知错误"}`);
-    }
-    finally {
-      setIsCloning(false);
-    }
   };
 
   const handleQuickCopyToDiceMaiden = async () => {
@@ -839,120 +775,6 @@ function CharacterDetailInner({
         onApply={handleAIApply}
         generateRoleByRule={generateRoleByRule}
       />
-
-      {/* 复制角色模态框 */}
-      <dialog className={`modal ${isCloneModalOpen ? "modal-open" : ""}`}>
-        <div className="modal-box">
-          <h3 className="font-bold text-lg mb-4">复制角色</h3>
-
-          {/* 类型切换按钮 */}
-          <div className="flex gap-2 mb-6">
-            <button
-              type="button"
-              onClick={() => setCloneTargetType("dicer")}
-              className={`btn flex-1 ${cloneTargetType === "dicer" ? "btn-primary" : "btn-outline"}`}
-            >
-              <DiceD6Icon className="w-4 h-4 mr-1" />
-              复制为骰娘
-            </button>
-            <button
-              type="button"
-              onClick={() => setCloneTargetType("normal")}
-              className={`btn flex-1 ${cloneTargetType === "normal" ? "btn-primary" : "btn-outline"}`}
-            >
-              <RoleListIcon className="w-4 h-4 mr-1" />
-              复制为普通角色
-            </button>
-          </div>
-
-          <div className="space-y-4">
-            <div>
-              <label className="label">
-                <span className="label-text">角色名称</span>
-              </label>
-              <input
-                type="text"
-                value={cloneName}
-                onChange={(e) => {
-                  setCloneName(e.target.value);
-                  setIsCloneNameEdited(true); // 标记名称已被手动编辑
-                }}
-                className="input input-bordered w-full"
-                placeholder="输入新角色名称"
-              />
-            </div>
-
-            <div>
-              <label className="label">
-                <span className="label-text">角色描述</span>
-              </label>
-              <textarea
-                value={cloneDescription}
-                onChange={e => setCloneDescription(e.target.value)}
-                className="textarea textarea-bordered w-full h-24"
-                placeholder="输入新角色描述"
-              />
-            </div>
-
-            {/* 固定高度提示区域，避免切换时高度变化 */}
-            <div className="min-h-15">
-              {cloneTargetType !== (isDiceMaiden ? "dicer" : "normal") && (
-                <div className="alert alert-info">
-                  <InfoIcon className="stroke-current shrink-0 h-6 w-6" />
-                  <span>跨类型复制时，能力数据不会被复制。</span>
-                </div>
-              )}
-            </div>
-          </div>
-
-          <div className="modal-action">
-            <button
-              type="button"
-              onClick={() => {
-                setIsCloneModalOpen(false);
-                setCloneName("");
-                setCloneDescription("");
-                setIsCloneNameEdited(false);
-              }}
-              className="btn"
-              disabled={isCloning}
-            >
-              取消
-            </button>
-            <button
-              type="button"
-              onClick={async () => {
-                await handleCloneRole();
-                setCloneName("");
-                setCloneDescription("");
-                setIsCloneNameEdited(false);
-              }}
-              className="btn btn-primary"
-              disabled={isCloning || !cloneName.trim()}
-            >
-              {isCloning
-                ? (
-                    <>
-                      <span className="loading loading-spinner loading-xs"></span>
-                      复制中...
-                    </>
-                  )
-                : (
-                    "确认复制"
-                  )}
-            </button>
-          </div>
-        </div>
-        <form method="dialog" className="modal-backdrop">
-          <button
-            type="button"
-            onClick={() => setIsCloneModalOpen(false)}
-            disabled={isCloning}
-          >
-            close
-          </button>
-        </form>
-      </dialog>
     </div>
   );
 }
