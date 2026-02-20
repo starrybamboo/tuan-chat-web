@@ -63,6 +63,36 @@ export async function addOrUpdateMessagesBatch(messages: ChatMessageResponse[]):
 }
 
 /**
+ * 按 messageId 批量删除消息
+ * @param messageIds 要删除的 messageId 列表
+ */
+export async function deleteMessagesByIds(messageIds: number[]): Promise<void> {
+  const ids = Array.from(new Set((messageIds ?? []).filter(id => Number.isFinite(id))));
+  if (ids.length === 0) {
+    return;
+  }
+
+  const db = await openChatDB();
+  const transaction = db.transaction(STORE_NAME, "readwrite");
+  const store = transaction.objectStore(STORE_NAME);
+
+  ids.forEach((messageId) => {
+    store.delete(messageId);
+  });
+
+  return new Promise((resolve, reject) => {
+    transaction.oncomplete = () => {
+      db.close();
+      resolve();
+    };
+    transaction.onerror = () => {
+      db.close();
+      reject(transaction.error);
+    };
+  });
+}
+
+/**
  * 获取指定房间的所有聊天记录，并按 position 升序排序
  * @param roomId 房间ID
  * @returns 返回一个Promise，解析为该房间的消息数组

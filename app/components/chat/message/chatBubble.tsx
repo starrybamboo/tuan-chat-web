@@ -15,6 +15,7 @@ import CachedVideoMessage from "@/components/chat/message/media/CachedVideoMessa
 import ForwardMessage from "@/components/chat/message/preview/forwardMessage";
 import { PreviewMessage } from "@/components/chat/message/preview/previewMessage";
 import WebgalChooseMessage from "@/components/chat/message/webgalChooseMessage";
+import { useRealtimeRenderStore } from "@/components/chat/stores/realtimeRenderStore";
 import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
 import { useRoomRoleSelectionStore } from "@/components/chat/stores/roomRoleSelectionStore";
 import { useRoomUiStore, useRoomUiStoreApi } from "@/components/chat/stores/roomUiStore";
@@ -236,31 +237,54 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
     customRoleName,
     isIntroText,
   });
+  const roomContentAlertThreshold = useRealtimeRenderStore(state => state.roomContentAlertThreshold);
+  const messageContentLength = (message.content ?? "").toString().length;
+  const isThresholdTrackedMessageType = (message.messageType === MESSAGE_TYPE.TEXT
+    || message.messageType === MESSAGE_TYPE.INTRO_TEXT) && message.roleId !== 2;
+  const isMessageOverRoomContentThreshold = isThresholdTrackedMessageType
+    && messageContentLength > roomContentAlertThreshold;
+  const thresholdCounterText = `${messageContentLength}/${roomContentAlertThreshold}`;
 
   // 更新消息并同步到本地缓存
   const updateMessageAndSync = useCallback((newMessage: Message) => {
-    if (JSON.stringify(chatMessageResponse.message) !== JSON.stringify(newMessage)) {
-      roomUiStoreApi.getState().pushMessageUndo({
-        type: "update",
-        before: chatMessageResponse.message,
-        after: newMessage,
-      });
+    const hasChanges = JSON.stringify(chatMessageResponse.message) !== JSON.stringify(newMessage);
+    if (!hasChanges) {
+      return;
     }
+
+    roomUiStoreApi.getState().pushMessageUndo({
+      type: "update",
+      before: chatMessageResponse.message,
+      after: newMessage,
+    });
+
+    const optimisticResponse = {
+      ...chatMessageResponse,
+      message: newMessage,
+    };
+    roomContext.chatHistory?.addOrUpdateMessage(optimisticResponse);
+    if (roomContext.updateAndRerenderMessageInWebGAL) {
+      roomContext.updateAndRerenderMessageInWebGAL(optimisticResponse, false);
+    }
+
     updateMessageMutation.mutate(newMessage, {
       onSuccess: (response) => {
-        // 更新成功后同步到本地 IndexedDB
-        if (response?.data && roomContext.chatHistory) {
-          const updatedChatMessageResponse = {
-            ...chatMessageResponse,
-            message: response.data,
-          };
-          roomContext.chatHistory.addOrUpdateMessage(updatedChatMessageResponse);
-
-          // 如果 WebGAL 联动模式开启，则重渲染并跳转
-          if (roomContext.updateAndRerenderMessageInWebGAL) {
-            roomContext.updateAndRerenderMessageInWebGAL(updatedChatMessageResponse, false);
-          }
+        const committedResponse = {
+          ...chatMessageResponse,
+          message: response?.data ?? newMessage,
+        };
+        roomContext.chatHistory?.addOrUpdateMessage(committedResponse);
+        if (roomContext.updateAndRerenderMessageInWebGAL) {
+          roomContext.updateAndRerenderMessageInWebGAL(committedResponse, false);
         }
+      },
+      onError: (error) => {
+        console.error("更新消息失败", error);
+        roomContext.chatHistory?.addOrUpdateMessage(chatMessageResponse);
+        if (roomContext.updateAndRerenderMessageInWebGAL) {
+          roomContext.updateAndRerenderMessageInWebGAL(chatMessageResponse, false);
+        }
+        toast.error("更新消息失败，已恢复原内容");
       },
     });
   }, [chatMessageResponse, roomContext, roomUiStoreApi, updateMessageMutation]);
@@ -1222,9 +1246,14 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
                   </span>
                 </div>
                 <div
-                  className="max-w-[calc(100vw-5rem)] sm:max-w-md break-words rounded-lg px-3 sm:px-4 py-1.5 sm:py-2 shadow-sm sm:shadow bg-base-200 text-sm sm:text-sm lg:text-base transition-all duration-200 hover:shadow-lg hover:bg-base-300 cursor-pointer"
+                  className={`relative max-w-[calc(100vw-5rem)] sm:max-w-md break-words rounded-lg px-3 sm:px-4 py-1.5 sm:py-2 shadow-sm sm:shadow bg-base-200 text-sm sm:text-sm lg:text-base transition-all duration-200 hover:shadow-lg hover:bg-base-300 cursor-pointer ${isMessageOverRoomContentThreshold ? "outline outline-1 outline-warning/70" : ""}`}
                   onClick={triggerEffectPreview}
                 >
+                  {isMessageOverRoomContentThreshold && (
+                    <span className="pointer-events-none absolute right-2 bottom-1 z-10 rounded px-1 text-[11px] leading-4 font-medium bg-warning/20 text-warning shadow-sm">
+                      {thresholdCounterText}
+                    </span>
+                  )}
                   {renderedContent}
                   {threadHintNode}
                 </div>
@@ -1328,9 +1357,14 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
                   </div>
                 </div>
                 <div
-                  className="transition-all duration-200 hover:bg-base-200/50 rounded-lg p-1.5 sm:p-2 cursor-pointer break-words text-sm sm:text-sm lg:text-base"
+                  className={`relative transition-all duration-200 hover:bg-base-200/50 rounded-lg p-1.5 sm:p-2 cursor-pointer break-words text-sm sm:text-sm lg:text-base ${isMessageOverRoomContentThreshold ? "outline outline-1 outline-warning/70" : ""}`}
                   onClick={triggerEffectPreview}
                 >
+                  {isMessageOverRoomContentThreshold && (
+                    <span className="pointer-events-none absolute right-2 bottom-1 z-10 rounded px-1 text-[11px] leading-4 font-medium bg-warning/20 text-warning shadow-sm">
+                      {thresholdCounterText}
+                    </span>
+                  )}
                   {renderedContent}
                   {threadHintNode}
                   {renderAnnotationsBar()}

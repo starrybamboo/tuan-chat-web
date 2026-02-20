@@ -221,8 +221,12 @@ export default function ImportChatMessagesWindow({
             </h2>
             <div className="text-xs text-base-content/60 flex items-center gap-2">
               <span>
-                每行一条消息，格式：
+                支持格式：
                 <code className="bg-base-200 px-1 rounded">[角色名]：内容</code>
+                {" "}
+                /
+                {" "}
+                <code className="bg-base-200 px-1 rounded">昵称(账号) 日期 时间 + 下一行正文</code>
               </span>
             </div>
           </div>
@@ -301,7 +305,7 @@ export default function ImportChatMessagesWindow({
               </div>
               <textarea
                 className="textarea textarea-bordered w-full flex-1 font-mono text-xs leading-relaxed resize-none focus:outline-hidden focus:border-primary transition-colors h-full"
-                placeholder={"[KP]：欢迎来到这里\n[张三]：这是哪里？\n[KP]：请进行侦查判定\n..."}
+                placeholder={"[KP]：欢迎来到这里\n[张三]：这是哪里？\n\n或\n\n木落(303451945) 2022/03/21 19:06:53\n房前有两棵树"}
                 value={rawText}
                 onChange={e => setRawText(e.target.value)}
                 disabled={isImporting}

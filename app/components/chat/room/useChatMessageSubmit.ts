@@ -8,6 +8,7 @@ import { requestPlayBgmMessageWithUrl } from "@/components/chat/infra/audioMessa
 import { useAudioMessageAutoPlayStore } from "@/components/chat/stores/audioMessageAutoPlayStore";
 import { useChatComposerStore } from "@/components/chat/stores/chatComposerStore";
 import { useChatInputUiStore } from "@/components/chat/stores/chatInputUiStore";
+import { useRealtimeRenderStore } from "@/components/chat/stores/realtimeRenderStore";
 import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
 import { isCommand } from "@/components/common/dicer/cmdPre";
 import { formatAnkoDiceMessage } from "@/components/common/dicer/diceTable";
@@ -170,6 +171,14 @@ export default function useChatMessageSubmit({
     }
     if (inputText.length > 1024) {
       toast.error("消息长度不能超过 1024 字");
+      return;
+    }
+    const roomContentAlertThreshold = useRealtimeRenderStore.getState().roomContentAlertThreshold;
+    const isLikelyWebgalDialogue = trimmedInputText.length > 0
+      && !isCommand(trimmedWithoutMentions)
+      && !trimmedWithoutMentions.startsWith("%");
+    if (isLikelyWebgalDialogue && inputText.length > roomContentAlertThreshold) {
+      toast.error(`当前消息超过 WebGAL 单条阈值（${roomContentAlertThreshold} 字），请拆分后再发送`);
       return;
     }
 
@@ -379,6 +388,9 @@ export default function useChatMessageSubmit({
         toast.error("WebGAL 变量指令格式错误，请使用 /var set a=1");
         return;
       }
+
+      // 乐观发送体验：消息开始提交流程后立即清空输入框，避免“消息已出现但输入框还残留”的错觉。
+      setInputText("");
 
       const isCommandRequestByAll = isKP && containsCommandRequestAllToken(inputText);
       const extractedCommandForRequest = isCommandRequestByAll ? extractFirstCommandText(trimmedWithoutMentions) : null;

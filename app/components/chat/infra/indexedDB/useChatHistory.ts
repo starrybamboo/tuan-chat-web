@@ -6,6 +6,7 @@ import { tuanchat } from "../../../../../api/instance";
 import {
   addOrUpdateMessagesBatch as dbAddOrUpdateMessages,
   clearMessagesByRoomId as dbClearMessages,
+  deleteMessagesByIds as dbDeleteMessagesByIds,
   getMessagesByRoomId as dbGetMessagesByRoomId,
 } from "./chatHistoryDb";
 
@@ -17,6 +18,8 @@ export type UseChatHistoryReturn = {
   error: Error | null;
   addOrUpdateMessage: (message: ChatMessageResponse) => Promise<void>;
   addOrUpdateMessages: (messages: ChatMessageResponse[]) => Promise<void>;
+  removeMessageById: (messageId: number) => Promise<void>;
+  replaceMessageById: (fromMessageId: number, message: ChatMessageResponse) => Promise<void>;
   getMessagesByRoomId: (roomId: number) => Promise<ChatMessageResponse[]>;
   clearHistory: () => Promise<void>;
 };
@@ -100,6 +103,71 @@ export function useChatHistory(roomId: number | null): UseChatHistoryReturn {
     },
     [addOrUpdateMessages], // ← 只依赖 addOrUpdateMessages，不依赖 roomId
   );
+
+  /**
+   * 删除单条消息（本地状态 + IndexedDB）
+   */
+  const removeMessageById = useCallback(async (messageId: number) => {
+    if (!Number.isFinite(messageId))
+      return;
+
+    setMessages((prevMessages) => {
+      const nextMessages = prevMessages.filter(msg => msg.message.messageId !== messageId);
+      return nextMessages.length === prevMessages.length ? prevMessages : nextMessages;
+    });
+
+    try {
+      await dbDeleteMessagesByIds([messageId]);
+    }
+    catch (err) {
+      setError(err as Error);
+      console.error(`Failed to remove message ${messageId} for room ${roomIdRef.current}:`, err);
+    }
+  }, []);
+
+  /**
+   * 使用新消息替换旧 messageId（用于乐观消息回填）
+   */
+  const replaceMessageById = useCallback(async (fromMessageId: number, message: ChatMessageResponse) => {
+    const nextMessage = message?.message;
+    if (!nextMessage || !Number.isFinite(fromMessageId)) {
+      return;
+    }
+
+    const currentRoomId = roomIdRef.current;
+    const shouldRenderNextMessage = nextMessage.roomId === currentRoomId;
+
+    setMessages((prevMessages) => {
+      const messageMap = new Map(prevMessages.map(msg => [msg.message.messageId, msg]));
+      const removed = messageMap.delete(fromMessageId);
+      let hasChanges = removed;
+
+      if (shouldRenderNextMessage) {
+        const existing = messageMap.get(nextMessage.messageId);
+        if (!existing || JSON.stringify(existing) !== JSON.stringify(message)) {
+          messageMap.set(nextMessage.messageId, message);
+          hasChanges = true;
+        }
+      }
+
+      if (!hasChanges) {
+        return prevMessages;
+      }
+
+      return Array.from(messageMap.values()).sort((a, b) => a.message.position - b.message.position);
+    });
+
+    try {
+      if (fromMessageId !== nextMessage.messageId) {
+        await dbDeleteMessagesByIds([fromMessageId]);
+      }
+      await dbAddOrUpdateMessages([message]);
+    }
+    catch (err) {
+      setError(err as Error);
+      console.error(`Failed to replace message ${fromMessageId} for room ${currentRoomId}:`, err);
+    }
+  }, []);
 
   /**
    * 从服务器全量获取最新的消息
@@ -262,6 +330,8 @@ export function useChatHistory(roomId: number | null): UseChatHistoryReturn {
     error,
     addOrUpdateMessage, // 用于单条消息
     addOrUpdateMessages, // 用于批量消息
+    removeMessageById,
+    replaceMessageById,
     getMessagesByRoomId,
     clearHistory,
   };

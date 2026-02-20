@@ -24,8 +24,6 @@ export default function ChatToolbarDock({
   isRunModeOnly,
   showWebgalControls,
   onSendEffect,
-  onClearBackground,
-  onClearFigure,
   onSetWebgalVar,
   onOpenWebgalVarModal,
   onOpenWebgalChooseModal,
@@ -70,13 +68,6 @@ export default function ChatToolbarDock({
                 <li><a onClick={() => onSendEffect("snow")}>❄️ 下雪</a></li>
                 <li><a onClick={() => onSendEffect("sakura")}>🌸 樱花</a></li>
                 <li><a onClick={() => onSendEffect("none")}>🛑 停止特效</a></li>
-              </>
-            )}
-            {(onClearBackground || onClearFigure) && (
-              <>
-                <li className="divider my-1" role="separator"></li>
-                {onClearBackground && <li><a onClick={onClearBackground}>🗑️ 清除背景</a></li>}
-                {onClearFigure && <li><a onClick={onClearFigure}>👤 清除立绘</a></li>}
               </>
             )}
             {onSetWebgalVar && !isSpectator && (

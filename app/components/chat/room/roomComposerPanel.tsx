@@ -7,7 +7,6 @@ import React from "react";
 import AtMentionController from "@/components/atMentionController";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
 import { getComposerAnnotations, setComposerAnnotations as persistComposerAnnotations } from "@/components/chat/infra/indexedDB/composerAnnotationsDb";
-import AvatarSwitch from "@/components/chat/input/avatarSwitch";
 import ChatInputArea from "@/components/chat/input/chatInputArea";
 import ChatToolbarFromStore from "@/components/chat/input/chatToolbarFromStore";
 import CommandPanelFromStore from "@/components/chat/input/commandPanelFromStore";
@@ -18,6 +17,8 @@ import ChatAttachmentsPreviewFromStore from "@/components/chat/message/chatAttac
 import RepliedMessage from "@/components/chat/message/preview/repliedMessage";
 import RoomComposerHeader from "@/components/chat/room/roomComposerHeader";
 import { useChatComposerStore } from "@/components/chat/stores/chatComposerStore";
+import { useChatInputUiStore } from "@/components/chat/stores/chatInputUiStore";
+import { useRealtimeRenderStore } from "@/components/chat/stores/realtimeRenderStore";
 import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
 import { useRoomUiStore } from "@/components/chat/stores/roomUiStore";
 import { addDroppedFilesToComposer, isFileDrag } from "@/components/chat/utils/dndUpload";
@@ -132,7 +133,6 @@ function RoomComposerPanelImpl({
   const composerAnnotationsLoadingKeyRef = React.useRef<string | null>(null);
   const screenSize = useScreenSize();
   const toolbarLayout: "inline" | "stacked" = screenSize === "sm" ? "stacked" : "inline";
-  const isMobile = screenSize === "sm";
   const spaceContext = React.use(SpaceContext);
   const spaceMembers = spaceContext.spaceMembers;
   const resolveDefaultFigurePosition = React.useCallback((role?: UserRole) => {
@@ -303,6 +303,9 @@ function RoomComposerPanelImpl({
     }
     return "输入消息…（Shift+Enter 换行，Tab 触发 AI）";
   }, [composerTarget, curAvatarId, isKP, noRole, notMember, threadRootMessageId]);
+  const inputTextLength = useChatInputUiStore(state => state.plainText.length);
+  const roomContentAlertThreshold = useRealtimeRenderStore(state => state.roomContentAlertThreshold);
+  const isMessageOverThreshold = inputTextLength > roomContentAlertThreshold;
 
   React.useEffect(() => {
     let isActive = true;
@@ -446,20 +449,31 @@ function RoomComposerPanelImpl({
 
   const headerToolbar = headerToolbarControls ?? null;
   const inputArea = (
-    <ChatInputArea
-      ref={chatInputRef}
-      inputScope="composer"
-      onInputSync={onInputSync}
-      onPasteFiles={onPasteFiles}
-      onKeyDown={onKeyDown}
-      onKeyUp={onKeyUp}
-      onMouseDown={onMouseDown}
-      onCompositionStart={onCompositionStart}
-      onCompositionEnd={onCompositionEnd}
-      disabled={inputDisabled}
-      placeholder={placeholderText}
-      className="min-h-10 max-h-[20dvh] overflow-y-auto min-w-0 flex-1"
-    />
+    <div className="relative min-w-0 flex-1">
+      <ChatInputArea
+        ref={chatInputRef}
+        inputScope="composer"
+        onInputSync={onInputSync}
+        onPasteFiles={onPasteFiles}
+        onKeyDown={onKeyDown}
+        onKeyUp={onKeyUp}
+        onMouseDown={onMouseDown}
+        onCompositionStart={onCompositionStart}
+        onCompositionEnd={onCompositionEnd}
+        disabled={inputDisabled}
+        placeholder={placeholderText}
+        className={`min-h-10 max-h-[20dvh] overflow-y-auto min-w-0 flex-1 ${isMessageOverThreshold ? "outline outline-1 outline-warning/70" : ""}`}
+      />
+      <div
+        className={`pointer-events-none absolute right-2 bottom-1 rounded px-1 text-[11px] leading-4 ${
+          isMessageOverThreshold
+            ? "bg-warning/20 text-warning"
+            : "bg-base-200/80 text-base-content/60"
+        }`}
+      >
+        {`${inputTextLength}/${roomContentAlertThreshold}`}
+      </div>
+    </div>
   );
 
   return (
@@ -537,26 +551,7 @@ function RoomComposerPanelImpl({
                   headerToolbar={headerToolbar}
                 />
                 <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-start p-2">
-                  {isMobile
-                    ? (
-                        <div className="flex items-end gap-2">
-                          {inputArea}
-                          <AvatarSwitch
-                            curRoleId={curRoleId}
-                            curAvatarId={curAvatarId}
-                            setCurAvatarId={setCurAvatarId}
-                            setCurRoleId={setCurRoleId}
-                            layout="horizontal"
-                            dropdownPosition="top"
-                            dropdownAlign="end"
-                            showName={false}
-                            avatarWidth={8}
-                          />
-                        </div>
-                      )
-                    : (
-                        inputArea
-                      )}
+                  {inputArea}
 
                   <div className="w-full sm:w-auto flex justify-end sm:block mb-1 sm:mb-0 mt-0 sm:mt-2">
                     <ChatToolbarFromStore

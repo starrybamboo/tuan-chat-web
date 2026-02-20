@@ -13,6 +13,9 @@ export type RealtimeWebgalDefaultLanguage = "" | "zh_CN" | "zh_TW" | "en" | "ja"
 export type RealtimeWebgalBaseTemplate = "none" | "black";
 const DEFAULT_TYPING_SOUND_INTERVAL = 1.5;
 const DEFAULT_TYPING_SOUND_PUNCTUATION_PAUSE = 100;
+export const DEFAULT_ROOM_CONTENT_ALERT_THRESHOLD = 78;
+export const MIN_ROOM_CONTENT_ALERT_THRESHOLD = 20;
+export const MAX_ROOM_CONTENT_ALERT_THRESHOLD = 1024;
 
 export type RealtimeWebgalGameConfig = {
   /** 未设置标题背景图 URL 时，是否将群聊头像同步为 WebGAL 标题背景图（Title_img） */
@@ -81,6 +84,9 @@ type RealtimeRenderState = {
   /** 实时渲染自动填充立绘开关 */
   autoFigureEnabled: boolean;
 
+  /** 单条房间内容预警阈值（超过时提示拆分） */
+  roomContentAlertThreshold: number;
+
   /** TTS API URL（云端：space.extra） */
   ttsApiUrl: string;
 
@@ -115,6 +121,7 @@ type RealtimeRenderState = {
   setTtsEnabled: (value: boolean) => void;
   setMiniAvatarEnabled: (value: boolean) => void;
   setAutoFigureEnabled: (value: boolean) => void;
+  setRoomContentAlertThreshold: (value: number) => void;
   setTtsApiUrl: (value: string) => void;
   setTerrePortOverride: (port: number | null) => void;
   setGameConfig: (next: Partial<RealtimeWebgalGameConfig>) => void;
@@ -180,11 +187,21 @@ function normalizeTypingSoundPunctuationPause(value: unknown): number {
   return Math.max(0, Math.min(5000, Math.floor(raw)));
 }
 
-function buildCloudSettingsSnapshot(state: Pick<RealtimeRenderState, "ttsApiUrl" | "terrePortOverride" | "autoFigureEnabled" | "gameConfig">): RealtimeRenderCloudSettings {
+function normalizeRoomContentAlertThreshold(value: unknown): number {
+  const raw = typeof value === "number" ? value : Number(value);
+  if (!Number.isFinite(raw)) {
+    return DEFAULT_ROOM_CONTENT_ALERT_THRESHOLD;
+  }
+  const normalized = Math.floor(raw);
+  return Math.max(MIN_ROOM_CONTENT_ALERT_THRESHOLD, Math.min(MAX_ROOM_CONTENT_ALERT_THRESHOLD, normalized));
+}
+
+function buildCloudSettingsSnapshot(state: Pick<RealtimeRenderState, "ttsApiUrl" | "terrePortOverride" | "autoFigureEnabled" | "roomContentAlertThreshold" | "gameConfig">): RealtimeRenderCloudSettings {
   return {
     ttsApiUrl: state.ttsApiUrl,
     terrePort: state.terrePortOverride,
     autoFigureEnabled: state.autoFigureEnabled,
+    roomContentAlertThreshold: state.roomContentAlertThreshold,
     coverFromRoomAvatarEnabled: state.gameConfig.coverFromRoomAvatarEnabled,
     titleImageUrl: state.gameConfig.titleImageUrl,
     startupLogoFromRoomAvatarEnabled: state.gameConfig.startupLogoFromRoomAvatarEnabled,
@@ -226,6 +243,7 @@ export const useRealtimeRenderStore = create<RealtimeRenderState>((set, get) => 
   ttsEnabled: false,
   miniAvatarEnabled: false,
   autoFigureEnabled: false,
+  roomContentAlertThreshold: DEFAULT_ROOM_CONTENT_ALERT_THRESHOLD,
   ttsApiUrl: "",
   terrePortOverride: null,
   terrePort: getDefaultTerrePort(),
@@ -245,6 +263,18 @@ export const useRealtimeRenderStore = create<RealtimeRenderState>((set, get) => 
     if (get().autoFigureEnabled === value)
       return;
     set({ autoFigureEnabled: value });
+
+    const state = get();
+    const spaceId = state.activeSpaceId;
+    if (spaceId != null) {
+      enqueuePersist(spaceId, buildCloudSettingsSnapshot(state));
+    }
+  },
+  setRoomContentAlertThreshold: (value) => {
+    const nextValue = normalizeRoomContentAlertThreshold(value);
+    if (get().roomContentAlertThreshold === nextValue)
+      return;
+    set({ roomContentAlertThreshold: nextValue });
 
     const state = get();
     const spaceId = state.activeSpaceId;
@@ -351,6 +381,7 @@ export const useRealtimeRenderStore = create<RealtimeRenderState>((set, get) => 
       const persistedTtsApiUrl = (persisted?.ttsApiUrl ?? "").trim();
       const persistedTerrePortOverride = normalizePort(persisted?.terrePort ?? null);
       const persistedAutoFigureEnabled = persisted?.autoFigureEnabled;
+      const persistedRoomContentAlertThreshold = persisted?.roomContentAlertThreshold;
       const persistedCoverFromRoomAvatarEnabled = persisted?.coverFromRoomAvatarEnabled;
       const persistedTitleImageUrl = persisted?.titleImageUrl;
       const persistedStartupLogoFromRoomAvatarEnabled = persisted?.startupLogoFromRoomAvatarEnabled;
@@ -373,6 +404,7 @@ export const useRealtimeRenderStore = create<RealtimeRenderState>((set, get) => 
       const nextAutoFigureEnabled = typeof persistedAutoFigureEnabled === "boolean"
         ? persistedAutoFigureEnabled
         : false;
+      const nextRoomContentAlertThreshold = normalizeRoomContentAlertThreshold(persistedRoomContentAlertThreshold);
       const nextGameConfig: RealtimeWebgalGameConfig = {
         coverFromRoomAvatarEnabled: typeof persistedCoverFromRoomAvatarEnabled === "boolean"
           ? persistedCoverFromRoomAvatarEnabled
@@ -423,6 +455,7 @@ export const useRealtimeRenderStore = create<RealtimeRenderState>((set, get) => 
         terrePortOverride: nextTerrePortOverride,
         terrePort: nextTerrePortOverride ?? getDefaultTerrePort(),
         autoFigureEnabled: nextAutoFigureEnabled,
+        roomContentAlertThreshold: nextRoomContentAlertThreshold,
         gameConfig: nextGameConfig,
         hydrated: true,
       });

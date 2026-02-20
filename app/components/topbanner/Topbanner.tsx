@@ -44,6 +44,7 @@ export default function Topbar() {
   });
   const webgalLinkMode = useRoomPreferenceStore(state => state.webgalLinkMode);
   const runModeEnabled = useRoomPreferenceStore(state => state.runModeEnabled);
+  const canUseAiImage = import.meta.env.DEV || import.meta.env.MODE === "test";
 
   // 点击外部关闭下拉菜单
   useEffect(() => {
@@ -119,7 +120,7 @@ export default function Topbar() {
   const navItems = [
     { to: "/chat/private", label: "聊天", icon: ChatsIcon },
     { to: "/role", label: "角色", icon: IdentificationCardIcon },
-    ...(import.meta.env.DEV ? [{ to: "/ai-image", label: "AI生图", icon: PaintBrushBroadIcon }] : []),
+    ...(canUseAiImage ? [{ to: "/ai-image", label: "AI生图", icon: PaintBrushBroadIcon }] : []),
   ];
 
   return (

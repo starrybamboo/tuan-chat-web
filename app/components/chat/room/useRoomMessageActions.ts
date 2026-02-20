@@ -15,13 +15,16 @@ type UseRoomMessageActionsParams = {
   roomId: number;
   spaceId: number;
   spaceExtra?: string | null;
+  currentUserId: number;
   isSpaceOwner: boolean;
   curRoleId: number;
   isSubmitting: boolean;
   notMember: boolean;
   mainHistoryMessages: ChatMessageResponse[] | undefined;
   sendMessage: (message: ChatMessageRequest) => Promise<{ success: boolean; data?: ChatMessageResponse["message"] }>;
-  addOrUpdateMessage?: (message: ChatMessageResponse) => void;
+  addOrUpdateMessage?: (message: ChatMessageResponse) => Promise<void> | void;
+  removeMessageById?: (messageId: number) => Promise<void>;
+  replaceMessageById?: (fromMessageId: number, message: ChatMessageResponse) => Promise<void>;
   ensureRuntimeAvatarIdForRole: (roleId: number) => Promise<number>;
   setSpaceExtra: (payload: { spaceId: number; key: string; value: string }) => Promise<unknown>;
   roomUiStoreApi: RoomUiStoreApi;
@@ -37,6 +40,7 @@ export default function useRoomMessageActions({
   roomId,
   spaceId,
   spaceExtra,
+  currentUserId,
   isSpaceOwner,
   curRoleId,
   isSubmitting,
@@ -44,12 +48,139 @@ export default function useRoomMessageActions({
   mainHistoryMessages,
   sendMessage,
   addOrUpdateMessage,
+  removeMessageById,
+  replaceMessageById,
   ensureRuntimeAvatarIdForRole,
   setSpaceExtra,
   roomUiStoreApi,
 }: UseRoomMessageActionsParams): UseRoomMessageActionsResult {
   const webgalVarSendingRef = useRef(false);
   const webgalChooseSendingRef = useRef(false);
+  const optimisticMessageIdRef = useRef(-1);
+
+  const getNextMainFlowPosition = useCallback(() => {
+    if (!mainHistoryMessages?.length) {
+      return Date.now();
+    }
+    let maxPosition = Number.NEGATIVE_INFINITY;
+    for (const item of mainHistoryMessages) {
+      const pos = item?.message?.position;
+      if (typeof pos === "number" && Number.isFinite(pos) && pos > maxPosition) {
+        maxPosition = pos;
+      }
+    }
+    return Number.isFinite(maxPosition) ? maxPosition + 1 : Date.now();
+  }, [mainHistoryMessages]);
+
+  const createOptimisticMessage = useCallback((request: ChatMessageRequest): ChatMessageResponse => {
+    const optimisticMessageId = optimisticMessageIdRef.current;
+    optimisticMessageIdRef.current -= 1;
+    const nowIso = new Date().toISOString();
+    const resolvedPosition = typeof request.position === "number"
+      ? request.position
+      : getNextMainFlowPosition();
+
+    return {
+      message: {
+        messageId: optimisticMessageId,
+        syncId: optimisticMessageId,
+        roomId: request.roomId,
+        userId: currentUserId > 0 ? currentUserId : 0,
+        roleId: request.roleId,
+        content: request.content ?? "",
+        customRoleName: request.customRoleName,
+        annotations: request.annotations,
+        avatarId: request.avatarId,
+        webgal: request.webgal,
+        replyMessageId: request.replayMessageId,
+        status: 0,
+        messageType: request.messageType,
+        threadId: request.threadId,
+        position: resolvedPosition,
+        extra: request.extra as any,
+        createTime: nowIso,
+        updateTime: nowIso,
+      },
+    };
+  }, [currentUserId, getNextMainFlowPosition]);
+
+  const revertOptimisticMessage = useCallback(async (optimisticMessage: ChatMessageResponse) => {
+    const optimisticId = optimisticMessage.message.messageId;
+    if (removeMessageById) {
+      await removeMessageById(optimisticId);
+      return;
+    }
+    if (addOrUpdateMessage) {
+      await addOrUpdateMessage({
+        ...optimisticMessage,
+        message: {
+          ...optimisticMessage.message,
+          status: 1,
+        },
+      });
+    }
+  }, [addOrUpdateMessage, removeMessageById]);
+
+  const commitOptimisticMessage = useCallback(async (
+    optimisticMessage: ChatMessageResponse,
+    createdMessage: ChatMessageResponse["message"],
+  ): Promise<ChatMessageResponse["message"]> => {
+    const normalizedCreated = {
+      ...createdMessage,
+      position: typeof createdMessage.position === "number"
+        ? createdMessage.position
+        : optimisticMessage.message.position,
+    };
+    const createdResponse: ChatMessageResponse = {
+      message: normalizedCreated,
+    };
+
+    if (replaceMessageById) {
+      await replaceMessageById(optimisticMessage.message.messageId, createdResponse);
+      return normalizedCreated;
+    }
+
+    if (removeMessageById) {
+      await removeMessageById(optimisticMessage.message.messageId);
+    }
+    if (addOrUpdateMessage) {
+      await addOrUpdateMessage(createdResponse);
+    }
+    return normalizedCreated;
+  }, [addOrUpdateMessage, removeMessageById, replaceMessageById]);
+
+  const sendWithOptimistic = useCallback(async (request: ChatMessageRequest, errorLogLabel: string) => {
+    const optimisticMessage = createOptimisticMessage(request);
+    if (addOrUpdateMessage) {
+      void addOrUpdateMessage(optimisticMessage);
+    }
+
+    try {
+      const result = await sendMessage(request);
+      if (!result.success || !result.data) {
+        await revertOptimisticMessage(optimisticMessage);
+        toast.error("发送消息失败");
+        return null;
+      }
+
+      const created = await commitOptimisticMessage(optimisticMessage, result.data);
+      roomUiStoreApi.getState().pushMessageUndo({ type: "send", after: created });
+      return created;
+    }
+    catch (error) {
+      console.error(errorLogLabel, error);
+      await revertOptimisticMessage(optimisticMessage);
+      toast.error("发送消息失败");
+      return null;
+    }
+  }, [
+    addOrUpdateMessage,
+    commitOptimisticMessage,
+    createOptimisticMessage,
+    revertOptimisticMessage,
+    roomUiStoreApi,
+    sendMessage,
+  ]);
 
   const sendMessageWithInsert = useCallback(async (message: ChatMessageRequest) => {
     const insertAfterMessageId = roomUiStoreApi.getState().insertAfterMessageId;
@@ -57,72 +188,24 @@ export default function useRoomMessageActions({
     if (insertAfterMessageId && mainHistoryMessages?.length) {
       const targetIndex = mainHistoryMessages.findIndex(m => m.message.messageId === insertAfterMessageId);
       if (targetIndex === -1) {
-        const fallbackResult = await sendMessage(message);
-        if (!fallbackResult.success || !fallbackResult.data) {
-          toast.error("发送消息失败");
-          return null;
-        }
-        const created = fallbackResult.data;
-        addOrUpdateMessage?.({ message: created });
-        roomUiStoreApi.getState().pushMessageUndo({ type: "send", after: created });
-        return created;
+        return await sendWithOptimistic(message, "插入消息失败（fallback 路径）");
       }
 
-      try {
-        const targetMessage = mainHistoryMessages[targetIndex];
-        const nextMessage = mainHistoryMessages[targetIndex + 1];
-        const targetPosition = targetMessage.message.position;
-        const nextPosition = nextMessage?.message.position ?? targetPosition + 1;
-        // 插入消息：先计算新 position，随发送请求一次性写入
-        const newPosition = (targetPosition + nextPosition) / 2;
+      const targetMessage = mainHistoryMessages[targetIndex];
+      const nextMessage = mainHistoryMessages[targetIndex + 1];
+      const targetPosition = targetMessage.message.position;
+      const nextPosition = nextMessage?.message.position ?? targetPosition + 1;
+      // 插入消息：先计算新 position，随发送请求一次性写入
+      const newPosition = (targetPosition + nextPosition) / 2;
 
-        const result = await sendMessage({
-          ...message,
-          position: newPosition,
-        });
-        if (!result.success || !result.data) {
-          toast.error("发送消息失败");
-          return null;
-        }
-
-        const created = {
-          ...result.data,
-          position: result.data.position ?? newPosition,
-        };
-
-        if (addOrUpdateMessage) {
-          addOrUpdateMessage({
-            message: created,
-          });
-        }
-        roomUiStoreApi.getState().pushMessageUndo({ type: "send", after: created });
-        return created;
-      }
-      catch (error) {
-        console.error("插入消息失败", error);
-        toast.error("发送消息失败");
-        return null;
-      }
+      return await sendWithOptimistic({
+        ...message,
+        position: newPosition,
+      }, "插入消息失败");
     }
-    else {
-      try {
-        const result = await sendMessage(message);
-        if (!result.success || !result.data) {
-          toast.error("发送消息失败");
-          return null;
-        }
-        const created = result.data;
-        addOrUpdateMessage?.({ message: created });
-        roomUiStoreApi.getState().pushMessageUndo({ type: "send", after: created });
-        return created;
-      }
-      catch (error) {
-        console.error("发送消息失败", error);
-        toast.error("发送消息失败");
-        return null;
-      }
-    }
-  }, [addOrUpdateMessage, mainHistoryMessages, roomUiStoreApi, sendMessage]);
+
+    return await sendWithOptimistic(message, "发送消息失败");
+  }, [mainHistoryMessages, roomUiStoreApi, sendWithOptimistic]);
 
   const handleSetWebgalVar = useCallback(async (key: string, expr: string) => {
     const rawKey = String(key ?? "").trim();

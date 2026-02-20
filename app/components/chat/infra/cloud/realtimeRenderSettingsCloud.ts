@@ -4,6 +4,7 @@ export type RealtimeRenderCloudSettings = {
   ttsApiUrl?: string;
   terrePort?: number | null;
   autoFigureEnabled?: boolean;
+  roomContentAlertThreshold?: number;
   baseTemplate?: string;
   coverFromRoomAvatarEnabled?: boolean;
   titleImageUrl?: string;
