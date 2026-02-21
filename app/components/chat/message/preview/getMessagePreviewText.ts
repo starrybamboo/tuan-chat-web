@@ -1,3 +1,4 @@
+import { extractRoomJumpPayload } from "@/components/chat/utils/roomJump";
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
 import { extractWebgalChoosePayload, formatWebgalChooseSummary } from "@/types/webgalChoose";
 import { extractWebgalVarPayload, formatWebgalVarSummary } from "@/types/webgalVar";
@@ -49,6 +50,13 @@ export function getMessagePreviewText(message?: Message | null): string {
   const extra: any = message.extra as any;
   const content = typeof message.content === "string" ? message.content : "";
   const trimmedContent = content.trim();
+  const roomJumpPayload = extractRoomJumpPayload(extra);
+  if (roomJumpPayload) {
+    const title = safeTrim(roomJumpPayload.label)
+      || safeTrim(roomJumpPayload.roomName)
+      || `群聊 #${roomJumpPayload.roomId}`;
+    return withTag("群聊", title);
+  }
 
   switch (message.messageType) {
     case MESSAGE_TYPE.TEXT:

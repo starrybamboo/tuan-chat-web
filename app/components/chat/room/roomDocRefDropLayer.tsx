@@ -1,17 +1,20 @@
 import type { DocRefDragPayload } from "@/components/chat/utils/docRef";
+import type { RoomRefDragPayload } from "@/components/chat/utils/roomRef";
 
 import React, { useCallback, useEffect, useRef, useState } from "react";
 
 import DocRefDragOverlay from "@/components/chat/shared/components/docRefDragOverlay";
 import { getFileDragOverlayText, isFileDrag } from "@/components/chat/utils/dndUpload";
 import { getDocRefDragData, isDocRefDrag } from "@/components/chat/utils/docRef";
+import { getRoomRefDragData, isRoomRefDrag } from "@/components/chat/utils/roomRef";
 
 interface RoomDocRefDropLayerProps {
   onSendDocCard: (payload: DocRefDragPayload) => Promise<void> | void;
+  onSendRoomJump: (payload: RoomRefDragPayload) => Promise<void> | void;
   children: React.ReactNode;
 }
 
-export default function RoomDocRefDropLayer({ onSendDocCard, children }: RoomDocRefDropLayerProps) {
+export default function RoomDocRefDropLayer({ onSendDocCard, onSendRoomJump, children }: RoomDocRefDropLayerProps) {
   const [dragOverlayLabel, setDragOverlayLabel] = useState<string | null>(null);
   const dragOverlayLabelRef = useRef<string | null>(null);
   const getDragOverTargetZone = useCallback((target: EventTarget | null) => {
@@ -31,6 +34,7 @@ export default function RoomDocRefDropLayer({ onSendDocCard, children }: RoomDoc
 
   const handleDragOver = useCallback((event: React.DragEvent<HTMLDivElement>) => {
     const isDocRef = isDocRefDrag(event.dataTransfer);
+    const isRoomRef = isRoomRefDrag(event.dataTransfer);
     const isFile = isFileDrag(event.dataTransfer);
     const inSubWindowDropZone = isSubWindowDropZone(event.target);
     if (inSubWindowDropZone) {
@@ -40,6 +44,12 @@ export default function RoomDocRefDropLayer({ onSendDocCard, children }: RoomDoc
     const targetZone = getDragOverTargetZone(event.target);
     if (!targetZone) {
       updateDragOverlayLabel(null);
+      return;
+    }
+    if (isRoomRef) {
+      updateDragOverlayLabel("松开发送群聊跳转");
+      event.preventDefault();
+      event.dataTransfer.dropEffect = "copy";
       return;
     }
     if (isDocRef) {
@@ -70,13 +80,14 @@ export default function RoomDocRefDropLayer({ onSendDocCard, children }: RoomDoc
   const handleDrop = useCallback((event: React.DragEvent<HTMLDivElement>) => {
     updateDragOverlayLabel(null);
     const isDocRef = isDocRefDrag(event.dataTransfer);
+    const isRoomRef = isRoomRefDrag(event.dataTransfer);
     const isFile = isFileDrag(event.dataTransfer);
     const inSubWindowDropZone = isSubWindowDropZone(event.target);
     if (inSubWindowDropZone) {
       return;
     }
     if (!getDragOverTargetZone(event.target)) {
-      if (isDocRef || isFile) {
+      if (isDocRef || isRoomRef || isFile) {
         event.preventDefault();
       }
       return;
@@ -86,6 +97,13 @@ export default function RoomDocRefDropLayer({ onSendDocCard, children }: RoomDoc
       event.preventDefault();
       return;
     }
+    const roomRef = getRoomRefDragData(event.dataTransfer);
+    if (roomRef && isRoomRef) {
+      event.preventDefault();
+      event.stopPropagation();
+      void onSendRoomJump(roomRef);
+      return;
+    }
     const docRef = getDocRefDragData(event.dataTransfer);
     if (!docRef) {
       return;
@@ -93,7 +111,7 @@ export default function RoomDocRefDropLayer({ onSendDocCard, children }: RoomDoc
     event.preventDefault();
     event.stopPropagation();
     void onSendDocCard(docRef);
-  }, [getDragOverTargetZone, isSubWindowDropZone, onSendDocCard, updateDragOverlayLabel]);
+  }, [getDragOverTargetZone, isSubWindowDropZone, onSendDocCard, onSendRoomJump, updateDragOverlayLabel]);
 
   useEffect(() => {
     const handleGlobalDragEnd = () => {

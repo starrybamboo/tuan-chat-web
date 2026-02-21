@@ -136,6 +136,7 @@ export default function RoomSidebarCategory({
       {!isCollapsed && (
         <RoomSidebarCategoryBody
           categoryId={cat.categoryId}
+          categoryName={cat.name}
           canEdit={canEdit}
           isSpaceOwner={isSpaceOwner}
           items={items}

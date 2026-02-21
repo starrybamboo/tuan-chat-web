@@ -9,6 +9,7 @@ import RoomSidebarCategoryItems from "@/components/chat/room/roomSidebarCategory
 
 interface RoomSidebarCategoryBodyProps {
   categoryId: string;
+  categoryName: string;
   canEdit: boolean;
   isSpaceOwner: boolean;
   items: SidebarLeafNode[];
@@ -45,6 +46,7 @@ interface RoomSidebarCategoryBodyProps {
 
 export default function RoomSidebarCategoryBody({
   categoryId,
+  categoryName,
   canEdit,
   isSpaceOwner,
   items,
@@ -102,6 +104,7 @@ export default function RoomSidebarCategoryBody({
     >
       <RoomSidebarCategoryItems
         categoryId={categoryId}
+        categoryName={categoryName}
         canEdit={canEdit}
         isSpaceOwner={isSpaceOwner}
         items={items}

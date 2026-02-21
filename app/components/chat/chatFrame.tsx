@@ -30,8 +30,8 @@ import { ANNOTATION_IDS, areAnnotationsEqual, hasAnnotation, normalizeAnnotation
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
 import { extractWebgalChoosePayload } from "@/types/webgalChoose";
 import {
+  useBatchSendMessageMutation,
   useDeleteMessageMutation,
-  useSendMessageMutation,
   useUpdateMessageMutation,
 } from "../../../api/hooks/chatQueryHooks";
 
@@ -120,7 +120,7 @@ function ChatFrame(props: ChatFrameProps) {
   const [webgalChooseEditorError, setWebgalChooseEditorError] = useState<string | null>(null);
   const [webgalChooseEditorMessageId, setWebgalChooseEditorMessageId] = useState<number | null>(null);
 
-  const sendMessageMutation = useSendMessageMutation(roomId);
+  const batchSendMessageMutation = useBatchSendMessageMutation(roomId);
 
   // Mutations
   const deleteMessageMutation = useDeleteMessageMutation();
@@ -335,6 +335,11 @@ function ChatFrame(props: ChatFrameProps) {
   /**
    * 消息选择
    */
+  const orderedMessageIds = useMemo(
+    () => historyMessages.map(message => message.message.messageId),
+    [historyMessages],
+  );
+
   const {
     selectedMessageIds,
     updateSelectedMessageIds,
@@ -354,6 +359,7 @@ function ChatFrame(props: ChatFrameProps) {
     deleteMessage,
     toggleUseChatBubbleStyle,
     setReplyMessage,
+    orderedMessageIds,
     onJumpToWebGAL: roomContext.jumpToMessageInWebGAL,
   });
 
@@ -407,7 +413,7 @@ function ChatFrame(props: ChatFrameProps) {
     curRoleId,
     curAvatarId,
     send,
-    sendMessageAsync: sendMessageMutation.mutateAsync,
+    batchSendMessagesAsync: batchSendMessageMutation.mutateAsync,
     updateMessage,
     setIsForwardWindowOpen,
     clearSelection,

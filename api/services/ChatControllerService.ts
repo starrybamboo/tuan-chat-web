@@ -39,6 +39,29 @@ export class ChatControllerService {
         });
     }
     /**
+     * 批量发送消息
+     * 一次性发送多条消息，并批量入库
+     * @param requestBody
+     * @returns ApiResultListMessage OK
+     * @throws ApiError
+     */
+    public batchSendMessages(
+        requestBody: Array<ChatMessageRequest>,
+    ): CancelablePromise<ApiResultListMessage> {
+        return this.httpRequest.request({
+            method: 'POST',
+            url: '/chat/message/batch',
+            body: requestBody,
+            mediaType: 'application/json',
+            errors: {
+                400: `Bad Request`,
+                405: `Method Not Allowed`,
+                429: `Too Many Requests`,
+                500: `Internal Server Error`,
+            },
+        });
+    }
+    /**
      * 根据ID获取单条消息
      * 返回指定ID的消息详情
      * @param messageId

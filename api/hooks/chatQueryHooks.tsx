@@ -347,6 +347,17 @@ export function useSendMessageMutation(roomId: number) {
 }
 
 /**
+ * 批量发送消息（批量插入）
+ * @param roomId 关联的群聊ID（用于 mutation key 隔离）
+ */
+export function useBatchSendMessageMutation(roomId: number) {
+    return useMutation({
+        mutationFn: (req: ChatMessageRequest[]) => tuanchat.chatController.batchSendMessages(req),
+        mutationKey: ['batchSendMessage', roomId],
+    });
+}
+
+/**
  * 分页获取消息
  * @param requestBody 分页请求参数
  */

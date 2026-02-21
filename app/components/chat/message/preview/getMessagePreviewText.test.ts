@@ -44,6 +44,21 @@ describe("getMessagePreviewText", () => {
     expect(getMessagePreviewText(msg)).toBe("[检定请求] .rc 射击");
   });
 
+  it("群聊跳转消息优先显示 roomJump 标题", () => {
+    const msg = createBaseMessage({
+      messageType: MESSAGE_TYPE.TEXT,
+      content: "普通文本",
+      extra: {
+        roomJump: {
+          spaceId: 100,
+          roomId: 200,
+          label: "前往测试群聊",
+        },
+      } as any,
+    });
+    expect(getMessagePreviewText(msg)).toBe("[群聊] 前往测试群聊");
+  });
+
   it("骰娘消息优先使用 diceResult.result", () => {
     const msg = createBaseMessage({
       messageType: MESSAGE_TYPE.DICE,

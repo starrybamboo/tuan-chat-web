@@ -14,12 +14,14 @@ import AudioMessage from "@/components/chat/message/media/AudioMessage";
 import CachedVideoMessage from "@/components/chat/message/media/CachedVideoMessage";
 import ForwardMessage from "@/components/chat/message/preview/forwardMessage";
 import { PreviewMessage } from "@/components/chat/message/preview/previewMessage";
+import RoomJumpMessage from "@/components/chat/message/roomJump/roomJumpMessage";
 import WebgalChooseMessage from "@/components/chat/message/webgalChooseMessage";
 import { useRealtimeRenderStore } from "@/components/chat/stores/realtimeRenderStore";
 import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
 import { useRoomRoleSelectionStore } from "@/components/chat/stores/roomRoleSelectionStore";
 import { useRoomUiStore, useRoomUiStoreApi } from "@/components/chat/stores/roomUiStore";
 import { getDisplayRoleName } from "@/components/chat/utils/roleDisplayName";
+import { extractRoomJumpPayload } from "@/components/chat/utils/roomJump";
 import BetterImg from "@/components/common/betterImg";
 import RoleAvatarComponent from "@/components/common/roleAvatar";
 import toastWindow from "@/components/common/toastWindow/toastWindow";
@@ -840,6 +842,8 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
     const extra = message.extra as any;
     const docCardPayload = extra?.docCard;
     const hasDocCard = message.messageType === MESSAGE_TYPE.DOC_CARD || Boolean(docCardPayload);
+    const roomJumpPayload = extractRoomJumpPayload(message.extra);
+    const hasRoomJump = Boolean(roomJumpPayload);
 
     const commandRequest = extra?.commandRequest as CommandRequestPayload | undefined;
     const hasCommandRequest = message.messageType === MESSAGE_TYPE.COMMAND_REQUEST || Boolean(commandRequest);
@@ -847,6 +851,10 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
     const bodyNode = (() => {
       if (hasDocCard) {
         return <DocCardMessage messageResponse={chatMessageResponse} />;
+      }
+
+      if (hasRoomJump) {
+        return <RoomJumpMessage messageResponse={chatMessageResponse} />;
       }
 
       if (hasCommandRequest) {

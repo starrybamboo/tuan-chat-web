@@ -5,6 +5,12 @@ import { useCallback } from "react";
 type UseChatFrameMessageClickParams = {
   isSelecting: boolean;
   toggleMessageSelection: (messageId: number) => void;
+  selectMessageRange: (params: {
+    orderedMessageIds: number[];
+    targetMessageId: number;
+    preserveExisting?: boolean;
+  }) => void;
+  orderedMessageIds: number[];
   onJumpToWebGAL?: (messageId: number) => void;
 };
 
@@ -27,6 +33,8 @@ function hasSelectionInContainer(container: HTMLElement) {
 export default function useChatFrameMessageClick({
   isSelecting,
   toggleMessageSelection,
+  selectMessageRange,
+  orderedMessageIds,
   onJumpToWebGAL,
 }: UseChatFrameMessageClickParams) {
   return useCallback((e: MouseEvent<HTMLElement>, messageId: number) => {
@@ -37,8 +45,18 @@ export default function useChatFrameMessageClick({
 
     const target = e.target as HTMLElement;
     const isButtonClick = target.closest("button") || target.closest("[role=\"button\"]") || target.closest(".btn");
+    const isModifierPressed = e.ctrlKey || e.metaKey;
 
-    if (isSelecting || e.ctrlKey) {
+    if (e.shiftKey) {
+      selectMessageRange({
+        orderedMessageIds,
+        targetMessageId: messageId,
+        preserveExisting: isModifierPressed,
+      });
+      return;
+    }
+
+    if (isSelecting || isModifierPressed) {
       toggleMessageSelection(messageId);
       return;
     }
@@ -46,5 +64,5 @@ export default function useChatFrameMessageClick({
     if (onJumpToWebGAL && !isButtonClick) {
       onJumpToWebGAL(messageId);
     }
-  }, [isSelecting, onJumpToWebGAL, toggleMessageSelection]);
+  }, [isSelecting, onJumpToWebGAL, orderedMessageIds, selectMessageRange, toggleMessageSelection]);
 }

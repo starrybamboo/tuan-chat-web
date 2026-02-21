@@ -1,4 +1,4 @@
-import { ArrowClockwise, ArrowCounterClockwise, ArrowSquareIn, DotsThreeVerticalIcon, ExportIcon, FilmStrip } from "@phosphor-icons/react";
+import { ArrowClockwise, ArrowCounterClockwise, ArrowSquareIn, Broom, DotsThreeVerticalIcon, ExportIcon, FilmStrip } from "@phosphor-icons/react";
 import React from "react";
 import { useLocation } from "react-router";
 import SearchBar from "@/components/chat/input/inlineSearch";
@@ -6,6 +6,7 @@ import MobileSearchPage from "@/components/chat/input/mobileSearchPage";
 import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
 import { useRoomUiStore } from "@/components/chat/stores/roomUiStore";
 import { useSideDrawerStore } from "@/components/chat/stores/sideDrawerStore";
+import ConfirmModal from "@/components/common/comfirmModel";
 import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
 import {
   BaselineArrowBackIosNew,
@@ -21,8 +22,10 @@ interface RoomHeaderBarProps {
   toggleLeftDrawer: () => void;
   onCloseSubWindow?: () => void;
   onExportPremiere?: () => void;
+  onClearAndReloadAllMessages?: () => void | Promise<void>;
   onUndo?: () => void;
   onRedo?: () => void;
+  isReloadingAllMessages?: boolean;
   canUndo?: boolean;
   canRedo?: boolean;
 }
@@ -32,8 +35,10 @@ function RoomHeaderBarImpl({
   toggleLeftDrawer,
   onCloseSubWindow,
   onExportPremiere,
+  onClearAndReloadAllMessages,
   onUndo,
   onRedo,
+  isReloadingAllMessages = false,
   canUndo = false,
   canRedo = false,
 }: RoomHeaderBarProps) {
@@ -48,7 +53,10 @@ function RoomHeaderBarImpl({
   const isMobile = getScreenSize() === "sm";
   const location = useLocation();
   const [isMobileSearchOpen, setIsMobileSearchOpen] = React.useState(false);
+  const [isClearReloadConfirmOpen, setIsClearReloadConfirmOpen] = React.useState(false);
   const hasSideDrawerOpen = sideDrawerState !== "none";
+  const canUseDevTools = Boolean(import.meta.env?.DEV) || import.meta.env.MODE === "test";
+  const canClearAndReloadMessages = canUseDevTools && Boolean(onClearAndReloadAllMessages);
 
   const closeThreadPane = () => {
     setComposerTarget("main");
@@ -84,6 +92,13 @@ function RoomHeaderBarImpl({
     closeThreadPane();
     onExportPremiere?.();
     blurActiveElement();
+  };
+
+  const handleRequestClearAndReloadMessages = () => {
+    if (!canClearAndReloadMessages || isReloadingAllMessages) {
+      return;
+    }
+    setIsClearReloadConfirmOpen(true);
   };
 
   const handleToggleMemberDrawer = () => {
@@ -166,6 +181,19 @@ function RoomHeaderBarImpl({
             </span>
           </div>
           <div className="flex gap-2 items-center overflow-visible">
+            {canClearAndReloadMessages && (
+              <div className="tooltip tooltip-bottom relative z-50" data-tip="清空本地并重拉全量消息（开发/测试）">
+                <button
+                  type="button"
+                  className="btn btn-ghost btn-square btn-xs text-warning"
+                  disabled={isReloadingAllMessages}
+                  onClick={handleRequestClearAndReloadMessages}
+                  aria-label="清空并重拉消息（开发/测试）"
+                >
+                  <Broom className="size-5" />
+                </button>
+              </div>
+            )}
             <div className="tooltip tooltip-bottom relative z-50" data-tip="撤销 (Ctrl+Z)">
               <button
                 type="button"
@@ -276,6 +304,26 @@ function RoomHeaderBarImpl({
         </div>
       </div>
       <MobileSearchPage isOpen={isMobileSearchOpen} onClose={() => setIsMobileSearchOpen(false)} />
+      <ConfirmModal
+        isOpen={isClearReloadConfirmOpen}
+        onClose={() => {
+          if (isReloadingAllMessages) {
+            return;
+          }
+          setIsClearReloadConfirmOpen(false);
+        }}
+        title="确认清空并重拉消息"
+        message="此操作会清空当前房间本地缓存消息，并从服务端重新拉取全量历史消息。是否继续？"
+        confirmText="确认执行"
+        variant="warning"
+        onConfirm={() => {
+          if (!onClearAndReloadAllMessages) {
+            return;
+          }
+          setIsClearReloadConfirmOpen(false);
+          void onClearAndReloadAllMessages();
+        }}
+      />
     </>
   );
 }

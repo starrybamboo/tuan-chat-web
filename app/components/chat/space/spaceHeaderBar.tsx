@@ -1,5 +1,5 @@
 import type { SpaceDetailTab } from "@/components/chat/chatPage.types";
-import { ArchiveIcon, HouseIcon, PlusIcon } from "@phosphor-icons/react";
+import { ArchiveIcon, ArrowCounterClockwise, HouseIcon, PlusIcon } from "@phosphor-icons/react";
 import React from "react";
 import toast from "react-hot-toast";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
@@ -14,6 +14,7 @@ interface SpaceHeaderBarProps {
   onOpenSpaceDetailPanel: (tab: SpaceDetailTab) => void;
   onCloseLeftDrawer?: () => void;
   onAddCategory?: () => void;
+  onResetSidebarTreeToDefault?: () => void | Promise<void>;
   onInviteMember: () => void;
   onToggleLeftDrawer?: () => void;
   isLeftDrawerOpen?: boolean;
@@ -26,6 +27,7 @@ export default function SpaceHeaderBar({
   onOpenSpaceDetailPanel,
   onCloseLeftDrawer,
   onAddCategory,
+  onResetSidebarTreeToDefault,
   onInviteMember,
   onToggleLeftDrawer,
   isLeftDrawerOpen,
@@ -36,10 +38,14 @@ export default function SpaceHeaderBar({
   const archived = Boolean(isArchived);
   const [isArchiveConfirmOpen, setIsArchiveConfirmOpen] = React.useState(false);
   const [archiveTargetSpaceId, setArchiveTargetSpaceId] = React.useState<number | null>(null);
+  const [isResetConfirmOpen, setIsResetConfirmOpen] = React.useState(false);
+  const [isResettingSidebarTree, setIsResettingSidebarTree] = React.useState(false);
+  const isDevOrTest = Boolean(import.meta.env?.DEV) || import.meta.env.MODE === "test";
   const archiveActionLabel = updateArchiveStatus.isPending
     ? (archived ? "取消归档中..." : "归档中...")
     : (archived ? "取消归档" : "归档空间");
   const leftDrawerLabel = isLeftDrawerOpen ? "收起侧边栏" : "展开侧边栏";
+  const canResetSidebarTree = isDevOrTest && isSpaceOwner && Boolean(onResetSidebarTreeToDefault);
 
   const handleToggleArchive = (targetSpaceId: number, nextArchived: boolean) => {
     if (updateArchiveStatus.isPending) {
@@ -76,6 +82,34 @@ export default function SpaceHeaderBar({
   const handleOpenSpaceDetail = (tab: SpaceDetailTab) => {
     onOpenSpaceDetailPanel(tab);
     onCloseLeftDrawer?.();
+  };
+
+  const handleRequestResetSidebarTree = () => {
+    if (!onResetSidebarTreeToDefault || isResettingSidebarTree) {
+      return;
+    }
+    setIsResetConfirmOpen(true);
+  };
+
+  const handleConfirmResetSidebarTree = async () => {
+    if (!onResetSidebarTreeToDefault || isResettingSidebarTree) {
+      return;
+    }
+    setIsResetConfirmOpen(false);
+    setIsResettingSidebarTree(true);
+    const toastId = "space-sidebar-tree-reset";
+    toast.loading("正在重置侧边树...", { id: toastId });
+    try {
+      await onResetSidebarTreeToDefault();
+      toast.success("侧边树已重置为默认结构", { id: toastId });
+    }
+    catch (error) {
+      console.error("[SidebarTree] reset to default failed", error);
+      toast.error("重置侧边树失败，请重试", { id: toastId });
+    }
+    finally {
+      setIsResettingSidebarTree(false);
+    }
   };
 
   return (
@@ -173,6 +207,19 @@ export default function SpaceHeaderBar({
                 </button>
               </li>
             )}
+            {canResetSidebarTree && (
+              <li>
+                <button
+                  type="button"
+                  className="gap-3 text-warning"
+                  disabled={isResettingSidebarTree}
+                  onClick={handleRequestResetSidebarTree}
+                >
+                  <ArrowCounterClockwise className="size-4 opacity-80" />
+                  <span className="flex-1 text-left">重置侧边树（开发）</span>
+                </button>
+              </li>
+            )}
           </ul>
         </div>
         <div className="flex gap-2 shrink-0 mr-2">
@@ -219,6 +266,22 @@ export default function SpaceHeaderBar({
           setIsArchiveConfirmOpen(false);
           setArchiveTargetSpaceId(null);
           handleToggleArchive(targetSpaceId, true);
+        }}
+      />
+      <ConfirmModal
+        isOpen={isResetConfirmOpen}
+        onClose={() => {
+          if (isResettingSidebarTree) {
+            return;
+          }
+          setIsResetConfirmOpen(false);
+        }}
+        title="确认重置侧边树"
+        message="开发者操作：将左侧分类树重置为默认结构。是否继续？"
+        confirmText="确认重置"
+        variant="warning"
+        onConfirm={() => {
+          void handleConfirmResetSidebarTree();
         }}
       />
     </>
