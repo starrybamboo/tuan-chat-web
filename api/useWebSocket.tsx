@@ -35,6 +35,7 @@ import { requestPlayBgmMessageWithUrl } from "@/components/chat/infra/audioMessa
 import { useAudioMessageAutoPlayStore } from "@/components/chat/stores/audioMessageAutoPlayStore";
 import { applyRoomDndMapChange, roomDndMapQueryKey } from "@/components/chat/shared/map/roomDndMapApi";
 import { readGroupMessagePopupEnabledFromLocalStorage } from "@/components/settings/notificationPreferences";
+import { showDesktopNotification } from "@/utils/desktopNotification";
 
 /**
  * 成员的输入状态（不包含roomId）
@@ -773,6 +774,14 @@ export function useWebSocket() {
         duration: 6000,
       },
     );
+
+    void showDesktopNotification({
+      title: `${displayName} 给你发来私信`,
+      body: previewText,
+      icon: avatar,
+      targetPath: `/chat/private/${message.senderId}`,
+      tag: toastId,
+    });
   }, [queryClient]);
 
   const notifyNewGroupMessage = useCallback(async (chatMessageResponse: ChatMessageResponse) => {
@@ -883,6 +892,14 @@ export function useWebSocket() {
         duration: 7000,
       },
     );
+
+    void showDesktopNotification({
+      title: `${roomName} · ${senderName}`,
+      body: previewText,
+      icon: senderAvatar,
+      targetPath,
+      tag: toastId,
+    });
   }, [queryClient, resolveSelfUserId]);
 
   /**

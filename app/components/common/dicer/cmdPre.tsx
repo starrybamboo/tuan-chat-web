@@ -13,7 +13,7 @@ import {
   useSetRoleAbilityMutation,
   useUpdateRoleAbilityByRoleIdMutation,
 } from "../../../../api/hooks/abilityQueryHooks";
-import { useGetSpaceInfoQuery, useSendMessageMutation, useSetSpaceExtraMutation } from "../../../../api/hooks/chatQueryHooks";
+import { useBatchSendMessageMutation, useGetSpaceInfoQuery, useSendMessageMutation, useSetSpaceExtraMutation } from "../../../../api/hooks/chatQueryHooks";
 import { useGetRoleQuery } from "../../../../api/hooks/RoleAndAvatarHooks";
 import { tuanchat } from "../../../../api/instance";
 
@@ -69,6 +69,7 @@ export default function useCommandExecutor(roleId: number, ruleId: number, roomC
   const updateAbilityMutation = useUpdateRoleAbilityByRoleIdMutation(); // 更改属性与能力字段
   const setAbilityMutation = useSetRoleAbilityMutation(); // 创建新的能力组
   const sendMessageMutation = useSendMessageMutation(roomId); // 发送消息
+  const batchSendMessageMutation = useBatchSendMessageMutation(roomId); // 批量发送消息
   const setSpaceExtraMutation = useSetSpaceExtraMutation(); // 设置空间 extra 字段
 
   const curRoleId = roomContext.curRoleId; // 当前选中的角色id
@@ -97,16 +98,19 @@ export default function useCommandExecutor(roleId: number, ruleId: number, roomC
       ? commandPositionRaw
       : null;
 
-    for (let index = 0; index < dicerRequests.length; index++) {
-      const request = dicerRequests[index];
-      const nextRequest: ChatMessageRequest = {
-        ...request,
-        ...(commandMessageId && request.replayMessageId == null ? { replayMessageId: commandMessageId } : {}),
-        ...(commandPosition !== null
-          ? { position: commandPosition + ((index + 1) * DICE_BATCH_POSITION_STEP) }
-          : {}),
-      };
-      await sendMessageMutation.mutateAsync(nextRequest);
+    const nextBatchRequests = dicerRequests.map((request, index) => ({
+      ...request,
+      ...(commandMessageId && request.replayMessageId == null ? { replayMessageId: commandMessageId } : {}),
+      ...(commandPosition !== null
+        ? { position: commandPosition + ((index + 1) * DICE_BATCH_POSITION_STEP) }
+        : {}),
+    }));
+
+    if (nextBatchRequests.length > 0) {
+      const batchResult = await batchSendMessageMutation.mutateAsync(nextBatchRequests);
+      if (!batchResult?.success) {
+        throw new Error("批量发送骰娘消息失败");
+      }
     }
 
     return {

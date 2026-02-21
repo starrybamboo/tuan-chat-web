@@ -41,6 +41,17 @@ export type IElectronAPI = {
     height: number;
     model: string;
   }>;
+  showDesktopNotification?: (payload: {
+    title: string;
+    body: string;
+    icon?: string;
+    targetPath?: string;
+    tag?: string;
+    silent?: boolean;
+  }) => Promise<{
+    ok: boolean;
+    reason?: string;
+  }>;
 };
 
 // This extends the global Window interface

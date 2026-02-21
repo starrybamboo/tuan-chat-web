@@ -74,6 +74,7 @@ export default function ChatRoomListPanel({
   docMetas,
   onSelectDoc,
   onSaveSidebarTree,
+  onResetSidebarTreeToDefault,
   activeRoomId,
   activeDocId,
   unreadMessagesNumber,
@@ -279,6 +280,7 @@ export default function ChatRoomListPanel({
                     onOpenSpaceDetailPanel={onOpenSpaceDetailPanel}
                     onCloseLeftDrawer={onCloseLeftDrawer}
                     onAddCategory={canEdit ? openAddCategory : undefined}
+                    onResetSidebarTreeToDefault={canEdit ? onResetSidebarTreeToDefault : undefined}
                     onInviteMember={onInviteMember}
                     onToggleLeftDrawer={onToggleLeftDrawer}
                     isLeftDrawerOpen={isLeftDrawerOpen}

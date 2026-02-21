@@ -3,6 +3,7 @@ import type { Room } from "../../../../api";
 import type { DraggingItem, DropTarget } from "./useRoomSidebarDragState";
 
 import RoomButton from "@/components/chat/shared/components/roomButton";
+import { setRoomRefDragData } from "@/components/chat/utils/roomRef";
 import { setSubWindowDragPayload } from "@/components/chat/utils/subWindowDragPayload";
 
 const ROOM_DRAG_MIME = "application/x-tuanchat-room-id";
@@ -10,8 +11,10 @@ const ROOM_DRAG_MIME = "application/x-tuanchat-room-id";
 interface RoomSidebarRoomItemProps {
   room: Room;
   roomId: number;
+  activeSpaceId: number | null;
   nodeId: string;
   categoryId: string;
+  categoryName: string;
   index: number;
   canEdit: boolean;
   dragging: DraggingItem | null;
@@ -29,8 +32,10 @@ interface RoomSidebarRoomItemProps {
 export default function RoomSidebarRoomItem({
   room,
   roomId,
+  activeSpaceId,
   nodeId,
   categoryId,
+  categoryName,
   index,
   canEdit,
   dragging,
@@ -50,9 +55,16 @@ export default function RoomSidebarRoomItem({
       e.preventDefault();
       return;
     }
-    e.dataTransfer.effectAllowed = canEdit ? "move" : "copy";
+    // 允许“同列表内 move 排序 + 拖到聊天区 copy 发送跳转消息”。
+    e.dataTransfer.effectAllowed = canEdit ? "copyMove" : "copy";
     e.dataTransfer.setData(ROOM_DRAG_MIME, String(roomId));
     e.dataTransfer.setData("text/plain", `room:${roomId}`);
+    setRoomRefDragData(e.dataTransfer, {
+      roomId,
+      ...(activeSpaceId && activeSpaceId > 0 ? { spaceId: activeSpaceId } : {}),
+      ...(room.name ? { roomName: room.name } : {}),
+      ...(categoryName ? { categoryName } : {}),
+    });
     setSubWindowDragPayload({ tab: "room", roomId });
     if (!canEdit) {
       return;

@@ -9,6 +9,7 @@ type UseChatFrameSelectionContextParams = {
   deleteMessage: (messageId: number) => void;
   toggleUseChatBubbleStyle: () => void;
   setReplyMessage: (message: Message) => void;
+  orderedMessageIds: number[];
   onJumpToWebGAL?: (messageId: number) => void;
 };
 
@@ -16,6 +17,7 @@ export default function useChatFrameSelectionContext({
   deleteMessage,
   toggleUseChatBubbleStyle,
   setReplyMessage,
+  orderedMessageIds,
   onJumpToWebGAL,
 }: UseChatFrameSelectionContextParams) {
   const selection = useChatFrameSelection({ onDeleteMessage: deleteMessage });
@@ -38,6 +40,8 @@ export default function useChatFrameSelectionContext({
   const handleMessageClick = useChatFrameMessageClick({
     isSelecting: selection.isSelecting,
     toggleMessageSelection: selection.toggleMessageSelection,
+    selectMessageRange: selection.selectMessageRange,
+    orderedMessageIds,
     onJumpToWebGAL,
   });
 

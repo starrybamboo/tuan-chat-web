@@ -4,6 +4,7 @@ import { toast } from "react-hot-toast";
 import type { RoomContextType } from "@/components/chat/core/roomContext";
 import type { RoomUiStoreApi } from "@/components/chat/stores/roomUiStore";
 import type { DocRefDragPayload } from "@/components/chat/utils/docRef";
+import type { RoomRefDragPayload } from "@/components/chat/utils/roomRef";
 import type { FigurePosition } from "@/types/voiceRenderTypes";
 
 import { parseDescriptionDocId } from "@/components/chat/infra/blocksuite/descriptionDocId";
@@ -42,6 +43,7 @@ type ImportMessageItem = {
 type UseRoomImportActionsResult = {
   handleImportChatText: (messages: ImportMessageItem[], onProgress?: (sent: number, total: number) => void) => Promise<void>;
   handleSendDocCard: (payload: DocRefDragPayload) => Promise<void>;
+  handleSendRoomJump: (payload: RoomRefDragPayload) => Promise<void>;
 };
 
 export default function useRoomImportActions({
@@ -294,8 +296,78 @@ export default function useRoomImportActions({
     spaceId,
   ]);
 
+  const handleSendRoomJump = useCallback(async (payload: RoomRefDragPayload) => {
+    const targetRoomId = Number(payload?.roomId);
+    if (!Number.isFinite(targetRoomId) || targetRoomId <= 0) {
+      toast.error("未检测到可用群聊");
+      return;
+    }
+
+    if (!spaceId || spaceId <= 0) {
+      toast.error("当前不在空间群聊，无法发送群聊跳转");
+      return;
+    }
+
+    if (payload?.spaceId && payload.spaceId !== spaceId) {
+      toast.error("仅支持在同一空间引用群聊");
+      return;
+    }
+
+    const isKP = isSpaceOwner;
+    const isNarrator = curRoleId <= 0;
+
+    if (notMember) {
+      toast.error("您是观战，不能发送消息");
+      return;
+    }
+    if (isNarrator && !isKP) {
+      toast.error("旁白仅KP可用，请先选择/拉入你的角色");
+      return;
+    }
+    if (isSubmitting) {
+      toast.error("正在提交中，请稍后");
+      return;
+    }
+
+    const resolvedAvatarId = await ensureRuntimeAvatarIdForRole(curRoleId);
+
+    const request: ChatMessageRequest = {
+      roomId,
+      roleId: curRoleId,
+      avatarId: resolvedAvatarId,
+      content: "",
+      messageType: MessageType.TEXT,
+      extra: {
+        roomJump: {
+          spaceId,
+          roomId: targetRoomId,
+          ...(payload.roomName ? { roomName: payload.roomName } : {}),
+          ...(payload.categoryName ? { categoryName: payload.categoryName } : {}),
+        },
+      } as any,
+    };
+
+    const { threadRootMessageId, composerTarget } = roomUiStoreApi.getState();
+    if (composerTarget === "thread" && threadRootMessageId) {
+      request.threadId = threadRootMessageId;
+    }
+
+    await sendMessageWithInsert(request);
+  }, [
+    curRoleId,
+    ensureRuntimeAvatarIdForRole,
+    isSpaceOwner,
+    isSubmitting,
+    notMember,
+    roomId,
+    roomUiStoreApi,
+    sendMessageWithInsert,
+    spaceId,
+  ]);
+
   return {
     handleImportChatText,
     handleSendDocCard,
+    handleSendRoomJump,
   };
 }

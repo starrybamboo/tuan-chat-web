@@ -7,4 +7,5 @@ contextBridge.exposeInMainWorld("electronAPI", {
   getDevPort: () => ipcRenderer.invoke("electron:get-dev-port"),
   novelaiGetClientSettings: payload => ipcRenderer.invoke("novelai:get-clientsettings", payload),
   novelaiGenerateImage: payload => ipcRenderer.invoke("novelai:generate-image", payload),
+  showDesktopNotification: payload => ipcRenderer.invoke("electron:show-desktop-notification", payload),
 });

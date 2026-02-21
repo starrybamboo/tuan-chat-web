@@ -6,7 +6,7 @@ import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
 
 import type { ChatMessageRequest, ChatMessageResponse, Message } from "../../../../api";
 
-type SendMessageAsync = (request: ChatMessageRequest) => Promise<{ success?: boolean; data?: { messageId?: number } }>;
+type BatchSendMessagesAsync = (requests: ChatMessageRequest[]) => Promise<{ success?: boolean; data?: Message[] }>;
 export type ForwardMode = "merged" | "separate";
 
 type UseChatFrameMessageActionsParams = {
@@ -15,7 +15,7 @@ type UseChatFrameMessageActionsParams = {
   curRoleId: number;
   curAvatarId: number;
   send: (message: ChatMessageRequest) => void;
-  sendMessageAsync: SendMessageAsync;
+  batchSendMessagesAsync: BatchSendMessagesAsync;
   updateMessage: (message: Message) => void;
   setIsForwardWindowOpen: (open: boolean) => void;
   clearSelection: () => void;
@@ -30,7 +30,7 @@ export default function useChatFrameMessageActions({
   curRoleId,
   curAvatarId,
   send,
-  sendMessageAsync,
+  batchSendMessagesAsync,
   updateMessage,
   setIsForwardWindowOpen,
   clearSelection,
@@ -56,6 +56,73 @@ export default function useChatFrameMessageActions({
     return forwardMessageRequest;
   }, [curAvatarId, curRoleId]);
 
+  const pickObject = useCallback((value: unknown): Record<string, any> => {
+    return value && typeof value === "object" ? value as Record<string, any> : {};
+  }, []);
+
+  const normalizeForwardedRawType = useCallback((messageType: number): number => {
+    if (messageType === MESSAGE_TYPE.INTRO_TEXT || messageType === MESSAGE_TYPE.SYSTEM) {
+      return MESSAGE_TYPE.TEXT;
+    }
+    return messageType;
+  }, []);
+
+  const normalizeForwardedRawExtra = useCallback((messageType: number, rawExtra: unknown): Record<string, any> => {
+    const extra = pickObject(rawExtra);
+    switch (messageType) {
+      case MESSAGE_TYPE.IMG:
+        return pickObject(extra.imageMessage ?? extra);
+      case MESSAGE_TYPE.FILE:
+        return pickObject(extra.fileMessage ?? extra);
+      case MESSAGE_TYPE.VIDEO:
+        return pickObject(extra.videoMessage ?? extra.fileMessage ?? extra);
+      case MESSAGE_TYPE.SOUND:
+        return pickObject(extra.soundMessage ?? extra);
+      case MESSAGE_TYPE.EFFECT:
+        return pickObject(extra.effectMessage ?? extra);
+      case MESSAGE_TYPE.DICE:
+        return pickObject(extra.diceResult ?? extra);
+      case MESSAGE_TYPE.FORWARD:
+        return pickObject(extra.forwardMessage ?? extra);
+      case MESSAGE_TYPE.CLUE_CARD:
+        return pickObject(extra.clueMessage ?? extra);
+      case MESSAGE_TYPE.WEBGAL_VAR:
+        return extra.webgalVar !== undefined ? { webgalVar: extra.webgalVar } : extra;
+      case MESSAGE_TYPE.WEBGAL_CHOOSE:
+        return extra.webgalChoose !== undefined ? { webgalChoose: extra.webgalChoose } : extra;
+      case MESSAGE_TYPE.COMMAND_REQUEST:
+        return extra.commandRequest !== undefined ? { commandRequest: extra.commandRequest } : extra;
+      case MESSAGE_TYPE.DOC_CARD:
+        return extra.docCard !== undefined ? { docCard: extra.docCard } : extra;
+      case MESSAGE_TYPE.THREAD_ROOT: {
+        const title = typeof extra.title === "string" ? extra.title.trim() : "";
+        return title ? { title } : {};
+      }
+      default:
+        return extra;
+    }
+  }, [pickObject]);
+
+  const constructRawForwardRequest = useCallback((forwardRoomId: number, sourceMessage: Message): ChatMessageRequest => {
+    const normalizedMessageType = normalizeForwardedRawType(sourceMessage.messageType);
+    const shouldKeepOriginalExtra = normalizedMessageType === sourceMessage.messageType;
+    const nextExtra = shouldKeepOriginalExtra
+      ? normalizeForwardedRawExtra(normalizedMessageType, sourceMessage.extra)
+      : {};
+
+    return {
+      roomId: forwardRoomId,
+      roleId: curRoleId,
+      avatarId: curAvatarId,
+      content: sourceMessage.content ?? "",
+      messageType: normalizedMessageType,
+      ...(Array.isArray(sourceMessage.annotations) ? { annotations: sourceMessage.annotations } : {}),
+      ...(typeof sourceMessage.customRoleName === "string" ? { customRoleName: sourceMessage.customRoleName } : {}),
+      ...(sourceMessage.webgal !== undefined ? { webgal: sourceMessage.webgal } : {}),
+      extra: nextExtra,
+    };
+  }, [curAvatarId, curRoleId, normalizeForwardedRawExtra, normalizeForwardedRawType]);
+
   const handleForward = useCallback(async (forwardRoomId: number, mode: ForwardMode): Promise<boolean> => {
     if (forwardRoomId <= 0) {
       toast.error("请选择有效的转发房间");
@@ -69,22 +136,15 @@ export default function useChatFrameMessageActions({
     }
 
     if (mode === "separate") {
-      let successCount = 0;
       try {
-        // 逐条转发时顺序发送，确保目标房间的消息顺序稳定。
-        for (const message of selectedMessages) {
-          const result = await sendMessageAsync(constructForwardRequest(forwardRoomId, [message]));
-          if (!result?.success)
-            throw new Error("发送失败");
-          successCount++;
-        }
+        const batchRequests = selectedMessages.map(message => constructRawForwardRequest(forwardRoomId, message.message));
+        const result = await batchSendMessagesAsync(batchRequests);
+        if (!result?.success)
+          throw new Error("批量发送失败");
       }
       catch (error) {
         console.error("逐条转发失败:", error);
-        const failText = successCount > 0
-          ? `逐条转发中断，已发送 ${successCount}/${selectedMessages.length} 条`
-          : "逐条转发失败";
-        toast.error(failText);
+        toast.error("逐条转发失败");
         return false;
       }
       setIsForwardWindowOpen(false);
@@ -98,7 +158,7 @@ export default function useChatFrameMessageActions({
     clearSelection();
     toast(FORWARD_TOAST);
     return true;
-  }, [clearSelection, constructForwardRequest, getSelectedMessages, send, sendMessageAsync, setIsForwardWindowOpen]);
+  }, [batchSendMessagesAsync, clearSelection, constructForwardRequest, constructRawForwardRequest, getSelectedMessages, send, setIsForwardWindowOpen]);
 
   const toggleBackground = useCallback((messageId: number) => {
     const message = historyMessages.find(m => m.message.messageId === messageId)?.message;

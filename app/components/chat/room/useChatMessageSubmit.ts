@@ -10,6 +10,7 @@ import { useChatComposerStore } from "@/components/chat/stores/chatComposerStore
 import { useChatInputUiStore } from "@/components/chat/stores/chatInputUiStore";
 import { useRealtimeRenderStore } from "@/components/chat/stores/realtimeRenderStore";
 import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
+import { isRoomJumpCommandText, parseRoomJumpCommand } from "@/components/chat/utils/roomJump";
 import { isCommand } from "@/components/common/dicer/cmdPre";
 import { formatAnkoDiceMessage } from "@/components/common/dicer/diceTable";
 import { ANNOTATION_IDS, getFigurePositionFromAnnotations, hasAnnotation, hasClearFigureAnnotation, normalizeAnnotations, setAnnotation, setFigurePositionAnnotation } from "@/types/messageAnnotations";
@@ -385,9 +386,20 @@ export default function useChatMessageSubmit({
       let textContent = trimmedInputText;
       const isWebgalVarCommandPrefix = /^\/var\b/i.test(trimmedWithoutMentions);
       const webgalVarPayload = parseWebgalVarCommand(trimmedWithoutMentions);
+      const isRoomJumpCommand = isRoomJumpCommandText(trimmedWithoutMentions);
+      const roomJumpCommandPayload = parseRoomJumpCommand(trimmedWithoutMentions);
+      const roomJumpTargetSpaceId = roomJumpCommandPayload?.spaceId ?? (spaceId > 0 ? spaceId : undefined);
 
       if (isWebgalVarCommandPrefix && !webgalVarPayload) {
         toast.error("WebGAL 变量指令格式错误，请使用 /var set a=1");
+        return;
+      }
+      if (isRoomJumpCommand && !roomJumpCommandPayload) {
+        toast.error("群聊跳转格式错误：/roomjump <roomId> [标题] 或 /roomjump <spaceId> <roomId> [标题]");
+        return;
+      }
+      if (roomJumpCommandPayload && !roomJumpTargetSpaceId) {
+        toast.error("当前不在空间群聊，请使用 /roomjump <spaceId> <roomId> [标题]");
         return;
       }
 
@@ -473,6 +485,24 @@ export default function useChatMessageSubmit({
           toast.error("更新空间变量失败，请重试");
         }
 
+        isFirstMessage = false;
+        textContent = "";
+      }
+      else if (roomJumpCommandPayload) {
+        const roomJumpMsg: ChatMessageRequest = {
+          ...getCommonFields() as any,
+          content: "",
+          messageType: MessageType.TEXT,
+          extra: {
+            roomJump: {
+              spaceId: roomJumpTargetSpaceId,
+              roomId: roomJumpCommandPayload.roomId,
+              ...(roomJumpCommandPayload.label ? { label: roomJumpCommandPayload.label } : {}),
+            },
+          },
+        };
+
+        await sendMessageWithInsert(roomJumpMsg);
         isFirstMessage = false;
         textContent = "";
       }
@@ -596,7 +626,8 @@ export default function useChatMessageSubmit({
         && uploadedFiles.length === 0
         && !soundMessageData
         && !shouldSendCommandRequest
-        && !webgalVarPayload;
+        && !webgalVarPayload
+        && !roomJumpCommandPayload;
 
       if (textContent || shouldSendEmptyTextMessage) {
         const isPureTextSend = uploadedImages.length === 0

@@ -14,7 +14,7 @@ import { registerWebGalIpc, stopWebGAL } from "./utils/webgal.js";
 // @ganyudedog electron-updater 使用 autoUpdater 来管理更新
 // @entropy622构建electron
 
-const { app, BrowserWindow, ipcMain, Menu, protocol } = electron;
+const { app, BrowserWindow, ipcMain, Menu, Notification, protocol } = electron;
 const { autoUpdater } = electronUpdater;
 
 const __filename = fileURLToPath(import.meta.url);
@@ -91,6 +91,61 @@ function rewriteUnexpectedLocalhostNavigationUrl(url, devServerUrl) {
   catch {
     return "";
   }
+}
+
+function normalizeNotificationTargetPath(targetPath) {
+  const normalized = String(targetPath || "").trim();
+  if (!normalized) {
+    return "";
+  }
+  if (!normalized.startsWith("/") || normalized.startsWith("//")) {
+    return "";
+  }
+  return normalized;
+}
+
+function focusMainWindow() {
+  if (!mainWindow || mainWindow.isDestroyed()) {
+    return;
+  }
+  if (mainWindow.isMinimized()) {
+    mainWindow.restore();
+  }
+  if (!mainWindow.isVisible()) {
+    mainWindow.show();
+  }
+  mainWindow.focus();
+}
+
+function navigateMainWindowToPath(targetPath) {
+  if (!mainWindow || mainWindow.isDestroyed()) {
+    return;
+  }
+
+  const normalizedTargetPath = normalizeNotificationTargetPath(targetPath);
+  if (!normalizedTargetPath) {
+    return;
+  }
+
+  const escapedPath = JSON.stringify(normalizedTargetPath);
+  const script = `
+    (() => {
+      try {
+        const targetPath = ${escapedPath};
+        const currentPath = String(window.location.pathname || "")
+          + String(window.location.search || "")
+          + String(window.location.hash || "");
+        if (currentPath !== targetPath) {
+          window.location.assign(targetPath);
+        }
+      }
+      catch {}
+    })();
+  `;
+
+  void mainWindow.webContents.executeJavaScript(script, true).catch(() => {
+    // ignore
+  });
 }
 
 async function createWindow() {
@@ -295,6 +350,34 @@ app.whenReady().then(async () => {
     catch {
       return "";
     }
+  });
+  ipcMain.handle("electron:show-desktop-notification", (_event, payload) => {
+    const title = String(payload?.title || "").trim();
+    const body = String(payload?.body || "").trim();
+    if (!title || !body) {
+      return { ok: false, reason: "missing-title-or-body" };
+    }
+
+    if (!Notification || typeof Notification.isSupported !== "function" || !Notification.isSupported()) {
+      return { ok: false, reason: "notification-not-supported" };
+    }
+
+    const targetPath = normalizeNotificationTargetPath(payload?.targetPath);
+    const icon = String(payload?.icon || "").trim();
+    const notification = new Notification({
+      title,
+      body,
+      icon: icon || undefined,
+      silent: Boolean(payload?.silent),
+    });
+
+    notification.on("click", () => {
+      focusMainWindow();
+      navigateMainWindowToPath(targetPath);
+    });
+
+    notification.show();
+    return { ok: true };
   });
 
   // 实现自定义协议的具体逻辑

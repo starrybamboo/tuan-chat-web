@@ -231,6 +231,7 @@ function RoomWindow({
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isApplyingMessageHistory, setIsApplyingMessageHistory] = useState(false);
+  const [isReloadingAllMessages, setIsReloadingAllMessages] = useState(false);
   const noRole = curRoleId <= 0;
 
   const {
@@ -287,6 +288,7 @@ function RoomWindow({
   const {
     handleImportChatText,
     handleSendDocCard,
+    handleSendRoomJump,
   } = useRoomImportActions({
     roomId,
     spaceId,
@@ -508,6 +510,41 @@ function RoomWindow({
   }, [handleRedoLastMessageAction, handleUndoLastMessageAction]);
 
   const queryClient = useQueryClient();
+
+  const handleClearAndReloadAllMessages = useCallback(async () => {
+    if (!chatHistory || isReloadingAllMessages) {
+      return;
+    }
+
+    setIsReloadingAllMessages(true);
+    const toastId = toast.loading("正在清空本地消息并重新拉取...");
+    try {
+      await chatHistory.clearHistory();
+      const response = await tuanchat.chatController.getHistoryMessages({
+        roomId,
+        syncId: 0,
+      });
+      const fullMessages = Array.isArray(response?.data)
+        ? response.data as ChatMessageResponse[]
+        : [];
+      if (fullMessages.length > 0) {
+        await chatHistory.addOrUpdateMessages(fullMessages);
+      }
+      roomUiStore.getState().clearMessageUndo();
+      roomUiStore.getState().clearMessageRedo();
+      const successText = fullMessages.length > 0
+        ? `已重新拉取 ${fullMessages.length} 条消息`
+        : "已完成重拉，当前房间暂无历史消息";
+      toast.success(successText, { id: toastId });
+    }
+    catch (error) {
+      console.error("清空并重拉房间消息失败", error);
+      toast.error("清空并重拉失败，请稍后重试", { id: toastId });
+    }
+    finally {
+      setIsReloadingAllMessages(false);
+    }
+  }, [chatHistory, isReloadingAllMessages, roomId, roomUiStore]);
 
   const handleExportPremiere = useCallback(async () => {
     if (!historyMessages || historyMessages.length === 0) {
@@ -878,7 +915,7 @@ function RoomWindow({
           chatHistoryLoading={!!chatHistory?.loading}
           onApiChange={handleRealtimeRenderApiChange}
         />
-        <RoomDocRefDropLayer onSendDocCard={handleSendDocCard}>
+        <RoomDocRefDropLayer onSendDocCard={handleSendDocCard} onSendRoomJump={handleSendRoomJump}>
           <RoomWindowLayout
             roomId={roomId}
             roomName={roomName}
@@ -893,8 +930,10 @@ function RoomWindow({
             hideSecondaryPanels={hideSecondaryPanels}
             chatAreaComposerTarget={messageScope === "thread" ? "thread" : "main"}
             onExportPremiere={handleExportPremiere}
+            onClearAndReloadAllMessages={handleClearAndReloadAllMessages}
             onUndo={handleUndoLastMessageAction}
             onRedo={handleRedoLastMessageAction}
+            isReloadingAllMessages={isReloadingAllMessages}
             canUndo={canUndo}
             canRedo={canRedo}
             onSendDocCard={handleSendDocCard}

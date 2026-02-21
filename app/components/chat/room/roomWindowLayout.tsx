@@ -26,8 +26,10 @@ interface RoomWindowLayoutProps {
   /** 点击消息区域时，输入框默认切换到哪个发送目标 */
   chatAreaComposerTarget?: "main" | "thread";
   onExportPremiere?: () => void;
+  onClearAndReloadAllMessages?: () => void | Promise<void>;
   onUndo?: () => void;
   onRedo?: () => void;
+  isReloadingAllMessages?: boolean;
   canUndo?: boolean;
   canRedo?: boolean;
   onSendDocCard?: (payload: DocRefDragPayload) => Promise<void> | void;
@@ -47,8 +49,10 @@ export default function RoomWindowLayout({
   hideSecondaryPanels = false,
   chatAreaComposerTarget = "main",
   onExportPremiere,
+  onClearAndReloadAllMessages,
   onUndo,
   onRedo,
+  isReloadingAllMessages = false,
   canUndo = false,
   canRedo = false,
   onSendDocCard,
@@ -80,8 +84,10 @@ export default function RoomWindowLayout({
             toggleLeftDrawer={toggleLeftDrawer}
             onCloseSubWindow={onCloseSubWindow}
             onExportPremiere={onExportPremiere}
+            onClearAndReloadAllMessages={onClearAndReloadAllMessages}
             onUndo={onUndo}
             onRedo={onRedo}
+            isReloadingAllMessages={isReloadingAllMessages}
             canUndo={canUndo}
             canRedo={canRedo}
           />
