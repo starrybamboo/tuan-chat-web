@@ -12,13 +12,24 @@ interface SpaceHeaderBarProps {
   isArchived?: boolean;
   isSpaceOwner: boolean;
   onOpenSpaceDetailPanel: (tab: SpaceDetailTab) => void;
+  onCloseLeftDrawer?: () => void;
   onAddCategory?: () => void;
   onInviteMember: () => void;
   onToggleLeftDrawer?: () => void;
   isLeftDrawerOpen?: boolean;
 }
 
-export default function SpaceHeaderBar({ spaceName, isArchived, isSpaceOwner, onOpenSpaceDetailPanel, onAddCategory, onInviteMember, onToggleLeftDrawer, isLeftDrawerOpen }: SpaceHeaderBarProps) {
+export default function SpaceHeaderBar({
+  spaceName,
+  isArchived,
+  isSpaceOwner,
+  onOpenSpaceDetailPanel,
+  onCloseLeftDrawer,
+  onAddCategory,
+  onInviteMember,
+  onToggleLeftDrawer,
+  isLeftDrawerOpen,
+}: SpaceHeaderBarProps) {
   const spaceContext = React.use(SpaceContext);
   const spaceId = Number(spaceContext.spaceId ?? -1);
   const updateArchiveStatus = useUpdateSpaceArchiveStatusMutation();
@@ -62,6 +73,11 @@ export default function SpaceHeaderBar({ spaceName, isArchived, isSpaceOwner, on
     handleToggleArchive(spaceId, nextArchived);
   };
 
+  const handleOpenSpaceDetail = (tab: SpaceDetailTab) => {
+    onOpenSpaceDetailPanel(tab);
+    onCloseLeftDrawer?.();
+  };
+
   return (
     <>
       <div className="flex items-center justify-between h-10 gap-2 min-w-0 border-b border-gray-300 dark:border-gray-700 rounded-tl-xl px-2">
@@ -87,7 +103,7 @@ export default function SpaceHeaderBar({ spaceName, isArchived, isSpaceOwner, on
                 type="button"
                 className="gap-3"
                 onClick={() => {
-                  onOpenSpaceDetailPanel("members");
+                  handleOpenSpaceDetail("members");
                 }}
               >
                 <MemberIcon className="size-4 opacity-70" />
@@ -99,7 +115,7 @@ export default function SpaceHeaderBar({ spaceName, isArchived, isSpaceOwner, on
                 type="button"
                 className="gap-3"
                 onClick={() => {
-                  onOpenSpaceDetailPanel("trpg");
+                  handleOpenSpaceDetail("trpg");
                 }}
               >
                 <DiceD6Icon className="size-4 opacity-70" />
@@ -111,7 +127,7 @@ export default function SpaceHeaderBar({ spaceName, isArchived, isSpaceOwner, on
                 type="button"
                 className="gap-3"
                 onClick={() => {
-                  onOpenSpaceDetailPanel("webgal");
+                  handleOpenSpaceDetail("webgal");
                 }}
               >
                 <WebgalIcon className="size-4 opacity-70" />
@@ -136,7 +152,7 @@ export default function SpaceHeaderBar({ spaceName, isArchived, isSpaceOwner, on
                   type="button"
                   className="gap-3"
                   onClick={() => {
-                    onOpenSpaceDetailPanel("setting");
+                    handleOpenSpaceDetail("setting");
                   }}
                 >
                   <Setting className="size-4 opacity-70" />

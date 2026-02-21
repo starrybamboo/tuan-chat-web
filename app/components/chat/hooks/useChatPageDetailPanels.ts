@@ -10,6 +10,7 @@ type StoredChatIds = {
 type UseChatPageDetailPanelsParams = {
   activeSpaceId?: number | null;
   activeRoomId?: number | null;
+  screenSize: "sm" | "md" | "lg";
   isPrivateChatMode: boolean;
   isRoomSettingRoute: boolean;
   spaceDetailRouteTab?: SpaceDetailTab | null;
@@ -30,6 +31,7 @@ type UseChatPageDetailPanelsResult = {
 export default function useChatPageDetailPanels({
   activeSpaceId,
   activeRoomId,
+  screenSize,
   isPrivateChatMode,
   isRoomSettingRoute,
   spaceDetailRouteTab,
@@ -89,10 +91,16 @@ export default function useChatPageDetailPanels({
     if (activeSpaceId == null || isPrivateChatMode)
       return;
 
+    // 移动端从空间详情返回时停留在“空间主页态”，不强制回到某个房间。
+    if (screenSize === "sm") {
+      navigate(`/chat/${activeSpaceId}/space${queryWithoutTab()}`);
+      return;
+    }
+
     const fallbackRoomId = storedIds.spaceId === activeSpaceId ? storedIds.roomId : null;
     const nextRoomId = (typeof fallbackRoomId === "number" && Number.isFinite(fallbackRoomId)) ? fallbackRoomId : "";
     navigate(`/chat/${activeSpaceId}/${nextRoomId}${queryWithoutTab()}`);
-  }, [activeSpaceId, isPrivateChatMode, navigate, queryWithoutTab, storedIds.roomId, storedIds.spaceId]);
+  }, [activeSpaceId, isPrivateChatMode, navigate, queryWithoutTab, screenSize, storedIds.roomId, storedIds.spaceId]);
 
   const spaceDetailTab = useMemo<SpaceDetailTab>(() => {
     return spaceDetailRouteTab ?? "members";

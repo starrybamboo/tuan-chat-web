@@ -162,6 +162,7 @@ export default function ChatPage() {
   } = useChatPageDetailPanels({
     activeRoomId,
     activeSpaceId,
+    screenSize,
     isPrivateChatMode,
     isRoomSettingRoute,
     spaceDetailRouteTab,
@@ -411,7 +412,7 @@ export default function ChatPage() {
   };
   const leftDrawerToggleLabel = isOpenLeftDrawer ? "收起侧边栏" : "展开侧边栏";
   const hasMainContentDrawerToggle = isPrivateChatMode
-    || (!isDocRoute && !isRoomSettingRoute && !isSpaceDetailRoute && Boolean(activeSpaceId));
+    || (!isDocRoute && !isRoomSettingRoute && !isSpaceDetailRoute && Boolean(activeSpaceId) && activeRoomId != null);
   const shouldShowLeftDrawerToggle = screenSize === "sm" && !isOpenLeftDrawer && !hasMainContentDrawerToggle;
   const layoutProps = {
     screenSize,

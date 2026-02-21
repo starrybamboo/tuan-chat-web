@@ -50,9 +50,17 @@ function ChatPageChatContent() {
     );
   }
 
+  if (activeRoomId == null) {
+    return (
+      <div className="flex items-center justify-center w-full h-full font-bold">
+        <span className="text-center">请先选择房间</span>
+      </div>
+    );
+  }
+
   return (
     <RoomWindow
-      roomId={activeRoomId ?? -1}
+      roomId={activeRoomId}
       spaceId={activeSpaceId ?? -1}
       targetMessageId={targetMessageId}
       viewMode={isPreviewMode}

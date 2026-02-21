@@ -32,12 +32,29 @@ function parseSpaceUpdateTime(value?: string): number {
   return Number.isFinite(timestamp) ? timestamp : 0;
 }
 
-function normalizeSidebarTreeJson(treeJson?: string | null): string | null {
-  if (typeof treeJson !== "string") {
-    return null;
+type ApiResultNumber = {
+  success?: boolean;
+  data?: number | null;
+  message?: string;
+  code?: number;
+};
+
+function isValidCommitId(value: number | null | undefined): value is number {
+  return typeof value === "number" && Number.isFinite(value) && value > 0;
+}
+
+async function cloneSpaceByCommitId(repositoryId: number, commitId: number): Promise<number> {
+  const response = await tuanchat.request.request<ApiResultNumber>({
+    method: "POST",
+    url: "/space/clone",
+    body: { repositoryId, commitId },
+    mediaType: "application/json",
+  });
+  const clonedSpaceId = response?.data;
+  if (typeof clonedSpaceId === "number" && Number.isFinite(clonedSpaceId) && clonedSpaceId > 0) {
+    return clonedSpaceId;
   }
-  const normalized = treeJson.trim();
-  return normalized.length > 0 ? normalized : null;
+  throw new Error(response?.message ?? "根据提交克隆失败");
 }
 
 function isRepositorySpaceCandidate(space: Space, repositoryId: number): space is RepositorySpaceCandidate {
@@ -108,10 +125,12 @@ export default function RepositoryDetailComponent({
   const repositorySpace = repositorySpaces[0] ?? null;
 
   const [isCloningModule, setIsCloningModule] = useState(false);
+  const [isUnarchivingSuggestedSpace, setIsUnarchivingSuggestedSpace] = useState(false);
+  const [showUnarchiveSuggestionDialog, setShowUnarchiveSuggestionDialog] = useState(false);
   const cloningModuleLockRef = useRef(false);
+  const errorToastTimerRef = useRef<number | null>(null);
 
-  // 克隆失败后显示弹窗
-  const [showErrorToast, setShowErrorToast] = useState(false);
+  const [errorToastMessage, setErrorToastMessage] = useState<string | null>(null);
   const linkedSpaceId = repositorySpace?.spaceId ?? null;
   const linkedSpace = useMemo(() => {
     if (!linkedSpaceId) {
@@ -143,6 +162,7 @@ export default function RepositoryDetailComponent({
 
     return {
       repositoryId: repository.repositoryId,
+      commitId: repository.commitId,
       ruleId: repository.ruleId,
       ruleName: rule?.ruleName ?? "",
       repositoryName: repository.repositoryName,
@@ -161,7 +181,41 @@ export default function RepositoryDetailComponent({
     } as RepositoryData;
   }, [propRepositoryData, fetchedRepositoryData, RuleList.data]);
 
+  const latestRepositoryCommitId = useMemo(() => {
+    const commitId = repositoryData?.commitId;
+    if (typeof commitId === "number" && Number.isFinite(commitId) && commitId > 0) {
+      return commitId;
+    }
+    return null;
+  }, [repositoryData?.commitId]);
+
+  const suggestedUnarchiveSpace = useMemo(() => {
+    if (latestRepositoryCommitId == null) {
+      return null;
+    }
+    return repositorySpaces.find((space) => {
+      const spaceCommitId = typeof space.parentCommitId === "number" && Number.isFinite(space.parentCommitId)
+        ? space.parentCommitId
+        : null;
+      return space.status === 2 && spaceCommitId === latestRepositoryCommitId;
+    }) ?? null;
+  }, [latestRepositoryCommitId, repositorySpaces]);
+
   const repositoryImage = repositoryData?.image?.trim() ?? "";
+
+  const showErrorToast = (message: string) => {
+    setErrorToastMessage(message);
+    if (typeof window === "undefined") {
+      return;
+    }
+    if (errorToastTimerRef.current != null) {
+      window.clearTimeout(errorToastTimerRef.current);
+    }
+    errorToastTimerRef.current = window.setTimeout(() => {
+      setErrorToastMessage(null);
+      errorToastTimerRef.current = null;
+    }, 3000);
+  };
 
   useEffect(() => {
     if (!repositoryImage) {
@@ -203,6 +257,17 @@ export default function RepositoryDetailComponent({
       image.onerror = null;
     };
   }, [repositoryImage]);
+
+  useEffect(() => {
+    return () => {
+      if (typeof window === "undefined") {
+        return;
+      }
+      if (errorToastTimerRef.current != null) {
+        window.clearTimeout(errorToastTimerRef.current);
+      }
+    };
+  }, []);
 
   const isRootRepository = useMemo(() => repositoryData?.parent == null, [repositoryData]);
 
@@ -276,100 +341,21 @@ export default function RepositoryDetailComponent({
     navigate(`/chat/${spaceId}`);
   };
 
-  const handleCloneModule = async () => {
+  const cloneModule = async () => {
     if (cloningModuleLockRef.current) {
       return;
     }
 
-    const pickSourceSpaceIdFromCandidates = async (candidates: RepositorySpaceCandidate[]) => {
-      if (candidates.length === 0) {
-        return null;
-      }
-
-      // 同仓库可能存在多个空间，优先选“有 sidebarTree 且最近更新”的来源。
-      const hasSidebarTreeFlags = await Promise.all(
-        candidates.map(async (space) => {
-          try {
-            const sidebarTreeResult = await tuanchat.spaceSidebarTreeController.getSidebarTree(space.spaceId);
-            return Boolean(normalizeSidebarTreeJson(sidebarTreeResult.data?.treeJson));
-          }
-          catch {
-            return false;
-          }
-        }),
-      );
-      const candidateIndex = hasSidebarTreeFlags.findIndex(Boolean);
-      if (candidateIndex >= 0) {
-        return candidates[candidateIndex].spaceId;
-      }
-      return candidates[0].spaceId;
-    };
-
-    const pickSourceSpaceId = async () => {
-      const localSourceSpaceId = await pickSourceSpaceIdFromCandidates(repositorySpaces);
-      if (isValidSpaceId(localSourceSpaceId)) {
-        return localSourceSpaceId;
-      }
-
-      const freshSpacesResult = await getUserSpaces.refetch();
-      const freshSpaces = freshSpacesResult.data?.data ?? [];
-      const fallbackCandidates = listRepositorySpaceCandidates(freshSpaces, repositoryId);
-      return pickSourceSpaceIdFromCandidates(fallbackCandidates);
-    };
-
-    const syncSidebarTreeAfterClone = async (sourceSpaceId: number, clonedSpaceId: number) => {
-      const sourceTreeResult = await tuanchat.spaceSidebarTreeController.getSidebarTree(sourceSpaceId);
-      const sourceTreeJson = normalizeSidebarTreeJson(sourceTreeResult.data?.treeJson);
-      if (!sourceTreeJson) {
-        return;
-      }
-
-      const clonedTreeResult = await tuanchat.spaceSidebarTreeController.getSidebarTree(clonedSpaceId);
-      const clonedTreeJson = normalizeSidebarTreeJson(clonedTreeResult.data?.treeJson);
-      if (clonedTreeJson === sourceTreeJson) {
-        return;
-      }
-
-      const expectedVersion = clonedTreeResult.data?.version ?? 0;
-      const setResult = await tuanchat.spaceSidebarTreeController.setSidebarTree({
-        spaceId: clonedSpaceId,
-        expectedVersion,
-        treeJson: sourceTreeJson,
-      });
-
-      // 版本冲突时，按服务端返回的最新版本再尝试一次。
-      if (!setResult.success && setResult.data?.treeJson !== sourceTreeJson) {
-        const retryVersion = setResult.data?.version;
-        if (typeof retryVersion === "number" && Number.isFinite(retryVersion) && retryVersion >= 0) {
-          await tuanchat.spaceSidebarTreeController.setSidebarTree({
-            spaceId: clonedSpaceId,
-            expectedVersion: retryVersion,
-            treeJson: sourceTreeJson,
-          });
-        }
-      }
-    };
-
     cloningModuleLockRef.current = true;
     setIsCloningModule(true);
     try {
-      const sourceSpaceId = await pickSourceSpaceId();
-      if (!sourceSpaceId) {
-        throw new Error("未找到可克隆的源空间");
+      if (!isValidSpaceId(repositoryId)) {
+        throw new Error("仓库ID无效，无法克隆");
       }
-
-      const cloneResult = await tuanchat.spaceController.cloneBySpaceId({ spaceId: sourceSpaceId });
-      const clonedSpaceId = cloneResult.data;
-      if (!(typeof clonedSpaceId === "number" && Number.isFinite(clonedSpaceId) && clonedSpaceId > 0)) {
-        throw new Error("克隆后未返回有效空间ID");
+      if (!isValidCommitId(latestRepositoryCommitId)) {
+        throw new Error("仓库缺少可克隆提交");
       }
-
-      try {
-        await syncSidebarTreeAfterClone(sourceSpaceId, clonedSpaceId);
-      }
-      catch (syncError) {
-        console.warn("[RepositoryDetail] 同步 sidebarTree 失败，已忽略：", syncError);
-      }
+      const clonedSpaceId = await cloneSpaceByCommitId(repositoryId, latestRepositoryCommitId);
 
       setViewModeOpen(false);
       void getUserSpaces.refetch();
@@ -377,12 +363,64 @@ export default function RepositoryDetailComponent({
     }
     catch {
       setViewModeOpen(false);
-      setShowErrorToast(true);
-      setTimeout(() => setShowErrorToast(false), 3000);
+      showErrorToast("克隆失败，请重试");
     }
     finally {
       cloningModuleLockRef.current = false;
       setIsCloningModule(false);
+    }
+  };
+
+  const handleCloneModule = () => {
+    if (isCloningModule || isUnarchivingSuggestedSpace) {
+      return;
+    }
+    if (suggestedUnarchiveSpace && isValidSpaceId(suggestedUnarchiveSpace.spaceId)) {
+      setShowUnarchiveSuggestionDialog(true);
+      return;
+    }
+    void cloneModule();
+  };
+
+  const handleCloneAfterSuggestion = () => {
+    if (isCloningModule || isUnarchivingSuggestedSpace) {
+      return;
+    }
+    setShowUnarchiveSuggestionDialog(false);
+    void cloneModule();
+  };
+
+  const handleUnarchiveSuggestedSpace = async () => {
+    const targetSpaceId = suggestedUnarchiveSpace?.spaceId;
+    if (!isValidSpaceId(targetSpaceId)) {
+      setShowUnarchiveSuggestionDialog(false);
+      return;
+    }
+    if (isCloningModule || isUnarchivingSuggestedSpace) {
+      return;
+    }
+
+    setIsUnarchivingSuggestedSpace(true);
+    try {
+      const result = await tuanchat.spaceController.updateSpaceArchiveStatus({
+        spaceId: targetSpaceId,
+        archived: false,
+      });
+      if (!result.success) {
+        throw new Error("取消归档失败");
+      }
+
+      setShowUnarchiveSuggestionDialog(false);
+      setViewModeOpen(false);
+      await getUserSpaces.refetch();
+      await navigateToSpace(targetSpaceId);
+    }
+    catch (error) {
+      console.error("[RepositoryDetail] 取消归档失败:", error);
+      showErrorToast("取消归档失败，请重试");
+    }
+    finally {
+      setIsUnarchivingSuggestedSpace(false);
     }
   };
 
@@ -590,7 +628,7 @@ export default function RepositoryDetailComponent({
                             type="button"
                             className="btn btn-sm gap-2"
                             onClick={handleCloneModule}
-                            disabled={isCloningModule}
+                            disabled={isCloningModule || isUnarchivingSuggestedSpace}
                           >
                             {cloneButtonContent}
                           </button>
@@ -626,7 +664,7 @@ export default function RepositoryDetailComponent({
                         type="button"
                         className="btn btn-sm btn-primary gap-2"
                         onClick={handleCloneModule}
-                        disabled={isCloningModule}
+                        disabled={isCloningModule || isUnarchivingSuggestedSpace}
                       >
                         {cloneButtonContent}
                       </button>
@@ -642,7 +680,7 @@ export default function RepositoryDetailComponent({
                           type="button"
                           className="btn btn-sm btn-primary gap-2"
                           onClick={handleCloneModule}
-                          disabled={isCloningModule}
+                          disabled={isCloningModule || isUnarchivingSuggestedSpace}
                         >
                           {cloneButtonContent}
                         </button>
@@ -687,9 +725,55 @@ export default function RepositoryDetailComponent({
           </div>
         </div>
       </div>
-      {showErrorToast && (
+      {showUnarchiveSuggestionDialog && suggestedUnarchiveSpace && (
+        <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/35 p-4">
+          <div className="w-full max-w-lg rounded-xl border border-base-300 bg-base-100 p-5 shadow-xl">
+            <div className="text-lg font-semibold">建议先取消归档原空间</div>
+            <div className="mt-2 text-sm text-base-content/70 leading-relaxed">
+              检测到你已有与当前仓库最新提交一致的归档空间。
+              直接恢复原空间通常更省时，也能减少重复克隆占用。
+            </div>
+            <div className="mt-3 rounded-lg bg-base-200 px-3 py-2 text-sm">
+              {`空间：${suggestedUnarchiveSpace.name ?? `#${suggestedUnarchiveSpace.spaceId}`}`}
+              {latestRepositoryCommitId != null && (
+                <span className="ml-2 text-xs text-base-content/60">
+                  {`commit #${latestRepositoryCommitId}`}
+                </span>
+              )}
+            </div>
+            <div className="mt-4 flex flex-wrap justify-end gap-2">
+              <button
+                type="button"
+                className="btn btn-ghost btn-sm"
+                onClick={() => setShowUnarchiveSuggestionDialog(false)}
+                disabled={isUnarchivingSuggestedSpace || isCloningModule}
+              >
+                取消
+              </button>
+              <button
+                type="button"
+                className="btn btn-outline btn-sm"
+                onClick={handleCloneAfterSuggestion}
+                disabled={isUnarchivingSuggestedSpace || isCloningModule}
+              >
+                仍要克隆
+              </button>
+              <button
+                type="button"
+                className="btn btn-primary btn-sm gap-2"
+                onClick={handleUnarchiveSuggestedSpace}
+                disabled={isUnarchivingSuggestedSpace || isCloningModule}
+              >
+                {isUnarchivingSuggestedSpace && <span className="loading loading-spinner loading-xs"></span>}
+                取消归档并进入
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {errorToastMessage && (
         <div className="fixed bottom-6 right-6 bg-red-500 text-white px-4 py-2 rounded shadow-lg z-50 fade-in-out">
-          ❌ 克隆失败！
+          {`❌ ${errorToastMessage}`}
         </div>
       )}
     </>
