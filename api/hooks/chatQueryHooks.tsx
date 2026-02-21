@@ -634,12 +634,21 @@ export function useGetUserActiveSpacesQuery() {
     });
 }
 
- 
-function useCloneSpaceBySpaceIdMutation() {
+type CloneSpaceByCommitPayload = {
+    repositoryId: number;
+    commitId: number;
+};
+
+function useCloneSpaceByCommitIdMutation() {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationKey: ['cloneSpaceBySpaceId'],
-        mutationFn: (spaceId: number) => tuanchat.spaceController.cloneBySpaceId({ spaceId }),
+        mutationKey: ['cloneSpaceByCommitId'],
+        mutationFn: (payload: CloneSpaceByCommitPayload) => tuanchat.request.request({
+            method: 'POST',
+            url: '/space/clone',
+            body: payload,
+            mediaType: 'application/json',
+        }),
         onSuccess: () => {
 queryClient.invalidateQueries({ queryKey: ['getUserSpaces'] });
 queryClient.invalidateQueries({ queryKey: ['getUserActiveSpaces'] });

@@ -1,6 +1,7 @@
 // 默认仓库数据 - 使用更真实的默认值避免假数据错觉
 export const DEFAULT_REPOSITORY_DATA = {
   repositoryId: 1,
+  commitId: null as number | null,
   ruleId: 1,
   ruleName: null as string | null,
   repositoryName: "加载中...",

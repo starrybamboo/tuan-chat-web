@@ -79,6 +79,16 @@ export default function useChatPageLeftDrawer({
     };
   }, [screenSize]);
 
+  useEffect(() => {
+    if (screenSize !== "sm") {
+      return;
+    }
+    // 移动端进入“空间主页态”（/chat/:spaceId/space）时，自动展开左侧抽屉，便于直接选择房间。
+    if (!isPrivateChatMode && urlSpaceId && urlRoomId === "space") {
+      setIsOpenLeftDrawerState(true);
+    }
+  }, [isPrivateChatMode, screenSize, urlRoomId, urlSpaceId]);
+
   return {
     isOpenLeftDrawer,
     setIsOpenLeftDrawer,

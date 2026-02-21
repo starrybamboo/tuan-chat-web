@@ -277,6 +277,7 @@ export default function ChatRoomListPanel({
                     isArchived={activeSpaceIsArchived}
                     isSpaceOwner={isSpaceOwner}
                     onOpenSpaceDetailPanel={onOpenSpaceDetailPanel}
+                    onCloseLeftDrawer={onCloseLeftDrawer}
                     onAddCategory={canEdit ? openAddCategory : undefined}
                     onInviteMember={onInviteMember}
                     onToggleLeftDrawer={onToggleLeftDrawer}
