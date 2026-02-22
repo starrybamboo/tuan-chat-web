@@ -7,6 +7,7 @@ import {
   useSetRoleAbilityMutation,
   useUpdateRoleAbilityMutation,
 } from "../../../../api/hooks/abilityQueryHooks";
+import { useRuleDetailQuery } from "../../../../api/hooks/ruleQueryHooks";
 
 interface ImportWithStCmdProps {
   ruleId: number;
@@ -21,37 +22,39 @@ export default function ImportWithStCmd({ ruleId, roleId, onImportSuccess }: Imp
   const abilityQuery = useGetRoleAbilitiesQuery(roleId);
 
   const handleImport = () => {
-    try {
-      const importResult = handleStCmd(commandInput.trim());
+    void (async () => {
+      try {
+        const importResult = await handleStCmd(commandInput.trim());
 
-      // 处理结果格式
-      let formattedResult = importResult
-        .replace(/[\n\r]/g, "") // 去掉换行
-        .replace(/[{}]/g, ""); // 去掉大括号
+        // 处理结果格式
+        let formattedResult = importResult
+          .replace(/[\n\r]/g, "") // 去掉换行
+          .replace(/[{}]/g, ""); // 去掉大括号
 
-      // 统计属性数量并格式化
-      const props = formattedResult.split(",");
-      const propCount = props.length;
-      if (propCount > 5) {
-        formattedResult = `${props.slice(0, 5).join(",")}等`;
+        // 统计属性数量并格式化
+        const props = formattedResult.split(",");
+        const propCount = props.length;
+        if (propCount > 5) {
+          formattedResult = `${props.slice(0, 5).join(",")}等`;
+        }
+
+        // 添加总数信息
+        formattedResult += `共${propCount}项属性`;
+
+        toast.success(formattedResult, {
+          duration: 4000,
+          position: "top-center",
+        });
+        setCommandInput("");
+        onImportSuccess?.();
       }
-
-      // 添加总数信息
-      formattedResult += `共${propCount}项属性`;
-
-      toast.success(formattedResult, {
-        duration: 4000,
-        position: "top-center",
-      });
-      setCommandInput("");
-      onImportSuccess?.();
-    }
-    catch (error) {
-      toast.error(`导入失败: ${error instanceof Error ? error.message : "指令格式有误"}`, {
-        duration: 4000,
-        position: "top-center",
-      });
-    }
+      catch (error) {
+        toast.error(`导入失败: ${error instanceof Error ? error.message : "指令格式有误"}`, {
+          duration: 4000,
+          position: "top-center",
+        });
+      }
+    })();
   };
 
   const handleExport = () => {
@@ -128,7 +131,15 @@ export default function ImportWithStCmd({ ruleId, roleId, onImportSuccess }: Imp
   );
 }
 
-function useHandleStCmd(ruleId: number, roleId: number): (cmd: string) => string {
+interface StAbilityDraft {
+  abilityId?: number;
+  act: Record<string, string>;
+  basic: Record<string, string>;
+  ability: Record<string, string>;
+  skill: Record<string, string>;
+}
+
+function useHandleStCmd(ruleId: number, roleId: number): (cmd: string) => Promise<string> {
   const ABILITY_MAP: { [key: string]: string } = {
     str: "力量",
     dex: "敏捷",
@@ -147,58 +158,85 @@ function useHandleStCmd(ruleId: number, roleId: number): (cmd: string) => string
 
   const abilityQuery = useGetRoleAbilitiesQuery(roleId);
   const abilityList = abilityQuery.data?.data ?? [];
-  // 当前规则下激活的能力组
-  const curAbility = abilityList.find(a => a.ruleId === ruleId) ?? {};
+  const ruleDetailQuery = useRuleDetailQuery(ruleId);
 
   const updateAbilityMutation = useUpdateRoleAbilityMutation(); // 更改属性与能力字段
   const setAbilityMutation = useSetRoleAbilityMutation(); // 创建新的能力组
 
-  function handleStCmdInner(cmd: string): string {
+  function buildAbilityDraft(): { draft: StAbilityDraft; shouldUpdate: boolean } {
+    const currentAbility = abilityList.find(a => a.ruleId === ruleId);
+    const draft: StAbilityDraft = {
+      abilityId: currentAbility?.abilityId,
+      act: { ...(currentAbility?.act ?? ruleDetailQuery.data?.actTemplate ?? {}) },
+      basic: { ...(currentAbility?.basic ?? ruleDetailQuery.data?.basicDefault ?? {}) },
+      ability: { ...(currentAbility?.ability ?? ruleDetailQuery.data?.abilityFormula ?? {}) },
+      skill: { ...(currentAbility?.skill ?? ruleDetailQuery.data?.skillDefault ?? {}) },
+    };
+    const shouldUpdate = (draft.abilityId ?? 0) > 0;
+    return { draft, shouldUpdate };
+  }
+
+  async function handleStCmdInner(cmd: string): Promise<string> {
     if (!cmd.startsWith(".st") && !cmd.startsWith("。st")) {
       throw new Error("指令必须以 .st 开头");
     }
     cmd = cmd.slice(3).trim();
     const args = cmd.split(/\s+/).filter(arg => arg !== "");
     const input = args.join("");
-    // 使用正则匹配所有属性+数值的组合
-    const matches = input.matchAll(/(\D+)(\d+)/g);
+    const { draft, shouldUpdate } = buildAbilityDraft();
+
+    // 支持 .st 力量70 / .st 力量+10 / .st 敏捷-5 这三种写法
+    const matches = input.matchAll(/([^\d+-]+)([+-]?)(\d+)/g);
     const abilityToUpdate = new Map<string, string>();
+    let matchCount = 0;
     for (const match of matches) {
+      matchCount += 1;
       const rawKey = match[1].trim();
-      const value = Number.parseInt(match[2], 10);
+      const operator = match[2];
+      const value = Number.parseInt(match[3], 10);
 
       // 统一转换为小写进行比较
       const normalizedKey = rawKey.toLowerCase();
+      const key = ABILITY_MAP[normalizedKey] || rawKey;
 
-      // 查找映射关系
-      if (ABILITY_MAP[normalizedKey]) {
-        UTILS.setRoleAbilityValue(curAbility, ABILITY_MAP[normalizedKey], String(value), "skill");
-        abilityToUpdate.set(ABILITY_MAP[normalizedKey], String(value));
+      const currentValue = Number.parseInt(UTILS.getRoleAbilityValue(draft, key) ?? "0", 10);
+      let newValue: number;
+      if (operator === "+") {
+        newValue = currentValue + value;
+      }
+      else if (operator === "-") {
+        newValue = currentValue - value;
       }
       else {
-        UTILS.setRoleAbilityValue(curAbility, rawKey, String(value), "skill");
-        abilityToUpdate.set(rawKey, String(value));
+        newValue = value;
       }
+
+      UTILS.setRoleAbilityValue(draft, key, String(newValue), "skill", "auto");
+      abilityToUpdate.set(key, String(newValue));
     }
 
-    // 如果已存在能力就更新, 不然创建.
-    if (curAbility) {
-      updateAbilityMutation.mutate({
-        abilityId: curAbility.abilityId ?? -1,
-        act: curAbility.act,
-        basic: curAbility.basic,
-        ability: curAbility.ability,
-        skill: curAbility.skill,
+    if (matchCount === 0) {
+      throw new Error("未解析到属性，请检查格式（例：.st 力量80 敏捷+10）");
+    }
+
+    // 已存在能力则更新，否则创建，并保留本次导入后的字段内容
+    if (shouldUpdate) {
+      await updateAbilityMutation.mutateAsync({
+        abilityId: draft.abilityId as number,
+        act: draft.act,
+        basic: draft.basic,
+        ability: draft.ability,
+        skill: draft.skill,
       });
     }
     else {
-      setAbilityMutation.mutate({
+      await setAbilityMutation.mutateAsync({
         roleId,
         ruleId,
-        act: {},
-        basic: {},
-        ability: {},
-        skill: {},
+        act: draft.act,
+        basic: draft.basic,
+        ability: draft.ability,
+        skill: draft.skill,
       });
     }
     return `更新属性: ${JSON.stringify(abilityToUpdate, null, 2)}`;

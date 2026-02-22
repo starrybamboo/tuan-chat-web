@@ -1,7 +1,9 @@
+import type { SecurityTab } from "@/components/profile/profileTab/components/AccountSecurityModal";
 import { useGetMyUserInfoQuery, useUpdateUserInfoMutation } from "api/hooks/UserHooks";
 import { useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import { useGlobalContext } from "@/components/globalContextProvider";
+import { AccountSecurityModal } from "@/components/profile/profileTab/components/AccountSecurityModal";
 import {
   buildUserExtraWithNotificationSettings,
   readGroupMessagePopupEnabledFromLocalStorage,
@@ -20,6 +22,13 @@ export default function SettingsPage() {
   const localDefaultGroupPopupEnabled = useMemo(() => readGroupMessagePopupEnabledFromLocalStorage(), []);
   const [groupMessagePopupEnabled, setGroupMessagePopupEnabled] = useState(localDefaultGroupPopupEnabled);
   const [initializedFromServer, setInitializedFromServer] = useState(false);
+  const [accountSecurityState, setAccountSecurityState] = useState<{
+    isOpen: boolean;
+    tab: SecurityTab;
+  }>({
+    isOpen: false,
+    tab: "password",
+  });
 
   useEffect(() => {
     if (!isLoggedIn) {
@@ -66,6 +75,24 @@ export default function SettingsPage() {
     }
   };
 
+  const openAccountSecurity = (tab: SecurityTab) => {
+    if (!isLoggedIn) {
+      toast.error("请先登录后再进行账号安全设置");
+      return;
+    }
+    setAccountSecurityState({
+      isOpen: true,
+      tab,
+    });
+  };
+
+  const closeAccountSecurity = () => {
+    setAccountSecurityState(prev => ({
+      ...prev,
+      isOpen: false,
+    }));
+  };
+
   return (
     <div className="mx-auto w-full max-w-3xl p-6">
       <div className="rounded-2xl border border-base-300 bg-base-100 shadow-sm">
@@ -94,7 +121,39 @@ export default function SettingsPage() {
             ? <p className="mt-3 text-xs text-warning">未登录状态下仅保存到本地浏览器。</p>
             : null}
         </div>
+
+        <div className="border-t border-base-300 px-6 py-5">
+          <h2 className="text-lg font-medium">账号安全</h2>
+          <p className="mt-1 text-sm opacity-70">修改密码、绑定或换绑邮箱请在这里操作。</p>
+          <div className="mt-4 flex flex-wrap gap-3">
+            <button
+              type="button"
+              className="btn btn-outline btn-primary"
+              onClick={() => openAccountSecurity("password")}
+              disabled={!isLoggedIn}
+            >
+              修改密码
+            </button>
+            <button
+              type="button"
+              className="btn btn-outline btn-primary"
+              onClick={() => openAccountSecurity("email")}
+              disabled={!isLoggedIn}
+            >
+              绑定/换绑邮箱
+            </button>
+          </div>
+          {!isLoggedIn
+            ? <p className="mt-3 text-xs text-warning">请先登录后再修改账号安全信息。</p>
+            : null}
+        </div>
       </div>
+
+      <AccountSecurityModal
+        isOpen={accountSecurityState.isOpen}
+        initialTab={accountSecurityState.tab}
+        onClose={closeAccountSecurity}
+      />
     </div>
   );
 }

@@ -25,11 +25,13 @@ import useChatUnreadIndicators from "@/components/chat/hooks/useChatUnreadIndica
 import useSpaceDocMetaState from "@/components/chat/hooks/useSpaceDocMetaState";
 import useSpaceDocMetaSync from "@/components/chat/hooks/useSpaceDocMetaSync";
 import useSpaceSidebarTreeActions from "@/components/chat/hooks/useSpaceSidebarTreeActions";
+import useTutorialOnboarding from "@/components/chat/hooks/useTutorialOnboarding";
 import { parseSpaceDocId } from "@/components/chat/infra/blocksuite/spaceDocId";
 import { extractDocMetasFromSidebarTree } from "@/components/chat/room/sidebarTree";
 import { useDocHeaderOverrideStore } from "@/components/chat/stores/docHeaderOverrideStore";
 import { useDrawerPreferenceStore } from "@/components/chat/stores/drawerPreferenceStore";
 import { useEntityHeaderOverrideStore } from "@/components/chat/stores/entityHeaderOverrideStore";
+import TutorialUpdatePromptModal from "@/components/chat/tutorial/tutorialUpdatePromptModal";
 import { useLocalStorage } from "@/components/common/customHooks/useLocalStorage";
 import { useScreenSize } from "@/components/common/customHooks/useScreenSize";
 import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
@@ -108,6 +110,16 @@ export default function ChatPage() {
 
   const globalContext = useGlobalContext();
   const userId = globalContext.userId ?? -1;
+  const {
+    tutorialUpdatePrompt,
+    isPullingTutorialUpdate,
+    closeTutorialUpdatePrompt,
+    confirmTutorialUpdatePull,
+  } = useTutorialOnboarding({
+    userId,
+    enabled: true,
+    navigate,
+  });
   const {
     orderedSpaces,
     orderedSpaceIds,
@@ -495,6 +507,14 @@ export default function ChatPage() {
           modalsProps={modalsProps}
           contextMenuProps={contextMenuProps}
           spaceContextMenuProps={spaceContextMenuProps}
+        />
+        <TutorialUpdatePromptModal
+          open={Boolean(tutorialUpdatePrompt)}
+          latestCommitId={tutorialUpdatePrompt?.latestCommitId}
+          currentCommitId={tutorialUpdatePrompt?.currentCommitId}
+          isPulling={isPullingTutorialUpdate}
+          onClose={closeTutorialUpdatePrompt}
+          onConfirmPull={() => { void confirmTutorialUpdatePull(); }}
         />
       </ChatPageLayoutProvider>
     </SpaceContext>
