@@ -1,6 +1,9 @@
+import type { StAbilityDraft } from "./stImportParser";
 import { CopyIcon, EditIcon } from "app/icons";
 import { useState } from "react";
+
 import { toast } from "react-hot-toast";
+
 import {
   useGetRoleAbilitiesQuery,
   useSetRoleAbilityMutation,
@@ -8,6 +11,8 @@ import {
   useUpdateRoleAbilityMutation,
 } from "../../../../api/hooks/abilityQueryHooks";
 import { useRuleDetailQuery } from "../../../../api/hooks/ruleQueryHooks";
+
+import { applyStCommandToDraft } from "./stImportParser";
 
 interface ImportWithStCmdProps {
   ruleId: number;
@@ -131,65 +136,7 @@ export default function ImportWithStCmd({ ruleId, roleId, onImportSuccess }: Imp
   );
 }
 
-interface StAbilityDraft {
-  abilityId?: number;
-  act: Record<string, string>;
-  basic: Record<string, string>;
-  ability: Record<string, string>;
-  skill: Record<string, string>;
-}
-
 function useHandleStCmd(ruleId: number, roleId: number): (cmd: string) => Promise<string> {
-  const ABILITY_MAP: { [key: string]: string } = {
-    str: "力量",
-    dex: "敏捷",
-    pow: "意志",
-    con: "体质",
-    app: "外貌",
-    edu: "教育",
-    siz: "体型",
-    int: "智力",
-    san: "sanֵ",
-    luck: "幸运",
-    mp: "魔法",
-    魔法值上限: "mpm",
-    体力: "hp",
-    体力值: "hp",
-    生命值: "hp",
-    最大生命值: "hpm",
-    理智值上限: "sanm",
-    理智上限: "sanm",
-    cm: "克苏鲁神话",
-    克苏鲁: "克苏鲁神话",
-    计算机: "计算机使用",
-    电脑: "计算机使用",
-    灵感: "智力",
-    理智: "sanֵ",
-    理智值: "sanֵ",
-    运气: "幸运",
-    驾驶: "汽车驾驶",
-    汽车: "汽车驾驶",
-    图书馆: "图书馆使用",
-    开锁: "锁匠",
-    撬锁: "锁匠",
-    领航: "导航",
-    重型操作: "操作重型机械",
-    重型机械: "操作重型机械",
-    重型: "操作重型机械",
-    侦察: "侦查",
-  };
-  const ABILITY_FALLBACK_KEYS = new Set([
-    "hp",
-    "mp",
-    "san",
-    "sanֵ",
-    "hpm",
-    "mpm",
-    "sanm",
-    "db",
-    "护甲",
-  ]);
-
   const abilityQuery = useGetRoleAbilitiesQuery(roleId);
   const abilityList = abilityQuery.data?.data ?? [];
   const ruleDetailQuery = useRuleDetailQuery(ruleId);
@@ -212,129 +159,31 @@ function useHandleStCmd(ruleId: number, roleId: number): (cmd: string) => Promis
     return { draft, shouldUpdate };
   }
 
-  const basicTemplateKeys = new Set(Object.keys(ruleDetailQuery.data?.basicDefault ?? {}));
-  const abilityTemplateKeys = new Set(Object.keys(ruleDetailQuery.data?.abilityFormula ?? {}));
-  const skillTemplateKeys = new Set(Object.keys(ruleDetailQuery.data?.skillDefault ?? {}));
-
-  function resolveFieldForKey(draft: StAbilityDraft, key: string): "basic" | "ability" | "skill" {
-    // 优先沿用当前数据所在分组，避免无意义漂移
-    if (key in draft.basic)
-      return "basic";
-    if (key in draft.ability)
-      return "ability";
-    if (key in draft.skill)
-      return "skill";
-
-    // 若当前分组没有该键，按规则模板归类
-    if (basicTemplateKeys.has(key))
-      return "basic";
-    if (abilityTemplateKeys.has(key))
-      return "ability";
-    if (skillTemplateKeys.has(key))
-      return "skill";
-
-    // 模板未覆盖时，能力兜底键留在 ability，其余进入 skill
-    if (ABILITY_FALLBACK_KEYS.has(key.toLowerCase()) || ABILITY_FALLBACK_KEYS.has(key))
-      return "ability";
-    return "skill";
-  }
-
-  function getFieldValue(draft: StAbilityDraft, field: "basic" | "ability" | "skill", key: string): string {
-    if (field === "basic")
-      return draft.basic[key] ?? "0";
-    if (field === "ability")
-      return draft.ability[key] ?? "0";
-    return draft.skill[key] ?? "0";
-  }
-
-  function setFieldValue(draft: StAbilityDraft, field: "basic" | "ability" | "skill", key: string, value: string): void {
-    if (field === "basic") {
-      draft.basic[key] = value;
-      return;
-    }
-    if (field === "ability") {
-      draft.ability[key] = value;
-      return;
-    }
-    draft.skill[key] = value;
-  }
-
-  function normalizeMisplacedAbilityFields(draft: StAbilityDraft): Set<string> {
-    const toDelete = new Set<string>();
-    // 已有污染数据自愈：能力区里落到了“基础/技能模板键”的字段，迁回对应分组
-    for (const [key, value] of Object.entries(draft.ability)) {
-      if (!abilityTemplateKeys.has(key) && basicTemplateKeys.has(key)) {
-        draft.basic[key] = draft.basic[key] ?? value;
-        toDelete.add(key);
-      }
-      else if (!abilityTemplateKeys.has(key) && skillTemplateKeys.has(key)) {
-        draft.skill[key] = draft.skill[key] ?? value;
-        toDelete.add(key);
-      }
-    }
-    return toDelete;
-  }
-
   async function handleStCmdInner(cmd: string): Promise<string> {
-    if (!cmd.startsWith(".st") && !cmd.startsWith("。st")) {
-      throw new Error("指令必须以 .st 开头");
-    }
-    cmd = cmd.slice(3).trim();
-    const args = cmd.split(/\s+/).filter(arg => arg !== "");
-    const input = args.join("");
     const { draft, shouldUpdate } = buildAbilityDraft();
-    const abilityFieldsToDelete = normalizeMisplacedAbilityFields(draft);
-
-    // 支持 .st 力量70 / .st 力量+10 / .st 敏捷-5 这三种写法
-    const matches = input.matchAll(/([^\d+-]+)([+-]?)(\d+)/g);
-    const abilityToUpdate = new Map<string, string>();
-    let matchCount = 0;
-    for (const match of matches) {
-      matchCount += 1;
-      const rawKey = match[1].trim();
-      const operator = match[2];
-      const value = Number.parseInt(match[3], 10);
-
-      // 统一转换为小写进行比较
-      const normalizedKey = rawKey.toLowerCase();
-      const key = ABILITY_MAP[normalizedKey] || rawKey;
-      const targetField = resolveFieldForKey(draft, key);
-      const currentValue = Number.parseInt(getFieldValue(draft, targetField, key), 10);
-      let newValue: number;
-      if (operator === "+") {
-        newValue = currentValue + value;
-      }
-      else if (operator === "-") {
-        newValue = currentValue - value;
-      }
-      else {
-        newValue = value;
-      }
-
-      setFieldValue(draft, targetField, key, String(newValue));
-      if (targetField !== "ability" && key in draft.ability && !abilityTemplateKeys.has(key)) {
-        abilityFieldsToDelete.add(key);
-      }
-      abilityToUpdate.set(key, String(newValue));
-    }
-
-    if (matchCount === 0) {
-      throw new Error("未解析到属性，请检查格式（例：.st 力量80 敏捷+10）");
-    }
+    const parsed = applyStCommandToDraft({
+      cmd,
+      draft,
+      templateKeys: {
+        basic: new Set(Object.keys(ruleDetailQuery.data?.basicDefault ?? {})),
+        ability: new Set(Object.keys(ruleDetailQuery.data?.abilityFormula ?? {})),
+        skill: new Set(Object.keys(ruleDetailQuery.data?.skillDefault ?? {})),
+      },
+    });
 
     // 已存在能力则更新，否则创建，并保留本次导入后的字段内容
     if (shouldUpdate) {
       await updateAbilityMutation.mutateAsync({
-        abilityId: draft.abilityId as number,
-        act: draft.act,
-        basic: draft.basic,
-        ability: draft.ability,
-        skill: draft.skill,
+        abilityId: parsed.draft.abilityId as number,
+        act: parsed.draft.act,
+        basic: parsed.draft.basic,
+        ability: parsed.draft.ability,
+        skill: parsed.draft.skill,
       });
 
-      if (abilityFieldsToDelete.size > 0) {
+      if (parsed.abilityFieldsToDelete.size > 0) {
         const deleteMap: Record<string, string> = {};
-        for (const key of abilityFieldsToDelete) {
+        for (const key of parsed.abilityFieldsToDelete) {
           // 后端约定：value 为 null 代表删除该键
           deleteMap[key] = null as unknown as string;
         }
@@ -349,13 +198,13 @@ function useHandleStCmd(ruleId: number, roleId: number): (cmd: string) => Promis
       await setAbilityMutation.mutateAsync({
         roleId,
         ruleId,
-        act: draft.act,
-        basic: draft.basic,
-        ability: draft.ability,
-        skill: draft.skill,
+        act: parsed.draft.act,
+        basic: parsed.draft.basic,
+        ability: parsed.draft.ability,
+        skill: parsed.draft.skill,
       });
     }
-    return `更新属性: ${JSON.stringify(abilityToUpdate, null, 2)}`;
+    return `更新属性: ${JSON.stringify(parsed.abilityToUpdate, null, 2)}`;
   }
   return handleStCmdInner;
 }
