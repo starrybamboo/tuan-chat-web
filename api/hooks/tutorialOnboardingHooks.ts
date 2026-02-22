@@ -16,6 +16,7 @@ export type TutorialBootstrapResponse = {
   currentCommitId?: number | null;
   autoCloned?: boolean;
   newSpaceId?: number | null;
+  missingTutorial?: boolean;
   updateAvailable?: boolean;
 };
 
