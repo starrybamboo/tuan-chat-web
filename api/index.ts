@@ -141,7 +141,6 @@ export type { CursorPageBaseResponseFeedWithStatsResponse } from './models/Curso
 export type { CursorPageBaseResponsePostListWithStatsResponse } from './models/CursorPageBaseResponsePostListWithStatsResponse';
 export type { DiceResult } from './models/DiceResult';
 export type { DocCardExtra } from './models/DocCardExtra';
-export type { EffectMessage } from './models/EffectMessage';
 export type { FeedPageRequest } from './models/FeedPageRequest';
 export type { FeedWithStatsResponse } from './models/FeedWithStatsResponse';
 export type { FileMessage } from './models/FileMessage';
@@ -250,7 +249,8 @@ export type { SoundMessage } from './models/SoundMessage';
 export type { Space } from './models/Space';
 export type { SpaceAddRequest } from './models/SpaceAddRequest';
 export type { SpaceArchiveRequest } from './models/SpaceArchiveRequest';
-export type { SpaceCloneRequest } from './models/SpaceCloneRequest';
+export type { SpaceCloneByCommitRequest } from './models/SpaceCloneByCommitRequest';
+export type { SpaceCloneByRepositoryRequest } from './models/SpaceCloneByRepositoryRequest';
 export type { SpaceDocCreateRequest } from './models/SpaceDocCreateRequest';
 export type { SpaceDocRenameRequest } from './models/SpaceDocRenameRequest';
 export type { SpaceDocResponse } from './models/SpaceDocResponse';

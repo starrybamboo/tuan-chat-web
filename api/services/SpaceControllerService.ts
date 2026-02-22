@@ -12,7 +12,8 @@ import type { ApiResultVoid } from '../models/ApiResultVoid';
 import type { RoomAddRequest } from '../models/RoomAddRequest';
 import type { SpaceAddRequest } from '../models/SpaceAddRequest';
 import type { SpaceArchiveRequest } from '../models/SpaceArchiveRequest';
-import type { SpaceCloneRequest } from '../models/SpaceCloneRequest';
+import type { SpaceCloneByCommitRequest } from '../models/SpaceCloneByCommitRequest';
+import type { SpaceCloneByRepositoryRequest } from '../models/SpaceCloneByRepositoryRequest';
 import type { SpaceExtraRequest } from '../models/SpaceExtraRequest';
 import type { SpaceExtraSetRequest } from '../models/SpaceExtraSetRequest';
 import type { SpaceOwnerTransferRequest } from '../models/SpaceOwnerTransferRequest';
@@ -202,17 +203,39 @@ export class SpaceControllerService {
         });
     }
     /**
-     * 根据spaceId直接克隆空间
+     * 根据commitId克隆空间
      * @param requestBody
      * @returns ApiResultLong OK
      * @throws ApiError
      */
-    public cloneBySpaceId(
-        requestBody: SpaceCloneRequest,
+    public cloneByCommitId(
+        requestBody: SpaceCloneByCommitRequest,
     ): CancelablePromise<ApiResultLong> {
         return this.httpRequest.request({
             method: 'POST',
             url: '/space/clone',
+            body: requestBody,
+            mediaType: 'application/json',
+            errors: {
+                400: `Bad Request`,
+                405: `Method Not Allowed`,
+                429: `Too Many Requests`,
+                500: `Internal Server Error`,
+            },
+        });
+    }
+    /**
+     * 根据repositoryId克隆空间
+     * @param requestBody
+     * @returns ApiResultLong OK
+     * @throws ApiError
+     */
+    public cloneByRepositoryId(
+        requestBody: SpaceCloneByRepositoryRequest,
+    ): CancelablePromise<ApiResultLong> {
+        return this.httpRequest.request({
+            method: 'POST',
+            url: '/space/clone/repository',
             body: requestBody,
             mediaType: 'application/json',
             errors: {

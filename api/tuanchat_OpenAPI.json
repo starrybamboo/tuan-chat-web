@@ -6639,13 +6639,84 @@
         "tags": [
           "space-controller"
         ],
-        "summary": "根据spaceId直接克隆空间",
-        "operationId": "cloneBySpaceId",
+        "summary": "根据commitId克隆空间",
+        "operationId": "cloneByCommitId",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/SpaceCloneRequest"
+                "$ref": "#/components/schemas/SpaceCloneByCommitRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultLong"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/space/clone/repository": {
+      "post": {
+        "tags": [
+          "space-controller"
+        ],
+        "summary": "根据repositoryId克隆空间",
+        "operationId": "cloneByRepositoryId",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SpaceCloneByRepositoryRequest"
               }
             }
           },
@@ -18931,28 +19002,6 @@
           }
         }
       },
-      "EffectMessage": {
-        "required": [
-          "effectName"
-        ],
-        "type": "object",
-        "properties": {
-          "effectName": {
-            "type": "string",
-            "description": "特效名称"
-          },
-          "duration": {
-            "type": "integer",
-            "description": "持续时间（毫秒）",
-            "format": "int32"
-          },
-          "strength": {
-            "type": "integer",
-            "description": "强度",
-            "format": "int32"
-          }
-        }
-      },
       "FileMessage": {
         "required": [
           "fileName",
@@ -19152,9 +19201,6 @@
           },
           "clueMessage": {
             "$ref": "#/components/schemas/ClueMessage"
-          },
-          "effectMessage": {
-            "$ref": "#/components/schemas/EffectMessage"
           },
           "webgalVar": {
             "$ref": "#/components/schemas/WebgalVarPayload"
@@ -20208,19 +20254,39 @@
         },
         "description": "Space 用户文档返回"
       },
-      "SpaceCloneRequest": {
+      "SpaceCloneByCommitRequest": {
         "required": [
-          "spaceId"
+          "repositoryId",
+          "commitId"
         ],
         "type": "object",
         "properties": {
-          "spaceId": {
+          "repositoryId": {
             "type": "integer",
-            "description": "空间ID",
+            "description": "仓库ID",
+            "format": "int64"
+          },
+          "commitId": {
+            "type": "integer",
+            "description": "提交ID",
             "format": "int64"
           }
         },
-        "description": "根据spaceId克隆空间请求"
+        "description": "根据commitId克隆空间请求"
+      },
+      "SpaceCloneByRepositoryRequest": {
+        "required": [
+          "repositoryId"
+        ],
+        "type": "object",
+        "properties": {
+          "repositoryId": {
+            "type": "integer",
+            "description": "仓库ID",
+            "format": "int64"
+          }
+        },
+        "description": "根据repositoryId克隆空间请求"
       },
       "SpaceAddRequest": {
         "required": [

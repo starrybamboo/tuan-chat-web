@@ -1,6 +1,6 @@
 import { toast } from "react-hot-toast";
 import { isElectronEnv } from "@/utils/isElectronEnv";
-import launchWebGal from "@/utils/launchWebGal";
+import launchWebGal, { appendWebgalLaunchHints } from "@/utils/launchWebGal";
 
 export default function WebgalStarter({ className, children }: { className: string; children: React.ReactNode }) {
   async function startWebgal() {
@@ -13,7 +13,7 @@ export default function WebgalStarter({ className, children }: { className: stri
     const launchResult = await launchWebGal();
     clearTimeout(timer);
     if (!launchResult.ok) {
-      toast.error(launchResult.error || "WebGAL 启动失败");
+      toast.error(appendWebgalLaunchHints(launchResult.error || "WebGAL 启动失败"));
     }
   }
   if (!isElectronEnv())

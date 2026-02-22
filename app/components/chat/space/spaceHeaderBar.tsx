@@ -1,5 +1,5 @@
 import type { SpaceDetailTab } from "@/components/chat/chatPage.types";
-import { ArchiveIcon, ArrowCounterClockwise, HouseIcon, PlusIcon } from "@phosphor-icons/react";
+import { AddressBookIcon, ArchiveIcon, ArrowCounterClockwise, HouseIcon, PlusIcon } from "@phosphor-icons/react";
 import React from "react";
 import toast from "react-hot-toast";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
@@ -141,7 +141,19 @@ export default function SpaceHeaderBar({
                 }}
               >
                 <MemberIcon className="size-4 opacity-70" />
-                <span className="flex-1 text-left">群成员</span>
+                <span className="flex-1 text-left">空间成员</span>
+              </button>
+            </li>
+            <li>
+              <button
+                type="button"
+                className="gap-3"
+                onClick={() => {
+                  handleOpenSpaceDetail("roles");
+                }}
+              >
+                <AddressBookIcon className="size-4 opacity-70" />
+                <span className="flex-1 text-left">空间角色</span>
               </button>
             </li>
             <li>

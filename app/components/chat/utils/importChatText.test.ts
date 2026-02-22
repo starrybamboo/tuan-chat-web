@@ -1,12 +1,12 @@
 import { isDicerSpeakerName, normalizeSpeakerName, parseImportedChatText } from "./importChatText";
 
 describe("parseImportedChatText", () => {
-  it("解析标准格式（含中文冒号）", () => {
+  it("解析标记格式（支持[]与<>，含中文冒号）", () => {
     const input = [
       "[KP]：你看那里，那里好像有两个人在讨论多数表决呢。",
-      "[蓝色的人]： “我赞成多数表决，这才能体现公平性。”",
+      "<蓝色的人>： “我赞成多数表决，这才能体现公平性。”",
       "",
-      "  [红色的人] ：胡说八道  ",
+      "  <红色的人> ：胡说八道  ",
     ].join("\n");
 
     const res = parseImportedChatText(input);
@@ -156,13 +156,14 @@ describe("parseImportedChatText", () => {
       "[A]: ok",
       "[]: empty",
       "[B]：",
+      "<C>：",
     ].join("\n");
 
     const res = parseImportedChatText(input);
 
     expect(res.messages).toHaveLength(1);
     expect(res.messages[0]).toMatchObject({ lineNumber: 3, speakerName: "A", content: "ok" });
-    expect(res.invalidLines.map(i => i.lineNumber)).toEqual([2, 4, 5]);
+    expect(res.invalidLines.map(i => i.lineNumber)).toEqual([2, 4, 5, 6]);
   });
 });
 

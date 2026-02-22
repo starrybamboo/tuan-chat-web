@@ -10,7 +10,7 @@ import {
   useRealtimeRenderStore,
 } from "@/components/chat/stores/realtimeRenderStore";
 import WorkflowWindow from "@/components/chat/window/workflowWindow";
-import launchWebGal, { appendWebgalTimeoutHint } from "@/utils/launchWebGal";
+import launchWebGal, { appendWebgalLaunchHints } from "@/utils/launchWebGal";
 import { pollPort } from "@/utils/pollPort";
 import { UploadUtils } from "@/utils/UploadUtils";
 import { getTerreBaseUrl, getTerreHealthcheckUrl } from "@/webGAL/terreConfig";
@@ -417,7 +417,7 @@ export default function SpaceWebgalRenderWindow({ spaceId }: SpaceWebgalRenderWi
     });
     const electronEnv = launchResult.runtime === "electron";
     if (electronEnv && !launchResult.ok) {
-      toast.error(appendWebgalTimeoutHint(launchResult.error || "WebGAL 启动失败"), { id: "space-webgal-init" });
+      toast.error(appendWebgalLaunchHints(launchResult.error || "WebGAL 启动失败"), { id: "space-webgal-init" });
       return false;
     }
     if (electronEnv && typeof launchResult.port === "number" && Number.isFinite(launchResult.port)) {
@@ -438,14 +438,14 @@ export default function SpaceWebgalRenderWindow({ spaceId }: SpaceWebgalRenderWi
       toast.loading("正在初始化空间渲染器...", { id: "space-webgal-init" });
       const success = await startRealtimeRender();
       if (!success) {
-        toast.error("WebGAL 渲染器启动失败", { id: "space-webgal-init" });
+        toast.error(appendWebgalLaunchHints("WebGAL 渲染器启动失败"), { id: "space-webgal-init" });
         return false;
       }
       toast.success("WebGAL 渲染器已启动", { id: "space-webgal-init" });
       return true;
     }
     catch (error) {
-      const message = appendWebgalTimeoutHint(
+      const message = appendWebgalLaunchHints(
         error instanceof Error && error.message
           ? `WebGAL 启动失败：${error.message}`
           : "WebGAL 启动超时",

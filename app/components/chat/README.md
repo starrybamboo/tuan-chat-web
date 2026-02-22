@@ -284,13 +284,15 @@ const handleMessageSubmit = useCallback(() => {
 
 // 发送特效消息
 const handleSendEffect = useCallback((effectName: string) => {
+  const effectAnnotation = getSceneEffectAnnotationId(effectName);
   send({
     roomId,
     roleId: undefined,
     avatarId: undefined,
     content: `[特效: ${effectName}]`,
     messageType: MessageType.EFFECT,
-    extra: { effectMessage: { effectName } },
+    ...(effectAnnotation ? { annotations: [effectAnnotation] } : {}),
+    extra: {},
   });
 }, [roomId, send]);
 
@@ -302,7 +304,8 @@ const handleClearBackground = useCallback(() => {
     avatarId: undefined,
     content: "[清除背景]",
     messageType: MessageType.EFFECT,
-    extra: { effectMessage: { effectName: "clearBackground" } },
+    annotations: [ANNOTATION_IDS.BACKGROUND_CLEAR],
+    extra: {},
   });
   toast.success("已清除背景");
 }, [roomId, send]);
@@ -325,7 +328,7 @@ const handleClearBackground = useCallback(() => {
    ```
    遍历历史消息 → 提取背景图片消息（imageMessage.background=true）
                 → 根据当前滚动位置计算应显示的背景
-                → 检查是否有 clearBackground 特效
+               → 检查是否有 background.clear annotation
                 → 更新背景状态
    ```
    
@@ -337,10 +340,10 @@ const handleClearBackground = useCallback(() => {
      
      // 找到最后一个清除背景的位置
      let lastClearIndex = -1;
-     for (const effect of effectNode) {
-       if (effect.index <= currentMessageIndex && 
-           effect.effectMessage?.effectName === 'clearBackground') {
-         lastClearIndex = effect.index;
+     for (const msg of historyMessages) {
+       if (msg.index <= currentMessageIndex &&
+           hasClearBackgroundAnnotation(msg.annotations)) {
+         lastClearIndex = msg.index;
        }
      }
      
@@ -433,14 +436,16 @@ const imgNode = useMemo(() => {
 
 4. **特效消息渲染**：
    ```typescript
-   if (messageType === MessageType.EFFECT) {
-     return (
-       <div className="narrator-message">
-         <span className="badge badge-info">特效</span>
-         <span>{effectMessage?.effectName}</span>
-       </div>
-     );
-   }
+  if (messageType === MessageType.EFFECT) {
+    const sceneEffect = getSceneEffectFromAnnotations(message.annotations);
+    const effectLabel = getSceneEffectLabel(sceneEffect) || message.content || "特效";
+    return (
+      <div className="narrator-message">
+        <span className="badge badge-info">特效</span>
+        <span>{effectLabel}</span>
+      </div>
+    );
+  }
    ```
 
 5. **图片消息渲染**：
@@ -463,12 +468,13 @@ const isNarrator = !message.roleId || message.roleId <= 0;
 
 // 特效消息渲染
 if (messageType === MessageType.EFFECT) {
-  const effectMessage = message.extra?.effectMessage;
+  const sceneEffect = getSceneEffectFromAnnotations(message.annotations);
+  const effectLabel = getSceneEffectLabel(sceneEffect) || message.content || "特效";
   return (
     <div className="flex justify-center my-2">
       <div className="px-3 py-1 rounded-full bg-base-200 text-sm flex items-center gap-2">
         <span className="badge badge-info badge-sm">特效</span>
-        <span className="opacity-70">{effectMessage?.effectName}</span>
+        <span className="opacity-70">{effectLabel}</span>
       </div>
     </div>
   );
@@ -1351,8 +1357,11 @@ const imgNode = useMemo(() => {
 // 缓存特效节点
 const effectNode = useMemo(() => {
   return historyMessages
-    .filter(msg => msg.extra?.effectMessage)
-    .map((msg, index) => ({ index, effectMessage: msg.extra.effectMessage }));
+    .map((msg, index) => ({
+      index,
+      effectName: getSceneEffectFromAnnotations(msg.annotations),
+    }))
+    .filter(item => Boolean(item.effectName));
 }, [historyMessages]);
 ```
 
@@ -1498,21 +1507,21 @@ await sendMessage(message);
 
 ### 2. 背景/特效不生效
 
-**原因**：消息的 `extra` 字段结构不正确
+**原因**：消息缺少正确的 `annotations` 标注
 
 **解决方案**：
 ```typescript
-// ✅ 正确的结构
+// ✅ 正确的结构（纯 annotation）
 {
-  extra: {
-    effectMessage: {
-      effectName: "clearBackground"
-    }
-  }
+  messageType: MessageType.EFFECT,
+  annotations: ["background.clear"],
+  extra: {}
 }
 
 // ❌ 错误的结构
 {
+  messageType: MessageType.EFFECT,
+  annotations: [],
   extra: {
     effectName: "clearBackground"
   }

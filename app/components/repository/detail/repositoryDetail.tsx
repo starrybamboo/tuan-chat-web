@@ -1,5 +1,6 @@
 import type { Space } from "api/models/Space";
 import type { RepositoryData } from "./constants";
+import { useQueryClient } from "@tanstack/react-query";
 import { useGetUserRoomsQuery, useGetUserSpacesQuery } from "api/hooks/chatQueryHooks";
 import { useRepositoryDetailByIdQuery, useRepositoryForkListQuery } from "api/hooks/repositoryQueryHooks";
 import { useRuleListQuery } from "api/hooks/ruleQueryHooks";
@@ -32,29 +33,17 @@ function parseSpaceUpdateTime(value?: string): number {
   return Number.isFinite(timestamp) ? timestamp : 0;
 }
 
-type ApiResultNumber = {
-  success?: boolean;
-  data?: number | null;
-  message?: string;
-  code?: number;
-};
-
 function isValidCommitId(value: number | null | undefined): value is number {
   return typeof value === "number" && Number.isFinite(value) && value > 0;
 }
 
 async function cloneSpaceByCommitId(repositoryId: number, commitId: number): Promise<number> {
-  const response = await tuanchat.request.request<ApiResultNumber>({
-    method: "POST",
-    url: "/space/clone",
-    body: { repositoryId, commitId },
-    mediaType: "application/json",
-  });
+  const response = await tuanchat.spaceController.cloneByCommitId({ repositoryId, commitId });
   const clonedSpaceId = response?.data;
   if (typeof clonedSpaceId === "number" && Number.isFinite(clonedSpaceId) && clonedSpaceId > 0) {
     return clonedSpaceId;
   }
-  throw new Error(response?.message ?? "根据提交克隆失败");
+  throw new Error(response?.errMsg ?? "根据提交克隆失败");
 }
 
 function isRepositorySpaceCandidate(space: Space, repositoryId: number): space is RepositorySpaceCandidate {
@@ -79,6 +68,7 @@ export default function RepositoryDetailComponent({
   onViewModeOpenChange,
 }: RepositoryDetailComponentProps) {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const params = useParams();
   const routeRepositoryId = Number(params.id);
   const repositoryId = useMemo(() => {
@@ -281,6 +271,13 @@ export default function RepositoryDetailComponent({
     navigate(`/repository/detail/${id}`);
   };
 
+  const openCommitChainPage = () => {
+    if (!isValidSpaceId(repositoryId)) {
+      return;
+    }
+    navigate(`/repository/commit-chain/${repositoryId}`);
+  };
+
   // ===== 条件渲染：加载和错误状态 =====
   // 如果正在加载，显示加载状态
   if (!propRepositoryData && isLoadingRepository) {
@@ -340,6 +337,17 @@ export default function RepositoryDetailComponent({
     }
     navigate(`/chat/${spaceId}`);
   };
+  const refreshUserSpaceCaches = async () => {
+    // 空间列表在多个页面使用两套 queryKey，克隆后需要一起失效+重取。
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ["getUserSpaces"] }),
+      queryClient.invalidateQueries({ queryKey: ["getUserActiveSpaces"] }),
+    ]);
+    await Promise.allSettled([
+      getUserSpaces.refetch(),
+      queryClient.refetchQueries({ queryKey: ["getUserActiveSpaces"], type: "all" }),
+    ]);
+  };
 
   const cloneModule = async () => {
     if (cloningModuleLockRef.current) {
@@ -358,7 +366,7 @@ export default function RepositoryDetailComponent({
       const clonedSpaceId = await cloneSpaceByCommitId(repositoryId, latestRepositoryCommitId);
 
       setViewModeOpen(false);
-      void getUserSpaces.refetch();
+      await refreshUserSpaceCaches();
       await navigateToSpace(clonedSpaceId);
     }
     catch {
@@ -412,7 +420,7 @@ export default function RepositoryDetailComponent({
 
       setShowUnarchiveSuggestionDialog(false);
       setViewModeOpen(false);
-      await getUserSpaces.refetch();
+      await refreshUserSpaceCaches();
       await navigateToSpace(targetSpaceId);
     }
     catch (error) {
@@ -591,6 +599,13 @@ export default function RepositoryDetailComponent({
 
                   <div className="flex flex-col gap-3">
                     <Author userId={repositoryData.userId} />
+                    <button
+                      type="button"
+                      className="btn btn-outline w-full"
+                      onClick={openCommitChainPage}
+                    >
+                      查看 Commit 链
+                    </button>
                     <button
                       type="button"
                       className="btn btn-primary w-full"

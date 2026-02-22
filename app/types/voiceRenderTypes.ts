@@ -63,6 +63,8 @@ export const MESSAGE_TYPE = {
   CLUE_CARD: 1000,
   /** 文档卡片消息（Blocksuite 文档引用） */
   DOC_CARD: 1002,
+  /** 群聊跳转消息（房间引用） */
+  ROOM_JUMP: 1003,
   READ_LINE: 10000,
   /** Thread 根消息（在主消息流里展示 thread 标题） */
   THREAD_ROOT: 10001,

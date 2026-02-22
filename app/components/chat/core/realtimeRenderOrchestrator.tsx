@@ -11,7 +11,7 @@ import {
 import { useRealtimeRenderStore } from "@/components/chat/stores/realtimeRenderStore";
 import { useSideDrawerStore } from "@/components/chat/stores/sideDrawerStore";
 import { isImageMessageBackground } from "@/types/messageAnnotations";
-import launchWebGal, { appendWebgalTimeoutHint } from "@/utils/launchWebGal";
+import launchWebGal, { appendWebgalLaunchHints } from "@/utils/launchWebGal";
 import { pollPort } from "@/utils/pollPort";
 import { getTerreHealthcheckUrl } from "@/webGAL/terreConfig";
 import useRealtimeRender from "@/webGAL/useRealtimeRender";
@@ -295,7 +295,7 @@ export default function RealtimeRenderOrchestrator({
       }
       const electronEnv = launchResult.runtime === "electron";
       if (electronEnv && !launchResult.ok) {
-        toast.error(appendWebgalTimeoutHint(launchResult.error || "WebGAL 启动失败"), { id: "webgal-init" });
+        toast.error(appendWebgalLaunchHints(launchResult.error || "WebGAL 启动失败"), { id: "webgal-init" });
         setIsRealtimeRenderEnabled(false);
         return;
       }
@@ -330,7 +330,7 @@ export default function RealtimeRenderOrchestrator({
           await renderHistoryMessages();
         }
         else {
-          toast.error("实时渲染启动失败", { id: "webgal-init" });
+          toast.error(appendWebgalLaunchHints("实时渲染启动失败"), { id: "webgal-init" });
           setIsRealtimeRenderEnabled(false);
         }
       }
@@ -339,7 +339,7 @@ export default function RealtimeRenderOrchestrator({
           dismissRealtimeRenderToasts();
           return;
         }
-        const message = appendWebgalTimeoutHint(
+        const message = appendWebgalLaunchHints(
           error instanceof Error && error.message
             ? `WebGAL 启动失败：${error.message}`
             : "WebGAL 启动超时",
@@ -392,7 +392,7 @@ export default function RealtimeRenderOrchestrator({
       return;
     }
 
-    toast.error("实时渲染连接失败，请确认 WebGAL 已启动", { id: "webgal-error" });
+    toast.error(appendWebgalLaunchHints("实时渲染连接失败，请确认 WebGAL 已启动"), { id: "webgal-error" });
     stopRealtimeRender();
     setIsRealtimeRenderEnabled(false);
     if (sideDrawerState === "webgal") {

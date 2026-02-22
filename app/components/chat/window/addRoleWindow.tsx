@@ -1,4 +1,5 @@
 import React, { use, useEffect, useMemo, useState } from "react";
+import { toast } from "react-hot-toast";
 import { RoomContext } from "@/components/chat/core/roomContext";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
 import RoleAvatarComponent from "@/components/common/roleAvatar";
@@ -54,6 +55,7 @@ export function AddRoleWindow({
   const [activeTab, setActiveTab] = useState<"my" | "space">("my");
   const [searchKeyword, setSearchKeyword] = useState("");
   const [debouncedKeyword, setDebouncedKeyword] = useState("");
+  const [forceRoleIdInput, setForceRoleIdInput] = useState("");
 
   const availableRoles = useMemo(() => {
     return userRoles.filter(role => role.type !== 2 && !roleIdInRoomSet.has(role.roleId));
@@ -97,8 +99,30 @@ export function AddRoleWindow({
     return <CreateNpcRoleWindow onClose={() => setIsCreatingNpc(false)} />;
   }
 
+  const isRoomScope = (roomId ?? -1) > 0;
+
   const handleImportSpaceRole = (roleId: number) => {
-    addRoomRoleMutation.mutate({ roomId: roomId ?? -1, roleIdList: [roleId] });
+    if (isRoomScope) {
+      addRoomRoleMutation.mutate({ roomId: roomId ?? -1, roleIdList: [roleId] });
+      return;
+    }
+    handleAddRole(roleId);
+  };
+
+  const forceRoleId = Number.parseInt(forceRoleIdInput, 10);
+  const canForceAddRole = Number.isFinite(forceRoleId) && forceRoleId > 0;
+  const handleForceAddRoleById = () => {
+    if (!canForceAddRole) {
+      toast.error("请输入有效的角色ID");
+      return;
+    }
+    if (isRoomScope) {
+      addRoomRoleMutation.mutate({ roomId: roomId ?? -1, roleIdList: [forceRoleId] });
+    }
+    else {
+      handleAddRole(forceRoleId);
+    }
+    setForceRoleIdInput("");
   };
 
   return (
@@ -137,6 +161,40 @@ export function AddRoleWindow({
             }}
           />
         </div>
+        {activeTab === "space" && (
+          <div className="mb-4 rounded-lg border border-base-300 p-3 bg-base-200/30">
+            <div className="text-sm font-semibold text-base-content/80 mb-2">开发调试：按ID强制添加</div>
+            <div className="flex items-center gap-2">
+              <input
+                type="text"
+                className="input input-bordered input-sm w-full"
+                placeholder={isRoomScope ? "输入角色ID，强制加入当前房间" : "输入角色ID，强制加入当前空间库"}
+                aria-label="按角色ID强制添加"
+                value={forceRoleIdInput}
+                onChange={(event) => {
+                  setForceRoleIdInput(event.currentTarget.value.replace(/\D/g, ""));
+                }}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") {
+                    event.preventDefault();
+                    handleForceAddRoleById();
+                  }
+                }}
+              />
+              <button
+                type="button"
+                className="btn btn-sm btn-info"
+                onClick={handleForceAddRoleById}
+                disabled={!canForceAddRole}
+              >
+                强制添加
+              </button>
+            </div>
+            <div className="text-xs text-base-content/60 mt-1">
+              跳过当前列表过滤，直接按角色ID添加。
+            </div>
+          </div>
+        )}
         {activeTab === "my"
           ? (
               <>

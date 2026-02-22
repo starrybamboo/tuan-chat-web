@@ -336,7 +336,7 @@ export default function useRoomImportActions({
       roleId: curRoleId,
       avatarId: resolvedAvatarId,
       content: "",
-      messageType: MessageType.TEXT,
+      messageType: MessageType.ROOM_JUMP,
       extra: {
         roomJump: {
           spaceId,

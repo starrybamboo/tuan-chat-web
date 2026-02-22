@@ -79,7 +79,7 @@ export default function useChatFrameMessageActions({
       case MESSAGE_TYPE.SOUND:
         return pickObject(extra.soundMessage ?? extra);
       case MESSAGE_TYPE.EFFECT:
-        return pickObject(extra.effectMessage ?? extra);
+        return {};
       case MESSAGE_TYPE.DICE:
         return pickObject(extra.diceResult ?? extra);
       case MESSAGE_TYPE.FORWARD:
@@ -94,6 +94,8 @@ export default function useChatFrameMessageActions({
         return extra.commandRequest !== undefined ? { commandRequest: extra.commandRequest } : extra;
       case MESSAGE_TYPE.DOC_CARD:
         return extra.docCard !== undefined ? { docCard: extra.docCard } : extra;
+      case MESSAGE_TYPE.ROOM_JUMP:
+        return extra.roomJump !== undefined ? { roomJump: extra.roomJump } : extra;
       case MESSAGE_TYPE.THREAD_ROOT: {
         const title = typeof extra.title === "string" ? extra.title.trim() : "";
         return title ? { title } : {};
@@ -112,8 +114,8 @@ export default function useChatFrameMessageActions({
 
     return {
       roomId: forwardRoomId,
-      roleId: curRoleId,
-      avatarId: curAvatarId,
+      roleId: sourceMessage.roleId,
+      avatarId: sourceMessage.avatarId,
       content: sourceMessage.content ?? "",
       messageType: normalizedMessageType,
       ...(Array.isArray(sourceMessage.annotations) ? { annotations: sourceMessage.annotations } : {}),
@@ -121,7 +123,7 @@ export default function useChatFrameMessageActions({
       ...(sourceMessage.webgal !== undefined ? { webgal: sourceMessage.webgal } : {}),
       extra: nextExtra,
     };
-  }, [curAvatarId, curRoleId, normalizeForwardedRawExtra, normalizeForwardedRawType]);
+  }, [normalizeForwardedRawExtra, normalizeForwardedRawType]);
 
   const handleForward = useCallback(async (forwardRoomId: number, mode: ForwardMode): Promise<boolean> => {
     if (forwardRoomId <= 0) {

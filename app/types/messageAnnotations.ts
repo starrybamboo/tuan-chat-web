@@ -60,6 +60,24 @@ const EFFECT_ID_BY_TEXTURE_FILE = (() => {
   return map;
 })();
 
+type SceneEffectName = "rain" | "snow" | "sakura" | "none";
+
+const SCENE_EFFECT_ALIAS_MAP: Record<string, SceneEffectName> = {
+  rain: "rain",
+  snow: "snow",
+  sakura: "sakura",
+  cherryblossoms: "sakura",
+  none: "none",
+  stop: "none",
+};
+
+const SCENE_EFFECT_LABEL_MAP: Record<SceneEffectName, string> = {
+  rain: "下雨",
+  snow: "下雪",
+  sakura: "樱花",
+  none: "停止特效",
+};
+
 function toEffectTextureFile(effectIdOrName: string | undefined) {
   if (!effectIdOrName)
     return undefined;
@@ -103,6 +121,22 @@ export function normalizeEffectAnnotationId(id: string) {
   return `${EFFECT_ANNOTATION_PREFIX}${fileName}`;
 }
 
+export function normalizeSceneEffectName(effectName: string | undefined): SceneEffectName | undefined {
+  if (!effectName) {
+    return undefined;
+  }
+  const normalized = effectName.trim().toLowerCase();
+  if (!normalized) {
+    return undefined;
+  }
+  return SCENE_EFFECT_ALIAS_MAP[normalized];
+}
+
+export function getSceneEffectLabel(effectName: string | undefined) {
+  const normalized = normalizeSceneEffectName(effectName);
+  return normalized ? SCENE_EFFECT_LABEL_MAP[normalized] : undefined;
+}
+
 export const ANNOTATION_IDS = {
   BGM: "sys:bgm",
   BGM_CLEAR: "bgm.clear",
@@ -136,7 +170,30 @@ export const ANNOTATION_IDS = {
   FIGURE_ANIM_BA_JUMP: "figure.anim.ba-jump",
   FIGURE_ANIM_BA_SHAKE: "figure.anim.ba-shake",
   FIGURE_ANIM_BA_BIGSHAKE: "figure.anim.ba-bigshake",
+  SCENE_EFFECT_RAIN: "scene.effect.rain",
+  SCENE_EFFECT_SNOW: "scene.effect.snow",
+  SCENE_EFFECT_SAKURA: "scene.effect.sakura",
+  SCENE_EFFECT_STOP: "scene.effect.stop",
 } as const;
+
+const SCENE_EFFECT_NAME_BY_ANNOTATION: Record<string, SceneEffectName> = {
+  [ANNOTATION_IDS.SCENE_EFFECT_RAIN]: "rain",
+  [ANNOTATION_IDS.SCENE_EFFECT_SNOW]: "snow",
+  [ANNOTATION_IDS.SCENE_EFFECT_SAKURA]: "sakura",
+  [ANNOTATION_IDS.SCENE_EFFECT_STOP]: "none",
+};
+
+const SCENE_EFFECT_ANNOTATION_BY_NAME: Record<SceneEffectName, string> = {
+  rain: ANNOTATION_IDS.SCENE_EFFECT_RAIN,
+  snow: ANNOTATION_IDS.SCENE_EFFECT_SNOW,
+  sakura: ANNOTATION_IDS.SCENE_EFFECT_SAKURA,
+  none: ANNOTATION_IDS.SCENE_EFFECT_STOP,
+};
+
+export function getSceneEffectAnnotationId(effectName: string | undefined) {
+  const normalized = normalizeSceneEffectName(effectName);
+  return normalized ? SCENE_EFFECT_ANNOTATION_BY_NAME[normalized] : undefined;
+}
 
 const FIGURE_POSITION_IDS: Record<FigurePositionKey, string> = {
   "left": ANNOTATION_IDS.FIGURE_POS_LEFT,
@@ -291,6 +348,18 @@ export function getEffectFromAnnotations(annotations: string[] | undefined) {
     }
     if (id.startsWith(EFFECT_ANNOTATION_PREFIX)) {
       return id; // 兼容未来自定义 effect.* 标注
+    }
+  }
+  return undefined;
+}
+
+export function getSceneEffectFromAnnotations(annotations: string[] | undefined): SceneEffectName | undefined {
+  const list = normalizeAnnotations(annotations);
+  for (let i = list.length - 1; i >= 0; i -= 1) {
+    const id = list[i];
+    const effectName = SCENE_EFFECT_NAME_BY_ANNOTATION[id];
+    if (effectName) {
+      return effectName;
     }
   }
   return undefined;

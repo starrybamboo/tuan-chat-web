@@ -1,4 +1,10 @@
-import { isImageMessageBackground } from "@/types/messageAnnotations";
+import {
+  ANNOTATION_IDS,
+  getSceneEffectFromAnnotations,
+  getSceneEffectLabel,
+  hasAnnotation,
+  isImageMessageBackground,
+} from "@/types/messageAnnotations";
 import { extractWebgalVarPayload, formatWebgalVarSummary } from "@/types/webgalVar";
 
 import type { ChatMessageResponse, Message } from "../../api";
@@ -128,8 +134,11 @@ function formatMessageContent(
       return `[语音]${parts.length ? ` ${parts.join(" / ")}` : ""}`;
     }
     case MessageType.EFFECT: {
-      const effect = (extra as any)?.effectMessage;
-      const name = effect?.effectName || content;
+      const sceneEffectName = getSceneEffectFromAnnotations(message.annotations);
+      const name = getSceneEffectLabel(sceneEffectName)
+        || (hasAnnotation(message.annotations, ANNOTATION_IDS.BACKGROUND_CLEAR) ? "清除背景" : "")
+        || (hasAnnotation(message.annotations, ANNOTATION_IDS.FIGURE_CLEAR) ? "清除立绘" : "")
+        || content;
       return `[演出效果]${name ? ` ${name}` : ""}`;
     }
     case MessageType.WEBGAL_VAR: {
@@ -140,6 +149,11 @@ function formatMessageContent(
     case MessageType.COMMAND_REQUEST: {
       const command = (extra as any)?.commandRequest?.command || content;
       return command ? `[检定请求] ${command}` : "[检定请求]";
+    }
+    case MessageType.ROOM_JUMP: {
+      const roomJump = (extra as any)?.roomJump ?? extra;
+      const title = roomJump?.label || roomJump?.roomName || content || `群聊 #${roomJump?.roomId ?? UNKNOWN_LABEL}`;
+      return `[群聊跳转] ${title}`;
     }
     case MessageType.CLUE_CARD: {
       const clue = extra?.clueMessage as { name?: string; description?: string } | undefined;

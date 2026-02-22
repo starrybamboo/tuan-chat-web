@@ -24,6 +24,7 @@ interface ChatFrameOverlaysProps {
   exitSelection: () => void;
   onForward: (roomId: number, mode: ForwardMode) => Promise<boolean>;
   onApplyRegexFilter: (matchedIds: Set<number>) => void;
+  currentSpaceId: number;
   spaceName?: string;
   roomName?: string;
   webgalChooseEditor?: {
@@ -52,6 +53,7 @@ export default function ChatFrameOverlays({
   exitSelection,
   onForward,
   onApplyRegexFilter,
+  currentSpaceId,
   spaceName,
   roomName,
   webgalChooseEditor,
@@ -67,6 +69,8 @@ export default function ChatFrameOverlays({
         <ForwardWindow
           selectedMessages={selectedMessages}
           onForward={onForward}
+          currentSpaceId={currentSpaceId}
+          currentSpaceName={spaceName}
         >
         </ForwardWindow>
       </ToastWindow>

@@ -1,4 +1,5 @@
 import { extractRoomJumpPayload } from "@/components/chat/utils/roomJump";
+import { ANNOTATION_IDS, getSceneEffectFromAnnotations, getSceneEffectLabel, hasAnnotation } from "@/types/messageAnnotations";
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
 import { extractWebgalChoosePayload, formatWebgalChooseSummary } from "@/types/webgalChoose";
 import { extractWebgalVarPayload, formatWebgalVarSummary } from "@/types/webgalVar";
@@ -91,8 +92,13 @@ export function getMessagePreviewText(message?: Message | null): string {
       return withTag(tag, fileName);
     }
     case MESSAGE_TYPE.EFFECT: {
-      const effectName = safeTrim(extra?.effectMessage?.effectName) || trimmedContent || "特效";
-      return withTag("特效", effectName);
+      const sceneEffectName = getSceneEffectFromAnnotations(message.annotations);
+      const effectLabel = getSceneEffectLabel(sceneEffectName)
+        || (hasAnnotation(message.annotations, ANNOTATION_IDS.BACKGROUND_CLEAR) ? "清除背景" : "")
+        || (hasAnnotation(message.annotations, ANNOTATION_IDS.FIGURE_CLEAR) ? "清除立绘" : "")
+        || trimmedContent
+        || "特效";
+      return withTag("特效", effectLabel);
     }
     case MESSAGE_TYPE.FORWARD: {
       const list = extra?.forwardMessage?.messageList;
@@ -132,6 +138,8 @@ export function getMessagePreviewText(message?: Message | null): string {
       const docId = safeTrim(raw?.docId);
       return withTag("文档", title || docId || "文档");
     }
+    case MESSAGE_TYPE.ROOM_JUMP:
+      return withTag("群聊", trimmedContent || "群聊跳转");
     case MESSAGE_TYPE.THREAD_ROOT: {
       const title = safeTrim(extra?.title) || trimmedContent || "子区";
       return withTag("子区", title);

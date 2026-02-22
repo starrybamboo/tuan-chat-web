@@ -25,7 +25,7 @@ import { addDroppedFilesToComposer, isFileDrag } from "@/components/chat/utils/d
 import { getDisplayRoleName } from "@/components/chat/utils/roleDisplayName";
 import { useScreenSize } from "@/components/common/customHooks/useScreenSize";
 import { getFigurePositionFromAnnotations, hasClearFigureAnnotation, normalizeAnnotations, setFigurePositionAnnotation, toggleAnnotation } from "@/types/messageAnnotations";
-import { countTextEnhanceVisibleLength } from "@/utils/textEnhanceMetrics";
+import { countTextEnhanceVisibleLength, formatTextEnhanceVisibleLength } from "@/utils/textEnhanceMetrics";
 import { useGetRoleAvatarsQuery } from "../../../../api/hooks/RoleAndAvatarHooks";
 
 interface RoomComposerPanelProps {
@@ -307,7 +307,9 @@ function RoomComposerPanelImpl({
   const inputPlainText = useChatInputUiStore(state => state.plainText);
   const inputTextLength = React.useMemo(() => countTextEnhanceVisibleLength(inputPlainText), [inputPlainText]);
   const roomContentAlertThreshold = useRealtimeRenderStore(state => state.roomContentAlertThreshold);
-  const isMessageOverThreshold = inputTextLength > roomContentAlertThreshold;
+  const shouldShowThresholdHint = webgalLinkMode && roomContentAlertThreshold > 0;
+  const thresholdCounterText = `${formatTextEnhanceVisibleLength(inputTextLength)}/${formatTextEnhanceVisibleLength(roomContentAlertThreshold)}`;
+  const isMessageOverThreshold = shouldShowThresholdHint && inputTextLength > roomContentAlertThreshold;
 
   React.useEffect(() => {
     let isActive = true;
@@ -468,16 +470,16 @@ function RoomComposerPanelImpl({
           placeholder={placeholderText}
           className={`min-h-10 ${screenSize === "sm" ? "max-h-[30dvh]" : "max-h-[20dvh]"} overflow-y-auto min-w-0 flex-1 ${isMessageOverThreshold ? "outline outline-1 outline-warning/70" : ""}`}
         />
-        {!isMessageOverThreshold && (
+        {shouldShowThresholdHint && !isMessageOverThreshold && (
           <div className="pointer-events-none absolute right-2 bottom-1 rounded px-1 text-[11px] leading-4 bg-base-200/80 text-base-content/60">
-            {`${inputTextLength}/${roomContentAlertThreshold}`}
+            {thresholdCounterText}
           </div>
         )}
       </div>
-      {isMessageOverThreshold && (
+      {shouldShowThresholdHint && isMessageOverThreshold && (
         <div className="mt-1 flex justify-end">
           <span className="rounded px-1 text-[11px] leading-4 font-medium bg-warning/20 text-warning shadow-sm">
-            {`${inputTextLength}/${roomContentAlertThreshold}`}
+            {thresholdCounterText}
           </span>
         </div>
       )}

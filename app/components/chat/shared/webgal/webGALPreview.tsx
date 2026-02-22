@@ -8,6 +8,7 @@ import { useLocation, useNavigate } from "react-router";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
 import { useRealtimeRenderStore } from "@/components/chat/stores/realtimeRenderStore";
 import { useSideDrawerStore } from "@/components/chat/stores/sideDrawerStore";
+import { appendWebgalLaunchHints } from "@/utils/launchWebGal";
 import { getTerreBaseUrl } from "@/webGAL/terreConfig";
 
 interface WebGALPreviewProps {
@@ -65,7 +66,7 @@ export default function WebGALPreview({
   const fallbackHint = isStarting
     ? "请稍候，正在连接 WebGAL..."
     : realtimeStatus === "error"
-      ? "请确认 WebGAL 已启动后重试"
+      ? appendWebgalLaunchHints("请确认 WebGAL 已启动后重试")
       : "点击工具栏中的 WebGAL 按钮开启";
 
   if (!isActive || !previewUrl) {

@@ -11,6 +11,18 @@ export type LaunchWebGalResult = {
 };
 
 const WEBGAL_TIMEOUT_HINT = "请检查是否开启 WebGAL";
+const WEBGAL_DOWNLOAD_HINT = "如果没有下载 WebGAL，可以在反馈群中下载整合包";
+
+function appendHintIfMissing(message: string, hint: string, hintPattern: RegExp): string {
+  const normalizedMessage = message.trim();
+  if (!normalizedMessage) {
+    return normalizedMessage;
+  }
+  if (hintPattern.test(normalizedMessage)) {
+    return normalizedMessage;
+  }
+  return `${normalizedMessage}，${hint}`;
+}
 
 /**
  * 仅在超时类错误中追加启动提醒，避免普通报错被误导。
@@ -37,7 +49,28 @@ export function appendWebgalTimeoutHint(message: string): string {
     return normalizedMessage;
   }
 
-  return `${normalizedMessage}，${WEBGAL_TIMEOUT_HINT}`;
+  return appendHintIfMissing(
+    normalizedMessage,
+    WEBGAL_TIMEOUT_HINT,
+    /检查是否开启\s*webgal|确认\s*webgal\s*已启动/i,
+  );
+}
+
+export function appendWebgalDownloadHint(message: string): string {
+  return appendHintIfMissing(
+    message,
+    WEBGAL_DOWNLOAD_HINT,
+    /反馈群.*下载.*整合包/,
+  );
+}
+
+/**
+ * WebGAL 启动失败提示统一追加：
+ * 1. 超时场景补充“检查是否开启 WebGAL”
+ * 2. 所有启动失败补充“可在反馈群下载整合包”
+ */
+export function appendWebgalLaunchHints(message: string): string {
+  return appendWebgalDownloadHint(appendWebgalTimeoutHint(message));
 }
 
 function isElectronUserAgent() {
@@ -53,7 +86,7 @@ export default async function launchWebGal(options: LaunchWebGalOptions = {}): P
       return {
         ok: false,
         runtime: "electron",
-        error: "检测到 Electron，但 preload 未注入 electronAPI，无法启动 WebGAL_Terre",
+        error: appendWebgalLaunchHints("检测到 Electron，但 preload 未注入 electronAPI，无法启动 WebGAL_Terre"),
       };
     }
 
@@ -72,14 +105,14 @@ export default async function launchWebGal(options: LaunchWebGalOptions = {}): P
       return {
         ok: false,
         runtime: "electron",
-        error: "WebGAL 启动返回了无效结果",
+        error: appendWebgalLaunchHints("WebGAL 启动返回了无效结果"),
       };
     }
     return {
       ok: Boolean(result.ok),
       runtime: "electron",
       port: typeof result.port === "number" ? result.port : undefined,
-      error: typeof result.error === "string" ? appendWebgalTimeoutHint(result.error) : undefined,
+      error: typeof result.error === "string" ? appendWebgalLaunchHints(result.error) : undefined,
       openedUrl: typeof result.openedUrl === "string" ? result.openedUrl : undefined,
     };
   }
@@ -87,7 +120,7 @@ export default async function launchWebGal(options: LaunchWebGalOptions = {}): P
     return {
       ok: false,
       runtime: "electron",
-      error: appendWebgalTimeoutHint(error instanceof Error ? error.message : String(error)),
+      error: appendWebgalLaunchHints(error instanceof Error ? error.message : String(error)),
     };
   }
 }

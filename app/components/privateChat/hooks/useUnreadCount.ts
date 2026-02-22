@@ -1,12 +1,37 @@
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { useUpdateReadPositionMutation } from "api/hooks/MessageDirectQueryHooks";
 
 import type { MessageDirectType } from "../types/messageDirect";
 
 export function useUnreadCount({ realTimeContacts, sortedRealTimeMessages, userId, urlRoomId, isInboxReady }: { realTimeContacts: number[]; sortedRealTimeMessages: [string, MessageDirectType[]][]; userId: number; urlRoomId: string | undefined; isInboxReady: boolean }) {
-  const prevUrlRoomIdRef = useRef<string | undefined>(urlRoomId);
+  const prevUrlRoomIdRef = useRef<string | undefined>(undefined);
   const stableUnreadRef = useRef<Record<number, number>>({});
+  const [optimisticReadSyncMap, setOptimisticReadSyncMap] = useState<Record<number, number>>({});
+
+  const getMessagesByContact = useCallback((contactId: number) => {
+    return sortedRealTimeMessages.find(([id]) => Number(id) === contactId)?.[1] || [];
+  }, [sortedRealTimeMessages]);
+
+  const markContactAsReadOptimistically = useCallback((contactId: number) => {
+    const messages = getMessagesByContact(contactId);
+    const latestIncomingSync = getLatestIncomingSync(messages, contactId);
+
+    if (latestIncomingSync <= 0) {
+      return;
+    }
+
+    setOptimisticReadSyncMap((prev) => {
+      const prevSync = prev[contactId] ?? 0;
+      if (latestIncomingSync <= prevSync) {
+        return prev;
+      }
+      return {
+        ...prev,
+        [contactId]: latestIncomingSync,
+      };
+    });
+  }, [getMessagesByContact]);
 
   const unreadMessageNumbers = useMemo(() => {
     // 历史数据未就绪时，沿用最近一次稳定结果，避免 readLine 未注入造成误判。
@@ -16,10 +41,16 @@ export function useUnreadCount({ realTimeContacts, sortedRealTimeMessages, userI
 
     const counts: Record<number, number> = {};
     for (const contactId of realTimeContacts) {
-      counts[contactId] = getUnreadMessageNumber(sortedRealTimeMessages, contactId, userId);
+      const optimisticReadSync = optimisticReadSyncMap[contactId] ?? 0;
+      counts[contactId] = getUnreadMessageNumber(
+        sortedRealTimeMessages,
+        contactId,
+        userId,
+        optimisticReadSync,
+      );
     }
     return counts;
-  }, [realTimeContacts, sortedRealTimeMessages, userId, isInboxReady]);
+  }, [realTimeContacts, sortedRealTimeMessages, userId, isInboxReady, optimisticReadSyncMap]);
 
   useEffect(() => {
     if (userId > 0 && isInboxReady) {
@@ -30,6 +61,7 @@ export function useUnreadCount({ realTimeContacts, sortedRealTimeMessages, userI
   useEffect(() => {
     if (userId <= 0) {
       stableUnreadRef.current = {};
+      setOptimisticReadSyncMap({});
     }
   }, [userId]);
 
@@ -37,26 +69,38 @@ export function useUnreadCount({ realTimeContacts, sortedRealTimeMessages, userI
   const updateReadPositionMutation = useUpdateReadPositionMutation();
 
   const updateReadlinePosition = useCallback((contactId: number) => {
-    if (contactId !== userId) {
-      updateReadPositionMutation.mutate({ targetUserId: contactId });
+    if (userId <= 0 || !Number.isFinite(contactId) || contactId <= 0 || contactId === userId) {
+      return;
     }
-  }, [updateReadPositionMutation, userId]);
+    markContactAsReadOptimistically(contactId);
+    updateReadPositionMutation.mutate({ targetUserId: contactId });
+  }, [markContactAsReadOptimistically, updateReadPositionMutation, userId]);
 
-  // 监听 urlRoomId 变化，更新之前的已读位置
+  // 监听 urlRoomId 变化：同时推进离开会话和当前会话的已读位置
   useEffect(() => {
-    const prevUrlRoomId = prevUrlRoomIdRef.current;
+    const prevContactId = parseUrlContactId(prevUrlRoomIdRef.current);
+    const currentContactId = parseUrlContactId(urlRoomId);
 
-    if (prevUrlRoomId && prevUrlRoomId !== urlRoomId) {
-      const prevContactId = Number.parseInt(prevUrlRoomId);
+    if (prevContactId != null && prevContactId !== currentContactId) {
       updateReadlinePosition(prevContactId);
     }
+
+    if (currentContactId != null && currentContactId !== prevContactId) {
+      updateReadlinePosition(currentContactId);
+    }
+
     prevUrlRoomIdRef.current = urlRoomId;
-  }, [urlRoomId, updateReadlinePosition, userId]);
+  }, [urlRoomId, updateReadlinePosition]);
 
   return { unreadMessageNumbers, updateReadlinePosition };
 }
 
-function getUnreadMessageNumber(sortedRealTimeMessages: [string, MessageDirectType[]][], contactId: number, userId: number) {
+function getUnreadMessageNumber(
+  sortedRealTimeMessages: [string, MessageDirectType[]][],
+  contactId: number,
+  userId: number,
+  optimisticReadSync: number,
+) {
   const messages = sortedRealTimeMessages.find(([id]) => Number(id) === contactId)?.[1] || [];
 
   // readLine：由服务端写入的“已读标记消息”（messageType === 10000, senderId === userId）
@@ -76,14 +120,36 @@ function getUnreadMessageNumber(sortedRealTimeMessages: [string, MessageDirectTy
     return max;
   }, 0);
 
-  if (latestIncomingSync <= readLineSync) {
+  const effectiveReadLineSync = Math.max(readLineSync, optimisticReadSync);
+
+  if (latestIncomingSync <= effectiveReadLineSync) {
     return 0;
   }
 
-  // 未读：对方发送且 syncId > readLineSync 的有效消息数量
+  // 未读：对方发送且 syncId > effectiveReadLineSync 的有效消息数量
   return messages.filter((msg) => {
     return msg?.senderId === contactId
       && msg?.messageType !== 10000
-      && (msg?.syncId ?? 0) > readLineSync;
+      && (msg?.syncId ?? 0) > effectiveReadLineSync;
   }).length;
+}
+
+function getLatestIncomingSync(messages: MessageDirectType[], contactId: number) {
+  return messages.reduce((max, msg) => {
+    if (msg?.senderId === contactId && msg?.messageType !== 10000) {
+      return Math.max(max, msg?.syncId ?? 0);
+    }
+    return max;
+  }, 0);
+}
+
+function parseUrlContactId(rawRoomId: string | undefined): number | null {
+  if (!rawRoomId) {
+    return null;
+  }
+  const parsed = Number.parseInt(rawRoomId, 10);
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    return null;
+  }
+  return parsed;
 }

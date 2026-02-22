@@ -631,7 +631,7 @@ export function useGetUserSpacesQuery() {
 }
 
 /**
- * 根据 spaceId 克隆空间
+ * 根据 repositoryId + commitId 克隆空间
  */
 
 /**
@@ -654,12 +654,7 @@ function useCloneSpaceByCommitIdMutation() {
     const queryClient = useQueryClient();
     return useMutation({
         mutationKey: ['cloneSpaceByCommitId'],
-        mutationFn: (payload: CloneSpaceByCommitPayload) => tuanchat.request.request({
-            method: 'POST',
-            url: '/space/clone',
-            body: payload,
-            mediaType: 'application/json',
-        }),
+        mutationFn: (payload: CloneSpaceByCommitPayload) => tuanchat.spaceController.cloneByCommitId(payload),
         onSuccess: () => {
 queryClient.invalidateQueries({ queryKey: ['getUserSpaces'] });
 queryClient.invalidateQueries({ queryKey: ['getUserActiveSpaces'] });

@@ -513,6 +513,7 @@ function ChatFrame(props: ChatFrameProps) {
         exitSelection,
         onForward: handleForward,
         onApplyRegexFilter: handleApplyRegexFilter,
+        currentSpaceId: roomContext.spaceId ?? -1,
         spaceName,
         roomName,
         webgalChooseEditor: {

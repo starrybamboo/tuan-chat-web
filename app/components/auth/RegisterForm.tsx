@@ -3,6 +3,12 @@ interface RegisterFormProps {
   setUsername: (value: string) => void;
   email?: string;
   setEmail: (value: string) => void;
+  verificationCode: string;
+  setVerificationCode: (value: string) => void;
+  sendVerificationCode: () => void;
+  isSendingVerificationCode: boolean;
+  isVerificationCodeCoolingDown: boolean;
+  verificationCodeCooldownSeconds: number;
   password: string;
   setPassword: (value: string) => void;
   confirmPassword: string;
@@ -16,6 +22,12 @@ export function RegisterForm({
   setUsername,
   email = "",
   setEmail,
+  verificationCode,
+  setVerificationCode,
+  sendVerificationCode,
+  isSendingVerificationCode,
+  isVerificationCodeCoolingDown,
+  verificationCodeCooldownSeconds,
   password,
   setPassword,
   confirmPassword,
@@ -51,6 +63,38 @@ export function RegisterForm({
             required
           />
         </label>
+      </div>
+
+      <div className="form-control w-full mt-2">
+        <label className="label pb-1">
+          <span className="label-text">邮箱验证码</span>
+        </label>
+        <div className="flex gap-2">
+          <input
+            type="text"
+            placeholder="请输入验证码"
+            className="input input-bordered flex-1 bg-base-200 dark:bg-base-300 text-base-content placeholder:text-base-content/60"
+            value={verificationCode}
+            onChange={e => setVerificationCode(e.target.value)}
+            required
+          />
+          <button
+            type="button"
+            className="btn btn-outline whitespace-nowrap"
+            onClick={sendVerificationCode}
+            disabled={
+              isSendingVerificationCode
+              || isVerificationCodeCoolingDown
+              || !email.trim()
+            }
+          >
+            {isSendingVerificationCode
+              ? "发送中..."
+              : isVerificationCodeCoolingDown
+                ? `${verificationCodeCooldownSeconds}s`
+                : "发送验证码"}
+          </button>
+        </div>
       </div>
 
       <div className="form-control w-full mt-2">

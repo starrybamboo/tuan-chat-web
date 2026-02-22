@@ -2,14 +2,18 @@ import { useGetUserActiveSpacesQuery } from "api/hooks/chatQueryHooks";
 import React, { useCallback, useMemo } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 import ChatPageLayout from "@/components/chat/chatPageLayout";
+import { SpaceContext } from "@/components/chat/core/spaceContext";
 import ChatDiscoverNavPanel from "@/components/chat/discover/chatDiscoverNavPanel";
 import DiscoverArchivedSpacesView from "@/components/chat/discover/discoverArchivedSpacesView";
 import DiscoverProductionPlaceholder from "@/components/chat/discover/discoverProductionPlaceholder";
+import useChatPageContextMenus from "@/components/chat/hooks/useChatPageContextMenus";
 import useChatPageLeftDrawer from "@/components/chat/hooks/useChatPageLeftDrawer";
 import useChatPageNavigation from "@/components/chat/hooks/useChatPageNavigation";
 import useChatPageOrdering from "@/components/chat/hooks/useChatPageOrdering";
+import useChatPageSpaceContextMenu from "@/components/chat/hooks/useChatPageSpaceContextMenu";
 import useChatUnreadIndicators from "@/components/chat/hooks/useChatUnreadIndicators";
 import ChatSpaceSidebar from "@/components/chat/space/chatSpaceSidebar";
+import SpaceContextMenu from "@/components/chat/space/contextMenu/spaceContextMenu";
 import { useDrawerPreferenceStore } from "@/components/chat/stores/drawerPreferenceStore";
 import { useLocalStorage } from "@/components/common/customHooks/useLocalStorage";
 import { useScreenSize } from "@/components/common/customHooks/useScreenSize";
@@ -79,7 +83,7 @@ export default function DiscoverPage({ mode }: DiscoverPageProps) {
     return result;
   }, [spaceRoomIdsByUser, unreadMessagesNumber, userId]);
 
-  const { handleOpenPrivate, setActiveSpaceId } = useChatPageNavigation({
+  const { handleOpenPrivate, setActiveRoomId, setActiveSpaceId } = useChatPageNavigation({
     activeSpaceId,
     isOpenLeftDrawer,
     navigate,
@@ -87,10 +91,35 @@ export default function DiscoverPage({ mode }: DiscoverPageProps) {
     searchParam,
     setStoredChatIds,
   });
+  const {
+    spaceContextMenu,
+    handleSpaceContextMenu,
+    closeSpaceContextMenu,
+  } = useChatPageContextMenus();
+  const { isSpaceContextArchived, isSpaceContextOwner } = useChatPageSpaceContextMenu({
+    currentUserId: globalContext.userId,
+    spaceContextMenu,
+    spaces,
+  });
 
   const handleCreateSpace = useCallback(() => {
     navigate("/chat?addSpacePop=true");
   }, [navigate]);
+  const activeSpace = useMemo(() => {
+    if (activeSpaceId == null)
+      return null;
+    return spaces.find(space => space.spaceId === activeSpaceId) ?? null;
+  }, [activeSpaceId, spaces]);
+  const spaceContextValue = useMemo(() => {
+    return {
+      spaceId: activeSpaceId ?? undefined,
+      isSpaceOwner: Boolean(activeSpace && activeSpace.userId === globalContext.userId),
+      setActiveSpaceId,
+      setActiveRoomId,
+      toggleLeftDrawer,
+      spaceMembers: EMPTY_ARRAY,
+    };
+  }, [activeSpace, activeSpaceId, globalContext.userId, setActiveRoomId, setActiveSpaceId, toggleLeftDrawer]);
 
   const chatLeftPanelWidth = useDrawerPreferenceStore(state => state.chatLeftPanelWidth);
   const setChatLeftPanelWidth = useDrawerPreferenceStore(state => state.setChatLeftPanelWidth);
@@ -99,41 +128,51 @@ export default function DiscoverPage({ mode }: DiscoverPageProps) {
   const shouldShowLeftDrawerToggle = screenSize === "sm" && !isOpenLeftDrawer;
 
   return (
-    <ChatPageLayout
-      screenSize={screenSize}
-      isOpenLeftDrawer={isOpenLeftDrawer}
-      shouldShowLeftDrawerToggle={shouldShowLeftDrawerToggle}
-      leftDrawerToggleLabel={leftDrawerToggleLabel}
-      toggleLeftDrawer={toggleLeftDrawer}
-      chatLeftPanelWidth={chatLeftPanelWidth}
-      setChatLeftPanelWidth={setChatLeftPanelWidth}
-      spaceSidebar={(
-        <ChatSpaceSidebar
-          isPrivateChatMode={false}
-          isDiscoverMode
-          spaces={orderedSpaces}
-          spaceOrderIds={orderedSpaceIds}
-          onReorderSpaceIds={setUserSpaceOrder}
-          activeSpaceId={activeSpaceId}
-          getSpaceUnreadMessagesNumber={getSpaceUnreadMessagesNumber}
-          privateUnreadMessagesNumber={privateEntryBadgeCount}
-          onOpenPrivate={handleOpenPrivate}
-          onSelectSpace={setActiveSpaceId}
-          onCreateSpace={handleCreateSpace}
-          onSpaceContextMenu={() => {}}
-          onToggleLeftDrawer={toggleLeftDrawer}
-          isLeftDrawerOpen={isOpenLeftDrawer}
+    <SpaceContext value={spaceContextValue}>
+      <>
+        <ChatPageLayout
+          screenSize={screenSize}
+          isOpenLeftDrawer={isOpenLeftDrawer}
+          shouldShowLeftDrawerToggle={shouldShowLeftDrawerToggle}
+          leftDrawerToggleLabel={leftDrawerToggleLabel}
+          toggleLeftDrawer={toggleLeftDrawer}
+          chatLeftPanelWidth={chatLeftPanelWidth}
+          setChatLeftPanelWidth={setChatLeftPanelWidth}
+          spaceSidebar={(
+            <ChatSpaceSidebar
+              isPrivateChatMode={false}
+              isDiscoverMode
+              spaces={orderedSpaces}
+              spaceOrderIds={orderedSpaceIds}
+              onReorderSpaceIds={setUserSpaceOrder}
+              activeSpaceId={activeSpaceId}
+              getSpaceUnreadMessagesNumber={getSpaceUnreadMessagesNumber}
+              privateUnreadMessagesNumber={privateEntryBadgeCount}
+              onOpenPrivate={handleOpenPrivate}
+              onSelectSpace={setActiveSpaceId}
+              onCreateSpace={handleCreateSpace}
+              onSpaceContextMenu={handleSpaceContextMenu}
+              onToggleLeftDrawer={toggleLeftDrawer}
+              isLeftDrawerOpen={isOpenLeftDrawer}
+            />
+          )}
+          sidePanelContent={(
+            <ChatDiscoverNavPanel
+              onCloseLeftDrawer={closeLeftDrawer}
+              onToggleLeftDrawer={toggleLeftDrawer}
+              isLeftDrawerOpen={isOpenLeftDrawer}
+              activeMode={mode}
+            />
+          )}
+          mainContent={isProductionMode ? <DiscoverProductionPlaceholder /> : <DiscoverArchivedSpacesView mode={mode} />}
         />
-      )}
-      sidePanelContent={(
-        <ChatDiscoverNavPanel
-          onCloseLeftDrawer={closeLeftDrawer}
-          onToggleLeftDrawer={toggleLeftDrawer}
-          isLeftDrawerOpen={isOpenLeftDrawer}
-          activeMode={mode}
+        <SpaceContextMenu
+          contextMenu={spaceContextMenu}
+          isSpaceOwner={isSpaceContextOwner}
+          isArchived={isSpaceContextArchived}
+          onClose={closeSpaceContextMenu}
         />
-      )}
-      mainContent={isProductionMode ? <DiscoverProductionPlaceholder /> : <DiscoverArchivedSpacesView mode={mode} />}
-    />
+      </>
+    </SpaceContext>
   );
 }

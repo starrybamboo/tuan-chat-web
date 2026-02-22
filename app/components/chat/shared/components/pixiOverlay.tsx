@@ -123,6 +123,7 @@ export default function PixiOverlay({ effectName }: PixiOverlayProps) {
       case "heavySnow":
         createSnowEffect(app, container, tickerFuncRef, particlesRef, true);
         break;
+      case "sakura":
       case "cherryBlossoms":
         createCherryBlossomEffect(app, container, tickerFuncRef, particlesRef);
         break;

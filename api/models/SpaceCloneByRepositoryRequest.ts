@@ -3,12 +3,12 @@
 /* tslint:disable */
 /* eslint-disable */
 /**
- * 根据spaceId克隆空间请求
+ * 根据repositoryId克隆空间请求
  */
-export type SpaceCloneRequest = {
+export type SpaceCloneByRepositoryRequest = {
     /**
-     * 空间ID
+     * 仓库ID
      */
-    spaceId: number;
+    repositoryId: number;
 };
 

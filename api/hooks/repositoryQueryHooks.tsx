@@ -177,6 +177,52 @@ export function useRepositoryForkListQuery(requestBody: RepositoryForkPageReques
 
 //========================commit (提交相关) ==================================
 
+type ApiResult<T> = {
+    success: boolean;
+    errCode?: number;
+    errMsg?: string;
+    data?: T;
+};
+
+export type RepositoryCommitChainNode = {
+    commitId?: number;
+    parentCommitId?: number;
+    commitType?: number;
+    userId?: number;
+    createTime?: string;
+    updateTime?: string;
+};
+
+export type RepositoryCommitChainData = {
+    repositoryId?: number;
+    headCommitId?: number;
+    commits?: RepositoryCommitChainNode[];
+    truncated?: boolean;
+    broken?: boolean;
+};
+
+/**
+ * 获取仓库 commit 链
+ */
+export function useRepositoryCommitChainQuery(repositoryId: number, limit: number = 120) {
+    const normalizedLimit = Number.isFinite(limit) && limit > 0 ? Math.floor(limit) : 120;
+    return useQuery<ApiResult<RepositoryCommitChainData>>({
+        queryKey: ['repositoryCommitChain', repositoryId, normalizedLimit],
+        queryFn: () => tuanchat.request.request({
+            method: 'GET',
+            url: '/capi/repository/{id}/commit-chain',
+            path: {
+                id: repositoryId,
+            },
+            query: {
+                limit: normalizedLimit,
+            },
+        }) as Promise<ApiResult<RepositoryCommitChainData>>,
+        enabled: repositoryId > 0,
+        staleTime: 60_000,
+    });
+}
+
 type DeprecatedApiResult<T> = {
     success: boolean;
     data?: T;
