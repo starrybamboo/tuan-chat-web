@@ -33,7 +33,7 @@ export default function CreateNpcRoleWindow({ onClose }: { onClose: () => void }
   }, [roomNpcRoles, roomRoles]);
 
   const importableSpaceNpcRoles = useMemo(() => {
-    return spaceNpcRoles.filter(r => !roleIdInRoomSet.has(r.roleId));
+    return spaceNpcRoles.filter(r => r.type === 2 && !roleIdInRoomSet.has(r.roleId));
   }, [roleIdInRoomSet, spaceNpcRoles]);
 
   const initialCharacterData = useMemo<CharacterData>(() => {

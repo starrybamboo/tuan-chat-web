@@ -4,6 +4,7 @@ import { use, useState } from "react";
 import toast from "react-hot-toast";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
 import MemberLists from "@/components/chat/shared/components/memberLists";
+import RoleList from "@/components/chat/shared/components/roleLists";
 import AddMemberWindow from "@/components/chat/window/addMemberWindow";
 import { AddRoleWindow } from "@/components/chat/window/addRoleWindow";
 import SpaceSettingWindow from "@/components/chat/window/spaceSettingWindow";
@@ -17,6 +18,7 @@ import {
   useGetSpaceMembersQuery,
   useSetPlayerMutation,
 } from "../../../../../api/hooks/chatQueryHooks";
+import { useGetSpaceRepositoryRoleQuery } from "../../../../../api/hooks/spaceRepositoryHooks";
 import WorkflowWindow from "../../window/workflowWindow";
 
 export default function SpaceDetailPanel({ activeTab, onClose }: { activeTab: SpaceDetailTab; onClose: () => void }) {
@@ -24,12 +26,14 @@ export default function SpaceDetailPanel({ activeTab, onClose }: { activeTab: Sp
   const spaceId = spaceContext.spaceId ?? -1;
   const spaceMemberQuery = useGetSpaceMembersQuery(spaceId);
   const spaceMembers = spaceMemberQuery.data?.data ?? [];
-  // const spaceRolesQuery = useGetSpaceRolesQuery(spaceId);
-  // const spaceRoles = spaceRolesQuery.data?.data ?? [];
+  const spaceRolesQuery = useGetSpaceRepositoryRoleQuery(spaceId);
+  const spaceRoles = spaceRolesQuery.data?.data ?? [];
 
   const resolvedTab = (!spaceContext.isSpaceOwner && activeTab === "setting") ? "members" : activeTab;
   const panelTitle = resolvedTab === "members"
     ? "空间成员"
+    : resolvedTab === "roles"
+      ? "空间角色"
     : resolvedTab === "workflow"
       ? "流程图"
       : resolvedTab === "trpg"
@@ -53,7 +57,7 @@ export default function SpaceDetailPanel({ activeTab, onClose }: { activeTab: Sp
     }, {
       onSettled: () => {
         // setIsRoleHandleOpen(false);
-        toast("添加NPC成功");
+        toast("添加角色成功");
       },
     });
   };
@@ -120,6 +124,33 @@ export default function SpaceDetailPanel({ activeTab, onClose }: { activeTab: Sp
       {resolvedTab === "members" && (
         <div className="h-full space-y-2 overflow-y-auto">
           <MemberLists members={spaceMembers} isSpace={true}></MemberLists>
+        </div>
+      )}
+
+      {resolvedTab === "roles" && (
+        <div className="h-full overflow-y-auto p-2 space-y-2">
+          <div className="flex items-center justify-between px-1">
+            <div className="text-sm font-semibold">
+              空间角色-
+              {spaceRoles.length}
+            </div>
+            {spaceContext.isSpaceOwner && (
+              <button
+                type="button"
+                className="btn btn-xs btn-dash btn-info"
+                onClick={() => setIsRoleHandleOpen(true)}
+              >
+                角色+
+              </button>
+            )}
+          </div>
+          {spaceRoles.length === 0
+            ? (
+                <div className="text-center font-bold py-6">暂无空间角色</div>
+              )
+            : (
+                <RoleList roles={spaceRoles} className="w-full" isNpcRole={false} />
+              )}
         </div>
       )}
 

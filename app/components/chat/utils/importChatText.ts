@@ -19,7 +19,7 @@ function normalizeLineBreaks(text: string) {
   return text.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
 }
 
-function parseBracketChatText(lines: string[]): ImportChatTextParseResult {
+function parseTaggedChatText(lines: string[]): ImportChatTextParseResult {
   const messages: ImportedChatLine[] = [];
   const invalidLines: Array<{ lineNumber: number; raw: string }> = [];
 
@@ -31,12 +31,14 @@ function parseBracketChatText(lines: string[]): ImportChatTextParseResult {
     if (!trimmed) {
       continue;
     }
-    if (!trimmed.startsWith("[")) {
+    const openingTag = trimmed[0];
+    const closingTag = openingTag === "[" ? "]" : openingTag === "<" ? ">" : "";
+    if (!closingTag) {
       invalidLines.push({ lineNumber, raw });
       continue;
     }
 
-    const closeIndex = trimmed.indexOf("]");
+    const closeIndex = trimmed.indexOf(closingTag);
     if (closeIndex <= 1) {
       invalidLines.push({ lineNumber, raw });
       continue;
@@ -177,9 +179,9 @@ export function parseImportedChatText(text: string): ImportChatTextParseResult {
   const normalized = normalizeLineBreaks(String(text ?? ""));
   const lines = normalized.split("\n");
 
-  const bracketResult = parseBracketChatText(lines);
+  const taggedResult = parseTaggedChatText(lines);
   const qqResult = parseQqChatText(lines);
-  return chooseBetterParseResult(bracketResult, qqResult);
+  return chooseBetterParseResult(taggedResult, qqResult);
 }
 
 export function normalizeSpeakerName(name: string) {

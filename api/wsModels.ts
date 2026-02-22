@@ -24,6 +24,7 @@ export enum MessageType {
     WEBGAL_CHOOSE = 13,
     VIDEO = 14,
     CLUE_CARD = 1000,
+    ROOM_JUMP = 1003,
     THREAD_ROOT = 10001,
 }
 
@@ -94,7 +95,6 @@ interface PrivateMessage extends BaseMessage<{
         soundMessage?: { second: number; url?: string; fileName?: string; size?: number; purpose?: string; volume?: number };
         videoMessage?: { second?: number; url?: string; fileName?: string; size?: number };
         clueMessage?: { img: string; name: string; description: string };
-        effectMessage?: { effectName: string; duration?: number; strength?: number };
         commandRequest?: { command: string; allowAll?: boolean; allowedRoleIds?: number[] };
     };
     createTime: string;
@@ -209,7 +209,6 @@ interface GroupMessagePush extends BaseMessage<{
             soundMessage?: any;
             videoMessage?: any;
             clueMessage?: any;
-            effectMessage?: any;
         };
         createTime: string;
         updateTime: string;
@@ -476,6 +475,4 @@ export interface RoomDndMapChangeEvent {
     clearTokens?: boolean;
     updatedAt?: number;
 }
-
-
 

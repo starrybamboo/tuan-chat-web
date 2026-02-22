@@ -31,6 +31,8 @@ import {
   ANNOTATION_IDS,
   areAnnotationsEqual,
   getEffectDurationMs,
+  getSceneEffectFromAnnotations,
+  getSceneEffectLabel,
   hasAnnotation,
   normalizeAnnotations,
   setAnnotation,
@@ -41,7 +43,7 @@ import { extractWebgalChoosePayload } from "@/types/webgalChoose";
 import { extractWebgalVarPayload, formatWebgalVarSummary } from "@/types/webgalVar";
 import { formatTimeSmartly } from "@/utils/dateUtil";
 import { getScreenSize } from "@/utils/getScreenSize";
-import { countTextEnhanceVisibleLength } from "@/utils/textEnhanceMetrics";
+import { countTextEnhanceVisibleLength, formatTextEnhanceVisibleLength } from "@/utils/textEnhanceMetrics";
 import { useSendMessageMutation, useUpdateMessageMutation } from "../../../../api/hooks/chatQueryHooks";
 import { useGetRoleQuery } from "../../../../api/hooks/RoleAndAvatarHooks";
 import DocCardMessage from "./docCard/docCardMessage";
@@ -126,6 +128,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
   const isAvatarSamplerActive = useRoomUiStore(state => state.isAvatarSamplerActive);
   const setAvatarSamplerActive = useRoomUiStore(state => state.setAvatarSamplerActive);
   const useChatBubbleStyleFromStore = useRoomPreferenceStore(state => state.useChatBubbleStyle);
+  const webgalLinkMode = useRoomPreferenceStore(state => state.webgalLinkMode);
   useChatBubbleStyle = useChatBubbleStyle ?? useChatBubbleStyleFromStore;
   const setCurRoleIdForRoom = useRoomRoleSelectionStore(state => state.setCurRoleIdForRoom);
   const setCurAvatarIdForRole = useRoomRoleSelectionStore(state => state.setCurAvatarIdForRole);
@@ -245,9 +248,11 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
   const messageContentLength = countTextEnhanceVisibleLength(messageContent);
   const isThresholdTrackedMessageType = (message.messageType === MESSAGE_TYPE.TEXT
     || message.messageType === MESSAGE_TYPE.INTRO_TEXT) && message.roleId !== 2;
-  const isMessageOverRoomContentThreshold = isThresholdTrackedMessageType
+  const shouldTrackRoomContentThreshold = webgalLinkMode && roomContentAlertThreshold > 0;
+  const isMessageOverRoomContentThreshold = shouldTrackRoomContentThreshold
+    && isThresholdTrackedMessageType
     && messageContentLength > roomContentAlertThreshold;
-  const thresholdCounterText = `${messageContentLength}/${roomContentAlertThreshold}`;
+  const thresholdCounterText = `${formatTextEnhanceVisibleLength(messageContentLength)}/${formatTextEnhanceVisibleLength(roomContentAlertThreshold)}`;
 
   // 更新消息并同步到本地缓存
   const updateMessageAndSync = useCallback((newMessage: Message) => {
@@ -843,7 +848,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
     const docCardPayload = extra?.docCard;
     const hasDocCard = message.messageType === MESSAGE_TYPE.DOC_CARD || Boolean(docCardPayload);
     const roomJumpPayload = extractRoomJumpPayload(message.extra);
-    const hasRoomJump = Boolean(roomJumpPayload);
+    const hasRoomJump = message.messageType === MESSAGE_TYPE.ROOM_JUMP || Boolean(roomJumpPayload);
 
     const commandRequest = extra?.commandRequest as CommandRequestPayload | undefined;
     const hasCommandRequest = message.messageType === MESSAGE_TYPE.COMMAND_REQUEST || Boolean(commandRequest);
@@ -1100,8 +1105,12 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
           );
         }
         case MESSAGE_TYPE.EFFECT: {
-          const effectMessage = extra?.effectMessage;
-          const effectName = effectMessage?.effectName || message.content || "特效";
+          const sceneEffectName = getSceneEffectFromAnnotations(annotations);
+          const effectName = getSceneEffectLabel(sceneEffectName)
+            || (hasAnnotation(annotations, ANNOTATION_IDS.BACKGROUND_CLEAR) ? "清除背景" : "")
+            || (hasAnnotation(annotations, ANNOTATION_IDS.FIGURE_CLEAR) ? "清除立绘" : "")
+            || message.content
+            || "特效";
           return (
             <div className="flex items-center gap-2 text-sm">
               <span className="badge badge-info badge-xs">特效</span>

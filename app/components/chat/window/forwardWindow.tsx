@@ -1,11 +1,10 @@
 import type { ChatMessageResponse } from "../../../../api";
 import type { ForwardMode } from "@/components/chat/hooks/useChatFrameMessageActions";
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
 import { PreviewMessage } from "@/components/chat/message/preview/previewMessage";
 import { useEntityHeaderOverrideStore } from "@/components/chat/stores/entityHeaderOverrideStore";
 import {
   useGetUserRoomsQuery,
-  useGetUserSpacesQuery,
 } from "../../../../api/hooks/chatQueryHooks";
 
 /**
@@ -16,37 +15,24 @@ import {
 function ForwardWindow({
   selectedMessages,
   onForward,
+  currentSpaceId,
+  currentSpaceName,
 }: {
   selectedMessages: ChatMessageResponse[];
   onForward: (roomId: number, mode: ForwardMode) => Promise<boolean>;
+  currentSpaceId: number;
+  currentSpaceName?: string;
 }) {
   const headers = useEntityHeaderOverrideStore(state => state.headers);
   const [forwardMode, setForwardMode] = useState<ForwardMode>("merged");
   const [roomKeyword, setRoomKeyword] = useState("");
 
-  // 获取空间和房间数据
-  const userSpacesQuery = useGetUserSpacesQuery();
-  const spaces = useMemo(() => userSpacesQuery.data?.data ?? [], [userSpacesQuery.data?.data]);
-
-  // 状态：当前选中的空间ID
-  const [selectedSpaceId, setSelectedSpaceId] = useState<number | null>(null);
   // 状态：当前正在提交转发的房间ID
   const [forwardingRoomId, setForwardingRoomId] = useState<number | null>(null);
 
-  useEffect(() => {
-    if (spaces.length === 0) {
-      setSelectedSpaceId(null);
-      return;
-    }
-    const hasSelectedSpace = selectedSpaceId !== null && spaces.some(space => space.spaceId === selectedSpaceId);
-    if (hasSelectedSpace)
-      return;
-    const firstAvailableSpace = spaces.find(space => typeof space.spaceId === "number" && space.spaceId > 0);
-    setSelectedSpaceId(firstAvailableSpace?.spaceId ?? null);
-  }, [selectedSpaceId, spaces]);
-
-  const userRoomsQuery = useGetUserRoomsQuery(selectedSpaceId ?? -1);
-  // 获取当前选中空间的房间列表
+  const effectiveSpaceId = currentSpaceId > 0 ? currentSpaceId : -1;
+  const userRoomsQuery = useGetUserRoomsQuery(effectiveSpaceId);
+  // 获取当前空间的房间列表
   const currentRooms = useMemo(() => userRoomsQuery.data?.data?.rooms ?? [], [userRoomsQuery.data?.data?.rooms]);
 
   const filteredRooms = useMemo(() => {
@@ -60,17 +46,12 @@ function ForwardWindow({
     });
   }, [currentRooms, headers, roomKeyword]);
 
-  const selectedSpaceName = useMemo(() => {
-    if (selectedSpaceId === null)
-      return "";
-    const targetSpace = spaces.find(space => space.spaceId === selectedSpaceId);
-    if (!targetSpace)
-      return "";
-    return targetSpace.name || "未命名空间";
-  }, [selectedSpaceId, spaces]);
+  const selectedSpaceName = currentSpaceName || "当前空间";
 
   const handleForwardRoom = async (roomId: number) => {
     if (roomId <= 0 || forwardingRoomId !== null)
+      return;
+    if (!currentRooms.some(room => room.roomId === roomId))
       return;
     setForwardingRoomId(roomId);
     try {
@@ -177,45 +158,21 @@ function ForwardWindow({
               value={roomKeyword}
               onChange={event => setRoomKeyword(event.target.value)}
               placeholder="搜索房间"
-              disabled={selectedSpaceId === null}
+              disabled={effectiveSpaceId <= 0}
             />
           </label>
         </div>
 
-        <div className="mt-3 flex gap-2 overflow-x-auto pb-1">
-          {spaces.map((space, index) => {
-            const spaceId = space.spaceId ?? -1;
-            const displayName = space.name || "未命名空间";
-            const isActive = selectedSpaceId === spaceId;
-            return (
-              <button
-                key={spaceId > 0 ? spaceId : `space-${index}`}
-                type="button"
-                className={`btn btn-sm whitespace-nowrap rounded-full ${
-                  isActive ? "btn-info text-info-content" : "btn-ghost border border-base-300"
-                }`}
-                onClick={() => setSelectedSpaceId(spaceId)}
-                disabled={spaceId <= 0 || isForwarding}
-              >
-                {displayName}
-              </button>
-            );
-          })}
-          {spaces.length === 0 && (
-            <div className="text-sm text-base-content/50 py-1">暂无可用空间</div>
-          )}
-        </div>
-
         <div className="mt-3 max-h-72 overflow-auto pr-1 space-y-2">
-          {selectedSpaceId === null && (
+          {effectiveSpaceId <= 0 && (
             <div className="rounded-lg border border-dashed border-base-300 px-4 py-8 text-sm text-base-content/60 text-center">
-              请先选择一个空间
+              当前空间无效，无法转发
             </div>
           )}
-          {selectedSpaceId !== null && filteredRooms.length === 0 && (
+          {effectiveSpaceId > 0 && filteredRooms.length === 0 && (
             <div className="rounded-lg border border-dashed border-base-300 px-4 py-8 text-sm text-base-content/60 text-center">
               {currentRooms.length === 0
-                ? "该空间下暂无房间"
+                ? "当前空间下暂无房间"
                 : "没有匹配的房间"}
             </div>
           )}

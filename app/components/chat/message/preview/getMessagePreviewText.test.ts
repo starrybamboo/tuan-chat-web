@@ -59,6 +59,15 @@ describe("getMessagePreviewText", () => {
     expect(getMessagePreviewText(msg)).toBe("[群聊] 前往测试群聊");
   });
 
+  it("群聊跳转类型在 payload 缺失时显示默认文案", () => {
+    const msg = createBaseMessage({
+      messageType: MESSAGE_TYPE.ROOM_JUMP,
+      content: "",
+      extra: {} as any,
+    });
+    expect(getMessagePreviewText(msg)).toBe("[群聊] 群聊跳转");
+  });
+
   it("骰娘消息优先使用 diceResult.result", () => {
     const msg = createBaseMessage({
       messageType: MESSAGE_TYPE.DICE,

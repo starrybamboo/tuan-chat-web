@@ -23,10 +23,18 @@ describe("textEnhanceMetrics", () => {
   it("支持多个富文本片段", () => {
     const raw = "[甲](style=color:#f00)+[乙](ruby=yi)+[丙](style=color:#0f0)";
     expect(extractTextEnhanceVisibleText(raw)).toBe("甲+乙+丙");
-    expect(countTextEnhanceVisibleLength(raw)).toBe(5);
+    expect(countTextEnhanceVisibleLength(raw)).toBe(4);
   });
 
-  it("emoji 按 code point 统计", () => {
-    expect(countTextEnhanceVisibleLength("A😀B")).toBe(3);
+  it("英文与半角符号按 0.5 计数", () => {
+    expect(countTextEnhanceVisibleLength("ABC!?")).toBe(2.5);
+  });
+
+  it("全角字符按 1 计数", () => {
+    expect(countTextEnhanceVisibleLength("ＡＢＣ！")).toBe(4);
+  });
+
+  it("emoji 仍按可见字符计数", () => {
+    expect(countTextEnhanceVisibleLength("A😀B")).toBe(2);
   });
 });

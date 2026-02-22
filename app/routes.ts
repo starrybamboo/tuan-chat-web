@@ -38,6 +38,7 @@ export default [
 
     route("repository", "routes/repository/index.tsx"),
     route("repository/detail/:id?", "routes/repository/detail.tsx"),
+    route("repository/commit-chain/:id?", "routes/repository/commitChain.tsx"),
     route("repository/create", "routes/repository/create.tsx"),
     ...prefix("chat", [
       route("discover/my", "routes/chatDiscoverMy.tsx"),

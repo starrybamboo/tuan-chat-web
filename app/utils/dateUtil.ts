@@ -16,6 +16,9 @@ export function formatLocalDateTime(date: Date): string {
 export function formatTimeSmartly(time: string | number): string {
   // 确保输入的时间能被正确解析，特别是对于YYYY-MM-DD格式
   const inputTime = new Date(typeof time === "string" && time.includes("-") ? time.replace(/-/g, "/") : time);
+  if (Number.isNaN(inputTime.getTime())) {
+    return "";
+  }
   const now = new Date();
 
   const nowYear = now.getFullYear();

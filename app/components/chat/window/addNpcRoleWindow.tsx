@@ -29,7 +29,7 @@ export function AddNpcRoleWindow({
   }, [roomNpcRoles]);
 
   const availableSpaceRoles = useMemo(() => {
-    return spaceRoles.filter(r => !roleIdInRoomSet.has(r.roleId));
+    return spaceRoles.filter(r => r.type === 2 && !roleIdInRoomSet.has(r.roleId));
   }, [roleIdInRoomSet, spaceRoles]);
 
   const [isCreatingNpc, setIsCreatingNpc] = useState(false);

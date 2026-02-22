@@ -300,6 +300,9 @@ function getGroupMessagePreview(chatMessageResponse: ChatMessageResponse): strin
   if (message?.messageType === MessageType.EFFECT) {
     return "[特效消息]";
   }
+  if (message?.messageType === MessageType.ROOM_JUMP) {
+    return "[群聊跳转]";
+  }
   return "[新消息]";
 }
 

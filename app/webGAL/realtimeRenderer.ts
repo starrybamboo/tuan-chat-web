@@ -16,6 +16,7 @@ import {
   getEffectSoundFileCandidates,
   getFigureAnimationFromAnnotations,
   getFigurePositionFromAnnotations,
+  getSceneEffectFromAnnotations,
   hasAnnotation,
   hasClearBackgroundAnnotation,
   hasClearBgmAnnotation,
@@ -2924,41 +2925,44 @@ export class RealtimeRenderer {
       return;
     }
 
-    // 处理特效消息 (Type 8)
-    if (msg.messageType === 8) {
-      const effectMessage = msg.extra?.effectMessage;
-      if (effectMessage && effectMessage.effectName) {
-        let command: string;
-        if (effectMessage.effectName === "none") {
-          // 清除特效：使用 pixiInit 初始化，消除所有已应用的效果
-          command = "pixiInit -next;";
+    // 处理特效消息 (Type 8)：纯 annotation 语义
+    if ((msg.messageType as number) === MESSAGE_TYPE.EFFECT) {
+      const sceneEffect = getSceneEffectFromAnnotations(msg.annotations);
+      const shouldClearBackground = hasAnnotation(msg.annotations, ANNOTATION_IDS.BACKGROUND_CLEAR);
+      const shouldClearFigure = hasAnnotation(msg.annotations, ANNOTATION_IDS.FIGURE_CLEAR);
+      let wroteEffectCommand = false;
+
+      if (shouldClearFigure) {
+        for (const line of buildClearFigureLines({ includeImage: true })) {
+          await this.appendLine(targetRoomId, line, syncToFile);
         }
-        else if (effectMessage.effectName === "clearBackground") {
-          // 清除背景
-          command = "changeBg:none -next;";
-        }
-        else if (effectMessage.effectName === "clearFigure") {
-          // 清除立绘：清除所有位置的立绘
-          for (const line of buildClearFigureLines({ includeImage: true })) {
-            await this.appendLine(targetRoomId, line, syncToFile);
-          }
-          finalizeMessageLineRange();
-          if (syncToFile)
-            this.sendSyncMessage(targetRoomId);
-          return;
+        this.lastFigureSlotIdMap.delete(targetRoomId);
+        this.renderedFigureStateMap.delete(targetRoomId);
+        wroteEffectCommand = true;
+      }
+
+      if (shouldClearBackground) {
+        await this.appendLine(targetRoomId, "changeBg:none -next;", syncToFile);
+        wroteEffectCommand = true;
+      }
+
+      if (sceneEffect) {
+        if (sceneEffect === "none") {
+          // 清除场景特效：使用 pixiInit 初始化，消除所有已应用的效果
+          await this.appendLine(targetRoomId, "pixiInit -next;", syncToFile);
         }
         else {
-          const effectName = effectMessage.effectName.trim();
-          const effectSound = await this.resolveAnnotationEffectSound(effectName);
+          const effectSound = await this.resolveAnnotationEffectSound(sceneEffect);
           if (effectSound) {
             await this.appendLine(targetRoomId, `playEffect:${effectSound.url} -next;`, syncToFile);
           }
-          // 应用特效：pixiPerform:rain -next;
-          command = `pixiPerform:${effectName} -next;`;
+          await this.appendLine(targetRoomId, `pixiPerform:${sceneEffect} -next;`, syncToFile);
         }
-        await this.appendLine(targetRoomId, command, syncToFile);
-        if (syncToFile)
-          this.sendSyncMessage(targetRoomId);
+        wroteEffectCommand = true;
+      }
+
+      if (wroteEffectCommand && syncToFile) {
+        this.sendSyncMessage(targetRoomId);
       }
       finalizeMessageLineRange();
       return;

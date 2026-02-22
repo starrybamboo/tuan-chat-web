@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "react-hot-toast";
 
+import { ANNOTATION_IDS, getSceneEffectAnnotationId } from "@/types/messageAnnotations";
+
 import type { ChatMessageRequest } from "../../../../api";
 
 import { MessageType } from "../../../../api/wsModels";
@@ -44,15 +46,15 @@ export default function useRoomEffectsController({
   }, [backgroundUrl]);
 
   const handleSendEffect = useCallback((effectName: string) => {
+    const effectAnnotation = getSceneEffectAnnotationId(effectName);
     send({
       roomId,
       roleId: undefined,
       avatarId: undefined,
       content: `[特效: ${effectName}]`,
       messageType: MessageType.EFFECT,
-      extra: {
-        effectName,
-      },
+      ...(effectAnnotation ? { annotations: [effectAnnotation] } : {}),
+      extra: {},
     });
   }, [roomId, send]);
 
@@ -63,9 +65,8 @@ export default function useRoomEffectsController({
       avatarId: undefined,
       content: "[清除背景]",
       messageType: MessageType.EFFECT,
-      extra: {
-        effectName: "clearBackground",
-      },
+      annotations: [ANNOTATION_IDS.BACKGROUND_CLEAR],
+      extra: {},
     });
     toast.success("已清除背景");
   }, [roomId, send]);
@@ -77,9 +78,8 @@ export default function useRoomEffectsController({
       avatarId: undefined,
       content: "[清除立绘]",
       messageType: MessageType.EFFECT,
-      extra: {
-        effectName: "clearFigure",
-      },
+      annotations: [ANNOTATION_IDS.FIGURE_CLEAR],
+      extra: {},
     });
     if (isRealtimeRenderActive) {
       clearRealtimeFigure();

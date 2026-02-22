@@ -1,6 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 
-import { hasClearBackgroundAnnotation, isImageMessageBackground } from "@/types/messageAnnotations";
+import {
+  getSceneEffectFromAnnotations,
+  hasClearBackgroundAnnotation,
+  isImageMessageBackground,
+} from "@/types/messageAnnotations";
 
 import type { ChatMessageResponse } from "../../../../api";
 
@@ -57,9 +61,13 @@ export default function useChatFrameVisualEffects({
     }
     return historyMessages
       .map((msg, index) => {
-        return { index, effectMessage: msg.message.extra?.effectMessage, status: msg.message.status };
+        return {
+          index,
+          effectName: getSceneEffectFromAnnotations(msg.message.annotations),
+          status: msg.message.status,
+        };
       })
-      .filter(item => item.effectMessage && item.effectMessage.effectName && item.status !== 1);
+      .filter(item => item.effectName && item.status !== 1);
   }, [enableEffects, historyMessages]);
 
   const clearBackgroundNode = useMemo(() => {
@@ -70,16 +78,12 @@ export default function useChatFrameVisualEffects({
       .map((msg, index) => ({
         index,
         status: msg.message.status,
-        effectName: msg.message.extra?.effectMessage?.effectName,
         annotations: msg.message.annotations,
         imageMessage: msg.message.extra?.imageMessage,
       }))
       .filter((item) => {
         if (item.status === 1) {
           return false;
-        }
-        if (item.effectName === "clearBackground") {
-          return true;
         }
         return hasClearBackgroundAnnotation(item.annotations)
           && !isImageMessageBackground(item.annotations, item.imageMessage);
@@ -141,7 +145,7 @@ export default function useChatFrameVisualEffects({
     let newEffect: string | null = null;
     for (const effect of effectNode) {
       if (effect.index <= currentMessageIndex) {
-        newEffect = effect.effectMessage?.effectName ?? null;
+        newEffect = effect.effectName ?? null;
       }
       else {
         break;
