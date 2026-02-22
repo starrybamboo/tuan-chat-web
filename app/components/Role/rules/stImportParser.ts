@@ -33,10 +33,12 @@ export const ST_ABILITY_MAP: Record<string, string> = {
   edu: "教育",
   siz: "体型",
   int: "智力",
-  san: "sanֵ",
-  san值: "sanֵ",
+  san: "san",
+  san值: "san",
   luck: "幸运",
-  mp: "魔法",
+  mp: "mp",
+  魔法: "mp",
+  魔法值: "mp",
   魔法值上限: "mpm",
   体力: "hp",
   体力值: "hp",
@@ -49,8 +51,8 @@ export const ST_ABILITY_MAP: Record<string, string> = {
   计算机: "计算机使用",
   电脑: "计算机使用",
   灵感: "智力",
-  理智: "sanֵ",
-  理智值: "sanֵ",
+  理智: "san",
+  理智值: "san",
   运气: "幸运",
   信用: "信用评级",
   信誉: "信用评级",
@@ -76,6 +78,8 @@ const ST_ABILITY_FALLBACK_KEYS = new Set([
   "sanm",
   "db",
   "护甲",
+  "mov",
+  "build",
 ]);
 
 type StFieldType = "basic" | "ability" | "skill";
@@ -95,12 +99,17 @@ function resolveFieldForKey(
   key: string,
   templateKeys: StTemplateKeySets,
 ): StFieldType {
-  // 优先沿用当前数据所在分组，避免已有字段漂移
-  if (key in draft.basic)
-    return "basic";
-  if (key in draft.ability)
+  // 核心强制逻辑：如果 key 是不可动摇的能力字段（如 hp/san/mov等），强制归类为 ability
+  // 这优先于 draft 中已有的分组，可以修复历史数据错位
+  if (ST_ABILITY_FALLBACK_KEYS.has(key.toLowerCase()) || ST_ABILITY_FALLBACK_KEYS.has(key))
     return "ability";
-  if (key in draft.skill)
+
+  // 优先沿用当前数据所在分组，避免已有字段漂移
+  if (Object.prototype.hasOwnProperty.call(draft.basic, key))
+    return "basic";
+  if (Object.prototype.hasOwnProperty.call(draft.ability, key))
+    return "ability";
+  if (Object.prototype.hasOwnProperty.call(draft.skill, key))
     return "skill";
 
   // 若当前分组没有该键，按规则模板归类
@@ -111,9 +120,6 @@ function resolveFieldForKey(
   if (templateKeys.skill.has(key))
     return "skill";
 
-  // 模板未覆盖时，能力兜底键留在 ability，其余进入 skill
-  if (ST_ABILITY_FALLBACK_KEYS.has(key.toLowerCase()) || ST_ABILITY_FALLBACK_KEYS.has(key))
-    return "ability";
   return "skill";
 }
 
@@ -140,7 +146,27 @@ function setFieldValue(draft: StAbilityDraft, field: StFieldType, key: string, v
 function normalizeMisplacedAbilityFields(draft: StAbilityDraft, templateKeys: StTemplateKeySets): Set<string> {
   const toDelete = new Set<string>();
 
-  // 已有污染数据自愈：能力区里落到了“基础/技能模板键”的字段，迁回对应分组
+  // 1. 检查 fieldMap 明确归类为 ability 的字段是否被错误放置在 skill/basic 中
+  // 如果是，则从错误位置移动到 ability，并标记原位置删除
+  const FORCED_ABILITY_KEYS = ST_ABILITY_FALLBACK_KEYS;
+
+  // 遍历 FORCED_ABILITY_KEYS 检查错位
+  for (const key of FORCED_ABILITY_KEYS) {
+    // 检查是否错误出现在 skill 中
+    if (Object.prototype.hasOwnProperty.call(draft.skill, key)) {
+      draft.ability[key] = draft.skill[key]; // 迁移值
+      delete draft.skill[key]; // 删除错误位置
+      toDelete.add(key);
+    }
+    // 检查是否错误出现在 basic 中
+    if (Object.prototype.hasOwnProperty.call(draft.basic, key)) {
+      draft.ability[key] = draft.basic[key]; // 迁移值
+      delete draft.basic[key]; // 删除错误位置
+      toDelete.add(key);
+    }
+  }
+
+  // 2. 原有的逻辑：能力区里落到了“基础/技能模板键”的字段，迁回对应分组
   for (const [key, value] of Object.entries(draft.ability)) {
     if (!templateKeys.ability.has(key) && templateKeys.basic.has(key)) {
       draft.basic[key] = draft.basic[key] ?? value;
