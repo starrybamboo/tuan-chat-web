@@ -1,5 +1,4 @@
-import type { SecurityTab } from "./components/AccountSecurityModal";
-import React, { useState } from "react";
+import React from "react";
 import { UserFollower } from "@/components/common/Follow/UserFollower";
 import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
 import TagManagement from "@/components/common/userTags";
@@ -7,7 +6,6 @@ import { useGlobalContext } from "@/components/globalContextProvider";
 
 import GNSSpiderChart from "@/components/profile/cards/GNSSpiderChart";
 import { useGetUserProfileQuery } from "../../../../api/hooks/UserHooks";
-import { AccountSecurityModal } from "./components/AccountSecurityModal";
 import { FollowStats } from "./components/FollowStats";
 import { ProfileEditPanel } from "./components/ProfileEditPanel";
 import { UserActions } from "./components/UserActions";
@@ -29,34 +27,6 @@ const HomeTab: React.FC<HomeTabProps> = ({ userId }) => {
   // 使用自定义 hooks 管理状态
   const profileEditing = useProfileEditing(user);
   const followData = useFollowData(userId);
-  const [accountSecurityState, setAccountSecurityState] = useState<{
-    isOpen: boolean;
-    tab: SecurityTab;
-  }>({
-    isOpen: false,
-    tab: "password",
-  });
-
-  const openPasswordSecurity = () => {
-    setAccountSecurityState({
-      isOpen: true,
-      tab: "password",
-    });
-  };
-
-  const openEmailSecurity = () => {
-    setAccountSecurityState({
-      isOpen: true,
-      tab: "email",
-    });
-  };
-
-  const closeAccountSecurity = () => {
-    setAccountSecurityState(prev => ({
-      ...prev,
-      isOpen: false,
-    }));
-  };
 
   return (
     <div className="max-w-7xl mx-auto px-2 py-2 pl-3 md:pl-4 lg:pl-6 transition-all duration-300 md:flex">
@@ -94,10 +64,6 @@ const HomeTab: React.FC<HomeTabProps> = ({ userId }) => {
                   loginUserId={loginUserId}
                   isLoading={userQuery.isLoading}
                   profileEditing={profileEditing}
-                  accountSecurity={{
-                    openPasswordSecurity,
-                    openEmailSecurity,
-                  }}
                   variant="mobile"
                 />
               </div>
@@ -162,10 +128,6 @@ const HomeTab: React.FC<HomeTabProps> = ({ userId }) => {
             loginUserId={loginUserId}
             isLoading={userQuery.isLoading}
             profileEditing={profileEditing}
-            accountSecurity={{
-              openPasswordSecurity,
-              openEmailSecurity,
-            }}
             variant="desktop"
           />
 
@@ -194,12 +156,6 @@ const HomeTab: React.FC<HomeTabProps> = ({ userId }) => {
       >
         <UserFollower activeTab={followData.relationTab} userId={userId} />
       </ToastWindow>
-
-      <AccountSecurityModal
-        isOpen={accountSecurityState.isOpen}
-        initialTab={accountSecurityState.tab}
-        onClose={closeAccountSecurity}
-      />
     </div>
   );
 };
