@@ -10,6 +10,72 @@ import {
   useTutorialPullMutation,
 } from "api/hooks/tutorialOnboardingHooks";
 
+const TUTORIAL_PROMPT_SEEN_STORAGE_KEY = "tc:tutorial:onboarding:seen";
+
+type TutorialPromptType = "missing" | "update";
+
+function isBrowserStorageAvailable() {
+  return typeof window !== "undefined" && typeof window.localStorage !== "undefined";
+}
+
+function readTutorialPromptSeenMap(): Record<string, true> {
+  if (!isBrowserStorageAvailable()) {
+    return {};
+  }
+  try {
+    const raw = window.localStorage.getItem(TUTORIAL_PROMPT_SEEN_STORAGE_KEY);
+    if (!raw) {
+      return {};
+    }
+    const parsed = JSON.parse(raw) as unknown;
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+      return {};
+    }
+    return parsed as Record<string, true>;
+  }
+  catch {
+    return {};
+  }
+}
+
+function hasSeenTutorialPrompt(seenKey: string | null) {
+  if (!seenKey) {
+    return false;
+  }
+  const seenMap = readTutorialPromptSeenMap();
+  return seenMap[seenKey] === true;
+}
+
+function markTutorialPromptSeen(seenKey: string | null) {
+  if (!seenKey || !isBrowserStorageAvailable()) {
+    return;
+  }
+  const seenMap = readTutorialPromptSeenMap();
+  seenMap[seenKey] = true;
+  try {
+    window.localStorage.setItem(TUTORIAL_PROMPT_SEEN_STORAGE_KEY, JSON.stringify(seenMap));
+  }
+  catch {
+    // ignore localStorage write failures
+  }
+}
+
+function buildTutorialPromptSeenKey(
+  userId: number,
+  promptType: TutorialPromptType,
+  data: TutorialBootstrapResponse,
+) {
+  if (userId <= 0) {
+    return null;
+  }
+  const tutorialRepositoryId = data.tutorialRepositoryId;
+  if (typeof tutorialRepositoryId !== "number" || tutorialRepositoryId <= 0) {
+    return null;
+  }
+  const latestCommitIdPart = data.latestCommitId ?? "none";
+  return `u:${userId}:repo:${tutorialRepositoryId}:type:${promptType}:latest:${latestCommitIdPart}`;
+}
+
 type UseTutorialOnboardingParams = {
   userId: number;
   enabled: boolean;
@@ -33,6 +99,7 @@ export default function useTutorialOnboarding({
   const bootstrapMutation = useTutorialBootstrapMutation();
   const pullMutation = useTutorialPullMutation();
   const bootstrappedUserIdRef = useRef<number | null>(null);
+  const activePromptSeenKeyRef = useRef<string | null>(null);
   const [tutorialUpdatePrompt, setTutorialUpdatePrompt] = useState<TutorialBootstrapResponse | null>(null);
   const [tutorialPromptType, setTutorialPromptType] = useState<"missing" | "update" | null>(null);
 
@@ -61,14 +128,25 @@ export default function useTutorialOnboarding({
         if (!data?.enabled) {
           return;
         }
+        activePromptSeenKeyRef.current = null;
 
         if (data.missingTutorial) {
+          const seenKey = buildTutorialPromptSeenKey(userId, "missing", data);
+          if (hasSeenTutorialPrompt(seenKey)) {
+            return;
+          }
+          activePromptSeenKeyRef.current = seenKey;
           setTutorialPromptType("missing");
           setTutorialUpdatePrompt(data);
           return;
         }
 
         if (data.updateAvailable) {
+          const seenKey = buildTutorialPromptSeenKey(userId, "update", data);
+          if (hasSeenTutorialPrompt(seenKey)) {
+            return;
+          }
+          activePromptSeenKeyRef.current = seenKey;
           setTutorialPromptType("update");
           setTutorialUpdatePrompt(data);
         }
@@ -81,6 +159,8 @@ export default function useTutorialOnboarding({
   }, [bootstrapMutation, enabled, navigate, refreshUserSpaceCaches, userId]);
 
   const closeTutorialUpdatePrompt = useCallback(() => {
+    markTutorialPromptSeen(activePromptSeenKeyRef.current);
+    activePromptSeenKeyRef.current = null;
     setTutorialPromptType(null);
     setTutorialUpdatePrompt(null);
   }, []);
@@ -96,6 +176,7 @@ export default function useTutorialOnboarding({
 
     const newSpaceId = response.data?.newSpaceId;
     await refreshUserSpaceCaches();
+    activePromptSeenKeyRef.current = null;
     setTutorialPromptType(null);
     setTutorialUpdatePrompt(null);
 
