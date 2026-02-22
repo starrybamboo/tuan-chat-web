@@ -18,6 +18,7 @@ type UseTutorialOnboardingParams = {
 
 type UseTutorialOnboardingResult = {
   tutorialUpdatePrompt: TutorialBootstrapResponse | null;
+  tutorialPromptType: "missing" | "update" | null;
   isPullingTutorialUpdate: boolean;
   closeTutorialUpdatePrompt: () => void;
   confirmTutorialUpdatePull: () => Promise<void>;
@@ -33,6 +34,7 @@ export default function useTutorialOnboarding({
   const pullMutation = useTutorialPullMutation();
   const bootstrappedUserIdRef = useRef<number | null>(null);
   const [tutorialUpdatePrompt, setTutorialUpdatePrompt] = useState<TutorialBootstrapResponse | null>(null);
+  const [tutorialPromptType, setTutorialPromptType] = useState<"missing" | "update" | null>(null);
 
   const refreshUserSpaceCaches = useCallback(async () => {
     await Promise.all([
@@ -60,15 +62,14 @@ export default function useTutorialOnboarding({
           return;
         }
 
-        if (data.autoCloned) {
-          await refreshUserSpaceCaches();
-          if (typeof data.newSpaceId === "number" && data.newSpaceId > 0) {
-            navigate(`/chat/${data.newSpaceId}`);
-            return;
-          }
+        if (data.missingTutorial) {
+          setTutorialPromptType("missing");
+          setTutorialUpdatePrompt(data);
+          return;
         }
 
         if (data.updateAvailable) {
+          setTutorialPromptType("update");
           setTutorialUpdatePrompt(data);
         }
       },
@@ -80,6 +81,7 @@ export default function useTutorialOnboarding({
   }, [bootstrapMutation, enabled, navigate, refreshUserSpaceCaches, userId]);
 
   const closeTutorialUpdatePrompt = useCallback(() => {
+    setTutorialPromptType(null);
     setTutorialUpdatePrompt(null);
   }, []);
 
@@ -94,6 +96,7 @@ export default function useTutorialOnboarding({
 
     const newSpaceId = response.data?.newSpaceId;
     await refreshUserSpaceCaches();
+    setTutorialPromptType(null);
     setTutorialUpdatePrompt(null);
 
     if (typeof newSpaceId === "number" && newSpaceId > 0) {
@@ -103,6 +106,7 @@ export default function useTutorialOnboarding({
 
   return {
     tutorialUpdatePrompt,
+    tutorialPromptType,
     isPullingTutorialUpdate: pullMutation.isPending,
     closeTutorialUpdatePrompt,
     confirmTutorialUpdatePull,

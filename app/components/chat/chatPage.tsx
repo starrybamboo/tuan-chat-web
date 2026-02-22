@@ -112,6 +112,7 @@ export default function ChatPage() {
   const userId = globalContext.userId ?? -1;
   const {
     tutorialUpdatePrompt,
+    tutorialPromptType,
     isPullingTutorialUpdate,
     closeTutorialUpdatePrompt,
     confirmTutorialUpdatePull,
@@ -510,6 +511,7 @@ export default function ChatPage() {
         />
         <TutorialUpdatePromptModal
           open={Boolean(tutorialUpdatePrompt)}
+          mode={tutorialPromptType}
           latestCommitId={tutorialUpdatePrompt?.latestCommitId}
           currentCommitId={tutorialUpdatePrompt?.currentCommitId}
           isPulling={isPullingTutorialUpdate}
