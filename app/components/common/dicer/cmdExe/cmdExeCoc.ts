@@ -13,9 +13,11 @@ const ABILITY_MAP: { [key: string]: string } = {
   edu: "教育",
   siz: "体型",
   int: "智力",
-  san: "sanֵ",
+  san: "san",
   luck: "幸运",
-  mp: "魔法",
+  mp: "mp",
+  魔法: "mp",
+  魔法值: "mp",
   魔法值上限: "mpm",
   体力: "hp",
   体力值: "hp",
@@ -28,8 +30,8 @@ const ABILITY_MAP: { [key: string]: string } = {
   计算机: "计算机使用",
   电脑: "计算机使用",
   灵感: "智力",
-  理智: "sanֵ",
-  理智值: "sanֵ",
+  理智: "san",
+  理智值: "san",
   运气: "幸运",
   驾驶: "汽车驾驶",
   汽车: "汽车驾驶",
@@ -690,7 +692,7 @@ const cmdSc = new CommandExecutor(
     if (currentSanArg) {
       currentSan = Number.parseInt(currentSanArg);
       if (Number.isNaN(currentSan)) {
-        throw new TypeError("无效的当前sanֵ");
+        throw new TypeError("无效的当前san值");
       }
     }
     else {
@@ -698,9 +700,9 @@ const cmdSc = new CommandExecutor(
         cpi.replyMessage(`未设置角色能力`);
         return false;
       }
-      currentSan = Number.parseInt(curAbility.ability["sanֵ"]) || Number.parseInt(curAbility.ability.san);
-      if (currentSan === undefined) {
-        cpi.replyMessage(`未找到角色的sanֵ`);
+      currentSan = Number.parseInt(curAbility.ability.san) || Number.parseInt(curAbility.ability["sanֵ"]);
+      if (Number.isNaN(currentSan)) {
+        cpi.replyMessage(`未找到角色的san值`);
         return false;
       }
     }
@@ -731,12 +733,12 @@ const cmdSc = new CommandExecutor(
 
     // 大成功判定
     if (isCritSuccess) {
-      actualLoss = successLoss.possibleRange.min; // 大成功时失去最小sanֵ
+      actualLoss = successLoss.possibleRange.min; // 大成功时失去最小san
       result = "大成功";
     }
     // 大失败判定
     else if (isCritFailure) {
-      actualLoss = failureLoss.possibleRange.max; // 大失败时失去最大sanֵ
+      actualLoss = failureLoss.possibleRange.max; // 大失败时失去最大san
       cpi.setCopywritingKey("理智检定_大失败");
       result = "大失败";
     }
@@ -753,19 +755,21 @@ const cmdSc = new CommandExecutor(
       result = "失败";
     }
 
-    // 计算新sanֵ
     let newSan = currentSan - actualLoss;
     if (newSan <= 0) {
       newSan = 0;
     }
 
     if (!curAbility.ability) {
-      cpi.replyMessage(`未设置角色sanֵ`);
+      cpi.replyMessage(`未设置角色san值`);
       return false;
     }
-    // 更新角色卡中的sanֵ
-    curAbility.ability["sanֵ"] = String(newSan);
+    // 更新角色卡中的san值
     curAbility.ability.san = String(newSan);
+    // 兼容旧数据：如果存在旧的sanֵ字段，也同步更新
+    if (curAbility.ability["sanֵ"]) {
+      curAbility.ability["sanֵ"] = String(newSan);
+    }
 
     await cpi.setRoleAbilityList(mentioned[0].roleId, curAbility);
 
