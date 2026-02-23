@@ -487,8 +487,8 @@ export default function RepositoryDetailComponent({
         <div className={layoutContainerClassName}>
           <div className={viewLayerHostClassName}>
             <div className={detailLayoutClassName}>
-              <div className="w-1/4 flex flex-col gap-4 md:sticky md:top-0 md:self-start">
-                <div className="p-8 flex flex-col gap-4 bg-base-200 rounded-lg border-2 border-base-300 ">
+              <div className="w-full md:w-1/4 flex flex-col gap-4 md:sticky md:top-0 md:self-start">
+                <div className="p-4 flex flex-col gap-4 bg-base-200 rounded-lg border-2 border-base-300 ">
                   <div className="w-full flex items-center justify-center relative rounded-md overflow-hidden">
                     {repositoryImage
                       ? (

@@ -447,7 +447,7 @@ export default function DiscoverArchivedSpacesView({ mode }: DiscoverArchivedSpa
 
                             <div className="p-3">
                               <div className="min-w-0">
-                                <div className="text-lg font-medium tracking-wide truncate">{name}</div>
+                                <div className="text-md font-medium truncate">{name}</div>
                                 <div className="mt-1 text-xs text-base-content/70 truncate">
                                   {description || "暂无描述"}
                                 </div>
@@ -511,7 +511,7 @@ export default function DiscoverArchivedSpacesView({ mode }: DiscoverArchivedSpa
                             <div className="p-3">
                               <div className="min-w-0">
                                 <div className="flex items-center justify-between gap-2">
-                                  <div className="text-lg font-medium tracking-wide truncate">{name}</div>
+                                  <div className="text-lg font-medium truncate">{name}</div>
                                   <button
                                     type="button"
                                     className="btn btn-xs btn-outline h-6 min-h-0 px-2"

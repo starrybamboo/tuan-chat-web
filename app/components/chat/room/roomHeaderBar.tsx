@@ -30,6 +30,9 @@ interface RoomHeaderBarProps {
   canRedo?: boolean;
 }
 
+const MOBILE_HEADER_AUTO_HIDE_MS = 2600;
+const MOBILE_HEADER_HIDE_RETRY_MS = 300;
+
 function RoomHeaderBarImpl({
   roomName,
   toggleLeftDrawer,
@@ -54,9 +57,15 @@ function RoomHeaderBarImpl({
   const location = useLocation();
   const [isMobileSearchOpen, setIsMobileSearchOpen] = React.useState(false);
   const [isClearReloadConfirmOpen, setIsClearReloadConfirmOpen] = React.useState(false);
+  const [isMobileToolsMenuOpen, setIsMobileToolsMenuOpen] = React.useState(false);
+  const [isMobileHeaderVisible, setIsMobileHeaderVisible] = React.useState(() => !isMobile);
+  const mobileToolsMenuRef = React.useRef<HTMLDivElement | null>(null);
+  const isMobileToolsMenuOpenRef = React.useRef(false);
+  const hideTimerRef = React.useRef<number | null>(null);
   const hasSideDrawerOpen = sideDrawerState !== "none";
   const canUseDevTools = Boolean(import.meta.env?.DEV) || import.meta.env.MODE === "test";
   const canClearAndReloadMessages = canUseDevTools && Boolean(onClearAndReloadAllMessages);
+  const shouldShowHeaderBar = !isMobile || isMobileHeaderVisible || isMobileToolsMenuOpen;
 
   const closeThreadPane = () => {
     setComposerTarget("main");
@@ -69,6 +78,61 @@ function RoomHeaderBarImpl({
     }
     (document.activeElement as HTMLElement | null)?.blur();
   };
+
+  const clearHideTimer = React.useCallback(() => {
+    if (hideTimerRef.current !== null) {
+      window.clearTimeout(hideTimerRef.current);
+      hideTimerRef.current = null;
+    }
+  }, []);
+
+  const scheduleMobileHeaderHide = React.useCallback((delayMs: number = MOBILE_HEADER_AUTO_HIDE_MS) => {
+    if (!isMobile) {
+      return;
+    }
+    clearHideTimer();
+    hideTimerRef.current = window.setTimeout(() => {
+      const activeElement = typeof document !== "undefined" ? document.activeElement : null;
+      const isMenuFocused = activeElement instanceof Node && Boolean(mobileToolsMenuRef.current?.contains(activeElement));
+      if (isMobileToolsMenuOpenRef.current || isMenuFocused) {
+        scheduleMobileHeaderHide(MOBILE_HEADER_HIDE_RETRY_MS);
+        return;
+      }
+      setIsMobileHeaderVisible(false);
+      hideTimerRef.current = null;
+    }, delayMs);
+  }, [clearHideTimer, isMobile]);
+
+  const showMobileHeaderTemporarily = React.useCallback(() => {
+    if (!isMobile) {
+      setIsMobileHeaderVisible(true);
+      return;
+    }
+
+    setIsMobileHeaderVisible(true);
+    if (isMobileToolsMenuOpenRef.current) {
+      clearHideTimer();
+      return;
+    }
+    scheduleMobileHeaderHide(MOBILE_HEADER_AUTO_HIDE_MS);
+  }, [clearHideTimer, isMobile, scheduleMobileHeaderHide]);
+
+  const openMobileToolsMenu = React.useCallback(() => {
+    isMobileToolsMenuOpenRef.current = true;
+    setIsMobileToolsMenuOpen(true);
+    setIsMobileHeaderVisible(true);
+    clearHideTimer();
+  }, [clearHideTimer]);
+
+  const closeMobileToolsMenu = React.useCallback((resumeAutoHide: boolean = true) => {
+    isMobileToolsMenuOpenRef.current = false;
+    setIsMobileToolsMenuOpen(false);
+    blurActiveElement();
+    if (resumeAutoHide) {
+      setIsMobileHeaderVisible(true);
+      scheduleMobileHeaderHide(MOBILE_HEADER_AUTO_HIDE_MS);
+    }
+  }, [scheduleMobileHeaderHide]);
 
   const handleOpenImport = () => {
     closeThreadPane();
@@ -135,171 +199,299 @@ function RoomHeaderBarImpl({
   React.useEffect(() => {
     if (!isMobile) {
       setIsMobileSearchOpen(false);
+      setIsMobileToolsMenuOpen(false);
+      setIsMobileHeaderVisible(true);
+      clearHideTimer();
+      return;
     }
-  }, [isMobile]);
+
+    setIsMobileHeaderVisible(false);
+  }, [clearHideTimer, isMobile]);
 
   React.useEffect(() => {
     setIsMobileSearchOpen(false);
+    setIsMobileToolsMenuOpen(false);
   }, [location.pathname, location.search]);
+
+  React.useEffect(() => {
+    if (!isMobile) {
+      return;
+    }
+
+    const lastTopByTarget = new WeakMap<object, number>();
+    const readScrollTop = (target: EventTarget | null): { key: object | null; top: number } => {
+      if (target instanceof HTMLElement) {
+        return { key: target, top: target.scrollTop };
+      }
+      if (target instanceof Document) {
+        const root = target.scrollingElement ?? target.documentElement;
+        return root ? { key: root, top: root.scrollTop } : { key: null, top: 0 };
+      }
+      const root = document.scrollingElement ?? document.documentElement;
+      return root ? { key: root, top: root.scrollTop } : { key: null, top: 0 };
+    };
+
+    const handleScrollCapture = (event: Event) => {
+      const { key, top } = readScrollTop(event.target);
+      if (!key) {
+        return;
+      }
+      const prevTop = lastTopByTarget.get(key);
+      lastTopByTarget.set(key, top);
+      if (typeof prevTop !== "number") {
+        return;
+      }
+      // 向上滚动（scrollTop 下降）时临时显示 header
+      if (prevTop - top > 8) {
+        showMobileHeaderTemporarily();
+      }
+    };
+
+    document.addEventListener("scroll", handleScrollCapture, { capture: true, passive: true });
+    return () => {
+      document.removeEventListener("scroll", handleScrollCapture, true);
+    };
+  }, [isMobile, showMobileHeaderTemporarily]);
+
+  React.useEffect(() => {
+    return () => {
+      clearHideTimer();
+    };
+  }, [clearHideTimer]);
+
+  React.useEffect(() => {
+    if (!isMobile || !isMobileToolsMenuOpen) {
+      return;
+    }
+
+    const handlePointerDown = (event: PointerEvent) => {
+      const target = event.target;
+      if (!(target instanceof Node)) {
+        return;
+      }
+      if (mobileToolsMenuRef.current?.contains(target)) {
+        return;
+      }
+      closeMobileToolsMenu();
+    };
+
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") {
+        return;
+      }
+      closeMobileToolsMenu();
+    };
+
+    document.addEventListener("pointerdown", handlePointerDown, true);
+    document.addEventListener("keydown", handleEscape, true);
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerDown, true);
+      document.removeEventListener("keydown", handleEscape, true);
+    };
+  }, [closeMobileToolsMenu, isMobile, isMobileToolsMenuOpen]);
+
+  React.useEffect(() => {
+    isMobileToolsMenuOpenRef.current = isMobileToolsMenuOpen;
+  }, [isMobileToolsMenuOpen]);
 
   return (
     <>
-      <div className="border-gray-300 dark:border-gray-700 border-t border-b flex justify-between items-center overflow-visible relative z-50">
-        <div
-          className="flex justify-between items-center w-full px-2 h-10
+      <div
+        className={`relative z-50 transition-[max-height,opacity,filter] duration-500 ease-out ${
+          shouldShowHeaderBar ? "max-h-20 opacity-100 blur-none overflow-visible" : "max-h-0 opacity-0 blur-sm pointer-events-none overflow-hidden"
+        }`}
+      >
+        <div className="border-gray-300 dark:border-gray-700 border-t border-b flex justify-between items-center overflow-visible relative z-50">
+          <div
+            className="flex justify-between items-center w-full px-2 h-10
         bg-white/40 dark:bg-slate-950/25 backdrop-blur-xl
         border border-white/40 dark:border-white/10"
-        >
-          <div className="flex items-center gap-2 min-w-0">
-            {onCloseSubWindow && (
-              <div className="tooltip tooltip-bottom" data-tip="关闭副窗口">
+          >
+            <div className="flex items-center gap-2 min-w-0">
+              {onCloseSubWindow && (
+                <div className="tooltip tooltip-bottom" data-tip="关闭副窗口">
+                  <button
+                    type="button"
+                    aria-label="关闭副窗口"
+                    title="关闭副窗口"
+                    className="btn btn-ghost btn-square btn-xs"
+                    onClick={onCloseSubWindow}
+                  >
+                    <XMarkICon className="size-4" />
+                  </button>
+                </div>
+              )}
+              <div className="sm:hidden">
                 <button
                   type="button"
-                  aria-label="关闭副窗口"
-                  title="关闭副窗口"
+                  aria-label={hasSideDrawerOpen ? "返回群聊" : "打开左侧边栏"}
+                  className="btn btn-ghost btn-square btn-sm"
+                  onClick={handleMobileBack}
+                >
+                  <BaselineArrowBackIosNew className="size-6" />
+                </button>
+              </div>
+              <span className="text-center font-semibold line-clamp-1 truncate max-w-[50vw] sm:max-w-none min-w-0 text-sm sm:text-base">
+                <span className="hidden sm:inline">「 </span>
+                {roomName}
+                <span className="hidden sm:inline"> 」</span>
+              </span>
+            </div>
+            <div className="flex gap-2 items-center overflow-visible">
+              {canClearAndReloadMessages && (
+                <div className="tooltip tooltip-bottom relative z-50" data-tip="清空本地并重拉全量消息（开发/测试）">
+                  <button
+                    type="button"
+                    className="btn btn-ghost btn-square btn-xs text-warning"
+                    disabled={isReloadingAllMessages}
+                    onClick={handleRequestClearAndReloadMessages}
+                    aria-label="清空并重拉消息（开发/测试）"
+                  >
+                    <Broom className="size-5" />
+                  </button>
+                </div>
+              )}
+              <div className="tooltip tooltip-bottom relative z-50" data-tip="撤销 (Ctrl+Z)">
+                <button
+                  type="button"
                   className="btn btn-ghost btn-square btn-xs"
-                  onClick={onCloseSubWindow}
+                  disabled={!canUndo}
+                  onClick={() => onUndo?.()}
+                  aria-label="撤销"
                 >
-                  <XMarkICon className="size-4" />
+                  <ArrowCounterClockwise className="size-5" />
                 </button>
               </div>
-            )}
-            <div className="sm:hidden">
-              <button
-                type="button"
-                aria-label={hasSideDrawerOpen ? "返回群聊" : "打开左侧边栏"}
-                className="btn btn-ghost btn-square btn-sm"
-                onClick={handleMobileBack}
-              >
-                <BaselineArrowBackIosNew className="size-6" />
-              </button>
-            </div>
-            <span className="text-center font-semibold line-clamp-1 truncate max-w-[50vw] sm:max-w-none min-w-0 text-sm sm:text-base">
-              <span className="hidden sm:inline">「 </span>
-              {roomName}
-              <span className="hidden sm:inline"> 」</span>
-            </span>
-          </div>
-          <div className="flex gap-2 items-center overflow-visible">
-            {canClearAndReloadMessages && (
-              <div className="tooltip tooltip-bottom relative z-50" data-tip="清空本地并重拉全量消息（开发/测试）">
+              <div className="tooltip tooltip-bottom relative z-50" data-tip="回退 (Ctrl+Y / Ctrl+Shift+Z)">
                 <button
                   type="button"
-                  className="btn btn-ghost btn-square btn-xs text-warning"
-                  disabled={isReloadingAllMessages}
-                  onClick={handleRequestClearAndReloadMessages}
-                  aria-label="清空并重拉消息（开发/测试）"
+                  className="btn btn-ghost btn-square btn-xs"
+                  disabled={!canRedo}
+                  onClick={() => onRedo?.()}
+                  aria-label="回退"
                 >
-                  <Broom className="size-5" />
+                  <ArrowClockwise className="size-5" />
                 </button>
               </div>
-            )}
-            <div className="tooltip tooltip-bottom relative z-50" data-tip="撤销 (Ctrl+Z)">
-              <button
-                type="button"
-                className="btn btn-ghost btn-square btn-xs"
-                disabled={!canUndo}
-                onClick={() => onUndo?.()}
-                aria-label="撤销"
-              >
-                <ArrowCounterClockwise className="size-5" />
-              </button>
-            </div>
-            <div className="tooltip tooltip-bottom relative z-50" data-tip="回退 (Ctrl+Y / Ctrl+Shift+Z)">
-              <button
-                type="button"
-                className="btn btn-ghost btn-square btn-xs"
-                disabled={!canRedo}
-                onClick={() => onRedo?.()}
-                aria-label="回退"
-              >
-                <ArrowClockwise className="size-5" />
-              </button>
-            </div>
-            {isMobile
-              ? (
-                  <div className="dropdown dropdown-end">
-                    <button
-                      type="button"
-                      tabIndex={0}
-                      className="btn btn-ghost btn-square btn-xs"
-                      aria-label="工具菜单"
-                      title="工具菜单"
-                    >
-                      <DotsThreeVerticalIcon className="size-4" />
-                    </button>
-                    <ul tabIndex={0} className="dropdown-content z-9999 menu p-2 shadow bg-base-100 rounded-box w-56 gap-1">
-                      <li><button type="button" onClick={handleOpenImport}>导入记录</button></li>
-                      <li><button type="button" onClick={handleOpenExport}>导出/多选</button></li>
-                      <li><button type="button" onClick={handleOpenPremiere}>导出 PR 工程</button></li>
-                      <li>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            toggleUseChatBubbleStyle();
+              {isMobile
+                ? (
+                    <div ref={mobileToolsMenuRef} className={`dropdown dropdown-end ${isMobileToolsMenuOpen ? "dropdown-open" : ""}`}>
+                      <button
+                        type="button"
+                        tabIndex={0}
+                        className="btn btn-ghost btn-square btn-xs"
+                        aria-label="工具菜单"
+                        aria-expanded={isMobileToolsMenuOpen}
+                        title="工具菜单"
+                        onClick={() => {
+                          if (isMobileToolsMenuOpen) {
+                            closeMobileToolsMenu();
                             blurActiveElement();
-                          }}
-                        >
-                          {`切换到${useChatBubbleStyle ? "传统" : "气泡"}样式`}
-                        </button>
-                      </li>
-                      <li><button type="button" data-side-drawer-toggle="true" onClick={handleToggleMemberDrawer}>房间成员</button></li>
-                      <li><button type="button" data-side-drawer-toggle="true" onClick={handleToggleRoleDrawer}>房间角色</button></li>
-                      <li><button type="button" onClick={handleOpenMobileSearch}>消息搜索</button></li>
-                    </ul>
-                  </div>
-                )
-              : (
-                  <>
-                    <div
-                      className="tooltip tooltip-bottom hover:text-info relative z-50"
-                      data-tip="导入记录"
-                      onClick={handleOpenImport}
-                    >
-                      <ArrowSquareIn className="size-6" />
+                            return;
+                          }
+                          openMobileToolsMenu();
+                        }}
+                      >
+                        <DotsThreeVerticalIcon className="size-4" />
+                      </button>
+                      <ul tabIndex={0} className="dropdown-content z-9999 menu p-2 shadow bg-base-100 rounded-box w-56 gap-1">
+                        <li><button type="button" onClick={() => {
+                          closeMobileToolsMenu();
+                          handleOpenImport();
+                        }}
+                        >导入记录</button></li>
+                        <li><button type="button" onClick={() => {
+                          closeMobileToolsMenu();
+                          handleOpenExport();
+                        }}
+                        >导出/多选</button></li>
+                        <li><button type="button" onClick={() => {
+                          closeMobileToolsMenu();
+                          handleOpenPremiere();
+                        }}
+                        >导出 PR 工程</button></li>
+                        <li>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              closeMobileToolsMenu();
+                              toggleUseChatBubbleStyle();
+                              blurActiveElement();
+                            }}
+                          >
+                            {`切换到${useChatBubbleStyle ? "传统" : "气泡"}样式`}
+                          </button>
+                        </li>
+                        <li><button type="button" data-side-drawer-toggle="true" onClick={() => {
+                          closeMobileToolsMenu();
+                          handleToggleMemberDrawer();
+                        }}
+                        >房间成员</button></li>
+                        <li><button type="button" data-side-drawer-toggle="true" onClick={() => {
+                          closeMobileToolsMenu();
+                          handleToggleRoleDrawer();
+                        }}
+                        >房间角色</button></li>
+                        <li><button type="button" onClick={() => {
+                          closeMobileToolsMenu();
+                          handleOpenMobileSearch();
+                        }}
+                        >消息搜索</button></li>
+                      </ul>
                     </div>
-                    <div
-                      className="tooltip tooltip-bottom hover:text-info relative z-50"
-                      data-tip="导出/多选"
-                      onClick={handleOpenExport}
-                    >
-                      <ExportIcon className="size-6" />
-                    </div>
-                    <div
-                      className="tooltip tooltip-bottom hover:text-info relative z-50"
-                      data-tip="导出 PR 工程"
-                      onClick={handleOpenPremiere}
-                    >
-                      <FilmStrip className="size-6" />
-                    </div>
-                    <div
-                      className="tooltip tooltip-bottom hover:text-info relative z-50"
-                      data-tip={`切换到${useChatBubbleStyle ? "传统" : "气泡"}样式`}
-                      onClick={() => {
-                        toggleUseChatBubbleStyle();
-                      }}
-                    >
-                      <Bubble2 className="size-6" />
-                    </div>
-                    <div
-                      className="tooltip tooltip-bottom hover:text-info relative z-50"
-                      data-tip="房间成员"
-                      data-side-drawer-toggle="true"
-                      onClick={handleToggleMemberDrawer}
-                    >
-                      <MemberIcon className="size-6" />
-                    </div>
-                    <div
-                      className="tooltip tooltip-bottom hover:text-info relative z-50"
-                      data-tip="房间角色"
-                      data-side-drawer-toggle="true"
-                      onClick={handleToggleRoleDrawer}
-                    >
-                      <RoleListIcon className="size-6" />
-                    </div>
-                    <SearchBar className="w-64" />
-                  </>
-                )}
+                  )
+                : (
+                    <>
+                      <div
+                        className="tooltip tooltip-bottom hover:text-info relative z-50"
+                        data-tip="导入记录"
+                        onClick={handleOpenImport}
+                      >
+                        <ArrowSquareIn className="size-6" />
+                      </div>
+                      <div
+                        className="tooltip tooltip-bottom hover:text-info relative z-50"
+                        data-tip="导出/多选"
+                        onClick={handleOpenExport}
+                      >
+                        <ExportIcon className="size-6" />
+                      </div>
+                      <div
+                        className="tooltip tooltip-bottom hover:text-info relative z-50"
+                        data-tip="导出 PR 工程"
+                        onClick={handleOpenPremiere}
+                      >
+                        <FilmStrip className="size-6" />
+                      </div>
+                      <div
+                        className="tooltip tooltip-bottom hover:text-info relative z-50"
+                        data-tip={`切换到${useChatBubbleStyle ? "传统" : "气泡"}样式`}
+                        onClick={() => {
+                          toggleUseChatBubbleStyle();
+                        }}
+                      >
+                        <Bubble2 className="size-6" />
+                      </div>
+                      <div
+                        className="tooltip tooltip-bottom hover:text-info relative z-50"
+                        data-tip="房间成员"
+                        data-side-drawer-toggle="true"
+                        onClick={handleToggleMemberDrawer}
+                      >
+                        <MemberIcon className="size-6" />
+                      </div>
+                      <div
+                        className="tooltip tooltip-bottom hover:text-info relative z-50"
+                        data-tip="房间角色"
+                        data-side-drawer-toggle="true"
+                        onClick={handleToggleRoleDrawer}
+                      >
+                        <RoleListIcon className="size-6" />
+                      </div>
+                      <SearchBar className="w-64" />
+                    </>
+                  )}
+            </div>
           </div>
         </div>
       </div>
