@@ -510,7 +510,7 @@ export function Sidebar({
                 {!isRuleCollapsed && (
                   <div className="ml-2">
                     <Link
-                      to="/role?type=rule&mode=create"
+                      to="/role?type=rule&mode=entry"
                       className="flex items-center gap-3 p-3 rounded-lg cursor-pointer group hover:bg-base-100 transition-all duration-150"
                       onClick={closeDrawerOnMobile}
                       title="新建规则模板"

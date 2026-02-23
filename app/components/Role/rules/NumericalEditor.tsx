@@ -20,6 +20,7 @@ interface NumericalEditorProps {
   isEditing?: boolean;
   title?: string;
   fieldType: FieldType; // 新增:指定要更新的字段类型
+  hideTitleOnMobile?: boolean;
 }
 
 // Reducer actions
@@ -75,6 +76,7 @@ export default function NumericalEditor({
   isEditing: controlledIsEditing,
   title = "数值数据",
   fieldType,
+  hideTitleOnMobile = false,
 }: NumericalEditorProps) {
   const { mutate: updateFiledAbility } = useUpdateRoleAbilityByRoleIdMutation();
   const { mutate: updateKeyField } = useUpdateKeyFieldByRoleIdMutation();
@@ -83,6 +85,9 @@ export default function NumericalEditor({
   const isEditingControlled = typeof controlledIsEditing === "boolean";
   const isEditing = isEditingControlled ? controlledIsEditing : internalIsEditing;
   const prevIsEditingRef = useRef(isEditing);
+  const headerClassName = hideTitleOnMobile && isEditingControlled
+    ? "flex justify-between items-center md:mb-4"
+    : "flex justify-between items-center mb-4";
 
   // 使用 useReducer 管理本地数据
   const [localData, dispatch] = useReducer(dataReducer, data);
@@ -264,8 +269,8 @@ export default function NumericalEditor({
       isTransitioning ? "opacity-50" : ""
     } ${isEditing ? "ring-2 ring-primary" : ""}`}
     >
-      <div className="flex justify-between items-center mb-4">
-        <h3 className="card-title text-lg flex items-center gap-2">
+      <div className={headerClassName}>
+        <h3 className={`card-title text-lg items-center gap-2 ${hideTitleOnMobile ? "hidden md:flex" : "flex"}`}>
           {title}
         </h3>
         {!isEditingControlled && (
