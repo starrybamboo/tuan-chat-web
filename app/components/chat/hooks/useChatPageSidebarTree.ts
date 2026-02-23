@@ -11,6 +11,7 @@ type UseChatPageSidebarTreeParams = {
 
 type UseChatPageSidebarTreeResult = {
   sidebarTree: SidebarTree | null;
+  isSidebarTreeReady: boolean;
   saveSidebarTree: (tree: SidebarTree) => void;
 };
 
@@ -37,6 +38,7 @@ export default function useChatPageSidebarTree({
 
   return {
     sidebarTree,
+    isSidebarTreeReady: spaceSidebarTreeQuery.isFetched,
     saveSidebarTree,
   };
 }

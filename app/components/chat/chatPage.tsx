@@ -154,7 +154,41 @@ export default function ChatPage() {
     rooms,
   });
 
-  const { sidebarTree, saveSidebarTree: handleSaveSidebarTree } = useChatPageSidebarTree({ activeSpaceId });
+  const {
+    sidebarTree,
+    isSidebarTreeReady,
+    saveSidebarTree: handleSaveSidebarTree,
+  } = useChatPageSidebarTree({ activeSpaceId });
+
+  const sidebarTreeFirstRoomId = useMemo(() => {
+    if (!sidebarTree) {
+      return null;
+    }
+    const availableRoomIds = new Set<number>(
+      orderedRooms
+        .map(room => room.roomId)
+        .filter((roomId): roomId is number => typeof roomId === "number" && Number.isFinite(roomId)),
+    );
+    for (const category of sidebarTree.categories ?? []) {
+      for (const item of category.items ?? []) {
+        if (item?.type !== "room") {
+          continue;
+        }
+        const roomId = typeof item.targetId === "number"
+          ? item.targetId
+          : typeof item.targetId === "string"
+            ? Number(item.targetId)
+            : Number.NaN;
+        if (!Number.isFinite(roomId)) {
+          continue;
+        }
+        if (availableRoomIds.has(roomId)) {
+          return roomId;
+        }
+      }
+    }
+    return null;
+  }, [orderedRooms, sidebarTree]);
 
   const { setActiveSpaceId, setActiveRoomId, handleOpenPrivate } = useChatPageNavigation({
     activeSpaceId,
@@ -254,6 +288,10 @@ export default function ChatPage() {
     activeSpaceId,
     isDocRoute,
     isPrivateChatMode,
+    isSidebarTreeReady,
+    isUserSpacesFetched: userSpacesQuery.isFetched,
+    spaces,
+    sidebarTreeFirstRoomId,
     orderedRooms,
     rooms,
     setActiveRoomId,

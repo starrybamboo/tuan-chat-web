@@ -131,11 +131,6 @@ export default function useTutorialOnboarding({
         activePromptSeenKeyRef.current = null;
 
         if (data.missingTutorial) {
-          const seenKey = buildTutorialPromptSeenKey(userId, "missing", data);
-          if (hasSeenTutorialPrompt(seenKey)) {
-            return;
-          }
-          activePromptSeenKeyRef.current = seenKey;
           setTutorialPromptType("missing");
           setTutorialUpdatePrompt(data);
           return;
@@ -159,11 +154,13 @@ export default function useTutorialOnboarding({
   }, [bootstrapMutation, enabled, navigate, refreshUserSpaceCaches, userId]);
 
   const closeTutorialUpdatePrompt = useCallback(() => {
-    markTutorialPromptSeen(activePromptSeenKeyRef.current);
+    if (tutorialPromptType === "update") {
+      markTutorialPromptSeen(activePromptSeenKeyRef.current);
+    }
     activePromptSeenKeyRef.current = null;
     setTutorialPromptType(null);
     setTutorialUpdatePrompt(null);
-  }, []);
+  }, [tutorialPromptType]);
 
   const confirmTutorialUpdatePull = useCallback(async () => {
     if (pullMutation.isPending) {

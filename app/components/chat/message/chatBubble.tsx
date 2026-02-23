@@ -367,8 +367,10 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
       canEdit={canEdit}
       onToggle={handleToggleAnnotation}
       onOpenPicker={handleOpenAnnotations}
-      showWhenEmpty={true}
-      alwaysShowAddButton={true}
+      showWhenEmpty={webgalLinkMode}
+      alwaysShowAddButton={webgalLinkMode}
+      showAddButton={webgalLinkMode}
+      showNormalModeAnnotationsOnly={!webgalLinkMode}
       compact={isMobile}
       className={className}
     />
