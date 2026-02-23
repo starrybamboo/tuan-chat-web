@@ -1268,7 +1268,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
                   </span>
                 </div>
                 <div
-                  className={`relative max-w-[calc(100vw-5rem)] sm:max-w-md break-words rounded-lg px-3 sm:px-4 py-1.5 sm:py-2 shadow-sm sm:shadow bg-base-200 text-sm sm:text-sm lg:text-base transition-all duration-200 hover:shadow-lg hover:bg-base-300 cursor-pointer ${isMessageOverRoomContentThreshold ? "outline outline-1 outline-warning/70" : ""}`}
+                  className={`relative max-w-[calc(100vw-5rem)] sm:max-w-md break-words rounded-lg px-3 sm:px-4 py-1.5 sm:py-2 shadow-sm sm:shadow bg-base-200 text-base sm:text-sm lg:text-base transition-all duration-200 hover:shadow-lg hover:bg-base-300 cursor-pointer ${isMessageOverRoomContentThreshold ? "outline outline-1 outline-warning/70" : ""}`}
                   onClick={triggerEffectPreview}
                 >
                   {renderedContent}
@@ -1381,7 +1381,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
                   </div>
                 </div>
                 <div
-                  className={`relative transition-all duration-200 hover:bg-base-200/50 rounded-lg p-1.5 sm:p-2 cursor-pointer break-words text-sm sm:text-sm lg:text-base ${isMessageOverRoomContentThreshold ? "outline outline-1 outline-warning/70" : ""}`}
+                  className={`relative transition-all duration-200 hover:bg-base-200/50 rounded-lg p-1.5 sm:p-2 cursor-pointer break-words text-base sm:text-sm lg:text-base ${isMessageOverRoomContentThreshold ? "outline outline-1 outline-warning/70" : ""}`}
                   onClick={triggerEffectPreview}
                 >
                   {renderedContent}
