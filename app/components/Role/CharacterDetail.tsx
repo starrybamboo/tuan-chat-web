@@ -489,6 +489,8 @@ function CharacterDetailInner({
               ruleId={selectedRuleId}
               isStImportModalOpen={isStImportModalOpen}
               onStImportModalClose={() => setIsStImportModalOpen(false)}
+              onOpenStImportModal={() => setIsStImportModalOpen(true)}
+              onOpenAIGenerateModal={handleOpenAIGenerateModal}
             />
           )}
     </>
@@ -500,59 +502,14 @@ function CharacterDetailInner({
     >
 
       {/* 顶部头部区域（包含总编辑入口） */}
-      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-        <div className="flex w-full items-center justify-center gap-4 md:w-auto md:justify-start">
-          {layout === "popup"
-            ? (
-                <button
-                  type="button"
-                  className="btn btn-error btn-sm md:btn-lg rounded-md mr-4"
-                  onClick={onKickOut}
-                  disabled={!canKickOut}
-                >
-                  踢出角色
-                </button>
-              )
-            : (
-                <>
-                  {isEditing
-                    ? (
-                        <button
-                          type="button"
-                          onClick={handleSaveAll}
-                          className={`btn btn-primary btn-md rounded-lg px-4 md:hidden ${isTransitioning ? "scale-95" : ""}`}
-                          disabled={isTransitioning}
-                        >
-                          {isTransitioning
-                            ? (
-                                <span className="loading loading-spinner loading-xs"></span>
-                              )
-                            : (
-                                <span className="flex items-center gap-1">
-                                  <SaveIcon className="w-5 h-5" />
-                                  保存
-                                </span>
-                              )}
-                        </button>
-                      )
-                    : (
-                        <button
-                          type="button"
-                          onClick={handleStartEditingAll}
-                          className="btn btn-accent btn-md rounded-lg px-4 md:hidden"
-                        >
-                          <span className="flex items-center gap-1">
-                            <EditIcon className="w-5 h-5" />
-                            编辑
-                          </span>
-                        </button>
-                      )}
-                  <Link to="/role" type="button" className="hidden md:inline-flex btn btn-lg btn-outline rounded-md btn-ghost mr-4">
-                    ← 返回
-                  </Link>
-                </>
-              )}
-          <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 md:block md:justify-start">
+      <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between md:gap-3">
+        <div className="flex w-full items-start justify-between gap-2 px-6 md:w-auto md:items-center md:justify-start md:gap-4 md:px-0">
+          {layout !== "popup" && (
+            <Link to="/role" type="button" className="hidden md:inline-flex btn btn-lg btn-outline rounded-md btn-ghost">
+              ← 返回
+            </Link>
+          )}
+          <div className="order-1 min-w-0 md:order-0 md:flex-none">
             <h1 className="font-semibold text-2xl md:text-3xl md:my-2">
               {localRole.name || "未命名角色"}
             </h1>
@@ -563,10 +520,76 @@ function CharacterDetailInner({
               {currentRuleData?.ruleName || "未选择规则"}
             </p>
           </div>
+          <div className="order-2 flex shrink-0 items-center gap-1.5 md:order-0 md:gap-2">
+            {layout === "popup"
+              ? (
+                  <button
+                    type="button"
+                    className="btn btn-error btn-sm md:btn-lg rounded-md md:mr-4"
+                    onClick={onKickOut}
+                    disabled={!canKickOut}
+                  >
+                    踢出角色
+                  </button>
+                )
+              : (
+                  <>
+                    {!isDiceMaiden && (
+                      <div className="tooltip tooltip-bottom md:hidden" data-tip="基于当前角色快速复制一个骰娘">
+                        <button
+                          type="button"
+                          onClick={() => void handleQuickCopyToDiceMaiden()}
+                          className="btn btn-secondary btn-md rounded-lg px-4"
+                          disabled={isCloning}
+                        >
+                          骰娘化
+                        </button>
+                      </div>
+                    )}
+                    {isDiceMaiden && (
+                      <div className="tooltip tooltip-bottom md:hidden" data-tip="查看和导出骰娘文案配置的JSON格式">
+                        <button
+                          type="button"
+                          onClick={() => setIsDicerConfigJsonModalOpen(true)}
+                          className="btn rounded-lg bg-info/70 text-info-content btn-md px-4"
+                        >
+                          配置
+                        </button>
+                      </div>
+                    )}
+                    {isEditing
+                      ? (
+                          <button
+                            type="button"
+                            onClick={handleSaveAll}
+                            className={`btn btn-primary btn-md rounded-lg px-4 md:hidden ${isTransitioning ? "scale-95" : ""}`}
+                            disabled={isTransitioning}
+                          >
+                            {isTransitioning
+                              ? (
+                                  <span className="loading loading-spinner loading-xs"></span>
+                                )
+                              : (
+                                  <span>保存</span>
+                                )}
+                          </button>
+                        )
+                      : (
+                          <button
+                            type="button"
+                            onClick={handleStartEditingAll}
+                            className="btn btn-accent btn-md rounded-lg px-4 md:hidden"
+                          >
+                            <span>编辑</span>
+                          </button>
+                        )}
+                  </>
+                )}
+          </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className={`${layout === "popup" ? "flex" : "hidden md:flex"} w-full items-center justify-center gap-1.5 md:w-auto md:justify-end md:gap-2`}>
           {!isDiceMaiden && (
-            <div className="tooltip tooltip-bottom" data-tip="基于当前角色快速复制一个骰娘">
+            <div className="tooltip tooltip-bottom hidden md:block" data-tip="基于当前角色快速复制一个骰娘">
               <button
                 type="button"
                 onClick={() => void handleQuickCopyToDiceMaiden()}
@@ -574,8 +597,8 @@ function CharacterDetailInner({
                 disabled={isCloning}
               >
                 <span className="flex items-center gap-1">
-                  <DiceD6Icon className="w-4 h-4" />
-                  复制成骰娘
+                  <DiceD6Icon className="size-6" />
+                  骰娘化
                 </span>
               </button>
             </div>
@@ -607,7 +630,7 @@ function CharacterDetailInner({
             </div>
           )}
           {isDiceMaiden && (
-            <div className="tooltip tooltip-bottom" data-tip="查看和导出骰娘文案配置的JSON格式">
+            <div className="tooltip tooltip-bottom hidden md:block" data-tip="查看和导出骰娘文案配置的JSON格式">
               <button
                 type="button"
                 onClick={() => setIsDicerConfigJsonModalOpen(true)}
@@ -724,8 +747,6 @@ function CharacterDetailInner({
                   onAvatarSelect={handleAvatarSelect}
                   onAvatarDelete={handleAvatarDelete}
                   onAvatarUpload={handleAvatarUpload}
-                  onOpenStImportModal={() => setIsStImportModalOpen(true)}
-                  onOpenAIGenerateModal={handleOpenAIGenerateModal}
                   setLocalRole={setLocalRole}
                   onAudioRoleUpdate={(updatedRole) => {
                     setLocalRole(updatedRole);

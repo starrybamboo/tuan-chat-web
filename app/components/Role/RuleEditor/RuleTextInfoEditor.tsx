@@ -112,7 +112,7 @@ export default function RuleTextInfoEditor({
   const descriptionCounterClass = descriptionLength >= RULE_DESCRIPTION_MAX_LENGTH ? "text-error" : "text-base-content/50";
 
   return (
-    <div className="space-y-6 min-h-[480px] md:min-h-[560px]">
+    <div className="space-y-6 md:min-h-[560px]">
       <div className="flex items-center justify-between gap-3">
         <h3 className="font-semibold text-base md:text-lg min-w-0 truncate">📘规则信息</h3>
         <div className="shrink-0">
