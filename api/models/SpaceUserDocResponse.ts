@@ -23,6 +23,10 @@ export type SpaceUserDocResponse = {
      */
     title?: string;
     /**
+     * 标签（可选）
+     */
+    tag?: string;
+    /**
      * 创建时间
      */
     createTime?: string;

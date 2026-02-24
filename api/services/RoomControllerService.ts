@@ -179,17 +179,22 @@ export class RoomControllerService {
     /**
      * 获取房间
      * @param roomId
+     * @param commitId
      * @returns ApiResultRoom OK
      * @throws ApiError
      */
     public getRoomInfo(
         roomId: number,
+        commitId?: number,
     ): CancelablePromise<ApiResultRoom> {
         return this.httpRequest.request({
             method: 'GET',
             url: '/room/{roomId}',
             path: {
                 'roomId': roomId,
+            },
+            query: {
+                'commitId': commitId,
             },
             errors: {
                 400: `Bad Request`,
@@ -225,17 +230,20 @@ export class RoomControllerService {
     /**
      * 获取空间下当前用户加入的所有房间
      * @param spaceId
+     * @param commitId
      * @returns ApiResultRoomListResponse OK
      * @throws ApiError
      */
     public getUserRooms(
         spaceId: number,
+        commitId?: number,
     ): CancelablePromise<ApiResultRoomListResponse> {
         return this.httpRequest.request({
             method: 'GET',
             url: '/room/list',
             query: {
                 'spaceId': spaceId,
+                'commitId': commitId,
             },
             errors: {
                 400: `Bad Request`,

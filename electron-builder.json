@@ -5,7 +5,7 @@
   "publish": [
     {
       "provider": "generic",
-      "url": "http://47.119.147.6:84/"
+      "url": "https://tuan.chat/updates/"
     }
   ],
   "files": ["./electron", "./build"],

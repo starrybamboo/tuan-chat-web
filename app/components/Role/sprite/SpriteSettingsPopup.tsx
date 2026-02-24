@@ -6,6 +6,7 @@ import {
   ChecksIcon,
   CropIcon,
   EyeIcon,
+  FunnelIcon,
   GearIcon,
   ImageIcon,
   PackageIcon,
@@ -505,26 +506,51 @@ export function SpriteSettingsPopup({
                     <CheckCircleIcon className="h-5 w-5" aria-hidden="true" />
                   </button>
                 )}
+                <div className="dropdown dropdown-end">
+                  <button
+                    type="button"
+                    tabIndex={0}
+                    className={`btn btn-square btn-xs ${categoryFilter ? "btn-primary" : "btn-soft bg-base-200"}`}
+                    title={categoryFilter ? `当前分类：${categoryFilter}` : "分类筛选"}
+                    aria-label="头像分类筛选"
+                  >
+                    <FunnelIcon className="h-5 w-5" aria-hidden="true" />
+                  </button>
+                  <ul tabIndex={0} className="dropdown-content menu bg-base-100 rounded-box shadow-xl border border-base-300 z-40 w-44 p-2 mt-1">
+                    <li>
+                      <button
+                        type="button"
+                        className={categoryFilter === "" ? "active font-semibold" : ""}
+                        onClick={() => setCategoryFilter("")}
+                      >
+                        全部
+                      </button>
+                    </li>
+                    {hasDefaultCategory && (
+                      <li>
+                        <button
+                          type="button"
+                          className={categoryFilter === DEFAULT_CATEGORY ? "active font-semibold" : ""}
+                          onClick={() => setCategoryFilter(DEFAULT_CATEGORY)}
+                        >
+                          默认
+                        </button>
+                      </li>
+                    )}
+                    {categoryOptions.map(category => (
+                      <li key={category}>
+                        <button
+                          type="button"
+                          className={categoryFilter === category ? "active font-semibold" : ""}
+                          onClick={() => setCategoryFilter(category)}
+                        >
+                          {category}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
               </div>
-            </div>
-            <div className="px-3 pb-3">
-              <label className="text-xs font-semibold text-base-content/70" htmlFor="avatar-category-filter">
-                分类筛选
-              </label>
-              <select
-                id="avatar-category-filter"
-                className="select select-sm w-full bg-base-200"
-                value={categoryFilter}
-                onChange={e => setCategoryFilter(e.target.value)}
-              >
-                <option value="">全部</option>
-                {hasDefaultCategory && (
-                  <option value={DEFAULT_CATEGORY}>默认</option>
-                )}
-                {categoryOptions.map(category => (
-                  <option key={category} value={category}>{category}</option>
-                ))}
-              </select>
             </div>
           </div>
           <div className="flex-1 overflow-auto p-3">
@@ -743,7 +769,7 @@ export function SpriteSettingsPopup({
             {/* 回收站内容 */}
             {activeTab === "trash" && (
               <div className="h-full flex flex-col">
-                <div className="flex justify-between items-center mb-2 flex-shrink-0 min-h-8">
+                <div className="flex justify-between items-center mb-2 shrink-0 min-h-8">
                   <h3 className="text-lg font-semibold">回收站</h3>
                   <button
                     type="button"

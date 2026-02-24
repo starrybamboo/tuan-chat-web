@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo } from "react";
 import { Outlet, useSearchParams } from "react-router";
 import { ChatPageOverlays, ChatPagePanels } from "@/components/chat/chatPageContainers";
 import { ChatPageLayoutProvider } from "@/components/chat/chatPageLayoutProvider";
+import ChatPageSubWindow from "@/components/chat/chatPageSubWindow";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
 import useChatPageActiveSpaceInfo from "@/components/chat/hooks/useChatPageActiveSpaceInfo";
 import useChatPageAutoNavigation from "@/components/chat/hooks/useChatPageAutoNavigation";
@@ -19,6 +20,7 @@ import useChatPageSidebarTree from "@/components/chat/hooks/useChatPageSidebarTr
 import useChatPageSpaceContext from "@/components/chat/hooks/useChatPageSpaceContext";
 import useChatPageSpaceContextMenu from "@/components/chat/hooks/useChatPageSpaceContextMenu";
 import useChatPageSpaceHandle from "@/components/chat/hooks/useChatPageSpaceHandle";
+import useChatPageSubWindow from "@/components/chat/hooks/useChatPageSubWindow";
 import useChatUnreadIndicators from "@/components/chat/hooks/useChatUnreadIndicators";
 import useSpaceDocMetaState from "@/components/chat/hooks/useSpaceDocMetaState";
 import useSpaceDocMetaSync from "@/components/chat/hooks/useSpaceDocMetaSync";
@@ -74,6 +76,24 @@ export default function ChatPage() {
 
   const chatLeftPanelWidth = useDrawerPreferenceStore(state => state.chatLeftPanelWidth);
   const setChatLeftPanelWidth = useDrawerPreferenceStore(state => state.setChatLeftPanelWidth);
+  const {
+    isOpen: isSubWindowOpen,
+    width: subWindowWidth,
+    tab: subWindowTab,
+    roomId: subWindowRoomId,
+    docId: subWindowDocId,
+    threadRootMessageId: subWindowThreadRootMessageId,
+    setIsOpen: setIsSubWindowOpen,
+    setWidth: setSubWindowWidth,
+    setTab: setSubWindowTab,
+    setRoomId: setSubWindowRoomId,
+    setDocId: setSubWindowDocId,
+    setThreadRootMessageId: setSubWindowThreadRootMessageId,
+  } = useChatPageSubWindow({
+    activeSpaceId,
+    activeRoomId,
+    activeDocId,
+  });
 
   const [storedIds, setStoredChatIds] = useLocalStorage<{ spaceId?: number | null; roomId?: number | null }>("storedChatIds", {});
   const activeSpaceIdForQuery = activeSpaceId ?? -1;
@@ -103,14 +123,12 @@ export default function ChatPage() {
     spaces,
     rooms,
   });
-  const activeSpaceHeaderOverride = useEntityHeaderOverrideStore(state => (activeSpaceId ? state.headers[`space:${activeSpaceId}`] : undefined));
   const {
     activeSpace,
     activeSpaceAvatar,
     activeSpaceIsArchived,
     activeSpaceNameForUi,
   } = useChatPageActiveSpaceInfo({
-    activeSpaceHeaderOverride,
     activeSpaceId,
     activeSpaceInfo,
     spaces,
@@ -305,6 +323,12 @@ export default function ChatPage() {
     spaceMembers,
   });
 
+  const handleOpenThreadInSubWindow = useCallback((roomId: number, threadRootMessageId: number) => {
+    setSubWindowRoomId(roomId);
+    setSubWindowThreadRootMessageId(threadRootMessageId);
+    setIsSubWindowOpen(true);
+  }, [setIsSubWindowOpen, setSubWindowRoomId, setSubWindowThreadRootMessageId]);
+
   const layoutContextValue = useMemo(() => {
     return {
       isPrivateChatMode,
@@ -321,6 +345,7 @@ export default function ChatPage() {
       isKPInSpace,
       activeDocTitleForTcHeader,
       onDocTcHeaderChange: handleDocTcHeaderChange,
+      onOpenThreadInSubWindow: handleOpenThreadInSubWindow,
     };
   }, [
     activeDocId,
@@ -330,6 +355,7 @@ export default function ChatPage() {
     closeRoomSettingPage,
     closeSpaceDetailPanel,
     handleDocTcHeaderChange,
+    handleOpenThreadInSubWindow,
     isKPInSpace,
     isPrivateChatMode,
     isSpaceDetailRoute,
@@ -438,6 +464,27 @@ export default function ChatPage() {
         <ChatPagePanels
           layoutProps={layoutProps}
           mainContent={<Outlet />}
+          subWindowContent={(
+            <ChatPageSubWindow
+              screenSize={screenSize}
+              activeSpaceId={activeSpaceId}
+              isKPInSpace={isKPInSpace}
+              rooms={orderedRooms}
+              docMetas={spaceDocMetasList}
+              isOpen={isSubWindowOpen}
+              width={subWindowWidth}
+              tab={subWindowTab}
+              roomId={subWindowRoomId}
+              docId={subWindowDocId}
+              threadRootMessageId={subWindowThreadRootMessageId}
+              setIsOpen={setIsSubWindowOpen}
+              setWidth={setSubWindowWidth}
+              setTab={setSubWindowTab}
+              setRoomId={setSubWindowRoomId}
+              setDocId={setSubWindowDocId}
+              setThreadRootMessageId={setSubWindowThreadRootMessageId}
+            />
+          )}
           sidePanelProps={sidePanelProps}
           spaceSidebarProps={spaceSidebarProps}
         />

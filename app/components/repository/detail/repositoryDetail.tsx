@@ -1,15 +1,14 @@
+import type { Space } from "api/models/Space";
 import type { RepositoryData } from "./constants";
-import { useCreateSpaceMutation, useGetUserRoomsQuery, useGetUserSpacesQuery } from "api/hooks/chatQueryHooks";
+import { useGetUserRoomsQuery, useGetUserSpacesQuery } from "api/hooks/chatQueryHooks";
 import { useRepositoryDetailByIdQuery, useRepositoryForkListQuery } from "api/hooks/repositoryQueryHooks";
 import { useRuleListQuery } from "api/hooks/ruleQueryHooks";
-import { useImportFromRepositoryMutation } from "api/hooks/spaceRepositoryHooks";
 import { tuanchat } from "api/instance";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router";
 import { buildSpaceDocId } from "@/components/chat/infra/blocksuite/spaceDocId";
 import RoomWindow from "@/components/chat/room/roomWindow";
 import BlocksuiteDescriptionEditor from "@/components/chat/shared/components/blocksuiteDescriptionEditor";
-import { PopWindow } from "@/components/common/popWindow";
 import Author from "./author";
 // import IssueTab from "./issueTab";
 
@@ -20,6 +19,38 @@ interface RepositoryDetailComponentProps {
   embedded?: boolean;
   viewModeOpen?: boolean;
   onViewModeOpenChange?: (open: boolean) => void;
+}
+
+type RepositorySpaceCandidate = Space & { spaceId: number };
+
+function isValidSpaceId(value: number | null | undefined): value is number {
+  return typeof value === "number" && Number.isFinite(value) && value > 0;
+}
+
+function parseSpaceUpdateTime(value?: string): number {
+  const timestamp = Date.parse(value ?? "");
+  return Number.isFinite(timestamp) ? timestamp : 0;
+}
+
+function normalizeSidebarTreeJson(treeJson?: string | null): string | null {
+  if (typeof treeJson !== "string") {
+    return null;
+  }
+  const normalized = treeJson.trim();
+  return normalized.length > 0 ? normalized : null;
+}
+
+function isRepositorySpaceCandidate(space: Space, repositoryId: number): space is RepositorySpaceCandidate {
+  return space.repositoryId === repositoryId && isValidSpaceId(space.spaceId);
+}
+
+function listRepositorySpaceCandidates(spaces: Space[], repositoryId: number): RepositorySpaceCandidate[] {
+  if (!isValidSpaceId(repositoryId)) {
+    return [];
+  }
+  return spaces
+    .filter(space => isRepositorySpaceCandidate(space, repositoryId))
+    .sort((a, b) => parseSpaceUpdateTime(b.updateTime) - parseSpaceUpdateTime(a.updateTime));
 }
 
 export default function RepositoryDetailComponent({
@@ -73,26 +104,15 @@ export default function RepositoryDetailComponent({
   // 获取 userSpace 数据
   const getUserSpaces = useGetUserSpacesQuery();
   const userSpaces = useMemo(() => getUserSpaces.data?.data ?? [], [getUserSpaces.data?.data]);
-  const repositorySpace = useMemo(() => {
-    return userSpaces.find(space => space.repositoryId === repositoryId) ?? null;
-  }, [userSpaces, repositoryId]);
+  const repositorySpaces = useMemo(() => listRepositorySpaceCandidates(userSpaces, repositoryId), [repositoryId, userSpaces]);
+  const repositorySpace = repositorySpaces[0] ?? null;
 
-  // 仓库导入空间
-  const importFromRepository = useImportFromRepositoryMutation();
+  const [isCloningModule, setIsCloningModule] = useState(false);
+  const cloningModuleLockRef = useRef(false);
 
-  // 导入成功后显示弹窗
-  const [showSuccessToast, setShowSuccessToast] = useState(false);
-
-  // 导入失败后显示弹窗
+  // 克隆失败后显示弹窗
   const [showErrorToast, setShowErrorToast] = useState(false);
-
-  // 创建空间并导入仓库
-  const createSpaceMutation = useCreateSpaceMutation();
-
-  // 确认跳转弹窗
-  const [showConfirmPopup, setShowConfirmPopup] = useState(false);
-  const [newSpaceId, setNewSpaceId] = useState<number | null>(null);
-  const linkedSpaceId = newSpaceId ?? repositorySpace?.spaceId ?? null;
+  const linkedSpaceId = repositorySpace?.spaceId ?? null;
   const linkedSpace = useMemo(() => {
     if (!linkedSpaceId) {
       return null;
@@ -240,67 +260,130 @@ export default function RepositoryDetailComponent({
   }
 
   // ===== 事件处理函数 =====
-  const handleDirectCreateSpaceAndImport = () => {
-    createSpaceMutation.mutate({
-      userIdList: [],
-      avatar: repositoryData.image,
-      spaceName: repositoryData.repositoryName,
-      ruleId: repositoryData.ruleId || 1,
-    }, {
-      onSuccess: (data) => {
-        const newSpaceId = data.data?.spaceId;
-        if (newSpaceId) {
-          importFromRepository.mutate({ spaceId: newSpaceId, repositoryId }, {
-            onSuccess: () => {
-              setViewModeOpen(false);
-              setShowSuccessToast(true);
-              setTimeout(() => setShowSuccessToast(false), 3000);
-              setNewSpaceId(newSpaceId);
-              setShowConfirmPopup(true);
-            },
-            onError: () => {
-              setViewModeOpen(false);
-              setShowErrorToast(true);
-              setTimeout(() => setShowErrorToast(false), 3000);
-            },
+  const navigateToSpace = async (spaceId: number) => {
+    try {
+      const roomsData = await tuanchat.roomController.getUserRooms(spaceId);
+      const rooms = roomsData?.data?.rooms;
+      if (rooms && rooms.length > 0) {
+        const firstRoomId = rooms[0].roomId;
+        navigate(`/chat/${spaceId}/${firstRoomId}`);
+        return;
+      }
+    }
+    catch (error) {
+      console.error("获取群组列表失败:", error);
+    }
+    navigate(`/chat/${spaceId}`);
+  };
+
+  const handleCloneModule = async () => {
+    if (cloningModuleLockRef.current) {
+      return;
+    }
+
+    const pickSourceSpaceIdFromCandidates = async (candidates: RepositorySpaceCandidate[]) => {
+      if (candidates.length === 0) {
+        return null;
+      }
+
+      // 同仓库可能存在多个空间，优先选“有 sidebarTree 且最近更新”的来源。
+      const hasSidebarTreeFlags = await Promise.all(
+        candidates.map(async (space) => {
+          try {
+            const sidebarTreeResult = await tuanchat.spaceSidebarTreeController.getSidebarTree(space.spaceId);
+            return Boolean(normalizeSidebarTreeJson(sidebarTreeResult.data?.treeJson));
+          }
+          catch {
+            return false;
+          }
+        }),
+      );
+      const candidateIndex = hasSidebarTreeFlags.findIndex(Boolean);
+      if (candidateIndex >= 0) {
+        return candidates[candidateIndex].spaceId;
+      }
+      return candidates[0].spaceId;
+    };
+
+    const pickSourceSpaceId = async () => {
+      const localSourceSpaceId = await pickSourceSpaceIdFromCandidates(repositorySpaces);
+      if (isValidSpaceId(localSourceSpaceId)) {
+        return localSourceSpaceId;
+      }
+
+      const freshSpacesResult = await getUserSpaces.refetch();
+      const freshSpaces = freshSpacesResult.data?.data ?? [];
+      const fallbackCandidates = listRepositorySpaceCandidates(freshSpaces, repositoryId);
+      return pickSourceSpaceIdFromCandidates(fallbackCandidates);
+    };
+
+    const syncSidebarTreeAfterClone = async (sourceSpaceId: number, clonedSpaceId: number) => {
+      const sourceTreeResult = await tuanchat.spaceSidebarTreeController.getSidebarTree(sourceSpaceId);
+      const sourceTreeJson = normalizeSidebarTreeJson(sourceTreeResult.data?.treeJson);
+      if (!sourceTreeJson) {
+        return;
+      }
+
+      const clonedTreeResult = await tuanchat.spaceSidebarTreeController.getSidebarTree(clonedSpaceId);
+      const clonedTreeJson = normalizeSidebarTreeJson(clonedTreeResult.data?.treeJson);
+      if (clonedTreeJson === sourceTreeJson) {
+        return;
+      }
+
+      const expectedVersion = clonedTreeResult.data?.version ?? 0;
+      const setResult = await tuanchat.spaceSidebarTreeController.setSidebarTree({
+        spaceId: clonedSpaceId,
+        expectedVersion,
+        treeJson: sourceTreeJson,
+      });
+
+      // 版本冲突时，按服务端返回的最新版本再尝试一次。
+      if (!setResult.success && setResult.data?.treeJson !== sourceTreeJson) {
+        const retryVersion = setResult.data?.version;
+        if (typeof retryVersion === "number" && Number.isFinite(retryVersion) && retryVersion >= 0) {
+          await tuanchat.spaceSidebarTreeController.setSidebarTree({
+            spaceId: clonedSpaceId,
+            expectedVersion: retryVersion,
+            treeJson: sourceTreeJson,
           });
         }
-      },
-      onError: () => {
-        setViewModeOpen(false);
-        setShowErrorToast(true);
-        setTimeout(() => setShowErrorToast(false), 3000);
-      },
-    });
-  };
+      }
+    };
 
-  // 处理跳转到新空间
-  const handleNavigateToNewSpace = async () => {
-    if (newSpaceId) {
+    cloningModuleLockRef.current = true;
+    setIsCloningModule(true);
+    try {
+      const sourceSpaceId = await pickSourceSpaceId();
+      if (!sourceSpaceId) {
+        throw new Error("未找到可克隆的源空间");
+      }
+
+      const cloneResult = await tuanchat.spaceController.cloneBySpaceId({ spaceId: sourceSpaceId });
+      const clonedSpaceId = cloneResult.data;
+      if (!(typeof clonedSpaceId === "number" && Number.isFinite(clonedSpaceId) && clonedSpaceId > 0)) {
+        throw new Error("克隆后未返回有效空间ID");
+      }
+
       try {
-        const roomsData = await tuanchat.roomController.getUserRooms(newSpaceId);
+        await syncSidebarTreeAfterClone(sourceSpaceId, clonedSpaceId);
+      }
+      catch (syncError) {
+        console.warn("[RepositoryDetail] 同步 sidebarTree 失败，已忽略：", syncError);
+      }
 
-        const rooms = roomsData?.data?.rooms;
-        if (rooms && rooms.length > 0) {
-          const firstRoomId = rooms[0].roomId;
-          navigate(`/chat/${newSpaceId}/${firstRoomId}`);
-        }
-        else {
-          navigate(`/chat/${newSpaceId}`);
-        }
-      }
-      catch (error) {
-        console.error("获取群组列表失败:", error);
-        navigate(`/chat/${newSpaceId}`);
-      }
-      setShowConfirmPopup(false);
+      setViewModeOpen(false);
+      void getUserSpaces.refetch();
+      await navigateToSpace(clonedSpaceId);
     }
-  };
-
-  // 处理取消跳转
-  const handleCancelNavigate = () => {
-    setShowConfirmPopup(false);
-    setNewSpaceId(null);
+    catch {
+      setViewModeOpen(false);
+      setShowErrorToast(true);
+      setTimeout(() => setShowErrorToast(false), 3000);
+    }
+    finally {
+      cloningModuleLockRef.current = false;
+      setIsCloningModule(false);
+    }
   };
 
   // 构建信息数组，只包含有数据的字段
@@ -343,6 +426,14 @@ export default function RepositoryDetailComponent({
   const viewOverlayClassName = embedded
     ? "absolute inset-0 z-30 border border-base-300 bg-base-100 shadow-lg overflow-hidden"
     : "absolute inset-0 z-20 rounded-lg border border-base-300 bg-base-100 shadow-lg overflow-hidden";
+  const cloneButtonContent = isCloningModule
+    ? (
+        <>
+          <span className="loading loading-spinner loading-xs"></span>
+          克隆中...
+        </>
+      )
+    : "克隆模组";
 
   return (
     <>
@@ -497,10 +588,11 @@ export default function RepositoryDetailComponent({
                           <div className="mb-3">暂无关联空间资料</div>
                           <button
                             type="button"
-                            className="btn btn-sm"
-                            onClick={handleDirectCreateSpaceAndImport}
+                            className="btn btn-sm gap-2"
+                            onClick={handleCloneModule}
+                            disabled={isCloningModule}
                           >
-                            克隆模组
+                            {cloneButtonContent}
                           </button>
                         </div>
                       )}
@@ -532,10 +624,11 @@ export default function RepositoryDetailComponent({
                       </button>
                       <button
                         type="button"
-                        className="btn btn-sm btn-primary"
-                        onClick={handleDirectCreateSpaceAndImport}
+                        className="btn btn-sm btn-primary gap-2"
+                        onClick={handleCloneModule}
+                        disabled={isCloningModule}
                       >
-                        克隆模组
+                        {cloneButtonContent}
                       </button>
                     </div>
                   </div>
@@ -547,10 +640,11 @@ export default function RepositoryDetailComponent({
                         <div className="text-sm">先克隆模组到空间后再查看</div>
                         <button
                           type="button"
-                          className="btn btn-sm btn-primary"
-                          onClick={handleDirectCreateSpaceAndImport}
+                          className="btn btn-sm btn-primary gap-2"
+                          onClick={handleCloneModule}
+                          disabled={isCloningModule}
                         >
-                          克隆模组
+                          {cloneButtonContent}
                         </button>
                       </div>
                     )}
@@ -593,45 +687,6 @@ export default function RepositoryDetailComponent({
           </div>
         </div>
       </div>
-      {/* 在现有的 PopWindow 组件后面添加确认弹窗 */}
-      <PopWindow isOpen={showConfirmPopup} onClose={handleCancelNavigate}>
-        <div className="flex flex-col items-center p-6 gap-4">
-          <div className="text-2xl font-bold text-success">
-            <svg className="w-12 h-12 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-            </svg>
-            空间创建成功！
-          </div>
-
-          <p className="text-center text-gray-600">
-            仓库已成功导入到新空间
-            <br />
-            <span className="font-semibold">{repositoryData.repositoryName}</span>
-          </p>
-
-          <div className="flex gap-4 mt-4">
-            <button
-              type="button"
-              className="btn btn-ghost"
-              onClick={handleCancelNavigate}
-            >
-              稍后查看
-            </button>
-            <button
-              type="button"
-              className="btn btn-primary"
-              onClick={handleNavigateToNewSpace}
-            >
-              立即前往
-            </button>
-          </div>
-        </div>
-      </PopWindow>
-      {showSuccessToast && (
-        <div className="fixed bottom-6 right-6 bg-green-500 text-white px-4 py-2 rounded shadow-lg z-50 fade-in-out">
-          ✅ 克隆成功！
-        </div>
-      )}
       {showErrorToast && (
         <div className="fixed bottom-6 right-6 bg-red-500 text-white px-4 py-2 rounded shadow-lg z-50 fade-in-out">
           ❌ 克隆失败！

@@ -1,4 +1,4 @@
-import type { LikeRecordRequest } from "../../../api";
+import type { MarkTarget } from "../../../api";
 import { useMemo, useState } from "react";
 import { CommentContext } from "@/components/common/comment/commentContext";
 import CommentInputBox from "@/components/common/comment/commentInputBox";
@@ -14,9 +14,9 @@ interface PostActionBarProps {
   /** 帖子作者ID */
   authorUserId?: number;
   /** 用于点赞的目标信息 */
-  likeTargetInfo: LikeRecordRequest;
+  likeTargetInfo: MarkTarget;
   /** 用于评论的目标信息 */
-  _commentTargetInfo: LikeRecordRequest;
+  _commentTargetInfo: MarkTarget;
   /** 点赞数量 */
   likeCount?: number;
   /** 评论数量 */

@@ -2,15 +2,39 @@ name: TuanChat 自动构建与部署
 
 on:
   push:
-    branches: [ "main", "dev/Aentro" ]   # 后者是测试cd流程的分支
+    branches: [ "main", "dev" ]
   workflow_dispatch:  # 允许手动触发
+    inputs:
+      deploy_env:
+        description: "部署环境（auto=按分支，dev=>test，main=>production）"
+        required: true
+        default: auto
+        type: choice
+        options:
+          - auto
+          - test
+          - production
+      source_ref:
+        description: "构建代码来源（分支/tag/commit，留空则使用当前触发分支）"
+        required: false
+        default: ""
+        type: string
 
 jobs:
   build-and-deploy:
     name: tuan-chat-web构建与部署
     runs-on: ubuntu-latest
+    env:
+      DEPLOY_TARGET: ${{ (github.event_name == 'workflow_dispatch' && inputs.deploy_env == 'test' && '/www/wwwroot/tuan-chat-web-test') || (github.event_name == 'workflow_dispatch' && inputs.deploy_env == 'production' && '/www/wwwroot/tuan-chat-web') || (github.ref_name == 'dev' && '/www/wwwroot/tuan-chat-web-test') || '/www/wwwroot/tuan-chat-web' }}
+      BUILD_MODE: ${{ (github.event_name == 'workflow_dispatch' && inputs.deploy_env == 'test' && 'test') || (github.event_name == 'workflow_dispatch' && inputs.deploy_env == 'production' && 'production') || (github.ref_name == 'dev' && 'test') || 'production' }}
+      # 后端统一为 test 环境：前端无论 prod/test 构建都连接 test 后端。
+      BACKEND_API_BASE_URL: https://test.tuan.chat/api
+      BACKEND_WS_URL: wss://test.tuan.chat/ws
+      BACKEND_TTS_URL: https://test.tuan.chat/tts
     steps:
       - uses: actions/checkout@v4 # 将目标分支 checkout 到运行环境
+        with:
+          ref: ${{ (github.event_name == 'workflow_dispatch' && inputs.source_ref) || github.ref_name }}
       - name: Install pnpm
         uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4 # 安装 node
@@ -23,18 +47,64 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: build
-        run: pnpm build
+        env:
+          VITE_API_BASE_URL: ${{ env.BACKEND_API_BASE_URL }}
+          VITE_API_WS_URL: ${{ env.BACKEND_WS_URL }}
+          VITE_TTS_URL: ${{ env.BACKEND_TTS_URL }}
+          VITE_ENABLE_REACT_SCAN: ${{ env.BUILD_MODE == 'test' && 'true' || 'false' }}
+        run: pnpm build --mode $BUILD_MODE
+
+      - name: 清理旧部署产物
+        uses: appleboy/ssh-action@v1
+        with:
+          host: 38.14.195.6
+          username: ${{ secrets.SERVER_USERNAME || secrets.SSH_USERNAME }}
+          password: ${{ secrets.SERVER_PASSWORD || secrets.SSH_PASSWORD }}
+          script: |
+            set -euo pipefail
+            TARGET="${{ env.DEPLOY_TARGET }}"
+            mkdir -p "$TARGET"
+
+            # 清理旧版静态产物，避免哈希文件残留；保留站点常见系统目录/文件。
+            # `updates` 用于 Electron 自动更新元数据与安装包，不能被前端部署清理。
+            find "$TARGET" -mindepth 1 -maxdepth 1 \
+              ! -name '.well-known' \
+              ! -name '.user.ini' \
+              ! -name 'updates' \
+              -exec rm -rf {} +
 
       - name: 部署到服务器
         uses: appleboy/scp-action@v1
         with:
-          host: 47.119.147.6
-          username: root
-          password: ${{ secrets.SSH_PASSWORD }}
+          # 优先使用新版 SERVER_* secrets；保留 SSH_* 兼容旧配置
+          host: 38.14.195.6
+          username: ${{ secrets.SERVER_USERNAME || secrets.SSH_USERNAME }}
+          password: ${{ secrets.SERVER_PASSWORD || secrets.SSH_PASSWORD }}
           source: build/client/**
-          target: /www/wwwroot/tuan-chat-web-test
+          target: ${{ env.DEPLOY_TARGET }}
           overwrite: true
           strip_components: 2
+
+      - name: 校验部署产物
+        uses: appleboy/ssh-action@v1
+        with:
+          host: 38.14.195.6
+          username: ${{ secrets.SERVER_USERNAME || secrets.SSH_USERNAME }}
+          password: ${{ secrets.SERVER_PASSWORD || secrets.SSH_PASSWORD }}
+          script: |
+            set -euo pipefail
+            TARGET="${{ env.DEPLOY_TARGET }}"
+
+            test -f "$TARGET/index.html"
+            test -d "$TARGET/assets"
+
+            ASSET_FILE_COUNT="$(find "$TARGET/assets" -type f | wc -l)"
+            if [[ "${ASSET_FILE_COUNT}" -le 0 ]]; then
+              echo "部署校验失败：assets 目录为空" >&2
+              exit 1
+            fi
+
+            echo "✅ 部署校验通过：index.html 存在，assets 文件数=${ASSET_FILE_COUNT}"
 #        uses: burnett01/rsync-deployments@7.0.2 # 使用专门的 rsync action
 #        with:
 #          # rsync 的参数开关
@@ -48,7 +118,7 @@ jobs:
 #          remote_path: /www/wwwroot/tuan-chat-web-test # 目标目录
 #
 #          # SSH 连接信息
-#          remote_host: 47.119.147.6
+#          remote_host: 38.14.195.6
 #          remote_user: ${{ secrets.SSH_USERNAME }}
 #          remote_key: ${{ secrets.SSH_PRIVATE_KEY }}
 

@@ -1,7 +1,14 @@
 /* eslint-disable */
 // This declares a global interface for the electronAPI
 export type IElectronAPI = {
-  launchWebGAL: () => void;
+  launchWebGAL: (payload?: {
+    gameDir?: string;
+  }) => Promise<{
+    ok: boolean;
+    port?: number;
+    error?: string;
+    openedUrl?: string;
+  }>;
   novelaiGetClientSettings: (payload: {
     token: string;
     endpoint?: string;

@@ -1,6 +1,7 @@
 import type { GameInfoDto } from "@/webGAL/apis";
 
 import { transcodeAudioBlobToOpusOrThrow } from "@/utils/audioTranscodeUtils";
+import { assertAudioUploadInputSizeOrThrow, buildDefaultAudioUploadTranscodeOptions } from "@/utils/audioUploadPolicy";
 import { getTerreApis } from "@/webGAL/index";
 import { getTerreBaseUrl } from "@/webGAL/terreConfig";
 
@@ -34,6 +35,20 @@ type IFile = {
   path: string;
   pathFromBase?: string;
 };
+
+type UploadByUrlResponse = {
+  fileName?: string;
+};
+
+class TerreUploadByUrlError extends Error {
+  readonly status: number;
+
+  constructor(status: number, message: string) {
+    super(message);
+    this.name = "TerreUploadByUrlError";
+    this.status = status;
+  }
+}
 
 export type IDebugMessage = {
   event: string;
@@ -69,14 +84,14 @@ function getFileExtension(fileName: string): string {
   return fileName.slice(dotIndex + 1).toLowerCase();
 }
 
-function replaceFileExtension(fileName: string, nextExt: string): string {
+function _replaceFileExtension(fileName: string, nextExt: string): string {
   const dotIndex = fileName.lastIndexOf(".");
   if (dotIndex > 0)
     return `${fileName.slice(0, dotIndex)}.${nextExt}`;
   return `${fileName}.${nextExt}`;
 }
 
-function isLikelyAudioFileName(fileName: string): boolean {
+function _isLikelyAudioFileName(fileName: string): boolean {
   const ext = getFileExtension(fileName);
   return Boolean(ext && AUDIO_EXTENSIONS.has(ext));
 }
@@ -111,6 +126,42 @@ export function getFileExtensionFromUrl(url: string, defaultExt: string = "webp"
   }
 }
 
+function isHttpSourceUrl(url: string): boolean {
+  try {
+    const parsed = new URL(url);
+    return parsed.protocol === "http:" || parsed.protocol === "https:";
+  }
+  catch {
+    return false;
+  }
+}
+
+async function uploadFileByTerreSourceUrl(sourceUrl: string, targetDirectory: string, fileName: string): Promise<string> {
+  const response = await fetch(`${getTerreBaseUrl()}/api/assets/uploadByUrl`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      sourceUrl,
+      targetDirectory,
+      fileName,
+    }),
+  });
+
+  if (!response.ok) {
+    const errorText = (await response.text()).trim();
+    throw new TerreUploadByUrlError(response.status, errorText || `uploadByUrl failed, status: ${response.status}`);
+  }
+
+  const result = await response.json() as UploadByUrlResponse;
+  if (!result.fileName) {
+    throw new Error("uploadByUrl returned empty fileName");
+  }
+
+  return result.fileName;
+}
+
 /**
  * 上传文件的通用函数
  * @param url 文件的url
@@ -125,13 +176,27 @@ export async function uploadFile(url: string, path: string, fileName?: string | 
   // const shouldTranscodeAudioByName = isLikelyAudioFileName(newFileName);
   // let targetFileName = shouldTranscodeAudioByName ? replaceFileExtension(newFileName, "opus") : newFileName;
   // 暂时禁用强制转码 Opus，使用原文件格式（如 wav）
-  let targetFileName = newFileName;
+  const targetFileName = newFileName;
 
-  let safeFileName = targetFileName.replace(/\P{ASCII}/gu, char =>
+  const safeFileName = targetFileName.replace(/\P{ASCII}/gu, char =>
     encodeURIComponent(char).replace(/%/g, ""));
 
   if (await checkFileExist(path, safeFileName))
     return safeFileName;
+
+  if (isHttpSourceUrl(url)) {
+    try {
+      return await uploadFileByTerreSourceUrl(url, path, safeFileName);
+    }
+    catch (error) {
+      const unsupported = error instanceof TerreUploadByUrlError
+        && (error.status === 404 || error.status === 405);
+      if (!unsupported) {
+        throw error;
+      }
+      console.warn("[fileOperator] 当前 Terre 不支持 uploadByUrl，回退到浏览器上传流程", error);
+    }
+  }
 
   const response = await fetch(url);
   if (!response.ok)
@@ -144,7 +209,7 @@ export async function uploadFile(url: string, path: string, fileName?: string | 
 
   /*
   if (shouldTranscodeAudio && !shouldTranscodeAudioByName) {
-    targetFileName = replaceFileExtension(newFileName, "opus");
+    targetFileName = replaceFileExtension(newFileName, "webm");
     safeFileName = targetFileName.replace(/\P{ASCII}/gu, char =>
       encodeURIComponent(char).replace(/%/g, ""));
 
@@ -153,16 +218,25 @@ export async function uploadFile(url: string, path: string, fileName?: string | 
   }
   */
 
+  if (shouldTranscodeAudio) {
+    assertAudioUploadInputSizeOrThrow(data.size);
+  }
+
   const file = shouldTranscodeAudio
-    ? await transcodeAudioBlobToOpusOrThrow(data, safeFileName)
+    ? await transcodeAudioBlobToOpusOrThrow(
+        data,
+        safeFileName,
+        buildDefaultAudioUploadTranscodeOptions(data.size),
+      )
     : new File([data], safeFileName, { type: data.type || "application/octet-stream" });
+  const uploadedFileName = shouldTranscodeAudio ? file.name : safeFileName;
 
   const formData = new FormData();
   formData.append("files", file);
   formData.append("targetDirectory", path);
 
   await getTerreApis().assetsControllerUpload(formData);
-  return safeFileName;
+  return uploadedFileName;
 };
 
 export async function readTextFile(game: string, path: string): Promise<string> {
@@ -177,7 +251,7 @@ export async function checkGameExist(game: string): Promise<boolean> {
   const gameList: GameInfoDto[] = await getTerreApis().manageGameControllerGetGameList();
   if (!gameList)
     return false;
-  return gameList.some(item => item.name === game);
+  return gameList.some(item => item.dir === game);
 }
 
 async function fetchFolder(folderPath: string) {
@@ -194,9 +268,29 @@ async function fetchFolder(folderPath: string) {
   }
 }
 
+function getHttpStatusFromError(error: unknown): number | null {
+  if (!(error instanceof Error))
+    return null;
+  const match = error.message.match(/status:\s*(\d+)/i);
+  if (!match)
+    return null;
+  const parsed = Number.parseInt(match[1], 10);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
 export async function checkFileExist(currentPathString: string, fileName: string): Promise<boolean> {
-  const files = await fetchFolder(currentPathString);
-  return files.some(item => item.name === fileName);
+  try {
+    const files = await fetchFolder(currentPathString);
+    return files.some(item => item.name === fileName);
+  }
+  catch (error) {
+    const status = getHttpStatusFromError(error);
+    if (status === 404 || status === 500) {
+      console.warn(`[fileOperator] 读取目录失败(${status})，按文件不存在处理: ${currentPathString}`);
+      return false;
+    }
+    throw error;
+  }
 }
 
 /**

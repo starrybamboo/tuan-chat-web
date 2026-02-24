@@ -106,11 +106,9 @@ export default function useSpaceSidebarTreeActions({
     const title = (titleOverride ?? "未命名文档").trim() || "未命名文档";
     let createdDocId: number | null = null;
     try {
-      const resp = await tuanchat.request.request<any>({
-        method: "POST",
-        url: "/space/doc",
-        body: { spaceId: activeSpaceId, title },
-        mediaType: "application/json",
+      const resp = await tuanchat.spaceDocController.createDoc({
+        spaceId: activeSpaceId,
+        title,
       });
       const id = Number((resp as any)?.data?.docId);
       if (Number.isFinite(id) && id > 0) {

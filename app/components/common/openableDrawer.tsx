@@ -20,6 +20,7 @@ export function OpenAbleDrawer({
   children,
   className,
   overWrite,
+  width: controlledWidth,
   initialWidth = 300,
   minWidth = 300,
   maxWidth = 600,
@@ -31,6 +32,8 @@ export function OpenAbleDrawer({
   children: React.ReactNode;
   className?: string;
   overWrite?: boolean;
+  /** 外部受控宽度（提供后将同步内部宽度） */
+  width?: number;
   initialWidth?: number;
   minWidth?: number;
   maxWidth?: number;
@@ -86,7 +89,8 @@ export function OpenAbleDrawer({
   const [bounds, setBounds] = useState(() => getBaseBounds());
   const [width, setWidth] = useState(() => {
     const base = getBaseBounds();
-    return clamp(initialWidth, base.min, base.max);
+    const seed = Number.isFinite(controlledWidth) ? controlledWidth! : initialWidth;
+    return clamp(seed, base.min, base.max);
   });
   const containerRef = useRef<HTMLDivElement | null>(null);
   const isDragging = useRef(false);
@@ -140,6 +144,16 @@ export function OpenAbleDrawer({
       window.removeEventListener("resize", onResize);
     };
   }, [isOpen, syncBoundsAndWidth]);
+
+  useEffect(() => {
+    if (!Number.isFinite(controlledWidth)) {
+      return;
+    }
+    setWidth((prev) => {
+      const nextWidth = clamp(controlledWidth as number, bounds.min, bounds.max);
+      return nextWidth === prev ? prev : nextWidth;
+    });
+  }, [bounds.max, bounds.min, clamp, controlledWidth]);
 
   useEffect(() => {
     if (!isOpen || typeof ResizeObserver === "undefined") {

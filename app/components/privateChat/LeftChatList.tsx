@@ -28,6 +28,7 @@ export default function LeftChatList({ setIsOpenLeftDrawer }: { setIsOpenLeftDra
   // 私聊列表相关数据和操作
   const {
     isLoading,
+    isInboxReady,
     friendUserInfos,
     realTimeContacts,
     sortedRealTimeMessages,
@@ -41,6 +42,7 @@ export default function LeftChatList({ setIsOpenLeftDrawer }: { setIsOpenLeftDra
       sortedRealTimeMessages,
       userId,
       urlRoomId,
+      isInboxReady,
     });
 
   // 移动端是否展示好友列表

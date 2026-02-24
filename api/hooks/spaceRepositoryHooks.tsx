@@ -1,31 +1,5 @@
-﻿import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+﻿import { useQuery } from "@tanstack/react-query";
 import { tuanchat } from "../instance";
-
-// 后端已下线「仓库导入群聊」相关接口；这里保留一个最小请求形状用于兼容旧调用点。
-export type RepositoryImportByIdRequest = {
-  spaceId: number;
-  repositoryId: number;
-};
-
-/**
- * 仓库导入群聊
- */
-export function useImportFromRepositoryMutation() {
-  const queryClient = useQueryClient();
-  
-  return useMutation({
-    mutationKey: ["importFromRepository"], 
-    mutationFn: async (_req: RepositoryImportByIdRequest) => {
-      throw new Error("仓库导入群聊接口已下线");
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ 
-        queryKey: ["getUserSpaces"]
-      });
-      queryClient.invalidateQueries({ queryKey: ['getUserRooms'] });
-    }
-  });
-}
 
 /**
  * 获取空间仓库角色
@@ -64,4 +38,5 @@ function useGetRoomLocationsQuery(roomId: number) {
     enabled: roomId >= 0,
   })
 }
+
 

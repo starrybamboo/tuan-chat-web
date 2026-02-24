@@ -1,4 +1,4 @@
-import type { SpaceDetailTab } from "../spaceHeaderBar";
+import type { SpaceDetailTab } from "@/components/chat/chatPage.types";
 
 import { use, useState } from "react";
 import toast from "react-hot-toast";
@@ -8,6 +8,7 @@ import AddMemberWindow from "@/components/chat/window/addMemberWindow";
 import { AddRoleWindow } from "@/components/chat/window/addRoleWindow";
 import SpaceSettingWindow from "@/components/chat/window/spaceSettingWindow";
 import SpaceTrpgSettingWindow from "@/components/chat/window/spaceTrpgSettingWindow";
+import SpaceWebgalRenderWindow from "@/components/chat/window/spaceWebgalRenderWindow";
 import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
 import { BaselineArrowBackIosNew } from "@/icons";
 import {
@@ -33,7 +34,9 @@ export default function SpaceDetailPanel({ activeTab, onClose }: { activeTab: Sp
       ? "流程图"
       : resolvedTab === "trpg"
         ? "跑团设置"
-        : "空间资料";
+        : resolvedTab === "webgal"
+          ? "WebGAL 渲染"
+          : "空间资料";
 
   const [isRoleHandleOpen, setIsRoleHandleOpen] = useState(false);
   const [isMemberHandleOpen, setIsMemberHandleOpen] = useState(false);
@@ -135,6 +138,12 @@ export default function SpaceDetailPanel({ activeTab, onClose }: { activeTab: Sp
       {resolvedTab === "trpg" && (
         <div className="h-full overflow-hidden">
           <SpaceTrpgSettingWindow />
+        </div>
+      )}
+
+      {resolvedTab === "webgal" && (
+        <div className="h-full overflow-hidden">
+          <SpaceWebgalRenderWindow spaceId={spaceId} />
         </div>
       )}
 

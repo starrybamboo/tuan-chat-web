@@ -5,7 +5,7 @@ import TagManagement from "@/components/common/userTags";
 import { useGlobalContext } from "@/components/globalContextProvider";
 import GNSSpiderChart from "@/components/profile/cards/GNSSpiderChart";
 
-import { useGetUserInfoQuery } from "../../../../api/hooks/UserHooks";
+import { useGetUserProfileQuery } from "../../../../api/hooks/UserHooks";
 import { FollowStats } from "./components/FollowStats";
 import { ProfileEditPanel } from "./components/ProfileEditPanel";
 import { UserActions } from "./components/UserActions";
@@ -20,7 +20,7 @@ interface HomeTabProps {
 }
 
 const HomeTab: React.FC<HomeTabProps> = ({ userId }) => {
-  const userQuery = useGetUserInfoQuery(userId);
+  const userQuery = useGetUserProfileQuery(userId);
   const loginUserId = useGlobalContext().userId ?? -1;
   const user = userQuery.data?.data;
 

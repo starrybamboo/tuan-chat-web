@@ -2,11 +2,291 @@ import { Md5 } from "ts-md5";
 
 import { isAudioUploadDebugEnabled } from "@/utils/audioDebugFlags";
 import { transcodeAudioFileToOpusOrThrow } from "@/utils/audioTranscodeUtils";
+import { assertAudioUploadInputSizeOrThrow, buildDefaultAudioUploadTranscodeOptions } from "@/utils/audioUploadPolicy";
 import { compressImage } from "@/utils/imgCompressUtils";
+import { transcodeVideoFileToWebmOrThrow } from "@/utils/videoTranscodeUtils";
 
 import { tuanchat } from "../../api/instance";
 
+type PreparedImagePayload = {
+  processedFile: File;
+  isGif: boolean;
+};
+
 export class UploadUtils {
+  private static readonly imagePrepareCache = new WeakMap<File, Map<string, Promise<PreparedImagePayload>>>();
+  private static readonly videoPrepareCache = new WeakMap<File, Promise<File>>();
+  private static readonly audioPrepareCache = new WeakMap<File, Map<string, Promise<File>>>();
+  private static readonly devOssUploadProxyPath = "/api/oss-upload-proxy";
+  private static readonly defaultEnableBrowserVideoTranscode = true;
+
+  private static getOrCreateNestedPromise<T>(
+    cache: WeakMap<File, Map<string, Promise<T>>>,
+    file: File,
+    key: string,
+    create: () => Promise<T>,
+  ): Promise<T> {
+    const perFileCache = cache.get(file) ?? new Map<string, Promise<T>>();
+    if (!cache.has(file)) {
+      cache.set(file, perFileCache);
+    }
+
+    const existed = perFileCache.get(key);
+    if (existed) {
+      return existed;
+    }
+
+    const createdPromise = create().catch((error) => {
+      const latest = perFileCache.get(key);
+      if (latest === createdPromise) {
+        perFileCache.delete(key);
+      }
+      if (perFileCache.size === 0) {
+        cache.delete(file);
+      }
+      throw error;
+    });
+
+    perFileCache.set(key, createdPromise);
+    return createdPromise;
+  }
+
+  private static getOrCreatePromise<T>(
+    cache: WeakMap<File, Promise<T>>,
+    file: File,
+    create: () => Promise<T>,
+  ): Promise<T> {
+    const existed = cache.get(file);
+    if (existed) {
+      return existed;
+    }
+
+    const createdPromise = create().catch((error) => {
+      const latest = cache.get(file);
+      if (latest === createdPromise) {
+        cache.delete(file);
+      }
+      throw error;
+    });
+
+    cache.set(file, createdPromise);
+    return createdPromise;
+  }
+
+  private static buildImagePrepareKey(quality: number, maxSize: number): string {
+    return `${quality}|${maxSize}`;
+  }
+
+  private static normalizeAudioMaxDuration(maxDuration: number): number {
+    if (!Number.isFinite(maxDuration) || maxDuration <= 0) {
+      return 0;
+    }
+    return Math.floor(maxDuration);
+  }
+
+  private static buildAudioPrepareKey(maxDuration: number): string {
+    return String(UploadUtils.normalizeAudioMaxDuration(maxDuration));
+  }
+
+  public async preprocessImageForUpload(file: File, quality = 0.7, maxSize = 2560): Promise<File> {
+    const prepared = await this.prepareImageForUpload(file, quality, maxSize);
+    return prepared.processedFile;
+  }
+
+  public async preprocessVideoForUpload(file: File): Promise<File> {
+    return await this.prepareVideoForUpload(file);
+  }
+
+  public async preprocessAudioForUpload(file: File, maxDuration = 30): Promise<File> {
+    return await this.prepareAudioForUpload(file, maxDuration);
+  }
+
+  private normalizeVideoInputFileOrThrow(file: File): File {
+    const extension = ((file.name || "").toLowerCase().match(/\.([a-z0-9]+)$/)?.[1] || "").trim();
+    const inferredVideoMimeByExt: Record<string, string> = {
+      mp4: "video/mp4",
+      m4v: "video/mp4",
+      mov: "video/quicktime",
+      webm: "video/webm",
+      mkv: "video/x-matroska",
+      avi: "video/x-msvideo",
+      wmv: "video/x-ms-wmv",
+      flv: "video/x-flv",
+      mpg: "video/mpeg",
+      mpeg: "video/mpeg",
+    };
+
+    if (file.type.startsWith("video/")) {
+      return file;
+    }
+
+    const inferredType = inferredVideoMimeByExt[extension];
+    if (!inferredType) {
+      throw new Error("只支持视频文件格式");
+    }
+
+    return new File([file], file.name, {
+      type: inferredType,
+      lastModified: file.lastModified,
+    });
+  }
+
+  private shouldFallbackToOriginalVideoUpload(error: unknown): boolean {
+    const message = (error instanceof Error ? error.message : String(error)).toLowerCase();
+    return message.includes("memory access out of bounds");
+  }
+
+  private isBrowserVideoTranscodeEnabled(): boolean {
+    const env = import.meta.env as any;
+    const envFlag = typeof env?.VITE_VIDEO_UPLOAD_ENABLE_TRANSCODE === "string"
+      ? ["1", "true", "yes", "on"].includes(env.VITE_VIDEO_UPLOAD_ENABLE_TRANSCODE.toLowerCase())
+      : typeof env?.VITE_VIDEO_UPLOAD_ENABLE_TRANSCODE === "boolean"
+        ? env.VITE_VIDEO_UPLOAD_ENABLE_TRANSCODE
+        : undefined;
+    if (typeof envFlag === "boolean") {
+      return envFlag;
+    }
+
+    try {
+      const g = globalThis as any;
+      if (typeof g?.__TC_VIDEO_UPLOAD_ENABLE_TRANSCODE === "boolean") {
+        return g.__TC_VIDEO_UPLOAD_ENABLE_TRANSCODE;
+      }
+    }
+    catch {
+      // ignore
+    }
+
+    return UploadUtils.defaultEnableBrowserVideoTranscode;
+  }
+
+  private shouldBypassVideoTranscode(file: File): boolean {
+    if (!this.isBrowserVideoTranscodeEnabled()) {
+      return true;
+    }
+
+    const type = (file.type || "").toLowerCase();
+    if (type === "video/webm")
+      return true;
+    return false;
+  }
+
+  private getVideoExtension(file: File): string {
+    const type = (file.type || "").toLowerCase();
+    if (type === "video/webm")
+      return "webm";
+    if (type === "video/mp4")
+      return "mp4";
+    if (type === "video/quicktime")
+      return "mov";
+    if (type === "video/x-matroska")
+      return "mkv";
+    if (type === "video/x-msvideo")
+      return "avi";
+    if (type === "video/x-ms-wmv")
+      return "wmv";
+    if (type === "video/x-flv")
+      return "flv";
+    if (type === "video/mpeg")
+      return "mpeg";
+
+    const match = (file.name || "").toLowerCase().match(/\.([a-z0-9]+)$/);
+    if (match?.[1])
+      return match[1];
+
+    return "mp4";
+  }
+
+  private async prepareImageForUpload(file: File, quality = 0.7, maxSize = 2560): Promise<PreparedImagePayload> {
+    const prepareKey = UploadUtils.buildImagePrepareKey(quality, maxSize);
+    return await UploadUtils.getOrCreateNestedPromise(
+      UploadUtils.imagePrepareCache,
+      file,
+      prepareKey,
+      async () => {
+        let processedFile = file;
+        const originalSize = file.size;
+
+        const isGif = await this.isGifFile(file);
+        if (file.type.startsWith("image/")) {
+          if (isGif) {
+            console.warn(`[图片上传] GIF 文件跳过压缩: ${file.name} (${(originalSize / 1024).toFixed(2)} KB)`);
+            processedFile = file;
+          }
+          else {
+            processedFile = await compressImage(file, quality, maxSize);
+            const compressedSize = processedFile.size;
+            const compressionRatio = Number.parseFloat(((1 - compressedSize / originalSize) * 100).toFixed(1));
+            console.warn(
+              `[图片上传] 压缩完成: ${file.name}\n`
+              + `  原始大小: ${(originalSize / 1024).toFixed(2)} KB\n`
+              + `  压缩后: ${(compressedSize / 1024).toFixed(2)} KB\n`
+              + `  压缩率: ${compressionRatio}% ${compressionRatio > 0 ? "✅" : "⚠️"}`,
+            );
+          }
+        }
+
+        return { processedFile, isGif };
+      },
+    );
+  }
+
+  private async prepareVideoForUpload(file: File): Promise<File> {
+    return await UploadUtils.getOrCreatePromise(UploadUtils.videoPrepareCache, file, async () => {
+      const normalizedVideoFile = this.normalizeVideoInputFileOrThrow(file);
+      // 小体积常见格式优先直传，避免浏览器 ffmpeg.wasm 内存峰值导致 OOM。
+      if (this.shouldBypassVideoTranscode(normalizedVideoFile)) {
+        return normalizedVideoFile;
+      }
+      return await transcodeVideoFileToWebmOrThrow(normalizedVideoFile, {
+        maxHeight: 1080,
+        maxFps: 30,
+        crf: 34,
+      });
+    });
+  }
+
+  private async prepareAudioForUpload(file: File, maxDuration = 30): Promise<File> {
+    if (!file.type.startsWith("audio/")) {
+      throw new Error("只支持音频文件格式");
+    }
+
+    assertAudioUploadInputSizeOrThrow(file.size);
+    const normalizedMaxDuration = UploadUtils.normalizeAudioMaxDuration(maxDuration);
+    const prepareKey = UploadUtils.buildAudioPrepareKey(normalizedMaxDuration);
+
+    return await UploadUtils.getOrCreateNestedPromise(
+      UploadUtils.audioPrepareCache,
+      file,
+      prepareKey,
+      async () => {
+        const debugEnabled = isAudioUploadDebugEnabled();
+        const debugPrefix = "[tc-audio-upload]";
+        if (debugEnabled) {
+          console.warn(`${debugPrefix} UploadUtils.uploadAudio input`, {
+            name: file.name,
+            type: file.type,
+            size: file.size,
+            maxDuration: normalizedMaxDuration > 0 ? normalizedMaxDuration : null,
+          });
+        }
+
+        const transcodeOptions = buildDefaultAudioUploadTranscodeOptions(file.size, normalizedMaxDuration);
+        const processedFile = await transcodeAudioFileToOpusOrThrow(file, transcodeOptions);
+        if (debugEnabled) {
+          console.warn(`${debugPrefix} processed`, {
+            name: processedFile.name,
+            type: processedFile.type,
+            size: processedFile.size,
+            transcodeOptions,
+          });
+        }
+
+        return processedFile;
+      },
+    );
+  }
+
   private getAudioExtension(file: File): string {
     const type = (file.type || "").toLowerCase();
     if (type === "audio/mpeg")
@@ -41,36 +321,16 @@ export class UploadUtils {
       throw new Error("只支持音频文件格式");
     }
 
-    // 保护：避免超大文件导致浏览器内存/wasm 失败（转码需要把输入放入 wasm FS）
-    const maxInputBytes = 30 * 1024 * 1024; // 30MB
-    if (file.size > maxInputBytes) {
-      const mb = (file.size / 1024 / 1024).toFixed(1);
-      throw new Error(`音频文件过大（${mb}MB），已阻止上传（上限 30MB）`);
-    }
-
-    // 统一转码压缩为 Opus（不兼容 Safari）；失败则阻止上传
     const debugEnabled = isAudioUploadDebugEnabled();
     const debugPrefix = "[tc-audio-upload]";
-    if (debugEnabled)
-      console.warn(`${debugPrefix} UploadUtils.uploadAudio input`, { name: file.name, type: file.type, size: file.size, maxDuration, scene });
-
-    const execTimeoutMs = maxDuration > 0
-      ? Math.max(60_000, Math.min(240_000, Math.floor(maxDuration * 4_000)))
-      : Math.max(120_000, Math.min(600_000, Math.floor((file.size / 1024 / 1024) * 20_000)));
-
-    const processedFile = await transcodeAudioFileToOpusOrThrow(file, {
-      maxDurationSec: maxDuration,
-      loadTimeoutMs: 45_000,
-      execTimeoutMs,
-      // 更狠的默认压缩：更低目标码率 + 降采样（不兼容 Safari）
-      bitrateKbps: 48,
-      sampleRateHz: 32000,
-      // 目标：尽量比输入更小（否则按“阻止上传”策略处理）
-      // 太小的文件可能被容器开销反噬，跳过严格约束避免误伤
-      preferSmallerThanBytes: file.size >= 48 * 1024 ? file.size : undefined,
-    });
-    if (debugEnabled)
-      console.warn(`${debugPrefix} processed`, { name: processedFile.name, type: processedFile.type, size: processedFile.size });
+    const processedFile = await this.prepareAudioForUpload(file, maxDuration);
+    if (debugEnabled) {
+      console.warn(`${debugPrefix} upload prepared file`, {
+        scene,
+        input: { name: file.name, size: file.size, type: file.type },
+        prepared: { name: processedFile.name, size: processedFile.size, type: processedFile.type },
+      });
+    }
 
     // 1. 计算文件内容的哈希值
     const hash = await this.calculateFileHash(processedFile);
@@ -124,15 +384,93 @@ export class UploadUtils {
       throw new Error("只支持音频文件格式");
     }
 
-    const maxInputBytes = 30 * 1024 * 1024; // 30MB
-    if (file.size > maxInputBytes) {
-      const mb = (file.size / 1024 / 1024).toFixed(1);
-      throw new Error(`音频文件过大（${mb}MB），已阻止上传（上限 30MB）`);
-    }
+    assertAudioUploadInputSizeOrThrow(file.size);
 
     const hash = await this.calculateFileHash(file);
     const fileSize = file.size;
     const extension = this.getAudioExtension(file);
+    const newFileName = `${hash}_${fileSize}.${extension}`;
+
+    const ossData = await tuanchat.ossController.getUploadUrl({
+      fileName: newFileName,
+      scene,
+      dedupCheck: true,
+    });
+
+    if (!ossData.data?.downloadUrl) {
+      throw new Error("获取下载地址失败");
+    }
+
+    if (ossData.data.uploadUrl) {
+      await this.executeUpload(ossData.data.uploadUrl, file);
+    }
+
+    return ossData.data.downloadUrl;
+  }
+
+  /**
+   * 上传视频文件
+   * - 优先转码为 webm（压缩体积与播放兼容性）
+   * - 若浏览器 FFmpeg WASM 内存越界，则回退上传原视频（保留原音轨，不做无声回退）
+   */
+  async uploadVideo(
+    file: File,
+    scene: 1 | 2 | 3 | 4 = 1,
+  ): Promise<{ url: string; fileName: string; size: number }> {
+    const normalizedVideoFile = this.normalizeVideoInputFileOrThrow(file);
+
+    let uploadCandidate = normalizedVideoFile;
+    try {
+      uploadCandidate = await this.prepareVideoForUpload(file);
+    }
+    catch (error) {
+      if (!this.shouldFallbackToOriginalVideoUpload(error)) {
+        throw error;
+      }
+      // 仅在 ffmpeg.wasm OOM 时回退原视频，避免直接阻断发送。
+      console.warn("[视频上传] 转码出现 WASM 内存越界，回退为原视频上传（保留音轨）", {
+        name: normalizedVideoFile.name,
+        type: normalizedVideoFile.type,
+        size: normalizedVideoFile.size,
+        error: error instanceof Error ? error.message : String(error),
+      });
+      uploadCandidate = normalizedVideoFile;
+    }
+
+    const hash = await this.calculateFileHash(uploadCandidate);
+    const fileSize = uploadCandidate.size;
+    const extension = this.getVideoExtension(uploadCandidate);
+    const newFileName = `${hash}_${fileSize}.${extension}`;
+
+    const ossData = await tuanchat.ossController.getUploadUrl({
+      fileName: newFileName,
+      scene,
+      dedupCheck: true,
+    });
+
+    if (!ossData.data?.downloadUrl) {
+      throw new Error("获取下载地址失败");
+    }
+
+    if (ossData.data.uploadUrl) {
+      await this.executeUpload(ossData.data.uploadUrl, uploadCandidate);
+    }
+
+    return {
+      url: ossData.data.downloadUrl,
+      fileName: uploadCandidate.name,
+      size: fileSize,
+    };
+  }
+
+  /**
+   * 上传通用文件（用于聊天文件消息）
+   */
+  async uploadFile(file: File, scene: 1 | 2 | 3 | 4 = 1): Promise<string> {
+    const hash = await this.calculateFileHash(file);
+    const fileSize = file.size;
+    const extensionMatch = (file.name || "").toLowerCase().match(/\.([a-z0-9]+)$/);
+    const extension = extensionMatch?.[1] || "bin";
     const newFileName = `${hash}_${fileSize}.${extension}`;
 
     const ossData = await tuanchat.ossController.getUploadUrl({
@@ -160,30 +498,7 @@ export class UploadUtils {
    * @param maxSize 最大的宽高（px）
    */
   async uploadImg(file: File, scene: 1 | 2 | 3 | 4 = 1, quality = 0.7, maxSize = 2560): Promise<string> {
-    let new_file = file;
-    const originalSize = file.size;
-
-    const isGif = await this.isGifFile(file);
-    // 对于图片文件进行处理
-    if (file.type.startsWith("image/")) {
-      // 精确检测GIF文件，优先使用文件头检测
-      if (isGif) {
-        console.warn(`[图片上传] GIF 文件跳过压缩: ${file.name} (${(originalSize / 1024).toFixed(2)} KB)`);
-        new_file = file;
-      }
-      else {
-        // 其他图片格式进行压缩
-        new_file = await compressImage(file, quality, maxSize);
-        const compressedSize = new_file.size;
-        const compressionRatio = Number.parseFloat(((1 - compressedSize / originalSize) * 100).toFixed(1));
-        console.warn(
-          `[图片上传] 压缩完成: ${file.name}\n`
-          + `  原始大小: ${(originalSize / 1024).toFixed(2)} KB\n`
-          + `  压缩后: ${(compressedSize / 1024).toFixed(2)} KB\n`
-          + `  压缩率: ${compressionRatio}% ${compressionRatio > 0 ? "✅" : "⚠️"}`,
-        );
-      }
-    }
+    const { processedFile: new_file, isGif } = await this.prepareImageForUpload(file, quality, maxSize);
 
     // 1. 计算文件内容的 SHA-256 哈希值
     const hash = await this.calculateFileHash(new_file);
@@ -299,27 +614,76 @@ export class UploadUtils {
     });
   }
 
-  private async executeUpload(url: string, file: File): Promise<void> {
+  private resolveUploadTarget(url: string, file: File): {
+    targetUrl: string;
+    headers?: Record<string, string>;
+    viaDevProxy: boolean;
+  } {
+    const directHeaders = file.type ? { "Content-Type": file.type } : undefined;
+    if (!import.meta.env.DEV || typeof window === "undefined") {
+      return {
+        targetUrl: url,
+        headers: directHeaders,
+        viaDevProxy: false,
+      };
+    }
+
+    try {
+      const target = new URL(url, window.location.href);
+      if (target.origin === window.location.origin) {
+        return {
+          targetUrl: url,
+          headers: directHeaders,
+          viaDevProxy: false,
+        };
+      }
+    }
+    catch {
+      return {
+        targetUrl: url,
+        headers: directHeaders,
+        viaDevProxy: false,
+      };
+    }
+
+    return {
+      targetUrl: UploadUtils.devOssUploadProxyPath,
+      headers: {
+        "X-TC-OSS-Upload-Url": encodeURIComponent(url),
+        ...(file.type ? { "Content-Type": file.type } : {}),
+      },
+      viaDevProxy: true,
+    };
+  }
+
+  private async uploadWithTimeout(url: string, file: File, headers?: Record<string, string>): Promise<Response> {
     const controller = new AbortController();
     const t = globalThis.setTimeout(() => controller.abort(), 120_000);
 
-    let response: Response;
     try {
-      response = await fetch(url, {
+      return await fetch(url, {
         method: "PUT",
         body: file,
         signal: controller.signal,
-        headers: {
-          "Content-Type": file.type,
-          "x-oss-acl": "public-read",
-        },
+        headers,
       });
     }
     finally {
       globalThis.clearTimeout(t);
     }
+  }
 
+  private async executeUpload(url: string, file: File): Promise<void> {
+    const { targetUrl, headers, viaDevProxy } = this.resolveUploadTarget(url, file);
+    const response = await this.uploadWithTimeout(targetUrl, file, headers);
     if (!response.ok) {
+      if (response.status === 413) {
+        const prefix = viaDevProxy ? "文件传输失败(开发代理)" : "文件传输失败";
+        throw new Error(`${prefix}: 413（请求体过大）`);
+      }
+      if (viaDevProxy) {
+        throw new Error(`文件传输失败(开发代理): ${response.status}`);
+      }
       throw new Error(`文件传输失败: ${response.status}`);
     }
   }

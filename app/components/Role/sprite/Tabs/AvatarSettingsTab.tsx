@@ -5,6 +5,7 @@ import { useUpdateRoleAvatarMutation } from "api/hooks/RoleAndAvatarHooks";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import toast from "react-hot-toast";
 import { CollapsibleAlert } from "@/components/common/CollapsibleAlert";
+import { DoubleClickEditableText } from "@/components/common/DoubleClickEditableText";
 import MoodRegulator from "@/components/common/MoodRegulator";
 
 interface AvatarSettingsTabProps {
@@ -184,16 +185,20 @@ export function AvatarSettingsTab({
                           placeholder="请输入头像标题"
                         />
                       </div>
-                      <div className="flex flex-col gap-2">
-                        <label className="font-semibold shrink-0" htmlFor="avatar-category">
-                          头像分类
-                        </label>
-                        <input
-                          id="avatar-category"
-                          className="input input-md input-bordered bg-base-200 rounded-md w-full transition focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                      <div className="flex items-center justify-between gap-3">
+                        <span className="font-semibold shrink-0">头像分类</span>
+                        <DoubleClickEditableText
                           value={editingCategory}
-                          onChange={e => setEditingCategory(e.target.value)}
-                          placeholder="请输入分类"
+                          className="min-w-0"
+                          displayClassName="badge badge-outline badge-md cursor-text max-w-[12rem] truncate"
+                          inputClassName="input input-sm input-bordered w-36"
+                          placeholder={DEFAULT_CATEGORY}
+                          invalidBehavior="revert"
+                          validate={nextValue => nextValue.trim().length ? null : "分类不能为空"}
+                          onCommit={nextValue => setEditingCategory(nextValue.trim() || DEFAULT_CATEGORY)}
+                          displayProps={{
+                            title: "双击修改头像分类",
+                          }}
                         />
                       </div>
                       <div className="text-xs font-mono text-base-content/70 mt-auto">

@@ -11,8 +11,65 @@ function safeUrlParse(url: string): URL | null {
   }
 }
 
+function isElectronRuntime(): boolean {
+  return typeof window !== "undefined" && typeof window.electronAPI !== "undefined";
+}
+
+function getBrowserOrigin(): string | null {
+  if (typeof window === "undefined" || !window.location?.origin) {
+    return null;
+  }
+  return window.location.origin;
+}
+
+function normalizeTerreBaseUrlCandidate(url: string): string {
+  const normalized = normalizeBaseUrl(url);
+  const parsed = safeUrlParse(normalized);
+  if (!parsed) {
+    return normalized;
+  }
+
+  if (isElectronRuntime()) {
+    return normalizeBaseUrl(parsed.toString());
+  }
+
+  const browserOrigin = getBrowserOrigin();
+  const browserParsed = browserOrigin ? safeUrlParse(browserOrigin) : null;
+  const isSameOrigin = !!browserParsed
+    && browserParsed.protocol === parsed.protocol
+    && browserParsed.host === parsed.host;
+
+  const normalizedPath = parsed.pathname.replace(/\/+$/, "");
+  const looksLikeRootPath = normalizedPath === "" || normalizedPath === "/";
+
+  // Web 环境下若 Terre URL 被误配成当前站点根路径（如 https://tuan.chat），
+  // 自动补齐 /terre，避免后续 API 命中主站 /api 并返回 401。
+  if (isSameOrigin && looksLikeRootPath) {
+    parsed.pathname = "/terre";
+  }
+
+  return normalizeBaseUrl(parsed.toString());
+}
+
 function getDefaultTerreBaseUrlRaw(): string {
-  return (import.meta.env.VITE_TERRE_URL as string | undefined) || "http://localhost:3001";
+  const envUrl = (import.meta.env.VITE_TERRE_URL as string | undefined)?.trim();
+  if (envUrl) {
+    return normalizeTerreBaseUrlCandidate(envUrl);
+  }
+
+  // Electron 场景保持原有本地 Terre 默认端口，便于本机引擎拉起和调试。
+  if (isElectronRuntime()) {
+    return "http://localhost:3001";
+  }
+
+  // Web 场景默认回落到当前站点的 /terre。
+  // 线上若缺失 VITE_TERRE_URL，直接回落到 origin 会误命中主站 /api，触发 401。
+  const browserOrigin = getBrowserOrigin();
+  if (browserOrigin) {
+    return `${normalizeBaseUrl(browserOrigin)}/terre`;
+  }
+
+  return "http://localhost:3001";
 }
 
 function getDefaultTerreBaseUrl(): string {
@@ -21,8 +78,22 @@ function getDefaultTerreBaseUrl(): string {
 
 export function getDefaultTerrePort(): number {
   const parsed = safeUrlParse(getDefaultTerreBaseUrl());
-  const port = parsed?.port ? Number(parsed.port) : Number.NaN;
-  return Number.isFinite(port) && port > 0 ? port : 3001;
+  if (!parsed) {
+    return 3001;
+  }
+
+  const explicitPort = parsed.port ? Number(parsed.port) : Number.NaN;
+  if (Number.isFinite(explicitPort) && explicitPort > 0) {
+    return explicitPort;
+  }
+
+  if (parsed.protocol === "https:") {
+    return 443;
+  }
+  if (parsed.protocol === "http:") {
+    return 80;
+  }
+  return 3001;
 }
 
 function getDefaultTerreWsPath(): string {
@@ -60,6 +131,10 @@ export function getTerreBaseUrl(): string {
 
   parsed.port = String(overridePort);
   return normalizeBaseUrl(parsed.toString());
+}
+
+export function getTerreHealthcheckUrl(): string {
+  return `${getTerreBaseUrl()}/api/test`;
 }
 
 export function getTerreWsUrl(): string {

@@ -15,7 +15,7 @@ export type MomentFeedRequest = {
      */
     imageUrls?: Array<string>;
     /**
-     * 相关模组id
+     * 相关仓库id
      */
     repositoryId?: number;
 };

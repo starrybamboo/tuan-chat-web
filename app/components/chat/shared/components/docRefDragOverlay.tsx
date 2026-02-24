@@ -2,10 +2,11 @@ import React, { memo } from "react";
 
 interface DocRefDragOverlayProps {
   visible: boolean;
+  label?: string;
   className?: string;
 }
 
-const DocRefDragOverlay = memo(({ visible, className }: DocRefDragOverlayProps) => {
+const DocRefDragOverlay = memo(({ visible, label = "松开发送文档卡片", className }: DocRefDragOverlayProps) => {
   if (!visible)
     return null;
 
@@ -13,7 +14,7 @@ const DocRefDragOverlay = memo(({ visible, className }: DocRefDragOverlayProps) 
   return (
     <div className={`pointer-events-none absolute ${insetClass} z-30 rounded-md border-2 border-primary/60 bg-primary/5 flex items-center justify-center`}>
       <div className="px-3 py-2 rounded bg-base-100/80 border border-primary/20 text-sm font-medium text-primary shadow-sm">
-        松开发送文档卡片
+        {label}
       </div>
     </div>
   );

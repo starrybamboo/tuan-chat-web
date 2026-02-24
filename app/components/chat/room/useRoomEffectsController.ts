@@ -92,7 +92,7 @@ export default function useRoomEffectsController({
       roomId,
       roleId: undefined,
       avatarId: undefined,
-      content: "[ֹͣȫԱBGM]",
+      content: "[停止全员BGM]",
       messageType: MessageType.SYSTEM,
       extra: {},
     });

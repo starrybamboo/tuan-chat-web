@@ -59,6 +59,7 @@ export const MESSAGE_TYPE = {
   COMMAND_REQUEST: 12,
   /** WebGAL choose message */
   WEBGAL_CHOOSE: 13,
+  VIDEO: 14,
   CLUE_CARD: 1000,
   /** 文档卡片消息（Blocksuite 文档引用） */
   DOC_CARD: 1002,
@@ -151,6 +152,13 @@ export type VoiceRenderSettings = {
 export type ExtendedMessageExtra = {
   voiceRenderSettings?: VoiceRenderSettings;
 };
+
+/**
+ * 情感标签顺序（与 TTS emotion vector 的 8 维顺序保持一致）
+ */
+export const EMOTION_LABELS = ["喜", "怒", "哀", "惧", "厌恶", "低落", "惊喜", "平静"] as const;
+
+export type EmotionLabel = typeof EMOTION_LABELS[number];
 
 /**
  * 将情感向量对象转换为数组

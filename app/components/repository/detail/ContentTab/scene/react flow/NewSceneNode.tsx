@@ -6,23 +6,19 @@ import ItemDetail from "../ItemDetail";
 interface SceneNodeProps {
   data: {
     label: string;
-    repositoryInfo?: any;
     idx: number;
-    sceneItems?: string[];
-    sceneRoles?: string[];
-    sceneLocations?: string[];
     description?: string;
     tip?: string;
-    image?: string; // 新增图片字段
+    image?: string;
     moduleSceneName?: string;
     children?: React.ReactNode;
-    isMobile?: boolean; // 新增移动端标识
-    isStart?: boolean;
+    isMobile?: boolean;
   };
   selected?: boolean;
 }
 
 function SceneNode({ data, selected }: SceneNodeProps) {
+  const NODE_WIDTH_CLASS = "w-[200px]";
   const [isPopupOpen, setIsPopupOpen] = useState(false);
   const [isDragOver, setIsDragOver] = useState(false);
   const titleRef = useRef<HTMLDivElement>(null);
@@ -83,15 +79,15 @@ function SceneNode({ data, selected }: SceneNodeProps) {
   return (
     <>
       {/* 场景标题 */}
-      <div ref={titleRef} className="relative bg-transparent text-center p-2">
+      <div ref={titleRef} className={`relative bg-transparent text-center p-2 ${NODE_WIDTH_CLASS}`}>
         <div className="flex items-center justify-center text-base-content">
           <span className="text-lg font-black leading-none mr-2">「 </span>
-          <span className="text-base font-bold tracking-wide">{data.label}</span>
+          <span className="max-w-[9rem] truncate text-base font-bold tracking-wide" title={data.label}>{data.label}</span>
           <span className="text-lg font-black leading-none ml-2"> 」</span>
         </div>
       </div>
       <div
-        className="min-w-[120px]"
+        className={NODE_WIDTH_CLASS}
         data-id={data.label}
         onDragEnter={handleDragEnter}
         onDragLeave={handleDragLeave}
@@ -99,17 +95,17 @@ function SceneNode({ data, selected }: SceneNodeProps) {
         onDrop={handleDrop}
       >
         <div
-          className={`relative rounded-md ${
-            data.isStart
-              ? "border-[3px] border-error"
-              : selected
-                ? "border-2 border-primary"
-                : "border border-base-content"
+          className={`relative overflow-hidden rounded-sm bg-base-100 ${
+            selected
+              ? "border-2 border-primary"
+              : "border border-base-content"
           } ${isDragOver ? "ring-2 ring-green-400 ring-opacity-75" : ""}`}
           onClick={handleNodeClick}
         >
-          {/* 背景图片（覆盖整个节点，降低透明度） */}
-          <div className="absolute inset-0 -z-[1] opacity-80">
+          {/* 右下偏移的背景层，仅作用于本内容区 */}
+          <div className="absolute inset-0 translate-x-1 translate-y-1 bg-base-300/40 rounded-sm -z-10"></div>
+
+          <div className="relative h-20 w-full border-b border-base-300/70">
             <img
               src={data.image || "/repositoryDefaultImage.webp"}
               alt={data.label}
@@ -119,92 +115,19 @@ function SceneNode({ data, selected }: SceneNodeProps) {
                 (e.currentTarget as HTMLImageElement).src = "/repositoryDefaultImage.webp";
               }}
             />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-black/5 to-transparent"></div>
           </div>
 
-          {/* 右下偏移的背景层，仅作用于本内容区 */}
-          <div className="absolute inset-0 translate-x-1.5 translate-y-1.5 bg-base-300 opacity-50 rounded-md -z-10"></div>
-
-          {/* 场景资源信息 */}
-          <div className="relative h-20 bg-base-50 p-2 space-y-1 text-xs">
-            {/* 包含角色 */}
-            {data.sceneRoles && data.sceneRoles.length > 0 && (
-              <div className="flex items-center gap-1">
-                <span className="text-gray-600 font-medium">角色：</span>
-                <div className="flex items-center gap-1">
-                  {data.sceneRoles.slice(0, 3).map(role => (
-                    <div
-                      key={role}
-                      className="w-4 h-4 bg-blue-400 rounded-full flex items-center justify-center text-white text-xs font-bold"
-                      title={role}
-                    >
-                      {role.charAt(0)}
-                    </div>
-                  ))}
-                  {data.sceneRoles.length > 3 && (
-                    <span className="text-gray-500 ml-1">
-                      等
-                      {data.sceneRoles.length}
-                      个
-                    </span>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {/* 包含物品 */}
-            {data.sceneItems && data.sceneItems.length > 0 && (
-              <div className="flex items-center gap-1">
-                <span className="text-gray-600 font-medium">物品：</span>
-                <div className="flex items-center gap-1">
-                  {data.sceneItems.slice(0, 3).map(item => (
-                    <div
-                      key={item}
-                      className="w-4 h-4 bg-green-400 rounded-full flex items-center justify-center text-white text-xs font-bold"
-                      title={item}
-                    >
-                      {item.charAt(0)}
-                    </div>
-                  ))}
-                  {data.sceneItems.length > 3 && (
-                    <span className="text-gray-500 ml-1">
-                      等
-                      {data.sceneItems.length}
-                      个
-                    </span>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {/* 所在地点 */}
-            {data.sceneLocations && data.sceneLocations.length > 0 && (
-              <div className="flex items-center gap-1">
-                <span className="text-gray-600 font-medium">在：</span>
-                <div className="flex items-center gap-1 flex-wrap">
-                  {data.sceneLocations.slice(0, 1).map(location => (
-                    <span key={location} className="text-orange-600 font-medium" title={location}>
-                      {location}
-                    </span>
-                  ))}
-                  {data.sceneLocations.length > 1 && (
-                    <span className="text-gray-500">
-                      等
-                      {data.sceneLocations.length}
-                      个地点
-                    </span>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {/* 如果没有任何资源，显示提示 */}
-            {(!data.sceneRoles || data.sceneRoles.length === 0)
-              && (!data.sceneItems || data.sceneItems.length === 0)
-              && (!data.sceneLocations || data.sceneLocations.length === 0) && (
-              <div className="text-gray-600 text-center py-1">
-                暂无场景资源
-              </div>
-            )}
+          <div className="relative h-20 bg-base-100 p-2 text-xs text-base-content/80 leading-5">
+            {data.description?.trim()
+              ? (
+                  <p className="max-h-full overflow-hidden break-words whitespace-pre-wrap" title={data.description}>
+                    {data.description}
+                  </p>
+                )
+              : (
+                  <div className="text-base-content/60 text-center py-1">暂无描述</div>
+                )}
           </div>
         </div>
         {/* 连接点... */}
@@ -242,8 +165,6 @@ function SceneNode({ data, selected }: SceneNodeProps) {
               <ItemDetail
                 itemName={data.label}
                 itemList={[{ ...data, name: data.label, entityInfo: { description: data.description, tip: data.tip } }]}
-                entityType="scene"
-                repositoryInfo={data.repositoryInfo}
               />
             )}
           </div>

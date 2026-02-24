@@ -103,6 +103,52 @@ export class AvatarControllerService {
         });
     }
     /**
+     * 恢复头像
+     * @param avatarId
+     * @returns ApiResultVoid OK
+     * @throws ApiError
+     */
+    public restoreRoleAvatar(
+        avatarId: number,
+    ): CancelablePromise<ApiResultVoid> {
+        return this.httpRequest.request({
+            method: 'PUT',
+            url: '/avatar/trash/restore',
+            query: {
+                'avatarId': avatarId,
+            },
+            errors: {
+                400: `Bad Request`,
+                405: `Method Not Allowed`,
+                429: `Too Many Requests`,
+                500: `Internal Server Error`,
+            },
+        });
+    }
+    /**
+     * 获取角色回收站的头像
+     * @param roleId
+     * @returns ApiResultListRoleAvatar OK
+     * @throws ApiError
+     */
+    public getDeletedRoleAvatars(
+        roleId: number,
+    ): CancelablePromise<ApiResultListRoleAvatar> {
+        return this.httpRequest.request({
+            method: 'GET',
+            url: '/avatar/trash/list',
+            query: {
+                'roleId': roleId,
+            },
+            errors: {
+                400: `Bad Request`,
+                405: `Method Not Allowed`,
+                429: `Too Many Requests`,
+                500: `Internal Server Error`,
+            },
+        });
+    }
+    /**
      * 获取角色所有的头像
      * @param roleId
      * @returns ApiResultListRoleAvatar OK
@@ -126,53 +172,7 @@ export class AvatarControllerService {
         });
     }
     /**
-     * 鑾峰彇瑙掕壊鍥炴敹绔欑殑澶村儚
-     * @param roleId
-     * @returns ApiResultListRoleAvatar OK
-     * @throws ApiError
-     */
-    public getDeletedRoleAvatars(
-        roleId: number,
-    ): CancelablePromise<ApiResultListRoleAvatar> {
-        return this.httpRequest.request({
-            method: 'GET',
-            url: '/avatar/trash/list',
-            query: {
-                'roleId': roleId,
-            },
-            errors: {
-                400: `Bad Request`,
-                405: `Method Not Allowed`,
-                429: `Too Many Requests`,
-                500: `Internal Server Error`,
-            },
-        });
-    }
-    /**
-     * 鎭㈠澶村儚
-     * @param avatarId
-     * @returns ApiResultVoid OK
-     * @throws ApiError
-     */
-    public restoreRoleAvatar(
-        avatarId: number,
-    ): CancelablePromise<ApiResultVoid> {
-        return this.httpRequest.request({
-            method: 'PUT',
-            url: '/avatar/trash/restore',
-            query: {
-                'avatarId': avatarId,
-            },
-            errors: {
-                400: `Bad Request`,
-                405: `Method Not Allowed`,
-                429: `Too Many Requests`,
-                500: `Internal Server Error`,
-            },
-        });
-    }
-    /**
-     * 娓呯┖瑙掕壊澶村儚鍥炴敹绔欙紙鐗╃悊鍒犻櫎锛?）
+     * 清空角色头像回收站（物理删除）
      * @param roleId
      * @returns ApiResultVoid OK
      * @throws ApiError

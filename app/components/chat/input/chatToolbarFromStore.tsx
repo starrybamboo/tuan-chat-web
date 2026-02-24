@@ -3,7 +3,7 @@ import ChatToolbar from "@/components/chat/input/chatToolbar";
 import { useChatComposerStore } from "@/components/chat/stores/chatComposerStore";
 import { useRealtimeRenderStore } from "@/components/chat/stores/realtimeRenderStore";
 import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
-import { ANNOTATION_IDS, normalizeAnnotations } from "@/types/messageAnnotations";
+import { ANNOTATION_IDS, hasAudioPurposeAnnotation, normalizeAnnotations } from "@/types/messageAnnotations";
 
 type ChatToolbarProps = React.ComponentProps<typeof ChatToolbar>;
 
@@ -15,7 +15,7 @@ export default function ChatToolbarFromStore({
   notMember,
   isSubmitting,
   ...rest
-}: Omit<ChatToolbarProps, "disableSendMessage" | "disableImportChatText" | "isRealtimeRenderActive" | "updateEmojiUrls" | "updateImgFiles" | "setAudioFile" | "roomId" | "isKP" | "onStopBgmForAll"> & {
+}: Omit<ChatToolbarProps, "disableSendMessage" | "disableImportChatText" | "isRealtimeRenderActive" | "updateEmojiUrls" | "updateImgFiles" | "updateFileAttachments" | "setAudioFile" | "roomId" | "isKP" | "onStopBgmForAll"> & {
   roomId: number;
   isKP?: boolean;
   onStopBgmForAll?: () => void;
@@ -27,30 +27,32 @@ export default function ChatToolbarFromStore({
   const webgalLinkMode = useRoomPreferenceStore(state => state.webgalLinkMode);
   const updateEmojiUrls = useChatComposerStore(state => state.updateEmojiUrls);
   const updateImgFiles = useChatComposerStore(state => state.updateImgFiles);
+  const updateFileAttachments = useChatComposerStore(state => state.updateFileAttachments);
   const setAudioFile = useChatComposerStore(state => state.setAudioFile);
   const setTempAnnotations = useChatComposerStore(state => state.setTempAnnotations);
 
   const addTempAnnotations = React.useCallback((ids: string[]) => {
-    const current = useChatComposerStore.getState().tempAnnotations;
+    const state = useChatComposerStore.getState();
+    const current = normalizeAnnotations(state.tempAnnotations);
+    const hasAudioAnnotation = hasAudioPurposeAnnotation(current) || hasAudioPurposeAnnotation(state.annotations);
     const next = [...current];
-    let hasAudioAnnotation = next.includes(ANNOTATION_IDS.BGM) || next.includes(ANNOTATION_IDS.SE);
     ids.forEach((id) => {
-      if ((id === ANNOTATION_IDS.BGM || id === ANNOTATION_IDS.SE) && hasAudioAnnotation) {
+      // 音频文件默认补 BGM 时，若当前已存在音频用途（常驻或临时）则不再覆盖。
+      if (id === ANNOTATION_IDS.BGM && hasAudioAnnotation) {
         return;
       }
       if (!next.includes(id)) {
         next.push(id);
-        if (id === ANNOTATION_IDS.BGM || id === ANNOTATION_IDS.SE) {
-          hasAudioAnnotation = true;
-        }
       }
     });
     setTempAnnotations(normalizeAnnotations(next));
   }, [setTempAnnotations]);
 
   const disableSendMessage = React.useMemo(() => {
-    return noRole || notMember || isSubmitting;
-  }, [noRole, notMember, isSubmitting]);
+    // 与 useChatMessageSubmit 的实际可发送条件保持一致：
+    // KP 在旁白模式（noRole=true）下仍可发送，不应显示为置灰。
+    return notMember || isSubmitting || (noRole && !isKP);
+  }, [isKP, noRole, notMember, isSubmitting]);
 
   const disableImportChatText = React.useMemo(() => {
     return notMember || isSubmitting;
@@ -65,6 +67,7 @@ export default function ChatToolbarFromStore({
       webgalLinkMode={webgalLinkMode}
       updateEmojiUrls={updateEmojiUrls}
       updateImgFiles={updateImgFiles}
+      updateFileAttachments={updateFileAttachments}
       setAudioFile={setAudioFile}
       onAddTempAnnotations={addTempAnnotations}
       disableSendMessage={disableSendMessage}

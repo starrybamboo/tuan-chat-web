@@ -1,6 +1,7 @@
 import type { Transform } from "../sprite/TransformControl";
 import React, { useEffect, useMemo, useRef, useState } from "react"; // 引入 React Hooks
 
+import type { PreviewAnchorPosition } from "./previewAnchor";
 import { getAnchorOffsetXRef, REFERENCE_HEIGHT, REFERENCE_WIDTH } from "./previewAnchor";
 
 /**
@@ -11,6 +12,8 @@ interface RenderPreviewProps {
   previewCanvasRef: React.RefObject<HTMLCanvasElement | null>;
   // Transform״̬
   transform: Transform;
+  // 预览锚点位置（仅影响渲染中心点，不修改 transform.positionX）
+  anchorPosition?: PreviewAnchorPosition;
   // 角色名称，用于遮罩中的显示
   characterName?: string;
   // 对话内容，用于遮罩中的显示
@@ -24,6 +27,7 @@ interface RenderPreviewProps {
 function RenderPreviewComponent({
   previewCanvasRef,
   transform,
+  anchorPosition = "center",
   characterName = "角色名",
   dialogContent = "对话内容",
 }: RenderPreviewProps) {
@@ -60,12 +64,15 @@ function RenderPreviewComponent({
 
   // --- 关键步骤 4: 根据当前容器尺寸计算缩放后的 transform ---
   const scaledTransform = useMemo(() => {
+    const anchorOffsetXRef = getAnchorOffsetXRef(anchorPosition);
+
     // 在容器尺寸未知时（初始渲染），避免除以0，直接返回原始transform
     if (containerSize.width === 0 || containerSize.height === 0) {
-      return transform;
+      return {
+        ...transform,
+        positionX: transform.positionX + anchorOffsetXRef,
+      };
     }
-
-    const anchorOffsetXRef = getAnchorOffsetXRef();
 
     // 返回一个新的 transform 对象，其中位置信息已被缩放
     // 注意：scale, rotation, alpha 保持不变，因为它们本身就是相对值
@@ -74,7 +81,7 @@ function RenderPreviewComponent({
       positionX: (transform.positionX + anchorOffsetXRef) * scaleX,
       positionY: transform.positionY * scaleY,
     };
-  }, [transform, containerSize, scaleX, scaleY]); // 当 transform 或 containerSize 变化时重新计算
+  }, [transform, containerSize, scaleX, scaleY, anchorPosition]); // 当 transform 或 containerSize 变化时重新计算
 
   return (
     <>

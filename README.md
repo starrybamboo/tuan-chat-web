@@ -25,8 +25,11 @@ Electron failed to install correctly,
 node node_modules/electron/install.js
 ```
 
-如果要执行 electron 打包（electron-builder）
-请先把 WebGAL_Terre 的 Windows 发行版（包含 `WebGAL_Terre.exe` 及其依赖文件）解压/拷贝到 `extraResources/` 目录下（`WebGAL_Terre.exe` 与该目录同级）。
+如果要执行 electron 打包（electron-builder）：
+- 安装包会携带 `WebGAL_Terre` 运行时。
+- `pnpm electron:prepare:resources` 会从 `../WebGAL_Terre/release` 同步运行时到 `extraResources/`。
+- 如果 `WebGAL_Terre` 不在默认位置，可设置环境变量 `WEBGAL_TERRE_RELEASE_DIR` 指向 release 目录。
+- 也可以手动把 `WebGAL_Terre` release 内容放到 `extraResources/`，并确保 `WebGAL_Terre.exe` 位于该目录根层级。
 
 #### electron-builder 工具下载不稳定（Windows）
 
@@ -39,17 +42,42 @@ Windows 下 `nsis` / `winCodeSign` 等工具会在首次构建时由 electron-bu
 
 这些设置只影响构建时下载工具，不影响应用运行。
 
+#### 一键自动化发布 Electron（本地 + 云端）
+
+当客户端需要发新版本时，建议统一使用以下命令：
+
+```bash
+pnpm release:electron -- --bump patch
+```
+
+该命令会按顺序执行：
+- 校验工作区干净且当前分支为 `main`
+- `git pull --rebase origin main`
+- 更新 `package.json` 版本号
+- 本地打包 Windows 客户端（默认 `zip + nsis`）
+- 自动提交版本号并 `git push origin main`
+- 触发云端增量更新工作流（`main` 推送自动触发）
+
+常用参数：
+- `--bump patch|minor|major`：按语义版本递增
+- `--version x.y.z`：直接指定版本号（与 `--bump` 二选一）
+- `--local-build all|zip|nsis|none`：本地打包策略（默认 `all`）
+- `--no-push`：只做本地提交，不推送
+- `--message "..."`：自定义提交信息
+
 
 ### 配置环境
 
 在项目根目录创建 .env （或 .env.development)文件，把下面的文字粘贴进去。
 
 ```plain&#x20;text
-VITE_API_BASE_URL=http://39.103.58.31:8081
-VITE_API_WS_URL=ws://39.103.58.31:8090
+VITE_API_BASE_URL=https://tuan.chat/api
+VITE_API_WS_URL=wss://tuan.chat/ws
 VITE_TERRE_URL=http://localhost:3001
 VITE_TERRE_WS=ws://localhost:3001/api/webgalsync
 ```
+
+测试环境可使用 `.env.test`（已提供），默认域名为 `https://test.tuan.chat`，并且会开启 `VITE_ENABLE_REACT_SCAN=true`。
 
 ### IDE设置
 
@@ -88,7 +116,23 @@ pnpm lint:fix
 
 自动化测试
 
-自动部署（main分支会同步到http://47.119.147.6:84/)
+自动部署：
+- `main` 推送：生产部署到 `https://tuan.chat/`
+- `dev` 推送：测试部署到 `https://test.tuan.chat/`（test 模式构建，开启 React Scan）
+
+Electron 增量更新发布：
+- `main` 推送会触发 `.github/workflows/electron-update-publish.yml`
+- 工作流会构建 NSIS 包并发布以下文件：`latest.yml`、`*Setup*.exe`、`*Setup*.exe.blockmap`
+- 客户端更新地址（electron-builder `publish.url`）：`https://tuan.chat/updates/`
+- 默认发布目录：`/www/wwwroot/tuan-chat-web/updates`
+- 工作流优先读取 `UPDATE_*`，未配置时会回退到 CD 使用的 `SERVER_*` / `SSH_*` 凭据。
+- 若 `UPDATE_SERVER_PATH` 填的是站点根目录（如 `/www/wwwroot/tuan-chat-web`），工作流会自动追加 `/updates`。
+- 可选 Secrets：
+- `UPDATE_SERVER_HOST`：更新服务器 SSH 地址（默认 `38.14.195.6`）
+- `UPDATE_SERVER_PORT`：更新服务器 SSH 端口（默认 `22`）
+- `UPDATE_SERVER_USERNAME`：SSH 用户名（默认回退 `SERVER_USERNAME` / `SSH_USERNAME`）
+- `UPDATE_SERVER_PASSWORD`：SSH 密码（默认回退 `SERVER_PASSWORD` / `SSH_PASSWORD`）
+- `UPDATE_SERVER_PATH`：远端发布目录（默认 `/www/wwwroot/tuan-chat-web/updates`）
 
 # 文件架构
 

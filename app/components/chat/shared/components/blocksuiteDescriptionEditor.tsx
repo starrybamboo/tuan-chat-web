@@ -492,29 +492,7 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
 
       const workspace = runtime.getOrCreateWorkspace(workspaceId);
 
-      // 1) Migrate legacy local docId (if needed)
-      try {
-        const legacyDocId = "space:description";
-        const expectedNewDocId = spaceId ? `space:${spaceId}:description` : "";
-        const runtimeWs = workspace as any;
-        if (expectedNewDocId && docId === expectedNewDocId
-          && typeof runtimeWs?.listKnownDocIds === "function"
-          && typeof runtimeWs?.encodeDocAsUpdate === "function"
-          && typeof runtimeWs?.restoreDocFromUpdate === "function") {
-          const known = runtimeWs.listKnownDocIds() as string[];
-          const hasLegacy = known.includes(legacyDocId);
-          const hasNew = known.includes(docId);
-          if (hasLegacy && !hasNew) {
-            const legacyUpdate = runtimeWs.encodeDocAsUpdate(legacyDocId) as Uint8Array;
-            runtimeWs.restoreDocFromUpdate({ docId, update: legacyUpdate });
-          }
-        }
-      }
-      catch {
-        // ignore migration failures
-      }
-
-      // 2) Restore from remote snapshot (if available)
+      // 1) Restore from remote snapshot (if available)
       // Critical: explicit fetch ensures the store is populated with remote content (correct root block)
       // *before* the editor is initialized. This prevents 'ensureAffineMinimumBlockData' from creating
       // a duplicate/conflicting default page, which results in a blank view.
@@ -543,7 +521,9 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
       // 3) Create store + editor after hydrate
       // Important: don't overwrite existing doc title.
       runtime.ensureDocMeta({ workspaceId, docId });
-      const store = runtime.getOrCreateDoc({ workspaceId, docId });
+      // Blocksuite store 的 readonly 是在创建时决定的；仅切换 editor.readOnly 不足以从只读切到可写。
+      // 因此当 readOnly 改变时，需要重建一次 editor/store（见下方 useEffect 依赖）。
+      const store = runtime.getOrCreateDoc({ workspaceId, docId, readonly: readOnlyRef.current });
       createdStore = store;
 
       if (tcHeaderEnabled) {
@@ -798,7 +778,7 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
           delete g.blocksuiteStore;
       }
     };
-  }, [docId, docModeProvider, isFull, spaceId, tcHeader?.fallbackImageUrl, tcHeader?.fallbackTitle, tcHeaderEnabled, workspaceId]);
+  }, [docId, docModeProvider, isFull, readOnly, spaceId, tcHeader?.fallbackImageUrl, tcHeader?.fallbackTitle, tcHeaderEnabled, workspaceId]);
 
   useEffect(() => {
     const editor = editorRef.current as any;
@@ -1490,7 +1470,8 @@ function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEdito
 
           const entityType = (typeof data.entityType === "string" ? data.entityType : undefined) as DescriptionEntityType | undefined;
           const entityId = typeof data.entityId === "number" ? data.entityId : undefined;
-          if (entityType && typeof entityId === "number" && entityId > 0) {
+          // Space 头部不再写入本地覆盖，统一以后端 space 字段为准。
+          if (entityType && entityType !== "space" && typeof entityId === "number" && entityId > 0) {
             useEntityHeaderOverrideStore.getState().setHeader({ entityType, entityId, header });
           }
 

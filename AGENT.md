@@ -5,9 +5,11 @@
 - 用中文回答我
 - 需要 Icon 时使用 phosophorIcon
 - 使用 tailwind css v4的样式类
+- 严禁在源码中用 Unicode 转义形式书写常见可见符号（如 `\u0028\u0029\uFF08\uFF09\u005B\u005D\u3010\u3011\u007B\u007D`）；必须直接写可读字符（如 `()[]{}（）【】`）
 - 避免 React 最大更新深度 / useSyncExternalStore 循环：`useEffect` 中写回状态前做相等性判断；对象/数组用 id/长度/关键字段比对，避免每次 render 都 setState
 - 避免 Zustand 选择器返回新对象：需要组合字段时使用 `shallow`，或拆成多个 selector，避免无效重渲染和循环
 - `useSearchParamsState` 的 `defaultValue` 必须是稳定引用（常量或 `useMemo`）；默认值会变化时传 `shortenUrl=false`，避免 URL 与默认值来回写
 - store 的 set/更新函数在无变化时返回旧 state（或 prev），避免订阅者反复触发更新
 - 每完成一轮答复（实现/修改/修复）后，立即进行 git commit
 - 如果修改了 WebGAL 引擎（含 `WebGAL/packages/webgal` 或 `WebGAL/packages/parser`），需自动执行同步脚本：`D:\A_collection\WebGAL\sync-terre-engine.ps1`
+- Terre 连接地址在所有环境统一固定为：`VITE_TERRE_URL=http://localhost:3001`、`VITE_TERRE_WS=ws://localhost:3001/api/webgalsync`；除非用户明确要求，否则禁止修改这两个变量（包括 `.env.development`、`.env.production`、`.env.test` 与 CI/CD 注入值）

@@ -13,9 +13,8 @@ import {
   useLocation,
   useNavigate,
 } from "react-router";
-import BgmPlaybackRegistry from "@/components/chat/infra/bgm/bgmPlaybackRegistry";
+import { installMediaDebugBridge } from "@/components/chat/infra/media/mediaDebug";
 import { useDrawerPreferenceStore } from "@/components/chat/stores/drawerPreferenceStore";
-import AudioFloatingBall from "@/components/common/audioFloatingBall";
 import { ToastWindowRenderer } from "@/components/common/toastWindow/toastWindowRenderer";
 import { GlobalContextProvider } from "@/components/globalContextProvider";
 import { consumeAuthToast } from "@/utils/auth/unauthorized";
@@ -31,6 +30,10 @@ if (typeof window !== "undefined" && window.customElements) {
     }
     originalDefine.call(this, name, constructor, options);
   };
+}
+
+if (typeof window !== "undefined") {
+  installMediaDebugBridge();
 }
 
 // DEV-only: help diagnose "Multiple versions of Lit loaded".
@@ -77,6 +80,58 @@ if (typeof window !== "undefined" && import.meta.env.DEV) {
   };
 }
 
+// React Scan 在 test 与本地开发环境可启用；生产环境始终关闭。
+// test 环境始终启用；本地开发默认启用，可通过 VITE_ENABLE_REACT_SCAN=false 手动关闭。
+const isTestBuild = import.meta.env.MODE === "test";
+const TEST_ENV_SPLASH_SESSION_KEY = "tc:test-env-splash:2026-02-20";
+const shouldEnableReactScan
+  = typeof window !== "undefined"
+    && (
+      isTestBuild
+      || (import.meta.env.DEV && import.meta.env.VITE_ENABLE_REACT_SCAN !== "false")
+    );
+
+if (shouldEnableReactScan) {
+  void import("react-scan")
+    .then(({ scan }) => {
+      scan(
+        {
+          enabled: true,
+          showToolbar: true,
+          // test 站点是 production build，需要显式强制开启。
+          dangerouslyForceRunInProduction: isTestBuild,
+        },
+      );
+    })
+    .catch(() => {
+      // ignore
+    });
+}
+
+if (typeof window !== "undefined" && import.meta.env.MODE === "test" && !(window as any).__tcTestTitleTagInstalled) {
+  // test 环境为标签页标题追加标识，避免与正式环境混淆。
+  const TEST_TITLE_TAG = " · 测试环境";
+  const applyTestTitleTag = () => {
+    const currentTitle = document.title.trim();
+    if (!currentTitle) {
+      document.title = `tuan-chat${TEST_TITLE_TAG}`;
+      return;
+    }
+    if (!currentTitle.includes(TEST_TITLE_TAG)) {
+      document.title = `${currentTitle}${TEST_TITLE_TAG}`;
+    }
+  };
+
+  (window as any).__tcTestTitleTagInstalled = true;
+  applyTestTitleTag();
+  const titleObserver = new MutationObserver(() => applyTestTitleTag());
+  titleObserver.observe(document.head, {
+    subtree: true,
+    childList: true,
+    characterData: true,
+  });
+}
+
 const queryClient = new QueryClient(
   {
     defaultOptions: {
@@ -118,7 +173,7 @@ export function HydrateFallback() {
 
 export function Layout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" data-theme="light">
+    <html lang="en" data-theme="dark">
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -139,6 +194,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
 export default function App() {
   const location = useLocation();
   const isBlocksuiteFrame = location.pathname.startsWith("/blocksuite-frame");
+  const [isTestEnvSplashOpen, setIsTestEnvSplashOpen] = React.useState(false);
 
   React.useEffect(() => {
     const msg = consumeAuthToast();
@@ -157,6 +213,29 @@ export default function App() {
       // ignore
     }
   }, [isBlocksuiteFrame]);
+
+  React.useEffect(() => {
+    if (typeof window === "undefined" || !isTestBuild || isBlocksuiteFrame)
+      return;
+    try {
+      if (window.sessionStorage.getItem(TEST_ENV_SPLASH_SESSION_KEY) === "1")
+        return;
+    }
+    catch {
+      // ignore
+    }
+    setIsTestEnvSplashOpen(true);
+  }, [isBlocksuiteFrame]);
+
+  const closeTestEnvSplash = React.useCallback(() => {
+    setIsTestEnvSplashOpen(false);
+    try {
+      window.sessionStorage.setItem(TEST_ENV_SPLASH_SESSION_KEY, "1");
+    }
+    catch {
+      // ignore
+    }
+  }, []);
 
   // blocksuite iframe 页面只需要渲染路由内容本身：
   // - 避免重复初始化全局 provider（尤其是 websocket）
@@ -182,8 +261,32 @@ export default function App() {
       <Toaster />
       {/* ToastWindow渲染器，可以访问Router上下文 */}
       <ToastWindowRenderer />
-      <BgmPlaybackRegistry />
-      <AudioFloatingBall />
+      {isTestEnvSplashOpen && (
+        <div className="modal modal-open" role="dialog" aria-modal="true" aria-label="测试环境提示">
+          <div className="modal-box max-w-2xl">
+            <h3 className="text-lg font-bold">测试环境提示</h3>
+            <div className="mt-4 space-y-3 leading-7">
+              <p>
+                您现在访问的是团剧共创测试环境，相比于正式环境，测试环境会多出很多没有经过完善测试的功能，同时也有很多的bug，如果你不是团剧共创的深度用户，请酌情考虑使用。
+              </p>
+              <p>
+                你可以访问团剧共创的正式环境来避免很多奇怪的bug。正式环境为，
+                <a className="link link-primary ml-1" href="https://tuan.chat" target="_blank" rel="noreferrer">tuan.chat</a>
+              </p>
+            </div>
+            <div className="modal-action">
+              <a className="btn btn-outline" href="https://tuan.chat" target="_blank" rel="noreferrer">前往正式环境</a>
+              <button type="button" className="btn btn-primary" onClick={closeTestEnvSplash}>我知道了</button>
+            </div>
+          </div>
+          <button
+            type="button"
+            className="modal-backdrop"
+            aria-label="关闭测试环境提示"
+            onClick={closeTestEnvSplash}
+          />
+        </div>
+      )}
     </GlobalContextProvider>
   );
 }

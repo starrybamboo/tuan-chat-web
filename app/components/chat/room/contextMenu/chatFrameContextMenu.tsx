@@ -28,6 +28,7 @@ interface ContextMenuProps {
   onOpenAnnotations: (messageId: number) => void;
   onInsertAfter: (messageId: number) => void;
   onToggleNarrator?: (messageId: number) => void;
+  onOpenThread?: (threadRootMessageId: number) => void;
 }
 
 export default function ChatFrameContextMenu({
@@ -44,6 +45,7 @@ export default function ChatFrameContextMenu({
   onAddEmoji,
   onOpenAnnotations,
   onInsertAfter,
+  onOpenThread,
 }: ContextMenuProps) {
   const globalContext = useGlobalContext();
   const spaceContext = use(SpaceContext);
@@ -55,7 +57,6 @@ export default function ChatFrameContextMenu({
   const setComposerTarget = useRoomUiStore(state => state.setComposerTarget);
   const setInsertAfterMessageId = useRoomUiStore(state => state.setInsertAfterMessageId);
   const setSideDrawerState = useSideDrawerStore(state => state.setState);
-  const setSubDrawerState = useSideDrawerStore(state => state.setSubState);
 
   const sendMessageMutation = useSendMessageMutation(roomContext.roomId ?? -1);
 
@@ -146,7 +147,6 @@ export default function ChatFrameContextMenu({
       imageUrl: params.imageUrl,
     });
     queryClient.invalidateQueries({ queryKey: ["listSpaceUserDocs", params.spaceId] });
-    queryClient.invalidateQueries({ queryKey: ["getSpaceUserDocFolderTree", params.spaceId] });
 
     return { newDocEntityId, newDocId, title };
   }, [queryClient]);
@@ -325,18 +325,14 @@ export default function ChatFrameContextMenu({
   const handleOpenThread = (rootId: number) => {
     // 打开 Thread 时，清除“插入消息”模式，避免错位。
     setInsertAfterMessageId(undefined);
-    setThreadRootMessageId(rootId);
-    setComposerTarget("thread");
-    // Thread 以右侧 SubWindow 展示
-    setSideDrawerState("thread");
-    setSubDrawerState("none");
-  };
-
-  const handleOpenSubWindow = () => {
-    // 副窗口第一个 tab 为 map：通过 sideDrawerState = "map" 触发 SubRoomWindow 打开并切换到首个 tab。
-    setSideDrawerState("map");
-    setSubDrawerState("none");
-    onClose();
+    if (onOpenThread) {
+      onOpenThread(rootId);
+    }
+    else {
+      setThreadRootMessageId(rootId);
+      setComposerTarget("thread");
+      toast.error("当前页面未启用副窗口，无法打开子区");
+    }
   };
 
   const handleCreateOrOpenThread = () => {
@@ -376,7 +372,7 @@ export default function ChatFrameContextMenu({
         if (!created) {
           return;
         }
-        roomContext.chatHistory?.addOrUpdateMessage({ message: created, messageMark: [] });
+        roomContext.chatHistory?.addOrUpdateMessage({ message: created });
         handleOpenThread(created.messageId);
         onClose();
       },
@@ -393,15 +389,6 @@ export default function ChatFrameContextMenu({
       onClick={e => e.stopPropagation()}
     >
       <ul className="menu p-2 w-40">
-        <li>
-          <a onClick={(e) => {
-            e.preventDefault();
-            handleOpenSubWindow();
-          }}
-          >
-            打开副窗口
-          </a>
-        </li>
         <li>
           <a onClick={(e) => {
             e.preventDefault();

@@ -3,6 +3,7 @@ import bundledCoreWasmUrl from "@ffmpeg/core/wasm?url";
 import bundledWorkerUrl from "@ffmpeg/ffmpeg/worker?worker&url";
 
 import { isAudioUploadDebugEnabled } from "@/utils/audioDebugFlags";
+import { resolveFfmpegLoadTimeoutMs } from "@/utils/ffmpegLoadTimeoutConfig";
 
 export type AudioTranscodeOptions = {
   maxDurationSec?: number;
@@ -27,7 +28,6 @@ const DEFAULT_FFMPEG_CORE_BASE_URLS = [
   `https://unpkg.com/@ffmpeg/core@${FFMPEG_CORE_VERSION}/dist/umd`,
 ] as const;
 
-const DEFAULT_LOAD_TIMEOUT_MS = 45_000;
 const DEFAULT_EXEC_TIMEOUT_MS = 120_000;
 
 let ffmpegSingletonPromise: Promise<import("@ffmpeg/ffmpeg").FFmpeg> | null = null;
@@ -70,24 +70,39 @@ async function terminateFfmpegAndResetSingleton(ffmpeg: import("@ffmpeg/ffmpeg")
 function getFfmpegCoreBaseUrlCandidates(): string[] {
   const env = import.meta.env as any;
   const fromEnv = typeof env?.VITE_FFMPEG_CORE_BASE_URL === "string" ? env.VITE_FFMPEG_CORE_BASE_URL.trim() : "";
-  if (fromEnv)
-    return [fromEnv.replace(/\/+$/, "")];
-  return DEFAULT_FFMPEG_CORE_BASE_URLS.map(u => u.replace(/\/+$/, ""));
+  const envCandidates = fromEnv
+    ? splitUrlCandidates(fromEnv).map(url => url.replace(/\/+$/, ""))
+    : [];
+  const useDefaultCdnFallback = typeof env?.VITE_FFMPEG_CORE_USE_DEFAULT_CDN_FALLBACK === "string"
+    ? env.VITE_FFMPEG_CORE_USE_DEFAULT_CDN_FALLBACK.toLowerCase() === "true"
+    : env?.VITE_FFMPEG_CORE_USE_DEFAULT_CDN_FALLBACK === true;
+  const defaultCandidates = useDefaultCdnFallback
+    ? DEFAULT_FFMPEG_CORE_BASE_URLS.map(url => url.replace(/\/+$/, ""))
+    : [];
+  return Array.from(new Set([...envCandidates, ...defaultCandidates]));
 }
 
 function shouldUseBundledFfmpegCore(): boolean {
   const env = import.meta.env as any;
-  const fromEnv = typeof env?.VITE_FFMPEG_CORE_BASE_URL === "string" ? env.VITE_FFMPEG_CORE_BASE_URL.trim() : "";
   const skipBundled = typeof env?.VITE_FFMPEG_CORE_SKIP_BUNDLED === "string"
     ? env.VITE_FFMPEG_CORE_SKIP_BUNDLED.toLowerCase() === "true"
     : env?.VITE_FFMPEG_CORE_SKIP_BUNDLED === true;
-  return !fromEnv && !skipBundled;
+  return !skipBundled;
 }
 
-function getFfmpegWrapperUrl(): string | null {
+function splitUrlCandidates(value: string): string[] {
+  return value
+    .split(/[\s,;]+/)
+    .map(item => item.trim())
+    .filter(Boolean);
+}
+
+function getFfmpegWrapperUrlCandidates(): string[] {
   const env = import.meta.env as any;
   const fromEnv = typeof env?.VITE_FFMPEG_WRAPPER_URL === "string" ? env.VITE_FFMPEG_WRAPPER_URL.trim() : "";
-  return fromEnv || null;
+  if (!fromEnv)
+    return [];
+  return splitUrlCandidates(fromEnv);
 }
 
 function isFfmpegWrapperStrict(): boolean {
@@ -97,46 +112,95 @@ function isFfmpegWrapperStrict(): boolean {
   return env?.VITE_FFMPEG_WRAPPER_STRICT === true;
 }
 
+function shouldPreferRemoteFfmpegWrapper(): boolean {
+  const env = import.meta.env as any;
+  if (typeof env?.VITE_FFMPEG_WRAPPER_PREFER_REMOTE === "string")
+    return env.VITE_FFMPEG_WRAPPER_PREFER_REMOTE.toLowerCase() === "true";
+  return env?.VITE_FFMPEG_WRAPPER_PREFER_REMOTE === true;
+}
+
 async function loadFfmpegModule(debugEnabled: boolean, debugPrefix: string): Promise<typeof import("@ffmpeg/ffmpeg")> {
-  const wrapperUrl = getFfmpegWrapperUrl();
+  const wrapperUrls = getFfmpegWrapperUrlCandidates();
   const strict = isFfmpegWrapperStrict();
-  if (wrapperUrl) {
+  const preferRemote = shouldPreferRemoteFfmpegWrapper();
+  const errors: string[] = [];
+
+  const tryBundled = async () => {
     try {
       if (debugEnabled)
-        console.warn(`${debugPrefix} ffmpeg wrapper url`, wrapperUrl);
-      return await import(/* @vite-ignore */ wrapperUrl);
+        console.warn(`${debugPrefix} ffmpeg wrapper bundled`);
+      return await import("@ffmpeg/ffmpeg");
     }
     catch (e) {
-      if (strict) {
-        const msg = e instanceof Error ? e.message : String(e);
-        throw new Error(`FFmpeg wrapper 加载失败（严格模式，不回退）：${msg}`);
+      const msg = e instanceof Error ? e.message : String(e);
+      errors.push(`bundled: ${msg}`);
+      if (debugEnabled)
+        console.warn(`${debugPrefix} ffmpeg wrapper bundled failed`, { msg });
+      return null;
+    }
+  };
+
+  if (!preferRemote) {
+    const bundled = await tryBundled();
+    if (bundled)
+      return bundled;
+  }
+
+  if (wrapperUrls.length > 0) {
+    for (const wrapperUrl of wrapperUrls) {
+      try {
+        if (debugEnabled)
+          console.warn(`${debugPrefix} ffmpeg wrapper url`, wrapperUrl);
+        return await import(/* @vite-ignore */ wrapperUrl);
       }
-      if (debugEnabled) {
+      catch (e) {
         const msg = e instanceof Error ? e.message : String(e);
-        console.warn(`${debugPrefix} ffmpeg wrapper url failed`, { wrapperUrl, msg });
+        errors.push(`${wrapperUrl}: ${msg}`);
+        if (debugEnabled)
+          console.warn(`${debugPrefix} ffmpeg wrapper url failed`, { wrapperUrl, msg });
       }
     }
   }
-  return await import("@ffmpeg/ffmpeg");
+
+  if (strict && wrapperUrls.length > 0) {
+    const detail = errors.length > 0 ? `\n${errors.join("\n")}` : "";
+    throw new Error(`FFmpeg wrapper 加载失败（严格模式，不回退）：${detail || "未知错误"}`);
+  }
+
+  if (preferRemote) {
+    const bundled = await tryBundled();
+    if (bundled)
+      return bundled;
+  }
+
+  const detail = errors.length > 0 ? `\n${errors.join("\n")}` : "";
+  throw new Error(`FFmpeg wrapper 加载失败：${detail || "未知错误"}`);
 }
 
-function logFfmpegDebugConfig(debugEnabled: boolean, debugPrefix: string): void {
+function logFfmpegDebugConfig(debugEnabled: boolean, debugPrefix: string, loadTimeoutMs: number): void {
   if (!debugEnabled || ffmpegDebugConfigLogged)
     return;
   ffmpegDebugConfigLogged = true;
   const env = import.meta.env as any;
   const mode = typeof env?.MODE === "string" ? env.MODE : "unknown";
-  const wrapperUrl = getFfmpegWrapperUrl();
+  const wrapperUrls = getFfmpegWrapperUrlCandidates();
   const strict = isFfmpegWrapperStrict();
+  const preferRemote = shouldPreferRemoteFfmpegWrapper();
   const coreBase = typeof env?.VITE_FFMPEG_CORE_BASE_URL === "string" ? env.VITE_FFMPEG_CORE_BASE_URL.trim() : "";
+  const useDefaultCoreCdnFallback = typeof env?.VITE_FFMPEG_CORE_USE_DEFAULT_CDN_FALLBACK === "string"
+    ? env.VITE_FFMPEG_CORE_USE_DEFAULT_CDN_FALLBACK.toLowerCase() === "true"
+    : env?.VITE_FFMPEG_CORE_USE_DEFAULT_CDN_FALLBACK === true;
   const skipBundled = typeof env?.VITE_FFMPEG_CORE_SKIP_BUNDLED === "string"
     ? env.VITE_FFMPEG_CORE_SKIP_BUNDLED.toLowerCase() === "true"
     : env?.VITE_FFMPEG_CORE_SKIP_BUNDLED === true;
   console.warn(`${debugPrefix} ffmpeg config`, {
     mode,
-    wrapperUrl: wrapperUrl || "(empty)",
+    wrapperUrl: wrapperUrls.length > 0 ? wrapperUrls : "(empty)",
     wrapperStrict: strict,
+    wrapperPreferRemote: preferRemote,
+    loadTimeoutMs,
     coreBaseUrl: coreBase || "(empty)",
+    coreUseDefaultCdnFallback: useDefaultCoreCdnFallback,
     coreSkipBundled: skipBundled,
   });
 }
@@ -164,10 +228,11 @@ function withTimeout<T>(promise: Promise<T>, timeoutMs: number, label: string): 
 }
 
 async function fetchToBlobURL(url: string, mimeType: string, timeoutMs: number): Promise<string> {
-  const controller = new AbortController();
-  const t = globalThis.setTimeout(() => controller.abort(), timeoutMs);
+  const shouldAbort = Number.isFinite(timeoutMs) && timeoutMs > 0;
+  const controller = shouldAbort ? new AbortController() : undefined;
+  const t = shouldAbort ? globalThis.setTimeout(() => controller?.abort(), timeoutMs) : undefined;
   try {
-    const res = await fetch(url, { signal: controller.signal });
+    const res = await fetch(url, { signal: controller?.signal });
     if (!res.ok)
       throw new Error(`下载失败: ${res.status} ${res.statusText}`);
     const buf = await res.arrayBuffer();
@@ -188,11 +253,12 @@ async function fetchToBlobURL(url: string, mimeType: string, timeoutMs: number):
     return URL.createObjectURL(new Blob([buf], { type: mimeType }));
   }
   finally {
-    globalThis.clearTimeout(t);
+    if (typeof t === "number")
+      globalThis.clearTimeout(t);
   }
 }
 
-async function getFfmpeg(): Promise<import("@ffmpeg/ffmpeg").FFmpeg> {
+async function getFfmpeg(loadTimeoutMs: number): Promise<import("@ffmpeg/ffmpeg").FFmpeg> {
   if (ffmpegSingletonPromise)
     return ffmpegSingletonPromise;
 
@@ -204,7 +270,7 @@ async function getFfmpeg(): Promise<import("@ffmpeg/ffmpeg").FFmpeg> {
 
       const debugEnabled = isAudioUploadDebugEnabled();
       const debugPrefix = "[tc-audio-upload]";
-      logFfmpegDebugConfig(debugEnabled, debugPrefix);
+      logFfmpegDebugConfig(debugEnabled, debugPrefix, loadTimeoutMs);
 
       const { FFmpeg } = await loadFfmpegModule(debugEnabled, debugPrefix);
 
@@ -248,7 +314,7 @@ async function getFfmpeg(): Promise<import("@ffmpeg/ffmpeg").FFmpeg> {
           const coreURL = c.coreJs;
           const wasmURL = c.wasm;
 
-          await withTimeout(ffmpeg.load({ coreURL, wasmURL, classWorkerURL }), DEFAULT_LOAD_TIMEOUT_MS, "FFmpeg 核心加载");
+          await withTimeout(ffmpeg.load({ coreURL, wasmURL, classWorkerURL }), loadTimeoutMs, "FFmpeg 核心加载");
 
           if (debugEnabled)
             console.warn(`${debugPrefix} ffmpeg loaded`, { label: c.label });
@@ -268,10 +334,10 @@ async function getFfmpeg(): Promise<import("@ffmpeg/ffmpeg").FFmpeg> {
           if (debugEnabled)
             console.warn(`${debugPrefix} ffmpeg core candidate`, baseUrl);
 
-          const coreURL = await fetchToBlobURL(`${baseUrl}/ffmpeg-core.js`, "text/javascript", DEFAULT_LOAD_TIMEOUT_MS);
-          const wasmURL = await fetchToBlobURL(`${baseUrl}/ffmpeg-core.wasm`, "application/wasm", DEFAULT_LOAD_TIMEOUT_MS);
+          const coreURL = await fetchToBlobURL(`${baseUrl}/ffmpeg-core.js`, "text/javascript", loadTimeoutMs);
+          const wasmURL = await fetchToBlobURL(`${baseUrl}/ffmpeg-core.wasm`, "application/wasm", loadTimeoutMs);
 
-          await withTimeout(ffmpeg.load({ coreURL, wasmURL, classWorkerURL }), DEFAULT_LOAD_TIMEOUT_MS, "FFmpeg 核心加载");
+          await withTimeout(ffmpeg.load({ coreURL, wasmURL, classWorkerURL }), loadTimeoutMs, "FFmpeg 核心加载");
 
           if (debugEnabled)
             console.warn(`${debugPrefix} ffmpeg loaded`, { baseUrl });
@@ -325,12 +391,12 @@ export async function transcodeAudioFileToOpusOrThrow(inputFile: File, options: 
   const compressionLevel = options.compressionLevel && options.compressionLevel > 0 ? Math.min(10, Math.max(0, Math.floor(options.compressionLevel))) : 10;
 
   const maxDurationSec = options.maxDurationSec && options.maxDurationSec > 0 ? options.maxDurationSec : undefined;
-  const loadTimeoutMs = options.loadTimeoutMs && options.loadTimeoutMs > 0 ? options.loadTimeoutMs : DEFAULT_LOAD_TIMEOUT_MS;
+  const loadTimeoutMs = resolveFfmpegLoadTimeoutMs(options.loadTimeoutMs);
   const execTimeoutMs = options.execTimeoutMs && options.execTimeoutMs > 0 ? options.execTimeoutMs : DEFAULT_EXEC_TIMEOUT_MS;
   const debugEnabled = isAudioUploadDebugEnabled();
   const debugPrefix = "[tc-audio-upload]";
 
-  let ffmpeg = await withTimeout(getFfmpeg(), loadTimeoutMs, "FFmpeg 初始化");
+  let ffmpeg = await withTimeout(getFfmpeg(loadTimeoutMs), loadTimeoutMs, "FFmpeg 初始化");
   const { fetchFile } = await import("@ffmpeg/util");
 
   const runOnce = async (params: TranscodePreset) => {
@@ -467,7 +533,7 @@ export async function transcodeAudioFileToOpusOrThrow(inputFile: File, options: 
         if (debugEnabled)
           console.warn(`${debugPrefix} retry after wasm memory OOB`, { tag: preset.tag });
         await terminateFfmpegAndResetSingleton(ffmpeg);
-        ffmpeg = await withTimeout(getFfmpeg(), loadTimeoutMs, "FFmpeg 初始化（重试）");
+        ffmpeg = await withTimeout(getFfmpeg(loadTimeoutMs), loadTimeoutMs, "FFmpeg 初始化（重试）");
         try {
           const out = await runOnce({ ...preset, tag: `${preset.tag}-retry` });
           if (smallestBytes == null || out.size < smallestBytes)

@@ -19,8 +19,17 @@ export function LoginForm({
   loginMethod,
   setLoginMethod,
 }: LoginFormProps) {
+  const accountInputName = loginMethod === "username" ? "login_username" : "login_user_id";
+  const accountAutocomplete = loginMethod === "username"
+    ? "section-login-username username"
+    : "section-login-userid username";
+  const passwordInputName = loginMethod === "username" ? "login_password_username" : "login_password_userid";
+  const passwordAutocomplete = loginMethod === "username"
+    ? "section-login-username current-password"
+    : "section-login-userid current-password";
+
   return (
-    <form onSubmit={handleSubmit}>
+    <form key={`login-${loginMethod}`} onSubmit={handleSubmit} autoComplete="on">
       {/* 登录方式切换 */}
       <div className="form-control w-full mb-4">
         <label className="label">
@@ -66,6 +75,8 @@ export function LoginForm({
           </span>
           <input
             type="text"
+            name={accountInputName}
+            autoComplete={accountAutocomplete}
             placeholder={
               loginMethod === "username"
                 ? "请输入用户名"
@@ -83,6 +94,8 @@ export function LoginForm({
           <span className="label-text">密码</span>
           <input
             type="password"
+            name={passwordInputName}
+            autoComplete={passwordAutocomplete}
             placeholder="请输入密码"
             className="input input-bordered w-full bg-base-200 dark:bg-base-300 text-base-content placeholder:text-base-content/60"
             value={password}

@@ -1,4 +1,5 @@
 import type { Transform } from "../sprite/TransformControl";
+import type { PreviewAnchorPosition } from "../Preview/previewAnchor";
 // 导入必要的类型和组件
 import type { CropMode } from "@/utils/imgCropper/useCropPreview";
 
@@ -107,6 +108,7 @@ export function CharacterCopper({
 
   // Transform控制状态
   const [transform, setTransform] = useState<Transform>(createDefaultTransform);
+  const [previewAnchorPosition, setPreviewAnchorPosition] = useState<PreviewAnchorPosition>("center");
 
   // 获取当前裁剪模式（第一步为sprite全图裁剪，第二步为avatar头像裁剪）
   const getCropMode = useCallback((): CropMode => {
@@ -160,6 +162,7 @@ export function CharacterCopper({
     setPreviewRenderKey(0);
     // 重置Transform״̬
     setTransform(createDefaultTransform());
+    setPreviewAnchorPosition("center");
     // 重置裁剪状态
     resetCropState();
     // 清除图片引用
@@ -260,13 +263,15 @@ export function CharacterCopper({
       console.error("originUrl 上传失败:", error);
     }
 
-    const [spriteUrl, avatarUrl] = await Promise.all([
+    const [spriteUrl, avatarUrl, avatarThumbUrl] = await Promise.all([
       uploadUtils.uploadImg(spriteFile, scene),
       uploadUtils.uploadImg(avatarFile, scene, 60, 512),
+      uploadUtils.uploadImg(avatarFile, scene, 60, 128),
     ]);
 
     await Promise.resolve(mutate?.({
       avatarUrl,
+      avatarThumbUrl,
       spriteUrl,
       originUrl: originUrl || undefined,
       transform: createDefaultTransform(),
@@ -377,6 +382,7 @@ export function CharacterCopper({
     try {
       let downloadUrl = "";
       let copperedDownloadUrl = "";
+      let copperedThumbDownloadUrl = "";
 
       if (currentStep === 1) {
         // 第一步：只保存裁剪后的图片用于第二步使用
@@ -397,7 +403,10 @@ export function CharacterCopper({
         }
         if (shouldUploadAvatar) {
           const copperedImgFile = await getCroppedFile(`${fileName}-cropped.png`);
-          copperedDownloadUrl = await uploadUtils.uploadImg(copperedImgFile, scene, 60, 512);
+          [copperedDownloadUrl, copperedThumbDownloadUrl] = await Promise.all([
+            uploadUtils.uploadImg(copperedImgFile, scene, 60, 512),
+            uploadUtils.uploadImg(copperedImgFile, scene, 60, 128),
+          ]);
           setCopperedDownloadUrl?.(copperedDownloadUrl);
         }
 
@@ -419,6 +428,7 @@ export function CharacterCopper({
         if (mutate !== undefined) {
           await Promise.resolve(mutate({
             avatarUrl: copperedDownloadUrl,
+            avatarThumbUrl: copperedThumbDownloadUrl || undefined,
             spriteUrl: downloadUrl,
             originUrl: resolvedOriginUrl || undefined,
             transform,
@@ -571,12 +581,15 @@ export function CharacterCopper({
                             <RenderPreview
                               previewCanvasRef={previewCanvasRef}
                               transform={transform}
+                              anchorPosition={previewAnchorPosition}
                               characterName="角色名"
                               dialogContent="对话内容"
                             />
                             <TransformControl
                               transform={transform}
                               setTransform={setTransform}
+                              anchorPosition={previewAnchorPosition}
+                              setAnchorPosition={setPreviewAnchorPosition}
                             />
                           </div>
                         </>

@@ -1,3 +1,17 @@
+import bundledImageCompressionLibUrl from "browser-image-compression/dist/browser-image-compression.js?url";
+
+function toAbsoluteUrl(url: string): string {
+  if (typeof window === "undefined") {
+    return url;
+  }
+  try {
+    return new URL(url, window.location.href).toString();
+  }
+  catch {
+    return url;
+  }
+}
+
 /**
  * 将图片压缩成webp，会改变原来的文件名和后缀（加上时间戳，去除空格，改为webp）
  * GIF文件将保持原格式以保留动画效果
@@ -35,6 +49,8 @@ export async function compressImage(file: File, quality = 0.7, maxSize = 2560): 
       initialQuality: q,
       fileType: "image/webp",
       useWebWorker: true,
+      // 显式指定同源脚本，避免默认回退到 jsdelivr（中国网络下可能不可用）
+      libURL: toAbsoluteUrl(bundledImageCompressionLibUrl),
     });
 
     const newName = file.name.replace(/(\.[^.]+)?$/, `_${Date.now()}.webp`).split(" ").join("");

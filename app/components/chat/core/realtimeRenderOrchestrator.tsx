@@ -3,12 +3,17 @@ import type { SideDrawerState } from "@/components/chat/stores/sideDrawerStore";
 
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { toast } from "react-hot-toast";
+import {
+  shouldProcessHistoryDelta,
+  shouldRenderInitialHistory,
+  shouldRerenderForSettingsChange,
+} from "@/components/chat/core/realtimeRenderGuards";
 import { useRealtimeRenderStore } from "@/components/chat/stores/realtimeRenderStore";
 import { useSideDrawerStore } from "@/components/chat/stores/sideDrawerStore";
 import { isImageMessageBackground } from "@/types/messageAnnotations";
-import { isElectronEnv } from "@/utils/isElectronEnv";
-import launchWebGal from "@/utils/launchWebGal";
+import launchWebGal, { appendWebgalTimeoutHint } from "@/utils/launchWebGal";
 import { pollPort } from "@/utils/pollPort";
+import { getTerreHealthcheckUrl } from "@/webGAL/terreConfig";
 import useRealtimeRender from "@/webGAL/useRealtimeRender";
 
 function sortMessagesForRender(messages: ChatMessageResponse[]) {
@@ -37,6 +42,7 @@ export interface RealtimeRenderOrchestratorApi {
 
 interface Props {
   spaceId: number;
+  spaceName?: string;
   roomId: number;
   room: Room | undefined;
   roles: UserRole[];
@@ -47,6 +53,7 @@ interface Props {
 
 export default function RealtimeRenderOrchestrator({
   spaceId,
+  spaceName,
   roomId,
   room,
   roles,
@@ -55,10 +62,9 @@ export default function RealtimeRenderOrchestrator({
   onApiChange,
 }: Props) {
   const ensureHydrated = useRealtimeRenderStore(state => state.ensureHydrated);
-  const terrePort = useRealtimeRenderStore(state => state.terrePort);
   useEffect(() => {
-    void ensureHydrated();
-  }, [ensureHydrated]);
+    void ensureHydrated(spaceId);
+  }, [ensureHydrated, spaceId]);
 
   const isRealtimeRenderEnabled = useRealtimeRenderStore(state => state.enabled);
   const setIsRealtimeRenderEnabled = useRealtimeRenderStore(state => state.setEnabled);
@@ -71,6 +77,7 @@ export default function RealtimeRenderOrchestrator({
   const realtimeTTSEnabled = useRealtimeRenderStore(state => state.ttsEnabled);
   const realtimeMiniAvatarEnabled = useRealtimeRenderStore(state => state.miniAvatarEnabled);
   const realtimeAutoFigureEnabled = useRealtimeRenderStore(state => state.autoFigureEnabled);
+  const realtimeGameConfig = useRealtimeRenderStore(state => state.gameConfig);
   const ttsApiUrl = useRealtimeRenderStore(state => state.ttsApiUrl);
 
   const realtimeTTSConfig = useMemo(() => ({
@@ -86,12 +93,14 @@ export default function RealtimeRenderOrchestrator({
 
   const realtimeRender = useRealtimeRender({
     spaceId,
+    spaceName,
     enabled: isRealtimeRenderEnabled,
     roles,
     rooms: room ? [room] : [],
     ttsConfig: realtimeTTSConfig,
     miniAvatarEnabled: realtimeMiniAvatarEnabled,
     autoFigureEnabled: realtimeAutoFigureEnabled,
+    gameConfig: realtimeGameConfig,
   });
 
   const setRealtimeRenderRuntime = useRealtimeRenderStore(state => state.setRuntime);
@@ -106,17 +115,19 @@ export default function RealtimeRenderOrchestrator({
 
   const realtimeStatus = realtimeRender.status;
   const stopRealtimeRender = realtimeRender.stop;
+  const dismissRealtimeRenderToasts = useCallback(() => {
+    toast.dismiss("webgal-init");
+    toast.dismiss("webgal-history");
+    toast.dismiss("webgal-rerender-history");
+    toast.dismiss("webgal-error");
+  }, []);
 
   const lastRenderedMessageIdRef = useRef<number | null>(null);
   const hasRenderedHistoryRef = useRef<boolean>(false);
-  const realtimeStatusRef = useRef(realtimeRender.status);
   const prevRoomIdRef = useRef<number | null>(null);
   const lastBackgroundMessageIdRef = useRef<number | null>(null);
   const isStartingRealtimeRenderRef = useRef(false);
-
-  useEffect(() => {
-    realtimeStatusRef.current = realtimeRender.status;
-  }, [realtimeRender.status]);
+  const roomSessionRef = useRef(0);
 
   const isRenderingHistoryRef = useRef(false);
   const orderedHistoryMessages = useMemo(() => {
@@ -145,12 +156,8 @@ export default function RealtimeRenderOrchestrator({
     clearFullRerenderTimer();
   }, [clearFullRerenderTimer]);
   const renderHistoryMessages = useCallback(async () => {
+    const sessionId = roomSessionRef.current;
     if (!orderedHistoryMessages || orderedHistoryMessages.length === 0) {
-      return;
-    }
-
-    if (realtimeStatusRef.current !== "connected") {
-      console.warn(`[RealtimeRender] 渲染器尚未就绪，当前状态: ${realtimeStatusRef.current}`);
       return;
     }
 
@@ -162,6 +169,10 @@ export default function RealtimeRenderOrchestrator({
       const messagesToRender = orderedHistoryMessages;
 
       await realtimeRender.renderHistory(messagesToRender, roomId);
+      if (sessionId !== roomSessionRef.current) {
+        toast.dismiss("webgal-history");
+        return;
+      }
 
       const lastMessage = messagesToRender[messagesToRender.length - 1];
       if (lastMessage) {
@@ -174,6 +185,10 @@ export default function RealtimeRenderOrchestrator({
       console.warn(`[RealtimeRender] 历史消息渲染完成`);
     }
     catch (error) {
+      if (sessionId !== roomSessionRef.current) {
+        toast.dismiss("webgal-history");
+        return;
+      }
       console.error(`[RealtimeRender] 渲染历史消息失败:`, error);
       toast.error(`渲染历史消息失败`, { id: "webgal-history" });
     }
@@ -189,28 +204,32 @@ export default function RealtimeRenderOrchestrator({
     }
 
     if (prevRoomIdRef.current !== roomId) {
+      roomSessionRef.current += 1;
       prevRoomIdRef.current = roomId;
+      dismissRealtimeRenderToasts();
+      stopRealtimeRender();
       setIsRealtimeRenderEnabled(false);
       resetHistoryTracking();
       if (sideDrawerState === "webgal") {
         setSideDrawerState("none");
       }
     }
-  }, [resetHistoryTracking, roomId, setIsRealtimeRenderEnabled, sideDrawerState, setSideDrawerState]);
+  }, [dismissRealtimeRenderToasts, resetHistoryTracking, roomId, setIsRealtimeRenderEnabled, sideDrawerState, setSideDrawerState, stopRealtimeRender]);
 
   useEffect(() => {
-    if (!realtimeRender.isActive || realtimeRender.status !== "connected" || hasRenderedHistoryRef.current || isRenderingHistoryRef.current) {
-      return;
-    }
-    if (!historyMessages || historyMessages.length === 0 || chatHistoryLoading) {
-      return;
-    }
-    if (!room) {
+    if (!shouldRenderInitialHistory({
+      isRealtimeActive: realtimeRender.isActive,
+      hasRenderedHistory: hasRenderedHistoryRef.current,
+      isRenderingHistory: isRenderingHistoryRef.current,
+      hasHistoryMessages: Boolean(historyMessages?.length),
+      chatHistoryLoading,
+      hasRoom: Boolean(room),
+    })) {
       return;
     }
 
     renderHistoryMessages();
-  }, [realtimeRender.isActive, realtimeRender.status, historyMessages, chatHistoryLoading, room, renderHistoryMessages]);
+  }, [realtimeRender.isActive, historyMessages, chatHistoryLoading, room, renderHistoryMessages]);
 
   useEffect(() => {
     if (realtimeRender.isActive) {
@@ -258,21 +277,52 @@ export default function RealtimeRenderOrchestrator({
       return;
     }
 
+    const sessionId = roomSessionRef.current;
     isStartingRealtimeRenderRef.current = true;
     try {
-      await ensureHydrated();
-      launchWebGal();
+      await ensureHydrated(spaceId);
+      if (sessionId !== roomSessionRef.current) {
+        dismissRealtimeRenderToasts();
+        return;
+      }
+
+      const launchResult = await launchWebGal({
+        gameDir: `realtime_${spaceId}`,
+      });
+      if (sessionId !== roomSessionRef.current) {
+        dismissRealtimeRenderToasts();
+        return;
+      }
+      const electronEnv = launchResult.runtime === "electron";
+      if (electronEnv && !launchResult.ok) {
+        toast.error(appendWebgalTimeoutHint(launchResult.error || "WebGAL 启动失败"), { id: "webgal-init" });
+        setIsRealtimeRenderEnabled(false);
+        return;
+      }
 
       toast.loading("正在启动 WebGAL...", { id: "webgal-init" });
       try {
-        await pollPort(
-          terrePort,
-          isElectronEnv() ? 15000 : 500,
-          100,
-        );
+        if (!electronEnv) {
+          await pollPort(
+            getTerreHealthcheckUrl(),
+            20_000,
+            200,
+          );
+          if (sessionId !== roomSessionRef.current) {
+            dismissRealtimeRenderToasts();
+            return;
+          }
+        }
 
         toast.loading("正在初始化实时渲染...", { id: "webgal-init" });
         const success = await realtimeRender.start();
+        if (sessionId !== roomSessionRef.current) {
+          if (success) {
+            stopRealtimeRender();
+          }
+          dismissRealtimeRenderToasts();
+          return;
+        }
         if (success) {
           toast.success("实时渲染已开启", { id: "webgal-init" });
           setIsRealtimeRenderEnabled(true);
@@ -284,18 +334,28 @@ export default function RealtimeRenderOrchestrator({
           setIsRealtimeRenderEnabled(false);
         }
       }
-      catch {
-        toast.error("WebGAL 启动超时", { id: "webgal-init" });
+      catch (error) {
+        if (sessionId !== roomSessionRef.current) {
+          dismissRealtimeRenderToasts();
+          return;
+        }
+        const message = appendWebgalTimeoutHint(
+          error instanceof Error && error.message
+            ? `WebGAL 启动失败：${error.message}`
+            : "WebGAL 启动超时",
+        );
+        toast.error(message, { id: "webgal-init" });
         setIsRealtimeRenderEnabled(false);
       }
     }
     finally {
       isStartingRealtimeRenderRef.current = false;
     }
-  }, [ensureHydrated, realtimeRender, renderHistoryMessages, setIsRealtimeRenderEnabled, setSideDrawerState, terrePort]);
+  }, [dismissRealtimeRenderToasts, ensureHydrated, realtimeRender, renderHistoryMessages, setIsRealtimeRenderEnabled, setSideDrawerState, spaceId, stopRealtimeRender]);
 
   const handleToggleRealtimeRender = useCallback(async () => {
     if (realtimeRender.isActive) {
+      dismissRealtimeRenderToasts();
       realtimeRender.stop();
       setIsRealtimeRenderEnabled(false);
       setSideDrawerState("none");
@@ -303,7 +363,7 @@ export default function RealtimeRenderOrchestrator({
       return;
     }
     await startRealtimeRender();
-  }, [realtimeRender, setIsRealtimeRenderEnabled, setSideDrawerState, startRealtimeRender]);
+  }, [dismissRealtimeRenderToasts, realtimeRender, setIsRealtimeRenderEnabled, setSideDrawerState, startRealtimeRender]);
 
   useEffect(() => {
     const prevSideDrawerState = prevSideDrawerStateRef.current;
@@ -363,7 +423,7 @@ export default function RealtimeRenderOrchestrator({
   const rerenderHistoryInWebGAL = useCallback(async (
     messages?: ChatMessageResponse[],
   ): Promise<boolean> => {
-    if (!realtimeRender.isActive || realtimeRender.status !== "connected") {
+    if (!realtimeRender.isActive) {
       return false;
     }
     if (isRenderingHistoryRef.current) {
@@ -438,8 +498,9 @@ export default function RealtimeRenderOrchestrator({
   useEffect(() => {
     return () => {
       clearFullRerenderTimer();
+      dismissRealtimeRenderToasts();
     };
-  }, [clearFullRerenderTimer]);
+  }, [clearFullRerenderTimer, dismissRealtimeRenderToasts]);
 
   useEffect(() => {
     const prevSettings = prevRealtimeSettingsRef.current;
@@ -453,31 +514,28 @@ export default function RealtimeRenderOrchestrator({
     if (!hasChanges) {
       return;
     }
-    if (!realtimeRender.isActive || realtimeRender.status !== "connected") {
-      return;
-    }
-    if (!orderedHistoryMessages || orderedHistoryMessages.length === 0) {
-      return;
-    }
-    if (!hasRenderedHistoryRef.current && !isRenderingHistoryRef.current) {
+    if (!shouldRerenderForSettingsChange({
+      hasChanges,
+      isRealtimeActive: realtimeRender.isActive,
+      hasHistoryMessages: Boolean(orderedHistoryMessages?.length),
+      hasRenderedHistory: hasRenderedHistoryRef.current,
+      isRenderingHistory: isRenderingHistoryRef.current,
+    })) {
       return;
     }
 
     // 小头像/自动立绘设置变更时，全量重渲染已有消息
     scheduleFullRerender(orderedHistoryMessages);
-  }, [orderedHistoryMessages, realtimeAutoFigureEnabled, realtimeMiniAvatarEnabled, realtimeRender.isActive, realtimeRender.status, scheduleFullRerender]);
+  }, [orderedHistoryMessages, realtimeAutoFigureEnabled, realtimeMiniAvatarEnabled, realtimeRender.isActive, scheduleFullRerender]);
 
   useEffect(() => {
-    if (!realtimeRender.isActive || realtimeRender.status !== "connected") {
-      return;
-    }
-    if (chatHistoryLoading) {
-      return;
-    }
-    if (!hasRenderedHistoryRef.current || isRenderingHistoryRef.current) {
-      return;
-    }
-    if (!orderedHistoryMessages || orderedHistoryMessages.length === 0) {
+    if (!shouldProcessHistoryDelta({
+      isRealtimeActive: realtimeRender.isActive,
+      chatHistoryLoading,
+      hasRenderedHistory: hasRenderedHistoryRef.current,
+      isRenderingHistory: isRenderingHistoryRef.current,
+      hasHistoryMessages: Boolean(orderedHistoryMessages?.length),
+    })) {
       return;
     }
 

@@ -15,6 +15,7 @@ interface ChatPageLayoutProps {
   spaceSidebar: React.ReactNode;
   sidePanelContent: React.ReactNode;
   mainContent: React.ReactNode;
+  subWindowContent?: React.ReactNode;
 }
 
 export default function ChatPageLayout({
@@ -28,6 +29,7 @@ export default function ChatPageLayout({
   spaceSidebar,
   sidePanelContent,
   mainContent,
+  subWindowContent,
 }: ChatPageLayoutProps) {
   return (
     <div className={`flex flex-row flex-1 h-full min-h-0 min-w-0 relative overflow-x-hidden overflow-y-hidden ${screenSize === "sm" ? "bg-base-100" : "bg-base-200"}`}>
@@ -102,7 +104,10 @@ export default function ChatPageLayout({
                     className="absolute left-2 right-2 bottom-2 z-20 pointer-events-auto"
                   />
                 </div>
-                {mainContent}
+                <div className="flex-1 min-w-0 min-h-0">
+                  {mainContent}
+                </div>
+                {subWindowContent}
               </div>
             </>
           )}

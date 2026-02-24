@@ -4,6 +4,9 @@ import type { DraggingItem, DropTarget } from "./useRoomSidebarDragState";
 
 import { FileTextIcon } from "@phosphor-icons/react";
 import { setDocRefDragData } from "@/components/chat/utils/docRef";
+import { setSubWindowDragPayload } from "@/components/chat/utils/subWindowDragPayload";
+
+const DOC_DRAG_MIME = "application/x-tuanchat-doc-id";
 
 interface RoomSidebarDocItemProps {
   node: SidebarLeafNode;
@@ -61,7 +64,7 @@ export default function RoomSidebarDocItem({
 
   return (
     <div
-      className={`group relative font-bold text-sm rounded-lg p-1 pr-10 flex justify-start items-center gap-2 w-full min-w-0 ${isActive ? "bg-info-content/10" : "hover:bg-base-300"}`}
+      className={`group relative font-bold text-sm rounded-lg p-1 pr-10 flex justify-start items-center gap-2 w-full min-w-0 select-none ${isActive ? "bg-info-content/10" : "hover:bg-base-300"}`}
       role="button"
       tabIndex={0}
       aria-pressed={isActive}
@@ -101,24 +104,27 @@ export default function RoomSidebarDocItem({
         e.stopPropagation();
         handleDrop();
       }}
-      draggable={canEdit}
+      draggable
       onDragStart={(e) => {
-        if (!canEdit)
-          return;
         const el = e.target as HTMLElement | null;
         if (el && (el.closest("input") || el.closest("select") || el.closest("textarea"))) {
           e.preventDefault();
           return;
         }
-        resetDropHandled();
-        e.dataTransfer.effectAllowed = "copyMove";
-        e.dataTransfer.setData("text/plain", nodeId);
+        e.dataTransfer.effectAllowed = canEdit ? "all" : "copy";
+        e.dataTransfer.setData(DOC_DRAG_MIME, docId);
+        e.dataTransfer.setData("text/plain", `doc:${docId}`);
+        setSubWindowDragPayload({ tab: "doc", docId });
         setDocRefDragData(e.dataTransfer, {
           docId,
           ...(typeof activeSpaceId === "number" && activeSpaceId > 0 ? { spaceId: activeSpaceId } : {}),
           ...(title ? { title } : {}),
           ...(coverUrl ? { imageUrl: coverUrl } : {}),
         });
+        if (!canEdit) {
+          return;
+        }
+        resetDropHandled();
         setDragging({
           kind: "node",
           nodeId,
@@ -129,6 +135,7 @@ export default function RoomSidebarDocItem({
         setDropTarget(null);
       }}
       onDragEnd={() => {
+        setSubWindowDragPayload(null);
         setDragging(null);
         setDropTarget(null);
       }}
@@ -140,6 +147,7 @@ export default function RoomSidebarDocItem({
                 <img
                   src={coverUrl}
                   alt={title || "doc"}
+                  draggable={false}
                   className="w-full h-full object-cover"
                 />
                 <span className="absolute bottom-0.5 right-0.5 size-4 rounded bg-base-100/80 flex items-center justify-center border border-base-300/60">

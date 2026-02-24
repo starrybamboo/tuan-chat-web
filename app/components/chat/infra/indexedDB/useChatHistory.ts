@@ -9,6 +9,8 @@ import {
   getMessagesByRoomId as dbGetMessagesByRoomId,
 } from "./chatHistoryDb";
 
+const WS_RECONNECTED_EVENT = "tc:ws-reconnected";
+
 export type UseChatHistoryReturn = {
   messages: ChatMessageResponse[];
   loading: boolean;
@@ -37,7 +39,7 @@ export function useChatHistory(roomId: number | null): UseChatHistoryReturn {
   }, [roomId]);
 
   /**
-   * 批量添加或更新消息到当前房间，并同步更新UI״̬
+   * 批量添加或更新消息到当前房间，并同步更新UI状态
    * @param newMessages 要处理的消息数组
    */
   const addOrUpdateMessages = useCallback(
@@ -185,6 +187,18 @@ export function useChatHistory(roomId: number | null): UseChatHistoryReturn {
         const localMaxSyncId = localHistory.length > 0
           ? Math.max(...localHistory.map(msg => msg.message.syncId))
           : -1;
+
+        // 有本地缓存时直接展示，服务端增量同步改为后台进行，避免切房间被网络请求阻塞。
+        if (sortedLocalHistory.length > 0) {
+          setLoading(false);
+          void fetchNewestMessages(localMaxSyncId).catch((err) => {
+            if (!isCancelled) {
+              setError(err as Error);
+            }
+          });
+          return;
+        }
+
         await fetchNewestMessages(localMaxSyncId);
       }
       catch (err) {
@@ -210,25 +224,37 @@ export function useChatHistory(roomId: number | null): UseChatHistoryReturn {
     messagesRawRef.current = messagesRaw;
   }, [messagesRaw]);
 
+  const refreshNewestMessages = useCallback(() => {
+    const maxSyncId = messagesRawRef.current.length > 0
+      ? Math.max(...messagesRawRef.current.map(msg => msg.message.syncId))
+      : -1;
+    void fetchNewestMessages(maxSyncId).catch((err) => {
+      setError(err as Error);
+    });
+  }, [fetchNewestMessages]);
+
   useEffect(() => {
     const handleVisibilityChange = () => {
       // 当页面从后台切换到前台时
       if (document.visibilityState === "visible") {
-        const maxSyncId = messagesRawRef.current.length > 0
-          ? Math.max(...messagesRawRef.current.map(msg => msg.message.syncId))
-          : -1;
-        fetchNewestMessages(maxSyncId);
+        refreshNewestMessages();
       }
+    };
+    const handleWsReconnected = () => {
+      // WS 重连后立即做一次增量补拉，覆盖离线期间产生的消息变更。
+      refreshNewestMessages();
     };
 
     // 添加事件监听
     document.addEventListener("visibilitychange", handleVisibilityChange);
+    window.addEventListener(WS_RECONNECTED_EVENT, handleWsReconnected);
 
     // 组件卸载时，清理事件监听器，防止内存泄漏
     return () => {
       document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener(WS_RECONNECTED_EVENT, handleWsReconnected);
     };
-  }, [fetchNewestMessages]);
+  }, [refreshNewestMessages]);
 
   return {
     messages: messagesWithoutDeletedMessages,

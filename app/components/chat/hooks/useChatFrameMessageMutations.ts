@@ -4,6 +4,8 @@ import { useCallback } from "react";
 
 import type { RoomContextType } from "@/components/chat/core/roomContext";
 
+import { useRoomUiStoreApi } from "@/components/chat/stores/roomUiStore";
+
 import type { ApiResultMessage, ChatMessageResponse, Message } from "../../../../api";
 
 type UseChatFrameMessageMutationsParams = {
@@ -19,16 +21,21 @@ export default function useChatFrameMessageMutations({
   deleteMessageMutation,
   updateMessageMutation,
 }: UseChatFrameMessageMutationsParams) {
+  const roomUiStoreApi = useRoomUiStoreApi();
+
   const deleteMessage = useCallback((messageId: number) => {
     deleteMessageMutation.mutate(messageId, {
       onSuccess: (response) => {
         if (!roomContext.chatHistory)
           return;
         const targetMessage = historyMessages.find(m => m.message.messageId === messageId);
+        if (targetMessage && targetMessage.message.status !== 1) {
+          roomUiStoreApi.getState().pushMessageUndo({ type: "delete", before: targetMessage.message });
+        }
         const serverMessage = response?.data;
         const updatedMessage: ChatMessageResponse | null = serverMessage
           ? {
-              ...(targetMessage ?? { messageMark: [] }),
+              ...(targetMessage ?? {}),
               message: {
                 ...(targetMessage?.message ?? {}),
                 ...serverMessage,
@@ -49,17 +56,24 @@ export default function useChatFrameMessageMutations({
         }
       },
     });
-  }, [deleteMessageMutation, historyMessages, roomContext.chatHistory]);
+  }, [deleteMessageMutation, historyMessages, roomContext.chatHistory, roomUiStoreApi]);
 
   const updateMessage = useCallback((message: Message) => {
-    updateMessageMutation.mutate(message);
     const existingResponse = historyMessages.find(m => m.message.messageId === message.messageId);
+    if (existingResponse && JSON.stringify(existingResponse.message) !== JSON.stringify(message)) {
+      roomUiStoreApi.getState().pushMessageUndo({
+        type: "update",
+        before: existingResponse.message,
+        after: message,
+      });
+    }
+    updateMessageMutation.mutate(message);
     const newResponse = {
       ...existingResponse,
       message,
     };
     roomContext.chatHistory?.addOrUpdateMessage(newResponse as ChatMessageResponse);
-  }, [updateMessageMutation, roomContext.chatHistory, historyMessages]);
+  }, [historyMessages, roomContext.chatHistory, roomUiStoreApi, updateMessageMutation]);
 
   return { deleteMessage, updateMessage };
 }

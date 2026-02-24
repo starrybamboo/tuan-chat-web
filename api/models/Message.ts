@@ -32,7 +32,7 @@ export type Message = {
      */
     content: string;
     /**
-     * 自定义角色名（为空则使用角色名）
+     * 自定义角色名
      */
     customRoleName?: string;
     /**

@@ -3,7 +3,7 @@
 /* tslint:disable */
 /* eslint-disable */
 /**
- * 仓库查询翻页请求
+ * Repository 查询翻页请求
  */
 export type RepositoryPageRequest = {
     /**

@@ -8,6 +8,7 @@ import executorPublic from "@/components/common/dicer/cmdExe/cmdExePublic";
 import { formatAnkoDiceMessage } from "@/components/common/dicer/diceTable";
 import UTILS from "@/components/common/dicer/utils/utils";
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
+import { isLikelyTrpgDiceContent } from "@/types/webgalDice";
 import {
   useSetRoleAbilityMutation,
   useUpdateRoleAbilityByRoleIdMutation,
@@ -73,6 +74,8 @@ export default function useCommandExecutor(roleId: number, ruleId: number, roomC
   const curRoleId = roomContext.curRoleId; // 当前选中的角色id
   const curAvatarId = roomContext.curAvatarId; // 当前选中的角色的立绘id
   const dicerMessageQueue: string[] = []; // 记录本次指令骰娘的消息队列
+  // 为同一轮骰子相关消息预留微小 position 步进，保证“玩家指令 + 骰娘回复”在排序上保持紧邻。
+  const DICE_BATCH_POSITION_STEP = 0.0001;
 
   useEffect(() => {
     try {
@@ -82,6 +85,35 @@ export default function useCommandExecutor(roleId: number, ruleId: number, roomC
       console.error(e);
     }
   }, []);
+
+  const sendDiceMessageBatch = async (
+    commandRequest: ChatMessageRequest,
+    dicerRequests: ChatMessageRequest[],
+  ): Promise<{ commandMessageId?: number; commandPosition: number | null }> => {
+    const commandMsgRes = await sendMessageMutation.mutateAsync(commandRequest);
+    const commandMessageId = commandMsgRes.data?.messageId;
+    const commandPositionRaw = commandMsgRes.data?.position;
+    const commandPosition = typeof commandPositionRaw === "number" && Number.isFinite(commandPositionRaw)
+      ? commandPositionRaw
+      : null;
+
+    for (let index = 0; index < dicerRequests.length; index++) {
+      const request = dicerRequests[index];
+      const nextRequest: ChatMessageRequest = {
+        ...request,
+        ...(commandMessageId && request.replayMessageId == null ? { replayMessageId: commandMessageId } : {}),
+        ...(commandPosition !== null
+          ? { position: commandPosition + ((index + 1) * DICE_BATCH_POSITION_STEP) }
+          : {}),
+      };
+      await sendMessageMutation.mutateAsync(nextRequest);
+    }
+
+    return {
+      commandMessageId,
+      commandPosition,
+    };
+  };
 
   /**
    * 返回这个函数
@@ -155,7 +187,6 @@ export default function useCommandExecutor(roleId: number, ruleId: number, roomC
       }
       return 100;
     })();
-
     // 定义cpi接口
     const replyMessage = (message: string) => {
       dicerMessageQueue.push(message);
@@ -268,19 +299,18 @@ export default function useCommandExecutor(roleId: number, ruleId: number, roomC
     }
     // 发送消息队列
     if (dicerMessageQueue.length > 0) {
-      // 当消息队列不为空时，先发送指令消息。
-      const messageRequest: ChatMessageRequest = {
+      // 当消息队列不为空时，先发送玩家发起的骰子指令消息（同样使用 DICE 类型）。
+      const originDiceContent = (executorProp.originMessage ?? executorProp.command ?? "").trim();
+      const commandDiceRequest: ChatMessageRequest = {
         roomId,
-        messageType: 1,
-        content: executorProp.originMessage,
+        messageType: MESSAGE_TYPE.DICE,
+        content: originDiceContent,
         roleId: curRoleId,
         avatarId: curAvatarId,
         threadId: executorProp.threadId,
         replayMessageId: executorProp.replyMessageId,
-        extra: {},
+        extra: { result: originDiceContent },
       };
-      const optMsgRes = await sendMessageMutation.mutateAsync(messageRequest);
-
       const dicerRoleId = await UTILS.getDicerRoleId(roomContext);
       const avatars: RoleAvatar[] = (await tuanchat.avatarController.getRoleAvatars(dicerRoleId))?.data ?? [];
 
@@ -350,26 +380,34 @@ export default function useCommandExecutor(roleId: number, ruleId: number, roomC
         ?? (fallbackDefaultLabelAvatar?.avatarId)
         ?? (avatars[0]?.avatarId ?? 0);
 
-      const dicerMessageRequest: ChatMessageRequest = {
+      const dicerMessageBaseRequest: ChatMessageRequest = {
         roomId,
         messageType: MESSAGE_TYPE.DICE,
         roleId: dicerRoleId,
         avatarId: chosenAvatarId,
-        content: "",
         threadId: executorProp.threadId,
-        replayMessageId: optMsgRes.data?.messageId ?? undefined,
+        replayMessageId: undefined,
+        content: "",
         extra: { result: "" },
       };
-      for (const message of dicerMessageQueue) {
+      const dicerBatchRequests: ChatMessageRequest[] = [];
+      for (let index = 0; index < dicerMessageQueue.length; index++) {
+        const message = dicerMessageQueue[index];
         // 移除消息中的所有标签（格式：#标签#）
         const cleanMessage = message.replace(/#[^#]+#/g, "").trim();
         const cleanCopywriting = copywritingSuffix.replace(/#[^#]+#/g, "").trim();
-        const formattedDiceTable = formatAnkoDiceMessage(cleanMessage, diceTableDiceSize);
+        const formattedDiceTable = isLikelyTrpgDiceContent(cleanMessage)
+          ? null
+          : formatAnkoDiceMessage(cleanMessage, diceTableDiceSize);
         const baseContent = formattedDiceTable ?? cleanMessage;
-        dicerMessageRequest.content = baseContent + (cleanCopywriting ? `\n${cleanCopywriting}` : "");
-        dicerMessageRequest.extra = { result: dicerMessageRequest.content };
-        await sendMessageMutation.mutateAsync(dicerMessageRequest);
+        const nextContent = baseContent + (cleanCopywriting ? `\n${cleanCopywriting}` : "");
+        dicerBatchRequests.push({
+          ...dicerMessageBaseRequest,
+          content: nextContent,
+          extra: { result: nextContent },
+        });
       }
+      await sendDiceMessageBatch(commandDiceRequest, dicerBatchRequests);
     }
   }
 

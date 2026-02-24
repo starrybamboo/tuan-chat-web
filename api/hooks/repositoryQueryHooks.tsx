@@ -1,14 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { tuanchat } from "../instance";
-import type { ItemAddRequest } from "../models/ItemAddRequest";
-import type { ItemUpdateRequest } from "../models/ItemUpdateRequest";
-import type { ItemPageRequest } from "../models/ItemPageRequest";
-import type { ItemsGetRequest } from "../models/ItemsGetRequest";
 import type { RepositoryPageByUserRequest } from "../models/RepositoryPageByUserRequest";
 import type { RepositoryForkPageRequest } from "../models/RepositoryForkPageRequest";
 import type { RepositoryPageRequest } from "../models/RepositoryPageRequest";
 import type { RepositoryUpdateRequest } from "../models/RepositoryUpdateRequest";
-import type { RepositoryEntityResponse } from "../deprecated/RepositoryEntityResponse";
 
 //========================item (物品相关) ==================================
 /**
@@ -17,7 +12,10 @@ import type { RepositoryEntityResponse } from "../deprecated/RepositoryEntityRes
 function useUpdateItemMutation() {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: (req: ItemUpdateRequest) => tuanchat.itemController.updateItem(req),
+        // 后端已下线 item 模块接口，保留占位以兼容旧页面引用。
+        mutationFn: async (_req: unknown) => {
+            throw new Error("Item 接口已下线");
+        },
         mutationKey: ['updateItem'],
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['items'] });
@@ -31,7 +29,10 @@ function useUpdateItemMutation() {
 function useAddItemMutation() {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: (req: ItemAddRequest) => tuanchat.itemController.addItem(req),
+        // 后端已下线 item 模块接口，保留占位以兼容旧页面引用。
+        mutationFn: async (_req: unknown) => {
+            throw new Error("Item 接口已下线");
+        },
         mutationKey: ['addItem'],
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['items'] });
@@ -45,7 +46,10 @@ function useAddItemMutation() {
 function useDeleteItemMutation() {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: (id: number) => tuanchat.itemController.deleteItem(id),
+        // 后端已下线 item 模块接口，保留占位以兼容旧页面引用。
+        mutationFn: async (_id: number) => {
+            throw new Error("Item 接口已下线");
+        },
         mutationKey: ['deleteItem'],
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['items'] });
@@ -56,10 +60,16 @@ function useDeleteItemMutation() {
 /**
  * 获取物品列表
  */
-function useItemsQuery(requestBody: ItemPageRequest) {
+function useItemsQuery(requestBody: unknown) {
     return useQuery({
         queryKey: ['items', requestBody],
-        queryFn: () => tuanchat.itemController.page(requestBody),
+        // 后端已下线 item 模块接口，返回空占位数据避免旧页面崩溃。
+        queryFn: async () => ({
+            success: true,
+            data: {
+                list: [],
+            },
+        }),
         staleTime: 300000 // 5分钟缓存
     });
 }
@@ -70,7 +80,11 @@ function useItemsQuery(requestBody: ItemPageRequest) {
 function useItemDetailQuery(id: number) {
     return useQuery({
         queryKey: ['itemDetail', id],
-        queryFn: () => tuanchat.itemController.getById(id),
+        // 后端已下线 item 模块接口，返回空占位数据避免旧页面崩溃。
+        queryFn: async () => ({
+            success: true,
+            data: null,
+        }),
         staleTime: 300000, // 5分钟缓存
         enabled: !!id
     });
@@ -79,10 +93,14 @@ function useItemDetailQuery(id: number) {
 /**
  * 批量获取物品
  */
-function useItemsBatchQuery(requestBody: ItemsGetRequest) {
+function useItemsBatchQuery(requestBody: unknown) {
     return useQuery({
         queryKey: ['itemsBatch', requestBody],
-        queryFn: () => tuanchat.itemController.getByIds(requestBody),
+        // 后端已下线 item 模块接口，返回空占位数据避免旧页面崩溃。
+        queryFn: async () => ({
+            success: true,
+            data: [],
+        }),
         staleTime: 300000 // 5分钟缓存
     });
 }
@@ -166,6 +184,38 @@ type DeprecatedApiResult<T> = {
     code?: number;
 };
 
+type RepositoryEntityInfo = {
+    description?: string;
+    desc?: string;
+    image?: string;
+    tip?: string;
+    tips?: string;
+    note?: string;
+    act?: {
+        kp?: boolean;
+        [key: string]: unknown;
+    };
+    avatarIds?: number[];
+    avatar?: string;
+    modelName?: string;
+    speakerName?: string;
+    voiceUrl?: string;
+    locations?: Array<string | undefined>;
+    roles?: Array<string | undefined>;
+    items?: Array<string | undefined>;
+    moduleSceneName?: string;
+    [key: string]: unknown;
+};
+
+type RepositoryEntityResponse = {
+    id?: number;
+    name?: string;
+    entityType?: number;
+    versionId?: number;
+    entityInfo?: RepositoryEntityInfo;
+    [key: string]: unknown;
+};
+
 type DeprecatedRepositoryInfoResponse = {
     responses?: RepositoryEntityResponse[];
     repositoryMap?: {
@@ -178,7 +228,7 @@ type DeprecatedRepositoryInfoResponse = {
 /**
  * 获取仓库信息
  */
-export function useRepositoryInfoQuery(repositoryId: number, branchId?: number) {
+function useRepositoryInfoQuery(repositoryId: number, branchId?: number) {
     return useQuery<DeprecatedApiResult<DeprecatedRepositoryInfoResponse>>({
         queryKey: ['repositoryInfo', repositoryId, branchId],
         // 后端已下线 Commit/RepositoryInfo；返回占位数据，避免旧页面报错。

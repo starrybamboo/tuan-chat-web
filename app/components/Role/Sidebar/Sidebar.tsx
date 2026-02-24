@@ -2,10 +2,10 @@ import type { UserRole } from "api";
 import type { Rule } from "api/models/Rule";
 import type { Role } from "../types";
 import { useQueryClient } from "@tanstack/react-query";
-import { useDeleteRolesMutation, useGetInfiniteUserRolesByTypeQuery, useGetUserRolesByTypeQuery } from "api/hooks/RoleAndAvatarHooks";
+import { useDeleteRolesMutation, useGetUserRolesByTypeQuery } from "api/hooks/RoleAndAvatarHooks";
 import { useDeleteRuleMutation, useRuleListQuery } from "api/hooks/ruleQueryHooks";
 // import { useCreateRoleMutation, useDeleteRolesMutation, useGetInfiniteUserRolesQuery, useUpdateRoleWithLocalMutation, useUploadAvatarMutation } from "api/queryHooks";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import { Link, NavLink, useNavigate, useSearchParams } from "react-router";
 import { tuanchat } from "@/../api/instance";
@@ -32,26 +32,18 @@ export function Sidebar({
   // setIsEditing,
   // onEnterCreateEntry,
 }: SidebarProps) {
-  const [isLoadingMore, setIsLoadingMore] = useState(false);
   // 已不再直接在 Sidebar 内创建角色
   const [searchQuery, setSearchQuery] = useState("");
   // 折叠状态：用于"全部"视图中的分组折叠
-  const [isDiceCollapsed, setIsDiceCollapsed] = useState(false);
+  const [isDiceCollapsed, setIsDiceCollapsed] = useState(true);
   const [isNormalCollapsed, setIsNormalCollapsed] = useState(false);
-  const [isRuleCollapsed, setIsRuleCollapsed] = useState(false);
+  const [isRuleCollapsed, setIsRuleCollapsed] = useState(true);
   const [searchParams] = useSearchParams();
   // 获取用户数据
   const userId = useGlobalContext().userId;
   const diceRolesQuery = useGetUserRolesByTypeQuery(userId ?? -1, 1);
+  const normalRolesQuery = useGetUserRolesByTypeQuery(userId ?? -1, 0);
   const ruleListQuery = useRuleListQuery();
-  const {
-    data: normalRolesQuery,
-    isSuccess: isNormalSuccess,
-    fetchNextPage,
-    // isFetchingNextPage,
-    hasNextPage,
-    // status,
-  } = useGetInfiniteUserRolesByTypeQuery(userId ?? -1, 0);
   // 创建角色接口
   // const { mutateAsync: createRole } = useCreateRoleMutation();
   // 上传头像接口
@@ -86,6 +78,7 @@ export function Sidebar({
       name: role.roleName || "",
       description: role.description || "无描述",
       avatar: "",
+      avatarThumb: "",
       avatarId: role.avatarId || 0,
       modelName: role.modelName || "",
       speakerName: role.speakerName || "",
@@ -98,7 +91,7 @@ export function Sidebar({
 
     // 有query数据时
     const diceUserRoles = diceRolesQuery.data ?? [];
-    const normalUserRoles = normalRolesQuery?.pages.flatMap(page => page.data?.list ?? []) ?? [];
+    const normalUserRoles = normalRolesQuery.data ?? [];
     if (diceUserRoles.length > 0 || normalUserRoles.length > 0) {
       // 将API返回的角色数据映射为前端使用的格式
       const mappedRoles = [...diceUserRoles, ...normalUserRoles].map(convertRole);
@@ -117,9 +110,12 @@ export function Sidebar({
       // 并行加载所有角色的头像
       const avatarPromises = filteredMappedRoles.map(async (role) => {
         // 检查角色的头像是否已经缓存
-        const cachedAvatar = queryClient.getQueryData<string>(["roleAvatar", role.id]);
-        if (cachedAvatar) {
-          return { id: role.id, avatar: cachedAvatar };
+        const cachedAvatar = queryClient.getQueryData<{ avatar?: string; avatarThumb?: string } | string>(["roleAvatar", role.id]);
+        if (typeof cachedAvatar === "string") {
+          return { id: role.id, avatar: cachedAvatar, avatarThumb: cachedAvatar };
+        }
+        if (cachedAvatar?.avatar) {
+          return { id: role.id, avatar: cachedAvatar.avatar, avatarThumb: cachedAvatar.avatarThumb || cachedAvatar.avatar };
         }
 
         try {
@@ -131,10 +127,11 @@ export function Sidebar({
 
           const res = await tuanchat.avatarController.getRoleAvatar(role.avatarId);
           if (res.success && res.data) {
-            const avatarUrl = res.data.avatarUrl;
+            const avatarUrl = res.data.avatarUrl || "/favicon.ico";
+            const avatarThumbUrl = res.data.avatarThumbUrl || avatarUrl;
             // 将头像URL缓存到React Query缓存中
-            queryClient.setQueryData(["roleAvatar", role.id], avatarUrl);
-            return { id: role.id, avatar: avatarUrl };
+            queryClient.setQueryData(["roleAvatar", role.id], { avatar: avatarUrl, avatarThumb: avatarThumbUrl });
+            return { id: role.id, avatar: avatarUrl, avatarThumb: avatarThumbUrl };
           }
           console.warn(`角色 ${role.id} 的头像数据无效或为空，avatarId: ${role.avatarId}`);
           return null;
@@ -153,22 +150,14 @@ export function Sidebar({
         setRoles((prevChars) => {
           return prevChars.map((char) => {
             const avatarData = validAvatars.find(avatar => avatar?.id === char.id);
-            return avatarData ? { ...char, avatar: avatarData.avatar } : char;
+            return avatarData
+              ? { ...char, avatar: avatarData.avatar, avatarThumb: avatarData.avatarThumb }
+              : char;
           });
         });
       }
     }
   };
-
-  // 添加加载更多角色的函数
-  const loadMoreRoles = useCallback(async () => {
-    if (isLoadingMore || !hasNextPage)
-      return;
-
-    setIsLoadingMore(true);
-    await fetchNextPage();
-    setIsLoadingMore(false);
-  }, [fetchNextPage, hasNextPage, isLoadingMore]);
 
   // 创建新角色
   // const handleCreate = async () => {
@@ -229,12 +218,12 @@ export function Sidebar({
 
   // 初始化角色数据
   useEffect(() => {
-    if (diceRolesQuery.isSuccess || isNormalSuccess) {
+    if (diceRolesQuery.isSuccess || normalRolesQuery.isSuccess) {
       loadRoles();
     }
-    // 监听 roleQuery.pages 的变化，当 infinite query 加载新页面时也会触发
+    // 监听两类角色查询结果变化，刷新侧边栏角色数据
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [diceRolesQuery.data?.length, isNormalSuccess, normalRolesQuery?.pages.length]);
+  }, [diceRolesQuery.data?.length, normalRolesQuery.data?.length, diceRolesQuery.isSuccess, normalRolesQuery.isSuccess]);
   // 过滤角色列表（按搜索）
   const filteredRoles = roles
     .filter(role => role.name.toLowerCase().includes(searchQuery.toLowerCase())
@@ -475,206 +464,14 @@ export function Sidebar({
 
         {/* 创建角色 - 虚线占位项，始终位于列表顶部 */}
 
-        {/* 角色列表 - 使用 InfiniteQuery */}
+        {/* 角色列表 */}
         <div className="flex-1 overflow-hidden">
 
           <div
             className="h-full overflow-y-auto"
-            onScroll={(e) => {
-              const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
-              // 当滚动到底部附近时加载更多
-              if (scrollHeight - scrollTop <= clientHeight + 100) {
-                loadMoreRoles();
-              }
-            }}
           >
-            {/* "全部"视图：分组可折叠列表，骰娘在前，普通角色在后 */}
+            {/* "全部"视图：分组可折叠列表，顺序为规则->骰娘->角色 */}
             <>
-              {/* 骰娘角色分组 */}
-              <div className="mb-2">
-                <button
-                  type="button"
-                  className="flex items-center gap-2 w-full p-2 rounded-lg hover:bg-base-100 transition-colors"
-                  onClick={() => setIsDiceCollapsed(!isDiceCollapsed)}
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className={`w-4 h-4 transition-transform ${isDiceCollapsed ? "" : "rotate-90"}`}
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <polyline points="9 18 15 12 9 6" />
-                  </svg>
-                  <span className="font-medium">骰娘角色</span>
-                  <span className="text-xs text-base-content/60">
-                    (
-                    {diceRoles.length}
-                    )
-                  </span>
-                </button>
-                {!isDiceCollapsed && (
-                  <div className="ml-2">
-                    {/* 创建骰娘入口 */}
-                    <Link
-                      to="/role?type=dice"
-                      className="flex items-center gap-3 p-3 rounded-lg cursor-pointer group hover:bg-base-100 transition-all duration-150"
-                      onClick={closeDrawerOnMobile}
-                      title="创建骰娘角色"
-                    >
-                      <div className="avatar shrink-0 px-1">
-                        <div className="w-12 h-12 md:w-14 md:h-14 rounded-full border-2 border-dashed border-success/40 group-hover:border-success/60 bg-success/5 text-success/60 group-hover:text-success/80 transition-colors duration-150 relative">
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            className="w-7 h-7 absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2.2"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          >
-                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
-                            <circle cx="8.5" cy="8.5" r="1.5" />
-                            <circle cx="15.5" cy="8.5" r="1.5" />
-                            <circle cx="8.5" cy="15.5" r="1.5" />
-                            <circle cx="15.5" cy="15.5" r="1.5" />
-                          </svg>
-                        </div>
-                      </div>
-                      <div className="flex-1 min-w-0 overflow-hidden">
-                        <h3 className="font-medium truncate">创建骰娘</h3>
-                        <p className="text-xs text-base-content/70 mt-1 truncate">创建跑团骰娘</p>
-                      </div>
-                    </Link>
-                    {/* 骰娘角色列表 */}
-                    {diceRoles.map((role) => {
-                      const storedRuleId = getRoleRule(role.id) || 1;
-                      const roleUrl = `/role/${role.id}?rule=${storedRuleId}`;
-                      return (
-                        <NavLink
-                          key={role.id}
-                          to={roleUrl}
-                          className={({ isActive }) => `block rounded-lg px-1 ${
-                            isActive && !isSelectionMode ? "bg-primary/10 text-primary" : ""
-                          }`}
-                          onClick={(e) => {
-                            if (isSelectionMode) {
-                              e.preventDefault();
-                              toggleRoleSelection(role.id);
-                            }
-                            else {
-                              closeDrawerOnMobile();
-                            }
-                          }}
-                        >
-                          <RoleListItem
-                            role={role}
-                            isSelected={isSelectionMode ? selectedRoles.has(role.id) : selectedRoleId === role.id}
-                            onDelete={() => handleDelete(role.id)}
-                            isSelectionMode={isSelectionMode}
-                          />
-                        </NavLink>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-
-              {/* 普通角色分组 */}
-              <div className="mb-2">
-                <button
-                  type="button"
-                  className="flex items-center gap-2 w-full p-2 rounded-lg hover:bg-base-100 transition-colors"
-                  onClick={() => setIsNormalCollapsed(!isNormalCollapsed)}
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className={`w-4 h-4 transition-transform ${isNormalCollapsed ? "" : "rotate-90"}`}
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <polyline points="9 18 15 12 9 6" />
-                  </svg>
-                  <span className="font-medium">普通角色</span>
-                  <span className="text-xs text-base-content/60">
-                    (
-                    {normalRoles.length}
-                    )
-                  </span>
-                </button>
-                {!isNormalCollapsed && (
-                  <div className="ml-2">
-                    {/* 创建普通角色入口 */}
-                    <Link
-                      to="/role?type=normal"
-                      className="flex items-center gap-3 p-3 rounded-lg cursor-pointer group hover:bg-base-100 transition-all duration-150"
-                      onClick={closeDrawerOnMobile}
-                      title="创建普通角色"
-                    >
-                      <div className="avatar shrink-0 px-1">
-                        <div className="w-12 h-12 md:w-14 md:h-14 rounded-full border-2 border-dashed border-primary/40 group-hover:border-primary/60 bg-primary/5 text-primary/60 group-hover:text-primary/80 transition-colors duration-150 relative">
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            className="w-7 h-7 absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2.2"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          >
-                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-                            <circle cx="12" cy="7" r="4" />
-                          </svg>
-                        </div>
-                      </div>
-                      <div className="flex-1 min-w-0 overflow-hidden">
-                        <h3 className="font-medium truncate">创建普通角色</h3>
-                        <p className="text-xs text-base-content/70 mt-1 truncate">创建普通游戏角色</p>
-                      </div>
-                    </Link>
-                    {/* 普通角色列表 */}
-                    {normalRoles.map((role) => {
-                      const storedRuleId = getRoleRule(role.id) || 1;
-                      const roleUrl = `/role/${role.id}?rule=${storedRuleId}`;
-                      return (
-                        <NavLink
-                          key={role.id}
-                          to={roleUrl}
-                          className={({ isActive }) => `block rounded-lg px-1 ${
-                            isActive && !isSelectionMode ? "bg-primary/10 text-primary" : ""
-                          }`}
-                          onClick={(e) => {
-                            if (isSelectionMode) {
-                              e.preventDefault();
-                              toggleRoleSelection(role.id);
-                            }
-                            else {
-                              closeDrawerOnMobile();
-                            }
-                          }}
-                        >
-                          <RoleListItem
-                            role={role}
-                            isSelected={isSelectionMode ? selectedRoles.has(role.id) : selectedRoleId === role.id}
-                            onDelete={() => handleDelete(role.id)}
-                            isSelectionMode={isSelectionMode}
-                          />
-                        </NavLink>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-
               {/* 我的规则分组 */}
               <div className="mb-2">
                 <button
@@ -694,7 +491,7 @@ export function Sidebar({
                   >
                     <polyline points="9 18 15 12 9 6" />
                   </svg>
-                  <span className="font-medium">规则模板</span>
+                  <span className="font-medium">规则</span>
                   <span className="text-xs text-base-content/60">
                     (
                     {filteredRules.length}
@@ -815,13 +612,192 @@ export function Sidebar({
                   </div>
                 )}
               </div>
+
+              {/* 骰娘角色分组 */}
+              <div className="mb-2">
+                <button
+                  type="button"
+                  className="flex items-center gap-2 w-full p-2 rounded-lg hover:bg-base-100 transition-colors"
+                  onClick={() => setIsDiceCollapsed(!isDiceCollapsed)}
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className={`w-4 h-4 transition-transform ${isDiceCollapsed ? "" : "rotate-90"}`}
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <polyline points="9 18 15 12 9 6" />
+                  </svg>
+                  <span className="font-medium">骰娘</span>
+                  <span className="text-xs text-base-content/60">
+                    (
+                    {diceRoles.length}
+                    )
+                  </span>
+                </button>
+                {!isDiceCollapsed && (
+                  <div className="ml-2">
+                    {/* 创建骰娘入口 */}
+                    <Link
+                      to="/role?type=dice"
+                      className="flex items-center gap-3 p-3 rounded-lg cursor-pointer group hover:bg-base-100 transition-all duration-150"
+                      onClick={closeDrawerOnMobile}
+                      title="创建骰娘角色"
+                    >
+                      <div className="avatar shrink-0 px-1">
+                        <div className="w-12 h-12 md:w-14 md:h-14 rounded-full border-2 border-dashed border-success/40 group-hover:border-success/60 bg-success/5 text-success/60 group-hover:text-success/80 transition-colors duration-150 relative">
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            className="w-7 h-7 absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2.2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          >
+                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                            <circle cx="8.5" cy="8.5" r="1.5" />
+                            <circle cx="15.5" cy="8.5" r="1.5" />
+                            <circle cx="8.5" cy="15.5" r="1.5" />
+                            <circle cx="15.5" cy="15.5" r="1.5" />
+                          </svg>
+                        </div>
+                      </div>
+                      <div className="flex-1 min-w-0 overflow-hidden">
+                        <h3 className="font-medium truncate">创建骰娘</h3>
+                        <p className="text-xs text-base-content/70 mt-1 truncate">创建跑团骰娘</p>
+                      </div>
+                    </Link>
+                    {/* 骰娘角色列表 */}
+                    {diceRoles.map((role) => {
+                      const storedRuleId = getRoleRule(role.id) || 1;
+                      const roleUrl = `/role/${role.id}?rule=${storedRuleId}`;
+                      return (
+                        <NavLink
+                          key={role.id}
+                          to={roleUrl}
+                          className={({ isActive }) => `block rounded-lg px-1 ${
+                            isActive && !isSelectionMode ? "bg-primary/10 text-primary" : ""
+                          }`}
+                          onClick={(e) => {
+                            if (isSelectionMode) {
+                              e.preventDefault();
+                              toggleRoleSelection(role.id);
+                            }
+                            else {
+                              closeDrawerOnMobile();
+                            }
+                          }}
+                        >
+                          <RoleListItem
+                            role={role}
+                            isSelected={isSelectionMode ? selectedRoles.has(role.id) : selectedRoleId === role.id}
+                            onDelete={() => handleDelete(role.id)}
+                            isSelectionMode={isSelectionMode}
+                          />
+                        </NavLink>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {/* 角色分组 */}
+              <div className="mb-2">
+                <button
+                  type="button"
+                  className="flex items-center gap-2 w-full p-2 rounded-lg hover:bg-base-100 transition-colors"
+                  onClick={() => setIsNormalCollapsed(!isNormalCollapsed)}
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className={`w-4 h-4 transition-transform ${isNormalCollapsed ? "" : "rotate-90"}`}
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <polyline points="9 18 15 12 9 6" />
+                  </svg>
+                  <span className="font-medium">角色</span>
+                  <span className="text-xs text-base-content/60">
+                    (
+                    {normalRoles.length}
+                    )
+                  </span>
+                </button>
+                {!isNormalCollapsed && (
+                  <div className="ml-2">
+                    <Link
+                      to="/role?type=normal"
+                      className="flex items-center gap-3 p-3 rounded-lg cursor-pointer group hover:bg-base-100 transition-all duration-150"
+                      onClick={closeDrawerOnMobile}
+                      title="创建普通角色"
+                    >
+                      <div className="avatar shrink-0 px-1">
+                        <div className="w-12 h-12 md:w-14 md:h-14 rounded-full border-2 border-dashed border-primary/40 group-hover:border-primary/60 bg-primary/5 text-primary/60 group-hover:text-primary/80 transition-colors duration-150 relative">
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            className="w-7 h-7 absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2.2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          >
+                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                            <circle cx="12" cy="7" r="4" />
+                          </svg>
+                        </div>
+                      </div>
+                      <div className="flex-1 min-w-0 overflow-hidden">
+                        <h3 className="font-medium truncate">创建普通角色</h3>
+                        <p className="text-xs text-base-content/70 mt-1 truncate">创建普通游戏角色</p>
+                      </div>
+                    </Link>
+
+                    {normalRoles.map((role) => {
+                      const storedRuleId = getRoleRule(role.id) || 1;
+                      const roleUrl = `/role/${role.id}?rule=${storedRuleId}`;
+                      return (
+                        <NavLink
+                          key={role.id}
+                          to={roleUrl}
+                          className={({ isActive }) => `block rounded-lg px-1 ${
+                            isActive && !isSelectionMode ? "bg-primary/10 text-primary" : ""
+                          }`}
+                          onClick={(e) => {
+                            if (isSelectionMode) {
+                              e.preventDefault();
+                              toggleRoleSelection(role.id);
+                            }
+                            else {
+                              closeDrawerOnMobile();
+                            }
+                          }}
+                        >
+                          <RoleListItem
+                            role={role}
+                            isSelected={isSelectionMode ? selectedRoles.has(role.id) : selectedRoleId === role.id}
+                            onDelete={() => handleDelete(role.id)}
+                            isSelectionMode={isSelectionMode}
+                          />
+                        </NavLink>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
             </>
 
-            {isLoadingMore && (
-              <div className="flex justify-center items-center py-4">
-                <span className="loading loading-spinner loading-md"></span>
-              </div>
-            )}
           </div>
         </div>
       </div>

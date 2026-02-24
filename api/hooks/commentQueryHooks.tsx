@@ -1,5 +1,5 @@
 import {useInfiniteQuery, useMutation, useQuery, useQueryClient} from "@tanstack/react-query";
-import type {LikeRecordRequest} from "../models/LikeRecordRequest";
+import type {LikeRecordRequest} from "./likeQueryHooks";
 import {tuanchat} from "../instance";
 import type {CommentPageRequest} from "../models/CommentPageRequest";
 import type {CommentAddRequest} from "../models/CommentAddRequest";

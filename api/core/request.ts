@@ -8,6 +8,8 @@ import type { ApiResult } from './ApiResult';
 import { CancelablePromise } from './CancelablePromise';
 import type { OnCancel } from './CancelablePromise';
 import type { OpenAPIConfig } from './OpenAPI';
+import { recoverAuthTokenFromSession } from './authRecovery';
+import { handleUnauthorized } from '../../app/utils/auth/unauthorized';
 
 export const isDefined = <T>(value: T | null | undefined): value is Exclude<T, null | undefined> => {
     return value !== undefined && value !== null;
@@ -249,38 +251,142 @@ export const getResponseBody = async (response: Response): Promise<any> => {
     return undefined;
 };
 
+const GENERIC_BACKEND_ERROR_TEXTS = new Set<string>([
+    '系统出小差了，请稍后再试哦~~',
+    '系统出小差了，请稍后再试哦~',
+    '系统出小差了，请稍后再试',
+]);
+
+const isRecord = (value: unknown): value is Record<string, any> => {
+    return typeof value === 'object' && value !== null;
+};
+
+const isMeaningfulText = (value: unknown): value is string => {
+    return typeof value === 'string' && value.trim().length > 0;
+};
+
+const readNestedText = (body: unknown, path: string[]): string | undefined => {
+    let current: unknown = body;
+    for (const key of path) {
+        if (!isRecord(current) || !(key in current)) {
+            return undefined;
+        }
+        current = current[key];
+    }
+    return isMeaningfulText(current) ? current.trim() : undefined;
+};
+
+const toPrettyBody = (body: unknown): string | undefined => {
+    if (body === undefined) {
+        return undefined;
+    }
+    if (isMeaningfulText(body)) {
+        return body.trim();
+    }
+    try {
+        return JSON.stringify(body, null, 2);
+    } catch {
+        return String(body);
+    }
+};
+
+const resolveApiErrorMessage = (result: ApiResult): string => {
+    const status = result.status ?? 'unknown';
+    const statusText = result.statusText ?? 'unknown';
+    const body = result.body;
+    const isDev = Boolean(import.meta.env?.DEV);
+
+    const stackText = [
+        ['stackTrace'],
+        ['stack'],
+        ['trace'],
+        ['errorStack'],
+        ['data', 'stackTrace'],
+        ['data', 'stack'],
+        ['data', 'trace'],
+        ['error', 'stackTrace'],
+        ['error', 'stack'],
+        ['exception', 'stackTrace'],
+        ['exception', 'stack'],
+    ].map(path => readNestedText(body, path)).find(Boolean);
+
+    const messageText = [
+        ['errMsg'],
+        ['message'],
+        ['error'],
+        ['detail'],
+        ['msg'],
+        ['data', 'errMsg'],
+        ['data', 'message'],
+        ['error', 'message'],
+        ['exception', 'message'],
+    ].map(path => readNestedText(body, path)).find(Boolean);
+
+    const normalizedMessage = messageText?.trim();
+    const isGenericMessage = Boolean(normalizedMessage && GENERIC_BACKEND_ERROR_TEXTS.has(normalizedMessage));
+    const prettyBody = toPrettyBody(body);
+
+    if (isDev) {
+        if (stackText) {
+            const header = `HTTP ${status} ${statusText}`;
+            const prefix = !isGenericMessage && normalizedMessage ? `${normalizedMessage}\n` : '';
+            return `${header}\n${prefix}${stackText}`;
+        }
+
+        if (!isGenericMessage && normalizedMessage) {
+            return normalizedMessage;
+        }
+
+        if (prettyBody) {
+            return `HTTP ${status} ${statusText}\n${prettyBody}`;
+        }
+    }
+
+    if (!isGenericMessage && normalizedMessage) {
+        return normalizedMessage;
+    }
+
+    if (isGenericMessage) {
+        return `HTTP ${status} ${statusText}\n后端返回了通用错误文案，未返回调用栈，请查看服务端日志。`;
+    }
+
+    if (prettyBody) {
+        return `HTTP ${status} ${statusText}\n${prettyBody}`;
+    }
+
+    return `HTTP ${status} ${statusText}`;
+};
+
 export const catchErrorCodes = (options: ApiRequestOptions, result: ApiResult): void => {
-    const errors: Record<number, string> = {
-        400: 'Bad Request',
-        401: 'Unauthorized',
-        403: 'Forbidden',
-        404: 'Not Found',
-        500: 'Internal Server Error',
-        502: 'Bad Gateway',
-        503: 'Service Unavailable',
-        ...options.errors,
-    }
-
-    const error = errors[result.status];
-    if (error) {
-        throw new ApiError(options, result, error);
-    }
-
     if (!result.ok) {
-        const errorStatus = result.status ?? 'unknown';
-        const errorStatusText = result.statusText ?? 'unknown';
-        const errorBody = (() => {
-            try {
-                return JSON.stringify(result.body, null, 2);
-            } catch (e) {
-                return undefined;
-            }
-        })();
-
-        throw new ApiError(options, result,
-            `Generic Error: status: ${errorStatus}; status text: ${errorStatusText}; body: ${errorBody}`
-        );
+        throw new ApiError(options, result, resolveApiErrorMessage(result));
     }
+};
+
+const AUTH_RECOVERY_SKIP_PATHS = new Set<string>([
+    '/user/login',
+    '/user/register',
+    '/user/logout',
+    '/user/token',
+]);
+
+const normalizeUrlPath = (url: string): string => {
+    const trimmed = String(url ?? '').trim();
+    const withoutQuery = trimmed.split('?')[0].split('#')[0];
+    return withoutQuery.replace(/\/+$/, '');
+};
+
+const shouldAttemptAuthRecovery = (options: ApiRequestOptions): boolean => {
+    if (typeof window === 'undefined') {
+        return false;
+    }
+
+    const path = normalizeUrlPath(options.url);
+    return !AUTH_RECOVERY_SKIP_PATHS.has(path);
+};
+
+const isUnauthorizedError = (error: unknown): error is ApiError => {
+    return error instanceof ApiError && error.status === 401;
 };
 
 /**
@@ -292,30 +398,58 @@ export const catchErrorCodes = (options: ApiRequestOptions, result: ApiResult): 
  */
 export const request = <T>(config: OpenAPIConfig, options: ApiRequestOptions): CancelablePromise<T> => {
     return new CancelablePromise(async (resolve, reject, onCancel) => {
-        try {
+        const requestOnce = async (): Promise<T> => {
             const url = getUrl(config, options);
             const formData = getFormData(options);
             const body = getRequestBody(options);
             const headers = await getHeaders(config, options);
 
+            const response = await sendRequest(config, options, url, body, formData, headers, onCancel);
+            const responseBody = await getResponseBody(response);
+            const responseHeader = getResponseHeader(response, options.responseHeader);
+
+            const result: ApiResult = {
+                url,
+                ok: response.ok,
+                status: response.status,
+                statusText: response.statusText,
+                body: responseHeader ?? responseBody,
+            };
+
+            catchErrorCodes(options, result);
+            return result.body as T;
+        };
+
+        try {
             if (!onCancel.isCancelled) {
-                const response = await sendRequest(config, options, url, body, formData, headers, onCancel);
-                const responseBody = await getResponseBody(response);
-                const responseHeader = getResponseHeader(response, options.responseHeader);
-
-                const result: ApiResult = {
-                    url,
-                    ok: response.ok,
-                    status: response.status,
-                    statusText: response.statusText,
-                    body: responseHeader ?? responseBody,
-                };
-
-                catchErrorCodes(options, result);
-
-                resolve(result.body);
+                const result = await requestOnce();
+                resolve(result);
             }
         } catch (error) {
+            if (onCancel.isCancelled) {
+                reject(error);
+                return;
+            }
+
+            if (isUnauthorizedError(error) && shouldAttemptAuthRecovery(options)) {
+                const recoveredToken = await recoverAuthTokenFromSession(config.BASE);
+                if (recoveredToken && !onCancel.isCancelled) {
+                    try {
+                        const result = await requestOnce();
+                        resolve(result);
+                        return;
+                    } catch (retryError) {
+                        if (isUnauthorizedError(retryError)) {
+                            handleUnauthorized({ source: 'http' });
+                        }
+                        reject(retryError);
+                        return;
+                    }
+                }
+
+                handleUnauthorized({ source: 'http' });
+            }
+
             reject(error);
         }
     });

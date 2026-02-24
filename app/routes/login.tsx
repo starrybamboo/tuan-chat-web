@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 import LoginModal from "@/components/auth/LoginModal";
+import { normalizeAuthRedirectPath } from "@/utils/auth/redirect";
 
 export function meta() {
   return [
@@ -12,7 +13,7 @@ export function meta() {
 export default function LoginPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const redirect = searchParams.get("redirect") || "/chat";
+  const redirect = normalizeAuthRedirectPath(searchParams.get("redirect"));
   const [isOpen, setIsOpen] = useState(true);
 
   useEffect(() => {

@@ -117,12 +117,19 @@ export function isDocRefDrag(dataTransfer: DataTransfer | null | undefined): boo
       return true;
     // `text/uri-list` 兜底：用于在 dragover 阶段也能可靠 detect（某些环境下无法读取自定义 MIME 的内容）。
     // 注意：文件拖拽也可能带有 uri-list，因此需排除 Files。
-    if (types.includes("text/uri-list") && !types.includes("Files"))
-      return true;
+    if (types.includes("text/uri-list") && !types.includes("Files")) {
+      const uriList = dataTransfer.getData("text/uri-list") || "";
+      const first = uriList.split(/\r?\n/).map(s => s.trim()).find(Boolean) || "";
+      if (first.startsWith(DOC_REF_FALLBACK_PREFIX))
+        return true;
+    }
 
     // 兜底：某些环境下只会暴露 `text/plain` 类型（但 getData 仍可读到 `tc-doc-ref:*` 前缀）。
-    if (types.includes("text/plain") && !types.includes("Files"))
-      return true;
+    if (types.includes("text/plain") && !types.includes("Files")) {
+      const plain = dataTransfer.getData("text/plain") || "";
+      if (plain.trim().startsWith(DOC_REF_FALLBACK_PREFIX))
+        return true;
+    }
 
     // 兜底：部分环境 dragover 时 types 可能为空或不可靠，尝试用 payload 识别。
     return Boolean(getDocRefDragData(dataTransfer));

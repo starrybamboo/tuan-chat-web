@@ -2,6 +2,8 @@ import type { Role } from "../types";
 import { Plus } from "@phosphor-icons/react";
 import { useCreateRoleMutation, useUploadAvatarMutation } from "api/hooks/RoleAndAvatarHooks";
 import { useState } from "react";
+import toast from "react-hot-toast";
+import { ROLE_DESCRIPTION_MAX_LENGTH, ROLE_DESCRIPTION_TOO_LONG_MESSAGE, ROLE_NAME_MAX_LENGTH } from "./constants";
 import CreatePageHeader from "./CreatePageHeader";
 
 interface CreateDicerRoleProps {
@@ -18,7 +20,15 @@ export default function CreateDicerRole({ onBack, onComplete }: CreateDicerRoleP
   const { mutateAsync: uploadAvatar } = useUploadAvatarMutation();
 
   const handleSubmit = async () => {
-    if (!name.trim() || !description.trim()) {
+    const trimmedName = name.trim();
+    const trimmedDescription = description.trim();
+
+    if (!trimmedName || !trimmedDescription) {
+      return;
+    }
+
+    if (trimmedDescription.length > ROLE_DESCRIPTION_MAX_LENGTH) {
+      toast.error(ROLE_DESCRIPTION_TOO_LONG_MESSAGE, { position: "top-center" });
       return;
     }
 
@@ -26,8 +36,8 @@ export default function CreateDicerRole({ onBack, onComplete }: CreateDicerRoleP
     try {
       // 1. 创建骰娘角色（type=1）
       const roleId = await createRole({
-        roleName: name.trim(),
-        description: description.trim(),
+        roleName: trimmedName,
+        description: trimmedDescription,
         type: 1,
       });
 
@@ -45,8 +55,8 @@ export default function CreateDicerRole({ onBack, onComplete }: CreateDicerRoleP
       // 3. 构建新角色对象
       const newRole: Role = {
         id: roleId,
-        name: name.trim(),
-        description: description.trim(),
+        name: trimmedName,
+        description: trimmedDescription,
         avatar: avatarResult?.data?.avatarUrl || "/favicon.ico",
         avatarId: avatarResult?.data?.avatarId || 0,
         type: 1,
@@ -66,7 +76,8 @@ export default function CreateDicerRole({ onBack, onComplete }: CreateDicerRoleP
     }
   };
 
-  const canSubmit = name.trim().length > 0 && description.trim().length > 0 && !isSaving;
+  const isDescriptionTooLong = description.trim().length > ROLE_DESCRIPTION_MAX_LENGTH;
+  const canSubmit = name.trim().length > 0 && description.trim().length > 0 && !isDescriptionTooLong && !isSaving;
 
   return (
     <div className={`transition-opacity duration-300 ease-in-out ${isSaving ? "opacity-50" : ""}`}>
@@ -134,7 +145,8 @@ export default function CreateDicerRole({ onBack, onComplete }: CreateDicerRoleP
                     <span>骰娘名称</span>
                     <span className="label-text-alt text-base-content/60">
                       {name.length}
-                      /32
+                      /
+                      {ROLE_NAME_MAX_LENGTH}
                     </span>
                   </div>
                   <input
@@ -143,7 +155,7 @@ export default function CreateDicerRole({ onBack, onComplete }: CreateDicerRoleP
                     placeholder="输入骰娘名称"
                     value={name}
                     onChange={e => setName(e.target.value)}
-                    maxLength={32}
+                    maxLength={ROLE_NAME_MAX_LENGTH}
                   />
                 </div>
 
@@ -151,9 +163,10 @@ export default function CreateDicerRole({ onBack, onComplete }: CreateDicerRoleP
                 <div>
                   <div className="flex gap-2 mb-2 items-center font-semibold">
                     <span>骰娘简介</span>
-                    <span className="label-text-alt text-base-content/60">
+                    <span className={`label-text-alt ${isDescriptionTooLong ? "text-error" : "text-base-content/60"}`}>
                       {description.length}
-                      /150
+                      /
+                      {ROLE_DESCRIPTION_MAX_LENGTH}
                     </span>
                   </div>
                   <textarea
@@ -161,8 +174,22 @@ export default function CreateDicerRole({ onBack, onComplete }: CreateDicerRoleP
                     placeholder="描述这个骰娘的背景故事、性格特点、说话风格等"
                     value={description}
                     onChange={e => setDescription(e.target.value)}
-                    maxLength={150}
+                    maxLength={ROLE_DESCRIPTION_MAX_LENGTH}
+                    aria-invalid={isDescriptionTooLong}
                   />
+                  {isDescriptionTooLong && (
+                    <p className="text-xs text-error mt-2">
+                      骰娘简介最多
+                      {" "}
+                      {ROLE_DESCRIPTION_MAX_LENGTH}
+                      {" "}
+                      字，当前
+                      {" "}
+                      {description.length}
+                      {" "}
+                      字
+                    </p>
+                  )}
                 </div>
               </div>
             </div>

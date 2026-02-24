@@ -9,7 +9,14 @@ interface RoleListItemProps {
 }
 
 // 2. 从函数参数中移除 onSelect
-export function RoleListItem({ role, isSelected, onDelete, isSelectionMode }: RoleListItemProps) {
+export function RoleListItem({
+  role,
+  isSelected,
+  onDelete,
+  isSelectionMode,
+}: RoleListItemProps) {
+  const avatarSrc = role.avatarThumb || role.avatar || "/favicon.ico";
+
   return (
     // 3. 从根 div 中移除 onClick 事件
     <div
@@ -20,13 +27,7 @@ export function RoleListItem({ role, isSelected, onDelete, isSelectionMode }: Ro
     >
       <div className="avatar shrink-0">
         <div className="w-12 h-12 md:w-14 md:h-14 rounded-full">
-          {role.avatar
-            ? (
-                <img src={role.avatar} alt={role.name} />
-              )
-            : (
-                <img src="/favicon.ico" alt="default avatar" />
-              )}
+          <img src={avatarSrc} alt={role.name || "default avatar"} loading="lazy" />
         </div>
       </div>
       <div className="flex-1 min-w-0 max-w-32 overflow-hidden">

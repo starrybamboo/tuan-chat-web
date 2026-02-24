@@ -1,4 +1,6 @@
 import { base64ToUint8Array, uint8ArrayToBase64 } from "@/components/chat/infra/blocksuite/base64";
+import { handleUnauthorized } from "@/utils/auth/unauthorized";
+import { recoverAuthTokenFromSession } from "api/core/authRecovery";
 
 export type BlocksuiteDocKey = {
   entityType: string;
@@ -23,6 +25,7 @@ const WS_REQ_BLOCKSUITE_AWARENESS = 203;
 const WS_RESP_BLOCKSUITE_DOC_UPDATE = 200;
 const WS_RESP_BLOCKSUITE_DOC_AWARENESS = 201;
 const WS_RESP_BLOCKSUITE_DOC_UPDATE_ACK = 202;
+const WS_RESP_INVALIDATE_TOKEN = 100;
 
 function buildRoomKey(key: BlocksuiteDocKey) {
   return `${key.entityType}:${key.entityId}:${key.docType}`;
@@ -36,23 +39,49 @@ class BlocksuiteWsClient {
   private ws: WebSocket | null = null;
   private reconnectTimer: number | null = null;
   private heartbeatTimer: number | null = null;
+  private suppressReconnect = false;
 
   private readonly joined = new Set<string>();
   private readonly updateListeners = new Map<string, Set<UpdateListener>>();
   private readonly awarenessListeners = new Map<string, Set<AwarenessListener>>();
   private readonly ackListeners = new Map<string, Set<AckListener>>();
 
+  private readCurrentToken() {
+    return (typeof window !== "undefined" ? window.localStorage.getItem("token") : null)?.trim() || "";
+  }
+
   private connect() {
     if (this.ws?.readyState === WebSocket.OPEN || this.ws?.readyState === WebSocket.CONNECTING) {
       return;
     }
 
-    const token = (typeof window !== "undefined" ? localStorage.getItem("token") : null) || "";
-    const wsUrl = token ? `${WS_URL}?token=${encodeURIComponent(token)}` : WS_URL;
+    const token = this.readCurrentToken();
+    if (!token) {
+      void recoverAuthTokenFromSession(import.meta.env.VITE_API_BASE_URL).then((recoveredToken) => {
+        if (recoveredToken) {
+          this.connect();
+        }
+      });
+
+      this.stopHeartbeat();
+      if (this.reconnectTimer != null) {
+        window.clearTimeout(this.reconnectTimer);
+        this.reconnectTimer = null;
+      }
+      if (this.ws) {
+        this.suppressReconnect = true;
+        this.ws.close();
+        this.ws = null;
+      }
+      return;
+    }
+
+    const wsUrl = `${WS_URL}?token=${encodeURIComponent(token)}`;
 
     this.ws = new WebSocket(wsUrl);
 
     this.ws.onopen = () => {
+      this.suppressReconnect = false;
       this.startHeartbeat();
       for (const roomKey of this.joined) {
         this.sendRaw({ type: WS_REQ_BLOCKSUITE_JOIN, data: this.parseRoomKey(roomKey) });
@@ -65,6 +94,16 @@ class BlocksuiteWsClient {
 
       if (this.reconnectTimer != null) {
         window.clearTimeout(this.reconnectTimer);
+        this.reconnectTimer = null;
+      }
+
+      if (this.suppressReconnect) {
+        this.suppressReconnect = false;
+        return;
+      }
+
+      if (!this.readCurrentToken()) {
+        return;
       }
       // Fast reconnect is enough here; the editor has snapshot pull as a fallback.
       this.reconnectTimer = window.setTimeout(() => this.connect(), 800);
@@ -73,6 +112,10 @@ class BlocksuiteWsClient {
     this.ws.onmessage = (ev) => {
       try {
         const msg: WsMessage<any> = JSON.parse(ev.data);
+        if (msg?.type === WS_RESP_INVALIDATE_TOKEN) {
+          this.handleTokenInvalid();
+          return;
+        }
         this.onMessage(msg);
       }
       catch {
@@ -96,6 +139,27 @@ class BlocksuiteWsClient {
       window.clearInterval(this.heartbeatTimer);
       this.heartbeatTimer = null;
     }
+  }
+
+  private handleTokenInvalid() {
+    this.suppressReconnect = true;
+    this.stopHeartbeat();
+    if (this.reconnectTimer != null) {
+      window.clearTimeout(this.reconnectTimer);
+      this.reconnectTimer = null;
+    }
+    if (this.ws) {
+      this.ws.close();
+      this.ws = null;
+    }
+    void recoverAuthTokenFromSession(import.meta.env.VITE_API_BASE_URL).then((recoveredToken) => {
+      if (recoveredToken) {
+        this.suppressReconnect = false;
+        this.connect();
+        return;
+      }
+      handleUnauthorized({ source: "ws" });
+    });
   }
 
   private sendRaw(msg: WsMessage<any>) {

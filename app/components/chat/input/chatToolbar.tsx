@@ -1,7 +1,7 @@
 import type { WebgalChooseOptionDraft } from "@/components/chat/shared/webgal/webgalChooseDraft";
 import type { WebgalChoosePayload } from "@/types/webgalChoose";
 
-import { ArrowSquareIn } from "@phosphor-icons/react";
+import { ArrowSquareIn, FilmSlateIcon } from "@phosphor-icons/react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { toast } from "react-hot-toast";
@@ -9,7 +9,9 @@ import ChatStatusBar from "@/components/chat/chatStatusBar";
 import ChatToolbarDock from "@/components/chat/input/chatToolbarDock";
 import { createWebgalChooseOptionDraft } from "@/components/chat/shared/webgal/webgalChooseDraft";
 import WebgalChooseModal from "@/components/chat/shared/webgal/webgalChooseModal";
-import EmojiWindow from "@/components/chat/window/EmojiWindow";
+import { useChatComposerStore } from "@/components/chat/stores/chatComposerStore";
+import { preheatChatMediaPreprocess } from "@/components/chat/utils/attachmentPreprocess";
+import StickerWindow from "@/components/chat/window/StickerWindow";
 import { useScreenSize } from "@/components/common/customHooks/useScreenSize";
 
 import { ImgUploader } from "@/components/common/uploader/imgUploader";
@@ -39,6 +41,7 @@ interface ChatToolbarProps {
   // 文件和表情处理
   updateEmojiUrls: (updater: (draft: string[]) => void) => void;
   updateImgFiles: (updater: (draft: File[]) => void) => void;
+  updateFileAttachments: (updater: (draft: File[]) => void) => void;
 
   // 消息发送
   disableSendMessage: boolean;
@@ -95,6 +98,7 @@ function ChatToolbar({
   roomId,
   updateEmojiUrls,
   updateImgFiles,
+  updateFileAttachments,
   disableSendMessage,
   handleMessageSubmit,
   disableImportChatText = false,
@@ -127,6 +131,7 @@ function ChatToolbar({
   showRunControls = false,
 }: ChatToolbarProps) {
   const audioInputRef = useRef<HTMLInputElement>(null);
+  const videoInputRef = useRef<HTMLInputElement>(null);
   const aiPromptDropdownRef = useRef<HTMLDivElement>(null);
   const emojiDropdownRef = useRef<HTMLDivElement>(null);
   const [isAiPromptOpen, setIsAiPromptOpen] = useState(false);
@@ -144,6 +149,7 @@ function ChatToolbar({
   const webgalVarKeyInputRef = useRef<HTMLInputElement>(null);
   const screenSize = useScreenSize();
   const isMobile = screenSize === "sm";
+  const setEmojiMetaByUrl = useChatComposerStore(state => state.setEmojiMetaByUrl);
 
   const handleOpenImport = useCallback(() => {
     if (!onOpenImportChatText)
@@ -230,8 +236,28 @@ function ChatToolbar({
       return;
 
     setAudioFile(file);
+    preheatChatMediaPreprocess({ audioFiles: [file] });
     onAddTempAnnotations?.([ANNOTATION_IDS.BGM]);
     // 重置 input value，允许重复选择同一文件
+    e.target.value = "";
+  };
+
+  const handleVideoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) {
+      return;
+    }
+
+    if (!file.type.startsWith("video/")) {
+      toast.error("请选择视频文件");
+      e.target.value = "";
+      return;
+    }
+
+    updateFileAttachments((draft) => {
+      draft.push(file);
+    });
+    preheatChatMediaPreprocess({ videoFiles: [file] });
     e.target.value = "";
   };
 
@@ -507,16 +533,24 @@ function ChatToolbar({
                   tabIndex={2}
                   className="dropdown-content menu bg-base-100 rounded-box z-9999 w-56 md:w-96 p-2 shadow-sm overflow-y-auto mb-6"
                 >
-                  <EmojiWindow onChoose={async (emoji) => {
+                  <StickerWindow onChoose={async (emoji) => {
                     updateEmojiUrls((draft) => {
                       const newUrl = emoji?.imageUrl;
                       if (newUrl && !draft.includes(newUrl)) {
                         draft.push(newUrl);
                       }
                     });
+                    if (emoji?.imageUrl) {
+                      setEmojiMetaByUrl(emoji.imageUrl, {
+                        width: emoji.width,
+                        height: emoji.height,
+                        size: emoji.fileSize,
+                        fileName: emoji.name,
+                      });
+                    }
                   }}
                   >
-                  </EmojiWindow>
+                  </StickerWindow>
                 </ul>
               </div>
 
@@ -525,6 +559,7 @@ function ChatToolbar({
                 updateImgFiles((draft) => {
                   draft.push(newImg);
                 });
+                preheatChatMediaPreprocess({ imageFiles: [newImg] });
                 onAddTempAnnotations?.([ANNOTATION_IDS.BACKGROUND]);
               }}
               >
@@ -552,6 +587,22 @@ function ChatToolbar({
                 </div>
               )}
 
+              <div className={isMobile ? "" : "tooltip tooltip-top"} data-tip={isMobile ? undefined : "发送视频"}>
+                <FilmSlateIcon
+                  className="size-6 cursor-pointer jump_icon relative md:-top-px"
+                  onClick={() => videoInputRef.current?.click()}
+                />
+                <input
+                  type="file"
+                  ref={videoInputRef}
+                  className="hidden"
+                  accept="video/*"
+                  title="选择视频文件"
+                  aria-label="选择视频文件"
+                  onChange={handleVideoSelect}
+                />
+              </div>
+
               {/* 导入文本 */}
               {onOpenImportChatText && (
                 <div
@@ -572,7 +623,7 @@ function ChatToolbar({
                   data-tip={webgalLinkMode ? "关闭联动模式" : "开启联动模式（显示联动工具栏）"}
                 >
                   <LinkFilled
-                    className={`size-6 cursor-pointer jump_icon md:mb-1 ${webgalLinkMode ? "" : "grayscale opacity-50"}`}
+                    className={`size-6 cursor-pointer jump_icon md:mb-1 ${webgalLinkMode ? "text-info" : ""}`}
                     onClick={handleToggleWebgalLinkMode}
                   />
                 </div>
@@ -584,7 +635,7 @@ function ChatToolbar({
                   data-tip={runModeEnabled ? "关闭跑团模式" : "开启跑团模式后显示地图/文档/先攻"}
                 >
                   <DiceD6Icon
-                    className={`md:mb-1 size-6 cursor-pointer jump_icon ${runModeEnabled ? "" : "grayscale opacity-50"}`}
+                    className={`md:mb-1 size-6 cursor-pointer jump_icon ${runModeEnabled ? "text-info" : ""}`}
                     onClick={handleToggleRunMode}
                   />
                 </div>
@@ -610,7 +661,7 @@ function ChatToolbar({
                     data-tip={webgalLinkMode ? "关闭联动模式" : "开启联动模式（显示联动工具栏）"}
                   >
                     <LinkFilled
-                      className={`size-6 cursor-pointer jump_icon ${webgalLinkMode ? "" : "grayscale opacity-50"}`}
+                      className={`size-6 cursor-pointer jump_icon ${webgalLinkMode ? "text-info" : ""}`}
                       onClick={handleToggleWebgalLinkMode}
                     />
                   </div>
@@ -622,7 +673,7 @@ function ChatToolbar({
                     data-tip={runModeEnabled ? "关闭跑团模式" : "开启跑团模式后显示地图/文档/先攻"}
                   >
                     <DiceD6Icon
-                      className={`size-6 cursor-pointer jump_icon ${runModeEnabled ? "" : "grayscale opacity-50"}`}
+                      className={`size-6 cursor-pointer jump_icon ${runModeEnabled ? "text-info" : ""}`}
                       onClick={handleToggleRunMode}
                     />
                   </div>

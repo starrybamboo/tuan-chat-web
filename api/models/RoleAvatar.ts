@@ -16,13 +16,17 @@ export type RoleAvatar = {
      */
     avatarTitle?: Record<string, string>;
     /**
-     * avatar category
+     * 头像分类
      */
     category?: string;
     /**
      * 头像的url
      */
     avatarUrl?: string;
+    /**
+     * 头像缩略图的url
+     */
+    avatarThumbUrl?: string;
     /**
      * 立绘的url
      */

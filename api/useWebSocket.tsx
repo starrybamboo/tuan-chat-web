@@ -10,6 +10,7 @@ import toast from "react-hot-toast";
 import React from "react";
 import { useNavigate } from "react-router";
 import { handleUnauthorized } from "@/utils/auth/unauthorized";
+import { recoverAuthTokenFromSession } from "./core/authRecovery";
 import type {
     ChatStatusEvent,
     ChatStatusType,
@@ -28,9 +29,12 @@ import type {MessageSessionResponse} from "./models/MessageSessionResponse";
 import type {ApiResultListMessageSessionResponse} from "./models/ApiResultListMessageSessionResponse";
 import type { ApiResultRoom } from "./models/ApiResultRoom";
 import type { ApiResultRoomListResponse } from "./models/ApiResultRoomListResponse";
+import type { ApiResultUserInfoResponse } from "./models/ApiResultUserInfoResponse";
 import { MessageType } from "./wsModels";
-import { useBgmStore } from "@/components/chat/stores/bgmStore";
+import { requestPlayBgmMessageWithUrl } from "@/components/chat/infra/audioMessage/audioMessageBgmCoordinator";
+import { useAudioMessageAutoPlayStore } from "@/components/chat/stores/audioMessageAutoPlayStore";
 import { applyRoomDndMapChange, roomDndMapQueryKey } from "@/components/chat/shared/map/roomDndMapApi";
+import { readGroupMessagePopupEnabledFromLocalStorage } from "@/components/settings/notificationPreferences";
 
 /**
  * 成员的输入状态（不包含roomId）
@@ -72,6 +76,7 @@ export interface WebsocketUtils {
 const EMPTY_SESSIONS: MessageSessionResponse[] = [];
 
 const WS_URL = import.meta.env.VITE_API_WS_URL;
+const WS_RECONNECTED_EVENT = "tc:ws-reconnected";
 
 type WsDebugState = {
   implementedTypes: number[];
@@ -133,8 +138,210 @@ function FriendRequestToastContent({
   );
 }
 
+function DirectMessageToastContent({
+  toastId,
+  senderId,
+  displayName,
+  avatar,
+  previewText,
+}: {
+  toastId: string;
+  senderId: number;
+  displayName: string;
+  avatar?: string;
+  previewText: string;
+}) {
+  const navigate = useNavigate();
+
+  const jumpToPrivateChat = () => {
+    toast.dismiss(toastId);
+    navigate(`/chat/private/${senderId}`);
+  };
+
+  return (
+    <div
+      className="w-[320px] max-w-[90vw] rounded-lg border border-base-300 bg-base-100 p-3 shadow-xl"
+      role="button"
+      tabIndex={0}
+      onClick={jumpToPrivateChat}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          jumpToPrivateChat();
+        }
+      }}
+    >
+      <div className="flex items-center gap-3">
+        <div className="avatar">
+          <div className="w-10 rounded-full">
+            {avatar
+              ? <img src={avatar} alt={displayName} />
+              : <div className="w-10 h-10 rounded-full bg-base-200" />}
+          </div>
+        </div>
+
+        <div className="min-w-0 flex-1">
+          <div className="font-medium truncate">
+            {displayName}
+            <span className="opacity-70"> 给你发来私信</span>
+          </div>
+          <div className="text-xs opacity-70 truncate mt-0.5">{previewText}</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function GroupMessageToastContent({
+  toastId,
+  targetPath,
+  roomName,
+  senderName,
+  senderAvatar,
+  previewText,
+}: {
+  toastId: string;
+  targetPath: string | null;
+  roomName: string;
+  senderName: string;
+  senderAvatar?: string;
+  previewText: string;
+}) {
+  const navigate = useNavigate();
+
+  const jumpToGroupChat = () => {
+    toast.dismiss(toastId);
+    if (targetPath) {
+      navigate(targetPath);
+    }
+  };
+
+  return (
+    <div
+      className="w-[360px] max-w-[90vw] rounded-lg border border-base-300 bg-base-100 p-3 shadow-xl"
+      role="button"
+      tabIndex={0}
+      onClick={jumpToGroupChat}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          jumpToGroupChat();
+        }
+      }}
+    >
+      <div className="text-xs font-medium opacity-70 truncate">{roomName}</div>
+      <div className="mt-2 flex items-center gap-3">
+        <div className="avatar">
+          <div className="w-9 rounded-full">
+            {senderAvatar
+              ? <img src={senderAvatar} alt={senderName} />
+              : <div className="w-9 h-9 rounded-full bg-base-200" />}
+          </div>
+        </div>
+
+        <div className="min-w-0 flex-1">
+          <div className="font-medium truncate">
+            {senderName}
+            <span className="opacity-70"> 在群聊中发来新消息</span>
+          </div>
+          <div className="text-xs opacity-70 truncate mt-0.5">{previewText}</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function getDirectMessagePreview(message: DirectMessageEvent): string {
+  const content = (message?.content ?? "").trim();
+
+  if (content.length > 0) {
+    return content;
+  }
+
+  if (message?.messageType === MessageType.IMG) {
+    return "[图片]";
+  }
+  if (message?.messageType === MessageType.FILE) {
+    return "[文件]";
+  }
+  if (message?.messageType === MessageType.SOUND) {
+    return "[音频]";
+  }
+  if (message?.messageType === MessageType.VIDEO) {
+    return "[视频]";
+  }
+  return "[新消息]";
+}
+
+function getGroupMessagePreview(chatMessageResponse: ChatMessageResponse): string {
+  const message = chatMessageResponse?.message;
+  const content = (message?.content ?? "").trim();
+
+  if (content.length > 0) {
+    return content;
+  }
+
+  if (message?.messageType === MessageType.IMG) {
+    return "[图片]";
+  }
+  if (message?.messageType === MessageType.FILE) {
+    return "[文件]";
+  }
+  if (message?.messageType === MessageType.SOUND) {
+    return "[音频]";
+  }
+  if (message?.messageType === MessageType.VIDEO) {
+    return "[视频]";
+  }
+  if (message?.messageType === MessageType.DICE) {
+    return "[骰子消息]";
+  }
+  if (message?.messageType === MessageType.EFFECT) {
+    return "[特效消息]";
+  }
+  return "[新消息]";
+}
+
+function getActivePrivateContactId(): number | null {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  const match = window.location.pathname.match(/^\/chat\/private\/(\d+)(?:\/|$)/);
+  if (!match) {
+    return null;
+  }
+
+  const parsed = Number(match[1]);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+}
+
+function getActiveGroupRoomId(): number | null {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  const match = window.location.pathname.match(/^\/chat\/([^/]+)\/(\d+)(?:\/|$)/);
+  if (!match) {
+    return null;
+  }
+
+  const spaceIdOrMode = match[1];
+  if (spaceIdOrMode === "private") {
+    return null;
+  }
+
+  const roomId = Number(match[2]);
+  return Number.isFinite(roomId) && roomId > 0 ? roomId : null;
+}
+
 export function useWebSocket() {
   const globalContext = useGlobalContext();
+  const readCurrentToken = useCallback(() => {
+    if (typeof window === "undefined")
+      return "";
+    return (window.localStorage.getItem("token") || "").trim();
+  }, []);
 
   const notifyNewFriendRequest = useCallback(async (event: NewFriendRequestPush) => {
     const friendReqId = event?.data?.friendReqId;
@@ -186,6 +393,7 @@ export function useWebSocket() {
   const wsRef = useRef<WebSocket | null>(null);
   const isConnected = useCallback(() => wsRef.current?.readyState === WebSocket.OPEN, []);
   const isConnecting = useCallback(() => wsRef.current?.readyState === WebSocket.CONNECTING, []);
+  const hasOpenedOnceRef = useRef(false);
   // 标记“组件主动关闭”（例如 React StrictMode 的 effect cleanup），避免误判为网络错误并触发重连/报错。
   const closingRef = useRef(false);
   const connectTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -257,25 +465,17 @@ export function useWebSocket() {
   const updateLatestSyncId = useCallback((roomId: number, latestSyncId: number) => {
     queryClient.setQueriesData<ApiResultListMessageSessionResponse>({ queryKey: ["getUserSessions"] }, (oldData) => {
       if (!oldData?.data) return oldData;
-      const hasSession = oldData.data.some(session => session.roomId === roomId);
-      const nextData = hasSession
-        ? oldData.data.map(session => {
-            if (session.roomId === roomId) {
-              return {
-                ...session,
-                latestSyncId,
-              };
-            }
-            return session;
-          })
-        : [
-            ...oldData.data,
-            {
-              roomId,
-              latestSyncId,
-              lastReadSyncId: 0,
-            } satisfies MessageSessionResponse,
-          ];
+      const nextData = oldData.data.map(session => {
+        if (session.roomId === roomId) {
+          const prevLatest = session.latestSyncId ?? 0;
+          return {
+            ...session,
+            // 只在“已订阅会话”内推进 latestSyncId，避免把已取消提醒的房间重新加入未读体系。
+            latestSyncId: Math.max(prevLatest, latestSyncId),
+          };
+        }
+        return session;
+      });
 
       return {
         ...oldData,
@@ -417,17 +617,39 @@ export function useWebSocket() {
       return;
     }
 
+    const currentToken = readCurrentToken();
+    if (!currentToken) {
+      void recoverAuthTokenFromSession(import.meta.env.VITE_API_BASE_URL).then((recoveredToken) => {
+        if (recoveredToken && !closingRef.current) {
+          connect();
+        }
+      });
+
+      stopHeartbeat();
+      if (reconnectTimer.current) {
+        clearTimeout(reconnectTimer.current);
+        reconnectTimer.current = null;
+      }
+      reconnectAttempts.current = 0;
+      return;
+    }
+
     // 本次 connect 属于“正常建立连接”，重置手动关闭标记。
     closingRef.current = false;
     // 连接前，先重置消息
     queryClient.resetQueries({ queryKey: ["getMsgPage"] });
     try {
-      const currentToken = localStorage.getItem("token") || "";
       const wsUrl = currentToken ? `${WS_URL}?token=${encodeURIComponent(currentToken)}` : WS_URL;
       wsRef.current = new WebSocket(wsUrl);
       wsRef.current.onopen = () => {
         console.log("WebSocket connected");
         syncWsDebugToWindow();
+        const isReconnected = hasOpenedOnceRef.current;
+        hasOpenedOnceRef.current = true;
+        if (isReconnected && typeof window !== "undefined") {
+          // 重连成功后通知各房间的历史管理器主动增量补拉，避免“无后续新消息”时漏同步。
+          window.dispatchEvent(new CustomEvent(WS_RECONNECTED_EVENT));
+        }
         reconnectAttempts.current = 0;
         if (reconnectTimer.current) {
           clearTimeout(reconnectTimer.current);
@@ -441,6 +663,17 @@ export function useWebSocket() {
         }
         console.log(`Close code: ${event.code}, Reason: ${event.reason}`);
         stopHeartbeat();
+        wsRef.current = null;
+
+        const token = readCurrentToken();
+        if (!token) {
+          reconnectAttempts.current = 0;
+          if (reconnectTimer.current) {
+            clearTimeout(reconnectTimer.current);
+            reconnectTimer.current = null;
+          }
+          return;
+        }
 
         // 设定重连延迟（指数退避）
         const attempt = reconnectAttempts.current;
@@ -460,7 +693,6 @@ export function useWebSocket() {
       wsRef.current.onmessage = (event) => {
         try {
           const message: WsMessage<any> = JSON.parse(event.data);
-          console.log("Received message:", JSON.stringify(message));
           trackWsMessage(message);
           onMessage(message);
         }
@@ -480,6 +712,178 @@ export function useWebSocket() {
       console.error("Connection failed:", error);
     }
   }, []);
+
+  const resolveSelfUserId = useCallback((fallbackUserId?: number) => {
+    const uidRaw = (typeof window !== "undefined") ? window.localStorage.getItem("uid") : null;
+    const uidFallback = uidRaw && !Number.isNaN(Number(uidRaw)) ? Number(uidRaw) : 0;
+    const userIdFromContext = globalContext.userId ?? uidFallback;
+    if (userIdFromContext > 0) {
+      return userIdFromContext;
+    }
+    return (typeof fallbackUserId === "number" && fallbackUserId > 0) ? fallbackUserId : 0;
+  }, [globalContext.userId]);
+
+  const notifyNewDirectMessage = useCallback(async (message: DirectMessageEvent, selfUserId: number) => {
+    if (message?.messageType === 10000) {
+      return;
+    }
+
+    if (message?.senderId === selfUserId) {
+      return;
+    }
+
+    const activePrivateContactId = getActivePrivateContactId();
+    if (activePrivateContactId != null && activePrivateContactId === message.senderId) {
+      return;
+    }
+
+    const toastId = `direct-msg-${message.messageId}`;
+    let senderInfo = queryClient.getQueryData<ApiResultUserInfoResponse>(["getUserInfo", message.senderId])?.data;
+
+    if (!senderInfo) {
+      try {
+        const userResp = await tuanchat.userController.getUserInfo(message.senderId);
+        senderInfo = userResp.data;
+        queryClient.setQueryData(["getUserInfo", message.senderId], userResp);
+      }
+      catch {
+        // ignore
+      }
+    }
+
+    const displayName = senderInfo?.username || `用户${message.senderId}`;
+    const avatar = senderInfo?.avatar || senderInfo?.avatarThumbUrl;
+    const previewText = getDirectMessagePreview(message);
+
+    toast.custom(
+      t => (
+        <div className={t.visible ? "animate-enter" : "animate-leave"}>
+          <DirectMessageToastContent
+            toastId={t.id}
+            senderId={message.senderId}
+            displayName={displayName}
+            avatar={avatar}
+            previewText={previewText}
+          />
+        </div>
+      ),
+      {
+        id: toastId,
+        position: "top-center",
+        duration: 6000,
+      },
+    );
+  }, [queryClient]);
+
+  const notifyNewGroupMessage = useCallback(async (chatMessageResponse: ChatMessageResponse) => {
+    const message = chatMessageResponse?.message;
+    if (!message) {
+      return;
+    }
+
+    if (!readGroupMessagePopupEnabledFromLocalStorage()) {
+      return;
+    }
+
+    if (message.status !== 0) {
+      return;
+    }
+
+    const selfUserId = resolveSelfUserId();
+    if (selfUserId > 0 && message.userId === selfUserId) {
+      return;
+    }
+
+    const activeGroupRoomId = getActiveGroupRoomId();
+    if (activeGroupRoomId != null && activeGroupRoomId === message.roomId) {
+      return;
+    }
+
+    const toastId = `group-msg-${message.messageId}`;
+    let roomName = `群聊${message.roomId}`;
+    let roomSpaceId: number | null = null;
+
+    const cachedRoomInfo = queryClient.getQueryData<ApiResultRoom>(["getRoomInfo", message.roomId])?.data;
+    if (cachedRoomInfo) {
+      roomName = (cachedRoomInfo.name ?? "").trim() || roomName;
+      if (typeof cachedRoomInfo.spaceId === "number" && cachedRoomInfo.spaceId > 0) {
+        roomSpaceId = cachedRoomInfo.spaceId;
+      }
+    }
+
+    if (roomSpaceId == null) {
+      const roomListQueries = queryClient.getQueriesData<ApiResultRoomListResponse>({ queryKey: ["getUserRooms"] });
+      for (const [, queryData] of roomListQueries) {
+        const rooms = queryData?.data?.rooms;
+        if (!Array.isArray(rooms)) {
+          continue;
+        }
+        const matchedRoom = rooms.find(r => r?.roomId === message.roomId);
+        if (!matchedRoom) {
+          continue;
+        }
+        roomName = (matchedRoom.name ?? "").trim() || roomName;
+        if (typeof matchedRoom.spaceId === "number" && matchedRoom.spaceId > 0) {
+          roomSpaceId = matchedRoom.spaceId;
+        }
+        break;
+      }
+    }
+
+    if (roomSpaceId == null) {
+      try {
+        const roomInfoResp = await tuanchat.roomController.getRoomInfo(message.roomId);
+        const roomInfo = roomInfoResp.data;
+        if (roomInfo) {
+          queryClient.setQueryData(["getRoomInfo", message.roomId], roomInfoResp);
+          roomName = (roomInfo.name ?? "").trim() || roomName;
+          if (typeof roomInfo.spaceId === "number" && roomInfo.spaceId > 0) {
+            roomSpaceId = roomInfo.spaceId;
+          }
+        }
+      }
+      catch {
+        // ignore
+      }
+    }
+
+    let senderInfo = queryClient.getQueryData<ApiResultUserInfoResponse>(["getUserInfo", message.userId])?.data;
+    if (!senderInfo) {
+      try {
+        const userResp = await tuanchat.userController.getUserInfo(message.userId);
+        senderInfo = userResp.data;
+        queryClient.setQueryData(["getUserInfo", message.userId], userResp);
+      }
+      catch {
+        // ignore
+      }
+    }
+
+    const senderName = senderInfo?.username || `用户${message.userId}`;
+    const senderAvatar = senderInfo?.avatar || senderInfo?.avatarThumbUrl;
+    const previewText = getGroupMessagePreview(chatMessageResponse);
+    const targetPath = roomSpaceId == null ? null : `/chat/${roomSpaceId}/${message.roomId}`;
+
+    toast.custom(
+      t => (
+        <div className={t.visible ? "animate-enter" : "animate-leave"}>
+          <GroupMessageToastContent
+            toastId={t.id}
+            targetPath={targetPath}
+            roomName={roomName}
+            senderName={senderName}
+            senderAvatar={senderAvatar}
+            previewText={previewText}
+          />
+        </div>
+      ),
+      {
+        id: toastId,
+        position: "top-center",
+        duration: 7000,
+      },
+    );
+  }, [queryClient, resolveSelfUserId]);
 
   /**
    * 对收到的消息，按照type进行分类处理
@@ -576,7 +980,15 @@ export function useWebSocket() {
           // ignore
         }
 
-        handleUnauthorized({ source: "ws" });
+        void recoverAuthTokenFromSession(import.meta.env.VITE_API_BASE_URL).then((recoveredToken) => {
+          if (recoveredToken) {
+            closingRef.current = false;
+            reconnectAttempts.current = 0;
+            connect();
+            return;
+          }
+          handleUnauthorized({ source: "ws" });
+        });
         break;
       }
       default: {
@@ -628,32 +1040,51 @@ export function useWebSocket() {
         messagesToAdd.push(chatMessageResponse);
       }
 
-      // --- BGM 同步播放：在把消息写入本地缓存前先触发播放/停止副作用 ---
+      // --- 音频自动播放同步：在把消息写入本地缓存前先记录自动播放/停止事件 ---
       for (const msg of messagesToAdd) {
         const m = msg?.message;
         if (!m)
           continue;
 
-        // (1) KP 发起 BGM：SOUND + purpose=bgm
+        // (1) SOUND 自动播放：根据 purpose/标注/标签识别 bgm 或 se
         if (m.messageType === MessageType.SOUND) {
           const sound = (m.extra as any)?.soundMessage ?? (m.extra as any);
-          const purpose = sound?.purpose;
-          const url = sound?.url;
-          if (purpose === "bgm" && typeof url === "string" && url) {
-            void useBgmStore.getState().onBgmStartFromWs(m.roomId, {
-              url,
-              volume: sound?.volume,
-              fileName: sound?.fileName,
-              messageId: m.messageId,
-            });
+          const url = typeof sound?.url === "string" ? sound.url.trim() : "";
+          if (url && typeof m.messageId === "number") {
+            const rawPurpose = typeof sound?.purpose === "string"
+              ? sound.purpose.trim().toLowerCase()
+              : "";
+            const annotations = Array.isArray(m.annotations) ? m.annotations : [];
+            const hasBgmAnnotation = annotations.some(item => typeof item === "string" && item.toLowerCase() === "sys:bgm");
+            const hasSeAnnotation = annotations.some(item => typeof item === "string" && item.toLowerCase() === "sys:se");
+            const content = (m.content ?? "").toString();
+            const purpose = rawPurpose === "bgm" || hasBgmAnnotation || content.includes("[播放BGM]")
+              ? "bgm"
+              : rawPurpose === "se" || hasSeAnnotation || content.includes("[播放音效]")
+                ? "se"
+                : undefined;
+            if (purpose) {
+              useAudioMessageAutoPlayStore.getState().enqueueFromWs({
+                roomId: m.roomId,
+                messageId: m.messageId,
+                purpose,
+              });
+              if (purpose === "bgm") {
+                void requestPlayBgmMessageWithUrl(m.roomId, m.messageId, url);
+              }
+            }
           }
         }
 
-        // (2) KP ֹͣȫԱ BGM：SYSTEM 且 content 包含 [ֹͣBGM]
+        // (2) KP 停止全员 BGM：SYSTEM 且内容包含停止指令
         if (m.messageType === MessageType.SYSTEM) {
           const content = (m.content ?? "").toString();
-          if (content.includes("[ֹͣBGM]")) {
-            useBgmStore.getState().onBgmStopFromWs(m.roomId);
+          if (
+            content.includes("[ֹͣBGM]")
+            || content.includes("[停止全员BGM]")
+            || content.includes("[停止BGM]")
+          ) {
+            useAudioMessageAutoPlayStore.getState().markBgmStopFromWs(m.roomId);
           }
         }
       }
@@ -673,6 +1104,8 @@ export function useWebSocket() {
           handleChatStatusChange({roomId, userId: sendingUserId, status:"idle"});
         }, 500); // 延迟500ms再设置为空闲
       }
+
+      void notifyNewGroupMessage(chatMessageResponse);
     }
   };
   /**
@@ -681,10 +1114,7 @@ export function useWebSocket() {
   const handleDirectChatMessage = (message: DirectMessageEvent) => {
     const {receiverId, senderId} = message;
     // receivedDirectMessages 需要按“对端 contactId”分组。
-    // 某些时机 globalContext.userId 可能尚未初始化，这里用本地缓存 uid 兜底。
-    const uidRaw = localStorage.getItem("uid");
-    const uidFallback = uidRaw && !Number.isNaN(Number(uidRaw)) ? Number(uidRaw) : 0;
-    const selfUserId = globalContext.userId ?? uidFallback;
+    const selfUserId = resolveSelfUserId(message.userId);
     const channelId = selfUserId === senderId
       ? receiverId
       : (selfUserId === receiverId ? senderId : senderId);
@@ -722,6 +1152,10 @@ export function useWebSocket() {
         queryClient.invalidateQueries({ queryKey: ["friendList"] });
         queryClient.invalidateQueries({ queryKey: ["friendRequestPage"] });
         queryClient.invalidateQueries({ queryKey: ["friendCheck"] });
+      }
+
+      if (message.senderId !== selfUserId) {
+        void notifyNewDirectMessage(message, selfUserId);
       }
     }
   };
@@ -764,17 +1198,24 @@ export function useWebSocket() {
    * 聊天状态控制 (type: 4)
    */
   const send = useCallback(async (request: WsMessage<any>) => {
+    if (!readCurrentToken()) {
+      return;
+    }
+
     if (!isConnected()) {
       connect();
     }
     console.log("发送消息: ",request);
-    for (let i = 0; i < 1000; i++) {
+    for (let i = 0; i < 50; i++) {
       if (wsRef.current?.readyState === WebSocket.OPEN)
         break;
       await new Promise(resolve => setTimeout(resolve, 100));
     }
-    wsRef?.current?.send(JSON.stringify(request));
-  }, [connect, isConnected]);
+    if (wsRef.current?.readyState !== WebSocket.OPEN) {
+      return;
+    }
+    wsRef.current.send(JSON.stringify(request));
+  }, [connect, isConnected, readCurrentToken]);
 
   const webSocketUtils: WebsocketUtils = useMemo(() => ({
     connect,

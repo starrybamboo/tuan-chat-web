@@ -1,6 +1,7 @@
 import type { RoleAvatar } from "api";
 import type { PixelCrop } from "react-image-crop";
 import type { Transform } from "../TransformControl";
+import type { PreviewAnchorPosition } from "../../Preview/previewAnchor";
 import type { ImageLoadContext } from "@/utils/imgCropper";
 import { useApplyCropAvatarMutation, useApplyCropMutation, useUpdateAvatarTransformMutation } from "api/hooks/RoleAndAvatarHooks";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
@@ -172,6 +173,7 @@ export function SpriteCropper({
     ? `avatar:${filteredAvatars[currentSpriteIndex]?.avatarId ?? currentSpriteIndex}:source:${sourceMode}`
     : `url:${currentUrl}:source:${sourceMode}`;
   const latestSwitchKeyRef = useRef<string>(spriteSwitchKey);
+  const lastResetSourceUrlRef = useRef<string | null>(null);
   const [previewReadyKey, setPreviewReadyKey] = useState<string>("");
   const isPreviewReady = previewReadyKey === spriteSwitchKey;
 
@@ -204,6 +206,7 @@ export function SpriteCropper({
     alpha: 1,
     rotation: 0,
   }));
+  const [previewAnchorPosition, setPreviewAnchorPosition] = useState<PreviewAnchorPosition>("center");
 
   // 添加渲染key用于强制重新渲染
   const [renderKey, setRenderKey] = useState(0);
@@ -256,6 +259,17 @@ export function SpriteCropper({
 
   // 切换裁剪源/图片时重置裁剪状态，避免沿用旧的 crop 尺寸导致“看起来没切换”
   useLayoutEffect(() => {
+    // 首次挂载不重置，避免与初始化 onLoad 竞争导致 completedCrop 被清空。
+    if (lastResetSourceUrlRef.current === null) {
+      lastResetSourceUrlRef.current = currentUrl;
+      return;
+    }
+
+    if (lastResetSourceUrlRef.current === currentUrl) {
+      return;
+    }
+
+    lastResetSourceUrlRef.current = currentUrl;
     resetCropState();
     setPreviewReadyKey("");
   }, [currentUrl, resetCropState]);
@@ -1003,6 +1017,7 @@ export function SpriteCropper({
                               <RenderPreview
                                 previewCanvasRef={previewCanvasRef}
                                 transform={transform}
+                                anchorPosition={previewAnchorPosition}
                                 characterName={characterName}
                                 dialogContent="这是一段示例对话内容。"
                               />
@@ -1011,6 +1026,8 @@ export function SpriteCropper({
                             <TransformControl
                               transform={transform}
                               setTransform={setDisplayTransform}
+                              anchorPosition={previewAnchorPosition}
+                              setAnchorPosition={setPreviewAnchorPosition}
                             />
                           </div>
                         </>

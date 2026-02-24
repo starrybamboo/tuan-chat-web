@@ -24,11 +24,26 @@ import { emitWebgalAvatarUpdated } from "../../app/webGAL/avatarSync";
 
 import {
   type ApiResultRoleAbility,
+  type ApiResultUserRole,
   type ApiResultRoleAvatar,
   type UserInfoResponse,
   type RoleCreateRequest
 } from "api";
 import type { Role } from '@/components/Role/types';
+
+function getErrorStatusCode(error: unknown): number | undefined {
+  const e = error as any;
+  return e?.status ?? e?.response?.status;
+}
+
+function shouldRetryRoleQuery(failureCount: number, error: unknown): boolean {
+  const statusCode = getErrorStatusCode(error);
+  // 角色不存在等 4xx 客户端错误不重试，避免同一 roleId 连续发起多次失败请求。
+  if (statusCode && statusCode >= 400 && statusCode < 500) {
+    return false;
+  }
+  return failureCount < 2;
+}
 
 function upsertRoleAvatarQueryCaches(queryClient: any, avatar: RoleAvatar, roleId?: number): void {
   const avatarId = avatar.avatarId;
@@ -75,6 +90,8 @@ export function useGetRoleQuery(roleId: number) {
     queryKey: ['getRole', roleId],
     queryFn: () => tuanchat.roleController.getRole(roleId),
     staleTime: 600000, // 10分钟缓存
+    retry: shouldRetryRoleQuery,
+    retryOnMount: false,
     enabled: typeof roleId === 'number' && !isNaN(roleId) && roleId > 0
   });
 }
@@ -88,6 +105,8 @@ export function useGetRolesQueries(roleIds: number[]) {
       queryKey: ["getRole", roleId],
       queryFn: () => tuanchat.roleController.getRole(roleId),
       staleTime: 600000, // 10分钟缓存
+      retry: shouldRetryRoleQuery,
+      retryOnMount: false,
       enabled: typeof roleId === 'number' && !isNaN(roleId) && roleId > 0
     }))
   });
@@ -195,151 +214,71 @@ export function useDeleteRolesMutation(onSuccess?: () => void) {
   });
 }
 
-// 复制角色，保持与角色模块的 hooks 汇总
-export type TargetType = "dicer" | "normal";
-
-function deepCopy<T>(obj: T): T {
-  return JSON.parse(JSON.stringify(obj));
-}
-
-function cleanDicerFields(obj: any): any {
-  if (!obj) return obj;
-  const cleaned = deepCopy(obj);
-  if (cleaned.extra && typeof cleaned.extra === "object") {
-    delete cleaned.extra.dicerRoleId;
-  }
-  return cleaned;
-}
+// 复制角色：统一走后端 /role/copy（当前后端仅支持复制为骰娘）
+export type TargetType = "dicer";
 
 interface CopyRoleArgs {
   sourceRole: Role;
-  targetType: TargetType;
-  newName: string;
-  newDescription: string;
+  targetType?: TargetType;
+  newName?: string;
+  newDescription?: string;
 }
 
 export function useCopyRoleMutation() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationKey: ["copyRole"],
-    mutationFn: async ({ sourceRole, targetType, newName, newDescription }: CopyRoleArgs): Promise<Role> => {
-      const isSameType = sourceRole.type === (targetType === "dicer" ? 1 : 0);
+    mutationFn: async ({ sourceRole, targetType = "dicer", newName, newDescription }: CopyRoleArgs): Promise<Role> => {
+      if (targetType !== "dicer") {
+        throw new Error("后端当前仅支持复制为骰娘");
+      }
 
-      // 1. 创建新角色
-      const createRes = await tuanchat.roleController.createRole({
-        roleName: newName,
-        description: newDescription,
-        type: targetType === "dicer" ? 1 : 0,
+      const copyRes = await tuanchat.request.request<ApiResultUserRole>({
+        method: "POST",
+        url: "/role/copy",
+        body: {
+          sourceRoleId: sourceRole.id,
+          newRoleName: newName?.trim() || undefined,
+          newRoleDescription: newDescription?.trim() || undefined,
+          targetType: 1,
+        },
+        mediaType: "application/json",
       });
-      const newRoleId = createRes?.data;
-      if (!createRes?.success || !newRoleId || newRoleId <= 0) {
-        throw new Error("角色创建失败");
+
+      const copiedRole = copyRes?.data;
+      if (!copyRes?.success || !copiedRole?.roleId) {
+        throw new Error(copyRes?.errMsg || "角色复制失败");
       }
 
-      let finalAvatarUrl = "/favicon.ico";
-      let finalAvatarId: number | undefined;
-
-      // 2. 复制所有头像（并行 + 容错）
-      try {
-        const sourceAvatarsRes = await tuanchat.avatarController.getRoleAvatars(sourceRole.id);
-        const avatarList = sourceAvatarsRes?.data || [];
-
-        const copyTasks = avatarList.map((sourceAvatar: any) => (async () => {
-          const setRes = await tuanchat.avatarController.setRoleAvatar({ roleId: newRoleId });
-          const newAvatarId = setRes?.data;
-          if (!newAvatarId) throw new Error("创建新头像失败");
-
-          await tuanchat.avatarController.updateRoleAvatar({
-            roleId: newRoleId,
-            avatarId: newAvatarId,
-            avatarUrl: sourceAvatar.avatarUrl,
-            spriteUrl: sourceAvatar.spriteUrl || "",
-            spriteXPosition: sourceAvatar.spriteXPosition ?? 0,
-            spriteYPosition: sourceAvatar.spriteYPosition ?? 0,
-            spriteScale: sourceAvatar.spriteScale ?? 1,
-            spriteTransparency: sourceAvatar.spriteTransparency ?? 1,
-            spriteRotation: sourceAvatar.spriteRotation ?? 0,
-          });
-
-          return {
-            sourceAvatarId: sourceAvatar.avatarId as number | undefined,
-            newAvatarId: newAvatarId as number,
-            avatarUrl: sourceAvatar.avatarUrl as string,
-          };
-        })());
-
-        const results = await Promise.allSettled(copyTasks);
-        const successes: Array<{ sourceAvatarId?: number; newAvatarId: number; avatarUrl: string }> = [];
-        const failures: Array<any> = [];
-
-        results.forEach((res, idx) => {
-          if (res.status === "fulfilled") successes.push(res.value);
-          else failures.push({ index: idx, reason: res.reason });
-        });
-
-        if (failures.length > 0) {
-          console.warn(`部分头像复制失败，共 ${failures.length} 个`, failures);
-        }
-
-        const matched = successes.find(s => s.sourceAvatarId && s.sourceAvatarId === sourceRole.avatarId);
-        const chosen = matched ?? successes[0];
-        if (chosen) {
-          await tuanchat.roleController.updateRole({ roleId: newRoleId, avatarId: chosen.newAvatarId });
-          finalAvatarUrl = chosen.avatarUrl;
-          finalAvatarId = chosen.newAvatarId;
-        }
-      } catch (e) {
-        console.error("复制头像失败", e);
-      }
-
-      // 3. 同类型复制能力
-      if (isSameType) {
+      let avatarUrl = sourceRole.avatar || "/favicon.ico";
+      let avatarThumb = sourceRole.avatarThumb || avatarUrl;
+      const copiedAvatarId = copiedRole.avatarId ?? 0;
+      if (copiedAvatarId > 0) {
         try {
-          const sourceAbilitiesRes = await tuanchat.abilityController.listRoleAbility(sourceRole.id);
-          const sourceAbilities = sourceAbilitiesRes?.data || [];
-
-          for (const ability of sourceAbilities) {
-            const newAbilityData = deepCopy({
-              act: ability.act || {},
-              basic: ability.basic || {},
-              ability: ability.ability || {},
-              skill: ability.skill || {},
-              extra: ability.extra || {},
-            });
-
-            if (ability.ruleId !== undefined) {
-              await tuanchat.abilityController.setRoleAbility({
-                ruleId: ability.ruleId,
-                roleId: newRoleId,
-                act: newAbilityData.act,
-                basic: newAbilityData.basic,
-                ability: newAbilityData.ability,
-                skill: newAbilityData.skill,
-                extra: newAbilityData.extra,
-              });
-            }
+          const avatarRes = await tuanchat.avatarController.getRoleAvatar(copiedAvatarId);
+          if (avatarRes?.success && avatarRes.data) {
+            avatarUrl = avatarRes.data.avatarUrl || avatarUrl;
+            avatarThumb = avatarRes.data.avatarThumbUrl || avatarUrl;
           }
-        } catch (e) {
-          console.error("复制能力数据失败", e);
         }
-      } else {
-        // 异类型复制：不创建能力组，仅清除骰娘专有字段，留空以便后续用户手动添加
+        catch (error) {
+          console.warn("复制角色后获取头像失败", error);
+        }
       }
 
-      const newRole: Role = {
-        id: newRoleId,
-        name: newName,
-        description: newDescription,
-        avatar: finalAvatarUrl,
-        avatarId: finalAvatarId ?? 0,
-        type: targetType === "dicer" ? 1 : 0,
-        modelName: sourceRole.modelName,
-        speakerName: sourceRole.speakerName,
-        voiceUrl: sourceRole.voiceUrl,
-        extra: isSameType ? sourceRole.extra : cleanDicerFields(sourceRole.extra),
+      return {
+        id: copiedRole.roleId,
+        name: copiedRole.roleName || newName || sourceRole.name,
+        description: copiedRole.description || newDescription || sourceRole.description || "",
+        avatar: avatarUrl,
+        avatarThumb,
+        avatarId: copiedAvatarId,
+        type: copiedRole.type,
+        modelName: copiedRole.modelName || sourceRole.modelName,
+        speakerName: copiedRole.speakerName || sourceRole.speakerName,
+        voiceUrl: copiedRole.voiceUrl || sourceRole.voiceUrl,
+        extra: copiedRole.extra ?? sourceRole.extra,
       };
-
-      return newRole;
     },
     onSuccess: (newRole) => {
       // 统一失效相关查询
@@ -609,6 +548,7 @@ export function useApplyCropMutation() {
           roleId: roleId,
           avatarId,
           avatarUrl: currentAvatar.avatarUrl, // 保持原有的avatarUrl
+          avatarThumbUrl: currentAvatar.avatarThumbUrl,
           spriteUrl: newSpriteUrl, // 使用新的spriteUrl
           spriteXPosition: finalTransform.positionX,
           spriteYPosition: finalTransform.positionY,
@@ -680,7 +620,10 @@ export function useApplyCropAvatarMutation() {
         // 使用UploadUtils上传图片，场景2表示头像
         const { UploadUtils } = await import('../../app/utils/UploadUtils');
         const uploadUtils = new UploadUtils();
-        const newAvatarUrl = await uploadUtils.uploadImg(croppedFile, 2, 0.9, 2560);
+        const [newAvatarUrl, newAvatarThumbUrl] = await Promise.all([
+          uploadUtils.uploadImg(croppedFile, 2, 0.9, 2560),
+          uploadUtils.uploadImg(croppedFile, 2, 0.8, 128),
+        ]);
 
         console.log("头像图片上传成功，新URL:", newAvatarUrl);
 
@@ -689,6 +632,7 @@ export function useApplyCropAvatarMutation() {
           roleId: roleId,
           avatarId,
           avatarUrl: newAvatarUrl, // 使用新的avatarUrl
+          avatarThumbUrl: newAvatarThumbUrl,
         });
 
         if (!updateRes.success) {
@@ -743,6 +687,7 @@ export function useUpdateAvatarTransformMutation() {
           roleId: roleId,
           avatarId,
           avatarUrl: currentAvatar.avatarUrl,
+          avatarThumbUrl: currentAvatar.avatarThumbUrl,
           spriteUrl: currentAvatar.spriteUrl,
           spriteXPosition: t.positionX,
           spriteYPosition: t.positionY,
@@ -790,13 +735,15 @@ export function useUpdateAvatarTransformMutation() {
 
 export function useUploadAvatarMutation() {
   const queryClient = useQueryClient();
-  return useMutation<ApiResultRoleAvatar | undefined, Error, { avatarUrl: string; spriteUrl: string; roleId: number; originUrl?: string; transform?: Transform; autoApply?: boolean; autoNameFirst?: boolean; }>({
+  return useMutation<ApiResultRoleAvatar | undefined, Error, { avatarUrl: string; avatarThumbUrl?: string; spriteUrl: string; roleId: number; originUrl?: string; transform?: Transform; autoApply?: boolean; autoNameFirst?: boolean; }>({
     mutationKey: ["uploadAvatar"],
-    mutationFn: async ({ avatarUrl, spriteUrl, roleId, originUrl, transform, autoApply = true, autoNameFirst = false }) => {
+    mutationFn: async ({ avatarUrl, avatarThumbUrl, spriteUrl, roleId, originUrl, transform, autoApply = true, autoNameFirst = false }) => {
       if (!avatarUrl || !roleId || !spriteUrl) {
         console.error("参数错误：avatarUrl 或 roleId 为空");
         return undefined;
       }
+
+      const resolvedAvatarThumbUrl = avatarThumbUrl || avatarUrl;
 
       console.log("useUploadAvatarMutation: 开始上传", {
         hasTransform: !!transform,
@@ -804,6 +751,7 @@ export function useUploadAvatarMutation() {
         autoApply,
         autoNameFirst,
         avatarUrl: avatarUrl.substring(0, 50) + "...",
+        avatarThumbUrl: resolvedAvatarThumbUrl.substring(0, 50) + "...",
         spriteUrl: spriteUrl.substring(0, 50) + "...",
         originUrl: originUrl ? originUrl.substring(0, 50) + "..." : undefined,
       });
@@ -833,6 +781,7 @@ export function useUploadAvatarMutation() {
             roleId: roleId,
             avatarId,
             avatarUrl,
+            avatarThumbUrl: resolvedAvatarThumbUrl,
             spriteUrl,
             originUrl,
             spriteXPosition: t.positionX,
@@ -854,12 +803,14 @@ export function useUploadAvatarMutation() {
               avatarId,
               request: {
                 spriteUrl: spriteUrl ? `${spriteUrl.substring(0, 80)}...` : undefined,
+                avatarThumbUrl: resolvedAvatarThumbUrl ? `${resolvedAvatarThumbUrl.substring(0, 80)}...` : undefined,
                 originUrl: originUrl ? `${originUrl.substring(0, 80)}...` : undefined,
                 originEqualsSprite: !!originUrl && originUrl === spriteUrl,
               },
               saved: saved
                 ? {
                     spriteUrl: saved.spriteUrl ? `${saved.spriteUrl.substring(0, 80)}...` : undefined,
+                    avatarThumbUrl: saved.avatarThumbUrl ? `${saved.avatarThumbUrl.substring(0, 80)}...` : undefined,
                     originUrl: saved.originUrl ? `${saved.originUrl.substring(0, 80)}...` : undefined,
                     originEqualsSprite: !!saved.originUrl && saved.originUrl === saved.spriteUrl,
                   }

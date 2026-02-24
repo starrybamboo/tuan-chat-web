@@ -1,10 +1,11 @@
 import { useState } from "react";
 
-import type { UserInfoResponse } from "../../../../../api";
+import type { UserProfileInfoResponse } from "../../../../../api/models/UserProfileInfoResponse";
+import type { UserUpdateInfoRequest } from "../../../../../api/models/UserUpdateInfoRequest";
 
 import { useUpdateUserInfoMutation } from "../../../../../api/hooks/UserHooks";
 
-export function useProfileEditing(user: UserInfoResponse | undefined) {
+export function useProfileEditing(user: UserProfileInfoResponse | undefined) {
   // 内联编辑状态
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [editingUsername, setEditingUsername] = useState("");
@@ -21,13 +22,17 @@ export function useProfileEditing(user: UserInfoResponse | undefined) {
   };
 
   const saveProfile = async () => {
+    if (!user) {
+      return;
+    }
     if (editingUsername.trim() && editingUsername.length <= 30 && editingDescription.length <= 253) {
       try {
-        await updateUserInfoMutation.mutateAsync({
-          ...user,
+        const payload: UserUpdateInfoRequest = {
+          userId: user.userId,
           username: editingUsername.trim(),
           description: editingDescription.trim(),
-        } as UserInfoResponse);
+        };
+        await updateUserInfoMutation.mutateAsync(payload);
         setIsEditingProfile(false);
       }
       catch (error) {
@@ -44,14 +49,18 @@ export function useProfileEditing(user: UserInfoResponse | undefined) {
 
   // 头像上传即时保存
   const handleAvatarUpdate = (newAvatarUrl: string) => {
-    updateUserInfoMutation.mutate({
-      ...user,
+    if (!user) {
+      return;
+    }
+    const payload: UserUpdateInfoRequest = {
+      userId: user.userId,
       avatar: newAvatarUrl,
-    } as UserInfoResponse);
+    };
+    updateUserInfoMutation.mutate(payload);
   };
 
   return {
-    // ״̬
+    // 状态
     isEditingProfile,
     editingUsername,
     editingDescription,
@@ -66,7 +75,7 @@ export function useProfileEditing(user: UserInfoResponse | undefined) {
     cancelEditingProfile,
     handleAvatarUpdate,
 
-    // API״̬
+    // API状态
     isSaving: updateUserInfoMutation.isPending,
   };
 }
