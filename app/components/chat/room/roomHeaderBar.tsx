@@ -32,6 +32,9 @@ interface RoomHeaderBarProps {
 
 const MOBILE_HEADER_AUTO_HIDE_MS = 2600;
 const MOBILE_HEADER_HIDE_RETRY_MS = 300;
+const MOBILE_SCROLL_GESTURE_ACTIVE_MS = 900;
+const MOBILE_KEYBOARD_SCROLL_SUPPRESS_MS = 700;
+const MOBILE_KEYBOARD_HEIGHT_DELTA_PX = 80;
 
 function RoomHeaderBarImpl({
   roomName,
@@ -219,6 +222,12 @@ function RoomHeaderBarImpl({
     }
 
     const lastTopByTarget = new WeakMap<object, number>();
+    let isTouchTracking = false;
+    let lastTouchY = 0;
+    let lastManualUpGestureAt = 0;
+    let suppressHeaderRevealUntil = 0;
+    let lastVisualViewportHeight = window.visualViewport?.height ?? null;
+
     const readScrollTop = (target: EventTarget | null): { key: object | null; top: number } => {
       if (target instanceof HTMLElement) {
         return { key: target, top: target.scrollTop };
@@ -243,13 +252,69 @@ function RoomHeaderBarImpl({
       }
       // 向上滚动（scrollTop 下降）时临时显示 header
       if (prevTop - top > 8) {
+        const now = Date.now();
+        if (now < suppressHeaderRevealUntil) {
+          return;
+        }
+        if (now - lastManualUpGestureAt > MOBILE_SCROLL_GESTURE_ACTIVE_MS) {
+          return;
+        }
         showMobileHeaderTemporarily();
       }
     };
 
+    const handleTouchStart = (event: TouchEvent) => {
+      if (event.touches.length !== 1) {
+        isTouchTracking = false;
+        return;
+      }
+      isTouchTracking = true;
+      lastTouchY = event.touches[0].clientY;
+    };
+
+    const handleTouchMove = (event: TouchEvent) => {
+      if (!isTouchTracking || event.touches.length !== 1) {
+        return;
+      }
+      const currentY = event.touches[0].clientY;
+      const deltaY = currentY - lastTouchY;
+      lastTouchY = currentY;
+      // 手指向下拖动 => 内容向上（scrollTop 下降）
+      if (deltaY > 2) {
+        lastManualUpGestureAt = Date.now();
+      }
+    };
+
+    const handleTouchEnd = () => {
+      isTouchTracking = false;
+    };
+
+    const handleVisualViewportResize = () => {
+      const viewport = window.visualViewport;
+      if (!viewport) {
+        return;
+      }
+      const nextHeight = viewport.height;
+      if (typeof lastVisualViewportHeight === "number" && nextHeight - lastVisualViewportHeight >= MOBILE_KEYBOARD_HEIGHT_DELTA_PX) {
+        suppressHeaderRevealUntil = Date.now() + MOBILE_KEYBOARD_SCROLL_SUPPRESS_MS;
+      }
+      lastVisualViewportHeight = nextHeight;
+    };
+
     document.addEventListener("scroll", handleScrollCapture, { capture: true, passive: true });
+    document.addEventListener("touchstart", handleTouchStart, { capture: true, passive: true });
+    document.addEventListener("touchmove", handleTouchMove, { capture: true, passive: true });
+    document.addEventListener("touchend", handleTouchEnd, { capture: true, passive: true });
+    document.addEventListener("touchcancel", handleTouchEnd, { capture: true, passive: true });
+    window.visualViewport?.addEventListener("resize", handleVisualViewportResize);
+
     return () => {
       document.removeEventListener("scroll", handleScrollCapture, true);
+      document.removeEventListener("touchstart", handleTouchStart, true);
+      document.removeEventListener("touchmove", handleTouchMove, true);
+      document.removeEventListener("touchend", handleTouchEnd, true);
+      document.removeEventListener("touchcancel", handleTouchEnd, true);
+      window.visualViewport?.removeEventListener("resize", handleVisualViewportResize);
     };
   }, [isMobile, showMobileHeaderTemporarily]);
 
