@@ -80,7 +80,7 @@ export async function completeRoleCreation(
   let avatarId: number | undefined;
   let avatarUrl: string | undefined;
   try {
-    const avatarRes = await uploadAvatar({ avatarUrl: "/favicon.ico", spriteUrl: "/favicon.ico", roleId });
+    const avatarRes = await uploadAvatar({ avatarUrl: "/role-default-avatar.png", spriteUrl: "/role-default-avatar.png", roleId });
     const responseAvatarId = avatarRes?.data?.avatarId;
     avatarId = typeof responseAvatarId === "number" ? responseAvatarId : undefined;
     avatarUrl = avatarRes?.data?.avatarUrl;
@@ -106,7 +106,7 @@ export async function completeRoleCreation(
     id: roleId,
     name: trimmedName,
     description: trimmedDescription,
-    avatar: avatarUrl || "/favicon.ico",
+    avatar: avatarUrl || "/role-default-avatar.png",
     avatarId: avatarId ?? 0,
     modelName: "散华",
     speakerName: "鸣潮",

@@ -66,7 +66,7 @@ export default function CharacterAvatar({
           }`}
           />
           <img
-            src={selectedAvatarUrl || "./favicon.ico"}
+            src={selectedAvatarUrl || "/role-default-avatar.png"}
             alt="Character Avatar"
             className={`object-cover transition-transform duration-300 ${editable ? "group-hover:scale-105" : ""}`}
           />

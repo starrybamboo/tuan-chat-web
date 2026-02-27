@@ -22,7 +22,7 @@ function DiceMaidenRoleItem({
   onSelect: () => void;
 }) {
   const avatarQuery = useGetRoleAvatarQuery(role.avatarId || 0);
-  const avatarUrl = avatarQuery.data?.data?.avatarUrl || "/favicon.ico";
+  const avatarUrl = avatarQuery.data?.data?.avatarUrl || "/role-default-avatar.png";
 
   return (
     <div
@@ -67,7 +67,7 @@ function ManualRolePreview({ roleId }: { roleId: number }) {
   const { data: roleData } = useGetRoleQuery(roleId);
   const role = roleData?.data;
   const avatarQuery = useGetRoleAvatarQuery(role?.avatarId || 0);
-  const avatarUrl = avatarQuery.data?.data?.avatarUrl || "/favicon.ico";
+  const avatarUrl = avatarQuery.data?.data?.avatarUrl || "/role-default-avatar.png";
 
   if (!role)
     return null;

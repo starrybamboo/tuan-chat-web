@@ -15,7 +15,7 @@ export function RoleListItem({
   onDelete,
   isSelectionMode,
 }: RoleListItemProps) {
-  const avatarSrc = role.avatarThumb || role.avatar || "/favicon.ico";
+  const avatarSrc = role.avatarThumb || role.avatar || "/role-default-avatar.png";
 
   return (
     // 3. 从根 div 中移除 onClick 事件
