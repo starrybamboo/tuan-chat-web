@@ -48,8 +48,8 @@ export default function CreateDicerRole({ onBack, onComplete }: CreateDicerRoleP
       // 2. 上传默认头像
       const avatarResult = await uploadAvatar({
         roleId,
-        avatarUrl: "/favicon.ico",
-        spriteUrl: "/favicon.ico",
+        avatarUrl: "/role-default-avatar.png",
+        spriteUrl: "/role-default-avatar.png",
       });
 
       // 3. 构建新角色对象
@@ -57,7 +57,7 @@ export default function CreateDicerRole({ onBack, onComplete }: CreateDicerRoleP
         id: roleId,
         name: trimmedName,
         description: trimmedDescription,
-        avatar: avatarResult?.data?.avatarUrl || "/favicon.ico",
+        avatar: avatarResult?.data?.avatarUrl || "/role-default-avatar.png",
         avatarId: avatarResult?.data?.avatarId || 0,
         type: 1,
         modelName: "",

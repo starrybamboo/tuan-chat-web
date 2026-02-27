@@ -262,7 +262,7 @@ export function useCopyRoleMutation() {
         throw new Error(copyRes?.errMsg || "角色复制失败");
       }
 
-      let avatarUrl = sourceRole.avatar || "/favicon.ico";
+      let avatarUrl = sourceRole.avatar || "/role-default-avatar.png";
       let avatarThumb = sourceRole.avatarThumb || avatarUrl;
       const copiedAvatarId = copiedRole.avatarId ?? 0;
       if (copiedAvatarId > 0) {

@@ -51,7 +51,7 @@ function AvatarPreviewComponent({
 }: AvatarPreviewProps) {
   // 不在渲染路径中导出 canvas 的 dataURL，改为直接在聊天气泡中使用源 canvas（通过 ref 复制）
   // displayAvatarUrl 仍可用作 image 模式的后备
-  const displayAvatarUrl = currentAvatarUrl || "/favicon.ico";
+  const displayAvatarUrl = currentAvatarUrl || "/role-default-avatar.png";
 
   // 本地状态：在气泡样式和传统样式之间切换（当两者都可用时）
   const [selectedStyle, setSelectedStyle] = React.useState<"bubble" | "traditional">(() =>

@@ -133,7 +133,7 @@ export function Sidebar({
 
           const res = await tuanchat.avatarController.getRoleAvatar(role.avatarId);
           if (res.success && res.data) {
-            const avatarUrl = res.data.avatarUrl || "/favicon.ico";
+            const avatarUrl = res.data.avatarUrl || "/role-default-avatar.png";
             const avatarThumbUrl = res.data.avatarThumbUrl || avatarUrl;
             // 将头像URL缓存到React Query缓存中
             queryClient.setQueryData(["roleAvatar", role.id], { avatar: avatarUrl, avatarThumb: avatarThumbUrl, avatarId: role.avatarId });
@@ -177,8 +177,8 @@ export function Sidebar({
   //       return;
   //     }
   //     const res = await uploadAvatar({
-  //       avatarUrl: "/favicon.ico",
-  //       spriteUrl: "/favicon.ico",
+  //       avatarUrl: "/role-default-avatar.png",
+  //       spriteUrl: "/role-default-avatar.png",
   //       roleId: data,
   //     });
   //     if (res?.data?.avatarId) {

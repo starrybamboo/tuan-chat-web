@@ -113,7 +113,7 @@ function CharacterDetailInner({
       : undefined;
 
     return {
-      selectedAvatarUrl: avatarFromList?.avatarUrl ?? localRole.avatar ?? "/favicon.ico",
+      selectedAvatarUrl: avatarFromList?.avatarUrl ?? localRole.avatar ?? "/role-default-avatar.png",
       selectedSpriteUrl: avatarFromList?.spriteUrl ?? "",
     };
   }, [localRole.avatarId, localRole.avatar, roleAvatars]);
