@@ -1,4 +1,5 @@
 import React from "react";
+import { ROLE_DEFAULT_AVATAR_URL } from "@/constants/defaultAvatar";
 import { DisplayChatBubble } from "./displayChatBubble";
 
 /**
@@ -51,7 +52,7 @@ function AvatarPreviewComponent({
 }: AvatarPreviewProps) {
   // 不在渲染路径中导出 canvas 的 dataURL，改为直接在聊天气泡中使用源 canvas（通过 ref 复制）
   // displayAvatarUrl 仍可用作 image 模式的后备
-  const displayAvatarUrl = currentAvatarUrl || "/role-default-avatar.png";
+  const displayAvatarUrl = currentAvatarUrl || ROLE_DEFAULT_AVATAR_URL;
 
   // 本地状态：在气泡样式和传统样式之间切换（当两者都可用时）
   const [selectedStyle, setSelectedStyle] = React.useState<"bubble" | "traditional">(() =>

@@ -12,6 +12,7 @@ import { CloseIcon, DiceD6Icon, EditIcon, SaveIcon, SlidersIcon } from "app/icon
 import { useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import { Link, useNavigate, useOutletContext } from "react-router";
+import { ROLE_DEFAULT_AVATAR_URL } from "@/constants/defaultAvatar";
 import CharacterDetailLeftPanel from "./CharacterDetailLeftPanel";
 import CharacterDetailLeftPanelHorizontal from "./CharacterDetailLeftPanelHorizontal";
 import DiceMaidenLinkModal from "./DiceMaidenLinkModal";
@@ -113,7 +114,7 @@ function CharacterDetailInner({
       : undefined;
 
     return {
-      selectedAvatarUrl: avatarFromList?.avatarUrl ?? localRole.avatar ?? "/role-default-avatar.png",
+      selectedAvatarUrl: avatarFromList?.avatarUrl ?? localRole.avatar ?? ROLE_DEFAULT_AVATAR_URL,
       selectedSpriteUrl: avatarFromList?.spriteUrl ?? "",
     };
   }, [localRole.avatarId, localRole.avatar, roleAvatars]);

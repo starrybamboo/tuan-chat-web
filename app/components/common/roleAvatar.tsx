@@ -4,6 +4,7 @@ import ImgWithHoverToScale from "@/components/common/imgWithHoverToScale";
 import { RoleDetail } from "@/components/common/roleDetail";
 import { RoleDetailPagePopup } from "@/components/common/roleDetailPagePopup";
 import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
+import { ROLE_DEFAULT_AVATAR_URL } from "@/constants/defaultAvatar";
 import { getScreenSize } from "@/utils/getScreenSize";
 import {
   useGetRoleAvatarQuery,
@@ -71,7 +72,7 @@ export default function RoleAvatarComponent({
   withTitle?: boolean; // 是否在下方显示标题
   stopToastWindow?: boolean; // 点击后是否会产生roleDetail弹窗
   alt?: string;
-  /** 当 avatarId <= 0 且无法从 roleId 找到可用头像时，是否回退到默认图标（/role-default-avatar.png） */
+  /** 当 avatarId <= 0 且无法从 roleId 找到可用头像时，是否回退到默认头像 */
   useDefaultAvatarFallback?: boolean;
   allowKickOut?: boolean;
   kickOutByManagerOnly?: boolean;
@@ -90,7 +91,7 @@ export default function RoleAvatarComponent({
   const shouldUseFallback = !hasExplicitAvatarId && !hasProvidedAvatarUrl && typeof roleId === "number" && roleId > 0;
   const fallbackAvatarsQuery = useGetRoleAvatarsQuery(roleId ?? -1, { enabled: shouldUseFallback });
   const fallbackAvatar = shouldUseFallback ? fallbackAvatarsQuery.data?.data?.[0] : undefined;
-  const defaultAvatarUrl = (hasExplicitAvatarId || useDefaultAvatarFallback) ? "/role-default-avatar.png" : "";
+  const defaultAvatarUrl = (hasExplicitAvatarId || useDefaultAvatarFallback) ? ROLE_DEFAULT_AVATAR_URL : "";
   const fetchedAvatarUrl = hasExplicitAvatarId
     ? (roleAvatar?.avatarThumbUrl || roleAvatar?.avatarUrl)
     : (fallbackAvatar?.avatarThumbUrl || fallbackAvatar?.avatarUrl);

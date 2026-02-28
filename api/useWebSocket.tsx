@@ -1,6 +1,5 @@
-import type { ChatMessageRequest } from "./models/ChatMessageRequest";
 import type { ChatMessageResponse } from "./models/ChatMessageResponse";
-import { getLocalStorageValue, useLocalStorage } from "@/components/common/customHooks/useLocalStorage";
+import type { MessageDirectSendRequest } from "./models/MessageDirectSendRequest";
 import { formatLocalDateTime } from "@/utils/dateUtil";
 import { useQueryClient } from "@tanstack/react-query";
 import {useCallback, useEffect, useMemo, useRef, useState} from "react";
@@ -35,6 +34,8 @@ import { requestPlayBgmMessageWithUrl } from "@/components/chat/infra/audioMessa
 import { useAudioMessageAutoPlayStore } from "@/components/chat/stores/audioMessageAutoPlayStore";
 import { applyRoomDndMapChange, roomDndMapQueryKey } from "@/components/chat/shared/map/roomDndMapApi";
 import { readGroupMessagePopupEnabledFromLocalStorage } from "@/components/settings/notificationPreferences";
+import type { CrossTabNotificationGuard } from "@/utils/crossTabNotificationGuard";
+import { createCrossTabNotificationGuard } from "@/utils/crossTabNotificationGuard";
 import { showDesktopNotification } from "@/utils/desktopNotification";
 
 /**
@@ -65,6 +66,7 @@ interface WsMessage<T> {
 export interface WebsocketUtils {
   connect: () => void;
   send: (request: WsMessage<any>) => void;
+  sendWithResult: (request: WsMessage<any>) => Promise<boolean>;
   isConnected: () => boolean;
   receivedMessages: Record<number, ChatMessageResponse[]>;
   receivedDirectMessages: Record<number, DirectMessageEvent[]>;
@@ -72,12 +74,16 @@ export interface WebsocketUtils {
   updateLastReadSyncId: (roomId: number, lastReadSyncId?: number) => void;
   chatStatus: Record<number, ChatStatus[]>;
   updateChatStatus: (chatStatusEvent:ChatStatusEvent)=> void;
+  pushOptimisticDirectMessage: (request: MessageDirectSendRequest) => number | null;
+  removeOptimisticDirectMessage: (optimisticMessageId: number) => void;
 }
 
 const EMPTY_SESSIONS: MessageSessionResponse[] = [];
 
 const WS_URL = import.meta.env.VITE_API_WS_URL;
 const WS_RECONNECTED_EVENT = "tc:ws-reconnected";
+const OPTIMISTIC_DIRECT_MESSAGE_ID_BASE = Date.now() * 1000;
+const WS_MESSAGE_DEBUG_PREFIX = "[TC_WS_MSG]";
 
 type WsDebugState = {
   implementedTypes: number[];
@@ -406,8 +412,38 @@ export function useWebSocket() {
   // 接受消息的存储
   const [receivedMessages, updateReceivedMessages] = useImmer<Record<number, ChatMessageResponse[]>>({});
   const [receivedDirectMessages, updateReceivedDirectMessages] = useImmer<Record<number, DirectMessageEvent[]>>({});
+  const optimisticDirectMessageIdRef = useRef<number>(OPTIMISTIC_DIRECT_MESSAGE_ID_BASE);
+  const optimisticDirectMessageRequestMapRef = useRef<Map<number, {
+    channelId: number;
+    request: MessageDirectSendRequest;
+    createdAt: number;
+  }>>(new Map());
 
   const queryClient = useQueryClient();
+  const crossTabNotificationGuardRef = useRef<CrossTabNotificationGuard | null>(null);
+
+  const getCrossTabNotificationGuard = useCallback(() => {
+    if (crossTabNotificationGuardRef.current == null) {
+      crossTabNotificationGuardRef.current = createCrossTabNotificationGuard();
+    }
+    return crossTabNotificationGuardRef.current;
+  }, []);
+
+  useEffect(() => {
+    getCrossTabNotificationGuard();
+    return () => {
+      crossTabNotificationGuardRef.current?.dispose();
+      crossTabNotificationGuardRef.current = null;
+    };
+  }, [getCrossTabNotificationGuard]);
+
+  const isCurrentTabInForeground = useCallback(() => {
+    return getCrossTabNotificationGuard().isCurrentTabSelected();
+  }, [getCrossTabNotificationGuard]);
+
+  const shouldShowCrossTabSystemNotification = useCallback(() => {
+    return getCrossTabNotificationGuard().shouldShowSystemNotification();
+  }, [getCrossTabNotificationGuard]);
 
   const cleanupRoomDescriptionDocOnDissolve = useCallback((roomId: number) => {
     if (typeof window === "undefined")
@@ -727,6 +763,72 @@ export function useWebSocket() {
     return (typeof fallbackUserId === "number" && fallbackUserId > 0) ? fallbackUserId : 0;
   }, [globalContext.userId]);
 
+  const pushOptimisticDirectMessage = useCallback((request: MessageDirectSendRequest) => {
+    const receiverId = Number(request?.receiverId);
+    const selfUserId = resolveSelfUserId();
+    if (!Number.isFinite(receiverId) || receiverId <= 0 || selfUserId <= 0) {
+      return null;
+    }
+
+    const optimisticMessageId = optimisticDirectMessageIdRef.current++;
+    const now = Date.now();
+    const nowIso = formatLocalDateTime(new Date(now));
+    const optimisticMessage: DirectMessageEvent = {
+      messageId: optimisticMessageId,
+      senderId: selfUserId,
+      receiverId,
+      userId: selfUserId,
+      syncId: optimisticMessageId,
+      content: request.content ?? "",
+      messageType: request.messageType,
+      replyMessageId: request.replyMessageId,
+      status: 0,
+      extra: request.extra ?? {},
+      createTime: nowIso,
+      updateTime: nowIso,
+    };
+
+    optimisticDirectMessageRequestMapRef.current.set(optimisticMessageId, {
+      channelId: receiverId,
+      request,
+      createdAt: now,
+    });
+
+    updateReceivedDirectMessages((draft) => {
+      if (draft[receiverId]) {
+        draft[receiverId].push(optimisticMessage);
+      }
+      else {
+        draft[receiverId] = [optimisticMessage];
+      }
+    });
+
+    return optimisticMessageId;
+  }, [resolveSelfUserId, updateReceivedDirectMessages]);
+
+  const removeOptimisticDirectMessage = useCallback((optimisticMessageId: number) => {
+    const pendingMessage = optimisticDirectMessageRequestMapRef.current.get(optimisticMessageId);
+    if (!pendingMessage) {
+      return;
+    }
+    optimisticDirectMessageRequestMapRef.current.delete(optimisticMessageId);
+
+    const channelId = pendingMessage.channelId;
+    updateReceivedDirectMessages((draft) => {
+      const messages = draft[channelId];
+      if (!messages) {
+        return;
+      }
+      const index = messages.findIndex(item => item.messageId === optimisticMessageId);
+      if (index >= 0) {
+        messages.splice(index, 1);
+      }
+      if (messages.length === 0) {
+        delete draft[channelId];
+      }
+    });
+  }, [updateReceivedDirectMessages]);
+
   const notifyNewDirectMessage = useCallback(async (message: DirectMessageEvent, selfUserId: number) => {
     if (message?.messageType === 10000) {
       return;
@@ -736,8 +838,12 @@ export function useWebSocket() {
       return;
     }
 
+    const shouldShowSystemNotification = shouldShowCrossTabSystemNotification();
     const activePrivateContactId = getActivePrivateContactId();
-    if (activePrivateContactId != null && activePrivateContactId === message.senderId) {
+    const shouldShowInAppToast = isCurrentTabInForeground()
+      && !(activePrivateContactId != null && activePrivateContactId === message.senderId);
+
+    if (!shouldShowSystemNotification && !shouldShowInAppToast) {
       return;
     }
 
@@ -759,33 +865,37 @@ export function useWebSocket() {
     const avatar = senderInfo?.avatar || senderInfo?.avatarThumbUrl;
     const previewText = getDirectMessagePreview(message);
 
-    toast.custom(
-      t => (
-        <div className={t.visible ? "animate-enter" : "animate-leave"}>
-          <DirectMessageToastContent
-            toastId={t.id}
-            senderId={message.senderId}
-            displayName={displayName}
-            avatar={avatar}
-            previewText={previewText}
-          />
-        </div>
-      ),
-      {
-        id: toastId,
-        position: "top-center",
-        duration: 6000,
-      },
-    );
+    if (shouldShowInAppToast) {
+      toast.custom(
+        t => (
+          <div className={t.visible ? "animate-enter" : "animate-leave"}>
+            <DirectMessageToastContent
+              toastId={t.id}
+              senderId={message.senderId}
+              displayName={displayName}
+              avatar={avatar}
+              previewText={previewText}
+            />
+          </div>
+        ),
+        {
+          id: toastId,
+          position: "top-center",
+          duration: 6000,
+        },
+      );
+    }
 
-    void showDesktopNotification({
-      title: `${displayName} 给你发来私信`,
-      body: previewText,
-      icon: avatar,
-      targetPath: `/chat/private/${message.senderId}`,
-      tag: toastId,
-    });
-  }, [queryClient]);
+    if (shouldShowSystemNotification) {
+      void showDesktopNotification({
+        title: `${displayName} 给你发来私信`,
+        body: previewText,
+        icon: avatar,
+        targetPath: `/chat/private/${message.senderId}`,
+        tag: toastId,
+      });
+    }
+  }, [isCurrentTabInForeground, queryClient, shouldShowCrossTabSystemNotification]);
 
   const notifyNewGroupMessage = useCallback(async (chatMessageResponse: ChatMessageResponse) => {
     const message = chatMessageResponse?.message;
@@ -806,8 +916,11 @@ export function useWebSocket() {
       return;
     }
 
+    const shouldShowSystemNotification = shouldShowCrossTabSystemNotification();
     const activeGroupRoomId = getActiveGroupRoomId();
-    if (activeGroupRoomId != null && activeGroupRoomId === message.roomId) {
+    const shouldShowInAppToast = isCurrentTabInForeground()
+      && !(activeGroupRoomId != null && activeGroupRoomId === message.roomId);
+    if (!shouldShowSystemNotification && !shouldShowInAppToast) {
       return;
     }
 
@@ -876,34 +989,38 @@ export function useWebSocket() {
     const previewText = getGroupMessagePreview(chatMessageResponse);
     const targetPath = roomSpaceId == null ? null : `/chat/${roomSpaceId}/${message.roomId}`;
 
-    toast.custom(
-      t => (
-        <div className={t.visible ? "animate-enter" : "animate-leave"}>
-          <GroupMessageToastContent
-            toastId={t.id}
-            targetPath={targetPath}
-            roomName={roomName}
-            senderName={senderName}
-            senderAvatar={senderAvatar}
-            previewText={previewText}
-          />
-        </div>
-      ),
-      {
-        id: toastId,
-        position: "top-center",
-        duration: 7000,
-      },
-    );
+    if (shouldShowInAppToast) {
+      toast.custom(
+        t => (
+          <div className={t.visible ? "animate-enter" : "animate-leave"}>
+            <GroupMessageToastContent
+              toastId={t.id}
+              targetPath={targetPath}
+              roomName={roomName}
+              senderName={senderName}
+              senderAvatar={senderAvatar}
+              previewText={previewText}
+            />
+          </div>
+        ),
+        {
+          id: toastId,
+          position: "top-center",
+          duration: 7000,
+        },
+      );
+    }
 
-    void showDesktopNotification({
-      title: `${roomName} · ${senderName}`,
-      body: previewText,
-      icon: senderAvatar,
-      targetPath,
-      tag: toastId,
-    });
-  }, [queryClient, resolveSelfUserId]);
+    if (shouldShowSystemNotification) {
+      void showDesktopNotification({
+        title: `${roomName} · ${senderName}`,
+        body: previewText,
+        icon: senderAvatar,
+        targetPath,
+        tag: toastId,
+      });
+    }
+  }, [isCurrentTabInForeground, queryClient, resolveSelfUserId, shouldShowCrossTabSystemNotification]);
 
   /**
    * 对收到的消息，按照type进行分类处理
@@ -1031,34 +1148,27 @@ export function useWebSocket() {
    * 处理群聊消息
    * @param chatMessageResponse
    */
-  const handleChatMessage = async (chatMessageResponse: ChatMessageResponse) => {
+  const handleChatMessage = (chatMessageResponse: ChatMessageResponse) => {
     if (!(chatMessageResponse?.message.createTime) && chatMessageResponse != undefined) {
       chatMessageResponse.message.createTime = formatLocalDateTime(new Date());
     }
     if (chatMessageResponse != undefined && chatMessageResponse) {
       const roomId = chatMessageResponse.message.roomId;
+      console.log(WS_MESSAGE_DEBUG_PREFIX, "handleChatMessage.incoming", {
+        roomId,
+        messageId: chatMessageResponse.message.messageId,
+        syncId: chatMessageResponse.message.syncId,
+        position: chatMessageResponse.message.position ?? null,
+        replyMessageId: chatMessageResponse.message.replyMessageId ?? null,
+        messageType: chatMessageResponse.message.messageType,
+      });
       if (chatMessageResponse.message.status === 0) {
         updateLatestSyncId(roomId, chatMessageResponse.message.syncId)
       }
 
-      let messagesToAdd: ChatMessageResponse[] = [];
-      const currentMessages = receivedMessages[roomId] || [];
-      // 检查syncId是否连续
-      if (currentMessages.length > 0) {
-        const lastSyncId = currentMessages[currentMessages.length - 1].message.syncId;
-        if (chatMessageResponse.message.syncId - lastSyncId > 1) {
-          // 直接获取所有syncId大于lastsSyncId的消息。
-          const lostMessagesResponse = await tuanchat.chatController.getHistoryMessages({
-            roomId,
-            syncId: lastSyncId + 1
-          });
-          const lostMessages = lostMessagesResponse.data ?? [];
-          messagesToAdd.push(...lostMessages);
-        }
-      }
-      if (messagesToAdd.length === 0 || messagesToAdd[messagesToAdd.length-1].message.messageId !== chatMessageResponse.message.messageId){
-        messagesToAdd.push(chatMessageResponse);
-      }
+      // WS 层只负责接收增量消息并去重；补洞统一由 useChatFrameMessages 处理，
+      // 避免两处并行补洞导致历史消息被重复回灌、引发列表短时抖动。
+      const messagesToAdd: ChatMessageResponse[] = [chatMessageResponse];
 
       // --- 音频自动播放同步：在把消息写入本地缓存前先记录自动播放/停止事件 ---
       for (const msg of messagesToAdd) {
@@ -1110,11 +1220,31 @@ export function useWebSocket() {
       }
 
       updateReceivedMessages(draft => {
-        if (draft[roomId]) {
-          draft[roomId].push(...messagesToAdd);
-        } else {
-          draft[roomId] = messagesToAdd;
+        const roomMessages = draft[roomId] ?? [];
+        if (!(roomId in draft)) {
+          draft[roomId] = roomMessages;
         }
+        let replacedCount = 0;
+        let appendedCount = 0;
+        for (const nextMessage of messagesToAdd) {
+          const nextId = nextMessage?.message?.messageId;
+          const existedIndex = roomMessages.findIndex(item => item?.message?.messageId === nextId);
+          if (existedIndex >= 0) {
+            roomMessages[existedIndex] = nextMessage;
+            replacedCount += 1;
+          }
+          else {
+            roomMessages.push(nextMessage);
+            appendedCount += 1;
+          }
+        }
+        console.log(WS_MESSAGE_DEBUG_PREFIX, "handleChatMessage.afterMerge", {
+          roomId,
+          roomMessageLength: roomMessages.length,
+          appendedCount,
+          replacedCount,
+          mergedMessageIds: messagesToAdd.map(item => item?.message?.messageId ?? null),
+        });
       });
       // 更新发送用户的输入状态（设置为空闲，避免重复状态更新）
       const sendingUserId = chatMessageResponse.message.userId;
@@ -1139,26 +1269,81 @@ export function useWebSocket() {
       ? receiverId
       : (selfUserId === receiverId ? senderId : senderId);
 
+    const normalizedIncomingContent = message.content ?? "";
+    const normalizedIncomingReplyId = message.replyMessageId ?? null;
+    const normalizedIncomingExtra = (() => {
+      try {
+        return JSON.stringify(message.extra ?? {});
+      }
+      catch {
+        return "{}";
+      }
+    })();
+
+    let matchedOptimisticMessageId: number | null = null;
+    let matchedCreatedAt = Number.POSITIVE_INFINITY;
+    if (message.senderId === selfUserId && channelId > 0) {
+      for (const [optimisticMessageId, pending] of optimisticDirectMessageRequestMapRef.current.entries()) {
+        const request = pending.request;
+        if (pending.channelId !== channelId) {
+          continue;
+        }
+        if (request.receiverId !== message.receiverId) {
+          continue;
+        }
+        if (request.messageType !== message.messageType) {
+          continue;
+        }
+        if ((request.replyMessageId ?? null) !== normalizedIncomingReplyId) {
+          continue;
+        }
+        if ((request.content ?? "") !== normalizedIncomingContent) {
+          continue;
+        }
+        const normalizedRequestExtra = (() => {
+          try {
+            return JSON.stringify(request.extra ?? {});
+          }
+          catch {
+            return "{}";
+          }
+        })();
+        if (normalizedRequestExtra !== normalizedIncomingExtra) {
+          continue;
+        }
+        if (pending.createdAt < matchedCreatedAt) {
+          matchedOptimisticMessageId = optimisticMessageId;
+          matchedCreatedAt = pending.createdAt;
+        }
+      }
+    }
+
     let isNewMessage = false;
     updateReceivedDirectMessages((draft)=>{
+      const channelMessages = draft[channelId] ?? [];
+      if (!(channelId in draft)) {
+        draft[channelId] = channelMessages;
+      }
+
+      if (matchedOptimisticMessageId !== null) {
+        const optimisticIndex = channelMessages.findIndex(item => item.messageId === matchedOptimisticMessageId);
+        if (optimisticIndex >= 0) {
+          channelMessages.splice(optimisticIndex, 1);
+        }
+        optimisticDirectMessageRequestMapRef.current.delete(matchedOptimisticMessageId);
+      }
+
       // 去重，比如撤回操作就会出现相同消息id的情况。
-      if (channelId in draft) {
-        // 查找已存在消息的索引
-        const existingIndex = draft[channelId].findIndex(
-            msg => message.messageId === msg.messageId,
-        );
-        if (existingIndex !== -1) {
-          // 更新已存在的消息
-          draft[channelId][existingIndex] = message;
-        }
-        else {
-          isNewMessage = true;
-          draft[channelId].push(message);
-        }
+      const existingIndex = channelMessages.findIndex(
+          msg => message.messageId === msg.messageId,
+      );
+      if (existingIndex !== -1) {
+        // 更新已存在的消息
+        channelMessages[existingIndex] = message;
       }
       else {
         isNewMessage = true;
-        draft[channelId] = [message];
+        channelMessages.push(message);
       }
     });
 
@@ -1217,9 +1402,9 @@ export function useWebSocket() {
    * 发送聊天消息到指定房间(type: 3)
    * 聊天状态控制 (type: 4)
    */
-  const send = useCallback(async (request: WsMessage<any>) => {
+  const sendWithResult = useCallback(async (request: WsMessage<any>) => {
     if (!readCurrentToken()) {
-      return;
+      return false;
     }
 
     if (!isConnected()) {
@@ -1232,14 +1417,20 @@ export function useWebSocket() {
       await new Promise(resolve => setTimeout(resolve, 100));
     }
     if (wsRef.current?.readyState !== WebSocket.OPEN) {
-      return;
+      return false;
     }
     wsRef.current.send(JSON.stringify(request));
+    return true;
   }, [connect, isConnected, readCurrentToken]);
+
+  const send = useCallback((request: WsMessage<any>) => {
+    void sendWithResult(request);
+  }, [sendWithResult]);
 
   const webSocketUtils: WebsocketUtils = useMemo(() => ({
     connect,
     send,
+    sendWithResult,
     isConnected,
     receivedMessages,
     receivedDirectMessages,
@@ -1247,9 +1438,12 @@ export function useWebSocket() {
     updateLastReadSyncId,
     chatStatus,
     updateChatStatus: handleChatStatusChange,
+    pushOptimisticDirectMessage,
+    removeOptimisticDirectMessage,
   }), [
     connect,
     send,
+    sendWithResult,
     isConnected,
     receivedMessages,
     receivedDirectMessages,
@@ -1257,6 +1451,8 @@ export function useWebSocket() {
     updateLastReadSyncId,
     chatStatus,
     handleChatStatusChange,
+    pushOptimisticDirectMessage,
+    removeOptimisticDirectMessage,
   ]);
   return webSocketUtils;
 }

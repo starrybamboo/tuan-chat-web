@@ -1,5 +1,5 @@
 import type { VirtuosoHandle } from "react-virtuoso";
-import type { ChatMessageResponse, Message } from "../../../api";
+import type { ChatMessageRequest, ChatMessageResponse, Message } from "../../../api";
 import type { ChatFrameMessageScope } from "@/components/chat/hooks/useChatFrameMessages";
 import type { WebgalChooseOptionDraft } from "@/components/chat/shared/webgal/webgalChooseDraft";
 
@@ -59,6 +59,7 @@ interface ChatFrameProps {
   onOpenThread?: (threadRootMessageId: number) => void;
   spaceName?: string;
   roomName?: string;
+  sendMessageWithInsert?: (message: ChatMessageRequest) => Promise<Message | null>;
 }
 
 function ChatFrame(props: ChatFrameProps) {
@@ -413,6 +414,7 @@ function ChatFrame(props: ChatFrameProps) {
     curRoleId,
     curAvatarId,
     send,
+    sendMessageWithInsert: props.sendMessageWithInsert,
     batchSendMessagesAsync: batchSendMessageMutation.mutateAsync,
     updateMessage,
     setIsForwardWindowOpen,

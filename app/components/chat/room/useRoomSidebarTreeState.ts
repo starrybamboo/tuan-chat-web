@@ -15,7 +15,7 @@ type UseRoomSidebarTreeStateParams = {
   sidebarTree?: SidebarTree | null;
   fallbackTextRooms: Room[];
   visibleDocMetas: MinimalDocMeta[];
-  isSpaceOwner: boolean;
+  includeDocs: boolean;
 };
 
 type UseRoomSidebarTreeStateResult = {
@@ -79,16 +79,16 @@ export default function useRoomSidebarTreeState({
   sidebarTree,
   fallbackTextRooms,
   visibleDocMetas,
-  isSpaceOwner,
+  includeDocs,
 }: UseRoomSidebarTreeStateParams): UseRoomSidebarTreeStateResult {
   const displayTree = useMemo(() => {
     return normalizeSidebarTree({
       tree: sidebarTree ?? null,
       roomsInSpace: fallbackTextRooms,
       docMetas: visibleDocMetas,
-      includeDocs: isSpaceOwner,
+      includeDocs,
     });
-  }, [fallbackTextRooms, isSpaceOwner, sidebarTree, visibleDocMetas]);
+  }, [fallbackTextRooms, includeDocs, sidebarTree, visibleDocMetas]);
 
   const [localTree, setLocalTree] = useState<SidebarTree | null>(null);
   const [expandedByCategoryId, setExpandedByCategoryId] = useState<Record<string, boolean> | null>(null);

@@ -59,6 +59,7 @@ interface ChatRoomListPanelProps {
 
   onOpenCreateInCategory: (categoryId: string) => void;
   isKPInSpace: boolean;
+  canViewDocs: boolean;
 }
 
 export default function ChatRoomListPanel({
@@ -87,6 +88,7 @@ export default function ChatRoomListPanel({
   isLeftDrawerOpen,
   setIsOpenLeftDrawer,
   onOpenCreateInCategory,
+  canViewDocs,
 }: ChatRoomListPanelProps) {
   const roomsInSpace = useMemo(() => {
     return rooms.filter(room => room.spaceId === activeSpaceId);
@@ -94,7 +96,7 @@ export default function ChatRoomListPanel({
 
   const { visibleDocMetas, docMetaMap, appendExtraDocMeta } = useRoomSidebarDocMetas({
     activeSpaceId,
-    isSpaceOwner,
+    canViewDocs,
     docMetas,
   });
   const docHeaderOverrides = useDocHeaderOverrideStore(state => state.headers);
@@ -161,7 +163,7 @@ export default function ChatRoomListPanel({
     sidebarTree,
     fallbackTextRooms,
     visibleDocMetas,
-    isSpaceOwner,
+    includeDocs: canViewDocs,
   });
 
   const {

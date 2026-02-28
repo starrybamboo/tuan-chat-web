@@ -32,6 +32,7 @@ import { useDocHeaderOverrideStore } from "@/components/chat/stores/docHeaderOve
 import { useDrawerPreferenceStore } from "@/components/chat/stores/drawerPreferenceStore";
 import { useEntityHeaderOverrideStore } from "@/components/chat/stores/entityHeaderOverrideStore";
 import TutorialUpdatePromptModal from "@/components/chat/tutorial/tutorialUpdatePromptModal";
+import { checkIsKpInSpaceMembers, resolveSubWindowDocPermission } from "@/components/chat/utils/subWindowDocPermission";
 import { useLocalStorage } from "@/components/common/customHooks/useLocalStorage";
 import { useScreenSize } from "@/components/common/customHooks/useScreenSize";
 import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
@@ -98,6 +99,7 @@ export default function ChatPage() {
   });
 
   const [storedIds, setStoredChatIds] = useLocalStorage<{ spaceId?: number | null; roomId?: number | null }>("storedChatIds", {});
+  const [subWindowDocKpCache, setSubWindowDocKpCache] = useLocalStorage<Record<string, boolean>>("spaceSubWindowDocKpCache", {});
   const activeSpaceIdForQuery = activeSpaceId ?? -1;
   const userRoomQuery = useGetUserRoomsQuery(activeSpaceIdForQuery);
   const spaceMembersQuery = useGetSpaceMembersQuery(activeSpaceIdForQuery);
@@ -234,9 +236,43 @@ export default function ChatPage() {
   }, [activeSpaceId, navigate]);
 
   const spaceMembers = spaceMembersQuery.data?.data ?? EMPTY_ARRAY;
+  const isMemberPermissionResolved = spaceMembersQuery.isFetched;
   const isKPInSpace = useMemo(() => {
-    return Boolean(spaceMembers.some(member => member.userId === userId && member.memberType === 1));
+    return checkIsKpInSpaceMembers(spaceMembers, userId);
   }, [spaceMembers, userId]);
+  const isSpaceOwnerInActiveSpace = useMemo(() => {
+    if (!activeSpaceId || activeSpaceId <= 0)
+      return false;
+    const ownerId = typeof activeSpace?.userId === "number" ? activeSpace.userId : Number.NaN;
+    return Number.isFinite(ownerId) && ownerId === userId;
+  }, [activeSpace?.userId, activeSpaceId, userId]);
+  const cachedSubWindowDocKpPermission = useMemo(() => {
+    if (!activeSpaceId || activeSpaceId <= 0)
+      return false;
+    return subWindowDocKpCache[String(activeSpaceId)] === true;
+  }, [activeSpaceId, subWindowDocKpCache]);
+  // 刷新首屏阶段成员接口可能较慢；此时仅副窗口文档使用“上次已确认 KP”缓存做平滑回退，避免文档瞬时消失。
+  const canViewSubWindowDoc = useMemo(() => {
+    return resolveSubWindowDocPermission({
+      isKpInMembers: isKPInSpace,
+      isSpaceOwner: isSpaceOwnerInActiveSpace,
+      isMemberPermissionResolved,
+      cachedIsKp: cachedSubWindowDocKpPermission,
+    });
+  }, [cachedSubWindowDocKpPermission, isKPInSpace, isMemberPermissionResolved, isSpaceOwnerInActiveSpace]);
+
+  useEffect(() => {
+    if (!activeSpaceId || activeSpaceId <= 0 || !isMemberPermissionResolved)
+      return;
+    const key = String(activeSpaceId);
+    const nextCachedValue = isKPInSpace || isSpaceOwnerInActiveSpace;
+    setSubWindowDocKpCache((prev) => {
+      if ((prev[key] === true) === nextCachedValue) {
+        return prev;
+      }
+      return { ...prev, [key]: nextCachedValue };
+    });
+  }, [activeSpaceId, isKPInSpace, isMemberPermissionResolved, isSpaceOwnerInActiveSpace, setSubWindowDocKpCache]);
 
   const docMetasFromSidebarTree = useMemo(() => {
     return extractDocMetasFromSidebarTree(sidebarTree).filter((m) => {
@@ -253,7 +289,7 @@ export default function ChatPage() {
     handleDocTcHeaderChange,
   } = useSpaceDocMetaState({
     activeSpaceId,
-    isKPInSpace,
+    canViewDocs: canViewSubWindowDoc,
     docMetasFromSidebarTree,
   });
   const spaceDocMetasList = spaceDocMetas ?? EMPTY_ARRAY;
@@ -427,6 +463,7 @@ export default function ChatPage() {
     activeSpaceIsArchived,
     isSpaceOwner,
     isKPInSpace,
+    canViewDocs: canViewSubWindowDoc,
     rooms: orderedRooms,
     roomOrderIds: orderedRoomIds,
     onReorderRoomIds: setUserRoomOrder,
@@ -522,7 +559,8 @@ export default function ChatPage() {
             <ChatPageSubWindow
               screenSize={screenSize}
               activeSpaceId={activeSpaceId}
-              isKPInSpace={isKPInSpace}
+              isKPInSpace={canViewSubWindowDoc}
+              isKPPermissionPending={!isMemberPermissionResolved}
               rooms={orderedRooms}
               docMetas={spaceDocMetasList}
               isOpen={isSubWindowOpen}

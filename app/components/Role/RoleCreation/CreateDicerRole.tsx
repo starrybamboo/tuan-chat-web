@@ -3,6 +3,7 @@ import { Plus } from "@phosphor-icons/react";
 import { useCreateRoleMutation, useUploadAvatarMutation } from "api/hooks/RoleAndAvatarHooks";
 import { useState } from "react";
 import toast from "react-hot-toast";
+import { ROLE_DEFAULT_AVATAR_URL } from "@/constants/defaultAvatar";
 import { ROLE_DESCRIPTION_MAX_LENGTH, ROLE_DESCRIPTION_TOO_LONG_MESSAGE, ROLE_NAME_MAX_LENGTH } from "./constants";
 import CreatePageHeader from "./CreatePageHeader";
 
@@ -48,8 +49,8 @@ export default function CreateDicerRole({ onBack, onComplete }: CreateDicerRoleP
       // 2. 上传默认头像
       const avatarResult = await uploadAvatar({
         roleId,
-        avatarUrl: "/role-default-avatar.png",
-        spriteUrl: "/role-default-avatar.png",
+        avatarUrl: ROLE_DEFAULT_AVATAR_URL,
+        spriteUrl: ROLE_DEFAULT_AVATAR_URL,
       });
 
       // 3. 构建新角色对象
@@ -57,7 +58,7 @@ export default function CreateDicerRole({ onBack, onComplete }: CreateDicerRoleP
         id: roleId,
         name: trimmedName,
         description: trimmedDescription,
-        avatar: avatarResult?.data?.avatarUrl || "/role-default-avatar.png",
+        avatar: avatarResult?.data?.avatarUrl || ROLE_DEFAULT_AVATAR_URL,
         avatarId: avatarResult?.data?.avatarId || 0,
         type: 1,
         modelName: "",

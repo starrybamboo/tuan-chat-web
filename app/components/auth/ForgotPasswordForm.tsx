@@ -28,7 +28,7 @@ export function ForgotPasswordForm({
       </div>
 
       <p className="text-xs opacity-70 mt-3">
-        点击确认后，系统会把该邮箱绑定账号的 ID、用户名、密码发送到邮箱中。
+        点击确认后，系统会把该邮箱绑定账号的 ID、用户名及重置指引发送到邮箱中（不包含原密码）。
       </p>
 
       <div className="form-control mt-6">

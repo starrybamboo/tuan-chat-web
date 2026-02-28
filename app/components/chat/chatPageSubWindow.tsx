@@ -15,6 +15,7 @@ interface ChatPageSubWindowProps {
   screenSize: ScreenSize;
   activeSpaceId: number | null;
   isKPInSpace: boolean;
+  isKPPermissionPending: boolean;
   rooms: Room[];
   docMetas: MinimalDocMeta[];
   isOpen: boolean;
@@ -137,6 +138,7 @@ export default function ChatPageSubWindow({
   screenSize,
   activeSpaceId,
   isKPInSpace,
+  isKPPermissionPending,
   rooms,
   docMetas,
   isOpen,
@@ -422,7 +424,13 @@ export default function ChatPageSubWindow({
           )}
 
           {tab === "doc" && (
-            !isKPInSpace
+            (!isKPInSpace && isKPPermissionPending)
+              ? (
+                  <div className="h-full flex items-center justify-center text-sm text-base-content/60">
+                    正在验证文档权限...
+                  </div>
+                )
+              : !isKPInSpace
               ? (
                   <div className="h-full flex items-center justify-center text-sm text-base-content/60">
                     仅 KP 可查看文档

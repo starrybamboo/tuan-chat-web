@@ -118,6 +118,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
   const userId = useGlobalContext().userId;
 
   const roomContext = use(RoomContext);
+  const sendMessageWithInsert = roomContext.sendMessageWithInsert;
   const sendMessageMutation = useSendMessageMutation(roomContext.roomId ?? -1);
   const spaceContext = use(SpaceContext);
   const setInsertAfterMessageId = useRoomUiStore(state => state.setInsertAfterMessageId);
@@ -435,7 +436,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
     }
     const raw = (message.content ?? "").trim();
     const title = raw ? raw.slice(0, 20) : "子区";
-    sendMessageMutation.mutate({
+    const threadRootRequest = {
       roomId,
       messageType: MESSAGE_TYPE.THREAD_ROOT,
       roleId: roomContext.curRoleId,
@@ -443,7 +444,21 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
       content: title,
       replayMessageId: message.messageId,
       extra: { title },
-    }, {
+    };
+
+    if (sendMessageWithInsert) {
+      void (async () => {
+        const created = await sendMessageWithInsert(threadRootRequest);
+        if (!created) {
+          toast.error("创建子区失败");
+          return;
+        }
+        handleOpenThreadById(created.messageId);
+      })();
+      return;
+    }
+
+    sendMessageMutation.mutate(threadRootRequest, {
       onSuccess: (response) => {
         const created = response?.data;
         if (!created) {
@@ -465,6 +480,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
     roomContext.curAvatarId,
     roomContext.curRoleId,
     roomContext.roomId,
+    sendMessageWithInsert,
     sendMessageMutation,
     threadHintMeta?.rootId,
   ]);

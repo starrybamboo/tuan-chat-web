@@ -227,7 +227,7 @@ export default function LoginModal({ isOpen, onClose }: { isOpen: boolean; onClo
   const forgotPasswordMutation = useMutation({
     mutationFn: (targetEmail: string) => requestForgotPasswordByEmail(targetEmail),
     onSuccess: () => {
-      showTemporaryMessage("账号信息已发送到邮箱，请注意查收", "success");
+      showTemporaryMessage("账号信息与重置指引已发送到邮箱，请注意查收", "success");
       setTimeout(() => {
         switchMode("login");
       }, 1000);
