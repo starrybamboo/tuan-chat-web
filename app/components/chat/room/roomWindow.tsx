@@ -91,9 +91,6 @@ function RoomWindow({
   const globalContext = useGlobalContext();
   const userId = globalContext.userId;
   const webSocketUtils = globalContext.websocketUtils;
-  const send = useCallback((message: ChatMessageRequest) => {
-    webSocketUtils.send({ type: 3, data: message });
-  }, [webSocketUtils]);
 
   const sendMessageMutation = useSendMessageMutation(roomId);
   const deleteMessageMutation = useDeleteMessageMutation();
@@ -151,22 +148,6 @@ function RoomWindow({
     clearFigure: clearRealtimeFigure,
   } = useRealtimeRenderControls();
   const {
-    backgroundUrl,
-    displayedBgUrl,
-    currentEffect,
-    setBackgroundUrl,
-    setCurrentEffect,
-    handleSendEffect,
-    handleClearBackground,
-    handleClearFigure,
-    handleStopBgmForAll,
-  } = useRoomEffectsController({
-    roomId,
-    send,
-    isRealtimeRenderActive,
-    clearRealtimeFigure,
-  });
-  const {
     members,
     curMember,
     isSpectator,
@@ -191,6 +172,13 @@ function RoomWindow({
     isHistoryLoading: chatHistory?.loading,
     virtuosoRef,
   });
+  const sendMessageWithInsertRef = useRef<((message: ChatMessageRequest) => Promise<Message | null>) | null>(null);
+  const sendMessageWithInsertFromRef = useCallback(async (message: ChatMessageRequest) => {
+    if (!sendMessageWithInsertRef.current) {
+      return null;
+    }
+    return await sendMessageWithInsertRef.current(message);
+  }, []);
 
   const roomContext = React.useMemo((): RoomContextType => ({
     roomId,
@@ -205,6 +193,7 @@ function RoomWindow({
     jumpToMessageInWebGAL: isRealtimeRenderActive ? jumpToMessageInWebGAL : undefined,
     updateAndRerenderMessageInWebGAL: isRealtimeRenderActive ? updateAndRerenderMessageInWebGAL : undefined,
     rerenderHistoryInWebGAL: isRealtimeRenderActive ? rerenderHistoryInWebGAL : undefined,
+    sendMessageWithInsert: sendMessageWithInsertFromRef,
   }), [
     chatHistory,
     curAvatarId,
@@ -216,6 +205,7 @@ function RoomWindow({
     rerenderHistoryInWebGAL,
     roomId,
     roomRolesThatUserOwn,
+    sendMessageWithInsertFromRef,
     scrollToGivenMessage,
     spaceId,
     updateAndRerenderMessageInWebGAL,
@@ -264,6 +254,23 @@ function RoomWindow({
     ensureRuntimeAvatarIdForRole,
     setSpaceExtra: setSpaceExtraMutation.mutateAsync,
     roomUiStoreApi: roomUiStore,
+  });
+  sendMessageWithInsertRef.current = sendMessageWithInsert;
+  const {
+    backgroundUrl,
+    displayedBgUrl,
+    currentEffect,
+    setBackgroundUrl,
+    setCurrentEffect,
+    handleSendEffect,
+    handleClearBackground,
+    handleClearFigure,
+    handleStopBgmForAll,
+  } = useRoomEffectsController({
+    roomId,
+    sendMessageWithInsert,
+    isRealtimeRenderActive,
+    clearRealtimeFigure,
   });
   const { handleMessageSubmit } = useChatMessageSubmit({
     roomId,
@@ -847,6 +854,7 @@ function RoomWindow({
     roomName,
     messageScope,
     threadRootMessageId,
+    sendMessageWithInsert,
   }), [
     handleExecuteCommandRequest,
     onOpenThread,
@@ -855,6 +863,7 @@ function RoomWindow({
     roomName,
     spaceName,
     messageScope,
+    sendMessageWithInsert,
     threadRootMessageId,
     virtuosoRef,
   ]);

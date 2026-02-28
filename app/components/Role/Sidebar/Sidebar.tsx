@@ -10,6 +10,7 @@ import toast from "react-hot-toast";
 import { Link, NavLink, useNavigate, useSearchParams } from "react-router";
 import { tuanchat } from "@/../api/instance";
 import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
+import { ROLE_DEFAULT_AVATAR_URL } from "@/constants/defaultAvatar";
 import { getRoleRule } from "@/utils/roleRuleStorage";
 import { useGlobalContext } from "../../globalContextProvider";
 import { RoleListItem } from "./RoleListItem";
@@ -133,7 +134,7 @@ export function Sidebar({
 
           const res = await tuanchat.avatarController.getRoleAvatar(role.avatarId);
           if (res.success && res.data) {
-            const avatarUrl = res.data.avatarUrl || "/role-default-avatar.png";
+            const avatarUrl = res.data.avatarUrl || ROLE_DEFAULT_AVATAR_URL;
             const avatarThumbUrl = res.data.avatarThumbUrl || avatarUrl;
             // 将头像URL缓存到React Query缓存中
             queryClient.setQueryData(["roleAvatar", role.id], { avatar: avatarUrl, avatarThumb: avatarThumbUrl, avatarId: role.avatarId });
@@ -177,8 +178,8 @@ export function Sidebar({
   //       return;
   //     }
   //     const res = await uploadAvatar({
-  //       avatarUrl: "/role-default-avatar.png",
-  //       spriteUrl: "/role-default-avatar.png",
+  //       avatarUrl: ROLE_DEFAULT_AVATAR_URL,
+  //       spriteUrl: ROLE_DEFAULT_AVATAR_URL,
   //       roleId: data,
   //     });
   //     if (res?.data?.avatarId) {

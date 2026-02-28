@@ -1,4 +1,5 @@
 import { CommandExecutor, RuleNameSpace } from "@/components/common/dicer/cmd";
+import { cmdWw } from "@/components/common/dicer/cmdExe/cmdExeWw";
 import { roll } from "@/components/common/dicer/dice";
 import UTILS from "@/components/common/dicer/utils/utils";
 
@@ -293,3 +294,6 @@ const cmdSetDice = new CommandExecutor(
   },
 );
 executorPublic.addCmd(cmdSetDice);
+
+// WW 加骰检定：挂载到默认通用规则
+executorPublic.addCmd(cmdWw);

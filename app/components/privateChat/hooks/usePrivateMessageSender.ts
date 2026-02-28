@@ -1,4 +1,5 @@
 import { useState } from "react";
+import toast from "react-hot-toast";
 import { useImmer } from "use-immer";
 
 import { useLocalStorage } from "@/components/common/customHooks/useLocalStorage";
@@ -54,7 +55,14 @@ export function usePrivateMessageSender({ webSocketUtils, userId, currentContact
   };
 
   // 发送消息函数
-  const send = (message: MessageDirectSendRequest) => webSocketUtils.send({ type: WEBSOCKET_TYPE, data: message });
+  const sendDirectMessageWithOptimistic = async (message: MessageDirectSendRequest) => {
+    const optimisticMessageId = webSocketUtils.pushOptimisticDirectMessage(message);
+    const sent = await webSocketUtils.sendWithResult({ type: WEBSOCKET_TYPE, data: message });
+    if (!sent && optimisticMessageId != null) {
+      webSocketUtils.removeOptimisticDirectMessage(optimisticMessageId);
+    }
+    return sent;
+  };
 
   const handleSendMessage = async () => {
     if ((!messageInput.trim() && imgFiles.length === 0 && emojiUrls.length === 0) || isSubmitting || !currentContactUserId)
@@ -82,7 +90,10 @@ export function usePrivateMessageSender({ webSocketUtils, userId, currentContact
                 height,
               },
             };
-            send(imageMessage);
+            const sent = await sendDirectMessageWithOptimistic(imageMessage);
+            if (!sent) {
+              throw new Error("发送图片消息失败");
+            }
           }
         }
         updateImgFiles([]);
@@ -96,7 +107,10 @@ export function usePrivateMessageSender({ webSocketUtils, userId, currentContact
           messageType: 1,
           extra: {},
         };
-        send(sendMessage);
+        const sent = await sendDirectMessageWithOptimistic(sendMessage);
+        if (!sent) {
+          throw new Error("发送文本消息失败");
+        }
         setMessageInput("");
       }
 
@@ -127,13 +141,20 @@ export function usePrivateMessageSender({ webSocketUtils, userId, currentContact
               url: emojiUrl,
             },
           };
-          send(emojiMessage);
+          const sent = await sendDirectMessageWithOptimistic(emojiMessage);
+          if (!sent) {
+            throw new Error("发送表情消息失败");
+          }
         }
         updateEmojiUrls((draft) => {
           draft.splice(0, draft.length);
         });
         setEmojiMetaByUrlState({});
       }
+    }
+    catch (error) {
+      console.error("私聊消息发送失败", error);
+      toast.error("私聊消息发送失败，请稍后重试");
     }
     finally {
       setIsSubmitting(false);

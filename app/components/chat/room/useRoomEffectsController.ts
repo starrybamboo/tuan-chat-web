@@ -3,7 +3,7 @@ import { toast } from "react-hot-toast";
 
 import { ANNOTATION_IDS, getSceneEffectAnnotationId } from "@/types/messageAnnotations";
 
-import type { ChatMessageRequest } from "../../../../api";
+import type { ChatMessageRequest, ChatMessageResponse } from "../../../../api";
 
 import { MessageType } from "../../../../api/wsModels";
 
@@ -11,7 +11,7 @@ type SetState<T> = (value: T | ((prev: T) => T)) => void;
 
 type UseRoomEffectsControllerParams = {
   roomId: number;
-  send: (message: ChatMessageRequest) => void;
+  sendMessageWithInsert: (message: ChatMessageRequest) => Promise<ChatMessageResponse["message"] | null>;
   isRealtimeRenderActive: boolean;
   clearRealtimeFigure: () => void;
 };
@@ -30,7 +30,7 @@ type UseRoomEffectsControllerResult = {
 
 export default function useRoomEffectsController({
   roomId,
-  send,
+  sendMessageWithInsert,
   isRealtimeRenderActive,
   clearRealtimeFigure,
 }: UseRoomEffectsControllerParams): UseRoomEffectsControllerResult {
@@ -47,7 +47,7 @@ export default function useRoomEffectsController({
 
   const handleSendEffect = useCallback((effectName: string) => {
     const effectAnnotation = getSceneEffectAnnotationId(effectName);
-    send({
+    void sendMessageWithInsert({
       roomId,
       roleId: undefined,
       avatarId: undefined,
@@ -56,10 +56,10 @@ export default function useRoomEffectsController({
       ...(effectAnnotation ? { annotations: [effectAnnotation] } : {}),
       extra: {},
     });
-  }, [roomId, send]);
+  }, [roomId, sendMessageWithInsert]);
 
   const handleClearBackground = useCallback(() => {
-    send({
+    void sendMessageWithInsert({
       roomId,
       roleId: undefined,
       avatarId: undefined,
@@ -69,10 +69,10 @@ export default function useRoomEffectsController({
       extra: {},
     });
     toast.success("已清除背景");
-  }, [roomId, send]);
+  }, [roomId, sendMessageWithInsert]);
 
   const handleClearFigure = useCallback(() => {
-    send({
+    void sendMessageWithInsert({
       roomId,
       roleId: undefined,
       avatarId: undefined,
@@ -85,10 +85,10 @@ export default function useRoomEffectsController({
       clearRealtimeFigure();
     }
     toast.success("已清除立绘");
-  }, [clearRealtimeFigure, isRealtimeRenderActive, roomId, send]);
+  }, [clearRealtimeFigure, isRealtimeRenderActive, roomId, sendMessageWithInsert]);
 
   const handleStopBgmForAll = useCallback(() => {
-    send({
+    void sendMessageWithInsert({
       roomId,
       roleId: undefined,
       avatarId: undefined,
@@ -97,7 +97,7 @@ export default function useRoomEffectsController({
       extra: {},
     });
     toast.success("已发送停止全员BGM");
-  }, [roomId, send]);
+  }, [roomId, sendMessageWithInsert]);
 
   return {
     backgroundUrl,

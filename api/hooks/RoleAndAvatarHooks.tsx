@@ -30,6 +30,7 @@ import {
   type RoleCreateRequest
 } from "api";
 import type { Role } from '@/components/Role/types';
+import { ROLE_DEFAULT_AVATAR_URL } from '@/constants/defaultAvatar';
 
 function getErrorStatusCode(error: unknown): number | undefined {
   const e = error as any;
@@ -262,7 +263,7 @@ export function useCopyRoleMutation() {
         throw new Error(copyRes?.errMsg || "角色复制失败");
       }
 
-      let avatarUrl = sourceRole.avatar || "/role-default-avatar.png";
+      let avatarUrl = sourceRole.avatar || ROLE_DEFAULT_AVATAR_URL;
       let avatarThumb = sourceRole.avatarThumb || avatarUrl;
       const copiedAvatarId = copiedRole.avatarId ?? 0;
       if (copiedAvatarId > 0) {

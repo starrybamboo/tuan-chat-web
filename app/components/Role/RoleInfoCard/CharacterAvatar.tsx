@@ -3,6 +3,7 @@ import type { Role } from "../types";
 
 import { useState } from "react";
 import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
+import { ROLE_DEFAULT_AVATAR_URL } from "@/constants/defaultAvatar";
 import { SpriteSettingsPopup } from "../sprite/SpriteSettingsPopup";
 
 interface CharacterAvatarProps {
@@ -66,7 +67,7 @@ export default function CharacterAvatar({
           }`}
           />
           <img
-            src={selectedAvatarUrl || "/role-default-avatar.png"}
+            src={selectedAvatarUrl || ROLE_DEFAULT_AVATAR_URL}
             alt="Character Avatar"
             className={`object-cover transition-transform duration-300 ${editable ? "group-hover:scale-105" : ""}`}
           />
