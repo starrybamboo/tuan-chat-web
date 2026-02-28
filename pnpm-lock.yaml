@@ -13,23 +13,6 @@ overrides:
   lit-element: 4.2.2
   lit-html: 3.3.2
 
-patchedDependencies:
-  '@blocksuite/affine-block-embed-doc@0.22.4':
-    hash: sxgg73dhw7lz2zgd2kfqd7dxdm
-    path: patches/@blocksuite__affine-block-embed-doc@0.22.4.src.patch
-  '@blocksuite/affine-block-table@0.22.4':
-    hash: rk74zmor2hcseejc7yhibci7p4
-    path: patches/@blocksuite__affine-block-table@0.22.4.patch
-  '@blocksuite/affine-inline-link@0.22.4':
-    hash: 4qs454fhmdsprze3ohtq4b24mu
-    path: patches/@blocksuite__affine-inline-link@0.22.4.patch
-  '@blocksuite/data-view@0.22.4':
-    hash: w3hc6gxupvrksdphddv62kis5a
-    path: patches/@blocksuite__data-view@0.22.4.patch
-  lz-string@1.5.0:
-    hash: 3b3u2k7y5dkr7sjixlgwaiucwi
-    path: patches/lz-string@1.5.0.patch
-
 importers:
 
   .:
@@ -9100,7 +9083,7 @@ snapshots:
   '@blocksuite/affine-block-bookmark@0.22.4(@types/react@19.2.7)(change-case@5.4.4)(react@19.2.3)':
     dependencies:
       '@blocksuite/affine-block-embed': 0.22.4(@types/react@19.2.7)(change-case@5.4.4)(react@19.2.3)
-      '@blocksuite/affine-block-embed-doc': 0.22.4(patch_hash=sxgg73dhw7lz2zgd2kfqd7dxdm)(@types/react@19.2.7)(change-case@5.4.4)(react@19.2.3)
+      '@blocksuite/affine-block-embed-doc': 0.22.4(@types/react@19.2.7)(change-case@5.4.4)(react@19.2.3)
       '@blocksuite/affine-block-surface': 0.22.4(@types/react@19.2.7)(change-case@5.4.4)(react@19.2.3)
       '@blocksuite/affine-components': 0.22.4(@types/react@19.2.7)(change-case@5.4.4)(react@19.2.3)
       '@blocksuite/affine-ext-loader': 0.22.4
@@ -9161,7 +9144,7 @@ snapshots:
       '@blocksuite/affine-ext-loader': 0.22.4
       '@blocksuite/affine-gfx-turbo-renderer': 0.22.4
       '@blocksuite/affine-inline-latex': 0.22.4(@types/react@19.2.7)(change-case@5.4.4)(react@19.2.3)
-      '@blocksuite/affine-inline-link': 0.22.4(patch_hash=4qs454fhmdsprze3ohtq4b24mu)(@types/react@19.2.7)(change-case@5.4.4)(react@19.2.3)
+      '@blocksuite/affine-inline-link': 0.22.4(@types/react@19.2.7)(change-case@5.4.4)(react@19.2.3)
       '@blocksuite/affine-inline-preset': 0.22.4(@types/react@19.2.7)(change-case@5.4.4)(react@19.2.3)
       '@blocksuite/affine-model': 0.22.4
       '@blocksuite/affine-rich-text': 0.22.4(@types/react@19.2.7)(change-case@5.4.4)(react@19.2.3)
@@ -9195,7 +9178,7 @@ snapshots:
       '@blocksuite/affine-model': 0.22.4
       '@blocksuite/affine-shared': 0.22.4(@types/react@19.2.7)(change-case@5.4.4)(react@19.2.3)
       '@blocksuite/affine-widget-slash-menu': 0.22.4(@types/react@19.2.7)(change-case@5.4.4)(react@19.2.3)
-      '@blocksuite/data-view': 0.22.4(patch_hash=w3hc6gxupvrksdphddv62kis5a)(@types/debug@4.1.12)(@types/node@20.19.27)(@types/react@19.2.7)(change-case@5.4.4)(jiti@2.6.1)(lightningcss@1.30.2)(react@19.2.3)(terser@5.44.1)(tsx@4.21.0)(yaml@2.8.2)
+      '@blocksuite/data-view': 0.22.4(@types/debug@4.1.12)(@types/node@20.19.27)(@types/react@19.2.7)(change-case@5.4.4)(jiti@2.6.1)(lightningcss@1.30.2)(react@19.2.3)(terser@5.44.1)(tsx@4.21.0)(yaml@2.8.2)
       '@blocksuite/global': 0.22.4
       '@blocksuite/icons': 2.2.17(@types/react@19.2.7)(change-case@5.4.4)(lit@3.3.2)(react@19.2.3)
       '@blocksuite/std': 0.22.4
@@ -9245,7 +9228,7 @@ snapshots:
       '@blocksuite/affine-shared': 0.22.4(@types/react@19.2.7)(change-case@5.4.4)(react@19.2.3)
       '@blocksuite/affine-widget-drag-handle': 0.22.4(@types/react@19.2.7)(babel-plugin-macros@3.1.0)(change-case@5.4.4)(react@19.2.3)
       '@blocksuite/affine-widget-slash-menu': 0.22.4(@types/react@19.2.7)(change-case@5.4.4)(react@19.2.3)
-      '@blocksuite/data-view': 0.22.4(patch_hash=w3hc6gxupvrksdphddv62kis5a)(@types/debug@4.1.12)(@types/node@20.19.27)(@types/react@19.2.7)(change-case@5.4.4)(jiti@2.6.1)(lightningcss@1.30.2)(react@19.2.3)(terser@5.44.1)(tsx@4.21.0)(yaml@2.8.2)
+      '@blocksuite/data-view': 0.22.4(@types/debug@4.1.12)(@types/node@20.19.27)(@types/react@19.2.7)(change-case@5.4.4)(jiti@2.6.1)(lightningcss@1.30.2)(react@19.2.3)(terser@5.44.1)(tsx@4.21.0)(yaml@2.8.2)
       '@blocksuite/global': 0.22.4
       '@blocksuite/icons': 2.2.17(@types/react@19.2.7)(change-case@5.4.4)(lit@3.3.2)(react@19.2.3)
       '@blocksuite/std': 0.22.4
@@ -9341,7 +9324,7 @@ snapshots:
       - react
       - supports-color
 
-  '@blocksuite/affine-block-embed-doc@0.22.4(patch_hash=sxgg73dhw7lz2zgd2kfqd7dxdm)(@types/react@19.2.7)(change-case@5.4.4)(react@19.2.3)':
+  '@blocksuite/affine-block-embed-doc@0.22.4(@types/react@19.2.7)(change-case@5.4.4)(react@19.2.3)':
     dependencies:
       '@blocksuite/affine-block-embed': 0.22.4(@types/react@19.2.7)(change-case@5.4.4)(react@19.2.3)
       '@blocksuite/affine-block-surface': 0.22.4(@types/react@19.2.7)(change-case@5.4.4)(react@19.2.3)
@@ -9616,7 +9599,7 @@ snapshots:
       '@blocksuite/affine-shared': 0.22.4(@types/react@19.2.7)(change-case@5.4.4)(react@19.2.3)
       '@blocksuite/affine-widget-edgeless-selected-rect': 0.22.4(@types/react@19.2.7)(babel-plugin-macros@3.1.0)(change-case@5.4.4)(react@19.2.3)
       '@blocksuite/affine-widget-edgeless-toolbar': 0.22.4(@types/react@19.2.7)(change-case@5.4.4)(react@19.2.3)
-      '@blocksuite/data-view': 0.22.4(patch_hash=w3hc6gxupvrksdphddv62kis5a)(@types/debug@4.1.12)(@types/node@20.19.27)(@types/react@19.2.7)(change-case@5.4.4)(jiti@2.6.1)(lightningcss@1.30.2)(react@19.2.3)(terser@5.44.1)(tsx@4.21.0)(yaml@2.8.2)
+      '@blocksuite/data-view': 0.22.4(@types/debug@4.1.12)(@types/node@20.19.27)(@types/react@19.2.7)(change-case@5.4.4)(jiti@2.6.1)(lightningcss@1.30.2)(react@19.2.3)(terser@5.44.1)(tsx@4.21.0)(yaml@2.8.2)
       '@blocksuite/global': 0.22.4
       '@blocksuite/icons': 2.2.17(@types/react@19.2.7)(change-case@5.4.4)(lit@3.3.2)(react@19.2.3)
       '@blocksuite/std': 0.22.4
@@ -9719,7 +9702,7 @@ snapshots:
       - react
       - supports-color
 
-  '@blocksuite/affine-block-table@0.22.4(patch_hash=rk74zmor2hcseejc7yhibci7p4)(@types/debug@4.1.12)(@types/node@20.19.27)(@types/react@19.2.7)(change-case@5.4.4)(jiti@2.6.1)(lightningcss@1.30.2)(react@19.2.3)(terser@5.44.1)(tsx@4.21.0)(yaml@2.8.2)':
+  '@blocksuite/affine-block-table@0.22.4(@types/debug@4.1.12)(@types/node@20.19.27)(@types/react@19.2.7)(change-case@5.4.4)(jiti@2.6.1)(lightningcss@1.30.2)(react@19.2.3)(terser@5.44.1)(tsx@4.21.0)(yaml@2.8.2)':
     dependencies:
       '@atlaskit/pragmatic-drag-and-drop': 1.7.7
       '@blocksuite/affine-components': 0.22.4(@types/react@19.2.7)(change-case@5.4.4)(react@19.2.3)
@@ -9729,7 +9712,7 @@ snapshots:
       '@blocksuite/affine-rich-text': 0.22.4(@types/react@19.2.7)(change-case@5.4.4)(react@19.2.3)
       '@blocksuite/affine-shared': 0.22.4(@types/react@19.2.7)(change-case@5.4.4)(react@19.2.3)
       '@blocksuite/affine-widget-slash-menu': 0.22.4(@types/react@19.2.7)(change-case@5.4.4)(react@19.2.3)
-      '@blocksuite/data-view': 0.22.4(patch_hash=w3hc6gxupvrksdphddv62kis5a)(@types/debug@4.1.12)(@types/node@20.19.27)(@types/react@19.2.7)(change-case@5.4.4)(jiti@2.6.1)(lightningcss@1.30.2)(react@19.2.3)(terser@5.44.1)(tsx@4.21.0)(yaml@2.8.2)
+      '@blocksuite/data-view': 0.22.4(@types/debug@4.1.12)(@types/node@20.19.27)(@types/react@19.2.7)(change-case@5.4.4)(jiti@2.6.1)(lightningcss@1.30.2)(react@19.2.3)(terser@5.44.1)(tsx@4.21.0)(yaml@2.8.2)
       '@blocksuite/global': 0.22.4
       '@blocksuite/icons': 2.2.17(@types/react@19.2.7)(change-case@5.4.4)(lit@3.3.2)(react@19.2.3)
       '@blocksuite/std': 0.22.4
@@ -9814,7 +9797,7 @@ snapshots:
       '@blocksuite/affine-ext-loader': 0.22.4
       '@blocksuite/affine-rich-text': 0.22.4(@types/react@19.2.7)(change-case@5.4.4)(react@19.2.3)
       '@blocksuite/affine-shared': 0.22.4(@types/react@19.2.7)(change-case@5.4.4)(react@19.2.3)
-      '@blocksuite/data-view': 0.22.4(patch_hash=w3hc6gxupvrksdphddv62kis5a)(@types/debug@4.1.12)(@types/node@20.19.27)(@types/react@19.2.7)(change-case@5.4.4)(jiti@2.6.1)(lightningcss@1.30.2)(react@19.2.3)(terser@5.44.1)(tsx@4.21.0)(yaml@2.8.2)
+      '@blocksuite/data-view': 0.22.4(@types/debug@4.1.12)(@types/node@20.19.27)(@types/react@19.2.7)(change-case@5.4.4)(jiti@2.6.1)(lightningcss@1.30.2)(react@19.2.3)(terser@5.44.1)(tsx@4.21.0)(yaml@2.8.2)
       '@blocksuite/global': 0.22.4
       '@blocksuite/icons': 2.2.17(@types/react@19.2.7)(change-case@5.4.4)(lit@3.3.2)(react@19.2.3)
       '@blocksuite/std': 0.22.4
@@ -10346,7 +10329,7 @@ snapshots:
       - react
       - supports-color
 
-  '@blocksuite/affine-inline-link@0.22.4(patch_hash=4qs454fhmdsprze3ohtq4b24mu)(@types/react@19.2.7)(change-case@5.4.4)(react@19.2.3)':
+  '@blocksuite/affine-inline-link@0.22.4(@types/react@19.2.7)(change-case@5.4.4)(react@19.2.3)':
     dependencies:
       '@blocksuite/affine-components': 0.22.4(@types/react@19.2.7)(change-case@5.4.4)(react@19.2.3)
       '@blocksuite/affine-ext-loader': 0.22.4
@@ -10411,7 +10394,7 @@ snapshots:
       '@blocksuite/affine-ext-loader': 0.22.4
       '@blocksuite/affine-inline-footnote': 0.22.4(@types/react@19.2.7)(change-case@5.4.4)(react@19.2.3)
       '@blocksuite/affine-inline-latex': 0.22.4(@types/react@19.2.7)(change-case@5.4.4)(react@19.2.3)
-      '@blocksuite/affine-inline-link': 0.22.4(patch_hash=4qs454fhmdsprze3ohtq4b24mu)(@types/react@19.2.7)(change-case@5.4.4)(react@19.2.3)
+      '@blocksuite/affine-inline-link': 0.22.4(@types/react@19.2.7)(change-case@5.4.4)(react@19.2.3)
       '@blocksuite/affine-inline-mention': 0.22.4(@types/react@19.2.7)(change-case@5.4.4)(react@19.2.3)
       '@blocksuite/affine-inline-reference': 0.22.4(@types/react@19.2.7)(change-case@5.4.4)(react@19.2.3)
       '@blocksuite/affine-model': 0.22.4
@@ -10760,13 +10743,13 @@ snapshots:
       '@blocksuite/affine-ext-loader': 0.22.4
       '@blocksuite/affine-fragment-doc-title': 0.22.4(@types/react@19.2.7)(change-case@5.4.4)(react@19.2.3)
       '@blocksuite/affine-inline-latex': 0.22.4(@types/react@19.2.7)(change-case@5.4.4)(react@19.2.3)
-      '@blocksuite/affine-inline-link': 0.22.4(patch_hash=4qs454fhmdsprze3ohtq4b24mu)(@types/react@19.2.7)(change-case@5.4.4)(react@19.2.3)
+      '@blocksuite/affine-inline-link': 0.22.4(@types/react@19.2.7)(change-case@5.4.4)(react@19.2.3)
       '@blocksuite/affine-inline-preset': 0.22.4(@types/react@19.2.7)(change-case@5.4.4)(react@19.2.3)
       '@blocksuite/affine-inline-reference': 0.22.4(@types/react@19.2.7)(change-case@5.4.4)(react@19.2.3)
       '@blocksuite/affine-model': 0.22.4
       '@blocksuite/affine-rich-text': 0.22.4(@types/react@19.2.7)(change-case@5.4.4)(react@19.2.3)
       '@blocksuite/affine-shared': 0.22.4(@types/react@19.2.7)(change-case@5.4.4)(react@19.2.3)
-      '@blocksuite/data-view': 0.22.4(patch_hash=w3hc6gxupvrksdphddv62kis5a)(@types/debug@4.1.12)(@types/node@20.19.27)(@types/react@19.2.7)(change-case@5.4.4)(jiti@2.6.1)(lightningcss@1.30.2)(react@19.2.3)(terser@5.44.1)(tsx@4.21.0)(yaml@2.8.2)
+      '@blocksuite/data-view': 0.22.4(@types/debug@4.1.12)(@types/node@20.19.27)(@types/react@19.2.7)(change-case@5.4.4)(jiti@2.6.1)(lightningcss@1.30.2)(react@19.2.3)(terser@5.44.1)(tsx@4.21.0)(yaml@2.8.2)
       '@blocksuite/global': 0.22.4
       '@blocksuite/icons': 2.2.17(@types/react@19.2.7)(change-case@5.4.4)(lit@3.3.2)(react@19.2.3)
       '@blocksuite/std': 0.22.4
@@ -10948,7 +10931,7 @@ snapshots:
     dependencies:
       '@blocksuite/affine-block-database': 0.22.4(@types/debug@4.1.12)(@types/node@20.19.27)(@types/react@19.2.7)(babel-plugin-macros@3.1.0)(change-case@5.4.4)(jiti@2.6.1)(lightningcss@1.30.2)(react@19.2.3)(terser@5.44.1)(tsx@4.21.0)(yaml@2.8.2)
       '@blocksuite/affine-block-surface': 0.22.4(@types/react@19.2.7)(change-case@5.4.4)(react@19.2.3)
-      '@blocksuite/affine-block-table': 0.22.4(patch_hash=rk74zmor2hcseejc7yhibci7p4)(@types/debug@4.1.12)(@types/node@20.19.27)(@types/react@19.2.7)(change-case@5.4.4)(jiti@2.6.1)(lightningcss@1.30.2)(react@19.2.3)(terser@5.44.1)(tsx@4.21.0)(yaml@2.8.2)
+      '@blocksuite/affine-block-table': 0.22.4(@types/debug@4.1.12)(@types/node@20.19.27)(@types/react@19.2.7)(change-case@5.4.4)(jiti@2.6.1)(lightningcss@1.30.2)(react@19.2.3)(terser@5.44.1)(tsx@4.21.0)(yaml@2.8.2)
       '@blocksuite/affine-components': 0.22.4(@types/react@19.2.7)(change-case@5.4.4)(react@19.2.3)
       '@blocksuite/affine-ext-loader': 0.22.4
       '@blocksuite/affine-model': 0.22.4
@@ -11021,7 +11004,7 @@ snapshots:
       '@blocksuite/affine-block-divider': 0.22.4(@types/react@19.2.7)(change-case@5.4.4)(react@19.2.3)
       '@blocksuite/affine-block-edgeless-text': 0.22.4(@types/react@19.2.7)(change-case@5.4.4)(react@19.2.3)
       '@blocksuite/affine-block-embed': 0.22.4(@types/react@19.2.7)(change-case@5.4.4)(react@19.2.3)
-      '@blocksuite/affine-block-embed-doc': 0.22.4(patch_hash=sxgg73dhw7lz2zgd2kfqd7dxdm)(@types/react@19.2.7)(change-case@5.4.4)(react@19.2.3)
+      '@blocksuite/affine-block-embed-doc': 0.22.4(@types/react@19.2.7)(change-case@5.4.4)(react@19.2.3)
       '@blocksuite/affine-block-frame': 0.22.4(@types/react@19.2.7)(change-case@5.4.4)(react@19.2.3)
       '@blocksuite/affine-block-image': 0.22.4(@types/react@19.2.7)(babel-plugin-macros@3.1.0)(change-case@5.4.4)(react@19.2.3)
       '@blocksuite/affine-block-latex': 0.22.4(@types/react@19.2.7)(babel-plugin-macros@3.1.0)(change-case@5.4.4)(react@19.2.3)
@@ -11031,7 +11014,7 @@ snapshots:
       '@blocksuite/affine-block-root': 0.22.4(@types/debug@4.1.12)(@types/node@20.19.27)(@types/react@19.2.7)(babel-plugin-macros@3.1.0)(change-case@5.4.4)(jiti@2.6.1)(lightningcss@1.30.2)(react@19.2.3)(terser@5.44.1)(tsx@4.21.0)(yaml@2.8.2)
       '@blocksuite/affine-block-surface': 0.22.4(@types/react@19.2.7)(change-case@5.4.4)(react@19.2.3)
       '@blocksuite/affine-block-surface-ref': 0.22.4(@types/react@19.2.7)(change-case@5.4.4)(react@19.2.3)
-      '@blocksuite/affine-block-table': 0.22.4(patch_hash=rk74zmor2hcseejc7yhibci7p4)(@types/debug@4.1.12)(@types/node@20.19.27)(@types/react@19.2.7)(change-case@5.4.4)(jiti@2.6.1)(lightningcss@1.30.2)(react@19.2.3)(terser@5.44.1)(tsx@4.21.0)(yaml@2.8.2)
+      '@blocksuite/affine-block-table': 0.22.4(@types/debug@4.1.12)(@types/node@20.19.27)(@types/react@19.2.7)(change-case@5.4.4)(jiti@2.6.1)(lightningcss@1.30.2)(react@19.2.3)(terser@5.44.1)(tsx@4.21.0)(yaml@2.8.2)
       '@blocksuite/affine-components': 0.22.4(@types/react@19.2.7)(change-case@5.4.4)(react@19.2.3)
       '@blocksuite/affine-ext-loader': 0.22.4
       '@blocksuite/affine-foundation': 0.22.4(@types/debug@4.1.12)(@types/node@20.19.27)(@types/react@19.2.7)(change-case@5.4.4)(jiti@2.6.1)(lightningcss@1.30.2)(react@19.2.3)(terser@5.44.1)(tsx@4.21.0)(yaml@2.8.2)
@@ -11052,7 +11035,7 @@ snapshots:
       '@blocksuite/affine-gfx-turbo-renderer': 0.22.4
       '@blocksuite/affine-inline-footnote': 0.22.4(@types/react@19.2.7)(change-case@5.4.4)(react@19.2.3)
       '@blocksuite/affine-inline-latex': 0.22.4(@types/react@19.2.7)(change-case@5.4.4)(react@19.2.3)
-      '@blocksuite/affine-inline-link': 0.22.4(patch_hash=4qs454fhmdsprze3ohtq4b24mu)(@types/react@19.2.7)(change-case@5.4.4)(react@19.2.3)
+      '@blocksuite/affine-inline-link': 0.22.4(@types/react@19.2.7)(change-case@5.4.4)(react@19.2.3)
       '@blocksuite/affine-inline-mention': 0.22.4(@types/react@19.2.7)(change-case@5.4.4)(react@19.2.3)
       '@blocksuite/affine-inline-preset': 0.22.4(@types/react@19.2.7)(change-case@5.4.4)(react@19.2.3)
       '@blocksuite/affine-inline-reference': 0.22.4(@types/react@19.2.7)(change-case@5.4.4)(react@19.2.3)
@@ -11075,7 +11058,7 @@ snapshots:
       '@blocksuite/affine-widget-slash-menu': 0.22.4(@types/react@19.2.7)(change-case@5.4.4)(react@19.2.3)
       '@blocksuite/affine-widget-toolbar': 0.22.4(@types/debug@4.1.12)(@types/node@20.19.27)(@types/react@19.2.7)(babel-plugin-macros@3.1.0)(change-case@5.4.4)(jiti@2.6.1)(lightningcss@1.30.2)(react@19.2.3)(terser@5.44.1)(tsx@4.21.0)(yaml@2.8.2)
       '@blocksuite/affine-widget-viewport-overlay': 0.22.4(@types/react@19.2.7)(change-case@5.4.4)(react@19.2.3)
-      '@blocksuite/data-view': 0.22.4(patch_hash=w3hc6gxupvrksdphddv62kis5a)(@types/debug@4.1.12)(@types/node@20.19.27)(@types/react@19.2.7)(change-case@5.4.4)(jiti@2.6.1)(lightningcss@1.30.2)(react@19.2.3)(terser@5.44.1)(tsx@4.21.0)(yaml@2.8.2)
+      '@blocksuite/data-view': 0.22.4(@types/debug@4.1.12)(@types/node@20.19.27)(@types/react@19.2.7)(change-case@5.4.4)(jiti@2.6.1)(lightningcss@1.30.2)(react@19.2.3)(terser@5.44.1)(tsx@4.21.0)(yaml@2.8.2)
       '@blocksuite/global': 0.22.4
       '@blocksuite/std': 0.22.4
       '@blocksuite/store': 0.22.4
@@ -11107,7 +11090,7 @@ snapshots:
       - yaml
       - yjs
 
-  '@blocksuite/data-view@0.22.4(patch_hash=w3hc6gxupvrksdphddv62kis5a)(@types/debug@4.1.12)(@types/node@20.19.27)(@types/react@19.2.7)(change-case@5.4.4)(jiti@2.6.1)(lightningcss@1.30.2)(react@19.2.3)(terser@5.44.1)(tsx@4.21.0)(yaml@2.8.2)':
+  '@blocksuite/data-view@0.22.4(@types/debug@4.1.12)(@types/node@20.19.27)(@types/react@19.2.7)(change-case@5.4.4)(jiti@2.6.1)(lightningcss@1.30.2)(react@19.2.3)(terser@5.44.1)(tsx@4.21.0)(yaml@2.8.2)':
     dependencies:
       '@blocksuite/affine-components': 0.22.4(@types/react@19.2.7)(change-case@5.4.4)(react@19.2.3)
       '@blocksuite/affine-shared': 0.22.4(@types/react@19.2.7)(change-case@5.4.4)(react@19.2.3)
@@ -11225,7 +11208,7 @@ snapshots:
       lib0: 0.2.117
       lit: 3.3.2
       lodash-es: 4.17.22
-      lz-string: 1.5.0(patch_hash=3b3u2k7y5dkr7sjixlgwaiucwi)
+      lz-string: 1.5.0
       rehype-parse: 9.0.1
       rxjs: 7.8.2
       unified: 11.0.5
@@ -16846,7 +16829,7 @@ snapshots:
 
   lru-cache@7.18.3: {}
 
-  lz-string@1.5.0(patch_hash=3b3u2k7y5dkr7sjixlgwaiucwi): {}
+  lz-string@1.5.0: {}
 
   magic-string@0.30.21:
     dependencies:

@@ -3,11 +3,6 @@ import { ChevronRightIcon, DiceFiveIcon, GearOutline, MicrophoneIcon } from "app
 import AudioPlayer from "./RoleInfoCard/AudioPlayer";
 import CharacterAvatar from "./RoleInfoCard/CharacterAvatar";
 
-interface CharacterDetailLeftPanelHorizontalProps extends CharacterDetailLeftPanelProps {
-  onOpenStImportModal?: () => void;
-  onOpenAIGenerateModal?: () => void;
-}
-
 export default function CharacterDetailLeftPanelHorizontal({
   isQueryLoading,
   isEditing,
@@ -30,22 +25,20 @@ export default function CharacterDetailLeftPanelHorizontal({
   onAvatarSelect,
   onAvatarDelete,
   onAvatarUpload,
-  onOpenStImportModal,
-  onOpenAIGenerateModal,
   setLocalRole,
   onAudioRoleUpdate,
   onAudioDelete,
-}: CharacterDetailLeftPanelHorizontalProps) {
+}: CharacterDetailLeftPanelProps) {
   return (
     <div className="card-sm md:card-xl bg-base-100 shadow-xs rounded-xl md:border-2 md:border-base-content/10">
       <div className="card-body p-4">
         <div className="lg:hidden">
           <div className="grid grid-cols-4 gap-2">
-            <div className="col-start-1 col-span-2 row-start-1 row-span-2 flex items-start justify-center">
+            <div className={`col-start-1 col-span-2 row-start-1 ${isDiceMaiden ? "row-span-2" : "row-span-3"} flex items-center justify-center`}>
               {isQueryLoading
                 ? (
                     <div className="flex flex-col items-center gap-3">
-                      <div className="skeleton w-24 h-24 sm:w-28 sm:h-28 rounded-xl"></div>
+                      <div className="skeleton w-28 h-28 sm:w-32 sm:h-32 rounded-xl"></div>
                     </div>
                   )
                 : (
@@ -55,7 +48,7 @@ export default function CharacterDetailLeftPanelHorizontal({
                       selectedAvatarId={selectedAvatarId}
                       selectedAvatarUrl={selectedAvatarUrl}
                       selectedSpriteUrl={selectedSpriteUrl}
-                      avatarSizeClassName="w-28 sm:w-32"
+                      avatarSizeClassName="w-32 sm:w-36"
                       onchange={onAvatarChange}
                       onAvatarSelect={onAvatarSelect}
                       onAvatarDelete={onAvatarDelete}
@@ -79,23 +72,25 @@ export default function CharacterDetailLeftPanelHorizontal({
               <ChevronRightIcon className="w-4 h-4 text-base-content/50" />
             </button>
 
-            <button
-              type="button"
-              className="col-start-3 col-span-2 row-start-2 rounded-xl bg-base-100/70 border border-base-content/10 px-3 py-2.5 min-h-12 flex items-center justify-between hover:bg-base-300/50 transition-colors"
-              onClick={onOpenDiceMaidenLinkModal}
-            >
-              <span className="inline-flex items-center gap-2">
-                <span className="w-7 h-7 rounded-full bg-accent/10 flex items-center justify-center">
-                  <DiceFiveIcon className="w-4 h-4 text-accent" />
+            {!isDiceMaiden && (
+              <button
+                type="button"
+                className="col-start-3 col-span-2 row-start-2 rounded-xl bg-base-100/70 border border-base-content/10 px-3 py-2.5 min-h-12 flex items-center justify-between hover:bg-base-300/50 transition-colors"
+                onClick={onOpenDiceMaidenLinkModal}
+              >
+                <span className="inline-flex items-center gap-2">
+                  <span className="w-7 h-7 rounded-full bg-accent/10 flex items-center justify-center">
+                    <DiceFiveIcon className="w-4 h-4 text-accent" />
+                  </span>
+                  <span className="font-semibold text-sm">关联骰娘</span>
                 </span>
-                <span className="font-semibold text-sm">关联骰娘</span>
-              </span>
-              <ChevronRightIcon className="w-4 h-4 text-base-content/50" />
-            </button>
+                <ChevronRightIcon className="w-4 h-4 text-base-content/50" />
+              </button>
+            )}
 
             <button
               type="button"
-              className="col-start-3 col-span-2 row-start-3 rounded-xl bg-base-100/70 border border-base-content/10 px-3 py-2.5 min-h-12 flex items-center justify-between hover:bg-base-300/50 transition-colors"
+              className={`col-start-3 col-span-2 ${isDiceMaiden ? "row-start-2" : "row-start-3"} rounded-xl bg-base-100/70 border border-base-content/10 px-3 py-2.5 min-h-12 flex items-center justify-between hover:bg-base-300/50 transition-colors`}
               onClick={onOpenAudioModal}
             >
               <span className="inline-flex items-center gap-2">
@@ -106,29 +101,6 @@ export default function CharacterDetailLeftPanelHorizontal({
               </span>
               <ChevronRightIcon className="w-4 h-4 text-base-content/50" />
             </button>
-
-            {!isDiceMaiden && (onOpenStImportModal || onOpenAIGenerateModal) && (
-              <div className="col-start-1 col-span-2 row-start-3 self-center w-full max-w-28 sm:max-w-32 justify-self-center grid grid-cols-2 gap-2">
-                {onOpenStImportModal && (
-                  <button
-                    type="button"
-                    className="btn btn-sm rounded-lg bg-info/70 text-info-content h-10 w-full"
-                    onClick={onOpenStImportModal}
-                  >
-                    ST
-                  </button>
-                )}
-                {onOpenAIGenerateModal && (
-                  <button
-                    type="button"
-                    className="btn btn-sm rounded-lg btn-primary h-10 w-full"
-                    onClick={onOpenAIGenerateModal}
-                  >
-                    AI
-                  </button>
-                )}
-              </div>
-            )}
           </div>
 
           {isEditing && (
@@ -279,35 +251,37 @@ export default function CharacterDetailLeftPanelHorizontal({
               </div>
             </div>
 
-            <div className="card bg-base-100 rounded-xl transition-all duration-200">
-              <div className="card-body p-4">
-                <div
-                  className="flex items-center justify-between cursor-pointer hover:bg-base-300 rounded-xl p-2 -m-2"
-                  onClick={onOpenDiceMaidenLinkModal}
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-accent/10 flex items-center justify-center">
-                      <DiceFiveIcon className="w-4 h-4 text-accent" />
+            {!isDiceMaiden && (
+              <div className="card bg-base-100 rounded-xl transition-all duration-200">
+                <div className="card-body p-4">
+                  <div
+                    className="flex items-center justify-between cursor-pointer hover:bg-base-300 rounded-xl p-2 -m-2"
+                    onClick={onOpenDiceMaidenLinkModal}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-full bg-accent/10 flex items-center justify-center">
+                        <DiceFiveIcon className="w-4 h-4 text-accent" />
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-sm">关联骰娘</h3>
+                        <p className={`font-medium text-sm ${
+                          dicerRoleError ? "text-error" : "text-accent"
+                        }`}
+                        >
+                          {currentDicerRoleId
+                            ? dicerRoleError || linkedDicerRoleName || `ID: ${currentDicerRoleId}`
+                            : "选择使用的骰娘角色"}
+                        </p>
+                      </div>
                     </div>
-                    <div>
-                      <h3 className="font-semibold text-sm">关联骰娘</h3>
-                      <p className={`font-medium text-sm ${
-                        dicerRoleError ? "text-error" : "text-accent"
-                      }`}
-                      >
-                        {currentDicerRoleId
-                          ? dicerRoleError || linkedDicerRoleName || `ID: ${currentDicerRoleId}`
-                          : "选择使用的骰娘角色"}
-                      </p>
+                    <div className="flex items-center gap-1 text-base-content/50">
+                      <span className="text-xs">{currentDicerRoleId ? "更改" : "设置"}</span>
+                      <ChevronRightIcon className="w-4 h-4" />
                     </div>
-                  </div>
-                  <div className="flex items-center gap-1 text-base-content/50">
-                    <span className="text-xs">{currentDicerRoleId ? "更改" : "设置"}</span>
-                    <ChevronRightIcon className="w-4 h-4" />
                   </div>
                 </div>
               </div>
-            </div>
+            )}
 
             <div className="card bg-base-100 rounded-xl transition-all duration-200">
               <div className="card-body p-4">

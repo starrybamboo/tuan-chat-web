@@ -356,8 +356,7 @@ export default function ChatFrameContextMenu({
     // 不弹窗输入标题：默认使用原消息内容截断（不加“Thread:”前缀）
     const raw = (selected.content ?? "").trim();
     const title = raw ? raw.slice(0, 20) : "子区";
-
-    sendMessageMutation.mutate({
+    const threadRootRequest = {
       roomId,
       messageType: MESSAGE_TYPE.THREAD_ROOT,
       roleId: roomContext.curRoleId,
@@ -366,7 +365,22 @@ export default function ChatFrameContextMenu({
       // 复用 replayMessageId 作为 threadParentMessageId：该子区挂到哪条原消息上
       replayMessageId: selected.messageId,
       extra: { title },
-    }, {
+    };
+
+    if (roomContext.sendMessageWithInsert) {
+      void (async () => {
+        const created = await roomContext.sendMessageWithInsert?.(threadRootRequest);
+        if (!created) {
+          toast.error("创建子区失败");
+          return;
+        }
+        handleOpenThread(created.messageId);
+        onClose();
+      })();
+      return;
+    }
+
+    sendMessageMutation.mutate(threadRootRequest, {
       onSuccess: (response) => {
         const created = response?.data;
         if (!created) {

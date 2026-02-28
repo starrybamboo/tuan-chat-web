@@ -1,6 +1,7 @@
 import type { Dispatch, SetStateAction } from "react";
 
 import UTILS from "@/components/common/dicer/utils/utils";
+import { ROLE_DEFAULT_AVATAR_URL } from "@/constants/defaultAvatar";
 
 import type { Role } from "../../types";
 import type { CharacterData } from "../types";
@@ -80,7 +81,7 @@ export async function completeRoleCreation(
   let avatarId: number | undefined;
   let avatarUrl: string | undefined;
   try {
-    const avatarRes = await uploadAvatar({ avatarUrl: "/favicon.ico", spriteUrl: "/favicon.ico", roleId });
+    const avatarRes = await uploadAvatar({ avatarUrl: ROLE_DEFAULT_AVATAR_URL, spriteUrl: ROLE_DEFAULT_AVATAR_URL, roleId });
     const responseAvatarId = avatarRes?.data?.avatarId;
     avatarId = typeof responseAvatarId === "number" ? responseAvatarId : undefined;
     avatarUrl = avatarRes?.data?.avatarUrl;
@@ -106,7 +107,7 @@ export async function completeRoleCreation(
     id: roleId,
     name: trimmedName,
     description: trimmedDescription,
-    avatar: avatarUrl || "/favicon.ico",
+    avatar: avatarUrl || ROLE_DEFAULT_AVATAR_URL,
     avatarId: avatarId ?? 0,
     modelName: "散华",
     speakerName: "鸣潮",

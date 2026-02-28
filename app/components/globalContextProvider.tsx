@@ -18,6 +18,10 @@ const GlobalContext = createContext<GlobalContextType>({
     send(_: any): void {
       console.error("Function not implemented.");
     },
+    sendWithResult(_: any): Promise<boolean> {
+      console.error("Function not implemented.");
+      return Promise.resolve(false);
+    },
     unreadMessagesNumber: {},
     isConnected(): boolean {
       console.error("Function not implemented.");
@@ -31,6 +35,13 @@ const GlobalContext = createContext<GlobalContextType>({
     chatStatus: {},
     updateChatStatus(chatStatusEvent: ChatStatusEvent): void {
       console.error(`Function not implemented.${chatStatusEvent}`);
+    },
+    pushOptimisticDirectMessage(): number | null {
+      console.error("Function not implemented.");
+      return null;
+    },
+    removeOptimisticDirectMessage(_: number): void {
+      console.error("Function not implemented.");
     },
   },
 });

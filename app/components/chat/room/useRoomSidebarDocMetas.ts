@@ -6,7 +6,7 @@ import type { MinimalDocMeta } from "./sidebarTree";
 
 type UseRoomSidebarDocMetasParams = {
   activeSpaceId: number | null;
-  isSpaceOwner: boolean;
+  canViewDocs: boolean;
   docMetas?: MinimalDocMeta[];
 };
 
@@ -18,7 +18,7 @@ type UseRoomSidebarDocMetasResult = {
 
 export default function useRoomSidebarDocMetas({
   activeSpaceId,
-  isSpaceOwner,
+  canViewDocs,
   docMetas,
 }: UseRoomSidebarDocMetasParams): UseRoomSidebarDocMetasResult {
   const [extraDocMetas, setExtraDocMetas] = useState<MinimalDocMeta[]>([]);
@@ -28,7 +28,7 @@ export default function useRoomSidebarDocMetas({
   }, [activeSpaceId]);
 
   const visibleDocMetas = useMemo(() => {
-    if (!isSpaceOwner) {
+    if (!canViewDocs) {
       return [] as MinimalDocMeta[];
     }
 
@@ -60,7 +60,7 @@ export default function useRoomSidebarDocMetas({
     }
 
     return [...merged.values()];
-  }, [docMetas, extraDocMetas, isSpaceOwner]);
+  }, [canViewDocs, docMetas, extraDocMetas]);
 
   const docMetaMap = useMemo(() => {
     const map = new Map<string, MinimalDocMeta>();

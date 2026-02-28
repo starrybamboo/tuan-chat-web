@@ -10,9 +10,11 @@ import {
   deleteMessagesByIds as dbDeleteMessagesByIds,
   getMessagesByRoomId as dbGetMessagesByRoomId,
 } from "./chatHistoryDb";
+import { logMessageOrderChange } from "./messageOrderDebug";
 
 const WS_RECONNECTED_EVENT = "tc:ws-reconnected";
 const OPTIMISTIC_MESSAGE_MAX_AGE_MS = 10 * 60 * 1000;
+const MESSAGE_ID_ALIAS_MAX_AGE_MS = 10 * 60 * 1000;
 
 export type UseChatHistoryReturn = {
   messages: ChatMessageResponse[];
@@ -22,6 +24,7 @@ export type UseChatHistoryReturn = {
   addOrUpdateMessages: (messages: ChatMessageResponse[]) => Promise<void>;
   removeMessageById: (messageId: number) => Promise<void>;
   replaceMessageById: (fromMessageId: number, message: ChatMessageResponse) => Promise<void>;
+  resolveMessageId: (messageId: number) => number;
   getMessagesByRoomId: (roomId: number) => Promise<ChatMessageResponse[]>;
   clearHistory: () => Promise<void>;
 };
@@ -243,11 +246,15 @@ function buildOptimisticMatchKey(
     includePosition?: boolean;
     ignoreContent?: boolean;
     ignoreAnnotations?: boolean;
+    ignoreReplyMessageId?: boolean;
+    ignoreExtra?: boolean;
   },
 ): string {
   const includePosition = Boolean(options?.includePosition);
   const ignoreContent = Boolean(options?.ignoreContent);
   const ignoreAnnotations = Boolean(options?.ignoreAnnotations);
+  const ignoreReplyMessageId = Boolean(options?.ignoreReplyMessageId);
+  const ignoreExtra = Boolean(options?.ignoreExtra);
   const annotations = !ignoreAnnotations && Array.isArray(message.annotations)
     ? [...message.annotations].map(item => String(item)).sort().join("\u0001")
     : "";
@@ -257,12 +264,12 @@ function buildOptimisticMatchKey(
     normalizeNumericForMatch(message.roleId),
     normalizeNumericForMatch(message.messageType),
     normalizeOptionalRefId(message.threadId),
-    normalizeOptionalRefId(message.replyMessageId),
+    ignoreReplyMessageId ? "" : normalizeOptionalRefId(message.replyMessageId),
     String(message.customRoleName ?? "").trim(),
     ignoreContent ? "" : String(message.content ?? ""),
     annotations,
     stableSerialize(message.webgal),
-    stableSerialize(normalizeMessageExtraForMatch(message)),
+    ignoreExtra ? "" : stableSerialize(normalizeMessageExtraForMatch(message)),
   ];
   if (includePosition) {
     baseParts.push(serializeMatchPosition(message.position));
@@ -283,10 +290,12 @@ function buildOptimisticBuckets(messages: ChatMessageResponse[]): {
   exact: Map<string, number[]>;
   loose: Map<string, number[]>;
   mediaLoose: Map<string, number[]>;
+  diceLoose: Map<string, number[]>;
 } {
   const exact = new Map<string, number[]>();
   const loose = new Map<string, number[]>();
   const mediaLoose = new Map<string, number[]>();
+  const diceLoose = new Map<string, number[]>();
   const now = Date.now();
 
   for (const item of messages) {
@@ -307,9 +316,20 @@ function buildOptimisticBuckets(messages: ChatMessageResponse[]): {
         message.messageId,
       );
     }
+    if (message.messageType === MessageType.DICE) {
+      pushBucketValue(
+        diceLoose,
+        buildOptimisticMatchKey(message, {
+          includePosition: false,
+          ignoreReplyMessageId: true,
+          ignoreExtra: true,
+        }),
+        message.messageId,
+      );
+    }
   }
 
-  return { exact, loose, mediaLoose };
+  return { exact, loose, mediaLoose, diceLoose };
 }
 
 function consumeOptimisticCandidate(
@@ -376,6 +396,76 @@ function mergeMessageForLocalState(
   };
 }
 
+function compareMessagesByStableOrder(a: ChatMessageResponse, b: ChatMessageResponse): number {
+  const aMessage = a.message;
+  const bMessage = b.message;
+
+  const aPosition = toFiniteNumber(aMessage.position);
+  const bPosition = toFiniteNumber(bMessage.position);
+  if (aPosition !== undefined && bPosition !== undefined && aPosition !== bPosition) {
+    return aPosition - bPosition;
+  }
+  if (aPosition !== undefined && bPosition === undefined) {
+    return -1;
+  }
+  if (aPosition === undefined && bPosition !== undefined) {
+    return 1;
+  }
+
+  const aSyncId = toFiniteNumber(aMessage.syncId);
+  const bSyncId = toFiniteNumber(bMessage.syncId);
+  if (aSyncId !== undefined && bSyncId !== undefined && aSyncId !== bSyncId) {
+    return aSyncId - bSyncId;
+  }
+  if (aSyncId !== undefined && bSyncId === undefined) {
+    return -1;
+  }
+  if (aSyncId === undefined && bSyncId !== undefined) {
+    return 1;
+  }
+
+  const aMessageId = toFiniteNumber(aMessage.messageId);
+  const bMessageId = toFiniteNumber(bMessage.messageId);
+  if (aMessageId !== undefined && bMessageId !== undefined && aMessageId !== bMessageId) {
+    return aMessageId - bMessageId;
+  }
+  if (aMessageId !== undefined && bMessageId === undefined) {
+    return -1;
+  }
+  if (aMessageId === undefined && bMessageId !== undefined) {
+    return 1;
+  }
+
+  const aCreateTime = parseTimeToMs(aMessage.createTime);
+  const bCreateTime = parseTimeToMs(bMessage.createTime);
+  if (aCreateTime !== undefined && bCreateTime !== undefined && aCreateTime !== bCreateTime) {
+    return aCreateTime - bCreateTime;
+  }
+  if (aCreateTime !== undefined && bCreateTime === undefined) {
+    return -1;
+  }
+  if (aCreateTime === undefined && bCreateTime !== undefined) {
+    return 1;
+  }
+
+  // 最后兜底，保证排序结果稳定可重复。
+  const aTieBreaker = stableSerialize({
+    content: aMessage.content ?? "",
+    messageType: aMessage.messageType,
+    roleId: aMessage.roleId ?? 0,
+    userId: aMessage.userId ?? 0,
+    replyMessageId: aMessage.replyMessageId ?? 0,
+  });
+  const bTieBreaker = stableSerialize({
+    content: bMessage.content ?? "",
+    messageType: bMessage.messageType,
+    roleId: bMessage.roleId ?? 0,
+    userId: bMessage.userId ?? 0,
+    replyMessageId: bMessage.replyMessageId ?? 0,
+  });
+  return aTieBreaker.localeCompare(bTieBreaker);
+}
+
 /**
  * 用于管理特定房间聊天记录的React Hook
  * @param roomId 要管理的房间ID, 你可以设置为null，然后通过getMessagesByRoomId获取
@@ -387,12 +477,51 @@ export function useChatHistory(roomId: number | null): UseChatHistoryReturn {
   }, [messagesRaw]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<Error | null>(null);
+  const messageIdAliasRef = useRef<Map<number, { toMessageId: number; updatedAt: number }>>(new Map());
 
   // 使用 ref 保存最新的 roomId，避免依赖变化导致回调重新创建
   const roomIdRef = useRef<number | null>(roomId);
   useEffect(() => {
     roomIdRef.current = roomId;
   }, [roomId]);
+
+  const cleanupMessageIdAlias = useCallback(() => {
+    const now = Date.now();
+    for (const [fromMessageId, alias] of messageIdAliasRef.current.entries()) {
+      if (now - alias.updatedAt > MESSAGE_ID_ALIAS_MAX_AGE_MS) {
+        messageIdAliasRef.current.delete(fromMessageId);
+      }
+    }
+  }, []);
+
+  const setMessageIdAlias = useCallback((fromMessageId: number, toMessageId: number) => {
+    if (!Number.isFinite(fromMessageId) || !Number.isFinite(toMessageId) || fromMessageId === toMessageId) {
+      return;
+    }
+    cleanupMessageIdAlias();
+    messageIdAliasRef.current.set(fromMessageId, {
+      toMessageId,
+      updatedAt: Date.now(),
+    });
+  }, [cleanupMessageIdAlias]);
+
+  const resolveMessageId = useCallback((messageId: number): number => {
+    if (!Number.isFinite(messageId)) {
+      return messageId;
+    }
+    cleanupMessageIdAlias();
+    let currentMessageId = messageId;
+    const visited = new Set<number>();
+    while (!visited.has(currentMessageId)) {
+      visited.add(currentMessageId);
+      const alias = messageIdAliasRef.current.get(currentMessageId);
+      if (!alias) {
+        break;
+      }
+      currentMessageId = alias.toMessageId;
+    }
+    return currentMessageId;
+  }, [cleanupMessageIdAlias]);
 
   /**
    * 批量添加或更新消息到当前房间，并同步更新UI状态
@@ -405,19 +534,20 @@ export function useChatHistory(roomId: number | null): UseChatHistoryReturn {
 
       // 先更新状态
       // 由于获取消息是异步的，这里的roomId可能是过时的，所以要检查一下。
-      if (newMessages[0].message.roomId === roomIdRef.current) {
+      const currentRoomId = roomIdRef.current;
+      const roomScopedMessages = newMessages.filter(msg => msg.message.roomId === currentRoomId);
+      if (roomScopedMessages.length > 0 && roomScopedMessages[0].message.roomId === currentRoomId) {
         setMessages((prevMessages) => {
           const messageMap = new Map(prevMessages.map(msg => [msg.message.messageId, msg]));
           const optimisticBuckets = buildOptimisticBuckets(prevMessages);
           let hasChanges = false;
 
-          newMessages.filter(msg => msg.message.roomId === roomIdRef.current)
-            .forEach((msg) => {
-              const incomingMessageId = msg.message.messageId;
-              const existingMsg = messageMap.get(incomingMessageId);
-              if (!existingMsg && incomingMessageId > 0) {
-                const exactKey = buildOptimisticMatchKey(msg.message, { includePosition: true });
-                const looseKey = buildOptimisticMatchKey(msg.message, { includePosition: false });
+          roomScopedMessages.forEach((msg) => {
+            const incomingMessageId = msg.message.messageId;
+            const existingMsg = messageMap.get(incomingMessageId);
+            if (!existingMsg && incomingMessageId > 0) {
+              const exactKey = buildOptimisticMatchKey(msg.message, { includePosition: true });
+              const looseKey = buildOptimisticMatchKey(msg.message, { includePosition: false });
                 const mediaLooseKey = isMediaMessageType(msg.message.messageType)
                   ? buildOptimisticMatchKey(msg.message, {
                       includePosition: false,
@@ -425,27 +555,37 @@ export function useChatHistory(roomId: number | null): UseChatHistoryReturn {
                       ignoreAnnotations: true,
                     })
                   : "";
+                const diceLooseKey = msg.message.messageType === MessageType.DICE
+                  ? buildOptimisticMatchKey(msg.message, {
+                      includePosition: false,
+                      ignoreReplyMessageId: true,
+                      ignoreExtra: true,
+                    })
+                  : "";
                 const matchedOptimisticId = consumeOptimisticCandidate(messageMap, optimisticBuckets.exact, exactKey)
                   ?? consumeOptimisticCandidate(messageMap, optimisticBuckets.loose, looseKey)
+                  ?? (diceLooseKey
+                    ? consumeOptimisticCandidate(messageMap, optimisticBuckets.diceLoose, diceLooseKey)
+                    : undefined)
                   ?? (mediaLooseKey
                     ? consumeOptimisticCandidate(messageMap, optimisticBuckets.mediaLoose, mediaLooseKey)
                     : undefined);
-                if (matchedOptimisticId !== undefined && matchedOptimisticId !== incomingMessageId) {
-                  if (messageMap.delete(matchedOptimisticId)) {
-                    hasChanges = true;
-                  }
+              if (matchedOptimisticId !== undefined && matchedOptimisticId !== incomingMessageId) {
+                if (messageMap.delete(matchedOptimisticId)) {
+                  hasChanges = true;
                 }
               }
-              const latestExisting = messageMap.get(incomingMessageId);
-              const mergedMessage = latestExisting
-                ? mergeMessageForLocalState(latestExisting, msg)
-                : msg;
-              // 只有在消息真正变化时才更新
-              if (!latestExisting || JSON.stringify(latestExisting) !== JSON.stringify(mergedMessage)) {
-                messageMap.set(incomingMessageId, mergedMessage);
-                hasChanges = true;
-              }
-            });
+            }
+            const latestExisting = messageMap.get(incomingMessageId);
+            const mergedMessage = latestExisting
+              ? mergeMessageForLocalState(latestExisting, msg)
+              : msg;
+            // 只有在消息真正变化时才更新
+            if (!latestExisting || JSON.stringify(latestExisting) !== JSON.stringify(mergedMessage)) {
+              messageMap.set(incomingMessageId, mergedMessage);
+              hasChanges = true;
+            }
+          });
 
           // 如果没有变化，返回原数组以避免不必要的重渲染
           if (!hasChanges) {
@@ -454,7 +594,15 @@ export function useChatHistory(roomId: number | null): UseChatHistoryReturn {
 
           const updatedMessages = Array.from(messageMap.values());
           // 按 position 排序确保顺序
-          return updatedMessages.sort((a, b) => a.message.position - b.message.position);
+          const nextMessages = updatedMessages.sort(compareMessagesByStableOrder);
+          logMessageOrderChange({
+            source: "addOrUpdateMessages",
+            roomId: currentRoomId,
+            prevMessages,
+            nextMessages,
+            incomingMessageIds: roomScopedMessages.map(item => item.message.messageId),
+          });
+          return nextMessages;
         });
       }
 
@@ -493,6 +641,15 @@ export function useChatHistory(roomId: number | null): UseChatHistoryReturn {
 
     setMessages((prevMessages) => {
       const nextMessages = prevMessages.filter(msg => msg.message.messageId !== messageId);
+      if (nextMessages.length !== prevMessages.length) {
+        logMessageOrderChange({
+          source: "removeMessageById",
+          roomId: roomIdRef.current,
+          prevMessages,
+          nextMessages,
+          incomingMessageIds: [messageId],
+        });
+      }
       return nextMessages.length === prevMessages.length ? prevMessages : nextMessages;
     });
 
@@ -515,6 +672,9 @@ export function useChatHistory(roomId: number | null): UseChatHistoryReturn {
     }
 
     const currentRoomId = roomIdRef.current;
+    if (fromMessageId !== nextMessage.messageId) {
+      setMessageIdAlias(fromMessageId, nextMessage.messageId);
+    }
     const shouldRenderNextMessage = nextMessage.roomId === currentRoomId;
     let mergedForDb = message;
 
@@ -542,7 +702,15 @@ export function useChatHistory(roomId: number | null): UseChatHistoryReturn {
         return prevMessages;
       }
 
-      return Array.from(messageMap.values()).sort((a, b) => a.message.position - b.message.position);
+      const nextMessages = Array.from(messageMap.values()).sort(compareMessagesByStableOrder);
+      logMessageOrderChange({
+        source: "replaceMessageById",
+        roomId: currentRoomId,
+        prevMessages,
+        nextMessages,
+        incomingMessageIds: [fromMessageId, nextMessage.messageId],
+      });
+      return nextMessages;
     });
 
     try {
@@ -555,7 +723,7 @@ export function useChatHistory(roomId: number | null): UseChatHistoryReturn {
       setError(err as Error);
       console.error(`Failed to replace message ${fromMessageId} for room ${currentRoomId}:`, err);
     }
-  }, []);
+  }, [setMessageIdAlias]);
 
   /**
    * 从服务器全量获取最新的消息
@@ -599,7 +767,7 @@ export function useChatHistory(roomId: number | null): UseChatHistoryReturn {
       return [];
     }
 
-    return [...messages, ...newMessages].sort((a, b) => a.message.position - b.message.position);
+    return [...messages, ...newMessages].sort(compareMessagesByStableOrder);
   }, [fetchNewestMessages]);
 
   /**
@@ -638,7 +806,7 @@ export function useChatHistory(roomId: number | null): UseChatHistoryReturn {
         if (isCancelled)
           return;
         // 按 position 排序后设置消息
-        const sortedLocalHistory = localHistory.sort((a, b) => a.message.position - b.message.position);
+        const sortedLocalHistory = localHistory.sort(compareMessagesByStableOrder);
         setMessages(sortedLocalHistory);
         const localMaxSyncId = localHistory.length > 0
           ? Math.max(...localHistory.map(msg => msg.message.syncId))
@@ -720,6 +888,7 @@ export function useChatHistory(roomId: number | null): UseChatHistoryReturn {
     addOrUpdateMessages, // 用于批量消息
     removeMessageById,
     replaceMessageById,
+    resolveMessageId,
     getMessagesByRoomId,
     clearHistory,
   };

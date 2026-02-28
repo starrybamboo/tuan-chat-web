@@ -1,7 +1,7 @@
 import { useAbilityByRuleAndRole, useSetRoleAbilityMutation, useUpdateRoleAbilityByRoleIdMutation } from "api/hooks/abilityQueryHooks";
 import { useGetRoleQuery } from "api/hooks/RoleAndAvatarHooks";
 import { useRuleDetailQuery } from "api/hooks/ruleQueryHooks";
-import { CloseIcon, EditIcon, SaveIcon } from "app/icons";
+import { CloseIcon, EditIcon, SaveIcon, WrenchIcon } from "app/icons";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import ImportWithStCmd from "@/components/Role/rules/ImportWithStCmd";
 import CopywritingEditor from "../Editors/CopywritingEditor";
@@ -21,6 +21,8 @@ interface ExpansionModuleProps {
   onLoadingChange?: (isLoading: boolean) => void;
   isStImportModalOpen?: boolean;
   onStImportModalClose?: () => void;
+  onOpenStImportModal?: () => void;
+  onOpenAIGenerateModal?: () => void;
   size?: "default" | "small";
 }
 
@@ -35,6 +37,8 @@ export default function ExpansionModule({
   onLoadingChange, // 1. 在 props 中解构出 onLoadingChange
   isStImportModalOpen = false,
   onStImportModalClose,
+  onOpenStImportModal,
+  onOpenAIGenerateModal,
   size = "default",
 }: ExpansionModuleProps) {
   const isEditingControlled = typeof globalIsEditing === "boolean";
@@ -261,6 +265,7 @@ export default function ExpansionModule({
               isEditing={isRuleEditing}
               fieldType="basic"
               customLabel="基础属性"
+              hideExternalTitlesOnMobile
             />
           );
     }
@@ -289,6 +294,7 @@ export default function ExpansionModule({
               isEditing={isRuleEditing}
               fieldType="ability"
               customLabel="能力"
+              hideExternalTitlesOnMobile
             />
           );
     }
@@ -317,6 +323,7 @@ export default function ExpansionModule({
               isEditing={isRuleEditing}
               fieldType="skill"
               customLabel="技能"
+              hideExternalTitlesOnMobile
             />
           );
     }
@@ -337,6 +344,7 @@ export default function ExpansionModule({
             title="表演字段配置"
             className="rounded-2xl md:border-2 md:border-base-content/10 bg-base-100"
             collapsible={false}
+            hideTitleOnMobile
           >
             <PerformanceEditor
               fields={renderData.actTemplate}
@@ -345,46 +353,79 @@ export default function ExpansionModule({
               roleId={roleId}
               ruleId={selectedRuleId}
               isEditing={isRuleEditing}
+              hideTitleOnMobile
             />
           </Section>
         );
   };
 
+  const hasQuickTools = Boolean(onOpenStImportModal || onOpenAIGenerateModal);
+
   const tabButtons = !isDiceMaiden
     ? (
-        <div className={`flex ${isSmall ? "flex-col gap-2" : "flex-wrap justify-center md:justify-start gap-2"} rounded-lg`}>
-          <button
-            type="button"
-            className={`btn ${isSmall ? "btn-sm w-full justify-start" : "btn-md"} rounded-lg ${activeTab === "basic" ? "btn-primary" : "btn-ghost"}`}
-            onClick={() => setActiveTab("basic")}
-          >
-            <span className="md:hidden">基础</span>
-            <span className="hidden md:inline">基础配置</span>
-          </button>
-          <button
-            type="button"
-            className={`btn ${isSmall ? "btn-sm w-full justify-start" : "btn-md"} rounded-lg ${activeTab === "ability" ? "btn-primary" : "btn-ghost"}`}
-            onClick={() => setActiveTab("ability")}
-          >
-            <span className="md:hidden">能力</span>
-            <span className="hidden md:inline">能力配置</span>
-          </button>
-          <button
-            type="button"
-            className={`btn ${isSmall ? "btn-sm w-full justify-start" : "btn-md"} rounded-lg ${activeTab === "skill" ? "btn-primary" : "btn-ghost"}`}
-            onClick={() => setActiveTab("skill")}
-          >
-            <span className="md:hidden">技能</span>
-            <span className="hidden md:inline">技能配置</span>
-          </button>
-          <button
-            type="button"
-            className={`btn ${isSmall ? "btn-sm w-full justify-start" : "btn-md"} rounded-lg ${activeTab === "act" ? "btn-primary" : "btn-ghost"}`}
-            onClick={() => setActiveTab("act")}
-          >
-            <span className="md:hidden">表演</span>
-            <span className="hidden md:inline">表演配置</span>
-          </button>
+        <div className={`flex ${isSmall ? "items-start" : "items-center"} gap-2 rounded-lg`}>
+          <div className={`flex ${isSmall ? "flex-col gap-2" : "flex-wrap justify-center md:justify-start gap-2"}`}>
+            <button
+              type="button"
+              className={`btn ${isSmall ? "btn-sm w-full justify-start" : "btn-md"} rounded-lg ${activeTab === "basic" ? "btn-primary" : "btn-ghost"}`}
+              onClick={() => setActiveTab("basic")}
+            >
+              <span className="md:hidden">基础</span>
+              <span className="hidden md:inline">基础配置</span>
+            </button>
+            <button
+              type="button"
+              className={`btn ${isSmall ? "btn-sm w-full justify-start" : "btn-md"} rounded-lg ${activeTab === "ability" ? "btn-primary" : "btn-ghost"}`}
+              onClick={() => setActiveTab("ability")}
+            >
+              <span className="md:hidden">能力</span>
+              <span className="hidden md:inline">能力配置</span>
+            </button>
+            <button
+              type="button"
+              className={`btn ${isSmall ? "btn-sm w-full justify-start" : "btn-md"} rounded-lg ${activeTab === "skill" ? "btn-primary" : "btn-ghost"}`}
+              onClick={() => setActiveTab("skill")}
+            >
+              <span className="md:hidden">技能</span>
+              <span className="hidden md:inline">技能配置</span>
+            </button>
+            <button
+              type="button"
+              className={`btn ${isSmall ? "btn-sm w-full justify-start" : "btn-md"} rounded-lg ${activeTab === "act" ? "btn-primary" : "btn-ghost"}`}
+              onClick={() => setActiveTab("act")}
+            >
+              <span className="md:hidden">表演</span>
+              <span className="hidden md:inline">表演配置</span>
+            </button>
+          </div>
+          {hasQuickTools && (
+            <div className={`dropdown md:hidden ${isSmall ? "" : "dropdown-end"}`}>
+              <button
+                type="button"
+                tabIndex={0}
+                className={`btn ${isSmall ? "btn-sm" : "btn-md"} btn-square rounded-full`}
+                aria-label="打开导入和生成功能"
+              >
+                <WrenchIcon className="w-5 h-5" />
+              </button>
+              <ul tabIndex={0} className="dropdown-content z-20 menu p-2 shadow-lg bg-base-100 rounded-box w-32 border border-base-content/10">
+                {onOpenStImportModal && (
+                  <li>
+                    <button type="button" onClick={onOpenStImportModal}>
+                      ST导入
+                    </button>
+                  </li>
+                )}
+                {onOpenAIGenerateModal && (
+                  <li>
+                    <button type="button" onClick={onOpenAIGenerateModal}>
+                      AI生成
+                    </button>
+                  </li>
+                )}
+              </ul>
+            </div>
+          )}
         </div>
       )
     : null;
@@ -448,9 +489,9 @@ export default function ExpansionModule({
                     {isSmall && tabButtons
                       ? (
                           <div className="flex gap-3 items-start">
-                            <button className="shrink-0" type="button">
+                            <div className="shrink-0">
                               {tabButtons}
-                            </button>
+                            </div>
                             <div className="min-w-0 flex-1">
                               <div>
                                 {isDiceMaiden

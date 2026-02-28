@@ -1,6 +1,8 @@
 // src/context/chat-context.tsx
 import type {
+  ChatMessageRequest,
   ChatMessageResponse,
+  Message,
   SpaceMember,
   UserRole,
 } from "../../../../api";
@@ -69,6 +71,11 @@ export interface RoomContextType {
    * @returns Promise<是否操作成功>
    */
   rerenderHistoryInWebGAL?: (messages?: ChatMessageResponse[]) => Promise<boolean>;
+
+  /**
+   * 发送消息（带乐观插入），供消息项上的“创建子区”等入口复用。
+   */
+  sendMessageWithInsert?: (message: ChatMessageRequest) => Promise<Message | null>;
 }
 
 export const RoomContext = createContext<RoomContextType>({
@@ -84,4 +91,5 @@ export const RoomContext = createContext<RoomContextType>({
   jumpToMessageInWebGAL: undefined,
   updateAndRerenderMessageInWebGAL: undefined,
   rerenderHistoryInWebGAL: undefined,
+  sendMessageWithInsert: undefined,
 });

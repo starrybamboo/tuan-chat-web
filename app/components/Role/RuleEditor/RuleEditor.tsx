@@ -525,21 +525,21 @@ export default function RuleEditor({
           <div className="card-sm md:card-xl bg-base-100 shadow-xs rounded-xl md:border-2 md:border-base-content/10">
             <div className="card-body p-4">
               {/* 移动端显示的头部区域 */}
-              <div className="md:hidden mb-4 pl-4 pr-4">
-                <div className="flex items-center justify-between gap-3 mb-3">
-                  <div>
-                    <h1 className="font-semibold text-xl max-w-32 truncate">
+              <div className="md:hidden mb-4 px-2">
+                <div className="flex w-full items-start justify-between gap-2 mb-3">
+                  <div className="min-w-0">
+                    <h1 className="font-semibold text-2xl min-w-0 truncate">
                       {ruleEdit.ruleName || "未命名规则"}
                     </h1>
                     <div className={`badge badge-outline badge-sm ${editorStatusBadge.className}`}>
                       {editorStatusBadge.text}
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex shrink-0 items-center gap-1.5">
                     <div className="tooltip tooltip-bottom" data-tip="从已有规则导入并覆盖当前编辑">
                       <button
                         type="button"
-                        className="btn bg-info text-info-content border-info hover:bg-info/90 btn-sm md:btn-lg rounded-lg"
+                        className="btn bg-info text-info-content border-info hover:bg-info/90 btn-md rounded-lg px-4"
                         onClick={() => setIsCloneModalOpen(true)}
                         disabled={isSavingRule}
                       >
@@ -549,7 +549,7 @@ export default function RuleEditor({
                     <div className="tooltip tooltip-bottom" data-tip={mode === "create" ? "创建规则" : isEditing ? "保存当前修改" : "进入编辑"}>
                       <button
                         type="button"
-                        className={`btn ${mode === "edit" && !isEditing ? "btn-accent" : "btn-primary"} btn-sm md:btn-lg rounded-lg ${isSavingRule ? "scale-95" : ""}`}
+                        className={`btn ${mode === "edit" && !isEditing ? "btn-accent" : "btn-primary"} btn-md rounded-lg px-4 ${isSavingRule ? "scale-95" : ""}`}
                         onClick={handleHeaderPrimaryAction}
                         disabled={isSavingRule}
                       >

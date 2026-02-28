@@ -7,6 +7,7 @@ import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
 import type { ChatMessageRequest, ChatMessageResponse, Message } from "../../../../api";
 
 type BatchSendMessagesAsync = (requests: ChatMessageRequest[]) => Promise<{ success?: boolean; data?: Message[] }>;
+type SendMessageWithInsert = (request: ChatMessageRequest) => Promise<ChatMessageResponse["message"] | null>;
 export type ForwardMode = "merged" | "separate";
 
 type UseChatFrameMessageActionsParams = {
@@ -15,6 +16,7 @@ type UseChatFrameMessageActionsParams = {
   curRoleId: number;
   curAvatarId: number;
   send: (message: ChatMessageRequest) => void;
+  sendMessageWithInsert?: SendMessageWithInsert;
   batchSendMessagesAsync: BatchSendMessagesAsync;
   updateMessage: (message: Message) => void;
   setIsForwardWindowOpen: (open: boolean) => void;
@@ -30,6 +32,7 @@ export default function useChatFrameMessageActions({
   curRoleId,
   curAvatarId,
   send,
+  sendMessageWithInsert,
   batchSendMessagesAsync,
   updateMessage,
   setIsForwardWindowOpen,
@@ -140,9 +143,19 @@ export default function useChatFrameMessageActions({
     if (mode === "separate") {
       try {
         const batchRequests = selectedMessages.map(message => constructRawForwardRequest(forwardRoomId, message.message));
-        const result = await batchSendMessagesAsync(batchRequests);
-        if (!result?.success)
-          throw new Error("批量发送失败");
+        if (sendMessageWithInsert) {
+          for (const request of batchRequests) {
+            const sendResult = await sendMessageWithInsert(request);
+            if (!sendResult) {
+              throw new Error("逐条转发发送失败");
+            }
+          }
+        }
+        else {
+          const result = await batchSendMessagesAsync(batchRequests);
+          if (!result?.success)
+            throw new Error("批量发送失败");
+        }
       }
       catch (error) {
         console.error("逐条转发失败:", error);
@@ -155,12 +168,37 @@ export default function useChatFrameMessageActions({
       return true;
     }
 
-    send(constructForwardRequest(forwardRoomId, selectedMessages));
+    const mergedForwardRequest = constructForwardRequest(forwardRoomId, selectedMessages);
+    if (sendMessageWithInsert) {
+      try {
+        const sendResult = await sendMessageWithInsert(mergedForwardRequest);
+        if (!sendResult) {
+          throw new Error("合并转发发送失败");
+        }
+      }
+      catch (error) {
+        console.error("合并转发失败:", error);
+        toast.error("合并转发失败");
+        return false;
+      }
+    }
+    else {
+      send(mergedForwardRequest);
+    }
     setIsForwardWindowOpen(false);
     clearSelection();
     toast(FORWARD_TOAST);
     return true;
-  }, [batchSendMessagesAsync, clearSelection, constructForwardRequest, constructRawForwardRequest, getSelectedMessages, send, setIsForwardWindowOpen]);
+  }, [
+    batchSendMessagesAsync,
+    clearSelection,
+    constructForwardRequest,
+    constructRawForwardRequest,
+    getSelectedMessages,
+    send,
+    sendMessageWithInsert,
+    setIsForwardWindowOpen,
+  ]);
 
   const toggleBackground = useCallback((messageId: number) => {
     const message = historyMessages.find(m => m.message.messageId === messageId)?.message;

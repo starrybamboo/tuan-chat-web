@@ -182,14 +182,15 @@ function RoomComposerPanelImpl({
     const hasNewFiles = fileAttachmentsCount > prevFileAttachmentsCount;
     const hasNewAudio = Boolean(audioFile) && !prevHasAudio;
 
-    if (hasNewImages || hasNewFiles || hasNewAudio) {
+    // 移动端避免自动聚焦弹出光标/键盘
+    if (screenSize !== "sm" && (hasNewImages || hasNewFiles || hasNewAudio)) {
       chatInputRef.current?.focus();
     }
 
     prevImgFilesCountRef.current = imgFilesCount;
     prevFileAttachmentsCountRef.current = fileAttachmentsCount;
     prevHasAudioRef.current = Boolean(audioFile);
-  }, [audioFile, chatInputRef, fileAttachmentsCount, imgFilesCount]);
+  }, [audioFile, chatInputRef, fileAttachmentsCount, imgFilesCount, screenSize]);
 
   React.useEffect(() => {
     if (typeof window === "undefined") {
@@ -286,6 +287,7 @@ function RoomComposerPanelImpl({
   const insertAfterMessageId = useRoomUiStore(state => state.insertAfterMessageId);
   const setInsertAfterMessageId = useRoomUiStore(state => state.setInsertAfterMessageId);
   const inputDisabled = notMember && noRole;
+  const isMobileSpectatorInputLocked = screenSize === "sm" && notMember;
   const placeholderText = React.useMemo(() => {
     if (notMember) {
       return "观战模式下无法发送消息";
@@ -466,7 +468,7 @@ function RoomComposerPanelImpl({
           onMouseDown={onMouseDown}
           onCompositionStart={onCompositionStart}
           onCompositionEnd={onCompositionEnd}
-          disabled={inputDisabled}
+          disabled={inputDisabled || isMobileSpectatorInputLocked}
           placeholder={placeholderText}
           className={`min-h-10 ${screenSize === "sm" ? "max-h-[30dvh]" : "max-h-[20dvh]"} overflow-y-auto min-w-0 flex-1 ${isMessageOverThreshold ? "outline outline-1 outline-warning/70" : ""}`}
         />
@@ -560,10 +562,10 @@ function RoomComposerPanelImpl({
                   leftToolbar={composerAnnotationsBar}
                   headerToolbar={headerToolbar}
                 />
-                <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-start p-2">
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-start p-2">
                   {inputArea}
 
-                  <div className="w-full sm:w-auto flex justify-end sm:block mb-1 sm:mb-0 mt-0 sm:mt-2">
+                  <div className="w-full sm:w-auto flex justify-end sm:block mt-1 sm:mt-2">
                     <ChatToolbarFromStore
                       {...toolbarCommonProps}
                       onOpenImportChatText={onOpenImportChatText}

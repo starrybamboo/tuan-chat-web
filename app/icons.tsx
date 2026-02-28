@@ -1,5 +1,5 @@
 import type { ComponentProps, SVGProps } from "react";
-import { AddressBookIcon, BookOpenText, CaretDownIcon, CaretLeftIcon, DiscordLogoIcon, FileText, Folder, Graph, HouseIcon, IdentificationCard, ImageIcon, MusicNotesIcon, CardsIcon as PhosphorCardsIcon, SidebarSimpleIcon as PhosphorSidebarSimpleIcon, PlusIcon, QrCodeIcon, SmileyIcon, TrashSimpleIcon, UsersIcon, UserSwitch } from "@phosphor-icons/react";
+import { AddressBookIcon, BookOpenText, CaretDownIcon, CaretLeftIcon, DiscordLogoIcon, FileText, Folder, Graph, HouseIcon, IdentificationCard, ImageIcon, MusicNotesIcon, CardsIcon as PhosphorCardsIcon, SidebarSimpleIcon as PhosphorSidebarSimpleIcon, PlusIcon, QrCodeIcon, SmileyIcon, TrashSimpleIcon, UsersIcon, UserSwitch, WrenchIcon as PhosphorWrenchIcon } from "@phosphor-icons/react";
 import { useId } from "react";
 
 /**
@@ -1939,6 +1939,12 @@ export function CopyIcon(props: SVGProps<SVGSVGElement>) {
 
 // 滑动条/设置图标
 // 其他关键词：设置，调节，配置，sliders，settings
+export function WrenchIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <PhosphorWrenchIcon {...props} />
+  );
+}
+
 export function SlidersIcon(props: SVGProps<SVGSVGElement>) {
   return (
     <svg
