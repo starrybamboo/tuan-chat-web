@@ -2,7 +2,6 @@ import { useCallback, useRef } from "react";
 import { toast } from "react-hot-toast";
 
 import type { RoomUiStoreApi } from "@/components/chat/stores/roomUiStore";
-import type { SpaceWebgalVarsRecord } from "@/types/webgalVar";
 
 import { requestPlayBgmMessageWithUrl } from "@/components/chat/infra/audioMessage/audioMessageBgmCoordinator";
 import { useAudioMessageAutoPlayStore } from "@/components/chat/stores/audioMessageAutoPlayStore";
@@ -13,7 +12,6 @@ import { isRoomJumpCommandText, parseRoomJumpCommand } from "@/components/chat/u
 import { isCommand } from "@/components/common/dicer/cmdPre";
 import { formatAnkoDiceMessage } from "@/components/common/dicer/diceTable";
 import { ANNOTATION_IDS, getFigurePositionFromAnnotations, hasAnnotation, hasClearFigureAnnotation, normalizeAnnotations, setAnnotation, setFigurePositionAnnotation } from "@/types/messageAnnotations";
-import { parseWebgalVarCommand } from "@/types/webgalVar";
 import { isAudioUploadDebugEnabled } from "@/utils/audioDebugFlags";
 import { getImageSize } from "@/utils/getImgSize";
 import { UploadUtils } from "@/utils/UploadUtils";
@@ -47,7 +45,6 @@ type UseChatMessageSubmitParams = {
   stripCommandRequestAllToken: (text: string) => string;
   extractFirstCommandText: (text: string) => string | null;
   setInputText: (text: string) => void;
-  setSpaceExtra: (payload: { spaceId: number; key: string; value: string }) => Promise<unknown>;
   roomUiStoreApi: RoomUiStoreApi;
 };
 
@@ -95,7 +92,6 @@ export default function useChatMessageSubmit({
   stripCommandRequestAllToken,
   extractFirstCommandText,
   setInputText,
-  setSpaceExtra,
   roomUiStoreApi,
 }: UseChatMessageSubmitParams): UseChatMessageSubmitResult {
   const uploadUtilsRef = useRef(new UploadUtils());
@@ -373,16 +369,10 @@ export default function useChatMessageSubmit({
       };
 
       let textContent = trimmedInputText;
-      const isWebgalVarCommandPrefix = /^\/var\b/i.test(trimmedWithoutMentions);
-      const webgalVarPayload = parseWebgalVarCommand(trimmedWithoutMentions);
       const isRoomJumpCommand = isRoomJumpCommandText(trimmedWithoutMentions);
       const roomJumpCommandPayload = parseRoomJumpCommand(trimmedWithoutMentions);
       const roomJumpTargetSpaceId = roomJumpCommandPayload?.spaceId ?? (spaceId > 0 ? spaceId : undefined);
 
-      if (isWebgalVarCommandPrefix && !webgalVarPayload) {
-        toast.error("WebGAL 变量指令格式错误，请使用 /var set a=1");
-        return;
-      }
       if (isRoomJumpCommand && !roomJumpCommandPayload) {
         toast.error("群聊跳转格式错误：/roomjump <roomId> [标题] 或 /roomjump <spaceId> <roomId> [标题]");
         return;
@@ -414,65 +404,6 @@ export default function useChatMessageSubmit({
         };
 
         await sendMessageWithInsert(requestMsg);
-
-        isFirstMessage = false;
-        textContent = "";
-      }
-      else if (webgalVarPayload) {
-        const varMsg: ChatMessageRequest = {
-          ...getCommonFields() as any,
-          content: "",
-          messageType: MessageType.WEBGAL_VAR,
-          extra: {
-            webgalVar: webgalVarPayload,
-          },
-        };
-
-        await sendMessageWithInsert(varMsg);
-
-        try {
-          const rawExtra = spaceExtra || "{}";
-          let parsedExtra: Record<string, any> = {};
-          try {
-            parsedExtra = JSON.parse(rawExtra) as Record<string, any>;
-          }
-          catch {
-            parsedExtra = {};
-          }
-
-          let currentVars: SpaceWebgalVarsRecord = {};
-          const stored = parsedExtra.webgalVars;
-          if (typeof stored === "string") {
-            try {
-              currentVars = JSON.parse(stored) as SpaceWebgalVarsRecord;
-            }
-            catch {
-              currentVars = {};
-            }
-          }
-          else if (stored && typeof stored === "object") {
-            currentVars = stored as SpaceWebgalVarsRecord;
-          }
-
-          const now = Date.now();
-          const nextVars: SpaceWebgalVarsRecord = {
-            ...currentVars,
-            [webgalVarPayload.key]: {
-              expr: webgalVarPayload.expr,
-              updatedAt: now,
-            },
-          };
-
-          await setSpaceExtra({
-            spaceId,
-            key: "webgalVars",
-            value: JSON.stringify(nextVars),
-          });
-        }
-        catch (error) {
-          console.error("更新 space.extra.webgalVars 失败", error);
-          toast.error("更新空间变量失败，请重试");
-        }
 
         isFirstMessage = false;
         textContent = "";
@@ -615,7 +546,6 @@ export default function useChatMessageSubmit({
         && uploadedFiles.length === 0
         && !soundMessageData
         && !shouldSendCommandRequest
-        && !webgalVarPayload
         && !roomJumpCommandPayload;
 
       if (textContent || shouldSendEmptyTextMessage) {
@@ -703,7 +633,6 @@ export default function useChatMessageSubmit({
     sendMessageWithInsert,
     setInputText,
     setIsSubmitting,
-    setSpaceExtra,
     spaceExtra,
     spaceId,
     stripCommandRequestAllToken,

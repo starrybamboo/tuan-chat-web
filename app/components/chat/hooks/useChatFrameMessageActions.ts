@@ -89,8 +89,6 @@ export default function useChatFrameMessageActions({
         return pickObject(extra.forwardMessage ?? extra);
       case MESSAGE_TYPE.CLUE_CARD:
         return pickObject(extra.clueMessage ?? extra);
-      case MESSAGE_TYPE.WEBGAL_VAR:
-        return extra.webgalVar !== undefined ? { webgalVar: extra.webgalVar } : extra;
       case MESSAGE_TYPE.WEBGAL_CHOOSE:
         return extra.webgalChoose !== undefined ? { webgalChoose: extra.webgalChoose } : extra;
       case MESSAGE_TYPE.COMMAND_REQUEST:

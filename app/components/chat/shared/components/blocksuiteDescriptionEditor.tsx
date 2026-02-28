@@ -108,6 +108,8 @@ function getPostMessageTargetOrigin(): string {
   return origin;
 }
 
+const REMOTE_HYDRATE_FAST_WAIT_MS = 250;
+
 function isProbablyInIframe(): boolean {
   if (typeof window === "undefined")
     return false;
@@ -492,27 +494,50 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
       await runtime.ensureBlocksuiteCoreElementsDefined();
 
       const workspace = runtime.getOrCreateWorkspace(workspaceId);
+      const runtimeWs = workspace as any;
+      const restoreSnapshotUpdate = (update: Uint8Array) => {
+        if (!update?.length) {
+          return;
+        }
+        if (typeof runtimeWs.restoreDocFromUpdate === "function") {
+          runtimeWs.restoreDocFromUpdate({ docId, update });
+        }
+      };
 
-      // 1) Restore from remote snapshot (if available)
-      // Critical: explicit fetch ensures the store is populated with remote content (correct root block)
-      // *before* the editor is initialized. This prevents 'ensureAffineMinimumBlockData' from creating
-      // a duplicate/conflicting default page, which results in a blank view.
-      if (!abort.signal.aborted) {
+      const remoteSnapshotUpdateTask = (async (): Promise<Uint8Array | null> => {
         try {
           const key = parseDescriptionDocId(docId);
-          if (key) {
-            const remote = await getRemoteSnapshot(key);
-            if (remote?.updateB64) {
-              const update = base64ToUint8Array(remote.updateB64);
-              const runtimeWs = workspace as any;
-              if (typeof runtimeWs.restoreDocFromUpdate === "function") {
-                runtimeWs.restoreDocFromUpdate({ docId, update });
-              }
-            }
+          if (!key) {
+            return null;
           }
+          const remote = await getRemoteSnapshot(key);
+          if (!remote?.updateB64) {
+            return null;
+          }
+          return base64ToUint8Array(remote.updateB64);
         }
         catch (e) {
           console.error("[BlocksuiteDescriptionEditor] Failed to restore remote snapshot", e);
+          return null;
+        }
+      })();
+      let hasRestoredRemoteBeforeEditorReady = false;
+
+      // 1) 优先给远端快照一个很短的窗口，超时就继续本地内容渲染（本地优先）。
+      // 这样既能在快网下尽量保持“先远端快照后初始化”的一致性，又避免慢网阻塞打开文档。
+      if (!abort.signal.aborted) {
+        try {
+          const fastRestore = await Promise.race([
+            remoteSnapshotUpdateTask.then(update => ({ timedOut: false as const, update })),
+            new Promise<{ timedOut: true; update: null }>(resolve => setTimeout(() => resolve({ timedOut: true, update: null }), REMOTE_HYDRATE_FAST_WAIT_MS)),
+          ]);
+          if (!fastRestore.timedOut && fastRestore.update?.length) {
+            restoreSnapshotUpdate(fastRestore.update);
+            hasRestoredRemoteBeforeEditorReady = true;
+          }
+        }
+        catch {
+          // ignore
         }
       }
 
@@ -657,6 +682,24 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
       storeRef.current = store;
 
       container.replaceChildren(editor as unknown as Node);
+      void remoteSnapshotUpdateTask.then((update) => {
+        if (abort.signal.aborted) {
+          return;
+        }
+        if (hasRestoredRemoteBeforeEditorReady) {
+          return;
+        }
+        if (!update?.length) {
+          return;
+        }
+        try {
+          restoreSnapshotUpdate(update);
+        }
+        catch {
+          // ignore
+        }
+      });
+
       // Signal host after first paint so it can hide the skeleton.
       if (isProbablyInIframe()) {
         requestAnimationFrame(() => {
