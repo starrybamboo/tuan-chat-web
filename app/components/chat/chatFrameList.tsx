@@ -1,8 +1,27 @@
 import type { VirtuosoHandle } from "react-virtuoso";
 import type { ChatMessageResponse } from "../../../api";
-import React, { memo, useCallback } from "react";
+import React, { memo, useCallback, useEffect, useRef } from "react";
 import { Virtuoso } from "react-virtuoso";
 import { addDroppedFilesToComposer, isFileDrag } from "@/components/chat/utils/dndUpload";
+
+const STABLE_MESSAGE_KEY_FIELD = "__tcStableKey";
+
+export function getChatFrameItemKey(index: number, item: ChatMessageResponse): string {
+  const message = item?.message as (ChatMessageResponse["message"] & { [STABLE_MESSAGE_KEY_FIELD]?: unknown }) | undefined;
+  const stableKey = message?.[STABLE_MESSAGE_KEY_FIELD];
+  if ((typeof stableKey === "string" && stableKey.length > 0) || typeof stableKey === "number") {
+    return `stable:${stableKey}`;
+  }
+  const messageId = message?.messageId;
+  if (typeof messageId === "number" && Number.isFinite(messageId)) {
+    return `id:${messageId}`;
+  }
+  const position = message?.position;
+  if (typeof position === "number" && Number.isFinite(position)) {
+    return `pos:${position.toFixed(6)}`;
+  }
+  return `idx:${index}`;
+}
 
 function Header() {
   return (
@@ -180,10 +199,30 @@ export default function ChatFrameList({
   isSpaceOwner,
 }: ChatFrameListProps) {
   const { handleDragOver, handleDrop } = useChatFrameListDragHandlers();
-  const computeItemKey = useCallback((index: number, item: ChatMessageResponse) => {
-    const messageId = item?.message?.messageId;
-    return typeof messageId === "number" ? messageId : index;
-  }, []);
+  const computeItemKey = useCallback((index: number, item: ChatMessageResponse) => getChatFrameItemKey(index, item), []);
+  const renderDebugRef = useRef<{ renderCount: number; keys: string[] }>({ renderCount: 0, keys: [] });
+
+  useEffect(() => {
+    const nextKeys = historyMessages.map((item, index) => computeItemKey(index, item));
+    const prevKeys = renderDebugRef.current.keys;
+    let changedKeyCount = 0;
+    const maxLen = Math.max(prevKeys.length, nextKeys.length);
+    for (let index = 0; index < maxLen; index++) {
+      if (prevKeys[index] !== nextKeys[index]) {
+        changedKeyCount += 1;
+      }
+    }
+    renderDebugRef.current = {
+      renderCount: renderDebugRef.current.renderCount + 1,
+      keys: nextKeys,
+    };
+    console.log("[TC_MSG_RENDER]", {
+      renderCount: renderDebugRef.current.renderCount,
+      messageLength: historyMessages.length,
+      changedKeyCount,
+      tailKeys: nextKeys.slice(-8),
+    });
+  }, [computeItemKey, historyMessages]);
 
   return (
     <>

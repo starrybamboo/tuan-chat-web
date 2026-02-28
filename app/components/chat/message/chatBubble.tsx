@@ -118,6 +118,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
   const userId = useGlobalContext().userId;
 
   const roomContext = use(RoomContext);
+  const sendMessageWithInsert = roomContext.sendMessageWithInsert;
   const sendMessageMutation = useSendMessageMutation(roomContext.roomId ?? -1);
   const spaceContext = use(SpaceContext);
   const setInsertAfterMessageId = useRoomUiStore(state => state.setInsertAfterMessageId);
@@ -435,7 +436,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
     }
     const raw = (message.content ?? "").trim();
     const title = raw ? raw.slice(0, 20) : "子区";
-    sendMessageMutation.mutate({
+    const threadRootRequest = {
       roomId,
       messageType: MESSAGE_TYPE.THREAD_ROOT,
       roleId: roomContext.curRoleId,
@@ -443,7 +444,21 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
       content: title,
       replayMessageId: message.messageId,
       extra: { title },
-    }, {
+    };
+
+    if (sendMessageWithInsert) {
+      void (async () => {
+        const created = await sendMessageWithInsert(threadRootRequest);
+        if (!created) {
+          toast.error("创建子区失败");
+          return;
+        }
+        handleOpenThreadById(created.messageId);
+      })();
+      return;
+    }
+
+    sendMessageMutation.mutate(threadRootRequest, {
       onSuccess: (response) => {
         const created = response?.data;
         if (!created) {
@@ -465,6 +480,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
     roomContext.curAvatarId,
     roomContext.curRoleId,
     roomContext.roomId,
+    sendMessageWithInsert,
     sendMessageMutation,
     threadHintMeta?.rootId,
   ]);
@@ -1268,7 +1284,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
                   </span>
                 </div>
                 <div
-                  className={`relative max-w-[calc(100vw-5rem)] sm:max-w-md break-words rounded-lg px-3 sm:px-4 py-1.5 sm:py-2 shadow-sm sm:shadow bg-base-200 text-sm sm:text-sm lg:text-base transition-all duration-200 hover:shadow-lg hover:bg-base-300 cursor-pointer ${isMessageOverRoomContentThreshold ? "outline outline-1 outline-warning/70" : ""}`}
+                  className={`relative max-w-[calc(100vw-5rem)] sm:max-w-md break-words rounded-lg px-3 sm:px-4 py-1.5 sm:py-2 shadow-sm sm:shadow bg-base-200 text-base sm:text-sm lg:text-base transition-all duration-200 hover:shadow-lg hover:bg-base-300 cursor-pointer ${isMessageOverRoomContentThreshold ? "outline outline-1 outline-warning/70" : ""}`}
                   onClick={triggerEffectPreview}
                 >
                   {renderedContent}
@@ -1381,7 +1397,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
                   </div>
                 </div>
                 <div
-                  className={`relative transition-all duration-200 hover:bg-base-200/50 rounded-lg p-1.5 sm:p-2 cursor-pointer break-words text-sm sm:text-sm lg:text-base ${isMessageOverRoomContentThreshold ? "outline outline-1 outline-warning/70" : ""}`}
+                  className={`relative transition-all duration-200 hover:bg-base-200/50 rounded-lg p-1.5 sm:p-2 cursor-pointer break-words text-base sm:text-sm lg:text-base ${isMessageOverRoomContentThreshold ? "outline outline-1 outline-warning/70" : ""}`}
                   onClick={triggerEffectPreview}
                 >
                   {renderedContent}

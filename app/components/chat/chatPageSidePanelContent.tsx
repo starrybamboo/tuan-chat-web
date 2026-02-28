@@ -18,6 +18,7 @@ interface ChatPageSidePanelContentProps {
   activeSpaceIsArchived?: boolean;
   isSpaceOwner: boolean;
   isKPInSpace: boolean;
+  canViewDocs: boolean;
   rooms: Room[];
   roomOrderIds?: number[];
   onReorderRoomIds?: (nextRoomIds: number[]) => void;
@@ -49,6 +50,7 @@ export default function ChatPageSidePanelContent({
   activeSpaceIsArchived,
   isSpaceOwner,
   isKPInSpace,
+  canViewDocs,
   rooms,
   roomOrderIds,
   onReorderRoomIds,
@@ -77,6 +79,7 @@ export default function ChatPageSidePanelContent({
       activeSpaceIsArchived={activeSpaceIsArchived}
       isSpaceOwner={isSpaceOwner}
       isKPInSpace={isKPInSpace}
+      canViewDocs={canViewDocs}
       rooms={rooms}
       roomOrderIds={roomOrderIds}
       onReorderRoomIds={onReorderRoomIds}

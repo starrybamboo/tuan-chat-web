@@ -10,6 +10,7 @@ interface ConfigurationSectionProps {
   isEditing?: boolean;
   fieldType: "basic" | "ability" | "skill";
   customLabel: string; // e.g., "基础属性", "能力", "技能"
+  hideExternalTitlesOnMobile?: boolean;
   // 数据源
   abilityData: Record<string, any>;
   ruleData: Record<string, any>;
@@ -97,6 +98,7 @@ export function ConfigurationSection({
   isEditing,
   fieldType,
   customLabel,
+  hideExternalTitlesOnMobile = false,
   abilityData,
   ruleData,
   localEdits,
@@ -145,6 +147,10 @@ export function ConfigurationSection({
   const templateCount = Object.keys(templateData).length;
   const hasNoData = modifiedCount === 0 && templateCount === 0;
 
+  const sectionHeaderClassName = hideExternalTitlesOnMobile
+    ? "hidden md:flex items-center gap-2"
+    : "flex items-center gap-2";
+
   return (
     <Section
       title={title}
@@ -157,7 +163,7 @@ export function ConfigurationSection({
             {modifiedCount > 0
               ? (
                   <>
-                    <div className="flex items-center gap-2">
+                    <div className={sectionHeaderClassName}>
                       <h4 className="text-lg font-semibold">
                         ⚡已自定义的
                         {customLabel}
@@ -252,6 +258,7 @@ export function ConfigurationSection({
               isEditing={isEditing}
               title={modifiedCount > 0 ? `自定义${customLabel}` : `添加${customLabel}`}
               fieldType={fieldType}
+              hideTitleOnMobile={hideExternalTitlesOnMobile}
             />
           </div>
         )}
@@ -259,7 +266,7 @@ export function ConfigurationSection({
         {/* 规则模版数据区域：去掉折叠按钮，直接展示 */}
         {templateCount > 0 && (
           <div className="space-y-4">
-            <div className="flex items-center gap-2">
+            <div className={sectionHeaderClassName}>
               <h4 className="text-lg font-semibold">
                 ⚡规则模版
                 {customLabel}
@@ -273,7 +280,7 @@ export function ConfigurationSection({
                 || templateAbilityVisual.mpValue != null
                 || templateAbilityVisual.sanValue != null) && (
                 <div className="bg-base-100 rounded-xl p-4 shadow-sm space-y-2">
-                  <h5 className="font-semibold text-sm">模板能力可视化</h5>
+                  <h5 className={`font-semibold text-sm ${hideExternalTitlesOnMobile ? "hidden md:block" : ""}`}>模板能力可视化</h5>
                   {templateAbilityVisual.hpValue != null && (
                     <div>
                       <div className="flex justify-between text-xs mb-1">
@@ -340,6 +347,7 @@ export function ConfigurationSection({
               isEditing={isEditing}
               title={`模版${customLabel}`}
               fieldType={fieldType}
+              hideTitleOnMobile={hideExternalTitlesOnMobile}
             />
           </div>
         )}

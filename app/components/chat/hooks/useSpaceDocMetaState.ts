@@ -8,7 +8,7 @@ import { tuanchat } from "api/instance";
 
 type UseSpaceDocMetaStateParams = {
   activeSpaceId?: number | null;
-  isKPInSpace: boolean;
+  canViewDocs: boolean;
   docMetasFromSidebarTree: MinimalDocMeta[];
 };
 
@@ -38,7 +38,7 @@ function isSameDocMetaList(a: MinimalDocMeta[] | null, b: MinimalDocMeta[] | nul
 
 export default function useSpaceDocMetaState({
   activeSpaceId,
-  isKPInSpace,
+  canViewDocs,
   docMetasFromSidebarTree,
 }: UseSpaceDocMetaStateParams) {
   const [spaceDocMetas, setSpaceDocMetas] = useState<MinimalDocMeta[] | null>(null);
@@ -180,7 +180,7 @@ export default function useSpaceDocMetaState({
       setSpaceDocMetas(null);
       return;
     }
-    if (!isKPInSpace) {
+    if (!canViewDocs) {
       setSpaceDocMetas([]);
       return;
     }
@@ -209,7 +209,7 @@ export default function useSpaceDocMetaState({
     return () => {
       cancelled = true;
     };
-  }, [activeSpaceId, docMetasFromSidebarTree, isKPInSpace, loadSpaceDocMetas, mergeDocMetas]);
+  }, [activeSpaceId, canViewDocs, docMetasFromSidebarTree, loadSpaceDocMetas, mergeDocMetas]);
 
   return {
     spaceDocMetas,

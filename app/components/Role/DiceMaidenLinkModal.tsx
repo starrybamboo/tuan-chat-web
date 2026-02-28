@@ -1,6 +1,7 @@
 import { useGetInfiniteUserRolesQuery, useGetRoleAvatarQuery, useGetRoleQuery } from "api/hooks/RoleAndAvatarHooks";
 import { useMemo, useState } from "react";
 import { useGlobalContext } from "@/components/globalContextProvider";
+import { ROLE_DEFAULT_AVATAR_URL } from "@/constants/defaultAvatar";
 
 interface DiceMaidenLinkModalProps {
   isOpen: boolean;
@@ -22,7 +23,7 @@ function DiceMaidenRoleItem({
   onSelect: () => void;
 }) {
   const avatarQuery = useGetRoleAvatarQuery(role.avatarId || 0);
-  const avatarUrl = avatarQuery.data?.data?.avatarUrl || "/favicon.ico";
+  const avatarUrl = avatarQuery.data?.data?.avatarUrl || ROLE_DEFAULT_AVATAR_URL;
 
   return (
     <div
@@ -67,7 +68,7 @@ function ManualRolePreview({ roleId }: { roleId: number }) {
   const { data: roleData } = useGetRoleQuery(roleId);
   const role = roleData?.data;
   const avatarQuery = useGetRoleAvatarQuery(role?.avatarId || 0);
-  const avatarUrl = avatarQuery.data?.data?.avatarUrl || "/favicon.ico";
+  const avatarUrl = avatarQuery.data?.data?.avatarUrl || ROLE_DEFAULT_AVATAR_URL;
 
   if (!role)
     return null;

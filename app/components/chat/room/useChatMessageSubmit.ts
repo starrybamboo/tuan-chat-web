@@ -673,7 +673,11 @@ export default function useChatMessageSubmit({
         }
       }
 
-      setInputText("");
+      // 提交期间用户可能已开始输入下一条；仅在输入框仍为空时执行收尾清空，避免覆盖新输入。
+      const latestInputText = useChatInputUiStore.getState().plainText;
+      if (latestInputText.length === 0) {
+        setInputText("");
+      }
       setTempAnnotations([]);
       roomUiStoreApi.getState().setReplyMessage(undefined);
       roomUiStoreApi.getState().setInsertAfterMessageId(undefined);

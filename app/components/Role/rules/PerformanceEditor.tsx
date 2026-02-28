@@ -16,6 +16,7 @@ interface PerformanceEditorProps {
   roleId: number;
   ruleId: number;
   isEditing?: boolean;
+  hideTitleOnMobile?: boolean;
 }
 
 /**
@@ -30,6 +31,7 @@ export default function PerformanceEditor({
   roleId,
   ruleId,
   isEditing: controlledIsEditing,
+  hideTitleOnMobile = false,
 }: PerformanceEditorProps) {
   // 接入api
   const { mutate: updateFiledAbility } = useUpdateRoleAbilityByRoleIdMutation();
@@ -41,6 +43,9 @@ export default function PerformanceEditor({
   const isEditingControlled = typeof controlledIsEditing === "boolean";
   const isEditing = isEditingControlled ? controlledIsEditing : internalIsEditing;
   const prevIsEditingRef = useRef(isEditing);
+  const headerClassName = hideTitleOnMobile && isEditingControlled
+    ? "flex justify-between items-center md:mb-4"
+    : "flex justify-between items-center mb-4";
   // 是否移动端
   const isMobile = useIsMobile();
 
@@ -121,8 +126,8 @@ export default function PerformanceEditor({
       isEditing ? "ring-2 ring-primary" : ""
     }`}
     >
-      <div className="flex justify-between items-center mb-4">
-        <h3 className="card-title text-lg flex items-center gap-2 ml-1">
+      <div className={headerClassName}>
+        <h3 className={`card-title text-lg items-center gap-2 ml-1 ${hideTitleOnMobile ? "hidden md:flex" : "flex"}`}>
           基本信息
         </h3>
         {!isEditingControlled && (

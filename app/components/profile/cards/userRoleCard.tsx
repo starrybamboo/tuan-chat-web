@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { RoleDetail } from "@/components/common/roleDetail";
 import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
+import { ROLE_DEFAULT_AVATAR_URL } from "@/constants/defaultAvatar";
 import { useGetRoleAvatarQuery, useGetRoleQuery } from "../../../../api/hooks/RoleAndAvatarHooks";
 
 interface UserRoleCardProps {
@@ -72,7 +73,7 @@ const UserRoleCard: React.FC<UserRoleCardProps> = ({ roleId }) => {
   }
 
   // 获取头像URL，优先使用查询结果，没有则使用角色数据中的avatar
-  const avatarUrl = avatarData?.data?.avatarUrl || "/favicon.ico";
+  const avatarUrl = avatarData?.data?.avatarUrl || ROLE_DEFAULT_AVATAR_URL;
 
   return (
     <div className="cursor-pointer w-full">
@@ -87,7 +88,7 @@ const UserRoleCard: React.FC<UserRoleCardProps> = ({ roleId }) => {
             alt={role?.roleName || "角色头像"}
             className="w-full h-full object-cover"
             onError={(e) => {
-              (e.currentTarget as HTMLImageElement).src = "/favicon.ico";
+              (e.currentTarget as HTMLImageElement).src = ROLE_DEFAULT_AVATAR_URL;
             }}
           />
         </figure>

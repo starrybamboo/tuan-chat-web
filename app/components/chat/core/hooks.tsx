@@ -8,12 +8,15 @@ import { useGetMessageByIdQuery, useGetRoomExtraQuery, useSetRoomExtraMutation }
  */
 export function useGetMessageByIdSmartly(messageId: number) {
   const roomContext = use(RoomContext);
+  const resolvedMessageId = roomContext.chatHistory?.resolveMessageId(messageId) ?? messageId;
 
   // 如果传的是id就从历史消息里面找，没找到就去query。如果是Message类型就直接拿来用
   const foundMessageInHistory
-    = roomContext.chatHistory?.messages?.find(item => item.message.messageId === messageId)?.message;
+    = roomContext.chatHistory?.messages?.find(item =>
+      item.message.messageId === messageId || item.message.messageId === resolvedMessageId,
+    )?.message;
   const messageQuery = useGetMessageByIdQuery(
-    foundMessageInHistory ? -1 : messageId,
+    foundMessageInHistory ? -1 : resolvedMessageId,
   );
   return foundMessageInHistory || messageQuery.data?.message;
 }

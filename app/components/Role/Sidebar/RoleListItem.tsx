@@ -1,4 +1,5 @@
 import type { Role } from "../types";
+import { ROLE_DEFAULT_AVATAR_URL } from "@/constants/defaultAvatar";
 
 // 1. 从 Props 接口中移除 onSelect
 interface RoleListItemProps {
@@ -15,7 +16,7 @@ export function RoleListItem({
   onDelete,
   isSelectionMode,
 }: RoleListItemProps) {
-  const avatarSrc = role.avatarThumb || role.avatar || "/favicon.ico";
+  const avatarSrc = role.avatarThumb || role.avatar || ROLE_DEFAULT_AVATAR_URL;
 
   return (
     // 3. 从根 div 中移除 onClick 事件
