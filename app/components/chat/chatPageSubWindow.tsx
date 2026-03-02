@@ -71,7 +71,14 @@ function resolveAllowedDropEffect(dataTransfer: DataTransfer | null | undefined)
 }
 
 function parseDroppedTarget(dataTransfer: DataTransfer | null | undefined): DroppedTarget {
+  const fallbackPayload = getSubWindowDragPayload();
   if (!dataTransfer) {
+    if (fallbackPayload?.tab === "room" && fallbackPayload.roomId > 0) {
+      return fallbackPayload;
+    }
+    if (fallbackPayload?.tab === "doc" && fallbackPayload.docId) {
+      return fallbackPayload;
+    }
     return null;
   }
 
@@ -106,7 +113,6 @@ function parseDroppedTarget(dataTransfer: DataTransfer | null | undefined): Drop
     }
   }
 
-  const fallbackPayload = getSubWindowDragPayload();
   if (fallbackPayload?.tab === "room" && fallbackPayload.roomId > 0) {
     return fallbackPayload;
   }
@@ -204,6 +210,8 @@ export default function ChatPageSubWindow({
 
   const dragStartXRef = useRef(0);
   const draggedRef = useRef(false);
+  const lastDropTargetRef = useRef<DroppedTarget>(null);
+  const [isDropReplaceOverlayVisible, setIsDropReplaceOverlayVisible] = useState(false);
   const resetToEmpty = useCallback(() => {
     setTab("empty");
   }, [setTab]);
@@ -214,34 +222,81 @@ export default function ChatPageSubWindow({
     }
     setIsOpen(true);
     if (target.tab === "room") {
+      setTab("room");
       setRoomId(target.roomId);
       return;
     }
+    setTab("doc");
     setDocId(target.docId);
-  }, [setDocId, setIsOpen, setRoomId]);
+  }, [setDocId, setIsOpen, setRoomId, setTab]);
 
   const handleDragOver = useCallback((event: React.DragEvent<HTMLElement>) => {
     const target = parseDroppedTarget(event.dataTransfer);
     const hasHint = hasDroppedTargetHint(event.dataTransfer);
+    const hasFallbackPayload = Boolean(getSubWindowDragPayload());
     const dropEffect = resolveAllowedDropEffect(event.dataTransfer);
-    if (!target && !hasHint) {
+    if (!target && !hasHint && !hasFallbackPayload) {
       return;
     }
     event.preventDefault();
     event.stopPropagation();
     event.dataTransfer.dropEffect = dropEffect;
+    if (target) {
+      lastDropTargetRef.current = target;
+    }
+    setIsDropReplaceOverlayVisible(true);
   }, []);
 
   const handleDrop = useCallback((event: React.DragEvent<HTMLElement>) => {
-    const target = parseDroppedTarget(event.dataTransfer);
+    const target = parseDroppedTarget(event.dataTransfer) ?? lastDropTargetRef.current;
+    lastDropTargetRef.current = null;
     if (!target) {
+      setIsDropReplaceOverlayVisible(false);
       return;
     }
     event.preventDefault();
     event.stopPropagation();
     event.nativeEvent.stopImmediatePropagation?.();
     applyDroppedTarget(target);
+    setIsDropReplaceOverlayVisible(false);
   }, [applyDroppedTarget]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    const syncOverlayVisibility = () => {
+      setIsDropReplaceOverlayVisible(Boolean(getSubWindowDragPayload()));
+    };
+
+    const handleGlobalDragStart = () => {
+      // payload 在具体 draggable 的 onDragStart 里写入，放到下一帧再同步可避免时序抖动。
+      window.requestAnimationFrame(syncOverlayVisibility);
+    };
+
+    const handleGlobalDragEnd = () => {
+      lastDropTargetRef.current = null;
+      setIsDropReplaceOverlayVisible(false);
+    };
+    const handleGlobalDrop = () => {
+      // 让目标区域 onDrop 先执行（用于完成副窗口替换），再统一清理拖拽状态。
+      window.requestAnimationFrame(() => {
+        lastDropTargetRef.current = null;
+        setIsDropReplaceOverlayVisible(false);
+      });
+    };
+
+    window.addEventListener("dragstart", handleGlobalDragStart, true);
+    window.addEventListener("dragend", handleGlobalDragEnd, true);
+    window.addEventListener("drop", handleGlobalDrop);
+
+    return () => {
+      window.removeEventListener("dragstart", handleGlobalDragStart, true);
+      window.removeEventListener("dragend", handleGlobalDragEnd, true);
+      window.removeEventListener("drop", handleGlobalDrop);
+    };
+  }, []);
 
   const handleOpenEdgePointerDown = useCallback((e: React.PointerEvent<HTMLElement>) => {
     if (!activeSpaceId || !isDesktop) {
@@ -354,6 +409,20 @@ export default function ChatPageSubWindow({
         onDragOver={handleDragOver}
         onDrop={handleDrop}
       >
+        {isDropReplaceOverlayVisible && (
+          <div
+            className="absolute inset-0 z-40 flex items-center justify-center bg-base-200/18 backdrop-blur-[1px]"
+            data-sub-window-drop-zone
+            onDragOverCapture={handleDragOver}
+            onDropCapture={handleDrop}
+            onDragOver={handleDragOver}
+            onDrop={handleDrop}
+          >
+            <div className="rounded-xl border border-primary/30 bg-base-100/92 px-4 py-2 text-sm font-semibold text-base-content shadow">
+              松开以替换副窗口内容
+            </div>
+          </div>
+        )}
         {(tab === "doc" || tab === "empty") && (
           <div className="absolute left-2 top-2 z-30 tooltip tooltip-right" data-tip="关闭副窗口">
             <button

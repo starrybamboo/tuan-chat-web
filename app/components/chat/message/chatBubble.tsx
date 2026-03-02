@@ -40,7 +40,6 @@ import {
 } from "@/types/messageAnnotations";
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
 import { extractWebgalChoosePayload } from "@/types/webgalChoose";
-import { extractWebgalVarPayload, formatWebgalVarSummary } from "@/types/webgalVar";
 import { formatTimeSmartly } from "@/utils/dateUtil";
 import { getScreenSize } from "@/utils/getScreenSize";
 import { countTextEnhanceVisibleLength, formatTextEnhanceVisibleLength } from "@/utils/textEnhanceMetrics";
@@ -1136,16 +1135,6 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
             </div>
           );
         }
-        case MESSAGE_TYPE.WEBGAL_VAR: {
-          const payload = extractWebgalVarPayload(message.extra);
-          const summary = payload ? formatWebgalVarSummary(payload) : message.content;
-          return (
-            <div className="flex items-center gap-2 text-sm">
-              <span className="badge badge-secondary badge-xs">变量</span>
-              <span className="break-words">{summary || "[变量]"}</span>
-            </div>
-          );
-        }
         case MESSAGE_TYPE.WEBGAL_CHOOSE: {
           const payload = extractWebgalChoosePayload(message.extra);
           return <WebgalChooseMessage payload={payload} />;
@@ -1402,7 +1391,6 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
                 >
                   {renderedContent}
                   {threadHintNode}
-                  {renderAnnotationsBar()}
                   {isMessageOverRoomContentThreshold && (
                     <div className="mt-1 flex justify-end">
                       <span className="rounded px-1 text-[11px] leading-4 font-medium bg-warning/20 text-warning shadow-sm">
@@ -1411,6 +1399,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
                     </div>
                   )}
                 </div>
+                {renderAnnotationsBar("mt-1.5")}
               </div>
             </div>
           )}

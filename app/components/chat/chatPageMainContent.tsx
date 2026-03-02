@@ -109,7 +109,14 @@ export function ChatPageRoomSettingContent() {
   );
 }
 
-export function ChatPageDocContent() {
+interface ChatPageDocContentProps {
+  spaceId?: number | null;
+  docId?: string | null;
+  canViewDocs?: boolean;
+  tcHeaderTitle?: string;
+}
+
+export function ChatPageDocContent(props: ChatPageDocContentProps = {}) {
   const {
     activeSpaceId,
     activeDocId,
@@ -117,8 +124,12 @@ export function ChatPageDocContent() {
     activeDocTitleForTcHeader,
     onDocTcHeaderChange,
   } = useChatPageLayoutContext();
+  const resolvedSpaceId = props.spaceId ?? activeSpaceId;
+  const resolvedDocId = props.docId ?? activeDocId;
+  const canViewDocs = props.canViewDocs ?? isKPInSpace;
+  const tcHeaderTitle = props.tcHeaderTitle ?? activeDocTitleForTcHeader;
 
-  if (!activeSpaceId || !activeDocId) {
+  if (!resolvedSpaceId || !resolvedDocId) {
     return (
       <div className="flex items-center justify-center w-full h-full font-bold">
         <span className="text-center lg:hidden">请在左侧选择空间或房间</span>
@@ -129,15 +140,15 @@ export function ChatPageDocContent() {
   return (
     <div className="flex w-full h-full justify-center min-h-0 min-w-0">
       <div className="w-full h-full overflow-auto flex justify-center">
-        {isKPInSpace
+        {canViewDocs
           ? (
               <div className="w-full h-full overflow-x-auto overflow-y-hidden bg-base-100 border border-base-300 rounded-box">
                 <BlocksuiteDescriptionEditor
-                  workspaceId={`space:${activeSpaceId ?? -1}`}
-                  spaceId={activeSpaceId ?? -1}
-                  docId={activeDocId}
+                  workspaceId={`space:${resolvedSpaceId ?? -1}`}
+                  spaceId={resolvedSpaceId ?? -1}
+                  docId={resolvedDocId}
                   variant="full"
-                  tcHeader={{ enabled: true, fallbackTitle: activeDocTitleForTcHeader }}
+                  tcHeader={{ enabled: true, fallbackTitle: tcHeaderTitle }}
                   onTcHeaderChange={onDocTcHeaderChange}
                   allowModeSwitch
                   fullscreenEdgeless

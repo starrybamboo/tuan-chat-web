@@ -5,7 +5,6 @@ import {
   hasAnnotation,
   isImageMessageBackground,
 } from "@/types/messageAnnotations";
-import { extractWebgalVarPayload, formatWebgalVarSummary } from "@/types/webgalVar";
 
 import type { ChatMessageResponse, Message } from "../../api";
 
@@ -140,11 +139,6 @@ function formatMessageContent(
         || (hasAnnotation(message.annotations, ANNOTATION_IDS.FIGURE_CLEAR) ? "清除立绘" : "")
         || content;
       return `[演出效果]${name ? ` ${name}` : ""}`;
-    }
-    case MessageType.WEBGAL_VAR: {
-      const payload = extractWebgalVarPayload(extra);
-      const summary = payload ? formatWebgalVarSummary(payload) : "";
-      return `[变量]${summary ? ` ${summary}` : ""}`;
     }
     case MessageType.COMMAND_REQUEST: {
       const command = (extra as any)?.commandRequest?.command || content;

@@ -49,7 +49,6 @@ interface RoomComposerPanelProps {
   onSendEffect: (effectName: string) => void;
   onClearBackground: () => void;
   onClearFigure: () => void;
-  onSetWebgalVar: (key: string, expr: string) => Promise<void> | void;
   onSendWebgalChoose: (payload: WebgalChoosePayload) => Promise<void> | void;
   onOpenImportChatText?: () => void;
 
@@ -101,7 +100,6 @@ function RoomComposerPanelImpl({
   onSendEffect,
   onClearBackground,
   onClearFigure,
-  onSetWebgalVar,
   onSendWebgalChoose,
   onOpenImportChatText,
   isKP,
@@ -388,7 +386,6 @@ function RoomComposerPanelImpl({
     onSendEffect,
     onClearBackground,
     onClearFigure,
-    onSetWebgalVar,
     onSendWebgalChoose,
     isKP,
     onStopBgmForAll,
@@ -411,7 +408,6 @@ function RoomComposerPanelImpl({
     onClearBackground,
     onClearFigure,
     onSendEffect,
-    onSetWebgalVar,
     onSendWebgalChoose,
     onStopBgmForAll,
     onToggleRealtimeRender,

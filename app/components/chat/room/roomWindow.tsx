@@ -45,7 +45,6 @@ import {
   useGetRoomInfoQuery,
   useGetSpaceInfoQuery,
   useSendMessageMutation,
-  useSetSpaceExtraMutation,
   useUpdateMessageMutation,
 } from "../../../../api/hooks/chatQueryHooks";
 
@@ -95,7 +94,6 @@ function RoomWindow({
   const sendMessageMutation = useSendMessageMutation(roomId);
   const deleteMessageMutation = useDeleteMessageMutation();
   const updateMessageMutation = useUpdateMessageMutation();
-  const setSpaceExtraMutation = useSetSpaceExtraMutation();
 
   const {
     chatInputRef,
@@ -237,10 +235,8 @@ function RoomWindow({
     commandExecutor,
   });
 
-  const { sendMessageWithInsert, handleSetWebgalVar, handleSendWebgalChoose } = useRoomMessageActions({
+  const { sendMessageWithInsert, handleSendWebgalChoose } = useRoomMessageActions({
     roomId,
-    spaceId,
-    spaceExtra: space?.extra,
     currentUserId: Number(userId ?? 0),
     isSpaceOwner: Boolean(spaceContext.isSpaceOwner),
     curRoleId,
@@ -252,7 +248,6 @@ function RoomWindow({
     removeMessageById: chatHistory?.removeMessageById,
     replaceMessageById: chatHistory?.replaceMessageById,
     ensureRuntimeAvatarIdForRole,
-    setSpaceExtra: setSpaceExtraMutation.mutateAsync,
     roomUiStoreApi: roomUiStore,
   });
   sendMessageWithInsertRef.current = sendMessageWithInsert;
@@ -289,7 +284,6 @@ function RoomWindow({
     stripCommandRequestAllToken,
     extractFirstCommandText,
     setInputText,
-    setSpaceExtra: setSpaceExtraMutation.mutateAsync,
     roomUiStoreApi: roomUiStore,
   });
   const {
@@ -883,7 +877,6 @@ function RoomWindow({
     onSendEffect: handleSendEffect,
     onClearBackground: handleClearBackground,
     onClearFigure: handleClearFigure,
-    onSetWebgalVar: handleSetWebgalVar,
     onSendWebgalChoose: handleSendWebgalChoose,
     isKP: spaceContext.isSpaceOwner,
     onStopBgmForAll: handleStopBgmForAll,

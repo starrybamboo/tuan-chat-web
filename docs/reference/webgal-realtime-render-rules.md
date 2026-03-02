@@ -82,19 +82,16 @@
 7. `WEBGAL_COMMAND(10)`
 - 直接写入 `msg.content`（原样脚本行）
 
-8. `WEBGAL_VAR(11)`
-- 从 `extra.webgalVar` 解析后写入 `setVar:{key}={expr} -global;`
-
-9. `WEBGAL_CHOOSE(13)`
+8. `WEBGAL_CHOOSE(13)`
 - 从 `extra.webgalChoose` 生成 `choose + label + jumpLabel` 多行脚本
 
-10. `DICE(6)`
+9. `DICE(6)`
 - 支持 `script / anko / trpg / narration / dialog` 多种渲染模式
 - 支持两步掷骰（预览 + 结果）与骰子音效
 - TRPG 模式会附加 `pixi` 掷骰特效
 - 支持“指令+回复”短时间窗口自动合并（默认 260ms）
 
-11. 其他类型
+10. 其他类型
 - 默认不写入脚本（忽略）
 
 ## 4. 标注（annotations）影响规则

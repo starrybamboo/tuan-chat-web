@@ -2,7 +2,6 @@ import { extractRoomJumpPayload } from "@/components/chat/utils/roomJump";
 import { ANNOTATION_IDS, getSceneEffectFromAnnotations, getSceneEffectLabel, hasAnnotation } from "@/types/messageAnnotations";
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
 import { extractWebgalChoosePayload, formatWebgalChooseSummary } from "@/types/webgalChoose";
-import { extractWebgalVarPayload, formatWebgalVarSummary } from "@/types/webgalVar";
 
 import type { Message } from "../../../../../api";
 
@@ -113,11 +112,6 @@ export function getMessagePreviewText(message?: Message | null): string {
       const raw = safeTrim(message.content);
       const display = raw ? (raw.startsWith("%") ? raw : `%${raw}`) : "";
       return withTag("WebGAL", display);
-    }
-    case MESSAGE_TYPE.WEBGAL_VAR: {
-      const payload = extractWebgalVarPayload(message.extra);
-      const summary = payload ? formatWebgalVarSummary(payload) : trimmedContent;
-      return withTag("变量", summary);
     }
     case MESSAGE_TYPE.WEBGAL_CHOOSE: {
       const payload = extractWebgalChoosePayload(message.extra);

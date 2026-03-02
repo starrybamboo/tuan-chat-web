@@ -3,7 +3,6 @@ import type { WebgalChoosePayload } from "@/types/webgalChoose";
 
 import { ArrowSquareIn, FilmSlateIcon } from "@phosphor-icons/react";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { createPortal } from "react-dom";
 import { toast } from "react-hot-toast";
 import ChatStatusBar from "@/components/chat/chatStatusBar";
 import ChatToolbarDock from "@/components/chat/input/chatToolbarDock";
@@ -25,8 +24,6 @@ import {
   SparklesOutline,
 } from "@/icons";
 import { ANNOTATION_IDS } from "@/types/messageAnnotations";
-
-const WEBGAL_VAR_KEY_PATTERN = /^[A-Z_]\w*$/i;
 
 interface ChatToolbarProps {
   /** 当前房间（用于BGM个人开关/ֹͣȫԱBGM） */
@@ -78,8 +75,6 @@ interface ChatToolbarProps {
   onSendEffect?: (effectName: string) => void;
   onClearBackground?: () => void;
   onClearFigure?: () => void;
-  /** WebGAL 空间变量：由导演控制台弹窗触发 */
-  onSetWebgalVar?: (key: string, expr: string) => Promise<void> | void;
   onSendWebgalChoose?: (payload: WebgalChoosePayload) => Promise<void> | void;
   // 发送音频
   setAudioFile?: (file: File | null) => void;
@@ -116,7 +111,6 @@ function ChatToolbar({
   onSendEffect,
   onClearBackground,
   onClearFigure,
-  onSetWebgalVar,
   onSendWebgalChoose,
   onToggleRealtimeRender,
   setAudioFile,
@@ -137,16 +131,11 @@ function ChatToolbar({
   const [isAiPromptOpen, setIsAiPromptOpen] = useState(false);
   const [isEmojiOpen, setIsEmojiOpen] = useState(false);
 
-  const [isWebgalVarModalOpen, setIsWebgalVarModalOpen] = useState(false);
-  const [webgalVarKey, setWebgalVarKey] = useState("");
-  const [webgalVarExpr, setWebgalVarExpr] = useState("");
-  const [webgalVarError, setWebgalVarError] = useState<string | null>(null);
   const [isWebgalChooseModalOpen, setIsWebgalChooseModalOpen] = useState(false);
   const [webgalChooseOptions, setWebgalChooseOptions] = useState<WebgalChooseOptionDraft[]>(() => [
     createWebgalChooseOptionDraft(),
   ]);
   const [webgalChooseError, setWebgalChooseError] = useState<string | null>(null);
-  const webgalVarKeyInputRef = useRef<HTMLInputElement>(null);
   const screenSize = useScreenSize();
   const isMobile = screenSize === "sm";
   const setEmojiMetaByUrl = useChatComposerStore(state => state.setEmojiMetaByUrl);
@@ -261,57 +250,6 @@ function ChatToolbar({
     e.target.value = "";
   };
 
-  const closeWebgalVarModal = useCallback(() => {
-    setIsWebgalVarModalOpen(false);
-    setWebgalVarError(null);
-    setWebgalVarKey("");
-    setWebgalVarExpr("");
-  }, []);
-
-  useEffect(() => {
-    if (!isWebgalVarModalOpen)
-      return;
-    const timer = window.setTimeout(() => {
-      webgalVarKeyInputRef.current?.focus();
-    }, 0);
-    return () => window.clearTimeout(timer);
-  }, [isWebgalVarModalOpen]);
-
-  const submitWebgalVar = useCallback(async () => {
-    const key = webgalVarKey.trim();
-    const expr = webgalVarExpr.trim();
-
-    if (!key) {
-      setWebgalVarError("请输入变量名");
-      return;
-    }
-    if (!WEBGAL_VAR_KEY_PATTERN.test(key)) {
-      setWebgalVarError("变量名格式不正确（仅字母/下划线开头，后续可包含数字/下划线）");
-      return;
-    }
-    if (!expr) {
-      setWebgalVarError("请输入变量表达式");
-      return;
-    }
-    if (!onSetWebgalVar) {
-      setWebgalVarError("当前不可设置变量");
-      return;
-    }
-
-    setWebgalVarError(null);
-    try {
-      await onSetWebgalVar(key, expr);
-      closeWebgalVarModal();
-    }
-    catch (err: any) {
-      console.error("设置变量失败:", err);
-      toast.error(err?.message ? `设置变量失败：${err.message}` : "设置变量失败");
-    }
-  }, [closeWebgalVarModal, onSetWebgalVar, webgalVarExpr, webgalVarKey]);
-
-  const openWebgalVarModal = useCallback(() => {
-    setIsWebgalVarModalOpen(true);
-  }, []);
   const updateWebgalChooseOption = useCallback((index: number, key: keyof WebgalChooseOptionDraft, value: string) => {
     setWebgalChooseOptions(prev => prev.map((option, idx) => (
       idx === index ? { ...option, [key]: value } : option
@@ -378,51 +316,6 @@ function ChatToolbar({
     }
   }, [closeWebgalChooseModal, onSendWebgalChoose, webgalChooseOptions]);
 
-  const webgalVarModal = isWebgalVarModalOpen && typeof document !== "undefined"
-    ? createPortal(
-        <div className="modal modal-open z-9999">
-          <div className="modal-box">
-            <h3 className="font-bold text-lg">设置变量</h3>
-            <div className="py-4 space-y-3">
-              <div className="space-y-1">
-                <div className="text-sm opacity-80">变量名</div>
-                <input
-                  ref={webgalVarKeyInputRef}
-                  className="input input-bordered w-full font-mono"
-                  value={webgalVarKey}
-                  onChange={(e) => {
-                    setWebgalVarKey(e.target.value);
-                    setWebgalVarError(null);
-                  }}
-                  placeholder="例如：FLAG_A"
-                />
-              </div>
-              <div className="space-y-1">
-                <div className="text-sm opacity-80">表达式</div>
-                <textarea
-                  className="textarea textarea-bordered w-full font-mono min-h-24"
-                  value={webgalVarExpr}
-                  onChange={(e) => {
-                    setWebgalVarExpr(e.target.value);
-                    setWebgalVarError(null);
-                  }}
-                  placeholder="例如：1 / true / a+1 / random(1,20)"
-                />
-              </div>
-              {webgalVarError && (
-                <div className="text-error text-sm">{webgalVarError}</div>
-              )}
-            </div>
-            <div className="modal-action">
-              <button type="button" className="btn" onClick={closeWebgalVarModal}>取消</button>
-              <button type="button" className="btn btn-primary" onClick={submitWebgalVar}>发送</button>
-            </div>
-          </div>
-          <div className="modal-backdrop" onClick={closeWebgalVarModal} />
-        </div>,
-        document.body,
-      )
-    : null;
   const webgalChooseModal = (
     <WebgalChooseModal
       isOpen={isWebgalChooseModalOpen}
@@ -441,7 +334,6 @@ function ChatToolbar({
 
   return (
     <div className={`flex ${isInline ? "items-start gap-2 flex-nowrap" : "flex-col w-full"}`}>
-      {webgalVarModal}
       {webgalChooseModal}
       <div className={`${isInline ? "flex items-start gap-2 flex-nowrap" : "w-full"}`}>
         {showStatusBar && roomId != null && statusWebSocketUtils && (
@@ -715,8 +607,6 @@ function ChatToolbar({
             onSendEffect={onSendEffect}
             onClearBackground={onClearBackground}
             onClearFigure={onClearFigure}
-            onSetWebgalVar={onSetWebgalVar}
-            onOpenWebgalVarModal={openWebgalVarModal}
             onOpenWebgalChooseModal={onSendWebgalChoose ? openWebgalChooseModal : undefined}
             isSpectator={isSpectator}
             onToggleRealtimeRender={onToggleRealtimeRender}

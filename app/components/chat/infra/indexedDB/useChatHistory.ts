@@ -194,11 +194,6 @@ function normalizeMessageExtraForMatch(message: ChatMessageResponse["message"]):
         },
       });
     }
-    case MessageType.WEBGAL_VAR: {
-      return compactValue({
-        webgalVar: extra.webgalVar ?? extra,
-      });
-    }
     case MessageType.WEBGAL_CHOOSE: {
       return compactValue({
         webgalChoose: extra.webgalChoose ?? extra,

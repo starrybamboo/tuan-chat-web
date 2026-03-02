@@ -10,7 +10,170 @@ type UseSpaceDocMetaStateParams = {
   activeSpaceId?: number | null;
   canViewDocs: boolean;
   docMetasFromSidebarTree: MinimalDocMeta[];
+  isSidebarTreeReady?: boolean;
+  onDocHeaderChange?: (payload: { docId: string; title: string; imageUrl: string }) => void;
 };
+
+const SPACE_DOC_META_CACHE_KEY_PREFIX = "tc:space-doc-metas:v1:";
+const SPACE_DOC_TITLE_SYNC_QUEUE_KEY = "tc:space-doc-title-sync-queue:v1";
+
+type PendingSpaceDocTitleSync = {
+  docId: number;
+  title: string;
+  updatedAt: number;
+};
+
+type PendingSpaceDocTitleSyncMap = Record<string, PendingSpaceDocTitleSync>;
+
+function buildSpaceDocMetaCacheKey(spaceId: number): string {
+  return `${SPACE_DOC_META_CACHE_KEY_PREFIX}${spaceId}`;
+}
+
+function sanitizeDocMetaList(input: unknown): MinimalDocMeta[] {
+  if (!Array.isArray(input)) {
+    return [];
+  }
+  const map = new Map<string, MinimalDocMeta>();
+  for (const item of input) {
+    const id = typeof (item as any)?.id === "string" ? (item as any).id.trim() : "";
+    if (!id) {
+      continue;
+    }
+    const title = typeof (item as any)?.title === "string" ? (item as any).title.trim() : "";
+    const imageUrl = typeof (item as any)?.imageUrl === "string" ? (item as any).imageUrl.trim() : "";
+    const existing = map.get(id);
+    if (!existing) {
+      map.set(id, {
+        id,
+        ...(title ? { title } : {}),
+        ...(imageUrl ? { imageUrl } : {}),
+      });
+      continue;
+    }
+    if (!existing.title && title) {
+      existing.title = title;
+    }
+    if (!existing.imageUrl && imageUrl) {
+      existing.imageUrl = imageUrl;
+    }
+  }
+  return [...map.values()];
+}
+
+function readSpaceDocMetaCache(spaceId: number): MinimalDocMeta[] {
+  if (typeof window === "undefined") {
+    return [];
+  }
+  try {
+    const raw = window.localStorage.getItem(buildSpaceDocMetaCacheKey(spaceId));
+    if (!raw) {
+      return [];
+    }
+    const parsed = JSON.parse(raw);
+    return sanitizeDocMetaList(parsed);
+  }
+  catch {
+    return [];
+  }
+}
+
+function writeSpaceDocMetaCache(spaceId: number, list: MinimalDocMeta[] | null | undefined): void {
+  if (typeof window === "undefined") {
+    return;
+  }
+  try {
+    window.localStorage.setItem(
+      buildSpaceDocMetaCacheKey(spaceId),
+      JSON.stringify(sanitizeDocMetaList(list)),
+    );
+  }
+  catch {
+    // ignore
+  }
+}
+
+function readPendingSpaceDocTitleSyncMap(): PendingSpaceDocTitleSyncMap {
+  if (typeof window === "undefined") {
+    return {};
+  }
+  try {
+    const raw = window.localStorage.getItem(SPACE_DOC_TITLE_SYNC_QUEUE_KEY);
+    if (!raw) {
+      return {};
+    }
+    const parsed = JSON.parse(raw) as unknown;
+    if (!parsed || typeof parsed !== "object") {
+      return {};
+    }
+    const map: PendingSpaceDocTitleSyncMap = {};
+    for (const value of Object.values(parsed as Record<string, unknown>)) {
+      if (!value || typeof value !== "object") {
+        continue;
+      }
+      const docId = Number((value as any).docId);
+      const title = String((value as any).title ?? "").trim();
+      const updatedAt = Number((value as any).updatedAt);
+      if (!Number.isFinite(docId) || docId <= 0 || !title) {
+        continue;
+      }
+      map[String(docId)] = {
+        docId,
+        title,
+        updatedAt: Number.isFinite(updatedAt) ? updatedAt : Date.now(),
+      };
+    }
+    return map;
+  }
+  catch {
+    return {};
+  }
+}
+
+function writePendingSpaceDocTitleSyncMap(map: PendingSpaceDocTitleSyncMap): void {
+  if (typeof window === "undefined") {
+    return;
+  }
+  try {
+    window.localStorage.setItem(SPACE_DOC_TITLE_SYNC_QUEUE_KEY, JSON.stringify(map));
+  }
+  catch {
+    // ignore
+  }
+}
+
+function upsertPendingSpaceDocTitleSync(item: { docId: number; title: string }): void {
+  if (typeof window === "undefined") {
+    return;
+  }
+  const docId = Number(item.docId);
+  const title = String(item.title ?? "").trim();
+  if (!Number.isFinite(docId) || docId <= 0 || !title) {
+    return;
+  }
+  const map = readPendingSpaceDocTitleSyncMap();
+  map[String(docId)] = {
+    docId,
+    title,
+    updatedAt: Date.now(),
+  };
+  writePendingSpaceDocTitleSyncMap(map);
+}
+
+function removePendingSpaceDocTitleSync(docId: number): void {
+  if (typeof window === "undefined") {
+    return;
+  }
+  const normalizedDocId = Number(docId);
+  if (!Number.isFinite(normalizedDocId) || normalizedDocId <= 0) {
+    return;
+  }
+  const map = readPendingSpaceDocTitleSyncMap();
+  if (!map[String(normalizedDocId)]) {
+    return;
+  }
+  delete map[String(normalizedDocId)];
+  writePendingSpaceDocTitleSyncMap(map);
+}
 
 function isSameDocMetaList(a: MinimalDocMeta[] | null, b: MinimalDocMeta[] | null): boolean {
   if (a === b)
@@ -40,6 +203,8 @@ export default function useSpaceDocMetaState({
   activeSpaceId,
   canViewDocs,
   docMetasFromSidebarTree,
+  isSidebarTreeReady = false,
+  onDocHeaderChange,
 }: UseSpaceDocMetaStateParams) {
   const [spaceDocMetas, setSpaceDocMetas] = useState<MinimalDocMeta[] | null>(null);
 
@@ -74,6 +239,7 @@ export default function useSpaceDocMetaState({
   const spaceDocTitleSyncTimerRef = useRef<number | null>(null);
   const spaceDocTitleSyncPendingRef = useRef<{ docId: number; title: string } | null>(null);
   const spaceDocTitleSyncLastRef = useRef<{ docId: number; title: string } | null>(null);
+  const spaceDocTitleSyncQueueFlushingRef = useRef(false);
 
   useEffect(() => {
     return () => {
@@ -83,6 +249,65 @@ export default function useSpaceDocMetaState({
     };
   }, []);
 
+  const syncSpaceDocTitle = useCallback(async (pending: { docId: number; title: string }) => {
+    const normalizedDocId = Number(pending.docId);
+    const normalizedTitle = String(pending.title ?? "").trim();
+    if (!Number.isFinite(normalizedDocId) || normalizedDocId <= 0 || !normalizedTitle) {
+      return;
+    }
+    const last = spaceDocTitleSyncLastRef.current;
+    if (last && last.docId === normalizedDocId && last.title === normalizedTitle) {
+      removePendingSpaceDocTitleSync(normalizedDocId);
+      return;
+    }
+
+    try {
+      await tuanchat.spaceDocController.renameDoc2({
+        docId: normalizedDocId,
+        title: normalizedTitle,
+      });
+      spaceDocTitleSyncLastRef.current = { docId: normalizedDocId, title: normalizedTitle };
+      removePendingSpaceDocTitleSync(normalizedDocId);
+    }
+    catch {
+      upsertPendingSpaceDocTitleSync({
+        docId: normalizedDocId,
+        title: normalizedTitle,
+      });
+    }
+  }, []);
+
+  const flushPendingSpaceDocTitleSyncQueue = useCallback(async () => {
+    if (typeof window === "undefined") {
+      return;
+    }
+    if (spaceDocTitleSyncQueueFlushingRef.current) {
+      return;
+    }
+    if (typeof navigator !== "undefined" && "onLine" in navigator && !navigator.onLine) {
+      return;
+    }
+
+    const map = readPendingSpaceDocTitleSyncMap();
+    const queue = Object.values(map).sort((a, b) => (a.updatedAt - b.updatedAt));
+    if (queue.length === 0) {
+      return;
+    }
+
+    spaceDocTitleSyncQueueFlushingRef.current = true;
+    try {
+      for (const item of queue) {
+        await syncSpaceDocTitle({
+          docId: item.docId,
+          title: item.title,
+        });
+      }
+    }
+    finally {
+      spaceDocTitleSyncQueueFlushingRef.current = false;
+    }
+  }, [syncSpaceDocTitle]);
+
   const handleDocTcHeaderChange = useCallback((payload: DocTcHeaderPayload) => {
     const docId = typeof payload?.docId === "string" ? payload.docId : "";
     if (!docId)
@@ -91,6 +316,7 @@ export default function useSpaceDocMetaState({
     const title = String(payload?.header?.title ?? "").trim();
     const imageUrl = String(payload?.header?.imageUrl ?? "").trim();
     useDocHeaderOverrideStore.getState().setHeader({ docId, header: { title, imageUrl } });
+    onDocHeaderChange?.({ docId, title, imageUrl });
 
     if (!title)
       return;
@@ -131,14 +357,9 @@ export default function useSpaceDocMetaState({
             const last = spaceDocTitleSyncLastRef.current;
             if (last && last.docId === pending.docId && last.title === pending.title)
               return;
-
-            void tuanchat.spaceDocController.renameDoc2({
+            void syncSpaceDocTitle({
               docId: pending.docId,
               title: pending.title,
-            }).then(() => {
-              spaceDocTitleSyncLastRef.current = pending;
-            }).catch(() => {
-              // ignore
             });
           }, 800);
         })();
@@ -147,7 +368,34 @@ export default function useSpaceDocMetaState({
         // ignore
       }
     }
-  }, []);
+  }, [onDocHeaderChange, syncSpaceDocTitle]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    void flushPendingSpaceDocTitleSyncQueue();
+    const onOnline = () => {
+      void flushPendingSpaceDocTitleSyncQueue();
+    };
+    const onVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        void flushPendingSpaceDocTitleSyncQueue();
+      }
+    };
+    const timer = window.setInterval(() => {
+      void flushPendingSpaceDocTitleSyncQueue();
+    }, 15000);
+
+    window.addEventListener("online", onOnline);
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    return () => {
+      window.clearInterval(timer);
+      window.removeEventListener("online", onOnline);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+    };
+  }, [flushPendingSpaceDocTitleSyncQueue]);
 
   const loadSpaceDocMetas = useCallback(async (): Promise<MinimalDocMeta[]> => {
     if (typeof window === "undefined")
@@ -185,13 +433,23 @@ export default function useSpaceDocMetaState({
       return;
     }
 
+    const cachedDocMetas = readSpaceDocMetaCache(activeSpaceId);
+    if (cachedDocMetas.length > 0) {
+      const optimistic = mergeDocMetas(cachedDocMetas, docMetasFromSidebarTree);
+      setSpaceDocMetas(prev => (isSameDocMetaList(prev, optimistic) ? prev : optimistic));
+    }
+
     let cancelled = false;
     (async () => {
       const fromWorkspace = await loadSpaceDocMetas();
-      const merged = mergeDocMetas(fromWorkspace, docMetasFromSidebarTree);
+      const merged = mergeDocMetas(fromWorkspace, docMetasFromSidebarTree, cachedDocMetas);
       if (cancelled)
         return;
-      setSpaceDocMetas(prev => (isSameDocMetaList(prev, merged) ? prev : merged));
+      const shouldKeepOptimisticCache = !isSidebarTreeReady && merged.length === 0 && cachedDocMetas.length > 0;
+      const nextMetas = shouldKeepOptimisticCache
+        ? mergeDocMetas(cachedDocMetas, docMetasFromSidebarTree)
+        : merged;
+      setSpaceDocMetas(prev => (isSameDocMetaList(prev, nextMetas) ? prev : nextMetas));
 
       try {
         const registry = await import("@/components/chat/infra/blocksuite/spaceWorkspaceRegistry");
@@ -209,7 +467,100 @@ export default function useSpaceDocMetaState({
     return () => {
       cancelled = true;
     };
+  }, [activeSpaceId, canViewDocs, docMetasFromSidebarTree, isSidebarTreeReady, loadSpaceDocMetas, mergeDocMetas]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+    if (!activeSpaceId || activeSpaceId <= 0 || !canViewDocs) {
+      return;
+    }
+
+    let cancelled = false;
+    let refreshTimer: number | null = null;
+    const unsubscribers: Array<() => void> = [];
+
+    const refreshDocMetas = async () => {
+      const fromWorkspace = await loadSpaceDocMetas();
+      if (cancelled) {
+        return;
+      }
+      const merged = mergeDocMetas(
+        fromWorkspace,
+        docMetasFromSidebarTree,
+        readSpaceDocMetaCache(activeSpaceId),
+      );
+      setSpaceDocMetas(prev => (isSameDocMetaList(prev, merged) ? prev : merged));
+    };
+
+    const scheduleRefresh = () => {
+      if (cancelled) {
+        return;
+      }
+      if (refreshTimer != null) {
+        return;
+      }
+      refreshTimer = window.setTimeout(() => {
+        refreshTimer = null;
+        void refreshDocMetas();
+      }, 120);
+    };
+
+    void (async () => {
+      try {
+        const registry = await import("@/components/chat/infra/blocksuite/spaceWorkspaceRegistry");
+        if (cancelled) {
+          return;
+        }
+        const ws = registry.getOrCreateSpaceWorkspace(activeSpaceId) as any;
+        const metaSub = ws?.meta?.docMetaUpdated?.subscribe?.(() => {
+          scheduleRefresh();
+        });
+        if (metaSub && typeof metaSub.unsubscribe === "function") {
+          unsubscribers.push(() => metaSub.unsubscribe());
+        }
+
+        const docListSub = ws?.slots?.docListUpdated?.subscribe?.(() => {
+          scheduleRefresh();
+        });
+        if (docListSub && typeof docListSub.unsubscribe === "function") {
+          unsubscribers.push(() => docListSub.unsubscribe());
+        }
+      }
+      catch {
+        // ignore
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+      if (refreshTimer != null) {
+        window.clearTimeout(refreshTimer);
+      }
+      for (const unsubscribe of unsubscribers) {
+        try {
+          unsubscribe();
+        }
+        catch {
+          // ignore
+        }
+      }
+    };
   }, [activeSpaceId, canViewDocs, docMetasFromSidebarTree, loadSpaceDocMetas, mergeDocMetas]);
+
+  useEffect(() => {
+    if (!activeSpaceId || activeSpaceId <= 0) {
+      return;
+    }
+    if (!canViewDocs) {
+      return;
+    }
+    if (!Array.isArray(spaceDocMetas)) {
+      return;
+    }
+    writeSpaceDocMetaCache(activeSpaceId, spaceDocMetas);
+  }, [activeSpaceId, canViewDocs, spaceDocMetas]);
 
   return {
     spaceDocMetas,
