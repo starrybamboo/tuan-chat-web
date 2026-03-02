@@ -11,8 +11,6 @@ interface ChatToolbarDockProps {
   onSendEffect?: (effectName: string) => void;
   onClearBackground?: () => void;
   onClearFigure?: () => void;
-  onSetWebgalVar?: (key: string, expr: string) => Promise<void> | void;
-  onOpenWebgalVarModal?: () => void;
   onOpenWebgalChooseModal?: () => void;
   isSpectator?: boolean;
   onToggleRealtimeRender?: () => void;
@@ -24,10 +22,7 @@ export default function ChatToolbarDock({
   isRunModeOnly,
   showWebgalControls,
   onSendEffect,
-  onSetWebgalVar,
-  onOpenWebgalVarModal,
   onOpenWebgalChooseModal,
-  isSpectator,
   onToggleRealtimeRender,
   showRunControls,
 }: ChatToolbarDockProps) {
@@ -68,14 +63,6 @@ export default function ChatToolbarDock({
                 <li><a onClick={() => onSendEffect("snow")}>❄️ 下雪</a></li>
                 <li><a onClick={() => onSendEffect("sakura")}>🌸 樱花</a></li>
                 <li><a onClick={() => onSendEffect("none")}>🛑 停止特效</a></li>
-              </>
-            )}
-            {onSetWebgalVar && !isSpectator && (
-              <>
-                <li className="divider my-1" role="separator"></li>
-                <li>
-                  <a onClick={onOpenWebgalVarModal}>设置变量…</a>
-                </li>
               </>
             )}
           </ul>

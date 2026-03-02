@@ -231,18 +231,6 @@
 - 预期输出：消息以`特效`徽标展示效果名。
 - 截图位：`【截图位-33：特效消息】`
 
-### TC-34 WebGAL变量消息显示
-- 前置条件：开启WebGAL联动；可发送变量。
-- 输入与操作：发送`/var set FLAG_A=1`。
-- 预期输出：出现`变量`徽标消息，正文摘要为`FLAG_A = 1`。
-- 截图位：`【截图位-34：变量消息】`
-
-### TC-35 WebGAL变量指令格式校验
-- 前置条件：输入框可用。
-- 输入与操作：发送`/var set 1A=1`或`/var a=1`。
-- 预期输出：前端提示格式错误（如`WebGAL 变量指令格式错误`或`变量名格式不正确`）。
-- 截图位：`【截图位-35：变量格式校验toast】`
-
 ### TC-36 WebGAL选择消息
 - 前置条件：开启WebGAL联动。
 - 输入与操作：发送选择项（choose）。
@@ -313,12 +301,6 @@
 - 输入与操作：依次点击`下雨/下雪/樱花/停止特效/清除背景/清除立绘`。
 - 预期输出：对应消息发送成功，渲染窗口表现与操作一致。
 - 截图位：`【截图位-46：导演控制台操作结果】`
-
-### TC-47 设置变量弹窗
-- 前置条件：联动模式开启，非观战。
-- 输入与操作：打开`设置变量…`，输入`FLAG_TEST`和`1`并发送。
-- 预期输出：变量消息发送成功；非法变量名时给出格式错误。
-- 截图位：`【截图位-47：设置变量弹窗与发送】`
 
 ### TC-48 选择（choose）弹窗
 - 前置条件：联动模式开启。
@@ -434,7 +416,6 @@
 - 前端房间主结构：`tuan-chat-web/app/components/chat/room/roomWindowLayout.tsx`
 - 顶部栏按钮：`tuan-chat-web/app/components/chat/room/roomHeaderBar.tsx`
 - 发送区与权限校验：`tuan-chat-web/app/components/chat/room/useChatMessageSubmit.ts`
-- WebGAL变量解析：`tuan-chat-web/app/types/webgalVar.ts`
 - 跑团/WebGAL工具栏：`tuan-chat-web/app/components/chat/input/chatToolbar.tsx`
 - 导演/跑团Dock：`tuan-chat-web/app/components/chat/input/chatToolbarDock.tsx`
 - 右键菜单：`tuan-chat-web/app/components/chat/room/contextMenu/chatFrameContextMenu.tsx`
@@ -446,5 +427,4 @@
 - 后端房间创建默认命名：`TuanChat/src/main/java/com/jxc/tuanchat/room/service/RoomService.java`
 - 后端消息类型：`TuanChat/src/main/java/com/jxc/tuanchat/chat/enums/MessageTypeEnum.java`
 - 后端消息内容长度限制：`TuanChat/src/main/java/com/jxc/tuanchat/chat/domain/request/message/ChatMessageRequest.java`
-- 后端WebGAL变量约束：`TuanChat/src/main/java/com/jxc/tuanchat/chat/domain/entity/message/WebgalVarPayload.java`
 - 默认描述迁移SQL：`TuanChat/src/main/resources/sql/room_default_description_to_scene_default_description.sql`

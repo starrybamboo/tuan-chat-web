@@ -33,7 +33,6 @@ import {
 } from "@/types/voiceRenderTypes";
 import { buildWebgalChooseScriptLines, extractWebgalChoosePayload } from "@/types/webgalChoose";
 import { extractWebgalDicePayload, isLikelyAnkoDiceContent, isLikelyTrpgDiceContent, stripDiceHighlightTokens } from "@/types/webgalDice";
-import { buildWebgalSetVarLine, extractWebgalVarPayload } from "@/types/webgalVar";
 import { checkGameExist, getTerreApis } from "@/webGAL/index";
 import { getTerreBaseUrl, getTerreWsUrl } from "@/webGAL/terreConfig";
 
@@ -2964,20 +2963,6 @@ export class RealtimeRenderer {
       if (wroteEffectCommand && syncToFile) {
         this.sendSyncMessage(targetRoomId);
       }
-      finalizeMessageLineRange();
-      return;
-    }
-
-    // WebGAL 变量变更消息：转换为 setVar 并写入场景脚本（强制 -global 语义）
-    if ((msg.messageType as number) === 11) {
-      const payload = extractWebgalVarPayload(msg.extra);
-      if (!payload) {
-        finalizeMessageLineRange();
-        return;
-      }
-      await this.appendLine(targetRoomId, buildWebgalSetVarLine(payload), syncToFile);
-      if (syncToFile)
-        this.sendSyncMessage(targetRoomId);
       finalizeMessageLineRange();
       return;
     }

@@ -1,8 +1,9 @@
 import { useGetSpaceInfoQuery, useGetSpaceMembersQuery, useGetUserActiveSpacesQuery, useGetUserRoomsQuery } from "api/hooks/chatQueryHooks";
-import { useCallback, useEffect, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Outlet, useSearchParams } from "react-router";
 import { ChatPageOverlays, ChatPagePanels } from "@/components/chat/chatPageContainers";
 import { ChatPageLayoutProvider } from "@/components/chat/chatPageLayoutProvider";
+import { ChatPageDocContent } from "@/components/chat/chatPageMainContent";
 import ChatPageSubWindow from "@/components/chat/chatPageSubWindow";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
 import useChatPageActiveSpaceInfo from "@/components/chat/hooks/useChatPageActiveSpaceInfo";
@@ -39,6 +40,7 @@ import useSearchParamsState from "@/components/common/customHooks/useSearchParam
 import { useGlobalContext } from "@/components/globalContextProvider";
 
 const EMPTY_ARRAY: never[] = [];
+type CachedDocRoute = { spaceId: number; docId: string };
 
 /**
  * Chat 页面
@@ -161,6 +163,91 @@ export default function ChatPage() {
     isSidebarTreeReady,
     saveSidebarTree: handleSaveSidebarTree,
   } = useChatPageSidebarTree({ activeSpaceId });
+  const sidebarTreeRef = useRef(sidebarTree);
+  const pendingDocFallbackByIdRef = useRef(new Map<string, { title: string; imageUrl: string }>());
+  const docFallbackPersistTimerRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    sidebarTreeRef.current = sidebarTree;
+  }, [sidebarTree]);
+
+  const flushPendingDocFallbackToSidebarTree = useCallback(() => {
+    const pendingEntries = [...pendingDocFallbackByIdRef.current.entries()];
+    if (pendingEntries.length === 0) {
+      return;
+    }
+
+    const tree = sidebarTreeRef.current;
+    if (!tree) {
+      return;
+    }
+
+    const nextTree = JSON.parse(JSON.stringify(tree));
+    let changed = false;
+    for (const [docId, header] of pendingEntries) {
+      const title = String(header.title ?? "").trim();
+      const imageUrl = String(header.imageUrl ?? "").trim();
+      for (const category of nextTree.categories ?? []) {
+        for (const item of category.items ?? []) {
+          if (item?.type !== "doc") {
+            continue;
+          }
+          if (String(item.targetId ?? "") !== docId) {
+            continue;
+          }
+          if (title && String(item.fallbackTitle ?? "") !== title) {
+            item.fallbackTitle = title;
+            changed = true;
+          }
+          if (imageUrl) {
+            if (String(item.fallbackImageUrl ?? "") !== imageUrl) {
+              item.fallbackImageUrl = imageUrl;
+              changed = true;
+            }
+          }
+          else if (item.fallbackImageUrl) {
+            delete item.fallbackImageUrl;
+            changed = true;
+          }
+        }
+      }
+    }
+
+    if (changed) {
+      handleSaveSidebarTree(nextTree);
+    }
+    pendingDocFallbackByIdRef.current.clear();
+  }, [handleSaveSidebarTree]);
+
+  const handleDocHeaderChangeForSidebarFallback = useCallback((payload: { docId: string; title: string; imageUrl: string }) => {
+    if (!activeSpaceId || activeSpaceId <= 0) {
+      return;
+    }
+    const docId = String(payload.docId ?? "").trim();
+    if (!docId) {
+      return;
+    }
+    pendingDocFallbackByIdRef.current.set(docId, {
+      title: String(payload.title ?? "").trim(),
+      imageUrl: String(payload.imageUrl ?? "").trim(),
+    });
+    if (docFallbackPersistTimerRef.current != null) {
+      window.clearTimeout(docFallbackPersistTimerRef.current);
+    }
+    docFallbackPersistTimerRef.current = window.setTimeout(() => {
+      docFallbackPersistTimerRef.current = null;
+      flushPendingDocFallbackToSidebarTree();
+    }, 1000);
+  }, [activeSpaceId, flushPendingDocFallbackToSidebarTree]);
+
+  useEffect(() => {
+    return () => {
+      if (docFallbackPersistTimerRef.current != null) {
+        window.clearTimeout(docFallbackPersistTimerRef.current);
+      }
+      docFallbackPersistTimerRef.current = null;
+    };
+  }, []);
 
   const sidebarTreeFirstRoomId = useMemo(() => {
     if (!sidebarTree) {
@@ -291,6 +378,8 @@ export default function ChatPage() {
     activeSpaceId,
     canViewDocs: canViewSubWindowDoc,
     docMetasFromSidebarTree,
+    isSidebarTreeReady,
+    onDocHeaderChange: handleDocHeaderChangeForSidebarFallback,
   });
   const spaceDocMetasList = spaceDocMetas ?? EMPTY_ARRAY;
 
@@ -300,6 +389,26 @@ export default function ChatPage() {
     docMetasFromSidebarTree,
     spaceDocMetas,
   });
+  const [cachedDocRoute, setCachedDocRoute] = useState<CachedDocRoute | null>(null);
+
+  useEffect(() => {
+    if (!isDocRoute || !activeSpaceId || activeSpaceId <= 0 || !activeDocId) {
+      return;
+    }
+    setCachedDocRoute((prev) => {
+      if (prev?.spaceId === activeSpaceId && prev.docId === activeDocId) {
+        return prev;
+      }
+      return { spaceId: activeSpaceId, docId: activeDocId };
+    });
+  }, [activeDocId, activeSpaceId, isDocRoute]);
+
+  const docRouteForRender = useMemo<CachedDocRoute | null>(() => {
+    if (isDocRoute && activeSpaceId && activeSpaceId > 0 && activeDocId) {
+      return { spaceId: activeSpaceId, docId: activeDocId };
+    }
+    return cachedDocRoute;
+  }, [activeDocId, activeSpaceId, cachedDocRoute, isDocRoute]);
 
   const {
     buildTreeBaseForWrite,
@@ -548,13 +657,32 @@ export default function ChatPage() {
     isArchived: isSpaceContextArchived,
     onClose: closeSpaceContextMenu,
   };
+  const mainContent = (
+    <div className="relative w-full h-full min-h-0 min-w-0">
+      {!isDocRoute && <Outlet />}
+      {docRouteForRender && (
+        // 文档容器常驻：聊天室路由仅隐藏，不卸载 iframe，避免 blocksuite 脚本反复加载。
+        <div className={isDocRoute ? "w-full h-full" : "hidden"} aria-hidden={!isDocRoute}>
+          <ChatPageDocContent
+            spaceId={docRouteForRender.spaceId}
+            docId={docRouteForRender.docId}
+            canViewDocs={canViewSubWindowDoc}
+            tcHeaderTitle={activeDocTitleForTcHeader}
+          />
+        </div>
+      )}
+      {isDocRoute && !docRouteForRender && (
+        <ChatPageDocContent canViewDocs={canViewSubWindowDoc} />
+      )}
+    </div>
+  );
 
   return (
     <SpaceContext value={spaceContext}>
       <ChatPageLayoutProvider value={layoutContextValue}>
         <ChatPagePanels
           layoutProps={layoutProps}
-          mainContent={<Outlet />}
+          mainContent={mainContent}
           subWindowContent={(
             <ChatPageSubWindow
               screenSize={screenSize}
