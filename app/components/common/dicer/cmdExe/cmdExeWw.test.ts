@@ -18,6 +18,8 @@ describe("cmdExeWw", () => {
         diceCount: 1,
         explodeAt: 10,
         bonusSuccess: 0,
+        successAt: 8,
+        sides: 10,
       });
     });
 
@@ -26,6 +28,18 @@ describe("cmdExeWw", () => {
         diceCount: 3,
         explodeAt: 9,
         bonusSuccess: 2,
+        successAt: 8,
+        sides: 10,
+      });
+    });
+
+    it("支持新格式参数 10a5k7m9", () => {
+      expect(parseWwCommandArgs(["10a5k7m9"])).toEqual({
+        diceCount: 10,
+        explodeAt: 5,
+        bonusSuccess: 0,
+        successAt: 7,
+        sides: 9,
       });
     });
 
@@ -34,6 +48,8 @@ describe("cmdExeWw", () => {
         diceCount: 1,
         explodeAt: 10,
         bonusSuccess: 1,
+        successAt: 8,
+        sides: 10,
       });
     });
 
@@ -42,6 +58,8 @@ describe("cmdExeWw", () => {
         diceCount: 4,
         explodeAt: 10,
         bonusSuccess: 0,
+        successAt: 8,
+        sides: 10,
       });
     });
 
@@ -50,51 +68,75 @@ describe("cmdExeWw", () => {
         diceCount: 2,
         explodeAt: 8,
         bonusSuccess: 3,
+        successAt: 8,
+        sides: 10,
       });
-    });
-
-    it("加骰参数越界时报错", () => {
-      expect(() => parseWwCommandArgs(["2a4"])).toThrow("加骰参数必须在 5-10 之间");
-      expect(() => parseWwCommandArgs(["2a11"])).toThrow("加骰参数必须在 5-10 之间");
-    });
-
-    it("非法格式时报错", () => {
-      expect(() => parseWwCommandArgs(["2a8a1"])).toThrow("只允许一个 a 分隔符");
-      expect(() => parseWwCommandArgs(["1x2"])).toThrow("参数格式错误");
     });
   });
 
-  describe("rollWw", () => {
+  describe("rollWw (mocked)", () => {
     it("按阈值连锁加骰并统计成功数", () => {
-      const options = { diceCount: 2, explodeAt: 10, bonusSuccess: 2 };
-      const rng = createSequenceRng([0.95, 0.75, 0.99, 0.01]); // 10,8,10,1
+      // 这里的 RNG 0.95 -> 10 (rollD10: floor(0.95*10)+1 = 10)
+      // 0.75 -> 8
+      // 0.99 -> 10
+      // 0.01 -> 1
+      // options: 2a10
+      // Round 1 (2 dice):
+      //   Dice 1: 0.95 -> 10 (Explode)
+      //   Dice 2: 0.75 -> 8
+      // Round 2 (1 dice from Dice 1):
+      //   Dice 3: 0.99 -> 10 (Explode)
+      // Round 3 (1 dice from Dice 3):
+      //   Dice 4: 0.01 -> 1
+      // Total: 10, 8, 10, 1.
+      // Successes (>=8): 10, 8, 10 -> 3 successes.
+      
+      const options = { diceCount: 2, explodeAt: 10, bonusSuccess: 2, successAt: 8, sides: 10 };
+      const rng = createSequenceRng([0.95, 0.75, 0.99, 0.01]); 
 
       const result = rollWw(options, rng);
 
       expect(result.rolls).toEqual([10, 8, 10, 1]);
+      expect(result.rounds).toEqual([[10, 8], [10], [1]]);
       expect(result.baseSuccesses).toBe(3);
       expect(result.totalSuccesses).toBe(5);
     });
 
-    it("达到上限时抛错避免无限加骰", () => {
-      const options = { diceCount: 1, explodeAt: 5, bonusSuccess: 0 };
-      const rng = () => 0.99; // 永远掷出10，持续触发加骰
+     it("达到上限时停止避免无限加骰", () => {
+      const options = { diceCount: 1, explodeAt: 5, bonusSuccess: 0, successAt: 8, sides: 10 };
+      const rng = () => 0.99; // 永远掷出10
 
-      expect(() => rollWw(options, rng, 20)).toThrow("加骰次数过多");
+      // rollWw 不再抛错，而是截断
+      const result = rollWw(options, rng, 20);
+      expect(result.rolls.length).toBeGreaterThanOrEqual(20);
     });
   });
 
   describe("formatWwResultMessage", () => {
     it("输出包含核心统计信息", () => {
-      const msg = formatWwResultMessage(
-        { diceCount: 2, explodeAt: 9, bonusSuccess: 1 },
-        { rolls: [9, 10, 4, 8], baseSuccesses: 3, totalSuccesses: 4 },
-      );
+      const options = { diceCount: 2, explodeAt: 9, bonusSuccess: 1, successAt: 8, sides: 10 };
+      const result = { 
+        rolls: [9, 10, 4, 8], 
+        rounds: [[9, 10], [4, 8]],
+        baseSuccesses: 3, 
+        totalSuccesses: 4,
+        totalRollsCount: 4
+      };
 
-      expect(msg).toContain("WW检定：2a9+1");
-      expect(msg).toContain("骰面结果：[9, 10, 4, 8]");
-      expect(msg).toContain("基础成功数（>=8）：3");
-      expect(msg).toContain("最终成功数：4");
+      const msg = formatWwResultMessage(options, result, "TestRole");
+
+      // <TestRole>掷出了 2a9+1=4
+      // [2a9k8m10+1=成功4/4 轮数:2
+      // 第 1 轮: {<9*>,<10*>}
+      // 第 2 轮: {4,<8*>}
+      // ]=4
+      
+      // 检查关键部分是否存在
+      expect(msg).toContain("TestRole");
+      expect(msg).toContain("2a9+1=4"); // 简化头部
+      expect(msg).toContain("2a9k8m10+1=成功4/4"); // 详情头部
+      expect(msg).toContain("第 1 轮: {<9*>,<10*>}");
+      expect(msg).toContain("第 2 轮: {4,<8*>}");
     });
   });
 });
