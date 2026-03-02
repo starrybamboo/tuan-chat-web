@@ -20,6 +20,11 @@ on:
         default: ""
         type: string
 
+concurrency:
+  # 同分支部署串行，避免并发任务互相覆盖部署目录
+  group: tuan-chat-web-cd-${{ github.ref_name }}
+  cancel-in-progress: true
+
 jobs:
   build-and-deploy:
     name: tuan-chat-web构建与部署
@@ -54,26 +59,7 @@ jobs:
           VITE_ENABLE_REACT_SCAN: ${{ env.BUILD_MODE == 'test' && 'true' || 'false' }}
         run: pnpm build --mode $BUILD_MODE
 
-      - name: 清理旧部署产物
-        uses: appleboy/ssh-action@v1
-        with:
-          host: 38.14.195.6
-          username: ${{ secrets.SERVER_USERNAME || secrets.SSH_USERNAME }}
-          password: ${{ secrets.SERVER_PASSWORD || secrets.SSH_PASSWORD }}
-          script: |
-            set -euo pipefail
-            TARGET="${{ env.DEPLOY_TARGET }}"
-            mkdir -p "$TARGET"
-
-            # 清理旧版静态产物，避免哈希文件残留；保留站点常见系统目录/文件。
-            # `updates` 用于 Electron 自动更新元数据与安装包，不能被前端部署清理。
-            find "$TARGET" -mindepth 1 -maxdepth 1 \
-              ! -name '.well-known' \
-              ! -name '.user.ini' \
-              ! -name 'updates' \
-              -exec rm -rf {} +
-
-      - name: 部署到服务器
+      - name: 上传构建产物到服务器临时目录
         uses: appleboy/scp-action@v1
         with:
           # 优先使用新版 SERVER_* secrets；保留 SSH_* 兼容旧配置
@@ -81,11 +67,11 @@ jobs:
           username: ${{ secrets.SERVER_USERNAME || secrets.SSH_USERNAME }}
           password: ${{ secrets.SERVER_PASSWORD || secrets.SSH_PASSWORD }}
           source: build/client/**
-          target: ${{ env.DEPLOY_TARGET }}
+          target: /tmp/tuan-chat-web-release-${{ github.run_id }}-${{ github.run_attempt }}
           overwrite: true
           strip_components: 2
 
-      - name: 校验部署产物
+      - name: 发布到站点目录并校验
         uses: appleboy/ssh-action@v1
         with:
           host: 38.14.195.6
@@ -94,6 +80,20 @@ jobs:
           script: |
             set -euo pipefail
             TARGET="${{ env.DEPLOY_TARGET }}"
+            STAGING="/tmp/tuan-chat-web-release-${{ github.run_id }}-${{ github.run_attempt }}"
+
+            # 先校验临时目录，避免坏包覆盖线上目录。
+            test -f "$STAGING/index.html"
+            test -d "$STAGING/assets"
+
+            mkdir -p "$TARGET"
+
+            # 以新包为准进行同步，保留系统目录与 Electron 更新目录。
+            rsync -a --delete-delay \
+              --exclude '.well-known' \
+              --exclude '.user.ini' \
+              --exclude 'updates' \
+              "$STAGING"/ "$TARGET"/
 
             test -f "$TARGET/index.html"
             test -d "$TARGET/assets"
@@ -104,6 +104,7 @@ jobs:
               exit 1
             fi
 
+            rm -rf "$STAGING"
             echo "✅ 部署校验通过：index.html 存在，assets 文件数=${ASSET_FILE_COUNT}"
 #        uses: burnett01/rsync-deployments@7.0.2 # 使用专门的 rsync action
 #        with:
