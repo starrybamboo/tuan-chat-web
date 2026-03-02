@@ -49,6 +49,7 @@ export function parseWwCommandArgs(args: string[], getValue?: (key: string) => n
       bonusSuccess: 0,
       successAt: DEFAULT_SUCCESS_AT,
       sides: DEFAULT_SIDES,
+      exprStr: String(DEFAULT_DICE_COUNT),
     };
   }
 
@@ -185,11 +186,13 @@ export function parseWwCommandArgs(args: string[], getValue?: (key: string) => n
   };
 }
 
-function rollDx(sides: number): number {
-  return Math.floor(Math.random() * sides) + 1;
+function rollDx(sides: number, rng?: () => number): number {
+  const r = rng ? rng() : Math.random();
+  // 如果 rng 返回 0-1 之间的小数 (Math.random 风格)
+  return Math.floor(r * sides) + 1;
 }
 
-export function rollWw(options: WwCommandOptions): WwRollResult {
+export function rollWw(options: WwCommandOptions, rng?: () => number): WwRollResult {
   const {
     diceCount,
     explodeAt,
@@ -217,7 +220,7 @@ export function rollWw(options: WwCommandOptions): WwRollResult {
     for (let i = 0; i < currentPool; i++) {
         if (totalRollsCount >= MAX_TOTAL_ROLLS) break;
         
-        const val = rollDx(sides);
+        const val = rollDx(sides, rng);
         totalRollsCount++;
         roundRolls.push(val);
         allRolls.push(val);

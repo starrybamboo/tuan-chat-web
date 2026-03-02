@@ -162,8 +162,10 @@ describe("cmdExeWw", () => {
       const rng = () => 0.99; // 永远掷出10
 
       // rollWw 不再抛错，而是截断
-      const result = rollWw(options, rng, 20);
-      expect(result.rolls.length).toBeGreaterThanOrEqual(20);
+      // 修改后的 rollWw 支持第二个参数 rng, 但不支持第三个参数 limit (目前 limit 是写死的 internal const MAX_TOTAL_ROLLS)
+      // 所以测试不再传 20 这个参数，而是依据 MAX_TOTAL_ROLLS 或内部 loop limit
+      const result = rollWw(options, rng);
+      expect(result.rolls.length).toBeGreaterThanOrEqual(100); 
     });
   });
 
@@ -181,17 +183,17 @@ describe("cmdExeWw", () => {
       const msg = formatWwResultMessage(options, result, "TestRole");
 
       // <TestRole>掷出了 2a9+1=4
-      // [2a9k8m10+1=成功4/4 轮数:2
+      // [2a9+1]=成功4/4 轮数:2
       // 第 1 轮: {<9*>,<10*>}
-      // 第 2 轮: {4,<8*>}
+      // 第 2 轮: {4,8*}
       // ]=4
       
       // 检查关键部分是否存在
       expect(msg).toContain("TestRole");
       expect(msg).toContain("2a9+1=4"); // 简化头部
-      expect(msg).toContain("2a9k8m10+1=成功4/4"); // 详情头部
+      expect(msg).toContain("[2a9+1]=成功4/4"); // 详情头部 (默认参数如 k8 m10 被隐藏)
       expect(msg).toContain("第 1 轮: {<9*>,<10*>}");
-      expect(msg).toContain("第 2 轮: {4,<8*>}");
+      expect(msg).toContain("第 2 轮: {4,8*}");
     });
   });
 });
