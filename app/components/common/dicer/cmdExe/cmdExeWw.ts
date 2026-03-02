@@ -1,4 +1,5 @@
 import { CommandExecutor } from "@/components/common/dicer/cmd";
+import { roll } from "@/components/common/dicer/dice";
 import UTILS from "@/components/common/dicer/utils/utils";
 
 export type WwCommandOptions = {
@@ -7,8 +8,9 @@ export type WwCommandOptions = {
   bonusSuccess: number;
   successAt: number;
   sides: number;
+  exprStr?: string; // 记录原始骰子表达式（如果有）
 };
-
+// ... (WwRollResult and constants remain same)
 export type WwRollResult = {
   rolls: number[]; // 扁平化的所有投掷结果
   rounds: number[][]; // 按轮次分组的投掷结果
@@ -26,14 +28,11 @@ const MAX_TOTAL_ROLLS = 1000; // 降低一点防止卡死
 
 /**
  * 解析 .ww 指令参数：
- * .ww X[aY][mZ][kN] [+-bonus]
- * X: 骰子数 (默认1)
- * a: 加骰线 (默认10)
- * m: 面数 (默认10)
- * k: 成功线 (默认8)
+ * .ww [Expression][aY][mZ][kN] [+-bonus]
+ * .ww 力量+近战a8
  */
-export function parseWwCommandArgs(args: string[]): WwCommandOptions {
-  // 1. 预处理：合并参数，转小写，特定字符替换
+export function parseWwCommandArgs(args: string[], getValue?: (key: string) => number): WwCommandOptions {
+  // 1. 预处理
   let normalized = args
     .join("")
     .trim()
@@ -43,7 +42,6 @@ export function parseWwCommandArgs(args: string[]): WwCommandOptions {
     .replaceAll("－", "-")
     .replaceAll("ａ", "a");
 
-  // 若为空，返回默认
   if (!normalized) {
     return {
       diceCount: DEFAULT_DICE_COUNT,
@@ -55,60 +53,127 @@ export function parseWwCommandArgs(args: string[]): WwCommandOptions {
   }
 
   // 2. 提取末尾的 bonus (+1, -2 等)
+  // 如果末尾有 +N 或 -N，且前面是 a/m/k 参数结束，或者纯数字结束(这种可能有歧义，暂且当做bonus)
+  // 为了支持 "力量+近战"，加号可能是表达式的一部分。
+  // 策略：先尝试匹配 a/m/k 参数，将字符串分为 [Expression][Params][Bonus]
+  // 但 Params 和 Bonus 可能混杂，标准格式通常是 Params 在 Bonus 前面，或者 Bonus 在最后。
+  // 现有的逻辑是优先匹配末尾的 (+/-)\d+ 作为 Bonus。
+  // 对于 "力量+近战"，如果不带参数，比如 "力量+近战"，末尾的 "+近战" 不会被当作 bonus (因为近战不是数字)。
+  // 如果是 "力量+1"，末尾 "+1" 会被当做 bonus。这可能违背直觉（用户可能想投 力量+1 个骰子）。
+  // 修正逻辑：只有当 +N 后没有其他内容（已经是末尾），且移除它后剩余部分看起来是完整的表达式或参数时才算 Bonus。
+  // 或者，明确一下，只有在 a/m/k 参数之后的 +/-N 才算 Bonus？或者纯数字模式下的 +/-N？
+  // 按照惯例 ww 5+1 意味着 5个骰子，1个自动成功。
+  // ww 力量+1 应该意味着 (力量)个骰子，1个自动成功？ 还是 (力量+1)个骰子？
+  // 根据 WOD 规则，通常属性+技能是骰池。所以 "力量+近战" 是骰池。
+  // 如果要表示自动成功，通常写在最后。
+  // 我们保留原逻辑：末尾的 [+-]数字 视为自动成功。
+  // 如果用户想表达骰池+1，应该写 "力量+1d0" ??? 不，这样太麻烦。
+  // 让我们假设：如果能解析出 a/m/k 参数，那么参数后的 +/- 是 bonus。
+  // 如果没有 a/m/k 参数，只有 +/- 数字，这确实有歧义。
+  // 鉴于旧逻辑 supported .ww 5+1 -> 5 dice, 1 bonus.
+  // 我们保持这个行为。如果用户想投 (力量+1) 个骰，可能需要写 .ww (力量+1)。
+  
   let bonusSuccess = 0;
-  // 匹配末尾的 +数字 或 -数字
-  // 注意：如果是类似 3a9+2 这种格式
   const bonusMatch = normalized.match(/([+-]\d+)$/);
   if (bonusMatch) {
+    // 只有当这个 +N 不是表达式的一部分时才提取。
+    // 简单的启发式：如果前面也是运算符（比如 ++1），那肯定不对。
+    // 但这里 normalized 已经去掉了空格。
+    // 让我们先提取，剩下的部分交给 dice parser。
     bonusSuccess = Number.parseInt(bonusMatch[1], 10);
-    // 移除 bonus 部分，剩下的是 XaYmZkN
     normalized = normalized.slice(0, bonusMatch.index);
   }
 
-  // 3. 解析 X (骰子数)
-  // 尝试匹配开头的数字
-  let diceCount = DEFAULT_DICE_COUNT;
-  const startNumMatch = normalized.match(/^(\d+)/);
-  if (startNumMatch) {
-    diceCount = Number.parseInt(startNumMatch[1], 10);
-    // 移除开头的数字
-    normalized = normalized.slice(startNumMatch[0].length);
-  }
-
-  // 4. 解析剩余的参数 a, m, k
+  // 3. 解析参数 a, m, k
   let explodeAt = DEFAULT_EXPLODE_AT;
   let sides = DEFAULT_SIDES;
   let successAt = DEFAULT_SUCCESS_AT;
 
-  // 使用正则循环匹配剩余部分
-  // 匹配单个字母加数字，例如 a9, m10, k7
-  const paramRegex = /([amk])(\d+)/g;
-  let match;
-  while ((match = paramRegex.exec(normalized)) !== null) {
-    const type = match[1];
-    const value = Number.parseInt(match[2], 10);
+  // 从后往前找参数 a/m/k
+  // 我们需要把字符串切分成 [Expression] [Params]
+  // Params 是由 aN, mN, kN 组成的后缀。
+  // 我们可以用正则找结尾的这些模式。
+  
+  // 循环匹配结尾的 aN, mN, kN
+  // 例如 "3a10m8" -> match m8, strip -> "3a10" -> match a10, strip -> "3"
+  while (true) {
+    // 匹配结尾的 a\d+ 或 m\d+ 或 k\d+
+    const paramsMatch = normalized.match(/([amk])(\d+)$/);
+    if (!paramsMatch) break;
+    
+    const type = paramsMatch[1];
+    const value = Number.parseInt(paramsMatch[2], 10);
+    
+    if (type === "a") explodeAt = value;
+    else if (type === "m") sides = value;
+    else if (type === "k") successAt = value;
+    
+    // 移除已解析的后缀
+    normalized = normalized.slice(0, paramsMatch.index);
+  }
 
-    switch (type) {
-      case "a":
-        explodeAt = value;
-        break;
-      case "m":
-        sides = value;
-        break;
-      case "k":
-        successAt = value;
-        break;
+  // 4. 解析剩余部分为骰子个数 (X)
+  // 此时 normalized 剩下的就是 X，可能是 "5" 也可能是 "力量+近战"
+  let diceCount = DEFAULT_DICE_COUNT;
+  let exprStr = "";
+
+  if (normalized.length > 0) {
+    // 尝试解析表达式
+    // 如果是纯数字
+    if (/^\d+$/.test(normalized)) {
+        diceCount = Number.parseInt(normalized, 10);
+        exprStr = normalized;
+    } else {
+        // 是表达式，需要 getValue
+        if (getValue) {
+            // 使用 dice 模块的 roll 函数或者简单的 eval (不安全)
+            // 这里我们用 dice 模块的 roll ? 但 dice.roll 是掷骰子。
+            // 我们只需要计算 "力量+近战" 的值。
+            // 简单的替换 + eval (注意安全性，仅允许数字、运算符、属性名)
+            // 先将所有非运算符非数字的内容视为属性名进行替换
+            exprStr = normalized;
+            
+            // 替换属性名为数值
+            // 匹配中文、英文变量名
+            const resolvedExpr = normalized.replace(/([\u4e00-\u9fa5a-zA-Z_]+)/g, (match) => {
+                const val = getValue(match);
+                return String(val);
+            });
+            
+            try {
+                // 使用 Function 构造函数进行简单计算 (相对安全，因为只包含数字和运算符)
+                // 但要防范恶意代码。上面正则只允许了特定的字符？
+                // normalized 这里可能包含 ( ) . 等。
+                // 暂时只支持 + - * / ( )
+                // 简单的 sanitize
+                if (/^[\d+\-*/().\s]+$/.test(resolvedExpr)) {
+                    // eslint-disable-next-line no-new-func
+                    diceCount = new Function(`return ${resolvedExpr}`)();
+                    diceCount = Math.floor(diceCount); // 取整
+                } else {
+                    // 解析失败或含有非法字符，默认 1
+                    // console.warn("Illegal definition in expression", resolvedExpr);
+                    diceCount = 1; 
+                }
+            } catch (e) {
+                diceCount = 1;
+            }
+        } else {
+             // 没有 getValue 不支持表达式
+             // 尝试提取开头的数字
+            const startNumMatch = normalized.match(/^(\d+)/);
+            if (startNumMatch) {
+                diceCount = Number.parseInt(startNumMatch[1], 10);
+                exprStr = startNumMatch[1];
+            }
+        }
     }
   }
 
-  // 校验
+  // 校验范围
   if (diceCount <= 0) diceCount = 1;
   if (sides < 2) sides = DEFAULT_SIDES;
-  
-  // 加骰线不能 <= 1，否则会无限加骰
-  if (explodeAt <= 1) explodeAt = 2;
-  // 加骰线如果 > 面数，则无法加骰，这是允许的，但逻辑上可能用户填错，不过这里只做基本范围限制
-  // 如果用户设置 .ww m10a11，那么永远不会加骰
+  if (explodeAt <= 1) explodeAt = 2; // 避免死循环
 
   return {
     diceCount,
@@ -116,94 +181,91 @@ export function parseWwCommandArgs(args: string[]): WwCommandOptions {
     bonusSuccess,
     successAt,
     sides,
+    exprStr: exprStr || String(diceCount),
   };
 }
 
-function rollDx(sides: number, rng: () => number): number {
-  const raw = rng();
-  if (!Number.isFinite(raw)) {
-    throw new TypeError("随机数生成异常");
-  }
-  // [0, 1) -> [0, sides) -> [1, sides]
-  return Math.floor(raw * sides) + 1;
+function rollDx(sides: number): number {
+  return Math.floor(Math.random() * sides) + 1;
 }
 
-/**
- * 按 WW 规则掷骰
- */
-export function rollWw(
-  options: WwCommandOptions,
-  rng: () => number = Math.random,
-  maxTotalRolls: number = MAX_TOTAL_ROLLS,
-): WwRollResult {
-  const rounds: number[][] = [];
-  const allRolls: number[] = [];
-  
-  let currentRoundDiceCount = options.diceCount;
+export function rollWw(options: WwCommandOptions): WwRollResult {
+  const {
+    diceCount,
+    explodeAt,
+    bonusSuccess,
+    successAt,
+    sides,
+  } = options;
+
+  let currentPool = diceCount;
   let totalRollsCount = 0;
+  
+  const allRolls: number[] = [];
+  const rounds: number[][] = [];
+  
+  let loopCount = 0;
+  
+  // 每一轮投掷
+  while (currentPool > 0 && totalRollsCount < MAX_TOTAL_ROLLS) {
+    loopCount++;
+    if(loopCount > 100) break; // 防止死循环
 
-  // 循环投掷，直到没有骰子需要重投或达到最大限制
-  while (currentRoundDiceCount > 0) {
-    if (totalRollsCount >= maxTotalRolls) {
-      // 达到上限，强制停止
-      break;
-    }
+    const roundRolls: number[] = [];
+    let nextPool = 0;
 
-    const currentRoundRolls: number[] = [];
-    let nextRoundDiceCount = 0;
-
-    // 投掷本轮的所有骰子
-    for (let i = 0; i < currentRoundDiceCount; i++) {
-        if (totalRollsCount >= maxTotalRolls) break;
-
-        const point = rollDx(options.sides, rng);
+    for (let i = 0; i < currentPool; i++) {
+        if (totalRollsCount >= MAX_TOTAL_ROLLS) break;
+        
+        const val = rollDx(sides);
         totalRollsCount++;
-        currentRoundRolls.push(point);
-        allRolls.push(point);
+        roundRolls.push(val);
+        allRolls.push(val);
 
-        // 检查是否加骰
-        if (point >= options.explodeAt) {
-            nextRoundDiceCount++;
+        if (val >= explodeAt) {
+            nextPool++;
         }
     }
-
-    rounds.push(currentRoundRolls);
-    currentRoundDiceCount = nextRoundDiceCount;
+    
+    rounds.push(roundRolls);
+    currentPool = nextPool;
   }
 
-  const baseSuccesses = allRolls.filter(point => point >= options.successAt).length;
+  // 统计成功
+  let baseSuccesses = 0;
+  for (const r of allRolls) {
+      if (r >= successAt) baseSuccesses++;
+  }
   
+  const totalSuccesses = baseSuccesses + bonusSuccess;
+
   return {
-    rolls: allRolls,
-    rounds,
-    baseSuccesses,
-    totalSuccesses: Math.max(0, baseSuccesses + options.bonusSuccess),
-    totalRollsCount,
+      rolls: allRolls,
+      rounds,
+      baseSuccesses,
+      totalSuccesses,
+      totalRollsCount
   };
 }
 
 /**
  * 格式化输出
- * 参考格式：
- * <Sola>掷出了 10a5k7m9=6[10a5k7m9=成功6/22 轮数:4 {2,<8*>,<5>,<9*>,<5>,<7*>,<7*>,<9*>,3,3},{4,<6>,4,<6>,<5>,4,1},{4,<5>,<8*>},{4,2}]=6
- * 简化版适应现有接口：
- * WW检定 10a5k7m9+1=6 [10a5k7m9+1=成功6/22 轮数:4 {详情...}]=6
  */
 export function formatWwResultMessage(options: WwCommandOptions, result: WwRollResult, operatorName: string = "当前角色"): string {
-  // 构建指令字符串 e.g. 10a5k7m9
-  let cmdStr = `${options.diceCount}a${options.explodeAt}k${options.successAt}m${options.sides}`;
-  // 只有当参数非默认时才显示简化信息？或者总是全显示。用户示例中是全显示的。
-  // 优化：如果 m10 (默认) 可以不显示 m10？用户示例里 m9 显示了。
-  // 我们可以完全重构这个字符串的生成逻辑。
+  // 构建详细指令串
+  const paramsStr = `${options.diceCount !== options.diceCount /* dummy check */ ? "" : ""}` 
+      + (options.explodeAt !== 10 ? `a${options.explodeAt}` : "")
+      + (options.successAt !== 8 ? `k${options.successAt}` : "")
+      + (options.sides !== 10 ? `m${options.sides}` : "");
   
-  // 简单的构建方式
+  // 简略显示：如果是表达式计算出来的，显示 "力量+近战(5)"
   let simpleCmd = `${options.diceCount}`;
-  if (options.explodeAt !== 10) simpleCmd += `a${options.explodeAt}`;
-  if (options.successAt !== 8) simpleCmd += `k${options.successAt}`;
-  if (options.sides !== 10) simpleCmd += `m${options.sides}`;
+  if (options.exprStr && options.exprStr !== String(options.diceCount)) {
+      simpleCmd = `${options.exprStr}=${options.diceCount}`;
+  }
   
-  // 完整详细串，用于详情中
-  const detailCmdStr = `${options.diceCount}a${options.explodeAt}k${options.successAt}m${options.sides}`;
+  // 参数显示
+  if (paramsStr) simpleCmd += paramsStr;
 
   const bonusText = options.bonusSuccess === 0
     ? ""
@@ -211,58 +273,62 @@ export function formatWwResultMessage(options: WwCommandOptions, result: WwRollR
 
   const finalSuccess = result.totalSuccesses;
 
-  // 构建详细的轮次结果字符串
-  // 格式：{<10*>,1,2}, {<9*>, <9*>}
+  // 详细头部
+  const detailHeaderStr = `${options.diceCount}` 
+    + (options.explodeAt !== 10 ? `a${options.explodeAt}` : "")
+    + (options.successAt !== 8 ? `k${options.successAt}` : "")
+    + (options.sides !== 10 ? `m${options.sides}` : "");
+
   const roundsStr = result.rounds.map((round, index) => {
     const diceStrs = round.map(pt => {
         let str = `${pt}`;
-        
-        // 判断是否成功 (星号)
         const isSuccess = pt >= options.successAt;
-        // 判断是否加骰 (<>)
         const isExplode = pt >= options.explodeAt;
-        
-        if (isSuccess) {
-            str = `${str}*`;
-        }
-        
-        if (isExplode) {
-            str = `<${str}>`;
-        }
-        
+        if (isSuccess) str = `${str}*`;
+        if (isExplode) str = `<${str}>`;
         return str;
     }).join(",");
     return `\n第 ${index + 1} 轮: {${diceStrs}}`;
   }).join("");
-
-  // 最终格式拼接
-  // 头部信息
-  // <角色>掷出了 10a5k7m9=6
-  // 详情块
-  // [10a5k7m9]=成功6/22 轮数:4
-  // 第 1 轮: {...}
-  // 第 2 轮: {...}
   
   const header = `<${operatorName}>掷出了 ${simpleCmd}${bonusText}=${finalSuccess}`;
-  const detailHeader = `[${detailCmdStr}${bonusText}]=成功${result.totalSuccesses}/${result.totalRollsCount} 轮数:${result.rounds.length}`;
+  const detailHeader = `[${detailHeaderStr}${bonusText}]=成功${result.totalSuccesses}/${result.totalRollsCount} 轮数:${result.rounds.length}`;
   const detailBlock = `${detailHeader}${roundsStr}`;
   
   return `${header}${detailBlock}\n成功数=${finalSuccess}`;
 }
 
-/**
- * 注意：由外部规则执行器（当前为 executorPublic）决定是否挂载。
- */
 export const cmdWw = new CommandExecutor(
   "ww",
   [],
-  "WW无限规则检定（支持自定义加骰、面数、成功线）",
-  [".ww 5", ".ww 5a9", ".ww 5m9k7", ".ww 5+1"],
-  ".ww [数量]a[加骰]m[面数]k[成功线] +[附加成功]",
+  "WW无限规则检定（支持自定义加骰、面数、成功线、属性引用）",
+  [".ww 5", ".ww 力量+近战a8", ".ww 5a9", ".ww 5m9k7", ".ww 5+1"],
+  ".ww [数量/表达式]a[加骰]m[面数]k[成功线] +[附加成功]",
   async (args: string[], mentioned: UserRole[], cpi: CPI): Promise<boolean> => {
     const isForceToast = UTILS.doesHaveArg(args, "h");
+    
+    // 获取角色属性以支持表达式
+    let getValueFunc = undefined;
+    const roleId = mentioned[mentioned.length - 1]?.roleId; // 优先使用提到的最后一个角色（或者逻辑上应该是发起者/第一个提及者？）
+    // 通常骰子指令如果mention了别人，是用别人的属性？
+    // standard: .st usually modifies mentioned[0]. 
+    // .r usually uses mentioned[0] or current.
+    // 假设使用 mentioned[0] 作为判定主体。
+    const targetRole = mentioned.length > 0 ? mentioned[0] : undefined;
+    
+    if (targetRole) {
+        // 获取属性列表
+        const abilityList = cpi.getRoleAbilityList(targetRole.roleId);
+        if (abilityList) {
+            getValueFunc = (key: string) => {
+                const val = UTILS.getRoleAbilityValue(abilityList, key);
+                return val ? Number.parseFloat(val) : 0;
+            };
+        }
+    }
+
     try {
-      const options = parseWwCommandArgs(args);
+      const options = parseWwCommandArgs(args, getValueFunc);
       const result = rollWw(options);
       
       const operatorName = mentioned[mentioned.length - 1]?.roleName || "当前角色";

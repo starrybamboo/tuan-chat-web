@@ -20,6 +20,7 @@ describe("cmdExeWw", () => {
         bonusSuccess: 0,
         successAt: 8,
         sides: 10,
+        exprStr: "1",
       });
     });
 
@@ -30,6 +31,7 @@ describe("cmdExeWw", () => {
         bonusSuccess: 2,
         successAt: 8,
         sides: 10,
+        exprStr: "3",
       });
     });
 
@@ -40,16 +42,19 @@ describe("cmdExeWw", () => {
         bonusSuccess: 0,
         successAt: 7,
         sides: 9,
+        exprStr: "10",
       });
     });
 
     it("支持省略骰子个数与加骰参数（.ww +1）", () => {
+      // "+1" -> bonusSuccess=1, diceCount=default=1, exprStr="1"
       expect(parseWwCommandArgs(["+1"])).toEqual({
         diceCount: 1,
         explodeAt: 10,
         bonusSuccess: 1,
         successAt: 8,
         sides: 10,
+        exprStr: "1",
       });
     });
 
@@ -60,6 +65,7 @@ describe("cmdExeWw", () => {
         bonusSuccess: 0,
         successAt: 8,
         sides: 10,
+        exprStr: "4",
       });
     });
 
@@ -70,6 +76,55 @@ describe("cmdExeWw", () => {
         bonusSuccess: 3,
         successAt: 8,
         sides: 10,
+        exprStr: "2",
+      });
+    });
+
+    it("支持属性表达式", () => {
+      const mockGetValue = (key: string) => {
+        if (key === "力量") return 3;
+        if (key === "近战") return 2;
+        return 0;
+      };
+
+      // .ww 力量+近战
+      expect(parseWwCommandArgs(["力量+近战"], mockGetValue)).toEqual({
+        diceCount: 5, // 3+2
+        explodeAt: 10,
+        bonusSuccess: 0,
+        successAt: 8,
+        sides: 10,
+        exprStr: "力量+近战",
+      });
+
+      // .ww 力量+近战a9
+      expect(parseWwCommandArgs(["力量+近战a9"], mockGetValue)).toEqual({
+        diceCount: 5,
+        explodeAt: 9,
+        bonusSuccess: 0,
+        successAt: 8,
+        sides: 10,
+        exprStr: "力量+近战",
+      });
+      
+      // .ww 力量*2
+      expect(parseWwCommandArgs(["力量*2"], mockGetValue)).toEqual({
+        diceCount: 6,
+        explodeAt: 10,
+        bonusSuccess: 0,
+        successAt: 8,
+        sides: 10,
+        exprStr: "力量*2",
+      });
+      
+      // .ww 力量+近战+1 (后缀+1会被当做bonus)
+      expect(parseWwCommandArgs(["力量+近战+1"], mockGetValue)).toEqual({
+        diceCount: 5,
+        explodeAt: 10,
+        bonusSuccess: 1,
+        successAt: 8,
+        sides: 10,
+        exprStr: "力量+近战",
       });
     });
   });
