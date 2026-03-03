@@ -304,7 +304,7 @@ export function formatWwResultMessage(options: WwCommandOptions, result: WwRollR
 export const cmdWw = new CommandExecutor(
   "ww",
   [],
-  "WW无限规则检定（支持自定义加骰、面数、成功线、属性引用）",
+  "骰池",
   [".ww 5", ".ww 力量+近战a8", ".ww 5a9", ".ww 5m9k7", ".ww 5+1"],
   ".ww [数量/表达式]a[加骰]m[面数]k[成功线] +[附加成功]",
   async (args: string[], mentioned: UserRole[], cpi: CPI): Promise<boolean> => {
