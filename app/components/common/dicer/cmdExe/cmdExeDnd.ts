@@ -1,5 +1,23 @@
 import { CommandExecutor, RuleNameSpace } from "@/components/common/dicer/cmd";
 import UTILS from "@/components/common/dicer/utils/utils";
+import DND_SPELLS from "./dndSpellsData.json";
+
+interface DndSpell {
+  name: string;
+  source: string;
+  page: string;
+  level: string;
+  castingTime: string;
+  duration: string;
+  school: string;
+  range: string;
+  components: string;
+  classes: string;
+  optionalClasses: string;
+  subclasses: string;
+  text: string;
+  atHigherLevels: string;
+}
 
 const executorDnd = new RuleNameSpace(
   2,
@@ -326,3 +344,93 @@ const cmdRap = new CommandExecutor(
   },
 );
 executorDnd.addCmd(cmdRap);
+
+// 6. 死亡豁免 (.ds)
+const cmdDs = new CommandExecutor(
+  "ds",
+  ["death"],
+  "死亡豁免",
+  [".ds"],
+  ".ds",
+  async (args: string[], mentioned: UserRole[], cpi: CPI): Promise<boolean> => {
+    const role = mentioned[0];
+    if (!role) {
+      cpi.sendToast("未指定角色");
+      return false;
+    }
+
+    const roll = Math.floor(Math.random() * 20) + 1;
+    let resultStr = "";
+
+    if (roll === 1) {
+      resultStr = "大失败 (计2次失败)";
+    }
+    else if (roll === 20) {
+      resultStr = "大成功 (回复1点HP)";
+    }
+    else if (roll >= 10) {
+      resultStr = "成功";
+    }
+    else {
+      resultStr = "失败";
+    }
+
+    cpi.replyMessage(`${role.roleName} 进行了 死亡豁免: 1d20(${roll}) -> ${resultStr}`);
+    return true;
+  },
+);
+executorDnd.addCmd(cmdDs);
+
+// 7. 查询法术 (.find)
+const cmdFind = new CommandExecutor(
+  "find",
+  ["f"],
+  "查询法术",
+  [".find 飞弹", ".find magic missile"],
+  ".find [法术名]",
+  async (args: string[], mentioned: UserRole[], cpi: CPI): Promise<boolean> => {
+    const query = args.join("").trim();
+    if (!query) {
+      cpi.sendToast("请输入法术名");
+      return false;
+    }
+
+    const matches = DND_SPELLS.filter((spell) => spell.name.includes(query));
+
+    if (matches.length === 0) {
+      cpi.replyMessage(`未找到包含 "${query}" 的法术`);
+      return true;
+    }
+
+    // 尝试完全匹配
+    const exactMatch = matches.find((s) => s.name === query);
+    let target: DndSpell | undefined = exactMatch || (matches.length === 1 ? matches[0] : undefined);
+
+    if (target) {
+      // Format similar to D&D 5e source books style (Plain Text)
+      const lines = [
+        target.name,
+        `${target.level} ${target.school}`,
+        "",
+        `施法时间: ${target.castingTime}`,
+        `施法距离: ${target.range}`,
+        `法术成分: ${target.components}`,
+        `持续时间: ${target.duration}`,
+        "",
+        target.text
+      ];
+
+      if (target.atHigherLevels) {
+        lines.push("");
+        lines.push(target.atHigherLevels);
+      }
+
+      cpi.replyMessage(lines.join("\n"));
+    } else {
+      const names = matches.map((s) => s.name).join(", ");
+      cpi.replyMessage(`找到多个匹配项: ${names}`);
+    }
+    return true;
+  },
+);
+executorDnd.addCmd(cmdFind);

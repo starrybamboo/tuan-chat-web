@@ -255,4 +255,46 @@ describe("D&D 5e 指令集测试", () => {
         );
     });
   });
+
+  describe("ds (死亡豁免)", () => {
+    it("应该正确处理大成功 (20)", async () => {
+      vi.spyOn(Math, "random").mockReturnValue(0.99); // 20
+      const executor = executorDnd.cmdMap.get("ds");
+      await executor?.solve([], [mockRole], cpi);
+
+      expect(cpi.replyMessage).toHaveBeenCalledWith(
+        expect.stringContaining("大成功 (回复1点HP)"),
+      );
+    });
+
+    it("应该正确处理大失败 (1)", async () => {
+      vi.spyOn(Math, "random").mockReturnValue(0.0); // 1
+      const executor = executorDnd.cmdMap.get("ds");
+      await executor?.solve([], [mockRole], cpi);
+
+      expect(cpi.replyMessage).toHaveBeenCalledWith(
+        expect.stringContaining("大失败 (计2次失败)"),
+      );
+    });
+
+    it("应该正确处理普通成功 (>=10)", async () => {
+      vi.spyOn(Math, "random").mockReturnValue(0.45); // 10
+      const executor = executorDnd.cmdMap.get("ds");
+      await executor?.solve([], [mockRole], cpi);
+
+      expect(cpi.replyMessage).toHaveBeenCalledWith(
+        expect.stringMatching(/成功$/), // 以成功结尾，且不是大成功
+      );
+    });
+
+    it("应该正确处理普通失败 (<10)", async () => {
+      vi.spyOn(Math, "random").mockReturnValue(0.4); // 9
+      const executor = executorDnd.cmdMap.get("ds");
+      await executor?.solve([], [mockRole], cpi);
+
+      expect(cpi.replyMessage).toHaveBeenCalledWith(
+        expect.stringMatching(/失败$/), // 以失败结尾，且不是大失败
+      );
+    });
+  });
 });
