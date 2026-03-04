@@ -8,7 +8,7 @@ import useSearchParamsState from "@/components/common/customHooks/useSearchParam
 import RoleAvatarComponent from "@/components/common/roleAvatar";
 import { RoleDetailPagePopup } from "@/components/common/roleDetailPagePopup";
 import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
-import { AddRingLight, ExpandCornersIcon, EyedropperIcon, IdentificationCardIcon, NarratorIcon } from "@/icons";
+import { AddRingLight, AddRoleIcon, ExpandCornersIcon, EyedropperIcon, IdentificationCardIcon, NarratorIcon } from "@/icons";
 import { getScreenSize } from "@/utils/getScreenSize";
 import { useGetRoleAvatarsQuery } from "../../../../api/hooks/RoleAndAvatarHooks";
 
@@ -95,8 +95,18 @@ export function ExpressionChooser({
   );
 
   // 判断当前是否为旁白模式
-  const isNarratorMode = selectedRoleId <= 0;
-  const narratorTitle = showNarratorOption ? "旁白模式" : "未选择角色";
+  const isNarratorMode = selectedRoleId < 0;
+  // 判断是否未选择角色
+  const isNoRoleMode = selectedRoleId === 0;
+
+  let narratorTitle = selectedRole?.roleName ?? "未知角色";
+  if (isNarratorMode) {
+    narratorTitle = "旁白模式";
+  }
+  else if (isNoRoleMode) {
+    narratorTitle = "未选择角色";
+  }
+
   const narratorDescription = showNarratorOption
     ? "旁白也可以选择“旁白用头像”（如果已配置），用于统一交互"
     : "请选择你的角色后再发送消息";
@@ -203,16 +213,22 @@ export function ExpressionChooser({
                       <NarratorIcon className="size-5 text-base-content/60" />
                     </div>
                   )
-                : (
-                    <RoleAvatarComponent
-                      avatarId={selectedRole?.avatarId ?? 0}
-                      roleId={selectedRoleId > 0 ? selectedRoleId : undefined}
-                      width={8}
-                      isRounded={true}
-                      withTitle={false}
-                      stopToastWindow={true}
-                    />
-                  )}
+                : isNoRoleMode
+                  ? (
+                      <div className="size-8 rounded-full bg-base-200/50 flex items-center justify-center flex-shrink-0">
+                        <AddRoleIcon className="size-5 text-base-content/60" />
+                      </div>
+                    )
+                  : (
+                      <RoleAvatarComponent
+                        avatarId={selectedRole?.avatarId ?? 0}
+                        roleId={selectedRoleId > 0 ? selectedRoleId : undefined}
+                        width={8}
+                        isRounded={true}
+                        withTitle={false}
+                        stopToastWindow={true}
+                      />
+                    )}
               <div className="min-w-0 text-left">
                 <div className="text-xs text-base-content/50">当前身份</div>
                 <div className="text-sm font-medium truncate">
@@ -226,7 +242,7 @@ export function ExpressionChooser({
         {(!isMobileFullscreen || isRoleListExpanded) && (
           <div className={`${roleListClassName} ${isMobileFullscreen ? "mt-2" : ""}`}>
             {/* 旁白选项（WebGAL 联动模式） */}
-            {showNarratorOption && (
+            {showNarratorOption && isKP && (
               <div
                 onClick={handleNarratorSelect}
                 className={`flex items-center gap-3 ${isMobile ? "p-2" : "p-3"} rounded-lg transition-colors ${
@@ -399,14 +415,22 @@ export function ExpressionChooser({
                 </div>
               </>
             )
-          : isNarratorMode
-            ? (
-                <div className="text-center text-gray-500">
-                  <NarratorIcon className="size-16 mx-auto text-base-content/30" />
-                  <div className="text-sm mb-2">{narratorTitle}</div>
-                  <div className="text-xs text-base-content/50">{narratorDescription}</div>
-                </div>
-              )
+            : isNoRoleMode
+              ? (
+                  <div className="flex flex-col items-center justify-center h-full text-gray-500 py-12">
+                    <AddRoleIcon className="size-16 mx-auto mb-3 text-base-content/30" />
+                    <div className="text-sm font-medium mb-1">未选择角色</div>
+                    <div className="text-xs text-base-content/50 max-w-[200px] text-center">请从左侧列表选择你的角色，或添加新角色</div>
+                  </div>
+                )
+            : isNarratorMode
+              ? (
+                  <div className="flex flex-col items-center justify-center h-full text-gray-500 py-12">
+                    <NarratorIcon className="size-16 mx-auto mb-3 text-base-content/30" />
+                    <div className="text-sm font-medium mb-1">{narratorTitle}</div>
+                    <div className="text-xs text-base-content/50 max-w-[200px] text-center">{narratorDescription}</div>
+                  </div>
+                )
             : (
                 <div className="text-center py-12 text-gray-500">
                   <div className="text-sm mb-2">暂无可用头像</div>
