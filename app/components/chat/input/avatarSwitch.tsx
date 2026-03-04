@@ -3,7 +3,7 @@ import { ExpressionChooser } from "@/components/chat/input/expressionChooser";
 import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
 import RoleAvatarComponent from "@/components/common/roleAvatar";
 import { useGlobalContext } from "@/components/globalContextProvider";
-import { NarratorIcon } from "@/icons";
+import { AddRoleIcon, NarratorIcon } from "@/icons";
 import { getScreenSize } from "@/utils/getScreenSize";
 import { useGetRoleAvatarsQuery, useGetUserRolesQuery } from "../../../../api/hooks/RoleAndAvatarHooks";
 
@@ -116,7 +116,7 @@ export default function AvatarSwitch({
             data-tip="未选择角色，点击选择"
           >
             <div className={`${narratorSizeClass} rounded-full bg-base-300 flex items-center justify-center`}>
-              <NarratorIcon className={computedAvatarWidth <= 8 ? "size-5 text-base-content/60" : "size-6 md:size-8 text-base-content/60"} />
+              <AddRoleIcon className={computedAvatarWidth <= 8 ? "size-5 text-base-content/60" : "size-6 md:size-8 text-base-content/60"} />
             </div>
             {showName && (
               <div className={`${isHorizontal ? "text-left" : "text-center"} text-sm truncate w-full text-base-content/60`}>
