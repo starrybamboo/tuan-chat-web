@@ -4,7 +4,7 @@ import ChatStatusBar from "@/components/chat/chatStatusBar";
 import AvatarDropdownContent from "@/components/chat/input/avatarDropdownContent";
 import { useScreenSize } from "@/components/common/customHooks/useScreenSize";
 import RoleAvatarComponent from "@/components/common/roleAvatar";
-import { NarratorIcon } from "@/icons";
+import { AddRoleIcon, NarratorIcon, SingleUserIcon } from "@/icons";
 
 interface RoomComposerHeaderProps {
   roomId: number;
@@ -122,25 +122,11 @@ export default function RoomComposerHeader({
                 });
               }}
             >
-              {curRoleId <= 0
+              {curRoleId <= 0 && curAvatarId <= 0
                 ? (
-                    curAvatarId > 0
-                      ? (
-                          <RoleAvatarComponent
-                            avatarId={curAvatarId}
-                            width={8}
-                            isRounded={true}
-                            withTitle={false}
-                            stopToastWindow={true}
-                            useDefaultAvatarFallback={false}
-                            alt="旁白"
-                          />
-                        )
-                      : (
-                          <div className="size-8 rounded-full bg-transparent flex items-center justify-center shrink-0">
-                            <NarratorIcon className="size-5 text-base-content/60" />
-                          </div>
-                        )
+                    <div className="size-8 rounded-full bg-base-200/50 flex items-center justify-center shrink-0">
+                      {curRoleId === 0 ? <AddRoleIcon className="size-5 text-base-content/60" /> : <NarratorIcon className="size-5 text-base-content/60" />}
+                    </div>
                   )
                 : (
                     <RoleAvatarComponent
@@ -150,9 +136,11 @@ export default function RoomComposerHeader({
                       isRounded={true}
                       withTitle={false}
                       stopToastWindow={true}
-                      alt={displayRoleName || "无头像"}
+                      useDefaultAvatarFallback={true}
+                      alt={curRoleId === 0 ? "未选择角色" : (curRoleId < 0 ? "旁白" : undefined)}
                     />
-                  )}
+                  )
+              }
             </button>
             {isAvatarPopoverOpen && !isSpectator && (
               <div

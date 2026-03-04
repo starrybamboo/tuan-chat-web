@@ -1,5 +1,5 @@
-import type { ComponentProps, SVGProps } from "react";
-import { AddressBookIcon, BookOpenText, CaretDownIcon, CaretLeftIcon, DiscordLogoIcon, FileText, Folder, Graph, HouseIcon, IdentificationCard, ImageIcon, MusicNotesIcon, CardsIcon as PhosphorCardsIcon, SidebarSimpleIcon as PhosphorSidebarSimpleIcon, PlusIcon, QrCodeIcon, SmileyIcon, TrashSimpleIcon, UsersIcon, UserSwitch, WrenchIcon as PhosphorWrenchIcon } from "@phosphor-icons/react";
+import React, { type ComponentProps, type SVGProps } from "react";
+import { AddressBookIcon, BookOpenText, CaretDownIcon, CaretLeftIcon, DiscordLogoIcon, FileText, Folder, Graph, HouseIcon, IdentificationCard, ImageIcon, MusicNotesIcon, CardsIcon as PhosphorCardsIcon, SidebarSimpleIcon as PhosphorSidebarSimpleIcon, PlusIcon, QrCodeIcon, SmileyIcon, TrashSimpleIcon, UserIcon, UsersIcon, UserSwitch, WrenchIcon as PhosphorWrenchIcon } from "@phosphor-icons/react";
 import { useId } from "react";
 
 /**
@@ -8,6 +8,18 @@ import { useId } from "react";
  * 吧？
  * 我是建议在末尾加 Icon 方便区分正常组件
  */
+
+export function SingleUserIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <UserIcon {...props} />
+  );
+}
+
+export function AddRoleIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <PlusIcon {...props} />
+  );
+}
 
 // Discord 图标（简化版）
 // 其他关键词：bug反馈，社区，群组，discord
