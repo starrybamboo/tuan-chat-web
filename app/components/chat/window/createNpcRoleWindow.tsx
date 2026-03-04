@@ -2,6 +2,9 @@ import type { CharacterData } from "@/components/Role/RoleCreation/types";
 import type { Role } from "@/components/Role/types";
 import React, { use, useMemo, useState } from "react";
 import toast from "react-hot-toast";
+
+import { useQueryClient } from "@tanstack/react-query";
+
 import { RoomContext } from "@/components/chat/core/roomContext";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
 import RoleAvatarComponent from "@/components/common/roleAvatar";
@@ -18,6 +21,7 @@ export default function CreateNpcRoleWindow({ onClose }: { onClose: () => void }
   const roomId = roomContext.roomId ?? -1;
 
   const addRoomRoleMutation = useAddRoomRoleMutation();
+  const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<"create" | "import">("create");
 
   const roomRolesQuery = useGetRoomRoleQuery(roomId);
@@ -50,24 +54,9 @@ export default function CreateNpcRoleWindow({ onClose }: { onClose: () => void }
   }, [ruleId]);
 
   const handleCreateNpcComplete = (createdRole: Role) => {
-    void (async () => {
-      if (spaceId <= 0 || roomId <= 0) {
-        toast.error("空间/房间信息异常，无法创建NPC");
-        return;
-      }
-      try {
-        await addRoomRoleMutation.mutateAsync({
-          roomId,
-          roleIdList: [createdRole.id],
-        });
-        toast.success("NPC创建成功");
-        onClose();
-      }
-      catch (e: any) {
-        console.error("添加NPC到房间失败", e);
-        toast.error(e?.message ? `添加NPC到房间失败：${e.message}` : "添加NPC到房间失败");
-      }
-    })();
+    void queryClient.invalidateQueries({ queryKey: ["spaceRepositoryRole", spaceId] });
+    toast.success("NPC创建成功");
+    onClose();
   };
 
   const handleImportNpcToRoom = async (roleId: number) => {
@@ -112,7 +101,7 @@ export default function CreateNpcRoleWindow({ onClose }: { onClose: () => void }
         <div className="bg-base-100 rounded-box p-2 sm:p-4">
           <RoleCreationFlow
             title="创建NPC"
-            description="填写NPC信息，完成创建并加入当前房间"
+            description="填写NPC信息，完成创建"
             onBack={onClose}
             onComplete={handleCreateNpcComplete}
             roleCreateDefaults={{ type: 2, spaceId: spaceId > 0 ? spaceId : undefined }}
