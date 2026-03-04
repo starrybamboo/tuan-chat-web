@@ -7,30 +7,13 @@ interface SpaceInvitePanelProps {
 }
 
 export default function SpaceInvitePanel({ onAddSpectator, onAddPlayer }: SpaceInvitePanelProps) {
-  const [spaceInviteMode, setSpaceInviteMode] = useState<"spectator" | "player">("spectator");
+  const [spaceInviteMode, setSpaceInviteMode] = useState<"spectator" | "player">("player");
 
   return (
     <div className="w-[min(720px,92vw)]">
       <div className="mb-3">
         <div className="text-sm font-medium opacity-80 mb-2">邀请类型</div>
         <div className="grid grid-cols-2 gap-2">
-          <label
-            className={`flex items-start gap-3 rounded-lg border border-base-300 p-3 cursor-pointer ${spaceInviteMode === "spectator" ? "bg-base-200" : "bg-base-100"}`}
-          >
-            <input
-              type="radio"
-              name="space_invite_mode"
-              className="radio radio-sm mt-1"
-              checked={spaceInviteMode === "spectator"}
-              onChange={() => setSpaceInviteMode("spectator")}
-              aria-label="邀请观战"
-            />
-            <div className="min-w-0">
-              <div className="font-medium">邀请观战</div>
-              <div className="text-xs opacity-70">加入空间成员（不授予玩家身份）</div>
-            </div>
-          </label>
-
           <label
             className={`flex items-start gap-3 rounded-lg border border-base-300 p-3 cursor-pointer ${spaceInviteMode === "player" ? "bg-base-200" : "bg-base-100"}`}
           >
@@ -45,6 +28,23 @@ export default function SpaceInvitePanel({ onAddSpectator, onAddPlayer }: SpaceI
             <div className="min-w-0">
               <div className="font-medium">邀请玩家</div>
               <div className="text-xs opacity-70">加入空间后会自动授予玩家身份</div>
+            </div>
+          </label>
+        
+          <label
+            className={`flex items-start gap-3 rounded-lg border border-base-300 p-3 cursor-pointer ${spaceInviteMode === "spectator" ? "bg-base-200" : "bg-base-100"}`}
+          >
+            <input
+              type="radio"
+              name="space_invite_mode"
+              className="radio radio-sm mt-1"
+              checked={spaceInviteMode === "spectator"}
+              onChange={() => setSpaceInviteMode("spectator")}
+              aria-label="邀请观战"
+            />
+            <div className="min-w-0">
+              <div className="font-medium">邀请观战</div>
+              <div className="text-xs opacity-70">加入空间成员（不授予玩家身份）</div>
             </div>
           </label>
         </div>

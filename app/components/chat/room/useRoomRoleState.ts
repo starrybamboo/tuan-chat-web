@@ -58,7 +58,13 @@ export default function useRoomRoleState({
     const playerRoles = isSpaceOwner
       ? roomBaseRoles
       : roomBaseRoles.filter(role => userRoles.some(userRole => userRole.roleId === role.roleId));
-    return [...playerRoles, ...roomNpcRoles];
+    
+    // Only allow space owner to control NPCs
+    if (isSpaceOwner) {
+      return [...playerRoles, ...roomNpcRoles];
+    }
+
+    return playerRoles;
   }, [isSpaceOwner, roomBaseRoles, roomNpcRoles, userRoles]);
 
   const curRoleIdMap = useRoomRoleSelectionStore(state => state.curRoleIdMap);
@@ -166,14 +172,15 @@ export default function useRoomRoleState({
   }, [curAvatarIdMap, roleDefaultAvatarIdMap, runtimeAvatarIdMap]);
 
   const storedRoleId = curRoleIdMap[roomId];
-  const fallbackRoleId = roomRolesThatUserOwn[0]?.roleId ?? -1;
+  // 如果没有可用角色，普通用户默认为“未选择”(0)，KP默认为“旁白”(-1)
+  const fallbackRoleId = roomRolesThatUserOwn[0]?.roleId ?? (isSpaceOwner ? -1 : 0);
   const curRoleId = (storedRoleId == null)
     ? fallbackRoleId
     : (storedRoleId <= 0 && !isSpaceOwner)
         ? fallbackRoleId
         : storedRoleId;
   const setCurRoleId = useCallback((roleId: number) => {
-    if (roleId <= 0 && !isSpaceOwner) {
+    if (roleId < 0 && !isSpaceOwner) {
       toast.error("只有 KP 可以使用旁白");
       return;
     }
