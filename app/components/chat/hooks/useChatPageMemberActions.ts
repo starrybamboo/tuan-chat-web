@@ -59,7 +59,7 @@ export default function useChatPageMemberActions({
       userIdList: [userId],
     }, {
       onSuccess: () => {
-        setIsMemberHandleOpen(false);
+        // setIsMemberHandleOpen(false);
       },
     });
   }, [activeSpaceId, addSpaceMemberMutation, setIsMemberHandleOpen]);
@@ -76,7 +76,7 @@ export default function useChatPageMemberActions({
         uidList: [userId],
       }, {
         onSettled: () => {
-          setIsMemberHandleOpen(false);
+          // setIsMemberHandleOpen(false);
         },
       });
     };
