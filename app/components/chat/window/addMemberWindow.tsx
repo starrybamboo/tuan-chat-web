@@ -7,10 +7,7 @@ import UserAvatarComponent from "@/components/common/userAvatar";
 import { useGetSpaceMembersQuery, useSpaceInviteCodeQuery } from "../../../../api/hooks/chatQueryHooks";
 import { useGetFriendListQuery } from "../../../../api/hooks/friendQueryHooks";
 
-function MemberBox({ userId, onClickAddMember }: { userId: number; onClickAddMember: () => void }) {
-  const roomContext = use(RoomContext);
-  const roomMembers = roomContext.roomMembers;
-  const canNotAdd = roomMembers.find((member: any) => member.userId === userId);
+function MemberBox({ userId, onClickAddMember, isAdded }: { userId: number; onClickAddMember: () => void; isAdded: boolean }) {
   return (
     <div
       className="card bg-base-100 shadow hover:shadow-lg transition-shadow cursor-pointer"
@@ -23,7 +20,7 @@ function MemberBox({ userId, onClickAddMember }: { userId: number; onClickAddMem
           withName={true}
         />
         {
-          canNotAdd
+          isAdded
             ? (
                 <button
                   className="btn btn-sm btn-info mt-2 btn-ghost"
@@ -48,10 +45,7 @@ function MemberBox({ userId, onClickAddMember }: { userId: number; onClickAddMem
   );
 }
 
-function MemberRow({ userId, onClickAddMember }: { userId: number; onClickAddMember: () => void }) {
-  const roomContext = use(RoomContext);
-  const roomMembers = roomContext.roomMembers;
-  const canNotAdd = roomMembers.find((member: any) => member.userId === userId);
+function MemberRow({ userId, onClickAddMember, isAdded }: { userId: number; onClickAddMember: () => void; isAdded: boolean }) {
   return (
     <div className="flex items-center justify-between gap-3 px-3 py-2">
       <div className="min-w-0 flex-1">
@@ -62,7 +56,7 @@ function MemberRow({ userId, onClickAddMember }: { userId: number; onClickAddMem
           withName={true}
         />
       </div>
-      {canNotAdd
+      {isAdded
         ? (
             <button
               className="btn btn-sm btn-ghost"
@@ -92,13 +86,26 @@ export default function AddMemberWindow({
   handleAddMember,
   showSpace = false,
   inviteCodeType = 0,
+  targetType = "room",
 }: {
   handleAddMember: (userId: number) => void;
   showSpace?: boolean;
   inviteCodeType?: 0 | 1;
+  targetType?: "room" | "space";
 }) {
   const spaceContext = use(SpaceContext);
   const spaceMembers = useGetSpaceMembersQuery(spaceContext.spaceId ?? -1).data?.data ?? [];
+
+  const roomContext = use(RoomContext);
+  const roomMembers = roomContext.roomMembers ?? [];
+
+  const checkIsAdded = (userId: number) => {
+    if (targetType === "space") {
+      return spaceMembers.some((m) => m.userId === userId);
+    }
+    return roomMembers.some((m: any) => m.userId === userId);
+  };
+
   const friendListQuery = useGetFriendListQuery({ pageNo: 1, pageSize: 100 });
   const friends = useMemo(() => {
     return friendListQuery.data?.data ?? [];
@@ -189,6 +196,7 @@ export default function AddMemberWindow({
                       userId={friend.userId}
                       onClickAddMember={() => handleAddMember(friend.userId ?? -1)}
                       key={`friend-${friend.userId}`}
+                      isAdded={checkIsAdded(friend.userId ?? -1)}
                     />
                   )
                 ))
@@ -212,6 +220,7 @@ export default function AddMemberWindow({
                   userId={member.userId}
                   onClickAddMember={() => handleAddMember(member.userId ?? -1)}
                   key={`space-${member.userId}`}
+                  isAdded={checkIsAdded(member.userId ?? -1)}
                 />
               )
             ))}
