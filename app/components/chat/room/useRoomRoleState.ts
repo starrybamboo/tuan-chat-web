@@ -58,7 +58,13 @@ export default function useRoomRoleState({
     const playerRoles = isSpaceOwner
       ? roomBaseRoles
       : roomBaseRoles.filter(role => userRoles.some(userRole => userRole.roleId === role.roleId));
-    return [...playerRoles, ...roomNpcRoles];
+    
+    // Only allow space owner to control NPCs
+    if (isSpaceOwner) {
+      return [...playerRoles, ...roomNpcRoles];
+    }
+
+    return playerRoles;
   }, [isSpaceOwner, roomBaseRoles, roomNpcRoles, userRoles]);
 
   const curRoleIdMap = useRoomRoleSelectionStore(state => state.curRoleIdMap);
