@@ -21,6 +21,7 @@ interface NumericalEditorProps {
   title?: string;
   fieldType: FieldType; // 新增:指定要更新的字段类型
   hideTitleOnMobile?: boolean;
+  syncValueChanges?: boolean;
 }
 
 // Reducer actions
@@ -77,6 +78,7 @@ export default function NumericalEditor({
   title = "数值数据",
   fieldType,
   hideTitleOnMobile = false,
+  syncValueChanges = false,
 }: NumericalEditorProps) {
   const { mutate: updateFiledAbility } = useUpdateRoleAbilityByRoleIdMutation();
   const { mutate: updateKeyField } = useUpdateKeyFieldByRoleIdMutation();
@@ -152,10 +154,20 @@ export default function NumericalEditor({
 
   // 处理字段值更新
   const handleFieldUpdate = (fieldKey: string, newValue: string) => {
+    const updatedData = {
+      ...localData,
+      [fieldKey]: newValue,
+    };
+
     dispatch({
       type: "UPDATE_FIELD",
       payload: { key: fieldKey, value: newValue },
     });
+
+    // 仅在需要时同步到父组件，避免模板区输入时字段立即“迁移”到自定义区
+    if (syncValueChanges) {
+      onChange(updatedData);
+    }
   };
 
   // 添加新字段
