@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 interface EditableFieldProps {
   fieldKey: string;
@@ -33,6 +33,159 @@ export default function EditableField({
 }: EditableFieldProps) {
   const [editingFieldKey, setEditingFieldKey] = useState<string | null>(null);
   const [tempFieldKey, setTempFieldKey] = useState("");
+  const scrollRef = useRef<HTMLSpanElement>(null);
+  const keyScrollRef = useRef<HTMLSpanElement>(null);
+  const isSelectingRef = useRef(false);
+  const mousePosRef = useRef<{ x: number } | null>(null);
+  const autoScrollRaf = useRef<number | null>(null);
+
+  useEffect(() => {
+    // 处理两个可滚动元素
+    const elements = [scrollRef.current, keyScrollRef.current].filter(Boolean) as HTMLSpanElement[];
+    if (elements.length === 0) return;
+
+    // ----- 滚轮处理逻辑 -----
+    const handleWheel = (e: WheelEvent) => {
+      // 找到触发事件的元素
+      const target = e.currentTarget as HTMLSpanElement;
+      
+      // 允许横向和纵向的滚动事件都触发横向滚动
+      // 优先处理纵向滚轮（将其转换为横向）
+      let delta = 0;
+      if (Math.abs(e.deltaY) >= Math.abs(e.deltaX)) {
+        // 显著降低滚动速度系数，避免太快滑到底
+        delta = e.deltaY * 0.15;
+      } else {
+        // 如果是原生横向滚动（如触摸板），也进行一定的减速处理，防止过快
+        delta = e.deltaX * 0.15;
+      }
+
+      const maxScrollLeft = target.scrollWidth - target.clientWidth;
+      const currentScrollLeft = target.scrollLeft;
+
+      // 判断此次滚动是否有效（未同时也未到底）
+      // 允许一定的误差范围
+      const isScrollableLeft = delta < 0 && currentScrollLeft > 0.5;
+      const isScrollableRight = delta > 0 && currentScrollLeft < maxScrollLeft - 0.5;
+
+      if (isScrollableLeft || isScrollableRight) {
+        e.preventDefault();
+        e.stopPropagation(); // 阻止事件冒泡，防止触发外层容器滚动
+        target.scrollLeft += delta;
+      }
+    };
+
+    // ----- 拖拽选择自动滚动逻辑 -----
+    const checkAutoScroll = () => {
+      // 找到当前正在交互的元素（这里简化为检查鼠标下的元素，或者在 mousedown 时记录 target）
+      // 由于逻辑比较复杂，为了简化，我们假设拖拽选择主要发生在 value 区域（因为 key 一般较短且不可选文本）
+      // 如果 key 也需要支持拖拽滚动，需要更复杂的逻辑来追踪哪个元素被激活。
+      // 考虑到 fieldKey 点击即变成 input 编辑模式，通常不需要像 value 那样支持长文本选择复制
+      // 所以这里暂不为 fieldKey 应用 checkAutoScroll 逻辑，仅对其应用 wheel 逻辑
+      
+      // 原有的 value 区域 autoScroll 逻辑保持不变，但需绑定到特定元素
+      // 这里为了简单，我们只对 scrollRef (value) 启用拖拽自动滚动
+      const el = scrollRef.current;
+      
+      // 在每次调用时都需要重新获取最新的鼠标位置和状态
+      if (!isSelectingRef.current || !mousePosRef.current || !el) {
+        autoScrollRaf.current = null;
+        return;
+      }
+
+      const rect = el.getBoundingClientRect();
+      const x = mousePosRef.current.x; // 获取最新的鼠标 x 坐标
+      // 边缘触发滚动的阈值区域宽度（像素）
+      const threshold = 60; 
+      // 最大滚动速度 (px/frame) - 保持较小值防止飞速滚动
+      const maxScrollSpeed = 6; 
+
+      let speed = 0;
+
+      // 检测左边缘：鼠标在左侧阈值内 或 容器左侧外
+      if (x < rect.left + threshold) {
+        // 距离右边越远（越往左），速度越快
+        // 当 x = rect.left + threshold 时，dist = 0
+        // 当 x = rect.left 时，dist = threshold
+        const dist = (rect.left + threshold) - x;
+        // 速度计算：这里使用线性增加，但限制最大值
+        speed = -Math.min(maxScrollSpeed, dist * 0.15);
+      }
+      // 检测右边缘：鼠标在右侧阈值内 或 容器右侧外
+      else if (x > rect.right - threshold) {
+        const dist = x - (rect.right - threshold);
+        speed = Math.min(maxScrollSpeed, dist * 0.15);
+      }
+
+      if (Math.abs(speed) > 0.1) {
+        el.scrollLeft += speed;
+        // 只要还在滚动，就继续下一帧
+        autoScrollRaf.current = requestAnimationFrame(checkAutoScroll);
+      } else {
+        // 如果当前不需要滚动，停止循环，依靠 mousemove 重新启动
+        autoScrollRaf.current = null;
+      }
+    };
+
+    const handleMouseDown = (e: MouseEvent) => {
+       // 只有当在 value 区域 (scrollRef) 按下时才启动自动滚动逻辑
+       if (e.target === scrollRef.current || scrollRef.current?.contains(e.target as Node)) {
+          isSelectingRef.current = true;
+          mousePosRef.current = null;
+          if (scrollRef.current) scrollRef.current.style.overflowX = "hidden";
+       }
+    };
+
+    const handleGlobalMouseMove = (e: MouseEvent) => {
+      // 只有在选择状态下才关心鼠标位置
+      if (isSelectingRef.current) {
+        // 更新最新的鼠标位置给 checkAutoScroll 使用
+        mousePosRef.current = { x: e.clientX };
+        
+        // 如果当前自动滚动没有在运行，就启动它
+        if (!autoScrollRaf.current) {
+          autoScrollRaf.current = requestAnimationFrame(checkAutoScroll);
+        }
+      }
+    };
+
+    const handleGlobalMouseUp = () => {
+      isSelectingRef.current = false;
+      mousePosRef.current = null;
+      if (scrollRef.current) scrollRef.current.style.overflowX = "";
+      
+      if (autoScrollRaf.current) {
+        cancelAnimationFrame(autoScrollRaf.current);
+        autoScrollRaf.current = null;
+      }
+    };
+
+    // 绑定事件
+    elements.forEach(el => {
+        // 使用 passive: false 以便调用 preventDefault
+        el.addEventListener("wheel", handleWheel, { passive: false });
+    });
+    
+    // 只在 scrollRef 上监听 mousedown 用于选择
+    scrollRef.current?.addEventListener("mousedown", handleMouseDown);
+    
+    // 监听全局 mousemove/mouseup 以处理拖出元素的情况
+    window.addEventListener("mousemove", handleGlobalMouseMove);
+    window.addEventListener("mouseup", handleGlobalMouseUp);
+
+    return () => {
+      elements.forEach(el => {
+          el.removeEventListener("wheel", handleWheel);
+      });
+      scrollRef.current?.removeEventListener("mousedown", handleMouseDown);
+      window.removeEventListener("mousemove", handleGlobalMouseMove);
+      window.removeEventListener("mouseup", handleGlobalMouseUp);
+      if (autoScrollRaf.current) {
+        cancelAnimationFrame(autoScrollRaf.current);
+      }
+    };
+  }, [isEditing]);
+
   const isCompact = size === "compact";
   // 移动端统一使用“键名在上、值在下”的卡片布局
   const shouldStackKeyOnMobile = true;
@@ -49,14 +202,22 @@ export default function EditableField({
 
   if (!isEditing) {
     return (
-      <div className={`flex items-center justify-between rounded-lg border bg-base-100/50 whitespace-nowrap border-base-content/10 ${
+      <div className={`flex items-center justify-between rounded-lg border bg-base-100/50 border-base-content/10 ${
         isCompact ? "px-2 py-1" : "p-2 md:p-3"
       }`}
       >
-        <span className={`font-medium shrink-0 md:mr-4 ${isCompact ? "text-xs" : "text-sm md:text-base"}`}>
+        <span
+          ref={keyScrollRef}
+          className={`font-medium overflow-x-auto whitespace-nowrap [&::-webkit-scrollbar]:hidden shrink-0 max-w-[5.5em] text-left md:mr-4 ${isCompact ? "text-xs" : "text-sm md:text-base"}`}
+          style={{ scrollbarWidth: "none" }}
+        >
           {fieldKey}
         </span>
-        <span className={`badge shrink-0 badge-ghost ${isCompact ? "badge-xs" : "text-sm md:text-base"}`}>
+        <span
+          ref={scrollRef}
+          className={`badge badge-ghost shrink overflow-x-auto whitespace-nowrap min-w-0 justify-start [&::-webkit-scrollbar]:hidden ${isCompact ? "badge-xs" : "text-sm md:text-base"}`}
+          style={{ scrollbarWidth: "none" }}
+        >
           {String(value)}
         </span>
       </div>
@@ -65,9 +226,9 @@ export default function EditableField({
 
   return (
     <div className={`form-control ${className}`}>
-      <label className={`input flex items-center gap-2 rounded-md transition focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary focus-within:outline-none ${
+      <label className={`input flex items-center gap-2 rounded-md transition focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary focus-within:outline-none py-2 ${
         isCompact ? "input max-md:pr-8" : "max-md:pr-8"
-      } ${shouldStackKeyOnMobile ? "max-md:flex-wrap max-md:items-start max-md:h-auto max-md:min-h-0 max-md:py-2" : ""}`}
+      } ${shouldStackKeyOnMobile ? "max-md:flex-wrap max-md:items-start max-md:min-h-0" : ""}`}
       >
         {/* 字段名编辑 */}
         {editingFieldKey === fieldKey
@@ -96,7 +257,9 @@ export default function EditableField({
             )
           : (
               <span
-                className={`${isCompact ? "text-[10px] md:text-xs" : "text-xs md:text-sm"} font-medium whitespace-nowrap cursor-pointer hover:text-primary shrink-0 text-left ${shouldStackKeyOnMobile ? "max-md:basis-full max-md:w-full max-md:pr-6" : ""}`}
+                ref={keyScrollRef}
+                className={`${isCompact ? "text-[10px] md:text-xs" : "text-xs md:text-sm"} font-medium whitespace-nowrap overflow-x-auto [&::-webkit-scrollbar]:hidden cursor-pointer hover:text-primary shrink-0 max-w-[5.5em] max-md:max-w-none text-left leading-tight ${shouldStackKeyOnMobile ? "max-md:basis-full max-md:w-full max-md:pr-6" : ""}`}
+                style={{ scrollbarWidth: "none" }}
                 onClick={() => {
                   setEditingFieldKey(fieldKey);
                   setTempFieldKey(fieldKey);

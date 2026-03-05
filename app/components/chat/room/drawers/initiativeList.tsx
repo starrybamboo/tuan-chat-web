@@ -15,6 +15,8 @@ interface Initiative {
   maxHp?: number | null;
   // 可选的自定义参数键值对（按配置的 key 存储）
   extras?: Record<string, string | number | null>;
+  // 关联来源角色ID
+  roleId?: number;
 }
 
 interface InitiativeParam {
@@ -314,6 +316,17 @@ export default function InitiativeList() {
 
     // 严格使用同 index 的 query，避免错位
     const query = abilityQueries[idx];
+
+    // 检测规则一致性：如果有数据但没有当前规则的数据，提示用户
+    const res = query?.data;
+    if (res?.success && Array.isArray(res.data) && spaceContext.ruleId) {
+      const hasMatchingRule = res.data.some(item => item.ruleId === spaceContext.ruleId);
+      if (!hasMatchingRule && res.data.length > 0) {
+        toast.error("导入失败：请检查角色卡规则与空间设置的规则是否一致");
+        return;
+      }
+    }
+
     const agi = extractAgilityFromQuery(query);
     if (agi == null)
       return;
@@ -321,13 +334,14 @@ export default function InitiativeList() {
     const { hp, maxHp } = extractHpFromQuery(query);
 
     const role = importableRoles[idx];
-    const name = role.roleName ?? `角色${role.roleId}`;
+    const baseName = role.roleName ?? `角色${role.roleId}`;
 
-    // 新增：如果该名字已存在，则提示并不覆盖
-    const exists = initiativeList.some(i => i.name === name);
-    if (exists) {
-      toast.error("该角色已导入");
-      return;
+    // 自动重名处理：如果名字重复，自动添加序号
+    let name = baseName;
+    let suffix = 2;
+    while (initiativeList.some(i => i.name === name)) {
+      name = `${baseName} ${suffix}`;
+      suffix += 1;
     }
 
     // 构造自定义属性
@@ -346,7 +360,7 @@ export default function InitiativeList() {
     const next: Initiative[] = [
       // 不再覆盖同名，直接追加
       ...initiativeList,
-      { name, value: agi, hp, maxHp, extras },
+      { name, value: agi, hp, maxHp, extras, roleId },
     ];
     setInitiativeList(next.sort((a, b) => b.value - a.value));
     // 成功导入后关闭弹窗
@@ -1030,6 +1044,15 @@ export default function InitiativeList() {
               const q = abilityQueries[idx];
               const loading = q.isLoading;
               const hasData = !!q.data && q.data.success;
+              const name = role.roleName ?? `角色${role.roleId}`;
+              // 优先通过 ID 判断是否已导入，没有 ID 则通过名字判断（兼容旧数据）
+              const isImported = initiativeList.some((i) => {
+                if (typeof i.roleId === "number") {
+                  return i.roleId === role.roleId;
+                }
+                return i.name === name;
+              });
+
               return (
                 <div
                   key={role.roleId}
@@ -1037,7 +1060,7 @@ export default function InitiativeList() {
                 >
                   <div className="flex flex-col">
                     <span className="text-sm font-medium">
-                      {role.roleName ?? `角色${role.roleId}`}
+                      {name}
                     </span>
                     <span className="text-[11px] text-base-content/60">
                       {loading
@@ -1053,7 +1076,7 @@ export default function InitiativeList() {
                     disabled={loading || !hasData}
                     onClick={() => handleImportSingle(role.roleId)}
                   >
-                    导入
+                    {isImported ? "再次导入" : "导入"}
                   </button>
                 </div>
               );
