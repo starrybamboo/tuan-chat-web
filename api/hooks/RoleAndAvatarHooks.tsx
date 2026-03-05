@@ -31,20 +31,7 @@ import {
 } from "api";
 import type { Role } from '@/components/Role/types';
 import { ROLE_DEFAULT_AVATAR_URL } from '@/constants/defaultAvatar';
-
-function getErrorStatusCode(error: unknown): number | undefined {
-  const e = error as any;
-  return e?.status ?? e?.response?.status;
-}
-
-function shouldRetryRoleQuery(failureCount: number, error: unknown): boolean {
-  const statusCode = getErrorStatusCode(error);
-  // 角色不存在等 4xx 客户端错误不重试，避免同一 roleId 连续发起多次失败请求。
-  if (statusCode && statusCode >= 400 && statusCode < 500) {
-    return false;
-  }
-  return failureCount < 2;
-}
+import { shouldRetryRoleQueryError } from "@/utils/roleApiError";
 
 function upsertRoleAvatarQueryCaches(queryClient: any, avatar: RoleAvatar, roleId?: number): void {
   const avatarId = avatar.avatarId;
@@ -91,8 +78,9 @@ export function useGetRoleQuery(roleId: number) {
     queryKey: ['getRole', roleId],
     queryFn: () => tuanchat.roleController.getRole(roleId),
     staleTime: 600000, // 10分钟缓存
-    retry: shouldRetryRoleQuery,
+    retry: shouldRetryRoleQueryError,
     retryOnMount: false,
+    refetchOnMount: false,
     enabled: typeof roleId === 'number' && !isNaN(roleId) && roleId > 0
   });
 }
@@ -106,8 +94,9 @@ export function useGetRolesQueries(roleIds: number[]) {
       queryKey: ["getRole", roleId],
       queryFn: () => tuanchat.roleController.getRole(roleId),
       staleTime: 600000, // 10分钟缓存
-      retry: shouldRetryRoleQuery,
+      retry: shouldRetryRoleQueryError,
       retryOnMount: false,
+      refetchOnMount: false,
       enabled: typeof roleId === 'number' && !isNaN(roleId) && roleId > 0
     }))
   });
