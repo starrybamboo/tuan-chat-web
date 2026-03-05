@@ -6,13 +6,30 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { TutorialBootstrapResponse } from "api/hooks/tutorialOnboardingHooks";
 
 import {
-  useTutorialBootstrapMutation,
+  fetchTutorialBootstrap,
   useTutorialPullMutation,
 } from "api/hooks/tutorialOnboardingHooks";
 
 const TUTORIAL_PROMPT_SEEN_STORAGE_KEY = "tc:tutorial:onboarding:seen";
 
 type TutorialPromptType = "missing" | "update";
+
+function debugTutorialOnboarding(event: string, payload?: Record<string, unknown>) {
+  if (!import.meta.env.DEV || typeof window === "undefined") {
+    return;
+  }
+  const debugEntry = {
+    time: new Date().toISOString(),
+    event,
+    payload: payload ?? {},
+  };
+  const debugStore = ((window as any).__TC_TUTORIAL_DEBUG__ ??= { entries: [] as typeof debugEntry[] });
+  debugStore.entries.push(debugEntry);
+  if (debugStore.entries.length > 100) {
+    debugStore.entries.splice(0, debugStore.entries.length - 100);
+  }
+  console.warn("[TutorialOnboarding]", event, payload ?? {});
+}
 
 function isBrowserStorageAvailable() {
   return typeof window !== "undefined" && typeof window.localStorage !== "undefined";
@@ -96,9 +113,9 @@ export default function useTutorialOnboarding({
   navigate,
 }: UseTutorialOnboardingParams): UseTutorialOnboardingResult {
   const queryClient = useQueryClient();
-  const bootstrapMutation = useTutorialBootstrapMutation();
   const pullMutation = useTutorialPullMutation();
   const bootstrappedUserIdRef = useRef<number | null>(null);
+  const isBootstrappingRef = useRef(false);
   const activePromptSeenKeyRef = useRef<string | null>(null);
   const [tutorialUpdatePrompt, setTutorialUpdatePrompt] = useState<TutorialBootstrapResponse | null>(null);
   const [tutorialPromptType, setTutorialPromptType] = useState<"missing" | "update" | null>(null);
@@ -111,26 +128,44 @@ export default function useTutorialOnboarding({
   }, [queryClient]);
 
   useEffect(() => {
+    debugTutorialOnboarding("effect-enter", {
+      enabled,
+      userId,
+      bootstrappedUserId: bootstrappedUserIdRef.current,
+      isBootstrapPending: isBootstrappingRef.current,
+    });
     if (!enabled || userId <= 0) {
+      debugTutorialOnboarding("effect-skip-disabled-or-anonymous", { enabled, userId });
       return;
     }
-    if (bootstrappedUserIdRef.current === userId || bootstrapMutation.isPending) {
+    if (bootstrappedUserIdRef.current === userId || isBootstrappingRef.current) {
+      debugTutorialOnboarding("effect-skip-already-bootstrapped-or-pending", {
+        userId,
+        bootstrappedUserId: bootstrappedUserIdRef.current,
+        isBootstrapPending: isBootstrappingRef.current,
+      });
       return;
     }
     bootstrappedUserIdRef.current = userId;
+    isBootstrappingRef.current = true;
+    debugTutorialOnboarding("bootstrap-mutate-start", { userId });
 
-    bootstrapMutation.mutate(undefined, {
-      onSuccess: async (response) => {
+    void fetchTutorialBootstrap()
+      .then((response) => {
+        debugTutorialOnboarding("bootstrap-success", { response });
         if (!response?.success) {
+          debugTutorialOnboarding("bootstrap-ignore-response-not-success", { response });
           return;
         }
         const data = response.data;
         if (!data?.enabled) {
+          debugTutorialOnboarding("bootstrap-ignore-tutorial-disabled", { data });
           return;
         }
         activePromptSeenKeyRef.current = null;
 
         if (data.missingTutorial) {
+          debugTutorialOnboarding("prompt-open-missing", { data });
           setTutorialPromptType("missing");
           setTutorialUpdatePrompt(data);
           return;
@@ -138,20 +173,41 @@ export default function useTutorialOnboarding({
 
         if (data.updateAvailable) {
           const seenKey = buildTutorialPromptSeenKey(userId, "update", data);
+          debugTutorialOnboarding("update-available", { data, seenKey });
           if (hasSeenTutorialPrompt(seenKey)) {
+            debugTutorialOnboarding("update-skip-seen", { seenKey });
             return;
           }
           activePromptSeenKeyRef.current = seenKey;
+          debugTutorialOnboarding("prompt-open-update", { data, seenKey });
           setTutorialPromptType("update");
           setTutorialUpdatePrompt(data);
+          return;
         }
-      },
-      onError: () => {
+        debugTutorialOnboarding("bootstrap-no-prompt", { data });
+      })
+      .catch((error) => {
+        debugTutorialOnboarding("bootstrap-error", {
+          error: error instanceof Error ? { name: error.name, message: error.message } : { value: String(error) },
+        });
         // 失败后允许下一次重新尝试。
         bootstrappedUserIdRef.current = null;
-      },
+      })
+      .finally(() => {
+        isBootstrappingRef.current = false;
+        debugTutorialOnboarding("bootstrap-finished", {
+          userId,
+          bootstrappedUserId: bootstrappedUserIdRef.current,
+        });
+      });
+  }, [enabled, userId]);
+
+  useEffect(() => {
+    debugTutorialOnboarding("state-changed", {
+      tutorialPromptType,
+      tutorialUpdatePrompt,
     });
-  }, [bootstrapMutation, enabled, navigate, refreshUserSpaceCaches, userId]);
+  }, [tutorialPromptType, tutorialUpdatePrompt]);
 
   const closeTutorialUpdatePrompt = useCallback(() => {
     if (tutorialPromptType === "update") {

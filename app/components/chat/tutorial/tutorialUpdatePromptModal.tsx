@@ -1,3 +1,5 @@
+import { createPortal } from "react-dom";
+
 interface TutorialUpdatePromptModalProps {
   open: boolean;
   mode: "missing" | "update" | null;
@@ -20,6 +22,9 @@ export default function TutorialUpdatePromptModal({
   if (!open) {
     return null;
   }
+  if (typeof document === "undefined") {
+    return null;
+  }
 
   const isMissingMode = mode === "missing";
   const title = isMissingMode ? "还没有新手教程" : "新手教程有更新";
@@ -28,8 +33,8 @@ export default function TutorialUpdatePromptModal({
     : "检测到新手教程已更新，是否拉取最新版本？拉取后会新建一份教程空间，并删除你当前的旧教程空间。";
   const confirmText = isMissingMode ? "立即克隆" : "立即拉取";
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/35 p-4">
+  return createPortal(
+    <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/35 p-4">
       <div className="w-full max-w-lg rounded-xl border border-base-300 bg-base-100 p-5 shadow-xl">
         <div className="text-lg font-semibold">{title}</div>
         <div className="mt-2 text-sm text-base-content/70 leading-relaxed">
@@ -61,6 +66,7 @@ export default function TutorialUpdatePromptModal({
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
