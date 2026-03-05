@@ -99,11 +99,12 @@ type UseTutorialOnboardingParams = {
   navigate: NavigateFunction;
 };
 
+
 type UseTutorialOnboardingResult = {
   tutorialUpdatePrompt: TutorialBootstrapResponse | null;
   tutorialPromptType: "missing" | "update" | null;
   isPullingTutorialUpdate: boolean;
-  closeTutorialUpdatePrompt: () => void;
+  closeTutorialUpdatePrompt: (suppressUntilUpdate?: boolean) => void;
   confirmTutorialUpdatePull: () => Promise<void>;
 };
 
@@ -165,7 +166,13 @@ export default function useTutorialOnboarding({
         activePromptSeenKeyRef.current = null;
 
         if (data.missingTutorial) {
-          debugTutorialOnboarding("prompt-open-missing", { data });
+          const seenKey = buildTutorialPromptSeenKey(userId, "missing", data);
+          debugTutorialOnboarding("prompt-open-missing", { data, seenKey });
+          if (hasSeenTutorialPrompt(seenKey)) {
+            debugTutorialOnboarding("missing-skip-seen", { seenKey });
+            return;
+          }
+          activePromptSeenKeyRef.current = seenKey;
           setTutorialPromptType("missing");
           setTutorialUpdatePrompt(data);
           return;
@@ -209,14 +216,14 @@ export default function useTutorialOnboarding({
     });
   }, [tutorialPromptType, tutorialUpdatePrompt]);
 
-  const closeTutorialUpdatePrompt = useCallback(() => {
-    if (tutorialPromptType === "update") {
+  const closeTutorialUpdatePrompt = useCallback((suppressUntilUpdate?: boolean) => {
+    if (suppressUntilUpdate) {
       markTutorialPromptSeen(activePromptSeenKeyRef.current);
     }
     activePromptSeenKeyRef.current = null;
     setTutorialPromptType(null);
     setTutorialUpdatePrompt(null);
-  }, [tutorialPromptType]);
+  }, []);
 
   const confirmTutorialUpdatePull = useCallback(async () => {
     if (pullMutation.isPending) {
@@ -246,3 +253,4 @@ export default function useTutorialOnboarding({
     confirmTutorialUpdatePull,
   };
 }
+
