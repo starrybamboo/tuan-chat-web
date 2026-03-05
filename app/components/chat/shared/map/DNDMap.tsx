@@ -583,33 +583,39 @@ export default function DNDMap({ roomId: roomIdProp, spaceId: spaceIdProp, varia
         <div className="flex flex-col gap-2 min-h-0">
           <div className="text-xs text-base-content/60">角色（拖拽到地图）</div>
           <div
-            className="flex items-center gap-2 flex-wrap"
+            className="flex flex-col gap-2 p-2 min-h-[8rem] rounded-md border border-base-300 bg-base-100 transition-colors hover:bg-base-200/30"
             onDragOver={handleDragOver}
             onDrop={handleTokenDropZone}
           >
-            {unplacedRoles.length === 0 && (
-              <span className="text-xs text-base-content/50">暂无可放置角色</span>
+            <div className="flex items-center gap-2 flex-wrap content-start">
+              {unplacedRoles.length === 0 && (
+                <span className="text-xs text-base-content/50 select-none">暂无可放置角色</span>
+              )}
+              {unplacedRoles.map(role => (
+                <RoleToken
+                  key={role.roleId}
+                  role={role}
+                  size={isMobile ? 32 : 40}
+                  draggable={!isMobile}
+                  isSelected={isMobile && selectedRoleId === role.roleId}
+                  onDragStart={handleRoleDragStart}
+                  onClick={() => {
+                    if (!isMobile) {
+                      return;
+                    }
+                    setSelectedRoleId(prev => (prev === role.roleId ? null : role.roleId));
+                  }}
+                />
+              ))}
+            </div>
+            {!isMobile && (
+              <div className="mt-auto text-center border-t border-dashed border-base-200 pt-2">
+                <span className="text-xs text-base-content/40 select-none">
+                  拖拽地图上的角色到此处可移除
+                </span>
+              </div>
             )}
-            {unplacedRoles.map(role => (
-              <RoleToken
-                key={role.roleId}
-                role={role}
-                size={isMobile ? 32 : 40}
-                draggable={!isMobile}
-                isSelected={isMobile && selectedRoleId === role.roleId}
-                onDragStart={handleRoleDragStart}
-                onClick={() => {
-                  if (!isMobile) {
-                    return;
-                  }
-                  setSelectedRoleId(prev => (prev === role.roleId ? null : role.roleId));
-                }}
-              />
-            ))}
           </div>
-          {!isMobile && (
-            <div className="text-xs text-base-content/50">拖到此处可移除角色</div>
-          )}
           {isMobile && selectedRoleId && (
             <div className="text-xs text-primary">
               点击格子放置角色，或再次点击头像取消选择
