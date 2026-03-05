@@ -10,7 +10,7 @@ import { confirmToast } from "@/components/common/comfirmToast";
 import { ImgUploader } from "@/components/common/uploader/imgUploader";
 import { useIsMobile } from "@/utils/getScreenSize";
 import { UploadUtils } from "@/utils/UploadUtils";
-import { useGetRoomRoleQuery } from "../../../../../api/hooks/chatQueryHooks";
+import { useGetRoomNpcRoleQuery, useGetRoomRoleQuery } from "../../../../../api/hooks/chatQueryHooks";
 import { useGetRoleAvatarQuery } from "../../../../../api/hooks/RoleAndAvatarHooks";
 
 import {
@@ -161,7 +161,13 @@ export default function DNDMap({ roomId: roomIdProp, spaceId: spaceIdProp, varia
   const [selectedRoleId, setSelectedRoleId] = useState<number | null>(null);
 
   const { data: roomRolesData } = useGetRoomRoleQuery(roomId);
-  const roomRoles = useMemo(() => roomRolesData?.data ?? [], [roomRolesData]);
+  const { data: roomNpcRolesData } = useGetRoomNpcRoleQuery(roomId);
+  const roomRoles = useMemo(() => {
+    const roles = roomRolesData?.data ?? [];
+    const npcRoles = roomNpcRolesData?.data ?? [];
+    return [...roles, ...npcRoles];
+  }, [roomRolesData, roomNpcRolesData]);
+
 
   const mapQuery = useQuery({
     queryKey: roomDndMapQueryKey(roomId),
