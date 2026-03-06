@@ -5,6 +5,35 @@ import { AliasMap } from "@/components/common/dicer/utils/aliasMap";
 import { tuanchat } from "../../../../../api/instance";
 
 const DEFAULT_DICER_ROLE_ID = 2;
+const DICER_ROLE_CACHE_TTL_MS = 10 * 60_000;
+const SPACE_CACHE_TTL_MS = 10 * 60_000;
+const ROLE_BIND_CACHE_TTL_MS = 10 * 60_000;
+const USER_DICER_ROLE_CACHE_TTL_MS = 10 * 60_000;
+const ROLE_DICE_TYPE_CACHE_TTL_MS = 30 * 60_000;
+
+type ExpiringCacheEntry<T> = {
+  value: T;
+  expireAt: number;
+};
+
+type DicerRoleResolveOptions = {
+  // 优先复用上层已有的空间快照，避免重复请求 getSpaceInfo。
+  spaceSnapshot?: {
+    extra?: unknown;
+    dicerRoleId?: unknown;
+  } | null;
+  // 优先复用上层已有的当前角色快照，避免重复请求 getRole(curRoleId)。
+  currentRoleSnapshot?: {
+    roleId?: unknown;
+    extra?: unknown;
+  } | null;
+};
+
+const resolvedDicerRoleCache = new Map<string, ExpiringCacheEntry<number>>();
+const spaceSnapshotCache = new Map<number, ExpiringCacheEntry<any>>();
+const roleDicerBindCache = new Map<number, ExpiringCacheEntry<number | null>>();
+const roleDiceTypeCache = new Map<number, ExpiringCacheEntry<boolean>>();
+let userDicerRoleCache: ExpiringCacheEntry<number | null> | null = null;
 
 const UTILS = {
   /**
@@ -399,19 +428,10 @@ function evaluatePostfix(postfix: (number | string)[]): number {
  * @param roomContext 房间上下文对象
  * @returns 骰子角色ID
  */
-async function getDicerRoleIdRaw(roomContext: RoomContextType): Promise<number> {
-  const spaceInfo = await tuanchat.spaceController.getSpaceInfo(roomContext.spaceId ?? 0);
-  const space = spaceInfo.data;
-  let extra: Record<string, unknown> = {};
-  try {
-    extra = JSON.parse(space?.extra ?? "{}");
-  }
-  catch (err) {
-    console.error("解析 space.extra 失败，使用默认骰娘", err);
-    extra = {};
-  }
-
-  const extraRecord = extra as Record<string, unknown>;
+async function getDicerRoleIdRaw(roomContext: RoomContextType, options?: DicerRoleResolveOptions): Promise<number> {
+  const spaceId = Number(roomContext.spaceId ?? 0);
+  const space = await getSpaceSnapshot(spaceId, options);
+  const extraRecord = normalizeRecord(space?.extra);
   const rawAllowCustom = extraRecord.allowCustomDicerRole;
   const allowCustomDicerRole = rawAllowCustom === undefined
     ? true
@@ -419,28 +439,26 @@ async function getDicerRoleIdRaw(roomContext: RoomContextType): Promise<number> 
       || rawAllowCustom === "true"
       || rawAllowCustom === 1
       || rawAllowCustom === "1";
+  const currentRoleId = Number(roomContext.curRoleId);
+  // 旁白/未选角色（<=0）统一走空间骰娘，避免触发 getRole(-1) 后回退到默认 2。
+  const hasSelectedRole = Number.isFinite(currentRoleId) && currentRoleId > 0;
 
-  if (allowCustomDicerRole) {
+  if (allowCustomDicerRole && hasSelectedRole) {
     // 首先尝试获取角色绑定的骰娘角色id
-    const roleDicerRoleId = Number((await tuanchat.roleController.getRole(roomContext.curRoleId ?? 0)).data?.extra?.dicerRoleId) ?? Number.NaN;
-    if (!Number.isNaN(roleDicerRoleId)) {
+    const roleDicerRoleId = await getRoleBoundDicerRoleId(currentRoleId, options);
+    if (roleDicerRoleId != null) {
       return roleDicerRoleId;
     }
     // 如果没有绑定，则尝试从用户配置中获取骰娘角色id
-    const myInfoResult = await tuanchat.userController.getMyUserInfo();
-    const userExtra = normalizeRecord(myInfoResult.data?.extra);
-    const userDicerRoleId = Number(userExtra.dicerRoleId) ?? Number.NaN;
-    if (!Number.isNaN(userDicerRoleId)) {
+    const userDicerRoleId = await getUserBoundDicerRoleId();
+    if (userDicerRoleId != null) {
       return userDicerRoleId;
     }
   }
 
   // 如果关闭自定义或未绑定，则尝试从空间配置中获取骰娘角色id
-  const spaceLevelDicerRoleId = Number(extraRecord.dicerRoleId ?? space?.dicerRoleId ?? DEFAULT_DICER_ROLE_ID);
-  if (Number.isNaN(spaceLevelDicerRoleId)) {
-    return DEFAULT_DICER_ROLE_ID;
-  }
-  return spaceLevelDicerRoleId;
+  return toPositiveRoleId(extraRecord.dicerRoleId ?? space?.dicerRoleId ?? DEFAULT_DICER_ROLE_ID)
+    ?? DEFAULT_DICER_ROLE_ID;
 }
 
 function normalizeRecord(value: unknown): Record<string, unknown> {
@@ -462,20 +480,117 @@ function normalizeRecord(value: unknown): Record<string, unknown> {
   return {};
 }
 
-async function getDicerRoleId(roomContext: RoomContextType): Promise<number> {
+function readCacheValue<T>(entry: ExpiringCacheEntry<T> | null | undefined): T | undefined {
+  if (!entry) {
+    return undefined;
+  }
+  if (entry.expireAt <= Date.now()) {
+    return undefined;
+  }
+  return entry.value;
+}
+
+function writeCacheValue<T>(value: T, ttlMs: number): ExpiringCacheEntry<T> {
+  return {
+    value,
+    expireAt: Date.now() + ttlMs,
+  };
+}
+
+function toPositiveRoleId(value: unknown): number | null {
+  const n = Number(value);
+  if (!Number.isFinite(n) || n <= 0) {
+    return null;
+  }
+  return Math.trunc(n);
+}
+
+function buildResolvedDicerRoleCacheKey(roomContext: RoomContextType): string {
+  const spaceId = Number(roomContext.spaceId ?? 0);
+  const roleId = Number(roomContext.curRoleId ?? 0);
+  return `${spaceId}:${roleId}`;
+}
+
+async function getSpaceSnapshot(spaceId: number, options?: DicerRoleResolveOptions): Promise<any> {
+  if (options?.spaceSnapshot && typeof options.spaceSnapshot === "object") {
+    return options.spaceSnapshot;
+  }
+  const cached = readCacheValue(spaceSnapshotCache.get(spaceId));
+  if (cached !== undefined) {
+    return cached;
+  }
+  const spaceInfo = await tuanchat.spaceController.getSpaceInfo(spaceId);
+  const space = spaceInfo.data;
+  spaceSnapshotCache.set(spaceId, writeCacheValue(space, SPACE_CACHE_TTL_MS));
+  return space;
+}
+
+async function getRoleBoundDicerRoleId(roleId: number, options?: DicerRoleResolveOptions): Promise<number | null> {
+  const roleSnapshot = options?.currentRoleSnapshot;
+  if (roleSnapshot && toPositiveRoleId(roleSnapshot.roleId) === roleId) {
+    const roleExtra = normalizeRecord(roleSnapshot.extra);
+    const snapshotRoleId = toPositiveRoleId(roleExtra.dicerRoleId);
+    roleDicerBindCache.set(roleId, writeCacheValue(snapshotRoleId, ROLE_BIND_CACHE_TTL_MS));
+    return snapshotRoleId;
+  }
+
+  const cached = readCacheValue(roleDicerBindCache.get(roleId));
+  if (cached !== undefined) {
+    return cached;
+  }
+
+  const roleRes = await tuanchat.roleController.getRole(roleId);
+  const roleDicerRoleId = toPositiveRoleId(roleRes.data?.extra?.dicerRoleId);
+  roleDicerBindCache.set(roleId, writeCacheValue(roleDicerRoleId, ROLE_BIND_CACHE_TTL_MS));
+  return roleDicerRoleId;
+}
+
+async function getUserBoundDicerRoleId(): Promise<number | null> {
+  const cached = readCacheValue(userDicerRoleCache);
+  if (cached !== undefined) {
+    return cached;
+  }
+  const myInfoResult = await tuanchat.userController.getMyUserInfo();
+  const userExtra = normalizeRecord(myInfoResult.data?.extra);
+  const userDicerRoleId = toPositiveRoleId(userExtra.dicerRoleId);
+  userDicerRoleCache = writeCacheValue(userDicerRoleId, USER_DICER_ROLE_CACHE_TTL_MS);
+  return userDicerRoleId;
+}
+
+async function isDiceMaidenRole(roleId: number): Promise<boolean> {
+  if (roleId === DEFAULT_DICER_ROLE_ID) {
+    return true;
+  }
+  const cached = readCacheValue(roleDiceTypeCache.get(roleId));
+  if (cached !== undefined) {
+    return cached;
+  }
+  const roleRes = await tuanchat.roleController.getRole(roleId);
+  const roleData = roleRes.data;
+  const isDiceMaiden = Boolean(roleData?.roleName && roleData?.type === 1);
+  roleDiceTypeCache.set(roleId, writeCacheValue(isDiceMaiden, ROLE_DICE_TYPE_CACHE_TTL_MS));
+  return isDiceMaiden;
+}
+
+async function getDicerRoleId(roomContext: RoomContextType, options?: DicerRoleResolveOptions): Promise<number> {
   // 检查当前骰娘id是否有效
+  const cacheKey = buildResolvedDicerRoleCacheKey(roomContext);
+  const cachedResolved = readCacheValue(resolvedDicerRoleCache.get(cacheKey));
+  if (cachedResolved !== undefined) {
+    return cachedResolved;
+  }
   try {
-    const dicerRoleId = await getDicerRoleIdRaw(roomContext);
-    const dicerRoleApiResult = await tuanchat.roleController.getRole(dicerRoleId);
-    const roleData = dicerRoleApiResult.data;
-    // 需要确认角色类型是否为1（骰娘）；若不是则改用默认骰娘
-    if (roleData?.roleName && roleData?.type === 1) {
-      return dicerRoleId;
-    }
-    return DEFAULT_DICER_ROLE_ID;
+    const dicerRoleId = await getDicerRoleIdRaw(roomContext, options);
+    const normalizedDicerRoleId = toPositiveRoleId(dicerRoleId) ?? DEFAULT_DICER_ROLE_ID;
+    const resolvedRoleId = (await isDiceMaidenRole(normalizedDicerRoleId))
+      ? normalizedDicerRoleId
+      : DEFAULT_DICER_ROLE_ID;
+    resolvedDicerRoleCache.set(cacheKey, writeCacheValue(resolvedRoleId, DICER_ROLE_CACHE_TTL_MS));
+    return resolvedRoleId;
   }
   catch (error) {
     console.error("getDicerRoleId error", error);
+    resolvedDicerRoleCache.set(cacheKey, writeCacheValue(DEFAULT_DICER_ROLE_ID, 5_000));
     return DEFAULT_DICER_ROLE_ID;
   }
 }
