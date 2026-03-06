@@ -5,6 +5,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { use, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import { RoomContext } from "@/components/chat/core/roomContext";
+import { compareChatMessageResponsesByOrder } from "@/components/chat/shared/messageOrder";
 import { exportChatMessages } from "@/utils/exportChatMessages";
 import { shouldRetryRoleQueryError } from "@/utils/roleApiError";
 import { useGetRolesQueries } from "../../../../../api/hooks/RoleAndAvatarHooks";
@@ -34,7 +35,7 @@ export default function ExportChatDrawer({ messages, onClose }: ExportChatDrawer
     if (!messages) {
       return base;
     }
-    return [...base].sort((a, b) => a.message.position - b.message.position);
+    return [...base].sort(compareChatMessageResponsesByOrder);
   }, [messages, roomContext.chatHistory?.messages]);
 
   // 获取所有角色信息用于导出

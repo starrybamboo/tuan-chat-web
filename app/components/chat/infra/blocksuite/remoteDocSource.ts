@@ -59,16 +59,41 @@ class RemoteYjsLogDocSource implements DocSource {
     if (!key)
       return null;
 
-    const snapshot = await getRemoteSnapshot(key);
-    const baseUpdate = snapshot?.updateB64 ? base64ToUint8Array(snapshot.updateB64) : null;
+    let snapshot: StoredSnapshot | null = null;
+    let snapshotPullFailed = false;
+    try {
+      snapshot = await getRemoteSnapshot(key);
+    }
+    catch {
+      snapshotPullFailed = true;
+    }
+
+    let baseUpdate: Uint8Array | null = null;
+    let snapshotDecodeFailed = false;
+    if (snapshot?.updateB64) {
+      try {
+        baseUpdate = base64ToUint8Array(snapshot.updateB64);
+      }
+      catch {
+        snapshotDecodeFailed = true;
+      }
+    }
+
     const after = snapshotCursor(snapshot);
 
     // Pull incremental updates after snapshot cursor.
-    const remoteUpdates = await getRemoteUpdates({
-      ...key,
-      afterServerTime: after,
-      limit: 2000,
-    });
+    let remoteUpdates: Awaited<ReturnType<typeof getRemoteUpdates>> = null;
+    let updatesPullFailed = false;
+    try {
+      remoteUpdates = await getRemoteUpdates({
+        ...key,
+        afterServerTime: after,
+        limit: 2000,
+      });
+    }
+    catch {
+      updatesPullFailed = true;
+    }
 
     const mergedParts: Uint8Array[] = [];
     if (baseUpdate?.length) {
@@ -86,6 +111,11 @@ class RemoteYjsLogDocSource implements DocSource {
     }
 
     if (!mergedParts.length) {
+      // No snapshot and updates pull failed: likely a transient network issue.
+      // Surface as an error so callers can retry with backoff.
+      if (snapshotPullFailed || snapshotDecodeFailed || updatesPullFailed) {
+        throw new Error("remote-yjs-log pull failed without any recoverable data");
+      }
       return null;
     }
 
