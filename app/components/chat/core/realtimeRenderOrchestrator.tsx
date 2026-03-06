@@ -8,6 +8,7 @@ import {
   shouldRenderInitialHistory,
   shouldRerenderForSettingsChange,
 } from "@/components/chat/core/realtimeRenderGuards";
+import { compareChatMessageResponsesByOrder } from "@/components/chat/shared/messageOrder";
 import { useRealtimeRenderStore } from "@/components/chat/stores/realtimeRenderStore";
 import { useSideDrawerStore } from "@/components/chat/stores/sideDrawerStore";
 import { isImageMessageBackground } from "@/types/messageAnnotations";
@@ -17,17 +18,7 @@ import { getTerreHealthcheckUrl } from "@/webGAL/terreConfig";
 import useRealtimeRender from "@/webGAL/useRealtimeRender";
 
 function sortMessagesForRender(messages: ChatMessageResponse[]) {
-  return [...messages].sort((a, b) => {
-    const positionDiff = (a.message.position ?? 0) - (b.message.position ?? 0);
-    if (positionDiff !== 0) {
-      return positionDiff;
-    }
-    const syncIdDiff = (a.message.syncId ?? 0) - (b.message.syncId ?? 0);
-    if (syncIdDiff !== 0) {
-      return syncIdDiff;
-    }
-    return a.message.messageId - b.message.messageId;
-  });
+  return [...messages].sort(compareChatMessageResponsesByOrder);
 }
 
 export interface RealtimeRenderOrchestratorApi {

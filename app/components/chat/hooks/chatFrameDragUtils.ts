@@ -1,5 +1,7 @@
 import type { ChatMessageResponse, Message } from "../../../../api";
 
+import { compareMessagesByOrder } from "@/components/chat/shared/messageOrder";
+
 type ComputeMoveMessageUpdatesParams = {
   historyMessages: ChatMessageResponse[];
   targetIndex: number;
@@ -44,7 +46,7 @@ export function computeMoveMessageUpdates({
   const selectedMessages = Array.from(movableMessageIds)
     .map(id => historyMessages.find(m => m.message.messageId === id)?.message)
     .filter((msg): msg is Message => msg !== undefined)
-    .sort((a, b) => a.position - b.position);
+    .sort(compareMessagesByOrder);
 
   if (selectedMessages.length === 0) {
     return {

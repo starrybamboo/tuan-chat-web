@@ -4,6 +4,7 @@ import type { ChatMessageResponse } from "../../../../../api";
 
 import { tuanchat } from "../../../../../api/instance";
 import { MessageType } from "../../../../../api/wsModels";
+import { compareChatMessageResponsesByOrder } from "@/components/chat/shared/messageOrder";
 import {
   addOrUpdateMessagesBatch as dbAddOrUpdateMessages,
   clearMessagesByRoomId as dbClearMessages,
@@ -391,76 +392,6 @@ function mergeMessageForLocalState(
   };
 }
 
-function compareMessagesByStableOrder(a: ChatMessageResponse, b: ChatMessageResponse): number {
-  const aMessage = a.message;
-  const bMessage = b.message;
-
-  const aPosition = toFiniteNumber(aMessage.position);
-  const bPosition = toFiniteNumber(bMessage.position);
-  if (aPosition !== undefined && bPosition !== undefined && aPosition !== bPosition) {
-    return aPosition - bPosition;
-  }
-  if (aPosition !== undefined && bPosition === undefined) {
-    return -1;
-  }
-  if (aPosition === undefined && bPosition !== undefined) {
-    return 1;
-  }
-
-  const aSyncId = toFiniteNumber(aMessage.syncId);
-  const bSyncId = toFiniteNumber(bMessage.syncId);
-  if (aSyncId !== undefined && bSyncId !== undefined && aSyncId !== bSyncId) {
-    return aSyncId - bSyncId;
-  }
-  if (aSyncId !== undefined && bSyncId === undefined) {
-    return -1;
-  }
-  if (aSyncId === undefined && bSyncId !== undefined) {
-    return 1;
-  }
-
-  const aMessageId = toFiniteNumber(aMessage.messageId);
-  const bMessageId = toFiniteNumber(bMessage.messageId);
-  if (aMessageId !== undefined && bMessageId !== undefined && aMessageId !== bMessageId) {
-    return aMessageId - bMessageId;
-  }
-  if (aMessageId !== undefined && bMessageId === undefined) {
-    return -1;
-  }
-  if (aMessageId === undefined && bMessageId !== undefined) {
-    return 1;
-  }
-
-  const aCreateTime = parseTimeToMs(aMessage.createTime);
-  const bCreateTime = parseTimeToMs(bMessage.createTime);
-  if (aCreateTime !== undefined && bCreateTime !== undefined && aCreateTime !== bCreateTime) {
-    return aCreateTime - bCreateTime;
-  }
-  if (aCreateTime !== undefined && bCreateTime === undefined) {
-    return -1;
-  }
-  if (aCreateTime === undefined && bCreateTime !== undefined) {
-    return 1;
-  }
-
-  // 最后兜底，保证排序结果稳定可重复。
-  const aTieBreaker = stableSerialize({
-    content: aMessage.content ?? "",
-    messageType: aMessage.messageType,
-    roleId: aMessage.roleId ?? 0,
-    userId: aMessage.userId ?? 0,
-    replyMessageId: aMessage.replyMessageId ?? 0,
-  });
-  const bTieBreaker = stableSerialize({
-    content: bMessage.content ?? "",
-    messageType: bMessage.messageType,
-    roleId: bMessage.roleId ?? 0,
-    userId: bMessage.userId ?? 0,
-    replyMessageId: bMessage.replyMessageId ?? 0,
-  });
-  return aTieBreaker.localeCompare(bTieBreaker);
-}
-
 /**
  * 用于管理特定房间聊天记录的React Hook
  * @param roomId 要管理的房间ID, 你可以设置为null，然后通过getMessagesByRoomId获取
@@ -589,7 +520,7 @@ export function useChatHistory(roomId: number | null): UseChatHistoryReturn {
 
           const updatedMessages = Array.from(messageMap.values());
           // 按 position 排序确保顺序
-          const nextMessages = updatedMessages.sort(compareMessagesByStableOrder);
+          const nextMessages = updatedMessages.sort(compareChatMessageResponsesByOrder);
           logMessageOrderChange({
             source: "addOrUpdateMessages",
             roomId: currentRoomId,
@@ -697,7 +628,7 @@ export function useChatHistory(roomId: number | null): UseChatHistoryReturn {
         return prevMessages;
       }
 
-      const nextMessages = Array.from(messageMap.values()).sort(compareMessagesByStableOrder);
+      const nextMessages = Array.from(messageMap.values()).sort(compareChatMessageResponsesByOrder);
       logMessageOrderChange({
         source: "replaceMessageById",
         roomId: currentRoomId,
@@ -762,7 +693,7 @@ export function useChatHistory(roomId: number | null): UseChatHistoryReturn {
       return [];
     }
 
-    return [...messages, ...newMessages].sort(compareMessagesByStableOrder);
+    return [...messages, ...newMessages].sort(compareChatMessageResponsesByOrder);
   }, [fetchNewestMessages]);
 
   /**
@@ -801,7 +732,7 @@ export function useChatHistory(roomId: number | null): UseChatHistoryReturn {
         if (isCancelled)
           return;
         // 按 position 排序后设置消息
-        const sortedLocalHistory = localHistory.sort(compareMessagesByStableOrder);
+        const sortedLocalHistory = localHistory.sort(compareChatMessageResponsesByOrder);
         setMessages(sortedLocalHistory);
         const localMaxSyncId = localHistory.length > 0
           ? Math.max(...localHistory.map(msg => msg.message.syncId))

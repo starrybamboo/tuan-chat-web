@@ -9,6 +9,7 @@ import {
   MIN_ROOM_CONTENT_ALERT_THRESHOLD,
   useRealtimeRenderStore,
 } from "@/components/chat/stores/realtimeRenderStore";
+import { compareChatMessageResponsesByOrder } from "@/components/chat/shared/messageOrder";
 import WorkflowWindow from "@/components/chat/window/workflowWindow";
 import launchWebGal, { appendWebgalLaunchHints } from "@/utils/launchWebGal";
 import { pollPort } from "@/utils/pollPort";
@@ -54,17 +55,7 @@ function extractArrayPayload<T>(value: unknown): T[] {
 }
 
 function sortMessagesForRender(messages: ChatMessageResponse[]): ChatMessageResponse[] {
-  return [...messages].sort((a, b) => {
-    const positionDiff = (a.message.position ?? 0) - (b.message.position ?? 0);
-    if (positionDiff !== 0) {
-      return positionDiff;
-    }
-    const syncIdDiff = (a.message.syncId ?? 0) - (b.message.syncId ?? 0);
-    if (syncIdDiff !== 0) {
-      return syncIdDiff;
-    }
-    return a.message.messageId - b.message.messageId;
-  });
+  return [...messages].sort(compareChatMessageResponsesByOrder);
 }
 
 function getErrorMessage(error: unknown): string {

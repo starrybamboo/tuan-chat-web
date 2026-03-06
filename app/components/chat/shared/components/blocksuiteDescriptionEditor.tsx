@@ -182,6 +182,8 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
 
   const [currentMode, setCurrentMode] = useState<DocMode>(forcedMode);
   const currentModeRef = useRef<DocMode>(forcedMode);
+  const [reloadEpoch, setReloadEpoch] = useState(0);
+  const [isForcePullingCloud, setIsForcePullingCloud] = useState(false);
 
   useEffect(() => {
     currentModeRef.current = currentMode;
@@ -225,6 +227,65 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
       ? { entityType: parsed.entityType, entityId: parsed.entityId }
       : null;
   }, [docId]);
+
+  const canForcePullFromCloud = useMemo(() => {
+    return !readOnly && Boolean(parseDescriptionDocId(docId));
+  }, [docId, readOnly]);
+
+  const handleForcePullFromCloud = useCallback(async () => {
+    if (!canForcePullFromCloud || isForcePullingCloud)
+      return;
+
+    setIsForcePullingCloud(true);
+    try {
+      const key = parseDescriptionDocId(docId);
+      if (!key) {
+        toast.error("当前文档不支持云端拉取");
+        return;
+      }
+
+      const remote = await getRemoteSnapshot(key);
+      const updateB64 = String(remote?.updateB64 ?? "");
+      if (!updateB64) {
+        toast.error("云端暂无可用文档快照");
+        return;
+      }
+      const update = base64ToUint8Array(updateB64);
+
+      // 丢弃本地离线队列，避免旧改动在替换后反向覆盖云端。
+      try {
+        const { clearUpdates } = await import("@/components/chat/infra/blocksuite/descriptionDocDb");
+        await clearUpdates(docId);
+      }
+      catch {
+        // ignore
+      }
+
+      const runtime = runtimeRef.current ?? await loadBlocksuiteRuntime();
+      runtimeRef.current = runtime;
+      const workspace = runtime.getOrCreateWorkspace(workspaceId) as any;
+      if (typeof workspace.replaceDocFromUpdate === "function") {
+        workspace.replaceDocFromUpdate({ docId, update });
+      }
+      else if (typeof workspace.restoreDocFromUpdate === "function") {
+        // fallback: old runtime only supports merge restore
+        workspace.restoreDocFromUpdate({ docId, update });
+      }
+      else {
+        toast.error("当前运行时不支持云端覆盖");
+        return;
+      }
+
+      setReloadEpoch(v => v + 1);
+      toast.success("已用云端内容覆盖本地");
+    }
+    catch {
+      toast.error("云端拉取失败，请稍后重试");
+    }
+    finally {
+      setIsForcePullingCloud(false);
+    }
+  }, [canForcePullFromCloud, docId, isForcePullingCloud, workspaceId]);
 
   const postToParent = (payload: any) => {
     try {
@@ -822,7 +883,7 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
           delete g.blocksuiteStore;
       }
     };
-  }, [docId, docModeProvider, isFull, readOnly, spaceId, tcHeader?.fallbackImageUrl, tcHeader?.fallbackTitle, tcHeaderEnabled, workspaceId]);
+  }, [docId, docModeProvider, isFull, readOnly, reloadEpoch, spaceId, tcHeader?.fallbackImageUrl, tcHeader?.fallbackTitle, tcHeaderEnabled, workspaceId]);
 
   useEffect(() => {
     const editor = editorRef.current as any;
@@ -1132,6 +1193,18 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
                             </button>
                           )
                         : null}
+                      {canForcePullFromCloud
+                        ? (
+                            <button
+                              type="button"
+                              className="tc-blocksuite-tc-header-btn tc-blocksuite-tc-header-btn-ghost"
+                              disabled={isForcePullingCloud}
+                              onClick={() => void handleForcePullFromCloud()}
+                            >
+                              {isForcePullingCloud ? "拉取中..." : "云端覆盖"}
+                            </button>
+                          )
+                        : null}
                       {allowModeSwitch
                         ? (
                             <button
@@ -1152,7 +1225,7 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
             )
           : null}
 
-        {allowModeSwitch && !tcHeaderEnabled
+        {(allowModeSwitch || canForcePullFromCloud) && !tcHeaderEnabled
           ? (
               <div className="flex items-center justify-end p-2 border-b border-base-300">
                 {currentMode === "edgeless"
@@ -1166,15 +1239,31 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
                       </button>
                     )
                   : null}
-                <button
-                  type="button"
-                  className="btn btn-sm"
-                  onClick={() => {
-                    docModeProvider.togglePrimaryMode(docId);
-                  }}
-                >
-                  {currentMode === "page" ? "切换到画布" : "退出画布"}
-                </button>
+                {canForcePullFromCloud
+                  ? (
+                      <button
+                        type="button"
+                        className="btn btn-sm mr-2"
+                        disabled={isForcePullingCloud}
+                        onClick={() => void handleForcePullFromCloud()}
+                      >
+                        {isForcePullingCloud ? "拉取中..." : "云端覆盖"}
+                      </button>
+                    )
+                  : null}
+                {allowModeSwitch
+                  ? (
+                      <button
+                        type="button"
+                        className="btn btn-sm"
+                        onClick={() => {
+                          docModeProvider.togglePrimaryMode(docId);
+                        }}
+                      >
+                        {currentMode === "page" ? "切换到画布" : "退出画布"}
+                      </button>
+                    )
+                  : null}
               </div>
             )
           : null}

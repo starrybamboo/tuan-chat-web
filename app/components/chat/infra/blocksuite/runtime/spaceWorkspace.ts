@@ -29,6 +29,8 @@ import { AFFINE_STORE_EXTENSIONS } from "@/components/chat/infra/blocksuite/spec
 const remoteSnapshotDocSource = new RemoteSnapshotDocSource();
 const REMOTE_RESTORE_ORIGIN = "tc:remote-restore";
 const REMOTE_WS_ORIGIN = "tc:remote-ws";
+const INITIAL_REMOTE_PULL_RETRY_DELAY_MS = [0, 400, 1200, 2800] as const;
+const BACKGROUND_REMOTE_PULL_RETRY_MS = 15_000;
 
 class InMemoryWorkspaceMeta implements WorkspaceMeta {
   private _docMetas: DocMeta[] = [];
@@ -103,9 +105,14 @@ class SpaceDoc implements Doc {
   private readonly _storeContainer: StoreContainer;
   private _remoteUpdateHandler: ((update: Uint8Array, origin: unknown) => void) | null = null;
   private _pendingRemoteUpdates: Uint8Array[] = [];
+  private _pendingPreHydrationUpdates: Uint8Array[] = [];
   private _remotePushTimer: ReturnType<typeof setTimeout> | null = null;
+  private _hydrationRetryTimer: ReturnType<typeof setTimeout> | null = null;
   private _wsDisposers: Array<() => void> = [];
   private _wsKey: BlocksuiteDocKey | null = null;
+  private _disposed = false;
+  private _remoteHydrationCompleted = false;
+  private _hydrationInFlight = false;
 
   private _loaded = true;
   private _ready = false;
@@ -171,6 +178,8 @@ class SpaceDoc implements Doc {
     if (this._ready)
       return;
 
+    this._disposed = false;
+    this._remoteHydrationCompleted = !parseDescriptionDocId(this.id);
     this.spaceDoc.load();
     initFn?.();
     this._ready = true;
@@ -181,6 +190,13 @@ class SpaceDoc implements Doc {
       // Ignore initial loads / programmatic remote restores to avoid redundant PUT right after GET.
       if (origin === "load" || origin === REMOTE_RESTORE_ORIGIN || origin === REMOTE_WS_ORIGIN)
         return;
+
+      // 防止“空本地先推上去覆盖云端”：
+      // 在首次远端恢复完成前，只缓存更新，不立即上行。
+      if (!this._remoteHydrationCompleted) {
+        this._pendingPreHydrationUpdates.push(update);
+        return;
+      }
 
       this._enqueueRemoteUpdate(update);
     };
@@ -214,7 +230,13 @@ class SpaceDoc implements Doc {
     this.yBlocks.clear();
   }
 
-  dispose(): void {
+  dispose(options?: { flushPending?: boolean }): void {
+    const flushPending = options?.flushPending !== false;
+    this._disposed = true;
+    if (this._hydrationRetryTimer) {
+      clearTimeout(this._hydrationRetryTimer);
+      this._hydrationRetryTimer = null;
+    }
     if (this._remotePushTimer) {
       clearTimeout(this._remotePushTimer);
       this._remotePushTimer = null;
@@ -222,7 +244,8 @@ class SpaceDoc implements Doc {
 
     const pending = this._pendingRemoteUpdates;
     this._pendingRemoteUpdates = [];
-    if (pending.length) {
+    this._pendingPreHydrationUpdates = [];
+    if (flushPending && pending.length) {
       void remoteSnapshotDocSource.push(this.id, mergeUpdates(pending));
     }
 
@@ -244,19 +267,9 @@ class SpaceDoc implements Doc {
 
     blocksuiteWsClient.joinDoc(parsed);
 
-    // Catch-up by stateVector diff: pull snapshot+updates, then apply the minimal diff against local stateVector.
-    void (async () => {
-      try {
-        const stateVector = encodeStateVector(this.spaceDoc);
-        const pulled = await remoteSnapshotDocSource.pull(this.id, stateVector);
-        if (pulled?.data?.length) {
-          applyUpdate(this.spaceDoc, pulled.data, REMOTE_WS_ORIGIN);
-        }
-      }
-      catch {
-        // ignore
-      }
-    })();
+    // Catch-up by stateVector diff: pull snapshot+updates, then apply minimal diff.
+    // 若网络短时失败，先做快速重试；仍失败则转后台周期重试。
+    void this._runInitialRemoteHydration();
 
     this._wsDisposers.push(
       blocksuiteWsClient.onUpdate(parsed, ({ update }) => {
@@ -284,6 +297,91 @@ class SpaceDoc implements Doc {
     }
     this._wsDisposers = [];
     this._wsKey = null;
+  }
+
+  private _completeRemoteHydration() {
+    if (this._remoteHydrationCompleted)
+      return;
+    this._remoteHydrationCompleted = true;
+
+    if (!this._pendingPreHydrationUpdates.length)
+      return;
+
+    const merged = this._pendingPreHydrationUpdates.length === 1
+      ? this._pendingPreHydrationUpdates[0]
+      : mergeUpdates(this._pendingPreHydrationUpdates);
+    this._pendingPreHydrationUpdates = [];
+    this._enqueueRemoteUpdate(merged);
+  }
+
+  private _scheduleRemoteHydrationRetry() {
+    if (this._disposed || this._remoteHydrationCompleted || this._hydrationRetryTimer) {
+      return;
+    }
+
+    this._hydrationRetryTimer = setTimeout(() => {
+      this._hydrationRetryTimer = null;
+      void this._runInitialRemoteHydration();
+    }, BACKGROUND_REMOTE_PULL_RETRY_MS);
+  }
+
+  private async _runInitialRemoteHydration() {
+    if (this._disposed || this._remoteHydrationCompleted || this._hydrationInFlight) {
+      return;
+    }
+    this._hydrationInFlight = true;
+
+    try {
+      for (let i = 0; i < INITIAL_REMOTE_PULL_RETRY_DELAY_MS.length; i++) {
+        if (this._disposed) {
+          return;
+        }
+
+        const delay = INITIAL_REMOTE_PULL_RETRY_DELAY_MS[i];
+        if (delay > 0) {
+          await new Promise<void>((resolve) => {
+            setTimeout(resolve, delay);
+          });
+          if (this._disposed) {
+            return;
+          }
+        }
+
+        try {
+          const stateVector = encodeStateVector(this.spaceDoc);
+          const pulled = await remoteSnapshotDocSource.pull(this.id, stateVector);
+          if (this._disposed) {
+            return;
+          }
+          if (pulled?.data?.length) {
+            applyUpdate(this.spaceDoc, pulled.data, REMOTE_WS_ORIGIN);
+          }
+          else {
+            // 远端明确“无数据”时，才初始化本地最小骨架。
+            // 这样可以避免网络抖动期间先创建空文档并上推覆盖云端。
+            try {
+              const store = this.getStore();
+              ensureAffineMinimumBlockData(store);
+            }
+            catch {
+              // ignore
+            }
+          }
+          this._completeRemoteHydration();
+          return;
+        }
+        catch {
+          // ignore and retry with backoff
+        }
+      }
+    }
+    finally {
+      this._hydrationInFlight = false;
+    }
+
+    if (!this._remoteHydrationCompleted && !this._disposed) {
+      this._scheduleRemoteHydrationRetry();
+    }
   }
 
   getStore(options: GetStoreOptions = {}): Store {
@@ -562,6 +660,46 @@ export class SpaceWorkspace implements Workspace {
   }
 
   /**
+   * 强制用指定 full update 替换本地 doc 内容（丢弃当前本地未同步改动）。
+   *
+   * 与 restoreDocFromUpdate 的“合并”语义不同，这里会重建同 docId 的 subdoc，
+   * 以实现“云端覆盖本地”。
+   */
+  replaceDocFromUpdate(params: { docId: string; update: Uint8Array }) {
+    const existing = this.getDoc(params.docId) as SpaceDoc | null;
+    if (existing) {
+      try {
+        // Replace 语义：明确丢弃本地 pending，避免旧本地改动反向推到远端。
+        existing.dispose({ flushPending: false });
+      }
+      catch {
+        // ignore
+      }
+    }
+
+    this._docs.delete(params.docId);
+    this._rootDoc.getMap<Y.Doc>("spaces").delete(params.docId);
+
+    if (!this.meta.getDocMeta(params.docId)) {
+      this.meta.addDocMeta({
+        id: params.docId,
+        title: "",
+        tags: [],
+        createDate: Date.now(),
+      });
+    }
+
+    const fresh = new SpaceDoc({ id: params.docId, workspace: this, rootDoc: this._rootDoc });
+    this._docs.set(params.docId, fresh);
+
+    if (params.update.length) {
+      applyUpdate(fresh.spaceDoc, params.update, REMOTE_RESTORE_ORIGIN);
+    }
+    fresh.load();
+    this._emitDocListUpdated();
+  }
+
+  /**
    * 基于 rootDoc 的 spaces map 列出 workspace 内已经出现过的 docId。
    *
    * 注意：这不是“业务可见文档列表”，仅用于调试/迁移。
@@ -751,16 +889,26 @@ export function getOrCreateSpaceDocStore(params: {
 }): Store {
   const ws = getOrCreateSpaceWorkspaceRuntime(params.workspaceId);
   const doc = ws.getDoc(params.docId) ?? ws.createDoc(params.docId);
+  const isRemoteBackedDoc = Boolean(parseDescriptionDocId(params.docId));
 
-  doc.load(() => {
-    const store = doc.getStore();
-    ensureAffineMinimumBlockData(store);
-  });
+  if (isRemoteBackedDoc) {
+    // 远端文档：先 load + 走远端恢复；若远端无数据，会在 hydration 完成时初始化最小骨架。
+    doc.load();
+  }
+  else {
+    doc.load(() => {
+      const store = doc.getStore();
+      ensureAffineMinimumBlockData(store);
+    });
+  }
 
   // doc.load(initFn) only runs initFn once. If the doc is already loaded in this
   // session, we still want to backfill missing props for edgeless rendering.
   const writableStore = doc.getStore();
-  ensureAffineMinimumBlockData(writableStore);
+  // 对远端文档，若当前尚无 root，说明仍在等待首轮远端恢复，不先写本地骨架。
+  if (!isRemoteBackedDoc || writableStore.root) {
+    ensureAffineMinimumBlockData(writableStore);
+  }
 
   // Best-effort: sync title into meta so linked-doc can fuzzy-match by title.
   const tcTitle = tryReadTcHeaderTitle(writableStore);
