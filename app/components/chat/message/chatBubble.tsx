@@ -42,6 +42,7 @@ import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
 import { extractWebgalChoosePayload } from "@/types/webgalChoose";
 import { formatTimeSmartly } from "@/utils/dateUtil";
 import { getScreenSize } from "@/utils/getScreenSize";
+import { isRoleNotFoundApiError } from "@/utils/roleApiError";
 import { countTextEnhanceVisibleLength, formatTextEnhanceVisibleLength } from "@/utils/textEnhanceMetrics";
 import { useSendMessageMutation, useUpdateMessageMutation } from "../../../../api/hooks/chatQueryHooks";
 import { useGetRoleQuery } from "../../../../api/hooks/RoleAndAvatarHooks";
@@ -111,6 +112,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
   }, []);
   const useRoleRequest = useGetRoleQuery(chatMessageResponse.message.roleId ?? 0);
   const role = useRoleRequest.data?.data;
+  const roleDeleted = isRoleNotFoundApiError(useRoleRequest.error);
 
   const updateMessageMutation = useUpdateMessageMutation();
 
@@ -242,6 +244,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
     roleName: role?.roleName,
     customRoleName,
     isIntroText,
+    fallback: roleDeleted ? "角色已删除" : "未选择角色",
   });
   const roomContentAlertThreshold = useRealtimeRenderStore(state => state.roomContentAlertThreshold);
   const messageContent = (message.content ?? "").toString();

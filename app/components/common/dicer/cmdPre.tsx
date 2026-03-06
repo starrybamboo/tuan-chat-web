@@ -25,11 +25,22 @@ interface PendingOptimisticCommandMessage {
   stableMessageKey: string;
 }
 
-const OPTIMISTIC_DICER_ROLE_ID = 2;
 const OPTIMISTIC_DICER_AVATAR_ID = 0;
 const STABLE_MESSAGE_KEY_FIELD = "__tcStableKey";
 let stableDiceMessageSeed = 0;
 const DICER_DEBUG_PREFIX = "[TC_DICER_FLOW]";
+const DICER_AVATAR_CACHE_TTL_MS = 15 * 60_000;
+const DICER_COPYWRITING_CACHE_TTL_MS = 15 * 60_000;
+const ROLE_ABILITY_CACHE_TTL_MS = 10 * 60_000;
+
+type ExpiringCacheEntry<T> = {
+  value: T;
+  expireAt: number;
+};
+
+const dicerAvatarCache = new Map<number, ExpiringCacheEntry<RoleAvatar[]>>();
+const dicerCopywritingCache = new Map<string, ExpiringCacheEntry<Record<string, string[]>>>();
+const roleAbilityCache = new Map<string, ExpiringCacheEntry<RoleAbility>>();
 
 function createStableDiceMessageKey(roomId: number, optimisticMessageId: number): string {
   stableDiceMessageSeed += 1;
@@ -38,6 +49,124 @@ function createStableDiceMessageKey(roomId: number, optimisticMessageId: number)
 
 function logDicerFlow(step: string, payload: Record<string, unknown>): void {
   console.log(DICER_DEBUG_PREFIX, step, payload);
+}
+
+function readCacheValue<T>(entry: ExpiringCacheEntry<T> | undefined): T | undefined {
+  if (!entry) {
+    return undefined;
+  }
+  if (entry.expireAt <= Date.now()) {
+    return undefined;
+  }
+  return entry.value;
+}
+
+function writeCacheValue<T>(value: T, ttlMs: number): ExpiringCacheEntry<T> {
+  return {
+    value,
+    expireAt: Date.now() + ttlMs,
+  };
+}
+
+function cloneRoleAbility(ability: RoleAbility): RoleAbility {
+  try {
+    return JSON.parse(JSON.stringify(ability ?? {})) as RoleAbility;
+  }
+  catch {
+    return {
+      ...(ability ?? {}),
+      act: { ...(ability?.act ?? {}) },
+      basic: { ...(ability?.basic ?? {}) },
+      ability: { ...(ability?.ability ?? {}) },
+      skill: { ...(ability?.skill ?? {}) },
+      record: { ...(ability?.record ?? {}) },
+      extra: { ...(ability?.extra ?? {}) },
+    } as RoleAbility;
+  }
+}
+
+function buildRoleAbilityCacheKey(ruleId: number, roleId: number): string {
+  return `${ruleId}:${roleId}`;
+}
+
+function getCachedRoleAbility(ruleId: number, roleId: number): RoleAbility | null {
+  const cacheKey = buildRoleAbilityCacheKey(ruleId, roleId);
+  const cached = readCacheValue(roleAbilityCache.get(cacheKey));
+  if (!cached) {
+    return null;
+  }
+  return cloneRoleAbility(cached);
+}
+
+function setCachedRoleAbility(ruleId: number, roleId: number, ability: RoleAbility): void {
+  const cacheKey = buildRoleAbilityCacheKey(ruleId, roleId);
+  roleAbilityCache.set(cacheKey, writeCacheValue(cloneRoleAbility(ability), ROLE_ABILITY_CACHE_TTL_MS));
+}
+
+async function getOrFetchRoleAbility(ruleId: number, roleId: number): Promise<RoleAbility> {
+  const cached = getCachedRoleAbility(ruleId, roleId);
+  if (cached) {
+    return cached;
+  }
+  const abilityQuery = await tuanchat.abilityController.getByRuleAndRole(ruleId, roleId);
+  const ability = (abilityQuery.data || {}) as RoleAbility;
+  setCachedRoleAbility(ruleId, roleId, {
+    ...ability,
+    roleId: ability.roleId ?? roleId,
+    ruleId: ability.ruleId ?? ruleId,
+  });
+  return cloneRoleAbility(ability);
+}
+
+async function getCachedDicerAvatars(dicerRoleId: number): Promise<RoleAvatar[]> {
+  const cached = readCacheValue(dicerAvatarCache.get(dicerRoleId));
+  if (cached) {
+    return cached;
+  }
+  const avatars = (await tuanchat.avatarController.getRoleAvatars(dicerRoleId))?.data ?? [];
+  dicerAvatarCache.set(dicerRoleId, writeCacheValue(avatars, DICER_AVATAR_CACHE_TTL_MS));
+  return avatars;
+}
+
+function normalizeCopywritingMap(raw: unknown): Record<string, string[]> {
+  if (!raw || typeof raw !== "object") {
+    return {};
+  }
+  const normalized: Record<string, string[]> = {};
+  for (const [key, value] of Object.entries(raw as Record<string, unknown>)) {
+    if (!Array.isArray(value)) {
+      continue;
+    }
+    const texts = value
+      .map(item => String(item ?? "").trim())
+      .filter(Boolean);
+    if (texts.length > 0) {
+      normalized[key] = texts;
+    }
+  }
+  return normalized;
+}
+
+async function getCachedDicerCopywritingMap(ruleId: number, dicerRoleId: number): Promise<Record<string, string[]>> {
+  const cacheKey = `${ruleId}:${dicerRoleId}`;
+  const cached = readCacheValue(dicerCopywritingCache.get(cacheKey));
+  if (cached) {
+    return cached;
+  }
+  const ability = (await tuanchat.abilityController.getByRuleAndRole(ruleId, dicerRoleId))?.data;
+  const rawCopywriting = (ability as any)?.extra?.copywriting;
+  let parsedRaw: unknown = rawCopywriting;
+  if (typeof rawCopywriting === "string") {
+    try {
+      parsedRaw = JSON.parse(rawCopywriting);
+    }
+    catch {
+      parsedRaw = {};
+    }
+  }
+  const normalized = normalizeCopywritingMap(parsedRaw);
+  dicerCopywritingCache.set(cacheKey, writeCacheValue(normalized, DICER_COPYWRITING_CACHE_TTL_MS));
+  return normalized;
 }
 
 export function isCommand(command: string) {
@@ -99,6 +228,7 @@ export default function useCommandExecutor(roleId: number, ruleId: number, roomC
   // 为同一轮骰子相关消息预留微小 position 步进，保证“玩家指令 + 骰娘回复”在排序上保持紧邻。
   const DICE_BATCH_POSITION_STEP = 0.0001;
   const optimisticMessageIdRef = useRef(-1);
+  const lastPrewarmKeyRef = useRef<string>("");
 
   useEffect(() => {
     try {
@@ -108,6 +238,53 @@ export default function useCommandExecutor(roleId: number, ruleId: number, roomC
       console.error(e);
     }
   }, []);
+
+  useEffect(() => {
+    const normalizedSpaceId = Number(roomContext.spaceId ?? 0);
+    const normalizedCurRoleId = Number(roomContext.curRoleId ?? 0);
+    const normalizedRuleId = Number(ruleId ?? 0);
+    if (!(normalizedSpaceId > 0 && normalizedRuleId > 0)) {
+      return;
+    }
+    const prewarmKey = `${normalizedSpaceId}:${normalizedCurRoleId}:${normalizedRuleId}`;
+    if (lastPrewarmKeyRef.current === prewarmKey) {
+      return;
+    }
+    lastPrewarmKeyRef.current = prewarmKey;
+
+    let cancelled = false;
+    void (async () => {
+      try {
+        const dicerRoleId = await UTILS.getDicerRoleId({
+          spaceId: normalizedSpaceId,
+          curRoleId: normalizedCurRoleId,
+        } as RoomContextType, {
+          spaceSnapshot: space ?? null,
+          currentRoleSnapshot: role ?? null,
+        });
+        if (cancelled) {
+          return;
+        }
+        await Promise.all([
+          getCachedDicerAvatars(dicerRoleId),
+          getCachedDicerCopywritingMap(normalizedRuleId, dicerRoleId),
+        ]);
+      }
+      catch (error) {
+        console.error("预热骰娘缓存失败:", error);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    roomContext.spaceId,
+    roomContext.curRoleId,
+    ruleId,
+    role,
+    space,
+  ]);
 
   const getNextOptimisticPosition = () => {
     const historyMessages = roomContext.chatHistory?.messages ?? [];
@@ -386,6 +563,11 @@ export default function useCommandExecutor(roleId: number, ruleId: number, roomC
 
     try {
       let copywritingKey: string | null = null;
+      // 提前解析骰娘角色，和指令执行并行，减少后续等待。
+      const dicerRoleIdPromise = UTILS.getDicerRoleId(roomContext, {
+        spaceSnapshot: space ?? null,
+        currentRoleSnapshot: role ?? null,
+      });
       const [cmdPart, ...args] = parseCommand(command);
       const operator: UserRole = {
         userId: role?.userId ?? -1,
@@ -404,9 +586,7 @@ export default function useCommandExecutor(roleId: number, ruleId: number, roomC
       // 获取角色的能力列表
       const getRoleAbility = async (roleId: number): Promise<RoleAbility> => {
         try {
-          const abilityQuery = await tuanchat.abilityController.getByRuleAndRole(ruleId, roleId);
-          const ability = abilityQuery.data;
-          return ability || {};
+          return await getOrFetchRoleAbility(ruleId, roleId);
         }
         catch (e) {
           console.error(`获取角色能力失败：${e instanceof Error ? e.message : String(e)},roleId:${roleId},ruleId:${ruleId}`);
@@ -559,6 +739,12 @@ export default function useCommandExecutor(roleId: number, ruleId: number, roomC
         else {
           setAbilityMutation.mutate(payload);
         }
+        setCachedRoleAbility(ruleId, id, {
+          ...ability,
+          ...payload,
+          roleId: id,
+          ruleId,
+        } as RoleAbility);
       }
       // 更新 Space dicerData（如果被修改）
       if (spaceDicerDataModified && space && space.spaceId) {
@@ -572,10 +758,12 @@ export default function useCommandExecutor(roleId: number, ruleId: number, roomC
       if (dicerMessageQueue.length > 0) {
         const fallbackCommandPosition = pendingOptimisticCommandMessage?.fallbackPosition ?? commandAnchorPosition;
         const optimisticReplyMessageId = pendingOptimisticCommandMessage?.optimisticMessageId;
+        // 乐观骰娘消息与最终消息使用同一骰娘，避免先显示默认骰娘再被后端消息替换的闪烁。
+        const dicerRoleId = await dicerRoleIdPromise;
         const optimisticDicerRequestBase: ChatMessageRequest = {
           roomId,
           messageType: MESSAGE_TYPE.DICE,
-          roleId: OPTIMISTIC_DICER_ROLE_ID,
+          roleId: dicerRoleId,
           avatarId: OPTIMISTIC_DICER_AVATAR_ID,
           threadId: executorProp.threadId,
           replayMessageId: optimisticReplyMessageId,
@@ -598,18 +786,28 @@ export default function useCommandExecutor(roleId: number, ruleId: number, roomC
           }));
         }
 
-        const commandMessageMeta = await sendCommandMessageWithOptimistic(commandDiceRequest, pendingOptimisticCommandMessage);
+        const commandMessageMetaPromise = sendCommandMessageWithOptimistic(commandDiceRequest, pendingOptimisticCommandMessage);
+        const avatarsPromise = getCachedDicerAvatars(dicerRoleId)
+          .catch((error) => {
+            console.error("获取骰娘头像失败:", error);
+            return [] as RoleAvatar[];
+          });
+        const copywritingMapPromise = copywritingKey
+          ? getCachedDicerCopywritingMap(ruleId, dicerRoleId)
+            .catch((error) => {
+              console.error("获取骰娘文案失败:", error);
+              return {} as Record<string, string[]>;
+            })
+          : Promise.resolve({} as Record<string, string[]>);
+
+        const commandMessageMeta = await commandMessageMetaPromise;
         commandMessageCommitted = true;
-        const dicerRoleId = await UTILS.getDicerRoleId(roomContext);
-        const avatars: RoleAvatar[] = (await tuanchat.avatarController.getRoleAvatars(dicerRoleId))?.data ?? [];
+        const [avatars, copywritingMap] = await Promise.all([avatarsPromise, copywritingMapPromise]);
 
         // 获取文案：从 extra.copywriting 中根据键随机抽取
         let copywritingSuffix = "";
         if (copywritingKey) {
           try {
-            const dicerAbility = await tuanchat.abilityController.getByRuleAndRole(ruleId, dicerRoleId);
-            const copywritingStr = dicerAbility?.data?.extra?.copywriting || "{}";
-            const copywritingMap: Record<string, string[]> = JSON.parse(copywritingStr);
             const texts = copywritingMap[copywritingKey];
             if (texts && texts.length > 0) {
               // 解析权重并构建加权数组

@@ -35,6 +35,7 @@ import { shouldRetryRoleQueryError } from "@/utils/roleApiError";
 
 function upsertRoleAvatarQueryCaches(queryClient: any, avatar: RoleAvatar, roleId?: number): void {
   const avatarId = avatar.avatarId;
+  const resolvedRoleId = avatar.roleId ?? roleId;
   if (!avatarId) {
     return;
   }
@@ -63,9 +64,81 @@ function upsertRoleAvatarQueryCaches(queryClient: any, avatar: RoleAvatar, roleI
     });
   }
 
+  if (resolvedRoleId) {
+    const avatarUrl = avatar.avatarUrl || ROLE_DEFAULT_AVATAR_URL;
+    const avatarThumbUrl = avatar.avatarThumbUrl || avatarUrl;
+    queryClient.setQueryData(["roleAvatar", resolvedRoleId], {
+      avatar: avatarUrl,
+      avatarThumb: avatarThumbUrl,
+      avatarId,
+    });
+    queryClient.invalidateQueries({ queryKey: ["roleAvatar", resolvedRoleId] });
+  }
+
   queryClient.setQueryData(["getRoleAvatar", avatarId], { data: avatar });
   queryClient.invalidateQueries({ queryKey: ["getRoleAvatar", avatarId] });
   queryClient.invalidateQueries({ queryKey: ["avatar", avatarId] });
+}
+
+function patchUserRoleRecord(role: UserRole, next: any, resolvedRoleId: number): UserRole {
+  if (role.roleId !== resolvedRoleId) {
+    return role;
+  }
+
+  return {
+    ...role,
+    roleName: next?.name ?? role.roleName,
+    description: next?.description ?? role.description,
+    avatarId: typeof next?.avatarId === "number" ? next.avatarId : role.avatarId,
+    modelName: next?.modelName ?? role.modelName,
+    speakerName: next?.speakerName ?? role.speakerName,
+    voiceUrl: next?.voiceUrl ?? role.voiceUrl,
+    extra: next?.extra ?? role.extra,
+    type: typeof next?.type === "number" ? next.type : role.type,
+    diceMaiden: typeof next?.type === "number" ? next.type === 1 : role.diceMaiden,
+  };
+}
+
+function patchUserRoleQueryCache(old: any, next: any, resolvedRoleId: number) {
+  if (!old) {
+    return old;
+  }
+
+  if (Array.isArray(old)) {
+    return old.map((role: UserRole) => patchUserRoleRecord(role, next, resolvedRoleId));
+  }
+
+  if (Array.isArray(old.data)) {
+    return {
+      ...old,
+      data: old.data.map((role: UserRole) => patchUserRoleRecord(role, next, resolvedRoleId)),
+    };
+  }
+
+  return old;
+}
+
+function patchGetRoleQueryCache(old: any, next: any, resolvedRoleId: number) {
+  if (!old?.data) {
+    return old;
+  }
+
+  return {
+    ...old,
+    data: {
+      ...old.data,
+      roleId: resolvedRoleId,
+      roleName: next?.name ?? old.data.roleName,
+      description: next?.description ?? old.data.description,
+      avatarId: typeof next?.avatarId === "number" ? next.avatarId : old.data.avatarId,
+      modelName: next?.modelName ?? old.data.modelName,
+      speakerName: next?.speakerName ?? old.data.speakerName,
+      voiceUrl: next?.voiceUrl ?? old.data.voiceUrl,
+      extra: next?.extra ?? old.data.extra,
+      type: typeof next?.type === "number" ? next.type : old.data.type,
+      diceMaiden: typeof next?.type === "number" ? next.type === 1 : old.data.diceMaiden,
+    },
+  };
 }
 
 // ==================== 角色管理 ====================
@@ -128,6 +201,24 @@ export function useUpdateRoleWithLocalMutation(onSave: (localRole: Role) => void
     onSuccess: (_, variables) => {
       const resolvedRoleId = variables?.roleId ?? variables?.id;
       onSave(variables);
+      if (resolvedRoleId) {
+        queryClient.setQueryData(
+          ["getRole", resolvedRoleId],
+          (old: any) => patchGetRoleQueryCache(old, variables, resolvedRoleId),
+        );
+        queryClient.setQueriesData(
+          { queryKey: ["getUserRolesByType"] },
+          (old: any) => patchUserRoleQueryCache(old, variables, resolvedRoleId),
+        );
+        queryClient.setQueriesData(
+          { queryKey: ["getUserRolesByTypes"] },
+          (old: any) => patchUserRoleQueryCache(old, variables, resolvedRoleId),
+        );
+        queryClient.setQueriesData(
+          { queryKey: ["getUserRoles"] },
+          (old: any) => patchUserRoleQueryCache(old, variables, resolvedRoleId),
+        );
+      }
       if (resolvedRoleId && variables?.avatar) {
         queryClient.setQueryData(["roleAvatar", resolvedRoleId], {
           avatar: variables.avatar,
@@ -136,11 +227,7 @@ export function useUpdateRoleWithLocalMutation(onSave: (localRole: Role) => void
         });
       }
       queryClient.invalidateQueries({ queryKey: ["roleInfinite"] });
-      queryClient.invalidateQueries({ queryKey: ["getUserRolesByTypes"] });
-      queryClient.invalidateQueries({ queryKey: ["getUserRolesByType"] });
-      queryClient.invalidateQueries({ queryKey: ['getUserRoles'] });
       if (resolvedRoleId) {
-        queryClient.invalidateQueries({ queryKey: ["getRole", resolvedRoleId] });
         queryClient.invalidateQueries({ queryKey: ["getRoleAvatars", resolvedRoleId] });
         queryClient.invalidateQueries({ queryKey: ["roleAvatar", resolvedRoleId] });
       }
@@ -385,7 +472,10 @@ export function useUpdateRoleAvatarMutation(roleId: number) {
     mutationFn: (req: RoleAvatar) => tuanchat.avatarController.updateRoleAvatar(req),
     mutationKey: ['updateRoleAvatar'],
     onSuccess: (res, variables) => {
-      const nextAvatar = res?.data ?? variables;
+      const nextAvatar = {
+        ...variables,
+        ...(res?.data ?? {}),
+      };
       const resolvedRoleId = nextAvatar?.roleId ?? roleId;
       if (resolvedRoleId) {
         queryClient.setQueryData(["getRoleAvatars", resolvedRoleId], (old: any) => {
@@ -416,6 +506,7 @@ export function useUpdateRoleAvatarMutation(roleId: number) {
         queryClient.invalidateQueries({ queryKey: ['getRoleAvatars', resolvedRoleId] });
       }
       if (nextAvatar?.avatarId) {
+        upsertRoleAvatarQueryCaches(queryClient, nextAvatar, resolvedRoleId);
         queryClient.setQueryData(["getRoleAvatar", nextAvatar.avatarId], { data: nextAvatar });
         emitWebgalAvatarUpdated({ avatarId: nextAvatar.avatarId, avatar: nextAvatar });
         queryClient.invalidateQueries({ queryKey: ['getRoleAvatar', nextAvatar.avatarId] });
