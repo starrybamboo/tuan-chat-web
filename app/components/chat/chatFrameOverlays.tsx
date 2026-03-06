@@ -4,6 +4,7 @@ import type { WebgalChooseOptionDraft } from "@/components/chat/shared/webgal/we
 
 import React from "react";
 import WebgalChooseModal from "@/components/chat/shared/webgal/webgalChooseModal";
+import { compareChatMessageResponsesByOrder } from "@/components/chat/shared/messageOrder";
 import ExportChatWindow from "@/components/chat/window/exportChatWindow";
 import ExportImageWindow from "@/components/chat/window/exportImageWindow";
 import ForwardWindow from "@/components/chat/window/forwardWindow";
@@ -61,7 +62,7 @@ export default function ChatFrameOverlays({
   const selectedMessages = Array.from(selectedMessageIds)
     .map(id => historyMessages.find(m => m.message.messageId === id))
     .filter((msg): msg is ChatMessageResponse => msg !== undefined)
-    .sort((a, b) => (a.message.position ?? 0) - (b.message.position ?? 0));
+    .sort(compareChatMessageResponsesByOrder);
 
   return (
     <>

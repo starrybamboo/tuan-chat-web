@@ -24,6 +24,7 @@ import useChatFrameVisualEffects from "@/components/chat/hooks/useChatFrameVisua
 import useChatFrameWebSocket from "@/components/chat/hooks/useChatFrameWebSocket";
 import { openMessageAnnotationPicker } from "@/components/chat/message/annotations/openMessageAnnotationPicker";
 import { createWebgalChooseOptionDraft } from "@/components/chat/shared/webgal/webgalChooseDraft";
+import { compareChatMessageResponsesByOrder } from "@/components/chat/shared/messageOrder";
 import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
 import { useRoomUiStore } from "@/components/chat/stores/roomUiStore";
 import { ANNOTATION_IDS, areAnnotationsEqual, hasAnnotation, normalizeAnnotations } from "@/types/messageAnnotations";
@@ -368,7 +369,7 @@ function ChatFrame(props: ChatFrameProps) {
     return Array.from(selectedMessageIds)
       .map(id => historyMessages.find(m => m.message.messageId === id))
       .filter((msg): msg is ChatMessageResponse => msg !== undefined)
-      .sort((a, b) => a.message.position - b.message.position);
+      .sort(compareChatMessageResponsesByOrder);
   }, [historyMessages, selectedMessageIds]);
 
   const handleSelectAll = useCallback(() => {

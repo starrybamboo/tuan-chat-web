@@ -5,6 +5,7 @@ import type { RoomUiStoreApi } from "@/components/chat/stores/roomUiStore";
 import type { WebgalChoosePayload } from "@/types/webgalChoose";
 
 import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
+import { getNextAppendPosition } from "@/components/chat/shared/messageOrder";
 
 import type { ChatMessageRequest, ChatMessageResponse } from "../../../../api";
 
@@ -50,17 +51,7 @@ export default function useRoomMessageActions({
   const optimisticMessageIdRef = useRef(-1);
 
   const getNextMainFlowPosition = useCallback(() => {
-    if (!mainHistoryMessages?.length) {
-      return Date.now();
-    }
-    let maxPosition = Number.NEGATIVE_INFINITY;
-    for (const item of mainHistoryMessages) {
-      const pos = item?.message?.position;
-      if (typeof pos === "number" && Number.isFinite(pos) && pos > maxPosition) {
-        maxPosition = pos;
-      }
-    }
-    return Number.isFinite(maxPosition) ? maxPosition + 1 : Date.now();
+    return getNextAppendPosition(mainHistoryMessages ?? []);
   }, [mainHistoryMessages]);
 
   const createOptimisticMessage = useCallback((request: ChatMessageRequest): ChatMessageResponse => {

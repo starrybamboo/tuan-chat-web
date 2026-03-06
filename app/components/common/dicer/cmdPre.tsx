@@ -3,6 +3,7 @@ import type { RoomContextType } from "@/components/chat/core/roomContext";
 import { useEffect, useRef } from "react";
 import toast from "react-hot-toast";
 import { useParams } from "react-router";
+import { getNextAppendPosition } from "@/components/chat/shared/messageOrder";
 import { initAliasMapOnce, RULES } from "@/components/common/dicer/aliasRegistry";
 import executorPublic from "@/components/common/dicer/cmdExe/cmdExePublic";
 import { formatAnkoDiceMessage } from "@/components/common/dicer/diceTable";
@@ -287,18 +288,7 @@ export default function useCommandExecutor(roleId: number, ruleId: number, roomC
   ]);
 
   const getNextOptimisticPosition = () => {
-    const historyMessages = roomContext.chatHistory?.messages ?? [];
-    if (historyMessages.length === 0) {
-      return Date.now();
-    }
-    let maxPosition = Number.NEGATIVE_INFINITY;
-    for (const item of historyMessages) {
-      const pos = item?.message?.position;
-      if (typeof pos === "number" && Number.isFinite(pos) && pos > maxPosition) {
-        maxPosition = pos;
-      }
-    }
-    return Number.isFinite(maxPosition) ? maxPosition + 1 : Date.now();
+    return getNextAppendPosition(roomContext.chatHistory?.messages ?? []);
   };
 
   const createOptimisticCommandMessage = (request: ChatMessageRequest): PendingOptimisticCommandMessage | null => {
@@ -382,13 +372,22 @@ export default function useCommandExecutor(roleId: number, ruleId: number, roomC
       return;
     }
     const hasPreferredPosition = typeof preferredPosition === "number" && Number.isFinite(preferredPosition);
+    const existingPersistedMessagePosition = (() => {
+      const persistedMessage = roomContext.chatHistory?.messages.find(
+        item => item?.message?.messageId === createdMessage.messageId,
+      )?.message;
+      const persistedPosition = persistedMessage?.position;
+      return typeof persistedPosition === "number" && Number.isFinite(persistedPosition)
+        ? persistedPosition
+        : undefined;
+    })();
     const normalizedMessage = {
       ...createdMessage,
       position: hasPreferredPosition
         ? preferredPosition
         : (typeof createdMessage.position === "number" && Number.isFinite(createdMessage.position)
             ? createdMessage.position
-            : pending.fallbackPosition),
+            : (existingPersistedMessagePosition ?? pending.fallbackPosition)),
       [STABLE_MESSAGE_KEY_FIELD]: pending.stableMessageKey,
     } as ChatMessageResponse["message"];
     logDicerFlow("commitOptimisticCommandMessage", {
@@ -420,9 +419,12 @@ export default function useCommandExecutor(roleId: number, ruleId: number, roomC
       ? requestPositionRaw
       : null;
     const commandPositionRaw = commandMessage.position;
-    const commandPosition = requestPosition ?? (typeof commandPositionRaw === "number" && Number.isFinite(commandPositionRaw)
+    const commandPosition = (typeof commandPositionRaw === "number" && Number.isFinite(commandPositionRaw)
       ? commandPositionRaw
-      : (pending?.fallbackPosition ?? null));
+      : (requestPosition ?? null))
+      ?? (
+        pending?.fallbackPosition ?? null
+      );
     logDicerFlow("sendCommandMessageWithOptimistic.result", {
       commandMessageId: commandMessage.messageId,
       requestPosition,
@@ -508,7 +510,6 @@ export default function useCommandExecutor(roleId: number, ruleId: number, roomC
             commitTasks.push(commitOptimisticCommandMessage(
               pendingMessage,
               createdMessage,
-              pendingMessage.fallbackPosition,
             ));
           }
           else {
