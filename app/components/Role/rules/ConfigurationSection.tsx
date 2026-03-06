@@ -259,6 +259,7 @@ export function ConfigurationSection({
               title={modifiedCount > 0 ? `自定义${customLabel}` : `添加${customLabel}`}
               fieldType={fieldType}
               hideTitleOnMobile={hideExternalTitlesOnMobile}
+              syncValueChanges
             />
           </div>
         )}

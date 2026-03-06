@@ -208,7 +208,7 @@ export default function EditableField({
       >
         <span
           ref={keyScrollRef}
-          className={`font-medium overflow-x-auto whitespace-nowrap [&::-webkit-scrollbar]:hidden shrink-0 max-w-[5.5em] text-left md:mr-4 ${isCompact ? "text-xs" : "text-sm md:text-base"}`}
+          className={`font-medium overflow-x-auto whitespace-nowrap [&::-webkit-scrollbar]:hidden shrink-0 text-left md:mr-4 ${isCompact ? "text-xs" : "text-sm md:text-base"}`}
           style={{ scrollbarWidth: "none" }}
         >
           {fieldKey}
@@ -226,51 +226,68 @@ export default function EditableField({
 
   return (
     <div className={`form-control ${className}`}>
-      <label className={`input flex items-center gap-2 rounded-md transition focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary focus-within:outline-none py-2 ${
-        isCompact ? "input max-md:pr-8" : "max-md:pr-8"
-      } ${shouldStackKeyOnMobile ? "max-md:flex-wrap max-md:items-start max-md:min-h-0" : ""}`}
+      <label className={`
+        relative flex items-center gap-2 rounded-lg transition-all duration-200 border
+        focus-within:border-primary focus-within:ring-1 focus-within:ring-primary/20
+        bg-base-100 border-base-content/20
+        ${isCompact ? "py-1 px-2" : "py-2 px-3"}
+        max-md:flex-col max-md:items-stretch max-md:h-auto max-md:gap-0
+        w-full
+        md:input md:input-ghost md:bg-base-200/50 md:border-transparent md:h-10
+      `}
       >
         {/* 字段名编辑 */}
-        {editingFieldKey === fieldKey
-          ? (
-              <input
-                type="text"
-                value={tempFieldKey}
-                onChange={e => setTempFieldKey(e.target.value)}
-                onBlur={() => {
-                  if (tempFieldKey.trim() && tempFieldKey !== fieldKey) {
-                    handleRename(tempFieldKey);
-                  }
-                  setEditingFieldKey(null);
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
+        <div className="flex items-center md:contents">
+          {editingFieldKey === fieldKey
+            ? (
+                <input
+                  type="text"
+                  value={tempFieldKey}
+                  onChange={e => setTempFieldKey(e.target.value)}
+                  onBlur={() => {
                     if (tempFieldKey.trim() && tempFieldKey !== fieldKey) {
                       handleRename(tempFieldKey);
                     }
                     setEditingFieldKey(null);
-                  }
-                }}
-                className={`${isCompact ? "text-[10px] md:text-xs" : "text-xs md:text-sm"} font-medium whitespace-nowrap bg-transparent border-none focus:outline-none outline-none shrink-0 ${shouldStackKeyOnMobile ? "max-md:basis-full max-md:w-full max-md:pr-6" : ""}`}
-                autoFocus
-              />
-            )
-          : (
-              <span
-                ref={keyScrollRef}
-                className={`${isCompact ? "text-[10px] md:text-xs" : "text-xs md:text-sm"} font-medium whitespace-nowrap overflow-x-auto [&::-webkit-scrollbar]:hidden cursor-pointer hover:text-primary shrink-0 max-w-[5.5em] max-md:max-w-none text-left leading-tight ${shouldStackKeyOnMobile ? "max-md:basis-full max-md:w-full max-md:pr-6" : ""}`}
-                style={{ scrollbarWidth: "none" }}
-                onClick={() => {
-                  setEditingFieldKey(fieldKey);
-                  setTempFieldKey(fieldKey);
-                }}
-                title="点击编辑字段名"
-              >
-                {fieldKey}
-              </span>
-            )}
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      if (tempFieldKey.trim() && tempFieldKey !== fieldKey) {
+                        handleRename(tempFieldKey);
+                      }
+                      setEditingFieldKey(null);
+                    }
+                  }}
+                  className={`
+                    bg-transparent border-none focus:outline-none outline-none font-medium
+                    ${isCompact ? "text-[10px] md:text-xs" : "text-xs md:text-sm"}
+                    w-full md:w-auto md:max-w-[6em] md:shrink-0
+                    max-md:text-base-content/70
+                  `}
+                  autoFocus
+                />
+              )
+            : (
+                <span
+                  ref={keyScrollRef}
+                  className={`
+                    cursor-pointer hover:text-primary font-medium whitespace-nowrap overflow-x-auto
+                    ${isCompact ? "text-[10px] md:text-xs" : "text-xs md:text-sm"}
+                    w-full md:w-auto md:shrink-0 text-left
+                    max-md:text-base-content/70 max-md:pr-6
+                  `}
+                  onClick={() => {
+                    setEditingFieldKey(fieldKey);
+                    setTempFieldKey(fieldKey);
+                  }}
+                  title="点击编辑字段名"
+                >
+                  {fieldKey}
+                </span>
+              )}
+        </div>
 
-        <div className={`w-px h-4 bg-base-content/20 ${shouldStackKeyOnMobile ? "max-md:hidden" : ""}`}></div>
+        <div className="hidden md:block w-px h-4 bg-base-content/20 mx-2"></div>
 
         {/* 字段值编辑 */}
         <input
@@ -288,7 +305,14 @@ export default function EditableField({
             e.preventDefault();
             onValueCommit?.(fieldKey, (e.target as HTMLInputElement).value);
           }}
-          className={`${resolvedValueInputClassName} ${shouldStackKeyOnMobile ? "max-md:basis-full max-md:w-full max-md:pt-1" : ""}`}
+          className={`
+            bg-transparent border-none outline-none focus:outline-none
+            grow min-w-0
+            ${isCompact ? "text-xs" : "text-sm"}
+            max-md:w-full max-md:font-semibold max-md:text-base-content
+            placeholder:text-base-content/30
+          `}
+          placeholder="请输入值"
         />
 
         {/* 删除按钮 */}
@@ -296,10 +320,17 @@ export default function EditableField({
           <button
             type="button"
             onClick={() => onDelete(fieldKey)}
-            className={`btn btn-ghost ${isCompact ? "btn-xs" : "btn-xs"} text-error hover:bg-error/10 max-md:absolute max-md:top-1 max-md:right-1 max-md:z-10`}
+            className={`
+              btn btn-ghost btn-circle
+              text-base-content/40 hover:text-error hover:bg-error/10
+              md:static md:btn-xs
+              max-md:absolute max-md:top-1 max-md:right-1 max-md:w-6 max-md:h-6 max-md:min-h-0
+            `}
             title="删除字段"
           >
-            ✕
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 md:h-3.5 md:w-3.5" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+            </svg>
           </button>
         )}
       </label>

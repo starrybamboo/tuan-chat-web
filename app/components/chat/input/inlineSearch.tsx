@@ -24,7 +24,7 @@ function SearchBar({ className = "" }: SearchBarProps) {
 
   const [roles, setRoles] = useState<UserRole[]>([]);
   const getRoleSmartly = useGetRoleSmartly();
-  const roleCacheRef = useRef<Map<number, UserRole>>(new Map());
+  const roleCacheRef = useRef<Map<number, UserRole | null>>(new Map());
   const roleIds = useMemo(() => {
     const ids = new Set<number>();
     for (const msg of historyMessages) {
@@ -55,12 +55,14 @@ function SearchBar({ className = "" }: SearchBarProps) {
       const fetched: UserRole[] = [];
       for (const roleId of missingIds) {
         const role = await getRoleSmartly(roleId);
-        if (!role)
+        if (!role) {
+          roleCacheRef.current.set(roleId, null);
           continue;
+        }
         const id = role.roleId;
         if (typeof id !== "number" || !Number.isFinite(id))
           continue;
-        if (roleCacheRef.current.has(id))
+        if (roleCacheRef.current.get(id))
           continue;
         roleCacheRef.current.set(id, role);
         fetched.push(role);

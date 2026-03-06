@@ -315,7 +315,7 @@ export default function DiscoverArchivedSpacesView({ mode }: DiscoverArchivedSpa
                     <div className="min-w-0">
                       <div className="text-sm font-semibold truncate">{pageTitle}</div>
                     </div>
-                    <div className="relative w-full max-w-[360px]">
+                    <div className="relative w-full max-w-90">
                       <input
                         className="input input-sm input-bordered w-full rounded-full"
                         value={keyword}
@@ -426,13 +426,12 @@ export default function DiscoverArchivedSpacesView({ mode }: DiscoverArchivedSpa
                               }
                             }}
                           >
-                            <div className="relative aspect-[4/3] bg-base-300 overflow-hidden">
+                            <div className="relative aspect-4/3 bg-base-300 overflow-hidden">
                               <img
                                 src={image}
                                 alt={String(name)}
-                                className="h-full w-full object-cover opacity-95 transition-transform duration-300 group-hover:scale-105"
+                                className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
                               />
-                              <div className="absolute inset-0 bg-gradient-to-t from-black/35 via-transparent to-transparent" />
 
                               <div className="absolute left-3 top-3">
                                 <span className="badge badge-sm bg-base-100/70 border border-base-300 text-base-content backdrop-blur">
@@ -486,13 +485,12 @@ export default function DiscoverArchivedSpacesView({ mode }: DiscoverArchivedSpa
                               }
                             }}
                           >
-                            <div className="relative aspect-[4/3] bg-base-300 overflow-hidden">
+                            <div className="relative aspect-4/3 bg-base-300 overflow-hidden">
                               <img
                                 src={image}
                                 alt={String(name)}
-                                className="h-full w-full object-cover opacity-95 transition-transform duration-300 group-hover:scale-105"
+                                className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
                               />
-                              <div className="absolute inset-0 bg-gradient-to-t from-black/35 via-transparent to-transparent" />
 
                               <div className="absolute left-3 top-3 flex items-center gap-2">
                                 <span className="badge badge-sm bg-base-100/70 border border-base-300 text-base-content backdrop-blur">

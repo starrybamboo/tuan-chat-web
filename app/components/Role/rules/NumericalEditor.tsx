@@ -21,6 +21,7 @@ interface NumericalEditorProps {
   title?: string;
   fieldType: FieldType; // 新增:指定要更新的字段类型
   hideTitleOnMobile?: boolean;
+  syncValueChanges?: boolean;
 }
 
 // Reducer actions
@@ -77,6 +78,7 @@ export default function NumericalEditor({
   title = "数值数据",
   fieldType,
   hideTitleOnMobile = false,
+  syncValueChanges = false,
 }: NumericalEditorProps) {
   const { mutate: updateFiledAbility } = useUpdateRoleAbilityByRoleIdMutation();
   const { mutate: updateKeyField } = useUpdateKeyFieldByRoleIdMutation();
@@ -152,10 +154,20 @@ export default function NumericalEditor({
 
   // 处理字段值更新
   const handleFieldUpdate = (fieldKey: string, newValue: string) => {
+    const updatedData = {
+      ...localData,
+      [fieldKey]: newValue,
+    };
+
     dispatch({
       type: "UPDATE_FIELD",
       payload: { key: fieldKey, value: newValue },
     });
+
+    // 仅在需要时同步到父组件，避免模板区输入时字段立即“迁移”到自定义区
+    if (syncValueChanges) {
+      onChange(updatedData);
+    }
   };
 
   // 添加新字段
@@ -309,12 +321,40 @@ export default function NumericalEditor({
       </div>
 
       <div className="bg-base-200 rounded-lg">
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
           {Object.entries(localData).map(([key, value]) => {
-            const shouldSpanFullRowOnMobile = !isEditing && Array.from(`${key}${String(value ?? "")}`).length >= 6;
+            const strVal = String(value ?? "");
+            
+            // 计算有效字符长度（中文字符算2个长度）
+            const getVisualLength = (str: string) => str.replace(/[^\x00-\xff]/g, "xx").length;
+            
+            const keyLen = getVisualLength(key);
+            const valLen = getVisualLength(strVal);
+            
+            // 桌面端估算总长度：字段名 + 间隔/图标等固定占用(约4字符) + 字段值
+            const desktopEffectiveLength = keyLen + 4 + valLen;
+            
+            // 移动端估算长度：取字段名和字段值中较长的一个（因为是垂直排列）
+            const mobileEffectiveLength = Math.max(keyLen, valLen);
+            
+            // Adjust layout based on content length
+            // Mobile (2 cols): >= 17 chars -> full width
+            // Desktop (4 cols): > 40 chars -> 4 cols (full), > 17 -> 2 cols (half), else -> 1 col (quarter)
+            let colSpanClass = "";
+
+            if (desktopEffectiveLength > 40) {
+              // Very long content: occupies full line on desktop
+              colSpanClass = mobileEffectiveLength >= 17 ? "col-span-2 md:col-span-4" : "col-span-1 md:col-span-4";
+            } else if (desktopEffectiveLength > 17) {
+              // Medium long content: occupies half line (2 columns on desktop)
+              colSpanClass = mobileEffectiveLength >= 17 ? "col-span-2 md:col-span-2" : "col-span-1 md:col-span-2";
+            } else {
+              // Short content: single cell on desktop
+              colSpanClass = mobileEffectiveLength >= 17 ? "col-span-2 md:col-span-1" : "col-span-1 md:col-span-1";
+            }
 
             return (
-              <div key={key} className={shouldSpanFullRowOnMobile ? "col-span-2 md:col-span-1" : ""}>
+              <div key={key} className={colSpanClass}>
                 <EditableField
                   fieldKey={key}
                   value={value}
