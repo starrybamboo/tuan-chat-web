@@ -20,6 +20,7 @@ interface RenderTransform {
 
 interface ReplaceAvatarPayload {
   avatarUrl: string;
+  avatarThumbUrl?: string;
   spriteUrl: string;
   originUrl?: string;
   transform?: Transform;
@@ -293,6 +294,7 @@ export function PreviewTab({
         roleId: roleIdForMutation,
         avatarId: currentAvatar.avatarId,
         avatarUrl: payload.avatarUrl || currentAvatar.avatarUrl || "",
+        avatarThumbUrl: payload.avatarThumbUrl || payload.avatarUrl || currentAvatar.avatarThumbUrl || currentAvatar.avatarUrl || "",
         spriteUrl: payload.spriteUrl || currentAvatar.spriteUrl || "",
         originUrl: payload.originUrl ?? currentAvatar.originUrl,
         spriteXPosition: nextTransform.positionX,
