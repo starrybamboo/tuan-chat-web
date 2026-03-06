@@ -12,14 +12,12 @@ export default function useGetRoleSmartly() {
   return useCallback(async (roleId: number) => {
     if (roleId <= 0)
       return null;
-    const roleResponse = await queryClient.fetchQuery<ApiResultUserRole>({
+    const roleResponse = await queryClient.fetchQuery({
       queryKey: ["getRole", roleId],
       queryFn: () => tuanchat.roleController.getRole(roleId),
       staleTime: 5 * 60 * 1000, // 5 分钟
       retry: shouldRetryRoleQueryError,
-      retryOnMount: false,
-      refetchOnMount: false,
-    });
+    }) as ApiResultUserRole;
     return roleResponse.data;
   }, [queryClient]);
 }

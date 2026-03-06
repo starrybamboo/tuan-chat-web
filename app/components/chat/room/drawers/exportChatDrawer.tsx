@@ -6,6 +6,7 @@ import { use, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import { RoomContext } from "@/components/chat/core/roomContext";
 import { exportChatMessages } from "@/utils/exportChatMessages";
+import { shouldRetryRoleQueryError } from "@/utils/roleApiError";
 import { useGetRolesQueries } from "../../../../../api/hooks/RoleAndAvatarHooks";
 import { tuanchat } from "../../../../../api/instance";
 
@@ -114,6 +115,7 @@ export default function ExportChatDrawer({ messages, onClose }: ExportChatDrawer
           queryKey: ["getRole", roleId],
           queryFn: () => tuanchat.roleController.getRole(roleId),
           staleTime: 5 * 60 * 1000, // 5分钟缓存
+          retry: shouldRetryRoleQueryError,
         });
         if (roleInfo.data?.roleId && roleInfo.data?.roleName) {
           allRoleMap.set(roleInfo.data.roleId, roleInfo.data.roleName);
