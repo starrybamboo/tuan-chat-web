@@ -3,6 +3,7 @@ import toast from "react-hot-toast";
 
 import { ANNOTATION_IDS, hasAnnotation, isImageMessageBackground, setAnnotation } from "@/types/messageAnnotations";
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
+import { compareChatMessageResponsesByOrder } from "@/components/chat/shared/messageOrder";
 
 import type { ChatMessageRequest, ChatMessageResponse, Message } from "../../../../api";
 
@@ -42,7 +43,7 @@ export default function useChatFrameMessageActions({
     Array.from(selectedMessageIds)
       .map(id => historyMessages.find(m => m.message.messageId === id))
       .filter((msg): msg is ChatMessageResponse => msg !== undefined)
-      .sort((a, b) => (a.message.position ?? 0) - (b.message.position ?? 0))
+      .sort(compareChatMessageResponsesByOrder)
   ), [historyMessages, selectedMessageIds]);
 
   const constructForwardRequest = useCallback((forwardRoomId: number, forwardMessages: ChatMessageResponse[]) => {

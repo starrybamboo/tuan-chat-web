@@ -8,6 +8,7 @@ import type { FigureAnimationSettings, FigurePositionKey } from "@/types/voiceRe
 import type { WebgalDiceRenderPayload } from "@/types/webgalDice";
 
 import { formatAnkoDiceMessage, stripDiceResultTokens } from "@/components/common/dicer/diceTable";
+import { compareChatMessageResponsesByOrder } from "@/components/chat/shared/messageOrder";
 import { createTTSApi, ttsApi } from "@/tts/engines/index/apiClient";
 import {
   ANNOTATION_IDS,
@@ -2561,14 +2562,7 @@ export class RealtimeRenderer {
   private async flushPendingDiceMergeForRoom(roomId: number): Promise<void> {
     const entries = Array.from(this.pendingDiceMergeMap.values())
       .filter(entry => entry.roomId === roomId)
-      .sort((left, right) => {
-        const leftPosition = Number(left.message.message.position ?? 0);
-        const rightPosition = Number(right.message.message.position ?? 0);
-        if (Number.isFinite(leftPosition) && Number.isFinite(rightPosition) && leftPosition !== rightPosition) {
-          return leftPosition - rightPosition;
-        }
-        return Number(left.message.message.messageId ?? 0) - Number(right.message.message.messageId ?? 0);
-      });
+      .sort((left, right) => compareChatMessageResponsesByOrder(left.message, right.message));
     if (entries.length === 0) {
       return;
     }

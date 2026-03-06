@@ -3,6 +3,7 @@ import * as htmltoimage from "html-to-image";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import toast from "react-hot-toast";
 import { ChatBubble } from "@/components/chat/message/chatBubble";
+import { compareChatMessageResponsesByOrder } from "@/components/chat/shared/messageOrder";
 import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
 
 async function loadQRCode() {
@@ -79,7 +80,7 @@ export default function ExportImageWindow({
 
   // 按消息位置排序
   const sortedMessages = useMemo(
-    () => [...selectedMessages].sort((a, b) => a.message.position - b.message.position),
+    () => [...selectedMessages].sort(compareChatMessageResponsesByOrder),
     [selectedMessages],
   );
 
