@@ -223,7 +223,7 @@ function DocCardMessageImpl({ messageResponse }: { messageResponse: ChatMessageR
           className={`overflow-hidden bg-base-100 flex flex-col ${
             isMobile
               ? "w-full h-full"
-              : "w-[min(1280px,98vw)] h-[min(90vh,920px)] rounded-2xl border border-base-300/80 shadow-2xl"
+              : "w-[960px] max-w-[90vw] h-[min(90vh,calc(100vh-2rem))] rounded-2xl border border-base-300/80 shadow-2xl"
           }`}
         >
           <div className="flex-1 min-h-0 overflow-hidden">
