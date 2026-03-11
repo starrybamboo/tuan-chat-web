@@ -3,6 +3,7 @@ import type { RouteConfig } from "@react-router/dev/routes";
 import { index, layout, prefix, route } from "@react-router/dev/routes";
 
 const ENABLE_AI_IMAGE_ROUTE = import.meta.env.DEV || import.meta.env.MODE === "test";
+const ENABLE_FEEDBACK_ROUTE = import.meta.env.DEV || import.meta.env.MODE === "test";
 
 export default [
   // Blocksuite iframe: used for strong style isolation.
@@ -58,6 +59,7 @@ export default [
     route("resource", "routes/resource.tsx"),
     route("doc/:spaceId/:docId", "routes/doc.tsx"),
     ...(ENABLE_AI_IMAGE_ROUTE ? [route("ai-image", "routes/aiImage.tsx")] : []),
+    ...(ENABLE_FEEDBACK_ROUTE ? [route("feedback/:issueId?", "routes/feedback.tsx")] : []),
     route("invite/:code", "routes/invite.tsx"),
   ]),
 ] satisfies RouteConfig;

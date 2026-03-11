@@ -1,4 +1,4 @@
-import { ChatsIcon, GearSixIcon, IdentificationCardIcon, PaintBrushBroadIcon, SignOutIcon, UserIcon } from "@phosphor-icons/react";
+import { ChatsIcon, CheckCircleIcon, GearSixIcon, IdentificationCardIcon, PaintBrushBroadIcon, SignOutIcon, UserIcon } from "@phosphor-icons/react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router";
@@ -45,6 +45,7 @@ export default function Topbar() {
   const webgalLinkMode = useRoomPreferenceStore(state => state.webgalLinkMode);
   const runModeEnabled = useRoomPreferenceStore(state => state.runModeEnabled);
   const canUseAiImage = import.meta.env.DEV || import.meta.env.MODE === "test";
+  const canUseFeedback = import.meta.env.DEV || import.meta.env.MODE === "test";
 
   // 点击外部关闭下拉菜单
   useEffect(() => {
@@ -121,6 +122,7 @@ export default function Topbar() {
     { to: "/chat/private", label: "聊天", icon: ChatsIcon },
     { to: "/role", label: "角色", icon: IdentificationCardIcon },
     ...(canUseAiImage ? [{ to: "/ai-image", label: "AI生图", icon: PaintBrushBroadIcon }] : []),
+    ...(canUseFeedback ? [{ to: "/feedback", label: "反馈", icon: CheckCircleIcon }] : []),
   ];
 
   return (
