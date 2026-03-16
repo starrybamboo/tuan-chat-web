@@ -26,7 +26,9 @@ export default function RuleEditorEntryPage({ onBack }: RuleEditorEntryPageProps
   const selectedTemplateRuleQuery = useGetRuleDetailQuery(selectedTemplateRuleId);
   const appliedTemplateIdRef = useRef(0);
 
-  const canCreate = ruleName.trim().length > 0 && ruleDescription.trim().length > 0;
+  const trimmedRuleName = ruleName.trim();
+  const trimmedRuleDescription = ruleDescription.trim();
+  const canCreate = trimmedRuleName.length > 0 && trimmedRuleDescription.length > 0;
   const mineAuthorId = typeof userId === "number" && userId > 0 ? userId : undefined;
   const effectiveAuthorId = scope === "mine" ? mineAuthorId : undefined;
   const scopeTitle = scope === "all" ? "全部规则模板" : "我的规则模板";
@@ -47,8 +49,8 @@ export default function RuleEditorEntryPage({ onBack }: RuleEditorEntryPageProps
 
     navigate("/role?type=rule&mode=create", {
       state: {
-        prefillRuleName: ruleName.trim(),
-        prefillRuleDescription: ruleDescription.trim(),
+        prefillRuleName: trimmedRuleName,
+        prefillRuleDescription: trimmedRuleDescription,
         prefillTemplateRuleId: selectedTemplateRuleId > 0 ? selectedTemplateRuleId : undefined,
         skipCreateBaseInfo: true,
       },
