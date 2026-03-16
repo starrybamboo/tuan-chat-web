@@ -67,6 +67,11 @@
 }
 
 .tc-blocksuite-scope.tc-blocksuite-tc-header-enabled
+  .tc-blocksuite-tc-header-avatar.tc-blocksuite-tc-header-avatar-previewable {
+  cursor: zoom-in !important;
+}
+
+.tc-blocksuite-scope.tc-blocksuite-tc-header-enabled
   .tc-blocksuite-tc-header-avatar.tc-blocksuite-tc-header-avatar-empty {
   background:
     radial-gradient(circle at 30% 25%, oklch(var(--p) / 0.32), transparent 58%),
@@ -147,11 +152,26 @@
 }
 
 .tc-blocksuite-scope.tc-blocksuite-tc-header-enabled
-  .tc-blocksuite-tc-header-avatar.tc-blocksuite-tc-header-avatar-readonly:hover
+  .tc-blocksuite-tc-header-avatar.tc-blocksuite-tc-header-avatar-readonly:not(.tc-blocksuite-tc-header-avatar-previewable):hover
   .tc-blocksuite-tc-header-avatar-overlay {
   opacity: 0 !important;
 
   background-color: rgb(0 0 0 / 0) !important;
+}
+
+.tc-blocksuite-scope.tc-blocksuite-tc-header-enabled
+  .tc-blocksuite-tc-header-avatar.tc-blocksuite-tc-header-avatar-previewable:hover {
+  transform: scale(1.03) !important;
+  box-shadow:
+    0 10px 15px -3px rgb(0 0 0 / 0.15),
+    0 4px 6px -2px rgb(0 0 0 / 0.1) !important;
+  z-index: 5 !important;
+}
+
+.tc-blocksuite-scope.tc-blocksuite-tc-header-enabled
+  .tc-blocksuite-tc-header-avatar.tc-blocksuite-tc-header-avatar-previewable:focus-visible {
+  outline: 2px solid oklch(var(--p) / 0.45) !important;
+  outline-offset: 2px !important;
 }
 
 .tc-blocksuite-scope.tc-blocksuite-tc-header-enabled .tc-blocksuite-tc-header-avatar-overlay-text {

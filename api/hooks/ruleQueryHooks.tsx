@@ -257,3 +257,29 @@ export function useRuleListQuery() {
   });
 }
 
+export function useAllRuleListQuery(pageSize: number = 100, enabled: boolean = true) {
+  return useQuery({
+    queryKey: ["allRuleList", pageSize],
+    queryFn: async (): Promise<Rule[]> => {
+      const allRules: Rule[] = [];
+      let pageNo = 1;
+
+      while (true) {
+        const res = await tuanchat.ruleController.getRulePage({ pageNo, pageSize });
+        if (!res.success || !res.data?.list) {
+          throw new Error('获取规则列表失败');
+        }
+
+        allRules.push(...res.data.list);
+
+        if (res.data.isLast || res.data.list.length < pageSize) {
+          return allRules;
+        }
+
+        pageNo += 1;
+      }
+    },
+    staleTime: 300000, // 5分钟缓存
+    enabled,
+  });
+}

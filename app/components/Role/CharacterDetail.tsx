@@ -514,11 +514,14 @@ function CharacterDetailInner({
             <h1 className="font-semibold text-2xl md:text-3xl md:my-2">
               {localRole.name || "未命名角色"}
             </h1>
-            <p className="text-base-content/60 md:block">
-              {isDiceMaiden ? "骰娘展示" : "角色展示"}
-              {" "}
-              ·
-              {currentRuleData?.ruleName || "未选择规则"}
+            <p className="truncate text-base-content/60 md:block">
+              <span className="md:hidden">{currentRuleData?.ruleName || "未选择规则"}</span>
+              <span className="hidden md:inline">
+                {isDiceMaiden ? "骰娘展示" : "角色展示"}
+                {" "}
+                ·
+                {currentRuleData?.ruleName || "未选择规则"}
+              </span>
             </p>
           </div>
           <div className="order-2 flex shrink-0 items-center gap-1.5 md:order-0 md:gap-2">

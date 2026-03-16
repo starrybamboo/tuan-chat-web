@@ -61,82 +61,10 @@ export default function RuleExpansionModule({
     onRuleChange((prev: Rule) => ({ ...prev, actTemplate: newData }));
   };
 
-  // 渲染当前 Tab 内容
-  const renderActiveTabContent = () => {
-    if (activeTab === "basic") {
-      return (
-        <RuleConfigurationSection
-          key="basic"
-          customLabel="基础属性"
-          localEdits={localRule.basicDefault}
-          onDataChange={handleBasicChange}
-          cloneVersion={cloneVersion}
-          onEditingChange={handleBasicEditingChange}
-          forcedEditing={forcedEditing}
-          saveSignal={saveSignal}
-        />
-      );
-    }
-    if (activeTab === "ability") {
-      return (
-        <RuleConfigurationSection
-          key="ability"
-          customLabel="能力"
-          localEdits={localRule.abilityFormula}
-          onDataChange={handleAbilityChange}
-          cloneVersion={cloneVersion}
-          onEditingChange={handleAbilityEditingChange}
-          forcedEditing={forcedEditing}
-          saveSignal={saveSignal}
-        />
-      );
-    }
-    if (activeTab === "skill") {
-      return (
-        <RuleConfigurationSection
-          key="skill"
-          customLabel="技能"
-          localEdits={localRule.skillDefault}
-          onDataChange={handleSkillChange}
-          cloneVersion={cloneVersion}
-          onEditingChange={handleSkillEditingChange}
-          forcedEditing={forcedEditing}
-          saveSignal={saveSignal}
-        />
-      );
-    }
-    // act
-    return (
-      <Section
-        key="act"
-        className="rounded-2xl md:border-2 md:border-base-content/10 bg-base-100"
-        collapsible={false}
-      >
-        <div className="space-y-6">
-          <div className="flex items-center gap-2">
-            <h4 className="text-lg font-semibold">
-              ⚡表演模版
-            </h4>
-            <div className="badge badge-info badge-sm">{Object.keys(localRule.actTemplate ?? {}).length}</div>
-          </div>
-          <RulePerformanceEditor
-            title="表演"
-            data={localRule.actTemplate}
-            onSave={handleActTemplateChange}
-            cloneVersion={cloneVersion}
-            onEditingChange={handleActEditingChange}
-            forcedEditing={forcedEditing}
-            saveSignal={saveSignal}
-          />
-        </div>
-      </Section>
-    );
-  };
-
   return (
     <div className="space-y-4">
       {/* 顶部 Tab 按钮条，依据角色类型条件渲染 */}
-      <div className="flex gap-2 rounded-lg">
+      <div className="flex gap-1 md:gap-2 rounded-lg">
         <>
           <button
             type="button"
@@ -172,8 +100,66 @@ export default function RuleExpansionModule({
           </button>
         </>
       </div>
-      <div key={`rule-tab-panel-${activeTab}`}>
-        {renderActiveTabContent()}
+
+      <div className={activeTab === "basic" ? "block" : "hidden"} aria-hidden={activeTab !== "basic"}>
+        <RuleConfigurationSection
+          customLabel="基础属性"
+          localEdits={localRule.basicDefault}
+          onDataChange={handleBasicChange}
+          cloneVersion={cloneVersion}
+          onEditingChange={handleBasicEditingChange}
+          forcedEditing={forcedEditing}
+          saveSignal={saveSignal}
+        />
+      </div>
+
+      <div className={activeTab === "ability" ? "block" : "hidden"} aria-hidden={activeTab !== "ability"}>
+        <RuleConfigurationSection
+          customLabel="能力"
+          localEdits={localRule.abilityFormula}
+          onDataChange={handleAbilityChange}
+          cloneVersion={cloneVersion}
+          onEditingChange={handleAbilityEditingChange}
+          forcedEditing={forcedEditing}
+          saveSignal={saveSignal}
+        />
+      </div>
+
+      <div className={activeTab === "skill" ? "block" : "hidden"} aria-hidden={activeTab !== "skill"}>
+        <RuleConfigurationSection
+          customLabel="技能"
+          localEdits={localRule.skillDefault}
+          onDataChange={handleSkillChange}
+          cloneVersion={cloneVersion}
+          onEditingChange={handleSkillEditingChange}
+          forcedEditing={forcedEditing}
+          saveSignal={saveSignal}
+        />
+      </div>
+
+      <div className={activeTab === "act" ? "block" : "hidden"} aria-hidden={activeTab !== "act"}>
+        <Section
+          className="rounded-2xl md:border-2 md:border-base-content/10 bg-base-100"
+          collapsible={false}
+        >
+          <div className="space-y-6">
+            <div className="flex items-center gap-2">
+              <h4 className="text-lg font-semibold">
+                ⚡表演模版
+              </h4>
+              <div className="badge badge-info badge-sm">{Object.keys(localRule.actTemplate ?? {}).length}</div>
+            </div>
+            <RulePerformanceEditor
+              title="表演"
+              data={localRule.actTemplate}
+              onSave={handleActTemplateChange}
+              cloneVersion={cloneVersion}
+              onEditingChange={handleActEditingChange}
+              forcedEditing={forcedEditing}
+              saveSignal={saveSignal}
+            />
+          </div>
+        </Section>
       </div>
     </div>
   );

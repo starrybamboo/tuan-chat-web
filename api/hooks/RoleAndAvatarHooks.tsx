@@ -14,7 +14,6 @@ import { tuanchat } from '../instance';
 // import type { RoleAbilityTable } from './models/RoleAbilityTable';
 import type { RoleAvatar } from '../models/RoleAvatar';
 import type { RoleAvatarCreateRequest } from '../models/RoleAvatarCreateRequest';
-import type { UserLoginRequest } from '../models/UserLoginRequest';
 import type { UserRegisterRequest } from '../models/UserRegisterRequest';
 import type { RolePageQueryRequest } from '../models/RolePageQueryRequest'
 import type { Transform } from '../../app/components/Role/sprite/TransformControl';
