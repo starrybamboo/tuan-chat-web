@@ -3,6 +3,7 @@ import type { DocModeProvider } from "@blocksuite/affine/shared/services";
 import type { DescriptionEntityType } from "@/components/chat/infra/blocksuite/descriptionDocId";
 import type { BlocksuiteDocHeader } from "@/components/chat/infra/blocksuite/docHeader";
 import type { BlocksuiteMentionProfilePopoverState } from "@/components/chat/infra/blocksuite/mentionProfilePopover";
+import type { KeyboardEvent as ReactKeyboardEvent } from "react";
 import { FileTextIcon } from "@phosphor-icons/react";
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import toast from "react-hot-toast";
@@ -18,6 +19,8 @@ import { BlocksuiteMentionProfilePopover } from "@/components/chat/infra/blocksu
 import { parseSpaceDocId } from "@/components/chat/infra/blocksuite/spaceDocId";
 import { ensureBlocksuiteRuntimeStyles } from "@/components/chat/infra/blocksuite/styles/ensureBlocksuiteRuntimeStyles";
 import { useEntityHeaderOverrideStore } from "@/components/chat/stores/entityHeaderOverrideStore";
+import { ResizableImg } from "@/components/common/resizableImg";
+import toastWindow from "@/components/common/toastWindow/toastWindow";
 import { ImgUploaderWithCopper } from "@/components/common/uploader/imgUploaderWithCropper";
 
 async function loadBlocksuiteRuntime() {
@@ -1095,6 +1098,26 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
   const tcHeaderImageUrl = tcHeaderState?.header.imageUrl ?? tcHeader?.fallbackImageUrl ?? "";
   const tcHeaderTitle = tcHeaderState?.header.title ?? tcHeader?.fallbackTitle ?? "";
   const hasTcHeaderImage = Boolean(tcHeaderImageUrl.trim());
+  const handleOpenTcHeaderImagePreview = useCallback(() => {
+    const imageUrl = tcHeaderImageUrl.trim();
+    if (!imageUrl) {
+      return;
+    }
+    toastWindow(
+      onClose => <ResizableImg src={imageUrl} onClose={onClose} />,
+      {
+        fullScreen: true,
+        transparent: true,
+      },
+    );
+  }, [tcHeaderImageUrl]);
+  const handleTcHeaderImagePreviewKeyDown = useCallback((event: ReactKeyboardEvent<HTMLDivElement>) => {
+    if (event.key !== "Enter" && event.key !== " ") {
+      return;
+    }
+    event.preventDefault();
+    handleOpenTcHeaderImagePreview();
+  }, [handleOpenTcHeaderImagePreview]);
 
   return (
     <div className={rootClassName}>
@@ -1143,7 +1166,15 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
                           </ImgUploaderWithCopper>
                         )
                       : (
-                          <div className={`tc-blocksuite-tc-header-avatar tc-blocksuite-tc-header-avatar-readonly${hasTcHeaderImage ? "" : " tc-blocksuite-tc-header-avatar-empty"}`}>
+                          <div
+                            className={`tc-blocksuite-tc-header-avatar tc-blocksuite-tc-header-avatar-readonly${hasTcHeaderImage ? " tc-blocksuite-tc-header-avatar-previewable" : ""}${hasTcHeaderImage ? "" : " tc-blocksuite-tc-header-avatar-empty"}`}
+                            role={hasTcHeaderImage ? "button" : undefined}
+                            tabIndex={hasTcHeaderImage ? 0 : undefined}
+                            aria-label={hasTcHeaderImage ? "查看封面大图" : undefined}
+                            title={hasTcHeaderImage ? "点击查看大图" : undefined}
+                            onClick={hasTcHeaderImage ? handleOpenTcHeaderImagePreview : undefined}
+                            onKeyDown={hasTcHeaderImage ? handleTcHeaderImagePreviewKeyDown : undefined}
+                          >
                             {hasTcHeaderImage
                               ? (
                                   <img
@@ -1159,6 +1190,11 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
                                     </span>
                                   </div>
                                 )}
+                            {hasTcHeaderImage && (
+                              <div className="tc-blocksuite-tc-header-avatar-overlay">
+                                <span className="tc-blocksuite-tc-header-avatar-overlay-text">查看</span>
+                              </div>
+                            )}
                           </div>
                         )}
 

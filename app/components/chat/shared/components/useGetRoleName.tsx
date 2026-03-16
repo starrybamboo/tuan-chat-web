@@ -1,8 +1,8 @@
 import type { ApiResultUserRole } from "../../../../../api";
 import { useQueryClient } from "@tanstack/react-query";
 import { useCallback } from "react";
-import { tuanchat } from "../../../../../api/instance";
 import { shouldRetryRoleQueryError } from "@/utils/roleApiError";
+import { tuanchat } from "../../../../../api/instance";
 
 /**
  * 获取角色信息, 如果角色信息不存在则从服务器获取
