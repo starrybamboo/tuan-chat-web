@@ -363,11 +363,11 @@ export default function ExpansionModule({
 
   const tabButtons = !isDiceMaiden
     ? (
-        <div className={`flex ${isSmall ? "items-start" : "items-center"} gap-2 rounded-lg`}>
-          <div className={`flex ${isSmall ? "flex-col gap-2" : "flex-wrap justify-center md:justify-start gap-2"}`}>
+        <div className={`flex min-w-0 items-center gap-1 md:gap-2 rounded-lg ${isSmall ? "w-full" : ""}`}>
+          <div className={`flex min-w-0 flex-1 flex-nowrap gap-1 md:flex-wrap md:justify-start md:gap-2 ${isSmall ? "" : "md:justify-center"}`}>
             <button
               type="button"
-              className={`btn ${isSmall ? "btn-sm w-full justify-start" : "btn-md"} rounded-lg ${activeTab === "basic" ? "btn-primary" : "btn-ghost"}`}
+              className={`btn ${isSmall ? "btn-sm" : "btn-md"} h-10 min-h-10 flex-none px-3 text-sm whitespace-nowrap md:h-auto md:min-h-0 md:px-4 md:text-sm rounded-lg ${activeTab === "basic" ? "btn-primary" : "btn-ghost"}`}
               onClick={() => setActiveTab("basic")}
             >
               <span className="md:hidden">基础</span>
@@ -375,7 +375,7 @@ export default function ExpansionModule({
             </button>
             <button
               type="button"
-              className={`btn ${isSmall ? "btn-sm w-full justify-start" : "btn-md"} rounded-lg ${activeTab === "ability" ? "btn-primary" : "btn-ghost"}`}
+              className={`btn ${isSmall ? "btn-sm" : "btn-md"} h-10 min-h-10 flex-none px-3 text-sm whitespace-nowrap md:h-auto md:min-h-0 md:px-4 md:text-sm rounded-lg ${activeTab === "ability" ? "btn-primary" : "btn-ghost"}`}
               onClick={() => setActiveTab("ability")}
             >
               <span className="md:hidden">能力</span>
@@ -383,7 +383,7 @@ export default function ExpansionModule({
             </button>
             <button
               type="button"
-              className={`btn ${isSmall ? "btn-sm w-full justify-start" : "btn-md"} rounded-lg ${activeTab === "skill" ? "btn-primary" : "btn-ghost"}`}
+              className={`btn ${isSmall ? "btn-sm" : "btn-md"} h-10 min-h-10 flex-none px-3 text-sm whitespace-nowrap md:h-auto md:min-h-0 md:px-4 md:text-sm rounded-lg ${activeTab === "skill" ? "btn-primary" : "btn-ghost"}`}
               onClick={() => setActiveTab("skill")}
             >
               <span className="md:hidden">技能</span>
@@ -391,7 +391,7 @@ export default function ExpansionModule({
             </button>
             <button
               type="button"
-              className={`btn ${isSmall ? "btn-sm w-full justify-start" : "btn-md"} rounded-lg ${activeTab === "act" ? "btn-primary" : "btn-ghost"}`}
+              className={`btn ${isSmall ? "btn-sm" : "btn-md"} h-10 min-h-10 flex-none px-3 text-sm whitespace-nowrap md:h-auto md:min-h-0 md:px-4 md:text-sm rounded-lg ${activeTab === "act" ? "btn-primary" : "btn-ghost"}`}
               onClick={() => setActiveTab("act")}
             >
               <span className="md:hidden">表演</span>
@@ -403,7 +403,7 @@ export default function ExpansionModule({
               <button
                 type="button"
                 tabIndex={0}
-                className={`btn ${isSmall ? "btn-sm" : "btn-md"} btn-square rounded-full`}
+                className={`btn ${isSmall ? "btn-sm" : "btn-md"} btn-square h-10 w-10 min-h-10 md:h-12 md:w-12 md:min-h-12 rounded-full`}
                 aria-label="打开导入和生成功能"
               >
                 <WrenchIcon className="w-5 h-5" />
@@ -488,11 +488,11 @@ export default function ExpansionModule({
                   <div className="space-y-4">
                     {isSmall && tabButtons
                       ? (
-                          <div className="flex gap-3 items-start">
-                            <div className="shrink-0">
+                          <div className="space-y-3">
+                            <div className="w-full min-w-0">
                               {tabButtons}
                             </div>
-                            <div className="min-w-0 flex-1">
+                            <div className="min-w-0">
                               <div>
                                 {isDiceMaiden
                                   ? (
