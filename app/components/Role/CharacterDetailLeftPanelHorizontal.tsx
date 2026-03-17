@@ -63,13 +63,13 @@ export default function CharacterDetailLeftPanelHorizontal({
               className="col-start-3 col-span-2 row-start-1 rounded-xl bg-base-100/70 border border-base-content/10 px-3 py-2.5 min-h-12 flex items-center justify-between hover:bg-base-300/50 transition-colors"
               onClick={onOpenRuleModal}
             >
-              <span className="inline-flex items-center gap-2">
+              <span className="inline-flex min-w-0 items-center gap-2">
                 <span className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center">
                   <GearOutline className="w-4 h-4 text-primary" />
                 </span>
-                <span className="font-semibold text-sm">当前规则</span>
+                <span className="min-w-0 truncate whitespace-nowrap font-semibold text-sm">当前规则</span>
               </span>
-              <ChevronRightIcon className="w-4 h-4 text-base-content/50" />
+              <ChevronRightIcon className="w-4 h-4 shrink-0 text-base-content/50" />
             </button>
 
             {!isDiceMaiden && (
@@ -78,13 +78,13 @@ export default function CharacterDetailLeftPanelHorizontal({
                 className="col-start-3 col-span-2 row-start-2 rounded-xl bg-base-100/70 border border-base-content/10 px-3 py-2.5 min-h-12 flex items-center justify-between hover:bg-base-300/50 transition-colors"
                 onClick={onOpenDiceMaidenLinkModal}
               >
-                <span className="inline-flex items-center gap-2">
+                <span className="inline-flex min-w-0 items-center gap-2">
                   <span className="w-7 h-7 rounded-full bg-accent/10 flex items-center justify-center">
                     <DiceFiveIcon className="w-4 h-4 text-accent" />
                   </span>
-                  <span className="font-semibold text-sm">关联骰娘</span>
+                  <span className="min-w-0 truncate whitespace-nowrap font-semibold text-sm">关联骰娘</span>
                 </span>
-                <ChevronRightIcon className="w-4 h-4 text-base-content/50" />
+                <ChevronRightIcon className="w-4 h-4 shrink-0 text-base-content/50" />
               </button>
             )}
 
@@ -93,13 +93,13 @@ export default function CharacterDetailLeftPanelHorizontal({
               className={`col-start-3 col-span-2 ${isDiceMaiden ? "row-start-2" : "row-start-3"} rounded-xl bg-base-100/70 border border-base-content/10 px-3 py-2.5 min-h-12 flex items-center justify-between hover:bg-base-300/50 transition-colors`}
               onClick={onOpenAudioModal}
             >
-              <span className="inline-flex items-center gap-2">
+              <span className="inline-flex min-w-0 items-center gap-2">
                 <span className="w-7 h-7 rounded-full bg-secondary/10 flex items-center justify-center">
                   <MicrophoneIcon className="w-4 h-4 text-secondary" />
                 </span>
-                <span className="font-semibold text-sm">上传音频</span>
+                <span className="min-w-0 truncate whitespace-nowrap font-semibold text-sm">上传音频</span>
               </span>
-              <ChevronRightIcon className="w-4 h-4 text-base-content/50" />
+              <ChevronRightIcon className="w-4 h-4 shrink-0 text-base-content/50" />
             </button>
           </div>
 
@@ -170,9 +170,6 @@ export default function CharacterDetailLeftPanelHorizontal({
                   {localRole.name || "未命名角色"}
                 </h1>
                 <p className="text-base-content/60 text-sm">
-                  {isDiceMaiden ? "骰娘展示" : "角色展示"}
-                  {" "}
-                  ·
                   {currentRuleName || "未选择规则"}
                 </p>
               </div>

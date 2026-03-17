@@ -7,18 +7,22 @@ export default function RuleTextInfoEditor({
   ruleName,
   ruleDescription,
   onApply,
+  onChange,
   cloneVersion,
   onEditingChange,
   forcedEditing,
   saveSignal,
+  ruleNameError,
 }: {
   ruleName?: string;
   ruleDescription?: string;
   onApply: (next: { ruleName: string; ruleDescription: string }) => void;
+  onChange?: (next: { ruleName: string; ruleDescription: string }) => void;
   cloneVersion: number;
   onEditingChange?: (editing: boolean) => void;
   forcedEditing?: boolean;
   saveSignal?: number;
+  ruleNameError?: string;
 }) {
   const [isEditing, setIsEditing] = useState(false);
   const [localName, setLocalName] = useState(ruleName ?? "");
@@ -110,56 +114,51 @@ export default function RuleTextInfoEditor({
   const descriptionLength = localDescription.length;
   const nameCounterClass = nameLength >= RULE_NAME_MAX_LENGTH ? "text-error" : "text-base-content/50";
   const descriptionCounterClass = descriptionLength >= RULE_DESCRIPTION_MAX_LENGTH ? "text-error" : "text-base-content/50";
+  const hasRuleNameError = Boolean(ruleNameError);
+  const shouldShowHeader = typeof forcedEditing !== "boolean";
 
   return (
-    <div className="space-y-6 md:min-h-[560px]">
-      <div className="flex items-center justify-between gap-3">
-        <h3 className="font-semibold text-base md:text-lg min-w-0 truncate">📘规则信息</h3>
-        <div className="shrink-0">
-          {typeof forcedEditing !== "boolean" && (
-            <button
-              type="button"
-              className={`btn btn-sm btn-accent ${isEditing ? "invisible pointer-events-none" : ""}`}
-              onClick={handleStartEditing}
-              disabled={isEditing}
-              tabIndex={isEditing ? -1 : 0}
-              aria-hidden={isEditing}
-            >
-              <span className="flex items-center gap-1">
-                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
-                  <path d="M11 4H4v14a2 2 0 002 2h12a2 2 0 002-2v-7" stroke="currentColor" strokeWidth="2" />
-                  <path d="M18.5 2.5a2.12 2.12 0 013 3L12 15l-4 1 1-4z" stroke="currentColor" strokeWidth="2" />
-                </svg>
-                编辑
-              </span>
-            </button>
-          )}
-        </div>
+    <div className="space-y-3">
+      <div className={`${shouldShowHeader ? "flex" : "hidden md:flex"} items-center justify-between gap-3`}>
+        <h2 className="card-title hidden md:flex items-center gap-2 mb-2">规则信息</h2>
+        {shouldShowHeader && (
+          <button
+            type="button"
+            className={`btn btn-sm btn-accent ${isEditing ? "invisible pointer-events-none" : ""}`}
+            onClick={handleStartEditing}
+            disabled={isEditing}
+            tabIndex={isEditing ? -1 : 0}
+            aria-hidden={isEditing}
+          >
+            <span className="flex items-center gap-1">
+              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
+                <path d="M11 4H4v14a2 2 0 002 2h12a2 2 0 002-2v-7" stroke="currentColor" strokeWidth="2" />
+                <path d="M18.5 2.5a2.12 2.12 0 013 3L12 15l-4 1 1-4z" stroke="currentColor" strokeWidth="2" />
+              </svg>
+              编辑
+            </span>
+          </button>
+        )}
       </div>
-      <div className="divider my-0" />
 
       {!isEditing
         ? (
           // 非编辑态：展示模式
             <div className="space-y-4">
-              {/* 规则名称展示 */}
-              <div>
-                <div className="flex gap-2 mb-3 items-center">
-                  <span className="font-semibold">规则名称</span>
+              <div className="form-control">
+                <div className="flex gap-2 mb-2 items-center font-semibold">
+                  <span>规则名称</span>
                 </div>
-                <div className="text-sm text-base-content/70 leading-relaxed max-h-40 overflow-y-auto whitespace-pre-wrap wrap-break-words">
+                <div className="rounded-md border border-base-content/15 bg-base-200 px-4 py-3 text-sm text-base-content/70 leading-relaxed whitespace-pre-wrap wrap-break-words min-h-12">
                   {ruleName || <span className="text-base-content/40">未命名规则</span>}
                 </div>
               </div>
 
-              <div className="divider my-1" />
-
-              {/* 规则描述展示 */}
-              <div>
-                <div className="flex gap-2 mb-3 items-center">
-                  <span className="font-semibold">规则描述</span>
+              <div className="form-control">
+                <div className="flex gap-2 mb-2 items-center font-semibold">
+                  <span>规则描述</span>
                 </div>
-                <div className="text-sm text-base-content/70 leading-relaxed max-h-40 overflow-y-auto whitespace-pre-wrap wrap-break-words">
+                <div className="rounded-md border border-base-content/15 bg-base-200 px-4 py-3 text-sm text-base-content/70 leading-relaxed whitespace-pre-wrap wrap-break-words min-h-45">
                   {ruleDescription || <span className="text-base-content/40">暂无描述</span>}
                 </div>
               </div>
@@ -169,44 +168,59 @@ export default function RuleTextInfoEditor({
           // 编辑态：表单控件
             <div className="space-y-4">
               <div className="form-control flex-1 min-w-0">
-                <div className="flex gap-2 items-center font-semibold justify-between">
+                <div className="flex flex-wrap gap-x-2 gap-y-1 mb-2 items-center font-semibold">
                   <span>规则名称</span>
-                  <span className={`text-xs font-normal ${nameCounterClass}`}>
+                  <span className={`label-text-alt font-normal ${nameCounterClass}`}>
                     {nameLength}
                     /
                     {RULE_NAME_MAX_LENGTH}
                   </span>
+                  {hasRuleNameError && (
+                    <span className="label-text-alt text-xs font-normal text-error">
+                      {ruleNameError}
+                    </span>
+                  )}
                 </div>
                 <input
                   type="text"
-                  className="input input-bordered bg-base-100 rounded-md w-full transition focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                  className={`input input-bordered bg-base-200 rounded-md w-full transition focus:outline-none focus:ring-2 ${
+                    hasRuleNameError
+                      ? "input-error border-error focus:ring-error/20 focus:border-error"
+                      : "focus:ring-primary/20 focus:border-primary"
+                  }`}
                   placeholder="输入规则名称"
                   value={localName}
                   maxLength={RULE_NAME_MAX_LENGTH}
                   onChange={(e) => {
-                    setLocalName(e.target.value);
+                    const nextRuleName = e.target.value;
+                    setLocalName(nextRuleName);
+                    if (isForcedEditingMode) {
+                      onChange?.({ ruleName: nextRuleName, ruleDescription: localDescription });
+                    }
                   }}
                 />
               </div>
 
-              <div className="divider my-1" />
-
               <div className="form-control">
-                <div className="flex gap-2 mb-2 items-center font-semibold justify-between">
+                <div className="flex flex-wrap gap-x-2 gap-y-1 mb-2 items-center font-semibold">
                   <span>规则描述</span>
-                  <span className={`text-xs font-normal ${descriptionCounterClass}`}>
+                  <span className={`label-text-alt font-normal ${descriptionCounterClass}`}>
                     {descriptionLength}
                     /
                     {RULE_DESCRIPTION_MAX_LENGTH}
                   </span>
                 </div>
                 <textarea
-                  className="textarea textarea-bordered bg-base-100 rounded-md h-40 overflow-y-auto resize-none w-full transition focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
-                  placeholder="输入规则描述"
+                  className="textarea textarea-bordered bg-base-200 rounded-md min-h-50 resize-y w-full transition focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                  placeholder="描述规则定位、核心机制和适用场景"
                   value={localDescription}
                   maxLength={RULE_DESCRIPTION_MAX_LENGTH}
                   onChange={(e) => {
-                    setLocalDescription(e.target.value);
+                    const nextRuleDescription = e.target.value;
+                    setLocalDescription(nextRuleDescription);
+                    if (isForcedEditingMode) {
+                      onChange?.({ ruleName: localName, ruleDescription: nextRuleDescription });
+                    }
                   }}
                 />
               </div>
