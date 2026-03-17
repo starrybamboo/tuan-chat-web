@@ -7,7 +7,7 @@ const BRIDGE_DISABLE_FN_KEY = "__TC_DISABLE_MEDIA_DEBUG__";
 
 type DebugPayload = Record<string, unknown> | undefined;
 
-export function isMediaDebugEnabled(): boolean {
+function isMediaDebugEnabled(): boolean {
   // 统一关闭媒体调试日志，避免控制台噪音。
   return false;
 }
@@ -18,7 +18,7 @@ export function mediaDebug(scope: string, event: string, payload?: DebugPayload)
   void payload;
 }
 
-export const MEDIA_DEBUG_KEYS = {
+const MEDIA_DEBUG_KEYS = {
   localStorageKey: LOCAL_STORAGE_KEY,
   globalFlagKey: GLOBAL_FLAG_KEY,
 } as const;

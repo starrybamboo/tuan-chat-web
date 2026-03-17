@@ -8,8 +8,14 @@ export interface SpaceContextType {
   /** 当前空间的规则ID */
   ruleId?: number;
 
-  /** 标识当前用户是否为空间所有者 */
+  /** 标识当前用户是否拥有主持权限（主持人 / 副主持人） */
   isSpaceOwner?: boolean;
+
+  /** 当前用户在空间内的成员类型 */
+  memberType?: number;
+
+  /** 是否可以调整其他成员权限 */
+  canManageMemberPermissions?: boolean;
 
   /**
    * 设置激活空间ID的回调函数
@@ -35,6 +41,8 @@ export interface SpaceContextType {
 export const SpaceContext = createContext<SpaceContextType>({
   spaceId: undefined,
   isSpaceOwner: false,
+  memberType: undefined,
+  canManageMemberPermissions: false,
   setActiveSpaceId: () => {},
   setActiveRoomId: () => {},
   ruleId: undefined,

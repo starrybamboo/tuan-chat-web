@@ -5,6 +5,9 @@ interface MemberSelectProps {
   /** 可选的成员列表 */
   members: Array<{
     userId?: number;
+    username?: string;
+    avatar?: string;
+    avatarThumbUrl?: string;
     [key: string]: any;
   }>;
   /** 已选中的成员ID集合 */
@@ -78,7 +81,7 @@ export const MemberSelect: React.FC<MemberSelectProps> = ({
                     checked={selectedUserIds.has(member.userId ?? -1)}
                     onChange={e => handleMemberSelection(member.userId ?? -1, e.target.checked)}
                   />
-                  <MemberInfoComponent userId={member.userId ?? -1} />
+                  <MemberInfoComponent user={member} />
                 </div>
               ))
             )}

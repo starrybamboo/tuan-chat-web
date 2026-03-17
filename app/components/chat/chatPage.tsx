@@ -40,7 +40,10 @@ import useSearchParamsState from "@/components/common/customHooks/useSearchParam
 import { useGlobalContext } from "@/components/globalContextProvider";
 
 const EMPTY_ARRAY: never[] = [];
-type CachedDocRoute = { spaceId: number; docId: string };
+interface CachedDocRoute {
+  spaceId: number;
+  docId: string;
+}
 
 /**
  * Chat 页面
@@ -403,12 +406,57 @@ export default function ChatPage() {
     });
   }, [activeDocId, activeSpaceId, isDocRoute]);
 
+  useEffect(() => {
+    if (isDocRoute) {
+      return;
+    }
+    setCachedDocRoute(null);
+  }, [isDocRoute]);
+
   const docRouteForRender = useMemo<CachedDocRoute | null>(() => {
     if (isDocRoute && activeSpaceId && activeSpaceId > 0 && activeDocId) {
       return { spaceId: activeSpaceId, docId: activeDocId };
     }
     return cachedDocRoute;
   }, [activeDocId, activeSpaceId, cachedDocRoute, isDocRoute]);
+
+  const handleDeleteDoc = useCallback((deletedDocId: string) => {
+    const normalizedDeletedDocId = String(deletedDocId ?? "").trim();
+    if (!normalizedDeletedDocId) {
+      return;
+    }
+
+    setSpaceDocMetas((prev) => {
+      if (!Array.isArray(prev) || prev.length === 0) {
+        return prev;
+      }
+      const next = prev.filter(meta => meta.id !== normalizedDeletedDocId);
+      return next.length === prev.length ? prev : next;
+    });
+
+    setCachedDocRoute((prev) => {
+      if (!prev) {
+        return prev;
+      }
+      if (prev.docId !== normalizedDeletedDocId) {
+        return prev;
+      }
+      return null;
+    });
+
+    if (subWindowDocId === normalizedDeletedDocId) {
+      setSubWindowDocId(null);
+    }
+
+    if (!isDocRoute || activeDocId !== normalizedDeletedDocId) {
+      return;
+    }
+    if (!activeSpaceId || activeSpaceId <= 0) {
+      return;
+    }
+
+    navigate(`/chat/${activeSpaceId}`, { replace: true });
+  }, [activeDocId, activeSpaceId, isDocRoute, navigate, setSpaceDocMetas, setSubWindowDocId, subWindowDocId]);
 
   const {
     buildTreeBaseForWrite,
@@ -581,6 +629,7 @@ export default function ChatPage() {
     onResetSidebarTreeToDefault: resetSidebarTreeToDefault,
     docMetas: spaceDocMetasList,
     onSelectDoc: handleSelectDoc,
+    onDeleteDoc: handleDeleteDoc,
     activeRoomId,
     activeDocId,
     unreadMessagesNumber,
@@ -661,7 +710,7 @@ export default function ChatPage() {
     <div className="relative w-full h-full min-h-0 min-w-0">
       {!isDocRoute && <Outlet />}
       {docRouteForRender && (
-        // 文档容器常驻：聊天室路由仅隐藏，不卸载 iframe，避免 blocksuite 脚本反复加载。
+        // 仅在文档路由下渲染文档编辑器；离开文档页后及时卸载，避免后台继续同步已关闭/已删除文档。
         <div className={isDocRoute ? "w-full h-full" : "hidden"} aria-hidden={!isDocRoute}>
           <ChatPageDocContent
             spaceId={docRouteForRender.spaceId}

@@ -1,8 +1,8 @@
-import type { UserRole } from "api";
+import type { RoleAvatar, UserRole } from "api";
 import type { Rule } from "api/models/Rule";
 import type { Role } from "../types";
 import { useQueryClient } from "@tanstack/react-query";
-import { useDeleteRolesMutation, useGetUserRolesByTypeQuery } from "api/hooks/RoleAndAvatarHooks";
+import { seedRoleAvatarQueryCaches, useDeleteRolesMutation, useGetUserRolesByTypeQuery } from "api/hooks/RoleAndAvatarHooks";
 import { useDeleteRuleMutation, useRuleListQuery } from "api/hooks/ruleQueryHooks";
 // import { useCreateRoleMutation, useDeleteRolesMutation, useGetInfiniteUserRolesQuery, useUpdateRoleWithLocalMutation, useUploadAvatarMutation } from "api/queryHooks";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -74,18 +74,17 @@ export function Sidebar({
   };
 
   const loadRoles = useCallback(async () => {
-    interface SidebarAvatarCache {
-      avatar?: string;
-      avatarThumb?: string;
-      avatarId?: number;
-    }
+    type RoleListAvatarFields = UserRole & {
+      avatarUrl?: string;
+      avatarThumbUrl?: string;
+    };
 
-    const convertRole = (role: UserRole) => ({
+    const convertRole = (role: RoleListAvatarFields) => ({
       id: role.roleId || 0,
       name: role.roleName || "",
       description: role.description || "无描述",
-      avatar: "",
-      avatarThumb: "",
+      avatar: role.avatarUrl || "",
+      avatarThumb: role.avatarThumbUrl || role.avatarUrl || "",
       avatarId: role.avatarId || 0,
       modelName: role.modelName || "",
       speakerName: role.speakerName || "",
@@ -103,49 +102,68 @@ export function Sidebar({
       // 将API返回的角色数据映射为前端使用的格式
       const mappedRoles = [...diceUserRoles, ...normalUserRoles].map(convertRole);
       const filteredMappedRoles = mappedRoles.filter(role => role.type !== 2);
+      filteredMappedRoles.forEach((role) => {
+        if (!role.avatarId || (!role.avatar && !role.avatarThumb)) {
+          return;
+        }
+        seedRoleAvatarQueryCaches(queryClient, {
+          avatarId: role.avatarId,
+          roleId: role.id,
+          avatarUrl: role.avatar,
+          avatarThumbUrl: role.avatarThumb || role.avatar,
+        } as RoleAvatar, role.id);
+      });
+
       // 将映射后的角色数据设置到状态中
       setRoles((prev) => {
         const filteredPrev = prev.filter(role => role.type !== 2);
-        // 如果存在旧角色数据，需要过滤掉重复的角色，这也避免了头像数据的重复加载
-        const existingIds = new Set(filteredPrev.map(r => r.id));
-        const newRoles = filteredMappedRoles.filter(
-          role => !existingIds.has(role.id),
-        );
-        return [...filteredPrev, ...newRoles];
+        const prevById = new Map(filteredPrev.map(role => [role.id, role]));
+        return filteredMappedRoles.map((role) => {
+          const previousRole = prevById.get(role.id);
+          if (!previousRole) {
+            return role;
+          }
+
+          return {
+            ...previousRole,
+            ...role,
+            avatar: role.avatar || previousRole.avatar,
+            avatarThumb: role.avatarThumb || previousRole.avatarThumb || role.avatar,
+          };
+        });
       });
 
-      // 并行加载所有角色的头像
+      // 角色列表已直接带回头像 URL 时无需再补查；仅对旧响应格式兜底。
       const avatarPromises = filteredMappedRoles.map(async (role) => {
-        // 检查角色的头像是否已经缓存
-        const cachedAvatar = queryClient.getQueryData<SidebarAvatarCache | string>(["roleAvatar", role.id]);
-        if (
-          typeof cachedAvatar !== "string"
-          && cachedAvatar?.avatar
-          && cachedAvatar.avatarId === role.avatarId
-        ) {
-          return { id: role.id, avatar: cachedAvatar.avatar, avatarThumb: cachedAvatar.avatarThumb || cachedAvatar.avatar };
+        if (!role.avatarId || role.avatar || role.avatarThumb) {
+          return null;
+        }
+
+        const cachedAvatar = queryClient.getQueryData<{ data?: RoleAvatar }>(["getRoleAvatar", role.avatarId])?.data;
+        if (cachedAvatar?.avatarUrl || cachedAvatar?.avatarThumbUrl) {
+          const avatarUrl = cachedAvatar.avatarUrl || ROLE_DEFAULT_AVATAR_URL;
+          const avatarThumbUrl = cachedAvatar.avatarThumbUrl || avatarUrl;
+          return { id: role.id, avatar: avatarUrl, avatarThumb: avatarThumbUrl };
         }
 
         try {
-          // 如果角色没有avatarId，跳过头像加载
-          if (!role.avatarId) {
-            return null;
-          }
-
-          const res = await tuanchat.avatarController.getRoleAvatar(role.avatarId);
+          const res = await queryClient.fetchQuery({
+            queryKey: ["getRoleAvatar", role.avatarId],
+            queryFn: () => tuanchat.avatarController.getRoleAvatar(role.avatarId),
+            staleTime: 86400000,
+          });
           if (res.success && res.data) {
             const avatarUrl = res.data.avatarUrl || ROLE_DEFAULT_AVATAR_URL;
             const avatarThumbUrl = res.data.avatarThumbUrl || avatarUrl;
-            // 将头像URL缓存到React Query缓存中
-            queryClient.setQueryData(["roleAvatar", role.id], { avatar: avatarUrl, avatarThumb: avatarThumbUrl, avatarId: role.avatarId });
+            seedRoleAvatarQueryCaches(queryClient, res.data, role.id);
             return { id: role.id, avatar: avatarUrl, avatarThumb: avatarThumbUrl };
           }
-          return null;
-        }
-        catch (error) {
+        } catch (error) {
           console.error(`加载角色 ${role.id} 的头像时出错`, error);
           return null;
         }
+
+        return null;
       });
 
       // 等待所有头像加载完成并一次性更新状态
@@ -224,10 +242,13 @@ export function Sidebar({
 
   // 初始化角色数据
   useEffect(() => {
-    if (diceRolesQuery.isSuccess || normalRolesQuery.isSuccess) {
+    const roleQueriesReady = !diceRolesQuery.isLoading && !normalRolesQuery.isLoading;
+    if (roleQueriesReady && (diceRolesQuery.isSuccess || normalRolesQuery.isSuccess)) {
       void loadRoles();
     }
   }, [
+    diceRolesQuery.isLoading,
+    normalRolesQuery.isLoading,
     diceRolesQuery.isSuccess,
     normalRolesQuery.isSuccess,
     diceRolesQuery.dataUpdatedAt,

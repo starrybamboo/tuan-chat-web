@@ -4,7 +4,6 @@ import { RoomContext } from "@/components/chat/core/roomContext";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
 import { CommentContext } from "@/components/common/comment/commentContext";
 import toastWindow from "@/components/common/toastWindow/toastWindow";
-import { CommunityContext } from "@/components/community/communityContext";
 import { ContentPermissionContext } from "@/components/repository/detail/ContentTab/ContentPermissionContext";
 
 export interface ToastWindowStateProps {
@@ -29,7 +28,6 @@ export function useToastWindow({
   const roomContext = use(RoomContext);
   const spaceContext = use(SpaceContext);
   const chatPageLayoutContext = use(ChatPageLayoutContext);
-  const communityContext = use(CommunityContext);
   const contentPermission = use(ContentPermissionContext);
   const commentContext = use(CommentContext);
 
@@ -74,20 +72,18 @@ export function useToastWindow({
   }, []);
 
   const wrappedChildren = useMemo(() => (
-    <CommunityContext value={communityContext}>
-      <ContentPermissionContext value={contentPermission}>
-        <ChatPageLayoutContext value={chatPageLayoutContext}>
-          <SpaceContext value={spaceContext}>
-            <RoomContext value={roomContext}>
-              <CommentContext value={commentContext}>
-                {children}
-              </CommentContext>
-            </RoomContext>
-          </SpaceContext>
-        </ChatPageLayoutContext>
-      </ContentPermissionContext>
-    </CommunityContext>
-  ), [communityContext, contentPermission, chatPageLayoutContext, spaceContext, roomContext, commentContext, children]);
+    <ContentPermissionContext value={contentPermission}>
+      <ChatPageLayoutContext value={chatPageLayoutContext}>
+        <SpaceContext value={spaceContext}>
+          <RoomContext value={roomContext}>
+            <CommentContext value={commentContext}>
+              {children}
+            </CommentContext>
+          </RoomContext>
+        </SpaceContext>
+      </ChatPageLayoutContext>
+    </ContentPermissionContext>
+  ), [contentPermission, chatPageLayoutContext, spaceContext, roomContext, commentContext, children]);
 
   useEffect(() => {
     if (!isOpen) {

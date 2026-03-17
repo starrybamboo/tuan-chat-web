@@ -11,10 +11,11 @@ import { tuanchat } from "../instance";
 /**
  * 获取当前登录用户的好友列表
  */
-export function useGetFriendListQuery(requestBody: FriendListRequest) {
+export function useGetFriendListQuery(requestBody: FriendListRequest, enabled = true) {
   return useQuery({
     queryKey: ["friendList", requestBody],
     queryFn: () => tuanchat.friendController.getFriendList(requestBody),
+    enabled,
     staleTime: 300000, // 5分钟缓存
   });
 }

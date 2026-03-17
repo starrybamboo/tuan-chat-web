@@ -4,6 +4,7 @@ import { use, useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import { RoomContext } from "@/components/chat/core/roomContext";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
+import { hasHostPrivileges } from "@/components/chat/utils/memberPermissions";
 import ConfirmModal from "@/components/common/comfirmModel";
 import { useGlobalContext } from "@/components/globalContextProvider";
 import CharacterDetail from "@/components/Role/CharacterDetail";
@@ -86,7 +87,7 @@ export function RoleDetailPagePopup({
   const deleteRoleMutation = useDeleteRole1Mutation();
   const [isKickConfirmOpen, setIsKickConfirmOpen] = useState(false);
 
-  const isManager = useMemo(() => curMember?.memberType === 1, [curMember?.memberType]);
+  const isManager = useMemo(() => hasHostPrivileges(curMember?.memberType), [curMember?.memberType]);
 
   const userId = useGlobalContext().userId ?? -1;
   const userRole = useGetUserRolesQuery(userId);

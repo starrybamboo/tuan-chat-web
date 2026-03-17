@@ -11,7 +11,11 @@ type UseRealtimeRenderControlsResult = {
   handleRealtimeRenderApiChange: (api: RealtimeRenderOrchestratorApi) => void;
   handleToggleRealtimeRender: () => Promise<void>;
   jumpToMessageInWebGAL: (messageId: number) => boolean;
-  updateAndRerenderMessageInWebGAL: (message: ChatMessageResponse, regenerateTTS?: boolean) => Promise<boolean>;
+  updateAndRerenderMessageInWebGAL: (
+    previousMessage: ChatMessageResponse,
+    message: ChatMessageResponse,
+    regenerateTTS?: boolean,
+  ) => Promise<boolean>;
   rerenderHistoryInWebGAL: (messages?: ChatMessageResponse[]) => Promise<boolean>;
   clearFigure: () => void;
 };
@@ -33,10 +37,11 @@ export default function useRealtimeRenderControls(): UseRealtimeRenderControlsRe
   }, []);
 
   const updateAndRerenderMessageInWebGAL = useCallback(async (
+    previousMessage: ChatMessageResponse,
     message: ChatMessageResponse,
     regenerateTTS: boolean = false,
   ): Promise<boolean> => {
-    return await realtimeRenderApiRef.current?.updateAndRerenderMessage(message, regenerateTTS) ?? false;
+    return await realtimeRenderApiRef.current?.updateAndRerenderMessage(previousMessage, message, regenerateTTS) ?? false;
   }, []);
 
   const rerenderHistoryInWebGAL = useCallback(async (

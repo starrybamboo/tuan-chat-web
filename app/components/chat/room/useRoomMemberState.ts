@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { hasHostPrivileges, isObserverLike } from "@/components/chat/utils/memberPermissions";
 
 import type { RoomMember, SpaceMember } from "../../../../api";
 
@@ -17,33 +18,59 @@ type UseRoomMemberStateResult = {
   notMember: boolean;
 };
 
-type RoomMemberWithSpace = RoomMember & SpaceMember;
+export type RoomMemberWithSpace = RoomMember & SpaceMember;
 
-export default function useRoomMemberState({
+type ResolveRoomMemberStateParams = {
+  roomId: number;
+  roomMembers: RoomMember[];
+  userId: number | null;
+  spaceMembers: SpaceMember[];
+};
+
+export function resolveRoomMemberState({
   roomId,
+  roomMembers,
   userId,
   spaceMembers,
-}: UseRoomMemberStateParams): UseRoomMemberStateResult {
-  const membersQuery = useGetMemberListQuery(roomId);
-  const members = useMemo<RoomMemberWithSpace[]>(() => {
-    const roomMembers = membersQuery.data?.data ?? [];
-    if (!spaceMembers.length) {
-      return roomMembers as RoomMemberWithSpace[];
+}: ResolveRoomMemberStateParams): UseRoomMemberStateResult {
+  const spaceMemberByUserId = new Map<number, SpaceMember>();
+  for (const member of spaceMembers) {
+    if (typeof member.userId === "number") {
+      spaceMemberByUserId.set(member.userId, member);
     }
-    return roomMembers.map((member) => {
-      const spaceMember = spaceMembers.find(m => m.userId === member.userId);
-      return {
-        ...member,
+  }
+
+  const members = roomMembers.map((member) => {
+    const spaceMember = typeof member.userId === "number"
+      ? spaceMemberByUserId.get(member.userId)
+      : undefined;
+    return {
+      ...member,
+      ...spaceMember,
+      // room_member 里只会有可参与房间的成员，未合并到 spaceMembers 时按玩家兜底，
+      // 避免查询先后顺序导致输入框被误锁成“观战”。
+      memberType: spaceMember?.memberType ?? 2,
+    } satisfies RoomMemberWithSpace;
+  });
+
+  let curMember = typeof userId === "number"
+    ? members.find(member => member.userId === userId)
+    : undefined;
+
+  if (!curMember && typeof userId === "number") {
+    const spaceMember = spaceMemberByUserId.get(userId);
+    if (spaceMember && typeof spaceMember.memberType === "number" && hasHostPrivileges(spaceMember.memberType)) {
+      // 主持人可以查看并操作空间内所有房间；即使当前房间没有 room_member 记录，
+      // 前端也不能把他降级成观战。
+      curMember = {
+        roomId,
+        memberType: spaceMember.memberType,
         ...spaceMember,
-      };
-    });
-  }, [membersQuery.data?.data, spaceMembers]);
+      } satisfies RoomMemberWithSpace;
+    }
+  }
 
-  const curMember = useMemo(() => {
-    return members.find(member => member.userId === userId);
-  }, [members, userId]);
-
-  const isSpectator = (curMember?.memberType ?? 3) >= 3;
+  const isSpectator = isObserverLike(curMember?.memberType);
   const notMember = isSpectator;
 
   return {
@@ -51,5 +78,28 @@ export default function useRoomMemberState({
     curMember,
     isSpectator,
     notMember,
+  };
+}
+
+export default function useRoomMemberState({
+  roomId,
+  userId,
+  spaceMembers,
+}: UseRoomMemberStateParams): UseRoomMemberStateResult {
+  const membersQuery = useGetMemberListQuery(roomId);
+  const roomMemberState = useMemo(() => {
+    return resolveRoomMemberState({
+      roomId,
+      roomMembers: membersQuery.data?.data ?? [],
+      userId,
+      spaceMembers,
+    });
+  }, [membersQuery.data?.data, roomId, spaceMembers, userId]);
+
+  return {
+    members: roomMemberState.members,
+    curMember: roomMemberState.curMember,
+    isSpectator: roomMemberState.isSpectator,
+    notMember: roomMemberState.notMember,
   };
 }

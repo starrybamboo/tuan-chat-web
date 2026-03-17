@@ -2,6 +2,7 @@ import type { Message } from "../../../../../api";
 import React, { use } from "react";
 import { RoomContext } from "@/components/chat/core/roomContext";
 import { useRoomUiStore } from "@/components/chat/stores/roomUiStore";
+import { isOutOfCharacterSpeech } from "@/components/chat/utils/outOfCharacterSpeech";
 import { getDisplayRoleName } from "@/components/chat/utils/roleDisplayName";
 import { XMarkICon } from "@/icons";
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
@@ -22,6 +23,8 @@ export default function RepliedMessage({ replyMessage, className }: {
   const setReplyMessage = useRoomUiStore(state => state.setReplyMessage);
   const role = useGetRoleQuery(replyMessage.roleId ?? -1).data?.data;
   const isIntroText = replyMessage.messageType === MESSAGE_TYPE.INTRO_TEXT;
+  const isOutOfCharacterText = replyMessage.messageType === MESSAGE_TYPE.TEXT
+    && isOutOfCharacterSpeech(replyMessage.content);
   const scrollToGivenMessage = roomContext.scrollToGivenMessage;
   const displayRoleName = getDisplayRoleName({
     roleId: replyMessage.roleId,
@@ -46,7 +49,7 @@ export default function RepliedMessage({ replyMessage, className }: {
         <XMarkICon className="size-4"></XMarkICon>
       </button>
       <span className="opacity-60 inline flex-shrink-0">回复</span>
-      <span className="text-xs sm:text-sm line-clamp-3 opacity-60 break-words min-w-0">
+      <span className={`text-xs sm:text-sm line-clamp-3 opacity-60 break-words min-w-0 ${isOutOfCharacterText ? "italic" : ""}`}>
         {namePrefix}
         <MessagePreviewContent message={replyMessage} withMediaPreview />
       </span>

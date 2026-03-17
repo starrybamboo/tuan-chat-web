@@ -9,12 +9,12 @@ import toast from "react-hot-toast";
 import React from "react";
 import { useNavigate } from "react-router";
 import { handleUnauthorized } from "@/utils/auth/unauthorized";
-import { recoverAuthTokenFromSession } from "./core/authRecovery";
+import { recoverAuthTokenFromSession } from "./authRecovery";
 import type {
     ChatStatusEvent,
     ChatStatusType,
     DirectMessageEvent,
-    MemberChangePush, RoleChangePush, RoomExtraChangeEvent, RoomDndMapChangeEvent,
+    MemberChangePush, RoleChangePush, RoomExtraChangeEvent, RoomDndMapChangeEvent, UserNotificationPush,
   } from "./wsModels";
 import type { NewFriendRequestPush } from "./wsModels";
 import type { SpaceSidebarTreeUpdatedPush } from "./wsModels";
@@ -33,7 +33,17 @@ import { MessageType } from "./wsModels";
 import { requestPlayBgmMessageWithUrl } from "@/components/chat/infra/audioMessage/audioMessageBgmCoordinator";
 import { useAudioMessageAutoPlayStore } from "@/components/chat/stores/audioMessageAutoPlayStore";
 import { applyRoomDndMapChange, roomDndMapQueryKey } from "@/components/chat/shared/map/roomDndMapApi";
-import { readGroupMessagePopupEnabledFromLocalStorage } from "@/components/settings/notificationPreferences";
+import {
+  readFeedbackDesktopEnabledFromLocalStorage,
+  readFeedbackInAppEnabledFromLocalStorage,
+  readGroupMessagePopupEnabledFromLocalStorage,
+} from "@/components/settings/notificationPreferences";
+import {
+  prependNotificationToCaches,
+} from "@/components/notification/notificationHooks";
+import type { UserNotificationItem } from "@/components/notification/notificationTypes";
+import { FEEDBACK_ISSUE_TARGET_TYPE } from "@/components/feedback/feedbackTypes";
+import { buildCommentPageQueryKey } from "./hooks/commentQueryHooks";
 import type { CrossTabNotificationGuard } from "@/utils/crossTabNotificationGuard";
 import { createCrossTabNotificationGuard } from "@/utils/crossTabNotificationGuard";
 import { showDesktopNotification } from "@/utils/desktopNotification";
@@ -258,6 +268,45 @@ function GroupMessageToastContent({
   );
 }
 
+function NotificationToastContent({
+  toastId,
+  title,
+  content,
+  targetPath,
+}: {
+  toastId: string;
+  title: string;
+  content: string;
+  targetPath: string | null;
+}) {
+  const navigate = useNavigate();
+
+  const jumpToNotificationTarget = () => {
+    toast.dismiss(toastId);
+    if (targetPath) {
+      navigate(targetPath);
+    }
+  };
+
+  return (
+    <div
+      className="w-[360px] max-w-[90vw] rounded-lg border border-base-300 bg-base-100 p-3 shadow-xl"
+      role="button"
+      tabIndex={0}
+      onClick={jumpToNotificationTarget}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          jumpToNotificationTarget();
+        }
+      }}
+    >
+      <div className="text-sm font-semibold truncate">{title}</div>
+      <div className="mt-1 text-sm opacity-75 line-clamp-2">{content}</div>
+    </div>
+  );
+}
+
 function getDirectMessagePreview(message: DirectMessageEvent): string {
   const content = (message?.content ?? "").trim();
 
@@ -324,6 +373,28 @@ function getActivePrivateContactId(): number | null {
 
   const parsed = Number(match[1]);
   return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+}
+
+function normalizeAppTargetPath(targetPath?: string | null): string | null {
+  if (typeof targetPath !== "string") {
+    return null;
+  }
+  const normalized = targetPath.trim();
+  if (!normalized || !normalized.startsWith("/") || normalized.startsWith("//")) {
+    return null;
+  }
+  return normalized;
+}
+
+function isCurrentTargetPath(targetPath?: string | null): boolean {
+  if (typeof window === "undefined") {
+    return false;
+  }
+  const normalized = normalizeAppTargetPath(targetPath);
+  if (!normalized) {
+    return false;
+  }
+  return window.location.pathname === normalized;
 }
 
 function getActiveGroupRoomId(): number | null {
@@ -849,8 +920,10 @@ export function useWebSocket() {
 
     const toastId = `direct-msg-${message.messageId}`;
     let senderInfo = queryClient.getQueryData<ApiResultUserInfoResponse>(["getUserInfo", message.senderId])?.data;
+    const senderNameFromMessage = message.senderUsername?.trim() || "";
+    const senderAvatarFromMessage = message.senderAvatarThumbUrl?.trim() || message.senderAvatar?.trim() || "";
 
-    if (!senderInfo) {
+    if (!senderInfo && (!senderNameFromMessage || !senderAvatarFromMessage)) {
       try {
         const userResp = await tuanchat.userController.getUserInfo(message.senderId);
         senderInfo = userResp.data;
@@ -861,8 +934,8 @@ export function useWebSocket() {
       }
     }
 
-    const displayName = senderInfo?.username || `用户${message.senderId}`;
-    const avatar = senderInfo?.avatar || senderInfo?.avatarThumbUrl;
+    const displayName = senderNameFromMessage || senderInfo?.username || `用户${message.senderId}`;
+    const avatar = senderAvatarFromMessage || senderInfo?.avatarThumbUrl || senderInfo?.avatar;
     const previewText = getDirectMessagePreview(message);
 
     if (shouldShowInAppToast) {
@@ -1022,6 +1095,54 @@ export function useWebSocket() {
     }
   }, [isCurrentTabInForeground, queryClient, resolveSelfUserId, shouldShowCrossTabSystemNotification]);
 
+  const notifyNewUserNotification = useCallback(async (notification: UserNotificationItem) => {
+    if (!notification || notification.isRead) {
+      return;
+    }
+
+    const shouldShowInApp = readFeedbackInAppEnabledFromLocalStorage();
+    const shouldShowDesktop = readFeedbackDesktopEnabledFromLocalStorage();
+    const shouldShowSystemNotification = shouldShowDesktop && shouldShowCrossTabSystemNotification();
+    const isSameTargetInForeground = isCurrentTabInForeground() && isCurrentTargetPath(notification.targetPath);
+    const canShowInAppToast = shouldShowInApp && isCurrentTabInForeground() && !isSameTargetInForeground;
+    const canShowSystemNotification = shouldShowSystemNotification && !isSameTargetInForeground;
+
+    if (!canShowInAppToast && !canShowSystemNotification) {
+      return;
+    }
+
+    const toastId = `user-notification-${notification.notificationId}`;
+
+    if (canShowInAppToast) {
+      toast.custom(
+        t => (
+          <div className={t.visible ? "animate-enter" : "animate-leave"}>
+            <NotificationToastContent
+              toastId={t.id}
+              title={notification.title}
+              content={notification.content}
+              targetPath={normalizeAppTargetPath(notification.targetPath)}
+            />
+          </div>
+        ),
+        {
+          id: toastId,
+          position: "top-center",
+          duration: 7000,
+        },
+      );
+    }
+
+    if (canShowSystemNotification) {
+      void showDesktopNotification({
+        title: notification.title,
+        body: notification.content,
+        targetPath: notification.targetPath,
+        tag: toastId,
+      });
+    }
+  }, [isCurrentTabInForeground, shouldShowCrossTabSystemNotification]);
+
   /**
    * 对收到的消息，按照type进行分类处理
    */
@@ -1106,6 +1227,35 @@ export function useWebSocket() {
         if (typeof spaceId === "number" && Number.isFinite(spaceId) && spaceId > 0) {
           queryClient.invalidateQueries({ queryKey: ["getSpaceSidebarTree", spaceId] });
         }
+        break;
+      }
+      case 23: { // 用户通知
+        const event = message as UserNotificationPush;
+        const notification = event?.data;
+        if (!notification) {
+          break;
+        }
+        prependNotificationToCaches(queryClient, notification);
+
+        const feedbackIssueId = typeof notification.payload?.feedbackIssueId === "number"
+          ? notification.payload.feedbackIssueId
+          : (typeof notification.resourceId === "number" ? notification.resourceId : null);
+        const hasCommentChange = typeof notification.payload?.commentId === "number";
+
+        queryClient.invalidateQueries({ queryKey: ["feedbackIssues"] });
+        if (feedbackIssueId != null && feedbackIssueId > 0) {
+          queryClient.invalidateQueries({ queryKey: ["feedbackIssueDetail", feedbackIssueId] });
+          if (hasCommentChange) {
+            queryClient.invalidateQueries({
+              queryKey: buildCommentPageQueryKey({
+                targetId: feedbackIssueId,
+                targetType: FEEDBACK_ISSUE_TARGET_TYPE,
+              }),
+            });
+          }
+        }
+
+        void notifyNewUserNotification(notification);
         break;
       }
       case 100: { // Token invalidated

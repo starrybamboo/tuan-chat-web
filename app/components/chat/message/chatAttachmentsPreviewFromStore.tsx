@@ -3,31 +3,84 @@ import React from "react";
 import MessageAnnotationsBar from "@/components/chat/message/annotations/messageAnnotationsBar";
 import { openMessageAnnotationPicker } from "@/components/chat/message/annotations/openMessageAnnotationPicker";
 import { useChatComposerStore } from "@/components/chat/stores/chatComposerStore";
+import { applyRoomMediaAnnotationPreferenceToComposer, setRoomMediaAnnotationPreference } from "@/components/chat/utils/mediaAnnotationPreference";
 import BetterImg from "@/components/common/betterImg";
 import { ArticleIcon, MusicNote } from "@/icons";
 
 import { normalizeAnnotations, toggleAnnotation } from "@/types/messageAnnotations";
 
-export default function ChatAttachmentsPreviewFromStore() {
+interface ChatAttachmentsPreviewFromStoreProps {
+  roomId: number;
+}
+
+export default function ChatAttachmentsPreviewFromStore({ roomId }: ChatAttachmentsPreviewFromStoreProps) {
   const imgFiles = useChatComposerStore(state => state.imgFiles);
   const emojiUrls = useChatComposerStore(state => state.emojiUrls);
   const fileAttachments = useChatComposerStore(state => state.fileAttachments);
   const audioFile = useChatComposerStore(state => state.audioFile);
   const tempAnnotations = useChatComposerStore(state => state.tempAnnotations);
+  const tempAnnotationPreferenceSource = useChatComposerStore(state => state.tempAnnotationPreferenceSource);
   const updateImgFiles = useChatComposerStore(state => state.updateImgFiles);
   const updateEmojiUrls = useChatComposerStore(state => state.updateEmojiUrls);
   const removeEmojiMetaByUrl = useChatComposerStore(state => state.removeEmojiMetaByUrl);
   const updateFileAttachments = useChatComposerStore(state => state.updateFileAttachments);
   const setAudioFile = useChatComposerStore(state => state.setAudioFile);
   const setTempAnnotations = useChatComposerStore(state => state.setTempAnnotations);
+  const setTempAnnotationPreferenceSource = useChatComposerStore(state => state.setTempAnnotationPreferenceSource);
 
   const hasAttachments = imgFiles.length > 0 || emojiUrls.length > 0 || fileAttachments.length > 0 || !!audioFile;
+  const hasImagePreferenceSource = imgFiles.length > 0;
+  const hasAudioPreferenceSource = Boolean(audioFile);
 
   React.useEffect(() => {
-    if (!hasAttachments && tempAnnotations.length > 0) {
-      setTempAnnotations([]);
+    if (!hasAttachments) {
+      if (tempAnnotations.length > 0) {
+        setTempAnnotations([]);
+      }
+      if (tempAnnotationPreferenceSource !== null) {
+        setTempAnnotationPreferenceSource(null);
+      }
+      return;
     }
-  }, [hasAttachments, setTempAnnotations, tempAnnotations]);
+    if (tempAnnotationPreferenceSource === "image" && !hasImagePreferenceSource && hasAudioPreferenceSource) {
+      applyRoomMediaAnnotationPreferenceToComposer(roomId, "audio");
+      return;
+    }
+    if (tempAnnotationPreferenceSource === "audio" && !hasAudioPreferenceSource && hasImagePreferenceSource) {
+      applyRoomMediaAnnotationPreferenceToComposer(roomId, "image");
+      return;
+    }
+    if (tempAnnotationPreferenceSource == null) {
+      if (hasImagePreferenceSource && !hasAudioPreferenceSource) {
+        applyRoomMediaAnnotationPreferenceToComposer(roomId, "image");
+      }
+      else if (hasAudioPreferenceSource && !hasImagePreferenceSource) {
+        applyRoomMediaAnnotationPreferenceToComposer(roomId, "audio");
+      }
+    }
+  }, [
+    hasAttachments,
+    hasAudioPreferenceSource,
+    hasImagePreferenceSource,
+    roomId,
+    setTempAnnotationPreferenceSource,
+    setTempAnnotations,
+    tempAnnotationPreferenceSource,
+    tempAnnotations,
+  ]);
+
+  React.useEffect(() => {
+    if (!(roomId > 0)) {
+      return;
+    }
+    const normalized = normalizeAnnotations(tempAnnotations);
+    if (tempAnnotationPreferenceSource === "image" && hasImagePreferenceSource) {
+      setRoomMediaAnnotationPreference(roomId, "image", normalized);
+    }
+    if (tempAnnotationPreferenceSource === "audio" && hasAudioPreferenceSource) {
+      setRoomMediaAnnotationPreference(roomId, "audio", normalized);
+    }
+  }, [hasAudioPreferenceSource, hasImagePreferenceSource, roomId, tempAnnotationPreferenceSource, tempAnnotations]);
 
   if (!hasAttachments)
     return null;

@@ -55,6 +55,7 @@ export function useProfileEditing(user: UserProfileInfoResponse | undefined) {
     const payload: UserUpdateInfoRequest = {
       userId: user.userId,
       avatar: newAvatarUrl,
+      avatarThumbUrl: newAvatarUrl,
     };
     updateUserInfoMutation.mutate(payload);
   };

@@ -1,8 +1,9 @@
 const typeConfig = {
-  1: { text: "主持人", color: "bg-red-100 text-red-800" },
-  2: { text: "玩家", color: "bg-blue-100 text-blue-800" },
-  3: { text: "观战", color: "bg-gray-100 text-gray-800" },
+  1: { text: "GM/KP", color: "bg-red-100 text-red-800" },
+  2: { text: "PL", color: "bg-blue-100 text-blue-800" },
+  3: { text: "OB", color: "bg-gray-100 text-gray-800" },
   4: { text: "骰娘", color: "bg-yellow-100 text-gray-800" },
+  5: { text: "副GM/KP", color: "bg-orange-100 text-orange-800" },
 };
 
 /**
@@ -13,7 +14,7 @@ export function MemberTypeTag({ memberType }: {
   memberType?: number;
 }) {
   // 类型安全转换
-  const validType = memberType !== undefined && [1, 2, 3, 4].includes(memberType)
+  const validType = memberType !== undefined && [1, 2, 3, 4, 5].includes(memberType)
     ? memberType as keyof typeof typeConfig
     : null;
 

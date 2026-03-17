@@ -4,6 +4,7 @@
 /* eslint-disable */
 import type { ApiResultPageBaseRespRepository } from '../models/ApiResultPageBaseRespRepository';
 import type { ApiResultRepository } from '../models/ApiResultRepository';
+import type { ApiResultRepositoryCommitChainResponse } from '../models/ApiResultRepositoryCommitChainResponse';
 import type { ApiResultVoid } from '../models/ApiResultVoid';
 import type { RepositoryForkPageRequest } from '../models/RepositoryForkPageRequest';
 import type { RepositoryPageByUserRequest } from '../models/RepositoryPageByUserRequest';
@@ -28,12 +29,6 @@ export class RepositoryControllerService {
             url: '/capi/repository',
             body: requestBody,
             mediaType: 'application/json',
-            errors: {
-                400: `Bad Request`,
-                405: `Method Not Allowed`,
-                429: `Too Many Requests`,
-                500: `Internal Server Error`,
-            },
         });
     }
     /**
@@ -51,12 +46,6 @@ export class RepositoryControllerService {
             url: '/capi/repository/user/page',
             body: requestBody,
             mediaType: 'application/json',
-            errors: {
-                400: `Bad Request`,
-                405: `Method Not Allowed`,
-                429: `Too Many Requests`,
-                500: `Internal Server Error`,
-            },
         });
     }
     /**
@@ -74,12 +63,6 @@ export class RepositoryControllerService {
             url: '/capi/repository/page',
             body: requestBody,
             mediaType: 'application/json',
-            errors: {
-                400: `Bad Request`,
-                405: `Method Not Allowed`,
-                429: `Too Many Requests`,
-                500: `Internal Server Error`,
-            },
         });
     }
     /**
@@ -97,12 +80,6 @@ export class RepositoryControllerService {
             url: '/capi/repository/fork/page',
             body: requestBody,
             mediaType: 'application/json',
-            errors: {
-                400: `Bad Request`,
-                405: `Method Not Allowed`,
-                429: `Too Many Requests`,
-                500: `Internal Server Error`,
-            },
         });
     }
     /**
@@ -121,11 +98,28 @@ export class RepositoryControllerService {
             path: {
                 'id': id,
             },
-            errors: {
-                400: `Bad Request`,
-                405: `Method Not Allowed`,
-                429: `Too Many Requests`,
-                500: `Internal Server Error`,
+        });
+    }
+    /**
+     * 获取仓库提交链
+     * 从仓库当前head commit开始向上追溯父提交链
+     * @param id 仓库ID
+     * @param limit 最多返回的提交数量，默认120，最大500
+     * @returns ApiResultRepositoryCommitChainResponse OK
+     * @throws ApiError
+     */
+    public getCommitChain(
+        id: number,
+        limit?: number,
+    ): CancelablePromise<ApiResultRepositoryCommitChainResponse> {
+        return this.httpRequest.request({
+            method: 'GET',
+            url: '/capi/repository/{id}/commit-chain',
+            path: {
+                'id': id,
+            },
+            query: {
+                'limit': limit,
             },
         });
     }

@@ -4,6 +4,12 @@ import { transcodeAudioBlobToOpusOrThrow } from "@/utils/audioTranscodeUtils";
 import { assertAudioUploadInputSizeOrThrow, buildDefaultAudioUploadTranscodeOptions } from "@/utils/audioUploadPolicy";
 import { getTerreApis } from "@/webGAL/index";
 import { getTerreBaseUrl } from "@/webGAL/terreConfig";
+import {
+  backfillMirroredWebgalAssetCache,
+  fetchObservedWebgalAssetBlob,
+  getMirroredWebgalAssetBlob,
+  mirrorWebgalAssetBlob,
+} from "@/webGAL/browserAssetCache";
 
 /**
  * WebGAL 调试命令枚举
@@ -184,9 +190,57 @@ export async function uploadFile(url: string, path: string, fileName?: string | 
   if (await checkFileExist(path, safeFileName))
     return safeFileName;
 
-  if (isHttpSourceUrl(url)) {
+  // const isAudioByResponse = typeof data.type === "string" && data.type.startsWith("audio/");
+  // const shouldTranscodeAudio = shouldTranscodeAudioByName || isAudioByResponse;
+  const shouldTranscodeAudio = false;
+
+  async function uploadBlobWithOptionalMirror(blob: Blob, shouldMirrorRemoteUrl: boolean): Promise<string> {
+    if (shouldMirrorRemoteUrl) {
+      void mirrorWebgalAssetBlob(url, blob).catch(error =>
+        console.warn("[fileOperator] 写入浏览器资源镜像缓存失败:", error));
+    }
+
+    if (shouldTranscodeAudio) {
+      assertAudioUploadInputSizeOrThrow(blob.size);
+    }
+
+    const file = shouldTranscodeAudio
+      ? await transcodeAudioBlobToOpusOrThrow(
+          blob,
+          safeFileName,
+          buildDefaultAudioUploadTranscodeOptions(blob.size),
+        )
+      : new File([blob], safeFileName, { type: blob.type || "application/octet-stream" });
+    const uploadedFileName = shouldTranscodeAudio ? file.name : safeFileName;
+
+    const formData = new FormData();
+    formData.append("files", file);
+    formData.append("targetDirectory", path);
+
+    await getTerreApis().assetsControllerUpload(formData);
+    return uploadedFileName;
+  }
+
+  const shouldMirrorRemoteUrl = isHttpSourceUrl(url);
+
+  if (shouldMirrorRemoteUrl) {
+    const mirroredBlob = await getMirroredWebgalAssetBlob(url);
+    if (mirroredBlob) {
+      return await uploadBlobWithOptionalMirror(mirroredBlob, false);
+    }
+
+    const observedBlob = await fetchObservedWebgalAssetBlob(url);
+    if (observedBlob) {
+      return await uploadBlobWithOptionalMirror(observedBlob, false);
+    }
+  }
+
+  if (shouldMirrorRemoteUrl) {
     try {
-      return await uploadFileByTerreSourceUrl(url, path, safeFileName);
+      const uploadedFileName = await uploadFileByTerreSourceUrl(url, path, safeFileName);
+      // Terre 直拉成功后，异步把资源回填到前端镜像缓存，下一次优先命中本地缓存。
+      void backfillMirroredWebgalAssetCache(url);
+      return uploadedFileName;
     }
     catch (error) {
       const unsupported = error instanceof TerreUploadByUrlError
@@ -198,14 +252,10 @@ export async function uploadFile(url: string, path: string, fileName?: string | 
     }
   }
 
-  const response = await fetch(url);
+  const response = await fetch(url, shouldMirrorRemoteUrl ? { cache: "force-cache" } : undefined);
   if (!response.ok)
     throw new Error(`Failed to fetch file: ${response.statusText}`);
   const data = await response.blob();
-
-  // const isAudioByResponse = typeof data.type === "string" && data.type.startsWith("audio/");
-  // const shouldTranscodeAudio = shouldTranscodeAudioByName || isAudioByResponse;
-  const shouldTranscodeAudio = false;
 
   /*
   if (shouldTranscodeAudio && !shouldTranscodeAudioByName) {
@@ -218,25 +268,7 @@ export async function uploadFile(url: string, path: string, fileName?: string | 
   }
   */
 
-  if (shouldTranscodeAudio) {
-    assertAudioUploadInputSizeOrThrow(data.size);
-  }
-
-  const file = shouldTranscodeAudio
-    ? await transcodeAudioBlobToOpusOrThrow(
-        data,
-        safeFileName,
-        buildDefaultAudioUploadTranscodeOptions(data.size),
-      )
-    : new File([data], safeFileName, { type: data.type || "application/octet-stream" });
-  const uploadedFileName = shouldTranscodeAudio ? file.name : safeFileName;
-
-  const formData = new FormData();
-  formData.append("files", file);
-  formData.append("targetDirectory", path);
-
-  await getTerreApis().assetsControllerUpload(formData);
-  return uploadedFileName;
+  return await uploadBlobWithOptionalMirror(data, shouldMirrorRemoteUrl);
 };
 
 export async function readTextFile(game: string, path: string): Promise<string> {

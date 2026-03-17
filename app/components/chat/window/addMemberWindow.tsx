@@ -1,20 +1,26 @@
 import { use, useMemo, useState } from "react";
 import { RoomContext } from "@/components/chat/core/roomContext";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
-
-import UserAvatarComponent from "@/components/common/userAvatar";
+import { UserAvatarByUser } from "@/components/common/userAccess";
 
 import { useGetSpaceMembersQuery, useSpaceInviteCodeQuery } from "../../../../api/hooks/chatQueryHooks";
 import { useGetFriendListQuery } from "../../../../api/hooks/friendQueryHooks";
 
-function MemberBox({ userId, onClickAddMember, isAdded }: { userId: number; onClickAddMember: () => void; isAdded: boolean }) {
+type MemberLike = {
+  userId?: number;
+  username?: string;
+  avatar?: string;
+  avatarThumbUrl?: string;
+};
+
+function MemberBox({ user, onClickAddMember, isAdded }: { user: MemberLike; onClickAddMember: () => void; isAdded: boolean }) {
   return (
     <div
       className="card bg-base-100 shadow hover:shadow-lg transition-shadow cursor-pointer"
     >
       <div className="card-body items-center p-4">
-        <UserAvatarComponent
-          userId={userId}
+        <UserAvatarByUser
+          user={user}
           width={12}
           isRounded={true}
           withName={true}
@@ -45,12 +51,12 @@ function MemberBox({ userId, onClickAddMember, isAdded }: { userId: number; onCl
   );
 }
 
-function MemberRow({ userId, onClickAddMember, isAdded }: { userId: number; onClickAddMember: () => void; isAdded: boolean }) {
+function MemberRow({ user, onClickAddMember, isAdded }: { user: MemberLike; onClickAddMember: () => void; isAdded: boolean }) {
   return (
     <div className="flex items-center justify-between gap-3 px-3 py-2">
       <div className="min-w-0 flex-1">
-        <UserAvatarComponent
-          userId={userId}
+        <UserAvatarByUser
+          user={user}
           width={10}
           isRounded={true}
           withName={true}
@@ -193,7 +199,7 @@ export default function AddMemberWindow({
                 filteredFriends.map(friend => (
                   friend.userId && (
                     <MemberRow
-                      userId={friend.userId}
+                      user={friend}
                       onClickAddMember={() => handleAddMember(friend.userId ?? -1)}
                       key={`friend-${friend.userId}`}
                       isAdded={checkIsAdded(friend.userId ?? -1)}
@@ -217,7 +223,7 @@ export default function AddMemberWindow({
             {spaceMembers.map(member => (
               member.userId && (
                 <MemberBox
-                  userId={member.userId}
+                  user={member}
                   onClickAddMember={() => handleAddMember(member.userId ?? -1)}
                   key={`space-${member.userId}`}
                   isAdded={checkIsAdded(member.userId ?? -1)}

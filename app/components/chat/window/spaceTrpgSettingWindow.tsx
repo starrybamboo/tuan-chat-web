@@ -3,11 +3,12 @@ import {
   useGetSpaceInfoQuery,
   useUpdateSpaceMutation,
 } from "api/hooks/chatQueryHooks";
-import { useGetRoleAvatarQuery, useGetRoleQuery } from "api/hooks/RoleAndAvatarHooks";
+import { useGetRoleQuery } from "api/hooks/RoleAndAvatarHooks";
 import { useGetRulePageInfiniteQuery } from "api/hooks/ruleQueryHooks";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import toast from "react-hot-toast";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
+import { useResolvedRoleAvatarUrl } from "@/components/common/roleAccess";
 import DiceMaidenLinkModal from "@/components/Role/DiceMaidenLinkModal";
 import { tuanchat } from "../../../../api/instance";
 
@@ -84,9 +85,8 @@ function SpaceTrpgSettingWindow() {
   }, [diceRollerId]);
 
   const { data: linkedDicerData } = useGetRoleQuery(currentDicerId || 0);
-  const dicerAvatarId = linkedDicerData?.data?.avatarId;
-  const { data: dicerAvatarData } = useGetRoleAvatarQuery(dicerAvatarId || 0);
-  const dicerAvatarUrl = dicerAvatarData?.data?.avatarUrl || "/favicon.ico";
+  const linkedDicerRole = linkedDicerData?.data;
+  const dicerAvatarUrl = useResolvedRoleAvatarUrl(linkedDicerRole, "/favicon.ico");
 
   const dicerRoleError = useMemo(() => {
     if (!currentDicerId)

@@ -122,6 +122,16 @@ function RoomWindow({
   }, [messageScope, roomId, roomUiStore, threadRootMessageId]);
 
   const {
+    members,
+    curMember,
+    isSpectator,
+    notMember,
+  } = useRoomMemberState({
+    roomId,
+    userId,
+    spaceMembers: spaceContext.spaceMembers,
+  });
+  const {
     roomAllRoles,
     roomRolesThatUserOwn,
     curRoleId,
@@ -133,6 +143,7 @@ function RoomWindow({
     roomId,
     userId,
     isSpaceOwner: Boolean(spaceContext.isSpaceOwner),
+    isSpectator,
   });
 
   // RealtimeRender controls
@@ -145,16 +156,6 @@ function RoomWindow({
     rerenderHistoryInWebGAL,
     clearFigure: clearRealtimeFigure,
   } = useRealtimeRenderControls();
-  const {
-    members,
-    curMember,
-    isSpectator,
-    notMember,
-  } = useRoomMemberState({
-    roomId,
-    userId,
-    spaceMembers: spaceContext.spaceMembers,
-  });
   const chatHistory = useChatHistory(roomId);
   const historyMessages: ChatMessageResponse[] = chatHistory?.messages;
 
@@ -336,6 +337,7 @@ function RoomWindow({
     insertLLMMessageIntoText,
     llmMessageRef,
     originalTextBeforeRewriteRef,
+    roomId,
     setInputText,
     setLLMMessage,
   });
@@ -946,6 +948,7 @@ function RoomWindow({
             isImportChatTextOpen={isImportChatTextOpen}
             setIsImportChatTextOpen={setIsImportChatTextOpen}
             isKP={Boolean(spaceContext.isSpaceOwner)}
+            isSpectator={isSpectator}
             availableRoles={roomRolesThatUserOwn}
             onImportChatText={handleImportChatItems}
             onOpenRoleAddWindow={openRoleAddWindow}

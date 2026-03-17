@@ -1,51 +1,18 @@
 import { useMutation } from "@tanstack/react-query";
+import type {
+  ApiResultTutorialBootstrapResponse,
+  ApiResultTutorialPullResponse,
+} from "api";
 import { tuanchat } from "../instance";
 
-type ApiResult<T> = {
-  success?: boolean;
-  errCode?: number;
-  errMsg?: string;
-  data?: T;
-};
-
-export type TutorialBootstrapResponse = {
-  enabled?: boolean;
-  tutorialRepositoryId?: number;
-  latestCommitId?: number | null;
-  currentSpaceId?: number | null;
-  currentCommitId?: number | null;
-  autoCloned?: boolean;
-  newSpaceId?: number | null;
-  missingTutorial?: boolean;
-  updateAvailable?: boolean;
-};
-
-export type TutorialPullResponse = {
-  tutorialRepositoryId?: number;
-  newSpaceId?: number | null;
-  removedSpaceIds?: number[];
-  latestCommitId?: number | null;
-};
+export type { TutorialBootstrapResponse } from "api";
 
 export async function fetchTutorialBootstrap() {
-  return await tuanchat.request.request({
-    method: "GET",
-    url: "/space/tutorial/bootstrap",
-  }) as ApiResult<TutorialBootstrapResponse>;
+  return await tuanchat.spaceTutorialController.bootstrap() as ApiResultTutorialBootstrapResponse;
 }
 
-export async function pullLatestTutorial() {
-  return await tuanchat.request.request({
-    method: "POST",
-    url: "/space/tutorial/pull",
-  }) as ApiResult<TutorialPullResponse>;
-}
-
-export function useTutorialBootstrapMutation() {
-  return useMutation({
-    mutationKey: ["tutorialBootstrap"],
-    mutationFn: fetchTutorialBootstrap,
-  });
+async function pullLatestTutorial() {
+  return await tuanchat.spaceTutorialController.pullLatestTutorial() as ApiResultTutorialPullResponse;
 }
 
 export function useTutorialPullMutation() {

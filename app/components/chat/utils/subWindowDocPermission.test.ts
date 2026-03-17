@@ -12,6 +12,14 @@ describe("checkIsKpInSpaceMembers", () => {
     expect(result).toBe(true);
   });
 
+  it("returns true when user is assistant leader in member list", () => {
+    const result = checkIsKpInSpaceMembers([
+      { userId: 42, memberType: 5 },
+    ], 42);
+
+    expect(result).toBe(true);
+  });
+
   it("returns false when user is not kp in member list", () => {
     const result = checkIsKpInSpaceMembers([
       { userId: 42, memberType: 3 },

@@ -22,9 +22,10 @@ import useChatFrameSelectionContext from "@/components/chat/hooks/useChatFrameSe
 import useChatFrameStickerActions from "@/components/chat/hooks/useChatFrameStickerActions";
 import useChatFrameVisualEffects from "@/components/chat/hooks/useChatFrameVisualEffects";
 import useChatFrameWebSocket from "@/components/chat/hooks/useChatFrameWebSocket";
+import { canParticipateInRoom } from "@/components/chat/utils/memberPermissions";
 import { openMessageAnnotationPicker } from "@/components/chat/message/annotations/openMessageAnnotationPicker";
-import { createWebgalChooseOptionDraft } from "@/components/chat/shared/webgal/webgalChooseDraft";
 import { compareChatMessageResponsesByOrder } from "@/components/chat/shared/messageOrder";
+import { createWebgalChooseOptionDraft } from "@/components/chat/shared/webgal/webgalChooseDraft";
 import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
 import { useRoomUiStore } from "@/components/chat/stores/roomUiStore";
 import { ANNOTATION_IDS, areAnnotationsEqual, hasAnnotation, normalizeAnnotations } from "@/types/messageAnnotations";
@@ -248,7 +249,7 @@ function ChatFrame(props: ChatFrameProps) {
     };
     updateMessage(nextMessage);
     if (roomContext.updateAndRerenderMessageInWebGAL) {
-      roomContext.updateAndRerenderMessageInWebGAL({ ...target, message: nextMessage }, false);
+      roomContext.updateAndRerenderMessageInWebGAL(target, { ...target, message: nextMessage }, false);
     }
     closeWebgalChooseEditor();
   }, [
@@ -299,10 +300,10 @@ function ChatFrame(props: ChatFrameProps) {
           : {
               ...latest.message,
               annotations: nextAnnotations,
-            };
+        };
         updateMessage(nextMessage);
         if (roomContext.updateAndRerenderMessageInWebGAL) {
-          roomContext.updateAndRerenderMessageInWebGAL({ ...latest, message: nextMessage }, false);
+          roomContext.updateAndRerenderMessageInWebGAL(latest, { ...latest, message: nextMessage }, false);
         }
       },
     });
@@ -436,6 +437,7 @@ function ChatFrame(props: ChatFrameProps) {
     handleDragEnd,
   } = useChatFrameDragAndDrop({
     historyMessages,
+    roomId,
     isMessageMovable,
     updateMessage,
     virtuosoRef,
@@ -446,7 +448,7 @@ function ChatFrame(props: ChatFrameProps) {
   /**
    * 消息渲染
    */
-  const baseDraggable = (roomContext.curMember?.memberType ?? 3) < 3;
+  const baseDraggable = canParticipateInRoom(roomContext.curMember?.memberType);
   const canJumpToWebGAL = !!roomContext.jumpToMessageInWebGAL;
 
   const renderMessage = useChatFrameMessageRenderer({

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useLocalStorage } from "@/components/common/customHooks/useLocalStorage";
-import MarkdownEditor from "@/components/common/markdown/markdownEditor";
+import TextImageEditor from "@/components/common/markdown/textImageEditor";
 import { ImgUploader } from "@/components/common/uploader/imgUploader";
 import CommunitySelector from "@/components/community/communitySelector";
 import { UploadUtils } from "@/utils/UploadUtils";
@@ -23,7 +23,7 @@ interface PostEditorProps {
 }
 
 /**
- * 帖子编辑器，也就是一个markdown编辑器
+ * 帖子编辑器
  * @param props 组件属性
  * @param props.onClose 关闭窗口的时候的回调函数
  * @param props.onSubmit 提交按钮的回调函数，异步执行, 传入帖子的标题和内容。如果发送成功，返回true，否则返回false。
@@ -268,11 +268,12 @@ export default function PostEditor({
             </div>
           )}
 
-          <MarkdownEditor
+          <TextImageEditor
             key={editorKey}
             onChange={(value) => { setContent(value); }}
             className="flex-1 min-w-0 overflow-hidden"
             defaultContent={content}
+            placeholder="写点正文内容..."
           />
           <div className="flex justify-end">
             <button

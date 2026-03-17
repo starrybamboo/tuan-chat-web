@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
+import { compareChatMessageResponsesByOrder } from "@/components/chat/shared/messageOrder";
+
 import type { ChatMessageResponse } from "../../../../../api";
 
 import { tuanchat } from "../../../../../api/instance";
 import { MessageType } from "../../../../../api/wsModels";
-import { compareChatMessageResponsesByOrder } from "@/components/chat/shared/messageOrder";
 import {
   addOrUpdateMessagesBatch as dbAddOrUpdateMessages,
   clearMessagesByRoomId as dbClearMessages,
@@ -474,28 +475,28 @@ export function useChatHistory(roomId: number | null): UseChatHistoryReturn {
             if (!existingMsg && incomingMessageId > 0) {
               const exactKey = buildOptimisticMatchKey(msg.message, { includePosition: true });
               const looseKey = buildOptimisticMatchKey(msg.message, { includePosition: false });
-                const mediaLooseKey = isMediaMessageType(msg.message.messageType)
-                  ? buildOptimisticMatchKey(msg.message, {
-                      includePosition: false,
-                      ignoreContent: true,
-                      ignoreAnnotations: true,
-                    })
-                  : "";
-                const diceLooseKey = msg.message.messageType === MessageType.DICE
-                  ? buildOptimisticMatchKey(msg.message, {
-                      includePosition: false,
-                      ignoreReplyMessageId: true,
-                      ignoreExtra: true,
-                    })
-                  : "";
-                const matchedOptimisticId = consumeOptimisticCandidate(messageMap, optimisticBuckets.exact, exactKey)
-                  ?? consumeOptimisticCandidate(messageMap, optimisticBuckets.loose, looseKey)
-                  ?? (diceLooseKey
-                    ? consumeOptimisticCandidate(messageMap, optimisticBuckets.diceLoose, diceLooseKey)
-                    : undefined)
-                  ?? (mediaLooseKey
-                    ? consumeOptimisticCandidate(messageMap, optimisticBuckets.mediaLoose, mediaLooseKey)
-                    : undefined);
+              const mediaLooseKey = isMediaMessageType(msg.message.messageType)
+                ? buildOptimisticMatchKey(msg.message, {
+                    includePosition: false,
+                    ignoreContent: true,
+                    ignoreAnnotations: true,
+                  })
+                : "";
+              const diceLooseKey = msg.message.messageType === MessageType.DICE
+                ? buildOptimisticMatchKey(msg.message, {
+                    includePosition: false,
+                    ignoreReplyMessageId: true,
+                    ignoreExtra: true,
+                  })
+                : "";
+              const matchedOptimisticId = consumeOptimisticCandidate(messageMap, optimisticBuckets.exact, exactKey)
+                ?? consumeOptimisticCandidate(messageMap, optimisticBuckets.loose, looseKey)
+                ?? (diceLooseKey
+                  ? consumeOptimisticCandidate(messageMap, optimisticBuckets.diceLoose, diceLooseKey)
+                  : undefined)
+                ?? (mediaLooseKey
+                  ? consumeOptimisticCandidate(messageMap, optimisticBuckets.mediaLoose, mediaLooseKey)
+                  : undefined);
               if (matchedOptimisticId !== undefined && matchedOptimisticId !== incomingMessageId) {
                 if (messageMap.delete(matchedOptimisticId)) {
                   hasChanges = true;
@@ -680,20 +681,26 @@ export function useChatHistory(roomId: number | null): UseChatHistoryReturn {
     if (currentFetchingRoomId.current === roomId)
       return [];
     currentFetchingRoomId.current = roomId;
+    try {
+      const messages = await dbGetMessagesByRoomId(roomId);
+      if (currentFetchingRoomId.current !== roomId) {
+        return [];
+      }
+      const maxSyncId = messages.length > 0
+        ? Math.max(...messages.map(msg => msg.message.syncId))
+        : -1;
+      const newMessages = await fetchNewestMessages(maxSyncId);
+      if (currentFetchingRoomId.current !== roomId) {
+        return [];
+      }
 
-    const messages = await dbGetMessagesByRoomId(roomId);
-    if (currentFetchingRoomId.current !== roomId) {
-      return [];
+      return [...messages, ...newMessages].sort(compareChatMessageResponsesByOrder);
     }
-    const maxSyncId = messages.length > 0
-      ? Math.max(...messages.map(msg => msg.message.syncId))
-      : -1;
-    const newMessages = await fetchNewestMessages(maxSyncId);
-    if (currentFetchingRoomId.current !== roomId) {
-      return [];
+    finally {
+      if (currentFetchingRoomId.current === roomId) {
+        currentFetchingRoomId.current = null;
+      }
     }
-
-    return [...messages, ...newMessages].sort(compareChatMessageResponsesByOrder);
   }, [fetchNewestMessages]);
 
   /**

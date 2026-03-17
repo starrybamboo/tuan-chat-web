@@ -11,6 +11,7 @@ import { parseDescriptionDocId } from "@/components/chat/infra/blocksuite/descri
 import { extractDocExcerptFromStore } from "@/components/chat/infra/blocksuite/docExcerpt";
 import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
 import { IMPORT_SPECIAL_ROLE_ID } from "@/components/chat/utils/importChatText";
+import { buildOutOfCharacterSpeechContent } from "@/components/chat/utils/outOfCharacterSpeech";
 import UTILS from "@/components/common/dicer/utils/utils";
 import { setFigurePositionAnnotation } from "@/types/messageAnnotations";
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
@@ -63,10 +64,6 @@ export default function useRoomImportActions({
     messages: ImportMessageItem[],
     onProgress?: (sent: number, total: number) => void,
   ) => {
-    if (notMember) {
-      toast.error("您是观战，不能发送消息");
-      return;
-    }
     if (isSubmitting) {
       toast.error("正在提交中，请稍后");
       return;
@@ -85,6 +82,7 @@ export default function useRoomImportActions({
 
     setIsSubmitting(true);
     try {
+      const isSpectator = notMember;
       const { threadRootMessageId, composerTarget } = roomUiStoreApi.getState();
       const draftCustomRoleNameMap = useRoomPreferenceStore.getState().draftCustomRoleNameMap;
 
@@ -116,16 +114,18 @@ export default function useRoomImportActions({
         dicerAvatarId = ensured > 0 ? ensured : 0;
       };
 
-      const uniqueRoleIds = Array.from(new Set(
-        messages
-          .map(m => m.roleId)
-          .filter(roleId => roleId > 0),
-      ));
+      const uniqueRoleIds = isSpectator
+        ? []
+        : Array.from(new Set(
+            messages
+              .map(m => m.roleId)
+              .filter(roleId => roleId > 0),
+          ));
       for (const roleId of uniqueRoleIds) {
         await ensureAvatarIdForRole(roleId);
       }
 
-      if (messages.some(m => m.roleId === IMPORT_SPECIAL_ROLE_ID.DICER)) {
+      if (!isSpectator && messages.some(m => m.roleId === IMPORT_SPECIAL_ROLE_ID.DICER)) {
         await ensureDicerSender();
       }
 
@@ -138,7 +138,10 @@ export default function useRoomImportActions({
         let extra: Record<string, unknown> = {};
         const figurePosition = msg.figurePosition;
 
-        if (roleId === IMPORT_SPECIAL_ROLE_ID.DICER) {
+        if (isSpectator) {
+          roleId = -1;
+        }
+        else if (roleId === IMPORT_SPECIAL_ROLE_ID.DICER) {
           await ensureDicerSender();
           roleId = dicerRoleId ?? roleId;
           avatarId = dicerAvatarId ?? 0;
@@ -153,7 +156,9 @@ export default function useRoomImportActions({
           roomId,
           roleId,
           avatarId,
-          content: msg.content,
+          content: isSpectator
+            ? (buildOutOfCharacterSpeechContent(msg.content) ?? "")
+            : msg.content,
           messageType,
           extra,
         };
@@ -162,18 +167,20 @@ export default function useRoomImportActions({
           request.threadId = threadRootMessageId;
         }
 
-        const importedSpeakerName = (msg.speakerName ?? "").trim();
-        if (importedSpeakerName) {
-          request.customRoleName = importedSpeakerName;
-        }
-        else {
-          const draftCustomRoleName = draftCustomRoleNameMap[roleId];
-          if (draftCustomRoleName?.trim()) {
-            request.customRoleName = draftCustomRoleName.trim();
+        if (!isSpectator) {
+          const importedSpeakerName = (msg.speakerName ?? "").trim();
+          if (importedSpeakerName) {
+            request.customRoleName = importedSpeakerName;
+          }
+          else {
+            const draftCustomRoleName = draftCustomRoleNameMap[roleId];
+            if (draftCustomRoleName?.trim()) {
+              request.customRoleName = draftCustomRoleName.trim();
+            }
           }
         }
 
-        if (messageType === MessageType.TEXT && roleId > 0 && figurePosition) {
+        if (!isSpectator && messageType === MessageType.TEXT && roleId > 0 && figurePosition) {
           request.annotations = setFigurePositionAnnotation(request.annotations, figurePosition);
         }
 
@@ -226,12 +233,8 @@ export default function useRoomImportActions({
     const isKP = isSpaceOwner;
     const isNarrator = curRoleId <= 0;
 
-    if (notMember) {
-      toast.error("您是观战，不能发送消息");
-      return;
-    }
-    if (isNarrator && !isKP) {
-      toast.error("旁白仅KP可用，请先选择/拉入你的角色");
+    if (isNarrator && !isKP && !notMember) {
+      toast.error("旁白仅主持可用，请先选择/拉入你的角色");
       return;
     }
     if (isSubmitting) {
@@ -316,12 +319,8 @@ export default function useRoomImportActions({
     const isKP = isSpaceOwner;
     const isNarrator = curRoleId <= 0;
 
-    if (notMember) {
-      toast.error("您是观战，不能发送消息");
-      return;
-    }
-    if (isNarrator && !isKP) {
-      toast.error("旁白仅KP可用，请先选择/拉入你的角色");
+    if (isNarrator && !isKP && !notMember) {
+      toast.error("旁白仅主持可用，请先选择/拉入你的角色");
       return;
     }
     if (isSubmitting) {

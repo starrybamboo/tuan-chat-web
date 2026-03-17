@@ -1,3 +1,4 @@
+import type { UserRole } from "../../../../api";
 import React from "react";
 import { Link } from "react-router";
 import Pagination from "@/components/common/pagination";
@@ -6,7 +7,7 @@ import UserRoleCard from "@/components/profile/cards/userRoleCard";
 
 interface UserRolesListProps {
   userId: number;
-  roleIds: number[];
+  roles: UserRole[];
   totalRecords: number;
   currentPage: number;
   onPageChange: (page: number) => void;
@@ -18,7 +19,7 @@ interface UserRolesListProps {
  */
 const RolesList: React.FC<UserRolesListProps> = ({
   userId,
-  roleIds,
+  roles,
   totalRecords,
   currentPage,
   onPageChange,
@@ -56,7 +57,7 @@ const RolesList: React.FC<UserRolesListProps> = ({
     );
   }
 
-  if (roleIds.length === 0) {
+  if (roles.length === 0) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center py-10 rounded-lg">
@@ -99,8 +100,8 @@ const RolesList: React.FC<UserRolesListProps> = ({
     <>
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
         {/* 每一个角色放在小卡片中渲染 */}
-        {roleIds.map(roleId => (
-          <UserRoleCard key={roleId} roleId={roleId} />
+        {roles.map(role => (
+          <UserRoleCard key={role.roleId} role={role} />
         ))}
       </div>
       {totalPages > 1 && (

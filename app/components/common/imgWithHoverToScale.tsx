@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { markObservedWebgalAsset, primeWebgalAssetCache } from "@/webGAL/browserAssetCache";
 
 interface ImgWithHoverProps extends React.ImgHTMLAttributes<HTMLImageElement> {
   enableScale?: boolean;
@@ -24,6 +25,7 @@ export default function ImgWithHoverToScale({
   src,
   alt,
   className,
+  onLoad,
   ...imgProps
 }: ImgWithHoverProps) {
   const [_isHovering, setIsHovering] = useState(false);
@@ -120,6 +122,14 @@ export default function ImgWithHoverToScale({
     };
   }, []);
 
+  const handleImageLoad: React.ReactEventHandler<HTMLImageElement> = (event) => {
+    if (typeof src === "string") {
+      markObservedWebgalAsset(src);
+      void primeWebgalAssetCache(src);
+    }
+    onLoad?.(event);
+  };
+
   // 创建预览元素
   const previewElement = showPreview && src && enableScale
     ? (
@@ -158,6 +168,7 @@ export default function ImgWithHoverToScale({
         src={src}
         alt={alt}
         className={className}
+        onLoad={handleImageLoad}
         {...imgProps}
       />
       {previewElement}

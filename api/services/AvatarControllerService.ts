@@ -27,12 +27,6 @@ export class AvatarControllerService {
             query: {
                 'avatarId': avatarId,
             },
-            errors: {
-                400: `Bad Request`,
-                405: `Method Not Allowed`,
-                429: `Too Many Requests`,
-                500: `Internal Server Error`,
-            },
         });
     }
     /**
@@ -49,12 +43,6 @@ export class AvatarControllerService {
             url: '/avatar',
             body: requestBody,
             mediaType: 'application/json',
-            errors: {
-                400: `Bad Request`,
-                405: `Method Not Allowed`,
-                429: `Too Many Requests`,
-                500: `Internal Server Error`,
-            },
         });
     }
     /**
@@ -71,12 +59,6 @@ export class AvatarControllerService {
             url: '/avatar',
             body: requestBody,
             mediaType: 'application/json',
-            errors: {
-                400: `Bad Request`,
-                405: `Method Not Allowed`,
-                429: `Too Many Requests`,
-                500: `Internal Server Error`,
-            },
         });
     }
     /**
@@ -93,12 +75,6 @@ export class AvatarControllerService {
             url: '/avatar',
             query: {
                 'avatarId': avatarId,
-            },
-            errors: {
-                400: `Bad Request`,
-                405: `Method Not Allowed`,
-                429: `Too Many Requests`,
-                500: `Internal Server Error`,
             },
         });
     }
@@ -117,12 +93,6 @@ export class AvatarControllerService {
             query: {
                 'avatarId': avatarId,
             },
-            errors: {
-                400: `Bad Request`,
-                405: `Method Not Allowed`,
-                429: `Too Many Requests`,
-                500: `Internal Server Error`,
-            },
         });
     }
     /**
@@ -139,12 +109,6 @@ export class AvatarControllerService {
             url: '/avatar/trash/list',
             query: {
                 'roleId': roleId,
-            },
-            errors: {
-                400: `Bad Request`,
-                405: `Method Not Allowed`,
-                429: `Too Many Requests`,
-                500: `Internal Server Error`,
             },
         });
     }
@@ -163,12 +127,6 @@ export class AvatarControllerService {
             query: {
                 'roleId': roleId,
             },
-            errors: {
-                400: `Bad Request`,
-                405: `Method Not Allowed`,
-                429: `Too Many Requests`,
-                500: `Internal Server Error`,
-            },
         });
     }
     /**
@@ -185,12 +143,6 @@ export class AvatarControllerService {
             url: '/avatar/trash/clear',
             query: {
                 'roleId': roleId,
-            },
-            errors: {
-                400: `Bad Request`,
-                405: `Method Not Allowed`,
-                429: `Too Many Requests`,
-                500: `Internal Server Error`,
             },
         });
     }

@@ -14,5 +14,17 @@ export type FollowResponse = {
      * 当前登录用户与该用户的关系状态 0未关注、1已关注、2互相关注
      */
     status?: number;
+    /**
+     * 用户名
+     */
+    username?: string;
+    /**
+     * 头像 URL
+     */
+    avatar?: string;
+    /**
+     * 头像缩略图 URL
+     */
+    avatarThumbUrl?: string;
 };
 

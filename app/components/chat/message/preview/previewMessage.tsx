@@ -1,5 +1,6 @@
 import type { Message } from "../../../../../api";
 import { useGetMessageByIdSmartly } from "@/components/chat/core/hooks";
+import { isOutOfCharacterSpeech } from "@/components/chat/utils/outOfCharacterSpeech";
 import { getDisplayRoleName } from "@/components/chat/utils/roleDisplayName";
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
 import { useGetRoleQuery } from "../../../../../api/hooks/RoleAndAvatarHooks";
@@ -27,6 +28,8 @@ export function PreviewMessage({ message, className, withMediaPreview }: {
   const role = useRoleRequest.data?.data;
   const isDeleted = messageBody?.status === 1;
   const isIntroText = messageBody?.messageType === MESSAGE_TYPE.INTRO_TEXT;
+  const isOutOfCharacterText = messageBody?.messageType === MESSAGE_TYPE.TEXT
+    && isOutOfCharacterSpeech(messageBody.content);
   const displayRoleName = messageBody
     ? getDisplayRoleName({
         roleId: messageBody.roleId,
@@ -39,7 +42,7 @@ export function PreviewMessage({ message, className, withMediaPreview }: {
   const previewText = getMessagePreviewText(messageBody);
 
   return (
-    <span className={`text-xs sm:text-sm line-clamp-3 opacity-60 break-words min-w-0 ${className}`}>
+    <span className={`text-xs sm:text-sm line-clamp-3 opacity-60 break-words min-w-0 ${isOutOfCharacterText ? "italic" : ""} ${className}`}>
       {
         isDeleted
           ? previewText

@@ -1,4 +1,5 @@
 import { useLayoutEffect, useRef, useState } from "react";
+import toast from "react-hot-toast";
 import UserAvatarComponent from "@/components/common/userAvatar";
 import { EllipsisVertical } from "@/icons";
 
@@ -8,6 +9,8 @@ interface CollectionPreviewProps {
   collectionTypeId?: number;
   collectTime: string;
 }
+
+const COMMUNITY_COLLECTION_UNAVAILABLE_MESSAGE = "社区功能已下线，历史帖子收藏暂不支持打开";
 
 export default function CollectionPreview({ collectionId, resourceId, collectionTypeId, collectTime }: CollectionPreviewProps) {
   // 收藏时间
@@ -33,13 +36,13 @@ export default function CollectionPreview({ collectionId, resourceId, collection
   );
 
   const handleClick = () => {
+    if (collectionTypeId === 2) {
+      toast(COMMUNITY_COLLECTION_UNAVAILABLE_MESSAGE, { icon: "ℹ️" });
+      return;
+    }
+
     let targetUrl = "/";
     switch (collectionTypeId) {
-      case 2:
-      // 类型为帖子
-        targetUrl = `/community/1/${resourceId}`;
-        break;
-
       case 3:
       // 类型为仓库
         targetUrl = `/repository/detail/${resourceId}`;

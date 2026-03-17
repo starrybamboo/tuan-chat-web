@@ -80,12 +80,8 @@ export default function useRoomCommandRequests({
       return;
     }
 
-    if (notMember) {
-      toast.error("您是观战，不能发送消息");
-      return;
-    }
-    if (noRole && !isSpaceOwner) {
-      toast.error("旁白仅KP可用，请先选择/拉入你的角色");
+    if (noRole && !isSpaceOwner && !notMember) {
+      toast.error("旁白仅主持可用，请先选择/拉入你的角色");
       return;
     }
     if (isSubmitting) {

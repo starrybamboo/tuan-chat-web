@@ -4,7 +4,9 @@ import { use, useEffect, useMemo, useState } from "react";
 import { toast } from "react-hot-toast";
 import { RoomContext } from "@/components/chat/core/roomContext";
 import { useRoomUiStore } from "@/components/chat/stores/roomUiStore";
+import { canManageRoomRoles, hasHostPrivileges } from "@/components/chat/utils/memberPermissions";
 import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
+import { RoleAvatarByRole } from "@/components/common/roleAccess";
 import RoleAvatarComponent from "@/components/common/roleAvatar";
 import { RoleDetailPagePopup } from "@/components/common/roleDetailPagePopup";
 import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
@@ -52,7 +54,9 @@ export function ExpressionChooser({
     setIsRoleListExpanded(!isMobileFullscreen);
   }, [isMobileFullscreen]);
 
-  const isKP = (roomContext.curMember?.memberType ?? -1) === 1;
+  const currentMemberType = roomContext.curMember?.memberType;
+  const hasHostAccess = hasHostPrivileges(currentMemberType);
+  const canAddRole = canManageRoomRoles(currentMemberType);
 
   const selectedRoleId = roleId;
   const roleAvatarsQuery = useGetRoleAvatarsQuery(selectedRoleId);
@@ -81,10 +85,7 @@ export function ExpressionChooser({
     return { groups, orderedCategories };
   }, [roleAvatars]);
 
-  const currentUserId = roomContext.curMember?.userId;
-  const availableRoles = (isKP || !currentUserId)
-    ? roomContext.roomRolesThatUserOwn
-    : roomContext.roomRolesThatUserOwn.filter(role => role.userId === currentUserId);
+  const availableRoles = roomContext.roomRolesThatUserOwn;
   const selectedRole = useMemo(
     () => availableRoles.find(role => role.roleId === selectedRoleId),
     [availableRoles, selectedRoleId],
@@ -165,8 +166,8 @@ export function ExpressionChooser({
 
   // 切换到旁白模式
   const handleNarratorSelect = () => {
-    if (!isKP) {
-      toast.error("只有KP可以使用旁白");
+    if (!hasHostAccess) {
+      toast.error("只有主持人可以使用旁白");
       return;
     }
     handleRoleChange(-1); // roleId <= 0 表示旁白
@@ -220,9 +221,8 @@ export function ExpressionChooser({
                       </div>
                     )
                   : (
-                      <RoleAvatarComponent
-                        avatarId={selectedRole?.avatarId ?? 0}
-                        roleId={selectedRoleId > 0 ? selectedRoleId : undefined}
+                      <RoleAvatarByRole
+                        role={selectedRole}
                         width={8}
                         isRounded={true}
                         withTitle={false}
@@ -242,11 +242,11 @@ export function ExpressionChooser({
         {(!isMobileFullscreen || isRoleListExpanded) && (
           <div className={`${roleListClassName} ${isMobileFullscreen ? "mt-2" : ""}`}>
             {/* 旁白选项（WebGAL 联动模式） */}
-            {showNarratorOption && isKP && (
+            {showNarratorOption && hasHostAccess && (
               <div
                 onClick={handleNarratorSelect}
                 className={`flex items-center gap-3 ${isMobile ? "p-2" : "p-3"} rounded-lg transition-colors ${
-                  isKP ? "cursor-pointer hover:bg-base-200" : "cursor-not-allowed opacity-60"
+                  hasHostAccess ? "cursor-pointer hover:bg-base-200" : "cursor-not-allowed opacity-60"
                 } ${
                   isNarratorMode ? "bg-base-200 ring-2 ring-inset ring-secondary/30" : ""
                 }`}
@@ -258,12 +258,12 @@ export function ExpressionChooser({
                   <div className="flex items-center gap-2">
                     <div className="text-sm font-medium truncate">旁白</div>
                   </div>
-                  <div className="text-xs text-base-content/50">{isKP ? "无角色叙述" : "仅KP可用"}</div>
+                  <div className="text-xs text-base-content/50">{hasHostAccess ? "无角色叙述" : "仅主持可用"}</div>
                 </div>
               </div>
             )}
             {
-              availableRoles.length === 0 && (!showNarratorOption || !isKP) && (
+              availableRoles.length === 0 && (!showNarratorOption || !hasHostAccess) && (
                 <div className="text-center text-sm text-gray-500 py-4">无可用角色</div>
               )
             }
@@ -276,9 +276,8 @@ export function ExpressionChooser({
                     selectedRoleId === role.roleId ? "bg-base-200 ring-2 ring-inset ring-primary/30" : ""
                   }`}
                 >
-                  <RoleAvatarComponent
-                    avatarId={role.avatarId ?? 0}
-                    roleId={role.roleId}
+                  <RoleAvatarByRole
+                    role={role}
                     width={10}
                     isRounded={true}
                     withTitle={false}
@@ -305,7 +304,7 @@ export function ExpressionChooser({
               ))
             }
             {
-              (roomContext.curMember?.memberType ?? 3) < 3 && (
+              canAddRole && (
                 <div
                   className={`flex items-center gap-3 ${isMobile ? "p-2.5" : "p-3"} rounded-lg cursor-pointer hover:bg-base-200 transition-colors group border-2 border-dashed border-base-300`}
                   onClick={() => setIsRoleAddWindowOpen(true)}

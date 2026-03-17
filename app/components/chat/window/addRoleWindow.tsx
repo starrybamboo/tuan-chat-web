@@ -2,7 +2,7 @@ import React, { use, useEffect, useMemo, useState } from "react";
 import { toast } from "react-hot-toast";
 import { RoomContext } from "@/components/chat/core/roomContext";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
-import RoleAvatarComponent from "@/components/common/roleAvatar";
+import { RoleAvatarByRole } from "@/components/common/roleAccess";
 import { useGlobalContext } from "@/components/globalContextProvider";
 import { AddRingLight } from "@/icons";
 import { useAddRoomRoleMutation, useGetRoomNpcRoleQuery, useGetRoomRoleQuery } from "../../../../api/hooks/chatQueryHooks";
@@ -213,9 +213,8 @@ export function AddRoleWindow({
                         <div className="card shadow hover:shadow-lg transition-shadow cursor-pointer" key={`search-${role.roleId}`}>
                           <div className="flex flex-col items-center p-3">
                             <div onClick={() => handleAddRole(role.roleId)}>
-                              <RoleAvatarComponent
-                                avatarId={role.avatarId ?? -1}
-                                roleId={role.roleId}
+                              <RoleAvatarByRole
+                                role={role}
                                 width={24}
                                 isRounded={true}
                                 withTitle={false}
@@ -237,9 +236,8 @@ export function AddRoleWindow({
                     <div className="card shadow hover:shadow-lg transition-shadow cursor-pointer" key={role.roleId}>
                       <div className="flex flex-col items-center p-3">
                         <div onClick={() => handleAddRole(role.roleId)}>
-                          <RoleAvatarComponent
-                            avatarId={role.avatarId ?? -1}
-                            roleId={role.roleId}
+                          <RoleAvatarByRole
+                            role={role}
                             width={24}
                             isRounded={true}
                             withTitle={false}
@@ -277,9 +275,8 @@ export function AddRoleWindow({
                         <div className="card shadow hover:shadow-lg transition-shadow cursor-pointer" key={`search-${role.roleId}`}>
                           <div className="flex flex-col items-center p-3">
                             <div onClick={() => handleImportSpaceRole(role.roleId)}>
-                              <RoleAvatarComponent
-                                avatarId={role.avatarId ?? -1}
-                                roleId={role.roleId}
+                              <RoleAvatarByRole
+                                role={role}
                                 width={24}
                                 isRounded={true}
                                 withTitle={false}
@@ -301,9 +298,8 @@ export function AddRoleWindow({
                     <div className="card shadow hover:shadow-lg transition-shadow cursor-pointer" key={role.roleId}>
                       <div className="flex flex-col items-center p-3">
                         <div onClick={() => handleImportSpaceRole(role.roleId)}>
-                          <RoleAvatarComponent
-                            avatarId={role.avatarId ?? -1}
-                            roleId={role.roleId}
+                          <RoleAvatarByRole
+                            role={role}
                             width={24}
                             isRounded={true}
                             withTitle={false}

@@ -2,6 +2,7 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
+import type { UserInfoResponse } from './UserInfoResponse';
 /**
  * 评论视图对象
  */
@@ -22,10 +23,7 @@ export type CommentVO = {
      * 用户ID
      */
     userId?: number;
-    /**
-     * 用户信息，可以由前端根据userId获取或后期扩展
-     */
-    userInfo?: Record<string, any>;
+    userInfo?: UserInfoResponse;
     /**
      * 评论内容
      */

@@ -3,6 +3,15 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { DocTcHeaderPayload } from "@/components/chat/chatPage.types";
 import type { MinimalDocMeta } from "@/components/chat/room/sidebarTree";
 
+import { parseSpaceDocId } from "@/components/chat/infra/blocksuite/spaceDocId";
+import {
+  isSpaceDocTitleSyncNonRetryableError,
+  readPendingSpaceDocTitleSyncMap,
+  readSpaceDocMetaCache,
+  removePendingSpaceDocTitleSync,
+  upsertPendingSpaceDocTitleSync,
+  writeSpaceDocMetaCache,
+} from "@/components/chat/infra/blocksuite/spaceDocMetaPersistence";
 import { useDocHeaderOverrideStore } from "@/components/chat/stores/docHeaderOverrideStore";
 import { tuanchat } from "api/instance";
 
@@ -14,165 +23,29 @@ type UseSpaceDocMetaStateParams = {
   onDocHeaderChange?: (payload: { docId: string; title: string; imageUrl: string }) => void;
 };
 
-const SPACE_DOC_META_CACHE_KEY_PREFIX = "tc:space-doc-metas:v1:";
-const SPACE_DOC_TITLE_SYNC_QUEUE_KEY = "tc:space-doc-title-sync-queue:v1";
+type DocHeaderOverrideMap = Record<string, { title?: string; imageUrl?: string }>;
 
-type PendingSpaceDocTitleSync = {
-  docId: number;
-  title: string;
-  updatedAt: number;
-};
-
-type PendingSpaceDocTitleSyncMap = Record<string, PendingSpaceDocTitleSync>;
-
-function buildSpaceDocMetaCacheKey(spaceId: number): string {
-  return `${SPACE_DOC_META_CACHE_KEY_PREFIX}${spaceId}`;
-}
-
-function sanitizeDocMetaList(input: unknown): MinimalDocMeta[] {
-  if (!Array.isArray(input)) {
-    return [];
-  }
-  const map = new Map<string, MinimalDocMeta>();
-  for (const item of input) {
-    const id = typeof (item as any)?.id === "string" ? (item as any).id.trim() : "";
-    if (!id) {
-      continue;
+function applyDocHeaderOverrides(list: MinimalDocMeta[], headerOverrides: DocHeaderOverrideMap): MinimalDocMeta[] {
+  return list.map((meta) => {
+    const override = headerOverrides[meta.id];
+    if (!override) {
+      return meta;
     }
-    const title = typeof (item as any)?.title === "string" ? (item as any).title.trim() : "";
-    const imageUrl = typeof (item as any)?.imageUrl === "string" ? (item as any).imageUrl.trim() : "";
-    const existing = map.get(id);
-    if (!existing) {
-      map.set(id, {
-        id,
-        ...(title ? { title } : {}),
-        ...(imageUrl ? { imageUrl } : {}),
-      });
-      continue;
-    }
-    if (!existing.title && title) {
-      existing.title = title;
-    }
-    if (!existing.imageUrl && imageUrl) {
-      existing.imageUrl = imageUrl;
-    }
-  }
-  return [...map.values()];
-}
 
-function readSpaceDocMetaCache(spaceId: number): MinimalDocMeta[] {
-  if (typeof window === "undefined") {
-    return [];
-  }
-  try {
-    const raw = window.localStorage.getItem(buildSpaceDocMetaCacheKey(spaceId));
-    if (!raw) {
-      return [];
+    const overrideTitle = typeof override.title === "string" ? override.title.trim() : "";
+    const overrideImageUrl = typeof override.imageUrl === "string" ? override.imageUrl.trim() : "";
+    const nextTitle = overrideTitle || meta.title;
+    const nextImageUrl = overrideImageUrl || meta.imageUrl;
+    if (nextTitle === meta.title && nextImageUrl === meta.imageUrl) {
+      return meta;
     }
-    const parsed = JSON.parse(raw);
-    return sanitizeDocMetaList(parsed);
-  }
-  catch {
-    return [];
-  }
-}
 
-function writeSpaceDocMetaCache(spaceId: number, list: MinimalDocMeta[] | null | undefined): void {
-  if (typeof window === "undefined") {
-    return;
-  }
-  try {
-    window.localStorage.setItem(
-      buildSpaceDocMetaCacheKey(spaceId),
-      JSON.stringify(sanitizeDocMetaList(list)),
-    );
-  }
-  catch {
-    // ignore
-  }
-}
-
-function readPendingSpaceDocTitleSyncMap(): PendingSpaceDocTitleSyncMap {
-  if (typeof window === "undefined") {
-    return {};
-  }
-  try {
-    const raw = window.localStorage.getItem(SPACE_DOC_TITLE_SYNC_QUEUE_KEY);
-    if (!raw) {
-      return {};
-    }
-    const parsed = JSON.parse(raw) as unknown;
-    if (!parsed || typeof parsed !== "object") {
-      return {};
-    }
-    const map: PendingSpaceDocTitleSyncMap = {};
-    for (const value of Object.values(parsed as Record<string, unknown>)) {
-      if (!value || typeof value !== "object") {
-        continue;
-      }
-      const docId = Number((value as any).docId);
-      const title = String((value as any).title ?? "").trim();
-      const updatedAt = Number((value as any).updatedAt);
-      if (!Number.isFinite(docId) || docId <= 0 || !title) {
-        continue;
-      }
-      map[String(docId)] = {
-        docId,
-        title,
-        updatedAt: Number.isFinite(updatedAt) ? updatedAt : Date.now(),
-      };
-    }
-    return map;
-  }
-  catch {
-    return {};
-  }
-}
-
-function writePendingSpaceDocTitleSyncMap(map: PendingSpaceDocTitleSyncMap): void {
-  if (typeof window === "undefined") {
-    return;
-  }
-  try {
-    window.localStorage.setItem(SPACE_DOC_TITLE_SYNC_QUEUE_KEY, JSON.stringify(map));
-  }
-  catch {
-    // ignore
-  }
-}
-
-function upsertPendingSpaceDocTitleSync(item: { docId: number; title: string }): void {
-  if (typeof window === "undefined") {
-    return;
-  }
-  const docId = Number(item.docId);
-  const title = String(item.title ?? "").trim();
-  if (!Number.isFinite(docId) || docId <= 0 || !title) {
-    return;
-  }
-  const map = readPendingSpaceDocTitleSyncMap();
-  map[String(docId)] = {
-    docId,
-    title,
-    updatedAt: Date.now(),
-  };
-  writePendingSpaceDocTitleSyncMap(map);
-}
-
-function removePendingSpaceDocTitleSync(docId: number): void {
-  if (typeof window === "undefined") {
-    return;
-  }
-  const normalizedDocId = Number(docId);
-  if (!Number.isFinite(normalizedDocId) || normalizedDocId <= 0) {
-    return;
-  }
-  const map = readPendingSpaceDocTitleSyncMap();
-  if (!map[String(normalizedDocId)]) {
-    return;
-  }
-  delete map[String(normalizedDocId)];
-  writePendingSpaceDocTitleSyncMap(map);
+    return {
+      id: meta.id,
+      ...(nextTitle ? { title: nextTitle } : {}),
+      ...(nextImageUrl ? { imageUrl: nextImageUrl } : {}),
+    };
+  });
 }
 
 function isSameDocMetaList(a: MinimalDocMeta[] | null, b: MinimalDocMeta[] | null): boolean {
@@ -216,6 +89,8 @@ export default function useSpaceDocMetaState({
         const id = typeof meta?.id === "string" ? meta.id : "";
         if (!id)
           continue;
+        if (parseSpaceDocId(id)?.kind !== "independent")
+          continue;
         const title = typeof meta?.title === "string" && meta.title.trim().length > 0 ? meta.title : undefined;
         const imageUrl = typeof meta?.imageUrl === "string" && meta.imageUrl.trim().length > 0 ? meta.imageUrl : undefined;
 
@@ -235,6 +110,28 @@ export default function useSpaceDocMetaState({
 
     return [...map.values()];
   }, []);
+
+  const buildLocalSpaceDocMetas = useCallback((headerOverrides?: DocHeaderOverrideMap): MinimalDocMeta[] | null => {
+    if (!activeSpaceId || activeSpaceId <= 0) {
+      return null;
+    }
+
+    const resolvedHeaderOverrides = headerOverrides ?? useDocHeaderOverrideStore.getState().headers;
+    const cachedDocMetas = readSpaceDocMetaCache(activeSpaceId);
+    const sidebarDocIds = new Set(docMetasFromSidebarTree.map(meta => meta.id));
+    const filteredCachedDocMetas = isSidebarTreeReady
+      ? cachedDocMetas.filter(meta => sidebarDocIds.has(meta.id))
+      : cachedDocMetas;
+    const merged = isSidebarTreeReady
+      ? mergeDocMetas(docMetasFromSidebarTree, filteredCachedDocMetas)
+      : mergeDocMetas(filteredCachedDocMetas, docMetasFromSidebarTree);
+
+    if (!isSidebarTreeReady && merged.length === 0) {
+      return null;
+    }
+
+    return applyDocHeaderOverrides(merged, resolvedHeaderOverrides);
+  }, [activeSpaceId, docMetasFromSidebarTree, isSidebarTreeReady, mergeDocMetas]);
 
   const spaceDocTitleSyncTimerRef = useRef<number | null>(null);
   const spaceDocTitleSyncPendingRef = useRef<{ docId: number; title: string } | null>(null);
@@ -269,7 +166,11 @@ export default function useSpaceDocMetaState({
       spaceDocTitleSyncLastRef.current = { docId: normalizedDocId, title: normalizedTitle };
       removePendingSpaceDocTitleSync(normalizedDocId);
     }
-    catch {
+    catch (error) {
+      if (isSpaceDocTitleSyncNonRetryableError(error)) {
+        removePendingSpaceDocTitleSync(normalizedDocId);
+        return;
+      }
       upsertPendingSpaceDocTitleSync({
         docId: normalizedDocId,
         title: normalizedTitle,
@@ -318,9 +219,6 @@ export default function useSpaceDocMetaState({
     useDocHeaderOverrideStore.getState().setHeader({ docId, header: { title, imageUrl } });
     onDocHeaderChange?.({ docId, title, imageUrl });
 
-    if (!title)
-      return;
-
     setSpaceDocMetas((prev) => {
       if (!Array.isArray(prev) || prev.length === 0)
         return prev;
@@ -330,13 +228,21 @@ export default function useSpaceDocMetaState({
         return prev;
 
       const currentTitle = typeof prev[idx]?.title === "string" ? prev[idx]!.title!.trim() : "";
-      if (currentTitle === title)
+      const currentImageUrl = typeof prev[idx]?.imageUrl === "string" ? prev[idx]!.imageUrl!.trim() : "";
+      if (currentTitle === title && currentImageUrl === imageUrl)
         return prev;
 
       const next = [...prev];
-      next[idx] = { ...next[idx], title };
+      next[idx] = {
+        id: next[idx]!.id,
+        ...(title ? { title } : {}),
+        ...(imageUrl ? { imageUrl } : {}),
+      };
       return next;
     });
+
+    if (!title)
+      return;
 
     if (typeof window !== "undefined") {
       try {
@@ -409,14 +315,16 @@ export default function useSpaceDocMetaState({
       const metas = (ws?.meta?.docMetas ?? []) as any[];
       const headerOverrides = useDocHeaderOverrideStore.getState().headers;
       const list = metas
-        .filter(m => typeof m?.id === "string" && m.id.length > 0)
+        .filter((m) => {
+          const id = typeof m?.id === "string" ? m.id : "";
+          return id.length > 0 && parseSpaceDocId(id)?.kind === "independent";
+        })
         .map((m) => {
           const id = String(m.id);
           const title = typeof m?.title === "string" ? m.title : undefined;
-          const imageUrl = typeof headerOverrides?.[id]?.imageUrl === "string" ? headerOverrides[id]!.imageUrl : undefined;
-          return { id, title, imageUrl } satisfies MinimalDocMeta;
+          return { id, title } satisfies MinimalDocMeta;
         });
-      return list;
+      return applyDocHeaderOverrides(list, headerOverrides);
     }
     catch {
       return [];
@@ -433,121 +341,33 @@ export default function useSpaceDocMetaState({
       return;
     }
 
-    const cachedDocMetas = readSpaceDocMetaCache(activeSpaceId);
-    if (cachedDocMetas.length > 0) {
-      const optimistic = mergeDocMetas(cachedDocMetas, docMetasFromSidebarTree);
-      setSpaceDocMetas(prev => (isSameDocMetaList(prev, optimistic) ? prev : optimistic));
-    }
-
-    let cancelled = false;
-    (async () => {
-      const fromWorkspace = await loadSpaceDocMetas();
-      const merged = mergeDocMetas(fromWorkspace, docMetasFromSidebarTree, cachedDocMetas);
-      if (cancelled)
-        return;
-      const shouldKeepOptimisticCache = !isSidebarTreeReady && merged.length === 0 && cachedDocMetas.length > 0;
-      const nextMetas = shouldKeepOptimisticCache
-        ? mergeDocMetas(cachedDocMetas, docMetasFromSidebarTree)
-        : merged;
-      setSpaceDocMetas(prev => (isSameDocMetaList(prev, nextMetas) ? prev : nextMetas));
-
-      try {
-        const registry = await import("@/components/chat/infra/blocksuite/spaceWorkspaceRegistry");
-        for (const m of docMetasFromSidebarTree) {
-          if (typeof m?.id !== "string" || !m.id)
-            continue;
-          registry.ensureSpaceDocMeta({ spaceId: activeSpaceId, docId: m.id, title: m.title });
-        }
-      }
-      catch {
-        // ignore
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [activeSpaceId, canViewDocs, docMetasFromSidebarTree, isSidebarTreeReady, loadSpaceDocMetas, mergeDocMetas]);
-
-  useEffect(() => {
-    if (typeof window === "undefined") {
+    const nextMetas = buildLocalSpaceDocMetas();
+    if (nextMetas == null) {
+      setSpaceDocMetas(prev => (prev === null ? prev : null));
       return;
     }
+
+    setSpaceDocMetas(prev => (isSameDocMetaList(prev, nextMetas) ? prev : nextMetas));
+  }, [activeSpaceId, buildLocalSpaceDocMetas, canViewDocs]);
+
+  useEffect(() => {
     if (!activeSpaceId || activeSpaceId <= 0 || !canViewDocs) {
       return;
     }
 
-    let cancelled = false;
-    let refreshTimer: number | null = null;
-    const unsubscribers: Array<() => void> = [];
-
-    const refreshDocMetas = async () => {
-      const fromWorkspace = await loadSpaceDocMetas();
-      if (cancelled) {
+    return useDocHeaderOverrideStore.subscribe((state, prevState) => {
+      if (state.headers === prevState.headers) {
         return;
       }
-      const merged = mergeDocMetas(
-        fromWorkspace,
-        docMetasFromSidebarTree,
-        readSpaceDocMetaCache(activeSpaceId),
-      );
-      setSpaceDocMetas(prev => (isSameDocMetaList(prev, merged) ? prev : merged));
-    };
 
-    const scheduleRefresh = () => {
-      if (cancelled) {
+      const nextMetas = buildLocalSpaceDocMetas(state.headers);
+      if (nextMetas == null) {
+        setSpaceDocMetas(prev => (prev === null ? prev : null));
         return;
       }
-      if (refreshTimer != null) {
-        return;
-      }
-      refreshTimer = window.setTimeout(() => {
-        refreshTimer = null;
-        void refreshDocMetas();
-      }, 120);
-    };
-
-    void (async () => {
-      try {
-        const registry = await import("@/components/chat/infra/blocksuite/spaceWorkspaceRegistry");
-        if (cancelled) {
-          return;
-        }
-        const ws = registry.getOrCreateSpaceWorkspace(activeSpaceId) as any;
-        const metaSub = ws?.meta?.docMetaUpdated?.subscribe?.(() => {
-          scheduleRefresh();
-        });
-        if (metaSub && typeof metaSub.unsubscribe === "function") {
-          unsubscribers.push(() => metaSub.unsubscribe());
-        }
-
-        const docListSub = ws?.slots?.docListUpdated?.subscribe?.(() => {
-          scheduleRefresh();
-        });
-        if (docListSub && typeof docListSub.unsubscribe === "function") {
-          unsubscribers.push(() => docListSub.unsubscribe());
-        }
-      }
-      catch {
-        // ignore
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-      if (refreshTimer != null) {
-        window.clearTimeout(refreshTimer);
-      }
-      for (const unsubscribe of unsubscribers) {
-        try {
-          unsubscribe();
-        }
-        catch {
-          // ignore
-        }
-      }
-    };
-  }, [activeSpaceId, canViewDocs, docMetasFromSidebarTree, loadSpaceDocMetas, mergeDocMetas]);
+      setSpaceDocMetas(prev => (isSameDocMetaList(prev, nextMetas) ? prev : nextMetas));
+    });
+  }, [activeSpaceId, buildLocalSpaceDocMetas, canViewDocs]);
 
   useEffect(() => {
     if (!activeSpaceId || activeSpaceId <= 0) {

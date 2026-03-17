@@ -23,9 +23,33 @@ export type MessageDirectResponse = {
      */
     senderId?: number;
     /**
+     * 发送者用户名
+     */
+    senderUsername?: string;
+    /**
+     * 发送者头像 URL
+     */
+    senderAvatar?: string;
+    /**
+     * 发送者头像缩略图 URL
+     */
+    senderAvatarThumbUrl?: string;
+    /**
      * 接收者ID
      */
     receiverId?: number;
+    /**
+     * 接收者用户名
+     */
+    receiverUsername?: string;
+    /**
+     * 接收者头像 URL
+     */
+    receiverAvatar?: string;
+    /**
+     * 接收者头像缩略图 URL
+     */
+    receiverAvatarThumbUrl?: string;
     /**
      * 消息内容
      */

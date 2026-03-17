@@ -1,6 +1,6 @@
-import { useGetUserInfoQuery } from "api/hooks/UserHooks";
 import { useRef } from "react";
 import { useNavigate } from "react-router";
+import { resolveUserDisplayName, useResolvedUserInfo } from "@/components/common/userAccess";
 import { XMarkICon } from "@/icons";
 import { getScreenSize } from "@/utils/getScreenSize";
 
@@ -9,7 +9,13 @@ interface MessageDirectType {
   userId?: number;
   syncId?: number;
   senderId?: number;
+  senderUsername?: string;
+  senderAvatar?: string;
+  senderAvatarThumbUrl?: string;
   receiverId?: number;
+  receiverUsername?: string;
+  receiverAvatar?: string;
+  receiverAvatarThumbUrl?: string;
   content?: string;
   messageType?: number;
   replyMessageId?: number;
@@ -21,6 +27,7 @@ interface MessageDirectType {
 
 export default function ChatItem({
   id,
+  user,
   lastMessage,
   isSmallScreen,
   unreadMessageNumber,
@@ -31,6 +38,12 @@ export default function ChatItem({
   openContextMenu,
 }: {
   id: number;
+  user?: {
+    userId?: number;
+    username?: string;
+    avatar?: string;
+    avatarThumbUrl?: string;
+  };
   lastMessage: MessageDirectType | null;
   isSmallScreen: boolean;
   unreadMessageNumber: number;
@@ -40,8 +53,9 @@ export default function ChatItem({
   deletedContactId: (contactId: number) => void;
   openContextMenu: (x: number, y: number, id: number) => void;
 }) {
-  const userInfoQuery = useGetUserInfoQuery(id);
-  const userInfo = userInfoQuery.data?.data;
+  const resolvedUser = useResolvedUserInfo(user, id);
+  const avatarSrc = resolvedUser.avatarThumbUrl || resolvedUser.avatar || "";
+  const displayName = resolveUserDisplayName({ username: resolvedUser.username }, `用户${id}`);
   const navigate = useNavigate();
 
   // 初始化未读消息数
@@ -125,17 +139,17 @@ export default function ChatItem({
       >
         <div className="avatar mask mask-squircle w-10 h-10 flex-shrink-0">
           <img
-            src={userInfo?.avatar}
-            alt={userInfo?.username}
+            src={avatarSrc}
+            alt={displayName}
           />
         </div>
 
         <div className="flex flex-col flex-1 min-w-0 h-full justify-center gap-1">
           <div className="flex items-center w-full min-w-0">
             <span className="font-bold truncate text-base min-w-0 text-left">
-              {userInfoQuery.isLoading
+              {resolvedUser.isLoading
                 ? <div className="skeleton h-4 w-20"></div>
-                : (userInfo?.username || `用户${id}`)}
+                : displayName}
             </span>
           </div>
 

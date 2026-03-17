@@ -1,6 +1,6 @@
 import { create } from "zustand";
 
-export type AutoPlaySoundPurpose = "bgm" | "se";
+type AutoPlaySoundPurpose = "bgm" | "se";
 
 type PendingAutoPlayEvent = {
   roomId: number;

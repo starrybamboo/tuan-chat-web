@@ -3,7 +3,7 @@
 /* tslint:disable */
 /* eslint-disable */
 /**
- * 返回对象
+ * 父评论作者信息
  */
 export type UserInfoResponse = {
     /**

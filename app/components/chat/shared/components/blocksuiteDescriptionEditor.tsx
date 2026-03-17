@@ -1,19 +1,21 @@
 import type { DocMode } from "@blocksuite/affine/model";
 import type { DocModeProvider } from "@blocksuite/affine/shared/services";
+import type { KeyboardEvent as ReactKeyboardEvent } from "react";
 import type { DescriptionEntityType } from "@/components/chat/infra/blocksuite/descriptionDocId";
 import type { BlocksuiteDocHeader } from "@/components/chat/infra/blocksuite/docHeader";
 import type { BlocksuiteMentionProfilePopoverState } from "@/components/chat/infra/blocksuite/mentionProfilePopover";
-import type { KeyboardEvent as ReactKeyboardEvent } from "react";
 import { FileTextIcon } from "@phosphor-icons/react";
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import toast from "react-hot-toast";
 import { useLocation, useNavigate } from "react-router";
 import { Subscription } from "rxjs";
 import { base64ToUint8Array } from "@/components/chat/infra/blocksuite/base64";
+import { isNonRetryableBlocksuiteDocError } from "@/components/chat/infra/blocksuite/blocksuiteDocError";
 import { isBlocksuiteDebugEnabled } from "@/components/chat/infra/blocksuite/debugFlags";
 import { parseDescriptionDocId } from "@/components/chat/infra/blocksuite/descriptionDocId";
 import { getRemoteSnapshot } from "@/components/chat/infra/blocksuite/descriptionDocRemote";
 import { ensureBlocksuiteDocHeader, setBlocksuiteDocHeader, subscribeBlocksuiteDocHeader } from "@/components/chat/infra/blocksuite/docHeader";
+import { prewarmDescriptionDocOpenIntent } from "@/components/chat/infra/blocksuite/docOpenIntentPrewarm";
 
 import { BlocksuiteMentionProfilePopover } from "@/components/chat/infra/blocksuite/mentionProfilePopover";
 import { parseSpaceDocId } from "@/components/chat/infra/blocksuite/spaceDocId";
@@ -36,6 +38,8 @@ async function loadBlocksuiteRuntime() {
     ensureDocMeta: spaceRegistry.ensureDocMeta,
     getOrCreateDoc: spaceRegistry.getOrCreateDoc,
     getOrCreateWorkspace: spaceRegistry.getOrCreateWorkspace,
+    releaseWorkspace: spaceRegistry.releaseWorkspace,
+    retainWorkspace: spaceRegistry.retainWorkspace,
   };
 }
 
@@ -47,6 +51,8 @@ interface BlocksuiteDescriptionEditorProps {
   docId: string;
   /** iframe 宿主实例 id（用于 postMessage 去重）；仅 /blocksuite-frame 路由传入 */
   instanceId?: string;
+  /** Only prewarm remote data on explicit open intent; never boot workspace from chat entry. */
+  intentPrewarm?: boolean;
   /** 默认嵌入式；`full` 用于全屏/DocRoute 场景 */
   variant?: "embedded" | "full";
   /** 只读模式：允许滚动/选择，但不允许编辑 */
@@ -196,6 +202,7 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
   const hostContainerRef = useRef<HTMLDivElement | null>(null);
   const editorRef = useRef<HTMLElement | null>(null);
   const storeRef = useRef<any>(null);
+  const docRuntimeRef = useRef<{ workspace: any; docId: string } | null>(null);
   const prevModeRef = useRef<DocMode>(forcedMode);
   const runtimeRef = useRef<Awaited<ReturnType<typeof loadBlocksuiteRuntime>> | null>(null);
 
@@ -535,9 +542,11 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
     });
     portalMo.observe(body, { childList: true, subtree: true });
     const abort = new AbortController();
+    let fastRestoreTimeout: ReturnType<typeof setTimeout> | null = null;
     let createdEditor: any = null;
     let createdStore: any = null;
     let unsubscribeHeader: (() => void) | null = null;
+    let retainedRuntime: Awaited<ReturnType<typeof loadBlocksuiteRuntime>> | null = null;
 
     // Hydrate first (restore semantics), then render editor.
     // This avoids binding the UI to an empty initialized root.
@@ -556,8 +565,11 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
         return;
 
       await runtime.ensureBlocksuiteCoreElementsDefined();
+      runtime.retainWorkspace(workspaceId);
+      retainedRuntime = runtime;
 
       const workspace = runtime.getOrCreateWorkspace(workspaceId);
+      docRuntimeRef.current = { workspace, docId };
       const runtimeWs = workspace as any;
       const restoreSnapshotUpdate = (update: Uint8Array) => {
         if (!update?.length) {
@@ -581,7 +593,9 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
           return base64ToUint8Array(remote.updateB64);
         }
         catch (e) {
-          console.error("[BlocksuiteDescriptionEditor] Failed to restore remote snapshot", e);
+          if (!isNonRetryableBlocksuiteDocError(e)) {
+            console.error("[BlocksuiteDescriptionEditor] Failed to restore remote snapshot", e);
+          }
           return null;
         }
       })();
@@ -593,7 +607,12 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
         try {
           const fastRestore = await Promise.race([
             remoteSnapshotUpdateTask.then(update => ({ timedOut: false as const, update })),
-            new Promise<{ timedOut: true; update: null }>(resolve => setTimeout(() => resolve({ timedOut: true, update: null }), REMOTE_HYDRATE_FAST_WAIT_MS)),
+            new Promise<{ timedOut: true; update: null }>((resolve) => {
+              fastRestoreTimeout = setTimeout(() => {
+                fastRestoreTimeout = null;
+                resolve({ timedOut: true, update: null });
+              }, REMOTE_HYDRATE_FAST_WAIT_MS);
+            }),
           ]);
           if (!fastRestore.timedOut && fastRestore.update?.length) {
             restoreSnapshotUpdate(fastRestore.update);
@@ -851,6 +870,10 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
 
     return () => {
       abort.abort();
+      if (fastRestoreTimeout) {
+        clearTimeout(fastRestoreTimeout);
+        fastRestoreTimeout = null;
+      }
       mo.disconnect();
       portalMo.disconnect();
       try {
@@ -860,6 +883,17 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
         // ignore
       }
       runtimeRef.current = null;
+      docRuntimeRef.current = null;
+
+      if (retainedRuntime) {
+        try {
+          retainedRuntime.releaseWorkspace(workspaceId);
+        }
+        catch {
+          // ignore
+        }
+        retainedRuntime = null;
+      }
 
       try {
         const editorAny = createdEditor as any;
@@ -887,6 +921,27 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
       }
     };
   }, [docId, docModeProvider, isFull, readOnly, reloadEpoch, spaceId, tcHeader?.fallbackImageUrl, tcHeader?.fallbackTitle, tcHeaderEnabled, workspaceId]);
+
+  useEffect(() => {
+    return () => {
+      const current = docRuntimeRef.current;
+      if (!current) {
+        return;
+      }
+      if (current.docId !== docId) {
+        return;
+      }
+      try {
+        current.workspace?.getDoc?.(current.docId)?.dispose?.();
+      }
+      catch {
+        // ignore
+      }
+      if (docRuntimeRef.current?.docId === current.docId) {
+        docRuntimeRef.current = null;
+      }
+    };
+  }, [docId, workspaceId]);
 
   useEffect(() => {
     const editor = editorRef.current as any;
@@ -1319,6 +1374,7 @@ function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEdito
     spaceId,
     docId,
     variant = "embedded",
+    intentPrewarm = false,
     mode: forcedMode = "page",
     readOnly = false,
     allowModeSwitch = false,
@@ -1398,6 +1454,13 @@ function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEdito
   useEffect(() => {
     onNavigateRef.current = onNavigate;
   }, [onNavigate]);
+
+  useEffect(() => {
+    if (!intentPrewarm) {
+      return;
+    }
+    void prewarmDescriptionDocOpenIntent(docId);
+  }, [docId, intentPrewarm]);
 
   useEffect(() => {
     mentionProfilePopoverStateRef.current = mentionProfilePopover;

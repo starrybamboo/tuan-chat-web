@@ -147,6 +147,7 @@ export function ChatPageDocContent(props: ChatPageDocContentProps = {}) {
                   workspaceId={`space:${resolvedSpaceId ?? -1}`}
                   spaceId={resolvedSpaceId ?? -1}
                   docId={resolvedDocId}
+                  intentPrewarm
                   variant="full"
                   tcHeader={{ enabled: true, fallbackTitle: tcHeaderTitle }}
                   onTcHeaderChange={onDocTcHeaderChange}

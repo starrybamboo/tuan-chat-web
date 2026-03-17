@@ -28,6 +28,7 @@ interface ResolvedImportChatMessage {
 
 interface ImportChatMessagesWindowProps {
   isKP: boolean;
+  isSpectator: boolean;
   availableRoles: UserRole[];
   onImport: (messages: ResolvedImportChatMessage[], onProgress?: (sent: number, total: number) => void) => Promise<void>;
   onClose: () => void;
@@ -37,6 +38,7 @@ interface ImportChatMessagesWindowProps {
 
 export default function ImportChatMessagesWindow({
   isKP,
+  isSpectator,
   availableRoles,
   onImport,
   onClose,
@@ -89,6 +91,11 @@ export default function ImportChatMessagesWindow({
     for (const speaker of speakers) {
       const normalized = normalizeSpeakerName(speaker);
 
+      if (isSpectator) {
+        next[speaker] = IMPORT_SPECIAL_ROLE_ID.NARRATOR;
+        continue;
+      }
+
       if (isKP && (normalized === "旁白" || normalized.toLowerCase() === "narrator")) {
         next[speaker] = IMPORT_SPECIAL_ROLE_ID.NARRATOR;
         continue;
@@ -107,6 +114,10 @@ export default function ImportChatMessagesWindow({
       const nextFigurePosition: Record<string, Exclude<FigurePosition, undefined> | null> = {};
       for (const speaker of speakers) {
         const normalized = normalizeSpeakerName(speaker);
+        if (isSpectator) {
+          nextFigurePosition[speaker] = null;
+          continue;
+        }
         if (isKP && (normalized === "旁白" || normalized.toLowerCase() === "narrator")) {
           nextFigurePosition[speaker] = null;
           continue;
@@ -119,7 +130,7 @@ export default function ImportChatMessagesWindow({
       }
       return nextFigurePosition;
     });
-  }, [availableRoles, isKP, speakers]);
+  }, [availableRoles, isKP, isSpectator, speakers]);
 
   const handlePickFile = async (files: FileList | null) => {
     const file = files?.[0];
@@ -152,7 +163,7 @@ export default function ImportChatMessagesWindow({
       toast.error("请先为所有角色名指定对应角色");
       return;
     }
-    if (!isKP && availableRoles.length === 0) {
+    if (!isKP && !isSpectator && availableRoles.length === 0) {
       toast.error("当前房间没有可用角色，请先创建/导入角色");
       return;
     }
@@ -215,8 +226,8 @@ export default function ImportChatMessagesWindow({
           <div>
             <h2 className="text-lg font-bold flex items-center gap-2">
               导入对话
-              <span className={`badge badge-sm ${isKP ? "badge-info" : "badge-ghost"} font-normal`}>
-                {isKP ? "KP模式" : "玩家模式"}
+              <span className={`badge badge-sm ${isKP ? "badge-info" : isSpectator ? "badge-warning" : "badge-ghost"} font-normal`}>
+                {isKP ? "KP模式" : isSpectator ? "观战模式" : "玩家模式"}
               </span>
             </h2>
             <div className="text-xs text-base-content/60 flex items-center gap-2">
@@ -394,7 +405,7 @@ export default function ImportChatMessagesWindow({
           </div>
 
           <div className="flex-1 overflow-hidden relative flex flex-col">
-            {!isKP && roleOptions.length === 0 && (
+            {!isKP && !isSpectator && roleOptions.length === 0 && (
               <div className="m-4 alert alert-info py-3 text-sm">
                 <Info size={20} />
                 <div>
@@ -448,15 +459,21 @@ export default function ImportChatMessagesWindow({
                                 >
                                   <option value="">-- 请选择 --</option>
                                   <option disabled className="text-xs font-bold bg-base-200 text-base-content/50">- 特殊角色 -</option>
-                                  {isKP && <option value={String(IMPORT_SPECIAL_ROLE_ID.NARRATOR)}>📝 旁白 (KP)</option>}
-                                  <option value={String(IMPORT_SPECIAL_ROLE_ID.DICER)}>🎲 骰娘 (系统)</option>
-                                  <option disabled className="text-xs font-bold bg-base-200 text-base-content/50">- 房间角色 -</option>
-                                  {roleOptions.map(o => (
-                                    <option key={o.roleId} value={String(o.roleId)}>
-                                      👤
-                                      {o.label}
-                                    </option>
-                                  ))}
+                                  {isSpectator
+                                    ? <option value={String(IMPORT_SPECIAL_ROLE_ID.NARRATOR)}>💬 场外 / 无角色</option>
+                                    : (
+                                        <>
+                                          {isKP && <option value={String(IMPORT_SPECIAL_ROLE_ID.NARRATOR)}>📝 旁白 (KP)</option>}
+                                          <option value={String(IMPORT_SPECIAL_ROLE_ID.DICER)}>🎲 骰娘 (系统)</option>
+                                          <option disabled className="text-xs font-bold bg-base-200 text-base-content/50">- 房间角色 -</option>
+                                          {roleOptions.map(o => (
+                                            <option key={o.roleId} value={String(o.roleId)}>
+                                              👤
+                                              {o.label}
+                                            </option>
+                                          ))}
+                                        </>
+                                      )}
                                 </select>
                               </td>
                               <td>
@@ -529,7 +546,9 @@ export default function ImportChatMessagesWindow({
           )}
           {!isImporting && (
             <span className="text-xs text-base-content/50">
-              提示：请确认所有角色都已正确匹配后再开始导入。
+              {isSpectator
+                ? "提示：观战导入会统一按无角色消息发送。"
+                : "提示：请确认所有角色都已正确匹配后再开始导入。"}
             </span>
           )}
         </div>

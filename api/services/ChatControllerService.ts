@@ -30,35 +30,6 @@ export class ChatControllerService {
             url: '/chat/messages/batch',
             body: requestBody,
             mediaType: 'application/json',
-            errors: {
-                400: `Bad Request`,
-                405: `Method Not Allowed`,
-                429: `Too Many Requests`,
-                500: `Internal Server Error`,
-            },
-        });
-    }
-    /**
-     * 批量发送消息
-     * 一次性发送多条消息，并批量入库
-     * @param requestBody
-     * @returns ApiResultListMessage OK
-     * @throws ApiError
-     */
-    public batchSendMessages(
-        requestBody: Array<ChatMessageRequest>,
-    ): CancelablePromise<ApiResultListMessage> {
-        return this.httpRequest.request({
-            method: 'POST',
-            url: '/chat/message/batch',
-            body: requestBody,
-            mediaType: 'application/json',
-            errors: {
-                400: `Bad Request`,
-                405: `Method Not Allowed`,
-                429: `Too Many Requests`,
-                500: `Internal Server Error`,
-            },
         });
     }
     /**
@@ -77,12 +48,6 @@ export class ChatControllerService {
             query: {
                 'messageId': messageId,
             },
-            errors: {
-                400: `Bad Request`,
-                405: `Method Not Allowed`,
-                429: `Too Many Requests`,
-                500: `Internal Server Error`,
-            },
         });
     }
     /**
@@ -100,12 +65,6 @@ export class ChatControllerService {
             url: '/chat/message',
             body: requestBody,
             mediaType: 'application/json',
-            errors: {
-                400: `Bad Request`,
-                405: `Method Not Allowed`,
-                429: `Too Many Requests`,
-                500: `Internal Server Error`,
-            },
         });
     }
     /**
@@ -123,12 +82,6 @@ export class ChatControllerService {
             url: '/chat/message',
             body: requestBody,
             mediaType: 'application/json',
-            errors: {
-                400: `Bad Request`,
-                405: `Method Not Allowed`,
-                429: `Too Many Requests`,
-                500: `Internal Server Error`,
-            },
         });
     }
     /**
@@ -146,12 +99,6 @@ export class ChatControllerService {
             url: '/chat/message',
             body: requestBody,
             mediaType: 'application/json',
-            errors: {
-                400: `Bad Request`,
-                405: `Method Not Allowed`,
-                429: `Too Many Requests`,
-                500: `Internal Server Error`,
-            },
         });
     }
     /**
@@ -169,12 +116,6 @@ export class ChatControllerService {
             url: '/chat/message/sync',
             body: requestBody,
             mediaType: 'application/json',
-            errors: {
-                400: `Bad Request`,
-                405: `Method Not Allowed`,
-                429: `Too Many Requests`,
-                500: `Internal Server Error`,
-            },
         });
     }
     /**
@@ -192,12 +133,6 @@ export class ChatControllerService {
             url: '/chat/message/page',
             body: requestBody,
             mediaType: 'application/json',
-            errors: {
-                400: `Bad Request`,
-                405: `Method Not Allowed`,
-                429: `Too Many Requests`,
-                500: `Internal Server Error`,
-            },
         });
     }
     /**
@@ -215,12 +150,23 @@ export class ChatControllerService {
             url: '/chat/message/history',
             body: requestBody,
             mediaType: 'application/json',
-            errors: {
-                400: `Bad Request`,
-                405: `Method Not Allowed`,
-                429: `Too Many Requests`,
-                500: `Internal Server Error`,
-            },
+        });
+    }
+    /**
+     * 批量发送消息
+     * 一次性发送多条消息，并批量入库
+     * @param requestBody
+     * @returns ApiResultListMessage OK
+     * @throws ApiError
+     */
+    public batchSendMessages(
+        requestBody: Array<ChatMessageRequest>,
+    ): CancelablePromise<ApiResultListMessage> {
+        return this.httpRequest.request({
+            method: 'POST',
+            url: '/chat/message/batch',
+            body: requestBody,
+            mediaType: 'application/json',
         });
     }
     /**
@@ -238,12 +184,6 @@ export class ChatControllerService {
             url: '/chat/message/all',
             query: {
                 'roomId': roomId,
-            },
-            errors: {
-                400: `Bad Request`,
-                405: `Method Not Allowed`,
-                429: `Too Many Requests`,
-                500: `Internal Server Error`,
             },
         });
     }

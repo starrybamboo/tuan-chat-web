@@ -128,7 +128,7 @@ interface DragHandlers {
   handleDrop: (event: React.DragEvent<HTMLDivElement>) => void;
 }
 
-function useChatFrameListDragHandlers(): DragHandlers {
+function useChatFrameListDragHandlers(roomId: number): DragHandlers {
   const handleDragOver = useCallback((event: React.DragEvent<HTMLDivElement>) => {
     if (isFileDrag(event.dataTransfer)) {
       event.preventDefault();
@@ -141,8 +141,8 @@ function useChatFrameListDragHandlers(): DragHandlers {
       return;
     event.preventDefault();
     event.stopPropagation();
-    addDroppedFilesToComposer(event.dataTransfer);
-  }, []);
+    addDroppedFilesToComposer(event.dataTransfer, roomId);
+  }, [roomId]);
 
   return { handleDragOver, handleDrop };
 }
@@ -198,7 +198,7 @@ export default function ChatFrameList({
   handleBatchDelete,
   isSpaceOwner,
 }: ChatFrameListProps) {
-  const { handleDragOver, handleDrop } = useChatFrameListDragHandlers();
+  const { handleDragOver, handleDrop } = useChatFrameListDragHandlers(roomId);
   const computeItemKey = useCallback((index: number, item: ChatMessageResponse) => getChatFrameItemKey(index, item), []);
   const renderDebugRef = useRef<{ renderCount: number; keys: string[] }>({ renderCount: 0, keys: [] });
 

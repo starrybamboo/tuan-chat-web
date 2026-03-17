@@ -20,11 +20,14 @@ import { useRealtimeRenderStore } from "@/components/chat/stores/realtimeRenderS
 import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
 import { useRoomRoleSelectionStore } from "@/components/chat/stores/roomRoleSelectionStore";
 import { useRoomUiStore, useRoomUiStoreApi } from "@/components/chat/stores/roomUiStore";
+import { isObserverLike } from "@/components/chat/utils/memberPermissions";
+import { isOutOfCharacterSpeech } from "@/components/chat/utils/outOfCharacterSpeech";
 import { getDisplayRoleName } from "@/components/chat/utils/roleDisplayName";
 import { extractRoomJumpPayload } from "@/components/chat/utils/roomJump";
 import BetterImg from "@/components/common/betterImg";
 import RoleAvatarComponent from "@/components/common/roleAvatar";
 import toastWindow from "@/components/common/toastWindow/toastWindow";
+import { UserAvatarByUser } from "@/components/common/userAccess";
 import { useGlobalContext } from "@/components/globalContextProvider";
 import { BranchIcon, ChatBubbleEllipsesOutline, CommentOutline, Edit2Outline, EmojiIconWhite, InsertLineBelow, ListUnordered, MoreMenu, NarratorIcon, ScreenIcon } from "@/icons";
 import {
@@ -44,8 +47,10 @@ import { formatTimeSmartly } from "@/utils/dateUtil";
 import { getScreenSize } from "@/utils/getScreenSize";
 import { isRoleNotFoundApiError } from "@/utils/roleApiError";
 import { countTextEnhanceVisibleLength, formatTextEnhanceVisibleLength } from "@/utils/textEnhanceMetrics";
+import { areRealtimeRenderMessagesEquivalent } from "@/webGAL/realtimeRenderMessageDelta";
 import { useSendMessageMutation, useUpdateMessageMutation } from "../../../../api/hooks/chatQueryHooks";
 import { useGetRoleQuery } from "../../../../api/hooks/RoleAndAvatarHooks";
+import { useGetUserInfoQuery } from "../../../../api/hooks/UserHooks";
 import DocCardMessage from "./docCard/docCardMessage";
 
 interface CommandRequestPayload {
@@ -249,6 +254,24 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
   const roomContentAlertThreshold = useRealtimeRenderStore(state => state.roomContentAlertThreshold);
   const messageContent = (message.content ?? "").toString();
   const messageContentLength = countTextEnhanceVisibleLength(messageContent);
+  const isOutOfCharacterTextMessage = message.messageType === MESSAGE_TYPE.TEXT
+    && isOutOfCharacterSpeech(message.content);
+  const shouldUseUserAvatar = isOutOfCharacterTextMessage;
+  const outOfCharacterUserQuery = useGetUserInfoQuery(message.userId, {
+    enabled: isOutOfCharacterTextMessage && message.userId > 0,
+  });
+  const outOfCharacterUser = outOfCharacterUserQuery.data?.data;
+  const speakerDisplayName = isOutOfCharacterTextMessage
+    ? (outOfCharacterUser?.username?.trim() || `用户${message.userId}`)
+    : displayRoleName;
+  const showRoleNameEditor = !isIntroText && !isOutOfCharacterTextMessage && isEditingRoleName;
+  const outOfCharacterBadge = isOutOfCharacterTextMessage
+    ? (
+        <span className="inline-flex items-center rounded-full border border-warning/45 bg-warning/18 px-2 py-0.5 text-[11px] font-semibold tracking-[0.08em] text-warning shadow-sm">
+          场外
+        </span>
+      )
+    : null;
   const isThresholdTrackedMessageType = (message.messageType === MESSAGE_TYPE.TEXT
     || message.messageType === MESSAGE_TYPE.INTRO_TEXT) && message.roleId !== 2;
   const shouldTrackRoomContentThreshold = webgalLinkMode && roomContentAlertThreshold > 0;
@@ -276,7 +299,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
     };
     roomContext.chatHistory?.addOrUpdateMessage(optimisticResponse);
     if (roomContext.updateAndRerenderMessageInWebGAL) {
-      roomContext.updateAndRerenderMessageInWebGAL(optimisticResponse, false);
+      roomContext.updateAndRerenderMessageInWebGAL(chatMessageResponse, optimisticResponse, false);
     }
 
     updateMessageMutation.mutate(newMessage, {
@@ -286,15 +309,18 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
           message: response?.data ?? newMessage,
         };
         roomContext.chatHistory?.addOrUpdateMessage(committedResponse);
-        if (roomContext.updateAndRerenderMessageInWebGAL) {
-          roomContext.updateAndRerenderMessageInWebGAL(committedResponse, false);
+        if (
+          roomContext.updateAndRerenderMessageInWebGAL
+          && !areRealtimeRenderMessagesEquivalent(optimisticResponse.message, committedResponse.message)
+        ) {
+          roomContext.updateAndRerenderMessageInWebGAL(optimisticResponse, committedResponse, false);
         }
       },
       onError: (error) => {
         console.error("更新消息失败", error);
         roomContext.chatHistory?.addOrUpdateMessage(chatMessageResponse);
         if (roomContext.updateAndRerenderMessageInWebGAL) {
-          roomContext.updateAndRerenderMessageInWebGAL(chatMessageResponse, false);
+          roomContext.updateAndRerenderMessageInWebGAL(optimisticResponse, chatMessageResponse, false);
         }
         toast.error("更新消息失败，已恢复原内容");
       },
@@ -666,7 +692,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
       return;
     }
     if (targetRoleId <= 0 && !spaceContext.isSpaceOwner) {
-      toast.error("只有KP可以取样旁白头像");
+      toast.error("只有主持人可以取样旁白头像");
       return;
     }
     if (targetRoleId > 0 && !roomContext.roomRolesThatUserOwn.some(role => role.roleId === targetRoleId)) {
@@ -888,7 +914,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
           ? commandRequest!.allowedRoleIds!.filter(id => typeof id === "number")
           : [];
         const curRoleId = roomContext.curRoleId ?? -1;
-        const isSpectator = (roomContext.curMember?.memberType ?? 3) >= 3;
+        const isSpectator = isObserverLike(roomContext.curMember?.memberType);
         const noRole = curRoleId <= 0;
         const allowAll = Boolean(commandRequest?.allowAll);
         let disableReason = "";
@@ -898,11 +924,8 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
         else if (!onExecuteCommandRequest) {
           disableReason = "当前无法执行";
         }
-        else if (isSpectator) {
-          disableReason = "观战不可执行";
-        }
-        else if (noRole && !spaceContext.isSpaceOwner) {
-          disableReason = "旁白仅 KP 可用";
+        else if (noRole && !spaceContext.isSpaceOwner && !isSpectator) {
+          disableReason = "旁白仅主持可用";
         }
         else if (allowedRoleIds.length > 0 && !allowedRoleIds.includes(curRoleId)) {
           disableReason = "当前角色不可执行";
@@ -952,8 +975,8 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
             <EditableMessageContent
               content={message.content}
               onCommit={handleContentUpdate}
-              className="editable-field whitespace-pre-wrap break-words"
-              editorClassName="min-w-[18rem] sm:min-w-[26rem] bg-transparent border-0 rounded-[8px] w-full"
+              className={`editable-field whitespace-pre-wrap break-words ${isOutOfCharacterTextMessage ? "italic text-base-content/80" : ""}`}
+              editorClassName={`min-w-[18rem] sm:min-w-[26rem] bg-transparent border-0 rounded-[8px] w-full ${isOutOfCharacterTextMessage ? "italic text-base-content/80" : ""}`}
               onEditingChange={setIsEditingContent}
               editInputRef={editInputRef}
               shouldIgnoreBlur={shouldIgnoreEditBlur}
@@ -1194,31 +1217,45 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
                 className={`shrink-0 ${
                   isIntroText
                     ? "invisible cursor-default"
-                    : (isAvatarSamplerActive ? "cursor-crosshair" : (canEdit ? "cursor-pointer" : "cursor-default"))
+                    : shouldUseUserAvatar
+                      ? "cursor-default"
+                      : (isAvatarSamplerActive ? "cursor-crosshair" : (canEdit ? "cursor-pointer" : "cursor-default"))
                 }`}
-                onClick={isIntroText ? undefined : handleAvatarClick}
+                onClick={isIntroText || shouldUseUserAvatar ? undefined : handleAvatarClick}
               >
-                {isNarrator
+                {shouldUseUserAvatar
                   ? (
-                      <div className={`flex items-center justify-center rounded-full bg-base-200/60 ${isMobile ? "w-10 h-10" : "w-12 h-12"}`}>
-                        <NarratorIcon className="w-4 h-4 text-base-content/70" />
-                      </div>
-                    )
-                  : (
-                      <RoleAvatarComponent
-                        avatarId={message.avatarId ?? 0}
-                        roleId={message.roleId ?? undefined}
+                      <UserAvatarByUser
+                        user={{ userId: message.userId }}
                         width={isMobile ? 10 : 12}
                         isRounded={true}
-                        withTitle={false}
                         stopToastWindow={true}
-                        useDefaultAvatarFallback={false}
+                        clickEnterProfilePage={false}
                       />
-                    )}
+                    )
+                  : isNarrator
+                    ? (
+                        <div className={`flex items-center justify-center rounded-full bg-base-200/60 ${isMobile ? "w-10 h-10" : "w-12 h-12"}`}>
+                          <NarratorIcon className="w-4 h-4 text-base-content/70" />
+                        </div>
+                      )
+                    : (
+                        <RoleAvatarComponent
+                          avatarId={message.avatarId ?? 0}
+                          avatarUrl={message.avatarUrl}
+                          avatarThumbUrl={message.avatarThumbUrl}
+                          roleId={message.roleId ?? undefined}
+                          width={isMobile ? 10 : 12}
+                          isRounded={true}
+                          withTitle={false}
+                          stopToastWindow={true}
+                          useDefaultAvatarFallback={false}
+                        />
+                      )}
               </div>
               <div className="flex flex-col items-start">
                 <div className="flex items-center gap-2 sm:gap-3 w-full min-w-0 sm:pr-80 relative">
-                  {!isIntroText && isEditingRoleName
+                  {showRoleNameEditor
                     ? (
                         <div className="flex items-center gap-1">
                           <input
@@ -1240,14 +1277,19 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
                         </div>
                       )
                     : (
-                        !isIntroText && displayRoleName
+                        !isIntroText && speakerDisplayName
                           ? (
                               <div className="relative flex items-center gap-2 min-w-0">
+                                {outOfCharacterBadge}
                                 <span
-                                  onClick={handleRoleNameClick}
-                                  className={`block text-sm sm:text-sm font-medium text-base-content/85 pb-0.5 sm:pb-1 cursor-pointer transition-all duration-200 hover:text-primary truncate min-w-0 ${canEdit ? "hover:underline" : ""}`}
+                                  onClick={isOutOfCharacterTextMessage ? undefined : handleRoleNameClick}
+                                  className={`block text-sm sm:text-sm pb-0.5 sm:pb-1 truncate min-w-0 transition-all duration-200 ${
+                                    isOutOfCharacterTextMessage
+                                      ? "font-semibold text-warning/95 cursor-default"
+                                      : `font-medium text-base-content/85 cursor-pointer hover:text-primary ${canEdit ? "hover:underline" : ""}`
+                                  }`}
                                 >
-                                  {displayRoleName}
+                                  {speakerDisplayName}
                                 </span>
                                 {effectPreviewVisible && effectIconUrl && (
                                   <img
@@ -1276,7 +1318,11 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
                   </span>
                 </div>
                 <div
-                  className={`relative max-w-[calc(100vw-5rem)] sm:max-w-md break-words rounded-lg px-3 sm:px-4 py-1.5 sm:py-2 shadow-sm sm:shadow bg-base-200 text-base sm:text-sm lg:text-base transition-all duration-200 hover:shadow-lg hover:bg-base-300 cursor-pointer ${isMessageOverRoomContentThreshold ? "outline outline-1 outline-warning/70" : ""}`}
+                  className={`relative max-w-[calc(100vw-5rem)] sm:max-w-md break-words rounded-lg px-3 sm:px-4 py-1.5 sm:py-2 shadow-sm sm:shadow text-base sm:text-sm lg:text-base transition-all duration-200 cursor-pointer ${
+                    isOutOfCharacterTextMessage
+                      ? "border-2 border-dashed border-warning/45 bg-warning/12 text-base-content/90 shadow-none hover:bg-warning/18 hover:shadow-none"
+                      : "bg-base-200 hover:shadow-lg hover:bg-base-300"
+                  } ${isMessageOverRoomContentThreshold ? "outline outline-1 outline-warning/70" : ""}`}
                   onClick={triggerEffectPreview}
                 >
                   {renderedContent}
@@ -1302,34 +1348,52 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
               {/* 圆角矩形头像 */}
               <div className="shrink-0 pr-2 sm:pr-3">
                 <div
-                  className={`w-9 h-9 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-md overflow-hidden ${isIntroText ? "invisible cursor-default" : (canEdit ? "cursor-pointer" : "cursor-default")}`}
-                  onClick={isIntroText ? undefined : handleAvatarClick}
+                  className={`w-9 h-9 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-md overflow-hidden ${
+                    isIntroText
+                      ? "invisible cursor-default"
+                      : shouldUseUserAvatar
+                        ? "cursor-default"
+                        : (canEdit ? "cursor-pointer" : "cursor-default")
+                  }`}
+                  onClick={isIntroText || shouldUseUserAvatar ? undefined : handleAvatarClick}
                 >
-                  {isNarrator
+                  {shouldUseUserAvatar
                     ? (
-                        <div className="w-full h-full flex items-center justify-center bg-base-200/60">
-                          <NarratorIcon className="w-5 h-5 text-base-content/70" />
-                        </div>
-                      )
-                    : (
-                        <RoleAvatarComponent
-                          avatarId={message.avatarId ?? 0}
-                          roleId={message.roleId ?? undefined}
+                        <UserAvatarByUser
+                          user={{ userId: message.userId }}
                           width={isMobile ? 10 : 20}
                           isRounded={false}
-                          withTitle={false}
                           stopToastWindow={true}
-                          useDefaultAvatarFallback={false}
-                        >
-                        </RoleAvatarComponent>
-                      )}
+                          clickEnterProfilePage={false}
+                        />
+                      )
+                    : isNarrator
+                      ? (
+                          <div className="w-full h-full flex items-center justify-center bg-base-200/60">
+                            <NarratorIcon className="w-5 h-5 text-base-content/70" />
+                          </div>
+                        )
+                      : (
+                          <RoleAvatarComponent
+                            avatarId={message.avatarId ?? 0}
+                            avatarUrl={message.avatarUrl}
+                            avatarThumbUrl={message.avatarThumbUrl}
+                            roleId={message.roleId ?? undefined}
+                            width={isMobile ? 10 : 20}
+                            isRounded={false}
+                            withTitle={false}
+                            stopToastWindow={true}
+                            useDefaultAvatarFallback={false}
+                          >
+                          </RoleAvatarComponent>
+                        )}
                 </div>
               </div>
               {/* 消息内容 */}
               <div className="flex-1 min-w-0 p-0.5 sm:p-1 pr-2 sm:pr-5">
                 {/* 角色名 */}
                 <div className="flex items-center w-full gap-2 sm:pr-80 relative">
-                  {!isIntroText && isEditingRoleName
+                  {showRoleNameEditor
                     ? (
                         <div className="flex items-center gap-1">
                           <input
@@ -1351,15 +1415,20 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
                         </div>
                       )
                     : (
-                        !isIntroText && displayRoleName
+                        !isIntroText && speakerDisplayName
                           ? (
                               <div className="relative flex items-center gap-2 min-w-0">
+                                {outOfCharacterBadge}
                                 <div
-                                  className={`cursor-pointer text-sm sm:text-base font-semibold transition-all duration-200 hover:text-primary ${userId === message.userId ? "hover:underline" : ""} min-w-0 flex-shrink`}
-                                  onClick={handleRoleNameClick}
+                                  className={`text-sm sm:text-base min-w-0 flex-shrink transition-all duration-200 ${
+                                    isOutOfCharacterTextMessage
+                                      ? "font-semibold text-warning/95 cursor-default"
+                                      : `font-semibold cursor-pointer hover:text-primary ${userId === message.userId ? "hover:underline" : ""}`
+                                  }`}
+                                  onClick={isOutOfCharacterTextMessage ? undefined : handleRoleNameClick}
                                 >
                                   <div className="truncate">
-                                    {`【${displayRoleName}】`}
+                                    {isOutOfCharacterTextMessage ? speakerDisplayName : `【${speakerDisplayName}】`}
                                   </div>
                                 </div>
                                 {effectPreviewVisible && effectIconUrl && (
@@ -1389,7 +1458,11 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
                   </div>
                 </div>
                 <div
-                  className={`relative transition-all duration-200 hover:bg-base-200/50 rounded-lg p-1.5 sm:p-2 cursor-pointer break-words text-base sm:text-sm lg:text-base ${isMessageOverRoomContentThreshold ? "outline outline-1 outline-warning/70" : ""}`}
+                  className={`relative transition-all duration-200 rounded-lg p-1.5 sm:p-2 cursor-pointer break-words text-base sm:text-sm lg:text-base ${
+                    isOutOfCharacterTextMessage
+                      ? "border-2 border-dashed border-warning/40 bg-warning/10 text-base-content/90"
+                      : "hover:bg-base-200/50"
+                  } ${isMessageOverRoomContentThreshold ? "outline outline-1 outline-warning/70" : ""}`}
                   onClick={triggerEffectPreview}
                 >
                   {renderedContent}

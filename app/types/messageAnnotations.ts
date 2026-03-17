@@ -114,14 +114,14 @@ function toEffectId(effectIdOrName: string | undefined) {
   return fileName ? EFFECT_ID_BY_TEXTURE_FILE[fileName] : undefined;
 }
 
-export function normalizeEffectAnnotationId(id: string) {
+function normalizeEffectAnnotationId(id: string) {
   const fileName = toEffectTextureFile(id);
   if (!fileName)
     return undefined;
   return `${EFFECT_ANNOTATION_PREFIX}${fileName}`;
 }
 
-export function normalizeSceneEffectName(effectName: string | undefined): SceneEffectName | undefined {
+function normalizeSceneEffectName(effectName: string | undefined): SceneEffectName | undefined {
   if (!effectName) {
     return undefined;
   }
@@ -151,6 +151,7 @@ export const ANNOTATION_IDS = {
   DIALOG_CONCAT: "dialog.concat",
   DIALOG_NEXT: "dialog.next",
   VIDEO_SKIP_OFF: "video.skipoff",
+  FIGURE_MINI_AVATAR: "figure.mini-avatar",
   FIGURE_POS_LEFT: "figure.pos.left",
   FIGURE_POS_LEFT_CENTER: "figure.pos.left-center",
   FIGURE_POS_CENTER: "figure.pos.center",
@@ -211,8 +212,6 @@ const FIGURE_POSITION_BY_ID: Record<string, FigurePositionKey> = {
   [ANNOTATION_IDS.FIGURE_POS_RIGHT]: "right",
 };
 
-const FIGURE_POSITION_ID_SET = new Set(Object.values(FIGURE_POSITION_IDS));
-
 const FIGURE_ANIMATION_MAP: Record<string, FigureAnimationSettings> = {
   [ANNOTATION_IDS.FIGURE_ANIM_ENTER]: { enterAnimation: "position/enter" },
   [ANNOTATION_IDS.FIGURE_ANIM_EXIT]: { exitAnimation: "position/exit" },
@@ -239,7 +238,7 @@ export function normalizeAnnotations(annotations?: string[]) {
     .map(item => normalizeEffectAnnotationId(item) ?? item);
 }
 
-export function normalizeAnnotationSet(annotations?: string[]) {
+function normalizeAnnotationSet(annotations?: string[]) {
   const list = normalizeAnnotations(annotations);
   const unique = Array.from(new Set(list));
   unique.sort();
@@ -299,24 +298,22 @@ export function toggleAnnotation(annotations: string[] | undefined, id: string) 
 }
 
 export function setFigurePositionAnnotation(annotations: string[] | undefined, position?: FigurePosition) {
-  const list = normalizeAnnotations(annotations)
-    .filter(item => !FIGURE_POSITION_ID_SET.has(item));
+  const list = normalizeAnnotations(annotations);
   if (!position)
     return list;
-  const cleaned = list.filter(item => item !== ANNOTATION_IDS.FIGURE_CLEAR);
   const id = FIGURE_POSITION_IDS[position];
-  if (!id || cleaned.includes(id)) {
-    return cleaned;
+  if (!id || list.includes(id)) {
+    return list;
   }
-  return [...cleaned, id];
+  return [...list, id];
 }
-
-export const isFigurePositionAnnotationId = (id: string) => FIGURE_POSITION_ID_SET.has(id);
-
-export const getFigurePositionFromAnnotationId = (id: string) => FIGURE_POSITION_BY_ID[id];
 
 export function hasClearFigureAnnotation(annotations: string[] | undefined) {
   return normalizeAnnotations(annotations).includes(ANNOTATION_IDS.FIGURE_CLEAR);
+}
+
+export function hasMiniAvatarAnnotation(annotations: string[] | undefined) {
+  return normalizeAnnotations(annotations).includes(ANNOTATION_IDS.FIGURE_MINI_AVATAR);
 }
 
 export function hasClearBackgroundAnnotation(annotations: string[] | undefined) {
@@ -365,7 +362,7 @@ export function getSceneEffectFromAnnotations(annotations: string[] | undefined)
   return undefined;
 }
 
-export function getEffectFrameCount(effectId: string | undefined) {
+function getEffectFrameCount(effectId: string | undefined) {
   const normalizedEffectId = toEffectId(effectId) ?? effectId;
   if (!normalizedEffectId)
     return undefined;
@@ -385,8 +382,6 @@ export function getEffectDurationMs(effectId: string | undefined) {
   return Math.max(1, frames) * EFFECT_FRAME_DURATION_MS;
 }
 
-export { EFFECT_FRAME_DURATION_MS };
-
 export function getEffectSoundFileCandidates(effectId: string | undefined) {
   const textureFile = toEffectTextureFile(effectId);
   if (!textureFile)
@@ -397,10 +392,6 @@ export function getEffectSoundFileCandidates(effectId: string | undefined) {
     `${baseName}.webm`,
   ]));
   return candidates.length > 0 ? candidates : undefined;
-}
-
-export function getEffectSoundFileName(effectId: string | undefined) {
-  return getEffectSoundFileCandidates(effectId)?.[0];
 }
 
 export function getFigureAnimationFromAnnotations(annotations: string[] | undefined): FigureAnimationSettings | undefined {

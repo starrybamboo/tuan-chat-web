@@ -3,7 +3,13 @@ export type MessageDirectType = {
   userId?: number;
   syncId?: number;
   senderId?: number;
+  senderUsername?: string;
+  senderAvatar?: string;
+  senderAvatarThumbUrl?: string;
   receiverId?: number;
+  receiverUsername?: string;
+  receiverAvatar?: string;
+  receiverAvatarThumbUrl?: string;
   content?: string;
   messageType?: number;
   replyMessageId?: number;

@@ -12,7 +12,6 @@ import { useChatComposerStore } from "@/components/chat/stores/chatComposerStore
 import { preheatChatMediaPreprocess } from "@/components/chat/utils/attachmentPreprocess";
 import StickerWindow from "@/components/chat/window/StickerWindow";
 import { useScreenSize } from "@/components/common/customHooks/useScreenSize";
-
 import { ImgUploader } from "@/components/common/uploader/imgUploader";
 import {
   DiceD6Icon,
@@ -23,7 +22,6 @@ import {
   SendIcon,
   SparklesOutline,
 } from "@/icons";
-import { ANNOTATION_IDS } from "@/types/messageAnnotations";
 
 interface ChatToolbarProps {
   /** 当前房间（用于BGM个人开关/ֹͣȫԱBGM） */
@@ -43,6 +41,9 @@ interface ChatToolbarProps {
   // 消息发送
   disableSendMessage: boolean;
   handleMessageSubmit: () => void;
+
+  // 附件/表情等富消息入口
+  disableRichMessageActions?: boolean;
 
   // 导入消息（外部文本 -> 多条消息）
   disableImportChatText?: boolean;
@@ -78,7 +79,8 @@ interface ChatToolbarProps {
   onSendWebgalChoose?: (payload: WebgalChoosePayload) => Promise<void> | void;
   // 发送音频
   setAudioFile?: (file: File | null) => void;
-  onAddTempAnnotations?: (ids: string[]) => void;
+  onApplyImageTempAnnotations?: () => void;
+  onApplyAudioTempAnnotations?: () => void;
   layout?: "stacked" | "inline";
   showStatusBar?: boolean;
   showWebgalLinkToggle?: boolean;
@@ -96,6 +98,7 @@ function ChatToolbar({
   updateFileAttachments,
   disableSendMessage,
   handleMessageSubmit,
+  disableRichMessageActions = false,
   disableImportChatText = false,
   onOpenImportChatText,
   currentChatStatus,
@@ -114,7 +117,8 @@ function ChatToolbar({
   onSendWebgalChoose,
   onToggleRealtimeRender,
   setAudioFile,
-  onAddTempAnnotations,
+  onApplyAudioTempAnnotations,
+  onApplyImageTempAnnotations,
   layout = "stacked",
   showStatusBar = true,
   showWebgalLinkToggle = true,
@@ -149,6 +153,11 @@ function ChatToolbar({
     setIsEmojiOpen(false);
     onOpenImportChatText();
   }, [disableImportChatText, onOpenImportChatText]);
+  const handleBlockedRichMessageAction = useCallback(() => {
+    if (disableRichMessageActions) {
+      toast.error("当前不可发送附件");
+    }
+  }, [disableRichMessageActions]);
   const isInline = layout === "inline";
   const isStacked = !isInline;
 
@@ -226,7 +235,7 @@ function ChatToolbar({
 
     setAudioFile(file);
     preheatChatMediaPreprocess({ audioFiles: [file] });
-    onAddTempAnnotations?.([ANNOTATION_IDS.BGM]);
+    onApplyAudioTempAnnotations?.();
     // 重置 input value，允许重复选择同一文件
     e.target.value = "";
   };
@@ -331,6 +340,16 @@ function ChatToolbar({
       onSubmit={submitWebgalChoose}
     />
   );
+  const richActionDisabledClass = disableRichMessageActions ? "cursor-not-allowed opacity-20" : "cursor-pointer";
+  const imageActionButton = (
+    <div
+      className={isMobile ? "" : "tooltip tooltip-top"}
+      data-tip={isMobile ? undefined : "发送图片"}
+      onClick={disableRichMessageActions ? handleBlockedRichMessageAction : undefined}
+    >
+      <GalleryBroken className={`size-6 jump_icon mt-1 md:mt-0 ${richActionDisabledClass}`}></GalleryBroken>
+    </div>
+  );
 
   return (
     <div className={`flex ${isInline ? "items-start gap-2 flex-nowrap" : "flex-col w-full"}`}>
@@ -406,10 +425,14 @@ function ChatToolbar({
                 <div
                   role="button"
                   tabIndex={2}
-                  className="cursor-pointer"
+                  className={richActionDisabledClass}
                   aria-label="发送表情"
                   title="发送表情"
                   onClick={() => {
+                    if (disableRichMessageActions) {
+                      handleBlockedRichMessageAction();
+                      return;
+                    }
                     setIsAiPromptOpen(false);
                     setIsEmojiOpen(prev => !prev);
                   }}
@@ -447,25 +470,33 @@ function ChatToolbar({
               </div>
 
               {/* 发送图片 */}
-              <ImgUploader setImg={(newImg) => {
-                updateImgFiles((draft) => {
-                  draft.push(newImg);
-                });
-                preheatChatMediaPreprocess({ imageFiles: [newImg] });
-                onAddTempAnnotations?.([ANNOTATION_IDS.BACKGROUND]);
-              }}
-              >
-                <div className={isMobile ? "" : "tooltip tooltip-top"} data-tip={isMobile ? undefined : "发送图片"}>
-                  <GalleryBroken className="size-6 cursor-pointer jump_icon mt-1 md:mt-0"></GalleryBroken>
-                </div>
-              </ImgUploader>
+              {disableRichMessageActions
+                ? imageActionButton
+                : (
+                    <ImgUploader setImg={(newImg) => {
+                      updateImgFiles((draft) => {
+                        draft.push(newImg);
+                      });
+                      preheatChatMediaPreprocess({ imageFiles: [newImg] });
+                      onApplyImageTempAnnotations?.();
+                    }}
+                    >
+                      {imageActionButton}
+                    </ImgUploader>
+                  )}
 
               {/* 发送音频 */}
               {setAudioFile && (
                 <div className={isMobile ? "" : "tooltip tooltip-top"} data-tip={isMobile ? undefined : "发送音频"}>
                   <MusicNote
-                    className="size-6 cursor-pointer jump_icon relative md:-top-px"
-                    onClick={() => audioInputRef.current?.click()}
+                    className={`size-6 jump_icon relative md:-top-px ${richActionDisabledClass}`}
+                    onClick={() => {
+                      if (disableRichMessageActions) {
+                        handleBlockedRichMessageAction();
+                        return;
+                      }
+                      audioInputRef.current?.click();
+                    }}
                   />
                   <input
                     type="file"
@@ -481,8 +512,14 @@ function ChatToolbar({
 
               <div className={isMobile ? "" : "tooltip tooltip-top"} data-tip={isMobile ? undefined : "发送视频"}>
                 <FilmSlateIcon
-                  className="size-6 cursor-pointer jump_icon relative md:-top-px"
-                  onClick={() => videoInputRef.current?.click()}
+                  className={`size-6 jump_icon relative md:-top-px ${richActionDisabledClass}`}
+                  onClick={() => {
+                    if (disableRichMessageActions) {
+                      handleBlockedRichMessageAction();
+                      return;
+                    }
+                    videoInputRef.current?.click();
+                  }}
                 />
                 <input
                   type="file"
