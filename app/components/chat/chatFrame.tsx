@@ -24,7 +24,6 @@ import useChatFrameVisualEffects from "@/components/chat/hooks/useChatFrameVisua
 import useChatFrameWebSocket from "@/components/chat/hooks/useChatFrameWebSocket";
 import { canParticipateInRoom } from "@/components/chat/utils/memberPermissions";
 import { openMessageAnnotationPicker } from "@/components/chat/message/annotations/openMessageAnnotationPicker";
-import { compareChatMessageResponsesByOrder } from "@/components/chat/shared/messageOrder";
 import { createWebgalChooseOptionDraft } from "@/components/chat/shared/webgal/webgalChooseDraft";
 import { compareChatMessageResponsesByOrder } from "@/components/chat/shared/messageOrder";
 import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";

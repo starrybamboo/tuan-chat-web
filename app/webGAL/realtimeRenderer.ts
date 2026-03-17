@@ -9,7 +9,6 @@ import type { WebgalDiceRenderPayload } from "@/types/webgalDice";
 
 import { compareChatMessageResponsesByOrder } from "@/components/chat/shared/messageOrder";
 import { formatAnkoDiceMessage, stripDiceResultTokens } from "@/components/common/dicer/diceTable";
-import { compareChatMessageResponsesByOrder } from "@/components/chat/shared/messageOrder";
 import { createTTSApi, ttsApi } from "@/tts/engines/index/apiClient";
 import {
   ANNOTATION_IDS,

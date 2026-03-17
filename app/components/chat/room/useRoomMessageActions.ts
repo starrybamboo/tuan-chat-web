@@ -6,7 +6,6 @@ import type { WebgalChoosePayload } from "@/types/webgalChoose";
 
 import { getNextAppendPosition } from "@/components/chat/shared/messageOrder";
 import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
-import { getNextAppendPosition } from "@/components/chat/shared/messageOrder";
 
 import type { ChatMessageRequest, ChatMessageResponse } from "../../../../api";
 
