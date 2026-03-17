@@ -27,6 +27,14 @@ export type UserRole = {
      */
     avatarId?: number;
     /**
+     * 角色头像URL
+     */
+    avatarUrl?: string;
+    /**
+     * 角色头像缩略图URL
+     */
+    avatarThumbUrl?: string;
+    /**
      * 空间id（NPC 绑定空间）
      */
     spaceId?: number;
@@ -53,8 +61,8 @@ export type UserRole = {
     extra?: Record<string, string>;
     createTime?: string;
     updateTime?: string;
-    diceMaiden?: boolean;
-    role?: boolean;
     npc?: boolean;
+    role?: boolean;
+    diceMaiden?: boolean;
 };
 

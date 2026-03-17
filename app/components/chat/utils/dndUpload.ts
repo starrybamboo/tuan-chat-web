@@ -2,7 +2,7 @@ import toast from "react-hot-toast";
 
 import { useChatComposerStore } from "@/components/chat/stores/chatComposerStore";
 import { preheatChatMediaPreprocess } from "@/components/chat/utils/attachmentPreprocess";
-import { ANNOTATION_IDS, hasAudioPurposeAnnotation, normalizeAnnotations } from "@/types/messageAnnotations";
+import { applyRoomMediaAnnotationPreferenceToComposer } from "@/components/chat/utils/mediaAnnotationPreference";
 
 export function isFileDrag(dataTransfer: DataTransfer | null | undefined) {
   if (!dataTransfer)
@@ -139,7 +139,7 @@ function splitDroppedFiles(fileList: FileList | null | undefined) {
  * 将拖入的文件写入聊天输入区附件 store。
  * 返回 true 表示已处理（上层应当 preventDefault/stopPropagation，避免浏览器打开文件）。
  */
-export function addDroppedFilesToComposer(dataTransfer: DataTransfer | null | undefined) {
+export function addDroppedFilesToComposer(dataTransfer: DataTransfer | null | undefined, roomId?: number) {
   if (!isFileDrag(dataTransfer)) {
     return false;
   }
@@ -154,12 +154,7 @@ export function addDroppedFilesToComposer(dataTransfer: DataTransfer | null | un
     useChatComposerStore.getState().updateImgFiles((draft) => {
       draft.push(...images);
     });
-    const current = useChatComposerStore.getState().tempAnnotations;
-    if (!current.includes(ANNOTATION_IDS.BACKGROUND)) {
-      useChatComposerStore.getState().setTempAnnotations(
-        normalizeAnnotations([...current, ANNOTATION_IDS.BACKGROUND]),
-      );
-    }
+    applyRoomMediaAnnotationPreferenceToComposer(roomId ?? -1, "image");
   }
 
   if (videos.length > 0 || files.length > 0) {
@@ -170,14 +165,7 @@ export function addDroppedFilesToComposer(dataTransfer: DataTransfer | null | un
 
   if (audios.length > 0) {
     useChatComposerStore.getState().setAudioFile(audios[0]);
-    const composerState = useChatComposerStore.getState();
-    const current = normalizeAnnotations(composerState.tempAnnotations);
-    const hasAudioAnnotation = hasAudioPurposeAnnotation(current) || hasAudioPurposeAnnotation(composerState.annotations);
-    if (!hasAudioAnnotation) {
-      useChatComposerStore.getState().setTempAnnotations(
-        normalizeAnnotations([...current, ANNOTATION_IDS.BGM]),
-      );
-    }
+    applyRoomMediaAnnotationPreferenceToComposer(roomId ?? -1, "audio");
   }
 
   if (audios.length > 1) {

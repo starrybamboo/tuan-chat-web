@@ -40,7 +40,6 @@ function SubRoomWindowImpl({ onSendDocCard }: SubRoomWindowProps) {
   const [activePane, setActivePane] = React.useState<SubPane>("map");
 
   const webgalPreviewUrl = useRealtimeRenderStore(state => state.previewUrl);
-  const isRealtimeRenderActive = useRealtimeRenderStore(state => state.isActive);
   const isRealtimeRenderEnabled = useRealtimeRenderStore(state => state.enabled);
   const setRealtimeRenderEnabled = useRealtimeRenderStore(state => state.setEnabled);
   const prevSideDrawerStateRef = React.useRef(sideDrawerState);
@@ -191,7 +190,6 @@ function SubRoomWindowImpl({ onSendDocCard }: SubRoomWindowProps) {
           {activePane === "webgal" && (
             <WebGALPreview
               previewUrl={webgalPreviewUrl}
-              isActive={isRealtimeRenderActive}
               onClose={close}
               className="h-full"
             />

@@ -1,79 +1,20 @@
+import type { UserRole } from "../../../../api";
 import React, { useState } from "react";
 import { RoleDetail } from "@/components/common/roleDetail";
+import { useResolvedRoleAvatarUrl } from "@/components/common/roleAccess";
 import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
 import { ROLE_DEFAULT_AVATAR_URL } from "@/constants/defaultAvatar";
-import { useGetRoleAvatarQuery, useGetRoleQuery } from "../../../../api/hooks/RoleAndAvatarHooks";
 
 interface UserRoleCardProps {
-  roleId: number;
+  role: UserRole;
 }
 
 /**
  * 作品 - 角色 中渲染出的每一个角色，都是采用这个文件的格式渲染的
  */
-const UserRoleCard: React.FC<UserRoleCardProps> = ({ roleId }) => {
-  // 获取角色基本信息
-  const {
-    data: roleData,
-    isLoading: isRoleLoading,
-    isError: isRoleError,
-  } = useGetRoleQuery(roleId);
-
-  // 获取角色头像
-  const {
-    data: avatarData,
-    isLoading: isAvatarLoading,
-  } = useGetRoleAvatarQuery(roleData?.data?.avatarId || 0);
-
+const UserRoleCard: React.FC<UserRoleCardProps> = ({ role }) => {
   const [isRoleParamsPopOpen, setIsRoleParamsPopOpen] = useState(false);
-
-  const role = roleData?.data;
-  const isLoading = isRoleLoading || isAvatarLoading;
-  const isError = isRoleError;
-
-  if (isLoading) {
-    return (
-      <div className="card bg-base-100 shadow-md animate-pulse w-full h-full">
-        <div className="aspect-square bg-base-300 rounded-t-2xl"></div>
-        <div className="card-body p-4 space-y-2 flex-grow">
-          <div className="bg-base-300 h-4 rounded-full w-4/5"></div>
-          <div className="bg-base-300 h-3 rounded-full w-full"></div>
-          <div className="bg-base-300 h-3 rounded-full w-3/4"></div>
-        </div>
-      </div>
-    );
-  }
-
-  if (isError) {
-    return (
-      <div className="card bg-base-100 shadow-md w-full h-full border border-error/20">
-        <div className="aspect-square bg-error/5 rounded-t-2xl flex items-center justify-center">
-          <div className="flex flex-col items-center gap-2">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="w-8 h-8 text-error"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              strokeWidth={2}
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.19 2.5 1.732 2.5z" />
-            </svg>
-            <span className="text-error text-sm">加载失败</span>
-          </div>
-        </div>
-        <div className="card-body p-4 space-y-2 flex-grow">
-          <p className="text-sm text-error">
-            角色ID:
-            {roleId}
-          </p>
-        </div>
-      </div>
-    );
-  }
-
-  // 获取头像URL，优先使用查询结果，没有则使用角色数据中的avatar
-  const avatarUrl = avatarData?.data?.avatarUrl || ROLE_DEFAULT_AVATAR_URL;
+  const avatarUrl = useResolvedRoleAvatarUrl(role, ROLE_DEFAULT_AVATAR_URL);
 
   return (
     <div className="cursor-pointer w-full">
@@ -96,10 +37,10 @@ const UserRoleCard: React.FC<UserRoleCardProps> = ({ roleId }) => {
         {/* 描述区 */}
         <div className="card-body p-4 space-y-2 flex-grow">
           <h3 className="text-base-content font-bold text-sm truncate leading-tight">
-            {role?.roleName || `角色 ${roleId}`}
+            {role.roleName || `角色 ${role.roleId}`}
           </h3>
           <p className="text-base-content/70 text-xs line-clamp-2 leading-relaxed">
-            {role?.description || "暂无描述"}
+            {role.description || "暂无描述"}
           </p>
         </div>
       </div>
@@ -112,7 +53,7 @@ const UserRoleCard: React.FC<UserRoleCardProps> = ({ roleId }) => {
         >
           <div className="items-center justify-center gap-y-4 flex flex-col w-full overflow-auto">
             <RoleDetail
-              roleId={avatarData?.data?.roleId ?? -1}
+              roleId={role.roleId}
               onClose={() => setIsRoleParamsPopOpen(false)}
             />
           </div>

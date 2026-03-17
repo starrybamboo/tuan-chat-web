@@ -2,8 +2,8 @@ import type { FeedbackIssueDetail, FeedbackIssueListFilters } from "@/components
 import { startTransition, useDeferredValue, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router";
 import FeedbackComposer from "@/components/feedback/feedbackComposer";
-import FeedbackIssueDetailView from "@/components/feedback/feedbackIssueDetail";
 import { useFeedbackIssuesInfiniteQuery } from "@/components/feedback/feedbackHooks";
+import FeedbackIssueDetailView from "@/components/feedback/feedbackIssueDetail";
 import FeedbackIssueList from "@/components/feedback/feedbackIssueList";
 import { useGlobalContext } from "@/components/globalContextProvider";
 
@@ -77,20 +77,12 @@ export default function FeedbackPage() {
             )
           : (
               <div className="space-y-4">
-                <section className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+                <section className="space-y-1">
                   <div className="space-y-1">
                     <div className="text-xs font-medium uppercase tracking-[0.22em] text-base-content/45">
-                      Feedback / Issues
+                      用户反馈
                     </div>
                     <h1 className="text-3xl font-semibold text-base-content">反馈</h1>
-                    <p className="max-w-3xl text-sm leading-6 text-base-content/65">
-                      参考 GitHub Issues 的管理方式，统一收集 Bug反馈 和 Prompt Request。
-                      正文支持 Markdown 和图片，详情页里继续评论、切状态和归档。
-                    </p>
-                  </div>
-
-                  <div className="rounded-md border border-base-300 bg-base-100 px-3 py-2 text-xs text-base-content/55">
-                    前端入口仅在 dev / test 显示
                   </div>
                 </section>
 

@@ -32,12 +32,6 @@ export class RoomControllerService {
             url: '/room/mute',
             body: requestBody,
             mediaType: 'application/json',
-            errors: {
-                400: `Bad Request`,
-                405: `Method Not Allowed`,
-                429: `Too Many Requests`,
-                500: `Internal Server Error`,
-            },
         });
     }
     /**
@@ -58,12 +52,6 @@ export class RoomControllerService {
                 'roomId': roomId,
                 'key': key,
             },
-            errors: {
-                400: `Bad Request`,
-                405: `Method Not Allowed`,
-                429: `Too Many Requests`,
-                500: `Internal Server Error`,
-            },
         });
     }
     /**
@@ -80,12 +68,6 @@ export class RoomControllerService {
             url: '/room/extra',
             body: requestBody,
             mediaType: 'application/json',
-            errors: {
-                400: `Bad Request`,
-                405: `Method Not Allowed`,
-                429: `Too Many Requests`,
-                500: `Internal Server Error`,
-            },
         });
     }
     /**
@@ -102,12 +84,6 @@ export class RoomControllerService {
             url: '/room/extra',
             body: requestBody,
             mediaType: 'application/json',
-            errors: {
-                400: `Bad Request`,
-                405: `Method Not Allowed`,
-                429: `Too Many Requests`,
-                500: `Internal Server Error`,
-            },
         });
     }
     /**
@@ -124,12 +100,6 @@ export class RoomControllerService {
             url: '/room/',
             body: requestBody,
             mediaType: 'application/json',
-            errors: {
-                400: `Bad Request`,
-                405: `Method Not Allowed`,
-                429: `Too Many Requests`,
-                500: `Internal Server Error`,
-            },
         });
     }
     /**
@@ -146,12 +116,6 @@ export class RoomControllerService {
             url: '/room/archive',
             body: requestBody,
             mediaType: 'application/json',
-            errors: {
-                400: `Bad Request`,
-                405: `Method Not Allowed`,
-                429: `Too Many Requests`,
-                500: `Internal Server Error`,
-            },
         });
     }
     /**
@@ -168,12 +132,6 @@ export class RoomControllerService {
             url: '/room/archive/clone',
             body: requestBody,
             mediaType: 'application/json',
-            errors: {
-                400: `Bad Request`,
-                405: `Method Not Allowed`,
-                429: `Too Many Requests`,
-                500: `Internal Server Error`,
-            },
         });
     }
     /**
@@ -196,12 +154,6 @@ export class RoomControllerService {
             query: {
                 'commitId': commitId,
             },
-            errors: {
-                400: `Bad Request`,
-                405: `Method Not Allowed`,
-                429: `Too Many Requests`,
-                500: `Internal Server Error`,
-            },
         });
     }
     /**
@@ -218,12 +170,6 @@ export class RoomControllerService {
             url: '/room/{roomId}',
             path: {
                 'roomId': roomId,
-            },
-            errors: {
-                400: `Bad Request`,
-                405: `Method Not Allowed`,
-                429: `Too Many Requests`,
-                500: `Internal Server Error`,
             },
         });
     }
@@ -244,12 +190,6 @@ export class RoomControllerService {
             query: {
                 'spaceId': spaceId,
                 'commitId': commitId,
-            },
-            errors: {
-                400: `Bad Request`,
-                405: `Method Not Allowed`,
-                429: `Too Many Requests`,
-                500: `Internal Server Error`,
             },
         });
     }

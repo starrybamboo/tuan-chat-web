@@ -1,6 +1,7 @@
 import React, { useRef } from "react";
 import { ResizableImg } from "@/components/common/resizableImg";
 import toastWindow from "@/components/common/toastWindow/toastWindow";
+import { markObservedWebgalAsset, primeWebgalAssetCache } from "@/webGAL/browserAssetCache";
 
 /**
  * 更好的img组件，点击可以显示大图，大图状态下可以缩放。
@@ -19,6 +20,13 @@ function BetterImg({ src, className, onClose, size, transparent = true }: {
 }) {
   const imgRef = useRef<HTMLImageElement>(null);
   const imgSrc = typeof src === "string" || !src ? src : URL.createObjectURL(src);
+  const handleLoad = () => {
+    if (typeof imgSrc !== "string") {
+      return;
+    }
+    markObservedWebgalAsset(imgSrc);
+    void primeWebgalAssetCache(imgSrc);
+  };
 
   const openToastWindow = () => {
     toastWindow(
@@ -38,6 +46,7 @@ function BetterImg({ src, className, onClose, size, transparent = true }: {
         width={size?.width}
         className={`block w-auto max-w-full cursor-zoom-in object-contain hover:scale-101 ${className ?? ""}`}
         alt="img"
+        onLoad={handleLoad}
         onClick={() => openToastWindow()}
       />
 

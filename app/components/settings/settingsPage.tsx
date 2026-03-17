@@ -6,8 +6,12 @@ import { useGlobalContext } from "@/components/globalContextProvider";
 import { AccountSecurityModal } from "@/components/profile/profileTab/components/AccountSecurityModal";
 import {
   buildUserExtraWithNotificationSettings,
+  readFeedbackDesktopEnabledFromLocalStorage,
+  readFeedbackInAppEnabledFromLocalStorage,
   readGroupMessagePopupEnabledFromLocalStorage,
   readNotificationSettingsFromUserExtra,
+  writeFeedbackDesktopEnabledToLocalStorage,
+  writeFeedbackInAppEnabledToLocalStorage,
   writeGroupMessagePopupEnabledToLocalStorage,
 } from "@/components/settings/notificationPreferences";
 
@@ -20,7 +24,11 @@ export default function SettingsPage() {
   const updateUserInfoMutation = useUpdateUserInfoMutation();
 
   const localDefaultGroupPopupEnabled = useMemo(() => readGroupMessagePopupEnabledFromLocalStorage(), []);
+  const localDefaultFeedbackInAppEnabled = useMemo(() => readFeedbackInAppEnabledFromLocalStorage(), []);
+  const localDefaultFeedbackDesktopEnabled = useMemo(() => readFeedbackDesktopEnabledFromLocalStorage(), []);
   const [groupMessagePopupEnabled, setGroupMessagePopupEnabled] = useState(localDefaultGroupPopupEnabled);
+  const [feedbackInAppEnabled, setFeedbackInAppEnabled] = useState(localDefaultFeedbackInAppEnabled);
+  const [feedbackDesktopEnabled, setFeedbackDesktopEnabled] = useState(localDefaultFeedbackDesktopEnabled);
   const [initializedFromServer, setInitializedFromServer] = useState(false);
   const [accountSecurityState, setAccountSecurityState] = useState<{
     isOpen: boolean;
@@ -45,13 +53,25 @@ export default function SettingsPage() {
 
     const settingsFromServer = readNotificationSettingsFromUserExtra(userInfo.extra);
     setGroupMessagePopupEnabled(settingsFromServer.groupMessagePopupEnabled);
+    setFeedbackInAppEnabled(settingsFromServer.feedbackInAppEnabled);
+    setFeedbackDesktopEnabled(settingsFromServer.feedbackDesktopEnabled);
     writeGroupMessagePopupEnabledToLocalStorage(settingsFromServer.groupMessagePopupEnabled);
+    writeFeedbackInAppEnabledToLocalStorage(settingsFromServer.feedbackInAppEnabled);
+    writeFeedbackDesktopEnabledToLocalStorage(settingsFromServer.feedbackDesktopEnabled);
     setInitializedFromServer(true);
   }, [initializedFromServer, isLoggedIn, userInfoQuery.data]);
 
-  const onGroupMessagePopupToggle = async (enabled: boolean) => {
-    setGroupMessagePopupEnabled(enabled);
-    writeGroupMessagePopupEnabledToLocalStorage(enabled);
+  const saveNotificationSettings = async (nextSettings: {
+    groupMessagePopupEnabled: boolean;
+    feedbackInAppEnabled: boolean;
+    feedbackDesktopEnabled: boolean;
+  }) => {
+    setGroupMessagePopupEnabled(nextSettings.groupMessagePopupEnabled);
+    setFeedbackInAppEnabled(nextSettings.feedbackInAppEnabled);
+    setFeedbackDesktopEnabled(nextSettings.feedbackDesktopEnabled);
+    writeGroupMessagePopupEnabledToLocalStorage(nextSettings.groupMessagePopupEnabled);
+    writeFeedbackInAppEnabledToLocalStorage(nextSettings.feedbackInAppEnabled);
+    writeFeedbackDesktopEnabledToLocalStorage(nextSettings.feedbackDesktopEnabled);
 
     if (!isLoggedIn) {
       toast("设置已保存在当前设备");
@@ -66,13 +86,37 @@ export default function SettingsPage() {
     try {
       await updateUserInfoMutation.mutateAsync({
         userId: userInfo.userId,
-        extra: buildUserExtraWithNotificationSettings(userInfo.extra, { groupMessagePopupEnabled: enabled }),
+        extra: buildUserExtraWithNotificationSettings(userInfo.extra, nextSettings),
       });
       toast.success("通知设置已保存");
     }
     catch {
       toast.error("通知设置保存失败，已保留本地设置");
     }
+  };
+
+  const onGroupMessagePopupToggle = async (enabled: boolean) => {
+    await saveNotificationSettings({
+      groupMessagePopupEnabled: enabled,
+      feedbackInAppEnabled,
+      feedbackDesktopEnabled,
+    });
+  };
+
+  const onFeedbackInAppToggle = async (enabled: boolean) => {
+    await saveNotificationSettings({
+      groupMessagePopupEnabled,
+      feedbackInAppEnabled: enabled,
+      feedbackDesktopEnabled,
+    });
+  };
+
+  const onFeedbackDesktopToggle = async (enabled: boolean) => {
+    await saveNotificationSettings({
+      groupMessagePopupEnabled,
+      feedbackInAppEnabled,
+      feedbackDesktopEnabled: enabled,
+    });
   };
 
   const openAccountSecurity = (tab: SecurityTab) => {
@@ -114,6 +158,34 @@ export default function SettingsPage() {
               checked={groupMessagePopupEnabled}
               disabled={updateUserInfoMutation.isPending}
               onChange={e => void onGroupMessagePopupToggle(e.target.checked)}
+            />
+          </label>
+
+          <label className="mt-3 flex cursor-pointer items-center justify-between gap-4 rounded-xl border border-base-300 px-4 py-3">
+            <div className="min-w-0">
+              <div className="font-medium">反馈站内提醒</div>
+              <div className="mt-1 text-sm opacity-70">开启后，收到反馈通知时会在页面内弹出提醒卡片。</div>
+            </div>
+            <input
+              type="checkbox"
+              className="toggle toggle-primary"
+              checked={feedbackInAppEnabled}
+              disabled={updateUserInfoMutation.isPending}
+              onChange={e => void onFeedbackInAppToggle(e.target.checked)}
+            />
+          </label>
+
+          <label className="mt-3 flex cursor-pointer items-center justify-between gap-4 rounded-xl border border-base-300 px-4 py-3">
+            <div className="min-w-0">
+              <div className="font-medium">反馈桌面通知</div>
+              <div className="mt-1 text-sm opacity-70">开启后，后台页签收到反馈通知时会尝试弹系统桌面通知。</div>
+            </div>
+            <input
+              type="checkbox"
+              className="toggle toggle-primary"
+              checked={feedbackDesktopEnabled}
+              disabled={updateUserInfoMutation.isPending}
+              onChange={e => void onFeedbackDesktopToggle(e.target.checked)}
             />
           </label>
 

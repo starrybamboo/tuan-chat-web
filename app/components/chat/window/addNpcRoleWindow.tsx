@@ -1,7 +1,7 @@
 import React, { use, useMemo, useState } from "react";
 import { RoomContext } from "@/components/chat/core/roomContext";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
-import RoleAvatarComponent from "@/components/common/roleAvatar";
+import { RoleAvatarByRole } from "@/components/common/roleAccess";
 import { AddRingLight } from "@/icons";
 import { useGetRoomNpcRoleQuery } from "../../../../api/hooks/chatQueryHooks";
 import { useGetSpaceRepositoryRoleQuery } from "../../../../api/hooks/spaceRepositoryHooks";
@@ -53,9 +53,8 @@ export function AddNpcRoleWindow({
             <div className="card shadow hover:shadow-lg transition-shadow cursor-pointer" key={role.roleId}>
               <div className="flex flex-col items-center p-3">
                 <div onClick={() => handleAddRole(role.roleId)}>
-                  <RoleAvatarComponent
-                    avatarId={role.avatarId ?? -1}
-                    roleId={role.roleId}
+                  <RoleAvatarByRole
+                    role={role}
                     width={24}
                     isRounded={true}
                     withTitle={false}

@@ -32,12 +32,6 @@ export class AbilityControllerService {
             query: {
                 'abilityId': abilityId,
             },
-            errors: {
-                400: `Bad Request`,
-                405: `Method Not Allowed`,
-                429: `Too Many Requests`,
-                500: `Internal Server Error`,
-            },
         });
     }
     /**
@@ -55,12 +49,6 @@ export class AbilityControllerService {
             url: '/role/ability',
             body: requestBody,
             mediaType: 'application/json',
-            errors: {
-                400: `Bad Request`,
-                405: `Method Not Allowed`,
-                429: `Too Many Requests`,
-                500: `Internal Server Error`,
-            },
         });
     }
     /**
@@ -78,12 +66,6 @@ export class AbilityControllerService {
             url: '/role/ability',
             body: requestBody,
             mediaType: 'application/json',
-            errors: {
-                400: `Bad Request`,
-                405: `Method Not Allowed`,
-                429: `Too Many Requests`,
-                500: `Internal Server Error`,
-            },
         });
     }
     /**
@@ -100,12 +82,6 @@ export class AbilityControllerService {
             url: '/role/ability',
             query: {
                 'abilityId': abilityId,
-            },
-            errors: {
-                400: `Bad Request`,
-                405: `Method Not Allowed`,
-                429: `Too Many Requests`,
-                500: `Internal Server Error`,
             },
         });
     }
@@ -124,12 +100,6 @@ export class AbilityControllerService {
             url: '/role/ability/field',
             body: requestBody,
             mediaType: 'application/json',
-            errors: {
-                400: `Bad Request`,
-                405: `Method Not Allowed`,
-                429: `Too Many Requests`,
-                500: `Internal Server Error`,
-            },
         });
     }
     /**
@@ -147,12 +117,6 @@ export class AbilityControllerService {
             url: '/role/ability/page',
             body: requestBody,
             mediaType: 'application/json',
-            errors: {
-                400: `Bad Request`,
-                405: `Method Not Allowed`,
-                429: `Too Many Requests`,
-                500: `Internal Server Error`,
-            },
         });
     }
     /**
@@ -170,12 +134,6 @@ export class AbilityControllerService {
             url: '/role/ability/byRule',
             body: requestBody,
             mediaType: 'application/json',
-            errors: {
-                400: `Bad Request`,
-                405: `Method Not Allowed`,
-                429: `Too Many Requests`,
-                500: `Internal Server Error`,
-            },
         });
     }
     /**
@@ -193,12 +151,6 @@ export class AbilityControllerService {
             url: '/role/ability/byRule/field',
             body: requestBody,
             mediaType: 'application/json',
-            errors: {
-                400: `Bad Request`,
-                405: `Method Not Allowed`,
-                429: `Too Many Requests`,
-                500: `Internal Server Error`,
-            },
         });
     }
     /**
@@ -219,12 +171,6 @@ export class AbilityControllerService {
                 'roleId': roleId,
                 'commitId': commitId,
             },
-            errors: {
-                400: `Bad Request`,
-                405: `Method Not Allowed`,
-                429: `Too Many Requests`,
-                500: `Internal Server Error`,
-            },
         });
     }
     /**
@@ -244,12 +190,6 @@ export class AbilityControllerService {
             query: {
                 'ruleId': ruleId,
                 'roleId': roleId,
-            },
-            errors: {
-                400: `Bad Request`,
-                405: `Method Not Allowed`,
-                429: `Too Many Requests`,
-                500: `Internal Server Error`,
             },
         });
     }

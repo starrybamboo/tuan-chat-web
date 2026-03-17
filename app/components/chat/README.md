@@ -100,8 +100,6 @@ RealtimeRenderer 转换为 WebGAL 场景
 - webgalLinkMode：WebGAL 联动模式（localStorage: webgalLinkMode）
 - autoReplyMode：自动回复模式（localStorage: autoReplyMode）
 - runModeEnabled：跑团模式（localStorage: runModeEnabled）
-- defaultFigurePositionMap：角色默认立绘位置（localStorage: defaultFigurePositionMap）
-- dialogNotend / dialogConcat：WebGAL 对话参数（当前不持久化）
 
 ### 3) roomRoleSelectionStore：当前选中角色与立绘
 
@@ -715,87 +713,9 @@ const grouped = useMemo(() => {
 
 ---
 
-### 8. avatarSwitch.tsx
+### 8. 角色/立绘切换
 
-**作用**：角色和立绘切换器，允许用户在聊天中切换角色和表情。
-
-**业务流程**：
-
-1. **角色加载**：
-   ```
-   获取用户所有角色 → 筛选房间内可用角色 → 显示角色列表
-   ```
-
-2. **立绘加载**：
-   ```
-   选择角色 → 加载该角色的所有立绘 → 显示立绘列表
-   ```
-
-3. **旁白模式**（WebGAL 联动特性）：
-   ```typescript
-   // 在 WebGAL 联动模式下，curRoleId <= 0 时显示旁白图标
-   const isNarratorMode = curRoleId <= 0 && roomContext.webgalLinkMode;
-   
-   if (isNarratorMode) {
-     return (
-       <div className="narrator-button">
-         <NarratorIcon />
-         <span>旁白</span>
-       </div>
-     );
-   }
-   ```
-
-4. **切换流程**：
-   ```
-   用户点击头像 → 显示下拉菜单 → 显示所有角色和立绘
-                                  ↓
-                          点击角色/立绘
-                                  ↓
-                      调用 setCurRoleId / setCurAvatarId
-                                  ↓
-                      更新当前使用的角色/立绘
-                                  ↓
-                      下次发送消息时使用新角色/立绘
-   ```
-
-5. **添加角色**：
-   ```typescript
-   // 仅空间管理员和主持人可添加角色
-   if ((roomContext.curMember?.memberType ?? 3) < 3) {
-     return (
-       <button onClick={() => setIsRoleAddWindowOpen(true)}>
-         添加角色
-       </button>
-     );
-   }
-   ```
-
-**组件结构**：
-
-```tsx
-<div className="avatar-switch">
-  {/* 当前角色/立绘显示 */}
-  <div className="current-avatar">
-    {isNarratorMode ? (
-      <NarratorIcon />
-    ) : (
-      <RoleAvatarComponent avatarId={curAvatarId} />
-    )}
-    <span>{currentRole?.roleName || "旁白"}</span>
-  </div>
-  
-  {/* 下拉菜单 */}
-  <div className="dropdown-menu">
-    <ExpressionChooser
-      roleId={curRoleId}
-      handleExpressionChange={setCurAvatarId}
-      handleRoleChange={setCurRoleId}
-      showNarratorOption={webgalLinkMode}
-    />
-  </div>
-</div>
-```
+旧的 `avatarSwitch.tsx` 已移除。当前角色与立绘切换能力统一由 `ExpressionChooser` 及其上层输入区编排承担，避免同一套交互维护两份入口。
 
 ---
 
@@ -823,7 +743,6 @@ const grouped = useMemo(() => {
 
 **使用场景**：
 
-- 在 `AvatarSwitch` 中作为下拉菜单内容
 - 在 `ExpressionChooser` 中展示角色列表
 - 在角色管理界面中选择角色
 

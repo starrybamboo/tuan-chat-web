@@ -16,7 +16,7 @@ export type CharacterData = {
   skill: Record<string, string>;
 };
 
-export type Step = {
+type Step = {
   id: number;
   title: string;
 };

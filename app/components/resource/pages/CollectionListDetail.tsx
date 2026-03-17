@@ -3,7 +3,7 @@ import type { ResourceResponse } from "../../../../api/models/ResourceResponse";
 import { useCallback, useMemo, useState } from "react";
 import { toast } from "react-hot-toast";
 import { useScreenSize } from "@/components/common/customHooks/useScreenSize";
-import UserAvatarComponent from "@/components/common/userAvatar";
+import { UserAvatarByUser } from "@/components/common/userAccess";
 import { useGetResourcesInCollectionQuery } from "../../../../api/hooks/resourceQueryHooks";
 import { CollectionResourceCard } from "../cards/CollectionResourceCard";
 
@@ -199,8 +199,8 @@ function InfoDisplay({
         <div className="flex items-center gap-2 min-w-0">
           <span className="text-base-content/60 shrink-0">创建者：</span>
           <div className="flex items-center min-w-0">
-            <UserAvatarComponent
-              userId={collectionList.userId ?? -1}
+            <UserAvatarByUser
+              user={collectionList}
               width={6}
               isRounded={true}
               withName={true}

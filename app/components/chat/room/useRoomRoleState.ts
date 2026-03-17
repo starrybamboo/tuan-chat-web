@@ -18,6 +18,7 @@ type UseRoomRoleStateParams = {
   roomId: number;
   userId?: number | null;
   isSpaceOwner: SpaceContextType["isSpaceOwner"];
+  isSpectator: boolean;
 };
 
 type UseRoomRoleStateResult = {
@@ -30,10 +31,36 @@ type UseRoomRoleStateResult = {
   ensureRuntimeAvatarIdForRole: (roleId: number) => Promise<number>;
 };
 
+type ResolveCurrentRoomRoleIdParams = {
+  storedRoleId?: number | null;
+  fallbackRoleId: number;
+  isSpaceOwner: boolean | undefined;
+  isSpectator: boolean;
+};
+
+export function resolveCurrentRoomRoleId({
+  storedRoleId,
+  fallbackRoleId,
+  isSpaceOwner,
+  isSpectator,
+}: ResolveCurrentRoomRoleIdParams): number {
+  if (isSpectator) {
+    return -1;
+  }
+  if (storedRoleId == null) {
+    return fallbackRoleId;
+  }
+  if (storedRoleId <= 0 && !isSpaceOwner) {
+    return fallbackRoleId;
+  }
+  return storedRoleId;
+}
+
 export default function useRoomRoleState({
   roomId,
   userId,
   isSpaceOwner,
+  isSpectator,
 }: UseRoomRoleStateParams): UseRoomRoleStateResult {
   const userRolesQuery = useGetUserRolesQuery(userId ?? -1);
   const userRoles = useMemo(() => userRolesQuery.data?.data ?? [], [userRolesQuery.data?.data]);
@@ -55,17 +82,21 @@ export default function useRoomRoleState({
   }, [roomBaseRoles, roomNpcRoles]);
 
   const roomRolesThatUserOwn = useMemo(() => {
+    if (isSpectator) {
+      return [];
+    }
+
     const playerRoles = isSpaceOwner
       ? roomBaseRoles
       : roomBaseRoles.filter(role => userRoles.some(userRole => userRole.roleId === role.roleId));
-    
+
     // Only allow space owner to control NPCs
     if (isSpaceOwner) {
       return [...playerRoles, ...roomNpcRoles];
     }
 
     return playerRoles;
-  }, [isSpaceOwner, roomBaseRoles, roomNpcRoles, userRoles]);
+  }, [isSpaceOwner, isSpectator, roomBaseRoles, roomNpcRoles, userRoles]);
 
   const curRoleIdMap = useRoomRoleSelectionStore(state => state.curRoleIdMap);
   const curAvatarIdMap = useRoomRoleSelectionStore(state => state.curAvatarIdMap);
@@ -172,20 +203,24 @@ export default function useRoomRoleState({
   }, [curAvatarIdMap, roleDefaultAvatarIdMap, runtimeAvatarIdMap]);
 
   const storedRoleId = curRoleIdMap[roomId];
-  // 如果没有可用角色，普通用户默认为“未选择”(0)，KP默认为“旁白”(-1)
+  // 如果没有可用角色，普通成员默认为“未选择”(0)，主持默认为“旁白”(-1)
   const fallbackRoleId = roomRolesThatUserOwn[0]?.roleId ?? (isSpaceOwner ? -1 : 0);
-  const curRoleId = (storedRoleId == null)
-    ? fallbackRoleId
-    : (storedRoleId <= 0 && !isSpaceOwner)
-        ? fallbackRoleId
-        : storedRoleId;
+  const curRoleId = resolveCurrentRoomRoleId({
+    storedRoleId,
+    fallbackRoleId,
+    isSpaceOwner,
+    isSpectator,
+  });
   const setCurRoleId = useCallback((roleId: number) => {
+    if (isSpectator) {
+      return;
+    }
     if (roleId < 0 && !isSpaceOwner) {
-      toast.error("只有 KP 可以使用旁白");
+      toast.error("只有主持人可以使用旁白");
       return;
     }
     setCurRoleIdForRoom(roomId, roleId);
-  }, [isSpaceOwner, roomId, setCurRoleIdForRoom]);
+  }, [isSpaceOwner, isSpectator, roomId, setCurRoleIdForRoom]);
 
   const curAvatarId = getEffectiveAvatarIdForRole(curRoleId);
   const setCurAvatarId = useCallback((avatarId: number) => {

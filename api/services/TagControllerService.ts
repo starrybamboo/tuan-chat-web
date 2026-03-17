@@ -30,12 +30,6 @@ export class TagControllerService {
             query: {
                 'id': id,
             },
-            errors: {
-                400: `Bad Request`,
-                405: `Method Not Allowed`,
-                429: `Too Many Requests`,
-                500: `Internal Server Error`,
-            },
         });
     }
     /**
@@ -52,12 +46,6 @@ export class TagControllerService {
             url: '/tag',
             body: requestBody,
             mediaType: 'application/json',
-            errors: {
-                400: `Bad Request`,
-                405: `Method Not Allowed`,
-                429: `Too Many Requests`,
-                500: `Internal Server Error`,
-            },
         });
     }
     /**
@@ -74,12 +62,6 @@ export class TagControllerService {
             url: '/tag',
             body: requestBody,
             mediaType: 'application/json',
-            errors: {
-                400: `Bad Request`,
-                405: `Method Not Allowed`,
-                429: `Too Many Requests`,
-                500: `Internal Server Error`,
-            },
         });
     }
     /**
@@ -96,12 +78,6 @@ export class TagControllerService {
             url: '/tag',
             body: requestBody,
             mediaType: 'application/json',
-            errors: {
-                400: `Bad Request`,
-                405: `Method Not Allowed`,
-                429: `Too Many Requests`,
-                500: `Internal Server Error`,
-            },
         });
     }
     /**
@@ -118,12 +94,6 @@ export class TagControllerService {
             url: '/tag/usage',
             body: requestBody,
             mediaType: 'application/json',
-            errors: {
-                400: `Bad Request`,
-                405: `Method Not Allowed`,
-                429: `Too Many Requests`,
-                500: `Internal Server Error`,
-            },
         });
     }
     /**
@@ -140,12 +110,6 @@ export class TagControllerService {
             url: '/tag/get',
             body: requestBody,
             mediaType: 'application/json',
-            errors: {
-                400: `Bad Request`,
-                405: `Method Not Allowed`,
-                429: `Too Many Requests`,
-                500: `Internal Server Error`,
-            },
         });
     }
     /**
@@ -162,12 +126,6 @@ export class TagControllerService {
             url: '/tag/list',
             query: {
                 'tagType': tagType,
-            },
-            errors: {
-                400: `Bad Request`,
-                405: `Method Not Allowed`,
-                429: `Too Many Requests`,
-                500: `Internal Server Error`,
             },
         });
     }

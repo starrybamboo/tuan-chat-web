@@ -1,38 +1,57 @@
 import type { SpaceMember } from "../../../../../api";
-import React, { use, useCallback, useEffect, useRef, useState } from "react";
-import { useParams } from "react-router";
+import React, { use, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { RoomContext } from "@/components/chat/core/roomContext";
+import { SpaceContext } from "@/components/chat/core/spaceContext";
 import { MemberTypeTag } from "@/components/chat/message/types/memberTypeTag";
-import UserAvatarComponent from "@/components/common/userAvatar";
+import {
+  SPACE_MEMBER_TYPE,
+  getMemberTypeSortWeight,
+  hasHostPrivileges,
+} from "@/components/chat/utils/memberPermissions";
+import { UserAvatarByUser } from "@/components/common/userAccess";
 import { useGlobalContext } from "@/components/globalContextProvider";
+import toast from "react-hot-toast";
 import {
   useDeleteRoomMemberMutation,
   useDeleteSpaceMemberMutation,
-  useGetSpaceMembersQuery,
-  useRevokePlayerMutation,
-  useSetPlayerMutation,
   useTransferLeader,
+  useUpdateSpaceMemberTypeMutation,
 } from "../../../../../api/hooks/chatQueryHooks";
 
-// 统一的按钮组件（可根据需要拆分）
+function getSpaceMemberTypeActions(memberType?: number | null): Array<{ memberType: number; label: string }> {
+  const actions: Array<{ memberType: number; label: string }> = [];
+  if (memberType !== SPACE_MEMBER_TYPE.ASSISTANT_LEADER) {
+    actions.push({ memberType: SPACE_MEMBER_TYPE.ASSISTANT_LEADER, label: "设为副GM/KP" });
+  }
+  if (memberType !== SPACE_MEMBER_TYPE.PLAYER) {
+    actions.push({ memberType: SPACE_MEMBER_TYPE.PLAYER, label: "设为PL" });
+  }
+  if (memberType !== SPACE_MEMBER_TYPE.OBSERVER) {
+    actions.push({ memberType: SPACE_MEMBER_TYPE.OBSERVER, label: "设为OB" });
+  }
+  return actions;
+}
+
 function ActionButtons({
   member,
-  spaceId,
-  isManager,
+  isSpace,
+  canManageRoomMembership,
+  canManageSpaceMemberPermissions,
   curUserId,
   onRemove,
-  onSetPlayer,
-  onRevokePlayer,
   onTransfer,
+  onUpdateMemberType,
+  spaceMemberTypeActions,
 }: {
   member: SpaceMember;
-  spaceId: number;
-  isManager: boolean;
+  isSpace: boolean;
+  canManageRoomMembership: boolean;
+  canManageSpaceMemberPermissions: boolean;
   curUserId: number;
   onRemove: () => void;
-  onSetPlayer: () => void;
-  onRevokePlayer: () => void;
   onTransfer: () => void;
+  onUpdateMemberType: (memberType: number) => void;
+  spaceMemberTypeActions: Array<{ memberType: number; label: string }>;
 }) {
   const [open, setOpen] = useState(false);
   const [placeUp, setPlaceUp] = useState(true);
@@ -41,10 +60,10 @@ function ActionButtons({
   const firstItemRef = useRef<HTMLButtonElement | null>(null);
 
   const isSelf = curUserId === member.userId;
-  const canManage = isManager && curUserId !== member.userId; // 管理员且目标不是自己
+  const canManageRoomTarget = !isSpace && canManageRoomMembership && !isSelf;
+  const canManageSpaceTarget = isSpace && canManageSpaceMemberPermissions && !isSelf;
 
-  // 不需要显示菜单的情况：既不是自己也不是管理员 或 spaceId无效
-  const shouldHide = spaceId <= 0 || (!isSelf && !canManage);
+  const shouldHide = !isSelf && !canManageRoomTarget && !canManageSpaceTarget;
 
   const MenuItem = ({ label, onClick, danger = false, first = false }: { label: string; onClick: () => void; danger?: boolean; first?: boolean }) => (
     <li>
@@ -159,13 +178,24 @@ function ActionButtons({
           className={`menu menu-xs dropdown-content absolute right-0 z-20 p-2 shadow bg-base-200 rounded-box w-48 overflow-auto max-h-60 animate-fadeIn ${placeUp ? "bottom-full mb-1 origin-bottom" : "top-full mt-1 origin-top"}`}
           aria-label="成员操作菜单"
         >
-          {isSelf && <MenuItem first label="退出群聊" onClick={onRemove} danger />}
-          {canManage && (
+          {isSelf && <MenuItem first label={isSpace ? "退出空间" : "退出群聊"} onClick={onRemove} danger />}
+          {canManageRoomTarget && (
             <>
-              <MenuItem first={!isSelf} label="踢出成员" onClick={onRemove} danger />
-              {(member?.memberType ?? -1) === 3 && <MenuItem label="设为玩家" onClick={onSetPlayer} />}
-              {(member?.memberType ?? -1) === 2 && <MenuItem label="撤销成员身份" onClick={onRevokePlayer} />}
-              <MenuItem label="转让KP" onClick={onTransfer} />
+              <MenuItem first={!isSelf} label="移出房间" onClick={onRemove} danger />
+            </>
+          )}
+          {canManageSpaceTarget && (
+            <>
+              {spaceMemberTypeActions.map((action, index) => (
+                <MenuItem
+                  key={`${member.userId}-${action.memberType}`}
+                  first={!isSelf && index === 0}
+                  label={action.label}
+                  onClick={() => onUpdateMemberType(action.memberType)}
+                />
+              ))}
+              <MenuItem label="转让GM/KP" onClick={onTransfer} />
+              <MenuItem label="移出空间" onClick={onRemove} danger />
             </>
           )}
         </ul>
@@ -176,62 +206,118 @@ function ActionButtons({
 
 export default function MemberLists({ members, className, isSpace }: { members: (SpaceMember)[]; className?: string; isSpace: boolean }) {
   // 获取上下文与全局信息
-  const { spaceId: urlSpaceId } = useParams();
-  const spaceId = Number(urlSpaceId);
   const globalCtx = useGlobalContext();
   const curUserId = globalCtx.userId ?? -1;
   const roomContext = use(RoomContext);
+  const spaceContext = use(SpaceContext);
   const roomId = roomContext.roomId ?? -1;
+  const spaceId = spaceContext.spaceId ?? -1;
 
-  // 查询成员列表（用于判断当前用户权限）
-  const spaceMembers = useGetSpaceMembersQuery(spaceId).data?.data ?? [];
-  const curMember = spaceMembers.find(m => m.userId === curUserId);
-  const isManager = (curMember?.memberType ?? -1) === 1;
+  const canManageSpaceMemberPermissions = Boolean(spaceContext.canManageMemberPermissions);
+  const canManageRoomMembership = hasHostPrivileges(spaceContext.memberType);
 
   // mutations
   const mutateRoomMember = useDeleteRoomMemberMutation();
   const mutateSpaceMember = useDeleteSpaceMemberMutation();
-  const setPlayerMutation = useSetPlayerMutation();
-  const revokePlayerMutation = useRevokePlayerMutation();
+  const updateSpaceMemberTypeMutation = useUpdateSpaceMemberTypeMutation();
   const transferLeader = useTransferLeader();
 
   const buildHandlers = useCallback((member: SpaceMember) => {
     const onRemove = () => {
       if (!isSpace) {
-        mutateRoomMember.mutate({ roomId, userIdList: [member.userId ?? 0] });
+        mutateRoomMember.mutate(
+          { roomId, userIdList: [member.userId ?? 0] },
+          {
+            onSuccess: () => {
+              toast.success("已移出房间");
+            },
+            onError: (error: any) => {
+              toast.error(error?.message ? `移出房间失败：${error.message}` : "移出房间失败");
+            },
+          },
+        );
       }
       else if (isSpace) {
-        mutateSpaceMember.mutate({ spaceId, userIdList: [member.userId ?? 0] });
+        mutateSpaceMember.mutate(
+          { spaceId, userIdList: [member.userId ?? 0] },
+          {
+            onSuccess: () => {
+              toast.success("已移出空间");
+            },
+            onError: (error: any) => {
+              toast.error(error?.message ? `移出空间失败：${error.message}` : "移出空间失败");
+            },
+          },
+        );
       }
     };
-    const onSetPlayer = () => setPlayerMutation.mutate({ spaceId, uidList: [member.userId ?? 0] });
-    const onRevokePlayer = () => revokePlayerMutation.mutate({ spaceId, uidList: [member.userId ?? 0] });
-    const onTransfer = () => transferLeader.mutate({ spaceId, newLeaderId: member.userId ?? 0 });
-    return { onRemove, onSetPlayer, onRevokePlayer, onTransfer };
+    const onUpdateMemberType = (memberType: number) => {
+      const nextLabel = getSpaceMemberTypeActions(member.memberType)
+        .find(action => action.memberType === memberType)?.label ?? "更新身份";
+      updateSpaceMemberTypeMutation.mutate(
+        {
+          spaceId,
+          uidList: [member.userId ?? 0],
+          memberType,
+        },
+        {
+          onSuccess: () => {
+            toast.success(`${nextLabel}成功`);
+          },
+          onError: (error: any) => {
+            toast.error(error?.message ? `${nextLabel}失败：${error.message}` : `${nextLabel}失败`);
+          },
+        },
+      );
+    };
+    const onTransfer = () => transferLeader.mutate(
+      { spaceId, newLeaderId: member.userId ?? 0 },
+      {
+        onSuccess: () => {
+          toast.success("转让GM/KP成功");
+        },
+        onError: (error: any) => {
+          toast.error(error?.message ? `转让GM/KP失败：${error.message}` : "转让GM/KP失败");
+        },
+      },
+    );
+    return { onRemove, onUpdateMemberType, onTransfer };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [roomId, spaceId, mutateRoomMember, mutateSpaceMember, setPlayerMutation, revokePlayerMutation, transferLeader]);
+  }, [isSpace, mutateRoomMember, mutateSpaceMember, roomId, spaceId, transferLeader, updateSpaceMemberTypeMutation]);
+
+  const sortedMembers = useMemo(() => {
+    return [...members].sort((a, b) => {
+      const weightDiff = getMemberTypeSortWeight(a.memberType) - getMemberTypeSortWeight(b.memberType);
+      if (weightDiff !== 0) {
+        return weightDiff;
+      }
+      return (a.userId ?? 0) - (b.userId ?? 0);
+    });
+  }, [members]);
 
   return (
     <div className="flex flex-col gap-2">
-      {members.sort((a, b) => (a.memberType ?? 99) - (b.memberType ?? 99)).map((member) => {
-        const { onRemove, onSetPlayer, onRevokePlayer, onTransfer } = buildHandlers(member);
+      {sortedMembers.map((member) => {
+        const { onRemove, onUpdateMemberType, onTransfer } = buildHandlers(member);
+        const spaceMemberTypeActions = isSpace ? getSpaceMemberTypeActions(member.memberType) : [];
         return (
           <div className={`bg-base-200 p-3 rounded-lg ${className ?? ""}`} key={member.userId}>
             <div className="flex items-start justify-between gap-3">
               <div className="flex flex-row gap-3 items-center">
-                <UserAvatarComponent userId={member.userId ?? 0} width={10} isRounded={true} withName={true} />
+                <UserAvatarByUser user={member} width={10} isRounded={true} withName={true} />
               </div>
               <div className="flex items-center gap-2">
                 {isSpace && <MemberTypeTag memberType={member.memberType} />}
                 <ActionButtons
                   member={member}
-                  spaceId={spaceId}
-                  isManager={isManager}
+                  isSpace={isSpace}
+                  canManageRoomMembership={canManageRoomMembership}
+                  canManageSpaceMemberPermissions={canManageSpaceMemberPermissions}
                   curUserId={curUserId}
                   onRemove={onRemove}
-                  onSetPlayer={onSetPlayer}
-                  onRevokePlayer={onRevokePlayer}
                   onTransfer={onTransfer}
+                  onUpdateMemberType={onUpdateMemberType}
+                  spaceMemberTypeActions={spaceMemberTypeActions}
                 />
               </div>
             </div>

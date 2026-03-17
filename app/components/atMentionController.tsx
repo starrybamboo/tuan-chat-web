@@ -12,7 +12,7 @@ import React, {
   useState,
 } from "react";
 import { Mounter } from "@/components/common/mounter";
-import RoleAvatarComponent from "@/components/common/roleAvatar";
+import { RoleAvatarByRole } from "@/components/common/roleAccess";
 import { getEditorRange, getSelectionCoords } from "@/utils/getSelectionCoords";
 
 // 定义 props 类型
@@ -308,8 +308,8 @@ function AtMentionController({ ref, chatInputRef, allRoles }: AtMentionProps & {
                   className={`gap-3 py-2 ${isSelected ? "active !bg-primary !text-primary-content" : ""}`}
                   onClick={() => handleSelectRole(role)}
                 >
-                  <RoleAvatarComponent
-                    avatarId={role.avatarId ?? -1}
+                  <RoleAvatarByRole
+                    role={role}
                     width={8}
                     isRounded={true}
                     stopToastWindow={true}

@@ -1,12 +1,19 @@
 import { openDB } from "idb";
 
-export type AiImageHistoryMode = "txt2img" | "img2img";
+export type AiImageHistoryMode = "txt2img" | "img2img" | "infill";
 
 export type AiImageHistoryV4Char = {
   prompt: string;
   negativePrompt: string;
   centerX: number;
   centerY: number;
+};
+
+export type AiImageHistoryReference = {
+  name: string;
+  dataUrl: string;
+  strength: number;
+  informationExtracted: number;
 };
 
 export type AiImageHistoryRow = {
@@ -22,12 +29,32 @@ export type AiImageHistoryRow = {
   prompt: string;
   negativePrompt: string;
 
+  imageCount?: number;
+  steps?: number;
+  scale?: number;
+  sampler?: string;
+  noiseSchedule?: string;
+  cfgRescale?: number;
+  ucPreset?: number;
+  qualityToggle?: boolean;
+  dynamicThresholding?: boolean;
+  smea?: boolean;
+  smeaDyn?: boolean;
+  strength?: number;
+  noise?: number;
+
   v4Chars?: AiImageHistoryV4Char[];
   v4UseCoords?: boolean;
   v4UseOrder?: boolean;
+  referenceImages?: AiImageHistoryReference[];
+  preciseReference?: AiImageHistoryReference | null;
 
   dataUrl: string;
+  toolLabel?: string;
   sourceDataUrl?: string;
+  batchId?: string;
+  batchIndex?: number;
+  batchSize?: number;
 };
 
 const DB_NAME = "aiImageHistoryDB";
@@ -49,8 +76,17 @@ async function getDb() {
 }
 
 export async function addAiImageHistory(row: Omit<AiImageHistoryRow, "id">, options?: { maxItems?: number }) {
+  return addAiImageHistoryBatch([row], options);
+}
+
+export async function addAiImageHistoryBatch(rows: Array<Omit<AiImageHistoryRow, "id">>, options?: { maxItems?: number }) {
+  if (!rows.length)
+    return;
+
   const db = await getDb();
-  await db.add(STORE, row);
+  const tx = db.transaction(STORE, "readwrite");
+  await Promise.all(rows.map(row => tx.store.add(row)));
+  await tx.done;
 
   const maxItems = options?.maxItems ?? 30;
   if (!Number.isFinite(maxItems) || maxItems <= 0)

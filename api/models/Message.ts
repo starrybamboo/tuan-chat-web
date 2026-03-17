@@ -44,6 +44,14 @@ export type Message = {
      */
     avatarId?: number;
     /**
+     * 消息头像URL
+     */
+    avatarUrl?: string;
+    /**
+     * 消息头像缩略图URL
+     */
+    avatarThumbUrl?: string;
+    /**
      * webgal相关的演出设置
      */
     webgal?: Record<string, any>;

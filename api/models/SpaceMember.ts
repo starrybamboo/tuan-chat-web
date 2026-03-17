@@ -18,6 +18,18 @@ export type SpaceMember = {
      * 成员类型 1裁判 2玩家 3观战
      */
     memberType?: number;
+    /**
+     * 用户名
+     */
+    username?: string;
+    /**
+     * 头像 URL
+     */
+    avatar?: string;
+    /**
+     * 头像缩略图 URL
+     */
+    avatarThumbUrl?: string;
     createTime?: string;
     updateTime?: string;
 };

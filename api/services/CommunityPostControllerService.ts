@@ -26,12 +26,6 @@ export class CommunityPostControllerService {
             url: '/community/post/publish',
             body: requestBody,
             mediaType: 'application/json',
-            errors: {
-                400: `Bad Request`,
-                405: `Method Not Allowed`,
-                429: `Too Many Requests`,
-                500: `Internal Server Error`,
-            },
         });
     }
     /**
@@ -49,12 +43,6 @@ export class CommunityPostControllerService {
             url: '/community/post/posts',
             body: requestBody,
             mediaType: 'application/json',
-            errors: {
-                400: `Bad Request`,
-                405: `Method Not Allowed`,
-                429: `Too Many Requests`,
-                500: `Internal Server Error`,
-            },
         });
     }
     /**
@@ -72,12 +60,6 @@ export class CommunityPostControllerService {
             url: '/community/post/page',
             body: requestBody,
             mediaType: 'application/json',
-            errors: {
-                400: `Bad Request`,
-                405: `Method Not Allowed`,
-                429: `Too Many Requests`,
-                500: `Internal Server Error`,
-            },
         });
     }
     /**
@@ -96,12 +78,6 @@ export class CommunityPostControllerService {
             query: {
                 'postId': postId,
             },
-            errors: {
-                400: `Bad Request`,
-                405: `Method Not Allowed`,
-                429: `Too Many Requests`,
-                500: `Internal Server Error`,
-            },
         });
     }
     /**
@@ -119,12 +95,6 @@ export class CommunityPostControllerService {
             url: '/community/post/delete',
             query: {
                 'postId': postId,
-            },
-            errors: {
-                400: `Bad Request`,
-                405: `Method Not Allowed`,
-                429: `Too Many Requests`,
-                500: `Internal Server Error`,
             },
         });
     }

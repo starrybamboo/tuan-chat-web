@@ -3,6 +3,7 @@ import { use, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import { RoomContext } from "@/components/chat/core/roomContext";
 import MemberLists from "@/components/chat/shared/components/memberLists";
+import { canManageRoomRoles, hasHostPrivileges } from "@/components/chat/utils/memberPermissions";
 import AddMemberWindow from "@/components/chat/window/addMemberWindow";
 import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
 import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
@@ -20,6 +21,9 @@ export default function RoomUserList({ type}: { type: string }) {
   const members = roomContext.roomMembers;
   // 全局登录用户对应的member
   const curMember = roomContext.curMember;
+  const currentMemberType = curMember?.memberType;
+  const hasHostAccess = hasHostPrivileges(currentMemberType);
+  const canAddRole = canManageRoomRoles(currentMemberType);
   const [isMemberHandleOpen, setIsMemberHandleOpen] = useSearchParamsState<boolean>("memberSettingPop", false);
 
   const addMemberMutation = useAddRoomMemberMutation();
@@ -95,7 +99,7 @@ export default function RoomUserList({ type}: { type: string }) {
         </div>
 
         <div className="flex gap-2">
-          {!isRole && curMember?.memberType === 1 && (
+          {!isRole && hasHostAccess && (
             <button
               className="btn btn-dash btn-info"
               type="button"
@@ -104,7 +108,7 @@ export default function RoomUserList({ type}: { type: string }) {
               添加成员
             </button>
           )}
-          {isRole && (curMember?.memberType === 1 || curMember?.memberType === 2) && (
+          {isRole && canAddRole && (
             <button
               type="button"
               className="btn btn-xs btn-dash btn-info"
@@ -113,7 +117,7 @@ export default function RoomUserList({ type}: { type: string }) {
               角色+
             </button>
           )}
-          {isRole && curMember?.memberType === 1 && (
+          {isRole && hasHostAccess && (
             <button
               type="button"
               className="btn btn-xs btn-dash btn-info"

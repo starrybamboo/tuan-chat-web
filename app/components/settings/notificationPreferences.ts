@@ -1,10 +1,14 @@
 import { getLocalStorageValue } from "@/components/common/customHooks/useLocalStorage";
 
-export const GROUP_MESSAGE_POPUP_STORAGE_KEY = "tc:notify:groupMessagePopupEnabled";
+const GROUP_MESSAGE_POPUP_STORAGE_KEY = "tc:notify:groupMessagePopupEnabled";
+const FEEDBACK_IN_APP_STORAGE_KEY = "tc:notify:feedbackInAppEnabled";
+const FEEDBACK_DESKTOP_STORAGE_KEY = "tc:notify:feedbackDesktopEnabled";
 const USER_EXTRA_NOTIFICATION_SETTINGS_KEY = "notificationSettings";
 
 export type NotificationSettings = {
   groupMessagePopupEnabled: boolean;
+  feedbackInAppEnabled: boolean;
+  feedbackDesktopEnabled: boolean;
 };
 
 function parseExtraRecord(extra: unknown): Record<string, unknown> | null {
@@ -39,9 +43,11 @@ function normalizeBoolean(value: unknown): boolean | null {
   return null;
 }
 
-export function getDefaultNotificationSettings(): NotificationSettings {
+function getDefaultNotificationSettings(): NotificationSettings {
   return {
     groupMessagePopupEnabled: true,
+    feedbackInAppEnabled: true,
+    feedbackDesktopEnabled: true,
   };
 }
 
@@ -56,6 +62,32 @@ export function writeGroupMessagePopupEnabledToLocalStorage(enabled: boolean): v
     return;
   }
   window.localStorage.setItem(GROUP_MESSAGE_POPUP_STORAGE_KEY, JSON.stringify(enabled));
+}
+
+export function readFeedbackInAppEnabledFromLocalStorage(): boolean {
+  const rawValue = getLocalStorageValue<unknown>(FEEDBACK_IN_APP_STORAGE_KEY, null);
+  const normalized = normalizeBoolean(rawValue);
+  return normalized == null ? getDefaultNotificationSettings().feedbackInAppEnabled : normalized;
+}
+
+export function writeFeedbackInAppEnabledToLocalStorage(enabled: boolean): void {
+  if (typeof window === "undefined") {
+    return;
+  }
+  window.localStorage.setItem(FEEDBACK_IN_APP_STORAGE_KEY, JSON.stringify(enabled));
+}
+
+export function readFeedbackDesktopEnabledFromLocalStorage(): boolean {
+  const rawValue = getLocalStorageValue<unknown>(FEEDBACK_DESKTOP_STORAGE_KEY, null);
+  const normalized = normalizeBoolean(rawValue);
+  return normalized == null ? getDefaultNotificationSettings().feedbackDesktopEnabled : normalized;
+}
+
+export function writeFeedbackDesktopEnabledToLocalStorage(enabled: boolean): void {
+  if (typeof window === "undefined") {
+    return;
+  }
+  window.localStorage.setItem(FEEDBACK_DESKTOP_STORAGE_KEY, JSON.stringify(enabled));
 }
 
 export function readNotificationSettingsFromUserExtra(extra: unknown): NotificationSettings {
@@ -73,9 +105,17 @@ export function readNotificationSettingsFromUserExtra(extra: unknown): Notificat
   const normalizedGroupPopup = normalizeBoolean(
     (settingsFromExtra as Record<string, unknown>).groupMessagePopupEnabled,
   );
+  const normalizedFeedbackInApp = normalizeBoolean(
+    (settingsFromExtra as Record<string, unknown>).feedbackInAppEnabled,
+  );
+  const normalizedFeedbackDesktop = normalizeBoolean(
+    (settingsFromExtra as Record<string, unknown>).feedbackDesktopEnabled,
+  );
 
   return {
     groupMessagePopupEnabled: normalizedGroupPopup == null ? defaults.groupMessagePopupEnabled : normalizedGroupPopup,
+    feedbackInAppEnabled: normalizedFeedbackInApp == null ? defaults.feedbackInAppEnabled : normalizedFeedbackInApp,
+    feedbackDesktopEnabled: normalizedFeedbackDesktop == null ? defaults.feedbackDesktopEnabled : normalizedFeedbackDesktop,
   };
 }
 
@@ -95,6 +135,8 @@ export function buildUserExtraWithNotificationSettings(
   base[USER_EXTRA_NOTIFICATION_SETTINGS_KEY] = {
     ...currentSettings,
     groupMessagePopupEnabled: settings.groupMessagePopupEnabled,
+    feedbackInAppEnabled: settings.feedbackInAppEnabled,
+    feedbackDesktopEnabled: settings.feedbackDesktopEnabled,
   };
 
   return base;

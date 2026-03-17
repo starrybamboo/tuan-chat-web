@@ -40,6 +40,7 @@ interface ChatRoomListPanelProps {
   sidebarTree?: SidebarTree | null;
   docMetas?: MinimalDocMeta[];
   onSelectDoc?: (docId: string) => void;
+  onDeleteDoc?: (docId: string) => void;
   onSaveSidebarTree?: (tree: SidebarTree) => void;
   onResetSidebarTreeToDefault?: () => void;
   activeRoomId: number | null;
@@ -74,6 +75,7 @@ export default function ChatRoomListPanel({
   sidebarTree,
   docMetas,
   onSelectDoc,
+  onDeleteDoc,
   onSaveSidebarTree,
   onResetSidebarTreeToDefault,
   activeRoomId,
@@ -251,6 +253,7 @@ export default function ChatRoomListPanel({
     activeSpaceId,
     removeNode,
     docMetaMap,
+    onDeleteDoc,
   });
 
   const existingRoomIdsInTree = useMemo(() => {

@@ -12,6 +12,7 @@ import type { ChatMessageResponse, Message } from "../../../../api";
 
 type UseChatFrameDragAndDropParams = {
   historyMessages: ChatMessageResponse[];
+  roomId: number;
   isMessageMovable?: (message: Message) => boolean;
   updateMessage: (message: Message) => void;
   virtuosoRef: React.RefObject<VirtuosoHandle | null>;
@@ -32,6 +33,7 @@ type UseChatFrameDragAndDropResult = {
 
 export default function useChatFrameDragAndDrop({
   historyMessages,
+  roomId,
   isMessageMovable,
   updateMessage,
   virtuosoRef,
@@ -136,7 +138,7 @@ export default function useChatFrameDragAndDrop({
       e.preventDefault();
       startAutoScroll(0);
       e.stopPropagation();
-      addDroppedFilesToComposer(e.dataTransfer);
+      addDroppedFilesToComposer(e.dataTransfer, roomId);
       return;
     }
     if (dragStartMessageIdRef.current < 0) {
@@ -162,6 +164,7 @@ export default function useChatFrameDragAndDrop({
     dropPositionRef,
     handleMoveMessages,
     isSelecting,
+    roomId,
     selectedMessageIds,
     startAutoScroll,
   ]);

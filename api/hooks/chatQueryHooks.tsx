@@ -1,5 +1,8 @@
 ﻿import { useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
 import { tuanchat } from "../instance";
+import { QueryClient } from "@tanstack/react-query";
+import type { CancelablePromise } from "../core/CancelablePromise";
+import type { ApiResultListSpaceMember } from "../models/ApiResultListSpaceMember";
 import type { RoomAddRequest } from "../models/RoomAddRequest";
 import type { SpaceMemberDeleteRequest } from "../models/SpaceMemberDeleteRequest";
 import type { SpaceMemberAddRequest } from "../models/SpaceMemberAddRequest";
@@ -7,6 +10,7 @@ import type { SpaceAddRequest } from "../models/SpaceAddRequest";
 import type { SpaceOwnerTransferRequest } from "../models/SpaceOwnerTransferRequest";
 import type { PlayerRevokeRequest } from "../models/PlayerRevokeRequest";
 import type { PlayerGrantRequest } from "../models/PlayerGrantRequest";
+import type { SpaceMemberTypeUpdateRequest } from "../models/SpaceMemberTypeUpdateRequest";
 import type { ChatMessagePageRequest } from "../models/ChatMessagePageRequest";
 import type { ChatMessageRequest } from "../models/ChatMessageRequest";
 import type { RoomRoleDeleteRequest } from "../models/RoomRoleDeleteRequest";
@@ -26,6 +30,76 @@ import type { SpaceArchiveRequest } from "api/models/SpaceArchiveRequest";
 import type { LeaderTransferRequest } from "api/models/LeaderTransferRequest";
 import type {HistoryMessageRequest} from "../models/HistoryMessageRequest";
 import type {MessageBySyncIdRequest} from "../models/MessageBySyncIdRequest";
+import { transferLeaderWithFallback } from "./transferLeaderRequest";
+import { updateSpaceMemberTypeWithFallback } from "./updateSpaceMemberTypeRequest";
+
+function patchSpaceMemberListCache(
+    queryClient: QueryClient,
+    spaceId: number,
+    updater: (member: NonNullable<ApiResultListSpaceMember["data"]>[number]) => NonNullable<ApiResultListSpaceMember["data"]>[number],
+) {
+    if (!(spaceId > 0)) {
+        return;
+    }
+
+    queryClient.setQueryData<ApiResultListSpaceMember>(['getSpaceMemberList', spaceId], (oldData) => {
+        if (!oldData?.data) {
+            return oldData;
+        }
+
+        let changed = false;
+        const nextMembers = oldData.data.map((member) => {
+            const nextMember = updater(member);
+            if (nextMember !== member) {
+                changed = true;
+            }
+            return nextMember;
+        });
+
+        if (!changed) {
+            return oldData;
+        }
+
+        return {
+            ...oldData,
+            data: nextMembers,
+        };
+    });
+}
+
+function bindAbortToCancelablePromise<T>(signal: AbortSignal, request: CancelablePromise<T>) {
+    if (signal.aborted) {
+        request.cancel();
+        return request;
+    }
+
+    signal.addEventListener("abort", () => request.cancel(), { once: true });
+    return request;
+}
+
+function setCachedSpaceMemberType(
+    queryClient: QueryClient,
+    spaceId: number,
+    uidList: number[],
+    memberType: number,
+) {
+    const targetUserIds = new Set(uidList.filter(uid => Number.isFinite(uid) && uid > 0));
+    if (targetUserIds.size === 0) {
+        return;
+    }
+
+    patchSpaceMemberListCache(queryClient, spaceId, (member) => {
+        const userId = member.userId ?? -1;
+        if (!targetUserIds.has(userId) || member.memberType === memberType) {
+            return member;
+        }
+
+        return {
+            ...member,
+            memberType,
+        };
+    });
+}
 
 /**
  * 创建空间
@@ -49,7 +123,7 @@ queryClient.invalidateQueries({ queryKey: ['getUserActiveSpaces'] });
 export function useGetSpaceMembersQuery(spaceId: number) {
     return useQuery({
         queryKey: ['getSpaceMemberList', spaceId],
-        queryFn: () => tuanchat.spaceMemberController.getMemberList(spaceId),
+        queryFn: ({ signal }) => bindAbortToCancelablePromise(signal, tuanchat.spaceMemberController.getMemberList(spaceId)),
         staleTime: 300000, // 5分钟缓存
         enabled: spaceId > 0
     });
@@ -120,7 +194,8 @@ export function useGetMemberListQuery(roomId: number) {
     return useQuery({
         queryKey: ['getRoomMemberList', roomId],
         queryFn: () => tuanchat.roomMemberController.getMemberList1(roomId),
-        staleTime: 300000 // 5分钟缓存
+        staleTime: 300000, // 5分钟缓存
+        enabled: roomId > 0,
     });
 }
 
@@ -198,7 +273,8 @@ export function useGetRoomInfoQuery(roomId: number) {
     return useQuery({
         queryKey: ['getRoomInfo', roomId],
         queryFn: () => tuanchat.roomController.getRoomInfo(roomId),
-        staleTime: 300000 // 5分钟缓存
+        staleTime: 300000, // 5分钟缓存
+        enabled: roomId > 0,
     });
 }
 
@@ -450,6 +526,38 @@ export function useRevokePlayerMutation() {
 }
 
 /**
+ * 更新空间成员身份
+ */
+export function useUpdateSpaceMemberTypeMutation() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: updateSpaceMemberTypeWithFallback,
+        mutationKey: ['updateSpaceMemberType'],
+        onMutate: async (variables) => {
+            // 先打断旧的成员列表请求，避免过期结果回填，把刚点下去的权限变更又盖回去。
+            await queryClient.cancelQueries({ queryKey: ['getSpaceMemberList', variables.spaceId] });
+
+            const previousSpaceMembers = queryClient.getQueryData<ApiResultListSpaceMember>(['getSpaceMemberList', variables.spaceId]);
+            setCachedSpaceMemberType(queryClient, variables.spaceId, variables.uidList ?? [], variables.memberType);
+
+            return { previousSpaceMembers };
+        },
+        onError: (_error, variables, context) => {
+            if (context?.previousSpaceMembers) {
+                queryClient.setQueryData(['getSpaceMemberList', variables.spaceId], context.previousSpaceMembers);
+                return;
+            }
+
+            queryClient.invalidateQueries({ queryKey: ['getSpaceMemberList', variables.spaceId] });
+        },
+        onSuccess: (_, variables) => {
+            queryClient.invalidateQueries({ queryKey: ['getSpaceMemberList', variables.spaceId] });
+            queryClient.invalidateQueries({ queryKey: ['getRoomMemberList'] });
+        }
+    });
+}
+
+/**
  * 转让群主
  */
 function useTransferOwnerMutation() {
@@ -472,7 +580,7 @@ queryClient.invalidateQueries({ queryKey: ['getUserActiveSpaces'] });
 export function useTransferLeader() {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn:(req: LeaderTransferRequest) => tuanchat.spaceMemberController.transferLeader(req),
+        mutationFn: transferLeaderWithFallback,
         mutationKey: ['transferLeader'],
         onSuccess: (_, variables) => {
             queryClient.invalidateQueries({ queryKey: ['getSpaceMemberList', variables.spaceId] });
@@ -682,6 +790,7 @@ export function useGetRoomRoleQuery(roomId: number) {
         queryKey: ["roomRole", roomId],
         queryFn: () => tuanchat.roomRoleController.roomRole(roomId),
         staleTime: 10000,
+        enabled: roomId > 0,
     });
 }
 /**
@@ -709,6 +818,7 @@ export function useGetRoomNpcRoleQuery(roomId: number) {
         queryKey: ["roomNpcRole", roomId],
         queryFn: () => tuanchat.roomRoleController.roomNpcRole(roomId),
         staleTime: 10000,
+        enabled: roomId > 0,
     });
 }
 

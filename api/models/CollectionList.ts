@@ -15,6 +15,18 @@ export type CollectionList = {
      */
     userId?: number;
     /**
+     * 用户名
+     */
+    username?: string;
+    /**
+     * 头像 URL
+     */
+    avatar?: string;
+    /**
+     * 头像缩略图 URL
+     */
+    avatarThumbUrl?: string;
+    /**
      * 列表名称
      */
     collectionListName?: string;

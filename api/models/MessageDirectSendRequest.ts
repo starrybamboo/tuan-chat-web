@@ -15,7 +15,7 @@ export type MessageDirectSendRequest = {
      */
     content: string;
     /**
-     * 消息类型 1:文本 2:图片 3:文件
+     * 消息类型 1:文本 2:图片 3:文件 14:视频
      */
     messageType: number;
     /**

@@ -6,7 +6,7 @@ export type StAbilityDraft = {
   skill: Record<string, string>;
 };
 
-export type StTemplateKeySets = {
+type StTemplateKeySets = {
   basic: Set<string>;
   ability: Set<string>;
   skill: Set<string>;
@@ -24,7 +24,7 @@ export type ApplyStCommandToDraftResult = {
   abilityFieldsToDelete: Set<string>;
 };
 
-export const ST_ABILITY_MAP: Record<string, string> = {
+const ST_ABILITY_MAP: Record<string, string> = {
   str: "力量",
   dex: "敏捷",
   pow: "意志",

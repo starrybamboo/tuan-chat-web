@@ -1,10 +1,23 @@
-import { use, useEffect, useRef, useState } from "react";
+import { use, useState } from "react";
+import {
+  hasMeaningfulMediaContent,
+  measureMediaContentLength,
+} from "@/components/common/content/mediaContent";
 import { CommentContext } from "@/components/common/comment/commentContext";
+import TextMediaEditor from "@/components/common/markdown/textMediaEditor";
+import { CloseIcon, SendIcon } from "@/icons";
 import { useAddCommentMutation } from "../../../../api/hooks/commentQueryHooks";
 
-export default function CommentInputBox({ className, onSubmitFinish, rootCommentId = 0, parentCommentId = 0 }: {
+export default function CommentInputBox({
+  className,
+  onSubmitFinish,
+  onCancel,
+  rootCommentId = 0,
+  parentCommentId = 0,
+}: {
   className?: string;
   onSubmitFinish?: () => void;
+  onCancel?: () => void;
   rootCommentId?: number;
   parentCommentId?: number;
 }) {
@@ -13,38 +26,27 @@ export default function CommentInputBox({ className, onSubmitFinish, rootComment
 
   const [inputContent, setInputContent] = useState("");
   const [isFocused, setIsFocused] = useState(false);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const addCommentMutation = useAddCommentMutation();
 
-  // 字数限制
-  const MAX_CHARS = 500;
-  const charCount = inputContent.length;
-  const isOverLimit = charCount > MAX_CHARS;
-
-  // 自动调整textarea高度
-  useEffect(() => {
-    const textarea = textareaRef.current;
-    if (textarea) {
-      textarea.style.height = "auto";
-      textarea.style.height = `${Math.min(textarea.scrollHeight, 120)}px`; // 最大高度120px
-    }
-  }, [inputContent]);
+  const charCount = measureMediaContentLength(inputContent);
+  const canSubmit = hasMeaningfulMediaContent(inputContent) && !addCommentMutation.isPending;
 
   const handleAddComment = () => {
-    if (inputContent.trim().length === 0 || isOverLimit)
+    if (!canSubmit)
       return;
 
     addCommentMutation.mutate({
-      content: inputContent.trim(),
+      content: inputContent,
       targetId: targetInfo.targetId,
       targetType: targetInfo.targetType,
       rootCommentId,
       parentCommentId,
-    }, {});
-    setInputContent("");
-    if (onSubmitFinish) {
-      onSubmitFinish();
-    }
+    }, {
+      onSuccess: () => {
+        setInputContent("");
+        onSubmitFinish?.();
+      },
+    });
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -55,40 +57,46 @@ export default function CommentInputBox({ className, onSubmitFinish, rootComment
   };
 
   return (
-    <div className={`bg-base-200 rounded-lg p-3 ${className} transition-all duration-200 ring-1 ${isFocused ? "ring-1 ring-primary ring-opacity-50" : ""}`}>
+    <div className={`rounded-xl border border-base-300 bg-base-100 p-3 shadow-sm transition-all duration-200 ${isFocused ? "border-primary/40 shadow-[0_0_0_3px] shadow-primary/10" : "hover:border-primary/20"} ${className ?? ""}`}>
       <div className="relative">
-        <textarea
-          ref={textareaRef}
-          placeholder="说点什么..."
+        <TextMediaEditor
           value={inputContent}
-          className="w-full bg-transparent outline-none resize-none text-sm leading-relaxed placeholder-base-content/60 min-h-[40px]"
-          onChange={e => setInputContent(e.target.value)}
+          onChange={setInputContent}
+          variant="bare"
+          title="评论"
+          helperText="支持粘贴图片与上传视频"
+          placeholder="说点什么..."
+          minHeightClassName="min-h-[96px]"
+          onFocusChange={setIsFocused}
           onKeyDown={handleKeyDown}
-          onFocus={() => setIsFocused(true)}
-          onBlur={() => setIsFocused(false)}
-          rows={1}
         />
 
         {/* 字数统计和操作按钮区域 */}
-        <div className="flex items-center justify-between mt-2 pt-2 border-t border-base-300">
-          <div className="flex items-center gap-2 text-xs text-base-content/60">
-            <span className={`transition-colors ${isOverLimit ? "text-error" : charCount > MAX_CHARS * 0.8 ? "text-warning" : ""}`}>
-              {charCount}
-              /
-              {MAX_CHARS}
-            </span>
-            <span className="text-base-content/40">
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-3 border-t border-base-300/70 pt-3">
+          <div className="flex items-center gap-2 text-xs text-base-content/55">
+            <span>{`已输入 ${charCount} 字`}</span>
+            <span className="hidden text-base-content/40 sm:inline">
               Ctrl+Enter 发送
             </span>
           </div>
 
           <div className="flex items-center gap-2">
-            {/* 可以添加其他功能按钮，如表情、图片等 */}
+            {onCancel && (
+              <button
+                className="btn btn-ghost btn-sm h-9 min-h-9 rounded-full px-4 text-base-content/65 hover:bg-base-200"
+                type="button"
+                onClick={onCancel}
+                disabled={addCommentMutation.isPending}
+              >
+                <CloseIcon className="h-4 w-4" />
+                取消
+              </button>
+            )}
             <button
-              className={`btn btn-sm ${inputContent.trim().length === 0 || isOverLimit ? "btn-disabled" : "btn-primary"} transition-all duration-200`}
+              className={`btn btn-sm h-9 min-h-9 rounded-full px-4 transition-all duration-200 ${canSubmit ? "btn-primary" : "btn-disabled"}`}
               type="button"
               onClick={handleAddComment}
-              disabled={inputContent.trim().length === 0 || isOverLimit || addCommentMutation.isPending}
+              disabled={!canSubmit}
             >
               {addCommentMutation.isPending
                 ? (
@@ -98,19 +106,15 @@ export default function CommentInputBox({ className, onSubmitFinish, rootComment
                     </>
                   )
                 : (
-                    "发布"
+                    <>
+                      <SendIcon className="h-4 w-4" />
+                      发布
+                    </>
                   )}
             </button>
           </div>
         </div>
       </div>
-
-      {/* 错误提示 */}
-      {isOverLimit && (
-        <div className="mt-2 text-xs text-error">
-          内容超出字数限制，请适当删减
-        </div>
-      )}
     </div>
   );
 }

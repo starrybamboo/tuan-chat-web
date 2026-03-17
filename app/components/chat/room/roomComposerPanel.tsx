@@ -22,6 +22,7 @@ import { useRealtimeRenderStore } from "@/components/chat/stores/realtimeRenderS
 import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
 import { useRoomUiStore } from "@/components/chat/stores/roomUiStore";
 import { addDroppedFilesToComposer, isFileDrag } from "@/components/chat/utils/dndUpload";
+import { hasHostPrivileges } from "@/components/chat/utils/memberPermissions";
 import { getDisplayRoleName } from "@/components/chat/utils/roleDisplayName";
 import { useScreenSize } from "@/components/common/customHooks/useScreenSize";
 import { getFigurePositionFromAnnotations, hasClearFigureAnnotation, normalizeAnnotations, setFigurePositionAnnotation, toggleAnnotation } from "@/types/messageAnnotations";
@@ -139,7 +140,7 @@ function RoomComposerPanelImpl({
       return undefined;
     }
     const memberType = (spaceMembers ?? []).find(member => member.userId === role.userId)?.memberType;
-    if (memberType === 1) {
+    if (hasHostPrivileges(memberType)) {
       return "left";
     }
     if (memberType === 2) {
@@ -284,11 +285,10 @@ function RoomComposerPanelImpl({
   const composerTarget = useRoomUiStore(state => state.composerTarget);
   const insertAfterMessageId = useRoomUiStore(state => state.insertAfterMessageId);
   const setInsertAfterMessageId = useRoomUiStore(state => state.setInsertAfterMessageId);
-  const inputDisabled = notMember && noRole;
-  const isMobileSpectatorInputLocked = screenSize === "sm" && notMember;
+  const inputDisabled = noRole && !isKP && !notMember;
   const placeholderText = React.useMemo(() => {
     if (notMember) {
-      return "观战模式下无法发送消息";
+      return "输入消息…（Shift+Enter 换行，Tab 触发 AI）";
     }
     if (noRole && !isKP) {
       return "请选择/拉入你的角色后再发送";
@@ -464,7 +464,7 @@ function RoomComposerPanelImpl({
           onMouseDown={onMouseDown}
           onCompositionStart={onCompositionStart}
           onCompositionEnd={onCompositionEnd}
-          disabled={inputDisabled || isMobileSpectatorInputLocked}
+          disabled={inputDisabled}
           placeholder={placeholderText}
           className={`min-h-10 ${screenSize === "sm" ? "max-h-[30dvh]" : "max-h-[20dvh]"} overflow-y-auto min-w-0 flex-1 ${isMessageOverThreshold ? "outline outline-1 outline-warning/70" : ""}`}
         />
@@ -509,10 +509,10 @@ function RoomComposerPanelImpl({
               return;
             e.preventDefault();
             e.stopPropagation();
-            addDroppedFilesToComposer(e.dataTransfer);
+            addDroppedFilesToComposer(e.dataTransfer, roomId);
           }}
         >
-          <ChatAttachmentsPreviewFromStore />
+          <ChatAttachmentsPreviewFromStore roomId={roomId} />
 
           {replyMessage && (
             <div className="p-2 pb-1">

@@ -66,6 +66,19 @@ const MARKDOWN_STYLES = `
 function MediaEmbed({ type, src }: { type: string; src: string }) {
   const sandbox = "allow-same-origin allow-scripts allow-popups allow-forms allow-presentation";
   switch (type) {
+    case "video":
+      return (
+        <div className="my-4 overflow-hidden rounded-2xl border border-base-300 bg-base-200/20">
+          <div className="aspect-video overflow-hidden bg-base-200">
+            <video
+              src={src}
+              controls={true}
+              preload="metadata"
+              className="h-full w-full object-contain"
+            />
+          </div>
+        </div>
+      );
     case "bilibili":
       return (
         <div className="my-4 aspect-video w-full rounded-full">
@@ -125,11 +138,17 @@ function MediaEmbed({ type, src }: { type: string; src: string }) {
  * @param props.content - markdown内容
  * @constructor
  */
-export function MarkDownViewer({ content }: { content: string }) {
+export function MarkDownViewer({
+  content,
+  className,
+}: {
+  content: string;
+  className?: string;
+}) {
   const navigate = useNavigate();
 
   return (
-    <div className={`prose max-w-none ${MARKDOWN_STYLES} overflow-hidden`}>
+    <div className={`prose max-w-none ${MARKDOWN_STYLES} overflow-hidden ${className ?? ""}`}>
       <ReactMarkdown
         rehypePlugins={[rehypeRaw, rehypeSanitize]}
         remarkPlugins={[remarkGfm]}

@@ -5,13 +5,12 @@ import { reactRouter } from "@react-router/dev/vite";
 import tailwindcss from "@tailwindcss/vite";
 import { vanillaExtractPlugin } from "@vanilla-extract/vite-plugin";
 import { Buffer } from "node:buffer";
-import { execSync } from "node:child_process";
 import { existsSync, realpathSync } from "node:fs";
 import { resolve } from "node:path";
 import process from "node:process";
 import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
-import { Agent, ProxyAgent, fetch as undiciFetch } from "undici";
+import { fetch as undiciFetch } from "undici";
 import { defineConfig, loadEnv } from "vite";
 import tsconfigPaths from "vite-tsconfig-paths";
 
@@ -74,162 +73,6 @@ function fixCjsDefaultExportPlugin(): Plugin {
       }
 
       return modified ? { code: result } : null;
-    },
-  };
-}
-
-function novelApiProxyPlugin(config: { defaultEndpoint: string; allowAnyEndpoint: boolean; proxyUrl: string; connectTimeoutMs: number }): Plugin {
-  const defaultNovelAiEndpoint = config.defaultEndpoint.replace(/\/+$/, "");
-  const allowAnyNovelAiEndpoint = config.allowAnyEndpoint;
-  const connectTimeoutMs = config.connectTimeoutMs > 0 ? config.connectTimeoutMs : 10_000;
-  const proxyUrl = String(config.proxyUrl || "").trim();
-
-  const upstreamDispatcher = proxyUrl
-    ? new ProxyAgent({ uri: proxyUrl, connect: { timeout: connectTimeoutMs } })
-    : new Agent({ connect: { timeout: connectTimeoutMs } });
-
-  const isAllowedNovelAiEndpoint = (endpointUrl: URL) => {
-    if (allowAnyNovelAiEndpoint)
-      return true;
-
-    const host = String(endpointUrl.hostname || "").toLowerCase();
-    if (host === "image.novelai.net")
-      return true;
-    if (host === "api.novelai.net")
-      return true;
-    if (host.endsWith(".tenant-novelai.knative.chi.coreweave.com"))
-      return true;
-    if (/\.tenant-novelai\.knative\.[0-9a-z]+\.coreweave\.cloud$/i.test(host))
-      return true;
-
-    return false;
-  };
-
-  const readBody = async (req: any) => {
-    const chunks: Buffer[] = [];
-    for await (const chunk of req) {
-      chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
-    }
-    return Buffer.concat(chunks);
-  };
-
-  return {
-    name: "tc-novelapi-proxy",
-    apply: "serve",
-    configureServer(server) {
-      server.middlewares.use(async (req, res, next) => {
-        try {
-          const reqUrl = new URL(req.url || "/", `http://${req.headers.host || "localhost"}`);
-          const pathname = decodeURIComponent(reqUrl.pathname);
-
-          if (!(pathname === "/api/novelapi" || pathname.startsWith("/api/novelapi/"))) {
-            next();
-            return;
-          }
-
-          if (req.method === "OPTIONS") {
-            res.statusCode = 204;
-            res.end();
-            return;
-          }
-
-          const endpointHeader = String(req.headers["x-novelapi-endpoint"] || "").trim();
-          const endpointBase = (endpointHeader || defaultNovelAiEndpoint).replace(/\/+$/, "");
-
-          let endpointUrl: URL;
-          try {
-            endpointUrl = new URL(endpointBase);
-          }
-          catch {
-            res.statusCode = 400;
-            res.setHeader("Content-Type", "text/plain; charset=utf-8");
-            res.end("Invalid x-novelapi-endpoint");
-            return;
-          }
-
-          if (endpointUrl.protocol !== "https:") {
-            res.statusCode = 400;
-            res.setHeader("Content-Type", "text/plain; charset=utf-8");
-            res.end("NovelAPI endpoint must be https");
-            return;
-          }
-
-          if (!isAllowedNovelAiEndpoint(endpointUrl)) {
-            res.statusCode = 400;
-            res.setHeader("Content-Type", "text/plain; charset=utf-8");
-            res.end("NovelAPI endpoint is not allowed");
-            return;
-          }
-
-          const upstreamPath = pathname.replace(/^\/api\/novelapi/, "") || "/";
-          const upstreamUrl = new URL(upstreamPath + (reqUrl.search || ""), endpointUrl.toString());
-
-          const headers = new Headers();
-          const auth = String(req.headers.authorization || "").trim();
-          if (auth)
-            headers.set("authorization", auth);
-
-          const contentType = String(req.headers["content-type"] || "").trim();
-          if (contentType)
-            headers.set("content-type", contentType);
-
-          const accept = String(req.headers.accept || "").trim();
-          if (accept)
-            headers.set("accept", accept);
-
-          headers.set("referer", "https://novelai.net/");
-          headers.set("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36");
-
-          let body: Buffer | undefined;
-          if (req.method && !["GET", "HEAD"].includes(req.method.toUpperCase())) {
-            body = await readBody(req);
-          }
-
-          const upstreamRes = await undiciFetch(upstreamUrl.toString(), {
-            method: req.method || "GET",
-            headers,
-            body,
-            dispatcher: upstreamDispatcher,
-          });
-
-          const upstreamContentType = upstreamRes.headers.get("content-type");
-          const upstreamDisposition = upstreamRes.headers.get("content-disposition");
-          if (upstreamContentType)
-            res.setHeader("Content-Type", upstreamContentType);
-          if (upstreamDisposition)
-            res.setHeader("Content-Disposition", upstreamDisposition);
-
-          res.statusCode = upstreamRes.status;
-
-          if (!upstreamRes.body) {
-            res.end();
-            return;
-          }
-
-          const upstreamBody = upstreamRes.body as any;
-          try {
-            await pipeline(Readable.fromWeb(upstreamBody), res as any);
-          }
-          catch (e) {
-            // Avoid crashing the dev server on stream errors (connection reset, aborted, etc.).
-            try {
-              res.destroy(e as any);
-            }
-            catch {
-              // ignore
-            }
-          }
-        }
-        catch (e) {
-          const err = e as any;
-          const message = err instanceof Error ? err.message : String(err);
-          const cause = err?.cause;
-          const causeMessage = cause instanceof Error ? cause.message : (cause ? String(cause) : "");
-          res.statusCode = 502;
-          res.setHeader("Content-Type", "text/plain; charset=utf-8");
-          res.end(`NovelAPI proxy failed: ${message}${causeMessage ? ` (cause: ${causeMessage})` : ""}`);
-        }
-      });
     },
   };
 }
@@ -388,120 +231,27 @@ function electronDevPingPlugin(): Plugin {
   };
 }
 
-function resolveWindowsSystemProxyUrl(): string {
-  if (process.platform !== "win32")
-    return "";
+function authRecoveryCompatPlugin(): Plugin {
+  const legacyPath = "/api/core/authRecovery.ts";
+  const nextPath = "/api/authRecovery.ts";
 
-  const queryValue = (value: string) => {
-    const out = execSync(`reg query "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Internet Settings" /v ${value}`, {
-      stdio: ["ignore", "pipe", "ignore"],
-      encoding: "utf8",
-    });
-    return String(out || "");
+  return {
+    name: "tc-auth-recovery-compat",
+    apply: "serve",
+    configureServer(server) {
+      server.middlewares.use((req, _res, next) => {
+        if (req.url?.startsWith(legacyPath)) {
+          req.url = `${nextPath}${req.url.slice(legacyPath.length)}`;
+        }
+        next();
+      });
+    },
   };
-
-  const parseRegSz = (text: string) => {
-    const line = String(text || "")
-      .split(/\r?\n/)
-      .map(s => s.trimEnd())
-      .find(s => s.includes("REG_SZ"));
-    if (!line)
-      return "";
-    const idx = line.indexOf("REG_SZ");
-    if (idx < 0)
-      return "";
-    return line.slice(idx + "REG_SZ".length).trim();
-  };
-
-  const parseRegDwordEnabled = (text: string) => {
-    const line = String(text || "")
-      .split(/\r?\n/)
-      .map(s => s.trimEnd())
-      .find(s => s.includes("REG_DWORD"));
-    if (!line)
-      return false;
-    const idx = line.indexOf("0x");
-    if (idx < 0)
-      return false;
-    const hex = line.slice(idx + 2).trim();
-    if (!hex)
-      return false;
-    const value = Number.parseInt(hex, 16);
-    return Number.isFinite(value) && value !== 0;
-  };
-
-  const parseProxyServer = (value: string) => {
-    const raw = value.trim();
-    if (!raw)
-      return "";
-
-    if (/^https?:\/\//i.test(raw))
-      return raw;
-
-    if (raw.includes("=")) {
-      const parts = raw.split(";").map(s => s.trim()).filter(Boolean);
-      const map = new Map<string, string>();
-      for (const part of parts) {
-        const idx = part.indexOf("=");
-        if (idx <= 0)
-          continue;
-        map.set(part.slice(0, idx).trim().toLowerCase(), part.slice(idx + 1).trim());
-      }
-      const https = map.get("https");
-      const http = map.get("http");
-      const chosen = https || http || "";
-      if (!chosen)
-        return "";
-      if (/^https?:\/\//i.test(chosen))
-        return chosen;
-      return `http://${chosen}`;
-    }
-
-    if (/^(?:socks|socks5)=/i.test(raw))
-      return "";
-
-    return `http://${raw}`;
-  };
-
-  try {
-    const enabledText = queryValue("ProxyEnable");
-    if (!parseRegDwordEnabled(enabledText))
-      return "";
-
-    const serverText = queryValue("ProxyServer");
-    const server = parseRegSz(serverText);
-    return parseProxyServer(server);
-  }
-  catch {
-    return "";
-  }
 }
 
 export default defineConfig(({ command, mode }) => {
   const _isDev = command === "serve";
   const env = loadEnv(mode, process.cwd(), "");
-
-  const novelApiConnectTimeoutMsRaw = Number(env.NOVELAPI_CONNECT_TIMEOUT_MS || "");
-  const novelApiConnectTimeoutMs = Number.isFinite(novelApiConnectTimeoutMsRaw) && novelApiConnectTimeoutMsRaw > 0
-    ? novelApiConnectTimeoutMsRaw
-    : 10_000;
-
-  const novelApiConfig = {
-    defaultEndpoint: String(env.NOVELAPI_DEFAULT_ENDPOINT || "https://image.novelai.net"),
-    allowAnyEndpoint: String(env.NOVELAPI_ALLOW_ANY_ENDPOINT || "") === "1",
-    proxyUrl: String(
-      env.NOVELAPI_PROXY
-      || env.HTTPS_PROXY
-      || env.https_proxy
-      || env.HTTP_PROXY
-      || env.http_proxy
-      || env.ALL_PROXY
-      || env.all_proxy
-      || resolveWindowsSystemProxyUrl()
-      || "",
-    ),
-    connectTimeoutMs: novelApiConnectTimeoutMs,
-  };
 
   const nm = (p: string) => {
     const abs = resolve(__dirname, p);
@@ -516,8 +266,8 @@ export default defineConfig(({ command, mode }) => {
   return {
     plugins: [
       tailwindcss(),
+      authRecoveryCompatPlugin(),
       fixCjsDefaultExportPlugin(),
-      novelApiProxyPlugin(novelApiConfig),
       ossUploadProxyPlugin(),
       electronDevPingPlugin(),
 
@@ -628,6 +378,14 @@ export default defineConfig(({ command, mode }) => {
         "@lit/react",
       ],
       alias: [
+        {
+          find: /^api\/core\/authRecovery$/,
+          replacement: resolve(__dirname, "api/authRecovery.ts"),
+        },
+        {
+          find: /^\/api\/core\/authRecovery\.ts$/,
+          replacement: resolve(__dirname, "api/authRecovery.ts"),
+        },
         // BlockSuite packages export TypeScript sources (`./src/*.ts`) by default.
         // In Vite dev this can lead to:
         // - decorators not being applied (custom elements not defined) -> "Illegal constructor"

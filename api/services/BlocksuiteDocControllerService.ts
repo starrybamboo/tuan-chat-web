@@ -34,12 +34,6 @@ export class BlocksuiteDocControllerService {
                 'entityId': entityId,
                 'docType': docType,
             },
-            errors: {
-                400: `Bad Request`,
-                405: `Method Not Allowed`,
-                429: `Too Many Requests`,
-                500: `Internal Server Error`,
-            },
         });
     }
     /**
@@ -56,41 +50,30 @@ export class BlocksuiteDocControllerService {
             url: '/blocksuite/doc',
             body: requestBody,
             mediaType: 'application/json',
-            errors: {
-                400: `Bad Request`,
-                405: `Method Not Allowed`,
-                429: `Too Many Requests`,
-                500: `Internal Server Error`,
-            },
         });
     }
     /**
      * 删除Blocksuite文档快照（硬删除）
-     * @param entityType
      * @param entityId
-     * @param docType
+     * @param requestBody
      * @returns ApiResultVoid OK
      * @throws ApiError
      */
     public deleteDoc3(
-        entityType: string,
         entityId: number,
-        docType: string,
+        requestBody: {
+            entityType?: string;
+            docType?: string;
+        },
     ): CancelablePromise<ApiResultVoid> {
         return this.httpRequest.request({
             method: 'DELETE',
             url: '/blocksuite/doc',
             query: {
-                'entityType': entityType,
                 'entityId': entityId,
-                'docType': docType,
             },
-            errors: {
-                400: `Bad Request`,
-                405: `Method Not Allowed`,
-                429: `Too Many Requests`,
-                500: `Internal Server Error`,
-            },
+            body: requestBody,
+            mediaType: 'application/json',
         });
     }
     /**
@@ -107,12 +90,6 @@ export class BlocksuiteDocControllerService {
             url: '/blocksuite/doc/update',
             body: requestBody,
             mediaType: 'application/json',
-            errors: {
-                400: `Bad Request`,
-                405: `Method Not Allowed`,
-                429: `Too Many Requests`,
-                500: `Internal Server Error`,
-            },
         });
     }
     /**
@@ -129,12 +106,6 @@ export class BlocksuiteDocControllerService {
             url: '/blocksuite/doc/compact',
             body: requestBody,
             mediaType: 'application/json',
-            errors: {
-                400: `Bad Request`,
-                405: `Method Not Allowed`,
-                429: `Too Many Requests`,
-                500: `Internal Server Error`,
-            },
         });
     }
     /**
@@ -163,12 +134,6 @@ export class BlocksuiteDocControllerService {
                 'docType': docType,
                 'afterServerTime': afterServerTime,
                 'limit': limit,
-            },
-            errors: {
-                400: `Bad Request`,
-                405: `Method Not Allowed`,
-                429: `Too Many Requests`,
-                500: `Internal Server Error`,
             },
         });
     }

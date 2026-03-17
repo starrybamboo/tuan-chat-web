@@ -1,40 +1,138 @@
 import type { CommentVO } from "api";
-import React, { useLayoutEffect, useMemo, useRef, useState } from "react";
+import React, { use, useMemo, useState } from "react";
+import {
+  buildMediaContentPreview,
+} from "@/components/common/content/mediaContent";
+import MediaContentView from "@/components/common/content/mediaContentView";
+import { CommentContext } from "@/components/common/comment/commentContext";
 import CommentInputBox from "@/components/common/comment/commentInputBox";
 import CommentPreview from "@/components/common/comment/commentPreview";
-import CommentToggle from "@/components/common/comment/CommentToggle";
 import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
 import LikeIconButton from "@/components/common/likeIconButton";
 import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
 import UserAvatarComponent from "@/components/common/userAvatar";
 import { useGlobalContext } from "@/components/globalContextProvider";
-import { useDeleteCommentMutation, useGetCommentByIdQuery } from "../../../../api/hooks/commentQueryHooks";
+import { ChevronRightIcon, CloseIcon } from "@/icons";
+import {
+  DEFAULT_COMMENT_CHILD_LIMIT,
+  DEFAULT_COMMENT_MAX_LEVEL,
+  useDeleteCommentMutation,
+  useGetCommentByIdQuery,
+  useGetCommentChildPageInfiniteQuery,
+} from "../../../../api/hooks/commentQueryHooks";
 
-/**
- * “L”形回复连接线。
- */
-function ReplyConnector({ isParentHovered }: { isParentHovered: boolean }) {
-  // 根据父组件的悬停状态，动态决定边框颜色
-  const borderColor = isParentHovered
-    ? "border-gray-500 dark:border-gray-400"
-    : "border-gray-300 dark:border-gray-600";
+const MAX_LEVEL = 4;
 
+function summarizeCommentContent(content?: string) {
+  return buildMediaContentPreview(content, 28, "原评论内容为空");
+}
+
+function ReplyIcon({ className }: { className?: string }) {
   return (
-    // 这个 32x32 的盒子被绝对定位到父评论的“沟槽”区域
-    <div aria-hidden="true" className="absolute -left-8 top-0 h-8 w-8 flex justify-end pointer-events-none">
-      {/* L 形线条本身。它只占其容器的右半部分（w-1/2），
-          并通过 justify-end 对齐到右侧。这确保其左边框与父评论居中的垂直线精确对齐。
-        */}
-      <div className={`box-border h-full w-1/2 rounded-bl-lg border-b border-b-2 border-l border-l-2 border-solid ${borderColor} transition-colors`} />
-    </div>
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+    >
+      <path d="M20 15a3 3 0 0 1-3 3H7l-4 4V7a3 3 0 0 1 3-3h11a3 3 0 0 1 3 3z" />
+      <path d="M8 9h8" />
+      <path d="M8 13h5" />
+    </svg>
   );
 }
 
-export default function CommentComponent({ comment, level = 1 }: {
+function ThumbUpIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+    >
+      <path d="M7 10v10" />
+      <path d="M14 10h4.8a2 2 0 0 1 1.8 2.9l-2.7 5.4A2 2 0 0 1 16.1 19H7V10l3.2-5.3A1.8 1.8 0 0 1 11.8 4h.2A2 2 0 0 1 14 6z" />
+      <path d="M7 19H4a1 1 0 0 1-1-1v-7a1 1 0 0 1 1-1h3" />
+    </svg>
+  );
+}
+
+function CommentActionButton({
+  label,
+  icon,
+  onClick,
+  tone = "default",
+  active = false,
+}: {
+  label: string;
+  icon: React.ReactNode;
+  onClick: () => void;
+  tone?: "default" | "primary" | "danger";
+  active?: boolean;
+}) {
+  const toneClass = tone === "danger"
+    ? "text-base-content/60 hover:bg-error/10 hover:text-error"
+    : active || tone === "primary"
+      ? "bg-primary/10 text-primary hover:bg-primary/15 hover:text-primary"
+      : "text-base-content/60 hover:bg-primary/10 hover:text-primary";
+
+  return (
+    <button
+      type="button"
+      className={`btn btn-ghost btn-xs h-8 min-h-8 rounded-full px-3 transition-colors ${toneClass}`}
+      onClick={(event) => {
+        event.stopPropagation();
+        onClick();
+      }}
+    >
+      {icon}
+      <span>{label}</span>
+    </button>
+  );
+}
+
+function getRemainingChildrenCount(totalChildren: number, visibleChildrenCount: number) {
+  return Math.max(totalChildren - visibleChildrenCount, 0);
+}
+
+function mergeVisibleChildren(initialChildren: CommentVO[] | undefined, loadedChildren: CommentVO[]) {
+  const mergedChildren: CommentVO[] = [];
+  const seenCommentIds = new Set<number>();
+
+  for (const child of [...(initialChildren ?? []), ...loadedChildren]) {
+    const commentId = child.commentId;
+    if (typeof commentId === "number") {
+      if (seenCommentIds.has(commentId)) {
+        continue;
+      }
+      seenCommentIds.add(commentId);
+    }
+    mergedChildren.push(child);
+  }
+
+  return mergedChildren;
+}
+
+export default function CommentComponent({
+  comment,
+  level = 1,
+  displayMode = "threaded",
+  parentComment = null,
+}: {
   comment: number | CommentVO;
   level?: number;
+  displayMode?: "threaded" | "flat";
+  parentComment?: CommentVO | null;
 }) {
-  const MAX_LEVEL = 4;
+  const commentContext = use(CommentContext);
   const userId: number | null = useGlobalContext().userId;
   const getCommentByIdQuery = useGetCommentByIdQuery(typeof comment === "number" ? comment : -1);
   const commentVO = typeof comment === "number" ? getCommentByIdQuery.data : comment;
@@ -42,159 +140,316 @@ export default function CommentComponent({ comment, level = 1 }: {
   const [isInput, setIsInput] = useState(false);
   const [isFolded, setIsFolded] = useState(false);
   const [isOpen, setIsOpen] = useSearchParamsState<boolean>(`commentPop${commentVO?.commentId}`, false);
+  const treeOptions = commentContext.treeOptions ?? {
+    childLimit: DEFAULT_COMMENT_CHILD_LIMIT,
+    maxLevel: DEFAULT_COMMENT_MAX_LEVEL,
+  };
+  const childPageSize = treeOptions.childLimit > 0 ? treeOptions.childLimit : DEFAULT_COMMENT_CHILD_LIMIT;
+  const childSubtreeMaxLevel = Math.max(treeOptions.maxLevel - level, 1);
+  const initialChildPageNo = (commentVO?.children?.length ?? 0) > 0 ? 2 : 1;
+  const childCommentQuery = useGetCommentChildPageInfiniteQuery(
+    commentContext.targetInfo,
+    commentVO?.commentId ?? -1,
+    childPageSize,
+    childPageSize,
+    childSubtreeMaxLevel,
+    initialChildPageNo,
+  );
+  const loadedChildren = useMemo(() => {
+    return childCommentQuery.data?.pages.flatMap(page => page.data ?? []) ?? [];
+  }, [childCommentQuery.data?.pages]);
+  const visibleChildren = useMemo(() => {
+    return mergeVisibleChildren(commentVO?.children, loadedChildren);
+  }, [commentVO?.children, loadedChildren]);
 
-  // 追踪悬停状态
-  const [isLineHovered, setIsLineHovered] = useState(false);
-
-  // 动态计算垂直线高度
-  const verticalLineRef = useRef<HTMLDivElement>(null);
-  const lastChildRef = useRef<HTMLDivElement>(null);
-  const contentRef = useRef<HTMLDivElement>(null);
-  const contentColumnRef = useRef<HTMLDivElement>(null);
-
-  // 使用 ResizeObserver 动态调整垂直线的高度
-  useLayoutEffect(() => {
-    const verticalLine = verticalLineRef.current;
-    if (!verticalLine)
-      return;
-
-    // 定义一个可重用的高度更新函数
-    const updateHeight = () => {
-      if (!isFolded && lastChildRef.current && contentRef.current) {
-        const contentTop = contentRef.current.getBoundingClientRect().top;
-        const lastChildTop = lastChildRef.current.getBoundingClientRect().top;
-        const height = (lastChildTop - contentTop) + 16; // 16px 是连接器高度的一半
-        verticalLine.style.height = `${height}px`;
-      }
-      else {
-        verticalLine.style.height = "0px";
-      }
-    };
-
-    updateHeight(); // 初始渲染时立即计算一次
-
-    // 监视整个内容列的尺寸变化
-    const contentColumn = contentColumnRef.current;
-    if (contentColumn) {
-      // 创建一个 ResizeObserver 来监视子评论容器的尺寸变化
-      const resizeObserver = new ResizeObserver(updateHeight);
-      resizeObserver.observe(contentColumn);
-
-      // 清理函数
-      return () => resizeObserver.disconnect();
-    }
-  }, [isFolded, commentVO?.children]); // 依赖于折叠状态和子评论列表
+  const totalChildren = commentVO?.totalChildren ?? visibleChildren.length;
+  const remainingChildren = getRemainingChildrenCount(totalChildren, visibleChildren.length);
+  const hasLoadedChildren = visibleChildren.length > 0;
+  const rootCommentId = commentVO?.rootCommentId === 0 ? commentVO?.commentId : commentVO?.rootCommentId;
+  const isFlatMode = displayMode === "flat";
+  const parentAuthorName = parentComment?.userInfo?.username || "上一条评论";
+  const isLoadingMoreChildren = childCommentQuery.isFetchingNextPage;
+  const canLoadMoreChildren = Boolean(commentVO?.commentId) && remainingChildren > 0;
+  const childLoadFailed = childCommentQuery.isError;
 
   const childrenComments = useMemo(() => {
-    return (
-      <>
-        {commentVO?.children && commentVO.children.length > 0 && (
-          <div className="space-y-4">
-            {commentVO.children.map((child, index) => (
-              <div
-                key={child.commentId}
-                className="relative"
-                ref={index === (commentVO.children?.length ?? 0) - 1 ? lastChildRef : null}
-              >
-                <ReplyConnector isParentHovered={isLineHovered} />
-                <CommentComponent comment={child} level={level + 1 > MAX_LEVEL ? 1 : level + 1} />
-              </div>
-            ))}
-            {commentVO.hasMore && (
-              <button className="btn btn-sm btn-ghost mt-2 text-base-content hover:text-primary" type="button">
-                Load more replies (
-                {commentVO.totalChildren || 0 - commentVO.children.length}
-                {" "}
-                more)
-              </button>
-            )}
-          </div>
-        )}
-      </>
-    );
-  }, [commentVO?.children, commentVO?.hasMore, commentVO?.totalChildren, level, isLineHovered]);
+    if (!visibleChildren.length) {
+      return null;
+    }
 
-  if (!commentVO) {
+    return visibleChildren.map(child => (
+      <CommentComponent
+        comment={child}
+        key={child.commentId}
+        level={level + 1}
+        displayMode={displayMode}
+      />
+    ));
+  }, [displayMode, level, visibleChildren]);
+
+  if (typeof comment === "number" && getCommentByIdQuery.isPending) {
     return <div className="loading loading-spinner text-primary"></div>;
+  }
+  if (!commentVO) {
+    return null;
   }
   if (String(commentVO.status) !== "1") {
     return null;
   }
 
-  if (isFolded) {
+  if (isFlatMode) {
     return (
-      <div
-        className="flex items-center "
-        onClick={(e) => {
-          e.stopPropagation();
-          setIsFolded(!isFolded);
-        }}
-      >
-        <div className="w-8 h-15 rounded-full flex justify-center items-center">
-          <CommentToggle isFolded={isFolded} onClick={() => setIsFolded(!isFolded)} />
+      <article className="rounded-2xl border border-base-300 bg-base-100/95 p-4 shadow-sm">
+        <div className="flex items-start gap-3">
+          <div className="shrink-0">
+            <UserAvatarComponent
+              userId={commentVO.userId || -1}
+              username={commentVO.userInfo?.username}
+              avatar={commentVO.userInfo?.avatar}
+              avatarThumbUrl={commentVO.userInfo?.avatarThumbUrl}
+              width={10}
+              isRounded={true}
+              withName={false}
+            />
+          </div>
+          <div className="min-w-0 flex-1">
+            <CommentPreview commentVO={commentVO} />
+
+            {parentComment
+              ? (
+                  <div className="mt-2 inline-flex max-w-full items-center gap-2 rounded-full bg-base-200/70 px-3 py-1 text-xs text-base-content/60">
+                    <ReplyIcon className="h-3.5 w-3.5 shrink-0" />
+                    <span className="shrink-0 font-medium text-base-content/75">
+                      回复
+                      {" "}
+                      {parentAuthorName}
+                    </span>
+                    <span className="truncate text-base-content/55">
+                      {summarizeCommentContent(parentComment.content)}
+                    </span>
+                  </div>
+                )
+              : null}
+
+            <div className="mt-3 pl-0.5">
+              <MediaContentView
+                content={commentVO.content}
+                emptyText="原评论内容为空"
+                className="[&_p]:my-0 [&_p+_p]:mt-3 [&_img]:my-2 [&_ul]:my-2 [&_ol]:my-2 [&_pre]:my-2 [&_blockquote]:my-2 text-[14px] leading-[1.7] text-base-content/90"
+              />
+            </div>
+
+            <div className="mt-3 flex flex-wrap items-center gap-1">
+              <CommentActionButton
+                label={isInput ? "取消回复" : "回复"}
+                icon={<ReplyIcon className="h-4 w-4" />}
+                tone={isInput ? "primary" : "default"}
+                active={isInput}
+                onClick={() => setIsInput(value => !value)}
+              />
+              <LikeIconButton
+                targetInfo={{ targetId: commentVO.commentId ?? -1, targetType: "2" }}
+                className="btn btn-ghost btn-xs h-8 min-h-8 rounded-full px-2.5 text-base-content/65 hover:bg-primary/10 hover:text-primary"
+                icon={<ThumbUpIcon className="h-4 w-4" />}
+                direction="row"
+              />
+              {Number(commentVO.userId) === userId && (
+                <CommentActionButton
+                  label="删除"
+                  icon={<CloseIcon className="h-4 w-4" />}
+                  tone="danger"
+                  onClick={() => {
+                    deleteCommentMutation.mutate({
+                      commentId: commentVO.commentId!,
+                      targetId: commentContext.targetInfo.targetId,
+                      targetType: commentContext.targetInfo.targetType,
+                    });
+                  }}
+                />
+              )}
+            </div>
+
+            {isInput && (
+              <div className="mt-3">
+                <CommentInputBox
+                  parentCommentId={commentVO.commentId}
+                  rootCommentId={rootCommentId ?? 0}
+                  onSubmitFinish={() => setIsInput(false)}
+                  onCancel={() => setIsInput(false)}
+                />
+              </div>
+            )}
+          </div>
         </div>
-        <CommentPreview commentVO={commentVO}></CommentPreview>
-      </div>
+      </article>
     );
   }
 
   return (
-    <div className="grid grid-cols-[32px_minmax(0,1fr)] text-base-content">
-      {/* --- 第 1 列: 垂直主干线和折叠按钮 --- */}
-      <div
-        ref={contentRef}
-        className="relative flex justify-center cursor-pointer"
-        onMouseEnter={() => setIsLineHovered(true)}
-        onMouseLeave={() => setIsLineHovered(false)}
-        onClick={() => setIsFolded(!isFolded)}
-      >
-        <div
-          ref={verticalLineRef}
-          className={`absolute top-0 left-1/2 w-[2px] ${isLineHovered ? "bg-gray-500 dark:bg-gray-400" : "bg-gray-300 dark:bg-gray-600"} transition-colors`}
-        />
-        <div className="relative z-10 pt-4">
-          <div className="bg-base-100">
-            <CommentToggle isFolded={isFolded} />
+    <div className={level > 1 ? "mt-2 relative" : "relative"}>
+      <div className="flex items-start gap-2.5">
+        {/* Left column for Avatar + Thread Line */}
+        <div className="flex flex-col items-center self-stretch shrink-0">
+          <div className="h-8 w-8 flex items-center justify-center">
+            <UserAvatarComponent
+              userId={commentVO.userId || -1}
+              username={commentVO.userInfo?.username}
+              avatar={commentVO.userInfo?.avatar}
+              avatarThumbUrl={commentVO.userInfo?.avatarThumbUrl}
+              width={8}
+              isRounded={true}
+              withName={false}
+            />
           </div>
+
+          {/* Flex-1 makes the line stretch to match the parent height */}
+          {!isFolded && (hasLoadedChildren || (commentVO.hasMore && remainingChildren > 0)) && level < MAX_LEVEL && (
+            <div
+              className="group/threadline mt-1 flex flex-1 w-5 cursor-pointer justify-center pb-1 z-10"
+              onClick={() => setIsFolded(true)}
+              title="收起回复"
+            >
+              <div className="h-full w-[2px] bg-base-content/15 hover:bg-base-content/30 transition-all duration-200 group-hover/threadline:w-[3px] group-hover/threadline:bg-primary" />
+            </div>
+          )}
         </div>
-      </div>
 
-      {/* --- 第 2 列: 所有评论内容 --- */}
-      <div className="min-w-0" ref={contentColumnRef}>
-        <div>
-          <div className="flex items-center gap-2">
-            <UserAvatarComponent userId={commentVO?.userId || -1} width={10} isRounded={true} withName={false} />
-            <CommentPreview commentVO={commentVO} />
-          </div>
+        {/* Right column for Content + Children */}
+        <div className="min-w-0 flex-1 pb-1">
+          {/* Main Comment */}
+          <article className="group/comment relative transition-all duration-200 rounded-xl px-2 py-1.5 -ml-2 hover:bg-base-200/40">
+            {/* Header */}
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div
+                className={`min-w-0 flex-1 flex flex-wrap items-center gap-2 ${isFolded ? "cursor-pointer" : ""}`}
+                onClick={() => {
+                  if (isFolded)
+                    setIsFolded(false);
+                }}
+              >
+                <CommentPreview commentVO={commentVO} />
+                {isFolded && (
+                  <span className="flex items-center gap-1 rounded-full bg-base-200 px-2 py-0.5 text-[11px] font-medium text-base-content/55 transition-colors hover:bg-base-300 hover:text-base-content/80">
+                    <svg className="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="6 9 12 15 18 9"></polyline>
+                    </svg>
+                    {totalChildren > 0 ? `${totalChildren} 条回复的内容已折叠` : "已折叠"}
+                  </span>
+                )}
+              </div>
 
-          <div className="pl-2 pt-2 text-sm leading-relaxed break-words overflow-wrap-anywhere">
-            <p className="whitespace-pre-wrap">{commentVO?.content}</p>
-          </div>
+              <div className="flex shrink-0 items-center justify-end">
+                <button
+                  className={`btn btn-ghost btn-xs h-7 min-h-7 w-7 rounded-full p-0 text-base-content/40 hover:bg-primary/10 hover:text-primary ${isFolded ? "bg-base-200/50" : "opacity-0 group-hover/comment:opacity-100 focus:opacity-100"}`}
+                  type="button"
+                  onClick={() => setIsFolded(!isFolded)}
+                  title={isFolded ? "展开" : "收起"}
+                >
+                  <svg className={`h-4 w-4 transition-transform ${isFolded ? "" : "rotate-180"}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="6 9 12 15 18 9"></polyline>
+                  </svg>
+                </button>
+              </div>
+            </div>
 
-          <div className="card-actions">
-            <button className="btn btn-sm btn-ghost hover:text-primary" type="button" onClick={() => setIsInput(!isInput)}>
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
-              回复
-            </button>
-            <LikeIconButton targetInfo={{ targetId: commentVO.commentId ?? -1, targetType: "2" }} className="btn btn-sm btn-ghost text-base-content hover:text-primary" icon={(<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.5" /></svg>)} direction="row" />
-            {Number(commentVO.userId) === userId && (
-              <button className="btn btn-sm btn-ghost text-base-content hover:text-error" type="button" onClick={() => { deleteCommentMutation.mutate(commentVO.commentId!); }}>
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-                删除
-              </button>
+            {/* Body */}
+            {!isFolded && (
+              <>
+                <div className="mt-1 pl-1">
+                  <MediaContentView
+                    content={commentVO.content}
+                    emptyText="原评论内容为空"
+                    className="[&_p]:my-0 [&_p+_p]:mt-3 [&_img]:my-2 [&_ul]:my-2 [&_ol]:my-2 [&_pre]:my-2 [&_blockquote]:my-2 text-[14px] leading-[1.6] text-base-content/90"
+                  />
+                </div>
+
+                <div className="mt-2 flex flex-wrap items-center gap-1 ml-0.5">
+                  <CommentActionButton
+                    label={isInput ? "取消回复" : "回复"}
+                    icon={<ReplyIcon className="h-4 w-4" />}
+                    tone={isInput ? "primary" : "default"}
+                    active={isInput}
+                    onClick={() => setIsInput(value => !value)}
+                  />
+                  <LikeIconButton
+                    targetInfo={{ targetId: commentVO.commentId ?? -1, targetType: "2" }}
+                    className="btn btn-ghost btn-xs h-8 min-h-8 rounded-full px-2.5 text-base-content/65 hover:bg-primary/10 hover:text-primary"
+                    icon={<ThumbUpIcon className="h-4 w-4" />}
+                    direction="row"
+                  />
+                  {Number(commentVO.userId) === userId && (
+                    <CommentActionButton
+                      label="删除"
+                      icon={<CloseIcon className="h-4 w-4" />}
+                      tone="danger"
+                      onClick={() => {
+                        deleteCommentMutation.mutate({
+                          commentId: commentVO.commentId!,
+                          targetId: commentContext.targetInfo.targetId,
+                          targetType: commentContext.targetInfo.targetType,
+                        });
+                      }}
+                    />
+                  )}
+                </div>
+
+                {isInput && (
+                  <div className="mt-3 pr-2">
+                    <CommentInputBox
+                      parentCommentId={commentVO.commentId}
+                      rootCommentId={rootCommentId ?? 0}
+                      onSubmitFinish={() => setIsInput(false)}
+                      onCancel={() => setIsInput(false)}
+                    />
+                  </div>
+                )}
+              </>
             )}
-          </div>
+          </article>
 
-          {isInput && (<CommentInputBox parentCommentId={commentVO?.commentId} rootCommentId={commentVO?.rootCommentId === 0 ? commentVO?.commentId : commentVO?.rootCommentId} onSubmitFinish={() => { setIsInput(false); }} />)}
-        </div>
-
-        <div className="pt-4">
+          {/* Children block */}
           {level < MAX_LEVEL
-            ? childrenComments
-            : (commentVO?.children?.length ?? -1) > 0
+            ? (
+                !isFolded && (
+                  <div className="mt-1">
+                    {hasLoadedChildren && (
+                      <div className="space-y-1">
+                        {childrenComments}
+                      </div>
+                    )}
+
+                    {canLoadMoreChildren && (
+                      <div className="mt-3 ml-1.5">
+                        <button
+                          className="text-[13px] font-medium text-primary hover:underline disabled:cursor-not-allowed disabled:no-underline disabled:opacity-60"
+                          disabled={isLoadingMoreChildren}
+                          onClick={() => {
+                            void childCommentQuery.fetchNextPage();
+                          }}
+                          type="button"
+                        >
+                          {isLoadingMoreChildren
+                            ? "正在加载回复..."
+                            : childLoadFailed
+                                ? `重试加载剩余 ${remainingChildren} 条回复...`
+                                : `加载更多 ${remainingChildren} 条回复...`}
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )
+              )
+            : (!isFolded && hasLoadedChildren)
                 ? (
-                    <div>
-                      <button className="btn btn-ghost" onClick={() => setIsOpen(true)} type="button">点击查看更深的回复</button>
+                    <div className="mt-3 ml-1.5">
+                      <button
+                        className="btn btn-ghost btn-sm h-8 min-h-8 rounded-full border border-base-300 bg-base-200/35 px-4 text-xs text-base-content/65 hover:border-primary/25 hover:bg-primary/10 hover:text-primary"
+                        onClick={() => setIsOpen(true)}
+                        type="button"
+                      >
+                        查看更深的回复
+                        <ChevronRightIcon className="h-3.5 w-3.5" />
+                      </button>
                       <ToastWindow isOpen={isOpen} onClose={() => setIsOpen(false)}>{childrenComments}</ToastWindow>
                     </div>
                   )

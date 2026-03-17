@@ -34,10 +34,10 @@ const DICER_AVATAR_CACHE_TTL_MS = 15 * 60_000;
 const DICER_COPYWRITING_CACHE_TTL_MS = 15 * 60_000;
 const ROLE_ABILITY_CACHE_TTL_MS = 10 * 60_000;
 
-type ExpiringCacheEntry<T> = {
+interface ExpiringCacheEntry<T> {
   value: T;
   expireAt: number;
-};
+}
 
 const dicerAvatarCache = new Map<number, ExpiringCacheEntry<RoleAvatar[]>>();
 const dicerCopywritingCache = new Map<string, ExpiringCacheEntry<Record<string, string[]>>>();
@@ -49,7 +49,7 @@ function createStableDiceMessageKey(roomId: number, optimisticMessageId: number)
 }
 
 function logDicerFlow(step: string, payload: Record<string, unknown>): void {
-  console.log(DICER_DEBUG_PREFIX, step, payload);
+  console.warn(DICER_DEBUG_PREFIX, step, payload);
 }
 
 function readCacheValue<T>(entry: ExpiringCacheEntry<T> | undefined): T | undefined {
@@ -419,12 +419,11 @@ export default function useCommandExecutor(roleId: number, ruleId: number, roomC
       ? requestPositionRaw
       : null;
     const commandPositionRaw = commandMessage.position;
-    const commandPosition = (typeof commandPositionRaw === "number" && Number.isFinite(commandPositionRaw)
-      ? commandPositionRaw
-      : (requestPosition ?? null))
-      ?? (
-        pending?.fallbackPosition ?? null
-      );
+    const commandPosition = (
+      typeof commandPositionRaw === "number" && Number.isFinite(commandPositionRaw)
+        ? commandPositionRaw
+        : (requestPosition ?? null)
+    ) ?? (pending?.fallbackPosition ?? null);
     logDicerFlow("sendCommandMessageWithOptimistic.result", {
       commandMessageId: commandMessage.messageId,
       requestPosition,
@@ -582,8 +581,10 @@ export default function useCommandExecutor(roleId: number, ruleId: number, roomC
         speakerName: role?.speakerName ?? "",
         createTime: "",
       };
-      const mentioned: UserRole[] = (executorProp.mentionedRoles || []);
-      mentioned.push(operator);
+      const mentioned: UserRole[] = [...(executorProp.mentionedRoles || [])];
+      if ((operator.roleId ?? -1) > 0) {
+        mentioned.push(operator);
+      }
       // 获取角色的能力列表
       const getRoleAbility = async (roleId: number): Promise<RoleAbility> => {
         try {
@@ -597,7 +598,9 @@ export default function useCommandExecutor(roleId: number, ruleId: number, roomC
       // 获取所有可能用到的角色能力（并行请求，减少指令等待）
       const mentionedRoles = new Map<number, RoleAbility>();
       const mentionedRoleEntries = await Promise.all(
-        mentioned.map(async mentionedRole => [mentionedRole.roleId, await getRoleAbility(mentionedRole.roleId)] as const),
+        mentioned
+          .filter(mentionedRole => mentionedRole.roleId > 0)
+          .map(async mentionedRole => [mentionedRole.roleId, await getRoleAbility(mentionedRole.roleId)] as const),
       );
       for (const [mentionedRoleId, ability] of mentionedRoleEntries) {
         mentionedRoles.set(mentionedRoleId, ability);
@@ -721,6 +724,9 @@ export default function useCommandExecutor(roleId: number, ruleId: number, roomC
       });
       // 遍历mentionedRoles，更新或创建角色能力
       for (const [id, ability] of mentionedRoles) {
+        if (id <= 0) {
+          continue;
+        }
         // 构造请求payload时，确保所有字段为非null对象，避免后端校验失败
         const payload = {
           roleId: id,
@@ -795,10 +801,10 @@ export default function useCommandExecutor(roleId: number, ruleId: number, roomC
           });
         const copywritingMapPromise = copywritingKey
           ? getCachedDicerCopywritingMap(ruleId, dicerRoleId)
-            .catch((error) => {
-              console.error("获取骰娘文案失败:", error);
-              return {} as Record<string, string[]>;
-            })
+              .catch((error) => {
+                console.error("获取骰娘文案失败:", error);
+                return {} as Record<string, string[]>;
+              })
           : Promise.resolve({} as Record<string, string[]>);
 
         const commandMessageMeta = await commandMessageMetaPromise;

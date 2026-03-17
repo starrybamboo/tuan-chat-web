@@ -1,8 +1,13 @@
-import {TuanChat} from "./TuanChat";
+import { TuanChat } from "./TuanChat";
+
+export type CreateTuanChatClientOptions = {
+  base?: string;
+  includeToken?: boolean;
+};
 
 let tuanchat = new TuanChat();
 
-function resolveApiBaseUrl(envBaseUrl: string | undefined): string | undefined {
+export function resolveApiBaseUrl(envBaseUrl: string | undefined): string | undefined {
   if (typeof window === 'undefined') {
     return envBaseUrl;
   }
@@ -33,14 +38,18 @@ function resolveApiBaseUrl(envBaseUrl: string | undefined): string | undefined {
   }
 }
 
-if (typeof window !== 'undefined') {
-  tuanchat = new TuanChat({
-    BASE: resolveApiBaseUrl(import.meta.env.VITE_API_BASE_URL),
+export function createTuanChatClient(options: CreateTuanChatClientOptions = {}) {
+  const includeToken = options.includeToken !== false;
+  return new TuanChat({
+    BASE: resolveApiBaseUrl(options.base ?? import.meta.env.VITE_API_BASE_URL),
     WITH_CREDENTIALS: true,
     CREDENTIALS: "include",
-    // 注意：TOKEN 需要是“动态读取”，否则登录后 tuanchat 仍会使用旧 token
-    TOKEN: async () => localStorage?.getItem('token') || '',
+    TOKEN: includeToken ? async () => localStorage?.getItem('token') || '' : undefined,
   });
+}
+
+if (typeof window !== 'undefined') {
+  tuanchat = createTuanChatClient();
 }
 
 export { tuanchat };

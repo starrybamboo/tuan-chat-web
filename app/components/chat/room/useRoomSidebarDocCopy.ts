@@ -51,7 +51,7 @@ export default function useRoomSidebarDocCopy({
       return;
     }
     if (!isSpaceOwner) {
-      toast.error("仅KP可复制到空间侧边栏");
+      toast.error("仅主持可复制到空间侧边栏");
       return;
     }
     if (docRef.spaceId && docRef.spaceId !== activeSpaceId) {

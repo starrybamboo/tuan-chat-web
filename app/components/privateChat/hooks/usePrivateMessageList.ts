@@ -10,11 +10,21 @@ import { useGetInboxMessagePageQuery } from "api/hooks/MessageDirectQueryHooks";
 
 import type { MessageDirectType } from "../types/messageDirect";
 
-export function usePrivateMessageList({ globalContext, userId }: { globalContext: any; userId: number }) {
+type UsePrivateMessageListParams = {
+  globalContext: any;
+  userId: number;
+  includeFriendList?: boolean;
+};
+
+export function usePrivateMessageList({
+  globalContext,
+  userId,
+  includeFriendList = true,
+}: UsePrivateMessageListParams) {
   const webSocketUtils = globalContext.websocketUtils;
 
   // 好友列表
-  const friendListQuery = useGetFriendListQuery({ pageNo: 1, pageSize: 100 });
+  const friendListQuery = useGetFriendListQuery({ pageNo: 1, pageSize: 100 }, includeFriendList);
   const friendUserInfos: FriendResponse[] = useMemo(
     () => (Array.isArray(friendListQuery.data?.data) ? friendListQuery.data.data : []),
     [friendListQuery.data],

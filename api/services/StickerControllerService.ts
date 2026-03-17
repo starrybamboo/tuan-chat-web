@@ -24,12 +24,6 @@ export class StickerControllerService {
             url: '/sticker',
             body: requestBody,
             mediaType: 'application/json',
-            errors: {
-                400: `Bad Request`,
-                405: `Method Not Allowed`,
-                429: `Too Many Requests`,
-                500: `Internal Server Error`,
-            },
         });
     }
     /**
@@ -47,12 +41,6 @@ export class StickerControllerService {
             query: {
                 'stickerId': stickerId,
             },
-            errors: {
-                400: `Bad Request`,
-                405: `Method Not Allowed`,
-                429: `Too Many Requests`,
-                500: `Internal Server Error`,
-            },
         });
     }
     /**
@@ -64,12 +52,6 @@ export class StickerControllerService {
         return this.httpRequest.request({
             method: 'GET',
             url: '/sticker/list',
-            errors: {
-                400: `Bad Request`,
-                405: `Method Not Allowed`,
-                429: `Too Many Requests`,
-                500: `Internal Server Error`,
-            },
         });
     }
 }
