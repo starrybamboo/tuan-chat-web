@@ -47,6 +47,7 @@ export default function Topbar() {
   const runModeEnabled = useRoomPreferenceStore(state => state.runModeEnabled);
   const canUseAiImage = import.meta.env.DEV || import.meta.env.MODE === "test";
   const canUseGeminiLab = import.meta.env.DEV;
+  const canUseFeedback = import.meta.env.DEV || import.meta.env.MODE === "test";
 
   // 点击外部关闭下拉菜单
   useEffect(() => {
@@ -124,7 +125,7 @@ export default function Topbar() {
     { to: "/role", label: "角色", icon: IdentificationCardIcon },
     ...(canUseAiImage ? [{ to: "/ai-image", label: "AI生图", icon: PaintBrushBroadIcon }] : []),
     ...(canUseGeminiLab ? [{ to: "/gemini-lab", label: "Gemini实验", icon: GearSixIcon }] : []),
-    { to: "/feedback", label: "反馈", icon: CheckCircleIcon },
+    ...(canUseFeedback ? [{ to: "/feedback", label: "反馈", icon: CheckCircleIcon }] : []),
   ];
 
   return (

@@ -26,6 +26,7 @@ import { canParticipateInRoom } from "@/components/chat/utils/memberPermissions"
 import { openMessageAnnotationPicker } from "@/components/chat/message/annotations/openMessageAnnotationPicker";
 import { compareChatMessageResponsesByOrder } from "@/components/chat/shared/messageOrder";
 import { createWebgalChooseOptionDraft } from "@/components/chat/shared/webgal/webgalChooseDraft";
+import { compareChatMessageResponsesByOrder } from "@/components/chat/shared/messageOrder";
 import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
 import { useRoomUiStore } from "@/components/chat/stores/roomUiStore";
 import { ANNOTATION_IDS, areAnnotationsEqual, hasAnnotation, normalizeAnnotations } from "@/types/messageAnnotations";

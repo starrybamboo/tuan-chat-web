@@ -1,7 +1,7 @@
 import type { Rule } from "api/models/Rule";
 import { ApiError } from "api/core/ApiError";
-import { useCreateRuleMutation, useGetRuleDetailQuery, useUpdateRuleMutation } from "api/hooks/ruleQueryHooks";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useAllRuleListQuery, useCreateRuleMutation, useGetRuleDetailQuery, useUpdateRuleMutation } from "api/hooks/ruleQueryHooks";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import toast from "react-hot-toast";
 import { useLocation, useNavigate } from "react-router";
 import { useGlobalContext } from "@/components/globalContextProvider";
@@ -117,6 +117,28 @@ export default function RuleEditor({
     ? createPrefillState.prefillTemplateRuleId
     : 0;
   const prefillTemplateQuery = useGetRuleDetailQuery(mode === "create" ? prefillTemplateRuleId : 0);
+  const allRuleListQuery = useAllRuleListQuery(100, mode === "create");
+  const trimmedRuleName = (ruleEdit.ruleName ?? "").trim();
+  const prefillTemplateRuleName = (prefillTemplateQuery.data?.data?.ruleName ?? "").trim();
+  const existingRuleNames = useMemo(
+    () =>
+      new Set(
+        (allRuleListQuery.data ?? [])
+          .map(rule => (rule.ruleName ?? "").trim())
+          .filter(Boolean),
+      ),
+    [allRuleListQuery.data],
+  );
+  const isRuleNameDuplicated = mode === "create"
+    && trimmedRuleName.length > 0
+    && (
+      existingRuleNames.has(trimmedRuleName)
+      || (prefillTemplateRuleName.length > 0 && trimmedRuleName === prefillTemplateRuleName)
+    );
+  const primaryActionDisabled = isSavingRule || (mode === "create" && isRuleNameDuplicated);
+  const primaryActionDisabledReason = mode === "create" && isRuleNameDuplicated
+    ? "规则名已存在，请修改后创建"
+    : undefined;
 
   const setModuleEditing = useCallback((moduleKey: string, editing: boolean) => {
     setEditingMap((prev) => {
@@ -200,6 +222,10 @@ export default function RuleEditor({
     const nextRuleName = ruleEdit.ruleName ?? "";
     if (nextRuleName.length === 0) {
       toast.error("规则名称不能为空");
+      return;
+    }
+    if (mode === "create" && isRuleNameDuplicated) {
+      toast.error("规则名已存在");
       return;
     }
 
@@ -477,42 +503,49 @@ export default function RuleEditor({
               </span>
             </button>
           </div>
-          <div className="tooltip tooltip-bottom" data-tip={mode === "create" ? "创建规则" : isEditing ? "保存当前修改" : "进入编辑"}>
-            <button
-              type="button"
-              className={`btn ${mode === "edit" && !isEditing ? "btn-accent" : "btn-primary"} btn-sm md:btn-lg rounded-lg ${isSavingRule ? "scale-95" : ""}`}
-              onClick={handleHeaderPrimaryAction}
-              disabled={isSavingRule}
-            >
-              {isSavingRule
-                ? (
-                    <span className="loading loading-spinner loading-xs"></span>
-                  )
-                : (
-                    <span className="flex items-center gap-1">
-                      {mode === "create"
-                        ? (
-                            <>
-                              <SaveIcon className="w-4 h-4" />
-                              创建
-                            </>
-                          )
-                        : isEditing
+          <div className="relative">
+            <div className="tooltip tooltip-bottom" data-tip={mode === "create" ? "创建规则" : isEditing ? "保存当前修改" : "进入编辑"}>
+              <button
+                type="button"
+                className={`btn ${mode === "edit" && !isEditing ? "btn-accent" : "btn-primary"} btn-sm md:btn-lg rounded-lg ${isSavingRule ? "scale-95" : ""}`}
+                onClick={handleHeaderPrimaryAction}
+                disabled={primaryActionDisabled}
+              >
+                {isSavingRule
+                  ? (
+                      <span className="loading loading-spinner loading-xs"></span>
+                    )
+                  : (
+                      <span className="flex items-center gap-1">
+                        {mode === "create"
                           ? (
                               <>
                                 <SaveIcon className="w-4 h-4" />
-                                保存
+                                创建
                               </>
                             )
-                          : (
-                              <>
-                                <EditIcon className="w-4 h-4" />
-                                编辑
-                              </>
-                            )}
-                    </span>
-                  )}
-            </button>
+                          : isEditing
+                            ? (
+                                <>
+                                  <SaveIcon className="w-4 h-4" />
+                                  保存
+                                </>
+                              )
+                            : (
+                                <>
+                                  <EditIcon className="w-4 h-4" />
+                                  编辑
+                                </>
+                              )}
+                      </span>
+                    )}
+              </button>
+            </div>
+            {primaryActionDisabledReason && primaryActionDisabled && (
+              <div className="absolute right-0 top-full mt-1 max-w-[calc(100vw-3rem)] text-right text-xs leading-tight text-error whitespace-nowrap">
+                {primaryActionDisabledReason}
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -522,10 +555,10 @@ export default function RuleEditor({
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         <div className="lg:col-span-1 self-start lg:sticky lg:top-4">
           {/* 左侧规则信息卡 */}
-          <div className="card-sm md:card-xl bg-base-100 shadow-xs rounded-xl md:border-2 md:border-base-content/10">
-            <div className="card-body p-4">
+          <div className="card bg-base-100 shadow-xs rounded-2xl border-2 border-base-content/10">
+            <div className="card-body p-4 md:p-5 space-y-3">
               {/* 移动端显示的头部区域 */}
-              <div className="md:hidden mb-4 px-2">
+              <div className="md:hidden mb-3">
                 <div className="flex w-full items-start justify-between gap-2 mb-3">
                   <div className="min-w-0">
                     <h1 className="font-semibold text-2xl min-w-0 truncate">
@@ -546,23 +579,30 @@ export default function RuleEditor({
                         导入
                       </button>
                     </div>
-                    <div className="tooltip tooltip-bottom" data-tip={mode === "create" ? "创建规则" : isEditing ? "保存当前修改" : "进入编辑"}>
-                      <button
-                        type="button"
-                        className={`btn ${mode === "edit" && !isEditing ? "btn-accent" : "btn-primary"} btn-md rounded-lg px-4 ${isSavingRule ? "scale-95" : ""}`}
-                        onClick={handleHeaderPrimaryAction}
-                        disabled={isSavingRule}
-                      >
-                        {isSavingRule
-                          ? (
-                              <span className="loading loading-spinner loading-xs"></span>
-                            )
-                          : (
-                              <span className="flex items-center gap-1">
-                                {mode === "create" ? "创建" : isEditing ? "保存" : "编辑"}
-                              </span>
-                            )}
-                      </button>
+                    <div className="relative">
+                      <div className="tooltip tooltip-bottom" data-tip={mode === "create" ? "创建规则" : isEditing ? "保存当前修改" : "进入编辑"}>
+                        <button
+                          type="button"
+                          className={`btn ${mode === "edit" && !isEditing ? "btn-accent" : "btn-primary"} btn-md rounded-lg px-4 ${isSavingRule ? "scale-95" : ""}`}
+                          onClick={handleHeaderPrimaryAction}
+                          disabled={primaryActionDisabled}
+                        >
+                          {isSavingRule
+                            ? (
+                                <span className="loading loading-spinner loading-xs"></span>
+                              )
+                            : (
+                                <span className="flex items-center gap-1">
+                                  {mode === "create" ? "创建" : isEditing ? "保存" : "编辑"}
+                                </span>
+                              )}
+                        </button>
+                      </div>
+                      {primaryActionDisabledReason && primaryActionDisabled && (
+                        <div className="absolute right-0 top-full mt-1 max-w-[calc(100vw-3rem)] text-right text-xs leading-tight text-error whitespace-nowrap">
+                          {primaryActionDisabledReason}
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -576,7 +616,15 @@ export default function RuleEditor({
                 onEditingChange={handleTextInfoEditingChange}
                 forcedEditing={shouldForceModuleEditing}
                 saveSignal={moduleSaveSignal}
+                ruleNameError={isRuleNameDuplicated ? "规则名已存在" : undefined}
                 onApply={({ ruleName, ruleDescription }) => {
+                  setRuleEdit(prev => ({
+                    ...prev,
+                    ruleName,
+                    ruleDescription,
+                  }));
+                }}
+                onChange={({ ruleName, ruleDescription }) => {
                   setRuleEdit(prev => ({
                     ...prev,
                     ruleName,
