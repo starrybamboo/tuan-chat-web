@@ -39,10 +39,6 @@ type ResolveCurrentRoomRoleIdParams = {
   isSpectator: boolean;
 };
 
-function isAvailableRoomRole(role: UserRole): boolean {
-  return Number(role.roleId) > 0 && role.state !== 1;
-}
-
 export function resolveCurrentRoomRoleId({
   storedRoleId,
   fallbackRoleId,
@@ -75,15 +71,9 @@ export default function useRoomRoleState({
   const userRoles = useMemo(() => userRolesQuery.data?.data ?? [], [userRolesQuery.data?.data]);
 
   const roomRolesQuery = useGetRoomRoleQuery(roomId);
-  const roomBaseRoles = useMemo(
-    () => (roomRolesQuery.data?.data ?? []).filter(isAvailableRoomRole),
-    [roomRolesQuery.data?.data],
-  );
+  const roomBaseRoles = useMemo(() => roomRolesQuery.data?.data ?? [], [roomRolesQuery.data?.data]);
   const roomNpcRolesQuery = useGetRoomNpcRoleQuery(roomId);
-  const roomNpcRoles = useMemo(
-    () => (roomNpcRolesQuery.data?.data ?? []).filter(isAvailableRoomRole),
-    [roomNpcRolesQuery.data?.data],
-  );
+  const roomNpcRoles = useMemo(() => roomNpcRolesQuery.data?.data ?? [], [roomNpcRolesQuery.data?.data]);
 
   const roomAllRoles = useMemo(() => {
     const map = new Map<number, UserRole>();
