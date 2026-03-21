@@ -1,7 +1,7 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { Toaster } from "react-hot-toast";
-import { BrowserRouter } from "react-router";
+import { MemoryRouter } from "react-router";
 import "@/animation.css";
 import "@/app.css";
 import { BlocksuiteStandaloneFrameApp } from "@/components/chat/infra/blocksuite/frame/BlocksuiteStandaloneFrameApp";
@@ -14,9 +14,9 @@ if (!container) {
 
 createRoot(container).render(
   <StrictMode>
-    <BrowserRouter>
+    <MemoryRouter initialEntries={[`${window.location.pathname}${window.location.search}`]}>
       <BlocksuiteStandaloneFrameApp />
       <Toaster />
-    </BrowserRouter>
+    </MemoryRouter>
   </StrictMode>,
 );

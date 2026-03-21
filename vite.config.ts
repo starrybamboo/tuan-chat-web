@@ -5,7 +5,7 @@ import { reactRouter } from "@react-router/dev/vite";
 import tailwindcss from "@tailwindcss/vite";
 import { vanillaExtractPlugin } from "@vanilla-extract/vite-plugin";
 import { Buffer } from "node:buffer";
-import { existsSync, realpathSync } from "node:fs";
+import { existsSync, readFileSync, realpathSync } from "node:fs";
 import { resolve } from "node:path";
 import process from "node:process";
 import { Readable } from "node:stream";
@@ -249,6 +249,33 @@ function authRecoveryCompatPlugin(): Plugin {
   };
 }
 
+function blocksuiteFrameEntryPlugin(frameEntryPath: string): Plugin {
+  return {
+    name: "tc-blocksuite-frame-entry",
+    apply: "serve",
+    configureServer(server) {
+      server.middlewares.use(async (req, res, next) => {
+        try {
+          const reqUrl = new URL(req.url || "/", `http://${req.headers.host || "localhost"}`);
+          if (!["/blocksuite-frame/", "/blocksuite-frame/index.html"].includes(reqUrl.pathname)) {
+            next();
+            return;
+          }
+
+          const html = readFileSync(frameEntryPath, "utf8");
+          const transformed = await server.transformIndexHtml(reqUrl.pathname, html);
+          res.statusCode = 200;
+          res.setHeader("Content-Type", "text/html; charset=utf-8");
+          res.end(transformed);
+        }
+        catch (error) {
+          next(error);
+        }
+      });
+    },
+  };
+}
+
 export default defineConfig(({ command, mode }) => {
   const _isDev = command === "serve";
   const env = loadEnv(mode, process.cwd(), "");
@@ -257,6 +284,7 @@ export default defineConfig(({ command, mode }) => {
     const abs = resolve(__dirname, p);
     return existsSync(abs) ? realpathSync(abs) : abs;
   };
+  const blocksuiteFrameEntryPath = resolve(__dirname, "blocksuite-frame/index.html");
 
   // Some BlockSuite dist outputs ship ES2023 auto-accessor syntax:
   // `accessor foo = ...` which Rollup (and some tooling) may fail to parse.
@@ -270,6 +298,7 @@ export default defineConfig(({ command, mode }) => {
       fixCjsDefaultExportPlugin(),
       ossUploadProxyPlugin(),
       electronDevPingPlugin(),
+      blocksuiteFrameEntryPlugin(blocksuiteFrameEntryPath),
 
       // Downlevel BlockSuite ES2023 auto-accessor syntax in dist outputs.
       // Example crashing syntax: `accessor color = ...` (brush.js), `accessor elements = ...` (v-line.js).

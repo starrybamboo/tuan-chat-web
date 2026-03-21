@@ -1,6 +1,5 @@
 import type { DocMode } from "@blocksuite/affine/model";
-import { useEffect, useRef, useState } from "react";
-import { useSearchParams } from "react-router";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ensureBlocksuiteBrowserRuntime } from "../bootstrap/browser";
 import { isBlocksuiteDebugEnabled } from "../debugFlags";
 import { BlocksuiteDescriptionEditorRuntime } from "./BlocksuiteDescriptionEditorRuntime.browser";
@@ -112,15 +111,17 @@ function getBlocksuiteMeasuredScrollHeight(): number {
   return Math.max(fallbackMax, docH);
 }
 
-export function BlocksuiteStandaloneFrameApp() {
-  const [sp] = useSearchParams();
-  const instanceId = sp.get("instanceId") ?? "";
+function readInitialFrameState() {
+  const sp = typeof window === "undefined"
+    ? new URLSearchParams()
+    : new URLSearchParams(window.location.search);
+  const rawSpaceId = sp.get("spaceId");
+  const n = rawSpaceId ? Number(rawSpaceId) : Number.NaN;
+  const spaceId = Number.isFinite(n) ? n : undefined;
 
-  const [frameParams, setFrameParams] = useState(() => {
-    const rawSpaceId = sp.get("spaceId");
-    const n = rawSpaceId ? Number(rawSpaceId) : Number.NaN;
-    const spaceId = Number.isFinite(n) ? n : undefined;
-    return {
+  return {
+    instanceId: sp.get("instanceId") ?? "",
+    frameParams: {
       workspaceId: sp.get("workspaceId") ?? "",
       docId: sp.get("docId") ?? "",
       spaceId,
@@ -132,8 +133,14 @@ export function BlocksuiteStandaloneFrameApp() {
       allowModeSwitch: parseBool01(sp.get("allowModeSwitch")),
       fullscreenEdgeless: parseBool01(sp.get("fullscreenEdgeless")),
       forcedMode: (sp.get("mode") === "edgeless" ? "edgeless" : "page") as DocMode,
-    };
-  });
+    },
+  };
+}
+
+export function BlocksuiteStandaloneFrameApp() {
+  const initialState = useMemo(() => readInitialFrameState(), []);
+  const instanceId = initialState.instanceId;
+  const [frameParams, setFrameParams] = useState(initialState.frameParams);
 
   const {
     workspaceId,
