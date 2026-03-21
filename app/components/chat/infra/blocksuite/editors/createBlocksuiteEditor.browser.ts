@@ -1,4 +1,5 @@
 import type { DocModeProvider } from "@blocksuite/affine/shared/services";
+
 import { createEmbeddedAffineEditor } from "../embedded/createEmbeddedAffineEditor.client";
 
 type WorkspaceLike = {
