@@ -7,6 +7,7 @@
 - 内部数据结构/术语对照：`INTERNAL-DATA.md`
 - 常见问题排查（标题/SlashMenu/Edgeless/样式等）：`TROUBLESHOOTING.md`
 - 学习路线（从 BlockSuite 源码到本项目集成）：`LEARNING-PATH.md`
+- 独立 frame 重构说明（冷启动与入口改造）：`STANDALONE-FRAME-REFACTOR.md`
 
 ## 1. 依赖说明（本次新增/使用）
 
