@@ -111,6 +111,7 @@ function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEdito
   const mentionProfilePopoverOpenTimerRef = useRef<number | null>(null);
   const mentionProfilePopoverCloseTimerRef = useRef<number | null>(null);
 
+  // 宿主侧承接 mention profile popover，因此需要自己维护 hover/open/close 定时器。
   const clearMentionProfilePopoverOpenTimer = useCallback(() => {
     const timerId = mentionProfilePopoverOpenTimerRef.current;
     if (timerId !== null) {
@@ -159,6 +160,7 @@ function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEdito
     onNavigateRef.current = onNavigate;
   }, [onNavigate]);
 
+  // 每次打开新文档都记录一次冷启动会话，供 perf.ts 汇总。
   useEffect(() => {
     startBlocksuiteOpenSession({
       instanceId,
@@ -182,6 +184,9 @@ function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEdito
 
     const expectedOrigin = window.location.origin;
 
+    // -----------------------------
+    // 宿主 <-> iframe 的统一消息入口
+    // -----------------------------
     const onMessage = (e: MessageEvent) => {
       // 只处理当前 iframe 的消息，避免同页多个编辑器实例互相串台。
       const originOk = !expectedOrigin || expectedOrigin === "null" ? true : e.origin === expectedOrigin;
@@ -199,6 +204,7 @@ function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEdito
         return;
 
       if (data.type === "mode" && (data.mode === "page" || data.mode === "edgeless")) {
+        // iframe 内部模式变化（例如 toolbar 切到 edgeless）需要反向同步给宿主。
         const next = data.mode as DocMode;
         setFrameMode(next);
         onModeChange?.(next);
@@ -212,6 +218,7 @@ function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEdito
 
       if (data.type === "ready") {
         try {
+          // route client chunk 首次 ready 后，补发最新参数与主题，避免 iframe 初始化阶段错过消息。
           postFrameParamsRef.current();
           const frameWindow = iframeRef.current?.contentWindow;
           if (!frameWindow)
@@ -263,6 +270,7 @@ function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEdito
       }
 
       if (data.type === "mention-hover" && (data.state === "enter" || data.state === "leave") && typeof data.userId === "string" && data.userId) {
+        // mention 的浮层真正渲染在宿主页面里，所以 iframe 只回传 anchorRect 和 userId。
         if (data.state === "enter") {
           const anchorRect = data.anchorRect as any;
           const anchorRectOk = Boolean(anchorRect)
@@ -303,6 +311,7 @@ function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEdito
       }
 
       if (data.type === "tc-header" && data.header && typeof data.docId === "string") {
+        // tcHeader 是 iframe 内编辑、宿主侧持久化和外层 UI 共享的一份头部状态。
         if (data.docId !== docId)
           return;
         try {
@@ -329,6 +338,7 @@ function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEdito
       }
 
       if (data.type === "render-ready") {
+        // 用 render-ready 作为“iframe 内容已真正可见”的分界点，控制 loading skeleton 隐藏。
         setIsFrameReady(true);
         if ((import.meta as any)?.env?.DEV) {
           try {
@@ -508,6 +518,7 @@ function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEdito
     if (!isEdgelessFullscreenActive)
       return;
 
+    // 画布全屏时锁住宿主滚动，避免 iframe 内外同时滚动。
     const prevOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     return () => {
@@ -519,6 +530,7 @@ function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEdito
     if (typeof window === "undefined")
       return;
 
+    // 宿主主题变化后，主动把 light/dark 同步给 iframe。
     const postTheme = () => {
       const theme = getCurrentAppTheme();
       try {
@@ -568,6 +580,7 @@ function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEdito
   } | null>(null);
 
   if (tcHeaderEnabled) {
+    // iframe 首次 src 中的 tcHeader fallback 需要稳定，不应随着宿主 render 抖动而反复变化。
     const prev = frozenTcHeaderFallbackRef.current;
     if (!prev || prev.workspaceId !== workspaceId || prev.docId !== docId) {
       frozenTcHeaderFallbackRef.current = {
@@ -620,6 +633,7 @@ function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEdito
   const frozenInitParams = frozenInitParamsRef.current;
 
   const src = useMemo(() => {
+    // iframe 首次导航地址只用冻结后的初始化参数，避免 src 频繁变化导致整页重载。
     const params = new URLSearchParams();
     for (const [key, value] of Object.entries(frozenInitParams)) {
       if (value === undefined)
@@ -694,6 +708,7 @@ function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEdito
   postFrameParamsRef.current = postFrameParams;
 
   const syncFrameBasics = () => {
+    // 与“业务参数”分开，主题和高度请求属于轻量基础同步。
     try {
       const frameWindow = iframeRef.current?.contentWindow;
       if (!frameWindow)
@@ -745,6 +760,7 @@ function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEdito
 
   return (
     <div className={wrapperClassName}>
+      {/* 首次 ready 前显示 skeleton，避免 route client chunk 冷开时直接白屏/黑屏。 */}
       {!hasFrameReadyOnce && !isFrameReady && (
         <div
           className={[
@@ -800,6 +816,7 @@ function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEdito
         height={iframeHeightAttr}
         style={{ backgroundColor: "transparent" }}
         onLoad={() => {
+          // onLoad 只是 iframe 文档加载完成，不代表 editor 已 ready，因此这里只补发基础同步。
           postFrameParams();
           syncFrameBasics();
         }}
