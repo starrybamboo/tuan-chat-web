@@ -99,7 +99,7 @@ Slash menu 不是 paragraph block “自动就有”的功能，它属于 **widg
 
 如果第一次打开慢、第二次快，通常不是 store 本身有问题，而是旧的 route 版 frame 还在做运行时拼装。现在正式路径已经改成独立 iframe 子应用：
 
-- 进入 `/blocksuite-frame/` 时直接加载独立 bundle
+- 进入 `/blocksuite-frame/index.html` 时直接加载独立 bundle
 - core modules / styles / custom elements 在子应用启动时静态装配
 - 文档打开阶段只剩 workspace/doc/store/editor 初始化
 
@@ -111,7 +111,7 @@ Slash menu 不是 paragraph block “自动就有”的功能，它属于 **widg
 
 ### 3.1.2 修复方式
 
-- 确认 iframe `src` 已切到 `/blocksuite-frame/`，而不是旧的 `/blocksuite-frame`
+- 确认 iframe `src` 已切到 `/blocksuite-frame/index.html`，而不是旧的 `/blocksuite-frame`
 - 确认独立入口先完成 `ensureBlocksuiteBrowserRuntime()`
 - 如果是开发环境，确认 `vite.config.ts` 的 warmup 清单包含 standalone frame 的 `main.tsx + browser bootstrap + browser runtimeLoader`
 

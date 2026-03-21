@@ -3,7 +3,7 @@ import { useLocation } from "react-router";
 
 export default function BlocksuiteFrameRoute() {
   const location = useLocation();
-  const target = useMemo(() => `/blocksuite-frame/${location.search}`, [location.search]);
+  const target = useMemo(() => `/blocksuite-frame/index.html${location.search}`, [location.search]);
 
   useEffect(() => {
     window.location.replace(target);

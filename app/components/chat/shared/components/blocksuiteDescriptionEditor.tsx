@@ -1834,7 +1834,7 @@ function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEdito
         continue;
       params.set(k, String(v));
     }
-    return `/blocksuite-frame/?${params.toString()}`;
+    return `/blocksuite-frame/index.html?${params.toString()}`;
   }, [frozenInitParams]);
 
   const hasExplicitHeightClass = useMemo(() => {
@@ -2010,12 +2010,11 @@ function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEdito
       />
       <iframe
         ref={iframeRef} // 保存 iframe DOM 引用，用于 postMessage/读取 contentWindow
-        src={src} // iframe 内加载的独立子应用（/blocksuite-frame/）及其初始化参数
+        src={src} // iframe 内加载的独立子应用（/blocksuite-frame/index.html）及其初始化参数
         title="blocksuite-editor" // 无障碍标签，描述 iframe 内容
         className={iframeClassName} // 尺寸/布局/样式控制（含全屏/高度策略）
         allow="clipboard-read; clipboard-write; fullscreen" // 允许剪贴板读写与全屏权限
         allowFullScreen // 允许 iframe 内请求全屏（配合 allow）
-        sandbox="allow-scripts allow-same-origin" // 沙盒限制，仅放开脚本执行与同源访问
         height={iframeHeightAttr} // 非全屏嵌入态下由子页面回传的高度
         style={{ backgroundColor: "transparent" }}
         onLoad={() => { // iframe 加载完成后同步参数/主题/高度
