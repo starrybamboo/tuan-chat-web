@@ -1041,7 +1041,11 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
     };
   }, [isEdgelessFullscreen]);
 
-  const rootClassName = [tcHeaderEnabled ? "tc-blocksuite-tc-header-enabled" : "", className, (isEdgelessFullscreen || isBrowserFullscreen) ? "h-full min-h-0" : ""]
+  const rootClassName = [
+    tcHeaderEnabled ? "tc-blocksuite-tc-header-enabled" : "",
+    className,
+    (isFull || isEdgelessFullscreen || isBrowserFullscreen) ? "h-full min-h-0" : "",
+  ]
     .filter(Boolean)
     .join(" ");
 
@@ -1074,7 +1078,7 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
     <div className={rootClassName}>
       <div
         ref={fullscreenRootRef}
-        className={`relative bg-base-100 ${viewportOverflowClass}${(isEdgelessFullscreen || isBrowserFullscreen) ? " h-full" : " rounded-box"}${(isFull || isEdgelessFullscreen || isBrowserFullscreen) ? " flex flex-col" : ""}`}
+        className={`relative bg-base-100 ${viewportOverflowClass}${(isFull || isEdgelessFullscreen || isBrowserFullscreen) ? " h-full" : " rounded-box"}${(isFull || isEdgelessFullscreen || isBrowserFullscreen) ? " flex flex-col" : ""}`}
       >
         {tcHeaderEnabled
           ? (
