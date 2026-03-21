@@ -541,6 +541,14 @@ export default defineConfig(({ command, mode }) => {
     // 导致请求到不存在的 `chunk-*.js` 文件。
     cacheDir: "node_modules/.vite-tuan-chat-web",
 
+    build: {
+      rollupOptions: {
+        input: {
+          blocksuiteFrame: resolve(__dirname, "blocksuite-frame/index.html"),
+        },
+      },
+    },
+
     server: {
       port: 5177,
       strictPort: true,
@@ -552,21 +560,22 @@ export default defineConfig(({ command, mode }) => {
       // This does NOT change module resolution (unlike optimizeDeps for @blocksuite/*).
       warmup: {
         clientFiles: [
-          // iframe route entry
-          "app/routes/blocksuiteFrame.tsx",
+          // iframe standalone entry
+          "app/blocksuite-frame/main.tsx",
 
-          // iframe host + runtime loader
+          // iframe host
           "app/components/chat/shared/components/blocksuiteDescriptionEditor.tsx",
 
-          // runtime bootstrap / dynamic imports
-          "app/components/chat/infra/blocksuite/bootstrap/runtime.ts",
-          "app/components/chat/infra/blocksuite/runtime/runtimeLoader.ts",
-          "app/components/chat/infra/blocksuite/editors/createBlocksuiteEditor.ts",
+          // standalone frame bootstrap / runtime
+          "app/components/chat/infra/blocksuite/bootstrap/browser.ts",
+          "app/components/chat/infra/blocksuite/frame/BlocksuiteStandaloneFrameApp.tsx",
+          "app/components/chat/infra/blocksuite/frame/BlocksuiteDescriptionEditorRuntime.browser.tsx",
+          "app/components/chat/infra/blocksuite/runtime/runtimeLoader.browser.ts",
+          "app/components/chat/infra/blocksuite/editors/createBlocksuiteEditor.browser.ts",
           "app/components/chat/infra/blocksuite/spaceWorkspaceRegistry.ts",
 
           // core bootstrap modules
-          "app/components/chat/infra/blocksuite/spec/coreElements.ts",
-          "app/components/chat/infra/blocksuite/styles/ensureBlocksuiteRuntimeStyles.ts",
+          "app/components/chat/infra/blocksuite/spec/coreElements.browser.ts",
 
           // common doc sources/providers
           "app/components/chat/infra/blocksuite/remoteDocSource.ts",

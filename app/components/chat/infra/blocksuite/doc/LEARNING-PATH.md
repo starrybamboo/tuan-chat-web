@@ -61,11 +61,12 @@
    - `app/components/chat/infra/blocksuite/manager/view.ts`
    - 你要理解：我们先定义一份 supported subset，再分别映射到 store extensions 和 view extensions，避免“store 认识这个能力，但 view 入口暴露了另一个能力”的漂移
 
-2. **Bootstrap（iframe 内客户端启动）**
-   - `app/components/chat/infra/blocksuite/bootstrap/runtime.ts`
-   - `app/components/chat/infra/blocksuite/styles/ensureBlocksuiteRuntimeStyles.ts`
-   - `app/components/chat/infra/blocksuite/spec/coreElements.ts`
-   - 你要理解：运行时样式、core modules、custom elements/effects 的初始化被收口到 iframe 内一次性启动，不再由宿主边打开边拼
+2. **Bootstrap（iframe 独立子应用启动）**
+   - `app/components/chat/infra/blocksuite/bootstrap/browser.ts`
+   - `app/components/chat/infra/blocksuite/spec/coreElements.browser.ts`
+   - `app/blocksuite-frame/main.tsx`
+   - `blocksuite-frame/index.html`
+   - 你要理解：frame 现在是独立前端入口，样式与 core modules 作为静态资源进入子应用，而不是宿主打开时再动态注入
 
 3. **Workspace/Doc/Store 运行时（数据与存储管线）**
    - `app/components/chat/infra/blocksuite/runtime/spaceWorkspace.ts`
@@ -73,14 +74,15 @@
    - 你要理解：Space≈Workspace、root Y.Doc + subdoc 的组织方式、IndexedDB 的持久化边界
 
 4. **Editor 创建层（把 manager/runtime 组装成真正编辑器）**
-   - `app/components/chat/infra/blocksuite/runtime/runtimeLoader.ts`
-   - `app/components/chat/infra/blocksuite/editors/createBlocksuiteEditor.ts`
-   - 你要理解：runtimeLoader 负责浏览器侧资源加载，editors 层负责真正创建 editor，不让 React runtime 同时承担 bootstrap 与渲染职责
+   - `app/components/chat/infra/blocksuite/runtime/runtimeLoader.browser.ts`
+   - `app/components/chat/infra/blocksuite/editors/createBlocksuiteEditor.browser.ts`
+   - 你要理解：独立 frame 子图里直接静态装配 runtime 与 editor，文档打开时不再额外拉一层 SSR-safe wrapper
 
 5. **UI 渲染入口（把 editor-host 放进 React）**
    - `app/components/chat/shared/components/blocksuiteDescriptionEditor.tsx`
-   - `app/routes/blocksuiteFrame.tsx`
-   - 你要理解：React 只负责挂载宿主与传参，编辑器核心是 Web Components + std 渲染树
+   - `app/components/chat/infra/blocksuite/frame/BlocksuiteStandaloneFrameApp.tsx`
+   - `app/components/chat/infra/blocksuite/frame/BlocksuiteDescriptionEditorRuntime.browser.tsx`
+   - 你要理解：宿主 React 只负责 iframe 桥接；真正的编辑器 React 壳已经迁进独立 frame 子应用
 
 
 配套阅读：
