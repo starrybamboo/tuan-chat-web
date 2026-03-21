@@ -1,4 +1,9 @@
 import { loadBlocksuiteRuntimeStyleText, ensureBlocksuiteRuntimeStyles } from "../styles/ensureBlocksuiteRuntimeStyles";
+import {
+  markBlocksuiteRuntimePrewarmFailed,
+  markBlocksuiteRuntimePrewarmReady,
+  markBlocksuiteRuntimePrewarmStart,
+} from "../perf";
 import { ensureBlocksuiteCoreElementsDefined, loadBlocksuiteCoreModules } from "../spec/coreElements";
 import { prewarmBlocksuiteRuntimeModules } from "../runtime/runtimeLoader";
 
@@ -25,7 +30,7 @@ function getRuntimeOwner(): RuntimeOwner {
   return owner;
 }
 
-export async function prewarmBlocksuiteRuntime(): Promise<void> {
+export async function prewarmBlocksuiteRuntime(source: "idle" | "intent" | "unknown" = "unknown", docId?: string): Promise<void> {
   if (typeof window === "undefined")
     return;
 
@@ -34,11 +39,19 @@ export async function prewarmBlocksuiteRuntime(): Promise<void> {
     return owner[PREWARM_PROMISE_KEY];
   }
 
+  markBlocksuiteRuntimePrewarmStart({ source, docId });
+
   owner[PREWARM_PROMISE_KEY] = Promise.all([
     loadBlocksuiteRuntimeStyleText(),
     loadBlocksuiteCoreModules(),
     prewarmBlocksuiteRuntimeModules(),
-  ]).then(() => undefined);
+  ]).then(() => {
+    markBlocksuiteRuntimePrewarmReady({ source, docId });
+  }).catch((error) => {
+    markBlocksuiteRuntimePrewarmFailed({ source, docId });
+    delete owner[PREWARM_PROMISE_KEY];
+    throw error;
+  });
 
   return owner[PREWARM_PROMISE_KEY];
 }

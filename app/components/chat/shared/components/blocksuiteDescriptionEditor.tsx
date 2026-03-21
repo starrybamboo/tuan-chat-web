@@ -17,6 +17,11 @@ import { getRemoteSnapshot } from "@/components/chat/infra/blocksuite/descriptio
 import { ensureBlocksuiteDocHeader, setBlocksuiteDocHeader, subscribeBlocksuiteDocHeader } from "@/components/chat/infra/blocksuite/docHeader";
 import { prewarmDescriptionDocOpenIntent } from "@/components/chat/infra/blocksuite/docOpenIntentPrewarm";
 import { prewarmBlocksuiteRuntime } from "@/components/chat/infra/blocksuite/bootstrap/runtime";
+import {
+  finishBlocksuiteOpenSession,
+  markBlocksuiteOpenSession,
+  startBlocksuiteOpenSession,
+} from "@/components/chat/infra/blocksuite/perf";
 import { loadBlocksuiteRuntime } from "@/components/chat/infra/blocksuite/runtime/runtimeLoader";
 import { BlocksuiteMentionProfilePopover } from "@/components/chat/infra/blocksuite/mentionProfilePopover";
 import { parseSpaceDocId } from "@/components/chat/infra/blocksuite/spaceDocId";
@@ -547,6 +552,9 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
         return;
 
       // 3) Create store + editor after hydrate
+      if (instanceIdRef.current) {
+        markBlocksuiteOpenSession(instanceIdRef.current, "store-create-start");
+      }
       // Important: don't overwrite existing doc title.
       runtime.ensureDocMeta({ workspaceId, docId });
       // Blocksuite store 的 readonly 是在创建时决定的；仅切换 editor.readOnly 不足以从只读切到可写。
@@ -614,6 +622,9 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
         }
       }
 
+      if (instanceIdRef.current) {
+        markBlocksuiteOpenSession(instanceIdRef.current, "editor-create-start");
+      }
       const editor = await runtime.createBlocksuiteEditor({
         store,
         workspace: workspace as any,
@@ -684,6 +695,9 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
       storeRef.current = store;
 
       container.replaceChildren(editor as unknown as Node);
+      if (instanceIdRef.current) {
+        markBlocksuiteOpenSession(instanceIdRef.current, "editor-mounted");
+      }
       void remoteSnapshotUpdateTask.then((update) => {
         if (abort.signal.aborted) {
           return;
@@ -706,6 +720,10 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
       if (isProbablyInIframe()) {
         requestAnimationFrame(() => {
           try {
+            if (instanceIdRef.current) {
+              markBlocksuiteOpenSession(instanceIdRef.current, "render-ready");
+              finishBlocksuiteOpenSession(instanceIdRef.current);
+            }
             postToParent({ tc: "tc-blocksuite-frame", instanceId: instanceIdRef.current, type: "render-ready" });
           }
           catch {
@@ -1373,6 +1391,15 @@ function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEdito
   }, [onNavigate]);
 
   useEffect(() => {
+    startBlocksuiteOpenSession({
+      instanceId,
+      workspaceId,
+      docId,
+      variant,
+    });
+  }, [docId, instanceId, variant, workspaceId]);
+
+  useEffect(() => {
     if (typeof window === "undefined") {
       return;
     }
@@ -1382,7 +1409,7 @@ function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEdito
     let idleId: number | null = null;
 
     const run = () => {
-      void prewarmBlocksuiteRuntime().catch(() => {
+      void prewarmBlocksuiteRuntime("idle").catch(() => {
         // ignore
       });
     };

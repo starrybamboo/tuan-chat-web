@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "react-router";
 import { ensureBlocksuiteRuntimeReady } from "@/components/chat/infra/blocksuite/bootstrap/runtime";
 import { isBlocksuiteDebugEnabled } from "@/components/chat/infra/blocksuite/debugFlags";
+import { failBlocksuiteOpenSession, markBlocksuiteOpenSession } from "@/components/chat/infra/blocksuite/perf";
 import { BlocksuiteDescriptionEditorRuntime } from "@/components/chat/shared/components/blocksuiteDescriptionEditor";
 
 function getPostMessageTargetOrigin(): string {
@@ -177,16 +178,26 @@ export default function BlocksuiteFrameRoute() {
 
   useEffect(() => {
     let cancelled = false;
+    if (instanceId) {
+      markBlocksuiteOpenSession(instanceId, "frame-bootstrap-start");
+    }
 
     void ensureBlocksuiteRuntimeReady(document).then(() => {
       if (cancelled)
         return;
+      if (instanceId) {
+        markBlocksuiteOpenSession(instanceId, "frame-bootstrap-ready");
+      }
       setRuntimeError(null);
       setIsRuntimeReady(true);
     }).catch((error) => {
       if (cancelled)
         return;
       console.error("[BlocksuiteFrame] Failed to bootstrap runtime", error);
+      if (instanceId) {
+        markBlocksuiteOpenSession(instanceId, "frame-bootstrap-failed");
+        failBlocksuiteOpenSession(instanceId, error instanceof Error ? error.message : String(error));
+      }
       setRuntimeError("Blocksuite runtime bootstrap failed");
       setIsRuntimeReady(false);
     });
@@ -194,7 +205,7 @@ export default function BlocksuiteFrameRoute() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [instanceId]);
 
   useEffect(() => {
     if (!allowModeSwitch) {
