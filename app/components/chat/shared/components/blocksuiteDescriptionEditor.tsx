@@ -16,6 +16,7 @@ import { parseDescriptionDocId } from "@/components/chat/infra/blocksuite/descri
 import { getRemoteSnapshot } from "@/components/chat/infra/blocksuite/descriptionDocRemote";
 import { ensureBlocksuiteDocHeader, setBlocksuiteDocHeader, subscribeBlocksuiteDocHeader } from "@/components/chat/infra/blocksuite/docHeader";
 import { prewarmDescriptionDocOpenIntent } from "@/components/chat/infra/blocksuite/docOpenIntentPrewarm";
+import { finishBlocksuiteOpenSession, markBlocksuiteOpenSession, startBlocksuiteOpenSession } from "@/components/chat/infra/blocksuite/perf";
 
 import { BlocksuiteMentionProfilePopover } from "@/components/chat/infra/blocksuite/mentionProfilePopover";
 import { parseSpaceDocId } from "@/components/chat/infra/blocksuite/spaceDocId";
@@ -551,6 +552,8 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
     // Hydrate first (restore semantics), then render editor.
     // This avoids binding the UI to an empty initialized root.
     (async () => {
+      markBlocksuiteOpenSession(instanceIdRef.current ?? "", "frame-bootstrap-start");
+
       // 在 blocksuite 初始化前确保运行时 CSS 已经注入（并做作用域重写），避免加载期间污染全局样式。
       try {
         await ensureBlocksuiteRuntimeStyles();
@@ -565,6 +568,7 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
         return;
 
       await runtime.ensureBlocksuiteCoreElementsDefined();
+      markBlocksuiteOpenSession(instanceIdRef.current ?? "", "frame-bootstrap-ready");
       runtime.retainWorkspace(workspaceId);
       retainedRuntime = runtime;
 
@@ -632,6 +636,7 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
       runtime.ensureDocMeta({ workspaceId, docId });
       // Blocksuite store 的 readonly 是在创建时决定的；仅切换 editor.readOnly 不足以从只读切到可写。
       // 因此当 readOnly 改变时，需要重建一次 editor/store（见下方 useEffect 依赖）。
+      markBlocksuiteOpenSession(instanceIdRef.current ?? "", "store-create-start");
       const store = runtime.getOrCreateDoc({ workspaceId, docId, readonly: readOnlyRef.current });
       createdStore = store;
 
@@ -695,6 +700,7 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
         }
       }
 
+      markBlocksuiteOpenSession(instanceIdRef.current ?? "", "editor-create-start");
       const editor = await runtime.createEmbeddedAffineEditor({
         store,
         workspace: workspace as any,
@@ -787,6 +793,8 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
       if (isProbablyInIframe()) {
         requestAnimationFrame(() => {
           try {
+            markBlocksuiteOpenSession(instanceIdRef.current ?? "", "render-ready");
+            finishBlocksuiteOpenSession(instanceIdRef.current ?? "");
             postToParent({ tc: "tc-blocksuite-frame", instanceId: instanceIdRef.current, type: "render-ready" });
           }
           catch {
@@ -1461,6 +1469,15 @@ function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEdito
     }
     void prewarmDescriptionDocOpenIntent(docId);
   }, [docId, intentPrewarm]);
+
+  useEffect(() => {
+    startBlocksuiteOpenSession({
+      instanceId,
+      workspaceId,
+      docId,
+      variant,
+    });
+  }, [docId, instanceId, variant, workspaceId]);
 
   useEffect(() => {
     mentionProfilePopoverStateRef.current = mentionProfilePopover;
