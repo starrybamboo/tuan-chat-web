@@ -1,6 +1,7 @@
 import "@toeverything/theme/style.css";
 import "@toeverything/theme/fonts.css";
 import "katex/dist/katex.min.css";
+
 import "../styles/affine-embed-synced-doc-header.css";
 import "../styles/tcHeader.css";
 import { ensureBlocksuiteCoreElementsDefined } from "../spec/coreElements.browser";

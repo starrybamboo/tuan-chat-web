@@ -14,7 +14,7 @@ import { isBlocksuiteDebugEnabled } from "@/components/chat/infra/blocksuite/deb
 import { parseDescriptionDocId } from "@/components/chat/infra/blocksuite/descriptionDocId";
 import { getRemoteSnapshot } from "@/components/chat/infra/blocksuite/descriptionDocRemote";
 import { ensureBlocksuiteDocHeader, setBlocksuiteDocHeader, subscribeBlocksuiteDocHeader } from "@/components/chat/infra/blocksuite/docHeader";
-import { markBlocksuiteOpenSession, finishBlocksuiteOpenSession } from "@/components/chat/infra/blocksuite/perf";
+import { finishBlocksuiteOpenSession, markBlocksuiteOpenSession } from "@/components/chat/infra/blocksuite/perf";
 import { loadBlocksuiteRuntime } from "@/components/chat/infra/blocksuite/runtime/runtimeLoader.browser";
 import { parseSpaceDocId } from "@/components/chat/infra/blocksuite/spaceDocId";
 import { useEntityHeaderOverrideStore } from "@/components/chat/stores/entityHeaderOverrideStore";
