@@ -1,75 +1,64 @@
 import { isBlocksuiteDebugEnabled } from "./debugFlags";
 
-type BlocksuiteFrameKind = "route";
+type BlocksuitePerfMarkName =
+  | "host-open-start"
+  | "frame-entry-start"
+  | "frame-bootstrap-start"
+  | "frame-bootstrap-ready"
+  | "store-create-start"
+  | "editor-create-start"
+  | "render-ready"
+  | "open-failed";
 
-type BlocksuiteOpenSession = {
+type BlocksuitePerfSession = {
   instanceId: string;
   workspaceId: string;
   docId: string;
   variant: "embedded" | "full";
-  frameKind: BlocksuiteFrameKind;
+  frameKind: "route";
   startedAt: number;
-  marks: Record<string, number>;
-};
-
-export type BlocksuiteOpenPerfSummary = {
-  instanceId: string;
-  workspaceId: string;
-  docId: string;
-  variant: "embedded" | "full";
-  frameKind: BlocksuiteFrameKind;
-  startedAt: number;
-  finishedAt: number;
-  totalMs: number;
+  finishedAt?: number;
+  totalMs?: number;
   frameEntryDelayMs?: number;
   frameAppMountMs?: number;
   frameBootstrapMs?: number;
   editorReadyMs?: number;
-  marks: Record<string, number>;
+  marks: Partial<Record<BlocksuitePerfMarkName, number>>;
 };
 
-type BlocksuitePerfState = {
-  sessions: Map<string, BlocksuiteOpenSession>;
-  history: BlocksuiteOpenPerfSummary[];
+type PerfOwner = {
+  __tcBlocksuitePerfSessions?: Map<string, BlocksuitePerfSession>;
+  __tcBlocksuitePerfLast?: BlocksuitePerfSession;
+  __tcBlocksuitePerfHistory?: BlocksuitePerfSession[];
 };
 
-const PERF_STATE_KEY = "__tcBlocksuitePerfState_v2";
-const PERF_HISTORY_LIMIT = 50;
+export type BlocksuiteOpenPerfSummary = BlocksuitePerfSession;
+
+function getPerfOwner(): PerfOwner {
+  let owner: PerfOwner = globalThis as unknown as PerfOwner;
+
+  if (typeof window !== "undefined") {
+    try {
+      const top = window.top;
+      if (top && top.location?.origin === window.location.origin) {
+        owner = top as unknown as PerfOwner;
+      }
+    }
+    catch {
+      owner = window as unknown as PerfOwner;
+    }
+  }
+
+  owner.__tcBlocksuitePerfSessions ??= new Map<string, BlocksuitePerfSession>();
+  owner.__tcBlocksuitePerfHistory ??= [];
+  return owner;
+}
 
 function now() {
   if (typeof performance !== "undefined" && typeof performance.now === "function") {
     return performance.timeOrigin + performance.now();
   }
   return Date.now();
-}
-
-function getPerfOwner(): Record<string, unknown> {
-  let owner: Record<string, unknown> = globalThis as unknown as Record<string, unknown>;
-
-  if (typeof window !== "undefined") {
-    try {
-      const top = window.top;
-      if (top && top.location?.origin === window.location.origin) {
-        owner = top as unknown as Record<string, unknown>;
-      }
-    }
-    catch {
-      owner = window as unknown as Record<string, unknown>;
-    }
-  }
-
-  return owner;
-}
-
-function getPerfState(): BlocksuitePerfState {
-  const owner = getPerfOwner();
-  if (!owner[PERF_STATE_KEY]) {
-    owner[PERF_STATE_KEY] = {
-      sessions: new Map<string, BlocksuiteOpenSession>(),
-      history: [],
-    } satisfies BlocksuitePerfState;
-  }
-  return owner[PERF_STATE_KEY] as BlocksuitePerfState;
 }
 
 function recordDebugLog(message: string, payload?: Record<string, unknown>) {
@@ -81,52 +70,51 @@ function recordDebugLog(message: string, payload?: Record<string, unknown>) {
   }
 }
 
-function emitPerfSummary(summary: BlocksuiteOpenPerfSummary) {
-  const owner = getPerfOwner() as any;
-  owner.__tcBlocksuitePerfLast = summary;
-  owner.__tcBlocksuitePerfHistory = getPerfState().history;
-
-  if ((import.meta as any)?.env?.DEV) {
-    console.warn("[BlocksuitePerf]", summary);
-  }
-
-  if (isBlocksuiteDebugEnabled()) {
-    recordDebugLog("open-summary", summary as unknown as Record<string, unknown>);
-  }
-}
-
 export function startBlocksuiteOpenSession(params: {
   instanceId: string;
   workspaceId: string;
   docId: string;
   variant: "embedded" | "full";
 }) {
-  const at = now();
-  getPerfState().sessions.set(params.instanceId, {
-    ...params,
+  const owner = getPerfOwner();
+  const startedAt = now();
+  const session: BlocksuitePerfSession = {
+    instanceId: params.instanceId,
+    workspaceId: params.workspaceId,
+    docId: params.docId,
+    variant: params.variant,
     frameKind: "route",
-    startedAt: at,
+    startedAt,
     marks: {
-      "host-open-start": at,
+      "host-open-start": startedAt,
     },
-  });
+  };
+  owner.__tcBlocksuitePerfSessions!.set(params.instanceId, session);
 }
 
-export function markBlocksuiteOpenSession(instanceId: string, mark: string) {
-  const session = getPerfState().sessions.get(instanceId);
-  if (!session) {
+export function markBlocksuiteOpenSession(instanceId: string, mark: BlocksuitePerfMarkName) {
+  if (!instanceId)
     return;
-  }
+
+  const owner = getPerfOwner();
+  const session = owner.__tcBlocksuitePerfSessions?.get(instanceId);
+  if (!session)
+    return;
+
   session.marks[mark] = now();
 }
 
 export function failBlocksuiteOpenSession(instanceId: string, errorMessage: string) {
-  const state = getPerfState();
-  const session = state.sessions.get(instanceId);
-  if (!session) {
+  if (!instanceId)
     return;
-  }
+
+  const owner = getPerfOwner();
+  const session = owner.__tcBlocksuitePerfSessions?.get(instanceId);
+  if (!session)
+    return;
+
   session.marks["open-failed"] = now();
+
   if (isBlocksuiteDebugEnabled()) {
     recordDebugLog("open-failed", {
       instanceId,
@@ -137,55 +125,58 @@ export function failBlocksuiteOpenSession(instanceId: string, errorMessage: stri
   }
 }
 
-export function finishBlocksuiteOpenSession(instanceId: string): BlocksuiteOpenPerfSummary | null {
-  const state = getPerfState();
-  const session = state.sessions.get(instanceId);
-  if (!session) {
+export function finishBlocksuiteOpenSession(instanceId: string) {
+  if (!instanceId)
     return null;
+
+  const owner = getPerfOwner();
+  const session = owner.__tcBlocksuitePerfSessions?.get(instanceId);
+  if (!session)
+    return null;
+
+  session.finishedAt = now();
+  session.totalMs = session.finishedAt - session.startedAt;
+
+  const hostOpenStart = session.marks["host-open-start"];
+  const frameEntryStart = session.marks["frame-entry-start"];
+  const bootstrapStart = session.marks["frame-bootstrap-start"];
+  const bootstrapReady = session.marks["frame-bootstrap-ready"];
+
+  if (typeof hostOpenStart === "number" && typeof frameEntryStart === "number") {
+    session.frameEntryDelayMs = frameEntryStart - hostOpenStart;
   }
 
-  const finishedAt = now();
-  const frameEntryAt = session.marks["frame-entry-start"];
-  const frameBootstrapStartAt = session.marks["frame-bootstrap-start"];
-  const frameBootstrapReadyAt = session.marks["frame-bootstrap-ready"];
-  const renderReadyAt = session.marks["render-ready"] ?? finishedAt;
-
-  const summary: BlocksuiteOpenPerfSummary = {
-    instanceId: session.instanceId,
-    workspaceId: session.workspaceId,
-    docId: session.docId,
-    variant: session.variant,
-    frameKind: session.frameKind,
-    startedAt: session.startedAt,
-    finishedAt: renderReadyAt,
-    totalMs: Math.max(0, renderReadyAt - session.startedAt),
-    frameEntryDelayMs: frameEntryAt
-      ? Math.max(0, frameEntryAt - session.startedAt)
-      : undefined,
-    frameAppMountMs: frameEntryAt && frameBootstrapStartAt
-      ? Math.max(0, frameBootstrapStartAt - frameEntryAt)
-      : undefined,
-    frameBootstrapMs: frameBootstrapStartAt && frameBootstrapReadyAt
-      ? Math.max(0, frameBootstrapReadyAt - frameBootstrapStartAt)
-      : undefined,
-    editorReadyMs: frameBootstrapReadyAt
-      ? Math.max(0, renderReadyAt - frameBootstrapReadyAt)
-      : undefined,
-    marks: {
-      ...session.marks,
-      "open-finished": finishedAt,
-    },
-  };
-
-  state.history.unshift(summary);
-  if (state.history.length > PERF_HISTORY_LIMIT) {
-    state.history.length = PERF_HISTORY_LIMIT;
+  if (typeof frameEntryStart === "number" && typeof bootstrapStart === "number") {
+    session.frameAppMountMs = bootstrapStart - frameEntryStart;
   }
-  state.sessions.delete(instanceId);
-  emitPerfSummary(summary);
-  return summary;
+
+  if (typeof bootstrapStart === "number" && typeof bootstrapReady === "number") {
+    session.frameBootstrapMs = bootstrapReady - bootstrapStart;
+  }
+
+  const renderReady = session.marks["render-ready"];
+  if (typeof bootstrapReady === "number" && typeof renderReady === "number") {
+    session.editorReadyMs = renderReady - bootstrapReady;
+  }
+
+  owner.__tcBlocksuitePerfLast = { ...session, marks: { ...session.marks } };
+  owner.__tcBlocksuitePerfHistory = [
+    owner.__tcBlocksuitePerfLast,
+    ...(owner.__tcBlocksuitePerfHistory ?? []).slice(0, 49),
+  ];
+  owner.__tcBlocksuitePerfSessions?.delete(instanceId);
+
+  if (import.meta.env.DEV) {
+    console.warn("[BlocksuitePerf]", owner.__tcBlocksuitePerfLast);
+  }
+
+  if (isBlocksuiteDebugEnabled()) {
+    recordDebugLog("open-summary", owner.__tcBlocksuitePerfLast as unknown as Record<string, unknown>);
+  }
+
+  return owner.__tcBlocksuitePerfLast;
 }
 
 export function getBlocksuitePerfHistory(): BlocksuiteOpenPerfSummary[] {
-  return [...getPerfState().history];
+  return [...(getPerfOwner().__tcBlocksuitePerfHistory ?? [])];
 }
