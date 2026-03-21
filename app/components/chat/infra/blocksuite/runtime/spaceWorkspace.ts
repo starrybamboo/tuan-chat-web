@@ -25,8 +25,8 @@ import { NonRetryableBlocksuiteDocError } from "@/components/chat/infra/blocksui
 import { blocksuiteWsClient } from "@/components/chat/infra/blocksuite/blocksuiteWsClient";
 import { clearUpdates } from "@/components/chat/infra/blocksuite/descriptionDocDb";
 import { parseDescriptionDocId } from "@/components/chat/infra/blocksuite/descriptionDocId";
-import { RemoteSnapshotDocSource } from "@/components/chat/infra/blocksuite/remoteDocSource";
 import { BLOCKSUITE_STORE_EXTENSIONS } from "@/components/chat/infra/blocksuite/manager/store";
+import { RemoteSnapshotDocSource } from "@/components/chat/infra/blocksuite/remoteDocSource";
 
 const remoteSnapshotDocSource = new RemoteSnapshotDocSource();
 const REMOTE_RESTORE_ORIGIN = "tc:remote-restore";
