@@ -3,7 +3,7 @@ import { useSearchParams } from "react-router";
 
 import { useChatPageLayoutContext } from "@/components/chat/chatPageLayoutContext";
 import RoomWindow from "@/components/chat/room/roomWindow";
-import BlocksuiteDescriptionEditor from "@/components/chat/shared/components/blocksuiteDescriptionEditor";
+import BlocksuiteDescriptionEditor from "@/components/chat/shared/components/BlockSuite/blocksuiteDescriptionEditor";
 import SpaceDetailPanel from "@/components/chat/space/drawers/spaceDetailPanel";
 import RoomSettingWindow from "@/components/chat/window/roomSettingWindow";
 import FriendsPage from "@/components/privateChat/FriendsPage";
