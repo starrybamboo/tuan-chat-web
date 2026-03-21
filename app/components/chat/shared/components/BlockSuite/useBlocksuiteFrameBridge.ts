@@ -1,7 +1,7 @@
 import type { DocMode } from "@blocksuite/affine/model";
 import type { RefObject } from "react";
 
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 
 import type { DescriptionEntityType } from "@/components/chat/infra/blocksuite/descriptionDocId";
 import type { BlocksuiteDocHeader } from "@/components/chat/infra/blocksuite/docHeader";
@@ -75,7 +75,7 @@ export function useBlocksuiteFrameBridge(params: UseBlocksuiteFrameBridgeParams)
     onNavigateRef.current = onNavigate;
   }, [onNavigate]);
 
-  const postFrameParams = () => {
+  const postFrameParams = useCallback(() => {
     try {
       const frameWindow = iframeRef.current?.contentWindow;
       if (!frameWindow)
@@ -102,9 +102,23 @@ export function useBlocksuiteFrameBridge(params: UseBlocksuiteFrameBridgeParams)
     }
     catch {
     }
-  };
+  }, [
+    allowModeSwitch,
+    docId,
+    forcedMode,
+    fullscreenEdgeless,
+    frozenTcHeaderImageUrl,
+    frozenTcHeaderTitle,
+    iframeRef,
+    instanceId,
+    readOnly,
+    spaceId,
+    tcHeaderEnabled,
+    variant,
+    workspaceId,
+  ]);
 
-  const syncFrameBasics = () => {
+  const syncFrameBasics = useCallback(() => {
     try {
       const frameWindow = iframeRef.current?.contentWindow;
       if (!frameWindow)
@@ -127,7 +141,7 @@ export function useBlocksuiteFrameBridge(params: UseBlocksuiteFrameBridgeParams)
     }
     catch {
     }
-  };
+  }, [iframeRef, instanceId]);
 
   useEffect(() => {
     if (typeof window === "undefined")
@@ -302,12 +316,7 @@ export function useBlocksuiteFrameBridge(params: UseBlocksuiteFrameBridgeParams)
       window.removeEventListener("message", onMessage);
     };
   }, [
-    allowModeSwitch,
     docId,
-    forcedMode,
-    fullscreenEdgeless,
-    frozenTcHeaderImageUrl,
-    frozenTcHeaderTitle,
     handleMentionClickMessage,
     handleMentionHoverMessage,
     iframeRef,
@@ -315,14 +324,11 @@ export function useBlocksuiteFrameBridge(params: UseBlocksuiteFrameBridgeParams)
     navigate,
     onModeChange,
     onTcHeaderChange,
-    readOnly,
+    postFrameParams,
     setFrameMode,
     setIframeHeight,
     setIsFrameReady,
-    spaceId,
-    tcHeaderEnabled,
-    variant,
-    workspaceId,
+    syncFrameBasics,
   ]);
 
   useEffect(() => {
@@ -387,19 +393,7 @@ export function useBlocksuiteFrameBridge(params: UseBlocksuiteFrameBridgeParams)
 
   useEffect(() => {
     postFrameParams();
-  }, [
-    allowModeSwitch,
-    docId,
-    forcedMode,
-    fullscreenEdgeless,
-    frozenTcHeaderImageUrl,
-    frozenTcHeaderTitle,
-    readOnly,
-    spaceId,
-    tcHeaderEnabled,
-    variant,
-    workspaceId,
-  ]);
+  }, [postFrameParams]);
 
   return {
     postFrameParams,
