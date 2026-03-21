@@ -2,6 +2,7 @@ import type { SlashMenuItem } from "@blocksuite/affine/widgets/slash-menu";
 import type { ExtensionType } from "@blocksuite/store";
 
 import { EdgelessSelectedRectViewExtension } from "@blocksuite/affine-widget-edgeless-selected-rect/view";
+import { EdgelessZoomToolbarViewExtension } from "@blocksuite/affine-widget-edgeless-zoom-toolbar/view";
 import { NoteSlicerViewExtension } from "@blocksuite/affine-widget-note-slicer/view";
 import { AttachmentViewExtension } from "@blocksuite/affine/blocks/attachment/view";
 import { BookmarkViewExtension } from "@blocksuite/affine/blocks/bookmark/view";
@@ -36,7 +37,6 @@ import { DragHandleViewExtension } from "@blocksuite/affine/widgets/drag-handle/
 import { EdgelessAutoConnectViewExtension } from "@blocksuite/affine/widgets/edgeless-auto-connect/view";
 import { EdgelessDraggingAreaViewExtension } from "@blocksuite/affine/widgets/edgeless-dragging-area/view";
 import { EdgelessToolbarViewExtension } from "@blocksuite/affine/widgets/edgeless-toolbar/view";
-import { EdgelessZoomToolbarViewExtension } from "@blocksuite/affine-widget-edgeless-zoom-toolbar/view";
 import { FrameTitleViewExtension } from "@blocksuite/affine/widgets/frame-title/view";
 import { KeyboardToolbarViewExtension } from "@blocksuite/affine/widgets/keyboard-toolbar/view";
 import { LinkedDocViewExtension } from "@blocksuite/affine/widgets/linked-doc/view";
