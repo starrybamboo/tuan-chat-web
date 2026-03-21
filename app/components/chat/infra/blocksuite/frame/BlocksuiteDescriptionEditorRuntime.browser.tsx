@@ -28,10 +28,8 @@ interface BlocksuiteDescriptionEditorProps {
   /** 仅 space 场景使用：用于路由跳转 & mentions */
   spaceId?: number;
   docId: string;
-  /** iframe 宿主实例 id（用于 postMessage 去重）；仅独立 frame 子应用传入 */
+  /** iframe 宿主实例 id（用于 postMessage 去重） */
   instanceId?: string;
-  /** 已废弃：当前不再使用临场 prewarm，这个入参仅为兼容保留。 */
-  intentPrewarm?: boolean;
   /** 默认嵌入式；`full` 用于全屏/DocRoute 场景 */
   variant?: "embedded" | "full";
   /** 只读模式：允许滚动/选择，但不允许编辑 */

@@ -146,7 +146,7 @@ function readInitialFrameState() {
   };
 }
 
-export function BlocksuiteStandaloneFrameApp() {
+export function BlocksuiteRouteFrameClient() {
   const initialState = useMemo(() => readInitialFrameState(), []);
   const instanceId = initialState.instanceId;
   const [frameParams, setFrameParams] = useState(initialState.frameParams);
