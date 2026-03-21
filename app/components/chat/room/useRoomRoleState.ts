@@ -34,6 +34,7 @@ type UseRoomRoleStateResult = {
 type ResolveCurrentRoomRoleIdParams = {
   storedRoleId?: number | null;
   fallbackRoleId: number;
+  availableRoleIds?: ReadonlySet<number>;
   isSpaceOwner: boolean | undefined;
   isSpectator: boolean;
 };
@@ -41,6 +42,7 @@ type ResolveCurrentRoomRoleIdParams = {
 export function resolveCurrentRoomRoleId({
   storedRoleId,
   fallbackRoleId,
+  availableRoleIds,
   isSpaceOwner,
   isSpectator,
 }: ResolveCurrentRoomRoleIdParams): number {
@@ -51,6 +53,9 @@ export function resolveCurrentRoomRoleId({
     return fallbackRoleId;
   }
   if (storedRoleId <= 0 && !isSpaceOwner) {
+    return fallbackRoleId;
+  }
+  if (storedRoleId > 0 && availableRoleIds && !availableRoleIds.has(storedRoleId)) {
     return fallbackRoleId;
   }
   return storedRoleId;
@@ -97,6 +102,10 @@ export default function useRoomRoleState({
 
     return playerRoles;
   }, [isSpaceOwner, isSpectator, roomBaseRoles, roomNpcRoles, userRoles]);
+  const availableRoleIds = useMemo(
+    () => new Set(roomRolesThatUserOwn.map(role => role.roleId)),
+    [roomRolesThatUserOwn],
+  );
 
   const curRoleIdMap = useRoomRoleSelectionStore(state => state.curRoleIdMap);
   const curAvatarIdMap = useRoomRoleSelectionStore(state => state.curAvatarIdMap);
@@ -119,8 +128,18 @@ export default function useRoomRoleState({
 
   useEffect(() => {
     setRuntimeAvatarIdMap((prev) => {
-      const next: Record<number, number> = { ...prev };
+      const next: Record<number, number> = {};
       let hasChanges = false;
+
+      for (const [rawRoleId, avatarId] of Object.entries(prev)) {
+        const roleId = Number(rawRoleId);
+        if (!Number.isFinite(roleId) || roleId <= 0 || !availableRoleIds.has(roleId)) {
+          hasChanges = true;
+          continue;
+        }
+        next[roleId] = avatarId;
+      }
+
       for (const role of roomRolesThatUserOwn) {
         const roleId = role.roleId;
         const stored = useRoomRoleSelectionStore.getState().curAvatarIdMap[roleId] ?? -1;
@@ -134,12 +153,13 @@ export default function useRoomRoleState({
           hasChanges = true;
         }
       }
+
       if (!hasChanges) {
         return prev;
       }
       return next;
     });
-  }, [roomRolesThatUserOwn]);
+  }, [availableRoleIds, roomRolesThatUserOwn]);
 
   const pickDefaultAvatarId = useCallback((avatars: Array<{ avatarId?: number; avatarTitle?: { label?: string } }>): number => {
     const defaultLabelAvatar = avatars.find(a => (a.avatarTitle?.label || "") === "默认") ?? null;
@@ -208,9 +228,20 @@ export default function useRoomRoleState({
   const curRoleId = resolveCurrentRoomRoleId({
     storedRoleId,
     fallbackRoleId,
+    availableRoleIds,
     isSpaceOwner,
     isSpectator,
   });
+  useEffect(() => {
+    if (roomId <= 0) {
+      return;
+    }
+    if (storedRoleId == null || storedRoleId === curRoleId) {
+      return;
+    }
+    setCurRoleIdForRoom(roomId, curRoleId);
+  }, [curRoleId, roomId, setCurRoleIdForRoom, storedRoleId]);
+
   const setCurRoleId = useCallback((roleId: number) => {
     if (isSpectator) {
       return;
