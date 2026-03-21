@@ -1,9 +1,9 @@
 import { loadBlocksuiteRuntimeStyleText, ensureBlocksuiteRuntimeStyles } from "../styles/ensureBlocksuiteRuntimeStyles";
 import { ensureBlocksuiteCoreElementsDefined, loadBlocksuiteCoreModules } from "../spec/coreElements";
-import { prewarmBlocksuiteRuntimeModules } from "../runtime/runtimeLoader";
+import { loadBlocksuiteRuntimeClientModules } from "../runtime/runtimeLoader";
 
 const READY_PROMISE_KEY = "__tcBlocksuiteRuntimeReadyPromise";
-const PREWARM_PROMISE_KEY = "__tcBlocksuiteRuntimePrewarmPromise";
+const BOOTSTRAP_MODULES_PROMISE_KEY = "__tcBlocksuiteBootstrapModulesPromise";
 
 type RuntimeOwner = Record<string, Promise<void> | undefined>;
 
@@ -25,22 +25,19 @@ function getRuntimeOwner(): RuntimeOwner {
   return owner;
 }
 
-export async function prewarmBlocksuiteRuntime(): Promise<void> {
-  if (typeof window === "undefined")
-    return;
-
+async function loadBlocksuiteBootstrapModules(): Promise<void> {
   const owner = getRuntimeOwner();
-  if (owner[PREWARM_PROMISE_KEY]) {
-    return owner[PREWARM_PROMISE_KEY];
+  if (owner[BOOTSTRAP_MODULES_PROMISE_KEY]) {
+    return owner[BOOTSTRAP_MODULES_PROMISE_KEY];
   }
 
-  owner[PREWARM_PROMISE_KEY] = Promise.all([
+  owner[BOOTSTRAP_MODULES_PROMISE_KEY] = Promise.all([
     loadBlocksuiteRuntimeStyleText(),
     loadBlocksuiteCoreModules(),
-    prewarmBlocksuiteRuntimeModules(),
+    loadBlocksuiteRuntimeClientModules(),
   ]).then(() => undefined);
 
-  return owner[PREWARM_PROMISE_KEY];
+  return owner[BOOTSTRAP_MODULES_PROMISE_KEY];
 }
 
 export async function ensureBlocksuiteRuntimeReady(targetDocument: Document = document): Promise<void> {
@@ -54,7 +51,7 @@ export async function ensureBlocksuiteRuntimeReady(targetDocument: Document = do
 
   owner[READY_PROMISE_KEY] = (async () => {
     const [_, coreModules] = await Promise.all([
-      prewarmBlocksuiteRuntime(),
+      loadBlocksuiteBootstrapModules(),
       loadBlocksuiteCoreModules(),
     ]);
 

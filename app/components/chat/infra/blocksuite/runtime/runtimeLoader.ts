@@ -1,4 +1,4 @@
-import { prewarmBlocksuiteEditor } from "../editors/createBlocksuiteEditor";
+import { loadBlocksuiteEditorClient } from "../editors/createBlocksuiteEditor";
 
 type BlocksuiteRuntime = {
   createBlocksuiteEditor: typeof import("../editors/createBlocksuiteEditor").createBlocksuiteEditor;
@@ -32,11 +32,11 @@ async function loadBlocksuiteRuntimeModules() {
   return runtimeModulesPromise;
 }
 
-export async function prewarmBlocksuiteRuntimeModules(): Promise<void> {
+export async function loadBlocksuiteRuntimeClientModules(): Promise<void> {
   const { editorModule } = await loadBlocksuiteRuntimeModules();
   await Promise.all([
-    prewarmBlocksuiteEditor(),
-    editorModule.prewarmBlocksuiteEditor?.() ?? Promise.resolve(),
+    loadBlocksuiteEditorClient(),
+    editorModule.loadBlocksuiteEditorClient?.() ?? Promise.resolve(),
   ]);
 }
 

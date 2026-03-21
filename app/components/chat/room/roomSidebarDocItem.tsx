@@ -3,7 +3,6 @@ import type { SidebarTreeContextMenuState } from "./sidebarTreeOverlays";
 import type { DraggingItem, DropTarget } from "./useRoomSidebarDragState";
 
 import { FileTextIcon } from "@phosphor-icons/react";
-import { prewarmDescriptionDocOpenIntent } from "@/components/chat/infra/blocksuite/docOpenIntentPrewarm";
 import { setDocRefDragData } from "@/components/chat/utils/docRef";
 import { setSubWindowDragPayload } from "@/components/chat/utils/subWindowDragPayload";
 
@@ -62,12 +61,6 @@ export default function RoomSidebarDocItem({
   const title = docOverrideTitle || (docMetaMap.get(docId)?.title ?? (node as any)?.fallbackTitle ?? docId);
   const coverUrl = docOverrideImageUrl || docFallbackImageUrl;
   const isActive = activeDocId === docId;
-  const triggerIntentPrewarm = () => {
-    if (!(typeof activeSpaceId === "number" && activeSpaceId > 0)) {
-      return;
-    }
-    void prewarmDescriptionDocOpenIntent(docId);
-  };
 
   return (
     <div
@@ -83,21 +76,16 @@ export default function RoomSidebarDocItem({
         setContextMenu({ kind: "doc", x: e.clientX, y: e.clientY, categoryId, index, docId });
       }}
       onClick={() => {
-        triggerIntentPrewarm();
         onSelectDoc?.(docId);
         onCloseLeftDrawer();
       }}
-      onFocus={triggerIntentPrewarm}
       onKeyDown={(e) => {
         if (e.key === "Enter" || e.key === " ") {
           e.preventDefault();
-          triggerIntentPrewarm();
           onSelectDoc?.(docId);
           onCloseLeftDrawer();
         }
       }}
-      onPointerDown={triggerIntentPrewarm}
-      onPointerEnter={triggerIntentPrewarm}
       onDragOver={(e) => {
         if (!canEdit)
           return;

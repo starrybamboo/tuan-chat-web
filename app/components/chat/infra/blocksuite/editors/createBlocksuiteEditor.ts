@@ -5,7 +5,7 @@ type WorkspaceLike = {
   meta?: unknown;
 };
 
-export async function prewarmBlocksuiteEditor(): Promise<void> {
+export async function loadBlocksuiteEditorClient(): Promise<void> {
   if (typeof window === "undefined")
     return;
 

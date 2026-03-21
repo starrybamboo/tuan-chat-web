@@ -15,8 +15,6 @@ import { isBlocksuiteDebugEnabled } from "@/components/chat/infra/blocksuite/deb
 import { parseDescriptionDocId } from "@/components/chat/infra/blocksuite/descriptionDocId";
 import { getRemoteSnapshot } from "@/components/chat/infra/blocksuite/descriptionDocRemote";
 import { ensureBlocksuiteDocHeader, setBlocksuiteDocHeader, subscribeBlocksuiteDocHeader } from "@/components/chat/infra/blocksuite/docHeader";
-import { prewarmDescriptionDocOpenIntent } from "@/components/chat/infra/blocksuite/docOpenIntentPrewarm";
-import { prewarmBlocksuiteRuntime } from "@/components/chat/infra/blocksuite/bootstrap/runtime";
 import { loadBlocksuiteRuntime } from "@/components/chat/infra/blocksuite/runtime/runtimeLoader";
 import { BlocksuiteMentionProfilePopover } from "@/components/chat/infra/blocksuite/mentionProfilePopover";
 import { parseSpaceDocId } from "@/components/chat/infra/blocksuite/spaceDocId";
@@ -33,7 +31,7 @@ interface BlocksuiteDescriptionEditorProps {
   docId: string;
   /** iframe 宿主实例 id（用于 postMessage 去重）；仅 /blocksuite-frame 路由传入 */
   instanceId?: string;
-  /** Only prewarm remote data on explicit open intent; never boot workspace from chat entry. */
+  /** 已废弃：当前不再使用临场 prewarm，这个入参仅为兼容保留。 */
   intentPrewarm?: boolean;
   /** 默认嵌入式；`full` 用于全屏/DocRoute 场景 */
   variant?: "embedded" | "full";
@@ -1291,7 +1289,6 @@ function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEdito
     spaceId,
     docId,
     variant = "embedded",
-    intentPrewarm = false,
     mode: forcedMode = "page",
     readOnly = false,
     allowModeSwitch = false,
@@ -1371,59 +1368,6 @@ function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEdito
   useEffect(() => {
     onNavigateRef.current = onNavigate;
   }, [onNavigate]);
-
-  useEffect(() => {
-    if (typeof window === "undefined") {
-      return;
-    }
-
-    let cancelled = false;
-    let timeoutId: number | null = null;
-    let idleId: number | null = null;
-
-    const run = () => {
-      void prewarmBlocksuiteRuntime().catch(() => {
-        // ignore
-      });
-    };
-
-    const requestIdle = (window as Window & {
-      requestIdleCallback?: (callback: IdleRequestCallback, options?: IdleRequestOptions) => number;
-      cancelIdleCallback?: (handle: number) => void;
-    }).requestIdleCallback;
-
-    if (typeof requestIdle === "function") {
-      idleId = requestIdle(() => {
-        if (!cancelled) {
-          run();
-        }
-      }, { timeout: 1200 });
-    }
-    else {
-      timeoutId = window.setTimeout(() => {
-        if (!cancelled) {
-          run();
-        }
-      }, 300);
-    }
-
-    return () => {
-      cancelled = true;
-      if (timeoutId !== null) {
-        window.clearTimeout(timeoutId);
-      }
-      if (idleId !== null && typeof (window as any).cancelIdleCallback === "function") {
-        (window as any).cancelIdleCallback(idleId);
-      }
-    };
-  }, []);
-
-  useEffect(() => {
-    if (!intentPrewarm) {
-      return;
-    }
-    void prewarmDescriptionDocOpenIntent(docId);
-  }, [docId, intentPrewarm]);
 
   useEffect(() => {
     mentionProfilePopoverStateRef.current = mentionProfilePopover;
