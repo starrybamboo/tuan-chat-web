@@ -1,3 +1,9 @@
+/**
+ * Store / View 共用的一份受支持能力清单。
+ *
+ * 它不是“列出所有 BlockSuite 能力”，而是约束本项目当前明确支持的子集，
+ * 防止 view 暴露了 store 不认识的能力。
+ */
 export const SUPPORTED_BLOCKSUITE_FEATURES = [
   "foundation",
   "root",

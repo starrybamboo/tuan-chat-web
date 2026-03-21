@@ -57,6 +57,12 @@ import {
 
 } from "./featureSet";
 
+/**
+ * 把 featureSet 映射到 page / edgeless 两套 view specs。
+ *
+ * 这一层决定“哪些 UI 能出现”，例如 slash menu、toolbar、linked-doc、mention。
+ * 它与 store.ts 的关系是：同一份 supported subset 同时约束数据层与视图层。
+ */
 type ViewProviderClass = new (...args: any[]) => ViewExtensionProvider;
 
 const FILTERED_SURFACE_REF_SLASH_ITEM_NAME_SET = new Set<string>(FILTERED_SURFACE_REF_SLASH_ITEM_NAMES);
@@ -93,6 +99,8 @@ class SupportedSlashMenuFilterViewExtension extends ViewExtensionProvider {
       ? prototype.configItemTransform
       : (item: SlashMenuItem) => item;
 
+    // surface-ref 默认会把 mindmap/group 等入口重新带回 slash menu；
+    // 这里做最后一道 UI 过滤，避免暴露未支持能力。
     prototype.configItemTransform = function (item: SlashMenuItem) {
       const transformed = prevTransform.call(this, item);
       if (!shouldHideUnsupportedSlashItem(transformed))

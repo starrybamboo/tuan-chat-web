@@ -13,6 +13,8 @@ import { when } from "lit/directives/when.js";
 export const TC_AFFINE_EDITOR_CONTAINER_TAG = "tc-affine-editor-container";
 
 /**
+ * 真正把 BlockStdScope 渲染到 DOM 的 Web Component 容器。
+ *
  * Forked from `@blocksuite/integration-test`'s TestAffineEditorContainer.
  *
  * Why: the integration-test container always inserts `<doc-title>` in page mode.
@@ -97,6 +99,7 @@ class TCAffineEditorContainer extends SignalWatcher(
   );
 
   private readonly _std = computed(() => {
+    // std 是 BlockSuite 的“渲染宿主”，负责把 store + specs 变成真正的 editor-host。
     return new BlockStdScope({
       store: this.doc,
       extensions: this._specs.value,
@@ -182,6 +185,7 @@ class TCAffineEditorContainer extends SignalWatcher(
     const showDocTitle = mode === "page" && !this.disableDocTitle;
 
     if (!rootModel) {
+      // 文档骨架尚未 ready 时，先渲染空 viewport，避免访问 null root.id。
       return html`
         <div
           data-theme=${mode === "page" ? appTheme : edgelessTheme}
