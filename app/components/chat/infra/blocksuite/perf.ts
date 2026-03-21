@@ -1,10 +1,14 @@
+import { isBlocksuiteDebugEnabled } from "./debugFlags";
+
 type BlocksuitePerfMarkName =
   | "host-open-start"
+  | "frame-entry-start"
   | "frame-bootstrap-start"
   | "frame-bootstrap-ready"
   | "store-create-start"
   | "editor-create-start"
-  | "render-ready";
+  | "render-ready"
+  | "open-failed";
 
 type BlocksuitePerfSession = {
   instanceId: string;
@@ -15,6 +19,8 @@ type BlocksuitePerfSession = {
   startedAt: number;
   finishedAt?: number;
   totalMs?: number;
+  frameEntryDelayMs?: number;
+  frameAppMountMs?: number;
   frameBootstrapMs?: number;
   editorReadyMs?: number;
   marks: Partial<Record<BlocksuitePerfMarkName, number>>;
@@ -25,6 +31,8 @@ type PerfOwner = {
   __tcBlocksuitePerfLast?: BlocksuitePerfSession;
   __tcBlocksuitePerfHistory?: BlocksuitePerfSession[];
 };
+
+export type BlocksuiteOpenPerfSummary = BlocksuitePerfSession;
 
 function getPerfOwner(): PerfOwner {
   let owner: PerfOwner = globalThis as unknown as PerfOwner;
@@ -47,7 +55,19 @@ function getPerfOwner(): PerfOwner {
 }
 
 function now() {
+  if (typeof performance !== "undefined" && typeof performance.now === "function") {
+    return performance.timeOrigin + performance.now();
+  }
   return Date.now();
+}
+
+function recordDebugLog(message: string, payload?: Record<string, unknown>) {
+  try {
+    const fn = (globalThis as any).__tcBlocksuiteDebugLog as undefined | ((entry: any) => void);
+    fn?.({ source: "BlocksuitePerf", message, payload });
+  }
+  catch {
+  }
 }
 
 export function startBlocksuiteOpenSession(params: {
@@ -84,6 +104,27 @@ export function markBlocksuiteOpenSession(instanceId: string, mark: BlocksuitePe
   session.marks[mark] = now();
 }
 
+export function failBlocksuiteOpenSession(instanceId: string, errorMessage: string) {
+  if (!instanceId)
+    return;
+
+  const owner = getPerfOwner();
+  const session = owner.__tcBlocksuitePerfSessions?.get(instanceId);
+  if (!session)
+    return;
+
+  session.marks["open-failed"] = now();
+
+  if (isBlocksuiteDebugEnabled()) {
+    recordDebugLog("open-failed", {
+      instanceId,
+      docId: session.docId,
+      workspaceId: session.workspaceId,
+      errorMessage,
+    });
+  }
+}
+
 export function finishBlocksuiteOpenSession(instanceId: string) {
   if (!instanceId)
     return null;
@@ -96,8 +137,19 @@ export function finishBlocksuiteOpenSession(instanceId: string) {
   session.finishedAt = now();
   session.totalMs = session.finishedAt - session.startedAt;
 
+  const hostOpenStart = session.marks["host-open-start"];
+  const frameEntryStart = session.marks["frame-entry-start"];
   const bootstrapStart = session.marks["frame-bootstrap-start"];
   const bootstrapReady = session.marks["frame-bootstrap-ready"];
+
+  if (typeof hostOpenStart === "number" && typeof frameEntryStart === "number") {
+    session.frameEntryDelayMs = frameEntryStart - hostOpenStart;
+  }
+
+  if (typeof frameEntryStart === "number" && typeof bootstrapStart === "number") {
+    session.frameAppMountMs = bootstrapStart - frameEntryStart;
+  }
+
   if (typeof bootstrapStart === "number" && typeof bootstrapReady === "number") {
     session.frameBootstrapMs = bootstrapReady - bootstrapStart;
   }
@@ -110,7 +162,7 @@ export function finishBlocksuiteOpenSession(instanceId: string) {
   owner.__tcBlocksuitePerfLast = { ...session, marks: { ...session.marks } };
   owner.__tcBlocksuitePerfHistory = [
     owner.__tcBlocksuitePerfLast,
-    ...(owner.__tcBlocksuitePerfHistory ?? []).slice(0, 19),
+    ...(owner.__tcBlocksuitePerfHistory ?? []).slice(0, 49),
   ];
   owner.__tcBlocksuitePerfSessions?.delete(instanceId);
 
@@ -118,5 +170,13 @@ export function finishBlocksuiteOpenSession(instanceId: string) {
     console.warn("[BlocksuitePerf]", owner.__tcBlocksuitePerfLast);
   }
 
+  if (isBlocksuiteDebugEnabled()) {
+    recordDebugLog("open-summary", owner.__tcBlocksuitePerfLast as unknown as Record<string, unknown>);
+  }
+
   return owner.__tcBlocksuitePerfLast;
+}
+
+export function getBlocksuitePerfHistory(): BlocksuiteOpenPerfSummary[] {
+  return [...(getPerfOwner().__tcBlocksuitePerfHistory ?? [])];
 }

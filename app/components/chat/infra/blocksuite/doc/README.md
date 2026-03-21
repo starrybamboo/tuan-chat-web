@@ -7,6 +7,7 @@
 - 内部数据结构/术语对照：`INTERNAL-DATA.md`
 - 常见问题排查（标题/SlashMenu/Edgeless/样式等）：`TROUBLESHOOTING.md`
 - 学习路线（从 BlockSuite 源码到本项目集成）：`LEARNING-PATH.md`
+- 当前 `boundary` 相对 `dev` 的净改动与性能效果：`BOUNDARY-VS-DEV.md`
 
 ## 1. 依赖说明（本次新增/使用）
 
@@ -17,16 +18,16 @@
 - app/components/chat/shared/components/blocksuiteDescriptionEditor.tsx
   - Props：`{ spaceId, docId, mode?: "page" | "edgeless" }`
   - 通过 `spaceWorkspaceRegistry.getOrCreateSpaceDoc({ spaceId, docId })` 获取 store
-  - 使用 starter playground 同款组装方式创建 `affine-editor-container`（page/edgeless specs 来自 `@blocksuite/integration-test/view`）
+  - 通过项目内 `manager/store` 和 `manager/view` 产出受支持子集，再创建 `affine-editor-container`
   - `mode` 由 React state 驱动，并通过 DI override 注入 `DocModeProvider`
 
-### 2.2 Spec（Affine-like block tree）
+### 2.2 Manager（Affine-like supported subset）
 
-- 文件：app/components/chat/infra/blocksuite/spec/affineSpec.ts
-  - 使用 `@blocksuite/affine-ext-loader` + 一组 affine block 扩展，构造：
-    - `AFFINE_STORE_EXTENSIONS`
-    - `AFFINE_PAGE_STD_EXTENSIONS`
-    - `AFFINE_EDGELESS_STD_EXTENSIONS`
+- 文件：
+  - app/components/chat/infra/blocksuite/manager/store.ts
+  - app/components/chat/infra/blocksuite/manager/view.ts
+  - app/components/chat/infra/blocksuite/manager/featureSet.ts
+  - 用同一份 supported subset 驱动 store/view 装配，避免 `store` 与 `view` 能力边界漂移
 
 > 备注：目前 store 初始化时会创建一个最小的 Affine-like block tree：
 > `affine:page -> (affine:surface, affine:note -> affine:paragraph)`

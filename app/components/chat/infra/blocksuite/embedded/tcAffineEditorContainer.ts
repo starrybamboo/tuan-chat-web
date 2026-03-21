@@ -149,7 +149,7 @@ class TCAffineEditorContainer extends SignalWatcher(
   }
 
   get rootModel() {
-    return this.doc.root as BlockModel;
+    return this.doc.root as BlockModel | null;
   }
 
   get std() {
@@ -177,11 +177,25 @@ class TCAffineEditorContainer extends SignalWatcher(
     const themeService = this.std.get(ThemeProvider);
     const appTheme = themeService.app$.value;
     const edgelessTheme = themeService.edgeless$.value;
+    const rootModel = this.rootModel;
 
     const showDocTitle = mode === "page" && !this.disableDocTitle;
 
+    if (!rootModel) {
+      return html`
+        <div
+          data-theme=${mode === "page" ? appTheme : edgelessTheme}
+          class=${mode === "page" ? "affine-page-viewport" : "affine-edgeless-viewport"}
+        >
+          <div
+            class=${mode === "page" ? "page-editor playground-page-editor-container" : "edgeless-editor-container"}
+          ></div>
+        </div>
+      `;
+    }
+
     return html`${keyed(
-      this.rootModel.id + mode,
+      rootModel.id + mode,
       html`
         <div
           data-theme=${mode === "page" ? appTheme : edgelessTheme}

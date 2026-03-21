@@ -21,12 +21,13 @@
 - 标题由 **fragment / widget 的 ViewExtension** 渲染（例如 `DocTitleViewExtension`）
 - 它依赖 **ViewExtensionManager 注册的 widgets/fragments**，并通过 Std 层挂到 `affine:page` 的渲染树里
 
-如果你的 spec 只注册了少量 blocks（root/note/paragraph/surface）对应的 ViewExtension，那么标题相关 fragment 根本不会出现。
+如果你的 view manager 只注册了少量 blocks（root/note/paragraph/surface）对应的 ViewExtension，那么标题相关 fragment 根本不会出现。
 
 ### 1.3 修复方式
 
-- Spec 侧：使用 AFFiNE 内置的 view extensions（包含 doc title、slash menu、toolbar 等）
-  - 见：`app/components/chat/infra/blocksuite/spec/affineSpec.ts`
+- View manager 侧：确认受支持子集里保留了 `doc-title`，并且 `manager/view.ts` 里实际映射到了 `DocTitleViewExtension`
+  - 见：`app/components/chat/infra/blocksuite/manager/featureSet.ts`
+  - 见：`app/components/chat/infra/blocksuite/manager/view.ts`
 
 ---
 
@@ -54,7 +55,9 @@ Blocksuite 官方 examples 里经常会 `import '@blocksuite/presets/themes/affi
 ### 2.3 修复方式
 
 - 确保初始化/迁移时为 `affine:paragraph` 补齐 `props.text: Text`（可提供 `yText`）
-- 确保 `rich-text` custom element 已注册（见 `ensureBlocksuiteCoreElementsDefined`）
+- 确保 `/blocksuite-frame` 路由已经进入 route client chunk，`rich-text` custom element 已注册
+  - 见：`app/components/chat/infra/blocksuite/bootstrap/browser.ts`
+  - 见：`app/components/chat/infra/blocksuite/spec/coreElements.browser.ts`
 
 ---
 
@@ -69,17 +72,48 @@ Blocksuite 官方 examples 里经常会 `import '@blocksuite/presets/themes/affi
 
 Slash menu 不是 paragraph block “自动就有”的功能，它属于 **widget view extension**（在 AFFiNE 里一般叫 `SlashMenuViewExtension`）。
 
-如果 spec 没注册对应 widget：
+如果 view manager 没注册对应 widget：
 - paragraph 仍然会展示 placeholder 文案（提示你有这个能力）
 - 但真正的 slash menu 组件不会被挂载，所以输入 `/` 没反应
 
+另一类更隐蔽的问题是：
+- `view` 暴露了 slash menu 入口
+- 但 `store/schema` 没有对应 block flavour
+
+这样会出现“菜单里能看到能力，但插入失败或回放失败”的漂移。我们现在用 `featureSet.ts` 驱动 `store.ts` 和 `view.ts`，就是为了避免这个问题。
+
 ### 3.3 修复方式
 
-- Spec 侧补齐 widgets：
-  - 最简单：使用 AFFiNE 的 `getInternalViewExtensions()`
-  - 见：`app/components/chat/infra/blocksuite/spec/affineSpec.ts`
+- View manager 侧补齐 `slash-menu`，并确认它和 store 受支持子集一致：
+  - `app/components/chat/infra/blocksuite/manager/featureSet.ts`
+  - `app/components/chat/infra/blocksuite/manager/view.ts`
+  - `app/components/chat/infra/blocksuite/manager/store.ts`
 
-> 注意：我们项目里不推荐走 `getInternalViewExtensions()` 这类深层导入（容易触发 `src`/`dist` 类型不一致，造成 typecheck 噪音）。当前采用的是“手动显式注册关键 widget/fragment view extensions”的方式。
+> 注意：我们项目里不再使用 `getTestViewManager()` / `getInternalViewExtensions()` 这类近全量入口。当前采用的是“手动显式声明 supported subset，再映射到 manager”的方式。
+
+---
+
+## 3.1 现象：第一次打开文档很慢，但第二次明显变快
+
+### 3.1.1 根因（底层逻辑）
+
+如果第一次打开慢、第二次快，通常不是 store 本身有问题，而是 `/blocksuite-frame` 对应的 route client chunk 还没完成首次加载与求值。当前冷启动主要分成三段：
+
+- `host-open-start -> frame-entry-start`：iframe 导航与 route client chunk 首次执行
+- `frame-entry-start -> frame-bootstrap-ready`：route client chunk 内的静态 bootstrap 与 custom elements 注册
+- `frame-bootstrap-ready -> render-ready`：store 创建与 editor 真正 ready
+
+对应文件：
+- `app/routes/blocksuiteFrame.tsx`
+- `app/components/chat/infra/blocksuite/frame/BlocksuiteRouteFrameClient.tsx`
+- `app/components/chat/infra/blocksuite/bootstrap/browser.ts`
+
+### 3.1.2 修复方式
+
+- 确认 `/blocksuite-frame` 是否成功进入 route client chunk，而不是卡在 iframe 加载或路由 fallback
+- 确认 `ensureBlocksuiteBrowserRuntime()` 是否完成
+- 如果是开发环境，结合 Network 查看 route client chunk 是否存在异常的大量碎片请求
+- 需要量化时，可在控制台查看 `window.__tcBlocksuitePerfLast` 和 `window.__tcBlocksuitePerfHistory`
 
 ---
 
@@ -95,8 +129,8 @@ Slash menu 不是 paragraph block “自动就有”的功能，它属于 **widg
 “能不能切换”分两层：
 
 1) 数据与渲染能力是否存在
-- store extensions 里要包含 `surface` 相关 blocks
-- view extensions 里要包含 edgeless 的渲染 preset
+- store manager 里要包含 `surface` 相关 blocks
+- view manager 里要包含 edgeless 的渲染 preset 和相关 widgets
 
 2) 有没有触发切换的交互入口
 - 通常由 toolbar / edgeless toolbar 等 widgets 提供 UI
@@ -107,7 +141,7 @@ Slash menu 不是 paragraph block “自动就有”的功能，它属于 **widg
 
 ### 4.3 修复方式
 
-- 保证 spec 中包含 toolbar/edgeless 相关 widgets（内置 view extensions 会包含）
+- 保证 `manager/view.ts` 中包含 toolbar/edgeless 相关 widgets，并且这些能力在 `featureSet.ts` 里是受支持的
 - 我们的实现里：
   - `BlocksuiteDescriptionEditor` 通过 `DocModeExtension(docModeProvider)` 注入 provider
   - widgets 会调用 provider，React state 驱动重渲染，完成 page/edgeless 切换
@@ -118,6 +152,7 @@ Slash menu 不是 paragraph block “自动就有”的功能，它属于 **widg
 
 - **StoreExtensions**：决定“有哪些 block/数据结构”
 - **ViewExtensions(StdExtensions)**：决定“怎么渲染、怎么交互、有哪些 widget/fragment”
+- **FeatureSet/Manager**：决定“项目到底支持哪一组能力，以及 store/view 是否一致”
 - `BlockStdScope({ store, extensions }).render()`：把两者拼起来得到 `editor-host`
 
 一个典型的“看起来坏掉”的场景，本质就是：
