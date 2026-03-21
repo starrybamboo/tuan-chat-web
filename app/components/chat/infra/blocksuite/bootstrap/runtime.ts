@@ -1,11 +1,11 @@
-import { loadBlocksuiteRuntimeStyleText, ensureBlocksuiteRuntimeStyles } from "../styles/ensureBlocksuiteRuntimeStyles";
 import {
   markBlocksuiteRuntimePrewarmFailed,
   markBlocksuiteRuntimePrewarmReady,
   markBlocksuiteRuntimePrewarmStart,
 } from "../perf";
-import { ensureBlocksuiteCoreElementsDefined, loadBlocksuiteCoreModules } from "../spec/coreElements";
 import { prewarmBlocksuiteRuntimeModules } from "../runtime/runtimeLoader";
+import { ensureBlocksuiteCoreElementsDefined, loadBlocksuiteCoreModules } from "../spec/coreElements";
+import { ensureBlocksuiteRuntimeStyles, loadBlocksuiteRuntimeStyleText } from "../styles/ensureBlocksuiteRuntimeStyles";
 
 const READY_PROMISE_KEY = "__tcBlocksuiteRuntimeReadyPromise";
 const PREWARM_PROMISE_KEY = "__tcBlocksuiteRuntimePrewarmPromise";
