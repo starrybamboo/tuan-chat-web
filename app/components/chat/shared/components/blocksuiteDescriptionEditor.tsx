@@ -5,10 +5,10 @@ import type { BlocksuiteMentionProfilePopoverState } from "@/components/chat/inf
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router";
 import { isBlocksuiteDebugEnabled } from "@/components/chat/infra/blocksuite/debugFlags";
+import { BlocksuiteMentionProfilePopover } from "@/components/chat/infra/blocksuite/mentionProfilePopover";
 import {
   startBlocksuiteOpenSession,
 } from "@/components/chat/infra/blocksuite/perf";
-import { BlocksuiteMentionProfilePopover } from "@/components/chat/infra/blocksuite/mentionProfilePopover";
 import { useEntityHeaderOverrideStore } from "@/components/chat/stores/entityHeaderOverrideStore";
 
 interface BlocksuiteDescriptionEditorProps {
@@ -321,6 +321,19 @@ function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEdito
 
       if (data.type === "render-ready") {
         setIsFrameReady(true);
+        if ((import.meta as any)?.env?.DEV) {
+          try {
+            const owner = window.top && window.top.location?.origin === window.location.origin
+              ? window.top as any
+              : window as any;
+            const summary = owner.__tcBlocksuitePerfLast;
+            if (summary && summary.instanceId === instanceId) {
+              console.warn("[BlocksuitePerf]", summary);
+            }
+          }
+          catch {
+          }
+        }
         return;
       }
 
