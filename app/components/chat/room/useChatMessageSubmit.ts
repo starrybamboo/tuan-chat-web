@@ -8,10 +8,11 @@ import { useAudioMessageAutoPlayStore } from "@/components/chat/stores/audioMess
 import { useChatComposerStore } from "@/components/chat/stores/chatComposerStore";
 import { useChatInputUiStore } from "@/components/chat/stores/chatInputUiStore";
 import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
+import { buildOutOfCharacterSpeechContent } from "@/components/chat/utils/outOfCharacterSpeech";
 import { isRoomJumpCommandText, parseRoomJumpCommand } from "@/components/chat/utils/roomJump";
 import { isCommand } from "@/components/common/dicer/cmdPre";
 import { formatAnkoDiceMessage } from "@/components/common/dicer/diceTable";
-import { ANNOTATION_IDS, getFigurePositionFromAnnotations, hasAnnotation, hasClearFigureAnnotation, normalizeAnnotations, setAnnotation, setFigurePositionAnnotation } from "@/types/messageAnnotations";
+import { ANNOTATION_IDS, hasAnnotation, normalizeAnnotations, setAnnotation } from "@/types/messageAnnotations";
 import { isAudioUploadDebugEnabled } from "@/utils/audioDebugFlags";
 import { getImageSize } from "@/utils/getImgSize";
 import { UploadUtils } from "@/utils/UploadUtils";
@@ -123,25 +124,9 @@ export default function useChatMessageSubmit({
     const trimmedWithoutMentions = inputTextWithoutMentions.trim();
     const isBlankInput = trimmedInputText.length === 0;
 
-    const {
-      webgalLinkMode,
-      dialogNotend,
-      dialogConcat,
-      defaultFigurePositionMap,
-    } = useRoomPreferenceStore.getState();
-
-    const currentDefaultFigurePosition = defaultFigurePositionMap[curRoleId];
     const normalizedComposerAnnotations = normalizeAnnotations(composerAnnotations);
     const normalizedTempAnnotations = normalizeAnnotations(tempAnnotations);
-    const tempFigurePosition = getFigurePositionFromAnnotations(normalizedTempAnnotations);
-    const roleFigurePosition = getFigurePositionFromAnnotations(normalizedComposerAnnotations);
-    let mergedComposerAnnotations = normalizeAnnotations([...normalizedComposerAnnotations, ...normalizedTempAnnotations]);
-    if (tempFigurePosition) {
-      mergedComposerAnnotations = setFigurePositionAnnotation(mergedComposerAnnotations, tempFigurePosition);
-    }
-    else if (roleFigurePosition) {
-      mergedComposerAnnotations = setFigurePositionAnnotation(mergedComposerAnnotations, roleFigurePosition);
-    }
+    const mergedComposerAnnotations = normalizeAnnotations([...normalizedComposerAnnotations, ...normalizedTempAnnotations]);
     const useBackgroundAnnotation = hasAnnotation(mergedComposerAnnotations, ANNOTATION_IDS.BACKGROUND);
     const useCgAnnotation = hasAnnotation(mergedComposerAnnotations, ANNOTATION_IDS.CG);
     const composerAudioPurpose = hasAnnotation(mergedComposerAnnotations, ANNOTATION_IDS.BGM)
@@ -152,21 +137,38 @@ export default function useChatMessageSubmit({
 
     const isKP = isSpaceOwner;
     const isNarrator = noRole;
+    const isSpectator = notMember;
+    const senderRoleId = isSpectator ? -1 : curRoleId;
+    const spectatorTextContent = isSpectator
+      ? buildOutOfCharacterSpeechContent(trimmedInputText)
+      : null;
+    const hasPendingAttachmentPayload = (
+      imgFiles.length > 0
+      || emojiUrls.length > 0
+      || fileAttachments.length > 0
+      || Boolean(audioFile)
+    );
 
-    const disableSendMessage = (notMember || isSubmitting)
-      || (isNarrator && !isKP);
+    const disableSendMessage = isSubmitting
+      || (isNarrator && !isKP && !isSpectator);
 
     if (disableSendMessage) {
-      if (notMember)
-        toast.error("您是观战，不能发送消息");
-      else if (isNarrator && !isKP)
-        toast.error("旁白仅KP可用，请先选择/拉入你的角色");
+      if (isNarrator && !isKP)
+        toast.error("旁白仅主持可用，请先选择/拉入你的角色");
       else if (isSubmitting)
         toast.error("正在提交中，请稍后");
       return;
     }
     if (inputText.length > 1024) {
       toast.error("消息长度不能超过 1024 字（含富文本标记）");
+      return;
+    }
+    if (isSpectator && !spectatorTextContent && !hasPendingAttachmentPayload) {
+      toast.error("观战发言不能为空");
+      return;
+    }
+    if (spectatorTextContent && spectatorTextContent.length > 1024) {
+      toast.error("观战发言长度不能超过 1022 字");
       return;
     }
 
@@ -184,7 +186,9 @@ export default function useChatMessageSubmit({
       const uploadedImages: any[] = [];
       const uploadedVideos: Array<{ url: string; fileName: string; size: number; second?: number }> = [];
       const uploadedFiles: Array<{ url: string; fileName: string; size: number }> = [];
-      const resolvedAvatarId = await ensureRuntimeAvatarIdForRole(curRoleId);
+      const resolvedAvatarId = senderRoleId > 0
+        ? await ensureRuntimeAvatarIdForRole(senderRoleId)
+        : -1;
 
       for (let i = 0; i < imgFiles.length; i++) {
         const imgDownLoadUrl = await uploadUtilsRef.current.uploadImg(imgFiles[i]);
@@ -330,7 +334,7 @@ export default function useChatMessageSubmit({
       const getCommonFields = () => {
         const fields: Partial<ChatMessageRequest> = {
           roomId,
-          roleId: curRoleId,
+          roleId: senderRoleId,
           avatarId: resolvedAvatarId,
         };
 
@@ -339,8 +343,8 @@ export default function useChatMessageSubmit({
           fields.threadId = activeThreadRootId;
         }
 
-        if (curRoleId > 0) {
-          const draftCustomRoleName = useRoomPreferenceStore.getState().draftCustomRoleNameMap[curRoleId];
+        if (senderRoleId > 0) {
+          const draftCustomRoleName = useRoomPreferenceStore.getState().draftCustomRoleNameMap[senderRoleId];
           if (draftCustomRoleName?.trim()) {
             fields.customRoleName = draftCustomRoleName.trim();
           }
@@ -348,29 +352,21 @@ export default function useChatMessageSubmit({
 
         if (isFirstMessage) {
           fields.replayMessageId = finalReplyId;
-          let nextAnnotations = mergedComposerAnnotations;
-          if (webgalLinkMode) {
-            if (!hasClearFigureAnnotation(nextAnnotations) && !getFigurePositionFromAnnotations(nextAnnotations)) {
-              nextAnnotations = setFigurePositionAnnotation(nextAnnotations, currentDefaultFigurePosition);
-            }
-            if (dialogNotend) {
-              nextAnnotations = setAnnotation(nextAnnotations, ANNOTATION_IDS.DIALOG_NOTEND, true);
-            }
-            if (dialogConcat) {
-              nextAnnotations = setAnnotation(nextAnnotations, ANNOTATION_IDS.DIALOG_CONCAT, true);
-            }
-          }
-          if (nextAnnotations.length > 0) {
-            fields.annotations = nextAnnotations;
+          if (!isSpectator && mergedComposerAnnotations.length > 0) {
+            fields.annotations = mergedComposerAnnotations;
           }
           isFirstMessage = false;
         }
         return fields;
       };
 
-      let textContent = trimmedInputText;
-      const isRoomJumpCommand = isRoomJumpCommandText(trimmedWithoutMentions);
-      const roomJumpCommandPayload = parseRoomJumpCommand(trimmedWithoutMentions);
+      let textContent = isSpectator
+        ? (spectatorTextContent ?? "")
+        : trimmedInputText;
+      const isRoomJumpCommand = !isSpectator && isRoomJumpCommandText(trimmedWithoutMentions);
+      const roomJumpCommandPayload = !isSpectator
+        ? parseRoomJumpCommand(trimmedWithoutMentions)
+        : null;
       const roomJumpTargetSpaceId = roomJumpCommandPayload?.spaceId ?? (spaceId > 0 ? spaceId : undefined);
 
       if (isRoomJumpCommand && !roomJumpCommandPayload) {
@@ -385,7 +381,7 @@ export default function useChatMessageSubmit({
       // 乐观发送体验：消息开始提交流程后立即清空输入框，避免“消息已出现但输入框还残留”的错觉。
       setInputText("");
 
-      const isCommandRequestByAll = isKP && containsCommandRequestAllToken(inputText);
+      const isCommandRequestByAll = !isSpectator && isKP && containsCommandRequestAllToken(inputText);
       const extractedCommandForRequest = isCommandRequestByAll ? extractFirstCommandText(trimmedWithoutMentions) : null;
       const requestCommand = extractedCommandForRequest ? stripCommandRequestAllToken(extractedCommandForRequest) : null;
       const shouldSendCommandRequest = Boolean(requestCommand && isCommand(requestCommand));
@@ -426,7 +422,7 @@ export default function useChatMessageSubmit({
         isFirstMessage = false;
         textContent = "";
       }
-      else if (textContent && isCommand(textContent)) {
+      else if (!isSpectator && textContent && isCommand(textContent)) {
         commandExecutor({ command: inputTextWithoutMentions, mentionedRoles: mentionedRolesInInput, originMessage: inputText });
         isFirstMessage = false;
         textContent = "";
@@ -546,60 +542,72 @@ export default function useChatMessageSubmit({
         && uploadedFiles.length === 0
         && !soundMessageData
         && !shouldSendCommandRequest
-        && !roomJumpCommandPayload;
+        && !roomJumpCommandPayload
+        && !isSpectator;
 
       if (textContent || shouldSendEmptyTextMessage) {
-        const isPureTextSend = uploadedImages.length === 0
-          && uploadedVideos.length === 0
-          && uploadedFiles.length === 0
-          && !soundMessageData;
-        const isWebgalCommandInput = isPureTextSend && textContent.startsWith("%");
-        const normalizedContent = isWebgalCommandInput ? textContent.slice(1).trim() : textContent;
-
-        if (isWebgalCommandInput && !normalizedContent) {
-          toast.error("WebGAL 指令不能为空");
-        }
-        else {
-          let diceTableContent: string | null = null;
-          if (isPureTextSend && !isWebgalCommandInput) {
-            let diceTableDiceSize = 100;
-            try {
-              const localDice = Number(localStorage.getItem("defaultDice"));
-              if (Number.isFinite(localDice) && localDice > 0) {
-                diceTableDiceSize = localDice;
-              }
-            }
-            catch {
-              // ignore localStorage failures
-            }
-            try {
-              const spaceExtraRecord = JSON.parse(spaceExtra ?? "{}");
-              const dicerDataStr = spaceExtraRecord?.dicerData || "{}";
-              const spaceDicerData = typeof dicerDataStr === "string" ? JSON.parse(dicerDataStr) : dicerDataStr;
-              const spaceDice = Number(spaceDicerData?.defaultDice);
-              if (Number.isFinite(spaceDice) && spaceDice > 0) {
-                diceTableDiceSize = spaceDice;
-              }
-            }
-            catch {
-              // ignore parse errors
-            }
-            diceTableContent = formatAnkoDiceMessage(normalizedContent, diceTableDiceSize);
-          }
-
-          const finalContent = diceTableContent ?? normalizedContent;
-          const finalMessageType = diceTableContent
-            ? MessageType.DICE
-            : (isWebgalCommandInput ? MessageType.WEBGAL_COMMAND : MessageType.TEXT);
-          const finalExtra = diceTableContent ? { result: finalContent } : {};
-
+        if (isSpectator) {
           const textMsg: ChatMessageRequest = {
             ...getCommonFields() as any,
-            content: finalContent,
-            messageType: finalMessageType,
-            extra: finalExtra,
+            content: spectatorTextContent!,
+            messageType: MessageType.TEXT,
+            extra: {},
           };
           await sendMessageWithInsert(textMsg);
+        }
+        else {
+          const isPureTextSend = uploadedImages.length === 0
+            && uploadedVideos.length === 0
+            && uploadedFiles.length === 0
+            && !soundMessageData;
+          const isWebgalCommandInput = isPureTextSend && textContent.startsWith("%");
+          const normalizedContent = isWebgalCommandInput ? textContent.slice(1).trim() : textContent;
+
+          if (isWebgalCommandInput && !normalizedContent) {
+            toast.error("WebGAL 指令不能为空");
+          }
+          else {
+            let diceTableContent: string | null = null;
+            if (isPureTextSend && !isWebgalCommandInput) {
+              let diceTableDiceSize = 100;
+              try {
+                const localDice = Number(localStorage.getItem("defaultDice"));
+                if (Number.isFinite(localDice) && localDice > 0) {
+                  diceTableDiceSize = localDice;
+                }
+              }
+              catch {
+                // ignore localStorage failures
+              }
+              try {
+                const spaceExtraRecord = JSON.parse(spaceExtra ?? "{}");
+                const dicerDataStr = spaceExtraRecord?.dicerData || "{}";
+                const spaceDicerData = typeof dicerDataStr === "string" ? JSON.parse(dicerDataStr) : dicerDataStr;
+                const spaceDice = Number(spaceDicerData?.defaultDice);
+                if (Number.isFinite(spaceDice) && spaceDice > 0) {
+                  diceTableDiceSize = spaceDice;
+                }
+              }
+              catch {
+                // ignore parse errors
+              }
+              diceTableContent = formatAnkoDiceMessage(normalizedContent, diceTableDiceSize);
+            }
+
+            const finalContent = diceTableContent ?? normalizedContent;
+            const finalMessageType = diceTableContent
+              ? MessageType.DICE
+              : (isWebgalCommandInput ? MessageType.WEBGAL_COMMAND : MessageType.TEXT);
+            const finalExtra = diceTableContent ? { result: finalContent } : {};
+
+            const textMsg: ChatMessageRequest = {
+              ...getCommonFields() as any,
+              content: finalContent,
+              messageType: finalMessageType,
+              extra: finalExtra,
+            };
+            await sendMessageWithInsert(textMsg);
+          }
         }
       }
 

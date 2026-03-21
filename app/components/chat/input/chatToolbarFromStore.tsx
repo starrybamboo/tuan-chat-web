@@ -3,7 +3,7 @@ import ChatToolbar from "@/components/chat/input/chatToolbar";
 import { useChatComposerStore } from "@/components/chat/stores/chatComposerStore";
 import { useRealtimeRenderStore } from "@/components/chat/stores/realtimeRenderStore";
 import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
-import { ANNOTATION_IDS, hasAudioPurposeAnnotation, normalizeAnnotations } from "@/types/messageAnnotations";
+import { applyRoomMediaAnnotationPreferenceToComposer } from "@/components/chat/utils/mediaAnnotationPreference";
 
 type ChatToolbarProps = React.ComponentProps<typeof ChatToolbar>;
 
@@ -29,34 +29,24 @@ export default function ChatToolbarFromStore({
   const updateImgFiles = useChatComposerStore(state => state.updateImgFiles);
   const updateFileAttachments = useChatComposerStore(state => state.updateFileAttachments);
   const setAudioFile = useChatComposerStore(state => state.setAudioFile);
-  const setTempAnnotations = useChatComposerStore(state => state.setTempAnnotations);
 
-  const addTempAnnotations = React.useCallback((ids: string[]) => {
-    const state = useChatComposerStore.getState();
-    const current = normalizeAnnotations(state.tempAnnotations);
-    const hasAudioAnnotation = hasAudioPurposeAnnotation(current) || hasAudioPurposeAnnotation(state.annotations);
-    const next = [...current];
-    ids.forEach((id) => {
-      // 音频文件默认补 BGM 时，若当前已存在音频用途（常驻或临时）则不再覆盖。
-      if (id === ANNOTATION_IDS.BGM && hasAudioAnnotation) {
-        return;
-      }
-      if (!next.includes(id)) {
-        next.push(id);
-      }
-    });
-    setTempAnnotations(normalizeAnnotations(next));
-  }, [setTempAnnotations]);
+  const applyImageTempAnnotations = React.useCallback(() => {
+    applyRoomMediaAnnotationPreferenceToComposer(roomId, "image");
+  }, [roomId]);
+
+  const applyAudioTempAnnotations = React.useCallback(() => {
+    applyRoomMediaAnnotationPreferenceToComposer(roomId, "audio");
+  }, [roomId]);
 
   const disableSendMessage = React.useMemo(() => {
     // 与 useChatMessageSubmit 的实际可发送条件保持一致：
-    // KP 在旁白模式（noRole=true）下仍可发送，不应显示为置灰。
-    return notMember || isSubmitting || (noRole && !isKP);
+    // KP 在旁白模式（noRole=true）下仍可发送；观战文本则不再强制转成场外。
+    return isSubmitting || (noRole && !isKP && !notMember);
   }, [isKP, noRole, notMember, isSubmitting]);
 
   const disableImportChatText = React.useMemo(() => {
-    return notMember || isSubmitting;
-  }, [isSubmitting, notMember]);
+    return isSubmitting;
+  }, [isSubmitting]);
 
   return (
     <ChatToolbar
@@ -69,7 +59,8 @@ export default function ChatToolbarFromStore({
       updateImgFiles={updateImgFiles}
       updateFileAttachments={updateFileAttachments}
       setAudioFile={setAudioFile}
-      onAddTempAnnotations={addTempAnnotations}
+      onApplyImageTempAnnotations={applyImageTempAnnotations}
+      onApplyAudioTempAnnotations={applyAudioTempAnnotations}
       disableSendMessage={disableSendMessage}
       disableImportChatText={disableImportChatText}
       isRealtimeRenderActive={isRealtimeRenderActive}

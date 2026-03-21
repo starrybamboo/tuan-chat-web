@@ -1,11 +1,36 @@
+import type { FriendResponse } from "api/models/FriendResponse";
 import type { MessageDirectType } from "../types/messageDirect";
 import { useMemo } from "react";
 import ChatItem from "./ChatItem";
+
+function getContactUserFromMessage(contactId: number, message: MessageDirectType | null) {
+  if (!message) {
+    return { userId: contactId };
+  }
+  if (message.senderId === contactId) {
+    return {
+      userId: contactId,
+      username: message.senderUsername,
+      avatar: message.senderAvatar,
+      avatarThumbUrl: message.senderAvatarThumbUrl,
+    };
+  }
+  if (message.receiverId === contactId) {
+    return {
+      userId: contactId,
+      username: message.receiverUsername,
+      avatar: message.receiverAvatar,
+      avatarThumbUrl: message.receiverAvatarThumbUrl,
+    };
+  }
+  return { userId: contactId };
+}
 
 export default function ChatListItem({
   isSmallScreen,
   realTimeContacts,
   sortedRealTimeMessages,
+  friendUserInfos,
   updateReadlinePosition,
   setIsOpenLeftDrawer,
   unreadMessageNumbers,
@@ -16,7 +41,7 @@ export default function ChatListItem({
   isSmallScreen: boolean;
   realTimeContacts: number[];
   sortedRealTimeMessages: [string, MessageDirectType[]][];
-  friendUserInfos: any[];
+  friendUserInfos: FriendResponse[];
   updateReadlinePosition: (id: number) => void;
   setIsOpenLeftDrawer: (isOpen: boolean) => void;
   unreadMessageNumbers: Record<number, number>;
@@ -27,6 +52,11 @@ export default function ChatListItem({
   const messagesMap = useMemo(() => {
     return new Map(sortedRealTimeMessages.map(([id, msgs]) => [Number(id), msgs]));
   }, [sortedRealTimeMessages]);
+  const friendInfoMap = useMemo(() => {
+    return new Map(friendUserInfos
+      .filter(friend => friend.userId != null)
+      .map(friend => [friend.userId as number, friend]));
+  }, [friendUserInfos]);
 
   return (
     <div className="flex flex-col gap-2 w-full px-1 py-2">
@@ -45,11 +75,13 @@ export default function ChatListItem({
                 const validMessages = messages.filter(m => m.messageType !== 10000);
                 // 获取最新的一条消息
                 const lastMessage = validMessages.length > 0 ? validMessages[0] : null;
+                const contactUser = friendInfoMap.get(contactId) || getContactUserFromMessage(contactId, lastMessage);
 
                 return (
                   <ChatItem
                     key={contactId}
                     id={contactId}
+                    user={contactUser}
                     lastMessage={lastMessage}
                     isSmallScreen={isSmallScreen}
                     unreadMessageNumber={unreadMessageNumbers[contactId] || 0}

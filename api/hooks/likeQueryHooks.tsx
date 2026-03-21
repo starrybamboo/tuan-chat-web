@@ -9,12 +9,12 @@ const LIKE_MARK_TYPE = "like";
 
 export type LikeRecordRequest = MarkTarget;
 
-export interface LikeCountRequest {
+interface LikeCountRequest {
   targetIds: number[];
   targetType: string;
 }
 
-export interface BatchLikeRecordRequest {
+interface BatchLikeRecordRequest {
   targets: MarkTarget[];
 }
 

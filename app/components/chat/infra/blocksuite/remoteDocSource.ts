@@ -6,6 +6,10 @@ import { diffUpdate, encodeStateVectorFromUpdate, mergeUpdates } from "yjs";
 import type { StoredSnapshot } from "@/components/chat/infra/blocksuite/descriptionDocRemote";
 
 import { base64ToUint8Array, uint8ArrayToBase64 } from "@/components/chat/infra/blocksuite/base64";
+import {
+  isNonRetryableBlocksuiteDocError,
+  NonRetryableBlocksuiteDocError,
+} from "@/components/chat/infra/blocksuite/blocksuiteDocError";
 import { blocksuiteWsClient } from "@/components/chat/infra/blocksuite/blocksuiteWsClient";
 import { addUpdate, clearUpdates, listUpdates } from "@/components/chat/infra/blocksuite/descriptionDocDb";
 import { parseDescriptionDocId } from "@/components/chat/infra/blocksuite/descriptionDocId";
@@ -64,7 +68,10 @@ class RemoteYjsLogDocSource implements DocSource {
     try {
       snapshot = await getRemoteSnapshot(key);
     }
-    catch {
+    catch (error) {
+      if (isNonRetryableBlocksuiteDocError(error)) {
+        throw new NonRetryableBlocksuiteDocError(error);
+      }
       snapshotPullFailed = true;
     }
 
@@ -91,7 +98,10 @@ class RemoteYjsLogDocSource implements DocSource {
         limit: 2000,
       });
     }
-    catch {
+    catch (error) {
+      if (isNonRetryableBlocksuiteDocError(error)) {
+        throw new NonRetryableBlocksuiteDocError(error);
+      }
       updatesPullFailed = true;
     }
 
@@ -255,7 +265,10 @@ class RemoteYjsLogDocSource implements DocSource {
       // Once offline backlog is flushed, try to compact into snapshot (best-effort).
       this.scheduleCompaction(docId);
     }
-    catch {
+    catch (error) {
+      if (isNonRetryableBlocksuiteDocError(error)) {
+        await clearUpdates(docId);
+      }
       // keep pending for later retry
     }
   }

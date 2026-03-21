@@ -3,6 +3,8 @@
  */
 // websocket-types.ts
 
+import type { UserNotificationItem } from "@/components/notification/notificationTypes";
+
 /**
  * 消息类型枚举
  */
@@ -16,8 +18,6 @@ export enum MessageType {
     SOUND = 7,
     EFFECT = 8,
     WEBGAL_COMMAND = 10,
-    /** WebGAL 变量变更消息（结构化） */
-    WEBGAL_VAR = 11,
     /** 跑团：检定/指令请求消息（点击后由他人“一键发送”执行） */
     COMMAND_REQUEST = 12,
     /** WebGAL 选择消息（结构化选项） */
@@ -301,6 +301,11 @@ export interface SpaceSidebarTreeUpdatedPush extends BaseMessage<{
     type: 22;
 }
 
+// 用户通知 (type: 23)
+export interface UserNotificationPush extends BaseMessage<UserNotificationItem> {
+    type: 23;
+}
+
 // 模组角色变动 (type: 18)
 interface ModRoleChangePush extends BaseMessage<{}> {
     type: 18;
@@ -380,6 +385,7 @@ type ServerWebSocketMessage =
     | ModRoleChangePush
     | RoomDndMapChangePush
     | NewFriendRequestPush
+    | UserNotificationPush
     | VolunteerRegisterSuccessPush
     | VolunteerHeartbeatAckPush
     | TaskAssignmentPush
@@ -420,7 +426,13 @@ interface ChatStatusRequest {
 export interface DirectMessageEvent {
     messageId: number;      // 消息的唯一ID
     senderId: number;       // 发送者ID
+    senderUsername?: string; // 发送者用户名
+    senderAvatar?: string; // 发送者头像 URL
+    senderAvatarThumbUrl?: string; // 发送者头像缩略图 URL
     receiverId: number;     // 接收者ID
+    receiverUsername?: string; // 接收者用户名
+    receiverAvatar?: string; // 接收者头像 URL
+    receiverAvatarThumbUrl?: string; // 接收者头像缩略图 URL
     userId: number;         // 当前用户ID (可能是发送者或接收者)
     syncId: number;         // 会话内消息序号
     content: string;        // 消息内容

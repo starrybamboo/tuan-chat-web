@@ -12,8 +12,8 @@
 
 1. 渲染工程粒度：按 `space` 建立游戏目录，游戏名固定为 `realtime_{spaceId}`。  
 2. 场景粒度：按 `room` 建立场景文件，命名为 `{roomName}_{roomId}.txt`。  
-3. 启动阶段：`useRealtimeRender.start()` 完成 renderer 初始化、场景创建、资源预载、WebSocket 建连。  
-4. 历史导入：编排器在 renderer `isActive` 后触发历史消息渲染（不再要求 `status === connected`）。  
+3. 启动阶段：`useRealtimeRender.start()` 会先并发补齐角色默认头像元数据，再完成 renderer 初始化、场景创建、资源预载、WebSocket 建连。  
+4. 历史导入：编排器在 renderer `isActive` 后触发历史消息渲染（不再要求 `status === connected`）；历史导入前会先并发补齐消息涉及的头像元数据，并预热本轮需要的立绘 / 小头像资源。  
 5. 增量更新：新消息进入后优先走增量追加；出现重排/插入/删除/更新时走全量重建。  
 6. 场景初始化会先写入 `setTransition`（`-enter=none -keepOffset`）到所有实时渲染立绘目标（含 `image_message`），用于覆盖 WebGAL 默认进场动画。  
 
@@ -120,9 +120,11 @@
 ## 5. 小头像与 TTS 规则
 
 1. 小头像（`miniAvatar`）
-- 仅在 `miniAvatarEnabled=true` 时输出
+- 默认在 `miniAvatarEnabled=true` 时对普通对话输出
 - 旁白/黑屏文字默认清空为 `miniAvatar:none;`
 - 骰子消息可通过 payload 的 `showMiniAvatar` 覆盖
+- `figure.mini-avatar` 标注可在单条消息上强制显示小头像，使用角色 `avatarUrl`
+- 历史渲染与单条消息更新前会预热本轮命中的小头像资源，避免首次命中时在渲染热路径内懒上传
 
 2. TTS 生成条件（全部满足才生成）
 - `ttsConfig.enabled=true`
@@ -161,6 +163,7 @@
 - 顺序相同但内容有更新：全量重建（`resetScene + renderHistory`）
 - 非追加的插入/删除/重排：全量重建
 - 全量重建走 350ms 防抖，避免抖动
+- 单条 `renderMessage` 在 `syncToFile=true` 时会将同一条消息产生的多行脚本合并为一次文件同步，避免重复整文件写回
 
 5. 背景一致性修正
 - 历史已渲染后，会监控“最新背景图消息”，变化时补渲染或清除背景

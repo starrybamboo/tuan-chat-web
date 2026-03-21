@@ -32,7 +32,7 @@ import type { Role } from '@/components/Role/types';
 import { ROLE_DEFAULT_AVATAR_URL } from '@/constants/defaultAvatar';
 import { shouldRetryRoleQueryError } from "@/utils/roleApiError";
 
-function upsertRoleAvatarQueryCaches(queryClient: any, avatar: RoleAvatar, roleId?: number): void {
+export function seedRoleAvatarQueryCaches(queryClient: any, avatar: RoleAvatar, roleId?: number): void {
   const avatarId = avatar.avatarId;
   const resolvedRoleId = avatar.roleId ?? roleId;
   if (!avatarId) {
@@ -71,10 +71,24 @@ function upsertRoleAvatarQueryCaches(queryClient: any, avatar: RoleAvatar, roleI
       avatarThumb: avatarThumbUrl,
       avatarId,
     });
-    queryClient.invalidateQueries({ queryKey: ["roleAvatar", resolvedRoleId] });
   }
 
   queryClient.setQueryData(["getRoleAvatar", avatarId], { data: avatar });
+}
+
+function upsertRoleAvatarQueryCaches(queryClient: any, avatar: RoleAvatar, roleId?: number): void {
+  const avatarId = avatar.avatarId;
+  const resolvedRoleId = avatar.roleId ?? roleId;
+  if (!avatarId) {
+    return;
+  }
+
+  seedRoleAvatarQueryCaches(queryClient, avatar, roleId);
+
+  if (resolvedRoleId) {
+    queryClient.invalidateQueries({ queryKey: ["roleAvatar", resolvedRoleId] });
+  }
+
   queryClient.invalidateQueries({ queryKey: ["getRoleAvatar", avatarId] });
   queryClient.invalidateQueries({ queryKey: ["avatar", avatarId] });
 }
@@ -409,10 +423,21 @@ type RoleAvatarQueryOptions = {
 };
 
 export function useGetRoleAvatarsQuery(roleId: number, options?: RoleAvatarQueryOptions) {
+  const queryClient = useQueryClient();
   const enabled = (options?.enabled ?? true) && typeof roleId === "number" && roleId > 0;
   return useQuery({
     queryKey: ['getRoleAvatars', roleId],
-    queryFn: () => tuanchat.avatarController.getRoleAvatars(roleId),
+    queryFn: async () => {
+      const res = await tuanchat.avatarController.getRoleAvatars(roleId);
+      if (Array.isArray(res.data)) {
+        res.data.forEach((avatar) => {
+          if (avatar?.avatarId) {
+            seedRoleAvatarQueryCaches(queryClient, avatar, roleId);
+          }
+        });
+      }
+      return res;
+    },
     staleTime: 86400000, // 24小时缓存
     select: (res) => {
       if (!res || !Array.isArray(res.data)) {

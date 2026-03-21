@@ -6,6 +6,7 @@ import WebgalStarter from "@/components/chat/shared/webgal/webgalStarter";
 import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
 import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
 import UserAvatarComponent from "@/components/common/userAvatar";
+import NotificationBell from "@/components/notification/notificationBell";
 import UpdatesToastWindow from "@/components/topbanner/updatesWindow";
 import { DiscordIcon, QQIcon, WebgalIcon } from "@/icons";
 import { checkAuthStatus, logoutUser } from "@/utils/auth/authapi";
@@ -45,6 +46,7 @@ export default function Topbar() {
   const webgalLinkMode = useRoomPreferenceStore(state => state.webgalLinkMode);
   const runModeEnabled = useRoomPreferenceStore(state => state.runModeEnabled);
   const canUseAiImage = import.meta.env.DEV || import.meta.env.MODE === "test";
+  const canUseGeminiLab = import.meta.env.DEV;
   const canUseFeedback = import.meta.env.DEV || import.meta.env.MODE === "test";
 
   // 点击外部关闭下拉菜单
@@ -122,6 +124,7 @@ export default function Topbar() {
     { to: "/chat/private", label: "聊天", icon: ChatsIcon },
     { to: "/role", label: "角色", icon: IdentificationCardIcon },
     ...(canUseAiImage ? [{ to: "/ai-image", label: "AI生图", icon: PaintBrushBroadIcon }] : []),
+    ...(canUseGeminiLab ? [{ to: "/gemini-lab", label: "Gemini实验", icon: GearSixIcon }] : []),
     ...(canUseFeedback ? [{ to: "/feedback", label: "反馈", icon: CheckCircleIcon }] : []),
   ];
 
@@ -209,6 +212,7 @@ export default function Topbar() {
                 </button>
               </div>
             </div>
+            {isLoggedIn ? <NotificationBell /> : null}
             {isLoggedIn
               ? (
                   <div

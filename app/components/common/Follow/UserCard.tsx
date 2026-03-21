@@ -1,24 +1,26 @@
 import { useState } from "react";
 import { Link } from "react-router";
-import { useGetUserInfoQuery } from "../../../../api/hooks/UserHooks";
+import type { FollowResponse } from "../../../../api";
+import { resolveUserDisplayName, useResolvedUserInfo } from "@/components/common/userAccess";
 import { FollowButton } from "./FollowButton";
 
 interface UserCardProps {
-  userId: number;
-  initialStatus?: number;
+  user: FollowResponse;
 }
 
-export function UserCard({ userId, initialStatus }: UserCardProps) {
-  const userInfoQuery = useGetUserInfoQuery(userId);
-  const userInfo = userInfoQuery.data?.data;
-  const [status, setStatus] = useState(initialStatus);
+export function UserCard({ user }: UserCardProps) {
+  const userId = user.userId ?? -1;
+  const resolvedUser = useResolvedUserInfo(user, userId);
+  const [status, setStatus] = useState(user.status);
+  const displayName = resolveUserDisplayName({ username: resolvedUser.username }, userId > 0 ? `用户${userId}` : "未知用户");
+  const avatarSrc = resolvedUser.avatarThumbUrl || resolvedUser.avatar || "/default-avatar.png";
 
   return (
     <div className="card card-compact w-48 bg-base-100 shadow-xl">
       <div className="flex items-center p-4">
         <div className="avatar flex-shrink-0">
           <div className="w-12 rounded-full">
-            {userInfoQuery.isLoading
+            {resolvedUser.isLoading
               ? (
                   <div className="skeleton w-12 h-12"></div>
                 )
@@ -30,8 +32,8 @@ export function UserCard({ userId, initialStatus }: UserCardProps) {
                     rel="noopener noreferrer"
                   >
                     <img
-                      src={userInfo?.avatar || "/default-avatar.png"}
-                      alt={userInfo?.username}
+                      src={avatarSrc}
+                      alt={displayName}
                       className="mask mask-circle pointer"
                     />
                   </Link>
@@ -40,12 +42,12 @@ export function UserCard({ userId, initialStatus }: UserCardProps) {
         </div>
         <div className="ml-4 flex flex-col min-w-0">
           <h3 className="text-lg font-semibold truncate">
-            {userInfoQuery.isLoading
+            {resolvedUser.isLoading
               ? (
                   <div className="skeleton h-4 w-20"></div>
                 )
               : (
-                  userInfo?.username || "未知用户"
+                  displayName
                 )}
           </h3>
           <FollowButton

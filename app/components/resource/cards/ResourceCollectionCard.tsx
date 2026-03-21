@@ -1,5 +1,5 @@
 import type { CollectionList } from "../../../../api/models/CollectionList";
-import UserAvatarComponent from "@/components/common/userAvatar";
+import { UserAvatarByUser } from "@/components/common/userAccess";
 
 interface ResourceCollectionCardProps {
   collectionList: CollectionList;
@@ -69,8 +69,8 @@ export function ResourceCollectionCard({
 
         <div className="flex-1" />
         <div className="flex items-center justify-between text-xs text-base-content/60 mt-2">
-          <UserAvatarComponent
-            userId={collectionList.userId ?? -1}
+          <UserAvatarByUser
+            user={collectionList}
             width={6}
             isRounded={true}
             withName={true}

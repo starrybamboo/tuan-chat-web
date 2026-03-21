@@ -5,12 +5,15 @@
 import type { ApiResultBoolean } from '../models/ApiResultBoolean';
 import type { ApiResultCommentVO } from '../models/ApiResultCommentVO';
 import type { ApiResultInteger } from '../models/ApiResultInteger';
+import type { ApiResultListCommentTimelineVO } from '../models/ApiResultListCommentTimelineVO';
 import type { ApiResultListCommentVO } from '../models/ApiResultListCommentVO';
 import type { ApiResultLong } from '../models/ApiResultLong';
 import type { ApiResultMapLongInteger } from '../models/ApiResultMapLongInteger';
 import type { CommentAddRequest } from '../models/CommentAddRequest';
+import type { CommentChildPageRequest } from '../models/CommentChildPageRequest';
 import type { CommentCountRequest } from '../models/CommentCountRequest';
 import type { CommentPageRequest } from '../models/CommentPageRequest';
+import type { CommentTimelinePageRequest } from '../models/CommentTimelinePageRequest';
 import type { CancelablePromise } from '../core/CancelablePromise';
 import type { BaseHttpRequest } from '../core/BaseHttpRequest';
 export class CommentControllerService {
@@ -31,12 +34,6 @@ export class CommentControllerService {
             query: {
                 'commentId': commentId,
             },
-            errors: {
-                400: `Bad Request`,
-                405: `Method Not Allowed`,
-                429: `Too Many Requests`,
-                500: `Internal Server Error`,
-            },
         });
     }
     /**
@@ -54,12 +51,6 @@ export class CommentControllerService {
             url: '/comment',
             body: requestBody,
             mediaType: 'application/json',
-            errors: {
-                400: `Bad Request`,
-                405: `Method Not Allowed`,
-                429: `Too Many Requests`,
-                500: `Internal Server Error`,
-            },
         });
     }
     /**
@@ -78,12 +69,23 @@ export class CommentControllerService {
             query: {
                 'commentId': commentId,
             },
-            errors: {
-                400: `Bad Request`,
-                405: `Method Not Allowed`,
-                429: `Too Many Requests`,
-                500: `Internal Server Error`,
-            },
+        });
+    }
+    /**
+     * 分页获取时间线评论
+     * 获取目标对象的单列时间线评论
+     * @param requestBody
+     * @returns ApiResultListCommentTimelineVO OK
+     * @throws ApiError
+     */
+    public pageTimelineComments(
+        requestBody: CommentTimelinePageRequest,
+    ): CancelablePromise<ApiResultListCommentTimelineVO> {
+        return this.httpRequest.request({
+            method: 'POST',
+            url: '/comment/timeline/page',
+            body: requestBody,
+            mediaType: 'application/json',
         });
     }
     /**
@@ -101,12 +103,6 @@ export class CommentControllerService {
             url: '/comment/page',
             body: requestBody,
             mediaType: 'application/json',
-            errors: {
-                400: `Bad Request`,
-                405: `Method Not Allowed`,
-                429: `Too Many Requests`,
-                500: `Internal Server Error`,
-            },
         });
     }
     /**
@@ -123,12 +119,23 @@ export class CommentControllerService {
             url: '/comment/count/batch',
             body: requestBody,
             mediaType: 'application/json',
-            errors: {
-                400: `Bad Request`,
-                405: `Method Not Allowed`,
-                429: `Too Many Requests`,
-                500: `Internal Server Error`,
-            },
+        });
+    }
+    /**
+     * 分页获取子评论
+     * 按父评论分页获取直接子评论及其可见子树
+     * @param requestBody
+     * @returns ApiResultListCommentVO OK
+     * @throws ApiError
+     */
+    public pageChildComments(
+        requestBody: CommentChildPageRequest,
+    ): CancelablePromise<ApiResultListCommentVO> {
+        return this.httpRequest.request({
+            method: 'POST',
+            url: '/comment/children/page',
+            body: requestBody,
+            mediaType: 'application/json',
         });
     }
     /**
@@ -148,12 +155,6 @@ export class CommentControllerService {
             query: {
                 'targetId': targetId,
                 'targetType': targetType,
-            },
-            errors: {
-                400: `Bad Request`,
-                405: `Method Not Allowed`,
-                429: `Too Many Requests`,
-                500: `Internal Server Error`,
             },
         });
     }

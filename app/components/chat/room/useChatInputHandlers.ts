@@ -7,7 +7,7 @@ import type { AtMentionHandle } from "@/components/atMentionController";
 
 import { useChatComposerStore } from "@/components/chat/stores/chatComposerStore";
 import { preheatChatMediaPreprocess } from "@/components/chat/utils/attachmentPreprocess";
-import { ANNOTATION_IDS, hasAudioPurposeAnnotation, normalizeAnnotations } from "@/types/messageAnnotations";
+import { applyRoomMediaAnnotationPreferenceToComposer } from "@/components/chat/utils/mediaAnnotationPreference";
 
 type UseChatInputHandlersParams = {
   atMentionRef: RefObject<AtMentionHandle | null>;
@@ -16,6 +16,7 @@ type UseChatInputHandlersParams = {
   insertLLMMessageIntoText: () => void;
   llmMessageRef: RefObject<string>;
   originalTextBeforeRewriteRef: RefObject<string>;
+  roomId: number;
   setInputText: (text: string) => void;
   setLLMMessage: (text: string) => void;
 };
@@ -36,6 +37,7 @@ export default function useChatInputHandlers({
   insertLLMMessageIntoText,
   llmMessageRef,
   originalTextBeforeRewriteRef,
+  roomId,
   setInputText,
   setLLMMessage,
 }: UseChatInputHandlersParams): UseChatInputHandlersResult {
@@ -87,6 +89,7 @@ export default function useChatInputHandlers({
       store.updateImgFiles((draft) => {
         draft.push(...imageFiles);
       });
+      applyRoomMediaAnnotationPreferenceToComposer(roomId, "image");
     }
 
     if (videoFiles.length > 0 || otherFiles.length > 0) {
@@ -97,22 +100,18 @@ export default function useChatInputHandlers({
 
     if (audioFiles.length > 0) {
       store.setAudioFile(audioFiles[0]);
-      const current = normalizeAnnotations(store.tempAnnotations);
-      const hasAudioAnnotation = hasAudioPurposeAnnotation(current) || hasAudioPurposeAnnotation(store.annotations);
-      if (!hasAudioAnnotation) {
-        store.setTempAnnotations(normalizeAnnotations([...current, ANNOTATION_IDS.BGM]));
-      }
+      applyRoomMediaAnnotationPreferenceToComposer(roomId, "audio");
       if (audioFiles.length > 1) {
         toast.error("仅支持粘贴 1 个音频，已取第一个");
       }
     }
 
     preheatChatMediaPreprocess({
-      imageFiles: imageFiles,
-      videoFiles: videoFiles,
+      imageFiles,
+      videoFiles,
       audioFiles: audioFiles.length > 0 ? [audioFiles[0]] : [],
     });
-  }, []);
+  }, [roomId]);
 
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
     const isAtOpen = atMentionRef.current?.isDialogOpen() ?? false;

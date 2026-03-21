@@ -1,6 +1,7 @@
 import { useCallback, useMemo } from "react";
 
 import type { SpaceContextType } from "@/components/chat/core/spaceContext";
+import { canManageMemberPermissions, hasHostPrivileges } from "@/components/chat/utils/memberPermissions";
 
 import type { Space, SpaceMember } from "../../../../api";
 
@@ -38,9 +39,12 @@ export default function useChatPageSpaceContext({
   userId,
 }: UseChatPageSpaceContextParams): UseChatPageSpaceContextResult {
   const spaceContext = useMemo((): SpaceContextType => {
+    const currentMember = spaceMembers.find(member => member.userId === globalUserId);
     return {
       spaceId: activeSpaceId ?? -1,
-      isSpaceOwner: !!spaceMembers.some(member => member.userId === globalUserId && member.memberType === 1),
+      isSpaceOwner: hasHostPrivileges(currentMember?.memberType),
+      memberType: currentMember?.memberType,
+      canManageMemberPermissions: canManageMemberPermissions(currentMember?.memberType),
       setActiveSpaceId,
       setActiveRoomId,
       toggleLeftDrawer,

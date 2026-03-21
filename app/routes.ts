@@ -3,6 +3,7 @@ import type { RouteConfig } from "@react-router/dev/routes";
 import { index, layout, prefix, route } from "@react-router/dev/routes";
 
 const ENABLE_AI_IMAGE_ROUTE = import.meta.env.DEV || import.meta.env.MODE === "test";
+const ENABLE_GEMINI_LAB_ROUTE = import.meta.env.DEV;
 const ENABLE_FEEDBACK_ROUTE = import.meta.env.DEV || import.meta.env.MODE === "test";
 
 export default [
@@ -18,7 +19,6 @@ export default [
     // 临时举措
     // index("../app/routes/chat.tsx"),
     index("routes/home.tsx"),
-    route("feed/:feedId?", "routes/feed.tsx"),
 
     ...prefix("role", [
       // layout 提供了 element / <Outlet />，index 必须是它的子路由
@@ -51,14 +51,13 @@ export default [
         route(":spaceId/:roomId?/:messageId?", "routes/chatSpace.tsx"),
       ]),
     ]),
-    route("community/:communityId?", "routes/community.tsx"),
-    route("community/create", "routes/communityCreatePost.tsx"),
-    route("community/:communityId/:postId", "routes/communityPost.tsx"),
     route("settings", "routes/settings.tsx"),
+    route("notifications", "routes/notifications.tsx"),
     route("collection", "routes/collection.tsx"),
     route("resource", "routes/resource.tsx"),
     route("doc/:spaceId/:docId", "routes/doc.tsx"),
     ...(ENABLE_AI_IMAGE_ROUTE ? [route("ai-image", "routes/aiImage.tsx")] : []),
+    ...(ENABLE_GEMINI_LAB_ROUTE ? [route("gemini-lab", "routes/geminiLab.tsx")] : []),
     ...(ENABLE_FEEDBACK_ROUTE ? [route("feedback/:issueId?", "routes/feedback.tsx")] : []),
     route("invite/:code", "routes/invite.tsx"),
   ]),

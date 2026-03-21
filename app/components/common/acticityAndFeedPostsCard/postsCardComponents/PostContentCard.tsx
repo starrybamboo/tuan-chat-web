@@ -4,8 +4,6 @@ interface PostContentCardProps {
   title: string;
   description: string;
   coverImage?: string;
-  communityId: string | number;
-  postId: string | number;
   onClick: () => void;
 }
 

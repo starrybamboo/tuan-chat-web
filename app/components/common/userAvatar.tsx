@@ -1,12 +1,7 @@
-import { use, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { useParams } from "react-router";
-import { RoomContext } from "@/components/chat/core/roomContext";
 import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
 import { UserDetail } from "@/components/common/userDetail";
-
-import { useGlobalContext } from "@/components/globalContextProvider";
-import { useGetSpaceMembersQuery } from "../../../api/hooks/chatQueryHooks";
 import { useGetUserInfoQuery } from "../../../api/hooks/UserHooks";
 
 // 如果是 import 的sizeMap 就不能在className中用了, 于是复制了一份, 够丑的 :(
@@ -36,6 +31,9 @@ const sizeMap = {
  */
 export default function UserAvatarComponent({
   userId,
+  username,
+  avatar,
+  avatarThumbUrl,
   width,
   isRounded,
   withName = false,
@@ -44,6 +42,9 @@ export default function UserAvatarComponent({
   clickEnterProfilePage = true,
 }: {
   userId: number;
+  username?: string;
+  avatar?: string;
+  avatarThumbUrl?: string;
   width: keyof typeof sizeMap; // 头像的宽度
   isRounded: boolean; // 是否是圆的
   withName?: boolean; // 是否显示名字
@@ -51,7 +52,20 @@ export default function UserAvatarComponent({
   uniqueKey?: string; // 用于控制弹窗的唯一key，默认是userId
   clickEnterProfilePage?: boolean; // 点击头像是否直接个人主页
 }) {
-  const userQuery = useGetUserInfoQuery(userId);
+  const providedUsername = username?.trim() ?? "";
+  const providedAvatarThumbUrl = avatarThumbUrl?.trim() ?? "";
+  const providedAvatarUrl = avatar?.trim() ?? "";
+  const hasProvidedAvatar = Boolean(providedAvatarThumbUrl || providedAvatarUrl);
+  const shouldFetchUserInfo = userId > 0 && (!hasProvidedAvatar || (withName && !providedUsername));
+  const userQuery = useGetUserInfoQuery(userId, {
+    enabled: shouldFetchUserInfo,
+  });
+  const resolvedAvatar = providedAvatarThumbUrl
+    || providedAvatarUrl
+    || userQuery.data?.data?.avatarThumbUrl
+    || userQuery.data?.data?.avatar
+    || undefined;
+  const resolvedUsername = providedUsername || userQuery.data?.data?.username || "";
   // 控制用户详情的toastWindow
   const toastWindowKey = uniqueKey ? `userPop${uniqueKey}` : `userPop${userId}`;
 
@@ -63,15 +77,6 @@ export default function UserAvatarComponent({
   const anchorRef = useRef<HTMLDivElement | null>(null);
   const portalRef = useRef<HTMLDivElement | null>(null);
   const [pos, setPos] = useState<{ left: number; top: number; placement: "right" | "left" } | null>(null);
-
-  const { spaceId: urlSpaceId } = useParams();
-  const spaceId = Number(urlSpaceId);
-  // 仅用于在弹窗中可能需要的上下文信息（当前不再直接使用成员状态进行操作）
-  useGetSpaceMembersQuery(spaceId);
-  use(RoomContext); // 仍保持对上下文的订阅以便未来扩展
-  useGlobalContext();
-
-  // 成员管理逻辑已迁移到 MemberLists 组件，保留最小数据上下文
 
   // hover 逻辑：悬停打开，移出后延迟关闭；允许在 Portal 内容上保持
   const openTimerRef = useRef<number | null>(null);
@@ -235,7 +240,7 @@ export default function UserAvatarComponent({
       <div className="avatar">
         <div className={`${sizeMap[width]} rounded${isRounded ? "-full" : ""}`}>
           <img
-            src={userQuery.isPending || userQuery.error || !userQuery.data?.data?.avatar ? undefined : userQuery.data?.data?.avatar}
+            src={resolvedAvatar}
             alt="Avatar"
             className={`transition-transform ${clickEnterProfilePage ? "hover:scale-110" : ""}`}
           />
@@ -243,9 +248,9 @@ export default function UserAvatarComponent({
       </div>
       {withName && (
         <div
-          className={`text-sm whitespace-nowrap min-w-0 ${(userQuery.data?.data?.username ?? "").length > 8 ? "truncate max-w-[10em]" : ""} ${clickEnterProfilePage ? "hover:underline" : ""}`}
+          className={`text-sm whitespace-nowrap min-w-0 ${resolvedUsername.length > 8 ? "truncate max-w-[10em]" : ""} ${clickEnterProfilePage ? "hover:underline" : ""}`}
         >
-          {userQuery.data?.data?.username}
+          {resolvedUsername}
         </div>
       )}
       {/* Portal 卡片：只受 stopToastWindow 控制 */}

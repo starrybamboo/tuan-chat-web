@@ -1,7 +1,7 @@
 import type { Route } from "./+types/role";
 import type { Role } from "@/components/Role/types"; // 确保路径正确
 import { CaretRightIcon } from "@phosphor-icons/react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Outlet, useParams } from "react-router"; // 引入 Outlet 和 useParams
 import { Drawer } from "vaul";
 import { Sidebar } from "@/components/Role/Sidebar/Sidebar"; // 确保路径正确
@@ -17,6 +17,12 @@ export default function RoleLayout() {
   const [roles, setRoles] = useState<Role[]>([]);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [isDesktop, setIsDesktop] = useState(() => {
+    if (typeof window === "undefined") {
+      return true;
+    }
+    return window.matchMedia("(min-width: 1024px)").matches;
+  });
 
   // 使用 useParams hook 从 URL 中获取 roleId
   const { roleId } = useParams<{ roleId: string }>();
@@ -24,75 +30,101 @@ export default function RoleLayout() {
   // 将字符串类型的 roleId 转换为 number 或 null
   const selectedRoleId = roleId ? Number.parseInt(roleId, 10) : null;
 
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    const mediaQuery = window.matchMedia("(min-width: 1024px)");
+    const handleChange = (event: MediaQueryListEvent) => {
+      setIsDesktop(event.matches);
+      if (event.matches) {
+        setIsDrawerOpen(false);
+      }
+    };
+
+    setIsDesktop(mediaQuery.matches);
+    mediaQuery.addEventListener("change", handleChange);
+    return () => mediaQuery.removeEventListener("change", handleChange);
+  }, []);
+
   return (
     <div className="relative flex h-full w-full min-w-0 overflow-hidden bg-base-100 md:bg-base-200">
       {/* 桌面端侧边栏 - 可收起 */}
-      <div className={`hidden lg:block transition-all duration-300 bg-base-200 border-r border-base-300 ${isSidebarCollapsed ? "w-0 overflow-hidden" : "w-80"}`}>
-        <Sidebar
-          roles={roles}
-          setRoles={setRoles}
-          selectedRoleId={selectedRoleId}
-        />
-      </div>
+      {isDesktop && (
+        <div className={`transition-all duration-300 bg-base-200 border-r border-base-300 ${isSidebarCollapsed ? "w-0 overflow-hidden" : "w-80"}`}>
+          <Sidebar
+            roles={roles}
+            setRoles={setRoles}
+            selectedRoleId={selectedRoleId}
+          />
+        </div>
+      )}
 
       {/* 桌面端切换按钮 - 半圆形状 */}
-      <div className={`hidden lg:block fixed top-24 -translate-y-1/2 z-50 transition-all duration-300 ${isSidebarCollapsed ? "left-0" : "left-80"}`}>
-        <button
-          type="button"
-          onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-          className="w-6 h-12 cursor-pointer bg-base-300 transition-all duration-200 rounded-r-full flex items-center justify-center group"
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            fill="none"
-            viewBox="0 0 24 24"
-            className="w-3 h-3 stroke-current transition-transform duration-200"
+      {isDesktop && (
+        <div className={`fixed top-24 -translate-y-1/2 z-50 transition-all duration-300 ${isSidebarCollapsed ? "left-0" : "left-80"}`}>
+          <button
+            type="button"
+            onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+            className="w-6 h-12 cursor-pointer bg-base-300 transition-all duration-200 rounded-r-full flex items-center justify-center group"
           >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth="2"
-              d={isSidebarCollapsed
-                ? "M9 5l7 7-7 7" // 展开箭头 (向右)
-                : "M15 19l-7-7 7-7"}
-            />
-          </svg>
-        </button>
-      </div>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              className="w-3 h-3 stroke-current transition-transform duration-200"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                d={isSidebarCollapsed
+                  ? "M9 5l7 7-7 7" // 展开箭头 (向右)
+                  : "M15 19l-7-7 7-7"}
+              />
+            </svg>
+          </button>
+        </div>
+      )}
 
       {/* 移动端悬浮按钮 */}
-      <div className="lg:hidden fixed left-0 top-[calc(env(safe-area-inset-top)+4.25rem)] z-50">
-        <button
-          type="button"
-          onClick={() => setIsDrawerOpen(true)}
-          aria-label="打开角色侧边栏"
-          className="w-7 h-14 cursor-pointer bg-base-200/95 hover:bg-base-300 border border-l-0 border-base-300 rounded-r-full flex items-center justify-center shadow-md transition-all duration-200"
-        >
-          <CaretRightIcon size={16} weight="bold" />
-        </button>
-      </div>
+      {!isDesktop && (
+        <div className="fixed left-0 top-[calc(env(safe-area-inset-top)+4.25rem)] z-50">
+          <button
+            type="button"
+            onClick={() => setIsDrawerOpen(true)}
+            aria-label="打开角色侧边栏"
+            className="w-7 h-14 cursor-pointer bg-base-200/95 hover:bg-base-300 border border-l-0 border-base-300 rounded-r-full flex items-center justify-center shadow-md transition-all duration-200"
+          >
+            <CaretRightIcon size={16} weight="bold" />
+          </button>
+        </div>
+      )}
 
       {/* 移动端 Vaul Drawer */}
-      <Drawer.Root
-        open={isDrawerOpen}
-        onOpenChange={setIsDrawerOpen}
-        direction="left"
-      >
-        <Drawer.Portal>
-          <Drawer.Overlay className="fixed inset-0 bg-black/40 lg:hidden data-[state=closed]:pointer-events-none data-[state=open]:pointer-events-auto" />
-          <Drawer.Content className="z-100 bg-base-300 flex flex-col fixed h-full w-80 left-0 top-0 lg:hidden data-[state=closed]:pointer-events-none data-[state=open]:pointer-events-auto">
-            <Drawer.Title className="sr-only">角色侧边栏</Drawer.Title>
-            <Drawer.Description className="sr-only">浏览并管理当前账号下的角色列表。</Drawer.Description>
-            <div className="flex-1 overflow-y-auto ">
-              <Sidebar
-                roles={roles}
-                setRoles={setRoles}
-                selectedRoleId={selectedRoleId}
-              />
-            </div>
-          </Drawer.Content>
-        </Drawer.Portal>
-      </Drawer.Root>
+      {!isDesktop && (
+        <Drawer.Root
+          open={isDrawerOpen}
+          onOpenChange={setIsDrawerOpen}
+          direction="left"
+        >
+          <Drawer.Portal>
+            <Drawer.Overlay className="fixed inset-0 bg-black/40 data-[state=closed]:pointer-events-none data-[state=open]:pointer-events-auto" />
+            <Drawer.Content className="z-100 bg-base-300 flex flex-col fixed h-full w-80 left-0 top-0 data-[state=closed]:pointer-events-none data-[state=open]:pointer-events-auto">
+              <Drawer.Title className="sr-only">角色侧边栏</Drawer.Title>
+              <Drawer.Description className="sr-only">浏览并管理当前账号下的角色列表。</Drawer.Description>
+              <div className="flex-1 overflow-y-auto ">
+                <Sidebar
+                  roles={roles}
+                  setRoles={setRoles}
+                  selectedRoleId={selectedRoleId}
+                />
+              </div>
+            </Drawer.Content>
+          </Drawer.Portal>
+        </Drawer.Root>
+      )}
 
       {/* 主内容区域 */}
       <div className="flex-1 w-full min-w-0 overflow-hidden min-h-0 border-t border-gray-300 dark:border-gray-700">

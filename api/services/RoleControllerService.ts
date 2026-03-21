@@ -7,6 +7,7 @@ import type { ApiResultLong } from '../models/ApiResultLong';
 import type { ApiResultPageBaseRespUserRole } from '../models/ApiResultPageBaseRespUserRole';
 import type { ApiResultUserRole } from '../models/ApiResultUserRole';
 import type { ApiResultVoid } from '../models/ApiResultVoid';
+import type { RoleCopyRequest } from '../models/RoleCopyRequest';
 import type { RoleCreateRequest } from '../models/RoleCreateRequest';
 import type { RolePageQueryRequest } from '../models/RolePageQueryRequest';
 import type { RoleUpdateRequest } from '../models/RoleUpdateRequest';
@@ -32,12 +33,6 @@ export class RoleControllerService {
                 'roleId': roleId,
                 'commitId': commitId,
             },
-            errors: {
-                400: `Bad Request`,
-                405: `Method Not Allowed`,
-                429: `Too Many Requests`,
-                500: `Internal Server Error`,
-            },
         });
     }
     /**
@@ -54,12 +49,6 @@ export class RoleControllerService {
             url: '/role',
             body: requestBody,
             mediaType: 'application/json',
-            errors: {
-                400: `Bad Request`,
-                405: `Method Not Allowed`,
-                429: `Too Many Requests`,
-                500: `Internal Server Error`,
-            },
         });
     }
     /**
@@ -76,12 +65,6 @@ export class RoleControllerService {
             url: '/role',
             body: requestBody,
             mediaType: 'application/json',
-            errors: {
-                400: `Bad Request`,
-                405: `Method Not Allowed`,
-                429: `Too Many Requests`,
-                500: `Internal Server Error`,
-            },
         });
     }
     /**
@@ -99,12 +82,6 @@ export class RoleControllerService {
             query: {
                 'roleId': roleId,
             },
-            errors: {
-                400: `Bad Request`,
-                405: `Method Not Allowed`,
-                429: `Too Many Requests`,
-                500: `Internal Server Error`,
-            },
         });
     }
     /**
@@ -121,12 +98,22 @@ export class RoleControllerService {
             url: '/role/page',
             body: requestBody,
             mediaType: 'application/json',
-            errors: {
-                400: `Bad Request`,
-                405: `Method Not Allowed`,
-                429: `Too Many Requests`,
-                500: `Internal Server Error`,
-            },
+        });
+    }
+    /**
+     * 复制角色（当前仅支持复制为骰娘）
+     * @param requestBody
+     * @returns ApiResultUserRole OK
+     * @throws ApiError
+     */
+    public copyRole(
+        requestBody: RoleCopyRequest,
+    ): CancelablePromise<ApiResultUserRole> {
+        return this.httpRequest.request({
+            method: 'POST',
+            url: '/role/copy',
+            body: requestBody,
+            mediaType: 'application/json',
         });
     }
     /**
@@ -143,12 +130,6 @@ export class RoleControllerService {
             url: '/role/user',
             query: {
                 'userId': userId,
-            },
-            errors: {
-                400: `Bad Request`,
-                405: `Method Not Allowed`,
-                429: `Too Many Requests`,
-                500: `Internal Server Error`,
             },
         });
     }
@@ -169,12 +150,6 @@ export class RoleControllerService {
             query: {
                 'userId': userId,
                 'type': type,
-            },
-            errors: {
-                400: `Bad Request`,
-                405: `Method Not Allowed`,
-                429: `Too Many Requests`,
-                500: `Internal Server Error`,
             },
         });
     }

@@ -184,7 +184,7 @@ type ApiResult<T> = {
     data?: T;
 };
 
-export type RepositoryCommitChainNode = {
+type RepositoryCommitChainNode = {
     commitId?: number;
     parentCommitId?: number;
     commitType?: number;
@@ -208,16 +208,7 @@ export function useRepositoryCommitChainQuery(repositoryId: number, limit: numbe
     const normalizedLimit = Number.isFinite(limit) && limit > 0 ? Math.floor(limit) : 120;
     return useQuery<ApiResult<RepositoryCommitChainData>>({
         queryKey: ['repositoryCommitChain', repositoryId, normalizedLimit],
-        queryFn: () => tuanchat.request.request({
-            method: 'GET',
-            url: '/capi/repository/{id}/commit-chain',
-            path: {
-                id: repositoryId,
-            },
-            query: {
-                limit: normalizedLimit,
-            },
-        }) as Promise<ApiResult<RepositoryCommitChainData>>,
+        queryFn: () => tuanchat.repositoryController.getCommitChain(repositoryId, normalizedLimit) as Promise<ApiResult<RepositoryCommitChainData>>,
         enabled: repositoryId > 0,
         staleTime: 60_000,
     });

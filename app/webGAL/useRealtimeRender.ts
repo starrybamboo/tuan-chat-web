@@ -18,6 +18,12 @@ import type { RealtimeTTSConfig } from "./realtimeRenderer";
 
 import { tuanchat } from "../../api/instance";
 import { onWebgalAvatarUpdated } from "./avatarSync";
+import {
+  collectMessageAssetWarmupPlan,
+  collectMissingAvatarIdsFromRoles,
+  DEFAULT_REALTIME_ASSET_CONCURRENCY,
+  runWithConcurrencyLimit,
+} from "./realtimeRenderAssetWarmup";
 import { RealtimeRenderer } from "./realtimeRenderer";
 
 export type RealtimeRenderStatus = "idle" | "initializing" | "connected" | "disconnected" | "error";
@@ -66,6 +72,8 @@ type UseRealtimeRenderReturn = {
   renderMessage: (message: ChatMessageResponse, roomId?: number) => Promise<void>;
   /** 渲染历史消息 */
   renderHistory: (messages: ChatMessageResponse[], roomId?: number) => Promise<void>;
+  /** 从给定索引起重渲染历史后缀 */
+  rerenderHistoryFromIndex: (messages: ChatMessageResponse[], startIndex: number, roomId?: number) => Promise<void>;
   /** 重置场景 */
   resetScene: (roomId?: number) => Promise<void>;
   /** 清除背景 */
@@ -121,6 +129,40 @@ function useRealtimeRender({
   const gameConfigRef = useRef<RealtimeWebgalGameConfig | undefined>(gameConfig);
   const workflowRoomMapRef = useRef<Record<string, Array<string>> | undefined>(workflowRoomMap);
   const startRequestSeqRef = useRef(0);
+
+  const hasCachedAvatar = useCallback((avatarId: number): boolean => {
+    if (!avatarId) {
+      return false;
+    }
+    const cached = queryClient.getQueryData<any>(["getRoleAvatar", avatarId]);
+    return Boolean(cached?.data ?? cached?.data?.data ?? cached);
+  }, [queryClient]);
+
+  const fetchAndCacheAvatars = useCallback(async (
+    avatarIds: number[],
+    onProgress?: (completed: number, total: number) => void,
+  ): Promise<void> => {
+    if (avatarIds.length === 0) {
+      return;
+    }
+
+    let completedCount = 0;
+    await runWithConcurrencyLimit(avatarIds, DEFAULT_REALTIME_ASSET_CONCURRENCY, async (avatarId) => {
+      try {
+        const avatarResponse = await tuanchat.avatarController.getRoleAvatar(avatarId);
+        if (avatarResponse.data) {
+          queryClient.setQueryData(["getRoleAvatar", avatarId], avatarResponse);
+        }
+      }
+      catch (error) {
+        console.error(`获取头像 ${avatarId} 失败:`, error);
+      }
+      finally {
+        completedCount += 1;
+        onProgress?.(completedCount, avatarIds.length);
+      }
+    });
+  }, [queryClient]);
 
   // 保持 refs 最新
   useEffect(() => {
@@ -280,49 +322,26 @@ function useRealtimeRender({
 
         // 全量获取所有角色的头像信息
         console.warn("[useRealtimeRender] 正在获取角色头像信息...");
-        const allAvatars: RoleAvatar[] = [...avatars];
-        const avatarIdsToFetch = new Set<number>();
-
-        // 收集所有需要获取的头像ID
-        for (const role of roles) {
-          if (role.avatarId && !queryClient.getQueryData(["getRoleAvatar", role.avatarId])) {
-            avatarIdsToFetch.add(role.avatarId);
-          }
-        }
+        const avatarIdsToFetch = collectMissingAvatarIdsFromRoles(roles, hasCachedAvatar);
 
         // 更新进度: 正在获取头像信息
         setInitProgress({
           phase: "fetching_avatars",
           current: 0,
-          total: avatarIdsToFetch.size,
-          message: `正在获取角色头像信息... (0/${avatarIdsToFetch.size})`,
+          total: avatarIdsToFetch.length,
+          message: `正在获取角色头像信息... (0/${avatarIdsToFetch.length})`,
         });
 
-        // 批量获取头像信息
-        let fetchedCount = 0;
-        for (const avatarId of avatarIdsToFetch) {
-          try {
-            const avatarResponse = await tuanchat.avatarController.getRoleAvatar(avatarId);
-            if (avatarResponse.data) {
-              allAvatars.push(avatarResponse.data);
-              queryClient.setQueryData(["getRoleAvatar", avatarId], avatarResponse);
-            }
-            fetchedCount++;
-            setInitProgress({
-              phase: "fetching_avatars",
-              current: fetchedCount,
-              total: avatarIdsToFetch.size,
-              message: `正在获取角色头像信息... (${fetchedCount}/${avatarIdsToFetch.size})`,
-            });
-          }
-          catch (error) {
-            console.error(`获取头像 ${avatarId} 失败:`, error);
-            fetchedCount++;
-          }
-        }
+        await fetchAndCacheAvatars(avatarIdsToFetch, (fetchedCount, total) => {
+          setInitProgress({
+            phase: "fetching_avatars",
+            current: fetchedCount,
+            total,
+            message: `正在获取角色头像信息... (${fetchedCount}/${total})`,
+          });
+        });
 
-        // 设置头像缓存
-        console.warn(`[useRealtimeRender] 获取了 ${allAvatars.length} 个头像信息`);
+        console.warn(`[useRealtimeRender] 已检查 ${roles.length} 个角色的头像信息`);
       }
 
       // 设置房间列表（用于创建多个场景）- 使用 ref 获取最新值
@@ -394,7 +413,7 @@ function useRealtimeRender({
       setInitProgress(null);
       return false;
     }
-  }, [spaceId, status, roles, avatars, queryClient, miniAvatarEnabled, autoFigureEnabled]);
+  }, [spaceId, status, roles, avatars, queryClient, miniAvatarEnabled, autoFigureEnabled, hasCachedAvatar, fetchAndCacheAvatars]);
 
   // 停止实时渲染
   const stop = useCallback(() => {
@@ -431,6 +450,7 @@ function useRealtimeRender({
       }
     }
 
+    await rendererRef.current.preloadMessageAssets([message]);
     await rendererRef.current.renderMessage(message, roomId);
   }, [queryClient]);
 
@@ -443,41 +463,42 @@ function useRealtimeRender({
 
     // 预先获取所有消息中缺失的头像信息
     // 注意：需要检查 renderer 的 avatarMap 而不是本地缓存，因为 renderer 可能是新实例
-    const missingAvatarIds = new Set<number>();
-    for (const message of messages) {
-      const avatarId = message.message.avatarId;
-      // avatarId 必须是正整数才有效
-      if (avatarId && avatarId > 0) {
-        missingAvatarIds.add(avatarId);
-      }
-    }
+    const roleLookup = new Map(roles.map(role => [role.roleId, role] as const));
+    const warmupPlan = collectMessageAssetWarmupPlan(messages, roleLookup, {
+      autoFigureEnabled,
+      miniAvatarEnabled,
+    });
+    const idsToFetch = warmupPlan.avatarIds.filter(avatarId => !hasCachedAvatar(avatarId));
 
-    console.warn(`[useRealtimeRender] 需要获取 ${missingAvatarIds.size} 个头像信息:`, Array.from(missingAvatarIds));
+    console.warn(`[useRealtimeRender] 需要获取 ${idsToFetch.length} 个头像信息:`, idsToFetch);
+    await fetchAndCacheAvatars(idsToFetch);
 
-    // 批量获取头像信息：先从 query 缓存中装载已缓存的头像，再只获取缺失的头像
-    const idsToFetch: number[] = [];
-    for (const avatarId of missingAvatarIds) {
-      const cached = queryClient.getQueryData<any>(["getRoleAvatar", avatarId]);
-      if (!cached?.data) {
-        idsToFetch.push(avatarId);
-      }
-    }
-
-    for (const avatarId of idsToFetch) {
-      try {
-        const avatarResponse = await tuanchat.avatarController.getRoleAvatar(avatarId);
-        if (avatarResponse.data) {
-          queryClient.setQueryData(["getRoleAvatar", avatarId], avatarResponse);
-          console.warn(`[useRealtimeRender] 成功获取头像 ${avatarId}:`, avatarResponse.data.avatarUrl || avatarResponse.data.spriteUrl);
-        }
-      }
-      catch (error) {
-        console.error(`获取头像 ${avatarId} 信息失败:`, error);
-      }
-    }
-
+    await rendererRef.current.preloadMessageAssets(messages);
     await rendererRef.current.renderHistory(messages, roomId);
-  }, [queryClient]);
+  }, [roles, autoFigureEnabled, miniAvatarEnabled, hasCachedAvatar, fetchAndCacheAvatars]);
+
+  const rerenderHistoryFromIndex = useCallback(async (
+    messages: ChatMessageResponse[],
+    startIndex: number,
+    roomId?: number,
+  ): Promise<void> => {
+    if (!rendererRef.current) {
+      console.warn("实时渲染器未就绪，无法重渲染历史后缀");
+      return;
+    }
+
+    const suffixMessages = messages.slice(Math.max(0, startIndex));
+    const roleLookup = new Map(roles.map(role => [role.roleId, role] as const));
+    const warmupPlan = collectMessageAssetWarmupPlan(suffixMessages, roleLookup, {
+      autoFigureEnabled,
+      miniAvatarEnabled,
+    });
+    const idsToFetch = warmupPlan.avatarIds.filter(avatarId => !hasCachedAvatar(avatarId));
+
+    await fetchAndCacheAvatars(idsToFetch);
+    await rendererRef.current.preloadMessageAssets(suffixMessages);
+    await rendererRef.current.rerenderHistoryFromIndex(messages, startIndex, roomId);
+  }, [roles, autoFigureEnabled, miniAvatarEnabled, hasCachedAvatar, fetchAndCacheAvatars]);
 
   // 重置场景
   const resetScene = useCallback(async (roomId?: number): Promise<void> => {
@@ -603,6 +624,7 @@ function useRealtimeRender({
       }
     }
 
+    await rendererRef.current.preloadMessageAssets([message]);
     return rendererRef.current.updateAndRerenderMessage(message, roomId, regenerateTTS);
   }, [queryClient]);
 
@@ -640,6 +662,7 @@ function useRealtimeRender({
     stop,
     renderMessage,
     renderHistory,
+    rerenderHistoryFromIndex,
     resetScene,
     clearBackground,
     clearFigure,

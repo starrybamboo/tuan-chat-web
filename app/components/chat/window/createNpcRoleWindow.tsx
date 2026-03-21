@@ -7,7 +7,7 @@ import { useQueryClient } from "@tanstack/react-query";
 
 import { RoomContext } from "@/components/chat/core/roomContext";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
-import RoleAvatarComponent from "@/components/common/roleAvatar";
+import { RoleAvatarByRole } from "@/components/common/roleAccess";
 import RoleCreationFlow from "@/components/Role/RoleCreation/RoleCreationFlow";
 import { useAddRoomRoleMutation, useGetRoomNpcRoleQuery, useGetRoomRoleQuery } from "../../../../api/hooks/chatQueryHooks";
 import { useGetSpaceRepositoryRoleQuery } from "../../../../api/hooks/spaceRepositoryHooks";
@@ -122,9 +122,8 @@ export default function CreateNpcRoleWindow({ onClose }: { onClose: () => void }
               <div className="card shadow hover:shadow-lg transition-shadow cursor-pointer" key={role.roleId}>
                 <div className="flex flex-col items-center p-3">
                   <div onClick={() => handleImportNpcToRoom(role.roleId)}>
-                    <RoleAvatarComponent
-                      avatarId={role.avatarId ?? -1}
-                      roleId={role.roleId}
+                    <RoleAvatarByRole
+                      role={role}
                       width={24}
                       isRounded={true}
                       withTitle={false}

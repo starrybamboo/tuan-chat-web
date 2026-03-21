@@ -7,6 +7,7 @@ import {
   getRealtimeRenderSettingsFromCloud,
   setRealtimeRenderSettingsToCloud,
 } from "@/components/chat/infra/cloud/realtimeRenderSettingsCloud";
+import { mergeRealtimeRenderRuntimeState } from "@/components/chat/stores/realtimeRenderRuntimeState";
 import { getDefaultTerrePort, setTerrePortOverride as setTerrePortOverrideInConfig } from "@/webGAL/terreConfig";
 
 export type RealtimeWebgalDefaultLanguage = "" | "zh_CN" | "zh_TW" | "en" | "ja" | "fr" | "de";
@@ -469,12 +470,12 @@ export const useRealtimeRenderStore = create<RealtimeRenderState>((set, get) => 
   },
 
   setRuntime: runtime => set((state) => {
-    const next = {
-      status: runtime.status ?? state.status,
-      initProgress: runtime.initProgress ?? state.initProgress,
-      isActive: runtime.isActive ?? state.isActive,
-      previewUrl: runtime.previewUrl ?? state.previewUrl,
-    };
+    const next = mergeRealtimeRenderRuntimeState({
+      status: state.status,
+      initProgress: state.initProgress,
+      isActive: state.isActive,
+      previewUrl: state.previewUrl,
+    }, runtime);
 
     if (
       next.status === state.status

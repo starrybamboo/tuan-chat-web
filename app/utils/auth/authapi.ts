@@ -1,6 +1,7 @@
 import type { UserLoginRequest, UserRegisterRequest } from "api";
 
 import { tuanchat } from "../../../api/instance";
+import { extractOpenApiErrorMessage } from "@/utils/openApiResult";
 
 // 获取错误信息的优先级：
 // 1. error 对象中的 body.errMsg
@@ -54,11 +55,7 @@ export async function loginUser(
     return response;
   }
   catch (error: any) {
-    const errorMessage
-      = error.body?.errMsg
-        || error.message
-        || "登录失败";
-    throw new Error(errorMessage);
+    throw new Error(extractOpenApiErrorMessage(error, "登录失败"));
   }
 }
 
@@ -69,12 +66,7 @@ export async function registerUser(credentials: UserRegisterRequest) {
     return response;
   }
   catch (error: any) {
-    const errorMessage
-      = error.body?.errMsg
-        || error.message
-        || "注册失败";
-
-    throw new Error(errorMessage);
+    throw new Error(extractOpenApiErrorMessage(error, "注册失败"));
   }
 }
 
@@ -97,17 +89,8 @@ export async function logoutUser() {
   if (!token)
     return;
 
-  // 最小实现：不依赖 OpenAPI 代码生成是否已同步到 /user/logout
-  // 后端按 Sa-Token 处理 Authorization: Bearer <token>
   try {
-    const base = import.meta.env.VITE_API_BASE_URL;
-    await fetch(`${base}/user/logout`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-      credentials: "include",
-    });
+    await tuanchat.userController.logout();
   }
   catch {
     // best-effort: 本地已登出即可

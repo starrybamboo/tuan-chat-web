@@ -14,6 +14,18 @@ export type RoomMember = {
      * 用户id
      */
     userId?: number;
+    /**
+     * 用户名
+     */
+    username?: string;
+    /**
+     * 头像 URL
+     */
+    avatar?: string;
+    /**
+     * 头像缩略图 URL
+     */
+    avatarThumbUrl?: string;
     createTime?: string;
     updateTime?: string;
 };
