@@ -1,5 +1,6 @@
 import type { StoredSnapshot } from "@/components/chat/infra/blocksuite/descriptionDocRemote";
 
+import { prewarmBlocksuiteRuntime } from "@/components/chat/infra/blocksuite/bootstrap/runtime";
 import { parseDescriptionDocId } from "@/components/chat/infra/blocksuite/descriptionDocId";
 import { getRemoteSnapshot, getRemoteUpdates } from "@/components/chat/infra/blocksuite/descriptionDocRemote";
 
@@ -72,24 +73,29 @@ export async function prewarmDescriptionDocOpenIntent(docId: string): Promise<vo
   }
 
   const task = (async () => {
-    let snapshot: StoredSnapshot | null = null;
-    try {
-      snapshot = await getRemoteSnapshot(remoteKey);
-    }
-    catch {
-      snapshot = null;
-    }
+    await Promise.all([
+      prewarmBlocksuiteRuntime(),
+      (async () => {
+        let snapshot: StoredSnapshot | null = null;
+        try {
+          snapshot = await getRemoteSnapshot(remoteKey);
+        }
+        catch {
+          snapshot = null;
+        }
 
-    try {
-      await getRemoteUpdates({
-        ...remoteKey,
-        afterServerTime: snapshotCursor(snapshot),
-        limit: 2000,
-      });
-    }
-    catch {
-      // Best effort only. Open path will perform the real load.
-    }
+        try {
+          await getRemoteUpdates({
+            ...remoteKey,
+            afterServerTime: snapshotCursor(snapshot),
+            limit: 2000,
+          });
+        }
+        catch {
+          // Best effort only. Open path will perform the real load.
+        }
+      })(),
+    ]);
 
     lastFinishedAt.set(cacheKey, Date.now());
   })();

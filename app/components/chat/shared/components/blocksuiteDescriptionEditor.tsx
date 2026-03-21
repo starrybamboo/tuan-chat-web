@@ -16,32 +16,14 @@ import { parseDescriptionDocId } from "@/components/chat/infra/blocksuite/descri
 import { getRemoteSnapshot } from "@/components/chat/infra/blocksuite/descriptionDocRemote";
 import { ensureBlocksuiteDocHeader, setBlocksuiteDocHeader, subscribeBlocksuiteDocHeader } from "@/components/chat/infra/blocksuite/docHeader";
 import { prewarmDescriptionDocOpenIntent } from "@/components/chat/infra/blocksuite/docOpenIntentPrewarm";
-
+import { prewarmBlocksuiteRuntime } from "@/components/chat/infra/blocksuite/bootstrap/runtime";
+import { loadBlocksuiteRuntime } from "@/components/chat/infra/blocksuite/runtime/runtimeLoader";
 import { BlocksuiteMentionProfilePopover } from "@/components/chat/infra/blocksuite/mentionProfilePopover";
 import { parseSpaceDocId } from "@/components/chat/infra/blocksuite/spaceDocId";
-import { ensureBlocksuiteRuntimeStyles } from "@/components/chat/infra/blocksuite/styles/ensureBlocksuiteRuntimeStyles";
 import { useEntityHeaderOverrideStore } from "@/components/chat/stores/entityHeaderOverrideStore";
 import { ResizableImg } from "@/components/common/resizableImg";
 import toastWindow from "@/components/common/toastWindow/toastWindow";
 import { ImgUploaderWithCopper } from "@/components/common/uploader/imgUploaderWithCropper";
-
-async function loadBlocksuiteRuntime() {
-  const [{ createEmbeddedAffineEditor }, { ensureBlocksuiteCoreElementsDefined }, spaceRegistry] = await Promise.all([
-    import("@/components/chat/infra/blocksuite/embedded/createEmbeddedAffineEditor"),
-    import("@/components/chat/infra/blocksuite/spec/coreElements"),
-    import("@/components/chat/infra/blocksuite/spaceWorkspaceRegistry"),
-  ]);
-
-  return {
-    createEmbeddedAffineEditor,
-    ensureBlocksuiteCoreElementsDefined,
-    ensureDocMeta: spaceRegistry.ensureDocMeta,
-    getOrCreateDoc: spaceRegistry.getOrCreateDoc,
-    getOrCreateWorkspace: spaceRegistry.getOrCreateWorkspace,
-    releaseWorkspace: spaceRegistry.releaseWorkspace,
-    retainWorkspace: spaceRegistry.retainWorkspace,
-  };
-}
 
 interface BlocksuiteDescriptionEditorProps {
   /** Blocksuite workspaceId，比如 `space:123` / `user:1` */
@@ -497,20 +479,11 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
     // Hydrate first (restore semantics), then render editor.
     // This avoids binding the UI to an empty initialized root.
     (async () => {
-      // frame 内直接加载完整运行时样式，不再做宿主侧 scope rewrite。
-      try {
-        await ensureBlocksuiteRuntimeStyles();
-      }
-      catch {
-        // ignore
-      }
-
       const runtime = await loadBlocksuiteRuntime();
       runtimeRef.current = runtime;
       if (abort.signal.aborted)
         return;
 
-      await runtime.ensureBlocksuiteCoreElementsDefined();
       runtime.retainWorkspace(workspaceId);
       retainedRuntime = runtime;
 
@@ -641,7 +614,7 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
         }
       }
 
-      const editor = await runtime.createEmbeddedAffineEditor({
+      const editor = await runtime.createBlocksuiteEditor({
         store,
         workspace: workspace as any,
         docModeProvider,
@@ -1398,6 +1371,52 @@ function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEdito
   useEffect(() => {
     onNavigateRef.current = onNavigate;
   }, [onNavigate]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    let cancelled = false;
+    let timeoutId: number | null = null;
+    let idleId: number | null = null;
+
+    const run = () => {
+      void prewarmBlocksuiteRuntime().catch(() => {
+        // ignore
+      });
+    };
+
+    const requestIdle = (window as Window & {
+      requestIdleCallback?: (callback: IdleRequestCallback, options?: IdleRequestOptions) => number;
+      cancelIdleCallback?: (handle: number) => void;
+    }).requestIdleCallback;
+
+    if (typeof requestIdle === "function") {
+      idleId = requestIdle(() => {
+        if (!cancelled) {
+          run();
+        }
+      }, { timeout: 1200 });
+    }
+    else {
+      timeoutId = window.setTimeout(() => {
+        if (!cancelled) {
+          run();
+        }
+      }, 300);
+    }
+
+    return () => {
+      cancelled = true;
+      if (timeoutId !== null) {
+        window.clearTimeout(timeoutId);
+      }
+      if (idleId !== null && typeof (window as any).cancelIdleCallback === "function") {
+        (window as any).cancelIdleCallback(idleId);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     if (!intentPrewarm) {

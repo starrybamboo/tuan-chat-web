@@ -10,7 +10,7 @@
 
 1. **先跑起来**：在 BlockSuite 仓库按 `BUILDING.md` 跑 Playground（能编辑=入门成功）
 2. **再看概念**：Store（数据）→ Std（渲染宿主）→ View/Store Extensions（能力拼装）→ Sync（协作/持久化管线）
-3. **最后回到本项目**：从本项目的 `manager + runtime + editor-host` 三处入口，理解“我们到底用到了 BlockSuite 的哪一层”
+3. **最后回到本项目**：从本项目的 `manager + bootstrap + runtime + editors` 四处入口，理解“我们到底用到了 BlockSuite 的哪一层”
 
 ---
 
@@ -61,13 +61,25 @@
    - `app/components/chat/infra/blocksuite/manager/view.ts`
    - 你要理解：我们先定义一份 supported subset，再分别映射到 store extensions 和 view extensions，避免“store 认识这个能力，但 view 入口暴露了另一个能力”的漂移
 
-2. **Workspace/Doc/Store 运行时（数据与存储管线）**
+2. **Bootstrap（iframe 内客户端启动）**
+   - `app/components/chat/infra/blocksuite/bootstrap/runtime.ts`
+   - `app/components/chat/infra/blocksuite/styles/ensureBlocksuiteRuntimeStyles.ts`
+   - `app/components/chat/infra/blocksuite/spec/coreElements.ts`
+   - 你要理解：运行时样式、core modules、custom elements/effects 的初始化被收口到 iframe 内一次性启动，不再由宿主边打开边拼
+
+3. **Workspace/Doc/Store 运行时（数据与存储管线）**
    - `app/components/chat/infra/blocksuite/runtime/spaceWorkspace.ts`
    - `app/components/chat/infra/blocksuite/spaceWorkspaceRegistry.ts`
    - 你要理解：Space≈Workspace、root Y.Doc + subdoc 的组织方式、IndexedDB 的持久化边界
 
-3. **UI 渲染入口（把 editor-host 放进 React）**
+4. **Editor 创建层（把 manager/runtime 组装成真正编辑器）**
+   - `app/components/chat/infra/blocksuite/runtime/runtimeLoader.ts`
+   - `app/components/chat/infra/blocksuite/editors/createBlocksuiteEditor.ts`
+   - 你要理解：runtimeLoader 负责浏览器侧资源加载，editors 层负责真正创建 editor，不让 React runtime 同时承担 bootstrap 与渲染职责
+
+5. **UI 渲染入口（把 editor-host 放进 React）**
    - `app/components/chat/shared/components/blocksuiteDescriptionEditor.tsx`
+   - `app/routes/blocksuiteFrame.tsx`
    - 你要理解：React 只负责挂载宿主与传参，编辑器核心是 Web Components + std 渲染树
 
 

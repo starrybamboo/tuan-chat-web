@@ -22,7 +22,148 @@ function runEffectsIfMissing(probeTagName: string, run: () => void) {
 
 const EFFECTS_ONCE_KEY = "__TC_BLOCKSUITE_EFFECTS_DONE__";
 
-export async function ensureBlocksuiteCoreElementsDefined(): Promise<void> {
+type BlocksuiteCoreModules = Awaited<ReturnType<typeof loadBlocksuiteCoreModules>>;
+
+let coreModulesPromise: Promise<{
+  attachmentViewMod: unknown;
+  bookmarkViewMod: unknown;
+  embedViewMod: unknown;
+  blockRootEffectsMod: unknown;
+  captionEffectsMod: unknown;
+  colorPickerEffectsMod: unknown;
+  contextMenuEffectsMod: unknown;
+  datePickerEffectsMod: unknown;
+  dropIndicatorEffectsMod: unknown;
+  embedCardModalEffectsMod: unknown;
+  highlightDropdownMenuEffectsMod: unknown;
+  iconButtonMod: unknown;
+  linkPreviewEffectsMod: unknown;
+  linkedDocTitleEffectsMod: unknown;
+  portalEffectsMod: unknown;
+  toggleButtonEffectsMod: unknown;
+  toolbarEffectsMod: unknown;
+  viewDropdownMenuEffectsMod: unknown;
+  richTextEffectsMod: unknown;
+  dataViewEffectsMod: unknown;
+  integrationTestEffectsMod: unknown;
+  stdEffectsMod: unknown;
+  noteBlocksMod: unknown;
+  tableBlocksMod: unknown;
+  databaseBlocksMod: unknown;
+  dataViewBlocksMod: unknown;
+  attachmentBlocksMod: unknown;
+  bookmarkBlocksMod: unknown;
+  embedBlocksMod: unknown;
+  mentionElementMod: unknown;
+}> | null = null;
+
+export async function loadBlocksuiteCoreModules() {
+  if (coreModulesPromise)
+    return coreModulesPromise;
+
+  coreModulesPromise = (async () => {
+    const [
+      mentionElementMod,
+      attachmentViewMod,
+      bookmarkViewMod,
+      embedViewMod,
+      blockRootEffectsMod,
+      captionEffectsMod,
+      colorPickerEffectsMod,
+      contextMenuEffectsMod,
+      datePickerEffectsMod,
+      dropIndicatorEffectsMod,
+      embedCardModalEffectsMod,
+      highlightDropdownMenuEffectsMod,
+      iconButtonMod,
+      linkPreviewEffectsMod,
+      linkedDocTitleEffectsMod,
+      portalEffectsMod,
+      toggleButtonEffectsMod,
+      toolbarEffectsMod,
+      viewDropdownMenuEffectsMod,
+      richTextEffectsMod,
+      dataViewEffectsMod,
+      integrationTestEffectsMod,
+      stdEffectsMod,
+      noteBlocksMod,
+      tableBlocksMod,
+      databaseBlocksMod,
+      dataViewBlocksMod,
+      attachmentBlocksMod,
+      bookmarkBlocksMod,
+      embedBlocksMod,
+    ] = await Promise.all([
+      import("./tcMentionElement.client"),
+      import("@blocksuite/affine/blocks/attachment/view"),
+      import("@blocksuite/affine/blocks/bookmark/view"),
+      import("@blocksuite/affine/blocks/embed/view"),
+      import("@blocksuite/affine-block-root/effects"),
+      import("@blocksuite/affine-components/caption"),
+      import("@blocksuite/affine-components/color-picker"),
+      import("@blocksuite/affine-components/context-menu"),
+      import("@blocksuite/affine-components/date-picker"),
+      import("@blocksuite/affine-components/drop-indicator"),
+      import("@blocksuite/affine-components/embed-card-modal"),
+      import("@blocksuite/affine-components/highlight-dropdown-menu"),
+      import("@blocksuite/affine-components/icon-button"),
+      import("@blocksuite/affine-components/link-preview"),
+      import("@blocksuite/affine-components/linked-doc-title"),
+      import("@blocksuite/affine-components/portal"),
+      import("@blocksuite/affine-components/toggle-button"),
+      import("@blocksuite/affine-components/toolbar"),
+      import("@blocksuite/affine-components/view-dropdown-menu"),
+      import("@blocksuite/affine/rich-text/effects"),
+      import("@blocksuite/affine/data-view/effects"),
+      import("@blocksuite/integration-test/effects"),
+      import("@blocksuite/std/effects"),
+      import("@blocksuite/affine/blocks/note"),
+      import("@blocksuite/affine/blocks/table"),
+      import("@blocksuite/affine/blocks/database"),
+      import("@blocksuite/affine/blocks/data-view"),
+      import("@blocksuite/affine/blocks/attachment"),
+      import("@blocksuite/affine/blocks/bookmark"),
+      import("@blocksuite/affine/blocks/embed"),
+    ]);
+
+    return {
+      mentionElementMod,
+      attachmentViewMod,
+      bookmarkViewMod,
+      embedViewMod,
+      blockRootEffectsMod,
+      captionEffectsMod,
+      colorPickerEffectsMod,
+      contextMenuEffectsMod,
+      datePickerEffectsMod,
+      dropIndicatorEffectsMod,
+      embedCardModalEffectsMod,
+      highlightDropdownMenuEffectsMod,
+      iconButtonMod,
+      linkPreviewEffectsMod,
+      linkedDocTitleEffectsMod,
+      portalEffectsMod,
+      toggleButtonEffectsMod,
+      toolbarEffectsMod,
+      viewDropdownMenuEffectsMod,
+      richTextEffectsMod,
+      dataViewEffectsMod,
+      integrationTestEffectsMod,
+      stdEffectsMod,
+      noteBlocksMod,
+      tableBlocksMod,
+      databaseBlocksMod,
+      dataViewBlocksMod,
+      attachmentBlocksMod,
+      bookmarkBlocksMod,
+      embedBlocksMod,
+    };
+  })();
+
+  return coreModulesPromise;
+}
+
+export async function ensureBlocksuiteCoreElementsDefined(modules?: BlocksuiteCoreModules): Promise<void> {
   if (typeof window === "undefined")
     return;
   if (!globalThis.customElements)
@@ -32,19 +173,19 @@ export async function ensureBlocksuiteCoreElementsDefined(): Promise<void> {
   if (g[EFFECTS_ONCE_KEY]) {
     return;
   }
-  g[EFFECTS_ONCE_KEY] = true;
+  const loadedModules = modules ?? await loadBlocksuiteCoreModules();
 
   // Define our customized mention element early so upstream effects won't register the default one.
   // (customElements.define is globally patched in app/root.tsx to ignore duplicate defines.)
   try {
-    const mod = await import("./tcMentionElement.client");
+    const mod = loadedModules.mentionElementMod as { ensureTCAffineMentionDefined: () => void };
     mod.ensureTCAffineMentionDefined();
   }
   catch {
     // ignore
   }
 
-  const [
+  const {
     attachmentViewMod,
     bookmarkViewMod,
     embedViewMod,
@@ -74,38 +215,8 @@ export async function ensureBlocksuiteCoreElementsDefined(): Promise<void> {
     attachmentBlocksMod,
     bookmarkBlocksMod,
     embedBlocksMod,
-  ] = await Promise.all([
-    import("@blocksuite/affine/blocks/attachment/view"),
-    import("@blocksuite/affine/blocks/bookmark/view"),
-    import("@blocksuite/affine/blocks/embed/view"),
-    import("@blocksuite/affine-block-root/effects"),
-    import("@blocksuite/affine-components/caption"),
-    import("@blocksuite/affine-components/color-picker"),
-    import("@blocksuite/affine-components/context-menu"),
-    import("@blocksuite/affine-components/date-picker"),
-    import("@blocksuite/affine-components/drop-indicator"),
-    import("@blocksuite/affine-components/embed-card-modal"),
-    import("@blocksuite/affine-components/highlight-dropdown-menu"),
-    import("@blocksuite/affine-components/icon-button"),
-    import("@blocksuite/affine-components/link-preview"),
-    import("@blocksuite/affine-components/linked-doc-title"),
-    import("@blocksuite/affine-components/portal"),
-    import("@blocksuite/affine-components/toggle-button"),
-    import("@blocksuite/affine-components/toolbar"),
-    import("@blocksuite/affine-components/view-dropdown-menu"),
-    import("@blocksuite/affine/rich-text/effects"),
-    import("@blocksuite/affine/data-view/effects"),
-    import("@blocksuite/integration-test/effects"),
-    import("@blocksuite/std/effects"),
-    // Ensure AFFiNE block modules are loaded so their schemas/specs are registered.
-    import("@blocksuite/affine/blocks/note"),
-    import("@blocksuite/affine/blocks/table"),
-    import("@blocksuite/affine/blocks/database"),
-    import("@blocksuite/affine/blocks/data-view"),
-    import("@blocksuite/affine/blocks/attachment"),
-    import("@blocksuite/affine/blocks/bookmark"),
-    import("@blocksuite/affine/blocks/embed"),
-  ]);
+  } = loadedModules;
+  g[EFFECTS_ONCE_KEY] = true;
 
   // Prevent bundlers from tree-shaking these imports in production.
   void noteBlocksMod;

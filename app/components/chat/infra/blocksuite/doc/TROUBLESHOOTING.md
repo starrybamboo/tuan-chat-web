@@ -55,7 +55,9 @@ Blocksuite 官方 examples 里经常会 `import '@blocksuite/presets/themes/affi
 ### 2.3 修复方式
 
 - 确保初始化/迁移时为 `affine:paragraph` 补齐 `props.text: Text`（可提供 `yText`）
-- 确保 `rich-text` custom element 已注册（见 `ensureBlocksuiteCoreElementsDefined`）
+- 确保 frame 内 bootstrap 已完成，`rich-text` custom element 已注册
+  - 见：`app/components/chat/infra/blocksuite/bootstrap/runtime.ts`
+  - 见：`app/components/chat/infra/blocksuite/spec/coreElements.ts`
 
 ---
 
@@ -88,6 +90,28 @@ Slash menu 不是 paragraph block “自动就有”的功能，它属于 **widg
   - `app/components/chat/infra/blocksuite/manager/store.ts`
 
 > 注意：我们项目里不再使用 `getTestViewManager()` / `getInternalViewExtensions()` 这类近全量入口。当前采用的是“手动显式声明 supported subset，再映射到 manager”的方式。
+
+---
+
+## 3.1 现象：第一次打开文档很慢，但第二次明显变快
+
+### 3.1.1 根因（底层逻辑）
+
+如果第一次打开慢、第二次快，通常不是 store 本身有问题，而是 BlockSuite runtime 还没预热完成。现在冷启动被拆成两段：
+
+- 预热阶段：只加载 runtime 模块与样式文本
+- 执行阶段：只在 iframe 内真正注入样式并注册 custom elements/effects
+
+对应文件：
+- `app/components/chat/infra/blocksuite/bootstrap/runtime.ts`
+- `app/components/chat/infra/blocksuite/docOpenIntentPrewarm.ts`
+- `app/routes/blocksuiteFrame.tsx`
+
+### 3.1.2 修复方式
+
+- 确认宿主页是否触发了页面级空闲预热或打开意图预热
+- 确认 `/blocksuite-frame` 进入后是否先完成 `ensureBlocksuiteRuntimeReady(document)`
+- 如果是开发环境，确认 `vite.config.ts` 的 warmup 清单包含 bootstrap/runtimeLoader/editors 入口
 
 ---
 
