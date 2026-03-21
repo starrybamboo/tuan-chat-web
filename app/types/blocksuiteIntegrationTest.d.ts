@@ -15,16 +15,6 @@ declare module "@blocksuite/integration-test" {
   export default editor;
 }
 
-declare module "@blocksuite/integration-test/view" {
-  export function getTestViewManager(): {
-    get: (mode: string) => any[];
-  };
-}
-
 declare module "@blocksuite/integration-test/effects" {
   export const effects: () => void;
-}
-
-declare module "@blocksuite/integration-test/store" {
-  export function getTestStoreManager(): any;
 }
