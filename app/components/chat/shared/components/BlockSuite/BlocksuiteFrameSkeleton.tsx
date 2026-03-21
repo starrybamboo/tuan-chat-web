@@ -1,9 +1,9 @@
-type BlocksuiteFrameSkeletonProps = {
+interface BlocksuiteFrameSkeletonProps {
   visible: boolean;
   variant: "embedded" | "full";
   iframeHeightAttr?: number;
   hasExplicitHeightClass: boolean;
-};
+}
 
 export function BlocksuiteFrameSkeleton(props: BlocksuiteFrameSkeletonProps) {
   const { visible, variant, iframeHeightAttr, hasExplicitHeightClass } = props;

@@ -1,4 +1,7 @@
-import { useEffect, type RefObject } from "react";
+import type { RefObject } from "react";
+
+import { useEffect } from "react";
+
 import { getCurrentAppTheme, getPostMessageTargetOrigin } from "./blocksuiteDescriptionEditor.shared";
 
 type UseBlocksuiteFrameThemeSyncParams = {

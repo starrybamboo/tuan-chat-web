@@ -11,7 +11,7 @@ import { resolve } from "node:path";
 import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
 import { fetch as undiciFetch } from "undici";
-import { defineConfig, loadEnv } from "vite";
+import { defineConfig } from "vite";
 import tsconfigPaths from "vite-tsconfig-paths";
 
 const _ReactCompilerConfig = {
@@ -249,8 +249,8 @@ function authRecoveryCompatPlugin(): Plugin {
   };
 }
 
-export default defineConfig(({ command }) => {
-  const _isDev = command === "serve";
+export default defineConfig(() => {
+  // const _isDev = command === "serve";
   // const env = loadEnv(mode, process.cwd(), "");
 
   const nm = (p: string) => {

@@ -1,5 +1,5 @@
 import React from "react";
-import BlocksuiteDescriptionEditor from "@/components/chat/shared/components/blocksuiteDescriptionEditor";
+import BlocksuiteDescriptionEditor from "@/components/chat/shared/components/BlockSuite/blocksuiteDescriptionEditor";
 
 interface UserReadMeProps {
   userId: number;

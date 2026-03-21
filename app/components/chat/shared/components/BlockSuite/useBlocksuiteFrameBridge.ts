@@ -1,10 +1,15 @@
 import type { DocMode } from "@blocksuite/affine/model";
+import type { RefObject } from "react";
+
+import { useEffect, useRef } from "react";
+
 import type { DescriptionEntityType } from "@/components/chat/infra/blocksuite/descriptionDocId";
 import type { BlocksuiteDocHeader } from "@/components/chat/infra/blocksuite/docHeader";
-import { useEffect, useRef, type RefObject } from "react";
+
 import { isBlocksuiteDebugEnabled } from "@/components/chat/infra/blocksuite/debugFlags";
-import { getCurrentAppTheme, getPostMessageTargetOrigin } from "./blocksuiteDescriptionEditor.shared";
 import { useEntityHeaderOverrideStore } from "@/components/chat/stores/entityHeaderOverrideStore";
+
+import { getCurrentAppTheme, getPostMessageTargetOrigin } from "./blocksuiteDescriptionEditor.shared";
 
 type UseBlocksuiteFrameBridgeParams = {
   iframeRef: RefObject<HTMLIFrameElement | null>;
