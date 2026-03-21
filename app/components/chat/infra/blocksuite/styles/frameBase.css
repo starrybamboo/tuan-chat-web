@@ -7,11 +7,11 @@ body,
 html,
 body {
   margin: 0;
-  background-color: var(--affine-background-primary-color, oklch(var(--b1) / 1));
+  background-color: oklch(var(--b1) / 1);
 }
 
 body {
-  color: var(--affine-text-primary-color, oklch(var(--bc) / 1));
+  color: oklch(var(--bc) / 1);
 }
 
 #root {
