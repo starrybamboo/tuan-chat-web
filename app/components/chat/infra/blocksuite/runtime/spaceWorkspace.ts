@@ -96,7 +96,16 @@ class InMemoryWorkspaceMeta implements WorkspaceMeta {
     if (idx === -1)
       return;
 
-    this._docMetas[idx] = { ...this._docMetas[idx], ...props };
+    const current = this._docMetas[idx];
+    const next = { ...current, ...props };
+    const hasChanged = Object.keys(props).some((key) => {
+      const field = key as keyof DocMeta;
+      return current[field] !== next[field];
+    });
+    if (!hasChanged)
+      return;
+
+    this._docMetas[idx] = next;
     this.docMetaUpdated.next();
   }
 
@@ -124,6 +133,7 @@ class SpaceDoc implements Doc {
   private _disposed = false;
   private _remoteHydrationCompleted = false;
   private _hydrationInFlight = false;
+  private _lastSyncedMetaTitle = "";
 
   private _loaded = true;
   private _ready = false;
@@ -194,10 +204,13 @@ class SpaceDoc implements Doc {
     this.spaceDoc.load();
     initFn?.();
     this._ready = true;
+    this._syncMetaTitleFromDoc();
 
     // 仅在文档真正被打开后，才开始监听 update 并推送远端，
     // 避免整个 space 下所有 subdoc 都被同步链路提前拉起。
     this._remoteUpdateHandler = (update: Uint8Array, origin: unknown) => {
+      this._syncMetaTitleFromDoc();
+
       // Ignore initial loads / programmatic remote restores to avoid redundant PUT right after GET.
       if (origin === "load" || origin === REMOTE_RESTORE_ORIGIN || origin === REMOTE_WS_ORIGIN)
         return;
@@ -215,6 +228,38 @@ class SpaceDoc implements Doc {
 
     // Real-time sync channel (yjs updates via WS), keyed by docId -> (entityType/entityId/docType).
     this._attachBlocksuiteWs();
+  }
+
+  private _syncMetaTitleFromDoc() {
+    try {
+      const workspace = this.workspace as SpaceWorkspace;
+      const nextTitle = tryReadTcHeaderTitleFromYDoc(this.spaceDoc)
+        ?? (this._ready ? tryDeriveDocTitle(this.getStore({ readonly: true })) : null);
+      const normalizedTitle = String(nextTitle ?? "").trim();
+
+      if (!normalizedTitle)
+        return;
+      if (normalizedTitle === this._lastSyncedMetaTitle)
+        return;
+
+      const meta = workspace.meta.getDocMeta(this.id);
+      if (!meta) {
+        workspace.meta.addDocMeta({
+          id: this.id,
+          title: normalizedTitle,
+          tags: [],
+          createDate: Date.now(),
+        });
+      }
+      else if (meta.title !== normalizedTitle) {
+        workspace.meta.setDocMeta(this.id, { title: normalizedTitle });
+      }
+
+      this._lastSyncedMetaTitle = normalizedTitle;
+    }
+    catch {
+      // ignore
+    }
   }
 
   private _enqueueRemoteUpdate(update: Uint8Array) {

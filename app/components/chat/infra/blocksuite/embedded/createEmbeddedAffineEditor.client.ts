@@ -118,19 +118,49 @@ function cacheTcHeaderTitle(docId: string, title: string) {
   tcHeaderTitleCache.set(docId, { at: Date.now(), title });
 }
 
+function getMetaTitle(workspace: WorkspaceLike, docId: string): string {
+  try {
+    return normalizeTcHeaderTitle((workspace as any)?.meta?.getDocMeta?.(docId)?.title);
+  }
+  catch {
+    return "";
+  }
+}
+
+function readStableDocTitle(store: any): string {
+  const tcHeaderTitle = normalizeTcHeaderTitle(readBlocksuiteDocHeader(store)?.title);
+  if (tcHeaderTitle)
+    return tcHeaderTitle;
+
+  try {
+    const pages = store?.getModelsByFlavour?.("affine:page");
+    const page = Array.isArray(pages) ? pages[0] : null;
+    const rawTitle = page?.props?.title;
+    const text = typeof rawTitle?.toString === "function" ? rawTitle.toString() : rawTitle;
+    return normalizeTcHeaderTitle(text);
+  }
+  catch {
+    return "";
+  }
+}
+
 function syncMetaTitleFromTcHeader(workspace: WorkspaceLike, docId: string, title: string) {
   try {
+    const safeTitle = normalizeTcHeaderTitle(title);
+    if (!safeTitle)
+      return;
+
     const metaAny = (workspace as any)?.meta;
     if (!metaAny)
       return;
     const current = metaAny.getDocMeta?.(docId);
     if (!current) {
-      metaAny.addDocMeta?.({ id: docId, title, tags: [], createDate: Date.now() });
+      metaAny.addDocMeta?.({ id: docId, title: safeTitle, tags: [], createDate: Date.now() });
       (workspace as any)?.slots?.docListUpdated?.next?.();
       return;
     }
-    if (current.title !== title) {
-      metaAny.setDocMeta?.(docId, { title });
+    if (current.title !== safeTitle) {
+      metaAny.setDocMeta?.(docId, { title: safeTitle });
       (workspace as any)?.slots?.docListUpdated?.next?.();
     }
   }
@@ -193,15 +223,21 @@ async function readTcHeaderTitle(params: {
       const doc = wsAny?.getDoc?.(docId) ?? wsAny?.createDoc?.(docId);
       doc?.load?.();
       const store = doc?.getStore?.({ readonly: true }) ?? doc?.getStore?.();
-      const header = readBlocksuiteDocHeader(store);
-      title = normalizeTcHeaderTitle(header?.title);
+      title = readStableDocTitle(store);
     }
     catch {
       // ignore
     }
 
-    cacheTcHeaderTitle(docId, title);
-    syncMetaTitleFromTcHeader(workspace, docId, title);
+    if (!title) {
+      title = getMetaTitle(workspace, docId);
+    }
+
+    if (title) {
+      cacheTcHeaderTitle(docId, title);
+      syncMetaTitleFromTcHeader(workspace, docId, title);
+    }
+
     return title;
   })();
 
@@ -909,6 +945,10 @@ export function createEmbeddedAffineEditor(params: {
       align-items: center;
       line-height: 24px;
       margin: 0 2px;
+    }
+    [data-tc-blocksuite-root] affine-embed-synced-doc-block .embed-block-container.selected-style,
+    [data-tc-blocksuite-root] affine-embed-edgeless-synced-doc-block .embed-block-container.selected-style {
+      box-shadow: none !important;
     }
   `;
   editor.appendChild(style);
