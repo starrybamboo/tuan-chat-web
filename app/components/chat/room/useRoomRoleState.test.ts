@@ -40,4 +40,14 @@ describe("resolveCurrentRoomRoleId", () => {
       isSpectator: false,
     })).toBe(456);
   });
+
+  it("房间角色接口若仍残留已删除角色，也只保留可用角色作为当前选择", () => {
+    expect(resolveCurrentRoomRoleId({
+      storedRoleId: 123,
+      fallbackRoleId: 789,
+      availableRoleIds: new Set([789]),
+      isSpaceOwner: false,
+      isSpectator: false,
+    })).toBe(789);
+  });
 });
