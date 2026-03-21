@@ -558,12 +558,15 @@ export default defineConfig(({ command, mode }) => {
           // iframe host + runtime loader
           "app/components/chat/shared/components/blocksuiteDescriptionEditor.tsx",
 
-          // runtime dynamic imports (from loadBlocksuiteRuntime)
-          "app/components/chat/infra/blocksuite/embedded/createEmbeddedAffineEditor.ts",
+          // runtime bootstrap / dynamic imports
+          "app/components/chat/infra/blocksuite/bootstrap/runtime.ts",
+          "app/components/chat/infra/blocksuite/runtime/runtimeLoader.ts",
+          "app/components/chat/infra/blocksuite/editors/createBlocksuiteEditor.ts",
           "app/components/chat/infra/blocksuite/spaceWorkspaceRegistry.ts",
 
-          // core custom elements registration
+          // core bootstrap modules
           "app/components/chat/infra/blocksuite/spec/coreElements.ts",
+          "app/components/chat/infra/blocksuite/styles/ensureBlocksuiteRuntimeStyles.ts",
 
           // common doc sources/providers
           "app/components/chat/infra/blocksuite/remoteDocSource.ts",

@@ -3,6 +3,7 @@ import type { Route } from "./+types/blocksuiteFrame";
 
 import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "react-router";
+import { ensureBlocksuiteRuntimeReady } from "@/components/chat/infra/blocksuite/bootstrap/runtime";
 import { isBlocksuiteDebugEnabled } from "@/components/chat/infra/blocksuite/debugFlags";
 import { BlocksuiteDescriptionEditorRuntime } from "@/components/chat/shared/components/blocksuiteDescriptionEditor";
 
@@ -171,6 +172,29 @@ export default function BlocksuiteFrameRoute() {
   } = frameParams;
 
   const [currentMode, setCurrentMode] = useState<DocMode>(forcedMode);
+  const [isRuntimeReady, setIsRuntimeReady] = useState(false);
+  const [runtimeError, setRuntimeError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    void ensureBlocksuiteRuntimeReady(document).then(() => {
+      if (cancelled)
+        return;
+      setRuntimeError(null);
+      setIsRuntimeReady(true);
+    }).catch((error) => {
+      if (cancelled)
+        return;
+      console.error("[BlocksuiteFrame] Failed to bootstrap runtime", error);
+      setRuntimeError("Blocksuite runtime bootstrap failed");
+      setIsRuntimeReady(false);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     if (!allowModeSwitch) {
@@ -356,11 +380,13 @@ export default function BlocksuiteFrameRoute() {
 
   useEffect(() => {
     // Handshake: let host know iframe is alive.
+    if (!isRuntimeReady)
+      return;
     postToParent({ tc: "tc-blocksuite-frame", instanceId, type: "ready" });
-  }, [instanceId]);
+  }, [instanceId, isRuntimeReady]);
 
   const isEdgelessFullscreenViewport = fullscreenEdgeless && currentMode === "edgeless";
-  const shouldReportHeight = variant === "embedded" && !isEdgelessFullscreenViewport;
+  const shouldReportHeight = isRuntimeReady && variant === "embedded" && !isEdgelessFullscreenViewport;
 
   useEffect(() => {
     if (typeof window === "undefined")
@@ -685,6 +711,22 @@ export default function BlocksuiteFrameRoute() {
     return (
       <div className="h-screen w-screen flex items-center justify-center">
         <span className="text-sm opacity-70">Invalid blocksuite frame params</span>
+      </div>
+    );
+  }
+
+  if (runtimeError) {
+    return (
+      <div className="h-screen w-screen flex items-center justify-center">
+        <span className="text-sm opacity-70">{runtimeError}</span>
+      </div>
+    );
+  }
+
+  if (!isRuntimeReady) {
+    return (
+      <div className="h-screen w-screen flex items-center justify-center">
+        <span className="text-sm opacity-70">Loading Blocksuite runtime...</span>
       </div>
     );
   }
