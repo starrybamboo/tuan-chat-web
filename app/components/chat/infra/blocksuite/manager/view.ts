@@ -1,5 +1,8 @@
+import type { SlashMenuItem } from "@blocksuite/affine/widgets/slash-menu";
 import type { ExtensionType } from "@blocksuite/store";
 
+import { EdgelessSelectedRectViewExtension } from "@blocksuite/affine-widget-edgeless-selected-rect/view";
+import { NoteSlicerViewExtension } from "@blocksuite/affine-widget-note-slicer/view";
 import { AttachmentViewExtension } from "@blocksuite/affine/blocks/attachment/view";
 import { BookmarkViewExtension } from "@blocksuite/affine/blocks/bookmark/view";
 import { DataViewViewExtension } from "@blocksuite/affine/blocks/data-view/view";
@@ -32,26 +35,26 @@ import { ReferenceViewExtension } from "@blocksuite/affine/inlines/reference/vie
 import { DragHandleViewExtension } from "@blocksuite/affine/widgets/drag-handle/view";
 import { EdgelessAutoConnectViewExtension } from "@blocksuite/affine/widgets/edgeless-auto-connect/view";
 import { EdgelessDraggingAreaViewExtension } from "@blocksuite/affine/widgets/edgeless-dragging-area/view";
-import { EdgelessSelectedRectViewExtension } from "@blocksuite/affine-widget-edgeless-selected-rect/view";
 import { EdgelessToolbarViewExtension } from "@blocksuite/affine/widgets/edgeless-toolbar/view";
-import { EdgelessZoomToolbarViewExtension } from "@blocksuite/affine/widgets/edgeless-zoom-toolbar/view";
+import { EdgelessZoomToolbarViewExtension } from "@blocksuite/affine-widget-edgeless-zoom-toolbar/view";
 import { FrameTitleViewExtension } from "@blocksuite/affine/widgets/frame-title/view";
 import { KeyboardToolbarViewExtension } from "@blocksuite/affine/widgets/keyboard-toolbar/view";
 import { LinkedDocViewExtension } from "@blocksuite/affine/widgets/linked-doc/view";
-import { NoteSlicerViewExtension } from "@blocksuite/affine-widget-note-slicer/view";
 import { PageDraggingAreaViewExtension } from "@blocksuite/affine/widgets/page-dragging-area/view";
 import { RemoteSelectionViewExtension } from "@blocksuite/affine/widgets/remote-selection/view";
-import { AFFINE_SLASH_MENU_WIDGET, type SlashMenuItem } from "@blocksuite/affine/widgets/slash-menu";
-import { SlashMenuViewExtension } from "@blocksuite/affine/widgets/slash-menu/view";
 import { ScrollAnchoringViewExtension } from "@blocksuite/affine/widgets/scroll-anchoring/view";
+import { AFFINE_SLASH_MENU_WIDGET } from "@blocksuite/affine/widgets/slash-menu";
+import { SlashMenuViewExtension } from "@blocksuite/affine/widgets/slash-menu/view";
 import { ToolbarViewExtension } from "@blocksuite/affine/widgets/toolbar/view";
 import { ViewportOverlayViewExtension } from "@blocksuite/affine/widgets/viewport-overlay/view";
+
+import type { SupportedBlocksuiteFeature } from "./featureSet";
 
 import {
   FILTERED_SURFACE_REF_SLASH_ITEM_NAMES,
   FILTERED_SURFACE_REF_SLASH_ITEM_PREFIXES,
   SUPPORTED_BLOCKSUITE_FEATURES,
-  type SupportedBlocksuiteFeature,
+
 } from "./featureSet";
 
 type ViewProviderClass = new (...args: any[]) => ViewExtensionProvider;
@@ -90,7 +93,7 @@ class SupportedSlashMenuFilterViewExtension extends ViewExtensionProvider {
       ? prototype.configItemTransform
       : (item: SlashMenuItem) => item;
 
-    prototype.configItemTransform = function(item: SlashMenuItem) {
+    prototype.configItemTransform = function (item: SlashMenuItem) {
       const transformed = prevTransform.call(this, item);
       if (!shouldHideUnsupportedSlashItem(transformed))
         return transformed;
@@ -105,34 +108,34 @@ class SupportedSlashMenuFilterViewExtension extends ViewExtensionProvider {
 }
 
 const VIEW_EXTENSION_PROVIDERS: Partial<Record<SupportedBlocksuiteFeature, ViewProviderClass>> = {
-  foundation: FoundationViewExtension,
-  root: RootViewExtension,
-  note: NoteViewExtension,
-  paragraph: ParagraphViewExtension,
-  list: ListViewExtension,
-  surface: SurfaceViewExtension,
+  "foundation": FoundationViewExtension,
+  "root": RootViewExtension,
+  "note": NoteViewExtension,
+  "paragraph": ParagraphViewExtension,
+  "list": ListViewExtension,
+  "surface": SurfaceViewExtension,
   "edgeless-text": EdgelessTextViewExtension,
-  frame: FrameViewExtension,
+  "frame": FrameViewExtension,
   "surface-ref": SurfaceRefViewExtension,
-  table: TableViewExtension,
-  database: DatabaseViewExtension,
+  "table": TableViewExtension,
+  "database": DatabaseViewExtension,
   "data-view": DataViewViewExtension,
-  attachment: AttachmentViewExtension,
-  bookmark: BookmarkViewExtension,
-  embed: EmbedViewExtension,
+  "attachment": AttachmentViewExtension,
+  "bookmark": BookmarkViewExtension,
+  "embed": EmbedViewExtension,
   "embed-doc": EmbedDocViewExtension,
-  image: ImageViewExtension,
+  "image": ImageViewExtension,
   "block-latex": BlockLatexViewExtension,
   "inline-preset": InlinePresetViewExtension,
   "inline-latex": InlineLatexViewExtension,
-  reference: ReferenceViewExtension,
-  link: LinkViewExtension,
-  footnote: FootnoteViewExtension,
-  connector: ConnectorViewExtension,
-  pointer: PointerViewExtension,
+  "reference": ReferenceViewExtension,
+  "link": LinkViewExtension,
+  "footnote": FootnoteViewExtension,
+  "connector": ConnectorViewExtension,
+  "pointer": PointerViewExtension,
   "gfx-note": GfxNoteViewExtension,
   "doc-title": DocTitleViewExtension,
-  mention: MentionViewExtension,
+  "mention": MentionViewExtension,
   "drag-handle": DragHandleViewExtension,
   "edgeless-auto-connect": EdgelessAutoConnectViewExtension,
   "frame-title": FrameTitleViewExtension,
@@ -141,7 +144,7 @@ const VIEW_EXTENSION_PROVIDERS: Partial<Record<SupportedBlocksuiteFeature, ViewP
   "remote-selection": RemoteSelectionViewExtension,
   "scroll-anchoring": ScrollAnchoringViewExtension,
   "slash-menu": SlashMenuViewExtension,
-  toolbar: ToolbarViewExtension,
+  "toolbar": ToolbarViewExtension,
   "viewport-overlay": ViewportOverlayViewExtension,
   "edgeless-zoom-toolbar": EdgelessZoomToolbarViewExtension,
   "page-dragging-area": PageDraggingAreaViewExtension,

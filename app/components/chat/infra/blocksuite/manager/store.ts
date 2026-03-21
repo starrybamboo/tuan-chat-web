@@ -1,3 +1,4 @@
+import type { StoreExtensionProvider } from "@blocksuite/affine/ext-loader";
 import type { ExtensionType } from "@blocksuite/store";
 
 import { LinkPreviewCache, LinkPreviewService } from "@blocksuite/affine-shared/services";
@@ -18,7 +19,7 @@ import { RootStoreExtension } from "@blocksuite/affine/blocks/root/store";
 import { SurfaceRefStoreExtension } from "@blocksuite/affine/blocks/surface-ref/store";
 import { SurfaceStoreExtension } from "@blocksuite/affine/blocks/surface/store";
 import { TableStoreExtension } from "@blocksuite/affine/blocks/table/store";
-import { StoreExtensionManager, StoreExtensionProvider } from "@blocksuite/affine/ext-loader";
+import { StoreExtensionManager } from "@blocksuite/affine/ext-loader";
 import { FoundationStoreExtension } from "@blocksuite/affine/foundation/store";
 import { ConnectorStoreExtension } from "@blocksuite/affine/gfx/connector/store";
 import { FootnoteStoreExtension } from "@blocksuite/affine/inlines/footnote/store";
@@ -27,36 +28,38 @@ import { LinkStoreExtension } from "@blocksuite/affine/inlines/link/store";
 import { InlinePresetStoreExtension } from "@blocksuite/affine/inlines/preset/store";
 import { ReferenceStoreExtension } from "@blocksuite/affine/inlines/reference/store";
 
+import type { SupportedBlocksuiteFeature } from "./featureSet";
+
 import { RoomMapEmbedIframeConfigExtension } from "../spec/roomMapEmbedConfig";
-import { SUPPORTED_BLOCKSUITE_FEATURES, type SupportedBlocksuiteFeature } from "./featureSet";
+import { SUPPORTED_BLOCKSUITE_FEATURES } from "./featureSet";
 
 type StoreProviderClass = new (...args: any[]) => StoreExtensionProvider;
 
 const STORE_EXTENSION_PROVIDERS: Partial<Record<SupportedBlocksuiteFeature, StoreProviderClass>> = {
-  foundation: FoundationStoreExtension,
-  root: RootStoreExtension,
-  note: NoteStoreExtension,
-  paragraph: ParagraphStoreExtension,
-  list: ListStoreExtension,
-  surface: SurfaceStoreExtension,
+  "foundation": FoundationStoreExtension,
+  "root": RootStoreExtension,
+  "note": NoteStoreExtension,
+  "paragraph": ParagraphStoreExtension,
+  "list": ListStoreExtension,
+  "surface": SurfaceStoreExtension,
   "edgeless-text": EdgelessTextStoreExtension,
-  frame: FrameStoreExtension,
+  "frame": FrameStoreExtension,
   "surface-ref": SurfaceRefStoreExtension,
-  table: TableStoreExtension,
-  database: DatabaseStoreExtension,
+  "table": TableStoreExtension,
+  "database": DatabaseStoreExtension,
   "data-view": DataViewStoreExtension,
-  attachment: AttachmentStoreExtension,
-  bookmark: BookmarkStoreExtension,
-  embed: EmbedStoreExtension,
+  "attachment": AttachmentStoreExtension,
+  "bookmark": BookmarkStoreExtension,
+  "embed": EmbedStoreExtension,
   "embed-doc": EmbedDocStoreExtension,
-  image: ImageStoreExtension,
+  "image": ImageStoreExtension,
   "block-latex": BlockLatexStoreExtension,
   "inline-preset": InlinePresetStoreExtension,
   "inline-latex": InlineLatexStoreExtension,
-  reference: ReferenceStoreExtension,
-  link: LinkStoreExtension,
-  footnote: FootnoteStoreExtension,
-  connector: ConnectorStoreExtension,
+  "reference": ReferenceStoreExtension,
+  "link": LinkStoreExtension,
+  "footnote": FootnoteStoreExtension,
+  "connector": ConnectorStoreExtension,
 };
 
 function getSupportedStoreProviders(): StoreProviderClass[] {
