@@ -250,6 +250,8 @@ function authRecoveryCompatPlugin(): Plugin {
 }
 
 function blocksuiteFrameEntryPlugin(frameEntryPath: string): Plugin {
+  const hmrPreamble = "<script type=\"module\" src=\"/@id/__x00__virtual:react-router/inject-hmr-runtime\"></script>";
+
   return {
     name: "tc-blocksuite-frame-entry",
     apply: "serve",
@@ -264,9 +266,12 @@ function blocksuiteFrameEntryPlugin(frameEntryPath: string): Plugin {
 
           const html = readFileSync(frameEntryPath, "utf8");
           const transformed = await server.transformIndexHtml(reqUrl.pathname, html);
+          const withPreamble = transformed.includes("/@id/__x00__virtual:react-router/inject-hmr-runtime")
+            ? transformed
+            : transformed.replace("</head>", `  ${hmrPreamble}\n</head>`);
           res.statusCode = 200;
           res.setHeader("Content-Type", "text/html; charset=utf-8");
-          res.end(transformed);
+          res.end(withPreamble);
         }
         catch (error) {
           next(error);
