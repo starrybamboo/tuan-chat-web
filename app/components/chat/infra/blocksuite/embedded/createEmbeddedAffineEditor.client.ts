@@ -950,6 +950,23 @@ export function createEmbeddedAffineEditor(params: {
     [data-tc-blocksuite-root] affine-embed-edgeless-synced-doc-block .embed-block-container.selected-style {
       box-shadow: none !important;
     }
+    [data-tc-blocksuite-root] affine-embed-linked-doc-block .embed-block-container.selected-style,
+    [data-tc-blocksuite-root] affine-embed-edgeless-linked-doc-block .embed-block-container.selected-style {
+      box-shadow: none !important;
+    }
+    [data-tc-blocksuite-root] affine-embed-linked-doc-block .affine-embed-linked-doc-block,
+    [data-tc-blocksuite-root] affine-embed-edgeless-linked-doc-block .affine-embed-linked-doc-block {
+      border-color: transparent !important;
+      box-shadow: none !important;
+    }
+    [data-tc-blocksuite-root] .affine-embed-linked-doc-content-note.render editor-host,
+    [data-tc-blocksuite-root] .affine-embed-linked-doc-content-note.render affine-preview-root,
+    [data-tc-blocksuite-root] .affine-embed-linked-doc-content-note.render .affine-preview-root {
+      border: none !important;
+      outline: none !important;
+      box-shadow: none !important;
+      background: transparent !important;
+    }
   `;
   editor.appendChild(style);
 
