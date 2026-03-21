@@ -26,7 +26,7 @@ import { blocksuiteWsClient } from "@/components/chat/infra/blocksuite/blocksuit
 import { clearUpdates } from "@/components/chat/infra/blocksuite/descriptionDocDb";
 import { parseDescriptionDocId } from "@/components/chat/infra/blocksuite/descriptionDocId";
 import { RemoteSnapshotDocSource } from "@/components/chat/infra/blocksuite/remoteDocSource";
-import { AFFINE_STORE_EXTENSIONS } from "@/components/chat/infra/blocksuite/spec/affineStoreExtensions";
+import { BLOCKSUITE_STORE_EXTENSIONS } from "@/components/chat/infra/blocksuite/manager/store";
 
 const remoteSnapshotDocSource = new RemoteSnapshotDocSource();
 const REMOTE_RESTORE_ORIGIN = "tc:remote-restore";
@@ -465,7 +465,7 @@ export class SpaceWorkspace implements Workspace {
     this._rootDoc = new Y.Doc({ guid: params.workspaceId });
     this._spaces = this._rootDoc.getMap<Y.Doc>("spaces");
     this.meta = new InMemoryWorkspaceMeta();
-    this.storeExtensions = params.storeExtensions ?? AFFINE_STORE_EXTENSIONS;
+    this.storeExtensions = params.storeExtensions ?? BLOCKSUITE_STORE_EXTENSIONS;
 
     const logger = new NoopLogger();
 
