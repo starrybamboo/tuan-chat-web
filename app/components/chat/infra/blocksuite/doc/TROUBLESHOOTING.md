@@ -112,6 +112,7 @@ Slash menu 不是 paragraph block “自动就有”的功能，它属于 **widg
 - 确认宿主页是否触发了页面级空闲预热或打开意图预热
 - 确认 `/blocksuite-frame` 进入后是否先完成 `ensureBlocksuiteRuntimeReady(document)`
 - 如果是开发环境，确认 `vite.config.ts` 的 warmup 清单包含 bootstrap/runtimeLoader/editors 入口
+- 需要量化时，可在控制台查看 `window.__tcBlocksuitePerfLast` 和 `window.__tcBlocksuitePerfHistory`
 
 ---
 

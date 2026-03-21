@@ -3,6 +3,11 @@ import type { StoredSnapshot } from "@/components/chat/infra/blocksuite/descript
 import { prewarmBlocksuiteRuntime } from "@/components/chat/infra/blocksuite/bootstrap/runtime";
 import { parseDescriptionDocId } from "@/components/chat/infra/blocksuite/descriptionDocId";
 import { getRemoteSnapshot, getRemoteUpdates } from "@/components/chat/infra/blocksuite/descriptionDocRemote";
+import {
+  markBlocksuiteDocIntentPrewarmFailed,
+  markBlocksuiteDocIntentPrewarmReady,
+  markBlocksuiteDocIntentPrewarmStart,
+} from "@/components/chat/infra/blocksuite/perf";
 
 type SharedDocOpenIntentPrewarmState = {
   inflight: Map<string, Promise<void>>;
@@ -72,9 +77,12 @@ export async function prewarmDescriptionDocOpenIntent(docId: string): Promise<vo
     return existingTask;
   }
 
+  let succeeded = false;
   const task = (async () => {
+    markBlocksuiteDocIntentPrewarmStart(docId);
+
     await Promise.all([
-      prewarmBlocksuiteRuntime(),
+      prewarmBlocksuiteRuntime("intent", docId),
       (async () => {
         let snapshot: StoredSnapshot | null = null;
         try {
@@ -98,6 +106,8 @@ export async function prewarmDescriptionDocOpenIntent(docId: string): Promise<vo
     ]);
 
     lastFinishedAt.set(cacheKey, Date.now());
+    markBlocksuiteDocIntentPrewarmReady(docId);
+    succeeded = true;
   })();
 
   inflight.set(cacheKey, task);
@@ -107,6 +117,9 @@ export async function prewarmDescriptionDocOpenIntent(docId: string): Promise<vo
   finally {
     if (inflight.get(cacheKey) === task) {
       inflight.delete(cacheKey);
+    }
+    if (!succeeded) {
+      markBlocksuiteDocIntentPrewarmFailed(docId);
     }
   }
 }
