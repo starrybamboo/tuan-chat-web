@@ -25,8 +25,19 @@ describe("resolveCurrentRoomRoleId", () => {
     expect(resolveCurrentRoomRoleId({
       storedRoleId: -1,
       fallbackRoleId: -1,
+      availableRoleIds: new Set([456]),
       isSpaceOwner: true,
       isSpectator: false,
     })).toBe(-1);
+  });
+
+  it("当前角色已被删或移出房间时，立即回退到可用角色", () => {
+    expect(resolveCurrentRoomRoleId({
+      storedRoleId: 123,
+      fallbackRoleId: 456,
+      availableRoleIds: new Set([456, 789]),
+      isSpaceOwner: false,
+      isSpectator: false,
+    })).toBe(456);
   });
 });
