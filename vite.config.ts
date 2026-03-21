@@ -7,7 +7,7 @@ import { vanillaExtractPlugin } from "@vanilla-extract/vite-plugin";
 import { Buffer } from "node:buffer";
 import { existsSync, realpathSync } from "node:fs";
 import { resolve } from "node:path";
-import process from "node:process";
+// import process from "node:process";
 import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
 import { fetch as undiciFetch } from "undici";
@@ -249,9 +249,9 @@ function authRecoveryCompatPlugin(): Plugin {
   };
 }
 
-export default defineConfig(({ command, mode }) => {
+export default defineConfig(({ command }) => {
   const _isDev = command === "serve";
-  const env = loadEnv(mode, process.cwd(), "");
+  // const env = loadEnv(mode, process.cwd(), "");
 
   const nm = (p: string) => {
     const abs = resolve(__dirname, p);
