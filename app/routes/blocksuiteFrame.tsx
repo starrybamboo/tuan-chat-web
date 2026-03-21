@@ -2,8 +2,8 @@ import type { Route } from "./+types/blocksuiteFrame";
 import { lazy, Suspense } from "react";
 
 const BlocksuiteRouteFrameClient = lazy(async () => {
-  const mod = await import("@/components/chat/infra/blocksuite/frame/BlocksuiteStandaloneFrameApp");
-  return { default: mod.BlocksuiteStandaloneFrameApp };
+  const mod = await import("@/components/chat/infra/blocksuite/frame/BlocksuiteRouteFrameClient");
+  return { default: mod.BlocksuiteRouteFrameClient };
 });
 
 export function meta(_args: Route.MetaArgs) {

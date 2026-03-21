@@ -55,9 +55,9 @@ Blocksuite 官方 examples 里经常会 `import '@blocksuite/presets/themes/affi
 ### 2.3 修复方式
 
 - 确保初始化/迁移时为 `affine:paragraph` 补齐 `props.text: Text`（可提供 `yText`）
-- 确保 frame 内 bootstrap 已完成，`rich-text` custom element 已注册
-  - 见：`app/components/chat/infra/blocksuite/bootstrap/runtime.ts`
-  - 见：`app/components/chat/infra/blocksuite/spec/coreElements.ts`
+- 确保 `/blocksuite-frame` 路由已经进入 route client chunk，`rich-text` custom element 已注册
+  - 见：`app/components/chat/infra/blocksuite/bootstrap/browser.ts`
+  - 见：`app/components/chat/infra/blocksuite/spec/coreElements.browser.ts`
 
 ---
 
@@ -97,21 +97,22 @@ Slash menu 不是 paragraph block “自动就有”的功能，它属于 **widg
 
 ### 3.1.1 根因（底层逻辑）
 
-如果第一次打开慢、第二次快，通常不是 store 本身有问题，而是 BlockSuite runtime 还没预热完成。现在冷启动被拆成两段：
+如果第一次打开慢、第二次快，通常不是 store 本身有问题，而是 `/blocksuite-frame` 对应的 route client chunk 还没完成首次加载与求值。当前冷启动主要分成三段：
 
-- 预热阶段：只加载 runtime 模块与样式文本
-- 执行阶段：只在 iframe 内真正注入样式并注册 custom elements/effects
+- `host-open-start -> frame-entry-start`：iframe 导航与 route client chunk 首次执行
+- `frame-entry-start -> frame-bootstrap-ready`：route client chunk 内的静态 bootstrap 与 custom elements 注册
+- `frame-bootstrap-ready -> render-ready`：store 创建与 editor 真正 ready
 
 对应文件：
-- `app/components/chat/infra/blocksuite/bootstrap/runtime.ts`
-- `app/components/chat/infra/blocksuite/docOpenIntentPrewarm.ts`
 - `app/routes/blocksuiteFrame.tsx`
+- `app/components/chat/infra/blocksuite/frame/BlocksuiteRouteFrameClient.tsx`
+- `app/components/chat/infra/blocksuite/bootstrap/browser.ts`
 
 ### 3.1.2 修复方式
 
-- 确认宿主页是否触发了页面级空闲预热或打开意图预热
-- 确认 `/blocksuite-frame` 进入后是否先完成 `ensureBlocksuiteRuntimeReady(document)`
-- 如果是开发环境，确认 `vite.config.ts` 的 warmup 清单包含 bootstrap/runtimeLoader/editors 入口
+- 确认 `/blocksuite-frame` 是否成功进入 route client chunk，而不是卡在 iframe 加载或路由 fallback
+- 确认 `ensureBlocksuiteBrowserRuntime()` 是否完成
+- 如果是开发环境，结合 Network 查看 route client chunk 是否存在异常的大量碎片请求
 - 需要量化时，可在控制台查看 `window.__tcBlocksuitePerfLast` 和 `window.__tcBlocksuitePerfHistory`
 
 ---
