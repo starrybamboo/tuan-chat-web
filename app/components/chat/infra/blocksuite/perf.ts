@@ -117,7 +117,7 @@ function emitPerfSummary(summary: BlocksuiteOpenPerfSummary) {
   owner.__tcBlocksuitePerfHistory = getPerfState().history;
 
   if ((import.meta as any)?.env?.DEV) {
-    console.info("[BlocksuitePerf]", summary.openKind, summary);
+    console.warn("[BlocksuitePerf]", summary.openKind, summary);
   }
 
   if (isBlocksuiteDebugEnabled()) {
