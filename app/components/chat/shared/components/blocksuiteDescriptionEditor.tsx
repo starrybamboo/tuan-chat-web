@@ -7,7 +7,7 @@ import type { BlocksuiteMentionProfilePopoverState } from "@/components/chat/inf
 import { FileTextIcon } from "@phosphor-icons/react";
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import toast from "react-hot-toast";
-import { useLocation, useNavigate } from "react-router";
+import { useNavigate } from "react-router";
 import { Subscription } from "rxjs";
 import { base64ToUint8Array } from "@/components/chat/infra/blocksuite/base64";
 import { isNonRetryableBlocksuiteDocError } from "@/components/chat/infra/blocksuite/blocksuiteDocError";
@@ -487,60 +487,6 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
       return;
 
     const isFullInEffect = isFull;
-
-    const scopeRoot = (container.closest?.(".tc-blocksuite-scope") as HTMLElement | null) ?? container;
-
-    // 主题跟随：把站点主题（data-theme / dark class）同步到 viewport。
-    const syncPortalsTheme = (theme: "light" | "dark") => {
-      // Slash menu / tooltip 等弹层通过 portal 挂到 body 下的 `.blocksuite-portal` 容器。
-      // 如果只给 viewport 设置 data-theme，弹层会继承不到 `[data-theme=...]` 下的 affine 变量，导致“样式不对”。
-      // 这里仅给 blocksuite 自己的 portal 容器打标，不改 body/html，避免影响站点（例如 daisyUI 的 data-theme）。
-      const portals = document.querySelectorAll<HTMLElement>(".blocksuite-portal");
-      for (const el of portals) {
-        el.dataset.theme = theme;
-        el.classList.toggle("dark", theme === "dark");
-      }
-    };
-
-    const syncTheme = () => {
-      const theme = getCurrentAppTheme();
-      scopeRoot.dataset.theme = theme;
-      scopeRoot.classList.toggle("dark", theme === "dark");
-      syncPortalsTheme(theme);
-    };
-    syncTheme();
-
-    const root = document.documentElement;
-    const mo = new MutationObserver(() => syncTheme());
-    mo.observe(root, { attributes: true, attributeFilter: ["data-theme", "class"] });
-
-    // 监听 portal 的创建（比如打开 slash menu 时才创建），确保后创建的 portal 也能拿到正确主题。
-    const body = document.body;
-    const portalMo = new MutationObserver((mutations) => {
-      const theme = scopeRoot.dataset.theme === "dark" ? "dark" : "light";
-
-      for (const m of mutations) {
-        for (const added of m.addedNodes) {
-          if (!(added instanceof HTMLElement))
-            continue;
-          if (added.classList.contains("blocksuite-portal")) {
-            added.dataset.theme = theme;
-            added.classList.toggle("dark", theme === "dark");
-            continue;
-          }
-          const nested = added.querySelectorAll?.(".blocksuite-portal");
-          if (!nested?.length)
-            continue;
-          for (const el of nested) {
-            if (el instanceof HTMLElement) {
-              el.dataset.theme = theme;
-              el.classList.toggle("dark", theme === "dark");
-            }
-          }
-        }
-      }
-    });
-    portalMo.observe(body, { childList: true, subtree: true });
     const abort = new AbortController();
     let fastRestoreTimeout: ReturnType<typeof setTimeout> | null = null;
     let createdEditor: any = null;
@@ -551,7 +497,7 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
     // Hydrate first (restore semantics), then render editor.
     // This avoids binding the UI to an empty initialized root.
     (async () => {
-      // 在 blocksuite 初始化前确保运行时 CSS 已经注入（并做作用域重写），避免加载期间污染全局样式。
+      // frame 内直接加载完整运行时样式，不再做宿主侧 scope rewrite。
       try {
         await ensureBlocksuiteRuntimeStyles();
       }
@@ -874,8 +820,6 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
         clearTimeout(fastRestoreTimeout);
         fastRestoreTimeout = null;
       }
-      mo.disconnect();
-      portalMo.disconnect();
       try {
         unsubscribeHeader?.();
       }
@@ -1145,7 +1089,7 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
     };
   }, [isEdgelessFullscreen]);
 
-  const rootClassName = ["tc-blocksuite-scope", tcHeaderEnabled ? "tc-blocksuite-tc-header-enabled" : "", className, (isEdgelessFullscreen || isBrowserFullscreen) ? "h-full min-h-0" : ""]
+  const rootClassName = [tcHeaderEnabled ? "tc-blocksuite-tc-header-enabled" : "", className, (isEdgelessFullscreen || isBrowserFullscreen) ? "h-full min-h-0" : ""]
     .filter(Boolean)
     .join(" ");
 
@@ -2122,15 +2066,5 @@ function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEdito
 }
 
 export default function BlocksuiteDescriptionEditor(props: BlocksuiteDescriptionEditorProps) {
-  // 重要：不能用 `typeof window`/`window.top` 来做 SSR 分支，否则服务端与客户端首屏树不一致会触发 hydration mismatch（React #418）。
-  // 这里用路由路径判断：
-  // - /blocksuite-frame：iframe 内页面，渲染真实 editor
-  // - 其他页面：顶层窗口，渲染 iframe host（隔离 blocksuite 的全局副作用）
-  const location = useLocation();
-  const isFrameRoute = location.pathname === "/blocksuite-frame";
-
-  if (isFrameRoute) {
-    return <BlocksuiteDescriptionEditorRuntime {...props} />;
-  }
   return <BlocksuiteDescriptionEditorIframeHost {...props} />;
 }
