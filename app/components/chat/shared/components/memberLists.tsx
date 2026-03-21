@@ -1,16 +1,16 @@
 import type { SpaceMember } from "../../../../../api";
-import React, { use, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { use, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import toast from "react-hot-toast";
 import { RoomContext } from "@/components/chat/core/roomContext";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
 import { MemberTypeTag } from "@/components/chat/message/types/memberTypeTag";
 import {
-  SPACE_MEMBER_TYPE,
   getMemberTypeSortWeight,
   hasHostPrivileges,
+  SPACE_MEMBER_TYPE,
 } from "@/components/chat/utils/memberPermissions";
 import { UserAvatarByUser } from "@/components/common/userAccess";
 import { useGlobalContext } from "@/components/globalContextProvider";
-import toast from "react-hot-toast";
 import {
   useDeleteRoomMemberMutation,
   useDeleteSpaceMemberMutation,
@@ -253,7 +253,8 @@ export default function MemberLists({ members, className, isSpace }: { members: 
     };
     const onUpdateMemberType = (memberType: number) => {
       const nextLabel = getSpaceMemberTypeActions(member.memberType)
-        .find(action => action.memberType === memberType)?.label ?? "更新身份";
+        .find(action => action.memberType === memberType)
+        ?.label ?? "更新身份";
       updateSpaceMemberTypeMutation.mutate(
         {
           spaceId,
@@ -282,7 +283,6 @@ export default function MemberLists({ members, className, isSpace }: { members: 
       },
     );
     return { onRemove, onUpdateMemberType, onTransfer };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isSpace, mutateRoomMember, mutateSpaceMember, roomId, spaceId, transferLeader, updateSpaceMemberTypeMutation]);
 
   const sortedMembers = useMemo(() => {

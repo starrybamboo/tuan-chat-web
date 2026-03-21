@@ -1,0 +1,63 @@
+export const SUPPORTED_BLOCKSUITE_FEATURES = [
+  "foundation",
+  "root",
+  "note",
+  "paragraph",
+  "list",
+  "surface",
+  "edgeless-text",
+  "frame",
+  "surface-ref",
+  "table",
+  "database",
+  "data-view",
+  "attachment",
+  "bookmark",
+  "embed",
+  "embed-doc",
+  "image",
+  "block-latex",
+  "inline-preset",
+  "inline-latex",
+  "reference",
+  "link",
+  "footnote",
+  "connector",
+  "pointer",
+  "gfx-note",
+  "doc-title",
+  "mention",
+  "drag-handle",
+  "edgeless-auto-connect",
+  "frame-title",
+  "keyboard-toolbar",
+  "linked-doc",
+  "remote-selection",
+  "scroll-anchoring",
+  "slash-menu",
+  "toolbar",
+  "viewport-overlay",
+  "edgeless-zoom-toolbar",
+  "page-dragging-area",
+  "edgeless-selected-rect",
+  "edgeless-dragging-area",
+  "note-slicer",
+  "edgeless-toolbar",
+] as const;
+
+export type SupportedBlocksuiteFeature = typeof SUPPORTED_BLOCKSUITE_FEATURES[number];
+
+export const UNSUPPORTED_BLOCKSUITE_FEATURES = [
+  "callout",
+  "code",
+  "divider",
+  "brush",
+  "shape",
+  "mindmap",
+  "group",
+  "text",
+] as const;
+
+export const FILTERED_SURFACE_REF_SLASH_ITEM_NAMES = ["Mind Map"] as const;
+
+export const FILTERED_SURFACE_REF_SLASH_ITEM_PREFIXES = ["Group: "] as const;

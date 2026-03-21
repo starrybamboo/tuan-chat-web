@@ -19,8 +19,6 @@ import {
   UserServiceExtension,
 } from "@blocksuite/affine/shared/services";
 import { LinkedWidgetConfigExtension } from "@blocksuite/affine/widgets/linked-doc";
-import { LinkedDocViewExtension } from "@blocksuite/affine/widgets/linked-doc/view";
-import { getTestViewManager } from "@blocksuite/integration-test/view";
 import { ZERO_WIDTH_FOR_EMBED_NODE } from "@blocksuite/std/inline";
 import { html } from "lit";
 
@@ -28,6 +26,7 @@ import { tuanchat } from "api/instance";
 
 import { isBlocksuiteDebugEnabled } from "../debugFlags";
 import { readBlocksuiteDocHeader } from "../docHeader";
+import { getEdgelessSpecs, getPageSpecs } from "../manager/view";
 import { createBlocksuiteQuickSearchService } from "../quickSearchService";
 import { createTuanChatUserService } from "../services/tuanChatUserService";
 import { parseSpaceDocId } from "../spaceDocId";
@@ -40,8 +39,6 @@ type WorkspaceLike = {
   getDoc: (docId: string) => { getStore: () => unknown; loaded?: boolean; load?: () => void } | null;
   meta?: unknown;
 };
-
-const viewManager = getTestViewManager();
 
 let slashMenuSelectionGuardInstalled = false;
 let slashMenuSelectionGuardRefCount = 0;
@@ -379,9 +376,6 @@ export function createEmbeddedAffineEditor(params: {
 
   const disposers: Array<() => void> = [];
   disposers.push(installSlashMenuDoesNotClearSelectionOnClick());
-
-  // Register custom elements for linked doc, this is crucial for the widget to work
-  new LinkedDocViewExtension().effect();
 
   const storeAny = store as any;
 
@@ -840,7 +834,7 @@ export function createEmbeddedAffineEditor(params: {
     },
   });
 
-  const pageSpecsBase = viewManager.get("page");
+  const pageSpecsBase = getPageSpecs();
   const normalizeExtHint = (v: unknown) => String(v ?? "").trim().toLowerCase();
   const isDocTitleExtension = (ext: any) => {
     if (!ext)
@@ -870,7 +864,7 @@ export function createEmbeddedAffineEditor(params: {
     ...defaultExtensions,
   ];
   (editor as any).edgelessSpecs = [
-    ...viewManager.get("edgeless"),
+    ...getEdgelessSpecs(),
     edgelessHeaderExt,
     ...defaultExtensions,
   ];

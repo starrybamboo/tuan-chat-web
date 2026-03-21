@@ -10,7 +10,7 @@
 
 1. **先跑起来**：在 BlockSuite 仓库按 `BUILDING.md` 跑 Playground（能编辑=入门成功）
 2. **再看概念**：Store（数据）→ Std（渲染宿主）→ View/Store Extensions（能力拼装）→ Sync（协作/持久化管线）
-3. **最后回到本项目**：从本项目的 `spec + runtime + editor-host` 三处入口，理解“我们到底用到了 BlockSuite 的哪一层”
+3. **最后回到本项目**：从本项目的 `manager + route frame client + runtime + editors` 四处入口，理解“我们到底用到了 BlockSuite 的哪一层”
 
 ---
 
@@ -55,17 +55,33 @@
 
 先把本项目的这 4 个入口文件当成地图（按推荐顺序）：
 
-1. **Spec（能力拼装）**
-   - `app/components/chat/infra/blocksuite/spec/affineSpec.ts`
-   - 你要理解：我们注册了哪些 blocks、widgets/fragments（它们决定“标题/SlashMenu/toolbar 是否出现”）
+1. **Manager（能力拼装）**
+   - `app/components/chat/infra/blocksuite/manager/featureSet.ts`
+   - `app/components/chat/infra/blocksuite/manager/store.ts`
+   - `app/components/chat/infra/blocksuite/manager/view.ts`
+   - 你要理解：我们先定义一份 supported subset，再分别映射到 store extensions 和 view extensions，避免“store 认识这个能力，但 view 入口暴露了另一个能力”的漂移
 
-2. **Workspace/Doc/Store 运行时（数据与存储管线）**
+2. **Route Frame Client（`/blocksuite-frame` 路由内的浏览器子图）**
+   - `app/routes/blocksuiteFrame.tsx`
+   - `app/components/chat/infra/blocksuite/frame/BlocksuiteRouteFrameClient.tsx`
+   - `app/components/chat/infra/blocksuite/bootstrap/browser.ts`
+   - `app/components/chat/infra/blocksuite/spec/coreElements.browser.ts`
+   - 你要理解：路由本身只负责轻量壳与单次 lazy 边界，真正的 BlockSuite 客户端启动被收口到 route client chunk 内部的静态导入子图
+
+3. **Workspace/Doc/Store 运行时（数据与存储管线）**
    - `app/components/chat/infra/blocksuite/runtime/spaceWorkspace.ts`
    - `app/components/chat/infra/blocksuite/spaceWorkspaceRegistry.ts`
    - 你要理解：Space≈Workspace、root Y.Doc + subdoc 的组织方式、IndexedDB 的持久化边界
 
-3. **UI 渲染入口（把 editor-host 放进 React）**
+4. **Editor 创建层（把 manager/runtime 组装成真正编辑器）**
+   - `app/components/chat/infra/blocksuite/runtime/runtimeLoader.browser.ts`
+   - `app/components/chat/infra/blocksuite/editors/createBlocksuiteEditor.browser.ts`
+   - `app/components/chat/infra/blocksuite/frame/BlocksuiteDescriptionEditorRuntime.browser.tsx`
+   - 你要理解：runtimeLoader 现在只做浏览器侧单例组合，editor 创建与 React frame runtime 分开，不再维持旧的多段动态启动链
+
+5. **UI 渲染入口（把 editor-host 放进 React）**
    - `app/components/chat/shared/components/blocksuiteDescriptionEditor.tsx`
+   - `app/routes/blocksuiteFrame.tsx`
    - 你要理解：React 只负责挂载宿主与传参，编辑器核心是 Web Components + std 渲染树
 
 
@@ -80,6 +96,5 @@
 建议你按顺序做，不要跳：
 
 1. 在 `blocksuiteDescriptionEditor.tsx` 里加一个“只读/可编辑”的切换（理解编辑器的受控边界）
-2. 给 `affineSpec.ts` 加/减一个 widget view extension，然后观察 UI 变化（标题/toolbar/SlashMenu）
+2. 在 `featureSet.ts` 里加/减一个受支持能力，再同步补齐 `store.ts` / `view.ts` 的 provider 映射，观察 UI 变化（标题/toolbar/SlashMenu）
 3. 追踪一次“输入一个字符”从 DOM → selection/rich-text → Yjs update → 存储的链路（只要能画出数据流就算成功）
-

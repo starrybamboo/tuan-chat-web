@@ -1,11 +1,11 @@
 /* tcHeader (space/room description) host header styles.
  * Kept in runtime-injected CSS so it also works inside blocksuite iframe route. */
 
-.tc-blocksuite-scope.tc-blocksuite-tc-header-enabled doc-title {
+.tc-blocksuite-tc-header-enabled doc-title {
   display: none !important;
 }
 
-.tc-blocksuite-scope.tc-blocksuite-tc-header-enabled .tc-blocksuite-tc-header {
+.tc-blocksuite-tc-header-enabled .tc-blocksuite-tc-header {
   box-sizing: border-box !important;
   position: sticky !important;
   top: 0 !important;
@@ -18,7 +18,7 @@
   transition: all 0.3s ease !important;
 }
 
-.tc-blocksuite-scope.tc-blocksuite-tc-header-enabled .tc-blocksuite-tc-header-inner {
+.tc-blocksuite-tc-header-enabled .tc-blocksuite-tc-header-inner {
   box-sizing: border-box !important;
   max-width: var(--affine-editor-width, 780px) !important;
   margin-left: auto !important;
@@ -28,7 +28,7 @@
   padding-right: var(--affine-editor-side-padding, 24px) !important;
 }
 
-.tc-blocksuite-scope.tc-blocksuite-tc-header-enabled .tc-blocksuite-tc-header-top {
+.tc-blocksuite-tc-header-enabled .tc-blocksuite-tc-header-top {
   display: flex !important;
   flex-direction: row !important;
   /* Allow fallback wrapping for narrow containers (desktop split view / resized modal). */
@@ -39,11 +39,11 @@
   min-height: 48px !important;
 }
 
-.tc-blocksuite-scope.tc-blocksuite-tc-header-enabled .tc-blocksuite-tc-header input[type="file"] {
+.tc-blocksuite-tc-header-enabled .tc-blocksuite-tc-header input[type="file"] {
   display: none !important;
 }
 
-.tc-blocksuite-scope.tc-blocksuite-tc-header-enabled .tc-blocksuite-tc-header-avatar {
+.tc-blocksuite-tc-header-enabled .tc-blocksuite-tc-header-avatar {
   position: relative !important;
   width: 56px !important;
   height: 56px !important;
@@ -61,17 +61,17 @@
     box-shadow 0.3s ease !important;
 }
 
-.tc-blocksuite-scope.tc-blocksuite-tc-header-enabled
+.tc-blocksuite-tc-header-enabled
   .tc-blocksuite-tc-header-avatar.tc-blocksuite-tc-header-avatar-readonly {
   cursor: default !important;
 }
 
-.tc-blocksuite-scope.tc-blocksuite-tc-header-enabled
+.tc-blocksuite-tc-header-enabled
   .tc-blocksuite-tc-header-avatar.tc-blocksuite-tc-header-avatar-previewable {
   cursor: zoom-in !important;
 }
 
-.tc-blocksuite-scope.tc-blocksuite-tc-header-enabled
+.tc-blocksuite-tc-header-enabled
   .tc-blocksuite-tc-header-avatar.tc-blocksuite-tc-header-avatar-empty {
   background:
     radial-gradient(circle at 30% 25%, oklch(var(--p) / 0.32), transparent 58%),
@@ -79,7 +79,7 @@
   border-color: oklch(var(--b3) / 1) !important;
 }
 
-.tc-blocksuite-scope.tc-blocksuite-tc-header-enabled .tc-blocksuite-tc-header-avatar-placeholder {
+.tc-blocksuite-tc-header-enabled .tc-blocksuite-tc-header-avatar-placeholder {
   position: absolute !important;
   inset: 0 !important;
   display: flex !important;
@@ -89,7 +89,7 @@
   pointer-events: none !important;
 }
 
-.tc-blocksuite-scope.tc-blocksuite-tc-header-enabled .tc-blocksuite-tc-header-avatar-placeholder-glyph {
+.tc-blocksuite-tc-header-enabled .tc-blocksuite-tc-header-avatar-placeholder-glyph {
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
@@ -102,7 +102,7 @@
   box-shadow: 0 1px 2px rgb(0 0 0 / 0.15) !important;
 }
 
-.tc-blocksuite-scope.tc-blocksuite-tc-header-enabled .tc-blocksuite-tc-header-avatar-placeholder-icon {
+.tc-blocksuite-tc-header-enabled .tc-blocksuite-tc-header-avatar-placeholder-icon {
   width: 22px !important;
   height: 22px !important;
   color: currentColor !important;
@@ -111,7 +111,7 @@
   text-shadow: none !important;
 }
 
-.tc-blocksuite-scope.tc-blocksuite-tc-header-enabled .tc-blocksuite-tc-header-avatar-img {
+.tc-blocksuite-tc-header-enabled .tc-blocksuite-tc-header-avatar-img {
   width: 100% !important;
   height: 100% !important;
   object-fit: cover !important;
@@ -120,7 +120,7 @@
   z-index: 2 !important;
 }
 
-.tc-blocksuite-scope.tc-blocksuite-tc-header-enabled .tc-blocksuite-tc-header-avatar-overlay {
+.tc-blocksuite-tc-header-enabled .tc-blocksuite-tc-header-avatar-overlay {
   position: absolute !important;
   inset: 0 !important;
   display: flex !important;
@@ -135,14 +135,14 @@
   pointer-events: none !important;
 }
 
-.tc-blocksuite-scope.tc-blocksuite-tc-header-enabled
+.tc-blocksuite-tc-header-enabled
   .tc-blocksuite-tc-header-avatar:hover
   .tc-blocksuite-tc-header-avatar-overlay {
   opacity: 1 !important;
   background-color: rgb(0 0 0 / 0.2) !important;
 }
 
-.tc-blocksuite-scope.tc-blocksuite-tc-header-enabled
+.tc-blocksuite-tc-header-enabled
   .tc-blocksuite-tc-header-avatar:not(.tc-blocksuite-tc-header-avatar-readonly):hover {
   transform: scale(1.05) rotate(2deg) !important;
   box-shadow:
@@ -151,7 +151,7 @@
   z-index: 5 !important;
 }
 
-.tc-blocksuite-scope.tc-blocksuite-tc-header-enabled
+.tc-blocksuite-tc-header-enabled
   .tc-blocksuite-tc-header-avatar.tc-blocksuite-tc-header-avatar-readonly:not(.tc-blocksuite-tc-header-avatar-previewable):hover
   .tc-blocksuite-tc-header-avatar-overlay {
   opacity: 0 !important;
@@ -159,7 +159,7 @@
   background-color: rgb(0 0 0 / 0) !important;
 }
 
-.tc-blocksuite-scope.tc-blocksuite-tc-header-enabled
+.tc-blocksuite-tc-header-enabled
   .tc-blocksuite-tc-header-avatar.tc-blocksuite-tc-header-avatar-previewable:hover {
   transform: scale(1.03) !important;
   box-shadow:
@@ -168,20 +168,20 @@
   z-index: 5 !important;
 }
 
-.tc-blocksuite-scope.tc-blocksuite-tc-header-enabled
+.tc-blocksuite-tc-header-enabled
   .tc-blocksuite-tc-header-avatar.tc-blocksuite-tc-header-avatar-previewable:focus-visible {
   outline: 2px solid oklch(var(--p) / 0.45) !important;
   outline-offset: 2px !important;
 }
 
-.tc-blocksuite-scope.tc-blocksuite-tc-header-enabled .tc-blocksuite-tc-header-avatar-overlay-text {
+.tc-blocksuite-tc-header-enabled .tc-blocksuite-tc-header-avatar-overlay-text {
   font-size: 12px;
   line-height: 16px;
   font-weight: 700;
   color: #fff;
 }
 
-.tc-blocksuite-scope.tc-blocksuite-tc-header-enabled .tc-blocksuite-tc-header-title {
+.tc-blocksuite-tc-header-enabled .tc-blocksuite-tc-header-title {
   all: unset !important;
   box-sizing: border-box !important;
   display: block !important;
@@ -214,22 +214,22 @@
   text-shadow: 0 1px 1px rgb(255 255 255 / 0.5) !important;
 }
 
-.tc-blocksuite-scope.tc-blocksuite-tc-header-enabled .tc-blocksuite-tc-header-title::placeholder {
+.tc-blocksuite-tc-header-enabled .tc-blocksuite-tc-header-title::placeholder {
   color: var(--affine-placeholder-color, #9ca3af) !important;
   opacity: 0.5 !important;
   font-weight: 500 !important;
 }
 
-.tc-blocksuite-scope.tc-blocksuite-tc-header-enabled .tc-blocksuite-tc-header-title:not(:disabled) {
+.tc-blocksuite-tc-header-enabled .tc-blocksuite-tc-header-title:not(:disabled) {
   cursor: text !important;
 }
 
-.tc-blocksuite-scope.tc-blocksuite-tc-header-enabled .tc-blocksuite-tc-header-title:not(:disabled):hover {
+.tc-blocksuite-tc-header-enabled .tc-blocksuite-tc-header-title:not(:disabled):hover {
   background-color: oklch(var(--b2) / 0.8) !important;
   border-color: oklch(var(--bc) / 0.05) !important;
 }
 
-.tc-blocksuite-scope.tc-blocksuite-tc-header-enabled .tc-blocksuite-tc-header-title:focus-visible {
+.tc-blocksuite-tc-header-enabled .tc-blocksuite-tc-header-title:focus-visible {
   outline: none !important;
   background-color: oklch(var(--b1) / 1) !important;
   box-shadow:
@@ -238,12 +238,12 @@
   border-color: transparent !important;
 }
 
-.tc-blocksuite-scope.tc-blocksuite-tc-header-enabled .tc-blocksuite-tc-header-title:disabled {
+.tc-blocksuite-tc-header-enabled .tc-blocksuite-tc-header-title:disabled {
   background-color: transparent !important;
   opacity: 1 !important;
 }
 
-.tc-blocksuite-scope.tc-blocksuite-tc-header-enabled .tc-blocksuite-tc-header-actions {
+.tc-blocksuite-tc-header-enabled .tc-blocksuite-tc-header-actions {
   display: flex !important;
   align-items: center !important;
   gap: 8px !important;
@@ -252,7 +252,7 @@
   white-space: nowrap !important;
 }
 
-.tc-blocksuite-scope.tc-blocksuite-tc-header-enabled .tc-blocksuite-tc-header-btn {
+.tc-blocksuite-tc-header-enabled .tc-blocksuite-tc-header-btn {
   all: unset !important;
   box-sizing: border-box !important;
   display: inline-flex !important;
@@ -272,40 +272,40 @@
   transition: all 0.2s ease !important;
 }
 
-.tc-blocksuite-scope.tc-blocksuite-tc-header-enabled .tc-blocksuite-tc-header-btn:hover {
+.tc-blocksuite-tc-header-enabled .tc-blocksuite-tc-header-btn:hover {
   background-color: oklch(var(--b2) / 1) !important;
   color: oklch(var(--p) / 1) !important;
   box-shadow: 0 2px 4px -1px rgb(0 0 0 / 0.05) !important;
 }
 
-.tc-blocksuite-scope.tc-blocksuite-tc-header-enabled .tc-blocksuite-tc-header-btn:active {
+.tc-blocksuite-tc-header-enabled .tc-blocksuite-tc-header-btn:active {
   transform: scale(0.96) !important;
 }
 
-.tc-blocksuite-scope.tc-blocksuite-tc-header-enabled .tc-blocksuite-tc-header-btn:focus-visible {
+.tc-blocksuite-tc-header-enabled .tc-blocksuite-tc-header-btn:focus-visible {
   outline: 2px solid oklch(var(--p) / 0.4) !important;
   outline-offset: 1px !important;
 }
 
-.tc-blocksuite-scope.tc-blocksuite-tc-header-enabled .tc-blocksuite-tc-header-btn.tc-blocksuite-tc-header-btn-ghost {
+.tc-blocksuite-tc-header-enabled .tc-blocksuite-tc-header-btn.tc-blocksuite-tc-header-btn-ghost {
   background-color: transparent !important;
   color: oklch(var(--bc) / 0.5) !important;
 }
 
-.tc-blocksuite-scope.tc-blocksuite-tc-header-enabled
+.tc-blocksuite-tc-header-enabled
   .tc-blocksuite-tc-header-btn.tc-blocksuite-tc-header-btn-ghost:hover {
   background-color: oklch(var(--b2) / 0.6) !important;
   color: oklch(var(--bc) / 0.9) !important;
 }
 
 @media (max-width: 639px) {
-  .tc-blocksuite-scope.tc-blocksuite-tc-header-enabled .tc-blocksuite-tc-header-inner {
+  .tc-blocksuite-tc-header-enabled .tc-blocksuite-tc-header-inner {
     padding: 10px 12px !important;
     padding-left: 12px !important;
     padding-right: 12px !important;
   }
 
-  .tc-blocksuite-scope.tc-blocksuite-tc-header-enabled .tc-blocksuite-tc-header-top {
+  .tc-blocksuite-tc-header-enabled .tc-blocksuite-tc-header-top {
     display: grid !important;
     grid-template-columns: 44px minmax(0, 1fr) !important;
     grid-template-areas:
@@ -316,7 +316,7 @@
     min-height: 0 !important;
   }
 
-  .tc-blocksuite-scope.tc-blocksuite-tc-header-enabled .tc-blocksuite-tc-header-avatar {
+  .tc-blocksuite-tc-header-enabled .tc-blocksuite-tc-header-avatar {
     grid-area: avatar !important;
     width: 44px !important;
     height: 44px !important;
@@ -325,17 +325,17 @@
     box-shadow: none !important;
   }
 
-  .tc-blocksuite-scope.tc-blocksuite-tc-header-enabled .tc-blocksuite-tc-header-avatar-placeholder-glyph {
+  .tc-blocksuite-tc-header-enabled .tc-blocksuite-tc-header-avatar-placeholder-glyph {
     width: 30px !important;
     height: 30px !important;
   }
 
-  .tc-blocksuite-scope.tc-blocksuite-tc-header-enabled .tc-blocksuite-tc-header-avatar-placeholder-icon {
+  .tc-blocksuite-tc-header-enabled .tc-blocksuite-tc-header-avatar-placeholder-icon {
     width: 20px !important;
     height: 20px !important;
   }
 
-  .tc-blocksuite-scope.tc-blocksuite-tc-header-enabled .tc-blocksuite-tc-header-title {
+  .tc-blocksuite-tc-header-enabled .tc-blocksuite-tc-header-title {
     grid-area: title !important;
     width: 100% !important;
     min-width: 0 !important;
@@ -346,11 +346,11 @@
     line-height: 40px !important;
   }
 
-  .tc-blocksuite-scope.tc-blocksuite-tc-header-enabled .tc-blocksuite-tc-header-title::placeholder {
+  .tc-blocksuite-tc-header-enabled .tc-blocksuite-tc-header-title::placeholder {
     opacity: 0.75 !important;
   }
 
-  .tc-blocksuite-scope.tc-blocksuite-tc-header-enabled .tc-blocksuite-tc-header-actions {
+  .tc-blocksuite-tc-header-enabled .tc-blocksuite-tc-header-actions {
     grid-area: actions !important;
     margin-left: 0 !important;
     width: 100% !important;
@@ -362,11 +362,11 @@
     scrollbar-width: none !important;
   }
 
-  .tc-blocksuite-scope.tc-blocksuite-tc-header-enabled .tc-blocksuite-tc-header-actions::-webkit-scrollbar {
+  .tc-blocksuite-tc-header-enabled .tc-blocksuite-tc-header-actions::-webkit-scrollbar {
     display: none !important;
   }
 
-  .tc-blocksuite-scope.tc-blocksuite-tc-header-enabled .tc-blocksuite-tc-header-btn {
+  .tc-blocksuite-tc-header-enabled .tc-blocksuite-tc-header-btn {
     height: 30px !important;
     padding: 0 10px !important;
     font-size: 12px !important;
@@ -375,34 +375,34 @@
 }
 
 @media (max-width: 420px) {
-  .tc-blocksuite-scope.tc-blocksuite-tc-header-enabled .tc-blocksuite-tc-header-inner {
+  .tc-blocksuite-tc-header-enabled .tc-blocksuite-tc-header-inner {
     padding: 8px 10px !important;
     padding-left: 10px !important;
     padding-right: 10px !important;
   }
 
-  .tc-blocksuite-scope.tc-blocksuite-tc-header-enabled .tc-blocksuite-tc-header-top {
+  .tc-blocksuite-tc-header-enabled .tc-blocksuite-tc-header-top {
     grid-template-columns: 38px minmax(0, 1fr) !important;
     gap: 6px 8px !important;
   }
 
-  .tc-blocksuite-scope.tc-blocksuite-tc-header-enabled .tc-blocksuite-tc-header-avatar {
+  .tc-blocksuite-tc-header-enabled .tc-blocksuite-tc-header-avatar {
     width: 38px !important;
     height: 38px !important;
     border-radius: 10px !important;
   }
 
-  .tc-blocksuite-scope.tc-blocksuite-tc-header-enabled .tc-blocksuite-tc-header-avatar-placeholder-glyph {
+  .tc-blocksuite-tc-header-enabled .tc-blocksuite-tc-header-avatar-placeholder-glyph {
     width: 26px !important;
     height: 26px !important;
   }
 
-  .tc-blocksuite-scope.tc-blocksuite-tc-header-enabled .tc-blocksuite-tc-header-avatar-placeholder-icon {
+  .tc-blocksuite-tc-header-enabled .tc-blocksuite-tc-header-avatar-placeholder-icon {
     width: 18px !important;
     height: 18px !important;
   }
 
-  .tc-blocksuite-scope.tc-blocksuite-tc-header-enabled .tc-blocksuite-tc-header-title {
+  .tc-blocksuite-tc-header-enabled .tc-blocksuite-tc-header-title {
     height: 36px !important;
     font-size: 15px !important;
     line-height: 36px !important;
@@ -410,11 +410,11 @@
     border-radius: 9px !important;
   }
 
-  .tc-blocksuite-scope.tc-blocksuite-tc-header-enabled .tc-blocksuite-tc-header-actions {
+  .tc-blocksuite-tc-header-enabled .tc-blocksuite-tc-header-actions {
     gap: 4px !important;
   }
 
-  .tc-blocksuite-scope.tc-blocksuite-tc-header-enabled .tc-blocksuite-tc-header-btn {
+  .tc-blocksuite-tc-header-enabled .tc-blocksuite-tc-header-btn {
     height: 28px !important;
     padding: 0 8px !important;
   }

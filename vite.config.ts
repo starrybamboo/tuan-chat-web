@@ -7,7 +7,7 @@ import { vanillaExtractPlugin } from "@vanilla-extract/vite-plugin";
 import { Buffer } from "node:buffer";
 import { existsSync, realpathSync } from "node:fs";
 import { resolve } from "node:path";
-import process from "node:process";
+// import process from "node:process";
 import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
 import { fetch as undiciFetch } from "undici";
@@ -249,9 +249,9 @@ function authRecoveryCompatPlugin(): Plugin {
   };
 }
 
-export default defineConfig(({ command, mode }) => {
+export default defineConfig(({ command }) => {
   const _isDev = command === "serve";
-  const env = loadEnv(mode, process.cwd(), "");
+  // const env = loadEnv(mode, process.cwd(), "");
 
   const nm = (p: string) => {
     const abs = resolve(__dirname, p);
@@ -555,15 +555,21 @@ export default defineConfig(({ command, mode }) => {
           // iframe route entry
           "app/routes/blocksuiteFrame.tsx",
 
-          // iframe host + runtime loader
+          // iframe host
           "app/components/chat/shared/components/blocksuiteDescriptionEditor.tsx",
 
-          // runtime dynamic imports (from loadBlocksuiteRuntime)
-          "app/components/chat/infra/blocksuite/embedded/createEmbeddedAffineEditor.ts",
+          // route client chunk + browser runtime
+          "app/components/chat/infra/blocksuite/frame/BlocksuiteRouteFrameClient.tsx",
+          "app/components/chat/infra/blocksuite/frame/BlocksuiteDescriptionEditorRuntime.browser.tsx",
+          "app/components/chat/infra/blocksuite/bootstrap/browser.ts",
+          "app/components/chat/infra/blocksuite/runtime/runtimeLoader.browser.ts",
+          "app/components/chat/infra/blocksuite/editors/createBlocksuiteEditor.browser.ts",
           "app/components/chat/infra/blocksuite/spaceWorkspaceRegistry.ts",
 
-          // core custom elements registration
-          "app/components/chat/infra/blocksuite/spec/coreElements.ts",
+          // core bootstrap modules
+          "app/components/chat/infra/blocksuite/spec/coreElements.browser.ts",
+          "app/components/chat/infra/blocksuite/styles/frameBase.css",
+          "app/components/chat/infra/blocksuite/styles/tcHeader.css",
 
           // common doc sources/providers
           "app/components/chat/infra/blocksuite/remoteDocSource.ts",
