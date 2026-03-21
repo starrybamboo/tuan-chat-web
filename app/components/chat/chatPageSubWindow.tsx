@@ -3,7 +3,7 @@ import type { ChatPageSubWindowTab } from "@/components/chat/hooks/useChatPageSu
 import type { MinimalDocMeta } from "@/components/chat/room/sidebarTree";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import RoomWindow from "@/components/chat/room/roomWindow";
-import BlocksuiteDescriptionEditor from "@/components/chat/shared/components/blocksuiteDescriptionEditor";
+import BlocksuiteDescriptionEditor from "@/components/chat/shared/components/BlockSuite/blocksuiteDescriptionEditor";
 import { getDocRefDragData, isDocRefDrag } from "@/components/chat/utils/docRef";
 import { getSubWindowDragPayload } from "@/components/chat/utils/subWindowDragPayload";
 import { OpenAbleDrawer } from "@/components/common/openableDrawer";
