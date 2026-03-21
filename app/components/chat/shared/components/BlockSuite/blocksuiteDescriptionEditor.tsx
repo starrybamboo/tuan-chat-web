@@ -1,10 +1,10 @@
 import type { DocMode } from "@blocksuite/affine/model";
+import type { BlocksuiteDescriptionEditorProps } from "./blocksuiteDescriptionEditor.shared";
 import { useEffect, useId, useRef, useState } from "react";
 import { useNavigate } from "react-router";
 import { BlocksuiteMentionProfilePopover } from "@/components/chat/infra/blocksuite/mentionProfilePopover";
 import { startBlocksuiteOpenSession } from "@/components/chat/infra/blocksuite/perf";
 import { BlocksuiteFrameSkeleton } from "./BlocksuiteFrameSkeleton";
-import type { BlocksuiteDescriptionEditorProps } from "./blocksuiteDescriptionEditor.shared";
 import { useBlocksuiteFrameBridge } from "./useBlocksuiteFrameBridge";
 import { useBlocksuiteFrameInit } from "./useBlocksuiteFrameInit";
 import { useBlocksuiteFrameThemeSync } from "./useBlocksuiteFrameThemeSync";

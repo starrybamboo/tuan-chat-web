@@ -1,8 +1,9 @@
 import type { DocMode } from "@blocksuite/affine/model";
+
 import type { DescriptionEntityType } from "@/components/chat/infra/blocksuite/descriptionDocId";
 import type { BlocksuiteDocHeader } from "@/components/chat/infra/blocksuite/docHeader";
 
-export interface BlocksuiteDescriptionEditorProps {
+export type BlocksuiteDescriptionEditorProps = {
   workspaceId: string;
   spaceId?: number;
   docId: string;
@@ -28,7 +29,7 @@ export interface BlocksuiteDescriptionEditorProps {
   onModeChange?: (mode: DocMode) => void;
   onNavigate?: (to: string) => boolean | void;
   className?: string;
-}
+};
 
 export function normalizeAppThemeToBlocksuiteTheme(raw: string | null | undefined): "light" | "dark" {
   const v = (raw ?? "").toLowerCase();

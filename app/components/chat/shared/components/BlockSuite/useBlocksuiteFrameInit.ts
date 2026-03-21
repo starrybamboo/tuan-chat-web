@@ -1,5 +1,6 @@
-import { useMemo, useRef } from "react";
 import type { DocMode } from "@blocksuite/affine/model";
+
+import { useMemo, useRef } from "react";
 
 type UseBlocksuiteFrameInitParams = {
   instanceId: string;
