@@ -2,6 +2,7 @@ import { isBlocksuiteDebugEnabled } from "./debugFlags";
 
 type BlocksuitePrewarmSource = "idle" | "intent" | "unknown";
 type BlocksuiteOpenKind = "cold" | "idle-prewarmed" | "intent-prewarmed" | "runtime-prewarmed";
+type BlocksuiteFrameKind = "route";
 
 type BlocksuiteDocPrewarmState = {
   status: "idle" | "running" | "ready";
@@ -23,6 +24,7 @@ type BlocksuiteOpenSession = {
   workspaceId: string;
   docId: string;
   variant: "embedded" | "full";
+  frameKind: BlocksuiteFrameKind;
   openKind: BlocksuiteOpenKind;
   startedAt: number;
   runtimePrewarmReadyAtOpen?: number;
@@ -36,10 +38,13 @@ export type BlocksuiteOpenPerfSummary = {
   workspaceId: string;
   docId: string;
   variant: "embedded" | "full";
+  frameKind: BlocksuiteFrameKind;
   openKind: BlocksuiteOpenKind;
   startedAt: number;
   finishedAt: number;
   totalMs: number;
+  frameEntryDelayMs?: number;
+  frameAppMountMs?: number;
   frameBootstrapMs?: number;
   editorReadyMs?: number;
   prewarmLeadMs?: number;
@@ -59,6 +64,9 @@ const PERF_STATE_KEY = "__tcBlocksuitePerfState_v1";
 const PERF_HISTORY_LIMIT = 50;
 
 function now() {
+  if (typeof performance !== "undefined" && typeof performance.now === "function") {
+    return performance.timeOrigin + performance.now();
+  }
   return Date.now();
 }
 
@@ -222,6 +230,7 @@ export function startBlocksuiteOpenSession(params: {
 
   state.sessions.set(params.instanceId, {
     ...params,
+    frameKind: "route",
     openKind,
     startedAt: at,
     runtimePrewarmReadyAtOpen,
@@ -267,6 +276,7 @@ export function finishBlocksuiteOpenSession(instanceId: string): BlocksuiteOpenP
 
   const finishedAt = now();
   const runtimePrewarm = state.runtimePrewarm;
+  const frameEntryAt = session.marks["frame-entry-start"];
   const frameBootstrapStartAt = session.marks["frame-bootstrap-start"];
   const frameBootstrapReadyAt = session.marks["frame-bootstrap-ready"];
   const renderReadyAt = session.marks["render-ready"] ?? finishedAt;
@@ -277,10 +287,17 @@ export function finishBlocksuiteOpenSession(instanceId: string): BlocksuiteOpenP
     workspaceId: session.workspaceId,
     docId: session.docId,
     variant: session.variant,
+    frameKind: session.frameKind,
     openKind: session.openKind,
     startedAt: session.startedAt,
     finishedAt: renderReadyAt,
     totalMs: Math.max(0, renderReadyAt - session.startedAt),
+    frameEntryDelayMs: frameEntryAt
+      ? Math.max(0, frameEntryAt - session.startedAt)
+      : undefined,
+    frameAppMountMs: frameEntryAt && frameBootstrapStartAt
+      ? Math.max(0, frameBootstrapStartAt - frameEntryAt)
+      : undefined,
     frameBootstrapMs: frameBootstrapStartAt && frameBootstrapReadyAt
       ? Math.max(0, frameBootstrapReadyAt - frameBootstrapStartAt)
       : undefined,
