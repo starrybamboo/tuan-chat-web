@@ -3,9 +3,10 @@ import { useDeleteRole1Mutation } from "api/hooks/chatQueryHooks";
 import React, { use, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import { RoomContext } from "@/components/chat/core/roomContext";
+import { canManageRoomRoles, hasHostPrivileges } from "@/components/chat/utils/memberPermissions";
 import ConfirmModal from "@/components/common/comfirmModel";
 import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
-import RoleAvatarComponent from "@/components/common/roleAvatar";
+import { RoleAvatarByRole } from "@/components/common/roleAccess";
 import { RoleDetailPagePopup } from "@/components/common/roleDetailPagePopup";
 import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
 import { AddRingLight } from "@/icons";
@@ -30,7 +31,9 @@ export default function RoleChooser({
   const [_, setIsRoleAddWindowOpen] = useSearchParamsState<boolean>("roleAddPop", false);
   const displayRoles = roles ?? roomContext.roomRolesThatUserOwn;
   const roomId = roomContext.roomId ?? -1;
-  const isManager = roomContext.curMember?.memberType === 1;
+  const currentMemberType = roomContext.curMember?.memberType;
+  const isManager = hasHostPrivileges(currentMemberType);
+  const canAddRole = canManageRoomRoles(currentMemberType);
   const ownedRoleIds = useMemo(
     () => new Set(roomContext.roomRolesThatUserOwn.map(role => role.roleId)),
     [roomContext.roomRolesThatUserOwn],
@@ -90,15 +93,13 @@ export default function RoleChooser({
               className="flex-1 cursor-pointer"
               onClick={() => handleRoleChange(role)}
             >
-              <RoleAvatarComponent
-                avatarId={role.avatarId ?? 0}
-                roleId={role.roleId}
+              <RoleAvatarByRole
+                role={role}
                 width={10}
                 isRounded={false}
                 withTitle={false}
                 stopToastWindow={true}
-              >
-              </RoleAvatarComponent>
+              />
               <div>{role.roleName}</div>
             </div>
             <div className="flex items-center gap-1">
@@ -129,7 +130,7 @@ export default function RoleChooser({
         ))
       }
       {
-        (roomContext.curMember?.memberType ?? 3) < 3 && (
+        canAddRole && (
           <li className="flex flex-row list-none group" onClick={() => setIsRoleAddWindowOpen(true)}>
             <div className="w-full">
               <AddRingLight className="size-10 group-hover:text-info"></AddRingLight>

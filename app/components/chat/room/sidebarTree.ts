@@ -1,5 +1,7 @@
 import type { Room } from "api";
 
+import { parseSpaceDocId } from "@/components/chat/infra/blocksuite/spaceDocId";
+
 export type SidebarLeafNode = {
   nodeId: string;
   type: "room" | "doc";
@@ -23,6 +25,10 @@ export type SidebarTree = {
 
 export type MinimalDocMeta = { id: string; title?: string; imageUrl?: string };
 
+function isSidebarVisibleDocId(docId: string): boolean {
+  return parseSpaceDocId(docId)?.kind === "independent";
+}
+
 export function extractDocMetasFromSidebarTree(tree: SidebarTree | null | undefined): MinimalDocMeta[] {
   const list: MinimalDocMeta[] = [];
   const seen = new Set<string>();
@@ -33,6 +39,8 @@ export function extractDocMetasFromSidebarTree(tree: SidebarTree | null | undefi
         continue;
       const id = typeof node.targetId === "string" ? node.targetId : "";
       if (!id)
+        continue;
+      if (!isSidebarVisibleDocId(id))
         continue;
       if (seen.has(id))
         continue;
@@ -240,7 +248,7 @@ export function buildDefaultSidebarTree(params: {
 
   if (params.includeDocs) {
     const docItems: SidebarLeafNode[] = params.docMetas
-      .filter(m => typeof m?.id === "string" && m.id.length > 0)
+      .filter(m => typeof m?.id === "string" && m.id.length > 0 && isSidebarVisibleDocId(m.id))
       .map(m => ({
         ...buildDocNode(m.id, m.title ?? m.id, m.imageUrl),
       }));
@@ -279,7 +287,7 @@ export function normalizeSidebarTree(params: {
 
   const docMetaMap = new Map<string, MinimalDocMeta>();
   for (const m of params.docMetas) {
-    if (typeof m?.id === "string" && m.id.length > 0) {
+    if (typeof m?.id === "string" && m.id.length > 0 && isSidebarVisibleDocId(m.id)) {
       docMetaMap.set(m.id, m);
     }
   }
@@ -323,6 +331,8 @@ export function normalizeSidebarTree(params: {
       return null;
     const docId = normalizeDocId(raw?.targetId);
     if (!docId)
+      return null;
+    if (!isSidebarVisibleDocId(docId))
       return null;
     const meta = docMetaMap.get(docId);
     // docMetas 可能是异步加载的：在还未加载到任何 meta 之前，允许保留 sidebarTree 里的 doc 节点，先展示缓存。

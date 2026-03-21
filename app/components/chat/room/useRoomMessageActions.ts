@@ -4,8 +4,8 @@ import { toast } from "react-hot-toast";
 import type { RoomUiStoreApi } from "@/components/chat/stores/roomUiStore";
 import type { WebgalChoosePayload } from "@/types/webgalChoose";
 
-import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
 import { getNextAppendPosition } from "@/components/chat/shared/messageOrder";
+import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
 
 import type { ChatMessageRequest, ChatMessageResponse } from "../../../../api";
 
@@ -198,12 +198,8 @@ export default function useRoomMessageActions({
 
     const isNarrator = curRoleId <= 0;
 
-    if (notMember) {
-      toast.error("您是观战，不能发送消息");
-      return;
-    }
-    if (isNarrator && !isSpaceOwner) {
-      toast.error("旁白仅KP可用，请先选择/拉入你的角色");
+    if (isNarrator && !isSpaceOwner && !notMember) {
+      toast.error("旁白仅主持可用，请先选择/拉入你的角色");
       return;
     }
     if (isSubmitting || webgalChooseSendingRef.current) {

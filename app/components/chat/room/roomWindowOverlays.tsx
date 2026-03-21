@@ -10,6 +10,7 @@ interface RoomWindowOverlaysProps {
   isImportChatTextOpen: boolean;
   setIsImportChatTextOpen: (isOpen: boolean) => void;
   isKP: boolean;
+  isSpectator: boolean;
   availableRoles: UserRole[];
   onImportChatText: (
     items: Array<{
@@ -37,6 +38,7 @@ export default function RoomWindowOverlays({
   isImportChatTextOpen,
   setIsImportChatTextOpen,
   isKP,
+  isSpectator,
   availableRoles,
   onImportChatText,
   onOpenRoleAddWindow,
@@ -58,6 +60,7 @@ export default function RoomWindowOverlays({
       >
         <ImportChatMessagesWindow
           isKP={isKP}
+          isSpectator={isSpectator}
           availableRoles={availableRoles}
           onImport={onImportChatText}
           onClose={() => setIsImportChatTextOpen(false)}

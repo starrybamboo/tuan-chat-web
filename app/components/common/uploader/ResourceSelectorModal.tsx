@@ -11,7 +11,7 @@ import {
   useGetUserResourceCollectionsByTypeQuery,
   useGetUserResourcesByTypeQuery,
 } from "../../../../api/hooks/resourceQueryHooks";
-import UserAvatarComponent from "../../common/userAvatar";
+import { UserAvatarByUser } from "../../common/userAccess";
 import { EmptyState } from "../../resource/ui/EmptyState";
 import { LoadingState } from "../../resource/ui/LoadingState";
 import { Pagination } from "../../resource/ui/Pagination";
@@ -60,8 +60,8 @@ function CollectionCard({ collection, onSelect }: CollectionCardProps) {
           {collection.description || "暂无描述"}
         </p>
         <div className="flex items-center gap-2 text-xs text-base-content/60 mt-2">
-          <UserAvatarComponent
-            userId={collection.userId ?? -1}
+          <UserAvatarByUser
+            user={collection}
             width={6}
             isRounded={true}
             withName={false}
@@ -392,8 +392,8 @@ export function ResourceSelectorModal({
                                       {resource.name || "未命名素材"}
                                     </h3>
                                     <div className="flex items-center gap-2 text-xs text-base-content/60">
-                                      <UserAvatarComponent
-                                        userId={resource.userId ?? -1}
+                                      <UserAvatarByUser
+                                        user={resource}
                                         width={6}
                                         isRounded={true}
                                         withName={false}
@@ -484,8 +484,8 @@ export function ResourceSelectorModal({
                                           {resource.name || "未命名素材"}
                                         </h3>
                                         <div className="flex items-center gap-2 text-xs text-base-content/60">
-                                          <UserAvatarComponent
-                                            userId={resource.userId ?? -1}
+                                          <UserAvatarByUser
+                                            user={resource}
                                             width={6}
                                             isRounded={true}
                                             withName={false}

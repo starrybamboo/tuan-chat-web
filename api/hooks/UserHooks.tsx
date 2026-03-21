@@ -1,24 +1,9 @@
 import type {
   ApiResultUserInfoResponse,
 } from "../models/ApiResultUserInfoResponse";
-import type { UserLoginRequest } from "../models/UserLoginRequest";
 import type { UserUpdateInfoRequest } from "../models/UserUpdateInfoRequest";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { tuanchat } from "../instance";
-
-/**
- * 用户登录
- * @param onSuccess 登录成功回调
- */
-export function useLoginMutation(onSuccess?: () => void) {
-  return useMutation({
-    mutationFn: (req: UserLoginRequest) => tuanchat.userController.login(req),
-    mutationKey: ["login"],
-    onSuccess: () => {
-      onSuccess?.();
-    },
-  });
-}
 
 interface UserQueryOptions {
   enabled?: boolean;

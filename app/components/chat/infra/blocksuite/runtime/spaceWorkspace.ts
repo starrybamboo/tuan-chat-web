@@ -21,7 +21,9 @@ import { applyUpdate, encodeStateAsUpdate, encodeStateVector, mergeUpdates } fro
 
 import type { BlocksuiteDocKey } from "@/components/chat/infra/blocksuite/blocksuiteWsClient";
 
+import { NonRetryableBlocksuiteDocError } from "@/components/chat/infra/blocksuite/blocksuiteDocError";
 import { blocksuiteWsClient } from "@/components/chat/infra/blocksuite/blocksuiteWsClient";
+import { clearUpdates } from "@/components/chat/infra/blocksuite/descriptionDocDb";
 import { parseDescriptionDocId } from "@/components/chat/infra/blocksuite/descriptionDocId";
 import { RemoteSnapshotDocSource } from "@/components/chat/infra/blocksuite/remoteDocSource";
 import { AFFINE_STORE_EXTENSIONS } from "@/components/chat/infra/blocksuite/spec/affineStoreExtensions";
@@ -233,6 +235,7 @@ class SpaceDoc implements Doc {
   dispose(options?: { flushPending?: boolean }): void {
     const flushPending = options?.flushPending !== false;
     this._disposed = true;
+    this._ready = false;
     if (this._hydrationRetryTimer) {
       clearTimeout(this._hydrationRetryTimer);
       this._hydrationRetryTimer = null;
@@ -299,10 +302,15 @@ class SpaceDoc implements Doc {
     this._wsKey = null;
   }
 
-  private _completeRemoteHydration() {
+  private _completeRemoteHydration(options?: { discardPendingLocal?: boolean }) {
     if (this._remoteHydrationCompleted)
       return;
     this._remoteHydrationCompleted = true;
+
+    if (options?.discardPendingLocal) {
+      this._pendingPreHydrationUpdates = [];
+      return;
+    }
 
     if (!this._pendingPreHydrationUpdates.length)
       return;
@@ -370,7 +378,18 @@ class SpaceDoc implements Doc {
           this._completeRemoteHydration();
           return;
         }
-        catch {
+        catch (error) {
+          if (error instanceof NonRetryableBlocksuiteDocError) {
+            try {
+              await clearUpdates(this.id);
+            }
+            catch {
+              // ignore
+            }
+            this._detachBlocksuiteWs();
+            this._completeRemoteHydration({ discardPendingLocal: true });
+            return;
+          }
           // ignore and retry with backoff
         }
       }
@@ -518,8 +537,9 @@ export class SpaceWorkspace implements Workspace {
   }
 
   private _hydrateMissingTitles() {
-    // Titles are derived from document content, so we need to load subdocs.
-    // Do this lazily and in a read-only way to avoid mutating docs during listing.
+    // 标题优先信任已有 meta；不要在列表阶段批量 `doc.load()` 去探测远端文档，
+    // 否则仅打开群聊页也会为整组 doc 触发远端 hydration / updates 拉取。
+    // 这里只尝试从“已经被显式打开过”的内存 doc 中补标题。
     if (this._titleHydrationScheduled)
       return;
     this._titleHydrationScheduled = true;
@@ -530,42 +550,33 @@ export class SpaceWorkspace implements Workspace {
         return;
 
       const metas = this.meta.docMetas;
-      // linked-doc uses `workspace.meta.docMetas` as its data source.
-      // For business docIds, the title should prefer `tc_header.title` (instead of blocksuite native title).
-      const isBusinessDocId = (id: string) => /^(?:room|space|user):/.test(id);
       const pendingIds = metas
-        .filter(m => !m.title || isBusinessDocId(m.id))
+        .filter(m => !m.title)
         .map(m => m.id);
 
       let anyMetaChanged = false;
       this._docListUpdatedBlocked++;
-      // Avoid blocking the UI if there are many docs.
-      // Process sequentially; break early if disposed.
+      // 只读取已加载 doc，避免在这里创建/加载任何文档。
       try {
         for (const docId of pendingIds) {
           if (this._titleHydrationAbort.signal.aborted)
             return;
 
           try {
-            const doc = (this.getDoc(docId) as SpaceDoc | null) ?? (this.createDoc(docId) as SpaceDoc);
-            doc.load();
+            const doc = this.getDoc(docId) as SpaceDoc | null;
+            if (!doc?.ready) {
+              continue;
+            }
             const meta = this.meta.getDocMeta(docId);
             if (!meta)
               continue;
 
-            const isBusiness = isBusinessDocId(docId);
             const tcTitle = tryReadTcHeaderTitleFromYDoc(doc.spaceDoc);
             if (tcTitle) {
               if (meta.title !== tcTitle) {
                 this.meta.setDocMeta(docId, { title: tcTitle });
                 anyMetaChanged = true;
               }
-              continue;
-            }
-
-            // Business docs: if `tc_header.title` is missing, prefer keeping existing meta title
-            // (which may come from room/space name) instead of overriding with blocksuite native title.
-            if (isBusiness && meta.title) {
               continue;
             }
 
@@ -616,6 +627,14 @@ export class SpaceWorkspace implements Workspace {
     const doc = this._docs.get(docId);
     if (!doc)
       return;
+
+    try {
+      // 删除业务文档时不要把本地 pending 改动再次上推到远端。
+      (doc as { dispose?: (options?: { flushPending?: boolean }) => void }).dispose?.({ flushPending: false });
+    }
+    catch {
+      // ignore
+    }
 
     this._docs.delete(docId);
     this.meta.removeDocMeta(docId);
@@ -709,6 +728,14 @@ export class SpaceWorkspace implements Workspace {
   }
 
   dispose(): void {
+    for (const doc of this._docs.values()) {
+      try {
+        (doc as { dispose?: (options?: { flushPending?: boolean }) => void }).dispose?.({ flushPending: false });
+      }
+      catch {
+        // ignore
+      }
+    }
     this.docSync.forceStop();
     this.blobSync.stop();
     this._spaces.unobserve(this._onSpacesChanged);
@@ -718,7 +745,77 @@ export class SpaceWorkspace implements Workspace {
   }
 }
 
-const workspaceById = new Map<string, SpaceWorkspace>();
+const WORKSPACE_IDLE_DISPOSE_MS = 30_000;
+
+type WorkspaceRuntimeRecord = {
+  workspace: SpaceWorkspace;
+  retainCount: number;
+  lastTouchedAt: number;
+  disposeTimer: ReturnType<typeof setTimeout> | null;
+};
+
+const workspaceById = new Map<string, WorkspaceRuntimeRecord>();
+
+function clearWorkspaceDisposeTimer(record: WorkspaceRuntimeRecord) {
+  if (!record.disposeTimer) {
+    return;
+  }
+  clearTimeout(record.disposeTimer);
+  record.disposeTimer = null;
+}
+
+function disposeWorkspaceRuntime(workspaceId: string) {
+  const record = workspaceById.get(workspaceId);
+  if (!record) {
+    return;
+  }
+
+  clearWorkspaceDisposeTimer(record);
+  workspaceById.delete(workspaceId);
+  try {
+    record.workspace.dispose();
+  }
+  catch {
+    // ignore
+  }
+}
+
+function scheduleWorkspaceRuntimeDispose(workspaceId: string) {
+  const record = workspaceById.get(workspaceId);
+  if (!record) {
+    return;
+  }
+  if (record.retainCount > 0) {
+    clearWorkspaceDisposeTimer(record);
+    return;
+  }
+
+  clearWorkspaceDisposeTimer(record);
+  record.disposeTimer = setTimeout(() => {
+    const latest = workspaceById.get(workspaceId);
+    if (!latest) {
+      return;
+    }
+    if (latest.retainCount > 0) {
+      clearWorkspaceDisposeTimer(latest);
+      return;
+    }
+    if (Date.now() - latest.lastTouchedAt < WORKSPACE_IDLE_DISPOSE_MS) {
+      scheduleWorkspaceRuntimeDispose(workspaceId);
+      return;
+    }
+    disposeWorkspaceRuntime(workspaceId);
+  }, WORKSPACE_IDLE_DISPOSE_MS);
+}
+
+function touchWorkspaceRuntimeRecord(record: WorkspaceRuntimeRecord) {
+  record.lastTouchedAt = Date.now();
+  if (record.retainCount > 0) {
+    clearWorkspaceDisposeTimer(record);
+    return;
+  }
+  scheduleWorkspaceRuntimeDispose(record.workspace.id);
+}
 
 function ensureAffineMinimumBlockData(store: Store) {
   // 1) Init if empty
@@ -874,12 +971,54 @@ function tryReadTcHeaderTitle(store: Store): string | null {
 
 export function getOrCreateSpaceWorkspaceRuntime(workspaceId: string): SpaceWorkspace {
   const existing = workspaceById.get(workspaceId);
-  if (existing)
-    return existing;
+  if (existing) {
+    touchWorkspaceRuntimeRecord(existing);
+    return existing.workspace;
+  }
 
   const ws = new SpaceWorkspace({ workspaceId });
-  workspaceById.set(workspaceId, ws);
+  const record: WorkspaceRuntimeRecord = {
+    workspace: ws,
+    retainCount: 0,
+    lastTouchedAt: Date.now(),
+    disposeTimer: null,
+  };
+  workspaceById.set(workspaceId, record);
+  scheduleWorkspaceRuntimeDispose(workspaceId);
   return ws;
+}
+
+export function getSpaceWorkspaceRuntimeIfExists(workspaceId: string): SpaceWorkspace | null {
+  const record = workspaceById.get(workspaceId);
+  if (!record) {
+    return null;
+  }
+  touchWorkspaceRuntimeRecord(record);
+  return record.workspace;
+}
+
+export function retainSpaceWorkspaceRuntime(workspaceId: string): SpaceWorkspace {
+  const workspace = getOrCreateSpaceWorkspaceRuntime(workspaceId);
+  const record = workspaceById.get(workspaceId);
+  if (!record) {
+    return workspace;
+  }
+
+  record.retainCount += 1;
+  record.lastTouchedAt = Date.now();
+  clearWorkspaceDisposeTimer(record);
+  return workspace;
+}
+
+export function releaseSpaceWorkspaceRuntime(workspaceId: string): void {
+  const record = workspaceById.get(workspaceId);
+  if (!record) {
+    return;
+  }
+
+  record.retainCount = Math.max(0, record.retainCount - 1);
+  record.lastTouchedAt = Date.now();
+  scheduleWorkspaceRuntimeDispose(workspaceId);
 }
 
 export function getOrCreateSpaceDocStore(params: {

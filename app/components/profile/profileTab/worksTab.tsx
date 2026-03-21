@@ -1,22 +1,19 @@
-import React, { useMemo, useState } from "react";
-import PostsList from "@/components/profile/workTabPart/postsList";
+import React, { useState } from "react";
 import UserRepositoriesList from "@/components/profile/workTabPart/repositoryList";
 import RolesList from "@/components/profile/workTabPart/rolesList";
 import { useRepositoryListByUserQuery } from "../../../../api/hooks/repositoryQueryHooks";
-import { useGetUserRolesPageQuery, useGetUserRolesQuery } from "../../../../api/hooks/RoleAndAvatarHooks";
+import { useGetUserRolesPageQuery } from "../../../../api/hooks/RoleAndAvatarHooks";
 
-type TabType = "repositories" | "posts" | "roles";
+type TabType = "repositories" | "roles";
 interface WorksTabProp {
   userId: number;
 }
-// 在 WorksTab 组件中添加帖子相关内容
+
 const WorksTab: React.FC<WorksTabProp> = ({ userId }) => {
   const [page, setPage] = useState(1);
   const [repositoryPage, setRepositoryPage] = useState(1);
-  const [activeTab, setActiveTab] = useState<TabType>("posts");
-  const { isLoading } = useGetUserRolesQuery(userId);
-
-  const { data: response } = useGetUserRolesPageQuery({
+  const [activeTab, setActiveTab] = useState<TabType>("repositories");
+  const { data: response, isLoading: rolesLoading } = useGetUserRolesPageQuery({
     userId,
     pageNo: page,
     pageSize: 10,
@@ -27,12 +24,6 @@ const WorksTab: React.FC<WorksTabProp> = ({ userId }) => {
     pageNo: repositoryPage,
     pageSize: 10,
   });
-
-  const roleIds = useMemo((): number[] => {
-    return (response?.data?.list || [])
-      .map(role => role.roleId)
-      .filter((id): id is number => id !== undefined && typeof id === "number");
-  }, [response]);
 
   const renderTabContent = () => {
     switch (activeTab) {
@@ -46,21 +37,15 @@ const WorksTab: React.FC<WorksTabProp> = ({ userId }) => {
             isLoading={repositoriesLoading}
           />
         );
-      case "posts":
-        return (
-          <PostsList
-            userId={userId}
-          />
-        );
       case "roles":
         return (
           <RolesList
             userId={userId}
-            roleIds={roleIds}
+            roles={response?.data?.list ?? []}
             totalRecords={response?.data?.totalRecords || 0}
             currentPage={page}
             onPageChange={setPage}
-            isLoading={isLoading}
+            isLoading={rolesLoading}
           />
         );
       default:
@@ -120,7 +105,6 @@ const WorksTab: React.FC<WorksTabProp> = ({ userId }) => {
       {/* 顶部导航 - 移动端 */}
       <div className="md:hidden overflow-x-auto whitespace-nowrap p-4 border-b border-gray-200">
         <nav className="flex space-x-2">
-          {renderTabButton("posts", "帖子")}
           {renderTabButton("repositories", "仓库")}
           {renderTabButton("roles", "角色")}
         </nav>
@@ -130,7 +114,6 @@ const WorksTab: React.FC<WorksTabProp> = ({ userId }) => {
         {/* 左侧导航 - PC端（垂直） */}
         <div className="hidden md:flex md:flex-col w-48 flex-shrink-0 p-4 border-r border-gray-200 pt-10">
           <nav className="space-y-2 flex flex-col">
-            {renderTabButton("posts", "帖子")}
             {renderTabButton("repositories", "仓库")}
             {renderTabButton("roles", "角色")}
           </nav>

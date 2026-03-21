@@ -24,7 +24,11 @@ export default function useChatUnreadIndicators({
   activeRoomId,
   urlRoomId,
 }: UseChatUnreadIndicatorsParams): UseChatUnreadIndicatorsResult {
-  const privateMessageList = usePrivateMessageList({ globalContext, userId });
+  const privateMessageList = usePrivateMessageList({
+    globalContext,
+    userId,
+    includeFriendList: false,
+  });
   const { unreadMessageNumbers: privateUnreadMessageNumbers } = useUnreadCount({
     realTimeContacts: privateMessageList.realTimeContacts,
     sortedRealTimeMessages: privateMessageList.sortedRealTimeMessages,

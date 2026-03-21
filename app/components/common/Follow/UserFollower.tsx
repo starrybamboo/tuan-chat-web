@@ -43,7 +43,7 @@ export function UserFollower({ activeTab, userId }: { activeTab: "following" | "
       </h2>
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 justify-items-center">
         {userList.map(user => (
-          user.userId && <UserCard key={user.userId} userId={user.userId} initialStatus={user.status} />
+          user.userId && <UserCard key={user.userId} user={user} />
         ))}
       </div>
       <div className="join mt-4 justify-center">

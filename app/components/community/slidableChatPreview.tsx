@@ -177,6 +177,8 @@ function ChatMessageItem({
         <div className="flex-shrink-0">
           <RoleAvatarComponent
             avatarId={message.avatarId ?? -1}
+            avatarUrl={message.avatarUrl}
+            avatarThumbUrl={message.avatarThumbUrl}
             width={8}
             isRounded={true}
             withTitle={false}

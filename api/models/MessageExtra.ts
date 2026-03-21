@@ -9,7 +9,9 @@ import type { DocCardExtra } from './DocCardExtra';
 import type { FileMessage } from './FileMessage';
 import type { ForwardMessage } from './ForwardMessage';
 import type { ImageMessage } from './ImageMessage';
+import type { RoomJumpExtra } from './RoomJumpExtra';
 import type { SoundMessage } from './SoundMessage';
+import type { VideoMessage } from './VideoMessage';
 import type { WebgalChoosePayload } from './WebgalChoosePayload';
 import type { WebgalVarPayload } from './WebgalVarPayload';
 /**
@@ -21,10 +23,12 @@ export type MessageExtra = {
     imageMessage?: ImageMessage;
     forwardMessage?: ForwardMessage;
     soundMessage?: SoundMessage;
+    videoMessage?: VideoMessage;
     clueMessage?: ClueMessage;
     webgalVar?: WebgalVarPayload;
     webgalChoose?: WebgalChoosePayload;
     commandRequest?: CommandRequestExtra;
     docCard?: DocCardExtra;
+    roomJump?: RoomJumpExtra;
 };
 

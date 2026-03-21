@@ -1,4 +1,5 @@
 import React, { useCallback, useRef, useState } from "react";
+import toast from "react-hot-toast";
 import { useNavigate } from "react-router";
 import ImagePreview from "@/components/activities/ImagePreview";
 import MomentDetailView from "@/components/activities/MomentDetailView";
@@ -24,6 +25,9 @@ interface PostsCardProps {
   displayType?: "default" | "feed";
   contentTypeNumber?: number;
 }
+
+const COMMUNITY_POST_UNAVAILABLE_MESSAGE = "社区功能已下线，历史帖子暂不支持打开";
+const COMMUNITY_SHARE_UNAVAILABLE_MESSAGE = "社区功能已下线，历史帖子暂不支持分享";
 
 /**
  * 发布的动态，Feed，帖子预览卡片组件（统一版）
@@ -63,6 +67,7 @@ const PostsCard: React.FC<PostsCardProps> = ({
   }
 
   const contentType = parseEventType(contentTypeNumber || 0);
+  const isCommunityPostTarget = targetType === "2";
 
   // 状态管理
   const [showMenu, setShowMenu] = useState(false);
@@ -112,14 +117,18 @@ const PostsCard: React.FC<PostsCardProps> = ({
     setIsCommentMenuOpen(!isCommentMenuOpen);
   };
 
+  const notifyCommunityPostUnavailable = useCallback(() => {
+    toast(COMMUNITY_POST_UNAVAILABLE_MESSAGE, { icon: "ℹ️" });
+  }, []);
+
   const handleContentClick = useCallback(() => {
     if (!isFeed && postId > 0) {
       setIsMomentDetailOpen(true);
     }
     else if (isFeed) {
-      navigate(`/community/${res?.communityId}/${postId}`);
+      notifyCommunityPostUnavailable();
     }
-  }, [postId, isFeed, res?.communityId, navigate]);
+  }, [postId, isFeed, notifyCommunityPostUnavailable]);
 
   // Feed 专用不感兴趣处理
   const handleDislikeClick = () => {
@@ -151,21 +160,12 @@ const PostsCard: React.FC<PostsCardProps> = ({
     const isPostType = contentType === "发送了帖子" || contentType.includes("帖子");
 
     if (hasPostData || isPostType) {
-      const actualPostId = res?.postId || res?.communityPostId || postId;
-      const actualCommunityId = res?.communityId;
-
       return (
         <PostContentCard
           title={title}
           description={description}
           coverImage={images[0]} // 使用第一张图片作为封面
-          communityId={actualCommunityId}
-          postId={actualPostId}
-          onClick={() => {
-            if (actualCommunityId && actualPostId) {
-              navigate(`/community/${actualCommunityId}/${actualPostId}`);
-            }
-          }}
+          onClick={notifyCommunityPostUnavailable}
         />
       );
     }
@@ -385,7 +385,13 @@ const PostsCard: React.FC<PostsCardProps> = ({
           </div>
 
           <div className="flex items-center space-x-1 text-sm cursor-pointer hover:bg-blue-500/10 transition-colors px-2 py-1 rounded-full data-html-image-exclude">
-            <ShareIconButton targetRef={postRef as React.RefObject<HTMLDivElement>} qrLink={targetType === "2" ? `https://tuan.chat/community/${actualCommunityId}/${actualId}` : targetType === "3" ? `https://tuan.chat/repository/detail/${actualId}` : "https://tuan.chat/chat"} searchKey={`feedShowSharePop${actualId}`} className="cursor-pointer w-9 h-6" />
+            <ShareIconButton
+              targetRef={postRef as React.RefObject<HTMLDivElement>}
+              qrLink={targetType === "2" ? `https://tuan.chat/community/${actualCommunityId}/${actualId}` : targetType === "3" ? `https://tuan.chat/repository/detail/${actualId}` : "https://tuan.chat/chat"}
+              searchKey={`feedShowSharePop${actualId}`}
+              className="cursor-pointer w-9 h-6"
+              blockedReason={isCommunityPostTarget ? COMMUNITY_SHARE_UNAVAILABLE_MESSAGE : undefined}
+            />
           </div>
         </div>
 

@@ -4,7 +4,7 @@ import { createStore } from "zustand/vanilla";
 
 import type { Message } from "api";
 
-export type MessageUndoAction
+type MessageUndoAction
   = | { type: "send"; after: Message }
     | { type: "delete"; before: Message }
     | { type: "update"; before: Message; after: Message };

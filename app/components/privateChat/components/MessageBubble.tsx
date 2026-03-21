@@ -1,6 +1,6 @@
 import type { MessageDirectResponse } from "../../../../api";
 import BetterImg from "@/components/common/betterImg";
-import UserAvatarComponent from "@/components/common/userAvatar";
+import { UserAvatarByUser } from "@/components/common/userAccess";
 
 interface MessageBubbleProps {
   message: MessageDirectResponse; // 消息内容
@@ -9,6 +9,12 @@ interface MessageBubbleProps {
 
 export default function MessageBubble({ message, isOwn }: MessageBubbleProps) {
   const extra: any = message.extra as any;
+  const senderUser = {
+    userId: message.senderId,
+    username: message.senderUsername,
+    avatar: message.senderAvatar,
+    avatarThumbUrl: message.senderAvatarThumbUrl,
+  };
 
   // 渲染消息内容（文本/图片/视频）
   const renderMessageContent = () => {
@@ -75,8 +81,8 @@ export default function MessageBubble({ message, isOwn }: MessageBubbleProps) {
       {/* 左侧头像（接收的消息） */}
       {!isOwn && (
         <>
-          <UserAvatarComponent
-            userId={message.senderId || -1}
+          <UserAvatarByUser
+            user={senderUser}
             width={10}
             isRounded={true}
             uniqueKey={`${message.senderId}${message.messageId}`}
@@ -115,8 +121,8 @@ export default function MessageBubble({ message, isOwn }: MessageBubbleProps) {
       {/* 右侧头像（发送的消息） */}
       {isOwn && (
         <div>
-          <UserAvatarComponent
-            userId={message.senderId || -1}
+          <UserAvatarByUser
+            user={senderUser}
             width={10}
             isRounded={true}
             uniqueKey={`${message.senderId}${message.messageId}`}

@@ -1,4 +1,5 @@
 import React, { useRef } from "react";
+import toast from "react-hot-toast";
 import toastWindow from "@/components/common/toastWindow/toastWindow";
 import useSearchParamsState from "../customHooks/useSearchParamState";
 import CopyLinkButton from "./copyLinkButton";
@@ -10,6 +11,7 @@ interface ShareIconButtonProps {
   searchKey: string;
   className?: string;
   title?: string;
+  blockedReason?: string;
 }
 
 export default function ShareIconButton({
@@ -18,6 +20,7 @@ export default function ShareIconButton({
   searchKey,
   className,
   title,
+  blockedReason,
 }: ShareIconButtonProps) {
   const [showShare, setShowShare] = useSearchParamsState<boolean>(searchKey, false);
 
@@ -25,6 +28,11 @@ export default function ShareIconButton({
   const toastRef = useRef<{ update: (c: React.ReactNode) => void; close: () => void } | null>(null);
 
   const openShareWindow = () => {
+    if (blockedReason) {
+      toast(blockedReason, { icon: "ℹ️" });
+      return;
+    }
+
     if (toastRef.current)
       return;
 

@@ -11,10 +11,27 @@ import type { PlayerGrantRequest } from '../models/PlayerGrantRequest';
 import type { PlayerRevokeRequest } from '../models/PlayerRevokeRequest';
 import type { SpaceMemberAddRequest } from '../models/SpaceMemberAddRequest';
 import type { SpaceMemberDeleteRequest } from '../models/SpaceMemberDeleteRequest';
+import type { SpaceMemberTypeUpdateRequest } from '../models/SpaceMemberTypeUpdateRequest';
 import type { CancelablePromise } from '../core/CancelablePromise';
 import type { BaseHttpRequest } from '../core/BaseHttpRequest';
 export class SpaceMemberControllerService {
     constructor(public readonly httpRequest: BaseHttpRequest) {}
+    /**
+     * 设置空间成员类型
+     * @param requestBody
+     * @returns ApiResultVoid OK
+     * @throws ApiError
+     */
+    public updateMemberType(
+        requestBody: SpaceMemberTypeUpdateRequest,
+    ): CancelablePromise<ApiResultVoid> {
+        return this.httpRequest.request({
+            method: 'PUT',
+            url: '/space/member/type',
+            body: requestBody,
+            mediaType: 'application/json',
+        });
+    }
     /**
      * 设置用户为玩家
      * @param requestBody
@@ -29,12 +46,6 @@ export class SpaceMemberControllerService {
             url: '/space/member/player',
             body: requestBody,
             mediaType: 'application/json',
-            errors: {
-                400: `Bad Request`,
-                405: `Method Not Allowed`,
-                429: `Too Many Requests`,
-                500: `Internal Server Error`,
-            },
         });
     }
     /**
@@ -51,12 +62,6 @@ export class SpaceMemberControllerService {
             url: '/space/member/player',
             body: requestBody,
             mediaType: 'application/json',
-            errors: {
-                400: `Bad Request`,
-                405: `Method Not Allowed`,
-                429: `Too Many Requests`,
-                500: `Internal Server Error`,
-            },
         });
     }
     /**
@@ -73,12 +78,6 @@ export class SpaceMemberControllerService {
             url: '/space/member/leader',
             body: requestBody,
             mediaType: 'application/json',
-            errors: {
-                400: `Bad Request`,
-                405: `Method Not Allowed`,
-                429: `Too Many Requests`,
-                500: `Internal Server Error`,
-            },
         });
     }
     /**
@@ -96,12 +95,6 @@ export class SpaceMemberControllerService {
             path: {
                 'code': code,
             },
-            errors: {
-                400: `Bad Request`,
-                405: `Method Not Allowed`,
-                429: `Too Many Requests`,
-                500: `Internal Server Error`,
-            },
         });
     }
     /**
@@ -118,12 +111,6 @@ export class SpaceMemberControllerService {
             url: '/space/member/',
             body: requestBody,
             mediaType: 'application/json',
-            errors: {
-                400: `Bad Request`,
-                405: `Method Not Allowed`,
-                429: `Too Many Requests`,
-                500: `Internal Server Error`,
-            },
         });
     }
     /**
@@ -140,12 +127,6 @@ export class SpaceMemberControllerService {
             url: '/space/member/',
             body: requestBody,
             mediaType: 'application/json',
-            errors: {
-                400: `Bad Request`,
-                405: `Method Not Allowed`,
-                429: `Too Many Requests`,
-                500: `Internal Server Error`,
-            },
         });
     }
     /**
@@ -162,12 +143,6 @@ export class SpaceMemberControllerService {
             url: '/space/member/list',
             query: {
                 'spaceId': spaceId,
-            },
-            errors: {
-                400: `Bad Request`,
-                405: `Method Not Allowed`,
-                429: `Too Many Requests`,
-                500: `Internal Server Error`,
             },
         });
     }
@@ -192,12 +167,6 @@ export class SpaceMemberControllerService {
                 'type': type,
                 'duration': duration,
             },
-            errors: {
-                400: `Bad Request`,
-                405: `Method Not Allowed`,
-                429: `Too Many Requests`,
-                500: `Internal Server Error`,
-            },
         });
     }
     /**
@@ -214,12 +183,6 @@ export class SpaceMemberControllerService {
             url: '/space/member/exit',
             query: {
                 'spaceId': spaceId,
-            },
-            errors: {
-                400: `Bad Request`,
-                405: `Method Not Allowed`,
-                429: `Too Many Requests`,
-                500: `Internal Server Error`,
             },
         });
     }

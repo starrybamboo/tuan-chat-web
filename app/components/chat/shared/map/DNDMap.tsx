@@ -7,11 +7,11 @@ import toast from "react-hot-toast";
 
 import { RoomContext } from "@/components/chat/core/roomContext";
 import { confirmToast } from "@/components/common/comfirmToast";
+import { useResolvedRoleAvatarUrl } from "@/components/common/roleAccess";
 import { ImgUploader } from "@/components/common/uploader/imgUploader";
 import { useIsMobile } from "@/utils/getScreenSize";
 import { UploadUtils } from "@/utils/UploadUtils";
 import { useGetRoomNpcRoleQuery, useGetRoomRoleQuery } from "../../../../../api/hooks/chatQueryHooks";
-import { useGetRoleAvatarQuery } from "../../../../../api/hooks/RoleAndAvatarHooks";
 
 import {
   applyRoomDndMapChange,
@@ -57,7 +57,7 @@ const RoleToken = React.memo(({
   onDragStart?: (event: React.DragEvent<HTMLDivElement>, roleId: number) => void;
   onClick?: () => void;
 }) => {
-  const roleAvatar = useGetRoleAvatarQuery(role.avatarId ?? -1).data?.data;
+  const roleAvatarUrl = useResolvedRoleAvatarUrl(role);
   const sizeStyle = { width: `${size}px`, height: `${size}px` };
   return (
     <div
@@ -71,7 +71,7 @@ const RoleToken = React.memo(({
       title={role.roleName}
     >
       <img
-        src={roleAvatar?.avatarUrl}
+        src={roleAvatarUrl}
         alt={role.roleName}
         className="w-full h-full object-cover"
       />

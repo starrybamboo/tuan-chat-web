@@ -1,7 +1,7 @@
 import type { ResourceResponse } from "../../../../api/models/ResourceResponse";
 import { useState } from "react";
 import { toast } from "react-hot-toast";
-import UserAvatarComponent from "../../common/userAvatar";
+import { UserAvatarByUser } from "../../common/userAccess";
 import { AddToCollectionModal } from "../modals/AddToCollectionModal";
 import { EditResourceModal } from "../modals/EditResourceModal";
 import AudioWavePlayer from "../utils/AudioWavePlayer";
@@ -100,8 +100,8 @@ export function ResourceCard({
 
           <div className="flex justify-between items-center text-base-content/60 text-xs gap-2">
             <div className="flex items-center gap-2 min-w-0 flex-1">
-              <UserAvatarComponent
-                userId={resource.userId ?? -1}
+              <UserAvatarByUser
+                user={resource}
                 width={6}
                 isRounded={true}
                 withName={true}

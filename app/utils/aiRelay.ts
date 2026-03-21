@@ -2,8 +2,8 @@ import type { AiGatewayRelayRequest } from "../../api/models/AiGatewayRelayReque
 
 import { tuanchat } from "../../api/instance";
 
-export type AiGatewayModel = AiGatewayRelayRequest["model"];
-export const FRONTEND_LLM_MODEL: AiGatewayModel = "gpt-5.1";
+type AiGatewayModel = AiGatewayRelayRequest["model"];
+const FRONTEND_LLM_MODEL: AiGatewayModel = "gpt-5.1";
 
 export async function relayAiGatewayText(params: {
   prompt: string;
@@ -20,5 +20,3 @@ export async function relayAiGatewayText(params: {
 
   return String(result?.data ?? "");
 }
-
-export const relayAiText = relayAiGatewayText;

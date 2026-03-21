@@ -1,4 +1,4 @@
-export type ImportedChatLine = {
+type ImportedChatLine = {
   lineNumber: number;
   raw: string;
   speakerName: string;

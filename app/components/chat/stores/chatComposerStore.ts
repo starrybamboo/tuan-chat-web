@@ -25,7 +25,7 @@ function isSameStringList(a: string[], b: string[]): boolean {
   return true;
 }
 
-export type EmojiAttachmentMeta = {
+type EmojiAttachmentMeta = {
   width?: number;
   height?: number;
   size?: number;
@@ -47,6 +47,8 @@ type ChatComposerState = {
   annotations: string[];
   /** 临时标注：仅本次消息有效 */
   tempAnnotations: string[];
+  /** 当前 temp annotation 正在服务的媒体来源 */
+  tempAnnotationPreferenceSource: "image" | "audio" | null;
 
   updateImgFiles: (updater: (draft: File[]) => void) => void;
   updateEmojiUrls: (updater: (draft: string[]) => void) => void;
@@ -61,6 +63,7 @@ type ChatComposerState = {
   setAudioFile: (file: File | null) => void;
   setAnnotations: (annotations: string[]) => void;
   setTempAnnotations: (annotations: string[]) => void;
+  setTempAnnotationPreferenceSource: (source: "image" | "audio" | null) => void;
 
   /** 切换房间或发送完成后重置 */
   reset: () => void;
@@ -74,6 +77,7 @@ export const useChatComposerStore = create<ChatComposerState>(set => ({
   audioFile: null,
   annotations: [],
   tempAnnotations: [],
+  tempAnnotationPreferenceSource: null,
 
   updateImgFiles: updater => set((state) => {
     const next = produce(state.imgFiles, (draft) => {
@@ -140,6 +144,7 @@ export const useChatComposerStore = create<ChatComposerState>(set => ({
   setAudioFile: file => set(state => (state.audioFile === file ? state : { audioFile: file })),
   setAnnotations: annotations => set(state => (isSameStringList(state.annotations, annotations) ? state : { annotations })),
   setTempAnnotations: annotations => set(state => (isSameStringList(state.tempAnnotations, annotations) ? state : { tempAnnotations: annotations })),
+  setTempAnnotationPreferenceSource: source => set(state => (state.tempAnnotationPreferenceSource === source ? state : { tempAnnotationPreferenceSource: source })),
 
   reset: () => set(state => (
     state.imgFiles.length === 0
@@ -149,6 +154,7 @@ export const useChatComposerStore = create<ChatComposerState>(set => ({
     && state.audioFile == null
     && state.annotations.length === 0
     && state.tempAnnotations.length === 0
+    && state.tempAnnotationPreferenceSource == null
       ? state
       : {
           imgFiles: [],
@@ -158,6 +164,7 @@ export const useChatComposerStore = create<ChatComposerState>(set => ({
           audioFile: null,
           annotations: [],
           tempAnnotations: [],
+          tempAnnotationPreferenceSource: null,
         }
   )),
 }));

@@ -8,12 +8,11 @@ import { useLocation, useNavigate } from "react-router";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
 import { useRealtimeRenderStore } from "@/components/chat/stores/realtimeRenderStore";
 import { useSideDrawerStore } from "@/components/chat/stores/sideDrawerStore";
-import { appendWebgalLaunchHints } from "@/utils/launchWebGal";
+import { resolveWebGALPreviewState } from "@/components/chat/shared/webgal/webGALPreviewState";
 import { getTerreBaseUrl } from "@/webGAL/terreConfig";
 
 interface WebGALPreviewProps {
   previewUrl: string | null;
-  isActive: boolean;
   isResizing?: boolean;
   onClose?: () => void;
   className?: string;
@@ -21,7 +20,6 @@ interface WebGALPreviewProps {
 
 export default function WebGALPreview({
   previewUrl,
-  isActive,
   isResizing = false,
   onClose,
   className,
@@ -42,8 +40,6 @@ export default function WebGALPreview({
 
   const isWebgalPaneActive = sideDrawerState === "webgal";
   const canOpenSpaceWebgalSettings = typeof spaceId === "number" && Number.isFinite(spaceId) && spaceId > 0;
-  const isStarting = realtimeStatus === "initializing"
-    || (isWebgalPaneActive && realtimeStatus !== "error" && !isActive);
   const queryWithoutTab = useCallback(() => {
     const nextSearchParams = new URLSearchParams(location.search);
     nextSearchParams.delete("tab");
@@ -57,19 +53,13 @@ export default function WebGALPreview({
     setSideDrawerState("none");
     navigate(`/chat/${spaceId}/webgal${queryWithoutTab()}`);
   }, [canOpenSpaceWebgalSettings, navigate, queryWithoutTab, setSideDrawerState, spaceId]);
+  const previewState = resolveWebGALPreviewState({
+    previewUrl,
+    realtimeStatus,
+    isWebgalPaneActive,
+  });
 
-  const fallbackTitle = isStarting
-    ? "实时渲染正在启动"
-    : realtimeStatus === "error"
-      ? "实时渲染启动失败"
-      : "实时渲染未启动";
-  const fallbackHint = isStarting
-    ? "请稍候，正在连接 WebGAL..."
-    : realtimeStatus === "error"
-      ? appendWebgalLaunchHints("请确认 WebGAL 已启动后重试")
-      : "点击工具栏中的 WebGAL 按钮开启";
-
-  if (!isActive || !previewUrl) {
+  if (!previewState.showPreviewFrame) {
     return (
       <div className={`flex flex-col h-full ${className ?? ""}`}>
         <div className="flex items-center justify-between p-2 border-b border-base-300 bg-base-200">
@@ -101,8 +91,8 @@ export default function WebGALPreview({
         </div>
         <div className="flex-1 flex items-center justify-center text-base-content/50 text-sm">
           <div className="text-center">
-            <p>{fallbackTitle}</p>
-            <p className="text-xs mt-1">{fallbackHint}</p>
+            <p>{previewState.fallbackTitle}</p>
+            <p className="text-xs mt-1">{previewState.fallbackHint}</p>
           </div>
         </div>
       </div>
@@ -155,7 +145,7 @@ export default function WebGALPreview({
         <div className="absolute inset-0 flex items-center justify-center">
           <div className={`${isResizing ? "pointer-events-none" : ""} flex items-center justify-center w-full h-full`}>
             <iframe
-              src={previewUrl}
+              src={previewUrl ?? undefined}
               title="WebGAL 实时预览"
               allow="autoplay; fullscreen"
               sandbox="allow-scripts allow-same-origin"

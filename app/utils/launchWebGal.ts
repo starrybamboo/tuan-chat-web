@@ -1,8 +1,8 @@
-export type LaunchWebGalOptions = {
+type LaunchWebGalOptions = {
   gameDir?: string;
 };
 
-export type LaunchWebGalResult = {
+type LaunchWebGalResult = {
   ok: boolean;
   port?: number;
   error?: string;
@@ -27,7 +27,7 @@ function appendHintIfMissing(message: string, hint: string, hintPattern: RegExp)
 /**
  * 仅在超时类错误中追加启动提醒，避免普通报错被误导。
  */
-export function appendWebgalTimeoutHint(message: string): string {
+function appendWebgalTimeoutHint(message: string): string {
   const normalizedMessage = message.trim();
   if (!normalizedMessage) {
     return normalizedMessage;
@@ -56,7 +56,7 @@ export function appendWebgalTimeoutHint(message: string): string {
   );
 }
 
-export function appendWebgalDownloadHint(message: string): string {
+function appendWebgalDownloadHint(message: string): string {
   return appendHintIfMissing(
     message,
     WEBGAL_DOWNLOAD_HINT,

@@ -1,5 +1,7 @@
 import type { SpaceMember } from "api";
 
+import { hasHostPrivileges } from "./memberPermissions";
+
 type ResolveSubWindowDocPermissionParams = {
   isKpInMembers: boolean;
   isSpaceOwner: boolean;
@@ -11,7 +13,7 @@ export function checkIsKpInSpaceMembers(spaceMembers: SpaceMember[], userId: num
   if (!Number.isFinite(userId) || userId <= 0) {
     return false;
   }
-  return spaceMembers.some(member => member.userId === userId && member.memberType === 1);
+  return spaceMembers.some(member => member.userId === userId && hasHostPrivileges(member.memberType));
 }
 
 export function resolveSubWindowDocPermission(params: ResolveSubWindowDocPermissionParams): boolean {

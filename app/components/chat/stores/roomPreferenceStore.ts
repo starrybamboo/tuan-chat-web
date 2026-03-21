@@ -1,7 +1,5 @@
 import { create } from "zustand";
 
-import type { FigurePosition } from "@/types/voiceRenderTypes";
-
 type RoomPreferenceState = {
   /** 是否使用气泡样式显示消息 */
   useChatBubbleStyle: boolean;
@@ -14,15 +12,6 @@ type RoomPreferenceState = {
 
   /** 跑团模式 */
   runModeEnabled: boolean;
-
-  /** 角色默认立绘位置 Map：key=roleId，value 为立绘位置；undefined 表示不显示立绘 */
-  defaultFigurePositionMap: Record<number, FigurePosition>;
-
-  /** WebGAL 对话参数：-notend（此话不停顿） */
-  dialogNotend: boolean;
-
-  /** WebGAL 对话参数：-concat（续接上段话） */
-  dialogConcat: boolean;
 
   /** 发送区（草稿）自定义角色名：key=roleId，value=customRoleName */
   draftCustomRoleNameMap: Record<number, string>;
@@ -37,14 +26,6 @@ type RoomPreferenceState = {
   toggleAutoReplyMode: () => void;
 
   setRunModeEnabled: (value: boolean) => void;
-
-  setDefaultFigurePositionForRole: (roleId: number, position: FigurePosition) => void;
-
-  setDialogNotend: (value: boolean) => void;
-  toggleDialogNotend: () => void;
-
-  setDialogConcat: (value: boolean) => void;
-  toggleDialogConcat: () => void;
 
   setDraftCustomRoleNameForRole: (roleId: number, customRoleName: string | undefined) => void;
 };
@@ -114,9 +95,6 @@ const INITIAL_STATE = {
   webgalLinkMode: readBool("webgalLinkMode", false),
   autoReplyMode: readBool("autoReplyMode", false),
   runModeEnabled: readBool("runModeEnabled", false),
-  defaultFigurePositionMap: readJson<Record<number, FigurePosition>>("defaultFigurePositionMap", {}),
-  dialogNotend: false,
-  dialogConcat: false,
   draftCustomRoleNameMap: readJson<Record<number, string>>("draftCustomRoleNameMap", {}),
 };
 
@@ -169,36 +147,6 @@ export const useRoomPreferenceStore = create<RoomPreferenceState>((set, get) => 
     writeBool("runModeEnabled", value);
     set({ runModeEnabled: value });
   },
-
-  setDefaultFigurePositionForRole: (roleId, position) => {
-    set((state) => {
-      if (state.defaultFigurePositionMap[roleId] === position) {
-        return state;
-      }
-      const nextMap: Record<number, FigurePosition> = {
-        ...state.defaultFigurePositionMap,
-        [roleId]: position,
-      };
-      writeJson("defaultFigurePositionMap", nextMap);
-      return { defaultFigurePositionMap: nextMap };
-    });
-  },
-
-  setDialogNotend: (value) => {
-    if (get().dialogNotend === value) {
-      return;
-    }
-    set({ dialogNotend: value });
-  },
-  toggleDialogNotend: () => set({ dialogNotend: !get().dialogNotend }),
-
-  setDialogConcat: (value) => {
-    if (get().dialogConcat === value) {
-      return;
-    }
-    set({ dialogConcat: value });
-  },
-  toggleDialogConcat: () => set({ dialogConcat: !get().dialogConcat }),
 
   setDraftCustomRoleNameForRole: (roleId, customRoleName) => {
     set((state) => {

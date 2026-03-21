@@ -7,8 +7,8 @@ import type { InferRequest } from "@/tts/engines/index/apiClient";
 import type { FigureAnimationSettings, FigurePositionKey } from "@/types/voiceRenderTypes";
 import type { WebgalDiceRenderPayload } from "@/types/webgalDice";
 
-import { formatAnkoDiceMessage, stripDiceResultTokens } from "@/components/common/dicer/diceTable";
 import { compareChatMessageResponsesByOrder } from "@/components/chat/shared/messageOrder";
+import { formatAnkoDiceMessage, stripDiceResultTokens } from "@/components/common/dicer/diceTable";
 import { createTTSApi, ttsApi } from "@/tts/engines/index/apiClient";
 import {
   ANNOTATION_IDS,
@@ -22,6 +22,7 @@ import {
   hasClearBackgroundAnnotation,
   hasClearBgmAnnotation,
   hasClearImageAnnotation,
+  hasMiniAvatarAnnotation,
   isImageMessageBackground,
   isImageMessageShown,
 } from "@/types/messageAnnotations";
@@ -50,6 +51,11 @@ import { getTerreBaseUrl, getTerreWsUrl } from "@/webGAL/terreConfig";
 import type { ChatMessageResponse, RoleAvatar, Room, UserRole } from "../../api";
 
 import { checkFileExist, getAsyncMsg, getFileExtensionFromUrl, readTextFile, uploadFile } from "./fileOperator";
+import {
+  collectMessageAssetWarmupPlan,
+  DEFAULT_REALTIME_ASSET_CONCURRENCY,
+  runWithConcurrencyLimit,
+} from "./realtimeRenderAssetWarmup";
 
 /**
  * WebGAL 文本拓展语法处理工具
@@ -295,7 +301,10 @@ const DEFAULT_DICE_SOUND_FOLDER = "se";
 const DICE_MERGE_WAIT_MS = 260;
 const TRPG_DICE_PIXI_EFFECT = "effect.trpgDiceBurst";
 const DICE_COMMAND_PATTERN = /^\.|(?:^|\s)\d*\s*d\s*(?:100|%)(?:\s|$)/i;
-const REALTIME_GAME_ENGINE_MARKER_FILE = ".tuanchat_engine_marker.txt";
+// 该标记文件用于判断 realtime_* 临时工程是否已经应用了当前模板/脚本升级。
+// 不能使用点文件名；Terre 当前通过 Express serve-static 暴露 /games/...，
+// dotfile 默认会返回 404，导致版本探测持续误判。
+const REALTIME_GAME_ENGINE_MARKER_FILE = "tuanchat_engine_marker.txt";
 const REALTIME_GAME_ENGINE_MARKER_VERSION = "realtime-trpg-dice-v2";
 const REALTIME_RENDERER_INIT_ABORT_ERROR = "__tc_realtime_init_aborted__";
 const DEFAULT_TYPING_SOUND_SE_FILE = "select07.mp3";
@@ -308,6 +317,7 @@ const WORKFLOW_END_NODE_LINK_KEY_PREFIX = "endNode:";
 
 type RenderMessageOptions = {
   bypassDiceMerge?: boolean;
+  skipBookkeeping?: boolean;
 };
 
 type PendingDiceMergeEntry = {
@@ -870,8 +880,28 @@ type InitProgress = {
   message: string;
 };
 
+type SharedUploadCache = {
+  uploadedSpritesMap: Map<string, string>;
+  uploadedBackgroundsMap: Map<string, string>;
+  uploadedImageFiguresMap: Map<string, string>;
+  uploadedBgmsMap: Map<string, string>;
+  uploadedVideosMap: Map<string, string>;
+  uploadedMiniAvatarsMap: Map<string, string>;
+  uploadedVocalsMap: Map<string, string>;
+  uploadedSoundEffectsMap: Map<string, string>;
+  annotationEffectSoundCache: Map<string, string>;
+};
+
+type RoomRenderStateSnapshot = {
+  figureStates: Array<[string, RoomFigureRenderState]>;
+  lastFigureSlotId: string | null;
+  miniAvatarVisible: boolean;
+  spriteState: string[];
+};
+
 export class RealtimeRenderer {
   private static instance: RealtimeRenderer | null = null;
+  private static sharedUploadCacheByGame = new Map<string, SharedUploadCache>();
   private disposed = false;
   private initEpoch = 0;
   private syncSocket: WebSocket | null = null;
@@ -887,6 +917,7 @@ export class RealtimeRenderer {
   private uploadedBgmsMap = new Map<string, string>(); // url -> fileName
   private uploadedVideosMap = new Map<string, string>(); // url -> fileName
   private uploadedMiniAvatarsMap = new Map<string, string>(); // `${roleDir}_${avatarId}` -> `roleDir/fileName`
+  private uploadedSoundEffectsMap = new Map<string, string>();
   private roleMap = new Map<number, UserRole>();
   private queryClient: QueryClient | null = null;
   private roomMap = new Map<number, Room>(); // roomId -> Room
@@ -899,7 +930,11 @@ export class RealtimeRenderer {
   private pendingDiceMergeMap = new Map<string, PendingDiceMergeEntry>(); // `${roomId}_${messageId}` -> 延迟渲染的骰子消息
   private lastFigureSlotIdMap = new Map<number, string>(); // roomId -> 最近一次显示的立绘槽位 id
   private renderedFigureStateMap = new Map<number, Map<string, RoomFigureRenderState>>(); // roomId -> slotId -> 最近一次下发的立绘状态
+  private renderedMiniAvatarVisibleMap = new Map<number, boolean>(); // roomId -> 最近一次下发的小头像是否可见
+  private messageRenderStateSnapshotMap = new Map<string, RoomRenderStateSnapshot>(); // `${roomId}_${messageId}` -> 消息执行后的房间状态快照
   private annotationEffectSoundCache = new Map<string, string>(); // effectId -> 可用音效文件名
+  private roomSyncBatchDepthMap = new Map<number, number>();
+  private roomSyncPendingSet = new Set<number>();
   // 自动跳转已永久关闭，避免新增消息打断当前预览位置
   private readonly autoJumpEnabled = false;
 
@@ -922,6 +957,36 @@ export class RealtimeRenderer {
   private constructor(spaceId: number) {
     this.spaceId = spaceId;
     this.gameName = `realtime_${spaceId}`;
+    const sharedUploadCache = RealtimeRenderer.getSharedUploadCache(this.gameName);
+    this.uploadedSpritesMap = sharedUploadCache.uploadedSpritesMap;
+    this.uploadedBackgroundsMap = sharedUploadCache.uploadedBackgroundsMap;
+    this.uploadedImageFiguresMap = sharedUploadCache.uploadedImageFiguresMap;
+    this.uploadedBgmsMap = sharedUploadCache.uploadedBgmsMap;
+    this.uploadedVideosMap = sharedUploadCache.uploadedVideosMap;
+    this.uploadedMiniAvatarsMap = sharedUploadCache.uploadedMiniAvatarsMap;
+    this.uploadedSoundEffectsMap = sharedUploadCache.uploadedSoundEffectsMap;
+    this.uploadedVocalsMap = sharedUploadCache.uploadedVocalsMap;
+    this.annotationEffectSoundCache = sharedUploadCache.annotationEffectSoundCache;
+  }
+
+  private static getSharedUploadCache(gameName: string): SharedUploadCache {
+    const existing = RealtimeRenderer.sharedUploadCacheByGame.get(gameName);
+    if (existing) {
+      return existing;
+    }
+    const created: SharedUploadCache = {
+      uploadedSpritesMap: new Map<string, string>(),
+      uploadedBackgroundsMap: new Map<string, string>(),
+      uploadedImageFiguresMap: new Map<string, string>(),
+      uploadedBgmsMap: new Map<string, string>(),
+      uploadedVideosMap: new Map<string, string>(),
+      uploadedMiniAvatarsMap: new Map<string, string>(),
+      uploadedVocalsMap: new Map<string, string>(),
+      uploadedSoundEffectsMap: new Map<string, string>(),
+      annotationEffectSoundCache: new Map<string, string>(),
+    };
+    RealtimeRenderer.sharedUploadCacheByGame.set(gameName, created);
+    return created;
   }
 
   private getEngineMarkerPath(): string {
@@ -1089,6 +1154,118 @@ export class RealtimeRenderer {
     });
   }
 
+  private clearUploadCaches(): void {
+    this.uploadedSpritesMap.clear();
+    this.uploadedBackgroundsMap.clear();
+    this.uploadedImageFiguresMap.clear();
+    this.uploadedBgmsMap.clear();
+    this.uploadedVideosMap.clear();
+    this.uploadedMiniAvatarsMap.clear();
+    this.uploadedSoundEffectsMap.clear();
+    this.uploadedVocalsMap.clear();
+    this.annotationEffectSoundCache.clear();
+  }
+
+  private isRoomSyncDeferred(roomId: number): boolean {
+    return (this.roomSyncBatchDepthMap.get(roomId) ?? 0) > 0;
+  }
+
+  private async runWithRoomSyncBatch<T>(
+    roomId: number,
+    syncToFile: boolean,
+    action: () => Promise<T>,
+  ): Promise<T> {
+    if (!syncToFile) {
+      return action();
+    }
+
+    this.roomSyncBatchDepthMap.set(roomId, (this.roomSyncBatchDepthMap.get(roomId) ?? 0) + 1);
+    try {
+      return await action();
+    }
+    finally {
+      const nextDepth = (this.roomSyncBatchDepthMap.get(roomId) ?? 1) - 1;
+      if (nextDepth > 0) {
+        this.roomSyncBatchDepthMap.set(roomId, nextDepth);
+      }
+      else {
+        this.roomSyncBatchDepthMap.delete(roomId);
+        if (this.roomSyncPendingSet.has(roomId)) {
+          this.roomSyncPendingSet.delete(roomId);
+          await this.syncContextToFile(roomId);
+        }
+      }
+    }
+  }
+
+  private buildMessageStateKey(roomId: number, messageId: number): string {
+    return `${roomId}_${messageId}`;
+  }
+
+  private captureRoomRenderStateSnapshot(roomId: number): RoomRenderStateSnapshot {
+    const renderedFigureState = this.renderedFigureStateMap.get(roomId);
+    return {
+      figureStates: renderedFigureState ? Array.from(renderedFigureState.entries()).map(([slotId, state]) => [slotId, { ...state }]) : [],
+      lastFigureSlotId: this.lastFigureSlotIdMap.get(roomId) ?? null,
+      miniAvatarVisible: this.renderedMiniAvatarVisibleMap.get(roomId) === true,
+      spriteState: Array.from(this.currentSpriteStateMap.get(roomId) ?? []),
+    };
+  }
+
+  private applyRoomRenderStateSnapshot(roomId: number, snapshot?: RoomRenderStateSnapshot): void {
+    if (!snapshot) {
+      this.renderedFigureStateMap.set(roomId, new Map());
+      this.lastFigureSlotIdMap.delete(roomId);
+      this.renderedMiniAvatarVisibleMap.delete(roomId);
+      this.currentSpriteStateMap.set(roomId, new Set());
+      return;
+    }
+
+    this.renderedFigureStateMap.set(
+      roomId,
+      new Map(snapshot.figureStates.map(([slotId, state]) => [slotId, { ...state }])),
+    );
+    if (snapshot.lastFigureSlotId) {
+      this.lastFigureSlotIdMap.set(roomId, snapshot.lastFigureSlotId);
+    }
+    else {
+      this.lastFigureSlotIdMap.delete(roomId);
+    }
+    this.renderedMiniAvatarVisibleMap.set(roomId, snapshot.miniAvatarVisible);
+    this.currentSpriteStateMap.set(roomId, new Set(snapshot.spriteState));
+  }
+
+  private recordMessageRenderStateSnapshot(roomId: number, messageId: number): void {
+    this.messageRenderStateSnapshotMap.set(
+      this.buildMessageStateKey(roomId, messageId),
+      this.captureRoomRenderStateSnapshot(roomId),
+    );
+  }
+
+  private getMessageRenderStateSnapshot(roomId: number, messageId: number): RoomRenderStateSnapshot | undefined {
+    return this.messageRenderStateSnapshotMap.get(this.buildMessageStateKey(roomId, messageId));
+  }
+
+  private clearMessageRenderStateSnapshotsForRoom(roomId: number): void {
+    const roomPrefix = `${roomId}_`;
+    for (const key of Array.from(this.messageRenderStateSnapshotMap.keys())) {
+      if (key.startsWith(roomPrefix)) {
+        this.messageRenderStateSnapshotMap.delete(key);
+      }
+    }
+  }
+
+  private pruneRoomStateFromLine(roomId: number, startLine: number): void {
+    const roomPrefix = `${roomId}_`;
+    for (const [key, range] of Array.from(this.messageLineMap.entries())) {
+      if (!key.startsWith(roomPrefix) || range.startLine < startLine) {
+        continue;
+      }
+      this.messageLineMap.delete(key);
+      this.messageRenderStateSnapshotMap.delete(key);
+    }
+  }
+
   /**
    * 获取房间的场景名（不含 .txt 后缀）
    */
@@ -1137,22 +1314,24 @@ export class RealtimeRenderer {
           // 目标是 none 且当前为 black 时，需要重建 realtime 工程才能恢复默认模板。
           await getTerreApis().manageGameControllerDelete({ gameName: this.gameName });
           ensureInitActive();
+          this.clearUploadCaches();
           gameExists = false;
           console.warn(`[RealtimeRenderer] 已按模板配置重建游戏: ${this.gameName}`);
         }
       }
 
-      // realtime_* 为临时渲染工程。若缺少当前引擎标记，重建以应用最新模板（例如 TRPG 骰子渲染升级）。
+      // realtime_* 为临时渲染工程。该标记用于识别是否已应用当前模板/脚本升级（例如 TRPG 骰子渲染升级）。
       if (gameExists) {
         const markerMatched = await this.hasExpectedEngineMarker();
         if (!markerMatched) {
-          console.warn(`[RealtimeRenderer] 检测到旧模板标记，保留现有游戏不自动重建: ${this.gameName}`);
+          console.warn(`[RealtimeRenderer] 未命中当前 realtime 模板标记，保留现有游戏不自动重建: ${this.gameName}`);
         }
       }
 
       // 创建游戏实例（如果不存在）
       if (!gameExists) {
         console.warn(`[RealtimeRenderer] 正在创建游戏: ${this.gameName}`);
+        this.clearUploadCaches();
         await this.createGameWithTemplate(desiredBaseTemplate);
         ensureInitActive();
         console.warn(`[RealtimeRenderer] 游戏创建成功`);
@@ -1196,8 +1375,14 @@ export class RealtimeRenderer {
    */
   private async preloadSprites(ensureInitActive: () => void): Promise<void> {
     ensureInitActive();
-    const preloadTargets: Array<{ roleId: number; avatarId: number; spriteUrl: string }> = [];
-    const seenTargets = new Set<string>();
+    const preloadTasks: Array<{
+      kind: "sprite" | "mini-avatar";
+      roleId: number;
+      avatarId: number;
+      run: () => Promise<void>;
+    }> = [];
+    const seenSpriteTargets = new Set<string>();
+    const seenMiniAvatarTargets = new Set<string>();
 
     for (const [roleId, role] of this.roleMap.entries()) {
       const avatarId = Number(role.avatarId ?? 0);
@@ -1209,53 +1394,69 @@ export class RealtimeRenderer {
         continue;
       }
       const spriteUrl = avatar.spriteUrl || avatar.avatarUrl;
-      if (!spriteUrl) {
-        continue;
-      }
       const targetKey = this.buildRoleAvatarCacheKey(roleId, avatarId);
-      if (seenTargets.has(targetKey)) {
-        continue;
+      if (spriteUrl && !seenSpriteTargets.has(targetKey) && !this.uploadedSpritesMap.has(targetKey)) {
+        seenSpriteTargets.add(targetKey);
+        preloadTasks.push({
+          kind: "sprite",
+          roleId,
+          avatarId,
+          run: async () => {
+            await this.uploadSprite(avatarId, spriteUrl, roleId);
+          },
+        });
       }
-      seenTargets.add(targetKey);
-      preloadTargets.push({ roleId, avatarId, spriteUrl });
+
+      if (this.miniAvatarEnabled && avatar.avatarUrl && !seenMiniAvatarTargets.has(targetKey) && !this.uploadedMiniAvatarsMap.has(targetKey)) {
+        seenMiniAvatarTargets.add(targetKey);
+        preloadTasks.push({
+          kind: "mini-avatar",
+          roleId,
+          avatarId,
+          run: async () => {
+            await this.getAndUploadMiniAvatar(avatarId, roleId);
+          },
+        });
+      }
     }
 
-    if (preloadTargets.length === 0) {
-      console.warn("[RealtimeRenderer] 没有头像需要预加载");
+    if (preloadTasks.length === 0) {
+      console.warn("[RealtimeRenderer] 没有角色资源需要预加载");
       return;
     }
 
     this.updateProgress({
       phase: "uploading_sprites",
       current: 0,
-      total: preloadTargets.length,
-      message: `正在预加载立绘 (0/${preloadTargets.length})`,
+      total: preloadTasks.length,
+      message: `正在预加载角色资源 (0/${preloadTasks.length})`,
     });
 
-    for (let i = 0; i < preloadTargets.length; i++) {
+    let completedCount = 0;
+    await runWithConcurrencyLimit(preloadTasks, DEFAULT_REALTIME_ASSET_CONCURRENCY, async (task) => {
       ensureInitActive();
-      const target = preloadTargets[i];
-
       try {
-        await this.uploadSprite(target.avatarId, target.spriteUrl, target.roleId);
+        await task.run();
         ensureInitActive();
-        console.warn(`[RealtimeRenderer] 预加载立绘 ${i + 1}/${preloadTargets.length}: role=${target.roleId}, avatar=${target.avatarId}`);
+        console.warn(`[RealtimeRenderer] 预加载${task.kind === "sprite" ? "立绘" : "小头像"}: role=${task.roleId}, avatar=${task.avatarId}`);
       }
       catch (error) {
         if (error instanceof Error && error.message === REALTIME_RENDERER_INIT_ABORT_ERROR) {
           throw error;
         }
-        console.error(`[RealtimeRenderer] 预加载立绘失败:`, error);
+        console.error(`[RealtimeRenderer] 预加载${task.kind === "sprite" ? "立绘" : "小头像"}失败:`, error);
       }
-
-      ensureInitActive();
-      this.updateProgress({
-        phase: "uploading_sprites",
-        current: i + 1,
-        total: preloadTargets.length,
-        message: `正在预加载立绘 (${i + 1}/${preloadTargets.length})`,
-      });
-    }
+      finally {
+        completedCount += 1;
+        ensureInitActive();
+        this.updateProgress({
+          phase: "uploading_sprites",
+          current: completedCount,
+          total: preloadTasks.length,
+          message: `正在预加载角色资源 (${completedCount}/${preloadTasks.length})`,
+        });
+      }
+    });
   }
 
   /**
@@ -1628,6 +1829,9 @@ export class RealtimeRenderer {
       this.sceneContextMap.set(roomId, { lineNumber: initLines.length, text: initialContent });
       this.currentSpriteStateMap.set(roomId, new Set());
       this.renderedFigureStateMap.set(roomId, new Map());
+      this.renderedMiniAvatarVisibleMap.delete(roomId);
+      this.lastFigureSlotIdMap.delete(roomId);
+      this.clearMessageRenderStateSnapshotsForRoom(roomId);
       console.warn(`[RealtimeRenderer] 房间场景初始化成功: ${sceneName}`);
     }
     catch (error) {
@@ -1837,7 +2041,12 @@ export class RealtimeRenderer {
     context.lineNumber += 1;
 
     if (syncToFile) {
-      await this.syncContextToFile(roomId);
+      if (this.isRoomSyncDeferred(roomId)) {
+        this.roomSyncPendingSet.add(roomId);
+      }
+      else {
+        await this.syncContextToFile(roomId);
+      }
     }
   }
 
@@ -1890,7 +2099,12 @@ export class RealtimeRenderer {
     }
 
     if (syncToFile) {
-      await this.syncContextToFile(roomId);
+      if (this.isRoomSyncDeferred(roomId)) {
+        this.roomSyncPendingSet.add(roomId);
+      }
+      else {
+        await this.syncContextToFile(roomId);
+      }
     }
   }
 
@@ -2399,7 +2613,6 @@ export class RealtimeRenderer {
   /**
    * 上传音效到 vocal 文件夹
    */
-  private uploadedSoundEffectsMap = new Map<string, string>();
   private async uploadSoundEffect(url: string): Promise<string | null> {
     if (this.uploadedSoundEffectsMap.has(url)) {
       return this.uploadedSoundEffectsMap.get(url) || null;
@@ -2543,6 +2756,39 @@ export class RealtimeRenderer {
       console.error("上传小头像失败:", error);
       return null;
     }
+  }
+
+  public async preloadMessageAssets(messages: ChatMessageResponse[]): Promise<void> {
+    if (this.disposed || messages.length === 0) {
+      return;
+    }
+
+    const warmupPlan = collectMessageAssetWarmupPlan(messages, this.roleMap, {
+      autoFigureEnabled: this.autoFigureEnabled,
+      miniAvatarEnabled: this.miniAvatarEnabled,
+    });
+
+    const warmupTasks = [
+      ...warmupPlan.spriteTargets.map(target => ({
+        kind: "sprite" as const,
+        target,
+      })),
+      ...warmupPlan.miniAvatarTargets.map(target => ({
+        kind: "mini-avatar" as const,
+        target,
+      })),
+    ];
+
+    await runWithConcurrencyLimit(warmupTasks, DEFAULT_REALTIME_ASSET_CONCURRENCY, async ({ kind, target }) => {
+      if (this.disposed) {
+        return;
+      }
+      if (kind === "sprite") {
+        await this.getAndUploadSprite(target.avatarId, target.roleId);
+        return;
+      }
+      await this.getAndUploadMiniAvatar(target.avatarId, target.roleId);
+    });
   }
 
   private getDiceMergeKey(roomId: number, messageId: number): string {
@@ -2726,6 +2972,7 @@ export class RealtimeRenderer {
       return;
     }
 
+    const renderImpl = async (): Promise<void> => {
     if (!options?.bypassDiceMerge) {
       if ((msg.messageType as number) !== MESSAGE_TYPE.DICE) {
         await this.flushPendingDiceMergeForRoom(targetRoomId);
@@ -2743,6 +2990,9 @@ export class RealtimeRenderer {
 
     const initialLineNumber = this.sceneContextMap.get(targetRoomId)?.lineNumber ?? 0;
     const finalizeMessageLineRange = () => {
+      if (options?.skipBookkeeping) {
+        return;
+      }
       if (!msg.messageId) {
         return;
       }
@@ -2758,6 +3008,7 @@ export class RealtimeRenderer {
       const existingRange = this.messageLineMap.get(key);
       const startLine = existingRange?.startLine ?? (initialLineNumber + 1);
       this.messageLineMap.set(key, { startLine, endLine });
+      this.recordMessageRenderStateSnapshot(targetRoomId, msg.messageId);
     };
 
     // 获取该房间的立绘状态
@@ -3183,24 +3434,34 @@ export class RealtimeRenderer {
       // 普通对话但不显示立绘时，不再自动清除立绘，立绘需要手动清除
     }
 
-    // 处理小头像（骰子消息可通过 showMiniAvatar 覆盖）
-    const allowMiniAvatar = !isIntroText && (diceShowMiniAvatar === true || (!isNarrator && diceShowMiniAvatar !== false));
+    // 处理小头像：
+    // 1. 房间级开关开启时，保持原有“普通对话自动显示”行为；
+    // 2. 命中 figure.mini-avatar 标注时，即使房间级开关关闭也强制显示；
+    // 3. 如果上一条消息显示过小头像，而本条不该显示，则主动下发 none，避免残留。
+    const forceMiniAvatar = hasMiniAvatarAnnotation(msg.annotations);
+    const allowMiniAvatar = !isIntroText && (
+      diceShowMiniAvatar === true
+      || (diceShowMiniAvatar !== false && (forceMiniAvatar || (!isNarrator && this.miniAvatarEnabled)))
+    );
+    const hadVisibleMiniAvatar = this.renderedMiniAvatarVisibleMap.get(targetRoomId) === true;
+
     if (allowMiniAvatar) {
-      const miniAvatarFileName = this.miniAvatarEnabled
-        ? (effectiveAvatarId > 0 && roleId > 0 ? await this.getAndUploadMiniAvatar(effectiveAvatarId, roleId) : null)
+      const miniAvatarFileName = effectiveAvatarId > 0 && roleId > 0
+        ? await this.getAndUploadMiniAvatar(effectiveAvatarId, roleId)
         : null;
 
       if (miniAvatarFileName) {
         await this.appendLine(targetRoomId, `miniAvatar:${miniAvatarFileName};`, syncToFile);
+        this.renderedMiniAvatarVisibleMap.set(targetRoomId, true);
       }
-      else if (this.miniAvatarEnabled) {
-        // 如果启用了小头像但没有找到头像文件，则显示 none
+      else {
         await this.appendLine(targetRoomId, "miniAvatar:none;", syncToFile);
+        this.renderedMiniAvatarVisibleMap.set(targetRoomId, false);
       }
     }
-    else if (this.miniAvatarEnabled) {
-      // 旁白和黑屏文字清除小头像（仅在启用小头像功能时）
+    else if (hadVisibleMiniAvatar || this.miniAvatarEnabled || forceMiniAvatar || diceShowMiniAvatar !== undefined) {
       await this.appendLine(targetRoomId, "miniAvatar:none;", syncToFile);
+      this.renderedMiniAvatarVisibleMap.set(targetRoomId, false);
     }
 
     // 处理文本内容（支持 WebGAL 文本拓展语法）
@@ -3359,6 +3620,9 @@ export class RealtimeRenderer {
     if (syncToFile) {
       this.sendSyncMessage(targetRoomId);
     }
+    };
+
+    await this.runWithRoomSyncBatch(targetRoomId, syncToFile, renderImpl);
   }
 
   /**
@@ -3405,6 +3669,93 @@ export class RealtimeRenderer {
     await this.appendWorkflowTransitionIfNeeded(targetRoomId);
 
     // 最后统一同步文件（自动跳转关闭时不会主动跳转）
+    if (this.disposed) {
+      return;
+    }
+    await this.syncContextToFile(targetRoomId);
+    if (this.disposed) {
+      return;
+    }
+    this.sendSyncMessage(targetRoomId);
+  }
+
+  public async rerenderHistoryFromIndex(
+    messages: ChatMessageResponse[],
+    startIndex: number,
+    roomId?: number,
+  ): Promise<void> {
+    if (this.disposed) {
+      return;
+    }
+
+    const targetRoomId = roomId ?? this.currentRoomId;
+    if (!targetRoomId) {
+      return;
+    }
+
+    let effectiveStartIndex = startIndex;
+    if (
+      effectiveStartIndex > 0
+      && this.canMergeTrpgDicePair(messages[effectiveStartIndex - 1], messages[effectiveStartIndex])
+    ) {
+      effectiveStartIndex -= 1;
+    }
+
+    if (effectiveStartIndex <= 0) {
+      await this.resetScene(targetRoomId);
+      await this.renderHistory(messages, targetRoomId);
+      return;
+    }
+
+    const context = this.sceneContextMap.get(targetRoomId);
+    const startMessage = messages[effectiveStartIndex];
+    const previousMessage = messages[effectiveStartIndex - 1];
+    const startMessageId = startMessage?.message.messageId;
+    if (!context || !startMessageId) {
+      await this.resetScene(targetRoomId);
+      await this.renderHistory(messages, targetRoomId);
+      return;
+    }
+
+    const startLineRange = this.messageLineMap.get(this.buildMessageStateKey(targetRoomId, startMessageId));
+    if (!startLineRange) {
+      await this.resetScene(targetRoomId);
+      await this.renderHistory(messages, targetRoomId);
+      return;
+    }
+
+    const previousSnapshot = previousMessage?.message.messageId
+      ? this.getMessageRenderStateSnapshot(targetRoomId, previousMessage.message.messageId)
+      : undefined;
+
+    this.clearPendingDiceMerge(targetRoomId);
+
+    const existingLines = context.text.split("\n");
+    context.text = existingLines.slice(0, startLineRange.startLine - 1).join("\n");
+    context.lineNumber = context.text ? context.text.split("\n").length : 0;
+
+    this.pruneRoomStateFromLine(targetRoomId, startLineRange.startLine);
+    this.applyRoomRenderStateSnapshot(targetRoomId, previousSnapshot);
+
+    for (let index = effectiveStartIndex; index < messages.length; index += 1) {
+      if (this.disposed) {
+        return;
+      }
+      const current = messages[index];
+      const next = messages[index + 1];
+      if (next && this.canMergeTrpgDicePair(current, next)) {
+        const mergedMessage = this.buildMergedTrpgDiceMessage(current, next);
+        await this.renderMessage(mergedMessage, targetRoomId, false, { bypassDiceMerge: true });
+        index += 1;
+        continue;
+      }
+      await this.renderMessage(current, targetRoomId, false, { bypassDiceMerge: true });
+    }
+
+    if (this.disposed) {
+      return;
+    }
+    await this.appendWorkflowTransitionIfNeeded(targetRoomId);
     if (this.disposed) {
       return;
     }
@@ -3468,9 +3819,13 @@ export class RealtimeRenderer {
           this.messageLineMap.delete(key);
         }
       }
+      this.clearMessageRenderStateSnapshotsForRoom(roomId);
       await this.initRoomScene(roomId);
       this.currentSpriteStateMap.set(roomId, new Set());
       this.renderedFigureStateMap.set(roomId, new Map());
+      this.renderedMiniAvatarVisibleMap.delete(roomId);
+      this.roomSyncBatchDepthMap.delete(roomId);
+      this.roomSyncPendingSet.delete(roomId);
       this.clearPendingDiceMerge(roomId);
       this.sendSyncMessage(roomId);
     }
@@ -3479,7 +3834,11 @@ export class RealtimeRenderer {
       await this.initScene();
       this.currentSpriteStateMap.clear();
       this.renderedFigureStateMap.clear();
+      this.renderedMiniAvatarVisibleMap.clear();
+      this.roomSyncBatchDepthMap.clear();
+      this.roomSyncPendingSet.clear();
       this.messageLineMap.clear();
+      this.messageRenderStateSnapshotMap.clear();
       this.clearPendingDiceMerge();
     }
   }
@@ -3578,13 +3937,14 @@ export class RealtimeRenderer {
     // 保存当前的行号和文本状态
     const savedLineNumber = context.lineNumber;
     const savedText = context.text;
+    const savedStateSnapshot = this.captureRoomRenderStateSnapshot(targetRoomId);
 
     // 临时重置上下文，用于收集新渲染的内容
     context.lineNumber = 0;
     context.text = "";
 
     // 重新渲染该消息（不同步到文件）
-    await this.renderMessage(message, targetRoomId, false, { bypassDiceMerge: true });
+    await this.renderMessage(message, targetRoomId, false, { bypassDiceMerge: true, skipBookkeeping: true });
 
     // 获取新渲染的内容
     const newContent = context.text;
@@ -3593,6 +3953,7 @@ export class RealtimeRenderer {
     // 恢复上下文状态
     context.lineNumber = savedLineNumber;
     context.text = savedText;
+    this.applyRoomRenderStateSnapshot(targetRoomId, savedStateSnapshot);
 
     // 使用替换方法更新指定行
     await this.replaceLinesInContext(
@@ -3672,6 +4033,10 @@ export class RealtimeRenderer {
     }
     this.messageQueue = [];
     this.isConnected = false;
+    this.renderedMiniAvatarVisibleMap.clear();
+    this.roomSyncBatchDepthMap.clear();
+    this.roomSyncPendingSet.clear();
+    this.messageRenderStateSnapshotMap.clear();
     this.onStatusChange = undefined;
     this.onProgressChange = undefined;
   }

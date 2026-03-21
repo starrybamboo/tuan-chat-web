@@ -27,7 +27,7 @@ export type Room = {
      */
     avatar?: string;
     /**
-     * 房间描述
+     * 场景默认描述
      */
     description?: string;
     /**

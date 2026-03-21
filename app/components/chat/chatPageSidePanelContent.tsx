@@ -25,6 +25,7 @@ interface ChatPageSidePanelContentProps {
   sidebarTree?: SidebarTree | null;
   docMetas?: MinimalDocMeta[];
   onSelectDoc: (docId: string) => void;
+  onDeleteDoc?: (docId: string) => void;
   onSaveSidebarTree?: (tree: SidebarTree) => void;
   onResetSidebarTreeToDefault?: () => void;
   activeRoomId: number | null;
@@ -57,6 +58,7 @@ export default function ChatPageSidePanelContent({
   sidebarTree,
   docMetas,
   onSelectDoc,
+  onDeleteDoc,
   onSaveSidebarTree,
   onResetSidebarTreeToDefault,
   activeRoomId,
@@ -88,6 +90,7 @@ export default function ChatPageSidePanelContent({
       onResetSidebarTreeToDefault={onResetSidebarTreeToDefault}
       docMetas={docMetas}
       onSelectDoc={onSelectDoc}
+      onDeleteDoc={onDeleteDoc}
       activeRoomId={activeRoomId}
       activeDocId={activeDocId}
       unreadMessagesNumber={unreadMessagesNumber}

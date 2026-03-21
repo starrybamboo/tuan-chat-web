@@ -26,12 +26,6 @@ export class SpaceUserDocControllerService {
             url: '/space/docFolder/doc/title',
             body: requestBody,
             mediaType: 'application/json',
-            errors: {
-                400: `Bad Request`,
-                405: `Method Not Allowed`,
-                429: `Too Many Requests`,
-                500: `Internal Server Error`,
-            },
         });
     }
     /**
@@ -48,12 +42,6 @@ export class SpaceUserDocControllerService {
             url: '/space/userDoc/doc/title',
             body: requestBody,
             mediaType: 'application/json',
-            errors: {
-                400: `Bad Request`,
-                405: `Method Not Allowed`,
-                429: `Too Many Requests`,
-                500: `Internal Server Error`,
-            },
         });
     }
     /**
@@ -70,12 +58,6 @@ export class SpaceUserDocControllerService {
             url: '/space/docFolder/doc/tag',
             body: requestBody,
             mediaType: 'application/json',
-            errors: {
-                400: `Bad Request`,
-                405: `Method Not Allowed`,
-                429: `Too Many Requests`,
-                500: `Internal Server Error`,
-            },
         });
     }
     /**
@@ -92,12 +74,6 @@ export class SpaceUserDocControllerService {
             url: '/space/userDoc/doc/tag',
             body: requestBody,
             mediaType: 'application/json',
-            errors: {
-                400: `Bad Request`,
-                405: `Method Not Allowed`,
-                429: `Too Many Requests`,
-                500: `Internal Server Error`,
-            },
         });
     }
     /**
@@ -114,12 +90,6 @@ export class SpaceUserDocControllerService {
             url: '/space/docFolder/doc',
             body: requestBody,
             mediaType: 'application/json',
-            errors: {
-                400: `Bad Request`,
-                405: `Method Not Allowed`,
-                429: `Too Many Requests`,
-                500: `Internal Server Error`,
-            },
         });
     }
     /**
@@ -137,12 +107,6 @@ export class SpaceUserDocControllerService {
             query: {
                 'docId': docId,
             },
-            errors: {
-                400: `Bad Request`,
-                405: `Method Not Allowed`,
-                429: `Too Many Requests`,
-                500: `Internal Server Error`,
-            },
         });
     }
     /**
@@ -159,12 +123,6 @@ export class SpaceUserDocControllerService {
             url: '/space/userDoc/doc',
             body: requestBody,
             mediaType: 'application/json',
-            errors: {
-                400: `Bad Request`,
-                405: `Method Not Allowed`,
-                429: `Too Many Requests`,
-                500: `Internal Server Error`,
-            },
         });
     }
     /**
@@ -181,12 +139,6 @@ export class SpaceUserDocControllerService {
             url: '/space/userDoc/doc',
             query: {
                 'docId': docId,
-            },
-            errors: {
-                400: `Bad Request`,
-                405: `Method Not Allowed`,
-                429: `Too Many Requests`,
-                500: `Internal Server Error`,
             },
         });
     }
@@ -208,12 +160,6 @@ export class SpaceUserDocControllerService {
                 'spaceId': spaceId,
                 'tag': tag,
             },
-            errors: {
-                400: `Bad Request`,
-                405: `Method Not Allowed`,
-                429: `Too Many Requests`,
-                500: `Internal Server Error`,
-            },
         });
     }
     /**
@@ -233,12 +179,6 @@ export class SpaceUserDocControllerService {
             query: {
                 'spaceId': spaceId,
                 'tag': tag,
-            },
-            errors: {
-                400: `Bad Request`,
-                405: `Method Not Allowed`,
-                429: `Too Many Requests`,
-                500: `Internal Server Error`,
             },
         });
     }

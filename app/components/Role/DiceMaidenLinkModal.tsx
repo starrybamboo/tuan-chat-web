@@ -1,7 +1,8 @@
-import { useGetInfiniteUserRolesQuery, useGetRoleAvatarQuery, useGetRoleQuery } from "api/hooks/RoleAndAvatarHooks";
+import type { UserRole } from "../../../api";
+import { useGetInfiniteUserRolesQuery, useGetRoleQuery } from "api/hooks/RoleAndAvatarHooks";
 import { useMemo, useState } from "react";
+import { useResolvedRoleAvatarUrl } from "@/components/common/roleAccess";
 import { useGlobalContext } from "@/components/globalContextProvider";
-import { ROLE_DEFAULT_AVATAR_URL } from "@/constants/defaultAvatar";
 
 interface DiceMaidenLinkModalProps {
   isOpen: boolean;
@@ -18,12 +19,11 @@ function DiceMaidenRoleItem({
   isSelected,
   onSelect,
 }: {
-  role: any;
+  role: UserRole;
   isSelected: boolean;
   onSelect: () => void;
 }) {
-  const avatarQuery = useGetRoleAvatarQuery(role.avatarId || 0);
-  const avatarUrl = avatarQuery.data?.data?.avatarUrl || ROLE_DEFAULT_AVATAR_URL;
+  const avatarUrl = useResolvedRoleAvatarUrl(role);
 
   return (
     <div
@@ -67,8 +67,7 @@ function DiceMaidenRoleItem({
 function ManualRolePreview({ roleId }: { roleId: number }) {
   const { data: roleData } = useGetRoleQuery(roleId);
   const role = roleData?.data;
-  const avatarQuery = useGetRoleAvatarQuery(role?.avatarId || 0);
-  const avatarUrl = avatarQuery.data?.data?.avatarUrl || ROLE_DEFAULT_AVATAR_URL;
+  const avatarUrl = useResolvedRoleAvatarUrl(role);
 
   if (!role)
     return null;

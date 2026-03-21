@@ -10,7 +10,7 @@ import type { BaseHttpRequest } from '../core/BaseHttpRequest';
 export class SpaceRepositoryControllerService {
     constructor(public readonly httpRequest: BaseHttpRequest) {}
     /**
-     * 获取空间的所有NPC，仅kp调用
+     * 获取空间角色库，仅kp调用
      * @param spaceId
      * @param commitId
      * @returns ApiResultListUserRole OK
@@ -27,16 +27,10 @@ export class SpaceRepositoryControllerService {
                 'spaceId': spaceId,
                 'commitId': commitId,
             },
-            errors: {
-                400: `Bad Request`,
-                405: `Method Not Allowed`,
-                429: `Too Many Requests`,
-                500: `Internal Server Error`,
-            },
         });
     }
     /**
-     * 将角色作为NPC添加到空间
+     * 将角色添加到空间角色库
      * @param requestBody
      * @returns ApiResultVoid OK
      * @throws ApiError
@@ -49,12 +43,6 @@ export class SpaceRepositoryControllerService {
             url: '/space/repository/role',
             body: requestBody,
             mediaType: 'application/json',
-            errors: {
-                400: `Bad Request`,
-                405: `Method Not Allowed`,
-                429: `Too Many Requests`,
-                500: `Internal Server Error`,
-            },
         });
     }
 }

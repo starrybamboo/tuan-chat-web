@@ -27,7 +27,7 @@ export type CommentPageRequest = {
      */
     childLimit?: number;
     /**
-     * 最大嵌套层级
+     * 最大嵌套层级，默认最多查询两级评论
      */
     maxLevel?: number;
 };

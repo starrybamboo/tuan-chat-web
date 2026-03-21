@@ -1,11 +1,13 @@
 import { use, useState } from "react";
 import { RoomContext } from "@/components/chat/core/roomContext";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
+import { hasHostPrivileges } from "@/components/chat/utils/memberPermissions";
 import ConfirmModal from "@/components/common/comfirmModel";
+import { useResolvedRoleAvatarUrl } from "@/components/common/roleAccess";
 import { useGlobalContext } from "@/components/globalContextProvider";
 import ExpansionModule from "@/components/Role/rules/ExpansionModule";
 import { useDeleteRole1Mutation } from "../../../api/hooks/chatQueryHooks";
-import { useGetRoleAvatarQuery, useGetRoleQuery, useGetUserRolesQuery } from "../../../api/hooks/RoleAndAvatarHooks";
+import { useGetRoleQuery, useGetUserRolesQuery } from "../../../api/hooks/RoleAndAvatarHooks";
 import { useGetUserInfoQuery } from "../../../api/hooks/UserHooks";
 
 /**
@@ -36,7 +38,7 @@ export function RoleDetail({
   const shouldFetchRole = roleStateHint == null || roleStateHint === 0;
   const roleQuery = useGetRoleQuery(shouldFetchRole ? roleId : -1);
   const role = roleQuery.data?.data;
-  const avatarQuery = useGetRoleAvatarQuery(role?.avatarId || 0);
+  const avatarUrl = useResolvedRoleAvatarUrl(role, "");
   const user = role?.userId ?? -1;
   const userName = useGetUserInfoQuery(user).data?.data?.username || "未知用户";
 
@@ -47,10 +49,7 @@ export function RoleDetail({
   const spaceContext = use(SpaceContext);
   const roomId = roomContext?.roomId;
   const ruleId = spaceContext.ruleId;
-  // 是否是群主
-  function isManager() {
-    return roomContext.curMember?.memberType === 1;
-  }
+  const hasHostAccess = hasHostPrivileges(roomContext.curMember?.memberType);
   const deleteRoleMutation = useDeleteRole1Mutation();
   const userId = useGlobalContext().userId ?? -1;
   const userRole = useGetUserRolesQuery(userId);
@@ -73,7 +72,7 @@ export function RoleDetail({
   const canKick = (() => {
     if (!allowKickOut || !roomId)
       return false;
-    if (isManager())
+    if (hasHostAccess)
       return true;
     if (kickOutByManagerOnly)
       return false;
@@ -100,7 +99,7 @@ export function RoleDetail({
                       : (
                           <div className="bg-neutral text-neutral-content flex items-center justify-center text-3xl">
                             <img
-                              src={avatarQuery.data?.data?.avatarUrl}
+                              src={avatarUrl}
                               alt="avatar"
                               className="w-20 h-20 object-cover"
                             />
@@ -160,9 +159,9 @@ export function RoleDetail({
                               {userName}
                             </span>
                           )}
-                          {isManager() && (
+                          {hasHostAccess && (
                             <span className="badge badge-primary badge-xs">
-                              你是房主
+                              你有主持权限
                             </span>
                           )}
                         </div>

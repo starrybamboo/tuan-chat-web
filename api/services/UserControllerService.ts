@@ -29,12 +29,6 @@ export class UserControllerService {
             query: {
                 'userId': userId,
             },
-            errors: {
-                400: `Bad Request`,
-                405: `Method Not Allowed`,
-                429: `Too Many Requests`,
-                500: `Internal Server Error`,
-            },
         });
     }
     /**
@@ -51,12 +45,6 @@ export class UserControllerService {
             url: '/user/info',
             body: requestBody,
             mediaType: 'application/json',
-            errors: {
-                400: `Bad Request`,
-                405: `Method Not Allowed`,
-                429: `Too Many Requests`,
-                500: `Internal Server Error`,
-            },
         });
     }
     /**
@@ -74,12 +62,6 @@ export class UserControllerService {
             url: '/user/register',
             body: requestBody,
             mediaType: 'application/json',
-            errors: {
-                400: `Bad Request`,
-                405: `Method Not Allowed`,
-                429: `Too Many Requests`,
-                500: `Internal Server Error`,
-            },
         });
     }
     /**
@@ -91,12 +73,6 @@ export class UserControllerService {
         return this.httpRequest.request({
             method: 'POST',
             url: '/user/logout',
-            errors: {
-                400: `Bad Request`,
-                405: `Method Not Allowed`,
-                429: `Too Many Requests`,
-                500: `Internal Server Error`,
-            },
         });
     }
     /**
@@ -114,12 +90,17 @@ export class UserControllerService {
             url: '/user/login',
             body: requestBody,
             mediaType: 'application/json',
-            errors: {
-                400: `Bad Request`,
-                405: `Method Not Allowed`,
-                429: `Too Many Requests`,
-                500: `Internal Server Error`,
-            },
+        });
+    }
+    /**
+     * 获取当前登录态 token
+     * @returns ApiResultString OK
+     * @throws ApiError
+     */
+    public getCurrentToken(): CancelablePromise<ApiResultString> {
+        return this.httpRequest.request({
+            method: 'GET',
+            url: '/user/token',
         });
     }
     /**
@@ -137,12 +118,6 @@ export class UserControllerService {
             query: {
                 'userId': userId,
             },
-            errors: {
-                400: `Bad Request`,
-                405: `Method Not Allowed`,
-                429: `Too Many Requests`,
-                500: `Internal Server Error`,
-            },
         });
     }
     /**
@@ -154,12 +129,6 @@ export class UserControllerService {
         return this.httpRequest.request({
             method: 'GET',
             url: '/user/info/me',
-            errors: {
-                400: `Bad Request`,
-                405: `Method Not Allowed`,
-                429: `Too Many Requests`,
-                500: `Internal Server Error`,
-            },
         });
     }
     /**
@@ -176,12 +145,6 @@ export class UserControllerService {
             url: '/user/info/by-username',
             query: {
                 'username': username,
-            },
-            errors: {
-                400: `Bad Request`,
-                405: `Method Not Allowed`,
-                429: `Too Many Requests`,
-                500: `Internal Server Error`,
             },
         });
     }

@@ -131,7 +131,7 @@ function upsertCurrentTabPresence(tabId: string, selected: boolean, now: number)
   return nextPresence;
 }
 
-export function isCurrentTabSelected(): boolean {
+function isCurrentTabSelected(): boolean {
   if (typeof document === "undefined") {
     return false;
   }

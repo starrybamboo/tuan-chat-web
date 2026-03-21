@@ -25,23 +25,95 @@ type RemoteKey = {
   docType: DescriptionDocType;
 };
 
+type SharedRemoteState = {
+  snapshotCache: Map<string, { at: number; value: StoredSnapshot | null }>;
+  snapshotInflight: Map<string, Promise<StoredSnapshot | null>>;
+  snapshotSetInflight: Map<string, Promise<void>>;
+  snapshotLastSet: Map<string, { at: number; updateB64: string }>;
+  snapshotDeleteInflight: Map<string, Promise<void>>;
+  updatesCache: Map<string, { at: number; value: RemoteUpdates | null }>;
+  updatesInflight: Map<string, Promise<RemoteUpdates | null>>;
+};
+
 function buildRemoteCacheKey(key: RemoteKey) {
   return `${key.entityType}:${key.entityId}:${key.docType}`;
 }
+
+function buildRemoteUpdatesCacheKey(params: {
+  entityType: DescriptionEntityType;
+  entityId: number;
+  docType: DescriptionDocType;
+  afterServerTime?: number;
+  limit?: number;
+}) {
+  return `${buildRemoteCacheKey(params)}:after:${params.afterServerTime ?? 0}:limit:${params.limit ?? ""}`;
+}
+
+function createSharedRemoteState(): SharedRemoteState {
+  return {
+    snapshotCache: new Map<string, { at: number; value: StoredSnapshot | null }>(),
+    snapshotInflight: new Map<string, Promise<StoredSnapshot | null>>(),
+    snapshotSetInflight: new Map<string, Promise<void>>(),
+    snapshotLastSet: new Map<string, { at: number; updateB64: string }>(),
+    snapshotDeleteInflight: new Map<string, Promise<void>>(),
+    updatesCache: new Map<string, { at: number; value: RemoteUpdates | null }>(),
+    updatesInflight: new Map<string, Promise<RemoteUpdates | null>>(),
+  };
+}
+
+function getSharedRemoteState(): SharedRemoteState {
+  const stateKey = "__tcDescriptionDocRemoteState_v2";
+  let owner: any = globalThis as any;
+
+  if (typeof window !== "undefined") {
+    try {
+      const top = window.top;
+      if (top && top.location?.origin === window.location.origin) {
+        owner = top as any;
+      }
+    }
+    catch {
+      owner = window as any;
+    }
+  }
+
+  if (!owner[stateKey]) {
+    owner[stateKey] = createSharedRemoteState();
+  }
+  return owner[stateKey] as SharedRemoteState;
+}
+
+const sharedRemoteState = getSharedRemoteState();
 
 // De-dupe back-to-back GETs caused by:
 // - pre-hydration fetch in BlocksuiteDescriptionEditor
 // - sync engine pull (RemoteSnapshotDocSource)
 // Also mitigates React StrictMode double-mount in dev.
 const SNAPSHOT_CACHE_TTL_MS = 1500;
-const snapshotCache = new Map<string, { at: number; value: StoredSnapshot | null }>();
-const snapshotInflight = new Map<string, Promise<StoredSnapshot | null>>();
+const snapshotCache = sharedRemoteState.snapshotCache;
+const snapshotInflight = sharedRemoteState.snapshotInflight;
 
 const SNAPSHOT_SET_DEDUPE_MS = 2500;
-const snapshotSetInflight = new Map<string, Promise<void>>();
-const snapshotLastSet = new Map<string, { at: number; updateB64: string }>();
+const snapshotSetInflight = sharedRemoteState.snapshotSetInflight;
+const snapshotLastSet = sharedRemoteState.snapshotLastSet;
 
-const snapshotDeleteInflight = new Map<string, Promise<void>>();
+const snapshotDeleteInflight = sharedRemoteState.snapshotDeleteInflight;
+const UPDATES_CACHE_TTL_MS = 800;
+const updatesCache = sharedRemoteState.updatesCache;
+const updatesInflight = sharedRemoteState.updatesInflight;
+
+function invalidateRemoteUpdatesCache(baseCacheKey: string) {
+  for (const key of updatesCache.keys()) {
+    if (key.startsWith(`${baseCacheKey}:after:`)) {
+      updatesCache.delete(key);
+    }
+  }
+  for (const key of updatesInflight.keys()) {
+    if (key.startsWith(`${baseCacheKey}:after:`)) {
+      updatesInflight.delete(key);
+    }
+  }
+}
 
 function isStoredSnapshot(v: any): v is StoredSnapshot {
   if (!v || typeof v !== "object")
@@ -159,6 +231,7 @@ export async function setRemoteSnapshot(params: {
   }).then(() => {
     snapshotLastSet.set(cacheKey, { at: Date.now(), updateB64: params.snapshot.updateB64 });
     snapshotCache.set(cacheKey, { at: Date.now(), value: params.snapshot });
+    invalidateRemoteUpdatesCache(cacheKey);
   });
 
   snapshotSetInflight.set(cacheKey, task);
@@ -186,14 +259,17 @@ export async function deleteRemoteSnapshot(params: {
   }
 
   const task = tuanchat.blocksuiteDocController.deleteDoc3(
-    params.entityType,
     params.entityId,
-    params.docType,
+    {
+      entityType: params.entityType,
+      docType: params.docType,
+    },
   ).then(() => {
     snapshotCache.set(cacheKey, { at: Date.now(), value: null });
     snapshotInflight.delete(cacheKey);
     snapshotSetInflight.delete(cacheKey);
     snapshotLastSet.delete(cacheKey);
+    invalidateRemoteUpdatesCache(cacheKey);
   });
 
   snapshotDeleteInflight.set(cacheKey, task);
@@ -225,22 +301,47 @@ export async function getRemoteUpdates(params: {
   afterServerTime?: number;
   limit?: number;
 }): Promise<RemoteUpdates | null> {
-  const res = await tuanchat.blocksuiteDocController.listDocUpdates(
-    params.entityType,
-    params.entityId,
-    params.docType,
-    params.afterServerTime,
-    params.limit,
-  );
+  const cacheKey = buildRemoteUpdatesCacheKey(params);
+  const cached = updatesCache.get(cacheKey);
+  if (cached && Date.now() - cached.at <= UPDATES_CACHE_TTL_MS) {
+    return cached.value;
+  }
 
-  const raw = (res as any)?.data ?? res ?? null;
-  if (isRemoteUpdates(raw)) {
-    return raw;
+  const inflight = updatesInflight.get(cacheKey);
+  if (inflight) {
+    return inflight;
   }
-  if (isRemoteUpdates((raw as any)?.data)) {
-    return (raw as any).data;
+
+  const task = (async (): Promise<RemoteUpdates | null> => {
+    const res = await tuanchat.blocksuiteDocController.listDocUpdates(
+      params.entityType,
+      params.entityId,
+      params.docType,
+      params.afterServerTime,
+      params.limit,
+    );
+
+    const raw = (res as any)?.data ?? res ?? null;
+    if (isRemoteUpdates(raw)) {
+      return raw;
+    }
+    if (isRemoteUpdates((raw as any)?.data)) {
+      return (raw as any).data;
+    }
+    return null;
+  })();
+
+  updatesInflight.set(cacheKey, task);
+  try {
+    const value = await task;
+    updatesCache.set(cacheKey, { at: Date.now(), value });
+    return value;
   }
-  return null;
+  finally {
+    if (updatesInflight.get(cacheKey) === task) {
+      updatesInflight.delete(cacheKey);
+    }
+  }
 }
 
 export type RemoteUpdatePushResponse = {
@@ -269,9 +370,11 @@ export async function pushRemoteUpdate(params: {
 
   const raw = (res as any)?.data ?? res ?? null;
   if (isRemoteUpdatePushResponse(raw)) {
+    invalidateRemoteUpdatesCache(buildRemoteCacheKey(params));
     return raw;
   }
   if (isRemoteUpdatePushResponse((raw as any)?.data)) {
+    invalidateRemoteUpdatesCache(buildRemoteCacheKey(params));
     return (raw as any).data;
   }
   return null;
@@ -289,4 +392,5 @@ export async function compactRemoteUpdates(params: {
     docType: params.docType,
     beforeOrEqServerTime: params.beforeOrEqServerTime,
   });
+  invalidateRemoteUpdatesCache(buildRemoteCacheKey(params));
 }

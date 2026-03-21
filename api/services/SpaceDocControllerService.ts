@@ -25,12 +25,6 @@ export class SpaceDocControllerService {
             url: '/space/doc/title',
             body: requestBody,
             mediaType: 'application/json',
-            errors: {
-                400: `Bad Request`,
-                405: `Method Not Allowed`,
-                429: `Too Many Requests`,
-                500: `Internal Server Error`,
-            },
         });
     }
     /**
@@ -47,12 +41,6 @@ export class SpaceDocControllerService {
             url: '/space/doc',
             body: requestBody,
             mediaType: 'application/json',
-            errors: {
-                400: `Bad Request`,
-                405: `Method Not Allowed`,
-                429: `Too Many Requests`,
-                500: `Internal Server Error`,
-            },
         });
     }
     /**
@@ -70,12 +58,6 @@ export class SpaceDocControllerService {
             query: {
                 'docId': docId,
             },
-            errors: {
-                400: `Bad Request`,
-                405: `Method Not Allowed`,
-                429: `Too Many Requests`,
-                500: `Internal Server Error`,
-            },
         });
     }
     /**
@@ -92,12 +74,6 @@ export class SpaceDocControllerService {
             url: '/space/doc/list',
             query: {
                 'spaceId': spaceId,
-            },
-            errors: {
-                400: `Bad Request`,
-                405: `Method Not Allowed`,
-                429: `Too Many Requests`,
-                500: `Internal Server Error`,
             },
         });
     }

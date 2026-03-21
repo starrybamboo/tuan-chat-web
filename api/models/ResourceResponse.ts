@@ -35,6 +35,18 @@ export type ResourceResponse = {
      */
     userId?: number;
     /**
+     * 用户名
+     */
+    username?: string;
+    /**
+     * 头像 URL
+     */
+    avatar?: string;
+    /**
+     * 头像缩略图 URL
+     */
+    avatarThumbUrl?: string;
+    /**
      * 是不是ai
      */
     isAi?: boolean;

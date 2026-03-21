@@ -1,4 +1,5 @@
 import { useCallback, useState } from "react";
+import toast from "react-hot-toast";
 
 import { deleteSpaceDoc } from "@/components/chat/infra/blocksuite/deleteSpaceDoc";
 
@@ -11,6 +12,7 @@ type UseRoomSidebarDeleteHandlersParams = {
   activeSpaceId: number | null;
   removeNode: (categoryId: string, index: number) => void;
   docMetaMap: Map<string, MinimalDocMeta>;
+  onDeleteDoc?: (docId: string) => void;
 };
 
 type UseRoomSidebarDeleteHandlersResult = {
@@ -31,6 +33,7 @@ export default function useRoomSidebarDeleteHandlers({
   activeSpaceId,
   removeNode,
   docMetaMap,
+  onDeleteDoc,
 }: UseRoomSidebarDeleteHandlersParams): UseRoomSidebarDeleteHandlersResult {
   const [deleteConfirmCategoryId, setDeleteConfirmCategoryId] = useState<string | null>(null);
   const [deleteConfirmDoc, setDeleteConfirmDoc] = useState<DeleteConfirmDocState | null>(null);
@@ -75,20 +78,25 @@ export default function useRoomSidebarDeleteHandlers({
     setDeleteConfirmDoc(null);
   }, []);
 
-  const confirmDeleteDoc = useCallback((payload: DeleteConfirmDocState) => {
+  const confirmDeleteDoc = useCallback(async (payload: DeleteConfirmDocState) => {
+    if (!activeSpaceId) {
+      toast.error("未选择空间，无法删除文档");
+      return;
+    }
+
     try {
-      if (activeSpaceId) {
-        void deleteSpaceDoc({ spaceId: activeSpaceId, docId: payload.docId }).catch((err) => {
-          console.error("[SidebarTree] deleteSpaceDoc failed", err);
-        });
-      }
+      await deleteSpaceDoc({ spaceId: activeSpaceId, docId: payload.docId });
     }
     catch (err) {
       console.error("[SidebarTree] deleteSpaceDoc failed", err);
+      toast.error(err instanceof Error && err.message ? err.message : "删除文档失败，请重试");
+      return;
     }
+
     removeNode(payload.categoryId, payload.index);
+    onDeleteDoc?.(payload.docId);
     setDeleteConfirmDoc(null);
-  }, [activeSpaceId, removeNode]);
+  }, [activeSpaceId, onDeleteDoc, removeNode]);
 
   const getDocTitle = useCallback((docId: string) => {
     return docMetaMap.get(docId)?.title ?? docId;

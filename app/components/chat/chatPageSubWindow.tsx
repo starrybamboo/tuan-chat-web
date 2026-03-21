@@ -500,30 +500,31 @@ export default function ChatPageSubWindow({
                   </div>
                 )
               : !isKPInSpace
-              ? (
-                  <div className="h-full flex items-center justify-center text-sm text-base-content/60">
-                    仅 KP 可查看文档
-                  </div>
-                )
-              : resolvedDocId
-                ? (
-                    <div className="w-full h-full overflow-hidden bg-base-100">
-                      <BlocksuiteDescriptionEditor
-                        workspaceId={`space:${activeSpaceId}`}
-                        spaceId={activeSpaceId}
-                        docId={resolvedDocId}
-                        variant="full"
-                        tcHeader={{ enabled: true, fallbackTitle: docTitleById.get(resolvedDocId) ?? "文档" }}
-                        allowModeSwitch
-                        fullscreenEdgeless
-                      />
-                    </div>
-                  )
-                : (
-                    <div className="h-full flex items-center justify-center text-sm text-base-content/60">
-                      当前空间没有可用文档
-                    </div>
-                  )
+                  ? (
+                      <div className="h-full flex items-center justify-center text-sm text-base-content/60">
+                        仅 KP 可查看文档
+                      </div>
+                    )
+                  : resolvedDocId
+                    ? (
+                        <div className="w-full h-full overflow-hidden bg-base-100">
+                          <BlocksuiteDescriptionEditor
+                            workspaceId={`space:${activeSpaceId}`}
+                            spaceId={activeSpaceId}
+                            docId={resolvedDocId}
+                            intentPrewarm
+                            variant="full"
+                            tcHeader={{ enabled: true, fallbackTitle: docTitleById.get(resolvedDocId) ?? "文档" }}
+                            allowModeSwitch
+                            fullscreenEdgeless
+                          />
+                        </div>
+                      )
+                    : (
+                        <div className="h-full flex items-center justify-center text-sm text-base-content/60">
+                          当前空间没有可用文档
+                        </div>
+                      )
           )}
         </div>
       </div>
