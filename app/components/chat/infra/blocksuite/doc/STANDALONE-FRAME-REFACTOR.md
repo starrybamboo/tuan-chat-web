@@ -1,6 +1,8 @@
 # BlockSuite 独立 Frame 重构说明
 
-本文档记录 2026-03 这一轮 BlockSuite 冷启动重构。目标不是继续在现有 route 方案上做 hover/idle 预热补丁，而是把 iframe 编辑器改成一个**独立前端子应用**，让启动方式更接近 AFFiNE 的静态装配模式。
+本文档记录 2026-03 这一轮 BlockSuite 冷启动重构。这里的“文件级改动”**只按 `dev` 分支到当前结果的净差异来写**，不回溯我在实现过程中做过但最终没有保留下来的中间方案，也不把更早已经落地的结构调整混进来。
+
+目标不是继续在现有 route 方案上做 hover/idle 预热补丁，而是把 iframe 编辑器改成一个**独立前端子应用**，让启动方式更接近 AFFiNE 的静态装配模式。
 
 ## 1. 背景与问题
 
@@ -26,7 +28,7 @@
 - 但把 iframe 页面变成真正的独立客户端入口
 - 把样式、core modules、effects 注册前移为子应用启动时的静态工作
 
-## 2. 文件级改动
+## 2. 文件级改动（相对 dev 的净变化）
 
 ### 2.1 新增：独立 iframe 子应用入口
 
@@ -117,13 +119,13 @@
     - 给独立 html 注入 React Router/Vite 的 HMR preamble
   - 这一步让独立入口在开发态和构建态都能被正确识别
 
-### 2.7 删除：旧的动态 runtime 链路
+### 2.7 删除：旧的 route 运行时启动链
 
 - 删除 `app/components/chat/infra/blocksuite/bootstrap/runtime.ts`
-  - 原作用：动态加载样式文本、动态加载 core modules、在 iframe 内执行 bootstrap
+  - 原作用：在 route 版 frame 内动态做 runtime bootstrap
 
 - 删除 `app/components/chat/infra/blocksuite/styles/ensureBlocksuiteRuntimeStyles.ts`
-  - 原作用：在运行时拼接和注入完整 BlockSuite/AFFiNE CSS
+  - 原作用：运行时拼接并注入完整 BlockSuite/AFFiNE CSS
 
 - 删除 `app/components/chat/infra/blocksuite/spec/coreElements.ts`
   - 原作用：为了 SSR-safe，在运行时动态 import 大量模块并手工执行 `effects()`
@@ -142,9 +144,11 @@
 
 更新原因：
 
-- 启动链从 `bootstrap/runtime.ts + ensureBlocksuiteRuntimeStyles.ts + coreElements.ts`
-  改成了
-  `browser.ts + coreElements.browser.ts + 独立 frame entry`
+- 启动链从 route 版 runtime 启动链改成了独立 frame 子应用启动链
+
+> 说明：
+> 这份文件级列表只覆盖本轮独立 frame 重构直接涉及的净差异。
+> 例如 manager/store/view 等更早已经落地的结构调整，虽然相对 `dev` 也存在差异，但不属于这份文档关注的主线，因此不在这里展开。
 
 ## 3. 改造前后的启动链
 
