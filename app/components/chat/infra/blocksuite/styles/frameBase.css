@@ -1,0 +1,19 @@
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+html,
+body {
+  margin: 0;
+  background-color: var(--affine-background-primary-color, oklch(var(--b1) / 1));
+}
+
+body {
+  color: var(--affine-text-primary-color, oklch(var(--bc) / 1));
+}
+
+#root {
+  background-color: inherit;
+}
