@@ -555,18 +555,21 @@ export default defineConfig(({ command, mode }) => {
           // iframe route entry
           "app/routes/blocksuiteFrame.tsx",
 
-          // iframe host + runtime loader
+          // iframe host
           "app/components/chat/shared/components/blocksuiteDescriptionEditor.tsx",
 
-          // runtime bootstrap / dynamic imports
-          "app/components/chat/infra/blocksuite/bootstrap/runtime.ts",
-          "app/components/chat/infra/blocksuite/runtime/runtimeLoader.ts",
-          "app/components/chat/infra/blocksuite/editors/createBlocksuiteEditor.ts",
+          // route client chunk + browser runtime
+          "app/components/chat/infra/blocksuite/frame/BlocksuiteRouteFrameClient.tsx",
+          "app/components/chat/infra/blocksuite/frame/BlocksuiteDescriptionEditorRuntime.browser.tsx",
+          "app/components/chat/infra/blocksuite/bootstrap/browser.ts",
+          "app/components/chat/infra/blocksuite/runtime/runtimeLoader.browser.ts",
+          "app/components/chat/infra/blocksuite/editors/createBlocksuiteEditor.browser.ts",
           "app/components/chat/infra/blocksuite/spaceWorkspaceRegistry.ts",
 
           // core bootstrap modules
-          "app/components/chat/infra/blocksuite/spec/coreElements.ts",
-          "app/components/chat/infra/blocksuite/styles/ensureBlocksuiteRuntimeStyles.ts",
+          "app/components/chat/infra/blocksuite/spec/coreElements.browser.ts",
+          "app/components/chat/infra/blocksuite/styles/frameBase.css",
+          "app/components/chat/infra/blocksuite/styles/tcHeader.css",
 
           // common doc sources/providers
           "app/components/chat/infra/blocksuite/remoteDocSource.ts",
