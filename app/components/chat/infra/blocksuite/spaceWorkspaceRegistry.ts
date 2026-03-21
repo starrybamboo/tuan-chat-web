@@ -8,6 +8,14 @@ import {
   retainSpaceWorkspaceRuntime,
 } from "@/components/chat/infra/blocksuite/runtime/spaceWorkspace";
 
+/**
+ * 业务层与 SpaceWorkspace 之间的窄接口。
+ *
+ * 上层不要直接碰 SpaceWorkspace 细节，而是统一通过 registry 获取：
+ * - Workspace 级能力
+ * - Doc/Store 级能力
+ * - Meta 初始化能力
+ */
 export function getOrCreateWorkspace(workspaceId: string): Workspace {
   return getOrCreateSpaceWorkspaceRuntime(workspaceId);
 }

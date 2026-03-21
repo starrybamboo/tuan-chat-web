@@ -35,6 +35,12 @@ import { mockEditorSetting, mockParseDocUrlService } from "./mockServices";
 import { RoomMapEmbedOptionExtension } from "./roomMapEmbedOption";
 import { ensureTCAffineEditorContainerDefined, TC_AFFINE_EDITOR_CONTAINER_TAG } from "./tcAffineEditorContainer";
 
+/**
+ * 项目自己的 editor 装配层。
+ *
+ * manager/view 只解决“内建 BlockSuite 能力边界”，
+ * 这里再把 TuanChat 业务能力装回去：mention、linked-doc、quick search、用户服务、tcHeader 等。
+ */
 type WorkspaceLike = {
   getDoc: (docId: string) => { getStore: () => unknown; loaded?: boolean; load?: () => void } | null;
   meta?: unknown;
@@ -834,6 +840,7 @@ export function createEmbeddedAffineEditor(params: {
     },
   });
 
+  // 先从统一 manager 获取 page / edgeless 基础 specs，再叠加业务层 provider。
   const pageSpecsBase = getPageSpecs();
   const normalizeExtHint = (v: unknown) => String(v ?? "").trim().toLowerCase();
   const isDocTitleExtension = (ext: any) => {

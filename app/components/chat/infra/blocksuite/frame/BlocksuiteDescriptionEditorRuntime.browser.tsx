@@ -22,6 +22,15 @@ import { ResizableImg } from "@/components/common/resizableImg";
 import toastWindow from "@/components/common/toastWindow/toastWindow";
 import { ImgUploaderWithCopper } from "@/components/common/uploader/imgUploaderWithCropper";
 
+/**
+ * iframe 内真正的编辑器 React runtime。
+ *
+ * 这一层负责把：
+ * - workspace/doc/store 的获取与恢复
+ * - tcHeader 与模式切换
+ * - editor 创建与销毁
+ * 组合成最终可渲染的 Blocksuite 页面。
+ */
 interface BlocksuiteDescriptionEditorProps {
   /** Blocksuite workspaceId，比如 `space:123` / `user:1` */
   workspaceId: string;

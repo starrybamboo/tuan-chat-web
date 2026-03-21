@@ -33,6 +33,12 @@ import type { SupportedBlocksuiteFeature } from "./featureSet";
 import { RoomMapEmbedIframeConfigExtension } from "../spec/roomMapEmbedConfig";
 import { SUPPORTED_BLOCKSUITE_FEATURES } from "./featureSet";
 
+/**
+ * 把 featureSet 映射到 BlockSuite store/schema 侧扩展。
+ *
+ * 这里决定“数据层认识哪些 block / inline / service”，
+ * 因此必须与 view.ts 共享同一份 supported subset。
+ */
 type StoreProviderClass = new (...args: any[]) => StoreExtensionProvider;
 
 const STORE_EXTENSION_PROVIDERS: Partial<Record<SupportedBlocksuiteFeature, StoreProviderClass>> = {
@@ -78,6 +84,7 @@ const blocksuiteStoreManager = createBlocksuiteStoreManager();
 export const BLOCKSUITE_STORE_EXTENSIONS: ExtensionType[] = (
   blocksuiteStoreManager.get("store") as ExtensionType[]
 ).concat([
+  // 项目侧额外补上的 store/service 能力，不属于 BlockSuite 内建 featureSet。
   LinkPreviewCache,
   LinkPreviewService,
   RoomMapEmbedIframeConfigExtension,

@@ -28,6 +28,14 @@ import { parseDescriptionDocId } from "@/components/chat/infra/blocksuite/descri
 import { BLOCKSUITE_STORE_EXTENSIONS } from "@/components/chat/infra/blocksuite/manager/store";
 import { RemoteSnapshotDocSource } from "@/components/chat/infra/blocksuite/remoteDocSource";
 
+/**
+ * SpaceWorkspace 是本项目最核心的 Blocksuite 数据运行时：
+ * - 一个 space 对应一个 root Y.Doc
+ * - rootDoc 下面按 docId 维护多个 subdoc
+ * - 每个 subdoc 再映射成一个 Blocksuite Store
+ *
+ * 这一层负责本地 IndexedDB、远端快照、WS 更新、最小 block tree 初始化。
+ */
 const remoteSnapshotDocSource = new RemoteSnapshotDocSource();
 const REMOTE_RESTORE_ORIGIN = "tc:remote-restore";
 const REMOTE_WS_ORIGIN = "tc:remote-ws";
@@ -104,6 +112,7 @@ class InMemoryWorkspaceMeta implements WorkspaceMeta {
 }
 
 class SpaceDoc implements Doc {
+  // 一个 subdoc 对应一个 Blocksuite Doc 运行时实例。
   private readonly _storeContainer: StoreContainer;
   private _remoteUpdateHandler: ((update: Uint8Array, origin: unknown) => void) | null = null;
   private _pendingRemoteUpdates: Uint8Array[] = [];
@@ -186,8 +195,8 @@ class SpaceDoc implements Doc {
     initFn?.();
     this._ready = true;
 
-    // Push local edits to remote snapshot storage on-demand (only for docs that are actually opened/loaded).
-    // This avoids the sync engine pulling every subdoc in the space.
+    // 仅在文档真正被打开后，才开始监听 update 并推送远端，
+    // 避免整个 space 下所有 subdoc 都被同步链路提前拉起。
     this._remoteUpdateHandler = (update: Uint8Array, origin: unknown) => {
       // Ignore initial loads / programmatic remote restores to avoid redundant PUT right after GET.
       if (origin === "load" || origin === REMOTE_RESTORE_ORIGIN || origin === REMOTE_WS_ORIGIN)

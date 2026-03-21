@@ -5,6 +5,15 @@ import { isBlocksuiteDebugEnabled } from "../debugFlags";
 import { failBlocksuiteOpenSession, markBlocksuiteOpenSession } from "../perf";
 import { BlocksuiteDescriptionEditorRuntime } from "./BlocksuiteDescriptionEditorRuntime.browser";
 
+/**
+ * `/blocksuite-frame` 路由真正加载出来的浏览器子图入口。
+ *
+ * 它负责：
+ * 1. 解析 iframe 首开 query 参数
+ * 2. 启动 browser runtime（样式 + custom elements + effects）
+ * 3. 在 iframe 内测量高度并回传宿主
+ * 4. 把参数交给真正的 editor runtime
+ */
 const FRAME_INSTANCE_ID = typeof window === "undefined"
   ? ""
   : new URLSearchParams(window.location.search).get("instanceId") ?? "";
@@ -54,6 +63,7 @@ function querySelectorDeep<T extends Element>(root: ParentNode | null, selector:
 }
 
 function getBlocksuiteMeasuredScrollHeight(): number {
+  // 编辑器内部混合了 light DOM 和 shadowRoot，这里统一做深度查询。
   const editorContainer = document.querySelector("tc-affine-editor-container, affine-editor-container") as Element | null;
   const rootForQuery: ParentNode = ((editorContainer as Element & { shadowRoot?: ShadowRoot | null })?.shadowRoot) ?? editorContainer ?? document;
 
@@ -121,6 +131,7 @@ function getBlocksuiteMeasuredScrollHeight(): number {
 }
 
 function readInitialFrameState() {
+  // iframe 首开参数来自宿主拼接在 src 上的 querystring。
   const sp = typeof window === "undefined"
     ? new URLSearchParams()
     : new URLSearchParams(window.location.search);
@@ -172,6 +183,7 @@ export function BlocksuiteRouteFrameClient() {
 
   useEffect(() => {
     let cancelled = false;
+    // 老方案里多段动态启动的最后一段已经收口到 ensureBlocksuiteBrowserRuntime。
     markBlocksuiteOpenSession(instanceId, "frame-bootstrap-start");
 
     void ensureBlocksuiteBrowserRuntime().then(() => {
@@ -251,6 +263,7 @@ export function BlocksuiteRouteFrameClient() {
     };
 
     measureAndPostHeight.current = () => {
+      // 折叠到下一帧，避免一次 DOM 变化触发多次测量与 postMessage。
       if (raf)
         cancelAnimationFrame(raf);
       raf = requestAnimationFrame(postHeight);

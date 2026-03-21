@@ -11,6 +11,14 @@ import {
 } from "@/components/chat/infra/blocksuite/perf";
 import { useEntityHeaderOverrideStore } from "@/components/chat/stores/entityHeaderOverrideStore";
 
+/**
+ * 宿主侧的 Blocksuite iframe host。
+ *
+ * 这一层不直接创建 BlockSuite editor，只负责：
+ * 1. 生成 `/blocksuite-frame` 的初始化参数
+ * 2. 维护与 iframe 的 postMessage 通信
+ * 3. 承接宿主侧 UI，例如主题同步、mention 弹层、全屏状态
+ */
 interface BlocksuiteDescriptionEditorProps {
   workspaceId: string;
   spaceId?: number;
@@ -175,6 +183,7 @@ function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEdito
     const expectedOrigin = window.location.origin;
 
     const onMessage = (e: MessageEvent) => {
+      // 只处理当前 iframe 的消息，避免同页多个编辑器实例互相串台。
       const originOk = !expectedOrigin || expectedOrigin === "null" ? true : e.origin === expectedOrigin;
       if (!originOk)
         return;
@@ -577,6 +586,7 @@ function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEdito
   const frozenTcHeaderImageUrl = frozenTcHeaderFallbackRef.current?.imageUrl;
 
   const initParams = useMemo(() => {
+    // 这些参数会写入 iframe 首次 src；后续变化统一走 sync-params 增量同步。
     return {
       instanceId,
       workspaceId,
@@ -656,6 +666,7 @@ function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEdito
       const frameWindow = iframeRef.current?.contentWindow;
       if (!frameWindow)
         return;
+      // iframe 首次 ready 后以及参数变化时，都复用这条同步通道。
       frameWindow.postMessage(
         {
           tc: "tc-blocksuite-frame",
