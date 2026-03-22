@@ -4,7 +4,7 @@ import type { KeyboardEvent as ReactKeyboardEvent } from "react";
 import type { DescriptionEntityType } from "@/components/chat/infra/blocksuite/descriptionDocId";
 import type { BlocksuiteDocHeader } from "@/components/chat/infra/blocksuite/docHeader";
 import { FileTextIcon } from "@phosphor-icons/react";
-import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import toast from "react-hot-toast";
 import { useNavigate } from "react-router";
 import { Subscription } from "rxjs";
@@ -17,7 +17,7 @@ import { ensureBlocksuiteDocHeader, setBlocksuiteDocHeader, subscribeBlocksuiteD
 import { finishBlocksuiteOpenSession, markBlocksuiteOpenSession } from "@/components/chat/infra/blocksuite/perf";
 import { loadBlocksuiteRuntime } from "@/components/chat/infra/blocksuite/runtime/runtimeLoader.browser";
 import { parseSpaceDocId } from "@/components/chat/infra/blocksuite/spaceDocId";
-import { useEntityHeaderOverrideStore } from "@/components/chat/stores/entityHeaderOverrideStore";
+// import { useEntityHeaderOverrideStore } from "@/components/chat/stores/entityHeaderOverrideStore";
 import { ResizableImg } from "@/components/common/resizableImg";
 import toastWindow from "@/components/common/toastWindow/toastWindow";
 import { ImgUploaderWithCopper } from "@/components/common/uploader/imgUploaderWithCropper";
@@ -1082,6 +1082,37 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
     event.preventDefault();
     handleOpenTcHeaderImagePreview();
   }, [handleOpenTcHeaderImagePreview]);
+
+  useEffect(() => {
+    const host = hostContainerRef.current;
+    if (!host)
+      return;
+
+    // Page mode should keep roughly one screen of trailing whitespace, minus one text line,
+    // so the last visible line can scroll close to the top of the viewport.
+    if (currentMode !== "page" || !(isFull || isEdgelessFullscreen || isBrowserFullscreen)) {
+      host.style.removeProperty("--tc-blocksuite-page-bottom-spacer");
+      return;
+    }
+
+    const lineHeightPx = 24;
+    const updateSpacer = () => {
+      const visibleHeight = host.clientHeight;
+      const spacer = Math.max(visibleHeight - lineHeightPx, 0);
+      host.style.setProperty("--tc-blocksuite-page-bottom-spacer", `${spacer}px`);
+    };
+
+    updateSpacer();
+    const resizeObserver = new ResizeObserver(() => {
+      updateSpacer();
+    });
+    resizeObserver.observe(host);
+
+    return () => {
+      resizeObserver.disconnect();
+      host.style.removeProperty("--tc-blocksuite-page-bottom-spacer");
+    };
+  }, [currentMode, isBrowserFullscreen, isEdgelessFullscreen, isFull]);
 
   return (
     <div className={rootClassName}>
