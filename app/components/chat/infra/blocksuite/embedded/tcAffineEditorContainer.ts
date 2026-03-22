@@ -48,10 +48,19 @@ class TCAffineEditorContainer extends SignalWatcher(
       flex-grow: 1;
       font-family: var(--affine-font-family);
       display: block;
+      min-height: 100%;
     }
 
     .playground-page-editor-container * {
       box-sizing: border-box;
+    }
+
+    .playground-page-editor-container::after {
+      content: "";
+      display: block;
+      height: calc(100% - 24px);
+      min-height: 0;
+      pointer-events: none;
     }
 
     @media print {
