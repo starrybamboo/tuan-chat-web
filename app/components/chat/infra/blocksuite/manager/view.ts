@@ -6,8 +6,10 @@ import { EdgelessZoomToolbarViewExtension } from "@blocksuite/affine-widget-edge
 import { NoteSlicerViewExtension } from "@blocksuite/affine-widget-note-slicer/view";
 import { AttachmentViewExtension } from "@blocksuite/affine/blocks/attachment/view";
 import { BookmarkViewExtension } from "@blocksuite/affine/blocks/bookmark/view";
+import { CodeBlockViewExtension } from "@blocksuite/affine/blocks/code/view";
 import { DataViewViewExtension } from "@blocksuite/affine/blocks/data-view/view";
 import { DatabaseViewExtension } from "@blocksuite/affine/blocks/database/view";
+import { DividerViewExtension } from "@blocksuite/affine/blocks/divider/view";
 import { EdgelessTextViewExtension } from "@blocksuite/affine/blocks/edgeless-text/view";
 import { EmbedDocViewExtension } from "@blocksuite/affine/blocks/embed-doc/view";
 import { EmbedViewExtension } from "@blocksuite/affine/blocks/embed/view";
@@ -130,6 +132,8 @@ const VIEW_EXTENSION_PROVIDERS: Partial<Record<SupportedBlocksuiteFeature, ViewP
   "data-view": DataViewViewExtension,
   "attachment": AttachmentViewExtension,
   "bookmark": BookmarkViewExtension,
+  "code": CodeBlockViewExtension,
+  "divider": DividerViewExtension,
   "embed": EmbedViewExtension,
   "embed-doc": EmbedDocViewExtension,
   "image": ImageViewExtension,

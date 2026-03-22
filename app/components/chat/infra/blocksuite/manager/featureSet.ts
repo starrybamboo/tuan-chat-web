@@ -19,6 +19,8 @@ export const SUPPORTED_BLOCKSUITE_FEATURES = [
   "data-view",
   "attachment",
   "bookmark",
+  "code",
+  "divider",
   "embed",
   "embed-doc",
   "image",
@@ -55,8 +57,6 @@ export type SupportedBlocksuiteFeature = typeof SUPPORTED_BLOCKSUITE_FEATURES[nu
 
 export const UNSUPPORTED_BLOCKSUITE_FEATURES = [
   "callout",
-  "code",
-  "divider",
   "brush",
   "shape",
   "mindmap",

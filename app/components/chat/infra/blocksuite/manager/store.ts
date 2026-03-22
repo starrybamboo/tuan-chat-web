@@ -4,8 +4,10 @@ import type { ExtensionType } from "@blocksuite/store";
 import { LinkPreviewCache, LinkPreviewService } from "@blocksuite/affine-shared/services";
 import { AttachmentStoreExtension } from "@blocksuite/affine/blocks/attachment/store";
 import { BookmarkStoreExtension } from "@blocksuite/affine/blocks/bookmark/store";
+import { CodeStoreExtension } from "@blocksuite/affine/blocks/code/store";
 import { DataViewStoreExtension } from "@blocksuite/affine/blocks/data-view/store";
 import { DatabaseStoreExtension } from "@blocksuite/affine/blocks/database/store";
+import { DividerStoreExtension } from "@blocksuite/affine/blocks/divider/store";
 import { EdgelessTextStoreExtension } from "@blocksuite/affine/blocks/edgeless-text/store";
 import { EmbedDocStoreExtension } from "@blocksuite/affine/blocks/embed-doc/store";
 import { EmbedStoreExtension } from "@blocksuite/affine/blocks/embed/store";
@@ -56,6 +58,8 @@ const STORE_EXTENSION_PROVIDERS: Partial<Record<SupportedBlocksuiteFeature, Stor
   "data-view": DataViewStoreExtension,
   "attachment": AttachmentStoreExtension,
   "bookmark": BookmarkStoreExtension,
+  "code": CodeStoreExtension,
+  "divider": DividerStoreExtension,
   "embed": EmbedStoreExtension,
   "embed-doc": EmbedDocStoreExtension,
   "image": ImageStoreExtension,
