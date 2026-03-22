@@ -46,6 +46,7 @@ function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEdito
 
   void intentPrewarm;
 
+  // 埋点：打开编辑器时触发，记录 workspaceId、docId 和 variant 以分析不同场景的打开速度表现
   useEffect(() => {
     startBlocksuiteOpenSession({
       instanceId,
@@ -57,11 +58,13 @@ function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEdito
 
   const isEdgelessFullscreenActive = allowModeSwitch && fullscreenEdgeless && frameMode === "edgeless";
 
+  // mention profile popover 相关逻辑
   const mention = useBlocksuiteMentionProfilePopover({
     navigate,
     onNavigate,
   });
 
+  // “给 BlockSuite iframe 准备初始化参数和样式参数”的整理器，主要把外部传入的状态加工成一组稳定、可直接给 iframe / 包裹层使用的数据。
   const frameInit = useBlocksuiteFrameInit({
     instanceId,
     workspaceId,
@@ -80,6 +83,7 @@ function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEdito
     hasFrameReadyOnce,
   });
 
+  // 负责在宿主页面与 BlockSuite iframe 之间同步参数、接收事件，并转发交互结果
   const bridge = useBlocksuiteFrameBridge({
     iframeRef,
     instanceId,
@@ -105,11 +109,13 @@ function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEdito
     handleMentionHoverMessage: mention.handleMentionHoverMessage,
   });
 
+  // 主题同步
   useBlocksuiteFrameThemeSync({
     iframeRef,
     instanceId,
   });
 
+  // 当进入 edgeless 全屏模式时，禁止宿主页面滚动以避免滚动穿透
   useEffect(() => {
     if (typeof document === "undefined")
       return;
@@ -123,10 +129,12 @@ function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEdito
     };
   }, [isEdgelessFullscreenActive]);
 
+  // 当 docId 变化时，重置 ready 状态以显示 loading skeleton
   useEffect(() => {
     setIsFrameReady(false);
   }, [docId]);
 
+  // 一旦 iframe ready 过一次，就算后续切 doc 了也不再显示 skeleton 了（除非再次切回初始 doc），以避免频繁切 doc 时的闪烁
   useEffect(() => {
     if (isFrameReady) {
       setHasFrameReadyOnce(true);

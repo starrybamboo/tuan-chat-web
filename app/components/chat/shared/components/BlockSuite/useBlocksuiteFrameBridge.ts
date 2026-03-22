@@ -41,6 +41,7 @@ type UseBlocksuiteFrameBridgeParams = {
   handleMentionHoverMessage: (data: any) => void;
 };
 
+// 负责在宿主页面与 BlockSuite iframe 之间同步参数、接收事件，并转发交互结果。
 export function useBlocksuiteFrameBridge(params: UseBlocksuiteFrameBridgeParams) {
   const {
     iframeRef,
@@ -71,10 +72,12 @@ export function useBlocksuiteFrameBridge(params: UseBlocksuiteFrameBridgeParams)
   const hostMentionDebugRemainingRef = useRef(0);
   const onNavigateRef = useRef(onNavigate);
 
+  // 保持 message 监听器里拿到的是最新 onNavigate，避免因回调变化反复重绑全局事件。
   useEffect(() => {
     onNavigateRef.current = onNavigate;
   }, [onNavigate]);
 
+  // 把当前文档参数同步给 iframe，用于 ready 后补发和后续外部参数更新。
   const postFrameParams = useCallback(() => {
     try {
       const frameWindow = iframeRef.current?.contentWindow;
@@ -118,6 +121,7 @@ export function useBlocksuiteFrameBridge(params: UseBlocksuiteFrameBridgeParams)
     workspaceId,
   ]);
 
+  // 同步宿主侧的基础运行信息，目前包括主题和自适应高度请求。
   const syncFrameBasics = useCallback(() => {
     try {
       const frameWindow = iframeRef.current?.contentWindow;
@@ -143,12 +147,14 @@ export function useBlocksuiteFrameBridge(params: UseBlocksuiteFrameBridgeParams)
     }
   }, [iframeRef, instanceId]);
 
+  // 订阅 iframe 的 postMessage，统一分发模式切换、高度回传、导航、mention、header 和 ready 事件。
   useEffect(() => {
     if (typeof window === "undefined")
       return;
 
     const expectedOrigin = window.location.origin;
 
+    // 只处理当前 iframe、当前实例发出的合法消息，避免串窗体或串实例。
     const onMessage = (e: MessageEvent) => {
       const originOk = !expectedOrigin || expectedOrigin === "null" ? true : e.origin === expectedOrigin;
       if (!originOk)
@@ -331,6 +337,7 @@ export function useBlocksuiteFrameBridge(params: UseBlocksuiteFrameBridgeParams)
     syncFrameBasics,
   ]);
 
+  // 仅在调试模式下监听宿主点击链路，辅助排查 mention 菜单被宿主事件打断的问题。
   useEffect(() => {
     if (!isBlocksuiteDebugEnabled())
       return;
@@ -338,6 +345,7 @@ export function useBlocksuiteFrameBridge(params: UseBlocksuiteFrameBridgeParams)
       return;
 
     const toLower = (v: unknown) => String(v ?? "").toLowerCase();
+    // 把宿主 DOM 节点压缩成可读摘要，避免调试日志输出整棵节点对象。
     const summarizeNode = (node: unknown) => {
       if (!(node instanceof Element))
         return null;
@@ -359,6 +367,7 @@ export function useBlocksuiteFrameBridge(params: UseBlocksuiteFrameBridgeParams)
       };
     };
 
+    // 在短时间窗口内采样宿主交互事件，定位 iframe 外部是否抢占了焦点或点击。
     const logHostEvent = (type: string, e: Event) => {
       const now = Date.now();
       if (now >= hostMentionDebugUntilRef.current)
@@ -391,6 +400,7 @@ export function useBlocksuiteFrameBridge(params: UseBlocksuiteFrameBridgeParams)
     };
   }, []);
 
+  // 当对外同步参数函数更新时，主动向 iframe 推送一次最新参数。
   useEffect(() => {
     postFrameParams();
   }, [postFrameParams]);

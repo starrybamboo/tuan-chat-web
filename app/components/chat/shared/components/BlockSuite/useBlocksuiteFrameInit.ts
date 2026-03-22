@@ -51,6 +51,7 @@ export function useBlocksuiteFrameInit(params: UseBlocksuiteFrameInitParams) {
     imageUrl?: string;
   } | null>(null);
 
+  // tcHeader 的 fallback 只在文档切换时更新，避免标题/封面抖动影响 iframe 初始化参数。
   if (tcHeaderEnabled) {
     const prev = frozenTcHeaderFallbackRef.current;
     if (!prev || prev.workspaceId !== workspaceId || prev.docId !== docId) {
@@ -70,6 +71,7 @@ export function useBlocksuiteFrameInit(params: UseBlocksuiteFrameInitParams) {
   const frozenTcHeaderImageUrl = frozenTcHeaderFallbackRef.current?.imageUrl;
 
   const initParams = useMemo(() => {
+    // query 参数统一转成 iframe 可消费的稳定字符串格式。
     return {
       instanceId,
       workspaceId,
@@ -99,6 +101,7 @@ export function useBlocksuiteFrameInit(params: UseBlocksuiteFrameInitParams) {
     workspaceId,
   ]);
 
+  // iframe 首次挂载后保持初始参数不变，避免 src 变化触发整帧重建。
   const frozenInitParamsRef = useRef(initParams);
   const frozenInitParams = frozenInitParamsRef.current;
 
@@ -112,6 +115,7 @@ export function useBlocksuiteFrameInit(params: UseBlocksuiteFrameInitParams) {
     return `/blocksuite-frame?${params.toString()}`;
   }, [frozenInitParams]);
 
+  // 外部如果已经显式传了高度类，这里就不要再额外补默认高度。
   const hasExplicitHeightClass = useMemo(() => {
     const value = (className ?? "").trim();
     if (!value)
@@ -123,6 +127,7 @@ export function useBlocksuiteFrameInit(params: UseBlocksuiteFrameInitParams) {
     ? iframeHeight
     : undefined;
 
+  // 首次 ready 之前先隐藏 iframe，避免未初始化内容闪烁。
   const shouldHideFrame = !hasFrameReadyOnce && !isFrameReady;
 
   const wrapperClassName = isEdgelessFullscreenActive
