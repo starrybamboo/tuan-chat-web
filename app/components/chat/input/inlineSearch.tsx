@@ -45,6 +45,10 @@ function SearchBar({ className = "" }: SearchBarProps) {
   }, [roomId]);
 
   useEffect(() => {
+    if (!debouncedSearchText) {
+      return;
+    }
+
     let cancelled = false;
     const missingIds = roleIds.filter(id => !roleCacheRef.current.has(id));
     if (missingIds.length === 0) {
@@ -90,7 +94,7 @@ function SearchBar({ className = "" }: SearchBarProps) {
     return () => {
       cancelled = true;
     };
-  }, [getRoleSmartly, roleIds]);
+  }, [debouncedSearchText, getRoleSmartly, roleIds]);
 
   const searchResult = useMemo(() => {
     if (!debouncedSearchText || debouncedSearchText.length === 0)

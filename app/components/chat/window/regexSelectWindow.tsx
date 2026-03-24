@@ -1,6 +1,7 @@
 import type { ChatMessageResponse } from "../../../../api";
 import React, { useCallback, useMemo, useState } from "react";
 import { PreviewMessage } from "@/components/chat/message/preview/previewMessage";
+import { isOutOfCharacterSpeech } from "@/components/chat/utils/outOfCharacterSpeech";
 
 type FilterAction = "remove" | "keep";
 
@@ -72,7 +73,7 @@ export default function RegexSelectWindow({ sourceMessages, onApplyFilter, onClo
       .filter((msg) => {
         const rawContent = typeof msg.message.content === "string" ? msg.message.content : "";
         const isOutOfCharacterMatched = filterOutOfCharacterSpeech
-          ? rawContent.trimStart().startsWith("(") || rawContent.trimStart().startsWith("（")
+          ? isOutOfCharacterSpeech(rawContent)
           : false;
 
         const text = extractSearchText(msg);
@@ -147,7 +148,7 @@ export default function RegexSelectWindow({ sourceMessages, onApplyFilter, onClo
         <span className="text-sm">场外发言过滤</span>
       </label>
       <p className="-mt-2 text-xs text-base-content/50">
-        开启后，所有以
+        开启后，只有首字符为
         {" "}
         <code>(</code>
         {" "}
@@ -155,7 +156,15 @@ export default function RegexSelectWindow({ sourceMessages, onApplyFilter, onClo
         {" "}
         <code>（</code>
         {" "}
-        为开头的发言都将被过滤
+        且末字符为
+        {" "}
+        <code>)</code>
+        {" "}
+        或
+        {" "}
+        <code>）</code>
+        {" "}
+        的发言会被视为场外发言
       </p>
 
       {/* 正则错误提示 */}

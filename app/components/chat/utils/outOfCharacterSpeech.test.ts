@@ -1,11 +1,11 @@
 import { buildOutOfCharacterSpeechContent, isOutOfCharacterSpeech } from "./outOfCharacterSpeech";
 
 describe("isOutOfCharacterSpeech", () => {
-  it("识别英文左括号开头的消息", () => {
+  it("识别被英文括号完整包裹的消息", () => {
     expect(isOutOfCharacterSpeech("(场外一句话)")).toBe(true);
   });
 
-  it("识别中文左括号开头的消息", () => {
+  it("识别被中文括号完整包裹的消息", () => {
     expect(isOutOfCharacterSpeech("（场外一句话）")).toBe(true);
   });
 
@@ -15,6 +15,15 @@ describe("isOutOfCharacterSpeech", () => {
 
   it("前面有空格时不算场外发言", () => {
     expect(isOutOfCharacterSpeech(" (不是严格开头)")).toBe(false);
+  });
+
+  it("只有开头是左括号但结尾不是右括号时不算场外发言", () => {
+    expect(isOutOfCharacterSpeech("（前，前辈！）\n交给我吧！")).toBe(false);
+    expect(isOutOfCharacterSpeech("(场外一句话")).toBe(false);
+  });
+
+  it("结尾有空白时仍按最后一个非空白字符判断", () => {
+    expect(isOutOfCharacterSpeech("（场外一句话）  ")).toBe(true);
   });
 
   it("空内容不算场外发言", () => {
