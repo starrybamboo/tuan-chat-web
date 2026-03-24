@@ -41,6 +41,10 @@ export default function MobileSearchPage({ isOpen, onClose }: MobileSearchPagePr
   }, [roomId]);
 
   useEffect(() => {
+    if (!debouncedSearchText) {
+      return;
+    }
+
     let cancelled = false;
     const missingIds = roleIds.filter(id => !roleCacheRef.current.has(id));
     if (missingIds.length === 0) {
@@ -86,7 +90,7 @@ export default function MobileSearchPage({ isOpen, onClose }: MobileSearchPagePr
     return () => {
       cancelled = true;
     };
-  }, [getRoleSmartly, roleIds]);
+  }, [debouncedSearchText, getRoleSmartly, roleIds]);
 
   const searchResult = useMemo(() => {
     if (!debouncedSearchText || debouncedSearchText.length === 0)

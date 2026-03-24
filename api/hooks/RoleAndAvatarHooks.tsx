@@ -31,6 +31,7 @@ import {
 import type { Role } from '@/components/Role/types';
 import { ROLE_DEFAULT_AVATAR_URL } from '@/constants/defaultAvatar';
 import { shouldRetryRoleQueryError } from "@/utils/roleApiError";
+import { seedUserRoleListQueryCache, seedUserRoleQueryCache } from "../roleQueryCache";
 
 export function seedRoleAvatarQueryCaches(queryClient: any, avatar: RoleAvatar, roleId?: number): void {
   const avatarId = avatar.avatarId;
@@ -160,9 +161,14 @@ function patchGetRoleQueryCache(old: any, next: any, resolvedRoleId: number) {
  * @param roleId 角色ID
  */
 export function useGetRoleQuery(roleId: number) {
+  const queryClient = useQueryClient();
   return useQuery({
     queryKey: ['getRole', roleId],
-    queryFn: () => tuanchat.roleController.getRole(roleId),
+    queryFn: async () => {
+      const res = await tuanchat.roleController.getRole(roleId);
+      seedUserRoleQueryCache(queryClient, res.data);
+      return res;
+    },
     staleTime: 600000, // 10分钟缓存
     retry: shouldRetryRoleQueryError,
     retryOnMount: false,
@@ -1359,10 +1365,12 @@ async function fetchUserRolesByTypes(userId: number, types: number[]): Promise<U
  * @param userId 用户ID
  */
 export function useGetUserRolesQuery(userId: number) {
+  const queryClient = useQueryClient();
   return useQuery({
     queryKey: ['getUserRoles', userId],
     queryFn: async () => {
       const data = await fetchUserRolesByTypes(userId, [0, 1]);
+      seedUserRoleListQueryCache(queryClient, data);
       return {
         success: true,
         data,
@@ -1387,9 +1395,14 @@ async function fetchUserRolesByType(userId: number, type: number): Promise<UserR
  * @param type  0=角色,1=骰娘,2=NPC
  */
 export function useGetUserRolesByTypeQuery(userId: number, type: number) {
+  const queryClient = useQueryClient();
   return useQuery({
     queryKey: ["getUserRolesByType", userId, type],
-    queryFn: () => fetchUserRolesByType(userId, type),
+    queryFn: async () => {
+      const data = await fetchUserRolesByType(userId, type);
+      seedUserRoleListQueryCache(queryClient, data);
+      return data;
+    },
     staleTime: 600000,
     enabled: typeof userId === "number" && !Number.isNaN(userId) && userId > 0,
   });
