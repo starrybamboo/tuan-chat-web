@@ -2,7 +2,7 @@
 
 本文档只回答一件事：
 
-**当前 `codex/blocksuite-iframe-boundary` 分支，相对 `dev` 分支到底改了什么，以及这些改动为什么让冷启动更快。**
+**历史上的 `boundary` 实验分支，相对 `dev` 分支到底改了什么，以及这些改动为什么让冷启动更快。**
 
 这里不展开已经试过又撤掉的 standalone 独立 html 方案，只看最后保留下来的净结果。
 
@@ -10,7 +10,7 @@
 
 ## 1. 结论
 
-相对 `dev`，当前 `boundary` 方案可以视为一次**纯优化**：
+相对当时的 `dev`，`boundary` 方案可以视为一次**纯优化**：
 
 - 业务入口仍然是 `/blocksuite-frame` React Router 路由
 - 不需要独立 html 入口，也不需要额外 dev middleware
@@ -37,11 +37,7 @@
 
 `dev` 里的 `/blocksuite-frame` 会直接承载较重的运行时装配。
 
-`boundary` 里路由本身只保留：
-
-- 轻量 fallback
-- 单次 `lazy(() => import(...))`
-- 把真正的 BlockSuite 客户端逻辑放进单一 browser-only client chunk
+`boundary` 当时把路由收敛成轻量壳，并把真正的 BlockSuite 客户端逻辑放进单一 browser-only client chunk。
 
 这一步的意义是：
 
@@ -83,7 +79,7 @@
 
 相关文件：
 
-- [`/Users/chxr/Projects/tuan-chat-web/app/components/chat/shared/components/blocksuiteDescriptionEditor.tsx`](/Users/chxr/Projects/tuan-chat-web/app/components/chat/shared/components/blocksuiteDescriptionEditor.tsx)
+- [`/Users/chxr/Projects/tuan-chat-web/app/components/chat/shared/components/BlockSuite/blocksuiteDescriptionEditor.tsx`](/Users/chxr/Projects/tuan-chat-web/app/components/chat/shared/components/BlockSuite/blocksuiteDescriptionEditor.tsx)
 
 相对 `dev`，这个文件最大的变化是：
 
@@ -115,7 +111,7 @@
 - 运行时样式拼接注入
 - 无效的临场 prewarm
 
-当前 `boundary` 的正式路径已经不再依赖它们。
+这些内容是历史优化上下文，不代表当前仓库里仍然保留这些旧文件。
 
 ### 2.5 其它配套修正
 
@@ -188,14 +184,14 @@
 
 ## 5. 当前判断
 
-基于现有结果，可以把 `boundary` 相对 `dev` 视为一次纯优化：
+基于这组历史结果，可以把 `boundary` 相对当时的 `dev` 视为一次纯优化：
 
 - 冷启动更快
 - 工程复杂度低于 standalone 独立 html 方案
 - 业务入口仍然维持 `/blocksuite-frame`
 - 不需要额外保留一套 standalone 正式路径
 
-因此后续优化重点不再是“route 还是 standalone”，而应该转向：
+按这份历史样本，当时后续优化重点不再是“route 还是 standalone”，而应该转向：
 
 - `frameEntryDelayMs`
 - route client chunk 的模块体量与碎片化
