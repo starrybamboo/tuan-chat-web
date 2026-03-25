@@ -4,6 +4,7 @@
 
 必读（需求口径与概念对齐）：
 - 业务需求说明（后续需求变更都更新这里）：`BUSINESS.md`
+- 目录字典（目录职责与源码索引）：`DIRECTORY.md`
 - 内部数据结构/术语对照：`INTERNAL-DATA.md`
 - 常见问题排查（标题/SlashMenu/Edgeless/样式等）：`TROUBLESHOOTING.md`
 - 学习路线（从 BlockSuite 源码到本项目集成）：`LEARNING-PATH.md`
