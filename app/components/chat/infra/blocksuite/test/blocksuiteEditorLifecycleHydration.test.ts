@@ -9,7 +9,7 @@ import {
   shouldUseRemoteFirstHydration,
   waitForRemoteHydrationSettled,
   waitForRemoteSnapshotDecision,
-} from "./blocksuiteEditorLifecycleHydration";
+} from "../frame/blocksuiteEditorLifecycleHydration";
 
 vi.mock("@/components/chat/infra/blocksuite/descriptionDocRemote", () => ({
   getRemoteSnapshot: vi.fn(),
