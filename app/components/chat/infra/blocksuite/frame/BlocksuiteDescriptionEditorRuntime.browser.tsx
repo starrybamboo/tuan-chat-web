@@ -181,16 +181,11 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
   useEffect(() => {
     if (!isBlocksuiteDebugEnabled())
       return;
+    const inIframe = isProbablyInIframe();
+    const msg = { docId, workspaceId, spaceId, variant, inIframe, instanceId: props.instanceId ?? null };
+    console.warn("[BlocksuiteMentionHost] runtime mount", msg);
     try {
-      const inIframe = isProbablyInIframe();
-      const msg = { docId, workspaceId, spaceId, variant, inIframe, instanceId: props.instanceId ?? null };
-      console.warn("[BlocksuiteMentionHost] runtime mount", msg);
-      try {
-        (globalThis as any).__tcBlocksuiteDebugLog?.({ source: "BlocksuiteMentionHost", message: "runtime mount", payload: msg });
-      }
-      catch {
-        // ignore
-      }
+      (globalThis as any).__tcBlocksuiteDebugLog?.({ source: "BlocksuiteMentionHost", message: "runtime mount", payload: msg });
     }
     catch {
       // ignore
@@ -279,40 +274,30 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
       return;
 
     // Keep blocksuite workspace meta in sync (linked-doc/@ search uses meta.title).
-    try {
-      const runtime = runtimeRef.current;
-      runtime?.ensureDocMeta?.({ workspaceId, docId, title: tcHeaderState.header.title });
-    }
-    catch {
-      // ignore
-    }
+    const runtime = runtimeRef.current;
+    runtime?.ensureDocMeta?.({ workspaceId, docId, title: tcHeaderState.header.title });
 
     // Notify host (iframe parent or same-window callers).
-    try {
-      const payload = {
-        tc: "tc-blocksuite-frame",
-        instanceId,
-        type: "tc-header",
-        docId,
-        entityType: tcHeaderEntity?.entityType,
-        entityId: tcHeaderEntity?.entityId,
-        header: tcHeaderState.header,
-      };
+    const payload = {
+      tc: "tc-blocksuite-frame",
+      instanceId,
+      type: "tc-header",
+      docId,
+      entityType: tcHeaderEntity?.entityType,
+      entityId: tcHeaderEntity?.entityId,
+      header: tcHeaderState.header,
+    };
 
-      if (isProbablyInIframe()) {
-        postToParent(payload);
-      }
+    if (isProbablyInIframe()) {
+      postToParent(payload);
+    }
 
-      onTcHeaderChange?.({
-        docId,
-        entityType: tcHeaderEntity?.entityType,
-        entityId: tcHeaderEntity?.entityId,
-        header: tcHeaderState.header,
-      });
-    }
-    catch {
-      // ignore
-    }
+    onTcHeaderChange?.({
+      docId,
+      entityType: tcHeaderEntity?.entityType,
+      entityId: tcHeaderEntity?.entityId,
+      header: tcHeaderState.header,
+    });
   }, [docId, instanceId, onTcHeaderChange, tcHeaderEnabled, tcHeaderEntity?.entityId, tcHeaderEntity?.entityType, tcHeaderState, workspaceId]);
 
   useEffect(() => {
@@ -427,24 +412,14 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
 
   useEffect(() => {
     if (allowModeSwitch) {
-      try {
-        const initial = docModeProvider.getPrimaryMode(docId);
-        currentModeRef.current = initial;
-        setCurrentMode(initial);
-      }
-      catch {
-        // ignore
-      }
+      const initial = docModeProvider.getPrimaryMode(docId);
+      currentModeRef.current = initial;
+      setCurrentMode(initial);
       return;
     }
 
     // 兼容旧行为：当不允许切换时，外部传入的 mode 仍然是“强制模式”。
-    try {
-      docModeProvider.setPrimaryMode(forcedMode, docId);
-    }
-    catch {
-      // ignore
-    }
+    docModeProvider.setPrimaryMode(forcedMode, docId);
   }, [allowModeSwitch, docId, docModeProvider, forcedMode]);
 
   useEffect(() => {
@@ -507,23 +482,18 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
       // 1) 优先给远端快照一个很短的窗口，超时就继续本地内容渲染（本地优先）。
       // 这样既能在快网下尽量保持“先远端快照后初始化”的一致性，又避免慢网阻塞打开文档。
       if (!abort.signal.aborted) {
-        try {
-          const fastRestore = await Promise.race([
-            remoteSnapshotUpdateTask.then(update => ({ timedOut: false as const, update })),
-            new Promise<{ timedOut: true; update: null }>((resolve) => {
-              fastRestoreTimeout = setTimeout(() => {
-                fastRestoreTimeout = null;
-                resolve({ timedOut: true, update: null });
-              }, REMOTE_HYDRATE_FAST_WAIT_MS);
-            }),
-          ]);
-          if (!fastRestore.timedOut && fastRestore.update?.length) {
-            restoreSnapshotUpdate(fastRestore.update);
-            hasRestoredRemoteBeforeEditorReady = true;
-          }
-        }
-        catch {
-          // ignore
+        const fastRestore = await Promise.race([
+          remoteSnapshotUpdateTask.then(update => ({ timedOut: false as const, update })),
+          new Promise<{ timedOut: true; update: null }>((resolve) => {
+            fastRestoreTimeout = setTimeout(() => {
+              fastRestoreTimeout = null;
+              resolve({ timedOut: true, update: null });
+            }, REMOTE_HYDRATE_FAST_WAIT_MS);
+          }),
+        ]);
+        if (!fastRestore.timedOut && fastRestore.update?.length) {
+          restoreSnapshotUpdate(fastRestore.update);
+          hasRestoredRemoteBeforeEditorReady = true;
         }
       }
 
@@ -612,20 +582,12 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
 
           const go = (to: string) => {
             if (isProbablyInIframe()) {
-              try {
-                window.parent.postMessage(
-                  {
-                    tc: "tc-blocksuite-frame",
-                    type: "navigate",
-                    to,
-                  },
-                  getPostMessageTargetOrigin(),
-                );
-                return;
-              }
-              catch {
-                // ignore
-              }
+              postToParent({
+                tc: "tc-blocksuite-frame",
+                type: "navigate",
+                to,
+              });
+              return;
             }
             navigateRef.current(to);
           };
@@ -656,14 +618,9 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
       (editor as any).style.height = isFullInEffect ? "100%" : "auto";
 
       if (readOnlyRef.current) {
-        try {
-          (editor as any).readOnly = true;
-          (editor as any).readonly = true;
-          (editor as any).setAttribute?.("readonly", "true");
-        }
-        catch {
-          // ignore
-        }
+        (editor as any).readOnly = true;
+        (editor as any).readonly = true;
+        (editor as any).setAttribute?.("readonly", "true");
       }
 
       editorRef.current = editor as unknown as HTMLElement;
@@ -691,14 +648,9 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
       // Signal host after first paint so it can hide the skeleton.
       if (isProbablyInIframe()) {
         requestAnimationFrame(() => {
-          try {
-            markBlocksuiteOpenSession(instanceIdRef.current ?? "", "render-ready");
-            finishBlocksuiteOpenSession(instanceIdRef.current ?? "");
-            postToParent({ tc: "tc-blocksuite-frame", instanceId: instanceIdRef.current, type: "render-ready" });
-          }
-          catch {
-            // ignore
-          }
+          markBlocksuiteOpenSession(instanceIdRef.current ?? "", "render-ready");
+          finishBlocksuiteOpenSession(instanceIdRef.current ?? "");
+          postToParent({ tc: "tc-blocksuite-frame", instanceId: instanceIdRef.current, type: "render-ready" });
         });
       }
 
@@ -781,12 +733,7 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
         clearTimeout(fastRestoreTimeout);
         fastRestoreTimeout = null;
       }
-      try {
-        unsubscribeHeader?.();
-      }
-      catch {
-        // ignore
-      }
+      unsubscribeHeader?.();
       runtimeRef.current = null;
       docRuntimeRef.current = null;
 
@@ -810,12 +757,7 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
 
       editorRef.current = null;
       storeRef.current = null;
-      try {
-        container.replaceChildren();
-      }
-      catch {
-        // ignore
-      }
+      container.replaceChildren();
 
       if (typeof window !== "undefined" && import.meta.env.DEV) {
         const g = globalThis as any;
@@ -853,17 +795,12 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
     if (!editor)
       return;
 
-    try {
-      editor.readOnly = readOnly;
-      editor.readonly = readOnly;
-      if (readOnly)
-        editor.setAttribute?.("readonly", "true");
-      else
-        editor.removeAttribute?.("readonly");
-    }
-    catch {
-      // ignore
-    }
+    editor.readOnly = readOnly;
+    editor.readonly = readOnly;
+    if (readOnly)
+      editor.setAttribute?.("readonly", "true");
+    else
+      editor.removeAttribute?.("readonly");
   }, [readOnly]);
 
   const isEdgelessFullscreen = allowModeSwitch && fullscreenEdgeless && currentMode === "edgeless";
@@ -876,13 +813,8 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
       return;
 
     const onChange = () => {
-      try {
-        const docAny = document as any;
-        setIsBrowserFullscreen(Boolean(docAny.fullscreenElement ?? docAny.webkitFullscreenElement ?? docAny.msFullscreenElement));
-      }
-      catch {
-        setIsBrowserFullscreen(false);
-      }
+      const docAny = document as any;
+      setIsBrowserFullscreen(Boolean(docAny.fullscreenElement ?? docAny.webkitFullscreenElement ?? docAny.msFullscreenElement));
     };
 
     onChange();
@@ -1003,36 +935,16 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
 
     return () => {
       if (rafId !== null) {
-        try {
-          cancelAnimationFrame(rafId);
-        }
-        catch {
-          // ignore
-        }
+        cancelAnimationFrame(rafId);
       }
       if (t0) {
-        try {
-          clearTimeout(t0);
-        }
-        catch {
-          // ignore
-        }
+        clearTimeout(t0);
       }
       if (t1) {
-        try {
-          clearTimeout(t1);
-        }
-        catch {
-          // ignore
-        }
+        clearTimeout(t1);
       }
       if (t2) {
-        try {
-          clearTimeout(t2);
-        }
-        catch {
-          // ignore
-        }
+        clearTimeout(t2);
       }
     };
   }, [currentMode, isBrowserFullscreen, isEdgelessFullscreen, isFull]);
