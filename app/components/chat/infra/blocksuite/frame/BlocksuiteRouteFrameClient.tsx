@@ -62,72 +62,53 @@ function querySelectorDeep<T extends Element>(root: ParentNode | null, selector:
   return null;
 }
 
-function getBlocksuiteMeasuredScrollHeight(): number {
-  // 编辑器内部混合了 light DOM 和 shadowRoot，这里统一做深度查询。
-  const editorContainer = document.querySelector("tc-affine-editor-container, affine-editor-container") as Element | null;
-  const rootForQuery: ParentNode = ((editorContainer as Element & { shadowRoot?: ShadowRoot | null })?.shadowRoot) ?? editorContainer ?? document;
+function measureElement(el: HTMLElement | null): number {
+  if (!el)
+    return 0;
+  const rectH = Math.ceil(el.getBoundingClientRect?.().height ?? 0);
+  const scrollH = Math.ceil(el.scrollHeight ?? 0);
+  return Math.max(rectH, scrollH);
+}
 
-  const measureElement = (el: HTMLElement | null): number => {
-    if (!el)
-      return 0;
-    const rectH = Math.ceil(el.getBoundingClientRect?.().height ?? 0);
-    const scrollH = Math.ceil(el.scrollHeight ?? 0);
-    return Math.max(rectH, scrollH);
-  };
-
-  const primaryCandidates = [
-    ".affine-page-root-block-container",
-    "affine-page-root",
-    ".page-editor",
-    "editor-host",
-  ];
-  const docTitleCandidates = [
-    ".doc-title-container",
-    "doc-title",
-  ];
-  const tcHeaderCandidates = [
-    ".tc-blocksuite-tc-header",
-  ];
-  const fallbackCandidates = [
-    ".affine-page-viewport",
-    ".affine-edgeless-viewport",
-  ];
-
-  let primaryMax = 0;
-  for (const sel of primaryCandidates) {
-    primaryMax = Math.max(primaryMax, measureElement(querySelectorDeep<HTMLElement>(rootForQuery, sel)));
-  }
-
-  let docTitleHeight = 0;
-  for (const sel of docTitleCandidates) {
-    docTitleHeight = Math.max(docTitleHeight, measureElement(querySelectorDeep<HTMLElement>(rootForQuery, sel)));
-  }
-
-  let tcHeaderHeight = 0;
-  for (const sel of tcHeaderCandidates) {
-    tcHeaderHeight = Math.max(tcHeaderHeight, measureElement(document.querySelector<HTMLElement>(sel)));
-  }
-
-  let fallbackMax = 0;
-  for (const sel of fallbackCandidates) {
-    fallbackMax = Math.max(fallbackMax, measureElement(querySelectorDeep<HTMLElement>(rootForQuery, sel)));
-  }
-
-  const docH = Math.max(
+function getDocumentScrollHeight(): number {
+  return Math.max(
     document.documentElement?.scrollHeight ?? 0,
     document.body?.scrollHeight ?? 0,
   );
+}
 
-  if (primaryMax > 0 || docTitleHeight > 0 || tcHeaderHeight > 0) {
-    const combinedPrimary = primaryMax > 0 && docTitleHeight > 0
-      ? primaryMax + docTitleHeight
-      : Math.max(primaryMax, docTitleHeight);
-    const combinedWithHeader = combinedPrimary + tcHeaderHeight;
-    const cappedFallback = fallbackMax > 0 ? Math.min(fallbackMax, combinedWithHeader) : 0;
-    return Math.max(combinedWithHeader, cappedFallback);
+function getBlocksuiteMeasuredScrollHeight(params: {
+  currentMode: DocMode;
+  tcHeaderEnabled: boolean;
+}): number {
+  const { currentMode, tcHeaderEnabled } = params;
+
+  // 编辑器内部混合了 light DOM 和 shadowRoot，这里统一做深度查询。
+  const editorContainer = document.querySelector("tc-affine-editor-container, affine-editor-container") as Element | null;
+  const rootForQuery: ParentNode = ((editorContainer as Element & { shadowRoot?: ShadowRoot | null })?.shadowRoot) ?? editorContainer ?? document;
+  const documentHeight = getDocumentScrollHeight();
+
+  if (currentMode === "edgeless") {
+    const viewportHeight = measureElement(
+      querySelectorDeep<HTMLElement>(rootForQuery, ".affine-edgeless-viewport"),
+    );
+    return viewportHeight > 0 ? viewportHeight : documentHeight;
   }
 
-  return Math.max(fallbackMax, docH);
+  const primaryHeight = measureElement(
+    querySelectorDeep<HTMLElement>(rootForQuery, ".affine-page-root-block-container"),
+  );
+  if (primaryHeight <= 0)
+    return documentHeight;
+
+  const docTitleHeight = measureElement(
+    querySelectorDeep<HTMLElement>(rootForQuery, "doc-title"),
+  );
+  const tcHeaderHeight = tcHeaderEnabled
+    ? measureElement(document.querySelector<HTMLElement>(".tc-blocksuite-tc-header"))
+    : 0;
+
+  return primaryHeight + docTitleHeight + tcHeaderHeight;
 }
 
 function readInitialFrameState() {
@@ -183,7 +164,7 @@ export function BlocksuiteRouteFrameClient() {
 
   useEffect(() => {
     let cancelled = false;
-    // 老方案里多段动态启动的最后一段已经收口到 ensureBlocksuiteBrowserRuntime。
+    // frame 现在统一通过单段 browser bootstrap 启动。
     markBlocksuiteOpenSession(instanceId, "frame-bootstrap-start");
 
     void ensureBlocksuiteBrowserRuntime().then(() => {
@@ -258,7 +239,10 @@ export function BlocksuiteRouteFrameClient() {
 
     const postHeight = () => {
       raf = 0;
-      const height = getBlocksuiteMeasuredScrollHeight();
+      const height = getBlocksuiteMeasuredScrollHeight({
+        currentMode,
+        tcHeaderEnabled,
+      });
       postToParent({ tc: "tc-blocksuite-frame", instanceId, type: "height", height });
     };
 
@@ -295,7 +279,7 @@ export function BlocksuiteRouteFrameClient() {
       observer.disconnect();
       window.removeEventListener("resize", onResize);
     };
-  }, [instanceId]);
+  }, [currentMode, instanceId, tcHeaderEnabled]);
 
   useEffect(() => {
     const onMessage = (event: MessageEvent) => {

@@ -1,9 +1,8 @@
 import type { DocMode } from "@blocksuite/affine/model";
 import type { DescriptionEntityType } from "@/components/chat/infra/blocksuite/descriptionDocId";
 import type { BlocksuiteDocHeader } from "@/components/chat/infra/blocksuite/docHeader";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
-import { useNavigate } from "react-router";
 import { base64ToUint8Array } from "@/components/chat/infra/blocksuite/base64";
 import { isBlocksuiteDebugEnabled } from "@/components/chat/infra/blocksuite/debugFlags";
 import { parseDescriptionDocId } from "@/components/chat/infra/blocksuite/descriptionDocId";
@@ -109,16 +108,6 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
     onModeChange,
   } = props;
 
-  const navigate = useNavigate();
-  const navigateRef = useRef(navigate);
-  useEffect(() => {
-    navigateRef.current = navigate;
-  }, [navigate]);
-
-  const navigateTo = useCallback((to: string) => {
-    navigateRef.current(to);
-  }, []);
-
   const isFull = variant === "full";
   const [isForcePullingCloud, setIsForcePullingCloud] = useState(false);
   const tcHeaderEnabled = Boolean(tcHeader?.enabled);
@@ -187,7 +176,6 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
     currentModeRef,
     isFull,
     postToParent,
-    navigateTo,
   });
 
   const {
@@ -236,17 +224,11 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
       const runtime = runtimeRef.current ?? await loadBlocksuiteRuntime();
       runtimeRef.current = runtime;
       const workspace = runtime.getOrCreateWorkspace(workspaceId) as any;
-      if (typeof workspace.replaceDocFromUpdate === "function") {
-        workspace.replaceDocFromUpdate({ docId, update });
-      }
-      else if (typeof workspace.restoreDocFromUpdate === "function") {
-        // fallback: old runtime only supports merge restore
-        workspace.restoreDocFromUpdate({ docId, update });
-      }
-      else {
+      if (typeof workspace.replaceDocFromUpdate !== "function") {
         toast.error("当前运行时不支持云端覆盖");
         return;
       }
+      workspace.replaceDocFromUpdate({ docId, update });
 
       triggerReload();
       toast.success("已用云端内容覆盖本地");
