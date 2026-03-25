@@ -8,7 +8,7 @@
 
 不在本文档展开的内容：
 - 业务需求口径：看 `BUSINESS.md`
-- 运行时链路细节：看 `frame/ARCHITECTURE.md`
+- 运行时链路细节：看 `architecture/FRAME-DEEP-DIVE.md`
 - 常见故障排查：看 `TROUBLESHOOTING.md`
 
 ## 0. 子目录架构文档索引
@@ -20,6 +20,7 @@
 - `editors/`：`architecture/EDITORS.md`
 - `embedded/`：`architecture/EMBEDDED.md`
 - `frame/`：`architecture/FRAME.md`
+- `frame/` 深入链路：`architecture/FRAME-DEEP-DIVE.md`
 - `manager/`：`architecture/MANAGER.md`
 - `runtime/`：`architecture/RUNTIME.md`
 - `services/`：`architecture/SERVICES.md`
@@ -272,7 +273,7 @@ Blocksuite 打开链路性能埋点与 session 标记。
 ### `frame/`
 
 `app/components/chat/infra/blocksuite/frame/ARCHITECTURE.md`
-- iframe 方案架构文档。
+- 兼容跳转文件，实际深度文档已迁到 `doc/architecture/FRAME-DEEP-DIVE.md`。
 
 `app/components/chat/infra/blocksuite/frame/BlocksuiteDescriptionEditorRuntime.browser.tsx`
 - iframe 内 description editor runtime orchestrator。
