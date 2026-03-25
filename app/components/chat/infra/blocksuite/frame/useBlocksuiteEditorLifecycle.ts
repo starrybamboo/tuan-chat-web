@@ -6,17 +6,19 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import type { BlocksuiteDocHeader } from "@/components/chat/infra/blocksuite/docHeader";
 
-import { base64ToUint8Array } from "@/components/chat/infra/blocksuite/base64";
-import { isNonRetryableBlocksuiteDocError } from "@/components/chat/infra/blocksuite/blocksuiteDocError";
 import { isBlocksuiteDebugEnabled } from "@/components/chat/infra/blocksuite/debugFlags";
-import { parseDescriptionDocId } from "@/components/chat/infra/blocksuite/descriptionDocId";
-import { getRemoteSnapshot } from "@/components/chat/infra/blocksuite/descriptionDocRemote";
 import { ensureBlocksuiteDocHeader, subscribeBlocksuiteDocHeader } from "@/components/chat/infra/blocksuite/docHeader";
 import { finishBlocksuiteOpenSession, markBlocksuiteOpenSession } from "@/components/chat/infra/blocksuite/perf";
 import { loadBlocksuiteRuntime } from "@/components/chat/infra/blocksuite/runtime/runtimeLoader.browser";
 import { parseSpaceDocId } from "@/components/chat/infra/blocksuite/spaceDocId";
-
-const REMOTE_HYDRATE_FAST_WAIT_MS = 250;
+import {
+  INITIAL_REMOTE_HYDRATION_WAIT_MS,
+  LATE_REMOTE_HYDRATION_WAIT_MS,
+  shouldDelayRenderReady,
+  shouldEnsureTcHeaderFallback,
+  warmDescriptionRemoteSnapshot,
+  waitForRemoteHydrationSettled,
+} from "./blocksuiteEditorLifecycleHydration";
 
 function warnNonFatalBlocksuiteError(message: string, error: unknown) {
   console.warn(message, error);
@@ -93,11 +95,11 @@ export function useBlocksuiteEditorLifecycle(params: UseBlocksuiteEditorLifecycl
       return;
 
     const abort = new AbortController();
-    let fastRestoreTimeout: ReturnType<typeof setTimeout> | null = null;
     let createdEditor: any = null;
     let createdStore: any = null;
     let unsubscribeHeader: (() => void) | null = null;
     let retainedRuntime: Awaited<ReturnType<typeof loadBlocksuiteRuntime>> | null = null;
+    let hasPostedRenderReady = false;
 
     void (async () => {
       const runtime = await loadBlocksuiteRuntime();
@@ -110,86 +112,12 @@ export function useBlocksuiteEditorLifecycle(params: UseBlocksuiteEditorLifecycl
 
       const workspace = runtime.getOrCreateWorkspace(workspaceId);
       docRuntimeRef.current = { workspace, docId };
-      const runtimeWs = workspace as any;
-      const restoreSnapshotUpdate = (update: Uint8Array) => {
-        if (!update?.length)
-          return;
-        if (typeof runtimeWs.restoreDocFromUpdate === "function") {
-          runtimeWs.restoreDocFromUpdate({ docId, update });
-        }
-      };
-
-      const remoteSnapshotUpdateTask = (async (): Promise<Uint8Array | null> => {
-        try {
-          const key = parseDescriptionDocId(docId);
-          if (!key) {
-            return null;
-          }
-          const remote = await getRemoteSnapshot(key);
-          if (!remote?.updateB64) {
-            return null;
-          }
-          return base64ToUint8Array(remote.updateB64);
-        }
-        catch (error) {
-          if (!isNonRetryableBlocksuiteDocError(error)) {
-            console.error("[BlocksuiteDescriptionEditor] Failed to restore remote snapshot", error);
-          }
-          return null;
-        }
-      })();
-      let hasRestoredRemoteBeforeEditorReady = false;
-
-      if (!abort.signal.aborted) {
-        const fastRestore = await Promise.race([
-          remoteSnapshotUpdateTask.then(update => ({ timedOut: false as const, update })),
-          new Promise<{ timedOut: true; update: null }>((resolve) => {
-            fastRestoreTimeout = setTimeout(() => {
-              fastRestoreTimeout = null;
-              resolve({ timedOut: true, update: null });
-            }, REMOTE_HYDRATE_FAST_WAIT_MS);
-          }),
-        ]);
-        if (!fastRestore.timedOut && fastRestore.update?.length) {
-          restoreSnapshotUpdate(fastRestore.update);
-          hasRestoredRemoteBeforeEditorReady = true;
-        }
-      }
-
-      if (abort.signal.aborted)
-        return;
+      void warmDescriptionRemoteSnapshot(docId);
 
       runtime.ensureDocMeta({ workspaceId, docId });
       markBlocksuiteOpenSession(instanceIdRef.current ?? "", "store-create-start");
       const store = runtime.getOrCreateDoc({ workspaceId, docId, readonly: readOnlyRef.current });
       createdStore = store;
-
-      if (tcHeaderEnabled) {
-        try {
-          const ensured = ensureBlocksuiteDocHeader(store, {
-            title: tcHeaderFallbackTitle,
-            imageUrl: tcHeaderFallbackImageUrl,
-          });
-          if (ensured) {
-            setTcHeaderState({ docId, header: ensured });
-            if (ensured.title) {
-              runtime.ensureDocMeta({ workspaceId, docId, title: ensured.title });
-            }
-          }
-
-          unsubscribeHeader = subscribeBlocksuiteDocHeader(store, (header) => {
-            if (!header)
-              return;
-            setTcHeaderState({ docId, header });
-            if (header.title) {
-              runtime.ensureDocMeta({ workspaceId, docId, title: header.title });
-            }
-          });
-        }
-        catch (error) {
-          warnNonFatalBlocksuiteError("[BlocksuiteDescriptionEditor] Failed to initialize tcHeader state", error);
-        }
-      }
 
       try {
         (store as any)?.load?.();
@@ -203,6 +131,66 @@ export function useBlocksuiteEditorLifecycle(params: UseBlocksuiteEditorLifecycl
       }
       catch (error) {
         warnNonFatalBlocksuiteError("[BlocksuiteDescriptionEditor] Failed to reset store history", error);
+      }
+
+      const initialHydrationState = await waitForRemoteHydrationSettled({
+        workspace: workspace as any,
+        docId,
+        signal: abort.signal,
+        timeoutMs: INITIAL_REMOTE_HYDRATION_WAIT_MS,
+      });
+      if (abort.signal.aborted)
+        return;
+
+      const applyHeaderState = (header: BlocksuiteDocHeader | null) => {
+        if (!header)
+          return;
+        setTcHeaderState({ docId, header });
+        if (header.title) {
+          runtime.ensureDocMeta({ workspaceId, docId, title: header.title });
+        }
+      };
+
+      if (tcHeaderEnabled) {
+        try {
+          unsubscribeHeader = subscribeBlocksuiteDocHeader(store, (header) => {
+            applyHeaderState(header);
+          });
+
+          if (shouldEnsureTcHeaderFallback({
+            tcHeaderEnabled,
+            hydrationState: initialHydrationState,
+          })) {
+            applyHeaderState(ensureBlocksuiteDocHeader(store, {
+              title: tcHeaderFallbackTitle,
+              imageUrl: tcHeaderFallbackImageUrl,
+            }));
+          }
+          else {
+            void waitForRemoteHydrationSettled({
+              workspace: workspace as any,
+              docId,
+              signal: abort.signal,
+              timeoutMs: LATE_REMOTE_HYDRATION_WAIT_MS,
+            }).then((lateHydrationState) => {
+              if (abort.signal.aborted || lateHydrationState !== "completed")
+                return;
+
+              try {
+                applyHeaderState(ensureBlocksuiteDocHeader(store, {
+                  title: tcHeaderFallbackTitle,
+                  imageUrl: tcHeaderFallbackImageUrl,
+                }));
+              }
+              catch (error) {
+                warnNonFatalBlocksuiteError("[BlocksuiteDescriptionEditor] Failed to finalize tcHeader state", error);
+              }
+            });
+          }
+        }
+        catch (error) {
+          warnNonFatalBlocksuiteError("[BlocksuiteDescriptionEditor] Failed to initialize tcHeader state", error);
+        }
       }
 
       if (isBlocksuiteDebugEnabled()) {
@@ -272,22 +260,33 @@ export function useBlocksuiteEditorLifecycle(params: UseBlocksuiteEditorLifecycl
       storeRef.current = store;
 
       container.replaceChildren(editor as unknown as Node);
-      void remoteSnapshotUpdateTask.then((update) => {
-        if (abort.signal.aborted || hasRestoredRemoteBeforeEditorReady || !update?.length)
-          return;
-        try {
-          restoreSnapshotUpdate(update);
-        }
-        catch (error) {
-          warnNonFatalBlocksuiteError("[BlocksuiteDescriptionEditor] Failed to restore remote snapshot after editor ready", error);
-        }
-      });
 
-      requestAnimationFrame(() => {
-        markBlocksuiteOpenSession(instanceIdRef.current ?? "", "render-ready");
-        finishBlocksuiteOpenSession(instanceIdRef.current ?? "");
-        postToParent({ tc: "tc-blocksuite-frame", instanceId: instanceIdRef.current, type: "render-ready" });
-      });
+      const postRenderReady = () => {
+        if (hasPostedRenderReady)
+          return;
+        hasPostedRenderReady = true;
+        requestAnimationFrame(() => {
+          if (abort.signal.aborted)
+            return;
+          markBlocksuiteOpenSession(instanceIdRef.current ?? "", "render-ready");
+          finishBlocksuiteOpenSession(instanceIdRef.current ?? "");
+          postToParent({ tc: "tc-blocksuite-frame", instanceId: instanceIdRef.current, type: "render-ready" });
+        });
+      };
+
+      if (shouldDelayRenderReady(initialHydrationState)) {
+        void waitForRemoteHydrationSettled({
+          workspace: workspace as any,
+          docId,
+          signal: abort.signal,
+          timeoutMs: LATE_REMOTE_HYDRATION_WAIT_MS,
+        }).finally(() => {
+          postRenderReady();
+        });
+      }
+      else {
+        postRenderReady();
+      }
 
       const onUndoRedoKeyDown = (event: KeyboardEvent) => {
         const isMod = event.ctrlKey || event.metaKey;
@@ -353,9 +352,6 @@ export function useBlocksuiteEditorLifecycle(params: UseBlocksuiteEditorLifecycl
 
     return () => {
       abort.abort();
-      if (fastRestoreTimeout) {
-        clearTimeout(fastRestoreTimeout);
-      }
       unsubscribeHeader?.();
       runtimeRef.current = null;
       docRuntimeRef.current = null;
