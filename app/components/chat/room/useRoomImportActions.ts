@@ -7,7 +7,7 @@ import type { DocRefDragPayload } from "@/components/chat/utils/docRef";
 import type { RoomRefDragPayload } from "@/components/chat/utils/roomRef";
 import type { FigurePosition } from "@/types/voiceRenderTypes";
 
-import { parseDescriptionDocId } from "@/components/chat/infra/blocksuite/descriptionDocId";
+import { parseDescriptionDocId } from "@/components/chat/infra/blocksuite/description/descriptionDocId";
 import { extractDocExcerptFromStore } from "@/components/chat/infra/blocksuite/docExcerpt";
 import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
 import { IMPORT_SPECIAL_ROLE_ID } from "@/components/chat/utils/importChatText";
@@ -245,7 +245,7 @@ export default function useRoomImportActions({
     let excerpt = typeof payload?.excerpt === "string" ? payload.excerpt.trim() : "";
     if (!excerpt) {
       try {
-        const { getOrCreateSpaceDoc } = await import("@/components/chat/infra/blocksuite/spaceWorkspaceRegistry");
+        const { getOrCreateSpaceDoc } = await import("@/components/chat/infra/blocksuite/space/spaceWorkspaceRegistry");
 
         const store = getOrCreateSpaceDoc({ spaceId, docId }) as any;
         try {

@@ -10,7 +10,7 @@ import { isBlocksuiteDebugEnabled } from "@/components/chat/infra/blocksuite/deb
 import { ensureBlocksuiteDocHeader, subscribeBlocksuiteDocHeader } from "@/components/chat/infra/blocksuite/docHeader";
 import { finishBlocksuiteOpenSession, markBlocksuiteOpenSession } from "@/components/chat/infra/blocksuite/perf";
 import { loadBlocksuiteRuntime } from "@/components/chat/infra/blocksuite/runtime/runtimeLoader.browser";
-import { parseSpaceDocId } from "@/components/chat/infra/blocksuite/spaceDocId";
+import { parseSpaceDocId } from "@/components/chat/infra/blocksuite/space/spaceDocId";
 
 import {
   LATE_REMOTE_HYDRATION_WAIT_MS,

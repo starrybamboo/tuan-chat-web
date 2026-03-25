@@ -70,7 +70,7 @@
 
 3. **Workspace/Doc/Store 运行时（数据与存储管线）**
    - `app/components/chat/infra/blocksuite/runtime/spaceWorkspace.ts`
-   - `app/components/chat/infra/blocksuite/spaceWorkspaceRegistry.ts`
+   - `app/components/chat/infra/blocksuite/space/spaceWorkspaceRegistry.ts`
    - 你要理解：Space≈Workspace、root Y.Doc + subdoc 的组织方式、IndexedDB 的持久化边界
 
 4. **Editor 创建层（把 manager/runtime 组装成真正编辑器）**

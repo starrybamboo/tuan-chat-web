@@ -1,6 +1,6 @@
 import type { DocMode } from "@blocksuite/affine/model";
 
-import type { DescriptionEntityType } from "@/components/chat/infra/blocksuite/descriptionDocId";
+import type { DescriptionEntityType } from "@/components/chat/infra/blocksuite/description/descriptionDocId";
 import type { BlocksuiteDocHeader } from "@/components/chat/infra/blocksuite/docHeader";
 
 export type BlocksuiteDescriptionEditorProps = {

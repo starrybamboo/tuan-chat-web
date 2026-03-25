@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { getRemoteSnapshot } from "@/components/chat/infra/blocksuite/descriptionDocRemote";
+import { getRemoteSnapshot } from "@/components/chat/infra/blocksuite/description/descriptionDocRemote";
 
 import {
   fetchDescriptionRemoteSnapshotUpdate,
@@ -11,7 +11,7 @@ import {
   waitForRemoteSnapshotDecision,
 } from "../frame/blocksuiteEditorLifecycleHydration";
 
-vi.mock("@/components/chat/infra/blocksuite/descriptionDocRemote", () => ({
+vi.mock("@/components/chat/infra/blocksuite/description/descriptionDocRemote", () => ({
   getRemoteSnapshot: vi.fn(),
 }));
 

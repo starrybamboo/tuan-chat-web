@@ -5,9 +5,9 @@ async function getDocUpdateForCopy(params: {
   docId: string;
 }): Promise<Uint8Array> {
   const [registry, { parseDescriptionDocId }, { getRemoteSnapshot }, { base64ToUint8Array }] = await Promise.all([
-    import("@/components/chat/infra/blocksuite/spaceWorkspaceRegistry"),
-    import("@/components/chat/infra/blocksuite/descriptionDocId"),
-    import("@/components/chat/infra/blocksuite/descriptionDocRemote"),
+    import("@/components/chat/infra/blocksuite/space/spaceWorkspaceRegistry"),
+    import("@/components/chat/infra/blocksuite/description/descriptionDocId"),
+    import("@/components/chat/infra/blocksuite/description/descriptionDocRemote"),
     import("@/components/chat/infra/blocksuite/base64"),
   ]);
 
@@ -76,10 +76,10 @@ export async function copyDocToSpaceDoc(params: {
   }
 
   const [{ buildSpaceDocId }, { setRemoteSnapshot }, { uint8ArrayToBase64 }, registry, { setBlocksuiteDocHeader }] = await Promise.all([
-    import("@/components/chat/infra/blocksuite/spaceDocId"),
-    import("@/components/chat/infra/blocksuite/descriptionDocRemote"),
+    import("@/components/chat/infra/blocksuite/space/spaceDocId"),
+    import("@/components/chat/infra/blocksuite/description/descriptionDocRemote"),
     import("@/components/chat/infra/blocksuite/base64"),
-    import("@/components/chat/infra/blocksuite/spaceWorkspaceRegistry"),
+    import("@/components/chat/infra/blocksuite/space/spaceWorkspaceRegistry"),
     import("@/components/chat/infra/blocksuite/docHeader"),
   ]);
 
@@ -152,10 +152,10 @@ export async function copyDocToSpaceUserDoc(params: {
   const newEntityId = await createDocWithRetry();
 
   const [{ buildDescriptionDocId }, { setRemoteSnapshot }, { uint8ArrayToBase64 }, registry, { setBlocksuiteDocHeader }] = await Promise.all([
-    import("@/components/chat/infra/blocksuite/descriptionDocId"),
-    import("@/components/chat/infra/blocksuite/descriptionDocRemote"),
+    import("@/components/chat/infra/blocksuite/description/descriptionDocId"),
+    import("@/components/chat/infra/blocksuite/description/descriptionDocRemote"),
     import("@/components/chat/infra/blocksuite/base64"),
-    import("@/components/chat/infra/blocksuite/spaceWorkspaceRegistry"),
+    import("@/components/chat/infra/blocksuite/space/spaceWorkspaceRegistry"),
     import("@/components/chat/infra/blocksuite/docHeader"),
   ]);
 

@@ -531,7 +531,7 @@ export function useWebSocket() {
 
     void (async () => {
       try {
-        const { deleteSpaceDoc } = await import("@/components/chat/infra/blocksuite/deleteSpaceDoc");
+        const { deleteSpaceDoc } = await import("@/components/chat/infra/blocksuite/space/deleteSpaceDoc");
 
         if (spaceIdFromRoomInfo != null) {
           await deleteSpaceDoc({ spaceId: spaceIdFromRoomInfo, docId });

@@ -34,7 +34,7 @@
 
 ### 2.3 Workspace/Doc/Store 运行时（Infra）
 
-- app/components/chat/infra/blocksuite/spaceWorkspaceRegistry.ts
+- app/components/chat/infra/blocksuite/space/spaceWorkspaceRegistry.ts
   - Space -> Workspace 映射（Demo：workspaceId=`space:${spaceId}`）
 - app/components/chat/infra/blocksuite/runtime/spaceWorkspace.ts
   - `SpaceWorkspace`：一个 Space 对应一个 root Y.Doc，内部管理多个 docId

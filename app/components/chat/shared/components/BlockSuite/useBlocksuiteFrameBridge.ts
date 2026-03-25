@@ -3,7 +3,7 @@ import type { RefObject } from "react";
 
 import { useCallback, useEffect, useRef } from "react";
 
-import type { DescriptionEntityType } from "@/components/chat/infra/blocksuite/descriptionDocId";
+import type { DescriptionEntityType } from "@/components/chat/infra/blocksuite/description/descriptionDocId";
 import type { BlocksuiteDocHeader } from "@/components/chat/infra/blocksuite/docHeader";
 
 import { isBlocksuiteDebugEnabled } from "@/components/chat/infra/blocksuite/debugFlags";

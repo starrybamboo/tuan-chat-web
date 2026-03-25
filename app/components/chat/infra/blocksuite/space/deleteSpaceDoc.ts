@@ -1,4 +1,4 @@
-import type { DescriptionDocType, DescriptionEntityType } from "./descriptionDocId";
+import type { DescriptionDocType, DescriptionEntityType } from "@/components/chat/infra/blocksuite/description/descriptionDocId";
 
 export async function deleteSpaceDoc(params: { spaceId: number; docId: string }) {
   // SSR-safe: this function is only meaningful in the browser.
@@ -11,7 +11,7 @@ export async function deleteSpaceDoc(params: { spaceId: number; docId: string })
   let remoteKey: { entityType: DescriptionEntityType; entityId: number; docType: DescriptionDocType } | null = null;
 
   try {
-    const { parseDescriptionDocId } = await import("./descriptionDocId");
+    const { parseDescriptionDocId } = await import("@/components/chat/infra/blocksuite/description/descriptionDocId");
     remoteKey = parseDescriptionDocId(params.docId);
   }
   catch {
@@ -20,7 +20,7 @@ export async function deleteSpaceDoc(params: { spaceId: number; docId: string })
 
   // space_doc 的业务实体删除是主路径；失败时应终止本地移除，避免 UI 假删。
   if (remoteKey?.entityType === "space_doc") {
-    const { tuanchat } = await import("../../../../../api/instance");
+    const { tuanchat } = await import("api/instance");
     await tuanchat.spaceDocController.deleteDoc(remoteKey.entityId);
   }
 
@@ -29,7 +29,7 @@ export async function deleteSpaceDoc(params: { spaceId: number; docId: string })
   // - room/space description：目前主要用于解散后的附带清理
   try {
     if (remoteKey) {
-      const { deleteRemoteSnapshot } = await import("./descriptionDocRemote");
+      const { deleteRemoteSnapshot } = await import("@/components/chat/infra/blocksuite/description/descriptionDocRemote");
       await deleteRemoteSnapshot(remoteKey);
     }
   }
@@ -39,7 +39,7 @@ export async function deleteSpaceDoc(params: { spaceId: number; docId: string })
 
   // Clear any queued offline updates (otherwise a later debounce flush could re-upload snapshot).
   try {
-    const { clearUpdates } = await import("./descriptionDocDb");
+    const { clearUpdates } = await import("@/components/chat/infra/blocksuite/description/descriptionDocDb");
     await clearUpdates(params.docId);
   }
   catch {
@@ -48,7 +48,7 @@ export async function deleteSpaceDoc(params: { spaceId: number; docId: string })
 
   try {
     const [{ removeSpaceDocMetaCacheEntry, removePendingSpaceDocTitleSync }, { useDocHeaderOverrideStore }] = await Promise.all([
-      import("./spaceDocMetaPersistence"),
+      import("@/components/chat/infra/blocksuite/space/spaceDocMetaPersistence"),
       import("@/components/chat/stores/docHeaderOverrideStore"),
     ]);
 
@@ -63,7 +63,7 @@ export async function deleteSpaceDoc(params: { spaceId: number; docId: string })
     // ignore
   }
 
-  const { getSpaceWorkspaceIfExists } = await import("./spaceWorkspaceRegistry");
+  const { getSpaceWorkspaceIfExists } = await import("@/components/chat/infra/blocksuite/space/spaceWorkspaceRegistry");
   const ws = getSpaceWorkspaceIfExists(params.spaceId);
   if (!ws) {
     return;

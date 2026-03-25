@@ -5,7 +5,7 @@ import {
   getOrCreateWorkspace,
   releaseWorkspace,
   retainWorkspace,
-} from "../spaceWorkspaceRegistry";
+} from "../space/spaceWorkspaceRegistry";
 
 /**
  * 把 route client 需要的浏览器 runtime 能力组合成一个单例对象。

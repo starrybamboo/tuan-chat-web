@@ -1,6 +1,6 @@
 import type { Room } from "api";
 
-import { parseSpaceDocId } from "@/components/chat/infra/blocksuite/spaceDocId";
+import { parseSpaceDocId } from "@/components/chat/infra/blocksuite/space/spaceDocId";
 
 export type SidebarLeafNode = {
   nodeId: string;

@@ -27,7 +27,7 @@ import useSpaceDocMetaState from "@/components/chat/hooks/useSpaceDocMetaState";
 import useSpaceDocMetaSync from "@/components/chat/hooks/useSpaceDocMetaSync";
 import useSpaceSidebarTreeActions from "@/components/chat/hooks/useSpaceSidebarTreeActions";
 import useTutorialOnboarding from "@/components/chat/hooks/useTutorialOnboarding";
-import { parseSpaceDocId } from "@/components/chat/infra/blocksuite/spaceDocId";
+import { parseSpaceDocId } from "@/components/chat/infra/blocksuite/space/spaceDocId";
 import { extractDocMetasFromSidebarTree } from "@/components/chat/room/sidebarTree";
 import { useDocHeaderOverrideStore } from "@/components/chat/stores/docHeaderOverrideStore";
 import { useDrawerPreferenceStore } from "@/components/chat/stores/drawerPreferenceStore";

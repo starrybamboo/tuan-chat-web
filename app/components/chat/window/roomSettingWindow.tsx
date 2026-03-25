@@ -9,7 +9,7 @@ import {
 import { useGetUserRolesQuery } from "api/hooks/RoleAndAvatarHooks";
 import { use, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { RoomContext } from "@/components/chat/core/roomContext";
-import { buildSpaceDocId } from "@/components/chat/infra/blocksuite/spaceDocId";
+import { buildSpaceDocId } from "@/components/chat/infra/blocksuite/space/spaceDocId";
 import BlocksuiteDescriptionEditor from "@/components/chat/shared/components/BlockSuite/blocksuiteDescriptionEditor";
 import RoleList from "@/components/chat/shared/components/roleLists";
 import { useGlobalContext } from "@/components/globalContextProvider";
