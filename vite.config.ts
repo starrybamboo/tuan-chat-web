@@ -556,7 +556,7 @@ export default defineConfig(() => {
           "app/routes/blocksuiteFrame.tsx",
 
           // iframe host
-          "app/components/chat/shared/components/blocksuiteDescriptionEditor.tsx",
+          "app/components/chat/shared/components/BlockSuite/blocksuiteDescriptionEditor.tsx",
 
           // route client chunk + browser runtime
           "app/components/chat/infra/blocksuite/frame/BlocksuiteRouteFrameClient.tsx",
