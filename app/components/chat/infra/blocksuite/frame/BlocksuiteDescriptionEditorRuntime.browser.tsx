@@ -257,7 +257,7 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
     finally {
       setIsForcePullingCloud(false);
     }
-  }, [canForcePullFromCloud, docId, isForcePullingCloud, triggerReload, workspaceId]);
+  }, [canForcePullFromCloud, docId, isForcePullingCloud, runtimeRef, triggerReload, workspaceId]);
 
   useEffect(() => {
     if (!tcHeaderEnabled || !tcHeaderState)
@@ -290,7 +290,7 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
       entityId: tcHeaderEntity?.entityId,
       header: tcHeaderState.header,
     });
-  }, [docId, instanceId, onTcHeaderChange, tcHeaderEnabled, tcHeaderEntity?.entityId, tcHeaderEntity?.entityType, tcHeaderState, workspaceId]);
+  }, [docId, instanceId, onTcHeaderChange, postToParent, runtimeRef, tcHeaderEnabled, tcHeaderEntity?.entityId, tcHeaderEntity?.entityType, tcHeaderState, workspaceId]);
 
   return (
     <div className={rootClassName}>
