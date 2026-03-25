@@ -35,4 +35,4 @@
 
 详细链路与数据流见：
 
-- `app/components/chat/infra/blocksuite/frame/ARCHITECTURE.md`
+- `app/components/chat/infra/blocksuite/doc/architecture/FRAME-DEEP-DIVE.md`
