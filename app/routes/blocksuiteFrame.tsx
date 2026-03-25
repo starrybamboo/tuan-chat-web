@@ -1,12 +1,5 @@
 import type { Route } from "./+types/blocksuiteFrame";
-import { lazy, Suspense } from "react";
-
-// 路由壳保持足够轻，只承担单次 lazy 边界。
-// 真正重的 Blocksuite 浏览器子图都收口在 BlocksuiteRouteFrameClient 内。
-const BlocksuiteRouteFrameClient = lazy(async () => {
-  const mod = await import("@/components/chat/infra/blocksuite/frame/BlocksuiteRouteFrameClient");
-  return { default: mod.BlocksuiteRouteFrameClient };
-});
+import { BlocksuiteRouteFrameClient } from "@/components/chat/infra/blocksuite/frame/BlocksuiteRouteFrameClient";
 
 export function meta(_args: Route.MetaArgs) {
   return [
@@ -15,18 +8,6 @@ export function meta(_args: Route.MetaArgs) {
   ];
 }
 
-function BlocksuiteFrameFallback() {
-  return (
-    <div className="h-screen w-screen flex items-center justify-center">
-      <span className="text-sm opacity-70">Loading Blocksuite runtime...</span>
-    </div>
-  );
-}
-
 export default function BlocksuiteFrameRoute() {
-  return (
-    <Suspense fallback={<BlocksuiteFrameFallback />}>
-      <BlocksuiteRouteFrameClient />
-    </Suspense>
-  );
+  return <BlocksuiteRouteFrameClient />;
 }
