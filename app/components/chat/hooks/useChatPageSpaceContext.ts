@@ -1,6 +1,7 @@
 import { useCallback, useMemo } from "react";
 
 import type { SpaceContextType } from "@/components/chat/core/spaceContext";
+
 import { canManageMemberPermissions, hasHostPrivileges } from "@/components/chat/utils/memberPermissions";
 
 import type { Space, SpaceMember } from "../../../../api";

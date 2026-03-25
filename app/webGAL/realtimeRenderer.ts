@@ -2973,574 +2973,548 @@ export class RealtimeRenderer {
     }
 
     const renderImpl = async (): Promise<void> => {
-    if (!options?.bypassDiceMerge) {
-      if ((msg.messageType as number) !== MESSAGE_TYPE.DICE) {
-        await this.flushPendingDiceMergeForRoom(targetRoomId);
-      }
-      const merged = await this.tryRenderMergedTrpgDiceMessage(message, targetRoomId, syncToFile);
-      if (merged) {
-        return;
-      }
-    }
-
-    // 确保该房间的场景已初始化
-    if (!this.sceneContextMap.has(targetRoomId)) {
-      await this.initRoomScene(targetRoomId);
-    }
-
-    const initialLineNumber = this.sceneContextMap.get(targetRoomId)?.lineNumber ?? 0;
-    const finalizeMessageLineRange = () => {
-      if (options?.skipBookkeeping) {
-        return;
-      }
-      if (!msg.messageId) {
-        return;
-      }
-      const context = this.sceneContextMap.get(targetRoomId);
-      if (!context) {
-        return;
-      }
-      const endLine = context.lineNumber;
-      if (endLine <= initialLineNumber) {
-        return;
-      }
-      const key = `${targetRoomId}_${msg.messageId}`;
-      const existingRange = this.messageLineMap.get(key);
-      const startLine = existingRange?.startLine ?? (initialLineNumber + 1);
-      this.messageLineMap.set(key, { startLine, endLine });
-      this.recordMessageRenderStateSnapshot(targetRoomId, msg.messageId);
-    };
-
-    // 获取该房间的立绘状态
-    let spriteState = this.currentSpriteStateMap.get(targetRoomId);
-    if (!spriteState) {
-      spriteState = new Set();
-      this.currentSpriteStateMap.set(targetRoomId, spriteState);
-    }
-
-    // 跳过已撤回消息
-    if (msg.status === 1)
-      return;
-
-    const shouldClearBackground = hasClearBackgroundAnnotation(msg.annotations);
-    const isBackgroundImageMessage = msg.messageType === MESSAGE_TYPE.IMG
-      && isImageMessageBackground(msg.annotations, msg.extra?.imageMessage);
-    if (shouldClearBackground && !isBackgroundImageMessage) {
-      await this.appendLine(targetRoomId, "changeBg:none -next;", syncToFile);
-    }
-    const shouldClearBgm = hasClearBgmAnnotation(msg.annotations);
-    if (shouldClearBgm) {
-      await this.appendLine(targetRoomId, "bgm:none -next;", syncToFile);
-    }
-    const shouldClearImageFigure = hasClearImageAnnotation(msg.annotations);
-    if (shouldClearImageFigure) {
-      await this.appendLine(targetRoomId, `changeFigure:none -id=${IMAGE_MESSAGE_FIGURE_ID} -next;`, syncToFile);
-    }
-
-    // 处理背景图片消息
-    if (msg.messageType === 2) {
-      const imageMessage = msg.extra?.imageMessage;
-      if (imageMessage) {
-        const isBackground = isImageMessageBackground(msg.annotations, imageMessage);
-        if (isBackground) {
-          const bgFileName = await this.uploadBackground(imageMessage.url);
-          if (bgFileName) {
-            await this.appendLine(targetRoomId, `changeBg:${bgFileName} -next;`, syncToFile);
-            if (syncToFile)
-              this.sendSyncMessage(targetRoomId);
-          }
+      if (!options?.bypassDiceMerge) {
+        if ((msg.messageType as number) !== MESSAGE_TYPE.DICE) {
+          await this.flushPendingDiceMergeForRoom(targetRoomId);
         }
-        // 处理解锁CG
-        const unlockCg = hasAnnotation(msg.annotations, ANNOTATION_IDS.CG);
-        if (unlockCg) {
-          const cgFileName = await this.uploadBackground(imageMessage.url);
-          if (cgFileName) {
-            const cgName = imageMessage.fileName ? imageMessage.fileName.split(".")[0] : "CG";
-            await this.appendLine(targetRoomId, `unlockCg:${cgFileName} -name=${cgName};`, syncToFile);
-            if (syncToFile)
-              this.sendSyncMessage(targetRoomId);
-          }
+        const merged = await this.tryRenderMergedTrpgDiceMessage(message, targetRoomId, syncToFile);
+        if (merged) {
+          return;
         }
-        // 普通图片：作为常驻展示图层（直到显式清除）
-        if (!isBackground && !unlockCg && isImageMessageShown(msg.annotations)) {
+      }
+
+      // 确保该房间的场景已初始化
+      if (!this.sceneContextMap.has(targetRoomId)) {
+        await this.initRoomScene(targetRoomId);
+      }
+
+      const initialLineNumber = this.sceneContextMap.get(targetRoomId)?.lineNumber ?? 0;
+      const finalizeMessageLineRange = () => {
+        if (options?.skipBookkeeping) {
+          return;
+        }
+        if (!msg.messageId) {
+          return;
+        }
+        const context = this.sceneContextMap.get(targetRoomId);
+        if (!context) {
+          return;
+        }
+        const endLine = context.lineNumber;
+        if (endLine <= initialLineNumber) {
+          return;
+        }
+        const key = `${targetRoomId}_${msg.messageId}`;
+        const existingRange = this.messageLineMap.get(key);
+        const startLine = existingRange?.startLine ?? (initialLineNumber + 1);
+        this.messageLineMap.set(key, { startLine, endLine });
+        this.recordMessageRenderStateSnapshot(targetRoomId, msg.messageId);
+      };
+
+      // 获取该房间的立绘状态
+      let spriteState = this.currentSpriteStateMap.get(targetRoomId);
+      if (!spriteState) {
+        spriteState = new Set();
+        this.currentSpriteStateMap.set(targetRoomId, spriteState);
+      }
+
+      // 跳过已撤回消息
+      if (msg.status === 1)
+        return;
+
+      const shouldClearBackground = hasClearBackgroundAnnotation(msg.annotations);
+      const isBackgroundImageMessage = msg.messageType === MESSAGE_TYPE.IMG
+        && isImageMessageBackground(msg.annotations, msg.extra?.imageMessage);
+      if (shouldClearBackground && !isBackgroundImageMessage) {
+        await this.appendLine(targetRoomId, "changeBg:none -next;", syncToFile);
+      }
+      const shouldClearBgm = hasClearBgmAnnotation(msg.annotations);
+      if (shouldClearBgm) {
+        await this.appendLine(targetRoomId, "bgm:none -next;", syncToFile);
+      }
+      const shouldClearImageFigure = hasClearImageAnnotation(msg.annotations);
+      if (shouldClearImageFigure) {
+        await this.appendLine(targetRoomId, `changeFigure:none -id=${IMAGE_MESSAGE_FIGURE_ID} -next;`, syncToFile);
+      }
+
+      // 处理背景图片消息
+      if (msg.messageType === 2) {
+        const imageMessage = msg.extra?.imageMessage;
+        if (imageMessage) {
+          const isBackground = isImageMessageBackground(msg.annotations, imageMessage);
+          if (isBackground) {
+            const bgFileName = await this.uploadBackground(imageMessage.url);
+            if (bgFileName) {
+              await this.appendLine(targetRoomId, `changeBg:${bgFileName} -next;`, syncToFile);
+              if (syncToFile)
+                this.sendSyncMessage(targetRoomId);
+            }
+          }
+          // 处理解锁CG
+          const unlockCg = hasAnnotation(msg.annotations, ANNOTATION_IDS.CG);
+          if (unlockCg) {
+            const cgFileName = await this.uploadBackground(imageMessage.url);
+            if (cgFileName) {
+              const cgName = imageMessage.fileName ? imageMessage.fileName.split(".")[0] : "CG";
+              await this.appendLine(targetRoomId, `unlockCg:${cgFileName} -name=${cgName};`, syncToFile);
+              if (syncToFile)
+                this.sendSyncMessage(targetRoomId);
+            }
+          }
+          // 普通图片：作为常驻展示图层（直到显式清除）
+          if (!isBackground && !unlockCg && isImageMessageShown(msg.annotations)) {
           // 展示图固定上半屏居中，忽略 figure.pos.*，并按安全区自动上移/缩放，避免与底部对话框重叠。
-          const imageSlot = resolveFigureSlot("center");
-          const figureFileName = await this.uploadImageFigure(imageMessage.url, imageMessage.fileName);
-          if (figureFileName) {
-            const transform = this.buildImageFigureTransformString(imageMessage, imageSlot.offsetX);
-            const figureArgs = buildFigureArgs(IMAGE_MESSAGE_FIGURE_ID, transform);
-            await this.appendLine(
-              targetRoomId,
-              `changeFigure:${figureFileName} ${figureArgs};`,
-              syncToFile,
-            );
-            if (syncToFile)
-              this.sendSyncMessage(targetRoomId);
+            const imageSlot = resolveFigureSlot("center");
+            const figureFileName = await this.uploadImageFigure(imageMessage.url, imageMessage.fileName);
+            if (figureFileName) {
+              const transform = this.buildImageFigureTransformString(imageMessage, imageSlot.offsetX);
+              const figureArgs = buildFigureArgs(IMAGE_MESSAGE_FIGURE_ID, transform);
+              await this.appendLine(
+                targetRoomId,
+                `changeFigure:${figureFileName} ${figureArgs};`,
+                syncToFile,
+              );
+              if (syncToFile)
+                this.sendSyncMessage(targetRoomId);
+            }
           }
         }
-      }
-      finalizeMessageLineRange();
-      return;
-    }
-
-    // 处理视频消息（Type 14）
-    if ((msg.messageType as number) === MESSAGE_TYPE.VIDEO) {
-      const messageExtra = msg.extra as ({
-        videoMessage?: { url?: string; fileName?: string };
-        url?: string;
-        fileName?: string;
-      } | undefined);
-      const videoMsg = messageExtra?.videoMessage
-        ?? (messageExtra?.url ? messageExtra : undefined);
-      const url = videoMsg?.url;
-      if (!url) {
         finalizeMessageLineRange();
         return;
       }
 
-      const videoFileName = await this.uploadVideo(url, videoMsg?.fileName);
-      if (videoFileName) {
+      // 处理视频消息（Type 14）
+      if ((msg.messageType as number) === MESSAGE_TYPE.VIDEO) {
+        const messageExtra = msg.extra as ({
+          videoMessage?: { url?: string; fileName?: string };
+          url?: string;
+          fileName?: string;
+        } | undefined);
+        const videoMsg = messageExtra?.videoMessage
+          ?? (messageExtra?.url ? messageExtra : undefined);
+        const url = videoMsg?.url;
+        if (!url) {
+          finalizeMessageLineRange();
+          return;
+        }
+
+        const videoFileName = await this.uploadVideo(url, videoMsg?.fileName);
+        if (videoFileName) {
         // 映射 message annotation：禁止跳过 => WebGAL -skipOff
-        const skipOff = hasAnnotation(msg.annotations, ANNOTATION_IDS.VIDEO_SKIP_OFF);
-        const skipOffPart = skipOff ? " -skipOff" : "";
-        await this.appendLine(targetRoomId, `playVideo:${videoFileName}${skipOffPart};`, syncToFile);
+          const skipOff = hasAnnotation(msg.annotations, ANNOTATION_IDS.VIDEO_SKIP_OFF);
+          const skipOffPart = skipOff ? " -skipOff" : "";
+          await this.appendLine(targetRoomId, `playVideo:${videoFileName}${skipOffPart};`, syncToFile);
+          if (syncToFile)
+            this.sendSyncMessage(targetRoomId);
+        }
+
+        finalizeMessageLineRange();
+        return;
+      }
+
+      // 处理音频消息（BGM 或 音效）
+      let soundMsg = msg.extra?.soundMessage;
+      if (!soundMsg && msg.messageType === 7 && (msg.extra as any)?.url) {
+        soundMsg = msg.extra as any;
+      }
+
+      if (soundMsg) {
+        const url = soundMsg.url;
+        if (!url) {
+          finalizeMessageLineRange();
+          return;
+        }
+
+        // 判断是 BGM 还是音效
+        const isMarkedBgm = msg.content.includes("[播放BGM]") || soundMsg.purpose === "bgm";
+        const isMarkedSE = msg.content.includes("[播放音效]") || soundMsg.purpose === "se";
+
+        if (isMarkedBgm) {
+        // 处理 BGM
+          const bgmFileName = await this.uploadBgm(url);
+          if (bgmFileName) {
+            let command = `bgm:${bgmFileName}`;
+            const vol = (soundMsg as any).volume;
+            if (vol !== undefined) {
+              command += ` -volume=${vol}`;
+            }
+            command += " -next;";
+            await this.appendLine(targetRoomId, command, syncToFile);
+            if (syncToFile)
+              this.sendSyncMessage(targetRoomId);
+          }
+        }
+        else if (isMarkedSE) {
+        // 处理音效（playEffect）
+          const seFileName = await this.uploadSoundEffect(url);
+          if (seFileName) {
+            let command = `playEffect:${seFileName}`;
+            const vol = (soundMsg as any).volume;
+            if (vol !== undefined) {
+              command += ` -volume=${vol}`;
+            }
+            // 支持循环音效（通过 loopId）
+            const loopId = (soundMsg as any).loopId;
+            if (loopId) {
+              command += ` -id=${loopId}`;
+            }
+            command += " -next;";
+            await this.appendLine(targetRoomId, command, syncToFile);
+            if (syncToFile)
+              this.sendSyncMessage(targetRoomId);
+          }
+        }
+        // 如果既不是 BGM 也不是音效，则跳过（默认不处理普通语音消息）
+        finalizeMessageLineRange();
+        return;
+      }
+
+      // 处理特效消息 (Type 8)：纯 annotation 语义
+      if ((msg.messageType as number) === MESSAGE_TYPE.EFFECT) {
+        const sceneEffect = getSceneEffectFromAnnotations(msg.annotations);
+        const shouldClearBackground = hasAnnotation(msg.annotations, ANNOTATION_IDS.BACKGROUND_CLEAR);
+        const shouldClearFigure = hasAnnotation(msg.annotations, ANNOTATION_IDS.FIGURE_CLEAR);
+        let wroteEffectCommand = false;
+
+        if (shouldClearFigure) {
+          for (const line of buildClearFigureLines({ includeImage: true })) {
+            await this.appendLine(targetRoomId, line, syncToFile);
+          }
+          this.lastFigureSlotIdMap.delete(targetRoomId);
+          this.renderedFigureStateMap.delete(targetRoomId);
+          wroteEffectCommand = true;
+        }
+
+        if (shouldClearBackground) {
+          await this.appendLine(targetRoomId, "changeBg:none -next;", syncToFile);
+          wroteEffectCommand = true;
+        }
+
+        if (sceneEffect) {
+          if (sceneEffect === "none") {
+          // 清除场景特效：使用 pixiInit 初始化，消除所有已应用的效果
+            await this.appendLine(targetRoomId, "pixiInit -next;", syncToFile);
+          }
+          else {
+            const effectSound = await this.resolveAnnotationEffectSound(sceneEffect);
+            if (effectSound) {
+              await this.appendLine(targetRoomId, `playEffect:${effectSound.url} -next;`, syncToFile);
+            }
+            await this.appendLine(targetRoomId, `pixiPerform:${sceneEffect} -next;`, syncToFile);
+          }
+          wroteEffectCommand = true;
+        }
+
+        if (wroteEffectCommand && syncToFile) {
+          this.sendSyncMessage(targetRoomId);
+        }
+        finalizeMessageLineRange();
+        return;
+      }
+
+      // WebGAL 指令消息：直接写入场景脚本
+      // 约定：msg.content 是一行完整的 WebGAL 脚本（可包含分号结尾）
+      if ((msg.messageType as number) === 10) {
+        const commandLine = msg.content?.trim() ?? "";
+        await this.appendLine(targetRoomId, commandLine, syncToFile, true);
         if (syncToFile)
           this.sendSyncMessage(targetRoomId);
-      }
-
-      finalizeMessageLineRange();
-      return;
-    }
-
-    // 处理音频消息（BGM 或 音效）
-    let soundMsg = msg.extra?.soundMessage;
-    if (!soundMsg && msg.messageType === 7 && (msg.extra as any)?.url) {
-      soundMsg = msg.extra as any;
-    }
-
-    if (soundMsg) {
-      const url = soundMsg.url;
-      if (!url) {
         finalizeMessageLineRange();
         return;
       }
 
-      // 判断是 BGM 还是音效
-      const isMarkedBgm = msg.content.includes("[播放BGM]") || soundMsg.purpose === "bgm";
-      const isMarkedSE = msg.content.includes("[播放音效]") || soundMsg.purpose === "se";
-
-      if (isMarkedBgm) {
-        // 处理 BGM
-        const bgmFileName = await this.uploadBgm(url);
-        if (bgmFileName) {
-          let command = `bgm:${bgmFileName}`;
-          const vol = (soundMsg as any).volume;
-          if (vol !== undefined) {
-            command += ` -volume=${vol}`;
-          }
-          command += " -next;";
-          await this.appendLine(targetRoomId, command, syncToFile);
-          if (syncToFile)
-            this.sendSyncMessage(targetRoomId);
+      // WebGAL 选择消息：转换为 choose 指令
+      if ((msg.messageType as number) === MESSAGE_TYPE.WEBGAL_CHOOSE) {
+        const payload = extractWebgalChoosePayload(msg.extra);
+        if (!payload) {
+          finalizeMessageLineRange();
+          return;
         }
-      }
-      else if (isMarkedSE) {
-        // 处理音效（playEffect）
-        const seFileName = await this.uploadSoundEffect(url);
-        if (seFileName) {
-          let command = `playEffect:${seFileName}`;
-          const vol = (soundMsg as any).volume;
-          if (vol !== undefined) {
-            command += ` -volume=${vol}`;
-          }
-          // 支持循环音效（通过 loopId）
-          const loopId = (soundMsg as any).loopId;
-          if (loopId) {
-            command += ` -id=${loopId}`;
-          }
-          command += " -next;";
-          await this.appendLine(targetRoomId, command, syncToFile);
-          if (syncToFile)
-            this.sendSyncMessage(targetRoomId);
+        const lines = buildWebgalChooseScriptLines(payload, msg.messageId ?? Date.now());
+        for (const line of lines) {
+          await this.appendLine(targetRoomId, line, syncToFile, true);
         }
+        if (syncToFile)
+          this.sendSyncMessage(targetRoomId);
+        finalizeMessageLineRange();
+        return;
       }
-      // 如果既不是 BGM 也不是音效，则跳过（默认不处理普通语音消息）
-      finalizeMessageLineRange();
-      return;
-    }
 
-    // 处理特效消息 (Type 8)：纯 annotation 语义
-    if ((msg.messageType as number) === MESSAGE_TYPE.EFFECT) {
-      const sceneEffect = getSceneEffectFromAnnotations(msg.annotations);
-      const shouldClearBackground = hasAnnotation(msg.annotations, ANNOTATION_IDS.BACKGROUND_CLEAR);
+      const isDiceMessage = (msg.messageType as number) === MESSAGE_TYPE.DICE;
+      const dicePayload = isDiceMessage ? extractWebgalDicePayload(msg.webgal) : null;
+      const diceContent = isDiceMessage
+        ? this.getDiceContentFromMessage(msg, dicePayload)
+        : "";
+      const hasDiceScriptLines = Boolean(isDiceMessage && dicePayload?.lines && dicePayload.lines.length > 0);
+      const autoDiceMode = isDiceMessage
+        ? (isLikelyAnkoDiceContent(diceContent)
+            ? "anko"
+            : (isLikelyTrpgDiceContent(diceContent) ? "trpg" : "narration"))
+        : "narration";
+      const diceModeFromPayloadRaw = isDiceMessage ? dicePayload?.mode : undefined;
+      const shouldForceTrpgMode = isDiceMessage
+        && autoDiceMode === "trpg"
+        && diceModeFromPayloadRaw !== "anko"
+        && diceModeFromPayloadRaw !== "script";
+      const diceModeFromPayload = shouldForceTrpgMode ? "trpg" : diceModeFromPayloadRaw;
+      const diceRenderMode = isDiceMessage
+        ? (diceModeFromPayload === "script" && !hasDiceScriptLines
+            ? autoDiceMode
+            : (diceModeFromPayload ?? (hasDiceScriptLines ? "script" : autoDiceMode)))
+        : null;
+
+      if (isDiceMessage && diceRenderMode === "script" && hasDiceScriptLines) {
+        const diceSound = this.resolveDiceSound(dicePayload, Boolean(dicePayload?.sound));
+        if (diceSound) {
+          const volumePart = typeof diceSound.volume === "number" ? ` -volume=${diceSound.volume}` : "";
+          await this.appendLine(targetRoomId, `playEffect:${diceSound.url}${volumePart} -next;`, syncToFile);
+        }
+        for (const line of dicePayload?.lines ?? []) {
+          await this.appendLine(targetRoomId, line, syncToFile, true);
+        }
+        finalizeMessageLineRange();
+        if (syncToFile)
+          this.sendSyncMessage(targetRoomId);
+        return;
+      }
+
+      // 只处理文本消息（messageType === 1）、黑屏文字（messageType === 9）和骰子消息（messageType === 6）
+      if (msg.messageType !== 1 && msg.messageType !== 9 && !isDiceMessage) {
+        finalizeMessageLineRange();
+        return;
+      }
+
+      // 判断消息类型：黑屏文字（messageType === 9）
+      const isIntroText = (msg.messageType as number) === 9;
+      const roleId = msg.roleId ?? 0;
+
+      // 判断是否为旁白：roleId <= 0
+      const isNarrator = roleId <= 0 || (isDiceMessage && diceRenderMode !== "dialog");
+
+      // 获取角色信息
+      const role = roleId > 0 ? this.roleMap.get(roleId) : undefined;
+      // avatarId 优先使用消息上的 avatarId；若缺失则回退到角色本身的 avatarId（即“角色头像”）
       const shouldClearFigure = hasAnnotation(msg.annotations, ANNOTATION_IDS.FIGURE_CLEAR);
-      let wroteEffectCommand = false;
 
+      // 清除立绘需要在当前消息脚本的最前面，确保在本条对话之前生效
       if (shouldClearFigure) {
         for (const line of buildClearFigureLines({ includeImage: true })) {
           await this.appendLine(targetRoomId, line, syncToFile);
         }
         this.lastFigureSlotIdMap.delete(targetRoomId);
         this.renderedFigureStateMap.delete(targetRoomId);
-        wroteEffectCommand = true;
       }
 
-      if (shouldClearBackground) {
-        await this.appendLine(targetRoomId, "changeBg:none -next;", syncToFile);
-        wroteEffectCommand = true;
-      }
+      const annotationEffect = getEffectFromAnnotations(msg.annotations);
 
-      if (sceneEffect) {
-        if (sceneEffect === "none") {
-          // 清除场景特效：使用 pixiInit 初始化，消除所有已应用的效果
-          await this.appendLine(targetRoomId, "pixiInit -next;", syncToFile);
-        }
-        else {
-          const effectSound = await this.resolveAnnotationEffectSound(sceneEffect);
-          if (effectSound) {
-            await this.appendLine(targetRoomId, `playEffect:${effectSound.url} -next;`, syncToFile);
-          }
-          await this.appendLine(targetRoomId, `pixiPerform:${sceneEffect} -next;`, syncToFile);
-        }
-        wroteEffectCommand = true;
-      }
+      const messageAvatarId = msg.avatarId ?? 0;
+      const roleAvatarId = Number(role?.avatarId ?? 0);
+      const effectiveAvatarId = messageAvatarId > 0
+        ? messageAvatarId
+        : (roleAvatarId > 0 ? roleAvatarId : 0);
+      // 优先使用自定义角色名
+      const customRoleName = msg.customRoleName as string | undefined;
+      const roleName = customRoleName || role?.roleName || `角色${msg.roleId ?? 0}`;
 
-      if (wroteEffectCommand && syncToFile) {
-        this.sendSyncMessage(targetRoomId);
-      }
-      finalizeMessageLineRange();
-      return;
-    }
+      // 获取头像信息
+      const avatar = effectiveAvatarId > 0 ? this.getCachedRoleAvatar(effectiveAvatarId) : undefined;
 
-    // WebGAL 指令消息：直接写入场景脚本
-    // 约定：msg.content 是一行完整的 WebGAL 脚本（可包含分号结尾）
-    if ((msg.messageType as number) === 10) {
-      const commandLine = msg.content?.trim() ?? "";
-      await this.appendLine(targetRoomId, commandLine, syncToFile, true);
-      if (syncToFile)
-        this.sendSyncMessage(targetRoomId);
-      finalizeMessageLineRange();
-      return;
-    }
+      // 获取立绘文件名
+      const spriteFileName = (effectiveAvatarId > 0 && roleId > 0)
+        ? await this.getAndUploadSprite(effectiveAvatarId, roleId)
+        : null;
 
-    // WebGAL 选择消息：转换为 choose 指令
-    if ((msg.messageType as number) === MESSAGE_TYPE.WEBGAL_CHOOSE) {
-      const payload = extractWebgalChoosePayload(msg.extra);
-      if (!payload) {
-        finalizeMessageLineRange();
-        return;
-      }
-      const lines = buildWebgalChooseScriptLines(payload, msg.messageId ?? Date.now());
-      for (const line of lines) {
-        await this.appendLine(targetRoomId, line, syncToFile, true);
-      }
-      if (syncToFile)
-        this.sendSyncMessage(targetRoomId);
-      finalizeMessageLineRange();
-      return;
-    }
+      // 获取 annotations 中的立绘位置
+      const voiceRenderSettings = msg.webgal?.voiceRenderSettings as {
+        emotionVector?: number[];
+        figureAnimation?: FigureAnimationSettings;
+      } | undefined;
 
-    const isDiceMessage = (msg.messageType as number) === MESSAGE_TYPE.DICE;
-    const dicePayload = isDiceMessage ? extractWebgalDicePayload(msg.webgal) : null;
-    const diceContent = isDiceMessage
-      ? this.getDiceContentFromMessage(msg, dicePayload)
-      : "";
-    const hasDiceScriptLines = Boolean(isDiceMessage && dicePayload?.lines && dicePayload.lines.length > 0);
-    const autoDiceMode = isDiceMessage
-      ? (isLikelyAnkoDiceContent(diceContent)
-          ? "anko"
-          : (isLikelyTrpgDiceContent(diceContent) ? "trpg" : "narration"))
-      : "narration";
-    const diceModeFromPayloadRaw = isDiceMessage ? dicePayload?.mode : undefined;
-    const shouldForceTrpgMode = isDiceMessage
-      && autoDiceMode === "trpg"
-      && diceModeFromPayloadRaw !== "anko"
-      && diceModeFromPayloadRaw !== "script";
-    const diceModeFromPayload = shouldForceTrpgMode ? "trpg" : diceModeFromPayloadRaw;
-    const diceRenderMode = isDiceMessage
-      ? (diceModeFromPayload === "script" && !hasDiceScriptLines
-          ? autoDiceMode
-          : (diceModeFromPayload ?? (hasDiceScriptLines ? "script" : autoDiceMode)))
-      : null;
+      const diceShowFigure = isDiceMessage
+        ? (dicePayload?.showFigure ?? (roleId > 0))
+        : undefined;
+      const diceShowMiniAvatar = isDiceMessage
+        ? (dicePayload?.showMiniAvatar ?? (roleId > 0))
+        : undefined;
 
-    if (isDiceMessage && diceRenderMode === "script" && hasDiceScriptLines) {
-      const diceSound = this.resolveDiceSound(dicePayload, Boolean(dicePayload?.sound));
-      if (diceSound) {
-        const volumePart = typeof diceSound.volume === "number" ? ` -volume=${diceSound.volume}` : "";
-        await this.appendLine(targetRoomId, `playEffect:${diceSound.url}${volumePart} -next;`, syncToFile);
-      }
-      for (const line of dicePayload?.lines ?? []) {
-        await this.appendLine(targetRoomId, line, syncToFile, true);
-      }
-      finalizeMessageLineRange();
-      if (syncToFile)
-        this.sendSyncMessage(targetRoomId);
-      return;
-    }
+      // 立绘位置：只有当消息明确设置了有效的 figurePosition 时才显示立绘
+      // autoFigureEnabled 为 true 时，没有设置立绘位置的消息会默认显示在左边
+      // autoFigureEnabled 为 false（默认）时，没有设置立绘位置的消息不显示立绘
+      const rawFigurePosition = getFigurePositionFromAnnotations(msg.annotations);
+      // 只有 left/center/right 才是有效的立绘位置
+      const isValidPosition = isFigurePosition(rawFigurePosition);
+      const figurePosition = diceShowFigure === false
+        ? undefined
+        : (isValidPosition
+            ? rawFigurePosition
+            : (shouldClearFigure ? undefined : (this.autoFigureEnabled ? "left" : undefined)));
 
-    // 只处理文本消息（messageType === 1）、黑屏文字（messageType === 9）和骰子消息（messageType === 6）
-    if (msg.messageType !== 1 && msg.messageType !== 9 && !isDiceMessage) {
-      finalizeMessageLineRange();
-      return;
-    }
+      const annotationFigureAnimation = getFigureAnimationFromAnnotations(msg.annotations);
+      const figureAnimation = voiceRenderSettings?.figureAnimation
+        ? { ...(annotationFigureAnimation ?? {}), ...voiceRenderSettings.figureAnimation }
+        : annotationFigureAnimation;
 
-    // 判断消息类型：黑屏文字（messageType === 9）
-    const isIntroText = (msg.messageType as number) === 9;
-    const roleId = msg.roleId ?? 0;
+      // 黑屏文字默认保持；如需不保持，添加“不暂停”标注（dialog.notend）
+      const introHold = !hasAnnotation(msg.annotations, ANNOTATION_IDS.DIALOG_NOTEND);
 
-    // 判断是否为旁白：roleId <= 0
-    const isNarrator = roleId <= 0 || (isDiceMessage && diceRenderMode !== "dialog");
+      // 旁白和黑屏文字不需要显示立绘（骰子消息允许通过 showFigure 覆盖）
+      // 如果 figurePosition 为 undefined，也不显示立绘
+      const allowFigure = !isIntroText && (diceShowFigure === true || (!isNarrator && diceShowFigure !== false));
+      const shouldShowFigure = allowFigure && !!figurePosition;
 
-    // 获取角色信息
-    const role = roleId > 0 ? this.roleMap.get(roleId) : undefined;
-    // avatarId 优先使用消息上的 avatarId；若缺失则回退到角色本身的 avatarId（即“角色头像”）
-    const shouldClearFigure = hasAnnotation(msg.annotations, ANNOTATION_IDS.FIGURE_CLEAR);
-
-    // 清除立绘需要在当前消息脚本的最前面，确保在本条对话之前生效
-    if (shouldClearFigure) {
-      for (const line of buildClearFigureLines({ includeImage: true })) {
-        await this.appendLine(targetRoomId, line, syncToFile);
-      }
-      this.lastFigureSlotIdMap.delete(targetRoomId);
-      this.renderedFigureStateMap.delete(targetRoomId);
-    }
-
-    const annotationEffect = getEffectFromAnnotations(msg.annotations);
-
-    const messageAvatarId = msg.avatarId ?? 0;
-    const roleAvatarId = Number(role?.avatarId ?? 0);
-    const effectiveAvatarId = messageAvatarId > 0
-      ? messageAvatarId
-      : (roleAvatarId > 0 ? roleAvatarId : 0);
-    // 优先使用自定义角色名
-    const customRoleName = msg.customRoleName as string | undefined;
-    const roleName = customRoleName || role?.roleName || `角色${msg.roleId ?? 0}`;
-
-    // 获取头像信息
-    const avatar = effectiveAvatarId > 0 ? this.getCachedRoleAvatar(effectiveAvatarId) : undefined;
-
-    // 获取立绘文件名
-    const spriteFileName = (effectiveAvatarId > 0 && roleId > 0)
-      ? await this.getAndUploadSprite(effectiveAvatarId, roleId)
-      : null;
-
-    // 获取 annotations 中的立绘位置
-    const voiceRenderSettings = msg.webgal?.voiceRenderSettings as {
-      emotionVector?: number[];
-      figureAnimation?: FigureAnimationSettings;
-    } | undefined;
-
-    const diceShowFigure = isDiceMessage
-      ? (dicePayload?.showFigure ?? (roleId > 0))
-      : undefined;
-    const diceShowMiniAvatar = isDiceMessage
-      ? (dicePayload?.showMiniAvatar ?? (roleId > 0))
-      : undefined;
-
-    // 立绘位置：只有当消息明确设置了有效的 figurePosition 时才显示立绘
-    // autoFigureEnabled 为 true 时，没有设置立绘位置的消息会默认显示在左边
-    // autoFigureEnabled 为 false（默认）时，没有设置立绘位置的消息不显示立绘
-    const rawFigurePosition = getFigurePositionFromAnnotations(msg.annotations);
-    // 只有 left/center/right 才是有效的立绘位置
-    const isValidPosition = isFigurePosition(rawFigurePosition);
-    const figurePosition = diceShowFigure === false
-      ? undefined
-      : (isValidPosition
-          ? rawFigurePosition
-          : (shouldClearFigure ? undefined : (this.autoFigureEnabled ? "left" : undefined)));
-
-    const annotationFigureAnimation = getFigureAnimationFromAnnotations(msg.annotations);
-    const figureAnimation = voiceRenderSettings?.figureAnimation
-      ? { ...(annotationFigureAnimation ?? {}), ...voiceRenderSettings.figureAnimation }
-      : annotationFigureAnimation;
-
-    // 黑屏文字默认保持；如需不保持，添加“不暂停”标注（dialog.notend）
-    const introHold = !hasAnnotation(msg.annotations, ANNOTATION_IDS.DIALOG_NOTEND);
-
-    // 旁白和黑屏文字不需要显示立绘（骰子消息允许通过 showFigure 覆盖）
-    // 如果 figurePosition 为 undefined，也不显示立绘
-    const allowFigure = !isIntroText && (diceShowFigure === true || (!isNarrator && diceShowFigure !== false));
-    const shouldShowFigure = allowFigure && !!figurePosition;
-
-    if (shouldShowFigure && spriteFileName && figurePosition) {
+      if (shouldShowFigure && spriteFileName && figurePosition) {
       // 不再自动清除立绘，立绘需要手动清除
-      const figureSlot = resolveFigureSlot(figurePosition);
-      this.lastFigureSlotIdMap.set(targetRoomId, figureSlot.id);
-      const transform = this.buildFigureTransformString(avatar, figureSlot.offsetX, 0);
-      const renderedState = this.getRenderedFigureState(targetRoomId);
-      const previous = renderedState.get(figureSlot.id);
-      const shouldUpdateFigure
-        = !previous
-          || previous.fileName !== spriteFileName
-          || previous.transform !== transform;
-      if (shouldUpdateFigure) {
-        const figureArgs = buildFigureArgs(figureSlot.id, transform);
-        await this.appendLine(targetRoomId, `changeFigure:${spriteFileName} ${figureArgs} -next;`, syncToFile);
-        renderedState.set(figureSlot.id, { fileName: spriteFileName, transform });
-      }
+        const figureSlot = resolveFigureSlot(figurePosition);
+        this.lastFigureSlotIdMap.set(targetRoomId, figureSlot.id);
+        const transform = this.buildFigureTransformString(avatar, figureSlot.offsetX, 0);
+        const renderedState = this.getRenderedFigureState(targetRoomId);
+        const previous = renderedState.get(figureSlot.id);
+        const shouldUpdateFigure
+          = !previous
+            || previous.fileName !== spriteFileName
+            || previous.transform !== transform;
+        if (shouldUpdateFigure) {
+          const figureArgs = buildFigureArgs(figureSlot.id, transform);
+          await this.appendLine(targetRoomId, `changeFigure:${spriteFileName} ${figureArgs} -next;`, syncToFile);
+          renderedState.set(figureSlot.id, { fileName: spriteFileName, transform });
+        }
 
-      // 处理立绘动画（在立绘显示后）
-      if (figureAnimation) {
-        const animTarget = figureSlot.id; // 根据立绘位置自动推断目标
+        // 处理立绘动画（在立绘显示后）
+        if (figureAnimation) {
+          const animTarget = figureSlot.id; // 根据立绘位置自动推断目标
 
-        // 进出场动画改为一次性播放（setAnimation）
-        if (figureAnimation.enterAnimation || figureAnimation.exitAnimation) {
-          const animationName = figureAnimation.enterAnimation ?? figureAnimation.exitAnimation;
-          if (animationName) {
+          // 进出场动画改为一次性播放（setAnimation）
+          if (figureAnimation.enterAnimation || figureAnimation.exitAnimation) {
+            const animationName = figureAnimation.enterAnimation ?? figureAnimation.exitAnimation;
+            if (animationName) {
+              await this.appendLine(
+                targetRoomId,
+                `setAnimation:${animationName} -target=${animTarget}${DEFAULT_KEEP_OFFSET_PART}${DEFAULT_RESTORE_TRANSFORM_PART} -next;`,
+                syncToFile,
+              );
+            }
+          }
+
+          // 执行一次性动画（setAnimation）
+          if (figureAnimation.animation) {
             await this.appendLine(
               targetRoomId,
-              `setAnimation:${animationName} -target=${animTarget}${DEFAULT_KEEP_OFFSET_PART}${DEFAULT_RESTORE_TRANSFORM_PART} -next;`,
+              `setAnimation:${figureAnimation.animation} -target=${animTarget}${DEFAULT_KEEP_OFFSET_PART}${DEFAULT_RESTORE_TRANSFORM_PART} -next;`,
               syncToFile,
             );
           }
         }
+      }
+      if (annotationEffect) {
+        const effectDuration = getEffectDurationMs(annotationEffect);
+        const durationPart = effectDuration ? ` -duration=${effectDuration}` : "";
+        const targetSlotId = figurePosition
+          ? resolveFigureSlot(figurePosition).id
+          : this.lastFigureSlotIdMap.get(targetRoomId);
+        const targetPart = targetSlotId ? ` -target=${targetSlotId}` : "";
+        const slotOffsetX = targetSlotId ? resolveSlotOffsetById(targetSlotId) : null;
+        const screenX = slotOffsetX !== null ? EFFECT_SCREEN_WIDTH / 2 + slotOffsetX : null;
+        const offsetPart = targetSlotId
+          ? ` -offsetX=${EFFECT_OFFSET_X} -screenY=${EFFECT_SCREEN_Y}${screenX !== null ? ` -screenX=${screenX}` : ""}`
+          : "";
+        const annotationEffectSound = await this.resolveAnnotationEffectSound(annotationEffect);
+        if (annotationEffectSound) {
+          await this.appendLine(targetRoomId, `playEffect:${annotationEffectSound.url} -next;`, syncToFile);
+        }
+        await this.appendLine(
+          targetRoomId,
+          `pixiPerform:${annotationEffect}${targetPart}${offsetPart} -once${durationPart} -next;`,
+          syncToFile,
+        );
+      }
+      else if (isIntroText) {
+      // 黑屏文字不再自动清除立绘，立绘需要手动清除
+      }
+      else if (!isNarrator && !isIntroText) {
+      // 普通对话但不显示立绘时，不再自动清除立绘，立绘需要手动清除
+      }
 
-        // 执行一次性动画（setAnimation）
-        if (figureAnimation.animation) {
-          await this.appendLine(
-            targetRoomId,
-            `setAnimation:${figureAnimation.animation} -target=${animTarget}${DEFAULT_KEEP_OFFSET_PART}${DEFAULT_RESTORE_TRANSFORM_PART} -next;`,
-            syncToFile,
-          );
+      // 处理小头像：
+      // 1. 房间级开关开启时，保持原有“普通对话自动显示”行为；
+      // 2. 命中 figure.mini-avatar 标注时，即使房间级开关关闭也强制显示；
+      // 3. 如果上一条消息显示过小头像，而本条不该显示，则主动下发 none，避免残留。
+      const forceMiniAvatar = hasMiniAvatarAnnotation(msg.annotations);
+      const allowMiniAvatar = !isIntroText && (
+        diceShowMiniAvatar === true
+        || (diceShowMiniAvatar !== false && (forceMiniAvatar || (!isNarrator && this.miniAvatarEnabled)))
+      );
+      const hadVisibleMiniAvatar = this.renderedMiniAvatarVisibleMap.get(targetRoomId) === true;
+
+      if (allowMiniAvatar) {
+        const miniAvatarFileName = effectiveAvatarId > 0 && roleId > 0
+          ? await this.getAndUploadMiniAvatar(effectiveAvatarId, roleId)
+          : null;
+
+        if (miniAvatarFileName) {
+          await this.appendLine(targetRoomId, `miniAvatar:${miniAvatarFileName};`, syncToFile);
+          this.renderedMiniAvatarVisibleMap.set(targetRoomId, true);
+        }
+        else {
+          await this.appendLine(targetRoomId, "miniAvatar:none;", syncToFile);
+          this.renderedMiniAvatarVisibleMap.set(targetRoomId, false);
         }
       }
-    }
-    if (annotationEffect) {
-      const effectDuration = getEffectDurationMs(annotationEffect);
-      const durationPart = effectDuration ? ` -duration=${effectDuration}` : "";
-      const targetSlotId = figurePosition
-        ? resolveFigureSlot(figurePosition).id
-        : this.lastFigureSlotIdMap.get(targetRoomId);
-      const targetPart = targetSlotId ? ` -target=${targetSlotId}` : "";
-      const slotOffsetX = targetSlotId ? resolveSlotOffsetById(targetSlotId) : null;
-      const screenX = slotOffsetX !== null ? EFFECT_SCREEN_WIDTH / 2 + slotOffsetX : null;
-      const offsetPart = targetSlotId
-        ? ` -offsetX=${EFFECT_OFFSET_X} -screenY=${EFFECT_SCREEN_Y}${screenX !== null ? ` -screenX=${screenX}` : ""}`
-        : "";
-      const annotationEffectSound = await this.resolveAnnotationEffectSound(annotationEffect);
-      if (annotationEffectSound) {
-        await this.appendLine(targetRoomId, `playEffect:${annotationEffectSound.url} -next;`, syncToFile);
-      }
-      await this.appendLine(
-        targetRoomId,
-        `pixiPerform:${annotationEffect}${targetPart}${offsetPart} -once${durationPart} -next;`,
-        syncToFile,
-      );
-    }
-    else if (isIntroText) {
-      // 黑屏文字不再自动清除立绘，立绘需要手动清除
-    }
-    else if (!isNarrator && !isIntroText) {
-      // 普通对话但不显示立绘时，不再自动清除立绘，立绘需要手动清除
-    }
-
-    // 处理小头像：
-    // 1. 房间级开关开启时，保持原有“普通对话自动显示”行为；
-    // 2. 命中 figure.mini-avatar 标注时，即使房间级开关关闭也强制显示；
-    // 3. 如果上一条消息显示过小头像，而本条不该显示，则主动下发 none，避免残留。
-    const forceMiniAvatar = hasMiniAvatarAnnotation(msg.annotations);
-    const allowMiniAvatar = !isIntroText && (
-      diceShowMiniAvatar === true
-      || (diceShowMiniAvatar !== false && (forceMiniAvatar || (!isNarrator && this.miniAvatarEnabled)))
-    );
-    const hadVisibleMiniAvatar = this.renderedMiniAvatarVisibleMap.get(targetRoomId) === true;
-
-    if (allowMiniAvatar) {
-      const miniAvatarFileName = effectiveAvatarId > 0 && roleId > 0
-        ? await this.getAndUploadMiniAvatar(effectiveAvatarId, roleId)
-        : null;
-
-      if (miniAvatarFileName) {
-        await this.appendLine(targetRoomId, `miniAvatar:${miniAvatarFileName};`, syncToFile);
-        this.renderedMiniAvatarVisibleMap.set(targetRoomId, true);
-      }
-      else {
+      else if (hadVisibleMiniAvatar || this.miniAvatarEnabled || forceMiniAvatar || diceShowMiniAvatar !== undefined) {
         await this.appendLine(targetRoomId, "miniAvatar:none;", syncToFile);
         this.renderedMiniAvatarVisibleMap.set(targetRoomId, false);
       }
-    }
-    else if (hadVisibleMiniAvatar || this.miniAvatarEnabled || forceMiniAvatar || diceShowMiniAvatar !== undefined) {
-      await this.appendLine(targetRoomId, "miniAvatar:none;", syncToFile);
-      this.renderedMiniAvatarVisibleMap.set(targetRoomId, false);
-    }
 
-    // 处理文本内容（支持 WebGAL 文本拓展语法）
-    const renderContent = isDiceMessage ? diceContent : msg.content;
-    const processedContent = TextEnhanceSyntax.processContent(renderContent);
+      // 处理文本内容（支持 WebGAL 文本拓展语法）
+      const renderContent = isDiceMessage ? diceContent : msg.content;
+      const processedContent = TextEnhanceSyntax.processContent(renderContent);
 
-    // 获取 voiceRenderSettings 中的情感向量
-    const customEmotionVector = voiceRenderSettings?.emotionVector;
+      // 获取 voiceRenderSettings 中的情感向量
+      const customEmotionVector = voiceRenderSettings?.emotionVector;
 
-    // 获取对话参数：-notend 和 -concat（来自 annotations）
-    const dialogNotend = hasAnnotation(msg.annotations, ANNOTATION_IDS.DIALOG_NOTEND);
-    const dialogConcat = hasAnnotation(msg.annotations, ANNOTATION_IDS.DIALOG_CONCAT);
-    const dialogNext = hasAnnotation(msg.annotations, ANNOTATION_IDS.DIALOG_NEXT);
+      // 获取对话参数：-notend 和 -concat（来自 annotations）
+      const dialogNotend = hasAnnotation(msg.annotations, ANNOTATION_IDS.DIALOG_NOTEND);
+      const dialogConcat = hasAnnotation(msg.annotations, ANNOTATION_IDS.DIALOG_CONCAT);
+      const dialogNext = hasAnnotation(msg.annotations, ANNOTATION_IDS.DIALOG_NEXT);
 
-    // 根据消息类型生成不同的指令
-    if (isIntroText) {
+      // 根据消息类型生成不同的指令
+      if (isIntroText) {
       // 黑屏文字（intro）：intro:文字|换行文字|换行文字;
       // 使用 | 作为换行分隔符，将空格转换为换行
-      const introContent = processedContent.replace(/ +/g, "|");
-      const holdPart = introHold ? " -hold" : "";
-      await this.appendLine(targetRoomId, `intro:${introContent}${holdPart};`, syncToFile);
-    }
-    else if (isDiceMessage) {
-      const diceSound = this.resolveDiceSound(dicePayload, true);
-      const useDialogDice = diceRenderMode === "dialog";
-      const modePart = diceRenderMode ? ` -mode=${diceRenderMode}` : "";
-      const appendDiceOverlayLine = async (content: string) => {
-        if (!content.trim()) {
-          return;
-        }
-        await this.appendLine(targetRoomId, `dice:${content}${modePart};`, syncToFile, true);
-      };
-      const appendDiceDialogLine = async (content: string, notend: boolean = false, concat: boolean = false) => {
-        const notendPart = !isNarrator && notend ? " -notend" : "";
-        const concatPart = !isNarrator && concat ? " -concat" : "";
-        const nextPart = dialogNext ? " -next" : "";
-        if (isNarrator) {
-          await this.appendLine(targetRoomId, `:${content}${nextPart};`, syncToFile);
-        }
-        else {
-          await this.appendLine(targetRoomId, `${roleName}: ${content}${notendPart}${concatPart}${nextPart};`, syncToFile);
-        }
-      };
-      if (diceRenderMode === "trpg") {
-        await this.appendLine(targetRoomId, `pixi:${TRPG_DICE_PIXI_EFFECT} -once -duration=950 -scale=1.08 -next;`, syncToFile);
+        const introContent = processedContent.replace(/ +/g, "|");
+        const holdPart = introHold ? " -hold" : "";
+        await this.appendLine(targetRoomId, `intro:${introContent}${holdPart};`, syncToFile);
       }
-
-      if (diceRenderMode === "anko") {
-        const diceSize = dicePayload?.diceSize ?? 100;
-        const formatted = formatAnkoDiceMessage(diceContent, diceSize) ?? diceContent;
-        const preview = stripDiceResultTokens(stripDiceHighlightTokens(formatted));
-        const previewProcessed = TextEnhanceSyntax.processContent(preview);
-        const finalProcessed = TextEnhanceSyntax.processContent(formatted);
-        if (previewProcessed.trim() && previewProcessed !== finalProcessed) {
-          if (useDialogDice) {
-            await appendDiceDialogLine(previewProcessed);
+      else if (isDiceMessage) {
+        const diceSound = this.resolveDiceSound(dicePayload, true);
+        const useDialogDice = diceRenderMode === "dialog";
+        const modePart = diceRenderMode ? ` -mode=${diceRenderMode}` : "";
+        const appendDiceOverlayLine = async (content: string) => {
+          if (!content.trim()) {
+            return;
+          }
+          await this.appendLine(targetRoomId, `dice:${content}${modePart};`, syncToFile, true);
+        };
+        const appendDiceDialogLine = async (content: string, notend: boolean = false, concat: boolean = false) => {
+          const notendPart = !isNarrator && notend ? " -notend" : "";
+          const concatPart = !isNarrator && concat ? " -concat" : "";
+          const nextPart = dialogNext ? " -next" : "";
+          if (isNarrator) {
+            await this.appendLine(targetRoomId, `:${content}${nextPart};`, syncToFile);
           }
           else {
-            await appendDiceOverlayLine(previewProcessed);
+            await this.appendLine(targetRoomId, `${roleName}: ${content}${notendPart}${concatPart}${nextPart};`, syncToFile);
           }
+        };
+        if (diceRenderMode === "trpg") {
+          await this.appendLine(targetRoomId, `pixi:${TRPG_DICE_PIXI_EFFECT} -once -duration=950 -scale=1.08 -next;`, syncToFile);
         }
-        if (diceSound) {
-          const volumePart = typeof diceSound.volume === "number" ? ` -volume=${diceSound.volume}` : "";
-          await this.appendLine(targetRoomId, `playEffect:${diceSound.url}${volumePart} -next;`, syncToFile);
-        }
-        if (useDialogDice) {
-          await appendDiceDialogLine(finalProcessed, dialogNotend, dialogConcat);
-        }
-        else {
-          await appendDiceOverlayLine(finalProcessed);
-        }
-      }
-      else {
-        const stepLines = splitDiceContentToSteps(diceContent);
-        const shouldTwoStep = stepLines.length > 1 && dicePayload?.twoStep !== false;
-        if (shouldTwoStep) {
-          const previewRaw = stripDiceResultTokens(diceContent);
-          const previewProcessed = TextEnhanceSyntax.processContent(previewRaw);
-          const finalProcessed = TextEnhanceSyntax.processContent(diceContent);
+
+        if (diceRenderMode === "anko") {
+          const diceSize = dicePayload?.diceSize ?? 100;
+          const formatted = formatAnkoDiceMessage(diceContent, diceSize) ?? diceContent;
+          const preview = stripDiceResultTokens(stripDiceHighlightTokens(formatted));
+          const previewProcessed = TextEnhanceSyntax.processContent(preview);
+          const finalProcessed = TextEnhanceSyntax.processContent(formatted);
           if (previewProcessed.trim() && previewProcessed !== finalProcessed) {
             if (useDialogDice) {
               await appendDiceDialogLine(previewProcessed);
@@ -3548,12 +3522,8 @@ export class RealtimeRenderer {
             else {
               await appendDiceOverlayLine(previewProcessed);
             }
-            if (diceSound) {
-              const volumePart = typeof diceSound.volume === "number" ? ` -volume=${diceSound.volume}` : "";
-              await this.appendLine(targetRoomId, `playEffect:${diceSound.url}${volumePart} -next;`, syncToFile);
-            }
           }
-          else if (diceSound) {
+          if (diceSound) {
             const volumePart = typeof diceSound.volume === "number" ? ` -volume=${diceSound.volume}` : "";
             await this.appendLine(targetRoomId, `playEffect:${diceSound.url}${volumePart} -next;`, syncToFile);
           }
@@ -3563,63 +3533,93 @@ export class RealtimeRenderer {
           else {
             await appendDiceOverlayLine(finalProcessed);
           }
-          finalizeMessageLineRange();
-          if (syncToFile) {
-            this.sendSyncMessage(targetRoomId);
-          }
-          return;
-        }
-        if (diceSound) {
-          const volumePart = typeof diceSound.volume === "number" ? ` -volume=${diceSound.volume}` : "";
-          await this.appendLine(targetRoomId, `playEffect:${diceSound.url}${volumePart} -next;`, syncToFile);
-        }
-        if (useDialogDice) {
-          await appendDiceDialogLine(processedContent, dialogNotend, dialogConcat);
         }
         else {
-          await appendDiceOverlayLine(processedContent);
+          const stepLines = splitDiceContentToSteps(diceContent);
+          const shouldTwoStep = stepLines.length > 1 && dicePayload?.twoStep !== false;
+          if (shouldTwoStep) {
+            const previewRaw = stripDiceResultTokens(diceContent);
+            const previewProcessed = TextEnhanceSyntax.processContent(previewRaw);
+            const finalProcessed = TextEnhanceSyntax.processContent(diceContent);
+            if (previewProcessed.trim() && previewProcessed !== finalProcessed) {
+              if (useDialogDice) {
+                await appendDiceDialogLine(previewProcessed);
+              }
+              else {
+                await appendDiceOverlayLine(previewProcessed);
+              }
+              if (diceSound) {
+                const volumePart = typeof diceSound.volume === "number" ? ` -volume=${diceSound.volume}` : "";
+                await this.appendLine(targetRoomId, `playEffect:${diceSound.url}${volumePart} -next;`, syncToFile);
+              }
+            }
+            else if (diceSound) {
+              const volumePart = typeof diceSound.volume === "number" ? ` -volume=${diceSound.volume}` : "";
+              await this.appendLine(targetRoomId, `playEffect:${diceSound.url}${volumePart} -next;`, syncToFile);
+            }
+            if (useDialogDice) {
+              await appendDiceDialogLine(finalProcessed, dialogNotend, dialogConcat);
+            }
+            else {
+              await appendDiceOverlayLine(finalProcessed);
+            }
+            finalizeMessageLineRange();
+            if (syncToFile) {
+              this.sendSyncMessage(targetRoomId);
+            }
+            return;
+          }
+          if (diceSound) {
+            const volumePart = typeof diceSound.volume === "number" ? ` -volume=${diceSound.volume}` : "";
+            await this.appendLine(targetRoomId, `playEffect:${diceSound.url}${volumePart} -next;`, syncToFile);
+          }
+          if (useDialogDice) {
+            await appendDiceDialogLine(processedContent, dialogNotend, dialogConcat);
+          }
+          else {
+            await appendDiceOverlayLine(processedContent);
+          }
         }
       }
-    }
-    else if (isNarrator) {
+      else if (isNarrator) {
       // 旁白：冒号前留空，如 :这是一句旁白;
       // 旁白不显示立绘和小头像
-      const nextPart = dialogNext ? " -next" : "";
-      await this.appendLine(targetRoomId, `:${processedContent}${nextPart};`, syncToFile);
-    }
-    else {
+        const nextPart = dialogNext ? " -next" : "";
+        await this.appendLine(targetRoomId, `:${processedContent}${nextPart};`, syncToFile);
+      }
+      else {
       // 普通对话：角色名: 对话内容;
       // 生成语音（如果启用了 TTS）
-      let vocalFileName: string | null = null;
-      if (this.ttsConfig.enabled
-        && renderContent.trim().length > 0
-        && roleId !== 0 // 跳过系统角色
-        && roleId !== 2 // 跳过骰娘
-        && !isDiceMessage
-        && !renderContent.startsWith(".") // 跳过指令
-        && !renderContent.startsWith("。")) {
-        vocalFileName = await this.generateAndUploadVocal(
-          processedContent,
-          roleId,
-          avatar?.avatarTitle,
-          customEmotionVector,
-        );
+        let vocalFileName: string | null = null;
+        if (this.ttsConfig.enabled
+          && renderContent.trim().length > 0
+          && roleId !== 0 // 跳过系统角色
+          && roleId !== 2 // 跳过骰娘
+          && !isDiceMessage
+          && !renderContent.startsWith(".") // 跳过指令
+          && !renderContent.startsWith("。")) {
+          vocalFileName = await this.generateAndUploadVocal(
+            processedContent,
+            roleId,
+            avatar?.avatarTitle,
+            customEmotionVector,
+          );
+        }
+
+        // 添加对话行（包含语音和 -notend/-concat 参数）
+        const vocalPart = vocalFileName ? ` -${vocalFileName}` : "";
+        const notendPart = dialogNotend ? " -notend" : "";
+        const concatPart = dialogConcat ? " -concat" : "";
+        const nextPart = dialogNext ? " -next" : "";
+        await this.appendLine(targetRoomId, `${roleName}: ${processedContent}${vocalPart}${notendPart}${concatPart}${nextPart};`, syncToFile);
       }
 
-      // 添加对话行（包含语音和 -notend/-concat 参数）
-      const vocalPart = vocalFileName ? ` -${vocalFileName}` : "";
-      const notendPart = dialogNotend ? " -notend" : "";
-      const concatPart = dialogConcat ? " -concat" : "";
-      const nextPart = dialogNext ? " -next" : "";
-      await this.appendLine(targetRoomId, `${roleName}: ${processedContent}${vocalPart}${notendPart}${concatPart}${nextPart};`, syncToFile);
-    }
+      finalizeMessageLineRange();
 
-    finalizeMessageLineRange();
-
-    // 自动跳转已关闭，保留写入但不主动跳转
-    if (syncToFile) {
-      this.sendSyncMessage(targetRoomId);
-    }
+      // 自动跳转已关闭，保留写入但不主动跳转
+      if (syncToFile) {
+        this.sendSyncMessage(targetRoomId);
+      }
     };
 
     await this.runWithRoomSyncBatch(targetRoomId, syncToFile, renderImpl);

@@ -1,12 +1,12 @@
 import type { CommentVO } from "api";
 import React, { use, useMemo, useState } from "react";
+import { CommentContext } from "@/components/common/comment/commentContext";
+import CommentInputBox from "@/components/common/comment/commentInputBox";
+import CommentPreview from "@/components/common/comment/commentPreview";
 import {
   buildMediaContentPreview,
 } from "@/components/common/content/mediaContent";
 import MediaContentView from "@/components/common/content/mediaContentView";
-import { CommentContext } from "@/components/common/comment/commentContext";
-import CommentInputBox from "@/components/common/comment/commentInputBox";
-import CommentPreview from "@/components/common/comment/commentPreview";
 import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
 import LikeIconButton from "@/components/common/likeIconButton";
 import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
@@ -431,8 +431,8 @@ export default function CommentComponent({
                           {isLoadingMoreChildren
                             ? "正在加载回复..."
                             : childLoadFailed
-                                ? `重试加载剩余 ${remainingChildren} 条回复...`
-                                : `加载更多 ${remainingChildren} 条回复...`}
+                              ? `重试加载剩余 ${remainingChildren} 条回复...`
+                              : `加载更多 ${remainingChildren} 条回复...`}
                         </button>
                       </div>
                     )}

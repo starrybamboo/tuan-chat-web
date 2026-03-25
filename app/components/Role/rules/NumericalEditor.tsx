@@ -324,19 +324,22 @@ export default function NumericalEditor({
         <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
           {Object.entries(localData).map(([key, value]) => {
             const strVal = String(value ?? "");
-            
-            // 计算有效字符长度（中文字符算2个长度）
-            const getVisualLength = (str: string) => str.replace(/[^\x00-\xff]/g, "xx").length;
-            
+
+            // 计算有效字符长度，非 Latin-1 字符按两个宽度估算。
+            const getVisualLength = (str: string) => Array.from(str).reduce((length, char) => {
+              const codePoint = char.codePointAt(0) ?? 0;
+              return length + (codePoint > 0xFF ? 2 : 1);
+            }, 0);
+
             const keyLen = getVisualLength(key);
             const valLen = getVisualLength(strVal);
-            
+
             // 桌面端估算总长度：字段名 + 间隔/图标等固定占用(约4字符) + 字段值
             const desktopEffectiveLength = keyLen + 4 + valLen;
-            
+
             // 移动端估算长度：取字段名和字段值中较长的一个（因为是垂直排列）
             const mobileEffectiveLength = Math.max(keyLen, valLen);
-            
+
             // Adjust layout based on content length
             // Mobile (2 cols): >= 17 chars -> full width
             // Desktop (4 cols): > 40 chars -> 4 cols (full), > 17 -> 2 cols (half), else -> 1 col (quarter)
@@ -345,10 +348,12 @@ export default function NumericalEditor({
             if (desktopEffectiveLength > 40) {
               // Very long content: occupies full line on desktop
               colSpanClass = mobileEffectiveLength >= 17 ? "col-span-2 md:col-span-4" : "col-span-1 md:col-span-4";
-            } else if (desktopEffectiveLength > 17) {
+            }
+            else if (desktopEffectiveLength > 17) {
               // Medium long content: occupies half line (2 columns on desktop)
               colSpanClass = mobileEffectiveLength >= 17 ? "col-span-2 md:col-span-2" : "col-span-1 md:col-span-2";
-            } else {
+            }
+            else {
               // Short content: single cell on desktop
               colSpanClass = mobileEffectiveLength >= 17 ? "col-span-2 md:col-span-1" : "col-span-1 md:col-span-1";
             }

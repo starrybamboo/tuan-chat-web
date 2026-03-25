@@ -1,11 +1,11 @@
 import type { CommentTimelineVO, MarkTarget } from "api";
 
 import { use, useMemo, useState } from "react";
-import { buildMediaContentPreview } from "@/components/common/content/mediaContent";
-import MediaContentView from "@/components/common/content/mediaContentView";
 import { CommentContext } from "@/components/common/comment/commentContext";
 import CommentInputBox from "@/components/common/comment/commentInputBox";
 import CommentPreview from "@/components/common/comment/commentPreview";
+import { buildMediaContentPreview } from "@/components/common/content/mediaContent";
+import MediaContentView from "@/components/common/content/mediaContentView";
 import LikeIconButton from "@/components/common/likeIconButton";
 import { UserAvatarByUser } from "@/components/common/userAccess";
 import { CloseIcon } from "@/icons";

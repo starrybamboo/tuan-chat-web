@@ -1,9 +1,9 @@
 import type { CharacterData } from "@/components/Role/RoleCreation/types";
 import type { Role } from "@/components/Role/types";
-import React, { use, useMemo, useState } from "react";
-import toast from "react-hot-toast";
-
 import { useQueryClient } from "@tanstack/react-query";
+import React, { use, useMemo, useState } from "react";
+
+import toast from "react-hot-toast";
 
 import { RoomContext } from "@/components/chat/core/roomContext";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
@@ -53,7 +53,7 @@ export default function CreateNpcRoleWindow({ onClose }: { onClose: () => void }
     };
   }, [ruleId]);
 
-  const handleCreateNpcComplete = (createdRole: Role) => {
+  const handleCreateNpcComplete = (_createdRole: Role) => {
     void queryClient.invalidateQueries({ queryKey: ["spaceRepositoryRole", spaceId] });
     toast.success("NPC创建成功");
     onClose();

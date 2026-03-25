@@ -1,13 +1,13 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  SPACE_MEMBER_TYPE,
   canManageMemberPermissions,
   canManageRoomRoles,
   canParticipateInRoom,
   getMemberTypeSortWeight,
   hasHostPrivileges,
   isObserverLike,
+  SPACE_MEMBER_TYPE,
 } from "./memberPermissions";
 
 describe("memberPermissions", () => {

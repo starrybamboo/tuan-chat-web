@@ -158,7 +158,8 @@ export function Sidebar({
             seedRoleAvatarQueryCaches(queryClient, res.data, role.id);
             return { id: role.id, avatar: avatarUrl, avatarThumb: avatarThumbUrl };
           }
-        } catch (error) {
+        }
+        catch (error) {
           console.error(`加载角色 ${role.id} 的头像时出错`, error);
           return null;
         }

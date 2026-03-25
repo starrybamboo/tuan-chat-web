@@ -3,11 +3,11 @@ import { useEffect, useRef } from "react";
 import { mediaDebug } from "@/components/chat/infra/media/mediaDebug";
 import { acquireCachedVideoElement } from "@/components/chat/infra/videoMessage/videoElementCache";
 
-type CachedVideoMessageProps = {
+interface CachedVideoMessageProps {
   cacheKey: string;
   url: string;
   className?: string;
-};
+}
 
 export default function CachedVideoMessage({ cacheKey, url, className }: CachedVideoMessageProps) {
   const mountRef = useRef<HTMLDivElement | null>(null);

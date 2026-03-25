@@ -1,8 +1,8 @@
-import type { ChatMessageResponse, UserRole } from "../../api";
-
 import { getFigurePositionFromAnnotations, hasMiniAvatarAnnotation } from "@/types/messageAnnotations";
 import { isFigurePosition, MESSAGE_TYPE } from "@/types/voiceRenderTypes";
 import { extractWebgalDicePayload, isLikelyAnkoDiceContent, isLikelyTrpgDiceContent } from "@/types/webgalDice";
+
+import type { ChatMessageResponse, UserRole } from "../../api";
 
 export const DEFAULT_REALTIME_ASSET_CONCURRENCY = 6;
 

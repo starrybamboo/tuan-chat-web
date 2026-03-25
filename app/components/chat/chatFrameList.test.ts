@@ -1,6 +1,6 @@
-import type { ChatMessageResponse } from "../../../api";
-
 import { describe, expect, it } from "vitest";
+
+import type { ChatMessageResponse } from "../../../api";
 
 import { getChatFrameItemKey } from "./chatFrameList";
 

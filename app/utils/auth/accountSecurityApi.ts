@@ -1,8 +1,9 @@
-import { createTuanChatClient, tuanchat } from "../../../api/instance";
 import {
   assertOpenApiResultSuccess,
   extractOpenApiErrorMessage,
 } from "@/utils/openApiResult";
+
+import { createTuanChatClient, tuanchat } from "../../../api/instance";
 
 type EmailVerificationPurpose
   = | "REGISTER"

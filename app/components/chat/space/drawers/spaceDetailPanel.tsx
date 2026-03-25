@@ -34,13 +34,13 @@ export default function SpaceDetailPanel({ activeTab, onClose }: { activeTab: Sp
     ? "空间成员"
     : resolvedTab === "roles"
       ? "空间角色"
-    : resolvedTab === "workflow"
-      ? "流程图"
-      : resolvedTab === "trpg"
-        ? "跑团设置"
-        : resolvedTab === "webgal"
-          ? "WebGAL 渲染"
-          : "空间资料";
+      : resolvedTab === "workflow"
+        ? "流程图"
+        : resolvedTab === "trpg"
+          ? "跑团设置"
+          : resolvedTab === "webgal"
+            ? "WebGAL 渲染"
+            : "空间资料";
 
   const [isRoleHandleOpen, setIsRoleHandleOpen] = useState(false);
   const [isMemberHandleOpen, setIsMemberHandleOpen] = useState(false);
@@ -208,7 +208,7 @@ export default function SpaceDetailPanel({ activeTab, onClose }: { activeTab: Sp
                   <div className="text-xs opacity-70">加入空间后会自动授予玩家身份</div>
                 </div>
               </label>
-              
+
               <label
                 className={`flex items-start gap-3 rounded-lg border border-base-300 p-3 cursor-pointer ${inviteMemberMode === "spectator" ? "bg-base-200" : "bg-base-100"}`}
               >

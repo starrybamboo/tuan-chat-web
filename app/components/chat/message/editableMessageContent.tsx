@@ -52,7 +52,7 @@ function EditableMessageContent({
     if (!raw) {
       return editContent;
     }
-    const text = typeof raw.innerText === "string" ? raw.innerText : (raw.textContent ?? "");
+    const text = raw.textContent ?? "";
     return normalizeEditorText(text);
   }, [chatInputRef, editContent]);
 

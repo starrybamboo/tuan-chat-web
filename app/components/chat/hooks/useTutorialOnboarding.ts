@@ -99,7 +99,6 @@ type UseTutorialOnboardingParams = {
   navigate: NavigateFunction;
 };
 
-
 type UseTutorialOnboardingResult = {
   tutorialUpdatePrompt: TutorialBootstrapResponse | null;
   tutorialPromptType: "missing" | "update" | null;
@@ -253,4 +252,3 @@ export default function useTutorialOnboarding({
     confirmTutorialUpdatePull,
   };
 }
-

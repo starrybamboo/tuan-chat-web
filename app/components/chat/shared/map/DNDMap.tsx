@@ -168,7 +168,6 @@ export default function DNDMap({ roomId: roomIdProp, spaceId: spaceIdProp, varia
     return [...roles, ...npcRoles];
   }, [roomRolesData, roomNpcRolesData]);
 
-
   const mapQuery = useQuery({
     queryKey: roomDndMapQueryKey(roomId),
     queryFn: () => fetchRoomDndMap(roomId),

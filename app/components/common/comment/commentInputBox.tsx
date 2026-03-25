@@ -1,9 +1,9 @@
 import { use, useState } from "react";
+import { CommentContext } from "@/components/common/comment/commentContext";
 import {
   hasMeaningfulMediaContent,
   measureMediaContentLength,
 } from "@/components/common/content/mediaContent";
-import { CommentContext } from "@/components/common/comment/commentContext";
 import TextMediaEditor from "@/components/common/markdown/textMediaEditor";
 import { CloseIcon, SendIcon } from "@/icons";
 import { useAddCommentMutation } from "../../../../api/hooks/commentQueryHooks";

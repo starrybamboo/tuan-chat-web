@@ -2,13 +2,13 @@ import type { UserNotificationItem } from "@/components/notification/notificatio
 
 import { formatNotificationTime } from "@/components/notification/notificationTypes";
 
-type NotificationListProps = {
+interface NotificationListProps {
   items: UserNotificationItem[];
   emptyText: string;
   loading?: boolean;
   busyNotificationId?: number | null;
   onItemClick: (item: UserNotificationItem) => void | Promise<void>;
-};
+}
 
 export default function NotificationList({
   items,

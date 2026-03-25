@@ -4,7 +4,7 @@ import ChatStatusBar from "@/components/chat/chatStatusBar";
 import AvatarDropdownContent from "@/components/chat/input/avatarDropdownContent";
 import { useScreenSize } from "@/components/common/customHooks/useScreenSize";
 import RoleAvatarComponent from "@/components/common/roleAvatar";
-import { AddRoleIcon, NarratorIcon, SingleUserIcon } from "@/icons";
+import { AddRoleIcon, NarratorIcon } from "@/icons";
 
 interface RoomComposerHeaderProps {
   roomId: number;
@@ -139,8 +139,7 @@ export default function RoomComposerHeader({
                       useDefaultAvatarFallback={true}
                       alt={curRoleId === 0 ? "未选择角色" : (curRoleId < 0 ? "旁白" : undefined)}
                     />
-                  )
-              }
+                  )}
             </button>
             {isAvatarPopoverOpen && !isSpectator && (
               <div

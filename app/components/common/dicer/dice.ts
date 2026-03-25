@@ -554,7 +554,7 @@ export function roll(dice: string, diceSize: number = 100): { result: number; ex
  * @example
  * range("2d6+3") // { min: 5, max: 15 }
  */
-function range(dice: string, diceSize: number = 100): { min: number; max: number } {
+export function range(dice: string, diceSize: number = 100): { min: number; max: number } {
   const parser = new ExpressionParser(diceSize);
   return parser.range(dice);
 }

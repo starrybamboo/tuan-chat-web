@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 
-import { resolveWebGALPreviewState } from "./webGALPreviewState";
+import { resolveWebGALPreviewState } from "./webGalPreviewState";
 
-describe("webGALPreviewState", () => {
+describe("webGalPreviewState", () => {
   it("已有 previewUrl 时直接显示 iframe，不再继续卡在启动态", () => {
     expect(resolveWebGALPreviewState({
       previewUrl: "http://127.0.0.1:3000/games/realtime_1/index.html",

@@ -1,4 +1,5 @@
 import type { FigurePositionKey } from "@/types/voiceRenderTypes";
+
 import { FIGURE_POSITION_LABELS, FIGURE_POSITION_ORDER } from "@/types/voiceRenderTypes";
 
 export const REFERENCE_WIDTH = 2560;

@@ -42,20 +42,22 @@ export default function EditableField({
   useEffect(() => {
     // 处理两个可滚动元素
     const elements = [scrollRef.current, keyScrollRef.current].filter(Boolean) as HTMLSpanElement[];
-    if (elements.length === 0) return;
+    if (elements.length === 0)
+      return;
 
     // ----- 滚轮处理逻辑 -----
     const handleWheel = (e: WheelEvent) => {
       // 找到触发事件的元素
       const target = e.currentTarget as HTMLSpanElement;
-      
+
       // 允许横向和纵向的滚动事件都触发横向滚动
       // 优先处理纵向滚轮（将其转换为横向）
       let delta = 0;
       if (Math.abs(e.deltaY) >= Math.abs(e.deltaX)) {
         // 显著降低滚动速度系数，避免太快滑到底
         delta = e.deltaY * 0.15;
-      } else {
+      }
+      else {
         // 如果是原生横向滚动（如触摸板），也进行一定的减速处理，防止过快
         delta = e.deltaX * 0.15;
       }
@@ -82,11 +84,11 @@ export default function EditableField({
       // 如果 key 也需要支持拖拽滚动，需要更复杂的逻辑来追踪哪个元素被激活。
       // 考虑到 fieldKey 点击即变成 input 编辑模式，通常不需要像 value 那样支持长文本选择复制
       // 所以这里暂不为 fieldKey 应用 checkAutoScroll 逻辑，仅对其应用 wheel 逻辑
-      
+
       // 原有的 value 区域 autoScroll 逻辑保持不变，但需绑定到特定元素
       // 这里为了简单，我们只对 scrollRef (value) 启用拖拽自动滚动
       const el = scrollRef.current;
-      
+
       // 在每次调用时都需要重新获取最新的鼠标位置和状态
       if (!isSelectingRef.current || !mousePosRef.current || !el) {
         autoScrollRaf.current = null;
@@ -96,9 +98,9 @@ export default function EditableField({
       const rect = el.getBoundingClientRect();
       const x = mousePosRef.current.x; // 获取最新的鼠标 x 坐标
       // 边缘触发滚动的阈值区域宽度（像素）
-      const threshold = 60; 
+      const threshold = 60;
       // 最大滚动速度 (px/frame) - 保持较小值防止飞速滚动
-      const maxScrollSpeed = 6; 
+      const maxScrollSpeed = 6;
 
       let speed = 0;
 
@@ -121,19 +123,21 @@ export default function EditableField({
         el.scrollLeft += speed;
         // 只要还在滚动，就继续下一帧
         autoScrollRaf.current = requestAnimationFrame(checkAutoScroll);
-      } else {
+      }
+      else {
         // 如果当前不需要滚动，停止循环，依靠 mousemove 重新启动
         autoScrollRaf.current = null;
       }
     };
 
     const handleMouseDown = (e: MouseEvent) => {
-       // 只有当在 value 区域 (scrollRef) 按下时才启动自动滚动逻辑
-       if (e.target === scrollRef.current || scrollRef.current?.contains(e.target as Node)) {
-          isSelectingRef.current = true;
-          mousePosRef.current = null;
-          if (scrollRef.current) scrollRef.current.style.overflowX = "hidden";
-       }
+      // 只有当在 value 区域 (scrollRef) 按下时才启动自动滚动逻辑
+      if (e.target === scrollRef.current || scrollRef.current?.contains(e.target as Node)) {
+        isSelectingRef.current = true;
+        mousePosRef.current = null;
+        if (scrollRef.current)
+          scrollRef.current.style.overflowX = "hidden";
+      }
     };
 
     const handleGlobalMouseMove = (e: MouseEvent) => {
@@ -141,7 +145,7 @@ export default function EditableField({
       if (isSelectingRef.current) {
         // 更新最新的鼠标位置给 checkAutoScroll 使用
         mousePosRef.current = { x: e.clientX };
-        
+
         // 如果当前自动滚动没有在运行，就启动它
         if (!autoScrollRaf.current) {
           autoScrollRaf.current = requestAnimationFrame(checkAutoScroll);
@@ -152,32 +156,35 @@ export default function EditableField({
     const handleGlobalMouseUp = () => {
       isSelectingRef.current = false;
       mousePosRef.current = null;
-      if (scrollRef.current) scrollRef.current.style.overflowX = "";
-      
+      if (scrollRef.current)
+        scrollRef.current.style.overflowX = "";
+
       if (autoScrollRaf.current) {
         cancelAnimationFrame(autoScrollRaf.current);
         autoScrollRaf.current = null;
       }
     };
 
+    const valueElement = scrollRef.current;
+
     // 绑定事件
-    elements.forEach(el => {
-        // 使用 passive: false 以便调用 preventDefault
-        el.addEventListener("wheel", handleWheel, { passive: false });
+    elements.forEach((el) => {
+      // 使用 passive: false 以便调用 preventDefault
+      el.addEventListener("wheel", handleWheel, { passive: false });
     });
-    
+
     // 只在 scrollRef 上监听 mousedown 用于选择
-    scrollRef.current?.addEventListener("mousedown", handleMouseDown);
-    
+    valueElement?.addEventListener("mousedown", handleMouseDown);
+
     // 监听全局 mousemove/mouseup 以处理拖出元素的情况
     window.addEventListener("mousemove", handleGlobalMouseMove);
     window.addEventListener("mouseup", handleGlobalMouseUp);
 
     return () => {
-      elements.forEach(el => {
-          el.removeEventListener("wheel", handleWheel);
+      elements.forEach((el) => {
+        el.removeEventListener("wheel", handleWheel);
       });
-      scrollRef.current?.removeEventListener("mousedown", handleMouseDown);
+      valueElement?.removeEventListener("mousedown", handleMouseDown);
       window.removeEventListener("mousemove", handleGlobalMouseMove);
       window.removeEventListener("mouseup", handleGlobalMouseUp);
       if (autoScrollRaf.current) {
@@ -187,11 +194,7 @@ export default function EditableField({
   }, [isEditing]);
 
   const isCompact = size === "compact";
-  // 移动端统一使用“键名在上、值在下”的卡片布局
-  const shouldStackKeyOnMobile = true;
-  const resolvedValueInputClassName
-    = valueInputClassName
-      || `${isCompact ? "text-xs" : ""} grow focus:outline-none border-none outline-none`;
+  void valueInputClassName;
 
   const handleRename = (newKey: string) => {
     if (!newKey.trim() || newKey === fieldKey) {

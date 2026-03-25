@@ -1,7 +1,7 @@
 import type { Transform } from "../sprite/TransformControl";
-import React, { useEffect, useMemo, useRef, useState } from "react"; // 引入 React Hooks
-
 import type { PreviewAnchorPosition } from "./previewAnchor";
+
+import React, { useEffect, useMemo, useRef, useState } from "react"; // 引入 React Hooks
 import { getAnchorOffsetXRef, REFERENCE_HEIGHT, REFERENCE_WIDTH } from "./previewAnchor";
 
 /**

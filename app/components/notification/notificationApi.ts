@@ -8,12 +8,13 @@ import type {
   UserNotificationPayload,
 } from "@/components/notification/notificationTypes";
 
-import { tuanchat } from "../../../api/instance";
 import {
   compactRequestBody,
   extractOpenApiErrorMessage,
   unwrapOpenApiResultData,
 } from "@/utils/openApiResult";
+
+import { tuanchat } from "../../../api/instance";
 
 function normalizeNotificationPayload(payload: unknown): UserNotificationPayload | null {
   if (!payload || typeof payload !== "object") {

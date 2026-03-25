@@ -12,12 +12,13 @@ import type {
 } from "@/components/feedback/feedbackTypes";
 import type { FeedbackIssueAuthorResponse } from "api";
 
-import { tuanchat } from "../../../api/instance";
 import {
   compactRequestBody,
   extractOpenApiErrorMessage,
   unwrapOpenApiResultData,
 } from "@/utils/openApiResult";
+
+import { tuanchat } from "../../../api/instance";
 
 function normalizeFeedbackIssueCode<T extends number>(value: string | number | undefined, fallback: T) {
   const numericValue = Number(value);

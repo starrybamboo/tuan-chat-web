@@ -85,7 +85,7 @@ describe("browserAssetCache", () => {
     expect(fetchSpy).not.toHaveBeenCalled();
   });
 
-  it("Terre 直拉成功后的异步回填会写入镜像缓存，但不会伪造已见标记", async () => {
+  it("terre 直拉成功后的异步回填会写入镜像缓存，但不会伪造已见标记", async () => {
     fetchSpy.mockResolvedValue(new Response("backfill-binary", {
       status: 200,
       headers: {

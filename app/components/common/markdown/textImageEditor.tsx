@@ -1,4 +1,5 @@
-import { type ClipboardEvent, useEffect, useRef, useState } from "react";
+import type { ClipboardEvent } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ImgUploader } from "@/components/common/uploader/imgUploader";
 import { UploadUtils } from "@/utils/UploadUtils";
 

@@ -1,4 +1,7 @@
 import type { InfiniteData, QueryClient, QueryKey } from "@tanstack/react-query";
+
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+
 import type {
   NotificationListFilters,
   NotificationPageResponse,
@@ -7,8 +10,6 @@ import type {
   NotificationUnreadCountResponse,
   UserNotificationItem,
 } from "@/components/notification/notificationTypes";
-
-import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import {
   getNotificationUnreadCount,
