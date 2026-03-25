@@ -1,5 +1,6 @@
 import type { DocMode } from "@blocksuite/affine/model";
-import type { MutableRefObject, RefObject } from "react";
+import type { RefObject } from "react";
+
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import toast from "react-hot-toast";
 
@@ -13,15 +14,8 @@ function tryFocusEdgelessViewport(editor: any, store: any): boolean {
     const rootId = doc?.root?.id;
     const rootBlock = editor?.host?.view?.getBlock?.(rootId);
 
-    if (typeof rootBlock?.gfx?.fitToScreen === "function") {
-      rootBlock.gfx.fitToScreen();
-      return true;
-    }
-    const service = rootBlock?.service;
-    if (typeof service?.zoomToFit === "function") {
-      service.zoomToFit();
-      return true;
-    }
+    rootBlock?.gfx?.fitToScreen?.();
+    return true;
   }
   catch (error) {
     warnNonFatalBlocksuiteError("[BlocksuiteDescriptionEditor] Failed to focus edgeless viewport", error);
@@ -36,8 +30,8 @@ type UseBlocksuiteViewportBehaviorParams = {
   isFull: boolean;
   className?: string;
   tcHeaderEnabled: boolean;
-  editorRef: MutableRefObject<HTMLElement | null>;
-  storeRef: MutableRefObject<any>;
+  editorRef: RefObject<HTMLElement | null>;
+  storeRef: RefObject<any>;
   fullscreenRootRef: RefObject<HTMLDivElement | null>;
   hostContainerRef: RefObject<HTMLDivElement | null>;
 };
@@ -138,12 +132,7 @@ export function useBlocksuiteViewportBehavior(params: UseBlocksuiteViewportBehav
       return;
 
     try {
-      if (typeof editor.switchEditor === "function") {
-        editor.switchEditor(currentMode);
-      }
-      else {
-        editor.mode = currentMode;
-      }
+      editor.switchEditor(currentMode);
       editor.style.height = (isEdgelessFullscreen || isBrowserFullscreen || isFull) ? "100%" : "auto";
     }
     catch (error) {

@@ -1,5 +1,5 @@
 import type { DocMode } from "@blocksuite/affine/model";
-import type { KeyboardEvent as ReactKeyboardEvent, MutableRefObject } from "react";
+import type { KeyboardEvent as ReactKeyboardEvent, RefObject } from "react";
 import type { BlocksuiteDocHeader } from "@/components/chat/infra/blocksuite/docHeader";
 import { FileTextIcon } from "@phosphor-icons/react";
 import { useCallback } from "react";
@@ -13,7 +13,7 @@ type TcHeaderState = {
   header: BlocksuiteDocHeader;
 } | null;
 
-type BlocksuiteTcHeaderProps = {
+interface BlocksuiteTcHeaderProps {
   docId: string;
   readOnly: boolean;
   allowModeSwitch: boolean;
@@ -24,11 +24,11 @@ type BlocksuiteTcHeaderProps = {
   tcHeaderState: TcHeaderState;
   fallbackTitle?: string;
   fallbackImageUrl?: string;
-  storeRef: MutableRefObject<any>;
+  storeRef: RefObject<any>;
   onToggleBrowserFullscreen: () => void | Promise<void>;
   onForcePullFromCloud: () => void | Promise<void>;
   onToggleMode: () => void;
-};
+}
 
 export function BlocksuiteTcHeader(props: BlocksuiteTcHeaderProps) {
   const {

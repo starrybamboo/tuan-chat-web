@@ -1,14 +1,17 @@
 import type { DocMode } from "@blocksuite/affine/model";
 import type { DocModeProvider } from "@blocksuite/affine/shared/services";
-import type { MutableRefObject } from "react";
+import type { RefObject } from "react";
+
 import { useCallback, useEffect, useRef, useState } from "react";
+
+import type { BlocksuiteDocHeader } from "@/components/chat/infra/blocksuite/docHeader";
+
 import { base64ToUint8Array } from "@/components/chat/infra/blocksuite/base64";
 import { isNonRetryableBlocksuiteDocError } from "@/components/chat/infra/blocksuite/blocksuiteDocError";
-import { ensureBlocksuiteDocHeader, subscribeBlocksuiteDocHeader } from "@/components/chat/infra/blocksuite/docHeader";
-import type { BlocksuiteDocHeader } from "@/components/chat/infra/blocksuite/docHeader";
 import { isBlocksuiteDebugEnabled } from "@/components/chat/infra/blocksuite/debugFlags";
 import { parseDescriptionDocId } from "@/components/chat/infra/blocksuite/descriptionDocId";
 import { getRemoteSnapshot } from "@/components/chat/infra/blocksuite/descriptionDocRemote";
+import { ensureBlocksuiteDocHeader, subscribeBlocksuiteDocHeader } from "@/components/chat/infra/blocksuite/docHeader";
 import { finishBlocksuiteOpenSession, markBlocksuiteOpenSession } from "@/components/chat/infra/blocksuite/perf";
 import { loadBlocksuiteRuntime } from "@/components/chat/infra/blocksuite/runtime/runtimeLoader.browser";
 import { parseSpaceDocId } from "@/components/chat/infra/blocksuite/spaceDocId";
@@ -17,18 +20,6 @@ const REMOTE_HYDRATE_FAST_WAIT_MS = 250;
 
 function warnNonFatalBlocksuiteError(message: string, error: unknown) {
   console.warn(message, error);
-}
-
-function isProbablyInIframe(): boolean {
-  if (typeof window === "undefined")
-    return false;
-
-  try {
-    return window.self !== window.top;
-  }
-  catch {
-    return true;
-  }
 }
 
 type TcHeaderState = {
@@ -46,10 +37,9 @@ type UseBlocksuiteEditorLifecycleParams = {
   tcHeaderFallbackTitle?: string;
   tcHeaderFallbackImageUrl?: string;
   docModeProvider: DocModeProvider;
-  currentModeRef: MutableRefObject<DocMode>;
+  currentModeRef: RefObject<DocMode>;
   isFull: boolean;
   postToParent: (payload: any) => boolean;
-  navigateTo: (to: string) => void;
 };
 
 export function useBlocksuiteEditorLifecycle(params: UseBlocksuiteEditorLifecycleParams) {
@@ -66,7 +56,6 @@ export function useBlocksuiteEditorLifecycle(params: UseBlocksuiteEditorLifecycl
     currentModeRef,
     isFull,
     postToParent,
-    navigateTo,
   } = params;
 
   const hostContainerRef = useRef<HTMLDivElement | null>(null);
@@ -241,15 +230,11 @@ export function useBlocksuiteEditorLifecycle(params: UseBlocksuiteEditorLifecycl
           const parsed = parseSpaceDocId(docId);
 
           const go = (to: string) => {
-            if (isProbablyInIframe()) {
-              postToParent({
-                tc: "tc-blocksuite-frame",
-                type: "navigate",
-                to,
-              });
-              return;
-            }
-            navigateTo(to);
+            postToParent({
+              tc: "tc-blocksuite-frame",
+              type: "navigate",
+              to,
+            });
           };
 
           if (parsed?.kind === "room_description") {
@@ -298,13 +283,11 @@ export function useBlocksuiteEditorLifecycle(params: UseBlocksuiteEditorLifecycl
         }
       });
 
-      if (isProbablyInIframe()) {
-        requestAnimationFrame(() => {
-          markBlocksuiteOpenSession(instanceIdRef.current ?? "", "render-ready");
-          finishBlocksuiteOpenSession(instanceIdRef.current ?? "");
-          postToParent({ tc: "tc-blocksuite-frame", instanceId: instanceIdRef.current, type: "render-ready" });
-        });
-      }
+      requestAnimationFrame(() => {
+        markBlocksuiteOpenSession(instanceIdRef.current ?? "", "render-ready");
+        finishBlocksuiteOpenSession(instanceIdRef.current ?? "");
+        postToParent({ tc: "tc-blocksuite-frame", instanceId: instanceIdRef.current, type: "render-ready" });
+      });
 
       const onUndoRedoKeyDown = (event: KeyboardEvent) => {
         const isMod = event.ctrlKey || event.metaKey;
@@ -355,12 +338,7 @@ export function useBlocksuiteEditorLifecycle(params: UseBlocksuiteEditorLifecycl
       window.addEventListener("keydown", onUndoRedoKeyDown, { capture: true, signal: abort.signal });
 
       try {
-        if (typeof (editor as any).switchEditor === "function") {
-          (editor as any).switchEditor(currentModeRef.current);
-        }
-        else {
-          (editor as any).mode = currentModeRef.current;
-        }
+        (editor as any).switchEditor(currentModeRef.current);
       }
       catch (error) {
         warnNonFatalBlocksuiteError("[BlocksuiteDescriptionEditor] Failed to sync initial editor mode", error);
@@ -416,7 +394,6 @@ export function useBlocksuiteEditorLifecycle(params: UseBlocksuiteEditorLifecycl
     docId,
     docModeProvider,
     isFull,
-    navigateTo,
     postToParent,
     readOnly,
     reloadEpoch,
@@ -452,7 +429,6 @@ export function useBlocksuiteEditorLifecycle(params: UseBlocksuiteEditorLifecycl
       return;
 
     editor.readOnly = readOnly;
-    editor.readonly = readOnly;
     if (readOnly)
       editor.setAttribute?.("readonly", "true");
     else

@@ -1,6 +1,7 @@
 import type { DocMode } from "@blocksuite/affine/model";
 import type { DocModeProvider } from "@blocksuite/affine/shared/services";
-import type { Dispatch, MutableRefObject, SetStateAction } from "react";
+import type { Dispatch, RefObject, SetStateAction } from "react";
+
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Subscription } from "rxjs";
 
@@ -19,7 +20,7 @@ type UseBlocksuiteDocModeProviderParams = {
 type UseBlocksuiteDocModeProviderResult = {
   currentMode: DocMode;
   setCurrentMode: Dispatch<SetStateAction<DocMode>>;
-  currentModeRef: MutableRefObject<DocMode>;
+  currentModeRef: RefObject<DocMode>;
   docModeProvider: DocModeProvider;
 };
 
