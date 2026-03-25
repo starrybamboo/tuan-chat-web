@@ -204,7 +204,7 @@ export function BlocksuiteRouteFrameClient() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [instanceId]);
 
   useEffect(() => {
     if (!allowModeSwitch) {
