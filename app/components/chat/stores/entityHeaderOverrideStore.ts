@@ -1,6 +1,6 @@
 import { create } from "zustand";
 
-import type { DescriptionEntityType } from "@/components/chat/infra/blocksuite/descriptionDocId";
+import type { DescriptionEntityType } from "@/components/chat/infra/blocksuite/description/descriptionDocId";
 
 type EntityHeaderOverride = {
   title: string;

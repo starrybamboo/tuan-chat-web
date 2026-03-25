@@ -1,7 +1,7 @@
 import type { MinimalDocMeta } from "@/components/chat/room/sidebarTree";
 
 import { isNonRetryableBlocksuiteDocError } from "@/components/chat/infra/blocksuite/blocksuiteDocError";
-import { parseSpaceDocId } from "@/components/chat/infra/blocksuite/spaceDocId";
+import { parseSpaceDocId } from "@/components/chat/infra/blocksuite/space/spaceDocId";
 
 const SPACE_DOC_META_CACHE_KEY_PREFIX = "tc:space-doc-metas:v1:";
 const SPACE_DOC_TITLE_SYNC_QUEUE_KEY = "tc:space-doc-title-sync-queue:v1";

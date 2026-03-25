@@ -1,7 +1,7 @@
 import type { SpaceDetailTab } from "@/components/chat/chatPage.types";
 
 import { SPACE_DETAIL_TABS } from "@/components/chat/chatPage.types";
-import { buildSpaceDocId, parseSpaceDocId } from "@/components/chat/infra/blocksuite/spaceDocId";
+import { buildSpaceDocId, parseSpaceDocId } from "@/components/chat/infra/blocksuite/space/spaceDocId";
 
 export type DocRouteInfo = {
   decodedDocId: string | null;

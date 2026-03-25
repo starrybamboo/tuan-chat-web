@@ -59,7 +59,7 @@ export default function useRoomSidebarDocCopy({
       return;
     }
 
-    const { parseDescriptionDocId } = await import("@/components/chat/infra/blocksuite/descriptionDocId");
+    const { parseDescriptionDocId } = await import("@/components/chat/infra/blocksuite/description/descriptionDocId");
     const key = parseDescriptionDocId(docRef.docId);
     if (!key) {
       toast.error("仅支持复制空间文档（描述文档/我的文档）");

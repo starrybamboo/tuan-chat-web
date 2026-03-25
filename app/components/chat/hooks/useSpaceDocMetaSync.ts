@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 
-import { buildSpaceDocId } from "@/components/chat/infra/blocksuite/spaceDocId";
+import { buildSpaceDocId } from "@/components/chat/infra/blocksuite/space/spaceDocId";
 
 type RoomSummary = {
   roomId?: number | null;
@@ -23,7 +23,7 @@ export default function useSpaceDocMetaSync({ spaceId, spaceName, rooms }: UseSp
     let cancelled = false;
     void (async () => {
       try {
-        const { ensureSpaceDocMetaIfWorkspaceExists } = await import("@/components/chat/infra/blocksuite/spaceWorkspaceRegistry");
+        const { ensureSpaceDocMetaIfWorkspaceExists } = await import("@/components/chat/infra/blocksuite/space/spaceWorkspaceRegistry");
 
         if (cancelled)
           return;

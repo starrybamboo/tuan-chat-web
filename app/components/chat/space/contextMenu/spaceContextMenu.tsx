@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import toast from "react-hot-toast";
 import { useNavigate } from "react-router";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
-import { buildSpaceDocId } from "@/components/chat/infra/blocksuite/spaceDocId";
+import { buildSpaceDocId } from "@/components/chat/infra/blocksuite/space/spaceDocId";
 import ConfirmModal from "@/components/common/comfirmModel";
 import { useDissolveSpaceMutation, useExitSpaceMutation, useUpdateSpaceArchiveStatusMutation } from "../../../../../api/hooks/chatQueryHooks";
 
@@ -155,7 +155,7 @@ export default function SpaceContextMenu({ contextMenu, isSpaceOwner, isArchived
                 const target = dissolveTargetSpaceId;
                 void (async () => {
                   try {
-                    const { deleteSpaceDoc } = await import("@/components/chat/infra/blocksuite/deleteSpaceDoc");
+                    const { deleteSpaceDoc } = await import("@/components/chat/infra/blocksuite/space/deleteSpaceDoc");
                     await deleteSpaceDoc({
                       spaceId: target,
                       docId: buildSpaceDocId({ kind: "space_description", spaceId: target }),

@@ -19,14 +19,14 @@ import { Awareness } from "y-protocols/awareness.js";
 import * as Y from "yjs";
 import { applyUpdate, encodeStateAsUpdate, encodeStateVector, mergeUpdates } from "yjs";
 
-import type { BlocksuiteDocKey } from "@/components/chat/infra/blocksuite/blocksuiteWsClient";
+import type { BlocksuiteDocKey } from "@/components/chat/infra/blocksuite/runtime/blocksuiteWsClient";
 
 import { NonRetryableBlocksuiteDocError } from "@/components/chat/infra/blocksuite/blocksuiteDocError";
-import { blocksuiteWsClient } from "@/components/chat/infra/blocksuite/blocksuiteWsClient";
-import { clearUpdates } from "@/components/chat/infra/blocksuite/descriptionDocDb";
-import { parseDescriptionDocId } from "@/components/chat/infra/blocksuite/descriptionDocId";
+import { clearUpdates } from "@/components/chat/infra/blocksuite/description/descriptionDocDb";
+import { parseDescriptionDocId } from "@/components/chat/infra/blocksuite/description/descriptionDocId";
 import { BLOCKSUITE_STORE_EXTENSIONS } from "@/components/chat/infra/blocksuite/manager/store";
-import { RemoteSnapshotDocSource } from "@/components/chat/infra/blocksuite/remoteDocSource";
+import { blocksuiteWsClient } from "@/components/chat/infra/blocksuite/runtime/blocksuiteWsClient";
+import { RemoteSnapshotDocSource } from "@/components/chat/infra/blocksuite/runtime/remoteDocSource";
 
 /**
  * SpaceWorkspace 是本项目最核心的 Blocksuite 数据运行时：

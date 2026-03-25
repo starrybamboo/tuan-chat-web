@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 
-import { parseSpaceDocId } from "@/components/chat/infra/blocksuite/spaceDocId";
+import { parseSpaceDocId } from "@/components/chat/infra/blocksuite/space/spaceDocId";
 
 import type { MinimalDocMeta } from "./sidebarTree";
 

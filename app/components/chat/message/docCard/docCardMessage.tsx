@@ -5,7 +5,7 @@ import React, { use, useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 
 import { RoomContext } from "@/components/chat/core/roomContext";
-import { parseDescriptionDocId } from "@/components/chat/infra/blocksuite/descriptionDocId";
+import { parseDescriptionDocId } from "@/components/chat/infra/blocksuite/description/descriptionDocId";
 import { readBlocksuiteDocHeader, subscribeBlocksuiteDocHeader } from "@/components/chat/infra/blocksuite/docHeader";
 import BlocksuiteDescriptionEditor from "@/components/chat/shared/components/BlockSuite/blocksuiteDescriptionEditor";
 import { setDocRefDragData } from "@/components/chat/utils/docRef";
@@ -86,7 +86,7 @@ function DocCardMessageImpl({ messageResponse }: { messageResponse: ChatMessageR
 
     (async () => {
       try {
-        const registry = await import("@/components/chat/infra/blocksuite/spaceWorkspaceRegistry");
+        const registry = await import("@/components/chat/infra/blocksuite/space/spaceWorkspaceRegistry");
         const store = registry.getOrCreateSpaceDoc({ spaceId: currentSpaceId, docId }) as any;
 
         try {

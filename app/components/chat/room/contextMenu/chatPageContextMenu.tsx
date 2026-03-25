@@ -2,7 +2,7 @@ import { useDissolveRoomMutation } from "api/hooks/chatQueryHooks";
 import { use, useState } from "react";
 import { useNavigate } from "react-router";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
-import { buildSpaceDocId } from "@/components/chat/infra/blocksuite/spaceDocId";
+import { buildSpaceDocId } from "@/components/chat/infra/blocksuite/space/spaceDocId";
 import ConfirmModal from "@/components/common/comfirmModel";
 import { useSubscribeRoomMutation, useUnsubscribeRoomMutation } from "../../../../../api/hooks/messageSessionQueryHooks";
 
@@ -128,7 +128,7 @@ export default function ChatPageContextMenu({
               if (typeof window !== "undefined" && typeof spaceId === "number" && spaceId > 0) {
                 void (async () => {
                   try {
-                    const { deleteSpaceDoc } = await import("@/components/chat/infra/blocksuite/deleteSpaceDoc");
+                    const { deleteSpaceDoc } = await import("@/components/chat/infra/blocksuite/space/deleteSpaceDoc");
                     await deleteSpaceDoc({
                       spaceId,
                       docId: buildSpaceDocId({ kind: "room_description", roomId: activeDissolveRoomId }),

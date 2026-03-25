@@ -3,7 +3,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { DocTcHeaderPayload } from "@/components/chat/chatPage.types";
 import type { MinimalDocMeta } from "@/components/chat/room/sidebarTree";
 
-import { parseSpaceDocId } from "@/components/chat/infra/blocksuite/spaceDocId";
+import { parseSpaceDocId } from "@/components/chat/infra/blocksuite/space/spaceDocId";
 import {
   isSpaceDocTitleSyncNonRetryableError,
   readPendingSpaceDocTitleSyncMap,
@@ -11,7 +11,7 @@ import {
   removePendingSpaceDocTitleSync,
   upsertPendingSpaceDocTitleSync,
   writeSpaceDocMetaCache,
-} from "@/components/chat/infra/blocksuite/spaceDocMetaPersistence";
+} from "@/components/chat/infra/blocksuite/space/spaceDocMetaPersistence";
 import { useDocHeaderOverrideStore } from "@/components/chat/stores/docHeaderOverrideStore";
 import { tuanchat } from "api/instance";
 
@@ -247,7 +247,7 @@ export default function useSpaceDocMetaState({
     if (typeof window !== "undefined") {
       try {
         void (async () => {
-          const { parseDescriptionDocId } = await import("@/components/chat/infra/blocksuite/descriptionDocId");
+          const { parseDescriptionDocId } = await import("@/components/chat/infra/blocksuite/description/descriptionDocId");
           const key = parseDescriptionDocId(docId);
           if (!key || key.entityType !== "space_doc")
             return;
@@ -310,7 +310,7 @@ export default function useSpaceDocMetaState({
       return [];
 
     try {
-      const registry = await import("@/components/chat/infra/blocksuite/spaceWorkspaceRegistry");
+      const registry = await import("@/components/chat/infra/blocksuite/space/spaceWorkspaceRegistry");
       const ws = registry.getOrCreateSpaceWorkspace(activeSpaceId) as any;
       const metas = (ws?.meta?.docMetas ?? []) as any[];
       const headerOverrides = useDocHeaderOverrideStore.getState().headers;
