@@ -29,16 +29,19 @@ function delay(ms: number, signal: AbortSignal): Promise<void> {
   }
 
   return new Promise<void>((resolve) => {
-    const timer = setTimeout(() => {
-      signal.removeEventListener("abort", onAbort);
-      resolve();
-    }, ms);
-
+    let timer: ReturnType<typeof setTimeout> | null = null;
     const onAbort = () => {
-      clearTimeout(timer);
+      if (timer) {
+        clearTimeout(timer);
+      }
       signal.removeEventListener("abort", onAbort);
       resolve();
     };
+
+    timer = setTimeout(() => {
+      signal.removeEventListener("abort", onAbort);
+      resolve();
+    }, ms);
 
     signal.addEventListener("abort", onAbort, { once: true });
   });

@@ -11,13 +11,14 @@ import { ensureBlocksuiteDocHeader, subscribeBlocksuiteDocHeader } from "@/compo
 import { finishBlocksuiteOpenSession, markBlocksuiteOpenSession } from "@/components/chat/infra/blocksuite/perf";
 import { loadBlocksuiteRuntime } from "@/components/chat/infra/blocksuite/runtime/runtimeLoader.browser";
 import { parseSpaceDocId } from "@/components/chat/infra/blocksuite/spaceDocId";
+
 import {
   LATE_REMOTE_HYDRATION_WAIT_MS,
   shouldDelayRenderReady,
   shouldEnsureTcHeaderFallback,
   shouldUseRemoteFirstHydration,
-  waitForRemoteSnapshotDecision,
   waitForRemoteHydrationSettled,
+  waitForRemoteSnapshotDecision,
 } from "./blocksuiteEditorLifecycleHydration";
 
 function warnNonFatalBlocksuiteError(message: string, error: unknown) {

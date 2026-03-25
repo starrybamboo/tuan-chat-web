@@ -1,18 +1,19 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-vi.mock("@/components/chat/infra/blocksuite/descriptionDocRemote", () => ({
-  getRemoteSnapshot: vi.fn(),
-}));
+import { getRemoteSnapshot } from "@/components/chat/infra/blocksuite/descriptionDocRemote";
 
 import {
   fetchDescriptionRemoteSnapshotUpdate,
   shouldDelayRenderReady,
   shouldEnsureTcHeaderFallback,
   shouldUseRemoteFirstHydration,
-  waitForRemoteSnapshotDecision,
   waitForRemoteHydrationSettled,
+  waitForRemoteSnapshotDecision,
 } from "./blocksuiteEditorLifecycleHydration";
-import { getRemoteSnapshot } from "@/components/chat/infra/blocksuite/descriptionDocRemote";
+
+vi.mock("@/components/chat/infra/blocksuite/descriptionDocRemote", () => ({
+  getRemoteSnapshot: vi.fn(),
+}));
 
 const mockedGetRemoteSnapshot = vi.mocked(getRemoteSnapshot);
 
@@ -116,7 +117,7 @@ describe("blocksuiteEditorLifecycleHydration", () => {
   it("能把远端 snapshot 转成 Uint8Array", async () => {
     mockedGetRemoteSnapshot.mockResolvedValueOnce({
       v: 1,
-      updateB64: Buffer.from([1, 2, 3]).toString("base64"),
+      updateB64: "AQID",
       updatedAt: Date.now(),
     });
 
@@ -126,7 +127,7 @@ describe("blocksuiteEditorLifecycleHydration", () => {
   it("远端 snapshot 在超时内返回时，决策为 completed", async () => {
     mockedGetRemoteSnapshot.mockResolvedValueOnce({
       v: 1,
-      updateB64: Buffer.from([9]).toString("base64"),
+      updateB64: "CQ==",
       updatedAt: Date.now(),
     });
 
