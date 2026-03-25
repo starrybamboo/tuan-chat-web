@@ -11,6 +11,23 @@
 - 运行时链路细节：看 `frame/ARCHITECTURE.md`
 - 常见故障排查：看 `TROUBLESHOOTING.md`
 
+## 0. 子目录架构文档索引
+
+- 根目录共享基础件：`architecture/ROOT.md`
+- `bootstrap/`：`architecture/BOOTSTRAP.md`
+- `description/`：`architecture/DESCRIPTION.md`
+- `doc/`：`architecture/DOCS.md`
+- `editors/`：`architecture/EDITORS.md`
+- `embedded/`：`architecture/EMBEDDED.md`
+- `frame/`：`architecture/FRAME.md`
+- `manager/`：`architecture/MANAGER.md`
+- `runtime/`：`architecture/RUNTIME.md`
+- `services/`：`architecture/SERVICES.md`
+- `space/`：`architecture/SPACE.md`
+- `spec/`：`architecture/SPEC.md`
+- `styles/`：`architecture/STYLES.md`
+- `test/`：`architecture/TEST.md`
+
 ## 1. 顶层目录含义
 
 ### `app/components/chat/infra/blocksuite`
@@ -35,6 +52,8 @@ Blocksuite 浏览器侧初始化入口。
 
 这里负责“把必须的浏览器补丁或注册提前做掉”，但不直接承担 editor 运行时编排。
 
+对应子文档：`architecture/BOOTSTRAP.md`
+
 ### `app/components/chat/infra/blocksuite/description`
 
 Description 类文档的存储与远端标识层。
@@ -44,17 +63,23 @@ Description 类文档的存储与远端标识层。
 - 不负责 editor UI
 - 不负责 workspace 生命周期
 
+对应子文档：`architecture/DESCRIPTION.md`
+
 ### `app/components/chat/infra/blocksuite/doc`
 
 纯文档目录，不放运行时代码。
 
 这里保存的是认知材料、设计说明、学习路径和排障文档。
 
+对应子文档：`architecture/DOCS.md`
+
 ### `app/components/chat/infra/blocksuite/editors`
 
 编辑器创建层。
 
 这里把上层参数转换成真正的 Blocksuite editor 实例，但不承担 iframe 协议、route boot、宿主通信。
+
+对应子文档：`architecture/EDITORS.md`
 
 ### `app/components/chat/infra/blocksuite/embedded`
 
@@ -63,6 +88,8 @@ Description 类文档的存储与远端标识层。
 适用范围：
 - 非 iframe 的编辑器挂载
 - 内嵌 editor container、自定义 embed、linked-doc、quick search、业务服务注入
+
+对应子文档：`architecture/EMBEDDED.md`
 
 ### `app/components/chat/infra/blocksuite/frame`
 
@@ -76,11 +103,15 @@ iframe 方案专用实现。
 
 不应把非 iframe 的共享逻辑持续堆进这里。
 
+对应子文档：`architecture/FRAME.md`
+
 ### `app/components/chat/infra/blocksuite/manager`
 
 Blocksuite 能力边界管理层。
 
 这里定义项目允许启用的 Affine/Blocksuite 能力集合，并分别供 store/view 装配使用。
+
+对应子文档：`architecture/MANAGER.md`
 
 ### `app/components/chat/infra/blocksuite/runtime`
 
@@ -94,11 +125,15 @@ Blocksuite 能力边界管理层。
 
 它是“运行时基础设施”，不是业务 UI 层。
 
+对应子文档：`architecture/RUNTIME.md`
+
 ### `app/components/chat/infra/blocksuite/services`
 
 注入到 Blocksuite 的业务服务。
 
 这里的文件通常会被 editor extension 或 runtime 作为 service 使用。
+
+对应子文档：`architecture/SERVICES.md`
 
 ### `app/components/chat/infra/blocksuite/space`
 
@@ -110,17 +145,23 @@ Space 维度的业务映射层。
 - Space -> Workspace registry 窄接口
 - 删除 space doc 的业务流程
 
+对应子文档：`architecture/SPACE.md`
+
 ### `app/components/chat/infra/blocksuite/spec`
 
 自定义元素与扩展 spec 注册层。
 
 这里处理的是 BlockSuite 需要注册的 schema/spec/custom element，不放业务流程代码。
 
+对应子文档：`architecture/SPEC.md`
+
 ### `app/components/chat/infra/blocksuite/styles`
 
 Blocksuite 相关样式。
 
 只放样式资源，不放逻辑。
+
+对应子文档：`architecture/STYLES.md`
 
 ### `app/components/chat/infra/blocksuite/test`
 
@@ -129,6 +170,8 @@ Blocksuite 目录内的测试收口目录。
 规则：
 - 新增测试优先放这里
 - 除非测试必须贴着某个文件，否则不要再把 `.test.ts` 散落到各子目录
+
+对应子文档：`architecture/TEST.md`
 
 ## 3. 根目录文件字典
 
