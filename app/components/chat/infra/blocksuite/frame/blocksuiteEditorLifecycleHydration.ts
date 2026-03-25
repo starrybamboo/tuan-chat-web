@@ -1,3 +1,4 @@
+import { base64ToUint8Array } from "@/components/chat/infra/blocksuite/base64";
 import { isNonRetryableBlocksuiteDocError } from "@/components/chat/infra/blocksuite/blocksuiteDocError";
 import { parseDescriptionDocId } from "@/components/chat/infra/blocksuite/descriptionDocId";
 import { getRemoteSnapshot } from "@/components/chat/infra/blocksuite/descriptionDocRemote";
@@ -7,6 +8,10 @@ export const LATE_REMOTE_HYDRATION_WAIT_MS = 4000;
 const HYDRATION_POLL_INTERVAL_MS = 50;
 
 export type InitialHydrationState = "not-applicable" | "completed" | "timed-out";
+export type RemoteSnapshotDecision = {
+  state: InitialHydrationState;
+  update: Uint8Array | null;
+};
 
 type WorkspaceLike = {
   getDoc?: (docId: string) => unknown;
@@ -70,6 +75,51 @@ export async function warmDescriptionRemoteSnapshot(docId: string): Promise<void
       console.warn("[BlocksuiteDescriptionEditor] Failed to warm remote snapshot cache", error);
     }
   }
+}
+
+export async function fetchDescriptionRemoteSnapshotUpdate(docId: string): Promise<Uint8Array | null> {
+  const key = parseDescriptionDocId(docId);
+  if (!key) {
+    return null;
+  }
+
+  try {
+    const remote = await getRemoteSnapshot(key);
+    if (!remote?.updateB64) {
+      return null;
+    }
+    return base64ToUint8Array(remote.updateB64);
+  }
+  catch (error) {
+    if (!isNonRetryableBlocksuiteDocError(error)) {
+      console.warn("[BlocksuiteDescriptionEditor] Failed to fetch remote snapshot", error);
+    }
+    return null;
+  }
+}
+
+export async function waitForRemoteSnapshotDecision(params: {
+  docId: string;
+  signal: AbortSignal;
+  timeoutMs?: number;
+}): Promise<RemoteSnapshotDecision> {
+  const { docId, signal, timeoutMs = INITIAL_REMOTE_HYDRATION_WAIT_MS } = params;
+
+  if (!shouldUseRemoteFirstHydration(docId)) {
+    return { state: "not-applicable", update: null };
+  }
+
+  const result = await Promise.race([
+    fetchDescriptionRemoteSnapshotUpdate(docId).then(update => ({
+      state: "completed" as const,
+      update,
+    })),
+    delay(timeoutMs, signal).then(() => ({
+      state: "timed-out" as const,
+      update: null,
+    })),
+  ]);
+  return result;
 }
 
 export async function waitForRemoteHydrationSettled(params: {

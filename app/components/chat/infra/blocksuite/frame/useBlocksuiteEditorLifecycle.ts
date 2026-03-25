@@ -12,11 +12,10 @@ import { finishBlocksuiteOpenSession, markBlocksuiteOpenSession } from "@/compon
 import { loadBlocksuiteRuntime } from "@/components/chat/infra/blocksuite/runtime/runtimeLoader.browser";
 import { parseSpaceDocId } from "@/components/chat/infra/blocksuite/spaceDocId";
 import {
-  INITIAL_REMOTE_HYDRATION_WAIT_MS,
   LATE_REMOTE_HYDRATION_WAIT_MS,
-  shouldDelayRenderReady,
   shouldEnsureTcHeaderFallback,
-  warmDescriptionRemoteSnapshot,
+  shouldUseRemoteFirstHydration,
+  waitForRemoteSnapshotDecision,
   waitForRemoteHydrationSettled,
 } from "./blocksuiteEditorLifecycleHydration";
 
@@ -112,7 +111,25 @@ export function useBlocksuiteEditorLifecycle(params: UseBlocksuiteEditorLifecycl
 
       const workspace = runtime.getOrCreateWorkspace(workspaceId);
       docRuntimeRef.current = { workspace, docId };
-      void warmDescriptionRemoteSnapshot(docId);
+
+      const remoteSnapshotDecision = await waitForRemoteSnapshotDecision({
+        docId,
+        signal: abort.signal,
+      });
+      if (abort.signal.aborted)
+        return;
+
+      if (remoteSnapshotDecision.update?.length) {
+        try {
+          (workspace as any)?.replaceDocFromUpdate?.({
+            docId,
+            update: remoteSnapshotDecision.update,
+          });
+        }
+        catch (error) {
+          warnNonFatalBlocksuiteError("[BlocksuiteDescriptionEditor] Failed to apply startup remote snapshot", error);
+        }
+      }
 
       runtime.ensureDocMeta({ workspaceId, docId });
       markBlocksuiteOpenSession(instanceIdRef.current ?? "", "store-create-start");
@@ -133,15 +150,6 @@ export function useBlocksuiteEditorLifecycle(params: UseBlocksuiteEditorLifecycl
         warnNonFatalBlocksuiteError("[BlocksuiteDescriptionEditor] Failed to reset store history", error);
       }
 
-      const initialHydrationState = await waitForRemoteHydrationSettled({
-        workspace: workspace as any,
-        docId,
-        signal: abort.signal,
-        timeoutMs: INITIAL_REMOTE_HYDRATION_WAIT_MS,
-      });
-      if (abort.signal.aborted)
-        return;
-
       const applyHeaderState = (header: BlocksuiteDocHeader | null) => {
         if (!header)
           return;
@@ -159,7 +167,7 @@ export function useBlocksuiteEditorLifecycle(params: UseBlocksuiteEditorLifecycl
 
           if (shouldEnsureTcHeaderFallback({
             tcHeaderEnabled,
-            hydrationState: initialHydrationState,
+            hydrationState: remoteSnapshotDecision.state,
           })) {
             applyHeaderState(ensureBlocksuiteDocHeader(store, {
               title: tcHeaderFallbackTitle,
@@ -274,7 +282,7 @@ export function useBlocksuiteEditorLifecycle(params: UseBlocksuiteEditorLifecycl
         });
       };
 
-      if (shouldDelayRenderReady(initialHydrationState)) {
+      if (shouldUseRemoteFirstHydration(docId) && remoteSnapshotDecision.state === "timed-out") {
         void waitForRemoteHydrationSettled({
           workspace: workspace as any,
           docId,

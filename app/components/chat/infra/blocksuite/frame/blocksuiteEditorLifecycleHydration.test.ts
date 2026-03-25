@@ -1,15 +1,25 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+vi.mock("@/components/chat/infra/blocksuite/descriptionDocRemote", () => ({
+  getRemoteSnapshot: vi.fn(),
+}));
+
 import {
+  fetchDescriptionRemoteSnapshotUpdate,
   shouldDelayRenderReady,
   shouldEnsureTcHeaderFallback,
   shouldUseRemoteFirstHydration,
+  waitForRemoteSnapshotDecision,
   waitForRemoteHydrationSettled,
 } from "./blocksuiteEditorLifecycleHydration";
+import { getRemoteSnapshot } from "@/components/chat/infra/blocksuite/descriptionDocRemote";
+
+const mockedGetRemoteSnapshot = vi.mocked(getRemoteSnapshot);
 
 describe("blocksuiteEditorLifecycleHydration", () => {
   afterEach(() => {
     vi.useRealTimers();
+    vi.clearAllMocks();
   });
 
   it("description 文档走远端优先 hydrate", () => {
@@ -90,5 +100,51 @@ describe("blocksuiteEditorLifecycleHydration", () => {
       docId: "independent:123",
       signal: controller.signal,
     })).resolves.toBe("not-applicable");
+  });
+
+  it("能把远端 snapshot 转成 Uint8Array", async () => {
+    mockedGetRemoteSnapshot.mockResolvedValueOnce({
+      v: 1,
+      updateB64: Buffer.from([1, 2, 3]).toString("base64"),
+      updatedAt: Date.now(),
+    });
+
+    await expect(fetchDescriptionRemoteSnapshotUpdate("room:12:description")).resolves.toEqual(new Uint8Array([1, 2, 3]));
+  });
+
+  it("远端 snapshot 在超时内返回时，决策为 completed", async () => {
+    mockedGetRemoteSnapshot.mockResolvedValueOnce({
+      v: 1,
+      updateB64: Buffer.from([9]).toString("base64"),
+      updatedAt: Date.now(),
+    });
+
+    const controller = new AbortController();
+    await expect(waitForRemoteSnapshotDecision({
+      docId: "room:12:description",
+      signal: controller.signal,
+      timeoutMs: 200,
+    })).resolves.toMatchObject({
+      state: "completed",
+      update: new Uint8Array([9]),
+    });
+  });
+
+  it("远端 snapshot 超时后，决策为 timed-out", async () => {
+    vi.useFakeTimers();
+    mockedGetRemoteSnapshot.mockImplementationOnce(() => new Promise(() => {}));
+
+    const controller = new AbortController();
+    const task = waitForRemoteSnapshotDecision({
+      docId: "room:12:description",
+      signal: controller.signal,
+      timeoutMs: 100,
+    });
+
+    await vi.advanceTimersByTimeAsync(150);
+    await expect(task).resolves.toMatchObject({
+      state: "timed-out",
+      update: null,
+    });
   });
 });
