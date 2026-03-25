@@ -72,11 +72,10 @@
 
 由于服务端不提供版本与撤销：
 - 版本历史可以通过 IndexedDB 按 docId 存储周期性快照（例如 full update + 时间戳 + 标题）
-- 跨会话撤销通常需要持久化 undo ջ/操作日志；如果实现复杂，可以先提供“版本回滚（restore version）”作为替代，并在 BUSINESS.md 标注降级。
+- 跨会话撤销通常需要持久化 undo 栈或操作日志；如果实现复杂，可以先提供“版本回滚（restore version）”作为替代，并在 BUSINESS.md 标注降级。
 
-当前 Demo 的落地文件：
-- app/components/chat/infra/blocksuite/runtime/docHistoryDb.ts：IndexedDB 历史库（保存 full update）
-- app/components/chat/infra/blocksuite/runtime/docHistory.ts：对外的“创建快照/从快照恢复”封装
+当前仓库里还没有稳定落地成独立的 `docHistoryDb.ts` / `docHistory.ts` 模块。
+这部分目前仍属于“可选实现策略”，不是现有代码结构的一部分。
 
 ---
 

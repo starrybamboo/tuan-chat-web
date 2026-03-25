@@ -8,7 +8,7 @@
 - 内部数据结构/术语对照：`INTERNAL-DATA.md`
 - 常见问题排查（标题/SlashMenu/Edgeless/样式等）：`TROUBLESHOOTING.md`
 - 学习路线（从 BlockSuite 源码到本项目集成）：`LEARNING-PATH.md`
-- 当前 `boundary` 相对 `dev` 的净改动与性能效果：`BOUNDARY-VS-DEV.md`
+- 历史边界优化记录与性能样本：`BOUNDARY-UPDATE.md`
 
 ## 1. 依赖说明（本次新增/使用）
 
@@ -16,11 +16,10 @@
 
 ### 2.1 编辑器渲染入口（UI）
 
-- app/components/chat/shared/components/blocksuiteDescriptionEditor.tsx
-  - Props：`{ spaceId, docId, mode?: "page" | "edgeless" }`
-  - 通过 `spaceWorkspaceRegistry.getOrCreateSpaceDoc({ spaceId, docId })` 获取 store
-  - 通过项目内 `manager/store` 和 `manager/view` 产出受支持子集，再创建 `affine-editor-container`
-  - `mode` 由 React state 驱动，并通过 DI override 注入 `DocModeProvider`
+- app/components/chat/shared/components/BlockSuite/blocksuiteDescriptionEditor.tsx
+  - 当前是宿主侧 iframe host 入口
+  - 负责拼 iframe URL、主题同步、`postMessage`、loading skeleton 和 mention popover
+  - 真正的编辑器运行时在 `/blocksuite-frame` 内部，不再由宿主直接创建 editor/store
 
 ### 2.2 Manager（Affine-like supported subset）
 
@@ -44,8 +43,8 @@
 
 ## 3. 存储与协作能力（Demo 阶段）
 
-- 存储：仅本地（IndexedDB）
-- 协作：Demo 不实现实时协作（后续如需跨设备协作，将另行接入 WebSocket provider）
+- 存储：当前已经包含本地 IndexedDB 与 description 远端 snapshot / updates 组合路径
+- 协作：完整的多用户实时协作仍不是本文档承诺范围；现有远端链路主要用于文档冷启动、同步与恢复
 
 ## 4. TypeScript typecheck stubs 说明
 
@@ -76,6 +75,14 @@ Blocksuite/AFFiNE 某些包会通过 exports 暴露 TS 源码，严格模式下 
 当前仅是安装期提示，不代表一定运行失败；如后续出现运行时问题，需要评估：
 - 是否将 blocksuite 编辑器相关 UI 下沉到独立 React 18 子应用/iframe
 - 或等待上游对 React 19 的适配
+
+## 6. 当前实现备注
+
+- iframe 方案的详细链路不再写在本文件里，统一看：
+  - `architecture/FRAME.md`
+  - `architecture/FRAME-DEEP-DIVE.md`
+- 目录职责与路径索引统一看：
+  - `DIRECTORY.md`
 
 ---
 

@@ -66,7 +66,7 @@
    - `app/components/chat/infra/blocksuite/frame/BlocksuiteRouteFrameClient.tsx`
    - `app/components/chat/infra/blocksuite/bootstrap/browser.ts`
    - `app/components/chat/infra/blocksuite/spec/coreElements.browser.ts`
-   - 你要理解：路由本身只负责轻量壳与单次 lazy 边界，真正的 BlockSuite 客户端启动被收口到 route client chunk 内部的静态导入子图
+   - 你要理解：路由本身只负责轻量壳，真正的 BlockSuite 客户端启动被收口到 route client chunk 内部的静态导入子图
 
 3. **Workspace/Doc/Store 运行时（数据与存储管线）**
    - `app/components/chat/infra/blocksuite/runtime/spaceWorkspace.ts`
@@ -80,9 +80,9 @@
    - 你要理解：runtimeLoader 现在只做浏览器侧单例组合，editor 创建与 React frame runtime 分开，不再维持旧的多段动态启动链
 
 5. **UI 渲染入口（把 editor-host 放进 React）**
-   - `app/components/chat/shared/components/blocksuiteDescriptionEditor.tsx`
+   - `app/components/chat/shared/components/BlockSuite/blocksuiteDescriptionEditor.tsx`
    - `app/routes/blocksuiteFrame.tsx`
-   - 你要理解：React 只负责挂载宿主与传参，编辑器核心是 Web Components + std 渲染树
+   - 你要理解：宿主 React 组件只负责 iframe 宿主与传参，编辑器核心是 Web Components + std 渲染树
 
 
 配套阅读：
@@ -96,5 +96,6 @@
 建议你按顺序做，不要跳：
 
 1. 在 `blocksuiteDescriptionEditor.tsx` 里加一个“只读/可编辑”的切换（理解编辑器的受控边界）
+   - 当前文件路径：`app/components/chat/shared/components/BlockSuite/blocksuiteDescriptionEditor.tsx`
 2. 在 `featureSet.ts` 里加/减一个受支持能力，再同步补齐 `store.ts` / `view.ts` 的 provider 映射，观察 UI 变化（标题/toolbar/SlashMenu）
 3. 追踪一次“输入一个字符”从 DOM → selection/rich-text → Yjs update → 存储的链路（只要能画出数据流就算成功）
