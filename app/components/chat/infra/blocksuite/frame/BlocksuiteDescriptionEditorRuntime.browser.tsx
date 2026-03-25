@@ -85,6 +85,10 @@ function getPostMessageTargetOrigin(): string {
 
 const REMOTE_HYDRATE_FAST_WAIT_MS = 250;
 
+function warnNonFatalBlocksuiteError(message: string, error: unknown) {
+  console.warn(message, error);
+}
+
 function isProbablyInIframe(): boolean {
   if (typeof window === "undefined")
     return false;
@@ -115,8 +119,8 @@ function tryFocusEdgelessViewport(editor: any, store: any): boolean {
       return true;
     }
   }
-  catch {
-    // ignore
+  catch (error) {
+    warnNonFatalBlocksuiteError("[BlocksuiteDescriptionEditor] Failed to focus edgeless viewport", error);
   }
   return false;
 }
@@ -184,12 +188,7 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
     const inIframe = isProbablyInIframe();
     const msg = { docId, workspaceId, spaceId, variant, inIframe, instanceId: props.instanceId ?? null };
     console.warn("[BlocksuiteMentionHost] runtime mount", msg);
-    try {
-      (globalThis as any).__tcBlocksuiteDebugLog?.({ source: "BlocksuiteMentionHost", message: "runtime mount", payload: msg });
-    }
-    catch {
-      // ignore
-    }
+    (globalThis as any).__tcBlocksuiteDebugLog?.({ source: "BlocksuiteMentionHost", message: "runtime mount", payload: msg });
   }, [docId, props.instanceId, spaceId, variant, workspaceId]);
 
   const tcHeaderEntity = useMemo(() => {
@@ -224,13 +223,8 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
       const update = base64ToUint8Array(updateB64);
 
       // 丢弃本地离线队列，避免旧改动在替换后反向覆盖云端。
-      try {
-        const { clearUpdates } = await import("@/components/chat/infra/blocksuite/descriptionDocDb");
-        await clearUpdates(docId);
-      }
-      catch {
-        // ignore
-      }
+      const { clearUpdates } = await import("@/components/chat/infra/blocksuite/descriptionDocDb");
+      await clearUpdates(docId);
 
       const runtime = runtimeRef.current ?? await loadBlocksuiteRuntime();
       runtimeRef.current = runtime;
@@ -261,9 +255,11 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
   const postToParent = (payload: any) => {
     try {
       window.parent.postMessage(payload, getPostMessageTargetOrigin());
+      return true;
     }
-    catch {
-      // ignore
+    catch (error) {
+      warnNonFatalBlocksuiteError("[BlocksuiteDescriptionEditor] Failed to post message to parent", error);
+      return false;
     }
   };
 
@@ -334,8 +330,8 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
           }
         }
       }
-      catch {
-        // ignore
+      catch (error) {
+        warnNonFatalBlocksuiteError("[BlocksuiteDescriptionEditor] Failed to load primary mode from storage", error);
       }
     };
 
@@ -351,8 +347,8 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
         }
         window.localStorage.setItem(storageKey, JSON.stringify(obj));
       }
-      catch {
-        // ignore
+      catch (error) {
+        warnNonFatalBlocksuiteError("[BlocksuiteDescriptionEditor] Failed to persist primary mode to storage", error);
       }
     };
 
@@ -531,8 +527,8 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
             }
           });
         }
-        catch {
-          // ignore
+        catch (error) {
+          warnNonFatalBlocksuiteError("[BlocksuiteDescriptionEditor] Failed to initialize tcHeader state", error);
         }
       }
 
@@ -541,32 +537,27 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
       try {
         (store as any)?.load?.();
       }
-      catch {
-        // ignore
+      catch (error) {
+        warnNonFatalBlocksuiteError("[BlocksuiteDescriptionEditor] Failed to load store", error);
       }
       try {
         (store as any)?.resetHistory?.();
       }
-      catch {
-        // ignore
+      catch (error) {
+        warnNonFatalBlocksuiteError("[BlocksuiteDescriptionEditor] Failed to reset store history", error);
       }
 
       if (isBlocksuiteDebugEnabled()) {
-        try {
-          const rootId = (store as any)?.root?.id;
-          const paragraphs = (store as any)?.getModelsByFlavour?.("affine:paragraph") as any[] | undefined;
-          const first = paragraphs?.[0];
-          const firstText = first?.props?.text;
-          console.warn("[BlocksuiteDescriptionEditor] store ready", {
-            docId,
-            rootId,
-            paragraphCount: paragraphs?.length ?? 0,
-            firstText: firstText?.toString?.() ?? null,
-          });
-        }
-        catch {
-          // ignore
-        }
+        const rootId = (store as any)?.root?.id;
+        const paragraphs = (store as any)?.getModelsByFlavour?.("affine:paragraph") as any[] | undefined;
+        const first = paragraphs?.[0];
+        const firstText = first?.props?.text;
+        console.warn("[BlocksuiteDescriptionEditor] store ready", {
+          docId,
+          rootId,
+          paragraphCount: paragraphs?.length ?? 0,
+          firstText: firstText?.toString?.() ?? null,
+        });
       }
 
       markBlocksuiteOpenSession(instanceIdRef.current ?? "", "editor-create-start");
@@ -640,8 +631,8 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
         try {
           restoreSnapshotUpdate(update);
         }
-        catch {
-          // ignore
+        catch (error) {
+          warnNonFatalBlocksuiteError("[BlocksuiteDescriptionEditor] Failed to restore remote snapshot after editor ready", error);
         }
       });
 
@@ -699,8 +690,8 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
             Reflect.apply(fn as (...args: unknown[]) => unknown, editorAny, []);
           }
         }
-        catch {
-          // ignore
+        catch (error) {
+          warnNonFatalBlocksuiteError("[BlocksuiteDescriptionEditor] Failed to apply undo/redo shortcut", error);
         }
       };
 
@@ -716,8 +707,8 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
           (editor as any).mode = currentModeRef.current;
         }
       }
-      catch {
-        // ignore
+      catch (error) {
+        warnNonFatalBlocksuiteError("[BlocksuiteDescriptionEditor] Failed to sync initial editor mode", error);
       }
 
       if (typeof window !== "undefined" && import.meta.env.DEV) {
@@ -741,8 +732,8 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
         try {
           retainedRuntime.releaseWorkspace(workspaceId);
         }
-        catch {
-          // ignore
+        catch (error) {
+          warnNonFatalBlocksuiteError("[BlocksuiteDescriptionEditor] Failed to release workspace", error);
         }
         retainedRuntime = null;
       }
@@ -751,8 +742,8 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
         const editorAny = createdEditor as any;
         editorAny?.__tc_dispose?.();
       }
-      catch {
-        // ignore
+      catch (error) {
+        warnNonFatalBlocksuiteError("[BlocksuiteDescriptionEditor] Failed to dispose editor", error);
       }
 
       editorRef.current = null;
@@ -781,8 +772,8 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
       try {
         current.workspace?.getDoc?.(current.docId)?.dispose?.();
       }
-      catch {
-        // ignore
+      catch (error) {
+        warnNonFatalBlocksuiteError("[BlocksuiteDescriptionEditor] Failed to dispose current doc", error);
       }
       if (docRuntimeRef.current?.docId === current.docId) {
         docRuntimeRef.current = null;
@@ -839,8 +830,8 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
       const exit = docAny.exitFullscreen ?? docAny.webkitExitFullscreen ?? docAny.msExitFullscreen;
       void exit?.call(document);
     }
-    catch {
-      // ignore
+    catch (error) {
+      warnNonFatalBlocksuiteError("[BlocksuiteDescriptionEditor] Failed to exit browser fullscreen", error);
     }
   }, [currentMode, isBrowserFullscreen]);
 
@@ -902,8 +893,8 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
       }
       editor.style.height = (isEdgelessFullscreen || isBrowserFullscreen || isFull) ? "100%" : "auto";
     }
-    catch {
-      // ignore
+    catch (error) {
+      warnNonFatalBlocksuiteError("[BlocksuiteDescriptionEditor] Failed to sync editor mode", error);
     }
 
     // If edgeless DOM exists but user can't see it, it's often a viewport transform/zoom issue.
