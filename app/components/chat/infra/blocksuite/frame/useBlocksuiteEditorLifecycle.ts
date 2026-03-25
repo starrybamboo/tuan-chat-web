@@ -13,6 +13,7 @@ import { loadBlocksuiteRuntime } from "@/components/chat/infra/blocksuite/runtim
 import { parseSpaceDocId } from "@/components/chat/infra/blocksuite/spaceDocId";
 import {
   LATE_REMOTE_HYDRATION_WAIT_MS,
+  shouldDelayRenderReady,
   shouldEnsureTcHeaderFallback,
   shouldUseRemoteFirstHydration,
   waitForRemoteSnapshotDecision,
@@ -119,9 +120,10 @@ export function useBlocksuiteEditorLifecycle(params: UseBlocksuiteEditorLifecycl
       if (abort.signal.aborted)
         return;
 
-      if (remoteSnapshotDecision.update?.length) {
+      if (remoteSnapshotDecision.state === "snapshot-hit" && remoteSnapshotDecision.update?.length) {
         try {
-          (workspace as any)?.replaceDocFromUpdate?.({
+          // 启动期只做单次 merge 恢复，避免 replace 语义丢弃本地未同步内容。
+          (workspace as any)?.restoreDocFromUpdate?.({
             docId,
             update: remoteSnapshotDecision.update,
           });
@@ -282,7 +284,7 @@ export function useBlocksuiteEditorLifecycle(params: UseBlocksuiteEditorLifecycl
         });
       };
 
-      if (shouldUseRemoteFirstHydration(docId) && remoteSnapshotDecision.state === "timed-out") {
+      if (shouldUseRemoteFirstHydration(docId) && shouldDelayRenderReady(remoteSnapshotDecision.state)) {
         void waitForRemoteHydrationSettled({
           workspace: workspace as any,
           docId,

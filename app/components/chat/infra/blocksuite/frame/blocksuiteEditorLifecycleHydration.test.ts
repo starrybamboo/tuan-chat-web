@@ -36,13 +36,24 @@ describe("blocksuiteEditorLifecycleHydration", () => {
 
     expect(shouldEnsureTcHeaderFallback({
       tcHeaderEnabled: true,
-      hydrationState: "completed",
+      hydrationState: "error",
+    })).toBe(false);
+
+    expect(shouldEnsureTcHeaderFallback({
+      tcHeaderEnabled: true,
+      hydrationState: "snapshot-hit",
+    })).toBe(true);
+
+    expect(shouldEnsureTcHeaderFallback({
+      tcHeaderEnabled: true,
+      hydrationState: "empty",
     })).toBe(true);
   });
 
   it("启动期 hydrate 未落定时延后 render-ready", () => {
     expect(shouldDelayRenderReady("timed-out")).toBe(true);
-    expect(shouldDelayRenderReady("completed")).toBe(false);
+    expect(shouldDelayRenderReady("error")).toBe(true);
+    expect(shouldDelayRenderReady("snapshot-hit")).toBe(false);
     expect(shouldDelayRenderReady("not-applicable")).toBe(false);
   });
 
@@ -125,9 +136,39 @@ describe("blocksuiteEditorLifecycleHydration", () => {
       signal: controller.signal,
       timeoutMs: 200,
     })).resolves.toMatchObject({
-      state: "completed",
+      state: "snapshot-hit",
       update: new Uint8Array([9]),
     });
+  });
+
+  it("远端快照明确为空时，决策为 empty", async () => {
+    mockedGetRemoteSnapshot.mockResolvedValueOnce(null);
+
+    const controller = new AbortController();
+    await expect(waitForRemoteSnapshotDecision({
+      docId: "room:12:description",
+      signal: controller.signal,
+      timeoutMs: 200,
+    })).resolves.toMatchObject({
+      state: "empty",
+      update: null,
+    });
+  });
+
+  it("远端快照请求失败时，决策为 error", async () => {
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+    mockedGetRemoteSnapshot.mockRejectedValueOnce(new Error("boom"));
+
+    const controller = new AbortController();
+    await expect(waitForRemoteSnapshotDecision({
+      docId: "room:12:description",
+      signal: controller.signal,
+      timeoutMs: 200,
+    })).resolves.toMatchObject({
+      state: "error",
+      update: null,
+    });
+    warnSpy.mockRestore();
   });
 
   it("远端 snapshot 超时后，决策为 timed-out", async () => {

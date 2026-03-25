@@ -8,8 +8,9 @@ export const LATE_REMOTE_HYDRATION_WAIT_MS = 4000;
 const HYDRATION_POLL_INTERVAL_MS = 50;
 
 export type InitialHydrationState = "not-applicable" | "completed" | "timed-out";
+export type RemoteSnapshotState = "not-applicable" | "snapshot-hit" | "empty" | "error" | "timed-out";
 export type RemoteSnapshotDecision = {
-  state: InitialHydrationState;
+  state: RemoteSnapshotState;
   update: Uint8Array | null;
 };
 
@@ -49,32 +50,18 @@ export function shouldUseRemoteFirstHydration(docId: string): boolean {
 
 export function shouldEnsureTcHeaderFallback(params: {
   tcHeaderEnabled: boolean;
-  hydrationState: InitialHydrationState;
+  hydrationState: RemoteSnapshotState;
 }): boolean {
   if (!params.tcHeaderEnabled) {
     return false;
   }
-  return params.hydrationState !== "timed-out";
+  return params.hydrationState === "not-applicable"
+    || params.hydrationState === "snapshot-hit"
+    || params.hydrationState === "empty";
 }
 
-export function shouldDelayRenderReady(hydrationState: InitialHydrationState): boolean {
-  return hydrationState === "timed-out";
-}
-
-export async function warmDescriptionRemoteSnapshot(docId: string): Promise<void> {
-  const key = parseDescriptionDocId(docId);
-  if (!key) {
-    return;
-  }
-
-  try {
-    await getRemoteSnapshot(key);
-  }
-  catch (error) {
-    if (!isNonRetryableBlocksuiteDocError(error)) {
-      console.warn("[BlocksuiteDescriptionEditor] Failed to warm remote snapshot cache", error);
-    }
-  }
+export function shouldDelayRenderReady(snapshotState: RemoteSnapshotState): boolean {
+  return snapshotState === "error" || snapshotState === "timed-out";
 }
 
 export async function fetchDescriptionRemoteSnapshotUpdate(docId: string): Promise<Uint8Array | null> {
@@ -83,19 +70,11 @@ export async function fetchDescriptionRemoteSnapshotUpdate(docId: string): Promi
     return null;
   }
 
-  try {
-    const remote = await getRemoteSnapshot(key);
-    if (!remote?.updateB64) {
-      return null;
-    }
-    return base64ToUint8Array(remote.updateB64);
-  }
-  catch (error) {
-    if (!isNonRetryableBlocksuiteDocError(error)) {
-      console.warn("[BlocksuiteDescriptionEditor] Failed to fetch remote snapshot", error);
-    }
+  const remote = await getRemoteSnapshot(key);
+  if (!remote?.updateB64) {
     return null;
   }
+  return base64ToUint8Array(remote.updateB64);
 }
 
 export async function waitForRemoteSnapshotDecision(params: {
@@ -111,9 +90,17 @@ export async function waitForRemoteSnapshotDecision(params: {
 
   const result = await Promise.race([
     fetchDescriptionRemoteSnapshotUpdate(docId).then(update => ({
-      state: "completed" as const,
+      state: update?.length ? "snapshot-hit" as const : "empty" as const,
       update,
-    })),
+    })).catch((error) => {
+      if (!isNonRetryableBlocksuiteDocError(error)) {
+        console.warn("[BlocksuiteDescriptionEditor] Failed to decide startup remote snapshot", error);
+      }
+      return {
+        state: "error" as const,
+        update: null,
+      };
+    }),
     delay(timeoutMs, signal).then(() => ({
       state: "timed-out" as const,
       update: null,
