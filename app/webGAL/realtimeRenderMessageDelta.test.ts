@@ -1,7 +1,7 @@
-import type { ChatMessageResponse } from "../../api";
-
 import { ANNOTATION_IDS } from "@/types/messageAnnotations";
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
+
+import type { ChatMessageResponse } from "../../api";
 
 import {
   areRealtimeRenderMessagesEquivalent,

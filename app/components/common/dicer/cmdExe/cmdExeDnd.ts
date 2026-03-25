@@ -1,8 +1,9 @@
 import { CommandExecutor, RuleNameSpace } from "@/components/common/dicer/cmd";
 import UTILS from "@/components/common/dicer/utils/utils";
+
 import DND_SPELLS from "./dndSpellsData.json";
 
-interface DndSpell {
+type DndSpell = {
   name: string;
   source: string;
   page: string;
@@ -17,7 +18,7 @@ interface DndSpell {
   subclasses: string;
   text: string;
   atHigherLevels: string;
-}
+};
 
 const executorDnd = new RuleNameSpace(
   2,
@@ -31,12 +32,12 @@ export default executorDnd;
 /**
  * D&D 5e 检测结果接口
  */
-interface DndCheckResult {
+type DndCheckResult = {
   value: number;
   type: "Attribute" | "Skill" | "Ability";
   sourceName: string;
   rawValue: number; // 原始数值（属性值或技能总值）
-}
+};
 
 /**
  * 获取 D&D 5e 的调整值
@@ -48,13 +49,13 @@ function getDndModifier(role: RoleAbility, key: string): DndCheckResult | null {
   // 如果在 basic 中找到，视为属性，需要计算调整值
   const basicVal = UTILS.getRoleAbilityValue(role, key, "basic");
   if (basicVal) {
-    const score = parseInt(basicVal);
-    if (!isNaN(score)) {
+    const score = Number.parseInt(basicVal);
+    if (!Number.isNaN(score)) {
       return {
         value: Math.floor((score - 10) / 2),
         type: "Attribute",
         sourceName: key,
-        rawValue: score
+        rawValue: score,
       };
     }
   }
@@ -63,13 +64,13 @@ function getDndModifier(role: RoleAbility, key: string): DndCheckResult | null {
   // 技能通常直接存储最终加值
   const skillVal = UTILS.getRoleAbilityValue(role, key, "skill");
   if (skillVal) {
-    const mod = parseInt(skillVal);
-    if (!isNaN(mod)) {
+    const mod = Number.parseInt(skillVal);
+    if (!Number.isNaN(mod)) {
       return {
         value: mod,
         type: "Skill",
         sourceName: key,
-        rawValue: mod
+        rawValue: mod,
       };
     }
   }
@@ -78,13 +79,13 @@ function getDndModifier(role: RoleAbility, key: string): DndCheckResult | null {
   // 能力（如先攻）通常也是直接数值
   const abilityVal = UTILS.getRoleAbilityValue(role, key, "ability");
   if (abilityVal) {
-    const mod = parseInt(abilityVal);
-    if (!isNaN(mod)) {
+    const mod = Number.parseInt(abilityVal);
+    if (!Number.isNaN(mod)) {
       return {
         value: mod,
         type: "Ability",
         sourceName: key,
-        rawValue: mod
+        rawValue: mod,
       };
     }
   }
@@ -98,7 +99,7 @@ function getDndModifier(role: RoleAbility, key: string): DndCheckResult | null {
  */
 function rollD20(type: "normal" | "advantage" | "disadvantage" = "normal"): { total: number; rolls: number[]; detailedMsg: string } {
   const roll = () => Math.floor(Math.random() * 20) + 1;
-  
+
   if (type === "normal") {
     const r = roll();
     return { total: r, rolls: [r], detailedMsg: `1d20(${r})` };
@@ -121,29 +122,29 @@ function rollD20(type: "normal" | "advantage" | "disadvantage" = "normal"): { to
  * 通用检定处理器
  */
 async function handleCheck(
-  args: string[], 
-  mentioned: UserRole[], 
-  cpi: CPI, 
+  args: string[],
+  mentioned: UserRole[],
+  cpi: CPI,
   mode: "normal" | "advantage" | "disadvantage" = "normal",
-  checkType: "general" | "save" = "general"
+  checkType: "general" | "save" = "general",
 ): Promise<boolean> {
   const role = mentioned[0];
   if (!role) {
     cpi.sendToast("未指定角色");
     return false;
   }
-  
+
   const curAbility = await cpi.getRoleAbilityList(role.roleId);
-  
+
   // 解析参数
   let name = "";
   let expression = "";
-  
+
   const argsStr = args.join("").trim();
-  
+
   // 匹配开头的中文字符或英文字符作为名字
-  const nameMatch = argsStr.match(/^([\u4e00-\u9fa5a-zA-Z]+)(.*)/);
-  
+  const nameMatch = argsStr.match(/^([\u4E00-\u9FA5a-z]+)(.*)/i);
+
   if (nameMatch) {
     name = nameMatch[1];
     expression = nameMatch[2];
@@ -151,10 +152,10 @@ async function handleCheck(
   else {
     expression = argsStr;
   }
-  
+
   let modifier = 0;
   let modifierDesc = "";
-  
+
   // 查找属性/技能
   if (name) {
     const modData = getDndModifier(curAbility, name);
@@ -171,7 +172,7 @@ async function handleCheck(
       modifierDesc = `${name}?`;
     }
   }
-  
+
   // 额外调整值 (expression)
   let extraMod = 0;
   if (expression) {
@@ -179,32 +180,32 @@ async function handleCheck(
       // 尝试简单解析纯数字
       const cleanExpr = expression.replace(/\s/g, "");
       if (/^[+-]?\d+$/.test(cleanExpr)) {
-        extraMod = parseInt(cleanExpr);
+        extraMod = Number.parseInt(cleanExpr);
       }
       else {
-          // 如果 UTILS.calculateExpression 可用且安全，则使用它
-          // 这里假设 UTILS.calculateExpression 适用于简单的数学运算
-          const value = UTILS.calculateExpression(expression, curAbility);
-          if (!isNaN(value)) {
-            extraMod = value;
-          }
+        // 如果 UTILS.calculateExpression 可用且安全，则使用它
+        // 这里假设 UTILS.calculateExpression 适用于简单的数学运算
+        const value = UTILS.calculateExpression(expression, curAbility);
+        if (!Number.isNaN(value)) {
+          extraMod = value;
+        }
       }
     }
-    catch (e) {
+    catch {
       // 忽略解析错误
     }
   }
-  
+
   const diceResult = rollD20(mode);
   const total = diceResult.total + modifier + extraMod;
-  
-  let actionName = checkType === "save" ? "豁免" : "检定";
+
+  const actionName = checkType === "save" ? "豁免" : "检定";
   let title = name ? `${name}${actionName}` : `${actionName}`;
-  
+
   if (checkType === "save" && !name) {
     title = "豁免检定";
   }
-  
+
   let formulaStr = `${diceResult.detailedMsg}`;
   if (modifierDesc && modifier !== 0) {
     formulaStr += ` + ${modifierDesc}`;
@@ -212,10 +213,10 @@ async function handleCheck(
   if (extraMod !== 0) {
     formulaStr += ` ${extraMod > 0 ? "+" : ""}${extraMod}`;
   }
-  
+
   const msg = `${role.roleName} 进行了 ${title}: ${formulaStr} = ${total}`;
   cpi.replyMessage(msg);
-  
+
   return true;
 }
 
@@ -259,60 +260,64 @@ const cmdRi = new CommandExecutor(
       return false;
     }
     const curAbility = await cpi.getRoleAbilityList(role.roleId);
-    
+
     // 优先查找 "先攻" 或 "Initiative"
     let initMod = 0;
     let desc = "";
-    
+
     const initKeys = ["先攻", "Initiative", "initiative", "Init", "init"];
     let found = false;
-    
+
     for (const key of initKeys) {
       const val = UTILS.getRoleAbilityValue(curAbility, key, "ability") || UTILS.getRoleAbilityValue(curAbility, key, "skill");
       if (val) {
-        initMod = parseInt(val);
-        if (!isNaN(initMod)) {
-            desc = `${key}(${initMod})`;
-            found = true;
-            break;
+        initMod = Number.parseInt(val);
+        if (!Number.isNaN(initMod)) {
+          desc = `${key}(${initMod})`;
+          found = true;
+          break;
         }
       }
     }
-    
+
     // 如果没找到先攻，尝试用敏捷调整值
     if (!found) {
       const dexKeys = ["敏捷", "Dexterity", "Dex", "dex"];
       for (const key of dexKeys) {
         const val = getDndModifier(curAbility, key);
         if (val && val.type === "Attribute") {
-            initMod = val.value;
-            desc = `${key}调整值(${initMod})`;
-            found = true;
-            break;
+          initMod = val.value;
+          desc = `${key}调整值(${initMod})`;
+          found = true;
+          break;
         }
       }
     }
-    
+
     // 额外调整
     const argsStr = args.join("");
     let extraMod = 0;
     if (argsStr) {
-       try {
-         const val = UTILS.calculateExpression(argsStr, curAbility);
-         if (!isNaN(val)) extraMod = val;
-       } catch (e) {}
+      try {
+        const val = UTILS.calculateExpression(argsStr, curAbility);
+        if (!Number.isNaN(val))
+          extraMod = val;
+      }
+      catch {}
     }
-    
+
     const diceResult = rollD20("normal");
     const total = diceResult.total + initMod + extraMod;
-    
+
     let formulaStr = `${diceResult.detailedMsg}`;
-    if (desc) formulaStr += ` + ${desc}`;
-    if (extraMod !== 0) formulaStr += ` ${extraMod > 0 ? "+" : ""}${extraMod}`;
+    if (desc)
+      formulaStr += ` + ${desc}`;
+    if (extraMod !== 0)
+      formulaStr += ` ${extraMod > 0 ? "+" : ""}${extraMod}`;
 
     // 更新先攻列表逻辑 (需结合 RoomContext 或其他机制，此处仅显示)
     // 如果需要自动加入先攻列表，需调用相关API。由于API未明确提供，此处暂只打印。
-    
+
     cpi.replyMessage(`${role.roleName} 投掷先攻: ${formulaStr} = ${total}`);
     return true;
   },
@@ -395,7 +400,7 @@ const cmdFind = new CommandExecutor(
       return false;
     }
 
-    const matches = DND_SPELLS.filter((spell) => spell.name.includes(query));
+    const matches = DND_SPELLS.filter(spell => spell.name.includes(query));
 
     if (matches.length === 0) {
       cpi.replyMessage(`未找到包含 "${query}" 的法术`);
@@ -403,8 +408,8 @@ const cmdFind = new CommandExecutor(
     }
 
     // 尝试完全匹配
-    const exactMatch = matches.find((s) => s.name === query);
-    let target: DndSpell | undefined = exactMatch || (matches.length === 1 ? matches[0] : undefined);
+    const exactMatch = matches.find(s => s.name === query);
+    const target: DndSpell | undefined = exactMatch || (matches.length === 1 ? matches[0] : undefined);
 
     if (target) {
       // Format similar to D&D 5e source books style (Plain Text)
@@ -417,7 +422,7 @@ const cmdFind = new CommandExecutor(
         `法术成分: ${target.components}`,
         `持续时间: ${target.duration}`,
         "",
-        target.text
+        target.text,
       ];
 
       if (target.atHigherLevels) {
@@ -426,8 +431,9 @@ const cmdFind = new CommandExecutor(
       }
 
       cpi.replyMessage(lines.join("\n"));
-    } else {
-      const names = matches.map((s) => s.name).join(", ");
+    }
+    else {
+      const names = matches.map(s => s.name).join(", ");
       cpi.replyMessage(`找到多个匹配项: ${names}`);
     }
     return true;

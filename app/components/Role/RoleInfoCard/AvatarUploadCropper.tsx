@@ -1,5 +1,5 @@
-import type { Transform } from "../sprite/TransformControl";
 import type { PreviewAnchorPosition } from "../Preview/previewAnchor";
+import type { Transform } from "../sprite/TransformControl";
 // 导入必要的类型和组件
 import type { CropMode } from "@/utils/imgCropper/useCropPreview";
 

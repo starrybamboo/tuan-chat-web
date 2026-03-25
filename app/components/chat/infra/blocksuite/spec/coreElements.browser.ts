@@ -1,18 +1,13 @@
-import { AttachmentViewExtension } from "@blocksuite/affine/blocks/attachment/view";
+import { effects as blockRootEffects } from "@blocksuite/affine-block-root/effects";
 import "@blocksuite/affine/blocks/attachment";
 import "@blocksuite/affine/blocks/bookmark";
-import { BookmarkViewExtension } from "@blocksuite/affine/blocks/bookmark/view";
+import { effects as captionEffects } from "@blocksuite/affine-components/caption";
 import "@blocksuite/affine/blocks/data-view";
 import "@blocksuite/affine/blocks/database";
-import { EmbedViewExtension } from "@blocksuite/affine/blocks/embed/view";
+import { effects as colorPickerEffects } from "@blocksuite/affine-components/color-picker";
 import "@blocksuite/affine/blocks/embed";
 import "@blocksuite/affine/blocks/note";
 import "@blocksuite/affine/blocks/table";
-import { effects as dataViewEffects } from "@blocksuite/affine/data-view/effects";
-import { effects as richTextEffects } from "@blocksuite/affine/rich-text/effects";
-import { effects as blockRootEffects } from "@blocksuite/affine-block-root/effects";
-import { effects as captionEffects } from "@blocksuite/affine-components/caption";
-import { effects as colorPickerEffects } from "@blocksuite/affine-components/color-picker";
 import { effects as contextMenuEffects } from "@blocksuite/affine-components/context-menu";
 import { effects as datePickerEffects } from "@blocksuite/affine-components/date-picker";
 import { effects as dropIndicatorEffects } from "@blocksuite/affine-components/drop-indicator";
@@ -25,8 +20,14 @@ import { effects as portalEffects } from "@blocksuite/affine-components/portal";
 import { effects as toggleButtonEffects } from "@blocksuite/affine-components/toggle-button";
 import { effects as toolbarEffects } from "@blocksuite/affine-components/toolbar";
 import { effects as viewDropdownMenuEffects } from "@blocksuite/affine-components/view-dropdown-menu";
+import { AttachmentViewExtension } from "@blocksuite/affine/blocks/attachment/view";
+import { BookmarkViewExtension } from "@blocksuite/affine/blocks/bookmark/view";
+import { EmbedViewExtension } from "@blocksuite/affine/blocks/embed/view";
+import { effects as dataViewEffects } from "@blocksuite/affine/data-view/effects";
+import { effects as richTextEffects } from "@blocksuite/affine/rich-text/effects";
 import { effects as integrationTestEffects } from "@blocksuite/integration-test/effects";
 import { effects as stdEffects } from "@blocksuite/std/effects";
+
 import { ensureTCAffineMentionDefined } from "./tcMentionElement.client";
 
 function defineOnce(tagName: string, ctor: CustomElementConstructor) {

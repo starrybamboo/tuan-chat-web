@@ -2,14 +2,14 @@ import type { GameInfoDto } from "@/webGAL/apis";
 
 import { transcodeAudioBlobToOpusOrThrow } from "@/utils/audioTranscodeUtils";
 import { assertAudioUploadInputSizeOrThrow, buildDefaultAudioUploadTranscodeOptions } from "@/utils/audioUploadPolicy";
-import { getTerreApis } from "@/webGAL/index";
-import { getTerreBaseUrl } from "@/webGAL/terreConfig";
 import {
   backfillMirroredWebgalAssetCache,
   fetchObservedWebgalAssetBlob,
   getMirroredWebgalAssetBlob,
   mirrorWebgalAssetBlob,
 } from "@/webGAL/browserAssetCache";
+import { getTerreApis } from "@/webGAL/index";
+import { getTerreBaseUrl } from "@/webGAL/terreConfig";
 
 /**
  * WebGAL 调试命令枚举

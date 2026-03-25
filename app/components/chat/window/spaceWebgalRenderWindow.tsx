@@ -3,13 +3,13 @@ import type { ChatMessageResponse, Room, UserRole } from "../../../../api";
 import { useGetSpaceInfoQuery, useGetUserRoomsQuery } from "api/hooks/chatQueryHooks";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import toast from "react-hot-toast";
+import { compareChatMessageResponsesByOrder } from "@/components/chat/shared/messageOrder";
 import {
   DEFAULT_ROOM_CONTENT_ALERT_THRESHOLD,
   MAX_ROOM_CONTENT_ALERT_THRESHOLD,
   MIN_ROOM_CONTENT_ALERT_THRESHOLD,
   useRealtimeRenderStore,
 } from "@/components/chat/stores/realtimeRenderStore";
-import { compareChatMessageResponsesByOrder } from "@/components/chat/shared/messageOrder";
 import WorkflowWindow from "@/components/chat/window/workflowWindow";
 import launchWebGal, { appendWebgalLaunchHints } from "@/utils/launchWebGal";
 import { pollPort } from "@/utils/pollPort";

@@ -1,5 +1,5 @@
-import { createPortal } from "react-dom";
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 
 interface TutorialUpdatePromptModalProps {
   open: boolean;
@@ -65,7 +65,7 @@ export default function TutorialUpdatePromptModal({
               type="checkbox"
               className="checkbox checkbox-xs rounded-sm border-base-content/30 checked:border-primary [--chkbg:theme(colors.primary)] [--chkfg:theme(colors.primary-content)]"
               checked={suppress}
-              onChange={(e) => setSuppress(e.target.checked)}
+              onChange={e => setSuppress(e.target.checked)}
             />
             直到下次更新前不再提示
           </label>

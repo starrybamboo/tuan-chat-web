@@ -1,7 +1,8 @@
 import type { UserLoginRequest, UserRegisterRequest } from "api";
 
-import { tuanchat } from "../../../api/instance";
 import { extractOpenApiErrorMessage } from "@/utils/openApiResult";
+
+import { tuanchat } from "../../../api/instance";
 
 // 获取错误信息的优先级：
 // 1. error 对象中的 body.errMsg

@@ -1,12 +1,12 @@
 import type { ChatMessageResponse } from "../../../../../api";
 
+import { ArrowRightIcon, ChatCircleIcon } from "@phosphor-icons/react";
 import React, { use, useCallback, useMemo } from "react";
 import toast from "react-hot-toast";
 import { useNavigate, useSearchParams } from "react-router";
 import { RoomContext } from "@/components/chat/core/roomContext";
 import { extractRoomJumpPayload } from "@/components/chat/utils/roomJump";
 import { useGetUserRoomsQuery } from "../../../../../api/hooks/chatQueryHooks";
-import { ChatCircleIcon, ArrowRightIcon } from "@phosphor-icons/react";
 
 function normalizeName(value: string | undefined): string {
   return String(value ?? "").trim().toLowerCase();
@@ -175,7 +175,8 @@ function RoomJumpMessageImpl({ messageResponse }: { messageResponse: ChatMessage
               className="h-full w-full object-cover"
               onError={(event) => {
                 const img = event.currentTarget;
-                if (img.dataset.fallbackApplied) return;
+                if (img.dataset.fallbackApplied)
+                  return;
                 img.dataset.fallbackApplied = "1";
                 img.src = "/favicon.ico";
               }}
@@ -202,20 +203,24 @@ function RoomJumpMessageImpl({ messageResponse }: { messageResponse: ChatMessage
           </div>
           {titleDiffersFromRoomName && (
             <div className="truncate text-[11px] text-base-content/50">
-              群聊: {displayRoomName}
+              群聊:
+              {" "}
+              {displayRoomName}
             </div>
           )}
         </div>
 
         {/* Action Button / Status */}
         <div className="shrink-0 pl-1">
-          {canDirectJump ? (
-            <div className="flex size-7 items-center justify-center rounded-full bg-info/10 text-info transition-colors group-hover:bg-info group-hover:text-info-content">
-              <ArrowRightIcon weight="bold" className="size-3.5" />
-            </div>
-          ) : (
-            <span className="text-[11px] text-base-content/50">{actionHint}</span>
-          )}
+          {canDirectJump
+            ? (
+                <div className="flex size-7 items-center justify-center rounded-full bg-info/10 text-info transition-colors group-hover:bg-info group-hover:text-info-content">
+                  <ArrowRightIcon weight="bold" className="size-3.5" />
+                </div>
+              )
+            : (
+                <span className="text-[11px] text-base-content/50">{actionHint}</span>
+              )}
         </div>
       </button>
     </div>

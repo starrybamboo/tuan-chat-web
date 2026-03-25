@@ -42,4 +42,3 @@ export function countTextEnhanceVisibleLength(value: string): number {
 export function formatTextEnhanceVisibleLength(length: number): string {
   return Number.isInteger(length) ? String(length) : length.toFixed(1);
 }
-

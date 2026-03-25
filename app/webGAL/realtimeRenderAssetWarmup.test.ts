@@ -1,6 +1,6 @@
-import type { ChatMessageResponse, UserRole } from "../../api";
-
 import { ANNOTATION_IDS } from "@/types/messageAnnotations";
+
+import type { ChatMessageResponse, UserRole } from "../../api";
 
 import {
   collectMessageAssetWarmupPlan,

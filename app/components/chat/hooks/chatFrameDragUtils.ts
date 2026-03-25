@@ -1,6 +1,6 @@
-import type { ChatMessageResponse, Message } from "../../../../api";
-
 import { compareMessagesByOrder } from "@/components/chat/shared/messageOrder";
+
+import type { ChatMessageResponse, Message } from "../../../../api";
 
 type ComputeMoveMessageUpdatesParams = {
   historyMessages: ChatMessageResponse[];

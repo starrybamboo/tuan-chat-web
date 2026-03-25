@@ -82,8 +82,10 @@ describe("cmdExeWw", () => {
 
     it("支持属性表达式", () => {
       const mockGetValue = (key: string) => {
-        if (key === "力量") return 3;
-        if (key === "近战") return 2;
+        if (key === "力量")
+          return 3;
+        if (key === "近战")
+          return 2;
         return 0;
       };
 
@@ -106,7 +108,7 @@ describe("cmdExeWw", () => {
         sides: 10,
         exprStr: "力量+近战",
       });
-      
+
       // .ww 力量*2
       expect(parseWwCommandArgs(["力量*2"], mockGetValue)).toEqual({
         diceCount: 6,
@@ -116,7 +118,7 @@ describe("cmdExeWw", () => {
         sides: 10,
         exprStr: "力量*2",
       });
-      
+
       // .ww 力量+近战+1 (后缀+1会被当做bonus)
       expect(parseWwCommandArgs(["力量+近战+1"], mockGetValue)).toEqual({
         diceCount: 5,
@@ -145,9 +147,9 @@ describe("cmdExeWw", () => {
       //   Dice 4: 0.01 -> 1
       // Total: 10, 8, 10, 1.
       // Successes (>=8): 10, 8, 10 -> 3 successes.
-      
+
       const options = { diceCount: 2, explodeAt: 10, bonusSuccess: 2, successAt: 8, sides: 10 };
-      const rng = createSequenceRng([0.95, 0.75, 0.99, 0.01]); 
+      const rng = createSequenceRng([0.95, 0.75, 0.99, 0.01]);
 
       const result = rollWw(options, rng);
 
@@ -157,7 +159,7 @@ describe("cmdExeWw", () => {
       expect(result.totalSuccesses).toBe(5);
     });
 
-     it("达到上限时停止避免无限加骰", () => {
+    it("达到上限时停止避免无限加骰", () => {
       const options = { diceCount: 1, explodeAt: 5, bonusSuccess: 0, successAt: 8, sides: 10 };
       const rng = () => 0.99; // 永远掷出10
 
@@ -165,19 +167,19 @@ describe("cmdExeWw", () => {
       // 修改后的 rollWw 支持第二个参数 rng, 但不支持第三个参数 limit (目前 limit 是写死的 internal const MAX_TOTAL_ROLLS)
       // 所以测试不再传 20 这个参数，而是依据 MAX_TOTAL_ROLLS 或内部 loop limit
       const result = rollWw(options, rng);
-      expect(result.rolls.length).toBeGreaterThanOrEqual(100); 
+      expect(result.rolls.length).toBeGreaterThanOrEqual(100);
     });
   });
 
   describe("formatWwResultMessage", () => {
     it("输出包含核心统计信息", () => {
       const options = { diceCount: 2, explodeAt: 9, bonusSuccess: 1, successAt: 8, sides: 10 };
-      const result = { 
-        rolls: [9, 10, 4, 8], 
+      const result = {
+        rolls: [9, 10, 4, 8],
         rounds: [[9, 10], [4, 8]],
-        baseSuccesses: 3, 
+        baseSuccesses: 3,
         totalSuccesses: 4,
-        totalRollsCount: 4
+        totalRollsCount: 4,
       };
 
       const msg = formatWwResultMessage(options, result, "TestRole");
@@ -187,7 +189,7 @@ describe("cmdExeWw", () => {
       // 第 1 轮: {<9*>,<10*>}
       // 第 2 轮: {4,8*}
       // ]=4
-      
+
       // 检查关键部分是否存在
       expect(msg).toContain("TestRole");
       expect(msg).toContain("2a9+1=4"); // 简化头部

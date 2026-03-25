@@ -414,14 +414,14 @@ export function ExpressionChooser({
                 </div>
               </>
             )
-            : isNoRoleMode
-              ? (
-                  <div className="flex flex-col items-center justify-center h-full text-gray-500 py-12">
-                    <AddRoleIcon className="size-16 mx-auto mb-3 text-base-content/30" />
-                    <div className="text-sm font-medium mb-1">未选择角色</div>
-                    <div className="text-xs text-base-content/50 max-w-[200px] text-center">请从左侧列表选择你的角色，或添加新角色</div>
-                  </div>
-                )
+          : isNoRoleMode
+            ? (
+                <div className="flex flex-col items-center justify-center h-full text-gray-500 py-12">
+                  <AddRoleIcon className="size-16 mx-auto mb-3 text-base-content/30" />
+                  <div className="text-sm font-medium mb-1">未选择角色</div>
+                  <div className="text-xs text-base-content/50 max-w-[200px] text-center">请从左侧列表选择你的角色，或添加新角色</div>
+                </div>
+              )
             : isNarratorMode
               ? (
                   <div className="flex flex-col items-center justify-center h-full text-gray-500 py-12">
@@ -430,12 +430,12 @@ export function ExpressionChooser({
                     <div className="text-xs text-base-content/50 max-w-[200px] text-center">{narratorDescription}</div>
                   </div>
                 )
-            : (
-                <div className="text-center py-12 text-gray-500">
-                  <div className="text-sm mb-2">暂无可用头像</div>
-                  <div className="text-xs text-base-content/50">请先为角色添加头像差分</div>
-                </div>
-              )}
+              : (
+                  <div className="text-center py-12 text-gray-500">
+                    <div className="text-sm mb-2">暂无可用头像</div>
+                    <div className="text-xs text-base-content/50">请先为角色添加头像差分</div>
+                  </div>
+                )}
       </div>
     </div>
   );

@@ -1,14 +1,14 @@
 import { isBlocksuiteDebugEnabled } from "./debugFlags";
 
-type BlocksuitePerfMarkName =
-  | "host-open-start"
-  | "frame-entry-start"
-  | "frame-bootstrap-start"
-  | "frame-bootstrap-ready"
-  | "store-create-start"
-  | "editor-create-start"
-  | "render-ready"
-  | "open-failed";
+type BlocksuitePerfMarkName
+  = | "host-open-start"
+    | "frame-entry-start"
+    | "frame-bootstrap-start"
+    | "frame-bootstrap-ready"
+    | "store-create-start"
+    | "editor-create-start"
+    | "render-ready"
+    | "open-failed";
 
 type BlocksuitePerfSession = {
   instanceId: string;

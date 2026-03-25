@@ -1,6 +1,6 @@
+import type { FollowResponse } from "../../../../api";
 import { useState } from "react";
 import { Link } from "react-router";
-import type { FollowResponse } from "../../../../api";
 import { resolveUserDisplayName, useResolvedUserInfo } from "@/components/common/userAccess";
 import { FollowButton } from "./FollowButton";
 

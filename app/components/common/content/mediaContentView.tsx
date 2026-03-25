@@ -1,5 +1,5 @@
-import { MarkDownViewer } from "@/components/common/markdown/markDownViewer";
 import { hasMeaningfulMediaContent, normalizeMediaContent } from "@/components/common/content/mediaContent";
+import { MarkDownViewer } from "@/components/common/markdown/markDownViewer";
 
 export default function MediaContentView({
   content,

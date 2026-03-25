@@ -6,12 +6,12 @@ import { UserAvatarByUser } from "@/components/common/userAccess";
 import { useGetSpaceMembersQuery, useSpaceInviteCodeQuery } from "../../../../api/hooks/chatQueryHooks";
 import { useGetFriendListQuery } from "../../../../api/hooks/friendQueryHooks";
 
-type MemberLike = {
+interface MemberLike {
   userId?: number;
   username?: string;
   avatar?: string;
   avatarThumbUrl?: string;
-};
+}
 
 function MemberBox({ user, onClickAddMember, isAdded }: { user: MemberLike; onClickAddMember: () => void; isAdded: boolean }) {
   return (
@@ -107,7 +107,7 @@ export default function AddMemberWindow({
 
   const checkIsAdded = (userId: number) => {
     if (targetType === "space") {
-      return spaceMembers.some((m) => m.userId === userId);
+      return spaceMembers.some(m => m.userId === userId);
     }
     return roomMembers.some((m: any) => m.userId === userId);
   };

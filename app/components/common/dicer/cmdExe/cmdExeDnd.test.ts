@@ -1,11 +1,10 @@
 // noinspection NonAsciiCharacters
 
-import { vi, describe, it, expect, beforeEach, afterEach } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { RoleAbility } from "api/models/RoleAbility";
 import type { UserRole } from "api/models/UserRole";
 
-import { RuleNameSpace } from "@/components/common/dicer/cmd";
 import UTILS from "@/components/common/dicer/utils/utils";
 
 import executorDnd from "./cmdExeDnd";
@@ -22,7 +21,7 @@ vi.mock("@/components/common/dicer/utils/utils", async () => {
   };
 });
 
-describe("D&D 5e 指令集测试", () => {
+describe("d&D 5e 指令集测试", () => {
   let cpi: CPI;
   let mockRole: UserRole;
   let mockAbility: RoleAbility;
@@ -77,14 +76,14 @@ describe("D&D 5e 指令集测试", () => {
       // 移除所有非数字和运算符，防止 unsafe eval，虽然仅测试用
       // 简单处理：仅支持加减数字
       if (!expr) {
-        return NaN;
+        return Number.NaN;
       }
       try {
         // eslint-disable-next-line no-eval
-        return eval(expr); 
+        return eval(expr);
       }
       catch {
-        return NaN;
+        return Number.NaN;
       }
     });
 
@@ -155,11 +154,11 @@ describe("D&D 5e 指令集测试", () => {
         expect.stringContaining("+2"),
       );
     });
-    
+
     it("应该支持未定义的技能名", async () => {
       const executor = executorDnd.cmdMap.get("ra");
       await executor?.solve(["不存在的技能"], [mockRole], cpi);
-      
+
       // 11 + 0 = 11
       expect(cpi.replyMessage).toHaveBeenCalledWith(
         expect.stringContaining("测试角色 进行了 不存在的技能检定"),
@@ -200,7 +199,7 @@ describe("D&D 5e 指令集测试", () => {
     it("如果没有预设先攻值，应该使用敏捷调整值", async () => {
       // 敏捷 16 -> +3
       mockAbility.basic = { 敏捷: "16" };
-      
+
       const executor = executorDnd.cmdMap.get("ri");
       await executor?.solve([], [mockRole], cpi);
 
@@ -214,13 +213,13 @@ describe("D&D 5e 指令集测试", () => {
   describe("rab (优势检定)", () => {
     it("应该取两次投掷中的高值", async () => {
       mockAbility.basic = { 力量: "10" }; // +0
-      
+
       // 模拟两次投掷: 第一次 0.1(3), 第二次 0.8(17)
       // rollD20 内部调用两次 Math.random
       vi.spyOn(Math, "random")
-        .mockReturnValueOnce(0.1)  // -> 3
+        .mockReturnValueOnce(0.1) // -> 3
         .mockReturnValueOnce(0.8); // -> 17
-      
+
       const executor = executorDnd.cmdMap.get("rab");
       await executor?.solve(["力量"], [mockRole], cpi);
 
@@ -236,23 +235,23 @@ describe("D&D 5e 指令集测试", () => {
 
   describe("rap (劣势检定)", () => {
     it("应该取两次投掷中的低值", async () => {
-        mockAbility.basic = { 力量: "10" }; // +0
+      mockAbility.basic = { 力量: "10" }; // +0
 
-        // 模拟两次投掷: 第一次 0.8(17), 第二次 0.1(3)
-        vi.spyOn(Math, "random")
-          .mockReturnValueOnce(0.8)  // -> 17
-          .mockReturnValueOnce(0.1); // -> 3
-        
-        const executor = executorDnd.cmdMap.get("rap");
-        await executor?.solve(["力量"], [mockRole], cpi);
-  
-        // 结果应为 3
-        expect(cpi.replyMessage).toHaveBeenCalledWith(
-          expect.stringContaining("2d20kl1(17, 3 -> 3)"),
-        );
-        expect(cpi.replyMessage).toHaveBeenCalledWith(
-          expect.stringContaining("= 3"),
-        );
+      // 模拟两次投掷: 第一次 0.8(17), 第二次 0.1(3)
+      vi.spyOn(Math, "random")
+        .mockReturnValueOnce(0.8) // -> 17
+        .mockReturnValueOnce(0.1); // -> 3
+
+      const executor = executorDnd.cmdMap.get("rap");
+      await executor?.solve(["力量"], [mockRole], cpi);
+
+      // 结果应为 3
+      expect(cpi.replyMessage).toHaveBeenCalledWith(
+        expect.stringContaining("2d20kl1(17, 3 -> 3)"),
+      );
+      expect(cpi.replyMessage).toHaveBeenCalledWith(
+        expect.stringContaining("= 3"),
+      );
     });
   });
 

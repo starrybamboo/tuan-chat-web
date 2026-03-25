@@ -22,12 +22,12 @@ import useChatFrameSelectionContext from "@/components/chat/hooks/useChatFrameSe
 import useChatFrameStickerActions from "@/components/chat/hooks/useChatFrameStickerActions";
 import useChatFrameVisualEffects from "@/components/chat/hooks/useChatFrameVisualEffects";
 import useChatFrameWebSocket from "@/components/chat/hooks/useChatFrameWebSocket";
-import { canParticipateInRoom } from "@/components/chat/utils/memberPermissions";
 import { openMessageAnnotationPicker } from "@/components/chat/message/annotations/openMessageAnnotationPicker";
-import { createWebgalChooseOptionDraft } from "@/components/chat/shared/webgal/webgalChooseDraft";
 import { compareChatMessageResponsesByOrder } from "@/components/chat/shared/messageOrder";
+import { createWebgalChooseOptionDraft } from "@/components/chat/shared/webgal/webgalChooseDraft";
 import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
 import { useRoomUiStore } from "@/components/chat/stores/roomUiStore";
+import { canParticipateInRoom } from "@/components/chat/utils/memberPermissions";
 import { ANNOTATION_IDS, areAnnotationsEqual, hasAnnotation, normalizeAnnotations } from "@/types/messageAnnotations";
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
 import { extractWebgalChoosePayload } from "@/types/webgalChoose";
@@ -300,7 +300,7 @@ function ChatFrame(props: ChatFrameProps) {
           : {
               ...latest.message,
               annotations: nextAnnotations,
-        };
+            };
         updateMessage(nextMessage);
         if (roomContext.updateAndRerenderMessageInWebGAL) {
           roomContext.updateAndRerenderMessageInWebGAL(latest, { ...latest, message: nextMessage }, false);

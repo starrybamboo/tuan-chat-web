@@ -6,9 +6,9 @@
 import { use, useCallback, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
+import { resolveWebGALPreviewState } from "@/components/chat/shared/webgal/webGalPreviewState";
 import { useRealtimeRenderStore } from "@/components/chat/stores/realtimeRenderStore";
 import { useSideDrawerStore } from "@/components/chat/stores/sideDrawerStore";
-import { resolveWebGALPreviewState } from "@/components/chat/shared/webgal/webGALPreviewState";
 import { getTerreBaseUrl } from "@/webGAL/terreConfig";
 
 interface WebGALPreviewProps {

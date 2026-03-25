@@ -67,7 +67,7 @@ export function unwrapOpenApiResultData<T>(
   }
 
   if (typeof result.data === "undefined") {
-    throw new Error(invalidResponseFallback);
+    throw new TypeError(invalidResponseFallback);
   }
 
   return result.data;

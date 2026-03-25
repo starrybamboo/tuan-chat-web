@@ -1,9 +1,10 @@
-import { type ChangeEvent, type ClipboardEvent, useEffect, useRef, useState } from "react";
-import { ImgUploader } from "@/components/common/uploader/imgUploader";
+import type { ChangeEvent, ClipboardEvent } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   buildImageMarkdown,
   buildVideoToken,
 } from "@/components/common/content/mediaContent";
+import { ImgUploader } from "@/components/common/uploader/imgUploader";
 import { UploadUtils } from "@/utils/UploadUtils";
 
 interface TextMediaEditorProps {

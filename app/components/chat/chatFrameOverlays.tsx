@@ -3,8 +3,8 @@ import type { ForwardMode } from "@/components/chat/hooks/useChatFrameMessageAct
 import type { WebgalChooseOptionDraft } from "@/components/chat/shared/webgal/webgalChooseDraft";
 
 import React from "react";
-import WebgalChooseModal from "@/components/chat/shared/webgal/webgalChooseModal";
 import { compareChatMessageResponsesByOrder } from "@/components/chat/shared/messageOrder";
+import WebgalChooseModal from "@/components/chat/shared/webgal/webgalChooseModal";
 import ExportChatWindow from "@/components/chat/window/exportChatWindow";
 import ExportImageWindow from "@/components/chat/window/exportImageWindow";
 import ForwardWindow from "@/components/chat/window/forwardWindow";

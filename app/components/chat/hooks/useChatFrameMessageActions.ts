@@ -1,9 +1,9 @@
 import { useCallback } from "react";
 import toast from "react-hot-toast";
 
+import { compareChatMessageResponsesByOrder } from "@/components/chat/shared/messageOrder";
 import { ANNOTATION_IDS, hasAnnotation, isImageMessageBackground, setAnnotation } from "@/types/messageAnnotations";
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
-import { compareChatMessageResponsesByOrder } from "@/components/chat/shared/messageOrder";
 
 import type { ChatMessageRequest, ChatMessageResponse, Message } from "../../../../api";
 

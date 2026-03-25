@@ -1,5 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { backfillMirroredWebgalAssetCache } from "./browserAssetCache";
+import { uploadFile } from "./fileOperator";
+
 vi.mock("./index", () => ({
   getTerreApis: vi.fn(() => ({
     assetsControllerReadAssets: vi.fn().mockResolvedValue({
@@ -17,9 +20,6 @@ vi.mock("./browserAssetCache", () => ({
   getMirroredWebgalAssetBlob: vi.fn().mockResolvedValue(null),
   mirrorWebgalAssetBlob: vi.fn().mockResolvedValue(undefined),
 }));
-
-import { backfillMirroredWebgalAssetCache } from "./browserAssetCache";
-import { uploadFile } from "./fileOperator";
 
 describe("fileOperator.uploadFile", () => {
   beforeEach(() => {

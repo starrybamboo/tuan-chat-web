@@ -30,7 +30,7 @@ export default function SpaceInvitePanel({ onAddSpectator, onAddPlayer }: SpaceI
               <div className="text-xs opacity-70">加入空间后会自动授予玩家身份</div>
             </div>
           </label>
-        
+
           <label
             className={`flex items-start gap-3 rounded-lg border border-base-300 p-3 cursor-pointer ${spaceInviteMode === "spectator" ? "bg-base-200" : "bg-base-100"}`}
           >

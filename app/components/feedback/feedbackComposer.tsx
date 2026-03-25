@@ -7,8 +7,8 @@ import {
   hasMeaningfulMediaContent,
   normalizeMediaContent,
 } from "@/components/common/content/mediaContent";
-import { useCreateFeedbackIssueMutation } from "@/components/feedback/feedbackHooks";
 import TextMediaEditor from "@/components/common/markdown/textMediaEditor";
+import { useCreateFeedbackIssueMutation } from "@/components/feedback/feedbackHooks";
 import { FEEDBACK_ISSUE_TYPE_OPTIONS } from "@/components/feedback/feedbackTypes";
 
 function readErrorMessage(error: unknown) {

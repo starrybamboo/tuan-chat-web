@@ -6,8 +6,8 @@ import { Link, useNavigate } from "react-router";
 import {
   useMarkAllNotificationsReadMutation,
   useMarkNotificationsReadMutation,
-  useNotificationUnreadCountQuery,
   useNotificationsInfiniteQuery,
+  useNotificationUnreadCountQuery,
 } from "@/components/notification/notificationHooks";
 import NotificationList from "@/components/notification/notificationList";
 

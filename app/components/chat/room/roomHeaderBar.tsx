@@ -460,21 +460,39 @@ function RoomHeaderBarImpl({
                         <DotsThreeVerticalIcon className="size-4" />
                       </button>
                       <ul tabIndex={0} className="dropdown-content z-9999 menu p-2 shadow bg-base-100 rounded-box w-56 gap-1">
-                        <li><button type="button" onClick={() => {
-                          closeMobileToolsMenu();
-                          handleOpenImport();
-                        }}
-                        >导入记录</button></li>
-                        <li><button type="button" onClick={() => {
-                          closeMobileToolsMenu();
-                          handleOpenExport();
-                        }}
-                        >导出/多选</button></li>
-                        <li><button type="button" onClick={() => {
-                          closeMobileToolsMenu();
-                          handleOpenPremiere();
-                        }}
-                        >导出 PR 工程</button></li>
+                        <li>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              closeMobileToolsMenu();
+                              handleOpenImport();
+                            }}
+                          >
+                            导入记录
+                          </button>
+                        </li>
+                        <li>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              closeMobileToolsMenu();
+                              handleOpenExport();
+                            }}
+                          >
+                            导出/多选
+                          </button>
+                        </li>
+                        <li>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              closeMobileToolsMenu();
+                              handleOpenPremiere();
+                            }}
+                          >
+                            导出 PR 工程
+                          </button>
+                        </li>
                         <li>
                           <button
                             type="button"
@@ -487,21 +505,41 @@ function RoomHeaderBarImpl({
                             {`切换到${useChatBubbleStyle ? "传统" : "气泡"}样式`}
                           </button>
                         </li>
-                        <li><button type="button" data-side-drawer-toggle="true" onClick={() => {
-                          closeMobileToolsMenu();
-                          handleToggleMemberDrawer();
-                        }}
-                        >房间成员</button></li>
-                        <li><button type="button" data-side-drawer-toggle="true" onClick={() => {
-                          closeMobileToolsMenu();
-                          handleToggleRoleDrawer();
-                        }}
-                        >房间角色</button></li>
-                        <li><button type="button" onClick={() => {
-                          closeMobileToolsMenu();
-                          handleOpenMobileSearch();
-                        }}
-                        >消息搜索</button></li>
+                        <li>
+                          <button
+                            type="button"
+                            data-side-drawer-toggle="true"
+                            onClick={() => {
+                              closeMobileToolsMenu();
+                              handleToggleMemberDrawer();
+                            }}
+                          >
+                            房间成员
+                          </button>
+                        </li>
+                        <li>
+                          <button
+                            type="button"
+                            data-side-drawer-toggle="true"
+                            onClick={() => {
+                              closeMobileToolsMenu();
+                              handleToggleRoleDrawer();
+                            }}
+                          >
+                            房间角色
+                          </button>
+                        </li>
+                        <li>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              closeMobileToolsMenu();
+                              handleOpenMobileSearch();
+                            }}
+                          >
+                            消息搜索
+                          </button>
+                        </li>
                       </ul>
                     </div>
                   )

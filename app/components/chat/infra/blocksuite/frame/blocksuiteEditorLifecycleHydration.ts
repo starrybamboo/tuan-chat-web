@@ -30,13 +30,14 @@ function delay(ms: number, signal: AbortSignal): Promise<void> {
 
   return new Promise<void>((resolve) => {
     let timer: ReturnType<typeof setTimeout> | null = null;
-    const onAbort = () => {
+
+    function onAbort() {
       if (timer) {
         clearTimeout(timer);
       }
       signal.removeEventListener("abort", onAbort);
       resolve();
-    };
+    }
 
     timer = setTimeout(() => {
       signal.removeEventListener("abort", onAbort);

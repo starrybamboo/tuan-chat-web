@@ -1,10 +1,6 @@
-import type { ChatMessageResponse } from "../../api";
-
 import {
-  ANNOTATION_IDS,
   getFigurePositionFromAnnotations,
   getSceneEffectFromAnnotations,
-  hasAnnotation,
   hasClearBackgroundAnnotation,
   hasClearBgmAnnotation,
   hasClearFigureAnnotation,
@@ -16,6 +12,8 @@ import {
 } from "@/types/messageAnnotations";
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
 import { extractWebgalDicePayload } from "@/types/webgalDice";
+
+import type { ChatMessageResponse } from "../../api";
 
 export type RealtimeRenderDeltaOptions = {
   autoFigureEnabled: boolean;

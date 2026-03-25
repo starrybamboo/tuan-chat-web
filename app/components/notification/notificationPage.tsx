@@ -2,14 +2,14 @@ import type { UserNotificationItem } from "@/components/notification/notificatio
 
 import { startTransition, useMemo, useState } from "react";
 import { useNavigate } from "react-router";
+import { useGlobalContext } from "@/components/globalContextProvider";
 import {
   useMarkAllNotificationsReadMutation,
   useMarkNotificationsReadMutation,
-  useNotificationUnreadCountQuery,
   useNotificationsInfiniteQuery,
+  useNotificationUnreadCountQuery,
 } from "@/components/notification/notificationHooks";
 import NotificationList from "@/components/notification/notificationList";
-import { useGlobalContext } from "@/components/globalContextProvider";
 
 export default function NotificationPage() {
   const navigate = useNavigate();

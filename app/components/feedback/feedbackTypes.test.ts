@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { composeMediaContent } from "@/components/common/content/mediaContent";
 
+import { composeMediaContent } from "@/components/common/content/mediaContent";
 import {
   FEEDBACK_ISSUE_STATUS_COMPLETED,
-  FEEDBACK_ISSUE_STATUS_PROCESSING,
   FEEDBACK_ISSUE_STATUS_PENDING,
+  FEEDBACK_ISSUE_STATUS_PROCESSING,
   FEEDBACK_ISSUE_STATUS_REJECTED,
   formatFeedbackMediaSummary,
   getFeedbackAuthorAvatar,

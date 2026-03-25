@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+
 import { hasHostPrivileges, isObserverLike } from "@/components/chat/utils/memberPermissions";
 
 import type { RoomMember, SpaceMember } from "../../../../api";

@@ -1,5 +1,6 @@
-import { appendWebgalLaunchHints } from "@/utils/launchWebGal";
 import type { RealtimeRenderStatus } from "@/webGAL/useRealtimeRender";
+
+import { appendWebgalLaunchHints } from "@/utils/launchWebGal";
 
 type ResolveWebGALPreviewStateOptions = {
   previewUrl: string | null;

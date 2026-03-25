@@ -1,6 +1,6 @@
-const IMAGE_MARKDOWN_RE = /!\[[^\]]*]\(([^)]+)\)/g;
-const VIDEO_TOKEN_RE = /\{\{\s*video\s*:\s*([^}]+?)\s*}}/gi;
-const MARKDOWN_LINK_RE = /\[([^\]]+)]\(([^)]+)\)/g;
+const IMAGE_MARKDOWN_RE = /!\[[^\]]*\]\(([^)]+)\)/g;
+const VIDEO_TOKEN_RE = /\{\{\s*video\s*:\s*([^\s}]+)\s*\}\}/gi;
+const MARKDOWN_LINK_RE = /\[([^\]]+)\]\(([^)]+)\)/g;
 
 export const MEDIA_IMAGE_PREVIEW_TEXT = "含图片";
 export const MEDIA_VIDEO_PREVIEW_TEXT = "含视频";
@@ -33,7 +33,7 @@ export function normalizeMediaContent(content?: string | null) {
 export function buildImageMarkdown(url: string, altText = "image") {
   const normalizedUrl = String(url ?? "").trim();
   const normalizedAltText = String(altText ?? "image")
-    .replace(/[\[\]\r\n]/g, " ")
+    .replace(/[[\]\r\n]/g, " ")
     .trim() || "image";
   return `![${normalizedAltText}](${normalizedUrl})`;
 }

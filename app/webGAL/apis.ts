@@ -41,7 +41,7 @@ export type CreateNewFolderDto = {
   name: string;
 };
 
-type UploadFilesDto = {
+export type UploadFilesDto = {
   /** Target directory for the uploaded files */
   targetDirectory: string;
 };
