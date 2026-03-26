@@ -4,9 +4,9 @@ import { UserServiceExtension } from "@blocksuite/affine/shared/services";
 import { ZERO_WIDTH_FOR_EMBED_NODE } from "@blocksuite/std/inline";
 import { html } from "lit";
 
-import type { BlocksuiteEditorAssemblyContext } from "./blocksuiteEditorAssemblyContext";
+import type { BlocksuiteEditorAssemblyContext } from "../blocksuiteEditorAssemblyContext";
 
-import { listBlocksuiteSpaceMemberIds } from "../services/blocksuiteSpaceMemberService";
+import { listBlocksuiteSpaceMemberIds } from "../../services/blocksuiteSpaceMemberService";
 
 const MENTION_MENU_LOCK_MS = 400;
 const MENTION_COMMIT_DEDUP_MS = 600;

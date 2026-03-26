@@ -9,10 +9,10 @@ import {
   QuickSearchExtension,
 } from "@blocksuite/affine/shared/services";
 
-import type { BlocksuiteEditorAssemblyContext } from "./blocksuiteEditorAssemblyContext";
+import type { BlocksuiteEditorAssemblyContext } from "../blocksuiteEditorAssemblyContext";
 
-import { getEdgelessSpecs, getPageSpecs } from "../manager/view";
-import { mockEditorSetting, mockParseDocUrlService } from "./mockServices";
+import { getEdgelessSpecs, getPageSpecs } from "../../manager/view";
+import { mockEditorSetting, mockParseDocUrlService } from "../mockServices";
 
 function normalizeExtensionHint(value: unknown) {
   return String(value ?? "").trim().toLowerCase();

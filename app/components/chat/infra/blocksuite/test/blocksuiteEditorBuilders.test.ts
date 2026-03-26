@@ -1,22 +1,22 @@
 import { DocTitleViewExtension } from "@blocksuite/affine/fragments/doc-title/view";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { readBlocksuiteCachedDocTitle } from "../editors/blocksuiteEditorTitle";
+import { readBlocksuiteCachedDocTitle } from "../editors/extensions/blocksuiteEditorTitle";
 import {
   filterBlocksuiteDocTitlePageSpecs,
-} from "../editors/buildBlocksuiteCoreEditorExtensions";
-import { buildBlocksuiteEmbedExtensions } from "../editors/buildBlocksuiteEmbedExtensions";
+} from "../editors/extensions/buildBlocksuiteCoreEditorExtensions";
+import { buildBlocksuiteEmbedExtensions } from "../editors/extensions/buildBlocksuiteEmbedExtensions";
 import {
   createBlocksuiteDocMenuGroup,
   handleBlocksuiteDocLinkNavigation,
   parseBlocksuiteRoomIdFromDocKey,
-} from "../editors/buildBlocksuiteLinkedDocExtensions";
+} from "../editors/extensions/buildBlocksuiteLinkedDocExtensions";
 import {
   buildBlocksuiteMentionMenuGroup,
   insertBlocksuiteMentionViaInlineEditor,
   isBlocksuiteMentionMenuLocked,
   lockBlocksuiteMentionMenu,
-} from "../editors/buildBlocksuiteMentionExtensions";
+} from "../editors/extensions/buildBlocksuiteMentionExtensions";
 import { EmbedIframeNoCredentiallessViewOverride } from "../embedded/embedIframeNoCredentiallessViewOverride";
 import { RoomMapEmbedOptionExtension } from "../embedded/roomMapEmbedOption";
 import { listBlocksuiteSpaceMemberIds } from "../services/blocksuiteSpaceMemberService";

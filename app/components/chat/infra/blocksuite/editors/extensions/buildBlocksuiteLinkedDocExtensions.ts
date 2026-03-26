@@ -6,10 +6,10 @@ import { TelemetryProvider } from "@blocksuite/affine-shared/services";
 import { isFuzzyMatch } from "@blocksuite/affine-shared/utils";
 import { LinkedWidgetConfigExtension } from "@blocksuite/affine/widgets/linked-doc";
 
-import type { BlocksuiteEditorAssemblyContext } from "./blocksuiteEditorAssemblyContext";
+import type { BlocksuiteEditorAssemblyContext } from "../blocksuiteEditorAssemblyContext";
 
-import { listBlocksuiteRoomIdsForSpace } from "../services/blocksuiteRoomService";
-import { parseSpaceDocId } from "../space/spaceDocId";
+import { listBlocksuiteRoomIdsForSpace } from "../../services/blocksuiteRoomService";
+import { parseSpaceDocId } from "../../space/spaceDocId";
 import {
   ensureBlocksuiteDocExistsInWorkspace,
   readBlocksuiteCachedDocTitle,
