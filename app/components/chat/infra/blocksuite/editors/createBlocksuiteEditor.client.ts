@@ -17,6 +17,7 @@ import {
   handleBlocksuiteDocLinkNavigation,
 } from "./extensions/buildBlocksuiteLinkedDocExtensions";
 import { buildBlocksuiteMentionExtensions } from "./extensions/buildBlocksuiteMentionExtensions";
+import { mergeBlocksuiteExtensionBundles } from "./extensions/types";
 import { ensureTCAffineEditorContainerDefined, TC_AFFINE_EDITOR_CONTAINER_TAG } from "./tcAffineEditorContainer";
 
 /**
@@ -110,26 +111,27 @@ export function createBlocksuiteEditorClient(params: CreateBlocksuiteEditorParam
   const mention = buildBlocksuiteMentionExtensions(context);
   const quickSearch = buildBlocksuiteQuickSearchExtension(context);
   const linkedDoc = buildBlocksuiteLinkedDocExtensions(context, {
-    getMentionMenuGroup: mention.getMentionMenuGroup,
+    getMentionMenuGroup: mention.api?.getMentionMenuGroup ?? (async () => null),
   });
   const embed = buildBlocksuiteEmbedExtensions();
-
-  const sharedExtensions = [
-    ...core.sharedExtensions,
-    ...mention.sharedExtensions,
-    ...quickSearch.sharedExtensions,
-    ...linkedDoc.sharedExtensions,
-    ...embed.sharedExtensions,
-  ];
+  const mergedExtensions = mergeBlocksuiteExtensionBundles(
+    core,
+    mention,
+    quickSearch,
+    linkedDoc,
+    embed,
+  );
+  for (const disposer of mergedExtensions.disposers) {
+    addBlocksuiteEditorDisposer(context, disposer);
+  }
 
   (editor as any).pageSpecs = [
-    ...core.pageSpecs,
-    ...sharedExtensions,
+    ...mergedExtensions.pageExtensions,
+    ...mergedExtensions.sharedExtensions,
   ];
   (editor as any).edgelessSpecs = [
-    ...core.edgelessSpecs,
-    ...embed.edgelessExtensions,
-    ...sharedExtensions,
+    ...mergedExtensions.edgelessExtensions,
+    ...mergedExtensions.sharedExtensions,
   ];
 
   try {

@@ -7,6 +7,7 @@ import { isFuzzyMatch } from "@blocksuite/affine-shared/utils";
 import { LinkedWidgetConfigExtension } from "@blocksuite/affine/widgets/linked-doc";
 
 import type { BlocksuiteEditorAssemblyContext } from "../blocksuiteEditorAssemblyContext";
+import type { BlocksuiteExtensionBundle } from "./types";
 
 import { listBlocksuiteRoomIdsForSpace } from "../../services/blocksuiteRoomService";
 import { parseSpaceDocId } from "../../space/spaceDocId";
@@ -260,7 +261,7 @@ export function buildBlocksuiteLinkedDocExtensions(
   params: {
     getMentionMenuGroup: MentionMenuProvider;
   },
-) {
+): BlocksuiteExtensionBundle {
   const { getMentionMenuGroup } = params;
 
   return {

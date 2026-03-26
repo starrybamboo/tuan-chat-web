@@ -5,6 +5,7 @@ import { ZERO_WIDTH_FOR_EMBED_NODE } from "@blocksuite/std/inline";
 import { html } from "lit";
 
 import type { BlocksuiteEditorAssemblyContext } from "../blocksuiteEditorAssemblyContext";
+import type { BlocksuiteExtensionBundle } from "./types";
 
 import { listBlocksuiteSpaceMemberIds } from "../../services/blocksuiteSpaceMemberService";
 
@@ -16,6 +17,10 @@ type MentionMenuParams = {
   abort: () => void;
   inlineEditor: any;
   signal: AbortSignal;
+};
+
+type BlocksuiteMentionExtensionApi = {
+  getMentionMenuGroup: (params: MentionMenuParams) => Promise<LinkedMenuGroup | null>;
 };
 
 function forwardMentionMenu(message: string, payload?: Record<string, unknown>) {
@@ -231,11 +236,15 @@ export async function buildBlocksuiteMentionMenuGroup(
   };
 }
 
-export function buildBlocksuiteMentionExtensions(context: BlocksuiteEditorAssemblyContext) {
+export function buildBlocksuiteMentionExtensions(
+  context: BlocksuiteEditorAssemblyContext,
+): BlocksuiteExtensionBundle<BlocksuiteMentionExtensionApi> {
   return {
     sharedExtensions: [
       UserServiceExtension(context.userService),
     ],
-    getMentionMenuGroup: (params: MentionMenuParams) => buildBlocksuiteMentionMenuGroup(context, params),
+    api: {
+      getMentionMenuGroup: (params: MentionMenuParams) => buildBlocksuiteMentionMenuGroup(context, params),
+    },
   };
 }
