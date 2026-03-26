@@ -47,14 +47,14 @@ new BlockStdScope({
   负责创建 editor web component，并把 extension 装进 editor
 - `services/`
   负责业务数据访问与业务服务桥接
-- `frame/`
+- Blocksuite 根层 frame 链路源码
   负责 iframe 宿主协议、启动链路和运行时编排
 
 ## 3. 当前 editor 装配调用链
 
 当前正式调用链是：
 
-- [useBlocksuiteEditorLifecycle.ts](../../frame/useBlocksuiteEditorLifecycle.ts)
+- [useBlocksuiteEditorLifecycle.ts](../../useBlocksuiteEditorLifecycle.ts)
   -> [runtimeLoader.browser.ts](../../runtime/runtimeLoader.browser.ts)
   -> [createBlocksuiteEditor.browser.ts](../../editors/createBlocksuiteEditor.browser.ts)
   -> [createBlocksuiteEditor.client.ts](../../editors/createBlocksuiteEditor.client.ts)

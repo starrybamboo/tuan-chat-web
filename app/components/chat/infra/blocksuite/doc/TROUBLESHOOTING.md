@@ -105,7 +105,7 @@ Slash menu 不是 paragraph block “自动就有”的功能，它属于 **widg
 
 对应文件：
 - `app/routes/blocksuiteFrame.tsx`
-- `app/components/chat/infra/blocksuite/frame/BlocksuiteRouteFrameClient.tsx`
+- `app/components/chat/infra/blocksuite/BlocksuiteRouteFrameClient.tsx`
 - `app/components/chat/infra/blocksuite/bootstrap/browser.ts`
 
 ### 3.1.2 修复方式

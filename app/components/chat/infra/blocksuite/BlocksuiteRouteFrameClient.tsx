@@ -1,9 +1,9 @@
 import type { DocMode } from "@blocksuite/affine/model";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ensureBlocksuiteBrowserRuntime } from "../bootstrap/browser";
-import { isBlocksuiteDebugEnabled } from "../shared/debugFlags";
-import { failBlocksuiteOpenSession, markBlocksuiteOpenSession } from "../shared/perf";
 import { BlocksuiteDescriptionEditorRuntime } from "./BlocksuiteDescriptionEditorRuntime.browser";
+import { ensureBlocksuiteBrowserRuntime } from "./bootstrap/browser";
+import { isBlocksuiteDebugEnabled } from "./shared/debugFlags";
+import { failBlocksuiteOpenSession, markBlocksuiteOpenSession } from "./shared/perf";
 
 /**
  * `/blocksuite-frame` 路由真正加载出来的浏览器子图入口。

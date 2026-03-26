@@ -86,7 +86,7 @@ flowchart TD
 
 真实调用链固定是：
 
-- [useBlocksuiteEditorLifecycle.ts](../../frame/useBlocksuiteEditorLifecycle.ts)
+- [useBlocksuiteEditorLifecycle.ts](../../useBlocksuiteEditorLifecycle.ts)
   -> [runtimeLoader.browser.ts](../../runtime/runtimeLoader.browser.ts)
   -> `runtime.createBlocksuiteEditor(...)`
   -> [createBlocksuiteEditor.browser.ts](../../editors/createBlocksuiteEditor.browser.ts)
