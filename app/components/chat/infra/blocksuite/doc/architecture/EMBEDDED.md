@@ -6,30 +6,27 @@
 
 ## 目标
 
-服务于非 iframe 的嵌入式编辑器集成。
+承接文档内部 embed block 的项目扩展，而不是顶层 description editor 宿主。
 
 ## 当前文件
 
-- [createEmbeddedAffineEditor.client.ts](../../embedded/createEmbeddedAffineEditor.client.ts)
 - [embedIframeNoCredentiallessElements.ts](../../embedded/embedIframeNoCredentiallessElements.ts)
 - [embedIframeNoCredentiallessViewOverride.ts](../../embedded/embedIframeNoCredentiallessViewOverride.ts)
-- [mockServices.ts](../../embedded/mockServices.ts)
 - [roomMapEmbedOption.ts](../../embedded/roomMapEmbedOption.ts)
-- [tcAffineEditorContainer.ts](../../embedded/tcAffineEditorContainer.ts)
 
 ## 负责的事
 
-- 创建嵌入式 editor container
-- 注入 quick search、用户服务、linked-doc 等业务扩展
-- 处理 embed iframe 的兼容行为
+- 处理文档内部 iframe/embed block 的渲染兼容行为
+- 扩展 room map embed 选项
+- 为 editor 装配层提供 embed 相关 extension
 
 ## 不负责的事
 
-- 不处理 `/blocksuite-frame` 路由
-- 不承担 iframe 内高度协议
+- 不负责顶层 editor DOM 创建
+- 不负责 `/blocksuite-frame` 路由
+- 不负责宿主侧 iframe host
 
 ## 与其他目录的关系
 
-- 依赖 [createBlocksuiteEditor.browser.ts](../../editors/createBlocksuiteEditor.browser.ts) 创建 editor
-- 依赖 [quickSearchService.ts](../../services/quickSearchService.ts) 与 [tuanChatUserService.ts](../../services/tuanChatUserService.ts) 提供业务服务
+- 被 [createBlocksuiteEditor.client.ts](../../editors/createBlocksuiteEditor.client.ts) 组装进最终 editor
 - 依赖 [spec/](../../spec) 注册扩展元素

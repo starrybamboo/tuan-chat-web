@@ -41,6 +41,15 @@
 - [useBlocksuiteViewportBehavior.ts](../../frame/useBlocksuiteViewportBehavior.ts)：viewport、全屏、页面溢出控制
 - [BlocksuiteTcHeader.tsx](../../frame/BlocksuiteTcHeader.tsx)：标题、封面、模式按钮、云端覆盖 UI
 
+## editor 调用链
+
+- [BlocksuiteRouteFrameClient.tsx](../../frame/BlocksuiteRouteFrameClient.tsx)
+  -> [BlocksuiteDescriptionEditorRuntime.browser.tsx](../../frame/BlocksuiteDescriptionEditorRuntime.browser.tsx)
+  -> [useBlocksuiteEditorLifecycle.ts](../../frame/useBlocksuiteEditorLifecycle.ts)
+  -> [createBlocksuiteEditor.browser.ts](../../editors/createBlocksuiteEditor.browser.ts)
+  -> [createBlocksuiteEditor.client.ts](../../editors/createBlocksuiteEditor.client.ts)
+  -> [tcAffineEditorContainer.ts](../../editors/tcAffineEditorContainer.ts)
+
 ## 维护约束
 
 - iframe 协议字段变更时，必须同步检查宿主侧 [blocksuiteDescriptionEditor.tsx](../../../../shared/components/BlockSuite/blocksuiteDescriptionEditor.tsx)

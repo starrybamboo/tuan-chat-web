@@ -30,5 +30,5 @@
 ## 典型调用方
 
 - [useBlocksuiteEditorLifecycle.ts](../../frame/useBlocksuiteEditorLifecycle.ts)
-- [createEmbeddedAffineEditor.client.ts](../../embedded/createEmbeddedAffineEditor.client.ts)
+- [createBlocksuiteEditor.client.ts](../../editors/createBlocksuiteEditor.client.ts)
 - [spaceWorkspaceRegistry.ts](../../space/spaceWorkspaceRegistry.ts)

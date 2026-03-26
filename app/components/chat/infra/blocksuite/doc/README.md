@@ -32,7 +32,20 @@
 > 备注：目前 store 初始化时会创建一个最小的 Affine-like block tree：
 > `affine:page -> (affine:surface, affine:note -> affine:paragraph)`
 
-### 2.3 Workspace/Doc/Store 运行时（Infra）
+### 2.3 Runtime 与 Editor 调用链
+
+- [useBlocksuiteEditorLifecycle.ts](../frame/useBlocksuiteEditorLifecycle.ts)
+  -> [runtimeLoader.browser.ts](../runtime/runtimeLoader.browser.ts)
+  -> [createBlocksuiteEditor.browser.ts](../editors/createBlocksuiteEditor.browser.ts)
+  -> [createBlocksuiteEditor.client.ts](../editors/createBlocksuiteEditor.client.ts)
+  -> [tcAffineEditorContainer.ts](../editors/tcAffineEditorContainer.ts)
+
+分层上：
+- `runtime/` 负责 workspace、doc source、同步与 loader
+- `editors/` 负责真正的 editor DOM 装配
+- `embedded/` 只负责文档内部 embed block 扩展
+
+### 2.4 Workspace/Doc/Store 运行时（Infra）
 
 - app/components/chat/infra/blocksuite/space/spaceWorkspaceRegistry.ts
   - Space -> Workspace 映射（Demo：workspaceId=`space:${spaceId}`）
