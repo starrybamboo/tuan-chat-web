@@ -10,6 +10,7 @@
 - 业务语义：看 [BUSINESS.md](./BUSINESS.md)
 - 内部数据结构：看 [INTERNAL-DATA.md](./INTERNAL-DATA.md)
 - 排障：看 [TROUBLESHOOTING.md](./TROUBLESHOOTING.md)
+- iframe 深入链路：看 [FRAME-DEEP-DIVE.md](./FRAME-DEEP-DIVE.md)
 
 ## 子目录架构文档索引
 
@@ -153,6 +154,7 @@ Blocksuite 目录内的测试收口目录。
 - [LEARNING-PATH.md](./LEARNING-PATH.md)：学习路线与代码阅读顺序
 - [README.md](./README.md)：Blocksuite 文档总入口
 - [TROUBLESHOOTING.md](./TROUBLESHOOTING.md)：常见问题与排查入口
+- [FRAME-DEEP-DIVE.md](./FRAME-DEEP-DIVE.md)：`frame/` 深度链路说明
 - [architecture/ROOT.md](./architecture/ROOT.md)：根目录共享基础件架构
 - [architecture/DESCRIPTION.md](./architecture/DESCRIPTION.md)：`description/` 架构
 - [architecture/DOCS.md](./architecture/DOCS.md)：`doc/` 架构
