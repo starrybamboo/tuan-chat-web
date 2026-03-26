@@ -243,11 +243,13 @@ const merged = mergeBlocksuiteExtensionBundles(
 ### Quick Search
 
 - [buildBlocksuiteQuickSearchExtension.ts](../../editors/extensions/buildBlocksuiteQuickSearchExtension.ts)
+- [blocksuiteQuickSearchPicker.ts](../../editors/extensions/blocksuiteQuickSearchPicker.ts)
 
 负责：
 
 - quick search extension 接入
-- 调用 [quickSearchService.ts](../../services/quickSearchService.ts) 完成 picker 交互
+- `service` 适配层在 [quickSearchService.ts](../../services/quickSearchService.ts)
+- picker DOM 控制器放在 extension 目录内部，不再留在 `services/`
 
 ### Mention
 

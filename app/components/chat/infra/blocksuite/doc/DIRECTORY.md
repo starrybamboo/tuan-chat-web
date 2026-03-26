@@ -201,6 +201,7 @@ frame 专题文档目录。
 - [tcAffineEditorContainer.ts](../editors/tcAffineEditorContainer.ts)：项目自定义 editor container 元素
 - [extensions/types.ts](../editors/extensions/types.ts)：extension bundle 协议与合并函数
 - [extensions/blocksuiteEditorTitle.ts](../editors/extensions/blocksuiteEditorTitle.ts)：标题读取与 meta 同步辅助
+- [extensions/blocksuiteQuickSearchPicker.ts](../editors/extensions/blocksuiteQuickSearchPicker.ts)：quick search picker 的 DOM 控制器实现
 - [extensions/buildBlocksuiteCoreEditorExtensions.ts](../editors/extensions/buildBlocksuiteCoreEditorExtensions.ts)：core 扩展 builder
 - [extensions/buildBlocksuiteQuickSearchExtension.ts](../editors/extensions/buildBlocksuiteQuickSearchExtension.ts)：quick search 扩展 builder
 - [extensions/buildBlocksuiteEmbedExtensions.ts](../editors/extensions/buildBlocksuiteEmbedExtensions.ts)：embed 相关扩展 builder
@@ -238,7 +239,7 @@ frame 专题文档目录。
 
 ### [services/](../services)
 
-- [quickSearchService.ts](../services/quickSearchService.ts)：文档 quick search service
+- [quickSearchService.ts](../services/quickSearchService.ts)：quick search service 接口与适配层
 - [tuanChatUserService.ts](../services/tuanChatUserService.ts)：TuanChat 用户服务桥接
 
 ### [space/](../space)

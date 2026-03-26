@@ -55,7 +55,7 @@ function createTestContext(overrides: Record<string, unknown> = {}) {
         removed: false,
       })),
     },
-    quickSearchOverlay: {
+    quickSearchService: {
       searchDoc: vi.fn(),
       dispose: vi.fn(),
     },
@@ -295,13 +295,13 @@ describe("blocksuiteEditorBuilders", () => {
     expect(service).toBeDefined();
     const openQuickSearch = service!.openQuickSearch;
 
-    context.quickSearchOverlay.searchDoc.mockResolvedValueOnce({ docId: "doc-1", isNewDoc: false });
+    context.quickSearchService.searchDoc.mockResolvedValueOnce({ docId: "doc-1", isNewDoc: false });
     await expect(openQuickSearch()).resolves.toEqual({ docId: "doc-1" });
 
-    context.quickSearchOverlay.searchDoc.mockResolvedValueOnce({ userInput: "https://example.com" });
+    context.quickSearchService.searchDoc.mockResolvedValueOnce({ userInput: "https://example.com" });
     await expect(openQuickSearch()).resolves.toEqual({ externalUrl: "https://example.com" });
 
-    context.quickSearchOverlay.searchDoc.mockResolvedValueOnce(null);
+    context.quickSearchService.searchDoc.mockResolvedValueOnce(null);
     await expect(openQuickSearch()).resolves.toBeNull();
   });
 

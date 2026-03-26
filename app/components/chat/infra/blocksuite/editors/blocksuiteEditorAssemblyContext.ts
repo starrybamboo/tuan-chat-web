@@ -1,6 +1,7 @@
 import { isBlocksuiteDebugEnabled } from "../debugFlags";
 import { createBlocksuiteQuickSearchService } from "../services/quickSearchService";
 import { createTuanChatUserService } from "../services/tuanChatUserService";
+import { createBlocksuiteQuickSearchPicker } from "./extensions/blocksuiteQuickSearchPicker";
 
 export type WorkspaceLike = {
   getDoc: (docId: string) => { getStore: (options?: { readonly?: boolean }) => unknown; loaded?: boolean; load?: () => void } | null;
@@ -29,7 +30,7 @@ export type BlocksuiteEditorAssemblyContext = {
   spaceId?: number;
   onNavigateToDoc?: CreateBlocksuiteEditorParams["onNavigateToDoc"];
   userService: ReturnType<typeof createTuanChatUserService>;
-  quickSearchOverlay: ReturnType<typeof createBlocksuiteQuickSearchService>;
+  quickSearchService: ReturnType<typeof createBlocksuiteQuickSearchService>;
   disposers: EditorDisposer[];
   titleCache: Map<string, { at: number; title: string }>;
   titleInflight: Map<string, Promise<string>>;
@@ -42,6 +43,9 @@ export type BlocksuiteEditorAssemblyContext = {
 
 export function createBlocksuiteEditorAssemblyContext(params: CreateBlocksuiteEditorParams): BlocksuiteEditorAssemblyContext {
   const storeAny = params.store as any;
+  const quickSearchPicker = createBlocksuiteQuickSearchPicker({
+    meta: ((params.workspace as any)?.meta ?? storeAny?.doc?.workspace?.meta) as any,
+  });
 
   return {
     store: params.store,
@@ -51,8 +55,9 @@ export function createBlocksuiteEditorAssemblyContext(params: CreateBlocksuiteEd
     spaceId: params.spaceId,
     onNavigateToDoc: params.onNavigateToDoc,
     userService: createTuanChatUserService(),
-    quickSearchOverlay: createBlocksuiteQuickSearchService({
-      meta: ((params.workspace as any)?.meta ?? storeAny?.doc?.workspace?.meta) as any,
+    quickSearchService: createBlocksuiteQuickSearchService({
+      searchDoc: quickSearchPicker.searchDoc,
+      dispose: quickSearchPicker.dispose,
     }),
     disposers: [],
     titleCache: new Map(),
@@ -75,7 +80,7 @@ export function addBlocksuiteEditorDisposer(
 }
 
 export function disposeBlocksuiteEditorAssemblyContext(context: BlocksuiteEditorAssemblyContext) {
-  context.quickSearchOverlay.dispose();
+  context.quickSearchService.dispose();
 
   for (let i = context.disposers.length - 1; i >= 0; i -= 1) {
     try {
