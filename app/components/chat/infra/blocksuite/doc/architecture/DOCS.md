@@ -16,11 +16,15 @@
 - [INTERNAL-DATA.md](../INTERNAL-DATA.md)：内部数据结构
 - [LEARNING-PATH.md](../LEARNING-PATH.md)：学习路线
 - [TROUBLESHOOTING.md](../TROUBLESHOOTING.md)：排障指南
-- [BOUNDARY-UPDATE.md](../BOUNDARY-UPDATE.md)：边界更新说明
+- [editor/](../editor)：editor 专题文档
+- [frame/](../frame)：frame 专题文档
+- [records/](../records)：历史记录
 - [architecture/](./)：子目录架构文档
 
 ## 维护约束
 
 - 文档目录不放运行时代码
-- 新增子域说明时，优先补到 `architecture/`
+- `architecture/` 只放目录边界文档，不放专题深挖
+- editor、frame 这类专题说明优先放到对应子目录
+- 记录/阶段性治理文档优先放到 `records/`
 - 目录变更后，先更新 [DIRECTORY.md](../DIRECTORY.md)

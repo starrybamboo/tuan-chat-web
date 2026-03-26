@@ -6,7 +6,7 @@
 
 不在本文档展开：
 
-- iframe 宿主与 `postMessage`：看 [FRAME-DEEP-DIVE.md](../FRAME-DEEP-DIVE.md)
+- iframe 宿主与 `postMessage`：看 [../frame/DEEP-DIVE.md](../frame/DEEP-DIVE.md)
 - 业务文档语义：看 [BUSINESS.md](../BUSINESS.md)
 - 运行时与远端 snapshot：看 [architecture/RUNTIME.md](../architecture/RUNTIME.md)
 

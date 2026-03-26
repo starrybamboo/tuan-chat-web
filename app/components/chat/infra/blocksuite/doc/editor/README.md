@@ -12,8 +12,9 @@
 阅读顺序：
 
 1. [ARCHITECTURE.md](./ARCHITECTURE.md)
-2. [MOUNTING.md](./MOUNTING.md)
-3. [PLUGINS.md](./PLUGINS.md)
+2. [INTEGRATION.md](./INTEGRATION.md)
+3. [MOUNTING.md](./MOUNTING.md)
+4. [PLUGINS.md](./PLUGINS.md)
 
 源码入口：
 

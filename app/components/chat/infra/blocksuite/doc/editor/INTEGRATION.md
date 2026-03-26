@@ -19,7 +19,7 @@
 
 在本仓库里，上游能力最终会被送进：
 
-- [tcAffineEditorContainer.ts](../editors/tcAffineEditorContainer.ts)
+- [tcAffineEditorContainer.ts](../../editors/tcAffineEditorContainer.ts)
 
 关键调用是：
 
@@ -54,23 +54,23 @@ new BlockStdScope({
 
 当前正式调用链是：
 
-- [useBlocksuiteEditorLifecycle.ts](../frame/useBlocksuiteEditorLifecycle.ts)
-  -> [runtimeLoader.browser.ts](../runtime/runtimeLoader.browser.ts)
-  -> [createBlocksuiteEditor.browser.ts](../editors/createBlocksuiteEditor.browser.ts)
-  -> [createBlocksuiteEditor.client.ts](../editors/createBlocksuiteEditor.client.ts)
-  -> [tcAffineEditorContainer.ts](../editors/tcAffineEditorContainer.ts)
+- [useBlocksuiteEditorLifecycle.ts](../../frame/useBlocksuiteEditorLifecycle.ts)
+  -> [runtimeLoader.browser.ts](../../runtime/runtimeLoader.browser.ts)
+  -> [createBlocksuiteEditor.browser.ts](../../editors/createBlocksuiteEditor.browser.ts)
+  -> [createBlocksuiteEditor.client.ts](../../editors/createBlocksuiteEditor.client.ts)
+  -> [tcAffineEditorContainer.ts](../../editors/tcAffineEditorContainer.ts)
 
 其中：
 
-- [createBlocksuiteEditor.client.ts](../editors/createBlocksuiteEditor.client.ts)
+- [createBlocksuiteEditor.client.ts](../../editors/createBlocksuiteEditor.client.ts)
   只负责 orchestration
 - 真正的业务能力装配，已经收口到：
-  - [extensions/](../editors/extensions)
+  - [extensions/](../../editors/extensions)
 - 更完整的 editor 专区文档看：
-  - [editor/README.md](./editor/README.md)
-  - [editor/ARCHITECTURE.md](./editor/ARCHITECTURE.md)
-  - [editor/PLUGINS.md](./editor/PLUGINS.md)
-  - [editor/MOUNTING.md](./editor/MOUNTING.md)
+  - [README.md](./README.md)
+  - [ARCHITECTURE.md](./ARCHITECTURE.md)
+  - [PLUGINS.md](./PLUGINS.md)
+  - [MOUNTING.md](./MOUNTING.md)
 
 ## 4. extension 是怎么接进 editor 的
 
@@ -80,18 +80,18 @@ new BlockStdScope({
 
 1. 在 `editors/extensions/` 里创建 builder
 2. builder 返回 `BlocksuiteExtensionBundle`
-3. [createBlocksuiteEditor.client.ts](../editors/createBlocksuiteEditor.client.ts) 调用多个 builder
+3. [createBlocksuiteEditor.client.ts](../../editors/createBlocksuiteEditor.client.ts) 调用多个 builder
 4. 用 `mergeBlocksuiteExtensionBundles(...)` 合并
 5. 把合并后的结果挂到：
    - `editor.pageSpecs`
    - `editor.edgelessSpecs`
-6. [tcAffineEditorContainer.ts](../editors/tcAffineEditorContainer.ts) 内部把这些 specs 交给 `BlockStdScope`
+6. [tcAffineEditorContainer.ts](../../editors/tcAffineEditorContainer.ts) 内部把这些 specs 交给 `BlockStdScope`
 
 ## 5. 统一的插件协议
 
 现在 `extensions/` 层统一使用：
 
-- [types.ts](../editors/extensions/types.ts)
+- [types.ts](../../editors/extensions/types.ts)
 
 核心类型是：
 
@@ -122,14 +122,14 @@ type BlocksuiteExtensionBundle<TApi = undefined> = {
 
 当前例子：
 
-- [buildBlocksuiteMentionExtensions.ts](../editors/extensions/buildBlocksuiteMentionExtensions.ts)
+- [buildBlocksuiteMentionExtensions.ts](../../editors/extensions/buildBlocksuiteMentionExtensions.ts)
   通过 `api.getMentionMenuGroup` 暴露 mention 菜单能力
-- [buildBlocksuiteLinkedDocExtensions.ts](../editors/extensions/buildBlocksuiteLinkedDocExtensions.ts)
+- [buildBlocksuiteLinkedDocExtensions.ts](../../editors/extensions/buildBlocksuiteLinkedDocExtensions.ts)
   再把这个能力接进 linked-doc 菜单系统
 
 ## 6. 目录职责
 
-### [editors/](../editors)
+### [editors/](../../editors)
 
 只放 editor 装配核心：
 
@@ -139,7 +139,7 @@ type BlocksuiteExtensionBundle<TApi = undefined> = {
 - web component 容器
 - 最小宿主 mock service
 
-### [editors/extensions/](../editors/extensions)
+### [editors/extensions/](../../editors/extensions)
 
 只放业务扩展装配逻辑：
 
@@ -150,7 +150,7 @@ type BlocksuiteExtensionBundle<TApi = undefined> = {
 - 标题读取 / meta 同步等和 extension 强关联的辅助模块
 - bundle 类型
 
-### [services/](../services)
+### [services/](../../services)
 
 只放业务服务与数据访问，不直接装 editor。
 
@@ -167,7 +167,7 @@ type BlocksuiteExtensionBundle<TApi = undefined> = {
 
 如果插件需要请求业务数据，先在：
 
-- [services/](../services)
+- [services/](../../services)
 
 里新增 service / helper。
 
@@ -221,7 +221,7 @@ const merged = mergeBlocksuiteExtensionBundles(
 
 测试放在：
 
-- [test/](../test)
+- [test/](../../test)
 
 优先补 builder 级测试，而不是直接依赖真实 DOM。
 
@@ -229,7 +229,7 @@ const merged = mergeBlocksuiteExtensionBundles(
 
 ### Core
 
-- [buildBlocksuiteCoreEditorExtensions.ts](../editors/extensions/buildBlocksuiteCoreEditorExtensions.ts)
+- [buildBlocksuiteCoreEditorExtensions.ts](../../editors/extensions/buildBlocksuiteCoreEditorExtensions.ts)
 
 负责：
 
@@ -242,7 +242,7 @@ const merged = mergeBlocksuiteExtensionBundles(
 
 ### Mention
 
-- [buildBlocksuiteMentionExtensions.ts](../editors/extensions/buildBlocksuiteMentionExtensions.ts)
+- [buildBlocksuiteMentionExtensions.ts](../../editors/extensions/buildBlocksuiteMentionExtensions.ts)
 
 负责：
 
@@ -253,7 +253,7 @@ const merged = mergeBlocksuiteExtensionBundles(
 
 ### Linked Doc
 
-- [buildBlocksuiteLinkedDocExtensions.ts](../editors/extensions/buildBlocksuiteLinkedDocExtensions.ts)
+- [buildBlocksuiteLinkedDocExtensions.ts](../../editors/extensions/buildBlocksuiteLinkedDocExtensions.ts)
 
 负责：
 
@@ -264,7 +264,7 @@ const merged = mergeBlocksuiteExtensionBundles(
 
 ### Embed
 
-- [buildBlocksuiteEmbedExtensions.ts](../editors/extensions/buildBlocksuiteEmbedExtensions.ts)
+- [buildBlocksuiteEmbedExtensions.ts](../../editors/extensions/buildBlocksuiteEmbedExtensions.ts)
 
 负责：
 
@@ -281,8 +281,8 @@ const merged = mergeBlocksuiteExtensionBundles(
 
 ## 10. 推荐阅读顺序
 
-1. [architecture/EDITORS.md](./architecture/EDITORS.md)
-2. [FRAME-DEEP-DIVE.md](./FRAME-DEEP-DIVE.md)
-3. [createBlocksuiteEditor.client.ts](../editors/createBlocksuiteEditor.client.ts)
-4. [extensions/types.ts](../editors/extensions/types.ts)
+1. [../architecture/EDITORS.md](../architecture/EDITORS.md)
+2. [../frame/DEEP-DIVE.md](../frame/DEEP-DIVE.md)
+3. [createBlocksuiteEditor.client.ts](../../editors/createBlocksuiteEditor.client.ts)
+4. [extensions/types.ts](../../editors/extensions/types.ts)
 5. 具体 builder 文件
