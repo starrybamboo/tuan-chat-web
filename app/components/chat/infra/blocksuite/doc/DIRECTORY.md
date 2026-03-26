@@ -201,7 +201,8 @@ frame 专题文档目录。
 - [tcAffineEditorContainer.ts](../editors/tcAffineEditorContainer.ts)：项目自定义 editor container 元素
 - [extensions/types.ts](../editors/extensions/types.ts)：extension bundle 协议与合并函数
 - [extensions/blocksuiteEditorTitle.ts](../editors/extensions/blocksuiteEditorTitle.ts)：标题读取与 meta 同步辅助
-- [extensions/buildBlocksuiteCoreEditorExtensions.ts](../editors/extensions/buildBlocksuiteCoreEditorExtensions.ts)：core 扩展与 quick search builder
+- [extensions/buildBlocksuiteCoreEditorExtensions.ts](../editors/extensions/buildBlocksuiteCoreEditorExtensions.ts)：core 扩展 builder
+- [extensions/buildBlocksuiteQuickSearchExtension.ts](../editors/extensions/buildBlocksuiteQuickSearchExtension.ts)：quick search 扩展 builder
 - [extensions/buildBlocksuiteEmbedExtensions.ts](../editors/extensions/buildBlocksuiteEmbedExtensions.ts)：embed 相关扩展 builder
 - [extensions/buildBlocksuiteLinkedDocExtensions.ts](../editors/extensions/buildBlocksuiteLinkedDocExtensions.ts)：linked-doc 相关扩展 builder
 - [extensions/buildBlocksuiteMentionExtensions.ts](../editors/extensions/buildBlocksuiteMentionExtensions.ts)：mention 相关扩展 builder

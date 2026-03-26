@@ -144,6 +144,7 @@ type BlocksuiteExtensionBundle<TApi = undefined> = {
 只放业务扩展装配逻辑：
 
 - core extension builder
+- quick search extension builder
 - mention extension builder
 - linked-doc extension builder
 - embed extension builder
@@ -237,8 +238,16 @@ const merged = mergeBlocksuiteExtensionBundles(
 - link preview provider override
 - editor setting
 - parse doc url
-- quick search
 - doc title 过滤
+
+### Quick Search
+
+- [buildBlocksuiteQuickSearchExtension.ts](../../editors/extensions/buildBlocksuiteQuickSearchExtension.ts)
+
+负责：
+
+- quick search extension 接入
+- 调用 [quickSearchService.ts](../../services/quickSearchService.ts) 完成 picker 交互
 
 ### Mention
 
