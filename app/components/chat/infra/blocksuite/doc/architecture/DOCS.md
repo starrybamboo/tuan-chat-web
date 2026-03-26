@@ -11,6 +11,7 @@
 ## 当前文档
 
 - [README.md](../README.md)：总入口
+- [ARCHITECTURE-OVERVIEW.md](../ARCHITECTURE-OVERVIEW.md)：分层架构图与依赖图
 - [DIRECTORY.md](../DIRECTORY.md)：目录字典与索引
 - [BUSINESS.md](../BUSINESS.md)：业务语义
 - [INTERNAL-DATA.md](../INTERNAL-DATA.md)：内部数据结构

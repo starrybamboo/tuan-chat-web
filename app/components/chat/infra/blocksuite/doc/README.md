@@ -1,9 +1,10 @@
 # Blocksuite 文档系统（tuan-chat-web）
 
-本文档说明 `app/components/chat/infra/blocksuite` 目录下的 Blocksuite 集成：依赖职责、目录结构、以及 Demo 阶段（仅本地存储）的实现边界。
+本文档说明 `app/components/chat/infra/blocksuite` 目录下的 Blocksuite 集成：依赖职责、目录结构、运行时分层，以及当前实现边界。
 
 必读（需求口径与概念对齐）：
 - 业务需求说明（后续需求变更都更新这里）：`BUSINESS.md`
+- 架构总览与依赖图：`ARCHITECTURE-OVERVIEW.md`
 - editor 专区入口：`editor/README.md`
 - 业务能力如何接入 editor：`editor/INTEGRATION.md`
 - frame 专区入口：`frame/README.md`
@@ -44,6 +45,7 @@
   -> [tcAffineEditorContainer.ts](../editors/tcAffineEditorContainer.ts)
 
 分层上：
+- Blocksuite 根层承载 frame 接入链路源码
 - `runtime/` 只负责浏览器侧 runtime loader
 - `space/runtime/` 负责 SpaceWorkspace、远端 source 与 ws 同步
 - `editors/` 负责真正的 editor DOM 装配
@@ -68,7 +70,7 @@
 - app/components/chat/infra/blocksuite/mention/
   - mention 专用宿主 UI：mentionProfilePopover
 
-## 3. 存储与协作能力（Demo 阶段）
+## 3. 存储与协作能力
 
 - 存储：当前已经包含本地 IndexedDB 与 description 远端 snapshot / updates 组合路径
 - 协作：完整的多用户实时协作仍不是本文档承诺范围；现有远端链路主要用于文档冷启动、同步与恢复
@@ -106,6 +108,7 @@ Blocksuite/AFFiNE 某些包会通过 exports 暴露 TS 源码，严格模式下 
 ## 6. 当前实现备注
 
 - iframe 方案的详细链路不再写在本文件里，统一看：
+  - [ARCHITECTURE-OVERVIEW.md](./ARCHITECTURE-OVERVIEW.md)
   - [architecture/FRAME.md](./architecture/FRAME.md)
   - [frame/DEEP-DIVE.md](./frame/DEEP-DIVE.md)
 - editor 装配、插件和挂载链路统一看：
