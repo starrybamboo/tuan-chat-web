@@ -120,7 +120,7 @@ Blocksuite/AFFiNE 某些包会通过 exports 暴露 TS 源码，严格模式下 
 - 历史记录与阶段性治理，统一看：
   - [records/README.md](./records/README.md)
   - [records/BOUNDARY-UPDATE.md](./records/BOUNDARY-UPDATE.md)
-  - [records/EDITOR-UPDATES.md](./records/EDITOR-UPDATES.md)
+  - [records/MAIN-COMPARISON.md](./records/MAIN-COMPARISON.md)
 - 目录职责与路径索引统一看：
   - [DIRECTORY.md](./DIRECTORY.md)
 

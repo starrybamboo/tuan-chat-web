@@ -98,12 +98,12 @@
 
 相对 `dev`，以下旧链路已经不再是主路径：
 
-- [`/Users/chxr/Projects/tuan-chat-web/app/components/chat/infra/blocksuite/bootstrap/runtime.ts`](/Users/chxr/Projects/tuan-chat-web/app/components/chat/infra/blocksuite/bootstrap/runtime.ts)
-- [`/Users/chxr/Projects/tuan-chat-web/app/components/chat/infra/blocksuite/spec/coreElements.ts`](/Users/chxr/Projects/tuan-chat-web/app/components/chat/infra/blocksuite/spec/coreElements.ts)
-- [`/Users/chxr/Projects/tuan-chat-web/app/components/chat/infra/blocksuite/styles/ensureBlocksuiteRuntimeStyles.ts`](/Users/chxr/Projects/tuan-chat-web/app/components/chat/infra/blocksuite/styles/ensureBlocksuiteRuntimeStyles.ts)
-- [`/Users/chxr/Projects/tuan-chat-web/app/components/chat/infra/blocksuite/runtime/runtimeLoader.ts`](/Users/chxr/Projects/tuan-chat-web/app/components/chat/infra/blocksuite/runtime/runtimeLoader.ts)
-- [`/Users/chxr/Projects/tuan-chat-web/app/components/chat/infra/blocksuite/editors/createBlocksuiteEditor.ts`](/Users/chxr/Projects/tuan-chat-web/app/components/chat/infra/blocksuite/editors/createBlocksuiteEditor.ts)
-- [`/Users/chxr/Projects/tuan-chat-web/app/components/chat/infra/blocksuite/docOpenIntentPrewarm.ts`](/Users/chxr/Projects/tuan-chat-web/app/components/chat/infra/blocksuite/docOpenIntentPrewarm.ts)
+- `app/components/chat/infra/blocksuite/bootstrap/runtime.ts`
+- `app/components/chat/infra/blocksuite/spec/coreElements.ts`
+- `app/components/chat/infra/blocksuite/styles/ensureBlocksuiteRuntimeStyles.ts`
+- `app/components/chat/infra/blocksuite/runtime/runtimeLoader.ts`
+- `app/components/chat/infra/blocksuite/editors/createBlocksuiteEditor.ts`
+- `app/components/chat/infra/blocksuite/docOpenIntentPrewarm.ts`
 
 这些文件代表的是旧方案：
 
