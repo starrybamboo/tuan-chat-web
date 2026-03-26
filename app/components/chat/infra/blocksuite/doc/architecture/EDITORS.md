@@ -16,10 +16,11 @@
 - [mockServices.ts](../../editors/mockServices.ts)
 - [tcAffineEditorContainer.ts](../../editors/tcAffineEditorContainer.ts)
 - [extensions/types.ts](../../editors/extensions/types.ts)
+- [extensions/embed/](../../editors/extensions/embed)
 - [extensions/buildBlocksuiteCoreEditorExtensions.ts](../../editors/extensions/buildBlocksuiteCoreEditorExtensions.ts)
 - [extensions/buildBlocksuiteMentionExtensions.ts](../../editors/extensions/buildBlocksuiteMentionExtensions.ts)
 - [extensions/buildBlocksuiteLinkedDocExtensions.ts](../../editors/extensions/buildBlocksuiteLinkedDocExtensions.ts)
-- [extensions/buildBlocksuiteEmbedExtensions.ts](../../editors/extensions/buildBlocksuiteEmbedExtensions.ts)
+- [extensions/embed/buildBlocksuiteEmbedExtensions.ts](../../editors/extensions/embed/buildBlocksuiteEmbedExtensions.ts)
 
 ## 调用链
 
@@ -48,7 +49,7 @@
 
 - 依赖 [manager/](../../manager) 提供 page / edgeless specs
 - 依赖 [services/](../../services) 提供业务服务
-- 依赖 [embedded/](../../embedded) 提供文档内部 embed block 扩展
+- embed block 扩展实现已经并入 [extensions/embed/](../../editors/extensions/embed)
 - editor 专区入口看 [editor/README.md](../editor/README.md)
 - 业务能力接入说明看 [editor/INTEGRATION.md](../editor/INTEGRATION.md)
 - 插件新增方法统一看 [editor/PLUGINS.md](../editor/PLUGINS.md)

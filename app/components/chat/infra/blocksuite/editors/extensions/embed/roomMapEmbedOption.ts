@@ -2,7 +2,7 @@ import { EmbedOptionProvider } from "@blocksuite/affine-shared/services";
 import { EmbedIframeStyles } from "@blocksuite/affine/model";
 import { EditorLifeCycleExtension } from "@blocksuite/std";
 
-import { ROOM_MAP_URL_REGEX } from "../spec/roomMapEmbedConfig";
+import { ROOM_MAP_URL_REGEX } from "../../../spec/roomMapEmbedConfig";
 
 const ROOM_MAP_EMBED_OPTIONS = {
   flavour: "affine:embed-iframe",

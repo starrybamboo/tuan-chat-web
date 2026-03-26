@@ -16,7 +16,7 @@
 - [buildBlocksuiteQuickSearchExtension.ts](../../editors/extensions/buildBlocksuiteQuickSearchExtension.ts)
 - [buildBlocksuiteMentionExtensions.ts](../../editors/extensions/buildBlocksuiteMentionExtensions.ts)
 - [buildBlocksuiteLinkedDocExtensions.ts](../../editors/extensions/buildBlocksuiteLinkedDocExtensions.ts)
-- [buildBlocksuiteEmbedExtensions.ts](../../editors/extensions/buildBlocksuiteEmbedExtensions.ts)
+- [buildBlocksuiteEmbedExtensions.ts](../../editors/extensions/embed/buildBlocksuiteEmbedExtensions.ts)
 
 ## 插件如何工作
 
@@ -200,7 +200,7 @@ const merged = mergeBlocksuiteExtensionBundles(
 
 ### Embed
 
-[buildBlocksuiteEmbedExtensions.ts](../../editors/extensions/buildBlocksuiteEmbedExtensions.ts)
+[buildBlocksuiteEmbedExtensions.ts](../../editors/extensions/embed/buildBlocksuiteEmbedExtensions.ts)
 
 负责：
 

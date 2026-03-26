@@ -47,7 +47,7 @@
 - `runtime/` 负责 workspace、doc source、同步与 loader
 - `editors/` 负责真正的 editor DOM 装配
 - `editors/extensions/` 负责 business extension builder 与统一 bundle 协议
-- `embedded/` 只负责文档内部 embed block 扩展
+- embed block 相关实现已经并入 `editors/extensions/embed/`
 
 ### 2.4 Workspace/Doc/Store 运行时（Infra）
 

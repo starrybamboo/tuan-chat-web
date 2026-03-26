@@ -23,7 +23,6 @@
 - `description/`：[DESCRIPTION.md](./architecture/DESCRIPTION.md)
 - `doc/`：[DOCS.md](./architecture/DOCS.md)
 - `editors/`：[EDITORS.md](./architecture/EDITORS.md)
-- `embedded/`：[EMBEDDED.md](./architecture/EMBEDDED.md)
 - `frame/`：[FRAME.md](./architecture/FRAME.md)
 - `manager/`：[MANAGER.md](./architecture/MANAGER.md)
 - `runtime/`：[RUNTIME.md](./architecture/RUNTIME.md)
@@ -77,12 +76,6 @@ Description 类文档的标识、远端快照和本地 updates 存储层。
 editor 装配层，把 runtime 提供的 `store/workspace` 转成最终可挂载的 editor DOM。
 
 对应子文档：[EDITORS.md](./architecture/EDITORS.md)
-
-### [embedded/](../embedded)
-
-文档内部 embed block 扩展层。
-
-对应子文档：[EMBEDDED.md](./architecture/EMBEDDED.md)
 
 ### [frame/](../frame)
 
@@ -184,7 +177,6 @@ frame 专题文档目录。
 - [architecture/DESCRIPTION.md](./architecture/DESCRIPTION.md)：`description/` 架构
 - [architecture/DOCS.md](./architecture/DOCS.md)：`doc/` 架构
 - [architecture/EDITORS.md](./architecture/EDITORS.md)：`editors/` 架构
-- [architecture/EMBEDDED.md](./architecture/EMBEDDED.md)：`embedded/` 架构
 - [architecture/FRAME.md](./architecture/FRAME.md)：`frame/` 架构
 - [architecture/MANAGER.md](./architecture/MANAGER.md)：`manager/` 架构
 - [architecture/RUNTIME.md](./architecture/RUNTIME.md)：`runtime/` 架构
@@ -202,17 +194,14 @@ frame 专题文档目录。
 - [extensions/types.ts](../editors/extensions/types.ts)：extension bundle 协议与合并函数
 - [extensions/blocksuiteEditorTitle.ts](../editors/extensions/blocksuiteEditorTitle.ts)：标题读取与 meta 同步辅助
 - [extensions/blocksuiteQuickSearchPicker.ts](../editors/extensions/blocksuiteQuickSearchPicker.ts)：quick search picker 的 DOM 控制器实现
+- [extensions/embed/embedIframeNoCredentiallessElements.ts](../editors/extensions/embed/embedIframeNoCredentiallessElements.ts)：embed iframe 自定义元素实现
+- [extensions/embed/embedIframeNoCredentiallessViewOverride.ts](../editors/extensions/embed/embedIframeNoCredentiallessViewOverride.ts)：embed iframe view override
+- [extensions/embed/roomMapEmbedOption.ts](../editors/extensions/embed/roomMapEmbedOption.ts)：room map embed 选项扩展
 - [extensions/buildBlocksuiteCoreEditorExtensions.ts](../editors/extensions/buildBlocksuiteCoreEditorExtensions.ts)：core 扩展 builder
 - [extensions/buildBlocksuiteQuickSearchExtension.ts](../editors/extensions/buildBlocksuiteQuickSearchExtension.ts)：quick search 扩展 builder
-- [extensions/buildBlocksuiteEmbedExtensions.ts](../editors/extensions/buildBlocksuiteEmbedExtensions.ts)：embed 相关扩展 builder
+- [extensions/embed/buildBlocksuiteEmbedExtensions.ts](../editors/extensions/embed/buildBlocksuiteEmbedExtensions.ts)：embed 相关扩展 builder
 - [extensions/buildBlocksuiteLinkedDocExtensions.ts](../editors/extensions/buildBlocksuiteLinkedDocExtensions.ts)：linked-doc 相关扩展 builder
 - [extensions/buildBlocksuiteMentionExtensions.ts](../editors/extensions/buildBlocksuiteMentionExtensions.ts)：mention 相关扩展 builder
-
-### [embedded/](../embedded)
-
-- [embedIframeNoCredentiallessElements.ts](../embedded/embedIframeNoCredentiallessElements.ts)：embed iframe 相关元素处理
-- [embedIframeNoCredentiallessViewOverride.ts](../embedded/embedIframeNoCredentiallessViewOverride.ts)：embed iframe view override
-- [roomMapEmbedOption.ts](../embedded/roomMapEmbedOption.ts)：room map embed 选项扩展
 
 ### [frame/](../frame)
 
@@ -271,7 +260,7 @@ frame 专题文档目录。
 - iframe 相关：优先看 [frame/](../frame) 和 [FRAME.md](./architecture/FRAME.md)
 - Space / docId / registry：优先看 [space/](../space) 和 [SPACE.md](./architecture/SPACE.md)
 - 远端 snapshot / updates：优先看 [description/](../description) 与 [remoteDocSource.ts](../runtime/remoteDocSource.ts)
-- editor 创建：优先看 [editors/](../editors)；embed block 行为再看 [embedded/](../embedded)
+- editor 创建和 embed block 行为：优先看 [editors/](../editors)
 - editor 业务插件怎么接：优先看 [editor/INTEGRATION.md](./editor/INTEGRATION.md)
 - editor 装配细节、插件规范和挂载链路：优先看 [editor/README.md](./editor/README.md)
 - iframe 深度链路：优先看 [frame/DEEP-DIVE.md](./frame/DEEP-DIVE.md)
