@@ -1,26 +1,11 @@
 import type { DocMode } from "@blocksuite/affine/model";
 import type { RefObject } from "react";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 
 function warnNonFatalBlocksuiteError(message: string, error: unknown) {
   console.warn(message, error);
-}
-
-function tryFocusEdgelessViewport(editor: any, store: any): boolean {
-  try {
-    const doc = store as any;
-    const rootId = doc?.root?.id;
-    const rootBlock = editor?.host?.view?.getBlock?.(rootId);
-
-    rootBlock?.gfx?.fitToScreen?.();
-    return true;
-  }
-  catch (error) {
-    warnNonFatalBlocksuiteError("[BlocksuiteDescriptionEditor] Failed to focus edgeless viewport", error);
-  }
-  return false;
 }
 
 type UseBlocksuiteViewportBehaviorParams = {
@@ -30,11 +15,49 @@ type UseBlocksuiteViewportBehaviorParams = {
   isFull: boolean;
   className?: string;
   tcHeaderEnabled: boolean;
-  editorRef: RefObject<HTMLElement | null>;
-  storeRef: RefObject<any>;
   fullscreenRootRef: RefObject<HTMLDivElement | null>;
   hostContainerRef: RefObject<HTMLDivElement | null>;
 };
+
+export function hasBlocksuiteHeightConstraintClass(className?: string): boolean {
+  const value = (className ?? "").trim();
+  if (!value)
+    return false;
+  return /(?:^|\s)(?:h-\[|h-|max-h-)/.test(value);
+}
+
+export function getBlocksuiteViewportOverflowClass(params: {
+  currentMode: DocMode;
+  isFull: boolean;
+  isEdgelessFullscreen: boolean;
+  isBrowserFullscreen: boolean;
+  className?: string;
+}): string {
+  const { currentMode, isFull, isEdgelessFullscreen, isBrowserFullscreen, className } = params;
+  if (currentMode !== "page")
+    return "overflow-hidden";
+
+  return (isFull || isEdgelessFullscreen || isBrowserFullscreen || hasBlocksuiteHeightConstraintClass(className))
+    ? "overflow-auto"
+    : "overflow-visible";
+}
+
+export function getBlocksuiteRootClassName(params: {
+  tcHeaderEnabled: boolean;
+  className?: string;
+  isFull: boolean;
+  isEdgelessFullscreen: boolean;
+  isBrowserFullscreen: boolean;
+}): string {
+  const { tcHeaderEnabled, className, isFull, isEdgelessFullscreen, isBrowserFullscreen } = params;
+  return [
+    tcHeaderEnabled ? "tc-blocksuite-tc-header-enabled" : "",
+    className,
+    (isFull || isEdgelessFullscreen || isBrowserFullscreen) ? "h-full min-h-0" : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
+}
 
 export function useBlocksuiteViewportBehavior(params: UseBlocksuiteViewportBehaviorParams) {
   const {
@@ -44,13 +67,9 @@ export function useBlocksuiteViewportBehavior(params: UseBlocksuiteViewportBehav
     isFull,
     className,
     tcHeaderEnabled,
-    editorRef,
-    storeRef,
     fullscreenRootRef,
     hostContainerRef,
   } = params;
-
-  const prevModeRef = useRef<DocMode>(currentMode);
   const [isBrowserFullscreen, setIsBrowserFullscreen] = useState(false);
   const isEdgelessFullscreen = allowModeSwitch && fullscreenEdgeless && currentMode === "edgeless";
 
@@ -115,69 +134,15 @@ export function useBlocksuiteViewportBehavior(params: UseBlocksuiteViewportBehav
     }
   }, [fullscreenRootRef]);
 
-  const hasHeightConstraintClass = useMemo(() => {
-    const value = (className ?? "").trim();
-    if (!value)
-      return false;
-    return /(?:^|\s)(?:h-\[|h-|max-h-)/.test(value);
-  }, [className]);
-
-  const viewportOverflowClass = currentMode === "page"
-    ? ((isFull || isEdgelessFullscreen || isBrowserFullscreen || hasHeightConstraintClass) ? "overflow-auto" : "overflow-visible")
-    : "overflow-hidden";
-
-  useEffect(() => {
-    const editor = editorRef.current as any;
-    if (!editor)
-      return;
-
-    try {
-      editor.switchEditor(currentMode);
-      editor.style.height = (isEdgelessFullscreen || isBrowserFullscreen || isFull) ? "100%" : "auto";
-    }
-    catch (error) {
-      warnNonFatalBlocksuiteError("[BlocksuiteDescriptionEditor] Failed to sync editor mode", error);
-    }
-
-    const prev = prevModeRef.current;
-    prevModeRef.current = currentMode;
-
-    let rafId: number | null = null;
-    let t0: ReturnType<typeof setTimeout> | null = null;
-    let t1: ReturnType<typeof setTimeout> | null = null;
-    let t2: ReturnType<typeof setTimeout> | null = null;
-
-    if (prev !== "edgeless" && currentMode === "edgeless") {
-      const run = () => {
-        const nextEditor = editorRef.current as any;
-        const store = storeRef.current;
-        if (!nextEditor || !store)
-          return;
-        tryFocusEdgelessViewport(nextEditor, store);
-      };
-
-      rafId = requestAnimationFrame(() => {
-        t0 = setTimeout(run, 0);
-        t1 = setTimeout(run, 120);
-        t2 = setTimeout(run, 300);
-      });
-    }
-
-    return () => {
-      if (rafId !== null) {
-        cancelAnimationFrame(rafId);
-      }
-      if (t0) {
-        clearTimeout(t0);
-      }
-      if (t1) {
-        clearTimeout(t1);
-      }
-      if (t2) {
-        clearTimeout(t2);
-      }
-    };
-  }, [currentMode, editorRef, isBrowserFullscreen, isEdgelessFullscreen, isFull, storeRef]);
+  const viewportOverflowClass = useMemo(() => {
+    return getBlocksuiteViewportOverflowClass({
+      currentMode,
+      isFull,
+      isEdgelessFullscreen,
+      isBrowserFullscreen,
+      className,
+    });
+  }, [className, currentMode, isBrowserFullscreen, isEdgelessFullscreen, isFull]);
 
   useEffect(() => {
     if (typeof document === "undefined" || !isEdgelessFullscreen)
@@ -220,13 +185,13 @@ export function useBlocksuiteViewportBehavior(params: UseBlocksuiteViewportBehav
   }, [currentMode, hostContainerRef, isBrowserFullscreen, isEdgelessFullscreen, isFull]);
 
   const rootClassName = useMemo(() => {
-    return [
-      tcHeaderEnabled ? "tc-blocksuite-tc-header-enabled" : "",
+    return getBlocksuiteRootClassName({
+      tcHeaderEnabled,
       className,
-      (isFull || isEdgelessFullscreen || isBrowserFullscreen) ? "h-full min-h-0" : "",
-    ]
-      .filter(Boolean)
-      .join(" ");
+      isFull,
+      isEdgelessFullscreen,
+      isBrowserFullscreen,
+    });
   }, [className, isBrowserFullscreen, isEdgelessFullscreen, isFull, tcHeaderEnabled]);
 
   return {

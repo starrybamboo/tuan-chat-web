@@ -11,6 +11,8 @@ import { isBlocksuiteDebugEnabled } from "@/components/chat/infra/blocksuite/sha
 import { BlocksuiteTcHeader } from "./BlocksuiteTcHeader";
 import { useBlocksuiteDocModeProvider } from "./useBlocksuiteDocModeProvider";
 import { useBlocksuiteEditorLifecycle } from "./useBlocksuiteEditorLifecycle";
+import { useBlocksuiteEditorModeSync } from "./useBlocksuiteEditorModeSync";
+import { useBlocksuiteTcHeaderSync } from "./useBlocksuiteTcHeaderSync";
 import { useBlocksuiteViewportBehavior } from "./useBlocksuiteViewportBehavior";
 
 /**
@@ -145,7 +147,6 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
 
   const {
     currentMode,
-    currentModeRef,
     docModeProvider,
   } = useBlocksuiteDocModeProvider({
     workspaceId,
@@ -156,13 +157,8 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
   });
 
   const {
-    hostContainerRef,
-    fullscreenRootRef,
-    editorRef,
-    storeRef,
-    runtimeRef,
+    editorHandle,
     tcHeaderState,
-    triggerReload,
   } = useBlocksuiteEditorLifecycle({
     workspaceId,
     docId,
@@ -173,7 +169,6 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
     tcHeaderFallbackTitle: tcHeader?.fallbackTitle,
     tcHeaderFallbackImageUrl: tcHeader?.fallbackImageUrl,
     docModeProvider,
-    currentModeRef,
     isFull,
     postToParent,
   });
@@ -191,10 +186,16 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
     isFull,
     className,
     tcHeaderEnabled,
-    editorRef,
-    storeRef,
-    fullscreenRootRef,
-    hostContainerRef,
+    fullscreenRootRef: editorHandle.fullscreenRootRef,
+    hostContainerRef: editorHandle.hostContainerRef,
+  });
+
+  const shouldFillEditorHeight = isFull || isEdgelessFullscreen || isBrowserFullscreen;
+
+  useBlocksuiteEditorModeSync({
+    currentMode,
+    shouldFillHeight: shouldFillEditorHeight,
+    editorHandle,
   });
 
   const handleForcePullFromCloud = useCallback(async () => {
@@ -221,8 +222,8 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
       const { clearUpdates } = await import("@/components/chat/infra/blocksuite/description/descriptionDocDb");
       await clearUpdates(docId);
 
-      const runtime = runtimeRef.current ?? await loadBlocksuiteRuntime();
-      runtimeRef.current = runtime;
+      const runtime = editorHandle.runtimeRef.current ?? await loadBlocksuiteRuntime();
+      editorHandle.runtimeRef.current = runtime;
       const workspace = runtime.getOrCreateWorkspace(workspaceId) as any;
       if (typeof workspace.replaceDocFromUpdate !== "function") {
         toast.error("当前运行时不支持云端覆盖");
@@ -230,7 +231,7 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
       }
       workspace.replaceDocFromUpdate({ docId, update });
 
-      triggerReload();
+      editorHandle.triggerReload();
       toast.success("已用云端内容覆盖本地");
     }
     catch {
@@ -239,45 +240,25 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
     finally {
       setIsForcePullingCloud(false);
     }
-  }, [canForcePullFromCloud, docId, isForcePullingCloud, runtimeRef, triggerReload, workspaceId]);
+  }, [canForcePullFromCloud, docId, editorHandle, isForcePullingCloud, workspaceId]);
 
-  useEffect(() => {
-    if (!tcHeaderEnabled || !tcHeaderState)
-      return;
-    if (tcHeaderState.docId !== docId)
-      return;
-
-    // Keep blocksuite workspace meta in sync (linked-doc/@ search uses meta.title).
-    const runtime = runtimeRef.current;
-    runtime?.ensureDocMeta?.({ workspaceId, docId, title: tcHeaderState.header.title });
-
-    // Notify host (iframe parent or same-window callers).
-    const payload = {
-      tc: "tc-blocksuite-frame",
-      instanceId,
-      type: "tc-header",
-      docId,
-      entityType: tcHeaderEntity?.entityType,
-      entityId: tcHeaderEntity?.entityId,
-      header: tcHeaderState.header,
-    };
-
-    if (isProbablyInIframe()) {
-      postToParent(payload);
-    }
-
-    onTcHeaderChange?.({
-      docId,
-      entityType: tcHeaderEntity?.entityType,
-      entityId: tcHeaderEntity?.entityId,
-      header: tcHeaderState.header,
-    });
-  }, [docId, instanceId, onTcHeaderChange, postToParent, runtimeRef, tcHeaderEnabled, tcHeaderEntity?.entityId, tcHeaderEntity?.entityType, tcHeaderState, workspaceId]);
+  useBlocksuiteTcHeaderSync({
+    tcHeaderEnabled,
+    tcHeaderState,
+    docId,
+    workspaceId,
+    instanceId,
+    editorHandle,
+    postToParent,
+    onTcHeaderChange,
+    tcHeaderEntity,
+    shouldPostToParent: isProbablyInIframe(),
+  });
 
   return (
     <div className={rootClassName}>
       <div
-        ref={fullscreenRootRef}
+        ref={editorHandle.fullscreenRootRef}
         className={`relative bg-base-100 ${viewportOverflowClass}${(isFull || isEdgelessFullscreen || isBrowserFullscreen) ? " h-full" : " rounded-box"}${(isFull || isEdgelessFullscreen || isBrowserFullscreen) ? " flex flex-col" : ""}`}
       >
         {tcHeaderEnabled
@@ -293,7 +274,7 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
                 tcHeaderState={tcHeaderState}
                 fallbackTitle={tcHeader?.fallbackTitle}
                 fallbackImageUrl={tcHeader?.fallbackImageUrl}
-                storeRef={storeRef}
+                storeRef={editorHandle.storeRef}
                 onToggleBrowserFullscreen={() => void toggleBrowserFullscreen()}
                 onForcePullFromCloud={() => void handleForcePullFromCloud()}
                 onToggleMode={() => {
@@ -347,7 +328,7 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
           : null}
 
         <div
-          ref={hostContainerRef}
+          ref={editorHandle.hostContainerRef}
           className={`${(isFull || isEdgelessFullscreen || isBrowserFullscreen) ? "flex-1 min-h-0" : "min-h-32"} w-full ${currentMode === "edgeless" ? "affine-edgeless-viewport" : "affine-page-viewport"}`}
         />
       </div>
