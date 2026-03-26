@@ -28,21 +28,6 @@ flowchart TD
     SpaceRuntime --> ManagerStore["manager/store.ts<br/>store/schema 能力子集"]
     Editors --> Spec["spec/<br/>自定义 elements/spec 注册"]
     Host --> Mention["宿主侧 mention popover<br/>shared/components/BlockSuite"]
-
-    subgraph Support["横切支撑层（非 runtime 编排子层）"]
-        Document["document/<br/>docHeader / docExcerpt"]
-        Shared["shared/<br/>base64 / error / debug / perf"]
-        Styles["styles/<br/>frameBase / tcHeader / embed header"]
-    end
-
-    Shared -.-> FrameRoute
-    Shared -.-> RuntimeOrchestrator
-    Shared -.-> LifecycleLayer
-    Shared -.-> SpaceRuntime
-    Document -.-> RuntimeOrchestrator
-    Document -.-> LifecycleLayer
-    Document -.-> HeaderUI
-    Styles -.-> Route
 ```
 
 ## 依赖图
@@ -71,7 +56,7 @@ flowchart LR
 
 ## 职责摘要
 
-上面的 `document/`、`shared/`、`styles/` 画成“横切支撑层”，不是因为它们属于同一条主执行链，而是为了强调它们**服务多个子层**，不应被理解成 `BlocksuiteDescriptionEditorRuntime` 的直接下级。
+`document/`、`shared/`、`styles/` 没有继续画进主图，因为它们不是同一条稳定主执行链上的“层”，容易在图里被误读成 `BlocksuiteDescriptionEditorRuntime` 或 `lifecycle` 的直接下级。它们仍然存在，只保留在下面的职责说明里。
 
 - 宿主层  
   只负责创建 iframe、传递参数、同步主题和承接 `postMessage`。
