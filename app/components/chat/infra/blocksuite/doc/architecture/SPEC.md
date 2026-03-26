@@ -2,7 +2,7 @@
 
 ## 路径
 
-`app/components/chat/infra/blocksuite/spec/`
+- [spec/](../../spec)
 
 ## 目标
 
@@ -10,9 +10,9 @@
 
 ## 当前文件
 
-- `coreElements.browser.ts`
-- `roomMapEmbedConfig.ts`
-- `tcMentionElement.client.ts`
+- [coreElements.browser.ts](../../spec/coreElements.browser.ts)
+- [roomMapEmbedConfig.ts](../../spec/roomMapEmbedConfig.ts)
+- [tcMentionElement.client.ts](../../spec/tcMentionElement.client.ts)
 
 ## 负责的事
 

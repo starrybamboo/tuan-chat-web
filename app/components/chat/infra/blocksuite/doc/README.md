@@ -79,10 +79,9 @@ Blocksuite/AFFiNE 某些包会通过 exports 暴露 TS 源码，严格模式下 
 ## 6. 当前实现备注
 
 - iframe 方案的详细链路不再写在本文件里，统一看：
-  - `architecture/FRAME.md`
-  - `architecture/FRAME-DEEP-DIVE.md`
+  - [architecture/FRAME.md](./architecture/FRAME.md)
 - 目录职责与路径索引统一看：
-  - `DIRECTORY.md`
+  - [DIRECTORY.md](./DIRECTORY.md)
 
 ---
 

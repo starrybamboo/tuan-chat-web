@@ -2,7 +2,7 @@
 
 ## 路径
 
-`app/components/chat/infra/blocksuite/description/`
+- [description/](../../description)
 
 ## 目标
 
@@ -10,9 +10,9 @@
 
 ## 当前文件
 
-- `descriptionDocDb.ts`：本地 updates IndexedDB
-- `descriptionDocId.ts`：description docId 构造与解析
-- `descriptionDocRemote.ts`：远端 snapshot / updates API 与缓存
+- [descriptionDocDb.ts](../../description/descriptionDocDb.ts)：本地 updates IndexedDB
+- [descriptionDocId.ts](../../description/descriptionDocId.ts)：description docId 构造与解析
+- [descriptionDocRemote.ts](../../description/descriptionDocRemote.ts)：远端 snapshot / updates API 与缓存
 
 ## 负责的事
 
@@ -29,6 +29,6 @@
 
 ## 典型调用方
 
-- `frame/blocksuiteEditorLifecycleHydration.ts`
-- `runtime/remoteDocSource.ts`
-- `space/deleteSpaceDoc.ts`
+- [blocksuiteEditorLifecycleHydration.ts](../../frame/blocksuiteEditorLifecycleHydration.ts)
+- [remoteDocSource.ts](../../runtime/remoteDocSource.ts)
+- [deleteSpaceDoc.ts](../../space/deleteSpaceDoc.ts)

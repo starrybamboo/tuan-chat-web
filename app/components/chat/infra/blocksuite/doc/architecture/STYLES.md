@@ -2,7 +2,7 @@
 
 ## 路径
 
-`app/components/chat/infra/blocksuite/styles/`
+- [styles/](../../styles)
 
 ## 目标
 
@@ -10,9 +10,9 @@
 
 ## 当前文件
 
-- `affine-embed-synced-doc-header.css`
-- `frameBase.css`
-- `tcHeader.css`
+- [affine-embed-synced-doc-header.css](../../styles/affine-embed-synced-doc-header.css)
+- [frameBase.css](../../styles/frameBase.css)
+- [tcHeader.css](../../styles/tcHeader.css)
 
 ## 负责的事
 

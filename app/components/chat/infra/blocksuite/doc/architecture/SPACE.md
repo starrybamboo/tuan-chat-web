@@ -2,7 +2,7 @@
 
 ## 路径
 
-`app/components/chat/infra/blocksuite/space/`
+- [space/](../../space)
 
 ## 目标
 
@@ -10,10 +10,10 @@
 
 ## 当前文件
 
-- `deleteSpaceDoc.ts`
-- `spaceDocId.ts`
-- `spaceDocMetaPersistence.ts`
-- `spaceWorkspaceRegistry.ts`
+- [deleteSpaceDoc.ts](../../space/deleteSpaceDoc.ts)
+- [spaceDocId.ts](../../space/spaceDocId.ts)
+- [spaceDocMetaPersistence.ts](../../space/spaceDocMetaPersistence.ts)
+- [spaceWorkspaceRegistry.ts](../../space/spaceWorkspaceRegistry.ts)
 
 ## 负责的事
 
@@ -29,5 +29,5 @@
 
 ## 与 runtime 的关系
 
-- `spaceWorkspaceRegistry.ts` 是业务层入口
-- `runtime/spaceWorkspace.ts` 是底层实现
+- [spaceWorkspaceRegistry.ts](../../space/spaceWorkspaceRegistry.ts) 是业务层入口
+- [spaceWorkspace.ts](../../runtime/spaceWorkspace.ts) 是底层实现

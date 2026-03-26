@@ -1,384 +1,243 @@
 # Blocksuite 目录字典
 
-本文档给 `app/components/chat/infra/blocksuite` 提供一份“目录 + 文件字典”索引。
+本文档给 [blocksuite/](../) 提供一份“目录定义 + 文件索引”。
 
-目标只有两个：
+目标：
 - 精确说明每个文件夹的职责边界
-- 给出每个源码文件的精确路径与一句话用途，方便检索、重构和排障
+- 给出可直接跳转的源码入口
 
 不在本文档展开的内容：
-- 业务需求口径：看 `BUSINESS.md`
-- 运行时链路细节：看 `architecture/FRAME-DEEP-DIVE.md`
-- 常见故障排查：看 `TROUBLESHOOTING.md`
+- 业务语义：看 [BUSINESS.md](./BUSINESS.md)
+- 内部数据结构：看 [INTERNAL-DATA.md](./INTERNAL-DATA.md)
+- 排障：看 [TROUBLESHOOTING.md](./TROUBLESHOOTING.md)
 
-## 0. 子目录架构文档索引
+## 子目录架构文档索引
 
-- 根目录共享基础件：`architecture/ROOT.md`
-- `bootstrap/`：`architecture/BOOTSTRAP.md`
-- `description/`：`architecture/DESCRIPTION.md`
-- `doc/`：`architecture/DOCS.md`
-- `editors/`：`architecture/EDITORS.md`
-- `embedded/`：`architecture/EMBEDDED.md`
-- `frame/`：`architecture/FRAME.md`
-- `frame/` 深入链路：`architecture/FRAME-DEEP-DIVE.md`
-- `manager/`：`architecture/MANAGER.md`
-- `runtime/`：`architecture/RUNTIME.md`
-- `services/`：`architecture/SERVICES.md`
-- `space/`：`architecture/SPACE.md`
-- `spec/`：`architecture/SPEC.md`
-- `styles/`：`architecture/STYLES.md`
-- `test/`：`architecture/TEST.md`
+只保留“目录内至少有 3 个文件”的架构文档：
 
-## 1. 顶层目录含义
+- 根目录共享基础件：[ROOT.md](./architecture/ROOT.md)
+- `description/`：[DESCRIPTION.md](./architecture/DESCRIPTION.md)
+- `doc/`：[DOCS.md](./architecture/DOCS.md)
+- `embedded/`：[EMBEDDED.md](./architecture/EMBEDDED.md)
+- `frame/`：[FRAME.md](./architecture/FRAME.md)
+- `manager/`：[MANAGER.md](./architecture/MANAGER.md)
+- `runtime/`：[RUNTIME.md](./architecture/RUNTIME.md)
+- `space/`：[SPACE.md](./architecture/SPACE.md)
+- `spec/`：[SPEC.md](./architecture/SPEC.md)
+- `styles/`：[STYLES.md](./architecture/STYLES.md)
 
-### `app/components/chat/infra/blocksuite`
+没有单独架构文档的目录：
+- `bootstrap/`
+- `editors/`
+- `services/`
+- `test/`
+
+## 顶层目录含义
+
+### [blocksuite/](../)
 
 Blocksuite 集成根目录。
 
-这里放的是三类东西：
+这里放的是三类内容：
 - 通用基础件：编码、错误、调试、header、性能打点
 - 领域子目录：`description/`、`space/`、`runtime/`、`frame/` 等
 - 文档与测试：`doc/`、`test/`
 
 目录划分原则：
 - 根目录只放被多个子域复用、暂时不值得再细分的基础件
-- 强业务语义的文件放进对应领域目录，不再散落在根目录
+- 强业务语义文件放进对应领域目录
 - iframe 专用实现全部收口在 `frame/`
 
-## 2. 文件夹字典
+## 文件夹字典
 
-### `app/components/chat/infra/blocksuite/bootstrap`
+### [bootstrap/](../bootstrap)
 
-Blocksuite 浏览器侧初始化入口。
+浏览器侧启动预热层。
 
-这里负责“把必须的浏览器补丁或注册提前做掉”，但不直接承担 editor 运行时编排。
+这里负责必须提前执行的浏览器初始化，但不承担 editor runtime 编排。
 
-对应子文档：`architecture/BOOTSTRAP.md`
+### [description/](../description)
 
-### `app/components/chat/infra/blocksuite/description`
+Description 类文档的标识、远端快照和本地 updates 存储层。
 
-Description 类文档的存储与远端标识层。
+对应子文档：[DESCRIPTION.md](./architecture/DESCRIPTION.md)
 
-边界：
-- 只关心 description/readme 这类业务文档的 ID、远端快照、IndexedDB updates
-- 不负责 editor UI
-- 不负责 workspace 生命周期
-
-对应子文档：`architecture/DESCRIPTION.md`
-
-### `app/components/chat/infra/blocksuite/doc`
+### [doc/](./)
 
 纯文档目录，不放运行时代码。
 
-这里保存的是认知材料、设计说明、学习路径和排障文档。
+对应子文档：[DOCS.md](./architecture/DOCS.md)
 
-对应子文档：`architecture/DOCS.md`
+### [editors/](../editors)
 
-### `app/components/chat/infra/blocksuite/editors`
+编辑器创建层，把上层参数转换成真正的 Blocksuite editor 实例。
 
-编辑器创建层。
+### [embedded/](../embedded)
 
-这里把上层参数转换成真正的 Blocksuite editor 实例，但不承担 iframe 协议、route boot、宿主通信。
+非 iframe 的嵌入式编辑器集成层。
 
-对应子文档：`architecture/EDITORS.md`
+对应子文档：[EMBEDDED.md](./architecture/EMBEDDED.md)
 
-### `app/components/chat/infra/blocksuite/embedded`
-
-普通嵌入式编辑器集成层。
-
-适用范围：
-- 非 iframe 的编辑器挂载
-- 内嵌 editor container、自定义 embed、linked-doc、quick search、业务服务注入
-
-对应子文档：`architecture/EMBEDDED.md`
-
-### `app/components/chat/infra/blocksuite/frame`
+### [frame/](../frame)
 
 iframe 方案专用实现。
 
-边界：
-- route frame client
-- iframe runtime orchestration
-- iframe postMessage 协议
-- frame 内高度测量、viewport、tcHeader、启动时序
+对应子文档：[FRAME.md](./architecture/FRAME.md)
 
-不应把非 iframe 的共享逻辑持续堆进这里。
-
-对应子文档：`architecture/FRAME.md`
-
-### `app/components/chat/infra/blocksuite/manager`
+### [manager/](../manager)
 
 Blocksuite 能力边界管理层。
 
-这里定义项目允许启用的 Affine/Blocksuite 能力集合，并分别供 store/view 装配使用。
+对应子文档：[MANAGER.md](./architecture/MANAGER.md)
 
-对应子文档：`architecture/MANAGER.md`
-
-### `app/components/chat/infra/blocksuite/runtime`
+### [runtime/](../runtime)
 
 底层运行时与同步层。
 
-边界：
-- workspace 生命周期
-- doc/source 同步
-- websocket fanout
-- runtime loader
+对应子文档：[RUNTIME.md](./architecture/RUNTIME.md)
 
-它是“运行时基础设施”，不是业务 UI 层。
+### [services/](../services)
 
-对应子文档：`architecture/RUNTIME.md`
+注入给 Blocksuite editor 的业务服务层。
 
-### `app/components/chat/infra/blocksuite/services`
-
-注入到 Blocksuite 的业务服务。
-
-这里的文件通常会被 editor extension 或 runtime 作为 service 使用。
-
-对应子文档：`architecture/SERVICES.md`
-
-### `app/components/chat/infra/blocksuite/space`
+### [space/](../space)
 
 Space 维度的业务映射层。
 
-边界：
-- `space:${id}` 这套 docId 规则
-- space doc meta 本地持久化
-- Space -> Workspace registry 窄接口
-- 删除 space doc 的业务流程
+对应子文档：[SPACE.md](./architecture/SPACE.md)
 
-对应子文档：`architecture/SPACE.md`
-
-### `app/components/chat/infra/blocksuite/spec`
+### [spec/](../spec)
 
 自定义元素与扩展 spec 注册层。
 
-这里处理的是 BlockSuite 需要注册的 schema/spec/custom element，不放业务流程代码。
+对应子文档：[SPEC.md](./architecture/SPEC.md)
 
-对应子文档：`architecture/SPEC.md`
+### [styles/](../styles)
 
-### `app/components/chat/infra/blocksuite/styles`
+Blocksuite 相关样式资源目录。
 
-Blocksuite 相关样式。
+对应子文档：[STYLES.md](./architecture/STYLES.md)
 
-只放样式资源，不放逻辑。
-
-对应子文档：`architecture/STYLES.md`
-
-### `app/components/chat/infra/blocksuite/test`
+### [test/](../test)
 
 Blocksuite 目录内的测试收口目录。
 
-规则：
-- 新增测试优先放这里
-- 除非测试必须贴着某个文件，否则不要再把 `.test.ts` 散落到各子目录
+## 根目录文件字典
 
-对应子文档：`architecture/TEST.md`
+- [base64.ts](../base64.ts)：`Uint8Array <-> base64` 转换工具
+- [blocksuiteDocError.ts](../blocksuiteDocError.ts)：错误类型与可重试判断
+- [debugFlags.ts](../debugFlags.ts)：调试开关读取
+- [docExcerpt.ts](../docExcerpt.ts)：从 store 提取摘要文本
+- [docHeader.ts](../docHeader.ts)：文档 header 的读写、订阅与 fallback 处理
+- [mentionProfilePopover.tsx](../mentionProfilePopover.tsx)：mention 用户卡片/悬浮层 UI
+- [perf.ts](../perf.ts)：Blocksuite 打开链路性能埋点
 
-## 3. 根目录文件字典
+## 子目录文件索引
 
-### `app/components/chat/infra/blocksuite/base64.ts`
+### [bootstrap/](../bootstrap)
 
-`Uint8Array <-> base64` 转换工具。
+- [browser.ts](../bootstrap/browser.ts)：浏览器侧 bootstrap 入口
 
-### `app/components/chat/infra/blocksuite/blocksuiteDocError.ts`
+### [description/](../description)
 
-Blocksuite 文档相关错误类型与可重试/不可重试判断。
+- [descriptionDocDb.ts](../description/descriptionDocDb.ts)：description 文档本地 updates 的 IndexedDB 读写
+- [descriptionDocId.ts](../description/descriptionDocId.ts)：description/readme 文档 ID 的构造与解析
+- [descriptionDocRemote.ts](../description/descriptionDocRemote.ts)：description 文档远端 snapshot / updates API 封装与缓存
 
-### `app/components/chat/infra/blocksuite/debugFlags.ts`
+### [doc/](./)
 
-Blocksuite 调试开关读取。
+- [BOUNDARY-UPDATE.md](./BOUNDARY-UPDATE.md)：边界版改动说明
+- [BUSINESS.md](./BUSINESS.md)：Blocksuite 业务需求口径
+- [DIRECTORY.md](./DIRECTORY.md)：当前这份目录字典
+- [INTERNAL-DATA.md](./INTERNAL-DATA.md)：内部数据模型、术语、结构说明
+- [LEARNING-PATH.md](./LEARNING-PATH.md)：学习路线与代码阅读顺序
+- [README.md](./README.md)：Blocksuite 文档总入口
+- [TROUBLESHOOTING.md](./TROUBLESHOOTING.md)：常见问题与排查入口
+- [architecture/ROOT.md](./architecture/ROOT.md)：根目录共享基础件架构
+- [architecture/DESCRIPTION.md](./architecture/DESCRIPTION.md)：`description/` 架构
+- [architecture/DOCS.md](./architecture/DOCS.md)：`doc/` 架构
+- [architecture/EMBEDDED.md](./architecture/EMBEDDED.md)：`embedded/` 架构
+- [architecture/FRAME.md](./architecture/FRAME.md)：`frame/` 架构
+- [architecture/MANAGER.md](./architecture/MANAGER.md)：`manager/` 架构
+- [architecture/RUNTIME.md](./architecture/RUNTIME.md)：`runtime/` 架构
+- [architecture/SPACE.md](./architecture/SPACE.md)：`space/` 架构
+- [architecture/SPEC.md](./architecture/SPEC.md)：`spec/` 架构
+- [architecture/STYLES.md](./architecture/STYLES.md)：`styles/` 架构
 
-### `app/components/chat/infra/blocksuite/docExcerpt.ts`
+### [editors/](../editors)
 
-从 Blocksuite store 中提取摘要文本。
+- [createBlocksuiteEditor.browser.ts](../editors/createBlocksuiteEditor.browser.ts)：统一创建浏览器侧 Blocksuite editor
 
-### `app/components/chat/infra/blocksuite/docHeader.ts`
+### [embedded/](../embedded)
 
-文档 header 的读写、订阅和 fallback 处理。
+- [createEmbeddedAffineEditor.client.ts](../embedded/createEmbeddedAffineEditor.client.ts)：非 iframe 场景的嵌入式编辑器创建与业务扩展注入
+- [embedIframeNoCredentiallessElements.ts](../embedded/embedIframeNoCredentiallessElements.ts)：embed iframe 相关元素处理
+- [embedIframeNoCredentiallessViewOverride.ts](../embedded/embedIframeNoCredentiallessViewOverride.ts)：embed iframe view override
+- [mockServices.ts](../embedded/mockServices.ts)：editor 所需 mock service
+- [roomMapEmbedOption.ts](../embedded/roomMapEmbedOption.ts)：room map embed 选项扩展
+- [tcAffineEditorContainer.ts](../embedded/tcAffineEditorContainer.ts)：项目自定义 editor container 元素
 
-### `app/components/chat/infra/blocksuite/mentionProfilePopover.tsx`
+### [frame/](../frame)
 
-mention 对应用户卡片/悬浮层 UI。
+- [BlocksuiteDescriptionEditorRuntime.browser.tsx](../frame/BlocksuiteDescriptionEditorRuntime.browser.tsx)：iframe 内 description editor runtime orchestrator
+- [BlocksuiteRouteFrameClient.tsx](../frame/BlocksuiteRouteFrameClient.tsx)：iframe route client，处理启动参数、消息桥接和高度同步
+- [BlocksuiteTcHeader.tsx](../frame/BlocksuiteTcHeader.tsx)：iframe 内 tcHeader UI
+- [blocksuiteEditorLifecycleHydration.ts](../frame/blocksuiteEditorLifecycleHydration.ts)：iframe 启动 hydration 决策与等待逻辑
+- [useBlocksuiteDocModeProvider.ts](../frame/useBlocksuiteDocModeProvider.ts)：page / edgeless 模式 provider
+- [useBlocksuiteEditorLifecycle.ts](../frame/useBlocksuiteEditorLifecycle.ts)：editor 生命周期、hydrate、header、render-ready 时序
+- [useBlocksuiteViewportBehavior.ts](../frame/useBlocksuiteViewportBehavior.ts)：iframe 内 viewport / fullscreen 行为
 
-### `app/components/chat/infra/blocksuite/perf.ts`
+### [manager/](../manager)
 
-Blocksuite 打开链路性能埋点与 session 标记。
+- [featureSet.ts](../manager/featureSet.ts)：支持能力集合定义
+- [store.ts](../manager/store.ts)：store 侧支持能力装配
+- [view.ts](../manager/view.ts)：view/spec 侧支持能力装配
 
-## 4. 子目录文件索引
+### [runtime/](../runtime)
 
-### `bootstrap/`
+- [blocksuiteWsClient.ts](../runtime/blocksuiteWsClient.ts)：Blocksuite 文档同步用 websocket client
+- [remoteDocSource.ts](../runtime/remoteDocSource.ts)：snapshot + updates + ws 合并而成的远端 doc source
+- [runtimeLoader.browser.ts](../runtime/runtimeLoader.browser.ts)：浏览器侧 runtime loader
+- [spaceWorkspace.ts](../runtime/spaceWorkspace.ts)：SpaceWorkspace 核心运行时，负责 doc/store/source 生命周期
 
-`app/components/chat/infra/blocksuite/bootstrap/browser.ts`
-- 浏览器侧 bootstrap 入口。
+### [services/](../services)
 
-### `description/`
+- [quickSearchService.ts](../services/quickSearchService.ts)：文档 quick search service
+- [tuanChatUserService.ts](../services/tuanChatUserService.ts)：TuanChat 用户服务桥接
 
-`app/components/chat/infra/blocksuite/description/descriptionDocDb.ts`
-- description 文档本地 updates 的 IndexedDB 读写。
+### [space/](../space)
 
-`app/components/chat/infra/blocksuite/description/descriptionDocId.ts`
-- description/readme 文档 ID 的构造与解析。
+- [deleteSpaceDoc.ts](../space/deleteSpaceDoc.ts)：删除 space doc 的业务流程
+- [spaceDocId.ts](../space/spaceDocId.ts)：Space 内 docId 构造与解析
+- [spaceDocMetaPersistence.ts](../space/spaceDocMetaPersistence.ts)：space doc meta 的本地缓存与标题同步队列
+- [spaceWorkspaceRegistry.ts](../space/spaceWorkspaceRegistry.ts)：业务层访问 workspace/doc/meta 的窄接口
 
-`app/components/chat/infra/blocksuite/description/descriptionDocRemote.ts`
-- description 文档远端 snapshot / updates API 封装与缓存。
+### [spec/](../spec)
 
-### `doc/`
+- [coreElements.browser.ts](../spec/coreElements.browser.ts)：核心元素/spec 注册
+- [roomMapEmbedConfig.ts](../spec/roomMapEmbedConfig.ts)：room map embed spec 配置
+- [tcMentionElement.client.ts](../spec/tcMentionElement.client.ts)：tc mention 自定义元素
 
-`app/components/chat/infra/blocksuite/doc/BOUNDARY-UPDATE.md`
-- 当前边界版改动说明。
+### [styles/](../styles)
 
-`app/components/chat/infra/blocksuite/doc/BUSINESS.md`
-- Blocksuite 业务需求口径。
+- [affine-embed-synced-doc-header.css](../styles/affine-embed-synced-doc-header.css)：embed synced doc header 样式
+- [frameBase.css](../styles/frameBase.css)：iframe 基础样式
+- [tcHeader.css](../styles/tcHeader.css)：tcHeader 样式
 
-`app/components/chat/infra/blocksuite/doc/DIRECTORY.md`
-- 当前这份目录字典。
+### [test/](../test)
 
-`app/components/chat/infra/blocksuite/doc/INTERNAL-DATA.md`
-- 内部数据模型、术语、结构说明。
+- [blocksuiteEditorLifecycleHydration.test.ts](../test/blocksuiteEditorLifecycleHydration.test.ts)：iframe 启动 hydration 决策单测
 
-`app/components/chat/infra/blocksuite/doc/LEARNING-PATH.md`
-- 学习路线与代码阅读顺序。
-
-`app/components/chat/infra/blocksuite/doc/README.md`
-- Blocksuite 文档总入口。
-
-`app/components/chat/infra/blocksuite/doc/TROUBLESHOOTING.md`
-- 常见问题与排查入口。
-
-### `editors/`
-
-`app/components/chat/infra/blocksuite/editors/createBlocksuiteEditor.browser.ts`
-- 统一创建浏览器侧 Blocksuite editor。
-
-### `embedded/`
-
-`app/components/chat/infra/blocksuite/embedded/createEmbeddedAffineEditor.client.ts`
-- 非 iframe 场景的嵌入式编辑器创建与业务扩展注入。
-
-`app/components/chat/infra/blocksuite/embedded/embedIframeNoCredentiallessElements.ts`
-- embed iframe 相关元素处理。
-
-`app/components/chat/infra/blocksuite/embedded/embedIframeNoCredentiallessViewOverride.ts`
-- embed iframe view override。
-
-`app/components/chat/infra/blocksuite/embedded/mockServices.ts`
-- editor 所需 mock service。
-
-`app/components/chat/infra/blocksuite/embedded/roomMapEmbedOption.ts`
-- room map embed 选项扩展。
-
-`app/components/chat/infra/blocksuite/embedded/tcAffineEditorContainer.ts`
-- 项目自定义 editor container 元素。
-
-### `frame/`
-
-`app/components/chat/infra/blocksuite/frame/ARCHITECTURE.md`
-- 兼容跳转文件，实际深度文档已迁到 `doc/architecture/FRAME-DEEP-DIVE.md`。
-
-`app/components/chat/infra/blocksuite/frame/BlocksuiteDescriptionEditorRuntime.browser.tsx`
-- iframe 内 description editor runtime orchestrator。
-
-`app/components/chat/infra/blocksuite/frame/BlocksuiteRouteFrameClient.tsx`
-- iframe route client，处理启动参数、消息桥接和高度同步。
-
-`app/components/chat/infra/blocksuite/frame/BlocksuiteTcHeader.tsx`
-- iframe 内 tcHeader UI。
-
-`app/components/chat/infra/blocksuite/frame/blocksuiteEditorLifecycleHydration.ts`
-- iframe 启动 hydration 决策与等待逻辑。
-
-`app/components/chat/infra/blocksuite/frame/useBlocksuiteDocModeProvider.ts`
-- page / edgeless 模式 provider。
-
-`app/components/chat/infra/blocksuite/frame/useBlocksuiteEditorLifecycle.ts`
-- editor 生命周期、hydrate、header、render-ready 时序。
-
-`app/components/chat/infra/blocksuite/frame/useBlocksuiteViewportBehavior.ts`
-- iframe 内 viewport / fullscreen 行为。
-
-### `manager/`
-
-`app/components/chat/infra/blocksuite/manager/featureSet.ts`
-- 支持能力集合定义。
-
-`app/components/chat/infra/blocksuite/manager/store.ts`
-- store 侧支持能力装配。
-
-`app/components/chat/infra/blocksuite/manager/view.ts`
-- view/spec 侧支持能力装配。
-
-### `runtime/`
-
-`app/components/chat/infra/blocksuite/runtime/blocksuiteWsClient.ts`
-- Blocksuite 文档同步用 websocket client。
-
-`app/components/chat/infra/blocksuite/runtime/remoteDocSource.ts`
-- snapshot + updates + ws 合并而成的远端 doc source。
-
-`app/components/chat/infra/blocksuite/runtime/runtimeLoader.browser.ts`
-- 浏览器侧 runtime loader。
-
-`app/components/chat/infra/blocksuite/runtime/spaceWorkspace.ts`
-- SpaceWorkspace 核心运行时，负责 doc/store/source 生命周期。
-
-### `services/`
-
-`app/components/chat/infra/blocksuite/services/quickSearchService.ts`
-- 文档 quick search service。
-
-`app/components/chat/infra/blocksuite/services/tuanChatUserService.ts`
-- TuanChat 用户服务桥接。
-
-### `space/`
-
-`app/components/chat/infra/blocksuite/space/deleteSpaceDoc.ts`
-- 删除 space doc 的业务流程。
-
-`app/components/chat/infra/blocksuite/space/spaceDocId.ts`
-- Space 内 docId 构造与解析。
-
-`app/components/chat/infra/blocksuite/space/spaceDocMetaPersistence.ts`
-- space doc meta 的本地缓存与标题同步队列。
-
-`app/components/chat/infra/blocksuite/space/spaceWorkspaceRegistry.ts`
-- 业务层访问 workspace/doc/meta 的窄接口。
-
-### `spec/`
-
-`app/components/chat/infra/blocksuite/spec/coreElements.browser.ts`
-- 核心元素/spec 注册。
-
-`app/components/chat/infra/blocksuite/spec/roomMapEmbedConfig.ts`
-- room map embed spec 配置。
-
-`app/components/chat/infra/blocksuite/spec/tcMentionElement.client.ts`
-- tc mention 自定义元素。
-
-### `styles/`
-
-`app/components/chat/infra/blocksuite/styles/affine-embed-synced-doc-header.css`
-- embed synced doc header 样式。
-
-`app/components/chat/infra/blocksuite/styles/frameBase.css`
-- iframe 基础样式。
-
-`app/components/chat/infra/blocksuite/styles/tcHeader.css`
-- tcHeader 样式。
-
-### `test/`
-
-`app/components/chat/infra/blocksuite/test/blocksuiteEditorLifecycleHydration.test.ts`
-- iframe 启动 hydration 决策单测。
-
-## 5. 如何使用这份字典
+## 如何使用这份字典
 
 如果你要找：
-- iframe 相关：优先看 `frame/`
-- Space / docId / registry：优先看 `space/`
-- 远端 snapshot / updates：优先看 `description/` 与 `runtime/remoteDocSource.ts`
-- editor 创建：优先看 `editors/` 与 `embedded/`
-- 文档说明：优先看 `doc/`
+- iframe 相关：优先看 [frame/](../frame) 和 [FRAME.md](./architecture/FRAME.md)
+- Space / docId / registry：优先看 [space/](../space) 和 [SPACE.md](./architecture/SPACE.md)
+- 远端 snapshot / updates：优先看 [description/](../description) 与 [remoteDocSource.ts](../runtime/remoteDocSource.ts)
+- editor 创建：优先看 [editors/](../editors) 与 [embedded/](../embedded)
+- 文档说明：优先看 [doc/](./)
 
-如果后续继续拆目录，更新规则也应该同步：
-- 先改这里，再改其他说明文档
+如果后续继续拆目录，更新顺序也要同步：
+- 先改 [DIRECTORY.md](./DIRECTORY.md)
+- 再改对应子文档
 - 新文件必须进入某个明确子域，不要回退到根目录散放

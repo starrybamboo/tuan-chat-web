@@ -2,7 +2,7 @@
 
 ## 路径
 
-`app/components/chat/infra/blocksuite/embedded/`
+- [embedded/](../../embedded)
 
 ## 目标
 
@@ -10,12 +10,12 @@
 
 ## 当前文件
 
-- `createEmbeddedAffineEditor.client.ts`
-- `embedIframeNoCredentiallessElements.ts`
-- `embedIframeNoCredentiallessViewOverride.ts`
-- `mockServices.ts`
-- `roomMapEmbedOption.ts`
-- `tcAffineEditorContainer.ts`
+- [createEmbeddedAffineEditor.client.ts](../../embedded/createEmbeddedAffineEditor.client.ts)
+- [embedIframeNoCredentiallessElements.ts](../../embedded/embedIframeNoCredentiallessElements.ts)
+- [embedIframeNoCredentiallessViewOverride.ts](../../embedded/embedIframeNoCredentiallessViewOverride.ts)
+- [mockServices.ts](../../embedded/mockServices.ts)
+- [roomMapEmbedOption.ts](../../embedded/roomMapEmbedOption.ts)
+- [tcAffineEditorContainer.ts](../../embedded/tcAffineEditorContainer.ts)
 
 ## 负责的事
 
@@ -30,6 +30,6 @@
 
 ## 与其他目录的关系
 
-- 依赖 `editors/` 创建 editor
-- 依赖 `services/` 提供业务服务
-- 依赖 `spec/` 注册扩展元素
+- 依赖 [createBlocksuiteEditor.browser.ts](../../editors/createBlocksuiteEditor.browser.ts) 创建 editor
+- 依赖 [quickSearchService.ts](../../services/quickSearchService.ts) 与 [tuanChatUserService.ts](../../services/tuanChatUserService.ts) 提供业务服务
+- 依赖 [spec/](../../spec) 注册扩展元素
