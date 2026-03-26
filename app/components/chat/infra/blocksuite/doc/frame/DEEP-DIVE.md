@@ -62,7 +62,7 @@
 
 - 把 runtime 提供的 `store/workspace/docModeProvider` 转成真正的 editor DOM
 - 通过 `editors/extensions/` 里的 builder 与 `BlocksuiteExtensionBundle` 协议注入项目自定义扩展、业务 service 和 editor container
-- 复用 [embedded/](../../embedded) 中仅剩的 embed block 扩展
+- embed block 扩展实现已经并入 `editors/extensions/embed/`
 
 深入看“业务能力如何接进 editor”，统一跳转：
 
@@ -163,7 +163,7 @@
 核心职责：
 
 - 负责最终 editor DOM 装配
-- 承接 manager、services、embedded 扩展
+- 承接 manager、services、extensions/embed 扩展
 - 把 editor 的视图层细节从 frame lifecycle 中剥离出去
 
 ### 5. 交互与展示增强层

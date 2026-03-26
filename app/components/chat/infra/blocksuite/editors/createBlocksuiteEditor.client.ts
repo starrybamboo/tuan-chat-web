@@ -10,13 +10,13 @@ import {
 import {
   buildBlocksuiteCoreEditorExtensions,
 } from "./extensions/buildBlocksuiteCoreEditorExtensions";
-import { buildBlocksuiteEmbedExtensions } from "./extensions/buildBlocksuiteEmbedExtensions";
 import {
   buildBlocksuiteLinkedDocExtensions,
   handleBlocksuiteDocLinkNavigation,
 } from "./extensions/buildBlocksuiteLinkedDocExtensions";
 import { buildBlocksuiteMentionExtensions } from "./extensions/buildBlocksuiteMentionExtensions";
 import { buildBlocksuiteQuickSearchExtension } from "./extensions/buildBlocksuiteQuickSearchExtension";
+import { buildBlocksuiteEmbedExtensions } from "./extensions/embed/buildBlocksuiteEmbedExtensions";
 import { mergeBlocksuiteExtensionBundles } from "./extensions/types";
 import { ensureTCAffineEditorContainerDefined, TC_AFFINE_EDITOR_CONTAINER_TAG } from "./tcAffineEditorContainer";
 

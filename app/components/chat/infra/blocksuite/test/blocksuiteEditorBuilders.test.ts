@@ -5,7 +5,6 @@ import { readBlocksuiteCachedDocTitle } from "../editors/extensions/blocksuiteEd
 import {
   filterBlocksuiteDocTitlePageSpecs,
 } from "../editors/extensions/buildBlocksuiteCoreEditorExtensions";
-import { buildBlocksuiteEmbedExtensions } from "../editors/extensions/buildBlocksuiteEmbedExtensions";
 import {
   createBlocksuiteDocMenuGroup,
   handleBlocksuiteDocLinkNavigation,
@@ -18,8 +17,9 @@ import {
   lockBlocksuiteMentionMenu,
 } from "../editors/extensions/buildBlocksuiteMentionExtensions";
 import { buildBlocksuiteQuickSearchExtension } from "../editors/extensions/buildBlocksuiteQuickSearchExtension";
-import { EmbedIframeNoCredentiallessViewOverride } from "../embedded/embedIframeNoCredentiallessViewOverride";
-import { RoomMapEmbedOptionExtension } from "../embedded/roomMapEmbedOption";
+import { buildBlocksuiteEmbedExtensions } from "../editors/extensions/embed/buildBlocksuiteEmbedExtensions";
+import { EmbedIframeNoCredentiallessViewOverride } from "../editors/extensions/embed/embedIframeNoCredentiallessViewOverride";
+import { RoomMapEmbedOptionExtension } from "../editors/extensions/embed/roomMapEmbedOption";
 import { listBlocksuiteSpaceMemberIds } from "../services/blocksuiteSpaceMemberService";
 
 vi.mock("../manager/view", () => ({

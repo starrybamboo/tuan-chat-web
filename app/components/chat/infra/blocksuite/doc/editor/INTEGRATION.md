@@ -275,7 +275,7 @@ const merged = mergeBlocksuiteExtensionBundles(
 
 ### Embed
 
-- [buildBlocksuiteEmbedExtensions.ts](../../editors/extensions/buildBlocksuiteEmbedExtensions.ts)
+- [buildBlocksuiteEmbedExtensions.ts](../../editors/extensions/embed/buildBlocksuiteEmbedExtensions.ts)
 
 负责：
 
