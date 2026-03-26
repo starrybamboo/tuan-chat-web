@@ -10,17 +10,16 @@
 
 ## 当前文件
 
-- [blocksuiteWsClient.ts](../../runtime/blocksuiteWsClient.ts)
-- [remoteDocSource.ts](../../runtime/remoteDocSource.ts)
 - [runtimeLoader.browser.ts](../../runtime/runtimeLoader.browser.ts)
-- [spaceWorkspace.ts](../../runtime/spaceWorkspace.ts)
+- [space/runtime/blocksuiteWsClient.ts](../../space/runtime/blocksuiteWsClient.ts)
+- [space/runtime/remoteDocSource.ts](../../space/runtime/remoteDocSource.ts)
+- [space/runtime/spaceWorkspace.ts](../../space/runtime/spaceWorkspace.ts)
 
 ## 负责的事
 
-- workspace 生命周期
-- doc source 组合
-- websocket fanout
 - runtime loader 对外收口
+- 暴露浏览器侧统一 runtime 入口
+- 依赖 `space/runtime/` 提供底层 workspace/doc 运行时能力
 
 ## 不负责的事
 
@@ -30,5 +29,4 @@
 ## 典型调用方
 
 - [useBlocksuiteEditorLifecycle.ts](../../frame/useBlocksuiteEditorLifecycle.ts)
-- [createBlocksuiteEditor.client.ts](../../editors/createBlocksuiteEditor.client.ts)
-- [spaceWorkspaceRegistry.ts](../../space/spaceWorkspaceRegistry.ts)
+- [BlocksuiteDescriptionEditorRuntime.browser.tsx](../../frame/BlocksuiteDescriptionEditorRuntime.browser.tsx)

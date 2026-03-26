@@ -6,7 +6,7 @@ import {
   getSpaceWorkspaceRuntimeIfExists,
   releaseSpaceWorkspaceRuntime,
   retainSpaceWorkspaceRuntime,
-} from "@/components/chat/infra/blocksuite/runtime/spaceWorkspace";
+} from "@/components/chat/infra/blocksuite/space/runtime/spaceWorkspace";
 
 /**
  * 业务层与 SpaceWorkspace 之间的窄接口。

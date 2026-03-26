@@ -20,7 +20,7 @@ import {
   setRemoteSnapshot,
 
 } from "@/components/chat/infra/blocksuite/description/descriptionDocRemote";
-import { blocksuiteWsClient } from "@/components/chat/infra/blocksuite/runtime/blocksuiteWsClient";
+import { blocksuiteWsClient } from "@/components/chat/infra/blocksuite/space/runtime/blocksuiteWsClient";
 
 function parseRemoteKeyFromDocId(docId: string) {
   return parseDescriptionDocId(docId);

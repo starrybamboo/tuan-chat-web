@@ -53,7 +53,7 @@
 
 - app/components/chat/infra/blocksuite/space/spaceWorkspaceRegistry.ts
   - Space -> Workspace 映射（Demo：workspaceId=`space:${spaceId}`）
-- app/components/chat/infra/blocksuite/runtime/spaceWorkspace.ts
+- app/components/chat/infra/blocksuite/space/runtime/spaceWorkspace.ts
   - `SpaceWorkspace`：一个 Space 对应一个 root Y.Doc，内部管理多个 docId
   - 数据放置：`rootDoc.getMap('spaces').get(docId)` 的 subdoc 内，subdoc 里维护 `blocks` map
   - 存储：`DocEngine + IndexedDBDocSource`（纯本地）

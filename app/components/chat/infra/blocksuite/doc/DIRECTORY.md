@@ -221,10 +221,7 @@ frame 专题文档目录。
 
 ### [runtime/](../runtime)
 
-- [blocksuiteWsClient.ts](../runtime/blocksuiteWsClient.ts)：Blocksuite 文档同步用 websocket client
-- [remoteDocSource.ts](../runtime/remoteDocSource.ts)：snapshot + updates + ws 合并而成的远端 doc source
 - [runtimeLoader.browser.ts](../runtime/runtimeLoader.browser.ts)：浏览器侧 runtime loader
-- [spaceWorkspace.ts](../runtime/spaceWorkspace.ts)：SpaceWorkspace 核心运行时，负责 doc/store/source 生命周期
 
 ### [services/](../services)
 
@@ -237,6 +234,9 @@ frame 专题文档目录。
 - [spaceDocId.ts](../space/spaceDocId.ts)：Space 内 docId 构造与解析
 - [spaceDocMetaPersistence.ts](../space/spaceDocMetaPersistence.ts)：space doc meta 的本地缓存与标题同步队列
 - [spaceWorkspaceRegistry.ts](../space/spaceWorkspaceRegistry.ts)：业务层访问 workspace/doc/meta 的窄接口
+- [runtime/blocksuiteWsClient.ts](../space/runtime/blocksuiteWsClient.ts)：SpaceWorkspace 使用的 websocket client
+- [runtime/remoteDocSource.ts](../space/runtime/remoteDocSource.ts)：SpaceWorkspace 使用的远端 snapshot/update source
+- [runtime/spaceWorkspace.ts](../space/runtime/spaceWorkspace.ts)：SpaceWorkspace 核心运行时，负责 doc/store/source 生命周期
 
 ### [spec/](../spec)
 
@@ -259,7 +259,7 @@ frame 专题文档目录。
 如果你要找：
 - iframe 相关：优先看 [frame/](../frame) 和 [FRAME.md](./architecture/FRAME.md)
 - Space / docId / registry：优先看 [space/](../space) 和 [SPACE.md](./architecture/SPACE.md)
-- 远端 snapshot / updates：优先看 [description/](../description) 与 [remoteDocSource.ts](../runtime/remoteDocSource.ts)
+- 远端 snapshot / updates：优先看 [description/](../description) 与 [space/runtime/remoteDocSource.ts](../space/runtime/remoteDocSource.ts)
 - editor 创建和 embed block 行为：优先看 [editors/](../editors)
 - editor 业务插件怎么接：优先看 [editor/INTEGRATION.md](./editor/INTEGRATION.md)
 - editor 装配细节、插件规范和挂载链路：优先看 [editor/README.md](./editor/README.md)

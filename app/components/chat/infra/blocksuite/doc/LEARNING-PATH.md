@@ -69,7 +69,7 @@
    - 你要理解：路由本身只负责轻量壳，真正的 BlockSuite 客户端启动被收口到 route client chunk 内部的静态导入子图
 
 3. **Workspace/Doc/Store 运行时（数据与存储管线）**
-   - `app/components/chat/infra/blocksuite/runtime/spaceWorkspace.ts`
+   - `app/components/chat/infra/blocksuite/space/runtime/spaceWorkspace.ts`
    - `app/components/chat/infra/blocksuite/space/spaceWorkspaceRegistry.ts`
    - 你要理解：Space≈Workspace、root Y.Doc + subdoc 的组织方式、IndexedDB 的持久化边界
 
