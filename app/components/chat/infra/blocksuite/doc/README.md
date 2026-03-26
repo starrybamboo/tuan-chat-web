@@ -4,6 +4,7 @@
 
 必读（需求口径与概念对齐）：
 - 业务需求说明（后续需求变更都更新这里）：`BUSINESS.md`
+- editor 专区入口：`editor/README.md`
 - 业务能力如何接入 editor：`BUSINESS-INTEGRATION.md`
 - 目录字典（目录职责与源码索引）：`DIRECTORY.md`
 - 内部数据结构/术语对照：`INTERNAL-DATA.md`
@@ -96,6 +97,11 @@ Blocksuite/AFFiNE 某些包会通过 exports 暴露 TS 源码，严格模式下 
 - iframe 方案的详细链路不再写在本文件里，统一看：
   - [architecture/FRAME.md](./architecture/FRAME.md)
   - [FRAME-DEEP-DIVE.md](./FRAME-DEEP-DIVE.md)
+- editor 装配、插件和挂载链路统一看：
+  - [editor/README.md](./editor/README.md)
+  - [editor/ARCHITECTURE.md](./editor/ARCHITECTURE.md)
+  - [editor/PLUGINS.md](./editor/PLUGINS.md)
+  - [editor/MOUNTING.md](./editor/MOUNTING.md)
 - 业务能力如何接入 editor，看：
   - [BUSINESS-INTEGRATION.md](./BUSINESS-INTEGRATION.md)
 - 目录职责与路径索引统一看：

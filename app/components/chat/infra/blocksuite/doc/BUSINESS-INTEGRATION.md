@@ -66,6 +66,11 @@ new BlockStdScope({
   只负责 orchestration
 - 真正的业务能力装配，已经收口到：
   - [extensions/](../editors/extensions)
+- 更完整的 editor 专区文档看：
+  - [editor/README.md](./editor/README.md)
+  - [editor/ARCHITECTURE.md](./editor/ARCHITECTURE.md)
+  - [editor/PLUGINS.md](./editor/PLUGINS.md)
+  - [editor/MOUNTING.md](./editor/MOUNTING.md)
 
 ## 4. extension 是怎么接进 editor 的
 
