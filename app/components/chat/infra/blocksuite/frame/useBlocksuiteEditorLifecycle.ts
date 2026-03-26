@@ -102,18 +102,23 @@ export function useBlocksuiteEditorLifecycle(params: UseBlocksuiteEditorLifecycl
     let retainedRuntime: Awaited<ReturnType<typeof loadBlocksuiteRuntime>> | null = null;
     let hasPostedRenderReady = false;
 
+    // useEffect 不能直接写成 async，这里用立即执行异步函数承载整段启动流程。
+    // 外层 effect 负责生命周期和 cleanup，内层 async 负责按顺序创建 runtime/store/editor。
     void (async () => {
+      // runtime 是 Blocksuite 的运行时入口，后续 workspace、store、editor 都从这里拿。
       const runtime = await loadBlocksuiteRuntime();
       runtimeRef.current = runtime;
       if (abort.signal.aborted)
         return;
 
+      // 在当前 effect 生命周期内持有 workspace，cleanup 时再释放对应引用。
       runtime.retainWorkspace(workspaceId);
       retainedRuntime = runtime;
 
       const workspace = runtime.getOrCreateWorkspace(workspaceId);
       docRuntimeRef.current = { workspace, docId };
 
+      // 对描述文档优先尝试远端快照，尽量在创建 store 前恢复首屏内容。
       const remoteSnapshotDecision = await waitForRemoteSnapshotDecision({
         docId,
         signal: abort.signal,
@@ -134,6 +139,7 @@ export function useBlocksuiteEditorLifecycle(params: UseBlocksuiteEditorLifecycl
         }
       }
 
+      // store 创建前先确保文档元信息存在，便于 runtime 后续正确关联文档。
       runtime.ensureDocMeta({ workspaceId, docId });
       markBlocksuiteOpenSession(instanceIdRef.current ?? "", "store-create-start");
       const store = runtime.getOrCreateDoc({ workspaceId, docId, readonly: readOnlyRef.current });
@@ -153,6 +159,7 @@ export function useBlocksuiteEditorLifecycle(params: UseBlocksuiteEditorLifecycl
         warnNonFatalBlocksuiteError("[BlocksuiteDescriptionEditor] Failed to reset store history", error);
       }
 
+      // tcHeader 既同步到 React 状态，也顺手回填文档标题元信息。
       const applyHeaderState = (header: BlocksuiteDocHeader | null) => {
         if (!header)
           return;
@@ -164,6 +171,7 @@ export function useBlocksuiteEditorLifecycle(params: UseBlocksuiteEditorLifecycl
 
       if (tcHeaderEnabled) {
         try {
+          // 订阅 store 内 header 变化，保持外层状态和编辑器内部模型一致。
           unsubscribeHeader = subscribeBlocksuiteDocHeader(store, (header) => {
             applyHeaderState(header);
           });
@@ -172,12 +180,14 @@ export function useBlocksuiteEditorLifecycle(params: UseBlocksuiteEditorLifecycl
             tcHeaderEnabled,
             hydrationState: remoteSnapshotDecision.state,
           })) {
+            // 当前 hydration 状态足够稳定，可以立即补兜底 header。
             applyHeaderState(ensureBlocksuiteDocHeader(store, {
               title: tcHeaderFallbackTitle,
               imageUrl: tcHeaderFallbackImageUrl,
             }));
           }
           else {
+            // 如果远端 hydration 仍在继续，延后补兜底 header，避免和真实远端内容抢写。
             void waitForRemoteHydrationSettled({
               workspace: workspace as any,
               docId,
@@ -217,6 +227,7 @@ export function useBlocksuiteEditorLifecycle(params: UseBlocksuiteEditorLifecycl
         });
       }
 
+      // store 准备完成后再创建 editor 视图，并把导航和模式切换能力注入进去。
       markBlocksuiteOpenSession(instanceIdRef.current ?? "", "editor-create-start");
       const editor = await runtime.createBlocksuiteEditor({
         store,
@@ -256,12 +267,14 @@ export function useBlocksuiteEditorLifecycle(params: UseBlocksuiteEditorLifecycl
       });
       createdEditor = editor;
 
+      // 宿主容器只承载 editor 元素，这里集中设置基础尺寸。
       (editor as any).style.display = "block";
       (editor as any).style.width = "100%";
       (editor as any).style.minHeight = "8rem";
       (editor as any).style.height = isFull ? "100%" : "auto";
 
       if (readOnlyRef.current) {
+        // 不同实现可能读取字段或属性，统一设置避免只读状态不生效。
         (editor as any).readOnly = true;
         (editor as any).readonly = true;
         (editor as any).setAttribute?.("readonly", "true");
@@ -270,12 +283,14 @@ export function useBlocksuiteEditorLifecycle(params: UseBlocksuiteEditorLifecycl
       editorRef.current = editor as unknown as HTMLElement;
       storeRef.current = store;
 
+      // 每次重建直接替换整个容器内容，避免残留旧 editor 节点。
       container.replaceChildren(editor as unknown as Node);
 
       const postRenderReady = () => {
         if (hasPostedRenderReady)
           return;
         hasPostedRenderReady = true;
+        // 延后一帧再通知父层，保证 editor 已挂进 DOM 并获得一次布局机会。
         requestAnimationFrame(() => {
           if (abort.signal.aborted)
             return;
@@ -286,6 +301,7 @@ export function useBlocksuiteEditorLifecycle(params: UseBlocksuiteEditorLifecycl
       };
 
       if (shouldUseRemoteFirstHydration(docId) && shouldDelayRenderReady(remoteSnapshotDecision.state)) {
+        // 启动期远端判断失败或超时时，再给 hydration 一个补救窗口，减少首屏闪烁。
         void waitForRemoteHydrationSettled({
           workspace: workspace as any,
           docId,
@@ -299,6 +315,7 @@ export function useBlocksuiteEditorLifecycle(params: UseBlocksuiteEditorLifecycl
         postRenderReady();
       }
 
+      // 宿主层统一拦截撤销/重做快捷键，只在焦点位于当前 editor 内时转发给 Blocksuite。
       const onUndoRedoKeyDown = (event: KeyboardEvent) => {
         const isMod = event.ctrlKey || event.metaKey;
         if (!isMod)
@@ -348,6 +365,7 @@ export function useBlocksuiteEditorLifecycle(params: UseBlocksuiteEditorLifecycl
       window.addEventListener("keydown", onUndoRedoKeyDown, { capture: true, signal: abort.signal });
 
       try {
+        // editor 创建完成后补一次模式同步，避免首帧显示模式和外层状态不一致。
         (editor as any).switchEditor(currentModeRef.current);
       }
       catch (error) {
@@ -355,6 +373,7 @@ export function useBlocksuiteEditorLifecycle(params: UseBlocksuiteEditorLifecycl
       }
 
       if (typeof window !== "undefined" && import.meta.env.DEV) {
+        // 开发环境暴露调试句柄，便于在控制台直接检查 editor/store。
         const g = globalThis as any;
         g.editor = editor;
         g.blocksuiteStore = store;
