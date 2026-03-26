@@ -19,19 +19,22 @@
 
 只保留“目录内至少有 3 个文件”的架构文档：
 
-- 根目录共享基础件：[ROOT.md](./architecture/ROOT.md)
+- 顶层目录边界：[ROOT.md](./architecture/ROOT.md)
 - `description/`：[DESCRIPTION.md](./architecture/DESCRIPTION.md)
 - `doc/`：[DOCS.md](./architecture/DOCS.md)
 - `editors/`：[EDITORS.md](./architecture/EDITORS.md)
 - `frame/`：[FRAME.md](./architecture/FRAME.md)
 - `manager/`：[MANAGER.md](./architecture/MANAGER.md)
 - `runtime/`：[RUNTIME.md](./architecture/RUNTIME.md)
+- `shared/`：[SHARED.md](./architecture/SHARED.md)
 - `space/`：[SPACE.md](./architecture/SPACE.md)
 - `spec/`：[SPEC.md](./architecture/SPEC.md)
 - `styles/`：[STYLES.md](./architecture/STYLES.md)
 
 没有单独架构文档的目录：
 - `bootstrap/`
+- `document/`
+- `mention/`
 - `services/`
 - `test/`
 
@@ -42,12 +45,15 @@
 Blocksuite 集成根目录。
 
 这里放的是三类内容：
-- 通用基础件：编码、错误、调试、header、性能打点
+- 顶层目录边界与共享子域
 - 领域子目录：`description/`、`space/`、`runtime/`、`frame/` 等
 - 文档与测试：`doc/`、`test/`
 
 目录划分原则：
-- 根目录只放被多个子域复用、暂时不值得再细分的基础件
+- 根目录不再放源码文件
+- 横切基础件进入 `shared/`
+- 文档语义 helper 进入 `document/`
+- mention 宿主 UI 进入 `mention/`
 - 强业务语义文件放进对应领域目录
 - iframe 专用实现全部收口在 `frame/`
 
@@ -71,6 +77,10 @@ Description 类文档的标识、远端快照和本地 updates 存储层。
 
 对应子文档：[DOCS.md](./architecture/DOCS.md)
 
+### [document/](../document)
+
+文档语义 helper 目录，放 header 与 excerpt 这类不属于 runtime 也不属于 editor 装配的能力。
+
 ### [editors/](../editors)
 
 editor 装配层，把 runtime 提供的 `store/workspace` 转成最终可挂载的 editor DOM。
@@ -89,11 +99,21 @@ Blocksuite 能力边界管理层。
 
 对应子文档：[MANAGER.md](./architecture/MANAGER.md)
 
+### [mention/](../mention)
+
+mention 相关宿主 UI 目录。
+
 ### [runtime/](../runtime)
 
-底层运行时与同步层。
+浏览器侧 runtime 入口目录。
 
 对应子文档：[RUNTIME.md](./architecture/RUNTIME.md)
+
+### [shared/](../shared)
+
+跨多个子域复用的基础件目录。
+
+对应子文档：[SHARED.md](./architecture/SHARED.md)
 
 ### [services/](../services)
 
@@ -133,15 +153,9 @@ frame 专题文档目录。
 
 历史记录目录。
 
-## 根目录文件字典
+## 根目录说明
 
-- [base64.ts](../base64.ts)：`Uint8Array <-> base64` 转换工具
-- [blocksuiteDocError.ts](../blocksuiteDocError.ts)：错误类型与可重试判断
-- [debugFlags.ts](../debugFlags.ts)：调试开关读取
-- [docExcerpt.ts](../docExcerpt.ts)：从 store 提取摘要文本
-- [docHeader.ts](../docHeader.ts)：文档 header 的读写、订阅与 fallback 处理
-- [mentionProfilePopover.tsx](../mentionProfilePopover.tsx)：mention 用户卡片/悬浮层 UI
-- [perf.ts](../perf.ts)：Blocksuite 打开链路性能埋点
+根目录不再放业务源码文件，顶层只保留子目录。
 
 ## 子目录文件索引
 
@@ -173,16 +187,22 @@ frame 专题文档目录。
 - [records/BOUNDARY-UPDATE.md](./records/BOUNDARY-UPDATE.md)：边界版改动说明
 - [records/EDITOR-UPDATES.md](./records/EDITOR-UPDATES.md)：editor 结构调整记录
 - [TROUBLESHOOTING.md](./TROUBLESHOOTING.md)：常见问题与排查入口
-- [architecture/ROOT.md](./architecture/ROOT.md)：根目录共享基础件架构
+- [architecture/ROOT.md](./architecture/ROOT.md)：顶层目录边界与收口规则
 - [architecture/DESCRIPTION.md](./architecture/DESCRIPTION.md)：`description/` 架构
 - [architecture/DOCS.md](./architecture/DOCS.md)：`doc/` 架构
 - [architecture/EDITORS.md](./architecture/EDITORS.md)：`editors/` 架构
 - [architecture/FRAME.md](./architecture/FRAME.md)：`frame/` 架构
 - [architecture/MANAGER.md](./architecture/MANAGER.md)：`manager/` 架构
 - [architecture/RUNTIME.md](./architecture/RUNTIME.md)：`runtime/` 架构
+- [architecture/SHARED.md](./architecture/SHARED.md)：`shared/` 架构
 - [architecture/SPACE.md](./architecture/SPACE.md)：`space/` 架构
 - [architecture/SPEC.md](./architecture/SPEC.md)：`spec/` 架构
 - [architecture/STYLES.md](./architecture/STYLES.md)：`styles/` 架构
+
+### [document/](../document)
+
+- [docExcerpt.ts](../document/docExcerpt.ts)：从 store 提取摘要文本
+- [docHeader.ts](../document/docHeader.ts)：文档 header 的读写、订阅与 fallback 处理
 
 ### [editors/](../editors)
 
@@ -219,9 +239,20 @@ frame 专题文档目录。
 - [store.ts](../manager/store.ts)：store 侧支持能力装配
 - [view.ts](../manager/view.ts)：view/spec 侧支持能力装配
 
+### [mention/](../mention)
+
+- [mentionProfilePopover.tsx](../mention/mentionProfilePopover.tsx)：mention 用户卡片/悬浮层 UI
+
 ### [runtime/](../runtime)
 
 - [runtimeLoader.browser.ts](../runtime/runtimeLoader.browser.ts)：浏览器侧 runtime loader
+
+### [shared/](../shared)
+
+- [base64.ts](../shared/base64.ts)：`Uint8Array <-> base64` 转换工具
+- [blocksuiteDocError.ts](../shared/blocksuiteDocError.ts)：错误类型与可重试判断
+- [debugFlags.ts](../shared/debugFlags.ts)：调试开关读取
+- [perf.ts](../shared/perf.ts)：Blocksuite 打开链路性能埋点
 
 ### [services/](../services)
 
@@ -260,6 +291,9 @@ frame 专题文档目录。
 - iframe 相关：优先看 [frame/](../frame) 和 [FRAME.md](./architecture/FRAME.md)
 - Space / docId / registry：优先看 [space/](../space) 和 [SPACE.md](./architecture/SPACE.md)
 - 远端 snapshot / updates：优先看 [description/](../description) 与 [space/runtime/remoteDocSource.ts](../space/runtime/remoteDocSource.ts)
+- 共享基础件：优先看 [shared/](../shared) 和 [SHARED.md](./architecture/SHARED.md)
+- 文档语义 helper：优先看 [document/](../document)
+- mention 宿主 UI：优先看 [mention/](../mention)
 - editor 创建和 embed block 行为：优先看 [editors/](../editors)
 - editor 业务插件怎么接：优先看 [editor/INTEGRATION.md](./editor/INTEGRATION.md)
 - editor 装配细节、插件规范和挂载链路：优先看 [editor/README.md](./editor/README.md)

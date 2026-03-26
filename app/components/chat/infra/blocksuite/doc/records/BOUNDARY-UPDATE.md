@@ -118,7 +118,7 @@
 相关文件：
 
 - [`/Users/chxr/Projects/tuan-chat-web/app/components/chat/infra/blocksuite/editors/tcAffineEditorContainer.ts`](/Users/chxr/Projects/tuan-chat-web/app/components/chat/infra/blocksuite/editors/tcAffineEditorContainer.ts)
-- [`/Users/chxr/Projects/tuan-chat-web/app/components/chat/infra/blocksuite/perf.ts`](/Users/chxr/Projects/tuan-chat-web/app/components/chat/infra/blocksuite/perf.ts)
+- [`/Users/chxr/Projects/tuan-chat-web/app/components/chat/infra/blocksuite/shared/perf.ts`](/Users/chxr/Projects/tuan-chat-web/app/components/chat/infra/blocksuite/shared/perf.ts)
 
 这两类改动分别解决：
 

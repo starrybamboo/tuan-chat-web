@@ -1,6 +1,6 @@
-import { isBlocksuiteDebugEnabled } from "../debugFlags";
 import { createBlocksuiteQuickSearchService } from "../services/quickSearchService";
 import { createTuanChatUserService } from "../services/tuanChatUserService";
+import { isBlocksuiteDebugEnabled } from "../shared/debugFlags";
 import { createBlocksuiteQuickSearchPicker } from "./extensions/blocksuiteQuickSearchPicker";
 
 export type WorkspaceLike = {

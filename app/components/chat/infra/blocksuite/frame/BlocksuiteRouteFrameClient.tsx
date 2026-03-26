@@ -1,8 +1,8 @@
 import type { DocMode } from "@blocksuite/affine/model";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ensureBlocksuiteBrowserRuntime } from "../bootstrap/browser";
-import { isBlocksuiteDebugEnabled } from "../debugFlags";
-import { failBlocksuiteOpenSession, markBlocksuiteOpenSession } from "../perf";
+import { isBlocksuiteDebugEnabled } from "../shared/debugFlags";
+import { failBlocksuiteOpenSession, markBlocksuiteOpenSession } from "../shared/perf";
 import { BlocksuiteDescriptionEditorRuntime } from "./BlocksuiteDescriptionEditorRuntime.browser";
 
 /**

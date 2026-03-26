@@ -3,7 +3,7 @@ import type {
   WorkspaceLike,
 } from "../blocksuiteEditorAssemblyContext";
 
-import { readBlocksuiteDocHeader } from "../../docHeader";
+import { readBlocksuiteDocHeader } from "../../document/docHeader";
 
 const TC_HEADER_TITLE_TTL_MS = 10_000;
 

@@ -1,9 +1,9 @@
 import type { DocMode } from "@blocksuite/affine/model";
 import type { KeyboardEvent as ReactKeyboardEvent, RefObject } from "react";
-import type { BlocksuiteDocHeader } from "@/components/chat/infra/blocksuite/docHeader";
+import type { BlocksuiteDocHeader } from "@/components/chat/infra/blocksuite/document/docHeader";
 import { FileTextIcon } from "@phosphor-icons/react";
 import { useCallback } from "react";
-import { setBlocksuiteDocHeader } from "@/components/chat/infra/blocksuite/docHeader";
+import { setBlocksuiteDocHeader } from "@/components/chat/infra/blocksuite/document/docHeader";
 import { ResizableImg } from "@/components/common/resizableImg";
 import toastWindow from "@/components/common/toastWindow/toastWindow";
 import { ImgUploaderWithCopper } from "@/components/common/uploader/imgUploaderWithCropper";
