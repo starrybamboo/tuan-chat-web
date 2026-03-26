@@ -288,7 +288,7 @@ frame 专题文档目录。
 
 如果你要找：
 - 总体架构与依赖：优先看 [ARCHITECTURE-OVERVIEW.md](./ARCHITECTURE-OVERVIEW.md)
-- iframe 相关：优先看 [frame/](../frame) 和 [FRAME.md](./architecture/FRAME.md)
+- iframe 相关：优先看 [frame/README.md](./frame/README.md) 和 [FRAME.md](./architecture/FRAME.md)
 - Space / docId / registry：优先看 [space/](../space) 和 [SPACE.md](./architecture/SPACE.md)
 - 远端 snapshot / updates：优先看 [description/](../description) 与 [space/runtime/remoteDocSource.ts](../space/runtime/remoteDocSource.ts)
 - 共享基础件：优先看 [shared/](../shared) 和 [SHARED.md](./architecture/SHARED.md)
