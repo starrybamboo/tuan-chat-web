@@ -45,3 +45,7 @@
 
 - iframe 协议字段变更时，必须同步检查宿主侧 [blocksuiteDescriptionEditor.tsx](../../../../shared/components/BlockSuite/blocksuiteDescriptionEditor.tsx)
 - 启动链路调整时，必须同步检查 [blocksuiteEditorLifecycleHydration.test.ts](../../test/blocksuiteEditorLifecycleHydration.test.ts)
+
+## 延伸阅读
+
+- [FRAME-DEEP-DIVE.md](../FRAME-DEEP-DIVE.md)
