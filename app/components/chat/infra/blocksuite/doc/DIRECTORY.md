@@ -7,6 +7,7 @@
 - 给出可直接跳转的源码入口
 
 不在本文档展开的内容：
+- 架构总览：看 [ARCHITECTURE-OVERVIEW.md](./ARCHITECTURE-OVERVIEW.md)
 - 业务语义：看 [BUSINESS.md](./BUSINESS.md)
 - editor 专区：看 [editor/README.md](./editor/README.md)
 - editor 业务能力接入：看 [editor/INTEGRATION.md](./editor/INTEGRATION.md)
@@ -155,7 +156,11 @@ frame 专题文档目录。
 
 ## 根目录说明
 
-根目录不再放业务源码文件，顶层只保留子目录。
+根层现在保留一组明确的 iframe 接入链路源码，不再要求“顶层只保留子目录”。
+
+约束是：
+- 只有 frame 接入链路源码允许放在根层
+- 其他新增源码必须进入明确子域
 
 ## 子目录文件索引
 
@@ -171,6 +176,7 @@ frame 专题文档目录。
 
 ### [doc/](./)
 
+- [ARCHITECTURE-OVERVIEW.md](./ARCHITECTURE-OVERVIEW.md)：最新分层架构图与依赖图
 - [BUSINESS.md](./BUSINESS.md)：Blocksuite 业务需求口径
 - [DIRECTORY.md](./DIRECTORY.md)：当前这份目录字典
 - [editor/README.md](./editor/README.md)：editor 专区总入口
@@ -288,6 +294,7 @@ frame 专题文档目录。
 ## 如何使用这份字典
 
 如果你要找：
+- 总体架构与依赖：优先看 [ARCHITECTURE-OVERVIEW.md](./ARCHITECTURE-OVERVIEW.md)
 - iframe 相关：优先看 [frame/](../frame) 和 [FRAME.md](./architecture/FRAME.md)
 - Space / docId / registry：优先看 [space/](../space) 和 [SPACE.md](./architecture/SPACE.md)
 - 远端 snapshot / updates：优先看 [description/](../description) 与 [space/runtime/remoteDocSource.ts](../space/runtime/remoteDocSource.ts)

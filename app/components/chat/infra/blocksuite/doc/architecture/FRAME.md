@@ -51,6 +51,19 @@
   -> [createBlocksuiteEditor.client.ts](../../editors/createBlocksuiteEditor.client.ts)
   -> [tcAffineEditorContainer.ts](../../editors/tcAffineEditorContainer.ts)
 
+## 简图
+
+```mermaid
+flowchart LR
+    A["BlocksuiteRouteFrameClient"] --> B["BlocksuiteDescriptionEditorRuntime"]
+    B --> C["useBlocksuiteEditorLifecycle"]
+    B --> D["useBlocksuiteDocModeProvider"]
+    B --> E["useBlocksuiteViewportBehavior"]
+    B --> F["BlocksuiteTcHeader"]
+    C --> G["runtimeLoader.browser"]
+    C --> H["createBlocksuiteEditor.browser"]
+```
+
 ## 维护约束
 
 - iframe 协议字段变更时，必须同步检查宿主侧 [blocksuiteDescriptionEditor.tsx](../../../../shared/components/BlockSuite/blocksuiteDescriptionEditor.tsx)
