@@ -12,7 +12,6 @@
 - 根层文件：iframe 接入链路的 route client、runtime orchestrator、lifecycle hooks 与 tcHeader UI
 - `shared/`：跨多个子域复用的基础件
 - `document/`：文档语义 helper
-- `mention/`：mention 相关宿主 UI
 
 ## 当前目录
 
@@ -25,17 +24,17 @@
 - [useBlocksuiteViewportBehavior.ts](../../useBlocksuiteViewportBehavior.ts)：viewport/fullscreen hook
 - [shared/](../../shared)：共享基础件目录
 - [document/](../../document)：文档语义 helper 目录
-- [mention/](../../mention)：mention 宿主 UI 目录
 
 ## 不负责的事
 
 - 不承担 workspace 生命周期
 - 不承担 description / space 业务映射
 - 不承担 spec 注册和样式资源
+- 不承载宿主侧 mention popover UI
 
 ## 维护约束
 
 - 只有 iframe 接入链路源码允许放在根层
 - 横切基础件放 [shared/](../../shared)
 - 文档语义 helper 放 [document/](../../document)
-- mention 宿主 UI 放 [mention/](../../mention)
+- 宿主侧 mention popover 放回 [BlockSuite/](../../../../shared/components/BlockSuite)

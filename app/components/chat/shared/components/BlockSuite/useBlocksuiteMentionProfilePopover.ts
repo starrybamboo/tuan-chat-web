@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import type { BlocksuiteMentionProfilePopoverState } from "@/components/chat/infra/blocksuite/mention/mentionProfilePopover";
+import type { BlocksuiteMentionProfilePopoverState } from "./blocksuiteMentionProfilePopover";
 
 type UseBlocksuiteMentionProfilePopoverParams = {
   navigate: (to: string) => void;

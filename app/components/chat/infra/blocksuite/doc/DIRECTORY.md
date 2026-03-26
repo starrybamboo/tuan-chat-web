@@ -35,7 +35,6 @@
 没有单独架构文档的目录：
 - `bootstrap/`
 - `document/`
-- `mention/`
 - `services/`
 - `test/`
 
@@ -54,7 +53,6 @@ Blocksuite 集成根目录。
 - iframe 接入链路源码允许直接放在根层
 - 横切基础件进入 `shared/`
 - 文档语义 helper 进入 `document/`
-- mention 宿主 UI 进入 `mention/`
 - 强业务语义文件放进对应领域目录
 - 其他不属于 iframe 接入链路的源码不要回流到根层
 
@@ -99,10 +97,6 @@ iframe 方案专用实现直接位于 Blocksuite 根层。
 Blocksuite 能力边界管理层。
 
 对应子文档：[MANAGER.md](./architecture/MANAGER.md)
-
-### [mention/](../mention)
-
-mention 相关宿主 UI 目录。
 
 ### [runtime/](../runtime)
 
@@ -245,10 +239,6 @@ frame 专题文档目录。
 - [store.ts](../manager/store.ts)：store 侧支持能力装配
 - [view.ts](../manager/view.ts)：view/spec 侧支持能力装配
 
-### [mention/](../mention)
-
-- [mentionProfilePopover.tsx](../mention/mentionProfilePopover.tsx)：mention 用户卡片/悬浮层 UI
-
 ### [runtime/](../runtime)
 
 - [runtimeLoader.browser.ts](../runtime/runtimeLoader.browser.ts)：浏览器侧 runtime loader
@@ -300,7 +290,7 @@ frame 专题文档目录。
 - 远端 snapshot / updates：优先看 [description/](../description) 与 [space/runtime/remoteDocSource.ts](../space/runtime/remoteDocSource.ts)
 - 共享基础件：优先看 [shared/](../shared) 和 [SHARED.md](./architecture/SHARED.md)
 - 文档语义 helper：优先看 [document/](../document)
-- mention 宿主 UI：优先看 [mention/](../mention)
+- mention 宿主 UI：优先看 [blocksuiteDescriptionEditor.tsx](/Users/chxr/Projects/tuan-chat-web/app/components/chat/shared/components/BlockSuite/blocksuiteDescriptionEditor.tsx) 和 [blocksuiteMentionProfilePopover.tsx](/Users/chxr/Projects/tuan-chat-web/app/components/chat/shared/components/BlockSuite/blocksuiteMentionProfilePopover.tsx)
 - editor 创建和 embed block 行为：优先看 [editors/](../editors)
 - editor 业务插件怎么接：优先看 [editor/INTEGRATION.md](./editor/INTEGRATION.md)
 - editor 装配细节、插件规范和挂载链路：优先看 [editor/README.md](./editor/README.md)
