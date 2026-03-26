@@ -23,7 +23,7 @@ flowchart TD
     Frame --> Shared["shared/<br/>base64 / error / debug / perf"]
     Editors --> Spec["spec/<br/>自定义 elements/spec 注册"]
     Frame --> Styles["styles/<br/>frameBase / tcHeader / embed header"]
-    Frame --> Mention["mention/<br/>mentionProfilePopover"]
+    Host --> Mention["宿主侧 mention popover<br/>shared/components/BlockSuite"]
 ```
 
 ## 依赖图
@@ -72,8 +72,11 @@ flowchart LR
 - `manager/`  
   负责统一项目允许启用的 Blocksuite 能力子集，分别喂给 store 侧和 view 侧。
 
-- `document/` / `shared/` / `mention/`  
-  分别承载文档语义 helper、横切基础件和 mention 宿主 UI。
+- `document/` / `shared/`  
+  分别承载文档语义 helper 和横切基础件。
+
+- 宿主侧 `BlockSuite/` 组件目录  
+  承载 mention popover 这类必须跟 iframe host 并列渲染的宿主 UI。
 
 ## 当前判断
 

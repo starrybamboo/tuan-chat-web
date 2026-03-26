@@ -67,8 +67,8 @@
   - 横切基础件：base64、错误分类、调试开关、perf 打点
 - app/components/chat/infra/blocksuite/document/
   - 文档语义 helper：docHeader、docExcerpt
-- app/components/chat/infra/blocksuite/mention/
-  - mention 专用宿主 UI：mentionProfilePopover
+- app/components/chat/shared/components/BlockSuite/
+  - 宿主侧 BlockSuite 组件与 mention popover
 
 ## 3. 存储与协作能力
 
