@@ -8,11 +8,12 @@
 
 不在本文档展开的内容：
 - 业务语义：看 [BUSINESS.md](./BUSINESS.md)
-- editor 业务能力接入：看 [BUSINESS-INTEGRATION.md](./BUSINESS-INTEGRATION.md)
 - editor 专区：看 [editor/README.md](./editor/README.md)
+- editor 业务能力接入：看 [editor/INTEGRATION.md](./editor/INTEGRATION.md)
+- frame 深挖：看 [frame/README.md](./frame/README.md)
+- 历史记录：看 [records/README.md](./records/README.md)
 - 内部数据结构：看 [INTERNAL-DATA.md](./INTERNAL-DATA.md)
 - 排障：看 [TROUBLESHOOTING.md](./TROUBLESHOOTING.md)
-- iframe 深入链路：看 [FRAME-DEEP-DIVE.md](./FRAME-DEEP-DIVE.md)
 
 ## 子目录架构文档索引
 
@@ -127,6 +128,18 @@ Blocksuite 相关样式资源目录。
 
 Blocksuite 目录内的测试收口目录。
 
+### [doc/editor/](./editor)
+
+editor 装配专题文档目录。
+
+### [doc/frame/](./frame)
+
+frame 专题文档目录。
+
+### [doc/records/](./records)
+
+历史记录目录。
+
 ## 根目录文件字典
 
 - [base64.ts](../base64.ts)：`Uint8Array <-> base64` 转换工具
@@ -151,19 +164,22 @@ Blocksuite 目录内的测试收口目录。
 
 ### [doc/](./)
 
-- [BOUNDARY-UPDATE.md](./BOUNDARY-UPDATE.md)：边界版改动说明
-- [BUSINESS-INTEGRATION.md](./BUSINESS-INTEGRATION.md)：业务能力如何接入 Blocksuite editor
 - [BUSINESS.md](./BUSINESS.md)：Blocksuite 业务需求口径
 - [DIRECTORY.md](./DIRECTORY.md)：当前这份目录字典
 - [editor/README.md](./editor/README.md)：editor 专区总入口
 - [editor/ARCHITECTURE.md](./editor/ARCHITECTURE.md)：editor 分层架构与架构图
+- [editor/INTEGRATION.md](./editor/INTEGRATION.md)：业务能力如何接入 Blocksuite editor
 - [editor/PLUGINS.md](./editor/PLUGINS.md)：extension/plugin 如何工作与如何新增
 - [editor/MOUNTING.md](./editor/MOUNTING.md)：editor 挂载、render 与 web component 链路
+- [frame/README.md](./frame/README.md)：frame 专区总入口
+- [frame/DEEP-DIVE.md](./frame/DEEP-DIVE.md)：`frame/` 深度链路说明
 - [INTERNAL-DATA.md](./INTERNAL-DATA.md)：内部数据模型、术语、结构说明
 - [LEARNING-PATH.md](./LEARNING-PATH.md)：学习路线与代码阅读顺序
 - [README.md](./README.md)：Blocksuite 文档总入口
+- [records/README.md](./records/README.md)：记录目录总入口
+- [records/BOUNDARY-UPDATE.md](./records/BOUNDARY-UPDATE.md)：边界版改动说明
+- [records/EDITOR-UPDATES.md](./records/EDITOR-UPDATES.md)：editor 结构调整记录
 - [TROUBLESHOOTING.md](./TROUBLESHOOTING.md)：常见问题与排查入口
-- [FRAME-DEEP-DIVE.md](./FRAME-DEEP-DIVE.md)：`frame/` 深度链路说明
 - [architecture/ROOT.md](./architecture/ROOT.md)：根目录共享基础件架构
 - [architecture/DESCRIPTION.md](./architecture/DESCRIPTION.md)：`description/` 架构
 - [architecture/DOCS.md](./architecture/DOCS.md)：`doc/` 架构
@@ -254,8 +270,10 @@ Blocksuite 目录内的测试收口目录。
 - Space / docId / registry：优先看 [space/](../space) 和 [SPACE.md](./architecture/SPACE.md)
 - 远端 snapshot / updates：优先看 [description/](../description) 与 [remoteDocSource.ts](../runtime/remoteDocSource.ts)
 - editor 创建：优先看 [editors/](../editors)；embed block 行为再看 [embedded/](../embedded)
-- editor 业务插件怎么接：优先看 [BUSINESS-INTEGRATION.md](./BUSINESS-INTEGRATION.md)
+- editor 业务插件怎么接：优先看 [editor/INTEGRATION.md](./editor/INTEGRATION.md)
 - editor 装配细节、插件规范和挂载链路：优先看 [editor/README.md](./editor/README.md)
+- iframe 深度链路：优先看 [frame/DEEP-DIVE.md](./frame/DEEP-DIVE.md)
+- 历史治理记录：优先看 [records/README.md](./records/README.md)
 - 文档说明：优先看 [doc/](./)
 
 如果后续继续拆目录，更新顺序也要同步：

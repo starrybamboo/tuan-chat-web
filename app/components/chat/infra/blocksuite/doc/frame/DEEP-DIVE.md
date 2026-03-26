@@ -1,6 +1,6 @@
 # BlockSuite Frame Deep Dive
 
-本文档说明 [frame/](../frame) 目录内部的职责划分、数据流和维护约束。
+本文档说明 [../../frame/](../../frame) 目录内部的职责划分、数据流和维护约束。
 
 ## 目录目标
 
@@ -8,17 +8,17 @@
 
 它解决的问题有三类：
 
-1. 在 [`/blocksuite-frame` route](../../../../../routes/blocksuiteFrame.tsx) 里启动 BlockSuite 浏览器运行时。
+1. 在 [`/blocksuite-frame` route](../../../../../../routes/blocksuiteFrame.tsx) 里启动 BlockSuite 浏览器运行时。
 2. 在 iframe 内创建并管理编辑器、文档、模式切换、tcHeader 和全屏行为。
 3. 通过 `postMessage` 和宿主 iframe host 双向同步参数、状态和用户动作。
 
-这个目录不负责宿主侧 iframe 创建、骨架屏、主题桥接和 mention popover。那些逻辑在 [blocksuiteDescriptionEditor.tsx](../../../shared/components/BlockSuite/blocksuiteDescriptionEditor.tsx)。
+这个目录不负责宿主侧 iframe 创建、骨架屏、主题桥接和 mention popover。那些逻辑在 [blocksuiteDescriptionEditor.tsx](../../../../shared/components/BlockSuite/blocksuiteDescriptionEditor.tsx)。
 
 ## 文件分层
 
 ### Route 壳
 
-- [blocksuiteFrame.tsx](../../../../../routes/blocksuiteFrame.tsx)
+- [blocksuiteFrame.tsx](../../../../../../routes/blocksuiteFrame.tsx)
 
 职责：
 
@@ -28,7 +28,7 @@
 
 ### Frame 客户端入口
 
-- [BlocksuiteRouteFrameClient.tsx](../frame/BlocksuiteRouteFrameClient.tsx)
+- [BlocksuiteRouteFrameClient.tsx](../../frame/BlocksuiteRouteFrameClient.tsx)
 
 职责：
 
@@ -42,7 +42,7 @@
 
 ### Runtime orchestrator
 
-- [BlocksuiteDescriptionEditorRuntime.browser.tsx](../frame/BlocksuiteDescriptionEditorRuntime.browser.tsx)
+- [BlocksuiteDescriptionEditorRuntime.browser.tsx](../../frame/BlocksuiteDescriptionEditorRuntime.browser.tsx)
 
 职责：
 
@@ -54,25 +54,25 @@
 
 ### editor 装配层
 
-- [createBlocksuiteEditor.browser.ts](../editors/createBlocksuiteEditor.browser.ts)
-- [createBlocksuiteEditor.client.ts](../editors/createBlocksuiteEditor.client.ts)
-- [tcAffineEditorContainer.ts](../editors/tcAffineEditorContainer.ts)
+- [createBlocksuiteEditor.browser.ts](../../editors/createBlocksuiteEditor.browser.ts)
+- [createBlocksuiteEditor.client.ts](../../editors/createBlocksuiteEditor.client.ts)
+- [tcAffineEditorContainer.ts](../../editors/tcAffineEditorContainer.ts)
 
 职责：
 
 - 把 runtime 提供的 `store/workspace/docModeProvider` 转成真正的 editor DOM
 - 通过 `editors/extensions/` 里的 builder 与 `BlocksuiteExtensionBundle` 协议注入项目自定义扩展、业务 service 和 editor container
-- 复用 [embedded/](../embedded) 中仅剩的 embed block 扩展
+- 复用 [embedded/](../../embedded) 中仅剩的 embed block 扩展
 
 深入看“业务能力如何接进 editor”，统一跳转：
 
-- [BUSINESS-INTEGRATION.md](./BUSINESS-INTEGRATION.md)
+- [../editor/INTEGRATION.md](../editor/INTEGRATION.md)
 
 ### 内部 hook
 
-- [useBlocksuiteDocModeProvider.ts](../frame/useBlocksuiteDocModeProvider.ts)
-- [useBlocksuiteEditorLifecycle.ts](../frame/useBlocksuiteEditorLifecycle.ts)
-- [useBlocksuiteViewportBehavior.ts](../frame/useBlocksuiteViewportBehavior.ts)
+- [useBlocksuiteDocModeProvider.ts](../../frame/useBlocksuiteDocModeProvider.ts)
+- [useBlocksuiteEditorLifecycle.ts](../../frame/useBlocksuiteEditorLifecycle.ts)
+- [useBlocksuiteViewportBehavior.ts](../../frame/useBlocksuiteViewportBehavior.ts)
 
 职责拆分：
 
@@ -85,7 +85,7 @@
 
 ### 内部 UI 组件
 
-- [BlocksuiteTcHeader.tsx](../frame/BlocksuiteTcHeader.tsx)
+- [BlocksuiteTcHeader.tsx](../../frame/BlocksuiteTcHeader.tsx)
 
 职责：
 
@@ -98,11 +98,11 @@
 整体启动路径如下：
 
 1. 宿主页面创建 iframe，`src` 指向 `/blocksuite-frame?...query`
-2. [blocksuiteFrame.tsx](../../../../../routes/blocksuiteFrame.tsx) 作为独立 route module 被 React Router 加载，并直接渲染 frame client
-3. [BlocksuiteRouteFrameClient.tsx](../frame/BlocksuiteRouteFrameClient.tsx) 读取 query，启动 `ensureBlocksuiteBrowserRuntime()`
-4. runtime bootstrap 成功后，渲染 [BlocksuiteDescriptionEditorRuntime.browser.tsx](../frame/BlocksuiteDescriptionEditorRuntime.browser.tsx)
-5. runtime orchestrator 通过 [useBlocksuiteEditorLifecycle.ts](../frame/useBlocksuiteEditorLifecycle.ts) 加载 store，并优先等待 description 文档的启动期远端 hydrate 落定
-6. lifecycle 调用 [createBlocksuiteEditor.browser.ts](../editors/createBlocksuiteEditor.browser.ts)，并进一步进入 [createBlocksuiteEditor.client.ts](../editors/createBlocksuiteEditor.client.ts) 组装 editor DOM
+2. [blocksuiteFrame.tsx](../../../../../../routes/blocksuiteFrame.tsx) 作为独立 route module 被 React Router 加载，并直接渲染 frame client
+3. [BlocksuiteRouteFrameClient.tsx](../../frame/BlocksuiteRouteFrameClient.tsx) 读取 query，启动 `ensureBlocksuiteBrowserRuntime()`
+4. runtime bootstrap 成功后，渲染 [BlocksuiteDescriptionEditorRuntime.browser.tsx](../../frame/BlocksuiteDescriptionEditorRuntime.browser.tsx)
+5. runtime orchestrator 通过 [useBlocksuiteEditorLifecycle.ts](../../frame/useBlocksuiteEditorLifecycle.ts) 加载 store，并优先等待 description 文档的启动期远端 hydrate 落定
+6. lifecycle 调用 [createBlocksuiteEditor.browser.ts](../../editors/createBlocksuiteEditor.browser.ts)，并进一步进入 [createBlocksuiteEditor.client.ts](../../editors/createBlocksuiteEditor.client.ts) 组装 editor DOM
 7. hydrate 与 editor 初始化完成后，把 editor 节点挂到 `hostContainerRef`
 8. 首屏内容稳定后，通过 `postMessage` 通知宿主 `render-ready`、`height`、`mode`、`tc-header` 等事件
 
@@ -114,7 +114,7 @@
 
 实现文件：
 
-- [BlocksuiteRouteFrameClient.tsx](../frame/BlocksuiteRouteFrameClient.tsx)
+- [BlocksuiteRouteFrameClient.tsx](../../frame/BlocksuiteRouteFrameClient.tsx)
 
 核心职责：
 
@@ -128,7 +128,7 @@
 
 实现文件：
 
-- [BlocksuiteDescriptionEditorRuntime.browser.tsx](../frame/BlocksuiteDescriptionEditorRuntime.browser.tsx)
+- [BlocksuiteDescriptionEditorRuntime.browser.tsx](../../frame/BlocksuiteDescriptionEditorRuntime.browser.tsx)
 
 核心职责：
 
@@ -140,7 +140,7 @@
 
 实现文件：
 
-- [useBlocksuiteEditorLifecycle.ts](../frame/useBlocksuiteEditorLifecycle.ts)
+- [useBlocksuiteEditorLifecycle.ts](../../frame/useBlocksuiteEditorLifecycle.ts)
 
 核心职责：
 
@@ -156,9 +156,9 @@
 
 实现文件：
 
-- [createBlocksuiteEditor.browser.ts](../editors/createBlocksuiteEditor.browser.ts)
-- [createBlocksuiteEditor.client.ts](../editors/createBlocksuiteEditor.client.ts)
-- [tcAffineEditorContainer.ts](../editors/tcAffineEditorContainer.ts)
+- [createBlocksuiteEditor.browser.ts](../../editors/createBlocksuiteEditor.browser.ts)
+- [createBlocksuiteEditor.client.ts](../../editors/createBlocksuiteEditor.client.ts)
+- [tcAffineEditorContainer.ts](../../editors/tcAffineEditorContainer.ts)
 
 核心职责：
 
@@ -170,9 +170,9 @@
 
 实现文件：
 
-- [useBlocksuiteDocModeProvider.ts](../frame/useBlocksuiteDocModeProvider.ts)
-- [useBlocksuiteViewportBehavior.ts](../frame/useBlocksuiteViewportBehavior.ts)
-- [BlocksuiteTcHeader.tsx](../frame/BlocksuiteTcHeader.tsx)
+- [useBlocksuiteDocModeProvider.ts](../../frame/useBlocksuiteDocModeProvider.ts)
+- [useBlocksuiteViewportBehavior.ts](../../frame/useBlocksuiteViewportBehavior.ts)
+- [BlocksuiteTcHeader.tsx](../../frame/BlocksuiteTcHeader.tsx)
 
 核心职责：
 
@@ -199,7 +199,7 @@
 - `tcHeaderImageUrl`
 - `instanceId`
 
-[BlocksuiteRouteFrameClient.tsx](../frame/BlocksuiteRouteFrameClient.tsx) 用 `readInitialFrameState()` 解析它们。
+[BlocksuiteRouteFrameClient.tsx](../../frame/BlocksuiteRouteFrameClient.tsx) 用 `readInitialFrameState()` 解析它们。
 
 ### 宿主后续同步参数
 
@@ -223,7 +223,7 @@
 - `currentMode`
   iframe 内当前生效模式，用于驱动 UI、viewport 和对宿主回传
 
-[useBlocksuiteDocModeProvider.ts](../frame/useBlocksuiteDocModeProvider.ts) 把 BlockSuite 需要的 `DocModeProvider` 包装成 React 可消费的状态源，并把主模式按 `workspaceId + docId` 存进 `localStorage`。
+[useBlocksuiteDocModeProvider.ts](../../frame/useBlocksuiteDocModeProvider.ts) 把 BlockSuite 需要的 `DocModeProvider` 包装成 React 可消费的状态源，并把主模式按 `workspaceId + docId` 存进 `localStorage`。
 
 ### tcHeader 数据流
 
@@ -238,7 +238,7 @@ tcHeader 走的是“doc store 为单一事实来源”的模式：
    - 向宿主发送 `tc-header`
    - 调用外部 `onTcHeaderChange`
 
-[BlocksuiteTcHeader.tsx](../frame/BlocksuiteTcHeader.tsx) 只是输入端，不拥有 header 状态本身。
+[BlocksuiteTcHeader.tsx](../../frame/BlocksuiteTcHeader.tsx) 只是输入端，不拥有 header 状态本身。
 
 ### 云端覆盖流
 
@@ -251,7 +251,7 @@ tcHeader 走的是“doc store 为单一事实来源”的模式：
 5. 调用 `replaceDocFromUpdate()` 强制用云端快照替换本地内容
 6. 调用 `triggerReload()` 让 lifecycle hook 整体重建 editor
 
-这个流程故意没有塞进 [useBlocksuiteEditorLifecycle.ts](../frame/useBlocksuiteEditorLifecycle.ts)，因为它是明确的用户操作，不是启动期生命周期逻辑。
+这个流程故意没有塞进 [useBlocksuiteEditorLifecycle.ts](../../frame/useBlocksuiteEditorLifecycle.ts)，因为它是明确的用户操作，不是启动期生命周期逻辑。
 
 ## postMessage 协议
 
