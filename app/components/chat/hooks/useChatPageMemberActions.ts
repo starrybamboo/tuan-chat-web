@@ -62,7 +62,7 @@ export default function useChatPageMemberActions({
         // setIsMemberHandleOpen(false);
       },
     });
-  }, [activeSpaceId, addSpaceMemberMutation, setIsMemberHandleOpen]);
+  }, [activeSpaceId, addSpaceMemberMutation]);
 
   const handleAddSpacePlayer = useCallback((userId: number) => {
     if (!activeSpaceId)
@@ -97,7 +97,7 @@ export default function useChatPageMemberActions({
         grantPlayer();
       },
     });
-  }, [activeSpaceId, addSpaceMemberMutation, setIsMemberHandleOpen, setPlayerMutation, spaceMembers]);
+  }, [activeSpaceId, addSpaceMemberMutation, setPlayerMutation, spaceMembers]);
 
   return {
     handleAddRoomMember,

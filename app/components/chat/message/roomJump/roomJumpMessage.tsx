@@ -28,7 +28,7 @@ function RoomJumpMessageImpl({ messageResponse }: { messageResponse: ChatMessage
   const targetSpaceId = currentSpaceId ?? payload?.spaceId;
   const targetRoomId = payload?.roomId;
   const roomsQuery = useGetUserRoomsQuery(targetSpaceId ?? -1);
-  const roomsInSpace = roomsQuery.data?.data?.rooms ?? [];
+  const roomsInSpace = useMemo(() => roomsQuery.data?.data?.rooms ?? [], [roomsQuery.data?.data?.rooms]);
 
   const resolvedTarget = useMemo<ResolveTargetResult>(() => {
     if (!payload) {

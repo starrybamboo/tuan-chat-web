@@ -3,25 +3,7 @@ import type { ChatMessageResponse } from "../../../api";
 import React, { memo, useCallback, useEffect, useRef } from "react";
 import { Virtuoso } from "react-virtuoso";
 import { addDroppedFilesToComposer, isFileDrag } from "@/components/chat/utils/dndUpload";
-
-const STABLE_MESSAGE_KEY_FIELD = "__tcStableKey";
-
-export function getChatFrameItemKey(index: number, item: ChatMessageResponse): string {
-  const message = item?.message as (ChatMessageResponse["message"] & { [STABLE_MESSAGE_KEY_FIELD]?: unknown }) | undefined;
-  const stableKey = message?.[STABLE_MESSAGE_KEY_FIELD];
-  if ((typeof stableKey === "string" && stableKey.length > 0) || typeof stableKey === "number") {
-    return `stable:${stableKey}`;
-  }
-  const messageId = message?.messageId;
-  if (typeof messageId === "number" && Number.isFinite(messageId)) {
-    return `id:${messageId}`;
-  }
-  const position = message?.position;
-  if (typeof position === "number" && Number.isFinite(position)) {
-    return `pos:${position.toFixed(6)}`;
-  }
-  return `idx:${index}`;
-}
+import { getChatFrameItemKey } from "./chatFrameListKey";
 
 function Header() {
   return (
@@ -216,7 +198,10 @@ export default function ChatFrameList({
       renderCount: renderDebugRef.current.renderCount + 1,
       keys: nextKeys,
     };
-    console.log("[TC_MSG_RENDER]", {
+    if (!import.meta.env.DEV || changedKeyCount === 0) {
+      return;
+    }
+    console.warn("[TC_MSG_RENDER]", {
       renderCount: renderDebugRef.current.renderCount,
       messageLength: historyMessages.length,
       changedKeyCount,

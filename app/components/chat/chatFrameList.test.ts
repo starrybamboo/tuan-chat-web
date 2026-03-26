@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import type { ChatMessageResponse } from "../../../api";
 
-import { getChatFrameItemKey } from "./chatFrameList";
+import { getChatFrameItemKey } from "./chatFrameListKey";
 
 function buildMessage(partial: Partial<ChatMessageResponse["message"]>): ChatMessageResponse {
   return {

@@ -165,6 +165,8 @@ function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEdito
           }
         }}
       />
+      {/* Frame 页面需要脚本执行和同源访问；安全 sandbox 组合会直接破坏鉴权、本地存储与运行时。 */}
+      {/* eslint-disable-next-line react-dom/no-missing-iframe-sandbox */}
       <iframe
         ref={iframeRef}
         src={frameInit.src}

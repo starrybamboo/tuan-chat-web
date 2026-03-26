@@ -7,7 +7,7 @@ import toast from "react-hot-toast";
 
 import { RoomContext } from "@/components/chat/core/roomContext";
 import { confirmToast } from "@/components/common/comfirmToast";
-import { useResolvedRoleAvatarUrl } from "@/components/common/roleAccess";
+import { useResolvedRoleAvatarUrl } from "@/components/common/roleAccess.shared";
 import { ImgUploader } from "@/components/common/uploader/imgUploader";
 import { useIsMobile } from "@/utils/getScreenSize";
 import { UploadUtils } from "@/utils/UploadUtils";

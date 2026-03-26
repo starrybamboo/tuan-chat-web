@@ -8,7 +8,7 @@ import { useGetRulePageInfiniteQuery } from "api/hooks/ruleQueryHooks";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import toast from "react-hot-toast";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
-import { useResolvedRoleAvatarUrl } from "@/components/common/roleAccess";
+import { useResolvedRoleAvatarUrl } from "@/components/common/roleAccess.shared";
 import DiceMaidenLinkModal from "@/components/Role/DiceMaidenLinkModal";
 import { tuanchat } from "../../../../api/instance";
 
