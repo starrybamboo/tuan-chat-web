@@ -61,8 +61,12 @@
 职责：
 
 - 把 runtime 提供的 `store/workspace/docModeProvider` 转成真正的 editor DOM
-- 注入项目自定义扩展、业务 service 和 editor container
+- 通过 `editors/extensions/` 里的 builder 与 `BlocksuiteExtensionBundle` 协议注入项目自定义扩展、业务 service 和 editor container
 - 复用 [embedded/](../embedded) 中仅剩的 embed block 扩展
+
+深入看“业务能力如何接进 editor”，统一跳转：
+
+- [BUSINESS-INTEGRATION.md](./BUSINESS-INTEGRATION.md)
 
 ### 内部 hook
 

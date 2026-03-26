@@ -8,6 +8,7 @@
 
 不在本文档展开的内容：
 - 业务语义：看 [BUSINESS.md](./BUSINESS.md)
+- editor 业务能力接入：看 [BUSINESS-INTEGRATION.md](./BUSINESS-INTEGRATION.md)
 - 内部数据结构：看 [INTERNAL-DATA.md](./INTERNAL-DATA.md)
 - 排障：看 [TROUBLESHOOTING.md](./TROUBLESHOOTING.md)
 - iframe 深入链路：看 [FRAME-DEEP-DIVE.md](./FRAME-DEEP-DIVE.md)
@@ -150,6 +151,7 @@ Blocksuite 目录内的测试收口目录。
 ### [doc/](./)
 
 - [BOUNDARY-UPDATE.md](./BOUNDARY-UPDATE.md)：边界版改动说明
+- [BUSINESS-INTEGRATION.md](./BUSINESS-INTEGRATION.md)：业务能力如何接入 Blocksuite editor
 - [BUSINESS.md](./BUSINESS.md)：Blocksuite 业务需求口径
 - [DIRECTORY.md](./DIRECTORY.md)：当前这份目录字典
 - [INTERNAL-DATA.md](./INTERNAL-DATA.md)：内部数据模型、术语、结构说明
@@ -172,9 +174,16 @@ Blocksuite 目录内的测试收口目录。
 ### [editors/](../editors)
 
 - [createBlocksuiteEditor.browser.ts](../editors/createBlocksuiteEditor.browser.ts)：统一创建浏览器侧 Blocksuite editor
-- [createBlocksuiteEditor.client.ts](../editors/createBlocksuiteEditor.client.ts)：真正的 editor DOM 装配与扩展注入
+- [createBlocksuiteEditor.client.ts](../editors/createBlocksuiteEditor.client.ts)：真正的 editor DOM 装配与扩展 bundle 聚合
+- [blocksuiteEditorAssemblyContext.ts](../editors/blocksuiteEditorAssemblyContext.ts)：editor 实例级装配上下文
 - [mockServices.ts](../editors/mockServices.ts)：editor 装配时注入的 mock service
 - [tcAffineEditorContainer.ts](../editors/tcAffineEditorContainer.ts)：项目自定义 editor container 元素
+- [extensions/types.ts](../editors/extensions/types.ts)：extension bundle 协议与合并函数
+- [extensions/blocksuiteEditorTitle.ts](../editors/extensions/blocksuiteEditorTitle.ts)：标题读取与 meta 同步辅助
+- [extensions/buildBlocksuiteCoreEditorExtensions.ts](../editors/extensions/buildBlocksuiteCoreEditorExtensions.ts)：core 扩展与 quick search builder
+- [extensions/buildBlocksuiteEmbedExtensions.ts](../editors/extensions/buildBlocksuiteEmbedExtensions.ts)：embed 相关扩展 builder
+- [extensions/buildBlocksuiteLinkedDocExtensions.ts](../editors/extensions/buildBlocksuiteLinkedDocExtensions.ts)：linked-doc 相关扩展 builder
+- [extensions/buildBlocksuiteMentionExtensions.ts](../editors/extensions/buildBlocksuiteMentionExtensions.ts)：mention 相关扩展 builder
 
 ### [embedded/](../embedded)
 
@@ -240,6 +249,7 @@ Blocksuite 目录内的测试收口目录。
 - Space / docId / registry：优先看 [space/](../space) 和 [SPACE.md](./architecture/SPACE.md)
 - 远端 snapshot / updates：优先看 [description/](../description) 与 [remoteDocSource.ts](../runtime/remoteDocSource.ts)
 - editor 创建：优先看 [editors/](../editors)；embed block 行为再看 [embedded/](../embedded)
+- editor 业务插件怎么接：优先看 [BUSINESS-INTEGRATION.md](./BUSINESS-INTEGRATION.md)
 - 文档说明：优先看 [doc/](./)
 
 如果后续继续拆目录，更新顺序也要同步：
