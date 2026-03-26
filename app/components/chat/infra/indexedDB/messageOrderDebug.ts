@@ -71,7 +71,11 @@ export function logMessageOrderChange(input: LogMessageOrderChangeInput): void {
   const nextCommon = nextIds.filter(id => prevIdSet.has(id));
   const drift = findOrderDrift(prevCommon, nextCommon);
 
-  console.log("[TC_MSG_ORDER]", {
+  if (!import.meta.env.DEV) {
+    return;
+  }
+
+  console.warn("[TC_MSG_ORDER]", {
     source: input.source,
     roomId: input.roomId,
     incomingMessageIds: input.incomingMessageIds ?? [],

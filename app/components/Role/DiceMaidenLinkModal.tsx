@@ -1,7 +1,7 @@
 import type { UserRole } from "../../../api";
 import { useGetInfiniteUserRolesQuery, useGetRoleQuery } from "api/hooks/RoleAndAvatarHooks";
 import { useMemo, useState } from "react";
-import { useResolvedRoleAvatarUrl } from "@/components/common/roleAccess";
+import { useResolvedRoleAvatarUrl } from "@/components/common/roleAccess.shared";
 import { useGlobalContext } from "@/components/globalContextProvider";
 
 interface DiceMaidenLinkModalProps {

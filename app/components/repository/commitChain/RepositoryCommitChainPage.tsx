@@ -132,8 +132,11 @@ export default function RepositoryCommitChainPage() {
               const isTail = index === commits.length - 1;
               const commitId = commit.commitId ?? -1;
               const parentCommitId = commit.parentCommitId;
+              const itemKey = typeof commit.commitId === "number" && Number.isFinite(commit.commitId)
+                ? `commit:${commit.commitId}`
+                : `fallback:${parentCommitId ?? "root"}:${commit.createTime ?? ""}:${commit.updateTime ?? ""}:${commit.commitType ?? ""}`;
               return (
-                <li key={`${commitId}-${index}`} className="relative pl-11">
+                <li key={itemKey} className="relative pl-11">
                   {!isTail && <span className="absolute left-[15px] top-8 h-[calc(100%-8px)] w-px bg-base-300" />}
                   <span className={`absolute left-0 top-0 flex h-8 w-8 items-center justify-center rounded-full border text-xs ${
                     isHead ? "border-primary bg-primary/10 text-primary" : "border-base-300 bg-base-200 text-base-content/70"

@@ -1,6 +1,6 @@
 import type { UserRole } from "../../../../api";
 import React, { useState } from "react";
-import { useResolvedRoleAvatarUrl } from "@/components/common/roleAccess";
+import { useResolvedRoleAvatarUrl } from "@/components/common/roleAccess.shared";
 import { RoleDetail } from "@/components/common/roleDetail";
 import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
 import { ROLE_DEFAULT_AVATAR_URL } from "@/constants/defaultAvatar";

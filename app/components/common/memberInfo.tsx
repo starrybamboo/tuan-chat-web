@@ -1,4 +1,4 @@
-import { resolveUserDisplayName, useResolvedUserInfo } from "@/components/common/userAccess";
+import { resolveUserDisplayName, useResolvedUserInfo } from "@/components/common/userAccess.shared";
 
 interface MemberInfoProps {
   user: {

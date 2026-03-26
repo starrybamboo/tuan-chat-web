@@ -3,7 +3,7 @@ import { RoomContext } from "@/components/chat/core/roomContext";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
 import { hasHostPrivileges } from "@/components/chat/utils/memberPermissions";
 import ConfirmModal from "@/components/common/comfirmModel";
-import { useResolvedRoleAvatarUrl } from "@/components/common/roleAccess";
+import { useResolvedRoleAvatarUrl } from "@/components/common/roleAccess.shared";
 import { useGlobalContext } from "@/components/globalContextProvider";
 import ExpansionModule from "@/components/Role/rules/ExpansionModule";
 import { useDeleteRole1Mutation } from "../../../api/hooks/chatQueryHooks";

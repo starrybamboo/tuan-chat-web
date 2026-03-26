@@ -413,7 +413,7 @@ function useRealtimeRender({
       setInitProgress(null);
       return false;
     }
-  }, [spaceId, status, roles, avatars, queryClient, miniAvatarEnabled, autoFigureEnabled, hasCachedAvatar, fetchAndCacheAvatars]);
+  }, [spaceId, status, roles, queryClient, miniAvatarEnabled, autoFigureEnabled, hasCachedAvatar, fetchAndCacheAvatars]);
 
   // 停止实时渲染
   const stop = useCallback(() => {
