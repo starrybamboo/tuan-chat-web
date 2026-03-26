@@ -33,7 +33,7 @@
 相关文件：
 
 - [`/Users/chxr/Projects/tuan-chat-web/app/routes/blocksuiteFrame.tsx`](/Users/chxr/Projects/tuan-chat-web/app/routes/blocksuiteFrame.tsx)
-- [`/Users/chxr/Projects/tuan-chat-web/app/components/chat/infra/blocksuite/frame/BlocksuiteRouteFrameClient.tsx`](/Users/chxr/Projects/tuan-chat-web/app/components/chat/infra/blocksuite/frame/BlocksuiteRouteFrameClient.tsx)
+- [`/Users/chxr/Projects/tuan-chat-web/app/components/chat/infra/blocksuite/BlocksuiteRouteFrameClient.tsx`](/Users/chxr/Projects/tuan-chat-web/app/components/chat/infra/blocksuite/BlocksuiteRouteFrameClient.tsx)
 
 `dev` 里的 `/blocksuite-frame` 会直接承载较重的运行时装配。
 
@@ -52,7 +52,7 @@
 - [`/Users/chxr/Projects/tuan-chat-web/app/components/chat/infra/blocksuite/spec/coreElements.browser.ts`](/Users/chxr/Projects/tuan-chat-web/app/components/chat/infra/blocksuite/spec/coreElements.browser.ts)
 - [`/Users/chxr/Projects/tuan-chat-web/app/components/chat/infra/blocksuite/runtime/runtimeLoader.browser.ts`](/Users/chxr/Projects/tuan-chat-web/app/components/chat/infra/blocksuite/runtime/runtimeLoader.browser.ts)
 - [`/Users/chxr/Projects/tuan-chat-web/app/components/chat/infra/blocksuite/editors/createBlocksuiteEditor.browser.ts`](/Users/chxr/Projects/tuan-chat-web/app/components/chat/infra/blocksuite/editors/createBlocksuiteEditor.browser.ts)
-- [`/Users/chxr/Projects/tuan-chat-web/app/components/chat/infra/blocksuite/frame/BlocksuiteDescriptionEditorRuntime.browser.tsx`](/Users/chxr/Projects/tuan-chat-web/app/components/chat/infra/blocksuite/frame/BlocksuiteDescriptionEditorRuntime.browser.tsx)
+- [`/Users/chxr/Projects/tuan-chat-web/app/components/chat/infra/blocksuite/BlocksuiteDescriptionEditorRuntime.browser.tsx`](/Users/chxr/Projects/tuan-chat-web/app/components/chat/infra/blocksuite/BlocksuiteDescriptionEditorRuntime.browser.tsx)
 
 这里是这次优化真正起作用的部分。
 

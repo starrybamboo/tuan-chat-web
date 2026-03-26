@@ -63,7 +63,7 @@
 
 2. **Route Frame Client（`/blocksuite-frame` 路由内的浏览器子图）**
    - `app/routes/blocksuiteFrame.tsx`
-   - `app/components/chat/infra/blocksuite/frame/BlocksuiteRouteFrameClient.tsx`
+   - `app/components/chat/infra/blocksuite/BlocksuiteRouteFrameClient.tsx`
    - `app/components/chat/infra/blocksuite/bootstrap/browser.ts`
    - `app/components/chat/infra/blocksuite/spec/coreElements.browser.ts`
    - 你要理解：路由本身只负责轻量壳，真正的 BlockSuite 客户端启动被收口到 route client chunk 内部的静态导入子图
@@ -76,7 +76,7 @@
 4. **Editor 创建层（把 manager/runtime 组装成真正编辑器）**
    - `app/components/chat/infra/blocksuite/runtime/runtimeLoader.browser.ts`
    - `app/components/chat/infra/blocksuite/editors/createBlocksuiteEditor.browser.ts`
-   - `app/components/chat/infra/blocksuite/frame/BlocksuiteDescriptionEditorRuntime.browser.tsx`
+   - `app/components/chat/infra/blocksuite/BlocksuiteDescriptionEditorRuntime.browser.tsx`
    - 你要理解：runtimeLoader 现在只做浏览器侧单例组合，editor 创建与 React frame runtime 分开，不再维持旧的多段动态启动链
 
 5. **UI 渲染入口（把 editor-host 放进 React）**

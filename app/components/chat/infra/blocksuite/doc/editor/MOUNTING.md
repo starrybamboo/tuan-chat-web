@@ -34,7 +34,7 @@ sequenceDiagram
 
 ## 真实调用链
 
-- [useBlocksuiteEditorLifecycle.ts](../../frame/useBlocksuiteEditorLifecycle.ts)
+- [useBlocksuiteEditorLifecycle.ts](../../useBlocksuiteEditorLifecycle.ts)
   负责拿到 runtime、workspace、store，并调用 `runtime.createBlocksuiteEditor(...)`
 - [createBlocksuiteEditor.browser.ts](../../editors/createBlocksuiteEditor.browser.ts)
   作为浏览器边界，把调用转到 client 侧实现
@@ -102,7 +102,7 @@ this._std.value.render()
 
 ## 渲染失败时优先看哪里
 
-1. [useBlocksuiteEditorLifecycle.ts](../../frame/useBlocksuiteEditorLifecycle.ts)
+1. [useBlocksuiteEditorLifecycle.ts](../../useBlocksuiteEditorLifecycle.ts)
    是否真的拿到了 `store`
 2. [createBlocksuiteEditor.client.ts](../../editors/createBlocksuiteEditor.client.ts)
    是否真的给容器挂上了 `doc/pageSpecs/edgelessSpecs`

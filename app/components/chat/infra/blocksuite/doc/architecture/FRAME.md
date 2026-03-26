@@ -2,7 +2,8 @@
 
 ## 路径
 
-- [frame/](../../frame)
+- 源码位于 [blocksuite/](../../) 根层
+- 专题文档位于 [doc/frame/](../frame)
 
 ## 目标
 
@@ -10,13 +11,13 @@
 
 ## 当前文件
 
-- [BlocksuiteRouteFrameClient.tsx](../../frame/BlocksuiteRouteFrameClient.tsx)
-- [BlocksuiteDescriptionEditorRuntime.browser.tsx](../../frame/BlocksuiteDescriptionEditorRuntime.browser.tsx)
-- [BlocksuiteTcHeader.tsx](../../frame/BlocksuiteTcHeader.tsx)
-- [blocksuiteEditorLifecycleHydration.ts](../../frame/blocksuiteEditorLifecycleHydration.ts)
-- [useBlocksuiteDocModeProvider.ts](../../frame/useBlocksuiteDocModeProvider.ts)
-- [useBlocksuiteEditorLifecycle.ts](../../frame/useBlocksuiteEditorLifecycle.ts)
-- [useBlocksuiteViewportBehavior.ts](../../frame/useBlocksuiteViewportBehavior.ts)
+- [BlocksuiteRouteFrameClient.tsx](../../BlocksuiteRouteFrameClient.tsx)
+- [BlocksuiteDescriptionEditorRuntime.browser.tsx](../../BlocksuiteDescriptionEditorRuntime.browser.tsx)
+- [BlocksuiteTcHeader.tsx](../../BlocksuiteTcHeader.tsx)
+- [blocksuiteEditorLifecycleHydration.ts](../../blocksuiteEditorLifecycleHydration.ts)
+- [useBlocksuiteDocModeProvider.ts](../../useBlocksuiteDocModeProvider.ts)
+- [useBlocksuiteEditorLifecycle.ts](../../useBlocksuiteEditorLifecycle.ts)
+- [useBlocksuiteViewportBehavior.ts](../../useBlocksuiteViewportBehavior.ts)
 
 ## 负责的事
 
@@ -33,19 +34,19 @@
 
 ## 内部分层
 
-- [BlocksuiteRouteFrameClient.tsx](../../frame/BlocksuiteRouteFrameClient.tsx)：iframe 页面入口、query 解析、消息桥接、高度回传
-- [BlocksuiteDescriptionEditorRuntime.browser.tsx](../../frame/BlocksuiteDescriptionEditorRuntime.browser.tsx)：运行时 orchestrator，组合 mode、viewport、header 与 editor host
-- [useBlocksuiteEditorLifecycle.ts](../../frame/useBlocksuiteEditorLifecycle.ts)：runtime 加载、workspace retain/release、store/editor 创建、cleanup
-- [blocksuiteEditorLifecycleHydration.ts](../../frame/blocksuiteEditorLifecycleHydration.ts)：启动期 snapshot 决策与等待状态机
-- [useBlocksuiteDocModeProvider.ts](../../frame/useBlocksuiteDocModeProvider.ts)：page / edgeless 模式持久化与同步
-- [useBlocksuiteViewportBehavior.ts](../../frame/useBlocksuiteViewportBehavior.ts)：viewport、全屏、页面溢出控制
-- [BlocksuiteTcHeader.tsx](../../frame/BlocksuiteTcHeader.tsx)：标题、封面、模式按钮、云端覆盖 UI
+- [BlocksuiteRouteFrameClient.tsx](../../BlocksuiteRouteFrameClient.tsx)：iframe 页面入口、query 解析、消息桥接、高度回传
+- [BlocksuiteDescriptionEditorRuntime.browser.tsx](../../BlocksuiteDescriptionEditorRuntime.browser.tsx)：运行时 orchestrator，组合 mode、viewport、header 与 editor host
+- [useBlocksuiteEditorLifecycle.ts](../../useBlocksuiteEditorLifecycle.ts)：runtime 加载、workspace retain/release、store/editor 创建、cleanup
+- [blocksuiteEditorLifecycleHydration.ts](../../blocksuiteEditorLifecycleHydration.ts)：启动期 snapshot 决策与等待状态机
+- [useBlocksuiteDocModeProvider.ts](../../useBlocksuiteDocModeProvider.ts)：page / edgeless 模式持久化与同步
+- [useBlocksuiteViewportBehavior.ts](../../useBlocksuiteViewportBehavior.ts)：viewport、全屏、页面溢出控制
+- [BlocksuiteTcHeader.tsx](../../BlocksuiteTcHeader.tsx)：标题、封面、模式按钮、云端覆盖 UI
 
 ## editor 调用链
 
-- [BlocksuiteRouteFrameClient.tsx](../../frame/BlocksuiteRouteFrameClient.tsx)
-  -> [BlocksuiteDescriptionEditorRuntime.browser.tsx](../../frame/BlocksuiteDescriptionEditorRuntime.browser.tsx)
-  -> [useBlocksuiteEditorLifecycle.ts](../../frame/useBlocksuiteEditorLifecycle.ts)
+- [BlocksuiteRouteFrameClient.tsx](../../BlocksuiteRouteFrameClient.tsx)
+  -> [BlocksuiteDescriptionEditorRuntime.browser.tsx](../../BlocksuiteDescriptionEditorRuntime.browser.tsx)
+  -> [useBlocksuiteEditorLifecycle.ts](../../useBlocksuiteEditorLifecycle.ts)
   -> [createBlocksuiteEditor.browser.ts](../../editors/createBlocksuiteEditor.browser.ts)
   -> [createBlocksuiteEditor.client.ts](../../editors/createBlocksuiteEditor.client.ts)
   -> [tcAffineEditorContainer.ts](../../editors/tcAffineEditorContainer.ts)

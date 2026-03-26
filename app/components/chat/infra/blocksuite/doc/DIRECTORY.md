@@ -23,7 +23,7 @@
 - `description/`：[DESCRIPTION.md](./architecture/DESCRIPTION.md)
 - `doc/`：[DOCS.md](./architecture/DOCS.md)
 - `editors/`：[EDITORS.md](./architecture/EDITORS.md)
-- `frame/`：[FRAME.md](./architecture/FRAME.md)
+- frame 链路：[FRAME.md](./architecture/FRAME.md)
 - `manager/`：[MANAGER.md](./architecture/MANAGER.md)
 - `runtime/`：[RUNTIME.md](./architecture/RUNTIME.md)
 - `shared/`：[SHARED.md](./architecture/SHARED.md)
@@ -45,17 +45,17 @@
 Blocksuite 集成根目录。
 
 这里放的是三类内容：
-- 顶层目录边界与共享子域
-- 领域子目录：`description/`、`space/`、`runtime/`、`frame/` 等
+- 根层 iframe 接入链路源码与顶层目录边界
+- 领域子目录：`description/`、`space/`、`runtime/` 等
 - 文档与测试：`doc/`、`test/`
 
 目录划分原则：
-- 根目录不再放源码文件
+- iframe 接入链路源码允许直接放在根层
 - 横切基础件进入 `shared/`
 - 文档语义 helper 进入 `document/`
 - mention 宿主 UI 进入 `mention/`
 - 强业务语义文件放进对应领域目录
-- iframe 专用实现全部收口在 `frame/`
+- 其他不属于 iframe 接入链路的源码不要回流到根层
 
 ## 文件夹字典
 
@@ -87,9 +87,9 @@ editor 装配层，把 runtime 提供的 `store/workspace` 转成最终可挂载
 
 对应子文档：[EDITORS.md](./architecture/EDITORS.md)
 
-### [frame/](../frame)
+### frame 链路源码（位于 [blocksuite/](../) 根层）
 
-iframe 方案专用实现。
+iframe 方案专用实现直接位于 Blocksuite 根层。
 
 对应子文档：[FRAME.md](./architecture/FRAME.md)
 
@@ -223,15 +223,15 @@ frame 专题文档目录。
 - [extensions/buildBlocksuiteLinkedDocExtensions.ts](../editors/extensions/buildBlocksuiteLinkedDocExtensions.ts)：linked-doc 相关扩展 builder
 - [extensions/buildBlocksuiteMentionExtensions.ts](../editors/extensions/buildBlocksuiteMentionExtensions.ts)：mention 相关扩展 builder
 
-### [frame/](../frame)
+### frame 链路源码（位于 [blocksuite/](../) 根层）
 
-- [BlocksuiteDescriptionEditorRuntime.browser.tsx](../frame/BlocksuiteDescriptionEditorRuntime.browser.tsx)：iframe 内 description editor runtime orchestrator
-- [BlocksuiteRouteFrameClient.tsx](../frame/BlocksuiteRouteFrameClient.tsx)：iframe route client，处理启动参数、消息桥接和高度同步
-- [BlocksuiteTcHeader.tsx](../frame/BlocksuiteTcHeader.tsx)：iframe 内 tcHeader UI
-- [blocksuiteEditorLifecycleHydration.ts](../frame/blocksuiteEditorLifecycleHydration.ts)：iframe 启动 hydration 决策与等待逻辑
-- [useBlocksuiteDocModeProvider.ts](../frame/useBlocksuiteDocModeProvider.ts)：page / edgeless 模式 provider
-- [useBlocksuiteEditorLifecycle.ts](../frame/useBlocksuiteEditorLifecycle.ts)：editor 生命周期、hydrate、header、render-ready 时序
-- [useBlocksuiteViewportBehavior.ts](../frame/useBlocksuiteViewportBehavior.ts)：iframe 内 viewport / fullscreen 行为
+- [BlocksuiteDescriptionEditorRuntime.browser.tsx](../BlocksuiteDescriptionEditorRuntime.browser.tsx)：iframe 内 description editor runtime orchestrator
+- [BlocksuiteRouteFrameClient.tsx](../BlocksuiteRouteFrameClient.tsx)：iframe route client，处理启动参数、消息桥接和高度同步
+- [BlocksuiteTcHeader.tsx](../BlocksuiteTcHeader.tsx)：iframe 内 tcHeader UI
+- [blocksuiteEditorLifecycleHydration.ts](../blocksuiteEditorLifecycleHydration.ts)：iframe 启动 hydration 决策与等待逻辑
+- [useBlocksuiteDocModeProvider.ts](../useBlocksuiteDocModeProvider.ts)：page / edgeless 模式 provider
+- [useBlocksuiteEditorLifecycle.ts](../useBlocksuiteEditorLifecycle.ts)：editor 生命周期、hydrate、header、render-ready 时序
+- [useBlocksuiteViewportBehavior.ts](../useBlocksuiteViewportBehavior.ts)：iframe 内 viewport / fullscreen 行为
 
 ### [manager/](../manager)
 

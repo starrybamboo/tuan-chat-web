@@ -37,7 +37,7 @@
 
 ### 2.3 Runtime 与 Editor 调用链
 
-- [useBlocksuiteEditorLifecycle.ts](../frame/useBlocksuiteEditorLifecycle.ts)
+- [useBlocksuiteEditorLifecycle.ts](../useBlocksuiteEditorLifecycle.ts)
   -> [runtimeLoader.browser.ts](../runtime/runtimeLoader.browser.ts)
   -> [createBlocksuiteEditor.browser.ts](../editors/createBlocksuiteEditor.browser.ts)
   -> [createBlocksuiteEditor.client.ts](../editors/createBlocksuiteEditor.client.ts)

@@ -1,6 +1,6 @@
 # Blocksuite Editor 文档
 
-这个目录只解释 `editors/` 这条链路，不覆盖 `frame/` 宿主协议、`runtime/` 数据源组合、`space/description/` 业务语义。
+这个目录只解释 `editors/` 这条链路，不覆盖 frame 接入链路、`runtime/` 数据源组合、`space/description/` 业务语义。
 
 适合回答这几类问题：
 

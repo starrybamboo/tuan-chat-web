@@ -1,5 +1,5 @@
 import type { Route } from "./+types/blocksuiteFrame";
-import { BlocksuiteRouteFrameClient } from "@/components/chat/infra/blocksuite/frame/BlocksuiteRouteFrameClient";
+import { BlocksuiteRouteFrameClient } from "@/components/chat/infra/blocksuite/BlocksuiteRouteFrameClient";
 
 export function meta(_args: Route.MetaArgs) {
   return [

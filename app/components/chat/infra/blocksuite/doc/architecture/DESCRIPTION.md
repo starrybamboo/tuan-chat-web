@@ -29,6 +29,6 @@
 
 ## 典型调用方
 
-- [blocksuiteEditorLifecycleHydration.ts](../../frame/blocksuiteEditorLifecycleHydration.ts)
+- [blocksuiteEditorLifecycleHydration.ts](../../blocksuiteEditorLifecycleHydration.ts)
 - [remoteDocSource.ts](../../space/runtime/remoteDocSource.ts)
 - [deleteSpaceDoc.ts](../../space/deleteSpaceDoc.ts)

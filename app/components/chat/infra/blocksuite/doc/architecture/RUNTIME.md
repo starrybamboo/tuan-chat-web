@@ -28,5 +28,5 @@
 
 ## 典型调用方
 
-- [useBlocksuiteEditorLifecycle.ts](../../frame/useBlocksuiteEditorLifecycle.ts)
-- [BlocksuiteDescriptionEditorRuntime.browser.tsx](../../frame/BlocksuiteDescriptionEditorRuntime.browser.tsx)
+- [useBlocksuiteEditorLifecycle.ts](../../useBlocksuiteEditorLifecycle.ts)
+- [BlocksuiteDescriptionEditorRuntime.browser.tsx](../../BlocksuiteDescriptionEditorRuntime.browser.tsx)
