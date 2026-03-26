@@ -564,7 +564,7 @@ export default defineConfig(() => {
           "app/components/chat/infra/blocksuite/bootstrap/browser.ts",
           "app/components/chat/infra/blocksuite/runtime/runtimeLoader.browser.ts",
           "app/components/chat/infra/blocksuite/editors/createBlocksuiteEditor.browser.ts",
-          "app/components/chat/infra/blocksuite/spaceWorkspaceRegistry.ts",
+          "app/components/chat/infra/blocksuite/space/spaceWorkspaceRegistry.ts",
 
           // core bootstrap modules
           "app/components/chat/infra/blocksuite/spec/coreElements.browser.ts",
@@ -572,7 +572,7 @@ export default defineConfig(() => {
           "app/components/chat/infra/blocksuite/styles/tcHeader.css",
 
           // common doc sources/providers
-          "app/components/chat/infra/blocksuite/remoteDocSource.ts",
+          "app/components/chat/infra/blocksuite/runtime/remoteDocSource.ts",
         ],
       },
     },
