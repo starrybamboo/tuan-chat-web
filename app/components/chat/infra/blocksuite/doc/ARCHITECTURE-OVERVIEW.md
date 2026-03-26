@@ -11,18 +11,25 @@
 ```mermaid
 flowchart TD
     Host["宿主侧 iframe host<br/>blocksuiteDescriptionEditor.tsx"] --> Route["路由入口<br/>app/routes/blocksuiteFrame.tsx"]
-    Route --> Frame["frame 链路源码（位于 blocksuite 根层）<br/>BlocksuiteRouteFrameClient<br/>BlocksuiteDescriptionEditorRuntime<br/>useBlocksuite*"]
-    Frame --> Runtime["runtime/<br/>runtimeLoader.browser.ts"]
+    Route --> FrameRoute["路由协议层（位于 blocksuite 根层）<br/>BlocksuiteRouteFrameClient.tsx"]
+    FrameRoute --> RuntimeOrchestrator["runtime 编排层（位于 blocksuite 根层）<br/>BlocksuiteDescriptionEditorRuntime.browser.tsx"]
+    RuntimeOrchestrator --> ModeLayer["模式层<br/>useBlocksuiteDocModeProvider.ts"]
+    RuntimeOrchestrator --> LifecycleLayer["生命周期层<br/>useBlocksuiteEditorLifecycle.ts"]
+    RuntimeOrchestrator --> ModeSyncLayer["模式同步层<br/>useBlocksuiteEditorModeSync.ts"]
+    RuntimeOrchestrator --> ViewportLayer["视口层<br/>useBlocksuiteViewportBehavior.ts"]
+    RuntimeOrchestrator --> HeaderSyncLayer["tcHeader 同步层<br/>useBlocksuiteTcHeaderSync.ts"]
+    RuntimeOrchestrator --> HeaderUI["Header UI<br/>BlocksuiteTcHeader.tsx"]
+    LifecycleLayer --> Runtime["runtime/<br/>runtimeLoader.browser.ts"]
     Runtime --> SpaceRuntime["space/runtime/<br/>SpaceWorkspace + remoteDocSource + wsClient"]
-    Frame --> Editors["editors/<br/>editor 装配层"]
+    LifecycleLayer --> Editors["editors/<br/>editor 装配层"]
     Editors --> Extensions["editors/extensions/<br/>业务 extension builders"]
     Extensions --> Services["services/<br/>业务 service 适配"]
     Editors --> ManagerView["manager/view.ts<br/>view/spec 能力子集"]
     SpaceRuntime --> ManagerStore["manager/store.ts<br/>store/schema 能力子集"]
-    Frame --> Document["document/<br/>docHeader / docExcerpt"]
-    Frame --> Shared["shared/<br/>base64 / error / debug / perf"]
+    RuntimeOrchestrator --> Document["document/<br/>docHeader / docExcerpt"]
+    RuntimeOrchestrator --> Shared["shared/<br/>base64 / error / debug / perf"]
     Editors --> Spec["spec/<br/>自定义 elements/spec 注册"]
-    Frame --> Styles["styles/<br/>frameBase / tcHeader / embed header"]
+    RuntimeOrchestrator --> Styles["styles/<br/>frameBase / tcHeader / embed header"]
     Host --> Mention["宿主侧 mention popover<br/>shared/components/BlockSuite"]
 ```
 
@@ -55,8 +62,14 @@ flowchart LR
 - 宿主层  
   只负责创建 iframe、传递参数、同步主题和承接 `postMessage`。
 
-- frame 链路源码  
-  负责 iframe 内的协议、运行时编排和 editor 页面级行为。
+- 路由协议层  
+  负责 iframe 内 query 参数解析、宿主消息协议、高度回传和运行时启动入口。
+
+- runtime 编排层  
+  以 `BlocksuiteDescriptionEditorRuntime` 为中心，统一调度 mode、lifecycle、mode sync、viewport、tcHeader sync 和 header UI。
+
+- runtime 内部 hook 分层  
+  进一步拆成模式层、生命周期层、模式同步层、视口层、tcHeader 同步层，hook 之间不直接耦合，只由 orchestrator 拼装。
 
 - `BlocksuiteDescriptionEditorRuntime`  
   是唯一 orchestrator，自身不实现底层运行时，只负责把 mode、lifecycle、viewport、tcHeader sync 组合起来。
