@@ -1,10 +1,10 @@
 import { DocTitleViewExtension } from "@blocksuite/affine/fragments/doc-title/view";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { readBlocksuiteCachedDocTitle } from "../editors/blocksuiteEditorTitle";
 import {
   filterBlocksuiteDocTitlePageSpecs,
-} from "../editors/blocksuiteCoreSpecFilter";
-import { readBlocksuiteCachedDocTitle } from "../editors/blocksuiteEditorTitle";
+} from "../editors/buildBlocksuiteCoreEditorExtensions";
 import { buildBlocksuiteEmbedExtensions } from "../editors/buildBlocksuiteEmbedExtensions";
 import {
   createBlocksuiteDocMenuGroup,
@@ -20,6 +20,11 @@ import {
 import { EmbedIframeNoCredentiallessViewOverride } from "../embedded/embedIframeNoCredentiallessViewOverride";
 import { RoomMapEmbedOptionExtension } from "../embedded/roomMapEmbedOption";
 import { listBlocksuiteSpaceMemberIds } from "../services/blocksuiteSpaceMemberService";
+
+vi.mock("../manager/view", () => ({
+  getEdgelessSpecs: () => [],
+  getPageSpecs: () => [],
+}));
 
 vi.mock("../services/blocksuiteSpaceMemberService", () => ({
   listBlocksuiteSpaceMemberIds: vi.fn(),
