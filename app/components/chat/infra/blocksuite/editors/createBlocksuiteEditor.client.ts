@@ -9,7 +9,6 @@ import {
 } from "./blocksuiteEditorAssemblyContext";
 import {
   buildBlocksuiteCoreEditorExtensions,
-  buildBlocksuiteQuickSearchExtension,
 } from "./extensions/buildBlocksuiteCoreEditorExtensions";
 import { buildBlocksuiteEmbedExtensions } from "./extensions/buildBlocksuiteEmbedExtensions";
 import {
@@ -17,6 +16,7 @@ import {
   handleBlocksuiteDocLinkNavigation,
 } from "./extensions/buildBlocksuiteLinkedDocExtensions";
 import { buildBlocksuiteMentionExtensions } from "./extensions/buildBlocksuiteMentionExtensions";
+import { buildBlocksuiteQuickSearchExtension } from "./extensions/buildBlocksuiteQuickSearchExtension";
 import { mergeBlocksuiteExtensionBundles } from "./extensions/types";
 import { ensureTCAffineEditorContainerDefined, TC_AFFINE_EDITOR_CONTAINER_TAG } from "./tcAffineEditorContainer";
 

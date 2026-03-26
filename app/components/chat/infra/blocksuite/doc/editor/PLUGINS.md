@@ -13,6 +13,7 @@
 当前 builder：
 
 - [buildBlocksuiteCoreEditorExtensions.ts](../../editors/extensions/buildBlocksuiteCoreEditorExtensions.ts)
+- [buildBlocksuiteQuickSearchExtension.ts](../../editors/extensions/buildBlocksuiteQuickSearchExtension.ts)
 - [buildBlocksuiteMentionExtensions.ts](../../editors/extensions/buildBlocksuiteMentionExtensions.ts)
 - [buildBlocksuiteLinkedDocExtensions.ts](../../editors/extensions/buildBlocksuiteLinkedDocExtensions.ts)
 - [buildBlocksuiteEmbedExtensions.ts](../../editors/extensions/buildBlocksuiteEmbedExtensions.ts)
@@ -134,6 +135,7 @@ const docTag = buildBlocksuiteDocTagExtension(context);
 
 const merged = mergeBlocksuiteExtensionBundles(
   core,
+  quickSearch,
   mention,
   linkedDoc,
   embed,
@@ -162,8 +164,16 @@ const merged = mergeBlocksuiteExtensionBundles(
 - link preview provider override
 - editor setting
 - parse doc url
-- quick search
 - doc title 过滤
+
+### Quick Search
+
+[buildBlocksuiteQuickSearchExtension.ts](../../editors/extensions/buildBlocksuiteQuickSearchExtension.ts)
+
+负责：
+
+- 把 quick search 能力作为独立 extension 接进 editor
+- 调用 [quickSearchService.ts](../../services/quickSearchService.ts) 提供的 picker 能力
 
 ### Mention
 

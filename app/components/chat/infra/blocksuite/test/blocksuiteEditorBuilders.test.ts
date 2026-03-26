@@ -17,6 +17,7 @@ import {
   isBlocksuiteMentionMenuLocked,
   lockBlocksuiteMentionMenu,
 } from "../editors/extensions/buildBlocksuiteMentionExtensions";
+import { buildBlocksuiteQuickSearchExtension } from "../editors/extensions/buildBlocksuiteQuickSearchExtension";
 import { EmbedIframeNoCredentiallessViewOverride } from "../embedded/embedIframeNoCredentiallessViewOverride";
 import { RoomMapEmbedOptionExtension } from "../embedded/roomMapEmbedOption";
 import { listBlocksuiteSpaceMemberIds } from "../services/blocksuiteSpaceMemberService";
@@ -275,6 +276,33 @@ describe("blocksuiteEditorBuilders", () => {
     expect(result.sharedExtensions).toContain(RoomMapEmbedOptionExtension);
     expect(result.sharedExtensions).toContain(EmbedIframeNoCredentiallessViewOverride);
     expect(result.edgelessExtensions).toHaveLength(1);
+  });
+
+  it("quick search builder 会把 picker 结果适配成 extension 返回值", async () => {
+    const context = createTestContext();
+    const result = buildBlocksuiteQuickSearchExtension(context);
+    const extension = result.sharedExtensions?.[0] as {
+      setup?: (di: { addImpl: (token: unknown, impl: { openQuickSearch: () => Promise<unknown> }) => void }) => void;
+    };
+    let service: { openQuickSearch: () => Promise<unknown> } | undefined;
+
+    extension.setup?.({
+      addImpl: (_token, impl) => {
+        service = impl;
+      },
+    });
+
+    expect(service).toBeDefined();
+    const openQuickSearch = service!.openQuickSearch;
+
+    context.quickSearchOverlay.searchDoc.mockResolvedValueOnce({ docId: "doc-1", isNewDoc: false });
+    await expect(openQuickSearch()).resolves.toEqual({ docId: "doc-1" });
+
+    context.quickSearchOverlay.searchDoc.mockResolvedValueOnce({ userInput: "https://example.com" });
+    await expect(openQuickSearch()).resolves.toEqual({ externalUrl: "https://example.com" });
+
+    context.quickSearchOverlay.searchDoc.mockResolvedValueOnce(null);
+    await expect(openQuickSearch()).resolves.toBeNull();
   });
 
   it("room description docId 能被正确解析", () => {
