@@ -229,8 +229,11 @@ frame 专题文档目录。
 - [BlocksuiteRouteFrameClient.tsx](../BlocksuiteRouteFrameClient.tsx)：iframe route client，处理启动参数、消息桥接和高度同步
 - [BlocksuiteTcHeader.tsx](../BlocksuiteTcHeader.tsx)：iframe 内 tcHeader UI
 - [blocksuiteEditorLifecycleHydration.ts](../blocksuiteEditorLifecycleHydration.ts)：iframe 启动 hydration 决策与等待逻辑
+- [blocksuiteRuntimeTypes.ts](../blocksuiteRuntimeTypes.ts)：runtime hook 共享的 editor handle 与 tcHeader state 类型
 - [useBlocksuiteDocModeProvider.ts](../useBlocksuiteDocModeProvider.ts)：page / edgeless 模式 provider
 - [useBlocksuiteEditorLifecycle.ts](../useBlocksuiteEditorLifecycle.ts)：editor 生命周期、hydrate、header、render-ready 时序
+- [useBlocksuiteEditorModeSync.ts](../useBlocksuiteEditorModeSync.ts)：editor 模式同步与 edgeless 聚焦
+- [useBlocksuiteTcHeaderSync.ts](../useBlocksuiteTcHeaderSync.ts)：tcHeader 到 meta / 宿主消息 / 外部回调的同步
 - [useBlocksuiteViewportBehavior.ts](../useBlocksuiteViewportBehavior.ts)：iframe 内 viewport / fullscreen 行为
 
 ### [manager/](../manager)

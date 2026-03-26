@@ -33,17 +33,21 @@ flowchart LR
     A["blocksuiteDescriptionEditor.tsx"] --> B["/blocksuite-frame route"]
     B --> C["BlocksuiteRouteFrameClient.tsx"]
     C --> D["BlocksuiteDescriptionEditorRuntime.browser.tsx"]
-    D --> E["useBlocksuiteEditorLifecycle.ts"]
-    E --> F["runtimeLoader.browser.ts"]
-    F --> G["spaceWorkspaceRegistry.ts"]
-    G --> H["space/runtime/spaceWorkspace.ts"]
-    H --> I["space/runtime/remoteDocSource.ts"]
-    H --> J["space/runtime/blocksuiteWsClient.ts"]
-    E --> K["createBlocksuiteEditor.browser.ts"]
-    K --> L["createBlocksuiteEditor.client.ts"]
-    L --> M["editors/extensions/*"]
-    L --> N["tcAffineEditorContainer.ts"]
-    N --> O["BlockStdScope.render()"]
+    D --> E["useBlocksuiteDocModeProvider.ts"]
+    D --> F["useBlocksuiteEditorLifecycle.ts"]
+    D --> G["useBlocksuiteEditorModeSync.ts"]
+    D --> H["useBlocksuiteViewportBehavior.ts"]
+    D --> I["useBlocksuiteTcHeaderSync.ts"]
+    F --> J["runtimeLoader.browser.ts"]
+    J --> K["spaceWorkspaceRegistry.ts"]
+    K --> L["space/runtime/spaceWorkspace.ts"]
+    L --> M["space/runtime/remoteDocSource.ts"]
+    L --> N["space/runtime/blocksuiteWsClient.ts"]
+    F --> O["createBlocksuiteEditor.browser.ts"]
+    O --> P["createBlocksuiteEditor.client.ts"]
+    P --> Q["editors/extensions/*"]
+    P --> R["tcAffineEditorContainer.ts"]
+    R --> S["BlockStdScope.render()"]
 ```
 
 ## 职责摘要
@@ -52,7 +56,10 @@ flowchart LR
   只负责创建 iframe、传递参数、同步主题和承接 `postMessage`。
 
 - frame 链路源码  
-  负责 iframe 内的协议、启动时序、header、mode、viewport 和 editor 生命周期。
+  负责 iframe 内的协议、运行时编排和 editor 页面级行为。
+
+- `BlocksuiteDescriptionEditorRuntime`  
+  是唯一 orchestrator，自身不实现底层运行时，只负责把 mode、lifecycle、viewport、tcHeader sync 组合起来。
 
 - `runtime/`  
   负责浏览器侧统一 runtime 入口，不直接承载 `SpaceWorkspace` 底层实现。

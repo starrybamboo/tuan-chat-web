@@ -1,17 +1,12 @@
 import type { DocMode } from "@blocksuite/affine/model";
 import type { KeyboardEvent as ReactKeyboardEvent, RefObject } from "react";
-import type { BlocksuiteDocHeader } from "@/components/chat/infra/blocksuite/document/docHeader";
+import type { BlocksuiteTcHeaderState } from "./blocksuiteRuntimeTypes";
 import { FileTextIcon } from "@phosphor-icons/react";
 import { useCallback } from "react";
 import { setBlocksuiteDocHeader } from "@/components/chat/infra/blocksuite/document/docHeader";
 import { ResizableImg } from "@/components/common/resizableImg";
 import toastWindow from "@/components/common/toastWindow/toastWindow";
 import { ImgUploaderWithCopper } from "@/components/common/uploader/imgUploaderWithCropper";
-
-type TcHeaderState = {
-  docId: string;
-  header: BlocksuiteDocHeader;
-} | null;
 
 interface BlocksuiteTcHeaderProps {
   docId: string;
@@ -21,7 +16,7 @@ interface BlocksuiteTcHeaderProps {
   isBrowserFullscreen: boolean;
   canForcePullFromCloud: boolean;
   isForcePullingCloud: boolean;
-  tcHeaderState: TcHeaderState;
+  tcHeaderState: BlocksuiteTcHeaderState;
   fallbackTitle?: string;
   fallbackImageUrl?: string;
   storeRef: RefObject<any>;

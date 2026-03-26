@@ -1,8 +1,6 @@
-import type { DocMode } from "@blocksuite/affine/model";
 import type { DocModeProvider } from "@blocksuite/affine/shared/services";
-import type { RefObject } from "react";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import type { BlocksuiteDocHeader } from "@/components/chat/infra/blocksuite/document/docHeader";
 
@@ -11,6 +9,8 @@ import { loadBlocksuiteRuntime } from "@/components/chat/infra/blocksuite/runtim
 import { isBlocksuiteDebugEnabled } from "@/components/chat/infra/blocksuite/shared/debugFlags";
 import { finishBlocksuiteOpenSession, markBlocksuiteOpenSession } from "@/components/chat/infra/blocksuite/shared/perf";
 import { parseSpaceDocId } from "@/components/chat/infra/blocksuite/space/spaceDocId";
+
+import type { BlocksuiteEditorHandle, BlocksuiteTcHeaderState } from "./blocksuiteRuntimeTypes";
 
 import {
   LATE_REMOTE_HYDRATION_WAIT_MS,
@@ -25,11 +25,6 @@ function warnNonFatalBlocksuiteError(message: string, error: unknown) {
   console.warn(message, error);
 }
 
-type TcHeaderState = {
-  docId: string;
-  header: BlocksuiteDocHeader;
-} | null;
-
 type UseBlocksuiteEditorLifecycleParams = {
   workspaceId: string;
   docId: string;
@@ -40,7 +35,6 @@ type UseBlocksuiteEditorLifecycleParams = {
   tcHeaderFallbackTitle?: string;
   tcHeaderFallbackImageUrl?: string;
   docModeProvider: DocModeProvider;
-  currentModeRef: RefObject<DocMode>;
   isFull: boolean;
   postToParent: (payload: any) => boolean;
 };
@@ -56,7 +50,6 @@ export function useBlocksuiteEditorLifecycle(params: UseBlocksuiteEditorLifecycl
     tcHeaderFallbackTitle,
     tcHeaderFallbackImageUrl,
     docModeProvider,
-    currentModeRef,
     isFull,
     postToParent,
   } = params;
@@ -69,7 +62,7 @@ export function useBlocksuiteEditorLifecycle(params: UseBlocksuiteEditorLifecycl
   const docRuntimeRef = useRef<{ workspace: any; docId: string } | null>(null);
   const readOnlyRef = useRef(readOnly);
   const instanceIdRef = useRef(instanceId);
-  const [tcHeaderState, setTcHeaderState] = useState<TcHeaderState>(null);
+  const [tcHeaderState, setTcHeaderState] = useState<BlocksuiteTcHeaderState>(null);
   const [reloadEpoch, setReloadEpoch] = useState(0);
 
   const triggerReload = useCallback(() => {
@@ -364,14 +357,6 @@ export function useBlocksuiteEditorLifecycle(params: UseBlocksuiteEditorLifecycl
 
       window.addEventListener("keydown", onUndoRedoKeyDown, { capture: true, signal: abort.signal });
 
-      try {
-        // editor 创建完成后补一次模式同步，避免首帧显示模式和外层状态不一致。
-        (editor as any).switchEditor(currentModeRef.current);
-      }
-      catch (error) {
-        warnNonFatalBlocksuiteError("[BlocksuiteDescriptionEditor] Failed to sync initial editor mode", error);
-      }
-
       if (typeof window !== "undefined" && import.meta.env.DEV) {
         // 开发环境暴露调试句柄，便于在控制台直接检查 editor/store。
         const g = globalThis as any;
@@ -416,7 +401,6 @@ export function useBlocksuiteEditorLifecycle(params: UseBlocksuiteEditorLifecycl
       }
     };
   }, [
-    currentModeRef,
     docId,
     docModeProvider,
     isFull,
@@ -461,15 +445,19 @@ export function useBlocksuiteEditorLifecycle(params: UseBlocksuiteEditorLifecycl
       editor.removeAttribute?.("readonly");
   }, [readOnly]);
 
+  const editorHandle = useMemo<BlocksuiteEditorHandle>(() => {
+    return {
+      hostContainerRef,
+      fullscreenRootRef,
+      editorRef,
+      storeRef,
+      runtimeRef,
+      triggerReload,
+    };
+  }, [triggerReload]);
+
   return {
-    hostContainerRef,
-    fullscreenRootRef,
-    editorRef,
-    storeRef,
-    runtimeRef,
+    editorHandle,
     tcHeaderState,
-    setTcHeaderState,
-    reloadEpoch,
-    triggerReload,
   };
 }

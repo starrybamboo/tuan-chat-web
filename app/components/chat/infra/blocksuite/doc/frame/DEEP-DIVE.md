@@ -72,7 +72,9 @@
 
 - [useBlocksuiteDocModeProvider.ts](../../useBlocksuiteDocModeProvider.ts)
 - [useBlocksuiteEditorLifecycle.ts](../../useBlocksuiteEditorLifecycle.ts)
+- [useBlocksuiteEditorModeSync.ts](../../useBlocksuiteEditorModeSync.ts)
 - [useBlocksuiteViewportBehavior.ts](../../useBlocksuiteViewportBehavior.ts)
+- [useBlocksuiteTcHeaderSync.ts](../../useBlocksuiteTcHeaderSync.ts)
 
 职责拆分：
 
@@ -80,8 +82,12 @@
   负责 `page/edgeless` 主模式状态、`localStorage` 持久化、`DocModeProvider` 实现和对外 `onModeChange` 通知
 - `useBlocksuiteEditorLifecycle`
   负责 runtime 加载、workspace retain/release、基于 `SpaceDoc.load()` 的启动期 hydrate、store/editor 创建、只读同步、header 订阅、销毁清理
+- `useBlocksuiteEditorModeSync`
+  负责把 `currentMode` 同步到 editor 实例，并在进入 edgeless 时触发 `fitToScreen`
 - `useBlocksuiteViewportBehavior`
-  负责模式切换后的 viewport 同步、edgeless 聚焦、浏览器全屏、page 模式底部 spacer、body overflow 锁定
+  负责浏览器全屏、page 模式底部 spacer、body overflow 锁定和外层 className/overflow 计算
+- `useBlocksuiteTcHeaderSync`
+  负责把 `tcHeaderState` 同步到 workspace meta、宿主消息和外部回调
 
 ### 内部 UI 组件
 
@@ -103,8 +109,10 @@
 4. runtime bootstrap 成功后，渲染 [BlocksuiteDescriptionEditorRuntime.browser.tsx](../../BlocksuiteDescriptionEditorRuntime.browser.tsx)
 5. runtime orchestrator 通过 [useBlocksuiteEditorLifecycle.ts](../../useBlocksuiteEditorLifecycle.ts) 加载 store，并优先等待 description 文档的启动期远端 hydrate 落定
 6. lifecycle 调用 [createBlocksuiteEditor.browser.ts](../../editors/createBlocksuiteEditor.browser.ts)，并进一步进入 [createBlocksuiteEditor.client.ts](../../editors/createBlocksuiteEditor.client.ts) 组装 editor DOM
-7. hydrate 与 editor 初始化完成后，把 editor 节点挂到 `hostContainerRef`
-8. 首屏内容稳定后，通过 `postMessage` 通知宿主 `render-ready`、`height`、`mode`、`tc-header` 等事件
+7. [useBlocksuiteEditorModeSync.ts](../../useBlocksuiteEditorModeSync.ts) 把当前模式同步到 editor 实例，并在进入 edgeless 时执行聚焦
+8. hydrate 与 editor 初始化完成后，把 editor 节点挂到 `hostContainerRef`
+9. [useBlocksuiteTcHeaderSync.ts](../../useBlocksuiteTcHeaderSync.ts) 负责把 header 变化同步给 meta 和宿主
+10. 首屏内容稳定后，通过 `postMessage` 通知宿主 `render-ready`、`height`、`mode`、`tc-header` 等事件
 
 ## 运行时分层
 
@@ -133,7 +141,7 @@
 核心职责：
 
 - 把协议层参数转换成运行时状态
-- 组合 header、editor host 和 action 区域
+- 组合 mode、lifecycle、mode sync、viewport、tcHeader sync、header 和 action 区域
 - 决定哪些事件需要继续上抛给宿主
 
 ### 3. 编辑器生命周期层
@@ -171,13 +179,17 @@
 实现文件：
 
 - [useBlocksuiteDocModeProvider.ts](../../useBlocksuiteDocModeProvider.ts)
+- [useBlocksuiteEditorModeSync.ts](../../useBlocksuiteEditorModeSync.ts)
 - [useBlocksuiteViewportBehavior.ts](../../useBlocksuiteViewportBehavior.ts)
+- [useBlocksuiteTcHeaderSync.ts](../../useBlocksuiteTcHeaderSync.ts)
 - [BlocksuiteTcHeader.tsx](../../BlocksuiteTcHeader.tsx)
 
 核心职责：
 
 - 模式切换与持久化
+- editor 模式同步与 edgeless 聚焦
 - 全屏与 viewport 行为
+- tcHeader 对外同步
 - header UI 与 header 数据修改
 
 ## 关键数据流

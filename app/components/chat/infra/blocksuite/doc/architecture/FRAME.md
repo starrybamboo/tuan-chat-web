@@ -15,8 +15,11 @@
 - [BlocksuiteDescriptionEditorRuntime.browser.tsx](../../BlocksuiteDescriptionEditorRuntime.browser.tsx)
 - [BlocksuiteTcHeader.tsx](../../BlocksuiteTcHeader.tsx)
 - [blocksuiteEditorLifecycleHydration.ts](../../blocksuiteEditorLifecycleHydration.ts)
+- [blocksuiteRuntimeTypes.ts](../../blocksuiteRuntimeTypes.ts)
 - [useBlocksuiteDocModeProvider.ts](../../useBlocksuiteDocModeProvider.ts)
 - [useBlocksuiteEditorLifecycle.ts](../../useBlocksuiteEditorLifecycle.ts)
+- [useBlocksuiteEditorModeSync.ts](../../useBlocksuiteEditorModeSync.ts)
+- [useBlocksuiteTcHeaderSync.ts](../../useBlocksuiteTcHeaderSync.ts)
 - [useBlocksuiteViewportBehavior.ts](../../useBlocksuiteViewportBehavior.ts)
 
 ## 负责的事
@@ -35,11 +38,13 @@
 ## 内部分层
 
 - [BlocksuiteRouteFrameClient.tsx](../../BlocksuiteRouteFrameClient.tsx)：iframe 页面入口、query 解析、消息桥接、高度回传
-- [BlocksuiteDescriptionEditorRuntime.browser.tsx](../../BlocksuiteDescriptionEditorRuntime.browser.tsx)：运行时 orchestrator，组合 mode、viewport、header 与 editor host
+- [BlocksuiteDescriptionEditorRuntime.browser.tsx](../../BlocksuiteDescriptionEditorRuntime.browser.tsx)：唯一 orchestrator，组合 mode、lifecycle、mode sync、viewport、tcHeader sync
 - [useBlocksuiteEditorLifecycle.ts](../../useBlocksuiteEditorLifecycle.ts)：runtime 加载、workspace retain/release、store/editor 创建、cleanup
 - [blocksuiteEditorLifecycleHydration.ts](../../blocksuiteEditorLifecycleHydration.ts)：启动期 snapshot 决策与等待状态机
 - [useBlocksuiteDocModeProvider.ts](../../useBlocksuiteDocModeProvider.ts)：page / edgeless 模式持久化与同步
+- [useBlocksuiteEditorModeSync.ts](../../useBlocksuiteEditorModeSync.ts)：editor 模式切换、fill-height、edgeless 聚焦
 - [useBlocksuiteViewportBehavior.ts](../../useBlocksuiteViewportBehavior.ts)：viewport、全屏、页面溢出控制
+- [useBlocksuiteTcHeaderSync.ts](../../useBlocksuiteTcHeaderSync.ts)：tcHeader -> meta / postMessage / 外部回调 同步
 - [BlocksuiteTcHeader.tsx](../../BlocksuiteTcHeader.tsx)：标题、封面、模式按钮、云端覆盖 UI
 
 ## editor 调用链
@@ -56,12 +61,14 @@
 ```mermaid
 flowchart LR
     A["BlocksuiteRouteFrameClient"] --> B["BlocksuiteDescriptionEditorRuntime"]
-    B --> C["useBlocksuiteEditorLifecycle"]
-    B --> D["useBlocksuiteDocModeProvider"]
-    B --> E["useBlocksuiteViewportBehavior"]
-    B --> F["BlocksuiteTcHeader"]
-    C --> G["runtimeLoader.browser"]
-    C --> H["createBlocksuiteEditor.browser"]
+    B --> C["useBlocksuiteDocModeProvider"]
+    B --> D["useBlocksuiteEditorLifecycle"]
+    B --> E["useBlocksuiteEditorModeSync"]
+    B --> F["useBlocksuiteViewportBehavior"]
+    B --> G["useBlocksuiteTcHeaderSync"]
+    B --> H["BlocksuiteTcHeader"]
+    D --> I["runtimeLoader.browser"]
+    D --> J["createBlocksuiteEditor.browser"]
 ```
 
 ## 维护约束
