@@ -559,8 +559,8 @@ export default defineConfig(() => {
           "app/components/chat/shared/components/BlockSuite/blocksuiteDescriptionEditor.tsx",
 
           // route client chunk + browser runtime
-          "app/components/chat/infra/blocksuite/frame/BlocksuiteRouteFrameClient.tsx",
-          "app/components/chat/infra/blocksuite/frame/BlocksuiteDescriptionEditorRuntime.browser.tsx",
+          "app/components/chat/infra/blocksuite/BlocksuiteRouteFrameClient.tsx",
+          "app/components/chat/infra/blocksuite/BlocksuiteDescriptionEditorRuntime.browser.tsx",
           "app/components/chat/infra/blocksuite/bootstrap/browser.ts",
           "app/components/chat/infra/blocksuite/runtime/runtimeLoader.browser.ts",
           "app/components/chat/infra/blocksuite/editors/createBlocksuiteEditor.browser.ts",
@@ -572,7 +572,7 @@ export default defineConfig(() => {
           "app/components/chat/infra/blocksuite/styles/tcHeader.css",
 
           // common doc sources/providers
-          "app/components/chat/infra/blocksuite/runtime/remoteDocSource.ts",
+          "app/components/chat/infra/blocksuite/space/runtime/remoteDocSource.ts",
         ],
       },
     },
