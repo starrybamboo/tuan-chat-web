@@ -1,9 +1,9 @@
 import type {
   BlocksuiteEditorAssemblyContext,
   WorkspaceLike,
-} from "./blocksuiteEditorAssemblyContext";
+} from "../blocksuiteEditorAssemblyContext";
 
-import { readBlocksuiteDocHeader } from "../docHeader";
+import { readBlocksuiteDocHeader } from "../../docHeader";
 
 const TC_HEADER_TITLE_TTL_MS = 10_000;
 

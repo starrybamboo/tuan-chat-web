@@ -3,8 +3,8 @@ import { EmbedSyncedDocConfigExtension } from "@blocksuite/affine/blocks/embed-d
 import { RefNodeSlotsProvider } from "@blocksuite/affine/inlines/reference";
 import { html } from "lit";
 
-import { EmbedIframeNoCredentiallessViewOverride } from "../embedded/embedIframeNoCredentiallessViewOverride";
-import { RoomMapEmbedOptionExtension } from "../embedded/roomMapEmbedOption";
+import { EmbedIframeNoCredentiallessViewOverride } from "../../embedded/embedIframeNoCredentiallessViewOverride";
+import { RoomMapEmbedOptionExtension } from "../../embedded/roomMapEmbedOption";
 
 export function buildBlocksuiteEmbedExtensions() {
   const edgelessHeaderExt = EmbedSyncedDocConfigExtension({
