@@ -44,7 +44,8 @@
   -> [tcAffineEditorContainer.ts](../editors/tcAffineEditorContainer.ts)
 
 分层上：
-- `runtime/` 负责 workspace、doc source、同步与 loader
+- `runtime/` 只负责浏览器侧 runtime loader
+- `space/runtime/` 负责 SpaceWorkspace、远端 source 与 ws 同步
 - `editors/` 负责真正的 editor DOM 装配
 - `editors/extensions/` 负责 business extension builder 与统一 bundle 协议
 - embed block 相关实现已经并入 `editors/extensions/embed/`
@@ -57,6 +58,15 @@
   - `SpaceWorkspace`：一个 Space 对应一个 root Y.Doc，内部管理多个 docId
   - 数据放置：`rootDoc.getMap('spaces').get(docId)` 的 subdoc 内，subdoc 里维护 `blocks` map
   - 存储：`DocEngine + IndexedDBDocSource`（纯本地）
+
+### 2.5 共享基础件与文档 helper
+
+- app/components/chat/infra/blocksuite/shared/
+  - 横切基础件：base64、错误分类、调试开关、perf 打点
+- app/components/chat/infra/blocksuite/document/
+  - 文档语义 helper：docHeader、docExcerpt
+- app/components/chat/infra/blocksuite/mention/
+  - mention 专用宿主 UI：mentionProfilePopover
 
 ## 3. 存储与协作能力（Demo 阶段）
 

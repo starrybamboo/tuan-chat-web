@@ -4,9 +4,9 @@ import type { RefObject } from "react";
 import { useCallback, useEffect, useRef } from "react";
 
 import type { DescriptionEntityType } from "@/components/chat/infra/blocksuite/description/descriptionDocId";
-import type { BlocksuiteDocHeader } from "@/components/chat/infra/blocksuite/docHeader";
+import type { BlocksuiteDocHeader } from "@/components/chat/infra/blocksuite/document/docHeader";
 
-import { isBlocksuiteDebugEnabled } from "@/components/chat/infra/blocksuite/debugFlags";
+import { isBlocksuiteDebugEnabled } from "@/components/chat/infra/blocksuite/shared/debugFlags";
 import { useEntityHeaderOverrideStore } from "@/components/chat/stores/entityHeaderOverrideStore";
 
 import { getCurrentAppTheme, getPostMessageTargetOrigin } from "./blocksuiteDescriptionEditor.shared";

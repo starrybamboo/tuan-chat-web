@@ -1,4 +1,4 @@
-import { base64ToUint8Array, uint8ArrayToBase64 } from "@/components/chat/infra/blocksuite/base64";
+import { base64ToUint8Array, uint8ArrayToBase64 } from "@/components/chat/infra/blocksuite/shared/base64";
 import { handleUnauthorized } from "@/utils/auth/unauthorized";
 import { recoverAuthTokenFromSession } from "api/authRecovery";
 

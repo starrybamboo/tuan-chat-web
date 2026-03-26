@@ -8,7 +8,7 @@ async function getDocUpdateForCopy(params: {
     import("@/components/chat/infra/blocksuite/space/spaceWorkspaceRegistry"),
     import("@/components/chat/infra/blocksuite/description/descriptionDocId"),
     import("@/components/chat/infra/blocksuite/description/descriptionDocRemote"),
-    import("@/components/chat/infra/blocksuite/base64"),
+    import("@/components/chat/infra/blocksuite/shared/base64"),
   ]);
 
   const ws = registry.getOrCreateSpaceWorkspace(params.spaceId) as any;
@@ -78,9 +78,9 @@ export async function copyDocToSpaceDoc(params: {
   const [{ buildSpaceDocId }, { setRemoteSnapshot }, { uint8ArrayToBase64 }, registry, { setBlocksuiteDocHeader }] = await Promise.all([
     import("@/components/chat/infra/blocksuite/space/spaceDocId"),
     import("@/components/chat/infra/blocksuite/description/descriptionDocRemote"),
-    import("@/components/chat/infra/blocksuite/base64"),
+    import("@/components/chat/infra/blocksuite/shared/base64"),
     import("@/components/chat/infra/blocksuite/space/spaceWorkspaceRegistry"),
-    import("@/components/chat/infra/blocksuite/docHeader"),
+    import("@/components/chat/infra/blocksuite/document/docHeader"),
   ]);
 
   const newDocId = buildSpaceDocId({ kind: "independent", docId: createdDocId });
@@ -154,9 +154,9 @@ export async function copyDocToSpaceUserDoc(params: {
   const [{ buildDescriptionDocId }, { setRemoteSnapshot }, { uint8ArrayToBase64 }, registry, { setBlocksuiteDocHeader }] = await Promise.all([
     import("@/components/chat/infra/blocksuite/description/descriptionDocId"),
     import("@/components/chat/infra/blocksuite/description/descriptionDocRemote"),
-    import("@/components/chat/infra/blocksuite/base64"),
+    import("@/components/chat/infra/blocksuite/shared/base64"),
     import("@/components/chat/infra/blocksuite/space/spaceWorkspaceRegistry"),
-    import("@/components/chat/infra/blocksuite/docHeader"),
+    import("@/components/chat/infra/blocksuite/document/docHeader"),
   ]);
 
   const newDocId = buildDescriptionDocId({ entityType: "space_user_doc", entityId: newEntityId, docType: "description" });

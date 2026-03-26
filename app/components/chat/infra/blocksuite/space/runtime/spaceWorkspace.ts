@@ -21,10 +21,10 @@ import { applyUpdate, encodeStateAsUpdate, encodeStateVector, mergeUpdates } fro
 
 import type { BlocksuiteDocKey } from "@/components/chat/infra/blocksuite/space/runtime/blocksuiteWsClient";
 
-import { NonRetryableBlocksuiteDocError } from "@/components/chat/infra/blocksuite/blocksuiteDocError";
 import { clearUpdates } from "@/components/chat/infra/blocksuite/description/descriptionDocDb";
 import { parseDescriptionDocId } from "@/components/chat/infra/blocksuite/description/descriptionDocId";
 import { BLOCKSUITE_STORE_EXTENSIONS } from "@/components/chat/infra/blocksuite/manager/store";
+import { NonRetryableBlocksuiteDocError } from "@/components/chat/infra/blocksuite/shared/blocksuiteDocError";
 import { blocksuiteWsClient } from "@/components/chat/infra/blocksuite/space/runtime/blocksuiteWsClient";
 import { RemoteSnapshotDocSource } from "@/components/chat/infra/blocksuite/space/runtime/remoteDocSource";
 

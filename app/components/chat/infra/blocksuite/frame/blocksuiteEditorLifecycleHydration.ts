@@ -1,7 +1,7 @@
-import { base64ToUint8Array } from "@/components/chat/infra/blocksuite/base64";
-import { isNonRetryableBlocksuiteDocError } from "@/components/chat/infra/blocksuite/blocksuiteDocError";
 import { parseDescriptionDocId } from "@/components/chat/infra/blocksuite/description/descriptionDocId";
 import { getRemoteSnapshot } from "@/components/chat/infra/blocksuite/description/descriptionDocRemote";
+import { base64ToUint8Array } from "@/components/chat/infra/blocksuite/shared/base64";
+import { isNonRetryableBlocksuiteDocError } from "@/components/chat/infra/blocksuite/shared/blocksuiteDocError";
 
 export const INITIAL_REMOTE_HYDRATION_WAIT_MS = 1200;
 export const LATE_REMOTE_HYDRATION_WAIT_MS = 4000;

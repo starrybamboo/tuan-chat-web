@@ -1,6 +1,6 @@
 import type { SpaceUserDocResponse } from "../../../../../api/models/SpaceUserDocResponse";
 import type { FolderNode } from "./docFolderTagTree";
-import type { BlocksuiteDocHeader } from "@/components/chat/infra/blocksuite/docHeader";
+import type { BlocksuiteDocHeader } from "@/components/chat/infra/blocksuite/document/docHeader";
 import type { DocRefDragPayload } from "@/components/chat/utils/docRef";
 import { DotsThreeVerticalIcon, FileTextIcon } from "@phosphor-icons/react";
 import { useQueryClient } from "@tanstack/react-query";

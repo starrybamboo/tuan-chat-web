@@ -5,11 +5,6 @@ import { diffUpdate, encodeStateVectorFromUpdate, mergeUpdates } from "yjs";
 
 import type { StoredSnapshot } from "@/components/chat/infra/blocksuite/description/descriptionDocRemote";
 
-import { base64ToUint8Array, uint8ArrayToBase64 } from "@/components/chat/infra/blocksuite/base64";
-import {
-  isNonRetryableBlocksuiteDocError,
-  NonRetryableBlocksuiteDocError,
-} from "@/components/chat/infra/blocksuite/blocksuiteDocError";
 import { addUpdate, clearUpdates, listUpdates } from "@/components/chat/infra/blocksuite/description/descriptionDocDb";
 import { parseDescriptionDocId } from "@/components/chat/infra/blocksuite/description/descriptionDocId";
 import {
@@ -20,6 +15,11 @@ import {
   setRemoteSnapshot,
 
 } from "@/components/chat/infra/blocksuite/description/descriptionDocRemote";
+import { base64ToUint8Array, uint8ArrayToBase64 } from "@/components/chat/infra/blocksuite/shared/base64";
+import {
+  isNonRetryableBlocksuiteDocError,
+  NonRetryableBlocksuiteDocError,
+} from "@/components/chat/infra/blocksuite/shared/blocksuiteDocError";
 import { blocksuiteWsClient } from "@/components/chat/infra/blocksuite/space/runtime/blocksuiteWsClient";
 
 function parseRemoteKeyFromDocId(docId: string) {
