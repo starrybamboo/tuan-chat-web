@@ -10,7 +10,7 @@ export function buildBlocksuiteQuickSearchExtension(
     sharedExtensions: [
       QuickSearchExtension({
         openQuickSearch: async () => {
-          const picked = await context.quickSearchOverlay.searchDoc({ action: "insert" });
+          const picked = await context.quickSearchService.searchDoc({ action: "insert" });
           if (!picked)
             return null;
 
