@@ -12,8 +12,14 @@
 
 - [createBlocksuiteEditor.browser.ts](../../editors/createBlocksuiteEditor.browser.ts)
 - [createBlocksuiteEditor.client.ts](../../editors/createBlocksuiteEditor.client.ts)
+- [blocksuiteEditorAssemblyContext.ts](../../editors/blocksuiteEditorAssemblyContext.ts)
 - [mockServices.ts](../../editors/mockServices.ts)
 - [tcAffineEditorContainer.ts](../../editors/tcAffineEditorContainer.ts)
+- [extensions/types.ts](../../editors/extensions/types.ts)
+- [extensions/buildBlocksuiteCoreEditorExtensions.ts](../../editors/extensions/buildBlocksuiteCoreEditorExtensions.ts)
+- [extensions/buildBlocksuiteMentionExtensions.ts](../../editors/extensions/buildBlocksuiteMentionExtensions.ts)
+- [extensions/buildBlocksuiteLinkedDocExtensions.ts](../../editors/extensions/buildBlocksuiteLinkedDocExtensions.ts)
+- [extensions/buildBlocksuiteEmbedExtensions.ts](../../editors/extensions/buildBlocksuiteEmbedExtensions.ts)
 
 ## 调用链
 
@@ -27,7 +33,8 @@
 ## 负责的事
 
 - 组装 editor DOM 与扩展列表
-- 注入 quick search、用户服务、linked-doc、mode provider 等能力
+- 通过 `extensions/` 目录里的 builder 注入 quick search、用户服务、linked-doc、mode provider 等能力
+- 维护 `BlocksuiteExtensionBundle` 统一插件协议
 - 提供项目自定义 editor container
 - 为 frame / runtime 提供稳定的浏览器侧 editor 创建边界
 
@@ -42,3 +49,4 @@
 - 依赖 [manager/](../../manager) 提供 page / edgeless specs
 - 依赖 [services/](../../services) 提供业务服务
 - 依赖 [embedded/](../../embedded) 提供文档内部 embed block 扩展
+- 业务能力接入规范与插件新增方法，统一看 [BUSINESS-INTEGRATION.md](../BUSINESS-INTEGRATION.md)

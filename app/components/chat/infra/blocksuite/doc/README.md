@@ -4,6 +4,7 @@
 
 必读（需求口径与概念对齐）：
 - 业务需求说明（后续需求变更都更新这里）：`BUSINESS.md`
+- 业务能力如何接入 editor：`BUSINESS-INTEGRATION.md`
 - 目录字典（目录职责与源码索引）：`DIRECTORY.md`
 - 内部数据结构/术语对照：`INTERNAL-DATA.md`
 - 常见问题排查（标题/SlashMenu/Edgeless/样式等）：`TROUBLESHOOTING.md`
@@ -43,6 +44,7 @@
 分层上：
 - `runtime/` 负责 workspace、doc source、同步与 loader
 - `editors/` 负责真正的 editor DOM 装配
+- `editors/extensions/` 负责 business extension builder 与统一 bundle 协议
 - `embedded/` 只负责文档内部 embed block 扩展
 
 ### 2.4 Workspace/Doc/Store 运行时（Infra）
@@ -94,6 +96,8 @@ Blocksuite/AFFiNE 某些包会通过 exports 暴露 TS 源码，严格模式下 
 - iframe 方案的详细链路不再写在本文件里，统一看：
   - [architecture/FRAME.md](./architecture/FRAME.md)
   - [FRAME-DEEP-DIVE.md](./FRAME-DEEP-DIVE.md)
+- 业务能力如何接入 editor，看：
+  - [BUSINESS-INTEGRATION.md](./BUSINESS-INTEGRATION.md)
 - 目录职责与路径索引统一看：
   - [DIRECTORY.md](./DIRECTORY.md)
 
