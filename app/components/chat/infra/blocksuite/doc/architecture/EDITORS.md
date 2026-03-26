@@ -49,4 +49,8 @@
 - 依赖 [manager/](../../manager) 提供 page / edgeless specs
 - 依赖 [services/](../../services) 提供业务服务
 - 依赖 [embedded/](../../embedded) 提供文档内部 embed block 扩展
-- 业务能力接入规范与插件新增方法，统一看 [BUSINESS-INTEGRATION.md](../BUSINESS-INTEGRATION.md)
+- editor 专区入口看 [editor/README.md](../editor/README.md)
+- 业务能力接入规范与插件新增方法，统一看 [editor/PLUGINS.md](../editor/PLUGINS.md)
+- editor 装配与挂载细节，分别看：
+  - [editor/ARCHITECTURE.md](../editor/ARCHITECTURE.md)
+  - [editor/MOUNTING.md](../editor/MOUNTING.md)
