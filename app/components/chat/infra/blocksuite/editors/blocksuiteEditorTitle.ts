@@ -1,5 +1,7 @@
-import type { BlocksuiteEditorAssemblyContext } from "./blocksuiteEditorAssemblyContext";
-import type { WorkspaceLike } from "./blocksuiteEditorTypes";
+import type {
+  BlocksuiteEditorAssemblyContext,
+  WorkspaceLike,
+} from "./blocksuiteEditorAssemblyContext";
 
 import { readBlocksuiteDocHeader } from "../docHeader";
 

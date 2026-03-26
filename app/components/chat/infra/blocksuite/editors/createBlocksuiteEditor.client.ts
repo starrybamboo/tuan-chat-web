@@ -1,21 +1,22 @@
 import { RefNodeSlotsProvider } from "@blocksuite/affine/inlines/reference";
 
-import type { CreateBlocksuiteEditorParams } from "./blocksuiteEditorTypes";
+import type { CreateBlocksuiteEditorParams } from "./blocksuiteEditorAssemblyContext";
 
 import {
   addBlocksuiteEditorDisposer,
   createBlocksuiteEditorAssemblyContext,
   disposeBlocksuiteEditorAssemblyContext,
 } from "./blocksuiteEditorAssemblyContext";
-import { registerBlocksuiteSlashMenuSelectionGuard } from "./blocksuiteSlashMenuSelectionGuard";
-import { buildBlocksuiteCoreEditorExtensions } from "./buildBlocksuiteCoreEditorExtensions";
+import {
+  buildBlocksuiteCoreEditorExtensions,
+  buildBlocksuiteQuickSearchExtension,
+} from "./buildBlocksuiteCoreEditorExtensions";
 import { buildBlocksuiteEmbedExtensions } from "./buildBlocksuiteEmbedExtensions";
 import {
   buildBlocksuiteLinkedDocExtensions,
   handleBlocksuiteDocLinkNavigation,
 } from "./buildBlocksuiteLinkedDocExtensions";
 import { buildBlocksuiteMentionExtensions } from "./buildBlocksuiteMentionExtensions";
-import { buildBlocksuiteQuickSearchExtension } from "./buildBlocksuiteQuickSearchExtension";
 import { ensureTCAffineEditorContainerDefined, TC_AFFINE_EDITOR_CONTAINER_TAG } from "./tcAffineEditorContainer";
 
 /**
@@ -26,6 +27,66 @@ import { ensureTCAffineEditorContainerDefined, TC_AFFINE_EDITOR_CONTAINER_TAG } 
  * 2. 调用不同 builder 组装 page / edgeless extensions
  * 3. 绑定最终导航与 scoped style
  */
+let blocksuiteSlashMenuGuardInstalled = false;
+let blocksuiteSlashMenuGuardHandler: ((event: Event) => void) | null = null;
+const blocksuiteSlashMenuGuardTokens = new Set<symbol>();
+
+function registerBlocksuiteSlashMenuSelectionGuard() {
+  const token = Symbol("blocksuite-slash-menu-selection-guard");
+
+  const shouldGuardSelection = (target: EventTarget | null) => {
+    if (!(target instanceof Element))
+      return false;
+
+    return Boolean(
+      target.closest(
+        ".slash-menu, affine-slash-menu, inner-slash-menu, affine-slash-menu-widget",
+      ),
+    );
+  };
+
+  const ensureInstalled = () => {
+    if (blocksuiteSlashMenuGuardInstalled || typeof document === "undefined")
+      return;
+
+    blocksuiteSlashMenuGuardHandler = (event: Event) => {
+      if (blocksuiteSlashMenuGuardTokens.size > 0 && shouldGuardSelection(event.target)) {
+        event.preventDefault();
+      }
+    };
+
+    document.addEventListener("pointerdown", blocksuiteSlashMenuGuardHandler, true);
+    document.addEventListener("mousedown", blocksuiteSlashMenuGuardHandler, true);
+    document.addEventListener("touchstart", blocksuiteSlashMenuGuardHandler, true);
+    blocksuiteSlashMenuGuardInstalled = true;
+  };
+
+  const teardownIfIdle = () => {
+    if (
+      !blocksuiteSlashMenuGuardInstalled
+      || blocksuiteSlashMenuGuardTokens.size > 0
+      || typeof document === "undefined"
+      || !blocksuiteSlashMenuGuardHandler
+    ) {
+      return;
+    }
+
+    document.removeEventListener("pointerdown", blocksuiteSlashMenuGuardHandler, true);
+    document.removeEventListener("mousedown", blocksuiteSlashMenuGuardHandler, true);
+    document.removeEventListener("touchstart", blocksuiteSlashMenuGuardHandler, true);
+    blocksuiteSlashMenuGuardHandler = null;
+    blocksuiteSlashMenuGuardInstalled = false;
+  };
+
+  blocksuiteSlashMenuGuardTokens.add(token);
+  ensureInstalled();
+
+  return () => {
+    blocksuiteSlashMenuGuardTokens.delete(token);
+    teardownIfIdle();
+  };
+}
+
 export function createBlocksuiteEditorClient(params: CreateBlocksuiteEditorParams): HTMLElement {
   const context = createBlocksuiteEditorAssemblyContext(params);
   addBlocksuiteEditorDisposer(context, registerBlocksuiteSlashMenuSelectionGuard());

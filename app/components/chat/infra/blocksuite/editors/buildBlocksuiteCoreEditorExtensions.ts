@@ -1,17 +1,45 @@
 import { ImageProxyService } from "@blocksuite/affine-shared/adapters";
 import { LinkPreviewServiceIdentifier } from "@blocksuite/affine-shared/services";
+import { DocTitleViewExtension } from "@blocksuite/affine/fragments/doc-title/view";
 import {
   DocModeProvider as DocModeProviderToken,
   EditorSettingExtension,
   FeatureFlagService,
   ParseDocUrlExtension,
+  QuickSearchExtension,
 } from "@blocksuite/affine/shared/services";
 
 import type { BlocksuiteEditorAssemblyContext } from "./blocksuiteEditorAssemblyContext";
 
 import { getEdgelessSpecs, getPageSpecs } from "../manager/view";
-import { filterBlocksuiteDocTitlePageSpecs } from "./blocksuiteCoreSpecFilter";
 import { mockEditorSetting, mockParseDocUrlService } from "./mockServices";
+
+function normalizeExtensionHint(value: unknown) {
+  return String(value ?? "").trim().toLowerCase();
+}
+
+function isBlocksuiteDocTitleExtension(extension: any) {
+  if (!extension)
+    return false;
+
+  if (extension === DocTitleViewExtension || extension?.constructor === DocTitleViewExtension)
+    return true;
+
+  const name = normalizeExtensionHint(extension?.name ?? (typeof extension === "function" ? extension.name : ""));
+  const id = normalizeExtensionHint(extension?.id ?? extension?.key ?? extension?.type ?? extension?.displayName);
+
+  if (name === "affine-doc-title-fragment" || id === "affine-doc-title-fragment")
+    return true;
+
+  return (name.includes("doc") && name.includes("title")) || (id.includes("doc") && id.includes("title"));
+}
+
+export function filterBlocksuiteDocTitlePageSpecs(pageSpecs: any[], disableDocTitle: boolean) {
+  if (!disableDocTitle)
+    return pageSpecs;
+
+  return pageSpecs.filter(extension => !isBlocksuiteDocTitleExtension(extension));
+}
 
 function applyBlocksuiteCoreRuntimeOverrides(context: BlocksuiteEditorAssemblyContext) {
   context.storeAny
@@ -48,6 +76,26 @@ export function createBlocksuiteNoOpLinkPreviewProvider() {
     query: async (_url: string, _signal?: AbortSignal) => {
       return {};
     },
+  };
+}
+
+export function buildBlocksuiteQuickSearchExtension(context: BlocksuiteEditorAssemblyContext) {
+  return {
+    sharedExtensions: [
+      QuickSearchExtension({
+        openQuickSearch: async () => {
+          const picked = await context.quickSearchOverlay.searchDoc({ action: "insert" });
+          if (!picked)
+            return null;
+
+          if ("docId" in picked) {
+            return { docId: picked.docId };
+          }
+
+          return { externalUrl: picked.userInput };
+        },
+      }),
+    ],
   };
 }
 

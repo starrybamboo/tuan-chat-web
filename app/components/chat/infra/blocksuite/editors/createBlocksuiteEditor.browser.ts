@@ -1,4 +1,4 @@
-import type { CreateBlocksuiteEditorParams } from "./blocksuiteEditorTypes";
+import type { CreateBlocksuiteEditorParams } from "./blocksuiteEditorAssemblyContext";
 
 import { createBlocksuiteEditorClient } from "./createBlocksuiteEditor.client";
 
