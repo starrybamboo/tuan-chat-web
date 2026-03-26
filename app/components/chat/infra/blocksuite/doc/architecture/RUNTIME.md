@@ -2,7 +2,7 @@
 
 ## 路径
 
-`app/components/chat/infra/blocksuite/runtime/`
+- [runtime/](../../runtime)
 
 ## 目标
 
@@ -10,10 +10,10 @@
 
 ## 当前文件
 
-- `blocksuiteWsClient.ts`
-- `remoteDocSource.ts`
-- `runtimeLoader.browser.ts`
-- `spaceWorkspace.ts`
+- [blocksuiteWsClient.ts](../../runtime/blocksuiteWsClient.ts)
+- [remoteDocSource.ts](../../runtime/remoteDocSource.ts)
+- [runtimeLoader.browser.ts](../../runtime/runtimeLoader.browser.ts)
+- [spaceWorkspace.ts](../../runtime/spaceWorkspace.ts)
 
 ## 负责的事
 
@@ -29,6 +29,6 @@
 
 ## 典型调用方
 
-- `frame/useBlocksuiteEditorLifecycle.ts`
-- `embedded/createEmbeddedAffineEditor.client.ts`
-- `space/spaceWorkspaceRegistry.ts`
+- [useBlocksuiteEditorLifecycle.ts](../../frame/useBlocksuiteEditorLifecycle.ts)
+- [createEmbeddedAffineEditor.client.ts](../../embedded/createEmbeddedAffineEditor.client.ts)
+- [spaceWorkspaceRegistry.ts](../../space/spaceWorkspaceRegistry.ts)

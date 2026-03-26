@@ -2,7 +2,7 @@
 
 ## 路径
 
-`app/components/chat/infra/blocksuite/doc/`
+- [doc/](../)
 
 ## 目标
 
@@ -10,17 +10,17 @@
 
 ## 当前文档
 
-- `README.md`：总入口
-- `DIRECTORY.md`：目录字典与索引
-- `BUSINESS.md`：业务语义
-- `INTERNAL-DATA.md`：内部数据结构
-- `LEARNING-PATH.md`：学习路线
-- `TROUBLESHOOTING.md`：排障指南
-- `BOUNDARY-UPDATE.md`：边界更新说明
-- `architecture/*.md`：各子目录架构文档
+- [README.md](../README.md)：总入口
+- [DIRECTORY.md](../DIRECTORY.md)：目录字典与索引
+- [BUSINESS.md](../BUSINESS.md)：业务语义
+- [INTERNAL-DATA.md](../INTERNAL-DATA.md)：内部数据结构
+- [LEARNING-PATH.md](../LEARNING-PATH.md)：学习路线
+- [TROUBLESHOOTING.md](../TROUBLESHOOTING.md)：排障指南
+- [BOUNDARY-UPDATE.md](../BOUNDARY-UPDATE.md)：边界更新说明
+- [architecture/](./)：子目录架构文档
 
 ## 维护约束
 
 - 文档目录不放运行时代码
 - 新增子域说明时，优先补到 `architecture/`
-- 目录变更后，先更新 `DIRECTORY.md`
+- 目录变更后，先更新 [DIRECTORY.md](../DIRECTORY.md)

@@ -2,17 +2,17 @@
 
 ## 路径
 
-`app/components/chat/infra/blocksuite/manager/`
+- [manager/](../../manager)
 
 ## 目标
 
-定义“项目允许启用哪些 Blocksuite/AFFiNE 能力”。
+定义项目允许启用哪些 Blocksuite/AFFiNE 能力。
 
 ## 当前文件
 
-- `featureSet.ts`
-- `store.ts`
-- `view.ts`
+- [featureSet.ts](../../manager/featureSet.ts)
+- [store.ts](../../manager/store.ts)
+- [view.ts](../../manager/view.ts)
 
 ## 负责的事
 
