@@ -52,6 +52,18 @@
 
 这里是 frame 目录里的主编排层。新增逻辑优先放进独立 hook 或内部 UI 组件，而不是重新堆回巨型组件。
 
+### editor 装配层
+
+- [createBlocksuiteEditor.browser.ts](../editors/createBlocksuiteEditor.browser.ts)
+- [createBlocksuiteEditor.client.ts](../editors/createBlocksuiteEditor.client.ts)
+- [tcAffineEditorContainer.ts](../editors/tcAffineEditorContainer.ts)
+
+职责：
+
+- 把 runtime 提供的 `store/workspace/docModeProvider` 转成真正的 editor DOM
+- 注入项目自定义扩展、业务 service 和 editor container
+- 复用 [embedded/](../embedded) 中仅剩的 embed block 扩展
+
 ### 内部 hook
 
 - [useBlocksuiteDocModeProvider.ts](../frame/useBlocksuiteDocModeProvider.ts)
@@ -86,8 +98,9 @@
 3. [BlocksuiteRouteFrameClient.tsx](../frame/BlocksuiteRouteFrameClient.tsx) 读取 query，启动 `ensureBlocksuiteBrowserRuntime()`
 4. runtime bootstrap 成功后，渲染 [BlocksuiteDescriptionEditorRuntime.browser.tsx](../frame/BlocksuiteDescriptionEditorRuntime.browser.tsx)
 5. runtime orchestrator 通过 [useBlocksuiteEditorLifecycle.ts](../frame/useBlocksuiteEditorLifecycle.ts) 加载 store，并优先等待 description 文档的启动期远端 hydrate 落定
-6. hydrate 与 editor 初始化完成后，把 editor 节点挂到 `hostContainerRef`
-7. 首屏内容稳定后，通过 `postMessage` 通知宿主 `render-ready`、`height`、`mode`、`tc-header` 等事件
+6. lifecycle 调用 [createBlocksuiteEditor.browser.ts](../editors/createBlocksuiteEditor.browser.ts)，并进一步进入 [createBlocksuiteEditor.client.ts](../editors/createBlocksuiteEditor.client.ts) 组装 editor DOM
+7. hydrate 与 editor 初始化完成后，把 editor 节点挂到 `hostContainerRef`
+8. 首屏内容稳定后，通过 `postMessage` 通知宿主 `render-ready`、`height`、`mode`、`tc-header` 等事件
 
 ## 运行时分层
 
@@ -135,7 +148,21 @@
 
 这是 frame 目录中最容易引入副作用 bug 的部分，新增逻辑优先和这里对齐。
 
-### 4. 交互与展示增强层
+### 4. editor 装配层
+
+实现文件：
+
+- [createBlocksuiteEditor.browser.ts](../editors/createBlocksuiteEditor.browser.ts)
+- [createBlocksuiteEditor.client.ts](../editors/createBlocksuiteEditor.client.ts)
+- [tcAffineEditorContainer.ts](../editors/tcAffineEditorContainer.ts)
+
+核心职责：
+
+- 负责最终 editor DOM 装配
+- 承接 manager、services、embedded 扩展
+- 把 editor 的视图层细节从 frame lifecycle 中剥离出去
+
+### 5. 交互与展示增强层
 
 实现文件：
 

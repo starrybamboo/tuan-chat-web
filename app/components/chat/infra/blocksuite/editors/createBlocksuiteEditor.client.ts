@@ -1,5 +1,5 @@
 import type { DocModeProvider } from "@blocksuite/affine/shared/services";
-// 嵌入式 Blocksuite 编辑器创建与扩展配置。
+// Blocksuite 编辑器 DOM 装配与扩展配置。
 import type { LinkedMenuGroup } from "@blocksuite/affine/widgets/linked-doc";
 
 import { LinkedDocIcon, LinkedEdgelessIcon } from "@blocksuite/affine-components/icons";
@@ -30,9 +30,9 @@ import { getEdgelessSpecs, getPageSpecs } from "../manager/view";
 import { createBlocksuiteQuickSearchService } from "../services/quickSearchService";
 import { createTuanChatUserService } from "../services/tuanChatUserService";
 import { parseSpaceDocId } from "../space/spaceDocId";
-import { EmbedIframeNoCredentiallessViewOverride } from "./embedIframeNoCredentiallessViewOverride";
+import { EmbedIframeNoCredentiallessViewOverride } from "../embedded/embedIframeNoCredentiallessViewOverride";
+import { RoomMapEmbedOptionExtension } from "../embedded/roomMapEmbedOption";
 import { mockEditorSetting, mockParseDocUrlService } from "./mockServices";
-import { RoomMapEmbedOptionExtension } from "./roomMapEmbedOption";
 import { ensureTCAffineEditorContainerDefined, TC_AFFINE_EDITOR_CONTAINER_TAG } from "./tcAffineEditorContainer";
 
 /**
@@ -405,7 +405,7 @@ function installSlashMenuDoesNotClearSelectionOnClick(): () => void {
   };
 }
 
-export function createEmbeddedAffineEditor(params: {
+export function createBlocksuiteEditorClient(params: {
   store: unknown;
   workspace: WorkspaceLike;
   docModeProvider: DocModeProvider;
@@ -930,7 +930,7 @@ export function createEmbeddedAffineEditor(params: {
     });
   }
   catch {
-    // best-effort; doc link jumping is not required in embedded usage
+    // best-effort; doc link jumping is not required when host-side routing is absent
   }
 
   // Inject custom styles to fix layout issues (e.g. Tailwind reset making SVGs block)

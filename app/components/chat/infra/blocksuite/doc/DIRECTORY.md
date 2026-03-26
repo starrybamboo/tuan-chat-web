@@ -19,6 +19,7 @@
 - 根目录共享基础件：[ROOT.md](./architecture/ROOT.md)
 - `description/`：[DESCRIPTION.md](./architecture/DESCRIPTION.md)
 - `doc/`：[DOCS.md](./architecture/DOCS.md)
+- `editors/`：[EDITORS.md](./architecture/EDITORS.md)
 - `embedded/`：[EMBEDDED.md](./architecture/EMBEDDED.md)
 - `frame/`：[FRAME.md](./architecture/FRAME.md)
 - `manager/`：[MANAGER.md](./architecture/MANAGER.md)
@@ -29,7 +30,6 @@
 
 没有单独架构文档的目录：
 - `bootstrap/`
-- `editors/`
 - `services/`
 - `test/`
 
@@ -71,11 +71,13 @@ Description 类文档的标识、远端快照和本地 updates 存储层。
 
 ### [editors/](../editors)
 
-编辑器创建层，把上层参数转换成真正的 Blocksuite editor 实例。
+editor 装配层，把 runtime 提供的 `store/workspace` 转成最终可挂载的 editor DOM。
+
+对应子文档：[EDITORS.md](./architecture/EDITORS.md)
 
 ### [embedded/](../embedded)
 
-非 iframe 的嵌入式编辑器集成层。
+文档内部 embed block 扩展层。
 
 对应子文档：[EMBEDDED.md](./architecture/EMBEDDED.md)
 
@@ -158,6 +160,7 @@ Blocksuite 目录内的测试收口目录。
 - [architecture/ROOT.md](./architecture/ROOT.md)：根目录共享基础件架构
 - [architecture/DESCRIPTION.md](./architecture/DESCRIPTION.md)：`description/` 架构
 - [architecture/DOCS.md](./architecture/DOCS.md)：`doc/` 架构
+- [architecture/EDITORS.md](./architecture/EDITORS.md)：`editors/` 架构
 - [architecture/EMBEDDED.md](./architecture/EMBEDDED.md)：`embedded/` 架构
 - [architecture/FRAME.md](./architecture/FRAME.md)：`frame/` 架构
 - [architecture/MANAGER.md](./architecture/MANAGER.md)：`manager/` 架构
@@ -169,15 +172,15 @@ Blocksuite 目录内的测试收口目录。
 ### [editors/](../editors)
 
 - [createBlocksuiteEditor.browser.ts](../editors/createBlocksuiteEditor.browser.ts)：统一创建浏览器侧 Blocksuite editor
+- [createBlocksuiteEditor.client.ts](../editors/createBlocksuiteEditor.client.ts)：真正的 editor DOM 装配与扩展注入
+- [mockServices.ts](../editors/mockServices.ts)：editor 装配时注入的 mock service
+- [tcAffineEditorContainer.ts](../editors/tcAffineEditorContainer.ts)：项目自定义 editor container 元素
 
 ### [embedded/](../embedded)
 
-- [createEmbeddedAffineEditor.client.ts](../embedded/createEmbeddedAffineEditor.client.ts)：非 iframe 场景的嵌入式编辑器创建与业务扩展注入
 - [embedIframeNoCredentiallessElements.ts](../embedded/embedIframeNoCredentiallessElements.ts)：embed iframe 相关元素处理
 - [embedIframeNoCredentiallessViewOverride.ts](../embedded/embedIframeNoCredentiallessViewOverride.ts)：embed iframe view override
-- [mockServices.ts](../embedded/mockServices.ts)：editor 所需 mock service
 - [roomMapEmbedOption.ts](../embedded/roomMapEmbedOption.ts)：room map embed 选项扩展
-- [tcAffineEditorContainer.ts](../embedded/tcAffineEditorContainer.ts)：项目自定义 editor container 元素
 
 ### [frame/](../frame)
 
@@ -236,7 +239,7 @@ Blocksuite 目录内的测试收口目录。
 - iframe 相关：优先看 [frame/](../frame) 和 [FRAME.md](./architecture/FRAME.md)
 - Space / docId / registry：优先看 [space/](../space) 和 [SPACE.md](./architecture/SPACE.md)
 - 远端 snapshot / updates：优先看 [description/](../description) 与 [remoteDocSource.ts](../runtime/remoteDocSource.ts)
-- editor 创建：优先看 [editors/](../editors) 与 [embedded/](../embedded)
+- editor 创建：优先看 [editors/](../editors)；embed block 行为再看 [embedded/](../embedded)
 - 文档说明：优先看 [doc/](./)
 
 如果后续继续拆目录，更新顺序也要同步：
