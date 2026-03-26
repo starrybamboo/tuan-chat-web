@@ -10,6 +10,7 @@ import {
 } from "@blocksuite/affine/shared/services";
 
 import type { BlocksuiteEditorAssemblyContext } from "../blocksuiteEditorAssemblyContext";
+import type { BlocksuiteExtensionBundle } from "./types";
 
 import { getEdgelessSpecs, getPageSpecs } from "../../manager/view";
 import { mockEditorSetting, mockParseDocUrlService } from "../mockServices";
@@ -79,7 +80,9 @@ export function createBlocksuiteNoOpLinkPreviewProvider() {
   };
 }
 
-export function buildBlocksuiteQuickSearchExtension(context: BlocksuiteEditorAssemblyContext) {
+export function buildBlocksuiteQuickSearchExtension(
+  context: BlocksuiteEditorAssemblyContext,
+): BlocksuiteExtensionBundle {
   return {
     sharedExtensions: [
       QuickSearchExtension({
@@ -102,12 +105,12 @@ export function buildBlocksuiteQuickSearchExtension(context: BlocksuiteEditorAss
 export function buildBlocksuiteCoreEditorExtensions(
   context: BlocksuiteEditorAssemblyContext,
   params: { disableDocTitle?: boolean },
-) {
+): BlocksuiteExtensionBundle {
   applyBlocksuiteCoreRuntimeOverrides(context);
 
   return {
-    pageSpecs: filterBlocksuiteDocTitlePageSpecs(getPageSpecs(), Boolean(params.disableDocTitle)),
-    edgelessSpecs: getEdgelessSpecs(),
+    pageExtensions: filterBlocksuiteDocTitlePageSpecs(getPageSpecs(), Boolean(params.disableDocTitle)),
+    edgelessExtensions: getEdgelessSpecs(),
     sharedExtensions: [
       EditorSettingExtension({
         setting$: mockEditorSetting(),
