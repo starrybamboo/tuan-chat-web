@@ -185,7 +185,7 @@ frame 专题文档目录。
 - [README.md](./README.md)：Blocksuite 文档总入口
 - [records/README.md](./records/README.md)：记录目录总入口
 - [records/BOUNDARY-UPDATE.md](./records/BOUNDARY-UPDATE.md)：边界版改动说明
-- [records/EDITOR-UPDATES.md](./records/EDITOR-UPDATES.md)：editor 结构调整记录
+- [records/MAIN-COMPARISON.md](./records/MAIN-COMPARISON.md)：`main` 与当前架构对比记录
 - [TROUBLESHOOTING.md](./TROUBLESHOOTING.md)：常见问题与排查入口
 - [architecture/ROOT.md](./architecture/ROOT.md)：顶层目录边界与收口规则
 - [architecture/DESCRIPTION.md](./architecture/DESCRIPTION.md)：`description/` 架构
