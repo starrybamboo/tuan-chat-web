@@ -8,7 +8,7 @@ import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponen
 import { useGlobalContext } from "@/components/globalContextProvider";
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
 import { useSendMessageMutation } from "../../../../../api/hooks/chatQueryHooks";
-import { useGetRolesAbilitiesQueries } from "../../../../../api/hooks/abilityQueryHooks";
+import { useGetRolesAbilitiesQueries, useUpdateRoleAbilityByRoleIdMutation } from "../../../../../api/hooks/abilityQueryHooks";
 
 interface Initiative {
   name: string;
@@ -156,7 +156,9 @@ export default function InitiativeList() {
   const spaceOwner = spaceContext.isSpaceOwner;
   const curUserId = globalContext.userId ?? -1;
   const sendMessageMutation = useSendMessageMutation(roomId);
+  const { mutateAsync: updateRoleAbilityByRoleIdAsync } = useUpdateRoleAbilityByRoleIdMutation();
   const isPokemonRule = spaceContext.ruleId === 7;
+  const [isAdvancingRound, setIsAdvancingRound] = useState(false);
 
   const levelParam = useMemo(
     () => params.find(p => (p.attrKey ?? "").trim() === "等级" || p.label.trim() === "等级"),
@@ -580,7 +582,7 @@ export default function InitiativeList() {
   }, [initiativeList, importableRoles, abilityQueries, isPokemonRule, levelParam]);
 
   // 仅导入单个角色
-  const handleImportSingle = (roleId: number) => {
+  const handleImportSingle = async (roleId: number) => {
     const idx = importableRoles.findIndex(r => r.roleId === roleId);
     if (idx === -1)
       return;
@@ -602,6 +604,58 @@ export default function InitiativeList() {
     const agi = pokemonRoll?.total ?? extractAgilityFromQuery(query);
     if (agi == null)
       return;
+
+    // 宝可梦规则：导入角色时将“行动点”同步为“最大行动点”
+    if (isPokemonRule && typeof spaceContext.ruleId === "number") {
+      const res = query?.data;
+      const record = res?.success && Array.isArray(res.data)
+        ? res.data.find(entry => entry.ruleId === spaceContext.ruleId)
+        : undefined;
+
+      if (record) {
+        const roleAbility: RoleAbility = {
+          basic: { ...(record.basic || {}) },
+          ability: { ...(record.ability || {}) },
+          skill: { ...((record as any).skill || {}) },
+        };
+
+        const actionPointKeys = ["行动点", "行动值", "AP", "ap"];
+        const maxActionPointKeys = ["最大行动点", "最大行动值", "最大AP", "maxAP", "maxAp", "max_action_point"];
+
+        const actionPointKey = actionPointKeys.find(key => UTILS.getRoleAbilityValue(roleAbility, key) != null) ?? "行动点";
+        const maxActionPointKey = maxActionPointKeys.find(key => UTILS.getRoleAbilityValue(roleAbility, key) != null);
+
+        if (maxActionPointKey) {
+          const maxActionPoint = Number(UTILS.getRoleAbilityValue(roleAbility, maxActionPointKey));
+          if (Number.isFinite(maxActionPoint)) {
+            UTILS.setRoleAbilityValue(roleAbility, actionPointKey, String(maxActionPoint), "ability", "auto");
+
+            const stringifyRecord = (obj?: Record<string, any>): Record<string, string> => {
+              const result: Record<string, string> = {};
+              if (!obj)
+                return result;
+              Object.entries(obj).forEach(([k, v]) => {
+                result[k] = String(v ?? "");
+              });
+              return result;
+            };
+
+            try {
+              await updateRoleAbilityByRoleIdAsync({
+                roleId,
+                ruleId: spaceContext.ruleId,
+                basic: stringifyRecord(roleAbility.basic as Record<string, any>),
+                ability: stringifyRecord(roleAbility.ability as Record<string, any>),
+                skill: stringifyRecord(roleAbility.skill as Record<string, any>),
+              });
+            }
+            catch {
+              toast.error("导入成功，但同步行动点失败");
+            }
+          }
+        }
+      }
+    }
 
     const hpData = extractHpFromQuery(query);
     const hp = hpData?.hp ?? null;
@@ -777,6 +831,114 @@ export default function InitiativeList() {
     });
   };
 
+  const handleNextRound = async () => {
+    if (!isPokemonRule || typeof spaceContext.ruleId !== "number")
+      return;
+
+    if (isAdvancingRound)
+      return;
+
+    const roleItems = initiativeList.filter(i => typeof i.roleId === "number");
+    if (roleItems.length === 0) {
+      toast.error("先攻表中没有可更新行动点的角色");
+      return;
+    }
+
+    setIsAdvancingRound(true);
+
+    let updatedCount = 0;
+    let skippedCount = 0;
+    let failedCount = 0;
+
+    try {
+      for (const item of roleItems) {
+        const roleId = item.roleId as number;
+        const idx = importableRoles.findIndex(r => r.roleId === roleId);
+        if (idx === -1) {
+          skippedCount += 1;
+          continue;
+        }
+
+        const query = abilityQueries[idx];
+        const res = query?.data;
+        if (!res?.success || !Array.isArray(res.data) || !spaceContext.ruleId) {
+          skippedCount += 1;
+          continue;
+        }
+
+        const record = res.data.find(entry => entry.ruleId === spaceContext.ruleId);
+        if (!record) {
+          skippedCount += 1;
+          continue;
+        }
+
+        const roleAbility: RoleAbility = {
+          basic: { ...(record.basic || {}) },
+          ability: { ...(record.ability || {}) },
+          skill: { ...((record as any).skill || {}) },
+        };
+
+        const actionPointKeys = ["行动点", "行动值", "AP", "ap"];
+        const maxActionPointKeys = ["最大行动点", "最大行动值", "最大AP", "maxAP", "maxAp", "max_action_point"];
+
+        const actionPointKey = actionPointKeys.find(key => UTILS.getRoleAbilityValue(roleAbility, key) != null);
+        const maxActionPointKey = maxActionPointKeys.find(key => UTILS.getRoleAbilityValue(roleAbility, key) != null);
+
+        if (!actionPointKey || !maxActionPointKey) {
+          skippedCount += 1;
+          continue;
+        }
+
+        const currentActionPoint = Number(UTILS.getRoleAbilityValue(roleAbility, actionPointKey));
+        const maxActionPoint = Number(UTILS.getRoleAbilityValue(roleAbility, maxActionPointKey));
+        if (!Number.isFinite(currentActionPoint) || !Number.isFinite(maxActionPoint)) {
+          skippedCount += 1;
+          continue;
+        }
+
+        const nextActionPoint = Math.min(8, currentActionPoint + maxActionPoint);
+        UTILS.setRoleAbilityValue(roleAbility, actionPointKey, String(nextActionPoint), "ability", "auto");
+
+        const stringifyRecord = (obj?: Record<string, any>): Record<string, string> => {
+          const result: Record<string, string> = {};
+          if (!obj)
+            return result;
+          Object.entries(obj).forEach(([k, v]) => {
+            result[k] = String(v ?? "");
+          });
+          return result;
+        };
+
+        try {
+          await updateRoleAbilityByRoleIdAsync({
+            roleId,
+            ruleId: spaceContext.ruleId,
+            basic: stringifyRecord(roleAbility.basic as Record<string, any>),
+            ability: stringifyRecord(roleAbility.ability as Record<string, any>),
+            skill: stringifyRecord(roleAbility.skill as Record<string, any>),
+          });
+          updatedCount += 1;
+        }
+        catch {
+          failedCount += 1;
+        }
+      }
+
+      if (updatedCount > 0) {
+        toast.success(`下一轮完成：更新${updatedCount}个角色${skippedCount > 0 ? `，跳过${skippedCount}个` : ""}${failedCount > 0 ? `，失败${failedCount}个` : ""}`);
+      }
+      else if (failedCount > 0) {
+        toast.error(`下一轮失败：失败${failedCount}个角色${skippedCount > 0 ? `，跳过${skippedCount}个` : ""}`);
+      }
+      else {
+        toast.error("下一轮未执行：未找到可用的行动点与最大行动点数据");
+      }
+    }
+    finally {
+      setIsAdvancingRound(false);
+    }
+  };
+
   const updateItemExtras = (item: Initiative, key: string, value: string) => {
     handleUpdate(
       initiativeList.map((i) => {
@@ -842,6 +1004,52 @@ export default function InitiativeList() {
     return result;
   }, [isPokemonRule, importableRoles, abilityQueries, spaceContext.ruleId]);
 
+  const pokemonTraitByRoleId = useMemo(() => {
+    const result = new Map<number, string>();
+    if (!isPokemonRule)
+      return result;
+
+    importableRoles.forEach((role, idx) => {
+      const query = abilityQueries[idx];
+      const res = query?.data;
+      if (!res?.success || !Array.isArray(res.data) || !spaceContext.ruleId)
+        return;
+
+      const record = res.data.find(item => item.ruleId === spaceContext.ruleId);
+      if (!record)
+        return;
+
+      const source: Record<string, any> = { ...(record.ability || {}), ...(record.basic || {}), ...(record as any).skill };
+      const trait = source.特性 ?? source.ability;
+
+      if (trait != null && String(trait).trim() !== "") {
+        result.set(role.roleId, String(trait).trim());
+      }
+    });
+
+    return result;
+  }, [isPokemonRule, importableRoles, abilityQueries, spaceContext.ruleId]);
+
+  const pokemonActionPointByRoleId = useMemo(() => {
+    const result = new Map<number, string>();
+    if (!isPokemonRule)
+      return result;
+
+    importableRoles.forEach((role, idx) => {
+      const query = abilityQueries[idx];
+      const actionPoint = extractAttrFromQuery(query, "行动点")
+        ?? extractAttrFromQuery(query, "行动值")
+        ?? extractAttrFromQuery(query, "AP")
+        ?? extractAttrFromQuery(query, "ap");
+
+      if (actionPoint != null && String(actionPoint).trim() !== "") {
+        result.set(role.roleId, String(actionPoint).trim());
+      }
+    });
+
+    return result;
+  }, [isPokemonRule, importableRoles, abilityQueries, spaceContext.ruleId]);
+
   const sortedList = useMemo(() => {
     const list = [...initiativeList];
     list.sort((a, b) => {
@@ -897,6 +1105,16 @@ export default function InitiativeList() {
             </div>
 
             <div className="flex items-center gap-2">
+              {isPokemonRule && spaceOwner && (
+                <button
+                  type="button"
+                  className="btn btn-xs btn-outline"
+                  onClick={() => void handleNextRound()}
+                  disabled={isAdvancingRound}
+                >
+                  {isAdvancingRound ? "结算中..." : "下一轮"}
+                </button>
+              )}
               {importableRoles.length > 0 && (
                 <button
                   type="button"
@@ -1105,6 +1323,7 @@ export default function InitiativeList() {
                     {isPokemonRule && <th className="text-xs font-semibold text-base-content/70">等级</th>}
                     <th className="text-xs font-semibold text-base-content/70">角色名</th>
                     <th className="text-xs font-semibold text-base-content/70">HP</th>
+                    {isPokemonRule && <th className="text-xs font-semibold text-base-content/70">行动点</th>}
                     <th className="text-xs font-semibold text-base-content/70">先攻</th>
                   </tr>
                 </thead>
@@ -1112,7 +1331,7 @@ export default function InitiativeList() {
                   {initiativeList.length === 0
                     ? (
                         <tr>
-                          <td colSpan={isPokemonRule ? 4 : 3} className="text-xs text-base-content/50 text-center py-4">
+                          <td colSpan={isPokemonRule ? 5 : 3} className="text-xs text-base-content/50 text-center py-4">
                             暂无先攻记录，添加一个吧。
                           </td>
                         </tr>
@@ -1125,6 +1344,12 @@ export default function InitiativeList() {
                           const defensiveMatchup = typeof item.roleId === "number"
                             ? pokemonDefensiveByRoleId.get(item.roleId)
                             : undefined;
+                          const traitText = typeof item.roleId === "number"
+                            ? (pokemonTraitByRoleId.get(item.roleId) ?? "--")
+                            : "--";
+                          const actionPointText = typeof item.roleId === "number"
+                            ? (pokemonActionPointByRoleId.get(item.roleId) ?? "--")
+                            : "--";
                           const multiplierText = (() => {
                             if (!defensiveMatchup)
                               return "--";
@@ -1298,6 +1523,13 @@ export default function InitiativeList() {
                                   </div>
                                 )}
                               </td>
+                              {isPokemonRule && (
+                                <td className="align-top">
+                                  <div className="text-sm tabular-nums min-h-6 leading-6 px-1">
+                                    {actionPointText}
+                                  </div>
+                                </td>
+                              )}
                               <td className="align-top">
                                 <div className="flex items-center gap-2 text-xs text-base-content/70 leading-6">
                                   {editingKey === valueEditKey
@@ -1347,11 +1579,22 @@ export default function InitiativeList() {
                               </tr>
                               {isPokemonRule && (
                                 <tr key={`${rowKey}:multiplier`}>
-                                  <td colSpan={4} className="pt-0 pb-1">
+                                  <td colSpan={5} className="pt-0 pb-1">
                                     <div className="text-[11px] text-base-content/60 px-1 whitespace-normal wrap-break-word">
                                       属性克制倍率
                                       {"\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0"}
                                       {multiplierText}
+                                    </div>
+                                  </td>
+                                </tr>
+                              )}
+                              {isPokemonRule && (
+                                <tr key={`${rowKey}:trait`}>
+                                  <td colSpan={5} className="pt-0 pb-1">
+                                    <div className="text-[11px] text-base-content/60 px-1 whitespace-normal wrap-break-word">
+                                      特性
+                                      {"\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0"}
+                                      {traitText}
                                     </div>
                                   </td>
                                 </tr>
@@ -1416,7 +1659,7 @@ export default function InitiativeList() {
                     type="button"
                     className="btn btn-xs btn-primary"
                     disabled={loading || !hasData}
-                    onClick={() => handleImportSingle(role.roleId)}
+                    onClick={() => void handleImportSingle(role.roleId)}
                   >
                     {isImported ? "再次导入" : "导入"}
                   </button>

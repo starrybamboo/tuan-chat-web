@@ -83,19 +83,27 @@ const cmdattack = new CommandExecutor(
   "atk",
   [],
   "宝可梦使用技能攻击目标",
-  [".atk 电击 @对手", ".atk 撞击 @野生皮卡丘"],
-  "atk [技能名] @目标宝可梦",
+  [".atk 电击 @对手", ".atk 火焰拳 @目标 2"],
+  "atk [技能名] @目标宝可梦 [额外倍率]",
   async (args: string[], mentioned: UserRole[], cpi: CPI): Promise<boolean> => {
     // 解析参数：技能名 + 目标角色（支持多个目标）
     const skillName = args[0]; // 技能名（如"电击"）
+    const extraMultiplierInput = args[1]; // 额外倍率（可选，默认1）
     const attackerRole = mentioned[mentioned.length - 1]; // 攻击者（沿用现有逻辑）
     const targetRoles = mentioned
       .slice(0, -1)
       .filter(role => role?.roleId && role.roleId !== attackerRole?.roleId);
 
+    const extraMultiplier = extraMultiplierInput ? Number(extraMultiplierInput) : 1;
+
     // 校验参数
     if (!skillName || !attackerRole || targetRoles.length === 0) {
-      cpi.sendToast("格式错误！正确格式：.atk [技能名] @目标宝可梦（可多个）");
+      cpi.sendToast("格式错误！正确格式：.atk [技能名] @目标宝可梦（可多个） [额外倍率]（可选）");
+      return false;
+    }
+
+    if (!Number.isFinite(extraMultiplier) || extraMultiplier <= 0) {
+      cpi.sendToast("额外倍率必须是大于0的数字，例如：.atk 火焰拳 @目标 2");
       return false;
     }
 
@@ -107,7 +115,7 @@ const cmdattack = new CommandExecutor(
     }
 
     // 执行战斗逻辑（支持多目标）
-    await executeBattle(attackerRole, targetRoles, skill, cpi);
+    await executeBattle(attackerRole, targetRoles, skill, extraMultiplier, cpi);
     return true;
   },
 );
@@ -118,6 +126,7 @@ async function executeBattle(
   attacker: UserRole,
   defenders: UserRole[],
   skill: PokemonSkill,
+  extraMultiplier: number,
   cpi: CPI,
 ) {
   // 1. 获取攻击方属性（攻击/特攻/属性）
@@ -131,7 +140,17 @@ async function executeBattle(
 
   // 3. 伤害计算（变化技能无伤害）
   if (skill.category === "status") {
-    cpi.replyMessage(`${attacker.roleName}使用了${skill.name}！${skill.effect}`);
+    const actionPointKeys = ["行动点", "行动值", "AP", "ap"];
+    const actionPointKey = actionPointKeys.find(key => UNTIL.getRoleAbilityValue(attackerAbility, key) != null) ?? "行动点";
+    const currentActionPointRaw = Number(UNTIL.getRoleAbilityValue(attackerAbility, actionPointKey));
+    const currentActionPoint = Number.isFinite(currentActionPointRaw) ? currentActionPointRaw : 0;
+    const actionPointCost = Math.max(0, Number(skill.actionPointCost || 0));
+    const newActionPoint = Math.max(0, currentActionPoint - actionPointCost);
+    UNTIL.setRoleAbilityValue(attackerAbility, actionPointKey, String(newActionPoint), "ability", "auto");
+    cpi.setRoleAbilityList(attacker.roleId, attackerAbility);
+    const actionPointLine = `${attacker.roleName}行动点：${currentActionPoint} - ${actionPointCost} = ${newActionPoint}`;
+
+    cpi.replyMessage(`${attacker.roleName}使用了${skill.name}！\n${skill.effect}\n${actionPointLine}`);
     return;
   }
 
@@ -163,7 +182,7 @@ async function executeBattle(
     // 3.5 最终伤害计算（向下取整，至少1点伤害）
     const baseDamage = (attackValue * skill.power) / defenseValue;
     const finalDamage = Math.max(1, Math.floor(
-      baseDamage * sameTypeBonus * typeEffectiveness,
+      baseDamage * sameTypeBonus * typeEffectiveness * extraMultiplier,
     ));
 
     // 4. 更新防守方生命值
@@ -175,7 +194,7 @@ async function executeBattle(
     const blockLines: string[] = [
       `${attacker.roleName}对${defender.roleName}使用了${skill.name}！`,
       "伤害计算：",
-      `(攻击${attackValue} × 威力${skill.power}) ÷ 防御${defenseValue} × 本系修正${sameTypeBonus} × 属性克制${typeEffectiveness} `,
+      `(攻击${attackValue} × 威力${skill.power}) ÷ 防御${defenseValue} × 本系修正${sameTypeBonus} × 属性克制${typeEffectiveness} × 额外倍率${extraMultiplier}`,
       `造成${finalDamage}点伤害！`,
       `${defender.roleName}剩余生命值：${defenderHp} → ${newHp}`,
     ];
@@ -196,7 +215,18 @@ async function executeBattle(
     battleBlocks.push(blockLines.join("\n"));
   }
 
-  cpi.replyMessage(battleBlocks.join("\n\n"));
+  // 6. 在特殊效果判定后再结算行动点
+  const actionPointKeys = ["行动点", "行动值", "AP", "ap"];
+  const actionPointKey = actionPointKeys.find(key => UNTIL.getRoleAbilityValue(attackerAbility, key) != null) ?? "行动点";
+  const currentActionPointRaw = Number(UNTIL.getRoleAbilityValue(attackerAbility, actionPointKey));
+  const currentActionPoint = Number.isFinite(currentActionPointRaw) ? currentActionPointRaw : 0;
+  const actionPointCost = Math.max(0, Number(skill.actionPointCost || 0));
+  const newActionPoint = Math.max(0, currentActionPoint - actionPointCost);
+  UNTIL.setRoleAbilityValue(attackerAbility, actionPointKey, String(newActionPoint), "ability", "auto");
+  cpi.setRoleAbilityList(attacker.roleId, attackerAbility);
+  const actionPointLine = `${attacker.roleName}行动点：${currentActionPoint} - ${actionPointCost} = ${newActionPoint}`;
+
+  cpi.replyMessage(`${battleBlocks.join("\n\n")}\n${actionPointLine}`);
 }
 
 function getSkillByName(skillName: string): PokemonSkill | undefined {
