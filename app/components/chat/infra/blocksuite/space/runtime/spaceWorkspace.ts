@@ -617,7 +617,7 @@ export class SpaceWorkspace implements Workspace {
             return;
 
           try {
-            const doc = this.getDoc(docId) as SpaceDoc | null;
+            const doc = this._docs.get(docId) as SpaceDoc | null | undefined;
             if (!doc?.ready) {
               continue;
             }
@@ -660,6 +660,11 @@ export class SpaceWorkspace implements Workspace {
       return this._docs.get(id)!;
     }
 
+    const existing = this._materializeExistingDoc(id);
+    if (existing) {
+      return existing;
+    }
+
     this.meta.addDocMeta({
       id,
       title: "",
@@ -674,7 +679,22 @@ export class SpaceWorkspace implements Workspace {
   }
 
   getDoc(docId: string): Doc | null {
-    return this._docs.get(docId) ?? null;
+    return this._docs.get(docId) ?? this._materializeExistingDoc(docId) ?? null;
+  }
+
+  private _materializeExistingDoc(docId: string): SpaceDoc | null {
+    const existing = this._docs.get(docId);
+    if (existing) {
+      return existing as SpaceDoc;
+    }
+
+    if (!this._spaces.has(docId)) {
+      return null;
+    }
+
+    const doc = new SpaceDoc({ id: docId, workspace: this, rootDoc: this._rootDoc });
+    this._docs.set(docId, doc);
+    return doc;
   }
 
   removeDoc(docId: string): void {
