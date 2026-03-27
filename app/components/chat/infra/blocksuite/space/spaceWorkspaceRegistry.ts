@@ -1,5 +1,7 @@
 import type { Store, Workspace } from "@blocksuite/store";
 
+import { parseSpaceDocId } from "@/components/chat/infra/blocksuite/space/spaceDocId";
+
 import {
   getOrCreateSpaceDocStore,
   getOrCreateSpaceWorkspaceRuntime,
@@ -113,4 +115,42 @@ export function ensureSpaceDocMetaIfWorkspaceExists(params: { spaceId: number; d
     docId: params.docId,
     title: params.title,
   });
+}
+
+export function syncKnownSpaceDocTitles(params: {
+  spaceId: number;
+  docMetas: Array<{ id: string; title?: string | null }>;
+}) {
+  const normalizedSpaceId = Number(params.spaceId);
+  if (!Number.isFinite(normalizedSpaceId) || normalizedSpaceId <= 0) {
+    return;
+  }
+
+  const workspace = getOrCreateSpaceWorkspace(normalizedSpaceId);
+  for (const meta of params.docMetas) {
+    const docId = typeof meta?.id === "string" ? meta.id.trim() : "";
+    if (!docId || parseSpaceDocId(docId)?.kind !== "independent") {
+      continue;
+    }
+
+    const title = typeof meta?.title === "string" ? meta.title.trim() : "";
+    if (!title) {
+      continue;
+    }
+
+    const current = workspace.meta.getDocMeta(docId);
+    if (!current) {
+      workspace.meta.addDocMeta({
+        id: docId,
+        title,
+        tags: [],
+        createDate: Date.now(),
+      });
+      continue;
+    }
+
+    if (current.title !== title) {
+      workspace.meta.setDocMeta(docId, { title });
+    }
+  }
 }
