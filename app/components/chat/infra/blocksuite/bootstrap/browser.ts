@@ -2,7 +2,6 @@ import "@toeverything/theme/style.css";
 import "@toeverything/theme/fonts.css";
 import "katex/dist/katex.min.css";
 
-import "../styles/embedDoc.css";
 import "../styles/affine-embed-synced-doc-header.css";
 import "../styles/frameBase.css";
 import "../styles/tcHeader.css";
