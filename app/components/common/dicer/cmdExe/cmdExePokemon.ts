@@ -164,7 +164,6 @@ async function executeBattle(
   const tempHp = UNTIL.getRoleAbilityValue(defenderAbility, "hp");
   UNTIL.setRoleAbilityValue(defenderAbility, "hp", newHp.toString(), "ability", "ability");
   cpi.setRoleAbilityList(defender.roleId, defenderAbility);
-  cpi.replyMessage(`攻击方roleid：${attacker.roleId},防守方roleid：${defender.roleId}`);
 
   // 5. 输出战斗结果
   cpi.replyMessage(`${attacker.roleName}对${defender.roleName}使用了${skill.name}！\n`
@@ -192,11 +191,24 @@ type TypeChart = {
 
 // 2. 用定义的类型约束 TYPE_CHART，并保留具体属性（移除 as const，改用类型注解）
 const TYPE_CHART: TypeChart = {
-  电: { 水: 2, 飞行: 2, 电: 0.5, 地面: 0 },
-  水: { 火: 2, 地面: 2, 水: 0.5, 草: 0.5 },
-  普通: { 岩石: 0.5, 幽灵: 0 },
-  火: { 草: 2, 冰: 2, 火: 0.5, 水: 0.5 },
-  // 补充更多属性...
+  普通: { 岩石: 0.5, 幽灵: 0, 钢: 0.5 },
+  火: { 火: 0.5, 水: 0.5, 草: 2, 冰: 2, 虫: 2, 岩石: 0.5, 龙: 0.5, 钢: 2 },
+  水: { 火: 2, 水: 0.5, 草: 0.5, 地面: 2, 岩石: 2, 龙: 0.5 },
+  电: { 水: 2, 电: 0.5, 草: 0.5, 地面: 0, 飞行: 2, 龙: 0.5 },
+  草: { 火: 0.5, 水: 2, 草: 0.5, 毒: 0.5, 地面: 2, 飞行: 0.5, 虫: 0.5, 岩石: 2, 龙: 0.5, 钢: 0.5 },
+  冰: { 火: 0.5, 水: 0.5, 草: 2, 冰: 0.5, 地面: 2, 飞行: 2, 龙: 2, 钢: 0.5 },
+  格斗: { 一般: 2, 冰: 2, 毒: 0.5, 飞行: 0.5, 超能力: 0.5, 虫: 0.5, 岩石: 2, 幽灵: 0, 恶: 2, 钢: 2, 妖精: 0.5 },
+  毒: { 草: 2, 毒: 0.5, 地面: 0.5, 岩石: 0.5, 幽灵: 0.5, 钢: 0, 妖精: 2 },
+  地面: { 火: 2, 电: 2, 草: 0.5, 毒: 2, 飞行: 0, 虫: 0.5, 岩石: 2, 钢: 2 },
+  飞行: { 电: 0.5, 草: 2, 格斗: 2, 虫: 2, 岩石: 0.5, 钢: 0.5 },
+  超能力: { 格斗: 2, 毒: 2, 超能力: 0.5, 恶: 0, 钢: 0.5 },
+  虫: { 火: 0.5, 草: 2, 格斗: 0.5, 毒: 0.5, 飞行: 0.5, 超能力: 2, 幽灵: 0.5, 恶: 2, 钢: 0.5, 妖精: 0.5 },
+  岩石: { 火: 2, 冰: 2, 格斗: 0.5, 地面: 0.5, 飞行: 2, 虫: 2, 钢: 0.5 },
+  幽灵: { 一般: 0, 超能力: 2, 幽灵: 2, 恶: 0.5 },
+  龙: { 龙: 2, 钢: 0.5, 妖精: 0 },
+  恶: { 格斗: 0.5, 超能力: 2, 幽灵: 2, 恶: 0.5, 妖精: 0.5 },
+  钢: { 火: 0.5, 水: 0.5, 电: 0.5, 冰: 2, 岩石: 2, 钢: 0.5, 妖精: 2 },
+  妖精: { 火: 0.5, 格斗: 2, 毒: 0.5, 龙: 2, 恶: 2, 钢: 0.5 },
 };
 
 // 修正函数定义：接收攻击属性 + 防御属性数组（支持1-2个属性）
@@ -208,104 +220,3 @@ function getTypeEffectiveness(attackType: string, defTypes: string[]): number {
   }, 1);
 }
 
-const cmdSt = new CommandExecutor(
-  "st",
-  [],
-  "属性设置",
-  [".st 力量70", ".st show 敏捷", ".st 力量+10", ".st 敏捷-5"],
-  ".st [属性名][属性值] / .st show [属性名]",
-  async (args: string[], mentioned: UserRole[], cpi: CPI): Promise<boolean> => {
-    const role = mentioned[0];
-    const input = args.join("");
-    // 修改对象存储变化详情：{ 属性名: { 原值, 操作符, 变化值, 新值 } }
-    const abilityChanges: {
-      [key: string]: { old: number; op: string; val: number; new: number };
-    } = {};
-    // 使用正则匹配所有属性+数值的组合
-    const matches = input.matchAll(/([^\d+-]+)([+-]?)(\d+)/g);
-    const curAbility = cpi.getRoleAbilityList(role.roleId);
-    if (!curAbility) {
-      cpi.sendToast("非法操作，当前角色不存在于提及列表中。");
-      return false;
-    }
-
-    if (args[0]?.toLowerCase() === "show") {
-      if (!("ability" in curAbility || "basic" in curAbility || "skill" in curAbility)) {
-        cpi.sendToast("当前角色没有属性信息，请先设置属性。");
-        return false;
-      }
-
-      // TODO: 展示全部属性的功能
-      const showProps = args.slice(1).filter(arg => arg.trim() !== "");
-      if (showProps.length === 0) {
-        cpi.sendToast("请指定要展示的属性");
-        return false;
-      }
-
-      const result: string[] = [];
-      for (const prop of showProps) {
-        const normalizedKey = prop.toLowerCase();
-        const key = POKEMON_ABILITY_MAP[normalizedKey] || prop;
-        const value = UNTIL.getRoleAbilityValue(curAbility, key) ?? 0; // 修改这里，添加默认值0
-
-        result.push(`${key}: ${value}`);
-      }
-
-      cpi.sendToast(`${role?.roleName || "当前角色"}的属性展示：\n${result.join("\n")}`);
-      return true;
-    }
-
-    // st 实现
-    for (const match of matches) {
-      const rawKey = match[1].trim();
-      const operator = match[2];
-      const value = Number.parseInt(match[3], 10);
-
-      // 统一转换为小写进行比较
-      const normalizedKey = rawKey.toLowerCase();
-      const key = POKEMON_ABILITY_MAP[normalizedKey] || rawKey;
-
-      const currentValue = Number.parseInt(UNTIL.getRoleAbilityValue(curAbility, key) ?? "0"); // 原有值（默认0）
-      let newValue: number;
-
-      if (operator === "+") {
-        newValue = currentValue + value; // 增量：原有值+新值
-      }
-      else if (operator === "-") {
-        newValue = currentValue - value; // 减量：原有值-新值
-      }
-      else {
-        newValue = value; // 无运算符：直接赋值
-      }
-
-      // 存储变化详情
-      abilityChanges[key] = {
-        old: currentValue,
-        op: operator || "=", // 直接赋值时显示"="
-        val: value,
-        new: newValue,
-      };
-
-      // 更新属性
-      UNTIL.setRoleAbilityValue(curAbility, key, newValue.toString(), "skill", "auto");
-    }
-    // 生成包含变化过程的提示信息
-    const changeEntries = Object.entries(abilityChanges)
-      .map(([key, { old, op, val, new: newValue }]) => {
-        if (op !== "=") {
-          return `${key}: ${old}${op}${val}->${newValue}`; // 拼接格式："力量: 70+10=80" 或 "敏捷: 50-5=45" 或 "智力: =90"
-        }
-        else {
-          return `${key}: ${old}->${newValue}`;
-        }
-      });
-    // 拼接成带花括号和换行的格式
-    const updateDetails = `{\n${changeEntries.join("\n")}\n}`;
-
-    cpi.setRoleAbilityList(role.roleId, curAbility);
-    cpi.replyMessage(`属性设置成功：${role?.roleName || "当前角色"}的属性已更新: ${updateDetails}`);
-    // cpi.sendToast( `属性设置成功：${role?.roleName || "当前角色"}的属性已更新: ${updateDetails}`);
-    return true;
-  },
-);
-executorPokemon.addCmd(cmdSt);
