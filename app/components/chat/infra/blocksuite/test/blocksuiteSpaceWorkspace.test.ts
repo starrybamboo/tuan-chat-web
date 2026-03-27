@@ -104,4 +104,20 @@ describe("blocksuiteSpaceWorkspace", () => {
 
     workspace.dispose();
   });
+
+  it("刷新后能直接从已存在 subdoc 的 tc_header 恢复标题，不需要先点进子文档", async () => {
+    const workspace = new SpaceWorkspace({ workspaceId: "space:6" });
+    const ydoc = seedExistingDoc(workspace, "room:6:description");
+    const header = ydoc.getMap("tc_header");
+    header.set("title", "子文档标题");
+
+    (workspace as any)._onSpacesChanged();
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(workspace.meta.getDocMeta("room:6:description")?.title).toBe("子文档标题");
+    expect(workspace.docs.size).toBe(0);
+
+    workspace.dispose();
+  });
 });
