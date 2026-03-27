@@ -1,0 +1,33 @@
+[
+  {
+    "id": "tackle",
+    "name": "撞击",
+    "type": "普通",
+    "category": "physical",
+    "power": 40,
+    "accuracy": 100,
+    "pp": 35,
+    "effect": "无特殊效果"
+  },
+  {
+    "id": "thunderShock",
+    "name": "电击",
+    "type": "电",
+    "category": "special",
+    "power": 40,
+    "accuracy": 100,
+    "pp": 30,
+    "effect": "30%几率使对手麻痹",
+    "effectRate": 30
+  },
+  {
+    "id": "waterGun",
+    "name": "水枪",
+    "type": "水",
+    "category": "special",
+    "power": 40,
+    "accuracy": 100,
+    "pp": 25,
+    "effect": "无特殊效果"
+  }
+]
