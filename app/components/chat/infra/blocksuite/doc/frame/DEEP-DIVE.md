@@ -128,7 +128,7 @@
 
 - 读取首开 query
 - 监听宿主消息
-- 对外回传 `ready`、`height`、`navigate`、`mode`、`tc-header-change`
+- 对外回传 `ready`、`height`、`navigate`、`mode`、`tc-header`
 
 这一层不理解 BlockSuite 内部细节，只理解协议字段。
 

@@ -48,14 +48,13 @@ interface BlocksuiteDescriptionEditorProps {
     fallbackTitle?: string;
     fallbackImageUrl?: string;
   };
-  /** tcHeader 变化（包含初始化/远端同步/本地编辑）；iframe host 场景会通过 postMessage 转发 */
+  /** tcHeader 变化（包含初始化/远端同步/本地编辑）；可供外层补充做高度重测等副作用 */
   onTcHeaderChange?: (payload: {
     docId: string;
     entityType?: DescriptionEntityType;
     entityId?: number;
     header: BlocksuiteDocHeader;
   }) => void;
-  /** 对外暴露 editor mode 的控制能力；卸载时会回传 null */
   /** editor mode 变化回调（page/edgeless） */
   onModeChange?: (mode: DocMode) => void;
   /** iframe 内部请求导航时，允许宿主拦截并自行处理；返回 true 表示已处理，阻止默认 navigate */
