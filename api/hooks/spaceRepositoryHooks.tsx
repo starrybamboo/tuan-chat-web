@@ -1,15 +1,21 @@
-﻿import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { tuanchat } from "../instance";
+import { seedUserRoleListQueryCache } from "../roleQueryCache";
 
 /**
  * 获取空间仓库角色
  * @param spaceId 空间ID
  */
 export function useGetSpaceRepositoryRoleQuery(spaceId: number) {
+  const queryClient = useQueryClient();
   return useQuery({
-      queryKey: ['spaceRepositoryRole', spaceId],
-      queryFn: () => tuanchat.spaceRepositoryController.spaceRole(spaceId),
-      staleTime: 10000, // 缓存时间
+    queryKey: ["spaceRepositoryRole", spaceId],
+    queryFn: async () => {
+      const res = await tuanchat.spaceRepositoryController.spaceRole(spaceId);
+      seedUserRoleListQueryCache(queryClient, res.data);
+      return res;
+    },
+    staleTime: 10000, // 缓存时间
   });
 }
 
@@ -19,11 +25,11 @@ export function useGetSpaceRepositoryRoleQuery(spaceId: number) {
  */
 function useGetRoomItemsQuery(roomId: number) {
   return useQuery({
-    queryKey: ['roomItems', roomId],
+    queryKey: ["roomItems", roomId],
     queryFn: async () => ({ success: true, data: [] } as any),
     staleTime: 10000, // 缓存时间
     enabled: roomId >= 0,
-  })
+  });
 }
 
 /**
@@ -32,11 +38,9 @@ function useGetRoomItemsQuery(roomId: number) {
  */
 function useGetRoomLocationsQuery(roomId: number) {
   return useQuery({
-    queryKey: ['roomLocations', roomId],
+    queryKey: ["roomLocations", roomId],
     queryFn: async () => ({ success: true, data: [] } as any),
     staleTime: 10000, // 缓存时间
     enabled: roomId >= 0,
-  })
+  });
 }
-
-

@@ -23,6 +23,7 @@ import { FeedbackIssueControllerService } from './services/FeedbackIssueControll
 import { FeedControllerService } from './services/FeedControllerService';
 import { FriendControllerService } from './services/FriendControllerService';
 import { MarkControllerService } from './services/MarkControllerService';
+import { MaterialPackageControllerService } from './services/MaterialPackageControllerService';
 import { MessageDirectControllerService } from './services/MessageDirectControllerService';
 import { MessageSessionService } from './services/MessageSessionService';
 import { NotificationControllerService } from './services/NotificationControllerService';
@@ -40,6 +41,7 @@ import { RuleControllerService } from './services/RuleControllerService';
 import { ShortLinkControllerService } from './services/ShortLinkControllerService';
 import { SpaceControllerService } from './services/SpaceControllerService';
 import { SpaceDocControllerService } from './services/SpaceDocControllerService';
+import { SpaceMaterialPackageControllerService } from './services/SpaceMaterialPackageControllerService';
 import { SpaceMemberControllerService } from './services/SpaceMemberControllerService';
 import { SpaceRepositoryControllerService } from './services/SpaceRepositoryControllerService';
 import { SpaceSidebarTreeControllerService } from './services/SpaceSidebarTreeControllerService';
@@ -71,6 +73,7 @@ export class TuanChat {
     public readonly feedController: FeedControllerService;
     public readonly friendController: FriendControllerService;
     public readonly markController: MarkControllerService;
+    public readonly materialPackageController: MaterialPackageControllerService;
     public readonly messageDirectController: MessageDirectControllerService;
     public readonly messageSession: MessageSessionService;
     public readonly notificationController: NotificationControllerService;
@@ -88,6 +91,7 @@ export class TuanChat {
     public readonly shortLinkController: ShortLinkControllerService;
     public readonly spaceController: SpaceControllerService;
     public readonly spaceDocController: SpaceDocControllerService;
+    public readonly spaceMaterialPackageController: SpaceMaterialPackageControllerService;
     public readonly spaceMemberController: SpaceMemberControllerService;
     public readonly spaceRepositoryController: SpaceRepositoryControllerService;
     public readonly spaceSidebarTreeController: SpaceSidebarTreeControllerService;
@@ -130,6 +134,7 @@ export class TuanChat {
         this.feedController = new FeedControllerService(this.request);
         this.friendController = new FriendControllerService(this.request);
         this.markController = new MarkControllerService(this.request);
+        this.materialPackageController = new MaterialPackageControllerService(this.request);
         this.messageDirectController = new MessageDirectControllerService(this.request);
         this.messageSession = new MessageSessionService(this.request);
         this.notificationController = new NotificationControllerService(this.request);
@@ -147,6 +152,7 @@ export class TuanChat {
         this.shortLinkController = new ShortLinkControllerService(this.request);
         this.spaceController = new SpaceControllerService(this.request);
         this.spaceDocController = new SpaceDocControllerService(this.request);
+        this.spaceMaterialPackageController = new SpaceMaterialPackageControllerService(this.request);
         this.spaceMemberController = new SpaceMemberControllerService(this.request);
         this.spaceRepositoryController = new SpaceRepositoryControllerService(this.request);
         this.spaceSidebarTreeController = new SpaceSidebarTreeControllerService(this.request);

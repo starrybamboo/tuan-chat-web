@@ -54,6 +54,8 @@ export default [
     route("settings", "routes/settings.tsx"),
     route("notifications", "routes/notifications.tsx"),
     route("collection", "routes/collection.tsx"),
+    route("material", "routes/material.tsx"),
+    route("material/space/:spaceId", "routes/spaceMaterial.tsx"),
     route("resource", "routes/resource.tsx"),
     route("doc/:spaceId/:docId", "routes/doc.tsx"),
     ...(ENABLE_AI_IMAGE_ROUTE ? [route("ai-image", "routes/aiImage.tsx")] : []),
