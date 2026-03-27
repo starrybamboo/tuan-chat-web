@@ -11,7 +11,12 @@ import {
 } from "../../../../api/hooks/materialPackageQueryHooks";
 import MaterialPackageEditor, { createEmptyMaterialPackageContent } from "../components/materialPackageEditor";
 
-type GlobalTab = "public" | "mine";
+export type GlobalTab = "public" | "mine";
+
+type MaterialLibraryPageProps = {
+  mode?: GlobalTab;
+  embedded?: boolean;
+};
 
 function buildDraft(pkg?: MaterialPackageResponse) {
   return {
@@ -23,11 +28,23 @@ function buildDraft(pkg?: MaterialPackageResponse) {
   };
 }
 
-export default function MaterialLibraryPage() {
-  const [activeTab, setActiveTab] = useState<GlobalTab>("public");
+export default function MaterialLibraryPage({ mode, embedded = false }: MaterialLibraryPageProps) {
+  const [internalActiveTab, setInternalActiveTab] = useState<GlobalTab>(mode ?? "public");
   const [keyword, setKeyword] = useState("");
   const [selectedPackageId, setSelectedPackageId] = useState<number | null>(null);
   const [isCreating, setIsCreating] = useState(false);
+  const activeTab = mode ?? internalActiveTab;
+  const isEmbeddedDiscoverView = embedded && Boolean(mode);
+  const showTabSwitch = !mode;
+  const pageBadgeLabel = isEmbeddedDiscoverView ? "Discover Material" : "Material Library";
+  const pageTitle = isEmbeddedDiscoverView
+    ? activeTab === "mine" ? "我的素材包" : "素材广场"
+    : "局外素材库";
+  const pageDescription = isEmbeddedDiscoverView
+    ? activeTab === "mine"
+      ? "这里集中管理你自己的局外素材包。你可以继续新建、编辑、删除，并保持与发现导航一致的浏览路径。"
+      : "这里展示公开的局外素材包。你可以像在发现页浏览仓库一样，直接查看公开素材的结构与内容。"
+    : "每个用户都维护自己的素材包。素材包默认公开，可出现在素材广场；包内结构使用树形 JSON，folder 只负责组织，material 才承载一条或多条消息。";
   const myRequest = useMemo(() => ({
     pageNo: 1,
     pageSize: 100,
@@ -75,7 +92,7 @@ export default function MaterialLibraryPage() {
     const createdId = result.data?.packageId ?? null;
     toast.success("素材包已创建");
     setIsCreating(false);
-    setActiveTab("mine");
+    setInternalActiveTab("mine");
     setSelectedPackageId(createdId);
   };
 
@@ -163,39 +180,41 @@ export default function MaterialLibraryPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,_rgba(14,165,233,0.14),_transparent_30%),radial-gradient(circle_at_top_right,_rgba(251,191,36,0.12),_transparent_28%),linear-gradient(180deg,_rgba(255,255,255,0.84),_rgba(248,250,252,0.96))]">
-      <div className="mx-auto max-w-[1440px] px-4 py-8 md:px-8">
+    <div className={`${embedded ? "h-full min-h-0 overflow-y-auto" : "min-h-screen"} bg-[radial-gradient(circle_at_top_left,_rgba(14,165,233,0.14),_transparent_30%),radial-gradient(circle_at_top_right,_rgba(251,191,36,0.12),_transparent_28%),linear-gradient(180deg,_rgba(255,255,255,0.84),_rgba(248,250,252,0.96))]`}>
+      <div className={`mx-auto max-w-[1440px] px-4 ${embedded ? "py-6 md:px-6 md:py-6" : "py-8 md:px-8"}`}>
         <div className="rounded-[32px] border border-base-300/70 bg-base-100/85 shadow-2xl backdrop-blur">
           <div className="border-b border-base-300/80 px-6 py-8 md:px-8">
             <div className="flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
               <div className="max-w-3xl space-y-3">
-                <span className="badge badge-lg badge-outline">Material Library</span>
-                <h1 className="text-3xl font-semibold md:text-5xl">局外素材库</h1>
+                <span className="badge badge-lg badge-outline">{pageBadgeLabel}</span>
+                <h1 className="text-3xl font-semibold md:text-5xl">{pageTitle}</h1>
                 <p className="max-w-2xl text-sm leading-7 opacity-75 md:text-base">
-                  每个用户都维护自己的素材包。素材包默认公开，可出现在素材广场；包内结构使用树形 JSON，folder 只负责组织，material 才承载一条或多条消息。
+                  {pageDescription}
                 </p>
               </div>
 
               <div className="flex flex-col gap-3 md:flex-row md:items-center">
-                <div className="tabs tabs-boxed bg-base-200/70">
-                  <button
-                    type="button"
-                    className={`tab ${activeTab === "public" ? "tab-active" : ""}`}
-                    onClick={() => {
-                      setActiveTab("public");
-                      setIsCreating(false);
-                    }}
-                  >
-                    素材广场
-                  </button>
-                  <button
-                    type="button"
-                    className={`tab ${activeTab === "mine" ? "tab-active" : ""}`}
-                    onClick={() => setActiveTab("mine")}
-                  >
-                    我的素材包
-                  </button>
-                </div>
+                {showTabSwitch && (
+                  <div className="tabs tabs-boxed bg-base-200/70">
+                    <button
+                      type="button"
+                      className={`tab ${activeTab === "public" ? "tab-active" : ""}`}
+                      onClick={() => {
+                        setInternalActiveTab("public");
+                        setIsCreating(false);
+                      }}
+                    >
+                      素材广场
+                    </button>
+                    <button
+                      type="button"
+                      className={`tab ${activeTab === "mine" ? "tab-active" : ""}`}
+                      onClick={() => setInternalActiveTab("mine")}
+                    >
+                      我的素材包
+                    </button>
+                  </div>
+                )}
 
                 <input
                   type="text"
