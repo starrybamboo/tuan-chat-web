@@ -32,6 +32,7 @@ import type {HistoryMessageRequest} from "../models/HistoryMessageRequest";
 import type {MessageBySyncIdRequest} from "../models/MessageBySyncIdRequest";
 import { transferLeaderWithFallback } from "./transferLeaderRequest";
 import { updateSpaceMemberTypeWithFallback } from "./updateSpaceMemberTypeRequest";
+import { seedUserRoleListQueryCache } from "../roleQueryCache";
 
 function patchSpaceMemberListCache(
     queryClient: QueryClient,
@@ -327,9 +328,14 @@ queryClient.invalidateQueries({ queryKey: ['getUserActiveSpaces'] });
  * 获取空间中的role
  */
 function useGetSpaceRolesQuery(spaceId: number) {
+    const queryClient = useQueryClient();
     return useQuery({
         queryKey: ['spaceRole', spaceId],
-        queryFn: () => tuanchat.spaceRepositoryController.spaceRole(spaceId),
+        queryFn: async () => {
+            const res = await tuanchat.spaceRepositoryController.spaceRole(spaceId);
+            seedUserRoleListQueryCache(queryClient, res.data);
+            return res;
+        },
         staleTime: 300000 // 5分钟缓存
     });
 }
@@ -786,9 +792,14 @@ export function useGetUserRoomsQuery(spaceId: number) {
  * @param roomId 群组ID
  */
 export function useGetRoomRoleQuery(roomId: number) {
+    const queryClient = useQueryClient();
     return useQuery({
         queryKey: ["roomRole", roomId],
-        queryFn: () => tuanchat.roomRoleController.roomRole(roomId),
+        queryFn: async () => {
+            const res = await tuanchat.roomRoleController.roomRole(roomId);
+            seedUserRoleListQueryCache(queryClient, res.data);
+            return res;
+        },
         staleTime: 10000,
         enabled: roomId > 0,
     });
@@ -814,9 +825,14 @@ function useGetRoomRolesQueries(roomIds: number[]) {
  * @param roomId 群组ID
  */
 export function useGetRoomNpcRoleQuery(roomId: number) {
+    const queryClient = useQueryClient();
     return useQuery({
         queryKey: ["roomNpcRole", roomId],
-        queryFn: () => tuanchat.roomRoleController.roomNpcRole(roomId),
+        queryFn: async () => {
+            const res = await tuanchat.roomRoleController.roomNpcRole(roomId);
+            seedUserRoleListQueryCache(queryClient, res.data);
+            return res;
+        },
         staleTime: 10000,
         enabled: roomId > 0,
     });
