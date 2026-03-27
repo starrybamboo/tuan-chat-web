@@ -43,6 +43,8 @@ export default [
     route("repository/create", "routes/repository/create.tsx"),
     ...prefix("chat", [
       route("discover/my", "routes/chatDiscoverMy.tsx"),
+      route("discover/material/my", "routes/chatDiscoverMaterialMy.tsx"),
+      route("discover/material", "routes/chatDiscoverMaterial.tsx"),
       route("discover", "routes/chatDiscover.tsx"),
       layout("routes/chatLayout.tsx", [
         index("routes/chat.tsx"),
