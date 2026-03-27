@@ -28,6 +28,7 @@ import useSpaceDocMetaSync from "@/components/chat/hooks/useSpaceDocMetaSync";
 import useSpaceSidebarTreeActions from "@/components/chat/hooks/useSpaceSidebarTreeActions";
 import useTutorialOnboarding from "@/components/chat/hooks/useTutorialOnboarding";
 import { parseSpaceDocId } from "@/components/chat/infra/blocksuite/space/spaceDocId";
+import { syncKnownSpaceDocTitles } from "@/components/chat/infra/blocksuite/space/spaceWorkspaceRegistry";
 import { extractDocMetasFromSidebarTree } from "@/components/chat/room/sidebarTree";
 import { useDocHeaderOverrideStore } from "@/components/chat/stores/docHeaderOverrideStore";
 import { useDrawerPreferenceStore } from "@/components/chat/stores/drawerPreferenceStore";
@@ -385,6 +386,17 @@ export default function ChatPage() {
     onDocHeaderChange: handleDocHeaderChangeForSidebarFallback,
   });
   const spaceDocMetasList = spaceDocMetas ?? EMPTY_ARRAY;
+
+  useEffect(() => {
+    if (!isDocRoute || !activeSpaceId || activeSpaceId <= 0 || spaceDocMetasList.length === 0) {
+      return;
+    }
+
+    syncKnownSpaceDocTitles({
+      spaceId: activeSpaceId,
+      docMetas: spaceDocMetasList,
+    });
+  }, [activeSpaceId, isDocRoute, spaceDocMetasList]);
 
   const activeDocTitleForTcHeader = useChatPageDocTitle({
     activeDocId,

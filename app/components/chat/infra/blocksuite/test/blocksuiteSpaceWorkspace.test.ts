@@ -36,6 +36,8 @@ vi.mock("@blocksuite/sync", () => ({
 }));
 
 import { SpaceWorkspace } from "../space/runtime/spaceWorkspace";
+import { buildSpaceDocId } from "../space/spaceDocId";
+import { getOrCreateSpaceWorkspace, syncKnownSpaceDocTitles } from "../space/spaceWorkspaceRegistry";
 
 function seedExistingDoc(workspace: SpaceWorkspace, docId: string) {
   const ydoc = new Y.Doc({ guid: docId });
@@ -116,6 +118,22 @@ describe("blocksuiteSpaceWorkspace", () => {
     await Promise.resolve();
 
     expect(workspace.meta.getDocMeta("room:6:description")?.title).toBe("子文档标题");
+    expect(workspace.docs.size).toBe(0);
+
+    workspace.dispose();
+  });
+
+  it("已知 independent doc 标题会同步进 workspace meta，供父页 embed 首屏使用", () => {
+    const docId = buildSpaceDocId({ kind: "independent", docId: 33 });
+    const workspace = getOrCreateSpaceWorkspace(7) as SpaceWorkspace;
+    seedExistingDoc(workspace, docId);
+
+    syncKnownSpaceDocTitles({
+      spaceId: 7,
+      docMetas: [{ id: docId, title: "123" }],
+    });
+
+    expect(workspace.meta.getDocMeta(docId)?.title).toBe("123");
     expect(workspace.docs.size).toBe(0);
 
     workspace.dispose();
