@@ -5,6 +5,7 @@ import { html } from "lit";
 
 import type { BlocksuiteExtensionBundle } from "../types";
 
+import { TcDocDisplayMetaExtension } from "./blocksuiteDocDisplayMetaExtension";
 import { EmbedIframeNoCredentiallessViewOverride } from "./embedIframeNoCredentiallessViewOverride";
 import { RoomMapEmbedOptionExtension } from "./roomMapEmbedOption";
 
@@ -121,6 +122,7 @@ export function buildBlocksuiteEmbedExtensions(): BlocksuiteExtensionBundle {
 
   return {
     sharedExtensions: [
+      TcDocDisplayMetaExtension,
       RoomMapEmbedOptionExtension,
       EmbedIframeNoCredentiallessViewOverride,
     ],
