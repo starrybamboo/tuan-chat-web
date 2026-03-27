@@ -1,4 +1,4 @@
-import { use, useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, use, useEffect, useMemo, useRef, useState } from "react";
 import toast from "react-hot-toast";
 import { useRoomExtra } from "@/components/chat/core/hooks";
 import { RoomContext } from "@/components/chat/core/roomContext";
@@ -33,6 +33,75 @@ type SortKey = "name" | "value" | "hp" | "maxHp" | { paramKey: string };
 type SortDirection = "asc" | "desc";
 
 const RESERVED_KEYS = ["name", "value", "hp", "maxHp"] as const;
+
+const POKEMON_TYPE_CHART: Record<string, Record<string, number>> = {
+  普通: { 岩石: 0.5, 幽灵: 0, 钢: 0.5 },
+  火: { 火: 0.5, 水: 0.5, 草: 2, 冰: 2, 虫: 2, 岩石: 0.5, 龙: 0.5, 钢: 2 },
+  水: { 火: 2, 水: 0.5, 草: 0.5, 地面: 2, 岩石: 2, 龙: 0.5 },
+  电: { 水: 2, 电: 0.5, 草: 0.5, 地面: 0, 飞行: 2, 龙: 0.5 },
+  草: { 火: 0.5, 水: 2, 草: 0.5, 毒: 0.5, 地面: 2, 飞行: 0.5, 虫: 0.5, 岩石: 2, 龙: 0.5, 钢: 0.5 },
+  冰: { 火: 0.5, 水: 0.5, 草: 2, 冰: 0.5, 地面: 2, 飞行: 2, 龙: 2, 钢: 0.5 },
+  格斗: { 普通: 2, 冰: 2, 毒: 0.5, 飞行: 0.5, 超能力: 0.5, 虫: 0.5, 岩石: 2, 幽灵: 0, 恶: 2, 钢: 2, 妖精: 0.5 },
+  毒: { 草: 2, 毒: 0.5, 地面: 0.5, 岩石: 0.5, 幽灵: 0.5, 钢: 0, 妖精: 2 },
+  地面: { 火: 2, 电: 2, 草: 0.5, 毒: 2, 飞行: 0, 虫: 0.5, 岩石: 2, 钢: 2 },
+  飞行: { 电: 0.5, 草: 2, 格斗: 2, 虫: 2, 岩石: 0.5, 钢: 0.5 },
+  超能力: { 格斗: 2, 毒: 2, 超能力: 0.5, 恶: 0, 钢: 0.5 },
+  虫: { 火: 0.5, 草: 2, 格斗: 0.5, 毒: 0.5, 飞行: 0.5, 超能力: 2, 幽灵: 0.5, 恶: 2, 钢: 0.5, 妖精: 0.5 },
+  岩石: { 火: 2, 冰: 2, 格斗: 0.5, 地面: 0.5, 飞行: 2, 虫: 2, 钢: 0.5 },
+  幽灵: { 普通: 0, 超能力: 2, 幽灵: 2, 恶: 0.5 },
+  龙: { 龙: 2, 钢: 0.5, 妖精: 0 },
+  恶: { 格斗: 0.5, 超能力: 2, 幽灵: 2, 恶: 0.5, 妖精: 0.5 },
+  钢: { 火: 0.5, 水: 0.5, 电: 0.5, 冰: 2, 岩石: 2, 钢: 0.5, 妖精: 2 },
+  妖精: { 火: 0.5, 格斗: 2, 毒: 0.5, 龙: 2, 恶: 2, 钢: 0.5 },
+};
+
+const POKEMON_ATTACK_TYPES = Object.keys(POKEMON_TYPE_CHART);
+
+function normalizePokemonType(value: string | null | undefined): string | null {
+  if (!value)
+    return null;
+  const raw = value.trim();
+  if (!raw)
+    return null;
+  if (raw === "一般")
+    return "普通";
+  return raw;
+}
+
+function computePokemonDefensiveMatchups(type1Raw: string | null | undefined, type2Raw: string | null | undefined) {
+  const type1 = normalizePokemonType(type1Raw);
+  const type2 = normalizePokemonType(type2Raw);
+  const groups: Record<"4" | "2" | "0.5" | "0.25" | "0", string[]> = {
+    4: [],
+    2: [],
+    0.5: [],
+    0.25: [],
+    0: [],
+  };
+
+  if (!type1 && !type2) {
+    return groups;
+  }
+
+  for (const atkType of POKEMON_ATTACK_TYPES) {
+    const m1 = type1 ? (POKEMON_TYPE_CHART[atkType]?.[type1] ?? 1) : 1;
+    const m2 = type2 ? (POKEMON_TYPE_CHART[atkType]?.[type2] ?? 1) : 1;
+    const total = m1 * m2;
+
+    if (total === 4)
+      groups["4"].push(atkType);
+    else if (total === 2)
+      groups["2"].push(atkType);
+    else if (total === 0.5)
+      groups["0.5"].push(atkType);
+    else if (total === 0.25)
+      groups["0.25"].push(atkType);
+    else if (total === 0)
+      groups["0"].push(atkType);
+  }
+
+  return groups;
+}
 
 function slugifyLabel(label: string): string {
   const base = label.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
@@ -748,6 +817,31 @@ export default function InitiativeList() {
   const activeSortKey = spaceOwner ? sortKey : "value";
   const activeSortDirection = spaceOwner ? sortDirection : "desc";
 
+  const pokemonDefensiveByRoleId = useMemo(() => {
+    const result = new Map<number, Record<"4" | "2" | "0.5" | "0.25" | "0", string[]>>();
+    if (!isPokemonRule)
+      return result;
+
+    importableRoles.forEach((role, idx) => {
+      const query = abilityQueries[idx];
+      const res = query?.data;
+      if (!res?.success || !Array.isArray(res.data) || !spaceContext.ruleId)
+        return;
+
+      const record = res.data.find(item => item.ruleId === spaceContext.ruleId);
+      if (!record)
+        return;
+
+      const source: Record<string, any> = { ...(record.ability || {}), ...(record.basic || {}), ...(record as any).skill };
+      const type1 = source.属性1 ?? source.type1 ?? source.属性 ?? source.type;
+      const type2 = source.属性2 ?? source.type2;
+
+      result.set(role.roleId, computePokemonDefensiveMatchups(type1, type2));
+    });
+
+    return result;
+  }, [isPokemonRule, importableRoles, abilityQueries, spaceContext.ruleId]);
+
   const sortedList = useMemo(() => {
     const list = [...initiativeList];
     list.sort((a, b) => {
@@ -1028,6 +1122,19 @@ export default function InitiativeList() {
                           const hp = item.hp ?? null;
                           const maxHp = item.maxHp ?? null;
                           const levelValue = levelParam ? item.extras?.[levelParam.key] : null;
+                          const defensiveMatchup = typeof item.roleId === "number"
+                            ? pokemonDefensiveByRoleId.get(item.roleId)
+                            : undefined;
+                          const multiplierText = (() => {
+                            if (!defensiveMatchup)
+                              return "--";
+                            const order: Array<"4" | "2" | "0.5" | "0.25" | "0"> = ["4", "2", "0.5", "0.25", "0"];
+                            const spacing = "\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0";
+                            const segments = order
+                              .filter(multiplier => defensiveMatchup[multiplier].length > 0)
+                              .map(multiplier => `${multiplier}：${defensiveMatchup[multiplier].join("/")}`);
+                            return segments.length > 0 ? segments.join(spacing) : "--";
+                          })();
                           const rowKey = item.name || `${_index}`;
                           const nameEditKey = `${rowKey}:name`;
                           const hpEditKey = `${rowKey}:hp`;
@@ -1035,7 +1142,8 @@ export default function InitiativeList() {
                           const valueEditKey = `${rowKey}:value`;
 
                           return (
-                            <tr key={item.name} className="group hover">
+                            <Fragment key={rowKey}>
+                              <tr className="group hover">
                               {isPokemonRule && (
                                 <td className="align-top">
                                   <div className="text-sm tabular-nums min-h-6 leading-6 px-1">{levelValue != null && levelValue !== "" ? String(levelValue) : "--"}</div>
@@ -1236,7 +1344,19 @@ export default function InitiativeList() {
                                   </button>
                                 </div>
                               </td>
-                            </tr>
+                              </tr>
+                              {isPokemonRule && (
+                                <tr key={`${rowKey}:multiplier`}>
+                                  <td colSpan={4} className="pt-0 pb-1">
+                                    <div className="text-[11px] text-base-content/60 px-1 whitespace-normal wrap-break-word">
+                                      属性克制倍率
+                                      {"\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0"}
+                                      {multiplierText}
+                                    </div>
+                                  </td>
+                                </tr>
+                              )}
+                            </Fragment>
                           );
                         })
                       )}
