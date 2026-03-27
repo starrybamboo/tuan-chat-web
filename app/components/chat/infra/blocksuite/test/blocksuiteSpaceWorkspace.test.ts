@@ -36,8 +36,6 @@ vi.mock("@blocksuite/sync", () => ({
 }));
 
 import { SpaceWorkspace } from "../space/runtime/spaceWorkspace";
-import { buildSpaceDocId } from "../space/spaceDocId";
-import { getOrCreateSpaceWorkspace, syncKnownSpaceDocTitles } from "../space/spaceWorkspaceRegistry";
 
 function seedExistingDoc(workspace: SpaceWorkspace, docId: string) {
   const ydoc = new Y.Doc({ guid: docId });
@@ -103,38 +101,6 @@ describe("blocksuiteSpaceWorkspace", () => {
     expect(workspace.docs.has("room:4:description")).toBe(true);
     expect(workspace.docs.has("room:5:description")).toBe(false);
     expect(workspace.docs.size).toBe(1);
-
-    workspace.dispose();
-  });
-
-  it("刷新后能直接从已存在 subdoc 的 tc_header 恢复标题，不需要先点进子文档", async () => {
-    const workspace = new SpaceWorkspace({ workspaceId: "space:6" });
-    const ydoc = seedExistingDoc(workspace, "room:6:description");
-    const header = ydoc.getMap("tc_header");
-    header.set("title", "子文档标题");
-
-    (workspace as any)._onSpacesChanged();
-    await Promise.resolve();
-    await Promise.resolve();
-
-    expect(workspace.meta.getDocMeta("room:6:description")?.title).toBe("子文档标题");
-    expect(workspace.docs.size).toBe(0);
-
-    workspace.dispose();
-  });
-
-  it("已知 independent doc 标题会同步进 workspace meta，供父页 embed 首屏使用", () => {
-    const docId = buildSpaceDocId({ kind: "independent", docId: 33 });
-    const workspace = getOrCreateSpaceWorkspace(7) as SpaceWorkspace;
-    seedExistingDoc(workspace, docId);
-
-    syncKnownSpaceDocTitles({
-      spaceId: 7,
-      docMetas: [{ id: docId, title: "123" }],
-    });
-
-    expect(workspace.meta.getDocMeta(docId)?.title).toBe("123");
-    expect(workspace.docs.size).toBe(0);
 
     workspace.dispose();
   });

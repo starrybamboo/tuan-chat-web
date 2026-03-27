@@ -18,9 +18,16 @@ import {
 } from "../editors/extensions/buildBlocksuiteMentionExtensions";
 import { buildBlocksuiteQuickSearchExtension } from "../editors/extensions/buildBlocksuiteQuickSearchExtension";
 import { buildBlocksuiteEmbedExtensions } from "../editors/extensions/embed/buildBlocksuiteEmbedExtensions";
+import {
+  readBlocksuiteDisplayTitle,
+  TcDocDisplayMetaExtension,
+  TcDocDisplayMetaService,
+} from "../editors/extensions/embed/blocksuiteDocDisplayMetaExtension";
 import { EmbedIframeNoCredentiallessViewOverride } from "../editors/extensions/embed/embedIframeNoCredentiallessViewOverride";
 import { RoomMapEmbedOptionExtension } from "../editors/extensions/embed/roomMapEmbedOption";
 import { listBlocksuiteSpaceMemberIds } from "../services/blocksuiteSpaceMemberService";
+import { Subject } from "rxjs";
+import * as Y from "yjs";
 
 vi.mock("../manager/view", () => ({
   getEdgelessSpecs: () => [],
@@ -273,9 +280,67 @@ describe("blocksuiteEditorBuilders", () => {
   it("embed builder 会注入共享扩展和 edgeless header", () => {
     const result = buildBlocksuiteEmbedExtensions();
 
+    expect(result.sharedExtensions).toContain(TcDocDisplayMetaExtension);
     expect(result.sharedExtensions).toContain(RoomMapEmbedOptionExtension);
     expect(result.sharedExtensions).toContain(EmbedIframeNoCredentiallessViewOverride);
     expect(result.edgelessExtensions).toHaveLength(1);
+  });
+
+  it("display title 优先读取 tc_header，再回退 meta.title", () => {
+    const ydoc = new Y.Doc();
+    ydoc.getMap("tc_header").set("title", "123");
+    const doc = {
+      meta: { title: "旧标题" },
+      getStore: () => ({ spaceDoc: ydoc }),
+    };
+
+    expect(readBlocksuiteDisplayTitle(doc)).toBe("123");
+  });
+
+  it("display title 在没有 tc_header 时回退 meta.title，再回退 Untitled", () => {
+    const withMeta = {
+      meta: { title: "文档标题" },
+      getStore: () => ({ spaceDoc: new Y.Doc() }),
+    };
+    const empty = {
+      meta: { title: "" },
+      getStore: () => ({ spaceDoc: new Y.Doc() }),
+    };
+
+    expect(readBlocksuiteDisplayTitle(withMeta)).toBe("文档标题");
+    expect(readBlocksuiteDisplayTitle(empty)).toBe("Untitled");
+    expect(readBlocksuiteDisplayTitle(null)).toBe("Deleted doc");
+  });
+
+  it("自定义 DocDisplayMetaService 会响应 tc_header 与 alias title", () => {
+    const ydoc = new Y.Doc();
+    const docListUpdated = new Subject<void>();
+    const doc = {
+      meta: { title: "" },
+      getStore: () => ({ spaceDoc: ydoc }),
+    };
+    const service = new TcDocDisplayMetaService({
+      workspace: {
+        getDoc: vi.fn(() => doc),
+        slots: {
+          docListUpdated,
+        },
+      },
+    } as any);
+
+    const titleSignal = service.title("sdoc:33:description");
+    expect(titleSignal.value).toBe("Untitled");
+
+    ydoc.getMap("tc_header").set("title", "123");
+    expect(titleSignal.value).toBe("123");
+
+    const aliasSignal = service.title("sdoc:33:description", { title: "Alias" } as any);
+    expect(aliasSignal.value).toBe("Alias");
+
+    doc.meta.title = "meta title";
+    ydoc.getMap("tc_header").delete("title");
+    docListUpdated.next();
+    expect(titleSignal.value).toBe("meta title");
   });
 
   it("quick search builder 会把 picker 结果适配成 extension 返回值", async () => {

@@ -581,33 +581,12 @@ export class SpaceWorkspace implements Workspace {
     for (const docId of this._spaces.keys()) {
       if (this.meta.getDocMeta(docId))
         continue;
-      const title = this._tryReadKnownDocTitle(docId);
       this.meta.addDocMeta({
         id: docId,
-        title: title ?? "",
+        title: "",
         tags: [],
         createDate: Date.now(),
       });
-    }
-  }
-
-  private _tryReadKnownDocTitle(docId: string): string | null {
-    const subdoc = this._spaces.get(docId);
-    const tcTitle = tryReadTcHeaderTitleFromYDoc(subdoc);
-    if (tcTitle) {
-      return tcTitle;
-    }
-
-    const doc = this._docs.get(docId) as SpaceDoc | null | undefined;
-    if (!doc?.ready) {
-      return null;
-    }
-
-    try {
-      return tryDeriveDocTitle(doc.getStore({ readonly: true }));
-    }
-    catch {
-      return null;
     }
   }
 
@@ -638,13 +617,26 @@ export class SpaceWorkspace implements Workspace {
             return;
 
           try {
+            const doc = this._docs.get(docId) as SpaceDoc | null | undefined;
+            if (!doc?.ready) {
+              continue;
+            }
             const meta = this.meta.getDocMeta(docId);
             if (!meta)
               continue;
 
-            const knownTitle = this._tryReadKnownDocTitle(docId);
-            if (knownTitle && meta.title !== knownTitle) {
-              this.meta.setDocMeta(docId, { title: knownTitle });
+            const tcTitle = tryReadTcHeaderTitleFromYDoc(doc.spaceDoc);
+            if (tcTitle) {
+              if (meta.title !== tcTitle) {
+                this.meta.setDocMeta(docId, { title: tcTitle });
+                anyMetaChanged = true;
+              }
+              continue;
+            }
+
+            const storeTitle = tryDeriveDocTitle(doc.getStore({ readonly: true }));
+            if (storeTitle && meta.title !== storeTitle) {
+              this.meta.setDocMeta(docId, { title: storeTitle });
               anyMetaChanged = true;
             }
           }
