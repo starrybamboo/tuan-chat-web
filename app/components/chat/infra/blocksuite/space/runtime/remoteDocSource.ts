@@ -5,7 +5,13 @@ import { diffUpdate, encodeStateVectorFromUpdate, mergeUpdates } from "yjs";
 
 import type { StoredSnapshot } from "@/components/chat/infra/blocksuite/description/descriptionDocRemote";
 
-import { addUpdate, clearUpdates, listUpdates } from "@/components/chat/infra/blocksuite/description/descriptionDocDb";
+import {
+  addUpdate,
+  clearUpdates,
+  deleteUpdatesByIds,
+  listUpdateRecords,
+  listUpdates,
+} from "@/components/chat/infra/blocksuite/description/descriptionDocDb";
 import { parseDescriptionDocId } from "@/components/chat/infra/blocksuite/description/descriptionDocId";
 import {
   compactRemoteUpdates,
@@ -53,6 +59,8 @@ class RemoteYjsLogDocSource implements DocSource {
 
   private readonly flushDebouncers = new Map<string, ReturnType<typeof debounce>>();
   private readonly compactDebouncers = new Map<string, ReturnType<typeof debounce>>();
+  private readonly flushingDocIds = new Set<string>();
+  private readonly flushQueuedDocIds = new Set<string>();
 
   private subscribedCb: ((docId: string, data: Uint8Array) => void) | null = null;
   private readonly joinedDocIds = new Set<string>();
@@ -246,30 +254,62 @@ class RemoteYjsLogDocSource implements DocSource {
       return;
     }
 
-    const pending = await listUpdates(docId);
-    if (!pending.length) {
+    if (this.flushingDocIds.has(docId)) {
+      this.flushQueuedDocIds.add(docId);
       return;
     }
 
-    const merged = pending.length === 1 ? pending[0] : mergeUpdates(pending);
-    try {
-      const resp = await pushRemoteUpdate({
-        ...key,
-        updateB64: uint8ArrayToBase64(merged),
-      });
-      if (!resp) {
-        return;
-      }
-      await clearUpdates(docId);
+    this.flushingDocIds.add(docId);
 
-      // Once offline backlog is flushed, try to compact into snapshot (best-effort).
-      this.scheduleCompaction(docId);
-    }
-    catch (error) {
-      if (isNonRetryableBlocksuiteDocError(error)) {
-        await clearUpdates(docId);
+    try {
+      let shouldContinue = true;
+      while (shouldContinue) {
+        shouldContinue = false;
+        this.flushQueuedDocIds.delete(docId);
+
+        const pending = await listUpdateRecords(docId);
+        if (!pending.length) {
+          continue;
+        }
+
+        const merged = pending.length === 1
+          ? pending[0].data
+          : mergeUpdates(pending.map(record => record.data));
+        const pendingIds = pending.map(record => record.id);
+
+        try {
+          const resp = await pushRemoteUpdate({
+            ...key,
+            updateB64: uint8ArrayToBase64(merged),
+          });
+          if (!resp) {
+            return;
+          }
+
+          await deleteUpdatesByIds(pendingIds);
+
+          // Once offline backlog is flushed, try to compact into snapshot (best-effort).
+          this.scheduleCompaction(docId);
+        }
+        catch (error) {
+          if (isNonRetryableBlocksuiteDocError(error)) {
+            await deleteUpdatesByIds(pendingIds);
+          }
+          else {
+            return;
+          }
+        }
+
+        if (this.flushQueuedDocIds.has(docId) || (await listUpdates(docId)).length) {
+          shouldContinue = true;
+        }
       }
-      // keep pending for later retry
+    }
+    finally {
+      this.flushingDocIds.delete(docId);
+      if (this.flushQueuedDocIds.delete(docId)) {
+        void this.flushOfflineUpdates(docId);
+      }
     }
   }
 

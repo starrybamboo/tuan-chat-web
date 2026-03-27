@@ -13,6 +13,13 @@ export type StoredUpdate = {
   createdAt: number;
 };
 
+export type QueuedDescriptionUpdate = {
+  id: number;
+  docId: string;
+  data: Uint8Array;
+  createdAt: number;
+};
+
 async function getDb() {
   return openDB(DB_NAME, DB_VERSION, {
     upgrade(db) {
@@ -37,12 +44,36 @@ export async function addUpdate(docId: string, data: Uint8Array): Promise<void> 
 }
 
 export async function listUpdates(docId: string): Promise<Uint8Array[]> {
+  const records = await listUpdateRecords(docId);
+  return records.map(r => r.data);
+}
+
+export async function listUpdateRecords(docId: string): Promise<QueuedDescriptionUpdate[]> {
   const db = await getDb();
   const tx = db.transaction(UPDATES_STORE, "readonly");
   const index = tx.store.index(DOC_ID_INDEX);
   const records = (await index.getAll(docId)) as StoredUpdate[];
   await tx.done;
-  return records.map(r => r.data);
+  return records
+    .filter((record): record is QueuedDescriptionUpdate => typeof record.id === "number")
+    .sort((left, right) => left.id - right.id)
+    .map(record => ({
+      id: record.id,
+      docId: record.docId,
+      data: record.data,
+      createdAt: record.createdAt,
+    }));
+}
+
+export async function deleteUpdatesByIds(ids: number[]): Promise<void> {
+  if (!ids.length) {
+    return;
+  }
+
+  const db = await getDb();
+  const tx = db.transaction(UPDATES_STORE, "readwrite");
+  await Promise.all(ids.map(id => tx.store.delete(id)));
+  await tx.done;
 }
 
 export async function clearUpdates(docId: string): Promise<void> {
