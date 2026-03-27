@@ -11,6 +11,7 @@
 - 业务语义：看 [BUSINESS.md](./BUSINESS.md)
 - editor 专区：看 [editor/README.md](./editor/README.md)
 - editor 业务能力接入：看 [editor/INTEGRATION.md](./editor/INTEGRATION.md)
+- 问题导向 Guide：看 [guide/README.md](./guide/README.md)
 - frame 深挖：看 [frame/README.md](./frame/README.md)
 - 历史记录：看 [records/README.md](./records/README.md)
 - 内部数据结构：看 [INTERNAL-DATA.md](./INTERNAL-DATA.md)
@@ -144,6 +145,10 @@ editor 装配专题文档目录。
 
 frame 专题文档目录。
 
+### [doc/guide/](./guide)
+
+问题导向的深度说明目录，按“集成、首屏、更新、通信、业务接入、自定义能力、同步层、数据抽象”拆分。
+
 ### [doc/records/](./records)
 
 历史记录目录。
@@ -180,6 +185,15 @@ frame 专题文档目录。
 - [editor/MOUNTING.md](./editor/MOUNTING.md)：editor 挂载、render 与 web component 链路
 - [frame/README.md](./frame/README.md)：frame 专区总入口
 - [frame/DEEP-DIVE.md](./frame/DEEP-DIVE.md)：`frame/` 深度链路说明
+- [guide/README.md](./guide/README.md)：问题导向 Guide 总入口
+- [guide/01-how-blocksuite-is-integrated.md](./guide/01-how-blocksuite-is-integrated.md)：项目如何集成 BlockSuite 引擎
+- [guide/02-first-screen-rendering.md](./guide/02-first-screen-rendering.md)：编辑器首屏渲染的逻辑
+- [guide/03-editor-update-flow.md](./guide/03-editor-update-flow.md)：编辑器的更新逻辑
+- [guide/04-iframe-host-bridge.md](./guide/04-iframe-host-bridge.md)：iframe 和主线程的通信系统
+- [guide/05-business-integration.md](./guide/05-business-integration.md)：如何接入该项目的业务
+- [guide/06-custom-blocks-and-extensions.md](./guide/06-custom-blocks-and-extensions.md)：如何自定义块、扩展和编辑器能力
+- [guide/07-local-and-remote-sync.md](./guide/07-local-and-remote-sync.md)：本地与远程同步层逻辑
+- [guide/08-data-abstractions.md](./guide/08-data-abstractions.md)：BlockSuite 底层设计的数据抽象
 - [INTERNAL-DATA.md](./INTERNAL-DATA.md)：内部数据模型、术语、结构说明
 - [LEARNING-PATH.md](./LEARNING-PATH.md)：学习路线与代码阅读顺序
 - [README.md](./README.md)：Blocksuite 文档总入口
