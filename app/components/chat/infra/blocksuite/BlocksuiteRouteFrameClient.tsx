@@ -387,8 +387,7 @@ export function BlocksuiteRouteFrameClient() {
         postToParent({ tc: "tc-blocksuite-frame", instanceId, type: "navigate", to });
         return true;
       }}
-      onTcHeaderChange={(payload) => {
-        postToParent({ tc: "tc-blocksuite-frame", instanceId, type: "tc-header-change", payload });
+      onTcHeaderChange={() => {
         measureAndPostHeight.current?.();
       }}
       className={currentMode === "edgeless" ? "h-screen" : "min-h-screen"}
