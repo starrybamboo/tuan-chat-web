@@ -86,14 +86,16 @@ const cmdattack = new CommandExecutor(
   [".atk 电击 @对手", ".atk 撞击 @野生皮卡丘"],
   "atk [技能名] @目标宝可梦",
   async (args: string[], mentioned: UserRole[], cpi: CPI): Promise<boolean> => {
-    // 解析参数：技能名 + 目标角色
+    // 解析参数：技能名 + 目标角色（支持多个目标）
     const skillName = args[0]; // 技能名（如"电击"）
-    const targetRole = mentioned[0]; // 目标宝可梦（@提及的角色）
-    const attackerRole = mentioned[mentioned.length - 1]; // 攻击者（指令发起者）
+    const attackerRole = mentioned[mentioned.length - 1]; // 攻击者（沿用现有逻辑）
+    const targetRoles = mentioned
+      .slice(0, -1)
+      .filter(role => role?.roleId && role.roleId !== attackerRole?.roleId);
 
     // 校验参数
-    if (!skillName || !targetRole) {
-      cpi.sendToast("格式错误！正确格式：.battle [技能名] @目标宝可梦");
+    if (!skillName || !attackerRole || targetRoles.length === 0) {
+      cpi.sendToast("格式错误！正确格式：.atk [技能名] @目标宝可梦（可多个）");
       return false;
     }
 
@@ -104,8 +106,8 @@ const cmdattack = new CommandExecutor(
       return false;
     }
 
-    // 执行战斗逻辑（见下方步骤）
-    await executeBattle(attackerRole, targetRole, skill, cpi);
+    // 执行战斗逻辑（支持多目标）
+    await executeBattle(attackerRole, targetRoles, skill, cpi);
     return true;
   },
 );
@@ -114,25 +116,18 @@ executorPokemon.addCmd(cmdattack);
 
 async function executeBattle(
   attacker: UserRole,
-  defender: UserRole,
+  defenders: UserRole[],
   skill: PokemonSkill,
   cpi: CPI,
 ) {
-  // 1. 获取双方属性（攻击方：攻击/特攻/属性；防守方：防御/特防/属性）
+  // 1. 获取攻击方属性（攻击/特攻/属性）
   const attackerAbility = cpi.getRoleAbilityList(attacker.roleId);
-  const defenderAbility = cpi.getRoleAbilityList(defender.roleId);
 
   // 攻击者属性
   const attackerAtk = Number(UNTIL.getRoleAbilityValue(attackerAbility, "攻击") || 0);
   const attackerSpAtk = Number(UNTIL.getRoleAbilityValue(attackerAbility, "特攻") || 0);
   const attackerType1 = UNTIL.getRoleAbilityValue(attackerAbility, "属性1") || "";
   const attackerType2 = UNTIL.getRoleAbilityValue(attackerAbility, "属性2") || "";
-
-  // 防守者属性
-  const defenderDef = Number(UNTIL.getRoleAbilityValue(defenderAbility, "防御") || 0);
-  const defenderSpDef = Number(UNTIL.getRoleAbilityValue(defenderAbility, "特防") || 0);
-  const defenderType1 = UNTIL.getRoleAbilityValue(defenderAbility, "属性1") || "";
-  const defenderType2 = UNTIL.getRoleAbilityValue(defenderAbility, "属性2") || "";
 
   // 3. 伤害计算（变化技能无伤害）
   if (skill.category === "status") {
@@ -142,36 +137,66 @@ async function executeBattle(
 
   // 3.1 基础值：根据技能分类选择攻击/特攻和防御/特防
   const attackValue = skill.category === "physical" ? attackerAtk : attackerSpAtk;
-  const defenseValue = skill.category === "physical" ? defenderDef : defenderSpDef;
 
   // 3.2 本系修正（攻击方属性与技能属性一致则×1.5）
   const isSameType = [attackerType1, attackerType2].includes(skill.type);
   const sameTypeBonus = isSameType ? 1.5 : 1;
 
-  // 3.3 属性克制修正（从克制表中查询）
-  const defenderTypes = [defenderType1, defenderType2].filter(Boolean); // 过滤空字符串
-  const typeEffectiveness = getTypeEffectiveness(skill.type, defenderTypes);
+  const battleBlocks: string[] = [];
 
-  // 3.5 最终伤害计算（向下取整，至少1点伤害）
-  const baseDamage = (attackValue * skill.power) / defenseValue / 10;
-  const finalDamage = Math.max(1, Math.floor(
-    baseDamage * sameTypeBonus * typeEffectiveness,
-  ));
+  for (const defender of defenders) {
+    const defenderAbility = cpi.getRoleAbilityList(defender.roleId);
 
-  // 4. 更新防守方生命值
-  const defenderHp = Number(UNTIL.getRoleAbilityValue(defenderAbility, "hp") || 0);
-  const newHp = Math.max(0, defenderHp - finalDamage);
-  const tempHp = UNTIL.getRoleAbilityValue(defenderAbility, "hp");
-  UNTIL.setRoleAbilityValue(defenderAbility, "hp", newHp.toString(), "ability", "ability");
-  cpi.setRoleAbilityList(defender.roleId, defenderAbility);
+    // 防守者属性
+    const defenderDef = Number(UNTIL.getRoleAbilityValue(defenderAbility, "防御") || 0);
+    const defenderSpDef = Number(UNTIL.getRoleAbilityValue(defenderAbility, "特防") || 0);
+    const defenderType1 = UNTIL.getRoleAbilityValue(defenderAbility, "属性1") || "";
+    const defenderType2 = UNTIL.getRoleAbilityValue(defenderAbility, "属性2") || "";
 
-  // 5. 输出战斗结果
-  cpi.replyMessage(`${attacker.roleName}对${defender.roleName}使用了${skill.name}！\n`
-  + `伤害计算：\n`
-  + `(攻击${attackValue} × 威力${skill.power}) ÷ 防御${defenseValue} `
-  + `× 本系修正${sameTypeBonus} × 属性克制${typeEffectiveness} \n`
-  + `造成${finalDamage}点伤害！\n`
-  + `${defender.roleName}剩余生命值：${tempHp} → ${newHp}`);
+    const defenseValueRaw = skill.category === "physical" ? defenderDef : defenderSpDef;
+    const defenseValue = Math.max(1, defenseValueRaw);
+
+    // 3.3 属性克制修正（从克制表中查询）
+    const defenderTypes = [defenderType1, defenderType2].filter(Boolean); // 过滤空字符串
+    const typeEffectiveness = getTypeEffectiveness(skill.type, defenderTypes);
+
+    // 3.5 最终伤害计算（向下取整，至少1点伤害）
+    const baseDamage = (attackValue * skill.power) / defenseValue;
+    const finalDamage = Math.max(1, Math.floor(
+      baseDamage * sameTypeBonus * typeEffectiveness,
+    ));
+
+    // 4. 更新防守方生命值
+    const defenderHp = Number(UNTIL.getRoleAbilityValue(defenderAbility, "hp") || 0);
+    const newHp = Math.max(0, defenderHp - finalDamage);
+    UNTIL.setRoleAbilityValue(defenderAbility, "hp", newHp.toString(), "ability", "ability");
+    cpi.setRoleAbilityList(defender.roleId, defenderAbility);
+
+    const blockLines: string[] = [
+      `${attacker.roleName}对${defender.roleName}使用了${skill.name}！`,
+      "伤害计算：",
+      `(攻击${attackValue} × 威力${skill.power}) ÷ 防御${defenseValue} × 本系修正${sameTypeBonus} × 属性克制${typeEffectiveness} `,
+      `造成${finalDamage}点伤害！`,
+      `${defender.roleName}剩余生命值：${defenderHp} → ${newHp}`,
+    ];
+
+    // 5. 投掷特殊效果触发（仅当effectRate > 0）
+    const effectRate = Number(skill.effectRate || 0);
+    if (effectRate > 0) {
+      const roll = Math.floor(Math.random() * 100) + 1;
+      const triggered = roll <= effectRate;
+      blockLines.push(
+        `特殊效果判定：d100=${roll}（触发率${effectRate}%）${triggered ? "，触发！" : "，未触发"}`,
+      );
+      if (triggered && skill.effect) {
+        blockLines.push(`特殊效果：${skill.effect}`);
+      }
+    }
+
+    battleBlocks.push(blockLines.join("\n"));
+  }
+
+  cpi.replyMessage(battleBlocks.join("\n\n"));
 }
 
 function getSkillByName(skillName: string): PokemonSkill | undefined {
