@@ -1,5 +1,6 @@
 import type { MaterialPackageDraft } from "./materialPackageEditorShared";
-import { ImageIcon, PackageIcon, PencilSimpleIcon } from "@phosphor-icons/react";
+import { CaretRightIcon, ImageIcon, PackageIcon, PencilSimpleIcon } from "@phosphor-icons/react";
+import { useState } from "react";
 import { ImgUploader } from "@/components/common/uploader/imgUploader";
 import {
   collectMaterialOverview,
@@ -25,6 +26,95 @@ interface MaterialPackageOverviewProps {
   onSave?: () => void;
   onDelete?: () => void;
   onExtraAction?: () => void;
+}
+
+function MaterialOverviewCard({
+  item,
+  readOnly,
+  onOpenWorkbench,
+}: {
+  item: ReturnType<typeof collectMaterialOverview>[number];
+  readOnly: boolean;
+  onOpenWorkbench: (pathKey?: string) => void;
+}) {
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  return (
+    <div className="rounded-[22px] border border-base-300 bg-base-100/85 p-5 shadow-sm">
+      <div className="space-y-4">
+        <div className="space-y-2">
+          {item.folderTrail.length > 0 && (
+            <div className="text-[11px] uppercase tracking-[0.24em] text-base-content/45">
+              {item.folderTrail.join(" / ")}
+            </div>
+          )}
+          <div className="text-lg font-semibold text-base-content">{item.title}</div>
+          <div className="flex flex-wrap gap-2 text-xs text-base-content/60">
+            <span>{`${item.assetCount} 个素材条目`}</span>
+            {item.assetKinds.map(kind => (
+              <span
+                key={`${item.key}-${kind}`}
+                className="rounded-full border border-primary/20 bg-primary/10 px-2 py-1 text-primary"
+              >
+                {kind}
+              </span>
+            ))}
+          </div>
+        </div>
+
+        {item.note && (
+          <div className="line-clamp-3 text-sm leading-6 text-base-content/62">{item.note}</div>
+        )}
+
+        {item.assets.length > 0 && (
+          <div className="rounded-2xl border border-base-300 bg-base-200/35">
+            <button
+              type="button"
+              className="flex w-full items-center justify-between gap-3 px-3 py-3 text-left"
+              onClick={() => setIsExpanded(prev => !prev)}
+            >
+              <div className="text-xs font-medium uppercase tracking-[0.2em] text-base-content/45">
+                素材条目详情
+              </div>
+              <CaretRightIcon className={`size-4 text-base-content/45 transition-transform ${isExpanded ? "rotate-90" : ""}`} />
+            </button>
+
+            {isExpanded && (
+              <div className="space-y-2 border-t border-base-300 px-3 py-3">
+                {item.assets.map(asset => (
+                  <div
+                    key={`${item.key}-${asset.key}`}
+                    className="flex items-start justify-between gap-3 rounded-xl border border-base-300 bg-base-100/80 px-3 py-2"
+                  >
+                    <div className="min-w-0">
+                      <div className="truncate text-sm font-medium text-base-content">{asset.title}</div>
+                      <div className="mt-1 text-xs text-base-content/55">{asset.typeLabel}</div>
+                    </div>
+                    {asset.metaText && (
+                      <div className="shrink-0 text-xs text-base-content/45">{asset.metaText}</div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {!readOnly && (
+          <div className="flex justify-end">
+            <button
+              type="button"
+              className="inline-flex items-center gap-2 rounded-md border border-base-300 bg-base-100 px-3 py-2 text-sm text-base-content transition hover:border-primary/30 hover:bg-base-100/90"
+              onClick={() => onOpenWorkbench(item.key)}
+            >
+              <PencilSimpleIcon className="size-4" />
+              <span>编辑</span>
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
 }
 
 export default function MaterialPackageOverview({
@@ -168,73 +258,12 @@ export default function MaterialPackageOverview({
 
         <div className="mt-5 grid gap-4 lg:grid-cols-2">
           {materialItems.map(item => (
-            <div
+            <MaterialOverviewCard
               key={item.key}
-              className="rounded-[22px] border border-base-300 bg-base-100/85 p-5 shadow-sm"
-            >
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  {item.folderTrail.length > 0 && (
-                    <div className="text-[11px] uppercase tracking-[0.24em] text-base-content/45">
-                      {item.folderTrail.join(" / ")}
-                    </div>
-                  )}
-                  <div className="text-lg font-semibold text-base-content">{item.title}</div>
-                  <div className="flex flex-wrap gap-2 text-xs text-base-content/60">
-                    <span>{`${item.assetCount} 个素材条目`}</span>
-                    {item.assetKinds.map(kind => (
-                      <span
-                        key={`${item.key}-${kind}`}
-                        className="rounded-full border border-primary/20 bg-primary/10 px-2 py-1 text-primary"
-                      >
-                        {kind}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-
-                {item.note && (
-                  <div className="line-clamp-3 text-sm leading-6 text-base-content/62">{item.note}</div>
-                )}
-
-                {item.assets.length > 0 && (
-                  <div className="space-y-2 rounded-2xl border border-base-300 bg-base-200/35 p-3">
-                    <div className="text-xs font-medium uppercase tracking-[0.2em] text-base-content/45">
-                      素材条目详情
-                    </div>
-                    <div className="space-y-2">
-                      {item.assets.map(asset => (
-                        <div
-                          key={`${item.key}-${asset.key}`}
-                          className="flex items-start justify-between gap-3 rounded-xl border border-base-300 bg-base-100/80 px-3 py-2"
-                        >
-                          <div className="min-w-0">
-                            <div className="truncate text-sm font-medium text-base-content">{asset.title}</div>
-                            <div className="mt-1 text-xs text-base-content/55">{asset.typeLabel}</div>
-                          </div>
-                          {asset.metaText && (
-                            <div className="shrink-0 text-xs text-base-content/45">{asset.metaText}</div>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {!readOnly && (
-                  <div className="flex justify-end">
-                    <button
-                      type="button"
-                      className="inline-flex items-center gap-2 rounded-md border border-base-300 bg-base-100 px-3 py-2 text-sm text-base-content transition hover:border-primary/30 hover:bg-base-100/90"
-                      onClick={() => onOpenWorkbench(item.key)}
-                    >
-                      <PencilSimpleIcon className="size-4" />
-                      <span>编辑</span>
-                    </button>
-                  </div>
-                )}
-              </div>
-            </div>
+              item={item}
+              readOnly={readOnly}
+              onOpenWorkbench={onOpenWorkbench}
+            />
           ))}
 
           {materialItems.length === 0 && (
