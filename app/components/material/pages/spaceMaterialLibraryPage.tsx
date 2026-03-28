@@ -20,6 +20,7 @@ import SpaceMaterialLibraryWorkspace from "../components/spaceMaterialLibraryWor
 
 interface SpaceMaterialLibraryPageProps {
   spaceId: number;
+  embedded?: boolean;
 }
 
 function buildDraft(pkg?: SpaceMaterialPackageResponse) {
@@ -32,7 +33,10 @@ function buildDraft(pkg?: SpaceMaterialPackageResponse) {
   };
 }
 
-export default function SpaceMaterialLibraryPage({ spaceId }: SpaceMaterialLibraryPageProps) {
+export default function SpaceMaterialLibraryPage({
+  spaceId,
+  embedded = false,
+}: SpaceMaterialLibraryPageProps) {
   const navigate = useNavigate();
   const [keyword, setKeyword] = useState("");
   const [selectedPackageId, setSelectedPackageId] = useState<number | null>(null);
@@ -225,6 +229,21 @@ export default function SpaceMaterialLibraryPage({ spaceId }: SpaceMaterialLibra
           : null}
     </MaterialPackageEditorModal>
   );
+
+  if (embedded) {
+    return (
+      <>
+        {workspaceNode}
+        {editorNode}
+
+        <MaterialPackageImportModal
+          isOpen={isImportOpen}
+          spaceId={spaceId}
+          onClose={() => setIsImportOpen(false)}
+        />
+      </>
+    );
+  }
 
   return (
     <>
