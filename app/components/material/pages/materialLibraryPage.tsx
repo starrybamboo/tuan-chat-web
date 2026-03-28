@@ -168,6 +168,37 @@ export default function MaterialLibraryPage({
     setIsCreating(false);
   };
 
+  const handleAddToMine = async () => {
+    if (!selectedPackage) {
+      return;
+    }
+
+    const result = await createMutation.mutateAsync({
+      name: selectedPackage.name?.trim() || "未命名素材包",
+      description: selectedPackage.description ?? "",
+      coverUrl: selectedPackage.coverUrl ?? "",
+      isPublic: false,
+      content: (selectedPackage.content ?? createEmptyMaterialPackageContent()) as MaterialPackageContent,
+    });
+
+    const createdId = result.data?.packageId ?? null;
+    toast.success("已添加到我的素材包");
+
+    if (mode === "public" && embedded) {
+      setIsCreating(false);
+      setSelectedPackageId(null);
+      navigate("/chat/discover/material/my");
+      return;
+    }
+
+    if (!mode) {
+      setInternalActiveTab("mine");
+    }
+    setIsCreating(false);
+    setSelectedPackageId(createdId);
+    setKeyword("");
+  };
+
   const handleCreateRequest = () => {
     if (activeTab !== "mine" && !mode) {
       setInternalActiveTab("mine");
@@ -253,8 +284,11 @@ export default function MaterialLibraryPage({
                 showPublicToggle={activeTab === "mine"}
                 savePending={updateMutation.isPending}
                 deletePending={deleteMutation.isPending}
+                extraActionLabel={activeTab === "public" ? "添加到我的素材包" : undefined}
+                extraActionPending={activeTab === "public" ? createMutation.isPending : false}
                 onSave={activeTab === "mine" ? handleUpdate : undefined}
                 onDelete={activeTab === "mine" ? handleDelete : undefined}
+                onExtraAction={activeTab === "public" ? handleAddToMine : undefined}
               />
             )
           : null}
