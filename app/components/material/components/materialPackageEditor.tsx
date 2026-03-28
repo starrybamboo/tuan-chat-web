@@ -64,6 +64,34 @@ interface MessagePresentation {
   metaText: string;
 }
 
+const CHINESE_NUMERAL_DIGITS = ["零", "一", "二", "三", "四", "五", "六", "七", "八", "九"];
+
+function toChineseNumeral(value: number): string {
+  if (value <= 0) {
+    return CHINESE_NUMERAL_DIGITS[0];
+  }
+
+  if (value < 10) {
+    return CHINESE_NUMERAL_DIGITS[value] ?? String(value);
+  }
+
+  if (value < 20) {
+    return `十${value === 10 ? "" : CHINESE_NUMERAL_DIGITS[value % 10]}`;
+  }
+
+  if (value < 100) {
+    const tens = Math.floor(value / 10);
+    const units = value % 10;
+    return `${CHINESE_NUMERAL_DIGITS[tens]}十${units === 0 ? "" : CHINESE_NUMERAL_DIGITS[units]}`;
+  }
+
+  return String(value);
+}
+
+function createChapterTitle(index: number): string {
+  return `第${toChineseNumeral(index)}幕`;
+}
+
 function cloneContent(content?: MaterialPackageContent): MaterialPackageContent {
   return JSON.parse(JSON.stringify(content ?? createEmptyMaterialPackageContent())) as MaterialPackageContent;
 }
@@ -90,8 +118,32 @@ function ensureEditableContent(content: MaterialPackageContent | undefined, read
   next.version = next.version ?? 1;
   next.root = Array.isArray(next.root) ? next.root : [];
 
-  if (!readOnly && next.root.length === 0) {
-    next.root = [createDefaultSectionNode()];
+  if (!readOnly) {
+    const rootNodes = next.root;
+    const folderNodes = rootNodes.filter(node => node.type === MaterialNode.type.FOLDER);
+    const looseMaterials = rootNodes.filter(node => node.type === MaterialNode.type.MATERIAL);
+
+    if (rootNodes.length === 0) {
+      next.root = [createDefaultSectionNode()];
+      return next;
+    }
+
+    if (looseMaterials.length > 0) {
+      next.root = [
+        createDefaultSectionNode(createChapterTitle(1)),
+        ...folderNodes,
+      ];
+
+      const firstSection = next.root[0];
+      firstSection.children = looseMaterials;
+    }
+    else {
+      next.root = folderNodes.map((node, index) => ({
+        ...node,
+        name: node.name?.trim() || createChapterTitle(index + 1),
+        children: Array.isArray(node.children) ? node.children : [],
+      }));
+    }
   }
 
   return next;
@@ -386,6 +438,16 @@ export default function MaterialPackageEditor({
     });
   };
 
+  const addChapter = () => {
+    setContent((previous) => {
+      const next = cloneContent(previous);
+      next.root = Array.isArray(next.root) ? next.root : [];
+      const chapterCount = next.root.filter(node => node.type === MaterialNode.type.FOLDER).length;
+      next.root.push(createDefaultSectionNode(createChapterTitle(chapterCount + 1)));
+      return next;
+    });
+  };
+
   const removeMaterialFromSection = (section: MaterialSection, childIndex: number) => {
     setContent((previous) => {
       const next = cloneContent(previous);
@@ -559,19 +621,8 @@ export default function MaterialPackageEditor({
                   )}
             </div>
 
-            <div className="mt-4 space-y-3">
-              <label className="block space-y-2">
-                <span className="text-sm font-medium text-base-content/80">封面链接</span>
-                <input
-                  type="text"
-                  className={fieldClassName}
-                  value={coverUrl}
-                  onChange={event => setCoverUrl(event.target.value)}
-                  disabled={readOnly}
-                />
-              </label>
-
-              {!readOnly && (
+            {!readOnly && (
+              <div className="mt-4">
                 <ImgUploader setImg={(file) => { void handleCoverUpload(file); }}>
                   <button
                     type="button"
@@ -582,8 +633,8 @@ export default function MaterialPackageEditor({
                     <span>{isCoverUploading ? "上传中..." : "上传封面"}</span>
                   </button>
                 </ImgUploader>
-              )}
-            </div>
+              </div>
+            )}
           </div>
         </div>
 
@@ -602,12 +653,22 @@ export default function MaterialPackageEditor({
           </div>
 
           <div className="mt-5 space-y-6">
-            {sections.map(section => (
+            {sections.map((section, sectionIndex) => (
               <div key={section.key} className="space-y-4">
                 <div className="flex items-center gap-3">
                   <span className="rounded-full border border-primary/25 bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
                     {section.title}
                   </span>
+                  {!readOnly && sectionIndex === 0 && (
+                    <button
+                      type="button"
+                      className="inline-flex size-7 items-center justify-center rounded-full border border-base-300 bg-base-100/80 text-base-content/65 transition hover:border-primary/30 hover:bg-primary/10 hover:text-primary"
+                      onClick={addChapter}
+                      aria-label="添加新章节"
+                    >
+                      <PlusIcon className="size-4" weight="bold" />
+                    </button>
+                  )}
                   {section.hiddenFolderCount > 0 && (
                     <span className="text-xs text-base-content/55">
                       {`当前分组下还有 ${section.hiddenFolderCount} 个子文件夹，保存时会继续保留。`}
