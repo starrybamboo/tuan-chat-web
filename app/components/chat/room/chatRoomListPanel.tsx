@@ -1,4 +1,5 @@
 import type { Room } from "../../../../api";
+import type { SpaceMaterialPackageResponse } from "../../../../api/models/SpaceMaterialPackageResponse";
 import type { MinimalDocMeta, SidebarTree } from "./sidebarTree";
 import type { SpaceDetailTab } from "@/components/chat/chatPage.types";
 
@@ -39,12 +40,15 @@ interface ChatRoomListPanelProps {
 
   sidebarTree?: SidebarTree | null;
   docMetas?: MinimalDocMeta[];
+  materialPackages?: SpaceMaterialPackageResponse[];
   onSelectDoc?: (docId: string) => void;
+  onSelectMaterialPackage: (spacePackageId: number) => void;
   onDeleteDoc?: (docId: string) => void;
   onSaveSidebarTree?: (tree: SidebarTree) => void;
   onResetSidebarTreeToDefault?: () => void;
   activeRoomId: number | null;
   activeDocId?: string | null;
+  activeMaterialPackageId?: number | null;
   unreadMessagesNumber: Record<number, number>;
 
   onContextMenu: (e: React.MouseEvent) => void;
@@ -74,12 +78,15 @@ export default function ChatRoomListPanel({
   roomOrderIds,
   sidebarTree,
   docMetas,
+  materialPackages,
   onSelectDoc,
+  onSelectMaterialPackage,
   onDeleteDoc,
   onSaveSidebarTree,
   onResetSidebarTreeToDefault,
   activeRoomId,
   activeDocId,
+  activeMaterialPackageId = null,
   unreadMessagesNumber,
   onContextMenu,
   onInviteMember,
@@ -112,6 +119,32 @@ export default function ChatRoomListPanel({
     }
     return map;
   }, [roomsInSpace]);
+
+  const materialPackageMetas = useMemo(() => {
+    if (!materialPackages) {
+      return undefined;
+    }
+    return materialPackages
+      .map((item) => {
+        const id = typeof item.spacePackageId === "number" ? item.spacePackageId : Number.NaN;
+        return {
+          id,
+          title: item.name?.trim() || (Number.isFinite(id) ? `素材包 #${id}` : "未命名素材包"),
+          imageUrl: item.coverUrl?.trim() || undefined,
+        };
+      })
+      .filter(item => Number.isFinite(item.id));
+  }, [materialPackages]);
+
+  const materialPackageMap = useMemo(() => {
+    const map = new Map<number, SpaceMaterialPackageResponse>();
+    for (const item of materialPackages ?? []) {
+      if (typeof item.spacePackageId === "number" && Number.isFinite(item.spacePackageId)) {
+        map.set(item.spacePackageId, item);
+      }
+    }
+    return map;
+  }, [materialPackages]);
 
   const orderedRoomIdsFallback = useMemo(() => {
     if (Array.isArray(roomOrderIds) && roomOrderIds.length > 0) {
@@ -166,6 +199,7 @@ export default function ChatRoomListPanel({
     fallbackTextRooms,
     visibleDocMetas,
     includeDocs: canViewDocs,
+    materialPackages: materialPackageMetas,
   });
 
   const {
@@ -183,6 +217,7 @@ export default function ChatRoomListPanel({
   const normalizeAndSet = useRoomSidebarNormalizer({
     fallbackTextRooms,
     visibleDocMetas,
+    materialPackages: materialPackageMetas,
     isSpaceOwner,
     docHeaderOverrides,
     docMetaMap,
@@ -326,12 +361,15 @@ export default function ChatRoomListPanel({
                     docHeaderOverrides={docHeaderOverrides}
                     docMetaMap={docMetaMap}
                     roomById={roomById}
+                    materialPackageMap={materialPackageMap}
                     activeSpaceId={activeSpaceId}
                     activeRoomId={activeRoomId}
                     activeDocId={activeDocId}
+                    activeMaterialPackageId={activeMaterialPackageId}
                     unreadMessagesNumber={unreadMessagesNumber}
                     onSelectRoom={onSelectRoom}
                     onSelectDoc={onSelectDoc}
+                    onSelectMaterialPackage={onSelectMaterialPackage}
                     onCloseLeftDrawer={onCloseLeftDrawer}
                     existingRoomIdsInTree={existingRoomIdsInTree}
                     existingDocIdsInTree={existingDocIdsInTree}

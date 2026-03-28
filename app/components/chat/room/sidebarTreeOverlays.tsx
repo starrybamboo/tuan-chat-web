@@ -213,7 +213,7 @@ export default function SidebarTreeOverlays(props: SidebarTreeOverlaysProps) {
                       onCloseContextMenu();
                     }}
                   >
-                    添加频道…
+                    添加节点…
                   </button>
                 </li>
                 <li>

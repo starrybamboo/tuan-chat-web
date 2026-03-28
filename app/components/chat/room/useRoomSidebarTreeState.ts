@@ -3,7 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { getSidebarTreeExpandedByCategoryId, setSidebarTreeExpandedByCategoryId } from "@/components/chat/infra/indexedDB/sidebarTreeUiDb";
 
 import type { Room } from "../../../../api";
-import type { MinimalDocMeta, SidebarTree } from "./sidebarTree";
+import type { MinimalDocMeta, MinimalMaterialPackageMeta, SidebarTree } from "./sidebarTree";
 
 import { normalizeSidebarTree } from "./sidebarTree";
 
@@ -16,6 +16,7 @@ type UseRoomSidebarTreeStateParams = {
   fallbackTextRooms: Room[];
   visibleDocMetas: MinimalDocMeta[];
   includeDocs: boolean;
+  materialPackages?: MinimalMaterialPackageMeta[];
 };
 
 type UseRoomSidebarTreeStateResult = {
@@ -80,6 +81,7 @@ export default function useRoomSidebarTreeState({
   fallbackTextRooms,
   visibleDocMetas,
   includeDocs,
+  materialPackages,
 }: UseRoomSidebarTreeStateParams): UseRoomSidebarTreeStateResult {
   const displayTree = useMemo(() => {
     return normalizeSidebarTree({
@@ -87,8 +89,9 @@ export default function useRoomSidebarTreeState({
       roomsInSpace: fallbackTextRooms,
       docMetas: visibleDocMetas,
       includeDocs,
+      materialPackages,
     });
-  }, [fallbackTextRooms, includeDocs, sidebarTree, visibleDocMetas]);
+  }, [fallbackTextRooms, includeDocs, materialPackages, sidebarTree, visibleDocMetas]);
 
   const [localTree, setLocalTree] = useState<SidebarTree | null>(null);
   const [expandedByCategoryId, setExpandedByCategoryId] = useState<Record<string, boolean> | null>(null);

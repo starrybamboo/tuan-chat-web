@@ -3,7 +3,7 @@ import type { SpaceMaterialPackageResponse } from "../../../../api/models/SpaceM
 import { CaretRightIcon } from "@phosphor-icons/react";
 import { useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
-import { useNavigate } from "react-router";
+import { useNavigate, useSearchParams } from "react-router";
 import { Drawer } from "vaul";
 import {
   useCreateSpaceMaterialPackageMutation,
@@ -38,8 +38,8 @@ export default function SpaceMaterialLibraryPage({
   embedded = false,
 }: SpaceMaterialLibraryPageProps) {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [keyword, setKeyword] = useState("");
-  const [selectedPackageId, setSelectedPackageId] = useState<number | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [isImportOpen, setIsImportOpen] = useState(false);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
@@ -65,8 +65,31 @@ export default function SpaceMaterialLibraryPage({
   const packages = useMemo(() => (
     packagesQuery.data?.data?.list ?? []
   ), [packagesQuery.data?.data?.list]);
+  const selectedPackageId = useMemo(() => {
+    const value = Number(searchParams.get("spacePackageId"));
+    if (!Number.isFinite(value) || value <= 0) {
+      return null;
+    }
+    return value;
+  }, [searchParams]);
   const selectedPackage = packages.find(item => item.spacePackageId === selectedPackageId);
   const editorOpen = isCreating || Boolean(selectedPackage);
+
+  const updateSelectedPackageId = (nextId: number | null) => {
+    const currentValue = searchParams.get("spacePackageId") ?? "";
+    const nextValue = nextId && nextId > 0 ? String(nextId) : "";
+    if (currentValue === nextValue) {
+      return;
+    }
+    const nextSearchParams = new URLSearchParams(searchParams);
+    if (nextId && nextId > 0) {
+      nextSearchParams.set("spacePackageId", String(nextId));
+    }
+    else {
+      nextSearchParams.delete("spacePackageId");
+    }
+    setSearchParams(nextSearchParams);
+  };
 
   useEffect(() => {
     if (typeof window === "undefined") {
@@ -87,10 +110,19 @@ export default function SpaceMaterialLibraryPage({
   }, []);
 
   useEffect(() => {
-    if (selectedPackageId !== null && !packages.some(item => item.spacePackageId === selectedPackageId)) {
-      setSelectedPackageId(null);
+    if (selectedPackageId !== null && isCreating) {
+      setIsCreating(false);
     }
-  }, [packages, selectedPackageId]);
+  }, [isCreating, selectedPackageId]);
+
+  useEffect(() => {
+    if (!packagesQuery.isFetched || packagesQuery.isFetching || selectedPackageId === null) {
+      return;
+    }
+    if (!packages.some(item => item.spacePackageId === selectedPackageId)) {
+      updateSelectedPackageId(null);
+    }
+  }, [packages, packagesQuery.isFetched, packagesQuery.isFetching, searchParams, selectedPackageId]);
 
   const handleCreate = async (draft: {
     name: string;
@@ -108,7 +140,7 @@ export default function SpaceMaterialLibraryPage({
     });
     toast.success("局内素材包已创建");
     setIsCreating(false);
-    setSelectedPackageId(result.data?.spacePackageId ?? null);
+    updateSelectedPackageId(result.data?.spacePackageId ?? null);
   };
 
   const handleUpdate = async (draft: {
@@ -143,24 +175,24 @@ export default function SpaceMaterialLibraryPage({
       spacePackageId: selectedPackage.spacePackageId,
     });
     toast.success("局内素材包已删除");
-    setSelectedPackageId(null);
     setIsCreating(false);
+    updateSelectedPackageId(null);
   };
 
   const handleCreateRequest = () => {
-    setSelectedPackageId(null);
+    updateSelectedPackageId(null);
     setIsCreating(true);
     setIsDrawerOpen(false);
   };
 
   const handleOpenPackage = (spacePackageId: number) => {
     setIsCreating(false);
-    setSelectedPackageId(spacePackageId);
+    updateSelectedPackageId(spacePackageId);
   };
 
   const handleCloseEditor = () => {
     setIsCreating(false);
-    setSelectedPackageId(null);
+    updateSelectedPackageId(null);
   };
 
   const handleNavigateToPublic = () => {

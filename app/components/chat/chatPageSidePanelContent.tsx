@@ -1,5 +1,6 @@
 import type { Room } from "api";
 import type { RoomSettingTab, SpaceDetailTab } from "@/components/chat/chatPage.types";
+import type { SpaceMaterialPackageResponse } from "../../../api/models/SpaceMaterialPackageResponse";
 
 import type { MinimalDocMeta, SidebarTree } from "@/components/chat/room/sidebarTree";
 import React from "react";
@@ -24,12 +25,15 @@ interface ChatPageSidePanelContentProps {
   onReorderRoomIds?: (nextRoomIds: number[]) => void;
   sidebarTree?: SidebarTree | null;
   docMetas?: MinimalDocMeta[];
+  materialPackages?: SpaceMaterialPackageResponse[];
   onSelectDoc: (docId: string) => void;
+  onSelectMaterialPackage: (spacePackageId: number) => void;
   onDeleteDoc?: (docId: string) => void;
   onSaveSidebarTree?: (tree: SidebarTree) => void;
   onResetSidebarTreeToDefault?: () => void;
   activeRoomId: number | null;
   activeDocId?: string | null;
+  activeMaterialPackageId?: number | null;
   unreadMessagesNumber: Record<number, number>;
   onContextMenu: (e: React.MouseEvent) => void;
   onInviteMember: () => void;
@@ -57,12 +61,15 @@ export default function ChatPageSidePanelContent({
   onReorderRoomIds,
   sidebarTree,
   docMetas,
+  materialPackages,
   onSelectDoc,
+  onSelectMaterialPackage,
   onDeleteDoc,
   onSaveSidebarTree,
   onResetSidebarTreeToDefault,
   activeRoomId,
   activeDocId,
+  activeMaterialPackageId,
   unreadMessagesNumber,
   onContextMenu,
   onInviteMember,
@@ -89,10 +96,13 @@ export default function ChatPageSidePanelContent({
       onSaveSidebarTree={onSaveSidebarTree}
       onResetSidebarTreeToDefault={onResetSidebarTreeToDefault}
       docMetas={docMetas}
+      materialPackages={materialPackages}
       onSelectDoc={onSelectDoc}
+      onSelectMaterialPackage={onSelectMaterialPackage}
       onDeleteDoc={onDeleteDoc}
       activeRoomId={activeRoomId}
       activeDocId={activeDocId}
+      activeMaterialPackageId={activeMaterialPackageId}
       unreadMessagesNumber={unreadMessagesNumber}
       onContextMenu={onContextMenu}
       onInviteMember={onInviteMember}
