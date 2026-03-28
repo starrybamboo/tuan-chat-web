@@ -118,27 +118,40 @@ function makeUniqueKey(base: string, params: InitiativeParam[]): string {
   return key;
 }
 
+const POKEMON_STAGE_MIN = -6;
+const POKEMON_STAGE_MAX = 6;
+
+function clampPokemonStageModifier(stageModifier: number): number {
+  if (!Number.isFinite(stageModifier))
+    return 0;
+  return Math.min(POKEMON_STAGE_MAX, Math.max(POKEMON_STAGE_MIN, stageModifier));
+}
+
 function applyPokemonStageModifier(baseValue: number, stageModifier: number): number {
   if (!Number.isFinite(baseValue))
     return 0;
 
-  if (!Number.isFinite(stageModifier) || stageModifier === 0)
+  const normalizedStageModifier = clampPokemonStageModifier(stageModifier);
+
+  if (normalizedStageModifier === 0)
     return baseValue;
 
-  if (stageModifier > 0)
-    return baseValue * (2 + stageModifier) / 2;
+  if (normalizedStageModifier > 0)
+    return baseValue * (2 + normalizedStageModifier) / 2;
 
-  return baseValue * 2 / (2 - stageModifier);
+  return baseValue * 2 / (2 - normalizedStageModifier);
 }
 
 function getPokemonStageFactor(stageModifier: number): number {
-  if (!Number.isFinite(stageModifier) || stageModifier === 0)
+  const normalizedStageModifier = clampPokemonStageModifier(stageModifier);
+
+  if (normalizedStageModifier === 0)
     return 1;
 
-  if (stageModifier > 0)
-    return (2 + stageModifier) / 2;
+  if (normalizedStageModifier > 0)
+    return (2 + normalizedStageModifier) / 2;
 
-  return 2 / (2 - stageModifier);
+  return 2 / (2 - normalizedStageModifier);
 }
 
 function formatPokemonBattleNumber(value: number): string {
@@ -150,11 +163,12 @@ function formatPokemonBattleNumber(value: number): string {
 }
 
 function formatPokemonModifiedStat(label: string, baseValue: number, stageModifier: number, finalValue: number): string {
+  const normalizedStageModifier = clampPokemonStageModifier(stageModifier);
   const finalText = formatPokemonBattleNumber(finalValue);
-  if (!Number.isFinite(stageModifier) || stageModifier === 0)
+  if (normalizedStageModifier === 0)
     return `${label}${finalText}`;
 
-  const factor = getPokemonStageFactor(stageModifier);
+  const factor = getPokemonStageFactor(normalizedStageModifier);
   const baseText = formatPokemonBattleNumber(baseValue);
   const factorText = formatPokemonBattleNumber(factor);
   return `${label}${finalText}（${baseText}*${factorText}）`;

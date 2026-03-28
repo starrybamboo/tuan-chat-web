@@ -82,6 +82,95 @@ const cmdRi = new CommandExecutor(
 
 executorPokemon.addCmd(cmdRi);
 
+const cmdEva = new CommandExecutor(
+  "eva",
+  [],
+  "宝可梦闪避判定",
+  [".eva 电击", ".eva 电击+1", ".eva 电击-2"],
+  "eva [技能名][掷骰修正值]?",
+  async (args: string[], mentioned: UserRole[], cpi: CPI): Promise<boolean> => {
+    const skillToken = args[0]?.trim();
+    if (!skillToken) {
+      cpi.sendToast("格式错误！正确格式：.eva [技能名][掷骰修正值]（可选）");
+      return false;
+    }
+
+    const evadeRole = mentioned[mentioned.length - 1];
+    if (!evadeRole || !evadeRole.roleId) {
+      cpi.sendToast("错误：未找到闪避角色，请确保当前用户已创建角色");
+      return false;
+    }
+
+    let skillName = skillToken;
+    let rollModifier = 0;
+    const skillWithModifierMatch = skillToken.match(/^(.*?)([+-]\d+)$/);
+    if (skillWithModifierMatch?.[1]) {
+      const maybeSkillName = skillWithModifierMatch[1].trim();
+      const parsedModifier = Number.parseInt(skillWithModifierMatch[2], 10);
+      if (maybeSkillName && Number.isFinite(parsedModifier) && getSkillByName(maybeSkillName)) {
+        skillName = maybeSkillName;
+        rollModifier = parsedModifier;
+      }
+    }
+
+    const skill = getSkillByName(skillName);
+    if (!skill) {
+      cpi.sendToast(`未找到技能“${skillName}”`);
+      return false;
+    }
+
+    const evadeAbility = cpi.getRoleAbilityList(evadeRole.roleId);
+    if (!evadeAbility?.ability && !evadeAbility?.basic && !evadeAbility?.skill) {
+      cpi.sendToast(`错误：${evadeRole.roleName}的角色属性未设置`);
+      return false;
+    }
+
+    const speedBase = Number(UNTIL.getRoleAbilityValue(evadeAbility, "速度") || 0);
+    if (!Number.isFinite(speedBase)) {
+      cpi.sendToast(`错误：${evadeRole.roleName}未设置“速度”属性`);
+      return false;
+    }
+    const speedStage = Number(UNTIL.getRoleAbilityValue(evadeAbility, "速度修正") || 0);
+    const finalSpeed = applyBattleStageModifier(speedBase, speedStage);
+    const speedFinalText = formatBattleNumber(finalSpeed);
+    const speedBaseText = formatBattleNumber(speedBase);
+    const speedFactorText = formatBattleNumber(getBattleStageFactor(speedStage));
+    const speedExprText = Number.isFinite(speedStage) && speedStage !== 0
+      ? `${speedFinalText}(${speedBaseText}*${speedFactorText})`
+      : speedFinalText;
+
+    const evadeDiceSides = Math.max(1, Math.floor(10 + finalSpeed / 10));
+    const baseRoll = Math.floor(Math.random() * evadeDiceSides) + 1;
+    const finalRoll = baseRoll + rollModifier;
+    const accuracyThreshold = Number(skill.accuracy || 0) / 10;
+    const isEvaded = finalRoll >= accuracyThreshold;
+
+    const actionPointKeys = ["行动点", "行动值", "AP", "ap"];
+    const actionPointKey = actionPointKeys.find(key => UNTIL.getRoleAbilityValue(evadeAbility, key) != null) ?? "行动点";
+    const currentActionPointRaw = Number(UNTIL.getRoleAbilityValue(evadeAbility, actionPointKey));
+    const currentActionPoint = Number.isFinite(currentActionPointRaw) ? currentActionPointRaw : 0;
+    const newActionPoint = Math.max(0, currentActionPoint - 1);
+    UNTIL.setRoleAbilityValue(evadeAbility, actionPointKey, String(newActionPoint), "ability", "auto");
+    cpi.setRoleAbilityList(evadeRole.roleId, evadeAbility);
+
+    const modifierText = rollModifier === 0 ? "" : `${rollModifier > 0 ? "+" : ""}${rollModifier}`;
+    const rollText = rollModifier === 0
+      ? `${baseRoll}`
+      : `${baseRoll}${modifierText}=${finalRoll}`;
+
+    cpi.replyMessage(
+      `${evadeRole.roleName}尝试闪避${skill.name}：\n`
+      + `rd(10+速度${speedExprText}/10)${modifierText} = rd${evadeDiceSides}${modifierText}= ${rollText}\n`
+      + `对比命中阈值：${formatBattleNumber(skill.accuracy)} / 10 = ${formatBattleNumber(accuracyThreshold)}\n`
+      + `判定结果：${finalRoll} ${isEvaded ? ">=" : "<"} ${formatBattleNumber(accuracyThreshold)}，${isEvaded ? "闪避成功" : "闪避失败"}\n`
+      + `${evadeRole.roleName}行动点：${currentActionPoint} - 1 = ${newActionPoint}`,
+    );
+    return true;
+  },
+);
+
+executorPokemon.addCmd(cmdEva);
+
 const cmdattack = new CommandExecutor(
   "atk",
   [],
@@ -260,27 +349,40 @@ function getSkillByName(skillName: string): PokemonSkill | undefined {
 // 属性修正公式：
 // 修正 > 0: 属性 * (2 + 修正) / 2
 // 修正 < 0: 属性 * 2 / (2 - 修正)
+const BATTLE_STAGE_MIN = -6;
+const BATTLE_STAGE_MAX = 6;
+
+function clampBattleStageModifier(stageModifier: number): number {
+  if (!Number.isFinite(stageModifier))
+    return 0;
+  return Math.min(BATTLE_STAGE_MAX, Math.max(BATTLE_STAGE_MIN, stageModifier));
+}
+
 function applyBattleStageModifier(baseValue: number, stageModifier: number): number {
   if (!Number.isFinite(baseValue))
     return 0;
 
-  if (!Number.isFinite(stageModifier) || stageModifier === 0)
+  const normalizedStageModifier = clampBattleStageModifier(stageModifier);
+
+  if (normalizedStageModifier === 0)
     return baseValue;
 
-  if (stageModifier > 0)
-    return baseValue * (2 + stageModifier) / 2;
+  if (normalizedStageModifier > 0)
+    return baseValue * (2 + normalizedStageModifier) / 2;
 
-  return baseValue * 2 / (2 - stageModifier);
+  return baseValue * 2 / (2 - normalizedStageModifier);
 }
 
 function getBattleStageFactor(stageModifier: number): number {
-  if (!Number.isFinite(stageModifier) || stageModifier === 0)
+  const normalizedStageModifier = clampBattleStageModifier(stageModifier);
+
+  if (normalizedStageModifier === 0)
     return 1;
 
-  if (stageModifier > 0)
-    return (2 + stageModifier) / 2;
+  if (normalizedStageModifier > 0)
+    return (2 + normalizedStageModifier) / 2;
 
-  return 2 / (2 - stageModifier);
+  return 2 / (2 - normalizedStageModifier);
 }
 
 function formatBattleNumber(value: number): string {
@@ -292,11 +394,12 @@ function formatBattleNumber(value: number): string {
 }
 
 function formatModifiedStat(label: string, baseValue: number, stageModifier: number, finalValue: number): string {
+  const normalizedStageModifier = clampBattleStageModifier(stageModifier);
   const finalText = formatBattleNumber(finalValue);
-  if (!Number.isFinite(stageModifier) || stageModifier === 0)
+  if (normalizedStageModifier === 0)
     return `${label}${finalText}`;
 
-  const factor = getBattleStageFactor(stageModifier);
+  const factor = getBattleStageFactor(normalizedStageModifier);
   const baseText = formatBattleNumber(baseValue);
   const factorText = formatBattleNumber(factor);
   return `${label}${finalText}（${baseText}*${factorText}）`;
