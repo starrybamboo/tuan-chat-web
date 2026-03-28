@@ -18,7 +18,7 @@ import { ImgUploader } from "@/components/common/uploader/imgUploader";
 import { UploadUtils } from "@/utils/UploadUtils";
 import { MaterialNode } from "../../../../api/models/MaterialNode";
 import { MessageType } from "../../../../api/wsModels";
-import MaterialPackageAssetUploadButton from "./materialPackageAssetUploadButton";
+import MaterialPackageAssetUploadMenu from "./materialPackageAssetUploadMenu";
 import { createEmptyMaterialPackageContent } from "./materialPackageEditorShared";
 
 export interface MaterialPackageDraft {
@@ -956,24 +956,9 @@ export default function MaterialPackageEditor({
                                   )}
 
                               {!readOnly && (
-                                <div className="flex flex-wrap gap-2">
-                                  <MaterialPackageAssetUploadButton
-                                    kind="image"
-                                    onUploaded={message => appendMessageToMaterial(activeSection, material.childIndex, message)}
-                                  />
-                                  <MaterialPackageAssetUploadButton
-                                    kind="audio"
-                                    onUploaded={message => appendMessageToMaterial(activeSection, material.childIndex, message)}
-                                  />
-                                  <MaterialPackageAssetUploadButton
-                                    kind="video"
-                                    onUploaded={message => appendMessageToMaterial(activeSection, material.childIndex, message)}
-                                  />
-                                  <MaterialPackageAssetUploadButton
-                                    kind="file"
-                                    onUploaded={message => appendMessageToMaterial(activeSection, material.childIndex, message)}
-                                  />
-                                </div>
+                                <MaterialPackageAssetUploadMenu
+                                  onUploaded={message => appendMessageToMaterial(activeSection, material.childIndex, message)}
+                                />
                               )}
                             </div>
                           </div>
