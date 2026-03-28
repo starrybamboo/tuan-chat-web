@@ -1,6 +1,7 @@
 import type { MaterialMessageItem } from "../../../../api/models/MaterialMessageItem";
 import type { MaterialPackageContent } from "../../../../api/models/MaterialPackageContent";
 import {
+  DotsSixVerticalIcon,
   FileIcon,
   ImageIcon,
   MusicNotesIcon,
@@ -371,6 +372,8 @@ export default function MaterialPackageEditor({
   const [content, setContent] = useState<MaterialPackageContent>(normalizedInitialDraft.content);
   const [isCoverUploading, setIsCoverUploading] = useState(false);
   const [activeSectionKey, setActiveSectionKey] = useState("");
+  const [draggedSectionKey, setDraggedSectionKey] = useState("");
+  const [dragOverSectionKey, setDragOverSectionKey] = useState("");
 
   useEffect(() => {
     const nextDraft = normalizeDraft(initialDraft, readOnly);
@@ -393,6 +396,10 @@ export default function MaterialPackageEditor({
   const totalAssetCount = useMemo(
     () => sections.reduce((sum, section) => sum + section.materials.reduce((materialSum, material) => materialSum + (material.node.messages?.length ?? 0), 0), 0),
     [sections],
+  );
+  const canDeleteSection = useMemo(
+    () => !readOnly && sections.filter(section => section.sectionType === "folder").length > 1 && activeSection?.sectionType === "folder",
+    [activeSection?.sectionType, readOnly, sections],
   );
 
   useEffect(() => {
@@ -490,6 +497,46 @@ export default function MaterialPackageEditor({
       };
       return next;
     });
+  };
+
+  const removeSection = (section: MaterialSection) => {
+    if (section.sectionType !== "folder") {
+      return;
+    }
+
+    const remainingSections = sections.filter(item => item.key !== section.key);
+    setContent((previous) => {
+      const next = cloneContent(previous);
+      next.root = Array.isArray(next.root) ? next.root : [];
+      next.root.splice(section.rootIndex, 1);
+      return next;
+    });
+    setActiveSectionKey(remainingSections[0]?.key ?? "");
+  };
+
+  const reorderSections = (sourceKey: string, targetKey: string) => {
+    if (!sourceKey || !targetKey || sourceKey === targetKey) {
+      return;
+    }
+
+    setContent((previous) => {
+      const next = cloneContent(previous);
+      next.root = Array.isArray(next.root) ? next.root : [];
+      const sourceIndex = sections.findIndex(section => section.key === sourceKey && section.sectionType === "folder");
+      const targetIndex = sections.findIndex(section => section.key === targetKey && section.sectionType === "folder");
+
+      if (sourceIndex < 0 || targetIndex < 0 || sourceIndex === targetIndex) {
+        return next;
+      }
+
+      const [moved] = next.root.splice(sourceIndex, 1);
+      if (!moved) {
+        return next;
+      }
+      next.root.splice(targetIndex, 0, moved);
+      return next;
+    });
+    setActiveSectionKey(sourceKey);
   };
 
   const removeMaterialFromSection = (section: MaterialSection, childIndex: number) => {
@@ -707,14 +754,37 @@ export default function MaterialPackageEditor({
                         isActive
                           ? "border-primary/35 bg-primary/10 text-primary shadow-sm"
                           : "border-base-300 bg-base-100/70 text-base-content/70 hover:border-primary/20 hover:text-base-content"
-                      }`;
+                      } ${dragOverSectionKey === section.key ? "border-primary/50 ring-2 ring-primary/15" : ""}`;
 
                       if (!readOnly && isActive && section.sectionType === "folder") {
                         return (
                           <div
                             key={section.key}
                             className={`${tabClassName} min-w-[140px]`}
+                            draggable
+                            onDragStart={(event) => {
+                              event.dataTransfer.effectAllowed = "move";
+                              event.dataTransfer.setData("text/plain", section.key);
+                              setDraggedSectionKey(section.key);
+                            }}
+                            onDragOver={(event) => {
+                              event.preventDefault();
+                              if (draggedSectionKey && draggedSectionKey !== section.key) {
+                                setDragOverSectionKey(section.key);
+                              }
+                            }}
+                            onDrop={(event) => {
+                              event.preventDefault();
+                              reorderSections(draggedSectionKey, section.key);
+                              setDraggedSectionKey("");
+                              setDragOverSectionKey("");
+                            }}
+                            onDragEnd={() => {
+                              setDraggedSectionKey("");
+                              setDragOverSectionKey("");
+                            }}
                           >
+                            <DotsSixVerticalIcon className="mr-2 size-4 shrink-0 text-current/55" />
                             <input
                               type="text"
                               className="w-full bg-transparent text-sm font-medium text-current transition focus:outline-none"
@@ -732,7 +802,39 @@ export default function MaterialPackageEditor({
                           type="button"
                           className={tabClassName}
                           onClick={() => setActiveSectionKey(section.key)}
+                          draggable={!readOnly}
+                          onDragStart={(event) => {
+                            if (readOnly) {
+                              return;
+                            }
+                            event.dataTransfer.effectAllowed = "move";
+                            event.dataTransfer.setData("text/plain", section.key);
+                            setDraggedSectionKey(section.key);
+                          }}
+                          onDragOver={(event) => {
+                            if (readOnly) {
+                              return;
+                            }
+                            event.preventDefault();
+                            if (draggedSectionKey && draggedSectionKey !== section.key) {
+                              setDragOverSectionKey(section.key);
+                            }
+                          }}
+                          onDrop={(event) => {
+                            if (readOnly) {
+                              return;
+                            }
+                            event.preventDefault();
+                            reorderSections(draggedSectionKey, section.key);
+                            setDraggedSectionKey("");
+                            setDragOverSectionKey("");
+                          }}
+                          onDragEnd={() => {
+                            setDraggedSectionKey("");
+                            setDragOverSectionKey("");
+                          }}
                         >
+                          {!readOnly && <DotsSixVerticalIcon className="mr-2 size-4 shrink-0 text-current/55" />}
                           <span className="truncate">{section.title}</span>
                         </button>
                       );
@@ -740,14 +842,30 @@ export default function MaterialPackageEditor({
                   </div>
 
                   {!readOnly && (
-                    <button
-                      type="button"
-                      className="inline-flex size-9 items-center justify-center rounded-md border border-base-300 bg-base-100/80 text-base-content/65 transition hover:border-primary/30 hover:bg-primary/10 hover:text-primary"
-                      onClick={addChapter}
-                      aria-label="添加新章节"
-                    >
-                      <PlusIcon className="size-4" weight="bold" />
-                    </button>
+                    <div className="flex items-center gap-2">
+                      {canDeleteSection && (
+                        <button
+                          type="button"
+                          className="inline-flex size-9 items-center justify-center rounded-md border border-base-300 bg-base-100/80 text-base-content/65 transition hover:border-error/30 hover:bg-error/10 hover:text-error"
+                          onClick={() => {
+                            if (activeSection) {
+                              removeSection(activeSection);
+                            }
+                          }}
+                          aria-label="删除当前章节"
+                        >
+                          <TrashIcon className="size-4" />
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        className="inline-flex size-9 items-center justify-center rounded-md border border-base-300 bg-base-100/80 text-base-content/65 transition hover:border-primary/30 hover:bg-primary/10 hover:text-primary"
+                        onClick={addChapter}
+                        aria-label="添加新章节"
+                      >
+                        <PlusIcon className="size-4" weight="bold" />
+                      </button>
+                    </div>
                   )}
                 </div>
 
