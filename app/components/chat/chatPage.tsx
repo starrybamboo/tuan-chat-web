@@ -331,18 +331,6 @@ export default function ChatPage() {
     searchParam,
     storedIds,
   });
-  const activeMaterialPackageId = useMemo(() => {
-    if (spaceDetailTab !== "material") {
-      return null;
-    }
-    const rawValue = searchParam.get("spacePackageId");
-    const value = Number(rawValue);
-    if (!Number.isFinite(value) || value <= 0) {
-      return null;
-    }
-    return value;
-  }, [searchParam, spaceDetailTab]);
-
   const handleSelectRoom = useCallback((roomId: number) => {
     setActiveRoomId(roomId);
   }, [setActiveRoomId]);
@@ -666,17 +654,6 @@ export default function ChatPage() {
       ? (spaceMaterialPackagesQuery.data?.data?.list ?? [])
       : undefined,
     onSelectDoc: handleSelectDoc,
-    activeMaterialPackageId,
-    onSelectMaterialPackage: (spacePackageId: number) => {
-      if (!activeSpaceId || activeSpaceId <= 0) {
-        return;
-      }
-      const nextSearchParams = new URLSearchParams(searchParam);
-      nextSearchParams.delete("tab");
-      nextSearchParams.set("spacePackageId", String(spacePackageId));
-      const query = nextSearchParams.toString();
-      navigate(`/chat/${activeSpaceId}/material${query ? `?${query}` : ""}`);
-    },
     onDeleteDoc: handleDeleteDoc,
     activeRoomId,
     activeDocId,
