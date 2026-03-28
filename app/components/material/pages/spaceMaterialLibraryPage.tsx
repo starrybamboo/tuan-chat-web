@@ -8,12 +8,13 @@ import {
   useSpaceMaterialPackagesQuery,
   useUpdateSpaceMaterialPackageMutation,
 } from "../../../../api/hooks/materialPackageQueryHooks";
-import MaterialPackageEditor, { createEmptyMaterialPackageContent } from "../components/materialPackageEditor";
+import MaterialPackageEditor from "../components/materialPackageEditor";
+import { createEmptyMaterialPackageContent } from "../components/materialPackageEditorShared";
 import MaterialPackageImportModal from "../components/materialPackageImportModal";
 
-type SpaceMaterialLibraryPageProps = {
+interface SpaceMaterialLibraryPageProps {
   spaceId: number;
-};
+}
 
 function buildDraft(pkg?: SpaceMaterialPackageResponse) {
   return {
@@ -41,7 +42,9 @@ export default function SpaceMaterialLibraryPage({ spaceId }: SpaceMaterialLibra
   const createMutation = useCreateSpaceMaterialPackageMutation();
   const updateMutation = useUpdateSpaceMaterialPackageMutation();
   const deleteMutation = useDeleteSpaceMaterialPackageMutation();
-  const packages = packagesQuery.data?.data?.list ?? [];
+  const packages = useMemo(() => (
+    packagesQuery.data?.data?.list ?? []
+  ), [packagesQuery.data?.data?.list]);
   const selectedPackage = packages.find(item => item.spacePackageId === selectedPackageId);
 
   useEffect(() => {
@@ -168,7 +171,7 @@ export default function SpaceMaterialLibraryPage({ spaceId }: SpaceMaterialLibra
                         当前空间还没有素材包。
                       </div>
                     )}
-                    {!packagesQuery.isLoading && packages.map(item => {
+                    {!packagesQuery.isLoading && packages.map((item) => {
                       const active = !isCreating && item.spacePackageId === selectedPackageId;
                       return (
                         <button
