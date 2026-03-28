@@ -370,6 +370,7 @@ export default function MaterialPackageEditor({
   const [isPublic, setIsPublic] = useState(normalizedInitialDraft.isPublic);
   const [content, setContent] = useState<MaterialPackageContent>(normalizedInitialDraft.content);
   const [isCoverUploading, setIsCoverUploading] = useState(false);
+  const [activeSectionKey, setActiveSectionKey] = useState("");
 
   useEffect(() => {
     const nextDraft = normalizeDraft(initialDraft, readOnly);
@@ -381,6 +382,10 @@ export default function MaterialPackageEditor({
   }, [initialDraft, readOnly, valueKey]);
 
   const sections = useMemo(() => buildSections(content), [content]);
+  const activeSection = useMemo(
+    () => sections.find(section => section.key === activeSectionKey) ?? sections[0] ?? null,
+    [activeSectionKey, sections],
+  );
   const totalMaterialCount = useMemo(
     () => sections.reduce((sum, section) => sum + section.materials.length, 0),
     [sections],
@@ -389,6 +394,19 @@ export default function MaterialPackageEditor({
     () => sections.reduce((sum, section) => sum + section.materials.reduce((materialSum, material) => materialSum + (material.node.messages?.length ?? 0), 0), 0),
     [sections],
   );
+
+  useEffect(() => {
+    if (sections.length === 0) {
+      if (activeSectionKey) {
+        setActiveSectionKey("");
+      }
+      return;
+    }
+
+    if (!sections.some(section => section.key === activeSectionKey)) {
+      setActiveSectionKey(sections[0]?.key ?? "");
+    }
+  }, [activeSectionKey, sections]);
 
   const updateMaterial = (
     sectionType: "root" | "folder",
@@ -439,11 +457,37 @@ export default function MaterialPackageEditor({
   };
 
   const addChapter = () => {
+    let nextChapterKey = "";
     setContent((previous) => {
       const next = cloneContent(previous);
       next.root = Array.isArray(next.root) ? next.root : [];
       const chapterCount = next.root.filter(node => node.type === MaterialNode.type.FOLDER).length;
+      nextChapterKey = `folder-${next.root.length}`;
       next.root.push(createDefaultSectionNode(createChapterTitle(chapterCount + 1)));
+      return next;
+    });
+    if (nextChapterKey) {
+      setActiveSectionKey(nextChapterKey);
+    }
+  };
+
+  const updateSectionTitle = (section: MaterialSection, nextTitle: string) => {
+    if (section.sectionType !== "folder") {
+      return;
+    }
+
+    setContent((previous) => {
+      const next = cloneContent(previous);
+      next.root = Array.isArray(next.root) ? next.root : [];
+      const folderNode = next.root[section.rootIndex];
+      if (!folderNode) {
+        return next;
+      }
+
+      next.root[section.rootIndex] = {
+        ...folderNode,
+        name: nextTitle,
+      };
       return next;
     });
   };
@@ -653,150 +697,191 @@ export default function MaterialPackageEditor({
           </div>
 
           <div className="mt-5 space-y-6">
-            {sections.map((section, sectionIndex) => (
-              <div key={section.key} className="space-y-4">
-                <div className="flex items-center gap-3">
-                  <span className="rounded-full border border-primary/25 bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
-                    {section.title}
-                  </span>
-                  {!readOnly && sectionIndex === 0 && (
+            {sections.length > 0 && (
+              <div className="space-y-4">
+                <div className="flex flex-wrap items-center gap-2 border-b border-base-300/80 pb-3">
+                  <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
+                    {sections.map((section) => {
+                      const isActive = section.key === activeSection?.key;
+                      const tabClassName = `inline-flex min-h-10 items-center rounded-md border px-3 py-2 text-sm transition ${
+                        isActive
+                          ? "border-primary/35 bg-primary/10 text-primary shadow-sm"
+                          : "border-base-300 bg-base-100/70 text-base-content/70 hover:border-primary/20 hover:text-base-content"
+                      }`;
+
+                      if (!readOnly && isActive && section.sectionType === "folder") {
+                        return (
+                          <div
+                            key={section.key}
+                            className={`${tabClassName} min-w-[140px]`}
+                          >
+                            <input
+                              type="text"
+                              className="w-full bg-transparent text-sm font-medium text-current transition focus:outline-none"
+                              value={section.title}
+                              onChange={event => updateSectionTitle(section, event.target.value)}
+                              placeholder="章节名称"
+                            />
+                          </div>
+                        );
+                      }
+
+                      return (
+                        <button
+                          key={section.key}
+                          type="button"
+                          className={tabClassName}
+                          onClick={() => setActiveSectionKey(section.key)}
+                        >
+                          <span className="truncate">{section.title}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {!readOnly && (
                     <button
                       type="button"
-                      className="inline-flex size-7 items-center justify-center rounded-full border border-base-300 bg-base-100/80 text-base-content/65 transition hover:border-primary/30 hover:bg-primary/10 hover:text-primary"
+                      className="inline-flex size-9 items-center justify-center rounded-md border border-base-300 bg-base-100/80 text-base-content/65 transition hover:border-primary/30 hover:bg-primary/10 hover:text-primary"
                       onClick={addChapter}
                       aria-label="添加新章节"
                     >
                       <PlusIcon className="size-4" weight="bold" />
                     </button>
                   )}
-                  {section.hiddenFolderCount > 0 && (
-                    <span className="text-xs text-base-content/55">
-                      {`当前分组下还有 ${section.hiddenFolderCount} 个子文件夹，保存时会继续保留。`}
-                    </span>
-                  )}
                 </div>
 
-                <div className="grid gap-4 xl:grid-cols-2">
-                  {section.materials.map(material => (
-                    <div
-                      key={`${section.key}-${material.childIndex}`}
-                      className="rounded-[24px] border border-base-300 bg-base-100/88 p-5 shadow-sm"
-                    >
-                      <div className="space-y-4">
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="min-w-0 flex-1 space-y-3">
-                            <input
-                              type="text"
-                              className={fieldClassName}
-                              value={material.node.name ?? ""}
-                              onChange={event => updateMaterial(section.sectionType, section.rootIndex, material.childIndex, node => ({
-                                ...node,
-                                type: MaterialNode.type.MATERIAL,
-                                name: event.target.value,
-                              }))}
-                              placeholder="素材单元标题"
-                              disabled={readOnly}
-                            />
-                            <textarea
-                              className={`${textareaClassName} min-h-24`}
-                              value={material.node.note ?? ""}
-                              onChange={event => updateMaterial(section.sectionType, section.rootIndex, material.childIndex, node => ({
-                                ...node,
-                                type: MaterialNode.type.MATERIAL,
-                                note: event.target.value,
-                              }))}
-                              placeholder="描述这个素材单元的使用场景、氛围或用途"
-                              disabled={readOnly}
-                            />
-                          </div>
+                {activeSection && (
+                  <>
+                    {activeSection.hiddenFolderCount > 0 && (
+                      <div className="text-xs text-base-content/55">
+                        {`当前章节下还有 ${activeSection.hiddenFolderCount} 个子文件夹，保存时会继续保留。`}
+                      </div>
+                    )}
 
-                          {!readOnly && (
-                            <button
-                              type="button"
-                              className="inline-flex size-10 shrink-0 items-center justify-center rounded-full border border-base-300 bg-base-200/70 text-base-content/65 transition hover:border-error/30 hover:bg-error/10 hover:text-error"
-                              onClick={() => removeMaterialFromSection(section, material.childIndex)}
-                              aria-label="删除素材单元"
-                            >
-                              <TrashIcon className="size-4" />
-                            </button>
-                          )}
-                        </div>
+                    <div className="grid gap-4 xl:grid-cols-2">
+                      {activeSection.materials.map(material => (
+                        <div
+                          key={`${activeSection.key}-${material.childIndex}`}
+                          className="rounded-[24px] border border-base-300 bg-base-100/88 p-5 shadow-sm"
+                        >
+                          <div className="space-y-4">
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="min-w-0 flex-1 space-y-3">
+                                <input
+                                  type="text"
+                                  className={fieldClassName}
+                                  value={material.node.name ?? ""}
+                                  onChange={event => updateMaterial(activeSection.sectionType, activeSection.rootIndex, material.childIndex, node => ({
+                                    ...node,
+                                    type: MaterialNode.type.MATERIAL,
+                                    name: event.target.value,
+                                  }))}
+                                  placeholder="素材单元标题"
+                                  disabled={readOnly}
+                                />
+                                <textarea
+                                  className={`${textareaClassName} min-h-24`}
+                                  value={material.node.note ?? ""}
+                                  onChange={event => updateMaterial(activeSection.sectionType, activeSection.rootIndex, material.childIndex, node => ({
+                                    ...node,
+                                    type: MaterialNode.type.MATERIAL,
+                                    note: event.target.value,
+                                  }))}
+                                  placeholder="描述这个素材单元的使用场景、氛围或用途"
+                                  disabled={readOnly}
+                                />
+                              </div>
 
-                        <div className="space-y-3">
-                          {(material.node.messages?.length ?? 0) > 0
-                            ? (
-                                <div className="space-y-3">
-                                  {(material.node.messages ?? []).map((message, messageIndex) => {
-                                    const presentation = getMessagePresentation(message);
-                                    const assetKey = [
-                                      section.key,
-                                      material.childIndex,
-                                      message.messageType ?? "unknown",
-                                      presentation.url ?? "",
-                                      presentation.fileName,
-                                      presentation.metaText,
-                                    ].join("-");
+                              {!readOnly && (
+                                <button
+                                  type="button"
+                                  className="inline-flex size-10 shrink-0 items-center justify-center rounded-full border border-base-300 bg-base-200/70 text-base-content/65 transition hover:border-error/30 hover:bg-error/10 hover:text-error"
+                                  onClick={() => removeMaterialFromSection(activeSection, material.childIndex)}
+                                  aria-label="删除素材单元"
+                                >
+                                  <TrashIcon className="size-4" />
+                                </button>
+                              )}
+                            </div>
 
-                                    return (
-                                      <AssetCard
-                                        key={assetKey}
-                                        message={message}
-                                        readOnly={readOnly}
-                                        onRemove={() => removeMessageFromMaterial(section, material.childIndex, messageIndex)}
-                                      />
-                                    );
-                                  })}
-                                </div>
-                              )
-                            : (
-                                <div className="rounded-2xl border border-dashed border-base-300 bg-base-200/35 px-4 py-6 text-sm text-base-content/55">
-                                  这个素材单元还没有素材条目，先上传图片、音频、视频或文件吧。
+                            <div className="space-y-3">
+                              {(material.node.messages?.length ?? 0) > 0
+                                ? (
+                                    <div className="space-y-3">
+                                      {(material.node.messages ?? []).map((message, messageIndex) => {
+                                        const presentation = getMessagePresentation(message);
+                                        const assetKey = [
+                                          activeSection.key,
+                                          material.childIndex,
+                                          message.messageType ?? "unknown",
+                                          presentation.url ?? "",
+                                          presentation.fileName,
+                                          presentation.metaText,
+                                        ].join("-");
+
+                                        return (
+                                          <AssetCard
+                                            key={assetKey}
+                                            message={message}
+                                            readOnly={readOnly}
+                                            onRemove={() => removeMessageFromMaterial(activeSection, material.childIndex, messageIndex)}
+                                          />
+                                        );
+                                      })}
+                                    </div>
+                                  )
+                                : (
+                                    <div className="rounded-2xl border border-dashed border-base-300 bg-base-200/35 px-4 py-6 text-sm text-base-content/55">
+                                      这个素材单元还没有素材条目，先上传图片、音频、视频或文件吧。
+                                    </div>
+                                  )}
+
+                              {!readOnly && (
+                                <div className="flex flex-wrap gap-2">
+                                  <MaterialPackageAssetUploadButton
+                                    kind="image"
+                                    onUploaded={message => appendMessageToMaterial(activeSection, material.childIndex, message)}
+                                  />
+                                  <MaterialPackageAssetUploadButton
+                                    kind="audio"
+                                    onUploaded={message => appendMessageToMaterial(activeSection, material.childIndex, message)}
+                                  />
+                                  <MaterialPackageAssetUploadButton
+                                    kind="video"
+                                    onUploaded={message => appendMessageToMaterial(activeSection, material.childIndex, message)}
+                                  />
+                                  <MaterialPackageAssetUploadButton
+                                    kind="file"
+                                    onUploaded={message => appendMessageToMaterial(activeSection, material.childIndex, message)}
+                                  />
                                 </div>
                               )}
-
-                          {!readOnly && (
-                            <div className="flex flex-wrap gap-2">
-                              <MaterialPackageAssetUploadButton
-                                kind="image"
-                                onUploaded={message => appendMessageToMaterial(section, material.childIndex, message)}
-                              />
-                              <MaterialPackageAssetUploadButton
-                                kind="audio"
-                                onUploaded={message => appendMessageToMaterial(section, material.childIndex, message)}
-                              />
-                              <MaterialPackageAssetUploadButton
-                                kind="video"
-                                onUploaded={message => appendMessageToMaterial(section, material.childIndex, message)}
-                              />
-                              <MaterialPackageAssetUploadButton
-                                kind="file"
-                                onUploaded={message => appendMessageToMaterial(section, material.childIndex, message)}
-                              />
                             </div>
-                          )}
+                          </div>
                         </div>
-                      </div>
-                    </div>
-                  ))}
+                      ))}
 
-                  {!readOnly && (
-                    <button
-                      type="button"
-                      className="flex min-h-[280px] flex-col items-center justify-center gap-4 rounded-[24px] border border-dashed border-base-300 bg-base-100/35 text-base-content/55 transition hover:border-primary/35 hover:bg-primary/[0.04] hover:text-base-content"
-                      onClick={() => addMaterialToSection(section)}
-                    >
-                      <div className="flex size-12 items-center justify-center rounded-full border border-base-300 bg-base-200/70">
-                        <PlusIcon className="size-5" weight="bold" />
-                      </div>
-                      <div className="space-y-1 text-center">
-                        <div className="text-sm font-medium">添加新素材单元</div>
-                        <div className="text-xs text-base-content/45">支持一个单元内继续添加多条素材，例如背景图和 BGM。</div>
-                      </div>
-                    </button>
-                  )}
-                </div>
+                      {!readOnly && (
+                        <button
+                          type="button"
+                          className="flex min-h-[280px] flex-col items-center justify-center gap-4 rounded-[24px] border border-dashed border-base-300 bg-base-100/35 text-base-content/55 transition hover:border-primary/35 hover:bg-primary/[0.04] hover:text-base-content"
+                          onClick={() => addMaterialToSection(activeSection)}
+                        >
+                          <div className="flex size-12 items-center justify-center rounded-full border border-base-300 bg-base-200/70">
+                            <PlusIcon className="size-5" weight="bold" />
+                          </div>
+                          <div className="space-y-1 text-center">
+                            <div className="text-sm font-medium">添加新素材单元</div>
+                            <div className="text-xs text-base-content/45">支持一个单元内继续添加多条素材，例如背景图和 BGM。</div>
+                          </div>
+                        </button>
+                      )}
+                    </div>
+                  </>
+                )}
               </div>
-            ))}
+            )}
           </div>
         </div>
 
