@@ -16,6 +16,14 @@ export type MaterialOverviewItem = {
   folderTrail: string[];
   assetCount: number;
   assetKinds: string[];
+  assets: MaterialOverviewAsset[];
+};
+
+export type MaterialOverviewAsset = {
+  key: string;
+  typeLabel: string;
+  title: string;
+  metaText: string;
 };
 
 export const ROOT_NODE_KEY = "root";
@@ -368,6 +376,76 @@ export function getMessageKindLabels(messages: MaterialMessageItem[] | undefined
   return [...uniqueLabels];
 }
 
+function getNestedPayload(message: MaterialMessageItem, key: "imageMessage" | "soundMessage" | "videoMessage" | "fileMessage") {
+  const extra = (message.extra ?? {}) as Record<string, any>;
+  return extra[key] ?? extra;
+}
+
+function formatFileSize(size?: number) {
+  if (!size || size <= 0) {
+    return "";
+  }
+
+  if (size >= 1024 * 1024) {
+    return `${(size / 1024 / 1024).toFixed(1)} MB`;
+  }
+
+  if (size >= 1024) {
+    return `${(size / 1024).toFixed(1)} KB`;
+  }
+
+  return `${size} B`;
+}
+
+function buildMaterialOverviewAsset(message: MaterialMessageItem, index: number): MaterialOverviewAsset {
+  if (message.messageType === MessageType.IMG) {
+    const image = getNestedPayload(message, "imageMessage");
+    return {
+      key: `image-${index}-${image?.url ?? image?.fileName ?? "asset"}`,
+      typeLabel: "图片",
+      title: image?.fileName || `图片素材 ${index + 1}`,
+      metaText: [
+        image?.width && image?.height ? `${image.width} x ${image.height}` : "",
+        formatFileSize(image?.size),
+      ].filter(Boolean).join(" · "),
+    };
+  }
+
+  if (message.messageType === MessageType.SOUND) {
+    const sound = getNestedPayload(message, "soundMessage");
+    return {
+      key: `sound-${index}-${sound?.url ?? sound?.fileName ?? "asset"}`,
+      typeLabel: "音频",
+      title: sound?.fileName || `音频素材 ${index + 1}`,
+      metaText: [
+        typeof sound?.second === "number" ? `${sound.second}s` : "",
+        formatFileSize(sound?.size),
+      ].filter(Boolean).join(" · "),
+    };
+  }
+
+  if (message.messageType === MessageType.VIDEO) {
+    const video = getNestedPayload(message, "videoMessage");
+    return {
+      key: `video-${index}-${video?.url ?? video?.fileName ?? "asset"}`,
+      typeLabel: "视频",
+      title: video?.fileName || `视频素材 ${index + 1}`,
+      metaText: [
+        typeof video?.second === "number" ? `${video.second}s` : "",
+        formatFileSize(video?.size),
+      ].filter(Boolean).join(" · "),
+    };
+  }
+
+  const file = getNestedPayload(message, "fileMessage");
+  return {
+    key: `file-${index}-${file?.url ?? file?.fileName ?? "asset"}`,
+    typeLabel: "文件",
+    title: file?.fileName || `文件素材 ${index + 1}`,
+    metaText: formatFileSize(file?.size),
+  };
+}
+
 export function collectMaterialOverview(
   nodes: MaterialNode[] | undefined,
   folderTrail: string[] = [],
@@ -387,14 +465,16 @@ export function collectMaterialOverview(
     }
 
     if (node.type === MaterialNodeModel.type.MATERIAL) {
+      const messages = node.messages ?? [];
       result.push({
         key: serializeNodePath(nextPath),
         path: nextPath,
         title: getNodeLabel(node, "未命名素材"),
         note: node.note?.trim() || "",
         folderTrail,
-        assetCount: node.messages?.length ?? 0,
-        assetKinds: getMessageKindLabels(node.messages),
+        assetCount: messages.length,
+        assetKinds: getMessageKindLabels(messages),
+        assets: messages.map((message, index) => buildMaterialOverviewAsset(message, index)),
       });
     }
   });
