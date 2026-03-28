@@ -1,13 +1,14 @@
 import { useCallback } from "react";
 
 import type { Room } from "../../../../api";
-import type { MinimalDocMeta, SidebarTree } from "./sidebarTree";
+import type { MinimalDocMeta, MinimalMaterialPackageMeta, SidebarTree } from "./sidebarTree";
 
 import { applySidebarDocFallbackCache, normalizeSidebarTree } from "./sidebarTree";
 
 type UseRoomSidebarNormalizerParams = {
   fallbackTextRooms: Room[];
   visibleDocMetas: MinimalDocMeta[];
+  materialPackages?: MinimalMaterialPackageMeta[];
   isSpaceOwner: boolean;
   docHeaderOverrides: Record<string, { title?: string; imageUrl?: string }>;
   docMetaMap: Map<string, MinimalDocMeta>;
@@ -22,6 +23,7 @@ type NormalizeAndSetOptions = {
 export default function useRoomSidebarNormalizer({
   fallbackTextRooms,
   visibleDocMetas,
+  materialPackages,
   isSpaceOwner,
   docHeaderOverrides,
   docMetaMap,
@@ -34,6 +36,7 @@ export default function useRoomSidebarNormalizer({
       roomsInSpace: fallbackTextRooms,
       docMetas: options?.docMetasOverride ?? visibleDocMetas,
       includeDocs: isSpaceOwner,
+      materialPackages,
     });
 
     // 文档缓存：将 title/cover 写入 sidebarTree 节点（持久化到后端），让首屏优先展示缓存，而不是等 meta/网络加载。
@@ -47,7 +50,7 @@ export default function useRoomSidebarNormalizer({
     if (save) {
       onSaveSidebarTree?.(normalizedWithCache);
     }
-  }, [docHeaderOverrides, docMetaMap, fallbackTextRooms, isSpaceOwner, onSaveSidebarTree, setLocalTree, visibleDocMetas]);
+  }, [docHeaderOverrides, docMetaMap, fallbackTextRooms, isSpaceOwner, materialPackages, onSaveSidebarTree, setLocalTree, visibleDocMetas]);
 
   return normalizeAndSet;
 }

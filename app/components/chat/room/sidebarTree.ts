@@ -2,9 +2,17 @@ import type { Room } from "api";
 
 import { parseSpaceDocId } from "@/components/chat/infra/blocksuite/space/spaceDocId";
 
+export const MATERIALS_CATEGORY_ID = "cat:materials";
+
+export type MinimalMaterialPackageMeta = {
+  id: number;
+  title?: string;
+  imageUrl?: string;
+};
+
 export type SidebarLeafNode = {
   nodeId: string;
-  type: "room" | "doc";
+  type: "room" | "doc" | "material-package";
   targetId: number | string;
   fallbackTitle?: string;
   /** 文档封面/缩略图缓存（用于 sidebarTree 首屏快速展示） */
@@ -70,6 +78,24 @@ export function collectExistingDocIds(tree: SidebarTree | null | undefined): Set
     for (const item of cat.items ?? []) {
       if (item.type === "doc" && typeof (item as any).targetId === "string") {
         ids.add((item as any).targetId);
+      }
+    }
+  }
+  return ids;
+}
+
+export function collectExistingMaterialPackageIds(tree: SidebarTree | null | undefined): Set<number> {
+  const ids = new Set<number>();
+  for (const cat of tree?.categories ?? []) {
+    for (const item of cat.items ?? []) {
+      if (item.type !== "material-package") {
+        continue;
+      }
+      const targetId = typeof item.targetId === "number"
+        ? item.targetId
+        : Number(item.targetId);
+      if (Number.isFinite(targetId)) {
+        ids.add(targetId);
       }
     }
   }
@@ -165,6 +191,16 @@ function buildDocNode(docId: string, fallbackTitle?: string, fallbackImageUrl?: 
   };
 }
 
+function buildMaterialPackageNode(packageId: number, fallbackTitle?: string, fallbackImageUrl?: string): SidebarLeafNode {
+  return {
+    nodeId: `material-package:${packageId}`,
+    type: "material-package",
+    targetId: packageId,
+    fallbackTitle,
+    fallbackImageUrl,
+  };
+}
+
 function generateCategoryId(): string {
   // 保持短且可读，避免依赖 crypto 在旧环境不可用
   return `cat:${Date.now().toString(36)}:${Math.random().toString(36).slice(2, 8)}`;
@@ -229,6 +265,7 @@ export function buildDefaultSidebarTree(params: {
   roomsInSpace: Room[];
   docMetas: MinimalDocMeta[];
   includeDocs: boolean;
+  materialPackages?: MinimalMaterialPackageMeta[];
 }): SidebarTree {
   const roomItems: SidebarLeafNode[] = params.roomsInSpace
     .filter((r): r is Room & { roomId: number } => {
@@ -259,6 +296,18 @@ export function buildDefaultSidebarTree(params: {
     });
   }
 
+  const materialItems: SidebarLeafNode[] = (params.materialPackages ?? [])
+    .filter(item => typeof item?.id === "number" && Number.isFinite(item.id))
+    .map(item => buildMaterialPackageNode(item.id, item.title ?? `素材包 #${item.id}`, item.imageUrl));
+
+  if (materialItems.length > 0) {
+    categories.push({
+      categoryId: MATERIALS_CATEGORY_ID,
+      name: "素材包",
+      items: materialItems,
+    });
+  }
+
   return {
     schemaVersion: 2,
     categories,
@@ -277,6 +326,7 @@ export function normalizeSidebarTree(params: {
   roomsInSpace: Room[];
   docMetas: MinimalDocMeta[];
   includeDocs: boolean;
+  materialPackages?: MinimalMaterialPackageMeta[];
 }): SidebarTree {
   const roomMap = new Map<number, Room>();
   for (const r of params.roomsInSpace) {
@@ -293,6 +343,15 @@ export function normalizeSidebarTree(params: {
   }
   const hasDocMetas = docMetaMap.size > 0;
 
+  const hasLoadedMaterialPackages = Array.isArray(params.materialPackages);
+  const materialPackageMap = new Map<number, MinimalMaterialPackageMeta>();
+  for (const item of params.materialPackages ?? []) {
+    if (typeof item?.id === "number" && Number.isFinite(item.id)) {
+      materialPackageMap.set(item.id, item);
+    }
+  }
+  const hasMaterialPackages = materialPackageMap.size > 0;
+
   let base: SidebarTree;
   const inputTree = params.tree as any;
   if (inputTree?.schemaVersion === 2) {
@@ -306,6 +365,7 @@ export function normalizeSidebarTree(params: {
       roomsInSpace: params.roomsInSpace,
       docMetas: params.docMetas,
       includeDocs: params.includeDocs,
+      materialPackages: params.materialPackages,
     });
   }
 
@@ -313,7 +373,7 @@ export function normalizeSidebarTree(params: {
   const usedNodeIds = new Set<string>();
 
   const normalizeNode = (raw: SidebarLeafNode | any): SidebarLeafNode | null => {
-    if (!raw || (raw.type !== "room" && raw.type !== "doc"))
+    if (!raw || (raw.type !== "room" && raw.type !== "doc" && raw.type !== "material-package"))
       return null;
 
     if (raw.type === "room") {
@@ -326,22 +386,35 @@ export function normalizeSidebarTree(params: {
       return buildRoomNode(roomId, raw?.fallbackTitle ?? room.name ?? String(roomId));
     }
 
-    // doc
-    if (!params.includeDocs)
-      return null;
-    const docId = normalizeDocId(raw?.targetId);
-    if (!docId)
-      return null;
-    if (!isSidebarVisibleDocId(docId))
-      return null;
-    const meta = docMetaMap.get(docId);
-    // docMetas 可能是异步加载的：在还未加载到任何 meta 之前，允许保留 sidebarTree 里的 doc 节点，先展示缓存。
-    if (!meta && hasDocMetas)
-      return null;
+    if (raw.type === "doc") {
+      if (!params.includeDocs)
+        return null;
+      const docId = normalizeDocId(raw?.targetId);
+      if (!docId)
+        return null;
+      if (!isSidebarVisibleDocId(docId))
+        return null;
+      const meta = docMetaMap.get(docId);
+      // docMetas 可能是异步加载的：在还未加载到任何 meta 之前，允许保留 sidebarTree 里的 doc 节点，先展示缓存。
+      if (!meta && hasDocMetas)
+        return null;
 
-    const title = raw?.fallbackTitle ?? meta?.title ?? docId;
-    const imageUrl = raw?.fallbackImageUrl ?? meta?.imageUrl;
-    return buildDocNode(docId, title, imageUrl);
+      const title = raw?.fallbackTitle ?? meta?.title ?? docId;
+      const imageUrl = raw?.fallbackImageUrl ?? meta?.imageUrl;
+      return buildDocNode(docId, title, imageUrl);
+    }
+
+    const packageId = normalizeRoomId(raw?.targetId);
+    if (packageId == null) {
+      return null;
+    }
+    const materialPackage = materialPackageMap.get(packageId);
+    if (!materialPackage && hasLoadedMaterialPackages) {
+      return null;
+    }
+    const title = raw?.fallbackTitle ?? materialPackage?.title ?? `素材包 #${packageId}`;
+    const imageUrl = raw?.fallbackImageUrl ?? materialPackage?.imageUrl;
+    return buildMaterialPackageNode(packageId, title, imageUrl);
   };
 
   const categories: SidebarCategoryNode[] = [];
@@ -379,11 +452,31 @@ export function normalizeSidebarTree(params: {
     });
   }
 
+  if (hasLoadedMaterialPackages && hasMaterialPackages) {
+    const materialCategory = categories.find(category => category.categoryId === MATERIALS_CATEGORY_ID);
+    const representedMaterialPackageIds = collectExistingMaterialPackageIds({ categories, schemaVersion: 2 });
+    const missingMaterialNodes = [...materialPackageMap.values()]
+      .filter(item => !representedMaterialPackageIds.has(item.id))
+      .map(item => buildMaterialPackageNode(item.id, item.title ?? `素材包 #${item.id}`, item.imageUrl));
+
+    if (materialCategory) {
+      materialCategory.items = [...materialCategory.items, ...missingMaterialNodes];
+    }
+    else {
+      categories.push({
+        categoryId: MATERIALS_CATEGORY_ID,
+        name: "素材包",
+        items: missingMaterialNodes,
+      });
+    }
+  }
+
   if (categories.length === 0) {
     return buildDefaultSidebarTree({
       roomsInSpace: params.roomsInSpace,
       docMetas: params.docMetas,
       includeDocs: params.includeDocs,
+      materialPackages: params.materialPackages,
     });
   }
 

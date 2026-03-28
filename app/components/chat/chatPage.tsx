@@ -1,4 +1,5 @@
 import { useGetSpaceInfoQuery, useGetSpaceMembersQuery, useGetUserActiveSpacesQuery, useGetUserRoomsQuery } from "api/hooks/chatQueryHooks";
+import { useSpaceMaterialPackagesQuery } from "api/hooks/materialPackageQueryHooks";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Outlet, useSearchParams } from "react-router";
 import { ChatPageOverlays, ChatPagePanels } from "@/components/chat/chatPageContainers";
@@ -108,9 +109,30 @@ export default function ChatPage() {
   const activeSpaceIdForQuery = activeSpaceId ?? -1;
   const userRoomQuery = useGetUserRoomsQuery(activeSpaceIdForQuery);
   const spaceMembersQuery = useGetSpaceMembersQuery(activeSpaceIdForQuery);
+  const spaceMaterialPackagesRequest = useMemo(() => {
+    return {
+      pageNo: 1,
+      pageSize: 100,
+      spaceId: activeSpaceIdForQuery,
+    };
+  }, [activeSpaceIdForQuery]);
+  const spaceMaterialPackagesQuery = useSpaceMaterialPackagesQuery(
+    spaceMaterialPackagesRequest,
+    activeSpaceIdForQuery > 0,
+  );
   const rooms = userRoomQuery.data?.data?.rooms ?? EMPTY_ARRAY;
   const userSpacesQuery = useGetUserActiveSpacesQuery();
   const spaces = userSpacesQuery.data?.data ?? EMPTY_ARRAY;
+  const spaceMaterialPackages = useMemo(() => {
+    return (spaceMaterialPackagesQuery.data?.data?.list ?? []).map((item) => {
+      const id = typeof item.spacePackageId === "number" ? item.spacePackageId : Number.NaN;
+      return {
+        id,
+        title: item.name?.trim() || (Number.isFinite(id) ? `素材包 #${id}` : "未命名素材包"),
+        imageUrl: item.coverUrl?.trim() || undefined,
+      };
+    }).filter(item => Number.isFinite(item.id));
+  }, [spaceMaterialPackagesQuery.data?.data?.list]);
 
   const activeSpaceInfoQuery = useGetSpaceInfoQuery(activeSpaceIdForQuery);
   const activeSpaceInfo = activeSpaceInfoQuery.data?.data;
@@ -309,6 +331,17 @@ export default function ChatPage() {
     searchParam,
     storedIds,
   });
+  const activeMaterialPackageId = useMemo(() => {
+    if (spaceDetailTab !== "material") {
+      return null;
+    }
+    const rawValue = searchParam.get("spacePackageId");
+    const value = Number(rawValue);
+    if (!Number.isFinite(value) || value <= 0) {
+      return null;
+    }
+    return value;
+  }, [searchParam, spaceDetailTab]);
 
   const handleSelectRoom = useCallback((roomId: number) => {
     setActiveRoomId(roomId);
@@ -470,6 +503,7 @@ export default function ChatPage() {
     isKPInSpace,
     docMetasFromSidebarTree,
     spaceDocMetas,
+    materialPackages: spaceMaterialPackages,
     mergeDocMetas,
     loadSpaceDocMetas,
     setSpaceDocMetas,
@@ -628,7 +662,21 @@ export default function ChatPage() {
     onSaveSidebarTree: handleSaveSidebarTree,
     onResetSidebarTreeToDefault: resetSidebarTreeToDefault,
     docMetas: spaceDocMetasList,
+    materialPackages: spaceMaterialPackagesQuery.isFetched
+      ? (spaceMaterialPackagesQuery.data?.data?.list ?? [])
+      : undefined,
     onSelectDoc: handleSelectDoc,
+    activeMaterialPackageId,
+    onSelectMaterialPackage: (spacePackageId: number) => {
+      if (!activeSpaceId || activeSpaceId <= 0) {
+        return;
+      }
+      const nextSearchParams = new URLSearchParams(searchParam);
+      nextSearchParams.delete("tab");
+      nextSearchParams.set("spacePackageId", String(spacePackageId));
+      const query = nextSearchParams.toString();
+      navigate(`/chat/${activeSpaceId}/material${query ? `?${query}` : ""}`);
+    },
     onDeleteDoc: handleDeleteDoc,
     activeRoomId,
     activeDocId,
