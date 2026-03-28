@@ -12,6 +12,7 @@ type MaterialAssetUploadKind = "image" | "audio" | "video" | "file";
 interface MaterialPackageAssetUploadButtonProps {
   kind: MaterialAssetUploadKind;
   disabled?: boolean;
+  fullWidth?: boolean;
   onUploaded: (message: MaterialMessageItem) => void;
 }
 
@@ -92,6 +93,7 @@ async function getMediaDuration(file: File): Promise<number | undefined> {
 export default function MaterialPackageAssetUploadButton({
   kind,
   disabled = false,
+  fullWidth = false,
   onUploaded,
 }: MaterialPackageAssetUploadButtonProps) {
   const inputId = useId();
@@ -99,6 +101,7 @@ export default function MaterialPackageAssetUploadButton({
   const uploadUtilsRef = useRef(new UploadUtils());
   const [isUploading, setIsUploading] = useState(false);
   const Icon = useMemo(() => getIcon(kind), [kind]);
+  const resolvedButtonClassName = `${buttonClassName} ${fullWidth ? "w-full justify-start" : ""}`;
 
   const handleUpload = async (file: File) => {
     if (disabled || isUploading) {
@@ -197,7 +200,7 @@ export default function MaterialPackageAssetUploadButton({
   if (kind === "image") {
     if (disabled) {
       return (
-        <button type="button" className={buttonClassName} disabled>
+        <button type="button" className={resolvedButtonClassName} disabled>
           <Icon className="size-4" />
           <span>{getUploadLabel(kind)}</span>
         </button>
@@ -206,7 +209,7 @@ export default function MaterialPackageAssetUploadButton({
 
     return (
       <ImgUploader setImg={(file) => { void handleUpload(file); }}>
-        <button type="button" className={buttonClassName} disabled={isUploading}>
+        <button type="button" className={resolvedButtonClassName} disabled={isUploading}>
           <Icon className="size-4" />
           <span>{isUploading ? "上传中..." : getUploadLabel(kind)}</span>
         </button>
@@ -231,7 +234,7 @@ export default function MaterialPackageAssetUploadButton({
       />
       <button
         type="button"
-        className={buttonClassName}
+        className={resolvedButtonClassName}
         disabled={disabled || isUploading}
         onClick={() => fileInputRef.current?.click()}
       >
