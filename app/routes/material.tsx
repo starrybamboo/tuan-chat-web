@@ -10,7 +10,7 @@ export function meta(_args: Route.MetaArgs) {
 
 export default function MaterialRoute() {
   return (
-    <div className="h-full overflow-auto bg-base-200">
+    <div className="h-full overflow-hidden bg-base-200">
       <MaterialLibraryPage />
     </div>
   );
