@@ -699,20 +699,23 @@ export default function useCommandExecutor(roleId: number, ruleId: number, roomC
       // 执行命令，如果规则执行器存在则先尝试规则执行器，失败则回退到公共执行器
       const executeWithFallback = async () => {
         const ruleExecutor = RULES.get(ruleId);
-        // 如果规则存在，先尝试规则执行器；否则直接使用公共执行器
-        const executors = ruleExecutor ? [ruleExecutor, executorPublic] : [executorPublic];
-
-        for (const executor of executors) {
+        // 如果规则执行器存在且包含该命令：只走规则执行器，避免真实错误被“回退后无此命令”掩盖
+        if (ruleExecutor?.getCmd(cmdPart)) {
           try {
-            await executor.execute(cmdPart, args, mentioned, CmdPreInterface);
-            return; // 执行成功，退出
+            await ruleExecutor.execute(cmdPart, args, mentioned, CmdPreInterface);
           }
           catch (err) {
-            // 只在最后一个执行器也失败时才显示错误提示
-            if (executor === executors[executors.length - 1]) {
-              sendToast(`执行错误：${err instanceof Error ? err.message : String(err)}`);
-            }
+            sendToast(`执行错误：${err instanceof Error ? err.message : String(err)}`);
           }
+          return;
+        }
+
+        // 规则执行器不存在该命令时，回退到通用指令集
+        try {
+          await executorPublic.execute(cmdPart, args, mentioned, CmdPreInterface);
+        }
+        catch (err) {
+          sendToast(`执行错误：${err instanceof Error ? err.message : String(err)}`);
         }
       };
 

@@ -72,10 +72,15 @@ const UTILS = {
    * @param type 设置类型，默认为"auto"，表示自动根据键名判断类型，也可以指定为"skill"、"ability"或"basic"
    */
   setRoleAbilityValue: (role: RoleAbility, key: string, value: string, deafult_type: "skill" | "ability" | "basic", type: "auto" | "skill" | "ability" | "basic" = "auto"): void => {
-    // 首先确认value是否是表达式，即检查如果含有四则运算符
-    if (/[+\-*/()]/.test(value)) {
-      // 如果是表达式，直接设置为字符串
-      value = String(calculateExpression(value, role));
+    const trimmedValue = value.trim();
+    // 纯数字（含正负号）直接写入，避免把 -20 识别成表达式导致缺少左操作数
+    const isSignedNumberLiteral = /^[+-]?\d+(?:\.\d+)?$/.test(trimmedValue);
+    // 仅在包含运算符且不是纯数字字面量时才执行表达式计算
+    if (!isSignedNumberLiteral && /[+\-*/()]/.test(trimmedValue)) {
+      value = String(calculateExpression(trimmedValue, role));
+    }
+    else {
+      value = trimmedValue;
     }
     switch (type) {
       case "basic":
