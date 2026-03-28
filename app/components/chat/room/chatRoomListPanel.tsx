@@ -42,13 +42,11 @@ interface ChatRoomListPanelProps {
   docMetas?: MinimalDocMeta[];
   materialPackages?: SpaceMaterialPackageResponse[];
   onSelectDoc?: (docId: string) => void;
-  onSelectMaterialPackage: (spacePackageId: number) => void;
   onDeleteDoc?: (docId: string) => void;
   onSaveSidebarTree?: (tree: SidebarTree) => void;
   onResetSidebarTreeToDefault?: () => void;
   activeRoomId: number | null;
   activeDocId?: string | null;
-  activeMaterialPackageId?: number | null;
   unreadMessagesNumber: Record<number, number>;
 
   onContextMenu: (e: React.MouseEvent) => void;
@@ -80,13 +78,11 @@ export default function ChatRoomListPanel({
   docMetas,
   materialPackages,
   onSelectDoc,
-  onSelectMaterialPackage,
   onDeleteDoc,
   onSaveSidebarTree,
   onResetSidebarTreeToDefault,
   activeRoomId,
   activeDocId,
-  activeMaterialPackageId = null,
   unreadMessagesNumber,
   onContextMenu,
   onInviteMember,
@@ -365,11 +361,9 @@ export default function ChatRoomListPanel({
                     activeSpaceId={activeSpaceId}
                     activeRoomId={activeRoomId}
                     activeDocId={activeDocId}
-                    activeMaterialPackageId={activeMaterialPackageId}
                     unreadMessagesNumber={unreadMessagesNumber}
                     onSelectRoom={onSelectRoom}
                     onSelectDoc={onSelectDoc}
-                    onSelectMaterialPackage={onSelectMaterialPackage}
                     onCloseLeftDrawer={onCloseLeftDrawer}
                     existingRoomIdsInTree={existingRoomIdsInTree}
                     existingDocIdsInTree={existingDocIdsInTree}

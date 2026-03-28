@@ -29,11 +29,9 @@ interface RoomSidebarCategoryBodyProps {
   activeSpaceId: number | null;
   activeRoomId: number | null;
   activeDocId?: string | null;
-  activeMaterialPackageId: number | null;
   unreadMessagesNumber: Record<number, number>;
   onSelectRoom: (roomId: number) => void;
   onSelectDoc?: (docId: string) => void;
-  onSelectMaterialPackage: (spacePackageId: number) => void;
   onCloseLeftDrawer: () => void;
   isAddPanelOpen: boolean;
   pendingAddRoomId: number | null;
@@ -69,11 +67,9 @@ export default function RoomSidebarCategoryBody({
   activeSpaceId,
   activeRoomId,
   activeDocId,
-  activeMaterialPackageId,
   unreadMessagesNumber,
   onSelectRoom,
   onSelectDoc,
-  onSelectMaterialPackage,
   onCloseLeftDrawer,
   isAddPanelOpen,
   pendingAddRoomId,
@@ -130,11 +126,9 @@ export default function RoomSidebarCategoryBody({
         activeSpaceId={activeSpaceId}
         activeRoomId={activeRoomId}
         activeDocId={activeDocId}
-        activeMaterialPackageId={activeMaterialPackageId}
         unreadMessagesNumber={unreadMessagesNumber}
         onSelectRoom={onSelectRoom}
         onSelectDoc={onSelectDoc}
-        onSelectMaterialPackage={onSelectMaterialPackage}
         onCloseLeftDrawer={onCloseLeftDrawer}
       />
 
