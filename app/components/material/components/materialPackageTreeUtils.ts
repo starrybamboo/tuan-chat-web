@@ -63,6 +63,14 @@ export function parseNodePath(pathKey: string): MaterialNodePath {
     .filter(value => Number.isInteger(value) && value >= 0);
 }
 
+export function isAncestorPath(ancestorPath: MaterialNodePath, targetPath: MaterialNodePath) {
+  if (ancestorPath.length >= targetPath.length) {
+    return false;
+  }
+
+  return ancestorPath.every((value, index) => targetPath[index] === value);
+}
+
 export function getNodeLabel(node: MaterialNode | null | undefined, fallback: string) {
   return node?.name?.trim() || fallback;
 }
@@ -157,6 +165,150 @@ export function removeNodeFromContent(
 
   next.root = removeNodeAtPathFromList([...(next.root ?? [])], path);
   return next;
+}
+
+function extractNodeAtPathFromList(
+  nodes: MaterialNode[],
+  path: MaterialNodePath,
+): { nodes: MaterialNode[]; node: MaterialNode | null } {
+  const [head, ...rest] = path;
+  if (typeof head !== "number") {
+    return { nodes, node: null };
+  }
+
+  if (rest.length === 0) {
+    const node = nodes[head] ?? null;
+    return {
+      nodes: nodes.filter((_, index) => index !== head),
+      node,
+    };
+  }
+
+  return {
+    nodes: nodes.map((node, index) => {
+      if (index !== head || node.type !== MaterialNodeModel.type.FOLDER) {
+        return node;
+      }
+
+      const extracted = extractNodeAtPathFromList([...(node.children ?? [])], rest);
+      if (!extracted.node) {
+        return node;
+      }
+
+      return {
+        ...node,
+        children: extracted.nodes,
+      };
+    }),
+    node: getNodeAtPath(nodes, path),
+  };
+}
+
+function insertNodeIntoListAtPath(
+  nodes: MaterialNode[],
+  parentPath: MaterialNodePath,
+  insertIndex: number,
+  node: MaterialNode,
+): MaterialNode[] {
+  if (parentPath.length === 0) {
+    const nextNodes = [...nodes];
+    nextNodes.splice(insertIndex, 0, node);
+    return nextNodes;
+  }
+
+  const [head, ...rest] = parentPath;
+  return nodes.map((currentNode, index) => {
+    if (index !== head || currentNode.type !== MaterialNodeModel.type.FOLDER) {
+      return currentNode;
+    }
+
+    return {
+      ...currentNode,
+      children: insertNodeIntoListAtPath([...(currentNode.children ?? [])], rest, insertIndex, node),
+    };
+  });
+}
+
+function adjustPathAfterRemoval(targetPath: MaterialNodePath, sourcePath: MaterialNodePath): MaterialNodePath {
+  if (sourcePath.length === 0 || targetPath.length === 0) {
+    return [...targetPath];
+  }
+
+  const targetNext = [...targetPath];
+  const compareDepth = sourcePath.length - 1;
+  const sameParent = sourcePath
+    .slice(0, compareDepth)
+    .every((value, index) => targetPath[index] === value);
+
+  if (sameParent && targetPath.length > compareDepth && targetPath[compareDepth]! > sourcePath[compareDepth]!) {
+    targetNext[compareDepth] = targetNext[compareDepth]! - 1;
+  }
+
+  return targetNext;
+}
+
+function getChildCountAtPath(nodes: MaterialNode[], parentPath: MaterialNodePath) {
+  if (parentPath.length === 0) {
+    return nodes.length;
+  }
+
+  const parentNode = getNodeAtPath(nodes, parentPath);
+  return parentNode?.children?.length ?? 0;
+}
+
+export function moveNodeInContent(
+  content: MaterialPackageContent,
+  sourcePath: MaterialNodePath,
+  targetPath: MaterialNodePath,
+  mode: "inside" | "after",
+): { content: MaterialPackageContent; movedPath: MaterialNodePath | null } {
+  const next = ensureMaterialPackageContent(content);
+
+  if (sourcePath.length === 0) {
+    return { content: next, movedPath: null };
+  }
+
+  if (mode === "inside" && isAncestorPath(sourcePath, targetPath)) {
+    return { content: next, movedPath: null };
+  }
+
+  if (mode === "after" && (
+    sourcePath.join(".") === targetPath.join(".")
+    || isAncestorPath(sourcePath, targetPath)
+  )) {
+    return { content: next, movedPath: null };
+  }
+
+  const extracted = extractNodeAtPathFromList([...(next.root ?? [])], sourcePath);
+  if (!extracted.node) {
+    return { content: next, movedPath: null };
+  }
+
+  const adjustedTargetPath = adjustPathAfterRemoval(targetPath, sourcePath);
+  const baseNodes = extracted.nodes;
+
+  if (mode === "inside") {
+    const insertIndex = getChildCountAtPath(baseNodes, adjustedTargetPath);
+    const insertedNodes = insertNodeIntoListAtPath(baseNodes, adjustedTargetPath, insertIndex, extracted.node);
+    return {
+      content: {
+        ...next,
+        root: insertedNodes,
+      },
+      movedPath: [...adjustedTargetPath, insertIndex],
+    };
+  }
+
+  const parentPath = adjustedTargetPath.slice(0, -1);
+  const insertIndex = (adjustedTargetPath.at(-1) ?? -1) + 1;
+  const insertedNodes = insertNodeIntoListAtPath(baseNodes, parentPath, insertIndex, extracted.node);
+  return {
+    content: {
+      ...next,
+      root: insertedNodes,
+    },
+    movedPath: [...parentPath, insertIndex],
+  };
 }
 
 export function appendNodeToContent(
