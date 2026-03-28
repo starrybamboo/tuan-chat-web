@@ -15,6 +15,7 @@ import useRoomSidebarDropHandler from "@/components/chat/room/useRoomSidebarDrop
 import useRoomSidebarNormalizer from "@/components/chat/room/useRoomSidebarNormalizer";
 import useRoomSidebarTreeActions from "@/components/chat/room/useRoomSidebarTreeActions";
 import useRoomSidebarTreeState from "@/components/chat/room/useRoomSidebarTreeState";
+import SpaceMaterialSidebarSection from "@/components/chat/room/spaceMaterialSidebarSection";
 import SpaceHeaderBar from "@/components/chat/space/spaceHeaderBar";
 import { useDocHeaderOverrideStore } from "@/components/chat/stores/docHeaderOverrideStore";
 import LeftChatList from "@/components/privateChat/LeftChatList";
@@ -344,6 +345,10 @@ export default function ChatRoomListPanel({
                     visibleDocMetas={visibleDocMetas}
                   />
                 ))}
+
+                {!isPrivateChatMode && (
+                  <SpaceMaterialSidebarSection spaceId={activeSpaceId} />
+                )}
 
               </div>
 

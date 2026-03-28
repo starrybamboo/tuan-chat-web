@@ -291,6 +291,7 @@ function RoomWindow({
     handleImportChatText,
     handleSendDocCard,
     handleSendRoomJump,
+    handleSendMaterialItem,
   } = useRoomImportActions({
     roomId,
     spaceId,
@@ -919,7 +920,11 @@ function RoomWindow({
           chatHistoryLoading={!!chatHistory?.loading}
           onApiChange={handleRealtimeRenderApiChange}
         />
-        <RoomDocRefDropLayer onSendDocCard={handleSendDocCard} onSendRoomJump={handleSendRoomJump}>
+        <RoomDocRefDropLayer
+          onSendDocCard={handleSendDocCard}
+          onSendRoomJump={handleSendRoomJump}
+          onSendMaterialItem={handleSendMaterialItem}
+        >
           <RoomWindowLayout
             roomId={roomId}
             roomName={roomName}
