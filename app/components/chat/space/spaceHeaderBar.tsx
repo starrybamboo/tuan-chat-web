@@ -2,7 +2,6 @@ import type { SpaceDetailTab } from "@/components/chat/chatPage.types";
 import { AddressBookIcon, ArchiveIcon, ArrowCounterClockwise, HouseIcon, PackageIcon, PlusIcon } from "@phosphor-icons/react";
 import React from "react";
 import toast from "react-hot-toast";
-import { useNavigate } from "react-router";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
 import ConfirmModal from "@/components/common/comfirmModel";
 import { AddIcon, ChevronDown, DiceD6Icon, MemberIcon, Setting, SidebarSimpleIcon, WebgalIcon } from "@/icons";
@@ -34,7 +33,6 @@ export default function SpaceHeaderBar({
   isLeftDrawerOpen,
 }: SpaceHeaderBarProps) {
   const spaceContext = React.use(SpaceContext);
-  const navigate = useNavigate();
   const spaceId = Number(spaceContext.spaceId ?? -1);
   const updateArchiveStatus = useUpdateSpaceArchiveStatusMutation();
   const archived = Boolean(isArchived);
@@ -139,10 +137,7 @@ export default function SpaceHeaderBar({
                 type="button"
                 className="gap-3"
                 onClick={() => {
-                  if (spaceId > 0) {
-                    navigate(`/material/space/${spaceId}`);
-                    onCloseLeftDrawer?.();
-                  }
+                  handleOpenSpaceDetail("material");
                 }}
               >
                 <PackageIcon className="size-4 opacity-70" />

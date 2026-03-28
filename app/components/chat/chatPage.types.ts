@@ -1,7 +1,7 @@
 export type RoomSettingTab = "role" | "setting";
-export type SpaceDetailTab = "members" | "roles" | "workflow" | "trpg" | "webgal" | "setting";
+export type SpaceDetailTab = "members" | "roles" | "workflow" | "trpg" | "webgal" | "setting" | "material";
 
-export const SPACE_DETAIL_TABS = new Set<SpaceDetailTab>(["members", "roles", "workflow", "trpg", "webgal", "setting"]);
+export const SPACE_DETAIL_TABS = new Set<SpaceDetailTab>(["members", "roles", "workflow", "trpg", "webgal", "setting", "material"]);
 
 export type RoomSettingState = { roomId: number; tab: RoomSettingTab } | null;
 
