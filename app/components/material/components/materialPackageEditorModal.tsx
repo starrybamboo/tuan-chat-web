@@ -1,11 +1,10 @@
 import type { ReactNode } from "react";
-import { XIcon } from "@phosphor-icons/react";
 
-type MaterialPackageEditorModalProps = {
+interface MaterialPackageEditorModalProps {
   isOpen: boolean;
   onClose: () => void;
   children: ReactNode;
-};
+}
 
 export default function MaterialPackageEditorModal({
   isOpen,
@@ -25,14 +24,6 @@ export default function MaterialPackageEditorModal({
         onClick={onClose}
       />
       <div className="relative z-[81] max-h-[92vh] w-full max-w-7xl overflow-hidden rounded-[30px] border border-base-300 bg-base-100 shadow-2xl">
-        <button
-          type="button"
-          className="absolute right-4 top-4 z-10 inline-flex size-10 items-center justify-center rounded-full border border-base-300 bg-base-200/80 text-base-content/72 transition hover:border-primary/30 hover:bg-base-200 hover:text-base-content"
-          onClick={onClose}
-          aria-label="关闭"
-        >
-          <XIcon className="size-5" />
-        </button>
         <div className="max-h-[92vh] overflow-y-auto">{children}</div>
       </div>
     </div>

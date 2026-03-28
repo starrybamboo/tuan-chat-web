@@ -20,6 +20,8 @@ import {
   createMaterialNode,
   getNodeAtPath,
   getNodeLabel,
+  isAncestorPath,
+  moveNodeInContent,
   parseNodePath,
   removeNodeFromContent,
   ROOT_NODE_KEY,
@@ -72,6 +74,8 @@ export default function MaterialPackageWorkbench({
   const [selectedNodeKey, setSelectedNodeKey] = useState(ROOT_NODE_KEY);
   const [expandedKeys, setExpandedKeys] = useState<string[]>([]);
   const [hasInitializedTree, setHasInitializedTree] = useState(false);
+  const [draggedNodeKey, setDraggedNodeKey] = useState("");
+  const [dropTargetKey, setDropTargetKey] = useState("");
 
   const rootNodes = useMemo(() => draft.content.root ?? [], [draft.content.root]);
   const selectedNodePath = useMemo(() => parseNodePath(selectedNodeKey), [selectedNodeKey]);
@@ -138,6 +142,31 @@ export default function MaterialPackageWorkbench({
     setSelectedNodeKey(nodeKey);
   };
 
+  const finishNodeMove = (sourceKey: string, targetKey: string, mode: "inside" | "after") => {
+    const sourcePath = parseNodePath(sourceKey);
+    const targetPath = parseNodePath(targetKey);
+    const moveResult = moveNodeInContent(draft.content, sourcePath, targetPath, mode);
+
+    if (!moveResult.movedPath) {
+      setDraggedNodeKey("");
+      setDropTargetKey("");
+      return;
+    }
+
+    onUpdateDraft(current => ({
+      ...current,
+      content: moveResult.content,
+    }));
+
+    const movedPathKey = serializeNodePath(moveResult.movedPath);
+    setSelectedNodeKey(movedPathKey);
+
+    const expandCandidates = moveResult.movedPath.slice(0, -1).map((_, index) => serializeNodePath(moveResult.movedPath!.slice(0, index + 1)));
+    setExpandedKeys(previous => Array.from(new Set([...previous, ...expandCandidates])));
+    setDraggedNodeKey("");
+    setDropTargetKey("");
+  };
+
   const appendNode = (parentPath: number[], node: MaterialNode) => {
     const nextKey = serializeNodePath([...parentPath, parentPath.length === 0
       ? rootNodes.length
@@ -183,6 +212,9 @@ export default function MaterialPackageWorkbench({
       const isFolder = node.type === MaterialNodeModel.type.FOLDER;
       const isExpanded = expandedKeys.includes(nodeKey);
       const isSelected = nodeKey === selectedNodeKey;
+      const isDropTarget = nodeKey === dropTargetKey;
+      const isInvalidDrop = Boolean(draggedNodeKey)
+        && (draggedNodeKey === nodeKey || isAncestorPath(parseNodePath(draggedNodeKey), path));
 
       return (
         <div key={nodeKey} className="space-y-1">
@@ -191,8 +223,27 @@ export default function MaterialPackageWorkbench({
               isSelected
                 ? "bg-primary/10 text-primary"
                 : "text-base-content/72 hover:bg-base-200 hover:text-base-content"
-            }`}
+            } ${isDropTarget ? "ring-2 ring-primary/20" : ""}`}
             style={{ paddingLeft: 8 + depth * 16 }}
+            onDragOver={(event) => {
+              if (!draggedNodeKey || isInvalidDrop) {
+                return;
+              }
+              event.preventDefault();
+              setDropTargetKey(nodeKey);
+            }}
+            onDragLeave={() => {
+              if (dropTargetKey === nodeKey) {
+                setDropTargetKey("");
+              }
+            }}
+            onDrop={(event) => {
+              if (!draggedNodeKey || isInvalidDrop) {
+                return;
+              }
+              event.preventDefault();
+              finishNodeMove(draggedNodeKey, nodeKey, isFolder ? "inside" : "after");
+            }}
           >
             <button
               type="button"
@@ -210,6 +261,16 @@ export default function MaterialPackageWorkbench({
               type="button"
               className="flex min-w-0 flex-1 items-center gap-2 text-left"
               onClick={() => selectNode(nodeKey)}
+              draggable
+              onDragStart={(event) => {
+                event.dataTransfer.effectAllowed = "move";
+                event.dataTransfer.setData("text/plain", nodeKey);
+                setDraggedNodeKey(nodeKey);
+              }}
+              onDragEnd={() => {
+                setDraggedNodeKey("");
+                setDropTargetKey("");
+              }}
             >
               {isFolder
                 ? <FolderSimpleIcon className="size-4 shrink-0" weight={isSelected ? "fill" : "regular"} />
@@ -312,6 +373,54 @@ export default function MaterialPackageWorkbench({
 
             <div className="space-y-1">
               {renderTree(rootNodes)}
+            </div>
+
+            <div
+              className={`mt-3 rounded-md border border-dashed px-3 py-2 text-xs transition ${
+                dropTargetKey === ROOT_NODE_KEY
+                  ? "border-primary/40 bg-primary/10 text-primary"
+                  : "border-base-300 text-base-content/45"
+              }`}
+              onDragOver={(event) => {
+                if (!draggedNodeKey) {
+                  return;
+                }
+                event.preventDefault();
+                setDropTargetKey(ROOT_NODE_KEY);
+              }}
+              onDragLeave={() => {
+                if (dropTargetKey === ROOT_NODE_KEY) {
+                  setDropTargetKey("");
+                }
+              }}
+              onDrop={(event) => {
+                if (!draggedNodeKey) {
+                  return;
+                }
+                event.preventDefault();
+                const sourcePath = parseNodePath(draggedNodeKey);
+                if (sourcePath.length === 0) {
+                  return;
+                }
+                const nextContent = removeNodeFromContent(draft.content, sourcePath);
+                const sourceNode = getNodeAtPath(rootNodes, sourcePath);
+                if (!sourceNode) {
+                  setDraggedNodeKey("");
+                  setDropTargetKey("");
+                  return;
+                }
+                const movedContent = appendNodeToContent(nextContent, [], sourceNode);
+                const movedPath = [movedContent.root?.length ? movedContent.root.length - 1 : 0];
+                onUpdateDraft(current => ({
+                  ...current,
+                  content: movedContent,
+                }));
+                setSelectedNodeKey(serializeNodePath(movedPath));
+                setDraggedNodeKey("");
+                setDropTargetKey("");
+              }}
+            >
+              拖拽到这里可移动到根目录
             </div>
           </div>
         </aside>
