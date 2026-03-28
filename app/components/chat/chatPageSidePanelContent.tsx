@@ -27,13 +27,11 @@ interface ChatPageSidePanelContentProps {
   docMetas?: MinimalDocMeta[];
   materialPackages?: SpaceMaterialPackageResponse[];
   onSelectDoc: (docId: string) => void;
-  onSelectMaterialPackage: (spacePackageId: number) => void;
   onDeleteDoc?: (docId: string) => void;
   onSaveSidebarTree?: (tree: SidebarTree) => void;
   onResetSidebarTreeToDefault?: () => void;
   activeRoomId: number | null;
   activeDocId?: string | null;
-  activeMaterialPackageId?: number | null;
   unreadMessagesNumber: Record<number, number>;
   onContextMenu: (e: React.MouseEvent) => void;
   onInviteMember: () => void;
@@ -63,13 +61,11 @@ export default function ChatPageSidePanelContent({
   docMetas,
   materialPackages,
   onSelectDoc,
-  onSelectMaterialPackage,
   onDeleteDoc,
   onSaveSidebarTree,
   onResetSidebarTreeToDefault,
   activeRoomId,
   activeDocId,
-  activeMaterialPackageId,
   unreadMessagesNumber,
   onContextMenu,
   onInviteMember,
@@ -98,11 +94,9 @@ export default function ChatPageSidePanelContent({
       docMetas={docMetas}
       materialPackages={materialPackages}
       onSelectDoc={onSelectDoc}
-      onSelectMaterialPackage={onSelectMaterialPackage}
       onDeleteDoc={onDeleteDoc}
       activeRoomId={activeRoomId}
       activeDocId={activeDocId}
-      activeMaterialPackageId={activeMaterialPackageId}
       unreadMessagesNumber={unreadMessagesNumber}
       onContextMenu={onContextMenu}
       onInviteMember={onInviteMember}

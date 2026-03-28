@@ -31,11 +31,9 @@ interface RoomSidebarCategoryItemsProps {
   activeSpaceId: number | null;
   activeRoomId: number | null;
   activeDocId?: string | null;
-  activeMaterialPackageId: number | null;
   unreadMessagesNumber: Record<number, number>;
   onSelectRoom: (roomId: number) => void;
   onSelectDoc?: (docId: string) => void;
-  onSelectMaterialPackage: (spacePackageId: number) => void;
   onCloseLeftDrawer: () => void;
 }
 
@@ -60,11 +58,9 @@ export default function RoomSidebarCategoryItems({
   activeSpaceId,
   activeRoomId,
   activeDocId,
-  activeMaterialPackageId,
   unreadMessagesNumber,
   onSelectRoom,
   onSelectDoc,
-  onSelectMaterialPackage,
   onCloseLeftDrawer,
 }: RoomSidebarCategoryItemsProps) {
   return (
@@ -148,13 +144,10 @@ export default function RoomSidebarCategoryItems({
                   setDragging={setDragging}
                   setDropTarget={setDropTarget}
                   handleDrop={handleDrop}
-                  activeMaterialPackageId={activeMaterialPackageId}
                   materialPackageId={materialPackageId}
                   materialPackage={materialPackageMap.get(materialPackageId)}
                   fallbackTitle={node.fallbackTitle}
                   fallbackImageUrl={node.fallbackImageUrl}
-                  onSelectMaterialPackage={onSelectMaterialPackage}
-                  onCloseLeftDrawer={onCloseLeftDrawer}
                 />
               </div>
             );
