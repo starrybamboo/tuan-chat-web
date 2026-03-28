@@ -21,6 +21,7 @@ import { createEmptyMaterialPackageContent } from "../components/materialPackage
 export type GlobalTab = "public" | "mine";
 
 interface MaterialLibraryPageProps {
+  initialTab?: GlobalTab;
   mode?: GlobalTab;
   embedded?: boolean;
 }
@@ -36,11 +37,12 @@ function buildDraft(pkg?: MaterialPackageResponse) {
 }
 
 export default function MaterialLibraryPage({
+  initialTab,
   mode,
   embedded = false,
 }: MaterialLibraryPageProps) {
   const navigate = useNavigate();
-  const [internalActiveTab, setInternalActiveTab] = useState<GlobalTab>(mode ?? "mine");
+  const [internalActiveTab, setInternalActiveTab] = useState<GlobalTab>(mode ?? initialTab ?? "mine");
   const [keyword, setKeyword] = useState("");
   const [selectedPackageId, setSelectedPackageId] = useState<number | null>(null);
   const [isCreating, setIsCreating] = useState(false);
@@ -106,6 +108,15 @@ export default function MaterialLibraryPage({
       setKeyword("");
     }
   }, [mode]);
+
+  useEffect(() => {
+    if (!mode && initialTab) {
+      setInternalActiveTab(initialTab);
+      setSelectedPackageId(null);
+      setIsCreating(false);
+      setKeyword("");
+    }
+  }, [initialTab, mode]);
 
   useEffect(() => {
     if (selectedPackageId !== null && !packages.some(item => item.packageId === selectedPackageId)) {
