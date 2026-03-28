@@ -40,8 +40,11 @@ interface MaterialPackageEditorProps {
   deleteLabel?: string;
   savePending?: boolean;
   deletePending?: boolean;
+  extraActionLabel?: string;
+  extraActionPending?: boolean;
   onSave?: (draft: MaterialPackageDraft) => Promise<void> | void;
   onDelete?: () => Promise<void> | void;
+  onExtraAction?: () => Promise<void> | void;
 }
 
 interface MaterialSection {
@@ -360,8 +363,11 @@ export default function MaterialPackageEditor({
   deleteLabel = "删除",
   savePending = false,
   deletePending = false,
+  extraActionLabel,
+  extraActionPending = false,
   onSave,
   onDelete,
+  onExtraAction,
 }: MaterialPackageEditorProps) {
   const uploadUtilsRef = useRef(new UploadUtils());
   const normalizedInitialDraft = normalizeDraft(initialDraft, readOnly);
@@ -987,6 +993,19 @@ export default function MaterialPackageEditor({
             )}
           </div>
         </div>
+
+        {readOnly && onExtraAction && extraActionLabel && (
+          <div className="flex flex-wrap items-center justify-end gap-3">
+            <button
+              type="button"
+              className="inline-flex items-center justify-center rounded-md bg-primary px-5 py-2.5 text-sm font-semibold text-primary-content shadow-[0_18px_38px_rgba(59,130,246,0.22)] transition hover:-translate-y-0.5 hover:shadow-[0_24px_48px_rgba(59,130,246,0.28)]"
+              onClick={() => void onExtraAction()}
+              disabled={extraActionPending}
+            >
+              {extraActionPending ? "处理中..." : extraActionLabel}
+            </button>
+          </div>
+        )}
 
         {!readOnly && (
           <div className="flex flex-wrap items-center justify-end gap-3">
