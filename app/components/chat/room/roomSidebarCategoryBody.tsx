@@ -1,5 +1,6 @@
 import type { MouseEvent } from "react";
 import type { Room } from "../../../../api";
+import type { SpaceMaterialPackageResponse } from "../../../../api/models/SpaceMaterialPackageResponse";
 import type { MinimalDocMeta, SidebarLeafNode } from "./sidebarTree";
 import type { SidebarTreeContextMenuState } from "./sidebarTreeOverlays";
 import type { DraggingItem, DropTarget } from "./useRoomSidebarDragState";
@@ -24,12 +25,15 @@ interface RoomSidebarCategoryBodyProps {
   docHeaderOverrides: Record<string, { title?: string; imageUrl?: string }>;
   docMetaMap: Map<string, MinimalDocMeta>;
   roomById: Map<number, Room>;
+  materialPackageMap: Map<number, SpaceMaterialPackageResponse>;
   activeSpaceId: number | null;
   activeRoomId: number | null;
   activeDocId?: string | null;
+  activeMaterialPackageId: number | null;
   unreadMessagesNumber: Record<number, number>;
   onSelectRoom: (roomId: number) => void;
   onSelectDoc?: (docId: string) => void;
+  onSelectMaterialPackage: (spacePackageId: number) => void;
   onCloseLeftDrawer: () => void;
   isAddPanelOpen: boolean;
   pendingAddRoomId: number | null;
@@ -61,12 +65,15 @@ export default function RoomSidebarCategoryBody({
   docHeaderOverrides,
   docMetaMap,
   roomById,
+  materialPackageMap,
   activeSpaceId,
   activeRoomId,
   activeDocId,
+  activeMaterialPackageId,
   unreadMessagesNumber,
   onSelectRoom,
   onSelectDoc,
+  onSelectMaterialPackage,
   onCloseLeftDrawer,
   isAddPanelOpen,
   pendingAddRoomId,
@@ -119,12 +126,15 @@ export default function RoomSidebarCategoryBody({
         docHeaderOverrides={docHeaderOverrides}
         docMetaMap={docMetaMap}
         roomById={roomById}
+        materialPackageMap={materialPackageMap}
         activeSpaceId={activeSpaceId}
         activeRoomId={activeRoomId}
         activeDocId={activeDocId}
+        activeMaterialPackageId={activeMaterialPackageId}
         unreadMessagesNumber={unreadMessagesNumber}
         onSelectRoom={onSelectRoom}
         onSelectDoc={onSelectDoc}
+        onSelectMaterialPackage={onSelectMaterialPackage}
         onCloseLeftDrawer={onCloseLeftDrawer}
       />
 

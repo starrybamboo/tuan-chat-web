@@ -3,7 +3,7 @@ import { useCallback, useRef, useState } from "react";
 export type DraggingItem = {
   kind: "node";
   nodeId: string;
-  type: "room" | "doc";
+  type: "room" | "doc" | "material-package";
   fromCategoryId: string;
   fromIndex: number;
 } | {
