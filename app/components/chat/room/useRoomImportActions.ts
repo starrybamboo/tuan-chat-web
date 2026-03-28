@@ -4,7 +4,6 @@ import { toast } from "react-hot-toast";
 import type { RoomContextType } from "@/components/chat/core/roomContext";
 import type { RoomUiStoreApi } from "@/components/chat/stores/roomUiStore";
 import type { DocRefDragPayload } from "@/components/chat/utils/docRef";
-import type { MaterialItemDragPayload } from "@/components/chat/utils/materialItemRef";
 import type { RoomRefDragPayload } from "@/components/chat/utils/roomRef";
 import type { FigurePosition } from "@/types/voiceRenderTypes";
 
@@ -46,55 +45,7 @@ type UseRoomImportActionsResult = {
   handleImportChatText: (messages: ImportMessageItem[], onProgress?: (sent: number, total: number) => void) => Promise<void>;
   handleSendDocCard: (payload: DocRefDragPayload) => Promise<void>;
   handleSendRoomJump: (payload: RoomRefDragPayload) => Promise<void>;
-  handleSendMaterialItem: (payload: MaterialItemDragPayload) => Promise<void>;
 };
-
-function pickObject(value: unknown): Record<string, any> {
-  return value && typeof value === "object" ? value as Record<string, any> : {};
-}
-
-function normalizeMaterialMessageType(messageType: number | undefined): number {
-  if (messageType === MessageType.SYSTEM || messageType === MESSAGE_TYPE.INTRO_TEXT) {
-    return MessageType.TEXT;
-  }
-  return messageType ?? MessageType.TEXT;
-}
-
-function normalizeMaterialMessageExtra(messageType: number, rawExtra: unknown): Record<string, any> {
-  const extra = pickObject(rawExtra);
-  switch (messageType) {
-    case MessageType.IMG:
-      return pickObject(extra.imageMessage ?? extra);
-    case MessageType.FILE:
-      return pickObject(extra.fileMessage ?? extra);
-    case MessageType.VIDEO:
-      return pickObject(extra.videoMessage ?? extra.fileMessage ?? extra);
-    case MessageType.SOUND:
-      return pickObject(extra.soundMessage ?? extra);
-    case MessageType.EFFECT:
-      return {};
-    case MessageType.DICE:
-      return pickObject(extra.diceResult ?? extra);
-    case MessageType.FORWARD:
-      return pickObject(extra.forwardMessage ?? extra);
-    case MessageType.CLUE_CARD:
-      return pickObject(extra.clueMessage ?? extra);
-    case MessageType.WEBGAL_CHOOSE:
-      return extra.webgalChoose !== undefined ? { webgalChoose: extra.webgalChoose } : extra;
-    case MessageType.COMMAND_REQUEST:
-      return extra.commandRequest !== undefined ? { commandRequest: extra.commandRequest } : extra;
-    case MESSAGE_TYPE.DOC_CARD:
-      return extra.docCard !== undefined ? { docCard: extra.docCard } : extra;
-    case MessageType.ROOM_JUMP:
-      return extra.roomJump !== undefined ? { roomJump: extra.roomJump } : extra;
-    case MESSAGE_TYPE.THREAD_ROOT: {
-      const title = typeof extra.title === "string" ? extra.title.trim() : "";
-      return title ? { title } : {};
-    }
-    default:
-      return extra;
-  }
-}
 
 export default function useRoomImportActions({
   roomId,
@@ -413,95 +364,9 @@ export default function useRoomImportActions({
     spaceId,
   ]);
 
-  const handleSendMaterialItem = useCallback(async (payload: MaterialItemDragPayload) => {
-    const materialMessages = Array.isArray(payload?.messages) ? payload.messages : [];
-    if (materialMessages.length === 0) {
-      toast.error("未检测到可发送的素材项");
-      return;
-    }
-
-    const isKP = isSpaceOwner;
-    const isNarrator = curRoleId <= 0;
-    if (isNarrator && !isKP && !notMember) {
-      toast.error("旁白仅主持可用，请先选择/拉入你的角色");
-      return;
-    }
-    if (isSubmitting) {
-      toast.error("正在提交中，请稍后");
-      return;
-    }
-
-    const allowedRoleIds = new Set(roomContext.roomRolesThatUserOwn.map(role => role.roleId));
-    const { threadRootMessageId, composerTarget } = roomUiStoreApi.getState();
-
-    setIsSubmitting(true);
-    try {
-      for (const materialMessage of materialMessages) {
-        const requestedRoleId = typeof materialMessage.roleId === "number" ? materialMessage.roleId : undefined;
-        let resolvedRoleId = notMember ? -1 : curRoleId;
-
-        if (!notMember) {
-          if (requestedRoleId && allowedRoleIds.has(requestedRoleId)) {
-            resolvedRoleId = requestedRoleId;
-          }
-          else if ((requestedRoleId ?? curRoleId) <= 0 && isSpaceOwner) {
-            resolvedRoleId = -1;
-          }
-        }
-
-        const resolvedAvatarId = resolvedRoleId > 0
-          ? await ensureRuntimeAvatarIdForRole(resolvedRoleId)
-          : -1;
-        const messageType = normalizeMaterialMessageType(materialMessage.messageType);
-
-        const request: ChatMessageRequest = {
-          roomId,
-          roleId: resolvedRoleId,
-          avatarId: resolvedAvatarId,
-          content: notMember
-            ? (buildOutOfCharacterSpeechContent(materialMessage.content ?? "") ?? "")
-            : (materialMessage.content ?? ""),
-          messageType,
-          extra: normalizeMaterialMessageExtra(messageType, materialMessage.extra),
-          ...(Array.isArray(materialMessage.annotations) ? { annotations: materialMessage.annotations } : {}),
-          ...(typeof materialMessage.customRoleName === "string" && materialMessage.customRoleName.trim()
-            ? { customRoleName: materialMessage.customRoleName.trim() }
-            : {}),
-          ...(materialMessage.webgal && typeof materialMessage.webgal === "object"
-            ? { webgal: materialMessage.webgal as Record<string, any> }
-            : {}),
-        };
-
-        if (composerTarget === "thread" && threadRootMessageId) {
-          request.threadId = threadRootMessageId;
-        }
-
-        await sendMessageWithInsert(request);
-      }
-
-      const itemName = typeof payload?.itemName === "string" ? payload.itemName.trim() : "";
-      toast.success(itemName ? `已发送素材项：${itemName}` : "已发送素材项");
-    }
-    finally {
-      setIsSubmitting(false);
-    }
-  }, [
-    curRoleId,
-    ensureRuntimeAvatarIdForRole,
-    isSpaceOwner,
-    isSubmitting,
-    notMember,
-    roomContext.roomRolesThatUserOwn,
-    roomId,
-    roomUiStoreApi,
-    sendMessageWithInsert,
-    setIsSubmitting,
-  ]);
-
   return {
     handleImportChatText,
     handleSendDocCard,
     handleSendRoomJump,
-    handleSendMaterialItem,
   };
 }
