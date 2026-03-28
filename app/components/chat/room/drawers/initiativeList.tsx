@@ -118,6 +118,48 @@ function makeUniqueKey(base: string, params: InitiativeParam[]): string {
   return key;
 }
 
+function applyPokemonStageModifier(baseValue: number, stageModifier: number): number {
+  if (!Number.isFinite(baseValue))
+    return 0;
+
+  if (!Number.isFinite(stageModifier) || stageModifier === 0)
+    return baseValue;
+
+  if (stageModifier > 0)
+    return baseValue * (2 + stageModifier) / 2;
+
+  return baseValue * 2 / (2 - stageModifier);
+}
+
+function getPokemonStageFactor(stageModifier: number): number {
+  if (!Number.isFinite(stageModifier) || stageModifier === 0)
+    return 1;
+
+  if (stageModifier > 0)
+    return (2 + stageModifier) / 2;
+
+  return 2 / (2 - stageModifier);
+}
+
+function formatPokemonBattleNumber(value: number): string {
+  if (!Number.isFinite(value))
+    return "0";
+  if (Number.isInteger(value))
+    return String(value);
+  return String(Math.round(value * 1000) / 1000);
+}
+
+function formatPokemonModifiedStat(label: string, baseValue: number, stageModifier: number, finalValue: number): string {
+  const finalText = formatPokemonBattleNumber(finalValue);
+  if (!Number.isFinite(stageModifier) || stageModifier === 0)
+    return `${label}${finalText}`;
+
+  const factor = getPokemonStageFactor(stageModifier);
+  const baseText = formatPokemonBattleNumber(baseValue);
+  const factorText = formatPokemonBattleNumber(factor);
+  return `${label}${finalText}（${baseText}*${factorText}）`;
+}
+
 /**
  * 先攻列表
  */
@@ -346,8 +388,11 @@ export default function InitiativeList() {
       const speedKeys = ["速度", "speed", "spd"];
       const speed = search(source, speedKeys);
       if (speed != null) {
+        const speedStageKeys = ["速度修正", "speedstage", "spdstage"];
+        const speedStage = search(source, speedStageKeys) ?? 0;
+        const finalSpeed = applyPokemonStageModifier(speed, speedStage);
         const diceResult = Math.floor(Math.random() * 20) + 1;
-        return diceResult + Math.floor(speed / 10);
+        return diceResult + Math.floor(finalSpeed / 10);
       }
     }
 
@@ -356,7 +401,7 @@ export default function InitiativeList() {
 
   const extractPokemonInitiativeRoll = (
     query: ReturnType<typeof useGetRolesAbilitiesQueries>[number] | undefined,
-  ): { total: number; diceResult: number; speedModifier: number } | null => {
+  ): { total: number; diceResult: number; speedRollBonus: number; speedDisplay: string } | null => {
     const res = query?.data;
     if (!res?.success || !Array.isArray(res.data) || spaceContext.ruleId !== 7)
       return null;
@@ -419,26 +464,33 @@ export default function InitiativeList() {
     if (speed == null)
       return null;
 
+    const speedStageKeys = ["速度修正", "speedstage", "spdstage"];
+    const speedStage = search(source, speedStageKeys) ?? 0;
+    const finalSpeed = applyPokemonStageModifier(speed, speedStage);
+    const speedDisplay = formatPokemonModifiedStat("速度", speed, speedStage, finalSpeed);
+
     const diceResult = Math.floor(Math.random() * 20) + 1;
-    const speedModifier = Math.floor(speed / 10);
+    const speedRollBonus = Math.floor(finalSpeed / 10);
     return {
-      total: diceResult + speedModifier,
+      total: diceResult + speedRollBonus,
       diceResult,
-      speedModifier,
+      speedRollBonus,
+      speedDisplay,
     };
   };
 
   const sendPokemonInitiativeDiceMessage = async (
     roleName: string,
     diceResult: number,
-    speedModifier: number,
+    speedRollBonus: number,
+    speedDisplay: string,
     total: number,
   ) => {
     try {
       const dicerRoleId = await UTILS.getDicerRoleId(roomContext);
       const result = `${roleName}的先攻掷骰：\n`
-        + `1d20 = ${diceResult}，速度/${10} = ${speedModifier}\n`
-        + `先攻：${diceResult} + ${speedModifier} = ${total}`;
+        + `1d20 = ${diceResult}，${speedDisplay}/${10} = ${speedRollBonus}\n`
+        + `先攻：${diceResult} + ${speedRollBonus} = ${total}`;
       sendMessageMutation.mutate({
         roomId,
         roleId: dicerRoleId,
@@ -696,7 +748,8 @@ export default function InitiativeList() {
       void sendPokemonInitiativeDiceMessage(
         name,
         pokemonRoll.diceResult,
-        pokemonRoll.speedModifier,
+        pokemonRoll.speedRollBonus,
+        pokemonRoll.speedDisplay,
         pokemonRoll.total,
       );
     }

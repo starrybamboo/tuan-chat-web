@@ -61,16 +61,19 @@ const cmdRi = new CommandExecutor(
       return false;
     }
     const speedValue = Number(speedValueStr);
+    const speedStage = Number(UNTIL.getRoleAbilityValue(curAbility, "速度修正") || 0);
+    const finalSpeed = applyBattleStageModifier(speedValue, speedStage);
+    const speedDisplay = formatModifiedStat("速度", speedValue, speedStage, finalSpeed);
 
     // 4. 计算1d20+速度/10（速度/10向下取整）
     const diceResult = Math.floor(Math.random() * 20) + 1; // 1d20随机数（1-20）
-    const speedModifier = Math.floor(speedValue / 10); // 速度/10取整
-    const total = diceResult + speedModifier;
+    const speedRollBonus = Math.floor(finalSpeed / 10); // 速度/10取整
+    const total = diceResult + speedRollBonus;
 
     // 5. 构建结果消息
     const result = `${targetRole.roleName}的先攻掷骰：\n`
-      + `1d20 = ${diceResult}，速度/${10} = ${speedModifier}\n`
-      + `先攻：${diceResult} + ${speedModifier} = ${total}`;
+      + `1d20 = ${diceResult}，${speedDisplay}/${10} = ${speedRollBonus}\n`
+      + `先攻：${diceResult} + ${speedRollBonus} = ${total}`;
 
     cpi.replyMessage(result);
     return true;
@@ -133,8 +136,12 @@ async function executeBattle(
   const attackerAbility = cpi.getRoleAbilityList(attacker.roleId);
 
   // 攻击者属性
-  const attackerAtk = Number(UNTIL.getRoleAbilityValue(attackerAbility, "攻击") || 0);
-  const attackerSpAtk = Number(UNTIL.getRoleAbilityValue(attackerAbility, "特攻") || 0);
+  const attackerAtkBase = Number(UNTIL.getRoleAbilityValue(attackerAbility, "攻击") || 0);
+  const attackerSpAtkBase = Number(UNTIL.getRoleAbilityValue(attackerAbility, "特攻") || 0);
+  const attackerAtkStage = Number(UNTIL.getRoleAbilityValue(attackerAbility, "攻击修正") || 0);
+  const attackerSpAtkStage = Number(UNTIL.getRoleAbilityValue(attackerAbility, "特攻修正") || 0);
+  const attackerAtk = applyBattleStageModifier(attackerAtkBase, attackerAtkStage);
+  const attackerSpAtk = applyBattleStageModifier(attackerSpAtkBase, attackerSpAtkStage);
   const attackerType1 = UNTIL.getRoleAbilityValue(attackerAbility, "属性1") || "";
   const attackerType2 = UNTIL.getRoleAbilityValue(attackerAbility, "属性2") || "";
 
@@ -167,13 +174,26 @@ async function executeBattle(
     const defenderAbility = cpi.getRoleAbilityList(defender.roleId);
 
     // 防守者属性
-    const defenderDef = Number(UNTIL.getRoleAbilityValue(defenderAbility, "防御") || 0);
-    const defenderSpDef = Number(UNTIL.getRoleAbilityValue(defenderAbility, "特防") || 0);
+    const defenderDefBase = Number(UNTIL.getRoleAbilityValue(defenderAbility, "防御") || 0);
+    const defenderSpDefBase = Number(UNTIL.getRoleAbilityValue(defenderAbility, "特防") || 0);
+    const defenderDefStage = Number(UNTIL.getRoleAbilityValue(defenderAbility, "防御修正") || 0);
+    const defenderSpDefStage = Number(UNTIL.getRoleAbilityValue(defenderAbility, "特防修正") || 0);
+    const defenderDef = applyBattleStageModifier(defenderDefBase, defenderDefStage);
+    const defenderSpDef = applyBattleStageModifier(defenderSpDefBase, defenderSpDefStage);
     const defenderType1 = UNTIL.getRoleAbilityValue(defenderAbility, "属性1") || "";
     const defenderType2 = UNTIL.getRoleAbilityValue(defenderAbility, "属性2") || "";
 
     const defenseValueRaw = skill.category === "physical" ? defenderDef : defenderSpDef;
     const defenseValue = Math.max(1, defenseValueRaw);
+    const attackLabel = skill.category === "physical" ? "攻击" : "特攻";
+    const defenseLabel = skill.category === "physical" ? "防御" : "特防";
+
+    const attackDisplay = skill.category === "physical"
+      ? formatModifiedStat(attackLabel, attackerAtkBase, attackerAtkStage, attackValue)
+      : formatModifiedStat(attackLabel, attackerSpAtkBase, attackerSpAtkStage, attackValue);
+    const defenseDisplay = skill.category === "physical"
+      ? formatModifiedStat(defenseLabel, defenderDefBase, defenderDefStage, defenseValue)
+      : formatModifiedStat(defenseLabel, defenderSpDefBase, defenderSpDefStage, defenseValue);
 
     // 3.3 属性克制修正（从克制表中查询）
     const defenderTypes = [defenderType1, defenderType2].filter(Boolean); // 过滤空字符串
@@ -194,7 +214,7 @@ async function executeBattle(
     const blockLines: string[] = [
       `${attacker.roleName}对${defender.roleName}使用了${skill.name}！`,
       "伤害计算：",
-      `(攻击${attackValue} × 威力${skill.power}) ÷ 防御${defenseValue} × 本系修正${sameTypeBonus} × 属性克制${typeEffectiveness} × 额外倍率${extraMultiplier}`,
+      `(${attackDisplay} × 威力${skill.power}) ÷ ${defenseDisplay} × 本系修正${sameTypeBonus} × 属性克制${typeEffectiveness} × 额外倍率${extraMultiplier}`,
       `造成${finalDamage}点伤害！`,
       `${defender.roleName}剩余生命值：${defenderHp} → ${newHp}`,
     ];
@@ -235,6 +255,51 @@ function getSkillByName(skillName: string): PokemonSkill | undefined {
   return SKILLS.find(skill =>
     skill.name.toLowerCase().includes(lowerSkillName),
   );
+}
+
+// 属性修正公式：
+// 修正 > 0: 属性 * (2 + 修正) / 2
+// 修正 < 0: 属性 * 2 / (2 - 修正)
+function applyBattleStageModifier(baseValue: number, stageModifier: number): number {
+  if (!Number.isFinite(baseValue))
+    return 0;
+
+  if (!Number.isFinite(stageModifier) || stageModifier === 0)
+    return baseValue;
+
+  if (stageModifier > 0)
+    return baseValue * (2 + stageModifier) / 2;
+
+  return baseValue * 2 / (2 - stageModifier);
+}
+
+function getBattleStageFactor(stageModifier: number): number {
+  if (!Number.isFinite(stageModifier) || stageModifier === 0)
+    return 1;
+
+  if (stageModifier > 0)
+    return (2 + stageModifier) / 2;
+
+  return 2 / (2 - stageModifier);
+}
+
+function formatBattleNumber(value: number): string {
+  if (!Number.isFinite(value))
+    return "0";
+  if (Number.isInteger(value))
+    return String(value);
+  return String(Math.round(value * 1000) / 1000);
+}
+
+function formatModifiedStat(label: string, baseValue: number, stageModifier: number, finalValue: number): string {
+  const finalText = formatBattleNumber(finalValue);
+  if (!Number.isFinite(stageModifier) || stageModifier === 0)
+    return `${label}${finalText}`;
+
+  const factor = getBattleStageFactor(stageModifier);
+  const baseText = formatBattleNumber(baseValue);
+  const factorText = formatBattleNumber(factor);
+  return `${label}${finalText}（${baseText}*${factorText}）`;
 }
 
 // 1. 定义属性克制表的类型（包含索引签名）
