@@ -14,15 +14,16 @@ import {
 } from "../../../../api/hooks/materialPackageQueryHooks";
 import MaterialLibrarySidebar from "../components/materialLibrarySidebar";
 import MaterialLibraryWorkspace from "../components/materialLibraryWorkspace";
-import MaterialPackageEditor, { createEmptyMaterialPackageContent } from "../components/materialPackageEditor";
+import MaterialPackageEditor from "../components/materialPackageEditor";
 import MaterialPackageEditorModal from "../components/materialPackageEditorModal";
+import { createEmptyMaterialPackageContent } from "../components/materialPackageEditorShared";
 
 export type GlobalTab = "public" | "mine";
 
-type MaterialLibraryPageProps = {
+interface MaterialLibraryPageProps {
   mode?: GlobalTab;
   embedded?: boolean;
-};
+}
 
 function buildDraft(pkg?: MaterialPackageResponse) {
   return {
@@ -71,9 +72,11 @@ export default function MaterialLibraryPage({
   const updateMutation = useUpdateMaterialPackageMutation();
   const deleteMutation = useDeleteMaterialPackageMutation();
 
-  const packages = activeTab === "mine"
-    ? (myPackagesQuery.data?.data?.list ?? [])
-    : (publicPackagesQuery.data?.data?.list ?? []);
+  const packages = useMemo(() => (
+    activeTab === "mine"
+      ? (myPackagesQuery.data?.data?.list ?? [])
+      : (publicPackagesQuery.data?.data?.list ?? [])
+  ), [activeTab, myPackagesQuery.data?.data?.list, publicPackagesQuery.data?.data?.list]);
   const selectedPackage = packages.find(item => item.packageId === selectedPackageId);
   const loading = activeTab === "mine" ? myPackagesQuery.isLoading : publicPackagesQuery.isLoading;
   const editorOpen = isCreating || Boolean(selectedPackage);
@@ -228,8 +231,8 @@ export default function MaterialLibraryPage({
         ? (
             <MaterialPackageEditor
               valueKey="create"
-              title="新建局外素材包"
-              subtitle="包外是素材包，包内结构仍然保持 folder / material 的树形 JSON。"
+              title="新建素材包"
+              subtitle="创建你的素材容器，配置封面、描述和素材单元。每个素材单元里都可以继续添加多条素材。"
               initialDraft={buildDraft()}
               showPublicToggle={true}
               saveLabel="创建素材包"
@@ -241,7 +244,7 @@ export default function MaterialLibraryPage({
           ? (
               <MaterialPackageEditor
                 valueKey={`${activeTab}-${selectedPackage.packageId ?? "unknown"}-${selectedPackage.updateTime ?? ""}`}
-                title={activeTab === "public" ? "公开素材包详情" : "编辑局外素材包"}
+                title={activeTab === "public" ? "公开素材包详况" : "修改素材包"}
                 subtitle={activeTab === "public"
                   ? `作者：${selectedPackage.username ?? "未知"} · 已被导入 ${selectedPackage.importCount ?? 0} 次`
                   : `已被导入 ${selectedPackage.importCount ?? 0} 次`}
