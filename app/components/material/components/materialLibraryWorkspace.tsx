@@ -56,7 +56,7 @@ function MaterialCard({
       className="group text-left"
       onClick={onClick}
     >
-      <div className="overflow-hidden rounded-[26px] border border-white/6 bg-[#131a25] shadow-[0_18px_40px_rgba(2,6,23,0.28)] transition duration-300 hover:-translate-y-1 hover:border-white/12 hover:shadow-[0_24px_60px_rgba(2,6,23,0.36)]">
+      <div className="overflow-hidden rounded-[26px] border border-base-300 bg-base-100/86 shadow-lg transition duration-300 hover:-translate-y-1 hover:border-primary/30 hover:shadow-xl">
         <div className="relative aspect-[1.25/1] overflow-hidden">
           {item.coverUrl
             ? (
@@ -69,26 +69,26 @@ function MaterialCard({
               )
             : (
                 <div className={`flex h-full w-full items-center justify-center bg-linear-to-br ${placeholderPalette}`}>
-                  <div className="rounded-[22px] border border-white/12 bg-black/12 p-6 text-white/68 backdrop-blur-sm">
+                  <div className="rounded-[22px] border border-white/12 bg-black/12 p-6 text-white/72 backdrop-blur-sm">
                     <PackageIcon className="size-10" weight="fill" />
                   </div>
                 </div>
               )}
 
-          <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-linear-to-t from-[#0b1017] via-[#0b1017]/55 to-transparent" />
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-linear-to-t from-base-content/45 via-base-content/12 to-transparent" />
 
-          <div className="absolute left-4 top-4 inline-flex items-center rounded-full border border-white/10 bg-black/22 px-3 py-1 text-[11px] font-medium text-white/78 backdrop-blur-sm">
+          <div className="absolute left-4 top-4 inline-flex items-center rounded-full border border-base-300 bg-base-100/85 px-3 py-1 text-[11px] font-medium text-base-content/82 backdrop-blur-sm">
             {activeTab === "mine" ? "我的素材" : "公开素材"}
           </div>
         </div>
 
         <div className="space-y-3 px-3 pb-4 pt-4">
           <div>
-            <div className="line-clamp-1 text-lg font-semibold text-white/92">{name}</div>
-            <div className="mt-1 line-clamp-1 text-sm text-white/36">{subtitle}</div>
+            <div className="line-clamp-1 text-lg font-semibold text-base-content">{name}</div>
+            <div className="mt-1 line-clamp-1 text-sm text-base-content/55">{subtitle}</div>
           </div>
 
-          <div className="flex flex-wrap gap-2 text-xs text-white/42">
+          <div className="flex flex-wrap gap-2 text-xs text-base-content/55">
             <span>{`${item.materialCount ?? 0} 个素材`}</span>
             <span>{`${item.folderCount ?? 0} 个文件夹`}</span>
             <span>{`${item.messageCount ?? 0} 条消息`}</span>
@@ -117,15 +117,15 @@ function ShortcutCard({
       onClick={onClick}
     >
       <div className="flex h-full flex-col">
-        <div className="flex aspect-[1.25/1] items-center justify-center rounded-[26px] border border-dashed border-primary/26 bg-transparent text-primary/70 transition duration-300 hover:-translate-y-1 hover:border-primary/40 hover:bg-primary/[0.05] hover:text-primary">
+        <div className="flex aspect-[1.25/1] items-center justify-center rounded-[26px] border border-dashed border-primary/30 bg-base-100/30 text-primary/75 transition duration-300 hover:-translate-y-1 hover:border-primary/45 hover:bg-primary/[0.06] hover:text-primary">
           <div className="rounded-[22px] border border-primary/12 bg-primary/[0.08] p-6">
             <PlusIcon className="size-10" weight="bold" />
           </div>
         </div>
         <div className="space-y-2 px-1 pt-4">
-          <div className="text-lg font-semibold text-white/92">{title}</div>
-          <div className="text-sm text-white/42">{description}</div>
-          <div className="text-xs text-white/26">{caption}</div>
+          <div className="text-lg font-semibold text-base-content">{title}</div>
+          <div className="text-sm text-base-content/62">{description}</div>
+          <div className="text-xs text-base-content/45">{caption}</div>
         </div>
       </div>
     </button>
@@ -149,16 +149,16 @@ export default function MaterialLibraryWorkspace({
     : "浏览公开分享的素材包，快速查看素材结构、贡献信息与内容规模。";
 
   return (
-    <div className={`h-full min-h-0 overflow-y-auto bg-[#1a2029] text-white ${embedded ? "" : "border-t border-white/6"}`}>
+    <div className={`h-full min-h-0 overflow-y-auto bg-[radial-gradient(circle_at_top_left,oklch(var(--p)/0.1),transparent_26%),linear-gradient(180deg,oklch(var(--b2)/0.98),oklch(var(--b1)/1))] text-base-content ${embedded ? "" : "border-t border-base-300"}`}>
       <div className={`mx-auto w-full max-w-[1560px] ${embedded ? "px-5 py-6 md:px-8" : "px-6 py-8 md:px-10 md:py-10"}`}>
         <div className="space-y-8">
           <div className="flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
             <div className="max-w-3xl">
-              <div className="text-xs font-semibold uppercase tracking-[0.28em] text-white/30">
+              <div className="text-xs font-semibold uppercase tracking-[0.28em] text-base-content/45">
                 {activeTab === "mine" ? "Personal Library" : "Public Square"}
               </div>
-              <h1 className="mt-3 text-4xl font-semibold tracking-tight text-white md:text-6xl">{title}</h1>
-              <p className="mt-4 max-w-2xl text-sm leading-7 text-white/42 md:text-base">
+              <h1 className="mt-3 text-4xl font-semibold tracking-tight text-base-content md:text-6xl">{title}</h1>
+              <p className="mt-4 max-w-2xl text-sm leading-7 text-base-content/62 md:text-base">
                 {description}
               </p>
             </div>
@@ -175,12 +175,12 @@ export default function MaterialLibraryWorkspace({
             )}
           </div>
 
-          <div className="rounded-[24px] border border-white/6 bg-[#161b23] px-5 py-4 shadow-[0_18px_40px_rgba(2,6,23,0.24)]">
+          <div className="rounded-[24px] border border-base-300 bg-base-100/80 px-5 py-4 shadow-lg">
             <label className="flex items-center gap-3">
-              <MagnifyingGlassIcon className="size-5 shrink-0 text-white/34" />
+              <MagnifyingGlassIcon className="size-5 shrink-0 text-base-content/38" />
               <input
                 type="text"
-                className="w-full rounded-md border border-transparent bg-transparent text-sm text-white/92 placeholder:text-white/24 transition focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                className="w-full rounded-md border border-transparent bg-transparent text-sm text-base-content placeholder:text-base-content/35 transition focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
                 placeholder={activeTab === "mine" ? "搜索我的素材资产、标签或分类..." : "搜索公共素材包、标签或分类..."}
                 value={keyword}
                 onChange={event => onKeywordChange(event.target.value)}
@@ -210,7 +210,7 @@ export default function MaterialLibraryWorkspace({
             {loading && Array.from({ length: 6 }).map((_, index) => (
               <div
                 key={`material-skeleton-${index}`}
-                className="aspect-[1.25/1.42] rounded-[26px] border border-white/6 bg-white/[0.04] animate-pulse"
+                className="aspect-[1.25/1.42] rounded-[26px] border border-base-300 bg-base-100/55 animate-pulse"
               />
             ))}
 
@@ -229,11 +229,11 @@ export default function MaterialLibraryWorkspace({
           </div>
 
           {!loading && packages.length === 0 && (
-            <div className="rounded-[26px] border border-dashed border-white/10 bg-white/[0.02] px-6 py-14 text-center">
-              <div className="text-lg font-semibold text-white/88">
+            <div className="rounded-[26px] border border-dashed border-base-300 bg-base-100/55 px-6 py-14 text-center">
+              <div className="text-lg font-semibold text-base-content">
                 {activeTab === "mine" ? "你还没有自己的素材包" : "当前没有匹配的公开素材包"}
               </div>
-              <div className="mt-3 text-sm leading-7 text-white/38">
+              <div className="mt-3 text-sm leading-7 text-base-content/58">
                 {activeTab === "mine"
                   ? "可以先新建一个素材包，开始组织你的素材与消息模板。"
                   : "换个关键词试试，或者稍后再来看看新的公开内容。"}

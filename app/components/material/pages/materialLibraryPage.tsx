@@ -269,9 +269,9 @@ export default function MaterialLibraryPage({
 
   return (
     <>
-      <div className="relative flex h-full w-full min-w-0 overflow-hidden bg-[#0b1017]">
+      <div className="relative flex h-full w-full min-w-0 overflow-hidden bg-base-200 text-base-content">
         {hasStandaloneSidebar && isDesktop && (
-          <div className={`border-r border-white/6 bg-[#070c13] transition-all duration-300 ${isSidebarCollapsed ? "w-0 overflow-hidden" : "w-[280px]"}`}>
+          <div className={`border-r border-base-300 bg-base-300/60 transition-all duration-300 ${isSidebarCollapsed ? "w-0 overflow-hidden" : "w-[280px]"}`}>
             {sidebarNode}
           </div>
         )}
@@ -281,7 +281,7 @@ export default function MaterialLibraryPage({
             <button
               type="button"
               onClick={() => setIsSidebarCollapsed(prev => !prev)}
-              className="flex h-12 w-6 items-center justify-center rounded-r-full bg-[#111926] text-white/54 transition hover:bg-[#172133] hover:text-white/82"
+              className="flex h-12 w-6 items-center justify-center rounded-r-full border border-l-0 border-base-300 bg-base-100 text-base-content/55 transition hover:bg-base-200 hover:text-base-content"
               aria-label={isSidebarCollapsed ? "展开素材侧边栏" : "收起素材侧边栏"}
             >
               <svg
@@ -307,7 +307,7 @@ export default function MaterialLibraryPage({
               type="button"
               onClick={() => setIsDrawerOpen(true)}
               aria-label="打开素材包侧边栏"
-              className="flex h-14 w-7 items-center justify-center rounded-r-full border border-white/10 border-l-0 bg-[#111926]/95 text-white/72 shadow-md transition hover:bg-[#172133] hover:text-white"
+              className="flex h-14 w-7 items-center justify-center rounded-r-full border border-base-300 border-l-0 bg-base-100/95 text-base-content/72 shadow-md transition hover:bg-base-200 hover:text-base-content"
             >
               <CaretRightIcon size={16} weight="bold" />
             </button>
@@ -321,8 +321,8 @@ export default function MaterialLibraryPage({
             direction="left"
           >
             <Drawer.Portal>
-              <Drawer.Overlay className="fixed inset-0 bg-black/50 data-[state=closed]:pointer-events-none data-[state=open]:pointer-events-auto" />
-              <Drawer.Content className="fixed left-0 top-0 z-[100] flex h-full w-[280px] flex-col bg-[#070c13] data-[state=closed]:pointer-events-none data-[state=open]:pointer-events-auto">
+              <Drawer.Overlay className="fixed inset-0 bg-base-content/40 data-[state=closed]:pointer-events-none data-[state=open]:pointer-events-auto" />
+              <Drawer.Content className="fixed left-0 top-0 z-[100] flex h-full w-[280px] flex-col bg-base-300/95 data-[state=closed]:pointer-events-none data-[state=open]:pointer-events-auto">
                 <Drawer.Title className="sr-only">素材包侧边栏</Drawer.Title>
                 <Drawer.Description className="sr-only">在素材广场与我的素材包之间切换。</Drawer.Description>
                 <div className="h-full overflow-y-auto">

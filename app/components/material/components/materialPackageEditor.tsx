@@ -105,20 +105,20 @@ export default function MaterialPackageEditor({
     });
   };
 
-  const fieldClassName = "w-full rounded-md border border-white/10 bg-[#0b111c] px-3 py-2.5 text-sm text-white/90 placeholder:text-white/28 transition focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary disabled:cursor-not-allowed disabled:opacity-60";
-  const textareaClassName = "w-full rounded-md border border-white/10 bg-[#0b111c] px-3 py-3 text-sm text-white/90 placeholder:text-white/28 transition focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary disabled:cursor-not-allowed disabled:opacity-60";
+  const fieldClassName = "w-full rounded-md border border-base-300 bg-base-200/80 px-3 py-2.5 text-sm text-base-content placeholder:text-base-content/35 transition focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary disabled:cursor-not-allowed disabled:opacity-60";
+  const textareaClassName = "w-full rounded-md border border-base-300 bg-base-200/80 px-3 py-3 text-sm text-base-content placeholder:text-base-content/35 transition focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary disabled:cursor-not-allowed disabled:opacity-60";
 
   return (
-    <div className="rounded-[28px] border border-white/10 bg-[#101723]/95 text-white shadow-xl">
-      <div className="border-b border-white/10 px-6 py-5">
-        <div className="text-xl font-semibold text-white/94">{title}</div>
-        {subtitle && <div className="mt-1 text-sm text-white/45">{subtitle}</div>}
+    <div className="rounded-[28px] border border-base-300 bg-base-100/95 text-base-content shadow-xl">
+      <div className="border-b border-base-300 px-6 py-5">
+        <div className="text-xl font-semibold text-base-content">{title}</div>
+        {subtitle && <div className="mt-1 text-sm text-base-content/60">{subtitle}</div>}
       </div>
 
       <div className="grid gap-6 p-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(320px,0.8fr)]">
         <div className="space-y-5">
           <label className="block space-y-2">
-            <span className="text-sm font-medium text-white/78">素材包名称</span>
+            <span className="text-sm font-medium text-base-content/80">素材包名称</span>
             <input
               type="text"
               className={fieldClassName}
@@ -129,7 +129,7 @@ export default function MaterialPackageEditor({
           </label>
 
           <label className="block space-y-2">
-            <span className="text-sm font-medium text-white/78">封面 URL</span>
+            <span className="text-sm font-medium text-base-content/80">封面 URL</span>
             <input
               type="text"
               className={fieldClassName}
@@ -140,7 +140,7 @@ export default function MaterialPackageEditor({
           </label>
 
           <label className="block space-y-2">
-            <span className="text-sm font-medium text-white/78">描述</span>
+            <span className="text-sm font-medium text-base-content/80">描述</span>
             <textarea
               className={`${textareaClassName} min-h-28`}
               value={description}
@@ -150,17 +150,17 @@ export default function MaterialPackageEditor({
           </label>
 
           {showPublicToggle && (
-            <div className="flex items-center justify-between rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3">
+            <div className="flex items-center justify-between rounded-2xl border border-base-300 bg-base-200/55 px-4 py-3">
               <div>
-                <div className="font-medium text-white/88">公开到素材广场</div>
-                <div className="text-sm text-white/42">关闭后只有你自己还能在局外素材库里看到这个包。</div>
+                <div className="font-medium text-base-content/90">公开到素材广场</div>
+                <div className="text-sm text-base-content/60">关闭后只有你自己还能在局外素材库里看到这个包。</div>
               </div>
               <button
                 type="button"
                 className={`relative inline-flex h-8 w-14 shrink-0 items-center rounded-full border transition ${
                   isPublic
                     ? "border-primary/40 bg-primary/90"
-                    : "border-white/12 bg-white/[0.05]"
+                    : "border-base-300 bg-base-100"
                 } ${readOnly ? "cursor-not-allowed opacity-60" : "hover:border-primary/40"}`}
                 aria-pressed={isPublic}
                 onClick={() => {
@@ -181,7 +181,7 @@ export default function MaterialPackageEditor({
           )}
 
           <label className="block space-y-2">
-            <span className="text-sm font-medium text-white/78">素材包 JSON</span>
+            <span className="text-sm font-medium text-base-content/80">素材包 JSON</span>
             <textarea
               className={`${textareaClassName} min-h-[420px] font-mono text-xs leading-6 ${parsedContent ? "" : "border-error text-error"}`}
               value={contentText}
@@ -189,7 +189,7 @@ export default function MaterialPackageEditor({
               disabled={readOnly}
               spellCheck={false}
             />
-            <span className={`text-xs ${parsedContent ? "text-white/40" : "text-error"}`}>
+            <span className={`text-xs ${parsedContent ? "text-base-content/55" : "text-error"}`}>
               {parsedContent ? "会按当前 JSON 保存。" : "JSON 解析失败，保存前需要修正。"}
             </span>
           </label>
@@ -219,10 +219,10 @@ export default function MaterialPackageEditor({
         </div>
 
         <div className="space-y-4">
-          <div className="rounded-3xl border border-white/10 bg-[#0b111c] p-5">
+          <div className="rounded-3xl border border-base-300 bg-base-200/65 p-5">
             <div className="mb-3 flex items-center justify-between">
-              <div className="text-sm font-medium text-white/72">树形预览</div>
-              <div className="text-xs text-white/34">
+              <div className="text-sm font-medium text-base-content/75">树形预览</div>
+              <div className="text-xs text-base-content/50">
                 {parsedContent?.root?.length ?? 0}
                 个根节点
               </div>

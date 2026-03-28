@@ -12,11 +12,11 @@ export default function MaterialLibrarySidebar({
   onSelectTab,
 }: MaterialLibrarySidebarProps) {
   return (
-    <div className="flex h-full flex-col bg-[#070c13] px-4 py-5 text-white">
+    <div className="flex h-full flex-col bg-base-300/70 px-4 py-5 text-base-content">
       <div className="mb-8 px-2">
-        <div className="text-[11px] uppercase tracking-[0.28em] text-white/35">Material</div>
-        <div className="mt-2 text-xl font-semibold tracking-tight text-white/92">素材包</div>
-        <div className="mt-2 text-sm leading-6 text-white/40">
+        <div className="text-[11px] uppercase tracking-[0.28em] text-base-content/45">Material</div>
+        <div className="mt-2 text-xl font-semibold tracking-tight text-base-content">素材包</div>
+        <div className="mt-2 text-sm leading-6 text-base-content/60">
           在这里切换素材广场与我的素材包。
         </div>
       </div>
@@ -26,8 +26,8 @@ export default function MaterialLibrarySidebar({
           type="button"
           className={`${itemBaseClass} ${
             activeTab === "public"
-              ? "bg-white/[0.08] text-white shadow-[0_10px_24px_rgba(15,23,42,0.32)]"
-              : "text-white/62 hover:bg-white/[0.04] hover:text-white/88"
+              ? "bg-base-100 text-base-content shadow-lg"
+              : "text-base-content/62 hover:bg-base-200 hover:text-base-content"
           }`}
           onClick={() => onSelectTab("public")}
         >
@@ -39,8 +39,8 @@ export default function MaterialLibrarySidebar({
           type="button"
           className={`${itemBaseClass} ${
             activeTab === "mine"
-              ? "bg-white/[0.08] text-white shadow-[0_10px_24px_rgba(15,23,42,0.32)]"
-              : "text-white/62 hover:bg-white/[0.04] hover:text-white/88"
+              ? "bg-base-100 text-base-content shadow-lg"
+              : "text-base-content/62 hover:bg-base-200 hover:text-base-content"
           }`}
           onClick={() => onSelectTab("mine")}
         >
@@ -49,9 +49,9 @@ export default function MaterialLibrarySidebar({
         </button>
       </nav>
 
-      <div className="mt-auto rounded-2xl border border-white/6 bg-white/[0.03] px-4 py-4">
-        <div className="text-sm font-medium text-white/82">当前模式</div>
-        <div className="mt-2 text-xs leading-5 text-white/42">
+      <div className="mt-auto rounded-2xl border border-base-300 bg-base-100/65 px-4 py-4">
+        <div className="text-sm font-medium text-base-content/90">当前模式</div>
+        <div className="mt-2 text-xs leading-5 text-base-content/62">
           {activeTab === "mine"
             ? "你可以新建、编辑、删除自己的素材包。"
             : "这里展示公开的素材包，默认以只读方式查看。"}
