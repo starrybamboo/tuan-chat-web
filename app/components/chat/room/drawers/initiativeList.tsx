@@ -289,6 +289,16 @@ export default function InitiativeList() {
     return Number.isFinite(num) ? num : 0;
   };
 
+  const stringifyRecord = (obj?: Record<string, any>): Record<string, string> => {
+    const result: Record<string, string> = {};
+    if (!obj)
+      return result;
+    Object.entries(obj).forEach(([k, v]) => {
+      result[k] = String(v ?? "");
+    });
+    return result;
+  };
+
   const startEditing = (key: string, value: string) => {
     setEditingKey(key);
     setEditingValue(value);
@@ -772,9 +782,70 @@ export default function InitiativeList() {
     setIsImportPopupOpen(false);
   };
 
-  // 删除项（按名称）
-  const handleDelete = (name: string) => {
-    setInitiativeList(initiativeList.filter(i => i.name !== name));
+  // 删除项（宝可梦规则下：若绑定角色，移除时清零五项属性修正并发送骰娘信息）
+  const handleDelete = async (item: Initiative) => {
+    setInitiativeList(initiativeList.filter(i => i.name !== item.name));
+
+    if (!isPokemonRule || typeof item.roleId !== "number" || typeof spaceContext.ruleId !== "number")
+      return;
+
+    const roleId = item.roleId;
+    const idx = importableRoles.findIndex(r => r.roleId === roleId);
+    if (idx === -1)
+      return;
+
+    const query = abilityQueries[idx];
+    const res = query?.data;
+    const record = res?.success && Array.isArray(res.data)
+      ? res.data.find(entry => entry.ruleId === spaceContext.ruleId)
+      : undefined;
+    if (!record)
+      return;
+
+    const roleAbility: RoleAbility = {
+      basic: { ...(record.basic || {}) },
+      ability: { ...(record.ability || {}) },
+      skill: { ...((record as any).skill || {}) },
+    };
+
+    const stageKeys = ["攻击修正", "防御修正", "特攻修正", "特防修正", "速度修正"];
+    const changedLines: string[] = [];
+
+    stageKeys.forEach((key) => {
+      const currentRaw = Number(UTILS.getRoleAbilityValue(roleAbility, key));
+      if (!Number.isFinite(currentRaw) || currentRaw === 0)
+        return;
+
+      UTILS.setRoleAbilityValue(roleAbility, key, "0", "ability", "auto");
+      changedLines.push(`${key}：${formatPokemonBattleNumber(currentRaw)} -> 0`);
+    });
+
+    if (changedLines.length === 0)
+      return;
+
+    try {
+      await updateRoleAbilityByRoleIdAsync({
+        roleId,
+        ruleId: spaceContext.ruleId,
+        basic: stringifyRecord(roleAbility.basic as Record<string, any>),
+        ability: stringifyRecord(roleAbility.ability as Record<string, any>),
+        skill: stringifyRecord(roleAbility.skill as Record<string, any>),
+      });
+
+      const dicerRoleId = await UTILS.getDicerRoleId(roomContext);
+      const result = `${item.name}已从宝可梦先攻表移除，属性修正清零：\n${changedLines.join("\n")}`;
+      sendMessageMutation.mutate({
+        roomId,
+        roleId: dicerRoleId,
+        messageType: MESSAGE_TYPE.DICE,
+        content: result,
+        extra: { result },
+      });
+    }
+    catch (e) {
+      console.error("移除角色时清零属性修正失败", e);
+      toast.error("角色已移除，但属性修正清零失败");
+    }
   };
 
   // 保存编辑
@@ -1635,7 +1706,7 @@ export default function InitiativeList() {
 
                                   <button
                                     type="button"
-                                    onClick={() => handleDelete(item.name)}
+                                    onClick={() => void handleDelete(item)}
                                     className="btn btn-ghost btn-square btn-xs text-error hover:bg-error/5 border-none px-2 opacity-0 group-hover:opacity-100 transition-opacity"
                                     title="删除"
                                   >
