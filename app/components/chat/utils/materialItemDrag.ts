@@ -5,11 +5,13 @@ const MATERIAL_ITEM_FALLBACK_PREFIX = "tc-material-item:";
 const materialItemRegistry = new Map<string, MaterialItemDragPayload>();
 
 export type MaterialItemDragPayload = {
+  itemKind: "material" | "asset";
   spacePackageId: number;
   packageName?: string;
   materialPathKey: string;
   materialName: string;
   messageCount: number;
+  assetIndex?: number;
   messages: MaterialMessageItem[];
 };
 

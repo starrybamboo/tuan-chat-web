@@ -64,7 +64,12 @@ export default function RoomDocRefDropLayer({
     if (isMaterialItem) {
       const materialItem = getMaterialItemDragData(event.dataTransfer);
       const messageCount = materialItem?.messageCount ?? 0;
-      updateDragOverlayLabel(messageCount > 1 ? `松开发送素材条目（共 ${messageCount} 条）` : "松开发送素材条目");
+      if (materialItem?.itemKind === "asset") {
+        updateDragOverlayLabel("松开发送具体素材");
+      }
+      else {
+        updateDragOverlayLabel(messageCount > 1 ? `松开发送素材条目（共 ${messageCount} 条）` : "松开发送素材条目");
+      }
       event.preventDefault();
       event.dataTransfer.dropEffect = "copy";
       return;
