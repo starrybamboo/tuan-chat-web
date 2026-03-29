@@ -24,6 +24,21 @@ describe("sidebarTree", () => {
     ]);
   });
 
+  it("buildDefaultSidebarTree 在没有素材包时也会保留空的素材包分类", () => {
+    const tree = buildDefaultSidebarTree({
+      roomsInSpace: [
+        { roomId: 11, name: "大厅" } as any,
+      ],
+      docMetas: [],
+      includeDocs: false,
+      materialPackages: [],
+    });
+
+    const materialCategory = tree.categories.find(category => category.categoryId === MATERIALS_CATEGORY_ID);
+    expect(materialCategory).toBeTruthy();
+    expect(materialCategory?.items).toEqual([]);
+  });
+
   it("normalizeSidebarTree 会自动补齐缺失的素材包节点", () => {
     const tree = normalizeSidebarTree({
       tree: {
