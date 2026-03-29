@@ -22,6 +22,8 @@ interface RoomSidebarMaterialPackageItemProps {
   materialPackage?: SpaceMaterialPackageResponse;
   fallbackTitle?: string;
   fallbackImageUrl?: string;
+  expandedState: Record<string, boolean> | null;
+  onToggleExpanded: (key: string) => void;
 }
 
 function MaterialTreeNodeRow({
@@ -42,23 +44,27 @@ function MaterialTreeNodeRow({
   materialPackage?: SpaceMaterialPackageResponse;
 }) {
   const isFolder = node.kind === "folder";
+  const isMaterialGroup = node.kind === "material";
+  const isAsset = node.kind === "asset";
   const hasChildren = node.children.length > 0;
+  const canExpand = hasChildren && (isFolder || isMaterialGroup);
+  const isDraggable = isMaterialGroup || isAsset;
   const rowStyle = { paddingLeft: 12 + node.depth * 16 };
 
   return (
     <div className="space-y-1">
       <div
-        className={`flex min-w-0 items-center gap-2 rounded-md px-2 py-1.5 text-sm transition ${isFolder ? "text-base-content/72 hover:bg-base-200 hover:text-base-content" : "cursor-grab text-base-content/78 hover:bg-base-200 hover:text-base-content active:cursor-grabbing"}`}
+        className={`flex min-w-0 items-start gap-2 rounded-md px-2 py-1.5 text-sm transition ${isDraggable ? "cursor-grab text-base-content/78 hover:bg-base-200 hover:text-base-content active:cursor-grabbing" : "text-base-content/72 hover:bg-base-200 hover:text-base-content"}`}
         style={rowStyle}
-        role={isFolder ? "button" : undefined}
-        tabIndex={isFolder ? 0 : -1}
+        role={canExpand ? "button" : undefined}
+        tabIndex={canExpand ? 0 : -1}
         onClick={() => {
-          if (isFolder) {
+          if (canExpand) {
             onToggle(node.key);
           }
         }}
         onKeyDown={(event) => {
-          if (!isFolder) {
+          if (!canExpand) {
             return;
           }
           if (event.key === "Enter" || event.key === " ") {
@@ -66,11 +72,30 @@ function MaterialTreeNodeRow({
             onToggle(node.key);
           }
         }}
-        draggable={!isFolder}
+        draggable={isDraggable}
         onDragStart={(event) => {
-          if (isFolder) {
+          if (!isDraggable) {
             return;
           }
+          if (node.kind === "asset") {
+            if (!node.message) {
+              event.preventDefault();
+              return;
+            }
+            event.dataTransfer.effectAllowed = "copy";
+            setMaterialItemDragData(event.dataTransfer, {
+              itemKind: "asset",
+              spacePackageId: packageId,
+              packageName,
+              materialPathKey: node.path.join("."),
+              materialName: node.label,
+              messageCount: 1,
+              assetIndex: node.assetIndex,
+              messages: [JSON.parse(JSON.stringify(node.message))],
+            });
+            return;
+          }
+
           const contentNode = node.path.reduce<any>((current, childIndex) => {
             const source = Array.isArray(current) ? current : current?.children;
             return Array.isArray(source) ? source[childIndex] : null;
@@ -82,32 +107,41 @@ function MaterialTreeNodeRow({
           }
           event.dataTransfer.effectAllowed = "copy";
           setMaterialItemDragData(event.dataTransfer, {
+            itemKind: "material",
             spacePackageId: packageId,
             packageName,
             materialPathKey: node.path.join("."),
             materialName: node.label,
             messageCount: messages.length,
+            assetIndex: undefined,
             messages: JSON.parse(JSON.stringify(messages)),
           });
         }}
       >
-        <span className={`inline-flex size-4 items-center justify-center ${isFolder ? "" : "opacity-0"}`}>
-          {isFolder && hasChildren && (
+        <span className={`mt-0.5 inline-flex size-4 items-center justify-center ${canExpand ? "" : "opacity-0"}`}>
+          {canExpand && (
             <CaretRightIcon className={`size-3 transition-transform ${isExpanded ? "rotate-90" : ""}`} weight="bold" />
           )}
         </span>
         {isFolder
-          ? <FolderSimpleIcon className="size-4 shrink-0" weight={isExpanded ? "fill" : "regular"} />
-          : <FileIcon className="size-4 shrink-0" weight="regular" />}
-        <span className="min-w-0 flex-1 truncate text-left">{node.label}</span>
-        {!isFolder && (
-          <span className="shrink-0 text-[11px] text-base-content/45">
-            {`${node.messageCount} 条`}
+          ? <FolderSimpleIcon className="mt-0.5 size-4 shrink-0" weight={isExpanded ? "fill" : "regular"} />
+          : <FileIcon className="mt-0.5 size-4 shrink-0" weight={isMaterialGroup ? "fill" : "regular"} />}
+        <div className="min-w-0 flex-1">
+          <div className="truncate text-left">{node.label}</div>
+          {node.meta && (
+            <div className="truncate text-[11px] text-base-content/45">
+              {node.meta}
+            </div>
+          )}
+        </div>
+        {(isMaterialGroup || isAsset) && (
+          <span className="mt-0.5 shrink-0 text-[11px] text-base-content/45">
+            {isAsset ? "1 条" : `${node.messageCount} 条`}
           </span>
         )}
       </div>
 
-      {isFolder && isExpanded && node.children.map(child => (
+      {canExpand && isExpanded && node.children.map(child => (
         <MaterialTreeNodeRow
           key={child.key}
           node={child}
@@ -137,6 +171,8 @@ export default function RoomSidebarMaterialPackageItem({
   materialPackage,
   fallbackTitle,
   fallbackImageUrl,
+  expandedState,
+  onToggleExpanded,
 }: RoomSidebarMaterialPackageItemProps) {
   const packageName = materialPackage?.name?.trim() || fallbackTitle || `素材包 #${materialPackageId}`;
   const coverUrl = materialPackage?.coverUrl?.trim() || fallbackImageUrl || "";
@@ -146,27 +182,9 @@ export default function RoomSidebarMaterialPackageItem({
       nodes: materialPackage?.content?.root,
     });
   }, [materialPackage?.content?.root, materialPackageId]);
-  const [expandedKeys, setExpandedKeys] = useState<Record<string, boolean>>({});
   const packageRootKey = `material-package:${materialPackageId}`;
-  const validExpandableKeys = useMemo(() => {
-    return new Set([packageRootKey, ...collectMaterialExpandableKeys(treeNodes)]);
-  }, [packageRootKey, treeNodes]);
-  const isExpanded = Boolean(expandedKeys[packageRootKey]);
-
-  useEffect(() => {
-    setExpandedKeys((previous) => {
-      const nextEntries = Object.entries(previous).filter(([key]) => validExpandableKeys.has(key));
-      if (nextEntries.length === Object.keys(previous).length) {
-        return previous;
-      }
-      return Object.fromEntries(nextEntries);
-    });
-  }, [validExpandableKeys]);
-
-  const toggleExpanded = (key: string) => {
-    setExpandedKeys(previous => ({ ...previous, [key]: !previous[key] }));
-  };
-  const getNodeExpanded = (key: string) => Boolean(expandedKeys[key]);
+  const isExpanded = Boolean(expandedState?.[packageRootKey]);
+  const getNodeExpanded = (key: string) => Boolean(expandedState?.[key]);
 
   const handlePackageDragStart = (event: DragEvent<HTMLDivElement>) => {
     if (!canEdit) {
@@ -191,11 +209,11 @@ export default function RoomSidebarMaterialPackageItem({
         className="group relative flex w-full min-w-0 select-none items-center gap-2 rounded-lg p-1 pr-3 text-sm font-medium text-base-content/78 hover:bg-base-300 hover:text-base-content"
         role="button"
         tabIndex={0}
-        onClick={() => toggleExpanded(packageRootKey)}
+        onClick={() => onToggleExpanded(packageRootKey)}
         onKeyDown={(event) => {
           if (event.key === "Enter" || event.key === " ") {
             event.preventDefault();
-            toggleExpanded(packageRootKey);
+            onToggleExpanded(packageRootKey);
           }
         }}
         onDragOver={(event) => {
@@ -255,7 +273,7 @@ export default function RoomSidebarMaterialPackageItem({
                   node={node}
                   isExpanded={getNodeExpanded(node.key)}
                   getNodeExpanded={getNodeExpanded}
-                  onToggle={toggleExpanded}
+                  onToggle={onToggleExpanded}
                   packageId={materialPackageId}
                   packageName={packageName}
                   materialPackage={materialPackage}

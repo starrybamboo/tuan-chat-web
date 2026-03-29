@@ -36,6 +36,13 @@ describe("materialSidebarTree", () => {
       depth: 2,
       messageCount: 2,
     });
+    expect(tree[0]?.children[0]?.children[0]).toMatchObject({
+      key: "material-package:12:0.0:asset:0",
+      kind: "asset",
+      label: "图片 · 图片素材 1",
+      depth: 3,
+      messageCount: 1,
+    });
   });
 
   it("只收集文件夹节点作为可展开 key", () => {
@@ -63,7 +70,7 @@ describe("materialSidebarTree", () => {
 
     expect(collectMaterialExpandableKeys(tree)).toEqual([
       "material-package:3:0",
-      "material-package:3:0.0",
+      "material-package:3:0.1",
     ]);
   });
 });
