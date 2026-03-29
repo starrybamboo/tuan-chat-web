@@ -17,7 +17,7 @@ interface RoomSidebarCategoryHeaderProps {
   setDropTarget: (next: DropTarget | null) => void;
   handleDrop: () => void;
   toggleCategoryExpanded: (categoryId: string) => void;
-  onOpenCreateInCategory: (categoryId: string) => void;
+  onTriggerCategoryAdd: (categoryId: string) => void;
   setContextMenu: (next: SidebarTreeContextMenuState) => void;
   toggleTitle: string;
   addTitle: string;
@@ -36,7 +36,7 @@ export default function RoomSidebarCategoryHeader({
   setDropTarget,
   handleDrop,
   toggleCategoryExpanded,
-  onOpenCreateInCategory,
+  onTriggerCategoryAdd,
   setContextMenu,
   toggleTitle,
   addTitle,
@@ -122,7 +122,7 @@ export default function RoomSidebarCategoryHeader({
           onClick={(e) => {
             e.preventDefault();
             e.stopPropagation();
-            onOpenCreateInCategory(categoryId);
+            onTriggerCategoryAdd(categoryId);
           }}
         >
           <AddIcon />

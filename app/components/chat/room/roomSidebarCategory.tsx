@@ -28,7 +28,8 @@ interface RoomSidebarCategoryProps {
   setDropTarget: (next: DropTarget | null) => void;
   handleDrop: () => void;
   toggleCategoryExpanded: (categoryId: string) => void;
-  onOpenCreateInCategory: (categoryId: string) => void;
+  onTriggerCategoryAdd: (categoryId: string) => void;
+  addTitle: string;
   setContextMenu: (next: SidebarTreeContextMenuState) => void;
   onContextMenu: (e: MouseEvent) => void;
   docHeaderOverrides: Record<string, { title?: string; imageUrl?: string }>;
@@ -74,7 +75,8 @@ export default function RoomSidebarCategory({
   setDropTarget,
   handleDrop,
   toggleCategoryExpanded,
-  onOpenCreateInCategory,
+  onTriggerCategoryAdd,
+  addTitle,
   setContextMenu,
   onContextMenu,
   docHeaderOverrides,
@@ -134,10 +136,10 @@ export default function RoomSidebarCategory({
         setDropTarget={setDropTarget}
         handleDrop={handleDrop}
         toggleCategoryExpanded={toggleCategoryExpanded}
-        onOpenCreateInCategory={onOpenCreateInCategory}
+        onTriggerCategoryAdd={onTriggerCategoryAdd}
         setContextMenu={setContextMenu}
         toggleTitle={isCollapsed ? "展开" : "折叠"}
-        addTitle="添加"
+        addTitle={addTitle}
       />
 
       {!isCollapsed && (
