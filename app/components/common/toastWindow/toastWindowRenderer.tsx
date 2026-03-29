@@ -20,6 +20,7 @@ export interface ToastWindowOptions {
    */
   onclose?: () => void;
   hiddenScrollbar?: boolean;
+  disableScroll?: boolean;
   showCloseButton?: boolean;
 }
 
@@ -72,6 +73,7 @@ export function ToastWindowRenderer() {
           fullScreen={window.options.fullScreen}
           transparent={window.options.transparent}
           hiddenScrollbar={window.options.hiddenScrollbar}
+          disableScroll={window.options.disableScroll}
           showCloseButton={window.options.showCloseButton}
           onClose={window.onClose}
         >

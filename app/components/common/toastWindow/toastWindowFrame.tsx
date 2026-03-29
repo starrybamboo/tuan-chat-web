@@ -7,6 +7,7 @@ export interface ToastWindowFrameProps {
   fullScreen?: boolean;
   transparent?: boolean;
   hiddenScrollbar?: boolean;
+  disableScroll?: boolean;
   showCloseButton?: boolean;
 }
 
@@ -17,6 +18,7 @@ export function ToastWindowFrame({
   fullScreen = false,
   transparent = false,
   hiddenScrollbar = false,
+  disableScroll = false,
   showCloseButton = true,
 }: ToastWindowFrameProps) {
   const supportsDynamicViewportUnit = typeof CSS !== "undefined" && CSS.supports("height: 100dvh");
@@ -59,7 +61,7 @@ export function ToastWindowFrame({
             </svg>
           </button>
         )}
-        <div className={`${hiddenScrollbar ? "hidden-scrollbar" : "overflow-auto"} w-full h-full min-h-0`}>
+        <div className={`${disableScroll ? "overflow-hidden" : (hiddenScrollbar ? "hidden-scrollbar" : "overflow-auto")} w-full h-full min-h-0`}>
           {children}
         </div>
       </div>
