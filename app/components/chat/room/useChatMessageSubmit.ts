@@ -11,7 +11,6 @@ import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceS
 import { buildOutOfCharacterSpeechContent } from "@/components/chat/utils/outOfCharacterSpeech";
 import { isRoomJumpCommandText, parseRoomJumpCommand } from "@/components/chat/utils/roomJump";
 import { isCommand } from "@/components/common/dicer/cmdPre";
-import { formatAnkoDiceMessage } from "@/components/common/dicer/diceTable";
 import { ANNOTATION_IDS, hasAnnotation, normalizeAnnotations, setAnnotation } from "@/types/messageAnnotations";
 import { isAudioUploadDebugEnabled } from "@/utils/audioDebugFlags";
 import { getImageSize } from "@/utils/getImgSize";
@@ -32,7 +31,6 @@ type CommandExecutor = (payload: {
 type UseChatMessageSubmitParams = {
   roomId: number;
   spaceId: number;
-  spaceExtra?: string | null;
   isSpaceOwner: boolean;
   curRoleId: number;
   notMember: boolean;
@@ -79,7 +77,6 @@ function resolveAudioAutoPlayPurposeFromMessage(message: {
 export default function useChatMessageSubmit({
   roomId,
   spaceId,
-  spaceExtra,
   isSpaceOwner,
   curRoleId,
   notMember,
@@ -567,38 +564,9 @@ export default function useChatMessageSubmit({
             toast.error("WebGAL 指令不能为空");
           }
           else {
-            let diceTableContent: string | null = null;
-            if (isPureTextSend && !isWebgalCommandInput) {
-              let diceTableDiceSize = 100;
-              try {
-                const localDice = Number(localStorage.getItem("defaultDice"));
-                if (Number.isFinite(localDice) && localDice > 0) {
-                  diceTableDiceSize = localDice;
-                }
-              }
-              catch {
-                // ignore localStorage failures
-              }
-              try {
-                const spaceExtraRecord = JSON.parse(spaceExtra ?? "{}");
-                const dicerDataStr = spaceExtraRecord?.dicerData || "{}";
-                const spaceDicerData = typeof dicerDataStr === "string" ? JSON.parse(dicerDataStr) : dicerDataStr;
-                const spaceDice = Number(spaceDicerData?.defaultDice);
-                if (Number.isFinite(spaceDice) && spaceDice > 0) {
-                  diceTableDiceSize = spaceDice;
-                }
-              }
-              catch {
-                // ignore parse errors
-              }
-              diceTableContent = formatAnkoDiceMessage(normalizedContent, diceTableDiceSize);
-            }
-
-            const finalContent = diceTableContent ?? normalizedContent;
-            const finalMessageType = diceTableContent
-              ? MessageType.DICE
-              : (isWebgalCommandInput ? MessageType.WEBGAL_COMMAND : MessageType.TEXT);
-            const finalExtra = diceTableContent ? { result: finalContent } : {};
+            const finalContent = normalizedContent;
+            const finalMessageType = isWebgalCommandInput ? MessageType.WEBGAL_COMMAND : MessageType.TEXT;
+            const finalExtra = {};
 
             const textMsg: ChatMessageRequest = {
               ...getCommonFields() as any,
@@ -641,8 +609,7 @@ export default function useChatMessageSubmit({
     sendMessageWithInsert,
     setInputText,
     setIsSubmitting,
-    spaceExtra,
-    spaceId,
+      spaceId,
     stripCommandRequestAllToken,
   ]);
 
