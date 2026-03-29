@@ -29,6 +29,8 @@ interface RoomSidebarCategoryBodyProps {
   activeSpaceId: number | null;
   activeRoomId: number | null;
   activeDocId?: string | null;
+  expandedTreeState: Record<string, boolean> | null;
+  onToggleTreeExpanded: (key: string) => void;
   unreadMessagesNumber: Record<number, number>;
   onSelectRoom: (roomId: number) => void;
   onSelectDoc?: (docId: string) => void;
@@ -67,6 +69,8 @@ export default function RoomSidebarCategoryBody({
   activeSpaceId,
   activeRoomId,
   activeDocId,
+  expandedTreeState,
+  onToggleTreeExpanded,
   unreadMessagesNumber,
   onSelectRoom,
   onSelectDoc,
@@ -126,6 +130,8 @@ export default function RoomSidebarCategoryBody({
         activeSpaceId={activeSpaceId}
         activeRoomId={activeRoomId}
         activeDocId={activeDocId}
+        expandedTreeState={expandedTreeState}
+        onToggleTreeExpanded={onToggleTreeExpanded}
         unreadMessagesNumber={unreadMessagesNumber}
         onSelectRoom={onSelectRoom}
         onSelectDoc={onSelectDoc}

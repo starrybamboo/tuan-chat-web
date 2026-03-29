@@ -19,6 +19,7 @@ import useRoomSidebarTreeState from "@/components/chat/room/useRoomSidebarTreeSt
 import SpaceHeaderBar from "@/components/chat/space/spaceHeaderBar";
 import { useDocHeaderOverrideStore } from "@/components/chat/stores/docHeaderOverrideStore";
 import LeftChatList from "@/components/privateChat/LeftChatList";
+import { buildMaterialSidebarTree, collectMaterialExpandableKeys } from "./materialSidebarTree";
 import { collectExistingDocIds, collectExistingRoomIds } from "./sidebarTree";
 import SidebarTreeOverlays from "./sidebarTreeOverlays";
 
@@ -142,6 +143,26 @@ export default function ChatRoomListPanel({
     return map;
   }, [materialPackages]);
 
+  const materialTreeExpandableKeys = useMemo(() => {
+    if (!materialPackages) {
+      return [];
+    }
+
+    const keys: string[] = [];
+    for (const item of materialPackages) {
+      const spacePackageId = typeof item.spacePackageId === "number" ? item.spacePackageId : Number.NaN;
+      if (!Number.isFinite(spacePackageId)) {
+        continue;
+      }
+      keys.push(`material-package:${spacePackageId}`);
+      keys.push(...collectMaterialExpandableKeys(buildMaterialSidebarTree({
+        spacePackageId,
+        nodes: item.content?.root,
+      })));
+    }
+    return keys;
+  }, [materialPackages]);
+
   const orderedRoomIdsFallback = useMemo(() => {
     if (Array.isArray(roomOrderIds) && roomOrderIds.length > 0) {
       return roomOrderIds;
@@ -196,6 +217,7 @@ export default function ChatRoomListPanel({
     visibleDocMetas,
     includeDocs: canViewDocs,
     materialPackages: materialPackageMetas,
+    extraExpandableKeys: materialTreeExpandableKeys,
   });
 
   const {
@@ -361,6 +383,8 @@ export default function ChatRoomListPanel({
                     activeSpaceId={activeSpaceId}
                     activeRoomId={activeRoomId}
                     activeDocId={activeDocId}
+                    expandedTreeState={expandedByCategoryId}
+                    onToggleTreeExpanded={toggleCategoryExpanded}
                     unreadMessagesNumber={unreadMessagesNumber}
                     onSelectRoom={onSelectRoom}
                     onSelectDoc={onSelectDoc}

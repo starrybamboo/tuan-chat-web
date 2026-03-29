@@ -17,6 +17,7 @@ type UseRoomSidebarTreeStateParams = {
   visibleDocMetas: MinimalDocMeta[];
   includeDocs: boolean;
   materialPackages?: MinimalMaterialPackageMeta[];
+  extraExpandableKeys?: string[];
 };
 
 type UseRoomSidebarTreeStateResult = {
@@ -82,6 +83,7 @@ export default function useRoomSidebarTreeState({
   visibleDocMetas,
   includeDocs,
   materialPackages,
+  extraExpandableKeys,
 }: UseRoomSidebarTreeStateParams): UseRoomSidebarTreeStateResult {
   const displayTree = useMemo(() => {
     return normalizeSidebarTree({
@@ -142,20 +144,29 @@ export default function useRoomSidebarTreeState({
     }
     const next: Record<string, boolean> = {};
     const categoriesInView = (canEdit ? (localTree ?? displayTree) : displayTree).categories;
+    const validKeys = new Set<string>([
+      ...categoriesInView.map(category => category.categoryId),
+      ...(extraExpandableKeys ?? []),
+    ]);
     for (const c of categoriesInView) {
       if (expandedByCategoryId[c.categoryId]) {
         next[c.categoryId] = true;
       }
     }
-    const prevKeys = Object.keys(expandedByCategoryId).length;
-    const nextKeys = Object.keys(next).length;
-    if (prevKeys !== nextKeys) {
+    for (const key of extraExpandableKeys ?? []) {
+      if (expandedByCategoryId[key] && validKeys.has(key)) {
+        next[key] = true;
+      }
+    }
+    const prevKeySignature = Object.keys(expandedByCategoryId).sort().join("|");
+    const nextKeySignature = Object.keys(next).sort().join("|");
+    if (prevKeySignature !== nextKeySignature) {
       setExpandedByCategoryId(next);
       setSidebarTreeExpandedByCategoryId({ userId: currentUserId, spaceId: activeSpaceId, expandedByCategoryId: next }).catch(() => {
         // ignore
       });
     }
-  }, [activeSpaceId, canEdit, currentUserId, displayTree, expandedByCategoryId, localTree]);
+  }, [activeSpaceId, canEdit, currentUserId, displayTree, expandedByCategoryId, extraExpandableKeys, localTree]);
 
   const toggleCategoryExpanded = useCallback((categoryId: string) => {
     if (activeSpaceId == null || !Number.isFinite(activeSpaceId) || activeSpaceId <= 0) {
