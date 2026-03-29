@@ -3,7 +3,7 @@ import type { SpaceMaterialPackageResponse } from "../../../../api/models/SpaceM
 import type { MinimalDocMeta, SidebarTree } from "./sidebarTree";
 import type { SpaceDetailTab } from "@/components/chat/chatPage.types";
 
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import RoomSidebarCategory from "@/components/chat/room/roomSidebarCategory";
 import useRoomSidebarAddPanelState from "@/components/chat/room/useRoomSidebarAddPanelState";
 import useRoomSidebarCategoryEditor from "@/components/chat/room/useRoomSidebarCategoryEditor";
@@ -18,8 +18,10 @@ import useRoomSidebarTreeActions from "@/components/chat/room/useRoomSidebarTree
 import useRoomSidebarTreeState from "@/components/chat/room/useRoomSidebarTreeState";
 import SpaceHeaderBar from "@/components/chat/space/spaceHeaderBar";
 import { useDocHeaderOverrideStore } from "@/components/chat/stores/docHeaderOverrideStore";
+import MaterialPackageImportModal from "@/components/material/components/materialPackageImportModal";
 import LeftChatList from "@/components/privateChat/LeftChatList";
 import { buildMaterialSidebarTree, collectMaterialExpandableKeys } from "./materialSidebarTree";
+import { getSidebarCategoryAddAction, getSidebarCategoryAddTitle } from "./sidebarCategoryAddAction";
 import { collectExistingDocIds, collectExistingRoomIds } from "./sidebarTree";
 import SidebarTreeOverlays from "./sidebarTreeOverlays";
 
@@ -229,6 +231,7 @@ export default function ChatRoomListPanel({
     setPendingAddDocId,
     toggleAddPanel,
   } = useRoomSidebarAddPanelState();
+  const [isMaterialImportOpen, setIsMaterialImportOpen] = useState(false);
 
   const { contextMenu, setContextMenu, closeContextMenu } = useRoomSidebarContextMenu();
 
@@ -317,125 +320,144 @@ export default function ChatRoomListPanel({
     return collectExistingDocIds(treeToRender);
   }, [treeToRender]);
 
+  const handleCategoryAdd = React.useCallback((categoryId: string) => {
+    if (getSidebarCategoryAddAction(categoryId) === "import-material-package") {
+      setIsMaterialImportOpen(true);
+      return;
+    }
+    onOpenCreateInCategory(categoryId);
+  }, [onOpenCreateInCategory]);
+
   return (
-    <div
-      className="flex flex-col gap-2 w-full h-full flex-1 bg-base-200 min-h-0 min-w-0 rounded-tl-xl border-l border-t border-gray-300 dark:border-gray-700"
-    >
-      {isPrivateChatMode
-        ? (
-            <LeftChatList
-              setIsOpenLeftDrawer={setIsOpenLeftDrawer}
-            />
-          )
-        : (
-            <>
-              {activeSpaceId && (
-                <>
-                  <SpaceHeaderBar
-                    spaceName={activeSpaceName}
-                    isArchived={activeSpaceIsArchived}
-                    isSpaceOwner={isSpaceOwner}
-                    onOpenSpaceDetailPanel={onOpenSpaceDetailPanel}
-                    onCloseLeftDrawer={onCloseLeftDrawer}
-                    onAddCategory={canEdit ? openAddCategory : undefined}
-                    onResetSidebarTreeToDefault={canEdit ? onResetSidebarTreeToDefault : undefined}
-                    onInviteMember={onInviteMember}
-                    onToggleLeftDrawer={onToggleLeftDrawer}
-                    isLeftDrawerOpen={isLeftDrawerOpen}
-                  />
-                  {/* <div className="h-px bg-base-300"></div> */}
-                </>
-              )}
-
-              <div
-                className="flex flex-col gap-2 py-2 px-1 overflow-auto w-full "
-                onDragOverCapture={handleDocCopyDragOverCapture}
-                onDropCapture={handleDocCopyDropCapture}
-              >
-                {treeToRender.categories.map((cat, categoryIndex) => (
-                  <RoomSidebarCategory
-                    key={cat.categoryId}
-                    category={cat}
-                    categoryIndex={categoryIndex}
-                    canEdit={canEdit}
-                    isSpaceOwner={isSpaceOwner}
-                    expandedByCategoryId={expandedByCategoryId}
-                    addPanelCategoryId={addPanelCategoryId}
-                    setAddPanelCategoryId={setAddPanelCategoryId}
-                    docCopyDropCategoryId={docCopyDropCategoryId}
-                    handleDocCopyCategoryDragOver={handleDocCopyCategoryDragOver}
-                    handleDocCopyCategoryDragLeave={handleDocCopyCategoryDragLeave}
-                    handleDocCopyCategoryDrop={handleDocCopyCategoryDrop}
-                    dragging={dragging}
-                    dropTarget={dropTarget}
-                    resetDropHandled={resetDropHandled}
-                    setDragging={setDragging}
-                    setDropTarget={setDropTarget}
-                    handleDrop={handleDrop}
-                    toggleCategoryExpanded={toggleCategoryExpanded}
-                    onOpenCreateInCategory={onOpenCreateInCategory}
-                    setContextMenu={setContextMenu}
-                    onContextMenu={onContextMenu}
-                    docHeaderOverrides={docHeaderOverrides}
-                    docMetaMap={docMetaMap}
-                    roomById={roomById}
-                    materialPackageMap={materialPackageMap}
-                    activeSpaceId={activeSpaceId}
-                    activeRoomId={activeRoomId}
-                    activeDocId={activeDocId}
-                    expandedTreeState={expandedByCategoryId}
-                    onToggleTreeExpanded={toggleCategoryExpanded}
-                    unreadMessagesNumber={unreadMessagesNumber}
-                    onSelectRoom={onSelectRoom}
-                    onSelectDoc={onSelectDoc}
-                    onCloseLeftDrawer={onCloseLeftDrawer}
-                    existingRoomIdsInTree={existingRoomIdsInTree}
-                    existingDocIdsInTree={existingDocIdsInTree}
-                    pendingAddRoomId={pendingAddRoomId}
-                    setPendingAddRoomId={setPendingAddRoomId}
-                    pendingAddDocId={pendingAddDocId}
-                    setPendingAddDocId={setPendingAddDocId}
-                    addNode={addNode}
-                    fallbackTextRooms={fallbackTextRooms}
-                    visibleDocMetas={visibleDocMetas}
-                  />
-                ))}
-
-              </div>
-
-              <SidebarTreeOverlays
-                canEdit={canEdit}
-                categoryEditor={categoryEditor}
-                categoryEditorError={categoryEditorError}
-                onCategoryEditorNameChange={updateCategoryEditorName}
-                onCloseCategoryEditor={closeCategoryEditor}
-                onSubmitCategoryEditor={submitCategoryEditor}
-
-                deleteConfirmCategoryId={deleteConfirmCategoryId}
-                treeCategoryCount={treeToRender.categories.length}
-                onCloseDeleteConfirmCategory={closeDeleteConfirmCategory}
-                onRequestDeleteConfirmCategory={openDeleteConfirmCategory}
-                onConfirmDeleteCategory={confirmDeleteCategory}
-
-                contextMenu={contextMenu}
-                onCloseContextMenu={closeContextMenu}
-                onOpenRenameCategory={(categoryId) => {
-                  openRenameCategory(categoryId);
-                }}
-                onOpenAddPanel={toggleAddPanel}
-                onOpenDoc={(docId) => {
-                  onSelectDoc?.(docId);
-                  onCloseLeftDrawer();
-                }}
-                onRequestDeleteDoc={openDeleteConfirmDoc}
-
-                deleteConfirmDoc={deleteConfirmDoc}
-                onCloseDeleteConfirmDoc={closeDeleteConfirmDoc}
-                onConfirmDeleteDoc={confirmDeleteDoc}
-                getDocTitle={getDocTitle}
+    <>
+      <div
+        className="flex flex-col gap-2 w-full h-full flex-1 bg-base-200 min-h-0 min-w-0 rounded-tl-xl border-l border-t border-gray-300 dark:border-gray-700"
+      >
+        {isPrivateChatMode
+          ? (
+              <LeftChatList
+                setIsOpenLeftDrawer={setIsOpenLeftDrawer}
               />
-            </>
-          )}
-    </div>
+            )
+          : (
+              <>
+                {activeSpaceId && (
+                  <>
+                    <SpaceHeaderBar
+                      spaceName={activeSpaceName}
+                      isArchived={activeSpaceIsArchived}
+                      isSpaceOwner={isSpaceOwner}
+                      onOpenSpaceDetailPanel={onOpenSpaceDetailPanel}
+                      onCloseLeftDrawer={onCloseLeftDrawer}
+                      onAddCategory={canEdit ? openAddCategory : undefined}
+                      onResetSidebarTreeToDefault={canEdit ? onResetSidebarTreeToDefault : undefined}
+                      onInviteMember={onInviteMember}
+                      onToggleLeftDrawer={onToggleLeftDrawer}
+                      isLeftDrawerOpen={isLeftDrawerOpen}
+                    />
+                    {/* <div className="h-px bg-base-300"></div> */}
+                  </>
+                )}
+
+                <div
+                  className="flex flex-col gap-2 py-2 px-1 overflow-auto w-full "
+                  onDragOverCapture={handleDocCopyDragOverCapture}
+                  onDropCapture={handleDocCopyDropCapture}
+                >
+                  {treeToRender.categories.map((cat, categoryIndex) => (
+                    <RoomSidebarCategory
+                      key={cat.categoryId}
+                      category={cat}
+                      categoryIndex={categoryIndex}
+                      canEdit={canEdit}
+                      isSpaceOwner={isSpaceOwner}
+                      expandedByCategoryId={expandedByCategoryId}
+                      addPanelCategoryId={addPanelCategoryId}
+                      setAddPanelCategoryId={setAddPanelCategoryId}
+                      docCopyDropCategoryId={docCopyDropCategoryId}
+                      handleDocCopyCategoryDragOver={handleDocCopyCategoryDragOver}
+                      handleDocCopyCategoryDragLeave={handleDocCopyCategoryDragLeave}
+                      handleDocCopyCategoryDrop={handleDocCopyCategoryDrop}
+                      dragging={dragging}
+                      dropTarget={dropTarget}
+                      resetDropHandled={resetDropHandled}
+                      setDragging={setDragging}
+                      setDropTarget={setDropTarget}
+                      handleDrop={handleDrop}
+                      toggleCategoryExpanded={toggleCategoryExpanded}
+                      onTriggerCategoryAdd={handleCategoryAdd}
+                      addTitle={getSidebarCategoryAddTitle(cat.categoryId)}
+                      setContextMenu={setContextMenu}
+                      onContextMenu={onContextMenu}
+                      docHeaderOverrides={docHeaderOverrides}
+                      docMetaMap={docMetaMap}
+                      roomById={roomById}
+                      materialPackageMap={materialPackageMap}
+                      activeSpaceId={activeSpaceId}
+                      activeRoomId={activeRoomId}
+                      activeDocId={activeDocId}
+                      expandedTreeState={expandedByCategoryId}
+                      onToggleTreeExpanded={toggleCategoryExpanded}
+                      unreadMessagesNumber={unreadMessagesNumber}
+                      onSelectRoom={onSelectRoom}
+                      onSelectDoc={onSelectDoc}
+                      onCloseLeftDrawer={onCloseLeftDrawer}
+                      existingRoomIdsInTree={existingRoomIdsInTree}
+                      existingDocIdsInTree={existingDocIdsInTree}
+                      pendingAddRoomId={pendingAddRoomId}
+                      setPendingAddRoomId={setPendingAddRoomId}
+                      pendingAddDocId={pendingAddDocId}
+                      setPendingAddDocId={setPendingAddDocId}
+                      addNode={addNode}
+                      fallbackTextRooms={fallbackTextRooms}
+                      visibleDocMetas={visibleDocMetas}
+                    />
+                  ))}
+
+                </div>
+
+                <SidebarTreeOverlays
+                  canEdit={canEdit}
+                  categoryEditor={categoryEditor}
+                  categoryEditorError={categoryEditorError}
+                  onCategoryEditorNameChange={updateCategoryEditorName}
+                  onCloseCategoryEditor={closeCategoryEditor}
+                  onSubmitCategoryEditor={submitCategoryEditor}
+
+                  deleteConfirmCategoryId={deleteConfirmCategoryId}
+                  treeCategoryCount={treeToRender.categories.length}
+                  onCloseDeleteConfirmCategory={closeDeleteConfirmCategory}
+                  onRequestDeleteConfirmCategory={openDeleteConfirmCategory}
+                  onConfirmDeleteCategory={confirmDeleteCategory}
+
+                  contextMenu={contextMenu}
+                  onCloseContextMenu={closeContextMenu}
+                  onOpenRenameCategory={(categoryId) => {
+                    openRenameCategory(categoryId);
+                  }}
+                  onOpenAddPanel={toggleAddPanel}
+                  onOpenDoc={(docId) => {
+                    onSelectDoc?.(docId);
+                    onCloseLeftDrawer();
+                  }}
+                  onRequestDeleteDoc={openDeleteConfirmDoc}
+
+                  deleteConfirmDoc={deleteConfirmDoc}
+                  onCloseDeleteConfirmDoc={closeDeleteConfirmDoc}
+                  onConfirmDeleteDoc={confirmDeleteDoc}
+                  getDocTitle={getDocTitle}
+                />
+              </>
+            )}
+      </div>
+
+      {activeSpaceId && activeSpaceId > 0 && (
+        <MaterialPackageImportModal
+          isOpen={isMaterialImportOpen}
+          spaceId={activeSpaceId}
+          onClose={() => setIsMaterialImportOpen(false)}
+        />
+      )}
+    </>
   );
 }
