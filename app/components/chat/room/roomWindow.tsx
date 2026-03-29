@@ -271,7 +271,6 @@ function RoomWindow({
   const { handleMessageSubmit } = useChatMessageSubmit({
     roomId,
     spaceId,
-    spaceExtra: space?.extra,
     isSpaceOwner: Boolean(spaceContext.isSpaceOwner),
     curRoleId,
     notMember,

@@ -6,10 +6,8 @@ import { useParams } from "react-router";
 import { getNextAppendPosition } from "@/components/chat/shared/messageOrder";
 import { initAliasMapOnce, RULES } from "@/components/common/dicer/aliasRegistry";
 import executorPublic from "@/components/common/dicer/cmdExe/cmdExePublic";
-import { formatAnkoDiceMessage } from "@/components/common/dicer/diceTable";
 import UTILS from "@/components/common/dicer/utils/utils";
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
-import { isLikelyTrpgDiceContent } from "@/types/webgalDice";
 import {
   useSetRoleAbilityMutation,
   useUpdateRoleAbilityByRoleIdMutation,
@@ -214,8 +212,6 @@ export default function useCommandExecutor(roleId: number, ruleId: number, roomC
 
   const role = useGetRoleQuery(roleId).data?.data;
   const space = useGetSpaceInfoQuery(roomContext.spaceId ?? -1).data?.data;
-  const defaultDice = useRef(100);
-
   // 通过以下的mutation来对后端发送引起数据变动的请求
   const updateAbilityMutation = useUpdateRoleAbilityByRoleIdMutation(); // 更改属性与能力字段
   const setAbilityMutation = useSetRoleAbilityMutation(); // 创建新的能力组
@@ -231,14 +227,6 @@ export default function useCommandExecutor(roleId: number, ruleId: number, roomC
   const optimisticMessageIdRef = useRef(-1);
   const lastPrewarmKeyRef = useRef<string>("");
 
-  useEffect(() => {
-    try {
-      defaultDice.current = Number(localStorage.getItem("defaultDice")) ?? 100;
-    }
-    catch (e) {
-      console.error(e);
-    }
-  }, []);
 
   useEffect(() => {
     const normalizedSpaceId = Number(roomContext.spaceId ?? 0);
@@ -626,17 +614,6 @@ export default function useCommandExecutor(roleId: number, ruleId: number, roomC
         spaceDicerData = {};
       }
       let spaceDicerDataModified = false;
-      const diceTableDiceSize = (() => {
-        const fromSpace = Number(spaceDicerData.defaultDice);
-        if (Number.isFinite(fromSpace) && fromSpace > 0) {
-          return fromSpace;
-        }
-        const fromLocal = Number(defaultDice.current);
-        if (Number.isFinite(fromLocal) && fromLocal > 0) {
-          return fromLocal;
-        }
-        return 100;
-      })();
       // 定义cpi接口
       const replyMessage = (message: string) => {
         dicerMessageQueue.push(message);
@@ -784,10 +761,7 @@ export default function useCommandExecutor(roleId: number, ruleId: number, roomC
           const message = dicerMessageQueue[index];
           // 先快速插入占位，避免被后续请求阻塞可见性。
           const cleanMessage = message.replace(/#[^#]+#/g, "").trim();
-          const formattedDiceTable = isLikelyTrpgDiceContent(cleanMessage)
-            ? null
-            : formatAnkoDiceMessage(cleanMessage, diceTableDiceSize);
-          const optimisticContent = formattedDiceTable ?? cleanMessage;
+          const optimisticContent = cleanMessage;
           pendingOptimisticDicerMessages.push(createOptimisticCommandMessage({
             ...optimisticDicerRequestBase,
             content: optimisticContent,
@@ -893,11 +867,7 @@ export default function useCommandExecutor(roleId: number, ruleId: number, roomC
           // 移除消息中的所有标签（格式：#标签#）
           const cleanMessage = message.replace(/#[^#]+#/g, "").trim();
           const cleanCopywriting = copywritingSuffix.replace(/#[^#]+#/g, "").trim();
-          const formattedDiceTable = isLikelyTrpgDiceContent(cleanMessage)
-            ? null
-            : formatAnkoDiceMessage(cleanMessage, diceTableDiceSize);
-          const baseContent = formattedDiceTable ?? cleanMessage;
-          const nextContent = baseContent + (cleanCopywriting ? `\n${cleanCopywriting}` : "");
+          const nextContent = cleanMessage + (cleanCopywriting ? `\n${cleanCopywriting}` : "");
           dicerBatchRequests.push({
             ...dicerMessageBaseRequest,
             content: nextContent,
