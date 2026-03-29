@@ -51,7 +51,7 @@ const cmdSt = new CommandExecutor(
   "st",
   [],
   "属性设置",
-  [".st 力量70", ".st show 敏捷", ".st 力量+10", ".st 敏捷-5"],
+  [".st 力量70", ".st show 敏捷", ".st 力量+10", ".st 敏捷-5", ".st 力量 -25"],
   ".st [属性名][属性值] / .st show [属性名]",
   async (args: string[], mentioned: UserRole[], cpi: CPI): Promise<boolean> => {
     const role = mentioned[0];
@@ -60,8 +60,6 @@ const cmdSt = new CommandExecutor(
     const abilityChanges: {
       [key: string]: { old: number; op: string; val: number; new: number };
     } = {};
-    // 使用正则匹配所有属性+数值的组合
-    const matches = input.matchAll(/([^\d+-]+)([+-]?)(\d+)/g);
     const curAbility = cpi.getRoleAbilityList(role.roleId);
     if (!curAbility) {
       cpi.sendToast("非法操作，当前角色不存在于提及列表中。");
@@ -92,12 +90,7 @@ const cmdSt = new CommandExecutor(
       return true;
     }
 
-    // st 实现
-    for (const match of matches) {
-      const rawKey = match[1].trim();
-      const operator = match[2];
-      const value = Number.parseInt(match[3], 10);
-
+    const applyChange = (rawKey: string, operator: string, value: number) => {
       // 统一转换为小写进行比较
       const key = rawKey.toLowerCase();
 
@@ -124,6 +117,23 @@ const cmdSt = new CommandExecutor(
 
       // 更新属性
       UTILS.setRoleAbilityValue(curAbility, key, newValue.toString(), "skill", "auto");
+    };
+
+    // 空格分隔赋值：.st 力量 -25 -> 直接设置为 -25
+    if (args.length === 2 && /^[-+]?\d+$/.test(args[1].trim())) {
+      const rawKey = args[0].trim();
+      const value = Number.parseInt(args[1].trim(), 10);
+      applyChange(rawKey, "", value);
+    }
+    else {
+      // 连写运算：.st 力量-25 / .st 力量+10
+      const matches = input.matchAll(/([^\d+-]+)([+-]?)(\d+)/g);
+      for (const match of matches) {
+        const rawKey = match[1].trim();
+        const operator = match[2];
+        const value = Number.parseInt(match[3], 10);
+        applyChange(rawKey, operator, value);
+      }
     }
     // 生成包含变化过程的提示信息
     const changeEntries = Object.entries(abilityChanges)
