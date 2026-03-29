@@ -300,13 +300,11 @@ export function buildDefaultSidebarTree(params: {
     .filter(item => typeof item?.id === "number" && Number.isFinite(item.id))
     .map(item => buildMaterialPackageNode(item.id, item.title ?? `素材包 #${item.id}`, item.imageUrl));
 
-  if (materialItems.length > 0) {
-    categories.push({
-      categoryId: MATERIALS_CATEGORY_ID,
-      name: "素材包",
-      items: materialItems,
-    });
-  }
+  categories.push({
+    categoryId: MATERIALS_CATEGORY_ID,
+    name: "素材包",
+    items: materialItems,
+  });
 
   return {
     schemaVersion: 2,
@@ -452,23 +450,25 @@ export function normalizeSidebarTree(params: {
     });
   }
 
-  if (hasLoadedMaterialPackages && hasMaterialPackages) {
-    const materialCategory = categories.find(category => category.categoryId === MATERIALS_CATEGORY_ID);
-    const representedMaterialPackageIds = collectExistingMaterialPackageIds({ categories, schemaVersion: 2 });
-    const missingMaterialNodes = [...materialPackageMap.values()]
-      .filter(item => !representedMaterialPackageIds.has(item.id))
-      .map(item => buildMaterialPackageNode(item.id, item.title ?? `素材包 #${item.id}`, item.imageUrl));
-
-    if (materialCategory) {
+  const materialCategory = categories.find(category => category.categoryId === MATERIALS_CATEGORY_ID);
+  if (materialCategory) {
+    if (hasLoadedMaterialPackages && hasMaterialPackages) {
+      const representedMaterialPackageIds = collectExistingMaterialPackageIds({ categories, schemaVersion: 2 });
+      const missingMaterialNodes = [...materialPackageMap.values()]
+        .filter(item => !representedMaterialPackageIds.has(item.id))
+        .map(item => buildMaterialPackageNode(item.id, item.title ?? `素材包 #${item.id}`, item.imageUrl));
       materialCategory.items = [...materialCategory.items, ...missingMaterialNodes];
     }
-    else {
-      categories.push({
-        categoryId: MATERIALS_CATEGORY_ID,
-        name: "素材包",
-        items: missingMaterialNodes,
-      });
-    }
+  }
+  else {
+    const missingMaterialNodes = hasLoadedMaterialPackages
+      ? [...materialPackageMap.values()].map(item => buildMaterialPackageNode(item.id, item.title ?? `素材包 #${item.id}`, item.imageUrl))
+      : [];
+    categories.push({
+      categoryId: MATERIALS_CATEGORY_ID,
+      name: "素材包",
+      items: missingMaterialNodes,
+    });
   }
 
   if (categories.length === 0) {
