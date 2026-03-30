@@ -37,31 +37,6 @@ export default function ChatDiscoverNavPanel({ onCloseLeftDrawer, onToggleLeftDr
 
       <div className="px-3 pt-3 pb-2">
         <div className="px-1 pb-2 text-[11px] font-semibold tracking-wider text-base-content/50">
-          归档仓库
-        </div>
-
-        <div className="space-y-1">
-          <Link
-            to="/chat/discover"
-            className={`${navItemBase} ${activeItem === "repository-square" ? navItemActive : navItemInactive}`}
-            onClick={onCloseLeftDrawer}
-          >
-            <span className="size-2 rounded-full bg-success opacity-70 group-hover:opacity-100" />
-            广场
-          </Link>
-          <Link
-            to="/chat/discover/my"
-            className={`${navItemBase} ${activeItem === "repository-my" ? navItemActive : navItemInactive}`}
-            onClick={onCloseLeftDrawer}
-          >
-            <span className="size-2 rounded-full bg-primary opacity-70 group-hover:opacity-100" />
-            我的归档
-          </Link>
-        </div>
-      </div>
-
-      <div className="px-3 pb-3">
-        <div className="px-1 pb-2 text-[11px] font-semibold tracking-wider text-base-content/50">
           局外素材
         </div>
 
@@ -81,6 +56,31 @@ export default function ChatDiscoverNavPanel({ onCloseLeftDrawer, onToggleLeftDr
           >
             <span className="size-2 rounded-full bg-secondary opacity-70 group-hover:opacity-100" />
             我的素材包
+          </Link>
+        </div>
+      </div>
+
+      <div className="px-3 pb-3">
+        <div className="px-1 pb-2 text-[11px] font-semibold tracking-wider text-base-content/50">
+          归档仓库
+        </div>
+
+        <div className="space-y-1">
+          <Link
+            to="/chat/discover"
+            className={`${navItemBase} ${activeItem === "repository-square" ? navItemActive : navItemInactive}`}
+            onClick={onCloseLeftDrawer}
+          >
+            <span className="size-2 rounded-full bg-success opacity-70 group-hover:opacity-100" />
+            广场
+          </Link>
+          <Link
+            to="/chat/discover/my"
+            className={`${navItemBase} ${activeItem === "repository-my" ? navItemActive : navItemInactive}`}
+            onClick={onCloseLeftDrawer}
+          >
+            <span className="size-2 rounded-full bg-primary opacity-70 group-hover:opacity-100" />
+            我的归档
           </Link>
         </div>
       </div>

@@ -1,13 +1,11 @@
 import type { MouseEvent } from "react";
 import type { Room } from "../../../../api";
-import type { SpaceMaterialPackageResponse } from "../../../../api/models/SpaceMaterialPackageResponse";
 import type { MinimalDocMeta, SidebarLeafNode } from "./sidebarTree";
 import type { SidebarTreeContextMenuState } from "./sidebarTreeOverlays";
 import type { DraggingItem, DropTarget } from "./useRoomSidebarDragState";
 
 import RoomSidebarDocItem from "@/components/chat/room/roomSidebarDocItem";
 import RoomSidebarInsertLine from "@/components/chat/room/roomSidebarInsertLine";
-import RoomSidebarMaterialPackageItem from "@/components/chat/room/roomSidebarMaterialPackageItem";
 import RoomSidebarRoomItem from "@/components/chat/room/roomSidebarRoomItem";
 
 interface RoomSidebarCategoryItemsProps {
@@ -27,12 +25,9 @@ interface RoomSidebarCategoryItemsProps {
   docHeaderOverrides: Record<string, { title?: string; imageUrl?: string }>;
   docMetaMap: Map<string, MinimalDocMeta>;
   roomById: Map<number, Room>;
-  materialPackageMap: Map<number, SpaceMaterialPackageResponse>;
   activeSpaceId: number | null;
   activeRoomId: number | null;
   activeDocId?: string | null;
-  expandedTreeState: Record<string, boolean> | null;
-  onToggleTreeExpanded: (key: string) => void;
   unreadMessagesNumber: Record<number, number>;
   onSelectRoom: (roomId: number) => void;
   onSelectDoc?: (docId: string) => void;
@@ -56,12 +51,9 @@ export default function RoomSidebarCategoryItems({
   docHeaderOverrides,
   docMetaMap,
   roomById,
-  materialPackageMap,
   activeSpaceId,
   activeRoomId,
   activeDocId,
-  expandedTreeState,
-  onToggleTreeExpanded,
   unreadMessagesNumber,
   onSelectRoom,
   onSelectDoc,
@@ -119,41 +111,6 @@ export default function RoomSidebarCategoryItems({
                   activeRoomId={activeRoomId}
                   onSelectRoom={onSelectRoom}
                   onCloseLeftDrawer={onCloseLeftDrawer}
-                />
-              </div>
-            );
-          }
-
-          if (node.type === "material-package") {
-            const materialPackageId = typeof node.targetId === "number"
-              ? node.targetId
-              : Number(node.targetId);
-            if (!Number.isFinite(materialPackageId)) {
-              return null;
-            }
-
-            return (
-              <div key={nodeId} className="relative">
-                {showInsertBefore && (
-                  <RoomSidebarInsertLine className="top-0 -translate-y-1/2" />
-                )}
-
-                <RoomSidebarMaterialPackageItem
-                  nodeId={nodeId}
-                  categoryId={categoryId}
-                  index={index}
-                  canEdit={canEdit}
-                  dragging={dragging}
-                  resetDropHandled={resetDropHandled}
-                  setDragging={setDragging}
-                  setDropTarget={setDropTarget}
-                  handleDrop={handleDrop}
-                  materialPackageId={materialPackageId}
-                  materialPackage={materialPackageMap.get(materialPackageId)}
-                  fallbackTitle={node.fallbackTitle}
-                  fallbackImageUrl={node.fallbackImageUrl}
-                  expandedState={expandedTreeState}
-                  onToggleExpanded={onToggleTreeExpanded}
                 />
               </div>
             );

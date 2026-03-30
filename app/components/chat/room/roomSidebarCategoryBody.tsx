@@ -1,6 +1,5 @@
 import type { MouseEvent } from "react";
 import type { Room } from "../../../../api";
-import type { SpaceMaterialPackageResponse } from "../../../../api/models/SpaceMaterialPackageResponse";
 import type { MinimalDocMeta, SidebarLeafNode } from "./sidebarTree";
 import type { SidebarTreeContextMenuState } from "./sidebarTreeOverlays";
 import type { DraggingItem, DropTarget } from "./useRoomSidebarDragState";
@@ -25,12 +24,9 @@ interface RoomSidebarCategoryBodyProps {
   docHeaderOverrides: Record<string, { title?: string; imageUrl?: string }>;
   docMetaMap: Map<string, MinimalDocMeta>;
   roomById: Map<number, Room>;
-  materialPackageMap: Map<number, SpaceMaterialPackageResponse>;
   activeSpaceId: number | null;
   activeRoomId: number | null;
   activeDocId?: string | null;
-  expandedTreeState: Record<string, boolean> | null;
-  onToggleTreeExpanded: (key: string) => void;
   unreadMessagesNumber: Record<number, number>;
   onSelectRoom: (roomId: number) => void;
   onSelectDoc?: (docId: string) => void;
@@ -65,12 +61,9 @@ export default function RoomSidebarCategoryBody({
   docHeaderOverrides,
   docMetaMap,
   roomById,
-  materialPackageMap,
   activeSpaceId,
   activeRoomId,
   activeDocId,
-  expandedTreeState,
-  onToggleTreeExpanded,
   unreadMessagesNumber,
   onSelectRoom,
   onSelectDoc,
@@ -126,12 +119,9 @@ export default function RoomSidebarCategoryBody({
         docHeaderOverrides={docHeaderOverrides}
         docMetaMap={docMetaMap}
         roomById={roomById}
-        materialPackageMap={materialPackageMap}
         activeSpaceId={activeSpaceId}
         activeRoomId={activeRoomId}
         activeDocId={activeDocId}
-        expandedTreeState={expandedTreeState}
-        onToggleTreeExpanded={onToggleTreeExpanded}
         unreadMessagesNumber={unreadMessagesNumber}
         onSelectRoom={onSelectRoom}
         onSelectDoc={onSelectDoc}

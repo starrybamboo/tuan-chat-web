@@ -15,6 +15,7 @@ import { IMPORT_SPECIAL_ROLE_ID } from "@/components/chat/utils/importChatText";
 import { buildOutOfCharacterSpeechContent } from "@/components/chat/utils/outOfCharacterSpeech";
 import UTILS from "@/components/common/dicer/utils/utils";
 import { setFigurePositionAnnotation } from "@/types/messageAnnotations";
+import { buildChatMessageRequestFromDraft } from "@/types/messageDraft";
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
 
 import type { ChatMessageRequest, ChatMessageResponse } from "../../../../api";
@@ -347,9 +348,11 @@ export default function useRoomImportActions({
 
       for (const materialMessage of messages) {
         const explicitRoleId = Number(materialMessage.roleId);
+        const hasExplicitNarratorRoleId = Number.isFinite(explicitRoleId) && explicitRoleId < 0;
+        const hasExplicitPositiveRoleId = Number.isFinite(explicitRoleId) && explicitRoleId > 0;
         const roleId = notMember
           ? -1
-          : (Number.isFinite(explicitRoleId) && explicitRoleId > 0 ? explicitRoleId : curRoleId);
+          : ((hasExplicitPositiveRoleId || hasExplicitNarratorRoleId) ? explicitRoleId : curRoleId);
         const avatarId = roleId > 0
           ? (typeof materialMessage.avatarId === "number" && materialMessage.avatarId > 0
               ? materialMessage.avatarId
@@ -361,34 +364,18 @@ export default function useRoomImportActions({
           return;
         }
 
-        const request: ChatMessageRequest = {
-          roomId,
-          roleId,
-          avatarId,
-          content: materialMessage.content ?? "",
-          messageType: materialMessage.messageType ?? MessageType.TEXT,
-          extra: materialMessage.extra ?? {},
-        };
-
-        if (Array.isArray(materialMessage.annotations) && materialMessage.annotations.length > 0) {
-          request.annotations = [...materialMessage.annotations];
-        }
-        if (materialMessage.webgal && typeof materialMessage.webgal === "object") {
-          request.webgal = materialMessage.webgal;
-        }
-
         const customRoleName = typeof materialMessage.customRoleName === "string"
           ? materialMessage.customRoleName.trim()
           : "";
-        if (customRoleName) {
-          request.customRoleName = customRoleName;
-        }
-        else if (roleId > 0) {
-          const draftCustomRoleName = draftCustomRoleNameMap[roleId];
-          if (draftCustomRoleName?.trim()) {
-            request.customRoleName = draftCustomRoleName.trim();
-          }
-        }
+        const fallbackCustomRoleName = roleId > 0
+          ? draftCustomRoleNameMap[roleId]?.trim()
+          : undefined;
+        const request = buildChatMessageRequestFromDraft(materialMessage, {
+          roomId,
+          roleId,
+          avatarId,
+          customRoleName: customRoleName || fallbackCustomRoleName,
+        });
 
         if (composerTarget === "thread" && threadRootMessageId) {
           request.threadId = threadRootMessageId;
@@ -396,6 +383,10 @@ export default function useRoomImportActions({
 
         await sendMessageWithInsert(request);
       }
+    }
+    catch (error) {
+      const message = error instanceof Error ? error.message : "发送素材失败";
+      toast.error(message);
     }
     finally {
       roomUiStoreApi.getState().setInsertAfterMessageId(prevInsertAfter);

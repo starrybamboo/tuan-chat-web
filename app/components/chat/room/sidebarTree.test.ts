@@ -1,45 +1,78 @@
 import { describe, expect, it } from "vitest";
 
-import { MATERIALS_CATEGORY_ID, buildDefaultSidebarTree, normalizeSidebarTree } from "./sidebarTree";
+import { buildDefaultSidebarTree, normalizeSidebarTree } from "./sidebarTree";
 
 describe("sidebarTree", () => {
-  it("buildDefaultSidebarTree 会为局内素材包生成默认分类", () => {
+  it("buildDefaultSidebarTree 默认只生成频道分类", () => {
     const tree = buildDefaultSidebarTree({
       roomsInSpace: [
         { roomId: 11, name: "大厅" } as any,
       ],
       docMetas: [],
       includeDocs: false,
-      materialPackages: [
-        { id: 101, title: "角色设定集", imageUrl: "https://example.com/a.png" },
-        { id: 102, title: "场景参考" },
-      ],
     });
 
-    expect(tree.categories.map(category => category.categoryId)).toContain(MATERIALS_CATEGORY_ID);
-    const materialCategory = tree.categories.find(category => category.categoryId === MATERIALS_CATEGORY_ID);
-    expect(materialCategory?.items.map(item => item.nodeId)).toEqual([
-      "material-package:101",
-      "material-package:102",
+    expect(tree.categories.map(category => category.categoryId)).toEqual(["cat:channels"]);
+    expect(tree.categories[0]?.items[0]).toMatchObject({
+      nodeId: "room:11",
+      type: "room",
+      targetId: 11,
+    });
+  });
+
+  it("buildDefaultSidebarTree 在可见文档场景下保留文档分类", () => {
+    const tree = buildDefaultSidebarTree({
+      roomsInSpace: [
+        { roomId: 11, name: "大厅" } as any,
+      ],
+      docMetas: [
+        { id: "sdoc:22:description", title: "设定集" },
+      ],
+      includeDocs: true,
+    });
+
+    expect(tree.categories.map(category => category.categoryId)).toEqual(["cat:channels", "cat:docs"]);
+    expect(tree.categories[1]?.items[0]).toMatchObject({
+      nodeId: "doc:sdoc:22:description",
+      type: "doc",
+      targetId: "sdoc:22:description",
+    });
+  });
+
+  it("normalizeSidebarTree 会过滤遗留的素材包分类", () => {
+    const tree = normalizeSidebarTree({
+      tree: {
+        schemaVersion: 2,
+        categories: [
+          {
+            categoryId: "cat:materials",
+            name: "素材包",
+            items: [
+              {
+                nodeId: "material-package:201",
+                type: "material-package",
+                targetId: 201,
+                fallbackTitle: "角色卡",
+              },
+            ],
+          },
+        ],
+      } as any,
+      roomsInSpace: [],
+      docMetas: [],
+      includeDocs: false,
+    });
+
+    expect(tree.categories).toEqual([
+      {
+        categoryId: "cat:channels",
+        name: "频道",
+        items: [],
+      },
     ]);
   });
 
-  it("buildDefaultSidebarTree 在没有素材包时也会保留空的素材包分类", () => {
-    const tree = buildDefaultSidebarTree({
-      roomsInSpace: [
-        { roomId: 11, name: "大厅" } as any,
-      ],
-      docMetas: [],
-      includeDocs: false,
-      materialPackages: [],
-    });
-
-    const materialCategory = tree.categories.find(category => category.categoryId === MATERIALS_CATEGORY_ID);
-    expect(materialCategory).toBeTruthy();
-    expect(materialCategory?.items).toEqual([]);
-  });
-
-  it("normalizeSidebarTree 会自动补齐缺失的素材包节点", () => {
+  it("normalizeSidebarTree 会过滤遗留的素材包节点但保留其他分类", () => {
     const tree = normalizeSidebarTree({
       tree: {
         schemaVersion: 2,
@@ -54,39 +87,6 @@ describe("sidebarTree", () => {
                 targetId: 11,
                 fallbackTitle: "大厅",
               },
-            ],
-          },
-        ],
-      },
-      roomsInSpace: [
-        { roomId: 11, name: "大厅" } as any,
-      ],
-      docMetas: [],
-      includeDocs: false,
-      materialPackages: [
-        { id: 201, title: "角色卡" },
-      ],
-    });
-
-    const materialCategory = tree.categories.find(category => category.categoryId === MATERIALS_CATEGORY_ID);
-    expect(materialCategory?.items).toHaveLength(1);
-    expect(materialCategory?.items[0]).toMatchObject({
-      nodeId: "material-package:201",
-      type: "material-package",
-      targetId: 201,
-      fallbackTitle: "角色卡",
-    });
-  });
-
-  it("normalizeSidebarTree 会过滤已失效的素材包节点", () => {
-    const tree = normalizeSidebarTree({
-      tree: {
-        schemaVersion: 2,
-        categories: [
-          {
-            categoryId: MATERIALS_CATEGORY_ID,
-            name: "素材包",
-            items: [
               {
                 nodeId: "material-package:301",
                 type: "material-package",
@@ -96,14 +96,22 @@ describe("sidebarTree", () => {
             ],
           },
         ],
-      },
-      roomsInSpace: [],
+      } as any,
+      roomsInSpace: [
+        { roomId: 11, name: "大厅" } as any,
+      ],
       docMetas: [],
       includeDocs: false,
-      materialPackages: [],
     });
 
     expect(tree.categories).toHaveLength(1);
-    expect(tree.categories[0]?.items).toHaveLength(0);
+    expect(tree.categories[0]?.items).toEqual([
+      {
+        nodeId: "room:11",
+        type: "room",
+        targetId: 11,
+        fallbackTitle: "大厅",
+      },
+    ]);
   });
 });

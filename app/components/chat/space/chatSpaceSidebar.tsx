@@ -131,7 +131,7 @@ export default function ChatSpaceSidebar({
           />
           <PortalTooltip label="发现" placement="right">
             <Link
-              to="/chat/discover"
+              to="/chat/discover/material"
               className={`w-10 btn btn-square ${isDiscoverMode ? "text-info" : ""}`}
               aria-label="发现"
               aria-current={isDiscoverMode ? "page" : undefined}

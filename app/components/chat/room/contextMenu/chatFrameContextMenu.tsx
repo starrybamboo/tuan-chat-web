@@ -9,6 +9,7 @@ import { useRoomUiStore } from "@/components/chat/stores/roomUiStore";
 import { useSideDrawerStore } from "@/components/chat/stores/sideDrawerStore";
 import { copyDocToSpaceDoc, copyDocToSpaceUserDoc } from "@/components/chat/utils/docCopy";
 import { useGlobalContext } from "@/components/globalContextProvider";
+import { buildChatMessageRequestFromDraft } from "@/types/messageDraft";
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
 import { useSendMessageMutation } from "../../../../../api/hooks/chatQueryHooks";
 import { tuanchat } from "../../../../../api/instance";
@@ -356,16 +357,20 @@ export default function ChatFrameContextMenu({
     // 不弹窗输入标题：默认使用原消息内容截断（不加“Thread:”前缀）
     const raw = (selected.content ?? "").trim();
     const title = raw ? raw.slice(0, 20) : "子区";
-    const threadRootRequest = {
-      roomId,
+    const threadRootRequest = buildChatMessageRequestFromDraft({
       messageType: MESSAGE_TYPE.THREAD_ROOT,
-      roleId: roomContext.curRoleId,
-      avatarId: roomContext.curAvatarId,
       content: title,
-      // 复用 replayMessageId 作为 threadParentMessageId：该子区挂到哪条原消息上
+      extra: {
+        threadRoot: {
+          title,
+        },
+      },
+    } as any, {
+      roomId,
+      roleId: roomContext.curRoleId ?? undefined,
+      avatarId: roomContext.curAvatarId ?? undefined,
       replayMessageId: selected.messageId,
-      extra: { title },
-    };
+    });
 
     if (roomContext.sendMessageWithInsert) {
       void (async () => {

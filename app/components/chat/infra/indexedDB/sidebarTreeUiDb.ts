@@ -1,6 +1,7 @@
-type SidebarTreeExpandedState = {
+type SidebarExpandedState = {
   key: string;
-  expandedByCategoryId: Record<string, boolean>;
+  expandedByKey?: Record<string, boolean>;
+  expandedByCategoryId?: Record<string, boolean>;
   updatedAt: number;
 };
 
@@ -24,14 +25,16 @@ function openUiDb(): Promise<IDBDatabase> {
   });
 }
 
-function buildKey(params: { userId: number | null | undefined; spaceId: number }): string {
+function buildKey(params: { userId: number | null | undefined; spaceId: number; scope?: string }): string {
   const userSeg = typeof params.userId === "number" && Number.isFinite(params.userId) ? String(params.userId) : "anon";
-  return `${userSeg}:${params.spaceId}`;
+  const scopeSeg = params.scope?.trim() || "room-doc-tree";
+  return `${userSeg}:${params.spaceId}:${scopeSeg}`;
 }
 
-export async function getSidebarTreeExpandedByCategoryId(params: {
+export async function getSidebarExpandedMap(params: {
   userId: number | null | undefined;
   spaceId: number;
+  scope: string;
 }): Promise<Record<string, boolean> | null> {
   const db = await openUiDb();
   const tx = db.transaction(STORE_NAME, "readonly");
@@ -41,18 +44,19 @@ export async function getSidebarTreeExpandedByCategoryId(params: {
 
   return new Promise((resolve, reject) => {
     request.onsuccess = () => {
-      const row = request.result as SidebarTreeExpandedState | undefined;
-      resolve(row?.expandedByCategoryId ?? null);
+      const row = request.result as SidebarExpandedState | undefined;
+      resolve(row?.expandedByKey ?? row?.expandedByCategoryId ?? null);
     };
     request.onerror = () => reject(request.error);
     tx.oncomplete = () => db.close();
   });
 }
 
-export async function setSidebarTreeExpandedByCategoryId(params: {
+export async function setSidebarExpandedMap(params: {
   userId: number | null | undefined;
   spaceId: number;
-  expandedByCategoryId: Record<string, boolean>;
+  scope: string;
+  expandedByKey: Record<string, boolean>;
 }): Promise<void> {
   const db = await openUiDb();
   const tx = db.transaction(STORE_NAME, "readwrite");
@@ -61,9 +65,10 @@ export async function setSidebarTreeExpandedByCategoryId(params: {
 
   store.put({
     key,
-    expandedByCategoryId: params.expandedByCategoryId,
+    expandedByKey: params.expandedByKey,
+    expandedByCategoryId: params.expandedByKey,
     updatedAt: Date.now(),
-  } satisfies SidebarTreeExpandedState);
+  } satisfies SidebarExpandedState);
 
   return new Promise((resolve, reject) => {
     tx.oncomplete = () => {
@@ -74,5 +79,27 @@ export async function setSidebarTreeExpandedByCategoryId(params: {
       db.close();
       reject(tx.error);
     };
+  });
+}
+
+export async function getSidebarTreeExpandedByCategoryId(params: {
+  userId: number | null | undefined;
+  spaceId: number;
+}): Promise<Record<string, boolean> | null> {
+  return getSidebarExpandedMap({
+    ...params,
+    scope: "room-doc-tree",
+  });
+}
+
+export async function setSidebarTreeExpandedByCategoryId(params: {
+  userId: number | null | undefined;
+  spaceId: number;
+  expandedByCategoryId: Record<string, boolean>;
+}): Promise<void> {
+  return setSidebarExpandedMap({
+    ...params,
+    scope: "room-doc-tree",
+    expandedByKey: params.expandedByCategoryId,
   });
 }

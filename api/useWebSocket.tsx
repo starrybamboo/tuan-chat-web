@@ -33,6 +33,7 @@ import { MessageType } from "./wsModels";
 import { requestPlayBgmMessageWithUrl } from "@/components/chat/infra/audioMessage/audioMessageBgmCoordinator";
 import { useAudioMessageAutoPlayStore } from "@/components/chat/stores/audioMessageAutoPlayStore";
 import { applyRoomDndMapChange, roomDndMapQueryKey } from "@/components/chat/shared/map/roomDndMapApi";
+import { getSoundMessageExtra } from "@/types/messageExtra";
 import {
   readFeedbackDesktopEnabledFromLocalStorage,
   readFeedbackInAppEnabledFromLocalStorage,
@@ -1328,7 +1329,7 @@ export function useWebSocket() {
 
         // (1) SOUND 自动播放：根据 purpose/标注/标签识别 bgm 或 se
         if (m.messageType === MessageType.SOUND) {
-          const sound = (m.extra as any)?.soundMessage ?? (m.extra as any);
+          const sound = getSoundMessageExtra(m.extra);
           const url = typeof sound?.url === "string" ? sound.url.trim() : "";
           if (url && typeof m.messageId === "number") {
             const rawPurpose = typeof sound?.purpose === "string"

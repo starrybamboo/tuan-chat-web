@@ -1,11 +1,15 @@
 import type { MaterialPackageResponse } from "../../../../api/models/MaterialPackageResponse";
+import type { SpaceMaterialPackageResponse } from "../../../../api/models/SpaceMaterialPackageResponse";
 import { useMemo, useState } from "react";
+import toast from "react-hot-toast";
 import { useImportSpaceMaterialPackageMutation, useMyMaterialPackagesQuery, usePublicMaterialPackagesQuery } from "../../../../api/hooks/materialPackageQueryHooks";
+import { buildMaterialPackageImportSuccessMessage, getMaterialPackageDisplayName } from "./materialPackageImportFeedback";
 
 type MaterialPackageImportModalProps = {
   isOpen: boolean;
   spaceId: number;
   onClose: () => void;
+  onImported?: (materialPackage: SpaceMaterialPackageResponse) => void;
 };
 
 type SourceTab = "my" | "public";
@@ -24,7 +28,7 @@ function PackageSourceCard({
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 space-y-2">
           <div className="flex items-center gap-2">
-            <div className="font-medium truncate">{item.name || "未命名素材包"}</div>
+            <div className="font-medium truncate">{getMaterialPackageDisplayName(item.name)}</div>
             {item.isPublic ? <span className="badge badge-primary badge-outline">公开</span> : <span className="badge badge-outline">私有</span>}
           </div>
           {item.description && <div className="text-sm opacity-70 whitespace-pre-wrap">{item.description}</div>}
@@ -52,6 +56,7 @@ export default function MaterialPackageImportModal({
   isOpen,
   spaceId,
   onClose,
+  onImported,
 }: MaterialPackageImportModalProps) {
   const [activeTab, setActiveTab] = useState<SourceTab>("my");
   const [keyword, setKeyword] = useState("");
@@ -130,7 +135,12 @@ export default function MaterialPackageImportModal({
                   importMutation.mutate(
                     { spaceId, packageId },
                     {
-                      onSuccess: () => {
+                      onSuccess: (result) => {
+                        const importedPackage = result.data;
+                        toast.success(buildMaterialPackageImportSuccessMessage(importedPackage?.name ?? item.name));
+                        if (importedPackage) {
+                          onImported?.(importedPackage);
+                        }
                         onClose();
                       },
                     },

@@ -6,6 +6,7 @@ import { SpaceContext } from "@/components/chat/core/spaceContext";
 import UTILS from "@/components/common/dicer/utils/utils";
 import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
 import { useGlobalContext } from "@/components/globalContextProvider";
+import { buildMessageExtraForRequest } from "@/types/messageDraft";
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
 import { useSendMessageMutation } from "../../../../../api/hooks/chatQueryHooks";
 import { useGetRolesAbilitiesQueries, useUpdateRoleAbilityByRoleIdMutation } from "../../../../../api/hooks/abilityQueryHooks";
@@ -520,7 +521,7 @@ export default function InitiativeList() {
         roleId: dicerRoleId,
         messageType: MESSAGE_TYPE.DICE,
         content: result,
-        extra: { result },
+        extra: buildMessageExtraForRequest(MESSAGE_TYPE.DICE, { diceResult: { result } }),
       });
     }
     catch (e) {
@@ -839,7 +840,7 @@ export default function InitiativeList() {
         roleId: dicerRoleId,
         messageType: MESSAGE_TYPE.DICE,
         content: result,
-        extra: { result },
+        extra: buildMessageExtraForRequest(MESSAGE_TYPE.DICE, { diceResult: { result } }),
       });
     }
     catch (e) {

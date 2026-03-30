@@ -1,11 +1,10 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-
-import { getSidebarTreeExpandedByCategoryId, setSidebarTreeExpandedByCategoryId } from "@/components/chat/infra/indexedDB/sidebarTreeUiDb";
+import { useEffect, useMemo, useState } from "react";
 
 import type { Room } from "../../../../api";
-import type { MinimalDocMeta, MinimalMaterialPackageMeta, SidebarTree } from "./sidebarTree";
+import type { MinimalDocMeta, SidebarTree } from "./sidebarTree";
 
 import { normalizeSidebarTree } from "./sidebarTree";
+import usePersistedSidebarExpandedState from "./usePersistedSidebarExpandedState";
 
 type UseRoomSidebarTreeStateParams = {
   activeSpaceId: number | null;
@@ -16,8 +15,6 @@ type UseRoomSidebarTreeStateParams = {
   fallbackTextRooms: Room[];
   visibleDocMetas: MinimalDocMeta[];
   includeDocs: boolean;
-  materialPackages?: MinimalMaterialPackageMeta[];
-  extraExpandableKeys?: string[];
 };
 
 type UseRoomSidebarTreeStateResult = {
@@ -82,8 +79,6 @@ export default function useRoomSidebarTreeState({
   fallbackTextRooms,
   visibleDocMetas,
   includeDocs,
-  materialPackages,
-  extraExpandableKeys,
 }: UseRoomSidebarTreeStateParams): UseRoomSidebarTreeStateResult {
   const displayTree = useMemo(() => {
     return normalizeSidebarTree({
@@ -91,13 +86,10 @@ export default function useRoomSidebarTreeState({
       roomsInSpace: fallbackTextRooms,
       docMetas: visibleDocMetas,
       includeDocs,
-      materialPackages,
     });
-  }, [fallbackTextRooms, includeDocs, materialPackages, sidebarTree, visibleDocMetas]);
+  }, [fallbackTextRooms, includeDocs, sidebarTree, visibleDocMetas]);
 
   const [localTree, setLocalTree] = useState<SidebarTree | null>(null);
-  const [expandedByCategoryId, setExpandedByCategoryId] = useState<Record<string, boolean> | null>(null);
-  const lastSpaceIdRef = useRef<number | null>(null);
 
   useEffect(() => {
     if (!canEdit) {
@@ -115,74 +107,19 @@ export default function useRoomSidebarTreeState({
     });
   }, [canEdit, displayTree, isDragging]);
 
-  useEffect(() => {
-    if (activeSpaceId == null || !Number.isFinite(activeSpaceId) || activeSpaceId <= 0) {
-      setExpandedByCategoryId(null);
-      lastSpaceIdRef.current = activeSpaceId;
-      return;
-    }
-
-    if (activeSpaceId !== lastSpaceIdRef.current) {
-      lastSpaceIdRef.current = activeSpaceId;
-      setExpandedByCategoryId(null);
-      getSidebarTreeExpandedByCategoryId({ userId: currentUserId, spaceId: activeSpaceId })
-        .then((val) => {
-          setExpandedByCategoryId(prev => prev ?? (val ?? {}));
-        })
-        .catch(() => {
-          setExpandedByCategoryId({});
-        });
-    }
-  }, [activeSpaceId, canEdit, currentUserId, displayTree]);
-
-  useEffect(() => {
-    if (activeSpaceId == null || !Number.isFinite(activeSpaceId) || activeSpaceId <= 0) {
-      return;
-    }
-    if (!expandedByCategoryId) {
-      return;
-    }
-    const next: Record<string, boolean> = {};
-    const categoriesInView = (canEdit ? (localTree ?? displayTree) : displayTree).categories;
-    const validKeys = new Set<string>([
-      ...categoriesInView.map(category => category.categoryId),
-      ...(extraExpandableKeys ?? []),
-    ]);
-    for (const c of categoriesInView) {
-      if (expandedByCategoryId[c.categoryId]) {
-        next[c.categoryId] = true;
-      }
-    }
-    for (const key of extraExpandableKeys ?? []) {
-      if (expandedByCategoryId[key] && validKeys.has(key)) {
-        next[key] = true;
-      }
-    }
-    const prevKeySignature = Object.keys(expandedByCategoryId).sort().join("|");
-    const nextKeySignature = Object.keys(next).sort().join("|");
-    if (prevKeySignature !== nextKeySignature) {
-      setExpandedByCategoryId(next);
-      setSidebarTreeExpandedByCategoryId({ userId: currentUserId, spaceId: activeSpaceId, expandedByCategoryId: next }).catch(() => {
-        // ignore
-      });
-    }
-  }, [activeSpaceId, canEdit, currentUserId, displayTree, expandedByCategoryId, extraExpandableKeys, localTree]);
-
-  const toggleCategoryExpanded = useCallback((categoryId: string) => {
-    if (activeSpaceId == null || !Number.isFinite(activeSpaceId) || activeSpaceId <= 0) {
-      return;
-    }
-    setExpandedByCategoryId((prev) => {
-      const base = prev ?? {};
-      const next = { ...base, [categoryId]: !base[categoryId] };
-      setSidebarTreeExpandedByCategoryId({ userId: currentUserId, spaceId: activeSpaceId, expandedByCategoryId: next }).catch(() => {
-        // ignore
-      });
-      return next;
-    });
-  }, [activeSpaceId, currentUserId]);
-
   const treeToRender = canEdit ? (localTree ?? displayTree) : displayTree;
+  const validCategoryKeys = useMemo(() => {
+    return treeToRender.categories.map(category => category.categoryId);
+  }, [treeToRender]);
+  const {
+    expandedByKey: expandedByCategoryId,
+    toggleExpanded: toggleCategoryExpanded,
+  } = usePersistedSidebarExpandedState({
+    activeSpaceId,
+    currentUserId,
+    storageScope: "room-doc-tree",
+    validKeys: validCategoryKeys,
+  });
 
   return {
     treeToRender,

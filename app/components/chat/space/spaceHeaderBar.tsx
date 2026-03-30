@@ -1,4 +1,4 @@
-import type { SpaceDetailTab } from "@/components/chat/chatPage.types";
+import type { OpenSpaceDetailPanelOptions, SpaceDetailTab } from "@/components/chat/chatPage.types";
 import { AddressBookIcon, ArchiveIcon, ArrowCounterClockwise, HouseIcon, PackageIcon, PlusIcon } from "@phosphor-icons/react";
 import React from "react";
 import toast from "react-hot-toast";
@@ -11,7 +11,7 @@ interface SpaceHeaderBarProps {
   spaceName?: string;
   isArchived?: boolean;
   isSpaceOwner: boolean;
-  onOpenSpaceDetailPanel: (tab: SpaceDetailTab) => void;
+  onOpenSpaceDetailPanel: (tab: SpaceDetailTab, options?: OpenSpaceDetailPanelOptions) => void;
   onCloseLeftDrawer?: () => void;
   onAddCategory?: () => void;
   onResetSidebarTreeToDefault?: () => void | Promise<void>;

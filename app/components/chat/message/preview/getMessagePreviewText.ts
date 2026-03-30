@@ -1,5 +1,14 @@
 import { extractRoomJumpPayload } from "@/components/chat/utils/roomJump";
 import { ANNOTATION_IDS, getSceneEffectFromAnnotations, getSceneEffectLabel, hasAnnotation } from "@/types/messageAnnotations";
+import {
+  getCommandRequestExtra,
+  getDocCardExtra,
+  getFileMessageExtra,
+  getImageMessageExtra,
+  getSoundMessageExtra,
+  getThreadRootExtra,
+  getVideoMessageExtra,
+} from "@/types/messageExtra";
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
 import { extractWebgalChoosePayload, formatWebgalChooseSummary } from "@/types/webgalChoose";
 
@@ -47,10 +56,9 @@ export function getMessagePreviewText(message?: Message | null): string {
     return "[原消息已被删除]";
   }
 
-  const extra: any = message.extra as any;
   const content = typeof message.content === "string" ? message.content : "";
   const trimmedContent = content.trim();
-  const roomJumpPayload = extractRoomJumpPayload(extra);
+  const roomJumpPayload = extractRoomJumpPayload(message.extra);
   if (roomJumpPayload) {
     const title = safeTrim(roomJumpPayload.label)
       || safeTrim(roomJumpPayload.roomName)
@@ -65,7 +73,7 @@ export function getMessagePreviewText(message?: Message | null): string {
     case MESSAGE_TYPE.SYSTEM:
       return content || "[系统消息]";
     case MESSAGE_TYPE.IMG: {
-      const imageMessage = extra?.imageMessage ?? extra;
+      const imageMessage = getImageMessageExtra(message.extra);
       // 预览不区分“背景/图片”；背景语义属于演出标记（annotation/extra），不需要在引用预览中透出。
       const tag = "图片";
       const fileName = safeTrim(imageMessage?.fileName);
@@ -74,17 +82,17 @@ export function getMessagePreviewText(message?: Message | null): string {
       return withTag(tag, label);
     }
     case MESSAGE_TYPE.FILE: {
-      const fileMessage = extra?.fileMessage ?? extra;
+      const fileMessage = getFileMessageExtra(message.extra);
       const fileName = safeTrim(fileMessage?.fileName) || trimmedContent || "文件";
       return withTag("文件", fileName);
     }
     case MESSAGE_TYPE.VIDEO: {
-      const videoMessage = extra?.videoMessage ?? extra?.fileMessage ?? extra;
+      const videoMessage = getVideoMessageExtra(message.extra);
       const fileName = safeTrim(videoMessage?.fileName) || trimmedContent || "视频";
       return withTag("视频", fileName);
     }
     case MESSAGE_TYPE.SOUND: {
-      const soundMessage = extra?.soundMessage ?? extra;
+      const soundMessage = getSoundMessageExtra(message.extra);
       const fileName = safeTrim(soundMessage?.fileName) || trimmedContent;
       const purpose = safeTrim(soundMessage?.purpose).toLowerCase();
       const tag = purpose === "bgm" ? "BGM" : "语音";
@@ -100,12 +108,12 @@ export function getMessagePreviewText(message?: Message | null): string {
       return withTag("特效", effectLabel);
     }
     case MESSAGE_TYPE.FORWARD: {
-      const list = extra?.forwardMessage?.messageList;
+      const list = message.extra?.forwardMessage?.messageList;
       const count = Array.isArray(list) ? list.length : 0;
       return withTag("转发", count > 0 ? `${count}条消息` : "");
     }
     case MESSAGE_TYPE.DICE: {
-      const result = safeTrim(extra?.diceResult?.result) || trimmedContent;
+      const result = safeTrim(message.extra?.diceResult?.result) || trimmedContent;
       return withTag("骰娘", result);
     }
     case MESSAGE_TYPE.WEBGAL_COMMAND: {
@@ -119,23 +127,23 @@ export function getMessagePreviewText(message?: Message | null): string {
       return withTag("选择", summary);
     }
     case MESSAGE_TYPE.COMMAND_REQUEST: {
-      const commandText = safeTrim(extra?.commandRequest?.command) || trimmedContent || "[空指令]";
+      const commandText = safeTrim(getCommandRequestExtra(message.extra)?.command) || trimmedContent || "[空指令]";
       return withTag("检定请求", commandText);
     }
     case MESSAGE_TYPE.CLUE_CARD: {
-      const name = safeTrim(extra?.clueMessage?.name) || trimmedContent || "线索";
+      const name = safeTrim(message.extra?.clueMessage?.name) || trimmedContent || "线索";
       return withTag("线索", name);
     }
     case MESSAGE_TYPE.DOC_CARD: {
-      const raw = extra?.docCard ?? extra ?? null;
-      const title = safeTrim(raw?.title);
-      const docId = safeTrim(raw?.docId);
+      const docCard = getDocCardExtra(message.extra);
+      const title = safeTrim(docCard?.title);
+      const docId = safeTrim(docCard?.docId);
       return withTag("文档", title || docId || "文档");
     }
     case MESSAGE_TYPE.ROOM_JUMP:
       return withTag("群聊", trimmedContent || "群聊跳转");
     case MESSAGE_TYPE.THREAD_ROOT: {
-      const title = safeTrim(extra?.title) || trimmedContent || "子区";
+      const title = safeTrim(getThreadRootExtra(message.extra)?.title) || trimmedContent || "子区";
       return withTag("子区", title);
     }
     case MESSAGE_TYPE.READ_LINE:

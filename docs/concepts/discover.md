@@ -9,12 +9,12 @@
 - `DiscoverPage` 负责布局，最左侧展示 `ChatSpaceSidebar`（空间列表），左侧导航为 `ChatDiscoverNavPanel`。
 - 仓库发现主内容为 `DiscoverArchivedSpacesView`。
 - 素材发现主内容复用 `MaterialLibraryPage` 的内容区与编辑能力；在 discover 内嵌场景下不再重复显示独立素材侧栏。
-- `ChatSpaceSidebar` 内的发现入口指向 `/chat/discover`。
+- `ChatSpaceSidebar` 内的发现入口默认指向 `/chat/discover/material`，进入 discover 时优先进素材广场。
 - `ChatDiscoverNavPanel` 当前包含四个子入口：
-  - 归档仓库 / 广场
-  - 归档仓库 / 我的归档
   - 局外素材 / 素材广场
   - 局外素材 / 我的素材包
+  - 归档仓库 / 广场
+  - 归档仓库 / 我的归档
 
 ### Data Sources & Semantics
 - Square: query `repositoryController.page()` (pageSize=60) and only show root repositories (`rootRepositoryId === repositoryId` or no `parentRepositoryId`).

@@ -3,7 +3,7 @@ import type { Dispatch, SetStateAction } from "react";
 import { useCallback } from "react";
 import toast from "react-hot-toast";
 
-import type { MinimalDocMeta, MinimalMaterialPackageMeta, SidebarLeafNode, SidebarTree } from "@/components/chat/room/sidebarTree";
+import type { MinimalDocMeta, SidebarLeafNode, SidebarTree } from "@/components/chat/room/sidebarTree";
 
 import { buildSpaceDocId } from "@/components/chat/infra/blocksuite/space/spaceDocId";
 import { buildDefaultSidebarTree } from "@/components/chat/room/sidebarTree";
@@ -18,7 +18,6 @@ type UseSpaceSidebarTreeActionsParams = {
   isKPInSpace: boolean;
   docMetasFromSidebarTree: MinimalDocMeta[];
   spaceDocMetas: MinimalDocMeta[] | null;
-  materialPackages: MinimalMaterialPackageMeta[];
   mergeDocMetas: (...sources: Array<MinimalDocMeta[] | null | undefined>) => MinimalDocMeta[];
   loadSpaceDocMetas: () => Promise<MinimalDocMeta[]>;
   setSpaceDocMetas: Dispatch<SetStateAction<MinimalDocMeta[] | null>>;
@@ -33,7 +32,6 @@ export default function useSpaceSidebarTreeActions({
   isKPInSpace,
   docMetasFromSidebarTree,
   spaceDocMetas,
-  materialPackages,
   mergeDocMetas,
   loadSpaceDocMetas,
   setSpaceDocMetas,
@@ -45,9 +43,8 @@ export default function useSpaceSidebarTreeActions({
       roomsInSpace: rooms.filter(r => r.spaceId === activeSpaceId),
       docMetas,
       includeDocs: true,
-      materialPackages,
     });
-  }, [activeSpaceId, materialPackages, rooms, sidebarTree]);
+  }, [activeSpaceId, rooms, sidebarTree]);
 
   const appendNodeToCategory = useCallback((params: {
     tree: SidebarTree;
@@ -86,7 +83,6 @@ export default function useSpaceSidebarTreeActions({
       roomsInSpace: rooms.filter(r => r.spaceId === activeSpaceId),
       docMetas,
       includeDocs: isKPInSpace,
-      materialPackages,
     });
 
     saveSidebarTree(defaultTree);
@@ -100,7 +96,6 @@ export default function useSpaceSidebarTreeActions({
     saveSidebarTree,
     setSpaceDocMetas,
     spaceDocMetas,
-    materialPackages,
   ]);
 
   const requestCreateDocInCategory = useCallback(async (categoryId: string, titleOverride?: string) => {

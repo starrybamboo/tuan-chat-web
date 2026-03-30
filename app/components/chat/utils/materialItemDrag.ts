@@ -1,4 +1,4 @@
-import type { MaterialMessageItem } from "../../../../api/models/MaterialMessageItem";
+import type { MessageDraft } from "@/types/messageDraft";
 
 const MATERIAL_ITEM_MIME = "application/x-tc-material-item";
 const MATERIAL_ITEM_FALLBACK_PREFIX = "tc-material-item:";
@@ -12,7 +12,7 @@ export type MaterialItemDragPayload = {
   materialName: string;
   messageCount: number;
   assetIndex?: number;
-  messages: MaterialMessageItem[];
+  messages: MessageDraft[];
 };
 
 function createRegistryKey(): string {

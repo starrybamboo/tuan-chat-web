@@ -7,6 +7,7 @@ import { getNextAppendPosition } from "@/components/chat/shared/messageOrder";
 import { initAliasMapOnce, RULES } from "@/components/common/dicer/aliasRegistry";
 import executorPublic from "@/components/common/dicer/cmdExe/cmdExePublic";
 import UTILS from "@/components/common/dicer/utils/utils";
+import { buildMessageExtraForRequest } from "@/types/messageDraft";
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
 import {
   useSetRoleAbilityMutation,
@@ -226,7 +227,6 @@ export default function useCommandExecutor(roleId: number, ruleId: number, roomC
   const DICE_BATCH_POSITION_STEP = 0.0001;
   const optimisticMessageIdRef = useRef(-1);
   const lastPrewarmKeyRef = useRef<string>("");
-
 
   useEffect(() => {
     const normalizedSpaceId = Number(roomContext.spaceId ?? 0);
@@ -540,7 +540,7 @@ export default function useCommandExecutor(roleId: number, ruleId: number, roomC
       threadId: executorProp.threadId,
       replayMessageId: executorProp.replyMessageId,
       position: commandAnchorPosition,
-      extra: { result: originDiceContent },
+      extra: buildMessageExtraForRequest(MESSAGE_TYPE.DICE, { diceResult: { result: originDiceContent } }),
     };
     const pendingOptimisticCommandMessage = originDiceContent
       ? createOptimisticCommandMessage(commandDiceRequest)
@@ -755,7 +755,7 @@ export default function useCommandExecutor(roleId: number, ruleId: number, roomC
           threadId: executorProp.threadId,
           replayMessageId: optimisticReplyMessageId,
           content: "",
-          extra: { result: "" },
+          extra: {},
         };
         for (let index = 0; index < dicerMessageQueue.length; index++) {
           const message = dicerMessageQueue[index];
@@ -765,7 +765,7 @@ export default function useCommandExecutor(roleId: number, ruleId: number, roomC
           pendingOptimisticDicerMessages.push(createOptimisticCommandMessage({
             ...optimisticDicerRequestBase,
             content: optimisticContent,
-            extra: { result: optimisticContent },
+            extra: buildMessageExtraForRequest(MESSAGE_TYPE.DICE, { diceResult: { result: optimisticContent } }),
             position: fallbackCommandPosition + ((index + 1) * DICE_BATCH_POSITION_STEP),
           }));
         }
@@ -859,7 +859,7 @@ export default function useCommandExecutor(roleId: number, ruleId: number, roomC
           threadId: executorProp.threadId,
           replayMessageId: optimisticReplyMessageId,
           content: "",
-          extra: { result: "" },
+          extra: {},
         };
         const dicerBatchRequests: ChatMessageRequest[] = [];
         for (let index = 0; index < dicerMessageQueue.length; index++) {
@@ -871,7 +871,7 @@ export default function useCommandExecutor(roleId: number, ruleId: number, roomC
           dicerBatchRequests.push({
             ...dicerMessageBaseRequest,
             content: nextContent,
-            extra: { result: nextContent },
+            extra: buildMessageExtraForRequest(MESSAGE_TYPE.DICE, { diceResult: { result: nextContent } }),
           });
         }
         pendingOptimisticDicerMessagesHandled = true;
