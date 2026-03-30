@@ -39,6 +39,7 @@ type UseChatMessageSubmitParams = {
   isSubmitting: boolean;
   setIsSubmitting: (value: boolean) => void;
   sendMessageWithInsert: (message: ChatMessageRequest) => Promise<ChatMessageResponse["message"] | null>;
+  sendMessageBatch: (messages: ChatMessageRequest[]) => Promise<ChatMessageResponse["message"][]>;
   ensureRuntimeAvatarIdForRole: (roleId: number) => Promise<number>;
   commandExecutor: CommandExecutor;
   containsCommandRequestAllToken: (text: string) => boolean;
@@ -84,6 +85,7 @@ export default function useChatMessageSubmit({
   isSubmitting,
   setIsSubmitting,
   sendMessageWithInsert,
+  sendMessageBatch,
   ensureRuntimeAvatarIdForRole,
   commandExecutor,
   containsCommandRequestAllToken,
@@ -164,7 +166,11 @@ export default function useChatMessageSubmit({
         ? await ensureRuntimeAvatarIdForRole(senderRoleId)
         : -1;
       const finalReplyId = roomUiStoreApi.getState().replyMessage?.messageId || undefined;
-      const { threadRootMessageId: activeThreadRootId, composerTarget } = roomUiStoreApi.getState();
+      const {
+        threadRootMessageId: activeThreadRootId,
+        composerTarget,
+        insertAfterMessageId,
+      } = roomUiStoreApi.getState();
       const activeThreadId = composerTarget === "thread" && activeThreadRootId
         ? activeThreadRootId
         : undefined;
@@ -325,20 +331,34 @@ export default function useChatMessageSubmit({
         }
       }
 
-      for (const draft of regularDrafts) {
-        const request = buildChatMessageRequestFromDraft(draft, {
-          roomId,
-          threadId: activeThreadId,
-          replayMessageId: hasConsumedFirstMessage ? undefined : finalReplyId,
-          roleId: senderRoleId,
-          avatarId: resolvedAvatarId,
-          customRoleName: draftCustomRoleName,
-        });
-        const createdMessage = await sendMessageWithInsert(request);
-        hasConsumedFirstMessage = true;
+      const regularRequests = regularDrafts.map((draft, index) => buildChatMessageRequestFromDraft(draft, {
+        roomId,
+        threadId: activeThreadId,
+        replayMessageId: (hasConsumedFirstMessage || index > 0) ? undefined : finalReplyId,
+        roleId: senderRoleId,
+        avatarId: resolvedAvatarId,
+        customRoleName: draftCustomRoleName,
+      }));
 
-        if ((draft.messageType ?? MessageType.TEXT) !== MessageType.SOUND || !createdMessage || typeof createdMessage.messageId !== "number") {
-          continue;
+      const createdRegularMessages: Array<ChatMessageResponse["message"] | null> = regularRequests.length > 1 && !insertAfterMessageId
+        ? await sendMessageBatch(regularRequests)
+        : await (async () => {
+            const createdMessages: Array<ChatMessageResponse["message"] | null> = [];
+            for (const request of regularRequests) {
+              const createdMessage = await sendMessageWithInsert(request);
+              createdMessages.push(createdMessage);
+            }
+            return createdMessages;
+          })();
+
+      if (regularRequests.length > 0) {
+        hasConsumedFirstMessage = true;
+      }
+
+      createdRegularMessages.forEach((createdMessage, index) => {
+        const draft = regularDrafts[index];
+        if ((draft?.messageType ?? MessageType.TEXT) !== MessageType.SOUND || !createdMessage || typeof createdMessage.messageId !== "number") {
+          return;
         }
 
         const autoPlayPurpose = resolveAudioAutoPlayPurposeFromMessage({
@@ -347,7 +367,7 @@ export default function useChatMessageSubmit({
           extra: createdMessage.extra,
         });
         if (!autoPlayPurpose) {
-          continue;
+          return;
         }
 
         useAudioMessageAutoPlayStore.getState().enqueueFromWs({
@@ -362,7 +382,7 @@ export default function useChatMessageSubmit({
             void requestPlayBgmMessageWithUrl(roomId, createdMessage.messageId, createdUrl);
           }
         }
-      }
+      });
 
       // 提交期间用户可能已开始输入下一条；仅在输入框仍为空时执行收尾清空，避免覆盖新输入。
       const latestInputText = useChatInputUiStore.getState().plainText;
@@ -393,6 +413,7 @@ export default function useChatMessageSubmit({
     notMember,
     roomId,
     roomUiStoreApi,
+    sendMessageBatch,
     sendMessageWithInsert,
     setInputText,
     setIsSubmitting,

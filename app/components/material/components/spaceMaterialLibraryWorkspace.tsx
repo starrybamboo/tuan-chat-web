@@ -4,7 +4,6 @@ import {
   MagnifyingGlassIcon,
   PackageIcon,
   PlusIcon,
-  SquaresFourIcon,
 } from "@phosphor-icons/react";
 
 interface SpaceMaterialLibraryWorkspaceProps {
@@ -15,8 +14,6 @@ interface SpaceMaterialLibraryWorkspaceProps {
   onOpenPackage: (spacePackageId: number) => void;
   onCreatePackage: () => void;
   onImportPackage: () => void;
-  onNavigateToPublic: () => void;
-  onNavigateToMine: () => void;
 }
 
 const paletteList = [
@@ -112,43 +109,6 @@ function SpaceMaterialCard({
   );
 }
 
-function ShortcutCard({
-  title,
-  description,
-  caption,
-  icon,
-  onClick,
-}: {
-  title: string;
-  description: string;
-  caption: string;
-  icon: typeof PlusIcon;
-  onClick: () => void;
-}) {
-  const Icon = icon;
-
-  return (
-    <button
-      type="button"
-      className="group text-left"
-      onClick={onClick}
-    >
-      <div className="flex h-full flex-col">
-        <div className="flex aspect-[1.25/1] items-center justify-center rounded-[26px] border border-dashed border-primary/30 bg-base-100/30 text-primary/75 transition duration-300 hover:-translate-y-1 hover:border-primary/45 hover:bg-primary/[0.06] hover:text-primary">
-          <div className="rounded-[22px] border border-primary/12 bg-primary/[0.08] p-6">
-            <Icon className="size-10" weight="bold" />
-          </div>
-        </div>
-        <div className="space-y-2 px-1 pt-4">
-          <div className="text-lg font-semibold text-base-content">{title}</div>
-          <div className="text-sm text-base-content/62">{description}</div>
-          <div className="text-xs text-base-content/45">{caption}</div>
-        </div>
-      </div>
-    </button>
-  );
-}
-
 export default function SpaceMaterialLibraryWorkspace({
   keyword,
   packages,
@@ -157,8 +117,6 @@ export default function SpaceMaterialLibraryWorkspace({
   onOpenPackage,
   onCreatePackage,
   onImportPackage,
-  onNavigateToPublic,
-  onNavigateToMine,
 }: SpaceMaterialLibraryWorkspaceProps) {
   return (
     <div className="h-full min-h-0 overflow-y-auto border-t border-base-300 bg-[radial-gradient(circle_at_top_left,oklch(var(--p)/0.1),transparent_26%),linear-gradient(180deg,oklch(var(--b2)/0.98),oklch(var(--b1)/1))] text-base-content">
@@ -197,22 +155,6 @@ export default function SpaceMaterialLibraryWorkspace({
           </div>
 
           <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
-            <ShortcutCard
-              title="前往素材广场"
-              description="浏览公开分享的素材包，像查看远端仓库一样快速切换和检索。"
-              caption="查看全局公开素材"
-              icon={SquaresFourIcon}
-              onClick={onNavigateToPublic}
-            />
-
-            <ShortcutCard
-              title="前往我的素材包"
-              description="切换到你的个人素材区，管理自己的局外素材包与云端沉淀内容。"
-              caption="查看你自己的素材包"
-              icon={PackageIcon}
-              onClick={onNavigateToMine}
-            />
-
             {loading && skeletonIds.map(skeletonId => (
               <div
                 key={skeletonId}

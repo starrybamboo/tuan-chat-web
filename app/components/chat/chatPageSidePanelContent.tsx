@@ -1,6 +1,6 @@
 import type { Room } from "api";
-import type { OpenSpaceDetailPanelOptions, RoomSettingTab, SpaceDetailTab } from "@/components/chat/chatPage.types";
 import type { SpaceMaterialPackageResponse } from "../../../api/models/SpaceMaterialPackageResponse";
+import type { ActiveMaterialSelection, OpenSpaceDetailPanelOptions, RoomSettingTab, SpaceDetailTab } from "@/components/chat/chatPage.types";
 
 import type { MinimalDocMeta, SidebarTree } from "@/components/chat/room/sidebarTree";
 import React from "react";
@@ -32,6 +32,7 @@ interface ChatPageSidePanelContentProps {
   onResetSidebarTreeToDefault?: () => void;
   activeRoomId: number | null;
   activeDocId?: string | null;
+  activeMaterialSelection?: ActiveMaterialSelection;
   unreadMessagesNumber: Record<number, number>;
   onContextMenu: (e: React.MouseEvent) => void;
   onInviteMember: () => void;
@@ -66,6 +67,7 @@ export default function ChatPageSidePanelContent({
   onResetSidebarTreeToDefault,
   activeRoomId,
   activeDocId,
+  activeMaterialSelection,
   unreadMessagesNumber,
   onContextMenu,
   onInviteMember,
@@ -97,6 +99,7 @@ export default function ChatPageSidePanelContent({
       onDeleteDoc={onDeleteDoc}
       activeRoomId={activeRoomId}
       activeDocId={activeDocId}
+      activeMaterialSelection={activeMaterialSelection}
       unreadMessagesNumber={unreadMessagesNumber}
       onContextMenu={onContextMenu}
       onInviteMember={onInviteMember}
