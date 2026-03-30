@@ -282,7 +282,6 @@ export default function useRoomImportActions({
     }
 
     let excerpt = typeof payload?.excerpt === "string" ? payload.excerpt.trim() : "";
-
     try {
       await ensureLoadedDocSnapshotReadyForSharing(docId);
     }
