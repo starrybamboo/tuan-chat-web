@@ -30,6 +30,7 @@ import type { ApiResultRoom } from "./models/ApiResultRoom";
 import type { ApiResultRoomListResponse } from "./models/ApiResultRoomListResponse";
 import type { ApiResultUserInfoResponse } from "./models/ApiResultUserInfoResponse";
 import { MessageType } from "./wsModels";
+import { resolveAudioAutoPlayPurposeFromAnnotationTransition } from "@/components/chat/infra/audioMessage/audioMessageAutoPlayPolicy";
 import { requestPlayBgmMessageWithUrl } from "@/components/chat/infra/audioMessage/audioMessageBgmCoordinator";
 import { useAudioMessageAutoPlayStore } from "@/components/chat/stores/audioMessageAutoPlayStore";
 import { applyRoomDndMapChange, roomDndMapQueryKey } from "@/components/chat/shared/map/roomDndMapApi";
@@ -483,6 +484,7 @@ export function useWebSocket() {
   const heartbeatTimer = useRef<NodeJS.Timeout>(setTimeout(() => {}));
   // 接受消息的存储
   const [receivedMessages, updateReceivedMessages] = useImmer<Record<number, ChatMessageResponse[]>>({});
+  const receivedMessagesRef = useRef<Record<number, ChatMessageResponse[]>>({});
   const [receivedDirectMessages, updateReceivedDirectMessages] = useImmer<Record<number, DirectMessageEvent[]>>({});
   const optimisticDirectMessageIdRef = useRef<number>(OPTIMISTIC_DIRECT_MESSAGE_ID_BASE);
   const optimisticDirectMessageRequestMapRef = useRef<Map<number, {
@@ -1320,30 +1322,26 @@ export function useWebSocket() {
       // WS 层只负责接收增量消息并去重；补洞统一由 useChatFrameMessages 处理，
       // 避免两处并行补洞导致历史消息被重复回灌、引发列表短时抖动。
       const messagesToAdd: ChatMessageResponse[] = [chatMessageResponse];
+      const mergedRoomMessages = [...(receivedMessagesRef.current[roomId] ?? [])];
+      let replacedCount = 0;
+      let appendedCount = 0;
 
       // --- 音频自动播放同步：在把消息写入本地缓存前先记录自动播放/停止事件 ---
       for (const msg of messagesToAdd) {
         const m = msg?.message;
         if (!m)
           continue;
+        const existedIndex = typeof m.messageId === "number"
+          ? mergedRoomMessages.findIndex(item => item?.message?.messageId === m.messageId)
+          : -1;
+        const previousMessage = existedIndex >= 0 ? mergedRoomMessages[existedIndex]?.message : undefined;
 
-        // (1) SOUND 自动播放：根据 purpose/标注/标签识别 bgm 或 se
+        // (1) SOUND 自动播放：仅在音频 annotation 首次出现时触发，避免更新误播
         if (m.messageType === MessageType.SOUND) {
           const sound = getSoundMessageExtra(m.extra);
           const url = typeof sound?.url === "string" ? sound.url.trim() : "";
           if (url && typeof m.messageId === "number") {
-            const rawPurpose = typeof sound?.purpose === "string"
-              ? sound.purpose.trim().toLowerCase()
-              : "";
-            const annotations = Array.isArray(m.annotations) ? m.annotations : [];
-            const hasBgmAnnotation = annotations.some(item => typeof item === "string" && item.toLowerCase() === "sys:bgm");
-            const hasSeAnnotation = annotations.some(item => typeof item === "string" && item.toLowerCase() === "sys:se");
-            const content = (m.content ?? "").toString();
-            const purpose = rawPurpose === "bgm" || hasBgmAnnotation || content.includes("[播放BGM]")
-              ? "bgm"
-              : rawPurpose === "se" || hasSeAnnotation || content.includes("[播放音效]")
-                ? "se"
-                : undefined;
+            const purpose = resolveAudioAutoPlayPurposeFromAnnotationTransition(previousMessage, m);
             if (purpose) {
               useAudioMessageAutoPlayStore.getState().enqueueFromWs({
                 roomId: m.roomId,
@@ -1368,30 +1366,27 @@ export function useWebSocket() {
             useAudioMessageAutoPlayStore.getState().markBgmStopFromWs(m.roomId);
           }
         }
+
+        if (existedIndex >= 0) {
+          mergedRoomMessages[existedIndex] = msg;
+          replacedCount += 1;
+        }
+        else {
+          mergedRoomMessages.push(msg);
+          appendedCount += 1;
+        }
       }
 
+      receivedMessagesRef.current = {
+        ...receivedMessagesRef.current,
+        [roomId]: mergedRoomMessages,
+      };
+
       updateReceivedMessages(draft => {
-        const roomMessages = draft[roomId] ?? [];
-        if (!(roomId in draft)) {
-          draft[roomId] = roomMessages;
-        }
-        let replacedCount = 0;
-        let appendedCount = 0;
-        for (const nextMessage of messagesToAdd) {
-          const nextId = nextMessage?.message?.messageId;
-          const existedIndex = roomMessages.findIndex(item => item?.message?.messageId === nextId);
-          if (existedIndex >= 0) {
-            roomMessages[existedIndex] = nextMessage;
-            replacedCount += 1;
-          }
-          else {
-            roomMessages.push(nextMessage);
-            appendedCount += 1;
-          }
-        }
+        draft[roomId] = mergedRoomMessages;
         console.log(WS_MESSAGE_DEBUG_PREFIX, "handleChatMessage.afterMerge", {
           roomId,
-          roomMessageLength: roomMessages.length,
+          roomMessageLength: mergedRoomMessages.length,
           appendedCount,
           replacedCount,
           mergedMessageIds: messagesToAdd.map(item => item?.message?.messageId ?? null),

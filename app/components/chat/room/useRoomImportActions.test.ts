@@ -91,4 +91,86 @@ describe("useRoomImportActions", () => {
     expect(setIsSubmitting).toHaveBeenNthCalledWith(1, true);
     expect(setIsSubmitting).toHaveBeenNthCalledWith(2, false);
   });
+
+  it("发送文档卡片时保留源文档所属空间", async () => {
+    const roomUiStoreApi = createRoomUiStore();
+    const sendMessageWithInsert = vi.fn().mockResolvedValue(createMessage(10));
+
+    const { handleSendDocCard } = useRoomImportActions({
+      roomId: 1,
+      spaceId: 2,
+      isSpaceOwner: false,
+      curRoleId: 3,
+      notMember: false,
+      isSubmitting: false,
+      setIsSubmitting: vi.fn(),
+      roomContext: {} as any,
+      sendMessageWithInsert,
+      sendMessageBatch: vi.fn(async () => []),
+      ensureRuntimeAvatarIdForRole: vi.fn(async () => 7),
+      roomUiStoreApi,
+    });
+
+    await handleSendDocCard({
+      docId: "udoc:123:description",
+      spaceId: 99,
+      title: "跨空间文档",
+      excerpt: "摘要",
+    });
+
+    expect(sendMessageWithInsert).toHaveBeenCalledWith(expect.objectContaining({
+      roomId: 1,
+      roleId: 3,
+      avatarId: 7,
+      extra: {
+        docCard: expect.objectContaining({
+          docId: "udoc:123:description",
+          spaceId: 99,
+          title: "跨空间文档",
+          excerpt: "摘要",
+        }),
+      },
+    }));
+  });
+
+  it("发送群聊跳转时保留目标群聊所属空间", async () => {
+    const roomUiStoreApi = createRoomUiStore();
+    const sendMessageWithInsert = vi.fn().mockResolvedValue(createMessage(11));
+
+    const { handleSendRoomJump } = useRoomImportActions({
+      roomId: 1,
+      spaceId: 2,
+      isSpaceOwner: false,
+      curRoleId: 3,
+      notMember: false,
+      isSubmitting: false,
+      setIsSubmitting: vi.fn(),
+      roomContext: {} as any,
+      sendMessageWithInsert,
+      sendMessageBatch: vi.fn(async () => []),
+      ensureRuntimeAvatarIdForRole: vi.fn(async () => 7),
+      roomUiStoreApi,
+    });
+
+    await handleSendRoomJump({
+      roomId: 456,
+      spaceId: 88,
+      roomName: "跨空间群聊",
+      categoryName: "外部分类",
+    });
+
+    expect(sendMessageWithInsert).toHaveBeenCalledWith(expect.objectContaining({
+      roomId: 1,
+      roleId: 3,
+      avatarId: 7,
+      extra: {
+        roomJump: expect.objectContaining({
+          roomId: 456,
+          spaceId: 88,
+          roomName: "跨空间群聊",
+          categoryName: "外部分类",
+        }),
+      },
+    }));
+  });
 });

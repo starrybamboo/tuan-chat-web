@@ -3,6 +3,7 @@ import { toast } from "react-hot-toast";
 
 import type { RoomUiStoreApi } from "@/components/chat/stores/roomUiStore";
 
+import { resolveAudioAutoPlayPurposeFromAnnotationTransition } from "@/components/chat/infra/audioMessage/audioMessageAutoPlayPolicy";
 import { requestPlayBgmMessageWithUrl } from "@/components/chat/infra/audioMessage/audioMessageBgmCoordinator";
 import { useAudioMessageAutoPlayStore } from "@/components/chat/stores/audioMessageAutoPlayStore";
 import { useChatComposerStore } from "@/components/chat/stores/chatComposerStore";
@@ -12,7 +13,7 @@ import { buildMessageDraftsFromComposerSnapshot } from "@/components/chat/utils/
 import { buildOutOfCharacterSpeechContent } from "@/components/chat/utils/outOfCharacterSpeech";
 import { isRoomJumpCommandText, parseRoomJumpCommand } from "@/components/chat/utils/roomJump";
 import { isCommand } from "@/components/common/dicer/cmdPre";
-import { ANNOTATION_IDS, normalizeAnnotations } from "@/types/messageAnnotations";
+import { normalizeAnnotations } from "@/types/messageAnnotations";
 import { buildChatMessageRequestFromDraft } from "@/types/messageDraft";
 import { getSoundMessageExtra } from "@/types/messageExtra";
 import { UploadUtils } from "@/utils/UploadUtils";
@@ -83,28 +84,6 @@ function shouldResetSubmittedInputSnapshot(
   return current.plainText === submitted.plainText
     && current.textWithoutMentions === submitted.textWithoutMentions
     && isSameMentionedRolesSnapshot(current.mentionedRoles, submitted.mentionedRoles);
-}
-
-function resolveAudioAutoPlayPurposeFromMessage(message: {
-  content?: string | null;
-  annotations?: string[];
-  extra?: unknown;
-}) {
-  const sound = getSoundMessageExtra(message.extra);
-  const rawPurpose = typeof sound?.purpose === "string"
-    ? sound.purpose.trim().toLowerCase()
-    : "";
-  const annotations = Array.isArray(message.annotations) ? message.annotations : [];
-  const hasBgmAnnotation = annotations.some(item => typeof item === "string" && item.toLowerCase() === ANNOTATION_IDS.BGM);
-  const hasSeAnnotation = annotations.some(item => typeof item === "string" && item.toLowerCase() === ANNOTATION_IDS.SE);
-  const content = (message.content ?? "").toString();
-  if (rawPurpose === "bgm" || hasBgmAnnotation || content.includes("[播放BGM]")) {
-    return "bgm" as const;
-  }
-  if (rawPurpose === "se" || hasSeAnnotation || content.includes("[播放音效]")) {
-    return "se" as const;
-  }
-  return undefined;
 }
 
 export default function useChatMessageSubmit({
@@ -400,11 +379,7 @@ export default function useChatMessageSubmit({
           return;
         }
 
-        const autoPlayPurpose = resolveAudioAutoPlayPurposeFromMessage({
-          content: createdMessage.content,
-          annotations: createdMessage.annotations,
-          extra: createdMessage.extra,
-        });
+        const autoPlayPurpose = resolveAudioAutoPlayPurposeFromAnnotationTransition(undefined, createdMessage);
         if (!autoPlayPurpose) {
           return;
         }

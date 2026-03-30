@@ -54,10 +54,6 @@ export default function useRoomSidebarDocCopy({
       toast.error("仅主持可复制到空间侧边栏");
       return;
     }
-    if (docRef.spaceId && docRef.spaceId !== activeSpaceId) {
-      toast.error("不允许跨空间复制文档");
-      return;
-    }
 
     const { parseDescriptionDocId } = await import("@/components/chat/infra/blocksuite/description/descriptionDocId");
     const key = parseDescriptionDocId(docRef.docId);
@@ -71,6 +67,7 @@ export default function useRoomSidebarDocCopy({
       const res = await copyDocToSpaceDoc({
         spaceId: activeSpaceId,
         sourceDocId: docRef.docId,
+        sourceSpaceId: docRef.spaceId,
         title: docRef.title,
         imageUrl: docRef.imageUrl,
       });

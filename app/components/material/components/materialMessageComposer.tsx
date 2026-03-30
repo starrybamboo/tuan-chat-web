@@ -3,20 +3,17 @@ import type { ChatInputAreaHandle } from "@/components/chat/input/chatInputArea"
 import type { MessageDraft } from "@/types/messageDraft";
 import { useCallback, useEffect, useImperativeHandle, useRef, useState } from "react";
 import ChatInputArea from "@/components/chat/input/chatInputArea";
-import ChatToolbarFromStore from "@/components/chat/input/chatToolbarFromStore";
+import ChatToolbar from "@/components/chat/input/chatToolbar";
 import TextStyleToolbar from "@/components/chat/input/textStyleToolbar";
 import MessageAnnotationsBar from "@/components/chat/message/annotations/messageAnnotationsBar";
 import { openMessageAnnotationPicker } from "@/components/chat/message/annotations/openMessageAnnotationPicker";
-import ChatAttachmentsPreviewFromStore from "@/components/chat/message/chatAttachmentsPreviewFromStore";
-import { useChatComposerStore } from "@/components/chat/stores/chatComposerStore";
-import { useChatInputUiStore } from "@/components/chat/stores/chatInputUiStore";
 import { isFileDrag } from "@/components/chat/utils/dndUpload";
 import { useScreenSize } from "@/components/common/customHooks/useScreenSize";
 import { normalizeAnnotations, toggleAnnotation } from "@/types/messageAnnotations";
+import MaterialComposerAttachmentsPreview from "./materialComposerAttachmentsPreview";
+import { useMaterialComposerContext } from "./materialComposerContext";
 import {
-  ensureMaterialComposerMediaPreferences,
   MATERIAL_COMPOSER_ROOM_ID,
-  queueFilesToMaterialComposer,
 } from "./materialComposerShared";
 import useMaterialMessageComposerSubmit from "./useMaterialMessageComposerSubmit";
 
@@ -36,12 +33,31 @@ export default function MaterialMessageComposer({
 }: MaterialMessageComposerProps & { ref?: RefObject<MaterialMessageComposerHandle | null> }) {
   const chatInputRef = useRef<ChatInputAreaHandle | null>(null);
   const isComposingRef = useRef(false);
-  const resetChatInputUi = useChatInputUiStore(state => state.reset);
-  const resetChatComposer = useChatComposerStore(state => state.reset);
-  const composerAnnotations = useChatComposerStore(state => state.annotations);
-  const setComposerAnnotations = useChatComposerStore(state => state.setAnnotations);
+  const [inputSnapshot, setInputSnapshot] = useState({
+    plainText: "",
+    textWithoutMentions: "",
+  });
   const screenSize = useScreenSize();
   const [currentChatStatus, setCurrentChatStatus] = useState<"idle" | "input" | "wait" | "leave">("idle");
+  const {
+    roomId,
+    imgFiles,
+    emojiUrls,
+    emojiMetaByUrl,
+    fileAttachments,
+    audioFile,
+    annotations: composerAnnotations,
+    tempAnnotations,
+    updateEmojiUrls,
+    updateImgFiles,
+    updateFileAttachments,
+    setEmojiMetaByUrl,
+    setAudioFile,
+    setAnnotations: setComposerAnnotations,
+    applyMediaAnnotationPreference,
+    queueFiles,
+    reset,
+  } = useMaterialComposerContext();
 
   const setInputText = useCallback((text: string) => {
     chatInputRef.current?.setContent(text);
@@ -55,30 +71,35 @@ export default function MaterialMessageComposer({
   }), []);
 
   useEffect(() => {
-    ensureMaterialComposerMediaPreferences();
-    resetChatInputUi();
-    resetChatComposer();
     setCurrentChatStatus("idle");
+    setInputSnapshot({
+      plainText: "",
+      textWithoutMentions: "",
+    });
     setInputText("");
-    return () => {
-      resetChatInputUi();
-      resetChatComposer();
-    };
-  }, [composerKey, resetChatComposer, resetChatInputUi, setInputText]);
+  }, [composerKey, setInputText]);
 
   const handleInputSync = useCallback((plainText: string, textWithoutMentions: string) => {
-    useChatInputUiStore.getState().setSnapshot({
+    setInputSnapshot({
       plainText,
       textWithoutMentions,
-      mentionedRoles: [],
     });
   }, []);
 
   const handlePasteFiles = useCallback((files: File[]) => {
-    queueFilesToMaterialComposer(files, { showSuccessToast: false, showEmptyToast: false });
-  }, []);
+    queueFiles(files, { showSuccessToast: false, showEmptyToast: false });
+  }, [queueFiles]);
 
   const { isSubmitting, handleSubmit } = useMaterialMessageComposerSubmit({
+    inputText: inputSnapshot.plainText,
+    imgFiles,
+    emojiUrls,
+    emojiMetaByUrl,
+    fileAttachments,
+    audioFile,
+    composerAnnotations,
+    tempAnnotations,
+    resetComposer: reset,
     onAppendMessages,
     setInputText,
   });
@@ -130,10 +151,10 @@ export default function MaterialMessageComposer({
           }
           event.preventDefault();
           event.stopPropagation();
-          queueFilesToMaterialComposer(Array.from(event.dataTransfer.files ?? []));
+          queueFiles(Array.from(event.dataTransfer.files ?? []));
         }}
       >
-        <ChatAttachmentsPreviewFromStore roomId={MATERIAL_COMPOSER_ROOM_ID} />
+        <MaterialComposerAttachmentsPreview roomId={MATERIAL_COMPOSER_ROOM_ID} />
 
         <div className="border-b border-base-300/70 px-3 py-2">
           <div className="flex flex-wrap items-center gap-2">
@@ -170,11 +191,18 @@ export default function MaterialMessageComposer({
             </div>
 
             <div className="flex w-full justify-end sm:block sm:w-auto">
-              <ChatToolbarFromStore
-                roomId={MATERIAL_COMPOSER_ROOM_ID}
-                noRole={false}
-                notMember={false}
-                isSubmitting={isSubmitting}
+              <ChatToolbar
+                roomId={roomId}
+                updateEmojiUrls={updateEmojiUrls}
+                updateImgFiles={updateImgFiles}
+                updateFileAttachments={updateFileAttachments}
+                setAudioFile={setAudioFile}
+                setEmojiMetaByUrl={setEmojiMetaByUrl}
+                disableSendMessage={isSubmitting}
+                disableRichMessageActions={isSubmitting}
+                disableImportChatText={isSubmitting}
+                onApplyImageTempAnnotations={() => applyMediaAnnotationPreference("image")}
+                onApplyAudioTempAnnotations={() => applyMediaAnnotationPreference("audio")}
                 handleMessageSubmit={() => {
                   void handleSubmit();
                 }}

@@ -1,7 +1,7 @@
 import { tuanchat } from "../../../../api/instance";
 
 async function getDocUpdateForCopy(params: {
-  spaceId: number;
+  sourceSpaceId: number;
   docId: string;
 }): Promise<Uint8Array> {
   const [registry, { parseDescriptionDocId }, { getRemoteSnapshot }, { base64ToUint8Array }] = await Promise.all([
@@ -11,7 +11,7 @@ async function getDocUpdateForCopy(params: {
     import("@/components/chat/infra/blocksuite/shared/base64"),
   ]);
 
-  const ws = registry.getOrCreateSpaceWorkspace(params.spaceId) as any;
+  const ws = registry.getOrCreateSpaceWorkspace(params.sourceSpaceId) as any;
 
   // 优先尝试把“源文档的远端快照”恢复到本地 workspace，确保跨端/跨用户复制可用。
   try {
@@ -32,7 +32,7 @@ async function getDocUpdateForCopy(params: {
 
   // 确保 doc 在本地 workspace 里已 load，避免 encode 只拿到空初始化状态
   try {
-    const store = registry.getOrCreateSpaceDoc({ spaceId: params.spaceId, docId: params.docId }) as any;
+    const store = registry.getOrCreateSpaceDoc({ spaceId: params.sourceSpaceId, docId: params.docId }) as any;
     (store as any)?.load?.();
   }
   catch {
@@ -49,12 +49,19 @@ async function getDocUpdateForCopy(params: {
 export async function copyDocToSpaceDoc(params: {
   spaceId: number;
   sourceDocId: string;
+  sourceSpaceId?: number;
   title?: string;
   imageUrl?: string;
 }): Promise<{ newDocEntityId: number; newDocId: string; title: string }> {
   const createTitle = (params.title ?? "").trim();
   const title = createTitle ? `${createTitle}（副本）` : "新文档（副本）";
-  const sourceUpdate = await getDocUpdateForCopy({ spaceId: params.spaceId, docId: params.sourceDocId });
+  const sourceSpaceId = typeof params.sourceSpaceId === "number" && params.sourceSpaceId > 0
+    ? params.sourceSpaceId
+    : params.spaceId;
+  const sourceUpdate = await getDocUpdateForCopy({
+    sourceSpaceId,
+    docId: params.sourceDocId,
+  });
 
   let createdDocId: number | null = null;
   try {
@@ -119,13 +126,20 @@ export async function copyDocToSpaceDoc(params: {
 export async function copyDocToSpaceUserDoc(params: {
   spaceId: number;
   sourceDocId: string;
+  sourceSpaceId?: number;
   title?: string;
   imageUrl?: string;
   tag?: string;
 }): Promise<{ newDocEntityId: number; newDocId: string; title: string }> {
   const createTitle = (params.title ?? "").trim();
   const title = createTitle ? `${createTitle}（副本）` : "新文档（副本）";
-  const sourceUpdate = await getDocUpdateForCopy({ spaceId: params.spaceId, docId: params.sourceDocId });
+  const sourceSpaceId = typeof params.sourceSpaceId === "number" && params.sourceSpaceId > 0
+    ? params.sourceSpaceId
+    : params.spaceId;
+  const sourceUpdate = await getDocUpdateForCopy({
+    sourceSpaceId,
+    docId: params.sourceDocId,
+  });
 
   const createDocWithRetry = async (): Promise<number> => {
     let lastErr = "";

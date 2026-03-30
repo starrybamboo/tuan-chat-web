@@ -16,6 +16,7 @@ import {
   TrashIcon,
 } from "@phosphor-icons/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import MessageContentRenderer from "@/components/chat/message/messageContentRenderer";
 import { useRoomRoleSelectionStore } from "@/components/chat/stores/roomRoleSelectionStore";
 import { setMaterialItemDragData } from "@/components/chat/utils/materialItemDrag";
 import { ImgUploader } from "@/components/common/uploader/imgUploader";
@@ -24,7 +25,7 @@ import { useMaterialEditorActionStore } from "@/components/material/stores/mater
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
 import { useGetUserRolesQuery } from "../../../../api/hooks/RoleAndAvatarHooks";
 import { MaterialNode as MaterialNodeModel } from "../../../../api/models/MaterialNode";
-import { getMaterialAssetPresentation } from "./materialAssetPresentation";
+import { MaterialComposerProvider } from "./materialComposerContext";
 import MaterialMessageComposer from "./materialMessageComposer";
 import MaterialMessageEditorCard from "./materialMessageEditorCard";
 import MaterialPackageAssetUploadMenu from "./materialPackageAssetUploadMenu";
@@ -101,41 +102,85 @@ function getMessageDraftKey(messages: MessageDraft[], index: number, nodeKey: st
   return `${nodeKey}:${signature}:${occurrence}`;
 }
 
+function getReadOnlyAssetTypeLabel(message: MessageDraft) {
+  switch (message.messageType) {
+    case MESSAGE_TYPE.TEXT:
+      return "文本";
+    case MESSAGE_TYPE.INTRO_TEXT:
+      return "黑屏文字";
+    case MESSAGE_TYPE.IMG:
+      return "图片";
+    case MESSAGE_TYPE.FILE:
+      return "文件";
+    case MESSAGE_TYPE.SYSTEM:
+      return "系统";
+    case MESSAGE_TYPE.FORWARD:
+      return "转发";
+    case MESSAGE_TYPE.DICE:
+      return "骰娘";
+    case MESSAGE_TYPE.SOUND:
+      return "音频";
+    case MESSAGE_TYPE.EFFECT:
+      return "特效";
+    case MESSAGE_TYPE.WEBGAL_COMMAND:
+      return "WebGAL";
+    case MESSAGE_TYPE.WEBGAL_CHOOSE:
+      return "选择";
+    case MESSAGE_TYPE.VIDEO:
+      return "视频";
+    case MESSAGE_TYPE.CLUE_CARD:
+      return "线索";
+    case MESSAGE_TYPE.DOC_CARD:
+      return "文档";
+    case MESSAGE_TYPE.ROOM_JUMP:
+      return "群聊";
+    case MESSAGE_TYPE.THREAD_ROOT:
+      return "子区";
+    default:
+      return "素材";
+  }
+}
+
 function ReadOnlyAssetCard({ message, index }: { message: MessageDraft; index: number }) {
-  const presentation = getMaterialAssetPresentation(message, index);
+  const annotationText = Array.isArray(message.annotations) && message.annotations.length > 0
+    ? message.annotations.join(" / ")
+    : "";
 
   return (
     <div className="rounded-2xl border border-base-300 bg-base-100/80 px-4 py-3">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="min-w-0">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="rounded-full border border-primary/20 bg-primary/10 px-2 py-1 text-[11px] font-medium text-primary">
-              {presentation.typeLabel}
-            </span>
-            <div className="truncate text-sm font-medium text-base-content">{presentation.title}</div>
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="rounded-full border border-primary/20 bg-primary/10 px-2 py-1 text-[11px] font-medium text-primary">
+          {getReadOnlyAssetTypeLabel(message)}
+        </span>
+        {annotationText && (
+          <div className="text-xs text-base-content/45">
+            {annotationText}
           </div>
-          <div className="mt-2 text-xs text-base-content/45">{presentation.meta}</div>
-        </div>
+        )}
       </div>
-      {presentation.contentPreview && (
-        <div className="mt-3 rounded-xl border border-base-300 bg-base-200/45 px-3 py-2 text-sm leading-6 text-base-content/68">
-          {presentation.contentPreview}
-        </div>
-      )}
+      <div className="mt-3 text-sm text-base-content">
+        {/*
+          公开素材包也复用统一消息渲染，避免媒体条目退化为仅显示文件名。
+        */}
+        <MessageContentRenderer
+          message={{
+            ...message,
+            content: message.content ?? "",
+            messageId: index + 1,
+            messageType: message.messageType ?? MESSAGE_TYPE.TEXT,
+            roomId: undefined,
+            status: 0,
+          }}
+          annotations={message.annotations}
+          cacheKeyBase={`material-readonly:${index}`}
+        />
+      </div>
     </div>
   );
 }
 
 function canDragMessageToRoom(message: MessageDraft) {
-  switch (message.messageType) {
-    case MESSAGE_TYPE.IMG:
-    case MESSAGE_TYPE.SOUND:
-    case MESSAGE_TYPE.VIDEO:
-    case MESSAGE_TYPE.FILE:
-      return true;
-    default:
-      return false;
-  }
+  return Boolean(message);
 }
 
 export default function MaterialPackageWorkbench({
@@ -809,136 +854,138 @@ export default function MaterialPackageWorkbench({
         )}
 
         {selectedNode && selectedNode.type === MaterialNodeModel.type.MATERIAL && (
-          <div className="space-y-6">
-            <label className="block space-y-2">
-              <span className="text-sm font-medium text-base-content/80">素材名称</span>
-              <input
-                type="text"
-                className={fieldClassName}
-                value={selectedNode.name ?? ""}
-                disabled={readOnly}
-                onChange={(event) => {
-                  const nextName = event.target.value;
-                  onUpdateDraft(current => ({
-                    ...current,
-                    content: updateNodeInContent(current.content, selectedNodePath, node => ({ ...node, name: nextName })),
-                  }));
-                }}
-              />
-            </label>
+          <MaterialComposerProvider composerKey={selectedNodeKey}>
+            <div className="space-y-6">
+              <label className="block space-y-2">
+                <span className="text-sm font-medium text-base-content/80">素材名称</span>
+                <input
+                  type="text"
+                  className={fieldClassName}
+                  value={selectedNode.name ?? ""}
+                  disabled={readOnly}
+                  onChange={(event) => {
+                    const nextName = event.target.value;
+                    onUpdateDraft(current => ({
+                      ...current,
+                      content: updateNodeInContent(current.content, selectedNodePath, node => ({ ...node, name: nextName })),
+                    }));
+                  }}
+                />
+              </label>
 
-            <label className="block space-y-2">
-              <span className="text-sm font-medium text-base-content/80">描述</span>
-              <textarea
-                className={`${textareaClassName} min-h-28`}
-                value={selectedNode.note ?? ""}
-                disabled={readOnly}
-                onChange={(event) => {
-                  const nextNote = event.target.value;
-                  onUpdateDraft(current => ({
-                    ...current,
-                    content: updateNodeInContent(current.content, selectedNodePath, node => ({ ...node, note: nextNote })),
-                  }));
-                }}
-              />
-            </label>
+              <label className="block space-y-2">
+                <span className="text-sm font-medium text-base-content/80">描述</span>
+                <textarea
+                  className={`${textareaClassName} min-h-28`}
+                  value={selectedNode.note ?? ""}
+                  disabled={readOnly}
+                  onChange={(event) => {
+                    const nextNote = event.target.value;
+                    onUpdateDraft(current => ({
+                      ...current,
+                      content: updateNodeInContent(current.content, selectedNodePath, node => ({ ...node, note: nextNote })),
+                    }));
+                  }}
+                />
+              </label>
 
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <div className="text-sm font-medium text-base-content/80">素材条目</div>
-                <div className="flex items-center gap-3">
-                  {!readOnly && (
-                    <button
-                      type="button"
-                      className="inline-flex items-center gap-2 rounded-md border border-base-300 bg-base-100 px-4 py-2.5 text-sm text-base-content transition hover:border-error/30 hover:bg-error/10 hover:text-error"
-                      onClick={handleDeleteSelectedNode}
-                    >
-                      <TrashIcon className="size-4" />
-                      <span>删除素材</span>
-                    </button>
-                  )}
-                  {!readOnly && (
-                    <MaterialPackageAssetUploadMenu
-                      onQueuedToComposer={focusComposer}
-                    />
-                  )}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="text-sm font-medium text-base-content/80">素材条目</div>
+                  <div className="flex items-center gap-3">
+                    {!readOnly && (
+                      <button
+                        type="button"
+                        className="inline-flex items-center gap-2 rounded-md border border-base-300 bg-base-100 px-4 py-2.5 text-sm text-base-content transition hover:border-error/30 hover:bg-error/10 hover:text-error"
+                        onClick={handleDeleteSelectedNode}
+                      >
+                        <TrashIcon className="size-4" />
+                        <span>删除素材</span>
+                      </button>
+                    )}
+                    {!readOnly && (
+                      <MaterialPackageAssetUploadMenu
+                        onQueuedToComposer={focusComposer}
+                      />
+                    )}
+                  </div>
                 </div>
-              </div>
 
-              {(selectedNode.messages?.length ?? 0) > 0
-                ? (
-                    <div className="space-y-3">
-                      {(selectedNode.messages ?? []).map((message, index, messages) => {
-                        const canDrag = canDragMessageToRoom(message);
-                        const handleAssetDragStart = (event: DragEvent<HTMLDivElement>) => {
-                          if (!canDrag) {
-                            return;
+                {(selectedNode.messages?.length ?? 0) > 0
+                  ? (
+                      <div className="space-y-3">
+                        {(selectedNode.messages ?? []).map((message, index, messages) => {
+                          const canDrag = canDragMessageToRoom(message);
+                          const handleAssetDragStart = (event: DragEvent<HTMLDivElement>) => {
+                            if (!canDrag) {
+                              return;
+                            }
+                            const payload = buildAssetDragPayload(message, index);
+                            if (!payload) {
+                              event.preventDefault();
+                              return;
+                            }
+                            event.dataTransfer.effectAllowed = "copy";
+                            setMaterialItemDragData(event.dataTransfer, payload);
+                          };
+                          if (readOnly) {
+                            return (
+                              <div
+                                key={getMessageDraftKey(messages, index, selectedNodeKey)}
+                                className={canDrag ? "cursor-grab active:cursor-grabbing" : ""}
+                                draggable={canDrag}
+                                onDragStart={handleAssetDragStart}
+                              >
+                                <ReadOnlyAssetCard
+                                  message={message}
+                                  index={index}
+                                />
+                              </div>
+                            );
                           }
-                          const payload = buildAssetDragPayload(message, index);
-                          if (!payload) {
-                            event.preventDefault();
-                            return;
-                          }
-                          event.dataTransfer.effectAllowed = "copy";
-                          setMaterialItemDragData(event.dataTransfer, payload);
-                        };
-                        if (readOnly) {
+
                           return (
                             <div
                               key={getMessageDraftKey(messages, index, selectedNodeKey)}
-                              className={canDrag ? "cursor-grab active:cursor-grabbing" : ""}
+                              className={`rounded-2xl border border-base-300 bg-base-100/80 px-4 py-3 ${canDrag ? "cursor-grab active:cursor-grabbing" : ""}`}
                               draggable={canDrag}
                               onDragStart={handleAssetDragStart}
                             >
-                              <ReadOnlyAssetCard
+                              <MaterialMessageEditorCard
                                 message={message}
                                 index={index}
+                                availableRoles={availableRoles}
+                                fallbackRoleId={fallbackRoleId}
+                                fallbackAvatarId={fallbackAvatarId}
+                                onChange={updater => updateSelectedMaterialMessage(index, updater)}
+                                onDelete={() => removeSelectedMaterialMessage(index)}
                               />
                             </div>
                           );
-                        }
+                        })}
+                      </div>
+                    )
+                  : (
+                      <div className="rounded-2xl border border-dashed border-base-300 bg-base-100/60 px-4 py-6 text-center text-sm text-base-content/58">
+                        {readOnly ? "当前素材还是草稿，还没有可查看的素材条目。" : "当前素材还是草稿，可以直接用下面的输入框和工具栏补充内容；右上角的附件入口也会汇入同一个输入框。"}
+                      </div>
+                    )}
 
-                        return (
-                          <div
-                            key={getMessageDraftKey(messages, index, selectedNodeKey)}
-                            className={`rounded-2xl border border-base-300 bg-base-100/80 px-4 py-3 ${canDrag ? "cursor-grab active:cursor-grabbing" : ""}`}
-                            draggable={canDrag}
-                            onDragStart={handleAssetDragStart}
-                          >
-                            <MaterialMessageEditorCard
-                              message={message}
-                              index={index}
-                              availableRoles={availableRoles}
-                              fallbackRoleId={fallbackRoleId}
-                              fallbackAvatarId={fallbackAvatarId}
-                              onChange={updater => updateSelectedMaterialMessage(index, updater)}
-                              onDelete={() => removeSelectedMaterialMessage(index)}
-                            />
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )
-                : (
-                    <div className="rounded-2xl border border-dashed border-base-300 bg-base-100/60 px-4 py-6 text-center text-sm text-base-content/58">
-                      {readOnly ? "当前素材还是草稿，还没有可查看的素材条目。" : "当前素材还是草稿，可以直接用下面的输入框和工具栏补充内容；右上角的附件入口也会汇入同一个输入框。"}
-                    </div>
-                  )}
+                {!readOnly && (
+                  <div ref={composerContainerRef}>
+                    <MaterialMessageComposer
+                      ref={composerRef}
+                      composerKey={selectedNodeKey}
+                      onAppendMessages={(messages) => {
+                        updateSelectedMaterialMessages(current => [...current, ...messages]);
+                      }}
+                    />
+                  </div>
+                )}
+              </div>
 
-              {!readOnly && (
-                <div ref={composerContainerRef}>
-                  <MaterialMessageComposer
-                    ref={composerRef}
-                    composerKey={selectedNodeKey}
-                    onAppendMessages={(messages) => {
-                      updateSelectedMaterialMessages(current => [...current, ...messages]);
-                    }}
-                  />
-                </div>
-              )}
             </div>
-
-          </div>
+          </MaterialComposerProvider>
         )}
       </section>
     </div>

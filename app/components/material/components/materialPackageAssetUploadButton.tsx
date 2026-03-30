@@ -3,7 +3,7 @@ import { FileArrowUpIcon, ImageIcon, MusicNotesIcon, VideoCameraIcon } from "@ph
 import { useId, useMemo, useRef } from "react";
 import toast from "react-hot-toast";
 import { ImgUploader } from "@/components/common/uploader/imgUploader";
-import { queueFilesToMaterialComposer } from "./materialComposerShared";
+import { useMaterialComposerContext } from "./materialComposerContext";
 
 interface MaterialPackageAssetUploadButtonProps {
   kind: MaterialAssetUploadKind;
@@ -72,6 +72,7 @@ export default function MaterialPackageAssetUploadButton({
   fullWidth = false,
   onQueued,
 }: MaterialPackageAssetUploadButtonProps) {
+  const { queueFiles } = useMaterialComposerContext();
   const inputId = useId();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const Icon = useMemo(() => getIcon(kind), [kind]);
@@ -86,7 +87,7 @@ export default function MaterialPackageAssetUploadButton({
       return;
     }
 
-    const queued = queueFilesToMaterialComposer([file]);
+    const queued = queueFiles([file]);
     if (queued) {
       onQueued?.();
     }

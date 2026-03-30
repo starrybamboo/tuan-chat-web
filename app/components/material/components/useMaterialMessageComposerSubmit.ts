@@ -3,13 +3,20 @@ import toast from "react-hot-toast";
 
 import type { MessageDraft } from "@/types/messageDraft";
 
-import { useChatComposerStore } from "@/components/chat/stores/chatComposerStore";
-import { useChatInputUiStore } from "@/components/chat/stores/chatInputUiStore";
 import { buildMessageDraftsFromComposerSnapshot } from "@/components/chat/utils/messageDraftBuilder";
 import { UploadUtils } from "@/utils/UploadUtils";
 
 type UseMaterialMessageComposerSubmitParams = {
   baseMessage?: Partial<MessageDraft>;
+  inputText: string;
+  imgFiles: File[];
+  emojiUrls: string[];
+  emojiMetaByUrl: Record<string, { width?: number; height?: number; size?: number; fileName?: string }>;
+  fileAttachments: File[];
+  audioFile: File | null;
+  composerAnnotations: string[];
+  tempAnnotations: string[];
+  resetComposer: () => void;
   onAppendMessages: (messages: MessageDraft[]) => void;
   setInputText: (text: string) => void;
   textMessageType?: MessageDraft["messageType"];
@@ -22,6 +29,15 @@ type UseMaterialMessageComposerSubmitResult = {
 
 export default function useMaterialMessageComposerSubmit({
   baseMessage,
+  inputText,
+  imgFiles,
+  emojiUrls,
+  emojiMetaByUrl,
+  fileAttachments,
+  audioFile,
+  composerAnnotations,
+  tempAnnotations,
+  resetComposer,
   onAppendMessages,
   setInputText,
   textMessageType,
@@ -33,18 +49,6 @@ export default function useMaterialMessageComposerSubmit({
     if (isSubmitting) {
       return;
     }
-
-    const { plainText: inputText } = useChatInputUiStore.getState();
-    const {
-      imgFiles,
-      emojiUrls,
-      emojiMetaByUrl,
-      fileAttachments,
-      audioFile,
-      annotations: composerAnnotations,
-      tempAnnotations,
-      reset: resetComposer,
-    } = useChatComposerStore.getState();
 
     setIsSubmitting(true);
     const toastId = `material-composer-submit-${Date.now()}`;
@@ -72,7 +76,6 @@ export default function useMaterialMessageComposerSubmit({
 
       onAppendMessages(nextMessages);
       resetComposer();
-      useChatInputUiStore.getState().reset();
       setInputText("");
       toast.success(`已添加 ${nextMessages.length} 条素材`, { id: toastId });
     }
@@ -83,7 +86,22 @@ export default function useMaterialMessageComposerSubmit({
     finally {
       setIsSubmitting(false);
     }
-  }, [baseMessage, isSubmitting, onAppendMessages, setInputText, textMessageType]);
+  }, [
+    audioFile,
+    baseMessage,
+    composerAnnotations,
+    emojiMetaByUrl,
+    emojiUrls,
+    fileAttachments,
+    imgFiles,
+    inputText,
+    isSubmitting,
+    onAppendMessages,
+    resetComposer,
+    setInputText,
+    tempAnnotations,
+    textMessageType,
+  ]);
 
   return {
     isSubmitting,
