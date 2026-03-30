@@ -86,12 +86,12 @@ const cmdEva = new CommandExecutor(
   "eva",
   [],
   "宝可梦闪避判定",
-  [".eva 电击", ".eva 电击+1", ".eva 电击-2"],
-  "eva [技能名][掷骰修正值]?",
+  [".eva 电击", ".eva 电击 @对手"],
+  "eva [技能名] [@对象]?",
   async (args: string[], mentioned: UserRole[], cpi: CPI): Promise<boolean> => {
     const skillToken = args[0]?.trim();
     if (!skillToken) {
-      cpi.sendToast("格式错误！正确格式：.eva [技能名][掷骰修正值]（可选）");
+      cpi.sendToast("格式错误！正确格式：.eva [技能名] [@对象]（可选）");
       return false;
     }
 
@@ -101,21 +101,13 @@ const cmdEva = new CommandExecutor(
       return false;
     }
 
-    let skillName = skillToken;
-    let rollModifier = 0;
-    const skillWithModifierMatch = skillToken.match(/^(.*?)([+-]\d+)$/);
-    if (skillWithModifierMatch?.[1]) {
-      const maybeSkillName = skillWithModifierMatch[1].trim();
-      const parsedModifier = Number.parseInt(skillWithModifierMatch[2], 10);
-      if (maybeSkillName && Number.isFinite(parsedModifier) && getSkillByName(maybeSkillName)) {
-        skillName = maybeSkillName;
-        rollModifier = parsedModifier;
-      }
-    }
+    const targetRole = mentioned
+      .slice(0, -1)
+      .find(role => role?.roleId && role.roleId !== evadeRole.roleId);
 
-    const skill = getSkillByName(skillName);
+    const skill = getSkillByName(skillToken);
     if (!skill) {
-      cpi.sendToast(`未找到技能“${skillName}”`);
+      cpi.sendToast(`未找到技能“${skillToken}”`);
       return false;
     }
 
@@ -139,9 +131,24 @@ const cmdEva = new CommandExecutor(
       ? `${speedFinalText}(${speedBaseText}×${speedFactorText})`
       : speedFinalText;
 
-    const evadeDiceSides = Math.max(1, Math.floor(10 + finalSpeed / 10));
-    const baseRoll = Math.floor(Math.random() * evadeDiceSides) + 1;
-    const finalRoll = baseRoll + rollModifier;
+    const evadeModifierRaw = Number(UNTIL.getRoleAbilityValue(evadeAbility, "闪避修正") || 0);
+    const evadeModifier = Number.isFinite(evadeModifierRaw) ? evadeModifierRaw : 0;
+
+    let accuracyModifier = 0;
+    if (targetRole?.roleId) {
+      const targetAbility = cpi.getRoleAbilityList(targetRole.roleId);
+      if (targetAbility?.ability || targetAbility?.basic || targetAbility?.skill) {
+        const accuracyModifierRaw = Number(UNTIL.getRoleAbilityValue(targetAbility, "命中修正") || 0);
+        accuracyModifier = Number.isFinite(accuracyModifierRaw) ? accuracyModifierRaw : 0;
+      }
+    }
+
+    const baseEvadeDiceSides = Math.floor(10 + finalSpeed / 10);
+    const evadeDiceSides = Math.max(
+      1,
+      Math.floor(baseEvadeDiceSides + evadeModifier * 5 - accuracyModifier * 5),
+    );
+    const finalRoll = Math.floor(Math.random() * evadeDiceSides) + 1;
     const accuracyThreshold = Number(skill.accuracy || 0) / 10;
     const isEvaded = finalRoll >= accuracyThreshold;
 
@@ -153,14 +160,13 @@ const cmdEva = new CommandExecutor(
     UNTIL.setRoleAbilityValue(evadeAbility, actionPointKey, String(newActionPoint), "ability", "auto");
     cpi.setRoleAbilityList(evadeRole.roleId, evadeAbility);
 
-    const modifierText = rollModifier === 0 ? "" : `${rollModifier > 0 ? "+" : ""}${rollModifier}`;
-    const rollText = rollModifier === 0
-      ? `${baseRoll}`
-      : `${baseRoll}${modifierText}=${finalRoll}`;
+    const accuracyModifierText = String(accuracyModifier);
+    const evadeModifierText = String(evadeModifier);
+    const targetNameText = targetRole?.roleName ? `（对象：${targetRole.roleName}）` : "";
 
     cpi.replyMessage(
-      `${evadeRole.roleName}尝试闪避${skill.name}：\n`
-      + `rd(10+速度${speedExprText}/10)${modifierText} = rd${evadeDiceSides}${modifierText}= ${rollText}\n`
+      `${evadeRole.roleName}尝试闪避${skill.name}${targetNameText}：\n`
+      + `rd(10+速度${speedExprText}/10+闪避修正${evadeModifierText}×5-命中修正${accuracyModifierText}×5) = rd${evadeDiceSides}= ${finalRoll}\n`
       + `对比命中阈值：${formatBattleNumber(skill.accuracy)} / 10 = ${formatBattleNumber(accuracyThreshold)}\n`
       + `判定结果：${finalRoll} ${isEvaded ? ">=" : "<"} ${formatBattleNumber(accuracyThreshold)}，${isEvaded ? "闪避成功" : "闪避失败"}\n`
       + `${evadeRole.roleName}行动点：${currentActionPoint} - 1 = ${newActionPoint}`,
