@@ -189,7 +189,10 @@ export default function useRoomImportActions({
           request.annotations = setFigurePositionAnnotation(request.annotations, figurePosition);
         }
 
-        await sendMessageWithInsert(request);
+        const createdMessage = await sendMessageWithInsert(request);
+        if (!createdMessage) {
+          break;
+        }
         onProgress?.(i + 1, total);
 
         if (total >= 30) {
@@ -291,7 +294,10 @@ export default function useRoomImportActions({
       request.threadId = threadRootMessageId;
     }
 
-    await sendMessageWithInsert(request);
+    const createdDocCard = await sendMessageWithInsert(request);
+    if (!createdDocCard) {
+      return;
+    }
   }, [
     curRoleId,
     ensureRuntimeAvatarIdForRole,
@@ -386,7 +392,10 @@ export default function useRoomImportActions({
         requests.push(request);
       }
 
-      await sendMessageBatch(requests);
+      const createdMessages = await sendMessageBatch(requests);
+      if (createdMessages.length !== requests.length) {
+        return;
+      }
     }
     catch (error) {
       const message = error instanceof Error ? error.message : "发送素材失败";
@@ -461,7 +470,10 @@ export default function useRoomImportActions({
       request.threadId = threadRootMessageId;
     }
 
-    await sendMessageWithInsert(request);
+    const createdRoomJump = await sendMessageWithInsert(request);
+    if (!createdRoomJump) {
+      return;
+    }
   }, [
     curRoleId,
     ensureRuntimeAvatarIdForRole,

@@ -53,6 +53,38 @@ type UseChatMessageSubmitResult = {
   handleMessageSubmit: () => Promise<void>;
 };
 
+function isSameMentionedRolesSnapshot(a: UserRole[], b: UserRole[]): boolean {
+  if (a === b) {
+    return true;
+  }
+  if (a.length !== b.length) {
+    return false;
+  }
+  for (let i = 0; i < a.length; i++) {
+    if (a[i]?.roleId !== b[i]?.roleId) {
+      return false;
+    }
+  }
+  return true;
+}
+
+function shouldResetSubmittedInputSnapshot(
+  current: {
+    plainText: string;
+    textWithoutMentions: string;
+    mentionedRoles: UserRole[];
+  },
+  submitted: {
+    plainText: string;
+    textWithoutMentions: string;
+    mentionedRoles: UserRole[];
+  },
+): boolean {
+  return current.plainText === submitted.plainText
+    && current.textWithoutMentions === submitted.textWithoutMentions
+    && isSameMentionedRolesSnapshot(current.mentionedRoles, submitted.mentionedRoles);
+}
+
 function resolveAudioAutoPlayPurposeFromMessage(message: {
   content?: string | null;
   annotations?: string[];
@@ -165,12 +197,13 @@ export default function useChatMessageSubmit({
       const resolvedAvatarId = senderRoleId > 0
         ? await ensureRuntimeAvatarIdForRole(senderRoleId)
         : -1;
-      const finalReplyId = roomUiStoreApi.getState().replyMessage?.messageId || undefined;
       const {
+        replyMessage,
         threadRootMessageId: activeThreadRootId,
         composerTarget,
         insertAfterMessageId,
       } = roomUiStoreApi.getState();
+      const finalReplyId = replyMessage?.messageId || undefined;
       const activeThreadId = composerTarget === "thread" && activeThreadRootId
         ? activeThreadRootId
         : undefined;
@@ -203,14 +236,6 @@ export default function useChatMessageSubmit({
         toast.error("当前不在空间群聊，请使用 /roomjump <spaceId> <roomId> [标题]");
         return;
       }
-
-      // 乐观发送体验：消息开始提交流程后立即清空输入框，避免“消息已出现但输入框还残留”的错觉。
-      setInputText("");
-      setImgFiles([]);
-      setEmojiUrls([]);
-      clearEmojiMeta();
-      setFileAttachments([]);
-      setAudioFile(null);
 
       const isCommandRequestByAll = !isSpectator && isKP && containsCommandRequestAllToken(inputText);
       const extractedCommandForRequest = isCommandRequestByAll ? extractFirstCommandText(trimmedWithoutMentions) : null;
@@ -245,7 +270,10 @@ export default function useChatMessageSubmit({
           requestMsg.customRoleName = draftCustomRoleName;
         }
 
-        await sendMessageWithInsert(requestMsg);
+        const createdRequestMessage = await sendMessageWithInsert(requestMsg);
+        if (!createdRequestMessage) {
+          return;
+        }
         hasConsumedFirstMessage = true;
         regularInputText = "";
       }
@@ -277,7 +305,10 @@ export default function useChatMessageSubmit({
           roomJumpMsg.customRoleName = draftCustomRoleName;
         }
 
-        await sendMessageWithInsert(roomJumpMsg);
+        const createdRoomJumpMessage = await sendMessageWithInsert(roomJumpMsg);
+        if (!createdRoomJumpMessage) {
+          return;
+        }
         hasConsumedFirstMessage = true;
         regularInputText = "";
       }
@@ -320,6 +351,7 @@ export default function useChatMessageSubmit({
 
         if (isWebgalCommandInput && !normalizedContent) {
           toast.error("WebGAL 指令不能为空");
+          return;
         }
         else {
           regularDrafts[0] = {
@@ -340,16 +372,23 @@ export default function useChatMessageSubmit({
         customRoleName: draftCustomRoleName,
       }));
 
-      const createdRegularMessages: Array<ChatMessageResponse["message"] | null> = regularRequests.length > 1 && !insertAfterMessageId
-        ? await sendMessageBatch(regularRequests)
-        : await (async () => {
-            const createdMessages: Array<ChatMessageResponse["message"] | null> = [];
-            for (const request of regularRequests) {
-              const createdMessage = await sendMessageWithInsert(request);
-              createdMessages.push(createdMessage);
-            }
-            return createdMessages;
-          })();
+      const createdRegularMessages: Array<ChatMessageResponse["message"] | null> = [];
+      if (regularRequests.length > 1 && !insertAfterMessageId) {
+        const createdBatchMessages = await sendMessageBatch(regularRequests);
+        if (createdBatchMessages.length !== regularRequests.length) {
+          return;
+        }
+        createdRegularMessages.push(...createdBatchMessages);
+      }
+      else {
+        for (const request of regularRequests) {
+          const createdMessage = await sendMessageWithInsert(request);
+          if (!createdMessage) {
+            return;
+          }
+          createdRegularMessages.push(createdMessage);
+        }
+      }
 
       if (regularRequests.length > 0) {
         hasConsumedFirstMessage = true;
@@ -384,14 +423,42 @@ export default function useChatMessageSubmit({
         }
       });
 
-      // 提交期间用户可能已开始输入下一条；仅在输入框仍为空时执行收尾清空，避免覆盖新输入。
-      const latestInputText = useChatInputUiStore.getState().plainText;
-      if (latestInputText.length === 0) {
+      // 仅在当前草稿仍然是本次提交内容时才清空，避免覆盖用户在提交期间的新输入。
+      const latestInputSnapshot = useChatInputUiStore.getState();
+      if (shouldResetSubmittedInputSnapshot(latestInputSnapshot, {
+        plainText: inputText,
+        textWithoutMentions: inputTextWithoutMentions,
+        mentionedRoles: mentionedRolesInInput,
+      })) {
         setInputText("");
       }
-      setTempAnnotations([]);
-      roomUiStoreApi.getState().setReplyMessage(undefined);
-      roomUiStoreApi.getState().setInsertAfterMessageId(undefined);
+      const latestComposerState = useChatComposerStore.getState();
+      if (latestComposerState.imgFiles === imgFiles) {
+        setImgFiles([]);
+      }
+      if (latestComposerState.emojiUrls === emojiUrls) {
+        setEmojiUrls([]);
+      }
+      if (latestComposerState.emojiMetaByUrl === emojiMetaByUrl) {
+        clearEmojiMeta();
+      }
+      if (latestComposerState.fileAttachments === fileAttachments) {
+        setFileAttachments([]);
+      }
+      if (latestComposerState.audioFile === audioFile) {
+        setAudioFile(null);
+      }
+      if (latestComposerState.tempAnnotations === tempAnnotations) {
+        setTempAnnotations([]);
+      }
+
+      const latestRoomUiState = roomUiStoreApi.getState();
+      if (latestRoomUiState.replyMessage?.messageId === replyMessage?.messageId) {
+        latestRoomUiState.setReplyMessage(undefined);
+      }
+      if (latestRoomUiState.insertAfterMessageId === insertAfterMessageId) {
+        latestRoomUiState.setInsertAfterMessageId(undefined);
+      }
     }
     catch (error) {
       console.error("发送消息失败", error);

@@ -337,7 +337,10 @@ export default function useRoomMessageActions({
         chooseMsg.customRoleName = draftCustomRoleName.trim();
       }
 
-      await sendMessageWithInsert(chooseMsg);
+      const createdChooseMessage = await sendMessageWithInsert(chooseMsg);
+      if (!createdChooseMessage) {
+        return;
+      }
     }
     finally {
       webgalChooseSendingRef.current = false;
