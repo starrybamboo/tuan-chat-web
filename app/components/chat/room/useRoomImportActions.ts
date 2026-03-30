@@ -232,11 +232,9 @@ export default function useRoomImportActions({
       toast.error("未找到当前空间，无法发送文档");
       return;
     }
-
-    if (payload?.spaceId && payload.spaceId !== spaceId) {
-      toast.error("仅支持在同一空间分享文档");
-      return;
-    }
+    const sourceSpaceId = typeof payload?.spaceId === "number" && payload.spaceId > 0
+      ? payload.spaceId
+      : spaceId;
 
     const isKP = isSpaceOwner;
     const isNarrator = curRoleId <= 0;
@@ -255,7 +253,7 @@ export default function useRoomImportActions({
       try {
         const { getOrCreateSpaceDoc } = await import("@/components/chat/infra/blocksuite/space/spaceWorkspaceRegistry");
 
-        const store = getOrCreateSpaceDoc({ spaceId, docId }) as any;
+        const store = getOrCreateSpaceDoc({ spaceId: sourceSpaceId, docId }) as any;
         try {
           store?.load?.();
         }
@@ -281,7 +279,7 @@ export default function useRoomImportActions({
       extra: {
         docCard: {
           docId,
-          spaceId,
+          spaceId: sourceSpaceId,
           ...(payload?.title ? { title: payload.title } : {}),
           ...(payload?.imageUrl ? { imageUrl: payload.imageUrl } : {}),
           ...(excerpt ? { excerpt } : {}),
@@ -429,11 +427,9 @@ export default function useRoomImportActions({
       toast.error("当前不在空间群聊，无法发送群聊跳转");
       return;
     }
-
-    if (payload?.spaceId && payload.spaceId !== spaceId) {
-      toast.error("仅支持在同一空间引用群聊");
-      return;
-    }
+    const targetSpaceId = typeof payload?.spaceId === "number" && payload.spaceId > 0
+      ? payload.spaceId
+      : spaceId;
 
     const isKP = isSpaceOwner;
     const isNarrator = curRoleId <= 0;
@@ -457,7 +453,7 @@ export default function useRoomImportActions({
       messageType: MessageType.ROOM_JUMP,
       extra: {
         roomJump: {
-          spaceId,
+          spaceId: targetSpaceId,
           roomId: targetRoomId,
           ...(payload.roomName ? { roomName: payload.roomName } : {}),
           ...(payload.categoryName ? { categoryName: payload.categoryName } : {}),

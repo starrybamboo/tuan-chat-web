@@ -53,7 +53,9 @@ function DocCardMessageImpl({ messageResponse }: { messageResponse: ChatMessageR
   const docId = payload?.docId ?? "";
 
   const currentSpaceId = roomContext.spaceId;
-  const isSameSpace = !payload?.spaceId || (typeof currentSpaceId === "number" && currentSpaceId > 0 && payload.spaceId === currentSpaceId);
+  const previewSpaceId = typeof payload?.spaceId === "number" && payload.spaceId > 0
+    ? payload.spaceId
+    : currentSpaceId;
   const isSupportedDocId = Boolean(docId && parseDescriptionDocId(docId));
 
   const [preview, setPreview] = useState<{ title: string; imageUrl: string; excerpt: string }>({
@@ -65,9 +67,9 @@ function DocCardMessageImpl({ messageResponse }: { messageResponse: ChatMessageR
   const isMobile = useIsMobile();
 
   useEffect(() => {
-    if (!docId || !isSameSpace || !isSupportedDocId)
+    if (!docId || !isSupportedDocId)
       return;
-    if (typeof currentSpaceId !== "number" || currentSpaceId <= 0)
+    if (typeof previewSpaceId !== "number" || previewSpaceId <= 0)
       return;
 
     let unsubHeader: (() => void) | null = null;
@@ -85,7 +87,7 @@ function DocCardMessageImpl({ messageResponse }: { messageResponse: ChatMessageR
     (async () => {
       try {
         const registry = await import("@/components/chat/infra/blocksuite/space/spaceWorkspaceRegistry");
-        const store = registry.getOrCreateSpaceDoc({ spaceId: currentSpaceId, docId }) as any;
+        const store = registry.getOrCreateSpaceDoc({ spaceId: previewSpaceId, docId }) as any;
 
         try {
           (store as any)?.load?.();
@@ -121,7 +123,7 @@ function DocCardMessageImpl({ messageResponse }: { messageResponse: ChatMessageR
     return () => {
       cleanup();
     };
-  }, [currentSpaceId, docId, isSameSpace, isSupportedDocId, payload?.imageUrl, payload?.title]);
+  }, [docId, isSupportedDocId, payload?.imageUrl, payload?.title, previewSpaceId]);
 
   const title = preview.title || payload?.title || (docId ? `文档：${docId}` : "文档");
   const coverUrl = preview.imageUrl || payload?.imageUrl || "";
@@ -129,7 +131,7 @@ function DocCardMessageImpl({ messageResponse }: { messageResponse: ChatMessageR
 
   const disabledReason = !payload
     ? "无效的文档消息"
-    : (!isSupportedDocId ? "不支持的文档引用" : (!isSameSpace ? "仅支持在同一空间预览" : ""));
+    : (!isSupportedDocId ? "不支持的文档引用" : (!(typeof previewSpaceId === "number" && previewSpaceId > 0) ? "缺少空间信息，无法打开文档预览" : ""));
   const isDisabled = Boolean(disabledReason);
 
   const openPreview = () => {
@@ -159,7 +161,7 @@ function DocCardMessageImpl({ messageResponse }: { messageResponse: ChatMessageR
 
             const spaceId = typeof payload.spaceId === "number" && payload.spaceId > 0
               ? payload.spaceId
-              : (typeof currentSpaceId === "number" && currentSpaceId > 0 ? currentSpaceId : undefined);
+              : (typeof previewSpaceId === "number" && previewSpaceId > 0 ? previewSpaceId : undefined);
 
             e.dataTransfer.effectAllowed = "copyLink";
             try {
@@ -225,11 +227,11 @@ function DocCardMessageImpl({ messageResponse }: { messageResponse: ChatMessageR
           }`}
         >
           <div className="flex-1 min-h-0 overflow-hidden">
-            {(!isDisabled && typeof currentSpaceId === "number" && currentSpaceId > 0) && (
+            {(!isDisabled && typeof previewSpaceId === "number" && previewSpaceId > 0) && (
               <div className="w-full h-full overflow-hidden bg-base-100">
                 <BlocksuiteDescriptionEditor
-                  workspaceId={`space:${currentSpaceId}`}
-                  spaceId={currentSpaceId}
+                  workspaceId={`space:${previewSpaceId}`}
+                  spaceId={previewSpaceId}
                   docId={docId}
                   variant="full"
                   readOnly

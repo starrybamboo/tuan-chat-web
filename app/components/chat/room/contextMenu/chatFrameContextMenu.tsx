@@ -127,23 +127,24 @@ export default function ChatFrameContextMenu({
       return null;
     }
 
-    if (typeof docCard.spaceId === "number" && docCard.spaceId !== spaceId) {
-      toast.error("不允许跨空间复制文档");
-      return null;
-    }
-
-    return { spaceId, sourceDocId: docCard.docId };
+    return {
+      spaceId,
+      sourceDocId: docCard.docId,
+      sourceSpaceId: typeof docCard.spaceId === "number" && docCard.spaceId > 0 ? docCard.spaceId : undefined,
+    };
   }, [docCard?.docId, docCard?.spaceId, spaceContext.spaceId]);
 
   const copyToSpaceUserDoc = useCallback(async (params: {
     spaceId: number;
     sourceDocId: string;
+    sourceSpaceId?: number;
     title?: string;
     imageUrl?: string;
   }) => {
     const { newDocEntityId, newDocId, title } = await copyDocToSpaceUserDoc({
       spaceId: params.spaceId,
       sourceDocId: params.sourceDocId,
+      sourceSpaceId: params.sourceSpaceId,
       title: params.title,
       imageUrl: params.imageUrl,
     });
@@ -241,6 +242,7 @@ export default function ChatFrameContextMenu({
       await copyToSpaceUserDoc({
         spaceId: ok.spaceId,
         sourceDocId: ok.sourceDocId,
+        sourceSpaceId: ok.sourceSpaceId,
         title: docCard?.title,
         imageUrl: docCard?.imageUrl,
       });
@@ -268,6 +270,7 @@ export default function ChatFrameContextMenu({
       const res = await copyDocToSpaceDoc({
         spaceId: ok.spaceId,
         sourceDocId: ok.sourceDocId,
+        sourceSpaceId: ok.sourceSpaceId,
         title: docCard?.title,
         imageUrl: docCard?.imageUrl,
       });

@@ -1,9 +1,4 @@
-import toast from "react-hot-toast";
-
-import { useChatComposerStore } from "@/components/chat/stores/chatComposerStore";
-import { preheatChatMediaPreprocess } from "@/components/chat/utils/attachmentPreprocess";
 import {
-  applyRoomMediaAnnotationPreferenceToComposer,
   getRoomMediaAnnotationPreference,
   setRoomMediaAnnotationPreference,
 } from "@/components/chat/utils/mediaAnnotationPreference";
@@ -116,59 +111,12 @@ export function ensureMaterialComposerMediaPreferences() {
   }
 }
 
-export function queueFilesToMaterialComposer(
-  files: Iterable<File>,
-  {
-    showSuccessToast = true,
-    showEmptyToast = true,
-  }: QueueMaterialComposerFilesOptions = {},
-) {
-  ensureMaterialComposerMediaPreferences();
+export {
+  buildQueuedFilesSummary,
+  splitComposerFiles,
+};
 
-  const queued = splitComposerFiles(files);
-  const { images, videos, audios, files: genericFiles } = queued;
-  const hasFiles = images.length > 0 || videos.length > 0 || audios.length > 0 || genericFiles.length > 0;
-
-  if (!hasFiles) {
-    if (showEmptyToast) {
-      toast.error("未检测到可用文件");
-    }
-    return false;
-  }
-
-  const store = useChatComposerStore.getState();
-
-  if (images.length > 0) {
-    store.updateImgFiles((draft) => {
-      draft.push(...images);
-    });
-    applyRoomMediaAnnotationPreferenceToComposer(MATERIAL_COMPOSER_ROOM_ID, "image");
-  }
-
-  if (videos.length > 0 || genericFiles.length > 0) {
-    store.updateFileAttachments((draft) => {
-      draft.push(...videos, ...genericFiles);
-    });
-  }
-
-  if (audios.length > 0) {
-    store.setAudioFile(audios[0]);
-    applyRoomMediaAnnotationPreferenceToComposer(MATERIAL_COMPOSER_ROOM_ID, "audio");
-    if (audios.length > 1) {
-      toast.error("仅支持添加 1 个音频，已取第一个");
-    }
-  }
-
-  preheatChatMediaPreprocess({
-    imageFiles: images,
-    videoFiles: videos,
-    audioFiles: audios.length > 0 ? [audios[0]] : [],
-  });
-
-  if (showSuccessToast) {
-    const summaryParts = buildQueuedFilesSummary(queued);
-    toast.success(`已加入输入框：${summaryParts.join("、")}`);
-  }
-
-  return true;
-}
+export type {
+  QueueMaterialComposerFilesOptions,
+  QueuedComposerFiles,
+};
