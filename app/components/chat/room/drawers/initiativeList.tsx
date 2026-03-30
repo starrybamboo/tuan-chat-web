@@ -1203,6 +1203,36 @@ export default function InitiativeList() {
     return result;
   }, [isPokemonRule, importableRoles, abilityQueries, spaceContext.ruleId]);
 
+  const pokemonItemByRoleId = useMemo(() => {
+    const result = new Map<number, string>();
+    if (!isPokemonRule)
+      return result;
+
+    importableRoles.forEach((role, idx) => {
+      const query = abilityQueries[idx];
+      const res = query?.data;
+      if (!res?.success || !Array.isArray(res.data) || !spaceContext.ruleId)
+        return;
+
+      const record = res.data.find(item => item.ruleId === spaceContext.ruleId);
+      if (!record)
+        return;
+
+      const source: Record<string, any> = { ...(record.ability || {}), ...(record.basic || {}), ...(record as any).skill };
+      const itemTextRaw = source.道具;
+      if (itemTextRaw == null)
+        return;
+
+      const text = String(itemTextRaw).trim();
+      if (!text)
+        return;
+
+      result.set(role.roleId, text);
+    });
+
+    return result;
+  }, [isPokemonRule, importableRoles, abilityQueries, spaceContext.ruleId]);
+
   const pokemonActionPointByRoleId = useMemo(() => {
     const result = new Map<number, string>();
     if (!isPokemonRule)
@@ -1520,6 +1550,9 @@ export default function InitiativeList() {
                           const traitText = typeof item.roleId === "number"
                             ? (pokemonTraitByRoleId.get(item.roleId) ?? "--")
                             : "--";
+                          const itemText = typeof item.roleId === "number"
+                            ? pokemonItemByRoleId.get(item.roleId)
+                            : undefined;
                           const statusText = typeof item.roleId === "number"
                             ? pokemonStatusByRoleId.get(item.roleId)
                             : undefined;
@@ -1771,6 +1804,17 @@ export default function InitiativeList() {
                                       特性
                                       {"\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0"}
                                       {traitText}
+                                    </div>
+                                  </td>
+                                </tr>
+                              )}
+                              {isPokemonRule && itemText && (
+                                <tr key={`${rowKey}:item`}>
+                                  <td colSpan={5} className="pt-0 pb-1">
+                                    <div className="text-[11px] text-base-content/60 px-1 whitespace-normal wrap-break-word">
+                                      道具
+                                      {"\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0"}
+                                      {itemText}
                                     </div>
                                   </td>
                                 </tr>
