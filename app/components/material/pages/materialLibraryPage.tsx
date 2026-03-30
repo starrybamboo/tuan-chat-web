@@ -10,13 +10,14 @@ import {
   usePublicMaterialPackagesQuery,
   useUpdateMaterialPackageMutation,
 } from "../../../../api/hooks/materialPackageQueryHooks";
-import MaterialLibrarySidebar from "../components/materialLibrarySidebar";
-import MaterialLibraryWorkspace from "../components/materialLibraryWorkspace";
 import MaterialPackageEditor from "../components/materialPackageEditor";
 import { buildMaterialPackageEditorDraft } from "../components/materialPackageEditorDraft";
 import MaterialPackageEditorInlinePage from "../components/materialPackageEditorInlinePage";
 import { createEmptyMaterialPackageContent } from "../components/materialPackageEditorShared";
 import MaterialPackageLibraryFrame from "../components/materialPackageLibraryFrame";
+import { buildGlobalMaterialPackageCardModel } from "../components/materialPackageLibraryModels";
+import MaterialPackageLibrarySidebar from "../components/materialPackageLibrarySidebar";
+import MaterialPackageLibraryWorkspace from "../components/materialPackageLibraryWorkspace";
 
 export type GlobalTab = "public" | "mine";
 
@@ -64,6 +65,7 @@ export default function MaterialLibraryPage({
   const loading = activeTab === "mine" ? myPackagesQuery.isLoading : publicPackagesQuery.isLoading;
   const editorOpen = isCreating || Boolean(selectedPackage);
   const detailBackLabel = activeTab === "mine" ? "返回我的素材包" : "返回素材广场";
+  const packageCardItems = packages.map(item => buildGlobalMaterialPackageCardModel(item, activeTab));
 
   useEffect(() => {
     if (mode) {
@@ -205,23 +207,84 @@ export default function MaterialLibraryPage({
   };
 
   const sidebarNode = (
-    <MaterialLibrarySidebar
-      activeTab={activeTab}
-      onSelectTab={handleSelectTab}
+    <MaterialPackageLibrarySidebar
+      description="在这里切换素材广场与我的素材包。"
+      items={[
+        {
+          key: "public",
+          label: "素材广场",
+          icon: "squares",
+          active: activeTab === "public",
+          onClick: () => handleSelectTab("public"),
+        },
+        {
+          key: "mine",
+          label: "我的素材包",
+          icon: "package",
+          active: activeTab === "mine",
+          onClick: () => handleSelectTab("mine"),
+        },
+      ]}
+      footerDescription={activeTab === "mine"
+        ? "你可以新建、编辑、删除自己的素材包。"
+        : "这里展示公开的素材包，默认以只读方式查看。"}
     />
   );
 
   const workspaceNode = (
-    <MaterialLibraryWorkspace
-      activeTab={activeTab}
+    <MaterialPackageLibraryWorkspace
+      upperLabel={activeTab === "mine" ? "Personal Library" : "Public Square"}
+      title={activeTab === "mine" ? "我的素材包" : "素材广场"}
+      description={activeTab === "mine"
+        ? "管理并组织你的数字化创意资产。通过统一的浏览与编辑视图，快速找到每一个灵感瞬间。"
+        : "浏览公开分享的素材包，快速查看素材结构、贡献信息与内容规模。"}
+      searchPlaceholder={activeTab === "mine"
+        ? "搜索我的素材资产、标签或分类..."
+        : "搜索公共素材包、标签或分类..."}
       keyword={keyword}
-      packages={packages}
+      items={packageCardItems}
+      headerActions={activeTab === "mine"
+        ? [{
+            key: "create-package",
+            label: "新建素材包",
+            icon: "plus",
+            variant: "primary",
+            onClick: handleCreateRequest,
+          }]
+        : []}
+      shortcuts={activeTab === "mine"
+        ? [{
+            key: "create-shortcut",
+            title: "创建新的素材包",
+            description: "从一个空包开始，逐步整理和沉淀你自己的素材集合。",
+            caption: "创建后即可进入编辑",
+            icon: "plus",
+            onClick: handleCreateRequest,
+          }]
+        : activeTab === "public"
+          ? [{
+              key: "navigate-to-mine",
+              title: "前往我的素材包",
+              description: "切换到个人素材区，继续新建、管理和维护你的私有素材库。",
+              caption: "适合沉淀你自己的常用内容",
+              icon: "package",
+              onClick: handleNavigateToMine,
+            }]
+          : []}
+      emptyTitle={activeTab === "mine" ? "你还没有自己的素材包" : "当前没有匹配的公开素材包"}
+      emptyDescription={activeTab === "mine"
+        ? "可以先新建一个素材包，开始组织你的素材与消息模板。"
+        : "换个关键词试试，或者稍后再来看看新的公开内容。"}
       loading={loading}
       embedded={embedded}
+      skeletonPrefix="material-skeleton"
       onKeywordChange={setKeyword}
-      onOpenPackage={handleOpenPackage}
-      onCreatePackage={handleCreateRequest}
-      onNavigateToMine={activeTab === "public" ? handleNavigateToMine : undefined}
+      onOpenItem={(index) => {
+        const item = packages[index];
+        if (typeof item?.packageId === "number") {
+          handleOpenPackage(item.packageId);
+        }
+      }}
     />
   );
 
