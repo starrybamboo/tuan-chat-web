@@ -4,6 +4,7 @@ import { toast } from "react-hot-toast";
 import type { RoomUiStoreApi } from "@/components/chat/stores/roomUiStore";
 import type { WebgalChoosePayload } from "@/types/webgalChoose";
 
+import { commitBatchOptimisticMessages } from "@/components/chat/room/roomMessageBatchCommit";
 import { getNextAppendPosition } from "@/components/chat/shared/messageOrder";
 import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
 
@@ -225,25 +226,13 @@ export default function useRoomMessageActions({
         return [];
       }
 
-      const committedResponses: ChatMessageResponse[] = createdMessages.map((createdMessage, index) => ({
-        message: {
-          ...createdMessage,
-          position: typeof createdMessage.position === "number"
-            ? createdMessage.position
-            : optimisticMessages[index]?.message.position,
-        },
-      }));
-
-      if (addOrUpdateMessages) {
-        await addOrUpdateMessages(committedResponses);
-      }
-      else {
-        for (const response of committedResponses) {
-          if (addOrUpdateMessage) {
-            await addOrUpdateMessage(response);
-          }
-        }
-      }
+      const committedResponses = await commitBatchOptimisticMessages({
+        optimisticMessages,
+        createdMessages,
+        addOrUpdateMessage,
+        addOrUpdateMessages,
+        replaceMessageById,
+      });
 
       committedResponses.forEach((response) => {
         roomUiStoreApi.getState().pushMessageUndo({ type: "send", after: response.message });
@@ -261,6 +250,7 @@ export default function useRoomMessageActions({
     addOrUpdateMessages,
     batchSendMessages,
     createOptimisticMessages,
+    replaceMessageById,
     revertOptimisticMessages,
     roomUiStoreApi,
     sendWithOptimistic,

@@ -7,6 +7,7 @@ import type { ChatMessageResponse } from "../../../../../api";
 
 import { tuanchat } from "../../../../../api/instance";
 import { MessageType } from "../../../../../api/wsModels";
+import { collectPersistedOptimisticDuplicateIds } from "./chatHistoryOptimistic";
 import {
   addOrUpdateMessagesBatch as dbAddOrUpdateMessages,
   clearMessagesByRoomId as dbClearMessages,
@@ -302,6 +303,25 @@ export function useChatHistory(roomId: number | null): UseChatHistoryReturn {
     });
   }, [cleanupMessageIdAlias]);
 
+  const stripPersistedOptimisticDuplicates = useCallback(async (
+    messages: ChatMessageResponse[],
+  ): Promise<ChatMessageResponse[]> => {
+    const duplicateIds = collectPersistedOptimisticDuplicateIds(messages);
+    if (duplicateIds.length === 0) {
+      return messages;
+    }
+
+    try {
+      await dbDeleteMessagesByIds(duplicateIds);
+    }
+    catch (err) {
+      setError(err as Error);
+      console.error(`Failed to cleanup optimistic duplicates for room ${roomIdRef.current}:`, err);
+    }
+
+    return messages.filter(item => !duplicateIds.includes(item.message.messageId));
+  }, []);
+
   const resolveMessageId = useCallback((messageId: number): number => {
     if (!Number.isFinite(messageId)) {
       return messageId;
@@ -552,7 +572,8 @@ export function useChatHistory(roomId: number | null): UseChatHistoryReturn {
       return [];
     currentFetchingRoomId.current = roomId;
     try {
-      const messages = await dbGetMessagesByRoomId(roomId);
+      const persistedMessages = await dbGetMessagesByRoomId(roomId);
+      const messages = await stripPersistedOptimisticDuplicates(persistedMessages);
       if (currentFetchingRoomId.current !== roomId) {
         return [];
       }
@@ -571,7 +592,7 @@ export function useChatHistory(roomId: number | null): UseChatHistoryReturn {
         currentFetchingRoomId.current = null;
       }
     }
-  }, [fetchNewestMessages]);
+  }, [fetchNewestMessages, stripPersistedOptimisticDuplicates]);
 
   /**
    * 清空当前房间的聊天记录
@@ -605,7 +626,8 @@ export function useChatHistory(roomId: number | null): UseChatHistoryReturn {
     const loadAndFetch = async () => {
       try {
         // IndexedDB 加载本地历史记录
-        const localHistory = await dbGetMessagesByRoomId(roomId);
+        const persistedLocalHistory = await dbGetMessagesByRoomId(roomId);
+        const localHistory = await stripPersistedOptimisticDuplicates(persistedLocalHistory);
         if (isCancelled)
           return;
         // 按 position 排序后设置消息
@@ -643,7 +665,7 @@ export function useChatHistory(roomId: number | null): UseChatHistoryReturn {
     return () => {
       isCancelled = true;
     };
-  }, [roomId, fetchNewestMessages]);
+  }, [roomId, fetchNewestMessages, stripPersistedOptimisticDuplicates]);
 
   // 监听页面状态, 如果重新页面处于可见状态，则尝试重新获取最新消息
   const messagesRawRef = useRef<ChatMessageResponse[]>([]);
