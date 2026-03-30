@@ -1,16 +1,15 @@
-import type { MaterialMessageItem } from "../../../../api/models/MaterialMessageItem";
 import { CaretDownIcon, PlusIcon } from "@phosphor-icons/react";
 import { useEffect, useRef, useState } from "react";
 import MaterialPackageAssetUploadButton from "./materialPackageAssetUploadButton";
 
 interface MaterialPackageAssetUploadMenuProps {
   disabled?: boolean;
-  onUploaded: (message: MaterialMessageItem) => void;
+  onQueuedToComposer?: () => void;
 }
 
 export default function MaterialPackageAssetUploadMenu({
   disabled = false,
-  onUploaded,
+  onQueuedToComposer,
 }: MaterialPackageAssetUploadMenuProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [isOpen, setIsOpen] = useState(false);
@@ -49,32 +48,32 @@ export default function MaterialPackageAssetUploadMenu({
             <MaterialPackageAssetUploadButton
               kind="image"
               fullWidth
-              onUploaded={(message) => {
-                onUploaded(message);
+              onQueued={() => {
+                onQueuedToComposer?.();
                 setIsOpen(false);
               }}
             />
             <MaterialPackageAssetUploadButton
               kind="audio"
               fullWidth
-              onUploaded={(message) => {
-                onUploaded(message);
+              onQueued={() => {
+                onQueuedToComposer?.();
                 setIsOpen(false);
               }}
             />
             <MaterialPackageAssetUploadButton
               kind="video"
               fullWidth
-              onUploaded={(message) => {
-                onUploaded(message);
+              onQueued={() => {
+                onQueuedToComposer?.();
                 setIsOpen(false);
               }}
             />
             <MaterialPackageAssetUploadButton
               kind="file"
               fullWidth
-              onUploaded={(message) => {
-                onUploaded(message);
+              onQueued={() => {
+                onQueuedToComposer?.();
                 setIsOpen(false);
               }}
             />

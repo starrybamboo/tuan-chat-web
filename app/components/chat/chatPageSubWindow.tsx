@@ -5,8 +5,10 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import RoomWindow from "@/components/chat/room/roomWindow";
 import BlocksuiteDescriptionEditor from "@/components/chat/shared/components/BlockSuite/blocksuiteDescriptionEditor";
 import { getDocRefDragData, isDocRefDrag } from "@/components/chat/utils/docRef";
+import { getMaterialItemDragData, isMaterialItemDrag } from "@/components/chat/utils/materialItemDrag";
 import { getSubWindowDragPayload } from "@/components/chat/utils/subWindowDragPayload";
 import { OpenAbleDrawer } from "@/components/common/openableDrawer";
+import SpaceMaterialSubWindow from "@/components/chat/space/drawers/spaceMaterialSubWindow";
 import { BaselineArrowBackIosNew, XMarkICon } from "@/icons";
 
 type ScreenSize = "sm" | "md" | "lg";
@@ -24,12 +26,15 @@ interface ChatPageSubWindowProps {
   roomId: number | null;
   docId: string | null;
   threadRootMessageId: number | null;
+  materialPackageId: number | null;
+  materialPathKey: string | null;
   setIsOpen: (next: boolean) => void;
   setWidth: (next: number) => void;
   setTab: (tab: ChatPageSubWindowTab) => void;
   setRoomId: (roomId: number | null) => void;
   setDocId: (docId: string | null) => void;
   setThreadRootMessageId: (messageId: number | null) => void;
+  setMaterialSelection: (selection: { spacePackageId: number | null; materialPathKey?: string | null }) => void;
 }
 
 const MIN_WIDTH = 420;
@@ -43,7 +48,11 @@ function clampWidth(value: number) {
   return Math.min(MAX_WIDTH, Math.max(MIN_WIDTH, safe));
 }
 
-type DroppedTarget = { tab: "room"; roomId: number } | { tab: "doc"; docId: string } | null;
+type DroppedTarget =
+  | { tab: "room"; roomId: number }
+  | { tab: "doc"; docId: string }
+  | { tab: "material"; spacePackageId: number; materialPathKey?: string | null }
+  | null;
 
 function resolveAllowedDropEffect(dataTransfer: DataTransfer | null | undefined): "copy" | "move" {
   const effectAllowed = String(dataTransfer?.effectAllowed ?? "");
@@ -79,6 +88,9 @@ function parseDroppedTarget(dataTransfer: DataTransfer | null | undefined): Drop
     if (fallbackPayload?.tab === "doc" && fallbackPayload.docId) {
       return fallbackPayload;
     }
+    if (fallbackPayload?.tab === "material" && fallbackPayload.spacePackageId > 0) {
+      return fallbackPayload;
+    }
     return null;
   }
 
@@ -95,6 +107,15 @@ function parseDroppedTarget(dataTransfer: DataTransfer | null | undefined): Drop
   const docRef = getDocRefDragData(dataTransfer);
   if (docRef?.docId) {
     return { tab: "doc", docId: docRef.docId };
+  }
+
+  const materialItem = getMaterialItemDragData(dataTransfer);
+  if (materialItem?.spacePackageId) {
+    return {
+      tab: "material",
+      spacePackageId: materialItem.spacePackageId,
+      materialPathKey: materialItem.materialPathKey,
+    };
   }
 
   const plainText = dataTransfer.getData("text/plain")?.trim() ?? "";
@@ -119,6 +140,9 @@ function parseDroppedTarget(dataTransfer: DataTransfer | null | undefined): Drop
   if (fallbackPayload?.tab === "doc" && fallbackPayload.docId) {
     return fallbackPayload;
   }
+  if (fallbackPayload?.tab === "material" && fallbackPayload.spacePackageId > 0) {
+    return fallbackPayload;
+  }
 
   return null;
 }
@@ -128,6 +152,9 @@ function hasDroppedTargetHint(dataTransfer: DataTransfer | null | undefined): bo
     return false;
   }
   if (isDocRefDrag(dataTransfer)) {
+    return true;
+  }
+  if (isMaterialItemDrag(dataTransfer)) {
     return true;
   }
   const types = Array.from(dataTransfer.types ?? []);
@@ -153,12 +180,15 @@ export default function ChatPageSubWindow({
   roomId,
   docId,
   threadRootMessageId,
+  materialPackageId,
+  materialPathKey,
   setIsOpen,
   setWidth,
   setTab,
   setRoomId,
   setDocId,
   setThreadRootMessageId,
+  setMaterialSelection,
 }: ChatPageSubWindowProps) {
   const isDesktop = screenSize !== "sm";
   const [isRightEdgeActive, setIsRightEdgeActive] = useState(false);
@@ -226,9 +256,16 @@ export default function ChatPageSubWindow({
       setRoomId(target.roomId);
       return;
     }
+    if (target.tab === "material") {
+      setMaterialSelection({
+        spacePackageId: target.spacePackageId,
+        materialPathKey: target.materialPathKey,
+      });
+      return;
+    }
     setTab("doc");
     setDocId(target.docId);
-  }, [setDocId, setIsOpen, setRoomId, setTab]);
+  }, [setDocId, setIsOpen, setMaterialSelection, setRoomId, setTab]);
 
   const handleDragOver = useCallback((event: React.DragEvent<HTMLElement>) => {
     const target = parseDroppedTarget(event.dataTransfer);
@@ -423,7 +460,7 @@ export default function ChatPageSubWindow({
             </div>
           </div>
         )}
-        {(tab === "doc" || tab === "empty") && (
+        {(tab === "doc" || tab === "empty" || tab === "material") && (
           <div className="absolute left-2 top-2 z-30 tooltip tooltip-right" data-tip="关闭副窗口">
             <button
               type="button"
@@ -442,7 +479,7 @@ export default function ChatPageSubWindow({
               <div className="max-w-sm text-center px-8">
                 <div className="text-base font-semibold">副窗口为空</div>
                 <div className="mt-2 text-sm text-base-content/60">
-                  将左侧的群聊或文档拖入此区域即可打开
+                  将左侧的群聊、文档或素材拖入此区域即可打开
                 </div>
               </div>
             </div>
@@ -524,6 +561,20 @@ export default function ChatPageSubWindow({
                           当前空间没有可用文档
                         </div>
                       )
+          )}
+
+          {tab === "material" && (
+            <div className="h-full overflow-hidden bg-base-100">
+              <SpaceMaterialSubWindow
+                spaceId={activeSpaceId}
+                spacePackageId={materialPackageId}
+                materialPathKey={materialPathKey}
+                onClearSelection={() => {
+                  setTab("empty");
+                  setMaterialSelection({ spacePackageId: null });
+                }}
+              />
+            </div>
           )}
         </div>
       </div>

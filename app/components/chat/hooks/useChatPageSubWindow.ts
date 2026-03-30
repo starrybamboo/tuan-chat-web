@@ -2,7 +2,11 @@ import { useCallback, useEffect, useMemo, useRef } from "react";
 
 import { useLocalStorage } from "@/components/common/customHooks/useLocalStorage";
 
-export type ChatPageSubWindowTab = "empty" | "room" | "doc" | "thread";
+export type ChatPageSubWindowTab = "empty" | "room" | "doc" | "thread" | "material";
+export type ChatPageSubWindowMaterialSelection = {
+  spacePackageId: number | null;
+  materialPathKey?: string | null;
+};
 
 type ChatPageSubWindowSnapshot = {
   isOpen: boolean;
@@ -11,6 +15,8 @@ type ChatPageSubWindowSnapshot = {
   roomId: number | null;
   docId: string | null;
   threadRootMessageId: number | null;
+  materialPackageId: number | null;
+  materialPathKey: string | null;
 };
 
 type ChatPageSubWindowMap = Record<string, ChatPageSubWindowSnapshot>;
@@ -22,17 +28,30 @@ const DEFAULT_SNAPSHOT: ChatPageSubWindowSnapshot = {
   roomId: null,
   docId: null,
   threadRootMessageId: null,
+  materialPackageId: null,
+  materialPathKey: null,
 };
+
+function normalizeMaterialPathKey(value?: string | null): string | null {
+  const normalized = typeof value === "string" ? value.trim() : "";
+  return normalized || null;
+}
 
 function normalizeSnapshot(raw?: Partial<ChatPageSubWindowSnapshot> | null): ChatPageSubWindowSnapshot {
   const width = typeof raw?.width === "number" && Number.isFinite(raw.width) ? raw.width : DEFAULT_SNAPSHOT.width;
-  const tab = raw?.tab === "empty" || raw?.tab === "room" || raw?.tab === "doc" || raw?.tab === "thread"
+  const tab = raw?.tab === "empty" || raw?.tab === "room" || raw?.tab === "doc" || raw?.tab === "thread" || raw?.tab === "material"
     ? raw.tab
     : DEFAULT_SNAPSHOT.tab;
   const roomId = typeof raw?.roomId === "number" && Number.isFinite(raw.roomId) ? raw.roomId : null;
   const docId = typeof raw?.docId === "string" && raw.docId.length > 0 ? raw.docId : null;
   const threadRootMessageId = typeof raw?.threadRootMessageId === "number" && Number.isFinite(raw.threadRootMessageId)
     ? raw.threadRootMessageId
+    : null;
+  const materialPackageId = typeof raw?.materialPackageId === "number" && Number.isFinite(raw.materialPackageId)
+    ? raw.materialPackageId
+    : null;
+  const materialPathKey = materialPackageId != null
+    ? normalizeMaterialPathKey(raw?.materialPathKey)
     : null;
   const isOpen = typeof raw?.isOpen === "boolean" ? raw.isOpen : DEFAULT_SNAPSHOT.isOpen;
   return {
@@ -42,6 +61,8 @@ function normalizeSnapshot(raw?: Partial<ChatPageSubWindowSnapshot> | null): Cha
     roomId,
     docId,
     threadRootMessageId,
+    materialPackageId,
+    materialPathKey,
   };
 }
 
@@ -58,6 +79,7 @@ type UseChatPageSubWindowResult = ChatPageSubWindowSnapshot & {
   setRoomId: (roomId: number | null) => void;
   setDocId: (docId: string | null) => void;
   setThreadRootMessageId: (messageId: number | null) => void;
+  setMaterialSelection: (selection: ChatPageSubWindowMaterialSelection) => void;
 };
 
 export default function useChatPageSubWindow({
@@ -113,6 +135,17 @@ export default function useChatPageSubWindow({
     updateSnapshot({ tab: "thread", threadRootMessageId: messageId });
   }, [updateSnapshot]);
 
+  const setMaterialSelection = useCallback((selection: ChatPageSubWindowMaterialSelection) => {
+    const materialPackageId = typeof selection.spacePackageId === "number" && Number.isFinite(selection.spacePackageId) && selection.spacePackageId > 0
+      ? selection.spacePackageId
+      : null;
+    updateSnapshot({
+      tab: "material",
+      materialPackageId,
+      materialPathKey: materialPackageId != null ? normalizeMaterialPathKey(selection.materialPathKey) : null,
+    });
+  }, [updateSnapshot]);
+
   const openedOnceRef = useRef(false);
   const lastSpaceKeyRef = useRef(spaceKey);
 
@@ -162,5 +195,6 @@ export default function useChatPageSubWindow({
     setRoomId,
     setDocId,
     setThreadRootMessageId,
+    setMaterialSelection,
   };
 }

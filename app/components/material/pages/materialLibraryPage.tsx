@@ -15,7 +15,7 @@ import {
 import MaterialLibrarySidebar from "../components/materialLibrarySidebar";
 import MaterialLibraryWorkspace from "../components/materialLibraryWorkspace";
 import MaterialPackageEditor from "../components/materialPackageEditor";
-import MaterialPackageEditorModal from "../components/materialPackageEditorModal";
+import MaterialPackageEditorInlinePage from "../components/materialPackageEditorInlinePage";
 import { createEmptyMaterialPackageContent } from "../components/materialPackageEditorShared";
 
 export type GlobalTab = "public" | "mine";
@@ -82,6 +82,7 @@ export default function MaterialLibraryPage({
   const selectedPackage = packages.find(item => item.packageId === selectedPackageId);
   const loading = activeTab === "mine" ? myPackagesQuery.isLoading : publicPackagesQuery.isLoading;
   const editorOpen = isCreating || Boolean(selectedPackage);
+  const detailBackLabel = activeTab === "mine" ? "返回我的素材包" : "返回素材广场";
 
   useEffect(() => {
     if (typeof window === "undefined") {
@@ -166,7 +167,6 @@ export default function MaterialLibraryPage({
       packageId: selectedPackage.packageId,
       ...draft,
     });
-    toast.success("素材包已更新");
   };
 
   const handleDelete = async () => {
@@ -264,55 +264,59 @@ export default function MaterialLibraryPage({
     />
   );
 
-  const editorNode = (
-    <MaterialPackageEditorModal
-      isOpen={editorOpen}
-      onClose={handleCloseEditor}
-    >
-      {isCreating
-        ? (
-            <MaterialPackageEditor
-              valueKey="create"
-              title="新建素材包"
-              subtitle="创建你的素材容器，配置封面、描述和素材单元。每个素材单元里都可以继续添加多条素材。"
-              initialDraft={buildDraft()}
-              showPublicToggle={true}
-              saveLabel="创建素材包"
-              savePending={createMutation.isPending}
-              onSave={handleCreate}
-            />
-          )
-        : selectedPackage
-          ? (
-              <MaterialPackageEditor
-                valueKey={`${activeTab}-${selectedPackage.packageId ?? "unknown"}-${selectedPackage.updateTime ?? ""}`}
-                title={activeTab === "public" ? "公开素材包详况" : "修改素材包"}
-                subtitle={activeTab === "public"
-                  ? `作者：${selectedPackage.username ?? "未知"} · 已被导入 ${selectedPackage.importCount ?? 0} 次`
-                  : `已被导入 ${selectedPackage.importCount ?? 0} 次`}
-                initialDraft={buildDraft(selectedPackage)}
-                readOnly={activeTab === "public"}
-                showPublicToggle={activeTab === "mine"}
-                savePending={updateMutation.isPending}
-                deletePending={deleteMutation.isPending}
-                extraActionLabel={activeTab === "public" ? "添加到我的素材包" : undefined}
-                extraActionPending={activeTab === "public" ? createMutation.isPending : false}
-                onSave={activeTab === "mine" ? handleUpdate : undefined}
-                onDelete={activeTab === "mine" ? handleDelete : undefined}
-                onExtraAction={activeTab === "public" ? handleAddToMine : undefined}
-              />
-            )
-          : null}
-    </MaterialPackageEditorModal>
-  );
+  const editorContent = isCreating
+    ? (
+        <MaterialPackageEditor
+          valueKey="create"
+          dragPackageId={undefined}
+          title="新建素材包"
+          subtitle="创建你的素材容器，配置封面、描述和素材单元。每个素材单元里都可以继续添加多条素材。"
+          initialDraft={buildDraft()}
+          showPublicToggle={true}
+          backLabel={detailBackLabel}
+          onBack={handleCloseEditor}
+          saveLabel="创建素材包"
+          savePending={createMutation.isPending}
+          onSave={handleCreate}
+        />
+      )
+    : selectedPackage
+      ? (
+          <MaterialPackageEditor
+            valueKey={`${activeTab}-${selectedPackage.packageId ?? "unknown"}-${selectedPackage.updateTime ?? ""}`}
+            dragPackageId={selectedPackage.packageId}
+            title={activeTab === "public" ? "公开素材包详况" : "修改素材包"}
+            subtitle={activeTab === "public"
+              ? `作者：${selectedPackage.username ?? "未知"} · 已被导入 ${selectedPackage.importCount ?? 0} 次`
+              : `已被导入 ${selectedPackage.importCount ?? 0} 次`}
+            initialDraft={buildDraft(selectedPackage)}
+            readOnly={activeTab === "public"}
+            showPublicToggle={activeTab === "mine"}
+            backLabel={detailBackLabel}
+            onBack={handleCloseEditor}
+            autoSave={activeTab === "mine"}
+            savePending={updateMutation.isPending}
+            deletePending={deleteMutation.isPending}
+            extraActionLabel={activeTab === "public" ? "添加到我的素材包" : undefined}
+            extraActionPending={activeTab === "public" ? createMutation.isPending : false}
+            onSave={activeTab === "mine" ? handleUpdate : undefined}
+            onDelete={activeTab === "mine" ? handleDelete : undefined}
+            onExtraAction={activeTab === "public" ? handleAddToMine : undefined}
+          />
+        )
+      : null;
+  const mainContentNode = editorOpen && editorContent
+    ? (
+        <MaterialPackageEditorInlinePage
+          embedded={embedded}
+        >
+          {editorContent}
+        </MaterialPackageEditorInlinePage>
+      )
+    : workspaceNode;
 
   if (embedded) {
-    return (
-      <>
-        {workspaceNode}
-        {editorNode}
-      </>
-    );
+    return mainContentNode;
   }
 
   return (
@@ -381,10 +385,8 @@ export default function MaterialLibraryPage({
           </Drawer.Root>
         )}
 
-        <div className="flex-1 min-h-0 min-w-0">{workspaceNode}</div>
+        <div className="flex-1 min-h-0 min-w-0">{mainContentNode}</div>
       </div>
-
-      {editorNode}
     </>
   );
 }

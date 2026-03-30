@@ -1,5 +1,5 @@
 import type { Room } from "api";
-import type { RoomSettingTab, SpaceDetailTab } from "@/components/chat/chatPage.types";
+import type { OpenSpaceDetailPanelOptions, RoomSettingTab, SpaceDetailTab } from "@/components/chat/chatPage.types";
 import type { SpaceMaterialPackageResponse } from "../../../api/models/SpaceMaterialPackageResponse";
 
 import type { MinimalDocMeta, SidebarTree } from "@/components/chat/room/sidebarTree";
@@ -35,7 +35,7 @@ interface ChatPageSidePanelContentProps {
   unreadMessagesNumber: Record<number, number>;
   onContextMenu: (e: React.MouseEvent) => void;
   onInviteMember: () => void;
-  onOpenSpaceDetailPanel: (tab: SpaceDetailTab) => void;
+  onOpenSpaceDetailPanel: (tab: SpaceDetailTab, options?: OpenSpaceDetailPanelOptions) => void;
   onSelectRoom: (roomId: number) => void;
   onOpenRoomSetting: (roomId: number, tab?: RoomSettingTab) => void;
   setIsOpenLeftDrawer: (isOpen: boolean) => void;

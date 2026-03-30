@@ -11,6 +11,7 @@ import type { ForwardMessage } from './ForwardMessage';
 import type { ImageMessage } from './ImageMessage';
 import type { RoomJumpExtra } from './RoomJumpExtra';
 import type { SoundMessage } from './SoundMessage';
+import type { ThreadRootExtra } from './ThreadRootExtra';
 import type { VideoMessage } from './VideoMessage';
 import type { WebgalChoosePayload } from './WebgalChoosePayload';
 import type { WebgalVarPayload } from './WebgalVarPayload';
@@ -30,5 +31,6 @@ export type MessageExtra = {
     commandRequest?: CommandRequestExtra;
     docCard?: DocCardExtra;
     roomJump?: RoomJumpExtra;
+    threadRoot?: ThreadRootExtra;
 };
 

@@ -1,4 +1,12 @@
-import type { MaterialMessageItem } from "../../../../api/models/MaterialMessageItem";
+import type { MessageDraft } from "@/types/messageDraft";
+
+import {
+  getFileMessageExtra,
+  getImageMessageExtra,
+  getSoundMessageExtra,
+  getVideoMessageExtra,
+} from "@/types/messageExtra";
+
 import type { MaterialNode } from "../../../../api/models/MaterialNode";
 import type { MaterialPackageContent } from "../../../../api/models/MaterialPackageContent";
 
@@ -353,7 +361,7 @@ export function collectFolderKeys(nodes: MaterialNode[] | undefined, parentPath:
   return result;
 }
 
-function getMessageKindLabel(message: MaterialMessageItem) {
+function getMessageKindLabel(message: MessageDraft) {
   switch (message.messageType) {
     case MessageType.IMG:
       return "图片";
@@ -368,17 +376,12 @@ function getMessageKindLabel(message: MaterialMessageItem) {
   }
 }
 
-export function getMessageKindLabels(messages: MaterialMessageItem[] | undefined) {
+export function getMessageKindLabels(messages: MessageDraft[] | undefined) {
   const uniqueLabels = new Set<string>();
   for (const message of messages ?? []) {
     uniqueLabels.add(getMessageKindLabel(message));
   }
   return [...uniqueLabels];
-}
-
-function getNestedPayload(message: MaterialMessageItem, key: "imageMessage" | "soundMessage" | "videoMessage" | "fileMessage") {
-  const extra = (message.extra ?? {}) as Record<string, any>;
-  return extra[key] ?? extra;
 }
 
 function formatFileSize(size?: number) {
@@ -397,9 +400,9 @@ function formatFileSize(size?: number) {
   return `${size} B`;
 }
 
-function buildMaterialOverviewAsset(message: MaterialMessageItem, index: number): MaterialOverviewAsset {
+function buildMaterialOverviewAsset(message: MessageDraft, index: number): MaterialOverviewAsset {
   if (message.messageType === MessageType.IMG) {
-    const image = getNestedPayload(message, "imageMessage");
+    const image = getImageMessageExtra(message.extra);
     return {
       key: `image-${index}-${image?.url ?? image?.fileName ?? "asset"}`,
       typeLabel: "图片",
@@ -412,7 +415,7 @@ function buildMaterialOverviewAsset(message: MaterialMessageItem, index: number)
   }
 
   if (message.messageType === MessageType.SOUND) {
-    const sound = getNestedPayload(message, "soundMessage");
+    const sound = getSoundMessageExtra(message.extra);
     return {
       key: `sound-${index}-${sound?.url ?? sound?.fileName ?? "asset"}`,
       typeLabel: "音频",
@@ -425,7 +428,7 @@ function buildMaterialOverviewAsset(message: MaterialMessageItem, index: number)
   }
 
   if (message.messageType === MessageType.VIDEO) {
-    const video = getNestedPayload(message, "videoMessage");
+    const video = getVideoMessageExtra(message.extra);
     return {
       key: `video-${index}-${video?.url ?? video?.fileName ?? "asset"}`,
       typeLabel: "视频",
@@ -437,7 +440,7 @@ function buildMaterialOverviewAsset(message: MaterialMessageItem, index: number)
     };
   }
 
-  const file = getNestedPayload(message, "fileMessage");
+  const file = getFileMessageExtra(message.extra);
   return {
     key: `file-${index}-${file?.url ?? file?.fileName ?? "asset"}`,
     typeLabel: "文件",

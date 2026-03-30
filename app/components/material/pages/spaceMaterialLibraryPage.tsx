@@ -1,7 +1,7 @@
 import type { MaterialPackageContent } from "../../../../api/models/MaterialPackageContent";
 import type { SpaceMaterialPackageResponse } from "../../../../api/models/SpaceMaterialPackageResponse";
 import { CaretRightIcon } from "@phosphor-icons/react";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import { useNavigate, useSearchParams } from "react-router";
 import { Drawer } from "vaul";
@@ -11,9 +11,12 @@ import {
   useSpaceMaterialPackagesQuery,
   useUpdateSpaceMaterialPackageMutation,
 } from "../../../../api/hooks/materialPackageQueryHooks";
+import type { MaterialItemDragPayload } from "@/components/chat/utils/materialItemDrag";
 import MaterialPackageEditor from "../components/materialPackageEditor";
-import MaterialPackageEditorModal from "../components/materialPackageEditorModal";
+import MaterialEditorDropLayer from "../components/materialEditorDropLayer";
+import MaterialPackageEditorInlinePage from "../components/materialPackageEditorInlinePage";
 import { createEmptyMaterialPackageContent } from "../components/materialPackageEditorShared";
+import { parseNodePath, serializeNodePath } from "../components/materialPackageTreeUtils";
 import MaterialPackageImportModal from "../components/materialPackageImportModal";
 import SpaceMaterialLibrarySidebar from "../components/spaceMaterialLibrarySidebar";
 import SpaceMaterialLibraryWorkspace from "../components/spaceMaterialLibraryWorkspace";
@@ -72,13 +75,27 @@ export default function SpaceMaterialLibraryPage({
     }
     return value;
   }, [searchParams]);
+  const selectedMaterialPathKey = useMemo(() => {
+    const raw = searchParams.get("materialPathKey") ?? "";
+    const normalized = raw.trim();
+    if (!normalized) {
+      return null;
+    }
+    const path = parseNodePath(normalized);
+    return path.length > 0 ? serializeNodePath(path) : null;
+  }, [searchParams]);
   const selectedPackage = packages.find(item => item.spacePackageId === selectedPackageId);
   const editorOpen = isCreating || Boolean(selectedPackage);
+  const detailBackLabel = "返回局内素材包";
 
-  const updateSelectedPackageId = (nextId: number | null) => {
+  const updateSelectedLocation = useCallback((nextId: number | null, nextMaterialPathKey?: string | null) => {
     const currentValue = searchParams.get("spacePackageId") ?? "";
     const nextValue = nextId && nextId > 0 ? String(nextId) : "";
-    if (currentValue === nextValue) {
+    const currentMaterialPathKey = searchParams.get("materialPathKey") ?? "";
+    const nextPathValue = nextId && nextId > 0 && nextMaterialPathKey?.trim()
+      ? serializeNodePath(parseNodePath(nextMaterialPathKey))
+      : "";
+    if (currentValue === nextValue && currentMaterialPathKey === nextPathValue) {
       return;
     }
     const nextSearchParams = new URLSearchParams(searchParams);
@@ -88,8 +105,14 @@ export default function SpaceMaterialLibraryPage({
     else {
       nextSearchParams.delete("spacePackageId");
     }
+    if (nextPathValue) {
+      nextSearchParams.set("materialPathKey", nextPathValue);
+    }
+    else {
+      nextSearchParams.delete("materialPathKey");
+    }
     setSearchParams(nextSearchParams);
-  };
+  }, [searchParams, setSearchParams]);
 
   useEffect(() => {
     if (typeof window === "undefined") {
@@ -120,9 +143,9 @@ export default function SpaceMaterialLibraryPage({
       return;
     }
     if (!packages.some(item => item.spacePackageId === selectedPackageId)) {
-      updateSelectedPackageId(null);
+      updateSelectedLocation(null);
     }
-  }, [packages, packagesQuery.isFetched, packagesQuery.isFetching, searchParams, selectedPackageId]);
+  }, [packages, packagesQuery.isFetched, packagesQuery.isFetching, selectedPackageId, updateSelectedLocation]);
 
   const handleCreate = async (draft: {
     name: string;
@@ -140,7 +163,7 @@ export default function SpaceMaterialLibraryPage({
     });
     toast.success("局内素材包已创建");
     setIsCreating(false);
-    updateSelectedPackageId(result.data?.spacePackageId ?? null);
+    updateSelectedLocation(result.data?.spacePackageId ?? null);
   };
 
   const handleUpdate = async (draft: {
@@ -162,7 +185,6 @@ export default function SpaceMaterialLibraryPage({
       coverUrl: draft.coverUrl,
       content: draft.content,
     });
-    toast.success("局内素材包已更新");
   };
 
   const handleDelete = async () => {
@@ -176,23 +198,45 @@ export default function SpaceMaterialLibraryPage({
     });
     toast.success("局内素材包已删除");
     setIsCreating(false);
-    updateSelectedPackageId(null);
+    updateSelectedLocation(null);
   };
 
   const handleCreateRequest = () => {
-    updateSelectedPackageId(null);
+    updateSelectedLocation(null);
     setIsCreating(true);
     setIsDrawerOpen(false);
   };
 
   const handleOpenPackage = (spacePackageId: number) => {
     setIsCreating(false);
-    updateSelectedPackageId(spacePackageId);
+    updateSelectedLocation(spacePackageId);
   };
+
+  const handleOpenMaterialItem = useCallback((payload: MaterialItemDragPayload) => {
+    const nextPackageId = Number(payload.spacePackageId);
+    if (!Number.isFinite(nextPackageId) || nextPackageId <= 0) {
+      return;
+    }
+    setIsCreating(false);
+    updateSelectedLocation(nextPackageId, payload.materialPathKey);
+  }, [updateSelectedLocation]);
+
+  const handleCloseImportModal = () => {
+    setIsImportOpen(false);
+  };
+
+  const handleImportedPackage = useCallback((materialPackage: SpaceMaterialPackageResponse) => {
+    setKeyword("");
+    setIsCreating(false);
+    const importedId = typeof materialPackage.spacePackageId === "number" && materialPackage.spacePackageId > 0
+      ? materialPackage.spacePackageId
+      : null;
+    updateSelectedLocation(importedId);
+  }, [updateSelectedLocation]);
 
   const handleCloseEditor = () => {
     setIsCreating(false);
-    updateSelectedPackageId(null);
+    updateSelectedLocation(null);
   };
 
   const handleNavigateToPublic = () => {
@@ -213,7 +257,6 @@ export default function SpaceMaterialLibraryPage({
 
   const workspaceNode = (
     <SpaceMaterialLibraryWorkspace
-      spaceId={spaceId}
       keyword={keyword}
       packages={packages}
       loading={packagesQuery.isLoading}
@@ -226,52 +269,64 @@ export default function SpaceMaterialLibraryPage({
     />
   );
 
-  const editorNode = (
-    <MaterialPackageEditorModal
-      isOpen={editorOpen}
-      onClose={handleCloseEditor}
-    >
-      {isCreating
-        ? (
-            <MaterialPackageEditor
-              valueKey="space-create"
-              title="新建局内素材包"
-              subtitle="当前空间的局内素材包会像本地仓库一样管理素材副本，编辑体验与局外素材包保持一致。"
-              initialDraft={buildDraft()}
-              saveLabel="创建局内素材包"
-              savePending={createMutation.isPending}
-              onSave={handleCreate}
-            />
-          )
-        : selectedPackage
-          ? (
-              <MaterialPackageEditor
-                valueKey={`space-${selectedPackage.spacePackageId ?? "unknown"}-${selectedPackage.updateTime ?? ""}`}
-                title="编辑局内素材包"
-                subtitle={selectedPackage.sourcePackageId
-                  ? `来源局外素材包：${selectedPackage.sourcePackageId} · 当前空间维护的是独立副本`
-                  : "这是当前空间直接创建的本地素材包"}
-                initialDraft={buildDraft(selectedPackage)}
-                savePending={updateMutation.isPending}
-                deletePending={deleteMutation.isPending}
-                onSave={handleUpdate}
-                onDelete={handleDelete}
-              />
-            )
-          : null}
-    </MaterialPackageEditorModal>
-  );
+  const editorContent = isCreating
+    ? (
+        <MaterialPackageEditor
+          valueKey="space-create"
+          dragPackageId={undefined}
+          title="新建局内素材包"
+          subtitle="当前空间的局内素材包会像本地仓库一样管理素材副本，编辑体验与局外素材包保持一致。"
+          initialDraft={buildDraft()}
+          backLabel={detailBackLabel}
+          onBack={handleCloseEditor}
+          saveLabel="创建局内素材包"
+          savePending={createMutation.isPending}
+          onSave={handleCreate}
+        />
+      )
+    : selectedPackage
+      ? (
+          <MaterialPackageEditor
+            valueKey={`space-${selectedPackage.spacePackageId ?? "unknown"}-${selectedPackage.updateTime ?? ""}`}
+            dragPackageId={selectedPackage.spacePackageId}
+            title="编辑局内素材包"
+            subtitle={selectedPackage.sourcePackageId
+              ? `来源局外素材包：${selectedPackage.sourcePackageId} · 当前空间维护的是独立副本`
+              : "这是当前空间直接创建的本地素材包"}
+            selectedNodeKey={selectedMaterialPathKey}
+            initialDraft={buildDraft(selectedPackage)}
+            backLabel={detailBackLabel}
+            onBack={handleCloseEditor}
+            autoSave
+            savePending={updateMutation.isPending}
+            deletePending={deleteMutation.isPending}
+            onSave={handleUpdate}
+            onDelete={handleDelete}
+          />
+        )
+      : null;
+  const mainContentNode = editorOpen && editorContent
+    ? (
+        <MaterialPackageEditorInlinePage
+          embedded={embedded}
+        >
+          {editorContent}
+        </MaterialPackageEditorInlinePage>
+      )
+    : workspaceNode;
 
   if (embedded) {
     return (
       <>
-        {workspaceNode}
-        {editorNode}
+        <MaterialEditorDropLayer onEditMaterialItem={handleOpenMaterialItem}>
+          {mainContentNode}
+        </MaterialEditorDropLayer>
 
         <MaterialPackageImportModal
           isOpen={isImportOpen}
           spaceId={spaceId}
-          onClose={() => setIsImportOpen(false)}
+          onClose={handleCloseImportModal}
+          onImported={handleImportedPackage}
         />
       </>
     );
@@ -343,15 +398,18 @@ export default function SpaceMaterialLibraryPage({
           </Drawer.Root>
         )}
 
-        <div className="flex-1 min-h-0 min-w-0">{workspaceNode}</div>
+        <div className="flex-1 min-h-0 min-w-0">
+          <MaterialEditorDropLayer onEditMaterialItem={handleOpenMaterialItem}>
+            {mainContentNode}
+          </MaterialEditorDropLayer>
+        </div>
       </div>
-
-      {editorNode}
 
       <MaterialPackageImportModal
         isOpen={isImportOpen}
         spaceId={spaceId}
-        onClose={() => setIsImportOpen(false)}
+        onClose={handleCloseImportModal}
+        onImported={handleImportedPackage}
       />
     </>
   );

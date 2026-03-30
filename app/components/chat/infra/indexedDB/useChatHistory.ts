@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { compareChatMessageResponsesByOrder } from "@/components/chat/shared/messageOrder";
+import { normalizeMessageExtraForMatch } from "@/types/messageDraft";
 
 import type { ChatMessageResponse } from "../../../../../api";
 
@@ -75,137 +76,6 @@ function stableSerialize(value: unknown): string {
   return JSON.stringify(String(value));
 }
 
-function toTrimmedString(value: unknown): string | undefined {
-  if (typeof value !== "string") {
-    return undefined;
-  }
-  const normalized = value.trim();
-  return normalized.length > 0 ? normalized : undefined;
-}
-
-function toFiniteNumber(value: unknown): number | undefined {
-  if (typeof value === "number") {
-    return Number.isFinite(value) ? value : undefined;
-  }
-  if (typeof value === "string") {
-    const normalized = value.trim();
-    if (!normalized) {
-      return undefined;
-    }
-    const parsed = Number(normalized);
-    return Number.isFinite(parsed) ? parsed : undefined;
-  }
-  return undefined;
-}
-
-function toLooseBoolean(value: unknown): boolean | undefined {
-  if (typeof value === "boolean") {
-    return value;
-  }
-  if (value === 1 || value === "1" || value === "true" || value === "TRUE") {
-    return true;
-  }
-  if (value === 0 || value === "0" || value === "false" || value === "FALSE") {
-    return false;
-  }
-  return undefined;
-}
-
-function compactValue(value: unknown): unknown {
-  if (Array.isArray(value)) {
-    const next = value
-      .map(item => compactValue(item))
-      .filter(item => item !== undefined);
-    return next.length > 0 ? next : undefined;
-  }
-  if (value && typeof value === "object") {
-    const record = value as Record<string, unknown>;
-    const nextEntries = Object.entries(record)
-      .map(([key, entry]) => [key, compactValue(entry)] as const)
-      .filter(([, entry]) => entry !== undefined);
-    if (nextEntries.length === 0) {
-      return undefined;
-    }
-    return Object.fromEntries(nextEntries);
-  }
-  if (value === null || value === undefined || value === "") {
-    return undefined;
-  }
-  return value;
-}
-
-function normalizeMessageExtraForMatch(message: ChatMessageResponse["message"]): unknown {
-  const rawExtra = message.extra as Record<string, unknown> | null | undefined;
-  const extra = (rawExtra && typeof rawExtra === "object") ? rawExtra : {};
-  switch (message.messageType) {
-    case MessageType.IMG: {
-      const image = (extra.imageMessage as Record<string, unknown> | undefined) ?? extra;
-      return compactValue({
-        imageMessage: {
-          url: toTrimmedString(image.url),
-          fileName: toTrimmedString(image.fileName),
-          width: toFiniteNumber(image.width),
-          height: toFiniteNumber(image.height),
-          size: toFiniteNumber(image.size),
-          background: toLooseBoolean(image.background),
-        },
-      });
-    }
-    case MessageType.SOUND: {
-      const sound = (extra.soundMessage as Record<string, unknown> | undefined) ?? extra;
-      return compactValue({
-        soundMessage: {
-          url: toTrimmedString(sound.url),
-          fileName: toTrimmedString(sound.fileName),
-          size: toFiniteNumber(sound.size),
-          second: toFiniteNumber(sound.second),
-          purpose: toTrimmedString(sound.purpose)?.toLowerCase(),
-        },
-      });
-    }
-    case MessageType.VIDEO: {
-      const video = (extra.videoMessage as Record<string, unknown> | undefined)
-        ?? (extra.fileMessage as Record<string, unknown> | undefined)
-        ?? extra;
-      return compactValue({
-        videoMessage: {
-          url: toTrimmedString(video.url),
-          fileName: toTrimmedString(video.fileName),
-          size: toFiniteNumber(video.size),
-          second: toFiniteNumber(video.second),
-        },
-      });
-    }
-    case MessageType.FILE: {
-      const file = (extra.fileMessage as Record<string, unknown> | undefined) ?? extra;
-      return compactValue({
-        fileMessage: {
-          url: toTrimmedString(file.url),
-          fileName: toTrimmedString(file.fileName),
-          size: toFiniteNumber(file.size),
-        },
-      });
-    }
-    case MessageType.ROOM_JUMP: {
-      const roomJump = (extra.roomJump as Record<string, unknown> | undefined) ?? extra;
-      return compactValue({
-        roomJump: {
-          spaceId: toFiniteNumber(roomJump.spaceId),
-          roomId: toFiniteNumber(roomJump.roomId),
-          label: toTrimmedString(roomJump.label),
-        },
-      });
-    }
-    case MessageType.WEBGAL_CHOOSE: {
-      return compactValue({
-        webgalChoose: extra.webgalChoose ?? extra,
-      });
-    }
-    default:
-      return compactValue(rawExtra);
-  }
-}
-
 function serializeMatchPosition(position: unknown): string {
   if (!isFiniteNumber(position)) {
     return "";
@@ -266,7 +136,7 @@ function buildOptimisticMatchKey(
     ignoreContent ? "" : String(message.content ?? ""),
     annotations,
     stableSerialize(message.webgal),
-    ignoreExtra ? "" : stableSerialize(normalizeMessageExtraForMatch(message)),
+    ignoreExtra ? "" : stableSerialize(normalizeMessageExtraForMatch(message.messageType, message.extra)),
   ];
   if (includePosition) {
     baseParts.push(serializeMatchPosition(message.position));

@@ -8,12 +8,13 @@ import { useAudioMessageAutoPlayStore } from "@/components/chat/stores/audioMess
 import { useChatComposerStore } from "@/components/chat/stores/chatComposerStore";
 import { useChatInputUiStore } from "@/components/chat/stores/chatInputUiStore";
 import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
+import { buildMessageDraftsFromComposerSnapshot } from "@/components/chat/utils/messageDraftBuilder";
 import { buildOutOfCharacterSpeechContent } from "@/components/chat/utils/outOfCharacterSpeech";
 import { isRoomJumpCommandText, parseRoomJumpCommand } from "@/components/chat/utils/roomJump";
 import { isCommand } from "@/components/common/dicer/cmdPre";
-import { ANNOTATION_IDS, hasAnnotation, normalizeAnnotations, setAnnotation } from "@/types/messageAnnotations";
-import { isAudioUploadDebugEnabled } from "@/utils/audioDebugFlags";
-import { getImageSize } from "@/utils/getImgSize";
+import { ANNOTATION_IDS, normalizeAnnotations } from "@/types/messageAnnotations";
+import { buildChatMessageRequestFromDraft } from "@/types/messageDraft";
+import { getSoundMessageExtra } from "@/types/messageExtra";
 import { UploadUtils } from "@/utils/UploadUtils";
 
 import type { ChatMessageRequest, ChatMessageResponse, UserRole } from "../../../../api";
@@ -56,8 +57,7 @@ function resolveAudioAutoPlayPurposeFromMessage(message: {
   annotations?: string[];
   extra?: unknown;
 }) {
-  const extra = message.extra as any;
-  const sound = extra?.soundMessage ?? extra;
+  const sound = getSoundMessageExtra(message.extra);
   const rawPurpose = typeof sound?.purpose === "string"
     ? sound.purpose.trim().toLowerCase()
     : "";
@@ -119,18 +119,7 @@ export default function useChatMessageSubmit({
 
     const trimmedInputText = inputText.trim();
     const trimmedWithoutMentions = inputTextWithoutMentions.trim();
-    const isBlankInput = trimmedInputText.length === 0;
-
-    const normalizedComposerAnnotations = normalizeAnnotations(composerAnnotations);
-    const normalizedTempAnnotations = normalizeAnnotations(tempAnnotations);
-    const mergedComposerAnnotations = normalizeAnnotations([...normalizedComposerAnnotations, ...normalizedTempAnnotations]);
-    const useBackgroundAnnotation = hasAnnotation(mergedComposerAnnotations, ANNOTATION_IDS.BACKGROUND);
-    const useCgAnnotation = hasAnnotation(mergedComposerAnnotations, ANNOTATION_IDS.CG);
-    const composerAudioPurpose = hasAnnotation(mergedComposerAnnotations, ANNOTATION_IDS.BGM)
-      ? "bgm"
-      : hasAnnotation(mergedComposerAnnotations, ANNOTATION_IDS.SE)
-        ? "se"
-        : undefined;
+    const mergedComposerAnnotations = normalizeAnnotations([...composerAnnotations, ...tempAnnotations]);
 
     const isKP = isSpaceOwner;
     const isNarrator = noRole;
@@ -171,193 +160,27 @@ export default function useChatMessageSubmit({
 
     setIsSubmitting(true);
     try {
-      const isVideoAttachment = (file: File) => {
-        if (file.type.startsWith("video/")) {
-          return true;
-        }
-        if (file.type.startsWith("audio/")) {
-          return false;
-        }
-        return /\.(?:mp4|mov|m4v|avi|mkv|wmv|flv|mpeg|mpg|webm)$/i.test(file.name || "");
-      };
-      const uploadedImages: any[] = [];
-      const uploadedVideos: Array<{ url: string; fileName: string; size: number; second?: number }> = [];
-      const uploadedFiles: Array<{ url: string; fileName: string; size: number }> = [];
       const resolvedAvatarId = senderRoleId > 0
         ? await ensureRuntimeAvatarIdForRole(senderRoleId)
         : -1;
-
-      for (let i = 0; i < imgFiles.length; i++) {
-        const imgDownLoadUrl = await uploadUtilsRef.current.uploadImg(imgFiles[i]);
-        const { width, height, size } = await getImageSize(imgFiles[i]);
-        uploadedImages.push({ url: imgDownLoadUrl, width, height, size, fileName: imgFiles[i].name });
-      }
-      setImgFiles([]);
-
-      for (let i = 0; i < emojiUrls.length; i++) {
-        const emojiUrl = emojiUrls[i];
-        const meta = emojiMetaByUrl[emojiUrl];
-        let width = meta?.width ?? -1;
-        let height = meta?.height ?? -1;
-        let size = meta?.size ?? -1;
-
-        // 元数据缺失时再回退到 fetch 图片探测尺寸，避免每次发送都请求远端 URL。
-        if (width <= 0 || height <= 0 || size <= 0) {
-          const measured = await getImageSize(emojiUrl);
-          width = width > 0 ? width : measured.width;
-          height = height > 0 ? height : measured.height;
-          size = size > 0 ? size : measured.size;
-        }
-
-        uploadedImages.push({
-          url: emojiUrl,
-          width,
-          height,
-          size,
-          fileName: meta?.fileName || "emoji",
-        });
-      }
-      setEmojiUrls([]);
-      clearEmojiMeta();
-
-      if (fileAttachments.length > 0) {
-        const fileToastId = toast.loading("正在上传文件/视频...");
-        try {
-          for (let i = 0; i < fileAttachments.length; i++) {
-            const file = fileAttachments[i];
-            if (isVideoAttachment(file)) {
-              const uploadedVideo = await uploadUtilsRef.current.uploadVideo(file, 1);
-              uploadedVideos.push(uploadedVideo);
-              continue;
-            }
-            const url = await uploadUtilsRef.current.uploadFile(file, 1);
-            uploadedFiles.push({
-              url,
-              fileName: file.name,
-              size: file.size,
-            });
-          }
-        }
-        finally {
-          toast.dismiss(fileToastId);
-        }
-      }
-      setFileAttachments([]);
-
-      let soundMessageData: any = null;
-      if (audioFile) {
-        const maxAudioDurationSec = 0;
-        const objectUrl = URL.createObjectURL(audioFile);
-        const debugEnabled = isAudioUploadDebugEnabled();
-        const debugPrefix = "[tc-audio-upload]";
-        const audioToastId = toast.loading("正在上传音频...");
-
-        if (debugEnabled) {
-          console.warn(`${debugPrefix} roomWindow send audio`, {
-            name: audioFile.name,
-            type: audioFile.type,
-            size: audioFile.size,
-            lastModified: audioFile.lastModified,
-            truncateToSec: maxAudioDurationSec > 0 ? maxAudioDurationSec : null,
-          });
-        }
-
-        try {
-          const durationSec = await (async () => {
-            try {
-              const audio = new Audio();
-              audio.preload = "metadata";
-              audio.src = objectUrl;
-              audio.load();
-
-              return await new Promise<number | undefined>((resolve) => {
-                const timeout = window.setTimeout(() => resolve(undefined), 5000);
-                const cleanup = () => {
-                  window.clearTimeout(timeout);
-                  audio.onloadedmetadata = null;
-                  audio.onerror = null;
-                  audio.onabort = null;
-                };
-
-                audio.onloadedmetadata = () => {
-                  const d = audio.duration;
-                  cleanup();
-                  resolve(Number.isFinite(d) && d > 0 ? d : undefined);
-                };
-                audio.onerror = () => {
-                  cleanup();
-                  resolve(undefined);
-                };
-                audio.onabort = () => {
-                  cleanup();
-                  resolve(undefined);
-                };
-              });
-            }
-            finally {
-              URL.revokeObjectURL(objectUrl);
-            }
-          })();
-
-          const second = (typeof durationSec === "number" && Number.isFinite(durationSec))
-            ? Math.max(1, Math.round(durationSec))
-            : 1;
-
-          if (debugEnabled)
-            console.warn(`${debugPrefix} duration`, { durationSec, second });
-
-          const url = await uploadUtilsRef.current.uploadAudio(audioFile, 1, maxAudioDurationSec);
-
-          soundMessageData = {
-            url,
-            second,
-            fileName: audioFile.name,
-            size: audioFile.size,
-          };
-          setAudioFile(null);
-        }
-        catch (error) {
-          console.error(`${debugPrefix} uploadAudio failed`, error);
-          throw error;
-        }
-        finally {
-          toast.dismiss(audioToastId);
-        }
-      }
-
       const finalReplyId = roomUiStoreApi.getState().replyMessage?.messageId || undefined;
-      let isFirstMessage = true;
-
-      const getCommonFields = () => {
-        const fields: Partial<ChatMessageRequest> = {
-          roomId,
-          roleId: senderRoleId,
-          avatarId: resolvedAvatarId,
-        };
-
-        const { threadRootMessageId: activeThreadRootId, composerTarget } = roomUiStoreApi.getState();
-        if (composerTarget === "thread" && activeThreadRootId) {
-          fields.threadId = activeThreadRootId;
+      const { threadRootMessageId: activeThreadRootId, composerTarget } = roomUiStoreApi.getState();
+      const activeThreadId = composerTarget === "thread" && activeThreadRootId
+        ? activeThreadRootId
+        : undefined;
+      const draftCustomRoleName = (() => {
+        if (!(senderRoleId > 0)) {
+          return undefined;
         }
-
-        if (senderRoleId > 0) {
-          const draftCustomRoleName = useRoomPreferenceStore.getState().draftCustomRoleNameMap[senderRoleId];
-          if (draftCustomRoleName?.trim()) {
-            fields.customRoleName = draftCustomRoleName.trim();
-          }
+        const rawCustomRoleName = useRoomPreferenceStore.getState().draftCustomRoleNameMap[senderRoleId];
+        if (typeof rawCustomRoleName !== "string") {
+          return undefined;
         }
+        const trimmedCustomRoleName = rawCustomRoleName.trim();
+        return trimmedCustomRoleName || undefined;
+      })();
 
-        if (isFirstMessage) {
-          fields.replayMessageId = finalReplyId;
-          if (!isSpectator && mergedComposerAnnotations.length > 0) {
-            fields.annotations = mergedComposerAnnotations;
-          }
-          isFirstMessage = false;
-        }
-        return fields;
-      };
-
-      let textContent = isSpectator
+      let regularInputText = isSpectator
         ? (spectatorTextContent ?? "")
         : trimmedInputText;
       const isRoomJumpCommand = !isSpectator && isRoomJumpCommandText(trimmedWithoutMentions);
@@ -377,33 +200,54 @@ export default function useChatMessageSubmit({
 
       // 乐观发送体验：消息开始提交流程后立即清空输入框，避免“消息已出现但输入框还残留”的错觉。
       setInputText("");
+      setImgFiles([]);
+      setEmojiUrls([]);
+      clearEmojiMeta();
+      setFileAttachments([]);
+      setAudioFile(null);
 
       const isCommandRequestByAll = !isSpectator && isKP && containsCommandRequestAllToken(inputText);
       const extractedCommandForRequest = isCommandRequestByAll ? extractFirstCommandText(trimmedWithoutMentions) : null;
       const requestCommand = extractedCommandForRequest ? stripCommandRequestAllToken(extractedCommandForRequest) : null;
       const shouldSendCommandRequest = Boolean(requestCommand && isCommand(requestCommand));
+      let hasConsumedFirstMessage = false;
 
       if (shouldSendCommandRequest) {
         const requestMsg: ChatMessageRequest = {
-          ...getCommonFields() as any,
-          content: requestCommand,
+          content: requestCommand!,
           messageType: MessageType.COMMAND_REQUEST,
+          roomId,
+          roleId: senderRoleId,
+          avatarId: resolvedAvatarId,
           extra: {
             commandRequest: {
-              command: requestCommand,
+              command: requestCommand!,
               allowAll: true,
             },
           },
         };
+        if (typeof activeThreadId === "number") {
+          requestMsg.threadId = activeThreadId;
+        }
+        if (typeof finalReplyId === "number") {
+          requestMsg.replayMessageId = finalReplyId;
+        }
+        if (!isSpectator && mergedComposerAnnotations.length > 0) {
+          requestMsg.annotations = mergedComposerAnnotations;
+        }
+        if (draftCustomRoleName) {
+          requestMsg.customRoleName = draftCustomRoleName;
+        }
 
         await sendMessageWithInsert(requestMsg);
-
-        isFirstMessage = false;
-        textContent = "";
+        hasConsumedFirstMessage = true;
+        regularInputText = "";
       }
       else if (roomJumpCommandPayload) {
         const roomJumpMsg: ChatMessageRequest = {
-          ...getCommonFields() as any,
+          roomId,
+          roleId: senderRoleId,
+          avatarId: resolvedAvatarId,
           content: "",
           messageType: MessageType.ROOM_JUMP,
           extra: {
@@ -414,167 +258,108 @@ export default function useChatMessageSubmit({
             },
           },
         };
+        if (typeof activeThreadId === "number") {
+          roomJumpMsg.threadId = activeThreadId;
+        }
+        if (typeof finalReplyId === "number") {
+          roomJumpMsg.replayMessageId = finalReplyId;
+        }
+        if (!isSpectator && mergedComposerAnnotations.length > 0) {
+          roomJumpMsg.annotations = mergedComposerAnnotations;
+        }
+        if (draftCustomRoleName) {
+          roomJumpMsg.customRoleName = draftCustomRoleName;
+        }
 
         await sendMessageWithInsert(roomJumpMsg);
-        isFirstMessage = false;
-        textContent = "";
+        hasConsumedFirstMessage = true;
+        regularInputText = "";
       }
-      else if (!isSpectator && textContent && isCommand(textContent)) {
-        commandExecutor({ command: inputTextWithoutMentions, mentionedRoles: mentionedRolesInInput, originMessage: inputText });
-        isFirstMessage = false;
-        textContent = "";
-      }
-
-      for (const img of uploadedImages) {
-        const commonFields = getCommonFields() as ChatMessageRequest;
-        let nextAnnotations = mergedComposerAnnotations;
-        if (useBackgroundAnnotation) {
-          nextAnnotations = setAnnotation(nextAnnotations, ANNOTATION_IDS.BACKGROUND, true);
-        }
-        if (useCgAnnotation) {
-          nextAnnotations = setAnnotation(nextAnnotations, ANNOTATION_IDS.CG, true);
-        }
-        const imgMsg: ChatMessageRequest = {
-          ...commonFields,
-          ...(Array.isArray(nextAnnotations) ? { annotations: nextAnnotations } : {}),
-          content: textContent,
-          messageType: MessageType.IMG,
-          extra: {
-            url: img.url,
-            width: img.width,
-            height: img.height,
-            size: img.size,
-            fileName: img.fileName,
-            background: useBackgroundAnnotation,
-          },
-        };
-        await sendMessageWithInsert(imgMsg);
-        textContent = "";
+      else if (!isSpectator && regularInputText && isCommand(regularInputText)) {
+        commandExecutor({
+          command: inputTextWithoutMentions,
+          mentionedRoles: mentionedRolesInInput,
+          originMessage: inputText,
+          threadId: activeThreadId,
+          replyMessageId: finalReplyId,
+        });
+        hasConsumedFirstMessage = true;
+        regularInputText = "";
       }
 
-      if (soundMessageData) {
-        const commonFields = getCommonFields() as ChatMessageRequest;
-        let nextAnnotations = mergedComposerAnnotations;
-        if (hasAnnotation(mergedComposerAnnotations, ANNOTATION_IDS.BGM)) {
-          nextAnnotations = setAnnotation(nextAnnotations, ANNOTATION_IDS.BGM, true);
-        }
-        if (hasAnnotation(mergedComposerAnnotations, ANNOTATION_IDS.SE)) {
-          nextAnnotations = setAnnotation(nextAnnotations, ANNOTATION_IDS.SE, true);
-        }
-        const audioMsg: ChatMessageRequest = {
-          ...commonFields,
-          ...(Array.isArray(nextAnnotations) ? { annotations: nextAnnotations } : {}),
-          content: textContent,
-          messageType: MessageType.SOUND,
-          extra: {
-            ...soundMessageData,
-            purpose: composerAudioPurpose,
-          },
-        };
-        const createdAudioMsg = await sendMessageWithInsert(audioMsg);
-        if (createdAudioMsg && typeof createdAudioMsg.messageId === "number") {
-          const autoPlayPurpose = resolveAudioAutoPlayPurposeFromMessage({
-            content: createdAudioMsg.content,
-            annotations: createdAudioMsg.annotations,
-            extra: createdAudioMsg.extra,
-          });
-          if (autoPlayPurpose) {
-            useAudioMessageAutoPlayStore.getState().enqueueFromWs({
-              roomId,
-              messageId: createdAudioMsg.messageId,
-              purpose: autoPlayPurpose,
-            });
-            if (autoPlayPurpose === "bgm") {
-              const createdExtra = createdAudioMsg.extra as any;
-              const sound = createdExtra?.soundMessage ?? createdExtra;
-              const createdUrl = typeof sound?.url === "string" ? sound.url.trim() : "";
-              if (createdUrl) {
-                void requestPlayBgmMessageWithUrl(roomId, createdAudioMsg.messageId, createdUrl);
-              }
-            }
-          }
-        }
-        textContent = "";
-      }
+      const regularDrafts = await buildMessageDraftsFromComposerSnapshot({
+        baseMessage: {
+          roleId: senderRoleId,
+          avatarId: resolvedAvatarId,
+          customRoleName: draftCustomRoleName,
+        },
+        inputText: regularInputText,
+        imgFiles,
+        emojiUrls,
+        emojiMetaByUrl,
+        fileAttachments,
+        audioFile,
+        composerAnnotations,
+        tempAnnotations,
+        uploadUtils: uploadUtilsRef.current,
+        allowEmptyTextMessage: !hasConsumedFirstMessage,
+      });
 
-      for (const video of uploadedVideos) {
-        const commonFields = getCommonFields() as ChatMessageRequest;
-        const nextAnnotations = mergedComposerAnnotations;
-        const videoMsg: ChatMessageRequest = {
-          ...commonFields,
-          ...(Array.isArray(nextAnnotations) ? { annotations: nextAnnotations } : {}),
-          content: textContent,
-          messageType: MessageType.VIDEO,
-          extra: {
-            url: video.url,
-            fileName: video.fileName,
-            size: video.size,
-            ...(typeof video.second === "number" ? { second: video.second } : {}),
-          },
-        };
-        await sendMessageWithInsert(videoMsg);
-        textContent = "";
-      }
+      const isPureTextSend = !hasPendingAttachmentPayload && regularDrafts.length === 1 && regularDrafts[0]?.messageType === MessageType.TEXT;
+      if (isPureTextSend && !isSpectator) {
+        const textDraft = regularDrafts[0]!;
+        const draftContent = textDraft.content ?? "";
+        const isWebgalCommandInput = draftContent.startsWith("%");
+        const normalizedContent = isWebgalCommandInput ? draftContent.slice(1).trim() : draftContent;
 
-      for (const file of uploadedFiles) {
-        const commonFields = getCommonFields() as ChatMessageRequest;
-        const fileMsg: ChatMessageRequest = {
-          ...commonFields,
-          content: textContent,
-          messageType: MessageType.FILE,
-          extra: {
-            url: file.url,
-            fileName: file.fileName,
-            size: file.size,
-          },
-        };
-        await sendMessageWithInsert(fileMsg);
-        textContent = "";
-      }
-
-      // Allow explicit blank messages when there's no other payload to send.
-      const shouldSendEmptyTextMessage = isBlankInput
-        && uploadedImages.length === 0
-        && uploadedVideos.length === 0
-        && uploadedFiles.length === 0
-        && !soundMessageData
-        && !shouldSendCommandRequest
-        && !roomJumpCommandPayload
-        && !isSpectator;
-
-      if (textContent || shouldSendEmptyTextMessage) {
-        if (isSpectator) {
-          const textMsg: ChatMessageRequest = {
-            ...getCommonFields() as any,
-            content: spectatorTextContent!,
-            messageType: MessageType.TEXT,
-            extra: {},
-          };
-          await sendMessageWithInsert(textMsg);
+        if (isWebgalCommandInput && !normalizedContent) {
+          toast.error("WebGAL 指令不能为空");
         }
         else {
-          const isPureTextSend = uploadedImages.length === 0
-            && uploadedVideos.length === 0
-            && uploadedFiles.length === 0
-            && !soundMessageData;
-          const isWebgalCommandInput = isPureTextSend && textContent.startsWith("%");
-          const normalizedContent = isWebgalCommandInput ? textContent.slice(1).trim() : textContent;
+          regularDrafts[0] = {
+            ...textDraft,
+            content: normalizedContent,
+            messageType: isWebgalCommandInput ? MessageType.WEBGAL_COMMAND : MessageType.TEXT,
+            extra: {},
+          };
+        }
+      }
 
-          if (isWebgalCommandInput && !normalizedContent) {
-            toast.error("WebGAL 指令不能为空");
-          }
-          else {
-            const finalContent = normalizedContent;
-            const finalMessageType = isWebgalCommandInput ? MessageType.WEBGAL_COMMAND : MessageType.TEXT;
-            const finalExtra = {};
+      for (const draft of regularDrafts) {
+        const request = buildChatMessageRequestFromDraft(draft, {
+          roomId,
+          threadId: activeThreadId,
+          replayMessageId: hasConsumedFirstMessage ? undefined : finalReplyId,
+          roleId: senderRoleId,
+          avatarId: resolvedAvatarId,
+          customRoleName: draftCustomRoleName,
+        });
+        const createdMessage = await sendMessageWithInsert(request);
+        hasConsumedFirstMessage = true;
 
-            const textMsg: ChatMessageRequest = {
-              ...getCommonFields() as any,
-              content: finalContent,
-              messageType: finalMessageType,
-              extra: finalExtra,
-            };
-            await sendMessageWithInsert(textMsg);
+        if ((draft.messageType ?? MessageType.TEXT) !== MessageType.SOUND || !createdMessage || typeof createdMessage.messageId !== "number") {
+          continue;
+        }
+
+        const autoPlayPurpose = resolveAudioAutoPlayPurposeFromMessage({
+          content: createdMessage.content,
+          annotations: createdMessage.annotations,
+          extra: createdMessage.extra,
+        });
+        if (!autoPlayPurpose) {
+          continue;
+        }
+
+        useAudioMessageAutoPlayStore.getState().enqueueFromWs({
+          roomId,
+          messageId: createdMessage.messageId,
+          purpose: autoPlayPurpose,
+        });
+        if (autoPlayPurpose === "bgm") {
+          const sound = getSoundMessageExtra(createdMessage.extra);
+          const createdUrl = typeof sound?.url === "string" ? sound.url.trim() : "";
+          if (createdUrl) {
+            void requestPlayBgmMessageWithUrl(roomId, createdMessage.messageId, createdUrl);
           }
         }
       }
@@ -588,8 +373,10 @@ export default function useChatMessageSubmit({
       roomUiStoreApi.getState().setReplyMessage(undefined);
       roomUiStoreApi.getState().setInsertAfterMessageId(undefined);
     }
-    catch (e: any) {
-      toast.error(e.message + e.stack, { duration: 3000 });
+    catch (error) {
+      console.error("发送消息失败", error);
+      const message = error instanceof Error ? error.message : "发送消息失败";
+      toast.error(message, { duration: 3000 });
     }
     finally {
       setIsSubmitting(false);
@@ -609,7 +396,7 @@ export default function useChatMessageSubmit({
     sendMessageWithInsert,
     setInputText,
     setIsSubmitting,
-      spaceId,
+    spaceId,
     stripCommandRequestAllToken,
   ]);
 

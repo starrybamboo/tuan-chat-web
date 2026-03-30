@@ -8,7 +8,6 @@ import {
 } from "@phosphor-icons/react";
 
 interface SpaceMaterialLibraryWorkspaceProps {
-  spaceId: number;
   keyword: string;
   packages: SpaceMaterialPackageResponse[];
   loading: boolean;
@@ -151,7 +150,6 @@ function ShortcutCard({
 }
 
 export default function SpaceMaterialLibraryWorkspace({
-  spaceId,
   keyword,
   packages,
   loading,
@@ -166,37 +164,23 @@ export default function SpaceMaterialLibraryWorkspace({
     <div className="h-full min-h-0 overflow-y-auto border-t border-base-300 bg-[radial-gradient(circle_at_top_left,oklch(var(--p)/0.1),transparent_26%),linear-gradient(180deg,oklch(var(--b2)/0.98),oklch(var(--b1)/1))] text-base-content">
       <div className="mx-auto w-full max-w-[1560px] px-6 py-8 md:px-10 md:py-10">
         <div className="space-y-8">
-          <div className="flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
-            <div className="max-w-3xl">
-              <div className="text-xs font-semibold uppercase tracking-[0.28em] text-base-content/45">
-                Local Material Workspace
-              </div>
-              <h1 className="mt-3 text-4xl font-semibold tracking-tight text-base-content md:text-6xl">
-                {`局内素材包 · Space ${spaceId}`}
-              </h1>
-              <p className="mt-4 max-w-2xl text-sm leading-7 text-base-content/62 md:text-base">
-                像管理本地仓库一样维护当前空间的素材包副本，同时可以随时跳转到素材广场和我的素材包查看云端内容。
-              </p>
-            </div>
-
-            <div className="flex flex-col gap-3 sm:flex-row">
-              <button
-                type="button"
-                className="inline-flex items-center gap-2 rounded-md border border-base-300 bg-base-100 px-5 py-3 text-sm font-semibold text-base-content transition hover:border-primary/30 hover:bg-base-100/90"
-                onClick={onImportPackage}
-              >
-                <PackageIcon className="size-4" weight="regular" />
-                <span>从局外导入</span>
-              </button>
-              <button
-                type="button"
-                className="inline-flex items-center gap-2 rounded-md border border-primary/35 bg-primary px-5 py-3 text-sm font-semibold text-primary-content shadow-[0_18px_38px_rgba(59,130,246,0.22)] transition hover:-translate-y-0.5 hover:border-primary/45 hover:shadow-[0_24px_48px_rgba(59,130,246,0.28)]"
-                onClick={onCreatePackage}
-              >
-                <PlusIcon className="size-4" weight="bold" />
-                <span>新建局内素材包</span>
-              </button>
-            </div>
+          <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
+            <button
+              type="button"
+              className="inline-flex items-center gap-2 rounded-md border border-base-300 bg-base-100 px-5 py-3 text-sm font-semibold text-base-content transition hover:border-primary/30 hover:bg-base-100/90"
+              onClick={onImportPackage}
+            >
+              <PackageIcon className="size-4" weight="regular" />
+              <span>从局外导入</span>
+            </button>
+            <button
+              type="button"
+              className="inline-flex items-center gap-2 rounded-md border border-primary/35 bg-primary px-5 py-3 text-sm font-semibold text-primary-content shadow-[0_18px_38px_rgba(59,130,246,0.22)] transition hover:-translate-y-0.5 hover:border-primary/45 hover:shadow-[0_24px_48px_rgba(59,130,246,0.28)]"
+              onClick={onCreatePackage}
+            >
+              <PlusIcon className="size-4" weight="bold" />
+              <span>新建局内素材包</span>
+            </button>
           </div>
 
           <div className="rounded-[24px] border border-base-300 bg-base-100/80 px-5 py-4 shadow-lg">

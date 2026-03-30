@@ -1,3 +1,5 @@
+import { getRoomJumpExtra } from "@/types/messageExtra";
+
 export type RoomJumpPayload = {
   roomId: number;
   spaceId?: number;
@@ -35,7 +37,7 @@ function normalizeText(value: unknown, maxLength = 80): string | undefined {
 }
 
 export function extractRoomJumpPayload(extra: unknown): RoomJumpPayload | null {
-  const raw = (extra as any)?.roomJump ?? extra;
+  const raw = getRoomJumpExtra(extra);
   if (!raw || typeof raw !== "object") {
     return null;
   }

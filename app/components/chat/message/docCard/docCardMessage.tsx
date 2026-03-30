@@ -10,6 +10,7 @@ import { readBlocksuiteDocHeader, subscribeBlocksuiteDocHeader } from "@/compone
 import BlocksuiteDescriptionEditor from "@/components/chat/shared/components/BlockSuite/blocksuiteDescriptionEditor";
 import { setDocRefDragData } from "@/components/chat/utils/docRef";
 import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
+import { getDocCardExtra } from "@/types/messageExtra";
 import { useIsMobile } from "@/utils/getScreenSize";
 
 interface DocCardPayload {
@@ -21,10 +22,7 @@ interface DocCardPayload {
 }
 
 function extractDocCardPayload(extra: unknown): DocCardPayload | null {
-  const raw = (extra as any)?.docCard ?? null;
-  const fallbackRaw = extra as any;
-
-  const obj = (raw && typeof raw === "object") ? raw : fallbackRaw;
+  const obj = getDocCardExtra(extra);
   const docId = typeof obj?.docId === "string" ? obj.docId.trim() : "";
   if (!docId)
     return null;

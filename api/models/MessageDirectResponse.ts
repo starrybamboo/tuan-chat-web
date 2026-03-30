@@ -2,6 +2,7 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
+import type { MessageExtra } from './MessageExtra';
 /**
  * 私聊消息响应
  */
@@ -66,10 +67,7 @@ export type MessageDirectResponse = {
      * 消息状态
      */
     status?: number;
-    /**
-     * 扩展信息
-     */
-    extra?: Record<string, any>;
+    extra?: MessageExtra;
     /**
      * 创建时间
      */
