@@ -3,14 +3,14 @@ import type { SpaceMaterialPackageResponse } from "../../../../../api/models/Spa
 
 import { useMemo } from "react";
 import toast from "react-hot-toast";
+import MaterialPackageEditor from "@/components/material/components/materialPackageEditor";
+import MaterialPackageEditorInlinePage from "@/components/material/components/materialPackageEditorInlinePage";
+import { createEmptyMaterialPackageContent } from "@/components/material/components/materialPackageEditorShared";
 import {
   useDeleteSpaceMaterialPackageMutation,
   useSpaceMaterialPackagesQuery,
   useUpdateSpaceMaterialPackageMutation,
 } from "../../../../../api/hooks/materialPackageQueryHooks";
-import MaterialPackageEditor from "@/components/material/components/materialPackageEditor";
-import MaterialPackageEditorInlinePage from "@/components/material/components/materialPackageEditorInlinePage";
-import { createEmptyMaterialPackageContent } from "@/components/material/components/materialPackageEditorShared";
 
 interface SpaceMaterialSubWindowProps {
   spaceId: number;
@@ -108,6 +108,7 @@ export default function SpaceMaterialSubWindow({
       <MaterialPackageEditor
         valueKey={`sub-window-space-${selectedPackage.spacePackageId ?? "unknown"}-${selectedPackage.updateTime ?? ""}`}
         dragPackageId={selectedPackage.spacePackageId}
+        sidebarActionScope="subwindow"
         title="编辑局内素材包"
         subtitle={selectedPackage.sourcePackageId
           ? `来源局外素材包：${selectedPackage.sourcePackageId} · 当前空间维护的是独立副本`

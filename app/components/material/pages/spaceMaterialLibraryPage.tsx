@@ -1,5 +1,6 @@
 import type { MaterialPackageContent } from "../../../../api/models/MaterialPackageContent";
 import type { SpaceMaterialPackageResponse } from "../../../../api/models/SpaceMaterialPackageResponse";
+import type { MaterialItemDragPayload } from "@/components/chat/utils/materialItemDrag";
 import { CaretRightIcon } from "@phosphor-icons/react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
@@ -11,13 +12,12 @@ import {
   useSpaceMaterialPackagesQuery,
   useUpdateSpaceMaterialPackageMutation,
 } from "../../../../api/hooks/materialPackageQueryHooks";
-import type { MaterialItemDragPayload } from "@/components/chat/utils/materialItemDrag";
-import MaterialPackageEditor from "../components/materialPackageEditor";
 import MaterialEditorDropLayer from "../components/materialEditorDropLayer";
+import MaterialPackageEditor from "../components/materialPackageEditor";
 import MaterialPackageEditorInlinePage from "../components/materialPackageEditorInlinePage";
 import { createEmptyMaterialPackageContent } from "../components/materialPackageEditorShared";
-import { parseNodePath, serializeNodePath } from "../components/materialPackageTreeUtils";
 import MaterialPackageImportModal from "../components/materialPackageImportModal";
+import { parseNodePath, serializeNodePath } from "../components/materialPackageTreeUtils";
 import SpaceMaterialLibrarySidebar from "../components/spaceMaterialLibrarySidebar";
 import SpaceMaterialLibraryWorkspace from "../components/spaceMaterialLibraryWorkspace";
 
@@ -264,8 +264,6 @@ export default function SpaceMaterialLibraryPage({
       onOpenPackage={handleOpenPackage}
       onCreatePackage={handleCreateRequest}
       onImportPackage={() => setIsImportOpen(true)}
-      onNavigateToPublic={handleNavigateToPublic}
-      onNavigateToMine={handleNavigateToMine}
     />
   );
 
@@ -274,6 +272,7 @@ export default function SpaceMaterialLibraryPage({
         <MaterialPackageEditor
           valueKey="space-create"
           dragPackageId={undefined}
+          sidebarActionScope="detail"
           title="新建局内素材包"
           subtitle="当前空间的局内素材包会像本地仓库一样管理素材副本，编辑体验与局外素材包保持一致。"
           initialDraft={buildDraft()}
@@ -289,6 +288,7 @@ export default function SpaceMaterialLibraryPage({
           <MaterialPackageEditor
             valueKey={`space-${selectedPackage.spacePackageId ?? "unknown"}-${selectedPackage.updateTime ?? ""}`}
             dragPackageId={selectedPackage.spacePackageId}
+            sidebarActionScope="detail"
             title="编辑局内素材包"
             subtitle={selectedPackage.sourcePackageId
               ? `来源局外素材包：${selectedPackage.sourcePackageId} · 当前空间维护的是独立副本`

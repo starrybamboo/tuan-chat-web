@@ -3,6 +3,7 @@ import type { UserRole } from "../../../../api";
 import type { MaterialNode } from "../../../../api/models/MaterialNode";
 import type { MaterialMessageComposerHandle } from "./materialMessageComposer";
 import type { MaterialPackageDraft } from "./materialPackageEditorShared";
+import type { MaterialEditorActionScope } from "@/components/chat/chatPage.types";
 import type { MaterialItemDragPayload } from "@/components/chat/utils/materialItemDrag";
 import type { MessageDraft } from "@/types/messageDraft";
 import {
@@ -14,11 +15,12 @@ import {
   PlusIcon,
   TrashIcon,
 } from "@phosphor-icons/react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRoomRoleSelectionStore } from "@/components/chat/stores/roomRoleSelectionStore";
 import { setMaterialItemDragData } from "@/components/chat/utils/materialItemDrag";
 import { ImgUploader } from "@/components/common/uploader/imgUploader";
 import { useGlobalContext } from "@/components/globalContextProvider";
+import { useMaterialEditorActionStore } from "@/components/material/stores/materialEditorActionStore";
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
 import { useGetUserRolesQuery } from "../../../../api/hooks/RoleAndAvatarHooks";
 import { MaterialNode as MaterialNodeModel } from "../../../../api/models/MaterialNode";
@@ -49,6 +51,7 @@ interface MaterialPackageWorkbenchProps {
   selectionSyncKey: string;
   dragPackageId?: number;
   requestedSelectedNodeKey?: string | null;
+  sidebarActionScope?: MaterialEditorActionScope;
   draft: MaterialPackageDraft;
   readOnly: boolean;
   showPublicToggle: boolean;
@@ -139,6 +142,7 @@ export default function MaterialPackageWorkbench({
   selectionSyncKey,
   dragPackageId,
   requestedSelectedNodeKey,
+  sidebarActionScope,
   draft,
   readOnly,
   showPublicToggle,
@@ -157,6 +161,8 @@ export default function MaterialPackageWorkbench({
   const [dropTargetKey, setDropTargetKey] = useState("");
   const composerContainerRef = useRef<HTMLDivElement | null>(null);
   const composerRef = useRef<MaterialMessageComposerHandle | null>(null);
+  const setMaterialEditorController = useMaterialEditorActionStore(state => state.setController);
+  const clearMaterialEditorController = useMaterialEditorActionStore(state => state.clearController);
 
   const rootNodes = useMemo(() => draft.content.root ?? [], [draft.content.root]);
   const folderCount = useMemo(() => countFolderNodes(rootNodes), [rootNodes]);
@@ -262,7 +268,7 @@ export default function MaterialPackageWorkbench({
     setDropTargetKey("");
   };
 
-  const appendNode = (parentPath: number[], node: MaterialNode) => {
+  const appendNode = useCallback((parentPath: number[], node: MaterialNode) => {
     if (readOnly) {
       return;
     }
@@ -280,17 +286,17 @@ export default function MaterialPackageWorkbench({
       setExpandedKeys(previous => Array.from(new Set([...previous, parentKey])));
     }
     setSelectedNodeKey(nextKey);
-  };
+  }, [onUpdateDraft, readOnly, rootNodes]);
 
-  const handleAddFolder = () => {
+  const handleAddFolder = useCallback(() => {
     appendNode(selectedIsFolder ? selectedNodePath : [], createFolderNode());
-  };
+  }, [appendNode, selectedIsFolder, selectedNodePath]);
 
-  const handleAddMaterial = () => {
+  const handleAddMaterial = useCallback(() => {
     appendNode(selectedIsFolder ? selectedNodePath : [], createMaterialNode());
-  };
+  }, [appendNode, selectedIsFolder, selectedNodePath]);
 
-  const handleDeleteSelectedNode = () => {
+  const handleDeleteSelectedNode = useCallback(() => {
     if (readOnly || selectedNodeKey === ROOT_NODE_KEY) {
       return;
     }
@@ -301,7 +307,75 @@ export default function MaterialPackageWorkbench({
       content: removeNodeFromContent(current.content, selectedNodePath),
     }));
     setSelectedNodeKey(parentPath.length > 0 ? serializeNodePath(parentPath) : ROOT_NODE_KEY);
-  };
+  }, [onUpdateDraft, readOnly, selectedNodeKey, selectedNodePath]);
+
+  const handleAddFolderAtNodeKey = useCallback((parentNodeKey?: string | null) => {
+    const normalizedParentKey = serializeNodePath(parseNodePath(parentNodeKey ?? ROOT_NODE_KEY));
+    const parentPath = parseNodePath(normalizedParentKey || ROOT_NODE_KEY);
+    const parentNode = parentPath.length > 0 ? getNodeAtPath(rootNodes, parentPath) : null;
+    if (parentPath.length > 0 && parentNode?.type !== MaterialNodeModel.type.FOLDER) {
+      return;
+    }
+    appendNode(parentPath, createFolderNode());
+  }, [appendNode, rootNodes]);
+
+  const handleAddMaterialAtNodeKey = useCallback((parentNodeKey?: string | null) => {
+    const normalizedParentKey = serializeNodePath(parseNodePath(parentNodeKey ?? ROOT_NODE_KEY));
+    const parentPath = parseNodePath(normalizedParentKey || ROOT_NODE_KEY);
+    const parentNode = parentPath.length > 0 ? getNodeAtPath(rootNodes, parentPath) : null;
+    if (parentPath.length > 0 && parentNode?.type !== MaterialNodeModel.type.FOLDER) {
+      return;
+    }
+    appendNode(parentPath, createMaterialNode());
+  }, [appendNode, rootNodes]);
+
+  const handleDeleteNodeByKey = useCallback((nodeKey: string) => {
+    const normalizedNodeKey = serializeNodePath(parseNodePath(nodeKey));
+    if (!normalizedNodeKey) {
+      return;
+    }
+    const nodePath = parseNodePath(normalizedNodeKey);
+    if (nodePath.length === 0) {
+      return;
+    }
+    const parentPath = nodePath.slice(0, -1);
+    onUpdateDraft(current => ({
+      ...current,
+      content: removeNodeFromContent(current.content, nodePath),
+    }));
+    setSelectedNodeKey(parentPath.length > 0 ? serializeNodePath(parentPath) : ROOT_NODE_KEY);
+  }, [onUpdateDraft]);
+
+  useEffect(() => {
+    if (!sidebarActionScope) {
+      return;
+    }
+
+    if (readOnly || !dragPackageId || !Number.isFinite(dragPackageId) || dragPackageId <= 0) {
+      clearMaterialEditorController(sidebarActionScope);
+      return;
+    }
+
+    setMaterialEditorController(sidebarActionScope, {
+      packageId: dragPackageId,
+      addFolder: handleAddFolderAtNodeKey,
+      addMaterial: handleAddMaterialAtNodeKey,
+      deleteNode: handleDeleteNodeByKey,
+    });
+
+    return () => {
+      clearMaterialEditorController(sidebarActionScope);
+    };
+  }, [
+    clearMaterialEditorController,
+    dragPackageId,
+    handleAddFolderAtNodeKey,
+    handleAddMaterialAtNodeKey,
+    handleDeleteNodeByKey,
+    readOnly,
+    setMaterialEditorController,
+    sidebarActionScope,
+  ]);
 
   const updateSelectedMaterialMessages = (
     updater: (messages: MessageDraft[]) => MessageDraft[],

@@ -32,6 +32,7 @@ type UseRoomImportActionsParams = {
   setIsSubmitting: (value: boolean) => void;
   roomContext: RoomContextType;
   sendMessageWithInsert: (message: ChatMessageRequest) => Promise<ChatMessageResponse["message"] | null>;
+  sendMessageBatch: (messages: ChatMessageRequest[]) => Promise<ChatMessageResponse["message"][]>;
   ensureRuntimeAvatarIdForRole: (roleId: number) => Promise<number>;
   roomUiStoreApi: RoomUiStoreApi;
 };
@@ -60,6 +61,7 @@ export default function useRoomImportActions({
   setIsSubmitting,
   roomContext,
   sendMessageWithInsert,
+  sendMessageBatch,
   ensureRuntimeAvatarIdForRole,
   roomUiStoreApi,
 }: UseRoomImportActionsParams): UseRoomImportActionsResult {
@@ -346,6 +348,7 @@ export default function useRoomImportActions({
         await ensureAvatarIdForRole(roleId);
       }
 
+      const requests: ChatMessageRequest[] = [];
       for (const materialMessage of messages) {
         const explicitRoleId = Number(materialMessage.roleId);
         const hasExplicitNarratorRoleId = Number.isFinite(explicitRoleId) && explicitRoleId < 0;
@@ -380,9 +383,10 @@ export default function useRoomImportActions({
         if (composerTarget === "thread" && threadRootMessageId) {
           request.threadId = threadRootMessageId;
         }
-
-        await sendMessageWithInsert(request);
+        requests.push(request);
       }
+
+      await sendMessageBatch(requests);
     }
     catch (error) {
       const message = error instanceof Error ? error.message : "发送素材失败";
@@ -401,7 +405,7 @@ export default function useRoomImportActions({
     notMember,
     roomId,
     roomUiStoreApi,
-    sendMessageWithInsert,
+    sendMessageBatch,
     setIsSubmitting,
   ]);
 

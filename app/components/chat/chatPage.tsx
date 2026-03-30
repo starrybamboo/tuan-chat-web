@@ -126,17 +126,6 @@ export default function ChatPage() {
   const rooms = userRoomQuery.data?.data?.rooms ?? EMPTY_ARRAY;
   const userSpacesQuery = useGetUserActiveSpacesQuery();
   const spaces = userSpacesQuery.data?.data ?? EMPTY_ARRAY;
-  const spaceMaterialPackages = useMemo(() => {
-    return (spaceMaterialPackagesQuery.data?.data?.list ?? []).map((item) => {
-      const id = typeof item.spacePackageId === "number" ? item.spacePackageId : Number.NaN;
-      return {
-        id,
-        title: item.name?.trim() || (Number.isFinite(id) ? `素材包 #${id}` : "未命名素材包"),
-        imageUrl: item.coverUrl?.trim() || undefined,
-      };
-    }).filter(item => Number.isFinite(item.id));
-  }, [spaceMaterialPackagesQuery.data?.data?.list]);
-
   const activeSpaceInfoQuery = useGetSpaceInfoQuery(activeSpaceIdForQuery);
   const activeSpaceInfo = activeSpaceInfoQuery.data?.data;
 
@@ -334,6 +323,48 @@ export default function ChatPage() {
     searchParam,
     storedIds,
   });
+  const detailPanelMaterialPackageId = useMemo(() => {
+    if (spaceDetailTab !== "material") {
+      return null;
+    }
+    const raw = Number(searchParam.get("spacePackageId"));
+    return Number.isFinite(raw) && raw > 0 ? raw : null;
+  }, [searchParam, spaceDetailTab]);
+  const detailPanelMaterialPathKey = useMemo(() => {
+    if (spaceDetailTab !== "material") {
+      return null;
+    }
+    const normalized = searchParam.get("materialPathKey")?.trim() ?? "";
+    return normalized || null;
+  }, [searchParam, spaceDetailTab]);
+  const activeMaterialSelection = useMemo(() => {
+    if (spaceDetailTab === "material") {
+      return {
+        scope: "detail" as const,
+        spacePackageId: detailPanelMaterialPackageId,
+        materialPathKey: detailPanelMaterialPathKey,
+      };
+    }
+    if (subWindowTab === "material") {
+      return {
+        scope: "subwindow" as const,
+        spacePackageId: subWindowMaterialPackageId,
+        materialPathKey: subWindowMaterialPathKey,
+      };
+    }
+    return {
+      scope: null,
+      spacePackageId: null,
+      materialPathKey: null,
+    };
+  }, [
+    detailPanelMaterialPackageId,
+    detailPanelMaterialPathKey,
+    spaceDetailTab,
+    subWindowMaterialPackageId,
+    subWindowMaterialPathKey,
+    subWindowTab,
+  ]);
   const handleSelectRoom = useCallback((roomId: number) => {
     setActiveRoomId(roomId);
   }, [setActiveRoomId]);
@@ -659,6 +690,7 @@ export default function ChatPage() {
     onDeleteDoc: handleDeleteDoc,
     activeRoomId,
     activeDocId,
+    activeMaterialSelection,
     unreadMessagesNumber,
     onContextMenu: handleContextMenu,
     onInviteMember: () => setIsMemberHandleOpen(true),

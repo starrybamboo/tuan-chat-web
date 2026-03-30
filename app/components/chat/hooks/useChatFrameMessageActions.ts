@@ -105,19 +105,9 @@ export default function useChatFrameMessageActions({
     if (mode === "separate") {
       try {
         const batchRequests = selectedMessages.map(message => constructRawForwardRequest(forwardRoomId, message.message));
-        if (sendMessageWithInsert) {
-          for (const request of batchRequests) {
-            const sendResult = await sendMessageWithInsert(request);
-            if (!sendResult) {
-              throw new Error("逐条转发发送失败");
-            }
-          }
-        }
-        else {
-          const result = await batchSendMessagesAsync(batchRequests);
-          if (!result?.success)
-            throw new Error("批量发送失败");
-        }
+        const result = await batchSendMessagesAsync(batchRequests);
+        if (!result?.success)
+          throw new Error("批量发送失败");
       }
       catch (error) {
         console.error("逐条转发失败:", error);

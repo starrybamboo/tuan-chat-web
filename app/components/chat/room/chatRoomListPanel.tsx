@@ -1,12 +1,13 @@
 import type { Room } from "../../../../api";
 import type { SpaceMaterialPackageResponse } from "../../../../api/models/SpaceMaterialPackageResponse";
 import type { MinimalDocMeta, SidebarTree } from "./sidebarTree";
-import type { OpenSpaceDetailPanelOptions, SpaceDetailTab } from "@/components/chat/chatPage.types";
+import type { ActiveMaterialSelection, OpenSpaceDetailPanelOptions, SpaceDetailTab } from "@/components/chat/chatPage.types";
 
 import React, { useMemo, useState } from "react";
 import RoomSidebarCategory from "@/components/chat/room/roomSidebarCategory";
 import RoomSidebarMaterialPackageItem from "@/components/chat/room/roomSidebarMaterialPackageItem";
 import SidebarSection from "@/components/chat/room/sidebarSection";
+import usePersistedSidebarExpandedState from "@/components/chat/room/usePersistedSidebarExpandedState";
 import useRoomSidebarAddPanelState from "@/components/chat/room/useRoomSidebarAddPanelState";
 import useRoomSidebarCategoryEditor from "@/components/chat/room/useRoomSidebarCategoryEditor";
 import useRoomSidebarContextMenu from "@/components/chat/room/useRoomSidebarContextMenu";
@@ -19,10 +20,10 @@ import useRoomSidebarNormalizer from "@/components/chat/room/useRoomSidebarNorma
 import useRoomSidebarSplitLayout, { ROOM_SIDEBAR_SPLIT_HANDLE_HEIGHT } from "@/components/chat/room/useRoomSidebarSplitLayout";
 import useRoomSidebarTreeActions from "@/components/chat/room/useRoomSidebarTreeActions";
 import useRoomSidebarTreeState from "@/components/chat/room/useRoomSidebarTreeState";
-import usePersistedSidebarExpandedState from "@/components/chat/room/usePersistedSidebarExpandedState";
 import SpaceHeaderBar from "@/components/chat/space/spaceHeaderBar";
 import { useDocHeaderOverrideStore } from "@/components/chat/stores/docHeaderOverrideStore";
 import MaterialPackageImportModal from "@/components/material/components/materialPackageImportModal";
+import { useMaterialEditorActionStore } from "@/components/material/stores/materialEditorActionStore";
 import LeftChatList from "@/components/privateChat/LeftChatList";
 import { buildMaterialSidebarTree, collectMaterialExpandableKeys } from "./materialSidebarTree";
 import { collectExistingDocIds, collectExistingRoomIds } from "./sidebarTree";
@@ -56,6 +57,7 @@ interface ChatRoomListPanelProps {
   onResetSidebarTreeToDefault?: () => void;
   activeRoomId: number | null;
   activeDocId?: string | null;
+  activeMaterialSelection?: ActiveMaterialSelection;
   unreadMessagesNumber: Record<number, number>;
 
   onContextMenu: (e: React.MouseEvent) => void;
@@ -92,6 +94,7 @@ export default function ChatRoomListPanel({
   onResetSidebarTreeToDefault,
   activeRoomId,
   activeDocId,
+  activeMaterialSelection,
   unreadMessagesNumber,
   onContextMenu,
   onInviteMember,
@@ -220,6 +223,10 @@ export default function ChatRoomListPanel({
   const isRoomDocSectionExpanded = Boolean(expandedSidebarSections?.[ROOM_DOC_SECTION_KEY]);
   const isMaterialSectionExpanded = Boolean(expandedSidebarSections?.[MATERIAL_SECTION_KEY]);
   const showSidebarSplitLayout = isRoomDocSectionExpanded && isMaterialSectionExpanded;
+  const activeMaterialController = useMaterialEditorActionStore((state) => {
+    const scope = activeMaterialSelection?.scope;
+    return scope ? state.controllers[scope] : undefined;
+  });
 
   const {
     addPanelCategoryId,
@@ -374,28 +381,50 @@ export default function ChatRoomListPanel({
   const materialSectionContent = (
     <div className="space-y-1 px-1">
       {materialSidebarPackages.length > 0
-        ? materialSidebarPackages.map(item => (
-            <RoomSidebarMaterialPackageItem
-              key={item.spacePackageId}
-              materialPackageId={item.spacePackageId as number}
-              materialPackage={item}
-              expandedState={materialExpandedByKey}
-              onToggleExpanded={toggleMaterialExpanded}
-              onOpenPackageDetail={() => {
-                onOpenSpaceDetailPanel("material", {
-                  spacePackageId: item.spacePackageId as number,
-                });
-                onCloseLeftDrawer();
-              }}
-              onOpenMaterialDetail={(materialPathKey) => {
-                onOpenSpaceDetailPanel("material", {
-                  spacePackageId: item.spacePackageId as number,
-                  materialPathKey,
-                });
-                onCloseLeftDrawer();
-              }}
-            />
-          ))
+        ? materialSidebarPackages.map((item) => {
+            const currentMaterialController = activeMaterialController?.packageId === item.spacePackageId
+              ? activeMaterialController
+              : null;
+
+            return (
+              <RoomSidebarMaterialPackageItem
+                key={item.spacePackageId}
+                materialPackageId={item.spacePackageId as number}
+                materialPackage={item}
+                isActivePackage={activeMaterialSelection?.spacePackageId === item.spacePackageId}
+                activeNodePathKey={activeMaterialSelection?.spacePackageId === item.spacePackageId
+                  ? activeMaterialSelection?.materialPathKey
+                  : null}
+                onCreateFolderAtRoot={currentMaterialController
+                  ? () => currentMaterialController.addFolder()
+                  : undefined}
+                onCreateMaterialAtRoot={currentMaterialController
+                  ? () => currentMaterialController.addMaterial()
+                  : undefined}
+                onCreateFolderAtNode={currentMaterialController
+                  ? materialPathKey => currentMaterialController.addFolder(materialPathKey)
+                  : undefined}
+                onCreateMaterialAtNode={currentMaterialController
+                  ? materialPathKey => currentMaterialController.addMaterial(materialPathKey)
+                  : undefined}
+                expandedState={materialExpandedByKey}
+                onToggleExpanded={toggleMaterialExpanded}
+                onOpenPackageDetail={() => {
+                  onOpenSpaceDetailPanel("material", {
+                    spacePackageId: item.spacePackageId as number,
+                  });
+                  onCloseLeftDrawer();
+                }}
+                onOpenNodeDetail={(materialPathKey) => {
+                  onOpenSpaceDetailPanel("material", {
+                    spacePackageId: item.spacePackageId as number,
+                    materialPathKey,
+                  });
+                  onCloseLeftDrawer();
+                }}
+              />
+            );
+          })
         : (
             <div className="px-3 py-2 text-xs text-base-content/45">
               当前空间还没有导入素材包

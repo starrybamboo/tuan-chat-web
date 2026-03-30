@@ -20,7 +20,9 @@ type UseRoomMessageActionsParams = {
   notMember: boolean;
   mainHistoryMessages: ChatMessageResponse[] | undefined;
   sendMessage: (message: ChatMessageRequest) => Promise<{ success: boolean; data?: ChatMessageResponse["message"] }>;
+  batchSendMessages?: (messages: ChatMessageRequest[]) => Promise<{ success?: boolean; data?: ChatMessageResponse["message"][] }>;
   addOrUpdateMessage?: (message: ChatMessageResponse) => Promise<void> | void;
+  addOrUpdateMessages?: (messages: ChatMessageResponse[]) => Promise<void> | void;
   removeMessageById?: (messageId: number) => Promise<void>;
   replaceMessageById?: (fromMessageId: number, message: ChatMessageResponse) => Promise<void>;
   ensureRuntimeAvatarIdForRole: (roleId: number) => Promise<number>;
@@ -29,6 +31,7 @@ type UseRoomMessageActionsParams = {
 
 type UseRoomMessageActionsResult = {
   sendMessageWithInsert: (message: ChatMessageRequest) => Promise<ChatMessageResponse["message"] | null>;
+  sendMessageBatch: (messages: ChatMessageRequest[]) => Promise<ChatMessageResponse["message"][]>;
   handleSendWebgalChoose: (payload: WebgalChoosePayload) => Promise<void>;
 };
 
@@ -41,7 +44,9 @@ export default function useRoomMessageActions({
   notMember,
   mainHistoryMessages,
   sendMessage,
+  batchSendMessages,
   addOrUpdateMessage,
+  addOrUpdateMessages,
   removeMessageById,
   replaceMessageById,
   ensureRuntimeAvatarIdForRole,
@@ -86,6 +91,17 @@ export default function useRoomMessageActions({
     };
   }, [currentUserId, getNextMainFlowPosition]);
 
+  const createOptimisticMessages = useCallback((requests: ChatMessageRequest[]): ChatMessageResponse[] => {
+    let nextPosition = getNextMainFlowPosition();
+    return requests.map((request) => {
+      const position = typeof request.position === "number" ? request.position : nextPosition++;
+      return createOptimisticMessage({
+        ...request,
+        position,
+      });
+    });
+  }, [createOptimisticMessage, getNextMainFlowPosition]);
+
   const revertOptimisticMessage = useCallback(async (optimisticMessage: ChatMessageResponse) => {
     const optimisticId = optimisticMessage.message.messageId;
     if (removeMessageById) {
@@ -102,6 +118,12 @@ export default function useRoomMessageActions({
       });
     }
   }, [addOrUpdateMessage, removeMessageById]);
+
+  const revertOptimisticMessages = useCallback(async (optimisticMessages: ChatMessageResponse[]) => {
+    for (const optimisticMessage of optimisticMessages) {
+      await revertOptimisticMessage(optimisticMessage);
+    }
+  }, [revertOptimisticMessage]);
 
   const commitOptimisticMessage = useCallback(async (
     optimisticMessage: ChatMessageResponse,
@@ -164,6 +186,86 @@ export default function useRoomMessageActions({
     sendMessage,
   ]);
 
+  const sendBatchWithOptimistic = useCallback(async (
+    requests: ChatMessageRequest[],
+    errorLogLabel: string,
+  ): Promise<ChatMessageResponse["message"][]> => {
+    if (requests.length === 0) {
+      return [];
+    }
+
+    if (!batchSendMessages) {
+      const createdMessages: ChatMessageResponse["message"][] = [];
+      for (const request of requests) {
+        const created = await sendWithOptimistic(request, errorLogLabel);
+        if (!created) {
+          return [];
+        }
+        createdMessages.push(created);
+      }
+      return createdMessages;
+    }
+
+    const optimisticMessages = createOptimisticMessages(requests);
+    if (addOrUpdateMessages) {
+      void addOrUpdateMessages(optimisticMessages);
+    }
+    else if (addOrUpdateMessage) {
+      optimisticMessages.forEach((message) => {
+        void addOrUpdateMessage(message);
+      });
+    }
+
+    try {
+      const result = await batchSendMessages(requests);
+      const createdMessages = Array.isArray(result?.data) ? result.data : [];
+      if (!result?.success || createdMessages.length !== requests.length) {
+        await revertOptimisticMessages(optimisticMessages);
+        toast.error("批量发送消息失败");
+        return [];
+      }
+
+      const committedResponses: ChatMessageResponse[] = createdMessages.map((createdMessage, index) => ({
+        message: {
+          ...createdMessage,
+          position: typeof createdMessage.position === "number"
+            ? createdMessage.position
+            : optimisticMessages[index]?.message.position,
+        },
+      }));
+
+      if (addOrUpdateMessages) {
+        await addOrUpdateMessages(committedResponses);
+      }
+      else {
+        for (const response of committedResponses) {
+          if (addOrUpdateMessage) {
+            await addOrUpdateMessage(response);
+          }
+        }
+      }
+
+      committedResponses.forEach((response) => {
+        roomUiStoreApi.getState().pushMessageUndo({ type: "send", after: response.message });
+      });
+      return committedResponses.map(response => response.message);
+    }
+    catch (error) {
+      console.error(errorLogLabel, error);
+      await revertOptimisticMessages(optimisticMessages);
+      toast.error("批量发送消息失败");
+      return [];
+    }
+  }, [
+    addOrUpdateMessage,
+    addOrUpdateMessages,
+    batchSendMessages,
+    createOptimisticMessages,
+    revertOptimisticMessages,
+    roomUiStoreApi,
+    sendWithOptimistic,
+  ]);
+
   const sendMessageWithInsert = useCallback(async (message: ChatMessageRequest) => {
     const insertAfterMessageId = roomUiStoreApi.getState().insertAfterMessageId;
 
@@ -188,6 +290,10 @@ export default function useRoomMessageActions({
 
     return await sendWithOptimistic(message, "发送消息失败");
   }, [mainHistoryMessages, roomUiStoreApi, sendWithOptimistic]);
+
+  const sendMessageBatch = useCallback(async (messages: ChatMessageRequest[]) => {
+    return await sendBatchWithOptimistic(messages, "批量发送消息失败");
+  }, [sendBatchWithOptimistic]);
 
   const handleSendWebgalChoose = useCallback(async (payload: WebgalChoosePayload) => {
     const options = payload?.options ?? [];
@@ -250,6 +356,7 @@ export default function useRoomMessageActions({
 
   return {
     sendMessageWithInsert,
+    sendMessageBatch,
     handleSendWebgalChoose,
   };
 }

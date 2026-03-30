@@ -1,4 +1,5 @@
 import type { MaterialPackageDraft } from "./materialPackageEditorShared";
+import type { MaterialEditorActionScope } from "@/components/chat/chatPage.types";
 import { ArrowLeftIcon } from "@phosphor-icons/react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import toast from "react-hot-toast";
@@ -11,6 +12,7 @@ interface MaterialPackageEditorProps {
   valueKey: string;
   dragPackageId?: number;
   selectedNodeKey?: string | null;
+  sidebarActionScope?: MaterialEditorActionScope;
   title: string;
   subtitle?: string;
   initialDraft: MaterialPackageDraft;
@@ -60,6 +62,7 @@ export default function MaterialPackageEditor({
   valueKey,
   dragPackageId,
   selectedNodeKey,
+  sidebarActionScope,
   title: _title,
   subtitle: _subtitle,
   initialDraft,
@@ -303,6 +306,7 @@ export default function MaterialPackageEditor({
         selectionSyncKey={valueKey}
         dragPackageId={dragPackageId}
         requestedSelectedNodeKey={selectedNodeKey}
+        sidebarActionScope={sidebarActionScope}
         draft={draft}
         readOnly={readOnly}
         showPublicToggle={showPublicToggle}
