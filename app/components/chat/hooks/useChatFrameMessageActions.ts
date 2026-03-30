@@ -106,7 +106,8 @@ export default function useChatFrameMessageActions({
       try {
         const batchRequests = selectedMessages.map(message => constructRawForwardRequest(forwardRoomId, message.message));
         const result = await batchSendMessagesAsync(batchRequests);
-        if (!result?.success)
+        const createdMessages = Array.isArray(result?.data) ? result.data : [];
+        if (!result?.success || createdMessages.length !== batchRequests.length)
           throw new Error("批量发送失败");
       }
       catch (error) {
