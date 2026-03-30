@@ -16,9 +16,10 @@ import { buildMaterialPackageEditorDraft } from "../components/materialPackageEd
 import MaterialPackageEditorInlinePage from "../components/materialPackageEditorInlinePage";
 import MaterialPackageLibraryFrame from "../components/materialPackageLibraryFrame";
 import MaterialPackageImportModal from "../components/materialPackageImportModal";
+import { buildSpaceMaterialPackageCardModel } from "../components/materialPackageLibraryModels";
+import MaterialPackageLibrarySidebar from "../components/materialPackageLibrarySidebar";
+import MaterialPackageLibraryWorkspace from "../components/materialPackageLibraryWorkspace";
 import { parseNodePath, serializeNodePath } from "../components/materialPackageTreeUtils";
-import SpaceMaterialLibrarySidebar from "../components/spaceMaterialLibrarySidebar";
-import SpaceMaterialLibraryWorkspace from "../components/spaceMaterialLibraryWorkspace";
 
 interface SpaceMaterialLibraryPageProps {
   spaceId: number;
@@ -68,6 +69,7 @@ export default function SpaceMaterialLibraryPage({
   const selectedPackage = packages.find(item => item.spacePackageId === selectedPackageId);
   const editorOpen = isCreating || Boolean(selectedPackage);
   const detailBackLabel = "返回局内素材包";
+  const packageCardItems = packages.map(buildSpaceMaterialPackageCardModel);
 
   const updateSelectedLocation = useCallback((nextId: number | null, nextMaterialPathKey?: string | null) => {
     const currentValue = searchParams.get("spacePackageId") ?? "";
@@ -210,22 +212,67 @@ export default function SpaceMaterialLibraryPage({
   };
 
   const sidebarNode = (
-    <SpaceMaterialLibrarySidebar
-      spaceId={spaceId}
-      onNavigateToPublic={handleNavigateToPublic}
-      onNavigateToMine={handleNavigateToMine}
+    <MaterialPackageLibrarySidebar
+      description="局内素材包和局外素材包保持同一种工作区体验，当前只在访问路径和数据来源上区分。"
+      items={[
+        {
+          key: "space",
+          label: `当前空间 · Space ${spaceId}`,
+          icon: "house",
+          active: true,
+        },
+        {
+          key: "public",
+          label: "素材广场",
+          icon: "squares",
+          onClick: handleNavigateToPublic,
+        },
+        {
+          key: "mine",
+          label: "我的素材包",
+          icon: "package",
+          onClick: handleNavigateToMine,
+        },
+      ]}
+      footerDescription="当前页面展示的是当前空间的本地素材包副本区，可以像管理本地仓库一样组织和编辑素材。"
     />
   );
 
   const workspaceNode = (
-    <SpaceMaterialLibraryWorkspace
+    <MaterialPackageLibraryWorkspace
+      upperLabel="Space Library"
+      title="局内素材包"
+      description="当前空间的局内素材包会像本地仓库一样管理素材副本，编辑体验与局外素材包保持一致。"
+      searchPlaceholder="搜索当前空间的素材包、导入副本或章节内容..."
       keyword={keyword}
-      packages={packages}
+      items={packageCardItems}
+      headerActions={[
+        {
+          key: "import-package",
+          label: "从局外导入",
+          icon: "package",
+          variant: "secondary",
+          onClick: () => setIsImportOpen(true),
+        },
+        {
+          key: "create-space-package",
+          label: "新建局内素材包",
+          icon: "plus",
+          variant: "primary",
+          onClick: handleCreateRequest,
+        },
+      ]}
+      emptyTitle="当前空间还没有局内素材包"
+      emptyDescription="你可以先新建一个局内素材包，或者从局外素材库整包导入，把它当作当前空间的本地素材工作区。"
       loading={packagesQuery.isLoading}
+      skeletonPrefix="space-material-skeleton"
       onKeywordChange={setKeyword}
-      onOpenPackage={handleOpenPackage}
-      onCreatePackage={handleCreateRequest}
-      onImportPackage={() => setIsImportOpen(true)}
+      onOpenItem={(index) => {
+        const item = packages[index];
+        if (typeof item?.spacePackageId === "number") {
+          handleOpenPackage(item.spacePackageId);
+        }
+      }}
     />
   );
 
