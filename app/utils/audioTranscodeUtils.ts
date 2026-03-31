@@ -3,6 +3,7 @@ import bundledCoreWasmUrl from "@ffmpeg/core/wasm?url";
 import bundledWorkerUrl from "@ffmpeg/ffmpeg/worker?worker&url";
 
 import { isAudioUploadDebugEnabled } from "@/utils/audioDebugFlags";
+import { resolvePersistentFfmpegAssetBlobUrl } from "@/utils/ffmpegAssetCache";
 import { resolveFfmpegLoadTimeoutMs } from "@/utils/ffmpegLoadTimeoutConfig";
 
 export type AudioTranscodeOptions = {
@@ -310,9 +311,9 @@ async function getFfmpeg(loadTimeoutMs: number): Promise<import("@ffmpeg/ffmpeg"
           if (debugEnabled)
             console.warn(`${debugPrefix} ffmpeg core candidate`, c.label);
 
-          // 同源静态资源：直接使用 URL（避免 blob URL 在某些环境下无法 dynamic import）
+          // core.js 保持同源直链，wasm 走持久缓存后的 blob URL，避免每次重新回源下载大文件。
           const coreURL = c.coreJs;
-          const wasmURL = c.wasm;
+          const wasmURL = await resolvePersistentFfmpegAssetBlobUrl(c.wasm, "application/wasm", loadTimeoutMs);
 
           await withTimeout(ffmpeg.load({ coreURL, wasmURL, classWorkerURL }), loadTimeoutMs, "FFmpeg 核心加载");
 
@@ -335,7 +336,7 @@ async function getFfmpeg(loadTimeoutMs: number): Promise<import("@ffmpeg/ffmpeg"
             console.warn(`${debugPrefix} ffmpeg core candidate`, baseUrl);
 
           const coreURL = await fetchToBlobURL(`${baseUrl}/ffmpeg-core.js`, "text/javascript", loadTimeoutMs);
-          const wasmURL = await fetchToBlobURL(`${baseUrl}/ffmpeg-core.wasm`, "application/wasm", loadTimeoutMs);
+          const wasmURL = await resolvePersistentFfmpegAssetBlobUrl(`${baseUrl}/ffmpeg-core.wasm`, "application/wasm", loadTimeoutMs);
 
           await withTimeout(ffmpeg.load({ coreURL, wasmURL, classWorkerURL }), loadTimeoutMs, "FFmpeg 核心加载");
 
