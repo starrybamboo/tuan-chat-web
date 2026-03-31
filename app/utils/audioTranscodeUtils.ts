@@ -4,6 +4,11 @@ import bundledWorkerUrl from "@ffmpeg/ffmpeg/worker?worker&url";
 
 import { isAudioUploadDebugEnabled } from "@/utils/audioDebugFlags";
 import { resolvePersistentFfmpegAssetBlobUrl } from "@/utils/ffmpegAssetCache";
+import {
+  getFfmpegCoreBaseUrlCandidates,
+  getFfmpegWrapperUrlCandidates,
+  shouldUseBundledFfmpegCore,
+} from "@/utils/ffmpegCoreSourceConfig";
 import { resolveFfmpegLoadTimeoutMs } from "@/utils/ffmpegLoadTimeoutConfig";
 
 export type AudioTranscodeOptions = {
@@ -22,13 +27,6 @@ export type AudioTranscodeOptions = {
 };
 
 const DEFAULT_BITRATE_KBPS = 64;
-// 对齐 @ffmpeg/ffmpeg 内置 CORE_VERSION（避免 wrapper/core 版本不一致带来兼容性风险）
-const FFMPEG_CORE_VERSION = "0.12.9";
-const DEFAULT_FFMPEG_CORE_BASE_URLS = [
-  `https://cdn.jsdelivr.net/npm/@ffmpeg/core@${FFMPEG_CORE_VERSION}/dist/umd`,
-  `https://unpkg.com/@ffmpeg/core@${FFMPEG_CORE_VERSION}/dist/umd`,
-] as const;
-
 const DEFAULT_EXEC_TIMEOUT_MS = 120_000;
 
 let ffmpegSingletonPromise: Promise<import("@ffmpeg/ffmpeg").FFmpeg> | null = null;
@@ -66,44 +64,6 @@ async function terminateFfmpegAndResetSingleton(ffmpeg: import("@ffmpeg/ffmpeg")
   catch {
     // ignore
   }
-}
-
-function getFfmpegCoreBaseUrlCandidates(): string[] {
-  const env = import.meta.env as any;
-  const fromEnv = typeof env?.VITE_FFMPEG_CORE_BASE_URL === "string" ? env.VITE_FFMPEG_CORE_BASE_URL.trim() : "";
-  const envCandidates = fromEnv
-    ? splitUrlCandidates(fromEnv).map(url => url.replace(/\/+$/, ""))
-    : [];
-  const useDefaultCdnFallback = typeof env?.VITE_FFMPEG_CORE_USE_DEFAULT_CDN_FALLBACK === "string"
-    ? env.VITE_FFMPEG_CORE_USE_DEFAULT_CDN_FALLBACK.toLowerCase() === "true"
-    : env?.VITE_FFMPEG_CORE_USE_DEFAULT_CDN_FALLBACK === true;
-  const defaultCandidates = useDefaultCdnFallback
-    ? DEFAULT_FFMPEG_CORE_BASE_URLS.map(url => url.replace(/\/+$/, ""))
-    : [];
-  return Array.from(new Set([...envCandidates, ...defaultCandidates]));
-}
-
-function shouldUseBundledFfmpegCore(): boolean {
-  const env = import.meta.env as any;
-  const skipBundled = typeof env?.VITE_FFMPEG_CORE_SKIP_BUNDLED === "string"
-    ? env.VITE_FFMPEG_CORE_SKIP_BUNDLED.toLowerCase() === "true"
-    : env?.VITE_FFMPEG_CORE_SKIP_BUNDLED === true;
-  return !skipBundled;
-}
-
-function splitUrlCandidates(value: string): string[] {
-  return value
-    .split(/[\s,;]+/)
-    .map(item => item.trim())
-    .filter(Boolean);
-}
-
-function getFfmpegWrapperUrlCandidates(): string[] {
-  const env = import.meta.env as any;
-  const fromEnv = typeof env?.VITE_FFMPEG_WRAPPER_URL === "string" ? env.VITE_FFMPEG_WRAPPER_URL.trim() : "";
-  if (!fromEnv)
-    return [];
-  return splitUrlCandidates(fromEnv);
 }
 
 function isFfmpegWrapperStrict(): boolean {
@@ -228,37 +188,6 @@ function withTimeout<T>(promise: Promise<T>, timeoutMs: number, label: string): 
   });
 }
 
-async function fetchToBlobURL(url: string, mimeType: string, timeoutMs: number): Promise<string> {
-  const shouldAbort = Number.isFinite(timeoutMs) && timeoutMs > 0;
-  const controller = shouldAbort ? new AbortController() : undefined;
-  const t = shouldAbort ? globalThis.setTimeout(() => controller?.abort(), timeoutMs) : undefined;
-  try {
-    const res = await fetch(url, { signal: controller?.signal });
-    if (!res.ok)
-      throw new Error(`下载失败: ${res.status} ${res.statusText}`);
-    const buf = await res.arrayBuffer();
-
-    // 轻量校验，避免下载到 HTML / 代理错误页导致后续 importScripts 报 "failed to import"
-    if (mimeType === "application/wasm") {
-      const bytes = new Uint8Array(buf);
-      const isWasm = bytes.length >= 4 && bytes[0] === 0x00 && bytes[1] === 0x61 && bytes[2] === 0x73 && bytes[3] === 0x6D;
-      if (!isWasm)
-        throw new Error("WASM 文件签名异常（可能下载到错误页/代理页）");
-    }
-    else if (mimeType === "text/javascript") {
-      const head = new TextDecoder("utf-8").decode(buf.slice(0, 256)).trimStart().toLowerCase();
-      if (head.startsWith("<!doctype") || head.startsWith("<html") || head.startsWith("<script") || head.startsWith("<!—") || head.startsWith("<!--"))
-        throw new Error("JS 文件内容异常（可能下载到 HTML/代理页）");
-    }
-
-    return URL.createObjectURL(new Blob([buf], { type: mimeType }));
-  }
-  finally {
-    if (typeof t === "number")
-      globalThis.clearTimeout(t);
-  }
-}
-
 async function getFfmpeg(loadTimeoutMs: number): Promise<import("@ffmpeg/ffmpeg").FFmpeg> {
   if (ffmpegSingletonPromise)
     return ffmpegSingletonPromise;
@@ -335,7 +264,7 @@ async function getFfmpeg(loadTimeoutMs: number): Promise<import("@ffmpeg/ffmpeg"
           if (debugEnabled)
             console.warn(`${debugPrefix} ffmpeg core candidate`, baseUrl);
 
-          const coreURL = await fetchToBlobURL(`${baseUrl}/ffmpeg-core.js`, "text/javascript", loadTimeoutMs);
+          const coreURL = await resolvePersistentFfmpegAssetBlobUrl(`${baseUrl}/ffmpeg-core.js`, "text/javascript", loadTimeoutMs);
           const wasmURL = await resolvePersistentFfmpegAssetBlobUrl(`${baseUrl}/ffmpeg-core.wasm`, "application/wasm", loadTimeoutMs);
 
           await withTimeout(ffmpeg.load({ coreURL, wasmURL, classWorkerURL }), loadTimeoutMs, "FFmpeg 核心加载");
