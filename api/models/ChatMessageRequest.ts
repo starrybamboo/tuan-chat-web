@@ -2,6 +2,7 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
+import type { MessageExtra } from './MessageExtra';
 export type ChatMessageRequest = {
     /**
      * 房间id
@@ -47,9 +48,6 @@ export type ChatMessageRequest = {
      * 消息位置（可选，用于插入消息排序）
      */
     position?: number;
-    /**
-     * 消息内容，类型不同传值不同.
-     */
-    extra: Record<string, any>;
+    extra: MessageExtra;
 };
 

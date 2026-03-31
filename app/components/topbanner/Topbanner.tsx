@@ -1,4 +1,4 @@
-import { ChatsIcon, CheckCircleIcon, GearSixIcon, IdentificationCardIcon, PackageIcon, PaintBrushBroadIcon, SignOutIcon, UserIcon } from "@phosphor-icons/react";
+import { ChatsIcon, CheckCircleIcon, GearSixIcon, IdentificationCardIcon, PaintBrushBroadIcon, SignOutIcon, UserIcon } from "@phosphor-icons/react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router";
@@ -123,7 +123,6 @@ export default function Topbar() {
   const navItems = [
     { to: "/chat/private", label: "聊天", icon: ChatsIcon },
     { to: "/role", label: "角色", icon: IdentificationCardIcon },
-    { to: "/material", label: "素材包", icon: PackageIcon },
     ...(canUseAiImage ? [{ to: "/ai-image", label: "AI生图", icon: PaintBrushBroadIcon }] : []),
     ...(canUseGeminiLab ? [{ to: "/gemini-lab", label: "Gemini实验", icon: GearSixIcon }] : []),
     ...(canUseFeedback ? [{ to: "/feedback", label: "反馈", icon: CheckCircleIcon }] : []),

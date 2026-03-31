@@ -4,6 +4,7 @@ import { toast } from "react-hot-toast";
 import type { RoomContextType } from "@/components/chat/core/roomContext";
 import type { RoomUiStoreApi } from "@/components/chat/stores/roomUiStore";
 import type { DocRefDragPayload } from "@/components/chat/utils/docRef";
+import type { MaterialItemDragPayload } from "@/components/chat/utils/materialItemDrag";
 import type { RoomRefDragPayload } from "@/components/chat/utils/roomRef";
 import type { FigurePosition } from "@/types/voiceRenderTypes";
 
@@ -14,6 +15,7 @@ import { IMPORT_SPECIAL_ROLE_ID } from "@/components/chat/utils/importChatText";
 import { buildOutOfCharacterSpeechContent } from "@/components/chat/utils/outOfCharacterSpeech";
 import UTILS from "@/components/common/dicer/utils/utils";
 import { setFigurePositionAnnotation } from "@/types/messageAnnotations";
+import { buildChatMessageRequestFromDraft } from "@/types/messageDraft";
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
 
 import type { ChatMessageRequest, ChatMessageResponse } from "../../../../api";
@@ -30,6 +32,7 @@ type UseRoomImportActionsParams = {
   setIsSubmitting: (value: boolean) => void;
   roomContext: RoomContextType;
   sendMessageWithInsert: (message: ChatMessageRequest) => Promise<ChatMessageResponse["message"] | null>;
+  sendMessageBatch: (messages: ChatMessageRequest[]) => Promise<ChatMessageResponse["message"][]>;
   ensureRuntimeAvatarIdForRole: (roleId: number) => Promise<number>;
   roomUiStoreApi: RoomUiStoreApi;
 };
@@ -44,6 +47,7 @@ type ImportMessageItem = {
 type UseRoomImportActionsResult = {
   handleImportChatText: (messages: ImportMessageItem[], onProgress?: (sent: number, total: number) => void) => Promise<void>;
   handleSendDocCard: (payload: DocRefDragPayload) => Promise<void>;
+  handleSendMaterialItem: (payload: MaterialItemDragPayload) => Promise<void>;
   handleSendRoomJump: (payload: RoomRefDragPayload) => Promise<void>;
 };
 
@@ -57,6 +61,7 @@ export default function useRoomImportActions({
   setIsSubmitting,
   roomContext,
   sendMessageWithInsert,
+  sendMessageBatch,
   ensureRuntimeAvatarIdForRole,
   roomUiStoreApi,
 }: UseRoomImportActionsParams): UseRoomImportActionsResult {
@@ -184,7 +189,10 @@ export default function useRoomImportActions({
           request.annotations = setFigurePositionAnnotation(request.annotations, figurePosition);
         }
 
-        await sendMessageWithInsert(request);
+        const createdMessage = await sendMessageWithInsert(request);
+        if (!createdMessage) {
+          break;
+        }
         onProgress?.(i + 1, total);
 
         if (total >= 30) {
@@ -224,11 +232,9 @@ export default function useRoomImportActions({
       toast.error("未找到当前空间，无法发送文档");
       return;
     }
-
-    if (payload?.spaceId && payload.spaceId !== spaceId) {
-      toast.error("仅支持在同一空间分享文档");
-      return;
-    }
+    const sourceSpaceId = typeof payload?.spaceId === "number" && payload.spaceId > 0
+      ? payload.spaceId
+      : spaceId;
 
     const isKP = isSpaceOwner;
     const isNarrator = curRoleId <= 0;
@@ -247,7 +253,7 @@ export default function useRoomImportActions({
       try {
         const { getOrCreateSpaceDoc } = await import("@/components/chat/infra/blocksuite/space/spaceWorkspaceRegistry");
 
-        const store = getOrCreateSpaceDoc({ spaceId, docId }) as any;
+        const store = getOrCreateSpaceDoc({ spaceId: sourceSpaceId, docId }) as any;
         try {
           store?.load?.();
         }
@@ -273,7 +279,7 @@ export default function useRoomImportActions({
       extra: {
         docCard: {
           docId,
-          spaceId,
+          spaceId: sourceSpaceId,
           ...(payload?.title ? { title: payload.title } : {}),
           ...(payload?.imageUrl ? { imageUrl: payload.imageUrl } : {}),
           ...(excerpt ? { excerpt } : {}),
@@ -286,7 +292,10 @@ export default function useRoomImportActions({
       request.threadId = threadRootMessageId;
     }
 
-    await sendMessageWithInsert(request);
+    const createdDocCard = await sendMessageWithInsert(request);
+    if (!createdDocCard) {
+      return;
+    }
   }, [
     curRoleId,
     ensureRuntimeAvatarIdForRole,
@@ -297,6 +306,114 @@ export default function useRoomImportActions({
     roomUiStoreApi,
     sendMessageWithInsert,
     spaceId,
+  ]);
+
+  const handleSendMaterialItem = useCallback(async (payload: MaterialItemDragPayload) => {
+    const messages = Array.isArray(payload?.messages) ? payload.messages : [];
+    if (messages.length === 0) {
+      toast.error("当前素材条目没有可发送的消息");
+      return;
+    }
+    if (isSubmitting) {
+      toast.error("正在提交中，请稍后");
+      return;
+    }
+
+    const ui = roomUiStoreApi.getState();
+    const prevInsertAfter = ui.insertAfterMessageId;
+    const prevReply = ui.replyMessage;
+    ui.setInsertAfterMessageId(undefined);
+    ui.setReplyMessage(undefined);
+
+    setIsSubmitting(true);
+    try {
+      const { threadRootMessageId, composerTarget } = roomUiStoreApi.getState();
+      const draftCustomRoleNameMap = useRoomPreferenceStore.getState().draftCustomRoleNameMap;
+      const resolvedAvatarIdByRole = new Map<number, number>();
+      const ensureAvatarIdForRole = async (roleId: number): Promise<number> => {
+        if (roleId <= 0) {
+          return -1;
+        }
+        const cached = resolvedAvatarIdByRole.get(roleId);
+        if (cached != null) {
+          return cached;
+        }
+        const ensured = await ensureRuntimeAvatarIdForRole(roleId);
+        resolvedAvatarIdByRole.set(roleId, ensured);
+        return ensured;
+      };
+
+      const uniqueRoleIds = Array.from(new Set(
+        messages
+          .map(message => Number(message.roleId))
+          .filter(roleId => Number.isFinite(roleId) && roleId > 0),
+      ));
+      for (const roleId of uniqueRoleIds) {
+        await ensureAvatarIdForRole(roleId);
+      }
+
+      const requests: ChatMessageRequest[] = [];
+      for (const materialMessage of messages) {
+        const explicitRoleId = Number(materialMessage.roleId);
+        const hasExplicitNarratorRoleId = Number.isFinite(explicitRoleId) && explicitRoleId < 0;
+        const hasExplicitPositiveRoleId = Number.isFinite(explicitRoleId) && explicitRoleId > 0;
+        const roleId = notMember
+          ? -1
+          : ((hasExplicitPositiveRoleId || hasExplicitNarratorRoleId) ? explicitRoleId : curRoleId);
+        const avatarId = roleId > 0
+          ? (typeof materialMessage.avatarId === "number" && materialMessage.avatarId > 0
+              ? materialMessage.avatarId
+              : await ensureAvatarIdForRole(roleId))
+          : -1;
+
+        if (roleId <= 0 && !isSpaceOwner && !notMember) {
+          toast.error("旁白仅主持可用，请先选择/拉入你的角色");
+          return;
+        }
+
+        const customRoleName = typeof materialMessage.customRoleName === "string"
+          ? materialMessage.customRoleName.trim()
+          : "";
+        const fallbackCustomRoleName = roleId > 0
+          ? draftCustomRoleNameMap[roleId]?.trim()
+          : undefined;
+        const request = buildChatMessageRequestFromDraft(materialMessage, {
+          roomId,
+          roleId,
+          avatarId,
+          customRoleName: customRoleName || fallbackCustomRoleName,
+        });
+
+        if (composerTarget === "thread" && threadRootMessageId) {
+          request.threadId = threadRootMessageId;
+        }
+        requests.push(request);
+      }
+
+      const createdMessages = await sendMessageBatch(requests);
+      if (createdMessages.length !== requests.length) {
+        return;
+      }
+    }
+    catch (error) {
+      const message = error instanceof Error ? error.message : "发送素材失败";
+      toast.error(message);
+    }
+    finally {
+      roomUiStoreApi.getState().setInsertAfterMessageId(prevInsertAfter);
+      roomUiStoreApi.getState().setReplyMessage(prevReply);
+      setIsSubmitting(false);
+    }
+  }, [
+    curRoleId,
+    ensureRuntimeAvatarIdForRole,
+    isSpaceOwner,
+    isSubmitting,
+    notMember,
+    roomId,
+    roomUiStoreApi,
+    sendMessageBatch,
+    setIsSubmitting,
   ]);
 
   const handleSendRoomJump = useCallback(async (payload: RoomRefDragPayload) => {
@@ -310,11 +427,9 @@ export default function useRoomImportActions({
       toast.error("当前不在空间群聊，无法发送群聊跳转");
       return;
     }
-
-    if (payload?.spaceId && payload.spaceId !== spaceId) {
-      toast.error("仅支持在同一空间引用群聊");
-      return;
-    }
+    const targetSpaceId = typeof payload?.spaceId === "number" && payload.spaceId > 0
+      ? payload.spaceId
+      : spaceId;
 
     const isKP = isSpaceOwner;
     const isNarrator = curRoleId <= 0;
@@ -338,7 +453,7 @@ export default function useRoomImportActions({
       messageType: MessageType.ROOM_JUMP,
       extra: {
         roomJump: {
-          spaceId,
+          spaceId: targetSpaceId,
           roomId: targetRoomId,
           ...(payload.roomName ? { roomName: payload.roomName } : {}),
           ...(payload.categoryName ? { categoryName: payload.categoryName } : {}),
@@ -351,7 +466,10 @@ export default function useRoomImportActions({
       request.threadId = threadRootMessageId;
     }
 
-    await sendMessageWithInsert(request);
+    const createdRoomJump = await sendMessageWithInsert(request);
+    if (!createdRoomJump) {
+      return;
+    }
   }, [
     curRoleId,
     ensureRuntimeAvatarIdForRole,
@@ -367,6 +485,7 @@ export default function useRoomImportActions({
   return {
     handleImportChatText,
     handleSendDocCard,
+    handleSendMaterialItem,
     handleSendRoomJump,
   };
 }

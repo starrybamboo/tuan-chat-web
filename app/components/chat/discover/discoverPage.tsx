@@ -3,7 +3,7 @@ import React, { useCallback, useMemo } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 import ChatPageLayout from "@/components/chat/chatPageLayout";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
-import ChatDiscoverNavPanel from "@/components/chat/discover/chatDiscoverNavPanel";
+import ChatDiscoverNavPanel, { type ChatDiscoverNavItem } from "@/components/chat/discover/chatDiscoverNavPanel";
 import DiscoverArchivedSpacesView from "@/components/chat/discover/discoverArchivedSpacesView";
 import DiscoverProductionPlaceholder from "@/components/chat/discover/discoverProductionPlaceholder";
 import useChatPageContextMenus from "@/components/chat/hooks/useChatPageContextMenus";
@@ -18,17 +18,33 @@ import { useDrawerPreferenceStore } from "@/components/chat/stores/drawerPrefere
 import { useLocalStorage } from "@/components/common/customHooks/useLocalStorage";
 import { useScreenSize } from "@/components/common/customHooks/useScreenSize";
 import { useGlobalContext } from "@/components/globalContextProvider";
+import MaterialLibraryPage from "@/components/material/pages/materialLibraryPage";
 
 const EMPTY_ARRAY: never[] = [];
 const isProductionMode = import.meta.env.MODE === "production";
 
-type DiscoverMode = "square" | "my";
+type RepositoryDiscoverMode = "square" | "my";
+type MaterialDiscoverMode = "public" | "mine";
 
-interface DiscoverPageProps {
-  mode: DiscoverMode;
+type DiscoverPageProps =
+  | {
+      section: "repository";
+      mode: RepositoryDiscoverMode;
+    }
+  | {
+      section: "material";
+      mode: MaterialDiscoverMode;
+    };
+
+function getActiveNavItem(props: DiscoverPageProps): ChatDiscoverNavItem {
+  if (props.section === "material") {
+    return props.mode === "mine" ? "material-mine" : "material-public";
+  }
+  return props.mode === "my" ? "repository-my" : "repository-square";
 }
 
-export default function DiscoverPage({ mode }: DiscoverPageProps) {
+export default function DiscoverPage(props: DiscoverPageProps) {
+  const { section } = props;
   const screenSize = useScreenSize();
   const navigate = useNavigate();
   const [searchParam] = useSearchParams();
@@ -123,6 +139,12 @@ export default function DiscoverPage({ mode }: DiscoverPageProps) {
 
   const chatLeftPanelWidth = useDrawerPreferenceStore(state => state.chatLeftPanelWidth);
   const setChatLeftPanelWidth = useDrawerPreferenceStore(state => state.setChatLeftPanelWidth);
+  const activeNavItem = getActiveNavItem(props);
+  const mainContent = isProductionMode
+    ? <DiscoverProductionPlaceholder />
+    : section === "material"
+      ? <MaterialLibraryPage mode={props.mode} embedded />
+      : <DiscoverArchivedSpacesView mode={props.mode} />;
 
   const leftDrawerToggleLabel = isOpenLeftDrawer ? "收起侧边栏" : "展开侧边栏";
   const shouldShowLeftDrawerToggle = screenSize === "sm" && !isOpenLeftDrawer;
@@ -161,10 +183,10 @@ export default function DiscoverPage({ mode }: DiscoverPageProps) {
               onCloseLeftDrawer={closeLeftDrawer}
               onToggleLeftDrawer={toggleLeftDrawer}
               isLeftDrawerOpen={isOpenLeftDrawer}
-              activeMode={mode}
+              activeItem={activeNavItem}
             />
           )}
-          mainContent={isProductionMode ? <DiscoverProductionPlaceholder /> : <DiscoverArchivedSpacesView mode={mode} />}
+          mainContent={mainContent}
         />
         <SpaceContextMenu
           contextMenu={spaceContextMenu}

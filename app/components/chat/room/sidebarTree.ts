@@ -2,6 +2,8 @@ import type { Room } from "api";
 
 import { parseSpaceDocId } from "@/components/chat/infra/blocksuite/space/spaceDocId";
 
+const LEGACY_MATERIALS_CATEGORY_ID = "cat:materials";
+
 export type SidebarLeafNode = {
   nodeId: string;
   type: "room" | "doc";
@@ -326,28 +328,34 @@ export function normalizeSidebarTree(params: {
       return buildRoomNode(roomId, raw?.fallbackTitle ?? room.name ?? String(roomId));
     }
 
-    // doc
-    if (!params.includeDocs)
-      return null;
-    const docId = normalizeDocId(raw?.targetId);
-    if (!docId)
-      return null;
-    if (!isSidebarVisibleDocId(docId))
-      return null;
-    const meta = docMetaMap.get(docId);
-    // docMetas 可能是异步加载的：在还未加载到任何 meta 之前，允许保留 sidebarTree 里的 doc 节点，先展示缓存。
-    if (!meta && hasDocMetas)
-      return null;
+    if (raw.type === "doc") {
+      if (!params.includeDocs)
+        return null;
+      const docId = normalizeDocId(raw?.targetId);
+      if (!docId)
+        return null;
+      if (!isSidebarVisibleDocId(docId))
+        return null;
+      const meta = docMetaMap.get(docId);
+      // docMetas 可能是异步加载的：在还未加载到任何 meta 之前，允许保留 sidebarTree 里的 doc 节点，先展示缓存。
+      if (!meta && hasDocMetas)
+        return null;
 
-    const title = raw?.fallbackTitle ?? meta?.title ?? docId;
-    const imageUrl = raw?.fallbackImageUrl ?? meta?.imageUrl;
-    return buildDocNode(docId, title, imageUrl);
+      const title = raw?.fallbackTitle ?? meta?.title ?? docId;
+      const imageUrl = raw?.fallbackImageUrl ?? meta?.imageUrl;
+      return buildDocNode(docId, title, imageUrl);
+    }
+
+    return null;
   };
 
   const categories: SidebarCategoryNode[] = [];
   for (const c of base.categories ?? []) {
     if (!c)
       continue;
+    if (c.categoryId === LEGACY_MATERIALS_CATEGORY_ID) {
+      continue;
+    }
     let categoryId = typeof c.categoryId === "string" && c.categoryId.trim().length > 0
       ? c.categoryId
       : generateCategoryId();

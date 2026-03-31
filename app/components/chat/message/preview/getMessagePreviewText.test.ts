@@ -111,6 +111,15 @@ describe("getMessagePreviewText", () => {
     expect(getMessagePreviewText(msg)).toBe("[视频] clip.webm");
   });
 
+  it("子区消息优先读取 threadRoot.title", () => {
+    const msg = createBaseMessage({
+      messageType: MESSAGE_TYPE.THREAD_ROOT,
+      content: "",
+      extra: { threadRoot: { title: "线索讨论" } } as any,
+    });
+    expect(getMessagePreviewText(msg)).toBe("[子区] 线索讨论");
+  });
+
   it("webGAL 指令消息自动补全 % 前缀", () => {
     const msg = createBaseMessage({
       messageType: MESSAGE_TYPE.WEBGAL_COMMAND,

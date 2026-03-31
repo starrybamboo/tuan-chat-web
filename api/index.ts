@@ -327,6 +327,7 @@ export type { TagDeleteRequest } from './models/TagDeleteRequest';
 export type { TagGetRequest } from './models/TagGetRequest';
 export type { TagUpdateRequest } from './models/TagUpdateRequest';
 export type { TagUsageRequest } from './models/TagUsageRequest';
+export type { ThreadRootExtra } from './models/ThreadRootExtra';
 export type { TutorialBootstrapResponse } from './models/TutorialBootstrapResponse';
 export type { TutorialPullResponse } from './models/TutorialPullResponse';
 export type { UploadUrlRequest } from './models/UploadUrlRequest';

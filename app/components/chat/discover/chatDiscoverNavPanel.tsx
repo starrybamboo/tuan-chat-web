@@ -1,14 +1,16 @@
 import { Link } from "react-router";
 import { SidebarSimpleIcon } from "@/icons";
 
+export type ChatDiscoverNavItem = "repository-square" | "repository-my" | "material-public" | "material-mine";
+
 interface ChatDiscoverNavPanelProps {
   onCloseLeftDrawer: () => void;
   onToggleLeftDrawer?: () => void;
   isLeftDrawerOpen?: boolean;
-  activeMode: "square" | "my";
+  activeItem: ChatDiscoverNavItem;
 }
 
-export default function ChatDiscoverNavPanel({ onCloseLeftDrawer, onToggleLeftDrawer, isLeftDrawerOpen, activeMode }: ChatDiscoverNavPanelProps) {
+export default function ChatDiscoverNavPanel({ onCloseLeftDrawer, onToggleLeftDrawer, isLeftDrawerOpen, activeItem }: ChatDiscoverNavPanelProps) {
   const leftDrawerLabel = isLeftDrawerOpen ? "收起侧边栏" : "展开侧边栏";
   const navItemBase = "group flex items-center gap-2 rounded-md px-2 py-2 text-sm font-medium transition-colors";
   const navItemInactive = "text-base-content/70 hover:bg-base-300/60 hover:text-base-content";
@@ -35,13 +37,38 @@ export default function ChatDiscoverNavPanel({ onCloseLeftDrawer, onToggleLeftDr
 
       <div className="px-3 pt-3 pb-2">
         <div className="px-1 pb-2 text-[11px] font-semibold tracking-wider text-base-content/50">
+          局外素材
+        </div>
+
+        <div className="space-y-1">
+          <Link
+            to="/chat/discover/material"
+            className={`${navItemBase} ${activeItem === "material-public" ? navItemActive : navItemInactive}`}
+            onClick={onCloseLeftDrawer}
+          >
+            <span className="size-2 rounded-full bg-warning opacity-70 group-hover:opacity-100" />
+            素材广场
+          </Link>
+          <Link
+            to="/chat/discover/material/my"
+            className={`${navItemBase} ${activeItem === "material-mine" ? navItemActive : navItemInactive}`}
+            onClick={onCloseLeftDrawer}
+          >
+            <span className="size-2 rounded-full bg-secondary opacity-70 group-hover:opacity-100" />
+            我的素材包
+          </Link>
+        </div>
+      </div>
+
+      <div className="px-3 pb-3">
+        <div className="px-1 pb-2 text-[11px] font-semibold tracking-wider text-base-content/50">
           归档仓库
         </div>
 
         <div className="space-y-1">
           <Link
             to="/chat/discover"
-            className={`${navItemBase} ${activeMode === "square" ? navItemActive : navItemInactive}`}
+            className={`${navItemBase} ${activeItem === "repository-square" ? navItemActive : navItemInactive}`}
             onClick={onCloseLeftDrawer}
           >
             <span className="size-2 rounded-full bg-success opacity-70 group-hover:opacity-100" />
@@ -49,7 +76,7 @@ export default function ChatDiscoverNavPanel({ onCloseLeftDrawer, onToggleLeftDr
           </Link>
           <Link
             to="/chat/discover/my"
-            className={`${navItemBase} ${activeMode === "my" ? navItemActive : navItemInactive}`}
+            className={`${navItemBase} ${activeItem === "repository-my" ? navItemActive : navItemInactive}`}
             onClick={onCloseLeftDrawer}
           >
             <span className="size-2 rounded-full bg-primary opacity-70 group-hover:opacity-100" />

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef } from "react";
 
 import type { UseChatHistoryReturn } from "@/components/chat/infra/indexedDB/useChatHistory";
 
+import { getThreadRootExtra } from "@/types/messageExtra";
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
 
 import type { ChatMessageResponse } from "../../../../api";
@@ -236,7 +237,7 @@ export default function useChatFrameMessages({
         continue;
       }
 
-      const title = (mm.extra as any)?.title || mm.content;
+      const title = getThreadRootExtra(mm.extra)?.title || mm.content;
       const next: ThreadHintMeta = {
         rootId: mm.messageId,
         title,

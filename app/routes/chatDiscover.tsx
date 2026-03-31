@@ -12,7 +12,7 @@ export function meta(_args: Route.MetaArgs) {
 export default function ChatDiscoverRoute() {
   return (
     <div className="bg-base-200 h-full w-full overflow-y-auto overflow-x-visible">
-      <DiscoverPage mode="square" />
+      <DiscoverPage section="repository" mode="square" />
     </div>
   );
 }

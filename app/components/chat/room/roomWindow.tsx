@@ -41,6 +41,7 @@ import { useGlobalContext } from "@/components/globalContextProvider";
 
 import { PremiereExporter } from "@/webGAL";
 import {
+  useBatchSendMessageMutation,
   useDeleteMessageMutation,
   useGetRoomInfoQuery,
   useGetSpaceInfoQuery,
@@ -92,6 +93,7 @@ function RoomWindow({
   const webSocketUtils = globalContext.websocketUtils;
 
   const sendMessageMutation = useSendMessageMutation(roomId);
+  const batchSendMessageMutation = useBatchSendMessageMutation(roomId);
   const deleteMessageMutation = useDeleteMessageMutation();
   const updateMessageMutation = useUpdateMessageMutation();
 
@@ -236,7 +238,7 @@ function RoomWindow({
     commandExecutor,
   });
 
-  const { sendMessageWithInsert, handleSendWebgalChoose } = useRoomMessageActions({
+  const { sendMessageWithInsert, sendMessageBatch, handleSendWebgalChoose } = useRoomMessageActions({
     roomId,
     currentUserId: Number(userId ?? 0),
     isSpaceOwner: Boolean(spaceContext.isSpaceOwner),
@@ -245,7 +247,9 @@ function RoomWindow({
     notMember,
     mainHistoryMessages,
     sendMessage: sendMessageMutation.mutateAsync,
+    batchSendMessages: batchSendMessageMutation.mutateAsync,
     addOrUpdateMessage: chatHistory?.addOrUpdateMessage,
+    addOrUpdateMessages: chatHistory?.addOrUpdateMessages,
     removeMessageById: chatHistory?.removeMessageById,
     replaceMessageById: chatHistory?.replaceMessageById,
     ensureRuntimeAvatarIdForRole,
@@ -271,7 +275,6 @@ function RoomWindow({
   const { handleMessageSubmit } = useChatMessageSubmit({
     roomId,
     spaceId,
-    spaceExtra: space?.extra,
     isSpaceOwner: Boolean(spaceContext.isSpaceOwner),
     curRoleId,
     notMember,
@@ -279,6 +282,7 @@ function RoomWindow({
     isSubmitting,
     setIsSubmitting,
     sendMessageWithInsert,
+    sendMessageBatch,
     ensureRuntimeAvatarIdForRole,
     commandExecutor,
     containsCommandRequestAllToken,
@@ -290,6 +294,7 @@ function RoomWindow({
   const {
     handleImportChatText,
     handleSendDocCard,
+    handleSendMaterialItem,
     handleSendRoomJump,
   } = useRoomImportActions({
     roomId,
@@ -301,6 +306,7 @@ function RoomWindow({
     setIsSubmitting,
     roomContext,
     sendMessageWithInsert,
+    sendMessageBatch,
     ensureRuntimeAvatarIdForRole,
     roomUiStoreApi: roomUiStore,
   });
@@ -919,7 +925,11 @@ function RoomWindow({
           chatHistoryLoading={!!chatHistory?.loading}
           onApiChange={handleRealtimeRenderApiChange}
         />
-        <RoomDocRefDropLayer onSendDocCard={handleSendDocCard} onSendRoomJump={handleSendRoomJump}>
+        <RoomDocRefDropLayer
+          onSendDocCard={handleSendDocCard}
+          onSendMaterialItem={handleSendMaterialItem}
+          onSendRoomJump={handleSendRoomJump}
+        >
           <RoomWindowLayout
             roomId={roomId}
             roomName={roomName}

@@ -1,6 +1,7 @@
 import type { MessageDirectResponse } from "../../../../api";
 import BetterImg from "@/components/common/betterImg";
 import { UserAvatarByUser } from "@/components/common/userAccess";
+import { getImageMessageExtra, getVideoMessageExtra } from "@/types/messageExtra";
 
 interface MessageBubbleProps {
   message: MessageDirectResponse; // 消息内容
@@ -8,7 +9,6 @@ interface MessageBubbleProps {
 }
 
 export default function MessageBubble({ message, isOwn }: MessageBubbleProps) {
-  const extra: any = message.extra as any;
   const senderUser = {
     userId: message.senderId,
     username: message.senderUsername,
@@ -19,7 +19,7 @@ export default function MessageBubble({ message, isOwn }: MessageBubbleProps) {
   // 渲染消息内容（文本/图片/视频）
   const renderMessageContent = () => {
     if (message.messageType === 2) {
-      const imgData = extra?.imageMessage ?? extra;
+      const imgData = getImageMessageExtra(message.extra);
       return (
         <div data-message-id={message.messageId}>
           <BetterImg
@@ -32,7 +32,7 @@ export default function MessageBubble({ message, isOwn }: MessageBubbleProps) {
     }
 
     if (message.messageType === 14) {
-      const videoMessage = extra?.videoMessage ?? extra?.fileMessage ?? extra;
+      const videoMessage = getVideoMessageExtra(message.extra);
       const videoUrl = typeof videoMessage?.url === "string" ? videoMessage.url : "";
       if (videoUrl) {
         return (

@@ -10,12 +10,10 @@ import { buildAnnotationMap } from "@/components/chat/message/annotations/annota
 import MessageAnnotationsBar from "@/components/chat/message/annotations/messageAnnotationsBar";
 import { openMessageAnnotationPicker } from "@/components/chat/message/annotations/openMessageAnnotationPicker";
 import EditableMessageContent from "@/components/chat/message/editableMessageContent";
-import AudioMessage from "@/components/chat/message/media/AudioMessage";
-import CachedVideoMessage from "@/components/chat/message/media/CachedVideoMessage";
+import MessageContentRenderer from "@/components/chat/message/messageContentRenderer";
 import ForwardMessage from "@/components/chat/message/preview/forwardMessage";
 import { PreviewMessage } from "@/components/chat/message/preview/previewMessage";
 import RoomJumpMessage from "@/components/chat/message/roomJump/roomJumpMessage";
-import WebgalChooseMessage from "@/components/chat/message/webgalChooseMessage";
 import { useRealtimeRenderStore } from "@/components/chat/stores/realtimeRenderStore";
 import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
 import { useRoomRoleSelectionStore } from "@/components/chat/stores/roomRoleSelectionStore";
@@ -24,7 +22,6 @@ import { isObserverLike } from "@/components/chat/utils/memberPermissions";
 import { isOutOfCharacterSpeech } from "@/components/chat/utils/outOfCharacterSpeech";
 import { getDisplayRoleName } from "@/components/chat/utils/roleDisplayName";
 import { extractRoomJumpPayload } from "@/components/chat/utils/roomJump";
-import BetterImg from "@/components/common/betterImg";
 import RoleAvatarComponent from "@/components/common/roleAvatar";
 import toastWindow from "@/components/common/toastWindow/toastWindow";
 import { UserAvatarByUser } from "@/components/common/userAccess";
@@ -34,15 +31,13 @@ import {
   ANNOTATION_IDS,
   areAnnotationsEqual,
   getEffectDurationMs,
-  getSceneEffectFromAnnotations,
-  getSceneEffectLabel,
   hasAnnotation,
   normalizeAnnotations,
   setAnnotation,
   toggleAnnotation,
 } from "@/types/messageAnnotations";
+import { buildChatMessageRequestFromDraft } from "@/types/messageDraft";
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
-import { extractWebgalChoosePayload } from "@/types/webgalChoose";
 import { formatTimeSmartly } from "@/utils/dateUtil";
 import { getScreenSize } from "@/utils/getScreenSize";
 import { isRoleNotFoundApiError } from "@/utils/roleApiError";
@@ -52,6 +47,13 @@ import { useSendMessageMutation, useUpdateMessageMutation } from "../../../../ap
 import { useGetRoleQuery } from "../../../../api/hooks/RoleAndAvatarHooks";
 import { useGetUserInfoQuery } from "../../../../api/hooks/UserHooks";
 import DocCardMessage from "./docCard/docCardMessage";
+import {
+  CHAT_MESSAGE_ANNOTATIONS_CLASS,
+  CHAT_MESSAGE_BUBBLE_BASE_CLASS,
+  CHAT_MESSAGE_HOVER_TOOLBAR_CLASS,
+  CHAT_MESSAGE_META_ROW_CLASS,
+  CHAT_MESSAGE_ROW_CLASS,
+} from "./messageCardStyle";
 
 interface CommandRequestPayload {
   command: string;
@@ -464,15 +466,20 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
     }
     const raw = (message.content ?? "").trim();
     const title = raw ? raw.slice(0, 20) : "子区";
-    const threadRootRequest = {
-      roomId,
+    const threadRootRequest = buildChatMessageRequestFromDraft({
       messageType: MESSAGE_TYPE.THREAD_ROOT,
-      roleId: roomContext.curRoleId,
-      avatarId: roomContext.curAvatarId,
       content: title,
+      extra: {
+        threadRoot: {
+          title,
+        },
+      },
+    } as any, {
+      roomId,
+      roleId: roomContext.curRoleId ?? undefined,
+      avatarId: roomContext.curAvatarId ?? undefined,
       replayMessageId: message.messageId,
-      extra: { title },
-    };
+    });
 
     if (sendMessageWithInsert) {
       void (async () => {
@@ -583,7 +590,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
 
   const messageHoverToolbar = (
     <div
-      className="absolute top-2 right-2 z-30 flex items-center gap-1 rounded-full border border-base-300/80 bg-base-200/95 px-1.5 py-1 shadow-lg backdrop-blur-sm opacity-0 pointer-events-none transition-all duration-150 translate-y-1 group-hover:opacity-100 group-hover:pointer-events-auto group-hover:translate-y-0"
+      className={CHAT_MESSAGE_HOVER_TOOLBAR_CLASS}
     >
       <button
         type="button"
@@ -849,20 +856,6 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
     updateMessageAndSync(newMessage);
   }
 
-  const formatFileSize = (bytes?: number) => {
-    if (!bytes || Number.isNaN(bytes)) {
-      return "";
-    }
-    const units = ["B", "KB", "MB", "GB"] as const;
-    let value = bytes;
-    let unitIndex = 0;
-    while (value >= 1024 && unitIndex < units.length - 1) {
-      value /= 1024;
-      unitIndex += 1;
-    }
-    return `${value.toFixed(1)}${units[unitIndex]}`;
-  };
-
   const handleReplyPreviewClick = useCallback((event: React.MouseEvent<HTMLButtonElement>) => {
     event.preventDefault();
     event.stopPropagation();
@@ -998,90 +991,6 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
               />
             </div>
           );
-        case MESSAGE_TYPE.IMG: {
-          const imageMessage = extra?.imageMessage ?? extra;
-          const imgUrl = typeof imageMessage?.url === "string" ? imageMessage.url : "";
-          const imgWidth = typeof imageMessage?.width === "number" ? imageMessage.width : undefined;
-          const imgHeight = typeof imageMessage?.height === "number" ? imageMessage.height : undefined;
-
-          return (
-            <div className="flex flex-col gap-1">
-              {imgUrl
-                ? (
-                    <BetterImg
-                      src={imgUrl}
-                      size={{ width: imgWidth, height: imgHeight }}
-                      className="rounded max-w-full max-h-[350px] h-auto"
-                    />
-                  )
-                : (
-                    <span className="text-xs text-base-content/60">[图片]</span>
-                  )}
-              {message.content && (
-                <div className="text-sm text-base-content/80 whitespace-pre-wrap break-words">
-                  {message.content}
-                </div>
-              )}
-            </div>
-          );
-        }
-        case MESSAGE_TYPE.FILE: {
-          const fileMessage = extra?.fileMessage ?? extra;
-          const fileUrl = typeof fileMessage?.url === "string" ? fileMessage.url : "";
-          const fileName = fileMessage?.fileName || message.content || "文件";
-          const sizeLabel = formatFileSize(fileMessage?.size);
-          const contentNode = (
-            <div className="flex items-center gap-2 min-w-0">
-              <span className="badge badge-outline badge-xs">文件</span>
-              <span className="truncate">{fileName}</span>
-              {sizeLabel && <span className="text-[10px] text-base-content/50">{sizeLabel}</span>}
-            </div>
-          );
-
-          return fileUrl
-            ? (
-                <a
-                  href={fileUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="link link-hover flex items-center gap-2"
-                  onClick={event => event.stopPropagation()}
-                >
-                  {contentNode}
-                </a>
-              )
-            : contentNode;
-        }
-        case MESSAGE_TYPE.VIDEO: {
-          const videoMessage = extra?.videoMessage ?? extra?.fileMessage ?? extra;
-          const videoUrl = typeof videoMessage?.url === "string" ? videoMessage.url : "";
-          return (
-            <div className="flex flex-col gap-2 min-w-0 w-full max-w-[420px]">
-              {videoUrl
-                ? (
-                    <div className="relative overflow-hidden rounded-2xl border border-base-300/70 bg-base-200/40 shadow-sm">
-                      <CachedVideoMessage
-                        cacheKey={`video:${message.messageId}`}
-                        url={videoUrl}
-                        className="block w-full max-h-[360px] bg-black object-contain"
-                      />
-                      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-black/55 via-black/20 to-transparent" />
-                      <span className="pointer-events-none badge badge-neutral badge-xs absolute top-2 left-2 opacity-90">视频</span>
-                    </div>
-                  )
-                : (
-                    <div className="rounded-2xl border border-dashed border-base-300 bg-base-200/30 px-3 py-6 text-xs text-base-content/60 text-center">
-                      [视频资源不可用]
-                    </div>
-                  )}
-              {message.content && (
-                <div className="text-sm text-base-content/80 whitespace-pre-wrap break-words">
-                  {message.content}
-                </div>
-              )}
-            </div>
-          );
-        }
         case MESSAGE_TYPE.FORWARD:
           return <ForwardMessage messageResponse={chatMessageResponse} />;
         case MESSAGE_TYPE.DICE: {
@@ -1105,88 +1014,8 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
             </div>
           );
         }
-        case MESSAGE_TYPE.SOUND: {
-          const soundMessage = extra?.soundMessage ?? extra;
-          const audioUrl = typeof soundMessage?.url === "string" ? soundMessage.url : "";
-          const duration = soundMessage?.second ?? soundMessage?.duration;
-          const contentText = (message.content ?? "").toString();
-          const hasBgmTagInContent = contentText.includes("[播放BGM]");
-          const hasSeTagInContent = contentText.includes("[播放音效]");
-          const hasBgmAnnotation = annotations.some(item => item.toLowerCase() === ANNOTATION_IDS.BGM);
-          const hasSeAnnotation = annotations.some(item => item.toLowerCase() === ANNOTATION_IDS.SE);
-          const purposeFromPayload = typeof soundMessage?.purpose === "string"
-            ? soundMessage.purpose.trim().toLowerCase()
-            : "";
-          const purpose = purposeFromPayload === "bgm" || hasBgmAnnotation || hasBgmTagInContent
-            ? "bgm"
-            : purposeFromPayload === "se" || hasSeAnnotation || hasSeTagInContent
-              ? "se"
-              : "voice";
-          return (
-            <div className="flex flex-col gap-2">
-              {audioUrl
-                ? (
-                    <AudioMessage
-                      roomId={message.roomId}
-                      messageId={message.messageId}
-                      purpose={purpose}
-                      cacheKey={`audio:${message.messageId}`}
-                      url={audioUrl}
-                      duration={typeof duration === "number" ? duration : undefined}
-                      title={soundMessage?.fileName}
-                    />
-                  )
-                : (
-                    <span className="text-xs text-base-content/60">[语音]</span>
-                  )}
-              {message.content && (
-                <div className="text-sm text-base-content/80 whitespace-pre-wrap break-words">
-                  {message.content}
-                </div>
-              )}
-            </div>
-          );
-        }
-        case MESSAGE_TYPE.EFFECT: {
-          const sceneEffectName = getSceneEffectFromAnnotations(annotations);
-          const effectName = getSceneEffectLabel(sceneEffectName)
-            || (hasAnnotation(annotations, ANNOTATION_IDS.BACKGROUND_CLEAR) ? "清除背景" : "")
-            || (hasAnnotation(annotations, ANNOTATION_IDS.FIGURE_CLEAR) ? "清除立绘" : "")
-            || message.content
-            || "特效";
-          return (
-            <div className="flex items-center gap-2 text-sm">
-              <span className="badge badge-info badge-xs">特效</span>
-              <span className="opacity-70">{effectName}</span>
-            </div>
-          );
-        }
-        case MESSAGE_TYPE.WEBGAL_CHOOSE: {
-          const payload = extractWebgalChoosePayload(message.extra);
-          return <WebgalChooseMessage payload={payload} />;
-        }
-        case MESSAGE_TYPE.WEBGAL_COMMAND: {
-          const commandText = message.content?.trim() || "";
-          const displayText = commandText.startsWith("%") ? commandText : `%${commandText}`;
-          return (
-            <div className="flex items-center gap-2 text-sm">
-              <span className="badge badge-ghost badge-xs">WebGAL</span>
-              <span className="font-mono break-words">{displayText}</span>
-            </div>
-          );
-        }
-        case MESSAGE_TYPE.SYSTEM:
-          return (
-            <div className="text-sm text-base-content/60 whitespace-pre-wrap break-words">
-              {message.content || "[系统消息]"}
-            </div>
-          );
         default:
-          return (
-            <div className="text-sm text-base-content/80 whitespace-pre-wrap break-words">
-              {message.content || "[未知消息]"}
-            </div>
-          );
+          return <MessageContentRenderer message={message} annotations={annotations} cacheKeyBase={`chat:${message.messageId}`} />;
       }
     })();
 
@@ -1208,7 +1037,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
       {useChatBubbleStyle
         ? (
             <div
-              className="flex w-full items-start gap-1.5 sm:gap-3 py-1 sm:py-2 group relative"
+              className={CHAT_MESSAGE_ROW_CLASS}
               key={message.messageId}
             >
               {messageHoverToolbar}
@@ -1254,7 +1083,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
                       )}
               </div>
               <div className="flex flex-col items-start">
-                <div className="flex items-center gap-2 sm:gap-3 w-full min-w-0 sm:pr-80 relative">
+                <div className={CHAT_MESSAGE_META_ROW_CLASS}>
                   {showRoleNameEditor
                     ? (
                         <div className="flex items-center gap-1">
@@ -1318,7 +1147,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
                   </span>
                 </div>
                 <div
-                  className={`relative max-w-[calc(100vw-5rem)] sm:max-w-md break-words rounded-lg px-3 sm:px-4 py-1.5 sm:py-2 shadow-sm sm:shadow text-base sm:text-sm lg:text-base transition-all duration-200 cursor-pointer ${
+                  className={`${CHAT_MESSAGE_BUBBLE_BASE_CLASS} cursor-pointer ${
                     isOutOfCharacterTextMessage
                       ? "border-2 border-dashed border-warning/45 bg-warning/12 text-base-content/90 shadow-none hover:bg-warning/18 hover:shadow-none"
                       : "bg-base-200 hover:shadow-lg hover:bg-base-300"
@@ -1335,7 +1164,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
                     </div>
                   )}
                 </div>
-                {renderAnnotationsBar("max-w-[calc(100vw-5rem)] sm:max-w-md mt-1.5")}
+                {renderAnnotationsBar(CHAT_MESSAGE_ANNOTATIONS_CLASS)}
               </div>
             </div>
           )

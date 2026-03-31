@@ -9,4 +9,9 @@ export type PokemonSkill = {
   actionPointCost: number;
   effect: string;
   effectRate?: number; // 可选字段
+  multiHit?: {
+    minHits: number;
+    maxHits: number;
+    weights?: number[];
+  };
 };

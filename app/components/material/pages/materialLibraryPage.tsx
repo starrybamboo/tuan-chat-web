@@ -1,7 +1,10 @@
 import type { MaterialPackageContent } from "../../../../api/models/MaterialPackageContent";
 import type { MaterialPackageResponse } from "../../../../api/models/MaterialPackageResponse";
+import { CaretRightIcon } from "@phosphor-icons/react";
 import { useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
+import { useNavigate } from "react-router";
+import { Drawer } from "vaul";
 import {
   useCreateMaterialPackageMutation,
   useDeleteMaterialPackageMutation,
@@ -9,9 +12,19 @@ import {
   usePublicMaterialPackagesQuery,
   useUpdateMaterialPackageMutation,
 } from "../../../../api/hooks/materialPackageQueryHooks";
-import MaterialPackageEditor, { createEmptyMaterialPackageContent } from "../components/materialPackageEditor";
+import MaterialLibrarySidebar from "../components/materialLibrarySidebar";
+import MaterialLibraryWorkspace from "../components/materialLibraryWorkspace";
+import MaterialPackageEditor from "../components/materialPackageEditor";
+import MaterialPackageEditorInlinePage from "../components/materialPackageEditorInlinePage";
+import { createEmptyMaterialPackageContent } from "../components/materialPackageEditorShared";
 
-type GlobalTab = "public" | "mine";
+export type GlobalTab = "public" | "mine";
+
+interface MaterialLibraryPageProps {
+  initialTab?: GlobalTab;
+  mode?: GlobalTab;
+  embedded?: boolean;
+}
 
 function buildDraft(pkg?: MaterialPackageResponse) {
   return {
@@ -23,11 +36,27 @@ function buildDraft(pkg?: MaterialPackageResponse) {
   };
 }
 
-export default function MaterialLibraryPage() {
-  const [activeTab, setActiveTab] = useState<GlobalTab>("public");
+export default function MaterialLibraryPage({
+  initialTab,
+  mode,
+  embedded = false,
+}: MaterialLibraryPageProps) {
+  const navigate = useNavigate();
+  const [internalActiveTab, setInternalActiveTab] = useState<GlobalTab>(mode ?? initialTab ?? "mine");
   const [keyword, setKeyword] = useState("");
   const [selectedPackageId, setSelectedPackageId] = useState<number | null>(null);
   const [isCreating, setIsCreating] = useState(false);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [isDesktop, setIsDesktop] = useState(() => {
+    if (typeof window === "undefined") {
+      return true;
+    }
+    return window.matchMedia("(min-width: 1024px)").matches;
+  });
+
+  const activeTab = mode ?? internalActiveTab;
+  const hasStandaloneSidebar = !embedded;
   const myRequest = useMemo(() => ({
     pageNo: 1,
     pageSize: 100,
@@ -45,24 +74,67 @@ export default function MaterialLibraryPage() {
   const updateMutation = useUpdateMaterialPackageMutation();
   const deleteMutation = useDeleteMaterialPackageMutation();
 
-  const packages = activeTab === "mine"
-    ? (myPackagesQuery.data?.data?.list ?? [])
-    : (publicPackagesQuery.data?.data?.list ?? []);
+  const packages = useMemo(() => (
+    activeTab === "mine"
+      ? (myPackagesQuery.data?.data?.list ?? [])
+      : (publicPackagesQuery.data?.data?.list ?? [])
+  ), [activeTab, myPackagesQuery.data?.data?.list, publicPackagesQuery.data?.data?.list]);
   const selectedPackage = packages.find(item => item.packageId === selectedPackageId);
   const loading = activeTab === "mine" ? myPackagesQuery.isLoading : publicPackagesQuery.isLoading;
+  const editorOpen = isCreating || Boolean(selectedPackage);
+  const detailBackLabel = activeTab === "mine" ? "返回我的素材包" : "返回素材广场";
 
   useEffect(() => {
-    if (isCreating) {
+    if (typeof window === "undefined") {
       return;
     }
-    if (packages.length === 0) {
+
+    const mediaQuery = window.matchMedia("(min-width: 1024px)");
+    const handleChange = (event: MediaQueryListEvent) => {
+      setIsDesktop(event.matches);
+      if (event.matches) {
+        setIsDrawerOpen(false);
+      }
+    };
+
+    setIsDesktop(mediaQuery.matches);
+    mediaQuery.addEventListener("change", handleChange);
+    return () => mediaQuery.removeEventListener("change", handleChange);
+  }, []);
+
+  useEffect(() => {
+    if (mode) {
       setSelectedPackageId(null);
+      setIsCreating(false);
+      setKeyword("");
+    }
+  }, [mode]);
+
+  useEffect(() => {
+    if (!mode && initialTab) {
+      setInternalActiveTab(initialTab);
+      setSelectedPackageId(null);
+      setIsCreating(false);
+      setKeyword("");
+    }
+  }, [initialTab, mode]);
+
+  useEffect(() => {
+    if (selectedPackageId !== null && !packages.some(item => item.packageId === selectedPackageId)) {
+      setSelectedPackageId(null);
+    }
+  }, [packages, selectedPackageId]);
+
+  const handleSelectTab = (tab: GlobalTab) => {
+    if (mode) {
       return;
     }
-    if (!packages.some(item => item.packageId === selectedPackageId)) {
-      setSelectedPackageId(packages[0]?.packageId ?? null);
-    }
-  }, [isCreating, packages, selectedPackageId]);
+    setInternalActiveTab(tab);
+    setSelectedPackageId(null);
+    setIsCreating(false);
+    setKeyword("");
+    setIsDrawerOpen(false);
+  };
 
   const handleCreate = async (draft: {
     name: string;
@@ -75,7 +147,9 @@ export default function MaterialLibraryPage() {
     const createdId = result.data?.packageId ?? null;
     toast.success("素材包已创建");
     setIsCreating(false);
-    setActiveTab("mine");
+    if (!mode) {
+      setInternalActiveTab("mine");
+    }
     setSelectedPackageId(createdId);
   };
 
@@ -93,194 +167,226 @@ export default function MaterialLibraryPage() {
       packageId: selectedPackage.packageId,
       ...draft,
     });
-    toast.success("素材包已更新");
   };
 
   const handleDelete = async () => {
     if (!selectedPackage?.packageId) {
       return;
     }
-    const packageId = selectedPackage.packageId;
-    await deleteMutation.mutateAsync(packageId);
+    await deleteMutation.mutateAsync(selectedPackage.packageId);
     toast.success("素材包已删除");
+    setSelectedPackageId(null);
+    setIsCreating(false);
+  };
+
+  const handleAddToMine = async () => {
+    if (!selectedPackage) {
+      return;
+    }
+
+    const result = await createMutation.mutateAsync({
+      name: selectedPackage.name?.trim() || "未命名素材包",
+      description: selectedPackage.description ?? "",
+      coverUrl: selectedPackage.coverUrl ?? "",
+      isPublic: false,
+      content: (selectedPackage.content ?? createEmptyMaterialPackageContent()) as MaterialPackageContent,
+    });
+
+    const createdId = result.data?.packageId ?? null;
+    toast.success("已添加到我的素材包");
+
+    if (mode === "public" && embedded) {
+      setIsCreating(false);
+      setSelectedPackageId(null);
+      navigate("/chat/discover/material/my");
+      return;
+    }
+
+    if (!mode) {
+      setInternalActiveTab("mine");
+    }
+    setIsCreating(false);
+    setSelectedPackageId(createdId);
+    setKeyword("");
+  };
+
+  const handleCreateRequest = () => {
+    if (activeTab !== "mine" && !mode) {
+      setInternalActiveTab("mine");
+    }
+    setSelectedPackageId(null);
+    setIsCreating(true);
+    setIsDrawerOpen(false);
+  };
+
+  const handleOpenPackage = (packageId: number) => {
+    setIsCreating(false);
+    setSelectedPackageId(packageId);
+  };
+
+  const handleCloseEditor = () => {
+    setIsCreating(false);
     setSelectedPackageId(null);
   };
 
-  const renderRightPanel = () => {
-    if (activeTab === "mine" && isCreating) {
-      return (
+  const handleNavigateToMine = () => {
+    if (mode === "public" && embedded) {
+      navigate("/chat/discover/material/my");
+      return;
+    }
+
+    if (!mode) {
+      setInternalActiveTab("mine");
+      setSelectedPackageId(null);
+      setIsCreating(false);
+      setKeyword("");
+    }
+  };
+
+  const sidebarNode = (
+    <MaterialLibrarySidebar
+      activeTab={activeTab}
+      onSelectTab={handleSelectTab}
+    />
+  );
+
+  const workspaceNode = (
+    <MaterialLibraryWorkspace
+      activeTab={activeTab}
+      keyword={keyword}
+      packages={packages}
+      loading={loading}
+      embedded={embedded}
+      onKeywordChange={setKeyword}
+      onOpenPackage={handleOpenPackage}
+      onCreatePackage={handleCreateRequest}
+      onNavigateToMine={activeTab === "public" ? handleNavigateToMine : undefined}
+    />
+  );
+
+  const editorContent = isCreating
+    ? (
         <MaterialPackageEditor
           valueKey="create"
-          title="新建局外素材包"
-          subtitle="包外是素材包，包内结构仍然保持 folder / material 的树形 JSON。"
+          dragPackageId={undefined}
+          title="新建素材包"
+          subtitle="创建你的素材容器，配置封面、描述和素材单元。每个素材单元里都可以继续添加多条素材。"
           initialDraft={buildDraft()}
           showPublicToggle={true}
+          backLabel={detailBackLabel}
+          onBack={handleCloseEditor}
           saveLabel="创建素材包"
           savePending={createMutation.isPending}
           onSave={handleCreate}
         />
-      );
-    }
+      )
+    : selectedPackage
+      ? (
+          <MaterialPackageEditor
+            valueKey={`${activeTab}-${selectedPackage.packageId ?? "unknown"}-${selectedPackage.updateTime ?? ""}`}
+            dragPackageId={selectedPackage.packageId}
+            title={activeTab === "public" ? "公开素材包详况" : "修改素材包"}
+            subtitle={activeTab === "public"
+              ? `作者：${selectedPackage.username ?? "未知"} · 已被导入 ${selectedPackage.importCount ?? 0} 次`
+              : `已被导入 ${selectedPackage.importCount ?? 0} 次`}
+            initialDraft={buildDraft(selectedPackage)}
+            readOnly={activeTab === "public"}
+            showPublicToggle={activeTab === "mine"}
+            backLabel={detailBackLabel}
+            onBack={handleCloseEditor}
+            autoSave={activeTab === "mine"}
+            savePending={updateMutation.isPending}
+            deletePending={deleteMutation.isPending}
+            extraActionLabel={activeTab === "public" ? "添加到我的素材包" : undefined}
+            extraActionPending={activeTab === "public" ? createMutation.isPending : false}
+            onSave={activeTab === "mine" ? handleUpdate : undefined}
+            onDelete={activeTab === "mine" ? handleDelete : undefined}
+            onExtraAction={activeTab === "public" ? handleAddToMine : undefined}
+          />
+        )
+      : null;
+  const mainContentNode = editorOpen && editorContent
+    ? (
+        <MaterialPackageEditorInlinePage
+          embedded={embedded}
+        >
+          {editorContent}
+        </MaterialPackageEditorInlinePage>
+      )
+    : workspaceNode;
 
-    if (!selectedPackage) {
-      return (
-        <div className="rounded-[28px] border border-dashed border-base-300 bg-base-100/70 px-8 py-16 text-center">
-          <div className="text-xl font-medium">还没有选中素材包</div>
-          <div className="mt-2 text-sm opacity-70">
-            {activeTab === "mine" ? "你可以先新建一个局外素材包，或者从左侧选择已有素材包。" : "从左侧选择一个公开素材包查看内容。"}
-          </div>
-          {activeTab === "mine" && (
-            <button
-              type="button"
-              className="btn btn-primary mt-6"
-              onClick={() => setIsCreating(true)}
-            >
-              新建素材包
-            </button>
-          )}
-        </div>
-      );
-    }
-
-    const subtitle = activeTab === "public"
-      ? `作者：${selectedPackage.username ?? "未知"} · 已被导入 ${selectedPackage.importCount ?? 0} 次`
-      : `已被导入 ${selectedPackage.importCount ?? 0} 次`;
-
-    return (
-      <MaterialPackageEditor
-        valueKey={`${activeTab}-${selectedPackage.packageId ?? "unknown"}-${selectedPackage.updateTime ?? ""}`}
-        title={activeTab === "public" ? "公开素材包详情" : "编辑局外素材包"}
-        subtitle={subtitle}
-        initialDraft={buildDraft(selectedPackage)}
-        readOnly={activeTab === "public"}
-        showPublicToggle={activeTab === "mine"}
-        savePending={updateMutation.isPending}
-        deletePending={deleteMutation.isPending}
-        onSave={activeTab === "mine" ? handleUpdate : undefined}
-        onDelete={activeTab === "mine" ? handleDelete : undefined}
-      />
-    );
-  };
+  if (embedded) {
+    return mainContentNode;
+  }
 
   return (
-    <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,_rgba(14,165,233,0.14),_transparent_30%),radial-gradient(circle_at_top_right,_rgba(251,191,36,0.12),_transparent_28%),linear-gradient(180deg,_rgba(255,255,255,0.84),_rgba(248,250,252,0.96))]">
-      <div className="mx-auto max-w-[1440px] px-4 py-8 md:px-8">
-        <div className="rounded-[32px] border border-base-300/70 bg-base-100/85 shadow-2xl backdrop-blur">
-          <div className="border-b border-base-300/80 px-6 py-8 md:px-8">
-            <div className="flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
-              <div className="max-w-3xl space-y-3">
-                <span className="badge badge-lg badge-outline">Material Library</span>
-                <h1 className="text-3xl font-semibold md:text-5xl">局外素材库</h1>
-                <p className="max-w-2xl text-sm leading-7 opacity-75 md:text-base">
-                  每个用户都维护自己的素材包。素材包默认公开，可出现在素材广场；包内结构使用树形 JSON，folder 只负责组织，material 才承载一条或多条消息。
-                </p>
-              </div>
+    <>
+      <div className="relative flex h-full w-full min-w-0 overflow-hidden bg-base-200 text-base-content">
+        {hasStandaloneSidebar && isDesktop && (
+          <div className={`border-r border-base-300 bg-base-300/60 transition-all duration-300 ${isSidebarCollapsed ? "w-0 overflow-hidden" : "w-[280px]"}`}>
+            {sidebarNode}
+          </div>
+        )}
 
-              <div className="flex flex-col gap-3 md:flex-row md:items-center">
-                <div className="tabs tabs-boxed bg-base-200/70">
-                  <button
-                    type="button"
-                    className={`tab ${activeTab === "public" ? "tab-active" : ""}`}
-                    onClick={() => {
-                      setActiveTab("public");
-                      setIsCreating(false);
-                    }}
-                  >
-                    素材广场
-                  </button>
-                  <button
-                    type="button"
-                    className={`tab ${activeTab === "mine" ? "tab-active" : ""}`}
-                    onClick={() => setActiveTab("mine")}
-                  >
-                    我的素材包
-                  </button>
-                </div>
-
-                <input
-                  type="text"
-                  className="input input-bordered md:w-72"
-                  placeholder="按名称搜索"
-                  value={keyword}
-                  onChange={event => setKeyword(event.target.value)}
+        {hasStandaloneSidebar && isDesktop && (
+          <div className={`fixed top-24 z-50 -translate-y-1/2 transition-all duration-300 ${isSidebarCollapsed ? "left-0" : "left-[280px]"}`}>
+            <button
+              type="button"
+              onClick={() => setIsSidebarCollapsed(prev => !prev)}
+              className="flex h-12 w-6 items-center justify-center rounded-r-full border border-l-0 border-base-300 bg-base-100 text-base-content/55 transition hover:bg-base-200 hover:text-base-content"
+              aria-label={isSidebarCollapsed ? "展开素材侧边栏" : "收起素材侧边栏"}
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                className="h-3 w-3 stroke-current transition-transform duration-200"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  d={isSidebarCollapsed ? "M9 5l7 7-7 7" : "M15 19l-7-7 7-7"}
                 />
-
-                {activeTab === "mine" && (
-                  <button
-                    type="button"
-                    className="btn btn-primary"
-                    onClick={() => {
-                      setIsCreating(true);
-                      setSelectedPackageId(null);
-                    }}
-                  >
-                    新建素材包
-                  </button>
-                )}
-              </div>
-            </div>
+              </svg>
+            </button>
           </div>
+        )}
 
-          <div className="grid gap-6 p-6 xl:grid-cols-[360px_minmax(0,1fr)] xl:p-8">
-            <div className="space-y-4">
-              <div className="rounded-[28px] border border-base-300 bg-base-50/50 p-4">
-                <div className="mb-3 flex items-center justify-between">
-                  <div className="text-sm font-medium opacity-80">
-                    {activeTab === "mine" ? "我的局外素材包" : "公开素材包"}
-                  </div>
-                  <div className="text-xs opacity-60">{`${packages.length} 个结果`}</div>
-                </div>
-
-                <div className="space-y-3">
-                  {loading && <div className="rounded-2xl border border-base-300 px-4 py-10 text-center opacity-70">加载中...</div>}
-                  {!loading && packages.length === 0 && (
-                    <div className="rounded-2xl border border-dashed border-base-300 px-4 py-10 text-center opacity-70">
-                      暂时没有匹配的素材包。
-                    </div>
-                  )}
-                  {!loading && packages.map(item => {
-                    const active = !isCreating && item.packageId === selectedPackageId;
-                    return (
-                      <button
-                        key={item.packageId}
-                        type="button"
-                        className={`w-full rounded-3xl border px-4 py-4 text-left transition ${
-                          active
-                            ? "border-primary bg-primary/8 shadow-lg"
-                            : "border-base-300 bg-base-100/80 hover:border-base-400 hover:bg-base-100"
-                        }`}
-                        onClick={() => {
-                          setIsCreating(false);
-                          setSelectedPackageId(item.packageId ?? null);
-                        }}
-                      >
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="min-w-0 space-y-2">
-                            <div className="flex items-center gap-2">
-                              <div className="truncate font-medium">{item.name || "未命名素材包"}</div>
-                              {item.isPublic
-                                ? <span className="badge badge-primary badge-outline">公开</span>
-                                : <span className="badge badge-outline">私有</span>}
-                            </div>
-                            {item.description && <div className="line-clamp-2 text-sm opacity-70">{item.description}</div>}
-                            <div className="flex flex-wrap gap-2 text-xs opacity-60">
-                              <span>{`${item.materialCount ?? 0} 个素材`}</span>
-                              <span>{`${item.folderCount ?? 0} 个文件夹`}</span>
-                              <span>{`${item.messageCount ?? 0} 条消息`}</span>
-                            </div>
-                          </div>
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
-
-            <div>{renderRightPanel()}</div>
+        {hasStandaloneSidebar && !isDesktop && (
+          <div className="fixed left-0 top-[calc(env(safe-area-inset-top)+4.25rem)] z-50">
+            <button
+              type="button"
+              onClick={() => setIsDrawerOpen(true)}
+              aria-label="打开素材包侧边栏"
+              className="flex h-14 w-7 items-center justify-center rounded-r-full border border-base-300 border-l-0 bg-base-100/95 text-base-content/72 shadow-md transition hover:bg-base-200 hover:text-base-content"
+            >
+              <CaretRightIcon size={16} weight="bold" />
+            </button>
           </div>
-        </div>
+        )}
+
+        {hasStandaloneSidebar && !isDesktop && (
+          <Drawer.Root
+            open={isDrawerOpen}
+            onOpenChange={setIsDrawerOpen}
+            direction="left"
+          >
+            <Drawer.Portal>
+              <Drawer.Overlay className="fixed inset-0 bg-base-content/40 data-[state=closed]:pointer-events-none data-[state=open]:pointer-events-auto" />
+              <Drawer.Content className="fixed left-0 top-0 z-[100] flex h-full w-[280px] flex-col bg-base-300/95 data-[state=closed]:pointer-events-none data-[state=open]:pointer-events-auto">
+                <Drawer.Title className="sr-only">素材包侧边栏</Drawer.Title>
+                <Drawer.Description className="sr-only">在素材广场与我的素材包之间切换。</Drawer.Description>
+                <div className="h-full overflow-y-auto">
+                  {sidebarNode}
+                </div>
+              </Drawer.Content>
+            </Drawer.Portal>
+          </Drawer.Root>
+        )}
+
+        <div className="flex-1 min-h-0 min-w-0">{mainContentNode}</div>
       </div>
-    </div>
+    </>
   );
 }
