@@ -386,10 +386,6 @@ export default function DocFolderForUser({ onSendDocCard }: DocFolderForUserProp
       toast.error("未选择空间");
       return;
     }
-    if (params.docRef.spaceId && params.docRef.spaceId !== spaceId) {
-      toast.error("不允许跨空间复制文档");
-      return;
-    }
 
     try {
       const tag = params.tagKey === UNTAGGED_KEY ? "" : normalizeTagPath(params.tagKey);
@@ -432,6 +428,7 @@ export default function DocFolderForUser({ onSendDocCard }: DocFolderForUserProp
       await copyDocToSpaceUserDoc({
         spaceId,
         sourceDocId: params.docRef.docId,
+        sourceSpaceId: params.docRef.spaceId,
         title: params.docRef.title,
         imageUrl: params.docRef.imageUrl,
         ...(tag ? { tag } : {}),

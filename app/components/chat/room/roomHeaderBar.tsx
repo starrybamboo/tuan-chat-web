@@ -30,12 +30,6 @@ interface RoomHeaderBarProps {
   canRedo?: boolean;
 }
 
-const MOBILE_HEADER_AUTO_HIDE_MS = 2600;
-const MOBILE_HEADER_HIDE_RETRY_MS = 300;
-const MOBILE_SCROLL_GESTURE_ACTIVE_MS = 900;
-const MOBILE_KEYBOARD_SCROLL_SUPPRESS_MS = 700;
-const MOBILE_KEYBOARD_HEIGHT_DELTA_PX = 80;
-
 function RoomHeaderBarImpl({
   roomName,
   toggleLeftDrawer,
@@ -61,14 +55,10 @@ function RoomHeaderBarImpl({
   const [isMobileSearchOpen, setIsMobileSearchOpen] = React.useState(false);
   const [isClearReloadConfirmOpen, setIsClearReloadConfirmOpen] = React.useState(false);
   const [isMobileToolsMenuOpen, setIsMobileToolsMenuOpen] = React.useState(false);
-  const [isMobileHeaderVisible, setIsMobileHeaderVisible] = React.useState(() => !isMobile);
   const mobileToolsMenuRef = React.useRef<HTMLDivElement | null>(null);
-  const isMobileToolsMenuOpenRef = React.useRef(false);
-  const hideTimerRef = React.useRef<number | null>(null);
   const hasSideDrawerOpen = sideDrawerState !== "none";
   const canUseDevTools = Boolean(import.meta.env?.DEV) || import.meta.env.MODE === "test";
   const canClearAndReloadMessages = canUseDevTools && Boolean(onClearAndReloadAllMessages);
-  const shouldShowHeaderBar = !isMobile || isMobileHeaderVisible || isMobileToolsMenuOpen;
 
   const closeThreadPane = () => {
     setComposerTarget("main");
@@ -82,60 +72,14 @@ function RoomHeaderBarImpl({
     (document.activeElement as HTMLElement | null)?.blur();
   };
 
-  const clearHideTimer = React.useCallback(() => {
-    if (hideTimerRef.current !== null) {
-      window.clearTimeout(hideTimerRef.current);
-      hideTimerRef.current = null;
-    }
+  const openMobileToolsMenu = React.useCallback(() => {
+    setIsMobileToolsMenuOpen(true);
   }, []);
 
-  const scheduleMobileHeaderHide = React.useCallback((delayMs: number = MOBILE_HEADER_AUTO_HIDE_MS) => {
-    if (!isMobile) {
-      return;
-    }
-    clearHideTimer();
-    hideTimerRef.current = window.setTimeout(() => {
-      const activeElement = typeof document !== "undefined" ? document.activeElement : null;
-      const isMenuFocused = activeElement instanceof Node && Boolean(mobileToolsMenuRef.current?.contains(activeElement));
-      if (isMobileToolsMenuOpenRef.current || isMenuFocused) {
-        scheduleMobileHeaderHide(MOBILE_HEADER_HIDE_RETRY_MS);
-        return;
-      }
-      setIsMobileHeaderVisible(false);
-      hideTimerRef.current = null;
-    }, delayMs);
-  }, [clearHideTimer, isMobile]);
-
-  const showMobileHeaderTemporarily = React.useCallback(() => {
-    if (!isMobile) {
-      setIsMobileHeaderVisible(true);
-      return;
-    }
-
-    setIsMobileHeaderVisible(true);
-    if (isMobileToolsMenuOpenRef.current) {
-      clearHideTimer();
-      return;
-    }
-    scheduleMobileHeaderHide(MOBILE_HEADER_AUTO_HIDE_MS);
-  }, [clearHideTimer, isMobile, scheduleMobileHeaderHide]);
-
-  const openMobileToolsMenu = React.useCallback(() => {
-    isMobileToolsMenuOpenRef.current = true;
-    setIsMobileToolsMenuOpen(true);
-    setIsMobileHeaderVisible(true);
-    clearHideTimer();
-  }, [clearHideTimer]);
-
-  const closeMobileToolsMenu = React.useCallback((resumeAutoHide: boolean = true) => {
-    isMobileToolsMenuOpenRef.current = false;
+  const closeMobileToolsMenu = React.useCallback(() => {
     setIsMobileToolsMenuOpen(false);
     blurActiveElement();
-    if (resumeAutoHide) {
-      setIsMobileHeaderVisible(true);
-      scheduleMobileHeaderHide(MOBILE_HEADER_AUTO_HIDE_MS);
-    }
-  }, [scheduleMobileHeaderHide]);
+  }, []);
 
   const handleOpenImport = () => {
     closeThreadPane();
@@ -203,126 +147,13 @@ function RoomHeaderBarImpl({
     if (!isMobile) {
       setIsMobileSearchOpen(false);
       setIsMobileToolsMenuOpen(false);
-      setIsMobileHeaderVisible(true);
-      clearHideTimer();
-      return;
     }
-
-    setIsMobileHeaderVisible(false);
-  }, [clearHideTimer, isMobile]);
+  }, [isMobile]);
 
   React.useEffect(() => {
     setIsMobileSearchOpen(false);
     setIsMobileToolsMenuOpen(false);
   }, [location.pathname, location.search]);
-
-  React.useEffect(() => {
-    if (!isMobile) {
-      return;
-    }
-
-    const lastTopByTarget = new WeakMap<object, number>();
-    let isTouchTracking = false;
-    let lastTouchY = 0;
-    let lastManualUpGestureAt = 0;
-    let suppressHeaderRevealUntil = 0;
-    let lastVisualViewportHeight = window.visualViewport?.height ?? null;
-
-    const readScrollTop = (target: EventTarget | null): { key: object | null; top: number } => {
-      if (target instanceof HTMLElement) {
-        return { key: target, top: target.scrollTop };
-      }
-      if (target instanceof Document) {
-        const root = target.scrollingElement ?? target.documentElement;
-        return root ? { key: root, top: root.scrollTop } : { key: null, top: 0 };
-      }
-      const root = document.scrollingElement ?? document.documentElement;
-      return root ? { key: root, top: root.scrollTop } : { key: null, top: 0 };
-    };
-
-    const handleScrollCapture = (event: Event) => {
-      const { key, top } = readScrollTop(event.target);
-      if (!key) {
-        return;
-      }
-      const prevTop = lastTopByTarget.get(key);
-      lastTopByTarget.set(key, top);
-      if (typeof prevTop !== "number") {
-        return;
-      }
-      // 向上滚动（scrollTop 下降）时临时显示 header
-      if (prevTop - top > 8) {
-        const now = Date.now();
-        if (now < suppressHeaderRevealUntil) {
-          return;
-        }
-        if (now - lastManualUpGestureAt > MOBILE_SCROLL_GESTURE_ACTIVE_MS) {
-          return;
-        }
-        showMobileHeaderTemporarily();
-      }
-    };
-
-    const handleTouchStart = (event: TouchEvent) => {
-      if (event.touches.length !== 1) {
-        isTouchTracking = false;
-        return;
-      }
-      isTouchTracking = true;
-      lastTouchY = event.touches[0].clientY;
-    };
-
-    const handleTouchMove = (event: TouchEvent) => {
-      if (!isTouchTracking || event.touches.length !== 1) {
-        return;
-      }
-      const currentY = event.touches[0].clientY;
-      const deltaY = currentY - lastTouchY;
-      lastTouchY = currentY;
-      // 手指向下拖动 => 内容向上（scrollTop 下降）
-      if (deltaY > 2) {
-        lastManualUpGestureAt = Date.now();
-      }
-    };
-
-    const handleTouchEnd = () => {
-      isTouchTracking = false;
-    };
-
-    const handleVisualViewportResize = () => {
-      const viewport = window.visualViewport;
-      if (!viewport) {
-        return;
-      }
-      const nextHeight = viewport.height;
-      if (typeof lastVisualViewportHeight === "number" && nextHeight - lastVisualViewportHeight >= MOBILE_KEYBOARD_HEIGHT_DELTA_PX) {
-        suppressHeaderRevealUntil = Date.now() + MOBILE_KEYBOARD_SCROLL_SUPPRESS_MS;
-      }
-      lastVisualViewportHeight = nextHeight;
-    };
-
-    document.addEventListener("scroll", handleScrollCapture, { capture: true, passive: true });
-    document.addEventListener("touchstart", handleTouchStart, { capture: true, passive: true });
-    document.addEventListener("touchmove", handleTouchMove, { capture: true, passive: true });
-    document.addEventListener("touchend", handleTouchEnd, { capture: true, passive: true });
-    document.addEventListener("touchcancel", handleTouchEnd, { capture: true, passive: true });
-    window.visualViewport?.addEventListener("resize", handleVisualViewportResize);
-
-    return () => {
-      document.removeEventListener("scroll", handleScrollCapture, true);
-      document.removeEventListener("touchstart", handleTouchStart, true);
-      document.removeEventListener("touchmove", handleTouchMove, true);
-      document.removeEventListener("touchend", handleTouchEnd, true);
-      document.removeEventListener("touchcancel", handleTouchEnd, true);
-      window.visualViewport?.removeEventListener("resize", handleVisualViewportResize);
-    };
-  }, [isMobile, showMobileHeaderTemporarily]);
-
-  React.useEffect(() => {
-    return () => {
-      clearHideTimer();
-    };
-  }, [clearHideTimer]);
 
   React.useEffect(() => {
     if (!isMobile || !isMobileToolsMenuOpen) {
@@ -355,16 +186,10 @@ function RoomHeaderBarImpl({
     };
   }, [closeMobileToolsMenu, isMobile, isMobileToolsMenuOpen]);
 
-  React.useEffect(() => {
-    isMobileToolsMenuOpenRef.current = isMobileToolsMenuOpen;
-  }, [isMobileToolsMenuOpen]);
-
   return (
     <>
       <div
-        className={`relative z-50 transition-[max-height,opacity,filter] duration-500 ease-out ${
-          shouldShowHeaderBar ? "max-h-20 opacity-100 blur-none overflow-visible" : "max-h-0 opacity-0 blur-sm pointer-events-none overflow-hidden"
-        }`}
+        className="relative z-50"
       >
         <div className="border-gray-300 dark:border-gray-700 border-t border-b flex justify-between items-center overflow-visible relative z-50">
           <div

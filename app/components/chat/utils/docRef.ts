@@ -3,7 +3,7 @@ const DOC_REF_FALLBACK_PREFIX = "tc-doc-ref:";
 
 export type DocRefDragPayload = {
   docId: string;
-  /** 仅用于同一 space 校验/降级提示 */
+  /** 源文档所属空间，用于跨空间复制/预览时定位文档工作区 */
   spaceId?: number;
   /** 发送时的标题兜底（预览加载前展示） */
   title?: string;

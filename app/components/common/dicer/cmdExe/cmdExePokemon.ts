@@ -86,12 +86,12 @@ const cmdEva = new CommandExecutor(
   "eva",
   [],
   "宝可梦闪避判定",
-  [".eva 电击", ".eva 电击+1", ".eva 电击-2"],
-  "eva [技能名][掷骰修正值]?",
+  [".eva 电击", ".eva 电击 @对手"],
+  "eva [技能名] [@对象]?",
   async (args: string[], mentioned: UserRole[], cpi: CPI): Promise<boolean> => {
     const skillToken = args[0]?.trim();
     if (!skillToken) {
-      cpi.sendToast("格式错误！正确格式：.eva [技能名][掷骰修正值]（可选）");
+      cpi.sendToast("格式错误！正确格式：.eva [技能名] [@对象]（可选）");
       return false;
     }
 
@@ -101,21 +101,13 @@ const cmdEva = new CommandExecutor(
       return false;
     }
 
-    let skillName = skillToken;
-    let rollModifier = 0;
-    const skillWithModifierMatch = skillToken.match(/^(.*?)([+-]\d+)$/);
-    if (skillWithModifierMatch?.[1]) {
-      const maybeSkillName = skillWithModifierMatch[1].trim();
-      const parsedModifier = Number.parseInt(skillWithModifierMatch[2], 10);
-      if (maybeSkillName && Number.isFinite(parsedModifier) && getSkillByName(maybeSkillName)) {
-        skillName = maybeSkillName;
-        rollModifier = parsedModifier;
-      }
-    }
+    const targetRole = mentioned
+      .slice(0, -1)
+      .find(role => role?.roleId && role.roleId !== evadeRole.roleId);
 
-    const skill = getSkillByName(skillName);
+    const skill = getSkillByName(skillToken);
     if (!skill) {
-      cpi.sendToast(`未找到技能“${skillName}”`);
+      cpi.sendToast(`未找到技能“${skillToken}”`);
       return false;
     }
 
@@ -136,12 +128,27 @@ const cmdEva = new CommandExecutor(
     const speedBaseText = formatBattleNumber(speedBase);
     const speedFactorText = formatBattleNumber(getBattleStageFactor(speedStage));
     const speedExprText = Number.isFinite(speedStage) && speedStage !== 0
-      ? `${speedFinalText}(${speedBaseText}*${speedFactorText})`
+      ? `${speedFinalText}(${speedBaseText}×${speedFactorText})`
       : speedFinalText;
 
-    const evadeDiceSides = Math.max(1, Math.floor(10 + finalSpeed / 10));
-    const baseRoll = Math.floor(Math.random() * evadeDiceSides) + 1;
-    const finalRoll = baseRoll + rollModifier;
+    const evadeModifierRaw = Number(UNTIL.getRoleAbilityValue(evadeAbility, "闪避修正") || 0);
+    const evadeModifier = Number.isFinite(evadeModifierRaw) ? evadeModifierRaw : 0;
+
+    let accuracyModifier = 0;
+    if (targetRole?.roleId) {
+      const targetAbility = cpi.getRoleAbilityList(targetRole.roleId);
+      if (targetAbility?.ability || targetAbility?.basic || targetAbility?.skill) {
+        const accuracyModifierRaw = Number(UNTIL.getRoleAbilityValue(targetAbility, "命中修正") || 0);
+        accuracyModifier = Number.isFinite(accuracyModifierRaw) ? accuracyModifierRaw : 0;
+      }
+    }
+
+    const baseEvadeDiceSides = Math.floor(10 + finalSpeed / 10);
+    const evadeDiceSides = Math.max(
+      1,
+      Math.floor(baseEvadeDiceSides + evadeModifier * 5 - accuracyModifier * 5),
+    );
+    const finalRoll = Math.floor(Math.random() * evadeDiceSides) + 1;
     const accuracyThreshold = Number(skill.accuracy || 0) / 10;
     const isEvaded = finalRoll >= accuracyThreshold;
 
@@ -153,14 +160,13 @@ const cmdEva = new CommandExecutor(
     UNTIL.setRoleAbilityValue(evadeAbility, actionPointKey, String(newActionPoint), "ability", "auto");
     cpi.setRoleAbilityList(evadeRole.roleId, evadeAbility);
 
-    const modifierText = rollModifier === 0 ? "" : `${rollModifier > 0 ? "+" : ""}${rollModifier}`;
-    const rollText = rollModifier === 0
-      ? `${baseRoll}`
-      : `${baseRoll}${modifierText}=${finalRoll}`;
+    const accuracyModifierText = String(accuracyModifier);
+    const evadeModifierText = String(evadeModifier);
+    const targetNameText = targetRole?.roleName ? `（对象：${targetRole.roleName}）` : "";
 
     cpi.replyMessage(
-      `${evadeRole.roleName}尝试闪避${skill.name}：\n`
-      + `rd(10+速度${speedExprText}/10)${modifierText} = rd${evadeDiceSides}${modifierText}= ${rollText}\n`
+      `${evadeRole.roleName}尝试闪避${skill.name}${targetNameText}：\n`
+      + `rd(10+速度${speedExprText}/10+闪避修正${evadeModifierText}×5-命中修正${accuracyModifierText}×5) = rd${evadeDiceSides}= ${finalRoll}\n`
       + `对比命中阈值：${formatBattleNumber(skill.accuracy)} / 10 = ${formatBattleNumber(accuracyThreshold)}\n`
       + `判定结果：${finalRoll} ${isEvaded ? ">=" : "<"} ${formatBattleNumber(accuracyThreshold)}，${isEvaded ? "闪避成功" : "闪避失败"}\n`
       + `${evadeRole.roleName}行动点：${currentActionPoint} - 1 = ${newActionPoint}`,
@@ -175,11 +181,11 @@ const cmdattack = new CommandExecutor(
   "atk",
   [],
   "宝可梦使用技能攻击目标",
-  [".atk 电击 @对手", ".atk 火焰拳 @目标 2"],
-  "atk [技能名] @目标宝可梦 [额外倍率]",
+  [".atk 电击 @对手", ".atk 火焰拳 @目标 2", ".atk 连环巴掌*4 @目标"],
+  "atk [技能名][*段数]? @目标宝可梦 [额外倍率]",
   async (args: string[], mentioned: UserRole[], cpi: CPI): Promise<boolean> => {
     // 解析参数：技能名 + 目标角色（支持多个目标）
-    const skillName = args[0]; // 技能名（如"电击"）
+    const skillToken = args[0]; // 技能名（如"电击"或"连环巴掌*4"）
     const extraMultiplierInput = args[1]; // 额外倍率（可选，默认1）
     const attackerRole = mentioned[mentioned.length - 1]; // 攻击者（沿用现有逻辑）
     const targetRoles = mentioned
@@ -189,10 +195,19 @@ const cmdattack = new CommandExecutor(
     const extraMultiplier = extraMultiplierInput ? Number(extraMultiplierInput) : 1;
 
     // 校验参数
-    if (!skillName || !attackerRole || targetRoles.length === 0) {
-      cpi.sendToast("格式错误！正确格式：.atk [技能名] @目标宝可梦（可多个） [额外倍率]（可选）");
+    if (!skillToken || !attackerRole || targetRoles.length === 0) {
+      cpi.sendToast("格式错误！正确格式：.atk [技能名][*段数] @目标宝可梦（可多个） [额外倍率]（可选）");
       return false;
     }
+
+    const parsedToken = parseAttackSkillToken(skillToken);
+    if (parsedToken.error || !parsedToken.skillName) {
+      cpi.sendToast(parsedToken.error || "技能名格式错误，例如：.atk 连环巴掌*4 @目标");
+      return false;
+    }
+
+    const skillName = parsedToken.skillName;
+    const forcedHitCount = parsedToken.forcedHitCount;
 
     if (!Number.isFinite(extraMultiplier) || extraMultiplier <= 0) {
       cpi.sendToast("额外倍率必须是大于0的数字，例如：.atk 火焰拳 @目标 2");
@@ -206,8 +221,20 @@ const cmdattack = new CommandExecutor(
       return false;
     }
 
+    const multiHitConfig = resolveMultiHitConfig(skill);
+    if (forcedHitCount != null) {
+      if (!multiHitConfig) {
+        cpi.sendToast(`技能“${skill.name}”不是多段技能，不能使用*段数`);
+        return false;
+      }
+      if (forcedHitCount < multiHitConfig.minHits || forcedHitCount > multiHitConfig.maxHits) {
+        cpi.sendToast(`技能“${skill.name}”的段数范围是${multiHitConfig.minHits}~${multiHitConfig.maxHits}`);
+        return false;
+      }
+    }
+
     // 执行战斗逻辑（支持多目标）
-    await executeBattle(attackerRole, targetRoles, skill, extraMultiplier, cpi);
+    await executeBattle(attackerRole, targetRoles, skill, extraMultiplier, cpi, forcedHitCount);
     return true;
   },
 );
@@ -220,6 +247,7 @@ async function executeBattle(
   skill: PokemonSkill,
   extraMultiplier: number,
   cpi: CPI,
+  forcedHitCount?: number,
 ) {
   // 1. 获取攻击方属性（攻击/特攻/属性）
   const attackerAbility = cpi.getRoleAbilityList(attacker.roleId);
@@ -252,6 +280,13 @@ async function executeBattle(
 
   // 3.1 基础值：根据技能分类选择攻击/特攻和防御/特防
   const attackValue = skill.category === "physical" ? attackerAtk : attackerSpAtk;
+  const multiHitConfig = resolveMultiHitConfig(skill);
+  const hitCount = resolveHitCount(multiHitConfig, forcedHitCount);
+  const effectivePower = skill.power * hitCount;
+  const powerText = hitCount > 1 ? `${effectivePower}(${skill.power}×${hitCount})` : String(skill.power);
+  const hitCountText = hitCount > 1
+    ? `命中段数：${hitCount}段${forcedHitCount != null ? "（指定）" : "（等概率随机）"}`
+    : "";
 
   // 3.2 本系修正（攻击方属性与技能属性一致则×1.5）
   const isSameType = [attackerType1, attackerType2].includes(skill.type);
@@ -289,7 +324,7 @@ async function executeBattle(
     const typeEffectiveness = getTypeEffectiveness(skill.type, defenderTypes);
 
     // 3.5 最终伤害计算（向下取整，至少1点伤害）
-    const baseDamage = (attackValue * skill.power) / defenseValue;
+    const baseDamage = (attackValue * effectivePower) / defenseValue;
     const finalDamage = Math.max(1, Math.floor(
       baseDamage * sameTypeBonus * typeEffectiveness * extraMultiplier,
     ));
@@ -303,10 +338,14 @@ async function executeBattle(
     const blockLines: string[] = [
       `${attacker.roleName}对${defender.roleName}使用了${skill.name}！`,
       "伤害计算：",
-      `(${attackDisplay} × 威力${skill.power}) ÷ ${defenseDisplay} × 本系修正${sameTypeBonus} × 属性克制${typeEffectiveness} × 额外倍率${extraMultiplier}`,
+      `(${attackDisplay} × 威力${powerText}) ÷ ${defenseDisplay} × 本系修正${sameTypeBonus} × 属性克制${typeEffectiveness} × 额外倍率${extraMultiplier}`,
       `造成${finalDamage}点伤害！`,
       `${defender.roleName}剩余生命值：${defenderHp} → ${newHp}`,
     ];
+
+    if (hitCountText) {
+      blockLines.splice(1, 0, hitCountText);
+    }
 
     // 5. 投掷特殊效果触发（仅当effectRate > 0）
     const effectRate = Number(skill.effectRate || 0);
@@ -344,6 +383,91 @@ function getSkillByName(skillName: string): PokemonSkill | undefined {
   return SKILLS.find(skill =>
     skill.name.toLowerCase().includes(lowerSkillName),
   );
+}
+
+type AttackSkillTokenParseResult = {
+  skillName: string;
+  forcedHitCount?: number;
+  error?: string;
+};
+
+type MultiHitConfig = {
+  minHits: number;
+  maxHits: number;
+  weights?: number[];
+};
+
+function parseAttackSkillToken(skillToken: string): AttackSkillTokenParseResult {
+  const token = skillToken.trim();
+  if (!token)
+    return { skillName: "", error: "技能名不能为空" };
+
+  const starIndex = token.lastIndexOf("*");
+  if (starIndex <= 0)
+    return { skillName: token };
+  if (starIndex === token.length - 1)
+    return { skillName: "", error: "*后必须填写段数，例如：连环巴掌*4" };
+
+  const skillName = token.slice(0, starIndex).trim();
+  const hitCountText = token.slice(starIndex + 1).trim();
+  if (!skillName)
+    return { skillName: "", error: "技能名不能为空" };
+  if (!/^\d+$/.test(hitCountText))
+    return { skillName: "", error: "段数必须是正整数，例如：连环巴掌*4" };
+
+  const forcedHitCount = Number.parseInt(hitCountText, 10);
+  if (!Number.isFinite(forcedHitCount) || forcedHitCount <= 0)
+    return { skillName: "", error: "段数必须大于0" };
+
+  return { skillName, forcedHitCount };
+}
+
+function resolveMultiHitConfig(skill: PokemonSkill): MultiHitConfig | undefined {
+  const customConfig = skill.multiHit;
+  if (customConfig && Number.isFinite(customConfig.minHits) && Number.isFinite(customConfig.maxHits)) {
+    const minHits = Math.floor(customConfig.minHits);
+    const maxHits = Math.floor(customConfig.maxHits);
+    if (minHits >= 1 && maxHits >= minHits) {
+      return {
+        minHits,
+        maxHits,
+        weights: customConfig.weights,
+      };
+    }
+  }
+
+  if (skill.effect.includes("连续攻击2～5次")) {
+    return {
+      minHits: 2,
+      maxHits: 5,
+    };
+  }
+
+  return undefined;
+}
+
+function resolveHitCount(config: MultiHitConfig | undefined, forcedHitCount?: number): number {
+  if (!config)
+    return 1;
+  if (forcedHitCount != null)
+    return forcedHitCount;
+
+  const span = config.maxHits - config.minHits + 1;
+  if (span <= 1)
+    return config.minHits;
+
+  const weights = config.weights;
+  if (weights && weights.length === span && weights.every(weight => Number.isFinite(weight) && weight > 0)) {
+    const totalWeight = weights.reduce((sum, weight) => sum + weight, 0);
+    let random = Math.random() * totalWeight;
+    for (let index = 0; index < weights.length; index += 1) {
+      random -= weights[index];
+      if (random <= 0)
+        return config.minHits + index;
+    }
+  }
+
+  return config.minHits + Math.floor(Math.random() * span);
 }
 
 // 属性修正公式：
@@ -402,7 +526,7 @@ function formatModifiedStat(label: string, baseValue: number, stageModifier: num
   const factor = getBattleStageFactor(normalizedStageModifier);
   const baseText = formatBattleNumber(baseValue);
   const factorText = formatBattleNumber(factor);
-  return `${label}${finalText}（${baseText}*${factorText}）`;
+  return `${label}${finalText}（${baseText}×${factorText}）`;
 }
 
 // 1. 定义属性克制表的类型（包含索引签名）

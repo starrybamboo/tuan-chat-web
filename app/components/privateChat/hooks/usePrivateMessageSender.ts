@@ -3,6 +3,8 @@ import toast from "react-hot-toast";
 import { useImmer } from "use-immer";
 
 import { useLocalStorage } from "@/components/common/customHooks/useLocalStorage";
+import { buildMessageExtraForRequest } from "@/types/messageDraft";
+import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
 import { getImageSize } from "@/utils/getImgSize";
 import { UploadUtils } from "@/utils/UploadUtils";
 
@@ -81,14 +83,16 @@ export function usePrivateMessageSender({ webSocketUtils, userId, currentContact
             const imageMessage: MessageDirectSendRequest = {
               receiverId: currentContactUserId,
               content: "",
-              messageType: 2, // 图片消息类型
-              extra: {
-                size: size > 0 ? size : imgFiles[i].size,
-                url: imgDownLoadUrl,
-                fileName: imgDownLoadUrl.split("/").pop() || `${userId}-${Date.now()}`,
-                width,
-                height,
-              },
+              messageType: MESSAGE_TYPE.IMG,
+              extra: buildMessageExtraForRequest(MESSAGE_TYPE.IMG, {
+                imageMessage: {
+                  size: size > 0 ? size : imgFiles[i].size,
+                  url: imgDownLoadUrl,
+                  fileName: imgDownLoadUrl.split("/").pop() || `${userId}-${Date.now()}`,
+                  width,
+                  height,
+                },
+              }),
             };
             const sent = await sendDirectMessageWithOptimistic(imageMessage);
             if (!sent) {
@@ -132,14 +136,16 @@ export function usePrivateMessageSender({ webSocketUtils, userId, currentContact
           const emojiMessage: MessageDirectSendRequest = {
             receiverId: currentContactUserId,
             content: "",
-            messageType: 2,
-            extra: {
-              size: size > 0 ? size : 0,
-              fileName: meta?.fileName || emojiUrl.split("/").pop() || `${userId}-${Date.now()}`,
-              width,
-              height,
-              url: emojiUrl,
-            },
+            messageType: MESSAGE_TYPE.IMG,
+            extra: buildMessageExtraForRequest(MESSAGE_TYPE.IMG, {
+              imageMessage: {
+                size: size > 0 ? size : 0,
+                fileName: meta?.fileName || emojiUrl.split("/").pop() || `${userId}-${Date.now()}`,
+                width,
+                height,
+                url: emojiUrl,
+              },
+            }),
           };
           const sent = await sendDirectMessageWithOptimistic(emojiMessage);
           if (!sent) {

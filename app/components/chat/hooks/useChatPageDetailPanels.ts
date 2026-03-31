@@ -1,6 +1,6 @@
 import { useCallback, useMemo } from "react";
 
-import type { RoomSettingState, RoomSettingTab, SpaceDetailTab } from "@/components/chat/chatPage.types";
+import type { OpenSpaceDetailPanelOptions, RoomSettingState, RoomSettingTab, SpaceDetailTab } from "@/components/chat/chatPage.types";
 
 type StoredChatIds = {
   spaceId?: number | null;
@@ -24,7 +24,7 @@ type UseChatPageDetailPanelsResult = {
   spaceDetailTab: SpaceDetailTab;
   openRoomSettingPage: (roomId: number | null, tab?: RoomSettingTab) => void;
   closeRoomSettingPage: () => void;
-  openSpaceDetailPanel: (tab: SpaceDetailTab) => void;
+  openSpaceDetailPanel: (tab: SpaceDetailTab, options?: OpenSpaceDetailPanelOptions) => void;
   closeSpaceDetailPanel: () => void;
 };
 
@@ -39,9 +39,24 @@ export default function useChatPageDetailPanels({
   searchParam,
   storedIds,
 }: UseChatPageDetailPanelsParams): UseChatPageDetailPanelsResult {
-  const queryWithoutTab = useCallback(() => {
+  const queryWithoutTab = useCallback((options?: OpenSpaceDetailPanelOptions) => {
     const nextSearchParams = new URLSearchParams(searchParam);
     nextSearchParams.delete("tab");
+    const spacePackageId = options?.spacePackageId;
+    const materialPathKey = options?.materialPathKey?.trim();
+    if (typeof spacePackageId === "number" && Number.isFinite(spacePackageId) && spacePackageId > 0) {
+      nextSearchParams.set("spacePackageId", String(spacePackageId));
+      if (materialPathKey) {
+        nextSearchParams.set("materialPathKey", materialPathKey);
+      }
+      else {
+        nextSearchParams.delete("materialPathKey");
+      }
+    }
+    else {
+      nextSearchParams.delete("spacePackageId");
+      nextSearchParams.delete("materialPathKey");
+    }
     const qs = nextSearchParams.toString();
     return qs ? `?${qs}` : "";
   }, [searchParam]);
@@ -53,6 +68,8 @@ export default function useChatPageDetailPanels({
     else {
       nextSearchParams.delete("tab");
     }
+    nextSearchParams.delete("spacePackageId");
+    nextSearchParams.delete("materialPathKey");
     const qs = nextSearchParams.toString();
     return qs ? `?${qs}` : "";
   }, [searchParam]);
@@ -78,11 +95,11 @@ export default function useChatPageDetailPanels({
     navigate(`/chat/${activeSpaceId}/${activeRoomId}${queryWithoutTab()}`);
   }, [activeRoomId, activeSpaceId, navigate, queryWithoutTab]);
 
-  const openSpaceDetailPanel = useCallback((tab: SpaceDetailTab) => {
+  const openSpaceDetailPanel = useCallback((tab: SpaceDetailTab, options?: OpenSpaceDetailPanelOptions) => {
     if (activeSpaceId == null || isPrivateChatMode)
       return;
 
-    navigate(`/chat/${activeSpaceId}/${tab}${queryWithoutTab()}`);
+    navigate(`/chat/${activeSpaceId}/${tab}${queryWithoutTab(tab === "material" ? options : undefined)}`);
 
     blurActiveElement();
   }, [activeSpaceId, blurActiveElement, isPrivateChatMode, navigate, queryWithoutTab]);

@@ -1,36 +1,35 @@
-import type { MaterialPackageContent } from "../../../../api/models/MaterialPackageContent";
-import { useEffect, useMemo, useState } from "react";
+import type { MaterialPackageDraft } from "./materialPackageEditorShared";
+import type { MaterialEditorActionScope } from "@/components/chat/chatPage.types";
+import { ArrowLeftIcon } from "@phosphor-icons/react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import toast from "react-hot-toast";
-import MaterialPackageTreePreview from "./materialPackageTreePreview";
+import { UploadUtils } from "@/utils/UploadUtils";
+import { createEmptyMaterialPackageContent } from "./materialPackageEditorShared";
+import { ensureMaterialPackageContent } from "./materialPackageTreeUtils";
+import MaterialPackageWorkbench from "./materialPackageWorkbench";
 
-export type MaterialPackageDraft = {
-  name: string;
-  description: string;
-  coverUrl: string;
-  isPublic: boolean;
-  content: MaterialPackageContent;
-};
-
-type MaterialPackageEditorProps = {
+interface MaterialPackageEditorProps {
   valueKey: string;
+  dragPackageId?: number;
+  selectedNodeKey?: string | null;
+  sidebarActionScope?: MaterialEditorActionScope;
   title: string;
   subtitle?: string;
   initialDraft: MaterialPackageDraft;
   readOnly?: boolean;
   showPublicToggle?: boolean;
+  backLabel?: string;
+  onBack?: () => void;
   saveLabel?: string;
   deleteLabel?: string;
+  autoSave?: boolean;
   savePending?: boolean;
   deletePending?: boolean;
+  extraActionLabel?: string;
+  extraActionPending?: boolean;
   onSave?: (draft: MaterialPackageDraft) => Promise<void> | void;
   onDelete?: () => Promise<void> | void;
-};
-
-export function createEmptyMaterialPackageContent(): MaterialPackageContent {
-  return {
-    version: 1,
-    root: [],
-  };
+  onExtraAction?: () => Promise<void> | void;
 }
 
 function normalizeDraft(draft: MaterialPackageDraft): MaterialPackageDraft {
@@ -39,183 +38,282 @@ function normalizeDraft(draft: MaterialPackageDraft): MaterialPackageDraft {
     description: draft.description ?? "",
     coverUrl: draft.coverUrl ?? "",
     isPublic: draft.isPublic ?? true,
-    content: draft.content ?? createEmptyMaterialPackageContent(),
+    content: ensureMaterialPackageContent(draft.content ?? createEmptyMaterialPackageContent()),
   };
 }
 
+function buildSavePayload(draft: MaterialPackageDraft): MaterialPackageDraft {
+  return {
+    ...draft,
+    name: draft.name.trim(),
+    description: draft.description.trim(),
+    coverUrl: draft.coverUrl.trim(),
+    content: ensureMaterialPackageContent(draft.content),
+  };
+}
+
+function serializeSavePayload(draft: MaterialPackageDraft): string {
+  return JSON.stringify(buildSavePayload(draft));
+}
+
+type AutoSaveState = "idle" | "pending" | "saving" | "saved" | "invalid" | "error";
+
 export default function MaterialPackageEditor({
   valueKey,
-  title,
-  subtitle,
+  dragPackageId,
+  selectedNodeKey,
+  sidebarActionScope,
+  title: _title,
+  subtitle: _subtitle,
   initialDraft,
   readOnly = false,
   showPublicToggle = false,
+  backLabel,
+  onBack,
   saveLabel = "保存",
   deleteLabel = "删除",
+  autoSave = false,
   savePending = false,
   deletePending = false,
+  extraActionLabel,
+  extraActionPending = false,
   onSave,
   onDelete,
+  onExtraAction,
 }: MaterialPackageEditorProps) {
-  const normalizedInitialDraft = normalizeDraft(initialDraft);
-  const [name, setName] = useState(normalizedInitialDraft.name);
-  const [description, setDescription] = useState(normalizedInitialDraft.description);
-  const [coverUrl, setCoverUrl] = useState(normalizedInitialDraft.coverUrl);
-  const [isPublic, setIsPublic] = useState(normalizedInitialDraft.isPublic);
-  const [contentText, setContentText] = useState(
-    JSON.stringify(normalizedInitialDraft.content ?? createEmptyMaterialPackageContent(), null, 2),
-  );
+  const uploadUtilsRef = useRef(new UploadUtils());
+  const [draft, setDraft] = useState(() => normalizeDraft(initialDraft));
+  const [isCoverUploading, setIsCoverUploading] = useState(false);
+  const [autoSaveState, setAutoSaveState] = useState<AutoSaveState>("idle");
+  const autoSaveTimerRef = useRef<number | null>(null);
+  const lastSavedSnapshotRef = useRef(serializeSavePayload(normalizeDraft(initialDraft)));
+  const lastFailedSnapshotRef = useRef<string | null>(null);
+  const latestIncomingDraftRef = useRef(normalizeDraft(initialDraft));
+  const draftRef = useRef(draft);
+  const autoSaveEnabled = autoSave && !readOnly && Boolean(onSave);
+  const savePayload = useMemo(() => buildSavePayload(draft), [draft]);
+  const saveSnapshot = useMemo(() => JSON.stringify(savePayload), [savePayload]);
+
+  latestIncomingDraftRef.current = normalizeDraft(initialDraft);
+  draftRef.current = draft;
 
   useEffect(() => {
-    const nextDraft = normalizeDraft(initialDraft);
-    setName(nextDraft.name);
-    setDescription(nextDraft.description);
-    setCoverUrl(nextDraft.coverUrl);
-    setIsPublic(nextDraft.isPublic);
-    setContentText(JSON.stringify(nextDraft.content ?? createEmptyMaterialPackageContent(), null, 2));
-  }, [valueKey]);
+    const normalizedDraft = latestIncomingDraftRef.current;
+    const incomingSnapshot = serializeSavePayload(normalizedDraft);
+    lastSavedSnapshotRef.current = incomingSnapshot;
+    lastFailedSnapshotRef.current = null;
+    // 只在真正切换编辑对象时用服务端 draft 覆盖本地状态。
+    // 否则父层 query 刷新时会把同一对象的旧快照重新灌进来，造成“刚新增 -> 消失 -> 又回来”的闪烁。
+    setDraft(normalizedDraft);
+    setAutoSaveState(autoSaveEnabled ? "saved" : "idle");
+  }, [autoSaveEnabled, valueKey]);
 
-  const parsedContent = useMemo(() => {
-    try {
-      return JSON.parse(contentText) as MaterialPackageContent;
-    }
-    catch {
-      return null;
-    }
-  }, [contentText]);
+  useEffect(() => {
+    return () => {
+      if (autoSaveTimerRef.current != null) {
+        window.clearTimeout(autoSaveTimerRef.current);
+      }
+    };
+  }, []);
+
+  const handleUpdateDraft = (updater: (draft: MaterialPackageDraft) => MaterialPackageDraft) => {
+    setDraft(previous => updater(previous));
+  };
 
   const handleSave = async () => {
     if (!onSave) {
       return;
     }
-    if (!name.trim()) {
+
+    if (!draft.name.trim()) {
       toast.error("素材包名称不能为空");
       return;
     }
-    if (!parsedContent) {
-      toast.error("素材包 JSON 不合法");
-      return;
-    }
-    await onSave({
-      name: name.trim(),
-      description: description.trim(),
-      coverUrl: coverUrl.trim(),
-      isPublic,
-      content: parsedContent,
-    });
+
+    await onSave(savePayload);
   };
 
+  const handleCoverUpload = async (file: File) => {
+    if (readOnly || isCoverUploading) {
+      return;
+    }
+
+    setIsCoverUploading(true);
+    const toastId = "material-cover-upload";
+    toast.loading("封面上传中...", { id: toastId });
+
+    try {
+      const url = await uploadUtilsRef.current.uploadImg(file, 1);
+      setDraft(previous => ({ ...previous, coverUrl: url }));
+      toast.success("封面上传成功", { id: toastId });
+    }
+    catch (error) {
+      const message = error instanceof Error ? error.message : "未知错误";
+      toast.error(`封面上传失败：${message}`, { id: toastId });
+    }
+    finally {
+      setIsCoverUploading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!autoSaveEnabled) {
+      return;
+    }
+
+    if (autoSaveTimerRef.current != null) {
+      window.clearTimeout(autoSaveTimerRef.current);
+      autoSaveTimerRef.current = null;
+    }
+
+    if (savePending) {
+      setAutoSaveState("saving");
+      return;
+    }
+
+    if (!savePayload.name) {
+      if (saveSnapshot !== lastSavedSnapshotRef.current) {
+        setAutoSaveState("invalid");
+      }
+      return;
+    }
+
+    if (saveSnapshot === lastSavedSnapshotRef.current) {
+      setAutoSaveState("saved");
+      return;
+    }
+
+    if (lastFailedSnapshotRef.current === saveSnapshot) {
+      setAutoSaveState("error");
+      return;
+    }
+
+    setAutoSaveState("pending");
+    autoSaveTimerRef.current = window.setTimeout(() => {
+      autoSaveTimerRef.current = null;
+      setAutoSaveState("saving");
+      Promise.resolve(onSave?.(savePayload))
+        .then(() => {
+          lastSavedSnapshotRef.current = saveSnapshot;
+          lastFailedSnapshotRef.current = null;
+          const latestSnapshot = serializeSavePayload(draftRef.current);
+          setAutoSaveState(latestSnapshot === saveSnapshot ? "saved" : "pending");
+        })
+        .catch((error) => {
+          const message = error instanceof Error ? error.message : "未知错误";
+          lastFailedSnapshotRef.current = saveSnapshot;
+          setAutoSaveState("error");
+          toast.error(`自动保存失败：${message}`, { id: "material-package-auto-save" });
+        });
+    }, 800);
+  }, [autoSaveEnabled, onSave, savePayload, savePending, saveSnapshot]);
+
+  const autoSaveStatusText = useMemo(() => {
+    if (!autoSaveEnabled) {
+      return "";
+    }
+
+    switch (autoSaveState) {
+      case "pending":
+        return "待自动保存";
+      case "saving":
+        return "自动保存中...";
+      case "saved":
+        return "已自动保存";
+      case "invalid":
+        return "名称不能为空";
+      case "error":
+        return "自动保存失败";
+      default:
+        return "";
+    }
+  }, [autoSaveEnabled, autoSaveState]);
+
+  const autoSaveStatusClassName = useMemo(() => {
+    if (!autoSaveEnabled) {
+      return "";
+    }
+
+    switch (autoSaveState) {
+      case "invalid":
+      case "error":
+        return "text-error";
+      case "saving":
+      case "pending":
+        return "text-base-content/55";
+      default:
+        return "text-base-content/45";
+    }
+  }, [autoSaveEnabled, autoSaveState]);
+
   return (
-    <div className="rounded-[28px] border border-base-300 bg-base-100/90 shadow-xl">
-      <div className="border-b border-base-300 px-6 py-5">
-        <div className="text-xl font-semibold">{title}</div>
-        {subtitle && <div className="mt-1 text-sm opacity-70">{subtitle}</div>}
-      </div>
-
-      <div className="grid gap-6 p-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(320px,0.8fr)]">
-        <div className="space-y-5">
-          <label className="form-control gap-2">
-            <span className="label-text font-medium">素材包名称</span>
-            <input
-              type="text"
-              className="input input-bordered"
-              value={name}
-              onChange={event => setName(event.target.value)}
-              disabled={readOnly}
-            />
-          </label>
-
-          <label className="form-control gap-2">
-            <span className="label-text font-medium">封面 URL</span>
-            <input
-              type="text"
-              className="input input-bordered"
-              value={coverUrl}
-              onChange={event => setCoverUrl(event.target.value)}
-              disabled={readOnly}
-            />
-          </label>
-
-          <label className="form-control gap-2">
-            <span className="label-text font-medium">描述</span>
-            <textarea
-              className="textarea textarea-bordered min-h-28"
-              value={description}
-              onChange={event => setDescription(event.target.value)}
-              disabled={readOnly}
-            />
-          </label>
-
-          {showPublicToggle && (
-            <label className="flex items-center justify-between rounded-2xl border border-base-300 bg-base-200/60 px-4 py-3">
-              <div>
-                <div className="font-medium">公开到素材广场</div>
-                <div className="text-sm opacity-70">关闭后只有你自己还能在局外素材库里看到这个包。</div>
-              </div>
-              <input
-                type="checkbox"
-                className="toggle toggle-primary"
-                checked={isPublic}
-                onChange={event => setIsPublic(event.target.checked)}
-                disabled={readOnly}
-              />
-            </label>
-          )}
-
-          <label className="form-control gap-2">
-            <span className="label-text font-medium">素材包 JSON</span>
-            <textarea
-              className={`textarea min-h-[420px] font-mono text-xs leading-6 ${parsedContent ? "textarea-bordered" : "textarea-error"}`}
-              value={contentText}
-              onChange={event => setContentText(event.target.value)}
-              disabled={readOnly}
-              spellCheck={false}
-            />
-            <span className={`text-xs ${parsedContent ? "opacity-60" : "text-error"}`}>
-              {parsedContent ? "会按当前 JSON 保存。" : "JSON 解析失败，保存前需要修正。"}
-            </span>
-          </label>
-
-          {!readOnly && (
-            <div className="flex flex-wrap gap-3">
-              <button
-                type="button"
-                className="btn btn-primary"
-                onClick={() => void handleSave()}
-                disabled={savePending}
-              >
-                {savePending ? "保存中..." : saveLabel}
-              </button>
-              {onDelete && (
-                <button
-                  type="button"
-                  className="btn btn-outline btn-error"
-                  onClick={() => void onDelete()}
-                  disabled={deletePending}
-                >
-                  {deletePending ? "删除中..." : deleteLabel}
-                </button>
-              )}
-            </div>
+    <div className="relative flex min-h-0 flex-col text-base-content">
+      <div className="relative z-10 flex flex-wrap items-center justify-between gap-4 px-6 py-5 md:px-8 sm:sticky sm:top-0">
+        <div className="flex min-w-0 items-center">
+          {backLabel && onBack && (
+            <button
+              type="button"
+              className="inline-flex items-center gap-2 rounded-md border border-base-300 bg-base-100/80 px-4 py-2.5 text-sm font-medium text-base-content shadow-sm transition hover:border-primary/30 hover:bg-base-100"
+              onClick={onBack}
+            >
+              <ArrowLeftIcon className="size-4" />
+              <span>{backLabel}</span>
+            </button>
           )}
         </div>
 
-        <div className="space-y-4">
-          <div className="rounded-3xl border border-base-300 bg-base-50/40 p-5">
-            <div className="mb-3 flex items-center justify-between">
-              <div className="text-sm font-medium opacity-80">树形预览</div>
-              <div className="text-xs opacity-60">
-                {parsedContent?.root?.length ?? 0}
-                个根节点
-              </div>
+        <div className="flex shrink-0 items-center justify-end gap-3">
+          {autoSaveEnabled && autoSaveStatusText && (
+            <div className={`text-xs ${autoSaveStatusClassName}`}>
+              {autoSaveStatusText}
             </div>
-            <MaterialPackageTreePreview
-              nodes={parsedContent?.root}
-              emptyText={readOnly ? "这个素材包当前没有可预览的节点。" : "先在左边 JSON 里定义 folder / material 节点。"}
-            />
-          </div>
+          )}
+          {readOnly && onExtraAction && extraActionLabel && (
+            <button
+              type="button"
+              className="inline-flex items-center justify-center rounded-lg bg-primary px-5 py-2.5 text-sm font-semibold text-primary-content shadow-[0_8px_16px_rgba(59,130,246,0.15)] transition hover:-translate-y-0.5 hover:shadow-[0_12px_24px_rgba(59,130,246,0.22)] disabled:opacity-60 disabled:hover:translate-y-0 disabled:hover:shadow-none"
+              onClick={() => void onExtraAction()}
+              disabled={extraActionPending}
+            >
+              {extraActionPending ? "处理中..." : extraActionLabel}
+            </button>
+          )}
+
+          {!readOnly && onDelete && (
+            <button
+              type="button"
+              className="inline-flex items-center justify-center rounded-lg border border-base-300 bg-base-100 px-4 py-2.5 text-sm font-medium text-base-content transition hover:border-error/30 hover:bg-error/10 hover:text-error disabled:opacity-60"
+              onClick={() => void onDelete()}
+              disabled={deletePending || savePending}
+            >
+              {deletePending ? "删除中..." : deleteLabel}
+            </button>
+          )}
+          {!readOnly && onSave && !autoSaveEnabled && (
+            <button
+              type="button"
+              className="inline-flex items-center justify-center rounded-lg bg-primary px-6 py-2.5 text-sm font-semibold text-primary-content shadow-[0_8px_16px_rgba(59,130,246,0.15)] transition hover:-translate-y-0.5 hover:shadow-[0_12px_24px_rgba(59,130,246,0.22)] disabled:opacity-60 disabled:hover:translate-y-0 disabled:hover:shadow-none"
+              onClick={() => void handleSave()}
+              disabled={savePending}
+            >
+              {savePending ? "保存中..." : saveLabel}
+            </button>
+          )}
         </div>
       </div>
+
+      <MaterialPackageWorkbench
+        selectionSyncKey={valueKey}
+        dragPackageId={dragPackageId}
+        requestedSelectedNodeKey={selectedNodeKey}
+        sidebarActionScope={sidebarActionScope}
+        draft={draft}
+        readOnly={readOnly}
+        showPublicToggle={showPublicToggle}
+        isCoverUploading={isCoverUploading}
+        onUpdateDraft={handleUpdateDraft}
+        onCoverUpload={(file) => { void handleCoverUpload(file); }}
+      />
     </div>
   );
 }

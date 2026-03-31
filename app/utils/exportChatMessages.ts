@@ -5,6 +5,12 @@ import {
   hasAnnotation,
   isImageMessageBackground,
 } from "@/types/messageAnnotations";
+import {
+  getCommandRequestExtra,
+  getFileMessageExtra,
+  getRoomJumpExtra,
+  getVideoMessageExtra,
+} from "@/types/messageExtra";
 
 import type { ChatMessageResponse, Message } from "../../api";
 
@@ -104,13 +110,13 @@ function formatMessageContent(
       return "[ͼƬ]";
     }
     case MessageType.FILE: {
-      const fileMessage = extra?.fileMessage;
+      const fileMessage = getFileMessageExtra(extra);
       const name = fileMessage?.fileName || content || "文件";
       const size = formatFileSize(fileMessage?.size);
       return `[文件] ${name}${size ? ` (${size})` : ""}`;
     }
     case MessageType.VIDEO: {
-      const videoMessage = (extra as any)?.videoMessage ?? extra?.fileMessage;
+      const videoMessage = getVideoMessageExtra(extra);
       const name = videoMessage?.fileName || content || "视频";
       const size = formatFileSize(videoMessage?.size);
       return `[视频] ${name}${size ? ` (${size})` : ""}`;
@@ -123,8 +129,8 @@ function formatMessageContent(
       return result ? `[骰子] ${result}` : "[骰子]";
     }
     case MessageType.SOUND: {
-      const sound = extra?.soundMessage as { second?: number; duration?: number; fileName?: string } | undefined;
-      const seconds = sound?.second ?? sound?.duration;
+      const sound = extra?.soundMessage as { second?: number; fileName?: string } | undefined;
+      const seconds = sound?.second;
       const parts = [] as string[];
       if (sound?.fileName)
         parts.push(sound.fileName);
@@ -141,11 +147,11 @@ function formatMessageContent(
       return `[演出效果]${name ? ` ${name}` : ""}`;
     }
     case MessageType.COMMAND_REQUEST: {
-      const command = (extra as any)?.commandRequest?.command || content;
+      const command = getCommandRequestExtra(extra)?.command || content;
       return command ? `[检定请求] ${command}` : "[检定请求]";
     }
     case MessageType.ROOM_JUMP: {
-      const roomJump = (extra as any)?.roomJump ?? extra;
+      const roomJump = getRoomJumpExtra(extra);
       const title = roomJump?.label || roomJump?.roomName || content || `群聊 #${roomJump?.roomId ?? UNKNOWN_LABEL}`;
       return `[群聊跳转] ${title}`;
     }

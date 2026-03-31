@@ -25,7 +25,7 @@ function RoomJumpMessageImpl({ messageResponse }: { messageResponse: ChatMessage
 
   const currentSpaceId = roomContext.spaceId ?? undefined;
   const currentRoomId = roomContext.roomId ?? undefined;
-  const targetSpaceId = currentSpaceId ?? payload?.spaceId;
+  const targetSpaceId = payload?.spaceId ?? currentSpaceId;
   const targetRoomId = payload?.roomId;
   const roomsQuery = useGetUserRoomsQuery(targetSpaceId ?? -1);
   const roomsInSpace = useMemo(() => roomsQuery.data?.data?.rooms ?? [], [roomsQuery.data?.data?.rooms]);
@@ -65,8 +65,8 @@ function RoomJumpMessageImpl({ messageResponse }: { messageResponse: ChatMessage
       return {
         roomId: null,
         reason: normalizedRoomName
-          ? `当前空间未找到群聊「${payload.roomName}」`
-          : "当前空间未找到目标群聊",
+          ? `未找到群聊「${payload.roomName}」`
+          : "未找到目标群聊",
       };
     }
 

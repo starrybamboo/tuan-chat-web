@@ -8,7 +8,7 @@ import type { FigureAnimationSettings, FigurePositionKey } from "@/types/voiceRe
 import type { WebgalDiceRenderPayload } from "@/types/webgalDice";
 
 import { compareChatMessageResponsesByOrder } from "@/components/chat/shared/messageOrder";
-import { formatAnkoDiceMessage, stripDiceResultTokens } from "@/components/common/dicer/diceTable";
+import { stripDiceResultTokens } from "@/components/common/dicer/diceTable";
 import { createTTSApi, ttsApi } from "@/tts/engines/index/apiClient";
 import {
   ANNOTATION_IDS,
@@ -3510,19 +3510,7 @@ export class RealtimeRenderer {
         }
 
         if (diceRenderMode === "anko") {
-          const diceSize = dicePayload?.diceSize ?? 100;
-          const formatted = formatAnkoDiceMessage(diceContent, diceSize) ?? diceContent;
-          const preview = stripDiceResultTokens(stripDiceHighlightTokens(formatted));
-          const previewProcessed = TextEnhanceSyntax.processContent(preview);
-          const finalProcessed = TextEnhanceSyntax.processContent(formatted);
-          if (previewProcessed.trim() && previewProcessed !== finalProcessed) {
-            if (useDialogDice) {
-              await appendDiceDialogLine(previewProcessed);
-            }
-            else {
-              await appendDiceOverlayLine(previewProcessed);
-            }
-          }
+          const finalProcessed = TextEnhanceSyntax.processContent(diceContent);
           if (diceSound) {
             const volumePart = typeof diceSound.volume === "number" ? ` -volume=${diceSound.volume}` : "";
             await this.appendLine(targetRoomId, `playEffect:${diceSound.url}${volumePart} -next;`, syncToFile);

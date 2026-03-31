@@ -9,6 +9,7 @@ import { useRoomUiStore } from "@/components/chat/stores/roomUiStore";
 import { useSideDrawerStore } from "@/components/chat/stores/sideDrawerStore";
 import { copyDocToSpaceDoc, copyDocToSpaceUserDoc } from "@/components/chat/utils/docCopy";
 import { useGlobalContext } from "@/components/globalContextProvider";
+import { buildChatMessageRequestFromDraft } from "@/types/messageDraft";
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
 import { useSendMessageMutation } from "../../../../../api/hooks/chatQueryHooks";
 import { tuanchat } from "../../../../../api/instance";
@@ -126,23 +127,24 @@ export default function ChatFrameContextMenu({
       return null;
     }
 
-    if (typeof docCard.spaceId === "number" && docCard.spaceId !== spaceId) {
-      toast.error("不允许跨空间复制文档");
-      return null;
-    }
-
-    return { spaceId, sourceDocId: docCard.docId };
+    return {
+      spaceId,
+      sourceDocId: docCard.docId,
+      sourceSpaceId: typeof docCard.spaceId === "number" && docCard.spaceId > 0 ? docCard.spaceId : undefined,
+    };
   }, [docCard?.docId, docCard?.spaceId, spaceContext.spaceId]);
 
   const copyToSpaceUserDoc = useCallback(async (params: {
     spaceId: number;
     sourceDocId: string;
+    sourceSpaceId?: number;
     title?: string;
     imageUrl?: string;
   }) => {
     const { newDocEntityId, newDocId, title } = await copyDocToSpaceUserDoc({
       spaceId: params.spaceId,
       sourceDocId: params.sourceDocId,
+      sourceSpaceId: params.sourceSpaceId,
       title: params.title,
       imageUrl: params.imageUrl,
     });
@@ -240,6 +242,7 @@ export default function ChatFrameContextMenu({
       await copyToSpaceUserDoc({
         spaceId: ok.spaceId,
         sourceDocId: ok.sourceDocId,
+        sourceSpaceId: ok.sourceSpaceId,
         title: docCard?.title,
         imageUrl: docCard?.imageUrl,
       });
@@ -267,6 +270,7 @@ export default function ChatFrameContextMenu({
       const res = await copyDocToSpaceDoc({
         spaceId: ok.spaceId,
         sourceDocId: ok.sourceDocId,
+        sourceSpaceId: ok.sourceSpaceId,
         title: docCard?.title,
         imageUrl: docCard?.imageUrl,
       });
@@ -356,16 +360,20 @@ export default function ChatFrameContextMenu({
     // 不弹窗输入标题：默认使用原消息内容截断（不加“Thread:”前缀）
     const raw = (selected.content ?? "").trim();
     const title = raw ? raw.slice(0, 20) : "子区";
-    const threadRootRequest = {
-      roomId,
+    const threadRootRequest = buildChatMessageRequestFromDraft({
       messageType: MESSAGE_TYPE.THREAD_ROOT,
-      roleId: roomContext.curRoleId,
-      avatarId: roomContext.curAvatarId,
       content: title,
-      // 复用 replayMessageId 作为 threadParentMessageId：该子区挂到哪条原消息上
+      extra: {
+        threadRoot: {
+          title,
+        },
+      },
+    } as any, {
+      roomId,
+      roleId: roomContext.curRoleId ?? undefined,
+      avatarId: roomContext.curAvatarId ?? undefined,
       replayMessageId: selected.messageId,
-      extra: { title },
-    };
+    });
 
     if (roomContext.sendMessageWithInsert) {
       void (async () => {

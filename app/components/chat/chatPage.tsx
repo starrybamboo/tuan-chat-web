@@ -1,4 +1,5 @@
 import { useGetSpaceInfoQuery, useGetSpaceMembersQuery, useGetUserActiveSpacesQuery, useGetUserRoomsQuery } from "api/hooks/chatQueryHooks";
+import { useSpaceMaterialPackagesQuery } from "api/hooks/materialPackageQueryHooks";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Outlet, useSearchParams } from "react-router";
 import { ChatPageOverlays, ChatPagePanels } from "@/components/chat/chatPageContainers";
@@ -91,12 +92,15 @@ export default function ChatPage() {
     roomId: subWindowRoomId,
     docId: subWindowDocId,
     threadRootMessageId: subWindowThreadRootMessageId,
+    materialPackageId: subWindowMaterialPackageId,
+    materialPathKey: subWindowMaterialPathKey,
     setIsOpen: setIsSubWindowOpen,
     setWidth: setSubWindowWidth,
     setTab: setSubWindowTab,
     setRoomId: setSubWindowRoomId,
     setDocId: setSubWindowDocId,
     setThreadRootMessageId: setSubWindowThreadRootMessageId,
+    setMaterialSelection: setSubWindowMaterialSelection,
   } = useChatPageSubWindow({
     activeSpaceId,
     activeRoomId,
@@ -108,10 +112,20 @@ export default function ChatPage() {
   const activeSpaceIdForQuery = activeSpaceId ?? -1;
   const userRoomQuery = useGetUserRoomsQuery(activeSpaceIdForQuery);
   const spaceMembersQuery = useGetSpaceMembersQuery(activeSpaceIdForQuery);
+  const spaceMaterialPackagesRequest = useMemo(() => {
+    return {
+      pageNo: 1,
+      pageSize: 100,
+      spaceId: activeSpaceIdForQuery,
+    };
+  }, [activeSpaceIdForQuery]);
+  const spaceMaterialPackagesQuery = useSpaceMaterialPackagesQuery(
+    spaceMaterialPackagesRequest,
+    activeSpaceIdForQuery > 0,
+  );
   const rooms = userRoomQuery.data?.data?.rooms ?? EMPTY_ARRAY;
   const userSpacesQuery = useGetUserActiveSpacesQuery();
   const spaces = userSpacesQuery.data?.data ?? EMPTY_ARRAY;
-
   const activeSpaceInfoQuery = useGetSpaceInfoQuery(activeSpaceIdForQuery);
   const activeSpaceInfo = activeSpaceInfoQuery.data?.data;
 
@@ -309,7 +323,48 @@ export default function ChatPage() {
     searchParam,
     storedIds,
   });
-
+  const detailPanelMaterialPackageId = useMemo(() => {
+    if (spaceDetailTab !== "material") {
+      return null;
+    }
+    const raw = Number(searchParam.get("spacePackageId"));
+    return Number.isFinite(raw) && raw > 0 ? raw : null;
+  }, [searchParam, spaceDetailTab]);
+  const detailPanelMaterialPathKey = useMemo(() => {
+    if (spaceDetailTab !== "material") {
+      return null;
+    }
+    const normalized = searchParam.get("materialPathKey")?.trim() ?? "";
+    return normalized || null;
+  }, [searchParam, spaceDetailTab]);
+  const activeMaterialSelection = useMemo(() => {
+    if (spaceDetailTab === "material") {
+      return {
+        scope: "detail" as const,
+        spacePackageId: detailPanelMaterialPackageId,
+        materialPathKey: detailPanelMaterialPathKey,
+      };
+    }
+    if (subWindowTab === "material") {
+      return {
+        scope: "subwindow" as const,
+        spacePackageId: subWindowMaterialPackageId,
+        materialPathKey: subWindowMaterialPathKey,
+      };
+    }
+    return {
+      scope: null,
+      spacePackageId: null,
+      materialPathKey: null,
+    };
+  }, [
+    detailPanelMaterialPackageId,
+    detailPanelMaterialPathKey,
+    spaceDetailTab,
+    subWindowMaterialPackageId,
+    subWindowMaterialPathKey,
+    subWindowTab,
+  ]);
   const handleSelectRoom = useCallback((roomId: number) => {
     setActiveRoomId(roomId);
   }, [setActiveRoomId]);
@@ -628,10 +683,14 @@ export default function ChatPage() {
     onSaveSidebarTree: handleSaveSidebarTree,
     onResetSidebarTreeToDefault: resetSidebarTreeToDefault,
     docMetas: spaceDocMetasList,
+    materialPackages: spaceMaterialPackagesQuery.isFetched
+      ? (spaceMaterialPackagesQuery.data?.data?.list ?? [])
+      : undefined,
     onSelectDoc: handleSelectDoc,
     onDeleteDoc: handleDeleteDoc,
     activeRoomId,
     activeDocId,
+    activeMaterialSelection,
     unreadMessagesNumber,
     onContextMenu: handleContextMenu,
     onInviteMember: () => setIsMemberHandleOpen(true),
@@ -746,12 +805,15 @@ export default function ChatPage() {
               roomId={subWindowRoomId}
               docId={subWindowDocId}
               threadRootMessageId={subWindowThreadRootMessageId}
+              materialPackageId={subWindowMaterialPackageId}
+              materialPathKey={subWindowMaterialPathKey}
               setIsOpen={setIsSubWindowOpen}
               setWidth={setSubWindowWidth}
               setTab={setSubWindowTab}
               setRoomId={setSubWindowRoomId}
               setDocId={setSubWindowDocId}
               setThreadRootMessageId={setSubWindowThreadRootMessageId}
+              setMaterialSelection={setSubWindowMaterialSelection}
             />
           )}
           sidePanelProps={sidePanelProps}

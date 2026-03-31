@@ -285,7 +285,7 @@ export function OpenAbleDrawer({
         title="拖拽调整宽度"
       >
         <div
-          className={`absolute top-0 h-full w-px bg-base-300 ${handlePosition === "left" ? "left-0" : "right-0"}`}
+          className={`absolute top-0 h-full w-0.5 bg-base-content/18 ${handlePosition === "left" ? "left-0" : "right-0"}`}
         />
       </div>
       {children}

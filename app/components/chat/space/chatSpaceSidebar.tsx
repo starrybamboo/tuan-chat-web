@@ -4,6 +4,7 @@ import { ChatCircleIcon } from "@phosphor-icons/react";
 import React, { useMemo, useRef, useState } from "react";
 import { Link } from "react-router";
 import SpaceButton from "@/components/chat/shared/components/spaceButton";
+import { shouldSelectSpaceFromSidebar } from "@/components/chat/space/chatSpaceSidebarNavigation";
 import PortalTooltip from "@/components/common/portalTooltip";
 import { AddIcon, CompassIcon, SidebarSimpleIcon } from "@/icons";
 
@@ -131,7 +132,7 @@ export default function ChatSpaceSidebar({
           />
           <PortalTooltip label="发现" placement="right">
             <Link
-              to="/chat/discover"
+              to="/chat/discover/material"
               className={`w-10 btn btn-square ${isDiscoverMode ? "text-info" : ""}`}
               aria-label="发现"
               aria-current={isDiscoverMode ? "page" : undefined}
@@ -245,12 +246,22 @@ export default function ChatSpaceSidebar({
               space={space}
               unreadMessageNumber={getSpaceUnreadMessagesNumber(space.spaceId ?? -1)}
               onclick={() => {
-                if (isDraggingRef.current) {
+                const targetSpaceId = typeof space.spaceId === "number" && Number.isFinite(space.spaceId)
+                  ? space.spaceId
+                  : null;
+                if (targetSpaceId == null) {
                   return;
                 }
-                if (activeSpaceId !== space.spaceId) {
-                  onSelectSpace(space.spaceId ?? -1);
+                // 发现页会保留上次聊天的 activeSpaceId，因此这里需要允许“点回当前空间”。
+                if (!shouldSelectSpaceFromSidebar({
+                  activeSpaceId,
+                  targetSpaceId,
+                  isDiscoverMode,
+                  isDragging: isDraggingRef.current,
+                })) {
+                  return;
                 }
+                onSelectSpace(targetSpaceId);
               }}
               isActive={!isDiscoverMode && activeSpaceId === space.spaceId}
             >

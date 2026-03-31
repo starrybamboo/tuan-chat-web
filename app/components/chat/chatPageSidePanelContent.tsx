@@ -1,5 +1,6 @@
 import type { Room } from "api";
-import type { RoomSettingTab, SpaceDetailTab } from "@/components/chat/chatPage.types";
+import type { SpaceMaterialPackageResponse } from "../../../api/models/SpaceMaterialPackageResponse";
+import type { ActiveMaterialSelection, OpenSpaceDetailPanelOptions, RoomSettingTab, SpaceDetailTab } from "@/components/chat/chatPage.types";
 
 import type { MinimalDocMeta, SidebarTree } from "@/components/chat/room/sidebarTree";
 import React from "react";
@@ -24,16 +25,18 @@ interface ChatPageSidePanelContentProps {
   onReorderRoomIds?: (nextRoomIds: number[]) => void;
   sidebarTree?: SidebarTree | null;
   docMetas?: MinimalDocMeta[];
+  materialPackages?: SpaceMaterialPackageResponse[];
   onSelectDoc: (docId: string) => void;
   onDeleteDoc?: (docId: string) => void;
   onSaveSidebarTree?: (tree: SidebarTree) => void;
   onResetSidebarTreeToDefault?: () => void;
   activeRoomId: number | null;
   activeDocId?: string | null;
+  activeMaterialSelection?: ActiveMaterialSelection;
   unreadMessagesNumber: Record<number, number>;
   onContextMenu: (e: React.MouseEvent) => void;
   onInviteMember: () => void;
-  onOpenSpaceDetailPanel: (tab: SpaceDetailTab) => void;
+  onOpenSpaceDetailPanel: (tab: SpaceDetailTab, options?: OpenSpaceDetailPanelOptions) => void;
   onSelectRoom: (roomId: number) => void;
   onOpenRoomSetting: (roomId: number, tab?: RoomSettingTab) => void;
   setIsOpenLeftDrawer: (isOpen: boolean) => void;
@@ -57,12 +60,14 @@ export default function ChatPageSidePanelContent({
   onReorderRoomIds,
   sidebarTree,
   docMetas,
+  materialPackages,
   onSelectDoc,
   onDeleteDoc,
   onSaveSidebarTree,
   onResetSidebarTreeToDefault,
   activeRoomId,
   activeDocId,
+  activeMaterialSelection,
   unreadMessagesNumber,
   onContextMenu,
   onInviteMember,
@@ -89,10 +94,12 @@ export default function ChatPageSidePanelContent({
       onSaveSidebarTree={onSaveSidebarTree}
       onResetSidebarTreeToDefault={onResetSidebarTreeToDefault}
       docMetas={docMetas}
+      materialPackages={materialPackages}
       onSelectDoc={onSelectDoc}
       onDeleteDoc={onDeleteDoc}
       activeRoomId={activeRoomId}
       activeDocId={activeDocId}
+      activeMaterialSelection={activeMaterialSelection}
       unreadMessagesNumber={unreadMessagesNumber}
       onContextMenu={onContextMenu}
       onInviteMember={onInviteMember}

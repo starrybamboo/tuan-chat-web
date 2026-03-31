@@ -2,6 +2,7 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
+import type { MessageExtra } from './MessageExtra';
 /**
  * 发送私聊消息请求
  */
@@ -22,9 +23,6 @@ export type MessageDirectSendRequest = {
      * 回复的消息ID
      */
     replyMessageId?: number;
-    /**
-     * 扩展信息
-     */
-    extra: Record<string, any>;
+    extra: MessageExtra;
 };
 

@@ -11,6 +11,7 @@ import SpaceSettingWindow from "@/components/chat/window/spaceSettingWindow";
 import SpaceTrpgSettingWindow from "@/components/chat/window/spaceTrpgSettingWindow";
 import SpaceWebgalRenderWindow from "@/components/chat/window/spaceWebgalRenderWindow";
 import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
+import SpaceMaterialLibraryPage from "@/components/material/pages/spaceMaterialLibraryPage";
 import { BaselineArrowBackIosNew } from "@/icons";
 import {
   useAddSpaceMemberMutation,
@@ -40,7 +41,9 @@ export default function SpaceDetailPanel({ activeTab, onClose }: { activeTab: Sp
           ? "跑团设置"
           : resolvedTab === "webgal"
             ? "WebGAL 渲染"
-            : "空间资料";
+            : resolvedTab === "material"
+              ? "局内素材包"
+              : "空间资料";
 
   const [isRoleHandleOpen, setIsRoleHandleOpen] = useState(false);
   const [isMemberHandleOpen, setIsMemberHandleOpen] = useState(false);
@@ -175,6 +178,12 @@ export default function SpaceDetailPanel({ activeTab, onClose }: { activeTab: Sp
       {resolvedTab === "webgal" && (
         <div className="h-full overflow-hidden">
           <SpaceWebgalRenderWindow spaceId={spaceId} />
+        </div>
+      )}
+
+      {resolvedTab === "material" && (
+        <div className="h-full overflow-hidden">
+          <SpaceMaterialLibraryPage spaceId={spaceId} embedded />
         </div>
       )}
 

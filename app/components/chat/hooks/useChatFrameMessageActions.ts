@@ -3,6 +3,7 @@ import toast from "react-hot-toast";
 
 import { compareChatMessageResponsesByOrder } from "@/components/chat/shared/messageOrder";
 import { ANNOTATION_IDS, hasAnnotation, isImageMessageBackground, setAnnotation } from "@/types/messageAnnotations";
+import { buildMessageExtraForRequest } from "@/types/messageDraft";
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
 
 import type { ChatMessageRequest, ChatMessageResponse, Message } from "../../../../api";
@@ -53,16 +54,14 @@ export default function useChatFrameMessageActions({
       content: "",
       avatarId: curAvatarId,
       messageType: MESSAGE_TYPE.FORWARD,
-      extra: {
-        messageList: forwardMessages,
-      },
+      extra: buildMessageExtraForRequest(MESSAGE_TYPE.FORWARD, {
+        forwardMessage: {
+          messageList: forwardMessages,
+        },
+      }),
     };
     return forwardMessageRequest;
   }, [curAvatarId, curRoleId]);
-
-  const pickObject = useCallback((value: unknown): Record<string, any> => {
-    return value && typeof value === "object" ? value as Record<string, any> : {};
-  }, []);
 
   const normalizeForwardedRawType = useCallback((messageType: number): number => {
     if (messageType === MESSAGE_TYPE.INTRO_TEXT || messageType === MESSAGE_TYPE.SYSTEM) {
@@ -71,47 +70,11 @@ export default function useChatFrameMessageActions({
     return messageType;
   }, []);
 
-  const normalizeForwardedRawExtra = useCallback((messageType: number, rawExtra: unknown): Record<string, any> => {
-    const extra = pickObject(rawExtra);
-    switch (messageType) {
-      case MESSAGE_TYPE.IMG:
-        return pickObject(extra.imageMessage ?? extra);
-      case MESSAGE_TYPE.FILE:
-        return pickObject(extra.fileMessage ?? extra);
-      case MESSAGE_TYPE.VIDEO:
-        return pickObject(extra.videoMessage ?? extra.fileMessage ?? extra);
-      case MESSAGE_TYPE.SOUND:
-        return pickObject(extra.soundMessage ?? extra);
-      case MESSAGE_TYPE.EFFECT:
-        return {};
-      case MESSAGE_TYPE.DICE:
-        return pickObject(extra.diceResult ?? extra);
-      case MESSAGE_TYPE.FORWARD:
-        return pickObject(extra.forwardMessage ?? extra);
-      case MESSAGE_TYPE.CLUE_CARD:
-        return pickObject(extra.clueMessage ?? extra);
-      case MESSAGE_TYPE.WEBGAL_CHOOSE:
-        return extra.webgalChoose !== undefined ? { webgalChoose: extra.webgalChoose } : extra;
-      case MESSAGE_TYPE.COMMAND_REQUEST:
-        return extra.commandRequest !== undefined ? { commandRequest: extra.commandRequest } : extra;
-      case MESSAGE_TYPE.DOC_CARD:
-        return extra.docCard !== undefined ? { docCard: extra.docCard } : extra;
-      case MESSAGE_TYPE.ROOM_JUMP:
-        return extra.roomJump !== undefined ? { roomJump: extra.roomJump } : extra;
-      case MESSAGE_TYPE.THREAD_ROOT: {
-        const title = typeof extra.title === "string" ? extra.title.trim() : "";
-        return title ? { title } : {};
-      }
-      default:
-        return extra;
-    }
-  }, [pickObject]);
-
   const constructRawForwardRequest = useCallback((forwardRoomId: number, sourceMessage: Message): ChatMessageRequest => {
     const normalizedMessageType = normalizeForwardedRawType(sourceMessage.messageType);
     const shouldKeepOriginalExtra = normalizedMessageType === sourceMessage.messageType;
     const nextExtra = shouldKeepOriginalExtra
-      ? normalizeForwardedRawExtra(normalizedMessageType, sourceMessage.extra)
+      ? buildMessageExtraForRequest(normalizedMessageType, sourceMessage.extra)
       : {};
 
     return {
@@ -125,7 +88,7 @@ export default function useChatFrameMessageActions({
       ...(sourceMessage.webgal !== undefined ? { webgal: sourceMessage.webgal } : {}),
       extra: nextExtra,
     };
-  }, [normalizeForwardedRawExtra, normalizeForwardedRawType]);
+  }, [normalizeForwardedRawType]);
 
   const handleForward = useCallback(async (forwardRoomId: number, mode: ForwardMode): Promise<boolean> => {
     if (forwardRoomId <= 0) {
@@ -142,19 +105,10 @@ export default function useChatFrameMessageActions({
     if (mode === "separate") {
       try {
         const batchRequests = selectedMessages.map(message => constructRawForwardRequest(forwardRoomId, message.message));
-        if (sendMessageWithInsert) {
-          for (const request of batchRequests) {
-            const sendResult = await sendMessageWithInsert(request);
-            if (!sendResult) {
-              throw new Error("逐条转发发送失败");
-            }
-          }
-        }
-        else {
-          const result = await batchSendMessagesAsync(batchRequests);
-          if (!result?.success)
-            throw new Error("批量发送失败");
-        }
+        const result = await batchSendMessagesAsync(batchRequests);
+        const createdMessages = Array.isArray(result?.data) ? result.data : [];
+        if (!result?.success || createdMessages.length !== batchRequests.length)
+          throw new Error("批量发送失败");
       }
       catch (error) {
         console.error("逐条转发失败:", error);

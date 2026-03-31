@@ -37,6 +37,7 @@ interface ChatToolbarProps {
   updateEmojiUrls: (updater: (draft: string[]) => void) => void;
   updateImgFiles: (updater: (draft: File[]) => void) => void;
   updateFileAttachments: (updater: (draft: File[]) => void) => void;
+  setEmojiMetaByUrl?: (url: string, meta: { width?: number; height?: number; size?: number; fileName?: string }) => void;
 
   // 消息发送
   disableSendMessage: boolean;
@@ -96,6 +97,7 @@ function ChatToolbar({
   updateEmojiUrls,
   updateImgFiles,
   updateFileAttachments,
+  setEmojiMetaByUrl,
   disableSendMessage,
   handleMessageSubmit,
   disableRichMessageActions = false,
@@ -142,7 +144,8 @@ function ChatToolbar({
   const [webgalChooseError, setWebgalChooseError] = useState<string | null>(null);
   const screenSize = useScreenSize();
   const isMobile = screenSize === "sm";
-  const setEmojiMetaByUrl = useChatComposerStore(state => state.setEmojiMetaByUrl);
+  const storeSetEmojiMetaByUrl = useChatComposerStore(state => state.setEmojiMetaByUrl);
+  const resolvedSetEmojiMetaByUrl = setEmojiMetaByUrl ?? storeSetEmojiMetaByUrl;
 
   const handleOpenImport = useCallback(() => {
     if (!onOpenImportChatText)
@@ -456,7 +459,7 @@ function ChatToolbar({
                       }
                     });
                     if (emoji?.imageUrl) {
-                      setEmojiMetaByUrl(emoji.imageUrl, {
+                      resolvedSetEmojiMetaByUrl(emoji.imageUrl, {
                         width: emoji.width,
                         height: emoji.height,
                         size: emoji.fileSize,
