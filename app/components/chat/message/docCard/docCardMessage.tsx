@@ -218,6 +218,7 @@ function DocCardMessageImpl({ messageResponse }: { messageResponse: ChatMessageR
         isOpen={isOpen}
         onClose={() => setIsOpen(false)}
         fullScreen={isMobile}
+        disableScroll
       >
         <div
           className={`overflow-hidden bg-base-100 flex flex-col ${
