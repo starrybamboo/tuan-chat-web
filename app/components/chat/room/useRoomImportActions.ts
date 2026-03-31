@@ -65,6 +65,45 @@ export default function useRoomImportActions({
   ensureRuntimeAvatarIdForRole,
   roomUiStoreApi,
 }: UseRoomImportActionsParams): UseRoomImportActionsResult {
+  const ensureLoadedDocSnapshotReadyForSharing = useCallback(async (docId: string): Promise<void> => {
+    const parsed = parseDescriptionDocId(docId);
+    if (!parsed || !spaceId || spaceId <= 0) {
+      return;
+    }
+
+    const [{ getSpaceWorkspaceIfExists }, { setRemoteSnapshot }, { uint8ArrayToBase64 }] = await Promise.all([
+      import("@/components/chat/infra/blocksuite/space/spaceWorkspaceRegistry"),
+      import("@/components/chat/infra/blocksuite/description/descriptionDocRemote"),
+      import("@/components/chat/infra/blocksuite/shared/base64"),
+    ]);
+
+    const workspace = getSpaceWorkspaceIfExists(spaceId) as {
+      getDoc?: (targetDocId: string) => { ready?: boolean } | null;
+      encodeDocAsUpdate?: (targetDocId: string) => Uint8Array;
+    } | null;
+
+    const currentDoc = workspace?.getDoc?.(docId) ?? null;
+    if (!workspace || !currentDoc?.ready || typeof workspace.encodeDocAsUpdate !== "function") {
+      return;
+    }
+
+    const update = workspace.encodeDocAsUpdate(docId);
+    if (!(update instanceof Uint8Array) || update.length === 0) {
+      return;
+    }
+
+    await setRemoteSnapshot({
+      entityType: parsed.entityType,
+      entityId: parsed.entityId,
+      docType: parsed.docType,
+      snapshot: {
+        v: 1,
+        updateB64: uint8ArrayToBase64(update),
+        updatedAt: Date.now(),
+      },
+    });
+  }, [spaceId]);
+
   const handleImportChatText = useCallback(async (
     messages: ImportMessageItem[],
     onProgress?: (sent: number, total: number) => void,
@@ -249,6 +288,15 @@ export default function useRoomImportActions({
     }
 
     let excerpt = typeof payload?.excerpt === "string" ? payload.excerpt.trim() : "";
+    try {
+      await ensureLoadedDocSnapshotReadyForSharing(docId);
+    }
+    catch (error) {
+      console.error("[DocCard] Failed to publish latest snapshot before share", error);
+      toast.error("文档同步失败，请稍后重试");
+      return;
+    }
+
     if (!excerpt) {
       try {
         const { getOrCreateSpaceDoc } = await import("@/components/chat/infra/blocksuite/space/spaceWorkspaceRegistry");
@@ -306,6 +354,7 @@ export default function useRoomImportActions({
     roomUiStoreApi,
     sendMessageWithInsert,
     spaceId,
+    ensureLoadedDocSnapshotReadyForSharing,
   ]);
 
   const handleSendMaterialItem = useCallback(async (payload: MaterialItemDragPayload) => {
