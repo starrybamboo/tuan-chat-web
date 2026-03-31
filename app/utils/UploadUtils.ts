@@ -502,7 +502,7 @@ export class UploadUtils {
   async uploadImg(file: File, scene: 1 | 2 | 3 | 4 = 1, quality = 0.7, maxSize = 2560): Promise<string> {
     const { processedFile: new_file, isGif } = await this.prepareImageForUpload(file, quality, maxSize);
 
-    // 1. 计算文件内容的 SHA-256 哈希值
+    // 1. 计算文件内容的 MD5 哈希值
     const hash = await this.calculateFileHash(new_file);
 
     // 2. 获取文件大小
@@ -536,17 +536,17 @@ export class UploadUtils {
     const ossData = await tuanchat.ossController.getUploadUrl({
       fileName: newFileName,
       scene,
+      dedupCheck: true,
     });
 
-    if (!ossData.data?.uploadUrl) {
-      throw new Error("获取上传地址失败");
-    }
-
-    await this.executeUpload(ossData.data.uploadUrl, new_file);
-
-    if (!ossData.data.downloadUrl) {
+    if (!ossData.data?.downloadUrl) {
       throw new Error("获取下载地址失败");
     }
+
+    if (ossData.data.uploadUrl) {
+      await this.executeUpload(ossData.data.uploadUrl, new_file);
+    }
+
     return ossData.data.downloadUrl;
   }
 
@@ -596,23 +596,37 @@ export class UploadUtils {
    * @returns 返回一个 Promise，解析为文件的 MD5 哈希字符串
    */
   public calculateFileHash(file: File): Promise<string> {
-    return new Promise((resolve) => {
+    return new Promise((resolve, reject) => {
       const reader = new FileReader();
 
-      // 文件读取成功时的回调
       reader.onload = (e: ProgressEvent<FileReader>) => {
-        if (e.target?.result) {
-          const hash = new Md5()
-            .appendStr(e.target.result as string) // Use appendStr for string result
-            .end();
-          if (hash) {
-            resolve(hash as string);
-          }
+        const result = e.target?.result;
+        if (!(result instanceof ArrayBuffer)) {
+          reject(new Error("计算文件哈希失败"));
+          return;
         }
+
+        const hash = new Md5()
+          .appendByteArray(new Uint8Array(result))
+          .end();
+
+        if (typeof hash !== "string" || hash.length === 0) {
+          reject(new Error("计算文件哈希失败"));
+          return;
+        }
+
+        resolve(hash);
       };
 
-      // 以字符串形式读取文件以配合 appendStr
-      reader.readAsBinaryString(file);
+      reader.onerror = () => {
+        reject(reader.error ?? new Error("读取文件失败"));
+      };
+
+      reader.onabort = () => {
+        reject(new Error("读取文件已取消"));
+      };
+
+      reader.readAsArrayBuffer(file);
     });
   }
 

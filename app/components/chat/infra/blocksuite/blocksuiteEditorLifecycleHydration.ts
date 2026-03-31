@@ -3,7 +3,7 @@ import { getRemoteSnapshot } from "@/components/chat/infra/blocksuite/descriptio
 import { base64ToUint8Array } from "@/components/chat/infra/blocksuite/shared/base64";
 import { isNonRetryableBlocksuiteDocError } from "@/components/chat/infra/blocksuite/shared/blocksuiteDocError";
 
-export const INITIAL_REMOTE_HYDRATION_WAIT_MS = 1200;
+const INITIAL_REMOTE_HYDRATION_WAIT_MS = 1200;
 export const LATE_REMOTE_HYDRATION_WAIT_MS = 4000;
 const HYDRATION_POLL_INTERVAL_MS = 50;
 

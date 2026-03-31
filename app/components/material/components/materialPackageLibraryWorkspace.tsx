@@ -6,7 +6,7 @@ import {
   PlusIcon,
 } from "@phosphor-icons/react";
 
-export type MaterialPackageLibraryAction = {
+type MaterialPackageLibraryAction = {
   key: string;
   label: string;
   icon: "package" | "plus";
@@ -14,7 +14,7 @@ export type MaterialPackageLibraryAction = {
   onClick: () => void;
 };
 
-export type MaterialPackageLibraryShortcut = {
+type MaterialPackageLibraryShortcut = {
   key: string;
   title: string;
   description: string;

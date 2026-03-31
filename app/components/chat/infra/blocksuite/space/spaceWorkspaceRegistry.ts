@@ -20,7 +20,7 @@ export function getOrCreateWorkspace(workspaceId: string): Workspace {
   return getOrCreateSpaceWorkspaceRuntime(workspaceId);
 }
 
-export function getWorkspaceIfExists(workspaceId: string): Workspace | null {
+function getWorkspaceIfExists(workspaceId: string): Workspace | null {
   return getSpaceWorkspaceRuntimeIfExists(workspaceId);
 }
 
@@ -56,7 +56,7 @@ export function ensureDocMeta(params: { workspaceId: string; docId: string; titl
   }
 }
 
-export function ensureDocMetaIfWorkspaceExists(params: { workspaceId: string; docId: string; title?: string }): boolean {
+function ensureDocMetaIfWorkspaceExists(params: { workspaceId: string; docId: string; title?: string }): boolean {
   const ws = getWorkspaceIfExists(params.workspaceId);
   if (!ws) {
     return false;
@@ -91,11 +91,11 @@ export function getSpaceWorkspaceIfExists(spaceId: number): Workspace | null {
   return getWorkspaceIfExists(`space:${spaceId}`);
 }
 
-export function retainSpaceWorkspace(spaceId: number): Workspace {
+function retainSpaceWorkspace(spaceId: number): Workspace {
   return retainWorkspace(`space:${spaceId}`);
 }
 
-export function releaseSpaceWorkspace(spaceId: number): void {
+function releaseSpaceWorkspace(spaceId: number): void {
   releaseWorkspace(`space:${spaceId}`);
 }
 

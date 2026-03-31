@@ -1,8 +1,8 @@
 import { HouseIcon, PackageIcon, SquaresFourIcon } from "@phosphor-icons/react";
 
-export type MaterialPackageLibrarySidebarIcon = "house" | "package" | "squares";
+type MaterialPackageLibrarySidebarIcon = "house" | "package" | "squares";
 
-export type MaterialPackageLibrarySidebarItem = {
+type MaterialPackageLibrarySidebarItem = {
   key: string;
   label: string;
   icon: MaterialPackageLibrarySidebarIcon;

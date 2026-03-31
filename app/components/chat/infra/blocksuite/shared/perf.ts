@@ -32,8 +32,6 @@ type PerfOwner = {
   __tcBlocksuitePerfHistory?: BlocksuitePerfSession[];
 };
 
-export type BlocksuiteOpenPerfSummary = BlocksuitePerfSession;
-
 function getPerfOwner(): PerfOwner {
   let owner: PerfOwner = globalThis as unknown as PerfOwner;
 
@@ -177,6 +175,3 @@ export function finishBlocksuiteOpenSession(instanceId: string) {
   return owner.__tcBlocksuitePerfLast;
 }
 
-export function getBlocksuitePerfHistory(): BlocksuiteOpenPerfSummary[] {
-  return [...(getPerfOwner().__tcBlocksuitePerfHistory ?? [])];
-}

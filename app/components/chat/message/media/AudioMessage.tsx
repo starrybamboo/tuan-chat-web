@@ -34,6 +34,7 @@ interface AudioMessageProps {
 }
 
 let audioMessageInstanceSeq = 0;
+const VISUAL_PLAYBACK_START_WAIT_MS = 2500;
 
 function formatTime(seconds: number): string {
   const safe = Number.isFinite(seconds) ? Math.max(0, seconds) : 0;
@@ -127,6 +128,13 @@ function stopWavePlayback(ws: any) {
   }
 }
 
+function waitForNextFrame(): Promise<number> {
+  if (typeof window === "undefined" || typeof window.requestAnimationFrame !== "function") {
+    return new Promise(resolve => setTimeout(() => resolve(Date.now()), 16));
+  }
+  return new Promise(resolve => window.requestAnimationFrame(resolve));
+}
+
 export default function AudioMessage({
   url,
   roomId,
@@ -148,6 +156,7 @@ export default function AudioMessage({
   const unsubsRef = useRef<(() => void)[]>([]);
   const boundWaveSurferRef = useRef<any>(null);
   const ensurePromiseRef = useRef<Promise<any | null> | null>(null);
+  const pendingAutoPlayAttemptRef = useRef<Promise<boolean> | null>(null);
   const mountedRef = useRef(false);
   const ensureTokenRef = useRef(0);
   const instanceIdRef = useRef(0);
@@ -161,6 +170,7 @@ export default function AudioMessage({
   const messageIdNumber = typeof messageId === "number" && Number.isFinite(messageId) ? messageId : undefined;
   const isBgmMessage = normalizedPurpose === "bgm" && roomIdNumber != null && messageIdNumber != null;
   const isSeMessage = normalizedPurpose === "se" && roomIdNumber != null && messageIdNumber != null;
+  const pendingAutoPlayExpectedPurpose = isBgmMessage ? "bgm" : isSeMessage ? "se" : null;
 
   const [isReady, setIsReady] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -175,6 +185,15 @@ export default function AudioMessage({
       state => (messageIdNumber != null ? state.pendingByMessageId[messageIdNumber] : undefined),
       [messageIdNumber],
     ),
+  );
+  const hasMatchingPendingAutoPlay = Boolean(
+    pendingAutoPlayExpectedPurpose
+    && pendingAutoPlay
+    && roomIdNumber != null
+    && messageIdNumber != null
+    && pendingAutoPlay.roomId === roomIdNumber
+    && pendingAutoPlay.messageId === messageIdNumber
+    && pendingAutoPlay.purpose === pendingAutoPlayExpectedPurpose,
   );
   const bgmStopSeq = useAudioMessageAutoPlayStore(
     useCallback(
@@ -252,11 +271,46 @@ export default function AudioMessage({
     }
   }, []);
 
+  const waitForWavePlaybackStart = useCallback(async (timeoutMs: number) => {
+    const start = typeof performance !== "undefined" ? performance.now() : Date.now();
+    while (mountedRef.current) {
+      if (isWavePlaying()) {
+        return true;
+      }
+      const now = await waitForNextFrame();
+      if (isWavePlaying()) {
+        return true;
+      }
+      if (now - start >= timeoutMs) {
+        return isWavePlaying();
+      }
+    }
+    return false;
+  }, [isWavePlaying]);
+
+  const requestWavePlayback = useCallback(async (ws: any, reason: string) => {
+    try {
+      await ws.play?.();
+      return true;
+    }
+    catch (error) {
+      console.error("[tc-audio-message] wave play failed", error);
+      mediaDebug("audio-message", "wave-play-failed", {
+        cacheKey,
+        url,
+        instanceId: instanceIdRef.current,
+        reason,
+        error: error instanceof Error ? error.message : String(error),
+      });
+      return false;
+    }
+  }, [cacheKey, url]);
+
   const notifyBgmStopped = useCallback(() => {
     if (!isBgmMessage || roomIdNumber == null || messageIdNumber == null) {
       return;
     }
-    markBgmMessageStopped(roomIdNumber, messageIdNumber);
+    markBgmMessageStopped(roomIdNumber, messageIdNumber, "visual");
   }, [isBgmMessage, messageIdNumber, roomIdNumber]);
 
   const shouldKeepWaveSurferAlive = useCallback(() => {
@@ -325,7 +379,7 @@ export default function AudioMessage({
       }
       if (shouldAutoPlayRef.current) {
         shouldAutoPlayRef.current = false;
-        ws.play?.();
+        void requestWavePlayback(ws, "ready-auto-play");
       }
     }));
 
@@ -373,7 +427,7 @@ export default function AudioMessage({
 
     unsubsRef.current = unsubs.filter(Boolean) as Array<() => void>;
     boundWaveSurferRef.current = ws;
-  }, [cacheKey, clearWaveSurferBindings, notifyBgmStopped, url]);
+  }, [cacheKey, clearWaveSurferBindings, notifyBgmStopped, requestWavePlayback, url]);
 
   const ensureWaveSurfer = useCallback(async () => {
     if (waveSurferRef.current) {
@@ -464,10 +518,10 @@ export default function AudioMessage({
     }
   }, [bindWaveSurfer, cacheKey, url]);
 
-  const playCurrentMessage = useCallback(async (opts?: { fromStart?: boolean }) => {
+  const playCurrentMessage = useCallback(async (opts?: { fromStart?: boolean; waitForPlaybackStart?: boolean }) => {
     const ws = await ensureWaveSurfer();
     if (!ws) {
-      return;
+      return false;
     }
 
     ensureNonLoopPlayback(ws);
@@ -480,7 +534,14 @@ export default function AudioMessage({
       || (typeof waveDuration === "number" && Number.isFinite(waveDuration) && waveDuration > 0);
     if (!canPlayImmediately) {
       shouldAutoPlayRef.current = true;
-      return;
+      if (!opts?.waitForPlaybackStart) {
+        return true;
+      }
+      const started = await waitForWavePlaybackStart(VISUAL_PLAYBACK_START_WAIT_MS);
+      if (!started) {
+        shouldAutoPlayRef.current = false;
+      }
+      return started;
     }
 
     if (shouldPlayFromStartRef.current) {
@@ -488,10 +549,82 @@ export default function AudioMessage({
       shouldPlayFromStartRef.current = false;
     }
 
-    await ws.play?.();
-  }, [ensureWaveSurfer, isReady]);
+    shouldAutoPlayRef.current = false;
+    const playAccepted = await requestWavePlayback(
+      ws,
+      opts?.fromStart ? "play-from-start" : "play",
+    );
+    if (!playAccepted) {
+      return false;
+    }
+    if (!opts?.waitForPlaybackStart) {
+      return true;
+    }
+    return await waitForWavePlaybackStart(VISUAL_PLAYBACK_START_WAIT_MS);
+  }, [ensureWaveSurfer, isReady, requestWavePlayback, waitForWavePlaybackStart]);
+
+  const attemptPendingAutoPlay = useCallback(() => {
+    if (!hasMatchingPendingAutoPlay || !hasUrl) {
+      return undefined;
+    }
+    if (roomIdNumber == null || messageIdNumber == null || !pendingAutoPlayExpectedPurpose || !pendingAutoPlay) {
+      return undefined;
+    }
+    if (pendingAutoPlayAttemptRef.current) {
+      return pendingAutoPlayAttemptRef.current;
+    }
+
+    const attempt = (async () => {
+      const started = pendingAutoPlayExpectedPurpose === "bgm"
+        ? await requestPlayBgmMessage(roomIdNumber, messageIdNumber)
+        : await playCurrentMessage({
+            fromStart: true,
+            waitForPlaybackStart: true,
+          });
+
+      if (started) {
+        useAudioMessageAutoPlayStore.getState().consumePending({
+          roomId: roomIdNumber,
+          messageId: messageIdNumber,
+          purpose: pendingAutoPlayExpectedPurpose,
+        });
+      }
+
+      mediaDebug("audio-message", "pending-auto-play-attempt", {
+        cacheKey,
+        url,
+        instanceId: instanceIdRef.current,
+        roomId: roomIdNumber,
+        messageId: messageIdNumber,
+        purpose: pendingAutoPlayExpectedPurpose,
+        pendingSequence: pendingAutoPlay.sequence,
+        started,
+      });
+      return started;
+    })();
+
+    pendingAutoPlayAttemptRef.current = attempt;
+    void attempt.finally(() => {
+      if (pendingAutoPlayAttemptRef.current === attempt) {
+        pendingAutoPlayAttemptRef.current = null;
+      }
+    });
+    return attempt;
+  }, [
+    cacheKey,
+    hasMatchingPendingAutoPlay,
+    hasUrl,
+    messageIdNumber,
+    pendingAutoPlay,
+    pendingAutoPlayExpectedPurpose,
+    playCurrentMessage,
+    roomIdNumber,
+    url,
+  ]);
 
   const stopCurrentMessage = useCallback(() => {
+    shouldAutoPlayRef.current = false;
+    shouldPlayFromStartRef.current = false;
     const ws = waveSurferRef.current;
     if (ws) {
       stopWavePlayback(ws);
@@ -518,6 +651,7 @@ export default function AudioMessage({
     setResolvedDuration(undefined);
     shouldAutoPlayRef.current = false;
     shouldPlayFromStartRef.current = false;
+    pendingAutoPlayAttemptRef.current = null;
     setVolumeRatio(1);
   }, [cleanupWaveSurfer, shouldKeepWaveSurferAlive, cacheKey, setVolumeRatio, url]);
 
@@ -637,44 +771,32 @@ export default function AudioMessage({
   ]);
 
   useEffect(() => {
-    if (!pendingAutoPlay || !hasUrl) {
+    void attemptPendingAutoPlay();
+  }, [attemptPendingAutoPlay]);
+
+  useEffect(() => {
+    if (!isReady) {
       return;
     }
-    if (roomIdNumber == null || messageIdNumber == null) {
-      return;
-    }
-    if (pendingAutoPlay.roomId !== roomIdNumber || pendingAutoPlay.messageId !== messageIdNumber) {
+    void attemptPendingAutoPlay();
+  }, [attemptPendingAutoPlay, isReady]);
+
+  useEffect(() => {
+    if (!hasMatchingPendingAutoPlay || typeof window === "undefined") {
       return;
     }
 
-    const expectedPurpose = isBgmMessage ? "bgm" : isSeMessage ? "se" : null;
-    if (!expectedPurpose || pendingAutoPlay.purpose !== expectedPurpose) {
-      return;
-    }
+    const retryPendingAutoPlay = () => {
+      void attemptPendingAutoPlay();
+    };
 
-    const consumed = useAudioMessageAutoPlayStore.getState().consumePending({
-      roomId: roomIdNumber,
-      messageId: messageIdNumber,
-      purpose: expectedPurpose,
-    });
-    if (!consumed) {
-      return;
-    }
-
-    if (expectedPurpose === "bgm") {
-      void requestPlayBgmMessage(roomIdNumber, messageIdNumber);
-      return;
-    }
-    void playCurrentMessage({ fromStart: true });
-  }, [
-    hasUrl,
-    isBgmMessage,
-    isSeMessage,
-    messageIdNumber,
-    pendingAutoPlay,
-    playCurrentMessage,
-    roomIdNumber,
-  ]);
+    window.addEventListener("pointerdown", retryPendingAutoPlay, { passive: true });
+    window.addEventListener("keydown", retryPendingAutoPlay);
+    return () => {
+      window.removeEventListener("pointerdown", retryPendingAutoPlay);
+      window.removeEventListener("keydown", retryPendingAutoPlay);
+    };
+  }, [attemptPendingAutoPlay, hasMatchingPendingAutoPlay]);
 
   useEffect(() => {
     if (!isBgmMessage || roomIdNumber == null) {
@@ -738,7 +860,7 @@ export default function AudioMessage({
         stopWavePlayback(ws);
       }
       else {
-        ws.play?.();
+        await requestWavePlayback(ws, "manual-toggle");
       }
     }
     catch (e) {

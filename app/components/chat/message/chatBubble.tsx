@@ -4,6 +4,7 @@ import React, { use, useCallback, useEffect, useMemo, useRef, useState } from "r
 import toast from "react-hot-toast";
 import { RoomContext } from "@/components/chat/core/roomContext";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
+import { getNextSyncedSoundMessagePurpose } from "@/components/chat/infra/audioMessage/audioMessagePurpose";
 import { ExpressionChooser } from "@/components/chat/input/expressionChooser";
 import TextStyleToolbar from "@/components/chat/input/textStyleToolbar";
 import { buildAnnotationMap } from "@/components/chat/message/annotations/annotationCatalog";
@@ -371,6 +372,32 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
         });
         return;
       }
+    }
+    if (message.messageType === MESSAGE_TYPE.SOUND && message.extra?.soundMessage) {
+      const nextPurpose = getNextSyncedSoundMessagePurpose({
+        previousAnnotations: message.annotations,
+        nextAnnotations,
+        currentPurpose: message.extra.soundMessage.purpose,
+      });
+      const currentPurpose = typeof message.extra.soundMessage.purpose === "string"
+        ? message.extra.soundMessage.purpose.trim().toLowerCase()
+        : undefined;
+      const purposeChanged = currentPurpose !== nextPurpose;
+      if (!annotationsChanged && !purposeChanged) {
+        return;
+      }
+      updateMessageAndSync({
+        ...message,
+        annotations: nextAnnotations,
+        extra: {
+          ...message.extra,
+          soundMessage: {
+            ...message.extra.soundMessage,
+            ...(nextPurpose ? { purpose: nextPurpose } : { purpose: undefined }),
+          },
+        },
+      });
+      return;
     }
     if (!annotationsChanged) {
       return;
@@ -784,26 +811,6 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
         diceResult: { result: content },
       },
     });
-  }, [message, updateMessageAndSync]);
-
-  // 处理音频用途切换（语音/BGM/音效）
-  const _handleAudioPurposeChange = useCallback((purpose: string) => {
-    const soundMessage = message.extra?.soundMessage;
-    if (!soundMessage)
-      return;
-
-    const newMessage = {
-      ...message,
-      extra: {
-        ...message.extra,
-        soundMessage: {
-          ...soundMessage,
-          purpose,
-        },
-      },
-    };
-
-    updateMessageAndSync(newMessage);
   }, [message, updateMessageAndSync]);
 
   // 处理角色名编辑

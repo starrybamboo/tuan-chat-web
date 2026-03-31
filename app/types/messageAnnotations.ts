@@ -261,7 +261,7 @@ export function hasAnnotation(annotations: string[] | undefined, id: string) {
   return normalizeAnnotations(annotations).includes(id);
 }
 
-export function hasAudioPurposeAnnotation(annotations: string[] | undefined) {
+function hasAudioPurposeAnnotation(annotations: string[] | undefined) {
   const normalized = normalizeAnnotations(annotations);
   return normalized.includes(ANNOTATION_IDS.BGM) || normalized.includes(ANNOTATION_IDS.SE);
 }

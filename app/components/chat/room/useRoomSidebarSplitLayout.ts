@@ -2,7 +2,7 @@ import type { CSSProperties, KeyboardEvent as ReactKeyboardEvent, PointerEvent a
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-export const DEFAULT_ROOM_SIDEBAR_SPLIT_RATIO = 0.62;
+const DEFAULT_ROOM_SIDEBAR_SPLIT_RATIO = 0.62;
 export const ROOM_SIDEBAR_SPLIT_HANDLE_HEIGHT = 12;
 
 const MIN_SECTION_HEIGHT = 120;

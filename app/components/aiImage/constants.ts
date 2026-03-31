@@ -2,7 +2,6 @@ import type {
   ActivePreviewAction,
   DirectorToolId,
   DirectorToolOption,
-  NovelAiDirectorRequestType,
   NovelAiEmotion,
   ProFeatureSectionKey,
   ResolutionPreset,
@@ -47,16 +46,6 @@ export const NOISE_SCHEDULES_NAI4 = [
   "karras",
   "exponential",
   "polyexponential",
-] as const;
-
-export const DIRECTOR_REQUEST_TYPES: readonly NovelAiDirectorRequestType[] = [
-  "bg-removal",
-  "declutter",
-  "declutter-keep-bubbles",
-  "lineart",
-  "sketch",
-  "colorize",
-  "emotion",
 ] as const;
 
 export const DIRECTOR_EMOTION_OPTIONS: readonly NovelAiEmotion[] = [
