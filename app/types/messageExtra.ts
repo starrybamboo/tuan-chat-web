@@ -10,7 +10,7 @@ function toRecord(value: unknown): Record<string, unknown> | null {
   return value as Record<string, unknown>;
 }
 
-export function getNestedMessageExtra<K extends MessageExtraKey>(
+function getNestedMessageExtra<K extends MessageExtraKey>(
   extra: unknown,
   key: K,
 ): NestedMessageExtra<K> | undefined {
@@ -38,15 +38,15 @@ export function getVideoMessageExtra(extra: unknown) {
   return getNestedMessageExtra(extra, "videoMessage");
 }
 
-export function getDiceResultExtra(extra: unknown) {
+function getDiceResultExtra(extra: unknown) {
   return getNestedMessageExtra(extra, "diceResult");
 }
 
-export function getForwardMessageExtra(extra: unknown) {
+function getForwardMessageExtra(extra: unknown) {
   return getNestedMessageExtra(extra, "forwardMessage");
 }
 
-export function getClueMessageExtra(extra: unknown) {
+function getClueMessageExtra(extra: unknown) {
   return getNestedMessageExtra(extra, "clueMessage");
 }
 

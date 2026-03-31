@@ -2,7 +2,7 @@ import { create } from "zustand";
 
 import type { MaterialEditorActionScope } from "@/components/chat/chatPage.types";
 
-export type MaterialEditorActionController = {
+type MaterialEditorActionController = {
   packageId: number;
   addFolder: (parentNodeKey?: string | null) => void;
   addMaterial: (parentNodeKey?: string | null) => void;

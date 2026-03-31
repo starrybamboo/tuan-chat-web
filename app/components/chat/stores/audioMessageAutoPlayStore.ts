@@ -24,7 +24,8 @@ type AudioMessageAutoPlayState = {
   nextSequence: number;
 
   setActiveRoomId: (roomId: number | null) => void;
-  enqueueFromWs: (event: { roomId: number; messageId: number; purpose: AutoPlaySoundPurpose }) => void;
+  enqueueFromWs: (event: { roomId: number; messageId: number; purpose: AutoPlaySoundPurpose }) => PendingAutoPlayEvent | undefined;
+  enqueueFromLocalSend: (event: { roomId: number; messageId: number; purpose: AutoPlaySoundPurpose }) => PendingAutoPlayEvent | undefined;
   consumePending: (params: ConsumePendingParams) => PendingAutoPlayEvent | undefined;
   markBgmStopFromWs: (roomId: number) => void;
 };
@@ -101,9 +102,13 @@ export const useAudioMessageAutoPlayStore = create<AudioMessageAutoPlayState>((s
   enqueueFromWs: ({ roomId, messageId, purpose }) => {
     const activeRoomId = get().activeRoomId;
     if (activeRoomId == null || activeRoomId !== roomId) {
-      return;
+      return undefined;
     }
+    return get().enqueueFromLocalSend({ roomId, messageId, purpose });
+  },
 
+  enqueueFromLocalSend: ({ roomId, messageId, purpose }) => {
+    let enqueuedEvent: PendingAutoPlayEvent | undefined;
     set((state) => {
       const nextSequence = state.nextSequence + 1;
       const nextPending = prunePending(state.pendingByMessageId, state.activeRoomId);
@@ -117,13 +122,14 @@ export const useAudioMessageAutoPlayStore = create<AudioMessageAutoPlayState>((s
         }
       }
 
-      nextPending[messageId] = {
+      enqueuedEvent = {
         roomId,
         messageId,
         purpose,
         sequence: nextSequence,
         createdAtMs: Date.now(),
       };
+      nextPending[messageId] = enqueuedEvent;
 
       return {
         ...state,
@@ -131,6 +137,7 @@ export const useAudioMessageAutoPlayStore = create<AudioMessageAutoPlayState>((s
         pendingByMessageId: nextPending,
       };
     });
+    return enqueuedEvent;
   },
 
   consumePending: ({ roomId, messageId, purpose }) => {

@@ -6,7 +6,7 @@ import { parseSpaceDocId } from "@/components/chat/infra/blocksuite/space/spaceD
 const SPACE_DOC_META_CACHE_KEY_PREFIX = "tc:space-doc-metas:v1:";
 const SPACE_DOC_TITLE_SYNC_QUEUE_KEY = "tc:space-doc-title-sync-queue:v1";
 
-export type PendingSpaceDocTitleSync = {
+type PendingSpaceDocTitleSync = {
   docId: number;
   title: string;
   updatedAt: number;
@@ -26,7 +26,7 @@ function buildSpaceDocMetaCacheKey(spaceId: number): string {
   return `${SPACE_DOC_META_CACHE_KEY_PREFIX}${spaceId}`;
 }
 
-export function sanitizeDocMetaList(input: unknown): MinimalDocMeta[] {
+function sanitizeDocMetaList(input: unknown): MinimalDocMeta[] {
   if (!Array.isArray(input)) {
     return [];
   }

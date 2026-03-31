@@ -440,7 +440,7 @@ function extractPreciseReference(root: Record<string, unknown>) {
   );
 }
 
-export function stripImageDataUrlPrefix(value: string) {
+function stripImageDataUrlPrefix(value: string) {
   const trimmed = String(value || "").trim();
   if (!trimmed)
     return "";
@@ -489,16 +489,6 @@ function detectImageMime(bytes: Uint8Array) {
   return "image/png";
 }
 
-export function imageDataUrlFromBase64(value: string) {
-  const base64 = stripImageDataUrlPrefix(value).replace(/\s+/g, "");
-  if (!base64)
-    return "";
-  if (/^data:image\//i.test(value))
-    return value;
-
-  const mime = detectImageMime(decodeBase64Prefix(base64));
-  return `data:${mime};base64,${base64}`;
-}
 
 export function normalizeNovelAiMetadata(raw: unknown): NovelAiImportedSettings | null {
   const rawRecord = asRecord(raw);

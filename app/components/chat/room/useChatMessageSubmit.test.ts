@@ -1,9 +1,11 @@
 import type { ChatMessageResponse, UserRole } from "../../../../api";
 
 import { vi } from "vitest";
+import { ANNOTATION_IDS } from "@/types/messageAnnotations";
 
 const mocks = vi.hoisted(() => ({
   buildMessageDraftsFromComposerSnapshotMock: vi.fn(),
+  triggerAudioAutoPlayMock: vi.fn(),
   toastErrorMock: vi.fn(),
 }));
 
@@ -37,16 +39,8 @@ vi.mock("@/components/common/dicer/cmdPre", () => ({
   isCommand: () => false,
 }));
 
-vi.mock("@/components/chat/infra/audioMessage/audioMessageBgmCoordinator", () => ({
-  requestPlayBgmMessageWithUrl: vi.fn(),
-}));
-
-vi.mock("@/components/chat/stores/audioMessageAutoPlayStore", () => ({
-  useAudioMessageAutoPlayStore: {
-    getState: () => ({
-      enqueueFromWs: vi.fn(),
-    }),
-  },
+vi.mock("@/components/chat/infra/audioMessage/audioMessageAutoPlayRuntime", () => ({
+  triggerAudioAutoPlay: mocks.triggerAudioAutoPlayMock,
 }));
 
 import { MessageType } from "../../../../api/wsModels";
@@ -148,5 +142,79 @@ describe("useChatMessageSubmit", () => {
     expect(setIsSubmitting).toHaveBeenNthCalledWith(1, true);
     expect(setIsSubmitting).toHaveBeenNthCalledWith(2, false);
     expect(mocks.toastErrorMock).not.toHaveBeenCalled();
+  });
+
+  it("首发带 BGM annotation 的音频消息会直接触发自动播放，即使回包未回显 annotation", async () => {
+    mocks.buildMessageDraftsFromComposerSnapshotMock.mockResolvedValue([
+      {
+        content: "",
+        messageType: MessageType.SOUND,
+        annotations: [ANNOTATION_IDS.BGM],
+        extra: {
+          soundMessage: {
+            url: "https://static.example.com/bgm.mp3",
+            fileName: "bgm.mp3",
+            size: 1024,
+            second: 3,
+            purpose: "bgm",
+          },
+        },
+      },
+    ]);
+
+    useChatInputUiStore.setState({
+      plainText: "",
+      textWithoutMentions: "",
+      mentionedRoles: [],
+    });
+
+    const roomUiStoreApi = createRoomUiStore();
+    const setInputText = vi.fn();
+    const setIsSubmitting = vi.fn();
+    const sendMessageBatch = vi.fn(async () => []);
+    const sendMessageWithInsert = vi.fn(async () => ({
+      ...createMessage(10),
+      messageType: MessageType.SOUND,
+      extra: {
+        soundMessage: {
+          url: "https://static.example.com/bgm.mp3",
+          fileName: "bgm.mp3",
+          size: 1024,
+          second: 3,
+          purpose: "bgm",
+        },
+      },
+      annotations: [],
+    }));
+
+    const { handleMessageSubmit } = useChatMessageSubmit({
+      roomId: 1,
+      spaceId: 2,
+      isSpaceOwner: false,
+      curRoleId: 3,
+      notMember: false,
+      noRole: false,
+      isSubmitting: false,
+      setIsSubmitting,
+      sendMessageWithInsert,
+      sendMessageBatch,
+      ensureRuntimeAvatarIdForRole: vi.fn(async () => 7),
+      commandExecutor: vi.fn(),
+      containsCommandRequestAllToken: vi.fn(() => false),
+      stripCommandRequestAllToken: vi.fn((text: string) => text),
+      extractFirstCommandText: vi.fn(() => null),
+      setInputText,
+      roomUiStoreApi,
+    });
+
+    await handleMessageSubmit();
+
+    expect(mocks.triggerAudioAutoPlayMock).toHaveBeenCalledWith({
+      source: "localSend",
+      roomId: 1,
+      messageId: 10,
+      purpose: "bgm",
+      url: "https://static.example.com/bgm.mp3",
+    });
   });
 });

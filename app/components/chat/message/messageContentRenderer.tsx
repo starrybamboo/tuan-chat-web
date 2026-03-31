@@ -1,4 +1,5 @@
 import type { Message } from "../../../../api";
+import { resolveRenderedSoundMessagePurpose } from "@/components/chat/infra/audioMessage/audioMessagePurpose";
 import AudioMessage from "@/components/chat/message/media/AudioMessage";
 import CachedVideoMessage from "@/components/chat/message/media/CachedVideoMessage";
 import WebgalChooseMessage from "@/components/chat/message/webgalChooseMessage";
@@ -187,19 +188,11 @@ export default function MessageContentRenderer({
       const soundMessage = getSoundMessageExtra(message.extra);
       const audioUrl = typeof soundMessage?.url === "string" ? soundMessage.url : "";
       const duration = soundMessage?.second;
-      const contentText = (message.content ?? "").toString();
-      const hasBgmTagInContent = contentText.includes("[播放BGM]");
-      const hasSeTagInContent = contentText.includes("[播放音效]");
-      const hasBgmAnnotation = effectiveAnnotations.some(item => item.toLowerCase() === ANNOTATION_IDS.BGM);
-      const hasSeAnnotation = effectiveAnnotations.some(item => item.toLowerCase() === ANNOTATION_IDS.SE);
-      const purposeFromPayload = typeof soundMessage?.purpose === "string"
-        ? soundMessage.purpose.trim().toLowerCase()
-        : "";
-      const purpose = purposeFromPayload === "bgm" || hasBgmAnnotation || hasBgmTagInContent
-        ? "bgm"
-        : purposeFromPayload === "se" || hasSeAnnotation || hasSeTagInContent
-          ? "se"
-          : "voice";
+      const purpose = resolveRenderedSoundMessagePurpose({
+        annotations: effectiveAnnotations,
+        payloadPurpose: soundMessage?.purpose,
+        content: message.content,
+      });
       return (
         <div className="flex flex-col gap-2">
           {audioUrl

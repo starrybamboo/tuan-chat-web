@@ -2,9 +2,9 @@ const IMAGE_MARKDOWN_RE = /!\[[^\]]*\]\(([^)]+)\)/g;
 const VIDEO_TOKEN_RE = /\{\{\s*video\s*:\s*([^\s}]+)\s*\}\}/gi;
 const MARKDOWN_LINK_RE = /\[([^\]]+)\]\(([^)]+)\)/g;
 
-export const MEDIA_IMAGE_PREVIEW_TEXT = "含图片";
-export const MEDIA_VIDEO_PREVIEW_TEXT = "含视频";
-export const MEDIA_IMAGE_VIDEO_PREVIEW_TEXT = "含图片与视频";
+const MEDIA_IMAGE_PREVIEW_TEXT = "含图片";
+const MEDIA_VIDEO_PREVIEW_TEXT = "含视频";
+const MEDIA_IMAGE_VIDEO_PREVIEW_TEXT = "含图片与视频";
 
 type LegacyMediaContentParts = {
   text?: string | null;
@@ -57,7 +57,7 @@ export function composeMediaContent(parts?: LegacyMediaContentParts) {
   return blocks.join("\n\n");
 }
 
-export function countMediaInContent(content?: string | null) {
+function countMediaInContent(content?: string | null) {
   const source = normalizeMultiline(content);
   const imageMatches = source.matchAll(clonePattern(IMAGE_MARKDOWN_RE));
   const videoMatches = source.matchAll(clonePattern(VIDEO_TOKEN_RE));
@@ -79,7 +79,7 @@ export function countMediaInContent(content?: string | null) {
   return { imageCount, videoCount };
 }
 
-export function extractMediaText(content?: string | null) {
+function extractMediaText(content?: string | null) {
   const source = normalizeMultiline(content);
   return source
     .replace(clonePattern(IMAGE_MARKDOWN_RE), " ")

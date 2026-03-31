@@ -8,7 +8,6 @@ import type { SpaceMemberDeleteRequest } from "../models/SpaceMemberDeleteReques
 import type { SpaceMemberAddRequest } from "../models/SpaceMemberAddRequest";
 import type { SpaceAddRequest } from "../models/SpaceAddRequest";
 import type { SpaceOwnerTransferRequest } from "../models/SpaceOwnerTransferRequest";
-import type { PlayerRevokeRequest } from "../models/PlayerRevokeRequest";
 import type { PlayerGrantRequest } from "../models/PlayerGrantRequest";
 import type { SpaceMemberTypeUpdateRequest } from "../models/SpaceMemberTypeUpdateRequest";
 import type { ChatMessagePageRequest } from "../models/ChatMessagePageRequest";
@@ -509,21 +508,6 @@ export function useSetPlayerMutation() {
     return useMutation({
         mutationFn: (req: PlayerGrantRequest) => tuanchat.spaceMemberController.grantPlayer(req),
         mutationKey: ['setPlayer'],
-        onSuccess: (_, variables) => {
-            queryClient.invalidateQueries({ queryKey: ['getSpaceMemberList', variables.spaceId] });
-            queryClient.invalidateQueries({ queryKey: ['getRoomMemberList'] });
-        }
-    });
-}
-
-/**
- * 撤销玩家身份
- */
-export function useRevokePlayerMutation() {
-    const queryClient = useQueryClient();
-    return useMutation({
-        mutationFn: (req: PlayerRevokeRequest) => tuanchat.spaceMemberController.revokePlayer(req),
-        mutationKey: ['revokePlayer'],
         onSuccess: (_, variables) => {
             queryClient.invalidateQueries({ queryKey: ['getSpaceMemberList', variables.spaceId] });
             queryClient.invalidateQueries({ queryKey: ['getRoomMemberList'] });

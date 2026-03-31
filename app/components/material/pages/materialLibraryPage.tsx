@@ -19,7 +19,7 @@ import { buildGlobalMaterialPackageCardModel } from "../components/materialPacka
 import MaterialPackageLibrarySidebar from "../components/materialPackageLibrarySidebar";
 import MaterialPackageLibraryWorkspace from "../components/materialPackageLibraryWorkspace";
 
-export type GlobalTab = "public" | "mine";
+type GlobalTab = "public" | "mine";
 
 interface MaterialLibraryPageProps {
   initialTab?: GlobalTab;

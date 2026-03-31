@@ -30,7 +30,7 @@ export const FIGURE_POSITION_IDS: Record<FigurePositionKey, 1 | 2 | 3 | 4 | 5> =
   "right": 5,
 };
 
-export type FigurePositionId = typeof FIGURE_POSITION_IDS[FigurePositionKey];
+type FigurePositionId = typeof FIGURE_POSITION_IDS[FigurePositionKey];
 
 export function isFigurePosition(value: string | undefined): value is FigurePositionKey {
   return FIGURE_POSITION_ORDER.includes(value as FigurePositionKey);
@@ -73,7 +73,7 @@ export const MESSAGE_TYPE = {
 /**
  * WebGAL 预置动画名称
  */
-export const PREDEFINED_ANIMATIONS = [
+const PREDEFINED_ANIMATIONS = [
   "enter", // 淡入
   "exit", // 淡出
   "shake", // 摇动
@@ -88,7 +88,7 @@ export type PredefinedAnimation = typeof PREDEFINED_ANIMATIONS[number];
 /**
  * WebGAL 动画目标（自动根据立绘位置推断）
  */
-export const ANIMATION_TARGETS = [
+const ANIMATION_TARGETS = [
   "1", // 左
   "2", // 左中
   "3", // 中
@@ -97,7 +97,7 @@ export const ANIMATION_TARGETS = [
   "bg-main", // 主背景
 ] as const;
 
-export type AnimationTarget = typeof ANIMATION_TARGETS[number] | string;
+type AnimationTarget = typeof ANIMATION_TARGETS[number] | string;
 
 /**
  * 立绘动画设置
@@ -151,7 +151,7 @@ type VoiceRenderSettings = {
  * 扩展的 MessageExtra 类型（本地使用）
  * 与后端 MessageExtra 合并使用
  */
-export type ExtendedMessageExtra = {
+type ExtendedMessageExtra = {
   voiceRenderSettings?: VoiceRenderSettings;
 };
 
@@ -165,7 +165,7 @@ type EmotionLabel = typeof EMOTION_LABELS[number];
 /**
  * 将情感向量对象转换为数组
  */
-export function emotionRecordToVector(record: Record<string, string | number>): number[] {
+function emotionRecordToVector(record: Record<string, string | number>): number[] {
   return EMOTION_LABELS.map((label) => {
     const value = record[label];
     if (typeof value === "number")
@@ -179,7 +179,7 @@ export function emotionRecordToVector(record: Record<string, string | number>): 
 /**
  * 将情感向量数组转换为对象
  */
-export function emotionVectorToRecord(vector: number[]): Record<EmotionLabel, number> {
+function emotionVectorToRecord(vector: number[]): Record<EmotionLabel, number> {
   const record: Record<string, number> = {};
   EMOTION_LABELS.forEach((label, index) => {
     record[label] = vector[index] ?? 0;
@@ -190,7 +190,7 @@ export function emotionVectorToRecord(vector: number[]): Record<EmotionLabel, nu
 /**
  * 归一化情感向量，确保总和不超过最大值
  */
-export function normalizeEmotionVector(vector: number[], maxSum = 1.5): number[] {
+function normalizeEmotionVector(vector: number[], maxSum = 1.5): number[] {
   const currentSum = vector.reduce((sum, val) => sum + val, 0);
   if (currentSum <= maxSum)
     return vector;
@@ -201,6 +201,6 @@ export function normalizeEmotionVector(vector: number[], maxSum = 1.5): number[]
 /**
  * 创建默认的情感向量（平静）
  */
-export function createDefaultEmotionVector(): number[] {
+function createDefaultEmotionVector(): number[] {
   return [0, 0, 0, 0, 0, 0, 0, 0.5]; // 默认平静
 }

@@ -31,7 +31,7 @@ export type BlocksuiteDescriptionEditorProps = {
   className?: string;
 };
 
-export function normalizeAppThemeToBlocksuiteTheme(raw: string | null | undefined): "light" | "dark" {
+function normalizeAppThemeToBlocksuiteTheme(raw: string | null | undefined): "light" | "dark" {
   const v = (raw ?? "").toLowerCase();
   if (v.includes("dark") || v.includes("dracula") || v.includes("night")) {
     return "dark";

@@ -115,8 +115,3 @@ export {
   buildQueuedFilesSummary,
   splitComposerFiles,
 };
-
-export type {
-  QueueMaterialComposerFilesOptions,
-  QueuedComposerFiles,
-};

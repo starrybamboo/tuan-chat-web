@@ -63,7 +63,7 @@ function resolveBackendGenerateImageUrl() {
   return resolveBackendNovelApiUrl("/ai/generate-image");
 }
 
-export async function requestNovelAiBinaryViaProxy(requestUrl: string, payload: unknown) {
+async function requestNovelAiBinaryViaProxy(requestUrl: string, payload: unknown) {
   const res = await fetch(requestUrl, {
     method: "POST",
     headers: {

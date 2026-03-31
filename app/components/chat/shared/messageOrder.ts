@@ -63,7 +63,7 @@ function stableSerialize(value: unknown): string {
   return JSON.stringify(String(value));
 }
 
-export function compareMessageOrder(left: MessageOrderComparable, right: MessageOrderComparable): number {
+function compareMessageOrder(left: MessageOrderComparable, right: MessageOrderComparable): number {
   const leftPosition = toFiniteNumber(left.position);
   const rightPosition = toFiniteNumber(right.position);
   if (leftPosition !== undefined && rightPosition !== undefined && leftPosition !== rightPosition) {

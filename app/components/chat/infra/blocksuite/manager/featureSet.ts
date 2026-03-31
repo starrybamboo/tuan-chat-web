@@ -55,7 +55,7 @@ export const SUPPORTED_BLOCKSUITE_FEATURES = [
 
 export type SupportedBlocksuiteFeature = typeof SUPPORTED_BLOCKSUITE_FEATURES[number];
 
-export const UNSUPPORTED_BLOCKSUITE_FEATURES = [
+const UNSUPPORTED_BLOCKSUITE_FEATURES = [
   "callout",
   "brush",
   "shape",

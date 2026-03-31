@@ -4,7 +4,7 @@ import { toast } from "react-hot-toast";
 import type { RoomUiStoreApi } from "@/components/chat/stores/roomUiStore";
 import type { WebgalChoosePayload } from "@/types/webgalChoose";
 
-import { commitBatchOptimisticMessages } from "@/components/chat/room/roomMessageBatchCommit";
+import { buildCommittedResponseFromOptimistic, commitBatchOptimisticMessages } from "@/components/chat/room/roomMessageBatchCommit";
 import { getNextAppendPosition } from "@/components/chat/shared/messageOrder";
 import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
 
@@ -130,15 +130,8 @@ export default function useRoomMessageActions({
     optimisticMessage: ChatMessageResponse,
     createdMessage: ChatMessageResponse["message"],
   ): Promise<ChatMessageResponse["message"]> => {
-    const normalizedCreated = {
-      ...createdMessage,
-      position: typeof createdMessage.position === "number"
-        ? createdMessage.position
-        : optimisticMessage.message.position,
-    };
-    const createdResponse: ChatMessageResponse = {
-      message: normalizedCreated,
-    };
+    const createdResponse = buildCommittedResponseFromOptimistic(optimisticMessage, createdMessage);
+    const normalizedCreated = createdResponse.message;
 
     if (replaceMessageById) {
       await replaceMessageById(optimisticMessage.message.messageId, createdResponse);

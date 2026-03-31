@@ -82,24 +82,3 @@ export async function setSidebarExpandedMap(params: {
   });
 }
 
-export async function getSidebarTreeExpandedByCategoryId(params: {
-  userId: number | null | undefined;
-  spaceId: number;
-}): Promise<Record<string, boolean> | null> {
-  return getSidebarExpandedMap({
-    ...params,
-    scope: "room-doc-tree",
-  });
-}
-
-export async function setSidebarTreeExpandedByCategoryId(params: {
-  userId: number | null | undefined;
-  spaceId: number;
-  expandedByCategoryId: Record<string, boolean>;
-}): Promise<void> {
-  return setSidebarExpandedMap({
-    ...params,
-    scope: "room-doc-tree",
-    expandedByKey: params.expandedByCategoryId,
-  });
-}
