@@ -78,6 +78,7 @@ else {
     [".mjs", "text/javascript; charset=utf-8"],
     [".css", "text/css; charset=utf-8"],
     [".json", "application/json; charset=utf-8"],
+    [".wasm", "application/wasm"],
     [".svg", "image/svg+xml"],
     [".png", "image/png"],
     [".jpg", "image/jpeg"],
@@ -90,13 +91,27 @@ else {
     [".ico", "image/x-icon"],
   ]);
 
+  const hashedAssetPattern = /[\\/]+assets[\\/]+.+-[A-Za-z0-9_-]{6,}\.[A-Za-z0-9]+$/;
+
+  const resolveCacheControl = (filePath, ext) => {
+    if (ext === ".html") {
+      return "no-cache";
+    }
+
+    if (hashedAssetPattern.test(filePath)) {
+      return "public, max-age=31536000, immutable";
+    }
+
+    return "public, max-age=3600";
+  };
+
   const serveFile = async (res, filePath) => {
     const ext = path.extname(filePath).toLowerCase();
     const contentType = contentTypeByExt.get(ext) || "application/octet-stream";
     const buf = await fs.readFile(filePath);
     res.writeHead(200, {
       "Content-Type": contentType,
-      "Cache-Control": "no-cache",
+      "Cache-Control": resolveCacheControl(filePath, ext),
     });
     res.end(buf);
   };

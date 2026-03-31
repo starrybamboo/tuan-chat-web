@@ -2,6 +2,7 @@ import bundledCoreJsUrl from "@ffmpeg/core?url";
 import bundledCoreWasmUrl from "@ffmpeg/core/wasm?url";
 import bundledWorkerUrl from "@ffmpeg/ffmpeg/worker?worker&url";
 
+import { resolvePersistentFfmpegAssetBlobUrl } from "@/utils/ffmpegAssetCache";
 import { resolveFfmpegLoadTimeoutMs } from "@/utils/ffmpegLoadTimeoutConfig";
 
 export type VideoTranscodeOptions = {
@@ -248,11 +249,12 @@ async function getFfmpeg(loadTimeoutMs: number): Promise<import("@ffmpeg/ffmpeg"
     const { FFmpeg } = await import("@ffmpeg/ffmpeg");
     const ffmpeg: import("@ffmpeg/ffmpeg").FFmpeg = new FFmpeg();
     const classWorkerURL = toAbsoluteUrl(bundledWorkerUrl);
+    const wasmURL = await resolvePersistentFfmpegAssetBlobUrl(bundledCoreWasmUrl, "application/wasm", loadTimeoutMs);
 
     await withTimeout(
       ffmpeg.load({
         coreURL: bundledCoreJsUrl,
-        wasmURL: bundledCoreWasmUrl,
+        wasmURL,
         classWorkerURL,
       }),
       loadTimeoutMs,
