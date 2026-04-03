@@ -16,6 +16,7 @@ import toast from "react-hot-toast";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
 import { buildDescriptionDocId, parseDescriptionDocId } from "@/components/chat/infra/blocksuite/description/descriptionDocId";
 import BlocksuiteDescriptionEditor from "@/components/chat/shared/components/BlockSuite/blocksuiteDescriptionEditor";
+import { documentModalShellClassName, getDocumentModalFrameClassName } from "@/components/chat/shared/components/documentModalShell";
 import { copyDocToSpaceUserDoc } from "@/components/chat/utils/docCopy";
 import { getDocRefDragData, isDocRefDrag, setDocRefDragData } from "@/components/chat/utils/docRef";
 import { useLocalStorage } from "@/components/common/customHooks/useLocalStorage";
@@ -802,13 +803,10 @@ export default function DocFolderForUser({ onSendDocCard }: DocFolderForUserProp
         isOpen={openDocId != null && openDocBlocksuiteId != null}
         onClose={() => setOpenDocId(null)}
         fullScreen={isMobile}
+        disableScroll
       >
         <div
-          className={`overflow-hidden bg-base-100 flex flex-col ${
-            isMobile
-              ? "w-full h-full"
-              : "w-[min(1280px,98vw)] h-[min(90vh,920px)] rounded-2xl border border-base-300/80 shadow-2xl"
-          }`}
+          className={`${documentModalShellClassName} ${getDocumentModalFrameClassName(isMobile)}`}
         >
           <div className="flex-1 min-h-0 overflow-hidden">
             {openDocBlocksuiteId && (

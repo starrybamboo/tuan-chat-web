@@ -9,6 +9,7 @@ import { parseDescriptionDocId } from "@/components/chat/infra/blocksuite/descri
 import { readBlocksuiteDocHeader, subscribeBlocksuiteDocHeader } from "@/components/chat/infra/blocksuite/document/docHeader";
 import { recordDocCardShareObservation } from "@/components/chat/infra/blocksuite/shared/docCardShareObservability";
 import BlocksuiteDescriptionEditor from "@/components/chat/shared/components/BlockSuite/blocksuiteDescriptionEditor";
+import { documentModalShellClassName, getDocumentModalFrameClassName } from "@/components/chat/shared/components/documentModalShell";
 import { setDocRefDragData } from "@/components/chat/utils/docRef";
 import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
 import { getDocCardExtra } from "@/types/messageExtra";
@@ -259,11 +260,7 @@ function DocCardMessageImpl({ messageResponse }: { messageResponse: ChatMessageR
         disableScroll
       >
         <div
-          className={`overflow-hidden bg-base-100 flex flex-col ${
-            isMobile
-              ? "w-full h-full"
-              : "w-[960px] max-w-[90vw] h-[min(90vh,calc(100vh-2rem))] rounded-2xl border border-base-300/80 shadow-2xl"
-          }`}
+          className={`${documentModalShellClassName} ${getDocumentModalFrameClassName(isMobile)}`}
         >
           <div className="flex-1 min-h-0 overflow-hidden">
             {(!isDisabled && typeof previewSpaceId === "number" && previewSpaceId > 0) && (
