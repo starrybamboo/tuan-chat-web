@@ -10,6 +10,7 @@ import type { FigurePosition } from "@/types/voiceRenderTypes";
 
 import { parseDescriptionDocId } from "@/components/chat/infra/blocksuite/description/descriptionDocId";
 import { extractDocExcerptFromStore } from "@/components/chat/infra/blocksuite/document/docExcerpt";
+import { recordDocCardShareObservation } from "@/components/chat/infra/blocksuite/shared/docCardShareObservability";
 import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
 import { IMPORT_SPECIAL_ROLE_ID } from "@/components/chat/utils/importChatText";
 import { buildOutOfCharacterSpeechContent } from "@/components/chat/utils/outOfCharacterSpeech";
@@ -68,6 +69,11 @@ export default function useRoomImportActions({
   const ensureLoadedDocSnapshotReadyForSharing = useCallback(async (docId: string): Promise<void> => {
     const parsed = parseDescriptionDocId(docId);
     if (!parsed || !spaceId || spaceId <= 0) {
+      recordDocCardShareObservation("share-sync-skip", {
+        docId,
+        reason: !parsed ? "unsupported-doc-id" : "invalid-space",
+        spaceId,
+      });
       return;
     }
 
@@ -84,24 +90,63 @@ export default function useRoomImportActions({
 
     const currentDoc = workspace?.getDoc?.(docId) ?? null;
     if (!workspace || !currentDoc?.ready || typeof workspace.encodeDocAsUpdate !== "function") {
+      recordDocCardShareObservation("share-sync-skip", {
+        docId,
+        spaceId,
+        reason: !workspace ? "workspace-missing" : (!currentDoc?.ready ? "doc-not-ready" : "encode-unavailable"),
+      });
       return;
     }
 
-    const update = workspace.encodeDocAsUpdate(docId);
-    if (!(update instanceof Uint8Array) || update.length === 0) {
-      return;
-    }
-
-    await setRemoteSnapshot({
+    recordDocCardShareObservation("share-sync-start", {
+      docId,
+      spaceId,
       entityType: parsed.entityType,
       entityId: parsed.entityId,
       docType: parsed.docType,
-      snapshot: {
-        v: 1,
-        updateB64: uint8ArrayToBase64(update),
-        updatedAt: Date.now(),
-      },
     });
+
+    const update = workspace.encodeDocAsUpdate(docId);
+    if (!(update instanceof Uint8Array) || update.length === 0) {
+      recordDocCardShareObservation("share-sync-skip", {
+        docId,
+        spaceId,
+        reason: "empty-update",
+      });
+      return;
+    }
+
+    try {
+      await setRemoteSnapshot({
+        entityType: parsed.entityType,
+        entityId: parsed.entityId,
+        docType: parsed.docType,
+        snapshot: {
+          v: 1,
+          updateB64: uint8ArrayToBase64(update),
+          updatedAt: Date.now(),
+        },
+      });
+      recordDocCardShareObservation("share-sync-success", {
+        docId,
+        spaceId,
+        entityType: parsed.entityType,
+        entityId: parsed.entityId,
+        docType: parsed.docType,
+        updateBytes: update.length,
+      });
+    }
+    catch (error) {
+      recordDocCardShareObservation("share-sync-failed", {
+        docId,
+        spaceId,
+        entityType: parsed.entityType,
+        entityId: parsed.entityId,
+        docType: parsed.docType,
+        error: error instanceof Error ? error.message : String(error),
+      });
+      throw error;
+    }
   }, [spaceId]);
 
   const handleImportChatText = useCallback(async (
@@ -257,6 +302,14 @@ export default function useRoomImportActions({
 
   const handleSendDocCard = useCallback(async (payload: DocRefDragPayload) => {
     const docId = String(payload?.docId ?? "").trim();
+    recordDocCardShareObservation("share-requested", {
+      docId,
+      spaceId,
+      payloadSpaceId: payload?.spaceId,
+      hasExcerpt: Boolean(payload?.excerpt?.trim()),
+      hasTitle: Boolean(payload?.title?.trim()),
+      hasImageUrl: Boolean(payload?.imageUrl?.trim()),
+    });
     if (!docId) {
       toast.error("未检测到可用文档");
       return;
@@ -340,9 +393,46 @@ export default function useRoomImportActions({
       request.threadId = threadRootMessageId;
     }
 
-    const createdDocCard = await sendMessageWithInsert(request);
-    if (!createdDocCard) {
-      return;
+    recordDocCardShareObservation("share-message-send-start", {
+      docId,
+      roomId,
+      spaceId,
+      roleId: curRoleId,
+      threadId: request.threadId,
+    });
+
+    try {
+      const createdDocCard = await sendMessageWithInsert(request);
+      if (!createdDocCard) {
+        recordDocCardShareObservation("share-message-send-failed", {
+          docId,
+          roomId,
+          spaceId,
+          roleId: curRoleId,
+          threadId: request.threadId,
+          error: "message-not-created",
+        });
+        return;
+      }
+      recordDocCardShareObservation("share-message-send-success", {
+        docId,
+        roomId,
+        spaceId,
+        roleId: curRoleId,
+        threadId: request.threadId,
+        messageId: createdDocCard.messageId,
+      });
+    }
+    catch (error) {
+      recordDocCardShareObservation("share-message-send-failed", {
+        docId,
+        roomId,
+        spaceId,
+        roleId: curRoleId,
+        threadId: request.threadId,
+        error: error instanceof Error ? error.message : String(error),
+      });
+      throw error;
     }
   }, [
     curRoleId,
