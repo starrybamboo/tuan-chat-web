@@ -2,6 +2,7 @@ import { parseDescriptionDocId } from "@/components/chat/infra/blocksuite/descri
 import { getRemoteSnapshot } from "@/components/chat/infra/blocksuite/description/descriptionDocRemote";
 import { base64ToUint8Array } from "@/components/chat/infra/blocksuite/shared/base64";
 import { isNonRetryableBlocksuiteDocError } from "@/components/chat/infra/blocksuite/shared/blocksuiteDocError";
+import { recordDocCardShareObservation } from "@/components/chat/infra/blocksuite/shared/docCardShareObservability";
 
 export const INITIAL_REMOTE_HYDRATION_WAIT_MS = 1200;
 export const LATE_REMOTE_HYDRATION_WAIT_MS = 4000;
@@ -110,6 +111,13 @@ export async function waitForRemoteSnapshotDecision(params: {
       update: null,
     })),
   ]);
+  recordDocCardShareObservation("hydration-decision", {
+    docId,
+    state: result.state,
+    timeoutMs,
+    hasUpdate: Boolean(result.update?.length),
+    updateBytes: result.update?.length ?? 0,
+  });
   return result;
 }
 

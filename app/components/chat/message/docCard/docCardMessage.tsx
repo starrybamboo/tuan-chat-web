@@ -7,6 +7,7 @@ import toast from "react-hot-toast";
 import { RoomContext } from "@/components/chat/core/roomContext";
 import { parseDescriptionDocId } from "@/components/chat/infra/blocksuite/description/descriptionDocId";
 import { readBlocksuiteDocHeader, subscribeBlocksuiteDocHeader } from "@/components/chat/infra/blocksuite/document/docHeader";
+import { recordDocCardShareObservation } from "@/components/chat/infra/blocksuite/shared/docCardShareObservability";
 import BlocksuiteDescriptionEditor from "@/components/chat/shared/components/BlockSuite/blocksuiteDescriptionEditor";
 import { setDocRefDragData } from "@/components/chat/utils/docRef";
 import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
@@ -87,6 +88,11 @@ function DocCardMessageImpl({ messageResponse }: { messageResponse: ChatMessageR
     (async () => {
       try {
         const registry = await import("@/components/chat/infra/blocksuite/space/spaceWorkspaceRegistry");
+        recordDocCardShareObservation("preview-store-load-start", {
+          docId,
+          messageId: message.messageId,
+          previewSpaceId,
+        });
         const store = registry.getOrCreateSpaceDoc({ spaceId: previewSpaceId, docId }) as any;
 
         try {
@@ -97,6 +103,13 @@ function DocCardMessageImpl({ messageResponse }: { messageResponse: ChatMessageR
         }
 
         const header = readBlocksuiteDocHeader(store);
+        recordDocCardShareObservation("preview-store-load-success", {
+          docId,
+          messageId: message.messageId,
+          previewSpaceId,
+          hasHeaderTitle: Boolean(header?.title),
+          hasHeaderImageUrl: Boolean(header?.imageUrl),
+        });
         if (header && (header.title || header.imageUrl)) {
           setPreview(prev => ({
             title: header.title || prev.title || payload?.title || docId,
@@ -108,6 +121,13 @@ function DocCardMessageImpl({ messageResponse }: { messageResponse: ChatMessageR
         unsubHeader = subscribeBlocksuiteDocHeader(store, (h) => {
           if (!h)
             return;
+          recordDocCardShareObservation("preview-header-sync", {
+            docId,
+            messageId: message.messageId,
+            previewSpaceId,
+            hasTitle: Boolean(h.title),
+            hasImageUrl: Boolean(h.imageUrl),
+          });
           setPreview(prev => ({
             title: h.title || prev.title || payload?.title || docId,
             imageUrl: h.imageUrl || prev.imageUrl || payload?.imageUrl || "",
@@ -115,8 +135,13 @@ function DocCardMessageImpl({ messageResponse }: { messageResponse: ChatMessageR
           }));
         });
       }
-      catch {
-        // ignore
+      catch (error) {
+        recordDocCardShareObservation("preview-store-load-failed", {
+          docId,
+          messageId: message.messageId,
+          previewSpaceId,
+          error: error instanceof Error ? error.message : String(error),
+        });
       }
     })();
 
@@ -136,9 +161,22 @@ function DocCardMessageImpl({ messageResponse }: { messageResponse: ChatMessageR
 
   const openPreview = () => {
     if (isDisabled) {
+      recordDocCardShareObservation("preview-disabled-click", {
+        docId,
+        messageId: message.messageId,
+        currentSpaceId,
+        previewSpaceId,
+        reason: disabledReason,
+      });
       toast.error(disabledReason || "无法打开文档预览");
       return;
     }
+    recordDocCardShareObservation("preview-click", {
+      docId,
+      messageId: message.messageId,
+      currentSpaceId,
+      previewSpaceId,
+    });
     setIsOpen(true);
   };
 

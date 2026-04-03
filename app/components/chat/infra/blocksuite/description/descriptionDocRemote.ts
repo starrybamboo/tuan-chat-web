@@ -1,4 +1,5 @@
 import { tuanchat } from "api/instance";
+import { recordDocCardShareObservation } from "@/components/chat/infra/blocksuite/shared/docCardShareObservability";
 
 export type DescriptionEntityType = "space" | "room" | "user" | "space_user_doc" | "space_doc";
 export type DescriptionDocType = "description" | "readme";
@@ -157,9 +158,22 @@ export async function getRemoteSnapshot(params: {
   entityId: number;
   docType: DescriptionDocType;
 }): Promise<StoredSnapshot | null> {
+  recordDocCardShareObservation("remote-snapshot-get-start", {
+    entityType: params.entityType,
+    entityId: params.entityId,
+    docType: params.docType,
+  });
   const cacheKey = buildRemoteCacheKey(params);
   const cached = snapshotCache.get(cacheKey);
   if (cached && Date.now() - cached.at <= SNAPSHOT_CACHE_TTL_MS) {
+    recordDocCardShareObservation("remote-snapshot-get-success", {
+      entityType: params.entityType,
+      entityId: params.entityId,
+      docType: params.docType,
+      source: "cache",
+      hasSnapshot: Boolean(cached.value?.updateB64),
+      snapshotVersion: cached.value?.v,
+    });
     return cached.value;
   }
 
@@ -188,7 +202,24 @@ export async function getRemoteSnapshot(params: {
   try {
     const value = await task;
     snapshotCache.set(cacheKey, { at: Date.now(), value });
+    recordDocCardShareObservation("remote-snapshot-get-success", {
+      entityType: params.entityType,
+      entityId: params.entityId,
+      docType: params.docType,
+      source: "network",
+      hasSnapshot: Boolean(value?.updateB64),
+      snapshotVersion: value?.v,
+    });
     return value;
+  }
+  catch (error) {
+    recordDocCardShareObservation("remote-snapshot-get-failed", {
+      entityType: params.entityType,
+      entityId: params.entityId,
+      docType: params.docType,
+      error: error instanceof Error ? error.message : String(error),
+    });
+    throw error;
   }
   finally {
     snapshotInflight.delete(cacheKey);
@@ -201,6 +232,13 @@ export async function setRemoteSnapshot(params: {
   docType: DescriptionDocType;
   snapshot: StoredSnapshot;
 }): Promise<void> {
+  recordDocCardShareObservation("remote-snapshot-set-start", {
+    entityType: params.entityType,
+    entityId: params.entityId,
+    docType: params.docType,
+    snapshotVersion: params.snapshot.v,
+    updateB64Length: params.snapshot.updateB64.length,
+  });
   const cacheKey = buildRemoteCacheKey(params);
   const now = Date.now();
 
@@ -211,6 +249,13 @@ export async function setRemoteSnapshot(params: {
     && last.updateB64 === params.snapshot.updateB64
     && now - last.at <= SNAPSHOT_SET_DEDUPE_MS) {
     snapshotCache.set(cacheKey, { at: now, value: params.snapshot });
+    recordDocCardShareObservation("remote-snapshot-set-success", {
+      entityType: params.entityType,
+      entityId: params.entityId,
+      docType: params.docType,
+      snapshotVersion: params.snapshot.v,
+      deduped: true,
+    });
     return;
   }
 
@@ -237,6 +282,23 @@ export async function setRemoteSnapshot(params: {
   snapshotSetInflight.set(cacheKey, task);
   try {
     await task;
+    recordDocCardShareObservation("remote-snapshot-set-success", {
+      entityType: params.entityType,
+      entityId: params.entityId,
+      docType: params.docType,
+      snapshotVersion: params.snapshot.v,
+      deduped: false,
+    });
+  }
+  catch (error) {
+    recordDocCardShareObservation("remote-snapshot-set-failed", {
+      entityType: params.entityType,
+      entityId: params.entityId,
+      docType: params.docType,
+      snapshotVersion: params.snapshot.v,
+      error: error instanceof Error ? error.message : String(error),
+    });
+    throw error;
   }
   finally {
     // Only clear if it is still the same task.
