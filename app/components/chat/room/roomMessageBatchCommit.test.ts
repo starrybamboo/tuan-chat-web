@@ -1,7 +1,9 @@
 import type { ChatMessageResponse } from "../../../../api";
 import { vi } from "vitest";
+import { ANNOTATION_IDS } from "@/types/messageAnnotations";
+import { MessageType } from "../../../../api/wsModels";
 
-import { buildCommittedBatchResponses, commitBatchOptimisticMessages } from "./roomMessageBatchCommit";
+import { buildCommittedBatchResponses, buildCommittedResponseFromOptimistic, commitBatchOptimisticMessages } from "./roomMessageBatchCommit";
 
 function createOptimisticMessage(messageId: number, position: number): ChatMessageResponse {
   return {
@@ -98,5 +100,57 @@ describe("roomMessageBatchCommit", () => {
     }));
     expect(addOrUpdateMessages).not.toHaveBeenCalled();
     expect(result).toHaveLength(2);
+  });
+
+  it("音频消息提交回填时保留乐观消息里的 BGM annotation 和 purpose", () => {
+    const optimisticMessage: ChatMessageResponse = {
+      message: {
+        messageId: -1,
+        syncId: -1,
+        roomId: 1,
+        userId: 2,
+        roleId: 3,
+        content: "",
+        status: 0,
+        messageType: MessageType.SOUND,
+        position: 101,
+        annotations: [ANNOTATION_IDS.BGM],
+        extra: {
+          soundMessage: {
+            url: "https://static.example.com/bgm.mp3",
+            fileName: "bgm.mp3",
+            second: 3,
+            purpose: "bgm",
+          },
+        } as any,
+        createTime: "2026-03-31 20:00:00",
+        updateTime: "2026-03-31 20:00:00",
+      },
+    };
+
+    const committed = buildCommittedResponseFromOptimistic(optimisticMessage, {
+      messageId: 11,
+      syncId: 201,
+      roomId: 1,
+      userId: 2,
+      roleId: 3,
+      content: "",
+      status: 0,
+      messageType: MessageType.SOUND,
+      position: 101,
+      annotations: [],
+      extra: {
+        soundMessage: {
+          url: "https://static.example.com/bgm.mp3",
+          fileName: "bgm.mp3",
+          second: 3,
+        },
+      } as any,
+      createTime: "2026-03-31 20:00:01",
+      updateTime: "2026-03-31 20:00:01",
+    });
+
+    expect(committed.message.annotations).toContain(ANNOTATION_IDS.BGM);
+    expect((committed.message.extra as any)?.soundMessage?.purpose).toBe("bgm");
   });
 });

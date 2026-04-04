@@ -28,7 +28,7 @@ type BuildMessageDraftsFromComposerSnapshotParams = {
   textMessageType?: MessageDraft["messageType"];
 };
 
-export async function getMessageDraftMediaDuration(file: File): Promise<number | undefined> {
+async function getMessageDraftMediaDuration(file: File): Promise<number | undefined> {
   const objectUrl = URL.createObjectURL(file);
 
   try {
@@ -71,7 +71,7 @@ function isVideoAttachment(file: File) {
   return /\.(?:mp4|mov|m4v|avi|mkv|wmv|flv|mpeg|mpg|webm)$/i.test(file.name || "");
 }
 
-export function buildMessageDraftIdentityFields(baseMessage?: Partial<MessageDraft>): Partial<MessageDraft> {
+function buildMessageDraftIdentityFields(baseMessage?: Partial<MessageDraft>): Partial<MessageDraft> {
   const roleId = typeof baseMessage?.roleId === "number" ? baseMessage.roleId : undefined;
   const avatarId = typeof roleId === "number" && roleId > 0 && typeof baseMessage?.avatarId === "number" && baseMessage.avatarId > 0
     ? baseMessage.avatarId

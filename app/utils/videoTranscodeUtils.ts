@@ -2,6 +2,11 @@ import bundledCoreJsUrl from "@ffmpeg/core?url";
 import bundledCoreWasmUrl from "@ffmpeg/core/wasm?url";
 import bundledWorkerUrl from "@ffmpeg/ffmpeg/worker?worker&url";
 
+import {
+  getFfmpegCoreBaseUrlCandidates,
+  shouldUseBundledFfmpegCore,
+} from "@/utils/ffmpegCoreSourceConfig";
+import { resolvePersistentFfmpegAssetBlobUrl } from "@/utils/ffmpegAssetCache";
 import { resolveFfmpegLoadTimeoutMs } from "@/utils/ffmpegLoadTimeoutConfig";
 
 export type VideoTranscodeOptions = {
@@ -248,18 +253,56 @@ async function getFfmpeg(loadTimeoutMs: number): Promise<import("@ffmpeg/ffmpeg"
     const { FFmpeg } = await import("@ffmpeg/ffmpeg");
     const ffmpeg: import("@ffmpeg/ffmpeg").FFmpeg = new FFmpeg();
     const classWorkerURL = toAbsoluteUrl(bundledWorkerUrl);
+    const candidates = getFfmpegCoreBaseUrlCandidates();
+    const bundledCandidates = shouldUseBundledFfmpegCore()
+      ? [{
+          label: "bundled",
+          coreJs: bundledCoreJsUrl,
+          wasm: bundledCoreWasmUrl,
+        }]
+      : [];
+    const errors: string[] = [];
 
-    await withTimeout(
-      ffmpeg.load({
-        coreURL: bundledCoreJsUrl,
-        wasmURL: bundledCoreWasmUrl,
-        classWorkerURL,
-      }),
-      loadTimeoutMs,
-      "FFmpeg 核心加载",
-    );
+    for (const candidate of bundledCandidates) {
+      try {
+        const wasmURL = await resolvePersistentFfmpegAssetBlobUrl(candidate.wasm, "application/wasm", loadTimeoutMs);
+        await withTimeout(
+          ffmpeg.load({
+            coreURL: candidate.coreJs,
+            wasmURL,
+            classWorkerURL,
+          }),
+          loadTimeoutMs,
+          "FFmpeg 核心加载",
+        );
+        return ffmpeg;
+      }
+      catch (error) {
+        errors.push(`${candidate.label}: ${normalizeErrorMessage(error)}`);
+      }
+    }
 
-    return ffmpeg;
+    for (const baseUrl of candidates) {
+      try {
+        const coreURL = await resolvePersistentFfmpegAssetBlobUrl(`${baseUrl}/ffmpeg-core.js`, "text/javascript", loadTimeoutMs);
+        const wasmURL = await resolvePersistentFfmpegAssetBlobUrl(`${baseUrl}/ffmpeg-core.wasm`, "application/wasm", loadTimeoutMs);
+        await withTimeout(
+          ffmpeg.load({
+            coreURL,
+            wasmURL,
+            classWorkerURL,
+          }),
+          loadTimeoutMs,
+          "FFmpeg 核心加载",
+        );
+        return ffmpeg;
+      }
+      catch (error) {
+        errors.push(`${baseUrl}: ${normalizeErrorMessage(error)}`);
+      }
+    }
+
+    throw new Error(`FFmpeg 核心加载失败：${errors.join("\n")}`);
   })().catch((error) => {
     ffmpegSingletonPromise = null;
     throw error;

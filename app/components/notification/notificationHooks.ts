@@ -18,8 +18,8 @@ import {
   pageNotifications,
 } from "@/components/notification/notificationApi";
 
-export const NOTIFICATIONS_QUERY_KEY = ["notifications"] as const;
-export const NOTIFICATIONS_UNREAD_COUNT_QUERY_KEY = ["notificationsUnreadCount"] as const;
+const NOTIFICATIONS_QUERY_KEY = ["notifications"] as const;
+const NOTIFICATIONS_UNREAD_COUNT_QUERY_KEY = ["notificationsUnreadCount"] as const;
 
 type NotificationQueryOptions = {
   enabled?: boolean;
@@ -212,7 +212,7 @@ export function prependNotificationToCaches(queryClient: QueryClient, item: User
   }
 }
 
-export function markNotificationIdsAsReadInCaches(queryClient: QueryClient, notificationIdList: number[]) {
+function markNotificationIdsAsReadInCaches(queryClient: QueryClient, notificationIdList: number[]) {
   const queryEntries = queryClient.getQueriesData<InfiniteData<NotificationPageResponse>>({
     queryKey: NOTIFICATIONS_QUERY_KEY,
   });
@@ -226,7 +226,7 @@ export function markNotificationIdsAsReadInCaches(queryClient: QueryClient, noti
   });
 }
 
-export function markAllNotificationsAsReadInCaches(queryClient: QueryClient, category?: string | null) {
+function markAllNotificationsAsReadInCaches(queryClient: QueryClient, category?: string | null) {
   const queryEntries = queryClient.getQueriesData<InfiniteData<NotificationPageResponse>>({
     queryKey: NOTIFICATIONS_QUERY_KEY,
   });

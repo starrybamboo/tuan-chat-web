@@ -3,7 +3,7 @@ import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useLocalStorage } from "@/components/common/customHooks/useLocalStorage";
 
 export type ChatPageSubWindowTab = "empty" | "room" | "doc" | "thread" | "material";
-export type ChatPageSubWindowMaterialSelection = {
+type ChatPageSubWindowMaterialSelection = {
   spacePackageId: number | null;
   materialPathKey?: string | null;
 };

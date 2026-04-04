@@ -16,7 +16,7 @@ import { createEmptyMaterialPackageContent } from "./materialPackageEditorShared
 
 export type MaterialNodePath = number[];
 
-export type MaterialOverviewItem = {
+type MaterialOverviewItem = {
   key: string;
   path: MaterialNodePath;
   title: string;
@@ -27,7 +27,7 @@ export type MaterialOverviewItem = {
   assets: MaterialOverviewAsset[];
 };
 
-export type MaterialOverviewAsset = {
+type MaterialOverviewAsset = {
   key: string;
   typeLabel: string;
   title: string;
@@ -36,7 +36,7 @@ export type MaterialOverviewAsset = {
 
 export const ROOT_NODE_KEY = "root";
 
-export function cloneMaterialPackageContent(content?: MaterialPackageContent): MaterialPackageContent {
+function cloneMaterialPackageContent(content?: MaterialPackageContent): MaterialPackageContent {
   return JSON.parse(JSON.stringify(content ?? createEmptyMaterialPackageContent())) as MaterialPackageContent;
 }
 
@@ -376,7 +376,7 @@ function getMessageKindLabel(message: MessageDraft) {
   }
 }
 
-export function getMessageKindLabels(messages: MessageDraft[] | undefined) {
+function getMessageKindLabels(messages: MessageDraft[] | undefined) {
   const uniqueLabels = new Set<string>();
   for (const message of messages ?? []) {
     uniqueLabels.add(getMessageKindLabel(message));
@@ -449,7 +449,7 @@ function buildMaterialOverviewAsset(message: MessageDraft, index: number): Mater
   };
 }
 
-export function collectMaterialOverview(
+function collectMaterialOverview(
   nodes: MaterialNode[] | undefined,
   folderTrail: string[] = [],
   parentPath: MaterialNodePath = [],

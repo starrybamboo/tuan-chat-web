@@ -1,10 +1,8 @@
 import type { MaterialPackageContent } from "../../../../api/models/MaterialPackageContent";
 import type { MaterialPackageResponse } from "../../../../api/models/MaterialPackageResponse";
-import { CaretRightIcon } from "@phosphor-icons/react";
 import { useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import { useNavigate } from "react-router";
-import { Drawer } from "vaul";
 import {
   useCreateMaterialPackageMutation,
   useDeleteMaterialPackageMutation,
@@ -12,28 +10,21 @@ import {
   usePublicMaterialPackagesQuery,
   useUpdateMaterialPackageMutation,
 } from "../../../../api/hooks/materialPackageQueryHooks";
-import MaterialLibrarySidebar from "../components/materialLibrarySidebar";
-import MaterialLibraryWorkspace from "../components/materialLibraryWorkspace";
 import MaterialPackageEditor from "../components/materialPackageEditor";
+import { buildMaterialPackageEditorDraft } from "../components/materialPackageEditorDraft";
 import MaterialPackageEditorInlinePage from "../components/materialPackageEditorInlinePage";
 import { createEmptyMaterialPackageContent } from "../components/materialPackageEditorShared";
+import MaterialPackageLibraryFrame from "../components/materialPackageLibraryFrame";
+import { buildGlobalMaterialPackageCardModel } from "../components/materialPackageLibraryModels";
+import MaterialPackageLibrarySidebar from "../components/materialPackageLibrarySidebar";
+import MaterialPackageLibraryWorkspace from "../components/materialPackageLibraryWorkspace";
 
-export type GlobalTab = "public" | "mine";
+type GlobalTab = "public" | "mine";
 
 interface MaterialLibraryPageProps {
   initialTab?: GlobalTab;
   mode?: GlobalTab;
   embedded?: boolean;
-}
-
-function buildDraft(pkg?: MaterialPackageResponse) {
-  return {
-    name: pkg?.name ?? "",
-    description: pkg?.description ?? "",
-    coverUrl: pkg?.coverUrl ?? "",
-    isPublic: pkg?.isPublic ?? true,
-    content: (pkg?.content ?? createEmptyMaterialPackageContent()) as MaterialPackageContent,
-  };
 }
 
 export default function MaterialLibraryPage({
@@ -46,17 +37,8 @@ export default function MaterialLibraryPage({
   const [keyword, setKeyword] = useState("");
   const [selectedPackageId, setSelectedPackageId] = useState<number | null>(null);
   const [isCreating, setIsCreating] = useState(false);
-  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
-  const [isDesktop, setIsDesktop] = useState(() => {
-    if (typeof window === "undefined") {
-      return true;
-    }
-    return window.matchMedia("(min-width: 1024px)").matches;
-  });
 
   const activeTab = mode ?? internalActiveTab;
-  const hasStandaloneSidebar = !embedded;
   const myRequest = useMemo(() => ({
     pageNo: 1,
     pageSize: 100,
@@ -83,24 +65,7 @@ export default function MaterialLibraryPage({
   const loading = activeTab === "mine" ? myPackagesQuery.isLoading : publicPackagesQuery.isLoading;
   const editorOpen = isCreating || Boolean(selectedPackage);
   const detailBackLabel = activeTab === "mine" ? "返回我的素材包" : "返回素材广场";
-
-  useEffect(() => {
-    if (typeof window === "undefined") {
-      return;
-    }
-
-    const mediaQuery = window.matchMedia("(min-width: 1024px)");
-    const handleChange = (event: MediaQueryListEvent) => {
-      setIsDesktop(event.matches);
-      if (event.matches) {
-        setIsDrawerOpen(false);
-      }
-    };
-
-    setIsDesktop(mediaQuery.matches);
-    mediaQuery.addEventListener("change", handleChange);
-    return () => mediaQuery.removeEventListener("change", handleChange);
-  }, []);
+  const packageCardItems = packages.map(item => buildGlobalMaterialPackageCardModel(item, activeTab));
 
   useEffect(() => {
     if (mode) {
@@ -133,7 +98,6 @@ export default function MaterialLibraryPage({
     setSelectedPackageId(null);
     setIsCreating(false);
     setKeyword("");
-    setIsDrawerOpen(false);
   };
 
   const handleCreate = async (draft: {
@@ -216,7 +180,6 @@ export default function MaterialLibraryPage({
     }
     setSelectedPackageId(null);
     setIsCreating(true);
-    setIsDrawerOpen(false);
   };
 
   const handleOpenPackage = (packageId: number) => {
@@ -244,23 +207,84 @@ export default function MaterialLibraryPage({
   };
 
   const sidebarNode = (
-    <MaterialLibrarySidebar
-      activeTab={activeTab}
-      onSelectTab={handleSelectTab}
+    <MaterialPackageLibrarySidebar
+      description="在这里切换素材广场与我的素材包。"
+      items={[
+        {
+          key: "public",
+          label: "素材广场",
+          icon: "squares",
+          active: activeTab === "public",
+          onClick: () => handleSelectTab("public"),
+        },
+        {
+          key: "mine",
+          label: "我的素材包",
+          icon: "package",
+          active: activeTab === "mine",
+          onClick: () => handleSelectTab("mine"),
+        },
+      ]}
+      footerDescription={activeTab === "mine"
+        ? "你可以新建、编辑、删除自己的素材包。"
+        : "这里展示公开的素材包，默认以只读方式查看。"}
     />
   );
 
   const workspaceNode = (
-    <MaterialLibraryWorkspace
-      activeTab={activeTab}
+    <MaterialPackageLibraryWorkspace
+      upperLabel={activeTab === "mine" ? "Personal Library" : "Public Square"}
+      title={activeTab === "mine" ? "我的素材包" : "素材广场"}
+      description={activeTab === "mine"
+        ? "管理并组织你的数字化创意资产。通过统一的浏览与编辑视图，快速找到每一个灵感瞬间。"
+        : "浏览公开分享的素材包，快速查看素材结构、贡献信息与内容规模。"}
+      searchPlaceholder={activeTab === "mine"
+        ? "搜索我的素材资产、标签或分类..."
+        : "搜索公共素材包、标签或分类..."}
       keyword={keyword}
-      packages={packages}
+      items={packageCardItems}
+      headerActions={activeTab === "mine"
+        ? [{
+            key: "create-package",
+            label: "新建素材包",
+            icon: "plus",
+            variant: "primary",
+            onClick: handleCreateRequest,
+          }]
+        : []}
+      shortcuts={activeTab === "mine"
+        ? [{
+            key: "create-shortcut",
+            title: "创建新的素材包",
+            description: "从一个空包开始，逐步整理和沉淀你自己的素材集合。",
+            caption: "创建后即可进入编辑",
+            icon: "plus",
+            onClick: handleCreateRequest,
+          }]
+        : activeTab === "public"
+          ? [{
+              key: "navigate-to-mine",
+              title: "前往我的素材包",
+              description: "切换到个人素材区，继续新建、管理和维护你的私有素材库。",
+              caption: "适合沉淀你自己的常用内容",
+              icon: "package",
+              onClick: handleNavigateToMine,
+            }]
+          : []}
+      emptyTitle={activeTab === "mine" ? "你还没有自己的素材包" : "当前没有匹配的公开素材包"}
+      emptyDescription={activeTab === "mine"
+        ? "可以先新建一个素材包，开始组织你的素材与消息模板。"
+        : "换个关键词试试，或者稍后再来看看新的公开内容。"}
       loading={loading}
       embedded={embedded}
+      skeletonPrefix="material-skeleton"
       onKeywordChange={setKeyword}
-      onOpenPackage={handleOpenPackage}
-      onCreatePackage={handleCreateRequest}
-      onNavigateToMine={activeTab === "public" ? handleNavigateToMine : undefined}
+      onOpenItem={(index) => {
+        const item = packages[index];
+        if (typeof item?.packageId === "number") {
+          handleOpenPackage(item.packageId);
+        }
+      }}
     />
   );
 
@@ -271,7 +295,7 @@ export default function MaterialLibraryPage({
           dragPackageId={undefined}
           title="新建素材包"
           subtitle="创建你的素材容器，配置封面、描述和素材单元。每个素材单元里都可以继续添加多条素材。"
-          initialDraft={buildDraft()}
+          initialDraft={buildMaterialPackageEditorDraft()}
           showPublicToggle={true}
           backLabel={detailBackLabel}
           onBack={handleCloseEditor}
@@ -289,7 +313,7 @@ export default function MaterialLibraryPage({
             subtitle={activeTab === "public"
               ? `作者：${selectedPackage.username ?? "未知"} · 已被导入 ${selectedPackage.importCount ?? 0} 次`
               : `已被导入 ${selectedPackage.importCount ?? 0} 次`}
-            initialDraft={buildDraft(selectedPackage)}
+            initialDraft={buildMaterialPackageEditorDraft(selectedPackage)}
             readOnly={activeTab === "public"}
             showPublicToggle={activeTab === "mine"}
             backLabel={detailBackLabel}
@@ -315,78 +339,14 @@ export default function MaterialLibraryPage({
       )
     : workspaceNode;
 
-  if (embedded) {
-    return mainContentNode;
-  }
-
   return (
-    <>
-      <div className="relative flex h-full w-full min-w-0 overflow-hidden bg-base-200 text-base-content">
-        {hasStandaloneSidebar && isDesktop && (
-          <div className={`border-r border-base-300 bg-base-300/60 transition-all duration-300 ${isSidebarCollapsed ? "w-0 overflow-hidden" : "w-[280px]"}`}>
-            {sidebarNode}
-          </div>
-        )}
-
-        {hasStandaloneSidebar && isDesktop && (
-          <div className={`fixed top-24 z-50 -translate-y-1/2 transition-all duration-300 ${isSidebarCollapsed ? "left-0" : "left-[280px]"}`}>
-            <button
-              type="button"
-              onClick={() => setIsSidebarCollapsed(prev => !prev)}
-              className="flex h-12 w-6 items-center justify-center rounded-r-full border border-l-0 border-base-300 bg-base-100 text-base-content/55 transition hover:bg-base-200 hover:text-base-content"
-              aria-label={isSidebarCollapsed ? "展开素材侧边栏" : "收起素材侧边栏"}
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-                className="h-3 w-3 stroke-current transition-transform duration-200"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="2"
-                  d={isSidebarCollapsed ? "M9 5l7 7-7 7" : "M15 19l-7-7 7-7"}
-                />
-              </svg>
-            </button>
-          </div>
-        )}
-
-        {hasStandaloneSidebar && !isDesktop && (
-          <div className="fixed left-0 top-[calc(env(safe-area-inset-top)+4.25rem)] z-50">
-            <button
-              type="button"
-              onClick={() => setIsDrawerOpen(true)}
-              aria-label="打开素材包侧边栏"
-              className="flex h-14 w-7 items-center justify-center rounded-r-full border border-base-300 border-l-0 bg-base-100/95 text-base-content/72 shadow-md transition hover:bg-base-200 hover:text-base-content"
-            >
-              <CaretRightIcon size={16} weight="bold" />
-            </button>
-          </div>
-        )}
-
-        {hasStandaloneSidebar && !isDesktop && (
-          <Drawer.Root
-            open={isDrawerOpen}
-            onOpenChange={setIsDrawerOpen}
-            direction="left"
-          >
-            <Drawer.Portal>
-              <Drawer.Overlay className="fixed inset-0 bg-base-content/40 data-[state=closed]:pointer-events-none data-[state=open]:pointer-events-auto" />
-              <Drawer.Content className="fixed left-0 top-0 z-[100] flex h-full w-[280px] flex-col bg-base-300/95 data-[state=closed]:pointer-events-none data-[state=open]:pointer-events-auto">
-                <Drawer.Title className="sr-only">素材包侧边栏</Drawer.Title>
-                <Drawer.Description className="sr-only">在素材广场与我的素材包之间切换。</Drawer.Description>
-                <div className="h-full overflow-y-auto">
-                  {sidebarNode}
-                </div>
-              </Drawer.Content>
-            </Drawer.Portal>
-          </Drawer.Root>
-        )}
-
-        <div className="flex-1 min-h-0 min-w-0">{mainContentNode}</div>
-      </div>
-    </>
+    <MaterialPackageLibraryFrame
+      embedded={embedded}
+      sidebarNode={sidebarNode}
+      mainContentNode={mainContentNode}
+      drawerTitle="素材包侧边栏"
+      drawerDescription="在素材广场与我的素材包之间切换。"
+      openSidebarLabel="打开素材包侧边栏"
+    />
   );
 }

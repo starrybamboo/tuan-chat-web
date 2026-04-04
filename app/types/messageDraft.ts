@@ -350,7 +350,7 @@ function assertMessageExtraReadyForRequest(messageType: number, extra: MessageEx
   }
 }
 
-export function normalizeMessageExtraForRequest(messageType: number, rawExtra: unknown): MessageExtraRecord {
+function normalizeMessageExtraForRequest(messageType: number, rawExtra: unknown): MessageExtraRecord {
   switch (messageType) {
     case MESSAGE_TYPE.IMG:
       return compactRecord({ imageMessage: normalizeImagePayload(rawExtra, { defaultBackground: false }) });

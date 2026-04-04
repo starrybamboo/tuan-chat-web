@@ -1,9 +1,10 @@
+import type { ChatDiscoverNavItem } from "@/components/chat/discover/chatDiscoverNavPanel";
 import { useGetUserActiveSpacesQuery } from "api/hooks/chatQueryHooks";
 import React, { useCallback, useMemo } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 import ChatPageLayout from "@/components/chat/chatPageLayout";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
-import ChatDiscoverNavPanel, { type ChatDiscoverNavItem } from "@/components/chat/discover/chatDiscoverNavPanel";
+import ChatDiscoverNavPanel from "@/components/chat/discover/chatDiscoverNavPanel";
 import DiscoverArchivedSpacesView from "@/components/chat/discover/discoverArchivedSpacesView";
 import DiscoverProductionPlaceholder from "@/components/chat/discover/discoverProductionPlaceholder";
 import useChatPageContextMenus from "@/components/chat/hooks/useChatPageContextMenus";
@@ -26,15 +27,7 @@ const isProductionMode = import.meta.env.MODE === "production";
 type RepositoryDiscoverMode = "square" | "my";
 type MaterialDiscoverMode = "public" | "mine";
 
-type DiscoverPageProps =
-  | {
-      section: "repository";
-      mode: RepositoryDiscoverMode;
-    }
-  | {
-      section: "material";
-      mode: MaterialDiscoverMode;
-    };
+type DiscoverPageProps = { section: "repository"; mode: RepositoryDiscoverMode } | { section: "material"; mode: MaterialDiscoverMode };
 
 function getActiveNavItem(props: DiscoverPageProps): ChatDiscoverNavItem {
   if (props.section === "material") {
@@ -140,8 +133,14 @@ export default function DiscoverPage(props: DiscoverPageProps) {
   const chatLeftPanelWidth = useDrawerPreferenceStore(state => state.chatLeftPanelWidth);
   const setChatLeftPanelWidth = useDrawerPreferenceStore(state => state.setChatLeftPanelWidth);
   const activeNavItem = getActiveNavItem(props);
-  const mainContent = isProductionMode
-    ? <DiscoverProductionPlaceholder />
+  const shouldShowProductionPlaceholder = isProductionMode && section === "repository";
+  const mainContent = shouldShowProductionPlaceholder
+    ? (
+        <DiscoverProductionPlaceholder
+          title="归档仓库暂未开放"
+          description="发现页里的归档仓库模块仍在开发中，素材相关能力已开放访问。"
+        />
+      )
     : section === "material"
       ? <MaterialLibraryPage mode={props.mode} embedded />
       : <DiscoverArchivedSpacesView mode={props.mode} />;
