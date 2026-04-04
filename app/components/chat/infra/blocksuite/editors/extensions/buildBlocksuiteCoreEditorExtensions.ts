@@ -67,7 +67,7 @@ function applyBlocksuiteCoreRuntimeOverrides(context: BlocksuiteEditorAssemblyCo
   }
 }
 
-export function createBlocksuiteNoOpLinkPreviewProvider() {
+function createBlocksuiteNoOpLinkPreviewProvider() {
   return {
     endpoint: "",
     setEndpoint: (_endpoint: string) => {

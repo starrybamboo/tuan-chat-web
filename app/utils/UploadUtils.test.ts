@@ -141,4 +141,59 @@ describe("uploadUtils.uploadVideo", () => {
     expect(transcodeMock).toHaveBeenCalledTimes(1);
     expect(getUploadUrlMock).not.toHaveBeenCalled();
   });
+
+  it("图片命中去重时跳过实际上传", async () => {
+    const utils = new UploadUtils();
+    const file = new File([new Uint8Array([1, 2, 3, 4])], "same.png", { type: "image/png" });
+
+    const getUploadUrlMock = (tuanchat as any).ossController.getUploadUrl as ReturnType<typeof vi.fn>;
+    getUploadUrlMock.mockResolvedValue({
+      data: {
+        uploadUrl: "",
+        downloadUrl: "https://cdn.example/same.png",
+      },
+    });
+
+    vi.spyOn(utils as any, "prepareImageForUpload").mockResolvedValue({
+      processedFile: file,
+      isGif: false,
+    });
+    vi.spyOn(utils as any, "calculateFileHash").mockResolvedValue("hash_img");
+    const uploadSpy = vi.spyOn(utils as any, "executeUpload").mockResolvedValue(undefined);
+
+    const result = await utils.uploadImg(file, 1);
+
+    expect(getUploadUrlMock).toHaveBeenCalledWith({
+      fileName: `hash_img_${file.size}.png`,
+      scene: 1,
+      dedupCheck: true,
+    });
+    expect(uploadSpy).not.toHaveBeenCalled();
+    expect(result).toBe("https://cdn.example/same.png");
+  });
+
+  it("文件读取失败时显式抛错，避免哈希计算挂起", async () => {
+    const utils = new UploadUtils();
+    const file = new File([new Uint8Array([1, 2, 3])], "broken.bin", { type: "application/octet-stream" });
+    const originalFileReader = globalThis.FileReader;
+
+    class MockFileReader {
+      public onload: ((event: ProgressEvent<FileReader>) => void) | null = null;
+      public onerror: ((event: ProgressEvent<FileReader>) => void) | null = null;
+      public onabort: ((event: ProgressEvent<FileReader>) => void) | null = null;
+      public error: Error | null = new Error("mock read error");
+
+      public readAsArrayBuffer(_blob: Blob): void {
+        this.onerror?.({ target: this } as ProgressEvent<FileReader>);
+      }
+    }
+
+    try {
+      globalThis.FileReader = MockFileReader as any;
+      await expect(utils.calculateFileHash(file)).rejects.toThrow("mock read error");
+    }
+    finally {
+      globalThis.FileReader = originalFileReader;
+    }
+  });
 });

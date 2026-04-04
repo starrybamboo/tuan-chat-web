@@ -1,3 +1,4 @@
+import { resolveRenderedSoundMessagePurpose } from "@/components/chat/infra/audioMessage/audioMessagePurpose";
 import { extractRoomJumpPayload } from "@/components/chat/utils/roomJump";
 import { ANNOTATION_IDS, getSceneEffectFromAnnotations, getSceneEffectLabel, hasAnnotation } from "@/types/messageAnnotations";
 import {
@@ -94,7 +95,11 @@ export function getMessagePreviewText(message?: Message | null): string {
     case MESSAGE_TYPE.SOUND: {
       const soundMessage = getSoundMessageExtra(message.extra);
       const fileName = safeTrim(soundMessage?.fileName) || trimmedContent;
-      const purpose = safeTrim(soundMessage?.purpose).toLowerCase();
+      const purpose = resolveRenderedSoundMessagePurpose({
+        annotations: message.annotations,
+        payloadPurpose: soundMessage?.purpose,
+        content: message.content,
+      });
       const tag = purpose === "bgm" ? "BGM" : "语音";
       return withTag(tag, fileName);
     }

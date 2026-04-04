@@ -79,7 +79,7 @@ function getSupportedStoreProviders(): StoreProviderClass[] {
   });
 }
 
-export function createBlocksuiteStoreManager() {
+function createBlocksuiteStoreManager() {
   return new StoreExtensionManager(getSupportedStoreProviders());
 }
 
@@ -94,6 +94,6 @@ export const BLOCKSUITE_STORE_EXTENSIONS: ExtensionType[] = (
   RoomMapEmbedIframeConfigExtension,
 ]);
 
-export function getBlocksuiteStoreExtensions(): ExtensionType[] {
+function getBlocksuiteStoreExtensions(): ExtensionType[] {
   return BLOCKSUITE_STORE_EXTENSIONS;
 }

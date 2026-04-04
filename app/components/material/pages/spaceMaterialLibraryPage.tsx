@@ -1,11 +1,9 @@
 import type { MaterialPackageContent } from "../../../../api/models/MaterialPackageContent";
 import type { SpaceMaterialPackageResponse } from "../../../../api/models/SpaceMaterialPackageResponse";
 import type { MaterialItemDragPayload } from "@/components/chat/utils/materialItemDrag";
-import { CaretRightIcon } from "@phosphor-icons/react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import { useNavigate, useSearchParams } from "react-router";
-import { Drawer } from "vaul";
 import {
   useCreateSpaceMaterialPackageMutation,
   useDeleteSpaceMaterialPackageMutation,
@@ -14,26 +12,18 @@ import {
 } from "../../../../api/hooks/materialPackageQueryHooks";
 import MaterialEditorDropLayer from "../components/materialEditorDropLayer";
 import MaterialPackageEditor from "../components/materialPackageEditor";
+import { buildMaterialPackageEditorDraft } from "../components/materialPackageEditorDraft";
 import MaterialPackageEditorInlinePage from "../components/materialPackageEditorInlinePage";
-import { createEmptyMaterialPackageContent } from "../components/materialPackageEditorShared";
+import MaterialPackageLibraryFrame from "../components/materialPackageLibraryFrame";
 import MaterialPackageImportModal from "../components/materialPackageImportModal";
+import { buildSpaceMaterialPackageCardModel } from "../components/materialPackageLibraryModels";
+import MaterialPackageLibrarySidebar from "../components/materialPackageLibrarySidebar";
+import MaterialPackageLibraryWorkspace from "../components/materialPackageLibraryWorkspace";
 import { parseNodePath, serializeNodePath } from "../components/materialPackageTreeUtils";
-import SpaceMaterialLibrarySidebar from "../components/spaceMaterialLibrarySidebar";
-import SpaceMaterialLibraryWorkspace from "../components/spaceMaterialLibraryWorkspace";
 
 interface SpaceMaterialLibraryPageProps {
   spaceId: number;
   embedded?: boolean;
-}
-
-function buildDraft(pkg?: SpaceMaterialPackageResponse) {
-  return {
-    name: pkg?.name ?? "",
-    description: pkg?.description ?? "",
-    coverUrl: pkg?.coverUrl ?? "",
-    isPublic: true,
-    content: (pkg?.content ?? createEmptyMaterialPackageContent()) as MaterialPackageContent,
-  };
 }
 
 export default function SpaceMaterialLibraryPage({
@@ -45,14 +35,6 @@ export default function SpaceMaterialLibraryPage({
   const [keyword, setKeyword] = useState("");
   const [isCreating, setIsCreating] = useState(false);
   const [isImportOpen, setIsImportOpen] = useState(false);
-  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
-  const [isDesktop, setIsDesktop] = useState(() => {
-    if (typeof window === "undefined") {
-      return true;
-    }
-    return window.matchMedia("(min-width: 1024px)").matches;
-  });
 
   const pageRequest = useMemo(() => ({
     pageNo: 1,
@@ -87,6 +69,7 @@ export default function SpaceMaterialLibraryPage({
   const selectedPackage = packages.find(item => item.spacePackageId === selectedPackageId);
   const editorOpen = isCreating || Boolean(selectedPackage);
   const detailBackLabel = "返回局内素材包";
+  const packageCardItems = packages.map(buildSpaceMaterialPackageCardModel);
 
   const updateSelectedLocation = useCallback((nextId: number | null, nextMaterialPathKey?: string | null) => {
     const currentValue = searchParams.get("spacePackageId") ?? "";
@@ -113,24 +96,6 @@ export default function SpaceMaterialLibraryPage({
     }
     setSearchParams(nextSearchParams);
   }, [searchParams, setSearchParams]);
-
-  useEffect(() => {
-    if (typeof window === "undefined") {
-      return;
-    }
-
-    const mediaQuery = window.matchMedia("(min-width: 1024px)");
-    const handleChange = (event: MediaQueryListEvent) => {
-      setIsDesktop(event.matches);
-      if (event.matches) {
-        setIsDrawerOpen(false);
-      }
-    };
-
-    setIsDesktop(mediaQuery.matches);
-    mediaQuery.addEventListener("change", handleChange);
-    return () => mediaQuery.removeEventListener("change", handleChange);
-  }, []);
 
   useEffect(() => {
     if (selectedPackageId !== null && isCreating) {
@@ -204,7 +169,6 @@ export default function SpaceMaterialLibraryPage({
   const handleCreateRequest = () => {
     updateSelectedLocation(null);
     setIsCreating(true);
-    setIsDrawerOpen(false);
   };
 
   const handleOpenPackage = (spacePackageId: number) => {
@@ -248,22 +212,67 @@ export default function SpaceMaterialLibraryPage({
   };
 
   const sidebarNode = (
-    <SpaceMaterialLibrarySidebar
-      spaceId={spaceId}
-      onNavigateToPublic={handleNavigateToPublic}
-      onNavigateToMine={handleNavigateToMine}
+    <MaterialPackageLibrarySidebar
+      description="局内素材包和局外素材包保持同一种工作区体验，当前只在访问路径和数据来源上区分。"
+      items={[
+        {
+          key: "space",
+          label: `当前空间 · Space ${spaceId}`,
+          icon: "house",
+          active: true,
+        },
+        {
+          key: "public",
+          label: "素材广场",
+          icon: "squares",
+          onClick: handleNavigateToPublic,
+        },
+        {
+          key: "mine",
+          label: "我的素材包",
+          icon: "package",
+          onClick: handleNavigateToMine,
+        },
+      ]}
+      footerDescription="当前页面展示的是当前空间的本地素材包副本区，可以像管理本地仓库一样组织和编辑素材。"
     />
   );
 
   const workspaceNode = (
-    <SpaceMaterialLibraryWorkspace
+    <MaterialPackageLibraryWorkspace
+      upperLabel="Space Library"
+      title="局内素材包"
+      description="当前空间的局内素材包会像本地仓库一样管理素材副本，编辑体验与局外素材包保持一致。"
+      searchPlaceholder="搜索当前空间的素材包、导入副本或章节内容..."
       keyword={keyword}
-      packages={packages}
+      items={packageCardItems}
+      headerActions={[
+        {
+          key: "import-package",
+          label: "从局外导入",
+          icon: "package",
+          variant: "secondary",
+          onClick: () => setIsImportOpen(true),
+        },
+        {
+          key: "create-space-package",
+          label: "新建局内素材包",
+          icon: "plus",
+          variant: "primary",
+          onClick: handleCreateRequest,
+        },
+      ]}
+      emptyTitle="当前空间还没有局内素材包"
+      emptyDescription="你可以先新建一个局内素材包，或者从局外素材库整包导入，把它当作当前空间的本地素材工作区。"
       loading={packagesQuery.isLoading}
+      skeletonPrefix="space-material-skeleton"
       onKeywordChange={setKeyword}
-      onOpenPackage={handleOpenPackage}
-      onCreatePackage={handleCreateRequest}
-      onImportPackage={() => setIsImportOpen(true)}
+      onOpenItem={(index) => {
+        const item = packages[index];
+        if (typeof item?.spacePackageId === "number") {
+          handleOpenPackage(item.spacePackageId);
+        }
+      }}
     />
   );
 
@@ -275,7 +284,7 @@ export default function SpaceMaterialLibraryPage({
           sidebarActionScope="detail"
           title="新建局内素材包"
           subtitle="当前空间的局内素材包会像本地仓库一样管理素材副本，编辑体验与局外素材包保持一致。"
-          initialDraft={buildDraft()}
+          initialDraft={buildMaterialPackageEditorDraft()}
           backLabel={detailBackLabel}
           onBack={handleCloseEditor}
           saveLabel="创建局内素材包"
@@ -294,7 +303,7 @@ export default function SpaceMaterialLibraryPage({
               ? `来源局外素材包：${selectedPackage.sourcePackageId} · 当前空间维护的是独立副本`
               : "这是当前空间直接创建的本地素材包"}
             selectedNodeKey={selectedMaterialPathKey}
-            initialDraft={buildDraft(selectedPackage)}
+            initialDraft={buildMaterialPackageEditorDraft(selectedPackage)}
             backLabel={detailBackLabel}
             onBack={handleCloseEditor}
             autoSave
@@ -315,95 +324,22 @@ export default function SpaceMaterialLibraryPage({
       )
     : workspaceNode;
 
-  if (embedded) {
-    return (
-      <>
-        <MaterialEditorDropLayer onEditMaterialItem={handleOpenMaterialItem}>
-          {mainContentNode}
-        </MaterialEditorDropLayer>
-
-        <MaterialPackageImportModal
-          isOpen={isImportOpen}
-          spaceId={spaceId}
-          onClose={handleCloseImportModal}
-          onImported={handleImportedPackage}
-        />
-      </>
-    );
-  }
+  const framedMainContentNode = (
+    <MaterialEditorDropLayer onEditMaterialItem={handleOpenMaterialItem}>
+      {mainContentNode}
+    </MaterialEditorDropLayer>
+  );
 
   return (
     <>
-      <div className="relative flex h-full w-full min-w-0 overflow-hidden bg-base-200 text-base-content">
-        {isDesktop && (
-          <div className={`border-r border-base-300 bg-base-300/60 transition-all duration-300 ${isSidebarCollapsed ? "w-0 overflow-hidden" : "w-[280px]"}`}>
-            {sidebarNode}
-          </div>
-        )}
-
-        {isDesktop && (
-          <div className={`fixed top-24 z-50 -translate-y-1/2 transition-all duration-300 ${isSidebarCollapsed ? "left-0" : "left-[280px]"}`}>
-            <button
-              type="button"
-              onClick={() => setIsSidebarCollapsed(prev => !prev)}
-              className="flex h-12 w-6 items-center justify-center rounded-r-full border border-l-0 border-base-300 bg-base-100 text-base-content/55 transition hover:bg-base-200 hover:text-base-content"
-              aria-label={isSidebarCollapsed ? "展开素材侧边栏" : "收起素材侧边栏"}
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-                className="h-3 w-3 stroke-current transition-transform duration-200"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="2"
-                  d={isSidebarCollapsed ? "M9 5l7 7-7 7" : "M15 19l-7-7 7-7"}
-                />
-              </svg>
-            </button>
-          </div>
-        )}
-
-        {!isDesktop && (
-          <div className="fixed left-0 top-[calc(env(safe-area-inset-top)+4.25rem)] z-50">
-            <button
-              type="button"
-              onClick={() => setIsDrawerOpen(true)}
-              aria-label="打开素材包侧边栏"
-              className="flex h-14 w-7 items-center justify-center rounded-r-full border border-base-300 border-l-0 bg-base-100/95 text-base-content/72 shadow-md transition hover:bg-base-200 hover:text-base-content"
-            >
-              <CaretRightIcon size={16} weight="bold" />
-            </button>
-          </div>
-        )}
-
-        {!isDesktop && (
-          <Drawer.Root
-            open={isDrawerOpen}
-            onOpenChange={setIsDrawerOpen}
-            direction="left"
-          >
-            <Drawer.Portal>
-              <Drawer.Overlay className="fixed inset-0 bg-base-content/40 data-[state=closed]:pointer-events-none data-[state=open]:pointer-events-auto" />
-              <Drawer.Content className="fixed left-0 top-0 z-[100] flex h-full w-[280px] flex-col bg-base-300/95 data-[state=closed]:pointer-events-none data-[state=open]:pointer-events-auto">
-                <Drawer.Title className="sr-only">局内素材包侧边栏</Drawer.Title>
-                <Drawer.Description className="sr-only">在当前空间、素材广场和我的素材包之间切换。</Drawer.Description>
-                <div className="h-full overflow-y-auto">
-                  {sidebarNode}
-                </div>
-              </Drawer.Content>
-            </Drawer.Portal>
-          </Drawer.Root>
-        )}
-
-        <div className="flex-1 min-h-0 min-w-0">
-          <MaterialEditorDropLayer onEditMaterialItem={handleOpenMaterialItem}>
-            {mainContentNode}
-          </MaterialEditorDropLayer>
-        </div>
-      </div>
+      <MaterialPackageLibraryFrame
+        embedded={embedded}
+        sidebarNode={sidebarNode}
+        mainContentNode={framedMainContentNode}
+        drawerTitle="局内素材包侧边栏"
+        drawerDescription="在当前空间、素材广场和我的素材包之间切换。"
+        openSidebarLabel="打开素材包侧边栏"
+      />
 
       <MaterialPackageImportModal
         isOpen={isImportOpen}

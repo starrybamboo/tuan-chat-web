@@ -10,11 +10,11 @@ import type {CommentAddRequest} from "../models/CommentAddRequest";
 import type {CommentTimelinePageRequest} from "../models/CommentTimelinePageRequest";
 import { FEEDBACK_ISSUE_TARGET_TYPE } from "@/components/feedback/feedbackTypes";
 
-export const COMMENT_PAGE_QUERY_KEY = ["pageComments"] as const;
-export const COMMENT_CHILD_PAGE_QUERY_KEY = ["pageChildComments"] as const;
-export const COMMENT_TIMELINE_QUERY_KEY = ["pageTimelineComments"] as const;
-export const MAX_COMMENT_CHILD_LIMIT = 20;
-export const MAX_COMMENT_MAX_LEVEL = 5;
+const COMMENT_PAGE_QUERY_KEY = ["pageComments"] as const;
+const COMMENT_CHILD_PAGE_QUERY_KEY = ["pageChildComments"] as const;
+const COMMENT_TIMELINE_QUERY_KEY = ["pageTimelineComments"] as const;
+const MAX_COMMENT_CHILD_LIMIT = 20;
+const MAX_COMMENT_MAX_LEVEL = 5;
 export const DEFAULT_COMMENT_CHILD_LIMIT = MAX_COMMENT_CHILD_LIMIT;
 export const DEFAULT_COMMENT_MAX_LEVEL = 2;
 
@@ -34,7 +34,7 @@ export function buildCommentPageQueryKey(targetInfo: CommentTargetInfo) {
     return [...COMMENT_PAGE_QUERY_KEY, normalizeCommentTargetInfo(targetInfo)] as const;
 }
 
-export function buildCommentChildPageQueryKey(
+function buildCommentChildPageQueryKey(
     targetInfo: CommentTargetInfo,
     parentCommentId: number,
     pageSize: number,

@@ -30,8 +30,8 @@ import type { ApiResultRoom } from "./models/ApiResultRoom";
 import type { ApiResultRoomListResponse } from "./models/ApiResultRoomListResponse";
 import type { ApiResultUserInfoResponse } from "./models/ApiResultUserInfoResponse";
 import { MessageType } from "./wsModels";
+import { triggerAudioAutoPlay } from "@/components/chat/infra/audioMessage/audioMessageAutoPlayRuntime";
 import { resolveAudioAutoPlayPurposeFromAnnotationTransition } from "@/components/chat/infra/audioMessage/audioMessageAutoPlayPolicy";
-import { requestPlayBgmMessageWithUrl } from "@/components/chat/infra/audioMessage/audioMessageBgmCoordinator";
 import { useAudioMessageAutoPlayStore } from "@/components/chat/stores/audioMessageAutoPlayStore";
 import { applyRoomDndMapChange, roomDndMapQueryKey } from "@/components/chat/shared/map/roomDndMapApi";
 import { getSoundMessageExtra } from "@/types/messageExtra";
@@ -1339,21 +1339,20 @@ export function useWebSocket() {
         // (1) SOUND 自动播放：仅在音频 annotation 首次出现时触发，避免更新误播
         if (m.messageType === MessageType.SOUND) {
           const sound = getSoundMessageExtra(m.extra);
-          const url = typeof sound?.url === "string" ? sound.url.trim() : "";
-          if (url && typeof m.messageId === "number") {
-            const purpose = resolveAudioAutoPlayPurposeFromAnnotationTransition(previousMessage, m);
-            if (purpose) {
-              useAudioMessageAutoPlayStore.getState().enqueueFromWs({
-                roomId: m.roomId,
-                messageId: m.messageId,
-                purpose,
-              });
-              if (purpose === "bgm") {
-                void requestPlayBgmMessageWithUrl(m.roomId, m.messageId, url);
+            const url = typeof sound?.url === "string" ? sound.url.trim() : "";
+            if (url && typeof m.messageId === "number") {
+              const purpose = resolveAudioAutoPlayPurposeFromAnnotationTransition(previousMessage, m);
+              if (purpose) {
+                triggerAudioAutoPlay({
+                  source: "ws",
+                  roomId: m.roomId,
+                  messageId: m.messageId,
+                  purpose,
+                  url,
+                });
               }
             }
           }
-        }
 
         // (2) KP 停止全员 BGM：SYSTEM 且内容包含停止指令
         if (m.messageType === MessageType.SYSTEM) {

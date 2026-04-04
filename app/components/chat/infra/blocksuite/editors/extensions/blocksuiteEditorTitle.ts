@@ -7,11 +7,11 @@ import { readBlocksuiteDocHeader } from "../../document/docHeader";
 
 const TC_HEADER_TITLE_TTL_MS = 10_000;
 
-export function normalizeBlocksuiteDocTitle(value: unknown): string {
+function normalizeBlocksuiteDocTitle(value: unknown): string {
   return typeof value === "string" ? value.trim() : "";
 }
 
-export function getBlocksuiteMetaTitle(workspace: WorkspaceLike, docId: string): string {
+function getBlocksuiteMetaTitle(workspace: WorkspaceLike, docId: string): string {
   try {
     return normalizeBlocksuiteDocTitle((workspace as any)?.meta?.getDocMeta?.(docId)?.title);
   }
@@ -20,7 +20,7 @@ export function getBlocksuiteMetaTitle(workspace: WorkspaceLike, docId: string):
   }
 }
 
-export function readBlocksuiteStableDocTitle(store: any): string {
+function readBlocksuiteStableDocTitle(store: any): string {
   const tcHeaderTitle = normalizeBlocksuiteDocTitle(readBlocksuiteDocHeader(store)?.title);
   if (tcHeaderTitle)
     return tcHeaderTitle;

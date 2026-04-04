@@ -1,4 +1,5 @@
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
+import { ANNOTATION_IDS } from "@/types/messageAnnotations";
 
 import type { Message } from "../../../../../api";
 
@@ -109,6 +110,16 @@ describe("getMessagePreviewText", () => {
       extra: { videoMessage: { fileName: "clip.webm" } } as any,
     });
     expect(getMessagePreviewText(msg)).toBe("[视频] clip.webm");
+  });
+
+  it("音频预览优先使用 annotation 判定 BGM", () => {
+    const msg = createBaseMessage({
+      messageType: MESSAGE_TYPE.SOUND,
+      annotations: [ANNOTATION_IDS.SE],
+      content: "[播放BGM]",
+      extra: { soundMessage: { fileName: "mystery.mp3", purpose: "bgm" } } as any,
+    });
+    expect(getMessagePreviewText(msg)).toBe("[语音] mystery.mp3");
   });
 
   it("子区消息优先读取 threadRoot.title", () => {

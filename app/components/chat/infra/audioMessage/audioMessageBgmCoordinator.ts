@@ -2,8 +2,8 @@ export type BgmMessageController = {
   id: string;
   roomId: number;
   messageId: number;
-  play: () => Promise<void>;
-  playFromStart: () => Promise<void>;
+  play: () => Promise<boolean>;
+  playFromStart: () => Promise<boolean>;
   stop: () => void;
   isPlaying: () => boolean;
   getVolumeRatio: () => number;
@@ -43,6 +43,7 @@ const roomRuntimeByRoomId = new Map<number, RoomRuntimeState>();
 const BGM_FADE_OUT_MS = 180;
 const BGM_FADE_IN_MS = 260;
 const BGM_STOP_FADE_OUT_MS = 120;
+const BGM_HANDOVER_WAIT_MS = 1500;
 const MAX_FALLBACK_CONTROLLERS = 40;
 
 function logBgmAuto(event: string, payload?: Record<string, unknown>) {
@@ -122,6 +123,30 @@ async function fadeControllerVolume(
     controller.setVolumeRatio(next);
     if (progress >= 1) {
       return;
+    }
+  }
+}
+
+async function waitForControllerPlaybackStart(
+  roomId: number,
+  token: number,
+  controller: BgmMessageController,
+  timeoutMs: number,
+) {
+  const start = typeof performance !== "undefined" ? performance.now() : Date.now();
+  while (true) {
+    if (isTransitionStale(roomId, token)) {
+      return false;
+    }
+    if (controller.isPlaying()) {
+      return true;
+    }
+    const now = await waitNextFrame();
+    if (isTransitionStale(roomId, token)) {
+      return false;
+    }
+    if (now - start >= timeoutMs) {
+      return controller.isPlaying();
     }
   }
 }
@@ -226,6 +251,7 @@ function ensureFallbackController(params: { roomId: number; messageId: number; u
       audio.loop = false;
       audio.volume = clampVolume(volumeRatio);
       await audio.play();
+      return true;
     },
     playFromStart: async () => {
       try {
@@ -237,6 +263,7 @@ function ensureFallbackController(params: { roomId: number; messageId: number; u
       audio.loop = false;
       audio.volume = clampVolume(volumeRatio);
       await audio.play();
+      return true;
     },
     stop: () => {
       try {
@@ -289,6 +316,79 @@ function ensureFallbackController(params: { roomId: number; messageId: number; u
   return controller;
 }
 
+async function handoverCurrentPlaybackToTarget(params: {
+  roomId: number;
+  messageId: number;
+  from: ControllerLookup;
+  to: ControllerLookup;
+}) {
+  const {
+    roomId,
+    messageId,
+    from,
+    to,
+  } = params;
+  const token = beginRoomTransition(roomId);
+  const snapshotTimeSec = from.controller.getCurrentTimeSec?.();
+  const snapshotVolumeRatio = from.controller.getVolumeRatio();
+
+  to.controller.setVolumeRatio(0);
+
+  try {
+    const playAccepted = await to.controller.play();
+    if (!playAccepted) {
+      return false;
+    }
+  }
+  catch (error) {
+    logBgmAuto("handover-play-failed", {
+      roomId,
+      messageId,
+      fromKind: from.kind,
+      toKind: to.kind,
+      error: error instanceof Error ? error.message : String(error),
+    });
+    return false;
+  }
+
+  const started = await waitForControllerPlaybackStart(roomId, token, to.controller, BGM_HANDOVER_WAIT_MS);
+  if (!started) {
+    to.controller.stop();
+    logBgmAuto("handover-play-timeout", {
+      roomId,
+      messageId,
+      fromKind: from.kind,
+      toKind: to.kind,
+    });
+    return false;
+  }
+
+  if (isTransitionStale(roomId, token)) {
+    to.controller.stop();
+    return false;
+  }
+
+  if (typeof snapshotTimeSec === "number" && Number.isFinite(snapshotTimeSec) && snapshotTimeSec > 0) {
+    to.controller.setCurrentTimeSec?.(snapshotTimeSec);
+  }
+
+  const runtime = getRoomRuntime(roomId);
+  runtime.activeSource = { kind: to.kind, id: to.controller.id };
+  from.controller.stop();
+  to.controller.setVolumeRatio(snapshotVolumeRatio);
+  logBgmAuto("handover-playback-success", {
+    roomId,
+    messageId,
+    fromKind: from.kind,
+    toKind: to.kind,
+    snapshotTimeSec: typeof snapshotTimeSec === "number" && Number.isFinite(snapshotTimeSec)
+      ? snapshotTimeSec
+      : undefined,
+    snapshotVolumeRatio,
+  });
+  return true;
+}
+
 export function createBgmControllerId(roomId: number, messageId: number) {
   return `bgm-msg:${roomId}:${messageId}`;
 }
@@ -318,7 +418,7 @@ export async function requestPlayBgmMessage(roomId: number, messageId: number) {
   const targetLookup = resolveControllerById(targetId);
   if (!targetLookup) {
     logBgmAuto("play-skip-no-target", { roomId, messageId });
-    return;
+    return false;
   }
   const target = targetLookup.controller;
 
@@ -327,8 +427,26 @@ export async function requestPlayBgmMessage(roomId: number, messageId: number) {
   const currentLookup = resolveCurrentController(roomId);
   const current = currentLookup?.controller;
   if (current && current.id === targetId && current.isPlaying()) {
-    logBgmAuto("play-skip-already-playing", { roomId, messageId });
-    return;
+    if (currentLookup?.kind === targetLookup.kind) {
+      logBgmAuto("play-skip-already-playing", {
+        roomId,
+        messageId,
+        sourceKind: targetLookup.kind,
+      });
+      return true;
+    }
+    if (currentLookup) {
+      const handedOver = await handoverCurrentPlaybackToTarget({
+        roomId,
+        messageId,
+        from: currentLookup,
+        to: targetLookup,
+      });
+      if (handedOver) {
+        return true;
+      }
+    }
+    return false;
   }
 
   if (current && current.id !== targetId && current.isPlaying()) {
@@ -340,18 +458,21 @@ export async function requestPlayBgmMessage(roomId: number, messageId: number) {
       () => isTransitionStale(roomId, token),
     );
     if (isTransitionStale(roomId, token)) {
-      return;
+      return false;
     }
     current.stop();
   }
 
   if (isTransitionStale(roomId, token)) {
-    return;
+    return false;
   }
 
   target.setVolumeRatio(0);
   try {
-    await target.playFromStart();
+    const playAccepted = await target.playFromStart();
+    if (!playAccepted) {
+      return false;
+    }
   }
   catch (error) {
     logBgmAuto("play-failed", {
@@ -360,12 +481,23 @@ export async function requestPlayBgmMessage(roomId: number, messageId: number) {
       sourceKind: targetLookup.kind,
       error: error instanceof Error ? error.message : String(error),
     });
-    return;
+    return false;
+  }
+
+  const started = await waitForControllerPlaybackStart(roomId, token, target, BGM_HANDOVER_WAIT_MS);
+  if (!started) {
+    target.stop();
+    logBgmAuto("play-timeout", {
+      roomId,
+      messageId,
+      sourceKind: targetLookup.kind,
+    });
+    return false;
   }
 
   if (isTransitionStale(roomId, token)) {
     target.stop();
-    return;
+    return false;
   }
 
   runtime.activeSource = { kind: targetLookup.kind, id: targetId };
@@ -377,15 +509,16 @@ export async function requestPlayBgmMessage(roomId: number, messageId: number) {
     BGM_FADE_IN_MS,
     () => isTransitionStale(roomId, token),
   );
+  return true;
 }
 
 export async function requestPlayBgmMessageWithUrl(roomId: number, messageId: number, url: string) {
   if (!url) {
-    return;
+    return false;
   }
   ensureFallbackController({ roomId, messageId, url });
   logBgmAuto("play-with-url", { roomId, messageId, url });
-  await requestPlayBgmMessage(roomId, messageId);
+  return await requestPlayBgmMessage(roomId, messageId);
 }
 
 export async function handoverBgmPlaybackToFallback(
@@ -408,7 +541,8 @@ export async function handoverBgmPlaybackToFallback(
   const volumeRatio = typeof snapshot?.volumeRatio === "number"
     ? snapshot.volumeRatio
     : current.getVolumeRatio();
-  fallback.setVolumeRatio(volumeRatio);
+  const token = beginRoomTransition(roomId);
+  fallback.setVolumeRatio(0);
   const timeSec = typeof snapshot?.currentTimeSec === "number"
     ? snapshot.currentTimeSec
     : current.getCurrentTimeSec?.();
@@ -428,9 +562,21 @@ export async function handoverBgmPlaybackToFallback(
     return;
   }
 
+  const started = await waitForControllerPlaybackStart(roomId, token, fallback, BGM_HANDOVER_WAIT_MS);
+  if (!started) {
+    fallback.stop();
+    logBgmAuto("handover-timeout", { roomId, messageId });
+    return;
+  }
+  if (isTransitionStale(roomId, token)) {
+    fallback.stop();
+    return;
+  }
+
   const runtime = getRoomRuntime(roomId);
   runtime.activeSource = { kind: "fallback", id: targetId };
   current.stop();
+  fallback.setVolumeRatio(volumeRatio);
   logBgmAuto("handover-success", {
     roomId,
     messageId,
@@ -464,13 +610,13 @@ export async function requestStopRoomBgm(roomId: number) {
   logBgmAuto("stop-done", { roomId });
 }
 
-export function markBgmMessageStopped(roomId: number, messageId: number) {
+export function markBgmMessageStopped(roomId: number, messageId: number, sourceKind?: ControllerSourceKind) {
   const runtime = roomRuntimeByRoomId.get(roomId);
   if (!runtime?.activeSource) {
     return;
   }
   const controllerId = createBgmControllerId(roomId, messageId);
-  if (runtime.activeSource.id === controllerId) {
+  if (runtime.activeSource.id === controllerId && (!sourceKind || runtime.activeSource.kind === sourceKind)) {
     runtime.activeSource = undefined;
   }
 }

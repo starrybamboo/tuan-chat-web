@@ -1,3 +1,4 @@
+import { AuthHttpRequest } from "./AuthHttpRequest";
 import { TuanChat } from "./TuanChat";
 
 export type CreateTuanChatClientOptions = {
@@ -5,7 +6,7 @@ export type CreateTuanChatClientOptions = {
   includeToken?: boolean;
 };
 
-let tuanchat = new TuanChat();
+let tuanchat = new TuanChat(undefined, AuthHttpRequest);
 
 export function resolveApiBaseUrl(envBaseUrl: string | undefined): string | undefined {
   if (typeof window === 'undefined') {
@@ -45,7 +46,7 @@ export function createTuanChatClient(options: CreateTuanChatClientOptions = {}) 
     WITH_CREDENTIALS: true,
     CREDENTIALS: "include",
     TOKEN: includeToken ? async () => localStorage?.getItem('token') || '' : undefined,
-  });
+  }, AuthHttpRequest);
 }
 
 if (typeof window !== 'undefined') {

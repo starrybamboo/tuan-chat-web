@@ -3,9 +3,8 @@ import { toast } from "react-hot-toast";
 
 import type { RoomUiStoreApi } from "@/components/chat/stores/roomUiStore";
 
+import { triggerAudioAutoPlay } from "@/components/chat/infra/audioMessage/audioMessageAutoPlayRuntime";
 import { resolveAudioAutoPlayPurposeFromAnnotationTransition } from "@/components/chat/infra/audioMessage/audioMessageAutoPlayPolicy";
-import { requestPlayBgmMessageWithUrl } from "@/components/chat/infra/audioMessage/audioMessageBgmCoordinator";
-import { useAudioMessageAutoPlayStore } from "@/components/chat/stores/audioMessageAutoPlayStore";
 import { useChatComposerStore } from "@/components/chat/stores/chatComposerStore";
 import { useChatInputUiStore } from "@/components/chat/stores/chatInputUiStore";
 import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
@@ -15,7 +14,6 @@ import { isRoomJumpCommandText, parseRoomJumpCommand } from "@/components/chat/u
 import { isCommand } from "@/components/common/dicer/cmdPre";
 import { normalizeAnnotations } from "@/types/messageAnnotations";
 import { buildChatMessageRequestFromDraft } from "@/types/messageDraft";
-import { getSoundMessageExtra } from "@/types/messageExtra";
 import { UploadUtils } from "@/utils/UploadUtils";
 
 import type { ChatMessageRequest, ChatMessageResponse, UserRole } from "../../../../api";
@@ -375,27 +373,27 @@ export default function useChatMessageSubmit({
 
       createdRegularMessages.forEach((createdMessage, index) => {
         const draft = regularDrafts[index];
+        const request = regularRequests[index];
         if ((draft?.messageType ?? MessageType.TEXT) !== MessageType.SOUND || !createdMessage || typeof createdMessage.messageId !== "number") {
           return;
         }
 
-        const autoPlayPurpose = resolveAudioAutoPlayPurposeFromAnnotationTransition(undefined, createdMessage);
+        const autoPlayPurpose = resolveAudioAutoPlayPurposeFromAnnotationTransition(undefined, request);
         if (!autoPlayPurpose) {
           return;
         }
 
-        useAudioMessageAutoPlayStore.getState().enqueueFromWs({
+        const requestExtra = request.extra as { soundMessage?: { url?: string } } | undefined;
+        const createdExtra = createdMessage.extra as { soundMessage?: { url?: string } } | undefined;
+        const requestUrl = typeof requestExtra?.soundMessage?.url === "string" ? requestExtra.soundMessage.url.trim() : "";
+        const createdUrl = typeof createdExtra?.soundMessage?.url === "string" ? createdExtra.soundMessage.url.trim() : "";
+        triggerAudioAutoPlay({
+          source: "localSend",
           roomId,
           messageId: createdMessage.messageId,
           purpose: autoPlayPurpose,
+          url: requestUrl || createdUrl,
         });
-        if (autoPlayPurpose === "bgm") {
-          const sound = getSoundMessageExtra(createdMessage.extra);
-          const createdUrl = typeof sound?.url === "string" ? sound.url.trim() : "";
-          if (createdUrl) {
-            void requestPlayBgmMessageWithUrl(roomId, createdMessage.messageId, createdUrl);
-          }
-        }
       });
 
       // 仅在当前草稿仍然是本次提交内容时才清空，避免覆盖用户在提交期间的新输入。

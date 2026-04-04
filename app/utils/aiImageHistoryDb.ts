@@ -75,10 +75,6 @@ async function getDb() {
   });
 }
 
-export async function addAiImageHistory(row: Omit<AiImageHistoryRow, "id">, options?: { maxItems?: number }) {
-  return addAiImageHistoryBatch([row], options);
-}
-
 export async function addAiImageHistoryBatch(rows: Array<Omit<AiImageHistoryRow, "id">>, options?: { maxItems?: number }) {
   if (!rows.length)
     return;

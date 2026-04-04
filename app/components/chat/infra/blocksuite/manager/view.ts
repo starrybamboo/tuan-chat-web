@@ -175,13 +175,13 @@ function getSupportedViewProviders(): ViewProviderClass[] {
   return providers.concat(SupportedSlashMenuFilterViewExtension);
 }
 
-export function createBlocksuiteViewManager() {
+function createBlocksuiteViewManager() {
   return new ViewExtensionManager(getSupportedViewProviders());
 }
 
 const blocksuiteViewManager = createBlocksuiteViewManager();
 
-export function getBlocksuiteViewManager() {
+function getBlocksuiteViewManager() {
   return blocksuiteViewManager;
 }
 

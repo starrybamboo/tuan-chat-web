@@ -19,7 +19,7 @@ export const FEEDBACK_ISSUE_STATUS_PENDING = 1 as const;
 export const FEEDBACK_ISSUE_STATUS_PROCESSING = 2 as const;
 export const FEEDBACK_ISSUE_STATUS_COMPLETED = 3 as const;
 export const FEEDBACK_ISSUE_STATUS_REJECTED = 4 as const;
-export const FEEDBACK_ISSUE_DEVELOPER_UIDS = new Set([10001, 10003]);
+const FEEDBACK_ISSUE_DEVELOPER_UIDS = new Set([10001, 10003]);
 
 export const FEEDBACK_ISSUE_STATUS_OPTIONS = [
   { value: FEEDBACK_ISSUE_STATUS_PENDING, label: "待处理" },
