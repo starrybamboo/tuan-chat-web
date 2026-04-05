@@ -1,6 +1,12 @@
 import antfu from "@antfu/eslint-config";
 import pluginQuery from "@tanstack/eslint-plugin-query";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import reactHooks from "eslint-plugin-react-hooks";
+import tailwindcss from "eslint-plugin-tailwindcss";
+
+const ROOT_DIR = path.dirname(fileURLToPath(import.meta.url));
+const TAILWIND_CONFIG_PATH = path.join(ROOT_DIR, "tailwind.config.js");
 
 export default antfu(
   {
@@ -29,6 +35,15 @@ export default antfu(
     plugins: {
       "@tanstack/query": pluginQuery,
       "react-hooks": reactHooks,
+      tailwindcss,
+    },
+  },
+  {
+    files: ["**/*.{js,jsx,ts,tsx}"],
+    settings: {
+      tailwindcss: {
+        config: TAILWIND_CONFIG_PATH,
+      },
     },
   },
   {
@@ -64,6 +79,7 @@ export default antfu(
     files: ["**/*.{jsx,tsx}"],
     rules: {
       "no-console": ["warn", { allow: ["warn", "error"] }],
+      "tailwindcss/enforces-shorthand": "warn",
     },
   },
   {
