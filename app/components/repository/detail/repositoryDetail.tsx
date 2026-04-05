@@ -627,6 +627,7 @@ export default function RepositoryDetailComponent({
                           workspaceId={`space:${linkedSpaceId}`}
                           spaceId={linkedSpaceId}
                           docId={buildSpaceDocId({ kind: "space_description", spaceId: linkedSpaceId })}
+                          variant="full"
                           readOnly
                           mode="page"
                           tcHeader={{
