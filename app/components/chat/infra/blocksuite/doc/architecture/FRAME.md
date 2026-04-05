@@ -37,7 +37,7 @@
 
 ## 内部分层
 
-- [BlocksuiteRouteFrameClient.tsx](../../BlocksuiteRouteFrameClient.tsx)：iframe 页面入口、query 解析、消息桥接、高度回传
+- [BlocksuiteRouteFrameClient.tsx](../../BlocksuiteRouteFrameClient.tsx)：iframe 页面入口、query 解析、消息桥接
 - [BlocksuiteDescriptionEditorRuntime.browser.tsx](../../BlocksuiteDescriptionEditorRuntime.browser.tsx)：唯一 orchestrator，组合 mode、lifecycle、mode sync、viewport、tcHeader sync
 - [useBlocksuiteEditorLifecycle.ts](../../useBlocksuiteEditorLifecycle.ts)：runtime 加载、workspace retain/release、store/editor 创建、cleanup
 - [blocksuiteEditorLifecycleHydration.ts](../../blocksuiteEditorLifecycleHydration.ts)：启动期 snapshot 决策与等待状态机

@@ -21,7 +21,6 @@ export const UserReadMe: React.FC<UserReadMeProps> = ({
         <BlocksuiteDescriptionEditor
           workspaceId={`user:${userId}`}
           docId={`user:${userId}:readme`}
-          variant="full"
           className={BLOCKSUITE_FULL_PANEL_EDITOR_CLASS}
           readOnly={!isOwner}
         />

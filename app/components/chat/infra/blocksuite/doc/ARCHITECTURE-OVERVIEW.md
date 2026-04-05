@@ -62,7 +62,7 @@ flowchart LR
   只负责创建 iframe、传递参数、同步主题和承接 `postMessage`。
 
 - 路由协议层  
-  负责 iframe 内 query 参数解析、宿主消息协议、高度回传和运行时启动入口。
+  负责 iframe 内 query 参数解析、宿主消息协议和运行时启动入口。
 
 - runtime 编排层  
   以 `BlocksuiteDescriptionEditorRuntime` 为中心，统一调度 mode、lifecycle、mode sync、viewport、tcHeader sync 和 header UI。

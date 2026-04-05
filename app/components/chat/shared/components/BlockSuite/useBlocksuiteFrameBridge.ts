@@ -136,7 +136,7 @@ export function useBlocksuiteFrameBridge(params: UseBlocksuiteFrameBridgeParams)
     }
   }, [iframeRef, instanceId]);
 
-  // 订阅 iframe 的 postMessage，统一分发模式切换、高度回传、导航、mention、header 和 ready 事件。
+  // 订阅 iframe 的 postMessage，统一分发模式切换、导航、mention、header 和 ready 事件。
   useEffect(() => {
     if (typeof window === "undefined")
       return;

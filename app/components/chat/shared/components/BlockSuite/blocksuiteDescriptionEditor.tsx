@@ -44,13 +44,12 @@ function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEdito
 
   void intentPrewarm;
 
-  // 埋点：打开编辑器时触发，记录 workspaceId、docId 和 variant 以分析不同场景的打开速度表现
+  // 埋点：打开编辑器时触发，记录 workspaceId、docId 以分析打开速度表现
   useEffect(() => {
     startBlocksuiteOpenSession({
       instanceId,
       workspaceId,
       docId,
-      variant: "full",
     });
   }, [docId, instanceId, workspaceId]);
 

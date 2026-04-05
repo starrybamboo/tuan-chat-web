@@ -14,7 +14,6 @@
 iframe 负责：
 
 - 真正的 editor runtime
-- 高度回传
 - 模式回传
 - 导航请求
 - mention / header 事件上抛
@@ -43,17 +42,15 @@ flowchart LR
 
 ## 2. 宿主发给 iframe
 
-主要是 3 类消息：
+主要是 2 类消息：
 
 - `sync-params`
 - `theme`
-- `request-height`
 
 用途分别是：
 
 - 增量同步文档参数
 - 同步主题
-- 要求重新测量高度
 
 ## 3. iframe 回给宿主
 
@@ -61,7 +58,6 @@ flowchart LR
 
 - `ready`
 - `render-ready`
-- `height`
 - `mode`
 - `navigate`
 - `mention-click`

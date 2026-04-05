@@ -203,7 +203,6 @@ function RoomSettingWindow({ onClose, roomId: propRoomId, defaultTab = "role" }:
                             mode="page"
                             allowModeSwitch
                             fullscreenEdgeless
-                            variant="full"
                             tcHeader={{ enabled: true, fallbackTitle: room?.name ?? "", fallbackImageUrl: room?.avatar ?? "" }}
                             onTcHeaderChange={({ header }) => {
                               scheduleRoomRedundantSync({ title: header.title, imageUrl: header.imageUrl });

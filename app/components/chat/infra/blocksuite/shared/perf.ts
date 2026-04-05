@@ -14,7 +14,6 @@ type BlocksuitePerfSession = {
   instanceId: string;
   workspaceId: string;
   docId: string;
-  variant: "full";
   frameKind: "route";
   startedAt: number;
   finishedAt?: number;
@@ -72,7 +71,6 @@ export function startBlocksuiteOpenSession(params: {
   instanceId: string;
   workspaceId: string;
   docId: string;
-  variant: "full";
 }) {
   const owner = getPerfOwner();
   const startedAt = now();
@@ -80,7 +78,6 @@ export function startBlocksuiteOpenSession(params: {
     instanceId: params.instanceId,
     workspaceId: params.workspaceId,
     docId: params.docId,
-    variant: params.variant,
     frameKind: "route",
     startedAt,
     marks: {
