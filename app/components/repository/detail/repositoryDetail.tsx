@@ -12,7 +12,6 @@ import RoomWindow from "@/components/chat/room/roomWindow";
 import BlocksuiteDescriptionEditor from "@/components/chat/shared/components/BlockSuite/blocksuiteDescriptionEditor";
 import {
   BLOCKSUITE_FULL_PANEL_EDITOR_CLASS,
-  BLOCKSUITE_FULL_PANEL_HEIGHT_CLASS,
 } from "@/components/chat/shared/components/BlockSuite/blocksuiteDescriptionEditor.shared";
 import Author from "./author";
 // import IssueTab from "./issueTab";
@@ -624,7 +623,7 @@ export default function RepositoryDetailComponent({
               <div className="hidden md:flex divider divider-horizontal self-stretch m-0" aria-hidden />
 
               <div className="flex-1 min-w-0 min-h-0 overflow-visible">
-                <div className={`${BLOCKSUITE_FULL_PANEL_HEIGHT_CLASS} overflow-hidden rounded-md`}>
+                <div className="h-full min-h-0 overflow-hidden rounded-md">
                   {linkedSpaceId
                     ? (
                         <BlocksuiteDescriptionEditor
