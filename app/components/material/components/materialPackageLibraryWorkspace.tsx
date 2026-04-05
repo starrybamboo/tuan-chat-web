@@ -176,7 +176,7 @@ export default function MaterialPackageLibraryWorkspace({
   const topBarInfo = loading ? "加载中" : `${items.length} 个素材包`;
 
   return (
-    <div className={`h-full min-h-0 overflow-y-auto bg-[radial-gradient(circle_at_top_left,oklch(var(--p)/0.1),transparent_26%),linear-gradient(180deg,oklch(var(--b2)/0.98),oklch(var(--b1)/1))] text-base-content ${embedded ? "" : "border-t border-base-300"}`}>
+    <div className={`h-full min-h-0 overflow-y-auto text-base-content ${embedded ? "bg-base-100" : "bg-[radial-gradient(circle_at_top_left,oklch(var(--p)/0.1),transparent_26%),linear-gradient(180deg,oklch(var(--b2)/0.98),oklch(var(--b1)/1))] border-t border-base-300"}`}>
       {embedded && (
         <div className="sticky top-0 z-20 border-t border-b border-gray-300 bg-base-200 dark:border-gray-700">
           <div className="mx-auto flex h-12 w-full max-w-6xl items-center justify-between gap-4 px-6">
