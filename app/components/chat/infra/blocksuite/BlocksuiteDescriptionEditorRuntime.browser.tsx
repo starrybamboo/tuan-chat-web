@@ -125,7 +125,7 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
     if (!isBlocksuiteDebugEnabled())
       return;
     const inIframe = isProbablyInIframe();
-    const msg = { docId, workspaceId, spaceId, variant: "full", inIframe, instanceId: props.instanceId ?? null };
+    const msg = { docId, workspaceId, spaceId, inIframe, instanceId: props.instanceId ?? null };
     console.warn("[BlocksuiteMentionHost] runtime mount", msg);
     (globalThis as any).__tcBlocksuiteDebugLog?.({ source: "BlocksuiteMentionHost", message: "runtime mount", payload: msg });
   }, [docId, props.instanceId, spaceId, workspaceId]);

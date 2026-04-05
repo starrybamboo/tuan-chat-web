@@ -285,7 +285,6 @@ function SpaceSettingWindow({ onClose }: { onClose: () => void }) {
                   mode="page"
                   allowModeSwitch
                   fullscreenEdgeless
-                  variant="full"
                   tcHeader={{ enabled: true, fallbackTitle: space?.name ?? "", fallbackImageUrl: space?.avatar ?? "" }}
                   onTcHeaderChange={({ header }) => {
                     handleBlocksuiteHeaderChange({ title: header.title, imageUrl: header.imageUrl });

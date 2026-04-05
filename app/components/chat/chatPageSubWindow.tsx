@@ -549,7 +549,6 @@ export default function ChatPageSubWindow({
                             workspaceId={`space:${activeSpaceId}`}
                             spaceId={activeSpaceId}
                             docId={resolvedDocId}
-                            variant="full"
                             tcHeader={{ enabled: true, fallbackTitle: docTitleById.get(resolvedDocId) ?? "文档" }}
                             allowModeSwitch
                             fullscreenEdgeless

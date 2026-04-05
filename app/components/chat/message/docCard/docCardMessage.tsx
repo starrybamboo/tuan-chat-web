@@ -269,7 +269,6 @@ function DocCardMessageImpl({ messageResponse }: { messageResponse: ChatMessageR
                   workspaceId={`space:${previewSpaceId}`}
                   spaceId={previewSpaceId}
                   docId={docId}
-                  variant="full"
                   readOnly
                   tcHeader={{ enabled: true, fallbackTitle: title, fallbackImageUrl: coverUrl }}
                   allowModeSwitch

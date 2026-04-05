@@ -630,7 +630,6 @@ export default function RepositoryDetailComponent({
                           workspaceId={`space:${linkedSpaceId}`}
                           spaceId={linkedSpaceId}
                           docId={buildSpaceDocId({ kind: "space_description", spaceId: linkedSpaceId })}
-                          variant="full"
                           className={BLOCKSUITE_FULL_PANEL_EDITOR_CLASS}
                           readOnly
                           mode="page"
