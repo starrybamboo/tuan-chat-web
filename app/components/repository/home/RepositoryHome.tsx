@@ -1,6 +1,7 @@
+import type { ReactNode } from "react";
 import { useRepositoryListQuery } from "api/hooks/repositoryQueryHooks";
 import { useRuleListQuery } from "api/hooks/ruleQueryHooks";
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router";
 import Pagination from "@/components/common/pagination";
 
@@ -137,7 +138,7 @@ export function ContentCard({
     >
       {/* 图片部分 */}
       {(shouldShowImage || shouldShowPlaceholder) && (
-        <figure className={`relative overflow-hidden rounded-md border border-[#e5e7eb] dark:border-white/12 bg-base-200 ${aspectClasses[imageAspect]}`}>
+        <figure className={`relative overflow-hidden rounded-md border border-gray-300 dark:border-gray-700 bg-base-200 ${aspectClasses[imageAspect]}`}>
           {shouldShowImage && (
             <img
               src={image}
@@ -159,7 +160,7 @@ export function ContentCard({
                 {topBadges.map(label => (
                   <span
                     key={label}
-                    className="rounded-full border border-base-300 bg-base-100/88 px-2.5 py-1 text-[11px] font-semibold text-base-content shadow-sm backdrop-blur-sm"
+                    className="rounded-full border border-base-300 bg-base-100/88 px-2 py-0.5 text-[10px] font-semibold text-base-content shadow-sm backdrop-blur-sm"
                   >
                     {label}
                   </span>
@@ -175,7 +176,7 @@ export function ContentCard({
 
           {shouldShowHoverMeta && (
             <>
-              <div className="absolute inset-0 bg-white opacity-0 transition-opacity duration-300 group-hover:opacity-40 dark:bg-black dark:group-hover:opacity-45" />
+              <div className="absolute inset-0 bg-white opacity-0 transition-opacity duration-300 group-hover:opacity-40 dark:bg-black dark:group-hover:opacity-20" />
               <div className="pointer-events-none absolute inset-0 p-4 opacity-0 transition-opacity duration-300 group-hover:opacity-100 flex flex-col justify-end items-start">
                 <div className="space-y-3 text-sm text-black dark:text-white">
                   {hoverMetadata.length > 0 && (
@@ -183,7 +184,7 @@ export function ContentCard({
                       {hoverMetadata.map(item => (
                         <span
                           key={item}
-                          className="rounded-full border border-black/12 bg-white/75 px-3 py-1 text-xs font-medium text-black/78 backdrop-blur-sm dark:border-white/12 dark:bg-black/55 dark:text-white/82"
+                          className="rounded-full border border-black/12 bg-white/75 px-2.5 py-0.5 text-[11px] font-medium text-black/78 backdrop-blur-sm dark:border-white/12 dark:bg-black/55 dark:text-white/82"
                         >
                           {item}
                         </span>
@@ -252,7 +253,7 @@ export function ContentCard({
               <div className="flex shrink-0 items-center gap-2">
                 {titleSuffix}
                 {resolvedBadgeLabel && (
-                  <span className="rounded-full bg-accent/10 px-3 py-1 text-xs font-semibold whitespace-nowrap text-base-content/80">
+                  <span className="rounded-full bg-accent/10 px-2.5 py-0.5 text-[11px] font-semibold whitespace-nowrap text-base-content/80">
                     {resolvedBadgeLabel}
                   </span>
                 )}
@@ -274,7 +275,7 @@ export function ContentCard({
             {metadata.map(item => (
               <span
                 key={item}
-                className="rounded-full border border-base-300 bg-base-100 px-2.5 py-1 text-xs text-base-content/65"
+                className="rounded-full border border-base-300 bg-base-100 px-2 py-0.5 text-[11px] text-base-content/65"
               >
                 {item}
               </span>
