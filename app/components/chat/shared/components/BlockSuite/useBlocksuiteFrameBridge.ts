@@ -17,7 +17,6 @@ type UseBlocksuiteFrameBridgeParams = {
   workspaceId: string;
   spaceId?: number;
   docId: string;
-  variant: "embedded" | "full";
   readOnly: boolean;
   allowModeSwitch: boolean;
   fullscreenEdgeless: boolean;
@@ -35,7 +34,6 @@ type UseBlocksuiteFrameBridgeParams = {
     header: BlocksuiteDocHeader;
   }) => void;
   setFrameMode: (mode: DocMode) => void;
-  setIframeHeight: (height: number | null) => void;
   setIsFrameReady: (ready: boolean) => void;
   handleMentionClickMessage: (userId: string) => void;
   handleMentionHoverMessage: (data: any) => void;
@@ -49,7 +47,6 @@ export function useBlocksuiteFrameBridge(params: UseBlocksuiteFrameBridgeParams)
     workspaceId,
     spaceId,
     docId,
-    variant,
     readOnly,
     allowModeSwitch,
     fullscreenEdgeless,
@@ -62,7 +59,6 @@ export function useBlocksuiteFrameBridge(params: UseBlocksuiteFrameBridgeParams)
     onModeChange,
     onTcHeaderChange,
     setFrameMode,
-    setIframeHeight,
     setIsFrameReady,
     handleMentionClickMessage,
     handleMentionHoverMessage,
@@ -91,7 +87,6 @@ export function useBlocksuiteFrameBridge(params: UseBlocksuiteFrameBridgeParams)
           workspaceId,
           spaceId,
           docId,
-          variant,
           readOnly,
           allowModeSwitch,
           fullscreenEdgeless,
@@ -117,11 +112,10 @@ export function useBlocksuiteFrameBridge(params: UseBlocksuiteFrameBridgeParams)
     readOnly,
     spaceId,
     tcHeaderEnabled,
-    variant,
     workspaceId,
   ]);
 
-  // 同步宿主侧的基础运行信息，目前包括主题和自适应高度请求。
+  // 同步宿主侧的基础运行信息，目前只包括主题。
   const syncFrameBasics = useCallback(() => {
     try {
       const frameWindow = iframeRef.current?.contentWindow;
@@ -135,11 +129,6 @@ export function useBlocksuiteFrameBridge(params: UseBlocksuiteFrameBridgeParams)
           type: "theme",
           theme: getCurrentAppTheme(),
         },
-        getPostMessageTargetOrigin(),
-      );
-
-      frameWindow.postMessage(
-        { tc: "tc-blocksuite-frame", instanceId, type: "request-height" },
         getPostMessageTargetOrigin(),
       );
     }
@@ -174,11 +163,6 @@ export function useBlocksuiteFrameBridge(params: UseBlocksuiteFrameBridgeParams)
         const next = data.mode as DocMode;
         setFrameMode(next);
         onModeChange?.(next);
-        return;
-      }
-
-      if (data.type === "height" && typeof data.height === "number" && Number.isFinite(data.height) && data.height > 0) {
-        setIframeHeight(Math.ceil(data.height));
         return;
       }
 
@@ -332,7 +316,6 @@ export function useBlocksuiteFrameBridge(params: UseBlocksuiteFrameBridgeParams)
     onTcHeaderChange,
     postFrameParams,
     setFrameMode,
-    setIframeHeight,
     setIsFrameReady,
     syncFrameBasics,
   ]);

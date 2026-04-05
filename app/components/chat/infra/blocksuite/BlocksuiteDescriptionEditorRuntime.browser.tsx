@@ -32,8 +32,6 @@ interface BlocksuiteDescriptionEditorProps {
   docId: string;
   /** iframe 宿主实例 id（用于 postMessage 去重） */
   instanceId?: string;
-  /** 默认嵌入式；`full` 用于全屏/DocRoute 场景 */
-  variant?: "embedded" | "full";
   /** 只读模式：允许滚动/选择，但不允许编辑 */
   readOnly?: boolean;
   /** 外部强制模式（allowModeSwitch=false 时生效） */
@@ -99,7 +97,6 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
     docId,
     instanceId,
     className,
-    variant = "embedded",
     readOnly = false,
     allowModeSwitch = false,
     fullscreenEdgeless = false,
@@ -109,7 +106,7 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
     onModeChange,
   } = props;
 
-  const isFull = variant === "full";
+  const isFull = true;
   const [isForcePullingCloud, setIsForcePullingCloud] = useState(false);
   const tcHeaderEnabled = Boolean(tcHeader?.enabled);
 
@@ -128,10 +125,10 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
     if (!isBlocksuiteDebugEnabled())
       return;
     const inIframe = isProbablyInIframe();
-    const msg = { docId, workspaceId, spaceId, variant, inIframe, instanceId: props.instanceId ?? null };
+    const msg = { docId, workspaceId, spaceId, variant: "full", inIframe, instanceId: props.instanceId ?? null };
     console.warn("[BlocksuiteMentionHost] runtime mount", msg);
     (globalThis as any).__tcBlocksuiteDebugLog?.({ source: "BlocksuiteMentionHost", message: "runtime mount", payload: msg });
-  }, [docId, props.instanceId, spaceId, variant, workspaceId]);
+  }, [docId, props.instanceId, spaceId, workspaceId]);
 
   const tcHeaderEntity = useMemo(() => {
     const parsed = parseDescriptionDocId(docId);

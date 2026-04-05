@@ -14,7 +14,7 @@ type BlocksuitePerfSession = {
   instanceId: string;
   workspaceId: string;
   docId: string;
-  variant: "embedded" | "full";
+  variant: "full";
   frameKind: "route";
   startedAt: number;
   finishedAt?: number;
@@ -72,7 +72,7 @@ export function startBlocksuiteOpenSession(params: {
   instanceId: string;
   workspaceId: string;
   docId: string;
-  variant: "embedded" | "full";
+  variant: "full";
 }) {
   const owner = getPerfOwner();
   const startedAt = now();
@@ -174,4 +174,3 @@ export function finishBlocksuiteOpenSession(instanceId: string) {
 
   return owner.__tcBlocksuitePerfLast;
 }
-

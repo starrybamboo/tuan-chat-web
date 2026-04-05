@@ -15,7 +15,7 @@ import { useBlocksuiteMentionProfilePopover } from "./useBlocksuiteMentionProfil
  *
  * 主文件现在只负责：
  * 1. 组合各个 host hook
- * 2. 管理少量顶层状态（mode / height / ready）
+ * 2. 管理少量顶层状态（mode / ready）
  * 3. 渲染 skeleton、popover 与 iframe
  */
 function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEditorProps) {
@@ -23,7 +23,6 @@ function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEdito
     workspaceId,
     spaceId,
     docId,
-    variant = "embedded",
     intentPrewarm = false,
     mode: forcedMode = "page",
     readOnly = false,
@@ -40,7 +39,6 @@ function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEdito
   const instanceId = useId();
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
   const [frameMode, setFrameMode] = useState<DocMode>(forcedMode);
-  const [iframeHeight, setIframeHeight] = useState<number | null>(null);
   const [isFrameReady, setIsFrameReady] = useState(false);
   const [hasFrameReadyOnce, setHasFrameReadyOnce] = useState(false);
 
@@ -52,9 +50,9 @@ function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEdito
       instanceId,
       workspaceId,
       docId,
-      variant,
+      variant: "full",
     });
-  }, [docId, instanceId, variant, workspaceId]);
+  }, [docId, instanceId, workspaceId]);
 
   const isEdgelessFullscreenActive = allowModeSwitch && fullscreenEdgeless && frameMode === "edgeless";
 
@@ -70,7 +68,6 @@ function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEdito
     workspaceId,
     spaceId,
     docId,
-    variant,
     readOnly,
     allowModeSwitch,
     fullscreenEdgeless,
@@ -78,7 +75,6 @@ function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEdito
     tcHeader,
     className,
     isEdgelessFullscreenActive,
-    iframeHeight,
     isFrameReady,
     hasFrameReadyOnce,
   });
@@ -90,7 +86,6 @@ function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEdito
     workspaceId,
     spaceId,
     docId,
-    variant,
     readOnly,
     allowModeSwitch,
     fullscreenEdgeless,
@@ -103,7 +98,6 @@ function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEdito
     onModeChange,
     onTcHeaderChange,
     setFrameMode,
-    setIframeHeight,
     setIsFrameReady,
     handleMentionClickMessage: mention.handleMentionClickMessage,
     handleMentionHoverMessage: mention.handleMentionHoverMessage,
@@ -145,8 +139,6 @@ function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEdito
     <div className={frameInit.wrapperClassName}>
       <BlocksuiteFrameSkeleton
         visible={!hasFrameReadyOnce && !isFrameReady}
-        variant={variant}
-        iframeHeightAttr={frameInit.iframeHeightAttr}
         hasExplicitHeightClass={frameInit.hasExplicitHeightClass}
       />
       <BlocksuiteMentionProfilePopover
@@ -174,7 +166,6 @@ function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEdito
         className={frameInit.iframeClassName}
         allow="clipboard-read; clipboard-write; fullscreen"
         allowFullScreen
-        height={frameInit.iframeHeightAttr}
         style={{ backgroundColor: "transparent" }}
         onLoad={() => {
           bridge.postFrameParams();
