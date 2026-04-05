@@ -137,7 +137,7 @@ export function ContentCard({
     >
       {/* 图片部分 */}
       {(shouldShowImage || shouldShowPlaceholder) && (
-        <figure className={`relative overflow-hidden rounded-md border border-[#e5e7eb] bg-base-200 ${aspectClasses[imageAspect]}`}>
+        <figure className={`relative overflow-hidden rounded-md border border-[#e5e7eb] dark:border-white/12 bg-base-200 ${aspectClasses[imageAspect]}`}>
           {shouldShowImage && (
             <img
               src={image}
@@ -175,15 +175,15 @@ export function ContentCard({
 
           {shouldShowHoverMeta && (
             <>
-              <div className="absolute inset-0 bg-white opacity-0 transition-opacity duration-300 group-hover:opacity-40" />
+              <div className="absolute inset-0 bg-white opacity-0 transition-opacity duration-300 group-hover:opacity-40 dark:bg-black dark:group-hover:opacity-45" />
               <div className="pointer-events-none absolute inset-0 p-4 opacity-0 transition-opacity duration-300 group-hover:opacity-100 flex flex-col justify-end items-start">
-                <div className="space-y-3 text-sm text-black">
+                <div className="space-y-3 text-sm text-black dark:text-white">
                   {hoverMetadata.length > 0 && (
                     <div className="flex flex-wrap gap-2">
                       {hoverMetadata.map(item => (
                         <span
                           key={item}
-                          className="rounded-full border border-black/12 bg-white/75 px-3 py-1 text-xs font-medium text-black/78 backdrop-blur-sm"
+                          className="rounded-full border border-black/12 bg-white/75 px-3 py-1 text-xs font-medium text-black/78 backdrop-blur-sm dark:border-white/12 dark:bg-black/55 dark:text-white/82"
                         >
                           {item}
                         </span>
