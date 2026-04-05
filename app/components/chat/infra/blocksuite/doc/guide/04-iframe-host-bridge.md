@@ -46,36 +46,12 @@ flowchart TB
             Lifecycle[useBlocksuiteEditorLifecycle.ts]
         end
 
-        subgraph DataPlane[文档同步层]
-            Workspace[spaceWorkspace.ts]
-            RemoteSource[remoteDocSource.ts]
-            WsClient[blocksuiteWsClient.ts]
-            LocalQueue[IndexedDB updates queue]
-        end
-
-        subgraph Backend[服务端]
-            HttpApi[HTTP snapshot updates API]
-            WsGateway[WebSocket 网关]
-        end
-
         HostView --> HostBridge
         HostBridge -->|postMessage sync-params theme| FrameProtocol
         FrameProtocol -->|postMessage ready render-ready mode navigate mention tc-header| HostBridge
         HostBridge --> HostUI
 
-        FrameEntry --> FrameProtocol --> Runtime --> Lifecycle --> Workspace
-        Workspace --> RemoteSource
-
-        RemoteSource -->|pull snapshot updates| HttpApi
-        HttpApi -->|snapshot updates diff| RemoteSource
-
-        RemoteSource -->|WS open: tryPushUpdateIfOpen| WsClient
-        WsClient -->|join leave push awareness| WsGateway
-        WsGateway -->|doc update fanout| WsClient
-        WsClient -->|onUpdate subscribe| RemoteSource
-
-        RemoteSource -->|WS 不可用时暂存| LocalQueue
-        LocalQueue -->|恢复后 flushOfflineUpdates| HttpApi
+        FrameEntry --> FrameProtocol --> Runtime --> Lifecycle
 ```
 
 ## 关键时序图
@@ -86,10 +62,6 @@ sequenceDiagram
         participant Host as 宿主
         participant Frame as iframe 协议层
         participant Runtime as 编辑器 runtime
-        participant Remote as remoteDocSource
-        participant WS as blocksuiteWsClient
-        participant WSG as WebSocket 网关
-        participant HTTP as Snapshot Updates API
 
         User->>Host: 打开文档
         Host->>Frame: 加载 iframe + query 参数
@@ -97,31 +69,10 @@ sequenceDiagram
         Host-->>Frame: sync-params + theme
         Frame->>Runtime: 启动并注入参数
 
-        Runtime->>Remote: pull(docId, stateVector)
-        Remote->>HTTP: GET snapshot + updates
-        HTTP-->>Remote: 返回快照与增量
-        Remote-->>Runtime: diff update
+        User->>Runtime: 编辑或触发交互
+        Runtime-->>Frame: emitters 产生命令与状态
+        Frame-->>Host: mode navigate mention-hover mention-click tc-header render-ready
 
-        Runtime->>WS: joinDoc
-        WS->>WSG: JOIN room
-
-        User->>Runtime: 编辑文档
-        Runtime->>Remote: push(update)
-
-        alt WS 已连接
-            Remote->>WS: tryPushUpdateIfOpen
-            WS->>WSG: PUSH_UPDATE
-            WSG-->>WS: UPDATE_ACK
-            WSG-->>WS: DOC_UPDATE fanout
-            WS-->>Remote: onUpdate(update)
-            Remote-->>Runtime: apply remote update
-        else WS 未连接
-            Remote->>Remote: addUpdate 到 IndexedDB
-            Remote->>HTTP: 后台 flushOfflineUpdates
-            HTTP-->>Remote: 写入成功
-        end
-
-        Runtime-->>Host: mode navigate mention-hover mention-click tc-header render-ready
         Host->>Host: 路由跳转 弹层渲染 头图状态同步
 ```
 
