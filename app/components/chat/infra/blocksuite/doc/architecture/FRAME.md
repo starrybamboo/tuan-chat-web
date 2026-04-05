@@ -12,6 +12,7 @@
 ## 当前文件
 
 - [BlocksuiteRouteFrameClient.tsx](../../BlocksuiteRouteFrameClient.tsx)
+- [useBlocksuiteFrameProtocol.ts](../../useBlocksuiteFrameProtocol.ts)
 - [BlocksuiteDescriptionEditorRuntime.browser.tsx](../../BlocksuiteDescriptionEditorRuntime.browser.tsx)
 - [BlocksuiteTcHeader.tsx](../../BlocksuiteTcHeader.tsx)
 - [blocksuiteEditorLifecycleHydration.ts](../../blocksuiteEditorLifecycleHydration.ts)
@@ -25,10 +26,11 @@
 ## 负责的事
 
 - route 参数解析与 iframe 宿主协议
+- frame adapter 协议校验与参数状态桥接
 - editor lifecycle 与启动期 hydration
 - viewport / fullscreen 行为
 - tcHeader UI 与宿主同步
-- iframe 内高度测量与 render-ready 时序
+- render-ready 时序与 runtime 事件上抛
 
 ## 不负责的事
 
@@ -37,7 +39,8 @@
 
 ## 内部分层
 
-- [BlocksuiteRouteFrameClient.tsx](../../BlocksuiteRouteFrameClient.tsx)：iframe 页面入口、query 解析、消息桥接
+- [BlocksuiteRouteFrameClient.tsx](../../BlocksuiteRouteFrameClient.tsx)：iframe 页面入口、bootstrap 壳层、runtime 装配
+- [useBlocksuiteFrameProtocol.ts](../../useBlocksuiteFrameProtocol.ts)：frame adapter，query 解析、`ready` 握手、消息校验、参数状态
 - [BlocksuiteDescriptionEditorRuntime.browser.tsx](../../BlocksuiteDescriptionEditorRuntime.browser.tsx)：唯一 orchestrator，组合 mode、lifecycle、mode sync、viewport、tcHeader sync
 - [useBlocksuiteEditorLifecycle.ts](../../useBlocksuiteEditorLifecycle.ts)：runtime 加载、workspace retain/release、store/editor 创建、cleanup
 - [blocksuiteEditorLifecycleHydration.ts](../../blocksuiteEditorLifecycleHydration.ts)：启动期 snapshot 决策与等待状态机

@@ -9,18 +9,8 @@ import { ShadowlessElement } from "@blocksuite/std";
 import { ZERO_WIDTH_FOR_EMBED_NODE, ZERO_WIDTH_FOR_EMPTY_LINE } from "@blocksuite/std/inline";
 import { css, html } from "lit";
 import { property } from "lit/decorators.js";
-
-function getPostMessageTargetOrigin(): string {
-  if (typeof window === "undefined") {
-    return "*";
-  }
-
-  const origin = window.location.origin;
-  if (!origin || origin === "null") {
-    return "*";
-  }
-  return origin;
-}
+import type { BlocksuiteFrameToHostPayload } from "../shared/frameProtocol";
+import { postBlocksuiteFrameMessage } from "../shared/frameProtocol";
 
 function getBlocksuiteFrameInstanceId(): string | undefined {
   try {
@@ -122,21 +112,13 @@ export function ensureTCAffineMentionDefined(): void {
       }
     `;
 
-    private postToHost(payload: Record<string, unknown>) {
-      try {
-        const instanceId = getBlocksuiteFrameInstanceId();
-        window.parent.postMessage(
-          {
-            tc: "tc-blocksuite-frame",
-            ...(instanceId ? { instanceId } : null),
-            ...payload,
-          },
-          getPostMessageTargetOrigin(),
-        );
-      }
-      catch {
-        // ignore
-      }
+    private postToHost(payload: BlocksuiteFrameToHostPayload) {
+      const instanceId = getBlocksuiteFrameInstanceId();
+      postBlocksuiteFrameMessage({
+        targetWindow: window.parent,
+        instanceId,
+        payload,
+      });
     }
 
     private getUserId(): string | undefined {
