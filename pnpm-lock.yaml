@@ -174,6 +174,9 @@ importers:
       eslint-plugin-react-hooks:
         specifier: ^7.0.0
         version: 7.0.1(eslint@9.39.2(jiti@2.6.1))
+      eslint-plugin-tailwindcss:
+        specifier: 4.0.0-beta.0
+        version: 4.0.0-beta.0(tailwindcss@4.1.18)
       fast-glob:
         specifier: ^3.3.3
         version: 3.3.3
@@ -4564,6 +4567,12 @@ packages:
     peerDependencies:
       eslint: '>=8.44.0'
 
+  eslint-plugin-tailwindcss@4.0.0-beta.0:
+    resolution: {integrity: sha512-WWCajZgQu38Sd67ZCl2W6i3MRzqB0d+H8s4qV9iB6lBJbsDOIpIlj6R1Fj2FXkoWErbo05pZnZYbCGIU9o/DsA==}
+    engines: {node: '>=18.12.0'}
+    peerDependencies:
+      tailwindcss: ^3.4.0 || ^4.0.0
+
   eslint-plugin-toml@0.12.0:
     resolution: {integrity: sha512-+/wVObA9DVhwZB1nG83D2OAQRrcQZXy+drqUnFJKymqnmbnbfg/UPmEMCKrJNcEboUGxUjYrJlgy+/Y930mURQ==}
     engines: {node: ^12.22.0 || ^14.17.0 || >=16.0.0}
@@ -7404,6 +7413,11 @@ packages:
   synckit@0.11.11:
     resolution: {integrity: sha512-MeQTA1r0litLUf0Rp/iisCaL8761lKAZHaimlbGK4j0HysC4PLfqygQj9srcs0m2RdtDYnF8UuYyKpbjHYp7Jw==}
     engines: {node: ^14.18.0 || >=16.0.0}
+
+  tailwind-api-utils@1.0.3:
+    resolution: {integrity: sha512-KpzUHkH1ug1sq4394SLJX38ZtpeTiqQ1RVyFTTSY2XuHsNSTWUkRo108KmyyrMWdDbQrLYkSHaNKj/a3bmA4sQ==}
+    peerDependencies:
+      tailwindcss: ^3.3.0 || ^4.0.0 || ^4.0.0-beta
 
   tailwindcss@4.1.18:
     resolution: {integrity: sha512-4+Z+0yiYyEtUVCScyfHCxOYP06L5Ne+JiHhY2IjR2KWMIWhJOYZKLSGZaP5HkZ8+bY0cxfzwDE5uOmzFXyIwxw==}
@@ -15145,6 +15159,14 @@ snapshots:
       regexp-ast-analysis: 0.7.1
       scslre: 0.3.0
 
+  eslint-plugin-tailwindcss@4.0.0-beta.0(tailwindcss@4.1.18):
+    dependencies:
+      fast-glob: 3.3.3
+      postcss: 8.5.6
+      synckit: 0.11.11
+      tailwind-api-utils: 1.0.3(tailwindcss@4.1.18)
+      tailwindcss: 4.1.18
+
   eslint-plugin-toml@0.12.0(eslint@9.39.2(jiti@2.6.1)):
     dependencies:
       debug: 4.4.3
@@ -18734,6 +18756,13 @@ snapshots:
   synckit@0.11.11:
     dependencies:
       '@pkgr/core': 0.2.9
+
+  tailwind-api-utils@1.0.3(tailwindcss@4.1.18):
+    dependencies:
+      enhanced-resolve: 5.18.4
+      jiti: 2.6.1
+      local-pkg: 1.1.2
+      tailwindcss: 4.1.18
 
   tailwindcss@4.1.18: {}
 
