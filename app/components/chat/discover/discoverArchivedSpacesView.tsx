@@ -3,12 +3,13 @@ import type { ApiResultPageBaseRespRepository } from "api/models/ApiResultPageBa
 import type { Repository } from "api/models/Repository";
 import type { Space } from "api/models/Space";
 
-import { CompassIcon } from "@phosphor-icons/react";
+import { CompassIcon, PackageIcon } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
 import { tuanchat } from "api/instance";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 import RepositoryDetailComponent from "@/components/repository/detail/repositoryDetail";
+import { ContentCard } from "@/components/repository/home/RepositoryHome";
 
 type DiscoverArchivedSpacesMode = "square" | "my";
 
@@ -39,6 +40,15 @@ function parseRepositoryId(value: string | null): number | null {
     return null;
   const parsed = Number(value);
   return isValidId(parsed) ? parsed : null;
+}
+
+function formatDateLabel(value?: string) {
+  if (!value)
+    return null;
+  const timestamp = Date.parse(value);
+  if (!Number.isFinite(timestamp))
+    return null;
+  return new Date(timestamp).toLocaleDateString("zh-CN");
 }
 
 function isRootRepository(repository: Repository) {
@@ -317,7 +327,7 @@ export default function DiscoverArchivedSpacesView({ mode }: DiscoverArchivedSpa
                     </div>
                     <div className="relative w-full max-w-90">
                       <input
-                        className="input input-sm input-bordered w-full rounded-full"
+                        className="w-full rounded-md border border-base-300 bg-base-100 px-3 py-2 text-sm text-base-content transition focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
                         value={keyword}
                         onChange={e => setKeyword(e.target.value)}
                         placeholder={mode === "my" ? "搜索我的归档仓库" : "搜索仓库"}
@@ -411,49 +421,29 @@ export default function DiscoverArchivedSpacesView({ mode }: DiscoverArchivedSpa
                         const name = repository?.repositoryName ?? `仓库 #${repositoryId}`;
                         const description = String(repository?.description ?? "").trim();
                         const image = repository?.image ?? DEFAULT_REPOSITORY_IMAGE;
+                        const updateLabel = formatDateLabel(repository?.updateTime ?? repository?.createTime);
+                        const metadata = [`仓库 #${repositoryId}`];
+                        if (updateLabel) {
+                          metadata.unshift(`更新于 ${updateLabel}`);
+                        }
 
                         return (
-                          <div
+                          <ContentCard
                             key={repositoryId}
-                            role="button"
-                            tabIndex={0}
-                            className="group rounded-xl border border-base-300 bg-base-100 shadow-sm overflow-hidden transition-transform hover:-translate-y-0.5 hover:shadow-md cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-info/60"
+                            image={image}
+                            title={name}
+                            content={description || "暂无描述"}
+                            badgeLabel="根仓库"
+                            metadata={metadata}
+                            hoverHint="点击查看仓库"
+                            imageAspect="landscape"
+                            placeholder={(
+                              <div className="flex h-full w-full items-center justify-center bg-linear-to-br from-[#243b55] via-[#141e30] to-[#0b0f17] text-white/75">
+                                <PackageIcon className="size-12" weight="duotone" />
+                              </div>
+                            )}
                             onClick={() => openRepositoryInPanel(repositoryId)}
-                            onKeyDown={(e) => {
-                              if (e.key === "Enter" || e.key === " ") {
-                                e.preventDefault();
-                                openRepositoryInPanel(repositoryId);
-                              }
-                            }}
-                          >
-                            <div className="relative aspect-4/3 bg-base-300 overflow-hidden">
-                              <img
-                                src={image}
-                                alt={String(name)}
-                                className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
-                              />
-
-                              <div className="absolute left-3 top-3">
-                                <span className="badge badge-sm bg-base-100/70 border border-base-300 text-base-content backdrop-blur">
-                                  根仓库
-                                </span>
-                              </div>
-
-                              <div className="absolute right-3 bottom-3 rounded-md bg-base-100/85 px-2 py-1 text-xs font-semibold text-base-content opacity-0 translate-y-1 transition-all duration-200 group-hover:opacity-100 group-hover:translate-y-0">
-                                点击查看仓库
-                              </div>
-                            </div>
-
-                            <div className="p-3">
-                              <div className="min-w-0">
-                                <div className="text-md font-medium truncate">{name}</div>
-                                <div className="mt-1 text-xs text-base-content/70 truncate">
-                                  {description || "暂无描述"}
-                                </div>
-                                <div className="mt-1 text-[10px] text-base-content/50">{`仓库 #${repositoryId}`}</div>
-                              </div>
-                            </div>
-                          </div>
+                          />
                         );
                       })}
                     </div>
@@ -469,108 +459,79 @@ export default function DiscoverArchivedSpacesView({ mode }: DiscoverArchivedSpa
                         const image = repository?.image ?? group.latestSpace?.avatar ?? DEFAULT_REPOSITORY_IMAGE;
                         const latestSpace = group.latestSpace;
                         const isExpanded = expandedRepoIds.includes(repositoryId);
-                        const latestSpaceId = isValidId(latestSpace?.spaceId) ? latestSpace.spaceId : null;
+                        const latestArchiveLabel = latestSpace?.name ? `最新归档：${latestSpace.name}` : null;
+                        const metadata = [
+                          latestArchiveLabel,
+                          `仓库 #${repositoryId}`,
+                        ].filter((item): item is string => Boolean(item));
 
                         return (
-                          <div
+                          <ContentCard
                             key={repositoryId}
-                            role="button"
-                            tabIndex={0}
-                            className="group rounded-xl border border-base-300 bg-base-100 shadow-sm overflow-hidden transition-transform hover:-translate-y-0.5 hover:shadow-md cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-info/60"
-                            onClick={() => openRepositoryInPanel(repositoryId)}
-                            onKeyDown={(e) => {
-                              if (e.key === "Enter" || e.key === " ") {
-                                e.preventDefault();
-                                openRepositoryInPanel(repositoryId);
-                              }
-                            }}
-                          >
-                            <div className="relative aspect-4/3 bg-base-300 overflow-hidden">
-                              <img
-                                src={image}
-                                alt={String(name)}
-                                className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
-                              />
-
-                              <div className="absolute left-3 top-3 flex items-center gap-2">
-                                <span className="badge badge-sm bg-base-100/70 border border-base-300 text-base-content backdrop-blur">
-                                  已归档
-                                </span>
-                                <span className="badge badge-sm bg-base-100/70 border border-base-300 text-base-content backdrop-blur">
-                                  {`版本 ${group.spaces.length}`}
-                                </span>
+                            image={image}
+                            title={name}
+                            content={description || "暂无描述"}
+                            metadata={metadata}
+                            topBadges={["已归档", `版本 ${group.spaces.length}`]}
+                            hoverHint="点击查看仓库"
+                            imageAspect="landscape"
+                            placeholder={(
+                              <div className="flex h-full w-full items-center justify-center bg-linear-to-br from-[#2a2d3e] via-[#1f2937] to-[#111827] text-white/75">
+                                <PackageIcon className="size-12" weight="duotone" />
                               </div>
+                            )}
+                            titleSuffix={(
+                              <button
+                                type="button"
+                                className="rounded-md border border-base-300 bg-base-100 px-2.5 py-1 text-xs font-medium text-base-content transition hover:border-primary/30 hover:bg-base-100/90"
+                                onClick={(event) => {
+                                  event.stopPropagation();
+                                  toggleExpandedRepo(repositoryId);
+                                }}
+                              >
+                                {isExpanded ? "收起归档" : "展开归档"}
+                              </button>
+                            )}
+                            bottomSlot={shouldShowArchivedList && isExpanded
+                              ? (
+                                  <div className="space-y-2 border-t border-base-300 pt-3">
+                                    {group.spaces.map((space) => {
+                                      const spaceId = space?.spaceId ?? -1;
+                                      const targetSpaceId = isValidId(space?.spaceId) ? space.spaceId : null;
+                                      const spaceName = space?.name ?? `空间 #${spaceId}`;
+                                      const timestamp = space?.updateTime ?? space?.createTime;
 
-                              <div className="absolute right-3 bottom-3 rounded-md bg-base-100/85 px-2 py-1 text-xs font-semibold text-base-content opacity-0 translate-y-1 transition-all duration-200 group-hover:opacity-100 group-hover:translate-y-0">
-                                点击查看仓库
-                              </div>
-                            </div>
-
-                            <div className="p-3">
-                              <div className="min-w-0">
-                                <div className="flex items-center justify-between gap-2">
-                                  <div className="text-lg font-medium truncate">{name}</div>
-                                  <button
-                                    type="button"
-                                    className="btn btn-xs btn-outline h-6 min-h-0 px-2"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      toggleExpandedRepo(repositoryId);
-                                    }}
-                                  >
-                                    {isExpanded ? "收起归档" : "展开归档"}
-                                  </button>
-                                </div>
-                                {description && (
-                                  <div className="mt-1 text-xs text-base-content/70 max-h-8 overflow-hidden">
-                                    {description}
-                                  </div>
-                                )}
-                                <div className="mt-1 flex items-center justify-between gap-2">
-                                  <div className="text-[11px] text-base-content/55 truncate">
-                                    {`最新归档：${latestSpace?.name ?? "未命名空间"}`}
-                                  </div>
-                                  <div className="text-[10px] text-base-content/50 shrink-0">{`仓库 #${repositoryId}`}</div>
-                                </div>
-                              </div>
-
-                              {shouldShowArchivedList && isExpanded && (
-                                <div className="mt-3 border-t border-base-300 pt-2 space-y-2">
-                                  {group.spaces.map((space) => {
-                                    const spaceId = space?.spaceId ?? -1;
-                                    const spaceName = space?.name ?? `空间 #${spaceId}`;
-                                    const timestamp = space?.updateTime ?? space?.createTime;
-
-                                    return (
-                                      <div key={spaceId} className="flex items-center justify-between gap-2">
-                                        <div className="min-w-0">
-                                          <div className="text-xs font-semibold truncate">{spaceName}</div>
-                                          {timestamp && (
-                                            <div className="text-[11px] text-base-content/50">
-                                              {`归档时间：${new Date(timestamp).toLocaleString("zh-CN")}`}
-                                            </div>
-                                          )}
+                                      return (
+                                        <div key={spaceId} className="flex items-center justify-between gap-3">
+                                          <div className="min-w-0">
+                                            <div className="truncate text-sm font-semibold text-base-content">{spaceName}</div>
+                                            {timestamp && (
+                                              <div className="text-xs text-base-content/50">
+                                                {`归档时间：${new Date(timestamp).toLocaleString("zh-CN")}`}
+                                              </div>
+                                            )}
+                                          </div>
+                                          <button
+                                            type="button"
+                                            className="rounded-md border border-base-300 bg-base-100 px-2.5 py-1 text-xs font-medium text-base-content transition hover:border-primary/30 hover:bg-base-100/90"
+                                            onClick={(event) => {
+                                              event.stopPropagation();
+                                              if (!targetSpaceId)
+                                                return;
+                                              navigate(`/chat/${targetSpaceId}`);
+                                            }}
+                                            disabled={!targetSpaceId}
+                                          >
+                                            打开归档
+                                          </button>
                                         </div>
-                                        <button
-                                          type="button"
-                                          className="btn btn-xs btn-outline"
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            if (!latestSpaceId)
-                                              return;
-                                            navigate(`/chat/${latestSpaceId}`);
-                                          }}
-                                          disabled={!latestSpaceId}
-                                        >
-                                          打开归档
-                                        </button>
-                                      </div>
-                                    );
-                                  })}
-                                </div>
-                              )}
-                            </div>
-                          </div>
+                                      );
+                                    })}
+                                  </div>
+                                )
+                              : undefined}
+                            onClick={() => openRepositoryInPanel(repositoryId)}
+                          />
                         );
                       })}
                     </div>
