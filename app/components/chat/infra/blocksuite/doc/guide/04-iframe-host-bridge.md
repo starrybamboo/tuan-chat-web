@@ -10,6 +10,7 @@
 - 发参数
 - 收状态
 - 承接 iframe 外层 UI
+- 作为 host adapter 做协议校验和宿主副作用分发
 
 iframe 负责：
 
@@ -17,6 +18,16 @@ iframe 负责：
 - 模式回传
 - 导航请求
 - mention / header 事件上抛
+- 由 frame adapter 承接 query、消息协议和 runtime 参数桥接
+
+编辑器内部还保留一层 runtime emitters：
+
+- `navigate`
+- `tc-header`
+- `mention-click`
+- `mention-hover`
+
+这些事件允许在 runtime 或局部控件里就近发出，但都必须走同一套协议 envelope。
 
 ## 协议图
 
@@ -37,6 +48,13 @@ flowchart LR
 
 - `origin`
 - `source === iframe.contentWindow`
+- `data.tc`
+- `data.instanceId`
+
+iframe 侧现在也会校验：
+
+- `origin`
+- `source === window.parent`
 - `data.tc`
 - `data.instanceId`
 
@@ -90,7 +108,9 @@ flowchart LR
 ## 关键文件
 
 - [useBlocksuiteFrameBridge.ts](../../shared/components/BlockSuite/useBlocksuiteFrameBridge.ts)
+- [shared/frameProtocol.ts](../../shared/frameProtocol.ts)
 - [BlocksuiteRouteFrameClient.tsx](../../BlocksuiteRouteFrameClient.tsx)
+- [useBlocksuiteFrameProtocol.ts](../../useBlocksuiteFrameProtocol.ts)
 - [useBlocksuiteFrameThemeSync.ts](../../shared/components/BlockSuite/useBlocksuiteFrameThemeSync.ts)
 - [useBlocksuiteTcHeaderSync.ts](../../useBlocksuiteTcHeaderSync.ts)
 - [tcMentionElement.client.ts](../../spec/tcMentionElement.client.ts)

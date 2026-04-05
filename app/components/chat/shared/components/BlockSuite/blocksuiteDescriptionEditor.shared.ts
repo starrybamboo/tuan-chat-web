@@ -49,15 +49,3 @@ export function getCurrentAppTheme(): "light" | "dark" {
     ? "dark"
     : "light";
 }
-
-export function getPostMessageTargetOrigin(): string {
-  if (typeof window === "undefined") {
-    return "*";
-  }
-
-  const origin = window.location.origin;
-  if (!origin || origin === "null") {
-    return "*";
-  }
-  return origin;
-}

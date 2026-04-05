@@ -8,6 +8,8 @@ import { getRemoteSnapshot } from "@/components/chat/infra/blocksuite/descriptio
 import { loadBlocksuiteRuntime } from "@/components/chat/infra/blocksuite/runtime/runtimeLoader.browser";
 import { base64ToUint8Array } from "@/components/chat/infra/blocksuite/shared/base64";
 import { isBlocksuiteDebugEnabled } from "@/components/chat/infra/blocksuite/shared/debugFlags";
+import type { BlocksuiteFrameToHostPayload } from "@/components/chat/infra/blocksuite/shared/frameProtocol";
+import { postBlocksuiteFrameMessage } from "@/components/chat/infra/blocksuite/shared/frameProtocol";
 import { BlocksuiteTcHeader } from "./BlocksuiteTcHeader";
 import { useBlocksuiteDocModeProvider } from "./useBlocksuiteDocModeProvider";
 import { useBlocksuiteEditorLifecycle } from "./useBlocksuiteEditorLifecycle";
@@ -60,19 +62,6 @@ interface BlocksuiteDescriptionEditorProps {
   className?: string;
 }
 
-function getPostMessageTargetOrigin(): string {
-  if (typeof window === "undefined") {
-    return "*";
-  }
-
-  // 在 file://（例如 Electron 打包）场景下，location.origin 可能是 "null"。
-  const origin = window.location.origin;
-  if (!origin || origin === "null") {
-    return "*";
-  }
-  return origin;
-}
-
 function warnNonFatalBlocksuiteError(message: string, error: unknown) {
   console.warn(message, error);
 }
@@ -110,16 +99,17 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
   const [isForcePullingCloud, setIsForcePullingCloud] = useState(false);
   const tcHeaderEnabled = Boolean(tcHeader?.enabled);
 
-  const postToParent = useCallback((payload: any) => {
-    try {
-      window.parent.postMessage(payload, getPostMessageTargetOrigin());
-      return true;
+  const postToParent = useCallback((payload: BlocksuiteFrameToHostPayload) => {
+    const posted = postBlocksuiteFrameMessage({
+      targetWindow: typeof window === "undefined" ? null : window.parent,
+      instanceId,
+      payload,
+    });
+    if (!posted) {
+      warnNonFatalBlocksuiteError("[BlocksuiteDescriptionEditor] Failed to post message to parent", payload);
     }
-    catch (error) {
-      warnNonFatalBlocksuiteError("[BlocksuiteDescriptionEditor] Failed to post message to parent", error);
-      return false;
-    }
-  }, []);
+    return posted;
+  }, [instanceId]);
 
   useEffect(() => {
     if (!isBlocksuiteDebugEnabled())
@@ -243,7 +233,6 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
     tcHeaderState,
     docId,
     workspaceId,
-    instanceId,
     editorHandle,
     postToParent,
     onTcHeaderChange,

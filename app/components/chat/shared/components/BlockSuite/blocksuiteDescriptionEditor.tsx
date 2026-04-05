@@ -105,7 +105,7 @@ function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEdito
   // 主题同步
   useBlocksuiteFrameThemeSync({
     iframeRef,
-    instanceId,
+    flushFrameSync: bridge.flushFrameSync,
   });
 
   // 当进入 edgeless 全屏模式时，禁止宿主页面滚动以避免滚动穿透
@@ -167,8 +167,7 @@ function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEdito
         allowFullScreen
         style={{ backgroundColor: "transparent" }}
         onLoad={() => {
-          bridge.postFrameParams();
-          bridge.syncFrameBasics();
+          bridge.flushFrameSync("iframe-load");
         }}
       />
     </div>

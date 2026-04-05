@@ -5,11 +5,22 @@ import { useCallback, useEffect, useRef } from "react";
 
 import type { DescriptionEntityType } from "@/components/chat/infra/blocksuite/description/descriptionDocId";
 import type { BlocksuiteDocHeader } from "@/components/chat/infra/blocksuite/document/docHeader";
+import type {
+  BlocksuiteFrameMessage,
+  BlocksuiteFrameSyncParams,
+  BlocksuiteFrameToHostPayload,
+} from "@/components/chat/infra/blocksuite/shared/frameProtocol";
 
 import { isBlocksuiteDebugEnabled } from "@/components/chat/infra/blocksuite/shared/debugFlags";
+import {
+  getBlocksuiteFrameTargetOrigin,
+  isBlocksuiteDocMode,
+  postBlocksuiteFrameMessage,
+  readBlocksuiteFrameMessageFromEvent,
+} from "@/components/chat/infra/blocksuite/shared/frameProtocol";
 import { useEntityHeaderOverrideStore } from "@/components/chat/stores/entityHeaderOverrideStore";
 
-import { getCurrentAppTheme, getPostMessageTargetOrigin } from "./blocksuiteDescriptionEditor.shared";
+import { getCurrentAppTheme } from "./blocksuiteDescriptionEditor.shared";
 
 type UseBlocksuiteFrameBridgeParams = {
   iframeRef: RefObject<HTMLIFrameElement | null>;
@@ -38,6 +49,56 @@ type UseBlocksuiteFrameBridgeParams = {
   handleMentionClickMessage: (userId: string) => void;
   handleMentionHoverMessage: (data: any) => void;
 };
+
+function createBlocksuiteFrameSyncParams(params: {
+  workspaceId: string;
+  spaceId?: number;
+  docId: string;
+  readOnly: boolean;
+  allowModeSwitch: boolean;
+  fullscreenEdgeless: boolean;
+  forcedMode: DocMode;
+  tcHeaderEnabled: boolean;
+  frozenTcHeaderTitle?: string;
+  frozenTcHeaderImageUrl?: string;
+}): BlocksuiteFrameSyncParams {
+  const {
+    workspaceId,
+    spaceId,
+    docId,
+    readOnly,
+    allowModeSwitch,
+    fullscreenEdgeless,
+    forcedMode,
+    tcHeaderEnabled,
+    frozenTcHeaderTitle,
+    frozenTcHeaderImageUrl,
+  } = params;
+
+  return {
+    workspaceId,
+    spaceId,
+    docId,
+    readOnly,
+    allowModeSwitch,
+    fullscreenEdgeless,
+    mode: forcedMode,
+    tcHeader: tcHeaderEnabled,
+    tcHeaderTitle: frozenTcHeaderTitle,
+    tcHeaderImageUrl: frozenTcHeaderImageUrl,
+  };
+}
+
+function applyTcHeaderOverrideSideEffect(params: {
+  entityType?: DescriptionEntityType;
+  entityId?: number;
+  header: BlocksuiteDocHeader;
+}) {
+  const { entityType, entityId, header } = params;
+  if (entityType && entityType !== "space" && typeof entityId === "number" && entityId > 0) {
+    useEntityHeaderOverrideStore.getState().setHeader({ entityType, entityId, header });
+  }
+}
 
 // 负责在宿主页面与 BlockSuite iframe 之间同步参数、接收事件，并转发交互结果。
 export function useBlocksuiteFrameBridge(params: UseBlocksuiteFrameBridgeParams) {
@@ -73,33 +134,19 @@ export function useBlocksuiteFrameBridge(params: UseBlocksuiteFrameBridgeParams)
     onNavigateRef.current = onNavigate;
   }, [onNavigate]);
 
-  // 把当前文档参数同步给 iframe，用于 ready 后补发和后续外部参数更新。
-  const postFrameParams = useCallback(() => {
-    try {
-      const frameWindow = iframeRef.current?.contentWindow;
-      if (!frameWindow)
-        return;
-      frameWindow.postMessage(
-        {
-          tc: "tc-blocksuite-frame",
-          instanceId,
-          type: "sync-params",
-          workspaceId,
-          spaceId,
-          docId,
-          readOnly,
-          allowModeSwitch,
-          fullscreenEdgeless,
-          mode: forcedMode,
-          tcHeader: tcHeaderEnabled,
-          tcHeaderTitle: frozenTcHeaderTitle,
-          tcHeaderImageUrl: frozenTcHeaderImageUrl,
-        },
-        getPostMessageTargetOrigin(),
-      );
-    }
-    catch {
-    }
+  const createSyncParamsPayload = useCallback(() => {
+    return createBlocksuiteFrameSyncParams({
+      workspaceId,
+      spaceId,
+      docId,
+      readOnly,
+      allowModeSwitch,
+      fullscreenEdgeless,
+      forcedMode,
+      tcHeaderEnabled,
+      frozenTcHeaderTitle,
+      frozenTcHeaderImageUrl,
+    });
   }, [
     allowModeSwitch,
     docId,
@@ -115,26 +162,26 @@ export function useBlocksuiteFrameBridge(params: UseBlocksuiteFrameBridgeParams)
     workspaceId,
   ]);
 
-  // 同步宿主侧的基础运行信息，目前只包括主题。
-  const syncFrameBasics = useCallback(() => {
-    try {
-      const frameWindow = iframeRef.current?.contentWindow;
-      if (!frameWindow)
-        return;
-
-      frameWindow.postMessage(
-        {
-          tc: "tc-blocksuite-frame",
-          instanceId,
-          type: "theme",
-          theme: getCurrentAppTheme(),
-        },
-        getPostMessageTargetOrigin(),
-      );
-    }
-    catch {
-    }
+  const postToFrame = useCallback((payload: Parameters<typeof postBlocksuiteFrameMessage>[0]["payload"]) => {
+    return postBlocksuiteFrameMessage({
+      targetWindow: iframeRef.current?.contentWindow,
+      instanceId,
+      payload,
+      targetOrigin: getBlocksuiteFrameTargetOrigin(),
+    });
   }, [iframeRef, instanceId]);
+
+  const flushFrameSync = useCallback((reason: string) => {
+    void reason;
+    postToFrame({
+      type: "sync-params",
+      ...createSyncParamsPayload(),
+    });
+    postToFrame({
+      type: "theme",
+      theme: getCurrentAppTheme(),
+    });
+  }, [createSyncParamsPayload, postToFrame]);
 
   // 订阅 iframe 的 postMessage，统一分发模式切换、导航、mention、header 和 ready 事件。
   useEffect(() => {
@@ -143,118 +190,113 @@ export function useBlocksuiteFrameBridge(params: UseBlocksuiteFrameBridgeParams)
 
     const expectedOrigin = window.location.origin;
 
-    // 只处理当前 iframe、当前实例发出的合法消息，避免串窗体或串实例。
-    const onMessage = (e: MessageEvent) => {
-      const originOk = !expectedOrigin || expectedOrigin === "null" ? true : e.origin === expectedOrigin;
-      if (!originOk)
+    const handleReadySideEffect = () => {
+      flushFrameSync("frame-ready");
+    };
+
+    const handleNavigateSideEffect = (message: Extract<BlocksuiteFrameToHostPayload, { type: "navigate" }>) => {
+      try {
+        const handled = onNavigateRef.current?.(message.to);
+        if (handled === true)
+          return;
+        navigate(message.to);
+      }
+      catch {
+      }
+    };
+
+    const handleTcHeaderSideEffect = (message: Extract<BlocksuiteFrameToHostPayload, { type: "tc-header" }>) => {
+      if (message.docId !== docId)
         return;
 
-      if (e.source !== iframeRef.current?.contentWindow)
-        return;
+      try {
+        const header = message.header as BlocksuiteDocHeader;
+        if (!header || typeof header.title !== "string" || typeof header.imageUrl !== "string")
+          return;
 
-      const data: any = e.data;
-      if (!data || data.tc !== "tc-blocksuite-frame")
-        return;
+        const entityType = (typeof message.entityType === "string" ? message.entityType : undefined) as DescriptionEntityType | undefined;
+        const entityId = typeof message.entityId === "number" ? message.entityId : undefined;
+        applyTcHeaderOverrideSideEffect({ entityType, entityId, header });
 
-      if (data.instanceId && data.instanceId !== instanceId)
-        return;
+        onTcHeaderChange?.({
+          docId: message.docId,
+          entityType,
+          entityId,
+          header,
+        });
+      }
+      catch {
+      }
+    };
 
-      if (data.type === "mode" && (data.mode === "page" || data.mode === "edgeless")) {
-        const next = data.mode as DocMode;
+    const handleRenderReadySideEffect = () => {
+      setIsFrameReady(true);
+      if ((import.meta as any)?.env?.DEV) {
+        try {
+          const owner = window.top && window.top.location?.origin === window.location.origin
+            ? window.top as any
+            : window as any;
+          const summary = owner.__tcBlocksuitePerfLast;
+          if (summary && summary.instanceId === instanceId) {
+            console.warn("[BlocksuitePerf]", summary);
+          }
+        }
+        catch {
+        }
+      }
+    };
+
+    const dispatchFrameMessage = (message: BlocksuiteFrameMessage) => {
+      if (message.type === "mode" && isBlocksuiteDocMode(message.mode)) {
+        const next = message.mode as DocMode;
         setFrameMode(next);
         onModeChange?.(next);
         return;
       }
 
-      if (data.type === "ready") {
+      if (message.type === "ready") {
+        handleReadySideEffect();
+        return;
+      }
+
+      if (message.type === "navigate" && typeof message.to === "string" && message.to) {
+        handleNavigateSideEffect(message);
+        return;
+      }
+
+      if (message.type === "mention-click" && typeof message.userId === "string" && message.userId) {
+        handleMentionClickMessage(message.userId);
+        return;
+      }
+
+      if (message.type === "mention-hover" && (message.state === "enter" || message.state === "leave") && typeof message.userId === "string" && message.userId) {
+        handleMentionHoverMessage(message);
+        return;
+      }
+
+      if (message.type === "tc-header" && typeof message.docId === "string" && message.header) {
+        handleTcHeaderSideEffect(message);
+        return;
+      }
+
+      if (message.type === "render-ready") {
+        handleRenderReadySideEffect();
+        return;
+      }
+
+      if (message.type === "debug-log") {
         try {
-          postFrameParams();
-          syncFrameBasics();
-        }
-        catch {
-        }
-        return;
-      }
-
-      if (data.type === "navigate" && typeof data.to === "string" && data.to) {
-        try {
-          const handled = onNavigateRef.current?.(data.to);
-          if (handled === true)
-            return;
-          navigate(data.to);
-        }
-        catch {
-        }
-        return;
-      }
-
-      if (data.type === "mention-click" && typeof data.userId === "string" && data.userId) {
-        handleMentionClickMessage(data.userId);
-        return;
-      }
-
-      if (data.type === "mention-hover" && (data.state === "enter" || data.state === "leave") && typeof data.userId === "string" && data.userId) {
-        handleMentionHoverMessage(data);
-        return;
-      }
-
-      if (data.type === "tc-header" && data.header && typeof data.docId === "string") {
-        if (data.docId !== docId)
-          return;
-        try {
-          const header = data.header as BlocksuiteDocHeader;
-          if (!header || typeof header.title !== "string" || typeof header.imageUrl !== "string")
-            return;
-
-          const entityType = (typeof data.entityType === "string" ? data.entityType : undefined) as DescriptionEntityType | undefined;
-          const entityId = typeof data.entityId === "number" ? data.entityId : undefined;
-          if (entityType && entityType !== "space" && typeof entityId === "number" && entityId > 0) {
-            useEntityHeaderOverrideStore.getState().setHeader({ entityType, entityId, header });
-          }
-
-          onTcHeaderChange?.({
-            docId: data.docId,
-            entityType,
-            entityId,
-            header,
-          });
-        }
-        catch {
-        }
-        return;
-      }
-
-      if (data.type === "render-ready") {
-        setIsFrameReady(true);
-        if ((import.meta as any)?.env?.DEV) {
-          try {
-            const owner = window.top && window.top.location?.origin === window.location.origin
-              ? window.top as any
-              : window as any;
-            const summary = owner.__tcBlocksuitePerfLast;
-            if (summary && summary.instanceId === instanceId) {
-              console.warn("[BlocksuitePerf]", summary);
-            }
-          }
-          catch {
-          }
-        }
-        return;
-      }
-
-      if (data.type === "debug-log") {
-        try {
-          const entry = data.entry as any;
+          const entry = message.entry as any;
           const source = String(entry?.source ?? "unknown");
-          const message = String(entry?.message ?? "");
+          const debugMessage = String(entry?.message ?? "");
           const payload = (entry?.payload ?? null) as any;
 
-          if (isBlocksuiteDebugEnabled() && source === "BlocksuiteFrame" && message === "keydown @") {
+          if (isBlocksuiteDebugEnabled() && source === "BlocksuiteFrame" && debugMessage === "keydown @") {
             hostMentionDebugUntilRef.current = Date.now() + 5000;
             hostMentionDebugRemainingRef.current = 12;
           }
 
-          if (isBlocksuiteDebugEnabled() && source === "BlocksuiteFrame" && message === "keydown Enter") {
+          if (isBlocksuiteDebugEnabled() && source === "BlocksuiteFrame" && debugMessage === "keydown Enter") {
             if (Date.now() < hostMentionDebugUntilRef.current && hostMentionDebugRemainingRef.current > 0) {
               hostMentionDebugRemainingRef.current -= 1;
               try {
@@ -289,16 +331,34 @@ export function useBlocksuiteFrameBridge(params: UseBlocksuiteFrameBridgeParams)
 
           if (isBlocksuiteDebugEnabled()) {
             if (payload && typeof payload === "object") {
-              console.warn("[BlocksuiteFrameDebug]", source, message, payload);
+              console.warn("[BlocksuiteFrameDebug]", source, debugMessage, payload);
             }
             else {
-              console.warn("[BlocksuiteFrameDebug]", source, message);
+              console.warn("[BlocksuiteFrameDebug]", source, debugMessage);
             }
           }
         }
         catch {
         }
       }
+    };
+
+    // 只处理当前 iframe、当前实例发出的合法消息，避免串窗体或串实例。
+    const onMessage = (e: MessageEvent) => {
+      const frameWindow = iframeRef.current?.contentWindow;
+      if (!frameWindow)
+        return;
+
+      const message = readBlocksuiteFrameMessageFromEvent({
+        event: e,
+        expectedOrigin,
+        expectedSource: frameWindow,
+        instanceId,
+      });
+      if (!message)
+        return;
+
+      dispatchFrameMessage(message);
     };
 
     window.addEventListener("message", onMessage);
@@ -314,10 +374,9 @@ export function useBlocksuiteFrameBridge(params: UseBlocksuiteFrameBridgeParams)
     navigate,
     onModeChange,
     onTcHeaderChange,
-    postFrameParams,
     setFrameMode,
     setIsFrameReady,
-    syncFrameBasics,
+    flushFrameSync,
   ]);
 
   // 仅在调试模式下监听宿主点击链路，辅助排查 mention 菜单被宿主事件打断的问题。
@@ -383,13 +442,12 @@ export function useBlocksuiteFrameBridge(params: UseBlocksuiteFrameBridgeParams)
     };
   }, []);
 
-  // 当对外同步参数函数更新时，主动向 iframe 推送一次最新参数。
+  // 当对外同步参数更新时，主动向 iframe 推送一次最新基础状态。
   useEffect(() => {
-    postFrameParams();
-  }, [postFrameParams]);
+    flushFrameSync("params-change");
+  }, [flushFrameSync]);
 
   return {
-    postFrameParams,
-    syncFrameBasics,
+    flushFrameSync,
   };
 }

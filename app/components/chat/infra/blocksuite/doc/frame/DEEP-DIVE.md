@@ -34,10 +34,15 @@
 
 - 解析 iframe 首开 query 参数，得到 `workspaceId`、`docId`、`spaceId`、`mode`、`tcHeader` 等初始状态
 - 调用 `ensureBlocksuiteBrowserRuntime()` 启动浏览器运行时
-- 订阅 `message`，接收宿主发来的 `theme`、`sync-params`
+- 通过 `useBlocksuiteFrameProtocol` 订阅 `message`，接收宿主发来的 `theme`、`sync-params`
 - 把准备好的参数传给真正的编辑器 runtime
 
 这一层可以理解为 iframe 页面内部的控制平面，它不直接创建 editor，只负责参数装配和协议桥接。
+
+当前实现里，这层已经拆成：
+
+- `BlocksuiteRouteFrameClient.tsx`：frame 壳层，负责 bootstrap、loading/error UI 和 runtime 装配
+- `useBlocksuiteFrameProtocol.ts`：frame adapter，负责 query 解析、`ready` 握手、消息校验和 `frameParams` 状态
 
 ### Runtime orchestrator
 
@@ -115,21 +120,23 @@
 
 ## 运行时分层
 
-可以把 iframe 内部理解为四层：
+可以把 iframe 内部理解为五层：
 
 ### 1. 参数与协议层
 
 实现文件：
 
 - [BlocksuiteRouteFrameClient.tsx](../../BlocksuiteRouteFrameClient.tsx)
+- [useBlocksuiteFrameProtocol.ts](../../useBlocksuiteFrameProtocol.ts)
 
 核心职责：
 
 - 读取首开 query
 - 监听宿主消息
-- 对外回传 `ready`、`navigate`、`mode`、`tc-header`
+- 校验 `origin` / `source` / `tc` / `instanceId`
+- 对外回传 `ready`
 
-这一层不理解 BlockSuite 内部细节，只理解协议字段。
+这一层不理解 BlockSuite 内部细节，只理解协议字段。真正的业务事件上抛仍然允许 runtime 或局部控件就近发送。
 
 ### 2. 视图编排层
 
@@ -141,7 +148,7 @@
 
 - 把协议层参数转换成运行时状态
 - 组合 mode、lifecycle、mode sync、viewport、tcHeader sync、header 和 action 区域
-- 决定哪些事件需要继续上抛给宿主
+- 保留 runtime emitters：`navigate`、`mode`、`tc-header`
 
 ### 3. 编辑器生命周期层
 
@@ -209,7 +216,7 @@
 - `tcHeaderImageUrl`
 - `instanceId`
 
-[BlocksuiteRouteFrameClient.tsx](../../BlocksuiteRouteFrameClient.tsx) 用 `readInitialFrameState()` 解析它们。
+[useBlocksuiteFrameProtocol.ts](../../useBlocksuiteFrameProtocol.ts) 用 `readInitialBlocksuiteFrameProtocolState()` 解析它们。
 
 ### 宿主后续同步参数
 
