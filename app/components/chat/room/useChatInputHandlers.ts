@@ -28,6 +28,7 @@ type UseChatInputHandlersResult = {
   handleMouseDown: (e: MouseEvent) => void;
   onCompositionStart: () => void;
   onCompositionEnd: () => void;
+  requestMessageSubmit: () => void;
 };
 
 export default function useChatInputHandlers({
@@ -42,6 +43,17 @@ export default function useChatInputHandlers({
   setLLMMessage,
 }: UseChatInputHandlersParams): UseChatInputHandlersResult {
   const isComposingRef = useRef(false);
+  const pendingSubmitAfterCompositionRef = useRef(false);
+
+  const requestMessageSubmit = useCallback(() => {
+    if (isComposingRef.current) {
+      // 输入法上屏结束前不要直接提交，否则会拿到旧快照并导致发送后不清空。
+      pendingSubmitAfterCompositionRef.current = true;
+      return;
+    }
+    pendingSubmitAfterCompositionRef.current = false;
+    handleMessageSubmit();
+  }, [handleMessageSubmit]);
 
   const handlePasteFiles = useCallback((files: File[]) => {
     const isImageFile = (file: File) => {
@@ -133,7 +145,7 @@ export default function useChatInputHandlers({
 
     if (e.key === "Enter" && !e.shiftKey && !isComposingRef.current) {
       e.preventDefault();
-      handleMessageSubmit();
+      requestMessageSubmit();
     }
     else if (e.key === "Tab") {
       e.preventDefault();
@@ -146,11 +158,11 @@ export default function useChatInputHandlers({
     }
   }, [
     atMentionRef,
-    handleMessageSubmit,
     handleQuickRewrite,
     insertLLMMessageIntoText,
     llmMessageRef,
     originalTextBeforeRewriteRef,
+    requestMessageSubmit,
     setInputText,
     setLLMMessage,
   ]);
@@ -179,7 +191,16 @@ export default function useChatInputHandlers({
 
   const onCompositionEnd = useCallback(() => {
     isComposingRef.current = false;
-  }, []);
+    if (!pendingSubmitAfterCompositionRef.current) {
+      return;
+    }
+    pendingSubmitAfterCompositionRef.current = false;
+    Promise.resolve().then(() => {
+      if (!isComposingRef.current) {
+        handleMessageSubmit();
+      }
+    });
+  }, [handleMessageSubmit]);
 
   return {
     handlePasteFiles,
@@ -188,5 +209,6 @@ export default function useChatInputHandlers({
     handleMouseDown,
     onCompositionStart,
     onCompositionEnd,
+    requestMessageSubmit,
   };
 }

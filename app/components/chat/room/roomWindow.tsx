@@ -336,6 +336,7 @@ function RoomWindow({
     handleMouseDown,
     onCompositionStart,
     onCompositionEnd,
+    requestMessageSubmit,
   } = useChatInputHandlers({
     atMentionRef,
     handleMessageSubmit,
@@ -876,7 +877,7 @@ function RoomWindow({
     webSocketUtils,
     handleSelectCommand,
     ruleId: space?.ruleId ?? -1,
-    handleMessageSubmit,
+    handleMessageSubmit: requestMessageSubmit,
     onAIRewrite: handleQuickRewrite,
     currentChatStatus: myStatue as any,
     onChangeChatStatus: handleManualStatusChange,
