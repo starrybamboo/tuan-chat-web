@@ -137,7 +137,7 @@ export function ContentCard({
     >
       {/* 图片部分 */}
       {(shouldShowImage || shouldShowPlaceholder) && (
-        <figure className={`relative overflow-hidden rounded-md border border-base-300/70 bg-base-200 ${aspectClasses[imageAspect]}`}>
+        <figure className={`relative overflow-hidden rounded-md border border-[#e5e7eb] bg-base-200 ${aspectClasses[imageAspect]}`}>
           {shouldShowImage && (
             <img
               src={image}
