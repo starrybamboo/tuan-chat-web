@@ -10,7 +10,7 @@ export type BlocksuiteDescriptionEditorProps = {
   instanceId?: string;
   /** 已废弃：当前 route 方案不再执行临场 prewarm，这个入参仅为兼容保留。 */
   intentPrewarm?: boolean;
-  variant?: "embedded" | "full";
+  variant?: "full";
   readOnly?: boolean;
   mode?: DocMode;
   allowModeSwitch?: boolean;

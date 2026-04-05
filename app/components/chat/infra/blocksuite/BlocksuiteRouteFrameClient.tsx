@@ -1,5 +1,5 @@
 import type { DocMode } from "@blocksuite/affine/model";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { BlocksuiteDescriptionEditorRuntime } from "./BlocksuiteDescriptionEditorRuntime.browser";
 import { ensureBlocksuiteBrowserRuntime } from "./bootstrap/browser";
 import { isBlocksuiteDebugEnabled } from "./shared/debugFlags";
@@ -11,8 +11,7 @@ import { failBlocksuiteOpenSession, markBlocksuiteOpenSession } from "./shared/p
  * 它负责：
  * 1. 解析 iframe 首开 query 参数
  * 2. 启动 browser runtime（样式 + custom elements + effects）
- * 3. 在 iframe 内测量高度并回传宿主
- * 4. 把参数交给真正的 editor runtime
+ * 3. 把参数交给真正的 editor runtime
  */
 const FRAME_INSTANCE_ID = typeof window === "undefined"
   ? ""
@@ -38,79 +37,6 @@ function parseBool01(v: string | null | undefined): boolean {
   return v === "1" || v === "true";
 }
 
-function querySelectorDeep<T extends Element>(root: ParentNode | null, selector: string): T | null {
-  if (!root)
-    return null;
-
-  const direct = (root as ParentNode & { querySelector?: typeof document.querySelector }).querySelector?.(selector) as T | null | undefined;
-  if (direct)
-    return direct;
-
-  const all = (root as ParentNode & { querySelectorAll?: typeof document.querySelectorAll }).querySelectorAll?.("*") as NodeListOf<Element> | undefined;
-  if (!all)
-    return null;
-
-  for (const el of all) {
-    const shadowRoot = (el as Element & { shadowRoot?: ShadowRoot | null }).shadowRoot;
-    if (!shadowRoot)
-      continue;
-    const found = querySelectorDeep<T>(shadowRoot, selector);
-    if (found)
-      return found;
-  }
-
-  return null;
-}
-
-function measureElement(el: HTMLElement | null): number {
-  if (!el)
-    return 0;
-  const rectH = Math.ceil(el.getBoundingClientRect?.().height ?? 0);
-  const scrollH = Math.ceil(el.scrollHeight ?? 0);
-  return Math.max(rectH, scrollH);
-}
-
-function getDocumentScrollHeight(): number {
-  return Math.max(
-    document.documentElement?.scrollHeight ?? 0,
-    document.body?.scrollHeight ?? 0,
-  );
-}
-
-function getBlocksuiteMeasuredScrollHeight(params: {
-  currentMode: DocMode;
-  tcHeaderEnabled: boolean;
-}): number {
-  const { currentMode, tcHeaderEnabled } = params;
-
-  // 编辑器内部混合了 light DOM 和 shadowRoot，这里统一做深度查询。
-  const editorContainer = document.querySelector("tc-affine-editor-container, affine-editor-container") as Element | null;
-  const rootForQuery: ParentNode = ((editorContainer as Element & { shadowRoot?: ShadowRoot | null })?.shadowRoot) ?? editorContainer ?? document;
-  const documentHeight = getDocumentScrollHeight();
-
-  if (currentMode === "edgeless") {
-    const viewportHeight = measureElement(
-      querySelectorDeep<HTMLElement>(rootForQuery, ".affine-edgeless-viewport"),
-    );
-    return viewportHeight > 0 ? viewportHeight : documentHeight;
-  }
-
-  const primaryHeight = measureElement(
-    querySelectorDeep<HTMLElement>(rootForQuery, ".affine-page-root-block-container"),
-  );
-  if (primaryHeight <= 0)
-    return documentHeight;
-
-  const docTitleHeight = measureElement(
-    querySelectorDeep<HTMLElement>(rootForQuery, "doc-title"),
-  );
-  const tcHeaderHeight = tcHeaderEnabled
-    ? measureElement(document.querySelector<HTMLElement>(".tc-blocksuite-tc-header"))
-    : 0;
-
-  return primaryHeight + docTitleHeight + tcHeaderHeight;
-}
-
 function readInitialFrameState() {
   // iframe 首开参数来自宿主拼接在 src 上的 querystring。
   const sp = typeof window === "undefined"
@@ -130,7 +56,6 @@ function readInitialFrameState() {
       tcHeaderEnabled: parseBool01(sp.get("tcHeader")),
       tcHeaderTitle: sp.get("tcHeaderTitle") ?? undefined,
       tcHeaderImageUrl: sp.get("tcHeaderImageUrl") ?? undefined,
-      variant: (sp.get("variant") === "full" ? "full" : "embedded") as "embedded" | "full",
       allowModeSwitch: parseBool01(sp.get("allowModeSwitch")),
       fullscreenEdgeless: parseBool01(sp.get("fullscreenEdgeless")),
       forcedMode: (sp.get("mode") === "edgeless" ? "edgeless" : "page") as DocMode,
@@ -151,16 +76,13 @@ export function BlocksuiteRouteFrameClient() {
     tcHeaderEnabled,
     tcHeaderTitle,
     tcHeaderImageUrl,
-    variant,
     allowModeSwitch,
     fullscreenEdgeless,
     forcedMode,
   } = frameParams;
 
-  const [currentMode, setCurrentMode] = useState<DocMode>(forcedMode);
   const [isRuntimeReady, setIsRuntimeReady] = useState(false);
   const [runtimeError, setRuntimeError] = useState<string | null>(null);
-  const measureAndPostHeight = useRef<(() => void) | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -186,12 +108,6 @@ export function BlocksuiteRouteFrameClient() {
       cancelled = true;
     };
   }, [instanceId]);
-
-  useEffect(() => {
-    if (!allowModeSwitch) {
-      setCurrentMode(forcedMode);
-    }
-  }, [allowModeSwitch, docId, forcedMode]);
 
   const postToParent = (payload: Record<string, unknown>) => {
     try {
@@ -232,56 +148,6 @@ export function BlocksuiteRouteFrameClient() {
   }, [instanceId]);
 
   useEffect(() => {
-    if (typeof window === "undefined")
-      return;
-
-    let raf = 0;
-
-    const postHeight = () => {
-      raf = 0;
-      const height = getBlocksuiteMeasuredScrollHeight({
-        currentMode,
-        tcHeaderEnabled,
-      });
-      postToParent({ tc: "tc-blocksuite-frame", instanceId, type: "height", height });
-    };
-
-    measureAndPostHeight.current = () => {
-      // 折叠到下一帧，避免一次 DOM 变化触发多次测量与 postMessage。
-      if (raf)
-        cancelAnimationFrame(raf);
-      raf = requestAnimationFrame(postHeight);
-    };
-
-    const observer = new MutationObserver(() => {
-      measureAndPostHeight.current?.();
-    });
-    observer.observe(document.body, {
-      childList: true,
-      subtree: true,
-      attributes: true,
-      characterData: true,
-    });
-
-    const onResize = () => measureAndPostHeight.current?.();
-    window.addEventListener("resize", onResize);
-
-    const t1 = window.setTimeout(() => measureAndPostHeight.current?.(), 0);
-    const t2 = window.setTimeout(() => measureAndPostHeight.current?.(), 120);
-    const t3 = window.setTimeout(() => measureAndPostHeight.current?.(), 600);
-
-    return () => {
-      if (raf)
-        cancelAnimationFrame(raf);
-      window.clearTimeout(t1);
-      window.clearTimeout(t2);
-      window.clearTimeout(t3);
-      observer.disconnect();
-      window.removeEventListener("resize", onResize);
-    };
-  }, [currentMode, instanceId, tcHeaderEnabled]);
-
-  useEffect(() => {
     const onMessage = (event: MessageEvent) => {
       const data = event.data as {
         tc?: string;
@@ -291,7 +157,6 @@ export function BlocksuiteRouteFrameClient() {
         workspaceId?: string;
         spaceId?: number;
         docId?: string;
-        variant?: "embedded" | "full";
         readOnly?: boolean;
         allowModeSwitch?: boolean;
         fullscreenEdgeless?: boolean;
@@ -311,12 +176,6 @@ export function BlocksuiteRouteFrameClient() {
         document.documentElement.dataset.theme = theme;
         document.documentElement.classList.toggle("dark", theme === "dark");
         document.body.classList.toggle("dark", theme === "dark");
-        measureAndPostHeight.current?.();
-        return;
-      }
-
-      if (data.type === "request-height") {
-        measureAndPostHeight.current?.();
         return;
       }
 
@@ -329,7 +188,6 @@ export function BlocksuiteRouteFrameClient() {
           tcHeaderEnabled: typeof data.tcHeader === "boolean" ? data.tcHeader : prev.tcHeaderEnabled,
           tcHeaderTitle: data.tcHeaderTitle ?? prev.tcHeaderTitle,
           tcHeaderImageUrl: data.tcHeaderImageUrl ?? prev.tcHeaderImageUrl,
-          variant: data.variant ?? prev.variant,
           allowModeSwitch: typeof data.allowModeSwitch === "boolean" ? data.allowModeSwitch : prev.allowModeSwitch,
           fullscreenEdgeless: typeof data.fullscreenEdgeless === "boolean" ? data.fullscreenEdgeless : prev.fullscreenEdgeless,
           forcedMode: data.mode ?? prev.forcedMode,
@@ -343,7 +201,7 @@ export function BlocksuiteRouteFrameClient() {
 
   if (runtimeError) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-base-200 p-6">
+      <div className="flex h-full min-h-0 items-center justify-center bg-base-200 p-6">
         <div className="rounded-md border border-error/30 bg-base-100 p-4 text-sm text-error">
           {runtimeError}
         </div>
@@ -353,7 +211,7 @@ export function BlocksuiteRouteFrameClient() {
 
   if (!isRuntimeReady) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-base-200">
+      <div className="flex h-full min-h-0 items-center justify-center bg-base-200">
         <div className="flex items-center gap-2 text-base-content/70">
           <span className="loading loading-spinner loading-md" aria-label="Loading" />
           <span>Blocksuite 正在启动...</span>
@@ -368,7 +226,6 @@ export function BlocksuiteRouteFrameClient() {
       docId={docId}
       spaceId={spaceId}
       instanceId={instanceId}
-      variant={variant}
       readOnly={readOnly}
       allowModeSwitch={allowModeSwitch}
       fullscreenEdgeless={fullscreenEdgeless}
@@ -379,18 +236,13 @@ export function BlocksuiteRouteFrameClient() {
         fallbackImageUrl: tcHeaderImageUrl,
       }}
       onModeChange={(mode) => {
-        setCurrentMode(mode);
         postToParent({ tc: "tc-blocksuite-frame", instanceId, type: "mode", mode });
-        measureAndPostHeight.current?.();
       }}
       onNavigate={(to) => {
         postToParent({ tc: "tc-blocksuite-frame", instanceId, type: "navigate", to });
         return true;
       }}
-      onTcHeaderChange={() => {
-        measureAndPostHeight.current?.();
-      }}
-      className={currentMode === "edgeless" ? "h-screen" : "min-h-screen"}
+      className="h-full"
     />
   );
 }
