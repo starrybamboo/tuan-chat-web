@@ -5,6 +5,7 @@ import {
   PackageIcon,
   PlusIcon,
 } from "@phosphor-icons/react";
+import { ContentCard } from "@/components/repository/home/RepositoryHome";
 
 type MaterialPackageLibraryAction = {
   key: string;
@@ -93,57 +94,35 @@ function MaterialCard({
 }) {
   const placeholderPalette = getPlaceholderPalette(item.placeholderSeed);
   const placeholderIcon: MaterialPackageLibraryPlaceholderIcon = item.placeholderIcon;
+  const metadata = [
+    `${item.materialCount} 个素材`,
+    `${item.folderCount} 个文件夹`,
+    `${item.messageCount} 条消息`,
+  ];
 
   return (
-    <button
-      type="button"
-      className="group text-left"
+    <ContentCard
+      image={item.coverUrl}
+      title={item.name}
+      subtitle={item.subtitle}
+      content={item.description || "暂无描述"}
+      badgeLabel={item.badgeLabel}
+      metadata={metadata}
+      imageAspect="wide"
+      hoverHint="点击查看素材包"
+      placeholder={(
+        <div className={`flex h-full w-full items-center justify-center bg-linear-to-br ${placeholderPalette}`}>
+          <div className="rounded-[22px] border border-white/12 bg-black/12 p-6 text-white/72 backdrop-blur-sm">
+            <ActionIcon
+              icon={placeholderIcon}
+              className="size-10"
+              weight="fill"
+            />
+          </div>
+        </div>
+      )}
       onClick={onClick}
-    >
-      <div className="overflow-hidden rounded-[26px] border border-base-300 bg-base-100/86 shadow-lg transition duration-300 hover:-translate-y-1 hover:border-primary/30 hover:shadow-xl">
-        <div className="relative aspect-[1.25/1] overflow-hidden">
-          {item.coverUrl
-            ? (
-                <img
-                  src={item.coverUrl}
-                  alt={item.name}
-                  className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.04]"
-                  loading="lazy"
-                />
-              )
-            : (
-                <div className={`flex h-full w-full items-center justify-center bg-linear-to-br ${placeholderPalette}`}>
-                  <div className="rounded-[22px] border border-white/12 bg-black/12 p-6 text-white/72 backdrop-blur-sm">
-                    <ActionIcon
-                      icon={placeholderIcon}
-                      className="size-10"
-                      weight="fill"
-                    />
-                  </div>
-                </div>
-              )}
-
-          <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-linear-to-t from-base-content/45 via-base-content/12 to-transparent" />
-
-          <div className="absolute left-4 top-4 inline-flex items-center rounded-full border border-base-300 bg-base-100/85 px-3 py-1 text-[11px] font-medium text-base-content/82 backdrop-blur-sm">
-            {item.badgeLabel}
-          </div>
-        </div>
-
-        <div className="space-y-3 px-3 pb-4 pt-4">
-          <div>
-            <div className="line-clamp-1 text-lg font-semibold text-base-content">{item.name}</div>
-            <div className="mt-1 line-clamp-1 text-sm text-base-content/55">{item.subtitle}</div>
-          </div>
-
-          <div className="flex flex-wrap gap-2 text-xs text-base-content/55">
-            <span>{`${item.materialCount} 个素材`}</span>
-            <span>{`${item.folderCount} 个文件夹`}</span>
-            <span>{`${item.messageCount} 条消息`}</span>
-          </div>
-        </div>
-      </div>
-    </button>
+    />
   );
 }
 

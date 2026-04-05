@@ -184,7 +184,7 @@ describe("uploadUtils.uploadVideo", () => {
       public error: Error | null = new Error("mock read error");
 
       public readAsArrayBuffer(_blob: Blob): void {
-        this.onerror?.({ target: this } as ProgressEvent<FileReader>);
+        this.onerror?.({ target: this } as unknown as ProgressEvent<FileReader>);
       }
     }
 
