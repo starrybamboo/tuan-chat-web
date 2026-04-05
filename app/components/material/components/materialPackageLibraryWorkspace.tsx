@@ -172,52 +172,104 @@ export default function MaterialPackageLibraryWorkspace({
   onKeywordChange,
   onOpenItem,
 }: MaterialPackageLibraryWorkspaceProps) {
+  const topBarInfo = loading ? "加载中" : `${items.length} 个素材包`;
+
   return (
     <div className={`h-full min-h-0 overflow-y-auto bg-[radial-gradient(circle_at_top_left,oklch(var(--p)/0.1),transparent_26%),linear-gradient(180deg,oklch(var(--b2)/0.98),oklch(var(--b1)/1))] text-base-content ${embedded ? "" : "border-t border-base-300"}`}>
-      <div className={`mx-auto w-full ${embedded ? "max-w-6xl px-5 py-6 md:px-8" : "max-w-[1560px] px-6 py-8 md:px-10 md:py-10"}`}>
-        <div className="space-y-8">
-          <div className="flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
-            <div className="max-w-3xl">
-              <div className="text-xs font-semibold uppercase tracking-[0.28em] text-base-content/45">
-                {upperLabel}
-              </div>
-              <h1 className="mt-3 text-4xl font-semibold tracking-tight text-base-content md:text-6xl">{title}</h1>
-              <p className="mt-4 max-w-2xl text-sm leading-7 text-base-content/62 md:text-base">
-                {description}
-              </p>
+      {embedded && (
+        <div className="sticky top-0 z-20 border-t border-b border-gray-300 bg-base-200 dark:border-gray-700">
+          <div className="mx-auto flex h-12 w-full max-w-6xl items-center justify-between gap-4 px-6">
+            <div className="flex min-w-0 items-center gap-3">
+              <div className="truncate text-sm font-semibold text-base-content">{title}</div>
+              <span className="hidden rounded-full border border-base-300 bg-base-100 px-2 py-0.5 text-[11px] text-base-content/68 sm:inline-flex">
+                {topBarInfo}
+              </span>
             </div>
 
-            {headerActions.length > 0 && (
-              <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
-                {headerActions.map(action => (
-                  <button
-                    key={action.key}
-                    type="button"
-                    className={action.variant === "secondary"
-                      ? "inline-flex items-center gap-2 rounded-md border border-base-300 bg-base-100 px-5 py-3 text-sm font-semibold text-base-content transition hover:border-primary/30 hover:bg-base-100/90"
-                      : "inline-flex items-center gap-2 rounded-md border border-primary/35 bg-primary px-5 py-3 text-sm font-semibold text-primary-content shadow-[0_18px_38px_rgba(59,130,246,0.22)] transition hover:-translate-y-0.5 hover:border-primary/45 hover:shadow-[0_24px_48px_rgba(59,130,246,0.28)]"}
-                    onClick={action.onClick}
-                  >
-                    <ActionIcon icon={action.icon} />
-                    <span>{action.label}</span>
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
+            <div className="flex min-w-0 items-center justify-end gap-3">
+              {headerActions.length > 0 && (
+                <div className="hidden items-center gap-2 sm:flex">
+                  {headerActions.map(action => (
+                    <button
+                      key={action.key}
+                      type="button"
+                      className={action.variant === "secondary"
+                        ? "inline-flex h-8 items-center gap-1.5 rounded-md border border-base-300 bg-base-100 px-3 text-xs font-semibold text-base-content transition hover:border-primary/30 hover:bg-base-100/90"
+                        : "inline-flex h-8 items-center gap-1.5 rounded-md border border-primary/35 bg-primary px-3 text-xs font-semibold text-primary-content transition hover:border-primary/45 hover:brightness-105"}
+                      onClick={action.onClick}
+                    >
+                      <ActionIcon icon={action.icon} className="size-3.5" />
+                      <span>{action.label}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
 
-          <div className="rounded-[24px] border border-base-300 bg-base-100/80 px-5 py-4 shadow-lg">
-            <label className="flex items-center gap-3">
-              <MagnifyingGlassIcon className="size-5 shrink-0 text-base-content/38" />
-              <input
-                type="text"
-                className="w-full rounded-md border border-transparent bg-transparent text-sm text-base-content placeholder:text-base-content/35 transition focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
-                placeholder={searchPlaceholder}
-                value={keyword}
-                onChange={event => onKeywordChange(event.target.value)}
-              />
-            </label>
+              <div className="relative w-full max-w-90">
+                <label className="flex items-center gap-2 rounded-md border border-base-300 bg-base-100 px-3 py-2">
+                  <MagnifyingGlassIcon className="size-4 shrink-0 text-base-content/38" />
+                  <input
+                    type="text"
+                    className="w-full bg-transparent text-sm text-base-content placeholder:text-base-content/35 transition focus:outline-none"
+                    placeholder={searchPlaceholder}
+                    value={keyword}
+                    onChange={event => onKeywordChange(event.target.value)}
+                  />
+                </label>
+              </div>
+            </div>
           </div>
+        </div>
+      )}
+
+      <div className={`mx-auto w-full ${embedded ? "max-w-6xl px-5 py-6 md:px-8" : "max-w-[1560px] px-6 py-8 md:px-10 md:py-10"}`}>
+        <div className="space-y-8">
+          {!embedded && (
+            <>
+              <div className="flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
+                <div className="max-w-3xl">
+                  <div className="text-xs font-semibold uppercase tracking-[0.28em] text-base-content/45">
+                    {upperLabel}
+                  </div>
+                  <h1 className="mt-3 text-4xl font-semibold tracking-tight text-base-content md:text-6xl">{title}</h1>
+                  <p className="mt-4 max-w-2xl text-sm leading-7 text-base-content/62 md:text-base">
+                    {description}
+                  </p>
+                </div>
+
+                {headerActions.length > 0 && (
+                  <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
+                    {headerActions.map(action => (
+                      <button
+                        key={action.key}
+                        type="button"
+                        className={action.variant === "secondary"
+                          ? "inline-flex items-center gap-2 rounded-md border border-base-300 bg-base-100 px-5 py-3 text-sm font-semibold text-base-content transition hover:border-primary/30 hover:bg-base-100/90"
+                          : "inline-flex items-center gap-2 rounded-md border border-primary/35 bg-primary px-5 py-3 text-sm font-semibold text-primary-content shadow-[0_18px_38px_rgba(59,130,246,0.22)] transition hover:-translate-y-0.5 hover:border-primary/45 hover:shadow-[0_24px_48px_rgba(59,130,246,0.28)]"}
+                        onClick={action.onClick}
+                      >
+                        <ActionIcon icon={action.icon} />
+                        <span>{action.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="rounded-[24px] border border-base-300 bg-base-100/80 px-5 py-4 shadow-lg">
+                <label className="flex items-center gap-3">
+                  <MagnifyingGlassIcon className="size-5 shrink-0 text-base-content/38" />
+                  <input
+                    type="text"
+                    className="w-full rounded-md border border-transparent bg-transparent text-sm text-base-content placeholder:text-base-content/35 transition focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                    placeholder={searchPlaceholder}
+                    value={keyword}
+                    onChange={event => onKeywordChange(event.target.value)}
+                  />
+                </label>
+              </div>
+            </>
+          )}
 
           <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
             {shortcuts.map(shortcut => (
