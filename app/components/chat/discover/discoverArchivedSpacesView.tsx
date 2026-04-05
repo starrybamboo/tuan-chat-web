@@ -436,7 +436,7 @@ export default function DiscoverArchivedSpacesView({ mode }: DiscoverArchivedSpa
                             badgeLabel="根仓库"
                             metadata={metadata}
                             hoverHint="点击查看仓库"
-                            imageAspect="landscape"
+                            imageAspect="square"
                             placeholder={(
                               <div className="flex h-full w-full items-center justify-center bg-linear-to-br from-[#243b55] via-[#141e30] to-[#0b0f17] text-white/75">
                                 <PackageIcon className="size-12" weight="duotone" />
@@ -474,7 +474,7 @@ export default function DiscoverArchivedSpacesView({ mode }: DiscoverArchivedSpa
                             metadata={metadata}
                             topBadges={["已归档", `版本 ${group.spaces.length}`]}
                             hoverHint="点击查看仓库"
-                            imageAspect="landscape"
+                            imageAspect="square"
                             placeholder={(
                               <div className="flex h-full w-full items-center justify-center bg-linear-to-br from-[#2a2d3e] via-[#1f2937] to-[#111827] text-white/75">
                                 <PackageIcon className="size-12" weight="duotone" />

@@ -173,9 +173,9 @@ export function ContentCard({
 
           {shouldShowHoverMeta && (
             <>
-              <div className="absolute inset-0 bg-white/5 opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
-              <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-linear-to-t from-base-100/95 via-base-100/78 to-transparent p-4 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
-                <div className="space-y-1.5 text-sm text-base-content">
+              <div className="absolute inset-0 bg-white opacity-0 transition-opacity duration-300 group-hover:opacity-40" />
+              <div className="pointer-events-none absolute inset-0 p-4 opacity-0 transition-opacity duration-300 group-hover:opacity-100 flex flex-col justify-end items-start">
+                <div className="space-y-1.5 text-sm text-black">
                   {authorName && (
                     <div className="flex items-center gap-1.5">
                       <span className="font-semibold">作者</span>

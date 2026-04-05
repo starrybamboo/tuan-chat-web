@@ -108,7 +108,7 @@ function MaterialCard({
       content={item.description || "暂无描述"}
       badgeLabel={item.badgeLabel}
       metadata={metadata}
-      imageAspect="wide"
+      imageAspect="square"
       hoverHint="点击查看素材包"
       placeholder={(
         <div className={`flex h-full w-full items-center justify-center bg-linear-to-br ${placeholderPalette}`}>
