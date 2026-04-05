@@ -620,7 +620,7 @@ export default function RepositoryDetailComponent({
               <div className="hidden md:flex divider divider-horizontal self-stretch m-0" aria-hidden />
 
               <div className="flex-1 min-w-0 min-h-0 overflow-visible">
-                <div className="rounded-md min-h-60 overflow-visible">
+                <div className="h-[65vh] min-h-[28rem] overflow-hidden rounded-md md:h-[72vh] md:min-h-[34rem]">
                   {linkedSpaceId
                     ? (
                         <BlocksuiteDescriptionEditor
@@ -628,6 +628,7 @@ export default function RepositoryDetailComponent({
                           spaceId={linkedSpaceId}
                           docId={buildSpaceDocId({ kind: "space_description", spaceId: linkedSpaceId })}
                           variant="full"
+                          className="h-full min-h-0 rounded-md"
                           readOnly
                           mode="page"
                           tcHeader={{

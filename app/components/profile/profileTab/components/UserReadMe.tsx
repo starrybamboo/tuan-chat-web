@@ -14,11 +14,12 @@ export const UserReadMe: React.FC<UserReadMeProps> = ({
 
   return (
     <div className="flex-1 lg:m-2 p-2">
-      <div className="transition-all">
+      <div className="h-[65vh] min-h-[28rem] transition-all md:h-[72vh] md:min-h-[34rem]">
         <BlocksuiteDescriptionEditor
           workspaceId={`user:${userId}`}
           docId={`user:${userId}:readme`}
           variant="full"
+          className="h-full min-h-0 rounded-md"
           readOnly={!isOwner}
         />
       </div>
