@@ -39,6 +39,7 @@ interface ContentCardProps {
   topBadges?: string[];
   subtitle?: string;
   metadata?: string[];
+  hoverMetadata?: string[];
   imageAspect?: "square" | "landscape" | "wide";
   placeholder?: ReactNode;
   titleSuffix?: ReactNode;
@@ -69,6 +70,7 @@ export function ContentCard({
   topBadges = [],
   subtitle,
   metadata = [],
+  hoverMetadata = [],
   imageAspect = "square",
   placeholder,
   titleSuffix,
@@ -105,7 +107,7 @@ export function ContentCard({
   const shouldRenderVisual = type === "image" || type === "mixed";
   const shouldShowImage = Boolean(image && !hasImageError && shouldRenderVisual);
   const shouldShowPlaceholder = Boolean(!shouldShowImage && placeholder && shouldRenderVisual);
-  const shouldShowHoverMeta = Boolean(authorName || createTime || minPeople || maxPeople || minTime || maxTime);
+  const shouldShowHoverMeta = Boolean(authorName || createTime || minPeople || maxPeople || minTime || maxTime || hoverMetadata.length > 0);
 
   // 构建完整的样式类名
   const cardClasses = [
@@ -175,7 +177,19 @@ export function ContentCard({
             <>
               <div className="absolute inset-0 bg-white opacity-0 transition-opacity duration-300 group-hover:opacity-40" />
               <div className="pointer-events-none absolute inset-0 p-4 opacity-0 transition-opacity duration-300 group-hover:opacity-100 flex flex-col justify-end items-start">
-                <div className="space-y-1.5 text-sm text-black">
+                <div className="space-y-3 text-sm text-black">
+                  {hoverMetadata.length > 0 && (
+                    <div className="flex flex-wrap gap-2">
+                      {hoverMetadata.map(item => (
+                        <span
+                          key={item}
+                          className="rounded-full border border-black/12 bg-white/75 px-3 py-1 text-xs font-medium text-black/78 backdrop-blur-sm"
+                        >
+                          {item}
+                        </span>
+                      ))}
+                    </div>
+                  )}
                   {authorName && (
                     <div className="flex items-center gap-1.5">
                       <span className="font-semibold">作者</span>

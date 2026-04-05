@@ -434,7 +434,7 @@ export default function DiscoverArchivedSpacesView({ mode }: DiscoverArchivedSpa
                             title={name}
                             content={description || "暂无描述"}
                             badgeLabel="根仓库"
-                            metadata={metadata}
+                            hoverMetadata={metadata}
                             hoverHint="点击查看仓库"
                             imageAspect="square"
                             placeholder={(
@@ -450,7 +450,7 @@ export default function DiscoverArchivedSpacesView({ mode }: DiscoverArchivedSpa
                   )}
 
                   {!isLoading && !isError && mode === "my" && filteredArchivedRepositoryGroups.length > 0 && (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+                    <div className="grid grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-4">
                       {filteredArchivedRepositoryGroups.map((group) => {
                         const repositoryId = group.repositoryId;
                         const repository = group.repository;
@@ -471,7 +471,7 @@ export default function DiscoverArchivedSpacesView({ mode }: DiscoverArchivedSpa
                             image={image}
                             title={name}
                             content={description || "暂无描述"}
-                            metadata={metadata}
+                            hoverMetadata={metadata}
                             topBadges={["已归档", `版本 ${group.spaces.length}`]}
                             hoverHint="点击查看仓库"
                             imageAspect="square"

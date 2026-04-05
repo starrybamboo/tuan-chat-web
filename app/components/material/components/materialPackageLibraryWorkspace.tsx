@@ -107,7 +107,7 @@ function MaterialCard({
       subtitle={item.subtitle}
       content={item.description || "暂无描述"}
       badgeLabel={item.badgeLabel}
-      metadata={metadata}
+      hoverMetadata={metadata}
       imageAspect="square"
       hoverHint="点击查看素材包"
       placeholder={(
@@ -174,7 +174,7 @@ export default function MaterialPackageLibraryWorkspace({
 }: MaterialPackageLibraryWorkspaceProps) {
   return (
     <div className={`h-full min-h-0 overflow-y-auto bg-[radial-gradient(circle_at_top_left,oklch(var(--p)/0.1),transparent_26%),linear-gradient(180deg,oklch(var(--b2)/0.98),oklch(var(--b1)/1))] text-base-content ${embedded ? "" : "border-t border-base-300"}`}>
-      <div className={`mx-auto w-full max-w-[1560px] ${embedded ? "px-5 py-6 md:px-8" : "px-6 py-8 md:px-10 md:py-10"}`}>
+      <div className={`mx-auto w-full ${embedded ? "max-w-6xl px-5 py-6 md:px-8" : "max-w-[1560px] px-6 py-8 md:px-10 md:py-10"}`}>
         <div className="space-y-8">
           <div className="flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
             <div className="max-w-3xl">
