@@ -8,24 +8,24 @@ import {
 } from "@phosphor-icons/react";
 import { ContentCard } from "@/components/repository/home/RepositoryHome";
 
-type MaterialPackageLibraryAction = {
+interface MaterialPackageLibraryAction {
   key: string;
   label: string;
   icon: "package" | "plus";
   variant?: "primary" | "secondary";
   onClick: () => void;
-};
+}
 
-type MaterialPackageLibraryShortcut = {
+interface MaterialPackageLibraryShortcut {
   key: string;
   title: string;
   description: string;
   caption: string;
   icon?: "package" | "plus";
   onClick: () => void;
-};
+}
 
-type MaterialPackageLibraryWorkspaceProps = {
+interface MaterialPackageLibraryWorkspaceProps {
   upperLabel: string;
   title: string;
   description: string;
@@ -41,7 +41,7 @@ type MaterialPackageLibraryWorkspaceProps = {
   skeletonPrefix: string;
   onKeywordChange: (value: string) => void;
   onOpenItem: (index: number) => void;
-};
+}
 
 const paletteList = [
   "from-[#243b55] via-[#141e30] to-[#0b0f17]",
@@ -51,6 +51,9 @@ const paletteList = [
   "from-[#4c1d95] via-[#1f2937] to-[#0f172a]",
   "from-[#9f1239] via-[#312e81] to-[#0f172a]",
 ];
+
+const EMPTY_HEADER_ACTIONS: MaterialPackageLibraryAction[] = [];
+const EMPTY_SHORTCUTS: MaterialPackageLibraryShortcut[] = [];
 
 function getPlaceholderPalette(seed: string) {
   const normalized = seed.trim();
@@ -141,8 +144,8 @@ function ShortcutCard({
       onClick={onClick}
     >
       <div className="flex h-full flex-col">
-        <div className="flex aspect-[1.25/1] items-center justify-center rounded-[26px] border border-dashed border-primary/30 bg-base-100/30 text-primary/75 transition duration-300 hover:-translate-y-1 hover:border-primary/45 hover:bg-primary/[0.06] hover:text-primary">
-          <div className="rounded-[22px] border border-primary/12 bg-primary/[0.08] p-6">
+        <div className="flex aspect-[1.25/1] items-center justify-center rounded-[26px] border border-dashed border-primary/30 bg-base-100/30 text-primary/75 transition duration-300 hover:-translate-y-1 hover:border-primary/45 hover:bg-primary/6 hover:text-primary">
+          <div className="rounded-[22px] border border-primary/12 bg-primary/8 p-6">
             <ActionIcon icon={icon} className="size-10" />
           </div>
         </div>
@@ -163,8 +166,8 @@ export default function MaterialPackageLibraryWorkspace({
   searchPlaceholder,
   keyword,
   items,
-  headerActions = [],
-  shortcuts = [],
+  headerActions = EMPTY_HEADER_ACTIONS,
+  shortcuts = EMPTY_SHORTCUTS,
   emptyTitle,
   emptyDescription,
   loading,
@@ -176,7 +179,7 @@ export default function MaterialPackageLibraryWorkspace({
   const topBarInfo = loading ? "加载中" : `${items.length} 个素材包`;
 
   return (
-    <div className={`h-full min-h-0 overflow-y-auto text-base-content ${embedded ? "bg-base-100" : "bg-[radial-gradient(circle_at_top_left,oklch(var(--p)/0.1),transparent_26%),linear-gradient(180deg,oklch(var(--b2)/0.98),oklch(var(--b1)/1))] border-t border-base-300"}`}>
+    <div className={`h-full min-h-0 overflow-y-auto text-base-content ${embedded ? "bg-base-300/40" : "bg-[radial-gradient(circle_at_top_left,oklch(var(--p)/0.1),transparent_26%),linear-gradient(180deg,oklch(var(--b2)/0.98),oklch(var(--b1)/1))] border-t border-base-300"}`}>
       {embedded && (
         <div className="sticky top-0 z-20 border-t border-b border-gray-300 bg-base-200 dark:border-gray-700">
           <div className="mx-auto flex h-12 w-full max-w-6xl items-center justify-between gap-4 px-6">
@@ -223,7 +226,7 @@ export default function MaterialPackageLibraryWorkspace({
         </div>
       )}
 
-      <div className={`mx-auto w-full ${embedded ? "max-w-6xl px-5 py-6 md:px-8" : "max-w-[1560px] px-6 py-8 md:px-10 md:py-10"}`}>
+      <div className={`mx-auto w-full ${embedded ? "max-w-6xl px-5 py-6 md:px-8" : "max-w-390 px-6 py-8 md:px-10 md:py-10"}`}>
         <div className="space-y-8">
           {embedded && (
             <div className="relative overflow-hidden rounded-xl border border-base-300 bg-info/10">
@@ -277,7 +280,7 @@ export default function MaterialPackageLibraryWorkspace({
                 )}
               </div>
 
-              <div className="rounded-[24px] border border-base-300 bg-base-100/80 px-5 py-4 shadow-lg">
+              <div className="rounded-3xl border border-base-300 bg-base-100/80 px-5 py-4 shadow-lg">
                 <label className="flex items-center gap-3">
                   <MagnifyingGlassIcon className="size-5 shrink-0 text-base-content/38" />
                   <input
@@ -304,9 +307,9 @@ export default function MaterialPackageLibraryWorkspace({
               />
             ))}
 
-            {loading && Array.from({ length: 6 }).map((_, index) => (
+            {loading && Array.from({ length: 6 }, (_, slot) => slot).map(slot => (
               <div
-                key={`${skeletonPrefix}-${index}`}
+                key={`${skeletonPrefix}-${slot}`}
                 className="aspect-[1.25/1.42] animate-pulse rounded-[26px] border border-base-300 bg-base-100/55"
               />
             ))}
