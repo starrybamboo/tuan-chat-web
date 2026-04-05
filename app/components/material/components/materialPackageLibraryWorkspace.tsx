@@ -4,6 +4,7 @@ import {
   MagnifyingGlassIcon,
   PackageIcon,
   PlusIcon,
+  SparkleIcon,
 } from "@phosphor-icons/react";
 import { ContentCard } from "@/components/repository/home/RepositoryHome";
 
@@ -224,6 +225,26 @@ export default function MaterialPackageLibraryWorkspace({
 
       <div className={`mx-auto w-full ${embedded ? "max-w-6xl px-5 py-6 md:px-8" : "max-w-[1560px] px-6 py-8 md:px-10 md:py-10"}`}>
         <div className="space-y-8">
+          {embedded && (
+            <div className="relative overflow-hidden rounded-xl border border-base-300 bg-info/10">
+              <SparkleIcon
+                aria-hidden="true"
+                weight="duotone"
+                className="pointer-events-none absolute -right-24 -top-24 hidden h-88 w-88 text-primary/15 sm:block"
+              />
+              <div className="relative z-10 px-8 py-8 sm:py-10">
+                <div className="text-2xl font-extrabold tracking-tight text-base-content sm:text-4xl">
+                  {title === "我的素材包" ? "这里是你的素材包" : "探索公开的素材包"}
+                </div>
+                <div className="mt-3 max-w-2xl text-sm text-base-content/70 sm:text-base">
+                  {title === "我的素材包"
+                    ? "管理和沉淀你自己的素材包，随时回到熟悉的内容集合继续编辑与整理。"
+                    : "浏览公开分享的素材包，快速查看结构、内容规模和可复用的灵感素材。"}
+                </div>
+              </div>
+            </div>
+          )}
+
           {!embedded && (
             <>
               <div className="flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
