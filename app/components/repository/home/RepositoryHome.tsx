@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { useRepositoryListQuery } from "api/hooks/repositoryQueryHooks";
 import { useRuleListQuery } from "api/hooks/ruleQueryHooks";
 import { useEffect, useMemo, useState } from "react";
@@ -35,6 +36,16 @@ interface ContentCardProps {
   maxPeople?: number;
   minTime?: number;
   maxTime?: number;
+  badgeLabel?: string;
+  topBadges?: string[];
+  subtitle?: string;
+  metadata?: string[];
+  hoverMetadata?: string[];
+  imageAspect?: "square" | "landscape" | "wide";
+  placeholder?: ReactNode;
+  titleSuffix?: ReactNode;
+  bottomSlot?: ReactNode;
+  hoverHint?: string;
 }
 
 // 主要的内容卡片组件
@@ -56,6 +67,16 @@ export function ContentCard({
   maxPeople,
   minTime,
   maxTime,
+  badgeLabel,
+  topBadges = [],
+  subtitle,
+  metadata = [],
+  hoverMetadata = [],
+  imageAspect = "square",
+  placeholder,
+  titleSuffix,
+  bottomSlot,
+  hoverHint,
   imageOnLoad,
 }: ContentCardProps & { imageOnLoad?: () => void }) {
   const [hasImageError, setHasImageError] = useState(false);
@@ -78,94 +99,193 @@ export function ContentCard({
     secondary: "bg-transparent text-secondary",
     accent: "bg-transparent ",
   };
+  const aspectClasses = {
+    square: "aspect-square",
+    landscape: "aspect-[4/3]",
+    wide: "aspect-[1.25/1]",
+  };
+  const resolvedBadgeLabel = badgeLabel ?? (ruleId && RuleName ? RuleName : undefined);
+  const shouldRenderVisual = type === "image" || type === "mixed";
+  const shouldShowImage = Boolean(image && !hasImageError && shouldRenderVisual);
+  const shouldShowPlaceholder = Boolean(!shouldShowImage && placeholder && shouldRenderVisual);
+  const shouldShowHoverMeta = Boolean(authorName || createTime || minPeople || maxPeople || minTime || maxTime || hoverMetadata.length > 0);
 
   // 构建完整的样式类名
   const cardClasses = [
-    "w-full rounded-none group", // 改为直角，去掉card类的默认圆角，添加group类
+    "w-full group rounded-md",
     "transition-all duration-300 ease-in-out",
     onClick ? "cursor-pointer" : "",
     themeClasses[theme],
     className,
   ].filter(Boolean).join(" ");
 
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    if (!onClick)
+      return;
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      onClick();
+    }
+  };
+
   return (
-    <div className={cardClasses} onClick={onClick}>
+    <div
+      className={cardClasses}
+      onClick={onClick}
+      role={onClick ? "button" : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      onKeyDown={handleKeyDown}
+    >
       {/* 图片部分 */}
-      {image && !hasImageError && (type === "image" || type === "mixed") && (
-        <figure className="relative overflow-hidden rounded-none">
-          <img
-            src={image}
-            alt={imageAlt || title || "Content image"}
-            className="w-full aspect-square object-cover transition-transform duration-300 group-hover:scale-110 rounded-none"
-            onLoad={imageOnLoad}
-            onError={() => setHasImageError(true)}
-          />
-          {/* 悬浮时的遮罩 */}
-          <div className="absolute inset-0 bg-white opacity-0 group-hover:opacity-40 transition-opacity duration-300"></div>
-          {/* 悬浮时显示的模块详细信息 */}
-          {authorName && (
-            <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 p-4 flex flex-col justify-end items-start text-black space-y-1">
-              <div className="flex items-center text-sm">
-                <span className="font-semibold">作者：</span>
-                <span className="ml-1">{authorName}</span>
+      {(shouldShowImage || shouldShowPlaceholder) && (
+        <figure className={`relative overflow-hidden rounded-md border border-gray-300 dark:border-gray-700 bg-base-200 ${aspectClasses[imageAspect]}`}>
+          {shouldShowImage && (
+            <img
+              src={image}
+              alt={imageAlt || title || "Content image"}
+              className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.04]"
+              onLoad={imageOnLoad}
+              onError={() => setHasImageError(true)}
+            />
+          )}
+          {shouldShowPlaceholder && (
+            <div className="flex h-full w-full items-center justify-center">
+              {placeholder}
+            </div>
+          )}
+
+          {(topBadges.length > 0 || hoverHint) && (
+            <div className="pointer-events-none absolute inset-x-0 top-0 flex items-start justify-between gap-3 p-3">
+              <div className="flex flex-wrap gap-2">
+                {topBadges.map(label => (
+                  <span
+                    key={label}
+                    className="rounded-full border border-base-300 bg-base-100/88 px-2 py-0.5 text-[10px] font-semibold text-base-content shadow-sm backdrop-blur-sm"
+                  >
+                    {label}
+                  </span>
+                ))}
               </div>
-              {(minPeople || maxPeople) && (
-                <div className="flex items-center text-sm">
-                  <span className="font-semibold">人数：</span>
-                  <span className="ml-1">
-                    {minPeople && maxPeople
-                      ? `${minPeople}-${maxPeople}人`
-                      : minPeople
-                        ? `${minPeople}+人`
-                        : maxPeople
-                          ? `最多${maxPeople}人`
-                          : ""}
-                  </span>
-                </div>
-              )}
-              {(minTime || maxTime) && (
-                <div className="flex items-center text-sm">
-                  <span className="font-semibold">时长：</span>
-                  <span className="ml-1">
-                    {minTime && maxTime
-                      ? `${minTime}-${maxTime}小时`
-                      : minTime
-                        ? `${minTime}+小时`
-                        : maxTime
-                          ? `最长${maxTime}小时`
-                          : ""}
-                  </span>
-                </div>
-              )}
-              {createTime && (
-                <div className="flex items-center text-sm">
-                  <span className="font-semibold">创建：</span>
-                  <span className="ml-1">{new Date(createTime).toLocaleDateString()}</span>
-                </div>
+              {hoverHint && (
+                <span className="translate-y-1 rounded-md bg-base-100/88 px-2 py-1 text-[11px] font-semibold text-base-content opacity-0 shadow-sm transition-all duration-200 group-hover:translate-y-0 group-hover:opacity-100 backdrop-blur-sm">
+                  {hoverHint}
+                </span>
               )}
             </div>
+          )}
+
+          {shouldShowHoverMeta && (
+            <>
+              <div className="absolute inset-0 bg-white opacity-0 transition-opacity duration-300 group-hover:opacity-40 dark:bg-black dark:group-hover:opacity-20" />
+              <div className="pointer-events-none absolute inset-0 p-4 opacity-0 transition-opacity duration-300 group-hover:opacity-100 flex flex-col justify-end items-start">
+                <div className="space-y-3 text-sm text-black dark:text-white">
+                  {hoverMetadata.length > 0 && (
+                    <div className="flex flex-wrap gap-2">
+                      {hoverMetadata.map(item => (
+                        <span
+                          key={item}
+                          className="rounded-full border border-black/12 bg-white/75 px-2.5 py-0.5 text-[11px] font-medium text-black/78 backdrop-blur-sm dark:border-white/12 dark:bg-black/55 dark:text-white/82"
+                        >
+                          {item}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                  {authorName && (
+                    <div className="flex items-center gap-1.5">
+                      <span className="font-semibold">作者</span>
+                      <span className="truncate">{authorName}</span>
+                    </div>
+                  )}
+                  {(minPeople || maxPeople) && (
+                    <div className="flex items-center gap-1.5">
+                      <span className="font-semibold">人数</span>
+                      <span>
+                        {minPeople && maxPeople
+                          ? `${minPeople}-${maxPeople}人`
+                          : minPeople
+                            ? `${minPeople}+人`
+                            : maxPeople
+                              ? `最多${maxPeople}人`
+                              : ""}
+                      </span>
+                    </div>
+                  )}
+                  {(minTime || maxTime) && (
+                    <div className="flex items-center gap-1.5">
+                      <span className="font-semibold">时长</span>
+                      <span>
+                        {minTime && maxTime
+                          ? `${minTime}-${maxTime}小时`
+                          : minTime
+                            ? `${minTime}+小时`
+                            : maxTime
+                              ? `最长${maxTime}小时`
+                              : ""}
+                      </span>
+                    </div>
+                  )}
+                  {createTime && (
+                    <div className="flex items-center gap-1.5">
+                      <span className="font-semibold">创建</span>
+                      <span>{new Date(createTime).toLocaleDateString()}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </>
           )}
         </figure>
       )}
 
-      {/* 内容部分 */}
-      <div className={`${sizeClasses[size]}`}>
-        {/* 标题和规则名（所有类型都显示在下方） */}
-        {title && (
-          <div className="flex items-center justify-between mt-4 mb-3">
-            <h2 className="text-lg font-bold line-clamp-2">{title}</h2>
-            {ruleId && RuleName && (
-              <span className="ml-4 px-2 py-1 text-xs font-semibold bg-accent/10  rounded-full whitespace-nowrap">{RuleName}</span>
+      <div className={`px-1 ${sizeClasses[size]}`}>
+        {(title || resolvedBadgeLabel || titleSuffix) && (
+          <div className={`${shouldRenderVisual ? "mt-4" : ""} flex items-start justify-between gap-3`}>
+            <div className="min-w-0 flex-1">
+              {title && <h2 className="text-lg font-bold leading-7 line-clamp-2">{title}</h2>}
+              {subtitle && (
+                <p className="mt-1 text-sm text-base-content/55 line-clamp-2">
+                  {subtitle}
+                </p>
+              )}
+            </div>
+            {(titleSuffix || resolvedBadgeLabel) && (
+              <div className="flex shrink-0 items-center gap-2">
+                {titleSuffix}
+                {resolvedBadgeLabel && (
+                  <span className="rounded-full bg-accent/10 px-2.5 py-0.5 text-[11px] font-semibold whitespace-nowrap text-base-content/80">
+                    {resolvedBadgeLabel}
+                  </span>
+                )}
+              </div>
             )}
           </div>
         )}
 
-        {/* 文段内容 */}
         {content && (
-          <div className="prose prose-sm max-w-none">
-            <p className="text-sm text-base-content/80 leading-relaxed line-clamp-4">
+          <div className="prose prose-sm mt-3 max-w-none">
+            <p className="text-sm leading-relaxed text-base-content/80 line-clamp-4">
               {content}
             </p>
+          </div>
+        )}
+
+        {metadata.length > 0 && (
+          <div className="mt-3 flex flex-wrap gap-2">
+            {metadata.map(item => (
+              <span
+                key={item}
+                className="rounded-full border border-base-300 bg-base-100 px-2 py-0.5 text-[11px] text-base-content/65"
+              >
+                {item}
+              </span>
+            ))}
+          </div>
+        )}
+
+        {bottomSlot && (
+          <div className="mt-4">
+            {bottomSlot}
           </div>
         )}
       </div>
