@@ -1,5 +1,9 @@
 import React from "react";
 import BlocksuiteDescriptionEditor from "@/components/chat/shared/components/BlockSuite/blocksuiteDescriptionEditor";
+import {
+  BLOCKSUITE_FULL_PANEL_EDITOR_CLASS,
+  BLOCKSUITE_FULL_PANEL_HEIGHT_CLASS,
+} from "@/components/chat/shared/components/BlockSuite/blocksuiteDescriptionEditor.shared";
 
 interface UserReadMeProps {
   userId: number;
@@ -14,12 +18,12 @@ export const UserReadMe: React.FC<UserReadMeProps> = ({
 
   return (
     <div className="flex-1 lg:m-2 p-2">
-      <div className="h-[65vh] min-h-[28rem] transition-all md:h-[72vh] md:min-h-[34rem]">
+      <div className={`${BLOCKSUITE_FULL_PANEL_HEIGHT_CLASS} transition-all`}>
         <BlocksuiteDescriptionEditor
           workspaceId={`user:${userId}`}
           docId={`user:${userId}:readme`}
           variant="full"
-          className="h-full min-h-0 rounded-md"
+          className={BLOCKSUITE_FULL_PANEL_EDITOR_CLASS}
           readOnly={!isOwner}
         />
       </div>

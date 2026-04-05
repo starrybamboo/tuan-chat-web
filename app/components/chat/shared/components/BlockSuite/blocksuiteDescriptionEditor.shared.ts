@@ -31,6 +31,9 @@ export type BlocksuiteDescriptionEditorProps = {
   className?: string;
 };
 
+export const BLOCKSUITE_FULL_PANEL_HEIGHT_CLASS = "h-[65vh] min-h-[28rem] md:h-[72vh] md:min-h-[34rem]";
+export const BLOCKSUITE_FULL_PANEL_EDITOR_CLASS = "h-full min-h-0 rounded-md";
+
 function normalizeAppThemeToBlocksuiteTheme(raw: string | null | undefined): "light" | "dark" {
   const v = (raw ?? "").toLowerCase();
   if (v.includes("dark") || v.includes("dracula") || v.includes("night")) {
