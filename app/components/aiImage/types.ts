@@ -171,14 +171,14 @@ export type CurrentResultCard = {
   row: AiImageHistoryRow | null;
 };
 
-type HistoryRowKeySource = {
+export type HistoryRowKeySource = {
   id?: number | null;
   createdAt: number;
   seed: number;
   batchIndex?: number | null;
 };
 
-type PreviewMetaSource = {
+export type PreviewMetaSource = {
   toolLabel?: string;
   seed: number;
   width: number;

@@ -1,5 +1,6 @@
-import { requestPlayBgmMessageWithUrl } from "@/components/chat/infra/audioMessage/audioMessageBgmCoordinator";
 import type { AudioAutoPlayPurpose } from "@/components/chat/infra/audioMessage/audioMessageAutoPlayPolicy";
+
+import { requestPlayBgmMessageWithUrl } from "@/components/chat/infra/audioMessage/audioMessageBgmCoordinator";
 import { useAudioMessageAutoPlayStore } from "@/components/chat/stores/audioMessageAutoPlayStore";
 
 type AutoPlayTriggerSource = "ws" | "localSend";

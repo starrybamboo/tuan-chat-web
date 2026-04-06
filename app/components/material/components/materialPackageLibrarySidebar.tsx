@@ -2,19 +2,19 @@ import { HouseIcon, PackageIcon, SquaresFourIcon } from "@phosphor-icons/react";
 
 type MaterialPackageLibrarySidebarIcon = "house" | "package" | "squares";
 
-type MaterialPackageLibrarySidebarItem = {
+interface MaterialPackageLibrarySidebarItem {
   key: string;
   label: string;
   icon: MaterialPackageLibrarySidebarIcon;
   active?: boolean;
   onClick?: () => void;
-};
+}
 
-type MaterialPackageLibrarySidebarProps = {
+interface MaterialPackageLibrarySidebarProps {
   description: string;
   items: MaterialPackageLibrarySidebarItem[];
   footerDescription: string;
-};
+}
 
 const itemBaseClass = "flex w-full items-center gap-3 rounded-md px-4 py-3 text-left text-sm font-medium transition";
 
@@ -55,7 +55,7 @@ export default function MaterialPackageLibrarySidebar({
       </div>
 
       <nav className="space-y-2">
-        {items.map(item => {
+        {items.map((item) => {
           const className = `${itemBaseClass} ${
             item.active
               ? "bg-base-100 text-base-content shadow-lg"

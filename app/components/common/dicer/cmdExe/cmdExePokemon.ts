@@ -8,7 +8,7 @@ import UNTIL from "@/components/common/dicer/utils/utils";
 const SKILLS: PokemonSkill[] = POKEMON_SKILLS as PokemonSkill[];
 
 // 宝可梦TRPG属性名映射表
-const POKEMON_ABILITY_MAP: { [key: string]: string } = {
+export const POKEMON_ABILITY_MAP: { [key: string]: string } = {
   agi: "敏捷",
   minjie: "敏捷",
   敏: "敏捷",
@@ -566,4 +566,3 @@ function getTypeEffectiveness(attackType: string, defTypes: string[]): number {
     return total * (attackRelations[defType] ?? 1);
   }, 1);
 }
-

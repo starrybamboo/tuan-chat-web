@@ -22,50 +22,50 @@ export type BlocksuiteFrameSyncParams = {
 
 export type BlocksuiteHostToFramePayload
   = | ({
-      type: "sync-params";
-    } & BlocksuiteFrameSyncParams)
-    | {
-      type: "theme";
-      theme: BlocksuiteFrameTheme;
-    };
+    type: "sync-params";
+  } & BlocksuiteFrameSyncParams)
+  | {
+    type: "theme";
+    theme: BlocksuiteFrameTheme;
+  };
 
 export type BlocksuiteFrameToHostPayload
   = | {
-      type: "ready";
-    }
-    | {
-      type: "render-ready";
-    }
-    | {
-      type: "mode";
-      mode: DocMode;
-    }
-    | {
-      type: "navigate";
-      to: string;
-    }
-    | {
-      type: "mention-click";
-      userId: string;
-      anchorRect?: BlocksuiteFrameAnchorRect | null;
-    }
-    | {
-      type: "mention-hover";
-      state: "enter" | "leave";
-      userId: string;
-      anchorRect?: BlocksuiteFrameAnchorRect | null;
-    }
-    | {
-      type: "tc-header";
-      docId: string;
-      entityType?: DescriptionEntityType;
-      entityId?: number;
-      header: BlocksuiteDocHeader;
-    }
-    | {
-      type: "debug-log";
-      entry: unknown;
-    };
+    type: "ready";
+  }
+  | {
+    type: "render-ready";
+  }
+  | {
+    type: "mode";
+    mode: DocMode;
+  }
+  | {
+    type: "navigate";
+    to: string;
+  }
+  | {
+    type: "mention-click";
+    userId: string;
+    anchorRect?: BlocksuiteFrameAnchorRect | null;
+  }
+  | {
+    type: "mention-hover";
+    state: "enter" | "leave";
+    userId: string;
+    anchorRect?: BlocksuiteFrameAnchorRect | null;
+  }
+  | {
+    type: "tc-header";
+    docId: string;
+    entityType?: DescriptionEntityType;
+    entityId?: number;
+    header: BlocksuiteDocHeader;
+  }
+  | {
+    type: "debug-log";
+    entry: unknown;
+  };
 
 export type BlocksuiteFrameMessage
   = | BlocksuiteFrameEnvelope<BlocksuiteHostToFramePayload>

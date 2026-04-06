@@ -34,7 +34,7 @@ import {
   MESSAGE_TYPE,
 } from "@/types/voiceRenderTypes";
 import { buildWebgalChooseScriptLines, extractWebgalChoosePayload } from "@/types/webgalChoose";
-import { extractWebgalDicePayload, isLikelyAnkoDiceContent, isLikelyTrpgDiceContent, stripDiceHighlightTokens } from "@/types/webgalDice";
+import { extractWebgalDicePayload, isLikelyAnkoDiceContent, isLikelyTrpgDiceContent } from "@/types/webgalDice";
 import { checkGameExist, getTerreApis } from "@/webGAL/index";
 import { getTerreBaseUrl, getTerreWsUrl } from "@/webGAL/terreConfig";
 

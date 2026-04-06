@@ -6,24 +6,24 @@ import {
   PlusIcon,
 } from "@phosphor-icons/react";
 
-type MaterialPackageLibraryAction = {
+interface MaterialPackageLibraryAction {
   key: string;
   label: string;
   icon: "package" | "plus";
   variant?: "primary" | "secondary";
   onClick: () => void;
-};
+}
 
-type MaterialPackageLibraryShortcut = {
+interface MaterialPackageLibraryShortcut {
   key: string;
   title: string;
   description: string;
   caption: string;
   icon?: "package" | "plus";
   onClick: () => void;
-};
+}
 
-type MaterialPackageLibraryWorkspaceProps = {
+interface MaterialPackageLibraryWorkspaceProps {
   upperLabel: string;
   title: string;
   description: string;
@@ -39,7 +39,11 @@ type MaterialPackageLibraryWorkspaceProps = {
   skeletonPrefix: string;
   onKeywordChange: (value: string) => void;
   onOpenItem: (index: number) => void;
-};
+}
+
+const EMPTY_HEADER_ACTIONS: MaterialPackageLibraryAction[] = [];
+const EMPTY_SHORTCUTS: MaterialPackageLibraryShortcut[] = [];
+const SKELETON_CARD_IDS = ["1", "2", "3", "4", "5", "6"] as const;
 
 const paletteList = [
   "from-[#243b55] via-[#141e30] to-[#0b0f17]",
@@ -183,8 +187,8 @@ export default function MaterialPackageLibraryWorkspace({
   searchPlaceholder,
   keyword,
   items,
-  headerActions = [],
-  shortcuts = [],
+  headerActions = EMPTY_HEADER_ACTIONS,
+  shortcuts = EMPTY_SHORTCUTS,
   emptyTitle,
   emptyDescription,
   loading,
@@ -252,9 +256,9 @@ export default function MaterialPackageLibraryWorkspace({
               />
             ))}
 
-            {loading && Array.from({ length: 6 }).map((_, index) => (
+            {loading && SKELETON_CARD_IDS.map(id => (
               <div
-                key={`${skeletonPrefix}-${index}`}
+                key={`${skeletonPrefix}-${id}`}
                 className="aspect-[1.25/1.42] animate-pulse rounded-[26px] border border-base-300 bg-base-100/55"
               />
             ))}

@@ -1,5 +1,4 @@
 import type { MaterialPackageContent } from "../../../../api/models/MaterialPackageContent";
-import type { MaterialPackageResponse } from "../../../../api/models/MaterialPackageResponse";
 import { useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import { useNavigate } from "react-router";

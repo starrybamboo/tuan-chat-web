@@ -5,12 +5,12 @@ import toast from "react-hot-toast";
 import { useImportSpaceMaterialPackageMutation, useMyMaterialPackagesQuery, usePublicMaterialPackagesQuery } from "../../../../api/hooks/materialPackageQueryHooks";
 import { buildMaterialPackageImportSuccessMessage, getMaterialPackageDisplayName } from "./materialPackageImportFeedback";
 
-type MaterialPackageImportModalProps = {
+interface MaterialPackageImportModalProps {
   isOpen: boolean;
   spaceId: number;
   onClose: () => void;
   onImported?: (materialPackage: SpaceMaterialPackageResponse) => void;
-};
+}
 
 type SourceTab = "my" | "public";
 

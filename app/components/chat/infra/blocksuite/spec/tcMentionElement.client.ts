@@ -9,7 +9,9 @@ import { ShadowlessElement } from "@blocksuite/std";
 import { ZERO_WIDTH_FOR_EMBED_NODE, ZERO_WIDTH_FOR_EMPTY_LINE } from "@blocksuite/std/inline";
 import { css, html } from "lit";
 import { property } from "lit/decorators.js";
+
 import type { BlocksuiteFrameToHostPayload } from "../shared/frameProtocol";
+
 import { postBlocksuiteFrameMessage } from "../shared/frameProtocol";
 
 function getBlocksuiteFrameInstanceId(): string | undefined {

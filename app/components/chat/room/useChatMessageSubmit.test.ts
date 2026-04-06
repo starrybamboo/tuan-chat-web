@@ -1,7 +1,14 @@
+import { vi } from "vitest";
+
+import { ANNOTATION_IDS } from "@/types/messageAnnotations";
+
 import type { ChatMessageResponse, UserRole } from "../../../../api";
 
-import { vi } from "vitest";
-import { ANNOTATION_IDS } from "@/types/messageAnnotations";
+import { MessageType } from "../../../../api/wsModels";
+import { useChatComposerStore } from "../stores/chatComposerStore";
+import { useChatInputUiStore } from "../stores/chatInputUiStore";
+import { createRoomUiStore } from "../stores/roomUiStore";
+import useChatMessageSubmit from "./useChatMessageSubmit";
 
 const mocks = vi.hoisted(() => ({
   buildMessageDraftsFromComposerSnapshotMock: vi.fn(),
@@ -9,13 +16,16 @@ const mocks = vi.hoisted(() => ({
   toastErrorMock: vi.fn(),
 }));
 
+const passthroughCallback = <T extends (...args: any[]) => any>(fn: T) => fn;
+const createStaticRef = <T>(value: T) => ({ current: value });
+
 vi.mock("react", async () => {
   const actual = await vi.importActual<typeof import("react")>("react");
   return {
     ...actual,
     default: actual,
-    useCallback: <T extends (...args: any[]) => any>(fn: T) => fn,
-    useRef: <T>(value: T) => ({ current: value }),
+    useCallback: passthroughCallback,
+    useRef: createStaticRef,
   };
 });
 
@@ -42,12 +52,6 @@ vi.mock("@/components/common/dicer/cmdPre", () => ({
 vi.mock("@/components/chat/infra/audioMessage/audioMessageAutoPlayRuntime", () => ({
   triggerAudioAutoPlay: mocks.triggerAudioAutoPlayMock,
 }));
-
-import { MessageType } from "../../../../api/wsModels";
-import useChatMessageSubmit from "./useChatMessageSubmit";
-import { useChatComposerStore } from "../stores/chatComposerStore";
-import { useChatInputUiStore } from "../stores/chatInputUiStore";
-import { createRoomUiStore } from "../stores/roomUiStore";
 
 function createMessage(messageId: number): ChatMessageResponse["message"] {
   return {

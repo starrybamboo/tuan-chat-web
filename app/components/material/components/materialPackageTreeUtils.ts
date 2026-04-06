@@ -449,7 +449,7 @@ function buildMaterialOverviewAsset(message: MessageDraft, index: number): Mater
   };
 }
 
-function collectMaterialOverview(
+export function collectMaterialOverview(
   nodes: MaterialNode[] | undefined,
   folderTrail: string[] = [],
   parentPath: MaterialNodePath = [],

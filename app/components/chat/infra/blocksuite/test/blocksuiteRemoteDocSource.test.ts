@@ -94,13 +94,13 @@ describe("blocksuiteRemoteDocSource", () => {
     mockedListUpdates.mockReset();
     mockedPushRemoteUpdate.mockReset();
 
-    mockedListUpdateRecords.mockImplementation(async targetDocId => {
+    mockedListUpdateRecords.mockImplementation(async (targetDocId) => {
       return [...(queue.get(targetDocId) ?? [])];
     });
-    mockedListUpdates.mockImplementation(async targetDocId => {
+    mockedListUpdates.mockImplementation(async (targetDocId) => {
       return (queue.get(targetDocId) ?? []).map(record => record.data);
     });
-    mockedDeleteUpdatesByIds.mockImplementation(async ids => {
+    mockedDeleteUpdatesByIds.mockImplementation(async (ids) => {
       const idSet = new Set(ids);
       for (const [targetDocId, records] of queue.entries()) {
         queue.set(targetDocId, records.filter(record => !idSet.has(record.id)));

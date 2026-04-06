@@ -149,7 +149,7 @@ function DocCardMessageImpl({ messageResponse }: { messageResponse: ChatMessageR
     return () => {
       cleanup();
     };
-  }, [docId, isSupportedDocId, payload?.imageUrl, payload?.title, previewSpaceId]);
+  }, [docId, isSupportedDocId, message.messageId, payload?.imageUrl, payload?.title, previewSpaceId]);
 
   const title = preview.title || payload?.title || (docId ? `文档：${docId}` : "文档");
   const coverUrl = preview.imageUrl || payload?.imageUrl || "";
