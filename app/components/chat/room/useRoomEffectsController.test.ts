@@ -1,17 +1,23 @@
 import { vi } from "vitest";
 
+import useRoomEffectsController from "./useRoomEffectsController";
+
 const mocks = vi.hoisted(() => ({
   toastSuccessMock: vi.fn(),
 }));
+
+const passthroughCallback = <T extends (...args: any[]) => any>(fn: T) => fn;
+const noopEffect = vi.fn();
+const createStaticState = <T>(value: T) => [value, vi.fn()] as const;
 
 vi.mock("react", async () => {
   const actual = await vi.importActual<typeof import("react")>("react");
   return {
     ...actual,
     default: actual,
-    useCallback: <T extends (...args: any[]) => any>(fn: T) => fn,
-    useEffect: vi.fn(),
-    useState: <T>(value: T) => [value, vi.fn()] as const,
+    useCallback: passthroughCallback,
+    useEffect: noopEffect,
+    useState: createStaticState,
   };
 });
 
@@ -21,8 +27,6 @@ vi.mock("react-hot-toast", () => ({
     success: mocks.toastSuccessMock,
   },
 }));
-
-import useRoomEffectsController from "./useRoomEffectsController";
 
 describe("useRoomEffectsController", () => {
   beforeEach(() => {

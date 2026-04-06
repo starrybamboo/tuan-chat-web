@@ -2,11 +2,11 @@ import bundledCoreJsUrl from "@ffmpeg/core?url";
 import bundledCoreWasmUrl from "@ffmpeg/core/wasm?url";
 import bundledWorkerUrl from "@ffmpeg/ffmpeg/worker?worker&url";
 
+import { resolvePersistentFfmpegAssetBlobUrl } from "@/utils/ffmpegAssetCache";
 import {
   getFfmpegCoreBaseUrlCandidates,
   shouldUseBundledFfmpegCore,
 } from "@/utils/ffmpegCoreSourceConfig";
-import { resolvePersistentFfmpegAssetBlobUrl } from "@/utils/ffmpegAssetCache";
 import { resolveFfmpegLoadTimeoutMs } from "@/utils/ffmpegLoadTimeoutConfig";
 
 export type VideoTranscodeOptions = {

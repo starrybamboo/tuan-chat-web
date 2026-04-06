@@ -17,20 +17,20 @@ type RoomSidebarSplitMetrics = {
   ratio: number;
 };
 
-interface UseRoomSidebarSplitLayoutParams {
+type UseRoomSidebarSplitLayoutParams = {
   activeSpaceId: number | null;
   currentUserId?: number | null;
   enabled: boolean;
-}
+};
 
-interface UseRoomSidebarSplitLayoutResult {
+type UseRoomSidebarSplitLayoutResult = {
   containerRef: RefCallback<HTMLDivElement>;
   isDragging: boolean;
   topPaneStyle?: CSSProperties;
   handlePointerDown: (event: ReactPointerEvent<HTMLButtonElement>) => void;
   handleKeyDown: (event: ReactKeyboardEvent<HTMLButtonElement>) => void;
   resetSplitRatio: () => void;
-}
+};
 
 function clamp(value: number, min: number, max: number): number {
   return Math.min(Math.max(value, min), max);
@@ -239,7 +239,16 @@ export default function useRoomSidebarSplitLayout({
     document.body.style.userSelect = "none";
     document.body.style.cursor = "row-resize";
 
-    const finishDrag = () => {
+    function handlePointerMove(moveEvent: PointerEvent) {
+      moveEvent.preventDefault();
+      updateRatioFromClientY(moveEvent.clientY);
+    }
+
+    function handlePointerUp() {
+      finishDrag();
+    }
+
+    function finishDrag() {
       document.body.style.userSelect = previousUserSelect;
       document.body.style.cursor = previousCursor;
       setIsDragging(false);
@@ -247,16 +256,7 @@ export default function useRoomSidebarSplitLayout({
       window.removeEventListener("pointerup", handlePointerUp, true);
       window.removeEventListener("pointercancel", handlePointerUp, true);
       dragCleanupRef.current = null;
-    };
-
-    const handlePointerMove = (moveEvent: PointerEvent) => {
-      moveEvent.preventDefault();
-      updateRatioFromClientY(moveEvent.clientY);
-    };
-
-    const handlePointerUp = () => {
-      finishDrag();
-    };
+    }
 
     window.addEventListener("pointermove", handlePointerMove, true);
     window.addEventListener("pointerup", handlePointerUp, true);

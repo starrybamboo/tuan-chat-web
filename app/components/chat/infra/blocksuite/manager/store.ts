@@ -94,6 +94,6 @@ export const BLOCKSUITE_STORE_EXTENSIONS: ExtensionType[] = (
   RoomMapEmbedIframeConfigExtension,
 ]);
 
-function getBlocksuiteStoreExtensions(): ExtensionType[] {
+export function getBlocksuiteStoreExtensions(): ExtensionType[] {
   return BLOCKSUITE_STORE_EXTENSIONS;
 }

@@ -1,5 +1,6 @@
 import type { MaterialPackageContent } from "../../../../api/models/MaterialPackageContent";
 import type { MaterialPackageDraft } from "./materialPackageEditorShared";
+
 import { createEmptyMaterialPackageContent } from "./materialPackageEditorShared";
 
 type MaterialPackageEditorDraftSource = {

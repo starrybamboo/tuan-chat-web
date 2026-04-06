@@ -7,13 +7,13 @@ import type { ChatMessageResponse } from "../../../../../api";
 
 import { tuanchat } from "../../../../../api/instance";
 import { MessageType } from "../../../../../api/wsModels";
-import { collectPersistedOptimisticDuplicateIds } from "./chatHistoryOptimistic";
 import {
   addOrUpdateMessagesBatch as dbAddOrUpdateMessages,
   clearMessagesByRoomId as dbClearMessages,
   deleteMessagesByIds as dbDeleteMessagesByIds,
   getMessagesByRoomId as dbGetMessagesByRoomId,
 } from "./chatHistoryDb";
+import { collectPersistedOptimisticDuplicateIds } from "./chatHistoryOptimistic";
 import { logMessageOrderChange } from "./messageOrderDebug";
 
 const WS_RECONNECTED_EVENT = "tc:ws-reconnected";

@@ -1,6 +1,6 @@
-import type { ChatMessageResponse } from "../../../../../api";
-
 import { normalizeMessageExtraForMatch } from "@/types/messageDraft";
+
+import type { ChatMessageResponse } from "../../../../../api";
 
 import { MessageType } from "../../../../../api/wsModels";
 

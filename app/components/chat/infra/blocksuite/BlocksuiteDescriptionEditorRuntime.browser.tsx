@@ -1,6 +1,7 @@
 import type { DocMode } from "@blocksuite/affine/model";
 import type { DescriptionEntityType } from "@/components/chat/infra/blocksuite/description/descriptionDocId";
 import type { BlocksuiteDocHeader } from "@/components/chat/infra/blocksuite/document/docHeader";
+import type { BlocksuiteFrameToHostPayload } from "@/components/chat/infra/blocksuite/shared/frameProtocol";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import { parseDescriptionDocId } from "@/components/chat/infra/blocksuite/description/descriptionDocId";
@@ -8,7 +9,6 @@ import { getRemoteSnapshot } from "@/components/chat/infra/blocksuite/descriptio
 import { loadBlocksuiteRuntime } from "@/components/chat/infra/blocksuite/runtime/runtimeLoader.browser";
 import { base64ToUint8Array } from "@/components/chat/infra/blocksuite/shared/base64";
 import { isBlocksuiteDebugEnabled } from "@/components/chat/infra/blocksuite/shared/debugFlags";
-import type { BlocksuiteFrameToHostPayload } from "@/components/chat/infra/blocksuite/shared/frameProtocol";
 import { postBlocksuiteFrameMessage } from "@/components/chat/infra/blocksuite/shared/frameProtocol";
 import { BlocksuiteTcHeader } from "./BlocksuiteTcHeader";
 import { useBlocksuiteDocModeProvider } from "./useBlocksuiteDocModeProvider";

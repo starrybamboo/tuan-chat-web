@@ -1,6 +1,8 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import * as Y from "yjs";
 
+import { SpaceWorkspace } from "../space/runtime/spaceWorkspace";
+
 vi.mock("@/components/chat/infra/blocksuite/manager/store", () => ({
   BLOCKSUITE_STORE_EXTENSIONS: [],
 }));
@@ -34,8 +36,6 @@ vi.mock("@blocksuite/sync", () => ({
   IndexedDBBlobSource: class {},
   IndexedDBDocSource: class {},
 }));
-
-import { SpaceWorkspace } from "../space/runtime/spaceWorkspace";
 
 function seedExistingDoc(workspace: SpaceWorkspace, docId: string) {
   const ydoc = new Y.Doc({ guid: docId });

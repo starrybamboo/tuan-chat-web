@@ -4,11 +4,11 @@ import type { MinimalDocMeta } from "@/components/chat/room/sidebarTree";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import RoomWindow from "@/components/chat/room/roomWindow";
 import BlocksuiteDescriptionEditor from "@/components/chat/shared/components/BlockSuite/blocksuiteDescriptionEditor";
+import SpaceMaterialSubWindow from "@/components/chat/space/drawers/spaceMaterialSubWindow";
 import { getDocRefDragData, isDocRefDrag } from "@/components/chat/utils/docRef";
 import { getMaterialItemDragData, isMaterialItemDrag } from "@/components/chat/utils/materialItemDrag";
 import { getSubWindowDragPayload } from "@/components/chat/utils/subWindowDragPayload";
 import { OpenAbleDrawer } from "@/components/common/openableDrawer";
-import SpaceMaterialSubWindow from "@/components/chat/space/drawers/spaceMaterialSubWindow";
 import { BaselineArrowBackIosNew, XMarkICon } from "@/icons";
 
 type ScreenSize = "sm" | "md" | "lg";
@@ -48,11 +48,11 @@ function clampWidth(value: number) {
   return Math.min(MAX_WIDTH, Math.max(MIN_WIDTH, safe));
 }
 
-type DroppedTarget =
-  | { tab: "room"; roomId: number }
-  | { tab: "doc"; docId: string }
-  | { tab: "material"; spacePackageId: number; materialPathKey?: string | null }
-  | null;
+type DroppedTarget
+  = | { tab: "room"; roomId: number }
+    | { tab: "doc"; docId: string }
+    | { tab: "material"; spacePackageId: number; materialPathKey?: string | null }
+    | null;
 
 function resolveAllowedDropEffect(dataTransfer: DataTransfer | null | undefined): "copy" | "move" {
   const effectAllowed = String(dataTransfer?.effectAllowed ?? "");

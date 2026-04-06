@@ -529,10 +529,7 @@ export default function useRoomImportActions({
         requests.push(request);
       }
 
-      const createdMessages = await sendMessageBatch(requests);
-      if (createdMessages.length !== requests.length) {
-        return;
-      }
+      await sendMessageBatch(requests);
     }
     catch (error) {
       const message = error instanceof Error ? error.message : "发送素材失败";
@@ -605,10 +602,7 @@ export default function useRoomImportActions({
       request.threadId = threadRootMessageId;
     }
 
-    const createdRoomJump = await sendMessageWithInsert(request);
-    if (!createdRoomJump) {
-      return;
-    }
+    await sendMessageWithInsert(request);
   }, [
     curRoleId,
     ensureRuntimeAvatarIdForRole,
