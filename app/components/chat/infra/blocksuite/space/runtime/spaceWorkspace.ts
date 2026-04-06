@@ -830,6 +830,7 @@ type WorkspaceRuntimeRecord = {
 
 const workspaceById = new Map<string, WorkspaceRuntimeRecord>();
 
+// 清理已注册的延迟销毁定时器，避免重复触发 dispose。
 function clearWorkspaceDisposeTimer(record: WorkspaceRuntimeRecord) {
   if (!record.disposeTimer) {
     return;
@@ -837,6 +838,8 @@ function clearWorkspaceDisposeTimer(record: WorkspaceRuntimeRecord) {
   clearTimeout(record.disposeTimer);
   record.disposeTimer = null;
 }
+
+// 立即销毁指定 workspace runtime，并从全局缓存移除。
 
 function disposeWorkspaceRuntime(workspaceId: string) {
   const record = workspaceById.get(workspaceId);
@@ -854,6 +857,7 @@ function disposeWorkspaceRuntime(workspaceId: string) {
   }
 }
 
+// 按空闲策略安排 workspace 延迟销毁：被 retain 时不销毁，活跃时延后重试。
 function scheduleWorkspaceRuntimeDispose(workspaceId: string) {
   const record = workspaceById.get(workspaceId);
   if (!record) {
@@ -882,6 +886,7 @@ function scheduleWorkspaceRuntimeDispose(workspaceId: string) {
   }, WORKSPACE_IDLE_DISPOSE_MS);
 }
 
+// 标记 runtime 最近访问时间，并按 retain 状态刷新销毁计划。
 function touchWorkspaceRuntimeRecord(record: WorkspaceRuntimeRecord) {
   record.lastTouchedAt = Date.now();
   if (record.retainCount > 0) {
@@ -891,6 +896,7 @@ function touchWorkspaceRuntimeRecord(record: WorkspaceRuntimeRecord) {
   scheduleWorkspaceRuntimeDispose(record.workspace.id);
 }
 
+// 确保文档具备 AFFiNE 最小可渲染结构，并修复常见损坏（尤其 edgeless 结构）。
 function ensureAffineMinimumBlockData(store: Store) {
   // 1) Init if empty
   if (!store.root) {
@@ -995,6 +1001,7 @@ function ensureAffineMinimumBlockData(store: Store) {
   });
 }
 
+// 文档标题读取策略：优先 tcHeader，其次 page 原生标题。
 function tryDeriveDocTitle(store: Store): string | null {
   const tcTitle = tryReadTcHeaderTitle(store);
   if (tcTitle)
@@ -1003,6 +1010,7 @@ function tryDeriveDocTitle(store: Store): string | null {
   return tryReadNativeDocTitle(store);
 }
 
+// 从 affine:page 的 title 字段读取标题（best-effort）。
 function tryReadNativeDocTitle(store: Store): string | null {
   try {
     const pages = store.getModelsByFlavour("affine:page") as Array<any>;
@@ -1017,6 +1025,7 @@ function tryReadNativeDocTitle(store: Store): string | null {
   }
 }
 
+// 直接从 ydoc 的 tc_header 结构读取标题，避免依赖渲染层状态。
 function tryReadTcHeaderTitleFromYDoc(ydoc: Y.Doc | undefined): string | null {
   try {
     const share = (ydoc as any)?.share as Map<string, unknown> | undefined;
@@ -1033,6 +1042,7 @@ function tryReadTcHeaderTitleFromYDoc(ydoc: Y.Doc | undefined): string | null {
   }
 }
 
+// 从 store 关联的 spaceDoc 中读取 tcHeader 标题（best-effort）。
 function tryReadTcHeaderTitle(store: Store): string | null {
   try {
     const ydoc = (store as any)?.spaceDoc as Y.Doc | undefined;
@@ -1043,6 +1053,7 @@ function tryReadTcHeaderTitle(store: Store): string | null {
   }
 }
 
+// 获取或创建 workspace runtime；新建后自动进入空闲销毁管理。
 export function getOrCreateSpaceWorkspaceRuntime(workspaceId: string): SpaceWorkspace {
   const existing = workspaceById.get(workspaceId);
   if (existing) {
@@ -1062,6 +1073,7 @@ export function getOrCreateSpaceWorkspaceRuntime(workspaceId: string): SpaceWork
   return ws;
 }
 
+// 仅在已存在时返回 workspace runtime；不会隐式创建新实例。
 export function getSpaceWorkspaceRuntimeIfExists(workspaceId: string): SpaceWorkspace | null {
   const record = workspaceById.get(workspaceId);
   if (!record) {
@@ -1071,6 +1083,7 @@ export function getSpaceWorkspaceRuntimeIfExists(workspaceId: string): SpaceWork
   return record.workspace;
 }
 
+// 增加 runtime 保留计数，表示当前有活跃调用方持有该 workspace。
 export function retainSpaceWorkspaceRuntime(workspaceId: string): SpaceWorkspace {
   const workspace = getOrCreateSpaceWorkspaceRuntime(workspaceId);
   const record = workspaceById.get(workspaceId);
@@ -1084,6 +1097,7 @@ export function retainSpaceWorkspaceRuntime(workspaceId: string): SpaceWorkspace
   return workspace;
 }
 
+// 释放一次保留计数；计数归零后按空闲策略安排自动销毁。
 export function releaseSpaceWorkspaceRuntime(workspaceId: string): void {
   const record = workspaceById.get(workspaceId);
   if (!record) {
@@ -1095,6 +1109,7 @@ export function releaseSpaceWorkspaceRuntime(workspaceId: string): void {
   scheduleWorkspaceRuntimeDispose(workspaceId);
 }
 
+// 对外统一入口：确保 workspace/doc/store 可用，并返回适配读写场景的 store。
 export function getOrCreateSpaceDocStore(params: {
   workspaceId: string;
   docId: string;

@@ -3,13 +3,14 @@ import type { DocMode } from "@blocksuite/affine/model";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import type { BlocksuiteFrameToHostPayload } from "./shared/frameProtocol";
+
+import { isBlocksuiteDebugEnabled } from "./shared/debugFlags";
 import {
   isBlocksuiteDocMode,
   isBlocksuiteFrameTheme,
   postBlocksuiteFrameMessage,
   readBlocksuiteFrameMessageFromEvent,
 } from "./shared/frameProtocol";
-import { isBlocksuiteDebugEnabled } from "./shared/debugFlags";
 
 type BlocksuiteFrameProtocolParams = {
   instanceId: string;

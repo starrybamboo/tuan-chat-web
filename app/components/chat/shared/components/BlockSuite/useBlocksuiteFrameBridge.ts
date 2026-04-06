@@ -154,8 +154,6 @@ export function useBlocksuiteFrameBridge(params: UseBlocksuiteFrameBridgeParams)
     fullscreenEdgeless,
     frozenTcHeaderImageUrl,
     frozenTcHeaderTitle,
-    iframeRef,
-    instanceId,
     readOnly,
     spaceId,
     tcHeaderEnabled,
