@@ -7,17 +7,24 @@ on:
 jobs:
   notify:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - name: Send Feishu Notification
+        env:
+          FEISHU_WEBHOOK_ID: ${{ secrets.FEISHU_WEBHOOK_ID }}
+          FEISHU_SECRET: ${{ secrets.FEISHU_SECRET }}
         uses: actions/github-script@v6
         with:
           script: |
             const crypto = require('crypto');
             const https = require('https');
             
-            // 飞书机器人的webhook ID (从URL中提取)
-            const webhookId = '4eb13c2e-cfbd-4e0a-959d-81035324c430';
-            const secret = '${{ secrets.FEISHU_SECRET }}';
+            const webhookId = process.env.FEISHU_WEBHOOK_ID;
+            const secret = process.env.FEISHU_SECRET;
+            if (!webhookId || !secret) {
+              throw new Error('Missing required Feishu secrets: FEISHU_WEBHOOK_ID / FEISHU_SECRET');
+            }
             
             // 计算签名 - 修正为飞书API要求的格式
             const timestamp = Math.floor(Date.now() / 1000);
@@ -26,8 +33,26 @@ jobs:
             
             console.log('Preparing Push notification payload');
             
-            // 构建消息内容
             const branchName = context.ref.replace('refs/heads/', '');
+            const repoResponse = await github.rest.repos.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+            });
+            const repoInfo = repoResponse.data;
+            const upstreamFullName = repoInfo.fork && repoInfo.parent ? repoInfo.parent.full_name : null;
+            const shortBefore = context.payload.before?.substring(0, 7) || 'unknown';
+            const shortAfter = context.payload.after?.substring(0, 7) || 'unknown';
+            const compareUrl = context.payload.compare || `${context.payload.repository.html_url}/compare/${context.payload.before}...${context.payload.after}`;
+            const actorName = context.actor || context.payload.sender?.login || context.payload.pusher?.name || 'unknown';
+            const buildMarkdownBlock = (content) => ({
+              tag: "div",
+              text: {
+                tag: "lark_md",
+                content,
+              },
+            });
+            const firstLine = (message) => (message || '').split(/\r?\n/, 1)[0].trim();
+
             const payload = {
               timestamp: String(timestamp), // 转为字符串
               sign: sign,
@@ -44,23 +69,20 @@ jobs:
                   template: "green"
                 },
                 elements: [
-                  {
-                    tag: "div",
-                    text: {
-                      tag: "lark_md",
-                      content: `**提交人**: ${context.payload.pusher.name}`
-                    }
-                  },
-                  {
-                    tag: "div",
-                    text: {
-                      tag: "lark_md",
-                      content: `**分支**: ${branchName}`
-                    }
-                  }
+                  buildMarkdownBlock(`**仓库**: ${context.payload.repository.full_name}`),
+                  buildMarkdownBlock(`**触发账号**: ${actorName}`),
+                  buildMarkdownBlock(`**分支**: ${branchName}`),
+                  buildMarkdownBlock(`**比较范围**: ${shortBefore} -> ${shortAfter}`),
                 ]
               }
             };
+
+            if (upstreamFullName) {
+              payload.card.elements.push(
+                buildMarkdownBlock(`**上游仓库**: ${upstreamFullName}`),
+                buildMarkdownBlock(`**说明**: 当前通知来自 fork 仓库 \`${context.payload.repository.full_name}\`，不代表上游仓库已发生同名分支更新。`)
+              );
+            }
             
             // 获取提交信息
             const commits = context.payload.commits;
@@ -69,20 +91,17 @@ jobs:
               const maxCommits = Math.min(5, commits.length);
               
               for (let i = 0; i < maxCommits; i++) {
-                commitMessages += `• ${commits[i].message} (${commits[i].id.substring(0, 7)})\n`;
+                const commit = commits[i];
+                const title = firstLine(commit.message) || '(no title)';
+                const author = commit.author?.name || commit.committer?.name || 'unknown';
+                commitMessages += `• ${title} - ${author} (${commit.id.substring(0, 7)})\n`;
               }
               
               if (commits.length > maxCommits) {
                 commitMessages += `...以及其他 ${commits.length - maxCommits} 个提交\n`;
               }
               
-              payload.card.elements.push({
-                tag: "div",
-                text: {
-                  tag: "lark_md",
-                  content: `**提交信息**:\n${commitMessages}`
-                }
-              });
+              payload.card.elements.push(buildMarkdownBlock(`**提交信息**:\n${commitMessages}`));
             }
             
             payload.card.elements.push({
@@ -92,10 +111,19 @@ jobs:
                   tag: "button",
                   text: {
                     tag: "plain_text",
-                    content: "查看详情"
+                    content: "查看比较"
+                  },
+                  url: compareUrl,
+                  type: "primary"
+                },
+                {
+                  tag: "button",
+                  text: {
+                    tag: "plain_text",
+                    content: "查看末次提交"
                   },
                   url: `${context.payload.repository.html_url}/commit/${context.payload.after}`,
-                  type: "primary"
+                  type: "default"
                 }
               ]
             });
