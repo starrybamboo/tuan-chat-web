@@ -1,7 +1,7 @@
-export type SubWindowDragPayload =
-  | { tab: "room"; roomId: number }
-  | { tab: "doc"; docId: string }
-  | { tab: "material"; spacePackageId: number; materialPathKey?: string | null };
+export type SubWindowDragPayload
+  = | { tab: "room"; roomId: number }
+    | { tab: "doc"; docId: string }
+    | { tab: "material"; spacePackageId: number; materialPathKey?: string | null };
 
 let currentSubWindowDragPayload: SubWindowDragPayload | null = null;
 

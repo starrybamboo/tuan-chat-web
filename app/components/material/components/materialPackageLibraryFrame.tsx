@@ -3,14 +3,14 @@ import { CaretLeftIcon, CaretRightIcon } from "@phosphor-icons/react";
 import { useEffect, useState } from "react";
 import { Drawer } from "vaul";
 
-type MaterialPackageLibraryFrameProps = {
+interface MaterialPackageLibraryFrameProps {
   embedded?: boolean;
   sidebarNode: ReactNode;
   mainContentNode: ReactNode;
   drawerTitle: string;
   drawerDescription: string;
   openSidebarLabel: string;
-};
+}
 
 export default function MaterialPackageLibraryFrame({
   embedded = false,

@@ -1,4 +1,4 @@
-import { Fragment, use, useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, use, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import toast from "react-hot-toast";
 import { useRoomExtra } from "@/components/chat/core/hooks";
 import { RoomContext } from "@/components/chat/core/roomContext";
@@ -8,8 +8,8 @@ import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponen
 import { useGlobalContext } from "@/components/globalContextProvider";
 import { buildMessageExtraForRequest } from "@/types/messageDraft";
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
-import { useSendMessageMutation } from "../../../../../api/hooks/chatQueryHooks";
 import { useGetRolesAbilitiesQueries, useUpdateRoleAbilityByRoleIdMutation } from "../../../../../api/hooks/abilityQueryHooks";
+import { useSendMessageMutation } from "../../../../../api/hooks/chatQueryHooks";
 
 interface Initiative {
   name: string;
@@ -269,7 +269,7 @@ export default function InitiativeList() {
       },
     ]);
     setNewExtras(prev => ({ ...prev, [key]: "" }));
-  }, [isPokemonRule, levelParam, params]);
+  }, [isPokemonRule, levelParam, params, setParams]);
 
   const importableRoles = spaceOwner
     ? roomRolesThatUserOwn
@@ -529,7 +529,7 @@ export default function InitiativeList() {
     }
   };
 
-  const extractAttrFromQuery = (
+  const extractAttrFromQuery = useCallback((
     query: ReturnType<typeof useGetRolesAbilitiesQueries>[number] | undefined,
     attrKey: string,
   ): number | string | null => {
@@ -558,9 +558,9 @@ export default function InitiativeList() {
       return null;
     const num = Number(val);
     return Number.isFinite(num) ? num : val;
-  };
+  }, [spaceContext.ruleId]);
 
-  const extractHpFromQuery = (
+  const extractHpFromQuery = useCallback((
     query: ReturnType<typeof useGetRolesAbilitiesQueries>[number] | undefined,
   ): { hp: number | null; maxHp: number | null } | null => {
     const res = query?.data;
@@ -602,7 +602,7 @@ export default function InitiativeList() {
     const maxHp = pickFirst(maxHpKeys);
 
     return { hp, maxHp };
-  };
+  }, [spaceContext.ruleId]);
 
   // 绑定了 roleId 的先攻项，会随角色 hp / 最大hp 变化自动同步。
   useEffect(() => {
@@ -656,7 +656,7 @@ export default function InitiativeList() {
 
     if (changed)
       setInitiativeList(nextList);
-  }, [initiativeList, importableRoles, abilityQueries, isPokemonRule, levelParam]);
+  }, [abilityQueries, extractAttrFromQuery, extractHpFromQuery, importableRoles, initiativeList, isPokemonRule, levelParam, setInitiativeList]);
 
   // 仅导入单个角色
   const handleImportSingle = async (roleId: number) => {
@@ -1141,7 +1141,7 @@ export default function InitiativeList() {
     });
 
     return result;
-  }, [isPokemonRule, importableRoles, abilityQueries, spaceContext.ruleId]);
+  }, [abilityQueries, importableRoles, isPokemonRule, spaceContext.ruleId]);
 
   const pokemonTraitByRoleId = useMemo(() => {
     const result = new Map<number, string>();
@@ -1167,7 +1167,7 @@ export default function InitiativeList() {
     });
 
     return result;
-  }, [isPokemonRule, importableRoles, abilityQueries, spaceContext.ruleId]);
+  }, [abilityQueries, importableRoles, isPokemonRule, spaceContext.ruleId]);
 
   const pokemonStatusByRoleId = useMemo(() => {
     const result = new Map<number, string>();
@@ -1201,7 +1201,7 @@ export default function InitiativeList() {
     });
 
     return result;
-  }, [isPokemonRule, importableRoles, abilityQueries, spaceContext.ruleId]);
+  }, [abilityQueries, importableRoles, isPokemonRule, spaceContext.ruleId]);
 
   const pokemonItemByRoleId = useMemo(() => {
     const result = new Map<number, string>();
@@ -1231,7 +1231,7 @@ export default function InitiativeList() {
     });
 
     return result;
-  }, [isPokemonRule, importableRoles, abilityQueries, spaceContext.ruleId]);
+  }, [abilityQueries, importableRoles, isPokemonRule, spaceContext.ruleId]);
 
   const pokemonActionPointByRoleId = useMemo(() => {
     const result = new Map<number, string>();
@@ -1251,7 +1251,7 @@ export default function InitiativeList() {
     });
 
     return result;
-  }, [isPokemonRule, importableRoles, abilityQueries, spaceContext.ruleId]);
+  }, [abilityQueries, extractAttrFromQuery, importableRoles, isPokemonRule]);
 
   const sortedList = useMemo(() => {
     const list = [...initiativeList];
@@ -1578,213 +1578,213 @@ export default function InitiativeList() {
                           return (
                             <Fragment key={rowKey}>
                               <tr className="group hover">
-                              {isPokemonRule && (
-                                <td className="align-top">
-                                  <div className="text-sm tabular-nums min-h-6 leading-6 px-1">{levelValue != null && levelValue !== "" ? String(levelValue) : "--"}</div>
-                                </td>
-                              )}
-                              <td className="align-top">
-                                {editingKey === nameEditKey
-                                  ? (
-                                      <input
-                                        ref={getEditingRef(nameEditKey)}
-                                        type="text"
-                                        value={editingValue}
-                                        onChange={e => setEditingValue(e.target.value)}
-                                        onBlur={() => {
-                                          commitEditing(nameEditKey, val => updateItem(item, { name: val }));
-                                        }}
-                                        onKeyDown={(e) => {
-                                          if (e.key === "Enter") {
-                                            e.preventDefault();
-                                            commitEditing(nameEditKey, val => updateItem(item, { name: val }));
-                                          }
-                                          if (e.key === "Escape") {
-                                            e.preventDefault();
-                                            stopEditing();
-                                          }
-                                        }}
-                                        className="input input-xs bg-base-100 border border-base-300 text-sm font-medium text-base-content w-full min-h-6 leading-6 min-w-0"
-                                      />
-                                    )
-                                  : (
-                                      <button
-                                        type="button"
-                                        className="text-left text-sm font-medium text-base-content w-full min-h-6 leading-6 truncate px-1 min-w-0"
-                                        onDoubleClick={() => startEditing(nameEditKey, item.name)}
-                                        title="双击编辑"
-                                      >
-                                        {item.name}
-                                      </button>
-                                    )}
-                              </td>
-                              <td className="align-top">
-                                <div className="flex items-center gap-0.5 text-xs text-base-content/70 leading-5">
-                                  {editingKey === hpEditKey
-                                    ? (
-                                        <input
-                                          ref={getEditingRef(hpEditKey)}
-                                          type="number"
-                                          value={editingValue}
-                                          onChange={e => setEditingValue(e.target.value)}
-                                          onBlur={() => {
-                                            commitEditing(hpEditKey, val => updateItem(item, { hp: parseNullableNumber(val) }));
-                                          }}
-                                          onKeyDown={(e) => {
-                                            if (e.key === "Enter") {
-                                              e.preventDefault();
-                                              commitEditing(hpEditKey, val => updateItem(item, { hp: parseNullableNumber(val) }));
-                                            }
-                                            if (e.key === "Escape") {
-                                              e.preventDefault();
-                                              stopEditing();
-                                            }
-                                          }}
-                                          className="input input-xs bg-base-100 border border-base-300 text-right tabular-nums min-h-6 leading-6"
-                                        />
-                                      )
-                                    : (
-                                        <button
-                                          type="button"
-                                          className="text-right tabular-nums min-h-6 leading-6 px-1 rounded-md border border-base-300 bg-base-100"
-                                          onDoubleClick={() => startEditing(hpEditKey, hp != null ? String(hp) : "")}
-                                          title="双击编辑"
-                                        >
-                                          {hp != null ? String(hp) : "--"}
-                                        </button>
-                                      )}
-                                  <span className="px-1">/</span>
-                                  {editingKey === maxHpEditKey
-                                    ? (
-                                        <input
-                                          ref={getEditingRef(maxHpEditKey)}
-                                          type="number"
-                                          value={editingValue}
-                                          onChange={e => setEditingValue(e.target.value)}
-                                          onBlur={() => {
-                                            commitEditing(maxHpEditKey, val => updateItem(item, { maxHp: parseNullableNumber(val) }));
-                                          }}
-                                          onKeyDown={(e) => {
-                                            if (e.key === "Enter") {
-                                              e.preventDefault();
-                                              commitEditing(maxHpEditKey, val => updateItem(item, { maxHp: parseNullableNumber(val) }));
-                                            }
-                                            if (e.key === "Escape") {
-                                              e.preventDefault();
-                                              stopEditing();
-                                            }
-                                          }}
-                                          className="input input-xs bg-base-100 border border-base-300 text-right tabular-nums min-h-6 leading-6"
-                                        />
-                                      )
-                                    : (
-                                        <button
-                                          type="button"
-                                          className="text-right tabular-nums min-h-6 leading-6 px-1 rounded-md border border-base-300 bg-base-100"
-                                          onDoubleClick={() => startEditing(maxHpEditKey, maxHp != null ? String(maxHp) : "")}
-                                          title="双击编辑"
-                                        >
-                                          {maxHp != null ? String(maxHp) : "--"}
-                                        </button>
-                                      )}
-                                </div>
-
-                                {displayParams.length > 0 && (
-                                  <div className="mt-1 flex flex-wrap items-center gap-0.5 text-xs text-base-content/70 leading-5">
-                                    {displayParams.map(param => (
-                                      <div key={param.key} className="flex items-center gap-0.5">
-                                        <span className="whitespace-nowrap" title={param.label}>{param.label}</span>
-                                        {editingKey === `${rowKey}:extra:${param.key}`
-                                          ? (
-                                              <input
-                                                ref={getEditingRef(`${rowKey}:extra:${param.key}`)}
-                                                type="text"
-                                                value={editingValue}
-                                                onChange={e => setEditingValue(e.target.value)}
-                                                onBlur={() => {
-                                                  commitEditing(`${rowKey}:extra:${param.key}`, val => updateItemExtras(item, param.key, val));
-                                                }}
-                                                onKeyDown={(e) => {
-                                                  if (e.key === "Enter") {
-                                                    e.preventDefault();
-                                                    commitEditing(`${rowKey}:extra:${param.key}`, val => updateItemExtras(item, param.key, val));
-                                                  }
-                                                  if (e.key === "Escape") {
-                                                    e.preventDefault();
-                                                    stopEditing();
-                                                  }
-                                                }}
-                                                className="input input-xs bg-base-100 border border-base-300 text-right tabular-nums min-h-6 leading-6"
-                                              />
-                                            )
-                                          : (
-                                              <button
-                                                type="button"
-                                                className="text-right tabular-nums min-h-6 leading-6 px-1 rounded-md border border-base-300 bg-base-100"
-                                                onDoubleClick={() => startEditing(`${rowKey}:extra:${param.key}`, (item.extras?.[param.key] ?? "").toString())}
-                                                title="双击编辑"
-                                              >
-                                                {(item.extras?.[param.key] ?? "--").toString()}
-                                              </button>
-                                            )}
-                                      </div>
-                                    ))}
-                                  </div>
+                                {isPokemonRule && (
+                                  <td className="align-top">
+                                    <div className="text-sm tabular-nums min-h-6 leading-6 px-1">{levelValue != null && levelValue !== "" ? String(levelValue) : "--"}</div>
+                                  </td>
                                 )}
-                              </td>
-                              {isPokemonRule && (
                                 <td className="align-top">
-                                  <div className="text-sm tabular-nums min-h-6 leading-6 px-1">
-                                    {actionPointText}
-                                  </div>
-                                </td>
-                              )}
-                              <td className="align-top">
-                                <div className="flex items-center gap-2 text-xs text-base-content/70 leading-6">
-                                  {editingKey === valueEditKey
+                                  {editingKey === nameEditKey
                                     ? (
                                         <input
-                                          ref={getEditingRef(valueEditKey)}
-                                          type="number"
+                                          ref={getEditingRef(nameEditKey)}
+                                          type="text"
                                           value={editingValue}
                                           onChange={e => setEditingValue(e.target.value)}
                                           onBlur={() => {
-                                            commitEditing(valueEditKey, val => updateItem(item, { value: parseNumberOrZero(val) }));
+                                            commitEditing(nameEditKey, val => updateItem(item, { name: val }));
                                           }}
                                           onKeyDown={(e) => {
                                             if (e.key === "Enter") {
                                               e.preventDefault();
-                                              commitEditing(valueEditKey, val => updateItem(item, { value: parseNumberOrZero(val) }));
+                                              commitEditing(nameEditKey, val => updateItem(item, { name: val }));
                                             }
                                             if (e.key === "Escape") {
                                               e.preventDefault();
                                               stopEditing();
                                             }
                                           }}
-                                          className="input input-xs bg-base-100 border border-base-300 text-right tabular-nums min-h-6 leading-6"
+                                          className="input input-xs bg-base-100 border border-base-300 text-sm font-medium text-base-content w-full min-h-6 leading-6 min-w-0"
                                         />
                                       )
                                     : (
                                         <button
                                           type="button"
-                                          className="text-right tabular-nums min-h-6 leading-6 px-1 rounded-md border border-base-300 bg-base-100"
-                                          onDoubleClick={() => startEditing(valueEditKey, item.value.toString())}
+                                          className="text-left text-sm font-medium text-base-content w-full min-h-6 leading-6 truncate px-1 min-w-0"
+                                          onDoubleClick={() => startEditing(nameEditKey, item.name)}
                                           title="双击编辑"
                                         >
-                                          {item.value.toString()}
+                                          {item.name}
                                         </button>
                                       )}
+                                </td>
+                                <td className="align-top">
+                                  <div className="flex items-center gap-0.5 text-xs text-base-content/70 leading-5">
+                                    {editingKey === hpEditKey
+                                      ? (
+                                          <input
+                                            ref={getEditingRef(hpEditKey)}
+                                            type="number"
+                                            value={editingValue}
+                                            onChange={e => setEditingValue(e.target.value)}
+                                            onBlur={() => {
+                                              commitEditing(hpEditKey, val => updateItem(item, { hp: parseNullableNumber(val) }));
+                                            }}
+                                            onKeyDown={(e) => {
+                                              if (e.key === "Enter") {
+                                                e.preventDefault();
+                                                commitEditing(hpEditKey, val => updateItem(item, { hp: parseNullableNumber(val) }));
+                                              }
+                                              if (e.key === "Escape") {
+                                                e.preventDefault();
+                                                stopEditing();
+                                              }
+                                            }}
+                                            className="input input-xs bg-base-100 border border-base-300 text-right tabular-nums min-h-6 leading-6"
+                                          />
+                                        )
+                                      : (
+                                          <button
+                                            type="button"
+                                            className="text-right tabular-nums min-h-6 leading-6 px-1 rounded-md border border-base-300 bg-base-100"
+                                            onDoubleClick={() => startEditing(hpEditKey, hp != null ? String(hp) : "")}
+                                            title="双击编辑"
+                                          >
+                                            {hp != null ? String(hp) : "--"}
+                                          </button>
+                                        )}
+                                    <span className="px-1">/</span>
+                                    {editingKey === maxHpEditKey
+                                      ? (
+                                          <input
+                                            ref={getEditingRef(maxHpEditKey)}
+                                            type="number"
+                                            value={editingValue}
+                                            onChange={e => setEditingValue(e.target.value)}
+                                            onBlur={() => {
+                                              commitEditing(maxHpEditKey, val => updateItem(item, { maxHp: parseNullableNumber(val) }));
+                                            }}
+                                            onKeyDown={(e) => {
+                                              if (e.key === "Enter") {
+                                                e.preventDefault();
+                                                commitEditing(maxHpEditKey, val => updateItem(item, { maxHp: parseNullableNumber(val) }));
+                                              }
+                                              if (e.key === "Escape") {
+                                                e.preventDefault();
+                                                stopEditing();
+                                              }
+                                            }}
+                                            className="input input-xs bg-base-100 border border-base-300 text-right tabular-nums min-h-6 leading-6"
+                                          />
+                                        )
+                                      : (
+                                          <button
+                                            type="button"
+                                            className="text-right tabular-nums min-h-6 leading-6 px-1 rounded-md border border-base-300 bg-base-100"
+                                            onDoubleClick={() => startEditing(maxHpEditKey, maxHp != null ? String(maxHp) : "")}
+                                            title="双击编辑"
+                                          >
+                                            {maxHp != null ? String(maxHp) : "--"}
+                                          </button>
+                                        )}
+                                  </div>
 
-                                  <button
-                                    type="button"
-                                    onClick={() => void handleDelete(item)}
-                                    className="btn btn-ghost btn-square btn-xs text-error hover:bg-error/5 border-none px-2 opacity-0 group-hover:opacity-100 transition-opacity"
-                                    title="删除"
-                                  >
-                                    ✕
-                                  </button>
-                                </div>
-                              </td>
+                                  {displayParams.length > 0 && (
+                                    <div className="mt-1 flex flex-wrap items-center gap-0.5 text-xs text-base-content/70 leading-5">
+                                      {displayParams.map(param => (
+                                        <div key={param.key} className="flex items-center gap-0.5">
+                                          <span className="whitespace-nowrap" title={param.label}>{param.label}</span>
+                                          {editingKey === `${rowKey}:extra:${param.key}`
+                                            ? (
+                                                <input
+                                                  ref={getEditingRef(`${rowKey}:extra:${param.key}`)}
+                                                  type="text"
+                                                  value={editingValue}
+                                                  onChange={e => setEditingValue(e.target.value)}
+                                                  onBlur={() => {
+                                                    commitEditing(`${rowKey}:extra:${param.key}`, val => updateItemExtras(item, param.key, val));
+                                                  }}
+                                                  onKeyDown={(e) => {
+                                                    if (e.key === "Enter") {
+                                                      e.preventDefault();
+                                                      commitEditing(`${rowKey}:extra:${param.key}`, val => updateItemExtras(item, param.key, val));
+                                                    }
+                                                    if (e.key === "Escape") {
+                                                      e.preventDefault();
+                                                      stopEditing();
+                                                    }
+                                                  }}
+                                                  className="input input-xs bg-base-100 border border-base-300 text-right tabular-nums min-h-6 leading-6"
+                                                />
+                                              )
+                                            : (
+                                                <button
+                                                  type="button"
+                                                  className="text-right tabular-nums min-h-6 leading-6 px-1 rounded-md border border-base-300 bg-base-100"
+                                                  onDoubleClick={() => startEditing(`${rowKey}:extra:${param.key}`, (item.extras?.[param.key] ?? "").toString())}
+                                                  title="双击编辑"
+                                                >
+                                                  {(item.extras?.[param.key] ?? "--").toString()}
+                                                </button>
+                                              )}
+                                        </div>
+                                      ))}
+                                    </div>
+                                  )}
+                                </td>
+                                {isPokemonRule && (
+                                  <td className="align-top">
+                                    <div className="text-sm tabular-nums min-h-6 leading-6 px-1">
+                                      {actionPointText}
+                                    </div>
+                                  </td>
+                                )}
+                                <td className="align-top">
+                                  <div className="flex items-center gap-2 text-xs text-base-content/70 leading-6">
+                                    {editingKey === valueEditKey
+                                      ? (
+                                          <input
+                                            ref={getEditingRef(valueEditKey)}
+                                            type="number"
+                                            value={editingValue}
+                                            onChange={e => setEditingValue(e.target.value)}
+                                            onBlur={() => {
+                                              commitEditing(valueEditKey, val => updateItem(item, { value: parseNumberOrZero(val) }));
+                                            }}
+                                            onKeyDown={(e) => {
+                                              if (e.key === "Enter") {
+                                                e.preventDefault();
+                                                commitEditing(valueEditKey, val => updateItem(item, { value: parseNumberOrZero(val) }));
+                                              }
+                                              if (e.key === "Escape") {
+                                                e.preventDefault();
+                                                stopEditing();
+                                              }
+                                            }}
+                                            className="input input-xs bg-base-100 border border-base-300 text-right tabular-nums min-h-6 leading-6"
+                                          />
+                                        )
+                                      : (
+                                          <button
+                                            type="button"
+                                            className="text-right tabular-nums min-h-6 leading-6 px-1 rounded-md border border-base-300 bg-base-100"
+                                            onDoubleClick={() => startEditing(valueEditKey, item.value.toString())}
+                                            title="双击编辑"
+                                          >
+                                            {item.value.toString()}
+                                          </button>
+                                        )}
+
+                                    <button
+                                      type="button"
+                                      onClick={() => void handleDelete(item)}
+                                      className="btn btn-ghost btn-square btn-xs text-error hover:bg-error/5 border-none px-2 opacity-0 group-hover:opacity-100 transition-opacity"
+                                      title="删除"
+                                    >
+                                      ✕
+                                    </button>
+                                  </div>
+                                </td>
                               </tr>
                               {isPokemonRule && (
                                 <tr key={`${rowKey}:multiplier`}>

@@ -2,6 +2,7 @@ import { useEffect } from "react";
 
 import type { DescriptionEntityType } from "@/components/chat/infra/blocksuite/description/descriptionDocId";
 import type { BlocksuiteDocHeader } from "@/components/chat/infra/blocksuite/document/docHeader";
+import type { BlocksuiteFrameToHostPayload } from "@/components/chat/infra/blocksuite/shared/frameProtocol";
 
 import type { BlocksuiteEditorHandle, BlocksuiteTcHeaderState } from "./blocksuiteRuntimeTypes";
 
@@ -10,9 +11,8 @@ export function syncBlocksuiteTcHeaderState(params: {
   tcHeaderState: BlocksuiteTcHeaderState;
   docId: string;
   workspaceId: string;
-  instanceId?: string;
   editorHandle: BlocksuiteEditorHandle;
-  postToParent: (payload: any) => boolean;
+  postToParent: (payload: BlocksuiteFrameToHostPayload) => boolean;
   onTcHeaderChange?: (payload: {
     docId: string;
     entityType?: DescriptionEntityType;
@@ -30,7 +30,6 @@ export function syncBlocksuiteTcHeaderState(params: {
     tcHeaderState,
     docId,
     workspaceId,
-    instanceId,
     editorHandle,
     postToParent,
     onTcHeaderChange,
@@ -46,9 +45,7 @@ export function syncBlocksuiteTcHeaderState(params: {
   const runtime = editorHandle.runtimeRef.current;
   runtime?.ensureDocMeta?.({ workspaceId, docId, title: tcHeaderState.header.title });
 
-  const payload = {
-    tc: "tc-blocksuite-frame",
-    instanceId,
+  const payload: Extract<BlocksuiteFrameToHostPayload, { type: "tc-header" }> = {
     type: "tc-header",
     docId,
     entityType: tcHeaderEntity?.entityType,
@@ -75,9 +72,8 @@ export function useBlocksuiteTcHeaderSync(params: {
   tcHeaderState: BlocksuiteTcHeaderState;
   docId: string;
   workspaceId: string;
-  instanceId?: string;
   editorHandle: BlocksuiteEditorHandle;
-  postToParent: (payload: any) => boolean;
+  postToParent: (payload: BlocksuiteFrameToHostPayload) => boolean;
   onTcHeaderChange?: (payload: {
     docId: string;
     entityType?: DescriptionEntityType;
@@ -95,7 +91,6 @@ export function useBlocksuiteTcHeaderSync(params: {
     tcHeaderState,
     docId,
     workspaceId,
-    instanceId,
     editorHandle,
     postToParent,
     onTcHeaderChange,
@@ -109,7 +104,6 @@ export function useBlocksuiteTcHeaderSync(params: {
       tcHeaderState,
       docId,
       workspaceId,
-      instanceId,
       editorHandle,
       postToParent,
       onTcHeaderChange,
@@ -119,7 +113,6 @@ export function useBlocksuiteTcHeaderSync(params: {
   }, [
     docId,
     editorHandle,
-    instanceId,
     onTcHeaderChange,
     postToParent,
     shouldPostToParent,

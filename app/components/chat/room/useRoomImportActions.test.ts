@@ -1,13 +1,18 @@
+import { vi } from "vitest";
+
 import type { ChatMessageResponse } from "../../../../api";
 
-import { vi } from "vitest";
+import { createRoomUiStore } from "../stores/roomUiStore";
+import useRoomImportActions from "./useRoomImportActions";
+
+const passthroughCallback = <T extends (...args: any[]) => any>(fn: T) => fn;
 
 vi.mock("react", async () => {
   const actual = await vi.importActual<typeof import("react")>("react");
   return {
     ...actual,
     default: actual,
-    useCallback: <T extends (...args: any[]) => any>(fn: T) => fn,
+    useCallback: passthroughCallback,
   };
 });
 
@@ -23,9 +28,6 @@ vi.mock("@/components/common/dicer/utils/utils", () => ({
     getDicerRoleId: vi.fn(async () => 1000),
   },
 }));
-
-import { createRoomUiStore } from "../stores/roomUiStore";
-import useRoomImportActions from "./useRoomImportActions";
 
 function createMessage(messageId: number): ChatMessageResponse["message"] {
   return {

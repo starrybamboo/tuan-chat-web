@@ -91,11 +91,11 @@ export function getSpaceWorkspaceIfExists(spaceId: number): Workspace | null {
   return getWorkspaceIfExists(`space:${spaceId}`);
 }
 
-function retainSpaceWorkspace(spaceId: number): Workspace {
+export function retainSpaceWorkspace(spaceId: number): Workspace {
   return retainWorkspace(`space:${spaceId}`);
 }
 
-function releaseSpaceWorkspace(spaceId: number): void {
+export function releaseSpaceWorkspace(spaceId: number): void {
   releaseWorkspace(`space:${spaceId}`);
 }
 

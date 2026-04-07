@@ -815,7 +815,6 @@ export default function DocFolderForUser({ onSendDocCard }: DocFolderForUserProp
                   workspaceId={`space:${spaceId}`}
                   spaceId={spaceId}
                   docId={openDocBlocksuiteId}
-                  variant="full"
                   readOnly={false}
                   tcHeader={{ enabled: true, fallbackTitle: openDocTitle }}
                   allowModeSwitch

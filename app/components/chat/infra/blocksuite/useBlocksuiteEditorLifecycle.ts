@@ -3,6 +3,7 @@ import type { DocModeProvider } from "@blocksuite/affine/shared/services";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import type { BlocksuiteDocHeader } from "@/components/chat/infra/blocksuite/document/docHeader";
+import type { BlocksuiteFrameToHostPayload } from "@/components/chat/infra/blocksuite/shared/frameProtocol";
 
 import { ensureBlocksuiteDocHeader, subscribeBlocksuiteDocHeader } from "@/components/chat/infra/blocksuite/document/docHeader";
 import { loadBlocksuiteRuntime } from "@/components/chat/infra/blocksuite/runtime/runtimeLoader.browser";
@@ -36,7 +37,7 @@ type UseBlocksuiteEditorLifecycleParams = {
   tcHeaderFallbackImageUrl?: string;
   docModeProvider: DocModeProvider;
   isFull: boolean;
-  postToParent: (payload: any) => boolean;
+  postToParent: (payload: BlocksuiteFrameToHostPayload) => boolean;
 };
 
 export function useBlocksuiteEditorLifecycle(params: UseBlocksuiteEditorLifecycleParams) {
@@ -234,7 +235,6 @@ export function useBlocksuiteEditorLifecycle(params: UseBlocksuiteEditorLifecycl
 
           const go = (to: string) => {
             postToParent({
-              tc: "tc-blocksuite-frame",
               type: "navigate",
               to,
             });
@@ -289,7 +289,7 @@ export function useBlocksuiteEditorLifecycle(params: UseBlocksuiteEditorLifecycl
             return;
           markBlocksuiteOpenSession(instanceIdRef.current ?? "", "render-ready");
           finishBlocksuiteOpenSession(instanceIdRef.current ?? "");
-          postToParent({ tc: "tc-blocksuite-frame", instanceId: instanceIdRef.current, type: "render-ready" });
+          postToParent({ type: "render-ready" });
         });
       };
 

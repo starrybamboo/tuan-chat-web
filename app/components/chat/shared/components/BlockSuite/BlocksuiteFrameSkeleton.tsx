@@ -1,12 +1,10 @@
 interface BlocksuiteFrameSkeletonProps {
   visible: boolean;
-  variant: "embedded" | "full";
-  iframeHeightAttr?: number;
   hasExplicitHeightClass: boolean;
 }
 
 export function BlocksuiteFrameSkeleton(props: BlocksuiteFrameSkeletonProps) {
-  const { visible, variant, iframeHeightAttr, hasExplicitHeightClass } = props;
+  const { visible, hasExplicitHeightClass } = props;
   if (!visible) {
     return null;
   }
@@ -20,8 +18,7 @@ export function BlocksuiteFrameSkeleton(props: BlocksuiteFrameSkeletonProps) {
         "border-base-300/60",
         "bg-base-100/60",
         "p-4",
-        (variant !== "full" && !iframeHeightAttr) ? "min-h-32" : "",
-        (variant === "full" && !hasExplicitHeightClass) ? "h-full" : "",
+        !hasExplicitHeightClass ? "h-full" : "",
       ].filter(Boolean).join(" ")}
       aria-label="Blocksuite loading"
     >

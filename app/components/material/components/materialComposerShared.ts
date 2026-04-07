@@ -11,7 +11,7 @@ type QueuedComposerFiles = {
   files: File[];
 };
 
-type QueueMaterialComposerFilesOptions = {
+export type QueueMaterialComposerFilesOptions = {
   showSuccessToast?: boolean;
   showEmptyToast?: boolean;
 };

@@ -7,7 +7,6 @@ import type { StoredSnapshot } from "@/components/chat/infra/blocksuite/descript
 
 import {
   addUpdate,
-  clearUpdates,
   deleteUpdatesByIds,
   listUpdateRecords,
   listUpdates,

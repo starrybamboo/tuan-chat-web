@@ -1,8 +1,10 @@
-import type { ChatMessageResponse } from "../../../../api";
 import { vi } from "vitest";
-import { ANNOTATION_IDS } from "@/types/messageAnnotations";
-import { MessageType } from "../../../../api/wsModels";
 
+import { ANNOTATION_IDS } from "@/types/messageAnnotations";
+
+import type { ChatMessageResponse } from "../../../../api";
+
+import { MessageType } from "../../../../api/wsModels";
 import { buildCommittedBatchResponses, buildCommittedResponseFromOptimistic, commitBatchOptimisticMessages } from "./roomMessageBatchCommit";
 
 function createOptimisticMessage(messageId: number, position: number): ChatMessageResponse {

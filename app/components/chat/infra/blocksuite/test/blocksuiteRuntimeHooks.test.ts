@@ -98,7 +98,6 @@ describe("blocksuiteRuntimeHooks", () => {
       },
       docId: "room:1:description",
       workspaceId: "space:1",
-      instanceId: "instance-1",
       editorHandle,
       postToParent,
       onTcHeaderChange,

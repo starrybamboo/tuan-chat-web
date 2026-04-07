@@ -1,14 +1,16 @@
+/* eslint-disable react-refresh/only-export-components */
+
 import React from "react";
 import { createRoot } from "react-dom/client";
 
+import { useAudioMessageAutoPlayStore } from "../../stores/audioMessageAutoPlayStore";
+import { triggerAudioAutoPlay } from "./audioMessageAutoPlayRuntime";
 import {
   createBgmControllerId,
   registerBgmMessageController,
   requestPlayBgmMessage,
   unregisterBgmMessageController,
 } from "./audioMessageBgmCoordinator";
-import { triggerAudioAutoPlay } from "./audioMessageAutoPlayRuntime";
-import { useAudioMessageAutoPlayStore } from "../../stores/audioMessageAutoPlayStore";
 
 const ACTIVE_ROOM_ID = 1001;
 const OTHER_ROOM_ID = 1002;

@@ -1,7 +1,8 @@
-import type { ChatMessageResponse } from "../../../../api";
-
 import { getSoundMessagePurposeFromAnnotations, normalizeSoundMessagePurpose } from "@/components/chat/infra/audioMessage/audioMessagePurpose";
 import { ANNOTATION_IDS, hasAnnotation } from "@/types/messageAnnotations";
+
+import type { ChatMessageResponse } from "../../../../api";
+
 import { MessageType } from "../../../../api/wsModels";
 
 type CommitBatchOptimisticMessagesParams = {

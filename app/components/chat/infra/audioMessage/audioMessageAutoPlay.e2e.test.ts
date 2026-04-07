@@ -1,9 +1,10 @@
+import type { Browser, Page } from "playwright";
+
+import { build } from "esbuild";
 import { existsSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
-
-import { build } from "esbuild";
-import { chromium, type Browser, type BrowserContext, type Page } from "playwright";
+import { chromium } from "playwright";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 type MockAudioStats = {
