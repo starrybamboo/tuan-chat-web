@@ -8,17 +8,25 @@ on:
 jobs:
   notify:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
     steps:
       - name: Send Feishu Notification
+        env:
+          FEISHU_WEBHOOK_ID: ${{ secrets.FEISHU_WEBHOOK_ID }}
+          FEISHU_SECRET: ${{ secrets.FEISHU_SECRET }}
         uses: actions/github-script@v6
         with:
           script: |
             const crypto = require('crypto');
             const https = require('https');
             
-            // 飞书机器人的webhook ID (从URL中提取)
-            const webhookId = '4eb13c2e-cfbd-4e0a-959d-81035324c430';
-            const secret = '${{ secrets.FEISHU_SECRET }}';
+            const webhookId = process.env.FEISHU_WEBHOOK_ID;
+            const secret = process.env.FEISHU_SECRET;
+            if (!webhookId || !secret) {
+              throw new Error('Missing required Feishu secrets: FEISHU_WEBHOOK_ID / FEISHU_SECRET');
+            }
             
             // 计算签名 - 修正为飞书API要求的格式
             const timestamp = Math.floor(Date.now() / 1000);
@@ -26,8 +34,18 @@ jobs:
             const sign = crypto.createHmac('sha256', stringToSign).digest('base64');
             
             console.log('Preparing PR notification payload');
+            const pr = context.payload.pull_request;
+            const baseRepo = pr.base.repo.full_name;
+            const headRepo = pr.head.repo.full_name;
+            const isCrossRepo = baseRepo !== headRepo;
+            const buildMarkdownBlock = (content) => ({
+              tag: "div",
+              text: {
+                tag: "lark_md",
+                content,
+              },
+            });
             
-            // 构建消息内容
             const payload = {
               timestamp: String(timestamp), // 转为字符串
               sign: sign,
@@ -44,41 +62,11 @@ jobs:
                   template: "blue"
                 },
                 elements: [
-                  {
-                    tag: "div",
-                    text: {
-                      tag: "lark_md",
-                      content: `**PR标题**: ${context.payload.pull_request.title}`
-                    }
-                  },
-                  {
-                    tag: "div",
-                    text: {
-                      tag: "lark_md",
-                      content: `**创建者**: ${context.payload.pull_request.user.login}`
-                    }
-                  },
-                  {
-                    tag: "div",
-                    text: {
-                      tag: "lark_md",
-                      content: `**目标分支**: ${context.payload.pull_request.base.ref}`
-                    }
-                  },
-                  {
-                    tag: "div",
-                    text: {
-                      tag: "lark_md",
-                      content: `**源分支**: ${context.payload.pull_request.head.ref}`
-                    }
-                  },
-                  {
-                    tag: "div",
-                    text: {
-                      tag: "lark_md",
-                      content: `**״̬**: ${context.payload.pull_request.state}`
-                    }
-                  },
+                  buildMarkdownBlock(`**PR标题**: ${pr.title}`),
+                  buildMarkdownBlock(`**创建者**: ${pr.user.login}`),
+                  buildMarkdownBlock(`**目标仓库/分支**: ${baseRepo}@${pr.base.ref}`),
+                  buildMarkdownBlock(`**源仓库/分支**: ${headRepo}@${pr.head.ref}`),
+                  buildMarkdownBlock(`**状态**: ${pr.state}`),
                   {
                     tag: "action",
                     actions: [
@@ -96,6 +84,10 @@ jobs:
                 ]
               }
             };
+
+            if (isCrossRepo) {
+              payload.card.elements.splice(5, 0, buildMarkdownBlock(`**说明**: 这是跨仓库 PR，来源为 fork 仓库 \`${headRepo}\`。`));
+            }
             
             try {
               console.log('Sending PR notification to Feishu');
