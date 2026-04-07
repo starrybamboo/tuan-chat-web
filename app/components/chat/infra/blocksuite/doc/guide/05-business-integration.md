@@ -28,7 +28,6 @@ flowchart TD
 - `workspaceId`
 - `spaceId`
 - `docId`
-- `variant`
 - `readOnly`
 - `allowModeSwitch`
 - `fullscreenEdgeless`

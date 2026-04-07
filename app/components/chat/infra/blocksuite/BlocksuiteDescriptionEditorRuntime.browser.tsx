@@ -1,6 +1,7 @@
 import type { DocMode } from "@blocksuite/affine/model";
 import type { DescriptionEntityType } from "@/components/chat/infra/blocksuite/description/descriptionDocId";
 import type { BlocksuiteDocHeader } from "@/components/chat/infra/blocksuite/document/docHeader";
+import type { BlocksuiteFrameToHostPayload } from "@/components/chat/infra/blocksuite/shared/frameProtocol";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import { parseDescriptionDocId } from "@/components/chat/infra/blocksuite/description/descriptionDocId";
@@ -8,6 +9,7 @@ import { getRemoteSnapshot } from "@/components/chat/infra/blocksuite/descriptio
 import { loadBlocksuiteRuntime } from "@/components/chat/infra/blocksuite/runtime/runtimeLoader.browser";
 import { base64ToUint8Array } from "@/components/chat/infra/blocksuite/shared/base64";
 import { isBlocksuiteDebugEnabled } from "@/components/chat/infra/blocksuite/shared/debugFlags";
+import { postBlocksuiteFrameMessage } from "@/components/chat/infra/blocksuite/shared/frameProtocol";
 import { BlocksuiteTcHeader } from "./BlocksuiteTcHeader";
 import { useBlocksuiteDocModeProvider } from "./useBlocksuiteDocModeProvider";
 import { useBlocksuiteEditorLifecycle } from "./useBlocksuiteEditorLifecycle";
@@ -32,8 +34,6 @@ interface BlocksuiteDescriptionEditorProps {
   docId: string;
   /** iframe 宿主实例 id（用于 postMessage 去重） */
   instanceId?: string;
-  /** 默认嵌入式；`full` 用于全屏/DocRoute 场景 */
-  variant?: "embedded" | "full";
   /** 只读模式：允许滚动/选择，但不允许编辑 */
   readOnly?: boolean;
   /** 外部强制模式（allowModeSwitch=false 时生效） */
@@ -62,19 +62,6 @@ interface BlocksuiteDescriptionEditorProps {
   className?: string;
 }
 
-function getPostMessageTargetOrigin(): string {
-  if (typeof window === "undefined") {
-    return "*";
-  }
-
-  // 在 file://（例如 Electron 打包）场景下，location.origin 可能是 "null"。
-  const origin = window.location.origin;
-  if (!origin || origin === "null") {
-    return "*";
-  }
-  return origin;
-}
-
 function warnNonFatalBlocksuiteError(message: string, error: unknown) {
   console.warn(message, error);
 }
@@ -99,7 +86,6 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
     docId,
     instanceId,
     className,
-    variant = "embedded",
     readOnly = false,
     allowModeSwitch = false,
     fullscreenEdgeless = false,
@@ -109,29 +95,30 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
     onModeChange,
   } = props;
 
-  const isFull = variant === "full";
+  const isFull = true;
   const [isForcePullingCloud, setIsForcePullingCloud] = useState(false);
   const tcHeaderEnabled = Boolean(tcHeader?.enabled);
 
-  const postToParent = useCallback((payload: any) => {
-    try {
-      window.parent.postMessage(payload, getPostMessageTargetOrigin());
-      return true;
+  const postToParent = useCallback((payload: BlocksuiteFrameToHostPayload) => {
+    const posted = postBlocksuiteFrameMessage({
+      targetWindow: typeof window === "undefined" ? null : window.parent,
+      instanceId,
+      payload,
+    });
+    if (!posted) {
+      warnNonFatalBlocksuiteError("[BlocksuiteDescriptionEditor] Failed to post message to parent", payload);
     }
-    catch (error) {
-      warnNonFatalBlocksuiteError("[BlocksuiteDescriptionEditor] Failed to post message to parent", error);
-      return false;
-    }
-  }, []);
+    return posted;
+  }, [instanceId]);
 
   useEffect(() => {
     if (!isBlocksuiteDebugEnabled())
       return;
     const inIframe = isProbablyInIframe();
-    const msg = { docId, workspaceId, spaceId, variant, inIframe, instanceId: props.instanceId ?? null };
+    const msg = { docId, workspaceId, spaceId, inIframe, instanceId: props.instanceId ?? null };
     console.warn("[BlocksuiteMentionHost] runtime mount", msg);
     (globalThis as any).__tcBlocksuiteDebugLog?.({ source: "BlocksuiteMentionHost", message: "runtime mount", payload: msg });
-  }, [docId, props.instanceId, spaceId, variant, workspaceId]);
+  }, [docId, props.instanceId, spaceId, workspaceId]);
 
   const tcHeaderEntity = useMemo(() => {
     const parsed = parseDescriptionDocId(docId);
@@ -246,7 +233,6 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
     tcHeaderState,
     docId,
     workspaceId,
-    instanceId,
     editorHandle,
     postToParent,
     onTcHeaderChange,

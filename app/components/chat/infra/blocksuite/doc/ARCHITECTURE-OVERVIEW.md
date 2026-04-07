@@ -59,10 +59,10 @@ flowchart LR
 `document/`、`shared/`、`styles/` 没有继续画进主图，因为它们不是同一条稳定主执行链上的“层”，容易在图里被误读成 `BlocksuiteDescriptionEditorRuntime` 或 `lifecycle` 的直接下级。它们仍然存在，只保留在下面的职责说明里。
 
 - 宿主层  
-  只负责创建 iframe、传递参数、同步主题和承接 `postMessage`。
+  只负责创建 iframe、承接 host adapter、同步基础参数和分发宿主副作用。
 
 - 路由协议层  
-  负责 iframe 内 query 参数解析、宿主消息协议、高度回传和运行时启动入口。
+  负责 iframe 内 frame adapter、query 参数解析、宿主消息协议和运行时启动入口。
 
 - runtime 编排层  
   以 `BlocksuiteDescriptionEditorRuntime` 为中心，统一调度 mode、lifecycle、mode sync、viewport、tcHeader sync 和 header UI。
@@ -72,6 +72,9 @@ flowchart LR
 
 - `BlocksuiteDescriptionEditorRuntime`  
   是唯一 orchestrator，自身不实现底层运行时，只负责把 mode、lifecycle、viewport、tcHeader sync 组合起来。
+
+- runtime emitters
+  `navigate`、`tc-header`、`mention-*` 这类事件允许在 runtime 或局部控件里就近上抛，但必须复用统一协议 helper。
 
 - `runtime/`  
   负责浏览器侧统一 runtime 入口，不直接承载 `SpaceWorkspace` 底层实现。

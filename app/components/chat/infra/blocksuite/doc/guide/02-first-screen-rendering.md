@@ -93,16 +93,15 @@ runtime 会：
 
 如果启动期远端状态异常，还会继续等待补救窗口，再发 `render-ready`。
 
-## 6. 高度测量也是首屏链路一部分
+## 6. 首屏阶段只负责 ready，不再承担高度同步
 
-[BlocksuiteRouteFrameClient.tsx](../../BlocksuiteRouteFrameClient.tsx) 会：
+当前 iframe host 统一运行在 full-only 模式下，宿主必须提供稳定高度链。
 
-- 监听 `MutationObserver`
-- 监听 resize
-- 多个时点重复测量高度
-- 回传 `height`
+[BlocksuiteRouteFrameClient.tsx](../../BlocksuiteRouteFrameClient.tsx) 在首屏阶段只负责：
 
-这保证宿主 iframe 高度能尽快贴近实际内容。
+- 启动 browser runtime
+- 接收宿主主题与参数同步
+- 在 editor 可见后回传 `render-ready`
 
 ## 关键文件
 

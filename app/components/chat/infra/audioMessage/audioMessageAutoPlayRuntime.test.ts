@@ -1,5 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { triggerAudioAutoPlay } from "./audioMessageAutoPlayRuntime";
+
 const mocks = vi.hoisted(() => ({
   enqueueFromWsMock: vi.fn(),
   enqueueFromLocalSendMock: vi.fn(),
@@ -19,14 +21,12 @@ vi.mock("@/components/chat/stores/audioMessageAutoPlayStore", () => ({
   },
 }));
 
-import { triggerAudioAutoPlay } from "./audioMessageAutoPlayRuntime";
-
 describe("audioMessageAutoPlayRuntime", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it("WS 未入队时不应 seed BGM 播放", () => {
+  it("wS 未入队时不应 seed BGM 播放", () => {
     mocks.enqueueFromWsMock.mockReturnValue(undefined);
 
     const result = triggerAudioAutoPlay({
@@ -41,7 +41,7 @@ describe("audioMessageAutoPlayRuntime", () => {
     expect(mocks.requestPlayBgmMessageWithUrlMock).not.toHaveBeenCalled();
   });
 
-  it("WS 入队成功时才 seed BGM 播放", () => {
+  it("wS 入队成功时才 seed BGM 播放", () => {
     const event = {
       roomId: 1,
       messageId: 10,

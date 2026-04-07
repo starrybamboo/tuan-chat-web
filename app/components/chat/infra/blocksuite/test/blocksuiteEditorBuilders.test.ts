@@ -1,5 +1,7 @@
 import { DocTitleViewExtension } from "@blocksuite/affine/fragments/doc-title/view";
+import { Subject } from "rxjs";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import * as Y from "yjs";
 
 import { readBlocksuiteCachedDocTitle } from "../editors/extensions/blocksuiteEditorTitle";
 import {
@@ -17,17 +19,15 @@ import {
   lockBlocksuiteMentionMenu,
 } from "../editors/extensions/buildBlocksuiteMentionExtensions";
 import { buildBlocksuiteQuickSearchExtension } from "../editors/extensions/buildBlocksuiteQuickSearchExtension";
-import { buildBlocksuiteEmbedExtensions } from "../editors/extensions/embed/buildBlocksuiteEmbedExtensions";
 import {
   readBlocksuiteDisplayTitle,
   TcDocDisplayMetaExtension,
   TcDocDisplayMetaService,
 } from "../editors/extensions/embed/blocksuiteDocDisplayMetaExtension";
+import { buildBlocksuiteEmbedExtensions } from "../editors/extensions/embed/buildBlocksuiteEmbedExtensions";
 import { EmbedIframeNoCredentiallessViewOverride } from "../editors/extensions/embed/embedIframeNoCredentiallessViewOverride";
 import { RoomMapEmbedOptionExtension } from "../editors/extensions/embed/roomMapEmbedOption";
 import { listBlocksuiteSpaceMemberIds } from "../services/blocksuiteSpaceMemberService";
-import { Subject } from "rxjs";
-import * as Y from "yjs";
 
 vi.mock("../manager/view", () => ({
   getEdgelessSpecs: () => [],

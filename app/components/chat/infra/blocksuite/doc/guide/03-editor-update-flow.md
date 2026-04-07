@@ -75,7 +75,6 @@ flowchart TD
 
 - 只读：`editor.readOnly`
 - 主题：`theme postMessage`
-- 高度：`height postMessage`
 - 全屏：`useBlocksuiteViewportBehavior`
 
 ## 5. Header 更新

@@ -7,7 +7,6 @@ type UseBlocksuiteFrameInitParams = {
   workspaceId: string;
   spaceId?: number;
   docId: string;
-  variant: "embedded" | "full";
   readOnly: boolean;
   allowModeSwitch: boolean;
   fullscreenEdgeless: boolean;
@@ -19,7 +18,6 @@ type UseBlocksuiteFrameInitParams = {
   };
   className?: string;
   isEdgelessFullscreenActive: boolean;
-  iframeHeight: number | null;
   isFrameReady: boolean;
   hasFrameReadyOnce: boolean;
 };
@@ -30,7 +28,6 @@ export function useBlocksuiteFrameInit(params: UseBlocksuiteFrameInitParams) {
     workspaceId,
     spaceId,
     docId,
-    variant,
     readOnly,
     allowModeSwitch,
     fullscreenEdgeless,
@@ -38,7 +35,6 @@ export function useBlocksuiteFrameInit(params: UseBlocksuiteFrameInitParams) {
     tcHeader,
     className,
     isEdgelessFullscreenActive,
-    iframeHeight,
     isFrameReady,
     hasFrameReadyOnce,
   } = params;
@@ -77,7 +73,6 @@ export function useBlocksuiteFrameInit(params: UseBlocksuiteFrameInitParams) {
       workspaceId,
       spaceId: typeof spaceId === "number" && Number.isFinite(spaceId) ? String(spaceId) : undefined,
       docId,
-      variant,
       readOnly: readOnly ? "1" : "0",
       allowModeSwitch: allowModeSwitch ? "1" : "0",
       fullscreenEdgeless: fullscreenEdgeless ? "1" : "0",
@@ -97,7 +92,6 @@ export function useBlocksuiteFrameInit(params: UseBlocksuiteFrameInitParams) {
     readOnly,
     spaceId,
     tcHeaderEnabled,
-    variant,
     workspaceId,
   ]);
 
@@ -123,10 +117,6 @@ export function useBlocksuiteFrameInit(params: UseBlocksuiteFrameInitParams) {
     return /(?:^|\s)(?:h-\[|h-|min-h-|max-h-)/.test(value);
   }, [className]);
 
-  const iframeHeightAttr = (!isEdgelessFullscreenActive && variant !== "full" && iframeHeight && iframeHeight > 0)
-    ? iframeHeight
-    : undefined;
-
   // 首次 ready 之前先隐藏 iframe，避免未初始化内容闪烁。
   const shouldHideFrame = !hasFrameReadyOnce && !isFrameReady;
 
@@ -143,8 +133,7 @@ export function useBlocksuiteFrameInit(params: UseBlocksuiteFrameInitParams) {
         "bg-transparent",
         shouldHideFrame ? "opacity-0 pointer-events-none" : "opacity-100",
         className,
-        (variant !== "full" && !iframeHeightAttr) ? "min-h-32" : "",
-        (variant === "full" && !hasExplicitHeightClass) ? "h-full" : "",
+        !hasExplicitHeightClass ? "h-full" : "",
       ].filter(Boolean).join(" ");
 
   return {
@@ -152,7 +141,6 @@ export function useBlocksuiteFrameInit(params: UseBlocksuiteFrameInitParams) {
     tcHeaderEnabled,
     frozenTcHeaderTitle,
     frozenTcHeaderImageUrl,
-    iframeHeightAttr,
     wrapperClassName,
     iframeClassName,
     hasExplicitHeightClass,

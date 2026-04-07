@@ -1,5 +1,5 @@
-import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
 import { ANNOTATION_IDS } from "@/types/messageAnnotations";
+import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
 
 import type { Message } from "../../../../../api";
 

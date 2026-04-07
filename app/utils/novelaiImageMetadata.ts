@@ -449,7 +449,7 @@ function stripImageDataUrlPrefix(value: string) {
   return match ? match[1].trim() : trimmed;
 }
 
-function decodeBase64Prefix(value: string, byteCount = 16) {
+export function decodeBase64Prefix(value: string, byteCount = 16) {
   const normalized = stripImageDataUrlPrefix(value).replace(/\s+/g, "");
   if (!normalized)
     return new Uint8Array();
@@ -468,7 +468,7 @@ function decodeBase64Prefix(value: string, byteCount = 16) {
   }
 }
 
-function detectImageMime(bytes: Uint8Array) {
+export function detectImageMime(bytes: Uint8Array) {
   if (bytes.length >= 8 && PNG_SIGNATURE.every((value, index) => bytes[index] === value))
     return "image/png";
   if (bytes.length >= 3 && bytes[0] === 0xFF && bytes[1] === 0xD8 && bytes[2] === 0xFF)
@@ -488,7 +488,6 @@ function detectImageMime(bytes: Uint8Array) {
   }
   return "image/png";
 }
-
 
 export function normalizeNovelAiMetadata(raw: unknown): NovelAiImportedSettings | null {
   const rawRecord = asRecord(raw);

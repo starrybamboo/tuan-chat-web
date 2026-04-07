@@ -1,5 +1,5 @@
-import { tuanchat } from "api/instance";
 import { recordDocCardShareObservation } from "@/components/chat/infra/blocksuite/shared/docCardShareObservability";
+import { tuanchat } from "api/instance";
 
 export type DescriptionEntityType = "space" | "room" | "user" | "space_user_doc" | "space_doc";
 export type DescriptionDocType = "description" | "readme";

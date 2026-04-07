@@ -181,7 +181,7 @@ function createBlocksuiteViewManager() {
 
 const blocksuiteViewManager = createBlocksuiteViewManager();
 
-function getBlocksuiteViewManager() {
+export function getBlocksuiteViewManager() {
   return blocksuiteViewManager;
 }
 

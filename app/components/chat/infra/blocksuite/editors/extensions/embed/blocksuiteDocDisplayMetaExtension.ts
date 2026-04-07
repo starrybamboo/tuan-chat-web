@@ -1,4 +1,4 @@
-import type { DocDisplayMetaParams, DocDisplayMetaExtension } from "@blocksuite/affine-shared/services";
+import type { DocDisplayMetaExtension, DocDisplayMetaParams } from "@blocksuite/affine-shared/services";
 import type { ExtensionType } from "@blocksuite/store";
 
 import { DocDisplayMetaProvider, DocDisplayMetaService } from "@blocksuite/affine-shared/services";

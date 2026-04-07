@@ -10,7 +10,6 @@ export type BlocksuiteDescriptionEditorProps = {
   instanceId?: string;
   /** 已废弃：当前 route 方案不再执行临场 prewarm，这个入参仅为兼容保留。 */
   intentPrewarm?: boolean;
-  variant?: "embedded" | "full";
   readOnly?: boolean;
   mode?: DocMode;
   allowModeSwitch?: boolean;
@@ -31,6 +30,8 @@ export type BlocksuiteDescriptionEditorProps = {
   className?: string;
 };
 
+export const BLOCKSUITE_FULL_PANEL_EDITOR_CLASS = "h-full min-h-0 rounded-md";
+
 function normalizeAppThemeToBlocksuiteTheme(raw: string | null | undefined): "light" | "dark" {
   const v = (raw ?? "").toLowerCase();
   if (v.includes("dark") || v.includes("dracula") || v.includes("night")) {
@@ -47,16 +48,4 @@ export function getCurrentAppTheme(): "light" | "dark" {
   return normalizeAppThemeToBlocksuiteTheme(root.dataset.theme) === "dark" || root.classList.contains("dark")
     ? "dark"
     : "light";
-}
-
-export function getPostMessageTargetOrigin(): string {
-  if (typeof window === "undefined") {
-    return "*";
-  }
-
-  const origin = window.location.origin;
-  if (!origin || origin === "null") {
-    return "*";
-  }
-  return origin;
 }

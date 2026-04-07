@@ -149,7 +149,7 @@ function DocCardMessageImpl({ messageResponse }: { messageResponse: ChatMessageR
     return () => {
       cleanup();
     };
-  }, [docId, isSupportedDocId, payload?.imageUrl, payload?.title, previewSpaceId]);
+  }, [docId, isSupportedDocId, message.messageId, payload?.imageUrl, payload?.title, previewSpaceId]);
 
   const title = preview.title || payload?.title || (docId ? `文档：${docId}` : "文档");
   const coverUrl = preview.imageUrl || payload?.imageUrl || "";
@@ -269,7 +269,6 @@ function DocCardMessageImpl({ messageResponse }: { messageResponse: ChatMessageR
                   workspaceId={`space:${previewSpaceId}`}
                   spaceId={previewSpaceId}
                   docId={docId}
-                  variant="full"
                   readOnly
                   tcHeader={{ enabled: true, fallbackTitle: title, fallbackImageUrl: coverUrl }}
                   allowModeSwitch

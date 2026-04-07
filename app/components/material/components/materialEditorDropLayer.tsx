@@ -1,5 +1,5 @@
-import type { MaterialItemDragPayload } from "@/components/chat/utils/materialItemDrag";
 import type { ReactNode } from "react";
+import type { MaterialItemDragPayload } from "@/components/chat/utils/materialItemDrag";
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import DocRefDragOverlay from "@/components/chat/shared/components/docRefDragOverlay";

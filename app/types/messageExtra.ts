@@ -38,15 +38,15 @@ export function getVideoMessageExtra(extra: unknown) {
   return getNestedMessageExtra(extra, "videoMessage");
 }
 
-function getDiceResultExtra(extra: unknown) {
+export function getDiceResultExtra(extra: unknown) {
   return getNestedMessageExtra(extra, "diceResult");
 }
 
-function getForwardMessageExtra(extra: unknown) {
+export function getForwardMessageExtra(extra: unknown) {
   return getNestedMessageExtra(extra, "forwardMessage");
 }
 
-function getClueMessageExtra(extra: unknown) {
+export function getClueMessageExtra(extra: unknown) {
   return getNestedMessageExtra(extra, "clueMessage");
 }
 

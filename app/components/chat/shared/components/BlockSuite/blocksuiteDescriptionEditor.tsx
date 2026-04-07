@@ -15,7 +15,7 @@ import { useBlocksuiteMentionProfilePopover } from "./useBlocksuiteMentionProfil
  *
  * 主文件现在只负责：
  * 1. 组合各个 host hook
- * 2. 管理少量顶层状态（mode / height / ready）
+ * 2. 管理少量顶层状态（mode / ready）
  * 3. 渲染 skeleton、popover 与 iframe
  */
 function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEditorProps) {
@@ -23,7 +23,6 @@ function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEdito
     workspaceId,
     spaceId,
     docId,
-    variant = "embedded",
     intentPrewarm = false,
     mode: forcedMode = "page",
     readOnly = false,
@@ -40,21 +39,19 @@ function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEdito
   const instanceId = useId();
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
   const [frameMode, setFrameMode] = useState<DocMode>(forcedMode);
-  const [iframeHeight, setIframeHeight] = useState<number | null>(null);
   const [isFrameReady, setIsFrameReady] = useState(false);
   const [hasFrameReadyOnce, setHasFrameReadyOnce] = useState(false);
 
   void intentPrewarm;
 
-  // 埋点：打开编辑器时触发，记录 workspaceId、docId 和 variant 以分析不同场景的打开速度表现
+  // 埋点：打开编辑器时触发，记录 workspaceId、docId 以分析打开速度表现
   useEffect(() => {
     startBlocksuiteOpenSession({
       instanceId,
       workspaceId,
       docId,
-      variant,
     });
-  }, [docId, instanceId, variant, workspaceId]);
+  }, [docId, instanceId, workspaceId]);
 
   const isEdgelessFullscreenActive = allowModeSwitch && fullscreenEdgeless && frameMode === "edgeless";
 
@@ -70,7 +67,6 @@ function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEdito
     workspaceId,
     spaceId,
     docId,
-    variant,
     readOnly,
     allowModeSwitch,
     fullscreenEdgeless,
@@ -78,7 +74,6 @@ function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEdito
     tcHeader,
     className,
     isEdgelessFullscreenActive,
-    iframeHeight,
     isFrameReady,
     hasFrameReadyOnce,
   });
@@ -90,7 +85,6 @@ function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEdito
     workspaceId,
     spaceId,
     docId,
-    variant,
     readOnly,
     allowModeSwitch,
     fullscreenEdgeless,
@@ -103,7 +97,6 @@ function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEdito
     onModeChange,
     onTcHeaderChange,
     setFrameMode,
-    setIframeHeight,
     setIsFrameReady,
     handleMentionClickMessage: mention.handleMentionClickMessage,
     handleMentionHoverMessage: mention.handleMentionHoverMessage,
@@ -112,7 +105,7 @@ function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEdito
   // 主题同步
   useBlocksuiteFrameThemeSync({
     iframeRef,
-    instanceId,
+    flushFrameSync: bridge.flushFrameSync,
   });
 
   // 当进入 edgeless 全屏模式时，禁止宿主页面滚动以避免滚动穿透
@@ -145,8 +138,6 @@ function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEdito
     <div className={frameInit.wrapperClassName}>
       <BlocksuiteFrameSkeleton
         visible={!hasFrameReadyOnce && !isFrameReady}
-        variant={variant}
-        iframeHeightAttr={frameInit.iframeHeightAttr}
         hasExplicitHeightClass={frameInit.hasExplicitHeightClass}
       />
       <BlocksuiteMentionProfilePopover
@@ -174,11 +165,9 @@ function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEdito
         className={frameInit.iframeClassName}
         allow="clipboard-read; clipboard-write; fullscreen"
         allowFullScreen
-        height={frameInit.iframeHeightAttr}
         style={{ backgroundColor: "transparent" }}
         onLoad={() => {
-          bridge.postFrameParams();
-          bridge.syncFrameBasics();
+          bridge.flushFrameSync("iframe-load");
         }}
       />
     </div>
