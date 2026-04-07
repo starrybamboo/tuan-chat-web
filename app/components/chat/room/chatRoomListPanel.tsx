@@ -483,7 +483,7 @@ export default function ChatRoomListPanel({
                 >
                   {showSidebarSplitLayout
                     ? (
-                        <div ref={splitContainerRef} className="flex min-h-0 flex-1 flex-col">
+                        <div ref={splitContainerRef} className="flex min-h-0 flex-1 flex-col px-1">
                           <div className="min-h-0 shrink-0" style={topPaneStyle}>
                             <SidebarSection
                               title="频道与文档"

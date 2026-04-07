@@ -1,6 +1,6 @@
 import type { CSSProperties, KeyboardEvent as ReactKeyboardEvent, PointerEvent as ReactPointerEvent, RefCallback } from "react";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 
 const DEFAULT_ROOM_SIDEBAR_SPLIT_RATIO = 0.62;
 export const ROOM_SIDEBAR_SPLIT_HANDLE_HEIGHT = 12;
@@ -128,7 +128,7 @@ export default function useRoomSidebarSplitLayout({
     });
   }, [containerHeight, splitRatio]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!enabled || !containerNode) {
       setContainerHeight(0);
       return;
