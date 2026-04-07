@@ -158,6 +158,16 @@ jobs:
                     if (res.statusCode !== 200) {
                       return reject(new Error(`Feishu API responded with status: ${res.statusCode}`));
                     }
+                    let parsed;
+                    try {
+                      parsed = JSON.parse(data);
+                    } catch (parseError) {
+                      return reject(new Error(`Feishu API returned non-JSON body: ${data}`));
+                    }
+                    const responseCode = parsed.code ?? parsed.StatusCode;
+                    if (responseCode !== 0) {
+                      return reject(new Error(`Feishu API returned code ${responseCode}: ${parsed.msg || parsed.StatusMessage || 'unknown error'}`));
+                    }
                     console.log('Feishu notification sent successfully');
                     resolve(data);
                   });
