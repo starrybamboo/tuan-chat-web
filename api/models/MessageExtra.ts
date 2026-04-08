@@ -11,6 +11,7 @@ import type { ForwardMessage } from './ForwardMessage';
 import type { ImageMessage } from './ImageMessage';
 import type { RoomJumpExtra } from './RoomJumpExtra';
 import type { SoundMessage } from './SoundMessage';
+import type { StateEventExtra } from './StateEventExtra';
 import type { ThreadRootExtra } from './ThreadRootExtra';
 import type { VideoMessage } from './VideoMessage';
 import type { WebgalChoosePayload } from './WebgalChoosePayload';
@@ -32,5 +33,6 @@ export type MessageExtra = {
     docCard?: DocCardExtra;
     roomJump?: RoomJumpExtra;
     threadRoot?: ThreadRootExtra;
+    stateEvent?: StateEventExtra;
 };
 
