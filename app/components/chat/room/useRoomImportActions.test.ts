@@ -29,6 +29,22 @@ vi.mock("@/components/common/dicer/utils/utils", () => ({
   },
 }));
 
+vi.mock("@/components/chat/infra/blocksuite/space/spaceWorkspaceRegistry", () => ({
+  getSpaceWorkspaceIfExists: vi.fn(() => null),
+  getOrCreateSpaceDoc: vi.fn(() => null),
+}));
+
+vi.mock("@/components/chat/infra/blocksuite/description/descriptionDocRemote", () => ({
+  setRemoteSnapshot: vi.fn(async () => undefined),
+}));
+
+vi.mock("@/components/chat/infra/blocksuite/shared/base64", () => ({
+  uint8ArrayToBase64: vi.fn(() => ""),
+}));
+
+vi.mock("@/components/chat/infra/blocksuite/document/docExcerpt", () => ({
+  extractDocExcerptFromStore: vi.fn(() => ""),
+}));
 function createMessage(messageId: number): ChatMessageResponse["message"] {
   return {
     messageId,

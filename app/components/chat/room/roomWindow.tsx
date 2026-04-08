@@ -19,6 +19,7 @@ import RoomDocRefDropLayer from "@/components/chat/room/roomDocRefDropLayer";
 import RoomSideDrawerGuards from "@/components/chat/room/roomSideDrawerGuards";
 import RoomWindowLayout from "@/components/chat/room/roomWindowLayout";
 import RoomWindowOverlays from "@/components/chat/room/roomWindowOverlays";
+import { StateRuntimeProvider } from "@/components/chat/state/stateRuntimeContext";
 import useChatInputHandlers from "@/components/chat/room/useChatInputHandlers";
 import useChatMessageSubmit from "@/components/chat/room/useChatMessageSubmit";
 import useRealtimeRenderControls from "@/components/chat/room/useRealtimeRenderControls";
@@ -916,74 +917,80 @@ function RoomWindow({
     <RoomUiStoreProvider store={roomUiStore}>
       <RoomContext value={roomContext}>
         <RoomSideDrawerGuards spaceId={spaceId} />
-        <RealtimeRenderOrchestrator
-          spaceId={spaceId}
-          spaceName={spaceName}
-          roomId={roomId}
-          room={room}
-          roles={roomAllRoles}
-          historyMessages={mainHistoryMessages}
-          chatHistoryLoading={!!chatHistory?.loading}
-          onApiChange={handleRealtimeRenderApiChange}
-        />
-        <RoomDocRefDropLayer
-          onSendDocCard={handleSendDocCard}
-          onSendMaterialItem={handleSendMaterialItem}
-          onSendRoomJump={handleSendRoomJump}
+        <StateRuntimeProvider
+          messages={mainHistoryMessages}
+          ruleId={space?.ruleId ?? -1}
+          currentRoleId={curRoleId}
         >
-          <RoomWindowLayout
+          <RealtimeRenderOrchestrator
+            spaceId={spaceId}
+            spaceName={spaceName}
             roomId={roomId}
-            roomName={roomName}
-            toggleLeftDrawer={spaceContext.toggleLeftDrawer}
-            onCloseSubWindow={onCloseSubWindow}
-            backgroundUrl={backgroundUrl}
-            displayedBgUrl={displayedBgUrl}
-            currentEffect={currentEffect}
-            chatFrameProps={chatFrameProps}
-            composerPanelProps={composerPanelProps}
-            hideComposer={viewMode}
-            hideSecondaryPanels={hideSecondaryPanels}
-            chatAreaComposerTarget={messageScope === "thread" ? "thread" : "main"}
-            onExportPremiere={handleExportPremiere}
-            onClearAndReloadAllMessages={handleClearAndReloadAllMessages}
-            onUndo={handleUndoLastMessageAction}
-            onRedo={handleRedoLastMessageAction}
-            isReloadingAllMessages={isReloadingAllMessages}
-            canUndo={canUndo}
-            canRedo={canRedo}
+            room={room}
+            roles={roomAllRoles}
+            historyMessages={mainHistoryMessages}
+            chatHistoryLoading={!!chatHistory?.loading}
+            onApiChange={handleRealtimeRenderApiChange}
+          />
+          <RoomDocRefDropLayer
             onSendDocCard={handleSendDocCard}
-          />
-        </RoomDocRefDropLayer>
-        {!viewMode && (
-          <RoomWindowOverlays
-            isImportChatTextOpen={isImportChatTextOpen}
-            setIsImportChatTextOpen={setIsImportChatTextOpen}
-            isKP={Boolean(spaceContext.isSpaceOwner)}
-            isSpectator={isSpectator}
-            availableRoles={roomRolesThatUserOwn}
-            onImportChatText={handleImportChatItems}
-            onOpenRoleAddWindow={openRoleAddWindow}
-            onOpenNpcAddWindow={spaceContext.isSpaceOwner ? openNpcAddWindow : undefined}
-            isRoleHandleOpen={isRoleHandleOpen}
-            setIsRoleAddWindowOpen={setIsRoleAddWindowOpen}
-            handleAddRole={handleAddRole}
-            isNpcRoleHandleOpen={isNpcRoleHandleOpen}
-            setIsNpcRoleAddWindowOpen={setIsNpcRoleAddWindowOpen}
-            handleAddNpcRole={handleAddNpcRole}
-            isRenderWindowOpen={isRenderWindowOpen}
-            setIsRenderWindowOpen={setIsRenderWindowOpen}
-          />
-        )}
-        {isApplyingMessageHistory && (
-          <div className="modal modal-open" role="dialog" aria-modal="true" aria-label="正在处理消息操作">
-            <div className="modal-box max-w-sm text-center">
-              <div className="flex items-center justify-center gap-3">
-                <span className="loading loading-spinner loading-md"></span>
-                <span className="font-medium">正在处理，请稍候…</span>
+            onSendMaterialItem={handleSendMaterialItem}
+            onSendRoomJump={handleSendRoomJump}
+          >
+            <RoomWindowLayout
+              roomId={roomId}
+              roomName={roomName}
+              toggleLeftDrawer={spaceContext.toggleLeftDrawer}
+              onCloseSubWindow={onCloseSubWindow}
+              backgroundUrl={backgroundUrl}
+              displayedBgUrl={displayedBgUrl}
+              currentEffect={currentEffect}
+              chatFrameProps={chatFrameProps}
+              composerPanelProps={composerPanelProps}
+              hideComposer={viewMode}
+              hideSecondaryPanels={hideSecondaryPanels}
+              chatAreaComposerTarget={messageScope === "thread" ? "thread" : "main"}
+              onExportPremiere={handleExportPremiere}
+              onClearAndReloadAllMessages={handleClearAndReloadAllMessages}
+              onUndo={handleUndoLastMessageAction}
+              onRedo={handleRedoLastMessageAction}
+              isReloadingAllMessages={isReloadingAllMessages}
+              canUndo={canUndo}
+              canRedo={canRedo}
+              onSendDocCard={handleSendDocCard}
+            />
+          </RoomDocRefDropLayer>
+          {!viewMode && (
+            <RoomWindowOverlays
+              isImportChatTextOpen={isImportChatTextOpen}
+              setIsImportChatTextOpen={setIsImportChatTextOpen}
+              isKP={Boolean(spaceContext.isSpaceOwner)}
+              isSpectator={isSpectator}
+              availableRoles={roomRolesThatUserOwn}
+              onImportChatText={handleImportChatItems}
+              onOpenRoleAddWindow={openRoleAddWindow}
+              onOpenNpcAddWindow={spaceContext.isSpaceOwner ? openNpcAddWindow : undefined}
+              isRoleHandleOpen={isRoleHandleOpen}
+              setIsRoleAddWindowOpen={setIsRoleAddWindowOpen}
+              handleAddRole={handleAddRole}
+              isNpcRoleHandleOpen={isNpcRoleHandleOpen}
+              setIsNpcRoleAddWindowOpen={setIsNpcRoleAddWindowOpen}
+              handleAddNpcRole={handleAddNpcRole}
+              isRenderWindowOpen={isRenderWindowOpen}
+              setIsRenderWindowOpen={setIsRenderWindowOpen}
+            />
+          )}
+          {isApplyingMessageHistory && (
+            <div className="modal modal-open" role="dialog" aria-modal="true" aria-label="正在处理消息操作">
+              <div className="modal-box max-w-sm text-center">
+                <div className="flex items-center justify-center gap-3">
+                  <span className="loading loading-spinner loading-md"></span>
+                  <span className="font-medium">正在处理，请稍候…</span>
+                </div>
               </div>
             </div>
-          </div>
-        )}
+          )}
+        </StateRuntimeProvider>
       </RoomContext>
     </RoomUiStoreProvider>
   );

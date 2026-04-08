@@ -10,6 +10,7 @@ import {
   getThreadRootExtra,
   getVideoMessageExtra,
 } from "@/types/messageExtra";
+import { formatStateEventPreviewText } from "@/types/stateEvent";
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
 import { extractWebgalChoosePayload, formatWebgalChooseSummary } from "@/types/webgalChoose";
 
@@ -131,6 +132,8 @@ export function getMessagePreviewText(message?: Message | null): string {
       const summary = payload ? formatWebgalChooseSummary(payload) : trimmedContent;
       return withTag("选择", summary);
     }
+    case MESSAGE_TYPE.STATE_EVENT:
+      return formatStateEventPreviewText(message.extra, trimmedContent);
     case MESSAGE_TYPE.COMMAND_REQUEST: {
       const commandText = safeTrim(getCommandRequestExtra(message.extra)?.command) || trimmedContent || "[空指令]";
       return withTag("检定请求", commandText);

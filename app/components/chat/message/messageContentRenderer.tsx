@@ -1,5 +1,6 @@
 import type { Message } from "../../../../api";
 import { resolveRenderedSoundMessagePurpose } from "@/components/chat/infra/audioMessage/audioMessagePurpose";
+import StateMessageCard from "@/components/chat/state/stateMessageCard";
 import AudioMessage from "@/components/chat/message/media/AudioMessage";
 import CachedVideoMessage from "@/components/chat/message/media/CachedVideoMessage";
 import WebgalChooseMessage from "@/components/chat/message/webgalChooseMessage";
@@ -246,6 +247,8 @@ export default function MessageContentRenderer({
         </div>
       );
     }
+    case MESSAGE_TYPE.STATE_EVENT:
+      return <StateMessageCard message={message} />;
     case MESSAGE_TYPE.SYSTEM:
       return (
         <div className="whitespace-pre-wrap break-words text-sm text-base-content/60">

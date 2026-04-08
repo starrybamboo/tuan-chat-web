@@ -1,8 +1,9 @@
 import type { DocRefDragPayload } from "@/components/chat/utils/docRef";
-import { CheckerboardIcon, FileTextIcon, SwordIcon } from "@phosphor-icons/react";
+import { CheckerboardIcon, FileTextIcon, PulseIcon, SwordIcon } from "@phosphor-icons/react";
 import React from "react";
 import DocFolderForUser from "@/components/chat/room/drawers/docFolderForUser";
 import InitiativeList from "@/components/chat/room/drawers/initiativeList";
+import StateDrawer from "@/components/chat/room/drawers/stateDrawer";
 import DNDMap from "@/components/chat/shared/map/DNDMap";
 import WebGALPreview from "@/components/chat/shared/webgal/webGALPreview";
 import { useDrawerPreferenceStore } from "@/components/chat/stores/drawerPreferenceStore";
@@ -11,10 +12,10 @@ import { useSideDrawerStore } from "@/components/chat/stores/sideDrawerStore";
 import { OpenAbleDrawer } from "@/components/common/openableDrawer";
 import { WebgalIcon, XMarkICon } from "@/icons";
 
-type SubPane = "map" | "initiative" | "webgal" | "doc";
+type SubPane = "map" | "initiative" | "state" | "webgal" | "doc";
 
-function isSubRoomDrawerState(state: string): state is "map" | "initiative" | "webgal" | "doc" {
-  return state === "map" || state === "initiative" || state === "webgal" || state === "doc";
+function isSubRoomDrawerState(state: string): state is "map" | "initiative" | "state" | "webgal" | "doc" {
+  return state === "map" || state === "initiative" || state === "state" || state === "webgal" || state === "doc";
 }
 
 interface SubRoomWindowProps {
@@ -55,6 +56,10 @@ function SubRoomWindowImpl({ onSendDocCard }: SubRoomWindowProps) {
     else if (sideDrawerState === "initiative") {
       setIsOpen(true);
       setActivePane("initiative");
+    }
+    else if (sideDrawerState === "state") {
+      setIsOpen(true);
+      setActivePane("state");
     }
     else if (sideDrawerState === "webgal") {
       setIsOpen(true);
@@ -109,6 +114,11 @@ function SubRoomWindowImpl({ onSendDocCard }: SubRoomWindowProps) {
         const max = 640;
         return { minWidth: min, maxWidth: max };
       }
+      case "state": {
+        const min = 420;
+        const max = 720;
+        return { minWidth: min, maxWidth: max };
+      }
       case "webgal":
       default: {
         const min = 560;
@@ -122,6 +132,8 @@ function SubRoomWindowImpl({ onSendDocCard }: SubRoomWindowProps) {
     ? "地图"
     : activePane === "initiative"
       ? "先攻栏"
+      : activePane === "state"
+        ? "状态"
       : activePane === "doc"
         ? "文档"
         : "WebGAL 预览";
@@ -153,6 +165,7 @@ function SubRoomWindowImpl({ onSendDocCard }: SubRoomWindowProps) {
             <div className="flex items-center gap-2 min-w-0">
               {activePane === "map" && <CheckerboardIcon className="size-5 opacity-80" />}
               {activePane === "initiative" && <SwordIcon className="size-5 opacity-80" />}
+              {activePane === "state" && <PulseIcon className="size-5 opacity-80" />}
               {activePane === "doc" && <FileTextIcon className="size-5 opacity-80" />}
               {activePane === "webgal" && <WebgalIcon className="size-5 opacity-80" />}
               <span className="text-center font-semibold line-clamp-1 truncate min-w-0 text-sm sm:text-base">
@@ -180,6 +193,11 @@ function SubRoomWindowImpl({ onSendDocCard }: SubRoomWindowProps) {
           {activePane === "initiative" && (
             <div className="overflow-auto h-full">
               <InitiativeList />
+            </div>
+          )}
+          {activePane === "state" && (
+            <div className="h-full overflow-hidden">
+              <StateDrawer />
             </div>
           )}
           {activePane === "doc" && (

@@ -60,6 +60,7 @@ export const MESSAGE_TYPE = {
   /** WebGAL choose message */
   WEBGAL_CHOOSE: 13,
   VIDEO: 14,
+  STATE_EVENT: 15,
   CLUE_CARD: 1000,
   /** 文档卡片消息（Blocksuite 文档引用） */
   DOC_CARD: 1002,

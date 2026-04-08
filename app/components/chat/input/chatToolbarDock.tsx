@@ -1,4 +1,4 @@
-import { CheckerboardIcon, FileTextIcon, FilmSlateIcon, ListChecks, SwordIcon } from "@phosphor-icons/react";
+import { CheckerboardIcon, FileTextIcon, FilmSlateIcon, ListChecks, PulseIcon, SwordIcon } from "@phosphor-icons/react";
 import { useRealtimeRenderStore } from "@/components/chat/stores/realtimeRenderStore";
 import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
 import { useSideDrawerStore } from "@/components/chat/stores/sideDrawerStore";
@@ -93,6 +93,15 @@ export default function ChatToolbarDock({
 
           <div className="tooltip tooltip-top" data-tip="展示先攻表" data-side-drawer-toggle="true" onClick={() => setSideDrawerState(sideDrawerState === "initiative" ? "none" : "initiative")}>
             <SwordIcon className="size-6 jump_icon" />
+          </div>
+
+          <div
+            className="tooltip tooltip-top"
+            data-tip="状态面板"
+            data-side-drawer-toggle="true"
+            onClick={() => setSideDrawerState(sideDrawerState === "state" ? "none" : "state")}
+          >
+            <PulseIcon className="size-6 jump_icon" />
           </div>
 
           <div

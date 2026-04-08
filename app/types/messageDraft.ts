@@ -2,6 +2,7 @@ import type { ChatMessageRequest } from "../../api/models/ChatMessageRequest";
 import type { MaterialMessageItem } from "../../api/models/MaterialMessageItem";
 
 import { MessageType } from "../../api/wsModels";
+import { normalizeStateEventExtra } from "./stateEvent";
 import { MESSAGE_TYPE } from "./voiceRenderTypes";
 
 export type MessageDraft = MaterialMessageItem;
@@ -249,6 +250,11 @@ function normalizeWebgalVarPayload(rawExtra: unknown): MessageExtraRecord {
   });
 }
 
+function normalizeStateEventPayload(rawExtra: unknown): MessageExtraRecord {
+  const stateEvent = normalizeStateEventExtra(pickPayload(rawExtra, "stateEvent"));
+  return compactRecord(stateEvent);
+}
+
 function collectMissingFields(extra: MessageExtraRecord, fields: string[]): string[] {
   return fields.filter((field) => {
     const value = extra[field];
@@ -340,6 +346,11 @@ function assertMessageExtraReadyForRequest(messageType: number, extra: MessageEx
       }
       return;
     }
+    case MESSAGE_TYPE.STATE_EVENT:
+      if (Object.keys(normalizeStateEventPayload(extra)).length === 0) {
+        throw new Error("状态事件消息缺少有效 stateEvent");
+      }
+      return;
     case MESSAGE_TYPE.CLUE_CARD:
       if (!toTrimmedString(normalizeCluePayload(extra).name)) {
         throw new Error("线索卡片缺少名称");
@@ -378,6 +389,8 @@ function normalizeMessageExtraForRequest(messageType: number, rawExtra: unknown)
       return compactRecord({ threadRoot: normalizeThreadRootPayload(rawExtra) });
     case MESSAGE_TYPE.WEBGAL_VAR:
       return compactRecord({ webgalVar: normalizeWebgalVarPayload(rawExtra) });
+    case MESSAGE_TYPE.STATE_EVENT:
+      return compactRecord({ stateEvent: normalizeStateEventPayload(rawExtra) });
     case MESSAGE_TYPE.TEXT:
     case MESSAGE_TYPE.SYSTEM:
     case MESSAGE_TYPE.EFFECT:
@@ -424,6 +437,8 @@ export function normalizeMessageExtraForMatch(messageType: number, rawExtra: unk
       return compactValue({ threadRoot: normalizeThreadRootPayload(rawExtra) });
     case MESSAGE_TYPE.WEBGAL_VAR:
       return compactValue({ webgalVar: normalizeWebgalVarPayload(rawExtra) });
+    case MESSAGE_TYPE.STATE_EVENT:
+      return compactValue({ stateEvent: normalizeStateEventPayload(rawExtra) });
     default:
       return compactValue(rawExtra);
   }

@@ -8,6 +8,7 @@ import { triggerAudioAutoPlay } from "@/components/chat/infra/audioMessage/audio
 import { useChatComposerStore } from "@/components/chat/stores/chatComposerStore";
 import { useChatInputUiStore } from "@/components/chat/stores/chatInputUiStore";
 import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
+import { parseSimpleStateCommand } from "@/components/chat/state/stateCommandParser";
 import { buildMessageDraftsFromComposerSnapshot } from "@/components/chat/utils/messageDraftBuilder";
 import { buildOutOfCharacterSpeechContent } from "@/components/chat/utils/outOfCharacterSpeech";
 import { isRoomJumpCommandText, parseRoomJumpCommand } from "@/components/chat/utils/roomJump";
@@ -214,13 +215,53 @@ export default function useChatMessageSubmit({
         return;
       }
 
+      const parsedStateCommand = !isSpectator
+        ? parseSimpleStateCommand({
+            inputText: trimmedInputText,
+            inputTextWithoutMentions: trimmedWithoutMentions,
+            curRoleId: senderRoleId,
+            mentionedRoleCount: mentionedRolesInInput.length,
+          })
+        : null;
+
       const isCommandRequestByAll = !isSpectator && isKP && containsCommandRequestAllToken(inputText);
       const extractedCommandForRequest = isCommandRequestByAll ? extractFirstCommandText(trimmedWithoutMentions) : null;
       const requestCommand = extractedCommandForRequest ? stripCommandRequestAllToken(extractedCommandForRequest) : null;
       const shouldSendCommandRequest = Boolean(requestCommand && isCommand(requestCommand));
       let hasConsumedFirstMessage = false;
 
-      if (shouldSendCommandRequest) {
+      if (parsedStateCommand) {
+        const stateEventMsg: ChatMessageRequest = {
+          content: parsedStateCommand.content,
+          messageType: MessageType.STATE_EVENT,
+          roomId,
+          roleId: senderRoleId,
+          avatarId: resolvedAvatarId,
+          extra: {
+            stateEvent: parsedStateCommand.stateEvent,
+          },
+        };
+        if (typeof activeThreadId === "number") {
+          stateEventMsg.threadId = activeThreadId;
+        }
+        if (typeof finalReplyId === "number") {
+          stateEventMsg.replayMessageId = finalReplyId;
+        }
+        if (!isSpectator && mergedComposerAnnotations.length > 0) {
+          stateEventMsg.annotations = mergedComposerAnnotations;
+        }
+        if (draftCustomRoleName) {
+          stateEventMsg.customRoleName = draftCustomRoleName;
+        }
+
+        const createdStateEventMessage = await sendMessageWithInsert(stateEventMsg);
+        if (!createdStateEventMessage) {
+          return;
+        }
+        hasConsumedFirstMessage = true;
+        regularInputText = "";
+      }
+      else if (shouldSendCommandRequest) {
         const requestMsg: ChatMessageRequest = {
           content: requestCommand!,
           messageType: MessageType.COMMAND_REQUEST,
