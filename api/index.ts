@@ -319,6 +319,11 @@ export type { SpaceUserDocCreateRequest } from './models/SpaceUserDocCreateReque
 export type { SpaceUserDocRenameRequest } from './models/SpaceUserDocRenameRequest';
 export type { SpaceUserDocResponse } from './models/SpaceUserDocResponse';
 export type { SpaceUserDocTagUpdateRequest } from './models/SpaceUserDocTagUpdateRequest';
+export type { SpriteTransform } from './models/SpriteTransform';
+export type { StateEventAtom } from './models/StateEventAtom';
+export type { StateEventExtra } from './models/StateEventExtra';
+export type { StateEventScope } from './models/StateEventScope';
+export type { StateEventSource } from './models/StateEventSource';
 export type { Sticker } from './models/Sticker';
 export type { StickerCreateRequest } from './models/StickerCreateRequest';
 export type { Tag } from './models/Tag';

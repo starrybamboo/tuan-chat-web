@@ -2,6 +2,7 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
+import type { SpriteTransform } from './SpriteTransform';
 export type RoleAvatar = {
     /**
      * 角色id
@@ -35,25 +36,6 @@ export type RoleAvatar = {
      * 头像原始url
      */
     originUrl?: string;
-    /**
-     * 立绘x坐标
-     */
-    spriteXPosition?: number;
-    /**
-     * 立绘y坐标
-     */
-    spriteYPosition?: number;
-    /**
-     * 立绘缩放
-     */
-    spriteScale?: number;
-    /**
-     * 立绘透明度
-     */
-    spriteTransparency?: number;
-    /**
-     * 立绘旋转角度
-     */
-    spriteRotation?: number;
+    spriteTransform?: SpriteTransform;
 };
 

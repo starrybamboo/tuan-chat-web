@@ -23,6 +23,7 @@ export enum MessageType {
     /** WebGAL 选择消息（结构化选项） */
     WEBGAL_CHOOSE = 13,
     VIDEO = 14,
+    STATE_EVENT = 15,
     CLUE_CARD = 1000,
     ROOM_JUMP = 1003,
     THREAD_ROOT = 10001,
