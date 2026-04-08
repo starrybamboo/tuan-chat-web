@@ -14,6 +14,7 @@ const mocks = vi.hoisted(() => ({
   buildMessageDraftsFromComposerSnapshotMock: vi.fn(),
   triggerAudioAutoPlayMock: vi.fn(),
   toastErrorMock: vi.fn(),
+  isCommandMock: vi.fn(),
 }));
 
 const passthroughCallback = <T extends (...args: any[]) => any>(fn: T) => fn;
@@ -46,7 +47,7 @@ vi.mock("@/components/chat/utils/roomJump", () => ({
 }));
 
 vi.mock("@/components/common/dicer/cmdPre", () => ({
-  isCommand: () => false,
+  isCommand: mocks.isCommandMock,
 }));
 
 vi.mock("@/components/chat/infra/audioMessage/audioMessageAutoPlayRuntime", () => ({
@@ -72,6 +73,8 @@ function createMessage(messageId: number): ChatMessageResponse["message"] {
 describe("useChatMessageSubmit", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.isCommandMock.mockReturnValue(false);
+    mocks.buildMessageDraftsFromComposerSnapshotMock.mockResolvedValue([]);
     useChatInputUiStore.getState().reset();
     useChatComposerStore.getState().reset();
   });
@@ -220,5 +223,164 @@ describe("useChatMessageSubmit", () => {
       purpose: "bgm",
       url: "https://static.example.com/bgm.mp3",
     });
+  });
+
+  it("简单 .st 会优先编译成 STATE_EVENT(varOp)，不再走旧 cmdPre", async () => {
+    mocks.isCommandMock.mockReturnValue(true);
+    useChatInputUiStore.setState({
+      plainText: ".st hp -2",
+      textWithoutMentions: ".st hp -2",
+      mentionedRoles: [],
+    });
+
+    const roomUiStoreApi = createRoomUiStore();
+    const commandExecutor = vi.fn();
+    const sendMessageWithInsert = vi.fn(async (request) => ({
+      ...createMessage(20),
+      messageType: request.messageType,
+      content: request.content,
+      extra: request.extra,
+    }));
+
+    const { handleMessageSubmit } = useChatMessageSubmit({
+      roomId: 1,
+      spaceId: 2,
+      isSpaceOwner: false,
+      curRoleId: 3,
+      notMember: false,
+      noRole: false,
+      isSubmitting: false,
+      setIsSubmitting: vi.fn(),
+      sendMessageWithInsert,
+      sendMessageBatch: vi.fn(async () => []),
+      ensureRuntimeAvatarIdForRole: vi.fn(async () => 7),
+      commandExecutor,
+      containsCommandRequestAllToken: vi.fn(() => false),
+      stripCommandRequestAllToken: vi.fn((text: string) => text),
+      extractFirstCommandText: vi.fn(() => null),
+      setInputText: vi.fn(),
+      roomUiStoreApi,
+    });
+
+    await handleMessageSubmit();
+
+    expect(commandExecutor).not.toHaveBeenCalled();
+    expect(sendMessageWithInsert).toHaveBeenCalledWith(expect.objectContaining({
+      messageType: MessageType.STATE_EVENT,
+      content: ".st hp -2",
+      extra: {
+        stateEvent: {
+          source: {
+            kind: "command",
+            commandName: "st",
+            parserVersion: "state-event-v1",
+          },
+          events: [{
+            type: "varOp",
+            scope: {
+              kind: "role",
+              roleId: 3,
+            },
+            key: "hp",
+            op: "sub",
+            value: 2,
+          }],
+        },
+      },
+    }));
+  });
+
+  it("简单 .next 会生成 STATE_EVENT(nextTurn)", async () => {
+    useChatInputUiStore.setState({
+      plainText: ".next",
+      textWithoutMentions: ".next",
+      mentionedRoles: [],
+    });
+
+    const roomUiStoreApi = createRoomUiStore();
+    const sendMessageWithInsert = vi.fn(async (request) => ({
+      ...createMessage(21),
+      messageType: request.messageType,
+      content: request.content,
+      extra: request.extra,
+    }));
+
+    const { handleMessageSubmit } = useChatMessageSubmit({
+      roomId: 1,
+      spaceId: 2,
+      isSpaceOwner: false,
+      curRoleId: 3,
+      notMember: false,
+      noRole: false,
+      isSubmitting: false,
+      setIsSubmitting: vi.fn(),
+      sendMessageWithInsert,
+      sendMessageBatch: vi.fn(async () => []),
+      ensureRuntimeAvatarIdForRole: vi.fn(async () => 7),
+      commandExecutor: vi.fn(),
+      containsCommandRequestAllToken: vi.fn(() => false),
+      stripCommandRequestAllToken: vi.fn((text: string) => text),
+      extractFirstCommandText: vi.fn(() => null),
+      setInputText: vi.fn(),
+      roomUiStoreApi,
+    });
+
+    await handleMessageSubmit();
+
+    expect(sendMessageWithInsert).toHaveBeenCalledWith(expect.objectContaining({
+      messageType: MessageType.STATE_EVENT,
+      content: ".next",
+      extra: {
+        stateEvent: {
+          source: {
+            kind: "command",
+            commandName: "next",
+            parserVersion: "state-event-v1",
+          },
+          events: [{ type: "nextTurn" }],
+        },
+      },
+    }));
+  });
+
+  it("其他命令仍然走旧 cmdPre 逻辑", async () => {
+    mocks.isCommandMock.mockReturnValue(true);
+    useChatInputUiStore.setState({
+      plainText: ".ra 侦查",
+      textWithoutMentions: ".ra 侦查",
+      mentionedRoles: [],
+    });
+
+    const roomUiStoreApi = createRoomUiStore();
+    const commandExecutor = vi.fn();
+    const sendMessageWithInsert = vi.fn(async () => createMessage(22));
+
+    const { handleMessageSubmit } = useChatMessageSubmit({
+      roomId: 1,
+      spaceId: 2,
+      isSpaceOwner: false,
+      curRoleId: 3,
+      notMember: false,
+      noRole: false,
+      isSubmitting: false,
+      setIsSubmitting: vi.fn(),
+      sendMessageWithInsert,
+      sendMessageBatch: vi.fn(async () => []),
+      ensureRuntimeAvatarIdForRole: vi.fn(async () => 7),
+      commandExecutor,
+      containsCommandRequestAllToken: vi.fn(() => false),
+      stripCommandRequestAllToken: vi.fn((text: string) => text),
+      extractFirstCommandText: vi.fn(() => null),
+      setInputText: vi.fn(),
+      roomUiStoreApi,
+    });
+
+    await handleMessageSubmit();
+
+    expect(commandExecutor).toHaveBeenCalledWith(expect.objectContaining({
+      command: ".ra 侦查",
+      originMessage: ".ra 侦查",
+    }));
+    expect(sendMessageWithInsert).not.toHaveBeenCalled();
   });
 });

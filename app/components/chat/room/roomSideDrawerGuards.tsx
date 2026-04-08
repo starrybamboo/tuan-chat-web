@@ -30,7 +30,7 @@ export default function RoomSideDrawerGuards({ spaceId }: Props) {
 
   // 关闭跑团模式时，自动关闭跑团相关侧边栏
   useEffect(() => {
-    const runModeDrawers: Array<typeof sideDrawerState> = ["docFolder", "initiative", "map"];
+    const runModeDrawers: Array<typeof sideDrawerState> = ["docFolder", "initiative", "map", "state"];
     if (!runModeEnabled && runModeDrawers.includes(sideDrawerState)) {
       setSideDrawerState("none");
     }

@@ -107,6 +107,56 @@ describe("messageDraft request normalization", () => {
     });
   });
 
+  it("stateEvent 请求会保留结构化包装层并规范字段", () => {
+    const request = buildChatMessageRequestFromDraft({
+      messageType: MESSAGE_TYPE.STATE_EVENT,
+      content: ".st hp -2",
+      extra: {
+        stateEvent: {
+          source: {
+            kind: " command ",
+            commandName: " st ",
+            parserVersion: " state-event-v1 ",
+          },
+          events: [{
+            type: "varOp",
+            scope: {
+              kind: "role",
+              roleId: "3",
+            },
+            key: " hp ",
+            op: "sub",
+            value: "2",
+          }],
+        },
+      },
+    } as any, {
+      roomId: 1,
+      roleId: 3,
+      avatarId: 5,
+    });
+
+    expect(request.extra).toEqual({
+      stateEvent: {
+        source: {
+          kind: "command",
+          commandName: "st",
+          parserVersion: "state-event-v1",
+        },
+        events: [{
+          type: "varOp",
+          scope: {
+            kind: "role",
+            roleId: 3,
+          },
+          key: "hp",
+          op: "sub",
+          value: 2,
+        }],
+      },
+    });
+  });
+
   it("乐观匹配也只接受非扁平 extra", () => {
     expect(normalizeMessageExtraForMatch(MESSAGE_TYPE.IMG, {
       imageMessage: {
@@ -155,5 +205,22 @@ describe("messageDraft request normalization", () => {
     } as any, {
       roomId: 1,
     })).toThrow("图片素材缺少必要字段");
+  });
+
+  it("stateEvent 缺少有效事件时直接抛出前端错误", () => {
+    expect(() => buildChatMessageRequestFromDraft({
+      messageType: MESSAGE_TYPE.STATE_EVENT,
+      extra: {
+        stateEvent: {
+          source: {
+            kind: "command",
+            parserVersion: "state-event-v1",
+          },
+          events: [],
+        },
+      },
+    } as any, {
+      roomId: 1,
+    })).toThrow("状态事件消息缺少有效 stateEvent");
   });
 });

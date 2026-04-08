@@ -139,6 +139,34 @@ describe("getMessagePreviewText", () => {
     expect(getMessagePreviewText(msg)).toBe("[WebGAL] %bgm:1");
   });
 
+  it("state event 预览优先显示结构化状态摘要", () => {
+    const msg = createBaseMessage({
+      messageType: MESSAGE_TYPE.STATE_EVENT,
+      content: ".st hp -2",
+      extra: {
+        stateEvent: {
+          source: {
+            kind: "command",
+            commandName: "st",
+            parserVersion: "state-event-v1",
+          },
+          events: [{
+            type: "varOp",
+            scope: {
+              kind: "role",
+              roleId: 3,
+            },
+            key: "hp",
+            op: "sub",
+            value: 2,
+          }],
+        },
+      } as any,
+    });
+
+    expect(getMessagePreviewText(msg)).toBe("[状态] HP - 2");
+  });
+
   it("未知类型优先返回 content", () => {
     const msg = createBaseMessage({
       messageType: 999999,

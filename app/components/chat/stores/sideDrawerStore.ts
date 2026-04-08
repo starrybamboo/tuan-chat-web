@@ -7,12 +7,13 @@ export type SideDrawerState
     | "search"
     | "initiative"
     | "map"
+    | "state"
     | "doc"
     | "docFolder"
     | "export"
     | "webgal";
 
-type SubRoomDrawerState = "none" | "map" | "webgal" | "doc";
+type SubRoomDrawerState = "none" | "map" | "initiative" | "state" | "webgal" | "doc";
 
 type SideDrawerStore = {
   state: SideDrawerState;

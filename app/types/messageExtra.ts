@@ -65,3 +65,7 @@ export function getRoomJumpExtra(extra: unknown) {
 export function getThreadRootExtra(extra: unknown) {
   return getNestedMessageExtra(extra, "threadRoot");
 }
+
+export function getStateEventExtra(extra: unknown) {
+  return getNestedMessageExtra(extra, "stateEvent");
+}
