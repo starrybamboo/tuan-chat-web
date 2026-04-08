@@ -2446,20 +2446,21 @@ export class RealtimeRenderer {
       return "";
     }
 
-    const rotationRad = avatar?.spriteRotation
-      ? (avatar.spriteRotation * Math.PI / 180)
+    const spriteTransform = avatar?.spriteTransform;
+    const rotationRad = spriteTransform?.rotation
+      ? (spriteTransform.rotation * Math.PI / 180)
       : 0;
 
     const transform = {
       position: {
-        x: (avatar?.spriteXPosition ?? 0) + offsetX,
-        y: (avatar?.spriteYPosition ?? 0) + offsetY,
+        x: (spriteTransform?.positionX ?? 0) + offsetX,
+        y: (spriteTransform?.positionY ?? 0) + offsetY,
       },
       scale: {
-        x: avatar?.spriteScale ?? 1,
-        y: avatar?.spriteScale ?? 1,
+        x: spriteTransform?.scale ?? 1,
+        y: spriteTransform?.scale ?? 1,
       },
-      alpha: avatar?.spriteTransparency ?? 1,
+      alpha: spriteTransform?.alpha ?? 1,
       rotation: rotationRad,
     };
     return `-transform=${JSON.stringify(transform)}`;

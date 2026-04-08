@@ -68,7 +68,9 @@ export type AvatarFetchFn = (avatarId: number) => Promise<{
   spriteUrl?: string;
   avatarUrl?: string;
   originUrl?: string;
-  spriteScale?: number;
+  spriteTransform?: {
+    scale?: number;
+  };
 } | undefined | null>;
 export type RoleNameFetchFn = (roleId?: number) => Promise<string | undefined | null>;
 export type UserNameFetchFn = (userId?: number) => Promise<string | undefined | null>;
@@ -734,8 +736,8 @@ export class PremiereExporter {
             if (!avatarUrl) {
               avatarUrl = info.originUrl || info.spriteUrl || info.avatarUrl;
             }
-            if (typeof info.spriteScale === "number") {
-              correctionScale = info.spriteScale;
+            if (typeof info.spriteTransform?.scale === "number") {
+              correctionScale = info.spriteTransform.scale;
             }
           }
         }
