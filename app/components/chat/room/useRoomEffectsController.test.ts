@@ -6,18 +6,14 @@ const mocks = vi.hoisted(() => ({
   toastSuccessMock: vi.fn(),
 }));
 
-const passthroughCallback = <T extends (...args: any[]) => any>(fn: T) => fn;
-const noopEffect = vi.fn();
-const createStaticState = <T>(value: T) => [value, vi.fn()] as const;
-
 vi.mock("react", async () => {
   const actual = await vi.importActual<typeof import("react")>("react");
   return {
     ...actual,
     default: actual,
-    useCallback: passthroughCallback,
-    useEffect: noopEffect,
-    useState: createStaticState,
+    useCallback: ((fn: any) => fn),
+    useEffect: vi.fn(),
+    useState: ((value: any) => [value, vi.fn()] as const),
   };
 });
 

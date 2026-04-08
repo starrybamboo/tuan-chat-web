@@ -5,14 +5,12 @@ import type { ChatMessageResponse } from "../../../../api";
 import { createRoomUiStore } from "../stores/roomUiStore";
 import useRoomImportActions from "./useRoomImportActions";
 
-const passthroughCallback = <T extends (...args: any[]) => any>(fn: T) => fn;
-
 vi.mock("react", async () => {
   const actual = await vi.importActual<typeof import("react")>("react");
   return {
     ...actual,
     default: actual,
-    useCallback: passthroughCallback,
+    useCallback: ((fn: any) => fn),
   };
 });
 
@@ -45,6 +43,7 @@ vi.mock("@/components/chat/infra/blocksuite/shared/base64", () => ({
 vi.mock("@/components/chat/infra/blocksuite/document/docExcerpt", () => ({
   extractDocExcerptFromStore: vi.fn(() => ""),
 }));
+
 function createMessage(messageId: number): ChatMessageResponse["message"] {
   return {
     messageId,

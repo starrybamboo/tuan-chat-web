@@ -17,16 +17,13 @@ const mocks = vi.hoisted(() => ({
   isCommandMock: vi.fn(),
 }));
 
-const passthroughCallback = <T extends (...args: any[]) => any>(fn: T) => fn;
-const createStaticRef = <T>(value: T) => ({ current: value });
-
 vi.mock("react", async () => {
   const actual = await vi.importActual<typeof import("react")>("react");
   return {
     ...actual,
     default: actual,
-    useCallback: passthroughCallback,
-    useRef: createStaticRef,
+    useCallback: ((fn: any) => fn),
+    useRef: ((value: any) => ({ current: value })),
   };
 });
 
