@@ -34,14 +34,13 @@ export function parseTransformFromAvatar(avatar: RoleAvatar | null): Transform {
     };
   }
 
-  // Parse transform parameters from string values, with fallbacks to defaults
-  const scale = avatar.spriteScale ? avatar.spriteScale : 1;
-  const positionX = avatar.spriteXPosition ? avatar.spriteXPosition : 0;
-  const positionY = avatar.spriteYPosition ? avatar.spriteYPosition : 0;
-  const alpha = avatar.spriteTransparency ? avatar.spriteTransparency : 1;
-  const rotation = avatar.spriteRotation ? avatar.spriteRotation : 0;
+  const spriteTransform = avatar.spriteTransform;
+  const scale = spriteTransform?.scale ?? 1;
+  const positionX = spriteTransform?.positionX ?? 0;
+  const positionY = spriteTransform?.positionY ?? 0;
+  const alpha = spriteTransform?.alpha ?? 1;
+  const rotation = spriteTransform?.rotation ?? 0;
 
-  // Validate and clamp values to acceptable ranges
   return {
     scale,
     positionX,
@@ -49,4 +48,18 @@ export function parseTransformFromAvatar(avatar: RoleAvatar | null): Transform {
     alpha,
     rotation,
   };
-};
+}
+
+export function toSpriteTransformPayload(transform: Transform | null | undefined): RoleAvatar["spriteTransform"] | undefined {
+  if (!transform) {
+    return undefined;
+  }
+
+  return {
+    positionX: transform.positionX,
+    positionY: transform.positionY,
+    scale: transform.scale,
+    alpha: transform.alpha,
+    rotation: transform.rotation,
+  };
+}

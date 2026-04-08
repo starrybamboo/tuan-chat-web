@@ -14,6 +14,7 @@ import { tuanchat } from '../instance';
 // import type { RoleAbilityTable } from './models/RoleAbilityTable';
 import type { RoleAvatar } from '../models/RoleAvatar';
 import type { RoleAvatarCreateRequest } from '../models/RoleAvatarCreateRequest';
+import type { SpriteTransform } from '../models/SpriteTransform';
 import type { UserRegisterRequest } from '../models/UserRegisterRequest';
 import type { RolePageQueryRequest } from '../models/RolePageQueryRequest'
 import type { Transform } from '../../app/components/Role/sprite/TransformControl';
@@ -152,6 +153,20 @@ function patchGetRoleQueryCache(old: any, next: any, resolvedRoleId: number) {
       type: typeof next?.type === "number" ? next.type : old.data.type,
       diceMaiden: typeof next?.type === "number" ? next.type === 1 : old.data.diceMaiden,
     },
+  };
+}
+
+function toSpriteTransformPayload(transform: Transform | undefined): SpriteTransform | undefined {
+  if (!transform) {
+    return undefined;
+  }
+
+  return {
+    positionX: transform.positionX,
+    positionY: transform.positionY,
+    scale: transform.scale,
+    alpha: transform.alpha,
+    rotation: transform.rotation,
   };
 }
 
@@ -677,11 +692,7 @@ export function useApplyCropMutation() {
           avatarUrl: currentAvatar.avatarUrl, // 保持原有的avatarUrl
           avatarThumbUrl: currentAvatar.avatarThumbUrl,
           spriteUrl: newSpriteUrl, // 使用新的spriteUrl
-          spriteXPosition: finalTransform.positionX,
-          spriteYPosition: finalTransform.positionY,
-          spriteScale: finalTransform.scale,
-          spriteTransparency: finalTransform.alpha,
-          spriteRotation: finalTransform.rotation,
+          spriteTransform: toSpriteTransformPayload(finalTransform),
         });
 
         if (!updateRes.success) {
@@ -695,11 +706,7 @@ export function useApplyCropMutation() {
           avatarId,
           avatarUrl: currentAvatar.avatarUrl,
           spriteUrl: newSpriteUrl,
-          spriteXPosition: finalTransform.positionX,
-          spriteYPosition: finalTransform.positionY,
-          spriteScale: finalTransform.scale,
-          spriteTransparency: finalTransform.alpha,
-          spriteRotation: finalTransform.rotation,
+          spriteTransform: toSpriteTransformPayload(finalTransform),
         };
         upsertRoleAvatarQueryCaches(queryClient, nextAvatar, roleId);
         emitWebgalAvatarUpdated({ avatarId, avatar: nextAvatar });
@@ -811,11 +818,7 @@ export function useUpdateAvatarTransformMutation() {
           avatarUrl: currentAvatar.avatarUrl,
           avatarThumbUrl: currentAvatar.avatarThumbUrl,
           spriteUrl: currentAvatar.spriteUrl,
-          spriteXPosition: t.positionX,
-          spriteYPosition: t.positionY,
-          spriteScale: t.scale,
-          spriteTransparency: t.alpha,
-          spriteRotation: t.rotation,
+          spriteTransform: toSpriteTransformPayload(t),
         });
 
         if (!updateRes.success) {
@@ -838,11 +841,7 @@ export function useUpdateAvatarTransformMutation() {
         avatarId: variables.avatarId,
         avatarUrl: variables.currentAvatar.avatarUrl,
         spriteUrl: variables.currentAvatar.spriteUrl,
-        spriteXPosition: variables.transform.positionX,
-        spriteYPosition: variables.transform.positionY,
-        spriteScale: variables.transform.scale,
-        spriteTransparency: variables.transform.alpha,
-        spriteRotation: variables.transform.rotation,
+        spriteTransform: toSpriteTransformPayload(variables.transform),
       };
       upsertRoleAvatarQueryCaches(queryClient, nextAvatar, variables.roleId);
       emitWebgalAvatarUpdated({ avatarId: variables.avatarId, avatar: nextAvatar });
@@ -893,11 +892,7 @@ export function useUploadAvatarMutation() {
             avatarThumbUrl: resolvedAvatarThumbUrl,
             spriteUrl,
             originUrl,
-            spriteXPosition: t.positionX,
-            spriteYPosition: t.positionY,
-            spriteScale: t.scale,
-            spriteTransparency: t.alpha,
-            spriteRotation: t.rotation,
+            spriteTransform: toSpriteTransformPayload(t),
           });
           if (!uploadRes.success) {
             console.error("头像更新失败", uploadRes);

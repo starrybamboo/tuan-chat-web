@@ -8,7 +8,7 @@ import { RenderPreview } from "@/components/Role/Preview/RenderPreview";
 import { isMobileScreen } from "@/utils/getScreenSize";
 import { withOssResizeProcess } from "@/utils/ossImageProcess";
 import { CharacterCopper } from "../../RoleInfoCard/AvatarUploadCropper";
-import { getEffectiveSpriteUrl, parseTransformFromAvatar } from "../utils";
+import { getEffectiveSpriteUrl, parseTransformFromAvatar, toSpriteTransformPayload } from "../utils";
 
 interface RenderTransform {
   scale: number;
@@ -280,13 +280,7 @@ export function PreviewTab({
       return;
     }
 
-    const nextTransform = payload.transform ?? {
-      scale: currentAvatar.spriteScale ?? 1,
-      positionX: currentAvatar.spriteXPosition ?? 0,
-      positionY: currentAvatar.spriteYPosition ?? 0,
-      alpha: currentAvatar.spriteTransparency ?? 1,
-      rotation: currentAvatar.spriteRotation ?? 0,
-    };
+    const nextTransform = payload.transform ?? parseTransformFromAvatar(currentAvatar);
 
     try {
       await updateAvatar({
@@ -297,11 +291,7 @@ export function PreviewTab({
         avatarThumbUrl: payload.avatarThumbUrl || payload.avatarUrl || currentAvatar.avatarThumbUrl || currentAvatar.avatarUrl || "",
         spriteUrl: payload.spriteUrl || currentAvatar.spriteUrl || "",
         originUrl: payload.originUrl ?? currentAvatar.originUrl,
-        spriteXPosition: nextTransform.positionX,
-        spriteYPosition: nextTransform.positionY,
-        spriteScale: nextTransform.scale,
-        spriteTransparency: nextTransform.alpha,
-        spriteRotation: nextTransform.rotation,
+        spriteTransform: toSpriteTransformPayload(nextTransform),
       });
       toast.success("头像已修改");
     }
