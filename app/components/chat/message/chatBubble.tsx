@@ -224,6 +224,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
   const isNarrator = !message.roleId || message.roleId <= 0;
   // 判断是否为黑屏文字
   const isIntroText = message.messageType === MESSAGE_TYPE.INTRO_TEXT;
+  const isStateEventMessage = message.messageType === MESSAGE_TYPE.STATE_EVENT;
   const createTime = message.createTime;
   const updateTime = message.updateTime;
   const parseTimeToMs = (time?: string | number | null) => {
@@ -1041,8 +1042,33 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
   return (
     <div>
       {textStyleToolbar}
-      {useChatBubbleStyle
+      {isStateEventMessage
         ? (
+            <div
+              className="group relative flex w-full justify-center py-0.5 sm:py-1"
+              key={message.messageId}
+            >
+              {messageHoverToolbar}
+              <div className="flex w-full max-w-4xl items-start justify-center gap-1.5 px-1.5 sm:px-3">
+                <div className="min-w-0 max-w-full shrink">
+                  {renderedContent}
+                </div>
+                <div className="pt-px text-[10px] leading-5 text-base-content/32">
+                  {isEdited && <span className="text-warning/70 mr-1">(已编辑)</span>}
+                  {formattedTime}
+                </div>
+              </div>
+              {threadHintNode && (
+                <div className="mt-1 w-full max-w-3xl px-2 sm:px-4">
+                  <div className="mx-auto max-w-[32rem]">
+                    {threadHintNode}
+                  </div>
+                </div>
+              )}
+            </div>
+          )
+        : useChatBubbleStyle
+          ? (
             <div
               className={CHAT_MESSAGE_ROW_CLASS}
               key={message.messageId}

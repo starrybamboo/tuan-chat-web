@@ -22,6 +22,9 @@ export interface RoomContextType {
   /** 当前用户在该房间拥有的角色列表 */
   roomRolesThatUserOwn: UserRole[];
 
+  /** 当前房间可见的角色列表 */
+  roomAllRoles?: UserRole[];
+
   /** 当前选中的角色ID */
   curRoleId?: number;
 
@@ -88,6 +91,7 @@ export const RoomContext = createContext<RoomContextType>({
   roomMembers: [],
   curMember: undefined,
   roomRolesThatUserOwn: [],
+  roomAllRoles: [],
   curAvatarId: undefined,
   curRoleId: undefined,
   spaceId: undefined,

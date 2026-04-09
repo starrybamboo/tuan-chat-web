@@ -98,10 +98,26 @@ function readNumericRecordValue(record: Record<string, string> | undefined, key:
   return Number.isFinite(normalized) ? normalized : undefined;
 }
 
+function collectNumericRecordKeys(record: Record<string, string> | undefined): string[] {
+  if (!record) {
+    return [];
+  }
+
+  return Object.keys(record).filter(key => typeof readNumericRecordValue(record, key) === "number");
+}
+
 export function getFallbackRoleAbilityValue(roleAbility: RoleAbility | null | undefined, key: string): number | undefined {
   return readNumericRecordValue(roleAbility?.basic, key)
     ?? readNumericRecordValue(roleAbility?.ability, key)
     ?? readNumericRecordValue(roleAbility?.skill, key);
+}
+
+function collectFallbackRoleAbilityKeys(roleAbility: RoleAbility | null | undefined): string[] {
+  const keys = new Set<string>();
+  collectNumericRecordKeys(roleAbility?.basic).forEach(key => keys.add(key));
+  collectNumericRecordKeys(roleAbility?.ability).forEach(key => keys.add(key));
+  collectNumericRecordKeys(roleAbility?.skill).forEach(key => keys.add(key));
+  return [...keys];
 }
 
 function readScopeBaseValue(
@@ -330,6 +346,7 @@ function buildDisplayValues(params: {
     const roleStates = activeStates.filter(state => state.scope.kind === STATE_EVENT_SCOPE_KIND.ROLE && state.scope.roleId === roleId);
     const keys = new Set<string>(collectDisplayKeys(roleVars, roleStates));
     observedRoleKeysByRoleId.get(roleId)?.forEach(key => keys.add(key));
+    collectFallbackRoleAbilityKeys(fallbackRoleAbilitiesByRoleId[roleId]).forEach(key => keys.add(key));
     const sortedKeys = [...keys].sort((left, right) => left.localeCompare(right, "zh-CN"));
     if (sortedKeys.length === 0) {
       return;

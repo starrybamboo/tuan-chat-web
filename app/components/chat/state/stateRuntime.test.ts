@@ -122,6 +122,23 @@ describe("buildStateRuntime", () => {
     expect(runtimeFrom200.roleVarsByRoleId[3]?.hp).toBe(118);
   });
 
+  it("仅存在 fallback role_ability 的角色也会出现在显示值中", () => {
+    const runtime = buildStateRuntime({
+      messages: [],
+      fallbackRoleAbilitiesByRoleId: {
+        3: createRoleAbility({ ability: { hp: "100", mp: "12" } }),
+        8: {
+          ...createRoleAbility({ roleId: 8 }),
+          ability: { hp: "88" },
+        },
+      },
+    });
+
+    expect(runtime.baseDisplayValues.rolesByRoleId[3]).toEqual({ hp: 100, mp: 12 });
+    expect(runtime.derivedDisplayValues.rolesByRoleId[3]).toEqual({ hp: 100, mp: 12 });
+    expect(runtime.baseDisplayValues.rolesByRoleId[8]).toEqual({ hp: 88 });
+  });
+
   it("nextTurn 会推进回合并衰减状态", () => {
     const resolver = new MemoryStateDefinitionResolver([
       createStateDefinition({

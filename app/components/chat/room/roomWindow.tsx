@@ -187,6 +187,7 @@ function RoomWindow({
     roomMembers: members,
     curMember,
     roomRolesThatUserOwn,
+    roomAllRoles,
     curRoleId,
     curAvatarId,
     spaceId,
@@ -205,6 +206,7 @@ function RoomWindow({
     jumpToMessageInWebGAL,
     members,
     rerenderHistoryInWebGAL,
+    roomAllRoles,
     roomId,
     roomRolesThatUserOwn,
     sendMessageWithInsertFromRef,
@@ -921,6 +923,7 @@ function RoomWindow({
           messages={mainHistoryMessages}
           ruleId={space?.ruleId ?? -1}
           currentRoleId={curRoleId}
+          visibleRoleIds={roomAllRoles.map(role => role.roleId).filter(roleId => roleId > 0)}
         >
           <RealtimeRenderOrchestrator
             spaceId={spaceId}
