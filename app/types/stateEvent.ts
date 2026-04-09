@@ -93,6 +93,12 @@ export type StateEventExtra = {
   events: StateEventAtom[];
 };
 
+export type StateScopeLabelOptions = {
+  roleNameById?: Record<number, string | null | undefined>;
+  roomLabel?: string;
+  fallbackRoleLabel?: (roleId: number) => string;
+};
+
 type MessageExtraRecord = Record<string, unknown>;
 
 function toRecord(value: unknown): MessageExtraRecord | null {
@@ -331,19 +337,45 @@ export function formatStateKeyLabel(key: string): string {
   return /^[A-Z0-9_:-]+$/i.test(normalized) ? normalized.toUpperCase() : normalized;
 }
 
-export function formatStateScopeLabel(scope: StateEventScope): string {
+export function formatStateScopeLabel(scope: StateEventScope, options?: StateScopeLabelOptions): string {
   if (scope.kind === STATE_EVENT_SCOPE_KIND.ROOM) {
-    return "房间";
+    return options?.roomLabel ?? "房间";
   }
-  return `角色 #${scope.roleId}`;
+  const mappedRoleName = options?.roleNameById?.[scope.roleId];
+  if (typeof mappedRoleName === "string" && mappedRoleName.trim()) {
+    return mappedRoleName.trim();
+  }
+  return options?.fallbackRoleLabel?.(scope.roleId) ?? `角色 #${scope.roleId}`;
 }
 
-export function formatStateEventAtomDetail(atom: StateEventAtom): string {
+export function collectStateEventScopeLabels(
+  events: StateEventAtom[],
+  options?: StateScopeLabelOptions,
+): string[] {
+  const labels: string[] = [];
+  const seen = new Set<string>();
+
+  events.forEach((event) => {
+    if (event.type === "nextTurn") {
+      return;
+    }
+    const label = formatStateScopeLabel(event.scope, options);
+    if (seen.has(label)) {
+      return;
+    }
+    seen.add(label);
+    labels.push(label);
+  });
+
+  return labels;
+}
+
+export function formatStateEventAtomDetail(atom: StateEventAtom, options?: StateScopeLabelOptions): string {
   if (atom.type === "nextTurn") {
     return "推进到下一回合";
   }
 
-  const scopeLabel = formatStateScopeLabel(atom.scope);
+  const scopeLabel = formatStateScopeLabel(atom.scope, options);
   if (atom.type === "varOp") {
     const opLabel = atom.op === STATE_EVENT_VAR_OP.SET
       ? "="

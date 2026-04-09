@@ -53,36 +53,34 @@ type UseChatMessageSubmitResult = {
   handleMessageSubmit: () => Promise<void>;
 };
 
-function isSameMentionedRolesSnapshot(a: UserRole[], b: UserRole[]): boolean {
-  if (a === b) {
-    return true;
-  }
-  if (a.length !== b.length) {
-    return false;
-  }
-  for (let i = 0; i < a.length; i++) {
-    if (a[i]?.roleId !== b[i]?.roleId) {
-      return false;
-    }
-  }
-  return true;
+type SubmittedInputSnapshot = {
+  plainText: string;
+  textWithoutMentions: string;
+  mentionedRoles: UserRole[];
+};
+
+type SubmittedComposerSnapshot = {
+  imgFiles: File[];
+  emojiUrls: string[];
+  emojiMetaByUrl: Record<string, { width?: number; height?: number; size?: number; fileName?: string }>;
+  fileAttachments: File[];
+  audioFile: File | null;
+  tempAnnotations: string[];
+};
+
+function shouldRestoreOptimisticallyClearedInput(current: SubmittedInputSnapshot): boolean {
+  return current.plainText === ""
+    && current.textWithoutMentions === ""
+    && current.mentionedRoles.length === 0;
 }
 
-function shouldResetSubmittedInputSnapshot(
-  current: {
-    plainText: string;
-    textWithoutMentions: string;
-    mentionedRoles: UserRole[];
-  },
-  submitted: {
-    plainText: string;
-    textWithoutMentions: string;
-    mentionedRoles: UserRole[];
-  },
-): boolean {
-  return current.plainText === submitted.plainText
-    && current.textWithoutMentions === submitted.textWithoutMentions
-    && isSameMentionedRolesSnapshot(current.mentionedRoles, submitted.mentionedRoles);
+function shouldRestoreOptimisticallyClearedComposer(current: SubmittedComposerSnapshot): boolean {
+  return current.imgFiles.length === 0
+    && current.emojiUrls.length === 0
+    && Object.keys(current.emojiMetaByUrl).length === 0
+    && current.fileAttachments.length === 0
+    && current.audioFile == null
+    && current.tempAnnotations.length === 0;
 }
 
 export default function useChatMessageSubmit({
@@ -170,11 +168,24 @@ export default function useChatMessageSubmit({
       return;
     }
 
+    const submittedInputSnapshot: SubmittedInputSnapshot = {
+      plainText: inputText,
+      textWithoutMentions: inputTextWithoutMentions,
+      mentionedRoles: mentionedRolesInInput,
+    };
+    const submittedComposerSnapshot: SubmittedComposerSnapshot = {
+      imgFiles,
+      emojiUrls,
+      emojiMetaByUrl,
+      fileAttachments,
+      audioFile,
+      tempAnnotations,
+    };
+    let didOptimisticClear = false;
+    let hasCommittedOutboundMessage = false;
+
     setIsSubmitting(true);
     try {
-      const resolvedAvatarId = senderRoleId > 0
-        ? await ensureRuntimeAvatarIdForRole(senderRoleId)
-        : -1;
       const {
         replyMessage,
         threadRootMessageId: activeThreadRootId,
@@ -230,6 +241,20 @@ export default function useChatMessageSubmit({
       const shouldSendCommandRequest = Boolean(requestCommand && isCommand(requestCommand));
       let hasConsumedFirstMessage = false;
 
+      useChatInputUiStore.getState().reset();
+      setInputText("");
+      setImgFiles([]);
+      setEmojiUrls([]);
+      clearEmojiMeta();
+      setFileAttachments([]);
+      setAudioFile(null);
+      setTempAnnotations([]);
+      didOptimisticClear = true;
+
+      const resolvedAvatarId = senderRoleId > 0
+        ? await ensureRuntimeAvatarIdForRole(senderRoleId)
+        : -1;
+
       if (parsedStateCommand) {
         const stateEventMsg: ChatMessageRequest = {
           content: parsedStateCommand.content,
@@ -258,6 +283,7 @@ export default function useChatMessageSubmit({
         if (!createdStateEventMessage) {
           return;
         }
+        hasCommittedOutboundMessage = true;
         hasConsumedFirstMessage = true;
         regularInputText = "";
       }
@@ -292,6 +318,7 @@ export default function useChatMessageSubmit({
         if (!createdRequestMessage) {
           return;
         }
+        hasCommittedOutboundMessage = true;
         hasConsumedFirstMessage = true;
         regularInputText = "";
       }
@@ -327,6 +354,7 @@ export default function useChatMessageSubmit({
         if (!createdRoomJumpMessage) {
           return;
         }
+        hasCommittedOutboundMessage = true;
         hasConsumedFirstMessage = true;
         regularInputText = "";
       }
@@ -338,6 +366,7 @@ export default function useChatMessageSubmit({
           threadId: activeThreadId,
           replyMessageId: finalReplyId,
         });
+        hasCommittedOutboundMessage = true;
         hasConsumedFirstMessage = true;
         regularInputText = "";
       }
@@ -396,6 +425,7 @@ export default function useChatMessageSubmit({
         if (createdBatchMessages.length !== regularRequests.length) {
           return;
         }
+        hasCommittedOutboundMessage = createdBatchMessages.length > 0;
         createdRegularMessages.push(...createdBatchMessages);
       }
       else {
@@ -404,6 +434,7 @@ export default function useChatMessageSubmit({
           if (!createdMessage) {
             return;
           }
+          hasCommittedOutboundMessage = true;
           createdRegularMessages.push(createdMessage);
         }
       }
@@ -437,35 +468,6 @@ export default function useChatMessageSubmit({
         });
       });
 
-      // 仅在当前草稿仍然是本次提交内容时才清空，避免覆盖用户在提交期间的新输入。
-      const latestInputSnapshot = useChatInputUiStore.getState();
-      if (shouldResetSubmittedInputSnapshot(latestInputSnapshot, {
-        plainText: inputText,
-        textWithoutMentions: inputTextWithoutMentions,
-        mentionedRoles: mentionedRolesInInput,
-      })) {
-        setInputText("");
-      }
-      const latestComposerState = useChatComposerStore.getState();
-      if (latestComposerState.imgFiles === imgFiles) {
-        setImgFiles([]);
-      }
-      if (latestComposerState.emojiUrls === emojiUrls) {
-        setEmojiUrls([]);
-      }
-      if (latestComposerState.emojiMetaByUrl === emojiMetaByUrl) {
-        clearEmojiMeta();
-      }
-      if (latestComposerState.fileAttachments === fileAttachments) {
-        setFileAttachments([]);
-      }
-      if (latestComposerState.audioFile === audioFile) {
-        setAudioFile(null);
-      }
-      if (latestComposerState.tempAnnotations === tempAnnotations) {
-        setTempAnnotations([]);
-      }
-
       const latestRoomUiState = roomUiStoreApi.getState();
       if (latestRoomUiState.replyMessage?.messageId === replyMessage?.messageId) {
         latestRoomUiState.setReplyMessage(undefined);
@@ -480,6 +482,33 @@ export default function useChatMessageSubmit({
       toast.error(message, { duration: 3000 });
     }
     finally {
+      if (didOptimisticClear && !hasCommittedOutboundMessage) {
+        const currentInputSnapshot = useChatInputUiStore.getState();
+        const currentComposerState = useChatComposerStore.getState();
+        const inputCanRestore = shouldRestoreOptimisticallyClearedInput(currentInputSnapshot);
+        const composerCanRestore = shouldRestoreOptimisticallyClearedComposer({
+          imgFiles: currentComposerState.imgFiles,
+          emojiUrls: currentComposerState.emojiUrls,
+          emojiMetaByUrl: currentComposerState.emojiMetaByUrl,
+          fileAttachments: currentComposerState.fileAttachments,
+          audioFile: currentComposerState.audioFile,
+          tempAnnotations: currentComposerState.tempAnnotations,
+        });
+
+        if (inputCanRestore && composerCanRestore) {
+          setInputText(submittedInputSnapshot.plainText);
+          useChatInputUiStore.getState().setSnapshot(submittedInputSnapshot);
+          setImgFiles(submittedComposerSnapshot.imgFiles);
+          setEmojiUrls(submittedComposerSnapshot.emojiUrls);
+          useChatComposerStore.setState(state => ({
+            ...state,
+            emojiMetaByUrl: submittedComposerSnapshot.emojiMetaByUrl,
+          }));
+          setFileAttachments(submittedComposerSnapshot.fileAttachments);
+          setAudioFile(submittedComposerSnapshot.audioFile);
+          setTempAnnotations(submittedComposerSnapshot.tempAnnotations);
+        }
+      }
       setIsSubmitting(false);
     }
   }, [

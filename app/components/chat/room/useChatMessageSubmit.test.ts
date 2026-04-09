@@ -67,6 +67,26 @@ function createMessage(messageId: number): ChatMessageResponse["message"] {
   };
 }
 
+function createSetInputTextMock() {
+  return vi.fn((text: string) => {
+    useChatInputUiStore.setState({
+      plainText: text,
+      textWithoutMentions: text,
+      mentionedRoles: [],
+    });
+  });
+}
+
+function createDeferred<T>() {
+  let resolve!: (value: T | PromiseLike<T>) => void;
+  let reject!: (reason?: unknown) => void;
+  const promise = new Promise<T>((innerResolve, innerReject) => {
+    resolve = innerResolve;
+    reject = innerReject;
+  });
+  return { promise, resolve, reject };
+}
+
 describe("useChatMessageSubmit", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -105,13 +125,7 @@ describe("useChatMessageSubmit", () => {
       messageId: 99,
     } as ChatMessageResponse["message"]);
 
-    const setInputText = vi.fn((text: string) => {
-      useChatInputUiStore.setState({
-        plainText: text,
-        textWithoutMentions: text,
-        mentionedRoles: [],
-      });
-    });
+    const setInputText = createSetInputTextMock();
     const setIsSubmitting = vi.fn();
     const sendMessageBatch = vi.fn(async () => []);
     const sendMessageWithInsert = vi.fn(async () => createMessage(10));
@@ -139,13 +153,109 @@ describe("useChatMessageSubmit", () => {
     await handleMessageSubmit();
 
     expect(sendMessageBatch).toHaveBeenCalledTimes(1);
-    expect(setInputText).not.toHaveBeenCalled();
+    expect(setInputText).toHaveBeenNthCalledWith(1, "");
+    expect(setInputText).toHaveBeenNthCalledWith(2, "原始消息");
     expect(useChatComposerStore.getState().tempAnnotations).toEqual(["bgm"]);
+    expect(useChatInputUiStore.getState().plainText).toBe("原始消息");
     expect(roomUiStoreApi.getState().replyMessage?.messageId).toBe(99);
     expect(roomUiStoreApi.getState().insertAfterMessageId).toBeUndefined();
     expect(setIsSubmitting).toHaveBeenNthCalledWith(1, true);
     expect(setIsSubmitting).toHaveBeenNthCalledWith(2, false);
     expect(mocks.toastErrorMock).not.toHaveBeenCalled();
+  });
+
+  it("开始发送后会立即清空输入框，不等待发送回包", async () => {
+    mocks.buildMessageDraftsFromComposerSnapshotMock.mockResolvedValue([
+      {
+        content: "普通消息",
+        messageType: MessageType.TEXT,
+        extra: {},
+      },
+    ]);
+    useChatInputUiStore.setState({
+      plainText: "普通消息",
+      textWithoutMentions: "普通消息",
+      mentionedRoles: [],
+    });
+
+    const ensureAvatarDeferred = createDeferred<number>();
+    const roomUiStoreApi = createRoomUiStore();
+    const setInputText = createSetInputTextMock();
+    const sendMessageWithInsert = vi.fn(async () => createMessage(30));
+
+    const { handleMessageSubmit } = useChatMessageSubmit({
+      roomId: 1,
+      spaceId: 2,
+      isSpaceOwner: false,
+      curRoleId: 3,
+      notMember: false,
+      noRole: false,
+      isSubmitting: false,
+      setIsSubmitting: vi.fn(),
+      sendMessageWithInsert,
+      sendMessageBatch: vi.fn(async () => []),
+      ensureRuntimeAvatarIdForRole: vi.fn(() => ensureAvatarDeferred.promise),
+      commandExecutor: vi.fn(),
+      containsCommandRequestAllToken: vi.fn(() => false),
+      stripCommandRequestAllToken: vi.fn((text: string) => text),
+      extractFirstCommandText: vi.fn(() => null),
+      setInputText,
+      roomUiStoreApi,
+    });
+
+    const submitPromise = handleMessageSubmit();
+
+    expect(setInputText).toHaveBeenCalledWith("");
+    expect(useChatInputUiStore.getState().plainText).toBe("");
+    expect(sendMessageWithInsert).not.toHaveBeenCalled();
+
+    ensureAvatarDeferred.resolve(7);
+    await submitPromise;
+  });
+
+  it("发送失败时会回填原始输入框内容", async () => {
+    mocks.buildMessageDraftsFromComposerSnapshotMock.mockResolvedValue([
+      {
+        content: "普通消息",
+        messageType: MessageType.TEXT,
+        extra: {},
+      },
+    ]);
+    useChatInputUiStore.setState({
+      plainText: "普通消息",
+      textWithoutMentions: "普通消息",
+      mentionedRoles: [],
+    });
+
+    const roomUiStoreApi = createRoomUiStore();
+    const setInputText = createSetInputTextMock();
+    const sendMessageWithInsert = vi.fn(async () => null);
+
+    const { handleMessageSubmit } = useChatMessageSubmit({
+      roomId: 1,
+      spaceId: 2,
+      isSpaceOwner: false,
+      curRoleId: 3,
+      notMember: false,
+      noRole: false,
+      isSubmitting: false,
+      setIsSubmitting: vi.fn(),
+      sendMessageWithInsert,
+      sendMessageBatch: vi.fn(async () => []),
+      ensureRuntimeAvatarIdForRole: vi.fn(async () => 7),
+      commandExecutor: vi.fn(),
+      containsCommandRequestAllToken: vi.fn(() => false),
+      stripCommandRequestAllToken: vi.fn((text: string) => text),
+      extractFirstCommandText: vi.fn(() => null),
+      setInputText,
+      roomUiStoreApi,
+    });
+
+    await handleMessageSubmit();
+
+    expect(setInputText).toHaveBeenNthCalledWith(1, "");
+    expect(setInputText).toHaveBeenNthCalledWith(2, "普通消息");
+    expect(useChatInputUiStore.getState().plainText).toBe("普通消息");
   });
 
   it("首发带 BGM annotation 的音频消息会直接触发自动播放，即使回包未回显 annotation", async () => {

@@ -22,14 +22,24 @@ type StateRuntimeProviderProps = PropsWithChildren<{
   messages: ChatMessageResponse[];
   ruleId: number;
   currentRoleId: number;
+  visibleRoleIds?: number[];
   resolver?: StateDefinitionResolver;
 }>;
 
-function collectReferencedRoleIds(messages: ChatMessageResponse[], currentRoleId: number): number[] {
+function collectReferencedRoleIds(
+  messages: ChatMessageResponse[],
+  currentRoleId: number,
+  visibleRoleIds: number[] = [],
+): number[] {
   const roleIds = new Set<number>();
   if (currentRoleId > 0) {
     roleIds.add(currentRoleId);
   }
+  visibleRoleIds.forEach((roleId) => {
+    if (roleId > 0) {
+      roleIds.add(roleId);
+    }
+  });
 
   messages.forEach(({ message }) => {
     if (message.status === 1 || message.messageType !== MESSAGE_TYPE.STATE_EVENT) {
@@ -51,9 +61,13 @@ export function StateRuntimeProvider({
   messages,
   ruleId,
   currentRoleId,
+  visibleRoleIds = [],
   resolver = EMPTY_STATE_DEFINITION_RESOLVER,
 }: StateRuntimeProviderProps) {
-  const roleIds = React.useMemo(() => collectReferencedRoleIds(messages, currentRoleId), [currentRoleId, messages]);
+  const roleIds = React.useMemo(
+    () => collectReferencedRoleIds(messages, currentRoleId, visibleRoleIds),
+    [currentRoleId, messages, visibleRoleIds],
+  );
   const abilityQueries = useQueries({
     queries: roleIds.map(roleId => ({
       queryKey: ["roleAbilityByRule", roleId, ruleId],
