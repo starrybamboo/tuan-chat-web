@@ -13,6 +13,7 @@ import {
 import MaterialEditorDropLayer from "../components/materialEditorDropLayer";
 import MaterialPackageEditor from "../components/materialPackageEditor";
 import { buildMaterialPackageEditorDraft } from "../components/materialPackageEditorDraft";
+import { buildSpaceMaterialPackageEditorValueKey } from "../components/materialPackageEditorValueKey";
 import MaterialPackageEditorInlinePage from "../components/materialPackageEditorInlinePage";
 import MaterialPackageImportModal from "../components/materialPackageImportModal";
 import MaterialPackageLibraryFrame from "../components/materialPackageLibraryFrame";
@@ -295,7 +296,7 @@ export default function SpaceMaterialLibraryPage({
     : selectedPackage
       ? (
           <MaterialPackageEditor
-            valueKey={`space-${selectedPackage.spacePackageId ?? "unknown"}-${selectedPackage.updateTime ?? ""}`}
+            valueKey={buildSpaceMaterialPackageEditorValueKey(selectedPackage)}
             dragPackageId={selectedPackage.spacePackageId}
             sidebarActionScope="detail"
             title="编辑局内素材包"

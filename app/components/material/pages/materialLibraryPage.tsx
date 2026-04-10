@@ -11,6 +11,7 @@ import {
 } from "../../../../api/hooks/materialPackageQueryHooks";
 import MaterialPackageEditor from "../components/materialPackageEditor";
 import { buildMaterialPackageEditorDraft } from "../components/materialPackageEditorDraft";
+import { buildGlobalMaterialPackageEditorValueKey } from "../components/materialPackageEditorValueKey";
 import MaterialPackageEditorInlinePage from "../components/materialPackageEditorInlinePage";
 import { createEmptyMaterialPackageContent } from "../components/materialPackageEditorShared";
 import MaterialPackageLibraryFrame from "../components/materialPackageLibraryFrame";
@@ -306,7 +307,7 @@ export default function MaterialLibraryPage({
     : selectedPackage
       ? (
           <MaterialPackageEditor
-            valueKey={`${activeTab}-${selectedPackage.packageId ?? "unknown"}-${selectedPackage.updateTime ?? ""}`}
+            valueKey={buildGlobalMaterialPackageEditorValueKey(activeTab, selectedPackage)}
             dragPackageId={selectedPackage.packageId}
             title={activeTab === "public" ? "公开素材包详况" : "修改素材包"}
             subtitle={activeTab === "public"

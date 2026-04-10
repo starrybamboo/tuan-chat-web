@@ -6,6 +6,7 @@ import toast from "react-hot-toast";
 import MaterialPackageEditor from "@/components/material/components/materialPackageEditor";
 import MaterialPackageEditorInlinePage from "@/components/material/components/materialPackageEditorInlinePage";
 import { createEmptyMaterialPackageContent } from "@/components/material/components/materialPackageEditorShared";
+import { buildSpaceMaterialPackageEditorValueKey } from "@/components/material/components/materialPackageEditorValueKey";
 import {
   useDeleteSpaceMaterialPackageMutation,
   useSpaceMaterialPackagesQuery,
@@ -106,7 +107,7 @@ export default function SpaceMaterialSubWindow({
   return (
     <MaterialPackageEditorInlinePage embedded>
       <MaterialPackageEditor
-        valueKey={`sub-window-space-${selectedPackage.spacePackageId ?? "unknown"}-${selectedPackage.updateTime ?? ""}`}
+        valueKey={buildSpaceMaterialPackageEditorValueKey(selectedPackage, "sub-window")}
         dragPackageId={selectedPackage.spacePackageId}
         sidebarActionScope="subwindow"
         title="编辑局内素材包"
