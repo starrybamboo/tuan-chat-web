@@ -181,8 +181,8 @@ export default function MaterialPackageLibraryWorkspace({
   return (
     <div className={`h-full min-h-0 overflow-y-auto text-base-content ${embedded ? "bg-base-300/40" : "bg-[radial-gradient(circle_at_top_left,oklch(var(--p)/0.1),transparent_26%),linear-gradient(180deg,oklch(var(--b2)/0.98),oklch(var(--b1)/1))] border-t border-base-300"}`}>
       {embedded && (
-        <div className="sticky top-0 z-20 border-t border-b border-gray-300 bg-base-200 dark:border-gray-700">
-          <div className="mx-auto flex h-12 w-full max-w-6xl items-center justify-between gap-4 px-6">
+        <div className="sticky top-0 z-20 border-t border-b border-gray-300 bg-base-200/95 backdrop-blur dark:border-gray-700">
+          <div className="mx-auto flex w-full max-w-6xl flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-6 sm:py-2.5">
             <div className="flex min-w-0 items-center gap-3">
               <div className="truncate text-sm font-semibold text-base-content">{title}</div>
               <span className="hidden rounded-full border border-base-300 bg-base-100 px-2 py-0.5 text-[11px] text-base-content/68 sm:inline-flex">
@@ -190,16 +190,16 @@ export default function MaterialPackageLibraryWorkspace({
               </span>
             </div>
 
-            <div className="flex min-w-0 items-center justify-end gap-3">
+            <div className="flex w-full min-w-0 flex-col gap-3 sm:w-auto sm:flex-row sm:items-center sm:justify-end">
               {headerActions.length > 0 && (
-                <div className="hidden items-center gap-2 sm:flex">
+                <div className="flex items-center gap-2 overflow-x-auto pb-1 sm:pb-0">
                   {headerActions.map(action => (
                     <button
                       key={action.key}
                       type="button"
                       className={action.variant === "secondary"
-                        ? "inline-flex h-8 items-center gap-1.5 rounded-md border border-base-300 bg-base-100 px-3 text-xs font-semibold text-base-content transition hover:border-primary/30 hover:bg-base-100/90"
-                        : "inline-flex h-8 items-center gap-1.5 rounded-md border border-primary/35 bg-primary px-3 text-xs font-semibold text-primary-content transition hover:border-primary/45 hover:brightness-105"}
+                        ? "inline-flex h-9 shrink-0 items-center gap-1.5 rounded-md border border-base-300 bg-base-100 px-3 text-xs font-semibold text-base-content transition hover:border-primary/30 hover:bg-base-100/90"
+                        : "inline-flex h-9 shrink-0 items-center gap-1.5 rounded-md border border-primary/35 bg-primary px-3 text-xs font-semibold text-primary-content transition hover:border-primary/45 hover:brightness-105"}
                       onClick={action.onClick}
                     >
                       <ActionIcon icon={action.icon} className="size-3.5" />
@@ -209,8 +209,8 @@ export default function MaterialPackageLibraryWorkspace({
                 </div>
               )}
 
-              <div className="relative w-full max-w-90">
-                <label className="flex items-center gap-2 rounded-md border border-base-300 bg-base-100 px-3 py-2">
+              <div className="relative w-full sm:w-[22rem]">
+                <label className="flex items-center gap-2 rounded-md border border-base-300 bg-base-100 px-3 py-2 transition focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20">
                   <MagnifyingGlassIcon className="size-4 shrink-0 text-base-content/38" />
                   <input
                     type="text"
@@ -226,7 +226,7 @@ export default function MaterialPackageLibraryWorkspace({
         </div>
       )}
 
-      <div className={`mx-auto w-full ${embedded ? "max-w-6xl px-5 py-6 md:px-8" : "max-w-390 px-6 py-8 md:px-10 md:py-10"}`}>
+      <div className={`mx-auto w-full ${embedded ? "max-w-6xl px-4 py-5 sm:px-6 md:px-8 md:py-6" : "max-w-390 px-4 py-6 sm:px-6 md:px-10 md:py-10"}`}>
         <div className="space-y-8">
           {embedded && (
             <div className="relative overflow-hidden rounded-xl border border-base-300 bg-info/10">
@@ -235,7 +235,7 @@ export default function MaterialPackageLibraryWorkspace({
                 weight="duotone"
                 className="pointer-events-none absolute -right-24 -top-24 hidden h-88 w-88 text-primary/15 sm:block"
               />
-              <div className="relative z-10 px-8 py-8 sm:py-10">
+              <div className="relative z-10 px-5 py-6 sm:px-8 sm:py-10">
                 <div className="text-2xl font-extrabold tracking-tight text-base-content sm:text-4xl">
                   {title === "我的素材包" ? "这里是你的素材包" : "探索公开的素材包"}
                 </div>
@@ -255,7 +255,7 @@ export default function MaterialPackageLibraryWorkspace({
                   <div className="text-xs font-semibold uppercase tracking-[0.28em] text-base-content/45">
                     {upperLabel}
                   </div>
-                  <h1 className="mt-3 text-4xl font-semibold tracking-tight text-base-content md:text-6xl">{title}</h1>
+                  <h1 className="mt-3 text-3xl font-semibold tracking-tight text-base-content sm:text-4xl md:text-6xl">{title}</h1>
                   <p className="mt-4 max-w-2xl text-sm leading-7 text-base-content/62 md:text-base">
                     {description}
                   </p>
@@ -268,8 +268,8 @@ export default function MaterialPackageLibraryWorkspace({
                         key={action.key}
                         type="button"
                         className={action.variant === "secondary"
-                          ? "inline-flex items-center gap-2 rounded-md border border-base-300 bg-base-100 px-5 py-3 text-sm font-semibold text-base-content transition hover:border-primary/30 hover:bg-base-100/90"
-                          : "inline-flex items-center gap-2 rounded-md border border-primary/35 bg-primary px-5 py-3 text-sm font-semibold text-primary-content shadow-[0_18px_38px_rgba(59,130,246,0.22)] transition hover:-translate-y-0.5 hover:border-primary/45 hover:shadow-[0_24px_48px_rgba(59,130,246,0.28)]"}
+                          ? "inline-flex w-full items-center justify-center gap-2 rounded-md border border-base-300 bg-base-100 px-5 py-3 text-sm font-semibold text-base-content transition hover:border-primary/30 hover:bg-base-100/90 sm:w-auto"
+                          : "inline-flex w-full items-center justify-center gap-2 rounded-md border border-primary/35 bg-primary px-5 py-3 text-sm font-semibold text-primary-content shadow-[0_18px_38px_rgba(59,130,246,0.22)] transition hover:-translate-y-0.5 hover:border-primary/45 hover:shadow-[0_24px_48px_rgba(59,130,246,0.28)] sm:w-auto"}
                         onClick={action.onClick}
                       >
                         <ActionIcon icon={action.icon} />
@@ -280,7 +280,7 @@ export default function MaterialPackageLibraryWorkspace({
                 )}
               </div>
 
-              <div className="rounded-3xl border border-base-300 bg-base-100/80 px-5 py-4 shadow-lg">
+              <div className="rounded-3xl border border-base-300 bg-base-100/80 px-4 py-3 shadow-lg sm:px-5 sm:py-4">
                 <label className="flex items-center gap-3">
                   <MagnifyingGlassIcon className="size-5 shrink-0 text-base-content/38" />
                   <input
@@ -295,7 +295,7 @@ export default function MaterialPackageLibraryWorkspace({
             </>
           )}
 
-          <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+          <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
             {shortcuts.map(shortcut => (
               <ShortcutCard
                 key={shortcut.key}
@@ -324,7 +324,7 @@ export default function MaterialPackageLibraryWorkspace({
           </div>
 
           {!loading && items.length === 0 && (
-            <div className="rounded-[26px] border border-dashed border-base-300 bg-base-100/55 px-6 py-14 text-center">
+            <div className="rounded-[26px] border border-dashed border-base-300 bg-base-100/55 px-5 py-12 text-center sm:px-6 sm:py-14">
               <div className="text-lg font-semibold text-base-content">{emptyTitle}</div>
               <div className="mt-3 text-sm leading-7 text-base-content/58">
                 {emptyDescription}

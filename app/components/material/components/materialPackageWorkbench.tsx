@@ -589,8 +589,8 @@ export default function MaterialPackageWorkbench({
   };
 
   return (
-    <div className="grid min-h-[680px] min-w-0 grid-cols-[320px_minmax(0,1fr)] overflow-hidden">
-      <aside className="min-h-0 border-r border-base-300 bg-base-200/45">
+    <div className="grid min-w-0 overflow-hidden lg:min-h-[680px] lg:grid-cols-[320px_minmax(0,1fr)]">
+      <aside className="border-b border-base-300 bg-base-200/45 lg:min-h-0 lg:border-r lg:border-b-0">
         <div className="border-b border-base-300 px-3 py-3">
           <div className="flex items-center justify-between rounded-md bg-base-300/55 px-2 py-1 text-[11px] font-semibold tracking-[0.08em] text-base-content/86">
             <span className="truncate">素材结构</span>
@@ -617,7 +617,7 @@ export default function MaterialPackageWorkbench({
           </div>
         </div>
 
-        <div className="h-[calc(100%-4.75rem)] overflow-y-auto px-2 py-2">
+        <div className="max-h-[40vh] min-h-56 overflow-y-auto px-2 py-2 lg:h-[calc(100%-4.75rem)] lg:max-h-none">
           <div className="space-y-1">
             <button
               type="button"
@@ -695,7 +695,7 @@ export default function MaterialPackageWorkbench({
         </div>
       </aside>
 
-      <section className="min-h-0 overflow-y-auto bg-base-100/65 p-6">
+      <section className="min-h-0 overflow-y-auto bg-base-100/65 p-4 sm:p-5 lg:p-6">
         {selectedNodeKey === ROOT_NODE_KEY && (
           <div className="space-y-6">
             <div className="flex flex-wrap gap-2 text-xs text-base-content/60">
@@ -733,7 +733,7 @@ export default function MaterialPackageWorkbench({
                 </label>
 
                 {showPublicToggle && (
-                  <div className="flex items-center justify-between rounded-2xl border border-base-300 bg-base-200/55 px-4 py-3">
+                  <div className="flex flex-col gap-3 rounded-2xl border border-base-300 bg-base-200/55 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
                     <div>
                       <div className="font-medium text-base-content/90">公开至素材广场</div>
                       <div className="text-sm text-base-content/60">允许其他创作者浏览并下载此素材包。</div>
@@ -764,7 +764,7 @@ export default function MaterialPackageWorkbench({
               </div>
 
               <div className="flex flex-col rounded-[26px] border border-base-300 bg-base-200/55 p-4">
-                <div className="mb-3 flex items-center justify-between">
+                <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                   <span className="text-sm font-medium text-base-content/75">封面图片</span>
                   {!readOnly && <span className="text-[11px] text-base-content/40">推荐尺寸 1:1，支持 JPG/PNG，小于 2MB</span>}
                 </div>
@@ -826,7 +826,7 @@ export default function MaterialPackageWorkbench({
               <div className="flex flex-wrap gap-3">
                 <button
                   type="button"
-                  className="inline-flex items-center gap-2 rounded-md border border-base-300 bg-base-100 px-4 py-2.5 text-sm text-base-content transition hover:border-primary/30 hover:bg-base-100/90"
+                  className="inline-flex min-h-10 w-full items-center justify-center gap-2 rounded-md border border-base-300 bg-base-100 px-4 py-2.5 text-sm text-base-content transition hover:border-primary/30 hover:bg-base-100/90 sm:w-auto"
                   onClick={handleAddFolder}
                 >
                   <FolderSimpleIcon className="size-4" />
@@ -834,7 +834,7 @@ export default function MaterialPackageWorkbench({
                 </button>
                 <button
                   type="button"
-                  className="inline-flex items-center gap-2 rounded-md border border-base-300 bg-base-100 px-4 py-2.5 text-sm text-base-content transition hover:border-primary/30 hover:bg-base-100/90"
+                  className="inline-flex min-h-10 w-full items-center justify-center gap-2 rounded-md border border-base-300 bg-base-100 px-4 py-2.5 text-sm text-base-content transition hover:border-primary/30 hover:bg-base-100/90 sm:w-auto"
                   onClick={handleAddMaterial}
                 >
                   <PlusIcon className="size-4" />
@@ -842,7 +842,7 @@ export default function MaterialPackageWorkbench({
                 </button>
                 <button
                   type="button"
-                  className="inline-flex items-center gap-2 rounded-md border border-base-300 bg-base-100 px-4 py-2.5 text-sm text-base-content transition hover:border-error/30 hover:bg-error/10 hover:text-error"
+                  className="inline-flex min-h-10 w-full items-center justify-center gap-2 rounded-md border border-base-300 bg-base-100 px-4 py-2.5 text-sm text-base-content transition hover:border-error/30 hover:bg-error/10 hover:text-error sm:w-auto"
                   onClick={handleDeleteSelectedNode}
                 >
                   <TrashIcon className="size-4" />
@@ -890,13 +890,13 @@ export default function MaterialPackageWorkbench({
               </label>
 
               <div className="space-y-3">
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <div className="text-sm font-medium text-base-content/80">素材条目</div>
-                  <div className="flex items-center gap-3">
+                  <div className="flex flex-wrap items-center gap-3">
                     {!readOnly && (
                       <button
                         type="button"
-                        className="inline-flex items-center gap-2 rounded-md border border-base-300 bg-base-100 px-4 py-2.5 text-sm text-base-content transition hover:border-error/30 hover:bg-error/10 hover:text-error"
+                        className="inline-flex min-h-10 w-full items-center justify-center gap-2 rounded-md border border-base-300 bg-base-100 px-4 py-2.5 text-sm text-base-content transition hover:border-error/30 hover:bg-error/10 hover:text-error sm:w-auto"
                         onClick={handleDeleteSelectedNode}
                       >
                         <TrashIcon className="size-4" />

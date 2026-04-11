@@ -16,7 +16,7 @@ interface MaterialPackageLibrarySidebarProps {
   footerDescription: string;
 }
 
-const itemBaseClass = "flex w-full items-center gap-3 rounded-md px-4 py-3 text-left text-sm font-medium transition";
+const itemBaseClass = "flex min-h-11 w-full items-center gap-3 rounded-md px-4 py-3 text-left text-sm font-medium transition";
 
 function SidebarItemIcon({
   icon,
@@ -45,8 +45,8 @@ export default function MaterialPackageLibrarySidebar({
   footerDescription,
 }: MaterialPackageLibrarySidebarProps) {
   return (
-    <div className="flex h-full flex-col bg-base-300/70 px-4 py-5 text-base-content">
-      <div className="mb-8 px-2">
+    <div className="flex h-full flex-col bg-base-300/70 px-4 py-5 text-base-content sm:px-5">
+      <div className="mb-6 px-2 sm:mb-8">
         <div className="text-[11px] uppercase tracking-[0.28em] text-base-content/45">Material</div>
         <div className="mt-2 text-xl font-semibold tracking-tight text-base-content">素材包</div>
         <div className="mt-2 text-sm leading-6 text-base-content/60">
@@ -54,7 +54,7 @@ export default function MaterialPackageLibrarySidebar({
         </div>
       </div>
 
-      <nav className="space-y-2">
+      <nav className="space-y-1.5">
         {items.map((item) => {
           const className = `${itemBaseClass} ${
             item.active
@@ -88,7 +88,7 @@ export default function MaterialPackageLibrarySidebar({
         })}
       </nav>
 
-      <div className="mt-auto rounded-2xl border border-base-300 bg-base-100/65 px-4 py-4">
+      <div className="mt-5 rounded-xl border border-base-300 bg-base-100/65 px-4 py-4 sm:mt-auto">
         <div className="text-sm font-medium text-base-content/90">当前模式</div>
         <div className="mt-2 text-xs leading-5 text-base-content/62">
           {footerDescription}
