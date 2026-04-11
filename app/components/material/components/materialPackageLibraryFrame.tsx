@@ -60,7 +60,7 @@ export default function MaterialPackageLibraryFrame({
       )}
 
       {isDesktop && (
-        <div className={`fixed top-24 z-50 -translate-y-1/2 transition-all duration-300 ${isSidebarCollapsed ? "left-0" : "left-[280px]"}`}>
+        <div className={`fixed top-1/2 z-50 -translate-y-1/2 transition-all duration-300 ${isSidebarCollapsed ? "left-0" : "left-[280px]"}`}>
           <button
             type="button"
             onClick={() => setIsSidebarCollapsed(prev => !prev)}
@@ -75,12 +75,12 @@ export default function MaterialPackageLibraryFrame({
       )}
 
       {!isDesktop && (
-        <div className="fixed left-0 top-[calc(env(safe-area-inset-top)+4.25rem)] z-50">
+        <div className="fixed left-0 top-[calc(env(safe-area-inset-top)+4.75rem)] z-50">
           <button
             type="button"
             onClick={() => setIsDrawerOpen(true)}
             aria-label={openSidebarLabel}
-            className="flex h-14 w-7 items-center justify-center rounded-r-full border border-base-300 border-l-0 bg-base-100/95 text-base-content/72 shadow-md transition hover:bg-base-200 hover:text-base-content"
+            className="flex h-12 w-8 items-center justify-center rounded-r-full border border-base-300 border-l-0 bg-base-100/95 text-base-content/72 shadow-md backdrop-blur transition hover:bg-base-200 hover:text-base-content"
           >
             <CaretRightIcon size={16} weight="bold" />
           </button>
@@ -95,7 +95,7 @@ export default function MaterialPackageLibraryFrame({
         >
           <Drawer.Portal>
             <Drawer.Overlay className="fixed inset-0 bg-base-content/40 data-[state=closed]:pointer-events-none data-[state=open]:pointer-events-auto" />
-            <Drawer.Content className="fixed left-0 top-0 z-[100] flex h-full w-[280px] flex-col bg-base-300/95 data-[state=closed]:pointer-events-none data-[state=open]:pointer-events-auto">
+            <Drawer.Content className="fixed left-0 top-0 z-[100] flex h-full w-[min(85vw,320px)] flex-col bg-base-300/95 pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] shadow-2xl backdrop-blur data-[state=closed]:pointer-events-none data-[state=open]:pointer-events-auto">
               <Drawer.Title className="sr-only">{drawerTitle}</Drawer.Title>
               <Drawer.Description className="sr-only">{drawerDescription}</Drawer.Description>
               <div className="h-full overflow-y-auto">
@@ -106,7 +106,7 @@ export default function MaterialPackageLibraryFrame({
         </Drawer.Root>
       )}
 
-      <div className="min-h-0 min-w-0 flex-1">{mainContentNode}</div>
+      <div className="min-h-0 min-w-0 flex-1 overflow-hidden">{mainContentNode}</div>
     </div>
   );
 }

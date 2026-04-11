@@ -248,12 +248,12 @@ export default function MaterialPackageEditor({
 
   return (
     <div className="relative flex min-h-0 flex-col text-base-content">
-      <div className="relative z-10 flex flex-wrap items-center justify-between gap-4 px-6 py-5 md:px-8 sm:sticky sm:top-0">
+      <div className="sticky top-0 z-10 flex flex-col gap-3 border-b border-base-300/70 bg-base-100/85 px-4 py-4 backdrop-blur sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:px-6 md:px-8">
         <div className="flex min-w-0 items-center">
           {backLabel && onBack && (
             <button
               type="button"
-              className="inline-flex items-center gap-2 rounded-md border border-base-300 bg-base-100/80 px-4 py-2.5 text-sm font-medium text-base-content shadow-sm transition hover:border-primary/30 hover:bg-base-100"
+              className="inline-flex w-full items-center justify-center gap-2 rounded-md border border-base-300 bg-base-100/80 px-4 py-2.5 text-sm font-medium text-base-content shadow-sm transition hover:border-primary/30 hover:bg-base-100 sm:w-auto"
               onClick={onBack}
             >
               <ArrowLeftIcon className="size-4" />
@@ -262,7 +262,7 @@ export default function MaterialPackageEditor({
           )}
         </div>
 
-        <div className="flex shrink-0 items-center justify-end gap-3">
+        <div className="flex w-full flex-wrap items-center justify-start gap-3 sm:w-auto sm:justify-end">
           {autoSaveEnabled && autoSaveStatusText && (
             <div className={`text-xs ${autoSaveStatusClassName}`}>
               {autoSaveStatusText}
@@ -271,7 +271,7 @@ export default function MaterialPackageEditor({
           {readOnly && onExtraAction && extraActionLabel && (
             <button
               type="button"
-              className="inline-flex items-center justify-center rounded-lg bg-primary px-5 py-2.5 text-sm font-semibold text-primary-content shadow-[0_8px_16px_rgba(59,130,246,0.15)] transition hover:-translate-y-0.5 hover:shadow-[0_12px_24px_rgba(59,130,246,0.22)] disabled:opacity-60 disabled:hover:translate-y-0 disabled:hover:shadow-none"
+              className="inline-flex min-h-10 w-full items-center justify-center rounded-md bg-primary px-5 py-2.5 text-sm font-semibold text-primary-content shadow-[0_8px_16px_rgba(59,130,246,0.15)] transition hover:-translate-y-0.5 hover:shadow-[0_12px_24px_rgba(59,130,246,0.22)] disabled:opacity-60 disabled:hover:translate-y-0 disabled:hover:shadow-none sm:w-auto"
               onClick={() => void onExtraAction()}
               disabled={extraActionPending}
             >
@@ -282,7 +282,7 @@ export default function MaterialPackageEditor({
           {!readOnly && onDelete && (
             <button
               type="button"
-              className="inline-flex items-center justify-center rounded-lg border border-base-300 bg-base-100 px-4 py-2.5 text-sm font-medium text-base-content transition hover:border-error/30 hover:bg-error/10 hover:text-error disabled:opacity-60"
+              className="inline-flex min-h-10 w-full items-center justify-center rounded-md border border-base-300 bg-base-100 px-4 py-2.5 text-sm font-medium text-base-content transition hover:border-error/30 hover:bg-error/10 hover:text-error disabled:opacity-60 sm:w-auto"
               onClick={() => void onDelete()}
               disabled={deletePending || savePending}
             >
@@ -292,7 +292,7 @@ export default function MaterialPackageEditor({
           {!readOnly && onSave && !autoSaveEnabled && (
             <button
               type="button"
-              className="inline-flex items-center justify-center rounded-lg bg-primary px-6 py-2.5 text-sm font-semibold text-primary-content shadow-[0_8px_16px_rgba(59,130,246,0.15)] transition hover:-translate-y-0.5 hover:shadow-[0_12px_24px_rgba(59,130,246,0.22)] disabled:opacity-60 disabled:hover:translate-y-0 disabled:hover:shadow-none"
+              className="inline-flex min-h-10 w-full items-center justify-center rounded-md bg-primary px-6 py-2.5 text-sm font-semibold text-primary-content shadow-[0_8px_16px_rgba(59,130,246,0.15)] transition hover:-translate-y-0.5 hover:shadow-[0_12px_24px_rgba(59,130,246,0.22)] disabled:opacity-60 disabled:hover:translate-y-0 disabled:hover:shadow-none sm:w-auto"
               onClick={() => void handleSave()}
               disabled={savePending}
             >
