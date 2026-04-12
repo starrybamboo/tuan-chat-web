@@ -9,6 +9,7 @@ import useSearchParamsState from "@/components/common/customHooks/useSearchParam
 import { RoleAvatarByRole } from "@/components/common/roleAccess";
 import RoleAvatarComponent from "@/components/common/roleAvatar";
 import { RoleDetailPagePopup } from "@/components/common/roleDetailPagePopup";
+import { RoleTypeBadge } from "@/components/common/roleTypeBadge";
 import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
 import { AddRingLight, AddRoleIcon, ExpandCornersIcon, EyedropperIcon, IdentificationCardIcon, NarratorIcon } from "@/icons";
 import { getScreenSize } from "@/utils/getScreenSize";
@@ -286,6 +287,7 @@ export function ExpressionChooser({
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
                       <div className="text-sm font-medium truncate">{role.roleName}</div>
+                      <RoleTypeBadge role={role} />
                     </div>
                   </div>
                   <button

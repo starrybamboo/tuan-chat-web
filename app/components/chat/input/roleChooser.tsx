@@ -8,6 +8,7 @@ import ConfirmModal from "@/components/common/comfirmModel";
 import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
 import { RoleAvatarByRole } from "@/components/common/roleAccess";
 import { RoleDetailPagePopup } from "@/components/common/roleDetailPagePopup";
+import { RoleTypeBadge } from "@/components/common/roleTypeBadge";
 import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
 import { AddRingLight } from "@/icons";
 import { getScreenSize } from "@/utils/getScreenSize";
@@ -90,7 +91,7 @@ export default function RoleChooser({
             className="flex flex-row list-none items-center gap-2"
           >
             <div
-              className="flex-1 cursor-pointer"
+              className="flex-1 cursor-pointer min-w-0"
               onClick={() => handleRoleChange(role)}
             >
               <RoleAvatarByRole
@@ -100,7 +101,10 @@ export default function RoleChooser({
                 withTitle={false}
                 stopToastWindow={true}
               />
-              <div>{role.roleName}</div>
+              <div className="flex items-center gap-2 min-w-0">
+                <div className="truncate">{role.roleName}</div>
+                <RoleTypeBadge role={role} />
+              </div>
             </div>
             <div className="flex items-center gap-1">
               <button

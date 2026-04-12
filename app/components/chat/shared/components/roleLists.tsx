@@ -1,6 +1,7 @@
 import type { UserRole } from "../../../../../api";
 
 import { RoleAvatarByRole } from "@/components/common/roleAccess";
+import { RoleTypeBadge } from "@/components/common/roleTypeBadge";
 
 export default function RoleList({
   roles,
@@ -34,7 +35,10 @@ export default function RoleList({
               kickOutByManagerOnly={kickOutByManagerOnly}
             />
           </div>
-          <span>{role.roleName}</span>
+          <div className="min-w-0 flex-1 flex items-center gap-2">
+            <span className="truncate">{role.roleName}</span>
+            <RoleTypeBadge role={role} />
+          </div>
         </div>
       ))}
     </div>
