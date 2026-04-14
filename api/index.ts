@@ -349,7 +349,6 @@ export type { UVOperationDTO } from './models/UVOperationDTO';
 export type { VideoMessage } from './models/VideoMessage';
 export type { WebgalChooseOption } from './models/WebgalChooseOption';
 export type { WebgalChoosePayload } from './models/WebgalChoosePayload';
-export type { WebgalVarPayload } from './models/WebgalVarPayload';
 
 export { AbilityControllerService } from './services/AbilityControllerService';
 export { AiGatewayControllerService } from './services/AiGatewayControllerService';

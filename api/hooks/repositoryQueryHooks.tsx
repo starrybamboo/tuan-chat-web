@@ -234,8 +234,6 @@ type RepositoryEntityInfo = {
     };
     avatarIds?: number[];
     avatar?: string;
-    modelName?: string;
-    speakerName?: string;
     voiceUrl?: string;
     locations?: Array<string | undefined>;
     roles?: Array<string | undefined>;

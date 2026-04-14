@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import toast from "react-hot-toast";
 import { useNavigate } from "react-router";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
+import { prepareSpaceDocsForArchive } from "@/components/chat/infra/blocksuite/space/prepareSpaceDocsForArchive";
 import { buildSpaceDocId } from "@/components/chat/infra/blocksuite/space/spaceDocId";
 import ConfirmModal from "@/components/common/comfirmModel";
 import { useDissolveSpaceMutation, useExitSpaceMutation, useUpdateSpaceArchiveStatusMutation } from "../../../../../api/hooks/chatQueryHooks";
@@ -48,24 +49,23 @@ export default function SpaceContextMenu({ contextMenu, isSpaceOwner, isArchived
     });
   };
 
-  const handleToggleArchive = (spaceId: number, nextArchived: boolean) => {
+  const handleToggleArchive = async (spaceId: number, nextArchived: boolean) => {
     if (updateArchiveStatus.isPending) {
       return;
     }
     const toastId = `space-archive-${spaceId}`;
     toast.loading(nextArchived ? "正在归档空间..." : "正在取消归档...", { id: toastId });
-    updateArchiveStatus.mutate(
-      { spaceId, archived: nextArchived },
-      {
-        onSuccess: () => {
-          toast.success(nextArchived ? "归档完成" : "已取消归档", { id: toastId });
-          onClose();
-        },
-        onError: () => {
-          toast.error(nextArchived ? "归档失败，请重试" : "取消归档失败，请重试", { id: toastId });
-        },
-      },
-    );
+    try {
+      if (nextArchived) {
+        await prepareSpaceDocsForArchive(spaceId);
+      }
+      await updateArchiveStatus.mutateAsync({ spaceId, archived: nextArchived });
+      toast.success(nextArchived ? "归档完成" : "已取消归档", { id: toastId });
+      onClose();
+    }
+    catch {
+      toast.error(nextArchived ? "归档失败，请重试" : "取消归档失败，请重试", { id: toastId });
+    }
   };
 
   const handleArchiveAction = (spaceId: number) => {
@@ -79,7 +79,7 @@ export default function SpaceContextMenu({ contextMenu, isSpaceOwner, isArchived
       onClose();
       return;
     }
-    handleToggleArchive(spaceId, nextArchived);
+    void handleToggleArchive(spaceId, nextArchived);
   };
 
   return (
@@ -199,7 +199,7 @@ export default function SpaceContextMenu({ contextMenu, isSpaceOwner, isArchived
           const targetSpaceId = archiveTargetSpaceId;
           setIsArchiveConfirmOpen(false);
           setArchiveTargetSpaceId(null);
-          handleToggleArchive(targetSpaceId, true);
+          void handleToggleArchive(targetSpaceId, true);
         }}
       />
     </>

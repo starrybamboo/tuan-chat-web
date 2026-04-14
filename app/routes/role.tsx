@@ -5,12 +5,15 @@ import { useEffect, useState } from "react";
 import { Outlet, useParams } from "react-router"; // 引入 Outlet 和 useParams
 import { Drawer } from "vaul";
 import { Sidebar } from "@/components/Role/Sidebar/Sidebar"; // 确保路径正确
+import { createSeoMeta } from "@/utils/seo";
 
 export function meta(_args: Route.MetaArgs) {
-  return [
-    { title: "角色创建页面" },
-    { name: "description", content: "创建和管理你的角色" },
-  ];
+  return createSeoMeta({
+    title: "角色管理",
+    description: "创建和管理你在团剧共创中的角色资料。",
+    path: "/role",
+    index: false,
+  });
 }
 
 export default function RoleLayout() {

@@ -211,6 +211,8 @@ export default function useChatMessageSubmit({
       let regularInputText = isSpectator
         ? (spectatorTextContent ?? "")
         : trimmedInputText;
+      // 命令解析要基于去掉 @mention span 后的文本，否则“@角色 .ra 技能”会被误判成普通文本。
+      const commandInputText = !isSpectator ? trimmedWithoutMentions : regularInputText;
       const isRoomJumpCommand = !isSpectator && isRoomJumpCommandText(trimmedWithoutMentions);
       const roomJumpCommandPayload = !isSpectator
         ? parseRoomJumpCommand(trimmedWithoutMentions)
@@ -358,9 +360,9 @@ export default function useChatMessageSubmit({
         hasConsumedFirstMessage = true;
         regularInputText = "";
       }
-      else if (!isSpectator && regularInputText && isCommand(regularInputText)) {
+      else if (!isSpectator && commandInputText && isCommand(commandInputText)) {
         commandExecutor({
-          command: inputTextWithoutMentions,
+          command: commandInputText,
           mentionedRoles: mentionedRolesInInput,
           originMessage: inputText,
           threadId: activeThreadId,
@@ -388,27 +390,6 @@ export default function useChatMessageSubmit({
         uploadUtils: uploadUtilsRef.current,
         allowEmptyTextMessage: !hasConsumedFirstMessage,
       });
-
-      const isPureTextSend = !hasPendingAttachmentPayload && regularDrafts.length === 1 && regularDrafts[0]?.messageType === MessageType.TEXT;
-      if (isPureTextSend && !isSpectator) {
-        const textDraft = regularDrafts[0]!;
-        const draftContent = textDraft.content ?? "";
-        const isWebgalCommandInput = draftContent.startsWith("%");
-        const normalizedContent = isWebgalCommandInput ? draftContent.slice(1).trim() : draftContent;
-
-        if (isWebgalCommandInput && !normalizedContent) {
-          toast.error("WebGAL 指令不能为空");
-          return;
-        }
-        else {
-          regularDrafts[0] = {
-            ...textDraft,
-            content: normalizedContent,
-            messageType: isWebgalCommandInput ? MessageType.WEBGAL_COMMAND : MessageType.TEXT,
-            extra: {},
-          };
-        }
-      }
 
       const regularRequests = regularDrafts.map((draft, index) => buildChatMessageRequestFromDraft(draft, {
         roomId,

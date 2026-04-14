@@ -22,14 +22,6 @@ export type RoleUpdateRequest = {
      * 角色头像
      */
     avatarId?: number;
-    /**
-     * tts时使用的模型
-     */
-    modelName?: string;
-    /**
-     * tts时使用的角色名
-     */
-    speakerName?: string;
     voiceUrl?: string;
     /**
      * 角色类型,0:角色,1:骰娘,2:NPC

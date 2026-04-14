@@ -1,10 +1,14 @@
+import type { Route } from "./+types/create";
 import RepositoryCreateMain from "@/components/repository/create/RepositoryCreateMain";
+import { createSeoMeta } from "@/utils/seo";
 
-export function meta(_args: any) {
-  return [
-    { title: "创建仓库" },
-    { name: "description", content: "Create your own repository here" },
-  ];
+export function meta(_args: Route.MetaArgs) {
+  return createSeoMeta({
+    title: "创建模组仓库",
+    description: "在团剧共创中创建新的模组仓库。",
+    path: "/repository/create",
+    index: false,
+  });
 }
 
 export default function RepositoryCreate() {

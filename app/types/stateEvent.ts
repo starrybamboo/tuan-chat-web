@@ -391,8 +391,7 @@ export function formatStateEventAtomDetail(atom: StateEventAtom, options?: State
   return `${scopeLabel} · 移除状态 ${atom.statusName}`;
 }
 
-export function formatStateEventPreviewText(extra: unknown, fallbackContent = ""): string {
-  const normalized = getNormalizedStateEventExtra(extra);
+function formatNormalizedStateEventPreviewText(normalized: StateEventExtra | undefined, fallbackContent = ""): string {
   const fallback = toTrimmedString(fallbackContent) || "状态事件";
   if (!normalized) {
     return `[状态] ${fallback}`;
@@ -416,4 +415,8 @@ export function formatStateEventPreviewText(extra: unknown, fallbackContent = ""
     return `[状态] 施加 ${firstEvent.statusId}`;
   }
   return `[状态] 移除 ${firstEvent.statusName}`;
+}
+
+export function formatStateEventPreviewText(extra: unknown, fallbackContent = ""): string {
+  return formatNormalizedStateEventPreviewText(getNormalizedStateEventExtra(extra), fallbackContent);
 }

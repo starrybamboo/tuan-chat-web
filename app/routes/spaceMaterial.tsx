@@ -1,11 +1,14 @@
 import type { Route } from "./+types/spaceMaterial";
 import SpaceMaterialLibraryPage from "@/components/material/pages/spaceMaterialLibraryPage";
+import { createSeoMeta } from "@/utils/seo";
 
 export function meta(args: Route.MetaArgs) {
-  return [
-    { title: `局内素材包 · Space ${args.params.spaceId} - tuan-chat` },
-    { name: "description", content: "当前空间的局内素材包管理页" },
-  ];
+  return createSeoMeta({
+    title: `空间 ${args.params.spaceId} 的局内素材包`,
+    description: "查看当前空间的局内素材包与资源配置。",
+    path: `/material/space/${args.params.spaceId}`,
+    index: false,
+  });
 }
 
 export default function SpaceMaterialRoute({ params }: Route.ComponentProps) {

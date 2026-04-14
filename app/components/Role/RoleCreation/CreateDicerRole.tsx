@@ -61,8 +61,6 @@ export default function CreateDicerRole({ onBack, onComplete }: CreateDicerRoleP
         avatar: avatarResult?.data?.avatarUrl || ROLE_DEFAULT_AVATAR_URL,
         avatarId: avatarResult?.data?.avatarId || 0,
         type: 1,
-        modelName: "",
-        speakerName: "",
         extra: {},
       };
 

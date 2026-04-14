@@ -12,6 +12,10 @@ export default defineConfig({
     environment: "node",
     include: ["**/*.e2e.test.ts"],
     exclude: ["node_modules", "dist"],
-    maxThreads: 16,
+    fileParallelism: false,
+    hookTimeout: 60_000,
+    minThreads: 1,
+    maxThreads: 1,
+    testTimeout: 30_000,
   },
 });

@@ -1,8 +1,11 @@
 import type { OpenSpaceDetailPanelOptions, SpaceDetailTab } from "@/components/chat/chatPage.types";
-import { AddressBookIcon, ArchiveIcon, ArrowCounterClockwise, HouseIcon, PackageIcon, PlusIcon } from "@phosphor-icons/react";
+import { AddressBookIcon, ArchiveIcon, ArrowCounterClockwise, HouseIcon, PlusIcon } from "@phosphor-icons/react";
 import React from "react";
 import toast from "react-hot-toast";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
+import { prepareSpaceDocsForArchive } from "@/components/chat/infra/blocksuite/space/prepareSpaceDocsForArchive";
+import { canInviteSpectators } from "@/components/chat/utils/memberPermissions";
+import { canViewSpaceDetailTab } from "@/components/chat/utils/spaceDetailPermissions";
 import ConfirmModal from "@/components/common/comfirmModel";
 import { AddIcon, ChevronDown, DiceD6Icon, MemberIcon, Setting, SidebarSimpleIcon, WebgalIcon } from "@/icons";
 import { useUpdateSpaceArchiveStatusMutation } from "../../../../api/hooks/chatQueryHooks";
@@ -46,24 +49,28 @@ export default function SpaceHeaderBar({
     : (archived ? "取消归档" : "归档空间");
   const leftDrawerLabel = isLeftDrawerOpen ? "收起侧边栏" : "展开侧边栏";
   const canResetSidebarTree = isDevOrTest && isSpaceOwner && Boolean(onResetSidebarTreeToDefault);
+  const canViewMembersDetail = canViewSpaceDetailTab("members", spaceContext.memberType);
+  const canViewRolesDetail = canViewSpaceDetailTab("roles", spaceContext.memberType);
+  const canViewTrpgDetail = canViewSpaceDetailTab("trpg", spaceContext.memberType);
+  const canViewWebgalDetail = canViewSpaceDetailTab("webgal", spaceContext.memberType);
+  const canInviteMembers = canInviteSpectators(spaceContext.memberType);
 
-  const handleToggleArchive = (targetSpaceId: number, nextArchived: boolean) => {
+  const handleToggleArchive = async (targetSpaceId: number, nextArchived: boolean) => {
     if (updateArchiveStatus.isPending) {
       return;
     }
     const toastId = `space-archive-${targetSpaceId}`;
     toast.loading(nextArchived ? "正在归档空间..." : "正在取消归档...", { id: toastId });
-    updateArchiveStatus.mutate(
-      { spaceId: targetSpaceId, archived: nextArchived },
-      {
-        onSuccess: () => {
-          toast.success(nextArchived ? "归档完成" : "已取消归档", { id: toastId });
-        },
-        onError: () => {
-          toast.error(nextArchived ? "归档失败，请重试" : "取消归档失败，请重试", { id: toastId });
-        },
-      },
-    );
+    try {
+      if (nextArchived) {
+        await prepareSpaceDocsForArchive(targetSpaceId);
+      }
+      await updateArchiveStatus.mutateAsync({ spaceId: targetSpaceId, archived: nextArchived });
+      toast.success(nextArchived ? "归档完成" : "已取消归档", { id: toastId });
+    }
+    catch {
+      toast.error(nextArchived ? "归档失败，请重试" : "取消归档失败，请重试", { id: toastId });
+    }
   };
 
   const handleArchiveAction = () => {
@@ -76,7 +83,7 @@ export default function SpaceHeaderBar({
       setIsArchiveConfirmOpen(true);
       return;
     }
-    handleToggleArchive(spaceId, nextArchived);
+    void handleToggleArchive(spaceId, nextArchived);
   };
 
   const handleOpenSpaceDetail = (tab: SpaceDetailTab) => {
@@ -132,66 +139,62 @@ export default function SpaceHeaderBar({
             <ChevronDown className="size-4 opacity-60 shrink-0" />
           </button>
           <ul tabIndex={0} className="dropdown-content menu bg-base-100 rounded-box shadow-xl border border-base-300 z-40 w-56 p-2">
-            <li>
-              <button
-                type="button"
-                className="gap-3"
-                onClick={() => {
-                  handleOpenSpaceDetail("material");
-                }}
-              >
-                <PackageIcon className="size-4 opacity-70" />
-                <span className="flex-1 text-left">局内素材包</span>
-              </button>
-            </li>
-            <li>
-              <button
-                type="button"
-                className="gap-3"
-                onClick={() => {
-                  handleOpenSpaceDetail("members");
-                }}
-              >
-                <MemberIcon className="size-4 opacity-70" />
-                <span className="flex-1 text-left">空间成员</span>
-              </button>
-            </li>
-            <li>
-              <button
-                type="button"
-                className="gap-3"
-                onClick={() => {
-                  handleOpenSpaceDetail("roles");
-                }}
-              >
-                <AddressBookIcon className="size-4 opacity-70" />
-                <span className="flex-1 text-left">空间角色</span>
-              </button>
-            </li>
-            <li>
-              <button
-                type="button"
-                className="gap-3"
-                onClick={() => {
-                  handleOpenSpaceDetail("trpg");
-                }}
-              >
-                <DiceD6Icon className="size-4 opacity-70" />
-                <span className="flex-1 text-left">跑团设置</span>
-              </button>
-            </li>
-            <li>
-              <button
-                type="button"
-                className="gap-3"
-                onClick={() => {
-                  handleOpenSpaceDetail("webgal");
-                }}
-              >
-                <WebgalIcon className="size-4 opacity-70" />
-                <span className="flex-1 text-left">WebGAL 渲染</span>
-              </button>
-            </li>
+            {canViewMembersDetail && (
+              <li>
+                <button
+                  type="button"
+                  className="gap-3"
+                  onClick={() => {
+                    handleOpenSpaceDetail("members");
+                  }}
+                >
+                  <MemberIcon className="size-4 opacity-70" />
+                  <span className="flex-1 text-left">空间成员</span>
+                </button>
+              </li>
+            )}
+            {canViewRolesDetail && (
+              <li>
+                <button
+                  type="button"
+                  className="gap-3"
+                  onClick={() => {
+                    handleOpenSpaceDetail("roles");
+                  }}
+                >
+                  <AddressBookIcon className="size-4 opacity-70" />
+                  <span className="flex-1 text-left">空间角色</span>
+                </button>
+              </li>
+            )}
+            {canViewTrpgDetail && (
+              <li>
+                <button
+                  type="button"
+                  className="gap-3"
+                  onClick={() => {
+                    handleOpenSpaceDetail("trpg");
+                  }}
+                >
+                  <DiceD6Icon className="size-4 opacity-70" />
+                  <span className="flex-1 text-left">跑团设置</span>
+                </button>
+              </li>
+            )}
+            {canViewWebgalDetail && (
+              <li>
+                <button
+                  type="button"
+                  className="gap-3"
+                  onClick={() => {
+                    handleOpenSpaceDetail("webgal");
+                  }}
+                >
+                  <WebgalIcon className="size-4 opacity-70" />
+                  <span className="flex-1 text-left">WebGAL 渲染</span>
+                </button>
+              </li>
+            )}
             {isSpaceOwner && onAddCategory && (
               <li>
                 <button
@@ -260,16 +263,18 @@ export default function SpaceHeaderBar({
               </button>
             </div>
           )}
-          <div className="tooltip tooltip-bottom" data-tip="邀请成员">
-            <button
-              type="button"
-              className="btn btn-ghost btn-sm btn-square hover:text-info"
-              onClick={onInviteMember}
-              aria-label="邀请成员"
-            >
-              <AddIcon />
-            </button>
-          </div>
+          {canInviteMembers && (
+            <div className="tooltip tooltip-bottom" data-tip="邀请成员">
+              <button
+                type="button"
+                className="btn btn-ghost btn-sm btn-square hover:text-info"
+                onClick={onInviteMember}
+                aria-label="邀请成员"
+              >
+                <AddIcon />
+              </button>
+            </div>
+          )}
         </div>
       </div>
       <ConfirmModal
@@ -282,16 +287,16 @@ export default function SpaceHeaderBar({
         message="归档后空间将进入只读状态，可在之后取消归档。是否继续？"
         confirmText="确认归档"
         variant="warning"
-        onConfirm={() => {
-          if (archiveTargetSpaceId == null) {
-            return;
-          }
-          const targetSpaceId = archiveTargetSpaceId;
-          setIsArchiveConfirmOpen(false);
-          setArchiveTargetSpaceId(null);
-          handleToggleArchive(targetSpaceId, true);
-        }}
-      />
+                  onConfirm={() => {
+                    if (archiveTargetSpaceId == null) {
+                      return;
+                    }
+                    const targetSpaceId = archiveTargetSpaceId;
+                    setIsArchiveConfirmOpen(false);
+                    setArchiveTargetSpaceId(null);
+                    void handleToggleArchive(targetSpaceId, true);
+                  }}
+                />
       <ConfirmModal
         isOpen={isResetConfirmOpen}
         onClose={() => {

@@ -15,7 +15,6 @@ import type { StateEventExtra } from './StateEventExtra';
 import type { ThreadRootExtra } from './ThreadRootExtra';
 import type { VideoMessage } from './VideoMessage';
 import type { WebgalChoosePayload } from './WebgalChoosePayload';
-import type { WebgalVarPayload } from './WebgalVarPayload';
 /**
  * 不同类型消息持有的额外信息
  */
@@ -27,7 +26,6 @@ export type MessageExtra = {
     soundMessage?: SoundMessage;
     videoMessage?: VideoMessage;
     clueMessage?: ClueMessage;
-    webgalVar?: WebgalVarPayload;
     webgalChoose?: WebgalChoosePayload;
     commandRequest?: CommandRequestExtra;
     docCard?: DocCardExtra;

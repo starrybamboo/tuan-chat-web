@@ -1,5 +1,8 @@
 import type { Message } from "../../../../../api";
+import { use } from "react";
 import { useGetMessageByIdSmartly } from "@/components/chat/core/hooks";
+import { RoomContext } from "@/components/chat/core/roomContext";
+import { canCurrentUserViewMessage } from "@/components/chat/utils/hiddenDiceVisibility";
 import { isOutOfCharacterSpeech } from "@/components/chat/utils/outOfCharacterSpeech";
 import { getDisplayRoleName } from "@/components/chat/utils/roleDisplayName";
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
@@ -18,38 +21,44 @@ export function PreviewMessage({ message, className, withMediaPreview }: {
   className?: string;
   withMediaPreview?: boolean;
 }) {
+  const roomContext = use(RoomContext);
   // 如果传的是id就从历史消息里面找，没找到就去query。如果是Message类型就直接拿来用
   const getMessageByIdSmartly = useGetMessageByIdSmartly(typeof message === "number" ? message : -1);
   const messageBody = typeof message === "number"
     ? getMessageByIdSmartly
     : message;
+  const canViewMessage = canCurrentUserViewMessage(messageBody, {
+    currentUserId: roomContext.curMember?.userId,
+    memberType: roomContext.curMember?.memberType,
+  });
+  const previewMessage = canViewMessage ? messageBody : undefined;
 
-  const useRoleRequest = useGetRoleQuery(messageBody?.roleId ?? -1);
+  const useRoleRequest = useGetRoleQuery(previewMessage?.roleId ?? -1);
   const role = useRoleRequest.data?.data;
-  const isDeleted = messageBody?.status === 1;
-  const isIntroText = messageBody?.messageType === MESSAGE_TYPE.INTRO_TEXT;
-  const isOutOfCharacterText = messageBody?.messageType === MESSAGE_TYPE.TEXT
-    && isOutOfCharacterSpeech(messageBody.content);
-  const displayRoleName = messageBody
+  const isDeleted = previewMessage?.status === 1;
+  const isIntroText = previewMessage?.messageType === MESSAGE_TYPE.INTRO_TEXT;
+  const isOutOfCharacterText = previewMessage?.messageType === MESSAGE_TYPE.TEXT
+    && isOutOfCharacterSpeech(previewMessage.content);
+  const displayRoleName = previewMessage
     ? getDisplayRoleName({
-        roleId: messageBody.roleId,
+        roleId: previewMessage.roleId,
         roleName: role?.roleName,
-        customRoleName: messageBody.customRoleName,
+        customRoleName: previewMessage.customRoleName,
         isIntroText,
       })
     : "";
 
-  const previewText = getMessagePreviewText(messageBody);
+  const previewText = canViewMessage ? getMessagePreviewText(previewMessage) : "[消息不可见]";
 
   return (
     <span className={`text-xs sm:text-sm line-clamp-3 opacity-60 break-words min-w-0 ${isOutOfCharacterText ? "italic" : ""} ${className}`}>
       {
-        isDeleted
+        isDeleted || !canViewMessage
           ? previewText
           : (
               <>
                 {displayRoleName ? `【${displayRoleName}】: ` : ""}
-                <MessagePreviewContent message={messageBody} withMediaPreview={withMediaPreview} />
+                <MessagePreviewContent message={previewMessage} withMediaPreview={withMediaPreview} />
               </>
             )
       }

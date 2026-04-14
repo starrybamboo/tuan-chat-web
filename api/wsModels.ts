@@ -17,7 +17,6 @@ export enum MessageType {
     DICE = 6,
     SOUND = 7,
     EFFECT = 8,
-    WEBGAL_COMMAND = 10,
     /** 跑团：检定/指令请求消息（点击后由他人“一键发送”执行） */
     COMMAND_REQUEST = 12,
     /** WebGAL 选择消息（结构化选项） */
@@ -89,7 +88,7 @@ interface PrivateMessage extends BaseMessage<{
     replyMessageId?: number;
     status: number;
     extra?: {
-        diceResult?: { result: string };
+        diceResult?: { result: string; hidden?: boolean };
         fileMessage?: { size: number; url: string; fileName: string };
         imageMessage?: { background: boolean; width: number; height: number };
         forwardMessage?: { messageList: any[] };
@@ -220,19 +219,21 @@ interface GroupMessagePush extends BaseMessage<{
 
 // 成员变动 (type: 11)
 export interface MemberChangePush extends BaseMessage<{
-    roomId: number;
+    spaceId?: number;
+    roomId?: number;
     userIds: number[];
     changeType: 1 | 2 | 3;
-    activeStatus: number;
-    lastOptTime: string;
+    activeStatus?: number;
+    lastOptTime?: string;
 }> {
     type: 11;
 }
 
 // 角色变动 (type: 12)
 export interface RoleChangePush extends BaseMessage<{
+    spaceId?: number;
     roleIds: number[];
-    roomId: number;
+    roomId?: number;
     changeType: 1 | 2;
 }> {
     type: 12;

@@ -8,12 +8,17 @@ import {
   filterBlocksuiteDocTitlePageSpecs,
 } from "../editors/extensions/buildBlocksuiteCoreEditorExtensions";
 import {
+  buildBlocksuiteRoleMentionKey,
+  parseBlocksuiteMentionKey,
+} from "../shared/mentionKey";
+import {
   createBlocksuiteDocMenuGroup,
   handleBlocksuiteDocLinkNavigation,
   parseBlocksuiteRoomIdFromDocKey,
 } from "../editors/extensions/buildBlocksuiteLinkedDocExtensions";
 import {
   buildBlocksuiteMentionMenuGroup,
+  buildBlocksuiteRoleMentionMenuGroup,
   insertBlocksuiteMentionViaInlineEditor,
   isBlocksuiteMentionMenuLocked,
   lockBlocksuiteMentionMenu,
@@ -27,6 +32,7 @@ import {
 import { buildBlocksuiteEmbedExtensions } from "../editors/extensions/embed/buildBlocksuiteEmbedExtensions";
 import { EmbedIframeNoCredentiallessViewOverride } from "../editors/extensions/embed/embedIframeNoCredentiallessViewOverride";
 import { RoomMapEmbedOptionExtension } from "../editors/extensions/embed/roomMapEmbedOption";
+import { listBlocksuiteMentionRoles } from "../services/blocksuiteRoleService";
 import { listBlocksuiteSpaceMemberIds } from "../services/blocksuiteSpaceMemberService";
 
 vi.mock("../manager/view", () => ({
@@ -34,16 +40,22 @@ vi.mock("../manager/view", () => ({
   getPageSpecs: () => [],
 }));
 
+vi.mock("../services/blocksuiteRoleService", () => ({
+  listBlocksuiteMentionRoles: vi.fn(),
+}));
+
 vi.mock("../services/blocksuiteSpaceMemberService", () => ({
   listBlocksuiteSpaceMemberIds: vi.fn(),
 }));
 
+const mockedListBlocksuiteMentionRoles = vi.mocked(listBlocksuiteMentionRoles);
 const mockedListBlocksuiteSpaceMemberIds = vi.mocked(listBlocksuiteSpaceMemberIds);
 
 function createTestContext(overrides: Record<string, unknown> = {}) {
   return {
     store: {},
     storeAny: { id: "current-doc" },
+    currentDocId: "current-doc",
     workspace: {
       getDoc: vi.fn(() => null),
       meta: {},
@@ -62,6 +74,21 @@ function createTestContext(overrides: Record<string, unknown> = {}) {
         removed: false,
       })),
     },
+    roleService: {
+      roleInfo$: vi.fn(),
+      isLoading$: vi.fn(),
+      error$: vi.fn(),
+      revalidateRoleInfo: vi.fn(),
+      prefetch: vi.fn(async () => {}),
+      getCachedRoleInfo: vi.fn((id: string) => ({
+        id,
+        name: id === "101" ? "艾拉" : `角色${id}`,
+        avatar: null,
+        description: null,
+        removed: false,
+      })),
+      seedRoles: vi.fn(),
+    },
     quickSearchService: {
       searchDoc: vi.fn(),
       dispose: vi.fn(),
@@ -71,6 +98,8 @@ function createTestContext(overrides: Record<string, unknown> = {}) {
     titleInflight: new Map(),
     roomIdsCache: new Map(),
     roomIdsInflight: new Map(),
+    roleEntriesCache: new Map(),
+    roleEntriesInflight: new Map(),
     mentionMenuLockUntil: 0,
     mentionCommitDedupUntil: 0,
     debugEnabled: false,
@@ -132,6 +161,8 @@ describe("blocksuiteEditorBuilders", () => {
     const setInlineRange = vi.fn();
     const load = vi.fn();
     const track = vi.fn();
+    const abort = vi.fn();
+    let inlineRange = { index: 3, length: 0 };
     const workspace = {
       getDoc: vi.fn(() => ({
         load,
@@ -155,7 +186,7 @@ describe("blocksuiteEditorBuilders", () => {
       context,
       entries: [{ docId: "room:2:description", title: "房间设定" }],
       inlineEditor: {
-        getInlineRange: () => ({ index: 3, length: 0 }),
+        getInlineRange: () => inlineRange,
         insertText,
         setInlineRange,
       },
@@ -167,16 +198,28 @@ describe("blocksuiteEditorBuilders", () => {
           }),
         },
       },
+      abort: () => {
+        abort();
+        inlineRange = { index: 0, length: 0 };
+      },
     });
 
-    expect(group.name).toBe("Link to Doc");
+    expect(group.name).toBe("文档");
+    expect(group.maxDisplay).toBeUndefined();
     const items = group.items as Array<{ action: () => void }>;
     expect(items).toHaveLength(1);
 
     items[0].action();
 
-    expect(insertText).toHaveBeenCalled();
-    expect(setInlineRange).toHaveBeenCalledWith({ index: 4, length: 0 });
+    expect(abort).toHaveBeenCalled();
+    expect(insertText).toHaveBeenCalledWith(
+      { index: 0, length: 0 },
+      expect.any(String),
+      expect.objectContaining({
+        reference: { type: "LinkedPage", pageId: "room:2:description", title: "房间设定" },
+      }),
+    );
+    expect(setInlineRange).toHaveBeenCalledWith({ index: 1, length: 0 });
     expect(load).toHaveBeenCalled();
     expect(track).toHaveBeenCalledWith("LinkedDocCreated", expect.any(Object));
   });
@@ -253,6 +296,50 @@ describe("blocksuiteEditorBuilders", () => {
     expect(setInlineRange).toHaveBeenLastCalledWith({ index: 2, length: 0 });
   });
 
+  it("mention builder 能生成角色菜单并插入角色 mention", async () => {
+    mockedListBlocksuiteMentionRoles.mockResolvedValueOnce([
+      {
+        roleId: 101,
+        userId: 1,
+        roleName: "艾拉",
+        avatarId: 0,
+        type: 0,
+        description: "测试角色",
+      } as any,
+    ]);
+    const abort = vi.fn();
+    const insertText = vi.fn();
+    const setInlineRange = vi.fn();
+    const context = createTestContext();
+
+    const group = await buildBlocksuiteRoleMentionMenuGroup(context, {
+      query: "艾",
+      abort,
+      inlineEditor: {
+        getInlineRange: () => ({ index: 4, length: 0 }),
+        insertText,
+        setInlineRange,
+      },
+      signal: new AbortController().signal,
+    });
+
+    expect(group?.name).toBe("角色");
+    expect(group?.maxDisplay).toBeUndefined();
+    const items = (group?.items ?? []) as Array<{ action: () => void }>;
+    expect(items).toHaveLength(1);
+
+    items[0]?.action();
+
+    expect(abort).toHaveBeenCalled();
+    expect(insertText).toHaveBeenNthCalledWith(
+      1,
+      { index: 2, length: 0 },
+      expect.any(String),
+      { mention: { member: "role:101" } },
+    );
+    expect(setInlineRange).toHaveBeenLastCalledWith({ index: 4, length: 0 });
+  });
+
   it("insertMention helper 会清理触发文本并写入 embed mention", () => {
     const abort = vi.fn();
     const insertText = vi.fn();
@@ -266,7 +353,7 @@ describe("blocksuiteEditorBuilders", () => {
       },
       query: "ab",
       triggerKey: "@",
-      memberId: "42",
+      mentionKey: "42",
       abort,
     });
 
@@ -368,6 +455,12 @@ describe("blocksuiteEditorBuilders", () => {
 
     context.quickSearchService.searchDoc.mockResolvedValueOnce(null);
     await expect(openQuickSearch()).resolves.toBeNull();
+  });
+
+  it("mention key helper 能区分用户与角色 mention", () => {
+    expect(parseBlocksuiteMentionKey("42")).toEqual({ kind: "user", id: "42" });
+    expect(parseBlocksuiteMentionKey(buildBlocksuiteRoleMentionKey(101))).toEqual({ kind: "role", id: "101" });
+    expect(parseBlocksuiteMentionKey("role:abc")).toBeNull();
   });
 
   it("room description docId 能被正确解析", () => {

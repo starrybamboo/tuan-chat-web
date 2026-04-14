@@ -6,6 +6,7 @@ import { use, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import { RoomContext } from "@/components/chat/core/roomContext";
 import { compareChatMessageResponsesByOrder } from "@/components/chat/shared/messageOrder";
+import { filterVisibleChatMessages } from "@/components/chat/utils/hiddenDiceVisibility";
 import { exportChatMessages } from "@/utils/exportChatMessages";
 import { shouldRetryRoleQueryError } from "@/utils/roleApiError";
 import { useGetRolesQueries } from "../../../../../api/hooks/RoleAndAvatarHooks";
@@ -31,12 +32,15 @@ export default function ExportChatDrawer({ messages, onClose }: ExportChatDrawer
 
   // 获取历史消息
   const historyMessages = useMemo(() => {
-    const base = messages ?? roomContext.chatHistory?.messages ?? [];
+    const base = filterVisibleChatMessages(messages ?? roomContext.chatHistory?.messages ?? [], {
+      currentUserId: roomContext.curMember?.userId,
+      memberType: roomContext.curMember?.memberType,
+    });
     if (!messages) {
       return base;
     }
     return [...base].sort(compareChatMessageResponsesByOrder);
-  }, [messages, roomContext.chatHistory?.messages]);
+  }, [messages, roomContext.chatHistory?.messages, roomContext.curMember?.memberType, roomContext.curMember?.userId]);
 
   // 获取所有角色信息用于导出
   const getRolesQueries = useGetRolesQueries(

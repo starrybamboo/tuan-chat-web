@@ -1,6 +1,8 @@
 import React from "react";
 
+import { SpaceContext } from "@/components/chat/core/spaceContext";
 import SpaceInvitePanel from "@/components/chat/space/spaceInvitePanel";
+import { canInviteSpectators, canManageMemberPermissions } from "@/components/chat/utils/memberPermissions";
 import AddMemberWindow from "@/components/chat/window/addMemberWindow";
 import CreateRoomWindow from "@/components/chat/window/createRoomWindow";
 import CreateSpaceWindow from "@/components/chat/window/createSpaceWindow";
@@ -56,6 +58,9 @@ export default function ChatPageModals({
   onAddSpaceMember,
   onAddSpacePlayer,
 }: ChatPageModalsProps) {
+  const spaceContext = React.use(SpaceContext);
+  const canInvitePlayers = canManageMemberPermissions(spaceContext.memberType);
+  const canInviteMembers = canInviteSpectators(spaceContext.memberType);
   const docTitleInputRef = React.useRef<HTMLInputElement | null>(null);
   const draftDocTitleRef = React.useRef(createDocTitle);
   const wasCreateInCategoryOpenRef = React.useRef(false);
@@ -163,17 +168,18 @@ export default function ChatPageModals({
       </ToastWindow>
 
       <ToastWindow
-        isOpen={inviteRoomId !== null}
+        isOpen={canInvitePlayers && inviteRoomId !== null}
         onClose={() => setInviteRoomId(null)}
       >
         <AddMemberWindow
           handleAddMember={onAddRoomMember}
           showSpace={true}
+          inviteCodeType={1}
         />
       </ToastWindow>
 
       <ToastWindow
-        isOpen={isMemberHandleOpen}
+        isOpen={canInviteMembers && isMemberHandleOpen}
         onClose={() => {
           setIsMemberHandleOpen(false);
         }}

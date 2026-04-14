@@ -3,8 +3,6 @@ export type CharacterData = {
   id?: number;
   name: string;
   description: string;
-  modelName?: string;
-  speakerName?: string;
   voiceUrl?: string;
   avatar?: string;
   avatarId?: number;

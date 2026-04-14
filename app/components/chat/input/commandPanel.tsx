@@ -1,14 +1,12 @@
 import React from "react";
 import { getCommandList } from "@/components/common/dicer/cmdPre";
-import { webgalCommands } from "@/components/common/dicer/commands";
 
 /**
  * 定义命令面板支持的命令模式类型
  * - 'dice': 骰子命令模式
- * - 'webgal': WebGal命令模式
  * - 'none': 无命令模式
  */
-type commandModeType = "dice" | "webgal" | "none";
+type commandModeType = "dice" | "none";
 /**
  * 命令面板组件，用于显示和选择命令建议
  * @param prefix 当前输入的命令前缀（包含触发字符如/或.）
@@ -44,8 +42,6 @@ export default function CommandPanel({ prefix, handleSelectCommand, commandMode,
     switch (commandMode) {
       case "dice":
         return getCommandList(ruleId);
-      case "webgal":
-        return webgalCommands;
       case "none":
       default:
         return new Map<string, CommandInfo>();

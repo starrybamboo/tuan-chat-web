@@ -350,8 +350,7 @@ export const cmdWw = new CommandExecutor(
       const message = formatWwResultMessage(options, result, operatorName);
 
       if (isForceToast) {
-        cpi.sendToast(message);
-        cpi.replyMessage(`${operatorName}进行了一次暗骰`);
+        cpi.replyMessage(message, { visibility: "kp_and_sender" });
         return true;
       }
 

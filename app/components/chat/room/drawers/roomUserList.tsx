@@ -3,7 +3,7 @@ import { use, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import { RoomContext } from "@/components/chat/core/roomContext";
 import MemberLists from "@/components/chat/shared/components/memberLists";
-import { canManageRoomRoles, hasHostPrivileges } from "@/components/chat/utils/memberPermissions";
+import { canManageMemberPermissions, canManageRoomRoles, hasHostPrivileges } from "@/components/chat/utils/memberPermissions";
 import AddMemberWindow from "@/components/chat/window/addMemberWindow";
 import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
 import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
@@ -23,6 +23,7 @@ export default function RoomUserList({ type}: { type: string }) {
   const curMember = roomContext.curMember;
   const currentMemberType = curMember?.memberType;
   const hasHostAccess = hasHostPrivileges(currentMemberType);
+  const canInviteMembers = canManageMemberPermissions(currentMemberType);
   const canAddRole = canManageRoomRoles(currentMemberType);
   const [isMemberHandleOpen, setIsMemberHandleOpen] = useSearchParamsState<boolean>("memberSettingPop", false);
 
@@ -99,7 +100,7 @@ export default function RoomUserList({ type}: { type: string }) {
         </div>
 
         <div className="flex gap-2">
-          {!isRole && hasHostAccess && (
+          {!isRole && canInviteMembers && (
             <button
               className="btn btn-dash btn-info"
               type="button"
@@ -155,8 +156,8 @@ export default function RoomUserList({ type}: { type: string }) {
             )}
       </div>
 
-      <ToastWindow isOpen={isMemberHandleOpen} onClose={() => setIsMemberHandleOpen(false)}>
-        <AddMemberWindow handleAddMember={handleAddMember} showSpace={true} />
+      <ToastWindow isOpen={canInviteMembers && isMemberHandleOpen} onClose={() => setIsMemberHandleOpen(false)}>
+        <AddMemberWindow handleAddMember={handleAddMember} showSpace={true} inviteCodeType={1} />
       </ToastWindow>
       {/* 弹窗 */}
       <ToastWindow isOpen={isRoleHandleOpen} onClose={() => setIsRoleHandleOpen(false)}>

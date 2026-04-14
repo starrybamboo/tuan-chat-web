@@ -237,16 +237,6 @@ export default function MessageContentRenderer({
       const payload = extractWebgalChoosePayload(message.extra);
       return <WebgalChooseMessage payload={payload} />;
     }
-    case MESSAGE_TYPE.WEBGAL_COMMAND: {
-      const commandText = message.content?.trim() || "";
-      const displayText = commandText.startsWith("%") ? commandText : `%${commandText}`;
-      return (
-        <div className="flex items-center gap-2 text-sm">
-          <span className="badge badge-ghost badge-xs">WebGAL</span>
-          <span className="break-words font-mono">{displayText}</span>
-        </div>
-      );
-    }
     case MESSAGE_TYPE.STATE_EVENT:
       return <StateMessageCard message={message} />;
     case MESSAGE_TYPE.SYSTEM:

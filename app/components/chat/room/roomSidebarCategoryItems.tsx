@@ -21,7 +21,7 @@ interface RoomSidebarCategoryItemsProps {
   setDropTarget: (next: DropTarget | null) => void;
   handleDrop: () => void;
   setContextMenu: (next: SidebarTreeContextMenuState) => void;
-  onContextMenu: (e: MouseEvent) => void;
+  onContextMenu: (e: MouseEvent, roomId?: number | null) => void;
   docHeaderOverrides: Record<string, { title?: string; imageUrl?: string }>;
   docMetaMap: Map<string, MinimalDocMeta>;
   roomById: Map<number, Room>;

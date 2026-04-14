@@ -1,6 +1,7 @@
 import type { Store, Workspace } from "@blocksuite/store";
 
 import {
+  encodeLoadedSpaceDocAsUpdateIfExists,
   getOrCreateSpaceDocStore,
   getOrCreateSpaceWorkspaceRuntime,
   getSpaceWorkspaceRuntimeIfExists,
@@ -89,6 +90,10 @@ export function getOrCreateSpaceWorkspace(spaceId: number): Workspace {
 
 export function getSpaceWorkspaceIfExists(spaceId: number): Workspace | null {
   return getWorkspaceIfExists(`space:${spaceId}`);
+}
+
+export function encodeLoadedSpaceDocAsUpdateIfExistsForSpace(params: { spaceId: number; docId: string }): Uint8Array | null {
+  return encodeLoadedSpaceDocAsUpdateIfExists(`space:${params.spaceId}`, params.docId);
 }
 
 export function retainSpaceWorkspace(spaceId: number): Workspace {

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  canInviteSpectators,
   canManageMemberPermissions,
   canManageRoomRoles,
   canParticipateInRoom,
@@ -11,6 +12,19 @@ import {
 } from "./memberPermissions";
 
 describe("memberPermissions", () => {
+  it("空间成员仍然可以邀请观战", () => {
+    expect(canInviteSpectators(SPACE_MEMBER_TYPE.LEADER)).toBe(true);
+    expect(canInviteSpectators(SPACE_MEMBER_TYPE.PLAYER)).toBe(true);
+    expect(canInviteSpectators(SPACE_MEMBER_TYPE.OBSERVER)).toBe(true);
+    expect(canInviteSpectators(null)).toBe(false);
+  });
+
+  it("只有主持人可以邀请玩家和管理身份变更", () => {
+    expect(canManageMemberPermissions(SPACE_MEMBER_TYPE.LEADER)).toBe(true);
+    expect(canManageMemberPermissions(SPACE_MEMBER_TYPE.PLAYER)).toBe(false);
+    expect(canManageMemberPermissions(SPACE_MEMBER_TYPE.OBSERVER)).toBe(false);
+  });
+
   it("副主持人应拥有主持权限但不能改成员权限", () => {
     expect(hasHostPrivileges(SPACE_MEMBER_TYPE.ASSISTANT_LEADER)).toBe(true);
     expect(canManageMemberPermissions(SPACE_MEMBER_TYPE.ASSISTANT_LEADER)).toBe(false);

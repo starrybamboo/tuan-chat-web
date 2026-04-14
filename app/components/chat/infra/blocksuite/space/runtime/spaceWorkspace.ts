@@ -1109,6 +1109,22 @@ export function releaseSpaceWorkspaceRuntime(workspaceId: string): void {
   scheduleWorkspaceRuntimeDispose(workspaceId);
 }
 
+/**
+ * 仅在 runtime 已存在且目标 doc 已被显式打开过时，返回当前内存中的完整 Yjs update。
+ * 不会为了编码而隐式创建/拉起新的远端文档。
+ */
+export function encodeLoadedSpaceDocAsUpdateIfExists(workspaceId: string, docId: string): Uint8Array | null {
+  const workspace = getSpaceWorkspaceRuntimeIfExists(workspaceId);
+  if (!workspace) {
+    return null;
+  }
+  const existingDoc = workspace.getDoc(docId) as SpaceDoc | null;
+  if (!existingDoc?.ready) {
+    return null;
+  }
+  return workspace.encodeDocAsUpdate(docId);
+}
+
 // 对外统一入口：确保 workspace/doc/store 可用，并返回适配读写场景的 store。
 export function getOrCreateSpaceDocStore(params: {
   workspaceId: string;

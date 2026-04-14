@@ -22,6 +22,13 @@ import {
   upsertRoomDndMap,
   upsertRoomDndMapToken,
 } from "./roomDndMapApi";
+import {
+  MAX_GRID_DIMENSION,
+  buildGridOverlayStyle,
+  buildTokenPositionStyle,
+  clampGridDimension,
+  resolveGridCellAtPoint,
+} from "./roomDndMapGeometry";
 
 const GRID_COLOR_OPTIONS = [
   { value: "#64748b", label: "slate", className: "bg-slate-500 border-slate-500" },
@@ -159,6 +166,7 @@ export default function DNDMap({ roomId: roomIdProp, spaceId: spaceIdProp, varia
   const isMobile = useIsMobile();
   const uploadUtil = useMemo(() => new UploadUtils(), []);
   const [selectedRoleId, setSelectedRoleId] = useState<number | null>(null);
+  const overlayRef = useRef<HTMLDivElement>(null);
 
   const { data: roomRolesData } = useGetRoomRoleQuery(roomId);
   const { data: roomNpcRolesData } = useGetRoomNpcRoleQuery(roomId);
@@ -206,6 +214,9 @@ export default function DNDMap({ roomId: roomIdProp, spaceId: spaceIdProp, varia
   }, [roomRoles, tokenByRoleId]);
 
   const { containerRef, imageRef, rect } = useContainedImageRect(map?.mapImgUrl ?? "");
+  const gridOverlayStyle = useMemo(() => {
+    return buildGridOverlayStyle(gridRows, gridCols, gridColor);
+  }, [gridColor, gridCols, gridRows]);
 
   const tokenSize = useMemo(() => {
     if (rect.width <= 0 || rect.height <= 0) {
@@ -214,7 +225,10 @@ export default function DNDMap({ roomId: roomIdProp, spaceId: spaceIdProp, varia
     const cellWidth = rect.width / gridCols;
     const cellHeight = rect.height / gridRows;
     const size = Math.min(cellWidth, cellHeight) * 0.78;
-    return Math.max(isMobile ? 24 : 32, Math.floor(size));
+    // Dense tactical maps need smaller tokens; keeping a large fixed minimum makes high grids unusable.
+    const minVisibleSize = isMobile ? 12 : 16;
+    const maxVisibleSize = isMobile ? 32 : 42;
+    return Math.max(minVisibleSize, Math.min(maxVisibleSize, Math.floor(size)));
   }, [gridCols, gridRows, rect.height, rect.width, isMobile]);
 
   const mapUpsertMutation = useMutation({
@@ -364,6 +378,12 @@ export default function DNDMap({ roomId: roomIdProp, spaceId: spaceIdProp, varia
     event.dataTransfer.dropEffect = "move";
   }, []);
 
+  const handleTokenDragOver = useCallback((event: React.DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
+    event.dataTransfer.dropEffect = "move";
+  }, []);
+
   const handleRemoveRole = useCallback((roleId: number) => {
     if (!roomId || roomId <= 0) {
       return;
@@ -390,22 +410,49 @@ export default function DNDMap({ roomId: roomIdProp, spaceId: spaceIdProp, varia
     });
   }, [handleRemoveRole, roleByCellKey, roomId, tokenUpsertMutation]);
 
-  const handleCellDrop = useCallback((event: React.DragEvent<HTMLDivElement>, rowIndex: number, colIndex: number) => {
+  const resolveOverlayCell = useCallback((clientX: number, clientY: number) => {
+    const overlay = overlayRef.current;
+    if (!overlay) {
+      return null;
+    }
+    return resolveGridCellAtPoint({
+      clientX,
+      clientY,
+      rect: overlay.getBoundingClientRect(),
+      gridRows,
+      gridCols,
+    });
+  }, [gridCols, gridRows]);
+
+  const handleMapOverlayDrop = useCallback((event: React.DragEvent<HTMLDivElement>) => {
     event.preventDefault();
     const roleId = Number(event.dataTransfer.getData("text/plain"));
     if (!Number.isFinite(roleId) || roleId <= 0) {
       return;
     }
-    handlePlaceRole(roleId, rowIndex, colIndex);
-  }, [handlePlaceRole]);
+    const cell = resolveOverlayCell(event.clientX, event.clientY);
+    if (!cell) {
+      return;
+    }
+    handlePlaceRole(roleId, cell.rowIndex, cell.colIndex);
+  }, [handlePlaceRole, resolveOverlayCell]);
 
-  const handleCellClick = useCallback((rowIndex: number, colIndex: number) => {
+  const handleTokenOverlayDrop = useCallback((event: React.DragEvent<HTMLDivElement>) => {
+    event.stopPropagation();
+    handleMapOverlayDrop(event);
+  }, [handleMapOverlayDrop]);
+
+  const handleMapOverlayClick = useCallback((event: React.MouseEvent<HTMLDivElement>) => {
     if (!isMobile || !selectedRoleId) {
       return;
     }
-    handlePlaceRole(selectedRoleId, rowIndex, colIndex);
+    const cell = resolveOverlayCell(event.clientX, event.clientY);
+    if (!cell) {
+      return;
+    }
+    handlePlaceRole(selectedRoleId, cell.rowIndex, cell.colIndex);
     setSelectedRoleId(null);
-  }, [handlePlaceRole, isMobile, selectedRoleId]);
+  }, [handlePlaceRole, isMobile, resolveOverlayCell, selectedRoleId]);
 
   const handleTokenDropZone = useCallback((event: React.DragEvent<HTMLDivElement>) => {
     event.preventDefault();
@@ -465,43 +512,49 @@ export default function DNDMap({ roomId: roomIdProp, spaceId: spaceIdProp, varia
           alt="地图"
           className="w-full h-full object-contain"
         />
-        <div
-          className="absolute grid"
-          style={{
-            left: `${rect.left}px`,
-            top: `${rect.top}px`,
-            width: `${rect.width}px`,
-            height: `${rect.height}px`,
-            gridTemplateRows: `repeat(${gridRows}, 1fr)`,
-            gridTemplateColumns: `repeat(${gridCols}, 1fr)`,
-          }}
-        >
-          {Array.from({ length: gridRows }).map((_, rowIndex) => (
-            Array.from({ length: gridCols }).map((__, colIndex) => {
-              const cellToken = roleByCellKey.get(buildCellKey(rowIndex, colIndex));
-              const role = cellToken ? rolesById[cellToken.roleId] : null;
+        {rect.width > 0 && rect.height > 0 && (
+          <div
+            ref={overlayRef}
+            className="absolute"
+            style={{
+              left: `${rect.left}px`,
+              top: `${rect.top}px`,
+              width: `${rect.width}px`,
+              height: `${rect.height}px`,
+            }}
+            onDragOver={handleDragOver}
+            onDrop={handleMapOverlayDrop}
+            onClick={handleMapOverlayClick}
+          >
+            <div
+              className={`absolute inset-0 ${isMobile && selectedRoleId ? "cursor-pointer" : ""}`}
+              style={gridOverlayStyle}
+            />
+            {tokens.map((token) => {
+              const role = rolesById[token.roleId];
+              if (!role) {
+                return null;
+              }
               return (
                 <div
-                  key={buildCellKey(rowIndex, colIndex)}
-                  className="border border-dashed flex items-center justify-center"
-                  style={{ borderColor: `${gridColor}CC` }}
-                  onDragOver={handleDragOver}
-                  onDrop={event => handleCellDrop(event, rowIndex, colIndex)}
-                  onClick={() => handleCellClick(rowIndex, colIndex)}
+                  key={token.roleId}
+                  className="absolute z-10"
+                  style={buildTokenPositionStyle(token.rowIndex, token.colIndex, gridRows, gridCols)}
+                  onDragOver={handleTokenDragOver}
+                  onDrop={handleTokenOverlayDrop}
+                  onClick={event => event.stopPropagation()}
                 >
-                  {role && (
-                    <RoleToken
-                      role={role}
-                      size={tokenSize}
-                      draggable
-                      onDragStart={handleRoleDragStart}
-                    />
-                  )}
+                  <RoleToken
+                    role={role}
+                    size={tokenSize}
+                    draggable
+                    onDragStart={handleRoleDragStart}
+                  />
                 </div>
               );
-            })
-          ))}
-        </div>
+            })}
+          </div>
+        )}
       </div>
 
       <div
@@ -530,16 +583,16 @@ export default function DNDMap({ roomId: roomIdProp, spaceId: spaceIdProp, varia
             <input
               type="number"
               min={1}
-              max={50}
+              max={MAX_GRID_DIMENSION}
               value={gridRows}
               onChange={(event) => {
                 const next = Number(event.target.value);
                 if (Number.isNaN(next)) {
                   return;
                 }
-                handleGridChange(Math.min(50, Math.max(1, next)), gridCols);
+                handleGridChange(clampGridDimension(next), gridCols);
               }}
-              className="w-16 bg-transparent outline-none"
+              className="w-20 bg-transparent outline-none"
             />
           </label>
           <label className="input input-sm bg-base-200 border border-base-300">
@@ -548,16 +601,16 @@ export default function DNDMap({ roomId: roomIdProp, spaceId: spaceIdProp, varia
             <input
               type="number"
               min={1}
-              max={50}
+              max={MAX_GRID_DIMENSION}
               value={gridCols}
               onChange={(event) => {
                 const next = Number(event.target.value);
                 if (Number.isNaN(next)) {
                   return;
                 }
-                handleGridChange(gridRows, Math.min(50, Math.max(1, next)));
+                handleGridChange(gridRows, clampGridDimension(next));
               }}
-              className="w-16 bg-transparent outline-none"
+              className="w-20 bg-transparent outline-none"
             />
           </label>
           <div className="flex items-center gap-2">

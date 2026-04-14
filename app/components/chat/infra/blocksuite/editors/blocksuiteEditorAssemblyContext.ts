@@ -1,4 +1,7 @@
+import type { BlocksuiteMentionRoleEntry } from "../services/blocksuiteRoleService";
+
 import { createBlocksuiteQuickSearchService } from "../services/quickSearchService";
+import { createTuanChatRoleService } from "../services/tuanChatRoleService";
 import { createTuanChatUserService } from "../services/tuanChatUserService";
 import { isBlocksuiteDebugEnabled } from "../shared/debugFlags";
 import { createBlocksuiteQuickSearchPicker } from "./extensions/blocksuiteQuickSearchPicker";
@@ -25,17 +28,21 @@ export type EditorDisposer = () => void;
 export type BlocksuiteEditorAssemblyContext = {
   store: unknown;
   storeAny: any;
+  currentDocId?: string;
   workspace: WorkspaceLike;
   docModeProvider: CreateBlocksuiteEditorParams["docModeProvider"];
   spaceId?: number;
   onNavigateToDoc?: CreateBlocksuiteEditorParams["onNavigateToDoc"];
   userService: ReturnType<typeof createTuanChatUserService>;
+  roleService: ReturnType<typeof createTuanChatRoleService>;
   quickSearchService: ReturnType<typeof createBlocksuiteQuickSearchService>;
   disposers: EditorDisposer[];
   titleCache: Map<string, { at: number; title: string }>;
   titleInflight: Map<string, Promise<string>>;
   roomIdsCache: Map<number, { at: number; ids: Set<number> }>;
   roomIdsInflight: Map<number, Promise<Set<number> | null>>;
+  roleEntriesCache: Map<string, { at: number; roles: BlocksuiteMentionRoleEntry[] }>;
+  roleEntriesInflight: Map<string, Promise<BlocksuiteMentionRoleEntry[]>>;
   mentionMenuLockUntil: number;
   mentionCommitDedupUntil: number;
   debugEnabled: boolean;
@@ -50,11 +57,13 @@ export function createBlocksuiteEditorAssemblyContext(params: CreateBlocksuiteEd
   return {
     store: params.store,
     storeAny,
+    currentDocId: typeof storeAny?.id === "string" ? storeAny.id : undefined,
     workspace: params.workspace,
     docModeProvider: params.docModeProvider,
     spaceId: params.spaceId,
     onNavigateToDoc: params.onNavigateToDoc,
     userService: createTuanChatUserService(),
+    roleService: createTuanChatRoleService(),
     quickSearchService: createBlocksuiteQuickSearchService({
       searchDoc: quickSearchPicker.searchDoc,
       dispose: quickSearchPicker.dispose,
@@ -64,6 +73,8 @@ export function createBlocksuiteEditorAssemblyContext(params: CreateBlocksuiteEd
     titleInflight: new Map(),
     roomIdsCache: new Map(),
     roomIdsInflight: new Map(),
+    roleEntriesCache: new Map(),
+    roleEntriesInflight: new Map(),
     mentionMenuLockUntil: 0,
     mentionCommitDedupUntil: 0,
     debugEnabled: isBlocksuiteDebugEnabled(),

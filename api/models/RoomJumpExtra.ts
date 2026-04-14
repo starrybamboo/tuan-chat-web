@@ -6,7 +6,7 @@ export type RoomJumpExtra = {
     /**
      * 目标房间ID
      */
-    roomId: number;
+    roomId?: number;
     /**
      * 目标空间ID（可选）
      */

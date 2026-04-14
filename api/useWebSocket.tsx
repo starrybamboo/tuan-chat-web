@@ -49,6 +49,7 @@ import { buildCommentPageQueryKey } from "./hooks/commentQueryHooks";
 import type { CrossTabNotificationGuard } from "@/utils/crossTabNotificationGuard";
 import { createCrossTabNotificationGuard } from "@/utils/crossTabNotificationGuard";
 import { showDesktopNotification } from "@/utils/desktopNotification";
+import { invalidateMemberChangeQueries, invalidateRoleChangeQueries } from "./wsInvalidation";
 
 /**
  * 成员的输入状态（不包含roomId）
@@ -1161,7 +1162,7 @@ export function useWebSocket() {
       }
       case 11:{ // 成员变动
         const event = message as MemberChangePush;
-        queryClient.invalidateQueries({ queryKey: ["getRoomMemberList",event.data.roomId] });
+        invalidateMemberChangeQueries(queryClient, event.data);
         // 如果是加入群组，要更新订阅信息，以及所有的房间信息
         if (event.data.changeType === 1){
           // getUserSessions 的 queryKey 只有 ['getUserSessions']，这里带 roomId 会导致无法命中缓存。
@@ -1180,8 +1181,7 @@ export function useWebSocket() {
       }
       case 12:{ // 角色变动
         const event = message as RoleChangePush
-        queryClient.invalidateQueries({ queryKey: ["spaceRole"] });
-        queryClient.invalidateQueries({ queryKey: ["roomRole",event.data.roomId] });
+        invalidateRoleChangeQueries(queryClient, event.data);
         break;
       }
       case 14:{ // 房间解散

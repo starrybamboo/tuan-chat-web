@@ -152,6 +152,8 @@ function ChatFrame(props: ChatFrameProps) {
     roomId,
     chatHistory,
     receivedMessages,
+    currentUserId: roomContext.curMember?.userId,
+    currentMemberType: roomContext.curMember?.memberType,
   });
 
   const { deleteMessage, updateMessage } = useChatFrameMessageMutations({

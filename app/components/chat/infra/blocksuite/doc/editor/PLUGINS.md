@@ -182,8 +182,8 @@ const merged = mergeBlocksuiteExtensionBundles(
 
 负责：
 
-- 用户服务接入
-- mention 菜单
+- 用户 / 角色服务接入
+- 角色 / 用户 mention 菜单
 - mention 插入
 - mention 锁与去重
 

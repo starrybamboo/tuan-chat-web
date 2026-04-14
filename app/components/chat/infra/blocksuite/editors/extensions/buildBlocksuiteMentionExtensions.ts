@@ -7,10 +7,14 @@ import { html } from "lit";
 import type { BlocksuiteEditorAssemblyContext } from "../blocksuiteEditorAssemblyContext";
 import type { BlocksuiteExtensionBundle } from "./types";
 
+import { buildBlocksuiteRoleMentionKey } from "../../shared/mentionKey";
+import { listBlocksuiteMentionRoles } from "../../services/blocksuiteRoleService";
+import { BlocksuiteRoleServiceExtension } from "../../services/tuanChatRoleService";
 import { listBlocksuiteSpaceMemberIds } from "../../services/blocksuiteSpaceMemberService";
 
 const MENTION_MENU_LOCK_MS = 400;
 const MENTION_COMMIT_DEDUP_MS = 600;
+const ROLE_LIST_CACHE_TTL_MS = 10_000;
 
 type MentionMenuParams = {
   query: string;
@@ -20,7 +24,7 @@ type MentionMenuParams = {
 };
 
 type BlocksuiteMentionExtensionApi = {
-  getMentionMenuGroup: (params: MentionMenuParams) => Promise<LinkedMenuGroup | null>;
+  getMentionMenuGroups: (params: MentionMenuParams) => Promise<LinkedMenuGroup[]>;
 };
 
 function forwardMentionMenu(message: string, payload?: Record<string, unknown>) {
@@ -71,15 +75,15 @@ export function insertBlocksuiteMentionViaInlineEditor(params: {
   inlineEditor: any;
   query: string;
   triggerKey: string;
-  memberId: string;
+  mentionKey: string;
   abort: () => void;
   logger?: (message: string, payload?: Record<string, unknown>) => void;
 }) {
-  const { inlineEditor, query, triggerKey, memberId, abort, logger } = params;
+  const { inlineEditor, query, triggerKey, mentionKey, abort, logger } = params;
 
   const current = inlineEditor?.getInlineRange?.();
   if (!current) {
-    logger?.("insert: inline range missing", { memberId });
+    logger?.("insert: inline range missing", { mentionKey });
     return false;
   }
 
@@ -96,14 +100,14 @@ export function insertBlocksuiteMentionViaInlineEditor(params: {
   try {
     inlineEditor.setInlineRange?.({ index: insertIndex, length: 0 });
     inlineEditor.insertText?.({ index: insertIndex, length: 0 }, ZERO_WIDTH_FOR_EMBED_NODE, {
-      mention: { member: String(memberId) },
+      mention: { member: String(mentionKey) },
     });
     inlineEditor.insertText?.({ index: insertIndex + 1, length: 0 }, " ");
     inlineEditor.setInlineRange?.({ index: insertIndex + 2, length: 0 });
     return true;
   }
   catch (error) {
-    logger?.("insert: failed", { memberId, error: String(error) });
+    logger?.("insert: failed", { mentionKey, error: String(error) });
     return false;
   }
 }
@@ -216,7 +220,7 @@ export async function buildBlocksuiteMentionMenuGroup(
             query,
             triggerKey: "@",
             abort,
-            memberId: id,
+            mentionKey: id,
             logger: (message, payload) => logMentionMenu(context, message, payload),
           });
 
@@ -236,15 +240,175 @@ export async function buildBlocksuiteMentionMenuGroup(
   };
 }
 
+function getBlocksuiteRoleCacheKey(context: BlocksuiteEditorAssemblyContext) {
+  const currentDocId = String(context.currentDocId ?? "").trim();
+  if (currentDocId) {
+    return currentDocId;
+  }
+
+  const spaceId = Number(context.spaceId);
+  if (Number.isFinite(spaceId) && spaceId > 0) {
+    return `space:${spaceId}`;
+  }
+
+  return "global";
+}
+
+async function loadBlocksuiteMentionRoleEntries(
+  context: BlocksuiteEditorAssemblyContext,
+  signal: AbortSignal,
+) {
+  const cacheKey = getBlocksuiteRoleCacheKey(context);
+  const cached = context.roleEntriesCache.get(cacheKey);
+  if (cached && Date.now() - cached.at <= ROLE_LIST_CACHE_TTL_MS) {
+    return cached.roles;
+  }
+
+  const inflight = context.roleEntriesInflight.get(cacheKey);
+  if (inflight) {
+    return inflight;
+  }
+
+  const task = (async () => {
+    if (signal.aborted) {
+      return [];
+    }
+
+    try {
+      const roles = await listBlocksuiteMentionRoles({
+        spaceId: context.spaceId,
+        currentDocId: context.currentDocId,
+      });
+      context.roleService.seedRoles(roles);
+      context.roleEntriesCache.set(cacheKey, { at: Date.now(), roles });
+      return roles;
+    }
+    catch {
+      return [];
+    }
+  })();
+
+  context.roleEntriesInflight.set(cacheKey, task);
+  try {
+    return await task;
+  }
+  finally {
+    context.roleEntriesInflight.delete(cacheKey);
+  }
+}
+
+async function resolveBlocksuiteMentionRoleCandidates(
+  context: BlocksuiteEditorAssemblyContext,
+  params: {
+    query: string;
+    signal: AbortSignal;
+  },
+) {
+  const { query, signal } = params;
+  const roles = await loadBlocksuiteMentionRoleEntries(context, signal);
+  if (signal.aborted) {
+    return [];
+  }
+
+  const q = String(query ?? "").trim().toLowerCase();
+  const MAX_ROLES = 20;
+  const isNumericQuery = q.length > 0 && /^\d+$/.test(q);
+
+  if (!q) {
+    return roles.slice(0, MAX_ROLES);
+  }
+
+  if (isNumericQuery) {
+    return roles
+      .filter(role => String(role.roleId).includes(q))
+      .slice(0, MAX_ROLES);
+  }
+
+  return roles
+    .filter((role) => {
+      const name = String(role.roleName ?? "").trim().toLowerCase();
+      return name.includes(q);
+    })
+    .slice(0, MAX_ROLES);
+}
+
+export async function buildBlocksuiteRoleMentionMenuGroup(
+  context: BlocksuiteEditorAssemblyContext,
+  params: MentionMenuParams,
+): Promise<LinkedMenuGroup | null> {
+  const { query, abort, inlineEditor, signal } = params;
+
+  const roles = await resolveBlocksuiteMentionRoleCandidates(context, { query, signal });
+  if (roles.length <= 0) {
+    return null;
+  }
+
+  let mentionActionLocked = false;
+
+  return {
+    name: "角色",
+    items: roles.map((role) => {
+      const roleId = String(role.roleId);
+      const name = role.roleName?.trim() || `角色${roleId}`;
+      const avatar = role.avatarThumbUrl?.trim() || role.avatarUrl?.trim() || null;
+
+      return {
+        key: `role:${roleId}`,
+        name,
+        icon: avatar
+          ? html`<img src="${avatar}" style="width:20px;height:20px;border-radius:50%;object-fit:cover;" />`
+          : html`<div style="display:flex;align-items:center;justify-content:center;width:20px;height:20px;background:#eee;border-radius:50%;font-size:12px;">角</div>`,
+        action: () => {
+          if (mentionActionLocked || isBlocksuiteMentionMenuLocked(context)) {
+            return;
+          }
+
+          if (isBlocksuiteMentionCommitDeduped(context)) {
+            return;
+          }
+
+          lockBlocksuiteMentionCommitDedup(context);
+
+          const inserted = insertBlocksuiteMentionViaInlineEditor({
+            inlineEditor,
+            query,
+            triggerKey: "@",
+            abort,
+            mentionKey: buildBlocksuiteRoleMentionKey(roleId),
+          });
+
+          if (inserted) {
+            mentionActionLocked = true;
+            lockBlocksuiteMentionMenu(context);
+          }
+        },
+      };
+    }),
+  };
+}
+
+export async function buildBlocksuiteMentionMenuGroups(
+  context: BlocksuiteEditorAssemblyContext,
+  params: MentionMenuParams,
+): Promise<LinkedMenuGroup[]> {
+  const [roleGroup, userGroup] = await Promise.all([
+    buildBlocksuiteRoleMentionMenuGroup(context, params),
+    buildBlocksuiteMentionMenuGroup(context, params),
+  ]);
+
+  return [roleGroup, userGroup].filter((group): group is LinkedMenuGroup => Boolean(group));
+}
+
 export function buildBlocksuiteMentionExtensions(
   context: BlocksuiteEditorAssemblyContext,
 ): BlocksuiteExtensionBundle<BlocksuiteMentionExtensionApi> {
   return {
     sharedExtensions: [
       UserServiceExtension(context.userService),
+      BlocksuiteRoleServiceExtension(context.roleService),
     ],
     api: {
-      getMentionMenuGroup: (params: MentionMenuParams) => buildBlocksuiteMentionMenuGroup(context, params),
+      getMentionMenuGroups: (params: MentionMenuParams) => buildBlocksuiteMentionMenuGroups(context, params),
     },
   };
 }

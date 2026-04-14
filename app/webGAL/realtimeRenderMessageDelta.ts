@@ -78,9 +78,6 @@ function isSceneStatefulMessage(
   }
 
   const messageType = message.messageType as number;
-  if (messageType === MESSAGE_TYPE.WEBGAL_COMMAND) {
-    return true;
-  }
 
   if (messageType === MESSAGE_TYPE.IMG) {
     const imageMessage = message.extra?.imageMessage;

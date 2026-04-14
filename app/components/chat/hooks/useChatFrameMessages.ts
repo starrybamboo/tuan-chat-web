@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef } from "react";
 
 import type { UseChatHistoryReturn } from "@/components/chat/infra/indexedDB/useChatHistory";
 
+import { filterVisibleChatMessages } from "@/components/chat/utils/hiddenDiceVisibility";
 import { getThreadRootExtra } from "@/types/messageExtra";
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
 
@@ -25,6 +26,8 @@ type UseChatFrameMessagesParams = {
   roomId: number;
   chatHistory?: UseChatHistoryReturn;
   receivedMessages: ChatMessageResponse[];
+  currentUserId?: number | null;
+  currentMemberType?: number | null;
 };
 
 type UseChatFrameMessagesResult = {
@@ -40,6 +43,8 @@ export default function useChatFrameMessages({
   roomId,
   chatHistory,
   receivedMessages,
+  currentUserId,
+  currentMemberType,
 }: UseChatFrameMessagesParams): UseChatFrameMessagesResult {
   const lastReceivedMessagesRef = useRef<Record<number, ChatMessageResponse[]>>({});
 
@@ -184,9 +189,15 @@ export default function useChatFrameMessages({
 
   const historyMessages: ChatMessageResponse[] = useMemo(() => {
     if (messagesOverride) {
-      return messagesOverride;
+      return filterVisibleChatMessages(messagesOverride, {
+        currentUserId,
+        memberType: currentMemberType,
+      });
     }
-    const allMessages = chatHistory?.messages ?? [];
+    const allMessages = filterVisibleChatMessages(chatHistory?.messages ?? [], {
+      currentUserId,
+      memberType: currentMemberType,
+    });
 
     if (messageScope === "thread") {
       if (!threadRootMessageId) {
@@ -209,12 +220,15 @@ export default function useChatFrameMessages({
       }
       return threadId === messageId;
     });
-  }, [chatHistory?.messages, messageScope, messagesOverride, threadRootMessageId]);
+  }, [chatHistory?.messages, currentMemberType, currentUserId, messageScope, messagesOverride, threadRootMessageId]);
 
   const threadHintMetaByMessageId = useMemo(() => {
     // key: parentMessageId（被创建子区的那条原消息）
     const metaMap = new Map<number, ThreadHintMeta>();
-    const all = chatHistory?.messages ?? [];
+    const all = filterVisibleChatMessages(chatHistory?.messages ?? [], {
+      currentUserId,
+      memberType: currentMemberType,
+    });
     if (all.length === 0) {
       return metaMap;
     }
@@ -252,7 +266,7 @@ export default function useChatFrameMessages({
     }
 
     return metaMap;
-  }, [chatHistory?.messages]);
+  }, [chatHistory?.messages, currentMemberType, currentUserId]);
 
   return {
     historyMessages,

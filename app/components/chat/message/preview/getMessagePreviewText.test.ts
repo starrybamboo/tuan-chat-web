@@ -131,14 +131,6 @@ describe("getMessagePreviewText", () => {
     expect(getMessagePreviewText(msg)).toBe("[子区] 线索讨论");
   });
 
-  it("webGAL 指令消息自动补全 % 前缀", () => {
-    const msg = createBaseMessage({
-      messageType: MESSAGE_TYPE.WEBGAL_COMMAND,
-      content: "bgm:1",
-    });
-    expect(getMessagePreviewText(msg)).toBe("[WebGAL] %bgm:1");
-  });
-
   it("state event 预览优先显示结构化状态摘要", () => {
     const msg = createBaseMessage({
       messageType: MESSAGE_TYPE.STATE_EVENT,

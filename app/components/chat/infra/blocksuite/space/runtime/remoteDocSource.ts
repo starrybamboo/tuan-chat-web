@@ -31,6 +31,11 @@ function parseRemoteKeyFromDocId(docId: string) {
   return parseDescriptionDocId(docId);
 }
 
+function shouldSkipRemoteCompaction(docId: string) {
+  const key = parseRemoteKeyFromDocId(docId);
+  return key?.entityType === "space_doc";
+}
+
 function snapshotCursor(snapshot: StoredSnapshot | null) {
   if (!snapshot)
     return 0;
@@ -143,7 +148,9 @@ class RemoteYjsLogDocSource implements DocSource {
     this.ensureJoined(docId);
 
     // If updates are accumulating (or snapshot missing), schedule a compaction pass (best-effort).
-    if (remoteUpdates?.updates?.length && (!snapshot || snapshot.v === 1 || remoteUpdates.updates.length >= 200)) {
+    if (!shouldSkipRemoteCompaction(docId)
+      && remoteUpdates?.updates?.length
+      && (!snapshot || snapshot.v === 1 || remoteUpdates.updates.length >= 200)) {
       this.scheduleCompaction(docId);
     }
 
@@ -160,7 +167,9 @@ class RemoteYjsLogDocSource implements DocSource {
     // Prefer WS path: store + broadcast happens server-side.
     if (blocksuiteWsClient.tryPushUpdateIfOpen(key, data)) {
       // Best-effort: keep snapshot reasonably fresh for cold-start; compaction is debounced.
-      this.scheduleCompaction(docId);
+      if (!shouldSkipRemoteCompaction(docId)) {
+        this.scheduleCompaction(docId);
+      }
       return;
     }
 
@@ -288,7 +297,9 @@ class RemoteYjsLogDocSource implements DocSource {
           await deleteUpdatesByIds(pendingIds);
 
           // Once offline backlog is flushed, try to compact into snapshot (best-effort).
-          this.scheduleCompaction(docId);
+          if (!shouldSkipRemoteCompaction(docId)) {
+            this.scheduleCompaction(docId);
+          }
         }
         catch (error) {
           if (isNonRetryableBlocksuiteDocError(error)) {
@@ -313,6 +324,9 @@ class RemoteYjsLogDocSource implements DocSource {
   }
 
   private scheduleCompaction(docId: string) {
+    if (shouldSkipRemoteCompaction(docId)) {
+      return;
+    }
     let debounced = this.compactDebouncers.get(docId);
     if (!debounced) {
       debounced = debounce(() => void this.compactRemote(docId), COMPACT_DEBOUNCE_MS);

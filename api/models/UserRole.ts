@@ -46,19 +46,19 @@ export type UserRole = {
      * 角色类型,0:角色,1:骰娘,2:NPC
      */
     type: number;
-    /**
-     * tts时使用的模型
-     */
-    modelName?: string;
-    /**
-     * tts时使用的角色名
-     */
-    speakerName?: string;
     voiceUrl?: string;
     /**
      * 角色扩展属性
      */
     extra?: Record<string, string>;
+    /**
+     * 继承来源的归档角色ID
+     */
+    inheritedArchiveRoleId?: number;
+    /**
+     * 版本状态
+     */
+    versionState?: number;
     createTime?: string;
     updateTime?: string;
     role?: boolean;
