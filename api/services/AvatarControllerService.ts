@@ -15,17 +15,20 @@ export class AvatarControllerService {
     /**
      * 根据id获取头像
      * @param avatarId
+     * @param commitId
      * @returns ApiResultRoleAvatar OK
      * @throws ApiError
      */
     public getRoleAvatar(
         avatarId: number,
+        commitId?: number,
     ): CancelablePromise<ApiResultRoleAvatar> {
         return this.httpRequest.request({
             method: 'GET',
             url: '/avatar',
             query: {
                 'avatarId': avatarId,
+                'commitId': commitId,
             },
         });
     }
@@ -98,34 +101,40 @@ export class AvatarControllerService {
     /**
      * 获取角色回收站的头像
      * @param roleId
+     * @param commitId
      * @returns ApiResultListRoleAvatar OK
      * @throws ApiError
      */
     public getDeletedRoleAvatars(
         roleId: number,
+        commitId?: number,
     ): CancelablePromise<ApiResultListRoleAvatar> {
         return this.httpRequest.request({
             method: 'GET',
             url: '/avatar/trash/list',
             query: {
                 'roleId': roleId,
+                'commitId': commitId,
             },
         });
     }
     /**
      * 获取角色所有的头像
      * @param roleId
+     * @param commitId
      * @returns ApiResultListRoleAvatar OK
      * @throws ApiError
      */
     public getRoleAvatars(
         roleId: number,
+        commitId?: number,
     ): CancelablePromise<ApiResultListRoleAvatar> {
         return this.httpRequest.request({
             method: 'GET',
             url: '/avatar/list',
             query: {
                 'roleId': roleId,
+                'commitId': commitId,
             },
         });
     }

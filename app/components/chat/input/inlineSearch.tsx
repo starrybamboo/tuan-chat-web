@@ -5,6 +5,7 @@ import { RoomContext } from "@/components/chat/core/roomContext";
 import MobileSearchPage from "@/components/chat/input/mobileSearchPage";
 import SearchedMessage from "@/components/chat/message/preview/searchedMessage";
 import useGetRoleSmartly from "@/components/chat/shared/components/useGetRoleName";
+import { filterVisibleChatMessages } from "@/components/chat/utils/hiddenDiceVisibility";
 import { SearchFilled, XMarkICon } from "@/icons";
 import { getScreenSize } from "@/utils/getScreenSize";
 
@@ -15,7 +16,10 @@ interface SearchBarProps {
 function SearchBar({ className = "" }: SearchBarProps) {
   const roomContext = use(RoomContext);
   const roomId = roomContext.roomId ?? -1;
-  const historyMessages = useMemo(() => roomContext.chatHistory?.messages ?? [], [roomContext.chatHistory?.messages]);
+  const historyMessages = useMemo(() => filterVisibleChatMessages(roomContext.chatHistory?.messages ?? [], {
+    currentUserId: roomContext.curMember?.userId,
+    memberType: roomContext.curMember?.memberType,
+  }), [roomContext.chatHistory?.messages, roomContext.curMember?.memberType, roomContext.curMember?.userId]);
 
   const [searchText, setSearchText] = useState<string>("");
   const [isSearching, setIsSearching] = useState(false);

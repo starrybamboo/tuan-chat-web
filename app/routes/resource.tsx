@@ -1,11 +1,14 @@
 import type { Route } from "./+types/resource";
 import ResourcePage from "@/components/resource/pages/resourcePage";
+import { createSeoMeta } from "@/utils/seo";
 
 export function meta(_args: Route.MetaArgs) {
-  return [
-    { title: "资源管理 - tuan-chat" },
-    { name: "description", content: "资源管理" },
-  ];
+  return createSeoMeta({
+    title: "资源管理",
+    description: "管理团剧共创中的资源文件与素材引用。",
+    path: "/resource",
+    index: false,
+  });
 }
 
 export default function Resource() {

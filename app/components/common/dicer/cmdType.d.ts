@@ -45,14 +45,21 @@ interface ExecutorProp { // eslint-disable-line ts/consistent-type-definitions
   mentionedRoles?: UserRole[];
 }
 
+type ReplyMessageVisibility = "public" | "kp_and_sender"; // eslint-disable-line ts/consistent-type-definitions
+
+interface ReplyMessageOptions { // eslint-disable-line ts/consistent-type-definitions
+  visibility?: ReplyMessageVisibility;
+}
+
 interface CPI { // eslint-disable-line ts/consistent-type-definitions
   /**
    * 回复消息到聊天框
    * @param {string} msg - 要发送的消息
+   * @param {ReplyMessageOptions} options - 可见性配置；默认公开，暗骰请传 kp_and_sender
    * @return {void}
    * 说明：调用此方法发送消息会严格按照调用次序发送，发送的消息会回复原始指令消息。
    */
-  replyMessage: (msg: string) => void;
+  replyMessage: (msg: string, options?: ReplyMessageOptions) => void;
   /**
    * 获取指定用户的角色信息
    * @param {number} userId - 用户ID

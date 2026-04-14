@@ -26,7 +26,7 @@ type MentionMenuProvider = (params: {
   abort: () => void;
   inlineEditor: any;
   signal: AbortSignal;
-}) => Promise<LinkedMenuGroup | null>;
+}) => Promise<LinkedMenuGroup[]>;
 
 type DocEntry = {
   docId: string;
@@ -107,14 +107,16 @@ function createBlocksuiteDocAction(params: {
   title: string;
   inlineEditor: any;
   editorHost: any;
+  abort: () => void;
 }) {
-  const { context, docId, title, inlineEditor, editorHost } = params;
+  const { context, docId, title, inlineEditor, editorHost, abort } = params;
 
   return () => {
     if (isBlocksuiteMentionCommitDeduped(context))
       return;
 
     lockBlocksuiteMentionCommitDedup(context);
+    abort();
 
     const safeTitle = typeof title === "string" ? title : "";
     const workspace = ((editorHost as any)?.std?.workspace ?? context.workspace) as any;
@@ -143,12 +145,12 @@ export function createBlocksuiteDocMenuGroup(params: {
   entries: DocEntry[];
   inlineEditor: any;
   editorHost: any;
-}) {
-  const { context, entries, inlineEditor, editorHost } = params;
-  const MAX_DOCS = 6;
+  abort: () => void;
+}): LinkedMenuGroup {
+  const { context, entries, inlineEditor, editorHost, abort } = params;
 
   return {
-    name: "Link to Doc",
+    name: "文档",
     items: entries.map(({ docId, title }) => {
       const mode = context.docModeProvider?.getPrimaryMode?.(docId);
       return {
@@ -161,11 +163,10 @@ export function createBlocksuiteDocMenuGroup(params: {
           title,
           inlineEditor,
           editorHost,
+          abort,
         }),
       };
     }),
-    maxDisplay: MAX_DOCS,
-    overflowText: `${Math.max(entries.length - MAX_DOCS, 0)} more docs`,
   };
 }
 
@@ -259,10 +260,10 @@ export function handleBlocksuiteDocLinkNavigation(params: {
 export function buildBlocksuiteLinkedDocExtensions(
   context: BlocksuiteEditorAssemblyContext,
   params: {
-    getMentionMenuGroup: MentionMenuProvider;
+    getMentionMenuGroups: MentionMenuProvider;
   },
 ): BlocksuiteExtensionBundle {
-  const { getMentionMenuGroup } = params;
+  const { getMentionMenuGroups } = params;
 
   return {
     sharedExtensions: [
@@ -289,18 +290,19 @@ export function buildBlocksuiteLinkedDocExtensions(
               entries: docEntries,
               inlineEditor,
               editorHost,
+              abort,
             }));
           }
 
-          const mentionGroup = await getMentionMenuGroup({
+          const mentionGroups = await getMentionMenuGroups({
             query,
             abort,
             inlineEditor,
             signal,
           });
 
-          if (mentionGroup)
-            groups.push(mentionGroup);
+          if (mentionGroups.length > 0)
+            groups.push(...mentionGroups);
 
           return groups;
         },

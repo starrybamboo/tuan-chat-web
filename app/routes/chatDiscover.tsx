@@ -1,12 +1,15 @@
 import type { Route } from "./+types/chatDiscover";
 
 import DiscoverPage from "@/components/chat/discover/discoverPage";
+import { createSeoMeta } from "@/utils/seo";
 
 export function meta(_args: Route.MetaArgs) {
-  return [
-    { title: "发现" },
-    { name: "description", content: "发现 · 已归档群聊" },
-  ];
+  return createSeoMeta({
+    title: "公开归档发现",
+    description: "浏览团剧共创公开归档的团剧模组与共创内容，快速发现适合开团的作品。",
+    path: "/chat/discover",
+    index: true,
+  });
 }
 
 export default function ChatDiscoverRoute() {

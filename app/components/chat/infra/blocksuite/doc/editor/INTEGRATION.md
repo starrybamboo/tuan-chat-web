@@ -123,9 +123,9 @@ type BlocksuiteExtensionBundle<TApi = undefined> = {
 当前例子：
 
 - [buildBlocksuiteMentionExtensions.ts](../../editors/extensions/buildBlocksuiteMentionExtensions.ts)
-  通过 `api.getMentionMenuGroup` 暴露 mention 菜单能力
+  通过 `api.getMentionMenuGroups` 暴露角色 / 用户 mention 菜单能力
 - [buildBlocksuiteLinkedDocExtensions.ts](../../editors/extensions/buildBlocksuiteLinkedDocExtensions.ts)
-  再把这个能力接进 linked-doc 菜单系统
+  再把这个能力和文档分组一起接进 `@` / linked-doc 菜单系统
 
 ## 6. 目录职责
 
@@ -257,8 +257,8 @@ const merged = mergeBlocksuiteExtensionBundles(
 
 负责：
 
-- 用户服务接入
-- mention 菜单
+- 用户 / 角色服务接入
+- 角色 / 用户 mention 菜单
 - mention 插入
 - mention 锁与去重
 

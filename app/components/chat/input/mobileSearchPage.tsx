@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import { RoomContext } from "@/components/chat/core/roomContext";
 import SearchedMessage from "@/components/chat/message/preview/searchedMessage";
 import useGetRoleSmartly from "@/components/chat/shared/components/useGetRoleName";
+import { filterVisibleChatMessages } from "@/components/chat/utils/hiddenDiceVisibility";
 import { BaselineArrowBackIosNew, SearchFilled, XMarkICon } from "@/icons";
 
 interface MobileSearchPageProps {
@@ -15,7 +16,10 @@ interface MobileSearchPageProps {
 export default function MobileSearchPage({ isOpen, onClose }: MobileSearchPageProps) {
   const roomContext = use(RoomContext);
   const roomId = roomContext.roomId ?? -1;
-  const historyMessages = useMemo(() => roomContext.chatHistory?.messages ?? [], [roomContext.chatHistory?.messages]);
+  const historyMessages = useMemo(() => filterVisibleChatMessages(roomContext.chatHistory?.messages ?? [], {
+    currentUserId: roomContext.curMember?.userId,
+    memberType: roomContext.curMember?.memberType,
+  }), [roomContext.chatHistory?.messages, roomContext.curMember?.memberType, roomContext.curMember?.userId]);
 
   const [searchText, setSearchText] = useState<string>("");
   const debouncedSearchText = useDebounce<string>(searchText, { wait: 300 });

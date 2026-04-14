@@ -1,12 +1,15 @@
 import type { Route } from "./+types/doc";
 
 import { Navigate, useParams } from "react-router";
+import { createSeoMeta } from "@/utils/seo";
 
 export function meta(_args: Route.MetaArgs) {
-  return [
-    { title: "Doc - tuan-chat" },
-    { name: "description", content: "Doc view" },
-  ];
+  return createSeoMeta({
+    title: "文档",
+    description: "团剧共创文档入口页。",
+    path: "/doc",
+    index: false,
+  });
 }
 
 export default function DocRoute() {

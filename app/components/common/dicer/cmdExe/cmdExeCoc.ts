@@ -214,8 +214,7 @@ const cmdRc = new CommandExecutor(
     }
     if (isForceToasted) {
       cpi.setCopywritingKey(null);
-      cpi.sendToast(result);
-      cpi.replyMessage(`${mentioned[mentioned.length - 1].roleName}进行了一次暗骰`);
+      cpi.replyMessage(result, { visibility: "kp_and_sender" });
       return true;
     }
     cpi.replyMessage(result);
@@ -332,8 +331,7 @@ const cmdRcb = new CommandExecutor(
 
     if (isForceToasted) {
       cpi.setCopywritingKey(null);
-      cpi.sendToast(result);
-      cpi.replyMessage(`${mentioned[mentioned.length - 1].roleName}进行了一次带奖励骰的暗骰`);
+      cpi.replyMessage(result, { visibility: "kp_and_sender" });
       return true;
     }
     cpi.replyMessage(result);
@@ -438,8 +436,7 @@ const cmdRcp = new CommandExecutor(
 
     if (isForceToasted) {
       cpi.setCopywritingKey(null);
-      cpi.sendToast(result);
-      cpi.replyMessage(`${mentioned[mentioned.length - 1].roleName}进行了一次带惩罚骰的暗骰`);
+      cpi.replyMessage(result, { visibility: "kp_and_sender" });
       return true;
     }
     cpi.replyMessage(result);
@@ -495,9 +492,8 @@ const cmdRh = new CommandExecutor(
       result += `${diceCount}D${diceSides}=${rolls.join("+")}=${total}`;
     }
 
-    // 发送暗骰结果（仅发起者可见）
-    cpi.sendToast(result); // 假设sendToast是私聊/提示框发送
-    cpi.replyMessage(`${mentioned[0].roleName}进行了一次暗骰`); // 公开频道提示
+    // 发送暗骰结果（仅发起者和 KP 可见）
+    cpi.replyMessage(result, { visibility: "kp_and_sender" });
     return true;
   },
 );
@@ -601,8 +597,7 @@ const cmdRch = new CommandExecutor(
     const result = buildCheckResult(name, rollResult, skillValue, cpi);
 
     cpi.setCopywritingKey(null);
-    cpi.sendToast(`暗骰检定结果：${result}`);
-    cpi.replyMessage(`${mentioned[0].roleName}进行了一次暗骰检定`);
+    cpi.replyMessage(`暗骰检定结果：${result}`, { visibility: "kp_and_sender" });
     return true;
   },
 );

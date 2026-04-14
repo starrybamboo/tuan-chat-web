@@ -122,8 +122,6 @@ function getReadOnlyAssetTypeLabel(message: MessageDraft) {
       return "音频";
     case MESSAGE_TYPE.EFFECT:
       return "特效";
-    case MESSAGE_TYPE.WEBGAL_COMMAND:
-      return "WebGAL";
     case MESSAGE_TYPE.WEBGAL_CHOOSE:
       return "选择";
     case MESSAGE_TYPE.VIDEO:

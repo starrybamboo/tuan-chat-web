@@ -122,11 +122,6 @@ export function getMessagePreviewText(message?: Message | null): string {
       const result = safeTrim(message.extra?.diceResult?.result) || trimmedContent;
       return withTag("骰娘", result);
     }
-    case MESSAGE_TYPE.WEBGAL_COMMAND: {
-      const raw = safeTrim(message.content);
-      const display = raw ? (raw.startsWith("%") ? raw : `%${raw}`) : "";
-      return withTag("WebGAL", display);
-    }
     case MESSAGE_TYPE.WEBGAL_CHOOSE: {
       const payload = extractWebgalChoosePayload(message.extra);
       const summary = payload ? formatWebgalChooseSummary(payload) : trimmedContent;

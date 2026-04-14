@@ -12,6 +12,8 @@ import { property } from "lit/decorators.js";
 
 import type { BlocksuiteFrameToHostPayload } from "../shared/frameProtocol";
 
+import { BlocksuiteRoleProvider } from "../services/tuanChatRoleService";
+import { getBlocksuiteRoleHref, parseBlocksuiteMentionKey } from "../shared/mentionKey";
 import { postBlocksuiteFrameMessage } from "../shared/frameProtocol";
 
 function getBlocksuiteFrameInstanceId(): string | undefined {
@@ -123,12 +125,8 @@ export function ensureTCAffineMentionDefined(): void {
       });
     }
 
-    private getUserId(): string | undefined {
-      const memberId = this.delta.attributes?.mention?.member;
-      if (!memberId)
-        return undefined;
-      const v = String(memberId).trim();
-      return v || undefined;
+    private getMentionTarget() {
+      return parseBlocksuiteMentionKey(this.delta.attributes?.mention?.member);
     }
 
     private buildAnchorRectFromEvent(e: Event): null | {
@@ -174,40 +172,110 @@ export function ensureTCAffineMentionDefined(): void {
     }
 
     private onMentionClick(e: MouseEvent) {
-      const userId = this.getUserId();
-      if (!userId)
+      const target = this.getMentionTarget();
+      if (!target)
         return;
+
+      if (target.kind === "role") {
+        this.postToHost({
+          type: "navigate",
+          to: getBlocksuiteRoleHref(target.id),
+        });
+        return;
+      }
+
       this.postToHost({
         type: "mention-click",
-        userId,
+        userId: target.id,
         anchorRect: this.buildAnchorRectFromEvent(e),
       });
     }
 
     private onMentionPointerEnter(e: PointerEvent) {
-      const userId = this.getUserId();
-      if (!userId)
+      const target = this.getMentionTarget();
+      if (!target || target.kind !== "user")
         return;
       this.postToHost({
         type: "mention-hover",
         state: "enter",
-        userId,
+        userId: target.id,
         anchorRect: this.buildAnchorRectFromEvent(e),
       });
     }
 
     private onMentionPointerLeave() {
-      const userId = this.getUserId();
-      if (!userId)
+      const target = this.getMentionTarget();
+      if (!target || target.kind !== "user")
         return;
       this.postToHost({
         type: "mention-hover",
         state: "leave",
-        userId,
+        userId: target.id,
       });
     }
 
-    override render() {
+    private renderRoleMention(roleId: string) {
+      const errorContent = html`<span
+        data-selected=${this.selected}
+        data-type="error"
+        class="affine-mention"
+        @click=${this.onMentionClick}
+        >Unknown Role<v-text .str=${ZERO_WIDTH_FOR_EMBED_NODE}></v-text
+      ></span>`;
+
+      const roleService = this.std.getOptional(BlocksuiteRoleProvider);
+      if (!roleService || !roleId) {
+        return errorContent;
+      }
+
+      roleService.revalidateRoleInfo(roleId);
+      const isLoading$ = roleService.isLoading$(roleId);
+      const roleInfo$ = roleService.roleInfo$(roleId);
+
+      if (roleInfo$.value) {
+        if (roleInfo$.value.removed) {
+          return html`<span
+            data-selected=${this.selected}
+            data-type="removed"
+            class="affine-mention"
+            @click=${this.onMentionClick}
+            >Inactive Role<v-text .str=${ZERO_WIDTH_FOR_EMBED_NODE}></v-text
+          ></span>`;
+        }
+
+        const avatar = roleInfo$.value.avatar;
+        const name = roleInfo$.value.name ?? "Unknown";
+
+        return html`<span
+          data-selected=${this.selected}
+          data-type="default"
+          class="affine-mention"
+          @click=${this.onMentionClick}
+          >${avatar
+            ? html`<img class="affine-mention-avatar" src="${avatar}" alt="" />`
+            : null}${name}<v-text
+            .str=${ZERO_WIDTH_FOR_EMBED_NODE}
+          ></v-text
+        ></span>`;
+      }
+
+      if (isLoading$.value) {
+        return html`<span
+          data-selected=${this.selected}
+          data-type="loading"
+          class="affine-mention"
+          @click=${this.onMentionClick}
+          >loading<span class="dots"
+            ><span class="dot">.</span><span class="dot">.</span
+            ><span class="dot">.</span></span
+          ><v-text .str=${ZERO_WIDTH_FOR_EMBED_NODE}></v-text
+        ></span>`;
+      }
+
+      return errorContent;
+    }
+
+    private renderUserMention(userId: string | undefined) {
       const errorContent = html`<span
         data-selected=${this.selected}
         data-type="error"
@@ -219,14 +287,13 @@ export function ensureTCAffineMentionDefined(): void {
       ></span>`;
 
       const userService = this.std.getOptional(UserProvider);
-      const memberId = this.delta.attributes?.mention?.member;
-      if (!userService || !memberId) {
+      if (!userService || !userId) {
         return errorContent;
       }
 
-      userService.revalidateUserInfo(memberId);
-      const isLoading$ = userService.isLoading$(memberId);
-      const userInfo$ = userService.userInfo$(memberId);
+      userService.revalidateUserInfo(userId);
+      const isLoading$ = userService.isLoading$(userId);
+      const userInfo$ = userService.userInfo$(userId);
 
       if (userInfo$.value) {
         if (userInfo$.value.removed) {
@@ -275,6 +342,15 @@ export function ensureTCAffineMentionDefined(): void {
       }
 
       return errorContent;
+    }
+
+    override render() {
+      const target = this.getMentionTarget();
+      if (target?.kind === "role") {
+        return this.renderRoleMention(target.id);
+      }
+
+      return this.renderUserMention(target?.id);
     }
 
     @property({ type: Object })

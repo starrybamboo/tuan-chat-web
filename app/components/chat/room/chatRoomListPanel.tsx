@@ -3,6 +3,7 @@ import type { SpaceMaterialPackageResponse } from "../../../../api/models/SpaceM
 import type { MinimalDocMeta, SidebarTree } from "./sidebarTree";
 import type { ActiveMaterialSelection, OpenSpaceDetailPanelOptions, SpaceDetailTab } from "@/components/chat/chatPage.types";
 
+import { PackageIcon } from "@phosphor-icons/react";
 import React, { useMemo, useState } from "react";
 import RoomSidebarCategory from "@/components/chat/room/roomSidebarCategory";
 import RoomSidebarMaterialPackageItem from "@/components/chat/room/roomSidebarMaterialPackageItem";
@@ -32,6 +33,25 @@ import SidebarTreeOverlays from "./sidebarTreeOverlays";
 const ROOM_DOC_SECTION_KEY = "section:room-docs";
 const MATERIAL_SECTION_KEY = "section:materials";
 
+export function shouldShowRoomSidebarSplitLayout(params: {
+  canViewMaterialSection: boolean;
+  hasMaterialPackages: boolean;
+  isRoomDocSectionExpanded: boolean;
+  isMaterialSectionExpanded: boolean;
+}) {
+  return params.canViewMaterialSection
+    && params.hasMaterialPackages
+    && params.isRoomDocSectionExpanded
+    && params.isMaterialSectionExpanded;
+}
+
+export function shouldStretchRoomSidebarMaterialSection(params: {
+  hasMaterialPackages: boolean;
+  isMaterialSectionExpanded: boolean;
+}) {
+  return params.hasMaterialPackages && params.isMaterialSectionExpanded;
+}
+
 interface ChatRoomListPanelProps {
   isPrivateChatMode: boolean;
 
@@ -60,7 +80,7 @@ interface ChatRoomListPanelProps {
   activeMaterialSelection?: ActiveMaterialSelection;
   unreadMessagesNumber: Record<number, number>;
 
-  onContextMenu: (e: React.MouseEvent) => void;
+  onContextMenu: (e: React.MouseEvent, roomId?: number | null) => void;
   onInviteMember: () => void;
   onOpenSpaceDetailPanel: (tab: SpaceDetailTab, options?: OpenSpaceDetailPanelOptions) => void;
 
@@ -83,6 +103,7 @@ export default function ChatRoomListPanel({
   activeSpaceName,
   activeSpaceIsArchived,
   isSpaceOwner,
+  isKPInSpace,
   rooms,
   roomOrderIds,
   sidebarTree,
@@ -221,8 +242,19 @@ export default function ChatRoomListPanel({
     validKeys: materialTreeExpandableKeys,
   });
   const isRoomDocSectionExpanded = Boolean(expandedSidebarSections?.[ROOM_DOC_SECTION_KEY]);
-  const isMaterialSectionExpanded = Boolean(expandedSidebarSections?.[MATERIAL_SECTION_KEY]);
-  const showSidebarSplitLayout = isRoomDocSectionExpanded && isMaterialSectionExpanded;
+  const canViewMaterialSection = isKPInSpace;
+  const hasMaterialSidebarPackages = materialSidebarPackages.length > 0;
+  const isMaterialSectionExpanded = canViewMaterialSection && Boolean(expandedSidebarSections?.[MATERIAL_SECTION_KEY]);
+  const showSidebarSplitLayout = shouldShowRoomSidebarSplitLayout({
+    canViewMaterialSection,
+    hasMaterialPackages: hasMaterialSidebarPackages,
+    isRoomDocSectionExpanded,
+    isMaterialSectionExpanded,
+  });
+  const stretchMaterialSection = shouldStretchRoomSidebarMaterialSection({
+    hasMaterialPackages: hasMaterialSidebarPackages,
+    isMaterialSectionExpanded,
+  });
   const activeMaterialController = useMaterialEditorActionStore((state) => {
     const scope = activeMaterialSelection?.scope;
     return scope ? state.controllers[scope] : undefined;
@@ -446,6 +478,10 @@ export default function ChatRoomListPanel({
   });
   const fillSectionClassName = "flex min-h-0 flex-1 flex-col";
   const fillSectionContentClassName = "min-h-0 flex-1 overflow-y-auto overflow-x-hidden";
+  const handleOpenMaterialDetail = () => {
+    onOpenSpaceDetailPanel("material");
+    onCloseLeftDrawer();
+  };
 
   return (
     <>
@@ -509,19 +545,22 @@ export default function ChatRoomListPanel({
                             <div className={`h-px w-full transition-colors ${isDraggingSplitHandle ? "bg-primary/45" : "bg-base-300/80 group-hover:bg-base-content/28"}`}></div>
                           </button>
 
-                          <div className="min-h-0 flex-1">
-                            <SidebarSection
-                              title="素材包"
-                              isExpanded={isMaterialSectionExpanded}
-                              onToggleExpanded={() => toggleSidebarSection(MATERIAL_SECTION_KEY)}
-                              actionTitle={canEdit ? "导入素材包" : undefined}
-                              onAction={canEdit ? () => setIsMaterialImportOpen(true) : undefined}
-                              className="flex h-full min-h-0 flex-col"
-                              contentClassName="mt-0.5 min-h-0 flex-1 overflow-y-auto overflow-x-hidden"
-                            >
-                              {materialSectionContent}
-                            </SidebarSection>
-                          </div>
+                          {canViewMaterialSection && (
+                            <div className="min-h-0 flex-1">
+                              <SidebarSection
+                                title="素材包"
+                                isExpanded={isMaterialSectionExpanded}
+                                onToggleExpanded={() => toggleSidebarSection(MATERIAL_SECTION_KEY)}
+                                actionTitle="局内素材包"
+                                onAction={handleOpenMaterialDetail}
+                                actionIcon={<PackageIcon className="size-4" weight="regular" />}
+                                className="flex h-full min-h-0 flex-col"
+                                contentClassName="mt-0.5 min-h-0 flex-1 overflow-y-auto overflow-x-hidden"
+                              >
+                                {materialSectionContent}
+                              </SidebarSection>
+                            </div>
+                          )}
                         </div>
                       )
                     : (
@@ -536,18 +575,21 @@ export default function ChatRoomListPanel({
                             {roomDocSectionContent}
                           </SidebarSection>
 
-                          <SidebarSection
-                            title="素材包"
-                            isExpanded={isMaterialSectionExpanded}
-                            onToggleExpanded={() => toggleSidebarSection(MATERIAL_SECTION_KEY)}
-                            withDivider
-                            actionTitle={canEdit ? "导入素材包" : undefined}
-                            onAction={canEdit ? () => setIsMaterialImportOpen(true) : undefined}
-                            className={isMaterialSectionExpanded ? fillSectionClassName : "mt-auto"}
-                            contentClassName={isMaterialSectionExpanded ? fillSectionContentClassName : undefined}
-                          >
-                            {materialSectionContent}
-                          </SidebarSection>
+                          {canViewMaterialSection && (
+                            <SidebarSection
+                              title="素材包"
+                              isExpanded={isMaterialSectionExpanded}
+                              onToggleExpanded={() => toggleSidebarSection(MATERIAL_SECTION_KEY)}
+                              withDivider
+                              actionTitle="局内素材包"
+                              onAction={handleOpenMaterialDetail}
+                              actionIcon={<PackageIcon className="size-4" weight="regular" />}
+                              className={stretchMaterialSection ? fillSectionClassName : (isMaterialSectionExpanded ? undefined : "mt-auto")}
+                              contentClassName={stretchMaterialSection ? fillSectionContentClassName : undefined}
+                            >
+                              {materialSectionContent}
+                            </SidebarSection>
+                          )}
                         </div>
                       )}
                 </div>

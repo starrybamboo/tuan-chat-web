@@ -3213,17 +3213,6 @@ export class RealtimeRenderer {
         return;
       }
 
-      // WebGAL 指令消息：直接写入场景脚本
-      // 约定：msg.content 是一行完整的 WebGAL 脚本（可包含分号结尾）
-      if ((msg.messageType as number) === 10) {
-        const commandLine = msg.content?.trim() ?? "";
-        await this.appendLine(targetRoomId, commandLine, syncToFile, true);
-        if (syncToFile)
-          this.sendSyncMessage(targetRoomId);
-        finalizeMessageLineRange();
-        return;
-      }
-
       // WebGAL 选择消息：转换为 choose 指令
       if ((msg.messageType as number) === MESSAGE_TYPE.WEBGAL_CHOOSE) {
         const payload = extractWebgalChoosePayload(msg.extra);

@@ -1,12 +1,15 @@
 import type { Route } from "./+types/material";
 import { useSearchParams } from "react-router";
 import MaterialLibraryPage from "@/components/material/pages/materialLibraryPage";
+import { createSeoMeta } from "@/utils/seo";
 
 export function meta(_args: Route.MetaArgs) {
-  return [
-    { title: "素材包 - tuan-chat" },
-    { name: "description", content: "局外素材库与素材广场" },
-  ];
+  return createSeoMeta({
+    title: "素材库",
+    description: "管理和浏览团剧共创中的局外素材库。",
+    path: "/material",
+    index: false,
+  });
 }
 
 export default function MaterialRoute() {

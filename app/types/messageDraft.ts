@@ -156,6 +156,7 @@ function normalizeDicePayload(rawExtra: unknown): MessageExtraRecord {
   const dice = pickPayload(rawExtra, "diceResult");
   return compactRecord({
     result: toTrimmedString(dice.result),
+    hidden: toLooseBoolean(dice.hidden),
   });
 }
 
@@ -236,17 +237,6 @@ function normalizeThreadRootPayload(rawExtra: unknown): MessageExtraRecord {
   const threadRoot = pickPayload(rawExtra, "threadRoot");
   return compactRecord({
     title: toTrimmedString(threadRoot.title),
-  });
-}
-
-function normalizeWebgalVarPayload(rawExtra: unknown): MessageExtraRecord {
-  const webgalVar = pickPayload(rawExtra, "webgalVar");
-  return compactRecord({
-    scope: toTrimmedString(webgalVar.scope),
-    op: toTrimmedString(webgalVar.op),
-    key: toTrimmedString(webgalVar.key),
-    expr: toTrimmedString(webgalVar.expr),
-    global: toLooseBoolean(webgalVar.global),
   });
 }
 
@@ -338,14 +328,6 @@ function assertMessageExtraReadyForRequest(messageType: number, extra: MessageEx
         throw new Error("Thread 标题不能为空");
       }
       return;
-    case MESSAGE_TYPE.WEBGAL_VAR: {
-      const webgalVar = toRecord(extra.webgalVar);
-      const missingFields = collectMissingFields(webgalVar, ["scope", "op", "key", "expr"]);
-      if (missingFields.length > 0) {
-        throw new Error(`WebGAL 变量消息缺少必要字段：${missingFields.join("、")}`);
-      }
-      return;
-    }
     case MESSAGE_TYPE.STATE_EVENT:
       if (Object.keys(normalizeStateEventPayload(extra)).length === 0) {
         throw new Error("状态事件消息缺少有效 stateEvent");
@@ -387,15 +369,12 @@ function normalizeMessageExtraForRequest(messageType: number, rawExtra: unknown)
       return compactRecord({ roomJump: normalizeRoomJumpPayload(rawExtra) });
     case MESSAGE_TYPE.THREAD_ROOT:
       return compactRecord({ threadRoot: normalizeThreadRootPayload(rawExtra) });
-    case MESSAGE_TYPE.WEBGAL_VAR:
-      return compactRecord({ webgalVar: normalizeWebgalVarPayload(rawExtra) });
     case MESSAGE_TYPE.STATE_EVENT:
       return compactRecord({ stateEvent: normalizeStateEventPayload(rawExtra) });
     case MESSAGE_TYPE.TEXT:
     case MESSAGE_TYPE.SYSTEM:
     case MESSAGE_TYPE.EFFECT:
     case MESSAGE_TYPE.INTRO_TEXT:
-    case MESSAGE_TYPE.WEBGAL_COMMAND:
     case MESSAGE_TYPE.READ_LINE:
       return {};
     default:
@@ -435,8 +414,6 @@ export function normalizeMessageExtraForMatch(messageType: number, rawExtra: unk
       return compactValue({ roomJump: normalizeRoomJumpPayload(rawExtra) });
     case MESSAGE_TYPE.THREAD_ROOT:
       return compactValue({ threadRoot: normalizeThreadRootPayload(rawExtra) });
-    case MESSAGE_TYPE.WEBGAL_VAR:
-      return compactValue({ webgalVar: normalizeWebgalVarPayload(rawExtra) });
     case MESSAGE_TYPE.STATE_EVENT:
       return compactValue({ stateEvent: normalizeStateEventPayload(rawExtra) });
     default:

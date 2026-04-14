@@ -332,6 +332,58 @@ describe("useChatMessageSubmit", () => {
     });
   });
 
+  it("以 % 开头的纯文本保持为普通文本消息", async () => {
+    mocks.buildMessageDraftsFromComposerSnapshotMock.mockResolvedValue([
+      {
+        content: "%bgm:1",
+        messageType: MessageType.TEXT,
+        extra: {},
+      },
+    ]);
+
+    useChatInputUiStore.setState({
+      plainText: "%bgm:1",
+      textWithoutMentions: "%bgm:1",
+      mentionedRoles: [],
+    });
+
+    const roomUiStoreApi = createRoomUiStore();
+    const sendMessageWithInsert = vi.fn(async (request) => ({
+      ...createMessage(11),
+      messageType: request.messageType,
+      content: request.content,
+      extra: request.extra,
+    }));
+
+    const { handleMessageSubmit } = useChatMessageSubmit({
+      roomId: 1,
+      spaceId: 2,
+      isSpaceOwner: false,
+      curRoleId: 3,
+      notMember: false,
+      noRole: false,
+      isSubmitting: false,
+      setIsSubmitting: vi.fn(),
+      sendMessageWithInsert,
+      sendMessageBatch: vi.fn(async () => []),
+      ensureRuntimeAvatarIdForRole: vi.fn(async () => 7),
+      commandExecutor: vi.fn(),
+      containsCommandRequestAllToken: vi.fn(() => false),
+      stripCommandRequestAllToken: vi.fn((text: string) => text),
+      extractFirstCommandText: vi.fn(() => null),
+      setInputText: vi.fn(),
+      roomUiStoreApi,
+    });
+
+    await handleMessageSubmit();
+
+    expect(sendMessageWithInsert).toHaveBeenCalledWith(expect.objectContaining({
+      messageType: MessageType.TEXT,
+      content: "%bgm:1",
+      extra: {},
+    }));
+  });
+
   it("简单 .st 会优先编译成 STATE_EVENT(varOp)，不再走旧 cmdPre", async () => {
     mocks.isCommandMock.mockReturnValue(true);
     useChatInputUiStore.setState({
@@ -487,6 +539,52 @@ describe("useChatMessageSubmit", () => {
     expect(commandExecutor).toHaveBeenCalledWith(expect.objectContaining({
       command: ".ra 侦查",
       originMessage: ".ra 侦查",
+    }));
+    expect(sendMessageWithInsert).not.toHaveBeenCalled();
+  });
+
+  it("@提及开头的骰子命令仍会走旧 cmdPre，支持旁白给其他角色代骰", async () => {
+    mocks.isCommandMock.mockImplementation((text: string) => String(text).startsWith("."));
+    const mentionedRoles = [{
+      roleId: 9,
+      roleName: "调查员A",
+    }] as UserRole[];
+    useChatInputUiStore.setState({
+      plainText: "@调查员A .ra 侦查",
+      textWithoutMentions: ".ra 侦查",
+      mentionedRoles,
+    });
+
+    const roomUiStoreApi = createRoomUiStore();
+    const commandExecutor = vi.fn();
+    const sendMessageWithInsert = vi.fn(async () => createMessage(23));
+
+    const { handleMessageSubmit } = useChatMessageSubmit({
+      roomId: 1,
+      spaceId: 2,
+      isSpaceOwner: true,
+      curRoleId: -1,
+      notMember: false,
+      noRole: true,
+      isSubmitting: false,
+      setIsSubmitting: vi.fn(),
+      sendMessageWithInsert,
+      sendMessageBatch: vi.fn(async () => []),
+      ensureRuntimeAvatarIdForRole: vi.fn(async () => 7),
+      commandExecutor,
+      containsCommandRequestAllToken: vi.fn(() => false),
+      stripCommandRequestAllToken: vi.fn((text: string) => text),
+      extractFirstCommandText: vi.fn(() => null),
+      setInputText: vi.fn(),
+      roomUiStoreApi,
+    });
+
+    await handleMessageSubmit();
+
+    expect(commandExecutor).toHaveBeenCalledWith(expect.objectContaining({
+      command: ".ra 侦查",
+      mentionedRoles,
+      originMessage: "@调查员A .ra 侦查",
     }));
     expect(sendMessageWithInsert).not.toHaveBeenCalled();
   });

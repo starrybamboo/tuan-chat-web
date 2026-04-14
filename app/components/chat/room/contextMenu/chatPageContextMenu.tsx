@@ -3,6 +3,7 @@ import { use, useState } from "react";
 import { useNavigate } from "react-router";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
 import { buildSpaceDocId } from "@/components/chat/infra/blocksuite/space/spaceDocId";
+import { canManageMemberPermissions } from "@/components/chat/utils/memberPermissions";
 import ConfirmModal from "@/components/common/comfirmModel";
 import { useSubscribeRoomMutation, useUnsubscribeRoomMutation } from "../../../../../api/hooks/messageSessionQueryHooks";
 
@@ -38,6 +39,7 @@ export default function ChatPageContextMenu({
 
   const isSubscribed = contextMenu ? unreadMessagesNumber[contextMenu.roomId] !== undefined : false;
   const canDissolveRoom = !!spaceContext?.isSpaceOwner && (spaceContext?.spaceId ?? -1) > 0;
+  const canInvitePlayer = canManageMemberPermissions(spaceContext?.memberType);
 
   const activeDissolveRoomId = dissolveTargetRoomId;
 
@@ -63,17 +65,19 @@ export default function ChatPageContextMenu({
             </li>
 
             {/* --- Invite Player Menu --- */}
-            <li
-              className="relative group"
-              onClick={() => {
-                onInvitePlayer?.(contextMenu.roomId);
-                onClose();
-              }}
-            >
-              <div className="flex justify-between items-center w-full">
-                <span>邀请玩家</span>
-              </div>
-            </li>
+            {canInvitePlayer && (
+              <li
+                className="relative group"
+                onClick={() => {
+                  onInvitePlayer?.(contextMenu.roomId);
+                  onClose();
+                }}
+              >
+                <div className="flex justify-between items-center w-full">
+                  <span>邀请玩家</span>
+                </div>
+              </li>
+            )}
             {/* --- Notification Settings Menu --- */}
             <li
               className="relative group"

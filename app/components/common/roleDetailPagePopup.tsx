@@ -20,8 +20,6 @@ function toRoleViewModel(roleId: number, raw: any): Role {
     avatar: "",
     avatarId: raw?.avatarId ?? 0,
     type: raw?.type ?? 0,
-    modelName: raw?.modelName ?? "",
-    speakerName: raw?.speakerName ?? "",
     voiceUrl: raw?.voiceUrl ?? undefined,
     extra: raw?.extra ?? {},
   };

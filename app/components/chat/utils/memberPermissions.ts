@@ -14,6 +14,10 @@ export function canManageMemberPermissions(memberType?: number | null): boolean 
   return memberType === SPACE_MEMBER_TYPE.LEADER;
 }
 
+export function canInviteSpectators(memberType?: number | null): boolean {
+  return memberType != null;
+}
+
 export function isObserverLike(memberType?: number | null): boolean {
   return memberType == null
     || memberType === SPACE_MEMBER_TYPE.OBSERVER

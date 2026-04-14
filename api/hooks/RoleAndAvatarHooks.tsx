@@ -33,6 +33,7 @@ import type { Role } from '@/components/Role/types';
 import { ROLE_DEFAULT_AVATAR_URL } from '@/constants/defaultAvatar';
 import { shouldRetryRoleQueryError } from "@/utils/roleApiError";
 import { seedUserRoleListQueryCache, seedUserRoleQueryCache } from "../roleQueryCache";
+import { invalidateRoleCreateQueries } from "./roleMutationInvalidation";
 
 export function seedRoleAvatarQueryCaches(queryClient: any, avatar: RoleAvatar, roleId?: number): void {
   const avatarId = avatar.avatarId;
@@ -105,8 +106,6 @@ function patchUserRoleRecord(role: UserRole, next: any, resolvedRoleId: number):
     roleName: next?.name ?? role.roleName,
     description: next?.description ?? role.description,
     avatarId: typeof next?.avatarId === "number" ? next.avatarId : role.avatarId,
-    modelName: next?.modelName ?? role.modelName,
-    speakerName: next?.speakerName ?? role.speakerName,
     voiceUrl: next?.voiceUrl ?? role.voiceUrl,
     extra: next?.extra ?? role.extra,
     type: typeof next?.type === "number" ? next.type : role.type,
@@ -146,8 +145,6 @@ function patchGetRoleQueryCache(old: any, next: any, resolvedRoleId: number) {
       roleName: next?.name ?? old.data.roleName,
       description: next?.description ?? old.data.description,
       avatarId: typeof next?.avatarId === "number" ? next.avatarId : old.data.avatarId,
-      modelName: next?.modelName ?? old.data.modelName,
-      speakerName: next?.speakerName ?? old.data.speakerName,
       voiceUrl: next?.voiceUrl ?? old.data.voiceUrl,
       extra: next?.extra ?? old.data.extra,
       type: typeof next?.type === "number" ? next.type : old.data.type,
@@ -224,8 +221,6 @@ export function useUpdateRoleWithLocalMutation(onSave: (localRole: Role) => void
           roleName: data.name,
           description: data.description,
           avatarId: data.avatarId,
-          modelName: data.modelName,
-          speakerName: data.speakerName,
           voiceUrl: data.voiceUrl,
           extra: data.extra,
         });
@@ -295,11 +290,8 @@ export function useCreateRoleMutation() {
         console.error("创建角色失败");
       }
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["roleInfinite"] });
-      queryClient.invalidateQueries({ queryKey: ["getUserRolesByTypes"] });
-      queryClient.invalidateQueries({ queryKey: ['getRole'] });
-      queryClient.invalidateQueries({ queryKey: ['getUserRoles'] });
+    onSuccess: (_, variables) => {
+      invalidateRoleCreateQueries(queryClient, variables.spaceId);
     },
     onError: (error) => {
       console.error("Mutation failed:", error);
@@ -397,8 +389,6 @@ export function useCopyRoleMutation() {
         avatarThumb,
         avatarId: copiedAvatarId,
         type: copiedRole.type,
-        modelName: copiedRole.modelName || sourceRole.modelName,
-        speakerName: copiedRole.speakerName || sourceRole.speakerName,
         voiceUrl: copiedRole.voiceUrl || sourceRole.voiceUrl,
         extra: copiedRole.extra ?? sourceRole.extra,
       };

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { buildChatMessageRequestFromDraft, normalizeMessageExtraForMatch } from "@/types/messageDraft";
+import { buildChatMessageRequestFromDraft, buildMessageExtraForRequest, normalizeMessageExtraForMatch } from "@/types/messageDraft";
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
 
 describe("messageDraft request normalization", () => {
@@ -222,5 +222,19 @@ describe("messageDraft request normalization", () => {
     } as any, {
       roomId: 1,
     })).toThrow("状态事件消息缺少有效 stateEvent");
+  });
+
+  it("保留暗骰的 hidden 元数据", () => {
+    expect(buildMessageExtraForRequest(MESSAGE_TYPE.DICE, {
+      diceResult: {
+        result: "D100=42/80 成功",
+        hidden: true,
+      },
+    })).toEqual({
+      diceResult: {
+        result: "D100=42/80 成功",
+        hidden: true,
+      },
+    });
   });
 });

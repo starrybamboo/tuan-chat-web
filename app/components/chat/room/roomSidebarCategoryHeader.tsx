@@ -41,10 +41,21 @@ export default function RoomSidebarCategoryHeader({
   toggleTitle,
   addTitle,
 }: RoomSidebarCategoryHeaderProps) {
+  const handleToggleExpanded = () => {
+    toggleCategoryExpanded(categoryId);
+  };
+
   return (
     <div
-      className="flex items-center gap-2 px-2 py-1 text-xs font-medium opacity-80 select-none rounded-lg hover:bg-base-300/40"
+      className="flex items-center gap-2 rounded-lg px-2 py-1 text-xs font-medium opacity-80 select-none hover:bg-base-300/40"
       draggable={canEdit}
+      onClick={(e) => {
+        const target = e.target as HTMLElement | null;
+        if (target?.closest("button")) {
+          return;
+        }
+        handleToggleExpanded();
+      }}
       onDragStart={(e) => {
         if (!canEdit)
           return;
@@ -104,15 +115,16 @@ export default function RoomSidebarCategoryHeader({
       <button
         type="button"
         className="btn btn-ghost btn-xs"
-        onClick={() => {
-          toggleCategoryExpanded(categoryId);
+        onClick={(e) => {
+          e.stopPropagation();
+          handleToggleExpanded();
         }}
         title={toggleTitle}
       >
         <ChevronDown className={`size-4 opacity-80 ${isCollapsed ? "-rotate-90" : ""}`} />
       </button>
 
-      <span className="flex-1 truncate">{categoryName}</span>
+      <span className="flex-1 truncate cursor-pointer">{categoryName}</span>
 
       {canEdit && (
         <button

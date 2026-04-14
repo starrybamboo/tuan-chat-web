@@ -111,7 +111,7 @@ export function createBlocksuiteEditorClient(params: CreateBlocksuiteEditorParam
   const mention = buildBlocksuiteMentionExtensions(context);
   const quickSearch = buildBlocksuiteQuickSearchExtension(context);
   const linkedDoc = buildBlocksuiteLinkedDocExtensions(context, {
-    getMentionMenuGroup: mention.api?.getMentionMenuGroup ?? (async () => null),
+    getMentionMenuGroups: mention.api?.getMentionMenuGroups ?? (async () => []),
   });
   const embed = buildBlocksuiteEmbedExtensions();
   const mergedExtensions = mergeBlocksuiteExtensionBundles(

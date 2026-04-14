@@ -1,13 +1,16 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 import LoginModal from "@/components/auth/LoginModal";
+import { createSeoMeta } from "@/utils/seo";
 import { normalizeAuthRedirectPath } from "@/utils/auth/redirect";
 
 export function meta() {
-  return [
-    { title: "登录 - tuan-chat" },
-    { name: "description", content: "登录/注册" },
-  ];
+  return createSeoMeta({
+    title: "登录",
+    description: "登录或注册团剧共创账号。",
+    path: "/login",
+    index: false,
+  });
 }
 
 export default function LoginPage() {

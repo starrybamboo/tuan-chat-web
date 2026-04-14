@@ -17,6 +17,7 @@ import { installMediaDebugBridge } from "@/components/chat/infra/media/mediaDebu
 import { useDrawerPreferenceStore } from "@/components/chat/stores/drawerPreferenceStore";
 import { ToastWindowRenderer } from "@/components/common/toastWindow/toastWindowRenderer";
 import { GlobalContextProvider } from "@/components/globalContextProvider";
+import { createSeoMeta, getCanonicalHref } from "@/utils/seo";
 import { consumeAuthToast } from "@/utils/auth/unauthorized";
 import "./app.css";
 import "./animation.css";
@@ -160,6 +161,22 @@ export const links: Route.LinksFunction = () => (
     : []
 );
 
+export function meta(_args: Route.MetaArgs) {
+  return createSeoMeta({
+    title: "团剧共创",
+    description: "团剧共创是面向团剧、模组与设定创作的协作平台，可用于发现公开模组、浏览素材库、管理角色和作品。",
+    path: "/",
+    index: false,
+  });
+}
+
+function CanonicalLink() {
+  const location = useLocation();
+  const canonicalHref = React.useMemo(() => getCanonicalHref(location.pathname), [location.pathname]);
+
+  return <link rel="canonical" href={canonicalHref} />;
+}
+
 export function HydrateFallback() {
   return (
     <div className="min-h-screen bg-base-200 flex items-center justify-center">
@@ -173,15 +190,17 @@ export function HydrateFallback() {
 
 export function Layout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" data-theme="dark">
+    <html lang="zh-CN" data-theme="dark">
       <head>
         <meta charSet="utf-8" />
         <meta
           name="viewport"
           content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content"
         />
+        <meta name="theme-color" content="#101828" />
         <Meta />
         <Links />
+        <CanonicalLink />
       </head>
       <body>
         <QueryClientProvider client={queryClient}>

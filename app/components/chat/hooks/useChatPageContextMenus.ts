@@ -17,11 +17,39 @@ type SpaceContextMenuState = {
 type UseChatPageContextMenusResult = {
   contextMenu: ChatContextMenuState | null;
   spaceContextMenu: SpaceContextMenuState | null;
-  handleContextMenu: (event: MouseEvent<Element>) => void;
+  handleContextMenu: (event: MouseEvent<Element>, roomId?: number | null) => void;
   handleSpaceContextMenu: (event: MouseEvent<Element>) => void;
   closeContextMenu: () => void;
   closeSpaceContextMenu: () => void;
 };
+
+type ElementLike = {
+  closest?: (selector: string) => ElementLike | null | undefined;
+  getAttribute?: (name: string) => string | null | undefined;
+};
+
+function readNumericDataId(target: ElementLike | null | undefined, attributeName: string) {
+  const rawValue = target?.getAttribute?.(attributeName);
+  const normalizedValue = typeof rawValue === "string" ? rawValue.trim() : "";
+  if (!normalizedValue)
+    return null;
+  const numericValue = Number(normalizedValue);
+  return Number.isInteger(numericValue) && numericValue > 0 ? numericValue : null;
+}
+
+export function resolveRoomIdFromContextMenuEvent(source: { target: unknown; currentTarget: unknown }) {
+  const target = source.target as ElementLike | null;
+  const currentTarget = source.currentTarget as ElementLike | null;
+  const matchedTarget = target?.closest?.("[data-room-id]") ?? null;
+  return readNumericDataId(matchedTarget, "data-room-id") ?? readNumericDataId(currentTarget, "data-room-id");
+}
+
+function resolveSpaceIdFromContextMenuEvent(source: { target: unknown; currentTarget: unknown }) {
+  const target = source.target as ElementLike | null;
+  const currentTarget = source.currentTarget as ElementLike | null;
+  const matchedTarget = target?.closest?.("[data-space-id]") ?? null;
+  return readNumericDataId(matchedTarget, "data-space-id") ?? readNumericDataId(currentTarget, "data-space-id");
+}
 
 export default function useChatPageContextMenus(): UseChatPageContextMenusResult {
   const [contextMenu, setContextMenu] = useState<ChatContextMenuState | null>(null);
@@ -35,21 +63,22 @@ export default function useChatPageContextMenus(): UseChatPageContextMenusResult
     setSpaceContextMenu(null);
   }, []);
 
-  const handleContextMenu = useCallback((event: MouseEvent<Element>) => {
+  const handleContextMenu = useCallback((event: MouseEvent<Element>, roomId?: number | null) => {
     event.preventDefault();
-    const target = event.target as HTMLElement;
-    const messageElement = target.closest("[data-room-id]");
-    setContextMenu({ x: event.clientX, y: event.clientY, roomId: Number(messageElement?.getAttribute("data-room-id")) });
+    const resolvedRoomId = Number.isFinite(roomId) ? Number(roomId) : resolveRoomIdFromContextMenuEvent(event);
+    if (resolvedRoomId == null) {
+      setContextMenu(null);
+      return;
+    }
+    setContextMenu({ x: event.clientX, y: event.clientY, roomId: resolvedRoomId });
   }, []);
 
   const handleSpaceContextMenu = useCallback((event: MouseEvent<Element>) => {
     event.preventDefault();
-    const target = event.target as HTMLElement;
-    const spaceElement = target.closest("[data-space-id]");
-    const rawSpaceId = spaceElement?.getAttribute("data-space-id");
-    if (!rawSpaceId)
+    const spaceId = resolveSpaceIdFromContextMenuEvent(event);
+    if (spaceId == null)
       return;
-    setSpaceContextMenu({ x: event.clientX, y: event.clientY, spaceId: Number(rawSpaceId) });
+    setSpaceContextMenu({ x: event.clientX, y: event.clientY, spaceId });
   }, []);
 
   useEffect(() => {

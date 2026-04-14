@@ -22,7 +22,7 @@ interface RoomSidebarRoomItemProps {
   setDragging: (next: DraggingItem | null) => void;
   setDropTarget: (next: DropTarget | null) => void;
   handleDrop: () => void;
-  onContextMenu: (e: MouseEvent) => void;
+  onContextMenu: (e: MouseEvent, roomId?: number | null) => void;
   unreadMessageNumber?: number;
   activeRoomId: number | null;
   onSelectRoom: (roomId: number) => void;
@@ -93,7 +93,7 @@ export default function RoomSidebarRoomItem({
       onContextMenu={(e) => {
         e.preventDefault();
         e.stopPropagation();
-        onContextMenu(e);
+        onContextMenu(e, roomId);
       }}
       onDragOver={(e) => {
         if (!canEdit)

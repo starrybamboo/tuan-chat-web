@@ -109,8 +109,6 @@ export async function completeRoleCreation(
     description: trimmedDescription,
     avatar: avatarUrl || ROLE_DEFAULT_AVATAR_URL,
     avatarId: avatarId ?? 0,
-    modelName: "散华",
-    speakerName: "鸣潮",
     type: roleCreateDefaults?.type,
   };
 

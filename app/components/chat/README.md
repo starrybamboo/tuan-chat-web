@@ -634,8 +634,8 @@ export interface ChatInputAreaHandle {
 
 5. **骰子和命令面板**：
    - 点击骰子图标：打开骰子命令面板
-   - 点击命令图标：打开 WebGAL 命令面板
-   - 支持快捷输入：`/` 或 `.` 触发骰子/指令系统，`%` 发送 WebGAL 脚本指令（`WEBGAL_COMMAND`）
+   - 点击命令图标：打开指令面板
+   - 支持快捷输入：`/`、`.` 或 `。` 触发骰子/指令系统
 
 **关键组件结构**：
 
@@ -750,19 +750,19 @@ const grouped = useMemo(() => {
 
 ### 10. commandPanel.tsx
 
-**作用**：命令面板，提供骰子命令和 WebGAL 命令的自动补全和帮助。
+**作用**：命令面板，提供骰子命令的自动补全和帮助。
 
 **业务流程**：
 
 1. **命令模式识别**：
    ```typescript
-   export type commandModeType = "dice" | "webgal" | "none";
+   export type commandModeType = "dice" | "none";
    
    // 根据前缀判断模式
    if (prefix.startsWith('/')) {
      commandMode = "dice";      // TRPG 骰子命令
-   } else if (prefix.startsWith('.')) {
-     commandMode = "webgal";    // WebGAL 剧本命令
+   } else if (prefix.startsWith('.') || prefix.startsWith('。')) {
+     commandMode = "dice";      // TRPG 骰子命令
    }
    ```
 
@@ -783,15 +783,7 @@ const grouped = useMemo(() => {
    /ti 侦查         - 技能检定
    ```
 
-4. **WebGAL 命令示例**：
-   ```
-   .changeBg:bg1.jpg       - 更改背景
-   .changeFigure:char1.png - 显示立绘
-   .playBgm:music1.mp3     - 播放背景音乐
-   .miniAvatar:show        - 显示小头像
-   ```
-
-5. **命令详情显示**：
+4. **命令详情显示**：
    ```typescript
    // 当用户输入完整命令时，显示详细信息
    if (prefix.includes(" ")) {

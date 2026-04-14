@@ -76,6 +76,14 @@ export type Message = {
      */
     position: number;
     extra?: MessageExtra;
+    /**
+     * 继承来源的归档消息ID
+     */
+    inheritedArchiveMessageId?: number;
+    /**
+     * 版本状态
+     */
+    versionState?: number;
     createTime?: string;
     updateTime?: string;
 };

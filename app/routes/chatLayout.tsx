@@ -1,12 +1,15 @@
 import type { Route } from "./+types/chatLayout";
 
 import ChatPage from "@/components/chat/chatPage";
+import { createSeoMeta } from "@/utils/seo";
 
 export function meta(_args: Route.MetaArgs) {
-  return [
-    { title: "tuan-chat" },
-    { name: "description", content: "Welcome to React Router!" },
-  ];
+  return createSeoMeta({
+    title: "聊天空间",
+    description: "团剧共创内部聊天与协作空间。",
+    path: "/chat",
+    index: false,
+  });
 }
 
 export default function ChatLayoutRoute() {

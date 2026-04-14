@@ -29,8 +29,9 @@ const cmdR = new CommandExecutor(
     try {
       const diceResult = roll(input);
       if (isForceToast) {
-        cpi.sendToast(`掷骰结果：${input} = ${diceResult.expanded} = ${diceResult.result}`);
-        cpi.replyMessage(`${mentioned[mentioned.length - 1].roleName}进行了一次暗骰`);
+        cpi.replyMessage(`掷骰结果：${input} = ${diceResult.expanded} = ${diceResult.result}`, {
+          visibility: "kp_and_sender",
+        });
         return true;
       }
       cpi.replyMessage(`掷骰结果：${input} = ${diceResult.expanded} = ${diceResult.result}`);

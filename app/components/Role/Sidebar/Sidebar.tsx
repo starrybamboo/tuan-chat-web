@@ -86,8 +86,6 @@ export function Sidebar({
       avatar: role.avatarUrl || "",
       avatarThumb: role.avatarThumbUrl || role.avatarUrl || "",
       avatarId: role.avatarId || 0,
-      modelName: role.modelName || "",
-      speakerName: role.speakerName || "",
       voiceUrl: role.voiceUrl || undefined, // 添加 voiceUrl 字段
       // 透传类型，便于侧边栏分类（若后端无该字段则为 0）
       type: (role as unknown as { type?: number; diceMaiden?: boolean }).type
@@ -208,8 +206,6 @@ export function Sidebar({
   //         description: "新角色描述",
   //         avatar: res.data.avatarUrl,
   //         avatarId: res.data.avatarId,
-  //         modelName: "散华",
-  //         speakerName: "鸣潮",
   //       };
   //       setRoles(prev => [newRole, ...prev]);
   //       setSelectedRoleId(newRole.id);
