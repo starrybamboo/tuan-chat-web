@@ -1,4 +1,6 @@
 // AI 生图页面：对齐 NovelAI Image 的桌面端布局与交互；当前保留免费单张 txt2img，并开放预览区 Inpaint。
+import { useCallback, useEffect, useRef, useState } from "react";
+
 import { AiImageSidebar } from "@/components/aiImage/AiImageSidebar";
 import { AiImageWorkspace } from "@/components/aiImage/AiImageWorkspace";
 import { InpaintDialog } from "@/components/aiImage/InpaintDialog";
@@ -7,8 +9,100 @@ import { PreviewImageDialog } from "@/components/aiImage/PreviewImageDialog";
 import { StylePickerDialog } from "@/components/aiImage/StylePickerDialog";
 import { useAiImagePageController } from "@/components/aiImage/useAiImagePageController";
 
+const AI_IMAGE_SIDEBAR_MIN_RATIO = 0.25;
+const AI_IMAGE_SIDEBAR_MAX_RATIO = 0.5;
+const AI_IMAGE_SIDEBAR_DEFAULT_RATIO = 0.3;
+
+function clampAiImageSidebarWidth(nextWidth: number, containerWidth: number) {
+  const minWidth = Math.round(containerWidth * AI_IMAGE_SIDEBAR_MIN_RATIO);
+  const maxWidth = Math.round(containerWidth * AI_IMAGE_SIDEBAR_MAX_RATIO);
+  return Math.min(maxWidth, Math.max(minWidth, nextWidth));
+}
+
 export default function AiImagePage() {
   const controller = useAiImagePageController();
+  const layoutRef = useRef<HTMLDivElement | null>(null);
+  const [sidebarWidth, setSidebarWidth] = useState<number | null>(null);
+  const isSidebarVisible = !controller.sidebarProps.isDirectorToolsOpen;
+
+  useEffect(() => {
+    const layoutElement = layoutRef.current;
+    if (!layoutElement)
+      return;
+
+    const syncSidebarWidth = () => {
+      const containerWidth = layoutElement.clientWidth;
+      if (!containerWidth)
+        return;
+
+      setSidebarWidth((prevWidth) => {
+        const defaultWidth = clampAiImageSidebarWidth(
+          Math.round(containerWidth * AI_IMAGE_SIDEBAR_DEFAULT_RATIO),
+          containerWidth,
+        );
+        if (prevWidth == null)
+          return defaultWidth;
+        const clampedWidth = clampAiImageSidebarWidth(prevWidth, containerWidth);
+        return clampedWidth === prevWidth ? prevWidth : clampedWidth;
+      });
+    };
+
+    syncSidebarWidth();
+
+    if (typeof ResizeObserver === "function") {
+      const resizeObserver = new ResizeObserver(syncSidebarWidth);
+      resizeObserver.observe(layoutElement);
+      return () => resizeObserver.disconnect();
+    }
+
+    window.addEventListener("resize", syncSidebarWidth);
+    return () => window.removeEventListener("resize", syncSidebarWidth);
+  }, []);
+
+  const handleSidebarResizeStart = useCallback((event: React.MouseEvent<HTMLButtonElement>) => {
+    if (!isSidebarVisible)
+      return;
+
+    const layoutElement = layoutRef.current;
+    if (!layoutElement)
+      return;
+
+    event.preventDefault();
+
+    const containerWidth = layoutElement.clientWidth;
+    if (!containerWidth)
+      return;
+
+    const startX = event.clientX;
+    const startWidth = sidebarWidth ?? clampAiImageSidebarWidth(
+      Math.round(containerWidth * AI_IMAGE_SIDEBAR_DEFAULT_RATIO),
+      containerWidth,
+    );
+    const previousCursor = document.body.style.cursor;
+    const previousUserSelect = document.body.style.userSelect;
+
+    document.body.style.cursor = "col-resize";
+    document.body.style.userSelect = "none";
+
+    const handleMouseMove = (moveEvent: MouseEvent) => {
+      const nextContainerWidth = layoutRef.current?.clientWidth ?? 0;
+      if (!nextContainerWidth)
+        return;
+
+      const deltaX = moveEvent.clientX - startX;
+      setSidebarWidth(clampAiImageSidebarWidth(startWidth + deltaX, nextContainerWidth));
+    };
+
+    const handleMouseUp = () => {
+      document.body.style.cursor = previousCursor;
+      document.body.style.userSelect = previousUserSelect;
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mouseup", handleMouseUp);
+    };
+
+    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("mouseup", handleMouseUp);
+  }, [isSidebarVisible, sidebarWidth]);
 
   return (
     <div
@@ -72,8 +166,28 @@ export default function AiImagePage() {
         }}
       />
 
-      <div className="flex min-h-0 flex-1 overflow-hidden bg-base-200">
-        <AiImageSidebar sidebarProps={controller.sidebarProps} />
+      <div ref={layoutRef} className="flex min-h-0 flex-1 overflow-hidden bg-base-200">
+        {isSidebarVisible
+          ? (
+              <>
+                <div
+                  className="min-w-0 shrink-0"
+                  style={sidebarWidth == null ? undefined : { width: `${sidebarWidth}px` }}
+                >
+                  <AiImageSidebar sidebarProps={controller.sidebarProps} />
+                </div>
+                <button
+                  type="button"
+                  className="group flex w-3 shrink-0 cursor-col-resize items-stretch justify-center bg-base-200 px-0 touch-none"
+                  aria-label="拖拽调整 AI 生图侧边栏宽度"
+                  title="拖拽调整 AI 生图侧边栏宽度"
+                  onMouseDown={handleSidebarResizeStart}
+                >
+                  <span className="my-3 w-px rounded-full bg-base-300 transition-colors group-hover:bg-primary/45 group-active:bg-primary" />
+                </button>
+              </>
+            )
+          : null}
         <AiImageWorkspace {...controller.workspaceProps} />
       </div>
 
