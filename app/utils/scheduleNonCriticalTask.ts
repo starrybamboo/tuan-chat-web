@@ -27,8 +27,11 @@ export function scheduleNonCriticalTask(
       return;
     }
 
-    if ("requestIdleCallback" in window) {
-      idleId = window.requestIdleCallback(runTask, { timeout: idleTimeoutMs });
+    const requestIdleCallback = typeof window.requestIdleCallback === "function"
+      ? window.requestIdleCallback.bind(window)
+      : null;
+    if (requestIdleCallback) {
+      idleId = requestIdleCallback(runTask, { timeout: idleTimeoutMs });
       return;
     }
 
@@ -61,8 +64,11 @@ export function scheduleNonCriticalTask(
       window.clearTimeout(fallbackTimeoutId);
     }
 
-    if (idleId !== null && "cancelIdleCallback" in window) {
-      window.cancelIdleCallback(idleId);
+    const cancelIdleCallback = typeof window.cancelIdleCallback === "function"
+      ? window.cancelIdleCallback.bind(window)
+      : null;
+    if (idleId !== null && cancelIdleCallback) {
+      cancelIdleCallback(idleId);
     }
   };
 }
