@@ -7,7 +7,6 @@ import {
   NOVELAI_DIMENSION_STEP,
   NOVELAI_FREE_MAX_DIMENSION,
   NOVELAI_FREE_MAX_STEPS,
-  NOVELAI_FREE_ONLY_NOTICE,
   RESOLUTION_PRESETS,
   SAMPLER_LABELS,
   SCHEDULE_LABELS,
@@ -22,6 +21,7 @@ import {
   getNovelAiFreeOnlyMessage,
   modelLabel,
 } from "@/components/aiImage/helpers";
+import { ChevronDown } from "@/icons";
 import { ProFeatureSection } from "@/components/aiImage/ProFeatureSection";
 
 interface AiImageSidebarProps {
@@ -31,13 +31,11 @@ interface AiImageSidebarProps {
 const MODE_OPTIONS = [
   {
     value: "simple",
-    label: "普通模式",
-    description: "用自然语言和画风快速出图，适合先拿到第一版结果。",
+    label: "小白模式",
   },
   {
     value: "pro",
-    label: "专业模式",
-    description: "直接编辑 Prompt 和参数，适合需要精细控制时使用。",
+    label: "NovelAi模式",
   },
 ] as const;
 
@@ -52,8 +50,6 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
     charPromptTabs,
     characterPromptDescription,
     dynamicThresholding,
-    fixedModelDescription,
-    freeGenerationViolation,
     handleAddV4Char,
     handleClearSeed,
     handleClearSourceImage,
@@ -182,71 +178,40 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
   return (
     <div className={`${isDirectorToolsOpen ? "hidden" : "flex"} min-h-0 w-[430px] shrink-0 flex-col gap-3 overflow-auto border-r border-base-300 bg-base-200 p-3`}>
       <div className={sideCardClassName}>
-        <div className="card-body gap-3 p-4">
-          <div className="flex flex-wrap items-start gap-3">
-            <div className="min-w-0 flex-1">
-              <div className="text-xs font-medium uppercase tracking-[0.18em] text-base-content/50">
-                创作模式
-              </div>
-              <button
-                type="button"
-                className="mt-2 flex w-full items-center justify-between rounded-md border border-base-300 bg-base-100 px-3 py-3 text-left transition hover:border-primary/40 hover:bg-base-100 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
-                aria-expanded={isModeSelectorOpen}
-                onClick={() => setIsModeSelectorOpen(prev => !prev)}
-              >
-                <div className="min-w-0">
-                  <div className="font-medium text-base-content">{activeModeOption.label}</div>
-                  <div className="mt-1 text-sm leading-6 text-base-content/65">
-                    {activeModeOption.description}
-                  </div>
-                </div>
-                <span className="ml-3 shrink-0 text-xs font-medium text-base-content/55">
-                  {isModeSelectorOpen ? "收起" : "展开"}
-                </span>
-              </button>
+        <div className="card-body p-4">
+          <div className="w-full">
+            <button
+              type="button"
+              className="flex w-full items-center justify-between rounded-md border border-base-300 bg-base-100 px-3 py-3 text-left transition hover:border-primary/40 hover:bg-base-100 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+              aria-expanded={isModeSelectorOpen}
+              onClick={() => setIsModeSelectorOpen(prev => !prev)}
+            >
+              <span className="font-medium text-base-content">{activeModeOption.label}</span>
+              <ChevronDown className={`ml-3 size-4 shrink-0 text-base-content/60 transition-transform ${isModeSelectorOpen ? "rotate-180" : ""}`} />
+            </button>
 
-              {isModeSelectorOpen
-                ? (
-                    <div className="mt-2 flex flex-col gap-2 rounded-md border border-base-300 bg-base-100 p-2">
+            {isModeSelectorOpen
+              ? (
+                  <div className="mt-2 w-full rounded-md border border-base-300 bg-base-100 p-2">
+                    <div className="flex flex-col gap-2">
                       {MODE_OPTIONS.map(option => (
                         <button
                           key={option.value}
                           type="button"
-                          className={`flex w-full items-start justify-between rounded-md border px-3 py-3 text-left transition focus:outline-none focus:ring-2 focus:ring-primary/20 ${
+                          className={`w-full rounded-md border px-3 py-3 text-left font-medium transition focus:outline-none focus:ring-2 focus:ring-primary/20 ${
                             uiMode === option.value
                               ? "border-primary bg-primary/5 text-base-content"
                               : "border-transparent bg-base-100 text-base-content/80 hover:border-base-300 hover:bg-base-200/45"
                           }`}
                           onClick={() => handleSelectMode(option.value)}
                         >
-                          <div className="min-w-0">
-                            <div className="font-medium text-base-content">{option.label}</div>
-                            <div className="mt-1 text-sm leading-6 text-base-content/60">
-                              {option.description}
-                            </div>
-                          </div>
-                          <span
-                            className={`ml-3 shrink-0 rounded-md px-2 py-1 text-xs font-medium ${
-                              uiMode === option.value
-                                ? "bg-primary/10 text-primary"
-                                : "bg-base-200 text-base-content/65"
-                            }`}
-                          >
-                            {uiMode === option.value ? "当前" : "切换"}
-                          </span>
+                          {option.label}
                         </button>
                       ))}
                     </div>
-                  )
-                : null}
-            </div>
-            <div className="text-xs text-base-content/70" title={fixedModelDescription}>
-              当前模型：
-              {modelLabel(model)}
-            </div>
-          </div>
-          <div className="rounded-2xl border border-warning/30 bg-warning/10 px-3 py-2 text-xs leading-5 text-base-content/80">
-            {freeGenerationViolation || NOVELAI_FREE_ONLY_NOTICE}
+                  </div>
+                )
+              : null}
           </div>
         </div>
       </div>
