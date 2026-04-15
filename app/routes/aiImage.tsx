@@ -171,7 +171,7 @@ export default function AiImagePage() {
           ? (
               <>
                 <div
-                  className="min-w-0 shrink-0"
+                  className="flex min-h-0 min-w-0 shrink-0"
                   style={sidebarWidth == null ? undefined : { width: `${sidebarWidth}px` }}
                 >
                   <AiImageSidebar sidebarProps={controller.sidebarProps} />
