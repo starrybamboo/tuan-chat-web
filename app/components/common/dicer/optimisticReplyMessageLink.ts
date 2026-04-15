@@ -39,7 +39,7 @@ export function collectOptimisticReplyMessageReplacements({
 
   for (const pending of pendingMessages) {
     const optimisticMessageId = pending?.optimisticMessageId;
-    if (!Number.isFinite(optimisticMessageId)) {
+    if (typeof optimisticMessageId !== "number" || !Number.isFinite(optimisticMessageId)) {
       continue;
     }
     const currentMessage = messageMap.get(optimisticMessageId);
