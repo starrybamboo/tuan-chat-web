@@ -1,4 +1,5 @@
 import type { DragEvent, MouseEvent } from "react";
+import { CaretRightIcon } from "@phosphor-icons/react";
 
 import type {
   CurrentResultCard,
@@ -22,6 +23,7 @@ interface HistoryDragPayload {
 
 interface AiImageHistoryPaneProps {
   isDirectorToolsOpen: boolean;
+  onCollapse: () => void;
   history: AiImageHistoryRow[];
   mode: AiImageHistoryMode;
   currentResultCards: CurrentResultCard[];
@@ -64,6 +66,7 @@ function HistoryDeleteButton({
 
 export function AiImageHistoryPane({
   isDirectorToolsOpen,
+  onCollapse,
   history,
   mode,
   currentResultCards,
@@ -91,6 +94,15 @@ export function AiImageHistoryPane({
           <div className="mb-3 flex items-center gap-2 px-1">
             <div className="text-[11px] font-semibold uppercase tracking-[0.24em] text-base-content/60">History</div>
             <div className="ml-auto text-[11px] text-base-content/45">{history.length ? `${history.length}` : ""}</div>
+            <button
+              type="button"
+              className="btn btn-ghost btn-square btn-xs shrink-0 text-base-content/60 hover:text-base-content"
+              aria-label="收起历史记录侧边栏"
+              title="收起历史记录侧边栏"
+              onClick={onCollapse}
+            >
+              <CaretRightIcon className="size-3.5" weight="bold" />
+            </button>
           </div>
           <div className="flex-1 overflow-auto">
             <div className="mb-4">
@@ -206,6 +218,15 @@ export function AiImageHistoryPane({
         <div className="mb-2 flex items-center gap-2">
           <div className="font-medium">历史记录</div>
           <div className="ml-auto text-xs text-base-content/60">{history.length ? `${history.length} 项` : ""}</div>
+          <button
+            type="button"
+            className="btn btn-ghost btn-square btn-xs shrink-0 text-base-content/60 hover:text-base-content"
+            aria-label="收起历史记录侧边栏"
+            title="收起历史记录侧边栏"
+            onClick={onCollapse}
+          >
+            <CaretRightIcon className="size-3.5" weight="bold" />
+          </button>
         </div>
         <div className="mb-3 rounded-box border border-base-300 bg-base-100 px-3 py-2 text-[11px] leading-5 text-base-content/60 shadow-sm">
           单击预览，Ctrl/Cmd+单击导入设置，Shift+单击导入 seed，Ctrl/Cmd+Shift+单击导入设置与 seed。
