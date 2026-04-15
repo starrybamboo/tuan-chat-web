@@ -344,7 +344,7 @@ export function AiImagePreviewPane({
 
       {!isDirectorToolsOpen
         ? (
-            <div className="relative flex min-h-[520px] items-center justify-center rounded-box border border-base-300 bg-base-100 p-3 shadow-sm">
+            <div className="relative flex min-h-[520px] flex-1 self-stretch items-center justify-center rounded-box border border-base-300 bg-base-100 p-3 shadow-sm">
               {selectedPreviewResult
                 ? <img src={selectedPreviewResult.dataUrl} className="max-h-[720px] w-auto rounded-box" alt="result" />
                 : null}
