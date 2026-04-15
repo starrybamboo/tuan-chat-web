@@ -104,24 +104,24 @@ export function AiImagePreviewPane({
 
   return (
     <div className={`flex min-h-0 flex-1 flex-col gap-3 overflow-auto ${isDirectorToolsOpen ? "bg-base-200 p-4" : "bg-base-200 p-3"}`}>
-      <div className="flex flex-wrap items-center gap-2 rounded-box border border-base-300 bg-base-100 p-3 shadow-sm">
-        <div>
-          <div className="text-sm font-medium">{isDirectorToolsOpen ? "Director Workspace" : "预览"}</div>
-          <div className="text-xs text-base-content/60">{previewMeta || (isDirectorToolsOpen ? "选择输入图并执行 Transform" : "准备开始")}</div>
-        </div>
-        <div className="ml-auto flex flex-wrap items-center gap-2">
-          <button
-            type="button"
-            className="btn btn-outline gap-2"
-            disabled
-            aria-expanded={isDirectorToolsOpen}
-            onClick={onToggleDirectorTools}
-          >
-            Director Tools 已禁用
-            <ChevronDown className={`size-4 transition-transform ${isDirectorToolsOpen ? "rotate-180" : ""}`} />
-          </button>
-          {!isDirectorToolsOpen
-            ? (
+      {isDirectorToolsOpen
+        ? (
+            <div className="flex flex-wrap items-center gap-2 rounded-box border border-base-300 bg-base-100 p-3 shadow-sm">
+              <div>
+                <div className="text-sm font-medium">Director Workspace</div>
+                <div className="text-xs text-base-content/60">{previewMeta || "选择输入图并执行 Transform"}</div>
+              </div>
+              <div className="ml-auto flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  className="btn btn-outline gap-2"
+                  disabled
+                  aria-expanded={isDirectorToolsOpen}
+                  onClick={onToggleDirectorTools}
+                >
+                  Director Tools 已禁用
+                  <ChevronDown className={`size-4 transition-transform ${isDirectorToolsOpen ? "rotate-180" : ""}`} />
+                </button>
                 <button
                   type="button"
                   className="btn btn-outline"
@@ -130,10 +130,10 @@ export function AiImagePreviewPane({
                 >
                   Upscale 已禁用
                 </button>
-              )
-            : null}
-        </div>
-      </div>
+              </div>
+            </div>
+          )
+        : null}
 
       {isDirectorToolsOpen
         ? (
@@ -347,11 +347,7 @@ export function AiImagePreviewPane({
             <div className="relative flex min-h-[520px] items-center justify-center rounded-box border border-base-300 bg-base-100 p-3 shadow-sm">
               {selectedPreviewResult
                 ? <img src={selectedPreviewResult.dataUrl} className="max-h-[720px] w-auto rounded-box" alt="result" />
-                : (
-                    <div className="text-center text-sm text-base-content/60">
-                      <div className="mb-2 text-lg font-medium text-base-content/80">准备就绪</div>
-                    </div>
-                  )}
+                : null}
               {pinnedPreviewResult && !isSelectedPreviewPinned
                 ? (
                     <button
