@@ -176,7 +176,7 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
   }
 
   return (
-    <div className={`${isDirectorToolsOpen ? "hidden" : "flex"} min-h-0 w-[430px] shrink-0 flex-col gap-3 overflow-auto border-r border-base-300 bg-base-200 p-3`}>
+    <div className={`${isDirectorToolsOpen ? "hidden" : "flex"} min-h-0 w-full min-w-0 flex-col gap-3 overflow-auto bg-base-200 p-3`}>
       <div className={sideCardClassName}>
         <div className="card-body p-4">
           <div className="w-full">
