@@ -115,7 +115,6 @@ export async function buildMessageDraftsFromComposerSnapshot({
   const identityFields = buildMessageDraftIdentityFields(baseMessage);
   const uploadedImages: Array<{ url: string; width: number; height: number; size: number; fileName: string }> = [];
   const uploadedVideos: Array<{ url: string; fileName: string; size: number; second?: number }> = [];
-  const uploadedFiles: Array<{ url: string; fileName: string; size: number }> = [];
 
   for (const imgFile of imgFiles) {
     const url = await uploadUtils.uploadImg(imgFile, 1);
@@ -152,21 +151,16 @@ export async function buildMessageDraftsFromComposerSnapshot({
   }
 
   for (const attachment of fileAttachments) {
-    if (isVideoAttachment(attachment)) {
-      const uploadedVideo = await uploadUtils.uploadVideo(attachment, 1);
-      uploadedVideos.push({
-        url: uploadedVideo.url,
-        fileName: uploadedVideo.fileName,
-        size: uploadedVideo.size,
-        second: await getMessageDraftMediaDuration(attachment),
-      });
+    // 直接上传 FILE 消息已临时关闭；这里只有视频附件还能继续发送。
+    if (!isVideoAttachment(attachment)) {
       continue;
     }
-    const url = await uploadUtils.uploadFile(attachment, 1);
-    uploadedFiles.push({
-      url,
-      fileName: attachment.name,
-      size: attachment.size,
+    const uploadedVideo = await uploadUtils.uploadVideo(attachment, 1);
+    uploadedVideos.push({
+      url: uploadedVideo.url,
+      fileName: uploadedVideo.fileName,
+      size: uploadedVideo.size,
+      second: await getMessageDraftMediaDuration(attachment),
     });
   }
 
@@ -259,27 +253,11 @@ export async function buildMessageDraftsFromComposerSnapshot({
     textContent = "";
   }
 
-  for (const file of uploadedFiles) {
-    nextMessages.push({
-      ...identityFields,
-      content: textContent,
-      messageType: MessageType.FILE,
-      extra: {
-        fileMessage: {
-          url: file.url,
-          fileName: file.fileName,
-          size: file.size,
-        },
-      },
-    });
-    textContent = "";
-  }
-
   const shouldSendEmptyTextMessage = allowEmptyTextMessage
     && isBlankInput
     && uploadedImages.length === 0
     && uploadedVideos.length === 0
-    && uploadedFiles.length === 0
+    && fileAttachments.length === 0
     && !uploadedSoundMessage;
 
   if (textContent || shouldSendEmptyTextMessage) {

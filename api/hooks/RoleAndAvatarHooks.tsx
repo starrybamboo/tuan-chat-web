@@ -11,14 +11,14 @@ import { useQuery, useMutation, useQueryClient, useQueries, useInfiniteQuery } f
 import { tuanchat } from '../instance';
 
 
-// import type { RoleAbilityTable } from './models/RoleAbilityTable';
-import type { RoleAvatar } from '../models/RoleAvatar';
-import type { RoleAvatarCreateRequest } from '../models/RoleAvatarCreateRequest';
-import type { SpriteTransform } from '../models/SpriteTransform';
-import type { UserRegisterRequest } from '../models/UserRegisterRequest';
-import type { RolePageQueryRequest } from '../models/RolePageQueryRequest'
+// import type { RoleAbilityTable } from '@tuanchat/openapi-client/models/RoleAbilityTable';
+import type { RoleAvatar } from '@tuanchat/openapi-client/models/RoleAvatar';
+import type { RoleAvatarCreateRequest } from '@tuanchat/openapi-client/models/RoleAvatarCreateRequest';
+import type { SpriteTransform } from '@tuanchat/openapi-client/models/SpriteTransform';
+import type { UserRegisterRequest } from '@tuanchat/openapi-client/models/UserRegisterRequest';
+import type { RolePageQueryRequest } from '@tuanchat/openapi-client/models/RolePageQueryRequest'
 import type { Transform } from '../../app/components/Role/sprite/TransformControl';
-import type { UserRole } from '../models/UserRole';
+import type { UserRole } from '@tuanchat/openapi-client/models/UserRole';
 
 import { emitWebgalAvatarUpdated } from "../../app/webGAL/avatarSync";
 
@@ -33,7 +33,7 @@ import type { Role } from '@/components/Role/types';
 import { ROLE_DEFAULT_AVATAR_URL } from '@/constants/defaultAvatar';
 import { shouldRetryRoleQueryError } from "@/utils/roleApiError";
 import { seedUserRoleListQueryCache, seedUserRoleQueryCache } from "../roleQueryCache";
-import { invalidateRoleCreateQueries } from "./roleMutationInvalidation";
+import { invalidateRoleCreateQueries, invalidateUserRoleListQueries } from "./roleMutationInvalidation";
 
 export function seedRoleAvatarQueryCaches(queryClient: any, avatar: RoleAvatar, roleId?: number): void {
   const avatarId = avatar.avatarId;
@@ -317,10 +317,7 @@ export function useDeleteRolesMutation(onSuccess?: () => void) {
       return res;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["roleInfinite"] });
-      queryClient.invalidateQueries({ queryKey: ["getUserRolesByTypes"] });
-      queryClient.invalidateQueries({ queryKey: ['getRole'] });
-      queryClient.invalidateQueries({ queryKey: ['getUserRoles'] });
+      invalidateUserRoleListQueries(queryClient);
       queryClient.invalidateQueries({ queryKey: ["roomRole"] });
     },
     onError: (error) => {
@@ -395,10 +392,7 @@ export function useCopyRoleMutation() {
     },
     onSuccess: (newRole) => {
       // 统一失效相关查询
-      queryClient.invalidateQueries({ queryKey: ["getRole", newRole.id] });
-      queryClient.invalidateQueries({ queryKey: ["getUserRoles"] });
-      queryClient.invalidateQueries({ queryKey: ["roleInfinite"] });
-      queryClient.invalidateQueries({ queryKey: ["getUserRolesByTypes"] });
+      invalidateUserRoleListQueries(queryClient);
       queryClient.invalidateQueries({ queryKey: ["getRoleAvatars", newRole.id] });
       queryClient.invalidateQueries({ queryKey: ["listRoleAbility", newRole.id] });
       queryClient.invalidateQueries({ queryKey: ["roleAbilityByRule"] });
@@ -1538,3 +1532,4 @@ export function useRoleAbility(roleId: number) {
   );
   return abilityQuery;
 }
+

@@ -38,7 +38,7 @@ export default function MessageAnnotationsBar({
         id,
         label: id,
         tone: "neutral",
-        showInNormalMode: false,
+        showInNormalMode: true,
       };
       return { id, annotation };
     })

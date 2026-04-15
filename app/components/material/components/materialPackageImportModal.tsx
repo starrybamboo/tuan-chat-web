@@ -1,5 +1,5 @@
-import type { MaterialPackageResponse } from "../../../../api/models/MaterialPackageResponse";
-import type { SpaceMaterialPackageResponse } from "../../../../api/models/SpaceMaterialPackageResponse";
+import type { MaterialPackageResponse } from "@tuanchat/openapi-client/models/MaterialPackageResponse";
+import type { SpaceMaterialPackageResponse } from "@tuanchat/openapi-client/models/SpaceMaterialPackageResponse";
 import { useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import { useImportSpaceMaterialPackageMutation, useMyMaterialPackagesQuery, usePublicMaterialPackagesQuery } from "../../../../api/hooks/materialPackageQueryHooks";
@@ -159,3 +159,4 @@ export default function MaterialPackageImportModal({
     </dialog>
   );
 }
+

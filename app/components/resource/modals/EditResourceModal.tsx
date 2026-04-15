@@ -1,6 +1,6 @@
-import type { ResourceResponse } from "../../../../api/models/ResourceResponse";
+import type { ResourceResponse } from "@tuanchat/openapi-client/models/ResourceResponse";
 
-import { ApiError } from "api/core/ApiError";
+import { ApiError } from "@tuanchat/openapi-client/core/ApiError";
 
 import { useState } from "react";
 import { toast } from "react-hot-toast";
@@ -250,3 +250,4 @@ export function EditResourceModal({
     </div>
   );
 }
+

@@ -8,7 +8,9 @@
     "module": "ES2022",
     "moduleResolution": "bundler",
     "paths": {
-      "@/*": ["./app/*"]
+      "@/*": ["./app/*"],
+      "@tuanchat/openapi-client": ["./packages/tuanchat-openapi-client/src/index.ts"],
+      "@tuanchat/openapi-client/*": ["./packages/tuanchat-openapi-client/src/*"]
     },
     "resolveJsonModule": true,
     "types": ["node", "vite/client", "vitest/globals"],

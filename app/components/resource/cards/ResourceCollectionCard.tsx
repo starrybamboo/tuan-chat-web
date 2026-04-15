@@ -1,4 +1,4 @@
-import type { CollectionList } from "../../../../api/models/CollectionList";
+import type { CollectionList } from "@tuanchat/openapi-client/models/CollectionList";
 import { UserAvatarByUser } from "@/components/common/userAccess";
 
 interface ResourceCollectionCardProps {
@@ -80,3 +80,4 @@ export function ResourceCollectionCard({
     </div>
   );
 }
+

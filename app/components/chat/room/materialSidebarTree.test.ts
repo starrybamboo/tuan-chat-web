@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { MaterialNode as MaterialNodeModel } from "../../../../api/models/MaterialNode";
+import { MaterialNode as MaterialNodeModel } from "@tuanchat/openapi-client/models/MaterialNode";
 import { buildMaterialSidebarTree, collectMaterialExpandableKeys } from "./materialSidebarTree";
 
 describe("materialSidebarTree", () => {
@@ -67,3 +67,4 @@ describe("materialSidebarTree", () => {
     ]);
   });
 });
+

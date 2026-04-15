@@ -1,4 +1,4 @@
-﻿import { useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { MessageDirectReadUpdateRequest, MessageDirectRecallRequest, MessageDirectSendRequest } from "api";
 import { tuanchat } from "../instance";
 import { useMemo } from "react";
@@ -6,10 +6,11 @@ import { useMemo } from "react";
 /**
  * 获取收件箱消息全量数据
  */
-export function useGetInboxMessagePageQuery() {
+export function useGetInboxMessagePageQuery(enabled = true) {
   return useQuery({
     queryKey: ["getInboxMessagePage"],
     queryFn: () => tuanchat.messageDirectController.getInboxMessages("ANY_STRING"),
+    enabled,
     staleTime: 300000
   });
 }

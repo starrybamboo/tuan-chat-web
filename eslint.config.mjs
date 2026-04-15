@@ -22,6 +22,7 @@ export default antfu(
     ignores: [
       "public/**",
       "api/**",
+      "packages/tuanchat-openapi-client/**",
       ".github/**",
       "**/*.md",
       "eslint-report.json",

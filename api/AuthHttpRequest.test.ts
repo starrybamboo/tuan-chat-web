@@ -1,9 +1,9 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import type { ApiRequestOptions } from "./core/ApiRequestOptions";
-import { ApiError } from "./core/ApiError";
-import { CancelablePromise } from "./core/CancelablePromise";
-import type { OpenAPIConfig } from "./core/OpenAPI";
+import type { ApiRequestOptions } from "@tuanchat/openapi-client/core/ApiRequestOptions";
+import { ApiError } from "@tuanchat/openapi-client/core/ApiError";
+import { CancelablePromise } from "@tuanchat/openapi-client/core/CancelablePromise";
+import type { OpenAPIConfig } from "@tuanchat/openapi-client/core/OpenAPI";
 
 const {
   requestMock,
@@ -15,7 +15,7 @@ const {
   handleUnauthorizedMock: vi.fn(),
 }));
 
-vi.mock("./core/request", () => ({
+vi.mock("@tuanchat/openapi-client/core/request", () => ({
   request: requestMock,
 }));
 
@@ -122,3 +122,4 @@ describe("AuthHttpRequest", () => {
     expect(handleUnauthorizedMock).not.toHaveBeenCalled();
   });
 });
+

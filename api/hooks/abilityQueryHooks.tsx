@@ -1,10 +1,10 @@
-﻿import {useMutation, useQuery, useQueryClient, useQueries} from "@tanstack/react-query";
-import type {AbilityUpdateRequest} from "../models/AbilityUpdateRequest";
+import {useMutation, useQuery, useQueryClient, useQueries} from "@tanstack/react-query";
+import type {AbilityUpdateRequest} from "@tuanchat/openapi-client/models/AbilityUpdateRequest";
 import {tuanchat} from "../instance";
-import type {AbilityFieldUpdateRequest} from "../models/AbilityFieldUpdateRequest";
-import type {AbilitySetRequest} from "../models/AbilitySetRequest";
-import type {AbilityFieldUpdateRequest2} from "../models/AbilityFieldUpdateRequest2";
-import type {AbilityUpdateRequest2} from "../models/AbilityUpdateRequest2";
+import type {AbilityFieldUpdateRequest} from "@tuanchat/openapi-client/models/AbilityFieldUpdateRequest";
+import type {AbilitySetRequest} from "@tuanchat/openapi-client/models/AbilitySetRequest";
+import type {AbilityFieldUpdateRequest2} from "@tuanchat/openapi-client/models/AbilityFieldUpdateRequest2";
+import type {AbilityUpdateRequest2} from "@tuanchat/openapi-client/models/AbilityUpdateRequest2";
 import { relayAiGatewayText } from "../../app/utils/aiRelay";
 
 type JsonObject = Record<string, unknown>;
@@ -749,4 +749,5 @@ export function useGenerateRoleByRuleMutation() {
         }
     })
 }
+
 

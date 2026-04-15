@@ -13,6 +13,7 @@ interface MaterialPackageEditorProps {
   dragPackageId?: number;
   selectedNodeKey?: string | null;
   sidebarActionScope?: MaterialEditorActionScope;
+  showStructureSidebar?: boolean;
   title: string;
   subtitle?: string;
   initialDraft: MaterialPackageDraft;
@@ -37,7 +38,7 @@ function normalizeDraft(draft: MaterialPackageDraft): MaterialPackageDraft {
     name: draft.name ?? "",
     description: draft.description ?? "",
     coverUrl: draft.coverUrl ?? "",
-    isPublic: draft.isPublic ?? true,
+    isPublic: draft.isPublic ?? false,
     content: ensureMaterialPackageContent(draft.content ?? createEmptyMaterialPackageContent()),
   };
 }
@@ -63,6 +64,7 @@ export default function MaterialPackageEditor({
   dragPackageId,
   selectedNodeKey,
   sidebarActionScope,
+  showStructureSidebar = true,
   title: _title,
   subtitle: _subtitle,
   initialDraft,
@@ -279,16 +281,6 @@ export default function MaterialPackageEditor({
             </button>
           )}
 
-          {!readOnly && onDelete && (
-            <button
-              type="button"
-              className="inline-flex min-h-10 w-full items-center justify-center rounded-md border border-base-300 bg-base-100 px-4 py-2.5 text-sm font-medium text-base-content transition hover:border-error/30 hover:bg-error/10 hover:text-error disabled:opacity-60 sm:w-auto"
-              onClick={() => void onDelete()}
-              disabled={deletePending || savePending}
-            >
-              {deletePending ? "删除中..." : deleteLabel}
-            </button>
-          )}
           {!readOnly && onSave && !autoSaveEnabled && (
             <button
               type="button"
@@ -307,10 +299,14 @@ export default function MaterialPackageEditor({
         dragPackageId={dragPackageId}
         requestedSelectedNodeKey={selectedNodeKey}
         sidebarActionScope={sidebarActionScope}
+        showStructureSidebar={showStructureSidebar}
         draft={draft}
         readOnly={readOnly}
         showPublicToggle={showPublicToggle}
         isCoverUploading={isCoverUploading}
+        deleteLabel={deleteLabel}
+        deletePending={deletePending || savePending}
+        onDelete={onDelete}
         onUpdateDraft={handleUpdateDraft}
         onCoverUpload={(file) => { void handleCoverUpload(file); }}
       />

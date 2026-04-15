@@ -1,4 +1,4 @@
-import type { ChatMessageResponse, ImageMessage, Message } from "../../../../../api";
+import type { ChatMessageResponse, Message } from "../../../../../api";
 import { useQueryClient } from "@tanstack/react-query";
 import { use, useCallback, useEffect, useMemo, useRef } from "react";
 import toast from "react-hot-toast";
@@ -9,6 +9,10 @@ import { useRoomUiStore } from "@/components/chat/stores/roomUiStore";
 import { useSideDrawerStore } from "@/components/chat/stores/sideDrawerStore";
 import { copyDocToSpaceDoc, copyDocToSpaceUserDoc } from "@/components/chat/utils/docCopy";
 import { useGlobalContext } from "@/components/globalContextProvider";
+import {
+  isImageMessageMarkedAsBackground,
+  isSoundMessageMarkedAsBgm,
+} from "@/components/chat/room/contextMenu/messageMediaQuickActions";
 import { buildChatMessageRequestFromDraft } from "@/types/messageDraft";
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
 import { useSendMessageMutation } from "../../../../../api/hooks/chatQueryHooks";
@@ -25,7 +29,8 @@ interface ContextMenuProps {
   onReply: (message: Message) => void;
   onMoveMessages: (targetIndex: number, messageIds: number[]) => void;
   onEditMessage: (messageId: number) => void;
-  onAddEmoji: (imgMessage: ImageMessage) => void;
+  onToggleBackground: (messageId: number) => void;
+  onToggleBgm: (messageId: number) => void;
   onOpenAnnotations: (messageId: number) => void;
   onInsertAfter: (messageId: number) => void;
   onToggleNarrator?: (messageId: number) => void;
@@ -43,7 +48,8 @@ export default function ChatFrameContextMenu({
   onReply,
   onMoveMessages,
   onEditMessage,
-  onAddEmoji,
+  onToggleBackground,
+  onToggleBgm,
   onOpenAnnotations,
   onInsertAfter,
   onOpenThread,
@@ -87,6 +93,18 @@ export default function ChatFrameContextMenu({
     ? historyMessages.find(message => message.message.messageId === contextMenuMessageId)
     : undefined;
   const canEditMessage = !!message && (message.message.userId === globalContext.userId || spaceContext.isSpaceOwner);
+  const canToggleBackground = canEditMessage
+    && !!message?.message.extra?.imageMessage
+    && message.message.messageType === MESSAGE_TYPE.IMG;
+  const canToggleBgm = canEditMessage
+    && !!message?.message.extra?.soundMessage
+    && message.message.messageType === MESSAGE_TYPE.SOUND;
+  const isBackgroundMessage = canToggleBackground && message
+    ? isImageMessageMarkedAsBackground(message.message)
+    : false;
+  const isBgmMessage = canToggleBgm && message
+    ? isSoundMessageMarkedAsBgm(message.message)
+    : false;
 
   const docCard = useMemo(() => {
     const extraAny = (message?.message as any)?.extra ?? null;
@@ -469,6 +487,32 @@ export default function ChatFrameContextMenu({
             </a>
           </li>
         )}
+        {canToggleBackground && (
+          <li>
+            <a
+              onClick={(e) => {
+                e.preventDefault();
+                onToggleBackground(contextMenu.messageId);
+                onClose();
+              }}
+            >
+              {isBackgroundMessage ? "取消背景" : "设置为背景"}
+            </a>
+          </li>
+        )}
+        {canToggleBgm && (
+          <li>
+            <a
+              onClick={(e) => {
+                e.preventDefault();
+                onToggleBgm(contextMenu.messageId);
+                onClose();
+              }}
+            >
+              {isBgmMessage ? "取消BGM" : "设置为BGM"}
+            </a>
+          </li>
+        )}
         {canCopyDoc && (
           <li>
             <a
@@ -547,25 +591,7 @@ export default function ChatFrameContextMenu({
               </li>
             );
           }
-          // 图片消息
-          if (message.message.messageType === 2) {
-            return (
-              <>
-                <li>
-                  <a
-                    onClick={(e) => {
-                      e.preventDefault();
-                      const imgMessage = message?.message.extra?.imageMessage;
-                      imgMessage && onAddEmoji(imgMessage);
-                      onClose();
-                    }}
-                  >
-                    添加到表情
-                  </a>
-                </li>
-              </>
-            );
-          }
+          return null;
         })()}
       </ul>
     </div>

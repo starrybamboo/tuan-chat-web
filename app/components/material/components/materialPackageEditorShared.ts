@@ -1,4 +1,4 @@
-import type { MaterialPackageContent } from "../../../../api/models/MaterialPackageContent";
+import type { MaterialPackageContent } from "@tuanchat/openapi-client/models/MaterialPackageContent";
 
 export type MaterialPackageDraft = {
   name: string;
@@ -14,3 +14,4 @@ export function createEmptyMaterialPackageContent(): MaterialPackageContent {
     root: [],
   };
 }
+

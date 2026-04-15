@@ -1,6 +1,6 @@
 import {useMutation, useQuery, useQueryClient} from "@tanstack/react-query";
 import {tuanchat} from "../instance";
-import type { PageBaseRequest } from '../models/PageBaseRequest';
+import type { PageBaseRequest } from '@tuanchat/openapi-client/models/PageBaseRequest';
 
 /**
  * 判断是否关注了某个用户
@@ -80,3 +80,4 @@ export function useGetUserFollowersQuery(targetUserId: number, requestBody: Page
  * @param targetUserId 目标用户ID
  * @param requestBody 分页请求参数
  */
+

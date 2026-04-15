@@ -1,4 +1,4 @@
-import type { MessageExtra } from "../../api/models/MessageExtra";
+import type { MessageExtra } from "@tuanchat/openapi-client/models/MessageExtra";
 
 type MessageExtraKey = keyof MessageExtra;
 type NestedMessageExtra<K extends MessageExtraKey> = NonNullable<MessageExtra[K]>;
@@ -69,3 +69,4 @@ export function getThreadRootExtra(extra: unknown) {
 export function getStateEventExtra(extra: unknown) {
   return getNestedMessageExtra(extra, "stateEvent");
 }
+

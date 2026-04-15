@@ -1,34 +1,34 @@
-﻿import { useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
 import { tuanchat } from "../instance";
 import { QueryClient } from "@tanstack/react-query";
-import type { CancelablePromise } from "../core/CancelablePromise";
-import type { ApiResultListSpaceMember } from "../models/ApiResultListSpaceMember";
-import type { RoomAddRequest } from "../models/RoomAddRequest";
-import type { SpaceMemberDeleteRequest } from "../models/SpaceMemberDeleteRequest";
-import type { SpaceMemberAddRequest } from "../models/SpaceMemberAddRequest";
-import type { SpaceAddRequest } from "../models/SpaceAddRequest";
-import type { SpaceOwnerTransferRequest } from "../models/SpaceOwnerTransferRequest";
-import type { PlayerGrantRequest } from "../models/PlayerGrantRequest";
-import type { SpaceMemberTypeUpdateRequest } from "../models/SpaceMemberTypeUpdateRequest";
-import type { ChatMessagePageRequest } from "../models/ChatMessagePageRequest";
-import type { ChatMessageRequest } from "../models/ChatMessageRequest";
-import type { RoomRoleDeleteRequest } from "../models/RoomRoleDeleteRequest";
-import type { RoomRoleAddRequest } from "../models/RoomRoleAddRequest";
-import type { Space } from "../models/Space";
-import type { RoomMemberAddRequest } from "../models/RoomMemberAddRequest";
-import type { RoomMemberDeleteRequest } from "../models/RoomMemberDeleteRequest";
-import type { RoomUpdateRequest } from "../models/RoomUpdateRequest";
-import type { SpaceUpdateRequest } from "../models/SpaceUpdateRequest";
-import type { Message } from "../models/Message";
-import type { RoomExtraRequest } from "../models/RoomExtraRequest";
-import type { RoomExtraSetRequest } from "../models/RoomExtraSetRequest";
-import type { SpaceExtraSetRequest } from "../models/SpaceExtraSetRequest";
-import type { SpaceRole } from "../models/SpaceRole";
-import type { UserRole } from "../models/UserRole";
-import type { SpaceArchiveRequest } from "api/models/SpaceArchiveRequest";
-import type { LeaderTransferRequest } from "api/models/LeaderTransferRequest";
-import type {HistoryMessageRequest} from "../models/HistoryMessageRequest";
-import type {MessageBySyncIdRequest} from "../models/MessageBySyncIdRequest";
+import type { CancelablePromise } from "@tuanchat/openapi-client/core/CancelablePromise";
+import type { ApiResultListSpaceMember } from "@tuanchat/openapi-client/models/ApiResultListSpaceMember";
+import type { RoomAddRequest } from "@tuanchat/openapi-client/models/RoomAddRequest";
+import type { SpaceMemberDeleteRequest } from "@tuanchat/openapi-client/models/SpaceMemberDeleteRequest";
+import type { SpaceMemberAddRequest } from "@tuanchat/openapi-client/models/SpaceMemberAddRequest";
+import type { SpaceAddRequest } from "@tuanchat/openapi-client/models/SpaceAddRequest";
+import type { SpaceOwnerTransferRequest } from "@tuanchat/openapi-client/models/SpaceOwnerTransferRequest";
+import type { PlayerGrantRequest } from "@tuanchat/openapi-client/models/PlayerGrantRequest";
+import type { SpaceMemberTypeUpdateRequest } from "@tuanchat/openapi-client/models/SpaceMemberTypeUpdateRequest";
+import type { ChatMessagePageRequest } from "@tuanchat/openapi-client/models/ChatMessagePageRequest";
+import type { ChatMessageRequest } from "@tuanchat/openapi-client/models/ChatMessageRequest";
+import type { RoomRoleDeleteRequest } from "@tuanchat/openapi-client/models/RoomRoleDeleteRequest";
+import type { RoomRoleAddRequest } from "@tuanchat/openapi-client/models/RoomRoleAddRequest";
+import type { Space } from "@tuanchat/openapi-client/models/Space";
+import type { RoomMemberAddRequest } from "@tuanchat/openapi-client/models/RoomMemberAddRequest";
+import type { RoomMemberDeleteRequest } from "@tuanchat/openapi-client/models/RoomMemberDeleteRequest";
+import type { RoomUpdateRequest } from "@tuanchat/openapi-client/models/RoomUpdateRequest";
+import type { SpaceUpdateRequest } from "@tuanchat/openapi-client/models/SpaceUpdateRequest";
+import type { Message } from "@tuanchat/openapi-client/models/Message";
+import type { RoomExtraRequest } from "@tuanchat/openapi-client/models/RoomExtraRequest";
+import type { RoomExtraSetRequest } from "@tuanchat/openapi-client/models/RoomExtraSetRequest";
+import type { SpaceExtraSetRequest } from "@tuanchat/openapi-client/models/SpaceExtraSetRequest";
+import type { SpaceRole } from "@tuanchat/openapi-client/models/SpaceRole";
+import type { UserRole } from "@tuanchat/openapi-client/models/UserRole";
+import type { SpaceArchiveRequest } from "@tuanchat/openapi-client/models/SpaceArchiveRequest";
+import type { LeaderTransferRequest } from "@tuanchat/openapi-client/models/LeaderTransferRequest";
+import type {HistoryMessageRequest} from "@tuanchat/openapi-client/models/HistoryMessageRequest";
+import type {MessageBySyncIdRequest} from "@tuanchat/openapi-client/models/MessageBySyncIdRequest";
 import { transferLeaderWithFallback } from "./transferLeaderRequest";
 import { updateSpaceMemberTypeWithFallback } from "./updateSpaceMemberTypeRequest";
 import { seedUserRoleListQueryCache } from "../roleQueryCache";
@@ -892,5 +892,6 @@ function useDeleteRoomExtraMutation() {
         }
     });
 }
+
 
 

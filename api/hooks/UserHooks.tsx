@@ -1,7 +1,7 @@
 import type {
   ApiResultUserInfoResponse,
-} from "../models/ApiResultUserInfoResponse";
-import type { UserUpdateInfoRequest } from "../models/UserUpdateInfoRequest";
+} from "@tuanchat/openapi-client/models/ApiResultUserInfoResponse";
+import type { UserUpdateInfoRequest } from "@tuanchat/openapi-client/models/UserUpdateInfoRequest";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { tuanchat } from "../instance";
 
@@ -85,3 +85,4 @@ export function useUpdateUserInfoMutation() {
     },
   });
 }
+

@@ -1,7 +1,7 @@
-import type { MessageExtra as ApiMessageExtra } from "../../api/models/MessageExtra";
-import type { StateEventExtra as ApiStateEventExtra } from "../../api/models/StateEventExtra";
-import type { StateEventScope as ApiStateEventScope } from "../../api/models/StateEventScope";
-import type { StateEventSource as ApiStateEventSource } from "../../api/models/StateEventSource";
+import type { MessageExtra as ApiMessageExtra } from "@tuanchat/openapi-client/models/MessageExtra";
+import type { StateEventExtra as ApiStateEventExtra } from "@tuanchat/openapi-client/models/StateEventExtra";
+import type { StateEventScope as ApiStateEventScope } from "@tuanchat/openapi-client/models/StateEventScope";
+import type { StateEventSource as ApiStateEventSource } from "@tuanchat/openapi-client/models/StateEventSource";
 
 export const STATE_EVENT_PARSER_VERSION = "state-event-v1";
 
@@ -420,3 +420,4 @@ function formatNormalizedStateEventPreviewText(normalized: StateEventExtra | und
 export function formatStateEventPreviewText(extra: unknown, fallbackContent = ""): string {
   return formatNormalizedStateEventPreviewText(getNormalizedStateEventExtra(extra), fallbackContent);
 }
+

@@ -10,6 +10,7 @@ type UseChatUnreadIndicatorsParams = {
   isPrivateChatMode: boolean;
   activeRoomId: number | null;
   urlRoomId?: string;
+  enablePrivateEntryBadge?: boolean;
 };
 
 type UseChatUnreadIndicatorsResult = {
@@ -23,11 +24,13 @@ export default function useChatUnreadIndicators({
   isPrivateChatMode,
   activeRoomId,
   urlRoomId,
+  enablePrivateEntryBadge = true,
 }: UseChatUnreadIndicatorsParams): UseChatUnreadIndicatorsResult {
   const privateMessageList = usePrivateMessageList({
     globalContext,
     userId,
     includeFriendList: false,
+    enabled: enablePrivateEntryBadge,
   });
   const { unreadMessageNumbers: privateUnreadMessageNumbers } = useUnreadCount({
     realTimeContacts: privateMessageList.realTimeContacts,
@@ -45,7 +48,7 @@ export default function useChatUnreadIndicators({
     }, 0);
   }, [activeRoomId, isPrivateChatMode, privateMessageList.realTimeContacts, privateUnreadMessageNumbers]);
 
-  const friendRequestPageQuery = useGetFriendRequestPageQuery({ pageNo: 1, pageSize: 50 });
+  const friendRequestPageQuery = useGetFriendRequestPageQuery({ pageNo: 1, pageSize: 50 }, enablePrivateEntryBadge);
   const pendingFriendRequestCount = useMemo(() => {
     const list = friendRequestPageQuery.data?.data?.list ?? [];
     if (!Array.isArray(list))

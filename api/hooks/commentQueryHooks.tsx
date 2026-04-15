@@ -1,13 +1,13 @@
-import type { ApiResultListCommentVO } from "../models/ApiResultListCommentVO";
-import type { ApiResultListCommentTimelineVO } from "../models/ApiResultListCommentTimelineVO";
+import type { ApiResultListCommentVO } from "@tuanchat/openapi-client/models/ApiResultListCommentVO";
+import type { ApiResultListCommentTimelineVO } from "@tuanchat/openapi-client/models/ApiResultListCommentTimelineVO";
 import type { QueryClient } from "@tanstack/react-query";
 import {useInfiniteQuery, useMutation, useQuery, useQueryClient} from "@tanstack/react-query";
 import type {LikeRecordRequest} from "./likeQueryHooks";
 import {tuanchat} from "../instance";
-import type {CommentPageRequest} from "../models/CommentPageRequest";
-import type {CommentChildPageRequest} from "../models/CommentChildPageRequest";
-import type {CommentAddRequest} from "../models/CommentAddRequest";
-import type {CommentTimelinePageRequest} from "../models/CommentTimelinePageRequest";
+import type {CommentPageRequest} from "@tuanchat/openapi-client/models/CommentPageRequest";
+import type {CommentChildPageRequest} from "@tuanchat/openapi-client/models/CommentChildPageRequest";
+import type {CommentAddRequest} from "@tuanchat/openapi-client/models/CommentAddRequest";
+import type {CommentTimelinePageRequest} from "@tuanchat/openapi-client/models/CommentTimelinePageRequest";
 import { FEEDBACK_ISSUE_TARGET_TYPE } from "@/components/feedback/feedbackTypes";
 
 const COMMENT_PAGE_QUERY_KEY = ["pageComments"] as const;
@@ -291,3 +291,4 @@ export function useDeleteCommentMutation() {
         void invalidateCommentTargetQueries(queryClient, variables);
     }
 })}
+

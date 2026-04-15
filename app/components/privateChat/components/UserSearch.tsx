@@ -1,4 +1,4 @@
-import type { FriendResponse } from "api/models/FriendResponse";
+import type { FriendResponse } from "@tuanchat/openapi-client/models/FriendResponse";
 import {
   useAcceptFriendRequestMutation,
   useCheckFriendQuery,
@@ -370,3 +370,4 @@ export default function UserSearch() {
     </>
   );
 }
+

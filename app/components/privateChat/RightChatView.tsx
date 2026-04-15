@@ -1,4 +1,5 @@
-import { useGetInboxMessageWithUserQuery } from "api/hooks/MessageDirectQueryHooks";
+import { useEffect, useMemo } from "react";
+import { useGetInboxMessageWithUserQuery, useUpdateReadPositionMutation } from "api/hooks/MessageDirectQueryHooks";
 import { useParams } from "react-router";
 import { useGlobalContext } from "@/components/globalContextProvider";
 import ContextMenu from "./components/ContextMenu";
@@ -7,6 +8,8 @@ import MessageWindow from "./components/MessageWindow";
 import TopInfo from "./components/TopInfo";
 import { useContextMenu } from "./hooks/useContextMenu";
 import { usePrivateMessageReceiver } from "./hooks/usePrivateMessageRecever";
+import { usePrivateUnreadStateStore } from "./privateUnreadStateStore";
+import { getLatestIncomingSync } from "./privateUnreadUtils";
 
 export default function RightChatView({ setIsOpenLeftDrawer }: { setIsOpenLeftDrawer: (isOpen: boolean) => void }) {
   const globalContext = useGlobalContext();
@@ -17,6 +20,32 @@ export default function RightChatView({ setIsOpenLeftDrawer }: { setIsOpenLeftDr
   // 历史消息hook（全局）
   const { historyMessages, refetch } = useGetInboxMessageWithUserQuery(userId, currentContactUserId || -1);
   const { currentContactUserInfo, allMessages } = usePrivateMessageReceiver(userId, currentContactUserId, historyMessages);
+  const latestIncomingSync = useMemo(() => {
+    if (!currentContactUserId) {
+      return 0;
+    }
+    return getLatestIncomingSync(allMessages, currentContactUserId);
+  }, [allMessages, currentContactUserId]);
+  const optimisticReadSync = usePrivateUnreadStateStore(state => {
+    if (!currentContactUserId) {
+      return 0;
+    }
+    return state.optimisticReadSyncMap[currentContactUserId] ?? 0;
+  });
+  const markContactAsRead = usePrivateUnreadStateStore(state => state.markContactAsRead);
+  const updateReadPositionMutation = useUpdateReadPositionMutation();
+
+  useEffect(() => {
+    if (!currentContactUserId || latestIncomingSync <= 0) {
+      return;
+    }
+    if (latestIncomingSync <= optimisticReadSync) {
+      return;
+    }
+
+    markContactAsRead(currentContactUserId, latestIncomingSync);
+    updateReadPositionMutation.mutate({ targetUserId: currentContactUserId });
+  }, [currentContactUserId, latestIncomingSync, markContactAsRead, optimisticReadSync, updateReadPositionMutation]);
 
   // 右键菜单hook（全局）
   const { contextMenu, setContextMenu, handleContextMenu, handleRevokeMessage } = useContextMenu({ refetch });

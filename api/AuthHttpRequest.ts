@@ -1,12 +1,12 @@
 import { handleUnauthorized } from "@/utils/auth/unauthorized";
 
 import { recoverAuthTokenFromSession } from "./authRecovery";
-import type { ApiRequestOptions } from "./core/ApiRequestOptions";
-import { ApiError } from "./core/ApiError";
-import { BaseHttpRequest } from "./core/BaseHttpRequest";
-import { CancelablePromise } from "./core/CancelablePromise";
-import type { OpenAPIConfig } from "./core/OpenAPI";
-import { request as baseRequest } from "./core/request";
+import type { ApiRequestOptions } from "@tuanchat/openapi-client/core/ApiRequestOptions";
+import { ApiError } from "@tuanchat/openapi-client/core/ApiError";
+import { BaseHttpRequest } from "@tuanchat/openapi-client/core/BaseHttpRequest";
+import { CancelablePromise } from "@tuanchat/openapi-client/core/CancelablePromise";
+import type { OpenAPIConfig } from "@tuanchat/openapi-client/core/OpenAPI";
+import { request as baseRequest } from "@tuanchat/openapi-client/core/request";
 
 function isUnauthorizedError(error: unknown): error is ApiError {
   return error instanceof ApiError && error.status === 401;
@@ -61,3 +61,4 @@ export class AuthHttpRequest extends BaseHttpRequest {
     });
   }
 }
+

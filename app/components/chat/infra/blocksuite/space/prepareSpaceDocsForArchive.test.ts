@@ -114,7 +114,12 @@ describe("prepareSpaceDocsForArchive", () => {
     expect(mockedSetRemoteSnapshot).toHaveBeenCalledTimes(1);
 
     const payload = mockedSetRemoteSnapshot.mock.calls[0][0];
-    expect(payload.snapshot.snapshotServerTime).toBe(7);
-    expect(readTextFromUpdate(payload.snapshot.updateB64)).toBe("AB");
+    const { snapshot } = payload;
+    expect(snapshot.v).toBe(2);
+    if (snapshot.v !== 2) {
+      throw new Error("expected v2 snapshot payload");
+    }
+    expect(snapshot.snapshotServerTime).toBe(7);
+    expect(readTextFromUpdate(snapshot.updateB64)).toBe("AB");
   });
 });

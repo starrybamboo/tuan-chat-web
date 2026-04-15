@@ -1,4 +1,4 @@
-﻿# Chat 模块技术文档
+# Chat 模块技术文档
 
 ## 模块概述
 
@@ -915,12 +915,12 @@ function MyComponent() {
 
 ### realtimeRenderer.ts
 
-**作用**：将聊天消息实时转换为 WebGAL 剧本命令并渲染。
+**作用**：将聊天消息实时转换为 WebGAL 场景脚本并渲染。
 
 **核心流程**：
 
 ```
-接收聊天消息 → 解析消息类型和内容 → 转换为 WebGAL 命令
+接收聊天消息 → 解析消息类型和内容 → 转换为 WebGAL 场景脚本
                                       ↓
                               添加到 WebGAL 场景文件
                                       ↓
@@ -984,7 +984,7 @@ class RealtimeRenderer {
     targetRoomId: number,
     syncToFile: boolean = true
   ): Promise<void> {
-    // 根据消息类型生成 WebGAL 命令
+    // 根据消息类型生成 WebGAL 场景脚本
     const command = this.messageToWebGALCommand(msg);
     // 添加到场景文件
     await this.appendLine(targetRoomId, command, syncToFile);

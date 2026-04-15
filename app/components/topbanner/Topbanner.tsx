@@ -1,6 +1,6 @@
 import { ChatsIcon, CheckCircleIcon, GearSixIcon, IdentificationCardIcon, PaintBrushBroadIcon, SignOutIcon, UserIcon } from "@phosphor-icons/react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router";
 import WebgalStarter from "@/components/chat/shared/webgal/webgalStarter";
 import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
@@ -12,8 +12,9 @@ import { DiscordIcon, QQIcon, WebgalIcon } from "@/icons";
 import { checkAuthStatus, logoutUser } from "@/utils/auth/authapi";
 import { isElectronEnv } from "@/utils/isElectronEnv";
 import { useGetUserInfoQuery } from "../../../api/hooks/UserHooks";
-import LoginButton from "../auth/LoginButton";
 import ThemeSwitch from "../themeSwitch";
+
+const LazyLoginButton = lazy(() => import("../auth/LoginButton"));
 
 export default function Topbar() {
   const switchRef = useRef<HTMLDivElement | null>(null);
@@ -121,7 +122,7 @@ export default function Topbar() {
   };
 
   const navItems = [
-    { to: "/chat/private", label: "聊天", icon: ChatsIcon },
+    { to: "/chat/discover/material", label: "聊天", icon: ChatsIcon },
     { to: "/role", label: "角色", icon: IdentificationCardIcon },
     ...(canUseAiImage ? [{ to: "/ai-image", label: "AI生图", icon: PaintBrushBroadIcon }] : []),
     ...(canUseGeminiLab ? [{ to: "/gemini-lab", label: "Gemini实验", icon: GearSixIcon }] : []),
@@ -134,7 +135,7 @@ export default function Topbar() {
         {/* 左侧导航区域 */}
         <div className="navbar-start gap-4">
           <div className="hidden md:flex">
-            <Link to="/chat/private" className="flex items-center">
+            <Link to="/chat/discover/material" className="flex items-center">
               <img
                 src="/favicon.ico"
                 alt="Logo"
@@ -317,7 +318,9 @@ export default function Topbar() {
                   </div>
                 )
               : (
-                  <LoginButton autoOpen />
+                  <Suspense fallback={<button type="button" className="btn btn-primary" disabled>登录/注册</button>}>
+                    <LazyLoginButton autoOpen />
+                  </Suspense>
                 )}
           </div>
         )}

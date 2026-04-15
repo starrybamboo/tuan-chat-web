@@ -1,11 +1,11 @@
-﻿import { useInfiniteQuery, useMutation, useQueries, useQuery, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
+import { useInfiniteQuery, useMutation, useQueries, useQuery, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { useEffect } from "react";
-import type {RuleCloneRequest} from "../models/RuleCloneRequest";
-import type {RuleCreateRequest} from "../models/RuleCreateRequest";
-import type {RulePageRequest} from "../models/RulePageRequest";
-import type {RuleUpdateRequest} from "../models/RuleUpdateRequest";
-import type {Rule} from "../models/Rule";
-import type { PageBaseRespRuleResponse } from "../models/PageBaseRespRuleResponse";
+import type {RuleCloneRequest} from "@tuanchat/openapi-client/models/RuleCloneRequest";
+import type {RuleCreateRequest} from "@tuanchat/openapi-client/models/RuleCreateRequest";
+import type {RulePageRequest} from "@tuanchat/openapi-client/models/RulePageRequest";
+import type {RuleUpdateRequest} from "@tuanchat/openapi-client/models/RuleUpdateRequest";
+import type {Rule} from "@tuanchat/openapi-client/models/Rule";
+import type { PageBaseRespRuleResponse } from "@tuanchat/openapi-client/models/PageBaseRespRuleResponse";
 
 import {tuanchat} from "../instance";
 
@@ -283,3 +283,4 @@ export function useAllRuleListQuery(pageSize: number = 100, enabled: boolean = t
     enabled,
   });
 }
+

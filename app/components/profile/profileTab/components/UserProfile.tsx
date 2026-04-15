@@ -1,4 +1,4 @@
-import type { UserProfileInfoResponse } from "../../../../../api/models/UserProfileInfoResponse";
+import type { UserProfileInfoResponse } from "@tuanchat/openapi-client/models/UserProfileInfoResponse";
 import React, { useState } from "react";
 
 interface ProfileEditingState {
@@ -212,3 +212,4 @@ export const UserProfile: React.FC<UserProfileProps> = ({
     </div>
   );
 };
+

@@ -38,6 +38,29 @@ describe("blocksuiteFrameProtocol", () => {
     })).toBeNull();
   });
 
+  it("会保留 mention 目标类型与目标 id", () => {
+    expect(parseBlocksuiteFrameMessage({
+      tc: BLOCKSUITE_FRAME_MESSAGE_NAMESPACE,
+      type: "mention-hover",
+      state: "enter",
+      targetKind: "role",
+      targetId: "101",
+      anchorRect: {
+        left: 1,
+        top: 2,
+        right: 3,
+        bottom: 4,
+        width: 5,
+        height: 6,
+      },
+    })).toEqual(expect.objectContaining({
+      type: "mention-hover",
+      state: "enter",
+      targetKind: "role",
+      targetId: "101",
+    }));
+  });
+
   it("会校验 origin、source 和 instanceId", () => {
     const expectedSource = {} as MessageEventSource;
     const event = {

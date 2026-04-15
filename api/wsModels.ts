@@ -1,4 +1,4 @@
-﻿/**
+/**
  * ws相关消息的接口定义
  */
 // websocket-types.ts

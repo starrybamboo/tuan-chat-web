@@ -1,4 +1,4 @@
-import type { ResourceResponse } from "../../../../api/models/ResourceResponse";
+import type { ResourceResponse } from "@tuanchat/openapi-client/models/ResourceResponse";
 import AudioWavePlayer from "../utils/AudioWavePlayer";
 import MoreBetterImg from "../utils/MoreBetterImg";
 
@@ -128,3 +128,4 @@ export function CollectionResourceCard({
     </div>
   );
 }
+

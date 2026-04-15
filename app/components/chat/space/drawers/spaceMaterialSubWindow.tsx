@@ -1,5 +1,5 @@
-import type { MaterialPackageContent } from "../../../../../api/models/MaterialPackageContent";
-import type { SpaceMaterialPackageResponse } from "../../../../../api/models/SpaceMaterialPackageResponse";
+import type { MaterialPackageContent } from "@tuanchat/openapi-client/models/MaterialPackageContent";
+import type { SpaceMaterialPackageResponse } from "@tuanchat/openapi-client/models/SpaceMaterialPackageResponse";
 
 import { useMemo } from "react";
 import toast from "react-hot-toast";
@@ -25,7 +25,7 @@ function buildDraft(pkg?: SpaceMaterialPackageResponse) {
     name: pkg?.name ?? "",
     description: pkg?.description ?? "",
     coverUrl: pkg?.coverUrl ?? "",
-    isPublic: true,
+    isPublic: false,
     content: (pkg?.content ?? createEmptyMaterialPackageContent()) as MaterialPackageContent,
   };
 }
@@ -110,6 +110,7 @@ export default function SpaceMaterialSubWindow({
         valueKey={buildSpaceMaterialPackageEditorValueKey(selectedPackage, "sub-window")}
         dragPackageId={selectedPackage.spacePackageId}
         sidebarActionScope="subwindow"
+        showStructureSidebar={false}
         title="编辑局内素材包"
         subtitle={selectedPackage.sourcePackageId
           ? `来源局外素材包：${selectedPackage.sourcePackageId} · 当前空间维护的是独立副本`
@@ -125,3 +126,4 @@ export default function SpaceMaterialSubWindow({
     </MaterialPackageEditorInlinePage>
   );
 }
+

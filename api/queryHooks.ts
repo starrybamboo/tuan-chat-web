@@ -1,6 +1,6 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 
-import type { ApiResultListUserRole } from "./models/ApiResultListUserRole";
+import type { ApiResultListUserRole } from "@tuanchat/openapi-client/models/ApiResultListUserRole";
 import { tuanchat } from "./instance";
 import { seedUserRoleListQueryCache } from "./roleQueryCache";
 
@@ -21,3 +21,4 @@ export function useGetUserRolesQuery(userId: number) {
     enabled: userId > 0,
   });
 }
+

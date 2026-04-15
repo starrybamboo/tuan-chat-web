@@ -1,5 +1,6 @@
 import type { KeyboardEvent } from "react";
 import { vi } from "vitest";
+import { useChatComposerStore } from "@/components/chat/stores/chatComposerStore";
 
 const mocks = vi.hoisted(() => ({
   toastMock: vi.fn(),
@@ -48,6 +49,7 @@ function createKeyboardEvent(key: string, options?: { shiftKey?: boolean }) {
 describe("useChatInputHandlers", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    useChatComposerStore.getState().reset();
   });
 
   function createHook() {
@@ -104,5 +106,34 @@ describe("useChatInputHandlers", () => {
 
     expect(event.preventDefault).toHaveBeenCalledTimes(1);
     expect(handleMessageSubmit).toHaveBeenCalledTimes(1);
+  });
+
+  it("粘贴普通文件时会提示不支持且不会写入草稿", () => {
+    const { handlePasteFiles } = createHook();
+    const pdfFile = new File(["pdf"], "notes.pdf", { type: "application/pdf" });
+
+    handlePasteFiles([pdfFile]);
+
+    expect(useChatComposerStore.getState().fileAttachments).toEqual([]);
+    expect(useChatComposerStore.getState().imgFiles).toEqual([]);
+    expect(useChatComposerStore.getState().audioFile).toBeNull();
+    expect(mocks.toastErrorMock).toHaveBeenCalledWith("暂不支持发送文件");
+    expect(mocks.preheatChatMediaPreprocessMock).not.toHaveBeenCalled();
+  });
+
+  it("粘贴视频和普通文件时只保留视频附件", () => {
+    const { handlePasteFiles } = createHook();
+    const videoFile = new File(["video"], "clip.mp4", { type: "video/mp4" });
+    const pdfFile = new File(["pdf"], "notes.pdf", { type: "application/pdf" });
+
+    handlePasteFiles([videoFile, pdfFile]);
+
+    expect(useChatComposerStore.getState().fileAttachments).toEqual([videoFile]);
+    expect(mocks.toastErrorMock).toHaveBeenCalledWith("已忽略1个文件，当前仅支持图片、视频、音频");
+    expect(mocks.preheatChatMediaPreprocessMock).toHaveBeenCalledWith({
+      imageFiles: [],
+      videoFiles: [videoFile],
+      audioFiles: [],
+    });
   });
 });

@@ -1,6 +1,6 @@
-import type { CollectionList } from "../../../../api/models/CollectionList";
+import type { CollectionList } from "@tuanchat/openapi-client/models/CollectionList";
 
-import { ApiError } from "api/core/ApiError";
+import { ApiError } from "@tuanchat/openapi-client/core/ApiError";
 
 import { useState } from "react";
 
@@ -158,3 +158,4 @@ export function AddToCollectionModal({
     </div>
   );
 }
+

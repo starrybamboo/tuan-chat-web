@@ -1,8 +1,8 @@
-﻿import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import type { BatchMarkStatusRequest } from "../models/BatchMarkStatusRequest";
-import type { MarkCountRequest } from "../models/MarkCountRequest";
-import type { MarkRecordRequest } from "../models/MarkRecordRequest";
-import type { MarkTarget } from "../models/MarkTarget";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import type { BatchMarkStatusRequest } from "@tuanchat/openapi-client/models/BatchMarkStatusRequest";
+import type { MarkCountRequest } from "@tuanchat/openapi-client/models/MarkCountRequest";
+import type { MarkRecordRequest } from "@tuanchat/openapi-client/models/MarkRecordRequest";
+import type { MarkTarget } from "@tuanchat/openapi-client/models/MarkTarget";
 import { tuanchat } from "../instance";
 
 const LIKE_MARK_TYPE = "like";
@@ -123,3 +123,4 @@ function useBatchIsLikedQuery(requestBody: BatchLikeRecordRequest) {
     staleTime: 300000, // 5分钟缓存
   });
 }
+

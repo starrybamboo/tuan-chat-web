@@ -1,13 +1,18 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 
 import { useUpdateReadPositionMutation } from "api/hooks/MessageDirectQueryHooks";
 
 import type { MessageDirectType } from "../types/messageDirect";
+import { usePrivateUnreadStateStore } from "../privateUnreadStateStore";
+import { getLatestIncomingSync, getUnreadMessageCountForMessages } from "../privateUnreadUtils";
 
 export function useUnreadCount({ realTimeContacts, sortedRealTimeMessages, userId, urlRoomId, isInboxReady }: { realTimeContacts: number[]; sortedRealTimeMessages: [string, MessageDirectType[]][]; userId: number; urlRoomId: string | undefined; isInboxReady: boolean }) {
   const prevUrlRoomIdRef = useRef<string | undefined>(undefined);
+  const prevUserIdRef = useRef<number | undefined>(undefined);
   const stableUnreadRef = useRef<Record<number, number>>({});
-  const [optimisticReadSyncMap, setOptimisticReadSyncMap] = useState<Record<number, number>>({});
+  const optimisticReadSyncMap = usePrivateUnreadStateStore(state => state.optimisticReadSyncMap);
+  const markContactAsRead = usePrivateUnreadStateStore(state => state.markContactAsRead);
+  const resetOptimisticReadSync = usePrivateUnreadStateStore(state => state.reset);
 
   const getMessagesByContact = useCallback((contactId: number) => {
     return sortedRealTimeMessages.find(([id]) => Number(id) === contactId)?.[1] || [];
@@ -21,17 +26,8 @@ export function useUnreadCount({ realTimeContacts, sortedRealTimeMessages, userI
       return;
     }
 
-    setOptimisticReadSyncMap((prev) => {
-      const prevSync = prev[contactId] ?? 0;
-      if (latestIncomingSync <= prevSync) {
-        return prev;
-      }
-      return {
-        ...prev,
-        [contactId]: latestIncomingSync,
-      };
-    });
-  }, [getMessagesByContact]);
+    markContactAsRead(contactId, latestIncomingSync);
+  }, [getMessagesByContact, markContactAsRead]);
 
   const unreadMessageNumbers = useMemo(() => {
     // 历史数据未就绪时，沿用最近一次稳定结果，避免 readLine 未注入造成误判。
@@ -42,15 +38,16 @@ export function useUnreadCount({ realTimeContacts, sortedRealTimeMessages, userI
     const counts: Record<number, number> = {};
     for (const contactId of realTimeContacts) {
       const optimisticReadSync = optimisticReadSyncMap[contactId] ?? 0;
-      counts[contactId] = getUnreadMessageNumber(
-        sortedRealTimeMessages,
+      const messages = getMessagesByContact(contactId);
+      counts[contactId] = getUnreadMessageCountForMessages(
+        messages,
         contactId,
         userId,
         optimisticReadSync,
       );
     }
     return counts;
-  }, [realTimeContacts, sortedRealTimeMessages, userId, isInboxReady, optimisticReadSyncMap]);
+  }, [realTimeContacts, getMessagesByContact, userId, isInboxReady, optimisticReadSyncMap]);
 
   useEffect(() => {
     if (userId > 0 && isInboxReady) {
@@ -59,11 +56,19 @@ export function useUnreadCount({ realTimeContacts, sortedRealTimeMessages, userI
   }, [unreadMessageNumbers, userId, isInboxReady]);
 
   useEffect(() => {
+    if (prevUserIdRef.current != null && prevUserIdRef.current !== userId) {
+      stableUnreadRef.current = {};
+      resetOptimisticReadSync();
+    }
+    prevUserIdRef.current = userId;
+  }, [resetOptimisticReadSync, userId]);
+
+  useEffect(() => {
     if (userId <= 0) {
       stableUnreadRef.current = {};
-      setOptimisticReadSyncMap({});
+      resetOptimisticReadSync();
     }
-  }, [userId]);
+  }, [resetOptimisticReadSync, userId]);
 
   // 更新未读消息 Readline 位置
   const updateReadPositionMutation = useUpdateReadPositionMutation();
@@ -93,54 +98,6 @@ export function useUnreadCount({ realTimeContacts, sortedRealTimeMessages, userI
   }, [urlRoomId, updateReadlinePosition]);
 
   return { unreadMessageNumbers, updateReadlinePosition };
-}
-
-function getUnreadMessageNumber(
-  sortedRealTimeMessages: [string, MessageDirectType[]][],
-  contactId: number,
-  userId: number,
-  optimisticReadSync: number,
-) {
-  const messages = sortedRealTimeMessages.find(([id]) => Number(id) === contactId)?.[1] || [];
-
-  // readLine：由服务端写入的“已读标记消息”（messageType === 10000, senderId === userId）
-  // 部分会话可能没有 readLine，此时视为 readLineSync = 0。
-  const readLineSync = messages.reduce((max, msg) => {
-    if (msg?.messageType === 10000 && msg?.senderId === userId) {
-      return Math.max(max, msg?.syncId ?? 0);
-    }
-    return max;
-  }, 0);
-
-  // 最新一条来自对方的有效消息 syncId
-  const latestIncomingSync = messages.reduce((max, msg) => {
-    if (msg?.senderId === contactId && msg?.messageType !== 10000) {
-      return Math.max(max, msg?.syncId ?? 0);
-    }
-    return max;
-  }, 0);
-
-  const effectiveReadLineSync = Math.max(readLineSync, optimisticReadSync);
-
-  if (latestIncomingSync <= effectiveReadLineSync) {
-    return 0;
-  }
-
-  // 未读：对方发送且 syncId > effectiveReadLineSync 的有效消息数量
-  return messages.filter((msg) => {
-    return msg?.senderId === contactId
-      && msg?.messageType !== 10000
-      && (msg?.syncId ?? 0) > effectiveReadLineSync;
-  }).length;
-}
-
-function getLatestIncomingSync(messages: MessageDirectType[], contactId: number) {
-  return messages.reduce((max, msg) => {
-    if (msg?.senderId === contactId && msg?.messageType !== 10000) {
-      return Math.max(max, msg?.syncId ?? 0);
-    }
-    return max;
-  }, 0);
 }
 
 function parseUrlContactId(rawRoomId: string | undefined): number | null {

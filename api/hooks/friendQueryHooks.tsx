@@ -1,10 +1,10 @@
-import type { FriendBlockRequest } from "../models/FriendBlockRequest";
-import type { FriendCheckRequest } from "../models/FriendCheckRequest";
-import type { FriendDeleteRequest } from "../models/FriendDeleteRequest";
-import type { FriendListRequest } from "../models/FriendListRequest";
-import type { FriendReqHandleRequest } from "../models/FriendReqHandleRequest";
-import type { FriendReqSendRequest } from "../models/FriendReqSendRequest";
-import type { PageBaseRequest } from "../models/PageBaseRequest";
+import type { FriendBlockRequest } from "@tuanchat/openapi-client/models/FriendBlockRequest";
+import type { FriendCheckRequest } from "@tuanchat/openapi-client/models/FriendCheckRequest";
+import type { FriendDeleteRequest } from "@tuanchat/openapi-client/models/FriendDeleteRequest";
+import type { FriendListRequest } from "@tuanchat/openapi-client/models/FriendListRequest";
+import type { FriendReqHandleRequest } from "@tuanchat/openapi-client/models/FriendReqHandleRequest";
+import type { FriendReqSendRequest } from "@tuanchat/openapi-client/models/FriendReqSendRequest";
+import type { PageBaseRequest } from "@tuanchat/openapi-client/models/PageBaseRequest";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { tuanchat } from "../instance";
 
@@ -23,10 +23,11 @@ export function useGetFriendListQuery(requestBody: FriendListRequest, enabled = 
 /**
  * 获取当前登录用户的黑名单列表
  */
-export function useGetBlackListQuery(requestBody: FriendListRequest) {
+export function useGetBlackListQuery(requestBody: FriendListRequest, enabled = true) {
   return useQuery({
     queryKey: ["friendBlackList", requestBody],
     queryFn: () => tuanchat.friendController.getBlackList(requestBody),
+    enabled,
     staleTime: 300000, // 5分钟缓存
   });
 }
@@ -143,3 +144,4 @@ export function useUnblockFriendMutation() {
     },
   });
 }
+

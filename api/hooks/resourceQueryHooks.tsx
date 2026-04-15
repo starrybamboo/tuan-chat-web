@@ -1,10 +1,10 @@
-﻿import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import type { ResourceUpdateRequest } from "../models/ResourceUpdateRequest";
-import type { ResourcePageRequest } from "../models/ResourcePageRequest";
-import type { ResourceUploadRequest } from "../models/ResourceUploadRequest";
-import type { CollectionResourcePageRequest } from "../models/CollectionResourcePageRequest";
-import type { ResourceBatchAddToCollectionRequest } from "../models/ResourceBatchAddToCollectionRequest";
-import type { ResourceCollectionCreateRequest } from "../models/ResourceCollectionCreateRequest";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import type { ResourceUpdateRequest } from "@tuanchat/openapi-client/models/ResourceUpdateRequest";
+import type { ResourcePageRequest } from "@tuanchat/openapi-client/models/ResourcePageRequest";
+import type { ResourceUploadRequest } from "@tuanchat/openapi-client/models/ResourceUploadRequest";
+import type { CollectionResourcePageRequest } from "@tuanchat/openapi-client/models/CollectionResourcePageRequest";
+import type { ResourceBatchAddToCollectionRequest } from "@tuanchat/openapi-client/models/ResourceBatchAddToCollectionRequest";
+import type { ResourceCollectionCreateRequest } from "@tuanchat/openapi-client/models/ResourceCollectionCreateRequest";
 import { tuanchat } from "../instance";
 
 /**
@@ -365,4 +365,5 @@ export function useCreateResourceCollectionMutation() {
         },
     });
 }
+
 

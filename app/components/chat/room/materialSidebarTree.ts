@@ -1,8 +1,8 @@
 import { getNodeLabel, serializeNodePath } from "@/components/material/components/materialPackageTreeUtils";
 
-import type { MaterialNode } from "../../../../api/models/MaterialNode";
+import type { MaterialNode } from "@tuanchat/openapi-client/models/MaterialNode";
 
-import { MaterialNode as MaterialNodeModel } from "../../../../api/models/MaterialNode";
+import { MaterialNode as MaterialNodeModel } from "@tuanchat/openapi-client/models/MaterialNode";
 
 export type MaterialSidebarVirtualNode = {
   key: string;
@@ -68,3 +68,4 @@ export function collectMaterialExpandableKeys(nodes: MaterialSidebarVirtualNode[
 
   return result;
 }
+

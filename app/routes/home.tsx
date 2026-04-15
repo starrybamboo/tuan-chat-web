@@ -16,7 +16,7 @@ export default function Home() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    navigate("/chat/private", { replace: true });
+    navigate("/chat/discover/material", { replace: true });
   }, [navigate]);
 
   return null;

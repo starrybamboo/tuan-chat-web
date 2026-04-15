@@ -79,7 +79,6 @@ function buildQueuedFilesSummary({
   images,
   videos,
   audios,
-  files,
 }: QueuedComposerFiles) {
   const summaryParts: string[] = [];
 
@@ -91,9 +90,6 @@ function buildQueuedFilesSummary({
   }
   if (videos.length > 0) {
     summaryParts.push(`${videos.length} 个视频`);
-  }
-  if (files.length > 0) {
-    summaryParts.push(`${files.length} 个文件`);
   }
 
   return summaryParts;

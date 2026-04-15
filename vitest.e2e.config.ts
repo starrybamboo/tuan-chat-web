@@ -3,9 +3,20 @@ import { defineConfig } from "vitest/config";
 
 export default defineConfig({
   resolve: {
-    alias: {
-      "@": path.resolve(__dirname, "./app"),
-    },
+    alias: [
+      {
+        find: /^@tuanchat\/openapi-client$/,
+        replacement: path.resolve(__dirname, "./packages/tuanchat-openapi-client/src/index.ts"),
+      },
+      {
+        find: /^@tuanchat\/openapi-client\/(.*)$/,
+        replacement: path.resolve(__dirname, "./packages/tuanchat-openapi-client/src/$1"),
+      },
+      {
+        find: /^@\//,
+        replacement: `${path.resolve(__dirname, "./app")}/`,
+      },
+    ],
   },
   test: {
     globals: true,

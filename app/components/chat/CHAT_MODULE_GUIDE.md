@@ -1,4 +1,4 @@
-﻿# Chat 模块整体构成与工程实践导读
+# Chat 模块整体构成与工程实践导读
 
 > 读者定位：已经会写 React 组件/Hook，但不熟大型工程的分层、数据流与状态管理。
 > 范围：仅基于 `app/components/chat` 及其直接依赖（如 `api/hooks/chatQueryHooks.tsx`、`api/useWebSocket.tsx`、`app/components/globalContextProvider`）的现有实现。

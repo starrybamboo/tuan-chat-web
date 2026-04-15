@@ -1,7 +1,11 @@
-import { useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { useLocalStorage } from "@/components/common/customHooks/useLocalStorage";
-import { MarkDownViewer } from "@/components/common/markdown/markDownViewer";
 import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
+
+const LazyMarkDownViewer = lazy(async () => {
+  const module = await import("@/components/common/markdown/markDownViewer");
+  return { default: module.MarkDownViewer };
+});
 
 // 动态导入所有Markdown文件
 const markdownFiles = import.meta.glob("/app/updateLogs/*.md", {
@@ -46,7 +50,9 @@ export default function UpdatesToastWindow() {
         </div>
 
         <div className="max-h-[60vh] overflow-y-auto w-full overflow-auto">
-          <MarkDownViewer content={currentContent} />
+          <Suspense fallback={<div className="flex min-h-40 items-center justify-center text-sm opacity-70">正在加载更新内容...</div>}>
+            <LazyMarkDownViewer content={currentContent} />
+          </Suspense>
         </div>
 
         <div className="flex justify-between pt-3 w-full">

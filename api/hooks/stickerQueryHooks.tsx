@@ -1,6 +1,6 @@
 import {useMutation, useQuery, useQueryClient} from "@tanstack/react-query";
 import {tuanchat} from "../instance";
-import type {StickerCreateRequest} from "../models/StickerCreateRequest";
+import type {StickerCreateRequest} from "@tuanchat/openapi-client/models/StickerCreateRequest";
 
 /**
  * 创建表情包
@@ -40,3 +40,4 @@ export function useGetUserStickersQuery() {
         staleTime: 300000 // 5分钟缓存
     });
 }
+

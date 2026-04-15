@@ -228,12 +228,24 @@ export function MaterialComposerProvider({
 
     const queued = splitComposerFiles(files);
     const { images, videos, audios, files: genericFiles } = queued;
-    const hasFiles = images.length > 0 || videos.length > 0 || audios.length > 0 || genericFiles.length > 0;
+    const hasSupportedFiles = images.length > 0 || videos.length > 0 || audios.length > 0;
+    const hasFiles = hasSupportedFiles || genericFiles.length > 0;
 
     if (!hasFiles) {
       if (showEmptyToast) {
         toast.error("未检测到可用文件");
       }
+      return false;
+    }
+
+    if (genericFiles.length > 0) {
+      toast.error(
+        hasSupportedFiles
+          ? `已忽略${genericFiles.length}个文件，当前仅支持图片、视频、音频`
+          : "暂不支持发送文件",
+      );
+    }
+    if (!hasSupportedFiles) {
       return false;
     }
 
@@ -244,9 +256,9 @@ export function MaterialComposerProvider({
       applyMediaAnnotationPreference("image");
     }
 
-    if (videos.length > 0 || genericFiles.length > 0) {
+    if (videos.length > 0) {
       updateFileAttachments((draft) => {
-        draft.push(...videos, ...genericFiles);
+        draft.push(...videos);
       });
     }
 

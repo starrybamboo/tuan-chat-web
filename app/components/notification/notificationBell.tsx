@@ -1,7 +1,7 @@
 import type { UserNotificationItem } from "@/components/notification/notificationTypes";
 
 import { BellIcon } from "@phosphor-icons/react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router";
 import {
   useMarkAllNotificationsReadMutation,
@@ -9,14 +9,17 @@ import {
   useNotificationsInfiniteQuery,
   useNotificationUnreadCountQuery,
 } from "@/components/notification/notificationHooks";
-import NotificationList from "@/components/notification/notificationList";
+import { scheduleNonCriticalTask } from "@/utils/scheduleNonCriticalTask";
+
+const LazyNotificationList = lazy(() => import("@/components/notification/notificationList"));
 
 export default function NotificationBell() {
   const navigate = useNavigate();
   const dropdownRef = useRef<HTMLDivElement | null>(null);
   const [isOpen, setIsOpen] = useState(false);
   const [busyNotificationId, setBusyNotificationId] = useState<number | null>(null);
-  const unreadCountQuery = useNotificationUnreadCountQuery(true);
+  const [shouldLoadUnreadCount, setShouldLoadUnreadCount] = useState(false);
+  const unreadCountQuery = useNotificationUnreadCountQuery(shouldLoadUnreadCount || isOpen);
   const notificationQuery = useNotificationsInfiniteQuery({ pageSize: 8 }, { enabled: isOpen });
   const markReadMutation = useMarkNotificationsReadMutation();
   const markAllReadMutation = useMarkAllNotificationsReadMutation();
@@ -25,6 +28,19 @@ export default function NotificationBell() {
   const notifications = useMemo(() => {
     return notificationQuery.data?.pages.flatMap(page => page.list) ?? [];
   }, [notificationQuery.data?.pages]);
+
+  useEffect(() => {
+    if (shouldLoadUnreadCount) {
+      return;
+    }
+    if (isOpen) {
+      setShouldLoadUnreadCount(true);
+      return;
+    }
+    return scheduleNonCriticalTask(() => {
+      setShouldLoadUnreadCount(true);
+    });
+  }, [isOpen, shouldLoadUnreadCount]);
 
   useEffect(() => {
     if (!isOpen) {
@@ -92,42 +108,48 @@ export default function NotificationBell() {
         </div>
       </button>
 
-      <div className="dropdown-content z-50 mt-2 w-[min(92vw,24rem)] rounded-2xl border border-base-300 bg-base-100 p-0 shadow-xl">
-        <div className="flex items-center justify-between border-b border-base-300 px-4 py-3">
-          <div>
-            <div className="text-sm font-semibold">通知中心</div>
-            <div className="text-xs opacity-60">反馈动态会在这里保留</div>
-          </div>
-          <button
-            type="button"
-            className="btn btn-ghost btn-xs"
-            disabled={unreadCount <= 0 || markAllReadMutation.isPending}
-            onClick={() => void handleReadAll()}
-          >
-            全部已读
-          </button>
-        </div>
+      {isOpen
+        ? (
+            <div className="dropdown-content z-50 mt-2 w-[min(92vw,24rem)] rounded-2xl border border-base-300 bg-base-100 p-0 shadow-xl">
+              <div className="flex items-center justify-between border-b border-base-300 px-4 py-3">
+                <div>
+                  <div className="text-sm font-semibold">通知中心</div>
+                  <div className="text-xs opacity-60">反馈动态会在这里保留</div>
+                </div>
+                <button
+                  type="button"
+                  className="btn btn-ghost btn-xs"
+                  disabled={unreadCount <= 0 || markAllReadMutation.isPending}
+                  onClick={() => void handleReadAll()}
+                >
+                  全部已读
+                </button>
+              </div>
 
-        <div className="max-h-[26rem] overflow-y-auto px-3 py-3">
-          <NotificationList
-            items={notifications}
-            emptyText="还没有通知。"
-            loading={notificationQuery.isLoading}
-            busyNotificationId={busyNotificationId}
-            onItemClick={openNotification}
-          />
-        </div>
+              <div className="max-h-[26rem] overflow-y-auto px-3 py-3">
+                <Suspense fallback={<div className="flex min-h-40 items-center justify-center text-sm opacity-70">正在加载通知...</div>}>
+                  <LazyNotificationList
+                    items={notifications}
+                    emptyText="还没有通知。"
+                    loading={notificationQuery.isLoading}
+                    busyNotificationId={busyNotificationId}
+                    onItemClick={openNotification}
+                  />
+                </Suspense>
+              </div>
 
-        <div className="border-t border-base-300 px-3 py-3">
-          <Link
-            to="/notifications"
-            className="btn btn-outline btn-sm w-full"
-            onClick={() => setIsOpen(false)}
-          >
-            查看全部通知
-          </Link>
-        </div>
-      </div>
+              <div className="border-t border-base-300 px-3 py-3">
+                <Link
+                  to="/notifications"
+                  className="btn btn-outline btn-sm w-full"
+                  onClick={() => setIsOpen(false)}
+                >
+                  查看全部通知
+                </Link>
+              </div>
+            </div>
+          )
+        : null}
     </div>
   );
 }

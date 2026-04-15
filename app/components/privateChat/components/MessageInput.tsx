@@ -1,4 +1,4 @@
-import type { Sticker as StickerType } from "api/models/Sticker";
+import type { Sticker as StickerType } from "@tuanchat/openapi-client/models/Sticker";
 import StickerWindow from "@/components/chat/window/StickerWindow";
 import BetterImg from "@/components/common/betterImg";
 import { ImgUploader } from "@/components/common/uploader/imgUploader";
@@ -226,3 +226,4 @@ function Image({ children, updateImgFiles }: { children: React.ReactNode; update
     </ImgUploader>
   );
 }
+

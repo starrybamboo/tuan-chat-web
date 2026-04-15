@@ -2,14 +2,15 @@ import type { Room } from "api";
 import type { ChatPageSubWindowTab } from "@/components/chat/hooks/useChatPageSubWindow";
 import type { MinimalDocMeta } from "@/components/chat/room/sidebarTree";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import RoomWindow from "@/components/chat/room/roomWindow";
-import BlocksuiteDescriptionEditor from "@/components/chat/shared/components/BlockSuite/blocksuiteDescriptionEditor";
-import SpaceMaterialSubWindow from "@/components/chat/space/drawers/spaceMaterialSubWindow";
 import { getDocRefDragData, isDocRefDrag } from "@/components/chat/utils/docRef";
 import { getMaterialItemDragData, isMaterialItemDrag } from "@/components/chat/utils/materialItemDrag";
 import { getSubWindowDragPayload } from "@/components/chat/utils/subWindowDragPayload";
 import { OpenAbleDrawer } from "@/components/common/openableDrawer";
 import { BaselineArrowBackIosNew, XMarkICon } from "@/icons";
+
+const LazyRoomWindow = React.lazy(() => import("@/components/chat/room/roomWindow"));
+const LazyBlocksuiteDescriptionEditor = React.lazy(() => import("@/components/chat/shared/components/BlockSuite/blocksuiteDescriptionEditor"));
+const LazySpaceMaterialSubWindow = React.lazy(() => import("@/components/chat/space/drawers/spaceMaterialSubWindow"));
 
 type ScreenSize = "sm" | "md" | "lg";
 
@@ -165,6 +166,15 @@ function hasDroppedTargetHint(dataTransfer: DataTransfer | null | undefined): bo
     return true;
   }
   return false;
+}
+
+function SubWindowLoadingFallback({ text }: { text: string }) {
+  return (
+    <div className="flex h-full w-full items-center justify-center text-sm text-base-content/60">
+      <span className="loading loading-spinner loading-md"></span>
+      <span className="ml-2">{text}</span>
+    </div>
+  );
 }
 
 export default function ChatPageSubWindow({
@@ -488,16 +498,18 @@ export default function ChatPageSubWindow({
           {tab === "room" && (
             resolvedRoomId
               ? (
-                  <RoomWindow
-                    roomId={resolvedRoomId}
-                    spaceId={activeSpaceId}
-                    hideSecondaryPanels
-                    onCloseSubWindow={() => setIsOpen(false)}
-                    onOpenThread={(rootId) => {
-                      setRoomId(resolvedRoomId);
-                      setThreadRootMessageId(rootId);
-                    }}
-                  />
+                  <React.Suspense fallback={<SubWindowLoadingFallback text="正在加载聊天副窗口..." />}>
+                    <LazyRoomWindow
+                      roomId={resolvedRoomId}
+                      spaceId={activeSpaceId}
+                      hideSecondaryPanels
+                      onCloseSubWindow={() => setIsOpen(false)}
+                      onOpenThread={(rootId) => {
+                        setRoomId(resolvedRoomId);
+                        setThreadRootMessageId(rootId);
+                      }}
+                    />
+                  </React.Suspense>
                 )
               : (
                   <div className="h-full flex items-center justify-center text-sm text-base-content/60">
@@ -509,18 +521,20 @@ export default function ChatPageSubWindow({
           {tab === "thread" && (
             (resolvedRoomId && threadRootMessageId)
               ? (
-                  <RoomWindow
-                    roomId={resolvedRoomId}
-                    spaceId={activeSpaceId}
-                    hideSecondaryPanels
-                    messageScope="thread"
-                    threadRootMessageId={threadRootMessageId}
-                    onCloseSubWindow={() => setIsOpen(false)}
-                    onOpenThread={(rootId) => {
-                      setRoomId(resolvedRoomId);
-                      setThreadRootMessageId(rootId);
-                    }}
-                  />
+                  <React.Suspense fallback={<SubWindowLoadingFallback text="正在加载讨论串..." />}>
+                    <LazyRoomWindow
+                      roomId={resolvedRoomId}
+                      spaceId={activeSpaceId}
+                      hideSecondaryPanels
+                      messageScope="thread"
+                      threadRootMessageId={threadRootMessageId}
+                      onCloseSubWindow={() => setIsOpen(false)}
+                      onOpenThread={(rootId) => {
+                        setRoomId(resolvedRoomId);
+                        setThreadRootMessageId(rootId);
+                      }}
+                    />
+                  </React.Suspense>
                 )
               : (
                   <div className="h-full flex items-center justify-center text-sm text-base-content/60">
@@ -545,14 +559,16 @@ export default function ChatPageSubWindow({
                   : resolvedDocId
                     ? (
                         <div className="w-full h-full overflow-hidden bg-base-100">
-                          <BlocksuiteDescriptionEditor
-                            workspaceId={`space:${activeSpaceId}`}
-                            spaceId={activeSpaceId}
-                            docId={resolvedDocId}
-                            tcHeader={{ enabled: true, fallbackTitle: docTitleById.get(resolvedDocId) ?? "文档" }}
-                            allowModeSwitch
-                            fullscreenEdgeless
-                          />
+                          <React.Suspense fallback={<SubWindowLoadingFallback text="正在加载文档副窗口..." />}>
+                            <LazyBlocksuiteDescriptionEditor
+                              workspaceId={`space:${activeSpaceId}`}
+                              spaceId={activeSpaceId}
+                              docId={resolvedDocId}
+                              tcHeader={{ enabled: true, fallbackTitle: docTitleById.get(resolvedDocId) ?? "文档" }}
+                              allowModeSwitch
+                              fullscreenEdgeless
+                            />
+                          </React.Suspense>
                         </div>
                       )
                     : (
@@ -564,15 +580,17 @@ export default function ChatPageSubWindow({
 
           {tab === "material" && (
             <div className="h-full overflow-hidden bg-base-100">
-              <SpaceMaterialSubWindow
-                spaceId={activeSpaceId}
-                spacePackageId={materialPackageId}
-                materialPathKey={materialPathKey}
-                onClearSelection={() => {
-                  setTab("empty");
-                  setMaterialSelection({ spacePackageId: null });
-                }}
-              />
+              <React.Suspense fallback={<SubWindowLoadingFallback text="正在加载素材副窗口..." />}>
+                <LazySpaceMaterialSubWindow
+                  spaceId={activeSpaceId}
+                  spacePackageId={materialPackageId}
+                  materialPathKey={materialPathKey}
+                  onClearSelection={() => {
+                    setTab("empty");
+                    setMaterialSelection({ spacePackageId: null });
+                  }}
+                />
+              </React.Suspense>
             </div>
           )}
         </div>

@@ -1,12 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-import type { MaterialPackageCreateRequest } from "../models/MaterialPackageCreateRequest";
-import type { MaterialPackagePageRequest } from "../models/MaterialPackagePageRequest";
-import type { MaterialPackageUpdateRequest } from "../models/MaterialPackageUpdateRequest";
-import type { SpaceMaterialPackageCreateRequest } from "../models/SpaceMaterialPackageCreateRequest";
-import type { SpaceMaterialPackageImportRequest } from "../models/SpaceMaterialPackageImportRequest";
-import type { SpaceMaterialPackagePageRequest } from "../models/SpaceMaterialPackagePageRequest";
-import type { SpaceMaterialPackageUpdateRequest } from "../models/SpaceMaterialPackageUpdateRequest";
+import type { MaterialPackageCreateRequest } from "@tuanchat/openapi-client/models/MaterialPackageCreateRequest";
+import type { MaterialPackagePageRequest } from "@tuanchat/openapi-client/models/MaterialPackagePageRequest";
+import type { MaterialPackageUpdateRequest } from "@tuanchat/openapi-client/models/MaterialPackageUpdateRequest";
+import type { SpaceMaterialPackageCreateRequest } from "@tuanchat/openapi-client/models/SpaceMaterialPackageCreateRequest";
+import type { SpaceMaterialPackageImportRequest } from "@tuanchat/openapi-client/models/SpaceMaterialPackageImportRequest";
+import type { SpaceMaterialPackagePageRequest } from "@tuanchat/openapi-client/models/SpaceMaterialPackagePageRequest";
+import type { SpaceMaterialPackageUpdateRequest } from "@tuanchat/openapi-client/models/SpaceMaterialPackageUpdateRequest";
 import { tuanchat } from "../instance";
 
 export function useMyMaterialPackagesQuery(request: MaterialPackagePageRequest, enabled = true) {
@@ -122,3 +122,4 @@ export function useImportSpaceMaterialPackageMutation() {
     },
   });
 }
+

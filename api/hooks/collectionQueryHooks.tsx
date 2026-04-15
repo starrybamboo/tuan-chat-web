@@ -1,19 +1,19 @@
-﻿import { useMutation, useQuery, useQueryClient, useInfiniteQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient, useInfiniteQuery } from "@tanstack/react-query";
 import { tuanchat } from "../instance";
-import type { Collection } from "../models/Collection";
-import type { CollectionAddRequest } from "../models/CollectionAddRequest";
-import type { CollectionCheckRequest } from "../models/CollectionCheckRequest";
-import type { CollectionPageRequest } from "../models/CollectionPageRequest";
-import type { PageBaseRequest } from "../models/PageBaseRequest";
-import type { CollectionList } from "../models/CollectionList";
-import type { CollectionListAddRequest } from "../models/CollectionListAddRequest";
-import type { CollectionListItemAddRequest } from "../models/CollectionListItemAddRequest";
-import type { CollectionListItemBatchAddRequest } from "../models/CollectionListItemBatchAddRequest";
-import type { CollectionListItemPageRequest } from "../models/CollectionListItemPageRequest";
-import type { CollectionListItemRemoveRequest } from "../models/CollectionListItemRemoveRequest";
-import type {CollectionListUpdateRequest} from "../models/CollectionListUpdateRequest";
-// import type { CollectionTagAddRequest } from "../models/CollectionTagAddRequest";
-// import type { CollectionTagDeleteRequest } from "../models/CollectionTagDeleteRequest";
+import type { Collection } from "@tuanchat/openapi-client/models/Collection";
+import type { CollectionAddRequest } from "@tuanchat/openapi-client/models/CollectionAddRequest";
+import type { CollectionCheckRequest } from "@tuanchat/openapi-client/models/CollectionCheckRequest";
+import type { CollectionPageRequest } from "@tuanchat/openapi-client/models/CollectionPageRequest";
+import type { PageBaseRequest } from "@tuanchat/openapi-client/models/PageBaseRequest";
+import type { CollectionList } from "@tuanchat/openapi-client/models/CollectionList";
+import type { CollectionListAddRequest } from "@tuanchat/openapi-client/models/CollectionListAddRequest";
+import type { CollectionListItemAddRequest } from "@tuanchat/openapi-client/models/CollectionListItemAddRequest";
+import type { CollectionListItemBatchAddRequest } from "@tuanchat/openapi-client/models/CollectionListItemBatchAddRequest";
+import type { CollectionListItemPageRequest } from "@tuanchat/openapi-client/models/CollectionListItemPageRequest";
+import type { CollectionListItemRemoveRequest } from "@tuanchat/openapi-client/models/CollectionListItemRemoveRequest";
+import type {CollectionListUpdateRequest} from "@tuanchat/openapi-client/models/CollectionListUpdateRequest";
+// import type { CollectionTagAddRequest } from "@tuanchat/openapi-client/models/CollectionTagAddRequest";
+// import type { CollectionTagDeleteRequest } from "@tuanchat/openapi-client/models/CollectionTagDeleteRequest";
 
 // ==================== CollectionControllerService ====================
 
@@ -564,4 +564,5 @@ export function useRemoveFromListMutation() {
 //         staleTime: 300000 // 5分钟缓存
 //     });
 // }
+
 

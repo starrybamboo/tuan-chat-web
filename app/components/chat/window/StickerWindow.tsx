@@ -1,4 +1,4 @@
-import type { Sticker } from "api/models/Sticker";
+import type { Sticker } from "@tuanchat/openapi-client/models/Sticker";
 import { useCreateStickerMutation, useDeleteStickerMutation, useGetUserStickersQuery } from "api/hooks/stickerQueryHooks";
 import { useState } from "react";
 import { toast } from "react-hot-toast";
@@ -169,3 +169,4 @@ export default function StickerWindow({ onChoose }:
     </div>
   );
 }
+

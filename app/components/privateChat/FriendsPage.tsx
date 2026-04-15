@@ -1,4 +1,4 @@
-import type { FriendResponse } from "api/models/FriendResponse";
+import type { FriendResponse } from "@tuanchat/openapi-client/models/FriendResponse";
 import {
   useAcceptFriendRequestMutation,
   useBlockFriendMutation,
@@ -57,7 +57,8 @@ export default function FriendsPage({
     () => (Array.isArray(friendListQuery.data?.data) ? friendListQuery.data.data : []),
     [friendListQuery.data],
   );
-  const blackListQuery = useGetBlackListQuery({ pageNo: 1, pageSize: 100 });
+  const shouldLoadBlackList = tab === "blacklist";
+  const blackListQuery = useGetBlackListQuery({ pageNo: 1, pageSize: 100 }, shouldLoadBlackList);
   const blackListUserInfos: FriendResponse[] = useMemo(
     () => (Array.isArray(blackListQuery.data?.data) ? blackListQuery.data.data : []),
     [blackListQuery.data],
@@ -476,78 +477,89 @@ export default function FriendsPage({
             {/* 黑名单 */}
             {tab === "blacklist" && (
               <div className="flex flex-col gap-2 w-full py-2">
-                {blackListUserInfos.map((friend, index) => (
-                  <div
-                    key={friend?.userId || index}
-                    className="w-full text-left flex items-center justify-between rounded-md h-16"
-                  >
-                    <div className="flex items-center gap-3 min-w-0 justify-between w-full">
-                      <div className="flex items-center gap-4 min-w-0 flex-1">
-                        <div className="avatar w-12">
-                          <img
-                            className="rounded-full"
-                            src={friend?.avatar}
-                            alt={friend?.username}
-                          />
-                        </div>
-                        <div className="min-w-0 flex items-center gap-2">
-                          <div className="min-w-0">
-                            <div className="font-medium truncate">
-                              {friend?.username || `用户${friend?.userId}`}
+                {blackListQuery.isLoading
+                  ? (
+                      <div className="flex items-center justify-center h-32 opacity-70 text-sm">
+                        <span className="loading loading-spinner loading-md"></span>
+                        <span className="ml-2">正在加载黑名单...</span>
+                      </div>
+                    )
+                  : (
+                      <>
+                        {blackListUserInfos.map((friend, index) => (
+                          <div
+                            key={friend?.userId || index}
+                            className="w-full text-left flex items-center justify-between rounded-md h-16"
+                          >
+                            <div className="flex items-center gap-3 min-w-0 justify-between w-full">
+                              <div className="flex items-center gap-4 min-w-0 flex-1">
+                                <div className="avatar w-12">
+                                  <img
+                                    className="rounded-full"
+                                    src={friend?.avatar}
+                                    alt={friend?.username}
+                                  />
+                                </div>
+                                <div className="min-w-0 flex items-center gap-2">
+                                  <div className="min-w-0">
+                                    <div className="font-medium truncate">
+                                      {friend?.username || `用户${friend?.userId}`}
+                                    </div>
+                                    <div className="text-xs opacity-70 truncate">{friend?.userId}</div>
+                                  </div>
+                                </div>
+                              </div>
+                              <div className="flex gap-2 flex-shrink-0 items-center">
+                                <button
+                                  type="button"
+                                  className="btn btn-ghost btn-xs btn-square"
+                                  onClick={() => navigate(`/profile/${friend?.userId}`)}
+                                  aria-label="查看主页"
+                                  title="前往主页"
+                                >
+                                  <HomeIcon className="size-6" />
+                                </button>
+                                <button
+                                  type="button"
+                                  className="btn btn-ghost btn-xs text-success"
+                                  disabled={unblockFriendMutation.isPending || !friend?.userId}
+                                  onClick={() => {
+                                    if (!friend?.userId) {
+                                      return;
+                                    }
+                                    // eslint-disable-next-line no-alert
+                                    const ok = window.confirm(`确定取消拉黑「${friend?.username || friend.userId}」吗？`);
+                                    if (!ok)
+                                      return;
+                                    unblockFriendMutation.mutate(
+                                      { targetUserId: friend.userId },
+                                      {
+                                        onSuccess: () => {
+                                          showNotice("已移出黑名单", "success");
+                                        },
+                                        onError: (error) => {
+                                          showNotice(getErrorMessage(error) || "取消拉黑失败，请稍后重试", "warning");
+                                        },
+                                      },
+                                    );
+                                  }}
+                                  aria-label="取消拉黑"
+                                  title="取消拉黑"
+                                >
+                                  取消拉黑
+                                </button>
+                              </div>
                             </div>
-                            <div className="text-xs opacity-70 truncate">{friend?.userId}</div>
+                            <div className="w-2"></div>
                           </div>
-                        </div>
-                      </div>
-                      <div className="flex gap-2 flex-shrink-0 items-center">
-                        <button
-                          type="button"
-                          className="btn btn-ghost btn-xs btn-square"
-                          onClick={() => navigate(`/profile/${friend?.userId}`)}
-                          aria-label="查看主页"
-                          title="前往主页"
-                        >
-                          <HomeIcon className="size-6" />
-                        </button>
-                        <button
-                          type="button"
-                          className="btn btn-ghost btn-xs text-success"
-                          disabled={unblockFriendMutation.isPending || !friend?.userId}
-                          onClick={() => {
-                            if (!friend?.userId) {
-                              return;
-                            }
-                            // eslint-disable-next-line no-alert
-                            const ok = window.confirm(`确定取消拉黑「${friend?.username || friend.userId}」吗？`);
-                            if (!ok)
-                              return;
-                            unblockFriendMutation.mutate(
-                              { targetUserId: friend.userId },
-                              {
-                                onSuccess: () => {
-                                  showNotice("已移出黑名单", "success");
-                                },
-                                onError: (error) => {
-                                  showNotice(getErrorMessage(error) || "取消拉黑失败，请稍后重试", "warning");
-                                },
-                              },
-                            );
-                          }}
-                          aria-label="取消拉黑"
-                          title="取消拉黑"
-                        >
-                          取消拉黑
-                        </button>
-                      </div>
-                    </div>
-                    <div className="w-2"></div>
-                  </div>
-                ))}
-                {blackListUserInfos.length === 0 && (
-                  <div className="flex items-center justify-center h-32 opacity-70 text-sm">
-                    黑名单为空
-                  </div>
-                )}
+                        ))}
+                        {blackListUserInfos.length === 0 && (
+                          <div className="flex items-center justify-center h-32 opacity-70 text-sm">
+                            黑名单为空
+                          </div>
+                        )}
+                      </>
+                    )}
               </div>
             )}
 
@@ -780,3 +792,4 @@ export default function FriendsPage({
     </div>
   );
 }
+

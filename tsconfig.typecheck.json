@@ -5,6 +5,8 @@
     "tsBuildInfoFile": "node_modules/.cache/tsc/typecheck.tsbuildinfo",
     "paths": {
       "@/*": ["./app/*"],
+      "@tuanchat/openapi-client": ["./packages/tuanchat-openapi-client/src/index.ts"],
+      "@tuanchat/openapi-client/*": ["./packages/tuanchat-openapi-client/src/*"],
 
       "@blocksuite/affine-widget-linked-doc": ["./node_modules/@blocksuite/affine-widget-linked-doc/dist/index.d.ts"],
       "@blocksuite/affine-widget-linked-doc/*": ["./node_modules/@blocksuite/affine-widget-linked-doc/dist/*"],

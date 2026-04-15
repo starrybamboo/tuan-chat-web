@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-import type { SpaceSidebarTreeSetRequest } from "../models/SpaceSidebarTreeSetRequest";
+import type { SpaceSidebarTreeSetRequest } from "@tuanchat/openapi-client/models/SpaceSidebarTreeSetRequest";
 import { tuanchat } from "../instance";
 
 export function useGetSpaceSidebarTreeQuery(spaceId: number) {
@@ -30,3 +30,4 @@ export function useSetSpaceSidebarTreeMutation() {
     },
   });
 }
+

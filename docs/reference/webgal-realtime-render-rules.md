@@ -45,7 +45,7 @@
 - 首次需要时自动创建 `games/{gameName}/game/scene/__tc_end_{id}.txt`
 - 内容固定为 `end;`
 
-## 3. 消息类型到 WebGAL 指令映射规则
+## 3. 消息类型到 WebGAL 场景脚本映射规则
 
 消息类型常量见 `app/types/voiceRenderTypes.ts` 的 `MESSAGE_TYPE`。
 

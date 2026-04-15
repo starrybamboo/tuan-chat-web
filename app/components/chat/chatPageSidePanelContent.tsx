@@ -1,10 +1,11 @@
 import type { Room } from "api";
-import type { SpaceMaterialPackageResponse } from "../../../api/models/SpaceMaterialPackageResponse";
+import type { SpaceMaterialPackageResponse } from "@tuanchat/openapi-client/models/SpaceMaterialPackageResponse";
 import type { ActiveMaterialSelection, OpenSpaceDetailPanelOptions, RoomSettingTab, SpaceDetailTab } from "@/components/chat/chatPage.types";
-
 import type { MinimalDocMeta, SidebarTree } from "@/components/chat/room/sidebarTree";
 import React from "react";
-import ChatRoomListPanel from "@/components/chat/room/chatRoomListPanel";
+import LeftChatList from "@/components/privateChat/LeftChatList";
+
+const LazyChatRoomListPanel = React.lazy(() => import("@/components/chat/room/chatRoomListPanel"));
 
 interface ChatPageSidePanelContentProps {
   isPrivateChatMode: boolean;
@@ -43,74 +44,24 @@ interface ChatPageSidePanelContentProps {
   onOpenCreateInCategory: (categoryId: string) => void;
 }
 
-export default function ChatPageSidePanelContent({
-  isPrivateChatMode,
-  activeSpaceId,
-  onToggleLeftDrawer,
-  isLeftDrawerOpen,
-  onCloseLeftDrawer,
-  currentUserId,
-  activeSpaceName,
-  activeSpaceIsArchived,
-  isSpaceOwner,
-  isKPInSpace,
-  canViewDocs,
-  rooms,
-  roomOrderIds,
-  onReorderRoomIds,
-  sidebarTree,
-  docMetas,
-  materialPackages,
-  onSelectDoc,
-  onDeleteDoc,
-  onSaveSidebarTree,
-  onResetSidebarTreeToDefault,
-  activeRoomId,
-  activeDocId,
-  activeMaterialSelection,
-  unreadMessagesNumber,
-  onContextMenu,
-  onInviteMember,
-  onOpenSpaceDetailPanel,
-  onSelectRoom,
-  onOpenRoomSetting,
-  setIsOpenLeftDrawer,
-  onOpenCreateInCategory,
-}: ChatPageSidePanelContentProps) {
+function SidePanelLoadingFallback() {
   return (
-    <ChatRoomListPanel
-      isPrivateChatMode={isPrivateChatMode}
-      currentUserId={currentUserId}
-      activeSpaceId={activeSpaceId}
-      activeSpaceName={activeSpaceName}
-      activeSpaceIsArchived={activeSpaceIsArchived}
-      isSpaceOwner={isSpaceOwner}
-      isKPInSpace={isKPInSpace}
-      canViewDocs={canViewDocs}
-      rooms={rooms}
-      roomOrderIds={roomOrderIds}
-      onReorderRoomIds={onReorderRoomIds}
-      sidebarTree={sidebarTree}
-      onSaveSidebarTree={onSaveSidebarTree}
-      onResetSidebarTreeToDefault={onResetSidebarTreeToDefault}
-      docMetas={docMetas}
-      materialPackages={materialPackages}
-      onSelectDoc={onSelectDoc}
-      onDeleteDoc={onDeleteDoc}
-      activeRoomId={activeRoomId}
-      activeDocId={activeDocId}
-      activeMaterialSelection={activeMaterialSelection}
-      unreadMessagesNumber={unreadMessagesNumber}
-      onContextMenu={onContextMenu}
-      onInviteMember={onInviteMember}
-      onOpenSpaceDetailPanel={onOpenSpaceDetailPanel}
-      onSelectRoom={onSelectRoom}
-      onCloseLeftDrawer={onCloseLeftDrawer}
-      onToggleLeftDrawer={onToggleLeftDrawer}
-      isLeftDrawerOpen={isLeftDrawerOpen}
-      onOpenRoomSetting={onOpenRoomSetting}
-      setIsOpenLeftDrawer={setIsOpenLeftDrawer}
-      onOpenCreateInCategory={onOpenCreateInCategory}
-    />
+    <div className="flex h-full items-center justify-center bg-base-200 text-sm text-base-content/60">
+      <span className="loading loading-spinner loading-md"></span>
+      <span className="ml-2">正在加载侧栏...</span>
+    </div>
   );
 }
+
+export default function ChatPageSidePanelContent(props: ChatPageSidePanelContentProps) {
+  if (props.isPrivateChatMode) {
+    return <LeftChatList setIsOpenLeftDrawer={props.setIsOpenLeftDrawer} />;
+  }
+
+  return (
+    <React.Suspense fallback={<SidePanelLoadingFallback />}>
+      <LazyChatRoomListPanel {...props} />
+    </React.Suspense>
+  );
+}
+

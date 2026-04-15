@@ -5,7 +5,11 @@ import toast from "react-hot-toast";
 import { useParams } from "react-router";
 import { getNextAppendPosition } from "@/components/chat/shared/messageOrder";
 import { initAliasMapOnce, RULES } from "@/components/common/dicer/aliasRegistry";
+import { resolveCommandMessageVisibility, type DicerMessageVisibility } from "@/components/common/dicer/commandMessageVisibility";
 import executorPublic from "@/components/common/dicer/cmdExe/cmdExePublic";
+import { buildDicerReplyContent, selectWeightedCopywritingSuffix } from "@/components/common/dicer/dicerReplyPreparation";
+import { syncOptimisticReplyMessageIds } from "@/components/common/dicer/optimisticReplyMessageLink";
+import { buildRuntimeRoleValuesByRoleId, mergeRuntimeRoleValuesIntoAbility } from "@/components/common/dicer/runtimeAbilityBridge";
 import UTILS from "@/components/common/dicer/utils/utils";
 import { buildMessageExtraForRequest } from "@/types/messageDraft";
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
@@ -25,14 +29,11 @@ interface PendingOptimisticCommandMessage {
   stableMessageKey: string;
 }
 
-type DicerMessageVisibility = "public" | "kp_and_sender";
-
 interface QueuedDicerMessage {
   content: string;
   visibility: DicerMessageVisibility;
 }
 
-const OPTIMISTIC_DICER_AVATAR_ID = 0;
 const STABLE_MESSAGE_KEY_FIELD = "__tcStableKey";
 let stableDiceMessageSeed = 0;
 const DICER_DEBUG_PREFIX = "[TC_DICER_FLOW]";
@@ -594,6 +595,10 @@ export default function useCommandExecutor(roleId: number, ruleId: number, roomC
       for (const [mentionedRoleId, ability] of mentionedRoleEntries) {
         mentionedRoles.set(mentionedRoleId, ability);
       }
+      const runtimeRoleValuesByRoleId = buildRuntimeRoleValuesByRoleId(
+        roomContext.chatHistory?.messages,
+        Object.fromEntries(mentionedRoleEntries),
+      );
 
       // 初始化 Space dicerData 缓存
       let spaceExtra: Record<string, any> = {};
@@ -633,13 +638,13 @@ export default function useCommandExecutor(roleId: number, ruleId: number, roomC
       };
 
       const getRoleAbilityList = (roleId: number): RoleAbility => {
-        if (mentionedRoles.has(roleId)) {
-          const ability = mentionedRoles.get(roleId) as RoleAbility;
-          ability.roleId = ability.roleId ?? roleId;
-          ability.ruleId = ability.ruleId ?? ruleId;
-          return ability;
-        }
-        return { roleId, ruleId };
+        const ability = mergeRuntimeRoleValuesIntoAbility(
+          mentionedRoles.get(roleId),
+          runtimeRoleValuesByRoleId[roleId],
+        );
+        ability.roleId = ability.roleId ?? roleId;
+        ability.ruleId = ability.ruleId ?? ruleId;
+        return ability;
       };
 
       const setRoleAbilityList = (roleId: number, ability: RoleAbility) => {
@@ -747,11 +752,9 @@ export default function useCommandExecutor(roleId: number, ruleId: number, roomC
       }
       // 发送消息队列
       if (dicerMessageQueue.length > 0) {
-        const hasHiddenDiceReplies = dicerMessageQueue.some(item => item.visibility === "kp_and_sender");
-        const hasPublicDiceReplies = dicerMessageQueue.some(item => item.visibility === "public");
-        const commandMessageVisibility: DicerMessageVisibility = hasHiddenDiceReplies && !hasPublicDiceReplies
-          ? "kp_and_sender"
-          : "public";
+        const commandMessageVisibility = resolveCommandMessageVisibility(
+          dicerMessageQueue.map(item => item.visibility),
+        );
         const commandDiceRequest: ChatMessageRequest = {
           roomId,
           messageType: MESSAGE_TYPE.DICE,
@@ -768,33 +771,9 @@ export default function useCommandExecutor(roleId: number, ruleId: number, roomC
           : null;
         const fallbackCommandPosition = pendingOptimisticCommandMessage?.fallbackPosition ?? commandAnchorPosition;
         const optimisticReplyMessageId = pendingOptimisticCommandMessage?.optimisticMessageId;
-        // 乐观骰娘消息与最终消息使用同一骰娘，避免先显示默认骰娘再被后端消息替换的闪烁。
-        const dicerRoleId = await dicerRoleIdPromise;
-        const optimisticDicerRequestBase: ChatMessageRequest = {
-          roomId,
-          messageType: MESSAGE_TYPE.DICE,
-          roleId: dicerRoleId,
-          avatarId: OPTIMISTIC_DICER_AVATAR_ID,
-          threadId: executorProp.threadId,
-          replayMessageId: optimisticReplyMessageId,
-          content: "",
-          extra: {},
-        };
-        for (let index = 0; index < dicerMessageQueue.length; index++) {
-          const queuedMessage = dicerMessageQueue[index];
-          const message = queuedMessage?.content ?? "";
-          // 先快速插入占位，避免被后续请求阻塞可见性。
-          const cleanMessage = message.replace(/#[^#]+#/g, "").trim();
-          const optimisticContent = cleanMessage;
-          pendingOptimisticDicerMessages.push(createOptimisticCommandMessage({
-            ...optimisticDicerRequestBase,
-            content: optimisticContent,
-            extra: buildDiceMessageExtra(optimisticContent, queuedMessage?.visibility ?? "public"),
-            position: fallbackCommandPosition + ((index + 1) * DICE_BATCH_POSITION_STEP),
-          }));
-        }
-
         const commandMessageMetaPromise = sendCommandMessageWithOptimistic(commandDiceRequest, pendingOptimisticCommandMessage);
+        // 先准备最终骰娘文案，再创建乐观消息，避免“先发结果、后补风味文案”的二次跳变。
+        const dicerRoleId = await dicerRoleIdPromise;
         const avatarsPromise = getCachedDicerAvatars(dicerRoleId)
           .catch((error) => {
             console.error("获取骰娘头像失败:", error);
@@ -807,44 +786,8 @@ export default function useCommandExecutor(roleId: number, ruleId: number, roomC
                 return {} as Record<string, string[]>;
               })
           : Promise.resolve({} as Record<string, string[]>);
-
-        const commandMessageMeta = await commandMessageMetaPromise;
-        commandMessageCommitted = true;
         const [avatars, copywritingMap] = await Promise.all([avatarsPromise, copywritingMapPromise]);
-
-        // 获取文案：从 extra.copywriting 中根据键随机抽取
-        let copywritingSuffix = "";
-        if (copywritingKey) {
-          try {
-            const texts = copywritingMap[copywritingKey];
-            if (texts && texts.length > 0) {
-              // 解析权重并构建加权数组
-              const weightedTexts: string[] = [];
-              for (const text of texts) {
-                // 匹配权重语法 ::N::
-                const weightMatch = text.match(/^::(\d+)::/);
-                if (weightMatch) {
-                  const weight = Number.parseInt(weightMatch[1]);
-                  const actualText = text.slice(weightMatch[0].length); // 移除权重前缀
-                  // 根据权重添加多次
-                  for (let i = 0; i < weight; i++) {
-                    weightedTexts.push(actualText);
-                  }
-                }
-                else {
-                  // 无权重语法，默认权重为 1
-                  weightedTexts.push(text);
-                }
-              }
-              // 从加权数组中随机选择
-              const randomIdx = Math.floor(Math.random() * weightedTexts.length);
-              copywritingSuffix = `\n${weightedTexts[randomIdx]}`;
-            }
-          }
-          catch (e) {
-            console.error("获取骰娘文案失败:", e);
-          }
-        }
+        const copywritingSuffix = selectWeightedCopywritingSuffix(copywritingKey, copywritingMap);
 
         // 从所有消息中提取标签（格式：#标签#）
         const allMessages = [
@@ -893,11 +836,31 @@ export default function useCommandExecutor(roleId: number, ruleId: number, roomC
         const dicerBatchRequests: ChatMessageRequest[] = [];
         for (let index = 0; index < dicerMessageQueue.length; index++) {
           const queuedMessage = dicerMessageQueue[index];
-          const message = queuedMessage?.content ?? "";
-          // 移除消息中的所有标签（格式：#标签#）
-          const cleanMessage = message.replace(/#[^#]+#/g, "").trim();
-          const cleanCopywriting = copywritingSuffix.replace(/#[^#]+#/g, "").trim();
-          const nextContent = cleanMessage + (cleanCopywriting ? `\n${cleanCopywriting}` : "");
+          const nextContent = buildDicerReplyContent(queuedMessage?.content ?? "", copywritingSuffix);
+          pendingOptimisticDicerMessages.push(createOptimisticCommandMessage({
+            ...dicerMessageBaseRequest,
+            content: nextContent,
+            extra: buildDiceMessageExtra(nextContent, queuedMessage?.visibility ?? "public"),
+            position: fallbackCommandPosition + ((index + 1) * DICE_BATCH_POSITION_STEP),
+          }));
+        }
+        const commandMessageMeta = await commandMessageMetaPromise;
+        commandMessageCommitted = true;
+        if (
+          Number.isFinite(optimisticReplyMessageId)
+          && Number.isFinite(commandMessageMeta.commandMessageId)
+        ) {
+          // 指令乐观消息提交后，立即把骰娘乐观回复改指向真实消息，避免 reply preview 在临时/真实 ID 之间抖动。
+          await syncOptimisticReplyMessageIds({
+            chatHistory: roomContext.chatHistory,
+            pendingMessages: pendingOptimisticDicerMessages,
+            fromReplyMessageId: optimisticReplyMessageId,
+            toReplyMessageId: commandMessageMeta.commandMessageId,
+          });
+        }
+        for (let index = 0; index < dicerMessageQueue.length; index++) {
+          const queuedMessage = dicerMessageQueue[index];
+          const nextContent = buildDicerReplyContent(queuedMessage?.content ?? "", copywritingSuffix);
           dicerBatchRequests.push({
             ...dicerMessageBaseRequest,
             content: nextContent,

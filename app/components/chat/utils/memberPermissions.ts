@@ -32,6 +32,10 @@ export function canManageRoomRoles(memberType?: number | null): boolean {
   return canParticipateInRoom(memberType);
 }
 
+export function canViewRoomNpcRoles(memberType?: number | null): boolean {
+  return memberType !== SPACE_MEMBER_TYPE.PLAYER;
+}
+
 export function getMemberTypeSortWeight(memberType?: number | null): number {
   switch (memberType) {
     case SPACE_MEMBER_TYPE.LEADER:

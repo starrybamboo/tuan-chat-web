@@ -1,4 +1,4 @@
-import type { CollectionList } from "../../../../api/models/CollectionList";
+import type { CollectionList } from "@tuanchat/openapi-client/models/CollectionList";
 import { useState } from "react";
 import { toast } from "react-hot-toast";
 import {
@@ -171,3 +171,4 @@ export function ResourceCollectionList({ type, isPublic, searchText: _searchText
     </div>
   );
 }
+

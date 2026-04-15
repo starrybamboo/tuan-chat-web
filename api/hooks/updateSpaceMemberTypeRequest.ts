@@ -1,7 +1,7 @@
 import { tuanchat } from "../instance";
-import type { ApiRequestOptions } from "../core/ApiRequestOptions";
-import type { ApiResultVoid } from "../models/ApiResultVoid";
-import type { SpaceMemberTypeUpdateRequest } from "../models/SpaceMemberTypeUpdateRequest";
+import type { ApiRequestOptions } from "@tuanchat/openapi-client/core/ApiRequestOptions";
+import type { ApiResultVoid } from "@tuanchat/openapi-client/models/ApiResultVoid";
+import type { SpaceMemberTypeUpdateRequest } from "@tuanchat/openapi-client/models/SpaceMemberTypeUpdateRequest";
 
 type SpaceMemberTypeUpdateController = {
   updateMemberType?: (requestBody: SpaceMemberTypeUpdateRequest) => PromiseLike<ApiResultVoid>;
@@ -39,3 +39,4 @@ export async function updateSpaceMemberTypeWithFallbackDeps(
 export async function updateSpaceMemberTypeWithFallback(requestBody: SpaceMemberTypeUpdateRequest) {
   return await updateSpaceMemberTypeWithFallbackDeps(requestBody, defaultDeps);
 }
+

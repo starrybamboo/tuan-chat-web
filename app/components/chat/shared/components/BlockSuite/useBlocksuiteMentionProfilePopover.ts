@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import type { BlocksuiteFrameToHostPayload } from "@/components/chat/infra/blocksuite/shared/frameProtocol";
+
 import type { BlocksuiteMentionProfilePopoverState } from "./blocksuiteMentionProfilePopover.shared";
 
 type UseBlocksuiteMentionProfilePopoverParams = {
@@ -11,17 +13,12 @@ type UseBlocksuiteMentionProfilePopoverParams = {
  * mention profile popover 真正渲染在宿主页面，因此 host 侧要维护一套独立状态机。
  */
 export function useBlocksuiteMentionProfilePopover(params: UseBlocksuiteMentionProfilePopoverParams) {
-  const { navigate, onNavigate } = params;
-  const onNavigateRef = useRef(onNavigate);
+  void params;
   const [mentionProfilePopover, setMentionProfilePopover] = useState<BlocksuiteMentionProfilePopoverState | null>(null);
   const mentionProfilePopoverStateRef = useRef<BlocksuiteMentionProfilePopoverState | null>(null);
   const mentionProfilePopoverHoveredRef = useRef(false);
   const mentionProfilePopoverOpenTimerRef = useRef<number | null>(null);
   const mentionProfilePopoverCloseTimerRef = useRef<number | null>(null);
-
-  useEffect(() => {
-    onNavigateRef.current = onNavigate;
-  }, [onNavigate]);
 
   useEffect(() => {
     mentionProfilePopoverStateRef.current = mentionProfilePopover;
@@ -70,37 +67,51 @@ export function useBlocksuiteMentionProfilePopover(params: UseBlocksuiteMentionP
     }, 240);
   }, [clearMentionProfilePopoverCloseTimer, clearMentionProfilePopoverOpenTimer]);
 
-  const handleMentionClickMessage = useCallback((userId: string) => {
+  const openMentionProfilePopoverNow = useCallback((next: BlocksuiteMentionProfilePopoverState) => {
+    clearMentionProfilePopoverOpenTimer();
+    clearMentionProfilePopoverCloseTimer();
+    mentionProfilePopoverHoveredRef.current = false;
+    setMentionProfilePopover(next);
+  }, [clearMentionProfilePopoverCloseTimer, clearMentionProfilePopoverOpenTimer]);
+
+  const isValidAnchorRect = useCallback((anchorRect: unknown) => {
+    return Boolean(anchorRect)
+      && typeof (anchorRect as any).left === "number"
+      && typeof (anchorRect as any).top === "number"
+      && typeof (anchorRect as any).right === "number"
+      && typeof (anchorRect as any).bottom === "number"
+      && typeof (anchorRect as any).width === "number"
+      && typeof (anchorRect as any).height === "number";
+  }, []);
+
+  const handleMentionClickMessage = useCallback((data: Extract<BlocksuiteFrameToHostPayload, { type: "mention-click" }>) => {
     try {
-      clearMentionProfilePopoverCloseTimer();
-      setMentionProfilePopover(null);
-      const to = `/profile/${encodeURIComponent(userId)}`;
-      const handled = onNavigateRef.current?.(to);
-      if (handled === true) {
+      const anchorRect = data.anchorRect as any;
+      if (!isValidAnchorRect(anchorRect))
         return;
-      }
-      navigate(to);
+
+      openMentionProfilePopoverNow({
+        targetKind: data.targetKind,
+        targetId: data.targetId,
+        anchorRect,
+      });
     }
     catch {
     }
-  }, [clearMentionProfilePopoverCloseTimer, navigate]);
+  }, [isValidAnchorRect, openMentionProfilePopoverNow]);
 
-  const handleMentionHoverMessage = useCallback((data: any) => {
+  const handleMentionHoverMessage = useCallback((data: Extract<BlocksuiteFrameToHostPayload, { type: "mention-hover" }>) => {
     if (data.state === "enter") {
       const anchorRect = data.anchorRect as any;
-      const anchorRectOk = Boolean(anchorRect)
-        && typeof anchorRect.left === "number"
-        && typeof anchorRect.top === "number"
-        && typeof anchorRect.right === "number"
-        && typeof anchorRect.bottom === "number"
-        && typeof anchorRect.width === "number"
-        && typeof anchorRect.height === "number";
-
-      if (!anchorRectOk)
+      if (!isValidAnchorRect(anchorRect))
         return;
 
       try {
-        scheduleMentionProfilePopoverOpen({ userId: data.userId, anchorRect });
+        scheduleMentionProfilePopoverOpen({
+          targetKind: data.targetKind,
+          targetId: data.targetId,
+          anchorRect,
+        });
       }
       catch {
       }
@@ -114,7 +125,7 @@ export function useBlocksuiteMentionProfilePopover(params: UseBlocksuiteMentionP
           clearMentionProfilePopoverOpenTimer();
           return;
         }
-        if (current.userId !== data.userId)
+        if (current.targetKind !== data.targetKind || current.targetId !== data.targetId)
           return;
         clearMentionProfilePopoverOpenTimer();
         scheduleMentionProfilePopoverClose();
@@ -122,7 +133,7 @@ export function useBlocksuiteMentionProfilePopover(params: UseBlocksuiteMentionP
       catch {
       }
     }
-  }, [clearMentionProfilePopoverOpenTimer, scheduleMentionProfilePopoverClose, scheduleMentionProfilePopoverOpen]);
+  }, [clearMentionProfilePopoverOpenTimer, isValidAnchorRect, scheduleMentionProfilePopoverClose, scheduleMentionProfilePopoverOpen]);
 
   useEffect(() => {
     if (!mentionProfilePopover)
