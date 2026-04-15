@@ -1,4 +1,4 @@
-import type { UserRole } from "api/models/UserRole";
+import type { UserRole } from "@tuanchat/openapi-client/models/UserRole";
 
 import { tuanchat } from "api/instance";
 
@@ -8,10 +8,18 @@ export type BlocksuiteMentionRoleEntry = UserRole & {
   roleId: number;
 };
 
+function isBlocksuiteMentionNpcRole(role: UserRole | null | undefined) {
+  return role?.type === 2 || role?.npc === true;
+}
+
 function normalizeRoleList(roles: Array<UserRole | null | undefined>): BlocksuiteMentionRoleEntry[] {
   const deduped = new Map<number, BlocksuiteMentionRoleEntry>();
 
   roles.forEach((role) => {
+    if (!isBlocksuiteMentionNpcRole(role)) {
+      return;
+    }
+
     const roleId = Number(role?.roleId);
     if (!Number.isFinite(roleId) || roleId <= 0) {
       return;
@@ -33,20 +41,13 @@ async function listBlocksuiteRoomMentionRoles(roomId: number): Promise<Blocksuit
     return [];
   }
 
-  const [roomRoleResult, roomNpcRoleResult] = await Promise.allSettled([
-    tuanchat.roomRoleController.roomRole(roomId),
-    tuanchat.roomRoleController.roomNpcRole(roomId),
-  ]);
-
-  const roles: Array<UserRole | null | undefined> = [];
-  if (roomRoleResult.status === "fulfilled") {
-    roles.push(...(roomRoleResult.value.data ?? []));
+  try {
+    const roomNpcRoleResult = await tuanchat.roomRoleController.roomNpcRole(roomId);
+    return normalizeRoleList(roomNpcRoleResult.data ?? []);
   }
-  if (roomNpcRoleResult.status === "fulfilled") {
-    roles.push(...(roomNpcRoleResult.value.data ?? []));
+  catch {
+    return [];
   }
-
-  return normalizeRoleList(roles);
 }
 
 async function listBlocksuiteSpaceMentionRoles(spaceId: number): Promise<BlocksuiteMentionRoleEntry[]> {
@@ -79,3 +80,4 @@ export async function listBlocksuiteMentionRoles(params: {
     return [];
   }
 }
+

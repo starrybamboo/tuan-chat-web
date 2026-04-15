@@ -1,7 +1,7 @@
 import { tuanchat } from "../instance";
-import type { ApiRequestOptions } from "../core/ApiRequestOptions";
-import type { ApiResultVoid } from "../models/ApiResultVoid";
-import type { LeaderTransferRequest } from "../models/LeaderTransferRequest";
+import type { ApiRequestOptions } from "@tuanchat/openapi-client/core/ApiRequestOptions";
+import type { ApiResultVoid } from "@tuanchat/openapi-client/models/ApiResultVoid";
+import type { LeaderTransferRequest } from "@tuanchat/openapi-client/models/LeaderTransferRequest";
 
 type TransferLeaderController = {
   transferLeader?: (requestBody: LeaderTransferRequest) => PromiseLike<ApiResultVoid>;
@@ -39,3 +39,4 @@ export async function transferLeaderWithFallbackDeps(
 export async function transferLeaderWithFallback(requestBody: LeaderTransferRequest) {
   return await transferLeaderWithFallbackDeps(requestBody, defaultDeps);
 }
+

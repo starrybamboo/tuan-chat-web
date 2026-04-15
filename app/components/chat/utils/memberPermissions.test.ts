@@ -5,6 +5,7 @@ import {
   canManageMemberPermissions,
   canManageRoomRoles,
   canParticipateInRoom,
+  canViewRoomNpcRoles,
   getMemberTypeSortWeight,
   hasHostPrivileges,
   isObserverLike,
@@ -33,6 +34,14 @@ describe("memberPermissions", () => {
   it("玩家可参与房间并管理自己的房间角色", () => {
     expect(canParticipateInRoom(SPACE_MEMBER_TYPE.PLAYER)).toBe(true);
     expect(canManageRoomRoles(SPACE_MEMBER_TYPE.PLAYER)).toBe(true);
+  });
+
+  it("房间 NPC 仅对非玩家视角显示", () => {
+    expect(canViewRoomNpcRoles(SPACE_MEMBER_TYPE.LEADER)).toBe(true);
+    expect(canViewRoomNpcRoles(SPACE_MEMBER_TYPE.ASSISTANT_LEADER)).toBe(true);
+    expect(canViewRoomNpcRoles(SPACE_MEMBER_TYPE.OBSERVER)).toBe(true);
+    expect(canViewRoomNpcRoles(SPACE_MEMBER_TYPE.BOT)).toBe(true);
+    expect(canViewRoomNpcRoles(SPACE_MEMBER_TYPE.PLAYER)).toBe(false);
   });
 
   it("观战和骰娘都应被视为不可发言的旁观角色", () => {

@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 
-import type { MessageDirectResponse } from "api/models/MessageDirectResponse";
+import type { MessageDirectResponse } from "@tuanchat/openapi-client/models/MessageDirectResponse";
 import type { DirectMessageEvent } from "api/wsModels";
 
 import { useGlobalContext } from "@/components/globalContextProvider";
@@ -50,3 +50,4 @@ function mergeMessages(historyMessages: MessageDirectResponse[], currentContactM
 
   return allMessages;
 }
+

@@ -99,7 +99,7 @@ function summarizeDroppedFiles(dataTransfer: DataTransfer | null | undefined): D
 export function getFileDragOverlayText(dataTransfer: DataTransfer | null | undefined): string {
   const summary = summarizeDroppedFiles(dataTransfer);
   if (summary.total <= 0) {
-    return "松开添加文件/视频/音频/图片";
+    return "松开添加图片/视频/音频";
   }
   const kinds: string[] = [];
   if (summary.images > 0)
@@ -108,8 +108,9 @@ export function getFileDragOverlayText(dataTransfer: DataTransfer | null | undef
     kinds.push("视频");
   if (summary.audios > 0)
     kinds.push("音频");
-  if (summary.files > 0)
-    kinds.push("文件");
+  if (kinds.length === 0 && summary.files > 0) {
+    return "暂不支持发送文件";
+  }
   return `松开添加${kinds.join("、")}`;
 }
 
@@ -149,6 +150,17 @@ export function addDroppedFilesToComposer(dataTransfer: DataTransfer | null | un
     toast.error("未检测到可用文件");
     return true;
   }
+  const hasSupportedFiles = images.length > 0 || videos.length > 0 || audios.length > 0;
+  if (files.length > 0) {
+    toast.error(
+      hasSupportedFiles
+        ? `已忽略${files.length}个文件，当前仅支持图片、视频、音频`
+        : "暂不支持发送文件",
+    );
+  }
+  if (!hasSupportedFiles) {
+    return true;
+  }
 
   if (images.length > 0) {
     useChatComposerStore.getState().updateImgFiles((draft) => {
@@ -157,9 +169,9 @@ export function addDroppedFilesToComposer(dataTransfer: DataTransfer | null | un
     applyRoomMediaAnnotationPreferenceToComposer(roomId ?? -1, "image");
   }
 
-  if (videos.length > 0 || files.length > 0) {
+  if (videos.length > 0) {
     useChatComposerStore.getState().updateFileAttachments((draft) => {
-      draft.push(...videos, ...files);
+      draft.push(...videos);
     });
   }
 
@@ -187,9 +199,6 @@ export function addDroppedFilesToComposer(dataTransfer: DataTransfer | null | un
   }
   if (videos.length > 0) {
     summaryParts.push(`${videos.length}个视频`);
-  }
-  if (files.length > 0) {
-    summaryParts.push(`${files.length}个文件`);
   }
   toast.success(`已添加${summaryParts.join("、")}`);
 

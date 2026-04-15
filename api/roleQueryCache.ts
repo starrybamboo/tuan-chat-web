@@ -1,5 +1,5 @@
 import type { QueryClient } from "@tanstack/react-query";
-import type { UserRole } from "./models/UserRole";
+import type { UserRole } from "@tuanchat/openapi-client/models/UserRole";
 
 function hasRoleId(role?: UserRole | null): role is UserRole & { roleId: number } {
   return typeof role?.roleId === "number" && role.roleId > 0;
@@ -66,3 +66,4 @@ export function seedUserRoleListQueryCache(queryClient: QueryClient, roles?: Arr
     seedUserRoleQueryCache(queryClient, role ?? null);
   });
 }
+

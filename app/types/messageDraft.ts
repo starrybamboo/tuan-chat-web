@@ -1,5 +1,5 @@
-import type { ChatMessageRequest } from "../../api/models/ChatMessageRequest";
-import type { MaterialMessageItem } from "../../api/models/MaterialMessageItem";
+import type { ChatMessageRequest } from "@tuanchat/openapi-client/models/ChatMessageRequest";
+import type { MaterialMessageItem } from "@tuanchat/openapi-client/models/MaterialMessageItem";
 
 import { MessageType } from "../../api/wsModels";
 import { normalizeStateEventExtra } from "./stateEvent";
@@ -474,3 +474,4 @@ export function buildChatMessageRequestFromDraft(
 
   return request;
 }
+

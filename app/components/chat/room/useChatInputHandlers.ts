@@ -95,6 +95,18 @@ export default function useChatInputHandlers({
       }
     }
 
+    const hasSupportedFiles = imageFiles.length > 0 || videoFiles.length > 0 || audioFiles.length > 0;
+    if (otherFiles.length > 0) {
+      toast.error(
+        hasSupportedFiles
+          ? `已忽略${otherFiles.length}个文件，当前仅支持图片、视频、音频`
+          : "暂不支持发送文件",
+      );
+    }
+    if (!hasSupportedFiles) {
+      return;
+    }
+
     const store = useChatComposerStore.getState();
 
     if (imageFiles.length > 0) {
@@ -104,9 +116,9 @@ export default function useChatInputHandlers({
       applyRoomMediaAnnotationPreferenceToComposer(roomId, "image");
     }
 
-    if (videoFiles.length > 0 || otherFiles.length > 0) {
+    if (videoFiles.length > 0) {
       store.updateFileAttachments((draft) => {
-        draft.push(...videoFiles, ...otherFiles);
+        draft.push(...videoFiles);
       });
     }
 

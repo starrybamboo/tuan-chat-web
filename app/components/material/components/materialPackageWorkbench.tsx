@@ -1,6 +1,6 @@
 import type { DragEvent } from "react";
 import type { UserRole } from "../../../../api";
-import type { MaterialNode } from "../../../../api/models/MaterialNode";
+import type { MaterialNode } from "@tuanchat/openapi-client/models/MaterialNode";
 import type { MaterialMessageComposerHandle } from "./materialMessageComposer";
 import type { MaterialPackageDraft } from "./materialPackageEditorShared";
 import type { MaterialEditorActionScope } from "@/components/chat/chatPage.types";
@@ -24,11 +24,10 @@ import { useGlobalContext } from "@/components/globalContextProvider";
 import { useMaterialEditorActionStore } from "@/components/material/stores/materialEditorActionStore";
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
 import { useGetUserRolesQuery } from "../../../../api/hooks/RoleAndAvatarHooks";
-import { MaterialNode as MaterialNodeModel } from "../../../../api/models/MaterialNode";
+import { MaterialNode as MaterialNodeModel } from "@tuanchat/openapi-client/models/MaterialNode";
 import { MaterialComposerProvider } from "./materialComposerContext";
 import MaterialMessageComposer from "./materialMessageComposer";
 import MaterialMessageEditorCard from "./materialMessageEditorCard";
-import MaterialPackageAssetUploadMenu from "./materialPackageAssetUploadMenu";
 import {
   appendNodeToContent,
   collectFolderKeys,
@@ -53,10 +52,14 @@ interface MaterialPackageWorkbenchProps {
   dragPackageId?: number;
   requestedSelectedNodeKey?: string | null;
   sidebarActionScope?: MaterialEditorActionScope;
+  showStructureSidebar: boolean;
   draft: MaterialPackageDraft;
   readOnly: boolean;
   showPublicToggle: boolean;
   isCoverUploading: boolean;
+  deleteLabel?: string;
+  deletePending?: boolean;
+  onDelete?: () => Promise<void> | void;
   onUpdateDraft: (updater: (draft: MaterialPackageDraft) => MaterialPackageDraft) => void;
   onCoverUpload: (file: File) => void;
 }
@@ -186,10 +189,14 @@ export default function MaterialPackageWorkbench({
   dragPackageId,
   requestedSelectedNodeKey,
   sidebarActionScope,
+  showStructureSidebar,
   draft,
   readOnly,
   showPublicToggle,
   isCoverUploading,
+  deleteLabel = "删除",
+  deletePending = false,
+  onDelete,
   onUpdateDraft,
   onCoverUpload,
 }: MaterialPackageWorkbenchProps) {
@@ -461,17 +468,6 @@ export default function MaterialPackageWorkbench({
     });
   };
 
-  const focusComposer = () => {
-    scrollToComposer();
-    if (typeof window !== "undefined") {
-      window.requestAnimationFrame(() => {
-        composerRef.current?.focusInput();
-      });
-      return;
-    }
-    composerRef.current?.focusInput();
-  };
-
   const buildAssetDragPayload = (message: MessageDraft, assetIndex: number): MaterialItemDragPayload | null => {
     if (!selectedNode || selectedNode.type !== MaterialNodeModel.type.MATERIAL) {
       return null;
@@ -587,113 +583,117 @@ export default function MaterialPackageWorkbench({
   };
 
   return (
-    <div className="grid min-w-0 overflow-hidden lg:min-h-[680px] lg:grid-cols-[320px_minmax(0,1fr)]">
-      <aside className="border-b border-base-300 bg-base-200/45 lg:min-h-0 lg:border-r lg:border-b-0">
-        <div className="border-b border-base-300 px-3 py-3">
-          <div className="flex items-center justify-between rounded-md bg-base-300/55 px-2 py-1 text-[11px] font-semibold tracking-[0.08em] text-base-content/86">
-            <span className="truncate">素材结构</span>
-            {!readOnly && (
-              <div className="flex items-center gap-1">
-                <button
-                  type="button"
-                  className="inline-flex size-5 items-center justify-center rounded-sm text-base-content/60 transition hover:bg-base-100/70 hover:text-base-content/88"
-                  title="新增文件夹"
-                  onClick={handleAddFolder}
-                >
-                  <FolderSimpleIcon className="size-3.5" />
-                </button>
-                <button
-                  type="button"
-                  className="inline-flex size-5 items-center justify-center rounded-sm text-base-content/60 transition hover:bg-base-100/70 hover:text-base-content/88"
-                  title="新增素材"
-                  onClick={handleAddMaterial}
-                >
-                  <PlusIcon className="size-3.5" />
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
-
-        <div className="max-h-[40vh] min-h-56 overflow-y-auto px-2 py-2 lg:h-[calc(100%-4.75rem)] lg:max-h-none">
-          <div className="space-y-1">
-            <button
-              type="button"
-              className={`group relative flex w-full min-w-0 select-none items-center gap-2 rounded-lg px-2 py-2 text-left text-sm font-medium transition ${
-                selectedNodeKey === ROOT_NODE_KEY
-                  ? "bg-primary/10 text-primary"
-                  : "text-base-content/78 hover:bg-base-300 hover:text-base-content"
-              } ${dropTargetKey === ROOT_NODE_KEY ? "ring-2 ring-primary/20" : ""}`}
-              onClick={() => setSelectedNodeKey(ROOT_NODE_KEY)}
-              onDragOver={(event) => {
-                if (readOnly || !draggedNodeKey) {
-                  return;
-                }
-                event.preventDefault();
-                setDropTargetKey(ROOT_NODE_KEY);
-              }}
-              onDragLeave={() => {
-                if (dropTargetKey === ROOT_NODE_KEY) {
-                  setDropTargetKey("");
-                }
-              }}
-              onDrop={(event) => {
-                if (readOnly || !draggedNodeKey) {
-                  return;
-                }
-                event.preventDefault();
-                const sourcePath = parseNodePath(draggedNodeKey);
-                if (sourcePath.length === 0) {
-                  return;
-                }
-                const nextContent = removeNodeFromContent(draft.content, sourcePath);
-                const sourceNode = getNodeAtPath(rootNodes, sourcePath);
-                if (!sourceNode) {
-                  setDraggedNodeKey("");
-                  setDropTargetKey("");
-                  return;
-                }
-                const movedContent = appendNodeToContent(nextContent, [], sourceNode);
-                const movedPath = [movedContent.root?.length ? movedContent.root.length - 1 : 0];
-                onUpdateDraft(current => ({
-                  ...current,
-                  content: movedContent,
-                }));
-                setSelectedNodeKey(serializeNodePath(movedPath));
-                setDraggedNodeKey("");
-                setDropTargetKey("");
-              }}
-            >
-              <div className="flex size-10 items-center justify-center overflow-hidden rounded-md border border-base-300/60 bg-base-100">
-                {draft.coverUrl
-                  ? (
-                      <img
-                        src={draft.coverUrl}
-                        alt={draft.name || "素材包封面"}
-                        draggable={false}
-                        className="h-full w-full object-cover"
-                      />
-                    )
-                  : (
-                      <PackageIcon className="size-4 opacity-70" weight="duotone" />
-                    )}
-              </div>
-              <div className="min-w-0 flex-1">
-                <div className="truncate">{draft.name.trim() || "未命名素材包"}</div>
-                <div className="truncate text-[11px] text-base-content/45">
-                  {`${folderCount} 个文件夹 · ${materialCount} 个素材 · ${assetCount} 条素材条目`}
+    <div className={showStructureSidebar
+      ? "grid min-w-0 overflow-hidden lg:min-h-[680px] lg:grid-cols-[320px_minmax(0,1fr)]"
+      : "flex min-h-0 min-w-0 overflow-hidden lg:min-h-[680px]"}>
+      {showStructureSidebar && (
+        <aside className="border-b border-base-300 bg-base-200/45 lg:min-h-0 lg:border-r lg:border-b-0">
+          <div className="border-b border-base-300 px-3 py-3">
+            <div className="flex items-center justify-between rounded-md bg-base-300/55 px-2 py-1 text-[11px] font-semibold tracking-[0.08em] text-base-content/86">
+              <span className="truncate">素材结构</span>
+              {!readOnly && (
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    className="inline-flex size-5 items-center justify-center rounded-sm text-base-content/60 transition hover:bg-base-100/70 hover:text-base-content/88"
+                    title="新增文件夹"
+                    onClick={handleAddFolder}
+                  >
+                    <FolderSimpleIcon className="size-3.5" />
+                  </button>
+                  <button
+                    type="button"
+                    className="inline-flex size-5 items-center justify-center rounded-sm text-base-content/60 transition hover:bg-base-100/70 hover:text-base-content/88"
+                    title="新增素材"
+                    onClick={handleAddMaterial}
+                  >
+                    <PlusIcon className="size-3.5" />
+                  </button>
                 </div>
-              </div>
-            </button>
-
-            <div className="space-y-1 py-1">
-              {renderTree(rootNodes)}
+              )}
             </div>
           </div>
-        </div>
-      </aside>
 
-      <section className="min-h-0 overflow-y-auto bg-base-100/65 p-4 sm:p-5 lg:p-6">
+          <div className="max-h-[40vh] min-h-56 overflow-y-auto px-2 py-2 lg:h-[calc(100%-4.75rem)] lg:max-h-none">
+            <div className="space-y-1">
+              <button
+                type="button"
+                className={`group relative flex w-full min-w-0 select-none items-center gap-2 rounded-lg px-2 py-2 text-left text-sm font-medium transition ${
+                  selectedNodeKey === ROOT_NODE_KEY
+                    ? "bg-primary/10 text-primary"
+                    : "text-base-content/78 hover:bg-base-300 hover:text-base-content"
+                } ${dropTargetKey === ROOT_NODE_KEY ? "ring-2 ring-primary/20" : ""}`}
+                onClick={() => setSelectedNodeKey(ROOT_NODE_KEY)}
+                onDragOver={(event) => {
+                  if (readOnly || !draggedNodeKey) {
+                    return;
+                  }
+                  event.preventDefault();
+                  setDropTargetKey(ROOT_NODE_KEY);
+                }}
+                onDragLeave={() => {
+                  if (dropTargetKey === ROOT_NODE_KEY) {
+                    setDropTargetKey("");
+                  }
+                }}
+                onDrop={(event) => {
+                  if (readOnly || !draggedNodeKey) {
+                    return;
+                  }
+                  event.preventDefault();
+                  const sourcePath = parseNodePath(draggedNodeKey);
+                  if (sourcePath.length === 0) {
+                    return;
+                  }
+                  const nextContent = removeNodeFromContent(draft.content, sourcePath);
+                  const sourceNode = getNodeAtPath(rootNodes, sourcePath);
+                  if (!sourceNode) {
+                    setDraggedNodeKey("");
+                    setDropTargetKey("");
+                    return;
+                  }
+                  const movedContent = appendNodeToContent(nextContent, [], sourceNode);
+                  const movedPath = [movedContent.root?.length ? movedContent.root.length - 1 : 0];
+                  onUpdateDraft(current => ({
+                    ...current,
+                    content: movedContent,
+                  }));
+                  setSelectedNodeKey(serializeNodePath(movedPath));
+                  setDraggedNodeKey("");
+                  setDropTargetKey("");
+                }}
+              >
+                <div className="flex size-10 items-center justify-center overflow-hidden rounded-md border border-base-300/60 bg-base-100">
+                  {draft.coverUrl
+                    ? (
+                        <img
+                          src={draft.coverUrl}
+                          alt={draft.name || "素材包封面"}
+                          draggable={false}
+                          className="h-full w-full object-cover"
+                        />
+                      )
+                    : (
+                        <PackageIcon className="size-4 opacity-70" weight="duotone" />
+                      )}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="truncate">{draft.name.trim() || "未命名素材包"}</div>
+                  <div className="truncate text-[11px] text-base-content/45">
+                    {`${folderCount} 个文件夹 · ${materialCount} 个素材 · ${assetCount} 条素材条目`}
+                  </div>
+                </div>
+              </button>
+
+              <div className="space-y-1 py-1">
+                {renderTree(rootNodes)}
+              </div>
+            </div>
+          </div>
+        </aside>
+      )}
+
+      <section className="min-h-0 flex-1 overflow-y-auto bg-base-100/65 p-4 sm:p-5 lg:p-6">
         {selectedNodeKey === ROOT_NODE_KEY && (
           <div className="space-y-6">
             <div className="flex flex-wrap gap-2 text-xs text-base-content/60">
@@ -757,6 +757,28 @@ export default function MaterialPackageWorkbench({
                         }`}
                       />
                     </button>
+                  </div>
+                )}
+
+                {!readOnly && onDelete && (
+                  <div className="rounded-2xl border border-error/20 bg-error/5 px-4 py-4">
+                    <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                      <div className="space-y-1">
+                        <div className="text-sm font-medium text-error">危险操作</div>
+                        <div className="text-sm text-base-content/60">
+                          删除后会移除整个素材包及其内部全部文件夹、素材和素材条目。
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        className="inline-flex min-h-10 w-full items-center justify-center gap-2 rounded-md border border-error/30 bg-base-100 px-4 py-2.5 text-sm font-medium text-error transition hover:bg-error/10 disabled:opacity-60 sm:w-auto"
+                        onClick={() => void onDelete()}
+                        disabled={deletePending}
+                      >
+                        <TrashIcon className="size-4" />
+                        <span>{deletePending ? "删除中..." : deleteLabel}</span>
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>
@@ -890,23 +912,6 @@ export default function MaterialPackageWorkbench({
               <div className="space-y-3">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <div className="text-sm font-medium text-base-content/80">素材条目</div>
-                  <div className="flex flex-wrap items-center gap-3">
-                    {!readOnly && (
-                      <button
-                        type="button"
-                        className="inline-flex min-h-10 w-full items-center justify-center gap-2 rounded-md border border-base-300 bg-base-100 px-4 py-2.5 text-sm text-base-content transition hover:border-error/30 hover:bg-error/10 hover:text-error sm:w-auto"
-                        onClick={handleDeleteSelectedNode}
-                      >
-                        <TrashIcon className="size-4" />
-                        <span>删除素材</span>
-                      </button>
-                    )}
-                    {!readOnly && (
-                      <MaterialPackageAssetUploadMenu
-                        onQueuedToComposer={focusComposer}
-                      />
-                    )}
-                  </div>
                 </div>
 
                 {(selectedNode.messages?.length ?? 0) > 0
@@ -980,6 +985,27 @@ export default function MaterialPackageWorkbench({
                     />
                   </div>
                 )}
+
+                {!readOnly && (
+                  <div className="rounded-2xl border border-error/20 bg-error/5 px-4 py-4">
+                    <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                      <div className="space-y-1">
+                        <div className="text-sm font-medium text-error">危险操作</div>
+                        <div className="text-sm text-base-content/60">
+                          删除后会移除当前素材及其内部全部素材条目。
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        className="inline-flex min-h-10 w-full items-center justify-center gap-2 rounded-md border border-error/30 bg-base-100 px-4 py-2.5 text-sm font-medium text-error transition hover:bg-error/10 sm:w-auto"
+                        onClick={handleDeleteSelectedNode}
+                      >
+                        <TrashIcon className="size-4" />
+                        <span>删除素材</span>
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
 
             </div>
@@ -989,3 +1015,4 @@ export default function MaterialPackageWorkbench({
     </div>
   );
 }
+

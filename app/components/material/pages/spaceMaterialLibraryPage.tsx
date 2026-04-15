@@ -1,5 +1,5 @@
-import type { MaterialPackageContent } from "../../../../api/models/MaterialPackageContent";
-import type { SpaceMaterialPackageResponse } from "../../../../api/models/SpaceMaterialPackageResponse";
+import type { MaterialPackageContent } from "@tuanchat/openapi-client/models/MaterialPackageContent";
+import type { SpaceMaterialPackageResponse } from "@tuanchat/openapi-client/models/SpaceMaterialPackageResponse";
 import type { MaterialItemDragPayload } from "@/components/chat/utils/materialItemDrag";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
@@ -203,6 +203,13 @@ export default function SpaceMaterialLibraryPage({
     setIsCreating(false);
     updateSelectedLocation(null);
   };
+  const editorBackProps = embedded
+    ? {}
+    : {
+        backLabel: detailBackLabel,
+        onBack: handleCloseEditor,
+      };
+  const showEmbeddedStructureSidebar = !embedded;
 
   const handleNavigateToPublic = () => {
     navigate("/material?tab=public");
@@ -283,11 +290,11 @@ export default function SpaceMaterialLibraryPage({
           valueKey="space-create"
           dragPackageId={undefined}
           sidebarActionScope="detail"
+          showStructureSidebar={showEmbeddedStructureSidebar}
           title="新建局内素材包"
           subtitle="当前空间的局内素材包会像本地仓库一样管理素材副本，编辑体验与局外素材包保持一致。"
           initialDraft={buildMaterialPackageEditorDraft()}
-          backLabel={detailBackLabel}
-          onBack={handleCloseEditor}
+          {...editorBackProps}
           saveLabel="创建局内素材包"
           savePending={createMutation.isPending}
           onSave={handleCreate}
@@ -299,14 +306,14 @@ export default function SpaceMaterialLibraryPage({
             valueKey={buildSpaceMaterialPackageEditorValueKey(selectedPackage)}
             dragPackageId={selectedPackage.spacePackageId}
             sidebarActionScope="detail"
+            showStructureSidebar={showEmbeddedStructureSidebar}
             title="编辑局内素材包"
             subtitle={selectedPackage.sourcePackageId
               ? `来源局外素材包：${selectedPackage.sourcePackageId} · 当前空间维护的是独立副本`
               : "这是当前空间直接创建的本地素材包"}
             selectedNodeKey={selectedMaterialPathKey}
             initialDraft={buildMaterialPackageEditorDraft(selectedPackage)}
-            backLabel={detailBackLabel}
-            onBack={handleCloseEditor}
+            {...editorBackProps}
             autoSave
             savePending={updateMutation.isPending}
             deletePending={deleteMutation.isPending}
@@ -351,3 +358,4 @@ export default function SpaceMaterialLibraryPage({
     </>
   );
 }
+

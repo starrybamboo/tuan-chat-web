@@ -7,8 +7,11 @@ export type BlocksuiteMentionAnchorRect = {
   height: number;
 };
 
+export type BlocksuiteMentionTargetKind = "user" | "role";
+
 export type BlocksuiteMentionProfilePopoverState = {
-  userId: string;
+  targetKind: BlocksuiteMentionTargetKind;
+  targetId: string;
   anchorRect: BlocksuiteMentionAnchorRect;
 };
 
@@ -41,6 +44,9 @@ export function buildBlocksuiteMentionPopoverPosition(
   return { top, left, width, height };
 }
 
-export function getBlocksuiteMentionProfileHref(userId: string) {
-  return `/profile/${encodeURIComponent(userId)}`;
+export function getBlocksuiteMentionProfileHref(state: Pick<BlocksuiteMentionProfilePopoverState, "targetKind" | "targetId">) {
+  if (state.targetKind === "role") {
+    return null;
+  }
+  return `/profile/${encodeURIComponent(state.targetId)}`;
 }

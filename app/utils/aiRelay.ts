@@ -1,4 +1,4 @@
-import type { AiGatewayRelayRequest } from "../../api/models/AiGatewayRelayRequest";
+import type { AiGatewayRelayRequest } from "@tuanchat/openapi-client/models/AiGatewayRelayRequest";
 
 import { tuanchat } from "../../api/instance";
 
@@ -20,3 +20,4 @@ export async function relayAiGatewayText(params: {
 
   return String(result?.data ?? "");
 }
+

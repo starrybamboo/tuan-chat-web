@@ -7,10 +7,10 @@ import {
   getVideoMessageExtra,
 } from "@/types/messageExtra";
 
-import type { MaterialNode } from "../../../../api/models/MaterialNode";
-import type { MaterialPackageContent } from "../../../../api/models/MaterialPackageContent";
+import type { MaterialNode } from "@tuanchat/openapi-client/models/MaterialNode";
+import type { MaterialPackageContent } from "@tuanchat/openapi-client/models/MaterialPackageContent";
 
-import { MaterialNode as MaterialNodeModel } from "../../../../api/models/MaterialNode";
+import { MaterialNode as MaterialNodeModel } from "@tuanchat/openapi-client/models/MaterialNode";
 import { MessageType } from "../../../../api/wsModels";
 import { createEmptyMaterialPackageContent } from "./materialPackageEditorShared";
 
@@ -522,3 +522,4 @@ export function countMaterialAssets(nodes: MaterialNode[] | undefined): number {
 
   return count;
 }
+

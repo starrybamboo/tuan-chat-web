@@ -1,0 +1,12 @@
+{
+  "name": "@tuanchat/openapi-client",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./TuanChat": "./src/TuanChat.ts",
+    "./core/*": "./src/core/*",
+    "./models/*": "./src/models/*",
+    "./services/*": "./src/services/*"
+  }
+}

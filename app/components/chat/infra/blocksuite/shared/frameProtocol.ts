@@ -6,6 +6,7 @@ import type { BlocksuiteDocHeader } from "@/components/chat/infra/blocksuite/doc
 export const BLOCKSUITE_FRAME_MESSAGE_NAMESPACE = "tc-blocksuite-frame";
 
 export type BlocksuiteFrameTheme = "light" | "dark";
+export type BlocksuiteFrameMentionTargetKind = "user" | "role";
 
 export type BlocksuiteFrameSyncParams = {
   workspaceId: string;
@@ -46,13 +47,15 @@ export type BlocksuiteFrameToHostPayload
   }
   | {
     type: "mention-click";
-    userId: string;
+    targetKind: BlocksuiteFrameMentionTargetKind;
+    targetId: string;
     anchorRect?: BlocksuiteFrameAnchorRect | null;
   }
   | {
     type: "mention-hover";
     state: "enter" | "leave";
-    userId: string;
+    targetKind: BlocksuiteFrameMentionTargetKind;
+    targetId: string;
     anchorRect?: BlocksuiteFrameAnchorRect | null;
   }
   | {

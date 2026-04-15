@@ -1,4 +1,4 @@
-import type { MaterialPackageContent } from "../../../../api/models/MaterialPackageContent";
+import type { MaterialPackageContent } from "@tuanchat/openapi-client/models/MaterialPackageContent";
 import type { MaterialPackageDraft } from "./materialPackageEditorShared";
 
 import { createEmptyMaterialPackageContent } from "./materialPackageEditorShared";
@@ -18,7 +18,8 @@ export function buildMaterialPackageEditorDraft(
     name: pkg?.name ?? "",
     description: pkg?.description ?? "",
     coverUrl: pkg?.coverUrl ?? "",
-    isPublic: pkg?.isPublic ?? true,
+    isPublic: pkg?.isPublic ?? false,
     content: pkg?.content ?? createEmptyMaterialPackageContent(),
   };
 }
+

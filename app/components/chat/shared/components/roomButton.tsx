@@ -1,6 +1,7 @@
 import type { Room } from "../../../../../api";
 import React from "react";
 import { useEntityHeaderOverrideStore } from "@/components/chat/stores/entityHeaderOverrideStore";
+import { resolveEntityImageUrl } from "./entityImageUrl";
 
 export default function RoomButton({
   room,
@@ -24,7 +25,7 @@ export default function RoomButton({
   const headerOverride = useEntityHeaderOverrideStore(state => state.headers[`room:${room.roomId}`]);
   const displayName = headerOverride?.title || room.name;
   const fallbackAvatar = "/favicon.ico";
-  const displayAvatar = headerOverride?.imageUrl || room.avatar || fallbackAvatar;
+  const displayAvatar = resolveEntityImageUrl(headerOverride?.imageUrl || room.avatar, fallbackAvatar);
 
   return (
     <div

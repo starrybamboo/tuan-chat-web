@@ -2,10 +2,48 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 
+import { buildBlocksuiteMentionAnchorRect } from "../shared/mentionAnchorRect";
 import { BlocksuiteMentionProfileCardView } from "../../../shared/components/BlockSuite/blocksuiteMentionProfilePopover";
-import { buildBlocksuiteMentionPopoverPosition } from "../../../shared/components/BlockSuite/blocksuiteMentionProfilePopover.shared";
+import {
+  buildBlocksuiteMentionPopoverPosition,
+  getBlocksuiteMentionProfileHref,
+} from "../../../shared/components/BlockSuite/blocksuiteMentionProfilePopover.shared";
 
 describe("blocksuiteMentionProfilePopover", () => {
+  it("会把 iframe foreign realm 的 frameElement 坐标换算到宿主视口", () => {
+    const anchorRect = buildBlocksuiteMentionAnchorRect({
+      target: {
+        getBoundingClientRect: () => ({
+          left: 320,
+          top: 180,
+          right: 380,
+          bottom: 204,
+          width: 60,
+          height: 24,
+        }),
+      },
+      frameElement: {
+        getBoundingClientRect: () => ({
+          left: 520,
+          top: 96,
+          right: 1480,
+          bottom: 896,
+          width: 960,
+          height: 800,
+        }),
+      },
+    });
+
+    expect(anchorRect).toEqual({
+      left: 840,
+      top: 276,
+      right: 900,
+      bottom: 300,
+      width: 60,
+      height: 24,
+    });
+  });
+
   it("popover 定位会被限制在视口内部", () => {
     const originalWindow = globalThis.window;
     Object.defineProperty(globalThis, "window", {
@@ -39,6 +77,7 @@ describe("blocksuiteMentionProfilePopover", () => {
   it("卡片渲染不再包含 iframe", () => {
     const html = renderToStaticMarkup(
       createElement(BlocksuiteMentionProfileCardView, {
+        kind: "user",
         userId: "12",
         href: "/profile/12",
         user: {
@@ -56,5 +95,36 @@ describe("blocksuiteMentionProfilePopover", () => {
     expect(html).toContain("Alice");
     expect(html).toContain("查看完整资料");
     expect(html).not.toContain("<iframe");
+  });
+
+  it("角色卡片渲染不再包含 iframe", () => {
+    const html = renderToStaticMarkup(
+      createElement(BlocksuiteMentionProfileCardView, {
+        kind: "role",
+        roleId: "34",
+        href: null,
+        role: {
+          roleId: 34,
+          userId: 1,
+          roleName: "艾拉",
+          description: "调查员角色",
+          avatarThumbUrl: "https://example.com/role.png",
+          type: 2,
+        },
+        isLoading: false,
+        isError: false,
+        onOpenRoleDetail: () => {},
+      }),
+    );
+
+    expect(html).toContain("艾拉");
+    expect(html).toContain("查看 NPC 详情");
+    expect(html).not.toContain("/role/34");
+    expect(html).not.toContain("<iframe");
+  });
+
+  it("会根据目标类型生成正确跳转链接", () => {
+    expect(getBlocksuiteMentionProfileHref({ targetKind: "user", targetId: "12" })).toBe("/profile/12");
+    expect(getBlocksuiteMentionProfileHref({ targetKind: "role", targetId: "34" })).toBeNull();
   });
 });

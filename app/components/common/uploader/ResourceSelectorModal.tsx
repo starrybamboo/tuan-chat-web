@@ -1,5 +1,5 @@
-import type { CollectionList } from "../../../../api/models/CollectionList";
-import type { ResourceResponse } from "../../../../api/models/ResourceResponse";
+import type { CollectionList } from "@tuanchat/openapi-client/models/CollectionList";
+import type { ResourceResponse } from "@tuanchat/openapi-client/models/ResourceResponse";
 
 import { useState } from "react";
 import { toast } from "react-hot-toast";
@@ -543,3 +543,4 @@ export function ResourceSelectorModal({
     </div>
   );
 }
+

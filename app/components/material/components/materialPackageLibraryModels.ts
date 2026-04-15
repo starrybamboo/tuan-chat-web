@@ -1,5 +1,5 @@
-import type { MaterialPackageResponse } from "../../../../api/models/MaterialPackageResponse";
-import type { SpaceMaterialPackageResponse } from "../../../../api/models/SpaceMaterialPackageResponse";
+import type { MaterialPackageResponse } from "@tuanchat/openapi-client/models/MaterialPackageResponse";
+import type { SpaceMaterialPackageResponse } from "@tuanchat/openapi-client/models/SpaceMaterialPackageResponse";
 
 export type MaterialPackageLibraryPlaceholderIcon = "house" | "package";
 
@@ -76,3 +76,4 @@ export function buildSpaceMaterialPackageCardModel(
     updateTime: item.updateTime,
   };
 }
+

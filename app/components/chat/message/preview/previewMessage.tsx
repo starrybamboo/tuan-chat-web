@@ -1,5 +1,5 @@
 import type { Message } from "../../../../../api";
-import { use } from "react";
+import { use, useEffect, useRef } from "react";
 import { useGetMessageByIdSmartly } from "@/components/chat/core/hooks";
 import { RoomContext } from "@/components/chat/core/roomContext";
 import { canCurrentUserViewMessage } from "@/components/chat/utils/hiddenDiceVisibility";
@@ -9,6 +9,49 @@ import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
 import { useGetRoleQuery } from "../../../../../api/hooks/RoleAndAvatarHooks";
 import { getMessagePreviewText } from "./getMessagePreviewText";
 import { MessagePreviewContent } from "./messagePreviewContent";
+
+type PreviewRenderState = {
+  previewMessage?: Message;
+  previewText: string;
+  isPlainTextOnly: boolean;
+};
+
+export function buildPreviewRenderState({
+  messageBody,
+  fallbackPreviewMessage,
+  canViewMessage,
+}: {
+  messageBody?: Message;
+  fallbackPreviewMessage?: Message;
+  canViewMessage: boolean;
+}): PreviewRenderState {
+  if (messageBody) {
+    if (!canViewMessage) {
+      return {
+        previewText: "[消息不可见]",
+        isPlainTextOnly: true,
+      };
+    }
+    return {
+      previewMessage: messageBody,
+      previewText: getMessagePreviewText(messageBody),
+      isPlainTextOnly: messageBody.status === 1,
+    };
+  }
+
+  if (fallbackPreviewMessage) {
+    return {
+      previewMessage: fallbackPreviewMessage,
+      previewText: getMessagePreviewText(fallbackPreviewMessage),
+      isPlainTextOnly: fallbackPreviewMessage.status === 1,
+    };
+  }
+
+  return {
+    previewText: getMessagePreviewText(undefined),
+    isPlainTextOnly: true,
+  };
+}
 
 /**
  * 消息预览组件，用于显示消息的简要内容
@@ -22,16 +65,39 @@ export function PreviewMessage({ message, className, withMediaPreview }: {
   withMediaPreview?: boolean;
 }) {
   const roomContext = use(RoomContext);
+  const previewCacheRef = useRef<{ key: number; message: Message } | null>(null);
   // 如果传的是id就从历史消息里面找，没找到就去query。如果是Message类型就直接拿来用
   const getMessageByIdSmartly = useGetMessageByIdSmartly(typeof message === "number" ? message : -1);
   const messageBody = typeof message === "number"
     ? getMessageByIdSmartly
     : message;
-  const canViewMessage = canCurrentUserViewMessage(messageBody, {
+  const resolvedMessageId = typeof message === "number"
+    ? (roomContext.chatHistory?.resolveMessageId(message) ?? message)
+    : (message.messageId ?? -1);
+  const hasResolvedMessage = Boolean(messageBody);
+  const canViewMessage = hasResolvedMessage && canCurrentUserViewMessage(messageBody, {
     currentUserId: roomContext.curMember?.userId,
     memberType: roomContext.curMember?.memberType,
   });
-  const previewMessage = canViewMessage ? messageBody : undefined;
+  useEffect(() => {
+    if (!messageBody || !canViewMessage || !Number.isFinite(resolvedMessageId)) {
+      return;
+    }
+    previewCacheRef.current = {
+      key: resolvedMessageId,
+      message: messageBody,
+    };
+  }, [canViewMessage, messageBody, resolvedMessageId]);
+
+  const fallbackPreviewMessage = previewCacheRef.current?.key === resolvedMessageId
+    ? previewCacheRef.current.message
+    : undefined;
+  const renderState = buildPreviewRenderState({
+    messageBody,
+    fallbackPreviewMessage,
+    canViewMessage,
+  });
+  const previewMessage = renderState.previewMessage;
 
   const useRoleRequest = useGetRoleQuery(previewMessage?.roleId ?? -1);
   const role = useRoleRequest.data?.data;
@@ -48,13 +114,11 @@ export function PreviewMessage({ message, className, withMediaPreview }: {
       })
     : "";
 
-  const previewText = canViewMessage ? getMessagePreviewText(previewMessage) : "[消息不可见]";
-
   return (
     <span className={`text-xs sm:text-sm line-clamp-3 opacity-60 break-words min-w-0 ${isOutOfCharacterText ? "italic" : ""} ${className}`}>
       {
-        isDeleted || !canViewMessage
-          ? previewText
+        isDeleted || renderState.isPlainTextOnly
+          ? renderState.previewText
           : (
               <>
                 {displayRoleName ? `【${displayRoleName}】: ` : ""}

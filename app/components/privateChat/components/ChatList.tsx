@@ -1,4 +1,4 @@
-import type { FriendResponse } from "api/models/FriendResponse";
+import type { FriendResponse } from "@tuanchat/openapi-client/models/FriendResponse";
 import type { MessageDirectType } from "../types/messageDirect";
 import { useMemo } from "react";
 import ChatItem from "./ChatItem";
@@ -98,3 +98,4 @@ export default function ChatListItem({
     </div>
   );
 }
+

@@ -26,7 +26,7 @@ export type AnnotationDefinition = {
   category?: string;
   iconUrl?: string;
   tone?: AnnotationTone;
-  /** 在非联动（普通）模式下是否展示到消息气泡下方，默认 false */
+  /** 在非联动（普通）模式下是否展示到消息气泡下方；未显式指定时按普通模式隐藏名单决定 */
   showInNormalMode?: boolean;
   source?: "builtin" | "custom";
   icon?: AnnotationIcon;
@@ -92,8 +92,27 @@ const BUILTIN_ANNOTATIONS: AnnotationDefinition[] = [
 
 const CUSTOM_STORAGE_KEY = "tc:message-annotations:custom";
 const USAGE_STORAGE_KEY = "tc:message-annotations:usage";
+const NORMAL_MODE_HIDDEN_ANNOTATION_IDS = new Set([
+  "figure.pos.left",
+  "figure.pos.left-center",
+  "figure.pos.center",
+  "figure.pos.right-center",
+  "figure.pos.right",
+  "dialog.notend",
+  "dialog.concat",
+  "dialog.next",
+  "video.skipoff",
+  "figure.clear",
+]);
 
 const isBrowser = () => typeof window !== "undefined" && typeof window.localStorage !== "undefined";
+
+function withNormalModeVisibilityDefaults<T extends AnnotationDefinition>(item: T): T {
+  return {
+    ...item,
+    showInNormalMode: item.showInNormalMode ?? !NORMAL_MODE_HIDDEN_ANNOTATION_IDS.has(item.id),
+  };
+}
 
 function safeParseJson<T>(raw: string | null, fallback: T): T {
   if (!raw)
@@ -117,7 +136,7 @@ export function loadCustomAnnotations(): AnnotationDefinition[] {
   return Array.isArray(raw)
     ? raw
         .filter(isValidAnnotation)
-        .map(item => ({ ...item, source: "custom", showInNormalMode: Boolean(item.showInNormalMode) }))
+        .map(item => withNormalModeVisibilityDefaults({ ...item, source: "custom" }))
     : [];
 }
 
@@ -130,7 +149,7 @@ export function saveCustomAnnotations(items: AnnotationDefinition[]) {
     category: item.category,
     iconUrl: item.iconUrl,
     tone: item.tone,
-    showInNormalMode: Boolean(item.showInNormalMode),
+    showInNormalMode: item.showInNormalMode ?? !NORMAL_MODE_HIDDEN_ANNOTATION_IDS.has(item.id),
   }));
   window.localStorage.setItem(CUSTOM_STORAGE_KEY, JSON.stringify(payload));
 }
@@ -141,7 +160,7 @@ export function mergeAnnotationCatalog(customItems?: AnnotationDefinition[]) {
   const push = (item: AnnotationDefinition) => {
     if (!seen.has(item.id)) {
       seen.add(item.id);
-      merged.push({ ...item, showInNormalMode: Boolean(item.showInNormalMode) });
+      merged.push(withNormalModeVisibilityDefaults(item));
     }
   };
   BUILTIN_ANNOTATIONS.forEach(push);

@@ -2,8 +2,8 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import type { RoleAbility } from "api/models/RoleAbility";
-import type { UserRole } from "api/models/UserRole";
+import type { RoleAbility } from "@tuanchat/openapi-client/models/RoleAbility";
+import type { UserRole } from "@tuanchat/openapi-client/models/UserRole";
 
 import UTILS from "@/components/common/dicer/utils/utils";
 
@@ -297,3 +297,4 @@ describe("d&D 5e 指令集测试", () => {
     });
   });
 });
+

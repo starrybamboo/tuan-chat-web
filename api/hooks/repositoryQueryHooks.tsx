@@ -1,9 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { tuanchat } from "../instance";
-import type { RepositoryPageByUserRequest } from "../models/RepositoryPageByUserRequest";
-import type { RepositoryForkPageRequest } from "../models/RepositoryForkPageRequest";
-import type { RepositoryPageRequest } from "../models/RepositoryPageRequest";
-import type { RepositoryUpdateRequest } from "../models/RepositoryUpdateRequest";
+import type { RepositoryPageByUserRequest } from "@tuanchat/openapi-client/models/RepositoryPageByUserRequest";
+import type { RepositoryForkPageRequest } from "@tuanchat/openapi-client/models/RepositoryForkPageRequest";
+import type { RepositoryPageRequest } from "@tuanchat/openapi-client/models/RepositoryPageRequest";
+import type { RepositoryUpdateRequest } from "@tuanchat/openapi-client/models/RepositoryUpdateRequest";
 
 //========================item (物品相关) ==================================
 /**
@@ -345,4 +345,5 @@ function useUploadRepositoryRoleAvatarMutation() {
         mutationKey: ['uploadRepositoryRoleAvatar'],
     });
 }
+
 

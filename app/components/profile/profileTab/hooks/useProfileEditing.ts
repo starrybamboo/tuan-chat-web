@@ -1,7 +1,7 @@
 import { useState } from "react";
 
-import type { UserProfileInfoResponse } from "../../../../../api/models/UserProfileInfoResponse";
-import type { UserUpdateInfoRequest } from "../../../../../api/models/UserUpdateInfoRequest";
+import type { UserProfileInfoResponse } from "@tuanchat/openapi-client/models/UserProfileInfoResponse";
+import type { UserUpdateInfoRequest } from "@tuanchat/openapi-client/models/UserUpdateInfoRequest";
 
 import { useUpdateUserInfoMutation } from "../../../../../api/hooks/UserHooks";
 
@@ -80,3 +80,4 @@ export function useProfileEditing(user: UserProfileInfoResponse | undefined) {
     isSaving: updateUserInfoMutation.isPending,
   };
 }
+

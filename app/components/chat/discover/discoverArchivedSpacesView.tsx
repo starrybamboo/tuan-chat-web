@@ -1,7 +1,7 @@
-import type { ApiResultListSpace } from "api/models/ApiResultListSpace";
-import type { ApiResultPageBaseRespRepository } from "api/models/ApiResultPageBaseRespRepository";
-import type { Repository } from "api/models/Repository";
-import type { Space } from "api/models/Space";
+import type { ApiResultListSpace } from "@tuanchat/openapi-client/models/ApiResultListSpace";
+import type { ApiResultPageBaseRespRepository } from "@tuanchat/openapi-client/models/ApiResultPageBaseRespRepository";
+import type { Repository } from "@tuanchat/openapi-client/models/Repository";
+import type { Space } from "@tuanchat/openapi-client/models/Space";
 
 import { CompassIcon, PackageIcon } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
@@ -543,3 +543,4 @@ export default function DiscoverArchivedSpacesView({ mode }: DiscoverArchivedSpa
     </div>
   );
 }
+

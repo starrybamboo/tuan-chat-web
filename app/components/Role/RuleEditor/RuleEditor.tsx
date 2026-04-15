@@ -1,5 +1,5 @@
-import type { Rule } from "api/models/Rule";
-import { ApiError } from "api/core/ApiError";
+import type { Rule } from "@tuanchat/openapi-client/models/Rule";
+import { ApiError } from "@tuanchat/openapi-client/core/ApiError";
 import { useAllRuleListQuery, useCreateRuleMutation, useGetRuleDetailQuery, useUpdateRuleMutation } from "api/hooks/ruleQueryHooks";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import toast from "react-hot-toast";
@@ -657,3 +657,4 @@ export default function RuleEditor({
     </div>
   );
 }
+

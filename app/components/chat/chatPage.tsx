@@ -139,7 +139,7 @@ export default function ChatPage() {
     confirmTutorialUpdatePull,
   } = useTutorialOnboarding({
     userId,
-    enabled: true,
+    enabled: !isPrivateChatMode,
     navigate,
   });
   const {
@@ -825,7 +825,7 @@ export default function ChatPage() {
           spaceContextMenuProps={spaceContextMenuProps}
         />
         <TutorialUpdatePromptModal
-          open={Boolean(tutorialUpdatePrompt)}
+          open={!isPrivateChatMode && Boolean(tutorialUpdatePrompt)}
           mode={tutorialPromptType}
           latestCommitId={tutorialUpdatePrompt?.latestCommitId}
           currentCommitId={tutorialUpdatePrompt?.currentCommitId}

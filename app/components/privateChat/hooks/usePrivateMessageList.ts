@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef } from "react";
 
-import type { FriendResponse } from "api/models/FriendResponse";
-import type { MessageDirectResponse } from "api/models/MessageDirectResponse";
+import type { FriendResponse } from "@tuanchat/openapi-client/models/FriendResponse";
+import type { MessageDirectResponse } from "@tuanchat/openapi-client/models/MessageDirectResponse";
 import type { DirectMessageEvent } from "api/wsModels";
 
 import { useLocalStorage } from "@/components/common/customHooks/useLocalStorage";
@@ -14,24 +14,26 @@ type UsePrivateMessageListParams = {
   globalContext: any;
   userId: number;
   includeFriendList?: boolean;
+  enabled?: boolean;
 };
 
 export function usePrivateMessageList({
   globalContext,
   userId,
   includeFriendList = true,
+  enabled = true,
 }: UsePrivateMessageListParams) {
   const webSocketUtils = globalContext.websocketUtils;
 
   // 好友列表
-  const friendListQuery = useGetFriendListQuery({ pageNo: 1, pageSize: 100 }, includeFriendList);
+  const friendListQuery = useGetFriendListQuery({ pageNo: 1, pageSize: 100 }, includeFriendList && enabled);
   const friendUserInfos: FriendResponse[] = useMemo(
     () => (Array.isArray(friendListQuery.data?.data) ? friendListQuery.data.data : []),
     [friendListQuery.data],
   );
 
   // 从消息信箱获取私聊列表
-  const inboxQuery = useGetInboxMessagePageQuery();
+  const inboxQuery = useGetInboxMessagePageQuery(enabled);
   // 私聊列表应优先展示（头像/昵称可以逐步补齐），避免好友列表接口变慢导致左侧一直卡 loading
   const isLoading = inboxQuery.isLoading;
   const isInboxReady = inboxQuery.isSuccess;
@@ -184,3 +186,4 @@ function mergeMessages(
 
   return Object.fromEntries(mergedMessages);
 }
+

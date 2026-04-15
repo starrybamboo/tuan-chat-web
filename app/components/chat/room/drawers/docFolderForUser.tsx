@@ -1,4 +1,4 @@
-import type { SpaceUserDocResponse } from "../../../../../api/models/SpaceUserDocResponse";
+import type { SpaceUserDocResponse } from "@tuanchat/openapi-client/models/SpaceUserDocResponse";
 import type { FolderNode } from "./docFolderTagTree";
 import type { BlocksuiteDocHeader } from "@/components/chat/infra/blocksuite/document/docHeader";
 import type { DocRefDragPayload } from "@/components/chat/utils/docRef";
@@ -836,3 +836,4 @@ export default function DocFolderForUser({ onSendDocCard }: DocFolderForUserProp
     </div>
   );
 }
+

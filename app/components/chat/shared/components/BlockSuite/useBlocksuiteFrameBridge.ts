@@ -46,8 +46,8 @@ type UseBlocksuiteFrameBridgeParams = {
   }) => void;
   setFrameMode: (mode: DocMode) => void;
   setIsFrameReady: (ready: boolean) => void;
-  handleMentionClickMessage: (userId: string) => void;
-  handleMentionHoverMessage: (data: any) => void;
+  handleMentionClickMessage: (message: Extract<BlocksuiteFrameToHostPayload, { type: "mention-click" }>) => void;
+  handleMentionHoverMessage: (message: Extract<BlocksuiteFrameToHostPayload, { type: "mention-hover" }>) => void;
 };
 
 function createBlocksuiteFrameSyncParams(params: {
@@ -262,12 +262,19 @@ export function useBlocksuiteFrameBridge(params: UseBlocksuiteFrameBridgeParams)
         return;
       }
 
-      if (message.type === "mention-click" && typeof message.userId === "string" && message.userId) {
-        handleMentionClickMessage(message.userId);
+      if (message.type === "mention-click"
+        && (message.targetKind === "user" || message.targetKind === "role")
+        && typeof message.targetId === "string"
+        && message.targetId) {
+        handleMentionClickMessage(message);
         return;
       }
 
-      if (message.type === "mention-hover" && (message.state === "enter" || message.state === "leave") && typeof message.userId === "string" && message.userId) {
+      if (message.type === "mention-hover"
+        && (message.state === "enter" || message.state === "leave")
+        && (message.targetKind === "user" || message.targetKind === "role")
+        && typeof message.targetId === "string"
+        && message.targetId) {
         handleMentionHoverMessage(message);
         return;
       }

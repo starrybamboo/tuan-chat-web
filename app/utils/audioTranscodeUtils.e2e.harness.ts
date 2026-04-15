@@ -8,7 +8,9 @@ if (!root) {
   throw new Error("missing app root");
 }
 
-root.innerHTML = `
+const appRoot = root;
+
+appRoot.innerHTML = `
   <main>
     <input data-testid="audio-input" type="file" accept="audio/*" />
     <button data-testid="run-transcode" type="button">run</button>
@@ -22,15 +24,15 @@ root.innerHTML = `
   </main>
 `;
 
-const input = root.querySelector<HTMLInputElement>("[data-testid=\"audio-input\"]");
-const button = root.querySelector<HTMLButtonElement>("[data-testid=\"run-transcode\"]");
+const input = appRoot.querySelector<HTMLInputElement>("[data-testid=\"audio-input\"]");
+const button = appRoot.querySelector<HTMLButtonElement>("[data-testid=\"run-transcode\"]");
 
 if (!input || !button) {
   throw new Error("missing harness controls");
 }
 
 function setText(testId: string, value: string): void {
-  const element = root.querySelector<HTMLElement>(`[data-testid="${testId}"]`);
+  const element = appRoot.querySelector<HTMLElement>(`[data-testid="${testId}"]`);
   if (element) {
     element.textContent = value;
   }

@@ -1,9 +1,9 @@
-﻿import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import type { TagGetRequest } from "../models/TagGetRequest";
-import type { TagAddRequest } from "../models/TagAddRequest";
-import type { TagUpdateRequest } from "../models/TagUpdateRequest";
-import type { TagDeleteRequest } from "../models/TagDeleteRequest";
-import type { TagUsageRequest } from "../models/TagUsageRequest";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import type { TagGetRequest } from "@tuanchat/openapi-client/models/TagGetRequest";
+import type { TagAddRequest } from "@tuanchat/openapi-client/models/TagAddRequest";
+import type { TagUpdateRequest } from "@tuanchat/openapi-client/models/TagUpdateRequest";
+import type { TagDeleteRequest } from "@tuanchat/openapi-client/models/TagDeleteRequest";
+import type { TagUsageRequest } from "@tuanchat/openapi-client/models/TagUsageRequest";
 import { tuanchat } from "../instance";
 
 /**
@@ -93,5 +93,6 @@ export function useDeleteTagMutation() {
         },
     });
 }
+
 
 

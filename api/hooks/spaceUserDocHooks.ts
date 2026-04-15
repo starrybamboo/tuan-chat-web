@@ -1,8 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-import type { SpaceUserDocCreateRequest } from "../models/SpaceUserDocCreateRequest";
-import type { SpaceUserDocRenameRequest } from "../models/SpaceUserDocRenameRequest";
-import type { SpaceUserDocTagUpdateRequest } from "../models/SpaceUserDocTagUpdateRequest";
+import type { SpaceUserDocCreateRequest } from "@tuanchat/openapi-client/models/SpaceUserDocCreateRequest";
+import type { SpaceUserDocRenameRequest } from "@tuanchat/openapi-client/models/SpaceUserDocRenameRequest";
+import type { SpaceUserDocTagUpdateRequest } from "@tuanchat/openapi-client/models/SpaceUserDocTagUpdateRequest";
 import { tuanchat } from "../instance";
 
 export function useListSpaceUserDocsQuery(spaceId: number, tag?: string) {
@@ -66,3 +66,4 @@ export function useDeleteSpaceUserDocMutation() {
     },
   });
 }
+

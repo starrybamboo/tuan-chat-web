@@ -1,6 +1,6 @@
 import type { ExtensionType } from "@blocksuite/store";
 import type { Signal } from "@preact/signals-core";
-import type { UserRole } from "api/models/UserRole";
+import type { UserRole } from "@tuanchat/openapi-client/models/UserRole";
 
 import { createIdentifier } from "@blocksuite/global/di";
 import { signal } from "@preact/signals-core";
@@ -183,3 +183,4 @@ export function createTuanChatRoleService(params?: {
     seedRoles,
   };
 }
+

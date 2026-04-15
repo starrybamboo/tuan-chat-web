@@ -349,7 +349,7 @@ export function getAsyncMsg(sceneName: string, lineNumber: number, forceReload: 
 }
 
 /**
- * 生成 WebGAL 临时场景执行命令
- * 可以用来执行单条 WebGAL 命令而不改变当前场景状态
- * @param command WebGAL 命令字符串
+ * 生成 WebGAL 临时场景执行脚本
+ * 可以用来执行单条 WebGAL 场景脚本而不改变当前场景状态
+ * @param command WebGAL 场景脚本字符串
  */

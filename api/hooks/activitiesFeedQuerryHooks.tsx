@@ -1,6 +1,6 @@
 import {useMutation, useQuery, useQueryClient, useInfiniteQuery} from "@tanstack/react-query";
-import type {FeedPageRequest} from "../models/FeedPageRequest";
-import type {MomentFeedRequest} from "../models/MomentFeedRequest";
+import type {FeedPageRequest} from "@tuanchat/openapi-client/models/FeedPageRequest";
+import type {MomentFeedRequest} from "@tuanchat/openapi-client/models/MomentFeedRequest";
 import {tuanchat} from "../instance";
 
 /**
@@ -121,3 +121,4 @@ export function useGetMomentByIdQuery(feedId: number, enabled: boolean = true) {
         gcTime: 10 * 60 * 1000, // 缓存10分钟
     });
 }
+

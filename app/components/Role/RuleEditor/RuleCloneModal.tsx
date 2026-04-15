@@ -1,4 +1,4 @@
-import type { Rule } from "api/models/Rule";
+import type { Rule } from "@tuanchat/openapi-client/models/Rule";
 import { useDebounce } from "ahooks";
 import { useRuleDetailQuery } from "api/hooks/ruleQueryHooks";
 import { useEffect, useMemo, useState } from "react";
@@ -117,3 +117,4 @@ export default function RuleCloneModal({
     </dialog>
   );
 }
+

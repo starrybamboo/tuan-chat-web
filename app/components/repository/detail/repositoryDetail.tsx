@@ -1,4 +1,4 @@
-import type { Space } from "api/models/Space";
+import type { Space } from "@tuanchat/openapi-client/models/Space";
 import type { RepositoryData } from "./constants";
 import { useQueryClient } from "@tanstack/react-query";
 import { useGetUserRoomsQuery, useGetUserSpacesQuery } from "api/hooks/chatQueryHooks";
@@ -798,3 +798,4 @@ export default function RepositoryDetailComponent({
     </>
   );
 }
+

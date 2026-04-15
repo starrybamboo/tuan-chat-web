@@ -1,4 +1,4 @@
-import type { Rule } from "api/models/Rule";
+import type { Rule } from "@tuanchat/openapi-client/models/Rule";
 import { useCallback, useState } from "react";
 import Section from "../Editors/Section";
 import { RuleConfigurationSection } from "./RuleConfigurationSection";
@@ -164,3 +164,4 @@ export default function RuleExpansionModule({
     </div>
   );
 }
+

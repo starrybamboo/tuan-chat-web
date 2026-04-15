@@ -19,10 +19,13 @@ import useChatFrameNarratorToggle from "@/components/chat/hooks/useChatFrameNarr
 import useChatFrameOverlayState from "@/components/chat/hooks/useChatFrameOverlayState";
 import useChatFrameScrollState from "@/components/chat/hooks/useChatFrameScrollState";
 import useChatFrameSelectionContext from "@/components/chat/hooks/useChatFrameSelectionContext";
-import useChatFrameStickerActions from "@/components/chat/hooks/useChatFrameStickerActions";
 import useChatFrameVisualEffects from "@/components/chat/hooks/useChatFrameVisualEffects";
 import useChatFrameWebSocket from "@/components/chat/hooks/useChatFrameWebSocket";
 import { openMessageAnnotationPicker } from "@/components/chat/message/annotations/openMessageAnnotationPicker";
+import {
+  toggleImageMessageBackground,
+  toggleSoundMessageBgm,
+} from "@/components/chat/room/contextMenu/messageMediaQuickActions";
 import { compareChatMessageResponsesByOrder } from "@/components/chat/shared/messageOrder";
 import { createWebgalChooseOptionDraft } from "@/components/chat/shared/webgal/webgalChooseDraft";
 import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
@@ -135,7 +138,6 @@ function ChatFrame(props: ChatFrameProps) {
     updateMessageMutation,
   });
 
-  const { handleAddSticker } = useChatFrameStickerActions();
   const chatHistory = roomContext.chatHistory;
   const {
     send,
@@ -310,6 +312,32 @@ function ChatFrame(props: ChatFrameProps) {
       },
     });
   }, [historyMessages, roomContext, updateMessage]);
+
+  const applyContextMenuMessageUpdate = useCallback((
+    messageId: number,
+    buildNextMessage: (message: Message) => Message | null,
+  ) => {
+    const target = historyMessages.find(message => message.message.messageId === messageId);
+    if (!target) {
+      return;
+    }
+    const nextMessage = buildNextMessage(target.message);
+    if (!nextMessage) {
+      return;
+    }
+    updateMessage(nextMessage);
+    if (roomContext.updateAndRerenderMessageInWebGAL) {
+      void roomContext.updateAndRerenderMessageInWebGAL(target, { ...target, message: nextMessage }, false);
+    }
+  }, [historyMessages, roomContext, updateMessage]);
+
+  const handleToggleBackground = useCallback((messageId: number) => {
+    applyContextMenuMessageUpdate(messageId, toggleImageMessageBackground);
+  }, [applyContextMenuMessageUpdate]);
+
+  const handleToggleBgm = useCallback((messageId: number) => {
+    applyContextMenuMessageUpdate(messageId, toggleSoundMessageBgm);
+  }, [applyContextMenuMessageUpdate]);
 
   const { virtuosoIndexToMessageIndex, messageIndexToVirtuosoIndex } = useChatFrameIndexing(historyMessages.length);
 
@@ -545,7 +573,8 @@ function ChatFrame(props: ChatFrameProps) {
         onReply: handleReply,
         onMoveMessages: handleMoveMessages,
         onEditMessage: handleEditMessage,
-        onAddEmoji: handleAddSticker,
+        onToggleBackground: handleToggleBackground,
+        onToggleBgm: handleToggleBgm,
         onOpenAnnotations: handleOpenAnnotations,
         onInsertAfter: setInsertAfterMessageId,
         onToggleNarrator: handleToggleNarrator,

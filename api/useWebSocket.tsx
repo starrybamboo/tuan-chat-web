@@ -1,5 +1,5 @@
-import type { ChatMessageResponse } from "./models/ChatMessageResponse";
-import type { MessageDirectSendRequest } from "./models/MessageDirectSendRequest";
+import type { ChatMessageResponse } from "@tuanchat/openapi-client/models/ChatMessageResponse";
+import type { MessageDirectSendRequest } from "@tuanchat/openapi-client/models/MessageDirectSendRequest";
 import { formatLocalDateTime } from "@/utils/dateUtil";
 import { useQueryClient } from "@tanstack/react-query";
 import {useCallback, useEffect, useMemo, useRef, useState} from "react";
@@ -24,11 +24,11 @@ import {
   useGetUserSessionsQuery,
   useUpdateReadPosition1Mutation
 } from "./hooks/messageSessionQueryHooks";
-import type {MessageSessionResponse} from "./models/MessageSessionResponse";
-import type {ApiResultListMessageSessionResponse} from "./models/ApiResultListMessageSessionResponse";
-import type { ApiResultRoom } from "./models/ApiResultRoom";
-import type { ApiResultRoomListResponse } from "./models/ApiResultRoomListResponse";
-import type { ApiResultUserInfoResponse } from "./models/ApiResultUserInfoResponse";
+import type {MessageSessionResponse} from "@tuanchat/openapi-client/models/MessageSessionResponse";
+import type {ApiResultListMessageSessionResponse} from "@tuanchat/openapi-client/models/ApiResultListMessageSessionResponse";
+import type { ApiResultRoom } from "@tuanchat/openapi-client/models/ApiResultRoom";
+import type { ApiResultRoomListResponse } from "@tuanchat/openapi-client/models/ApiResultRoomListResponse";
+import type { ApiResultUserInfoResponse } from "@tuanchat/openapi-client/models/ApiResultUserInfoResponse";
 import { MessageType } from "./wsModels";
 import { triggerAudioAutoPlay } from "@/components/chat/infra/audioMessage/audioMessageAutoPlayRuntime";
 import { resolveAudioAutoPlayPurposeFromAnnotationTransition } from "@/components/chat/infra/audioMessage/audioMessageAutoPlayPolicy";
@@ -1601,3 +1601,4 @@ export function useWebSocket() {
   ]);
   return webSocketUtils;
 }
+

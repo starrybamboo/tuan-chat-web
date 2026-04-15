@@ -3,7 +3,7 @@ import { use, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import { RoomContext } from "@/components/chat/core/roomContext";
 import MemberLists from "@/components/chat/shared/components/memberLists";
-import { canManageMemberPermissions, canManageRoomRoles, hasHostPrivileges } from "@/components/chat/utils/memberPermissions";
+import { canManageMemberPermissions, canManageRoomRoles, canViewRoomNpcRoles, hasHostPrivileges } from "@/components/chat/utils/memberPermissions";
 import AddMemberWindow from "@/components/chat/window/addMemberWindow";
 import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
 import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
@@ -25,6 +25,7 @@ export default function RoomUserList({ type}: { type: string }) {
   const hasHostAccess = hasHostPrivileges(currentMemberType);
   const canInviteMembers = canManageMemberPermissions(currentMemberType);
   const canAddRole = canManageRoomRoles(currentMemberType);
+  const canViewNpcRoles = canViewRoomNpcRoles(currentMemberType);
   const [isMemberHandleOpen, setIsMemberHandleOpen] = useSearchParamsState<boolean>("memberSettingPop", false);
 
   const addMemberMutation = useAddRoomMemberMutation();
@@ -44,8 +45,13 @@ export default function RoomUserList({ type}: { type: string }) {
   const roomRolesQuery = useGetRoomRoleQuery(roomId);
   const roomRoles = useMemo(() => roomRolesQuery.data?.data ?? [], [roomRolesQuery.data?.data]);
 
-  const npcRolesQuery = useGetRoomNpcRoleQuery(roomId);
-  const npcRoles = useMemo(() => npcRolesQuery.data?.data ?? [], [npcRolesQuery.data?.data]);
+  const npcRolesQuery = useGetRoomNpcRoleQuery(canViewNpcRoles ? roomId : -1);
+  const npcRoles = useMemo(() => {
+    if (!canViewNpcRoles) {
+      return [];
+    }
+    return npcRolesQuery.data?.data ?? [];
+  }, [canViewNpcRoles, npcRolesQuery.data?.data]);
 
   const [isRoleHandleOpen, setIsRoleHandleOpen] = useState<boolean>(false);
   const [isNpcRoleHandleOpen, setIsNpcRoleHandleOpen] = useState<boolean>(false);

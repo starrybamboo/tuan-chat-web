@@ -9,6 +9,15 @@ function createQueryClientMock() {
 }
 
 describe("invalidateRoleCreateQueries", () => {
+  it("会刷新角色页侧边栏依赖的按类型角色查询", () => {
+    const queryClient = createQueryClientMock();
+
+    invalidateRoleCreateQueries(queryClient, undefined);
+
+    expect(queryClient.invalidateQueries).toHaveBeenCalledWith({ queryKey: ["getUserRolesByType"] });
+    expect(queryClient.invalidateQueries).toHaveBeenCalledWith({ queryKey: ["roleInfiniteByType"] });
+  });
+
   it("创建空间角色后会失效空间角色相关缓存", () => {
     const queryClient = createQueryClientMock();
 

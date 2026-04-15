@@ -1,6 +1,7 @@
 import type { Space } from "../../../../../api";
 import React from "react";
 import PortalTooltip from "@/components/common/portalTooltip";
+import { resolveEntityImageUrl } from "./entityImageUrl";
 
 export default function SpaceButton({ space, unreadMessageNumber, onclick, isActive }: {
   space: Space;
@@ -10,7 +11,7 @@ export default function SpaceButton({ space, unreadMessageNumber, onclick, isAct
 }) {
   const displayName = space.name || "未命名空间";
   const fallbackAvatar = "/favicon.ico";
-  const displayAvatar = (space.avatar || "").trim() || fallbackAvatar;
+  const displayAvatar = resolveEntityImageUrl(space.avatar, fallbackAvatar);
   const isDev = typeof import.meta !== "undefined" && Boolean(import.meta.env?.DEV);
 
   return (

@@ -1,6 +1,6 @@
 import type { Connection, Edge, EdgeChange, Node, NodeChange, ReactFlowInstance } from "@xyflow/react";
-import type { Room } from "api/models/Room";
-import type { Space } from "api/models/Space";
+import type { Room } from "@tuanchat/openapi-client/models/Room";
+import type { Space } from "@tuanchat/openapi-client/models/Space";
 import type { MouseEvent } from "react";
 import {
   addEdge,
@@ -1724,3 +1724,4 @@ export default function WorkflowWindow() {
     </div>
   );
 }
+

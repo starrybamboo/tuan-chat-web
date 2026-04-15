@@ -1,4 +1,4 @@
-import type { ResourceResponse } from "../../../../api/models/ResourceResponse";
+import type { ResourceResponse } from "@tuanchat/openapi-client/models/ResourceResponse";
 import { useState } from "react";
 import { toast } from "react-hot-toast";
 import { UserAvatarByUser } from "../../common/userAccess";
@@ -146,3 +146,4 @@ export function ResourceCard({
     </>
   );
 }
+

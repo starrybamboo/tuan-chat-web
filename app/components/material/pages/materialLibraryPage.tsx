@@ -1,5 +1,5 @@
-import type { MaterialPackageContent } from "../../../../api/models/MaterialPackageContent";
-import { useEffect, useMemo, useState } from "react";
+import type { MaterialPackageContent } from "@tuanchat/openapi-client/models/MaterialPackageContent";
+import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import { useNavigate } from "react-router";
 import {
@@ -9,15 +9,16 @@ import {
   usePublicMaterialPackagesQuery,
   useUpdateMaterialPackageMutation,
 } from "../../../../api/hooks/materialPackageQueryHooks";
-import MaterialPackageEditor from "../components/materialPackageEditor";
 import { buildMaterialPackageEditorDraft } from "../components/materialPackageEditorDraft";
 import { buildGlobalMaterialPackageEditorValueKey } from "../components/materialPackageEditorValueKey";
-import MaterialPackageEditorInlinePage from "../components/materialPackageEditorInlinePage";
 import { createEmptyMaterialPackageContent } from "../components/materialPackageEditorShared";
 import MaterialPackageLibraryFrame from "../components/materialPackageLibraryFrame";
 import { buildGlobalMaterialPackageCardModel } from "../components/materialPackageLibraryModels";
 import MaterialPackageLibrarySidebar from "../components/materialPackageLibrarySidebar";
 import MaterialPackageLibraryWorkspace from "../components/materialPackageLibraryWorkspace";
+
+const LazyMaterialPackageEditor = lazy(() => import("../components/materialPackageEditor"));
+const LazyMaterialPackageEditorInlinePage = lazy(() => import("../components/materialPackageEditorInlinePage"));
 
 type GlobalTab = "public" | "mine";
 
@@ -25,6 +26,16 @@ interface MaterialLibraryPageProps {
   initialTab?: GlobalTab;
   mode?: GlobalTab;
   embedded?: boolean;
+}
+
+function MaterialEditorLoadingState({ embedded }: { embedded: boolean }) {
+  const minHeightClassName = embedded ? "min-h-[20rem]" : "min-h-[24rem]";
+  return (
+    <div className={`flex ${minHeightClassName} items-center justify-center text-sm text-base-content/60`}>
+      <span className="loading loading-spinner loading-md"></span>
+      <span className="ml-2">正在加载素材编辑器...</span>
+    </div>
+  );
 }
 
 export default function MaterialLibraryPage({
@@ -191,6 +202,12 @@ export default function MaterialLibraryPage({
     setIsCreating(false);
     setSelectedPackageId(null);
   };
+  const editorBackProps = embedded
+    ? {}
+    : {
+        backLabel: detailBackLabel,
+        onBack: handleCloseEditor,
+      };
 
   const handleNavigateToMine = () => {
     if (mode === "public" && embedded) {
@@ -290,52 +307,56 @@ export default function MaterialLibraryPage({
 
   const editorContent = isCreating
     ? (
-        <MaterialPackageEditor
-          valueKey="create"
-          dragPackageId={undefined}
-          title="新建素材包"
-          subtitle="创建你的素材容器，配置封面、描述和素材单元。每个素材单元里都可以继续添加多条素材。"
-          initialDraft={buildMaterialPackageEditorDraft()}
-          showPublicToggle={true}
-          backLabel={detailBackLabel}
-          onBack={handleCloseEditor}
-          saveLabel="创建素材包"
-          savePending={createMutation.isPending}
-          onSave={handleCreate}
-        />
+        <Suspense fallback={<MaterialEditorLoadingState embedded={embedded} />}>
+          <LazyMaterialPackageEditor
+            valueKey="create"
+            dragPackageId={undefined}
+            title="新建素材包"
+            subtitle="创建你的素材容器，配置封面、描述和素材单元。每个素材单元里都可以继续添加多条素材。"
+            initialDraft={buildMaterialPackageEditorDraft()}
+            showPublicToggle={true}
+            {...editorBackProps}
+            saveLabel="创建素材包"
+            savePending={createMutation.isPending}
+            onSave={handleCreate}
+          />
+        </Suspense>
       )
     : selectedPackage
       ? (
-          <MaterialPackageEditor
-            valueKey={buildGlobalMaterialPackageEditorValueKey(activeTab, selectedPackage)}
-            dragPackageId={selectedPackage.packageId}
-            title={activeTab === "public" ? "公开素材包详况" : "修改素材包"}
-            subtitle={activeTab === "public"
-              ? `作者：${selectedPackage.username ?? "未知"} · 已被导入 ${selectedPackage.importCount ?? 0} 次`
-              : `已被导入 ${selectedPackage.importCount ?? 0} 次`}
-            initialDraft={buildMaterialPackageEditorDraft(selectedPackage)}
-            readOnly={activeTab === "public"}
-            showPublicToggle={activeTab === "mine"}
-            backLabel={detailBackLabel}
-            onBack={handleCloseEditor}
-            autoSave={activeTab === "mine"}
-            savePending={updateMutation.isPending}
-            deletePending={deleteMutation.isPending}
-            extraActionLabel={activeTab === "public" ? "添加到我的素材包" : undefined}
-            extraActionPending={activeTab === "public" ? createMutation.isPending : false}
-            onSave={activeTab === "mine" ? handleUpdate : undefined}
-            onDelete={activeTab === "mine" ? handleDelete : undefined}
-            onExtraAction={activeTab === "public" ? handleAddToMine : undefined}
-          />
+          <Suspense fallback={<MaterialEditorLoadingState embedded={embedded} />}>
+            <LazyMaterialPackageEditor
+              valueKey={buildGlobalMaterialPackageEditorValueKey(activeTab, selectedPackage)}
+              dragPackageId={selectedPackage.packageId}
+              title={activeTab === "public" ? "公开素材包详况" : "修改素材包"}
+              subtitle={activeTab === "public"
+                ? `作者：${selectedPackage.username ?? "未知"} · 已被导入 ${selectedPackage.importCount ?? 0} 次`
+                : `已被导入 ${selectedPackage.importCount ?? 0} 次`}
+              initialDraft={buildMaterialPackageEditorDraft(selectedPackage)}
+              readOnly={activeTab === "public"}
+              showPublicToggle={activeTab === "mine"}
+              {...editorBackProps}
+              autoSave={activeTab === "mine"}
+              savePending={updateMutation.isPending}
+              deletePending={deleteMutation.isPending}
+              extraActionLabel={activeTab === "public" ? "添加到我的素材包" : undefined}
+              extraActionPending={activeTab === "public" ? createMutation.isPending : false}
+              onSave={activeTab === "mine" ? handleUpdate : undefined}
+              onDelete={activeTab === "mine" ? handleDelete : undefined}
+              onExtraAction={activeTab === "public" ? handleAddToMine : undefined}
+            />
+          </Suspense>
         )
       : null;
   const mainContentNode = editorOpen && editorContent
     ? (
-        <MaterialPackageEditorInlinePage
-          embedded={embedded}
-        >
-          {editorContent}
-        </MaterialPackageEditorInlinePage>
+        <Suspense fallback={<MaterialEditorLoadingState embedded={embedded} />}>
+          <LazyMaterialPackageEditorInlinePage
+            embedded={embedded}
+          >
+            {editorContent}
+          </LazyMaterialPackageEditorInlinePage>
+        </Suspense>
       )
     : workspaceNode;
 
@@ -350,3 +371,4 @@ export default function MaterialLibraryPage({
     />
   );
 }
+

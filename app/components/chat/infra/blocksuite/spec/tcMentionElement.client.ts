@@ -13,7 +13,8 @@ import { property } from "lit/decorators.js";
 import type { BlocksuiteFrameToHostPayload } from "../shared/frameProtocol";
 
 import { BlocksuiteRoleProvider } from "../services/tuanChatRoleService";
-import { getBlocksuiteRoleHref, parseBlocksuiteMentionKey } from "../shared/mentionKey";
+import { buildBlocksuiteMentionAnchorRect } from "../shared/mentionAnchorRect";
+import { parseBlocksuiteMentionKey } from "../shared/mentionKey";
 import { postBlocksuiteFrameMessage } from "../shared/frameProtocol";
 
 function getBlocksuiteFrameInstanceId(): string | undefined {
@@ -138,33 +139,10 @@ export function ensureTCAffineMentionDefined(): void {
       height: number;
     } {
       try {
-        const target = (e as any).currentTarget as unknown;
-        if (!(target instanceof HTMLElement))
-          return null;
-
-        const mentionRect = target.getBoundingClientRect();
-        const frameEl = window.frameElement instanceof HTMLElement ? window.frameElement : null;
-        const frameRect = frameEl?.getBoundingClientRect() ?? null;
-
-        if (!frameRect) {
-          return {
-            left: mentionRect.left,
-            top: mentionRect.top,
-            right: mentionRect.right,
-            bottom: mentionRect.bottom,
-            width: mentionRect.width,
-            height: mentionRect.height,
-          };
-        }
-
-        return {
-          left: frameRect.left + mentionRect.left,
-          top: frameRect.top + mentionRect.top,
-          right: frameRect.left + mentionRect.right,
-          bottom: frameRect.top + mentionRect.bottom,
-          width: mentionRect.width,
-          height: mentionRect.height,
-        };
+        return buildBlocksuiteMentionAnchorRect({
+          target: (e as any).currentTarget,
+          frameElement: window.frameElement,
+        });
       }
       catch {
         return null;
@@ -176,41 +154,36 @@ export function ensureTCAffineMentionDefined(): void {
       if (!target)
         return;
 
-      if (target.kind === "role") {
-        this.postToHost({
-          type: "navigate",
-          to: getBlocksuiteRoleHref(target.id),
-        });
-        return;
-      }
-
       this.postToHost({
         type: "mention-click",
-        userId: target.id,
+        targetKind: target.kind,
+        targetId: target.id,
         anchorRect: this.buildAnchorRectFromEvent(e),
       });
     }
 
     private onMentionPointerEnter(e: PointerEvent) {
       const target = this.getMentionTarget();
-      if (!target || target.kind !== "user")
+      if (!target)
         return;
       this.postToHost({
         type: "mention-hover",
         state: "enter",
-        userId: target.id,
+        targetKind: target.kind,
+        targetId: target.id,
         anchorRect: this.buildAnchorRectFromEvent(e),
       });
     }
 
     private onMentionPointerLeave() {
       const target = this.getMentionTarget();
-      if (!target || target.kind !== "user")
+      if (!target)
         return;
       this.postToHost({
         type: "mention-hover",
         state: "leave",
-        userId: target.id,
+        targetKind: target.kind,
+        targetId: target.id,
       });
     }
 
@@ -220,6 +193,8 @@ export function ensureTCAffineMentionDefined(): void {
         data-type="error"
         class="affine-mention"
         @click=${this.onMentionClick}
+        @pointerenter=${this.onMentionPointerEnter}
+        @pointerleave=${this.onMentionPointerLeave}
         >Unknown Role<v-text .str=${ZERO_WIDTH_FOR_EMBED_NODE}></v-text
       ></span>`;
 
@@ -239,6 +214,8 @@ export function ensureTCAffineMentionDefined(): void {
             data-type="removed"
             class="affine-mention"
             @click=${this.onMentionClick}
+            @pointerenter=${this.onMentionPointerEnter}
+            @pointerleave=${this.onMentionPointerLeave}
             >Inactive Role<v-text .str=${ZERO_WIDTH_FOR_EMBED_NODE}></v-text
           ></span>`;
         }
@@ -251,6 +228,8 @@ export function ensureTCAffineMentionDefined(): void {
           data-type="default"
           class="affine-mention"
           @click=${this.onMentionClick}
+          @pointerenter=${this.onMentionPointerEnter}
+          @pointerleave=${this.onMentionPointerLeave}
           >${avatar
             ? html`<img class="affine-mention-avatar" src="${avatar}" alt="" />`
             : null}${name}<v-text
@@ -265,6 +244,8 @@ export function ensureTCAffineMentionDefined(): void {
           data-type="loading"
           class="affine-mention"
           @click=${this.onMentionClick}
+          @pointerenter=${this.onMentionPointerEnter}
+          @pointerleave=${this.onMentionPointerLeave}
           >loading<span class="dots"
             ><span class="dot">.</span><span class="dot">.</span
             ><span class="dot">.</span></span

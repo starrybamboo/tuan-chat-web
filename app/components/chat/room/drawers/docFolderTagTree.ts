@@ -1,4 +1,4 @@
-import type { SpaceUserDocResponse } from "../../../../../api/models/SpaceUserDocResponse";
+import type { SpaceUserDocResponse } from "@tuanchat/openapi-client/models/SpaceUserDocResponse";
 
 export const UNTAGGED_KEY = "__untagged__";
 
@@ -152,3 +152,4 @@ export function buildFolderNodes(docs: SpaceUserDocResponse[], localTagPaths: st
 
   return roots;
 }
+

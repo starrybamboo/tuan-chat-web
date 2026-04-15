@@ -1,5 +1,5 @@
 import { AuthHttpRequest } from "./AuthHttpRequest";
-import { TuanChat } from "./TuanChat";
+import { TuanChat } from "@tuanchat/openapi-client/TuanChat";
 
 export type CreateTuanChatClientOptions = {
   base?: string;
@@ -54,3 +54,4 @@ if (typeof window !== 'undefined') {
 }
 
 export { tuanchat };
+

@@ -1,12 +1,10 @@
 import type { ChatDiscoverNavItem } from "@/components/chat/discover/chatDiscoverNavPanel";
 import { useGetUserActiveSpacesQuery } from "api/hooks/chatQueryHooks";
-import React, { useCallback, useMemo } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 import ChatPageLayout from "@/components/chat/chatPageLayout";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
 import ChatDiscoverNavPanel from "@/components/chat/discover/chatDiscoverNavPanel";
-import DiscoverArchivedSpacesView from "@/components/chat/discover/discoverArchivedSpacesView";
-import DiscoverProductionPlaceholder from "@/components/chat/discover/discoverProductionPlaceholder";
 import useChatPageContextMenus from "@/components/chat/hooks/useChatPageContextMenus";
 import useChatPageLeftDrawer from "@/components/chat/hooks/useChatPageLeftDrawer";
 import useChatPageNavigation from "@/components/chat/hooks/useChatPageNavigation";
@@ -14,15 +12,18 @@ import useChatPageOrdering from "@/components/chat/hooks/useChatPageOrdering";
 import useChatPageSpaceContextMenu from "@/components/chat/hooks/useChatPageSpaceContextMenu";
 import useChatUnreadIndicators from "@/components/chat/hooks/useChatUnreadIndicators";
 import ChatSpaceSidebar from "@/components/chat/space/chatSpaceSidebar";
-import SpaceContextMenu from "@/components/chat/space/contextMenu/spaceContextMenu";
 import { useDrawerPreferenceStore } from "@/components/chat/stores/drawerPreferenceStore";
 import { useLocalStorage } from "@/components/common/customHooks/useLocalStorage";
 import { useScreenSize } from "@/components/common/customHooks/useScreenSize";
 import { useGlobalContext } from "@/components/globalContextProvider";
-import MaterialLibraryPage from "@/components/material/pages/materialLibraryPage";
+import { scheduleNonCriticalTask } from "@/utils/scheduleNonCriticalTask";
 
 const EMPTY_ARRAY: never[] = [];
 const isProductionMode = import.meta.env.MODE === "production";
+const LazyDiscoverArchivedSpacesView = React.lazy(() => import("@/components/chat/discover/discoverArchivedSpacesView"));
+const LazyDiscoverProductionPlaceholder = React.lazy(() => import("@/components/chat/discover/discoverProductionPlaceholder"));
+const LazyMaterialLibraryPage = React.lazy(() => import("@/components/material/pages/materialLibraryPage"));
+const LazySpaceContextMenu = React.lazy(() => import("@/components/chat/space/contextMenu/spaceContextMenu"));
 
 type RepositoryDiscoverMode = "square" | "my";
 type MaterialDiscoverMode = "public" | "mine";
@@ -36,6 +37,15 @@ function getActiveNavItem(props: DiscoverPageProps): ChatDiscoverNavItem {
   return props.mode === "my" ? "repository-my" : "repository-square";
 }
 
+function DiscoverContentFallback({ text }: { text: string }) {
+  return (
+    <div className="flex h-full w-full items-center justify-center text-sm text-base-content/60">
+      <span className="loading loading-spinner loading-md"></span>
+      <span className="ml-2">{text}</span>
+    </div>
+  );
+}
+
 export default function DiscoverPage(props: DiscoverPageProps) {
   const { section } = props;
   const screenSize = useScreenSize();
@@ -44,10 +54,20 @@ export default function DiscoverPage(props: DiscoverPageProps) {
   const globalContext = useGlobalContext();
   const userId = globalContext.userId ?? -1;
   const [storedIds, setStoredChatIds] = useLocalStorage<{ spaceId?: number | null; roomId?: number | null }>("storedChatIds", {});
+  const [shouldLoadPrivateIndicators, setShouldLoadPrivateIndicators] = useState(false);
   const activeSpaceId = useMemo(() => {
     const id = storedIds?.spaceId;
     return typeof id === "number" && Number.isFinite(id) ? id : null;
   }, [storedIds?.spaceId]);
+
+  useEffect(() => {
+    if (shouldLoadPrivateIndicators) {
+      return;
+    }
+    return scheduleNonCriticalTask(() => {
+      setShouldLoadPrivateIndicators(true);
+    });
+  }, [shouldLoadPrivateIndicators]);
   const {
     isOpenLeftDrawer,
     toggleLeftDrawer,
@@ -81,6 +101,7 @@ export default function DiscoverPage(props: DiscoverPageProps) {
     userId,
     isPrivateChatMode: false,
     activeRoomId: null,
+    enablePrivateEntryBadge: shouldLoadPrivateIndicators,
   });
 
   const getSpaceUnreadMessagesNumber = useCallback((spaceId: number) => {
@@ -136,14 +157,24 @@ export default function DiscoverPage(props: DiscoverPageProps) {
   const shouldShowProductionPlaceholder = isProductionMode && section === "repository";
   const mainContent = shouldShowProductionPlaceholder
     ? (
-        <DiscoverProductionPlaceholder
-          title="归档仓库暂未开放"
-          description="发现页里的归档仓库模块仍在开发中，素材相关能力已开放访问。"
-        />
+        <React.Suspense fallback={<DiscoverContentFallback text="正在加载发现页..." />}>
+          <LazyDiscoverProductionPlaceholder
+            title="归档仓库暂未开放"
+            description="发现页里的归档仓库模块仍在开发中，素材相关能力已开放访问。"
+          />
+        </React.Suspense>
       )
     : section === "material"
-      ? <MaterialLibraryPage mode={props.mode} embedded />
-      : <DiscoverArchivedSpacesView mode={props.mode} />;
+      ? (
+          <React.Suspense fallback={<DiscoverContentFallback text="正在加载素材广场..." />}>
+            <LazyMaterialLibraryPage mode={props.mode} embedded />
+          </React.Suspense>
+        )
+      : (
+          <React.Suspense fallback={<DiscoverContentFallback text="正在加载归档广场..." />}>
+            <LazyDiscoverArchivedSpacesView mode={props.mode} />
+          </React.Suspense>
+        );
 
   const leftDrawerToggleLabel = isOpenLeftDrawer ? "收起侧边栏" : "展开侧边栏";
   const shouldShowLeftDrawerToggle = screenSize === "sm" && !isOpenLeftDrawer;
@@ -187,12 +218,18 @@ export default function DiscoverPage(props: DiscoverPageProps) {
           )}
           mainContent={mainContent}
         />
-        <SpaceContextMenu
-          contextMenu={spaceContextMenu}
-          isSpaceOwner={isSpaceContextOwner}
-          isArchived={isSpaceContextArchived}
-          onClose={closeSpaceContextMenu}
-        />
+        {spaceContextMenu
+          ? (
+              <React.Suspense fallback={null}>
+                <LazySpaceContextMenu
+                  contextMenu={spaceContextMenu}
+                  isSpaceOwner={isSpaceContextOwner}
+                  isArchived={isSpaceContextArchived}
+                  onClose={closeSpaceContextMenu}
+                />
+              </React.Suspense>
+            )
+          : null}
       </>
     </SpaceContext>
   );

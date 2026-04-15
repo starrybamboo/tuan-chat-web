@@ -1,4 +1,4 @@
-import type { SpaceMaterialPackageResponse } from "../../../../api/models/SpaceMaterialPackageResponse";
+import type { SpaceMaterialPackageResponse } from "@tuanchat/openapi-client/models/SpaceMaterialPackageResponse";
 import type { MaterialSidebarVirtualNode } from "./materialSidebarTree";
 
 import { CaretRightIcon, FileIcon, FolderPlusIcon, FolderSimpleIcon, PackageIcon, PlusIcon } from "@phosphor-icons/react";
@@ -21,6 +21,16 @@ interface RoomSidebarMaterialPackageItemProps {
   onToggleExpanded: (key: string) => void;
   onOpenPackageDetail: () => void;
   onOpenNodeDetail: (materialPathKey: string) => void;
+}
+
+export function isMaterialNodeOnActivePath(nodePathKey: string, activeNodePathKey?: string | null) {
+  const normalizedNodePathKey = serializeNodePath(parseNodePath(nodePathKey));
+  const normalizedActiveNodePathKey = serializeNodePath(parseNodePath(activeNodePathKey ?? ""));
+  if (!normalizedNodePathKey || !normalizedActiveNodePathKey) {
+    return false;
+  }
+  return normalizedActiveNodePathKey === normalizedNodePathKey
+    || normalizedActiveNodePathKey.startsWith(`${normalizedNodePathKey}.`);
 }
 
 function MaterialTreeNodeRow({
@@ -56,6 +66,7 @@ function MaterialTreeNodeRow({
   const isInteractive = isFolder || isMaterialGroup;
   const materialPathKey = node.path.join(".");
   const isActiveNode = activeNodePathKey === materialPathKey;
+  const isActionPinned = isMaterialNodeOnActivePath(materialPathKey, activeNodePathKey);
   const showNodeCreateActions = isFolder && Boolean(onCreateFolderAtNode || onCreateMaterialAtNode);
   const rowCursorClassName = isDraggable
     ? "cursor-pointer active:cursor-grabbing"
@@ -160,7 +171,7 @@ function MaterialTreeNodeRow({
           )}
         </button>
         {showNodeCreateActions && (
-          <div className={`ml-1 flex shrink-0 items-center gap-1 transition ${isActiveNode ? "opacity-100" : "opacity-0 group-hover:opacity-100"}`}>
+          <div className={`ml-1 flex shrink-0 items-center gap-1 transition ${isActionPinned ? "opacity-100" : "opacity-0 group-hover:opacity-100"}`}>
             {onCreateFolderAtNode && (
               <button
                 type="button"
@@ -292,7 +303,7 @@ export default function RoomSidebarMaterialPackageItem({
           <span className="flex-1 truncate text-left">{packageName}</span>
         </button>
         {showRootCreateActions && (
-          <div className={`flex shrink-0 items-center gap-1 transition ${isPackageSelected ? "opacity-100" : "opacity-0 group-hover:opacity-100"}`}>
+          <div className="flex shrink-0 items-center gap-1">
             {onCreateFolderAtRoot && (
               <button
                 type="button"
@@ -352,3 +363,4 @@ export default function RoomSidebarMaterialPackageItem({
     </div>
   );
 }
+

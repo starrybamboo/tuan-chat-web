@@ -1,5 +1,5 @@
 import type { RoleAvatar, UserRole } from "api";
-import type { Rule } from "api/models/Rule";
+import type { Rule } from "@tuanchat/openapi-client/models/Rule";
 import type { Role } from "../types";
 import { useQueryClient } from "@tanstack/react-query";
 import { seedRoleAvatarQueryCaches, useDeleteRolesMutation, useGetUserRolesByTypeQuery } from "api/hooks/RoleAndAvatarHooks";
@@ -851,3 +851,4 @@ export function Sidebar({
     </>
   );
 }
+

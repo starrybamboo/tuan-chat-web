@@ -1,5 +1,5 @@
 import type { Room } from "../../../../api";
-import type { SpaceMaterialPackageResponse } from "../../../../api/models/SpaceMaterialPackageResponse";
+import type { SpaceMaterialPackageResponse } from "@tuanchat/openapi-client/models/SpaceMaterialPackageResponse";
 import type { MinimalDocMeta, SidebarTree } from "./sidebarTree";
 import type { ActiveMaterialSelection, OpenSpaceDetailPanelOptions, SpaceDetailTab } from "@/components/chat/chatPage.types";
 
@@ -96,38 +96,40 @@ interface ChatRoomListPanelProps {
   canViewDocs: boolean;
 }
 
-export default function ChatRoomListPanel({
-  isPrivateChatMode,
-  currentUserId,
-  activeSpaceId,
-  activeSpaceName,
-  activeSpaceIsArchived,
-  isSpaceOwner,
-  isKPInSpace,
-  rooms,
-  roomOrderIds,
-  sidebarTree,
-  docMetas,
-  materialPackages,
-  onSelectDoc,
-  onDeleteDoc,
-  onSaveSidebarTree,
-  onResetSidebarTreeToDefault,
-  activeRoomId,
-  activeDocId,
-  activeMaterialSelection,
-  unreadMessagesNumber,
-  onContextMenu,
-  onInviteMember,
-  onOpenSpaceDetailPanel,
-  onSelectRoom,
-  onCloseLeftDrawer,
-  onToggleLeftDrawer,
-  isLeftDrawerOpen,
-  setIsOpenLeftDrawer,
-  onOpenCreateInCategory,
-  canViewDocs,
-}: ChatRoomListPanelProps) {
+export default function ChatRoomListPanel(props: ChatRoomListPanelProps) {
+  const {
+    isPrivateChatMode,
+    currentUserId,
+    activeSpaceId,
+    activeSpaceName,
+    activeSpaceIsArchived,
+    isSpaceOwner,
+    isKPInSpace,
+    rooms,
+    roomOrderIds,
+    sidebarTree,
+    docMetas,
+    materialPackages,
+    onSelectDoc,
+    onDeleteDoc,
+    onSaveSidebarTree,
+    onResetSidebarTreeToDefault,
+    activeRoomId,
+    activeDocId,
+    activeMaterialSelection,
+    unreadMessagesNumber,
+    onContextMenu,
+    onInviteMember,
+    onOpenSpaceDetailPanel,
+    onSelectRoom,
+    onCloseLeftDrawer,
+    onToggleLeftDrawer,
+    isLeftDrawerOpen,
+    setIsOpenLeftDrawer,
+    onOpenCreateInCategory,
+    canViewDocs,
+  } = props;
+
   const roomsInSpace = useMemo(() => {
     return rooms.filter(room => room.spaceId === activeSpaceId);
   }, [activeSpaceId, rooms]);
@@ -639,3 +641,4 @@ export default function ChatRoomListPanel({
     </>
   );
 }
+
