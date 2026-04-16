@@ -17,11 +17,11 @@ import { MaxContentWidth, Spacing } from '@/constants/theme';
 export default function AppTabs() {
   return (
     <Tabs>
-      <TabSlot style={{ height: '100%' }} />
+      <TabSlot style={styles.tabSlot} />
       <TabList asChild>
         <CustomTabList>
           <TabTrigger name="home" href="/" asChild>
-            <TabButton>工作台</TabButton>
+            <TabButton>聊天</TabButton>
           </TabTrigger>
           <TabTrigger name="explore" href="/explore" asChild>
             <TabButton>我的</TabButton>
@@ -50,10 +50,6 @@ export function CustomTabList(props: TabListProps) {
   return (
     <View {...props} style={styles.tabListContainer}>
       <ThemedView type="backgroundElement" style={styles.innerContainer}>
-        <ThemedText type="smallBold" style={styles.brandText}>
-          团剧共创移动端
-        </ThemedText>
-
         {props.children}
       </ThemedView>
     </View>
@@ -61,32 +57,40 @@ export function CustomTabList(props: TabListProps) {
 }
 
 const styles = StyleSheet.create({
+  tabSlot: {
+    height: '100%',
+    paddingBottom: 96,
+  },
   tabListContainer: {
     position: 'absolute',
     width: '100%',
-    padding: Spacing.three,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    paddingHorizontal: Spacing.three,
+    paddingBottom: Spacing.three,
     justifyContent: 'center',
     alignItems: 'center',
     flexDirection: 'row',
   },
   innerContainer: {
     paddingVertical: Spacing.two,
-    paddingHorizontal: Spacing.five,
+    paddingHorizontal: Spacing.two,
     borderRadius: Spacing.five,
     flexDirection: 'row',
     alignItems: 'center',
-    flexGrow: 1,
+    justifyContent: 'space-between',
+    width: '100%',
     gap: Spacing.two,
     maxWidth: MaxContentWidth,
-  },
-  brandText: {
-    marginRight: 'auto',
   },
   pressed: {
     opacity: 0.7,
   },
   tabButtonView: {
-    paddingVertical: Spacing.one,
+    minWidth: 96,
+    alignItems: 'center',
+    paddingVertical: Spacing.two,
     paddingHorizontal: Spacing.three,
     borderRadius: Spacing.three,
   },

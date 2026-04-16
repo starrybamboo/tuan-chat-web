@@ -1,4 +1,5 @@
 import type { RoomContextType } from "@/components/chat/core/roomContext";
+import type { BlocksuiteDocHeader } from "@/components/chat/infra/blocksuite/document/docHeader";
 import {
   useGetMemberListQuery,
   useGetRoomInfoQuery,
@@ -97,21 +98,23 @@ function RoomSettingWindow({ onClose, roomId: propRoomId, defaultTab = "role" }:
     }
   }, [defaultTab]);
 
-  const latestHeaderRef = useRef<{ title: string; imageUrl: string } | null>(null);
+  const latestHeaderRef = useRef<BlocksuiteDocHeader | null>(null);
   const syncTimerRef = useRef<number | null>(null);
 
-  const flushRoomRedundant = useCallback((header?: { title: string; imageUrl: string }, opts?: { closeAfter?: boolean }) => {
+  const flushRoomRedundant = useCallback((header?: BlocksuiteDocHeader, opts?: { closeAfter?: boolean }) => {
     if (!propRoomId || !Number.isFinite(propRoomId) || propRoomId <= 0)
       return;
 
     const title = (header?.title ?? room?.name ?? "").trim();
     const imageUrl = (header?.imageUrl ?? room?.avatar ?? "").trim();
+    const originalImageUrl = (header?.originalImageUrl ?? room?.originalAvatar ?? room?.avatar ?? "").trim();
 
     updateRoomMutation.mutate({
       roomId: propRoomId,
       name: title,
       description: room?.description ?? "",
       avatar: imageUrl,
+      originalAvatar: originalImageUrl || imageUrl,
     }, {
       onSuccess: () => {
         if (opts?.closeAfter) {
@@ -121,7 +124,7 @@ function RoomSettingWindow({ onClose, roomId: propRoomId, defaultTab = "role" }:
     });
   }, [onClose, propRoomId, room?.avatar, room?.description, room?.name, updateRoomMutation]);
 
-  const scheduleRoomRedundantSync = useCallback((header: { title: string; imageUrl: string }) => {
+  const scheduleRoomRedundantSync = useCallback((header: BlocksuiteDocHeader) => {
     if (typeof window === "undefined")
       return;
 
@@ -205,7 +208,7 @@ function RoomSettingWindow({ onClose, roomId: propRoomId, defaultTab = "role" }:
                             fullscreenEdgeless
                             tcHeader={{ enabled: true, fallbackTitle: room?.name ?? "", fallbackImageUrl: room?.avatar ?? "" }}
                             onTcHeaderChange={({ header }) => {
-                              scheduleRoomRedundantSync({ title: header.title, imageUrl: header.imageUrl });
+                              scheduleRoomRedundantSync(header);
                             }}
                           />
                         )

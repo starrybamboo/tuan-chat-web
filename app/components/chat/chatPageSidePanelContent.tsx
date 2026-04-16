@@ -46,7 +46,7 @@ interface ChatPageSidePanelContentProps {
 
 function SidePanelLoadingFallback() {
   return (
-    <div className="flex h-full items-center justify-center bg-base-200 text-sm text-base-content/60">
+    <div className="flex h-full w-full min-w-0 items-center justify-center bg-base-200 text-sm text-base-content/60">
       <span className="loading loading-spinner loading-md"></span>
       <span className="ml-2">正在加载侧栏...</span>
     </div>

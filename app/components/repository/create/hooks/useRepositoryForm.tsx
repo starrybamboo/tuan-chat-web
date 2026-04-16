@@ -10,6 +10,7 @@ export interface RepositoryCreateRequest {
   description: string;
   repositoryName: string;
   image: string;
+  originalImage: string;
 }
 
 export function useRepositoryForm() {
@@ -35,6 +36,7 @@ export function useRepositoryForm() {
       repositoryName: "",
       description: "",
       image: "",
+      originalImage: "",
     },
     mode: "onChange",
   });

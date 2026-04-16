@@ -1,3 +1,5 @@
+import type { BlocksuiteDocHeader } from "@/components/chat/infra/blocksuite/document/docHeader";
+
 export type RoomSettingTab = "role" | "setting";
 export type SpaceDetailTab = "members" | "roles" | "workflow" | "trpg" | "webgal" | "setting" | "material";
 export type MaterialEditorActionScope = "detail" | "subwindow";
@@ -20,5 +22,5 @@ export type DocTcHeaderPayload = {
   docId: string;
   entityType?: unknown;
   entityId?: number;
-  header: { title: string; imageUrl: string };
+  header: BlocksuiteDocHeader;
 };

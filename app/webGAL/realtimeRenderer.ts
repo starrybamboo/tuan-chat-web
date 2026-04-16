@@ -246,10 +246,14 @@ export type RealtimeGameConfig = {
   coverFromRoomAvatarEnabled: boolean;
   /** 标题背景图 URL（Title_img，优先于“标题背景图使用群聊头像”） */
   titleImageUrl: string;
+  /** 标题背景图原图 URL（本地打包优先使用） */
+  originalTitleImageUrl: string;
   /** 未设置启动图 URL 时，是否将群聊头像同步为启动图（Game_Logo） */
   startupLogoFromRoomAvatarEnabled: boolean;
   /** 启动图 URL（Game_Logo，优先于“启动图使用群聊头像”） */
   startupLogoUrl: string;
+  /** 启动图原图 URL（本地打包优先使用） */
+  originalStartupLogoUrl: string;
   /** 是否将群聊头像同步为游戏图标（icons/*） */
   gameIconFromRoomAvatarEnabled: boolean;
   /** 是否将空间名称+spaceId 同步为游戏名（Game_name） */
@@ -279,8 +283,10 @@ export type RealtimeGameConfig = {
 const DEFAULT_REALTIME_GAME_CONFIG: RealtimeGameConfig = {
   coverFromRoomAvatarEnabled: true,
   titleImageUrl: "",
+  originalTitleImageUrl: "",
   startupLogoFromRoomAvatarEnabled: false,
   startupLogoUrl: "",
+  originalStartupLogoUrl: "",
   gameIconFromRoomAvatarEnabled: true,
   gameNameFromRoomNameEnabled: true,
   description: "",
@@ -1701,18 +1707,21 @@ export class RealtimeRenderer {
     upsertGameConfigEntry(configEntries, "TypingSoundInterval", String(typingSoundInterval));
     upsertGameConfigEntry(configEntries, "TypingSoundPunctuationPause", String(typingSoundPunctuationPause));
 
-    const avatarUrl = String(primaryRoom?.avatar ?? "").trim();
+    const avatarUrl = String(primaryRoom?.originalAvatar ?? primaryRoom?.avatar ?? "").trim();
     const titleImageUrl = String(this.gameConfig.titleImageUrl ?? "").trim();
+    const originalTitleImageUrl = String(this.gameConfig.originalTitleImageUrl ?? this.gameConfig.titleImageUrl ?? "").trim();
     const startupLogoUrl = String(this.gameConfig.startupLogoUrl ?? "").trim();
+    const originalStartupLogoUrl = String(this.gameConfig.originalStartupLogoUrl ?? this.gameConfig.startupLogoUrl ?? "").trim();
     const typingSoundSeUrl = String(this.gameConfig.typingSoundSeUrl ?? "").trim();
     const roomId = Number(primaryRoom?.roomId ?? 0);
 
     if (titleImageUrl) {
       try {
-        const titleExt = getFileExtensionFromUrl(titleImageUrl, "webp");
-        const titleImageName = `custom_title_${hashString(titleImageUrl)}.${titleExt}`;
+        const titleSourceUrl = originalTitleImageUrl || titleImageUrl;
+        const titleExt = getFileExtensionFromUrl(titleSourceUrl, "webp");
+        const titleImageName = `custom_title_${hashString(titleSourceUrl)}.${titleExt}`;
         const uploadedTitleImage = await uploadFile(
-          titleImageUrl,
+          titleSourceUrl,
           `games/${this.gameName}/game/background/`,
           titleImageName,
         );
@@ -1740,10 +1749,11 @@ export class RealtimeRenderer {
 
     if (startupLogoUrl) {
       try {
-        const logoExt = getFileExtensionFromUrl(startupLogoUrl, "webp");
-        const logoName = `custom_logo_${hashString(startupLogoUrl)}.${logoExt}`;
+        const logoSourceUrl = originalStartupLogoUrl || startupLogoUrl;
+        const logoExt = getFileExtensionFromUrl(logoSourceUrl, "webp");
+        const logoName = `custom_logo_${hashString(logoSourceUrl)}.${logoExt}`;
         const uploadedLogo = await uploadFile(
-          startupLogoUrl,
+          logoSourceUrl,
           `games/${this.gameName}/game/background/`,
           logoName,
         );
@@ -3042,9 +3052,10 @@ export class RealtimeRenderer {
       if (msg.messageType === 2) {
         const imageMessage = msg.extra?.imageMessage;
         if (imageMessage) {
+          const imageSourceUrl = String(imageMessage.originalUrl ?? imageMessage.url ?? "").trim();
           const isBackground = isImageMessageBackground(msg.annotations, imageMessage);
           if (isBackground) {
-            const bgFileName = await this.uploadBackground(imageMessage.url);
+            const bgFileName = await this.uploadBackground(imageSourceUrl);
             if (bgFileName) {
               await this.appendLine(targetRoomId, `changeBg:${bgFileName} -next;`, syncToFile);
               if (syncToFile)
@@ -3054,7 +3065,7 @@ export class RealtimeRenderer {
           // 处理解锁CG
           const unlockCg = hasAnnotation(msg.annotations, ANNOTATION_IDS.CG);
           if (unlockCg) {
-            const cgFileName = await this.uploadBackground(imageMessage.url);
+            const cgFileName = await this.uploadBackground(imageSourceUrl);
             if (cgFileName) {
               const cgName = imageMessage.fileName ? imageMessage.fileName.split(".")[0] : "CG";
               await this.appendLine(targetRoomId, `unlockCg:${cgFileName} -name=${cgName};`, syncToFile);
@@ -3066,7 +3077,7 @@ export class RealtimeRenderer {
           if (!isBackground && !unlockCg && isImageMessageShown(msg.annotations)) {
           // 展示图固定上半屏居中，忽略 figure.pos.*，并按安全区自动上移/缩放，避免与底部对话框重叠。
             const imageSlot = resolveFigureSlot("center");
-            const figureFileName = await this.uploadImageFigure(imageMessage.url, imageMessage.fileName);
+            const figureFileName = await this.uploadImageFigure(imageSourceUrl, imageMessage.fileName);
             if (figureFileName) {
               const transform = this.buildImageFigureTransformString(imageMessage, imageSlot.offsetX);
               const figureArgs = buildFigureArgs(IMAGE_MESSAGE_FIGURE_ID, transform);

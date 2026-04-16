@@ -20,6 +20,10 @@ export type MaterialPackageCreateRequest = {
      */
     coverUrl?: string;
     /**
+     * 素材包封面原图URL
+     */
+    originalCoverUrl?: string;
+    /**
      * 是否公开，默认公开
      */
     isPublic?: boolean;

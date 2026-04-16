@@ -37,7 +37,7 @@ interface ChatToolbarProps {
   updateEmojiUrls: (updater: (draft: string[]) => void) => void;
   updateImgFiles: (updater: (draft: File[]) => void) => void;
   updateFileAttachments: (updater: (draft: File[]) => void) => void;
-  setEmojiMetaByUrl?: (url: string, meta: { width?: number; height?: number; size?: number; fileName?: string }) => void;
+  setEmojiMetaByUrl?: (url: string, meta: { width?: number; height?: number; size?: number; fileName?: string; originalUrl?: string }) => void;
 
   // 消息发送
   disableSendMessage: boolean;
@@ -464,6 +464,7 @@ function ChatToolbar({
                         height: emoji.height,
                         size: emoji.fileSize,
                         fileName: emoji.name,
+                        originalUrl: emoji.originalImageUrl ?? emoji.imageUrl,
                       });
                     }
                   }}

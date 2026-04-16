@@ -12,6 +12,10 @@ export type ImageMessage = {
      */
     url: string;
     /**
+     * 原图地址
+     */
+    originalUrl?: string;
+    /**
      * 文件名（带后缀）
      */
     fileName: string;

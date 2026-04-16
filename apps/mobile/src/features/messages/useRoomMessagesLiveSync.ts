@@ -29,7 +29,10 @@ function createWebSocketUrl(token: string) {
       env?: Record<string, string | undefined>;
     };
   }).process?.env?.EXPO_PUBLIC_TUANCHAT_API_WS_URL?.trim();
-  const normalizedBaseUrl = (explicitWebSocketUrl || DEFAULT_TUANCHAT_API_BASE_URL)
+  const fallbackWebSocketUrl = DEFAULT_TUANCHAT_API_BASE_URL === "https://tuan.chat/api"
+    ? "wss://tuan.chat/ws"
+    : null;
+  const normalizedBaseUrl = (explicitWebSocketUrl || fallbackWebSocketUrl || DEFAULT_TUANCHAT_API_BASE_URL)
     .trim()
     .replace(/\/$/, "");
   const webSocketBaseUrl = explicitWebSocketUrl

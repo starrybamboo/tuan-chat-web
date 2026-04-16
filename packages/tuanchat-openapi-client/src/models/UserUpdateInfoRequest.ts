@@ -19,6 +19,10 @@ export type UserUpdateInfoRequest = {
      */
     avatar?: string;
     /**
+     * 头像原图URL
+     */
+    originalAvatar?: string;
+    /**
      * 头像缩略图URL
      */
     avatarThumbUrl?: string;

@@ -16,6 +16,10 @@ export type RoomDndMapResponse = {
      */
     mapImgUrl?: string;
     /**
+     * Original map image url
+     */
+    originalMapImgUrl?: string;
+    /**
      * Grid rows
      */
     gridRows?: number;

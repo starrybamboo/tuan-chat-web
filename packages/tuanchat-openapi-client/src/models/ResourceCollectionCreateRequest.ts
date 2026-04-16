@@ -26,5 +26,9 @@ export type ResourceCollectionCreateRequest = {
      * 列表封面图片
      */
     coverImageUrl?: string;
+    /**
+     * 列表封面原图
+     */
+    originalCoverImageUrl?: string;
 };
 

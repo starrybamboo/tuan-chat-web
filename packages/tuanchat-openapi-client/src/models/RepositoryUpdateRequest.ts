@@ -44,6 +44,10 @@ export type RepositoryUpdateRequest = {
      */
     image?: string;
     /**
+     * 封面原图
+     */
+    originalImage?: string;
+    /**
      * 状态，0未发布，1已发布
      */
     state?: number;

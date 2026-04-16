@@ -76,6 +76,12 @@ export function BlocksuiteTcHeader(props: BlocksuiteTcHeaderProps) {
             ? (
                 <ImgUploaderWithCopper
                   key={`tcHeader:${docId}`}
+                  setOriginalDownloadUrl={(url) => {
+                    const store = storeRef.current;
+                    if (!store)
+                      return;
+                    setBlocksuiteDocHeader(store, { originalImageUrl: url });
+                  }}
                   setCopperedDownloadUrl={(url) => {
                     const store = storeRef.current;
                     if (!store)

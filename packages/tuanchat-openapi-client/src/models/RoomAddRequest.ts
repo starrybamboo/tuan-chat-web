@@ -19,5 +19,9 @@ export type RoomAddRequest = {
      * 房间头像
      */
     avatar?: string;
+    /**
+     * 房间头像原图
+     */
+    originalAvatar?: string;
 };
 

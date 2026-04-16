@@ -12,6 +12,10 @@ export type RoomDndMapUpsertRequest = {
      */
     mapImgUrl?: string;
     /**
+     * Original map image url
+     */
+    originalMapImgUrl?: string;
+    /**
      * Grid rows
      */
     gridRows?: number;

@@ -58,18 +58,19 @@ export default function StickerWindow({ onChoose }:
       return;
     }
     try {
-      const imageUrl = await uploadUtils.uploadImg(newImg, 2);
-      const format = resolveStickerFormat(newImg, imageUrl);
+      const uploadedImage = await uploadUtils.uploadDualImage(newImg, 2);
+      const format = resolveStickerFormat(newImg, uploadedImage.url);
 
       if (!format) {
         toast.error("表情仅支持 jpg/jpeg/png/gif/webp");
         return;
       }
 
-      const measured = await getImageSize(imageUrl);
+      const measured = await getImageSize(newImg);
       const stickerCreateRequest = {
         name: newImg.name,
-        imageUrl,
+        imageUrl: uploadedImage.url,
+        originalImageUrl: uploadedImage.originalUrl,
         fileSize: measured.size > 0 ? measured.size : newImg.size,
         width: measured.width > 0 ? measured.width : undefined,
         height: measured.height > 0 ? measured.height : undefined,

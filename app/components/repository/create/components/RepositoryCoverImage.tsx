@@ -13,11 +13,13 @@ export default function RepositoryCoverImage({
 }) {
   // 仓库图片的裁切后版本, 仅用于展示, 实际上传的url储存在form中
   const [repositoryAvatarUrl, setRepositoryAvatarUrl] = useState<string>("");
-  // 设置仓库头像
-  const setAvatar = useCallback((avatar: string) => {
-    setValue("image", avatar);
+  const setRepositoryImage = useCallback((image: string) => {
+    setValue("image", image);
   }, [setValue]);
-    // 生成唯一的仓库头像名称, 避免覆盖
+  const setRepositoryOriginalImage = useCallback((originalImage: string) => {
+    setValue("originalImage", originalImage);
+  }, [setValue]);
+  // 生成唯一的仓库头像名称, 避免覆盖
   const uniqueRepositoryAvatarName = `repository_avatar_${Date.now()}`;
 
   return (
@@ -35,10 +37,13 @@ export default function RepositoryCoverImage({
               <ImgUploaderWithSelector
                 fileName={uniqueRepositoryAvatarName}
                 setDownloadUrl={(url) => {
-                  onChange(url);
-                  setAvatar(url);
+                  setRepositoryOriginalImage(url);
                 }}
-                setCopperedDownloadUrl={setRepositoryAvatarUrl}
+                setCopperedDownloadUrl={(url) => {
+                  onChange(url);
+                  setRepositoryAvatarUrl(url);
+                  setRepositoryImage(url);
+                }}
               >
                 <div className="h-96 w-full bg-base-300 rounded-lg border-2 border-dashed border-base-content/30 hover:border-primary hover:bg-base-200 transition-colors cursor-pointer flex flex-col items-center justify-center group">
                   {repositoryAvatarUrl

@@ -219,9 +219,9 @@ export function CharacterCopper({
     setOriginUrl("");
     originUrlPromiseRef.current = (async () => {
       try {
-        const url = await uploadUtils.uploadImg(file, scene);
-        setOriginUrl(url);
-        return url;
+        const uploadedImage = await uploadUtils.uploadDualImage(file, scene);
+        setOriginUrl(uploadedImage.originalUrl);
+        return uploadedImage.originalUrl;
       }
       catch (error) {
         console.error("originUrl 上传失败:", error);
@@ -257,7 +257,7 @@ export function CharacterCopper({
 
     let originUrl = "";
     try {
-      originUrl = await uploadUtils.uploadImg(file, scene);
+      originUrl = (await uploadUtils.uploadDualImage(file, scene)).originalUrl;
     }
     catch (error) {
       console.error("originUrl 上传失败:", error);
@@ -417,7 +417,7 @@ export function CharacterCopper({
         }
         if (!resolvedOriginUrl && originalFileRef.current) {
           try {
-            resolvedOriginUrl = await uploadUtils.uploadImg(originalFileRef.current, scene);
+            resolvedOriginUrl = (await uploadUtils.uploadDualImage(originalFileRef.current, scene)).originalUrl;
             setOriginUrl(resolvedOriginUrl);
           }
           catch (error) {

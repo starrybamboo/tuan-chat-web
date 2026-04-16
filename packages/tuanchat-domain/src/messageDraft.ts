@@ -12,6 +12,7 @@ export type UploadedImageMessageDraftAsset = {
   background?: boolean;
   fileName: string;
   height: number;
+  originalUrl?: string;
   size: number;
   url: string;
   width: number;
@@ -157,6 +158,7 @@ function pickPayload(rawExtra: unknown, ...keys: string[]): MessageExtraRecord {
 function normalizeImagePayload(rawExtra: unknown, options?: { defaultBackground?: boolean }): MessageExtraRecord {
   const image = pickPayload(rawExtra, "imageMessage");
   return compactRecord({
+    originalUrl: toTrimmedString(image.originalUrl),
     url: toTrimmedString(image.url),
     fileName: toTrimmedString(image.fileName),
     width: toPositiveNumber(image.width),
@@ -520,6 +522,7 @@ export function buildMessageDraftsFromUploadedMedia({
       messageType: MESSAGE_TYPE.IMG,
       extra: {
         imageMessage: {
+          ...(image.originalUrl ? { originalUrl: image.originalUrl } : {}),
           url: image.url,
           width: image.width,
           height: image.height,

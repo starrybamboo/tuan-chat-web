@@ -19,6 +19,10 @@ export type Space = {
      */
     avatar?: string;
     /**
+     * 空间头像原图
+     */
+    originalAvatar?: string;
+    /**
      * 空间描述
      */
     description?: string;
@@ -50,5 +54,13 @@ export type Space = {
     extra?: string;
     createTime?: string;
     updateTime?: string;
+    /**
+     * 当前返回是否来自归档视图
+     */
+    archiveView?: boolean;
+    /**
+     * 当前返回实际命中的 commitId；在线视图为空
+     */
+    effectiveCommitId?: number;
 };
 

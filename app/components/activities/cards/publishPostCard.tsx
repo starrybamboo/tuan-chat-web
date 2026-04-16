@@ -16,6 +16,7 @@ interface LocalImage {
   file?: File; // 本地文件（存在则为本地上传）
   url: string; // 预览地址（blob: 或 已上传后的外链）
   uploadedUrl?: string; // 上传成功后后端返回的最终 URL（上传后优先使用）
+  originalUploadedUrl?: string;
   uploading: boolean;
   error?: string | null;
   isEmoji?: boolean; // 来自 StickerWindow 的外链表情
@@ -105,9 +106,17 @@ const PublishPostCard: React.FC<PublishBoxProps> = ({ loginUserId }) => {
 
     uploadingPromisesRef.current[id] = (async () => {
       try {
-        const uploadedUrl = await uploadUtilsRef.current.uploadImg(file, 1);
+        const uploadedImage = await uploadUtilsRef.current.uploadDualImage(file, 1);
         // 上传成功后把 uploadedUrl 写回，并把预览切换为服务器 URL（避免 blob 长期占内存）
-        setImages(prev => prev.map(p => (p.id === id ? { ...p, uploading: false, uploadedUrl, url: uploadedUrl } : p)));
+        setImages(prev => prev.map(p => (p.id === id
+          ? {
+              ...p,
+              uploading: false,
+              originalUploadedUrl: uploadedImage.originalUrl,
+              uploadedUrl: uploadedImage.url,
+              url: uploadedImage.url,
+            }
+          : p)));
       }
       catch (err: any) {
         const msg = err?.message || "上传失败";
@@ -132,6 +141,7 @@ const PublishPostCard: React.FC<PublishBoxProps> = ({ loginUserId }) => {
       id,
       url: emoji.imageUrl,
       uploadedUrl: emoji.imageUrl, // 已是远端 URL，直接可用
+      originalUploadedUrl: emoji.originalImageUrl ?? emoji.imageUrl,
       uploading: false,
       isEmoji: true,
       error: null,
@@ -173,10 +183,12 @@ const PublishPostCard: React.FC<PublishBoxProps> = ({ loginUserId }) => {
 
       // 优先使用 uploadedUrl（服务器 URL），否则使用 url（emoji 等外链）
       const imageUrls = images.map(i => i.uploadedUrl ?? i.url).filter(Boolean);
+      const originalImageUrls = images.map(i => i.originalUploadedUrl ?? i.uploadedUrl ?? i.url).filter(Boolean);
 
       const request: MomentFeedRequest = {
         content: content.trim(),
         imageUrls,
+        originalImageUrls,
       };
 
       await publishMutation.mutateAsync(request);

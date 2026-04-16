@@ -7,6 +7,7 @@ type MaterialPackageEditorDraftSource = {
   name?: string;
   description?: string;
   coverUrl?: string;
+  originalCoverUrl?: string;
   isPublic?: boolean;
   content?: MaterialPackageContent;
 };
@@ -18,6 +19,7 @@ export function buildMaterialPackageEditorDraft(
     name: pkg?.name ?? "",
     description: pkg?.description ?? "",
     coverUrl: pkg?.coverUrl ?? "",
+    originalCoverUrl: pkg?.originalCoverUrl ?? pkg?.coverUrl ?? "",
     isPublic: pkg?.isPublic ?? false,
     content: pkg?.content ?? createEmptyMaterialPackageContent(),
   };

@@ -15,6 +15,7 @@ export function CreateCollectionModal({ isOpen, onClose, onSuccess, resourceType
   const [isPublic, setIsPublic] = useState(true);
   const [isCreating, setIsCreating] = useState(false);
   const [coverImage, setCoverImage] = useState<string | undefined>(undefined);
+  const [coverOriginalImage, setCoverOriginalImage] = useState<string | undefined>(undefined);
   const [coverImageFile, setCoverImageFile] = useState<File | undefined>(undefined);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [isDragOver, setIsDragOver] = useState(false);
@@ -28,6 +29,7 @@ export function CreateCollectionModal({ isOpen, onClose, onSuccess, resourceType
     setDescription("");
     setIsPublic(false);
     setCoverImage(undefined);
+    setCoverOriginalImage(undefined);
     setCoverImageFile(undefined);
   };
 
@@ -77,8 +79,9 @@ export function CreateCollectionModal({ isOpen, onClose, onSuccess, resourceType
     try {
       setIsUploadingImage(true);
       setCoverImageFile(file);
-      const imageUrl = await uploadUtils.uploadImg(file, 4); // scene 4 表示仓库图片
-      setCoverImage(imageUrl);
+      const uploadedImage = await uploadUtils.uploadDualImage(file, 4);
+      setCoverImage(uploadedImage.url);
+      setCoverOriginalImage(uploadedImage.originalUrl);
     }
     catch (error) {
       console.error("图片上传失败:", error);
@@ -109,6 +112,7 @@ export function CreateCollectionModal({ isOpen, onClose, onSuccess, resourceType
   // 重置封面图片
   const resetCoverImage = () => {
     setCoverImage(undefined);
+    setCoverOriginalImage(undefined);
     setCoverImageFile(undefined);
     const input = document.getElementById("coverImageInput") as HTMLInputElement;
     if (input)
@@ -130,6 +134,7 @@ export function CreateCollectionModal({ isOpen, onClose, onSuccess, resourceType
         isPublic,
         resourceListType: resourceType,
         coverImageUrl: coverImage, // 添加封面图片
+        originalCoverImageUrl: coverOriginalImage,
       });
 
       // 重置表单

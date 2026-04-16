@@ -16,6 +16,10 @@ export type UserPrivateInfoResponse = {
      */
     avatar?: string;
     /**
+     * 头像原图的url
+     */
+    originalAvatar?: string;
+    /**
      * 头像缩略图的url
      */
     avatarThumbUrl?: string;

@@ -25,6 +25,7 @@ function buildDraft(pkg?: SpaceMaterialPackageResponse) {
     name: pkg?.name ?? "",
     description: pkg?.description ?? "",
     coverUrl: pkg?.coverUrl ?? "",
+    originalCoverUrl: pkg?.originalCoverUrl ?? pkg?.coverUrl ?? "",
     isPublic: false,
     content: (pkg?.content ?? createEmptyMaterialPackageContent()) as MaterialPackageContent,
   };
@@ -53,6 +54,7 @@ export default function SpaceMaterialSubWindow({
     name: string;
     description: string;
     coverUrl: string;
+    originalCoverUrl: string;
     isPublic: boolean;
     content: MaterialPackageContent;
   }) => {
@@ -66,6 +68,7 @@ export default function SpaceMaterialSubWindow({
       name: draft.name,
       description: draft.description,
       coverUrl: draft.coverUrl,
+      originalCoverUrl: draft.originalCoverUrl,
       content: draft.content,
     });
   };

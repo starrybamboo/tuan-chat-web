@@ -17,6 +17,7 @@ type EmojiAttachmentMeta = {
   height?: number;
   size?: number;
   fileName?: string;
+  originalUrl?: string;
 };
 
 type BuildMessageDraftsFromComposerSnapshotParams = {
@@ -124,10 +125,11 @@ export async function buildMessageDraftsFromComposerSnapshot({
   const uploadedVideos: UploadedVideoMessageDraftAsset[] = [];
 
   for (const imgFile of imgFiles) {
-    const url = await uploadUtils.uploadImg(imgFile, 1);
+    const uploadedImage = await uploadUtils.uploadDualImage(imgFile, 1);
     const { width, height, size } = await getImageSize(imgFile);
     uploadedImages.push({
-      url,
+      originalUrl: uploadedImage.originalUrl,
+      url: uploadedImage.url,
       width,
       height,
       size,
@@ -149,6 +151,7 @@ export async function buildMessageDraftsFromComposerSnapshot({
     }
 
     uploadedImages.push({
+      originalUrl: meta?.originalUrl ?? emojiUrl,
       url: emojiUrl,
       width,
       height,

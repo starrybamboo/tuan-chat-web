@@ -40,6 +40,10 @@ export type SpaceMaterialPackageResponse = {
      */
     coverUrl?: string;
     /**
+     * 素材包封面原图URL
+     */
+    originalCoverUrl?: string;
+    /**
      * 文件夹节点数量
      */
     folderCount?: number;
