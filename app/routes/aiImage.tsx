@@ -118,32 +118,46 @@ export default function AiImagePage() {
           --color-primary-content: #ffffff;
           --color-info: #59cabc;
           --color-info-content: #ffffff;
+          --ai-image-surface-radius: 0.375rem;
         }
 
         .ai-image-shell :where(
           .card,
           .btn,
-          .input,
-          .select,
-          .textarea,
-          .checkbox,
-          .toggle,
           .collapse,
           .badge,
           .join,
           .join-item,
           .modal-box,
           button,
-          input,
-          select,
-          textarea,
           details,
           summary,
           img,
           canvas,
           [class*="rounded"]
         ) {
+          border-radius: var(--ai-image-surface-radius) !important;
+        }
+
+        .ai-image-shell :where(
+          .input,
+          .select,
+          .textarea,
+          .checkbox,
+          .toggle,
+          input,
+          select,
+          textarea
+        ) {
           border-radius: 0 !important;
+        }
+
+        .ai-image-shell :where(
+          .rounded-full,
+          [class*="rounded-full"],
+          .btn-circle
+        ) {
+          border-radius: 9999px !important;
         }
       `}</style>
       {controller.isPageImageDragOver
