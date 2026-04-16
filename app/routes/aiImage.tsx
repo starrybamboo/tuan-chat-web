@@ -9,9 +9,9 @@ import { PreviewImageDialog } from "@/components/aiImage/PreviewImageDialog";
 import { StylePickerDialog } from "@/components/aiImage/StylePickerDialog";
 import { useAiImagePageController } from "@/components/aiImage/useAiImagePageController";
 
-const AI_IMAGE_SIDEBAR_MIN_RATIO = 0.25;
-const AI_IMAGE_SIDEBAR_MAX_RATIO = 0.375;
-const AI_IMAGE_SIDEBAR_DEFAULT_RATIO = 0.3;
+const AI_IMAGE_SIDEBAR_MIN_RATIO = 0.15;
+const AI_IMAGE_SIDEBAR_MAX_RATIO = 0.275;
+const AI_IMAGE_SIDEBAR_DEFAULT_RATIO = 0.15;
 
 function clampAiImageSidebarWidth(nextWidth: number, containerWidth: number) {
   const minWidth = Math.round(containerWidth * AI_IMAGE_SIDEBAR_MIN_RATIO);
