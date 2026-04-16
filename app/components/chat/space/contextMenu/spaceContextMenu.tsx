@@ -3,7 +3,7 @@ import toast from "react-hot-toast";
 import { useNavigate } from "react-router";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
 import ConfirmModal from "@/components/common/comfirmModel";
-import { useDissolveSpaceMutation, useExitSpaceMutation, useUpdateSpaceArchiveStatusMutation } from "../../../../../api/hooks/chatQueryHooks";
+import { useDissolveSpaceMutation, useExitSpaceMutation, useRecoverSpaceMutation, useUpdateSpaceArchiveStatusMutation } from "../../../../../api/hooks/chatQueryHooks";
 
 interface SpaceContextMenuProps {
   contextMenu: { x: number; y: number; spaceId: number } | null;
@@ -19,9 +19,11 @@ export default function SpaceContextMenu({ contextMenu, isSpaceOwner, isArchived
   const dissolveSpace = useDissolveSpaceMutation();
   const exitSpace = useExitSpaceMutation();
   const updateArchiveStatus = useUpdateSpaceArchiveStatusMutation();
-  const archiveActionLabel = updateArchiveStatus.isPending
-    ? (isArchived ? "取消归档中..." : "归档中...")
-    : (isArchived ? "取消归档" : "归档空间");
+  const recoverSpace = useRecoverSpaceMutation();
+  const archiveActionPending = updateArchiveStatus.isPending || recoverSpace.isPending;
+  const archiveActionLabel = isArchived
+    ? (recoverSpace.isPending ? "恢复中..." : "恢复编辑")
+    : (updateArchiveStatus.isPending ? "归档中..." : "归档空间");
 
   const [isDissolveConfirmOpen, setIsDissolveConfirmOpen] = useState(false);
   const [dissolveTargetSpaceId, setDissolveTargetSpaceId] = useState<number | null>(null);
@@ -48,27 +50,30 @@ export default function SpaceContextMenu({ contextMenu, isSpaceOwner, isArchived
   };
 
   const handleToggleArchive = async (spaceId: number, nextArchived: boolean) => {
-    if (updateArchiveStatus.isPending) {
+    if (archiveActionPending) {
       return;
     }
     const toastId = `space-archive-${spaceId}`;
-    toast.loading(nextArchived ? "正在归档空间..." : "正在取消归档...", { id: toastId });
+    toast.loading(nextArchived ? "正在归档空间..." : "正在恢复编辑...", { id: toastId });
     try {
       if (nextArchived) {
         const { prepareSpaceDocsForArchive } = await import("@/components/chat/infra/blocksuite/space/prepareSpaceDocsForArchive");
         await prepareSpaceDocsForArchive(spaceId);
+        await updateArchiveStatus.mutateAsync({ spaceId, archived: true });
       }
-      await updateArchiveStatus.mutateAsync({ spaceId, archived: nextArchived });
-      toast.success(nextArchived ? "归档完成" : "已取消归档", { id: toastId });
+      else {
+        await recoverSpace.mutateAsync({ spaceId });
+      }
+      toast.success(nextArchived ? "归档完成" : "已恢复编辑", { id: toastId });
       onClose();
     }
     catch {
-      toast.error(nextArchived ? "归档失败，请重试" : "取消归档失败，请重试", { id: toastId });
+      toast.error(nextArchived ? "归档失败，请重试" : "恢复编辑失败，请重试", { id: toastId });
     }
   };
 
   const handleArchiveAction = (spaceId: number) => {
-    if (updateArchiveStatus.isPending) {
+    if (archiveActionPending) {
       return;
     }
     const nextArchived = !isArchived;
@@ -94,7 +99,7 @@ export default function SpaceContextMenu({ contextMenu, isSpaceOwner, isArchived
               ? (
                   <>
                     <li
-                      className={`relative group ${updateArchiveStatus.isPending ? "opacity-60 pointer-events-none" : ""}`}
+                      className={`relative group ${archiveActionPending ? "opacity-60 pointer-events-none" : ""}`}
                       onClick={() => {
                         handleArchiveAction(contextMenu.spaceId);
                       }}
@@ -191,7 +196,7 @@ export default function SpaceContextMenu({ contextMenu, isSpaceOwner, isArchived
           setArchiveTargetSpaceId(null);
         }}
         title="确认归档空间"
-        message="归档后空间将进入只读状态，可在之后取消归档。是否继续？"
+        message="归档后空间将进入只读状态，可在之后恢复编辑。是否继续？"
         confirmText="确认归档"
         variant="warning"
         onConfirm={() => {

@@ -25,6 +25,7 @@ import type { SpaceExtraSetRequest } from "@tuanchat/openapi-client/models/Space
 import type { SpaceRole } from "@tuanchat/openapi-client/models/SpaceRole";
 import type { UserRole } from "@tuanchat/openapi-client/models/UserRole";
 import type { SpaceArchiveRequest } from "@tuanchat/openapi-client/models/SpaceArchiveRequest";
+import type { SpaceRecoverRequest } from "@tuanchat/openapi-client/models/SpaceRecoverRequest";
 import type { LeaderTransferRequest } from "@tuanchat/openapi-client/models/LeaderTransferRequest";
 import type {HistoryMessageRequest} from "@tuanchat/openapi-client/models/HistoryMessageRequest";
 import type {MessageBySyncIdRequest} from "@tuanchat/openapi-client/models/MessageBySyncIdRequest";
@@ -389,6 +390,23 @@ export function useUpdateSpaceArchiveStatusMutation() {
     return useMutation({
         mutationFn: (req: SpaceArchiveRequest) => tuanchat.spaceController.updateSpaceArchiveStatus(req),
         mutationKey: ['updateSpaceArchiveStatus'],
+        onSuccess: () => {
+queryClient.invalidateQueries({ queryKey: ['getUserSpaces'] });
+queryClient.invalidateQueries({ queryKey: ['getUserActiveSpaces'] });
+            queryClient.invalidateQueries({ queryKey: ['getSpaceMemberList'] });
+            queryClient.invalidateQueries({ queryKey: ['getRoomMemberList'] });
+        }
+    });
+}
+
+/**
+ * 恢复归档空间继续编辑
+ */
+export function useRecoverSpaceMutation() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: (req: SpaceRecoverRequest) => tuanchat.spaceController.recoverArchivedSpace(req),
+        mutationKey: ['recoverArchivedSpace'],
         onSuccess: () => {
 queryClient.invalidateQueries({ queryKey: ['getUserSpaces'] });
 queryClient.invalidateQueries({ queryKey: ['getUserActiveSpaces'] });

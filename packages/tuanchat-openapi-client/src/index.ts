@@ -311,6 +311,7 @@ export type { SpaceMemberAddRequest } from './models/SpaceMemberAddRequest';
 export type { SpaceMemberDeleteRequest } from './models/SpaceMemberDeleteRequest';
 export type { SpaceMemberTypeUpdateRequest } from './models/SpaceMemberTypeUpdateRequest';
 export type { SpaceOwnerTransferRequest } from './models/SpaceOwnerTransferRequest';
+export type { SpaceRecoverRequest } from './models/SpaceRecoverRequest';
 export type { SpaceRole } from './models/SpaceRole';
 export type { SpaceSidebarTreeResponse } from './models/SpaceSidebarTreeResponse';
 export type { SpaceSidebarTreeSetRequest } from './models/SpaceSidebarTreeSetRequest';

@@ -49,6 +49,13 @@ async function cloneSpaceByCommitId(repositoryId: number, commitId: number): Pro
   throw new Error(response?.errMsg ?? "根据提交克隆失败");
 }
 
+async function recoverArchivedSpaceById(spaceId: number): Promise<void> {
+  const response = await tuanchat.spaceController.recoverArchivedSpace({ spaceId });
+  if (!response?.success) {
+    throw new Error(response?.errMsg ?? "恢复编辑失败");
+  }
+}
+
 function isRepositorySpaceCandidate(space: Space, repositoryId: number): space is RepositorySpaceCandidate {
   return space.repositoryId === repositoryId && isValidSpaceId(space.spaceId);
 }
@@ -118,8 +125,8 @@ export default function RepositoryDetailComponent({
   const repositorySpace = repositorySpaces[0] ?? null;
 
   const [isCloningModule, setIsCloningModule] = useState(false);
-  const [isUnarchivingSuggestedSpace, setIsUnarchivingSuggestedSpace] = useState(false);
-  const [showUnarchiveSuggestionDialog, setShowUnarchiveSuggestionDialog] = useState(false);
+  const [isRecoveringSuggestedSpace, setIsRecoveringSuggestedSpace] = useState(false);
+  const [showRecoverSuggestionDialog, setShowRecoverSuggestionDialog] = useState(false);
   const cloningModuleLockRef = useRef(false);
   const errorToastTimerRef = useRef<number | null>(null);
 
@@ -182,7 +189,7 @@ export default function RepositoryDetailComponent({
     return null;
   }, [repositoryData?.commitId]);
 
-  const suggestedUnarchiveSpace = useMemo(() => {
+  const suggestedRecoverSpace = useMemo(() => {
     if (latestRepositoryCommitId == null) {
       return null;
     }
@@ -374,7 +381,7 @@ export default function RepositoryDetailComponent({
     }
     catch {
       setViewModeOpen(false);
-      showErrorToast("克隆失败，请重试");
+      showErrorToast("创建副本失败，请重试");
     }
     finally {
       cloningModuleLockRef.current = false;
@@ -383,55 +390,48 @@ export default function RepositoryDetailComponent({
   };
 
   const handleCloneModule = () => {
-    if (isCloningModule || isUnarchivingSuggestedSpace) {
+    if (isCloningModule || isRecoveringSuggestedSpace) {
       return;
     }
-    if (suggestedUnarchiveSpace && isValidSpaceId(suggestedUnarchiveSpace.spaceId)) {
-      setShowUnarchiveSuggestionDialog(true);
+    if (suggestedRecoverSpace && isValidSpaceId(suggestedRecoverSpace.spaceId)) {
+      setShowRecoverSuggestionDialog(true);
       return;
     }
     void cloneModule();
   };
 
   const handleCloneAfterSuggestion = () => {
-    if (isCloningModule || isUnarchivingSuggestedSpace) {
+    if (isCloningModule || isRecoveringSuggestedSpace) {
       return;
     }
-    setShowUnarchiveSuggestionDialog(false);
+    setShowRecoverSuggestionDialog(false);
     void cloneModule();
   };
 
-  const handleUnarchiveSuggestedSpace = async () => {
-    const targetSpaceId = suggestedUnarchiveSpace?.spaceId;
+  const handleRecoverSuggestedSpace = async () => {
+    const targetSpaceId = suggestedRecoverSpace?.spaceId;
     if (!isValidSpaceId(targetSpaceId)) {
-      setShowUnarchiveSuggestionDialog(false);
+      setShowRecoverSuggestionDialog(false);
       return;
     }
-    if (isCloningModule || isUnarchivingSuggestedSpace) {
+    if (isCloningModule || isRecoveringSuggestedSpace) {
       return;
     }
 
-    setIsUnarchivingSuggestedSpace(true);
+    setIsRecoveringSuggestedSpace(true);
     try {
-      const result = await tuanchat.spaceController.updateSpaceArchiveStatus({
-        spaceId: targetSpaceId,
-        archived: false,
-      });
-      if (!result.success) {
-        throw new Error("取消归档失败");
-      }
-
-      setShowUnarchiveSuggestionDialog(false);
+      await recoverArchivedSpaceById(targetSpaceId);
+      setShowRecoverSuggestionDialog(false);
       setViewModeOpen(false);
       await refreshUserSpaceCaches();
       await navigateToSpace(targetSpaceId);
     }
     catch (error) {
-      console.error("[RepositoryDetail] 取消归档失败:", error);
-      showErrorToast("取消归档失败，请重试");
+      console.error("[RepositoryDetail] 恢复编辑失败:", error);
+      showErrorToast("恢复编辑失败，请重试");
     }
     finally {
-      setIsUnarchivingSuggestedSpace(false);
+      setIsRecoveringSuggestedSpace(false);
     }
   };
 
@@ -475,14 +475,17 @@ export default function RepositoryDetailComponent({
   const viewOverlayClassName = embedded
     ? "absolute inset-0 z-30 border border-base-300 bg-base-100 shadow-lg overflow-hidden"
     : "absolute inset-0 z-20 rounded-lg border border-base-300 bg-base-100 shadow-lg overflow-hidden";
-  const cloneButtonContent = isCloningModule
+  const createCopyButtonContent = isCloningModule
     ? (
         <>
           <span className="loading loading-spinner loading-xs"></span>
-          克隆中...
+          创建副本中...
         </>
       )
-    : "克隆模组";
+    : "创建副本";
+  const primaryActionButtonContent = suggestedRecoverSpace
+    ? "恢复编辑"
+    : createCopyButtonContent;
 
   return (
     <>
@@ -647,9 +650,9 @@ export default function RepositoryDetailComponent({
                             type="button"
                             className="btn btn-sm gap-2"
                             onClick={handleCloneModule}
-                            disabled={isCloningModule || isUnarchivingSuggestedSpace}
+                            disabled={isCloningModule || isRecoveringSuggestedSpace}
                           >
-                            {cloneButtonContent}
+                            {primaryActionButtonContent}
                           </button>
                         </div>
                       )}
@@ -683,9 +686,9 @@ export default function RepositoryDetailComponent({
                         type="button"
                         className="btn btn-sm btn-primary gap-2"
                         onClick={handleCloneModule}
-                        disabled={isCloningModule || isUnarchivingSuggestedSpace}
+                        disabled={isCloningModule || isRecoveringSuggestedSpace}
                       >
-                        {cloneButtonContent}
+                        {primaryActionButtonContent}
                       </button>
                     </div>
                   </div>
@@ -694,14 +697,14 @@ export default function RepositoryDetailComponent({
                     {!linkedSpaceId && (
                       <div className="flex h-full flex-col items-center justify-center text-base-content/60 gap-3">
                         <div className="text-base">暂无可查看的模组内容</div>
-                        <div className="text-sm">先克隆模组到空间后再查看</div>
+                        <div className="text-sm">{suggestedRecoverSpace ? "先恢复编辑后再查看" : "先创建副本后再查看"}</div>
                         <button
                           type="button"
                           className="btn btn-sm btn-primary gap-2"
                           onClick={handleCloneModule}
-                          disabled={isCloningModule || isUnarchivingSuggestedSpace}
+                          disabled={isCloningModule || isRecoveringSuggestedSpace}
                         >
-                          {cloneButtonContent}
+                          {primaryActionButtonContent}
                         </button>
                       </div>
                     )}
@@ -744,16 +747,16 @@ export default function RepositoryDetailComponent({
           </div>
         </div>
       </div>
-      {showUnarchiveSuggestionDialog && suggestedUnarchiveSpace && (
+      {showRecoverSuggestionDialog && suggestedRecoverSpace && (
         <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/35 p-4">
           <div className="w-full max-w-lg rounded-xl border border-base-300 bg-base-100 p-5 shadow-xl">
-            <div className="text-lg font-semibold">建议先取消归档原空间</div>
+            <div className="text-lg font-semibold">恢复原空间继续编辑</div>
             <div className="mt-2 text-sm text-base-content/70 leading-relaxed">
               检测到你已有与当前仓库最新提交一致的归档空间。
-              直接恢复原空间通常更省时，也能减少重复克隆占用。
+              直接恢复原空间通常更省事，也不会再额外创建一个副本仓库。
             </div>
             <div className="mt-3 rounded-lg bg-base-200 px-3 py-2 text-sm">
-              {`空间：${suggestedUnarchiveSpace.name ?? `#${suggestedUnarchiveSpace.spaceId}`}`}
+              {`空间：${suggestedRecoverSpace.name ?? `#${suggestedRecoverSpace.spaceId}`}`}
               {latestRepositoryCommitId != null && (
                 <span className="ml-2 text-xs text-base-content/60">
                   {`commit #${latestRepositoryCommitId}`}
@@ -764,8 +767,8 @@ export default function RepositoryDetailComponent({
               <button
                 type="button"
                 className="btn btn-ghost btn-sm"
-                onClick={() => setShowUnarchiveSuggestionDialog(false)}
-                disabled={isUnarchivingSuggestedSpace || isCloningModule}
+                onClick={() => setShowRecoverSuggestionDialog(false)}
+                disabled={isRecoveringSuggestedSpace || isCloningModule}
               >
                 取消
               </button>
@@ -773,18 +776,18 @@ export default function RepositoryDetailComponent({
                 type="button"
                 className="btn btn-outline btn-sm"
                 onClick={handleCloneAfterSuggestion}
-                disabled={isUnarchivingSuggestedSpace || isCloningModule}
+                disabled={isRecoveringSuggestedSpace || isCloningModule}
               >
-                仍要克隆
+                仍要创建副本
               </button>
               <button
                 type="button"
                 className="btn btn-primary btn-sm gap-2"
-                onClick={handleUnarchiveSuggestedSpace}
-                disabled={isUnarchivingSuggestedSpace || isCloningModule}
+                onClick={handleRecoverSuggestedSpace}
+                disabled={isRecoveringSuggestedSpace || isCloningModule}
               >
-                {isUnarchivingSuggestedSpace && <span className="loading loading-spinner loading-xs"></span>}
-                取消归档并进入
+                {isRecoveringSuggestedSpace && <span className="loading loading-spinner loading-xs"></span>}
+                恢复编辑
               </button>
             </div>
           </div>

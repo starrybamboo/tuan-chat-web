@@ -9,7 +9,7 @@ import { canInviteSpectators } from "@/components/chat/utils/memberPermissions";
 import { canViewSpaceDetailTab } from "@/components/chat/utils/spaceDetailPermissions";
 import ConfirmModal from "@/components/common/comfirmModel";
 import { AddIcon, ChevronDown, DiceD6Icon, MemberIcon, Setting, SidebarSimpleIcon, WebgalIcon } from "@/icons";
-import { useDissolveSpaceMutation, useExitSpaceMutation, useUpdateSpaceArchiveStatusMutation } from "../../../../api/hooks/chatQueryHooks";
+import { useDissolveSpaceMutation, useExitSpaceMutation, useRecoverSpaceMutation, useUpdateSpaceArchiveStatusMutation } from "../../../../api/hooks/chatQueryHooks";
 
 interface SpaceHeaderBarProps {
   spaceName?: string;
@@ -42,6 +42,7 @@ export default function SpaceHeaderBar({
   const dissolveSpace = useDissolveSpaceMutation();
   const exitSpace = useExitSpaceMutation();
   const updateArchiveStatus = useUpdateSpaceArchiveStatusMutation();
+  const recoverSpace = useRecoverSpaceMutation();
   const archived = Boolean(isArchived);
   const [isDissolveConfirmOpen, setIsDissolveConfirmOpen] = React.useState(false);
   const [dissolveTargetSpaceId, setDissolveTargetSpaceId] = React.useState<number | null>(null);
@@ -52,9 +53,10 @@ export default function SpaceHeaderBar({
   const [isResetConfirmOpen, setIsResetConfirmOpen] = React.useState(false);
   const [isResettingSidebarTree, setIsResettingSidebarTree] = React.useState(false);
   const isDevOrTest = Boolean(import.meta.env?.DEV) || import.meta.env.MODE === "test";
-  const archiveActionLabel = updateArchiveStatus.isPending
-    ? (archived ? "取消归档中..." : "归档中...")
-    : (archived ? "取消归档" : "归档空间");
+  const archiveActionPending = updateArchiveStatus.isPending || recoverSpace.isPending;
+  const archiveActionLabel = archived
+    ? (recoverSpace.isPending ? "恢复中..." : "恢复编辑")
+    : (updateArchiveStatus.isPending ? "归档中..." : "归档空间");
   const leftDrawerLabel = isLeftDrawerOpen ? "收起侧边栏" : "展开侧边栏";
   const canResetSidebarTree = isDevOrTest && isSpaceOwner && Boolean(onResetSidebarTreeToDefault);
   const canViewMembersDetail = canViewSpaceDetailTab("members", spaceContext.memberType);
@@ -95,25 +97,28 @@ export default function SpaceHeaderBar({
   }, []);
 
   const handleToggleArchive = async (targetSpaceId: number, nextArchived: boolean) => {
-    if (updateArchiveStatus.isPending) {
+    if (archiveActionPending) {
       return;
     }
     const toastId = `space-archive-${targetSpaceId}`;
-    toast.loading(nextArchived ? "正在归档空间..." : "正在取消归档...", { id: toastId });
+    toast.loading(nextArchived ? "正在归档空间..." : "正在恢复编辑...", { id: toastId });
     try {
       if (nextArchived) {
         await prepareSpaceDocsForArchive(targetSpaceId);
+        await updateArchiveStatus.mutateAsync({ spaceId: targetSpaceId, archived: true });
       }
-      await updateArchiveStatus.mutateAsync({ spaceId: targetSpaceId, archived: nextArchived });
-      toast.success(nextArchived ? "归档完成" : "已取消归档", { id: toastId });
+      else {
+        await recoverSpace.mutateAsync({ spaceId: targetSpaceId });
+      }
+      toast.success(nextArchived ? "归档完成" : "已恢复编辑", { id: toastId });
     }
     catch {
-      toast.error(nextArchived ? "归档失败，请重试" : "取消归档失败，请重试", { id: toastId });
+      toast.error(nextArchived ? "归档失败，请重试" : "恢复编辑失败，请重试", { id: toastId });
     }
   };
 
   const handleArchiveAction = () => {
-    if (spaceId <= 0 || updateArchiveStatus.isPending) {
+    if (spaceId <= 0 || archiveActionPending) {
       return;
     }
     const nextArchived = !archived;
@@ -322,7 +327,7 @@ export default function SpaceHeaderBar({
                 <button
                   type="button"
                   className="gap-3"
-                  disabled={spaceId <= 0 || updateArchiveStatus.isPending}
+                  disabled={spaceId <= 0 || archiveActionPending}
                   onClick={handleArchiveAction}
                 >
                   <ArchiveIcon className="size-4 opacity-70" />
@@ -429,7 +434,7 @@ export default function SpaceHeaderBar({
           setArchiveTargetSpaceId(null);
         }}
         title="确认归档空间"
-        message="归档后空间将进入只读状态，可在之后取消归档。是否继续？"
+        message="归档后空间将进入只读状态，可在之后恢复编辑。是否继续？"
         confirmText="确认归档"
         variant="warning"
         onConfirm={() => {
