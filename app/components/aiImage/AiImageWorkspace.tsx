@@ -1,9 +1,9 @@
 import type { ComponentProps } from "react";
-import { CaretLeftIcon } from "@phosphor-icons/react";
 import { useState } from "react";
 
 import { AiImageHistoryPane } from "@/components/aiImage/AiImageHistoryPane";
 import { AiImagePreviewPane } from "@/components/aiImage/AiImagePreviewPane";
+import { HistoryIcon } from "@/icons";
 
 interface AiImageWorkspaceProps {
   isDirectorToolsOpen: boolean;
@@ -24,15 +24,15 @@ export function AiImageWorkspace({
 
       {isHistoryCollapsed
         ? (
-            <div className="absolute right-0 top-1/2 z-20 -translate-y-1/2">
+            <div className="absolute right-3 top-3 z-20">
               <button
                 type="button"
-                className="flex h-12 w-7 items-center justify-center rounded-l-full border border-base-300 border-r-0 bg-base-100/95 text-base-content/60 shadow-md backdrop-blur transition hover:bg-base-200 hover:text-base-content"
+                className="flex size-10 items-center justify-center rounded-lg border border-base-300 bg-base-100/95 text-base-content/72 shadow-md backdrop-blur transition hover:bg-base-200 hover:text-base-content"
                 aria-label="展开历史记录侧边栏"
                 title="展开历史记录侧边栏"
                 onClick={() => setIsHistoryCollapsed(false)}
               >
-                <CaretLeftIcon className="size-3.5" weight="bold" />
+                <HistoryIcon className="size-5" />
               </button>
             </div>
           )
