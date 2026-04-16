@@ -28,6 +28,7 @@ type RemoteKey = {
 
 type SharedRemoteState = {
   snapshotCache: Map<string, { at: number; value: StoredSnapshot | null }>;
+  snapshotWarmCache: Map<string, { at: number; value: StoredSnapshot }>;
   snapshotInflight: Map<string, Promise<StoredSnapshot | null>>;
   snapshotSetInflight: Map<string, Promise<void>>;
   snapshotLastSet: Map<string, { at: number; updateB64: string }>;
@@ -53,6 +54,7 @@ function buildRemoteUpdatesCacheKey(params: {
 function createSharedRemoteState(): SharedRemoteState {
   return {
     snapshotCache: new Map<string, { at: number; value: StoredSnapshot | null }>(),
+    snapshotWarmCache: new Map<string, { at: number; value: StoredSnapshot }>(),
     snapshotInflight: new Map<string, Promise<StoredSnapshot | null>>(),
     snapshotSetInflight: new Map<string, Promise<void>>(),
     snapshotLastSet: new Map<string, { at: number; updateB64: string }>(),
@@ -92,7 +94,9 @@ const sharedRemoteState = getSharedRemoteState();
 // Also mitigates React StrictMode double-mount in dev.
 const SNAPSHOT_CACHE_TTL_MS = 1500;
 const snapshotCache = sharedRemoteState.snapshotCache;
+const snapshotWarmCache = sharedRemoteState.snapshotWarmCache;
 const snapshotInflight = sharedRemoteState.snapshotInflight;
+const SNAPSHOT_WARM_CACHE_TTL_MS = 5 * 60_000;
 
 const SNAPSHOT_SET_DEDUPE_MS = 2500;
 const snapshotSetInflight = sharedRemoteState.snapshotSetInflight;
@@ -114,6 +118,30 @@ function invalidateRemoteUpdatesCache(baseCacheKey: string) {
       updatesInflight.delete(key);
     }
   }
+}
+
+function seedSnapshotCache(cacheKey: string, value: StoredSnapshot | null) {
+  snapshotCache.set(cacheKey, { at: Date.now(), value });
+}
+
+function seedWarmSnapshotCache(cacheKey: string, value: StoredSnapshot | null) {
+  if (!value?.updateB64) {
+    snapshotWarmCache.delete(cacheKey);
+    return;
+  }
+  snapshotWarmCache.set(cacheKey, { at: Date.now(), value });
+}
+
+function getWarmSnapshot(cacheKey: string): StoredSnapshot | null {
+  const cached = snapshotWarmCache.get(cacheKey);
+  if (!cached) {
+    return null;
+  }
+  if (Date.now() - cached.at > SNAPSHOT_WARM_CACHE_TTL_MS) {
+    snapshotWarmCache.delete(cacheKey);
+    return null;
+  }
+  return cached.value;
 }
 
 function isStoredSnapshot(v: any): v is StoredSnapshot {
@@ -177,6 +205,20 @@ export async function getRemoteSnapshot(params: {
     return cached.value;
   }
 
+  const warmed = getWarmSnapshot(cacheKey);
+  if (warmed) {
+    seedSnapshotCache(cacheKey, warmed);
+    recordDocCardShareObservation("remote-snapshot-get-success", {
+      entityType: params.entityType,
+      entityId: params.entityId,
+      docType: params.docType,
+      source: "warm-cache",
+      hasSnapshot: true,
+      snapshotVersion: warmed.v,
+    });
+    return warmed;
+  }
+
   const inflight = snapshotInflight.get(cacheKey);
   if (inflight) {
     return inflight;
@@ -201,7 +243,8 @@ export async function getRemoteSnapshot(params: {
   snapshotInflight.set(cacheKey, task);
   try {
     const value = await task;
-    snapshotCache.set(cacheKey, { at: Date.now(), value });
+    seedSnapshotCache(cacheKey, value);
+    seedWarmSnapshotCache(cacheKey, value);
     recordDocCardShareObservation("remote-snapshot-get-success", {
       entityType: params.entityType,
       entityId: params.entityId,
@@ -223,6 +266,28 @@ export async function getRemoteSnapshot(params: {
   }
   finally {
     snapshotInflight.delete(cacheKey);
+  }
+}
+
+export async function prewarmRemoteSnapshot(params: {
+  entityType: DescriptionEntityType;
+  entityId: number;
+  docType: DescriptionDocType;
+}): Promise<boolean> {
+  const cacheKey = buildRemoteCacheKey(params);
+  const warmed = getWarmSnapshot(cacheKey);
+  if (warmed) {
+    seedSnapshotCache(cacheKey, warmed);
+    return true;
+  }
+
+  try {
+    const snapshot = await getRemoteSnapshot(params);
+    return Boolean(snapshot?.updateB64);
+  }
+  catch {
+    // 预热是 best-effort，不阻断后续真实打开。
+    return false;
   }
 }
 
@@ -248,7 +313,8 @@ export async function setRemoteSnapshot(params: {
   if (last
     && last.updateB64 === params.snapshot.updateB64
     && now - last.at <= SNAPSHOT_SET_DEDUPE_MS) {
-    snapshotCache.set(cacheKey, { at: now, value: params.snapshot });
+    seedSnapshotCache(cacheKey, params.snapshot);
+    seedWarmSnapshotCache(cacheKey, params.snapshot);
     recordDocCardShareObservation("remote-snapshot-set-success", {
       entityType: params.entityType,
       entityId: params.entityId,
@@ -275,7 +341,8 @@ export async function setRemoteSnapshot(params: {
     snapshot: JSON.stringify(params.snapshot),
   }).then(() => {
     snapshotLastSet.set(cacheKey, { at: Date.now(), updateB64: params.snapshot.updateB64 });
-    snapshotCache.set(cacheKey, { at: Date.now(), value: params.snapshot });
+    seedSnapshotCache(cacheKey, params.snapshot);
+    seedWarmSnapshotCache(cacheKey, params.snapshot);
     invalidateRemoteUpdatesCache(cacheKey);
   });
 
@@ -327,7 +394,8 @@ export async function deleteRemoteSnapshot(params: {
       docType: params.docType,
     },
   ).then(() => {
-    snapshotCache.set(cacheKey, { at: Date.now(), value: null });
+    seedSnapshotCache(cacheKey, null);
+    snapshotWarmCache.delete(cacheKey);
     snapshotInflight.delete(cacheKey);
     snapshotSetInflight.delete(cacheKey);
     snapshotLastSet.delete(cacheKey);

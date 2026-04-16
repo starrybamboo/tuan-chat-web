@@ -1,0 +1,18 @@
+{
+  "name": "@tuanchat/domain",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./message-draft": "./src/messageDraft.ts",
+    "./message-extra": "./src/message-extra.ts",
+    "./message-type": "./src/messageType.ts",
+    "./open-api-result": "./src/open-api-result.ts",
+    "./role-api-error": "./src/role-api-error.ts",
+    "./state-command": "./src/stateCommand.ts",
+    "./state-event": "./src/state-event.ts"
+  },
+  "dependencies": {
+    "@tuanchat/openapi-client": "workspace:*"
+  }
+}

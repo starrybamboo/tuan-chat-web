@@ -2,7 +2,13 @@
   "extends": "./tsconfig.json",
   "compilerOptions": {
     "paths": {
-      "@/*": ["./app/*"]
+      "@/*": ["./app/*"],
+      "@tuanchat/domain": ["./packages/tuanchat-domain/src/index.ts"],
+      "@tuanchat/domain/*": ["./packages/tuanchat-domain/src/*"],
+      "@tuanchat/openapi-client": ["./packages/tuanchat-openapi-client/src/index.ts"],
+      "@tuanchat/openapi-client/*": ["./packages/tuanchat-openapi-client/src/*"],
+      "@tuanchat/query": ["./packages/tuanchat-query/src/index.ts"],
+      "@tuanchat/query/*": ["./packages/tuanchat-query/src/*"]
     }
   }
 }

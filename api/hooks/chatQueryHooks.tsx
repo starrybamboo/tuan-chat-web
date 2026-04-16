@@ -1,7 +1,6 @@
 import { useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
 import { tuanchat } from "../instance";
 import { QueryClient } from "@tanstack/react-query";
-import type { CancelablePromise } from "@tuanchat/openapi-client/core/CancelablePromise";
 import type { ApiResultListSpaceMember } from "@tuanchat/openapi-client/models/ApiResultListSpaceMember";
 import type { RoomAddRequest } from "@tuanchat/openapi-client/models/RoomAddRequest";
 import type { SpaceMemberDeleteRequest } from "@tuanchat/openapi-client/models/SpaceMemberDeleteRequest";
@@ -29,6 +28,19 @@ import type { SpaceArchiveRequest } from "@tuanchat/openapi-client/models/SpaceA
 import type { LeaderTransferRequest } from "@tuanchat/openapi-client/models/LeaderTransferRequest";
 import type {HistoryMessageRequest} from "@tuanchat/openapi-client/models/HistoryMessageRequest";
 import type {MessageBySyncIdRequest} from "@tuanchat/openapi-client/models/MessageBySyncIdRequest";
+import {
+    useBatchSendMessageMutation as useSharedBatchSendMessageMutation,
+    useSendMessageMutation as useSharedSendMessageMutation,
+} from "@tuanchat/query/chat";
+import {
+    useGetRoomMembersQuery as useSharedGetRoomMembersQuery,
+    useGetSpaceMembersQuery as useSharedGetSpaceMembersQuery,
+} from "@tuanchat/query/members";
+import {
+    useGetUserActiveSpacesQuery as useSharedGetUserActiveSpacesQuery,
+    useGetUserRoomsQuery as useSharedGetUserRoomsQuery,
+    useGetUserSpacesQuery as useSharedGetUserSpacesQuery,
+} from "@tuanchat/query/spaces";
 import { transferLeaderWithFallback } from "./transferLeaderRequest";
 import { updateSpaceMemberTypeWithFallback } from "./updateSpaceMemberTypeRequest";
 import { seedUserRoleListQueryCache } from "../roleQueryCache";
@@ -65,16 +77,6 @@ function patchSpaceMemberListCache(
             data: nextMembers,
         };
     });
-}
-
-function bindAbortToCancelablePromise<T>(signal: AbortSignal, request: CancelablePromise<T>) {
-    if (signal.aborted) {
-        request.cancel();
-        return request;
-    }
-
-    signal.addEventListener("abort", () => request.cancel(), { once: true });
-    return request;
 }
 
 function setCachedSpaceMemberType(
@@ -121,11 +123,8 @@ queryClient.invalidateQueries({ queryKey: ['getUserActiveSpaces'] });
  * 获取space成员
  */
 export function useGetSpaceMembersQuery(spaceId: number) {
-    return useQuery({
-        queryKey: ['getSpaceMemberList', spaceId],
-        queryFn: ({ signal }) => bindAbortToCancelablePromise(signal, tuanchat.spaceMemberController.getMemberList(spaceId)),
-        staleTime: 300000, // 5分钟缓存
-        enabled: spaceId > 0
+    return useSharedGetSpaceMembersQuery(tuanchat, spaceId, {
+        staleTime: 300000,
     });
 }
 
@@ -190,12 +189,8 @@ queryClient.invalidateQueries({ queryKey: ['getUserActiveSpaces'] });
  * @param roomId 群聊ID
  */
 export function useGetMemberListQuery(roomId: number) {
-
-    return useQuery({
-        queryKey: ['getRoomMemberList', roomId],
-        queryFn: () => tuanchat.roomMemberController.getMemberList1(roomId),
-        staleTime: 300000, // 5分钟缓存
-        enabled: roomId > 0,
+    return useSharedGetRoomMembersQuery(tuanchat, roomId, {
+        staleTime: 300000,
     });
 }
 
@@ -421,10 +416,7 @@ function useGetAllMessageQuery(roomId: number) {
  * @param roomId 关联的群聊ID（用于缓存刷新）
  */
 export function useSendMessageMutation(roomId: number) {
-    return useMutation({
-        mutationFn: (req: ChatMessageRequest) => tuanchat.chatController.sendMessage1(req),
-        mutationKey: ['sendMessage'],
-    });
+    return useSharedSendMessageMutation(tuanchat, roomId);
 }
 
 /**
@@ -432,10 +424,7 @@ export function useSendMessageMutation(roomId: number) {
  * @param roomId 关联的群聊ID（用于 mutation key 隔离）
  */
 export function useBatchSendMessageMutation(roomId: number) {
-    return useMutation({
-        mutationFn: (req: ChatMessageRequest[]) => tuanchat.chatController.batchSendMessages(req),
-        mutationKey: ['batchSendMessage', roomId],
-    });
+    return useSharedBatchSendMessageMutation(tuanchat, roomId);
 }
 
 /**
@@ -721,11 +710,7 @@ export function useDeleteRole1Mutation() {
  * 获取用户加入的所有space
  */
 export function useGetUserSpacesQuery() {
-    return useQuery({
-        queryKey: ['getUserSpaces'],
-        queryFn: () => tuanchat.spaceController.getUserSpaces(),
-        staleTime: 300000 // 5分钟缓存
-    });
+    return useSharedGetUserSpacesQuery(tuanchat);
 }
 
 /**
@@ -736,11 +721,7 @@ export function useGetUserSpacesQuery() {
  * 获取用户加入的未归档 space
  */
 export function useGetUserActiveSpacesQuery() {
-    return useQuery({
-        queryKey: ['getUserActiveSpaces'],
-        queryFn: () => tuanchat.spaceController.getUserActiveSpaces(),
-        staleTime: 300000 // 5分钟缓存
-    });
+    return useSharedGetUserActiveSpacesQuery(tuanchat);
 }
 
 type CloneSpaceByCommitPayload = {
@@ -763,12 +744,7 @@ queryClient.invalidateQueries({ queryKey: ['getUserActiveSpaces'] });
  * 获取 space 下用户加入的所有群聊
  */
 export function useGetUserRoomsQuery(spaceId: number) {
-    return useQuery({
-        queryKey: ['getUserRooms', spaceId],
-        queryFn: () => tuanchat.roomController.getUserRooms(spaceId),
-        staleTime: 300000,// 5分钟缓存
-        enabled: spaceId != -1
-    });
+    return useSharedGetUserRoomsQuery(tuanchat, spaceId);
 }
 
 /**

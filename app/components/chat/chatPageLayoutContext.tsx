@@ -17,7 +17,6 @@ export interface ChatPageLayoutContextValue {
   isKPInSpace: boolean;
   activeDocTitleForTcHeader: string;
   onDocTcHeaderChange: (payload: DocTcHeaderPayload) => void;
-  onOpenThreadInSubWindow: (roomId: number, threadRootMessageId: number) => void;
 }
 
 export const ChatPageLayoutContext = createContext<ChatPageLayoutContextValue | null>(null);

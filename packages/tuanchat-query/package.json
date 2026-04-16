@@ -1,0 +1,16 @@
+{
+  "name": "@tuanchat/query",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./chat": "./src/chat.ts",
+    "./members": "./src/members.ts",
+    "./spaces": "./src/spaces.ts",
+    "./users": "./src/users.ts"
+  },
+  "dependencies": {
+    "@tanstack/react-query": "^5.69.0",
+    "@tuanchat/openapi-client": "workspace:*"
+  }
+}

@@ -104,7 +104,7 @@ describe("messageDraftBuilder", () => {
     const pdfFile = new File(["pdf"], "notes.pdf", { type: "application/pdf" });
 
     const drafts = await buildMessageDraftsFromComposerSnapshot({
-      inputText: "   ",
+      inputText: "",
       imgFiles: [],
       emojiUrls: [],
       emojiMetaByUrl: {},
@@ -150,5 +150,44 @@ describe("messageDraftBuilder", () => {
     expect(uploadUtils.uploadVideo).toHaveBeenCalledTimes(1);
     expect(uploadUtils.uploadVideo).toHaveBeenCalledWith(videoFile, 1);
     expect(uploadUtils.uploadFile).not.toHaveBeenCalled();
+  });
+
+  it("纯空白输入会保留原样生成文本草稿", async () => {
+    const uploadUtils = createUploadUtilsMock();
+
+    const drafts = await buildMessageDraftsFromComposerSnapshot({
+      inputText: " \n\t ",
+      imgFiles: [],
+      emojiUrls: [],
+      emojiMetaByUrl: {},
+      fileAttachments: [],
+      audioFile: null,
+      composerAnnotations: [],
+      tempAnnotations: [],
+      uploadUtils,
+    });
+
+    expect(drafts).toEqual([expect.objectContaining({
+      content: " \n\t ",
+      messageType: MessageType.TEXT,
+    })]);
+  });
+
+  it("真正空字符串不再生成空文本草稿", async () => {
+    const uploadUtils = createUploadUtilsMock();
+
+    const drafts = await buildMessageDraftsFromComposerSnapshot({
+      inputText: "",
+      imgFiles: [],
+      emojiUrls: [],
+      emojiMetaByUrl: {},
+      fileAttachments: [],
+      audioFile: null,
+      composerAnnotations: [],
+      tempAnnotations: [],
+      uploadUtils,
+    });
+
+    expect(drafts).toEqual([]);
   });
 });

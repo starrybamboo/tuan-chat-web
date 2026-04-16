@@ -1,3 +1,5 @@
+export { MESSAGE_TYPE } from "@tuanchat/domain/message-type";
+
 /**
  * WebGAL 立绘位置（自定义 5 槽位）
  * left: 左
@@ -35,37 +37,6 @@ export type FigurePositionId = typeof FIGURE_POSITION_IDS[FigurePositionKey];
 export function isFigurePosition(value: string | undefined): value is FigurePositionKey {
   return FIGURE_POSITION_ORDER.includes(value as FigurePositionKey);
 }
-
-/**
- * 消息类型常量
- * 与后端 MessageTypeEnum 保持一致
- */
-export const MESSAGE_TYPE = {
-  TEXT: 1,
-  IMG: 2,
-  FILE: 3,
-  SYSTEM: 4,
-  FORWARD: 5,
-  DICE: 6,
-  SOUND: 7,
-  EFFECT: 8,
-  /** 黑屏文字消息 - WebGAL intro 语法 */
-  INTRO_TEXT: 9,
-  /** 跑团：检定/指令请求消息（点击后由他人“一键发送”执行） */
-  COMMAND_REQUEST: 12,
-  /** WebGAL choose message */
-  WEBGAL_CHOOSE: 13,
-  VIDEO: 14,
-  STATE_EVENT: 15,
-  CLUE_CARD: 1000,
-  /** 文档卡片消息（Blocksuite 文档引用） */
-  DOC_CARD: 1002,
-  /** 群聊跳转消息（房间引用） */
-  ROOM_JUMP: 1003,
-  READ_LINE: 10000,
-  /** Thread 根消息（在主消息流里展示 thread 标题） */
-  THREAD_ROOT: 10001,
-} as const;
 
 /**
  * WebGAL 预置动画名称

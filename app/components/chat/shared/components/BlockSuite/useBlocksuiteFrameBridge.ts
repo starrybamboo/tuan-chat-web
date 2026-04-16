@@ -51,6 +51,7 @@ type UseBlocksuiteFrameBridgeParams = {
 };
 
 function createBlocksuiteFrameSyncParams(params: {
+  instanceId: string;
   workspaceId: string;
   spaceId?: number;
   docId: string;
@@ -63,6 +64,7 @@ function createBlocksuiteFrameSyncParams(params: {
   frozenTcHeaderImageUrl?: string;
 }): BlocksuiteFrameSyncParams {
   const {
+    instanceId,
     workspaceId,
     spaceId,
     docId,
@@ -76,6 +78,7 @@ function createBlocksuiteFrameSyncParams(params: {
   } = params;
 
   return {
+    editorInstanceId: instanceId,
     workspaceId,
     spaceId,
     docId,
@@ -86,6 +89,7 @@ function createBlocksuiteFrameSyncParams(params: {
     tcHeader: tcHeaderEnabled,
     tcHeaderTitle: frozenTcHeaderTitle,
     tcHeaderImageUrl: frozenTcHeaderImageUrl,
+    prewarmOnly: false,
   };
 }
 
@@ -136,6 +140,7 @@ export function useBlocksuiteFrameBridge(params: UseBlocksuiteFrameBridgeParams)
 
   const createSyncParamsPayload = useCallback(() => {
     return createBlocksuiteFrameSyncParams({
+      instanceId,
       workspaceId,
       spaceId,
       docId,
@@ -158,6 +163,7 @@ export function useBlocksuiteFrameBridge(params: UseBlocksuiteFrameBridgeParams)
     spaceId,
     tcHeaderEnabled,
     workspaceId,
+    instanceId,
   ]);
 
   const postToFrame = useCallback((payload: Parameters<typeof postBlocksuiteFrameMessage>[0]["payload"]) => {

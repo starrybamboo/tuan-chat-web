@@ -1,8 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { BlocksuiteDescriptionEditorRuntime } from "./BlocksuiteDescriptionEditorRuntime.browser";
 import { ensureBlocksuiteBrowserRuntime } from "./bootstrap/browser";
 import { failBlocksuiteOpenSession, markBlocksuiteOpenSession } from "./shared/perf";
-import { readInitialBlocksuiteFrameProtocolState, useBlocksuiteFrameProtocol } from "./useBlocksuiteFrameProtocol";
+import { useBlocksuiteFrameProtocol } from "./useBlocksuiteFrameProtocol";
 
 /**
  * `/blocksuite-frame` 路由真正加载出来的浏览器子图入口。
@@ -10,15 +10,8 @@ import { readInitialBlocksuiteFrameProtocolState, useBlocksuiteFrameProtocol } f
  * 它负责：
  * 1. 解析 iframe 首开 query 参数
  * 2. 启动 browser runtime（样式 + custom elements + effects）
- * 3. 把参数交给真正的 editor runtime
+ * 3. 在 prewarm-only 与真正 editor runtime 之间切换
  */
-const FRAME_INSTANCE_ID = typeof window === "undefined"
-  ? ""
-  : readInitialBlocksuiteFrameProtocolState(window.location.search).instanceId;
-
-if (FRAME_INSTANCE_ID) {
-  markBlocksuiteOpenSession(FRAME_INSTANCE_ID, "frame-entry-start");
-}
 
 export function BlocksuiteRouteFrameClient() {
   const { instanceId, frameParams, postToParent } = useBlocksuiteFrameProtocol();
@@ -34,27 +27,54 @@ export function BlocksuiteRouteFrameClient() {
     allowModeSwitch,
     fullscreenEdgeless,
     forcedMode,
+    prewarmOnly,
   } = frameParams;
 
   const [isRuntimeReady, setIsRuntimeReady] = useState(false);
   const [runtimeError, setRuntimeError] = useState<string | null>(null);
+  const instanceIdRef = useRef(instanceId);
+  const bootstrapPhaseRef = useRef<"idle" | "booting" | "ready" | "error">("idle");
+  const markedEntryInstanceIdRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    instanceIdRef.current = instanceId;
+  }, [instanceId]);
+
+  useEffect(() => {
+    if (!instanceId || markedEntryInstanceIdRef.current === instanceId) {
+      return;
+    }
+
+    markBlocksuiteOpenSession(instanceId, "frame-entry-start");
+    if (bootstrapPhaseRef.current === "booting") {
+      markBlocksuiteOpenSession(instanceId, "frame-bootstrap-start");
+    }
+    if (bootstrapPhaseRef.current === "ready" || isRuntimeReady) {
+      markBlocksuiteOpenSession(instanceId, "frame-bootstrap-start");
+      markBlocksuiteOpenSession(instanceId, "frame-bootstrap-ready");
+    }
+    markedEntryInstanceIdRef.current = instanceId;
+  }, [instanceId, isRuntimeReady]);
 
   useEffect(() => {
     let cancelled = false;
     // frame 现在统一通过单段 browser bootstrap 启动。
-    markBlocksuiteOpenSession(instanceId, "frame-bootstrap-start");
+    bootstrapPhaseRef.current = "booting";
+    markBlocksuiteOpenSession(instanceIdRef.current, "frame-bootstrap-start");
 
     void ensureBlocksuiteBrowserRuntime().then(() => {
       if (cancelled)
         return;
-      markBlocksuiteOpenSession(instanceId, "frame-bootstrap-ready");
+      bootstrapPhaseRef.current = "ready";
+      markBlocksuiteOpenSession(instanceIdRef.current, "frame-bootstrap-ready");
       setRuntimeError(null);
       setIsRuntimeReady(true);
     }).catch((error) => {
       if (cancelled)
         return;
       console.error("[BlocksuiteFrame] Failed to bootstrap runtime", error);
-      failBlocksuiteOpenSession(instanceId, error instanceof Error ? error.message : String(error));
+      bootstrapPhaseRef.current = "error";
+      failBlocksuiteOpenSession(instanceIdRef.current, error instanceof Error ? error.message : String(error));
       setRuntimeError("Blocksuite runtime bootstrap failed");
       setIsRuntimeReady(false);
     });
@@ -62,7 +82,14 @@ export function BlocksuiteRouteFrameClient() {
     return () => {
       cancelled = true;
     };
-  }, [instanceId]);
+  }, []);
+
+  useEffect(() => {
+    if (!isRuntimeReady || !prewarmOnly) {
+      return;
+    }
+    postToParent({ type: "render-ready" });
+  }, [isRuntimeReady, postToParent, prewarmOnly]);
 
   if (runtimeError) {
     return (
@@ -83,6 +110,10 @@ export function BlocksuiteRouteFrameClient() {
         </div>
       </div>
     );
+  }
+
+  if (prewarmOnly) {
+    return <div className="h-full min-h-0 bg-base-200" aria-hidden="true" />;
   }
 
   return (

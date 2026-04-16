@@ -19,7 +19,6 @@ import RoomDocRefDropLayer from "@/components/chat/room/roomDocRefDropLayer";
 import RoomSideDrawerGuards from "@/components/chat/room/roomSideDrawerGuards";
 import RoomWindowLayout from "@/components/chat/room/roomWindowLayout";
 import RoomWindowOverlays from "@/components/chat/room/roomWindowOverlays";
-import { StateRuntimeProvider } from "@/components/chat/state/stateRuntimeContext";
 import useChatInputHandlers from "@/components/chat/room/useChatInputHandlers";
 import useChatMessageSubmit from "@/components/chat/room/useChatMessageSubmit";
 import useRealtimeRenderControls from "@/components/chat/room/useRealtimeRenderControls";
@@ -33,6 +32,7 @@ import useRoomMessageActions from "@/components/chat/room/useRoomMessageActions"
 import useRoomMessageScroll from "@/components/chat/room/useRoomMessageScroll";
 import useRoomOverlaysController from "@/components/chat/room/useRoomOverlaysController";
 import useRoomRoleState from "@/components/chat/room/useRoomRoleState";
+import { StateRuntimeProvider } from "@/components/chat/state/stateRuntimeContext";
 import { useAudioMessageAutoPlayStore } from "@/components/chat/stores/audioMessageAutoPlayStore";
 import { useChatInputUiStore } from "@/components/chat/stores/chatInputUiStore";
 import { useEntityHeaderOverrideStore } from "@/components/chat/stores/entityHeaderOverrideStore";
@@ -59,7 +59,6 @@ function RoomWindow({
   viewMode = false,
   hideSecondaryPanels = false,
   onCloseSubWindow,
-  onOpenThread,
 }: {
   roomId: number;
   spaceId: number;
@@ -69,7 +68,6 @@ function RoomWindow({
   viewMode?: boolean;
   hideSecondaryPanels?: boolean;
   onCloseSubWindow?: () => void;
-  onOpenThread?: (threadRootMessageId: number) => void;
 }) {
   const spaceContext = use(SpaceContext);
   const roomUiStoreRef = useRef<ReturnType<typeof createRoomUiStore> | null>(null);
@@ -855,7 +853,6 @@ function RoomWindow({
     onBackgroundUrlChange: setBackgroundUrl,
     onEffectChange: setCurrentEffect,
     onExecuteCommandRequest: handleExecuteCommandRequest,
-    onOpenThread,
     spaceName,
     roomName,
     messageScope,
@@ -863,7 +860,6 @@ function RoomWindow({
     sendMessageWithInsert,
   }), [
     handleExecuteCommandRequest,
-    onOpenThread,
     setBackgroundUrl,
     setCurrentEffect,
     roomName,

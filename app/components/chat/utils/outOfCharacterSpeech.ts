@@ -15,10 +15,11 @@ export function isOutOfCharacterSpeech(content?: string | null): boolean {
 }
 
 export function buildOutOfCharacterSpeechContent(content?: string | null): string | null {
-  const trimmed = typeof content === "string" ? content.trim() : "";
-  if (!trimmed) {
+  if (typeof content !== "string" || content.length === 0) {
     return null;
   }
 
-  return `（${trimmed}）`;
+  const trimmed = content.trim();
+  const normalizedContent = trimmed.length > 0 ? trimmed : content;
+  return `（${normalizedContent}）`;
 }

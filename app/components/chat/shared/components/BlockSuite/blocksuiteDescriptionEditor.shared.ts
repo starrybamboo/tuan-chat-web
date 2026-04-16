@@ -8,7 +8,7 @@ export type BlocksuiteDescriptionEditorProps = {
   spaceId?: number;
   docId: string;
   instanceId?: string;
-  /** 已废弃：当前 route 方案不再执行临场 prewarm，这个入参仅为兼容保留。 */
+  /** 请求后台预热或复用共享 warm frame，减少首次打开 Blocksuite 的冷启动等待。 */
   intentPrewarm?: boolean;
   readOnly?: boolean;
   mode?: DocMode;

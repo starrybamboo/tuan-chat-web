@@ -6,6 +6,7 @@ import {
   parseBlocksuiteFrameMessage,
   readBlocksuiteFrameMessageFromEvent,
 } from "../shared/frameProtocol";
+import { readInitialBlocksuiteFrameProtocolState } from "../useBlocksuiteFrameProtocol";
 
 describe("blocksuiteFrameProtocol", () => {
   it("会生成统一 envelope", () => {
@@ -102,5 +103,26 @@ describe("blocksuiteFrameProtocol", () => {
       expectedSource,
       instanceId: "instance-2",
     })).toBeNull();
+  });
+
+  it("会解析首开 query 里的 prewarmOnly", () => {
+    const state = readInitialBlocksuiteFrameProtocolState("?instanceId=warm-1&workspaceId=space-1&docId=doc-1&mode=edgeless&readOnly=1&allowModeSwitch=1&fullscreenEdgeless=0&tcHeader=1&prewarmOnly=1");
+
+    expect(state).toEqual({
+      instanceId: "warm-1",
+      frameParams: {
+        workspaceId: "space-1",
+        docId: "doc-1",
+        spaceId: undefined,
+        readOnly: true,
+        tcHeaderEnabled: true,
+        tcHeaderTitle: undefined,
+        tcHeaderImageUrl: undefined,
+        allowModeSwitch: true,
+        fullscreenEdgeless: false,
+        forcedMode: "edgeless",
+        prewarmOnly: true,
+      },
+    });
   });
 });

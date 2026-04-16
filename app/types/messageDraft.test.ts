@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { buildChatMessageRequestFromDraft, buildMessageExtraForRequest, normalizeMessageExtraForMatch } from "@/types/messageDraft";
+import {
+  buildChatMessageRequestFromDraft,
+  buildMessageDraftsFromUploadedMedia,
+  buildMessageExtraForRequest,
+  normalizeMessageExtraForMatch,
+} from "@/types/messageDraft";
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
 
 describe("messageDraft request normalization", () => {
@@ -103,6 +108,30 @@ describe("messageDraft request normalization", () => {
     expect(request.extra).toEqual({
       threadRoot: {
         title: "子区标题",
+      },
+    });
+  });
+
+  it("文件草稿请求会统一走 fileMessage 包装层", () => {
+    const request = buildChatMessageRequestFromDraft({
+      messageType: MESSAGE_TYPE.FILE,
+      content: "资料包",
+      extra: {
+        fileMessage: {
+          url: " https://static.example.com/rules.pdf ",
+          fileName: " rules.pdf ",
+          size: "4096",
+        },
+      },
+    } as any, {
+      roomId: 1,
+    });
+
+    expect(request.extra).toEqual({
+      fileMessage: {
+        url: "https://static.example.com/rules.pdf",
+        fileName: "rules.pdf",
+        size: 4096,
       },
     });
   });
@@ -236,5 +265,109 @@ describe("messageDraft request normalization", () => {
         hidden: true,
       },
     });
+  });
+
+  it("上传后的多媒体与文件素材会复用首条文本并按类型组装草稿", () => {
+    expect(buildMessageDraftsFromUploadedMedia({
+      baseMessage: {
+        roleId: 2,
+        avatarId: 3,
+        customRoleName: " 旁白 ",
+      },
+      fileAnnotations: ["file-annotation"],
+      inputText: "开场白",
+      imageAnnotations: ["image-annotation"],
+      soundAnnotations: ["sound-annotation"],
+      textAnnotations: ["text-annotation"],
+      videoAnnotations: ["video-annotation"],
+      uploadedImages: [{
+        url: "https://static.example.com/cover.png",
+        width: 640,
+        height: 360,
+        size: 2048,
+        fileName: "cover.png",
+        background: true,
+      }],
+      uploadedSoundMessage: {
+        url: "https://static.example.com/voice.webm",
+        fileName: "voice.webm",
+        size: 4096,
+        second: 2,
+        purpose: "bgm",
+      },
+      uploadedVideos: [{
+        url: "https://static.example.com/clip.mp4",
+        fileName: "clip.mp4",
+        size: 8192,
+        second: 12,
+      }],
+      uploadedFiles: [{
+        url: "https://static.example.com/rules.pdf",
+        fileName: "rules.pdf",
+        size: 16384,
+      }],
+    })).toEqual([{
+      roleId: 2,
+      avatarId: 3,
+      customRoleName: "旁白",
+      annotations: ["image-annotation"],
+      content: "开场白",
+      messageType: MESSAGE_TYPE.IMG,
+      extra: {
+        imageMessage: {
+          url: "https://static.example.com/cover.png",
+          width: 640,
+          height: 360,
+          size: 2048,
+          fileName: "cover.png",
+          background: true,
+        },
+      },
+    }, {
+      roleId: 2,
+      avatarId: 3,
+      customRoleName: "旁白",
+      annotations: ["sound-annotation"],
+      content: "",
+      messageType: MESSAGE_TYPE.SOUND,
+      extra: {
+        soundMessage: {
+          url: "https://static.example.com/voice.webm",
+          fileName: "voice.webm",
+          size: 4096,
+          second: 2,
+          purpose: "bgm",
+        },
+      },
+    }, {
+      roleId: 2,
+      avatarId: 3,
+      customRoleName: "旁白",
+      annotations: ["video-annotation"],
+      content: "",
+      messageType: MESSAGE_TYPE.VIDEO,
+      extra: {
+        videoMessage: {
+          url: "https://static.example.com/clip.mp4",
+          fileName: "clip.mp4",
+          size: 8192,
+          second: 12,
+        },
+      },
+    }, {
+      roleId: 2,
+      avatarId: 3,
+      customRoleName: "旁白",
+      annotations: ["file-annotation"],
+      content: "",
+      messageType: MESSAGE_TYPE.FILE,
+      extra: {
+        fileMessage: {
+          url: "https://static.example.com/rules.pdf",
+          fileName: "rules.pdf",
+          size: 16384,
+        },
+      },
+    }]);
   });
 });

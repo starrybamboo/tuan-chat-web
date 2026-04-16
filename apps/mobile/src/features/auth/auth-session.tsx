@@ -1,4 +1,4 @@
-import { ApiError } from "@tuanchat/openapi-client/core/ApiError";
+import { extractOpenApiErrorMessage } from "@tuanchat/domain/open-api-result";
 import type { UserLoginRequest } from "@tuanchat/openapi-client/models/UserLoginRequest";
 import type { PropsWithChildren } from "react";
 import { createContext, useContext, useEffect, useState } from "react";
@@ -32,27 +32,6 @@ type AuthSessionContextValue = {
 
 const AuthSessionContext = createContext<AuthSessionContextValue | null>(null);
 
-function extractApiErrorMessage(error: unknown, fallbackMessage: string) {
-  if (error instanceof ApiError) {
-    const body = error.body as { errMsg?: unknown; message?: unknown } | undefined;
-    if (typeof body?.errMsg === "string" && body.errMsg.trim().length > 0) {
-      return body.errMsg.trim();
-    }
-    if (typeof body?.message === "string" && body.message.trim().length > 0) {
-      return body.message.trim();
-    }
-    if (typeof error.message === "string" && error.message.trim().length > 0) {
-      return error.message.trim();
-    }
-  }
-
-  if (error instanceof Error && error.message.trim().length > 0) {
-    return error.message.trim();
-  }
-
-  return fallbackMessage;
-}
-
 async function performLogin(input: LoginInput): Promise<StoredAuthSession> {
   const identifier = input.identifier.trim();
   const password = input.password.trim();
@@ -73,7 +52,7 @@ async function performLogin(input: LoginInput): Promise<StoredAuthSession> {
     tokenResponse = await mobileApiClient.userController.login(request);
   }
   catch (error) {
-    throw new Error(extractApiErrorMessage(error, "登录失败。"));
+    throw new Error(extractOpenApiErrorMessage(error, "登录失败。"));
   }
 
   const token = tokenResponse?.data?.trim();
@@ -95,7 +74,7 @@ async function performLogin(input: LoginInput): Promise<StoredAuthSession> {
   }
   catch (error) {
     await clearStoredAuthSession();
-    const message = extractApiErrorMessage(error, "登录成功，但获取当前用户信息失败。");
+    const message = extractOpenApiErrorMessage(error, "登录成功，但获取当前用户信息失败。");
     throw new Error(message);
   }
 }

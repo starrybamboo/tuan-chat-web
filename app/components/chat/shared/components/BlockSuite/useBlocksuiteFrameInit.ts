@@ -2,6 +2,8 @@ import type { DocMode } from "@blocksuite/affine/model";
 
 import { useMemo, useRef } from "react";
 
+import { buildBlocksuiteFrameSrc } from "@/components/chat/infra/blocksuite/shared/frameSrc";
+
 type UseBlocksuiteFrameInitParams = {
   instanceId: string;
   workspaceId: string;
@@ -100,13 +102,19 @@ export function useBlocksuiteFrameInit(params: UseBlocksuiteFrameInitParams) {
   const frozenInitParams = frozenInitParamsRef.current;
 
   const src = useMemo(() => {
-    const params = new URLSearchParams();
-    for (const [key, value] of Object.entries(frozenInitParams)) {
-      if (value === undefined)
-        continue;
-      params.set(key, String(value));
-    }
-    return `/blocksuite-frame?${params.toString()}`;
+    return buildBlocksuiteFrameSrc({
+      instanceId: frozenInitParams.instanceId,
+      workspaceId: frozenInitParams.workspaceId,
+      spaceId: frozenInitParams.spaceId === undefined ? undefined : Number(frozenInitParams.spaceId),
+      docId: frozenInitParams.docId,
+      readOnly: frozenInitParams.readOnly === "1",
+      allowModeSwitch: frozenInitParams.allowModeSwitch === "1",
+      fullscreenEdgeless: frozenInitParams.fullscreenEdgeless === "1",
+      mode: frozenInitParams.mode,
+      tcHeader: frozenInitParams.tcHeader === "1",
+      tcHeaderTitle: frozenInitParams.tcHeaderTitle,
+      tcHeaderImageUrl: frozenInitParams.tcHeaderImageUrl,
+    });
   }, [frozenInitParams]);
 
   // 外部如果已经显式传了高度类，这里就不要再额外补默认高度。

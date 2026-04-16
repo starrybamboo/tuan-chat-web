@@ -25,6 +25,7 @@ type BlocksuiteFrameProtocolParams = {
     allowModeSwitch: boolean;
     fullscreenEdgeless: boolean;
     forcedMode: DocMode;
+    prewarmOnly: boolean;
   };
 };
 
@@ -51,13 +52,14 @@ export function readInitialBlocksuiteFrameProtocolState(search = typeof window =
       allowModeSwitch: parseBool01(sp.get("allowModeSwitch")),
       fullscreenEdgeless: parseBool01(sp.get("fullscreenEdgeless")),
       forcedMode: (sp.get("mode") === "edgeless" ? "edgeless" : "page") as DocMode,
+      prewarmOnly: parseBool01(sp.get("prewarmOnly")),
     },
   };
 }
 
 export function useBlocksuiteFrameProtocol() {
   const initialState = useMemo(() => readInitialBlocksuiteFrameProtocolState(), []);
-  const instanceId = initialState.instanceId;
+  const [instanceId, setInstanceId] = useState(initialState.instanceId);
   const [frameParams, setFrameParams] = useState(initialState.frameParams);
 
   const postToParent = useCallback((payload: BlocksuiteFrameToHostPayload) => {
@@ -125,6 +127,10 @@ export function useBlocksuiteFrameProtocol() {
       }
 
       if (message.type === "sync-params") {
+        if (message.editorInstanceId !== undefined) {
+          setInstanceId(typeof message.editorInstanceId === "string" ? message.editorInstanceId : "");
+        }
+
         setFrameParams(prev => ({
           workspaceId: message.workspaceId ?? prev.workspaceId,
           docId: message.docId ?? prev.docId,
@@ -136,6 +142,7 @@ export function useBlocksuiteFrameProtocol() {
           allowModeSwitch: typeof message.allowModeSwitch === "boolean" ? message.allowModeSwitch : prev.allowModeSwitch,
           fullscreenEdgeless: typeof message.fullscreenEdgeless === "boolean" ? message.fullscreenEdgeless : prev.fullscreenEdgeless,
           forcedMode: isBlocksuiteDocMode(message.mode) ? message.mode : prev.forcedMode,
+          prewarmOnly: typeof message.prewarmOnly === "boolean" ? message.prewarmOnly : prev.prewarmOnly,
         }));
       }
     };

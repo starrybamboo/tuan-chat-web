@@ -1,7 +1,13 @@
-import type { MessageDraft } from "@/types/messageDraft";
+import type {
+  MessageDraft,
+  UploadedImageMessageDraftAsset,
+  UploadedSoundMessageDraftAsset,
+  UploadedVideoMessageDraftAsset,
+} from "@/types/messageDraft";
 import type { UploadUtils } from "@/utils/UploadUtils";
 
 import { ANNOTATION_IDS, hasAnnotation, normalizeAnnotations, setAnnotation } from "@/types/messageAnnotations";
+import { buildMessageDraftsFromUploadedMedia } from "@/types/messageDraft";
 import { getImageSize } from "@/utils/getImgSize";
 
 import { MessageType } from "../../../../api/wsModels";
@@ -98,11 +104,12 @@ export async function buildMessageDraftsFromComposerSnapshot({
   composerAnnotations,
   tempAnnotations,
   uploadUtils,
-  allowEmptyTextMessage = true,
+  allowEmptyTextMessage = false,
   textMessageType = MessageType.TEXT,
 }: BuildMessageDraftsFromComposerSnapshotParams): Promise<MessageDraft[]> {
   const trimmedInputText = inputText.trim();
   const isBlankInput = trimmedInputText.length === 0;
+  const hasRawTextInput = inputText.length > 0;
   const mergedComposerAnnotations = normalizeAnnotations([...composerAnnotations, ...tempAnnotations]);
   const useBackgroundAnnotation = hasAnnotation(mergedComposerAnnotations, ANNOTATION_IDS.BACKGROUND);
   const useCgAnnotation = hasAnnotation(mergedComposerAnnotations, ANNOTATION_IDS.CG);
@@ -113,8 +120,8 @@ export async function buildMessageDraftsFromComposerSnapshot({
       : undefined;
 
   const identityFields = buildMessageDraftIdentityFields(baseMessage);
-  const uploadedImages: Array<{ url: string; width: number; height: number; size: number; fileName: string }> = [];
-  const uploadedVideos: Array<{ url: string; fileName: string; size: number; second?: number }> = [];
+  const uploadedImages: UploadedImageMessageDraftAsset[] = [];
+  const uploadedVideos: UploadedVideoMessageDraftAsset[] = [];
 
   for (const imgFile of imgFiles) {
     const url = await uploadUtils.uploadImg(imgFile, 1);
@@ -164,9 +171,7 @@ export async function buildMessageDraftsFromComposerSnapshot({
     });
   }
 
-  let uploadedSoundMessage:
-    | { url: string; fileName: string; size: number; second?: number; purpose?: string }
-    | null = null;
+  let uploadedSoundMessage: UploadedSoundMessageDraftAsset | null = null;
 
   if (audioFile) {
     uploadedSoundMessage = {
@@ -179,97 +184,33 @@ export async function buildMessageDraftsFromComposerSnapshot({
     };
   }
 
-  const nextMessages: MessageDraft[] = [];
-  let textContent = trimmedInputText;
-
-  for (const image of uploadedImages) {
-    let nextAnnotations = mergedComposerAnnotations;
-    if (useBackgroundAnnotation) {
-      nextAnnotations = setAnnotation(nextAnnotations, ANNOTATION_IDS.BACKGROUND, true);
-    }
-    if (useCgAnnotation) {
-      nextAnnotations = setAnnotation(nextAnnotations, ANNOTATION_IDS.CG, true);
-    }
-    nextMessages.push({
-      ...identityFields,
-      ...(nextAnnotations.length > 0 ? { annotations: nextAnnotations } : {}),
-      content: textContent,
-      messageType: MessageType.IMG,
-      extra: {
-        imageMessage: {
-          url: image.url,
-          width: image.width,
-          height: image.height,
-          size: image.size,
-          fileName: image.fileName,
-          background: useBackgroundAnnotation,
-        },
-      },
-    });
-    textContent = "";
+  let imageAnnotations = mergedComposerAnnotations;
+  if (useBackgroundAnnotation) {
+    imageAnnotations = setAnnotation(imageAnnotations, ANNOTATION_IDS.BACKGROUND, true);
+  }
+  if (useCgAnnotation) {
+    imageAnnotations = setAnnotation(imageAnnotations, ANNOTATION_IDS.CG, true);
   }
 
-  if (uploadedSoundMessage) {
-    let nextAnnotations = mergedComposerAnnotations;
-    if (hasAnnotation(mergedComposerAnnotations, ANNOTATION_IDS.BGM)) {
-      nextAnnotations = setAnnotation(nextAnnotations, ANNOTATION_IDS.BGM, true);
-    }
-    if (hasAnnotation(mergedComposerAnnotations, ANNOTATION_IDS.SE)) {
-      nextAnnotations = setAnnotation(nextAnnotations, ANNOTATION_IDS.SE, true);
-    }
-    nextMessages.push({
-      ...identityFields,
-      ...(nextAnnotations.length > 0 ? { annotations: nextAnnotations } : {}),
-      content: textContent,
-      messageType: MessageType.SOUND,
-      extra: {
-        soundMessage: {
-          url: uploadedSoundMessage.url,
-          fileName: uploadedSoundMessage.fileName,
-          size: uploadedSoundMessage.size,
-          ...(typeof uploadedSoundMessage.second === "number" ? { second: uploadedSoundMessage.second } : {}),
-          ...(uploadedSoundMessage.purpose ? { purpose: uploadedSoundMessage.purpose } : {}),
-        },
-      },
-    });
-    textContent = "";
+  let soundAnnotations = mergedComposerAnnotations;
+  if (hasAnnotation(mergedComposerAnnotations, ANNOTATION_IDS.BGM)) {
+    soundAnnotations = setAnnotation(soundAnnotations, ANNOTATION_IDS.BGM, true);
+  }
+  if (hasAnnotation(mergedComposerAnnotations, ANNOTATION_IDS.SE)) {
+    soundAnnotations = setAnnotation(soundAnnotations, ANNOTATION_IDS.SE, true);
   }
 
-  for (const video of uploadedVideos) {
-    nextMessages.push({
-      ...identityFields,
-      ...(mergedComposerAnnotations.length > 0 ? { annotations: mergedComposerAnnotations } : {}),
-      content: textContent,
-      messageType: MessageType.VIDEO,
-      extra: {
-        videoMessage: {
-          url: video.url,
-          fileName: video.fileName,
-          size: video.size,
-          ...(typeof video.second === "number" ? { second: video.second } : {}),
-        },
-      },
-    });
-    textContent = "";
-  }
-
-  const shouldSendEmptyTextMessage = allowEmptyTextMessage
-    && isBlankInput
-    && uploadedImages.length === 0
-    && uploadedVideos.length === 0
-    && fileAttachments.length === 0
-    && !uploadedSoundMessage;
-
-  if (textContent || shouldSendEmptyTextMessage) {
-    nextMessages.push({
-      ...identityFields,
-      ...(mergedComposerAnnotations.length > 0 ? { annotations: mergedComposerAnnotations } : {}),
-      content: textContent,
-      // 附件草稿始终保持各自类型；这里只控制独立文本草稿的消息类型。
-      messageType: textMessageType,
-      extra: {},
-    });
-  }
-
-  return nextMessages;
+  return buildMessageDraftsFromUploadedMedia({
+    baseMessage: identityFields,
+    inputText: isBlankInput && hasRawTextInput ? inputText : trimmedInputText,
+    imageAnnotations,
+    soundAnnotations,
+    textAnnotations: mergedComposerAnnotations,
+    textMessageType,
+    uploadedImages,
+    uploadedSoundMessage,
+    uploadedVideos,
+    videoAnnotations: mergedComposerAnnotations,
+    allowEmptyTextMessage: allowEmptyTextMessage && fileAttachments.length === 0,
+  });
 }

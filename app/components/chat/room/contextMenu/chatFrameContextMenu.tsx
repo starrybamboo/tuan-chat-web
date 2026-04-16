@@ -3,19 +3,15 @@ import { useQueryClient } from "@tanstack/react-query";
 import { use, useCallback, useEffect, useMemo, useRef } from "react";
 import toast from "react-hot-toast";
 import { useNavigate } from "react-router";
-import { RoomContext } from "@/components/chat/core/roomContext";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
-import { useRoomUiStore } from "@/components/chat/stores/roomUiStore";
-import { useSideDrawerStore } from "@/components/chat/stores/sideDrawerStore";
-import { copyDocToSpaceDoc, copyDocToSpaceUserDoc } from "@/components/chat/utils/docCopy";
-import { useGlobalContext } from "@/components/globalContextProvider";
 import {
   isImageMessageMarkedAsBackground,
   isSoundMessageMarkedAsBgm,
 } from "@/components/chat/room/contextMenu/messageMediaQuickActions";
-import { buildChatMessageRequestFromDraft } from "@/types/messageDraft";
+import { useSideDrawerStore } from "@/components/chat/stores/sideDrawerStore";
+import { copyDocToSpaceDoc, copyDocToSpaceUserDoc } from "@/components/chat/utils/docCopy";
+import { useGlobalContext } from "@/components/globalContextProvider";
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
-import { useSendMessageMutation } from "../../../../../api/hooks/chatQueryHooks";
 import { tuanchat } from "../../../../../api/instance";
 
 interface ContextMenuProps {
@@ -34,7 +30,6 @@ interface ContextMenuProps {
   onOpenAnnotations: (messageId: number) => void;
   onInsertAfter: (messageId: number) => void;
   onToggleNarrator?: (messageId: number) => void;
-  onOpenThread?: (threadRootMessageId: number) => void;
 }
 
 export default function ChatFrameContextMenu({
@@ -52,20 +47,13 @@ export default function ChatFrameContextMenu({
   onToggleBgm,
   onOpenAnnotations,
   onInsertAfter,
-  onOpenThread,
 }: ContextMenuProps) {
   const globalContext = useGlobalContext();
   const spaceContext = use(SpaceContext);
-  const roomContext = use(RoomContext);
   const queryClient = useQueryClient();
   const navigate = useNavigate();
 
-  const setThreadRootMessageId = useRoomUiStore(state => state.setThreadRootMessageId);
-  const setComposerTarget = useRoomUiStore(state => state.setComposerTarget);
-  const setInsertAfterMessageId = useRoomUiStore(state => state.setInsertAfterMessageId);
   const setSideDrawerState = useSideDrawerStore(state => state.setState);
-
-  const sendMessageMutation = useSendMessageMutation(roomContext.roomId ?? -1);
 
   const menuRef = useRef<HTMLDivElement | null>(null);
 
@@ -307,120 +295,8 @@ export default function ChatFrameContextMenu({
       toast.error(err instanceof Error ? err.message : "复制失败", { id: toastId });
     }
   }, [appendDocToSidebarTree, docCard?.imageUrl, docCard?.title, ensureCanCopyDoc, navigate, queryClient, spaceContext.isSpaceOwner]);
-  const threadMeta = useMemo(() => {
-    const selected = message?.message;
-    const allMessages = historyMessages;
-    if (!selected) {
-      return { threadRootId: undefined as number | undefined, replyCount: 0, hasThreadRoot: false };
-    }
-
-    const isThreadReply = !!selected.threadId && selected.threadId !== selected.messageId;
-    const isThreadRoot = selected.messageType === MESSAGE_TYPE.THREAD_ROOT && selected.threadId === selected.messageId;
-
-    let rootId: number | undefined;
-    if (isThreadReply) {
-      rootId = selected.threadId;
-    }
-    else if (isThreadRoot) {
-      rootId = selected.messageId;
-    }
-    else {
-      const threadRoot = allMessages.find((m) => {
-        const mm = m.message;
-        return mm.messageType === MESSAGE_TYPE.THREAD_ROOT
-          && mm.threadId === mm.messageId
-          && mm.replyMessageId === selected.messageId;
-      });
-      rootId = threadRoot?.message.messageId;
-    }
-
-    const replyCount = rootId
-      ? allMessages.filter(m => m.message.threadId === rootId && m.message.messageId !== rootId).length
-      : 0;
-
-    return { threadRootId: rootId, replyCount, hasThreadRoot: !!rootId };
-  }, [historyMessages, message?.message]);
-
   if (!contextMenu)
     return null;
-
-  const handleOpenThread = (rootId: number) => {
-    // 打开 Thread 时，清除“插入消息”模式，避免错位。
-    setInsertAfterMessageId(undefined);
-    if (onOpenThread) {
-      onOpenThread(rootId);
-    }
-    else {
-      setThreadRootMessageId(rootId);
-      setComposerTarget("thread");
-      toast.error("当前页面未启用副窗口，无法打开子区");
-    }
-  };
-
-  const handleCreateOrOpenThread = () => {
-    const selected = message?.message;
-    if (!selected) {
-      return;
-    }
-
-    if (threadMeta.threadRootId) {
-      handleOpenThread(threadMeta.threadRootId);
-      onClose();
-      return;
-    }
-
-    const roomId = roomContext.roomId;
-    if (!roomId) {
-      toast.error("未找到 roomId，无法创建子区");
-      return;
-    }
-
-    // 不弹窗输入标题：默认使用原消息内容截断（不加“Thread:”前缀）
-    const raw = (selected.content ?? "").trim();
-    const title = raw ? raw.slice(0, 20) : "子区";
-    const threadRootRequest = buildChatMessageRequestFromDraft({
-      messageType: MESSAGE_TYPE.THREAD_ROOT,
-      content: title,
-      extra: {
-        threadRoot: {
-          title,
-        },
-      },
-    } as any, {
-      roomId,
-      roleId: roomContext.curRoleId ?? undefined,
-      avatarId: roomContext.curAvatarId ?? undefined,
-      replayMessageId: selected.messageId,
-    });
-
-    if (roomContext.sendMessageWithInsert) {
-      void (async () => {
-        const created = await roomContext.sendMessageWithInsert?.(threadRootRequest);
-        if (!created) {
-          toast.error("创建子区失败");
-          return;
-        }
-        handleOpenThread(created.messageId);
-        onClose();
-      })();
-      return;
-    }
-
-    sendMessageMutation.mutate(threadRootRequest, {
-      onSuccess: (response) => {
-        const created = response?.data;
-        if (!created) {
-          return;
-        }
-        roomContext.chatHistory?.addOrUpdateMessage({ message: created });
-        handleOpenThread(created.messageId);
-        onClose();
-      },
-      onError: () => {
-        toast.error("创建子区失败");
-      },
-    });
-  };
 
   return (
     <div
@@ -429,17 +305,6 @@ export default function ChatFrameContextMenu({
       onClick={e => e.stopPropagation()}
     >
       <ul className="menu p-2 w-40">
-        <li>
-          <a onClick={(e) => {
-            e.preventDefault();
-            handleCreateOrOpenThread();
-          }}
-          >
-            {threadMeta.hasThreadRoot
-              ? `打开子区${threadMeta.replyCount > 0 ? ` (${threadMeta.replyCount})` : ""}`
-              : "创建子区"}
-          </a>
-        </li>
         <li>
           <a onClick={(e) => {
             e.preventDefault();
