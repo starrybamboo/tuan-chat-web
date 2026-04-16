@@ -113,6 +113,13 @@ export default function AiImagePage() {
       onDrop={controller.handlePageImageDrop}
     >
       <style>{`
+        .ai-image-shell {
+          --color-primary: #6f5cff;
+          --color-primary-content: #ffffff;
+          --color-info: #8a73ff;
+          --color-info-content: #ffffff;
+        }
+
         .ai-image-shell :where(
           .card,
           .btn,
