@@ -152,7 +152,7 @@ export function AiImageHistoryPane({
 
   if (isDirectorToolsOpen) {
     return (
-      <div className="min-h-0 w-[196px] shrink-0 overflow-auto border-l border-base-300 bg-base-100 p-3">
+      <div className="min-h-0 w-[196px] shrink-0 overflow-auto border-l border-base-300 bg-base-300/55 p-3">
         <div className="flex h-full flex-col">
           <div className="mb-3 flex items-center gap-2 px-1">
             <div className="text-[11px] font-semibold uppercase tracking-[0.24em] text-base-content/60">History</div>
@@ -276,7 +276,7 @@ export function AiImageHistoryPane({
   }
 
   return (
-    <div className="min-h-0 w-[160px] shrink-0 overflow-hidden border-l border-base-300 bg-base-200/70 p-3">
+    <div className="min-h-0 w-[160px] shrink-0 overflow-hidden border-l border-base-300 bg-base-300/55 p-3">
       <div className="flex h-full flex-col">
         <div className="mb-3 flex items-center gap-2 px-1">
           <div className="font-medium">History</div>
