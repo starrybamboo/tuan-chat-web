@@ -159,14 +159,14 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
     width,
   } = sidebarProps;
 
-  const sideCardClassName = "card border-x-0 border-b border-t-0 border-[#2A3138] bg-[#161A1F] shadow-none";
-  const editorPanelClassName = "rounded-2xl border border-[#2A3138] bg-[#161A1F] p-3 shadow-none";
+  const sideCardClassName = "card border-x-0 border-b border-t-0 border-[#D6DCE3] bg-[#F3F5F7] shadow-none dark:border-[#2A3138] dark:bg-[#161A1F]";
+  const editorPanelClassName = "rounded-2xl border border-[#D6DCE3] bg-[#F3F5F7] p-3 shadow-none dark:border-[#2A3138] dark:bg-[#161A1F]";
   const segmentedControlClassName = "join rounded-xl bg-transparent p-0";
   const segmentedButtonBaseClassName = "btn btn-xs join-item border-0";
-  const promptTextareaClassName = "textarea textarea-bordered min-h-36 w-full resize-none border-[#2A3138] bg-[#161A1F] text-base-content leading-7";
-  const charTextareaClassName = "textarea textarea-bordered min-h-28 w-full resize-none border-[#2A3138] bg-[#161A1F] text-base-content leading-7";
-  const subtleInputClassName = "input input-bordered input-sm border-[#2A3138] bg-[#161A1F] text-base-content";
-  const subtleSelectClassName = "select select-bordered select-sm border-[#2A3138] bg-[#161A1F] text-base-content";
+  const promptTextareaClassName = "textarea textarea-bordered min-h-36 w-full resize-none border-[#D6DCE3] bg-[#F3F5F7] text-base-content leading-7 dark:border-[#2A3138] dark:bg-[#161A1F]";
+  const charTextareaClassName = "textarea textarea-bordered min-h-28 w-full resize-none border-[#D6DCE3] bg-[#F3F5F7] text-base-content leading-7 dark:border-[#2A3138] dark:bg-[#161A1F]";
+  const subtleInputClassName = "input input-bordered input-sm border-[#D6DCE3] bg-[#F3F5F7] text-base-content dark:border-[#2A3138] dark:bg-[#161A1F]";
+  const subtleSelectClassName = "select select-bordered select-sm border-[#D6DCE3] bg-[#F3F5F7] text-base-content dark:border-[#2A3138] dark:bg-[#161A1F]";
   const [isModeSelectorOpen, setIsModeSelectorOpen] = useState(false);
   const activeModeOption = MODE_OPTIONS.find(option => option.value === uiMode) ?? MODE_OPTIONS[0];
 
@@ -176,13 +176,13 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
   }
 
   return (
-    <div className={`${isDirectorToolsOpen ? "hidden" : "flex"} h-full min-h-0 w-full min-w-0 flex-col gap-0 overflow-auto bg-[#161A1F] p-0`}>
+    <div className={`${isDirectorToolsOpen ? "hidden" : "flex"} h-full min-h-0 w-full min-w-0 flex-col gap-0 overflow-auto bg-[#F3F5F7] p-0 dark:bg-[#161A1F]`}>
       <div className={sideCardClassName}>
         <div className="card-body p-4">
           <div className="w-full">
             <button
               type="button"
-              className="flex w-full items-center justify-between rounded-md border border-[#2A3138] bg-[#161A1F] px-3 py-3 text-left transition hover:border-primary/40 hover:bg-[#1B2026] focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+              className="flex w-full items-center justify-between rounded-md border border-[#D6DCE3] bg-[#F3F5F7] px-3 py-3 text-left transition hover:border-primary/40 hover:bg-[#EAEFF4] focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 dark:border-[#2A3138] dark:bg-[#161A1F] dark:hover:bg-[#1B2026]"
               aria-expanded={isModeSelectorOpen}
               onClick={() => setIsModeSelectorOpen(prev => !prev)}
             >
@@ -192,7 +192,7 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
 
               {isModeSelectorOpen
                 ? (
-                    <div className="mt-2 w-full rounded-md border border-[#2A3138] bg-[#161A1F] p-2">
+                    <div className="mt-2 w-full rounded-md border border-[#D6DCE3] bg-[#F3F5F7] p-2 dark:border-[#2A3138] dark:bg-[#161A1F]">
                       <div className="flex flex-col gap-2">
                         {MODE_OPTIONS.map(option => (
                           <button
@@ -201,7 +201,7 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                             className={`w-full rounded-md border px-3 py-3 text-left font-medium transition focus:outline-none focus:ring-2 focus:ring-primary/20 ${
                               uiMode === option.value
                                 ? "border-primary bg-primary/5 text-base-content"
-                                : "border-transparent bg-[#161A1F] text-base-content/80 hover:border-[#2A3138] hover:bg-[#1B2026]"
+                                : "border-transparent bg-[#F3F5F7] text-base-content/80 hover:border-[#D6DCE3] hover:bg-[#EAEFF4] dark:bg-[#161A1F] dark:hover:border-[#2A3138] dark:hover:bg-[#1B2026]"
                             }`}
                             onClick={() => handleSelectMode(option.value)}
                           >
@@ -1138,7 +1138,7 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
 
       {uiMode === "pro"
         ? (
-            <div className="sticky bottom-0 z-10 border-t border-[#2A3138] bg-[#161A1F] p-4 backdrop-blur">
+            <div className="sticky bottom-0 z-10 border-t border-[#D6DCE3] bg-[#F3F5F7] p-4 backdrop-blur dark:border-[#2A3138] dark:bg-[#161A1F]">
               <button
                 type="button"
                 className="btn btn-primary h-12 w-full justify-between px-4"
