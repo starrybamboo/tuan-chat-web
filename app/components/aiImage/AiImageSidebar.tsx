@@ -159,14 +159,14 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
     width,
   } = sidebarProps;
 
-  const sideCardClassName = "card border border-base-300 bg-base-100 shadow-sm";
-  const editorPanelClassName = "rounded-2xl border border-base-300 bg-base-100 p-3 shadow-sm";
-  const segmentedControlClassName = "join rounded-xl bg-base-200 p-1";
+  const sideCardClassName = "card border-x-0 border-b border-t-0 border-[#2A3138] bg-[#161A1F] shadow-none";
+  const editorPanelClassName = "rounded-2xl border border-[#2A3138] bg-[#161A1F] p-3 shadow-none";
+  const segmentedControlClassName = "join rounded-xl bg-transparent p-0";
   const segmentedButtonBaseClassName = "btn btn-xs join-item border-0";
-  const promptTextareaClassName = "textarea textarea-bordered min-h-36 w-full resize-none bg-base-100 text-base-content leading-7";
-  const charTextareaClassName = "textarea textarea-bordered min-h-28 w-full resize-none bg-base-100 text-base-content leading-7";
-  const subtleInputClassName = "input input-bordered input-sm bg-base-100 text-base-content";
-  const subtleSelectClassName = "select select-bordered select-sm bg-base-100 text-base-content";
+  const promptTextareaClassName = "textarea textarea-bordered min-h-36 w-full resize-none border-[#2A3138] bg-[#161A1F] text-base-content leading-7";
+  const charTextareaClassName = "textarea textarea-bordered min-h-28 w-full resize-none border-[#2A3138] bg-[#161A1F] text-base-content leading-7";
+  const subtleInputClassName = "input input-bordered input-sm border-[#2A3138] bg-[#161A1F] text-base-content";
+  const subtleSelectClassName = "select select-bordered select-sm border-[#2A3138] bg-[#161A1F] text-base-content";
   const [isModeSelectorOpen, setIsModeSelectorOpen] = useState(false);
   const activeModeOption = MODE_OPTIONS.find(option => option.value === uiMode) ?? MODE_OPTIONS[0];
 
@@ -176,13 +176,13 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
   }
 
   return (
-    <div className={`${isDirectorToolsOpen ? "hidden" : "flex"} h-full min-h-0 w-full min-w-0 flex-col gap-3 overflow-auto bg-base-300/80 p-3`}>
+    <div className={`${isDirectorToolsOpen ? "hidden" : "flex"} h-full min-h-0 w-full min-w-0 flex-col gap-0 overflow-auto bg-[#161A1F] p-0`}>
       <div className={sideCardClassName}>
         <div className="card-body p-4">
           <div className="w-full">
             <button
               type="button"
-              className="flex w-full items-center justify-between rounded-md border border-base-300 bg-base-100 px-3 py-3 text-left transition hover:border-primary/40 hover:bg-base-100 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+              className="flex w-full items-center justify-between rounded-md border border-[#2A3138] bg-[#161A1F] px-3 py-3 text-left transition hover:border-primary/40 hover:bg-[#1B2026] focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
               aria-expanded={isModeSelectorOpen}
               onClick={() => setIsModeSelectorOpen(prev => !prev)}
             >
@@ -190,21 +190,21 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
               <ChevronDown className={`ml-3 size-4 shrink-0 text-base-content/60 transition-transform ${isModeSelectorOpen ? "rotate-180" : ""}`} />
             </button>
 
-            {isModeSelectorOpen
-              ? (
-                  <div className="mt-2 w-full rounded-md border border-base-300 bg-base-100 p-2">
-                    <div className="flex flex-col gap-2">
-                      {MODE_OPTIONS.map(option => (
-                        <button
-                          key={option.value}
-                          type="button"
-                          className={`w-full rounded-md border px-3 py-3 text-left font-medium transition focus:outline-none focus:ring-2 focus:ring-primary/20 ${
-                            uiMode === option.value
-                              ? "border-primary bg-primary/5 text-base-content"
-                              : "border-transparent bg-base-100 text-base-content/80 hover:border-base-300 hover:bg-base-200/45"
-                          }`}
-                          onClick={() => handleSelectMode(option.value)}
-                        >
+              {isModeSelectorOpen
+                ? (
+                    <div className="mt-2 w-full rounded-md border border-[#2A3138] bg-[#161A1F] p-2">
+                      <div className="flex flex-col gap-2">
+                        {MODE_OPTIONS.map(option => (
+                          <button
+                            key={option.value}
+                            type="button"
+                            className={`w-full rounded-md border px-3 py-3 text-left font-medium transition focus:outline-none focus:ring-2 focus:ring-primary/20 ${
+                              uiMode === option.value
+                                ? "border-primary bg-primary/5 text-base-content"
+                                : "border-transparent bg-[#161A1F] text-base-content/80 hover:border-[#2A3138] hover:bg-[#1B2026]"
+                            }`}
+                            onClick={() => handleSelectMode(option.value)}
+                          >
                           {option.label}
                         </button>
                       ))}
@@ -1138,7 +1138,7 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
 
       {uiMode === "pro"
         ? (
-            <div className="sticky bottom-0 z-10 bg-base-100/95 pb-1 pt-1 backdrop-blur">
+            <div className="sticky bottom-0 z-10 border-t border-[#2A3138] bg-[#161A1F] p-4 backdrop-blur">
               <button
                 type="button"
                 className="btn btn-primary h-12 w-full justify-between px-4"

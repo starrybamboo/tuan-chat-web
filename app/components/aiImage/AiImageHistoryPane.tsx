@@ -212,7 +212,7 @@ export function AiImageHistoryPane({
 
   if (isDirectorToolsOpen) {
     return (
-      <div className="min-h-0 w-[196px] shrink-0 overflow-auto border-l border-base-300 bg-base-300/80 p-3">
+      <div className="min-h-0 w-[196px] shrink-0 overflow-auto border-l border-[#2A3138] bg-[#161A1F] p-3">
         <div className="flex h-full flex-col">
           <div className="mb-3 flex items-center gap-2 px-1">
             <div className="flex items-center gap-1">
@@ -276,7 +276,7 @@ export function AiImageHistoryPane({
             </div>
 
             <details
-              className="rounded-2xl border border-base-300 bg-base-200/20 px-2 py-1"
+              className="rounded-2xl border border-[#2A3138] bg-[#161A1F] px-2 py-1"
               open={isHistoryExpanded}
               onToggle={(event) => {
                 onHistoryExpandedChange(event.currentTarget.open);
@@ -339,7 +339,7 @@ export function AiImageHistoryPane({
   }
 
   return (
-    <div className="min-h-0 w-[160px] shrink-0 overflow-hidden border-l border-base-300 bg-base-300/80 p-3">
+    <div className="min-h-0 w-[160px] shrink-0 overflow-hidden border-l border-[#2A3138] bg-[#161A1F] p-3">
       <div className="flex h-full flex-col">
         <div className="mb-3 flex items-center gap-2 px-1">
           <div className="flex items-center gap-1">
@@ -358,8 +358,8 @@ export function AiImageHistoryPane({
           </button>
         </div>
         <div className="flex-1 overflow-auto pr-1">
-          <div className="flex flex-col gap-3">
-            <div>
+          <div className="flex flex-col gap-0">
+            <div className="border-t border-[#2A3138] py-3">
               <div className="mb-2 flex items-center gap-2 px-1">
                 <div className="text-sm font-medium">Current</div>
                 <div className="ml-auto text-xs text-base-content/55">{currentResultCards.length ? `${currentResultCards.length}` : ""}</div>
@@ -396,7 +396,7 @@ export function AiImageHistoryPane({
             </div>
 
             <details
-              className="rounded-xl border border-base-300 bg-base-100 shadow-sm"
+              className="border-t border-[#2A3138] bg-[#161A1F] shadow-none"
               open={isHistoryExpanded}
               onToggle={(event) => {
                 onHistoryExpandedChange(event.currentTarget.open);
@@ -447,7 +447,7 @@ export function AiImageHistoryPane({
             </details>
           </div>
         </div>
-        <div className="mt-3 flex shrink-0 flex-col gap-2 border-t border-base-300 pt-3">
+        <div className="mt-3 flex shrink-0 flex-col gap-2 border-t border-[#2A3138] pt-3">
           <button
             type="button"
             className="btn btn-sm btn-outline w-full gap-2"
