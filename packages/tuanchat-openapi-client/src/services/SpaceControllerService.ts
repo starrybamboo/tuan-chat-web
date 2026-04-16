@@ -17,6 +17,7 @@ import type { SpaceCloneByRepositoryRequest } from '../models/SpaceCloneByReposi
 import type { SpaceExtraRequest } from '../models/SpaceExtraRequest';
 import type { SpaceExtraSetRequest } from '../models/SpaceExtraSetRequest';
 import type { SpaceOwnerTransferRequest } from '../models/SpaceOwnerTransferRequest';
+import type { SpaceRecoverRequest } from '../models/SpaceRecoverRequest';
 import type { SpaceUpdateRequest } from '../models/SpaceUpdateRequest';
 import type { CancelablePromise } from '../core/CancelablePromise';
 import type { BaseHttpRequest } from '../core/BaseHttpRequest';
@@ -150,6 +151,22 @@ export class SpaceControllerService {
         return this.httpRequest.request({
             method: 'POST',
             url: '/space/room',
+            body: requestBody,
+            mediaType: 'application/json',
+        });
+    }
+    /**
+     * 恢复归档空间继续编辑
+     * @param requestBody
+     * @returns ApiResultVoid OK
+     * @throws ApiError
+     */
+    public recoverArchivedSpace(
+        requestBody: SpaceRecoverRequest,
+    ): CancelablePromise<ApiResultVoid> {
+        return this.httpRequest.request({
+            method: 'POST',
+            url: '/space/recover',
             body: requestBody,
             mediaType: 'application/json',
         });
