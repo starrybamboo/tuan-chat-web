@@ -13,7 +13,7 @@ import {
   historyRowKey,
   historyRowToGeneratedItem,
 } from "@/components/aiImage/helpers";
-import { ChevronDown, InfoIcon, SharpDownload, XMarkICon } from "@/icons";
+import { ChevronDown, SharpDownload, XMarkICon } from "@/icons";
 
 interface HistoryDragPayload {
   dataUrl: string;
@@ -80,15 +80,19 @@ function HistoryDeleteButton({
 function HistoryHint() {
   const hintText = "单击预览，Ctrl/Cmd+单击导入设置，Shift+单击导入 seed，Ctrl/Cmd+Shift+单击导入设置与 seed。";
   return (
-    <div className="flex items-center">
+    <div className="group relative flex items-center">
       <button
         type="button"
-        className="flex size-5 cursor-help items-center justify-center rounded-full bg-transparent text-base-content/40 transition hover:text-base-content/70 focus:outline-none"
+        className="flex size-5 cursor-help items-center justify-center rounded-full bg-transparent text-base-content/42 transition hover:text-base-content/72 focus:outline-none"
         aria-label={hintText}
-        title={hintText}
       >
-        <InfoIcon className="size-3.5" />
+        <span className="flex size-4 items-center justify-center rounded-full border border-base-content/28 text-[10px] font-semibold leading-none text-current">
+          ?
+        </span>
       </button>
+      <div className="pointer-events-none absolute left-0 top-full z-20 mt-2 hidden w-32 rounded-xl border border-base-300 bg-base-100 px-3 py-2 text-[11px] leading-5 text-base-content/72 shadow-xl group-hover:block group-focus-within:block">
+        {hintText}
+      </div>
     </div>
   );
 }
