@@ -229,9 +229,9 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
           {uiMode === "simple"
             ? (
                 <div className="flex flex-col gap-3">
-                  <div className="join w-full">
-                    <input
-                      className="input input-bordered join-item flex-1 border-[#D6DCE3] bg-base-100 transition-colors hover:border-[#D6DCE3] hover:bg-base-100 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 dark:border-[#2A3138] dark:hover:border-[#2A3138]"
+                  <div className="flex w-full flex-col items-start gap-2">
+                    <textarea
+                      className="textarea textarea-bordered h-[80px] w-full max-w-[425px] resize-none border-[#D6DCE3] bg-base-100 transition-colors hover:border-[#D6DCE3] hover:bg-base-100 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 dark:border-[#2A3138] dark:hover:border-[#2A3138]"
                       value={simpleText}
                       onChange={(e) => {
                         const next = e.target.value;
@@ -249,7 +249,7 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                     />
                     <button
                       type="button"
-                      className={`btn btn-primary join-item ${canGenerate ? "" : "btn-disabled"}`}
+                      className={`btn btn-primary self-start ${canGenerate ? "" : "btn-disabled"}`}
                       disabled={!canGenerate}
                       onClick={() => void handleSimpleGenerateFromText()}
                     >
