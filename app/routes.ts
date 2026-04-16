@@ -2,7 +2,13 @@ import type { RouteConfig } from "@react-router/dev/routes";
 
 import { index, layout, prefix, route } from "@react-router/dev/routes";
 
-const ENABLE_AI_IMAGE_ROUTE = import.meta.env.DEV || import.meta.env.MODE === "test";
+import { isDevOrTestEnvironment } from "./utils/runtimeEnvironment";
+
+const ENABLE_AI_IMAGE_ROUTE = isDevOrTestEnvironment({
+  isDev: import.meta.env.DEV,
+  mode: import.meta.env.MODE,
+  apiBaseUrl: import.meta.env.VITE_API_BASE_URL,
+});
 const ENABLE_GEMINI_LAB_ROUTE = import.meta.env.DEV;
 const ENABLE_FEEDBACK_ROUTE = import.meta.env.DEV || import.meta.env.MODE === "test";
 
