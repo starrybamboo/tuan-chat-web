@@ -90,10 +90,10 @@ function HistoryImageTile({
   title,
 }: HistoryImageTileProps) {
   return (
-    <div className={`group relative overflow-hidden rounded-xl border bg-base-100 shadow-sm transition-colors ${active ? "border-primary shadow-[0_0_0_1px_rgba(99,102,241,0.35)]" : "border-base-300 hover:border-primary/45"}`}>
+    <div className={`group relative w-[100px] overflow-hidden rounded-xl border bg-base-100 shadow-sm transition-colors ${active ? "border-primary shadow-[0_0_0_1px_rgba(99,102,241,0.35)]" : "border-base-300 hover:border-primary/45"}`}>
       <button
         type="button"
-        className="relative block aspect-square w-full cursor-grab overflow-hidden text-left active:cursor-grabbing"
+        className="relative block h-[100px] w-[100px] cursor-grab overflow-hidden text-left active:cursor-grabbing"
         draggable={draggable}
         title={title}
         onClick={onClick}
@@ -187,7 +187,7 @@ export function AiImageHistoryPane({
                         batchIndex: item.batchIndex,
                       })}
                     >
-                      <img src={item.dataUrl} className="h-24 w-full rounded-xl object-cover" alt="director-current-result" />
+                      <img src={item.dataUrl} className="mx-auto h-[100px] w-[100px] rounded-xl object-cover" alt="director-current-result" />
                       <div className="mt-2 flex items-center justify-between gap-2 text-[11px] text-base-content/70">
                         <span className="truncate">{item.toolLabel || "Current"}</span>
                         <span>{`${item.width}×${item.height}`}</span>
@@ -245,7 +245,7 @@ export function AiImageHistoryPane({
                         batchIndex: row.batchIndex ?? undefined,
                       })}
                     >
-                      <img src={row.dataUrl} className="h-24 w-full rounded-xl object-cover" alt="director-history" />
+                      <img src={row.dataUrl} className="mx-auto h-[100px] w-[100px] rounded-xl object-cover" alt="director-history" />
                       <div className="mt-2 flex items-center justify-between gap-2 text-[11px] text-base-content/70">
                         <span className="truncate">{row.toolLabel || `seed ${row.seed}`}</span>
                         <span>{`${row.width}×${row.height}`}</span>
@@ -276,7 +276,7 @@ export function AiImageHistoryPane({
   }
 
   return (
-    <div className="min-h-0 w-[320px] shrink-0 overflow-hidden border-l border-base-300 bg-base-200/70 p-3">
+    <div className="min-h-0 w-[160px] shrink-0 overflow-hidden border-l border-base-300 bg-base-200/70 p-3">
       <div className="flex h-full flex-col">
         <div className="mb-3 flex items-center gap-2 px-1">
           <div className="font-medium">History</div>
@@ -301,7 +301,7 @@ export function AiImageHistoryPane({
                 <div className="text-sm font-medium">Current</div>
                 <div className="ml-auto text-xs text-base-content/55">{currentResultCards.length ? `${currentResultCards.length}` : ""}</div>
               </div>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-1 justify-items-center gap-2">
                 {currentResultCards.map(({ item, index, row }) => (
                   <HistoryImageTile
                     key={`${item.batchId}-${item.batchIndex}`}
@@ -327,7 +327,7 @@ export function AiImageHistoryPane({
                   />
                 ))}
                 {!currentResultCards.length
-                  ? <div className="col-span-2 rounded-xl border border-dashed border-base-300 bg-base-100 px-3 py-5 text-center text-sm text-base-content/55">暂无本次绘画</div>
+                  ? <div className="col-span-1 w-full rounded-xl border border-dashed border-base-300 bg-base-100 px-3 py-5 text-center text-sm text-base-content/55">暂无本次绘画</div>
                   : null}
               </div>
             </div>
@@ -351,7 +351,7 @@ export function AiImageHistoryPane({
                 </div>
               </summary>
               <div className="px-3 pb-3 pt-0">
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-1 justify-items-center gap-2">
                   {archivedHistoryRows.map(row => (
                     <HistoryImageTile
                       key={historyRowKey(row)}
@@ -377,7 +377,7 @@ export function AiImageHistoryPane({
                     />
                   ))}
                   {!archivedHistoryRows.length
-                    ? <div className="col-span-2 rounded-xl border border-dashed border-base-300 bg-base-100 px-3 py-5 text-center text-sm text-base-content/55">暂无历史绘画</div>
+                    ? <div className="col-span-1 w-full rounded-xl border border-dashed border-base-300 bg-base-100 px-3 py-5 text-center text-sm text-base-content/55">暂无历史绘画</div>
                     : null}
                 </div>
               </div>
