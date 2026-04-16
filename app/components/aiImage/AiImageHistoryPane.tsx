@@ -384,10 +384,10 @@ export function AiImageHistoryPane({
             </details>
           </div>
         </div>
-        <div className="mt-3 flex shrink-0 gap-2 border-t border-base-300 pt-3">
+        <div className="mt-3 flex shrink-0 flex-col gap-2 border-t border-base-300 pt-3">
           <button
             type="button"
-            className="btn btn-sm btn-outline flex-1 gap-2"
+            className="btn btn-sm btn-outline w-full gap-2"
             disabled={!history.length}
             onClick={onDownloadAll}
           >
@@ -396,7 +396,7 @@ export function AiImageHistoryPane({
           </button>
           <button
             type="button"
-            className="btn btn-sm btn-ghost flex-1"
+            className="btn btn-sm btn-ghost w-full"
             disabled={!history.length}
             onClick={() => void onClearHistory()}
           >
