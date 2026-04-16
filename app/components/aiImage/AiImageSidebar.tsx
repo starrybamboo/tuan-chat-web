@@ -31,11 +31,11 @@ interface AiImageSidebarProps {
 const MODE_OPTIONS = [
   {
     value: "simple",
-    label: "小白模式",
+    label: "快速模式",
   },
   {
     value: "pro",
-    label: "NovelAi模式",
+    label: "专家模式",
   },
 ] as const;
 
