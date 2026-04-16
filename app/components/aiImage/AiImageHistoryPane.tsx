@@ -13,7 +13,7 @@ import {
   historyRowKey,
   historyRowToGeneratedItem,
 } from "@/components/aiImage/helpers";
-import { ChevronDown, SharpDownload, XMarkICon } from "@/icons";
+import { ChevronDown, InfoIcon, SharpDownload, XMarkICon } from "@/icons";
 
 interface HistoryDragPayload {
   dataUrl: string;
@@ -74,6 +74,24 @@ function HistoryDeleteButton({
     >
       <XMarkICon className="size-3.5" />
     </button>
+  );
+}
+
+function HistoryHint() {
+  return (
+    <div className="group relative flex items-center">
+      <button
+        type="button"
+        className="flex size-5 items-center justify-center rounded-full bg-transparent text-base-content/40 transition hover:text-base-content/70 focus:outline-none"
+        aria-label="查看 History 操作说明"
+        title="查看 History 操作说明"
+      >
+        <InfoIcon className="size-3.5" />
+      </button>
+      <div className="pointer-events-none absolute left-0 top-full z-20 mt-2 hidden w-52 rounded-xl border border-base-300 bg-base-100 px-3 py-2 text-[11px] leading-5 text-base-content/72 shadow-xl group-hover:block group-focus-within:block">
+        单击预览，Ctrl/Cmd+单击导入设置，Shift+单击导入 seed，Ctrl/Cmd+Shift+单击导入设置与 seed。
+      </div>
+    </div>
   );
 }
 
@@ -155,7 +173,10 @@ export function AiImageHistoryPane({
       <div className="min-h-0 w-[196px] shrink-0 overflow-auto border-l border-base-300 bg-base-300/80 p-3">
         <div className="flex h-full flex-col">
           <div className="mb-3 flex items-center gap-2 px-1">
-            <div className="text-[11px] font-semibold uppercase tracking-[0.24em] text-base-content/60">History</div>
+            <div className="flex items-center gap-1">
+              <div className="text-[11px] font-semibold uppercase tracking-[0.24em] text-base-content/60">History</div>
+              <HistoryHint />
+            </div>
             <div className="ml-auto text-[11px] text-base-content/45">{history.length ? `${history.length}` : ""}</div>
             <button
               type="button"
@@ -279,7 +300,10 @@ export function AiImageHistoryPane({
     <div className="min-h-0 w-[160px] shrink-0 overflow-hidden border-l border-base-300 bg-base-300/80 p-3">
       <div className="flex h-full flex-col">
         <div className="mb-3 flex items-center gap-2 px-1">
-          <div className="font-medium">History</div>
+          <div className="flex items-center gap-1">
+            <div className="font-medium">History</div>
+            <HistoryHint />
+          </div>
           <div className="ml-auto text-xs text-base-content/55">{history.length ? `${history.length}` : ""}</div>
           <button
             type="button"
@@ -290,9 +314,6 @@ export function AiImageHistoryPane({
           >
             <CaretRightIcon className="size-3.5" weight="bold" />
           </button>
-        </div>
-        <div className="mb-3 rounded-xl border border-base-300 bg-base-100 px-3 py-2 text-[11px] leading-5 text-base-content/60 shadow-sm">
-          单击预览，Ctrl/Cmd+单击导入设置，Shift+单击导入 seed，Ctrl/Cmd+Shift+单击导入设置与 seed。
         </div>
         <div className="flex-1 overflow-auto pr-1">
           <div className="flex flex-col gap-3">
