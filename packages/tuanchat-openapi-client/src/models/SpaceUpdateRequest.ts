@@ -19,6 +19,10 @@ export type SpaceUpdateRequest = {
      */
     avatar?: string;
     /**
+     * 空间头像原图
+     */
+    originalAvatar?: string;
+    /**
      * 空间描述
      */
     description?: string;

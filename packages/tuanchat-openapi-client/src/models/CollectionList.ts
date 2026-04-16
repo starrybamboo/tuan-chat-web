@@ -51,6 +51,10 @@ export type CollectionList = {
      */
     coverImageUrl?: string;
     /**
+     * 列表封面原图
+     */
+    originalCoverImageUrl?: string;
+    /**
      * 创建时间
      */
     createTime?: string;

@@ -34,12 +34,17 @@ export function collectOptimisticReplyMessageReplacements({
     return [];
   }
 
-  const messageMap = new Map(messages.map(item => [item.message.messageId, item]));
+  const messageMap = new Map<number, ChatMessageResponse>(
+    messages.flatMap((item) => {
+      const messageId = item.message.messageId;
+      return typeof messageId === "number" ? [[messageId, item] as const] : [];
+    }),
+  );
   const replacements: ReplyMessageReplacement[] = [];
 
   for (const pending of pendingMessages) {
     const optimisticMessageId = pending?.optimisticMessageId;
-    if (!Number.isFinite(optimisticMessageId)) {
+    if (typeof optimisticMessageId !== "number") {
       continue;
     }
     const currentMessage = messageMap.get(optimisticMessageId);

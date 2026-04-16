@@ -15,6 +15,10 @@ export type MomentFeedRequest = {
      */
     imageUrls?: Array<string>;
     /**
+     * 上传原图url
+     */
+    originalImageUrls?: Array<string>;
+    /**
      * 相关仓库id
      */
     repositoryId?: number;

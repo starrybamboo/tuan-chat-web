@@ -117,6 +117,7 @@ export default function SpaceMaterialLibraryPage({
     name: string;
     description: string;
     coverUrl: string;
+    originalCoverUrl: string;
     isPublic: boolean;
     content: MaterialPackageContent;
   }) => {
@@ -125,6 +126,7 @@ export default function SpaceMaterialLibraryPage({
       name: draft.name,
       description: draft.description,
       coverUrl: draft.coverUrl,
+      originalCoverUrl: draft.originalCoverUrl,
       content: draft.content,
     });
     toast.success("局内素材包已创建");
@@ -136,6 +138,7 @@ export default function SpaceMaterialLibraryPage({
     name: string;
     description: string;
     coverUrl: string;
+    originalCoverUrl: string;
     isPublic: boolean;
     content: MaterialPackageContent;
   }) => {
@@ -149,6 +152,7 @@ export default function SpaceMaterialLibraryPage({
       name: draft.name,
       description: draft.description,
       coverUrl: draft.coverUrl,
+      originalCoverUrl: draft.originalCoverUrl,
       content: draft.content,
     });
   };

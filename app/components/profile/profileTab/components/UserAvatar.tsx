@@ -1,5 +1,5 @@
 import type { UserInfoResponse } from "../../../../../api";
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 
 import { ImgUploaderWithCopper } from "@/components/common/uploader/imgUploaderWithCropper";
 import UserStatusDot from "@/components/common/userStatusBadge.jsx";
@@ -10,7 +10,7 @@ interface UserAvatarProps {
   loginUserId: number;
   isLoading: boolean;
   size?: "sm" | "lg";
-  onAvatarUpdate: (newAvatarUrl: string) => void;
+  onAvatarUpdate: (payload: { avatarUrl: string; originalAvatarUrl?: string }) => void;
 }
 
 export const UserAvatar: React.FC<UserAvatarProps> = ({
@@ -23,6 +23,7 @@ export const UserAvatar: React.FC<UserAvatarProps> = ({
 }) => {
   const [imageError, setImageError] = useState(false);
   const [imageLoading, setImageLoading] = useState(false);
+  const latestOriginalAvatarRef = useRef("");
 
   // 处理图片加载错误
   const handleImageError = () => {
@@ -126,7 +127,17 @@ export const UserAvatar: React.FC<UserAvatarProps> = ({
         {canEdit
           ? (
               <ImgUploaderWithCopper
-                setCopperedDownloadUrl={onAvatarUpdate}
+                setOriginalDownloadUrl={(url) => {
+                  latestOriginalAvatarRef.current = url;
+                }}
+                setCopperedDownloadUrl={(url) => {
+                  const originalAvatarUrl = latestOriginalAvatarRef.current || url;
+                  latestOriginalAvatarRef.current = "";
+                  onAvatarUpdate({
+                    avatarUrl: url,
+                    originalAvatarUrl,
+                  });
+                }}
                 fileName={`userId-${user?.userId}`}
                 aspect={1}
               >

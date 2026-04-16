@@ -19,6 +19,10 @@ export type RoomUpdateRequest = {
      */
     avatar?: string;
     /**
+     * 房间头像原图
+     */
+    originalAvatar?: string;
+    /**
      * 场景默认描述
      */
     description?: string;

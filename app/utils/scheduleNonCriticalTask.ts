@@ -3,6 +3,11 @@ type ScheduleNonCriticalTaskOptions = {
   idleTimeoutMs?: number;
 };
 
+type IdleCapableWindow = Window & typeof globalThis & {
+  requestIdleCallback?: (callback: () => void, options?: { timeout?: number }) => number;
+  cancelIdleCallback?: (handle: number) => void;
+};
+
 export function scheduleNonCriticalTask(
   task: () => void,
   { delayMs = 1200, idleTimeoutMs = 2000 }: ScheduleNonCriticalTaskOptions = {},
@@ -15,6 +20,7 @@ export function scheduleNonCriticalTask(
   let fallbackTimeoutId: number | null = null;
   let idleId: number | null = null;
   let cancelled = false;
+  const idleWindow = window as IdleCapableWindow;
 
   const runTask = () => {
     if (!cancelled) {
@@ -27,8 +33,8 @@ export function scheduleNonCriticalTask(
       return;
     }
 
-    if ("requestIdleCallback" in window) {
-      idleId = window.requestIdleCallback(runTask, { timeout: idleTimeoutMs });
+    if (typeof idleWindow.requestIdleCallback === "function") {
+      idleId = idleWindow.requestIdleCallback(runTask, { timeout: idleTimeoutMs });
       return;
     }
 
@@ -61,8 +67,8 @@ export function scheduleNonCriticalTask(
       window.clearTimeout(fallbackTimeoutId);
     }
 
-    if (idleId !== null && "cancelIdleCallback" in window) {
-      window.cancelIdleCallback(idleId);
+    if (idleId !== null && typeof idleWindow.cancelIdleCallback === "function") {
+      idleWindow.cancelIdleCallback(idleId);
     }
   };
 }

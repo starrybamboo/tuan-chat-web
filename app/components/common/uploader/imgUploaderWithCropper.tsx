@@ -32,6 +32,7 @@ function makeInitialFreeCrop(mediaWidth: number, mediaHeight: number) {
 
 interface ImgUploaderWithCopperProps {
   setDownloadUrl?: (newUrl: string) => void | undefined;
+  setOriginalDownloadUrl?: (newUrl: string) => void | undefined;
   setCopperedDownloadUrl?: (newUrl: string) => void | undefined;
   children: React.ReactNode;
   fileName?: string;
@@ -45,7 +46,8 @@ interface ImgUploaderWithCopperProps {
 /**
  * 图片上传组件，带裁剪
  * @param {object} props 组件属性
- * @param {(url: string) => void} [props.setDownloadUrl] 上传原图完成后的回调, 会在返回后将downLoadUrl作为参数传入，如果没填就不会向oss上传图片
+ * @param {(url: string) => void} [props.setDownloadUrl] 兼容旧调用方的原图回调，如果没填就不会向oss上传原图
+ * @param {(url: string) => void} [props.setOriginalDownloadUrl] 上传原图完成后的回调，会返回未压缩原图地址
  * @param {(url: string) => void} [props.setCopperedDownloadUrl] 上传裁剪图完成后的回调，同上。
  * @param {React.ReactNode} props.children 触发上传的子元素
  * @param {string} props.fileName 没什么用的参数，为了兼容旧代码。在图床使用hash作为文件名。
@@ -53,7 +55,15 @@ interface ImgUploaderWithCopperProps {
  * @param {number} [props.aspect] 固定裁剪比例（例如头像 1:1）
  * @constructor
  */
-export function ImgUploaderWithCopper({ setDownloadUrl, setCopperedDownloadUrl, children, fileName, mutate, aspect }: ImgUploaderWithCopperProps) {
+export function ImgUploaderWithCopper({
+  setDownloadUrl,
+  setOriginalDownloadUrl,
+  setCopperedDownloadUrl,
+  children,
+  fileName,
+  mutate,
+  aspect,
+}: ImgUploaderWithCopperProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const uploadUtils = new UploadUtils();
   // 控制弹窗的显示与隐藏
@@ -207,9 +217,20 @@ export function ImgUploaderWithCopper({ setDownloadUrl, setCopperedDownloadUrl, 
 
     try {
       let downloadUrl = "";
+      let originalDownloadUrl = "";
       let copperedDownloadUrl = "";
+      if (setOriginalDownloadUrl) {
+        const uploadedImage = await uploadUtils.uploadDualImage(fileWithNewName);
+        originalDownloadUrl = uploadedImage.originalUrl;
+        setOriginalDownloadUrl(originalDownloadUrl);
+      }
       if (setDownloadUrl) {
+        if (originalDownloadUrl) {
+          downloadUrl = originalDownloadUrl;
+        }
+        else {
         downloadUrl = await uploadUtils.uploadImg(fileWithNewName);
+        }
         setDownloadUrl(downloadUrl);
       }
       if (setCopperedDownloadUrl) {

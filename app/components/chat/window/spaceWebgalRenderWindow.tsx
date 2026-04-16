@@ -648,8 +648,11 @@ export default function SpaceWebgalRenderWindow({ spaceId }: SpaceWebgalRenderWi
     setIsTitleImageUploading(true);
     toast.loading("正在上传标题背景图...", { id: "space-webgal-title-image-upload" });
     try {
-      const uploadedUrl = await uploadUtilsRef.current.uploadImg(file, 1);
-      setGameConfig({ titleImageUrl: uploadedUrl.trim() });
+      const uploadedImage = await uploadUtilsRef.current.uploadDualImage(file, 1);
+      setGameConfig({
+        titleImageUrl: uploadedImage.url.trim(),
+        originalTitleImageUrl: uploadedImage.originalUrl.trim(),
+      });
       toast.success("标题背景图上传成功", { id: "space-webgal-title-image-upload" });
     }
     catch (error) {
@@ -661,7 +664,7 @@ export default function SpaceWebgalRenderWindow({ spaceId }: SpaceWebgalRenderWi
   }, [setGameConfig]);
 
   const handleClearTitleImage = useCallback(() => {
-    setGameConfig({ titleImageUrl: "" });
+    setGameConfig({ titleImageUrl: "", originalTitleImageUrl: "" });
     if (titleImageFileInputRef.current) {
       titleImageFileInputRef.current.value = "";
     }
@@ -689,8 +692,11 @@ export default function SpaceWebgalRenderWindow({ spaceId }: SpaceWebgalRenderWi
     setIsStartupLogoUploading(true);
     toast.loading("正在上传启动图...", { id: "space-webgal-startup-logo-upload" });
     try {
-      const uploadedUrl = await uploadUtilsRef.current.uploadImg(file, 1);
-      setGameConfig({ startupLogoUrl: uploadedUrl.trim() });
+      const uploadedImage = await uploadUtilsRef.current.uploadDualImage(file, 1);
+      setGameConfig({
+        startupLogoUrl: uploadedImage.url.trim(),
+        originalStartupLogoUrl: uploadedImage.originalUrl.trim(),
+      });
       toast.success("启动图上传成功", { id: "space-webgal-startup-logo-upload" });
     }
     catch (error) {
@@ -702,7 +708,7 @@ export default function SpaceWebgalRenderWindow({ spaceId }: SpaceWebgalRenderWi
   }, [setGameConfig]);
 
   const handleClearStartupLogo = useCallback(() => {
-    setGameConfig({ startupLogoUrl: "" });
+    setGameConfig({ startupLogoUrl: "", originalStartupLogoUrl: "" });
     if (startupLogoFileInputRef.current) {
       startupLogoFileInputRef.current.value = "";
     }

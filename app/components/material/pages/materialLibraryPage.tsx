@@ -115,6 +115,7 @@ export default function MaterialLibraryPage({
     name: string;
     description: string;
     coverUrl: string;
+    originalCoverUrl: string;
     isPublic: boolean;
     content: MaterialPackageContent;
   }) => {
@@ -132,6 +133,7 @@ export default function MaterialLibraryPage({
     name: string;
     description: string;
     coverUrl: string;
+    originalCoverUrl: string;
     isPublic: boolean;
     content: MaterialPackageContent;
   }) => {
@@ -163,6 +165,7 @@ export default function MaterialLibraryPage({
       name: selectedPackage.name?.trim() || "未命名素材包",
       description: selectedPackage.description ?? "",
       coverUrl: selectedPackage.coverUrl ?? "",
+      originalCoverUrl: selectedPackage.originalCoverUrl ?? selectedPackage.coverUrl ?? "",
       isPublic: false,
       content: (selectedPackage.content ?? createEmptyMaterialPackageContent()) as MaterialPackageContent,
     });

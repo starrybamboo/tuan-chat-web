@@ -240,6 +240,7 @@ export default function DNDMap({ roomId: roomIdProp, spaceId: spaceIdProp, varia
           op: "map_upsert",
           map: {
             mapImgUrl: payload.mapImgUrl,
+            originalMapImgUrl: payload.originalMapImgUrl,
             gridRows: payload.gridRows,
             gridCols: payload.gridCols,
             gridColor: payload.gridColor,
@@ -317,14 +318,15 @@ export default function DNDMap({ roomId: roomIdProp, spaceId: spaceIdProp, varia
       return;
     }
     try {
-      const url = await uploadUtil.uploadImg(file);
-      if (!url) {
+      const uploadedImage = await uploadUtil.uploadDualImage(file);
+      if (!uploadedImage.url) {
         toast.error("上传失败，请重试");
         return;
       }
       mapUpsertMutation.mutate({
         roomId,
-        mapImgUrl: url,
+        mapImgUrl: uploadedImage.url,
+        originalMapImgUrl: uploadedImage.originalUrl,
         gridRows: map?.gridRows ?? DEFAULT_GRID_ROWS,
         gridCols: map?.gridCols ?? DEFAULT_GRID_COLS,
         gridColor: map?.gridColor ?? DEFAULT_GRID_COLOR,

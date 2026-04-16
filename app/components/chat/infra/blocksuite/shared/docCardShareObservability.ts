@@ -19,6 +19,8 @@ type DocCardShareEventName
     | "remote-snapshot-set-start"
     | "remote-snapshot-set-success"
     | "remote-snapshot-set-failed"
+    | "preview-snapshot-prewarm-start"
+    | "preview-snapshot-prewarm-success"
     | "hydration-decision";
 
 export type DocCardShareObservation = {

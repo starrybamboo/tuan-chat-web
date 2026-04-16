@@ -6,6 +6,7 @@ import {
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import toast from "react-hot-toast";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
+import type { BlocksuiteDocHeader } from "@/components/chat/infra/blocksuite/document/docHeader";
 import { buildSpaceDocId } from "@/components/chat/infra/blocksuite/space/spaceDocId";
 import BlocksuiteDescriptionEditor from "@/components/chat/shared/components/BlockSuite/blocksuiteDescriptionEditor";
 
@@ -32,6 +33,7 @@ function SpaceSettingWindow({ onClose }: { onClose: () => void }) {
     name: "",
     description: "",
     avatar: "",
+    originalAvatar: "",
   });
 
   // 自动保存状态管理（防抖 + 并发合并 + 失败重试）
@@ -50,6 +52,7 @@ function SpaceSettingWindow({ onClose }: { onClose: () => void }) {
       name: data.name,
       description: data.description,
       avatar: data.avatar,
+      originalAvatar: data.originalAvatar,
     });
   }, []);
 
@@ -69,6 +72,7 @@ function SpaceSettingWindow({ onClose }: { onClose: () => void }) {
       name: space.name || "",
       description: space.description || "",
       avatar: space.avatar || "",
+      originalAvatar: space.originalAvatar || space.avatar || "",
     });
     didInitFormRef.current = true;
 
@@ -77,18 +81,20 @@ function SpaceSettingWindow({ onClose }: { onClose: () => void }) {
       name: space.name || "",
       description: space.description || "",
       avatar: space.avatar || "",
+      originalAvatar: space.originalAvatar || space.avatar || "",
     });
     dirtyRef.current = false;
   }, [space, buildSnapshot]);
 
-  const handleBlocksuiteHeaderChange = useCallback((header: { title: string; imageUrl: string }) => {
+  const handleBlocksuiteHeaderChange = useCallback((header: BlocksuiteDocHeader) => {
     setFormData((prev) => {
       const nextName = header.title;
       const nextAvatar = header.imageUrl;
-      if (prev.name === nextName && prev.avatar === nextAvatar) {
+      const nextOriginalAvatar = header.originalImageUrl || prev.originalAvatar;
+      if (prev.name === nextName && prev.avatar === nextAvatar && prev.originalAvatar === nextOriginalAvatar) {
         return prev;
       }
-      return { ...prev, name: nextName, avatar: nextAvatar };
+      return { ...prev, name: nextName, avatar: nextAvatar, originalAvatar: nextOriginalAvatar };
     });
   }, []);
 
@@ -116,6 +122,7 @@ function SpaceSettingWindow({ onClose }: { onClose: () => void }) {
         name: data.name,
         description: data.description,
         avatar: data.avatar,
+        originalAvatar: data.originalAvatar,
       }, {
         onSuccess: () => resolve(),
         onError: err => reject(err),
@@ -287,7 +294,7 @@ function SpaceSettingWindow({ onClose }: { onClose: () => void }) {
                   fullscreenEdgeless
                   tcHeader={{ enabled: true, fallbackTitle: space?.name ?? "", fallbackImageUrl: space?.avatar ?? "" }}
                   onTcHeaderChange={({ header }) => {
-                    handleBlocksuiteHeaderChange({ title: header.title, imageUrl: header.imageUrl });
+                    handleBlocksuiteHeaderChange(header);
                   }}
                 />
               </div>

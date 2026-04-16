@@ -8,8 +8,10 @@ export type RealtimeRenderCloudSettings = {
   baseTemplate?: string;
   coverFromRoomAvatarEnabled?: boolean;
   titleImageUrl?: string;
+  originalTitleImageUrl?: string;
   startupLogoFromRoomAvatarEnabled?: boolean;
   startupLogoUrl?: string;
+  originalStartupLogoUrl?: string;
   gameIconFromRoomAvatarEnabled?: boolean;
   gameNameFromRoomNameEnabled?: boolean;
   description?: string;

@@ -13,6 +13,12 @@ type PreparedImagePayload = {
   isGif: boolean;
 };
 
+export type UploadedDualImageResult = {
+  originalSize: number;
+  originalUrl: string;
+  url: string;
+};
+
 export class UploadUtils {
   private static readonly imagePrepareCache = new WeakMap<File, Map<string, Promise<PreparedImagePayload>>>();
   private static readonly videoPrepareCache = new WeakMap<File, Promise<File>>();
@@ -492,45 +498,34 @@ export class UploadUtils {
     return ossData.data.downloadUrl;
   }
 
-  /**
-   * 上传图片
-   * @param file img文件
-   * @param scene 上传场景1.聊天室,2.表情包，3.角色差分 4.仓库图片
-   * @param quality 质量
-   * @param maxSize 最大的宽高（px）
-   */
-  async uploadImg(file: File, scene: 1 | 2 | 3 | 4 = 1, quality = 0.7, maxSize = 2560): Promise<string> {
-    const { processedFile: new_file, isGif } = await this.prepareImageForUpload(file, quality, maxSize);
+  private getImageExtension(file: File, isGif = false): string {
+    if (isGif) {
+      return "gif";
+    }
 
-    // 1. 计算文件内容的 MD5 哈希值
-    const hash = await this.calculateFileHash(new_file);
+    if (file.type === "image/webp") {
+      return "webp";
+    }
 
-    // 2. 获取文件大小
-    const fileSize = new_file.size;
+    if (file.type === "image/jpeg") {
+      return "jpg";
+    }
 
-    // 3. 获取文件扩展名（以实际上传文件类型为准，避免压缩回退后扩展名不一致）
-    const extension = (() => {
-      if (isGif) {
-        return "gif";
+    if (file.type.startsWith("image/")) {
+      const subType = file.type.split("/")[1];
+      if (subType) {
+        return subType;
       }
+    }
 
-      if (new_file.type === "image/webp") {
-        return "webp";
-      }
+    const extensionMatch = (file.name || "").toLowerCase().match(/\.([a-z0-9]+)$/);
+    return extensionMatch?.[1] || "img";
+  }
 
-      if (new_file.type === "image/jpeg") {
-        return "jpg";
-      }
-
-      if (new_file.type.startsWith("image/")) {
-        const subType = new_file.type.split("/")[1];
-        return subType || "img";
-      }
-
-      return "img";
-    })();
-
-    // 4. 构造新的唯一文件名：hash_size.extension
+  private async uploadImageFileCandidate(file: File, scene: 1 | 2 | 3 | 4 = 1, isGif = false): Promise<string> {
+    const hash = await this.calculateFileHash(file);
+    const fileSize = file.size;
+    const extension = this.getImageExtension(file, isGif);
     const newFileName = `${hash}_${fileSize}.${extension}`;
 
     const ossData = await tuanchat.ossController.getUploadUrl({
@@ -544,10 +539,52 @@ export class UploadUtils {
     }
 
     if (ossData.data.uploadUrl) {
-      await this.executeUpload(ossData.data.uploadUrl, new_file);
+      await this.executeUpload(ossData.data.uploadUrl, file);
     }
 
     return ossData.data.downloadUrl;
+  }
+
+  async uploadDualImage(
+    file: File,
+    scene: 1 | 2 | 3 | 4 = 1,
+    quality = 0.7,
+    maxSize = 2560,
+  ): Promise<UploadedDualImageResult> {
+    const { processedFile, isGif } = await this.prepareImageForUpload(file, quality, maxSize);
+    const originalSize = file.size;
+
+    if (processedFile === file) {
+      const originalUrl = await this.uploadImageFileCandidate(file, scene, isGif);
+      return {
+        originalSize,
+        originalUrl,
+        url: originalUrl,
+      };
+    }
+
+    const [originalUrl, url] = await Promise.all([
+      this.uploadImageFileCandidate(file, scene, false),
+      this.uploadImageFileCandidate(processedFile, scene, isGif),
+    ]);
+
+    return {
+      originalSize,
+      originalUrl,
+      url,
+    };
+  }
+
+  /**
+   * 上传图片
+   * @param file img文件
+   * @param scene 上传场景1.聊天室,2.表情包，3.角色差分 4.仓库图片
+   * @param quality 质量
+   * @param maxSize 最大的宽高（px）
+   */
+  async uploadImg(file: File, scene: 1 | 2 | 3 | 4 = 1, quality = 0.7, maxSize = 2560): Promise<string> {
+    const { processedFile, isGif } = await this.prepareImageForUpload(file, quality, maxSize);
+    return await this.uploadImageFileCandidate(processedFile, scene, isGif);
   }
 
   /**

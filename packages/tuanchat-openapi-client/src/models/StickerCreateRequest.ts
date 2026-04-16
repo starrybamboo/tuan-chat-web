@@ -12,6 +12,10 @@ export type StickerCreateRequest = {
      */
     imageUrl: string;
     /**
+     * 原图URL
+     */
+    originalImageUrl?: string;
+    /**
      * 文件大小(bytes)
      */
     fileSize: number;

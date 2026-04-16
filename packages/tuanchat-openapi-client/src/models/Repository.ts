@@ -47,6 +47,10 @@ export type Repository = {
      */
     image?: string;
     /**
+     * Original cover image
+     */
+    originalImage?: string;
+    /**
      * Max play time (hours)
      */
     maxTime?: number;

@@ -23,10 +23,14 @@ export type RealtimeWebgalGameConfig = {
   coverFromRoomAvatarEnabled: boolean;
   /** WebGAL 标题背景图 URL（Title_img，优先于“标题背景图使用群聊头像”） */
   titleImageUrl: string;
+  /** WebGAL 标题背景图原图 URL（本地打包优先使用） */
+  originalTitleImageUrl: string;
   /** 未设置启动图 URL 时，是否将群聊头像同步为 WebGAL 启动图（Game_Logo） */
   startupLogoFromRoomAvatarEnabled: boolean;
   /** WebGAL 启动图 URL（Game_Logo，优先于“启动图使用群聊头像”） */
   startupLogoUrl: string;
+  /** WebGAL 启动图原图 URL（本地打包优先使用） */
+  originalStartupLogoUrl: string;
   /** 是否将群聊头像同步为 WebGAL 游戏图标（icons/*） */
   gameIconFromRoomAvatarEnabled: boolean;
   /** 是否将空间名称+spaceId 同步为 WebGAL 游戏名（Game_name） */
@@ -56,8 +60,10 @@ export type RealtimeWebgalGameConfig = {
 const DEFAULT_REALTIME_WEBGAL_GAME_CONFIG: RealtimeWebgalGameConfig = {
   coverFromRoomAvatarEnabled: true,
   titleImageUrl: "",
+  originalTitleImageUrl: "",
   startupLogoFromRoomAvatarEnabled: false,
   startupLogoUrl: "",
+  originalStartupLogoUrl: "",
   gameIconFromRoomAvatarEnabled: true,
   gameNameFromRoomNameEnabled: true,
   description: "",
@@ -205,8 +211,10 @@ function buildCloudSettingsSnapshot(state: Pick<RealtimeRenderState, "ttsApiUrl"
     roomContentAlertThreshold: state.roomContentAlertThreshold,
     coverFromRoomAvatarEnabled: state.gameConfig.coverFromRoomAvatarEnabled,
     titleImageUrl: state.gameConfig.titleImageUrl,
+    originalTitleImageUrl: state.gameConfig.originalTitleImageUrl,
     startupLogoFromRoomAvatarEnabled: state.gameConfig.startupLogoFromRoomAvatarEnabled,
     startupLogoUrl: state.gameConfig.startupLogoUrl,
+    originalStartupLogoUrl: state.gameConfig.originalStartupLogoUrl,
     gameIconFromRoomAvatarEnabled: state.gameConfig.gameIconFromRoomAvatarEnabled,
     gameNameFromRoomNameEnabled: state.gameConfig.gameNameFromRoomNameEnabled,
     description: state.gameConfig.description,
@@ -321,8 +329,10 @@ export const useRealtimeRenderStore = create<RealtimeRenderState>((set, get) => 
     if (
       current.coverFromRoomAvatarEnabled === merged.coverFromRoomAvatarEnabled
       && current.titleImageUrl === merged.titleImageUrl
+      && current.originalTitleImageUrl === merged.originalTitleImageUrl
       && current.startupLogoFromRoomAvatarEnabled === merged.startupLogoFromRoomAvatarEnabled
       && current.startupLogoUrl === merged.startupLogoUrl
+      && current.originalStartupLogoUrl === merged.originalStartupLogoUrl
       && current.gameIconFromRoomAvatarEnabled === merged.gameIconFromRoomAvatarEnabled
       && current.gameNameFromRoomNameEnabled === merged.gameNameFromRoomNameEnabled
       && current.description === merged.description
@@ -385,8 +395,10 @@ export const useRealtimeRenderStore = create<RealtimeRenderState>((set, get) => 
       const persistedRoomContentAlertThreshold = persisted?.roomContentAlertThreshold;
       const persistedCoverFromRoomAvatarEnabled = persisted?.coverFromRoomAvatarEnabled;
       const persistedTitleImageUrl = persisted?.titleImageUrl;
+      const persistedOriginalTitleImageUrl = persisted?.originalTitleImageUrl;
       const persistedStartupLogoFromRoomAvatarEnabled = persisted?.startupLogoFromRoomAvatarEnabled;
       const persistedStartupLogoUrl = persisted?.startupLogoUrl;
+      const persistedOriginalStartupLogoUrl = persisted?.originalStartupLogoUrl;
       const persistedGameIconFromRoomAvatarEnabled = persisted?.gameIconFromRoomAvatarEnabled;
       const persistedGameNameFromRoomNameEnabled = persisted?.gameNameFromRoomNameEnabled;
       const persistedDescription = persisted?.description;
@@ -413,12 +425,22 @@ export const useRealtimeRenderStore = create<RealtimeRenderState>((set, get) => 
         titleImageUrl: typeof persistedTitleImageUrl === "string"
           ? persistedTitleImageUrl.trim()
           : DEFAULT_REALTIME_WEBGAL_GAME_CONFIG.titleImageUrl,
+        originalTitleImageUrl: typeof persistedOriginalTitleImageUrl === "string"
+          ? persistedOriginalTitleImageUrl.trim()
+          : (typeof persistedTitleImageUrl === "string"
+              ? persistedTitleImageUrl.trim()
+              : DEFAULT_REALTIME_WEBGAL_GAME_CONFIG.originalTitleImageUrl),
         startupLogoFromRoomAvatarEnabled: typeof persistedStartupLogoFromRoomAvatarEnabled === "boolean"
           ? persistedStartupLogoFromRoomAvatarEnabled
           : DEFAULT_REALTIME_WEBGAL_GAME_CONFIG.startupLogoFromRoomAvatarEnabled,
         startupLogoUrl: typeof persistedStartupLogoUrl === "string"
           ? persistedStartupLogoUrl.trim()
           : DEFAULT_REALTIME_WEBGAL_GAME_CONFIG.startupLogoUrl,
+        originalStartupLogoUrl: typeof persistedOriginalStartupLogoUrl === "string"
+          ? persistedOriginalStartupLogoUrl.trim()
+          : (typeof persistedStartupLogoUrl === "string"
+              ? persistedStartupLogoUrl.trim()
+              : DEFAULT_REALTIME_WEBGAL_GAME_CONFIG.originalStartupLogoUrl),
         gameIconFromRoomAvatarEnabled: typeof persistedGameIconFromRoomAvatarEnabled === "boolean"
           ? persistedGameIconFromRoomAvatarEnabled
           : DEFAULT_REALTIME_WEBGAL_GAME_CONFIG.gameIconFromRoomAvatarEnabled,

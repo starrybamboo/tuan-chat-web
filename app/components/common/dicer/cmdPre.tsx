@@ -846,16 +846,19 @@ export default function useCommandExecutor(roleId: number, ruleId: number, roomC
         }
         const commandMessageMeta = await commandMessageMetaPromise;
         commandMessageCommitted = true;
-        if (
-          Number.isFinite(optimisticReplyMessageId)
-          && Number.isFinite(commandMessageMeta.commandMessageId)
-        ) {
+        const resolvedOptimisticReplyMessageId = typeof optimisticReplyMessageId === "number"
+          ? optimisticReplyMessageId
+          : null;
+        const resolvedCommandMessageId = typeof commandMessageMeta.commandMessageId === "number"
+          ? commandMessageMeta.commandMessageId
+          : null;
+        if (resolvedOptimisticReplyMessageId !== null && resolvedCommandMessageId !== null) {
           // 指令乐观消息提交后，立即把骰娘乐观回复改指向真实消息，避免 reply preview 在临时/真实 ID 之间抖动。
           await syncOptimisticReplyMessageIds({
             chatHistory: roomContext.chatHistory,
             pendingMessages: pendingOptimisticDicerMessages,
-            fromReplyMessageId: optimisticReplyMessageId,
-            toReplyMessageId: commandMessageMeta.commandMessageId,
+            fromReplyMessageId: resolvedOptimisticReplyMessageId,
+            toReplyMessageId: resolvedCommandMessageId,
           });
         }
         for (let index = 0; index < dicerMessageQueue.length; index++) {

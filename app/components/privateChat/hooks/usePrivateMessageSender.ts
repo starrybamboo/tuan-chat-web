@@ -21,6 +21,7 @@ type EmojiAttachmentMeta = {
   height?: number;
   size?: number;
   fileName?: string;
+  originalUrl?: string;
 };
 
 export function usePrivateMessageSender({ webSocketUtils, userId, currentContactUserId }: UsePrivateMessageSenderProps) {
@@ -76,10 +77,10 @@ export function usePrivateMessageSender({ webSocketUtils, userId, currentContact
       // 发送图片消息
       if (imgFiles.length > 0) {
         for (let i = 0; i < imgFiles.length; i++) {
-          const imgDownLoadUrl = await uploadUtils.uploadImg(imgFiles[i]);
+          const uploadedImage = await uploadUtils.uploadDualImage(imgFiles[i]);
           const { width, height, size } = await getImageSize(imgFiles[i]);
 
-          if (imgDownLoadUrl && imgDownLoadUrl !== "") {
+          if (uploadedImage.url && uploadedImage.url !== "") {
             const imageMessage: MessageDirectSendRequest = {
               receiverId: currentContactUserId,
               content: "",
@@ -87,8 +88,9 @@ export function usePrivateMessageSender({ webSocketUtils, userId, currentContact
               extra: buildMessageExtraForRequest(MESSAGE_TYPE.IMG, {
                 imageMessage: {
                   size: size > 0 ? size : imgFiles[i].size,
-                  url: imgDownLoadUrl,
-                  fileName: imgDownLoadUrl.split("/").pop() || `${userId}-${Date.now()}`,
+                  originalUrl: uploadedImage.originalUrl,
+                  url: uploadedImage.url,
+                  fileName: uploadedImage.url.split("/").pop() || `${userId}-${Date.now()}`,
                   width,
                   height,
                 },
@@ -143,6 +145,7 @@ export function usePrivateMessageSender({ webSocketUtils, userId, currentContact
                 fileName: meta?.fileName || emojiUrl.split("/").pop() || `${userId}-${Date.now()}`,
                 width,
                 height,
+                originalUrl: meta?.originalUrl ?? emojiUrl,
                 url: emojiUrl,
               },
             }),

@@ -94,6 +94,7 @@ describe("blocksuiteRuntimeHooks", () => {
         header: {
           title: "标题",
           imageUrl: "https://example.com/image.png",
+          originalImageUrl: "",
         },
       },
       docId: "room:1:description",
@@ -135,6 +136,7 @@ describe("blocksuiteRuntimeHooks", () => {
         header: {
           title: "错文档",
           imageUrl: "",
+          originalImageUrl: "",
         },
       },
       docId: "room:1:description",

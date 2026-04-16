@@ -27,6 +27,10 @@ export type ResourceResponse = {
      */
     url?: string;
     /**
+     * 对应的原图oss url
+     */
+    originalUrl?: string;
+    /**
      * 资源名称
      */
     name?: string;

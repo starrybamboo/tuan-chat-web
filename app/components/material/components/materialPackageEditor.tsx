@@ -38,6 +38,7 @@ function normalizeDraft(draft: MaterialPackageDraft): MaterialPackageDraft {
     name: draft.name ?? "",
     description: draft.description ?? "",
     coverUrl: draft.coverUrl ?? "",
+    originalCoverUrl: draft.originalCoverUrl ?? draft.coverUrl ?? "",
     isPublic: draft.isPublic ?? false,
     content: ensureMaterialPackageContent(draft.content ?? createEmptyMaterialPackageContent()),
   };
@@ -49,6 +50,7 @@ function buildSavePayload(draft: MaterialPackageDraft): MaterialPackageDraft {
     name: draft.name.trim(),
     description: draft.description.trim(),
     coverUrl: draft.coverUrl.trim(),
+    originalCoverUrl: (draft.originalCoverUrl || draft.coverUrl).trim(),
     content: ensureMaterialPackageContent(draft.content),
   };
 }
@@ -145,8 +147,12 @@ export default function MaterialPackageEditor({
     toast.loading("封面上传中...", { id: toastId });
 
     try {
-      const url = await uploadUtilsRef.current.uploadImg(file, 1);
-      setDraft(previous => ({ ...previous, coverUrl: url }));
+      const uploadedImage = await uploadUtilsRef.current.uploadDualImage(file, 1);
+      setDraft(previous => ({
+        ...previous,
+        coverUrl: uploadedImage.url,
+        originalCoverUrl: uploadedImage.originalUrl,
+      }));
       toast.success("封面上传成功", { id: toastId });
     }
     catch (error) {

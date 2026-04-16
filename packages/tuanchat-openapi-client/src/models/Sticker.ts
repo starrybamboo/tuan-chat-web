@@ -10,6 +10,7 @@ export type Sticker = {
     userId?: number;
     name?: string;
     imageUrl?: string;
+    originalImageUrl?: string;
     fileSize?: number;
     width?: number;
     height?: number;

@@ -173,7 +173,7 @@ function Emoji({
 }: {
   children: React.ReactNode;
   updateEmojiUrls: (recipe: (draft: string[]) => void) => void;
-  setEmojiMetaByUrl: (url: string, meta: { width?: number; height?: number; size?: number; fileName?: string }) => void;
+  setEmojiMetaByUrl: (url: string, meta: { width?: number; height?: number; size?: number; fileName?: string; originalUrl?: string }) => void;
 }) {
   const onChoose = async (emoji: StickerType) => {
     // 添加到表情列表
@@ -189,6 +189,7 @@ function Emoji({
         height: emoji.height,
         size: emoji.fileSize,
         fileName: emoji.name,
+        originalUrl: emoji.originalImageUrl ?? emoji.imageUrl,
       });
     }
   };

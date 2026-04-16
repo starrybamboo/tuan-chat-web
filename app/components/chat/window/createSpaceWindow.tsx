@@ -22,6 +22,7 @@ export default function CreateSpaceWindow({ onSuccess }: CreateSpaceWindowProps)
 
   // 创建空间的头像
   const [spaceAvatar, setSpaceAvatar] = useState<string>(() => String(userInfo?.avatar));
+  const [spaceOriginalAvatar, setSpaceOriginalAvatar] = useState<string>(() => String(userInfo?.originalAvatar ?? userInfo?.avatar ?? ""));
   // 创建空间的名称
   const [spaceName, setSpaceName] = useState<string>(() => `${String(userInfo?.username)}的空间`);
 
@@ -59,6 +60,7 @@ export default function CreateSpaceWindow({ onSuccess }: CreateSpaceWindowProps)
   useEffect(() => {
     if (userInfo) {
       setSpaceAvatar(String(userInfo.avatar));
+      setSpaceOriginalAvatar(String(userInfo.originalAvatar ?? userInfo.avatar ?? ""));
       setSpaceName(`${String(userInfo.username)}的空间`);
     }
   }, [userInfo]);
@@ -68,6 +70,7 @@ export default function CreateSpaceWindow({ onSuccess }: CreateSpaceWindowProps)
     createSpaceMutation.mutate({
       userIdList: userIds,
       avatar: spaceAvatar,
+      originalAvatar: spaceOriginalAvatar || spaceAvatar,
       spaceName,
       ruleId: selectedRuleId,
     }, {
@@ -85,6 +88,9 @@ export default function CreateSpaceWindow({ onSuccess }: CreateSpaceWindowProps)
       {/* 头像上传 */}
       <div className="flex justify-center mb-6">
         <ImgUploaderWithCopper
+          setOriginalDownloadUrl={(url) => {
+            setSpaceOriginalAvatar(url);
+          }}
           setCopperedDownloadUrl={(url) => {
             setSpaceAvatar(url);
           }}

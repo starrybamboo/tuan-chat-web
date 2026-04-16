@@ -113,11 +113,14 @@ export function UploadModal({ isOpen, onClose, onSuccess }: UploadModalProps) {
       setIsUploading(true);
       toast.loading("正在上传文件...", { id: "resource-upload" });
       let url: string;
+      let originalUrl: string | undefined;
 
       // 根据类型上传
       if (selectedType === "5") {
         // ͼƬ
-        url = await uploadUtils.uploadImg(selectedFile, 1);
+        const uploadedImage = await uploadUtils.uploadDualImage(selectedFile, 1);
+        url = uploadedImage.url;
+        originalUrl = uploadedImage.originalUrl;
       }
       else {
         // 音频
@@ -128,6 +131,7 @@ export function UploadModal({ isOpen, onClose, onSuccess }: UploadModalProps) {
       await uploadResourceMutation.mutateAsync({
         type: selectedType,
         url,
+        ...(originalUrl ? { originalUrl } : {}),
         name: resourceName,
         isPublic,
         isAi: isAI,

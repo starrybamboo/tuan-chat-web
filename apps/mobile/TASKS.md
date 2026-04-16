@@ -1,6 +1,16 @@
 # 团剧共创移动端任务清单
 
-## 当前里程碑：真实入口可用
+## 当前里程碑：桌面端窄宽度 UI 对齐
+
+- [x] 移除首页底部 tab 壳，首页直接承载聊天入口
+- [x] 将全局移动端主题暂时固定为深色，先对齐桌面端窄宽度视觉
+- [x] 登录后默认打开左侧抽屉，优先呈现暗色 rail + 频道树结构
+- [x] 将左侧抽屉重做为更接近桌面端窄宽度的“空间 rail + 频道与文档 + 素材包 + 用户卡片”
+- [x] 本轮 UI 对齐后再次通过 `pnpm --filter @tuanchat/mobile typecheck`
+- [x] 本轮 UI 对齐后再次通过 `pnpm --filter @tuanchat/mobile exec expo export --platform web --output-dir .expo-export-web`
+- [x] 本轮 UI 对齐后重新采集登录页 / 抽屉展开态 / 主消息区 / 工具弹层 / 搜索页 / 成员页截图
+
+## 已完成里程碑：真实入口可用
 
 - [x] 接入 workspace 结构与共享 `OpenAPI client`
 - [x] 接入 `SecureStore`、`React Query` 和最小登录态
@@ -44,3 +54,10 @@
 - [ ] 补齐更完整的状态事件交互（如更多指令）
 - [x] 接入房间消息本地缓存（Web localStorage / Native expo-file-system）
 - [x] 接入房间消息 websocket 最小实时同步（当前房间主消息流）
+- [x] 在项目文档中明确 Android 共享模拟器约定，并约定与 `watch-maid` 分离 Metro / Expo 端口
+- [x] 补 Android 调试链路脚本，固定共享 AVD、分离构建 SDK / 模拟器 SDK，并切到 Expo dev build 启动入口
+- [x] 在共享 AVD `WatchMaid_API_36_Fresh` 上完成本地 dev build 安装、启动与 Metro bundling 实测
+- [x] 移动端首页替换为接近 Web 小屏的聊天主界面，包含顶部房间头部、左侧导航抽屉、主消息流和底部 composer
+- [x] 移动端补齐工具弹层、消息搜索和成员面板，继续维持“当前不上 Thread”的约束
+- [x] 本轮聊天主界面重构后再次通过 `pnpm --filter @tuanchat/mobile typecheck`
+- [x] 本轮聊天主界面重构后再次通过 `pnpm --filter @tuanchat/mobile exec expo export --platform web --output-dir .expo-export-web`

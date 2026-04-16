@@ -48,16 +48,17 @@ export function useProfileEditing(user: UserProfileInfoResponse | undefined) {
   };
 
   // 头像上传即时保存
-  const handleAvatarUpdate = (newAvatarUrl: string) => {
+  const handleAvatarUpdate = (avatarPayload: { avatarUrl: string; originalAvatarUrl?: string }) => {
     if (!user) {
       return;
     }
-    const payload: UserUpdateInfoRequest = {
+    const request: UserUpdateInfoRequest = {
       userId: user.userId,
-      avatar: newAvatarUrl,
-      avatarThumbUrl: newAvatarUrl,
+      avatar: avatarPayload.avatarUrl,
+      avatarThumbUrl: avatarPayload.avatarUrl,
+      originalAvatar: avatarPayload.originalAvatarUrl ?? avatarPayload.avatarUrl,
     };
-    updateUserInfoMutation.mutate(payload);
+    updateUserInfoMutation.mutate(request);
   };
 
   return {

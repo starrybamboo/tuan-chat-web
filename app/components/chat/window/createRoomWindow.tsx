@@ -1,4 +1,4 @@
-import { useCreateRoomMutation, useGetSpaceMembersQuery } from "api/hooks/chatQueryHooks";
+import { useCreateRoomMutation, useGetSpaceInfoQuery, useGetSpaceMembersQuery } from "api/hooks/chatQueryHooks";
 import { useGetUserInfoQuery } from "api/hooks/UserHooks";
 import React, { useEffect, useState } from "react";
 import checkBack from "@/components/common/autoContrastText";
@@ -19,9 +19,12 @@ export default function CreateRoomWindow({ spaceId, spaceAvatar, onSuccess }: Cr
 
   // 创建房间
   const createRoomMutation = useCreateRoomMutation(spaceId);
+  const getSpaceInfo = useGetSpaceInfoQuery(spaceId);
+  const spaceInfo = getSpaceInfo.data?.data;
 
   // 创建房间的头像
   const [roomAvatar, setRoomAvatar] = useState<string>(spaceAvatar || "");
+  const [roomOriginalAvatar, setRoomOriginalAvatar] = useState<string>(() => String(spaceInfo?.originalAvatar ?? spaceInfo?.avatar ?? spaceAvatar ?? ""));
   // 创建房间的名称
   const [roomName, setRoomName] = useState<string>(() => `${String(userInfo?.username)}的房间`);
 
@@ -59,16 +62,22 @@ export default function CreateRoomWindow({ spaceId, spaceAvatar, onSuccess }: Cr
 
   // 当传入的 spaceAvatar 变化时更新房间头像
   useEffect(() => {
-    if (spaceAvatar) {
-      setRoomAvatar(spaceAvatar);
+    const nextAvatar = spaceInfo?.avatar ?? spaceAvatar;
+    const nextOriginalAvatar = spaceInfo?.originalAvatar ?? spaceInfo?.avatar ?? spaceAvatar;
+    if (nextAvatar) {
+      setRoomAvatar(nextAvatar);
     }
-  }, [spaceAvatar]);
+    if (nextOriginalAvatar) {
+      setRoomOriginalAvatar(nextOriginalAvatar);
+    }
+  }, [spaceAvatar, spaceInfo?.avatar, spaceInfo?.originalAvatar]);
 
   // 创建房间
   async function createRoom(spaceId: number, userIds: number[]) {
     createRoomMutation.mutate({
       spaceId,
       avatar: roomAvatar,
+      originalAvatar: roomOriginalAvatar || roomAvatar,
       roomName,
       userIdList: userIds,
     }, {
@@ -87,6 +96,9 @@ export default function CreateRoomWindow({ spaceId, spaceAvatar, onSuccess }: Cr
       {/* 头像上传 */}
       <div className="flex justify-center mb-6">
         <ImgUploaderWithCopper
+          setOriginalDownloadUrl={(url) => {
+            setRoomOriginalAvatar(url);
+          }}
           setCopperedDownloadUrl={(url) => {
             setRoomAvatar(url);
           }}

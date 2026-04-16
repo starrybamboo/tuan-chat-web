@@ -27,9 +27,9 @@ vi.mock("@/components/chat/infra/blocksuite/shared/docCardShareObservability", (
 type DescriptionDocRemoteModule = typeof import("./descriptionDocRemote");
 
 function clearSharedRemoteState() {
-  delete (globalThis as Record<string, unknown>).__tcDescriptionDocRemoteState_v2;
+  delete (globalThis as unknown as Record<string, unknown>).__tcDescriptionDocRemoteState_v2;
   if (typeof window !== "undefined") {
-    delete (window as Window & Record<string, unknown>).__tcDescriptionDocRemoteState_v2;
+    delete (window as unknown as Window & Record<string, unknown>).__tcDescriptionDocRemoteState_v2;
   }
 }
 

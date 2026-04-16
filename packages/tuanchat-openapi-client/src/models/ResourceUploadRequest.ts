@@ -15,6 +15,10 @@ export type ResourceUploadRequest = {
      */
     url: string;
     /**
+     * 原图oss url
+     */
+    originalUrl?: string;
+    /**
      * 资源名称
      */
     name: string;

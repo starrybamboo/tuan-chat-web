@@ -9,6 +9,7 @@ export type RoomDndMapToken = {
 export type RoomDndMapSnapshot = {
   roomId: number;
   mapImgUrl: string;
+  originalMapImgUrl?: string;
   gridRows: number;
   gridCols: number;
   gridColor: string;
@@ -21,7 +22,7 @@ type RoomDndMapChangeOp = "map_upsert" | "map_clear" | "token_upsert" | "token_r
 export type RoomDndMapChangeEvent = {
   roomId: number;
   op: RoomDndMapChangeOp;
-  map?: Partial<Pick<RoomDndMapSnapshot, "mapImgUrl" | "gridRows" | "gridCols" | "gridColor">>;
+  map?: Partial<Pick<RoomDndMapSnapshot, "mapImgUrl" | "originalMapImgUrl" | "gridRows" | "gridCols" | "gridColor">>;
   token?: RoomDndMapToken;
   clearTokens?: boolean;
   updatedAt?: number;
@@ -30,6 +31,7 @@ export type RoomDndMapChangeEvent = {
 export type RoomDndMapUpsertPayload = {
   roomId: number;
   mapImgUrl?: string;
+  originalMapImgUrl?: string;
   gridRows?: number;
   gridCols?: number;
   gridColor?: string;
@@ -101,6 +103,7 @@ export function applyRoomDndMapChange(
     : {
         roomId: change.roomId,
         mapImgUrl: "",
+        originalMapImgUrl: "",
         gridRows: 10,
         gridCols: 10,
         gridColor: "#808080",
@@ -110,6 +113,9 @@ export function applyRoomDndMapChange(
   if (change.op === "map_upsert") {
     if (change.map?.mapImgUrl !== undefined) {
       current.mapImgUrl = change.map.mapImgUrl ?? "";
+    }
+    if (change.map?.originalMapImgUrl !== undefined) {
+      current.originalMapImgUrl = change.map.originalMapImgUrl ?? current.mapImgUrl;
     }
     if (change.map?.gridRows !== undefined) {
       current.gridRows = change.map.gridRows ?? current.gridRows;
@@ -133,6 +139,9 @@ export function applyRoomDndMapChange(
     }
     if (change.map?.mapImgUrl !== undefined && !current.mapImgUrl) {
       return null;
+    }
+    if (!current.originalMapImgUrl) {
+      current.originalMapImgUrl = current.mapImgUrl;
     }
     if (typeof change.updatedAt === "number") {
       current.updatedAt = change.updatedAt;

@@ -4,6 +4,7 @@ export type MaterialPackageDraft = {
   name: string;
   description: string;
   coverUrl: string;
+  originalCoverUrl: string;
   isPublic: boolean;
   content: MaterialPackageContent;
 };
