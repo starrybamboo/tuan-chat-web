@@ -216,7 +216,7 @@ export function AiImageHistoryPane({
         <div className="flex h-full flex-col">
           <div className="mb-3 flex items-center gap-2 px-1">
             <div className="flex items-center gap-1">
-              <div className="text-[11px] font-semibold uppercase tracking-[0.24em] text-base-content/60">History</div>
+              <div className="text-[10px] font-semibold uppercase tracking-[0.24em] text-base-content/60">History</div>
               <HistoryHint />
             </div>
             <div className="ml-auto text-[11px] text-base-content/45">{history.length ? `${history.length}` : ""}</div>
@@ -343,7 +343,7 @@ export function AiImageHistoryPane({
       <div className="flex h-full flex-col">
         <div className="mb-3 flex items-center gap-2 px-1">
           <div className="flex items-center gap-1">
-            <div className="font-medium">History</div>
+            <div className="text-sm font-medium">History</div>
             <HistoryHint />
           </div>
           <div className="ml-auto text-xs text-base-content/55">{history.length ? `${history.length}` : ""}</div>
@@ -405,7 +405,7 @@ export function AiImageHistoryPane({
               <summary className="cursor-pointer list-none px-3 py-3" title={isHistoryExpanded ? "折叠历史绘画" : "展开历史绘画"}>
                 <div className="flex items-center gap-3">
                   <div className="min-w-0 flex-1">
-                    <div className="text-sm font-medium">History</div>
+                    <div className="text-[13px] font-medium">History</div>
                     <div className="mt-0.5 text-xs font-normal text-base-content/55">{archivedHistoryRows.length ? `${archivedHistoryRows.length}` : "0"}</div>
                   </div>
                   <span className="flex size-5 shrink-0 items-center justify-center text-base-content/60" aria-hidden="true">
