@@ -53,6 +53,28 @@ interface AiImagePreviewPaneProps {
   formatDirectorEmotionLabel: (value: NovelAiEmotion) => string;
 }
 
+function EmptyPreviewPlaceholder() {
+  return (
+    <div className="pointer-events-none select-none">
+      <svg
+        className="h-auto w-[240px] max-w-[42vw]"
+        viewBox="0 0 240 160"
+        aria-hidden="true"
+      >
+        <rect x="46" y="34" width="148" height="92" rx="14" fill="rgba(255,255,255,0.05)" />
+        <path
+          d="M79 104l34-40l22 23l25-31l41 48z"
+          fill="rgba(0,0,0,0.18)"
+        />
+        <path
+          d="M136 84l24-28l41 48h-49z"
+          fill="rgba(0,0,0,0.24)"
+        />
+      </svg>
+    </div>
+  );
+}
+
 export function AiImagePreviewPane({
   isDirectorToolsOpen,
   previewMeta,
@@ -347,7 +369,7 @@ export function AiImagePreviewPane({
             <div className="relative flex min-h-[520px] flex-1 self-stretch items-center justify-center rounded-box border border-base-300 bg-base-100 p-3 shadow-sm">
               {selectedPreviewResult
                 ? <img src={selectedPreviewResult.dataUrl} className="max-h-[720px] w-auto rounded-box" alt="result" />
-                : null}
+                : <EmptyPreviewPlaceholder />}
               {pinnedPreviewResult && !isSelectedPreviewPinned
                 ? (
                     <button
