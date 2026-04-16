@@ -11,6 +11,7 @@ import UpdatesToastWindow from "@/components/topbanner/updatesWindow";
 import { DiscordIcon, QQIcon, WebgalIcon } from "@/icons";
 import { checkAuthStatus, logoutUser } from "@/utils/auth/authapi";
 import { isElectronEnv } from "@/utils/isElectronEnv";
+import { isDevOrTestEnvironment } from "@/utils/runtimeEnvironment";
 import { useGetUserInfoQuery } from "../../../api/hooks/UserHooks";
 import ThemeSwitch from "../themeSwitch";
 
@@ -46,7 +47,12 @@ export default function Topbar() {
   });
   const webgalLinkMode = useRoomPreferenceStore(state => state.webgalLinkMode);
   const runModeEnabled = useRoomPreferenceStore(state => state.runModeEnabled);
-  const canUseAiImage = import.meta.env.DEV || import.meta.env.MODE === "test";
+  const canUseAiImage = isDevOrTestEnvironment({
+    isDev: import.meta.env.DEV,
+    mode: import.meta.env.MODE,
+    apiBaseUrl: import.meta.env.VITE_API_BASE_URL,
+    hostname: typeof window === "undefined" ? undefined : window.location.hostname,
+  });
   const canUseGeminiLab = import.meta.env.DEV;
   const canUseFeedback = import.meta.env.DEV || import.meta.env.MODE === "test";
 
