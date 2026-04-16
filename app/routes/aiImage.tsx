@@ -106,12 +106,39 @@ export default function AiImagePage() {
 
   return (
     <div
-      className="relative flex h-full min-h-0 w-full min-w-0 flex-col overflow-hidden bg-base-100"
+      className="ai-image-shell relative flex h-full min-h-0 w-full min-w-0 flex-col overflow-hidden bg-base-100"
       onDragEnter={controller.handlePageImageDragEnter}
       onDragLeave={controller.handlePageImageDragLeave}
       onDragOver={controller.handlePageImageDragOver}
       onDrop={controller.handlePageImageDrop}
     >
+      <style>{`
+        .ai-image-shell :where(
+          .card,
+          .btn,
+          .input,
+          .select,
+          .textarea,
+          .checkbox,
+          .toggle,
+          .collapse,
+          .badge,
+          .join,
+          .join-item,
+          .modal-box,
+          button,
+          input,
+          select,
+          textarea,
+          details,
+          summary,
+          img,
+          canvas,
+          [class*="rounded"]
+        ) {
+          border-radius: 0 !important;
+        }
+      `}</style>
       {controller.isPageImageDragOver
         ? (
             <div className="pointer-events-none absolute inset-0 z-40 flex items-center justify-center bg-base-100/70 backdrop-blur-sm">
