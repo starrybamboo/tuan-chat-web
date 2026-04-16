@@ -136,7 +136,7 @@ export default function useChatMessageSubmit({
     const isSpectator = notMember;
     const senderRoleId = isSpectator ? -1 : curRoleId;
     const spectatorTextContent = isSpectator
-      ? buildOutOfCharacterSpeechContent(trimmedInputText)
+      ? buildOutOfCharacterSpeechContent(inputText)
       : null;
     const hasPendingAttachmentPayload = (
       imgFiles.length > 0
@@ -157,6 +157,10 @@ export default function useChatMessageSubmit({
     }
     if (inputText.length > 1024) {
       toast.error("消息长度不能超过 1024 字（含富文本标记）");
+      return;
+    }
+    if (!isSpectator && inputText.length === 0 && !hasPendingAttachmentPayload) {
+      toast.error("消息不能为无");
       return;
     }
     if (isSpectator && !spectatorTextContent && !hasPendingAttachmentPayload) {
@@ -210,7 +214,7 @@ export default function useChatMessageSubmit({
 
       let regularInputText = isSpectator
         ? (spectatorTextContent ?? "")
-        : trimmedInputText;
+        : (trimmedInputText || inputText);
       // 命令解析要基于去掉 @mention span 后的文本，否则“@角色 .ra 技能”会被误判成普通文本。
       const commandInputText = !isSpectator ? trimmedWithoutMentions : regularInputText;
       const isRoomJumpCommand = !isSpectator && isRoomJumpCommandText(trimmedWithoutMentions);
@@ -388,7 +392,7 @@ export default function useChatMessageSubmit({
         composerAnnotations,
         tempAnnotations,
         uploadUtils: uploadUtilsRef.current,
-        allowEmptyTextMessage: !hasConsumedFirstMessage,
+        allowEmptyTextMessage: false,
       });
 
       const regularRequests = regularDrafts.map((draft, index) => buildChatMessageRequestFromDraft(draft, {

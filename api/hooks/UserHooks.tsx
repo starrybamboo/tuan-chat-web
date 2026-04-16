@@ -1,8 +1,11 @@
-import type {
-  ApiResultUserInfoResponse,
-} from "@tuanchat/openapi-client/models/ApiResultUserInfoResponse";
 import type { UserUpdateInfoRequest } from "@tuanchat/openapi-client/models/UserUpdateInfoRequest";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+  useGetMyUserInfoQuery as useSharedGetMyUserInfoQuery,
+  useGetUserInfoByUsernameQuery as useSharedGetUserInfoByUsernameQuery,
+  useGetUserInfoQuery as useSharedGetUserInfoQuery,
+  useGetUserProfileQuery as useSharedGetUserProfileQuery,
+} from "@tuanchat/query/users";
 import { tuanchat } from "../instance";
 
 interface UserQueryOptions {
@@ -16,13 +19,7 @@ interface UserQueryOptions {
  * @param userId 用户ID
  */
 export function useGetUserInfoQuery(userId: number, options?: UserQueryOptions) {
-  return useQuery({
-    queryKey: ["getUserInfo", userId],
-    queryFn: () => tuanchat.userController.getUserInfo(userId),
-    staleTime: options?.staleTime ?? 600000, // 默认10分钟缓存
-    refetchOnMount: options?.refetchOnMount,
-    enabled: (options?.enabled ?? true) && userId > 0,
-  });
+  return useSharedGetUserInfoQuery(tuanchat, userId, options);
 }
 
 /**
@@ -30,29 +27,14 @@ export function useGetUserInfoQuery(userId: number, options?: UserQueryOptions) 
  * @param userId 用户ID
  */
 export function useGetUserProfileQuery(userId: number, options?: UserQueryOptions) {
-  return useQuery({
-    queryKey: ["getUserProfileInfo", userId],
-    queryFn: () => tuanchat.userController.getUserProfileInfo(userId),
-    staleTime: options?.staleTime ?? 600000, // 默认10分钟缓存
-    refetchOnMount: options?.refetchOnMount,
-    enabled: (options?.enabled ?? true) && userId > 0,
-  });
+  return useSharedGetUserProfileQuery(tuanchat, userId, options);
 }
 
 /**
  * 获取当前登录用户信息（仅本人）
  */
 export function useGetMyUserInfoQuery(enabledOrOptions: boolean | UserQueryOptions = true) {
-  const options = typeof enabledOrOptions === "boolean"
-    ? { enabled: enabledOrOptions }
-    : enabledOrOptions;
-  return useQuery({
-    queryKey: ["getMyUserInfo"],
-    queryFn: () => tuanchat.userController.getMyUserInfo(),
-    staleTime: options.staleTime ?? 600000, // 默认10分钟缓存
-    refetchOnMount: options.refetchOnMount,
-    enabled: options.enabled ?? true,
-  });
+  return useSharedGetMyUserInfoQuery(tuanchat, enabledOrOptions);
 }
 
 /**
@@ -60,13 +42,7 @@ export function useGetMyUserInfoQuery(enabledOrOptions: boolean | UserQueryOptio
  * @param username 用户名
  */
 export function useGetUserInfoByUsernameQuery(username: string) {
-  const trimmed = username.trim();
-  return useQuery({
-    queryKey: ["getUserInfoByUsername", trimmed],
-    queryFn: () => tuanchat.userController.getUserInfoByUsername(trimmed) as Promise<ApiResultUserInfoResponse>,
-    staleTime: 600000,
-    enabled: trimmed.length > 0,
-  });
+  return useSharedGetUserInfoByUsernameQuery(tuanchat, username);
 }
 
 /**

@@ -1,7 +1,5 @@
 import type { ChatMessageResponse } from "../../../api";
 
-import type { ThreadHintMeta } from "@/components/chat/hooks/useChatFrameMessages";
-
 import React, { useCallback } from "react";
 import { ChatBubble } from "@/components/chat/message/chatBubble";
 import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
@@ -15,13 +13,11 @@ interface ChatFrameMessageItemProps {
   canJumpToWebGAL: boolean;
   movable: boolean;
   isSelecting: boolean;
-  threadHintMeta?: ThreadHintMeta;
   onExecuteCommandRequest?: (payload: {
     command: string;
     threadId?: number;
     requestMessageId: number;
   }) => void;
-  onOpenThread?: (threadRootMessageId: number) => void;
   onEditWebgalChoose?: (messageId: number) => void;
   onMessageClick: (event: React.MouseEvent<HTMLDivElement>) => void;
   onToggleSelection?: (messageId: number) => void;
@@ -39,9 +35,7 @@ export default function ChatFrameMessageItem({
   canJumpToWebGAL,
   movable,
   isSelecting,
-  threadHintMeta,
   onExecuteCommandRequest,
-  onOpenThread,
   onEditWebgalChoose,
   onMessageClick,
   onToggleSelection,
@@ -88,9 +82,7 @@ export default function ChatFrameMessageItem({
       )}
       <ChatBubble
         chatMessageResponse={chatMessageResponse}
-        threadHintMeta={threadHintMeta}
         onExecuteCommandRequest={onExecuteCommandRequest}
-        onOpenThread={onOpenThread}
         onToggleSelection={onToggleSelection}
         onEditWebgalChoose={onEditWebgalChoose}
       />

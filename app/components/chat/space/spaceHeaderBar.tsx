@@ -1,14 +1,15 @@
 import type { OpenSpaceDetailPanelOptions, SpaceDetailTab } from "@/components/chat/chatPage.types";
-import { AddressBookIcon, ArchiveIcon, ArrowCounterClockwise, HouseIcon, PlusIcon } from "@phosphor-icons/react";
+import { AddressBookIcon, ArchiveIcon, ArrowCounterClockwise, HouseIcon, PlusIcon, SignOutIcon, TrashIcon } from "@phosphor-icons/react";
 import React from "react";
 import toast from "react-hot-toast";
+import { useNavigate } from "react-router";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
 import { prepareSpaceDocsForArchive } from "@/components/chat/infra/blocksuite/space/prepareSpaceDocsForArchive";
 import { canInviteSpectators } from "@/components/chat/utils/memberPermissions";
 import { canViewSpaceDetailTab } from "@/components/chat/utils/spaceDetailPermissions";
 import ConfirmModal from "@/components/common/comfirmModel";
 import { AddIcon, ChevronDown, DiceD6Icon, MemberIcon, Setting, SidebarSimpleIcon, WebgalIcon } from "@/icons";
-import { useUpdateSpaceArchiveStatusMutation } from "../../../../api/hooks/chatQueryHooks";
+import { useDissolveSpaceMutation, useExitSpaceMutation, useUpdateSpaceArchiveStatusMutation } from "../../../../api/hooks/chatQueryHooks";
 
 interface SpaceHeaderBarProps {
   spaceName?: string;
@@ -35,10 +36,17 @@ export default function SpaceHeaderBar({
   onToggleLeftDrawer,
   isLeftDrawerOpen,
 }: SpaceHeaderBarProps) {
+  const navigate = useNavigate();
   const spaceContext = React.use(SpaceContext);
   const spaceId = Number(spaceContext.spaceId ?? -1);
+  const dissolveSpace = useDissolveSpaceMutation();
+  const exitSpace = useExitSpaceMutation();
   const updateArchiveStatus = useUpdateSpaceArchiveStatusMutation();
   const archived = Boolean(isArchived);
+  const [isDissolveConfirmOpen, setIsDissolveConfirmOpen] = React.useState(false);
+  const [dissolveTargetSpaceId, setDissolveTargetSpaceId] = React.useState<number | null>(null);
+  const [isExitConfirmOpen, setIsExitConfirmOpen] = React.useState(false);
+  const [exitTargetSpaceId, setExitTargetSpaceId] = React.useState<number | null>(null);
   const [isArchiveConfirmOpen, setIsArchiveConfirmOpen] = React.useState(false);
   const [archiveTargetSpaceId, setArchiveTargetSpaceId] = React.useState<number | null>(null);
   const [isResetConfirmOpen, setIsResetConfirmOpen] = React.useState(false);
@@ -54,6 +62,37 @@ export default function SpaceHeaderBar({
   const canViewTrpgDetail = canViewSpaceDetailTab("trpg", spaceContext.memberType);
   const canViewWebgalDetail = canViewSpaceDetailTab("webgal", spaceContext.memberType);
   const canInviteMembers = canInviteSpectators(spaceContext.memberType);
+  const leaveActionLabel = exitSpace.isPending ? "退出中..." : "退出空间";
+  const dissolveActionLabel = dissolveSpace.isPending ? "解散中..." : "解散空间";
+
+  const clearCurrentSpaceSelection = React.useCallback(() => {
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("storedChatIds");
+    }
+    spaceContext.setActiveSpaceId?.(null);
+    spaceContext.setActiveRoomId?.(null);
+    navigate("/chat/discover/material", { replace: true });
+  }, [navigate, spaceContext]);
+
+  const cleanupDissolvedSpaceDoc = React.useCallback(async (targetSpaceId: number) => {
+    // 解散空间会级联解散房间；这里额外清理空间描述文档，避免本地残留引用。
+    if (typeof window === "undefined") {
+      return;
+    }
+    try {
+      const [{ deleteSpaceDoc }, { buildSpaceDocId }] = await Promise.all([
+        import("@/components/chat/infra/blocksuite/space/deleteSpaceDoc"),
+        import("@/components/chat/infra/blocksuite/space/spaceDocId"),
+      ]);
+      await deleteSpaceDoc({
+        spaceId: targetSpaceId,
+        docId: buildSpaceDocId({ kind: "space_description", spaceId: targetSpaceId }),
+      });
+    }
+    catch {
+      // ignore
+    }
+  }, []);
 
   const handleToggleArchive = async (targetSpaceId: number, nextArchived: boolean) => {
     if (updateArchiveStatus.isPending) {
@@ -84,6 +123,63 @@ export default function SpaceHeaderBar({
       return;
     }
     void handleToggleArchive(spaceId, nextArchived);
+  };
+
+  const handleRequestDissolveSpace = () => {
+    if (spaceId <= 0 || dissolveSpace.isPending) {
+      return;
+    }
+    setDissolveTargetSpaceId(spaceId);
+    setIsDissolveConfirmOpen(true);
+  };
+
+  const handleConfirmDissolveSpace = async () => {
+    if (dissolveTargetSpaceId == null || dissolveSpace.isPending) {
+      return;
+    }
+    const targetSpaceId = dissolveTargetSpaceId;
+    setIsDissolveConfirmOpen(false);
+    setDissolveTargetSpaceId(null);
+
+    const toastId = `space-dissolve-${targetSpaceId}`;
+    toast.loading("正在解散空间...", { id: toastId });
+    try {
+      await dissolveSpace.mutateAsync(targetSpaceId);
+      await cleanupDissolvedSpaceDoc(targetSpaceId);
+      clearCurrentSpaceSelection();
+      toast.success("空间已解散", { id: toastId });
+    }
+    catch {
+      toast.error("解散空间失败，请重试", { id: toastId });
+    }
+  };
+
+  const handleRequestExitSpace = () => {
+    if (spaceId <= 0 || exitSpace.isPending) {
+      return;
+    }
+    setExitTargetSpaceId(spaceId);
+    setIsExitConfirmOpen(true);
+  };
+
+  const handleConfirmExitSpace = async () => {
+    if (exitTargetSpaceId == null || exitSpace.isPending) {
+      return;
+    }
+    const targetSpaceId = exitTargetSpaceId;
+    setIsExitConfirmOpen(false);
+    setExitTargetSpaceId(null);
+
+    const toastId = `space-exit-${targetSpaceId}`;
+    toast.loading("正在退出空间...", { id: toastId });
+    try {
+      await exitSpace.mutateAsync(targetSpaceId);
+      clearCurrentSpaceSelection();
+      toast.success("已退出空间", { id: toastId });
+    }
+    catch {
+      toast.error("退出空间失败，请重试", { id: toastId });
+    }
   };
 
   const handleOpenSpaceDetail = (tab: SpaceDetailTab) => {
@@ -234,6 +330,21 @@ export default function SpaceHeaderBar({
                 </button>
               </li>
             )}
+            <li>
+              <button
+                type="button"
+                className="gap-3 text-error"
+                disabled={isSpaceOwner ? dissolveSpace.isPending || spaceId <= 0 : exitSpace.isPending || spaceId <= 0}
+                onClick={isSpaceOwner ? handleRequestDissolveSpace : handleRequestExitSpace}
+              >
+                {isSpaceOwner
+                  ? <TrashIcon className="size-4 opacity-80" />
+                  : <SignOutIcon className="size-4 opacity-80" />}
+                <span className="flex-1 text-left">
+                  {isSpaceOwner ? dissolveActionLabel : leaveActionLabel}
+                </span>
+              </button>
+            </li>
             {canResetSidebarTree && (
               <li>
                 <button
@@ -278,6 +389,40 @@ export default function SpaceHeaderBar({
         </div>
       </div>
       <ConfirmModal
+        isOpen={isDissolveConfirmOpen}
+        onClose={() => {
+          if (dissolveSpace.isPending) {
+            return;
+          }
+          setIsDissolveConfirmOpen(false);
+          setDissolveTargetSpaceId(null);
+        }}
+        title="确认解散空间"
+        message="是否确定要解散当前空间？此操作不可逆。"
+        confirmText="确认解散"
+        variant="danger"
+        onConfirm={() => {
+          void handleConfirmDissolveSpace();
+        }}
+      />
+      <ConfirmModal
+        isOpen={isExitConfirmOpen}
+        onClose={() => {
+          if (exitSpace.isPending) {
+            return;
+          }
+          setIsExitConfirmOpen(false);
+          setExitTargetSpaceId(null);
+        }}
+        title="确认退出空间"
+        message="退出后你将离开当前空间，需要重新加入后才能继续访问。是否继续？"
+        confirmText="确认退出"
+        variant="danger"
+        onConfirm={() => {
+          void handleConfirmExitSpace();
+        }}
+      />
+      <ConfirmModal
         isOpen={isArchiveConfirmOpen}
         onClose={() => {
           setIsArchiveConfirmOpen(false);
@@ -287,16 +432,16 @@ export default function SpaceHeaderBar({
         message="归档后空间将进入只读状态，可在之后取消归档。是否继续？"
         confirmText="确认归档"
         variant="warning"
-                  onConfirm={() => {
-                    if (archiveTargetSpaceId == null) {
-                      return;
-                    }
-                    const targetSpaceId = archiveTargetSpaceId;
-                    setIsArchiveConfirmOpen(false);
-                    setArchiveTargetSpaceId(null);
-                    void handleToggleArchive(targetSpaceId, true);
-                  }}
-                />
+        onConfirm={() => {
+          if (archiveTargetSpaceId == null) {
+            return;
+          }
+          const targetSpaceId = archiveTargetSpaceId;
+          setIsArchiveConfirmOpen(false);
+          setArchiveTargetSpaceId(null);
+          void handleToggleArchive(targetSpaceId, true);
+        }}
+      />
       <ConfirmModal
         isOpen={isResetConfirmOpen}
         onClose={() => {

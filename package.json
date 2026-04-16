@@ -105,6 +105,8 @@
     "@tailwindcss/vite": "^4.0.17",
     "@tanstack/eslint-plugin-query": "^5.68.0",
     "@tanstack/react-query": "^5.69.0",
+    "@tuanchat/domain": "workspace:*",
+    "@tuanchat/query": "workspace:*",
     "@toeverything/theme": "1.1.23",
     "@types/jest": "^30.0.0",
     "@types/node": "^20",

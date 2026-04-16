@@ -3,12 +3,31 @@ import type { BlocksuiteDescriptionEditorProps } from "./blocksuiteDescriptionEd
 import { useEffect, useId, useRef, useState } from "react";
 import { useNavigate } from "react-router";
 import { startBlocksuiteOpenSession } from "@/components/chat/infra/blocksuite/shared/perf";
+import {
+  ensurePrewarmedBlocksuiteFrame,
+  releasePrewarmedBlocksuiteFrame,
+  takePrewarmedBlocksuiteFrame,
+} from "@/components/chat/infra/blocksuite/shared/warmFrame";
 import { BlocksuiteFrameSkeleton } from "./BlocksuiteFrameSkeleton";
 import { BlocksuiteMentionProfilePopover } from "./blocksuiteMentionProfilePopover";
 import { useBlocksuiteFrameBridge } from "./useBlocksuiteFrameBridge";
 import { useBlocksuiteFrameInit } from "./useBlocksuiteFrameInit";
 import { useBlocksuiteFrameThemeSync } from "./useBlocksuiteFrameThemeSync";
 import { useBlocksuiteMentionProfilePopover } from "./useBlocksuiteMentionProfilePopover";
+
+function applyMountedIframePresentation(iframe: HTMLIFrameElement, iframeClassName: string) {
+  iframe.title = "blocksuite-editor";
+  iframe.allow = "clipboard-read; clipboard-write; fullscreen";
+  iframe.allowFullscreen = true;
+  iframe.className = iframeClassName;
+  iframe.style.position = "";
+  iframe.style.width = "";
+  iframe.style.height = "";
+  iframe.style.opacity = "";
+  iframe.style.pointerEvents = "";
+  iframe.style.visibility = "";
+  iframe.style.backgroundColor = "transparent";
+}
 
 /**
  * 宿主侧的 Blocksuite iframe host。
@@ -23,6 +42,7 @@ function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEdito
     workspaceId,
     spaceId,
     docId,
+    instanceId: providedInstanceId,
     intentPrewarm = false,
     mode: forcedMode = "page",
     readOnly = false,
@@ -36,13 +56,13 @@ function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEdito
   } = props;
 
   const navigate = useNavigate();
-  const instanceId = useId();
+  const reactInstanceId = useId();
+  const instanceId = providedInstanceId ?? reactInstanceId;
+  const frameMountRef = useRef<HTMLDivElement | null>(null);
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
   const [frameMode, setFrameMode] = useState<DocMode>(forcedMode);
   const [isFrameReady, setIsFrameReady] = useState(false);
   const [hasFrameReadyOnce, setHasFrameReadyOnce] = useState(false);
-
-  void intentPrewarm;
 
   // 埋点：打开编辑器时触发，记录 workspaceId、docId 以分析打开速度表现
   useEffect(() => {
@@ -101,11 +121,22 @@ function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEdito
     handleMentionClickMessage: mention.handleMentionClickMessage,
     handleMentionHoverMessage: mention.handleMentionHoverMessage,
   });
+  const flushFrameSync = bridge.flushFrameSync;
+  const iframeClassNameRef = useRef(frameInit.iframeClassName);
+  const flushFrameSyncRef = useRef(flushFrameSync);
+
+  useEffect(() => {
+    iframeClassNameRef.current = frameInit.iframeClassName;
+  }, [frameInit.iframeClassName]);
+
+  useEffect(() => {
+    flushFrameSyncRef.current = flushFrameSync;
+  }, [flushFrameSync]);
 
   // 主题同步
   useBlocksuiteFrameThemeSync({
     iframeRef,
-    flushFrameSync: bridge.flushFrameSync,
+    flushFrameSync,
   });
 
   // 当进入 edgeless 全屏模式时，禁止宿主页面滚动以避免滚动穿透
@@ -134,6 +165,63 @@ function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEdito
     }
   }, [isFrameReady]);
 
+  useEffect(() => {
+    if (!intentPrewarm) {
+      return;
+    }
+    void ensurePrewarmedBlocksuiteFrame();
+  }, [intentPrewarm]);
+
+  useEffect(() => {
+    const mountNode = frameMountRef.current;
+    if (!mountNode || typeof document === "undefined") {
+      return;
+    }
+
+    let mountedIframe = takePrewarmedBlocksuiteFrame();
+    const isWarmFrame = Boolean(mountedIframe);
+    if (!mountedIframe) {
+      mountedIframe = document.createElement("iframe");
+      mountedIframe.src = frameInit.src;
+    }
+
+    const iframe = mountedIframe;
+    const handleLoad = () => {
+      flushFrameSyncRef.current(isWarmFrame ? "warm-frame-load" : "iframe-load");
+    };
+
+    iframe.addEventListener("load", handleLoad);
+    applyMountedIframePresentation(iframe, iframeClassNameRef.current);
+    mountNode.append(iframe);
+    iframeRef.current = iframe;
+
+    if (isWarmFrame) {
+      flushFrameSyncRef.current("warm-frame-claim");
+    }
+
+    return () => {
+      iframe.removeEventListener("load", handleLoad);
+      if (iframeRef.current === iframe) {
+        iframeRef.current = null;
+      }
+
+      if (isWarmFrame) {
+        releasePrewarmedBlocksuiteFrame(iframe);
+        return;
+      }
+
+      iframe.remove();
+    };
+  }, [frameInit.src]);
+
+  useEffect(() => {
+    const iframe = iframeRef.current;
+    if (!iframe) {
+      return;
+    }
+    applyMountedIframePresentation(iframe, frameInit.iframeClassName);
+  }, [frameInit.iframeClassName]);
+
   return (
     <div className={frameInit.wrapperClassName}>
       <BlocksuiteFrameSkeleton
@@ -157,19 +245,7 @@ function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEdito
         }}
       />
       {/* Frame 页面需要脚本执行和同源访问；安全 sandbox 组合会直接破坏鉴权、本地存储与运行时。 */}
-      {/* eslint-disable-next-line react-dom/no-missing-iframe-sandbox */}
-      <iframe
-        ref={iframeRef}
-        src={frameInit.src}
-        title="blocksuite-editor"
-        className={frameInit.iframeClassName}
-        allow="clipboard-read; clipboard-write; fullscreen"
-        allowFullScreen
-        style={{ backgroundColor: "transparent" }}
-        onLoad={() => {
-          bridge.flushFrameSync("iframe-load");
-        }}
-      />
+      <div ref={frameMountRef} className="contents" />
     </div>
   );
 }

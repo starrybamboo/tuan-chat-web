@@ -1,6 +1,5 @@
 import type { MouseEvent } from "react";
 import type { ChatMessageResponse, Message } from "../../../../api";
-import type { ThreadHintMeta } from "@/components/chat/hooks/useChatFrameMessages";
 import React, { useCallback } from "react";
 
 import ChatFrameMessageItem from "@/components/chat/chatFrameMessageItem";
@@ -12,13 +11,11 @@ interface UseChatFrameMessageRendererParams {
   baseDraggable: boolean;
   canJumpToWebGAL: boolean;
   isMessageMovable?: (message: Message) => boolean;
-  threadHintMetaByMessageId: Map<number, ThreadHintMeta>;
   onExecuteCommandRequest?: (payload: {
     command: string;
     threadId?: number;
     requestMessageId: number;
   }) => void;
-  onOpenThread?: (threadRootMessageId: number) => void;
   onEditWebgalChoose?: (messageId: number) => void;
   onMessageClick: (event: MouseEvent<HTMLElement>, messageId: number) => void;
   onToggleSelection?: (messageId: number) => void;
@@ -37,9 +34,7 @@ export default function useChatFrameMessageRenderer({
   baseDraggable,
   canJumpToWebGAL,
   isMessageMovable,
-  threadHintMetaByMessageId,
   onExecuteCommandRequest,
-  onOpenThread,
   onEditWebgalChoose,
   onMessageClick,
   onToggleSelection,
@@ -55,7 +50,6 @@ export default function useChatFrameMessageRenderer({
     const isSelected = selectedMessageIds.has(messageId);
     const movable = baseDraggable && (!isMessageMovable || isMessageMovable(chatMessageResponse.message));
     const indexInHistoryMessages = virtuosoIndexToMessageIndex(index);
-    const threadHintMeta = threadHintMetaByMessageId.get(messageId);
 
     return (
       <ChatFrameMessageItem
@@ -66,9 +60,7 @@ export default function useChatFrameMessageRenderer({
         canJumpToWebGAL={canJumpToWebGAL}
         movable={movable}
         isSelecting={isSelecting}
-        threadHintMeta={threadHintMeta}
         onExecuteCommandRequest={onExecuteCommandRequest}
-        onOpenThread={onOpenThread}
         onEditWebgalChoose={onEditWebgalChoose}
         onToggleSelection={onToggleSelection}
         onMessageClick={event => onMessageClick(event, messageId)}
@@ -92,11 +84,9 @@ export default function useChatFrameMessageRenderer({
     onDrop,
     onEditWebgalChoose,
     onExecuteCommandRequest,
-    onOpenThread,
     onMessageClick,
     onToggleSelection,
     selectedMessageIds,
-    threadHintMetaByMessageId,
     virtuosoIndexToMessageIndex,
   ]);
 }

@@ -1,11 +1,12 @@
 import type { ChatMessageResponse } from "../../../../../api";
 
 import { FileTextIcon } from "@phosphor-icons/react";
-import React, { use, useEffect, useMemo, useState } from "react";
+import React, { use, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import toast from "react-hot-toast";
 
 import { RoomContext } from "@/components/chat/core/roomContext";
 import { parseDescriptionDocId } from "@/components/chat/infra/blocksuite/description/descriptionDocId";
+import { prewarmRemoteSnapshot } from "@/components/chat/infra/blocksuite/description/descriptionDocRemote";
 import { readBlocksuiteDocHeader, subscribeBlocksuiteDocHeader } from "@/components/chat/infra/blocksuite/document/docHeader";
 import { recordDocCardShareObservation } from "@/components/chat/infra/blocksuite/shared/docCardShareObservability";
 import BlocksuiteDescriptionEditor from "@/components/chat/shared/components/BlockSuite/blocksuiteDescriptionEditor";
@@ -67,6 +68,68 @@ function DocCardMessageImpl({ messageResponse }: { messageResponse: ChatMessageR
   });
   const [isOpen, setIsOpen] = useState(false);
   const isMobile = useIsMobile();
+  const prewarmedDocKeyRef = useRef("");
+  const prewarmInFlightDocKeyRef = useRef("");
+  const docRemoteKey = useMemo(() => parseDescriptionDocId(docId), [docId]);
+  const prewarmDocKey = docRemoteKey ? `${docRemoteKey.entityType}:${docRemoteKey.entityId}:${docRemoteKey.docType}` : "";
+
+  const requestSnapshotPrewarm = useCallback((reason: "mount" | "hover" | "focus") => {
+    if (!docRemoteKey || !prewarmDocKey) {
+      return;
+    }
+    if (prewarmedDocKeyRef.current === prewarmDocKey) {
+      return;
+    }
+    if (prewarmInFlightDocKeyRef.current === prewarmDocKey) {
+      return;
+    }
+    prewarmInFlightDocKeyRef.current = prewarmDocKey;
+    recordDocCardShareObservation("preview-snapshot-prewarm-start", {
+      docId,
+      messageId: message.messageId,
+      reason,
+      entityType: docRemoteKey.entityType,
+      entityId: docRemoteKey.entityId,
+      docType: docRemoteKey.docType,
+    });
+    void prewarmRemoteSnapshot(docRemoteKey).then((warmed) => {
+      if (prewarmInFlightDocKeyRef.current === prewarmDocKey) {
+        prewarmInFlightDocKeyRef.current = "";
+      }
+      if (!warmed) {
+        return;
+      }
+      prewarmedDocKeyRef.current = prewarmDocKey;
+      recordDocCardShareObservation("preview-snapshot-prewarm-success", {
+        docId,
+        messageId: message.messageId,
+        reason,
+        entityType: docRemoteKey.entityType,
+        entityId: docRemoteKey.entityId,
+        docType: docRemoteKey.docType,
+      });
+    });
+  }, [docId, docRemoteKey, message.messageId, prewarmDocKey]);
+
+  useEffect(() => {
+    if (!prewarmDocKey) {
+      prewarmedDocKeyRef.current = "";
+      prewarmInFlightDocKeyRef.current = "";
+    }
+  }, [prewarmDocKey]);
+
+  useEffect(() => {
+    if (!prewarmDocKey) {
+      return;
+    }
+    const timeoutId = setTimeout(() => {
+      requestSnapshotPrewarm("mount");
+    }, 0);
+
+    return () => {
+      clearTimeout(timeoutId);
+    };
+  }, [prewarmDocKey, requestSnapshotPrewarm]);
 
   useEffect(() => {
     if (!docId || !isSupportedDocId)
@@ -190,6 +253,12 @@ function DocCardMessageImpl({ messageResponse }: { messageResponse: ChatMessageR
             isDisabled ? "opacity-70 cursor-not-allowed" : ""
           }`}
           onClick={openPreview}
+          onMouseEnter={() => {
+            requestSnapshotPrewarm("hover");
+          }}
+          onFocus={() => {
+            requestSnapshotPrewarm("focus");
+          }}
           draggable={!isDisabled}
           onDragStart={(e) => {
             if (isDisabled || !payload)

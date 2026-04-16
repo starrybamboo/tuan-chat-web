@@ -1,0 +1,22 @@
+export const MESSAGE_TYPE = {
+  TEXT: 1,
+  IMG: 2,
+  FILE: 3,
+  SYSTEM: 4,
+  FORWARD: 5,
+  DICE: 6,
+  SOUND: 7,
+  EFFECT: 8,
+  INTRO_TEXT: 9,
+  COMMAND_REQUEST: 12,
+  WEBGAL_CHOOSE: 13,
+  VIDEO: 14,
+  STATE_EVENT: 15,
+  CLUE_CARD: 1000,
+  DOC_CARD: 1002,
+  ROOM_JUMP: 1003,
+  READ_LINE: 10000,
+  THREAD_ROOT: 10001,
+} as const;
+
+export type MessageTypeValue = typeof MESSAGE_TYPE[keyof typeof MESSAGE_TYPE];

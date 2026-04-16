@@ -189,7 +189,7 @@ export default function ChatPageSubWindow({
   tab,
   roomId,
   docId,
-  threadRootMessageId,
+  threadRootMessageId: _threadRootMessageId,
   materialPackageId,
   materialPathKey,
   setIsOpen,
@@ -197,7 +197,7 @@ export default function ChatPageSubWindow({
   setTab,
   setRoomId,
   setDocId,
-  setThreadRootMessageId,
+  setThreadRootMessageId: _setThreadRootMessageId,
   setMaterialSelection,
 }: ChatPageSubWindowProps) {
   const isDesktop = screenSize !== "sm";
@@ -504,41 +504,12 @@ export default function ChatPageSubWindow({
                       spaceId={activeSpaceId}
                       hideSecondaryPanels
                       onCloseSubWindow={() => setIsOpen(false)}
-                      onOpenThread={(rootId) => {
-                        setRoomId(resolvedRoomId);
-                        setThreadRootMessageId(rootId);
-                      }}
                     />
                   </React.Suspense>
                 )
               : (
                   <div className="h-full flex items-center justify-center text-sm text-base-content/60">
                     当前空间没有可用房间
-                  </div>
-                )
-          )}
-
-          {tab === "thread" && (
-            (resolvedRoomId && threadRootMessageId)
-              ? (
-                  <React.Suspense fallback={<SubWindowLoadingFallback text="正在加载讨论串..." />}>
-                    <LazyRoomWindow
-                      roomId={resolvedRoomId}
-                      spaceId={activeSpaceId}
-                      hideSecondaryPanels
-                      messageScope="thread"
-                      threadRootMessageId={threadRootMessageId}
-                      onCloseSubWindow={() => setIsOpen(false)}
-                      onOpenThread={(rootId) => {
-                        setRoomId(resolvedRoomId);
-                        setThreadRootMessageId(rootId);
-                      }}
-                    />
-                  </React.Suspense>
-                )
-              : (
-                  <div className="h-full flex items-center justify-center text-sm text-base-content/60">
-                    点击子区后在右侧打开消息
                   </div>
                 )
           )}

@@ -3,18 +3,11 @@ import { useEffect, useMemo, useRef } from "react";
 import type { UseChatHistoryReturn } from "@/components/chat/infra/indexedDB/useChatHistory";
 
 import { filterVisibleChatMessages } from "@/components/chat/utils/hiddenDiceVisibility";
-import { getThreadRootExtra } from "@/types/messageExtra";
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
 
 import type { ChatMessageResponse } from "../../../../api";
 
 import { tuanchat } from "../../../../api/instance";
-
-export type ThreadHintMeta = {
-  rootId: number;
-  title: string;
-  replyCount: number;
-};
 
 export type ChatFrameMessageScope = "main" | "thread";
 
@@ -32,7 +25,6 @@ type UseChatFrameMessagesParams = {
 
 type UseChatFrameMessagesResult = {
   historyMessages: ChatMessageResponse[];
-  threadHintMetaByMessageId: Map<number, ThreadHintMeta>;
 };
 
 export default function useChatFrameMessages({
@@ -222,54 +214,7 @@ export default function useChatFrameMessages({
     });
   }, [chatHistory?.messages, currentMemberType, currentUserId, messageScope, messagesOverride, threadRootMessageId]);
 
-  const threadHintMetaByMessageId = useMemo(() => {
-    // key: parentMessageId（被创建子区的那条原消息）
-    const metaMap = new Map<number, ThreadHintMeta>();
-    const all = filterVisibleChatMessages(chatHistory?.messages ?? [], {
-      currentUserId,
-      memberType: currentMemberType,
-    });
-    if (all.length === 0) {
-      return metaMap;
-    }
-
-    // rootId -> replyCount
-    const replyCountByRootId = new Map<number, number>();
-    for (const item of all) {
-      const { threadId, messageId } = item.message;
-      if (threadId && threadId !== messageId) {
-        replyCountByRootId.set(threadId, (replyCountByRootId.get(threadId) ?? 0) + 1);
-      }
-    }
-
-    // parentMessageId -> latest root
-    for (const item of all) {
-      const mm = item.message;
-      const isRoot = mm.messageType === MESSAGE_TYPE.THREAD_ROOT && mm.threadId === mm.messageId;
-      const parentId = mm.replyMessageId;
-      if (!isRoot || !parentId) {
-        continue;
-      }
-
-      const title = getThreadRootExtra(mm.extra)?.title || mm.content;
-      const next: ThreadHintMeta = {
-        rootId: mm.messageId,
-        title,
-        replyCount: replyCountByRootId.get(mm.messageId) ?? 0,
-      };
-
-      const prev = metaMap.get(parentId);
-      // 极端情况下可能存在多个 root：取 messageId 更新的那条
-      if (!prev || next.rootId > prev.rootId) {
-        metaMap.set(parentId, next);
-      }
-    }
-
-    return metaMap;
-  }, [chatHistory?.messages, currentMemberType, currentUserId]);
-
   return {
     historyMessages,
-    threadHintMetaByMessageId,
   };
 }

@@ -20,7 +20,6 @@ interface ChatSpaceSidebarProps {
   onOpenPrivate: () => void;
   onSelectSpace: (spaceId: number) => void;
   onCreateSpace: () => void;
-  onSpaceContextMenu: (e: React.MouseEvent) => void;
   onToggleLeftDrawer?: () => void;
   isLeftDrawerOpen?: boolean;
 }
@@ -37,7 +36,6 @@ export default function ChatSpaceSidebar({
   onOpenPrivate,
   onSelectSpace,
   onCreateSpace,
-  onSpaceContextMenu,
   onToggleLeftDrawer,
   isLeftDrawerOpen,
 }: ChatSpaceSidebarProps) {
@@ -173,7 +171,7 @@ export default function ChatSpaceSidebar({
       {/* 分隔线 */}
       <div className="w-8 h-px bg-base-300 mx-3"></div>
 
-      <div className="hidden-scrollbar overflow-x-visible flex flex-col py-2 px-2" onContextMenu={onSpaceContextMenu}>
+      <div className="hidden-scrollbar overflow-x-visible flex flex-col py-2 px-2">
         {/* 全部空间列表 */}
         {renderSpaces.map(space => (
           <div

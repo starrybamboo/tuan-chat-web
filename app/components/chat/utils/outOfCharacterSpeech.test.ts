@@ -47,9 +47,13 @@ describe("buildOutOfCharacterSpeechContent", () => {
     expect(buildOutOfCharacterSpeechContent("（场外发言）")).toBe("（（场外发言））");
   });
 
-  it("空白内容不生成场外发言", () => {
+  it("纯空白内容会按原样包裹成场外发言", () => {
+    expect(buildOutOfCharacterSpeechContent("   ")).toBe("（   ）");
+    expect(buildOutOfCharacterSpeechContent("\n\t")).toBe("（\n\t）");
+  });
+
+  it("真正空内容不生成场外发言", () => {
     expect(buildOutOfCharacterSpeechContent("")).toBeNull();
-    expect(buildOutOfCharacterSpeechContent("   ")).toBeNull();
     expect(buildOutOfCharacterSpeechContent(undefined)).toBeNull();
     expect(buildOutOfCharacterSpeechContent(null)).toBeNull();
   });

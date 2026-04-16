@@ -61,7 +61,6 @@ interface ChatFrameProps {
     threadId?: number;
     requestMessageId: number;
   }) => void;
-  onOpenThread?: (threadRootMessageId: number) => void;
   spaceName?: string;
   roomName?: string;
   sendMessageWithInsert?: (message: ChatMessageRequest) => Promise<Message | null>;
@@ -80,7 +79,6 @@ function ChatFrame(props: ChatFrameProps) {
     onBackgroundUrlChange,
     onEffectChange,
     onExecuteCommandRequest,
-    onOpenThread,
     spaceName,
     roomName,
   } = props;
@@ -146,7 +144,7 @@ function ChatFrame(props: ChatFrameProps) {
     updateLastReadSyncId,
   } = useChatFrameWebSocket(roomId);
 
-  const { historyMessages, threadHintMetaByMessageId } = useChatFrameMessages({
+  const { historyMessages } = useChatFrameMessages({
     messagesOverride,
     messageScope,
     threadRootMessageId,
@@ -488,9 +486,7 @@ function ChatFrame(props: ChatFrameProps) {
     baseDraggable,
     canJumpToWebGAL,
     isMessageMovable,
-    threadHintMetaByMessageId,
     onExecuteCommandRequest,
-    onOpenThread,
     onEditWebgalChoose: openWebgalChooseEditor,
     onMessageClick: handleMessageClick,
     onToggleSelection: toggleMessageSelection,
@@ -578,7 +574,6 @@ function ChatFrame(props: ChatFrameProps) {
         onOpenAnnotations: handleOpenAnnotations,
         onInsertAfter: setInsertAfterMessageId,
         onToggleNarrator: handleToggleNarrator,
-        onOpenThread,
       }}
     />
   );

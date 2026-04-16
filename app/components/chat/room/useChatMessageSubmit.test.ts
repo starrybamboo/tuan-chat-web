@@ -258,6 +258,85 @@ describe("useChatMessageSubmit", () => {
     expect(useChatInputUiStore.getState().plainText).toBe("普通消息");
   });
 
+  it("真正空字符串且无附件时会直接提示不能为空", async () => {
+    useChatInputUiStore.setState({
+      plainText: "",
+      textWithoutMentions: "",
+      mentionedRoles: [],
+    });
+
+    const roomUiStoreApi = createRoomUiStore();
+    const setInputText = createSetInputTextMock();
+    const setIsSubmitting = vi.fn();
+    const sendMessageWithInsert = vi.fn(async () => createMessage(31));
+
+    const { handleMessageSubmit } = useChatMessageSubmit({
+      roomId: 1,
+      spaceId: 2,
+      isSpaceOwner: false,
+      curRoleId: 3,
+      notMember: false,
+      noRole: false,
+      isSubmitting: false,
+      setIsSubmitting,
+      sendMessageWithInsert,
+      sendMessageBatch: vi.fn(async () => []),
+      ensureRuntimeAvatarIdForRole: vi.fn(async () => 7),
+      commandExecutor: vi.fn(),
+      containsCommandRequestAllToken: vi.fn(() => false),
+      stripCommandRequestAllToken: vi.fn((text: string) => text),
+      extractFirstCommandText: vi.fn(() => null),
+      setInputText,
+      roomUiStoreApi,
+    });
+
+    await handleMessageSubmit();
+
+    expect(mocks.toastErrorMock).toHaveBeenCalledWith("消息不能为无");
+    expect(setIsSubmitting).not.toHaveBeenCalled();
+    expect(setInputText).not.toHaveBeenCalled();
+    expect(mocks.buildMessageDraftsFromComposerSnapshotMock).not.toHaveBeenCalled();
+    expect(sendMessageWithInsert).not.toHaveBeenCalled();
+  });
+
+  it("纯空白输入会把原始空白交给草稿构建器", async () => {
+    useChatInputUiStore.setState({
+      plainText: " \n\t ",
+      textWithoutMentions: " \n\t ",
+      mentionedRoles: [],
+    });
+
+    const roomUiStoreApi = createRoomUiStore();
+    const setInputText = createSetInputTextMock();
+
+    const { handleMessageSubmit } = useChatMessageSubmit({
+      roomId: 1,
+      spaceId: 2,
+      isSpaceOwner: false,
+      curRoleId: 3,
+      notMember: false,
+      noRole: false,
+      isSubmitting: false,
+      setIsSubmitting: vi.fn(),
+      sendMessageWithInsert: vi.fn(async () => createMessage(32)),
+      sendMessageBatch: vi.fn(async () => []),
+      ensureRuntimeAvatarIdForRole: vi.fn(async () => 7),
+      commandExecutor: vi.fn(),
+      containsCommandRequestAllToken: vi.fn(() => false),
+      stripCommandRequestAllToken: vi.fn((text: string) => text),
+      extractFirstCommandText: vi.fn(() => null),
+      setInputText,
+      roomUiStoreApi,
+    });
+
+    await handleMessageSubmit();
+
+    expect(mocks.buildMessageDraftsFromComposerSnapshotMock).toHaveBeenCalledWith(expect.objectContaining({
+      inputText: " \n\t ",
+      allowEmptyTextMessage: false,
+    }));
+  });
+
   it("首发带 BGM annotation 的音频消息会直接触发自动播放，即使回包未回显 annotation", async () => {
     mocks.buildMessageDraftsFromComposerSnapshotMock.mockResolvedValue([
       {
@@ -280,6 +359,9 @@ describe("useChatMessageSubmit", () => {
       plainText: "",
       textWithoutMentions: "",
       mentionedRoles: [],
+    });
+    useChatComposerStore.setState({
+      audioFile: new File(["audio"], "bgm.mp3", { type: "audio/mpeg" }),
     });
 
     const roomUiStoreApi = createRoomUiStore();

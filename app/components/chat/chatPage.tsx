@@ -29,6 +29,7 @@ import useSpaceDocMetaSync from "@/components/chat/hooks/useSpaceDocMetaSync";
 import useSpaceSidebarTreeActions from "@/components/chat/hooks/useSpaceSidebarTreeActions";
 import useTutorialOnboarding from "@/components/chat/hooks/useTutorialOnboarding";
 import { parseSpaceDocId } from "@/components/chat/infra/blocksuite/space/spaceDocId";
+import { useBlocksuiteFramePrewarm } from "@/components/chat/infra/blocksuite/useBlocksuiteFramePrewarm";
 import { extractDocMetasFromSidebarTree } from "@/components/chat/room/sidebarTree";
 import { useDocHeaderOverrideStore } from "@/components/chat/stores/docHeaderOverrideStore";
 import { useDrawerPreferenceStore } from "@/components/chat/stores/drawerPreferenceStore";
@@ -64,6 +65,9 @@ export default function ChatPage() {
     isSpaceDetailRoute,
     navigate,
   } = useChatPageRoute();
+  useBlocksuiteFramePrewarm({
+    enabled: !isPrivateChatMode,
+  });
   const [searchParam] = useSearchParams();
   const screenSize = useScreenSize();
   const {
@@ -585,7 +589,6 @@ export default function ChatPage() {
     contextMenu,
     spaceContextMenu,
     handleContextMenu,
-    handleSpaceContextMenu,
     closeContextMenu,
     closeSpaceContextMenu,
   } = useChatPageContextMenus();
@@ -623,12 +626,6 @@ export default function ChatPage() {
     spaceMembers,
   });
 
-  const handleOpenThreadInSubWindow = useCallback((roomId: number, threadRootMessageId: number) => {
-    setSubWindowRoomId(roomId);
-    setSubWindowThreadRootMessageId(threadRootMessageId);
-    setIsSubWindowOpen(true);
-  }, [setIsSubWindowOpen, setSubWindowRoomId, setSubWindowThreadRootMessageId]);
-
   const layoutContextValue = useMemo(() => {
     return {
       isPrivateChatMode,
@@ -645,7 +642,6 @@ export default function ChatPage() {
       isKPInSpace,
       activeDocTitleForTcHeader,
       onDocTcHeaderChange: handleDocTcHeaderChange,
-      onOpenThreadInSubWindow: handleOpenThreadInSubWindow,
     };
   }, [
     activeDocId,
@@ -655,7 +651,6 @@ export default function ChatPage() {
     closeRoomSettingPage,
     closeSpaceDetailPanel,
     handleDocTcHeaderChange,
-    handleOpenThreadInSubWindow,
     isKPInSpace,
     isPrivateChatMode,
     isSpaceDetailRoute,
@@ -713,7 +708,6 @@ export default function ChatPage() {
     isLeftDrawerOpen: isOpenLeftDrawer,
     onSelectSpace: setActiveSpaceId,
     onCreateSpace: openSpaceHandle,
-    onSpaceContextMenu: handleSpaceContextMenu,
   };
   const leftDrawerToggleLabel = isOpenLeftDrawer ? "收起侧边栏" : "展开侧边栏";
   const hasMainContentDrawerToggle = isPrivateChatMode

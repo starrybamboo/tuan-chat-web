@@ -123,7 +123,6 @@ export default function DiscoverPage(props: DiscoverPageProps) {
   });
   const {
     spaceContextMenu,
-    handleSpaceContextMenu,
     closeSpaceContextMenu,
   } = useChatPageContextMenus();
   const { isSpaceContextArchived, isSpaceContextOwner } = useChatPageSpaceContextMenu({
@@ -203,7 +202,6 @@ export default function DiscoverPage(props: DiscoverPageProps) {
               onOpenPrivate={handleOpenPrivate}
               onSelectSpace={setActiveSpaceId}
               onCreateSpace={handleCreateSpace}
-              onSpaceContextMenu={handleSpaceContextMenu}
               onToggleLeftDrawer={toggleLeftDrawer}
               isLeftDrawerOpen={isOpenLeftDrawer}
             />

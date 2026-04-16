@@ -33,7 +33,6 @@ function ChatPageChatContent() {
     setIsOpenLeftDrawer,
     activeSpaceId,
     targetMessageId,
-    onOpenThreadInSubWindow,
   } = useChatPageLayoutContext();
   const [searchParams] = useSearchParams();
   const previewParam = searchParams.get("preview");
@@ -76,7 +75,6 @@ function ChatPageChatContent() {
         spaceId={activeSpaceId ?? -1}
         targetMessageId={targetMessageId}
         viewMode={isPreviewMode}
-        onOpenThread={activeRoomId ? threadRootMessageId => onOpenThreadInSubWindow(activeRoomId, threadRootMessageId) : undefined}
       />
     </React.Suspense>
   );

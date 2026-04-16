@@ -5,8 +5,12 @@
     "tsBuildInfoFile": "node_modules/.cache/tsc/typecheck.tsbuildinfo",
     "paths": {
       "@/*": ["./app/*"],
+      "@tuanchat/domain": ["./packages/tuanchat-domain/src/index.ts"],
+      "@tuanchat/domain/*": ["./packages/tuanchat-domain/src/*"],
       "@tuanchat/openapi-client": ["./packages/tuanchat-openapi-client/src/index.ts"],
       "@tuanchat/openapi-client/*": ["./packages/tuanchat-openapi-client/src/*"],
+      "@tuanchat/query": ["./packages/tuanchat-query/src/index.ts"],
+      "@tuanchat/query/*": ["./packages/tuanchat-query/src/*"],
 
       "@blocksuite/affine-widget-linked-doc": ["./node_modules/@blocksuite/affine-widget-linked-doc/dist/index.d.ts"],
       "@blocksuite/affine-widget-linked-doc/*": ["./node_modules/@blocksuite/affine-widget-linked-doc/dist/*"],

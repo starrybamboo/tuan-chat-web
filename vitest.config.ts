@@ -13,6 +13,14 @@ export default defineConfig({
         replacement: path.resolve(__dirname, "./packages/tuanchat-openapi-client/src/$1"),
       },
       {
+        find: /^@tuanchat\/query$/,
+        replacement: path.resolve(__dirname, "./packages/tuanchat-query/src/index.ts"),
+      },
+      {
+        find: /^@tuanchat\/query\/(.*)$/,
+        replacement: path.resolve(__dirname, "./packages/tuanchat-query/src/$1"),
+      },
+      {
         find: /^@\//,
         replacement: `${path.resolve(__dirname, "./app")}/`,
       },

@@ -9,6 +9,7 @@ import ConfirmModal from "@/components/common/comfirmModel";
 import { useGlobalContext } from "@/components/globalContextProvider";
 import CharacterDetail from "@/components/Role/CharacterDetail";
 import { getRoleRule, setRoleRule } from "@/utils/roleRuleStorage";
+import { resolveRoleRuleSelection, shouldPersistRoleRuleSelection } from "@/utils/roleRuleSelection";
 import { useDeleteRole1Mutation } from "../../../api/hooks/chatQueryHooks";
 import { useGetRoleQuery, useGetUserRolesQuery } from "../../../api/hooks/RoleAndAvatarHooks";
 
@@ -56,6 +57,7 @@ export function RoleDetailPagePopup({
   const isRoleMissing = !isRoleLoading && !fetchedRole;
 
   const [role, setRole] = useState<Role | null>(null);
+  const storedRuleId = useMemo(() => getRoleRule(roleId), [roleId]);
 
   useEffect(() => {
     if (!fetchedRole)
@@ -64,18 +66,27 @@ export function RoleDetailPagePopup({
   }, [fetchedRole, roleId]);
 
   const [selectedRuleId, setSelectedRuleId] = useState<number>(() => {
-    const stored = getRoleRule(roleId);
-    return stored || (ruleIdFromSpace > 0 ? ruleIdFromSpace : 1);
+    return resolveRoleRuleSelection({
+      spaceRuleId: ruleIdFromSpace,
+      storedRuleId,
+    });
   });
 
   useEffect(() => {
-    if (selectedRuleId > 0)
+    const nextRuleId = resolveRoleRuleSelection({
+      spaceRuleId: ruleIdFromSpace,
+      storedRuleId,
+    });
+    setSelectedRuleId(prev => (prev === nextRuleId ? prev : nextRuleId));
+  }, [ruleIdFromSpace, storedRuleId]);
+
+  useEffect(() => {
+    if (selectedRuleId > 0 && shouldPersistRoleRuleSelection(ruleIdFromSpace))
       setRoleRule(roleId, selectedRuleId);
-  }, [roleId, selectedRuleId]);
+  }, [roleId, ruleIdFromSpace, selectedRuleId]);
 
   const handleRuleChange = (newRuleId: number) => {
     setSelectedRuleId(newRuleId);
-    setRoleRule(roleId, newRuleId);
   };
 
   const handleSave = (updatedRole: Role) => {

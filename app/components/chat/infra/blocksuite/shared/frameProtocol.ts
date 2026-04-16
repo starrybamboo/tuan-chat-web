@@ -19,6 +19,8 @@ export type BlocksuiteFrameSyncParams = {
   tcHeader: boolean;
   tcHeaderTitle?: string;
   tcHeaderImageUrl?: string;
+  editorInstanceId?: string | null;
+  prewarmOnly?: boolean;
 };
 
 export type BlocksuiteHostToFramePayload

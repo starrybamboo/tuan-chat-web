@@ -81,7 +81,7 @@ export interface RoomContextType {
   rerenderHistoryInWebGAL?: (messages?: ChatMessageResponse[]) => Promise<boolean>;
 
   /**
-   * 发送消息（带乐观插入），供消息项上的“创建子区”等入口复用。
+   * 发送消息（带乐观插入），供消息项上的快捷发送入口复用。
    */
   sendMessageWithInsert?: (message: ChatMessageRequest) => Promise<Message | null>;
 }
