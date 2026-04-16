@@ -178,7 +178,7 @@ export default function AiImagePage() {
                 </div>
                 <button
                   type="button"
-                  className="group flex w-3 shrink-0 cursor-col-resize items-stretch justify-center bg-base-200 px-0 touch-none"
+                  className="group flex w-2 shrink-0 cursor-col-resize items-stretch justify-center bg-base-200 px-0 touch-none"
                   aria-label="拖拽调整 AI 生图侧边栏宽度"
                   title="拖拽调整 AI 生图侧边栏宽度"
                   onMouseDown={handleSidebarResizeStart}
