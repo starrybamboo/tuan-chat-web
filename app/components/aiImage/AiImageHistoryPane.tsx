@@ -1,5 +1,6 @@
 import type { DragEvent, MouseEvent } from "react";
 import { CaretRightIcon } from "@phosphor-icons/react";
+import { useState } from "react";
 
 import type {
   CurrentResultCard,
@@ -79,20 +80,59 @@ function HistoryDeleteButton({
 
 function HistoryHint() {
   const hintText = "单击预览，Ctrl/Cmd+单击导入设置，Shift+单击导入 seed，Ctrl/Cmd+Shift+单击导入设置与 seed。";
+  const [tooltipState, setTooltipState] = useState<{ x: number; y: number; visible: boolean }>({
+    x: 0,
+    y: 0,
+    visible: false,
+  });
+
+  const showTooltipAtPointer = (event: MouseEvent<HTMLButtonElement>) => {
+    setTooltipState({
+      x: event.clientX,
+      y: event.clientY,
+      visible: true,
+    });
+  };
+
+  const showTooltipAtButton = (event: React.FocusEvent<HTMLButtonElement>) => {
+    const rect = event.currentTarget.getBoundingClientRect();
+    setTooltipState({
+      x: rect.left,
+      y: rect.bottom,
+      visible: true,
+    });
+  };
+
   return (
-    <div className="group relative flex items-center">
+    <div className="flex items-center">
       <button
         type="button"
         className="flex size-5 cursor-help items-center justify-center rounded-full bg-transparent text-base-content/42 transition hover:text-base-content/72 focus:outline-none"
         aria-label={hintText}
+        onBlur={() => setTooltipState(prev => ({ ...prev, visible: false }))}
+        onFocus={showTooltipAtButton}
+        onMouseEnter={showTooltipAtPointer}
+        onMouseLeave={() => setTooltipState(prev => ({ ...prev, visible: false }))}
+        onMouseMove={showTooltipAtPointer}
       >
         <span className="flex size-4 items-center justify-center rounded-full border border-base-content/28 text-[10px] font-semibold leading-none text-current">
           ?
         </span>
       </button>
-      <div className="pointer-events-none absolute left-0 top-full z-20 mt-2 hidden w-32 rounded-xl border border-base-300 bg-base-100 px-3 py-2 text-[11px] leading-5 text-base-content/72 shadow-xl group-hover:block group-focus-within:block">
-        {hintText}
-      </div>
+      {tooltipState.visible
+        ? (
+            <div
+              className="pointer-events-none fixed z-30 max-w-[220px] rounded-xl border border-base-300 bg-base-100 px-3 py-2 text-[11px] leading-5 text-base-content/72 shadow-xl"
+              style={{
+                left: tooltipState.x,
+                top: tooltipState.y,
+                transform: "translate(calc(-100% - 10px), 10px)",
+              }}
+            >
+              {hintText}
+            </div>
+          )
+        : null}
     </div>
   );
 }
