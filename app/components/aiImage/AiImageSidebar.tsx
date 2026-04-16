@@ -231,7 +231,7 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                 <div className="flex flex-col gap-3">
                   <div className="join w-full">
                     <input
-                      className="input input-bordered join-item flex-1"
+                      className="input input-bordered join-item flex-1 border-base-300 bg-base-100 transition-colors hover:border-base-300 hover:bg-base-100 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
                       value={simpleText}
                       onChange={(e) => {
                         const next = e.target.value;
@@ -245,7 +245,7 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                           setIsSimpleTagEditorOpen(false);
                         }
                       }}
-                      placeholder="例如：A girl with silver hair in a rainy cyberpunk street, cinematic lighting"
+                      placeholder=""
                     />
                     <button
                       type="button"
