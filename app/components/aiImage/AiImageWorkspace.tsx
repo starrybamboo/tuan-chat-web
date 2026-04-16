@@ -27,7 +27,7 @@ export function AiImageWorkspace({
             <div className="absolute right-0 top-0 z-20">
               <button
                 type="button"
-                className="flex size-10 items-center justify-center rounded-lg border border-base-300 bg-base-100/95 text-base-content/72 shadow-md backdrop-blur transition hover:bg-base-200 hover:text-base-content"
+                className="flex size-10 items-center justify-center bg-transparent text-base-content/42 transition hover:text-base-content/72 focus:outline-none"
                 aria-label="展开历史记录侧边栏"
                 title="展开历史记录侧边栏"
                 onClick={() => setIsHistoryCollapsed(false)}
