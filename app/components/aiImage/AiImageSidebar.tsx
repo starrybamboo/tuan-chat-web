@@ -231,7 +231,7 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                 <div className="flex flex-col gap-3">
                   <div className="flex w-full flex-col items-start gap-2">
                     <textarea
-                      className="textarea textarea-bordered h-[80px] w-full max-w-[425px] resize-none border-[#D6DCE3] bg-base-100 transition-colors hover:border-primary hover:bg-base-100 active:border-primary active:ring-2 active:ring-primary/20 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 dark:border-[#2A3138] dark:hover:border-primary"
+                      className="textarea textarea-bordered h-[80px] w-full max-w-[425px] resize-none border-[#D6DCE3] bg-base-100 transition-colors duration-150 hover:border-primary/40 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 dark:border-[#2A3138] dark:hover:border-primary/40"
                       value={simpleText}
                       onChange={(e) => {
                         const next = e.target.value;
