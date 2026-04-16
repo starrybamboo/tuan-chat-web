@@ -114,9 +114,9 @@ export default function AiImagePage() {
     >
       <style>{`
         .ai-image-shell {
-          --color-primary: #6f5cff;
+          --color-primary: #2fb7a8;
           --color-primary-content: #ffffff;
-          --color-info: #8a73ff;
+          --color-info: #59cabc;
           --color-info-content: #ffffff;
         }
 
