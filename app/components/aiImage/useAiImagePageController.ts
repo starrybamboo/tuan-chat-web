@@ -254,10 +254,6 @@ export function useAiImagePageController() {
   const [history, setHistory] = useState<AiImageHistoryRow[]>([]);
   const [isHistoryExpanded, setIsHistoryExpanded] = useState(false);
 
-  const showInfoToast = useCallback((message: string) => {
-    toast(message, { icon: "ℹ️" });
-  }, []);
-
   const showSuccessToast = useCallback((message: string) => {
     toast.success(message);
   }, []);
@@ -547,14 +543,11 @@ export function useAiImagePageController() {
       return;
     }
 
-    const importMethodLabel = args.source === "drop" ? "拖入" : args.source === "paste" ? "粘贴" : "";
     if ((args.imageCount ?? 1) > 1) {
-      showInfoToast(`${getNovelAiFreeOnlyMessage("无 metadata 的图片不再直接导入为 Base Img。")} 检测到 ${args.imageCount ?? 1} 张图片，当前只处理第 1 张${importMethodLabel ? ` ${importMethodLabel}` : ""}图片。`);
       return;
     }
 
-    showInfoToast(getNovelAiFreeOnlyMessage("无 metadata 的图片不再直接导入为 Base Img。"));
-  }, [showInfoToast]);
+  }, []);
 
   const handlePickSourceImage = useCallback(async (
     file: File,
@@ -693,10 +686,9 @@ export function useAiImagePageController() {
     if (!pendingMetadataImport)
       return;
 
-    showErrorToast(getNovelAiFreeOnlyMessage("Base Img、Vibe Transfer、Precise Reference 暂时全部禁用。"));
     setPendingMetadataImport(null);
     setMetadataImportSelection(DEFAULT_METADATA_IMPORT_SELECTION);
-  }, [pendingMetadataImport, showErrorToast]);
+  }, [pendingMetadataImport]);
 
   const handleConfirmMetadataImport = useCallback(() => {
     if (!pendingMetadataImport)
@@ -710,30 +702,10 @@ export function useAiImagePageController() {
     if (!hasAnySelection)
       return;
 
-    const sourceLabel = pendingMetadataImport.metadata.source === "stealth" ? "stealth metadata" : "PNG metadata";
-    const importMethodLabel = pendingMetadataImport.source === "drop" ? "拖入" : pendingMetadataImport.source === "paste" ? "粘贴" : "";
-    const multipleHint = pendingMetadataImport.imageCount > 1
-      ? ` 检测到 ${pendingMetadataImport.imageCount} 张图片，当前只处理了第 1 张${importMethodLabel}图片。`
-      : "";
-    const modelMismatch = pendingMetadataImport.metadata.settings.model && pendingMetadataImport.metadata.settings.model !== model
-      ? ` 图片内模型为 ${modelLabel(pendingMetadataImport.metadata.settings.model)}，当前页面仍固定使用 ${modelLabel(model)}。`
-      : "";
-    const selectedBlocks = [
-      metadataImportSelection.prompt ? "Prompt" : "",
-      metadataImportSelection.undesiredContent ? "Undesired Content" : "",
-      metadataImportSelection.characters ? (metadataImportSelection.appendCharacters ? "Characters(Append)" : "Characters") : "",
-      metadataImportSelection.settings ? "Settings" : "",
-      metadataImportSelection.seed ? "Seed" : "",
-    ].filter(Boolean).join(" / ");
-    const freeModeHint = metadataImportSelection.settings
-      ? " 已自动忽略会消耗 Anlas 的设置，并收口为免费单张 txt2img。"
-      : "";
-
     applyImportedMetadata(pendingMetadataImport.metadata.settings, metadataImportSelection);
-    showSuccessToast(`已导入 NovelAI ${sourceLabel}：${selectedBlocks}。${metadataImportSelection.cleanImports ? " 已按 Clean Imports 清理缺失导入项。" : ""}${freeModeHint}${modelMismatch}${multipleHint}`.trim());
     setPendingMetadataImport(null);
     setMetadataImportSelection(DEFAULT_METADATA_IMPORT_SELECTION);
-  }, [applyImportedMetadata, metadataImportSelection, model, pendingMetadataImport, showSuccessToast]);
+  }, [applyImportedMetadata, metadataImportSelection, pendingMetadataImport]);
 
   const handlePickVibeReferences = useCallback(async (files: FileList | File[]) => {
     void files;
@@ -1697,7 +1669,6 @@ export function useAiImagePageController() {
     vibeTransferDescription,
     vibeTransferReferences,
     width,
-    onShowBaseImageImportHint: () => showInfoToast(getNovelAiFreeOnlyMessage("Base Img / img2img 已禁用；仍可拖入带 metadata 的 NovelAI 图片并只导入设置。")),
   };
 
   const workspaceProps = {

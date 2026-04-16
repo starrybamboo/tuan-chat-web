@@ -153,7 +153,6 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
     vibeTransferDescription,
     vibeTransferReferences,
     width,
-    onShowBaseImageImportHint,
   } = sidebarProps;
 
   const sideCardClassName = "card border-x-0 border-b border-t-0 border-[#D6DCE3] bg-[#F3F5F7] shadow-none dark:border-[#2A3138] dark:bg-[#161A1F]";
@@ -478,7 +477,6 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                             <button
                               type="button"
                               className={`flex min-h-28 w-full items-center justify-center rounded-2xl border px-4 text-sm transition-colors ${isPageImageDragOver ? "border-primary bg-primary/10 text-primary" : "border-dashed border-base-300 bg-base-200/60 text-base-content/70 hover:border-primary hover:text-base-content"}`}
-                              onClick={onShowBaseImageImportHint}
                             >
                               {isPageImageDragOver ? "松开读取 metadata" : "拖入 / 粘贴 NovelAI 图片以导入设置"}
                             </button>
