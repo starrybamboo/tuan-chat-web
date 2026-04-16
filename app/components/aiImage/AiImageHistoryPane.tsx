@@ -21,6 +21,19 @@ interface HistoryDragPayload {
   batchIndex?: number;
 }
 
+interface HistoryImageTileProps {
+  active: boolean;
+  alt: string;
+  badge?: string;
+  dataUrl: string;
+  draggable?: boolean;
+  meta?: string;
+  onClick: (event: MouseEvent<HTMLButtonElement>) => void;
+  onDelete?: (event: MouseEvent<HTMLButtonElement>) => void;
+  onDragStart?: (event: DragEvent<HTMLButtonElement>) => void;
+  title: string;
+}
+
 interface AiImageHistoryPaneProps {
   isDirectorToolsOpen: boolean;
   onCollapse: () => void;
@@ -61,6 +74,56 @@ function HistoryDeleteButton({
     >
       <XMarkICon className="size-3.5" />
     </button>
+  );
+}
+
+function HistoryImageTile({
+  active,
+  alt,
+  badge,
+  dataUrl,
+  draggable = false,
+  meta,
+  onClick,
+  onDelete,
+  onDragStart,
+  title,
+}: HistoryImageTileProps) {
+  return (
+    <div className={`group relative overflow-hidden rounded-xl border bg-base-100 shadow-sm transition-colors ${active ? "border-primary shadow-[0_0_0_1px_rgba(99,102,241,0.35)]" : "border-base-300 hover:border-primary/45"}`}>
+      <button
+        type="button"
+        className="relative block aspect-square w-full cursor-grab overflow-hidden text-left active:cursor-grabbing"
+        draggable={draggable}
+        title={title}
+        onClick={onClick}
+        onDragStart={onDragStart}
+      >
+        <img src={dataUrl} className="h-full w-full object-cover transition duration-200 group-hover:scale-[1.02]" alt={alt} />
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 flex items-end justify-between gap-2 bg-gradient-to-t from-base-content/75 via-base-content/10 to-transparent px-2 py-2">
+          {badge
+            ? <span className="rounded-md bg-base-100/92 px-1.5 py-0.5 text-[10px] font-medium text-base-content shadow-sm">{badge}</span>
+            : <span />}
+          {meta
+            ? <span className="rounded-md bg-base-100/92 px-1.5 py-0.5 text-[10px] font-medium text-base-content shadow-sm">{meta}</span>
+            : null}
+        </div>
+      </button>
+
+      {onDelete
+        ? (
+            <button
+              type="button"
+              className="absolute right-1 top-1 flex size-7 items-center justify-center rounded-md bg-base-100/92 text-base-content/65 shadow-sm transition hover:bg-base-100 hover:text-error"
+              aria-label="删除绘画记录"
+              title="删除绘画记录"
+              onClick={onDelete}
+            >
+              <XMarkICon className="size-3.5" />
+            </button>
+          )
+        : null}
+    </div>
   );
 }
 
@@ -213,11 +276,11 @@ export function AiImageHistoryPane({
   }
 
   return (
-    <div className="min-h-0 w-[320px] shrink-0 overflow-hidden border-l border-base-300 bg-base-200 p-3">
+    <div className="min-h-0 w-[320px] shrink-0 overflow-hidden border-l border-base-300 bg-base-200/70 p-3">
       <div className="flex h-full flex-col">
-        <div className="mb-2 flex items-center gap-2">
-          <div className="font-medium">历史记录</div>
-          <div className="ml-auto text-xs text-base-content/60">{history.length ? `${history.length} 项` : ""}</div>
+        <div className="mb-3 flex items-center gap-2 px-1">
+          <div className="font-medium">History</div>
+          <div className="ml-auto text-xs text-base-content/55">{history.length ? `${history.length}` : ""}</div>
           <button
             type="button"
             className="btn btn-ghost btn-square btn-xs shrink-0 text-base-content/60 hover:text-base-content"
@@ -228,170 +291,94 @@ export function AiImageHistoryPane({
             <CaretRightIcon className="size-3.5" weight="bold" />
           </button>
         </div>
-        <div className="mb-3 rounded-box border border-base-300 bg-base-100 px-3 py-2 text-[11px] leading-5 text-base-content/60 shadow-sm">
+        <div className="mb-3 rounded-xl border border-base-300 bg-base-100 px-3 py-2 text-[11px] leading-5 text-base-content/60 shadow-sm">
           单击预览，Ctrl/Cmd+单击导入设置，Shift+单击导入 seed，Ctrl/Cmd+Shift+单击导入设置与 seed。
         </div>
         <div className="flex-1 overflow-auto pr-1">
           <div className="flex flex-col gap-3">
-            <div className="rounded-box border border-base-300 bg-base-100 p-2 shadow-sm">
+            <div>
               <div className="mb-2 flex items-center gap-2 px-1">
-                <div className="font-medium">本次绘画</div>
-                <div className="ml-auto text-xs text-base-content/60">{currentResultCards.length ? `${currentResultCards.length} 项` : ""}</div>
+                <div className="text-sm font-medium">Current</div>
+                <div className="ml-auto text-xs text-base-content/55">{currentResultCards.length ? `${currentResultCards.length}` : ""}</div>
               </div>
-              <div className="flex flex-col gap-2">
+              <div className="grid grid-cols-2 gap-2">
                 {currentResultCards.map(({ item, index, row }) => (
-                  <div
+                  <HistoryImageTile
                     key={`${item.batchId}-${item.batchIndex}`}
-                    className={`group flex items-start gap-2 rounded-box border bg-base-100 p-2 shadow-sm transition-colors ${!selectedHistoryPreviewKey && selectedResultIndex === index ? "border-primary" : "border-base-300 hover:border-primary"}`}
-                  >
-                    <button
-                      type="button"
-                      className="flex min-w-0 flex-1 cursor-grab items-center gap-2 text-left active:cursor-grabbing"
-                      draggable
-                      onClick={() => onSelectCurrentResult(index)}
-                      onDragStart={event => onHistoryImageDragStart(event, {
-                        dataUrl: item.dataUrl,
-                        seed: item.seed,
-                        batchIndex: item.batchIndex,
-                      })}
-                    >
-                      <img src={item.dataUrl} className="h-16 w-16 rounded-box object-cover" alt="current-result" />
-                      <div className="min-w-0 flex-1">
-                        <div className="text-xs text-base-content/70">
-                          <span>{row?.mode || mode}</span>
-                          <span> · </span>
-                          <span>{item.width}</span>
-                          <span>×</span>
-                          <span>{item.height}</span>
-                          {item.batchSize > 1
-                            ? (
-                                <>
-                                  <span> · </span>
-                                  <span>{`${item.batchIndex + 1}/${item.batchSize}`}</span>
-                                </>
-                              )
-                            : null}
-                        </div>
-                        <div className="truncate text-sm">
-                          <span>seed: </span>
-                          <span>{item.seed}</span>
-                        </div>
-                        <div className="truncate text-xs text-base-content/60">
-                          {row
-                            ? (Array.isArray(row.v4Chars) && row.v4Chars.length ? `${row.prompt} · 角色 ${row.v4Chars.length}` : row.prompt)
-                            : "当前预览结果"}
-                        </div>
-                        {row
-                          ? (
-                              <div className="mt-1 flex flex-wrap gap-1 text-[10px] text-base-content/60">
-                                {row.toolLabel ? <span className="badge badge-outline badge-xs">{row.toolLabel}</span> : null}
-                                {row.preciseReference ? <span className="badge badge-ghost badge-xs">precise</span> : null}
-                                {row.referenceImages?.length ? <span className="badge badge-ghost badge-xs">{`vibe ${row.referenceImages.length}`}</span> : null}
-                              </div>
-                            )
-                          : null}
-                      </div>
-                    </button>
-                    {row?.id != null
-                      ? (
-                          <HistoryDeleteButton
-                            label="删除本次绘画记录"
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              void onDeleteHistoryRow(row);
-                            }}
-                          />
-                        )
-                      : null}
-                  </div>
+                    active={!selectedHistoryPreviewKey && selectedResultIndex === index}
+                    alt="current-result"
+                    badge={row?.toolLabel || (item.batchSize > 1 ? `${item.batchIndex + 1}/${item.batchSize}` : row?.mode || mode)}
+                    dataUrl={item.dataUrl}
+                    draggable
+                    meta={`seed ${item.seed}`}
+                    title={`${row?.mode || mode} · seed ${item.seed} · ${item.width}×${item.height}`}
+                    onClick={() => onSelectCurrentResult(index)}
+                    onDelete={row?.id != null
+                      ? (event) => {
+                          event.stopPropagation();
+                          void onDeleteHistoryRow(row);
+                        }
+                      : undefined}
+                    onDragStart={event => onHistoryImageDragStart(event, {
+                      dataUrl: item.dataUrl,
+                      seed: item.seed,
+                      batchIndex: item.batchIndex,
+                    })}
+                  />
                 ))}
-                {!currentResultCards.length ? <div className="px-1 py-2 text-sm text-base-content/60">暂无本次绘画</div> : null}
+                {!currentResultCards.length
+                  ? <div className="col-span-2 rounded-xl border border-dashed border-base-300 bg-base-100 px-3 py-5 text-center text-sm text-base-content/55">暂无本次绘画</div>
+                  : null}
               </div>
             </div>
 
             <details
-              className="collapse border border-base-300 bg-base-100 shadow-sm"
+              className="rounded-xl border border-base-300 bg-base-100 shadow-sm"
               open={isHistoryExpanded}
               onToggle={(event) => {
                 onHistoryExpandedChange(event.currentTarget.open);
               }}
             >
-              <summary className="collapse-title pr-4" title={isHistoryExpanded ? "折叠历史绘画" : "展开历史绘画"}>
-                <div className="flex items-start gap-3">
+              <summary className="cursor-pointer list-none px-3 py-3" title={isHistoryExpanded ? "折叠历史绘画" : "展开历史绘画"}>
+                <div className="flex items-center gap-3">
                   <div className="min-w-0 flex-1">
-                    <div className="text-sm font-medium">历史绘画</div>
-                    <div className="mt-1 text-xs font-normal text-base-content/60">
-                      {archivedHistoryRows.length ? `${archivedHistoryRows.length} 项` : "暂无历史绘画"}
-                    </div>
+                    <div className="text-sm font-medium">History</div>
+                    <div className="mt-0.5 text-xs font-normal text-base-content/55">{archivedHistoryRows.length ? `${archivedHistoryRows.length}` : "0"}</div>
                   </div>
-                  <span className="mt-0.5 flex size-5 shrink-0 items-center justify-center text-base-content/60" aria-hidden="true">
+                  <span className="flex size-5 shrink-0 items-center justify-center text-base-content/60" aria-hidden="true">
                     <ChevronDown className={`size-4 transition-transform ${isHistoryExpanded ? "" : "-rotate-90"}`} />
                   </span>
                 </div>
               </summary>
-              <div className="collapse-content pt-0">
-                <div className="flex flex-col gap-2">
+              <div className="px-3 pb-3 pt-0">
+                <div className="grid grid-cols-2 gap-2">
                   {archivedHistoryRows.map(row => (
-                    <div
+                    <HistoryImageTile
                       key={historyRowKey(row)}
-                      className={`group flex items-start gap-2 rounded-box border bg-base-100 p-2 shadow-sm transition-colors ${selectedHistoryPreviewKey === historyRowKey(row) ? "border-primary" : "border-base-300 hover:border-primary"}`}
-                    >
-                      <button
-                        type="button"
-                        className="flex min-w-0 flex-1 cursor-grab items-center gap-2 text-left active:cursor-grabbing"
-                        draggable
-                        onClick={event => onHistoryRowClick(row, event)}
-                        onDragStart={event => onHistoryImageDragStart(event, {
-                          dataUrl: row.dataUrl,
-                          seed: row.seed,
-                          batchIndex: row.batchIndex ?? undefined,
-                        })}
-                      >
-                        <img src={row.dataUrl} className="h-16 w-16 rounded-box object-cover" alt="history" />
-                        <div className="min-w-0 flex-1">
-                          <div className="text-xs text-base-content/70">
-                            <span>{row.mode}</span>
-                            <span> · </span>
-                            <span>{row.width}</span>
-                            <span>×</span>
-                            <span>{row.height}</span>
-                            {row.batchSize && row.batchSize > 1
-                              ? (
-                                  <>
-                                    <span> · </span>
-                                    <span>{`${(row.batchIndex ?? 0) + 1}/${row.batchSize}`}</span>
-                                  </>
-                                )
-                              : null}
-                          </div>
-                          <div className="truncate text-sm">
-                            <span>seed: </span>
-                            <span>{row.seed}</span>
-                          </div>
-                          <div className="truncate text-xs text-base-content/60">
-                            {Array.isArray(row.v4Chars) && row.v4Chars.length ? `${row.prompt} · 角色 ${row.v4Chars.length}` : row.prompt}
-                          </div>
-                          <div className="mt-1 flex flex-wrap gap-1 text-[10px] text-base-content/60">
-                            {row.toolLabel ? <span className="badge badge-outline badge-xs">{row.toolLabel}</span> : null}
-                            {row.preciseReference ? <span className="badge badge-ghost badge-xs">precise</span> : null}
-                            {row.referenceImages?.length ? <span className="badge badge-ghost badge-xs">{`vibe ${row.referenceImages.length}`}</span> : null}
-                          </div>
-                        </div>
-                      </button>
-                      {row.id != null
-                        ? (
-                            <HistoryDeleteButton
-                              label="删除历史绘画记录"
-                              onClick={(event) => {
-                                event.stopPropagation();
-                                void onDeleteHistoryRow(row);
-                              }}
-                            />
-                          )
-                        : null}
-                    </div>
+                      active={selectedHistoryPreviewKey === historyRowKey(row)}
+                      alt="history"
+                      badge={row.toolLabel || (row.batchSize && row.batchSize > 1 ? `${(row.batchIndex ?? 0) + 1}/${row.batchSize}` : row.mode)}
+                      dataUrl={row.dataUrl}
+                      draggable
+                      meta={`seed ${row.seed}`}
+                      title={`${row.mode} · seed ${row.seed} · ${row.width}×${row.height}`}
+                      onClick={event => onHistoryRowClick(row, event)}
+                      onDelete={row.id != null
+                        ? (event) => {
+                            event.stopPropagation();
+                            void onDeleteHistoryRow(row);
+                          }
+                        : undefined}
+                      onDragStart={event => onHistoryImageDragStart(event, {
+                        dataUrl: row.dataUrl,
+                        seed: row.seed,
+                        batchIndex: row.batchIndex ?? undefined,
+                      })}
+                    />
                   ))}
-                  {!archivedHistoryRows.length ? <div className="text-sm text-base-content/60">暂无历史</div> : null}
+                  {!archivedHistoryRows.length
+                    ? <div className="col-span-2 rounded-xl border border-dashed border-base-300 bg-base-100 px-3 py-5 text-center text-sm text-base-content/55">暂无历史绘画</div>
+                    : null}
                 </div>
               </div>
             </details>
