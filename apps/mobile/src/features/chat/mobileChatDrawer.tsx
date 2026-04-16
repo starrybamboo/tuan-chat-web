@@ -781,7 +781,7 @@ export function MobileChatDrawer({
                     style={styles.shellToolbarButton}
                   />
                 </View>
-              <Pressable accessibilityLabel="更多工具" onPress={onOpenTools} style={styles.shellToolbarAvatar}>
+              <Pressable accessibilityLabel="个人入口" onPress={onOpenTools} style={styles.shellToolbarAvatar}>
                 <ThemedText style={{ color: drawerPalette.primary, fontSize: 11, fontWeight: "700", lineHeight: 12 }}>
                   {getInitials(displayName).slice(0, 1)}
                 </ThemedText>
