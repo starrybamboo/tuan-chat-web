@@ -3,6 +3,7 @@ import type { DragEvent, MouseEvent } from "react";
 
 import { zipSync } from "fflate";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { toast } from "react-hot-toast";
 
 import type {
   ActivePreviewAction,
@@ -144,7 +145,6 @@ export function useAiImagePageController() {
   const [simpleConvertedFromText, setSimpleConvertedFromText] = useState("");
   const [simpleConverted, setSimpleConverted] = useState<NovelAiNl2TagsResult | null>(null);
   const [simpleConverting, setSimpleConverting] = useState(false);
-  const [simpleError, setSimpleError] = useState("");
   const [isPageImageDragOver, setIsPageImageDragOver] = useState(false);
   const [isStylePickerOpen, setIsStylePickerOpen] = useState(false);
   const [selectedStyleIds, setSelectedStyleIds] = useState<string[]>([]);
@@ -231,13 +231,11 @@ export function useAiImagePageController() {
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [importNotice, setImportNotice] = useState("");
   const [pendingMetadataImport, setPendingMetadataImport] = useState<PendingMetadataImportState | null>(null);
   const [metadataImportSelection, setMetadataImportSelection] = useState<MetadataImportSelectionState>(DEFAULT_METADATA_IMPORT_SELECTION);
   const [isDirectorToolsOpen, setIsDirectorToolsOpen] = useState(false);
   const [activeDirectorTool, setActiveDirectorTool] = useState<DirectorToolId>("removeBackground");
   const pendingPreviewAction = "" as ActivePreviewAction;
-  const [previewNotice, setPreviewNotice] = useState("");
   const [directorSourcePreview, setDirectorSourcePreview] = useState<GeneratedImageItem | null>(null);
   const [directorOutputPreview, setDirectorOutputPreview] = useState<GeneratedImageItem | null>(null);
   const [directorColorizePrompt, setDirectorColorizePrompt] = useState("");
@@ -255,6 +253,18 @@ export function useAiImagePageController() {
 
   const [history, setHistory] = useState<AiImageHistoryRow[]>([]);
   const [isHistoryExpanded, setIsHistoryExpanded] = useState(false);
+
+  const showInfoToast = useCallback((message: string) => {
+    toast(message, { icon: "ℹ️" });
+  }, []);
+
+  const showSuccessToast = useCallback((message: string) => {
+    toast.success(message);
+  }, []);
+
+  const showErrorToast = useCallback((message: string) => {
+    toast.error(message);
+  }, []);
 
   const historyRowByKey = useMemo(() => {
     return new Map(history.map(row => [historyRowKey(row), row] as const));
@@ -363,7 +373,6 @@ export function useAiImagePageController() {
     setSimpleText("");
     setSimpleConverted(null);
     setSimpleConvertedFromText("");
-    setSimpleError("");
     setSelectedStyleIds([]);
     setIsSimpleTagEditorOpen(false);
 
@@ -535,18 +544,17 @@ export function useAiImagePageController() {
         imageCount: args.imageCount ?? 1,
       });
       setMetadataImportSelection(createMetadataImportSelection(importedMetadata.settings));
-      setImportNotice("");
       return;
     }
 
     const importMethodLabel = args.source === "drop" ? "拖入" : args.source === "paste" ? "粘贴" : "";
     if ((args.imageCount ?? 1) > 1) {
-      setImportNotice(`${getNovelAiFreeOnlyMessage("无 metadata 的图片不再直接导入为 Base Img。")} 检测到 ${args.imageCount ?? 1} 张图片，当前只处理第 1 张${importMethodLabel ? ` ${importMethodLabel}` : ""}图片。`);
+      showInfoToast(`${getNovelAiFreeOnlyMessage("无 metadata 的图片不再直接导入为 Base Img。")} 检测到 ${args.imageCount ?? 1} 张图片，当前只处理第 1 张${importMethodLabel ? ` ${importMethodLabel}` : ""}图片。`);
       return;
     }
 
-    setImportNotice(getNovelAiFreeOnlyMessage("无 metadata 的图片不再直接导入为 Base Img。"));
-  }, []);
+    showInfoToast(getNovelAiFreeOnlyMessage("无 metadata 的图片不再直接导入为 Base Img。"));
+  }, [showInfoToast]);
 
   const handlePickSourceImage = useCallback(async (
     file: File,
@@ -569,7 +577,7 @@ export function useAiImagePageController() {
     const imageBase64 = dataUrlToBase64(payload.dataUrl);
     if (!imageBase64) {
       setIsPageImageDragOver(false);
-      setImportNotice("拖拽历史图片失败：未读取到图片数据。");
+      showErrorToast("拖拽历史图片失败：未读取到图片数据。");
       return;
     }
 
@@ -580,7 +588,7 @@ export function useAiImagePageController() {
       source: options?.source,
       imageCount: options?.imageCount,
     });
-  }, [handleImportSourceImageBytes]);
+  }, [handleImportSourceImageBytes, showErrorToast]);
 
   const handleHistoryImageDragStart = useCallback((
     event: DragEvent<HTMLElement>,
@@ -644,12 +652,12 @@ export function useAiImagePageController() {
     const files = extractImageFilesFromTransfer(event.dataTransfer);
     if (!files.length) {
       setIsPageImageDragOver(false);
-      setImportNotice("拖拽导入目前只支持图片文件。");
+      showErrorToast("拖拽导入目前只支持图片文件。");
       return;
     }
     setIsPageImageDragOver(false);
     void handlePickSourceImage(files[0], { source: "drop", imageCount: files.length });
-  }, [handlePickSourceHistoryImage, handlePickSourceImage]);
+  }, [handlePickSourceHistoryImage, handlePickSourceImage, showErrorToast]);
 
   useEffect(() => {
     if (typeof document === "undefined")
@@ -673,7 +681,6 @@ export function useAiImagePageController() {
     setSourceImageDataUrl("");
     setSourceImageBase64("");
     setIsPageImageDragOver(false);
-    setImportNotice("");
     setProFeatureSectionOpen("baseImage", true);
   }, [setProFeatureSectionOpen]);
 
@@ -686,10 +693,10 @@ export function useAiImagePageController() {
     if (!pendingMetadataImport)
       return;
 
-    setImportNotice(getNovelAiFreeOnlyMessage("Base Img、Vibe Transfer、Precise Reference 暂时全部禁用。"));
+    showErrorToast(getNovelAiFreeOnlyMessage("Base Img、Vibe Transfer、Precise Reference 暂时全部禁用。"));
     setPendingMetadataImport(null);
     setMetadataImportSelection(DEFAULT_METADATA_IMPORT_SELECTION);
-  }, [pendingMetadataImport]);
+  }, [pendingMetadataImport, showErrorToast]);
 
   const handleConfirmMetadataImport = useCallback(() => {
     if (!pendingMetadataImport)
@@ -723,22 +730,22 @@ export function useAiImagePageController() {
       : "";
 
     applyImportedMetadata(pendingMetadataImport.metadata.settings, metadataImportSelection);
-    setImportNotice(`已导入 NovelAI ${sourceLabel}：${selectedBlocks}。${metadataImportSelection.cleanImports ? " 已按 Clean Imports 清理缺失导入项。" : ""}${freeModeHint}${modelMismatch}${multipleHint}`.trim());
+    showSuccessToast(`已导入 NovelAI ${sourceLabel}：${selectedBlocks}。${metadataImportSelection.cleanImports ? " 已按 Clean Imports 清理缺失导入项。" : ""}${freeModeHint}${modelMismatch}${multipleHint}`.trim());
     setPendingMetadataImport(null);
     setMetadataImportSelection(DEFAULT_METADATA_IMPORT_SELECTION);
-  }, [applyImportedMetadata, metadataImportSelection, model, pendingMetadataImport]);
+  }, [applyImportedMetadata, metadataImportSelection, model, pendingMetadataImport, showSuccessToast]);
 
   const handlePickVibeReferences = useCallback(async (files: FileList | File[]) => {
     void files;
-    setError(getNovelAiFreeOnlyMessage("Vibe Transfer 已禁用。"));
+    showErrorToast(getNovelAiFreeOnlyMessage("Vibe Transfer 已禁用。"));
     setProFeatureSectionOpen("vibeTransfer", true);
-  }, [setProFeatureSectionOpen]);
+  }, [setProFeatureSectionOpen, showErrorToast]);
 
   const handlePickPreciseReference = useCallback(async (file: File) => {
     void file;
-    setError(getNovelAiFreeOnlyMessage("Precise Reference 已禁用。"));
+    showErrorToast(getNovelAiFreeOnlyMessage("Precise Reference 已禁用。"));
     setProFeatureSectionOpen("preciseReference", true);
-  }, [setProFeatureSectionOpen]);
+  }, [setProFeatureSectionOpen, showErrorToast]);
 
   const handleClearHistory = useCallback(async () => {
     // 这里是明确的 destructive 操作确认，沿用浏览器 confirm 比额外弹层更轻。
@@ -753,42 +760,38 @@ export function useAiImagePageController() {
   const handleUseSelectedResultAsBaseImage = useCallback(() => {
     if (!selectedPreviewResult)
       return;
-    setError("");
-    setPreviewNotice(getNovelAiFreeOnlyMessage("Base Img / img2img 已禁用；需要局部重绘时，请改用预览区的 Inpaint。"));
+    showErrorToast(getNovelAiFreeOnlyMessage("Base Img / img2img 已禁用；需要局部重绘时，请改用预览区的 Inpaint。"));
     setProFeatureSectionOpen("baseImage", true);
-  }, [selectedPreviewResult, setProFeatureSectionOpen]);
+  }, [selectedPreviewResult, setProFeatureSectionOpen, showErrorToast]);
 
   const handleToggleDirectorTools = useCallback(() => {
-    setError("");
-    setPreviewNotice(getNovelAiFreeOnlyMessage("Director Tools 已禁用。"));
-  }, []);
+    showErrorToast(getNovelAiFreeOnlyMessage("Director Tools 已禁用。"));
+  }, [showErrorToast]);
 
   const handleSyncDirectorSourceFromCurrentPreview = useCallback(() => {
     if (!selectedPreviewResult)
       return;
     setDirectorSourcePreview(selectedPreviewResult);
     setDirectorOutputPreview(null);
-    setError("");
-    setPreviewNotice("已把当前预览同步为导演工具输入图。");
-  }, [selectedPreviewResult]);
+    showSuccessToast("已把当前预览同步为导演工具输入图。");
+  }, [selectedPreviewResult, showSuccessToast]);
 
   const handleRunUpscale = useCallback(async () => {
     if (!selectedPreviewResult)
       return;
 
-    setError("");
-    setPreviewNotice(getNovelAiFreeOnlyMessage("Upscale 已禁用。"));
-  }, [selectedPreviewResult]);
+    showErrorToast(getNovelAiFreeOnlyMessage("Upscale 已禁用。"));
+  }, [selectedPreviewResult, showErrorToast]);
 
   const handleRunDirectorTool = useCallback(async () => {
     if (!directorInputPreview || !directorTool)
       return;
 
-    setError("");
-    setPreviewNotice(getNovelAiFreeOnlyMessage("Director Tools 已禁用。"));
+    showErrorToast(getNovelAiFreeOnlyMessage("Director Tools 已禁用。"));
   }, [
     directorInputPreview,
     directorTool,
+    showErrorToast,
   ]);
 
   const runGenerate = useCallback(async (args?: {
@@ -835,7 +838,6 @@ export function useAiImagePageController() {
       : null;
 
     setError("");
-    setPreviewNotice("");
     setLoading(true);
     try {
       if (mergeStyleTags) {
@@ -956,7 +958,10 @@ export function useAiImagePageController() {
     }
     catch (e) {
       const message = e instanceof Error ? e.message : String(e);
-      setError(message);
+      if (effectiveMode === "infill")
+        setError(message);
+      else
+        showErrorToast(message);
       return false;
     }
     finally {
@@ -978,6 +983,7 @@ export function useAiImagePageController() {
     refreshHistory,
     sampler,
     scale,
+    showErrorToast,
     selectedStyleNegativeTags,
     selectedStyleTags,
     seed,
@@ -1003,12 +1009,11 @@ export function useAiImagePageController() {
 
     const sourceImageBase64 = dataUrlToBase64(selectedPreviewResult.dataUrl);
     if (!sourceImageBase64) {
-      setError("当前预览图片读取失败，无法启动 Inpaint。");
+      showErrorToast("当前预览图片读取失败，无法启动 Inpaint。");
       return;
     }
 
     setError("");
-    setPreviewNotice("");
     setInpaintDialogSource({
       dataUrl: selectedPreviewResult.dataUrl,
       imageBase64: sourceImageBase64,
@@ -1020,7 +1025,7 @@ export function useAiImagePageController() {
       negativePrompt: selectedPreviewHistoryRow?.negativePrompt || negativePrompt,
       strength,
     });
-  }, [negativePrompt, prompt, selectedPreviewHistoryRow, selectedPreviewResult, strength]);
+  }, [negativePrompt, prompt, selectedPreviewHistoryRow, selectedPreviewResult, showErrorToast, strength]);
 
   const handleCloseInpaintDialog = useCallback(() => {
     if (loading)
@@ -1053,14 +1058,13 @@ export function useAiImagePageController() {
     setNegativePrompt(payload.negativePrompt);
     setStrength(payload.strength);
     setInpaintDialogSource(null);
-    setPreviewNotice("Inpaint 完成，结果已加入本次绘画与历史记录。");
-  }, [inpaintDialogSource, runGenerate]);
+    showSuccessToast("Inpaint 完成，结果已加入本次绘画与历史记录。");
+  }, [inpaintDialogSource, runGenerate, showSuccessToast]);
 
   const handleSimpleGenerateFromText = useCallback(async () => {
-    setSimpleError("");
     const trimmed = simpleText.trim();
     if (!trimmed) {
-      setSimpleError("请先输入一行自然语言描述");
+      showErrorToast("请先输入一行自然语言描述");
       return;
     }
 
@@ -1079,7 +1083,7 @@ export function useAiImagePageController() {
       }
       catch (e) {
         const message = e instanceof Error ? e.message : String(e);
-        setSimpleError(message);
+        showErrorToast(message);
         return;
       }
       finally {
@@ -1088,7 +1092,7 @@ export function useAiImagePageController() {
     }
 
     if (!String(resolvedPrompt || "").trim()) {
-      setSimpleError("prompt 为空：请先完成自然语言转换或手动编辑 tags");
+      showErrorToast("prompt 为空：请先完成自然语言转换或手动编辑 tags");
       return;
     }
 
@@ -1097,24 +1101,23 @@ export function useAiImagePageController() {
     negativePrompt,
     prompt,
     runGenerate,
+    showErrorToast,
     simpleConverted,
     simpleConvertedFromText,
     simpleText,
   ]);
 
   const handleSimpleGenerateFromTags = useCallback(async () => {
-    setSimpleError("");
     if (!prompt.trim()) {
-      setSimpleError("prompt 为空：请先完成自然语言转换或手动编辑 tags");
+      showErrorToast("prompt 为空：请先完成自然语言转换或手动编辑 tags");
       return;
     }
     await runGenerate({ mode: "txt2img", prompt, negativePrompt });
-  }, [negativePrompt, prompt, runGenerate]);
+  }, [negativePrompt, prompt, runGenerate, showErrorToast]);
 
   const handleSelectCurrentResult = useCallback((index: number) => {
     setSelectedHistoryPreviewKey(null);
     setSelectedResultIndex(index);
-    setPreviewNotice("");
     if (isDirectorToolsOpen) {
       const nextItem = results[index] || null;
       setDirectorSourcePreview(nextItem);
@@ -1124,7 +1127,6 @@ export function useAiImagePageController() {
 
   const handlePreviewHistoryRow = useCallback((row: AiImageHistoryRow) => {
     setSelectedHistoryPreviewKey(historyRowKey(row));
-    setPreviewNotice("");
     if (isDirectorToolsOpen) {
       setDirectorSourcePreview(historyRowToGeneratedItem(row));
       setDirectorOutputPreview(null);
@@ -1159,7 +1161,8 @@ export function useAiImagePageController() {
     if (!importSettings) {
       if (importSeed)
         setSeed(row.seed);
-      setPreviewNotice(importSeed ? "已导入历史 seed，其他设置保持当前值。" : "");
+      if (importSeed)
+        showSuccessToast("已导入历史 seed，其他设置保持当前值。");
       return;
     }
 
@@ -1256,11 +1259,11 @@ export function useAiImagePageController() {
       1,
       DEFAULT_PRO_IMAGE_SETTINGS.noise,
     ));
-    setPreviewNotice([
+    showSuccessToast([
       importSeed ? "已导入历史设置与 seed。" : "已导入历史设置，seed 保持当前值。",
       droppedPaidSettings.length ? `已自动忽略会消耗 Anlas 的项：${droppedPaidSettings.join(" / ")}。` : "",
     ].filter(Boolean).join(" "));
-  }, [inferResolutionSelection, noiseScheduleOptions, samplerOptions]);
+  }, [inferResolutionSelection, noiseScheduleOptions, samplerOptions, showSuccessToast]);
 
   const handleHistoryRowClick = useCallback((row: AiImageHistoryRow, event: MouseEvent<HTMLButtonElement>) => {
     const clickMode: HistoryRowClickMode = (event.metaKey || event.ctrlKey)
@@ -1451,8 +1454,8 @@ export function useAiImagePageController() {
     setWidth(normalizedSize.width);
     setHeight(normalizedSize.height);
     setSimpleResolutionSelection(inferResolutionSelection(normalizedSize.width, normalizedSize.height));
-    setPreviewNotice(sourceImageDataUrl ? "已按 Base Img 裁到最近合法尺寸。" : "已把当前尺寸裁到最近合法尺寸。");
-  }, [height, inferResolutionSelection, sourceImageDataUrl, width]);
+    showSuccessToast(sourceImageDataUrl ? "已按 Base Img 裁到最近合法尺寸。" : "已把当前尺寸裁到最近合法尺寸。");
+  }, [height, inferResolutionSelection, showSuccessToast, sourceImageDataUrl, width]);
 
   const handleResetCurrentImageSettings = useCallback(() => {
     setWidth(DEFAULT_PRO_IMAGE_SETTINGS.width);
@@ -1472,8 +1475,8 @@ export function useAiImagePageController() {
     setNoise(DEFAULT_PRO_IMAGE_SETTINGS.noise);
     setSeed(DEFAULT_PRO_IMAGE_SETTINGS.seed);
     setSimpleResolutionSelection(DEFAULT_PRO_IMAGE_SETTINGS.simpleResolutionSelection);
-    setPreviewNotice("已重置当前图像设置。");
-  }, []);
+    showSuccessToast("已重置当前图像设置。");
+  }, [showSuccessToast]);
 
   const handleClearSeed = useCallback(() => {
     setSeed(-1);
@@ -1482,7 +1485,6 @@ export function useAiImagePageController() {
   const handleOpenPreviewImage = useCallback(() => {
     if (!selectedPreviewResult)
       return;
-    setPreviewNotice("");
     setIsPreviewImageModalOpen(true);
   }, [selectedPreviewResult]);
 
@@ -1491,15 +1493,15 @@ export function useAiImagePageController() {
       return;
     const nextPinnedKey = pinnedPreviewKey === selectedPreviewIdentityKey ? null : selectedPreviewIdentityKey;
     setPinnedPreviewKey(nextPinnedKey);
-    setPreviewNotice(nextPinnedKey ? "已固定当前预览。" : "已取消固定当前预览。");
-  }, [pinnedPreviewKey, selectedPreviewIdentityKey, selectedPreviewResult]);
+    showSuccessToast(nextPinnedKey ? "已固定当前预览。" : "已取消固定当前预览。");
+  }, [pinnedPreviewKey, selectedPreviewIdentityKey, selectedPreviewResult, showSuccessToast]);
 
   const handleApplySelectedPreviewSeed = useCallback(() => {
     if (!selectedPreviewResult)
       return;
     setSeed(selectedPreviewResult.seed);
-    setPreviewNotice("已把当前预览 seed 回填到设置。");
-  }, [selectedPreviewResult]);
+    showSuccessToast("已把当前预览 seed 回填到设置。");
+  }, [selectedPreviewResult, showSuccessToast]);
 
   const handleApplySelectedPreviewSettings = useCallback(() => {
     if (!selectedPreviewHistoryRow)
@@ -1612,7 +1614,6 @@ export function useAiImagePageController() {
     height,
     imageCount,
     imageCountLimit,
-    importNotice,
     isDirectorToolsOpen,
     isNAI3,
     isNAI4,
@@ -1648,7 +1649,6 @@ export function useAiImagePageController() {
     setDynamicThresholding,
     setHeight,
     setImageCount,
-    setImportNotice,
     setIsSimpleTagEditorOpen,
     setIsStylePickerOpen,
     setNegativePrompt,
@@ -1677,7 +1677,6 @@ export function useAiImagePageController() {
     setV4UseOrder,
     setWidth,
     simpleConverted,
-    simpleError,
     simpleGenerateLabel,
     simpleResolutionArea,
     simpleResolutionSelection,
@@ -1698,6 +1697,7 @@ export function useAiImagePageController() {
     vibeTransferDescription,
     vibeTransferReferences,
     width,
+    onShowBaseImageImportHint: () => showInfoToast(getNovelAiFreeOnlyMessage("Base Img / img2img 已禁用；仍可拖入带 metadata 的 NovelAI 图片并只导入设置。")),
   };
 
   const workspaceProps = {
@@ -1705,8 +1705,6 @@ export function useAiImagePageController() {
     previewPaneProps: {
       isDirectorToolsOpen,
       previewMeta,
-      previewNotice,
-      error,
       results,
       selectedPreviewResult,
       selectedResultIndex,

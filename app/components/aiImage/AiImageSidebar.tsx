@@ -18,7 +18,6 @@ import {
   clampRange,
   clampToMultipleOf64,
   formatSliderValue,
-  getNovelAiFreeOnlyMessage,
   modelLabel,
 } from "@/components/aiImage/helpers";
 import { ChevronDown } from "@/icons";
@@ -71,7 +70,6 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
     height,
     imageCount,
     imageCountLimit,
-    importNotice,
     isDirectorToolsOpen,
     isNAI3,
     isNAI4,
@@ -107,7 +105,6 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
     setDynamicThresholding,
     setHeight,
     setImageCount,
-    setImportNotice,
     setIsSimpleTagEditorOpen,
     setIsStylePickerOpen,
     setNegativePrompt,
@@ -136,7 +133,6 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
     setV4UseOrder,
     setWidth,
     simpleConverted,
-    simpleError,
     simpleGenerateLabel,
     simpleResolutionArea,
     simpleResolutionSelection,
@@ -157,6 +153,7 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
     vibeTransferDescription,
     vibeTransferReferences,
     width,
+    onShowBaseImageImportHint,
   } = sidebarProps;
 
   const sideCardClassName = "card border-x-0 border-b border-t-0 border-[#D6DCE3] bg-[#F3F5F7] shadow-none dark:border-[#2A3138] dark:bg-[#161A1F]";
@@ -256,9 +253,6 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                       {simpleGenerateLabel}
                     </button>
                   </div>
-
-                  {simpleError ? <div className="text-sm text-error">{simpleError}</div> : null}
-
                   <div className="flex flex-col gap-2">
                     <div className="flex items-center gap-2">
                       <div className="text-xs opacity-70">画风</div>
@@ -484,14 +478,11 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                             <button
                               type="button"
                               className={`flex min-h-28 w-full items-center justify-center rounded-2xl border px-4 text-sm transition-colors ${isPageImageDragOver ? "border-primary bg-primary/10 text-primary" : "border-dashed border-base-300 bg-base-200/60 text-base-content/70 hover:border-primary hover:text-base-content"}`}
-                              onClick={() => setImportNotice(getNovelAiFreeOnlyMessage("Base Img / img2img 已禁用；仍可拖入带 metadata 的 NovelAI 图片并只导入设置。"))}
+                              onClick={onShowBaseImageImportHint}
                             >
                               {isPageImageDragOver ? "松开读取 metadata" : "拖入 / 粘贴 NovelAI 图片以导入设置"}
                             </button>
                           )}
-                      {importNotice
-                        ? <div className="rounded-2xl border border-info/25 bg-info/10 px-3 py-2 text-xs leading-5 text-info">{importNotice}</div>
-                        : null}
                       {isPageImageDragOver
                         ? <div className="text-xs text-primary">整页任意位置松开都会读取图片并尝试解析 NovelAI metadata。</div>
                         : null}

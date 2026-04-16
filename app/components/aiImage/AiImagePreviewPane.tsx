@@ -11,8 +11,6 @@ import { ChevronDown, EditIcon, ExpandCornersIcon, PushPinIcon, SharpDownload, S
 interface AiImagePreviewPaneProps {
   isDirectorToolsOpen: boolean;
   previewMeta: string;
-  previewNotice: string;
-  error: string;
   results: GeneratedImageItem[];
   selectedPreviewResult: GeneratedImageItem | null;
   selectedResultIndex: number;
@@ -73,8 +71,6 @@ function EmptyPreviewPlaceholder() {
 export function AiImagePreviewPane({
   isDirectorToolsOpen,
   previewMeta,
-  previewNotice,
-  error,
   results,
   selectedPreviewResult,
   selectedResultIndex,
@@ -338,9 +334,6 @@ export function AiImagePreviewPane({
             </div>
           )
         : null}
-
-      {previewNotice ? <div className="text-sm text-success">{previewNotice}</div> : null}
-      {error ? <div className="text-sm text-error">{error}</div> : null}
 
       {!isDirectorToolsOpen && results.length > 1
         ? (
