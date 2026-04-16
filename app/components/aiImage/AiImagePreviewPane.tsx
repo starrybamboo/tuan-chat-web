@@ -61,13 +61,13 @@ function EmptyPreviewPlaceholder() {
         viewBox="0 0 240 160"
         aria-hidden="true"
       >
-        <rect x="46" y="34" width="148" height="92" rx="14" fill="rgba(255,255,255,0.05)" />
+        <rect x="50" y="34" width="140" height="92" rx="14" fill="rgba(255,255,255,0.05)" />
         <path
-          d="M79 104l34-40l22 23l25-31l41 48z"
+          d="M85 104l38-42l28 29l20-25l34 38z"
           fill="rgba(0,0,0,0.18)"
         />
         <path
-          d="M136 84l24-28l41 48h-49z"
+          d="M117 104l27-33l34 33h-61z"
           fill="rgba(0,0,0,0.24)"
         />
       </svg>
