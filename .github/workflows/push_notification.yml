@@ -2,7 +2,7 @@ name: Push Notification to Feishu
 
 on:
   push:
-    branches: [ 'main' ]
+    branches: [ 'main', 'dev' ]
 
 jobs:
   notify:
