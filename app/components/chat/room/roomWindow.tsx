@@ -102,11 +102,6 @@ function RoomWindow({
     handleInputAreaChange,
     handleSelectCommand,
     setInputText,
-    llmMessageRef,
-    originalTextBeforeRewriteRef,
-    setLLMMessage,
-    insertLLMMessageIntoText,
-    handleQuickRewrite,
   } = useRoomInputController({ roomId });
 
   useLayoutEffect(() => {
@@ -230,8 +225,11 @@ function RoomWindow({
     containsCommandRequestAllToken,
     stripCommandRequestAllToken,
     extractFirstCommandText,
+    isCommandRequestConsumed,
     handleExecuteCommandRequest,
   } = useRoomCommandRequests({
+    roomId,
+    userId: Number(userId ?? 0),
     isSpaceOwner: Boolean(spaceContext.isSpaceOwner),
     notMember,
     noRole,
@@ -341,13 +339,7 @@ function RoomWindow({
   } = useChatInputHandlers({
     atMentionRef,
     handleMessageSubmit,
-    handleQuickRewrite,
-    insertLLMMessageIntoText,
-    llmMessageRef,
-    originalTextBeforeRewriteRef,
     roomId,
-    setInputText,
-    setLLMMessage,
   });
 
   const undoInProgressRef = useRef(false);
@@ -853,6 +845,7 @@ function RoomWindow({
     onBackgroundUrlChange: setBackgroundUrl,
     onEffectChange: setCurrentEffect,
     onExecuteCommandRequest: handleExecuteCommandRequest,
+    isCommandRequestConsumed,
     spaceName,
     roomName,
     messageScope,
@@ -860,6 +853,7 @@ function RoomWindow({
     sendMessageWithInsert,
   }), [
     handleExecuteCommandRequest,
+    isCommandRequestConsumed,
     setBackgroundUrl,
     setCurrentEffect,
     roomName,
@@ -877,7 +871,6 @@ function RoomWindow({
     handleSelectCommand,
     ruleId: space?.ruleId ?? -1,
     handleMessageSubmit: requestMessageSubmit,
-    onAIRewrite: handleQuickRewrite,
     currentChatStatus: myStatue as any,
     onChangeChatStatus: handleManualStatusChange,
     isSpectator,

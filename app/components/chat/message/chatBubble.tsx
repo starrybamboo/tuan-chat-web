@@ -61,15 +61,38 @@ interface CommandRequestPayload {
   allowedRoleIds?: number[];
 }
 
+interface HoverToolbarActionButtonProps {
+  label: string;
+  onClick: (event: React.MouseEvent<HTMLButtonElement>) => void;
+  children: React.ReactNode;
+}
+
 const EFFECT_PREVIEW_DURATION_MS = 2000;
 
-function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecuteCommandRequest, onToggleSelection, onEditWebgalChoose }: {
+function HoverToolbarActionButton({ label, onClick, children }: HoverToolbarActionButtonProps) {
+  return (
+    <div className="tooltip tooltip-bottom flex" data-tip={label}>
+      <button
+        type="button"
+        className="btn btn-ghost btn-xs h-7 w-7 min-h-0 rounded-full p-0 text-base-content/70 hover:bg-base-300/70 hover:text-base-content"
+        onClick={onClick}
+        title={label}
+        aria-label={label}
+      >
+        {children}
+      </button>
+    </div>
+  );
+}
+
+function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecuteCommandRequest, isCommandRequestConsumed, onToggleSelection, onEditWebgalChoose }: {
   /** 包含聊天消息内容、发送者等信息的数据对象 */
   chatMessageResponse: ChatMessageResponse;
   /** 控制是否应用气泡样式，默认为false */
   useChatBubbleStyle?: boolean;
   /** 点击“检定请求”按钮后，触发外层执行（以点击者身份发送并执行指令） */
   onExecuteCommandRequest?: (payload: { command: string; threadId?: number; requestMessageId: number }) => void;
+  isCommandRequestConsumed?: (requestMessageId: number) => boolean;
   onToggleSelection?: (messageId: number) => void;
   onEditWebgalChoose?: (messageId: number) => void;
 }) {
@@ -469,92 +492,46 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
     }));
   }, []);
 
+  const toggleIntroTextLabel = isIntroText ? "转为对话" : "转为黑屏";
+
   const messageHoverToolbar = (
     <div
       className={CHAT_MESSAGE_HOVER_TOOLBAR_CLASS}
     >
       {onToggleSelection && (
-        <button
-          type="button"
-          className="btn btn-ghost btn-xs h-7 w-7 min-h-0 p-0 rounded-full text-base-content/70 hover:text-base-content hover:bg-base-300/70"
-          onClick={handleToggleSelectionClick}
-          title="多选"
-          aria-label="多选"
-        >
+        <HoverToolbarActionButton label="多选" onClick={handleToggleSelectionClick}>
           <ListUnordered className="h-4 w-4" />
-        </button>
+        </HoverToolbarActionButton>
       )}
-      <button
-        type="button"
-        className="btn btn-ghost btn-xs h-7 w-7 min-h-0 p-0 rounded-full text-base-content/70 hover:text-base-content hover:bg-base-300/70"
-        onClick={handleReplyClick}
-        title="回复"
-        aria-label="回复"
-      >
+      <HoverToolbarActionButton label="回复" onClick={handleReplyClick}>
         <CommentOutline className="h-4 w-4" />
-      </button>
+      </HoverToolbarActionButton>
       {canEdit && (
-        <button
-          type="button"
-          className="btn btn-ghost btn-xs h-7 w-7 min-h-0 p-0 rounded-full text-base-content/70 hover:text-base-content hover:bg-base-300/70"
-          onClick={handleOpenAnnotationsClick}
-          title="添加标注"
-          aria-label="添加标注"
-        >
+        <HoverToolbarActionButton label="添加标注" onClick={handleOpenAnnotationsClick}>
           <EmojiIconWhite className="h-4 w-4" />
-        </button>
+        </HoverToolbarActionButton>
       )}
       {canEdit && (message.messageType === MESSAGE_TYPE.TEXT || message.messageType === MESSAGE_TYPE.INTRO_TEXT) && (
-        <button
-          type="button"
-          className="btn btn-ghost btn-xs h-7 w-7 min-h-0 p-0 rounded-full text-base-content/70 hover:text-base-content hover:bg-base-300/70"
-          onClick={handleToggleIntroTextClick}
-          title={isIntroText ? "转为对话" : "转为黑屏"}
-          aria-label={isIntroText ? "转为对话" : "转为黑屏"}
-        >
+        <HoverToolbarActionButton label={toggleIntroTextLabel} onClick={handleToggleIntroTextClick}>
           <ScreenIcon className="h-4 w-4 text-black" />
-        </button>
+        </HoverToolbarActionButton>
       )}
-      <button
-        type="button"
-        className="btn btn-ghost btn-xs h-7 w-7 min-h-0 p-0 rounded-full text-base-content/70 hover:text-base-content hover:bg-base-300/70"
-        onClick={handleInsertAfterClick}
-        title="在此处插入消息"
-        aria-label="在此处插入消息"
-      >
+      <HoverToolbarActionButton label="插入消息" onClick={handleInsertAfterClick}>
         <InsertLineBelow className="h-4 w-4" />
-      </button>
+      </HoverToolbarActionButton>
       {canEditContent && (
-        <button
-          type="button"
-          className="btn btn-ghost btn-xs h-7 w-7 min-h-0 p-0 rounded-full text-base-content/70 hover:text-base-content hover:bg-base-300/70"
-          onClick={handleEditMessageClick}
-          title="编辑"
-          aria-label="编辑"
-        >
+        <HoverToolbarActionButton label="编辑" onClick={handleEditMessageClick}>
           <Edit2Outline className="h-4 w-4" />
-        </button>
+        </HoverToolbarActionButton>
       )}
       {canEdit && message.messageType === MESSAGE_TYPE.WEBGAL_CHOOSE && onEditWebgalChoose && (
-        <button
-          type="button"
-          className="btn btn-ghost btn-xs h-7 w-7 min-h-0 p-0 rounded-full text-base-content/70 hover:text-base-content hover:bg-base-300/70"
-          onClick={handleEditWebgalChooseClick}
-          title="编辑选择"
-          aria-label="编辑选择"
-        >
+        <HoverToolbarActionButton label="编辑选择" onClick={handleEditWebgalChooseClick}>
           <Edit2Outline className="h-4 w-4" />
-        </button>
+        </HoverToolbarActionButton>
       )}
-      <button
-        type="button"
-        className="btn btn-ghost btn-xs h-7 w-7 min-h-0 p-0 rounded-full text-base-content/70 hover:text-base-content hover:bg-base-300/70"
-        onClick={handleOpenContextMenu}
-        title="更多"
-        aria-label="更多"
-      >
+      <HoverToolbarActionButton label="更多" onClick={handleOpenContextMenu}>
         <MoreMenu className="h-4 w-4" />
-      </button>
+      </HoverToolbarActionButton>
     </div>
   );
 
@@ -762,12 +739,16 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
         const isSpectator = isObserverLike(roomContext.curMember?.memberType);
         const noRole = curRoleId <= 0;
         const allowAll = Boolean(commandRequest?.allowAll);
+        const alreadyConsumed = isCommandRequestConsumed?.(message.messageId) ?? false;
         let disableReason = "";
         if (!commandText) {
           disableReason = "指令为空";
         }
         else if (!onExecuteCommandRequest) {
           disableReason = "当前无法执行";
+        }
+        else if (alreadyConsumed) {
+          disableReason = "该请求已执行";
         }
         else if (noRole && !spaceContext.isSpaceOwner && !isSpectator) {
           disableReason = "旁白仅主持可用";
@@ -1206,6 +1187,12 @@ export const ChatBubble = React.memo(ChatBubbleComponent, (prevProps, nextProps)
 
   // 如果基础属性不相等,直接返回 false
   if (!isEqual) {
+    return false;
+  }
+
+  const prevCommandRequestConsumed = prevProps.isCommandRequestConsumed?.(prevMsg.messageId) ?? false;
+  const nextCommandRequestConsumed = nextProps.isCommandRequestConsumed?.(nextMsg.messageId) ?? false;
+  if (prevCommandRequestConsumed !== nextCommandRequestConsumed) {
     return false;
   }
 

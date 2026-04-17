@@ -12,6 +12,10 @@ export type OpenAiChatCompletionRequest = {
      */
     model: string;
     /**
+     * 业务场景编码，可选；传入后会按场景限制模型白名单
+     */
+    scene?: string;
+    /**
      * 消息列表，至少包含一条消息
      */
     messages: Array<Message>;
@@ -24,7 +28,7 @@ export type OpenAiChatCompletionRequest = {
      */
     seed?: number;
     /**
-     * 是否流式输出。阶段1仅支持 false
+     * 是否流式输出。/ai/gateway/v1/chat/completions 仍仅支持 false；/ai/gateway/v1/chat/stream 会按流式处理
      */
     stream?: boolean;
     /**

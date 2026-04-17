@@ -66,6 +66,7 @@ type TrackClip = {
 
 export type AvatarFetchFn = (avatarId: number) => Promise<{
   spriteUrl?: string;
+  spriteOriginalUrl?: string;
   avatarUrl?: string;
   originUrl?: string;
   spriteTransform?: {
@@ -734,7 +735,7 @@ export class PremiereExporter {
           const info = await fetchAvatar(effectiveAvatarId);
           if (info) {
             if (!avatarUrl) {
-              avatarUrl = info.originUrl || info.spriteUrl || info.avatarUrl;
+              avatarUrl = info.spriteOriginalUrl || info.originUrl || info.spriteUrl || info.avatarUrl;
             }
             if (typeof info.spriteTransform?.scale === "number") {
               correctionScale = info.spriteTransform.scale;

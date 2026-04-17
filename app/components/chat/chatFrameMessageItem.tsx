@@ -18,6 +18,7 @@ interface ChatFrameMessageItemProps {
     threadId?: number;
     requestMessageId: number;
   }) => void;
+  isCommandRequestConsumed?: (requestMessageId: number) => boolean;
   onEditWebgalChoose?: (messageId: number) => void;
   onMessageClick: (event: React.MouseEvent<HTMLDivElement>) => void;
   onToggleSelection?: (messageId: number) => void;
@@ -36,6 +37,7 @@ export default function ChatFrameMessageItem({
   movable,
   isSelecting,
   onExecuteCommandRequest,
+  isCommandRequestConsumed,
   onEditWebgalChoose,
   onMessageClick,
   onToggleSelection,
@@ -83,6 +85,7 @@ export default function ChatFrameMessageItem({
       <ChatBubble
         chatMessageResponse={chatMessageResponse}
         onExecuteCommandRequest={onExecuteCommandRequest}
+        isCommandRequestConsumed={isCommandRequestConsumed}
         onToggleSelection={onToggleSelection}
         onEditWebgalChoose={onEditWebgalChoose}
       />
@@ -91,8 +94,8 @@ export default function ChatFrameMessageItem({
           <button
             type="button"
             className="absolute inset-0 z-20 cursor-pointer w-full"
-            title="在此处插入消息"
-            aria-label="在此处插入消息"
+            title="插入消息"
+            aria-label="插入消息"
             onClick={handleInsertAfterClick}
           />
           <div

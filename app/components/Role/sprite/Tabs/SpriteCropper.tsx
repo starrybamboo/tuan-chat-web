@@ -17,7 +17,7 @@ import {
 import { AvatarPreview } from "../../Preview/AvatarPreview";
 import { RenderPreview } from "../../Preview/RenderPreview";
 import { TransformControl } from "../TransformControl";
-import { getEffectiveSpriteUrl, parseTransformFromAvatar } from "../utils";
+import { getEffectiveSpriteOriginalUrl, getEffectiveSpriteUrl, parseTransformFromAvatar } from "../utils";
 import { useImageCropWorker } from "../worker/useImageCropWorker";
 import "react-image-crop/dist/ReactCrop.css";
 
@@ -74,11 +74,29 @@ export function SpriteCropper({
   const isMutiAvatars = roleAvatars.length > 0;
   const isAvatarMode = cropMode === "avatar";
 
-  // 裁剪源：默认使用 spriteUrl，可切换为 originUrl（如果存在）
+  // 裁剪源：默认使用展示立绘，可切换为“裁剪原图”版本。
   const [sourceMode, setSourceMode] = useState<"sprite" | "origin">("sprite");
 
-  // 过滤头像列表：无立绘时允许使用头像作为默认立绘；仍保留 originUrl 作为“原图”裁剪源
-  const filteredAvatars = roleAvatars.filter(avatar => Boolean(getEffectiveSpriteUrl(avatar)) || Boolean(avatar.originUrl));
+  const getStrictSpriteOriginalUrl = useCallback((avatar?: RoleAvatar): string => {
+    return String(avatar?.spriteOriginalUrl ?? "").trim();
+  }, []);
+
+  const getStrictSpriteSourceUrl = useCallback((avatar?: RoleAvatar): string => {
+    const spriteUrl = String(avatar?.spriteUrl ?? "").trim();
+    const spriteOriginalUrl = getStrictSpriteOriginalUrl(avatar);
+    if (sourceMode === "origin") {
+      return spriteOriginalUrl;
+    }
+    return spriteUrl || spriteOriginalUrl;
+  }, [getStrictSpriteOriginalUrl, sourceMode]);
+
+  // 头像裁剪必须来自立绘链路；立绘裁剪保持现有兼容策略。
+  const filteredAvatars = roleAvatars.filter((avatar) => {
+    if (isAvatarMode) {
+      return Boolean(String(avatar?.spriteUrl ?? "").trim() || getStrictSpriteOriginalUrl(avatar));
+    }
+    return Boolean(getEffectiveSpriteUrl(avatar)) || Boolean(getEffectiveSpriteOriginalUrl(avatar));
+  });
   // 批量模式下的当前立绘索引，使用传入的初始索引
   const [currentSpriteIndex, setCurrentSpriteIndex] = useState(() => {
     // 确保初始索引在有效范围内
@@ -121,9 +139,11 @@ export function SpriteCropper({
   }, [isBatchMode, currentSelectedPosition, selectedAvatarIndices, onSpriteIndexChange]);
 
   const currentSourceAvatar = filteredAvatars.length > 0 ? filteredAvatars[currentSpriteIndex] : undefined;
-  const canUseOriginForCurrent = !!currentSourceAvatar?.originUrl;
+  const canUseOriginForCurrent = isAvatarMode
+    ? !!getStrictSpriteOriginalUrl(currentSourceAvatar)
+    : !!getEffectiveSpriteOriginalUrl(currentSourceAvatar);
 
-  // 如果当前头像没有 originUrl，则自动回退到 sprite 模式
+  // 如果当前头像没有可用的裁剪原图，则自动回退到 sprite 模式
   useEffect(() => {
     if (sourceMode === "origin" && !canUseOriginForCurrent) {
       setSourceMode("sprite");
@@ -133,10 +153,13 @@ export function SpriteCropper({
   const getAvatarSourceUrl = useCallback((avatar?: RoleAvatar): string => {
     if (!avatar)
       return "";
-    if (sourceMode === "origin" && avatar.originUrl)
-      return avatar.originUrl;
-    return getEffectiveSpriteUrl(avatar) || avatar.originUrl || "";
-  }, [sourceMode]);
+    if (isAvatarMode) {
+      return getStrictSpriteSourceUrl(avatar);
+    }
+    if (sourceMode === "origin")
+      return getEffectiveSpriteOriginalUrl(avatar);
+    return getEffectiveSpriteUrl(avatar) || getEffectiveSpriteOriginalUrl(avatar) || "";
+  }, [getStrictSpriteSourceUrl, isAvatarMode, sourceMode]);
 
   // 获取当前裁剪源 URL
   const getCurrentSourceUrl = () => {
@@ -916,7 +939,7 @@ export function SpriteCropper({
               onClick={() => {
                 setSourceMode(prev => prev === "sprite" ? "origin" : "sprite");
               }}
-              title={!canUseOriginForCurrent ? "当前头像没有 originUrl" : "切换裁剪源"}
+              title={!canUseOriginForCurrent ? "当前头像没有可用的裁剪原图" : "切换裁剪源"}
             >
               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                 <path fillRule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clipRule="evenodd" />

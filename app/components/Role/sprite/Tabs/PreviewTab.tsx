@@ -22,6 +22,8 @@ interface ReplaceAvatarPayload {
   avatarUrl: string;
   avatarThumbUrl?: string;
   spriteUrl: string;
+  avatarOriginalUrl?: string;
+  spriteOriginalUrl?: string;
   originUrl?: string;
   transform?: Transform;
 }
@@ -290,6 +292,8 @@ export function PreviewTab({
         avatarUrl: payload.avatarUrl || currentAvatar.avatarUrl || "",
         avatarThumbUrl: payload.avatarThumbUrl || payload.avatarUrl || currentAvatar.avatarThumbUrl || currentAvatar.avatarUrl || "",
         spriteUrl: payload.spriteUrl || currentAvatar.spriteUrl || "",
+        avatarOriginalUrl: payload.avatarOriginalUrl ?? currentAvatar.avatarOriginalUrl,
+        spriteOriginalUrl: payload.spriteOriginalUrl ?? currentAvatar.spriteOriginalUrl,
         originUrl: payload.originUrl ?? currentAvatar.originUrl,
         spriteTransform: toSpriteTransformPayload(nextTransform),
       });

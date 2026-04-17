@@ -98,7 +98,7 @@ export function CharacterCopper({
   // 存储用户最初选择的原始图片文件（未裁剪）
   const originalFileRef = useRef<File | null>(null);
 
-  // originUrl：用户选择的原图上传得到的 URL（压缩参数使用 UploadUtils 默认值）
+  // originUrl：用户最初上传的未裁剪源图 URL，用于兼容旧链路
   const [originUrl, setOriginUrl] = useState("");
   const originUrlPromiseRef = useRef<Promise<string> | null>(null);
 
@@ -215,13 +215,13 @@ export function CharacterCopper({
     imgFile.current = file;
     originalFileRef.current = file;
 
-    // 选择文件后立即上传 originUrl（不裁剪），用于后续在裁剪器切换回原图
+    // 选择文件后立即上传未裁剪源图，避免提交很快时还没拿到兼容字段。
     setOriginUrl("");
     originUrlPromiseRef.current = (async () => {
       try {
-        const uploadedImage = await uploadUtils.uploadDualImage(file, scene);
-        setOriginUrl(uploadedImage.originalUrl);
-        return uploadedImage.originalUrl;
+        const uploadedOriginUrl = await uploadUtils.uploadOriginalImg(file, scene);
+        setOriginUrl(uploadedOriginUrl);
+        return uploadedOriginUrl;
       }
       catch (error) {
         console.error("originUrl 上传失败:", error);
@@ -257,14 +257,16 @@ export function CharacterCopper({
 
     let originUrl = "";
     try {
-      originUrl = (await uploadUtils.uploadDualImage(file, scene)).originalUrl;
+      originUrl = await uploadUtils.uploadOriginalImg(file, scene);
     }
     catch (error) {
       console.error("originUrl 上传失败:", error);
     }
 
-    const [spriteUrl, avatarUrl, avatarThumbUrl] = await Promise.all([
+    const [spriteOriginalUrl, spriteUrl, avatarOriginalUrl, avatarUrl, avatarThumbUrl] = await Promise.all([
+      uploadUtils.uploadOriginalImg(spriteFile, scene),
       uploadUtils.uploadImg(spriteFile, scene),
+      uploadUtils.uploadOriginalImg(avatarFile, scene),
       uploadUtils.uploadImg(avatarFile, scene, 60, 512),
       uploadUtils.uploadImg(avatarFile, scene, 60, 128),
     ]);
@@ -273,6 +275,8 @@ export function CharacterCopper({
       avatarUrl,
       avatarThumbUrl,
       spriteUrl,
+      avatarOriginalUrl,
+      spriteOriginalUrl,
       originUrl: originUrl || undefined,
       transform: createDefaultTransform(),
     }, {
@@ -397,13 +401,19 @@ export function CharacterCopper({
       }
       else if (currentStep === 2) {
         // 第二步：上传原始图片和裁剪后的头像
+        const copperedImgFile = await getCroppedFile(`${fileName}-cropped.png`);
+        let spriteOriginalUrl = "";
+        let avatarOriginalUrl = "";
         if (shouldUploadSprite) {
-          downloadUrl = await uploadUtils.uploadImg(fileWithNewName, scene);
+          [spriteOriginalUrl, downloadUrl] = await Promise.all([
+            uploadUtils.uploadOriginalImg(fileWithNewName, scene),
+            uploadUtils.uploadImg(fileWithNewName, scene),
+          ]);
           setDownloadUrl?.(downloadUrl);
         }
         if (shouldUploadAvatar) {
-          const copperedImgFile = await getCroppedFile(`${fileName}-cropped.png`);
-          [copperedDownloadUrl, copperedThumbDownloadUrl] = await Promise.all([
+          [avatarOriginalUrl, copperedDownloadUrl, copperedThumbDownloadUrl] = await Promise.all([
+            uploadUtils.uploadOriginalImg(copperedImgFile, scene),
             uploadUtils.uploadImg(copperedImgFile, scene, 60, 512),
             uploadUtils.uploadImg(copperedImgFile, scene, 60, 128),
           ]);
@@ -417,7 +427,7 @@ export function CharacterCopper({
         }
         if (!resolvedOriginUrl && originalFileRef.current) {
           try {
-            resolvedOriginUrl = (await uploadUtils.uploadDualImage(originalFileRef.current, scene)).originalUrl;
+            resolvedOriginUrl = await uploadUtils.uploadOriginalImg(originalFileRef.current, scene);
             setOriginUrl(resolvedOriginUrl);
           }
           catch (error) {
@@ -430,6 +440,8 @@ export function CharacterCopper({
             avatarUrl: copperedDownloadUrl,
             avatarThumbUrl: copperedThumbDownloadUrl || undefined,
             spriteUrl: downloadUrl,
+            avatarOriginalUrl: avatarOriginalUrl || undefined,
+            spriteOriginalUrl: spriteOriginalUrl || undefined,
             originUrl: resolvedOriginUrl || undefined,
             transform,
           }));

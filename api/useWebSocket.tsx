@@ -50,6 +50,7 @@ import type { CrossTabNotificationGuard } from "@/utils/crossTabNotificationGuar
 import { createCrossTabNotificationGuard } from "@/utils/crossTabNotificationGuard";
 import { showDesktopNotification } from "@/utils/desktopNotification";
 import { invalidateMemberChangeQueries, invalidateRoleChangeQueries } from "./wsInvalidation";
+import { isRunningInsideNativeAppWebView, postNativeAppNotification } from "@/utils/nativeAppBridge";
 
 /**
  * 成员的输入状态（不包含roomId）
@@ -446,6 +447,18 @@ export function useWebSocket() {
       const avatar = userInfo?.avatar;
       const verifyMsg = (req?.verifyMsg ?? event?.data?.verifyMsg ?? "").trim();
 
+      if (isRunningInsideNativeAppWebView()) {
+        const forwarded = postNativeAppNotification({
+          title: `${displayName} 向你发送了好友申请`,
+          body: verifyMsg || "点击查看待处理申请",
+          targetPath: "/chat/private?tab=pending",
+          tag: toastId,
+        });
+        if (forwarded) {
+          return;
+        }
+      }
+
       toast.custom(
         t => (
           <div className={t.visible ? "animate-enter" : "animate-leave"}>
@@ -465,6 +478,18 @@ export function useWebSocket() {
       );
     }
     catch {
+      if (isRunningInsideNativeAppWebView()) {
+        const forwarded = postNativeAppNotification({
+          title: "收到新的好友申请",
+          body: "点击查看待处理申请",
+          targetPath: "/chat/private?tab=pending",
+          tag: toastId,
+        });
+        if (forwarded) {
+          return;
+        }
+      }
+
       // 拉取详情失败时，给一个单次兜底提示（避免“简易 + 详细”双弹窗）。
       toast("收到新的好友申请", {
         id: toastId,
@@ -941,6 +966,19 @@ export function useWebSocket() {
     const displayName = senderNameFromMessage || senderInfo?.username || `用户${message.senderId}`;
     const avatar = senderAvatarFromMessage || senderInfo?.avatarThumbUrl || senderInfo?.avatar;
     const previewText = getDirectMessagePreview(message);
+    const targetPath = `/chat/private/${message.senderId}`;
+
+    if (isRunningInsideNativeAppWebView()) {
+      const forwarded = postNativeAppNotification({
+        title: `${displayName} 给你发来私信`,
+        body: previewText,
+        targetPath,
+        tag: toastId,
+      });
+      if (forwarded) {
+        return;
+      }
+    }
 
     if (shouldShowInAppToast) {
       toast.custom(
@@ -968,7 +1006,7 @@ export function useWebSocket() {
         title: `${displayName} 给你发来私信`,
         body: previewText,
         icon: avatar,
-        targetPath: `/chat/private/${message.senderId}`,
+        targetPath,
         tag: toastId,
       });
     }
@@ -1065,6 +1103,19 @@ export function useWebSocket() {
     const senderAvatar = senderInfo?.avatar || senderInfo?.avatarThumbUrl;
     const previewText = getGroupMessagePreview(chatMessageResponse);
     const targetPath = roomSpaceId == null ? null : `/chat/${roomSpaceId}/${message.roomId}`;
+    const notificationTitle = `${roomName} · ${senderName}`;
+
+    if (isRunningInsideNativeAppWebView()) {
+      const forwarded = postNativeAppNotification({
+        title: notificationTitle,
+        body: previewText,
+        targetPath,
+        tag: toastId,
+      });
+      if (forwarded) {
+        return;
+      }
+    }
 
     if (shouldShowInAppToast) {
       toast.custom(
@@ -1090,7 +1141,7 @@ export function useWebSocket() {
 
     if (shouldShowSystemNotification) {
       void showDesktopNotification({
-        title: `${roomName} · ${senderName}`,
+        title: notificationTitle,
         body: previewText,
         icon: senderAvatar,
         targetPath,
@@ -1116,6 +1167,19 @@ export function useWebSocket() {
     }
 
     const toastId = `user-notification-${notification.notificationId}`;
+    const normalizedTargetPath = normalizeAppTargetPath(notification.targetPath);
+
+    if (isRunningInsideNativeAppWebView()) {
+      const forwarded = postNativeAppNotification({
+        title: notification.title,
+        body: notification.content,
+        targetPath: normalizedTargetPath ?? notification.targetPath,
+        tag: toastId,
+      });
+      if (forwarded) {
+        return;
+      }
+    }
 
     if (canShowInAppToast) {
       toast.custom(
@@ -1125,7 +1189,7 @@ export function useWebSocket() {
               toastId={t.id}
               title={notification.title}
               content={notification.content}
-              targetPath={normalizeAppTargetPath(notification.targetPath)}
+              targetPath={normalizedTargetPath}
             />
           </div>
         ),

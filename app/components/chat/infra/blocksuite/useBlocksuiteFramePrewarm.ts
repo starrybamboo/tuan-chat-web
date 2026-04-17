@@ -4,6 +4,8 @@ import { ensurePrewarmedBlocksuiteFrame } from "./shared/warmFrame";
 
 type UseBlocksuiteFramePrewarmParams = {
   enabled: boolean;
+  eager?: boolean;
+  prewarmKey?: string | number | null;
 };
 
 type IdleCallbackHandle = number;
@@ -16,10 +18,15 @@ type IdleCallbackWindow = Window & typeof globalThis & {
 };
 
 export function useBlocksuiteFramePrewarm(params: UseBlocksuiteFramePrewarmParams) {
-  const { enabled } = params;
+  const { enabled, eager = false, prewarmKey } = params;
 
   useEffect(() => {
     if (!enabled || typeof window === "undefined") {
+      return;
+    }
+
+    if (eager) {
+      void ensurePrewarmedBlocksuiteFrame();
       return;
     }
 
@@ -49,5 +56,5 @@ export function useBlocksuiteFramePrewarm(params: UseBlocksuiteFramePrewarmParam
         window.clearTimeout(timeoutId);
       }
     };
-  }, [enabled]);
+  }, [eager, enabled, prewarmKey]);
 }

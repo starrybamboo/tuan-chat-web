@@ -40,4 +40,15 @@ describe("resolveCurrentRoomRoleId", () => {
       isSpectator: false,
     })).toBe(456);
   });
+
+  it("角色列表未加载完成前，保留上次选择避免被回退值覆盖", () => {
+    expect(resolveCurrentRoomRoleId({
+      storedRoleId: 123,
+      fallbackRoleId: 456,
+      availableRoleIds: new Set(),
+      canValidateStoredRoleId: false,
+      isSpaceOwner: false,
+      isSpectator: false,
+    })).toBe(123);
+  });
 });

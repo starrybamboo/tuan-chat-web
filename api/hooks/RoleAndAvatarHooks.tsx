@@ -657,7 +657,10 @@ export function useApplyCropMutation() {
         // 使用UploadUtils上传图片，场景3表示角色差分
         const { UploadUtils } = await import('../../app/utils/UploadUtils');
         const uploadUtils = new UploadUtils();
-        const newSpriteUrl = await uploadUtils.uploadImg(croppedFile, 3, 0.9, 2560);
+        const [newSpriteOriginalUrl, newSpriteUrl] = await Promise.all([
+          uploadUtils.uploadOriginalImg(croppedFile, 3),
+          uploadUtils.uploadImg(croppedFile, 3, 0.9, 2560),
+        ]);
 
 
         // 直接使用传入的transform参数或默认值
@@ -676,6 +679,9 @@ export function useApplyCropMutation() {
           avatarUrl: currentAvatar.avatarUrl, // 保持原有的avatarUrl
           avatarThumbUrl: currentAvatar.avatarThumbUrl,
           spriteUrl: newSpriteUrl, // 使用新的spriteUrl
+          spriteOriginalUrl: newSpriteOriginalUrl,
+          avatarOriginalUrl: currentAvatar.avatarOriginalUrl,
+          originUrl: currentAvatar.originUrl,
           spriteTransform: toSpriteTransformPayload(finalTransform),
         });
 
@@ -690,6 +696,7 @@ export function useApplyCropMutation() {
           avatarId,
           avatarUrl: currentAvatar.avatarUrl,
           spriteUrl: newSpriteUrl,
+          spriteOriginalUrl: newSpriteOriginalUrl,
           spriteTransform: toSpriteTransformPayload(finalTransform),
         };
         upsertRoleAvatarQueryCaches(queryClient, nextAvatar, roleId);
@@ -736,7 +743,8 @@ export function useApplyCropAvatarMutation() {
         // 使用UploadUtils上传图片，场景2表示头像
         const { UploadUtils } = await import('../../app/utils/UploadUtils');
         const uploadUtils = new UploadUtils();
-        const [newAvatarUrl, newAvatarThumbUrl] = await Promise.all([
+        const [newAvatarOriginalUrl, newAvatarUrl, newAvatarThumbUrl] = await Promise.all([
+          uploadUtils.uploadOriginalImg(croppedFile, 2),
           uploadUtils.uploadImg(croppedFile, 2, 0.9, 2560),
           uploadUtils.uploadImg(croppedFile, 2, 0.8, 128),
         ]);
@@ -748,6 +756,7 @@ export function useApplyCropAvatarMutation() {
           avatarId,
           avatarUrl: newAvatarUrl, // 使用新的avatarUrl
           avatarThumbUrl: newAvatarThumbUrl,
+          avatarOriginalUrl: newAvatarOriginalUrl,
         });
 
         if (!updateRes.success) {
@@ -838,9 +847,31 @@ export function useUpdateAvatarTransformMutation() {
 
 export function useUploadAvatarMutation() {
   const queryClient = useQueryClient();
-  return useMutation<ApiResultRoleAvatar | undefined, Error, { avatarUrl: string; avatarThumbUrl?: string; spriteUrl: string; roleId: number; originUrl?: string; transform?: Transform; autoApply?: boolean; autoNameFirst?: boolean; }>({
+  return useMutation<ApiResultRoleAvatar | undefined, Error, {
+    avatarUrl: string;
+    avatarThumbUrl?: string;
+    spriteUrl: string;
+    roleId: number;
+    avatarOriginalUrl?: string;
+    spriteOriginalUrl?: string;
+    originUrl?: string;
+    transform?: Transform;
+    autoApply?: boolean;
+    autoNameFirst?: boolean;
+  }>({
     mutationKey: ["uploadAvatar"],
-    mutationFn: async ({ avatarUrl, avatarThumbUrl, spriteUrl, roleId, originUrl, transform, autoApply = true, autoNameFirst = false }) => {
+    mutationFn: async ({
+      avatarUrl,
+      avatarThumbUrl,
+      spriteUrl,
+      roleId,
+      avatarOriginalUrl,
+      spriteOriginalUrl,
+      originUrl,
+      transform,
+      autoApply = true,
+      autoNameFirst = false,
+    }) => {
       if (!avatarUrl || !roleId || !spriteUrl) {
         console.error("参数错误：avatarUrl 或 roleId 为空");
         return undefined;
@@ -875,6 +906,8 @@ export function useUploadAvatarMutation() {
             avatarUrl,
             avatarThumbUrl: resolvedAvatarThumbUrl,
             spriteUrl,
+            avatarOriginalUrl,
+            spriteOriginalUrl,
             originUrl,
             spriteTransform: toSpriteTransformPayload(t),
           });

@@ -12,13 +12,7 @@ import { applyRoomMediaAnnotationPreferenceToComposer } from "@/components/chat/
 type UseChatInputHandlersParams = {
   atMentionRef: RefObject<AtMentionHandle | null>;
   handleMessageSubmit: () => void;
-  handleQuickRewrite: (prompt: string) => void;
-  insertLLMMessageIntoText: () => void;
-  llmMessageRef: RefObject<string>;
-  originalTextBeforeRewriteRef: RefObject<string>;
   roomId: number;
-  setInputText: (text: string) => void;
-  setLLMMessage: (text: string) => void;
 };
 
 type UseChatInputHandlersResult = {
@@ -34,13 +28,7 @@ type UseChatInputHandlersResult = {
 export default function useChatInputHandlers({
   atMentionRef,
   handleMessageSubmit,
-  handleQuickRewrite,
-  insertLLMMessageIntoText,
-  llmMessageRef,
-  originalTextBeforeRewriteRef,
   roomId,
-  setInputText,
-  setLLMMessage,
 }: UseChatInputHandlersParams): UseChatInputHandlersResult {
   const isComposingRef = useRef(false);
   const pendingSubmitAfterCompositionRef = useRef(false);
@@ -146,37 +134,13 @@ export default function useChatInputHandlers({
       }
     }
 
-    if (e.key === "Escape" && originalTextBeforeRewriteRef.current) {
-      e.preventDefault();
-      setInputText(originalTextBeforeRewriteRef.current);
-      originalTextBeforeRewriteRef.current = "";
-      setLLMMessage("");
-      toast("已取消重写", { icon: "ℹ️" });
-      return;
-    }
-
     if (e.key === "Enter" && !e.shiftKey && !isComposingRef.current) {
       e.preventDefault();
       requestMessageSubmit();
     }
-    else if (e.key === "Tab") {
-      e.preventDefault();
-      if (llmMessageRef.current) {
-        insertLLMMessageIntoText();
-        return;
-      }
-      const prompt = localStorage.getItem("ai-rewrite-prompt") || "请优化这段文字的表达，使其更加清晰流畅";
-      handleQuickRewrite(prompt);
-    }
   }, [
     atMentionRef,
-    handleQuickRewrite,
-    insertLLMMessageIntoText,
-    llmMessageRef,
-    originalTextBeforeRewriteRef,
     requestMessageSubmit,
-    setInputText,
-    setLLMMessage,
   ]);
 
   const handleKeyUp = useCallback((e: KeyboardEvent) => {

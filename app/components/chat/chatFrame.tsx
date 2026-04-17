@@ -61,6 +61,7 @@ interface ChatFrameProps {
     threadId?: number;
     requestMessageId: number;
   }) => void;
+  isCommandRequestConsumed?: (requestMessageId: number) => boolean;
   spaceName?: string;
   roomName?: string;
   sendMessageWithInsert?: (message: ChatMessageRequest) => Promise<Message | null>;
@@ -79,6 +80,7 @@ function ChatFrame(props: ChatFrameProps) {
     onBackgroundUrlChange,
     onEffectChange,
     onExecuteCommandRequest,
+    isCommandRequestConsumed,
     spaceName,
     roomName,
   } = props;
@@ -487,6 +489,7 @@ function ChatFrame(props: ChatFrameProps) {
     canJumpToWebGAL,
     isMessageMovable,
     onExecuteCommandRequest,
+    isCommandRequestConsumed,
     onEditWebgalChoose: openWebgalChooseEditor,
     onMessageClick: handleMessageClick,
     onToggleSelection: toggleMessageSelection,

@@ -1,8 +1,6 @@
 import type { ChatInputAreaHandle } from "@/components/chat/input/chatInputArea";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import ChatInputArea from "@/components/chat/input/chatInputArea";
-import MessageTextDiffPreview from "@/components/chat/message/diff/MessageTextDiffPreview";
-import { buildMessageTextDiff } from "@/components/chat/message/diff/messageTextDiff";
 import { TextEnhanceRenderer } from "@/components/common/textEnhanceRenderer";
 
 interface EditableMessageContentProps {
@@ -49,11 +47,6 @@ function EditableMessageContent({
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState(content);
   const wasEditingRef = useRef(false);
-  const normalizedOriginalContent = normalizeEditorText(content);
-  const normalizedEditContent = normalizeEditorText(editContent);
-  const editDiff = isEditing && normalizedEditContent !== normalizedOriginalContent
-    ? buildMessageTextDiff(normalizedOriginalContent, normalizedEditContent)
-    : null;
   const getEditorText = useCallback(() => {
     const raw = chatInputRef.current?.getRawElement();
     if (!raw) {
@@ -126,33 +119,23 @@ function EditableMessageContent({
   }
 
   return (
-    <div className="flex flex-col gap-2">
-      <ChatInputArea
-        ref={chatInputRef}
-        className={editorClassName}
-        inputScope="message-edit"
-        placeholder={placeholder}
-        disabled={!canEdit}
-        onInputSync={() => {
-          setEditContent(getEditorText());
-        }}
-        onPasteFiles={() => {}}
-        onKeyDown={handleKeyDown}
-        onKeyUp={() => {}}
-        onMouseDown={() => {}}
-        onCompositionStart={() => {}}
-        onCompositionEnd={() => {}}
-        onBlur={handleBlur}
-      />
-      {editDiff && (
-        <MessageTextDiffPreview
-          diff={editDiff}
-          title="编辑差异"
-          beforeLabel="当前已保存"
-          afterLabel="编辑中的内容"
-        />
-      )}
-    </div>
+    <ChatInputArea
+      ref={chatInputRef}
+      className={editorClassName}
+      inputScope="message-edit"
+      placeholder={placeholder}
+      disabled={!canEdit}
+      onInputSync={() => {
+        setEditContent(getEditorText());
+      }}
+      onPasteFiles={() => {}}
+      onKeyDown={handleKeyDown}
+      onKeyUp={() => {}}
+      onMouseDown={() => {}}
+      onCompositionStart={() => {}}
+      onCompositionEnd={() => {}}
+      onBlur={handleBlur}
+    />
   );
 }
 

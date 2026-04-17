@@ -16,6 +16,7 @@ interface UseChatFrameMessageRendererParams {
     threadId?: number;
     requestMessageId: number;
   }) => void;
+  isCommandRequestConsumed?: (requestMessageId: number) => boolean;
   onEditWebgalChoose?: (messageId: number) => void;
   onMessageClick: (event: MouseEvent<HTMLElement>, messageId: number) => void;
   onToggleSelection?: (messageId: number) => void;
@@ -35,6 +36,7 @@ export default function useChatFrameMessageRenderer({
   canJumpToWebGAL,
   isMessageMovable,
   onExecuteCommandRequest,
+  isCommandRequestConsumed,
   onEditWebgalChoose,
   onMessageClick,
   onToggleSelection,
@@ -61,6 +63,7 @@ export default function useChatFrameMessageRenderer({
         movable={movable}
         isSelecting={isSelecting}
         onExecuteCommandRequest={onExecuteCommandRequest}
+        isCommandRequestConsumed={isCommandRequestConsumed}
         onEditWebgalChoose={onEditWebgalChoose}
         onToggleSelection={onToggleSelection}
         onMessageClick={event => onMessageClick(event, messageId)}
@@ -84,6 +87,7 @@ export default function useChatFrameMessageRenderer({
     onDrop,
     onEditWebgalChoose,
     onExecuteCommandRequest,
+    isCommandRequestConsumed,
     onMessageClick,
     onToggleSelection,
     selectedMessageIds,

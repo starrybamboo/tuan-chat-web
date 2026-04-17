@@ -35,6 +35,7 @@ type ResolveCurrentRoomRoleIdParams = {
   storedRoleId?: number | null;
   fallbackRoleId: number;
   availableRoleIds?: ReadonlySet<number>;
+  canValidateStoredRoleId?: boolean;
   isSpaceOwner: boolean | undefined;
   isSpectator: boolean;
 };
@@ -43,6 +44,7 @@ export function resolveCurrentRoomRoleId({
   storedRoleId,
   fallbackRoleId,
   availableRoleIds,
+  canValidateStoredRoleId = true,
   isSpaceOwner,
   isSpectator,
 }: ResolveCurrentRoomRoleIdParams): number {
@@ -53,9 +55,12 @@ export function resolveCurrentRoomRoleId({
     return fallbackRoleId;
   }
   if (storedRoleId <= 0 && !isSpaceOwner) {
+    if (!canValidateStoredRoleId) {
+      return storedRoleId;
+    }
     return fallbackRoleId;
   }
-  if (storedRoleId > 0 && availableRoleIds && !availableRoleIds.has(storedRoleId)) {
+  if (storedRoleId > 0 && canValidateStoredRoleId && availableRoleIds && !availableRoleIds.has(storedRoleId)) {
     return fallbackRoleId;
   }
   return storedRoleId;
@@ -225,10 +230,14 @@ export default function useRoomRoleState({
   const storedRoleId = curRoleIdMap[roomId];
   // 如果没有可用角色，普通成员默认为“未选择”(0)，主持默认为“旁白”(-1)
   const fallbackRoleId = roomRolesThatUserOwn[0]?.roleId ?? (isSpaceOwner ? -1 : 0);
+  // 角色列表尚未完成加载时，先保留上次选择，避免把持久化值误回退覆盖掉。
+  const canValidateStoredRoleId = isSpectator
+    || (roomRolesQuery.isSuccess && (isSpaceOwner ? roomNpcRolesQuery.isSuccess : userRolesQuery.isSuccess));
   const curRoleId = resolveCurrentRoomRoleId({
     storedRoleId,
     fallbackRoleId,
     availableRoleIds,
+    canValidateStoredRoleId,
     isSpaceOwner,
     isSpectator,
   });

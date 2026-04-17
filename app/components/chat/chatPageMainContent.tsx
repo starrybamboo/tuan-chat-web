@@ -2,6 +2,7 @@ import React from "react";
 import { useSearchParams } from "react-router";
 
 import { useChatPageLayoutContext } from "@/components/chat/chatPageLayoutContext";
+import { useBlocksuiteFramePrewarm } from "@/components/chat/infra/blocksuite/useBlocksuiteFramePrewarm";
 import FriendsPage from "@/components/privateChat/FriendsPage";
 import RightChatView from "@/components/privateChat/RightChatView";
 
@@ -37,6 +38,18 @@ function ChatPageChatContent() {
   const [searchParams] = useSearchParams();
   const previewParam = searchParams.get("preview");
   const isPreviewMode = previewParam === "1" || previewParam === "true";
+  const shouldPrewarmBlocksuiteFrame = !isPrivateChatMode
+    && typeof activeSpaceId === "number"
+    && activeSpaceId > 0
+    && typeof activeRoomId === "number"
+    && Number.isFinite(activeRoomId);
+
+  // 进入真实房间后立即预热共享 warm frame，文档卡片/文档抽屉可直接 claim，避免首开再走整帧冷启动。
+  useBlocksuiteFramePrewarm({
+    enabled: shouldPrewarmBlocksuiteFrame,
+    eager: true,
+    prewarmKey: shouldPrewarmBlocksuiteFrame ? `${activeSpaceId}:${activeRoomId}` : null,
+  });
 
   if (isPrivateChatMode) {
     return activeRoomId
