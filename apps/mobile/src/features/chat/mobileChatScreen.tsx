@@ -1,4 +1,6 @@
 import type { Message } from "@tuanchat/openapi-client/models/Message";
+import type { ComponentProps } from "react";
+import type { MessageSubmitPhase } from "./mobileChatUtils";
 import type { LoginMethod } from "@/features/auth/auth-session";
 import type {
   MobileMessageAttachment,
@@ -8,7 +10,7 @@ import type { MobileMessageMode } from "@/features/messages/mobileMessageCompose
 import { buildMessageDraftsFromUploadedMedia } from "@tuanchat/domain/message-draft";
 import { SymbolView } from "expo-symbols";
 import {
-  type ComponentProps,
+
   startTransition,
   useDeferredValue,
   useEffect,
@@ -26,8 +28,8 @@ import {
   TextInput,
   View,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 
+import { SafeAreaView } from "react-native-safe-area-context";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { BottomTabInset, Spacing } from "@/constants/theme";
@@ -50,12 +52,13 @@ import {
 import { useRoomMessagesLiveSync } from "@/features/messages/useRoomMessagesLiveSync";
 import { useRoomMessagesQuery } from "@/features/messages/useRoomMessagesQuery";
 import { useSendRoomMessageMutation } from "@/features/messages/useSendRoomMessageMutation";
+import { useMobileNotificationSession } from "@/features/notifications/useMobileNotificationSession";
 import { useUserRoomsQuery } from "@/features/rooms/use-user-rooms-query";
 import { useUserActiveSpacesQuery } from "@/features/spaces/use-user-active-spaces-query";
 import { useWorkspaceSession } from "@/features/workspace/workspace-session";
 import { useTheme } from "@/hooks/use-theme";
-import { DEFAULT_TUANCHAT_API_BASE_URL, mobileApiClient } from "@/lib/api";
 
+import { DEFAULT_TUANCHAT_API_BASE_URL, mobileApiClient } from "@/lib/api";
 import { MobileChatComposer } from "./mobileChatComposer";
 import { MobileChatDrawer } from "./mobileChatDrawer";
 import {
@@ -71,9 +74,10 @@ import {
   getMessagePreview,
   getRoomTypeLabel,
   getSpaceStatusLabel,
+
   parsePositiveIntegerInput,
-  type MessageSubmitPhase,
 } from "./mobileChatUtils";
+import { MobileChatWebShell } from "./mobileChatWebShell";
 
 const styles = StyleSheet.create({
   screen: {
@@ -292,7 +296,7 @@ function LoginMethodToggle({
 
   return (
     <View style={styles.loginMethodRow}>
-      {(["username", "userId"] as const).map(method => {
+      {(["username", "userId"] as const).map((method) => {
         const selected = currentMethod === method;
         return (
           <Pressable
@@ -342,7 +346,7 @@ function LoginView({
       <View style={styles.loginHero}>
         <ThemedText type="subtitle">聊天入口</ThemedText>
         <ThemedText themeColor="textSecondary">
-          默认直接进入桌面端窄宽度的暗色聊天壳层，先登录再看实际空间与频道结构。
+          登录后会直接进入网页端小屏聊天工作台本体，保证移动端主聊天页和网页端显示一致。
         </ThemedText>
       </View>
 
@@ -500,11 +504,24 @@ function RoomMessageCard({
 
 export default function MobileChatScreen() {
   const theme = useTheme();
+  const keyboardBehavior = Platform.select<"height" | "padding" | "position" | undefined>({
+    default: undefined,
+    ios: "padding",
+  });
+  const keyboardVerticalOffset = Platform.select({
+    default: 0,
+    ios: 8,
+  }) ?? 0;
   const scrollRef = useRef<ScrollView | null>(null);
   const previousRoomIdRef = useRef<number | null>(null);
   const previousLastMessageIdRef = useRef<number | null>(null);
 
-  const { isAuthenticated, isBootstrapping, isSigningIn, session, signIn, signOut } = useAuthSession();
+  const { isAuthenticated, isBootstrapping, isSigningIn, replaceSession, session, signIn, signOut } = useAuthSession();
+  const {
+    acknowledgeTargetPath,
+    pendingTargetPath,
+    presentNotification,
+  } = useMobileNotificationSession();
   const { selectedSpaceId, selectedRoomId, setSelectedRoomId, setSelectedSpaceId } = useWorkspaceSession();
   const spacesQuery = useUserActiveSpacesQuery();
   const roomsQuery = useUserRoomsQuery(selectedSpaceId);
@@ -759,7 +776,7 @@ export default function MobileChatScreen() {
         return;
       }
 
-      setMessageAttachments(currentAttachments => {
+      setMessageAttachments((currentAttachments) => {
         return mergePickedMessageAttachments(currentAttachments, pickedAttachments);
       });
     }
@@ -850,6 +867,13 @@ export default function MobileChatScreen() {
     await signOut();
   };
 
+  const handleRemoteSessionChange = async (nextSession: typeof session) => {
+    setToolSheetVisible(false);
+    setMembersSheetVisible(false);
+    setSearchSheetVisible(false);
+    await replaceSession(nextSession);
+  };
+
   const handleMobileBack = () => {
     if (membersSheetVisible) {
       setMembersSheetVisible(false);
@@ -879,6 +903,18 @@ export default function MobileChatScreen() {
     );
   }
 
+  if (Platform.OS !== "web") {
+    return (
+      <MobileChatWebShell
+        onNotificationTargetSettled={acknowledgeTargetPath}
+        onPresentNotification={presentNotification}
+        onSessionChange={handleRemoteSessionChange}
+        pendingNotificationTargetPath={pendingTargetPath}
+        session={session}
+      />
+    );
+  }
+
   if (!isAuthenticated) {
     return (
       <ThemedView style={styles.screen}>
@@ -903,8 +939,8 @@ export default function MobileChatScreen() {
     <ThemedView style={styles.screen}>
       <SafeAreaView edges={["top"]} style={styles.safeArea}>
         <KeyboardAvoidingView
-          behavior={Platform.OS === "ios" ? "padding" : undefined}
-          keyboardVerticalOffset={Platform.OS === "ios" ? 8 : 0}
+          behavior={keyboardBehavior}
+          keyboardVerticalOffset={keyboardVerticalOffset}
           style={styles.chatShell}
         >
           <ThemedView type="backgroundSelected" style={styles.chatSurface}>
@@ -987,110 +1023,110 @@ export default function MobileChatScreen() {
                       />
                     )
                   : !selectedRoom
-                    ? (
-                        <StateCard
-                          actionLabel="打开菜单"
-                          description="当前空间下没有可进入房间，先从左侧抽屉切换空间或刷新。"
-                          onPress={() => setDrawerVisible(true)}
-                          title="还没有房间"
-                        />
-                      )
-                    : (
-                        <>
-                          <ScrollView
-                            ref={scrollRef}
-                            style={styles.messageScroll}
-                            contentContainerStyle={styles.messageContent}
-                          >
-                            {roomMessagesQuery.hasNextPage
-                              ? (
-                                  <Pressable
-                                    disabled={roomMessagesQuery.isFetchingNextPage}
-                                    onPress={() => void roomMessagesQuery.fetchNextPage()}
-                                    style={[
-                                      styles.loadMoreButton,
-                                      {
-                                        borderColor: theme.backgroundSelected,
-                                        opacity: roomMessagesQuery.isFetchingNextPage ? 0.65 : 1,
-                                      },
-                                    ]}
-                                  >
-                                    <ThemedText>
-                                      {roomMessagesQuery.isFetchingNextPage ? "正在加载更早消息…" : "加载更早消息"}
-                                    </ThemedText>
-                                  </Pressable>
-                                )
-                              : null}
-
-                            {roomMessagesQuery.isPending && roomMessages.length === 0
-                              ? (
-                                  <View style={styles.stateBlock}>
-                                    <ActivityIndicator />
-                                    <ThemedText themeColor="textSecondary">正在加载消息…</ThemedText>
-                                  </View>
-                                )
-                              : null}
-
-                            {roomMessagesQuery.isError && roomMessages.length === 0
-                              ? (
-                                  <ThemedText style={styles.errorText}>
-                                    {getErrorMessage(roomMessagesQuery.error, "加载消息失败，请稍后重试。")}
-                                  </ThemedText>
-                                )
-                              : null}
-
-                            {roomMessagesQuery.isError && roomMessages.length > 0
-                              ? (
-                                  <ThemedText style={styles.errorText}>
-                                    {getErrorMessage(roomMessagesQuery.error, "消息列表刷新失败，当前先展示已加载内容。")}
-                                  </ThemedText>
-                                )
-                              : null}
-
-                            {!roomMessagesQuery.isPending && roomMessages.length === 0
-                              ? (
-                                  <View style={styles.stateBlock}>
-                                    <ThemedText themeColor="textSecondary">当前房间还没有消息。</ThemedText>
-                                  </View>
-                                )
-                              : null}
-
-                            {roomMessages.map(item => (
-                              <RoomMessageCard
-                                key={String(item.message.messageId)}
-                                currentUserId={currentUserId}
-                                isSelectedAnchor={selectedAnchorMessage?.messageId === item.message.messageId}
-                                message={item.message}
-                                onSelectAnchor={handleSelectMessageAnchor}
-                              />
-                            ))}
-                          </ScrollView>
-
-                          <MobileChatComposer
-                            anchorMessage={selectedAnchorMessage}
-                            canUseAttachments={canUseMessageAttachments}
-                            draftMessage={draftMessage}
-                            draftRoleIdInput={draftRoleIdInput}
-                            errorMessage={messageError}
-                            isSubmitting={isSubmittingMessage}
-                            messageAttachments={messageAttachments}
-                            messageMode={messageMode}
-                            onChangeDraftMessage={setDraftMessage}
-                            onChangeDraftRoleIdInput={setDraftRoleIdInput}
-                            onChangeMessageMode={handleChangeMessageMode}
-                            onClearAnchor={() => setMessageAnchorId(null)}
-                            onClearAttachments={() => setMessageAttachments([])}
-                            onPickAttachment={kind => void handlePickMessageAttachments(kind)}
-                            onRemoveAttachment={(attachmentId) => {
-                              setMessageAttachments(currentAttachments => {
-                                return currentAttachments.filter(attachment => attachment.id !== attachmentId);
-                              });
-                            }}
-                            onSend={() => void handleSendRoomMessage()}
-                            submitPhase={messageSubmitPhase}
+                      ? (
+                          <StateCard
+                            actionLabel="打开菜单"
+                            description="当前空间下没有可进入房间，先从左侧抽屉切换空间或刷新。"
+                            onPress={() => setDrawerVisible(true)}
+                            title="还没有房间"
                           />
-                        </>
-                      )}
+                        )
+                      : (
+                          <>
+                            <ScrollView
+                              ref={scrollRef}
+                              style={styles.messageScroll}
+                              contentContainerStyle={styles.messageContent}
+                            >
+                              {roomMessagesQuery.hasNextPage
+                                ? (
+                                    <Pressable
+                                      disabled={roomMessagesQuery.isFetchingNextPage}
+                                      onPress={() => void roomMessagesQuery.fetchNextPage()}
+                                      style={[
+                                        styles.loadMoreButton,
+                                        {
+                                          borderColor: theme.backgroundSelected,
+                                          opacity: roomMessagesQuery.isFetchingNextPage ? 0.65 : 1,
+                                        },
+                                      ]}
+                                    >
+                                      <ThemedText>
+                                        {roomMessagesQuery.isFetchingNextPage ? "正在加载更早消息…" : "加载更早消息"}
+                                      </ThemedText>
+                                    </Pressable>
+                                  )
+                                : null}
+
+                              {roomMessagesQuery.isPending && roomMessages.length === 0
+                                ? (
+                                    <View style={styles.stateBlock}>
+                                      <ActivityIndicator />
+                                      <ThemedText themeColor="textSecondary">正在加载消息…</ThemedText>
+                                    </View>
+                                  )
+                                : null}
+
+                              {roomMessagesQuery.isError && roomMessages.length === 0
+                                ? (
+                                    <ThemedText style={styles.errorText}>
+                                      {getErrorMessage(roomMessagesQuery.error, "加载消息失败，请稍后重试。")}
+                                    </ThemedText>
+                                  )
+                                : null}
+
+                              {roomMessagesQuery.isError && roomMessages.length > 0
+                                ? (
+                                    <ThemedText style={styles.errorText}>
+                                      {getErrorMessage(roomMessagesQuery.error, "消息列表刷新失败，当前先展示已加载内容。")}
+                                    </ThemedText>
+                                  )
+                                : null}
+
+                              {!roomMessagesQuery.isPending && roomMessages.length === 0
+                                ? (
+                                    <View style={styles.stateBlock}>
+                                      <ThemedText themeColor="textSecondary">当前房间还没有消息。</ThemedText>
+                                    </View>
+                                  )
+                                : null}
+
+                              {roomMessages.map(item => (
+                                <RoomMessageCard
+                                  key={String(item.message.messageId)}
+                                  currentUserId={currentUserId}
+                                  isSelectedAnchor={selectedAnchorMessage?.messageId === item.message.messageId}
+                                  message={item.message}
+                                  onSelectAnchor={handleSelectMessageAnchor}
+                                />
+                              ))}
+                            </ScrollView>
+
+                            <MobileChatComposer
+                              anchorMessage={selectedAnchorMessage}
+                              canUseAttachments={canUseMessageAttachments}
+                              draftMessage={draftMessage}
+                              draftRoleIdInput={draftRoleIdInput}
+                              errorMessage={messageError}
+                              isSubmitting={isSubmittingMessage}
+                              messageAttachments={messageAttachments}
+                              messageMode={messageMode}
+                              onChangeDraftMessage={setDraftMessage}
+                              onChangeDraftRoleIdInput={setDraftRoleIdInput}
+                              onChangeMessageMode={handleChangeMessageMode}
+                              onClearAnchor={() => setMessageAnchorId(null)}
+                              onClearAttachments={() => setMessageAttachments([])}
+                              onPickAttachment={kind => void handlePickMessageAttachments(kind)}
+                              onRemoveAttachment={(attachmentId) => {
+                                setMessageAttachments((currentAttachments) => {
+                                  return currentAttachments.filter(attachment => attachment.id !== attachmentId);
+                                });
+                              }}
+                              onSend={() => void handleSendRoomMessage()}
+                              submitPhase={messageSubmitPhase}
+                            />
+                          </>
+                        )}
               </View>
             </View>
           </ThemedView>

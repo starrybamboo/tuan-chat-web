@@ -3,7 +3,6 @@ import { useCallback, useEffect, useRef } from "react";
 import type { AtMentionHandle } from "@/components/atMentionController";
 import type { ChatInputAreaHandle } from "@/components/chat/input/chatInputArea";
 
-import useAiRewrite from "@/components/chat/room/useAiRewrite";
 import { useChatComposerStore } from "@/components/chat/stores/chatComposerStore";
 import { useChatInputUiStore } from "@/components/chat/stores/chatInputUiStore";
 
@@ -19,7 +18,7 @@ type UseRoomInputControllerResult = {
   handleInputAreaChange: (plainText: string, inputTextWithoutMentions: string, roles: UserRole[]) => void;
   setInputText: (text: string) => void;
   handleSelectCommand: (cmdName: string) => void;
-} & ReturnType<typeof useAiRewrite>;
+};
 
 export default function useRoomInputController({
   roomId,
@@ -44,8 +43,6 @@ export default function useRoomInputController({
     chatInputRef.current?.triggerSync();
   }, []);
 
-  const aiRewrite = useAiRewrite({ chatInputRef, setInputText });
-
   useEffect(() => {
     resetChatInputUi();
     resetChatComposer();
@@ -66,6 +63,5 @@ export default function useRoomInputController({
     handleInputAreaChange,
     handleSelectCommand,
     setInputText,
-    ...aiRewrite,
   };
 }

@@ -190,6 +190,9 @@ export function SpriteSettingsPopup({
 
   // 当前选中的立绘 URL
   const currentSpriteUrl = currentAvatar ? (getEffectiveSpriteUrl(currentAvatar) || null) : null;
+  const currentAvatarCropSourceUrl = currentAvatar
+    ? (String(currentAvatar.spriteUrl ?? "").trim() || String(currentAvatar.spriteOriginalUrl ?? "").trim() || null)
+    : null;
 
   // ========== 上传和删除功能 ==========
   const { mutateAsync: uploadAvatar } = useUploadAvatarMutation();
@@ -799,10 +802,10 @@ export function SpriteSettingsPopup({
             {/* 头像校正内容 */}
             {activeTab === "avatarCropper" && (
               <div className="h-full">
-                {currentSpriteUrl
+                {currentAvatarCropSourceUrl
                   ? (
                       <SpriteCropper
-                        spriteUrl={currentSpriteUrl}
+                        spriteUrl={currentAvatarCropSourceUrl}
                         roleAvatars={roleAvatars}
                         initialSpriteIndex={internalIndex}
                         characterName={characterName}
@@ -869,7 +872,12 @@ export function SpriteSettingsPopup({
                         : (
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                               {trashItems.map((avatar, index) => {
-                                const displayUrl = avatar.avatarUrl || avatar.spriteUrl || avatar.originUrl || "";
+                                const displayUrl = avatar.avatarUrl
+                                  || avatar.avatarOriginalUrl
+                                  || avatar.spriteUrl
+                                  || avatar.spriteOriginalUrl
+                                  || avatar.originUrl
+                                  || "";
                                 const title = typeof avatar.avatarTitle === "string"
                                   ? avatar.avatarTitle
                                   : avatar.avatarTitle?.label;

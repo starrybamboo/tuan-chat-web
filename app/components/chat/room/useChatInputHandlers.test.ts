@@ -3,7 +3,6 @@ import { vi } from "vitest";
 import { useChatComposerStore } from "@/components/chat/stores/chatComposerStore";
 
 const mocks = vi.hoisted(() => ({
-  toastMock: vi.fn(),
   toastErrorMock: vi.fn(),
   preheatChatMediaPreprocessMock: vi.fn(),
   applyRoomMediaAnnotationPreferenceToComposerMock: vi.fn(),
@@ -20,7 +19,7 @@ vi.mock("react", async () => {
 });
 
 vi.mock("react-hot-toast", () => {
-  const toast = Object.assign(mocks.toastMock, {
+  const toast = Object.assign(vi.fn(), {
     error: mocks.toastErrorMock,
   });
   return { toast };
@@ -57,13 +56,7 @@ describe("useChatInputHandlers", () => {
     const hook = useChatInputHandlers({
       atMentionRef: { current: null },
       handleMessageSubmit,
-      handleQuickRewrite: vi.fn(),
-      insertLLMMessageIntoText: vi.fn(),
-      llmMessageRef: { current: "" },
-      originalTextBeforeRewriteRef: { current: "" },
       roomId: 1,
-      setInputText: vi.fn(),
-      setLLMMessage: vi.fn(),
     });
     return {
       handleMessageSubmit,
@@ -106,6 +99,16 @@ describe("useChatInputHandlers", () => {
 
     expect(event.preventDefault).toHaveBeenCalledTimes(1);
     expect(handleMessageSubmit).toHaveBeenCalledTimes(1);
+  });
+
+  it("按 Tab 时不再拦截默认行为", () => {
+    const { handleKeyDown, handleMessageSubmit } = createHook();
+
+    const event = createKeyboardEvent("Tab");
+    handleKeyDown(event);
+
+    expect(event.preventDefault).not.toHaveBeenCalled();
+    expect(handleMessageSubmit).not.toHaveBeenCalled();
   });
 
   it("粘贴普通文件时会提示不支持且不会写入草稿", () => {

@@ -20,7 +20,6 @@ import {
   LinkFilled,
   MusicNote,
   SendIcon,
-  SparklesOutline,
 } from "@/icons";
 
 interface ChatToolbarProps {
@@ -50,8 +49,6 @@ interface ChatToolbarProps {
   disableImportChatText?: boolean;
   onOpenImportChatText?: () => void;
 
-  // AI重写：重写行为由快捷键触发；工具栏仅提供提示词编辑入口
-  onAIRewrite?: (prompt: string) => void;
   // 新增：当前聊天状态 & 手动切换
   currentChatStatus: "idle" | "input" | "wait" | "leave";
   onChangeChatStatus: (status: "idle" | "input" | "wait" | "leave") => void;
@@ -132,9 +129,7 @@ function ChatToolbar({
 }: ChatToolbarProps) {
   const audioInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
-  const aiPromptDropdownRef = useRef<HTMLDivElement>(null);
   const emojiDropdownRef = useRef<HTMLDivElement>(null);
-  const [isAiPromptOpen, setIsAiPromptOpen] = useState(false);
   const [isEmojiOpen, setIsEmojiOpen] = useState(false);
 
   const [isWebgalChooseModalOpen, setIsWebgalChooseModalOpen] = useState(false);
@@ -152,7 +147,6 @@ function ChatToolbar({
       return;
     if (disableImportChatText)
       return;
-    setIsAiPromptOpen(false);
     setIsEmojiOpen(false);
     onOpenImportChatText();
   }, [disableImportChatText, onOpenImportChatText]);
@@ -188,26 +182,13 @@ function ChatToolbar({
     onToggleRunMode();
   }, [onToggleRunMode, onToggleWebgalLinkMode, runModeEnabled, webgalLinkMode]);
 
-  const blurAiPromptFocus = useCallback(() => {
-    const active = document.activeElement;
-    if (active instanceof HTMLElement && aiPromptDropdownRef.current?.contains(active)) {
-      active.blur();
-    }
-  }, []);
-
   useEffect(() => {
     const handlePointerDown = (event: MouseEvent) => {
       const target = event.target as Node;
-      if (aiPromptDropdownRef.current?.contains(target)) {
-        setIsEmojiOpen(false);
-        return;
-      }
       if (emojiDropdownRef.current?.contains(target)) {
-        setIsAiPromptOpen(false);
         return;
       }
 
-      setIsAiPromptOpen(false);
       setIsEmojiOpen(false);
     };
 
@@ -216,20 +197,6 @@ function ChatToolbar({
       document.removeEventListener("mousedown", handlePointerDown, true);
     };
   }, []);
-
-  useEffect(() => {
-    if (isAiPromptOpen) {
-      setIsEmojiOpen(false);
-    }
-    else {
-      blurAiPromptFocus();
-    }
-  }, [isAiPromptOpen, blurAiPromptFocus]);
-
-  useEffect(() => {
-    if (isEmojiOpen)
-      setIsAiPromptOpen(false);
-  }, [isEmojiOpen]);
 
   const handleAudioSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -373,54 +340,6 @@ function ChatToolbar({
         {showMainActions && (
           <div className={`${isStacked ? "flex items-center justify-between gap-2 w-full bg-base-100 rounded-lg px-2 py-1" : "flex items-center gap-2 flex-wrap"}`}>
             <div className="flex items-center gap-2 flex-wrap">
-              {/* AI重写提示词编辑 */}
-              <div
-                ref={aiPromptDropdownRef}
-                className={`dropdown dropdown-top dropdown-start md:dropdown-center pointer-events-auto ${isAiPromptOpen ? "dropdown-open" : ""}`}
-              >
-                <div
-                  role="button"
-                  tabIndex={3}
-                  className="cursor-pointer pointer-events-auto relative"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setIsEmojiOpen(false);
-                    setIsAiPromptOpen(prev => !prev);
-                  }}
-                >
-                  <div
-                    className={isMobile ? "" : "tooltip tooltip-top"}
-                    data-tip={isMobile ? undefined : "编辑AI重写提示词"}
-                  >
-                    <SparklesOutline className="size-6 cursor-pointer jump_icon mt-1 md:mt-0" />
-                  </div>
-                </div>
-                <div
-                  tabIndex={3}
-                  className="dropdown-content bg-base-100 rounded-box p-3 shadow-lg border border-base-300 w-55 md:w-70 z-9999 absolute mb-6"
-                  onClick={e => e.stopPropagation()}
-                >
-                  <div className="flex flex-col gap-2">
-                    <div className="flex items-end justify-between gap-3">
-                      <label className="text-sm font-medium">AI重写提示词</label>
-                      <span className="text-xs opacity-60 select-none">失焦自动保存</span>
-                    </div>
-                    <p className="text-xs opacity-70 leading-snug">
-                      `Tab` 触发 AI 重写；提示词会作为“重写要求”使用。
-                    </p>
-                    <textarea
-                      className="textarea textarea-bordered w-full min-h-28 max-h-48 text-sm leading-relaxed resize-none"
-                      placeholder="例如：请优化这段文字的表达，使其更加清晰流畅"
-                      defaultValue={localStorage.getItem("ai-rewrite-prompt") || "请优化这段文字的表达，使其更加清晰流畅"}
-                      onBlur={(e) => {
-                        if (e.target.value.trim()) {
-                          localStorage.setItem("ai-rewrite-prompt", e.target.value.trim());
-                        }
-                      }}
-                    />
-                  </div>
-                </div>
-              </div>
               <div
                 ref={emojiDropdownRef}
                 className={`dropdown dropdown-top dropdown-start md:dropdown-center ${isEmojiOpen ? "dropdown-open" : ""}`}
@@ -436,7 +355,6 @@ function ChatToolbar({
                       handleBlockedRichMessageAction();
                       return;
                     }
-                    setIsAiPromptOpen(false);
                     setIsEmojiOpen(prev => !prev);
                   }}
                 >

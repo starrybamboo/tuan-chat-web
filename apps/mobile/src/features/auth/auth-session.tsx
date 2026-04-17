@@ -1,7 +1,7 @@
 import { extractOpenApiErrorMessage } from "@tuanchat/domain/open-api-result";
 import type { UserLoginRequest } from "@tuanchat/openapi-client/models/UserLoginRequest";
 import type { PropsWithChildren } from "react";
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useState } from "react";
 
 import { mobileApiClient } from "@/lib/api";
 import { mobileQueryClient } from "@/providers/query-client";
@@ -26,6 +26,7 @@ type AuthSessionContextValue = {
   isBootstrapping: boolean;
   isSigningIn: boolean;
   isAuthenticated: boolean;
+  replaceSession: (session: StoredAuthSession | null) => Promise<void>;
   signIn: (input: LoginInput) => Promise<void>;
   signOut: () => Promise<void>;
 };
@@ -79,6 +80,43 @@ async function performLogin(input: LoginInput): Promise<StoredAuthSession> {
   }
 }
 
+function normalizeStoredAuthSession(session: StoredAuthSession | null): StoredAuthSession | null {
+  if (!session) {
+    return null;
+  }
+
+  const token = typeof session.token === "string" ? session.token.trim() : "";
+  if (!token) {
+    return null;
+  }
+
+  return {
+    token,
+    userId: typeof session.userId === "number" && session.userId > 0 ? session.userId : undefined,
+    username: typeof session.username === "string" && session.username.trim().length > 0
+      ? session.username.trim()
+      : undefined,
+  };
+}
+
+async function enrichStoredAuthSession(session: StoredAuthSession): Promise<StoredAuthSession> {
+  if (session.userId && session.username) {
+    return session;
+  }
+
+  try {
+    const me = await mobileApiClient.userController.getMyUserInfo();
+    return normalizeStoredAuthSession({
+      token: session.token,
+      userId: me.data?.userId ?? session.userId,
+      username: me.data?.username ?? session.username,
+    }) ?? session;
+  }
+  catch {
+    return session;
+  }
+}
+
 export function AuthSessionProvider({ children }: PropsWithChildren) {
   const [session, setSession] = useState<StoredAuthSession | null>(null);
   const [isBootstrapping, setIsBootstrapping] = useState(true);
@@ -100,12 +138,28 @@ export function AuthSessionProvider({ children }: PropsWithChildren) {
     };
   }, []);
 
+  const replaceSession = useCallback(async (nextSession: StoredAuthSession | null) => {
+    const normalizedSession = normalizeStoredAuthSession(nextSession);
+
+    if (!normalizedSession) {
+      await clearStoredAuthSession();
+      setSession(null);
+      mobileQueryClient.clear();
+      return;
+    }
+
+    await writeStoredAuthSession(normalizedSession);
+    const enrichedSession = await enrichStoredAuthSession(normalizedSession);
+    await writeStoredAuthSession(enrichedSession);
+    setSession(enrichedSession);
+    await mobileQueryClient.invalidateQueries();
+  }, []);
+
   const signIn = async (input: LoginInput) => {
     setIsSigningIn(true);
     try {
       const nextSession = await performLogin(input);
-      setSession(nextSession);
-      await mobileQueryClient.invalidateQueries();
+      await replaceSession(nextSession);
     }
     finally {
       setIsSigningIn(false);
@@ -120,9 +174,7 @@ export function AuthSessionProvider({ children }: PropsWithChildren) {
       // best-effort：本地态清理成功即可。
     }
 
-    await clearStoredAuthSession();
-    setSession(null);
-    mobileQueryClient.clear();
+    await replaceSession(null);
   };
 
   return (
@@ -132,6 +184,7 @@ export function AuthSessionProvider({ children }: PropsWithChildren) {
         isBootstrapping,
         isSigningIn,
         isAuthenticated: Boolean(session?.token),
+        replaceSession,
         signIn,
         signOut,
       }}

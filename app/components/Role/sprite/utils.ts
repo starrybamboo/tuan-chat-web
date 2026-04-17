@@ -2,16 +2,41 @@ import type { RoleAvatar } from "api";
 
 import type { Transform } from "./TransformControl";
 
+export function getEffectiveSpriteOriginalUrl(avatar: RoleAvatar | null | undefined): string {
+  const spriteOriginalUrl = String(avatar?.spriteOriginalUrl ?? "").trim();
+  if (spriteOriginalUrl) {
+    return spriteOriginalUrl;
+  }
+
+  // 兼容旧数据：仍允许退回旧的未裁剪源图字段。
+  const originUrl = String(avatar?.originUrl ?? "").trim();
+  if (originUrl) {
+    return originUrl;
+  }
+
+  return getEffectiveSpriteUrl(avatar);
+}
+
 export function getEffectiveSpriteUrl(avatar: RoleAvatar | null | undefined): string {
   const spriteUrl = String(avatar?.spriteUrl ?? "").trim();
   if (spriteUrl) {
     return spriteUrl;
   }
 
+  const spriteOriginalUrl = String(avatar?.spriteOriginalUrl ?? "").trim();
+  if (spriteOriginalUrl) {
+    return spriteOriginalUrl;
+  }
+
   // 无立绘时：使用头像作为默认立绘
   const avatarUrl = String(avatar?.avatarUrl ?? "").trim();
   if (avatarUrl) {
     return avatarUrl;
+  }
+
+  const avatarOriginalUrl = String(avatar?.avatarOriginalUrl ?? "").trim();
+  if (avatarOriginalUrl) {
+    return avatarOriginalUrl;
   }
 
   // 兜底：仍可用原图（如果存在）

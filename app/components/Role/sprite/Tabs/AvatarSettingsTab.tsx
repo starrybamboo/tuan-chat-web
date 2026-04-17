@@ -136,7 +136,12 @@ export function AvatarSettingsTab({
   const avatarDisplayUrl = useMemo(() => {
     if (!currentAvatar)
       return "";
-    return currentAvatar.avatarUrl || currentAvatar.spriteUrl || currentAvatar.originUrl || "";
+    return currentAvatar.avatarUrl
+      || currentAvatar.avatarOriginalUrl
+      || currentAvatar.spriteUrl
+      || currentAvatar.spriteOriginalUrl
+      || currentAvatar.originUrl
+      || "";
   }, [currentAvatar]);
 
   return (

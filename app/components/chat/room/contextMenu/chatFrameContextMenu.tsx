@@ -411,7 +411,7 @@ export default function ChatFrameContextMenu({
             onClose();
           }}
           >
-            在此处插入消息
+            插入消息
           </a>
         </li>
         {

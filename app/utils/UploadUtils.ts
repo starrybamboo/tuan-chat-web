@@ -576,6 +576,15 @@ export class UploadUtils {
   }
 
   /**
+   * 上传原始图片，不走压缩流程。
+   * 适用于需要保留裁剪后无压缩版本的场景。
+   */
+  async uploadOriginalImg(file: File, scene: 1 | 2 | 3 | 4 = 1): Promise<string> {
+    const isGif = await this.isGifFile(file);
+    return await this.uploadImageFileCandidate(file, scene, isGif);
+  }
+
+  /**
    * 上传图片
    * @param file img文件
    * @param scene 上传场景1.聊天室,2.表情包，3.角色差分 4.仓库图片

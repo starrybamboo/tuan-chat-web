@@ -16,7 +16,9 @@ export type { AbilityPageRequest } from './models/AbilityPageRequest';
 export type { AbilitySetRequest } from './models/AbilitySetRequest';
 export type { AbilityUpdateRequest } from './models/AbilityUpdateRequest';
 export type { AbilityUpdateRequest2 } from './models/AbilityUpdateRequest2';
+export type { AiGatewayModelCatalogResponse } from './models/AiGatewayModelCatalogResponse';
 export type { AiGatewayRelayRequest } from './models/AiGatewayRelayRequest';
+export type { ApiResultAiGatewayModelCatalogResponse } from './models/ApiResultAiGatewayModelCatalogResponse';
 export type { ApiResultBlocksuiteDocUpdatePushResponse } from './models/ApiResultBlocksuiteDocUpdatePushResponse';
 export type { ApiResultBlocksuiteDocUpdatesResponse } from './models/ApiResultBlocksuiteDocUpdatesResponse';
 export type { ApiResultBoolean } from './models/ApiResultBoolean';
@@ -201,6 +203,7 @@ export type { MessageDirectSendRequest } from './models/MessageDirectSendRequest
 export type { MessageExtra } from './models/MessageExtra';
 export type { MessageSession } from './models/MessageSession';
 export type { MessageSessionResponse } from './models/MessageSessionResponse';
+export type { ModelOption } from './models/ModelOption';
 export type { MomentFeedRequest } from './models/MomentFeedRequest';
 export type { MomentFeedTotalStatsResponse } from './models/MomentFeedTotalStatsResponse';
 export type { NotificationItemResponse } from './models/NotificationItemResponse';
@@ -321,6 +324,7 @@ export type { SpaceUserDocRenameRequest } from './models/SpaceUserDocRenameReque
 export type { SpaceUserDocResponse } from './models/SpaceUserDocResponse';
 export type { SpaceUserDocTagUpdateRequest } from './models/SpaceUserDocTagUpdateRequest';
 export type { SpriteTransform } from './models/SpriteTransform';
+export type { SseEmitter } from './models/SseEmitter';
 export type { StateEventAtom } from './models/StateEventAtom';
 export type { StateEventExtra } from './models/StateEventExtra';
 export type { StateEventScope } from './models/StateEventScope';

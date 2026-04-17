@@ -33,7 +33,15 @@ export type RoleAvatar = {
      */
     spriteUrl?: string;
     /**
-     * 头像原始url
+     * 头像裁剪后的原图url（不压缩）
+     */
+    avatarOriginalUrl?: string;
+    /**
+     * 立绘裁剪后的原图url（不压缩）
+     */
+    spriteOriginalUrl?: string;
+    /**
+     * 用户上传的未裁剪源图url（兼容旧链路）
      */
     originUrl?: string;
     spriteTransform?: SpriteTransform;

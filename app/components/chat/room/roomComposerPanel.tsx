@@ -38,7 +38,6 @@ interface RoomComposerPanelProps {
   ruleId: number;
 
   handleMessageSubmit: () => Promise<void> | void;
-  onAIRewrite: (prompt: string) => void;
 
   currentChatStatus: any;
   onChangeChatStatus: (status: any) => void;
@@ -93,7 +92,6 @@ function RoomComposerPanelImpl({
   handleSelectCommand,
   ruleId,
   handleMessageSubmit,
-  onAIRewrite,
   currentChatStatus,
   onChangeChatStatus,
   isSpectator,
@@ -288,22 +286,25 @@ function RoomComposerPanelImpl({
   const inputDisabled = noRole && !isKP && !notMember;
   const placeholderText = React.useMemo(() => {
     if (notMember) {
-      return "输入消息…（Shift+Enter 换行，Tab 触发 AI）";
+      return "输入消息…（Shift+Enter 换行）";
     }
     if (noRole && !isKP) {
       return "请选择/拉入你的角色后再发送";
     }
     if (noRole && isKP) {
-      return "旁白模式：输入内容…（Shift+Enter 换行，Tab 触发 AI）";
+      return "旁白模式：输入内容…（Shift+Enter 换行）";
     }
     if (curAvatarId <= 0) {
-      return "请选择角色立绘后发送…（Shift+Enter 换行，Tab 触发 AI）";
+      return "请选择角色立绘后发送…（Shift+Enter 换行）";
     }
     if (threadRootMessageId && composerTarget === "thread") {
-      return "线程回复中…（Shift+Enter 换行，Tab 触发 AI）";
+      return "线程回复中…（Shift+Enter 换行）";
     }
-    return "输入消息…（Shift+Enter 换行，Tab 触发 AI）";
-  }, [composerTarget, curAvatarId, isKP, noRole, notMember, threadRootMessageId]);
+    if (insertAfterMessageId) {
+      return "插入消息中…（Shift+Enter 换行）";
+    }
+    return "输入消息…（Shift+Enter 换行）";
+  }, [composerTarget, curAvatarId, insertAfterMessageId, isKP, noRole, notMember, threadRootMessageId]);
   const inputPlainText = useChatInputUiStore(state => state.plainText);
   const inputTextLength = React.useMemo(() => countTextEnhanceVisibleLength(inputPlainText), [inputPlainText]);
   const roomContentAlertThreshold = useRealtimeRenderStore(state => state.roomContentAlertThreshold);
@@ -373,7 +374,6 @@ function RoomComposerPanelImpl({
     statusWebSocketUtils: webSocketUtils,
     statusExcludeSelf: false,
     handleMessageSubmit,
-    onAIRewrite,
     currentChatStatus,
     onChangeChatStatus,
     isSpectator,
@@ -403,7 +403,6 @@ function RoomComposerPanelImpl({
     isSubmitting,
     noRole,
     notMember,
-    onAIRewrite,
     onChangeChatStatus,
     onClearBackground,
     onClearFigure,
@@ -526,7 +525,7 @@ function RoomComposerPanelImpl({
           {insertAfterMessageId && (
             <div className="p-2 pb-1">
               <div className="flex flex-row gap-2 items-center bg-info/20 border border-info/40 rounded-md shadow-sm text-sm p-2 justify-between">
-                <span className="text-base-content/90 font-medium">将插入到消息后</span>
+                <span className="text-base-content/90 font-medium">插入消息中</span>
                 <button
                   type="button"
                   className="btn btn-xs btn-ghost"

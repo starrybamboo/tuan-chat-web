@@ -106,8 +106,8 @@ pnpm mobile:android:dev
 - 移动端当前不接入 Thread；桌面端也已暂时屏蔽 Thread 入口
 - 已接入房间消息本地缓存（Web 走 `localStorage`，Native 走 `expo-file-system`）
 - 已接入移动端最小 websocket 实时同步，当前只增量同步当前房间主消息流
-- 移动端当前主题暂时固定为深色，优先对齐桌面端窄宽度聊天壳层
-- 登录后默认先展示左侧抽屉展开态，结构调整为“空间 rail + 频道与文档 + 素材包 + 用户卡片”
+- 移动端当前主题暂时固定为浅色，优先对齐用户指定的覆盖式抽屉视觉
+- 登录后默认先展示左侧抽屉展开态，结构调整为“空间列表 + 房间卡片列”的浅色覆盖式双列面板，主消息区保持可见
 - Web 静态导出默认连 `https://tuan.chat/api` 与 `wss://tuan.chat/ws` 方便直接截图验收；原生 Android / iOS 仍默认连本地开发地址
 - 已确认可与 `A_watch_maid` 共用现有 Android 模拟器；并约定通过独立端口避免与 `watch-maid` 的 Metro 冲突
 - 已补本地 Android dev build 调试脚本，固定共享 AVD、分离构建 SDK / 模拟器 SDK，并完成共享模拟器实测

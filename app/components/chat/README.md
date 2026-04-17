@@ -502,8 +502,7 @@ if (isNarrator) {
 
 - `Enter`：发送消息
 - `Shift+Enter`：换行
-- `Tab`：触发 AI 重写；当存在 AI 虚影结果时，`Tab` 直接接受
-- `Esc`：取消 AI 重写并恢复原文
+- `Tab`：保持浏览器默认焦点切换行为
 
 **业务流程**：
 
