@@ -190,7 +190,8 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
   const modeSelectorContainerRef = useRef<HTMLDivElement | null>(null);
   const activeModeOption = MODE_OPTIONS.find(option => option.value === uiMode) ?? MODE_OPTIONS[0];
   const isSimpleCustomResolution = simpleResolutionSelection === CUSTOM_RESOLUTION_ID;
-  const isSimpleTextEditor = simpleEditorMode === "text";
+  const isSimplePreviewingConverted = Boolean(simpleConverted);
+  const isSimpleTextEditor = simpleEditorMode === "text" && !isSimplePreviewingConverted;
   const isSimpleTagsEditor = simpleEditorMode === "tags";
 
   useEffect(() => {
@@ -327,7 +328,7 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
           {uiMode === "simple"
             ? (
                 <div className="flex items-center gap-2">
-                  <div className="font-medium">{isSimpleTagsEditor ? "Prompt Tags" : "提示词 Prompt"}</div>
+                  <div className="font-medium">{isSimpleTagsEditor || isSimplePreviewingConverted ? "NovelAi Tags" : "提示词 Prompt"}</div>
                 </div>
               )
             : null}
@@ -450,29 +451,24 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
 
                   <div className={`grid transition-all duration-300 ease-out ${isSimpleTagsEditor ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"}`}>
                     <div className="min-h-0 overflow-hidden">
-                      <div className="border-t border-base-300/70 pt-3">
-                        <div className="mb-3 flex items-start justify-between gap-3">
-                          <div>
-                            <div className="text-sm font-medium">快速模式 Tags</div>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <button
-                              type="button"
-                              className="btn btn-xs btn-ghost"
-                              onClick={handleReturnToSimpleText}
-                            >
-                              <ArrowCounterClockwise className="size-3.5" weight="bold" />
-                              返回描述
-                            </button>
-                            <button
-                              type="button"
-                              className={`btn btn-xs btn-primary shrink-0 ${canGenerateFromSimpleTags ? "" : "btn-disabled"}`}
-                              disabled={!canGenerateFromSimpleTags}
-                              onClick={() => void handleSimpleGenerateFromTags()}
-                            >
-                              按 tag 出图
-                            </button>
-                          </div>
+                      <div className="flex flex-col gap-3">
+                        <div className="flex items-center justify-end gap-2">
+                          <button
+                            type="button"
+                            className="btn btn-xs btn-ghost"
+                            onClick={handleReturnToSimpleText}
+                          >
+                            <ArrowCounterClockwise className="size-3.5" weight="bold" />
+                            返回描述
+                          </button>
+                          <button
+                            type="button"
+                            className={`btn btn-xs btn-primary shrink-0 ${canGenerateFromSimpleTags ? "" : "btn-disabled"}`}
+                            disabled={!canGenerateFromSimpleTags}
+                            onClick={() => void handleSimpleGenerateFromTags()}
+                          >
+                            按 tag 出图
+                          </button>
                         </div>
                         <div className={editorPanelClassName}>
                           <div className="mb-3 flex items-center gap-2">
@@ -507,7 +503,7 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                             <div className="h-full w-8 rounded-full bg-primary" />
                           </div>
                           <div className="mt-3 flex items-center justify-between text-xs text-base-content/70">
-                            <span>{simplePromptTab === "prompt" ? "Prompt tags" : "Negative tags"}</span>
+                            <span>{simplePromptTab === "prompt" ? "NovelAi Tags" : "Negative tags"}</span>
                             <span>可编辑</span>
                           </div>
                         </div>
