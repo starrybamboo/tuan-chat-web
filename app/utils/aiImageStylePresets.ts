@@ -19,6 +19,7 @@ const STYLE_TAGS_BY_ID: Record<string, AiImageStyleTagConfig> = {
   // 例子（可删）：
   // "anime-clean": { tags: ["anime", "clean lineart", "vibrant colors"] },
   // "cinematic": { tags: ["cinematic lighting", "film grain"], negativeTags: ["lowres"] },
+  rurudo: { tags: ["rurudo"] },
 };
 
 function toStyleTitleFromId(id: string) {
