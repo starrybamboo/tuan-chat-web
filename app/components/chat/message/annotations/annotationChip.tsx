@@ -8,20 +8,23 @@ interface AnnotationChipProps {
   compact?: boolean;
 }
 
+// Use a frosted surface so chips stay legible even on image-heavy backgrounds.
+const CHIP_SURFACE_CLASS = "shadow-sm supports-[backdrop-filter]:backdrop-blur-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/35";
+
 const TONE_STYLES: Record<AnnotationTone, string> = {
-  neutral: "border-base-300/40 bg-base-200/70 text-base-content/70 hover:bg-base-300/70 hover:text-base-content",
-  info: "border-info/30 bg-info/15 text-info hover:bg-info/20",
-  success: "border-success/30 bg-success/15 text-success hover:bg-success/20",
-  warning: "border-warning/30 bg-warning/15 text-warning hover:bg-warning/20",
-  accent: "border-accent/30 bg-accent/15 text-accent hover:bg-accent/20",
-  primary: "border-primary/30 bg-primary/15 text-primary hover:bg-primary/20",
+  neutral: "border-base-300/55 bg-base-100/78 text-base-content/75 hover:border-base-200/75 hover:bg-base-100/88 hover:text-base-content",
+  info: "border-info/40 bg-base-100/78 text-info hover:border-info/60 hover:bg-base-100/88",
+  success: "border-success/40 bg-base-100/78 text-success hover:border-success/60 hover:bg-base-100/88",
+  warning: "border-warning/40 bg-base-100/78 text-warning hover:border-warning/60 hover:bg-base-100/88",
+  accent: "border-accent/40 bg-base-100/78 text-accent hover:border-accent/60 hover:bg-base-100/88",
+  primary: "border-primary/40 bg-base-100/78 text-primary hover:border-primary/60 hover:bg-base-100/88",
 };
 
 function getToneClass(annotation: AnnotationDefinition) {
   const hasImage = Boolean(annotation.iconUrl);
   const isEffect = annotation.category === "特效" && hasImage;
   if (isEffect) {
-    return "border-base-300/60 bg-transparent text-base-content/70 hover:border-base-400";
+    return "border-base-300/65 bg-base-100/64 text-base-content/75 hover:border-base-200/80 hover:bg-base-100/76";
   }
   return TONE_STYLES[annotation.tone ?? "neutral"] ?? TONE_STYLES.neutral;
 }
@@ -42,12 +45,12 @@ export default function AnnotationChip({
     ? (isFigurePositionTag ? (compact ? "px-1.5 min-w-[28px]" : "px-2 min-w-[36px]") : (compact ? "px-2 min-w-[40px]" : "px-3 min-w-[52px]"))
     : (compact ? "w-8" : "w-10");
   const interactiveClass = interactive ? "active:scale-95" : "";
-  const activeClass = active ? "ring-2 ring-primary/30 shadow-sm" : "";
+  const activeClass = active ? "ring-2 ring-primary/35 shadow-md" : "";
 
   return (
     <button
       type="button"
-      className={`inline-flex items-center justify-center ${compact ? "h-7" : "h-9"} rounded-md border transition-all select-none ${sizeClass} ${interactiveClass} ${getToneClass(annotation)} ${activeClass}`}
+      className={`inline-flex items-center justify-center ${compact ? "h-7" : "h-9"} rounded-md border transition-all select-none ${CHIP_SURFACE_CLASS} ${sizeClass} ${interactiveClass} ${getToneClass(annotation)} ${activeClass}`}
       onClick={onClick}
       title={annotation.label}
     >
