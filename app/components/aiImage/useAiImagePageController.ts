@@ -146,6 +146,8 @@ export function useAiImagePageController() {
   const [simpleConverted, setSimpleConverted] = useState<NovelAiNl2TagsResult | null>(null);
   const [simplePrompt, setSimplePrompt] = useState("");
   const [simpleNegativePrompt, setSimpleNegativePrompt] = useState("");
+  const [simpleEditorMode, setSimpleEditorMode] = useState<"text" | "tags">("text");
+  const [simplePromptTab, setSimplePromptTab] = useState<"prompt" | "negative">("prompt");
   const [simpleConverting, setSimpleConverting] = useState(false);
   const [isPageImageDragOver, setIsPageImageDragOver] = useState(false);
   const [isStylePickerOpen, setIsStylePickerOpen] = useState(false);
@@ -367,10 +369,6 @@ export function useAiImagePageController() {
   const applyImportedMetadata = useCallback((settings: NovelAiImportedSettings, selection: MetadataImportSelectionState) => {
     setUiMode("pro");
     setIsPageImageDragOver(false);
-    setSimpleText("");
-    setSimpleConverted(null);
-    setSimpleConvertedFromText("");
-    setSelectedStyleIds([]);
 
     if (selection.settings) {
       setMode("txt2img");
@@ -1035,51 +1033,57 @@ export function useAiImagePageController() {
     showSuccessToast("Inpaint 完成，结果已加入本次绘画与历史记录。");
   }, [inpaintDialogSource, runGenerate, showSuccessToast]);
 
-  const handleSimpleGenerateFromText = useCallback(async () => {
+  const handleSimpleConvertToTags = useCallback(async () => {
     const trimmed = simpleText.trim();
     if (!trimmed) {
       showErrorToast("请先输入一行自然语言描述");
       return;
     }
 
-    let resolvedPrompt = simplePrompt;
-    let resolvedNegativePrompt = simpleNegativePrompt;
-    if (simpleConvertedFromText !== trimmed || !simpleConverted) {
-      setSimpleConverting(true);
-      try {
-        const converted = await convertNaturalLanguageToNovelAiTags({ input: trimmed });
-        setSimpleConverted(converted);
-        setSimpleConvertedFromText(trimmed);
-        setSimplePrompt(converted.prompt);
-        setSimpleNegativePrompt(converted.negativePrompt);
-        resolvedPrompt = converted.prompt;
-        resolvedNegativePrompt = converted.negativePrompt;
-      }
-      catch (e) {
-        const message = e instanceof Error ? e.message : String(e);
-        showErrorToast(message);
-        return;
-      }
-      finally {
-        setSimpleConverting(false);
-      }
+    setSimpleConverting(true);
+    try {
+      const converted = await convertNaturalLanguageToNovelAiTags({ input: trimmed });
+      setSimpleConverted(converted);
+      setSimpleConvertedFromText(trimmed);
+      setSimplePromptTab("prompt");
     }
+    catch (e) {
+      const message = e instanceof Error ? e.message : String(e);
+      showErrorToast(message);
+    }
+    finally {
+      setSimpleConverting(false);
+    }
+  }, [
+    showErrorToast,
+    simpleText,
+  ]);
 
-    if (!String(resolvedPrompt || "").trim()) {
-      showErrorToast("转换结果为空：请重新输入自然语言后再试");
+  const handleAcceptSimpleConverted = useCallback(() => {
+    if (!simpleConverted?.prompt.trim()) {
+      showErrorToast("转换结果为空：请重新转化后再试");
       return;
     }
 
-    await runGenerate({ mode: "txt2img", prompt: resolvedPrompt, negativePrompt: resolvedNegativePrompt });
-  }, [
-    runGenerate,
-    showErrorToast,
-    simpleConverted,
-    simpleConvertedFromText,
-    simpleNegativePrompt,
-    simplePrompt,
-    simpleText,
-  ]);
+    setSimplePrompt(simpleConverted.prompt);
+    setSimpleNegativePrompt(simpleConverted.negativePrompt);
+    setSimpleConverted(null);
+    setSimpleConvertedFromText(simpleText.trim());
+    setSimpleEditorMode("tags");
+    setSimplePromptTab("prompt");
+  }, [showErrorToast, simpleConverted, simpleText]);
+
+  const handleRejectSimpleConverted = useCallback(() => {
+    setSimpleConverted(null);
+    setSimpleConvertedFromText("");
+  }, []);
+
+  const handleReturnToSimpleText = useCallback(() => {
+    setSimpleConverted(null);
+    setSimpleConvertedFromText("");
+    setSimpleEditorMode("text");
+    setSimplePromptTab("prompt");
+  }, []);
 
   const handleSimpleGenerateFromTags = useCallback(async () => {
     if (!simplePrompt.trim()) {
@@ -1553,13 +1557,17 @@ export function useAiImagePageController() {
   const pendingMetadataModelMismatch = pendingMetadataSettings?.model && pendingMetadataSettings.model !== model
     ? `图片内模型为 ${modelLabel(pendingMetadataSettings.model)}，当前页面仍固定使用 ${modelLabel(model)}。`
     : "";
-  const simpleGenerateLabel = loading || simpleConverting ? "出图中..." : pendingPreviewAction ? "处理中..." : "转换并出图";
+  const canConvertSimpleText = !isBusy && Boolean(simpleText.trim());
+  const canGenerateFromSimpleTags = canGenerate && Boolean(simplePrompt.trim());
+  const simpleConvertLabel = simpleConverting ? "转化中..." : loading || pendingPreviewAction ? "处理中..." : "转化为 tags";
 
   const sidebarProps = {
     activeResolutionPreset,
     baseImageDescription,
     canAddVibeReference,
+    canConvertSimpleText,
     canGenerate,
+    canGenerateFromSimpleTags,
     canTriggerProGenerate,
     cfgRescale,
     charPromptTabs,
@@ -1575,10 +1583,13 @@ export function useAiImagePageController() {
     handleMoveV4Char,
     handleRemoveV4Char,
     handleRemoveVibeReference,
+    handleAcceptSimpleConverted,
+    handleRejectSimpleConverted,
     handleResetCurrentImageSettings,
+    handleReturnToSimpleText,
     handleSelectSimpleResolutionPreset,
+    handleSimpleConvertToTags,
     handleSimpleGenerateFromTags,
-    handleSimpleGenerateFromText,
     handleSimpleHeightChange,
     handleSimpleWidthChange,
     handleSwapImageDimensions,
@@ -1635,9 +1646,11 @@ export function useAiImagePageController() {
     setSampler,
     setScale,
     setSeed,
+    setSimpleEditorMode,
     setSimpleConverted,
     setSimpleConvertedFromText,
     setSimpleNegativePrompt,
+    setSimplePromptTab,
     setSimplePrompt,
     setSimpleText,
     setSmea,
@@ -1650,9 +1663,12 @@ export function useAiImagePageController() {
     setV4UseCoords,
     setV4UseOrder,
     setWidth,
+    simpleConvertLabel,
+    simpleConverting,
+    simpleEditorMode,
     simpleConverted,
-    simpleGenerateLabel,
     simpleNegativePrompt,
+    simplePromptTab,
     simplePrompt,
     simpleResolutionArea,
     simpleResolutionSelection,

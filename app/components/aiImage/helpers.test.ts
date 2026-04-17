@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   clampSimpleModeDimension,
   generatedItemKey,
+  mergeTagString,
   historyRowKey,
   historyRowResultMatchKey,
   historyRowToGeneratedItem,
@@ -82,5 +83,13 @@ describe("aiImage helpers", () => {
       imageCount: 1,
       steps: 23,
     })).toBeNull();
+  });
+
+  it("deduplicates merged style tags while keeping quick mode tags editable", () => {
+    expect(mergeTagString("1girl, best quality, cinematic lighting", [
+      "cinematic lighting",
+      "soft light",
+      "best quality",
+    ])).toBe("cinematic lighting, soft light, best quality, 1girl");
   });
 });

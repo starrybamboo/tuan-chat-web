@@ -1,4 +1,5 @@
 import type { AiImagePageController } from "@/components/aiImage/useAiImagePageController";
+import { ArrowCounterClockwise, CheckCircleIcon, CircleNotch, SparkleIcon, XCircleIcon } from "@phosphor-icons/react";
 import { useEffect, useRef, useState } from "react";
 import {
   CUSTOM_RESOLUTION_ID,
@@ -49,7 +50,9 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
     activeResolutionPreset,
     baseImageDescription,
     canAddVibeReference,
+    canConvertSimpleText,
     canGenerate,
+    canGenerateFromSimpleTags,
     canTriggerProGenerate,
     cfgRescale,
     charPromptTabs,
@@ -63,10 +66,13 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
     handleMoveV4Char,
     handleRemoveV4Char,
     handleRemoveVibeReference,
+    handleAcceptSimpleConverted,
+    handleRejectSimpleConverted,
     handleResetCurrentImageSettings,
+    handleReturnToSimpleText,
     handleSelectSimpleResolutionPreset,
+    handleSimpleConvertToTags,
     handleSimpleGenerateFromTags,
-    handleSimpleGenerateFromText,
     handleSimpleHeightChange,
     handleSimpleWidthChange,
     handleSwapImageDimensions,
@@ -122,9 +128,11 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
     setSampler,
     setScale,
     setSeed,
+    setSimpleEditorMode,
     setSimpleConverted,
     setSimpleConvertedFromText,
     setSimpleNegativePrompt,
+    setSimplePromptTab,
     setSimplePrompt,
     setSimpleText,
     setSmea,
@@ -137,9 +145,12 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
     setV4UseCoords,
     setV4UseOrder,
     setWidth,
+    simpleConvertLabel,
+    simpleConverting,
+    simpleEditorMode,
     simpleConverted,
-    simpleGenerateLabel,
     simpleNegativePrompt,
+    simplePromptTab,
     simplePrompt,
     simpleResolutionArea,
     simpleResolutionSelection,
@@ -177,6 +188,8 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
   const modeSelectorContainerRef = useRef<HTMLDivElement | null>(null);
   const activeModeOption = MODE_OPTIONS.find(option => option.value === uiMode) ?? MODE_OPTIONS[0];
   const isSimpleCustomResolution = simpleResolutionSelection === CUSTOM_RESOLUTION_ID;
+  const isSimpleTextEditor = simpleEditorMode === "text";
+  const isSimpleTagsEditor = simpleEditorMode === "tags";
 
   useEffect(() => {
     if (isModeSelectorOpen) {
@@ -312,7 +325,7 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
           {uiMode === "simple"
             ? (
                 <div className="flex items-center gap-2">
-                  <div className="font-medium">提示词 Prompt</div>
+                  <div className="font-medium">{isSimpleTagsEditor ? "Prompt Tags" : "提示词 Prompt"}</div>
                 </div>
               )
             : null}
@@ -320,32 +333,172 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
           {uiMode === "simple"
             ? (
                 <div className="flex flex-col gap-3">
-                  <div className="flex w-full min-w-0 flex-col items-stretch gap-2">
-                    <textarea
-                      className={simplePromptTextareaClassName}
-                      value={simpleText}
-                      onChange={(e) => {
-                        const next = e.target.value;
-                        setSimpleText(next);
-                        if (simpleConverted) {
-                          setSimpleConverted(null);
-                          setSimpleConvertedFromText("");
-                          setSimplePrompt("");
-                          setSimpleNegativePrompt("");
-                          setV4Chars([]);
-                        }
-                      }}
-                      placeholder=""
-                    />
-                    <button
-                      type="button"
-                      className={`btn btn-primary self-start ${canGenerate ? "" : "btn-disabled"}`}
-                      disabled={!canGenerate}
-                      onClick={() => void handleSimpleGenerateFromText()}
-                    >
-                      {simpleGenerateLabel}
-                    </button>
+                  <div className={`grid transition-all duration-300 ease-out ${isSimpleTextEditor ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"}`}>
+                    <div className="min-h-0 overflow-hidden">
+                      <div className="flex w-full min-w-0 flex-col items-stretch gap-2">
+                        <textarea
+                          className={simplePromptTextareaClassName}
+                          value={simpleText}
+                          onChange={(e) => {
+                            const next = e.target.value;
+                            setSimpleText(next);
+                            if (simpleConverted || simplePrompt || simpleNegativePrompt || !isSimpleTextEditor) {
+                              setSimpleConverted(null);
+                              setSimpleConvertedFromText("");
+                              setSimplePrompt("");
+                              setSimpleNegativePrompt("");
+                              setSimpleEditorMode("text");
+                            }
+                          }}
+                          placeholder=""
+                        />
+                        <button
+                          type="button"
+                          className={`btn btn-primary self-start ${canConvertSimpleText ? "" : "btn-disabled"}`}
+                          disabled={!canConvertSimpleText}
+                          onClick={() => void handleSimpleConvertToTags()}
+                        >
+                          {simpleConverting
+                            ? <CircleNotch className="size-4 animate-spin" weight="bold" />
+                            : <SparkleIcon className="size-4" weight="fill" />}
+                          {simpleConvertLabel}
+                        </button>
+                      </div>
+                    </div>
                   </div>
+
+                  <div className={`grid transition-all duration-300 ease-out ${simpleConverted ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"}`}>
+                    <div className="min-h-0 overflow-hidden">
+                      <div className={`rounded-2xl border border-[#D6DCE3] bg-base-100 p-3 shadow-sm transition-all duration-300 ease-out dark:border-[#2A3138] dark:bg-[#1B2026] ${simpleConverted ? "translate-y-0 scale-100" : "translate-y-2 scale-[0.98]"}`}>
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex min-w-0 items-center gap-3">
+                            <div className="flex size-9 shrink-0 items-center justify-center rounded-xl border border-primary/20 bg-primary/10 text-primary">
+                              <SparkleIcon className="size-4" weight="fill" />
+                            </div>
+                            <div className="min-w-0">
+                              <div className="text-sm font-semibold text-base-content">候选 tags</div>
+                              <div className="text-xs text-base-content/55">待确认</div>
+                            </div>
+                          </div>
+                          <div className="rounded-full border border-primary/20 bg-primary/[0.08] px-2 py-1 text-[11px] font-medium text-primary">
+                            预览
+                          </div>
+                        </div>
+
+                        <div className="mt-3 flex items-center gap-2">
+                          <div className={segmentedControlClassName}>
+                            <button
+                              type="button"
+                              className={`${segmentedButtonBaseClassName} ${simplePromptTab === "prompt" ? "bg-base-100 text-base-content shadow-sm" : "bg-transparent text-base-content/60 hover:bg-base-100 hover:text-base-content"}`}
+                              onClick={() => setSimplePromptTab("prompt")}
+                            >
+                              Base Prompt
+                            </button>
+                            <button
+                              type="button"
+                              className={`${segmentedButtonBaseClassName} ${simplePromptTab === "negative" ? "bg-base-100 text-base-content shadow-sm" : "bg-transparent text-base-content/60 hover:bg-base-100 hover:text-base-content"}`}
+                              onClick={() => setSimplePromptTab("negative")}
+                            >
+                              Undesired Content
+                            </button>
+                          </div>
+                        </div>
+
+                        <textarea
+                          className={`${promptTextareaClassName} mt-3 min-h-28 text-sm`}
+                          value={simplePromptTab === "prompt" ? simpleConverted?.prompt ?? "" : simpleConverted?.negativePrompt ?? ""}
+                          readOnly
+                        />
+
+                        <div className="mt-3 flex flex-wrap justify-end gap-2">
+                          <button
+                            type="button"
+                            className="btn btn-ghost btn-sm"
+                            onClick={handleRejectSimpleConverted}
+                          >
+                            <XCircleIcon className="size-4" weight="fill" />
+                            拒绝
+                          </button>
+                          <button
+                            type="button"
+                            className="btn btn-primary btn-sm"
+                            onClick={handleAcceptSimpleConverted}
+                          >
+                            <CheckCircleIcon className="size-4" weight="fill" />
+                            接受
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className={`grid transition-all duration-300 ease-out ${isSimpleTagsEditor ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"}`}>
+                    <div className="min-h-0 overflow-hidden">
+                      <div className="border-t border-base-300/70 pt-3">
+                        <div className="mb-3 flex items-start justify-between gap-3">
+                          <div>
+                            <div className="text-sm font-medium">快速模式 Tags</div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <button
+                              type="button"
+                              className="btn btn-xs btn-ghost"
+                              onClick={handleReturnToSimpleText}
+                            >
+                              <ArrowCounterClockwise className="size-3.5" weight="bold" />
+                              返回描述
+                            </button>
+                            <button
+                              type="button"
+                              className={`btn btn-xs btn-primary shrink-0 ${canGenerateFromSimpleTags ? "" : "btn-disabled"}`}
+                              disabled={!canGenerateFromSimpleTags}
+                              onClick={() => void handleSimpleGenerateFromTags()}
+                            >
+                              按 tag 出图
+                            </button>
+                          </div>
+                        </div>
+                        <div className={editorPanelClassName}>
+                          <div className="mb-3 flex items-center gap-2">
+                            <div className={segmentedControlClassName}>
+                              <button
+                                type="button"
+                                className={`${segmentedButtonBaseClassName} ${simplePromptTab === "prompt" ? "bg-base-100 text-base-content shadow-sm" : "bg-transparent text-base-content/60 hover:bg-base-100 hover:text-base-content"}`}
+                                onClick={() => setSimplePromptTab("prompt")}
+                              >
+                                Base Prompt
+                              </button>
+                              <button
+                                type="button"
+                                className={`${segmentedButtonBaseClassName} ${simplePromptTab === "negative" ? "bg-base-100 text-base-content shadow-sm" : "bg-transparent text-base-content/60 hover:bg-base-100 hover:text-base-content"}`}
+                                onClick={() => setSimplePromptTab("negative")}
+                              >
+                                Undesired Content
+                              </button>
+                            </div>
+                          </div>
+                          <textarea
+                            className={promptTextareaClassName}
+                            value={simplePromptTab === "prompt" ? simplePrompt : simpleNegativePrompt}
+                            onChange={(e) => {
+                              if (simplePromptTab === "prompt")
+                                setSimplePrompt(e.target.value);
+                              else
+                                setSimpleNegativePrompt(e.target.value);
+                            }}
+                          />
+                          <div className="mt-4 h-1 rounded-full bg-base-200">
+                            <div className="h-full w-8 rounded-full bg-primary" />
+                          </div>
+                          <div className="mt-3 flex items-center justify-between text-xs text-base-content/70">
+                            <span>{simplePromptTab === "prompt" ? "Prompt tags" : "Negative tags"}</span>
+                            <span>可编辑</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
                   <div className="flex flex-col gap-2">
                     <div className="flex items-center gap-2">
                       <div className="text-xs opacity-70">画风</div>
@@ -394,62 +547,6 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                           </div>
                         )
                       : null}
-                  </div>
-
-                  <div className="border-t border-base-300/70 pt-3">
-                    <div className="mb-3 flex items-start justify-between gap-3">
-                      <div>
-                        <div className="text-sm font-medium">转换 tags</div>
-                        <div className="mt-1 text-xs leading-5 text-base-content/60">
-                          可直接编辑 tags，生成时会使用这里的内容。
-                        </div>
-                      </div>
-                      <button
-                        type="button"
-                        className={`btn btn-xs btn-primary shrink-0 ${canGenerate ? "" : "btn-disabled"}`}
-                        disabled={!canGenerate}
-                        onClick={() => void handleSimpleGenerateFromTags()}
-                      >
-                        按 tag 出图
-                      </button>
-                    </div>
-                    <div className={editorPanelClassName}>
-                      <div className="mb-3 flex items-center gap-2">
-                        <div className={segmentedControlClassName}>
-                          <button
-                            type="button"
-                            className={`${segmentedButtonBaseClassName} ${proPromptTab === "prompt" ? "bg-base-100 text-base-content shadow-sm" : "bg-transparent text-base-content/60 hover:bg-base-100 hover:text-base-content"}`}
-                            onClick={() => setProPromptTab("prompt")}
-                          >
-                            Base Prompt
-                          </button>
-                          <button
-                            type="button"
-                            className={`${segmentedButtonBaseClassName} ${proPromptTab === "negative" ? "bg-base-100 text-base-content shadow-sm" : "bg-transparent text-base-content/60 hover:bg-base-100 hover:text-base-content"}`}
-                            onClick={() => setProPromptTab("negative")}
-                          >
-                            Undesired Content
-                          </button>
-                        </div>
-                      </div>
-                      <textarea
-                        className={promptTextareaClassName}
-                        value={proPromptTab === "prompt" ? simplePrompt : simpleNegativePrompt}
-                        onChange={(e) => {
-                          if (proPromptTab === "prompt")
-                            setSimplePrompt(e.target.value);
-                          else
-                            setSimpleNegativePrompt(e.target.value);
-                        }}
-                      />
-                      <div className="mt-4 h-1 rounded-full bg-base-200">
-                        <div className="h-full w-8 rounded-full bg-primary" />
-                      </div>
-                      <div className="mt-3 flex items-center justify-between text-xs text-base-content/70">
-                        <span>{proPromptTab === "prompt" ? "Prompt tags" : "Negative tags"}</span>
-                        <span>{proPromptTab === "prompt" ? "可编辑" : "可编辑"}</span>
-                      </div>
-                    </div>
                   </div>
                 </div>
               )
