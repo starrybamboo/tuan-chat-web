@@ -1724,6 +1724,7 @@ export function useAiImagePageController() {
       pinnedPreviewResult,
       isSelectedPreviewPinned,
       isBusy,
+      isGeneratingImage: loading,
       pendingPreviewAction,
       activeDirectorTool,
       directorTool,

@@ -18,6 +18,7 @@ interface AiImagePreviewPaneProps {
   pinnedPreviewResult: GeneratedImageItem | null;
   isSelectedPreviewPinned: boolean;
   isBusy: boolean;
+  isGeneratingImage: boolean;
   pendingPreviewAction: ActivePreviewAction;
   activeDirectorTool: DirectorToolId;
   directorTool: DirectorToolOption;
@@ -78,6 +79,7 @@ export function AiImagePreviewPane({
   pinnedPreviewResult,
   isSelectedPreviewPinned,
   isBusy,
+  isGeneratingImage,
   pendingPreviewAction,
   activeDirectorTool,
   directorTool,
@@ -117,6 +119,20 @@ export function AiImagePreviewPane({
 
   return (
     <div className={`flex min-h-0 flex-1 flex-col gap-3 overflow-auto ${isDirectorToolsOpen ? "bg-base-200 p-4" : "bg-base-200 px-1 py-3"}`}>
+      {!isDirectorToolsOpen && isGeneratingImage
+        ? (
+            <div className="mx-1 rounded-2xl border border-primary/15 bg-base-100/95 px-3 py-3 shadow-sm">
+              <div className="flex items-center justify-between gap-3 text-xs text-base-content/60">
+                <span className="font-medium text-base-content/75">正在生成图像</span>
+                <span>请稍候</span>
+              </div>
+              <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-base-300/70">
+                <div className="h-full w-2/5 rounded-full bg-linear-to-r from-primary/45 via-primary to-primary/55 animate-pulse" />
+              </div>
+            </div>
+          )
+        : null}
+
       {isDirectorToolsOpen
         ? (
             <div className="flex flex-wrap items-center gap-2 rounded-box border border-base-300 bg-base-100 p-3 shadow-sm">
