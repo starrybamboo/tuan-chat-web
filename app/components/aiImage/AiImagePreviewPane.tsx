@@ -119,20 +119,6 @@ export function AiImagePreviewPane({
 
   return (
     <div className={`flex min-h-0 flex-1 flex-col gap-3 overflow-auto ${isDirectorToolsOpen ? "bg-base-200 p-4" : "bg-base-200 px-1 py-3"}`}>
-      {!isDirectorToolsOpen && isGeneratingImage
-        ? (
-            <div className="mx-1 rounded-2xl border border-primary/15 bg-base-100/95 px-3 py-3 shadow-sm">
-              <div className="flex items-center justify-between gap-3 text-xs text-base-content/60">
-                <span className="font-medium text-base-content/75">正在生成图像</span>
-                <span>请稍候</span>
-              </div>
-              <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-base-300/70">
-                <div className="h-full w-2/5 rounded-full bg-linear-to-r from-primary/45 via-primary to-primary/55 animate-pulse" />
-              </div>
-            </div>
-          )
-        : null}
-
       {isDirectorToolsOpen
         ? (
             <div className="flex flex-wrap items-center gap-2 rounded-box border border-base-300 bg-base-100 p-3 shadow-sm">
@@ -370,15 +356,25 @@ export function AiImagePreviewPane({
 
       {!isDirectorToolsOpen
         ? (
-            <div className="relative flex min-h-[520px] flex-1 self-stretch items-center justify-center rounded-box border border-base-300 bg-base-100 p-3 shadow-sm">
+            <div className={`relative flex min-h-[520px] flex-1 self-stretch items-center justify-center overflow-hidden rounded-box border border-base-300 bg-base-100 p-3 shadow-sm transition-colors ${isGeneratingImage ? "bg-primary/[0.03]" : ""}`}>
+              {isGeneratingImage
+                ? (
+                    <>
+                      <div className="pointer-events-none absolute inset-0 bg-primary/[0.05] animate-pulse" />
+                      <div className="pointer-events-none absolute inset-x-0 top-0 z-10 h-1 overflow-hidden bg-base-300/45">
+                        <div className="h-full w-2/5 rounded-full bg-linear-to-r from-primary/40 via-primary to-primary/50 animate-pulse" />
+                      </div>
+                    </>
+                  )
+                : null}
               {selectedPreviewResult
-                ? <img src={selectedPreviewResult.dataUrl} className="max-h-[720px] w-auto rounded-box" alt="result" />
+                ? <img src={selectedPreviewResult.dataUrl} className="relative z-[1] max-h-[720px] w-auto rounded-box" alt="result" />
                 : <EmptyPreviewPlaceholder />}
               {pinnedPreviewResult && !isSelectedPreviewPinned
                 ? (
                     <button
                       type="button"
-                      className="absolute right-3 top-3 overflow-hidden rounded-2xl border border-base-300 bg-base-100/95 p-2 text-left shadow-xl backdrop-blur"
+                      className="absolute right-3 top-3 z-[2] overflow-hidden rounded-2xl border border-base-300 bg-base-100/95 p-2 text-left shadow-xl backdrop-blur"
                       title="切回 pinned 预览"
                       onClick={onSelectPinnedPreview}
                     >
