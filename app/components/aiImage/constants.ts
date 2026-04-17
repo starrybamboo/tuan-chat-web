@@ -20,6 +20,7 @@ export const NOVELAI_FREE_MAX_STEPS = 28;
 export const NOVELAI_FREE_FIXED_IMAGE_COUNT = 1;
 export const NOVELAI_FREE_ONLY_NOTICE = `当前默认禁用大部分会消耗 NovelAI Anlas 的操作；保留免费单张 txt2img，并单独开放 Inpaint（仍限制为单张、${NOVELAI_FREE_MAX_DIMENSION}x${NOVELAI_FREE_MAX_DIMENSION} 以内、steps <= 28）。`;
 export const SIMPLE_MODE_MAX_IMAGE_AREA = 1024 * 1024;
+export const SIMPLE_MODE_CUSTOM_MAX_DIMENSION = 1024;
 
 export const AVAILABLE_MODEL_OPTIONS = [
   "nai-diffusion-4-5-curated",

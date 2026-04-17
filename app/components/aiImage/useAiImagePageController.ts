@@ -53,6 +53,7 @@ import {
   PREVIEW_ACTION_LABELS,
   RESOLUTION_PRESETS,
   SAMPLERS_NAI4,
+  SIMPLE_MODE_CUSTOM_MAX_DIMENSION,
   STORAGE_UI_MODE_KEY,
 } from "@/components/aiImage/constants";
 import {
@@ -365,6 +366,26 @@ export function useAiImagePageController() {
     if (matchedPresetId !== simpleResolutionSelection)
       setSimpleResolutionSelection(matchedPresetId);
   }, [height, inferResolutionSelection, simpleResolutionSelection, uiMode, width]);
+
+  useEffect(() => {
+    if (uiMode !== "simple" || simpleResolutionSelection !== CUSTOM_RESOLUTION_ID)
+      return;
+
+    const nextWidth = Math.min(
+      SIMPLE_MODE_CUSTOM_MAX_DIMENSION,
+      clampToMultipleOf64(width, DEFAULT_PRO_IMAGE_SETTINGS.width),
+    );
+    const nextHeight = Math.min(
+      SIMPLE_MODE_CUSTOM_MAX_DIMENSION,
+      clampToMultipleOf64(height, DEFAULT_PRO_IMAGE_SETTINGS.height),
+    );
+
+    if (nextWidth === width && nextHeight === height)
+      return;
+
+    setWidth(nextWidth);
+    setHeight(nextHeight);
+  }, [height, simpleResolutionSelection, uiMode, width]);
 
   const applyImportedMetadata = useCallback((settings: NovelAiImportedSettings, selection: MetadataImportSelectionState) => {
     setUiMode("pro");
@@ -1409,16 +1430,28 @@ export function useAiImagePageController() {
 
   const handleSimpleWidthChange = useCallback((value: number) => {
     setSimpleResolutionSelection(CUSTOM_RESOLUTION_ID);
-    const nextHeight = clampToMultipleOf64(height, DEFAULT_PRO_IMAGE_SETTINGS.height);
-    const nextWidth = clampSimpleModeDimension(value, nextHeight, width || DEFAULT_PRO_IMAGE_SETTINGS.width);
+    const nextHeight = Math.min(
+      SIMPLE_MODE_CUSTOM_MAX_DIMENSION,
+      clampToMultipleOf64(height, DEFAULT_PRO_IMAGE_SETTINGS.height),
+    );
+    const nextWidth = Math.min(
+      SIMPLE_MODE_CUSTOM_MAX_DIMENSION,
+      clampSimpleModeDimension(value, nextHeight, width || DEFAULT_PRO_IMAGE_SETTINGS.width),
+    );
     setWidth(nextWidth);
     setHeight(nextHeight);
   }, [height, width]);
 
   const handleSimpleHeightChange = useCallback((value: number) => {
     setSimpleResolutionSelection(CUSTOM_RESOLUTION_ID);
-    const nextWidth = clampToMultipleOf64(width, DEFAULT_PRO_IMAGE_SETTINGS.width);
-    const nextHeight = clampSimpleModeDimension(value, nextWidth, height || DEFAULT_PRO_IMAGE_SETTINGS.height);
+    const nextWidth = Math.min(
+      SIMPLE_MODE_CUSTOM_MAX_DIMENSION,
+      clampToMultipleOf64(width, DEFAULT_PRO_IMAGE_SETTINGS.width),
+    );
+    const nextHeight = Math.min(
+      SIMPLE_MODE_CUSTOM_MAX_DIMENSION,
+      clampSimpleModeDimension(value, nextWidth, height || DEFAULT_PRO_IMAGE_SETTINGS.height),
+    );
     setWidth(nextWidth);
     setHeight(nextHeight);
   }, [height, width]);
