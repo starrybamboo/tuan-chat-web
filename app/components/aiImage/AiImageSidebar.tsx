@@ -1,6 +1,5 @@
 import type { AiImagePageController } from "@/components/aiImage/useAiImagePageController";
 import { useEffect, useRef, useState } from "react";
-import { UploadSimple } from "@phosphor-icons/react";
 import {
   CUSTOM_RESOLUTION_ID,
   DEFAULT_PRO_IMAGE_SETTINGS,
@@ -21,7 +20,6 @@ import {
   formatSliderValue,
   modelLabel,
 } from "@/components/aiImage/helpers";
-import { ImgUploader } from "@/components/common/uploader/imgUploader";
 import { ChevronDown } from "@/icons";
 import { ProFeatureSection } from "@/components/aiImage/ProFeatureSection";
 
@@ -49,6 +47,7 @@ type ModeOptionValue = (typeof MODE_OPTIONS)[number]["value"];
 export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
   const {
     activeResolutionPreset,
+    baseImageDescription,
     canAddVibeReference,
     canGenerate,
     canTriggerProGenerate,
@@ -58,13 +57,13 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
     dynamicThresholding,
     handleAddV4Char,
     handleClearSeed,
+    handleClearSourceImage,
     handleClearStyles,
     handleCropToClosestValidSize,
     handleMoveV4Char,
     handleRemoveV4Char,
     handleRemoveVibeReference,
     handleResetCurrentImageSettings,
-    handlePickSourceImage,
     handleSelectSimpleResolutionPreset,
     handleSimpleGenerateFromTags,
     handleSimpleGenerateFromText,
@@ -80,6 +79,7 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
     isDirectorToolsOpen,
     isNAI3,
     isNAI4,
+    isPageImageDragOver,
     isSimpleTagEditorOpen,
     mode,
     model,
@@ -149,6 +149,7 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
     simpleText,
     smea,
     smeaDyn,
+    sourceImageDataUrl,
     steps,
     strength,
     toggleProFeatureSection,
@@ -511,34 +512,22 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                     <div className="mt-4 h-1 rounded-full bg-base-200">
                       <div className="h-full w-8 rounded-full bg-primary" />
                     </div>
-                    <div className="mt-3 flex items-center justify-end gap-2">
+                    <div className="mt-3 flex items-center justify-between text-xs text-base-content/70">
+                      <span>{proPromptTab === "prompt" ? "Quality Tags Enabled" : "UC Preset Enabled"}</span>
                       {proPromptTab === "prompt"
-                        ? (
+                        ? <input type="checkbox" className="toggle toggle-sm" checked={qualityToggle} onChange={e => setQualityToggle(e.target.checked)} />
+                        : (
                             <input
                               type="checkbox"
                               className="toggle toggle-sm"
-                              checked={qualityToggle}
-                              onChange={e => setQualityToggle(e.target.checked)}
-                              aria-label="Quality Tags Enabled"
-                              title="Quality Tags Enabled"
+                              checked={ucPresetEnabled}
+                              onChange={(e) => {
+                                if (e.target.checked)
+                                  setUcPreset(prev => (prev === 2 ? 0 : prev));
+                                else
+                                  setUcPreset(2);
+                              }}
                             />
-                          )
-                        : (
-                            <>
-                              <input
-                                type="checkbox"
-                                className="toggle toggle-sm"
-                                checked={ucPresetEnabled}
-                                onChange={(e) => {
-                                  if (e.target.checked)
-                                    setUcPreset(prev => (prev === 2 ? 0 : prev));
-                                  else
-                                    setUcPreset(2);
-                                }}
-                                aria-label="UC Preset Enabled"
-                                title="UC Preset Enabled"
-                              />
-                            </>
                           )}
                     </div>
                     {proPromptTab === "negative" && ucPresetEnabled
@@ -554,19 +543,50 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                       : null}
                   </div>
 
-                  <ImgUploader
-                    setImg={(file) => {
-                      void handlePickSourceImage(file, { source: "picker", imageCount: 1 });
-                    }}
+                  <ProFeatureSection
+                    title="Add a Base Img (Optional)"
+                    description={baseImageDescription}
+                    badge={sourceImageDataUrl ? "img2img" : null}
+                    open={proFeatureSections.baseImage}
+                    onToggle={() => toggleProFeatureSection("baseImage")}
                   >
-                    <button
-                      type="button"
-                      className="btn btn-sm btn-outline w-full justify-start gap-2 rounded-md transition focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                    <div
+                      className={`space-y-3 rounded-2xl border border-dashed p-3 transition-colors ${isPageImageDragOver ? "border-primary bg-primary/5" : "border-base-300/70 bg-base-200/20"}`}
                     >
-                      <UploadSimple className="size-4" />
-                      <span>上传文件</span>
-                    </button>
-                  </ImgUploader>
+                      {sourceImageDataUrl
+                        ? (
+                            <>
+                              <img
+                                src={sourceImageDataUrl}
+                                alt="base"
+                                className="max-h-52 w-full rounded-2xl border border-base-300 bg-base-200 object-contain"
+                              />
+                              <div className="grid grid-cols-2 gap-2">
+                                <button type="button" className="btn btn-sm" disabled>
+                                  Base Img 已禁用
+                                </button>
+                                <button type="button" className="btn btn-sm btn-ghost" onClick={handleClearSourceImage}>
+                                  Clear
+                                </button>
+                              </div>
+                            </>
+                          )
+                        : (
+                            <button
+                              type="button"
+                              className={`flex min-h-28 w-full items-center justify-center rounded-2xl border px-4 text-sm transition-colors ${isPageImageDragOver ? "border-primary bg-primary/10 text-primary" : "border-dashed border-base-300 bg-base-200/60 text-base-content/70 hover:border-primary hover:text-base-content"}`}
+                            >
+                              {isPageImageDragOver ? "松开读取 metadata" : "拖入 / 粘贴 NovelAI 图片以导入设置"}
+                            </button>
+                          )}
+                      {isPageImageDragOver
+                        ? <div className="text-xs text-primary">整页任意位置松开都会读取图片并尝试解析 NovelAI metadata。</div>
+                        : null}
+                      <div className="text-xs leading-5 text-base-content/60">
+                        支持整页拖拽、上传，或直接按 Ctrl+V 粘贴 NovelAI 图片；若检测到 metadata，可导入 Prompt / 设置 / Seed。Base Img、Vibe Transfer、Precise Reference 当前全部禁用。
+                      </div>
+                    </div>
+                  </ProFeatureSection>
 
                   <ProFeatureSection
                     title="Character Prompts"

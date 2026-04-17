@@ -125,6 +125,7 @@ const DEFAULT_METADATA_IMPORT_SELECTION: MetadataImportSelectionState = {
 };
 
 export function useAiImagePageController() {
+  const sourceFileInputRef = useRef<HTMLInputElement | null>(null);
   const vibeReferenceInputRef = useRef<HTMLInputElement | null>(null);
   const preciseReferenceInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -670,6 +671,14 @@ export function useAiImagePageController() {
     return () => document.removeEventListener("paste", onPaste);
   }, [handlePickSourceImage]);
 
+  const handleClearSourceImage = useCallback(() => {
+    setMode("txt2img");
+    setSourceImageDataUrl("");
+    setSourceImageBase64("");
+    setIsPageImageDragOver(false);
+    setProFeatureSectionOpen("baseImage", true);
+  }, [setProFeatureSectionOpen]);
+
   const handleCloseMetadataImportDialog = useCallback(() => {
     setPendingMetadataImport(null);
     setMetadataImportSelection(DEFAULT_METADATA_IMPORT_SELECTION);
@@ -726,7 +735,8 @@ export function useAiImagePageController() {
     if (!selectedPreviewResult)
       return;
     showErrorToast(getNovelAiFreeOnlyMessage("Base Img / img2img 已禁用；需要局部重绘时，请改用预览区的 Inpaint。"));
-  }, [selectedPreviewResult, showErrorToast]);
+    setProFeatureSectionOpen("baseImage", true);
+  }, [selectedPreviewResult, setProFeatureSectionOpen, showErrorToast]);
 
   const handleToggleDirectorTools = useCallback(() => {
     showErrorToast(getNovelAiFreeOnlyMessage("Director Tools 已禁用。"));
@@ -1525,6 +1535,7 @@ export function useAiImagePageController() {
   const hasReferenceConflict = vibeTransferReferences.length > 0 && Boolean(preciseReference);
   // 对齐 NovelAI 当前入口行为：Vibe Transfer 与 Precise Reference 在 UI 上互斥，避免出现官方面板里不存在的参数组合。
   const canAddVibeReference = false;
+  const baseImageDescription = "Base Img / img2img 仍禁用；局部重绘请从右侧预览工具条进入 Inpaint。";
   const characterPromptDescription = v4Chars.length
     ? `${v4Chars.length} character slot${v4Chars.length > 1 ? "s" : ""} ready.`
     : "Customize separate characters.";
@@ -1548,6 +1559,7 @@ export function useAiImagePageController() {
 
   const sidebarProps = {
     activeResolutionPreset,
+    baseImageDescription,
     canAddVibeReference,
     canGenerate,
     canTriggerProGenerate,
@@ -1559,13 +1571,13 @@ export function useAiImagePageController() {
     freeGenerationViolation,
     handleAddV4Char,
     handleClearSeed,
+    handleClearSourceImage,
     handleClearStyles,
     handleCropToClosestValidSize,
     handleMoveV4Char,
     handleRemoveV4Char,
     handleRemoveVibeReference,
     handleResetCurrentImageSettings,
-    handlePickSourceImage,
     handleSelectSimpleResolutionPreset,
     handleSimpleGenerateFromTags,
     handleSimpleGenerateFromText,
@@ -1651,6 +1663,7 @@ export function useAiImagePageController() {
     simpleText,
     smea,
     smeaDyn,
+    sourceImageDataUrl,
     steps,
     strength,
     toggleProFeatureSection,
@@ -1774,6 +1787,7 @@ export function useAiImagePageController() {
 
   return {
     isPageImageDragOver,
+    sourceFileInputRef,
     vibeReferenceInputRef,
     preciseReferenceInputRef,
     handlePageImageDragEnter,
