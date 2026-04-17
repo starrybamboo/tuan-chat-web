@@ -512,7 +512,7 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                           添加
                         </button>
                         {selectedStyleIds.length
-                          ? <button type="button" className="btn btn-xs btn-ghost" onClick={handleClearStyles}>清空</button>
+                          ? <button type="button" className="btn btn-xs" onClick={handleClearStyles}>清空</button>
                           : null}
                       </div>
                     </div>
