@@ -175,6 +175,7 @@ export function useAiImagePageController() {
       setMode("txt2img");
       setSourceImageDataUrl("");
       setSourceImageBase64("");
+      setIsSimpleTagEditorOpen(true);
     }
   }, [uiMode]);
 
