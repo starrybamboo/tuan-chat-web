@@ -1073,29 +1073,15 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                       <span>种子 (Seed)</span>
                       <span>{seedIsRandom ? "随机模式" : "固定数值"}</span>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <input
-                        className={`flex-1 ${subtleInputClassName}`}
-                        type="number"
-                        value={seedIsRandom ? "" : seed}
-                        placeholder="留空自动使用随机种子"
-                        onChange={(e) => {
-                          const value = e.target.value.trim();
-                          setSeed(value ? Number(value) : -1);
-                        }}
-                      />
-                      <button
-                        type="button"
-                        className="btn btn-sm btn-outline border-base-content/20 shrink-0"
-                        onClick={handleClearSeed}
-                        disabled={seedIsRandom}
-                      >
-                        转为随机
-                      </button>
-                    </div>
-                    <div className="text-xs text-base-content/50">
-                      填入具体种子数值后可复现生成结果。
-                    </div>
+                    <input
+                      className={`w-full appearance-none [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none ${subtleInputClassName}`}
+                      type="number"
+                      value={seedIsRandom ? "" : seed}
+                      onChange={(e) => {
+                        const value = e.target.value.trim();
+                        setSeed(value ? Number(value) : -1);
+                      }}
+                    />
                   </div>
                 </>
               )
