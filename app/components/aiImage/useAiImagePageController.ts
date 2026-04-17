@@ -1085,6 +1085,17 @@ export function useAiImagePageController() {
     setSimplePromptTab("prompt");
   }, []);
 
+  const handleReturnToSimpleTags = useCallback(() => {
+    if (!simplePrompt.trim() && !simpleNegativePrompt.trim()) {
+      showErrorToast("当前没有可返回的 tags");
+      return;
+    }
+    setSimpleConverted(null);
+    setSimpleConvertedFromText(simpleText.trim());
+    setSimpleEditorMode("tags");
+    setSimplePromptTab("prompt");
+  }, [showErrorToast, simpleNegativePrompt, simplePrompt, simpleText]);
+
   const handleSimpleGenerateFromTags = useCallback(async () => {
     if (!simplePrompt.trim()) {
       showErrorToast("prompt 为空：请先补充 tags");
@@ -1559,6 +1570,7 @@ export function useAiImagePageController() {
     : "";
   const canConvertSimpleText = !isBusy && Boolean(simpleText.trim());
   const canGenerateFromSimpleTags = canGenerate && Boolean(simplePrompt.trim());
+  const hasSimpleTagsDraft = Boolean(simplePrompt.trim() || simpleNegativePrompt.trim());
   const simpleConvertLabel = simpleConverting ? "转化中..." : loading || pendingPreviewAction ? "处理中..." : "转化为 tags";
 
   const sidebarProps = {
@@ -1575,6 +1587,7 @@ export function useAiImagePageController() {
     dynamicThresholding,
     fixedModelDescription,
     freeGenerationViolation,
+    hasSimpleTagsDraft,
     handleAddV4Char,
     handleClearSeed,
     handleClearSourceImage,
@@ -1586,6 +1599,7 @@ export function useAiImagePageController() {
     handleAcceptSimpleConverted,
     handleRejectSimpleConverted,
     handleResetCurrentImageSettings,
+    handleReturnToSimpleTags,
     handleReturnToSimpleText,
     handleSelectSimpleResolutionPreset,
     handleSimpleConvertToTags,
