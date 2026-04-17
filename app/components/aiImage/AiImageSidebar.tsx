@@ -31,12 +31,16 @@ const MODE_OPTIONS = [
   {
     value: "simple",
     label: "快速模式",
+    description: "通过自然语言描述角色",
   },
   {
     value: "pro",
     label: "专家模式",
+    description: "通过 NovelAI Tags 描述角色",
   },
 ] as const;
+
+const MODE_MODEL_LABEL = "NAI Diffusion V4.5 Curated";
 
 export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
   const {
@@ -183,7 +187,10 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
               aria-expanded={isModeSelectorOpen}
               onClick={() => setIsModeSelectorOpen(prev => !prev)}
             >
-              <span className="font-medium text-base-content">{activeModeOption.label}</span>
+              <div className="flex min-w-0 items-center gap-2">
+                <span className="font-medium text-base-content">{activeModeOption.label}</span>
+                <span className="truncate text-[11px] text-base-content/45">{MODE_MODEL_LABEL}</span>
+              </div>
               <ChevronDown className={`ml-3 size-4 shrink-0 text-base-content/60 transition-transform ${isModeSelectorOpen ? "rotate-180" : ""}`} />
             </button>
 
@@ -195,20 +202,30 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                           <button
                             key={option.value}
                             type="button"
-                            className={`w-full rounded-md border px-3 py-3 text-left font-medium transition focus:outline-none focus:ring-2 focus:ring-primary/20 ${
+                            className={`w-full rounded-md border px-3 py-3 text-left transition focus:outline-none focus:ring-2 focus:ring-primary/20 ${
                               uiMode === option.value
                                 ? "border-primary bg-primary/5 text-base-content"
                                 : "border-transparent bg-[#F3F5F7] text-base-content/80 hover:border-[#D6DCE3] hover:bg-[#EAEFF4] dark:bg-[#161A1F] dark:hover:border-[#2A3138] dark:hover:bg-[#1B2026]"
                             }`}
                             onClick={() => handleSelectMode(option.value)}
                           >
-                          {option.label}
-                        </button>
-                      ))}
+                            <div className="flex min-w-0 items-center gap-2">
+                              <span className="font-medium">{option.label}</span>
+                              <span className="truncate text-[11px] text-base-content/45">{MODE_MODEL_LABEL}</span>
+                            </div>
+                            <div className="mt-1 text-xs text-base-content/60">
+                              {option.description}
+                            </div>
+                          </button>
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                )
-              : null}
+                  )
+                : null}
+            <div className="mt-2 rounded-md border border-[#D6DCE3] bg-base-100 px-3 py-2 text-xs text-base-content/65 dark:border-[#2A3138] dark:bg-[#12161B]">
+              <span className="font-medium text-base-content/80">{`${activeModeOption.label}：`}</span>
+              {activeModeOption.description}
+            </div>
           </div>
         </div>
       </div>
