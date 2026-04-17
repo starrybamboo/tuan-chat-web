@@ -174,19 +174,6 @@ export default function AiImagePage() {
         : null}
 
       <input
-        ref={controller.sourceFileInputRef}
-        type="file"
-        accept="image/*"
-        className="hidden"
-        onChange={(event) => {
-          const file = event.target.files?.[0];
-          if (!file)
-            return;
-          void controller.handlePickSourceImage(file);
-          event.target.value = "";
-        }}
-      />
-      <input
         ref={controller.vibeReferenceInputRef}
         type="file"
         accept="image/*"
