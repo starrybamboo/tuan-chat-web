@@ -159,7 +159,7 @@ export function getNovelAiFreeGenerationViolation(args: {
   if (args.steps > NOVELAI_FREE_MAX_STEPS)
     return getNovelAiFreeOnlyMessage("当前仅允许 steps <= 28。");
   if (args.width > NOVELAI_FREE_MAX_DIMENSION || args.height > NOVELAI_FREE_MAX_DIMENSION)
-    return getNovelAiFreeOnlyMessage("当前仅允许宽高不超过 1024。");
+    return getNovelAiFreeOnlyMessage(`当前仅允许宽高不超过 ${NOVELAI_FREE_MAX_DIMENSION}。`);
   return null;
 }
 

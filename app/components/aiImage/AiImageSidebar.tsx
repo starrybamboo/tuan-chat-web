@@ -174,10 +174,12 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
   const charTextareaClassName = "textarea textarea-bordered min-h-28 w-full resize-none border-[#D6DCE3] bg-[#F3F5F7] text-base-content leading-7 transition-colors hover:border-primary active:border-primary focus:border-primary focus:bg-primary/[0.03] focus:outline-none dark:border-[#2A3138] dark:bg-[#161A1F] dark:hover:border-primary";
   const subtleInputClassName = "input input-bordered input-sm border-[#D6DCE3] bg-[#F3F5F7] text-base-content dark:border-[#2A3138] dark:bg-[#161A1F]";
   const subtleSelectClassName = "select select-bordered select-sm border-[#D6DCE3] bg-[#F3F5F7] text-base-content dark:border-[#2A3138] dark:bg-[#161A1F]";
+  const compactResolutionInputClassName = "w-full rounded-md border border-[#D6DCE3] bg-base-100 px-3 py-2 text-sm text-base-content transition hover:border-primary focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 dark:border-[#2A3138] dark:bg-[#161A1F]";
   const [isModeSelectorOpen, setIsModeSelectorOpen] = useState(false);
   const [isModeSelectorMounted, setIsModeSelectorMounted] = useState(false);
   const modeSelectorContainerRef = useRef<HTMLDivElement | null>(null);
   const activeModeOption = MODE_OPTIONS.find(option => option.value === uiMode) ?? MODE_OPTIONS[0];
+  const isSimpleCustomResolution = simpleResolutionSelection === CUSTOM_RESOLUTION_ID;
 
   useEffect(() => {
     if (isModeSelectorOpen) {
@@ -899,66 +901,106 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                       <span>{`${width} × ${height}`}</span>
                     </div>
                     <div className="grid grid-cols-2 gap-2">
-                      {RESOLUTION_PRESETS.map(preset => (
-                        <button
-                          key={preset.id}
-                          type="button"
-                          className={`btn btn-sm h-auto min-h-16 py-2 flex flex-col items-center justify-center gap-1.5 ${simpleResolutionSelection === preset.id ? "btn-primary" : "btn-outline"}`}
-                          onClick={() => handleSelectSimpleResolutionPreset(preset.id)}
-                        >
-                          <div className={`border-2 border-current rounded-sm opacity-80 ${preset.id === "portrait" ? "w-4 h-6" : preset.id === "landscape" ? "w-6 h-4" : "w-5 h-5"}`}></div>
-                          <span className="font-normal">{preset.label}</span>
-                        </button>
-                      ))}
+                      {RESOLUTION_PRESETS.map((preset) => {
+                        const isActive = simpleResolutionSelection === preset.id;
+                        return (
+                          <button
+                            key={preset.id}
+                            type="button"
+                            className={`flex min-h-20 flex-col items-center justify-center gap-1.5 rounded-2xl border px-3 py-3 text-center transition focus:outline-none focus:ring-2 focus:ring-primary/20 ${
+                              isActive
+                                ? "border-primary bg-primary/5 shadow-sm dark:bg-primary/10"
+                                : "border-[#D6DCE3] bg-[#F3F5F7] hover:border-primary/40 hover:bg-[#EAEFF4] dark:border-[#2A3138] dark:bg-[#161A1F] dark:hover:bg-[#1B2026]"
+                            }`}
+                            onClick={() => handleSelectSimpleResolutionPreset(preset.id)}
+                          >
+                            <div className={`border-2 border-current rounded-sm opacity-80 ${preset.id === "portrait" ? "w-4 h-6" : preset.id === "landscape" ? "w-6 h-4" : "w-5 h-5"}`} />
+                            <span className="text-sm font-medium">{preset.label}</span>
+                            <span className="text-[11px] leading-none text-base-content/60">{`${preset.width} × ${preset.height}`}</span>
+                          </button>
+                        );
+                      })}
                       <button
                         type="button"
-                        className={`btn btn-sm h-auto min-h-16 py-2 flex flex-col items-center justify-center gap-1.5 ${simpleResolutionSelection === CUSTOM_RESOLUTION_ID ? "btn-primary" : "btn-outline"}`}
+                        className={`flex min-h-20 flex-col items-center justify-center gap-1.5 rounded-2xl border px-3 py-3 text-center transition focus:outline-none focus:ring-2 focus:ring-primary/20 ${
+                          isSimpleCustomResolution
+                            ? "border-primary bg-primary/5 shadow-sm dark:bg-primary/10"
+                            : "border-[#D6DCE3] bg-[#F3F5F7] hover:border-primary/40 hover:bg-[#EAEFF4] dark:border-[#2A3138] dark:bg-[#161A1F] dark:hover:bg-[#1B2026]"
+                        }`}
                         onClick={() => handleSelectSimpleResolutionPreset(CUSTOM_RESOLUTION_ID)}
                       >
-                        <div className="w-5 h-5 border-2 border-current border-dashed rounded-sm opacity-80 relative flex items-center justify-center">
+                        <div className="flex size-5 items-center justify-center rounded-sm border-2 border-dashed border-current opacity-80">
                           <span className="text-[10px] leading-none font-bold">+</span>
                         </div>
-                        <span className="font-normal">自定义</span>
+                        <span className="text-sm font-medium">自定义</span>
+                        <span className="text-[11px] leading-none text-base-content/60">展开右侧输入</span>
                       </button>
                     </div>
                   </div>
 
-                  {simpleResolutionSelection === CUSTOM_RESOLUTION_ID
-                    ? (
-                        <div className="rounded-box border border-base-300 bg-base-200 p-4">
-                          <div className="grid grid-cols-2 gap-3">
+                  <div className={`grid transition-all duration-200 ease-out ${isSimpleCustomResolution ? "mt-1 grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"}`}>
+                    <div className="min-h-0 overflow-hidden">
+                      <div className="grid gap-3 rounded-2xl border border-base-300 bg-base-100/70 p-3 shadow-sm dark:bg-[#161A1F]/80 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
+                        <div className="rounded-xl border border-dashed border-base-300 bg-base-200/50 px-3 py-3 dark:border-[#2A3138] dark:bg-[#1B2026]">
+                          <div className="flex items-center gap-2">
+                            <div className="flex size-9 items-center justify-center rounded-lg border border-primary/20 bg-primary/10 text-base-content">
+                              <span className="text-sm font-semibold">自</span>
+                            </div>
+                            <div className="min-w-0">
+                              <div className="text-sm font-semibold">自定义尺寸</div>
+                              <div className="mt-1 text-xs leading-5 text-base-content/60">右侧直接输入宽高，按 64px 步进对齐。</div>
+                            </div>
+                          </div>
+                          <div className="mt-3 text-xs text-base-content/60">
+                            {`当前：${width} × ${height}`}
+                          </div>
+                          <div className="mt-1 text-xs text-base-content/60">
+                            {`面积：${simpleResolutionArea.toLocaleString()} px`}
+                          </div>
+                        </div>
+                        <div className="rounded-xl border border-base-300 bg-base-100 px-3 py-3 dark:border-[#2A3138] dark:bg-[#161A1F]">
+                          <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-end gap-2">
                             <label className="form-control">
-                              <span className="label-text text-sm">宽 (Width)</span>
+                              <span className="label-text text-xs">宽 (Width)</span>
                               <input
-                                className={subtleInputClassName}
+                                className={compactResolutionInputClassName}
                                 type="number"
                                 min={NOVELAI_DIMENSION_MIN}
+                                max={NOVELAI_FREE_MAX_DIMENSION}
                                 step={NOVELAI_DIMENSION_STEP}
                                 value={width}
                                 onChange={e => handleSimpleWidthChange(Number(e.target.value))}
                               />
                             </label>
+                            <button
+                              type="button"
+                              className="btn btn-square btn-sm btn-outline mb-0.5"
+                              title="交换宽高"
+                              aria-label="交换宽高"
+                              onClick={handleSwapImageDimensions}
+                            >
+                              ×
+                            </button>
                             <label className="form-control">
-                              <span className="label-text text-sm">高 (Height)</span>
+                              <span className="label-text text-xs">高 (Height)</span>
                               <input
-                                className={subtleInputClassName}
+                                className={compactResolutionInputClassName}
                                 type="number"
                                 min={NOVELAI_DIMENSION_MIN}
+                                max={NOVELAI_FREE_MAX_DIMENSION}
                                 step={NOVELAI_DIMENSION_STEP}
                                 value={height}
                                 onChange={e => handleSimpleHeightChange(Number(e.target.value))}
                               />
                             </label>
                           </div>
-                          <div className="mt-3 text-xs text-base-content/60">
-                            自定义尺寸按 NovelAI 规则以 64px 为步进，且宽高都不能超过 1024。
-                          </div>
-                          <div className="mt-1 text-xs text-base-content/60">
-                            {`当前面积：${simpleResolutionArea.toLocaleString()} px`}
+                          <div className="mt-3 text-xs leading-5 text-base-content/60">
+                            {`自定义尺寸按 NovelAI 规则以 64px 为步进，且宽高都不能超过 ${NOVELAI_FREE_MAX_DIMENSION}。`}
                           </div>
                         </div>
-                      )
-                    : null}
+                      </div>
+                    </div>
+                  </div>
 
                   <div className="flex flex-col gap-2">
                     <div className="flex items-center justify-between text-xs text-base-content/70">
@@ -1059,7 +1101,9 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                   </div>
 
                   <div className="rounded-box border border-base-300 bg-base-200/60 px-3 py-2 text-xs leading-5 text-base-content/65">
-                    当前已切到免费模式：尺寸按 64px 步进对齐，宽高都不超过 1024，`Number of Images` 固定为 1。
+                    {`当前已切到免费模式：尺寸按 64px 步进对齐，宽高都不超过 ${NOVELAI_FREE_MAX_DIMENSION}，`}
+                    <code>Number of Images</code>
+                    固定为 1。
                   </div>
 
                   <div className="flex flex-col gap-2">

@@ -1389,16 +1389,16 @@ export function useAiImagePageController() {
 
   const handleSimpleWidthChange = useCallback((value: number) => {
     setSimpleResolutionSelection(CUSTOM_RESOLUTION_ID);
-    const nextHeight = clampToMultipleOf64(height, 1024);
-    const nextWidth = clampSimpleModeDimension(value, nextHeight, width || 1024);
+    const nextHeight = clampToMultipleOf64(height, DEFAULT_PRO_IMAGE_SETTINGS.height);
+    const nextWidth = clampSimpleModeDimension(value, nextHeight, width || DEFAULT_PRO_IMAGE_SETTINGS.width);
     setWidth(nextWidth);
     setHeight(nextHeight);
   }, [height, width]);
 
   const handleSimpleHeightChange = useCallback((value: number) => {
     setSimpleResolutionSelection(CUSTOM_RESOLUTION_ID);
-    const nextWidth = clampToMultipleOf64(width, 1024);
-    const nextHeight = clampSimpleModeDimension(value, nextWidth, height || 1024);
+    const nextWidth = clampToMultipleOf64(width, DEFAULT_PRO_IMAGE_SETTINGS.width);
+    const nextHeight = clampSimpleModeDimension(value, nextWidth, height || DEFAULT_PRO_IMAGE_SETTINGS.height);
     setWidth(nextWidth);
     setHeight(nextHeight);
   }, [height, width]);
