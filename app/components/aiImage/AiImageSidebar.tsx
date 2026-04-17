@@ -431,6 +431,45 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                     </div>
                   </div>
 
+                  <div className="flex flex-col gap-2">
+                    <div className="flex items-center gap-2">
+                      <div className="text-xs opacity-70">画风</div>
+                      <div className="ml-auto flex items-center gap-2">
+                        <button type="button" className="btn btn-xs" onClick={() => setIsStylePickerOpen(true)}>
+                          添加
+                        </button>
+                        {selectedStyleIds.length
+                          ? <button type="button" className="btn btn-xs" onClick={handleClearStyles}>清空</button>
+                          : null}
+                      </div>
+                    </div>
+
+                    {selectedStylePresets.length
+                      ? (
+                          <div className="flex flex-wrap gap-2">
+                            {selectedStylePresets.map((preset) => {
+                              return (
+                                <button
+                                  key={preset.id}
+                                  type="button"
+                                  className="flex items-center gap-2 rounded-box border border-base-300 bg-base-100 pr-2 hover:border-primary"
+                                  onClick={() => setIsStylePickerOpen(true)}
+                                  title="点击继续添加画风"
+                                >
+                                  <div className="w-10 aspect-square rounded-box bg-base-200 overflow-hidden flex items-center justify-center">
+                                    {preset.imageUrl
+                                      ? <img src={preset.imageUrl} alt={preset.title} className="w-full h-full object-cover" />
+                                      : <div className="text-xs opacity-60">{preset.title}</div>}
+                                  </div>
+                                  <div className="text-xs opacity-70 max-w-32 truncate">{preset.title}</div>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        )
+                      : null}
+                  </div>
+
                   <div className={`grid transition-all duration-300 ease-out ${simpleConverted ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"}`}>
                     <div className="min-h-0 overflow-hidden">
                       <div className={`rounded-2xl border border-[#D6DCE3] bg-base-100 p-3 shadow-sm transition-all duration-300 ease-out dark:border-[#2A3138] dark:bg-[#1B2026] ${simpleConverted ? "translate-y-0 scale-100" : "translate-y-2 scale-[0.98]"}`}>
@@ -551,44 +590,6 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                     </div>
                   </div>
 
-                  <div className="flex flex-col gap-2">
-                    <div className="flex items-center gap-2">
-                      <div className="text-xs opacity-70">画风</div>
-                      <div className="ml-auto flex items-center gap-2">
-                        <button type="button" className="btn btn-xs" onClick={() => setIsStylePickerOpen(true)}>
-                          添加
-                        </button>
-                        {selectedStyleIds.length
-                          ? <button type="button" className="btn btn-xs" onClick={handleClearStyles}>清空</button>
-                          : null}
-                      </div>
-                    </div>
-
-                    {selectedStylePresets.length
-                      ? (
-                          <div className="flex flex-wrap gap-2">
-                            {selectedStylePresets.map((preset) => {
-                              return (
-                                <button
-                                  key={preset.id}
-                                  type="button"
-                                  className="flex items-center gap-2 rounded-box border border-base-300 bg-base-100 pr-2 hover:border-primary"
-                                  onClick={() => setIsStylePickerOpen(true)}
-                                  title="点击继续添加画风"
-                                >
-                                  <div className="w-10 aspect-square rounded-box bg-base-200 overflow-hidden flex items-center justify-center">
-                                    {preset.imageUrl
-                                      ? <img src={preset.imageUrl} alt={preset.title} className="w-full h-full object-cover" />
-                                      : <div className="text-xs opacity-60">{preset.title}</div>}
-                                  </div>
-                                  <div className="text-xs opacity-70 max-w-32 truncate">{preset.title}</div>
-                                </button>
-                              );
-                            })}
-                          </div>
-                        )
-                      : null}
-                  </div>
                 </div>
               )
             : (
@@ -1007,19 +1008,19 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
           {uiMode === "simple"
             ? (
                 <>
-                  <div className="grid gap-3 lg:grid-cols-[minmax(0,1.2fr)_220px]">
+                  <div className="flex flex-wrap items-start gap-3">
                     <div className="relative" ref={simpleResolutionSelectorRef}>
                       <button
                         type="button"
-                        className={`flex w-full items-center justify-between rounded-xl border border-[#D6DCE3] bg-[#F3F5F7] px-4 py-3 text-left transition focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 hover:border-primary/40 hover:bg-[#EAEFF4] dark:border-[#2A3138] dark:bg-[#161A1F] dark:hover:bg-[#1B2026] ${isSimpleResolutionSelectorOpen ? "border-primary bg-primary/5 shadow-sm dark:bg-primary/10" : ""}`}
+                        className={`flex h-11 w-[196px] items-center justify-between rounded-xl border border-[#D6DCE3] bg-[#F3F5F7] px-3 py-2 text-left transition focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 hover:border-primary/40 hover:bg-[#EAEFF4] dark:border-[#2A3138] dark:bg-[#161A1F] dark:hover:bg-[#1B2026] ${isSimpleResolutionSelectorOpen ? "border-primary bg-primary/5 shadow-sm dark:bg-primary/10" : ""}`}
                         aria-expanded={isSimpleResolutionSelectorOpen}
                         onClick={() => setIsSimpleResolutionSelectorOpen(prev => !prev)}
                       >
-                        <div className="flex min-w-0 items-center gap-3 text-base-content/80">
+                        <div className="flex min-w-0 items-center gap-2.5 text-base-content/80">
                           {renderSimpleResolutionGlyph(activeSimpleResolutionOption.id)}
-                          <span className="truncate text-sm font-medium tracking-tight">{activeSimpleResolutionOption.label}</span>
+                          <span className="truncate text-xs font-medium tracking-tight">{activeSimpleResolutionOption.label}</span>
                         </div>
-                        <ChevronDown className={`size-5 shrink-0 text-base-content/60 transition-transform ${isSimpleResolutionSelectorOpen ? "rotate-180" : ""}`} />
+                        <ChevronDown className={`size-4 shrink-0 text-base-content/60 transition-transform ${isSimpleResolutionSelectorOpen ? "rotate-180" : ""}`} />
                       </button>
 
                       {isSimpleResolutionSelectorOpen
@@ -1050,7 +1051,7 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                         : null}
                     </div>
 
-                    <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 rounded-xl border border-[#D6DCE3] bg-[#F3F5F7] px-3 py-3 shadow-sm dark:border-[#2A3138] dark:bg-[#161A1F]">
+                    <div className="grid h-11 w-[128px] grid-cols-[minmax(0,1fr)_12px_minmax(0,1fr)] items-center gap-1 rounded-xl border border-[#D6DCE3] bg-[#F3F5F7] px-2 py-2 shadow-sm dark:border-[#2A3138] dark:bg-[#161A1F]">
                       <input
                         className={simpleResolutionValueInputClassName}
                         type="number"
@@ -1060,7 +1061,7 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                         value={width}
                         onChange={e => handleSimpleWidthChange(Number(e.target.value))}
                       />
-                      <span className="text-lg font-medium text-base-content/55">×</span>
+                      <span className="text-center text-sm font-medium text-base-content/55">×</span>
                       <input
                         className={simpleResolutionValueInputClassName}
                         type="number"
