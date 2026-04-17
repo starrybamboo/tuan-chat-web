@@ -399,77 +399,79 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                       : null}
                   </div>
 
-                  <details
-                    className="collapse collapse-arrow border border-base-300 bg-base-100"
-                    open={isSimpleTagEditorOpen}
-                    onToggle={e => setIsSimpleTagEditorOpen((e.currentTarget as HTMLDetailsElement).open)}
-                  >
-                    <summary className="collapse-title pr-12 text-sm font-medium">
-                      已转换 tags
-                      <div className="mt-1 text-xs font-normal text-base-content/60">
-                        默认展开；需要微调时可收起编辑。
-                      </div>
-                    </summary>
-                    <div className="collapse-content pt-0">
-                      <div className={editorPanelClassName}>
-                        <div className="mb-3 flex items-center gap-2">
-                          <div className={segmentedControlClassName}>
+                  <div className="border-t border-base-300/70 pt-3">
+                    <details
+                      className="collapse collapse-arrow"
+                      open={isSimpleTagEditorOpen}
+                      onToggle={e => setIsSimpleTagEditorOpen((e.currentTarget as HTMLDetailsElement).open)}
+                    >
+                      <summary className="collapse-title px-0 pr-12 text-sm font-medium">
+                        已转换 tags
+                        <div className="mt-1 text-xs font-normal text-base-content/60">
+                          默认显示；需要微调时可收起编辑。
+                        </div>
+                      </summary>
+                      <div className="collapse-content px-0 pt-0">
+                        <div className="space-y-3">
+                          <div className="flex items-center gap-2">
+                            <div className={segmentedControlClassName}>
+                              <button
+                                type="button"
+                                className={`${segmentedButtonBaseClassName} ${proPromptTab === "prompt" ? "bg-base-100 text-base-content shadow-sm" : "bg-transparent text-base-content/60 hover:bg-base-100 hover:text-base-content"}`}
+                                onClick={() => setProPromptTab("prompt")}
+                              >
+                                Base Prompt
+                              </button>
+                              <button
+                                type="button"
+                                className={`${segmentedButtonBaseClassName} ${proPromptTab === "negative" ? "bg-base-100 text-base-content shadow-sm" : "bg-transparent text-base-content/60 hover:bg-base-100 hover:text-base-content"}`}
+                                onClick={() => setProPromptTab("negative")}
+                              >
+                                Undesired Content
+                              </button>
+                            </div>
                             <button
                               type="button"
-                              className={`${segmentedButtonBaseClassName} ${proPromptTab === "prompt" ? "bg-base-100 text-base-content shadow-sm" : "bg-transparent text-base-content/60 hover:bg-base-100 hover:text-base-content"}`}
-                              onClick={() => setProPromptTab("prompt")}
+                              className={`btn btn-xs btn-primary ml-auto ${canGenerate ? "" : "btn-disabled"}`}
+                              disabled={!canGenerate}
+                              onClick={() => void handleSimpleGenerateFromTags()}
                             >
-                              Base Prompt
-                            </button>
-                            <button
-                              type="button"
-                              className={`${segmentedButtonBaseClassName} ${proPromptTab === "negative" ? "bg-base-100 text-base-content shadow-sm" : "bg-transparent text-base-content/60 hover:bg-base-100 hover:text-base-content"}`}
-                              onClick={() => setProPromptTab("negative")}
-                            >
-                              Undesired Content
+                              按 tag 出图
                             </button>
                           </div>
-                          <button
-                            type="button"
-                            className={`btn btn-xs btn-primary ml-auto ${canGenerate ? "" : "btn-disabled"}`}
-                            disabled={!canGenerate}
-                            onClick={() => void handleSimpleGenerateFromTags()}
-                          >
-                            按 tag 出图
-                          </button>
+                          <textarea
+                            className={promptTextareaClassName}
+                            value={proPromptTab === "prompt" ? simplePrompt : simpleNegativePrompt}
+                            onChange={(e) => {
+                              if (proPromptTab === "prompt")
+                                setSimplePrompt(e.target.value);
+                              else
+                                setSimpleNegativePrompt(e.target.value);
+                            }}
+                            placeholder={proPromptTab === "prompt" ? "自动转换后的 tags，可继续编辑" : "例如：lowres, bad anatomy"}
+                          />
+                          <div className="h-1 rounded-full bg-base-200">
+                            <div className="h-full w-8 rounded-full bg-primary" />
+                          </div>
+                          <div className="flex items-center justify-between text-xs text-base-content/70">
+                            <span>{proPromptTab === "prompt" ? "自动转换后的 tags，可继续编辑" : "负面 tags（可选）"}</span>
+                            <span>
+                              {proPromptTab === "prompt"
+                                ? (selectedStyleTags.length ? `画风 tags ${selectedStyleTags.length} 个` : "可直接微调")
+                                : (selectedStyleNegativeTags.length ? `画风负面 tags ${selectedStyleNegativeTags.length} 个` : "未附加画风负面 tags")}
+                            </span>
+                          </div>
+                          {proPromptTab === "negative" && selectedStyleNegativeTags.length
+                            ? (
+                                <div className="text-xs text-base-content/60">
+                                  {`画风负面 tags：${selectedStyleNegativeTags.join(", ")}`}
+                                </div>
+                              )
+                            : null}
                         </div>
-                        <textarea
-                          className={promptTextareaClassName}
-                          value={proPromptTab === "prompt" ? simplePrompt : simpleNegativePrompt}
-                          onChange={(e) => {
-                            if (proPromptTab === "prompt")
-                              setSimplePrompt(e.target.value);
-                            else
-                              setSimpleNegativePrompt(e.target.value);
-                          }}
-                          placeholder={proPromptTab === "prompt" ? "自动转换后的 tags，可继续编辑" : "例如：lowres, bad anatomy"}
-                        />
-                        <div className="mt-4 h-1 rounded-full bg-base-200">
-                          <div className="h-full w-8 rounded-full bg-primary" />
-                        </div>
-                        <div className="mt-3 flex items-center justify-between text-xs text-base-content/70">
-                          <span>{proPromptTab === "prompt" ? "自动转换后的 tags，可继续编辑" : "负面 tags（可选）"}</span>
-                          <span>
-                            {proPromptTab === "prompt"
-                              ? (selectedStyleTags.length ? `画风 tags ${selectedStyleTags.length} 个` : "可直接微调")
-                              : (selectedStyleNegativeTags.length ? `画风负面 tags ${selectedStyleNegativeTags.length} 个` : "未附加画风负面 tags")}
-                          </span>
-                        </div>
-                        {proPromptTab === "negative" && selectedStyleNegativeTags.length
-                          ? (
-                              <div className="mt-2 text-xs text-base-content/60">
-                                {`画风负面 tags：${selectedStyleNegativeTags.join(", ")}`}
-                              </div>
-                            )
-                          : null}
                       </div>
-                    </div>
-                  </details>
+                    </details>
+                  </div>
                 </div>
               )
             : (
