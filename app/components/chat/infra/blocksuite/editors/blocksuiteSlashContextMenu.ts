@@ -1,13 +1,11 @@
 import { menu, popMenu, type MenuConfig, type PopupTarget } from "@blocksuite/affine/components/context-menu";
 import { focusBlockEnd } from "@blocksuite/affine-shared/commands";
-import { getClosestBlockComponentByPoint } from "@blocksuite/affine-shared/utils";
 import type { SlashMenuActionItem, SlashMenuContext, SlashMenuItem } from "@blocksuite/affine/widgets/slash-menu";
-import { Point } from "@blocksuite/global/gfx";
 import { html } from "lit";
 
 import type { BlockStdScope } from "@blocksuite/std";
 
-import { BlockComponent, BlockSelection } from "@blocksuite/std";
+import { BlockComponent, BlockSelection, TextSelection } from "@blocksuite/std";
 import { groupBlocksuiteSlashMenuItems, resolveBlocksuiteSlashMenuItems } from "../manager/slashMenuRuntime";
 
 type BlocksuiteEditorElement = HTMLElement & {
@@ -27,33 +25,42 @@ function createPopupTargetFromPoint(x: number, y: number): PopupTarget {
   };
 }
 
-function shouldHandleBlocksuiteContextMenuTarget(target: Element): boolean {
-  if (target.closest("affine-menu, mobile-menu, affine-slash-menu, inner-slash-menu")) {
-    return false;
-  }
-
-  return Boolean(
-    target.closest(".playground-page-editor-container, .affine-page-root-block-container"),
-  );
+function shouldIgnoreBlocksuiteContextMenuTarget(target: Element): boolean {
+  return Boolean(target.closest("affine-menu, mobile-menu, affine-slash-menu, inner-slash-menu"));
 }
 
 function isRootLikeBlock(block: BlockComponent | null): boolean {
   return block?.model.flavour === "affine:page" || block?.model.flavour === "affine:note";
 }
 
-function resolveBlocksuiteContextBlock(
+function resolveBlockById(
   editor: BlocksuiteEditorElement,
-  target: Element,
-  event: MouseEvent,
+  blockId: string | null | undefined,
 ): BlockComponent | null {
-  const blockId = target.closest<HTMLElement>("[data-block-id]")?.dataset.blockId;
-  const directBlock = blockId ? (editor.std?.view.getBlock(blockId) as BlockComponent | null) : null;
-  if (directBlock && !isRootLikeBlock(directBlock)) {
-    return directBlock;
+  if (!blockId) {
+    return null;
   }
 
-  const closestBlock = getClosestBlockComponentByPoint(new Point(event.clientX, event.clientY));
-  return isRootLikeBlock(closestBlock) ? null : closestBlock;
+  const block = editor.std?.view.getBlock(blockId) as BlockComponent | null;
+  return block && !isRootLikeBlock(block) ? block : null;
+}
+
+function resolveSelectedContextBlock(
+  editor: BlocksuiteEditorElement,
+  lastSelectionBlockId: string | null,
+): BlockComponent | null {
+  const selection = editor.std?.host.selection;
+  const selectedBlockId = selection?.find(TextSelection)?.blockId
+    ?? selection?.find(BlockSelection)?.blockId
+    ?? lastSelectionBlockId;
+  return resolveBlockById(editor, selectedBlockId);
+}
+
+function resolveDirectContextBlock(
+  editor: BlocksuiteEditorElement,
+  target: Element,
+): BlockComponent | null {
+  return resolveBlockById(editor, target.closest<HTMLElement>("[data-block-id]")?.dataset.blockId);
 }
 
 function syncSelectionToBlock(std: BlockStdScope, block: BlockComponent) {
@@ -139,19 +146,33 @@ function buildSlashContextMenuItems(
 
 export function installBlocksuiteSlashContextMenu(editor: BlocksuiteEditorElement) {
   let activeMenu: { close: () => void } | null = null;
+  let lastSelectionBlockId: string | null = null;
 
   const closeActiveMenu = () => {
     activeMenu?.close();
     activeMenu = null;
   };
 
+  const syncLastSelectionBlockId = () => {
+    const selection = editor.std?.host.selection;
+    const blockId = selection?.find(TextSelection)?.blockId ?? selection?.find(BlockSelection)?.blockId;
+    if (blockId) {
+      lastSelectionBlockId = blockId;
+    }
+  };
+
+  syncLastSelectionBlockId();
+  const selectionSubscription = editor.std?.host.selection.slots.changed.subscribe(() => {
+    syncLastSelectionBlockId();
+  });
+
   const onContextMenu = (event: MouseEvent) => {
     const { std } = editor;
-    if (!std || !(event.target instanceof Element) || !shouldHandleBlocksuiteContextMenuTarget(event.target)) {
+    if (!std || !(event.target instanceof Element) || shouldIgnoreBlocksuiteContextMenuTarget(event.target)) {
       return;
     }
 
-    const block = resolveBlocksuiteContextBlock(editor, event.target, event);
+    const block = resolveSelectedContextBlock(editor, lastSelectionBlockId) ?? resolveDirectContextBlock(editor, event.target);
     if (!block) {
       return;
     }
@@ -187,6 +208,7 @@ export function installBlocksuiteSlashContextMenu(editor: BlocksuiteEditorElemen
 
   return () => {
     closeActiveMenu();
+    selectionSubscription?.unsubscribe();
     editor.removeEventListener("contextmenu", onContextMenu);
   };
 }
