@@ -335,7 +335,7 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
 
           {uiMode === "simple"
             ? (
-                <div className="flex flex-col gap-3">
+                <div className={`flex flex-col ${isSimpleTagsEditor ? "gap-2" : "gap-3"}`}>
                   <div className={`grid transition-all duration-300 ease-out ${isSimpleTextEditor ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"}`}>
                     <div className="min-h-0 overflow-hidden">
                       <div className="flex w-full min-w-0 flex-col items-stretch gap-2">
@@ -451,7 +451,7 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
 
                   <div className={`grid transition-all duration-300 ease-out ${isSimpleTagsEditor ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"}`}>
                     <div className="min-h-0 overflow-hidden">
-                      <div className="flex flex-col gap-3">
+                      <div className="flex flex-col gap-2">
                         <div className={editorPanelClassName}>
                           <div className="mb-3 flex items-center gap-2">
                             <div className={segmentedControlClassName}>
@@ -498,9 +498,6 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                             >
                               按 tag 出图
                             </button>
-                          </div>
-                          <div className="mt-4 h-1 rounded-full bg-base-200">
-                            <div className="h-full w-8 rounded-full bg-primary" />
                           </div>
                         </div>
                       </div>
