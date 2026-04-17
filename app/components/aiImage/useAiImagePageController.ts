@@ -1070,7 +1070,7 @@ export function useAiImagePageController() {
     }
 
     if (!String(resolvedPrompt || "").trim()) {
-      showErrorToast("prompt 为空：请先完成自然语言转换或手动编辑 tags");
+      showErrorToast("转换结果为空：请重新输入自然语言后再试");
       return;
     }
 
@@ -1084,14 +1084,6 @@ export function useAiImagePageController() {
     simplePrompt,
     simpleText,
   ]);
-
-  const handleSimpleGenerateFromTags = useCallback(async () => {
-    if (!simplePrompt.trim()) {
-      showErrorToast("prompt 为空：请先完成自然语言转换或手动编辑 tags");
-      return;
-    }
-    await runGenerate({ mode: "txt2img", prompt: simplePrompt, negativePrompt: simpleNegativePrompt });
-  }, [runGenerate, showErrorToast, simpleNegativePrompt, simplePrompt]);
 
   const handleSelectCurrentResult = useCallback((index: number) => {
     setSelectedHistoryPreviewKey(null);
@@ -1557,7 +1549,7 @@ export function useAiImagePageController() {
   const pendingMetadataModelMismatch = pendingMetadataSettings?.model && pendingMetadataSettings.model !== model
     ? `图片内模型为 ${modelLabel(pendingMetadataSettings.model)}，当前页面仍固定使用 ${modelLabel(model)}。`
     : "";
-  const simpleGenerateLabel = loading || simpleConverting ? "出图中..." : pendingPreviewAction ? "处理中..." : "一键出图";
+  const simpleGenerateLabel = loading || simpleConverting ? "出图中..." : pendingPreviewAction ? "处理中..." : "转换并出图";
 
   const sidebarProps = {
     activeResolutionPreset,
@@ -1581,7 +1573,6 @@ export function useAiImagePageController() {
     handleRemoveVibeReference,
     handleResetCurrentImageSettings,
     handleSelectSimpleResolutionPreset,
-    handleSimpleGenerateFromTags,
     handleSimpleGenerateFromText,
     handleSimpleHeightChange,
     handleSimpleWidthChange,
