@@ -11,6 +11,7 @@ import {
   RESOLUTION_PRESETS,
   SAMPLER_LABELS,
   SCHEDULE_LABELS,
+  SIMPLE_MODE_CUSTOM_MAX_DIMENSION,
   UC_PRESET_OPTIONS,
 } from "@/components/aiImage/constants";
 import {
@@ -184,7 +185,7 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
   const charTextareaClassName = "textarea textarea-bordered min-h-28 w-full resize-none border-[#D6DCE3] bg-[#F3F5F7] text-base-content leading-7 transition-colors hover:border-primary active:border-primary focus:border-primary focus:bg-primary/[0.03] focus:outline-none dark:border-[#2A3138] dark:bg-[#161A1F] dark:hover:border-primary";
   const subtleInputClassName = "input input-bordered input-sm border-[#D6DCE3] bg-[#F3F5F7] text-base-content dark:border-[#2A3138] dark:bg-[#161A1F]";
   const subtleSelectClassName = "select select-bordered select-sm border-[#D6DCE3] bg-[#F3F5F7] text-base-content dark:border-[#2A3138] dark:bg-[#161A1F]";
-  const simpleResolutionValueInputClassName = "min-w-0 bg-transparent text-center text-lg font-semibold tabular-nums text-base-content focus:outline-none";
+  const simpleResolutionValueInputClassName = "min-w-0 bg-transparent text-center text-base font-semibold tabular-nums text-base-content focus:outline-none";
   const [isModeSelectorOpen, setIsModeSelectorOpen] = useState(false);
   const [isModeSelectorMounted, setIsModeSelectorMounted] = useState(false);
   const [isSimpleResolutionSelectorOpen, setIsSimpleResolutionSelectorOpen] = useState(false);
@@ -264,6 +265,23 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
   function handleSelectMode(nextMode: ModeOptionValue) {
     setUiMode(nextMode);
     setIsModeSelectorOpen(false);
+  }
+
+  function renderSimpleResolutionGlyph(optionId: string) {
+    if (optionId === "portrait") {
+      return <div className="h-5 w-3 rounded-sm border border-current opacity-80" />;
+    }
+    if (optionId === "landscape") {
+      return <div className="h-3 w-5 rounded-sm border border-current opacity-80" />;
+    }
+    if (optionId === "square") {
+      return <div className="size-4 rounded-sm border border-current opacity-80" />;
+    }
+    return (
+      <div className="flex size-4 items-center justify-center rounded-sm border border-dashed border-current opacity-80">
+        <span className="text-[10px] leading-none font-bold">+</span>
+      </div>
+    );
   }
 
   return (
@@ -993,11 +1011,14 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                     <div className="relative" ref={simpleResolutionSelectorRef}>
                       <button
                         type="button"
-                        className={`flex w-full items-center justify-between rounded-xl border border-[#D6DCE3] bg-[#F3F5F7] px-4 py-4 text-left transition focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 hover:border-primary/40 hover:bg-[#EAEFF4] dark:border-[#2A3138] dark:bg-[#161A1F] dark:hover:bg-[#1B2026] ${isSimpleResolutionSelectorOpen ? "border-primary bg-primary/5 shadow-sm dark:bg-primary/10" : ""}`}
+                        className={`flex w-full items-center justify-between rounded-xl border border-[#D6DCE3] bg-[#F3F5F7] px-4 py-3 text-left transition focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 hover:border-primary/40 hover:bg-[#EAEFF4] dark:border-[#2A3138] dark:bg-[#161A1F] dark:hover:bg-[#1B2026] ${isSimpleResolutionSelectorOpen ? "border-primary bg-primary/5 shadow-sm dark:bg-primary/10" : ""}`}
                         aria-expanded={isSimpleResolutionSelectorOpen}
                         onClick={() => setIsSimpleResolutionSelectorOpen(prev => !prev)}
                       >
-                        <span className="text-3xl font-semibold tracking-tight text-base-content">{activeSimpleResolutionOption.label}</span>
+                        <div className="flex min-w-0 items-center gap-3 text-base-content/80">
+                          {renderSimpleResolutionGlyph(activeSimpleResolutionOption.id)}
+                          <span className="truncate text-sm font-medium tracking-tight">{activeSimpleResolutionOption.label}</span>
+                        </div>
                         <ChevronDown className={`size-5 shrink-0 text-base-content/60 transition-transform ${isSimpleResolutionSelectorOpen ? "rotate-180" : ""}`} />
                       </button>
 
@@ -1009,7 +1030,7 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                                   <button
                                     key={option.id}
                                     type="button"
-                                    className={`rounded-lg px-4 py-3 text-left text-base transition focus:outline-none focus:ring-2 focus:ring-primary/20 ${
+                                    className={`flex items-center gap-3 rounded-lg px-4 py-3 text-left transition focus:outline-none focus:ring-2 focus:ring-primary/20 ${
                                       simpleResolutionSelection === option.id
                                         ? "bg-primary/10 text-base-content"
                                         : "text-base-content/78 hover:bg-base-100 dark:hover:bg-[#1B2026]"
@@ -1019,7 +1040,8 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                                       setIsSimpleResolutionSelectorOpen(false);
                                     }}
                                   >
-                                    {option.label}
+                                    {renderSimpleResolutionGlyph(option.id)}
+                                    <span className="text-xs font-medium">{option.label}</span>
                                   </button>
                                 ))}
                               </div>
@@ -1028,22 +1050,22 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                         : null}
                     </div>
 
-                    <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3 rounded-xl border border-[#D6DCE3] bg-[#F3F5F7] px-4 py-4 shadow-sm dark:border-[#2A3138] dark:bg-[#161A1F]">
+                    <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 rounded-xl border border-[#D6DCE3] bg-[#F3F5F7] px-3 py-3 shadow-sm dark:border-[#2A3138] dark:bg-[#161A1F]">
                       <input
                         className={simpleResolutionValueInputClassName}
                         type="number"
                         min={NOVELAI_DIMENSION_MIN}
-                        max={NOVELAI_FREE_MAX_DIMENSION}
+                        max={simpleResolutionSelection === CUSTOM_RESOLUTION_ID ? SIMPLE_MODE_CUSTOM_MAX_DIMENSION : NOVELAI_FREE_MAX_DIMENSION}
                         step={NOVELAI_DIMENSION_STEP}
                         value={width}
                         onChange={e => handleSimpleWidthChange(Number(e.target.value))}
                       />
-                      <span className="text-xl font-medium text-base-content/55">×</span>
+                      <span className="text-lg font-medium text-base-content/55">×</span>
                       <input
                         className={simpleResolutionValueInputClassName}
                         type="number"
                         min={NOVELAI_DIMENSION_MIN}
-                        max={NOVELAI_FREE_MAX_DIMENSION}
+                        max={simpleResolutionSelection === CUSTOM_RESOLUTION_ID ? SIMPLE_MODE_CUSTOM_MAX_DIMENSION : NOVELAI_FREE_MAX_DIMENSION}
                         step={NOVELAI_DIMENSION_STEP}
                         value={height}
                         onChange={e => handleSimpleHeightChange(Number(e.target.value))}
