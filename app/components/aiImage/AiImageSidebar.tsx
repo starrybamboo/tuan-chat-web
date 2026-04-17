@@ -509,7 +509,7 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                       <div className="text-xs opacity-70">画风</div>
                       <div className="ml-auto flex items-center gap-2">
                         <button type="button" className="btn btn-xs" onClick={() => setIsStylePickerOpen(true)}>
-                          选择画风
+                          添加
                         </button>
                         {selectedStyleIds.length
                           ? <button type="button" className="btn btn-xs btn-ghost" onClick={handleClearStyles}>清空</button>
@@ -527,7 +527,7 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                                   type="button"
                                   className="flex items-center gap-2 rounded-box border border-base-300 bg-base-100 pr-2 hover:border-primary"
                                   onClick={() => setIsStylePickerOpen(true)}
-                                  title="点击继续选择画风"
+                                  title="点击继续添加画风"
                                 >
                                   <div className="w-10 aspect-square rounded-box bg-base-200 overflow-hidden flex items-center justify-center">
                                     {preset.imageUrl
