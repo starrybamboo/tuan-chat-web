@@ -25,10 +25,8 @@ interface HistoryDragPayload {
 interface HistoryImageTileProps {
   active: boolean;
   alt: string;
-  badge?: string;
   dataUrl: string;
   draggable?: boolean;
-  meta?: string;
   onClick: (event: MouseEvent<HTMLButtonElement>) => void;
   onDelete?: (event: MouseEvent<HTMLButtonElement>) => void;
   onDragStart?: (event: DragEvent<HTMLButtonElement>) => void;
@@ -68,7 +66,7 @@ function HistoryDeleteButton({
   return (
     <button
       type="button"
-      className="btn btn-ghost btn-square btn-xs shrink-0 text-base-content/60 hover:text-error"
+      className="btn btn-ghost btn-square btn-xs shrink-0 opacity-0 transition-opacity hover:text-error group-focus-within:opacity-100 group-hover:opacity-100"
       aria-label={label}
       title={label}
       onClick={onClick}
@@ -140,10 +138,8 @@ function HistoryHint() {
 function HistoryImageTile({
   active,
   alt,
-  badge,
   dataUrl,
   draggable = false,
-  meta,
   onClick,
   onDelete,
   onDragStart,
@@ -160,21 +156,13 @@ function HistoryImageTile({
         onDragStart={onDragStart}
       >
         <img src={dataUrl} className="h-full w-full object-cover transition duration-200 group-hover:scale-[1.02]" alt={alt} />
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 flex items-end justify-between gap-2 bg-gradient-to-t from-base-content/75 via-base-content/10 to-transparent px-2 py-2">
-          {badge
-            ? <span className="rounded-md bg-base-100/92 px-1.5 py-0.5 text-[10px] font-medium text-base-content shadow-sm">{badge}</span>
-            : <span />}
-          {meta
-            ? <span className="rounded-md bg-base-100/92 px-1.5 py-0.5 text-[10px] font-medium text-base-content shadow-sm">{meta}</span>
-            : null}
-        </div>
       </button>
 
       {onDelete
         ? (
             <button
               type="button"
-              className="absolute right-1 top-1 flex size-7 items-center justify-center rounded-md bg-base-100/92 text-base-content/65 shadow-sm transition hover:bg-base-100 hover:text-error"
+              className="absolute right-1 top-1 flex size-7 items-center justify-center rounded-md bg-base-100/92 text-base-content/65 opacity-0 shadow-sm transition hover:bg-base-100 hover:text-error group-focus-within:opacity-100 group-hover:opacity-100"
               aria-label="删除绘画记录"
               title="删除绘画记录"
               onClick={onDelete}
@@ -206,7 +194,7 @@ export function AiImageHistoryPane({
   onDownloadAll,
   onClearHistory,
 }: AiImageHistoryPaneProps) {
-  const directorHistoryCardClassName = "rounded-2xl border p-2 transition-colors";
+  const directorHistoryCardClassName = "group rounded-2xl border p-2 transition-colors";
   const directorHistoryCardIdleClassName = "border-base-300 bg-base-100 hover:border-primary/35 hover:bg-base-200/55";
   const directorHistoryCardActiveClassName = "border-primary/45 bg-primary/10";
 
@@ -364,10 +352,8 @@ export function AiImageHistoryPane({
                 key={`${item.batchId}-${item.batchIndex}`}
                 active={!selectedHistoryPreviewKey && selectedResultIndex === index}
                 alt="current-result"
-                badge={row?.toolLabel || (item.batchSize > 1 ? `${item.batchIndex + 1}/${item.batchSize}` : row?.mode || mode)}
                 dataUrl={item.dataUrl}
                 draggable
-                meta={`seed ${item.seed}`}
                 title={`${row?.mode || mode} · seed ${item.seed} · ${item.width}×${item.height}`}
                 onClick={() => onSelectCurrentResult(index)}
                 onDelete={row?.id != null
@@ -388,10 +374,8 @@ export function AiImageHistoryPane({
                 key={historyRowKey(row)}
                 active={selectedHistoryPreviewKey === historyRowKey(row)}
                 alt="history"
-                badge={row.toolLabel || (row.batchSize && row.batchSize > 1 ? `${(row.batchIndex ?? 0) + 1}/${row.batchSize}` : row.mode)}
                 dataUrl={row.dataUrl}
                 draggable
-                meta={`seed ${row.seed}`}
                 title={`${row.mode} · seed ${row.seed} · ${row.width}×${row.height}`}
                 onClick={event => onHistoryRowClick(row, event)}
                 onDelete={row.id != null
