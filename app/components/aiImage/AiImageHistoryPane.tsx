@@ -207,10 +207,9 @@ export function AiImageHistoryPane({
               <div className="text-[10px] font-semibold uppercase tracking-[0.24em] text-base-content/60">History</div>
               <HistoryHint />
             </div>
-            <div className="ml-auto text-[11px] text-base-content/45">{history.length ? `${history.length}` : ""}</div>
             <button
               type="button"
-              className="btn btn-ghost btn-square btn-xs shrink-0 text-base-content/60 hover:text-base-content"
+              className="btn btn-ghost btn-square btn-xs ml-auto shrink-0 text-base-content/60 hover:text-base-content"
               aria-label="收起历史记录侧边栏"
               title="收起历史记录侧边栏"
               onClick={onCollapse}
@@ -274,7 +273,6 @@ export function AiImageHistoryPane({
                 <div className="flex items-center gap-2">
                   <div className="text-[11px] font-medium uppercase tracking-[0.18em] text-base-content/45">History</div>
                   <div className="ml-auto flex items-center gap-2 text-[11px] text-base-content/45">
-                    <span>{archivedHistoryRows.length ? `${archivedHistoryRows.length}` : "0"}</span>
                     <ChevronDown className={`size-4 transition-transform ${isHistoryExpanded ? "rotate-180" : ""}`} />
                   </div>
                 </div>
@@ -334,10 +332,9 @@ export function AiImageHistoryPane({
             <div className="text-sm font-medium">History</div>
             <HistoryHint />
           </div>
-          <div className="ml-auto text-xs text-base-content/55">{history.length ? `${history.length}` : ""}</div>
           <button
             type="button"
-            className="btn btn-ghost btn-square btn-xs shrink-0 text-base-content/60 hover:text-base-content"
+            className="btn btn-ghost btn-square btn-xs ml-auto shrink-0 text-base-content/60 hover:text-base-content"
             aria-label="收起历史记录侧边栏"
             title="收起历史记录侧边栏"
             onClick={onCollapse}
