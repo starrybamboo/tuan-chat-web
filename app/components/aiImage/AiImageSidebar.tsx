@@ -270,7 +270,6 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                     <div className="mb-3 flex items-start justify-between gap-3">
                       <div className="min-w-0">
                         <div className="text-sm font-medium text-base-content">模式选择</div>
-                        <div className="mt-1 text-xs text-base-content/55">请选择一种模式。</div>
                       </div>
                       <button
                         type="button"
@@ -295,6 +294,9 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                           <div className="flex min-w-0 items-baseline gap-2">
                             <span className="font-medium leading-none">{option.label}</span>
                             <span className="truncate text-[11px] leading-none text-base-content/45">{MODE_MODEL_LABEL}</span>
+                          </div>
+                          <div className="mt-1 text-xs text-base-content/60">
+                            {option.description}
                           </div>
                         </button>
                       ))}
