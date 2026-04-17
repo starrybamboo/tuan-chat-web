@@ -159,6 +159,7 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
   const editorPanelClassName = "rounded-2xl border border-[#D6DCE3] bg-[#F3F5F7] p-3 shadow-none dark:border-[#2A3138] dark:bg-[#161A1F]";
   const segmentedControlClassName = "join rounded-xl bg-transparent p-0";
   const segmentedButtonBaseClassName = "btn btn-xs join-item border-0";
+  const simplePromptTextareaClassName = "textarea textarea-bordered h-[80px] min-w-0 w-full resize-none border-[#D6DCE3] bg-base-100 transition-colors hover:border-primary hover:bg-base-100 active:border-primary focus:border-primary focus:bg-primary/[0.03] focus:outline-none focus:ring-2 focus:ring-primary/20 dark:border-[#2A3138] dark:hover:border-primary";
   const promptTextareaClassName = "textarea textarea-bordered min-h-36 w-full resize-none border-[#D6DCE3] bg-[#F3F5F7] text-base-content leading-7 transition-colors hover:border-primary active:border-primary focus:border-primary focus:bg-primary/[0.03] focus:outline-none dark:border-[#2A3138] dark:bg-[#161A1F] dark:hover:border-primary";
   const charTextareaClassName = "textarea textarea-bordered min-h-28 w-full resize-none border-[#D6DCE3] bg-[#F3F5F7] text-base-content leading-7 transition-colors hover:border-primary active:border-primary focus:border-primary focus:bg-primary/[0.03] focus:outline-none dark:border-[#2A3138] dark:bg-[#161A1F] dark:hover:border-primary";
   const subtleInputClassName = "input input-bordered input-sm border-[#D6DCE3] bg-[#F3F5F7] text-base-content dark:border-[#2A3138] dark:bg-[#161A1F]";
@@ -225,9 +226,9 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
           {uiMode === "simple"
             ? (
                 <div className="flex flex-col gap-3">
-                  <div className="flex w-full flex-col items-start gap-2">
+                  <div className="flex w-full min-w-0 flex-col items-stretch gap-2">
                     <textarea
-                      className="textarea textarea-bordered h-[80px] w-full max-w-[425px] resize-none border-[#D6DCE3] bg-base-100 transition-colors hover:border-primary hover:bg-base-100 active:border-primary focus:border-primary focus:bg-primary/[0.03] focus:outline-none dark:border-[#2A3138] dark:hover:border-primary"
+                      className={simplePromptTextareaClassName}
                       value={simpleText}
                       onChange={(e) => {
                         const next = e.target.value;
