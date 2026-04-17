@@ -96,7 +96,7 @@ export function BlocksuiteTcHeader(props: BlocksuiteTcHeaderProps) {
                       ? (
                           <img
                             src={tcHeaderImageUrl}
-                            alt={tcHeaderTitle || "header"}
+                            alt={tcHeaderTitle || "文档封面"}
                             className="tc-blocksuite-tc-header-avatar-img"
                           />
                         )
@@ -127,7 +127,7 @@ export function BlocksuiteTcHeader(props: BlocksuiteTcHeaderProps) {
                     ? (
                         <img
                           src={tcHeaderImageUrl}
-                          alt={tcHeaderTitle || "header"}
+                          alt={tcHeaderTitle || "文档封面"}
                           className="tc-blocksuite-tc-header-avatar-img"
                         />
                       )

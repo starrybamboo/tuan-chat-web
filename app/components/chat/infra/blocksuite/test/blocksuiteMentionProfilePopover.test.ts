@@ -93,6 +93,7 @@ describe("blocksuiteMentionProfilePopover", () => {
     );
 
     expect(html).toContain("Alice");
+    expect(html).toContain("提及用户");
     expect(html).toContain("查看完整资料");
     expect(html).not.toContain("<iframe");
   });
@@ -118,6 +119,7 @@ describe("blocksuiteMentionProfilePopover", () => {
     );
 
     expect(html).toContain("艾拉");
+    expect(html).toContain("提及角色");
     expect(html).toContain("查看 NPC 详情");
     expect(html).not.toContain("/role/34");
     expect(html).not.toContain("<iframe");

@@ -5,6 +5,7 @@ import "katex/dist/katex.min.css";
 import "../styles/affine-embed-synced-doc-header.css";
 import "../styles/frameBase.css";
 import "../styles/tcHeader.css";
+import { patchBlocksuiteUiLocale } from "./patchBlocksuiteUiLocale";
 import { ensureBlocksuiteCoreElementsDefined } from "../spec/coreElements.browser";
 
 /**
@@ -51,10 +52,14 @@ export async function ensureBlocksuiteBrowserRuntime(): Promise<void> {
   }
 
   // 运行时只启动一次；失败时清空 promise，允许下一次重新尝试。
-  owner[READY_PROMISE_KEY] = ensureBlocksuiteCoreElementsDefined().catch((error) => {
-    delete owner[READY_PROMISE_KEY];
-    throw error;
-  });
+  owner[READY_PROMISE_KEY] = ensureBlocksuiteCoreElementsDefined()
+    .then(() => {
+      patchBlocksuiteUiLocale();
+    })
+    .catch((error) => {
+      delete owner[READY_PROMISE_KEY];
+      throw error;
+    });
 
   return owner[READY_PROMISE_KEY] as Promise<void>;
 }

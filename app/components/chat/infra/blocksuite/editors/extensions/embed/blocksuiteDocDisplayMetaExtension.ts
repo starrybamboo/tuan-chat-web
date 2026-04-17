@@ -22,7 +22,7 @@ export function readBlocksuiteDisplayTitle(doc: {
   getStore?: () => unknown;
 } | null | undefined): string {
   if (!doc) {
-    return "Deleted doc";
+    return "已删除文档";
   }
 
   const tcHeaderTitle = readTcHeaderTitleFromStore(doc.getStore?.());
@@ -35,7 +35,7 @@ export function readBlocksuiteDisplayTitle(doc: {
     return metaTitle;
   }
 
-  return "Untitled";
+  return "未命名文档";
 }
 
 export class TcDocDisplayMetaService extends DocDisplayMetaService implements DocDisplayMetaExtension {
@@ -45,7 +45,7 @@ export class TcDocDisplayMetaService extends DocDisplayMetaService implements Do
   ) {
     const doc = this.std.workspace.getDoc(pageId);
     if (!doc) {
-      return computed(() => title || "Deleted doc");
+      return computed(() => title || "已删除文档");
     }
 
     const store = doc.getStore();

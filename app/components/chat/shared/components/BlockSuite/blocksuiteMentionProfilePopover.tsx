@@ -59,7 +59,7 @@ export function BlocksuiteMentionProfileCardView(props:
       <div className="flex h-full flex-col bg-base-100 text-base-content">
         <div className="flex items-start justify-between gap-3 border-b border-base-300/80 px-4 py-3">
           <div className="min-w-0">
-            <p className="text-xs font-medium uppercase tracking-[0.16em] text-base-content/50">Mention Role</p>
+            <p className="text-xs font-medium uppercase tracking-[0.16em] text-base-content/50">提及角色</p>
             <p className="mt-1 text-sm text-base-content/70">
               RID
               {" "}
@@ -176,7 +176,7 @@ export function BlocksuiteMentionProfileCardView(props:
     <div className="flex h-full flex-col bg-base-100 text-base-content">
       <div className="flex items-start justify-between gap-3 border-b border-base-300/80 px-4 py-3">
         <div className="min-w-0">
-          <p className="text-xs font-medium uppercase tracking-[0.16em] text-base-content/50">Mention Profile</p>
+          <p className="text-xs font-medium uppercase tracking-[0.16em] text-base-content/50">提及用户</p>
           <p className="mt-1 text-sm text-base-content/70">
             UID
             {" "}

@@ -58,6 +58,7 @@ import {
   SUPPORTED_BLOCKSUITE_FEATURES,
 
 } from "./featureSet";
+import { translateBlocksuiteSlashItem } from "../i18n/blocksuiteUiLocale";
 
 /**
  * 把 featureSet 映射到 page / edgeless 两套 view specs。
@@ -106,7 +107,7 @@ class SupportedSlashMenuFilterViewExtension extends ViewExtensionProvider {
     prototype.configItemTransform = function (item: SlashMenuItem) {
       const transformed = prevTransform.call(this, item);
       if (!shouldHideUnsupportedSlashItem(transformed))
-        return transformed;
+        return translateBlocksuiteSlashItem(transformed);
 
       return {
         ...transformed,
