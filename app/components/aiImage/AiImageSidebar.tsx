@@ -324,7 +324,7 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
       </div>
 
       <div className={sideCardClassName}>
-        <div className="card-body gap-3 p-4">
+        <div className={`card-body p-4 ${uiMode === "simple" && isSimpleTagsEditor ? "gap-2" : "gap-3"}`}>
           {uiMode === "simple"
             ? (
                 <div className="flex items-center gap-2">
@@ -335,7 +335,7 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
 
           {uiMode === "simple"
             ? (
-                <div className={`flex flex-col ${isSimpleTagsEditor ? "gap-2" : "gap-3"}`}>
+                <div className={`flex flex-col ${isSimpleTagsEditor ? "gap-1" : "gap-3"}`}>
                   <div className={`grid transition-all duration-300 ease-out ${isSimpleTextEditor ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"}`}>
                     <div className="min-h-0 overflow-hidden">
                       <div className="flex w-full min-w-0 flex-col items-stretch gap-2">
