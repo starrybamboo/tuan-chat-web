@@ -508,9 +508,6 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                     <div className="flex items-center gap-2">
                       <div className="text-xs opacity-70">画风</div>
                       <div className="ml-auto flex items-center gap-2">
-                        {selectedStyleIds.length
-                          ? <div className="text-xs opacity-60">{`已选 ${selectedStyleIds.length} 个`}</div>
-                          : <div className="text-xs opacity-60">未选择</div>}
                         <button type="button" className="btn btn-xs" onClick={() => setIsStylePickerOpen(true)}>
                           选择画风
                         </button>
@@ -541,14 +538,6 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                                 </button>
                               );
                             })}
-                          </div>
-                        )
-                      : null}
-
-                    {selectedStyleTags.length
-                      ? (
-                          <div className="text-xs opacity-70">
-                            {`画风 tags：${selectedStyleTags.join(", ")}`}
                           </div>
                         )
                       : null}
