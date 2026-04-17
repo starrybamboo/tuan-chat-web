@@ -65,6 +65,7 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
     handleRemoveVibeReference,
     handleResetCurrentImageSettings,
     handleSelectSimpleResolutionPreset,
+    handleSimpleGenerateFromTags,
     handleSimpleGenerateFromText,
     handleSimpleHeightChange,
     handleSimpleWidthChange,
@@ -79,7 +80,6 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
     isNAI3,
     isNAI4,
     isPageImageDragOver,
-    isSimpleTagEditorOpen,
     mode,
     model,
     negativePrompt,
@@ -109,7 +109,6 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
     setDynamicThresholding,
     setHeight,
     setImageCount,
-    setIsSimpleTagEditorOpen,
     setIsStylePickerOpen,
     setNegativePrompt,
     setNoise,
@@ -398,39 +397,59 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                   </div>
 
                   <div className="border-t border-base-300/70 pt-3">
-                    <details
-                      className="collapse collapse-arrow"
-                      open={isSimpleTagEditorOpen}
-                      onToggle={e => setIsSimpleTagEditorOpen((e.currentTarget as HTMLDetailsElement).open)}
-                    >
-                      <summary className="collapse-title px-0 pr-12 text-sm font-medium">
-                        转换结果
-                      </summary>
-                      <div className="collapse-content px-0 pt-0">
-                        {simpleConverted
-                          ? (
-                              <div className="space-y-3">
-                                <div>
-                                  <div className="text-xs font-medium text-base-content/70">Prompt tags</div>
-                                  <pre className="mt-1 whitespace-pre-wrap break-words rounded-md border border-base-300 bg-base-100 px-3 py-2 text-xs leading-6 text-base-content">{simplePrompt}</pre>
-                                </div>
-                                {simpleNegativePrompt.trim()
-                                  ? (
-                                      <div>
-                                        <div className="text-xs font-medium text-base-content/70">Negative tags</div>
-                                        <pre className="mt-1 whitespace-pre-wrap break-words rounded-md border border-base-300 bg-base-100 px-3 py-2 text-xs leading-6 text-base-content">{simpleNegativePrompt}</pre>
-                                      </div>
-                                    )
-                                  : null}
-                              </div>
-                            )
-                          : (
-                              <div className="rounded-md border border-dashed border-base-300 bg-base-100/60 px-3 py-2 text-xs leading-6 text-base-content/60">
-                                暂无结果。
-                              </div>
-                            )}
+                    <div className="mb-3 flex items-start justify-between gap-3">
+                      <div>
+                        <div className="text-sm font-medium">转换 tags</div>
+                        <div className="mt-1 text-xs leading-5 text-base-content/60">
+                          可直接编辑 tags，生成时会使用这里的内容。
+                        </div>
                       </div>
-                    </details>
+                      <button
+                        type="button"
+                        className={`btn btn-xs btn-primary shrink-0 ${canGenerate ? "" : "btn-disabled"}`}
+                        disabled={!canGenerate}
+                        onClick={() => void handleSimpleGenerateFromTags()}
+                      >
+                        按 tag 出图
+                      </button>
+                    </div>
+                    <div className={editorPanelClassName}>
+                      <div className="mb-3 flex items-center gap-2">
+                        <div className={segmentedControlClassName}>
+                          <button
+                            type="button"
+                            className={`${segmentedButtonBaseClassName} ${proPromptTab === "prompt" ? "bg-base-100 text-base-content shadow-sm" : "bg-transparent text-base-content/60 hover:bg-base-100 hover:text-base-content"}`}
+                            onClick={() => setProPromptTab("prompt")}
+                          >
+                            Base Prompt
+                          </button>
+                          <button
+                            type="button"
+                            className={`${segmentedButtonBaseClassName} ${proPromptTab === "negative" ? "bg-base-100 text-base-content shadow-sm" : "bg-transparent text-base-content/60 hover:bg-base-100 hover:text-base-content"}`}
+                            onClick={() => setProPromptTab("negative")}
+                          >
+                            Undesired Content
+                          </button>
+                        </div>
+                      </div>
+                      <textarea
+                        className={promptTextareaClassName}
+                        value={proPromptTab === "prompt" ? simplePrompt : simpleNegativePrompt}
+                        onChange={(e) => {
+                          if (proPromptTab === "prompt")
+                            setSimplePrompt(e.target.value);
+                          else
+                            setSimpleNegativePrompt(e.target.value);
+                        }}
+                      />
+                      <div className="mt-4 h-1 rounded-full bg-base-200">
+                        <div className="h-full w-8 rounded-full bg-primary" />
+                      </div>
+                      <div className="mt-3 flex items-center justify-between text-xs text-base-content/70">
+                        <span>{proPromptTab === "prompt" ? "Prompt tags" : "Negative tags"}</span>
+                        <span>{proPromptTab === "prompt" ? "可编辑" : "可编辑"}</span>
+                      </div>
+                    </div>
                   </div>
                 </div>
               )
