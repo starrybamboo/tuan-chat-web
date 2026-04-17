@@ -1,5 +1,5 @@
 import type { AiImagePageController } from "@/components/aiImage/useAiImagePageController";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   CUSTOM_RESOLUTION_ID,
   DEFAULT_PRO_IMAGE_SETTINGS,
@@ -41,6 +41,7 @@ const MODE_OPTIONS = [
 ] as const;
 
 const MODE_MODEL_LABEL = "NAI Diffusion V4.5 Curated";
+type ModeOptionValue = (typeof MODE_OPTIONS)[number]["value"];
 
 export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
   const {
@@ -125,6 +126,8 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
     setSeed,
     setSimpleConverted,
     setSimpleConvertedFromText,
+    setSimpleNegativePrompt,
+    setSimplePrompt,
     setSimpleText,
     setSmea,
     setSmeaDyn,
@@ -138,6 +141,8 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
     setWidth,
     simpleConverted,
     simpleGenerateLabel,
+    simpleNegativePrompt,
+    simplePrompt,
     simpleResolutionArea,
     simpleResolutionSelection,
     simpleText,
@@ -169,9 +174,36 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
   const subtleInputClassName = "input input-bordered input-sm border-[#D6DCE3] bg-[#F3F5F7] text-base-content dark:border-[#2A3138] dark:bg-[#161A1F]";
   const subtleSelectClassName = "select select-bordered select-sm border-[#D6DCE3] bg-[#F3F5F7] text-base-content dark:border-[#2A3138] dark:bg-[#161A1F]";
   const [isModeSelectorOpen, setIsModeSelectorOpen] = useState(false);
+  const modeSelectorContainerRef = useRef<HTMLDivElement | null>(null);
   const activeModeOption = MODE_OPTIONS.find(option => option.value === uiMode) ?? MODE_OPTIONS[0];
 
-  function handleSelectMode(nextMode: typeof MODE_OPTIONS[number]["value"]) {
+  useEffect(() => {
+    if (!isModeSelectorOpen)
+      return;
+
+    function handlePointerDown(event: PointerEvent) {
+      const container = modeSelectorContainerRef.current;
+      const target = event.target;
+      if (!container || !(target instanceof Node))
+        return;
+      if (!container.contains(target))
+        setIsModeSelectorOpen(false);
+    }
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape")
+        setIsModeSelectorOpen(false);
+    }
+
+    document.addEventListener("pointerdown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isModeSelectorOpen]);
+
+  function handleSelectMode(nextMode: ModeOptionValue) {
     setUiMode(nextMode);
     setIsModeSelectorOpen(false);
   }
@@ -180,11 +212,16 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
     <div className={`${isDirectorToolsOpen ? "hidden" : "flex"} h-full min-h-0 w-full min-w-0 flex-col gap-0 overflow-auto bg-[#F3F5F7] p-0 dark:bg-[#161A1F]`}>
       <div className={sideCardClassName}>
         <div className="card-body p-4">
-          <div className="w-full">
+          <div className="relative w-full" ref={modeSelectorContainerRef}>
             <button
               type="button"
-              className="flex w-full items-center justify-between rounded-md border border-[#D6DCE3] bg-[#F3F5F7] px-3 py-3 text-left transition hover:border-primary/40 hover:bg-[#EAEFF4] focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 dark:border-[#2A3138] dark:bg-[#161A1F] dark:hover:bg-[#1B2026]"
+              className={`flex w-full items-center justify-between rounded-md border px-3 py-3 text-left transition focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 ${
+                isModeSelectorOpen
+                  ? "border-primary bg-primary/5 shadow-sm dark:bg-primary/10"
+                  : "border-[#D6DCE3] bg-[#F3F5F7] hover:border-primary/40 hover:bg-[#EAEFF4] dark:border-[#2A3138] dark:bg-[#161A1F] dark:hover:bg-[#1B2026]"
+              }`}
               aria-expanded={isModeSelectorOpen}
+              aria-controls="ai-image-mode-selector-panel"
               onClick={() => setIsModeSelectorOpen(prev => !prev)}
             >
               <div className="flex min-w-0 items-baseline gap-2">
@@ -194,37 +231,57 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
               <ChevronDown className={`ml-3 size-4 shrink-0 text-base-content/60 transition-transform ${isModeSelectorOpen ? "rotate-180" : ""}`} />
             </button>
 
-              {isModeSelectorOpen
-                ? (
-                    <div className="mt-2 w-full rounded-md border border-[#D6DCE3] bg-[#F3F5F7] p-2 dark:border-[#2A3138] dark:bg-[#161A1F]">
-                      <div className="flex flex-col gap-2">
-                        {MODE_OPTIONS.map(option => (
-                          <button
-                            key={option.value}
-                            type="button"
-                            className={`w-full rounded-md border px-3 py-3 text-left transition focus:outline-none focus:ring-2 focus:ring-primary/20 ${
-                              uiMode === option.value
-                                ? "border-primary bg-primary/5 text-base-content"
-                                : "border-transparent bg-[#F3F5F7] text-base-content/80 hover:border-[#D6DCE3] hover:bg-[#EAEFF4] dark:bg-[#161A1F] dark:hover:border-[#2A3138] dark:hover:bg-[#1B2026]"
-                            }`}
-                            onClick={() => handleSelectMode(option.value)}
-                          >
-                            <div className="flex min-w-0 items-baseline gap-2">
-                              <span className="font-medium leading-none">{option.label}</span>
-                              <span className="truncate text-[11px] leading-none text-base-content/45">{MODE_MODEL_LABEL}</span>
-                            </div>
-                            <div className="mt-1 text-xs text-base-content/60">
-                              {option.description}
-                            </div>
-                          </button>
-                        ))}
+            {isModeSelectorOpen
+              ? (
+                  <div
+                    id="ai-image-mode-selector-panel"
+                    className="absolute left-0 right-0 top-[calc(100%+0.5rem)] z-20 max-h-[calc(100vh-12rem)] overflow-y-auto rounded-xl border border-[#D6DCE3] bg-[#F3F5F7] p-3 shadow-2xl ring-1 ring-black/5 dark:border-[#2A3138] dark:bg-[#161A1F] dark:ring-white/5"
+                  >
+                    <div className="mb-3 flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <div className="text-sm font-medium text-base-content">模式选择</div>
+                        <div className="mt-1 text-xs text-base-content/55">这里会作为单独展开页显示，不会把下方侧栏内容顶下去。</div>
                       </div>
+                      <button
+                        type="button"
+                        className="btn btn-ghost btn-xs"
+                        onClick={() => setIsModeSelectorOpen(false)}
+                      >
+                        关闭
+                      </button>
                     </div>
-                  )
-                : null}
-            <div className="mt-2 px-1 text-xs text-base-content/55">
-              {activeModeOption.description}
-            </div>
+                    <div className="flex flex-col gap-2">
+                      {MODE_OPTIONS.map(option => (
+                        <button
+                          key={option.value}
+                          type="button"
+                          className={`w-full rounded-lg border px-3 py-3 text-left transition focus:outline-none focus:ring-2 focus:ring-primary/20 ${
+                            uiMode === option.value
+                              ? "border-primary bg-primary/5 text-base-content shadow-sm"
+                              : "border-[#D6DCE3] bg-base-100 text-base-content/80 hover:border-primary/40 hover:bg-[#EAEFF4] dark:border-[#2A3138] dark:bg-[#161A1F] dark:hover:border-primary/40 dark:hover:bg-[#1B2026]"
+                          }`}
+                          onClick={() => handleSelectMode(option.value)}
+                        >
+                          <div className="flex min-w-0 items-baseline gap-2">
+                            <span className="font-medium leading-none">{option.label}</span>
+                            <span className="truncate text-[11px] leading-none text-base-content/45">{MODE_MODEL_LABEL}</span>
+                          </div>
+                          <div className="mt-1 text-xs text-base-content/60">
+                            {option.description}
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )
+              : null}
+            {!isModeSelectorOpen
+              ? (
+                  <div className="mt-2 px-1 text-xs text-base-content/55">
+                    {activeModeOption.description}
+                  </div>
+                )
+              : null}
           </div>
         </div>
       </div>
@@ -252,8 +309,8 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                         if (simpleConverted) {
                           setSimpleConverted(null);
                           setSimpleConvertedFromText("");
-                          setPrompt("");
-                          setNegativePrompt("");
+                          setSimplePrompt("");
+                          setSimpleNegativePrompt("");
                           setV4Chars([]);
                           setIsSimpleTagEditorOpen(false);
                         }
@@ -319,7 +376,7 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                       : null}
                   </div>
 
-                  {prompt.trim()
+                  {simplePrompt.trim()
                     ? (
                         <details
                           className="collapse collapse-arrow border border-base-300 bg-base-100"
@@ -362,12 +419,12 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                               </div>
                               <textarea
                                 className={promptTextareaClassName}
-                                value={proPromptTab === "prompt" ? prompt : negativePrompt}
+                                value={proPromptTab === "prompt" ? simplePrompt : simpleNegativePrompt}
                                 onChange={(e) => {
                                   if (proPromptTab === "prompt")
-                                    setPrompt(e.target.value);
+                                    setSimplePrompt(e.target.value);
                                   else
-                                    setNegativePrompt(e.target.value);
+                                    setSimpleNegativePrompt(e.target.value);
                                 }}
                                 placeholder={proPromptTab === "prompt" ? "自动转换后的 tags，可继续编辑" : "例如：lowres, bad anatomy"}
                               />
