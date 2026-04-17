@@ -1,6 +1,7 @@
 import type { PointerEvent as ReactPointerEvent } from "react";
 import type { InpaintDialogSource, InpaintSubmitPayload } from "@/components/aiImage/types";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { NOVELAI_FREE_MAX_DIMENSION } from "@/components/aiImage/constants";
 import { formatSliderValue, modelLabel } from "@/components/aiImage/helpers";
 import { CloseIcon, EditIcon } from "@/icons";
 
@@ -345,7 +346,7 @@ export function InpaintDialog({
 
           <div className="min-h-0 overflow-auto border-l border-base-300 bg-base-100 p-4">
             <div className="rounded-2xl border border-warning/30 bg-warning/10 px-3 py-2 text-xs leading-5 text-base-content/80">
-              Inpaint 会消耗 NovelAI Anlas。当前页面仍保持单张、1024 以内和
+              {`Inpaint 会消耗 NovelAI Anlas。当前页面仍保持单张、宽高都不超过 ${NOVELAI_FREE_MAX_DIMENSION}、`}
               <code>steps &lt;= 28</code>
               的限制，其他付费入口继续关闭。
             </div>

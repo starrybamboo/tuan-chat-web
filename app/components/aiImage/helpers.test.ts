@@ -1,10 +1,12 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  clampSimpleModeDimension,
   generatedItemKey,
   historyRowKey,
   historyRowResultMatchKey,
   historyRowToGeneratedItem,
+  getNovelAiFreeGenerationViolation,
   resolveImportedValue,
 } from "@/components/aiImage/helpers";
 
@@ -65,5 +67,20 @@ describe("aiImage helpers", () => {
     expect(resolveImportedValue(undefined, true, 23)).toBe(23);
     expect(resolveImportedValue(false, true, true)).toBe(false);
     expect(resolveImportedValue(0, true, 5)).toBe(0);
+  });
+
+  it("allows the new 832x1216 / 1216x832 preset sizes in simple mode clamping", () => {
+    expect(clampSimpleModeDimension(1216, 832, 832)).toBe(1216);
+    expect(clampSimpleModeDimension(832, 1216, 1216)).toBe(832);
+  });
+
+  it("permits the updated preset sizes for generation", () => {
+    expect(getNovelAiFreeGenerationViolation({
+      mode: "txt2img",
+      width: 1216,
+      height: 832,
+      imageCount: 1,
+      steps: 23,
+    })).toBeNull();
   });
 });
