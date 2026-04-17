@@ -53,12 +53,10 @@ import { ViewportOverlayViewExtension } from "@blocksuite/affine/widgets/viewpor
 import type { SupportedBlocksuiteFeature } from "./featureSet";
 
 import {
-  FILTERED_SURFACE_REF_SLASH_ITEM_NAMES,
-  FILTERED_SURFACE_REF_SLASH_ITEM_PREFIXES,
   SUPPORTED_BLOCKSUITE_FEATURES,
 
 } from "./featureSet";
-import { translateBlocksuiteSlashItem } from "../i18n/blocksuiteUiLocale";
+import { transformBlocksuiteSlashItemForUi } from "./slashMenuRuntime";
 
 /**
  * 把 featureSet 映射到 page / edgeless 两套 view specs。
@@ -67,19 +65,6 @@ import { translateBlocksuiteSlashItem } from "../i18n/blocksuiteUiLocale";
  * 它与 store.ts 的关系是：同一份 supported subset 同时约束数据层与视图层。
  */
 type ViewProviderClass = new (...args: any[]) => ViewExtensionProvider;
-
-const FILTERED_SURFACE_REF_SLASH_ITEM_NAME_SET = new Set<string>(FILTERED_SURFACE_REF_SLASH_ITEM_NAMES);
-
-function shouldHideUnsupportedSlashItem(item: SlashMenuItem): boolean {
-  const name = String(item?.name ?? "");
-  if (!name)
-    return false;
-
-  if (FILTERED_SURFACE_REF_SLASH_ITEM_NAME_SET.has(name))
-    return true;
-
-  return FILTERED_SURFACE_REF_SLASH_ITEM_PREFIXES.some(prefix => name.startsWith(prefix));
-}
 
 class SupportedSlashMenuFilterViewExtension extends ViewExtensionProvider {
   override name = "tc-blocksuite-supported-slash-menu-filter";
@@ -105,14 +90,7 @@ class SupportedSlashMenuFilterViewExtension extends ViewExtensionProvider {
     // surface-ref 默认会把 mindmap/group 等入口重新带回 slash menu；
     // 这里做最后一道 UI 过滤，避免暴露未支持能力。
     prototype.configItemTransform = function (item: SlashMenuItem) {
-      const transformed = prevTransform.call(this, item);
-      if (!shouldHideUnsupportedSlashItem(transformed))
-        return translateBlocksuiteSlashItem(transformed);
-
-      return {
-        ...transformed,
-        when: () => false,
-      };
+      return transformBlocksuiteSlashItemForUi(prevTransform.call(this, item));
     };
     prototype.__tc_supportedSubsetPatched = true;
   }

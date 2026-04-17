@@ -91,6 +91,7 @@ const BLOCKSUITE_UI_TEXT_MAP: Record<string, string> = {
   "Move Down": "下移",
   "Move Up": "上移",
   "New Doc": "新建文档",
+  "No Results": "无匹配结果",
   "Now": "现在",
   "Numbered List": "有序列表",
   "Other Headings": "其他标题",

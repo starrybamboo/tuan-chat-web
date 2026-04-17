@@ -12,6 +12,7 @@ describe("blocksuiteUiLocale", () => {
     expect(translateBlocksuiteUiText("More")).toBe("更多");
     expect(translateBlocksuiteUiText("Fit to screen")).toBe("适应屏幕");
     expect(translateBlocksuiteUiText("Mention Role")).toBe("提及角色");
+    expect(translateBlocksuiteUiText("No Results")).toBe("无匹配结果");
     expect(translateBlocksuiteUiText("Type '/' for commands")).toBe("输入“/”查看命令");
     expect(translateBlocksuiteUiText("Frame: 房间结构")).toBe("框架：房间结构");
   });
