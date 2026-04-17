@@ -356,15 +356,10 @@ export function AiImagePreviewPane({
 
       {!isDirectorToolsOpen
         ? (
-            <div className={`relative flex min-h-[520px] flex-1 self-stretch items-center justify-center overflow-hidden rounded-box border border-base-300 bg-base-100 p-3 shadow-sm transition-colors ${isGeneratingImage ? "bg-primary/[0.03]" : ""}`}>
+            <div className="relative flex min-h-[520px] flex-1 self-stretch items-center justify-center overflow-hidden rounded-box border border-base-300 bg-base-100 p-3 shadow-sm">
               {isGeneratingImage
                 ? (
-                    <>
-                      <div className="pointer-events-none absolute inset-0 bg-primary/[0.05] animate-pulse" />
-                      <div className="pointer-events-none absolute inset-x-0 top-0 z-10 h-1 overflow-hidden bg-base-300/45">
-                        <div className="h-full w-2/5 rounded-full bg-linear-to-r from-primary/40 via-primary to-primary/50 animate-pulse" />
-                      </div>
-                    </>
+                    <div className="pointer-events-none absolute inset-x-0 top-0 z-10 h-px bg-primary/65 animate-pulse" />
                   )
                 : null}
               {selectedPreviewResult
