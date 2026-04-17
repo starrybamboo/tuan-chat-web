@@ -358,93 +358,58 @@ export function AiImageHistoryPane({
           </button>
         </div>
         <div className="flex-1 overflow-auto pr-1">
-          <div className="flex flex-col gap-0">
-            <div className="border-t border-[#D6DCE3] py-3 dark:border-[#2A3138]">
-              <div className="mb-2 flex items-center gap-2 px-1">
-                <div className="text-sm font-medium">Current</div>
-                <div className="ml-auto text-xs text-base-content/55">{currentResultCards.length ? `${currentResultCards.length}` : ""}</div>
-              </div>
-              <div className="grid grid-cols-1 justify-items-center gap-2">
-                {currentResultCards.map(({ item, index, row }) => (
-                  <HistoryImageTile
-                    key={`${item.batchId}-${item.batchIndex}`}
-                    active={!selectedHistoryPreviewKey && selectedResultIndex === index}
-                    alt="current-result"
-                    badge={row?.toolLabel || (item.batchSize > 1 ? `${item.batchIndex + 1}/${item.batchSize}` : row?.mode || mode)}
-                    dataUrl={item.dataUrl}
-                    draggable
-                    meta={`seed ${item.seed}`}
-                    title={`${row?.mode || mode} · seed ${item.seed} · ${item.width}×${item.height}`}
-                    onClick={() => onSelectCurrentResult(index)}
-                    onDelete={row?.id != null
-                      ? (event) => {
-                          event.stopPropagation();
-                          void onDeleteHistoryRow(row);
-                        }
-                      : undefined}
-                    onDragStart={event => onHistoryImageDragStart(event, {
-                      dataUrl: item.dataUrl,
-                      seed: item.seed,
-                      batchIndex: item.batchIndex,
-                    })}
-                  />
-                ))}
-                {!currentResultCards.length
-                  ? <div className="col-span-1 w-full rounded-xl border border-dashed border-base-300 bg-base-100 px-3 py-5 text-center text-sm text-base-content/55">暂无本次绘画</div>
-                  : null}
-              </div>
-            </div>
-
-            <details
-              className="border-t border-[#D6DCE3] bg-[#F3F5F7] shadow-none dark:border-[#2A3138] dark:bg-[#161A1F]"
-              open={isHistoryExpanded}
-              onToggle={(event) => {
-                onHistoryExpandedChange(event.currentTarget.open);
-              }}
-            >
-              <summary className="cursor-pointer list-none px-3 py-3" title={isHistoryExpanded ? "折叠历史绘画" : "展开历史绘画"}>
-                <div className="flex items-center gap-3">
-                  <div className="min-w-0 flex-1">
-                    <div className="text-[13px] font-medium">History</div>
-                    <div className="mt-0.5 text-xs font-normal text-base-content/55">{archivedHistoryRows.length ? `${archivedHistoryRows.length}` : "0"}</div>
-                  </div>
-                  <span className="flex size-5 shrink-0 items-center justify-center text-base-content/60" aria-hidden="true">
-                    <ChevronDown className={`size-4 transition-transform ${isHistoryExpanded ? "" : "-rotate-90"}`} />
-                  </span>
-                </div>
-              </summary>
-              <div className="px-3 pb-3 pt-0">
-                <div className="grid grid-cols-1 justify-items-center gap-2">
-                  {archivedHistoryRows.map(row => (
-                    <HistoryImageTile
-                      key={historyRowKey(row)}
-                      active={selectedHistoryPreviewKey === historyRowKey(row)}
-                      alt="history"
-                      badge={row.toolLabel || (row.batchSize && row.batchSize > 1 ? `${(row.batchIndex ?? 0) + 1}/${row.batchSize}` : row.mode)}
-                      dataUrl={row.dataUrl}
-                      draggable
-                      meta={`seed ${row.seed}`}
-                      title={`${row.mode} · seed ${row.seed} · ${row.width}×${row.height}`}
-                      onClick={event => onHistoryRowClick(row, event)}
-                      onDelete={row.id != null
-                        ? (event) => {
-                            event.stopPropagation();
-                            void onDeleteHistoryRow(row);
-                          }
-                        : undefined}
-                      onDragStart={event => onHistoryImageDragStart(event, {
-                        dataUrl: row.dataUrl,
-                        seed: row.seed,
-                        batchIndex: row.batchIndex ?? undefined,
-                      })}
-                    />
-                  ))}
-                  {!archivedHistoryRows.length
-                    ? <div className="col-span-1 w-full rounded-xl border border-dashed border-base-300 bg-base-100 px-3 py-5 text-center text-sm text-base-content/55">暂无历史绘画</div>
-                    : null}
-                </div>
-              </div>
-            </details>
+          <div className="grid grid-cols-1 justify-items-center gap-2 border-t border-[#D6DCE3] py-3 dark:border-[#2A3138]">
+            {currentResultCards.map(({ item, index, row }) => (
+              <HistoryImageTile
+                key={`${item.batchId}-${item.batchIndex}`}
+                active={!selectedHistoryPreviewKey && selectedResultIndex === index}
+                alt="current-result"
+                badge={row?.toolLabel || (item.batchSize > 1 ? `${item.batchIndex + 1}/${item.batchSize}` : row?.mode || mode)}
+                dataUrl={item.dataUrl}
+                draggable
+                meta={`seed ${item.seed}`}
+                title={`${row?.mode || mode} · seed ${item.seed} · ${item.width}×${item.height}`}
+                onClick={() => onSelectCurrentResult(index)}
+                onDelete={row?.id != null
+                  ? (event) => {
+                      event.stopPropagation();
+                      void onDeleteHistoryRow(row);
+                    }
+                  : undefined}
+                onDragStart={event => onHistoryImageDragStart(event, {
+                  dataUrl: item.dataUrl,
+                  seed: item.seed,
+                  batchIndex: item.batchIndex,
+                })}
+              />
+            ))}
+            {archivedHistoryRows.map(row => (
+              <HistoryImageTile
+                key={historyRowKey(row)}
+                active={selectedHistoryPreviewKey === historyRowKey(row)}
+                alt="history"
+                badge={row.toolLabel || (row.batchSize && row.batchSize > 1 ? `${(row.batchIndex ?? 0) + 1}/${row.batchSize}` : row.mode)}
+                dataUrl={row.dataUrl}
+                draggable
+                meta={`seed ${row.seed}`}
+                title={`${row.mode} · seed ${row.seed} · ${row.width}×${row.height}`}
+                onClick={event => onHistoryRowClick(row, event)}
+                onDelete={row.id != null
+                  ? (event) => {
+                      event.stopPropagation();
+                      void onDeleteHistoryRow(row);
+                    }
+                  : undefined}
+                onDragStart={event => onHistoryImageDragStart(event, {
+                  dataUrl: row.dataUrl,
+                  seed: row.seed,
+                  batchIndex: row.batchIndex ?? undefined,
+                })}
+              />
+            ))}
+            {!currentResultCards.length && !archivedHistoryRows.length
+              ? <div className="col-span-1 w-full rounded-xl border border-dashed border-base-300 bg-base-100 px-3 py-5 text-center text-sm text-base-content/55">暂无绘画记录</div>
+              : null}
           </div>
         </div>
         <div className="mt-3 flex shrink-0 flex-col gap-2 border-t border-[#D6DCE3] pt-3 dark:border-[#2A3138]">
