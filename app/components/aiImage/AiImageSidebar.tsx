@@ -187,9 +187,9 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
               aria-expanded={isModeSelectorOpen}
               onClick={() => setIsModeSelectorOpen(prev => !prev)}
             >
-              <div className="flex min-w-0 items-center gap-2">
-                <span className="font-medium text-base-content">{activeModeOption.label}</span>
-                <span className="truncate text-[11px] text-base-content/45">{MODE_MODEL_LABEL}</span>
+              <div className="flex min-w-0 items-baseline gap-2">
+                <span className="font-medium leading-none text-base-content">{activeModeOption.label}</span>
+                <span className="truncate text-[11px] leading-none text-base-content/45">{MODE_MODEL_LABEL}</span>
               </div>
               <ChevronDown className={`ml-3 size-4 shrink-0 text-base-content/60 transition-transform ${isModeSelectorOpen ? "rotate-180" : ""}`} />
             </button>
@@ -209,9 +209,9 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                             }`}
                             onClick={() => handleSelectMode(option.value)}
                           >
-                            <div className="flex min-w-0 items-center gap-2">
-                              <span className="font-medium">{option.label}</span>
-                              <span className="truncate text-[11px] text-base-content/45">{MODE_MODEL_LABEL}</span>
+                            <div className="flex min-w-0 items-baseline gap-2">
+                              <span className="font-medium leading-none">{option.label}</span>
+                              <span className="truncate text-[11px] leading-none text-base-content/45">{MODE_MODEL_LABEL}</span>
                             </div>
                             <div className="mt-1 text-xs text-base-content/60">
                               {option.description}
@@ -222,8 +222,7 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                     </div>
                   )
                 : null}
-            <div className="mt-2 rounded-md border border-[#D6DCE3] bg-base-100 px-3 py-2 text-xs text-base-content/65 dark:border-[#2A3138] dark:bg-[#12161B]">
-              <span className="font-medium text-base-content/80">{`${activeModeOption.label}：`}</span>
+            <div className="mt-2 px-1 text-xs text-base-content/55">
               {activeModeOption.description}
             </div>
           </div>
