@@ -144,6 +144,8 @@ export function useAiImagePageController() {
   const [simpleText, setSimpleText] = useState("");
   const [simpleConvertedFromText, setSimpleConvertedFromText] = useState("");
   const [simpleConverted, setSimpleConverted] = useState<NovelAiNl2TagsResult | null>(null);
+  const [simplePrompt, setSimplePrompt] = useState("");
+  const [simpleNegativePrompt, setSimpleNegativePrompt] = useState("");
   const [simpleConverting, setSimpleConverting] = useState(false);
   const [isPageImageDragOver, setIsPageImageDragOver] = useState(false);
   const [isStylePickerOpen, setIsStylePickerOpen] = useState(false);
@@ -779,8 +781,8 @@ export function useAiImagePageController() {
     toolLabel?: string;
   }) => {
     const effectiveMode = args?.mode ?? mode;
-    const basePrompt = String(args?.prompt ?? prompt).trim();
-    const baseNegative = String(args?.negativePrompt ?? negativePrompt);
+    const basePrompt = String(args?.prompt ?? (uiMode === "simple" ? simplePrompt : prompt)).trim();
+    const baseNegative = String(args?.negativePrompt ?? (uiMode === "simple" ? simpleNegativePrompt : negativePrompt));
     const mergeStyleTags = uiMode === "simple" && effectiveMode === "txt2img";
     const effectiveImageCount = NOVELAI_FREE_FIXED_IMAGE_COUNT;
     const effectivePrompt = mergeStyleTags ? mergeTagString(basePrompt, selectedStyleTags).trim() : basePrompt;
@@ -814,9 +816,9 @@ export function useAiImagePageController() {
     try {
       if (mergeStyleTags) {
         if (effectivePrompt !== basePrompt)
-          setPrompt(effectivePrompt);
+          setSimplePrompt(effectivePrompt);
         if (effectiveNegative !== baseNegative)
-          setNegativePrompt(effectiveNegative);
+          setSimpleNegativePrompt(effectiveNegative);
       }
 
       const freeViolation = getNovelAiFreeGenerationViolation({
@@ -959,6 +961,8 @@ export function useAiImagePageController() {
     selectedStyleNegativeTags,
     selectedStyleTags,
     seed,
+    simpleNegativePrompt,
+    simplePrompt,
     smea,
     smeaDyn,
     sourceImageBase64,
@@ -993,11 +997,11 @@ export function useAiImagePageController() {
       height: selectedPreviewResult.height,
       seed: selectedPreviewResult.seed,
       model: selectedPreviewResult.model,
-      prompt: selectedPreviewHistoryRow?.prompt || prompt,
-      negativePrompt: selectedPreviewHistoryRow?.negativePrompt || negativePrompt,
+      prompt: selectedPreviewHistoryRow?.prompt || (uiMode === "simple" ? simplePrompt : prompt),
+      negativePrompt: selectedPreviewHistoryRow?.negativePrompt || (uiMode === "simple" ? simpleNegativePrompt : negativePrompt),
       strength,
     });
-  }, [negativePrompt, prompt, selectedPreviewHistoryRow, selectedPreviewResult, showErrorToast, strength]);
+  }, [negativePrompt, prompt, selectedPreviewHistoryRow, selectedPreviewResult, showErrorToast, simpleNegativePrompt, simplePrompt, strength, uiMode]);
 
   const handleCloseInpaintDialog = useCallback(() => {
     if (loading)
@@ -1040,16 +1044,16 @@ export function useAiImagePageController() {
       return;
     }
 
-    let resolvedPrompt = prompt;
-    let resolvedNegativePrompt = negativePrompt;
+    let resolvedPrompt = simplePrompt;
+    let resolvedNegativePrompt = simpleNegativePrompt;
     if (simpleConvertedFromText !== trimmed || !simpleConverted) {
       setSimpleConverting(true);
       try {
         const converted = await convertNaturalLanguageToNovelAiTags({ input: trimmed });
         setSimpleConverted(converted);
         setSimpleConvertedFromText(trimmed);
-        setPrompt(converted.prompt);
-        setNegativePrompt(converted.negativePrompt);
+        setSimplePrompt(converted.prompt);
+        setSimpleNegativePrompt(converted.negativePrompt);
         resolvedPrompt = converted.prompt;
         resolvedNegativePrompt = converted.negativePrompt;
       }
@@ -1070,22 +1074,22 @@ export function useAiImagePageController() {
 
     await runGenerate({ mode: "txt2img", prompt: resolvedPrompt, negativePrompt: resolvedNegativePrompt });
   }, [
-    negativePrompt,
-    prompt,
     runGenerate,
     showErrorToast,
     simpleConverted,
     simpleConvertedFromText,
+    simpleNegativePrompt,
+    simplePrompt,
     simpleText,
   ]);
 
   const handleSimpleGenerateFromTags = useCallback(async () => {
-    if (!prompt.trim()) {
+    if (!simplePrompt.trim()) {
       showErrorToast("prompt 为空：请先完成自然语言转换或手动编辑 tags");
       return;
     }
-    await runGenerate({ mode: "txt2img", prompt, negativePrompt });
-  }, [negativePrompt, prompt, runGenerate, showErrorToast]);
+    await runGenerate({ mode: "txt2img", prompt: simplePrompt, negativePrompt: simpleNegativePrompt });
+  }, [runGenerate, showErrorToast, simpleNegativePrompt, simplePrompt]);
 
   const handleSelectCurrentResult = useCallback((index: number) => {
     setSelectedHistoryPreviewKey(null);
@@ -1637,6 +1641,8 @@ export function useAiImagePageController() {
     setSeed,
     setSimpleConverted,
     setSimpleConvertedFromText,
+    setSimpleNegativePrompt,
+    setSimplePrompt,
     setSimpleText,
     setSmea,
     setSmeaDyn,
@@ -1650,6 +1656,8 @@ export function useAiImagePageController() {
     setWidth,
     simpleConverted,
     simpleGenerateLabel,
+    simpleNegativePrompt,
+    simplePrompt,
     simpleResolutionArea,
     simpleResolutionSelection,
     simpleText,
