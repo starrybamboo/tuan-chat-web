@@ -1,8 +1,6 @@
 import { menu, popMenu, type MenuConfig, type PopupTarget } from "@blocksuite/affine/components/context-menu";
 import { focusBlockEnd } from "@blocksuite/affine-shared/commands";
-import { getClosestBlockComponentByPoint } from "@blocksuite/affine-shared/utils";
 import type { SlashMenuActionItem, SlashMenuContext, SlashMenuItem } from "@blocksuite/affine/widgets/slash-menu";
-import { Point } from "@blocksuite/global/gfx";
 import { html } from "lit";
 
 import type { BlockStdScope } from "@blocksuite/std";
@@ -44,7 +42,6 @@ function isRootLikeBlock(block: BlockComponent | null): boolean {
 function resolveBlocksuiteContextBlock(
   editor: BlocksuiteEditorElement,
   target: Element,
-  event: MouseEvent,
 ): BlockComponent | null {
   const blockId = target.closest<HTMLElement>("[data-block-id]")?.dataset.blockId;
   const directBlock = blockId ? (editor.std?.view.getBlock(blockId) as BlockComponent | null) : null;
@@ -52,7 +49,7 @@ function resolveBlocksuiteContextBlock(
     return directBlock;
   }
 
-  return getClosestBlockComponentByPoint(new Point(event.clientX, event.clientY));
+  return null;
 }
 
 function syncSelectionToBlock(std: BlockStdScope, block: BlockComponent) {
@@ -150,7 +147,7 @@ export function installBlocksuiteSlashContextMenu(editor: BlocksuiteEditorElemen
       return;
     }
 
-    const block = resolveBlocksuiteContextBlock(editor, event.target, event);
+    const block = resolveBlocksuiteContextBlock(editor, event.target);
     if (!block) {
       return;
     }
