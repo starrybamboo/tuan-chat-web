@@ -1069,12 +1069,11 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                   </div>
 
                   <div className="flex flex-col gap-2">
-                    <div className="flex items-center justify-between text-xs text-base-content/70">
+                    <div className="flex items-center text-xs text-base-content/70">
                       <span>种子 (Seed)</span>
-                      <span>{seedIsRandom ? "随机模式" : "固定数值"}</span>
                     </div>
                     <input
-                      className={`w-full appearance-none [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none ${subtleInputClassName}`}
+                      className={`w-full appearance-none focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none ${subtleInputClassName}`}
                       type="number"
                       value={seedIsRandom ? "" : seed}
                       onChange={(e) => {
