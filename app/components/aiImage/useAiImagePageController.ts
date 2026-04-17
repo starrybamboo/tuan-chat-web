@@ -152,7 +152,6 @@ export function useAiImagePageController() {
   const [selectedStyleIds, setSelectedStyleIds] = useState<string[]>([]);
   const [proPromptTab, setProPromptTab] = useState<"prompt" | "negative">("prompt");
   const [charPromptTabs, setCharPromptTabs] = useState<Record<string, "prompt" | "negative">>({});
-  const [isSimpleTagEditorOpen, setIsSimpleTagEditorOpen] = useState(true);
 
   const [prompt, setPrompt] = useState("");
   const [negativePrompt, setNegativePrompt] = useState("");
@@ -175,7 +174,6 @@ export function useAiImagePageController() {
       setMode("txt2img");
       setSourceImageDataUrl("");
       setSourceImageBase64("");
-      setIsSimpleTagEditorOpen(true);
     }
   }, [uiMode]);
 
@@ -373,7 +371,6 @@ export function useAiImagePageController() {
     setSimpleConverted(null);
     setSimpleConvertedFromText("");
     setSelectedStyleIds([]);
-    setIsSimpleTagEditorOpen(false);
 
     if (selection.settings) {
       setMode("txt2img");
@@ -1055,7 +1052,6 @@ export function useAiImagePageController() {
         setSimpleConvertedFromText(trimmed);
         setSimplePrompt(converted.prompt);
         setSimpleNegativePrompt(converted.negativePrompt);
-        setIsSimpleTagEditorOpen(true);
         resolvedPrompt = converted.prompt;
         resolvedNegativePrompt = converted.negativePrompt;
       }
@@ -1084,6 +1080,14 @@ export function useAiImagePageController() {
     simplePrompt,
     simpleText,
   ]);
+
+  const handleSimpleGenerateFromTags = useCallback(async () => {
+    if (!simplePrompt.trim()) {
+      showErrorToast("prompt 为空：请先补充 tags");
+      return;
+    }
+    await runGenerate({ mode: "txt2img", prompt: simplePrompt, negativePrompt: simpleNegativePrompt });
+  }, [runGenerate, showErrorToast, simpleNegativePrompt, simplePrompt]);
 
   const handleSelectCurrentResult = useCallback((index: number) => {
     setSelectedHistoryPreviewKey(null);
@@ -1573,6 +1577,7 @@ export function useAiImagePageController() {
     handleRemoveVibeReference,
     handleResetCurrentImageSettings,
     handleSelectSimpleResolutionPreset,
+    handleSimpleGenerateFromTags,
     handleSimpleGenerateFromText,
     handleSimpleHeightChange,
     handleSimpleWidthChange,
@@ -1587,7 +1592,6 @@ export function useAiImagePageController() {
     isNAI3,
     isNAI4,
     isPageImageDragOver,
-    isSimpleTagEditorOpen,
     mode,
     model,
     negativePrompt,
@@ -1618,7 +1622,6 @@ export function useAiImagePageController() {
     setDynamicThresholding,
     setHeight,
     setImageCount,
-    setIsSimpleTagEditorOpen,
     setIsStylePickerOpen,
     setNegativePrompt,
     setNoise,
