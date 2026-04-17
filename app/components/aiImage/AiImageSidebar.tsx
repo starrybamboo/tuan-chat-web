@@ -184,15 +184,18 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
   const charTextareaClassName = "textarea textarea-bordered min-h-28 w-full resize-none border-[#D6DCE3] bg-[#F3F5F7] text-base-content leading-7 transition-colors hover:border-primary active:border-primary focus:border-primary focus:bg-primary/[0.03] focus:outline-none dark:border-[#2A3138] dark:bg-[#161A1F] dark:hover:border-primary";
   const subtleInputClassName = "input input-bordered input-sm border-[#D6DCE3] bg-[#F3F5F7] text-base-content dark:border-[#2A3138] dark:bg-[#161A1F]";
   const subtleSelectClassName = "select select-bordered select-sm border-[#D6DCE3] bg-[#F3F5F7] text-base-content dark:border-[#2A3138] dark:bg-[#161A1F]";
-  const compactResolutionInputClassName = "w-full rounded-md border border-[#D6DCE3] bg-base-100 px-3 py-2 text-sm text-base-content transition hover:border-primary focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 dark:border-[#2A3138] dark:bg-[#161A1F]";
+  const simpleResolutionValueInputClassName = "min-w-0 bg-transparent text-center text-lg font-semibold tabular-nums text-base-content focus:outline-none";
   const [isModeSelectorOpen, setIsModeSelectorOpen] = useState(false);
   const [isModeSelectorMounted, setIsModeSelectorMounted] = useState(false);
+  const [isSimpleResolutionSelectorOpen, setIsSimpleResolutionSelectorOpen] = useState(false);
   const modeSelectorContainerRef = useRef<HTMLDivElement | null>(null);
+  const simpleResolutionSelectorRef = useRef<HTMLDivElement | null>(null);
   const activeModeOption = MODE_OPTIONS.find(option => option.value === uiMode) ?? MODE_OPTIONS[0];
-  const isSimpleCustomResolution = simpleResolutionSelection === CUSTOM_RESOLUTION_ID;
   const isSimplePreviewingConverted = Boolean(simpleConverted);
   const isSimpleTextEditor = simpleEditorMode === "text" && !isSimplePreviewingConverted;
   const isSimpleTagsEditor = simpleEditorMode === "tags";
+  const simpleResolutionOptions = [...RESOLUTION_PRESETS, { id: CUSTOM_RESOLUTION_ID, label: "自定义" }] as const;
+  const activeSimpleResolutionOption = simpleResolutionOptions.find(option => option.id === simpleResolutionSelection) ?? simpleResolutionOptions[simpleResolutionOptions.length - 1];
 
   useEffect(() => {
     if (isModeSelectorOpen) {
@@ -231,6 +234,32 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
       document.removeEventListener("keydown", handleKeyDown);
     };
   }, [isModeSelectorOpen]);
+
+  useEffect(() => {
+    if (!isSimpleResolutionSelectorOpen)
+      return;
+
+    function handlePointerDown(event: PointerEvent) {
+      const container = simpleResolutionSelectorRef.current;
+      const target = event.target;
+      if (!container || !(target instanceof Node))
+        return;
+      if (!container.contains(target))
+        setIsSimpleResolutionSelectorOpen(false);
+    }
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape")
+        setIsSimpleResolutionSelectorOpen(false);
+    }
+
+    document.addEventListener("pointerdown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isSimpleResolutionSelectorOpen]);
 
   function handleSelectMode(nextMode: ModeOptionValue) {
     setUiMode(nextMode);
@@ -955,116 +984,70 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
       <div className={sideCardClassName}>
         <div className="card-body gap-3 p-4">
           <div className="flex items-center gap-2">
-            <div className="font-medium">AI 绘图设置</div>
-            <div className="ml-auto text-xs text-base-content/70">{modelLabel(model)}</div>
+            <div className="font-medium">绘图设置</div>
           </div>
           {uiMode === "simple"
             ? (
                 <>
-                  <div className="flex flex-col gap-2">
-                    <div className="flex items-center justify-between text-xs text-base-content/70">
-                      <span>画幅尺寸</span>
-                      <span>{`${width} × ${height}`}</span>
-                    </div>
-                    <div className="grid grid-cols-2 gap-2">
-                      {RESOLUTION_PRESETS.map((preset) => {
-                        const isActive = simpleResolutionSelection === preset.id;
-                        return (
-                          <button
-                            key={preset.id}
-                            type="button"
-                            className={`flex min-h-20 flex-col items-center justify-center gap-1.5 rounded-2xl border px-3 py-3 text-center transition focus:outline-none focus:ring-2 focus:ring-primary/20 ${
-                              isActive
-                                ? "border-primary bg-primary/5 shadow-sm dark:bg-primary/10"
-                                : "border-[#D6DCE3] bg-[#F3F5F7] hover:border-primary/40 hover:bg-[#EAEFF4] dark:border-[#2A3138] dark:bg-[#161A1F] dark:hover:bg-[#1B2026]"
-                            }`}
-                            onClick={() => handleSelectSimpleResolutionPreset(preset.id)}
-                          >
-                            <div className={`border-2 border-current rounded-sm opacity-80 ${preset.id === "portrait" ? "w-4 h-6" : preset.id === "landscape" ? "w-6 h-4" : "w-5 h-5"}`} />
-                            <span className="text-sm font-medium">{preset.label}</span>
-                            <span className="text-[11px] leading-none text-base-content/60">{`${preset.width} × ${preset.height}`}</span>
-                          </button>
-                        );
-                      })}
+                  <div className="grid gap-3 lg:grid-cols-[minmax(0,1.2fr)_220px]">
+                    <div className="relative" ref={simpleResolutionSelectorRef}>
                       <button
                         type="button"
-                        className={`flex min-h-20 flex-col items-center justify-center gap-1.5 rounded-2xl border px-3 py-3 text-center transition focus:outline-none focus:ring-2 focus:ring-primary/20 ${
-                          isSimpleCustomResolution
-                            ? "border-primary bg-primary/5 shadow-sm dark:bg-primary/10"
-                            : "border-[#D6DCE3] bg-[#F3F5F7] hover:border-primary/40 hover:bg-[#EAEFF4] dark:border-[#2A3138] dark:bg-[#161A1F] dark:hover:bg-[#1B2026]"
-                        }`}
-                        onClick={() => handleSelectSimpleResolutionPreset(CUSTOM_RESOLUTION_ID)}
+                        className={`flex w-full items-center justify-between rounded-xl border border-[#D6DCE3] bg-[#F3F5F7] px-4 py-4 text-left transition focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 hover:border-primary/40 hover:bg-[#EAEFF4] dark:border-[#2A3138] dark:bg-[#161A1F] dark:hover:bg-[#1B2026] ${isSimpleResolutionSelectorOpen ? "border-primary bg-primary/5 shadow-sm dark:bg-primary/10" : ""}`}
+                        aria-expanded={isSimpleResolutionSelectorOpen}
+                        onClick={() => setIsSimpleResolutionSelectorOpen(prev => !prev)}
                       >
-                        <div className="flex size-5 items-center justify-center rounded-sm border-2 border-dashed border-current opacity-80">
-                          <span className="text-[10px] leading-none font-bold">+</span>
-                        </div>
-                        <span className="text-sm font-medium">自定义</span>
-                        <span className="text-[11px] leading-none text-base-content/60">展开右侧输入</span>
+                        <span className="text-3xl font-semibold tracking-tight text-base-content">{activeSimpleResolutionOption.label}</span>
+                        <ChevronDown className={`size-5 shrink-0 text-base-content/60 transition-transform ${isSimpleResolutionSelectorOpen ? "rotate-180" : ""}`} />
                       </button>
-                    </div>
-                  </div>
 
-                  <div className={`grid transition-all duration-200 ease-out ${isSimpleCustomResolution ? "mt-1 grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"}`}>
-                    <div className="min-h-0 overflow-hidden">
-                      <div className="grid gap-3 rounded-2xl border border-base-300 bg-base-100/70 p-3 shadow-sm dark:bg-[#161A1F]/80 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
-                        <div className="rounded-xl border border-dashed border-base-300 bg-base-200/50 px-3 py-3 dark:border-[#2A3138] dark:bg-[#1B2026]">
-                          <div className="flex items-center gap-2">
-                            <div className="flex size-9 items-center justify-center rounded-lg border border-primary/20 bg-primary/10 text-base-content">
-                              <span className="text-sm font-semibold">自</span>
+                      {isSimpleResolutionSelectorOpen
+                        ? (
+                            <div className="absolute left-0 right-0 top-[calc(100%+0.5rem)] z-20 overflow-hidden rounded-xl border border-[#D6DCE3] bg-[#F3F5F7] p-2 shadow-2xl dark:border-[#2A3138] dark:bg-[#161A1F]">
+                              <div className="flex flex-col gap-1">
+                                {simpleResolutionOptions.map(option => (
+                                  <button
+                                    key={option.id}
+                                    type="button"
+                                    className={`rounded-lg px-4 py-3 text-left text-base transition focus:outline-none focus:ring-2 focus:ring-primary/20 ${
+                                      simpleResolutionSelection === option.id
+                                        ? "bg-primary/10 text-base-content"
+                                        : "text-base-content/78 hover:bg-base-100 dark:hover:bg-[#1B2026]"
+                                    }`}
+                                    onClick={() => {
+                                      handleSelectSimpleResolutionPreset(option.id);
+                                      setIsSimpleResolutionSelectorOpen(false);
+                                    }}
+                                  >
+                                    {option.label}
+                                  </button>
+                                ))}
+                              </div>
                             </div>
-                            <div className="min-w-0">
-                              <div className="text-sm font-semibold">自定义尺寸</div>
-                              <div className="mt-1 text-xs leading-5 text-base-content/60">右侧直接输入宽高，按 64px 步进对齐。</div>
-                            </div>
-                          </div>
-                          <div className="mt-3 text-xs text-base-content/60">
-                            {`当前：${width} × ${height}`}
-                          </div>
-                          <div className="mt-1 text-xs text-base-content/60">
-                            {`面积：${simpleResolutionArea.toLocaleString()} px`}
-                          </div>
-                        </div>
-                        <div className="rounded-xl border border-base-300 bg-base-100 px-3 py-3 dark:border-[#2A3138] dark:bg-[#161A1F]">
-                          <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-end gap-2">
-                            <label className="form-control">
-                              <span className="label-text text-xs">宽 (Width)</span>
-                              <input
-                                className={compactResolutionInputClassName}
-                                type="number"
-                                min={NOVELAI_DIMENSION_MIN}
-                                max={NOVELAI_FREE_MAX_DIMENSION}
-                                step={NOVELAI_DIMENSION_STEP}
-                                value={width}
-                                onChange={e => handleSimpleWidthChange(Number(e.target.value))}
-                              />
-                            </label>
-                            <button
-                              type="button"
-                              className="btn btn-square btn-sm btn-outline mb-0.5"
-                              title="交换宽高"
-                              aria-label="交换宽高"
-                              onClick={handleSwapImageDimensions}
-                            >
-                              ×
-                            </button>
-                            <label className="form-control">
-                              <span className="label-text text-xs">高 (Height)</span>
-                              <input
-                                className={compactResolutionInputClassName}
-                                type="number"
-                                min={NOVELAI_DIMENSION_MIN}
-                                max={NOVELAI_FREE_MAX_DIMENSION}
-                                step={NOVELAI_DIMENSION_STEP}
-                                value={height}
-                                onChange={e => handleSimpleHeightChange(Number(e.target.value))}
-                              />
-                            </label>
-                          </div>
-                          <div className="mt-3 text-xs leading-5 text-base-content/60">
-                            {`自定义尺寸按 NovelAI 规则以 64px 为步进，且宽高都不能超过 ${NOVELAI_FREE_MAX_DIMENSION}。`}
-                          </div>
-                        </div>
-                      </div>
+                          )
+                        : null}
+                    </div>
+
+                    <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3 rounded-xl border border-[#D6DCE3] bg-[#F3F5F7] px-4 py-4 shadow-sm dark:border-[#2A3138] dark:bg-[#161A1F]">
+                      <input
+                        className={simpleResolutionValueInputClassName}
+                        type="number"
+                        min={NOVELAI_DIMENSION_MIN}
+                        max={NOVELAI_FREE_MAX_DIMENSION}
+                        step={NOVELAI_DIMENSION_STEP}
+                        value={width}
+                        onChange={e => handleSimpleWidthChange(Number(e.target.value))}
+                      />
+                      <span className="text-xl font-medium text-base-content/55">×</span>
+                      <input
+                        className={simpleResolutionValueInputClassName}
+                        type="number"
+                        min={NOVELAI_DIMENSION_MIN}
+                        max={NOVELAI_FREE_MAX_DIMENSION}
+                        step={NOVELAI_DIMENSION_STEP}
+                        value={height}
+                        onChange={e => handleSimpleHeightChange(Number(e.target.value))}
+                      />
                     </div>
                   </div>
 
