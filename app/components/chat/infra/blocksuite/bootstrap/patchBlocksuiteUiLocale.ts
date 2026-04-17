@@ -135,8 +135,28 @@ function patchFilterableList() {
   });
 }
 
+function patchLocalizedRender(tagName: string, patchKey: string) {
+  patchRender(tagName, patchKey, (prototype) => {
+    const originalRender = prototype.render as ((...args: unknown[]) => unknown) | undefined;
+    if (typeof originalRender !== "function") {
+      return;
+    }
+
+    prototype.render = function (this: unknown, ...args: unknown[]) {
+      const rendered = originalRender.apply(this, args);
+      queueMicrotask(() => {
+        if (this instanceof Element) {
+          localizeElementHost(this);
+        }
+      });
+      return rendered;
+    };
+  });
+}
+
 function patchKnownElements() {
   patchParagraphPlaceholder();
+  patchLocalizedRender("affine-menu", "__tcBlocksuiteAffineMenuLocalePatched");
   patchIconLikeRender("icon-button", "__tcBlocksuiteIconButtonLocalePatched", null);
   patchIconLikeRender("editor-icon-button", "__tcBlocksuiteEditorIconButtonLocalePatched", "tooltip");
   patchIconLikeRender("edgeless-tool-icon-button", "__tcBlocksuiteEdgelessToolIconButtonLocalePatched", "tooltip");
