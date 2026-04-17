@@ -65,7 +65,6 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
     handleRemoveVibeReference,
     handleResetCurrentImageSettings,
     handleSelectSimpleResolutionPreset,
-    handleSimpleGenerateFromTags,
     handleSimpleGenerateFromText,
     handleSimpleHeightChange,
     handleSimpleWidthChange,
@@ -103,7 +102,6 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
     seed,
     seedIsRandom,
     selectedStyleIds,
-    selectedStyleNegativeTags,
     selectedStylePresets,
     selectedStyleTags,
     setCfgRescale,
@@ -406,69 +404,31 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                       onToggle={e => setIsSimpleTagEditorOpen((e.currentTarget as HTMLDetailsElement).open)}
                     >
                       <summary className="collapse-title px-0 pr-12 text-sm font-medium">
-                        已转换 tags
-                        <div className="mt-1 text-xs font-normal text-base-content/60">
-                          默认显示；需要微调时可收起编辑。
-                        </div>
+                        转换结果
                       </summary>
                       <div className="collapse-content px-0 pt-0">
-                        <div className="space-y-3">
-                          <div className="flex items-center gap-2">
-                            <div className={segmentedControlClassName}>
-                              <button
-                                type="button"
-                                className={`${segmentedButtonBaseClassName} ${proPromptTab === "prompt" ? "bg-base-100 text-base-content shadow-sm" : "bg-transparent text-base-content/60 hover:bg-base-100 hover:text-base-content"}`}
-                                onClick={() => setProPromptTab("prompt")}
-                              >
-                                Base Prompt
-                              </button>
-                              <button
-                                type="button"
-                                className={`${segmentedButtonBaseClassName} ${proPromptTab === "negative" ? "bg-base-100 text-base-content shadow-sm" : "bg-transparent text-base-content/60 hover:bg-base-100 hover:text-base-content"}`}
-                                onClick={() => setProPromptTab("negative")}
-                              >
-                                Undesired Content
-                              </button>
-                            </div>
-                            <button
-                              type="button"
-                              className={`btn btn-xs btn-primary ml-auto ${canGenerate ? "" : "btn-disabled"}`}
-                              disabled={!canGenerate}
-                              onClick={() => void handleSimpleGenerateFromTags()}
-                            >
-                              按 tag 出图
-                            </button>
-                          </div>
-                          <textarea
-                            className={promptTextareaClassName}
-                            value={proPromptTab === "prompt" ? simplePrompt : simpleNegativePrompt}
-                            onChange={(e) => {
-                              if (proPromptTab === "prompt")
-                                setSimplePrompt(e.target.value);
-                              else
-                                setSimpleNegativePrompt(e.target.value);
-                            }}
-                            placeholder={proPromptTab === "prompt" ? "自动转换后的 tags，可继续编辑" : "例如：lowres, bad anatomy"}
-                          />
-                          <div className="h-1 rounded-full bg-base-200">
-                            <div className="h-full w-8 rounded-full bg-primary" />
-                          </div>
-                          <div className="flex items-center justify-between text-xs text-base-content/70">
-                            <span>{proPromptTab === "prompt" ? "自动转换后的 tags，可继续编辑" : "负面 tags（可选）"}</span>
-                            <span>
-                              {proPromptTab === "prompt"
-                                ? (selectedStyleTags.length ? `画风 tags ${selectedStyleTags.length} 个` : "可直接微调")
-                                : (selectedStyleNegativeTags.length ? `画风负面 tags ${selectedStyleNegativeTags.length} 个` : "未附加画风负面 tags")}
-                            </span>
-                          </div>
-                          {proPromptTab === "negative" && selectedStyleNegativeTags.length
-                            ? (
-                                <div className="text-xs text-base-content/60">
-                                  {`画风负面 tags：${selectedStyleNegativeTags.join(", ")}`}
+                        {simpleConverted
+                          ? (
+                              <div className="space-y-3">
+                                <div>
+                                  <div className="text-xs font-medium text-base-content/70">Prompt tags</div>
+                                  <pre className="mt-1 whitespace-pre-wrap break-words rounded-md border border-base-300 bg-base-100 px-3 py-2 text-xs leading-6 text-base-content">{simplePrompt}</pre>
                                 </div>
-                              )
-                            : null}
-                        </div>
+                                {simpleNegativePrompt.trim()
+                                  ? (
+                                      <div>
+                                        <div className="text-xs font-medium text-base-content/70">Negative tags</div>
+                                        <pre className="mt-1 whitespace-pre-wrap break-words rounded-md border border-base-300 bg-base-100 px-3 py-2 text-xs leading-6 text-base-content">{simpleNegativePrompt}</pre>
+                                      </div>
+                                    )
+                                  : null}
+                              </div>
+                            )
+                          : (
+                              <div className="rounded-md border border-dashed border-base-300 bg-base-100/60 px-3 py-2 text-xs leading-6 text-base-content/60">
+                                暂无结果。
+                              </div>
+                            )}
                       </div>
                     </details>
                   </div>
