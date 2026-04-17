@@ -1043,7 +1043,12 @@ export function useAiImagePageController() {
     setSimpleConverting(true);
     try {
       const converted = await convertNaturalLanguageToNovelAiTags({ input: trimmed });
-      setSimpleConverted(converted);
+      const convertedWithStyles = {
+        ...converted,
+        prompt: mergeTagString(converted.prompt, selectedStyleTags).trim(),
+        negativePrompt: mergeTagString(converted.negativePrompt, selectedStyleNegativeTags),
+      };
+      setSimpleConverted(convertedWithStyles);
       setSimpleConvertedFromText(trimmed);
       setSimplePromptTab("prompt");
     }
@@ -1055,6 +1060,8 @@ export function useAiImagePageController() {
       setSimpleConverting(false);
     }
   }, [
+    selectedStyleNegativeTags,
+    selectedStyleTags,
     showErrorToast,
     simpleText,
   ]);
