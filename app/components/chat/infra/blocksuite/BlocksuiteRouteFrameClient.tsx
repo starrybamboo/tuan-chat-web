@@ -75,7 +75,7 @@ export function BlocksuiteRouteFrameClient() {
       console.error("[BlocksuiteFrame] Failed to bootstrap runtime", error);
       bootstrapPhaseRef.current = "error";
       failBlocksuiteOpenSession(instanceIdRef.current, error instanceof Error ? error.message : String(error));
-      setRuntimeError("Blocksuite runtime bootstrap failed");
+      setRuntimeError("文档编辑器启动失败");
       setIsRuntimeReady(false);
     });
 
@@ -105,8 +105,8 @@ export function BlocksuiteRouteFrameClient() {
     return (
       <div className="flex h-full min-h-0 items-center justify-center bg-base-200">
         <div className="flex items-center gap-2 text-base-content/70">
-          <span className="loading loading-spinner loading-md" aria-label="Loading" />
-          <span>Blocksuite 正在启动...</span>
+          <span className="loading loading-spinner loading-md" aria-label="加载中" />
+          <span>文档编辑器正在启动...</span>
         </div>
       </div>
     );

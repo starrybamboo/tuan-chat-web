@@ -384,7 +384,7 @@ describe("blocksuiteEditorBuilders", () => {
     expect(readBlocksuiteDisplayTitle(doc)).toBe("123");
   });
 
-  it("display title 在没有 tc_header 时回退 meta.title，再回退 Untitled", () => {
+  it("display title 在没有 tc_header 时回退 meta.title，再回退未命名文档", () => {
     const withMeta = {
       meta: { title: "文档标题" },
       getStore: () => ({ spaceDoc: new Y.Doc() }),
@@ -395,8 +395,8 @@ describe("blocksuiteEditorBuilders", () => {
     };
 
     expect(readBlocksuiteDisplayTitle(withMeta)).toBe("文档标题");
-    expect(readBlocksuiteDisplayTitle(empty)).toBe("Untitled");
-    expect(readBlocksuiteDisplayTitle(null)).toBe("Deleted doc");
+    expect(readBlocksuiteDisplayTitle(empty)).toBe("未命名文档");
+    expect(readBlocksuiteDisplayTitle(null)).toBe("已删除文档");
   });
 
   it("自定义 DocDisplayMetaService 会响应 tc_header 与 alias title", () => {
@@ -416,7 +416,7 @@ describe("blocksuiteEditorBuilders", () => {
     } as any);
 
     const titleSignal = service.title("sdoc:33:description");
-    expect(titleSignal.value).toBe("Untitled");
+    expect(titleSignal.value).toBe("未命名文档");
 
     ydoc.getMap("tc_header").set("title", "123");
     expect(titleSignal.value).toBe("123");

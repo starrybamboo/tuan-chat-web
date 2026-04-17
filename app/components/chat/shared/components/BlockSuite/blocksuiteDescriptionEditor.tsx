@@ -16,7 +16,7 @@ import { useBlocksuiteFrameThemeSync } from "./useBlocksuiteFrameThemeSync";
 import { useBlocksuiteMentionProfilePopover } from "./useBlocksuiteMentionProfilePopover";
 
 function applyMountedIframePresentation(iframe: HTMLIFrameElement, iframeClassName: string) {
-  iframe.title = "blocksuite-editor";
+  iframe.title = "团剧文档编辑器";
   iframe.allow = "clipboard-read; clipboard-write; fullscreen";
   iframe.allowFullscreen = true;
   iframe.className = iframeClassName;
