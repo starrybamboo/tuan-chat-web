@@ -41,6 +41,7 @@ const MODE_OPTIONS = [
 ] as const;
 
 const MODE_MODEL_LABEL = "NAI Diffusion V4.5 Curated";
+const MODE_SELECTOR_TRANSITION_MS = 180;
 type ModeOptionValue = (typeof MODE_OPTIONS)[number]["value"];
 
 export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
@@ -174,8 +175,21 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
   const subtleInputClassName = "input input-bordered input-sm border-[#D6DCE3] bg-[#F3F5F7] text-base-content dark:border-[#2A3138] dark:bg-[#161A1F]";
   const subtleSelectClassName = "select select-bordered select-sm border-[#D6DCE3] bg-[#F3F5F7] text-base-content dark:border-[#2A3138] dark:bg-[#161A1F]";
   const [isModeSelectorOpen, setIsModeSelectorOpen] = useState(false);
+  const [isModeSelectorMounted, setIsModeSelectorMounted] = useState(false);
   const modeSelectorContainerRef = useRef<HTMLDivElement | null>(null);
   const activeModeOption = MODE_OPTIONS.find(option => option.value === uiMode) ?? MODE_OPTIONS[0];
+
+  useEffect(() => {
+    if (isModeSelectorOpen) {
+      setIsModeSelectorMounted(true);
+      return;
+    }
+
+    const timer = window.setTimeout(() => {
+      setIsModeSelectorMounted(false);
+    }, MODE_SELECTOR_TRANSITION_MS);
+    return () => window.clearTimeout(timer);
+  }, [isModeSelectorOpen]);
 
   useEffect(() => {
     if (!isModeSelectorOpen)
@@ -210,6 +224,17 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
 
   return (
     <div className={`${isDirectorToolsOpen ? "hidden" : "flex"} h-full min-h-0 w-full min-w-0 flex-col gap-0 overflow-auto bg-[#F3F5F7] p-0 dark:bg-[#161A1F]`}>
+      {isModeSelectorMounted
+        ? (
+            <div
+              aria-hidden="true"
+              className={`fixed inset-0 z-30 bg-black/20 backdrop-blur-[1.5px] transition-opacity duration-200 ease-out dark:bg-black/35 ${
+                isModeSelectorOpen ? "pointer-events-auto opacity-100" : "pointer-events-none opacity-0"
+              }`}
+              onClick={() => setIsModeSelectorOpen(false)}
+            />
+          )
+        : null}
       <div className={sideCardClassName}>
         <div className="card-body p-4">
           <div className="relative w-full" ref={modeSelectorContainerRef}>
@@ -232,15 +257,20 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
             </button>
 
             {isModeSelectorOpen
+              || isModeSelectorMounted
               ? (
                   <div
                     id="ai-image-mode-selector-panel"
-                    className="absolute left-0 right-0 top-[calc(100%+0.5rem)] z-20 max-h-[calc(100vh-12rem)] overflow-y-auto rounded-xl border border-[#D6DCE3] bg-[#F3F5F7] p-3 shadow-2xl ring-1 ring-black/5 dark:border-[#2A3138] dark:bg-[#161A1F] dark:ring-white/5"
+                    className={`absolute left-0 right-0 top-[calc(100%+0.5rem)] z-40 max-h-[calc(100vh-12rem)] overflow-y-auto rounded-xl border border-[#D6DCE3] bg-[#F3F5F7] p-3 shadow-2xl ring-1 ring-black/5 transform-gpu transition-all duration-200 ease-out dark:border-[#2A3138] dark:bg-[#161A1F] dark:ring-white/5 ${
+                      isModeSelectorOpen
+                        ? "pointer-events-auto translate-y-0 scale-100 opacity-100"
+                        : "pointer-events-none translate-y-2 scale-[0.985] opacity-0"
+                    }`}
                   >
                     <div className="mb-3 flex items-start justify-between gap-3">
                       <div className="min-w-0">
                         <div className="text-sm font-medium text-base-content">模式选择</div>
-                        <div className="mt-1 text-xs text-base-content/55">这里会作为单独展开页显示，不会把下方侧栏内容顶下去。</div>
+                        <div className="mt-1 text-xs text-base-content/55">请选择一种模式。</div>
                       </div>
                       <button
                         type="button"
@@ -261,24 +291,14 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                               : "border-[#D6DCE3] bg-base-100 text-base-content/80 hover:border-primary/40 hover:bg-[#EAEFF4] dark:border-[#2A3138] dark:bg-[#161A1F] dark:hover:border-primary/40 dark:hover:bg-[#1B2026]"
                           }`}
                           onClick={() => handleSelectMode(option.value)}
-                        >
+                          >
                           <div className="flex min-w-0 items-baseline gap-2">
                             <span className="font-medium leading-none">{option.label}</span>
                             <span className="truncate text-[11px] leading-none text-base-content/45">{MODE_MODEL_LABEL}</span>
                           </div>
-                          <div className="mt-1 text-xs text-base-content/60">
-                            {option.description}
-                          </div>
                         </button>
                       ))}
                     </div>
-                  </div>
-                )
-              : null}
-            {!isModeSelectorOpen
-              ? (
-                  <div className="mt-2 px-1 text-xs text-base-content/55">
-                    {activeModeOption.description}
                   </div>
                 )
               : null}
