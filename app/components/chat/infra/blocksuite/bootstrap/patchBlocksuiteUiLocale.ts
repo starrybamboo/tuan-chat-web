@@ -38,6 +38,28 @@ function patchRender(tagName: string, patchKey: string, patch: (prototype: Proto
   patch(prototype);
 }
 
+function patchParagraphPlaceholder() {
+  patchRender("affine-paragraph", "__tcBlocksuiteParagraphPlaceholderLocalePatched", (prototype) => {
+    const placeholderDescriptor = Object.getOwnPropertyDescriptor(prototype, "_placeholder");
+    const originalGetter = placeholderDescriptor?.get;
+    if (typeof originalGetter !== "function") {
+      return;
+    }
+
+    Object.defineProperty(prototype, "_placeholder", {
+      configurable: placeholderDescriptor?.configurable ?? true,
+      enumerable: placeholderDescriptor?.enumerable ?? false,
+      get(this: unknown) {
+        const placeholder = originalGetter.call(this);
+        return typeof placeholder === "string"
+          ? translateBlocksuiteUiText(placeholder)
+          : placeholder;
+      },
+      set: placeholderDescriptor?.set,
+    });
+  });
+}
+
 function localizeElementHost(element: Element) {
   translateBlocksuiteElementAttributes(element);
   translateBlocksuiteElementText(element);
@@ -114,6 +136,7 @@ function patchFilterableList() {
 }
 
 function patchKnownElements() {
+  patchParagraphPlaceholder();
   patchIconLikeRender("icon-button", "__tcBlocksuiteIconButtonLocalePatched", null);
   patchIconLikeRender("editor-icon-button", "__tcBlocksuiteEditorIconButtonLocalePatched", "tooltip");
   patchIconLikeRender("edgeless-tool-icon-button", "__tcBlocksuiteEdgelessToolIconButtonLocalePatched", "tooltip");

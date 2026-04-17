@@ -110,6 +110,7 @@ const BLOCKSUITE_UI_TEXT_MAP: Record<string, string> = {
   "Table View": "表格视图",
   "Text": "文本",
   "To-do List": "待办列表",
+  "Type '/' for commands": "输入“/”查看命令",
   "Toggle Zoom Tool Bar": "切换缩放工具栏",
   "Tomorrow": "明天",
   "Underline": "下划线",
