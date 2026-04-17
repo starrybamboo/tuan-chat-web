@@ -58,6 +58,7 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
     charPromptTabs,
     characterPromptDescription,
     dynamicThresholding,
+    hasSimpleTagsDraft,
     handleAddV4Char,
     handleClearSeed,
     handleClearSourceImage,
@@ -69,6 +70,7 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
     handleAcceptSimpleConverted,
     handleRejectSimpleConverted,
     handleResetCurrentImageSettings,
+    handleReturnToSimpleTags,
     handleReturnToSimpleText,
     handleSelectSimpleResolutionPreset,
     handleSimpleConvertToTags,
@@ -352,17 +354,31 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                           }}
                           placeholder=""
                         />
-                        <button
-                          type="button"
-                          className={`btn btn-primary self-start ${canConvertSimpleText ? "" : "btn-disabled"}`}
-                          disabled={!canConvertSimpleText}
-                          onClick={() => void handleSimpleConvertToTags()}
-                        >
-                          {simpleConverting
-                            ? <CircleNotch className="size-4 animate-spin" weight="bold" />
-                            : <SparkleIcon className="size-4" weight="fill" />}
-                          {simpleConvertLabel}
-                        </button>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <button
+                            type="button"
+                            className={`btn btn-primary self-start ${canConvertSimpleText ? "" : "btn-disabled"}`}
+                            disabled={!canConvertSimpleText}
+                            onClick={() => void handleSimpleConvertToTags()}
+                          >
+                            {simpleConverting
+                              ? <CircleNotch className="size-4 animate-spin" weight="bold" />
+                              : <SparkleIcon className="size-4" weight="fill" />}
+                            {simpleConvertLabel}
+                          </button>
+                          {hasSimpleTagsDraft
+                            ? (
+                                <button
+                                  type="button"
+                                  className="btn btn-ghost btn-sm self-start"
+                                  onClick={handleReturnToSimpleTags}
+                                >
+                                  <ArrowCounterClockwise className="size-4" weight="bold" />
+                                  返回转换后 tags
+                                </button>
+                              )
+                            : null}
+                        </div>
                       </div>
                     </div>
                   </div>
