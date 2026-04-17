@@ -152,7 +152,7 @@ export function useAiImagePageController() {
   const [selectedStyleIds, setSelectedStyleIds] = useState<string[]>([]);
   const [proPromptTab, setProPromptTab] = useState<"prompt" | "negative">("prompt");
   const [charPromptTabs, setCharPromptTabs] = useState<Record<string, "prompt" | "negative">>({});
-  const [isSimpleTagEditorOpen, setIsSimpleTagEditorOpen] = useState(false);
+  const [isSimpleTagEditorOpen, setIsSimpleTagEditorOpen] = useState(true);
 
   const [prompt, setPrompt] = useState("");
   const [negativePrompt, setNegativePrompt] = useState("");
@@ -1054,6 +1054,7 @@ export function useAiImagePageController() {
         setSimpleConvertedFromText(trimmed);
         setSimplePrompt(converted.prompt);
         setSimpleNegativePrompt(converted.negativePrompt);
+        setIsSimpleTagEditorOpen(true);
         resolvedPrompt = converted.prompt;
         resolvedNegativePrompt = converted.negativePrompt;
       }

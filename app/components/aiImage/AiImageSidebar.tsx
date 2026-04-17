@@ -410,7 +410,7 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                           <summary className="collapse-title pr-12 text-sm font-medium">
                             已转换 tags
                             <div className="mt-1 text-xs font-normal text-base-content/60">
-                              默认折叠；需要微调时再展开编辑。
+                              默认展开；需要微调时可收起编辑。
                             </div>
                           </summary>
                           <div className="collapse-content pt-0">
