@@ -228,6 +228,38 @@ function HistoryHint() {
   );
 }
 
+function HistoryActionsFooter({
+  historyLength,
+  onDownloadAll,
+  onClearHistory,
+}: {
+  historyLength: number;
+  onDownloadAll: () => void;
+  onClearHistory: () => void | Promise<void>;
+}) {
+  return (
+    <div className="mt-3 flex shrink-0 flex-col gap-2 border-t border-[#D6DCE3] pt-3 dark:border-[#2A3138]">
+      <button
+        type="button"
+        className="btn btn-sm btn-outline w-full gap-2"
+        disabled={!historyLength}
+        onClick={onDownloadAll}
+      >
+        <SharpDownload className="size-4" />
+        <span>Download ZIP</span>
+      </button>
+      <button
+        type="button"
+        className="btn btn-sm btn-ghost w-full disabled:border-base-300 disabled:bg-base-200 disabled:text-base-content/40"
+        disabled={!historyLength}
+        onClick={() => void onClearHistory()}
+      >
+        Clear History
+      </button>
+    </div>
+  );
+}
+
 function HistoryImageTile({
   active,
   alt,
@@ -313,7 +345,7 @@ export function AiImageHistoryPane({
     return (
       <>
         <div className="min-h-0 w-[196px] shrink-0 overflow-auto border-l border-[#D6DCE3] bg-[#F3F5F7] p-3 dark:border-[#2A3138] dark:bg-[#161A1F]">
-          <div className="flex h-full flex-col">
+          <div className="flex h-full min-h-0 flex-col">
           <div className="mb-3 flex items-center gap-2 px-1">
             <div className="flex items-center gap-1">
               <div className="text-[10px] font-semibold uppercase tracking-[0.24em] text-base-content/60">History</div>
@@ -329,7 +361,7 @@ export function AiImageHistoryPane({
               <CaretRightIcon className="size-3.5" weight="bold" />
             </button>
           </div>
-          <div className="flex-1 overflow-auto">
+          <div className="flex-1 overflow-auto pr-1">
             <div className="mb-4">
               <div className="mb-2 px-1 text-[11px] font-medium uppercase tracking-[0.18em] text-base-content/45">Current</div>
               <div className="flex flex-col gap-2">
@@ -431,6 +463,11 @@ export function AiImageHistoryPane({
               </div>
             </details>
           </div>
+          <HistoryActionsFooter
+            historyLength={history.length}
+            onDownloadAll={onDownloadAll}
+            onClearHistory={onClearHistory}
+          />
           </div>
         </div>
         <DeleteHistoryConfirmModal
@@ -512,25 +549,11 @@ export function AiImageHistoryPane({
                 : null}
             </div>
           </div>
-          <div className="mt-3 flex shrink-0 flex-col gap-2 border-t border-[#D6DCE3] pt-3 dark:border-[#2A3138]">
-            <button
-              type="button"
-              className="btn btn-sm btn-outline w-full gap-2"
-              disabled={!history.length}
-              onClick={onDownloadAll}
-            >
-              <SharpDownload className="size-4" />
-              <span>Download ZIP</span>
-            </button>
-            <button
-              type="button"
-              className="btn btn-sm btn-ghost w-full disabled:border-base-300 disabled:bg-base-200 disabled:text-base-content/40"
-              disabled={!history.length}
-              onClick={() => void onClearHistory()}
-            >
-              Clear History
-            </button>
-          </div>
+          <HistoryActionsFooter
+            historyLength={history.length}
+            onDownloadAll={onDownloadAll}
+            onClearHistory={onClearHistory}
+          />
         </div>
       </div>
       <DeleteHistoryConfirmModal
