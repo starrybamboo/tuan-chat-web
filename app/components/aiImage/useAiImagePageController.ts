@@ -1404,10 +1404,6 @@ export function useAiImagePageController() {
   const handleDeleteHistoryRow = useCallback(async (row: AiImageHistoryRow) => {
     if (typeof row.id !== "number")
       return;
-    // 这里同样保留最短路径确认，避免误触叉叉后直接删档。
-    // eslint-disable-next-line no-alert
-    if (typeof window !== "undefined" && !window.confirm("确定要删除这条绘画记录吗？此操作不可撤销。"))
-      return;
 
     const rowKey = historyRowKey(row);
     const rowResultMatchKey = historyRowResultMatchKey(row);
