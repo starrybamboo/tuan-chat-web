@@ -259,6 +259,12 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
   });
   const activeChannelSnapshot = proPromptTab === "prompt" ? tokenSnapshot.prompt : tokenSnapshot.negative;
   const activeBaseMeter = activeChannelSnapshot.base;
+  const proPromptFooterLabel = proPromptTab === "prompt"
+    ? (qualityToggle ? "Quality Tags Enabled" : undefined)
+    : (ucPreset !== 2 ? "UC Preset Enabled" : undefined);
+  const proPromptFooterHint = proPromptTab === "prompt"
+    ? (qualityToggle && tokenSnapshot.prompt.hiddenText ? tokenSnapshot.prompt.hiddenText : undefined)
+    : (ucPreset !== 2 && tokenSnapshot.negative.hiddenText ? tokenSnapshot.negative.hiddenText : undefined);
   useEffect(() => {
     if (isModeSelectorOpen) {
       setIsModeSelectorMounted(true);
@@ -925,8 +931,8 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                         remaining={activeBaseMeter.remaining}
                         overflow={activeBaseMeter.overflow}
                         status={tokenSnapshot.status}
-                        footerLabel={proPromptTab === "prompt" && qualityToggle ? "Quality Tags Enabled" : undefined}
-                        footerHint={proPromptTab === "prompt" && tokenSnapshot.prompt.hiddenText ? tokenSnapshot.prompt.hiddenText : undefined}
+                        footerLabel={proPromptFooterLabel}
+                        footerHint={proPromptFooterHint}
                         rows={[
                           {
                             label: "当前输入",
