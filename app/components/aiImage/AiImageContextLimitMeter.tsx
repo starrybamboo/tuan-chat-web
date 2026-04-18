@@ -131,7 +131,7 @@ export function AiImageContextLimitMeter({
                 style={{
                   left: footerTooltipState.x,
                   top: footerTooltipState.y,
-                  transform: "translate(calc(-100% - 10px), 10px)",
+                  transform: "translate(10px, 10px)",
                 }}
               >
                 {footerHint}
