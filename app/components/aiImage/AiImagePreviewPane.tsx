@@ -114,7 +114,7 @@ export function AiImagePreviewPane({
 }: AiImagePreviewPaneProps) {
   const previewToolbarIconButtonClassName = "btn btn-sm btn-circle border-base-300 bg-base-100 text-base-content/70 hover:border-base-content/30 hover:text-base-content";
   const previewToolbarPillClassName = "inline-flex h-9 items-center rounded-full border border-base-300 bg-base-100 px-3 text-xs font-medium text-base-content shadow-sm";
-  const previewToolbarSectionClassName = "flex flex-wrap items-center gap-2 rounded-md bg-base-100/78 px-2.5 py-1.5 shadow-sm";
+  const previewToolbarSectionClassName = "flex min-w-0 flex-wrap items-center gap-2 rounded-md bg-base-100/82 px-2.5 py-1.5 shadow-sm";
   const directorCanvasContainerClassName = "overflow-hidden rounded-2xl border border-base-300 bg-base-100";
   const directorInsetPanelClassName = "rounded-2xl border border-base-300 bg-base-200/35 p-3";
 
@@ -387,7 +387,7 @@ export function AiImagePreviewPane({
 
               {selectedPreviewResult
                 ? (
-                    <div className="flex flex-wrap items-center justify-between gap-3 bg-base-200/55 px-3 py-2.5">
+                    <div className="grid gap-3 bg-base-200/55 px-3 py-2.5 sm:grid-cols-2">
                       <div className={previewToolbarSectionClassName}>
                         <span className={previewToolbarPillClassName}>{`${selectedPreviewResult.width} × ${selectedPreviewResult.height}`}</span>
                         <button
@@ -400,7 +400,7 @@ export function AiImagePreviewPane({
                           <ExpandCornersIcon className="size-4" />
                         </button>
                       </div>
-                      <div className={`${previewToolbarSectionClassName} sm:ml-auto`}>
+                      <div className={`${previewToolbarSectionClassName} justify-start sm:justify-end`}>
                         <button
                           type="button"
                           className={`${previewToolbarIconButtonClassName} ${isSelectedPreviewPinned ? "border-primary text-primary" : ""}`}
