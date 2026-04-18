@@ -1,11 +1,11 @@
 import { CopyIcon, ImagesSquareIcon, PictureInPictureIcon, XIcon } from "@phosphor-icons/react";
-import type { Dispatch, MouseEvent as ReactMouseEvent, SetStateAction } from "react";
-import { useState } from "react";
+import type { Dispatch, SetStateAction } from "react";
 
 import type {
   MetadataImportSelectionState,
   PendingMetadataImportState,
 } from "@/components/aiImage/types";
+import PortalTooltip from "@/components/common/portalTooltip";
 
 interface MetadataImportDialogProps {
   pendingMetadataImport: PendingMetadataImportState | null;
@@ -29,60 +29,23 @@ const METADATA_LABEL_DISABLED_CLASS_NAME = "cursor-not-allowed text-base-content
 const CLEAN_IMPORTS_HINT_TEXT = "Remove[] / {}, add spaces after commas";
 
 function CleanImportsHint() {
-  const [tooltipState, setTooltipState] = useState<{ x: number; y: number; visible: boolean }>({
-    x: 0,
-    y: 0,
-    visible: false,
-  });
-
-  const showTooltipAtPointer = (event: ReactMouseEvent<HTMLButtonElement>) => {
-    setTooltipState({
-      x: event.clientX,
-      y: event.clientY,
-      visible: true,
-    });
-  };
-
-  const showTooltipAtButton = (event: React.FocusEvent<HTMLButtonElement>) => {
-    const rect = event.currentTarget.getBoundingClientRect();
-    setTooltipState({
-      x: rect.left,
-      y: rect.bottom,
-      visible: true,
-    });
-  };
-
   return (
-    <div className="flex items-center">
+    <PortalTooltip
+      label={CLEAN_IMPORTS_HINT_TEXT}
+      placement="left"
+      gap={10}
+      className="pointer-events-none z-[1100] rounded-xl border border-base-300 bg-base-100 px-3 py-2 text-[11px] leading-5 text-base-content/72 shadow-xl"
+    >
       <button
         type="button"
         className="flex size-4 cursor-help items-center justify-center rounded-full bg-transparent text-base-content/28 transition hover:text-base-content/55 focus:outline-none"
         aria-label={CLEAN_IMPORTS_HINT_TEXT}
-        onBlur={() => setTooltipState(prev => ({ ...prev, visible: false }))}
-        onFocus={showTooltipAtButton}
-        onMouseEnter={showTooltipAtPointer}
-        onMouseLeave={() => setTooltipState(prev => ({ ...prev, visible: false }))}
-        onMouseMove={showTooltipAtPointer}
       >
         <span className="flex size-3.5 items-center justify-center rounded-full border border-base-content/16 text-[9px] font-medium leading-none text-current">
           ?
         </span>
       </button>
-      {tooltipState.visible
-        ? (
-            <div
-              className="pointer-events-none fixed z-30 flex min-h-[52px] w-[260px] items-center rounded-xl border border-base-300 bg-base-100 px-3 py-2 text-[11px] leading-5 text-base-content/72 shadow-xl"
-              style={{
-                left: tooltipState.x,
-                top: tooltipState.y,
-                transform: "translate(calc(-100% - 10px), 10px)",
-              }}
-            >
-              {CLEAN_IMPORTS_HINT_TEXT}
-            </div>
-          )
-        : null}
-    </div>
+    </PortalTooltip>
   );
 }
 
