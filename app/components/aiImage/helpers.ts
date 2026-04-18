@@ -76,18 +76,96 @@ export function mergeTagString(base: string, extraTags: string[]) {
   return Array.from(uniq).join(", ");
 }
 
+export type NovelAiRandomizerKind = "prompt" | "negative";
 export const NOVELAI_RANDOMIZER_TEMPLATE_COUNT = 10;
-export const NOVELAI_RANDOMIZER_TEMPLATE_TAGS = Array.from(
-  { length: NOVELAI_RANDOMIZER_TEMPLATE_COUNT },
-  (_, index) => `tag ${index + 1}`,
-);
+export const NOVELAI_RANDOMIZER_PROMPT_TAG_POOL = [
+  "cinematic lighting",
+  "dramatic shadows",
+  "volumetric lighting",
+  "rim light",
+  "backlighting",
+  "depth of field",
+  "bokeh",
+  "dynamic angle",
+  "dutch angle",
+  "wind-blown hair",
+  "flowing fabric",
+  "rainy street",
+  "neon reflections",
+  "sunset sky",
+  "soft smile",
+  "looking at viewer",
+  "detailed background",
+  "floating petals",
+  "sparkles",
+  "glowing particles",
+  "cowboy shot",
+  "upper body",
+  "full body",
+  "from above",
+  "low angle",
+] as const;
+export const NOVELAI_RANDOMIZER_NEGATIVE_TAG_POOL = [
+  "lowres",
+  "blurry",
+  "bad anatomy",
+  "bad hands",
+  "extra fingers",
+  "missing fingers",
+  "deformed",
+  "text",
+  "watermark",
+  "logo",
+  "jpeg artifacts",
+  "cropped",
+  "duplicate",
+  "oversaturated",
+  "out of frame",
+  "mutation",
+  "bad perspective",
+  "poorly drawn face",
+  "poorly drawn hands",
+  "artifacting",
+] as const;
 
-function buildNovelAiRandomizerBody(firstTag?: string) {
-  const tags = [...NOVELAI_RANDOMIZER_TEMPLATE_TAGS];
-  const normalizedFirstTag = String(firstTag || "").trim();
-  if (normalizedFirstTag)
-    tags[0] = normalizedFirstTag;
-  return tags.join("|");
+function takeRandomUniqueItems<T>(items: readonly T[], count: number, random: () => number) {
+  const remaining = [...items];
+  const picked: T[] = [];
+
+  while (picked.length < count && remaining.length) {
+    const randomIndex = Math.min(
+      remaining.length - 1,
+      Math.max(0, Math.floor(random() * remaining.length)),
+    );
+    const [nextItem] = remaining.splice(randomIndex, 1);
+    if (nextItem != null)
+      picked.push(nextItem);
+  }
+
+  return picked;
+}
+
+function buildNovelAiRandomizerBody(args: {
+  firstTag?: string;
+  kind?: NovelAiRandomizerKind;
+  random?: () => number;
+}) {
+  const normalizedFirstTag = String(args.firstTag || "").trim();
+  const kind = args.kind === "negative" ? "negative" : "prompt";
+  const random = args.random ?? Math.random;
+  const pool = kind === "negative"
+    ? NOVELAI_RANDOMIZER_NEGATIVE_TAG_POOL
+    : NOVELAI_RANDOMIZER_PROMPT_TAG_POOL;
+  const availablePool = normalizedFirstTag
+    ? pool.filter(tag => tag !== normalizedFirstTag)
+    : pool;
+  const tags = takeRandomUniqueItems(
+    availablePool,
+    normalizedFirstTag ? NOVELAI_RANDOMIZER_TEMPLATE_COUNT - 1 : NOVELAI_RANDOMIZER_TEMPLATE_COUNT,
+    random,
+  );
+
+  return normalizedFirstTag ? [normalizedFirstTag, ...tags].join("|") : tags.join("|");
 }
 
 function clampSelectionIndex(value: string, index: number | null | undefined) {
@@ -103,6 +181,8 @@ function needsTagSeparator(character: string | undefined) {
 }
 
 export function insertNovelAiRandomizerTag(args: {
+  kind?: NovelAiRandomizerKind;
+  random?: () => number;
   value: string;
   selectionStart?: number | null;
   selectionEnd?: number | null;
@@ -113,7 +193,11 @@ export function insertNovelAiRandomizerTag(args: {
   const selectionStart = Math.min(rawStart, rawEnd);
   const selectionEnd = Math.max(rawStart, rawEnd);
   const selectedText = currentValue.slice(selectionStart, selectionEnd).trim();
-  const randomizerBody = buildNovelAiRandomizerBody(selectedText);
+  const randomizerBody = buildNovelAiRandomizerBody({
+    firstTag: selectedText,
+    kind: args.kind,
+    random: args.random,
+  });
   const randomizerTemplate = `||${randomizerBody}||`;
   const before = currentValue.slice(0, selectionStart);
   const after = currentValue.slice(selectionEnd);
