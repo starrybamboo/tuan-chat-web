@@ -226,34 +226,45 @@ function createWarmFrameRecord(): BlocksuiteWarmFrameRecord {
   return record;
 }
 
-export function ensurePrewarmedBlocksuiteFrame(): Promise<void> {
+function resolveWarmFrameReadyResult(
+  state: BlocksuiteWarmFrameState,
+  record: BlocksuiteWarmFrameRecord,
+): Promise<boolean> {
+  return record.readyPromise.then(() => true).catch(() => {
+    if (state.record === record) {
+      state.record = null;
+    }
+    return false;
+  });
+}
+
+export function ensurePrewarmedBlocksuiteFrame(): Promise<boolean> {
   if (typeof window === "undefined" || typeof document === "undefined") {
-    return Promise.resolve();
+    return Promise.resolve(false);
   }
 
   const state = getWarmFrameState();
   const existing = getWarmFrameRecord();
   if (existing) {
-    return existing.readyPromise.catch(() => {
-      if (state.record === existing) {
-        state.record = null;
-      }
-    });
+    return resolveWarmFrameReadyResult(state, existing);
   }
 
-  const record = createWarmFrameRecord();
-  state.record = record;
-  return record.readyPromise.catch((error) => {
-    if (state.record === record) {
-      state.record = null;
-    }
-    throw error;
-  });
+  try {
+    const record = createWarmFrameRecord();
+    state.record = record;
+    return resolveWarmFrameReadyResult(state, record);
+  }
+  catch {
+    state.record = null;
+    return Promise.resolve(false);
+  }
 }
 
 export function takePrewarmedBlocksuiteFrame(): HTMLIFrameElement | null {
   const record = getWarmFrameRecord();
-  if (!record || record.claimed) {
+  // 只有收到 render-ready 的 warm frame 才能被正式编辑器认领，
+  // 否则预热页后续超时/报错时会把宿主里已挂载的 iframe 一并 dispose 掉。
+  if (!record || record.claimed || !record.isReady) {
     return null;
   }
 
