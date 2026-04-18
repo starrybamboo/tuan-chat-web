@@ -181,14 +181,14 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
   const editorPanelClassName = "rounded-2xl border border-[#D6DCE3] bg-[#F3F5F7] p-3 shadow-none dark:border-[#2A3138] dark:bg-[#161A1F]";
   const segmentedControlClassName = "join rounded-xl bg-transparent p-0";
   const segmentedButtonBaseClassName = "btn btn-xs join-item border-0";
-  const promptTextareaClassName = "textarea textarea-bordered min-h-36 w-full resize-none border-[#D6DCE3] bg-[#F3F5F7] text-base-content leading-7 transition-colors hover:border-primary active:border-primary focus:border-primary focus:bg-primary/[0.03] focus:outline-none dark:border-[#2A3138] dark:bg-[#161A1F] dark:hover:border-primary";
+  const promptTextareaClassName = "textarea textarea-bordered rounded-none min-h-36 w-full resize-none border-[#D6DCE3] bg-[#F3F5F7] text-base-content leading-7 transition-colors hover:border-primary active:border-primary focus:border-primary focus:bg-primary/[0.03] focus:outline-none dark:border-[#2A3138] dark:bg-[#161A1F] dark:hover:border-primary";
   const simplePromptTextareaClassName = promptTextareaClassName;
-  const subtleInputClassName = "input input-bordered input-sm border-[#D6DCE3] bg-[#F3F5F7] text-base-content dark:border-[#2A3138] dark:bg-[#161A1F]";
-  const subtleSelectClassName = "select select-bordered select-sm border-[#D6DCE3] bg-[#F3F5F7] text-base-content dark:border-[#2A3138] dark:bg-[#161A1F]";
+  const subtleInputClassName = "input input-bordered input-sm rounded-none border-[#D6DCE3] bg-[#F3F5F7] text-base-content dark:border-[#2A3138] dark:bg-[#161A1F]";
+  const subtleSelectClassName = "select select-bordered select-sm rounded-none border-[#D6DCE3] bg-[#F3F5F7] text-base-content dark:border-[#2A3138] dark:bg-[#161A1F]";
   const simpleResolutionValueInputClassName = "min-w-0 appearance-none bg-transparent text-center text-xs font-semibold leading-none tabular-nums text-base-content focus:outline-none [-moz-appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none";
-  const highlightPromptSurfaceClassName = "relative min-h-36 w-full overflow-hidden rounded-md border border-[#D6DCE3] bg-[#F3F5F7] shadow-none transition-colors hover:border-primary active:border-primary focus-within:border-primary focus-within:bg-primary/[0.03] dark:border-[#2A3138] dark:bg-[#161A1F] dark:hover:border-primary";
+  const highlightPromptSurfaceClassName = "relative min-h-36 w-full overflow-hidden rounded-none border border-[#D6DCE3] bg-[#F3F5F7] shadow-none transition-colors hover:border-primary active:border-primary focus-within:border-primary focus-within:bg-primary/[0.03] dark:border-[#2A3138] dark:bg-[#161A1F] dark:hover:border-primary";
   const highlightPromptContentClassName = "min-h-36 px-3 py-2 text-sm leading-6";
-  const highlightCharSurfaceClassName = "relative min-h-28 w-full overflow-hidden rounded-md border border-[#D6DCE3] bg-[#F3F5F7] shadow-none transition-colors hover:border-primary active:border-primary focus-within:border-primary focus-within:bg-primary/[0.03] dark:border-[#2A3138] dark:bg-[#161A1F] dark:hover:border-primary";
+  const highlightCharSurfaceClassName = "relative min-h-28 w-full overflow-hidden rounded-none border border-[#D6DCE3] bg-[#F3F5F7] shadow-none transition-colors hover:border-primary active:border-primary focus-within:border-primary focus-within:bg-primary/[0.03] dark:border-[#2A3138] dark:bg-[#161A1F] dark:hover:border-primary";
   const highlightCharContentClassName = "min-h-28 px-3 py-2 text-sm leading-6";
   const [isModeSelectorOpen, setIsModeSelectorOpen] = useState(false);
   const [isModeSelectorMounted, setIsModeSelectorMounted] = useState(false);
@@ -801,7 +801,7 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                             <div className="space-y-2">
                               <div className="text-sm font-semibold text-base-content">Undesired Content Preset</div>
                               <select
-                                className={`${subtleSelectClassName} w-full rounded-md bg-base-100 dark:bg-[#1B2026]`}
+                                className={`${subtleSelectClassName} w-full rounded-none bg-base-100 dark:bg-[#1B2026]`}
                                 value={ucPreset}
                                 onChange={e => setUcPreset(clampIntRange(Number(e.target.value), 0, 2, 0))}
                               >
@@ -967,11 +967,11 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                                           <div className="grid grid-cols-2 gap-2">
                                             <label className="form-control gap-1">
                                               <span className="label-text text-xs">Center X</span>
-                                              <input className="input input-bordered input-sm" type="number" min="0" max="1" step="0.01" value={row.centerX} onChange={e => handleUpdateV4Char(row.id, { centerX: clamp01(Number(e.target.value), 0.5) })} />
+                                              <input className="input input-bordered input-sm rounded-none" type="number" min="0" max="1" step="0.01" value={row.centerX} onChange={e => handleUpdateV4Char(row.id, { centerX: clamp01(Number(e.target.value), 0.5) })} />
                                             </label>
                                             <label className="form-control gap-1">
                                               <span className="label-text text-xs">Center Y</span>
-                                              <input className="input input-bordered input-sm" type="number" min="0" max="1" step="0.01" value={row.centerY} onChange={e => handleUpdateV4Char(row.id, { centerY: clamp01(Number(e.target.value), 0.5) })} />
+                                              <input className="input input-bordered input-sm rounded-none" type="number" min="0" max="1" step="0.01" value={row.centerY} onChange={e => handleUpdateV4Char(row.id, { centerY: clamp01(Number(e.target.value), 0.5) })} />
                                             </label>
                                           </div>
                                         )
@@ -1194,7 +1194,7 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                     <div className="relative" ref={simpleResolutionSelectorRef}>
                       <button
                         type="button"
-                        className={`flex h-11 w-full items-center justify-between rounded-xl border border-[#D6DCE3] bg-[#F3F5F7] px-3 py-2 text-left transition focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 hover:border-primary/40 hover:bg-[#EAEFF4] dark:border-[#2A3138] dark:bg-[#161A1F] dark:hover:bg-[#1B2026] ${isSimpleResolutionSelectorOpen ? "border-primary bg-primary/5 shadow-sm dark:bg-primary/10" : ""}`}
+                        className={`flex h-11 w-full items-center justify-between rounded-none border border-[#D6DCE3] bg-[#F3F5F7] px-3 py-2 text-left transition focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 hover:border-primary/40 hover:bg-[#EAEFF4] dark:border-[#2A3138] dark:bg-[#161A1F] dark:hover:bg-[#1B2026] ${isSimpleResolutionSelectorOpen ? "border-primary bg-primary/5 shadow-sm dark:bg-primary/10" : ""}`}
                         aria-expanded={isSimpleResolutionSelectorOpen}
                         onClick={() => setIsSimpleResolutionSelectorOpen(prev => !prev)}
                       >
@@ -1207,7 +1207,7 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
 
                       {isSimpleResolutionSelectorOpen
                         ? (
-                            <div className="absolute left-0 right-0 top-[calc(100%+0.5rem)] z-20 overflow-hidden rounded-xl border border-[#D6DCE3] bg-[#F3F5F7] p-2 shadow-2xl dark:border-[#2A3138] dark:bg-[#161A1F]">
+                            <div className="absolute left-0 right-0 top-[calc(100%+0.5rem)] z-20 overflow-hidden rounded-none border border-[#D6DCE3] bg-[#F3F5F7] p-2 shadow-2xl dark:border-[#2A3138] dark:bg-[#161A1F]">
                               <div className="flex flex-col gap-1">
                                 {simpleResolutionOptions.map(option => (
                                   <button
@@ -1233,7 +1233,7 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                         : null}
                     </div>
 
-                    <div className="grid h-11 w-[135px] grid-cols-[minmax(0,1fr)_10px_minmax(0,1fr)] items-center gap-1 rounded-xl border border-[#D6DCE3] bg-[#F3F5F7] px-3 py-2 shadow-sm dark:border-[#2A3138] dark:bg-[#161A1F]">
+                    <div className="grid h-11 w-[135px] grid-cols-[minmax(0,1fr)_10px_minmax(0,1fr)] items-center gap-1 rounded-none border border-[#D6DCE3] bg-[#F3F5F7] px-3 py-2 shadow-sm dark:border-[#2A3138] dark:bg-[#161A1F]">
                       <input
                         className={simpleResolutionValueInputClassName}
                         type="number"
@@ -1298,7 +1298,7 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                     <label className="form-control">
                       <span className="label-text text-xs">宽 (Width)</span>
                       <input
-                        className="input input-bordered input-sm"
+                        className="input input-bordered input-sm rounded-none"
                         type="number"
                         min={NOVELAI_DIMENSION_MIN}
                         max={NOVELAI_FREE_MAX_DIMENSION}
@@ -1319,7 +1319,7 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                     <label className="form-control">
                       <span className="label-text text-xs">高 (Height)</span>
                       <input
-                        className="input input-bordered input-sm"
+                        className="input input-bordered input-sm rounded-none"
                         type="number"
                         min={NOVELAI_DIMENSION_MIN}
                         max={NOVELAI_FREE_MAX_DIMENSION}
