@@ -109,6 +109,7 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
     scale,
     seed,
     seedIsRandom,
+    selectedStylePresets,
     selectedStyleTags,
     setCfgRescale,
     setCharPromptTabs,
@@ -219,6 +220,7 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
     : hasGeneratedSimpleTags
         ? "border-white/20 bg-white/10 text-white"
         : "border-white/20 bg-white/10 text-white";
+  const floatingInputActionClassName = "btn btn-xs absolute right-3 top-3 z-10 bg-[#F3F5F7]/92 shadow-sm backdrop-blur-sm hover:bg-[#EAEFF4] dark:bg-[#161A1F]/92 dark:hover:bg-[#1B2026]";
 
   useEffect(() => {
     if (isModeSelectorOpen) {
@@ -485,7 +487,7 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                       <div className="flex w-full min-w-0 flex-col items-stretch gap-2">
                         <div className="relative">
                           <textarea
-                            className={`${simplePromptTextareaClassName} pr-28 pt-12 pb-10`}
+                            className={simplePromptTextareaClassName}
                             value={simpleText}
                             onChange={(e) => {
                               const next = e.target.value;
@@ -503,7 +505,7 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                           />
                           <button
                             type="button"
-                            className="btn btn-xs absolute right-3 top-3"
+                            className={floatingInputActionClassName}
                             onClick={() => setIsStylePickerOpen(true)}
                           >
                             添加画风
@@ -512,7 +514,7 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                             ? (
                                 <button
                                   type="button"
-                                  className="btn btn-xs btn-ghost absolute right-3 bottom-3"
+                                  className={`${floatingInputActionClassName} top-auto bottom-3`}
                                   onClick={handleReturnToSimpleTags}
                                 >
                                   <ArrowCounterClockwise className="size-3.5" weight="bold" />
@@ -521,6 +523,30 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                               )
                             : null}
                         </div>
+                        {selectedStylePresets.length
+                          ? (
+                              <div className="flex flex-wrap gap-2">
+                                {selectedStylePresets.map((preset) => {
+                                  return (
+                                    <button
+                                      key={preset.id}
+                                      type="button"
+                                      className="flex items-center gap-2 rounded-box border border-base-300 bg-base-100 pr-2 hover:border-primary"
+                                      onClick={() => setIsStylePickerOpen(true)}
+                                      title="点击继续添加画风"
+                                    >
+                                      <div className="w-10 aspect-square rounded-box bg-base-200 overflow-hidden flex items-center justify-center">
+                                        {preset.imageUrl
+                                          ? <img src={preset.imageUrl} alt={preset.title} className="w-full h-full object-cover" />
+                                          : <div className="text-xs opacity-60">{preset.title}</div>}
+                                      </div>
+                                      <div className="text-xs opacity-70 max-w-32 truncate">{preset.title}</div>
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            )
+                          : null}
                       </div>
                     </div>
                   </div>
@@ -614,7 +640,7 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                           </div>
                           <div className="relative">
                             <textarea
-                              className={`${promptTextareaClassName} pr-28 pt-12 pb-10`}
+                              className={promptTextareaClassName}
                               value={simplePromptTab === "prompt" ? simplePrompt : simpleNegativePrompt}
                               onChange={(e) => {
                                 if (simplePromptTab === "prompt")
@@ -625,7 +651,7 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                             />
                             <button
                               type="button"
-                              className="btn btn-xs absolute right-3 top-3"
+                              className={floatingInputActionClassName}
                               onClick={() => setIsStylePickerOpen(true)}
                             >
                               添加画风
@@ -634,7 +660,7 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                               ? (
                                   <button
                                     type="button"
-                                    className="btn btn-xs btn-ghost absolute right-3 bottom-3"
+                                    className={`${floatingInputActionClassName} top-auto bottom-3`}
                                     onClick={handleReturnToSimpleText}
                                   >
                                     <ArrowCounterClockwise className="size-3.5" weight="bold" />
@@ -643,6 +669,30 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                                 )
                               : null}
                           </div>
+                          {selectedStylePresets.length
+                            ? (
+                                <div className="mt-2 flex flex-wrap gap-2">
+                                  {selectedStylePresets.map((preset) => {
+                                    return (
+                                      <button
+                                        key={preset.id}
+                                        type="button"
+                                        className="flex items-center gap-2 rounded-box border border-base-300 bg-base-100 pr-2 hover:border-primary"
+                                        onClick={() => setIsStylePickerOpen(true)}
+                                        title="点击继续添加画风"
+                                      >
+                                        <div className="w-10 aspect-square rounded-box bg-base-200 overflow-hidden flex items-center justify-center">
+                                          {preset.imageUrl
+                                            ? <img src={preset.imageUrl} alt={preset.title} className="w-full h-full object-cover" />
+                                            : <div className="text-xs opacity-60">{preset.title}</div>}
+                                        </div>
+                                        <div className="text-xs opacity-70 max-w-32 truncate">{preset.title}</div>
+                                      </button>
+                                    );
+                                  })}
+                                </div>
+                              )
+                            : null}
                         </div>
                       </div>
                     </div>
