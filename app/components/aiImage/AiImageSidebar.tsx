@@ -22,6 +22,7 @@ import {
   formatSliderValue,
   modelLabel,
 } from "@/components/aiImage/helpers";
+import { HighlightEmphasisTextarea } from "@/components/aiImage/HighlightEmphasisTextarea";
 import { ChevronDown } from "@/icons";
 import { ProFeatureSection } from "@/components/aiImage/ProFeatureSection";
 
@@ -179,13 +180,17 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
   const segmentedButtonBaseClassName = "btn btn-xs join-item border-0";
   const promptTextareaClassName = "textarea textarea-bordered min-h-36 w-full resize-none border-[#D6DCE3] bg-[#F3F5F7] text-base-content leading-7 transition-colors hover:border-primary active:border-primary focus:border-primary focus:bg-primary/[0.03] focus:outline-none dark:border-[#2A3138] dark:bg-[#161A1F] dark:hover:border-primary";
   const simplePromptTextareaClassName = promptTextareaClassName;
-  const charTextareaClassName = "textarea textarea-bordered min-h-28 w-full resize-none border-[#D6DCE3] bg-[#F3F5F7] text-base-content leading-7 transition-colors hover:border-primary active:border-primary focus:border-primary focus:bg-primary/[0.03] focus:outline-none dark:border-[#2A3138] dark:bg-[#161A1F] dark:hover:border-primary";
   const subtleInputClassName = "input input-bordered input-sm border-[#D6DCE3] bg-[#F3F5F7] text-base-content dark:border-[#2A3138] dark:bg-[#161A1F]";
   const subtleSelectClassName = "select select-bordered select-sm border-[#D6DCE3] bg-[#F3F5F7] text-base-content dark:border-[#2A3138] dark:bg-[#161A1F]";
   const simpleResolutionValueInputClassName = "min-w-0 appearance-none bg-transparent text-center text-xs font-semibold leading-none tabular-nums text-base-content focus:outline-none [-moz-appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none";
+  const highlightPromptSurfaceClassName = "relative min-h-36 w-full overflow-hidden rounded-md border border-[#D6DCE3] bg-[#F3F5F7] shadow-none transition-colors hover:border-primary active:border-primary focus-within:border-primary focus-within:bg-primary/[0.03] dark:border-[#2A3138] dark:bg-[#161A1F] dark:hover:border-primary";
+  const highlightPromptContentClassName = "min-h-36 px-3 py-2 text-base leading-7";
+  const highlightCharSurfaceClassName = "relative min-h-28 w-full overflow-hidden rounded-md border border-[#D6DCE3] bg-[#F3F5F7] shadow-none transition-colors hover:border-primary active:border-primary focus-within:border-primary focus-within:bg-primary/[0.03] dark:border-[#2A3138] dark:bg-[#161A1F] dark:hover:border-primary";
+  const highlightCharContentClassName = "min-h-28 px-3 py-2 text-base leading-7";
   const [isModeSelectorOpen, setIsModeSelectorOpen] = useState(false);
   const [isModeSelectorMounted, setIsModeSelectorMounted] = useState(false);
   const [isProPromptSettingsOpen, setIsProPromptSettingsOpen] = useState(false);
+  const [highlightEmphasisEnabled, setHighlightEmphasisEnabled] = useState(true);
   const [proPromptSettingsPosition, setProPromptSettingsPosition] = useState({ top: 96, left: 96 });
   const [isSimpleResolutionSelectorOpen, setIsSimpleResolutionSelectorOpen] = useState(false);
   const modeSelectorContainerRef = useRef<HTMLDivElement | null>(null);
@@ -759,6 +764,16 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                               />
                             </div>
 
+                            <div className="flex items-center justify-between gap-3">
+                              <div className="text-sm font-semibold text-base-content">Highlight Emphasis</div>
+                              <input
+                                type="checkbox"
+                                className="toggle toggle-sm"
+                                checked={highlightEmphasisEnabled}
+                                onChange={e => setHighlightEmphasisEnabled(e.target.checked)}
+                              />
+                            </div>
+
                             <div className="space-y-2">
                               <div className="text-sm font-semibold text-base-content">Undesired Content Preset</div>
                               <select
@@ -777,8 +792,10 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                         </div>
                       </div>
                     </div>
-                    <textarea
-                      className={promptTextareaClassName}
+                    <HighlightEmphasisTextarea
+                      highlightEnabled={highlightEmphasisEnabled}
+                      surfaceClassName={highlightPromptSurfaceClassName}
+                      contentClassName={highlightPromptContentClassName}
                       value={proPromptTab === "prompt" ? prompt : negativePrompt}
                       onChange={(e) => {
                         if (proPromptTab === "prompt")
@@ -786,6 +803,7 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                         else
                           setNegativePrompt(e.target.value);
                       }}
+                      spellCheck={false}
                     />
                   </div>
 
@@ -898,8 +916,10 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                                         Undesired Content
                                       </button>
                                     </div>
-                                    <textarea
-                                      className={charTextareaClassName}
+                                    <HighlightEmphasisTextarea
+                                      highlightEnabled={highlightEmphasisEnabled}
+                                      surfaceClassName={highlightCharSurfaceClassName}
+                                      contentClassName={highlightCharContentClassName}
                                       value={activeTab === "prompt" ? row.prompt : row.negativePrompt}
                                       onChange={(e) => {
                                         if (activeTab === "prompt")
@@ -908,6 +928,7 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                                           handleUpdateV4Char(row.id, { negativePrompt: e.target.value });
                                       }}
                                       placeholder={activeTab === "prompt" ? "Prompt" : "Undesired Content"}
+                                      spellCheck={false}
                                     />
                                     <div className="h-1 rounded-full bg-base-200">
                                       <div className="h-full w-10 rounded-full bg-primary/80" />
