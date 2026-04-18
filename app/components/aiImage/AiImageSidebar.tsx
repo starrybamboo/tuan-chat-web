@@ -189,9 +189,13 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
   const [isModeSelectorOpen, setIsModeSelectorOpen] = useState(false);
   const [isModeSelectorMounted, setIsModeSelectorMounted] = useState(false);
   const [isProPromptSettingsOpen, setIsProPromptSettingsOpen] = useState(false);
+  const [proPromptSettingsPosition, setProPromptSettingsPosition] = useState({ top: 96, left: 96 });
   const [isSimpleResolutionSelectorOpen, setIsSimpleResolutionSelectorOpen] = useState(false);
   const modeSelectorContainerRef = useRef<HTMLDivElement | null>(null);
+  const sidebarSurfaceRef = useRef<HTMLDivElement | null>(null);
   const proPromptSettingsRef = useRef<HTMLDivElement | null>(null);
+  const proPromptSettingsButtonRef = useRef<HTMLButtonElement | null>(null);
+  const proPromptEditorPanelRef = useRef<HTMLDivElement | null>(null);
   const simpleResolutionSelectorRef = useRef<HTMLDivElement | null>(null);
   const activeModeOption = MODE_OPTIONS.find(option => option.value === uiMode) ?? MODE_OPTIONS[0];
   const isSimplePreviewingConverted = Boolean(simpleConverted);
@@ -268,6 +272,44 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
     if (!isProPromptSettingsOpen)
       return;
 
+    function updatePanelPosition() {
+      const sidebarSurface = sidebarSurfaceRef.current;
+      const editorPanel = proPromptEditorPanelRef.current;
+      if (!sidebarSurface || !editorPanel)
+        return;
+
+      const panelWidth = 320;
+      const gap = 12;
+      const viewportPadding = 16;
+      const sidebarRect = sidebarSurface.getBoundingClientRect();
+      const editorPanelRect = editorPanel.getBoundingClientRect();
+      const maxLeft = Math.max(
+        viewportPadding,
+        window.innerWidth - panelWidth - viewportPadding,
+      );
+      const maxTop = Math.max(
+        viewportPadding,
+        window.innerHeight - 240,
+      );
+      const nextLeft = Math.max(
+        viewportPadding,
+        Math.min(
+          sidebarRect.right + gap,
+          maxLeft,
+        ),
+      );
+      const nextTop = Math.min(
+        Math.max(viewportPadding, editorPanelRect.top),
+        maxTop,
+      );
+
+      setProPromptSettingsPosition((prev) => {
+        if (prev.top === nextTop && prev.left === nextLeft)
+          return prev;
+        return { top: nextTop, left: nextLeft };
+      });
+    }
+
     function handlePointerDown(event: PointerEvent) {
       const container = proPromptSettingsRef.current;
       const target = event.target;
@@ -282,11 +324,16 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
         setIsProPromptSettingsOpen(false);
     }
 
+    updatePanelPosition();
     document.addEventListener("pointerdown", handlePointerDown);
     document.addEventListener("keydown", handleKeyDown);
+    window.addEventListener("resize", updatePanelPosition);
+    window.addEventListener("scroll", updatePanelPosition, true);
     return () => {
       document.removeEventListener("pointerdown", handlePointerDown);
       document.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("resize", updatePanelPosition);
+      window.removeEventListener("scroll", updatePanelPosition, true);
     };
   }, [isProPromptSettingsOpen]);
 
@@ -318,7 +365,7 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
   }
 
   return (
-    <div className={`${isDirectorToolsOpen ? "hidden" : "flex"} h-full min-h-0 w-full min-w-0 flex-col gap-0 overflow-auto bg-[#F3F5F7] p-0 dark:bg-[#161A1F]`}>
+    <div ref={sidebarSurfaceRef} className={`${isDirectorToolsOpen ? "hidden" : "flex"} h-full min-h-0 w-full min-w-0 flex-col gap-0 overflow-auto bg-[#F3F5F7] p-0 dark:bg-[#161A1F]`}>
       {isModeSelectorMounted
         ? (
             <div
@@ -627,7 +674,7 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
               )
             : (
                 <div className="flex flex-col gap-3">
-                  <div className={`${editorPanelClassName} relative`} ref={proPromptSettingsRef}>
+                  <div className={editorPanelClassName} ref={proPromptEditorPanelRef}>
                     <div className="mb-3 flex items-start justify-between gap-3">
                       <div className={segmentedControlClassName}>
                         <button
@@ -645,13 +692,14 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                           Undesired Content
                         </button>
                       </div>
-                      <div className="relative shrink-0">
+                      <div className="shrink-0" ref={proPromptSettingsRef}>
                         <button
+                          ref={proPromptSettingsButtonRef}
                           type="button"
                           className={`inline-flex size-9 items-center justify-center rounded-md border transition focus:outline-none focus:ring-2 focus:ring-primary/20 ${
                             isProPromptSettingsOpen
-                              ? "border-[#121327] bg-[#121327] text-white shadow-[0_10px_24px_rgba(18,19,39,0.22)]"
-                              : "border-[#121327] bg-[#121327] text-white hover:bg-[#1B1E35]"
+                              ? "border-primary/40 bg-[#F3F5F7] text-base-content shadow-sm dark:bg-[#161A1F]"
+                              : "border-[#D6DCE3] bg-[#F3F5F7] text-base-content/70 hover:border-primary/40 hover:text-base-content dark:border-[#2A3138] dark:bg-[#161A1F] dark:text-base-content/70 dark:hover:text-base-content"
                           }`}
                           aria-label="打开输入设置"
                           aria-expanded={isProPromptSettingsOpen}
@@ -663,16 +711,29 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
 
                         <div
                           id="ai-image-pro-prompt-settings"
-                          className={`absolute right-0 top-[calc(100%+0.75rem)] z-20 w-64 origin-top-right rounded-2xl border border-[#D6DCE3] bg-[#F8FAFC]/95 p-3 shadow-2xl backdrop-blur-sm transition-all duration-200 ease-out dark:border-[#2A3138] dark:bg-[#111624]/95 ${
+                          className={`fixed z-40 w-80 origin-top-left rounded-2xl border border-[#D6DCE3] bg-[#F3F5F7] p-4 shadow-[0_18px_40px_rgba(15,23,42,0.18)] transition-all duration-200 ease-out dark:border-[#2A3138] dark:bg-[#161A1F] dark:shadow-[0_24px_48px_rgba(0,0,0,0.42)] ${
                             isProPromptSettingsOpen
                               ? "pointer-events-auto translate-x-0 scale-100 opacity-100"
-                              : "pointer-events-none translate-x-3 scale-[0.96] opacity-0"
+                              : "pointer-events-none -translate-x-2 scale-[0.98] opacity-0"
                           }`}
+                          style={{
+                            top: `${proPromptSettingsPosition.top}px`,
+                            left: `${proPromptSettingsPosition.left}px`,
+                          }}
                         >
-                          <div className="space-y-3">
-                            <div className="space-y-2">
-                              <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-base-content/45">Base Prompt</div>
-                              <div className="flex items-center justify-between gap-3 rounded-md border border-[#D6DCE3] bg-base-100/80 px-3 py-2 dark:border-[#2A3138] dark:bg-[#161A1F]/80">
+                          <div className="mb-4 flex items-center gap-2 border-b border-[#D6DCE3] pb-3 dark:border-[#2A3138]">
+                            <div className="rounded-md bg-base-100 px-2 py-1 text-sm font-semibold text-base-content shadow-sm dark:bg-[#1B2026]">
+                              Settings
+                            </div>
+                          </div>
+
+                          <div className="space-y-5">
+                            <div className="space-y-3">
+                              <div className="space-y-1">
+                                <div className="text-base font-semibold text-base-content">Add Quality Tags</div>
+                                <div className="text-xs leading-5 text-base-content/55">Base Prompt</div>
+                              </div>
+                              <div className="flex items-center justify-between gap-3 rounded-md border border-[#D6DCE3] bg-base-100 px-3 py-3 dark:border-[#2A3138] dark:bg-[#1B2026]">
                                 <span className="text-sm text-base-content">Quality Tags Enabled</span>
                                 <input
                                   type="checkbox"
@@ -683,9 +744,12 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                               </div>
                             </div>
 
-                            <div className="space-y-2">
-                              <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-base-content/45">Undesired Content</div>
-                              <div className="flex items-center justify-between gap-3 rounded-md border border-[#D6DCE3] bg-base-100/80 px-3 py-2 dark:border-[#2A3138] dark:bg-[#161A1F]/80">
+                            <div className="space-y-3">
+                              <div className="space-y-1">
+                                <div className="text-base font-semibold text-base-content">Undesired Content Preset</div>
+                                <div className="text-xs leading-5 text-base-content/55">Undesired Content</div>
+                              </div>
+                              <div className="flex items-center justify-between gap-3 rounded-md border border-[#D6DCE3] bg-base-100 px-3 py-3 dark:border-[#2A3138] dark:bg-[#1B2026]">
                                 <span className="text-sm text-base-content">UC Preset Enabled</span>
                                 <input
                                   type="checkbox"
@@ -703,7 +767,7 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                               {ucPresetEnabled
                                 ? (
                                     <select
-                                      className={`${subtleSelectClassName} w-full rounded-md`}
+                                      className={`${subtleSelectClassName} w-full rounded-md bg-base-100 dark:bg-[#1B2026]`}
                                       value={ucPreset}
                                       onChange={e => setUcPreset(clampIntRange(Number(e.target.value), 0, 1, 0))}
                                     >
