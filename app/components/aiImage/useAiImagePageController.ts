@@ -182,6 +182,19 @@ export function useAiImagePageController() {
     }
   }, [uiMode]);
 
+  useEffect(() => {
+    if (simpleEditorMode !== "tags")
+      return;
+    if (simpleConverted)
+      return;
+    if (simplePrompt.trim() || simpleNegativePrompt.trim())
+      return;
+
+    setSimpleConvertedFromText("");
+    setSimpleEditorMode("text");
+    setSimplePromptTab("prompt");
+  }, [simpleConverted, simpleEditorMode, simpleNegativePrompt, simplePrompt]);
+
   const toggleProFeatureSection = useCallback((section: ProFeatureSectionKey) => {
     setProFeatureSections(prev => ({ ...prev, [section]: !prev[section] }));
   }, []);
