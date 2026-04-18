@@ -880,6 +880,13 @@ export function useAiImagePageController() {
     setError("");
     setLoading(true);
     try {
+      if (mergeStyleTags) {
+        if (effectivePrompt !== basePrompt)
+          setSimplePrompt(effectivePrompt);
+        if (effectiveNegative !== baseNegative)
+          setSimpleNegativePrompt(effectiveNegative);
+      }
+
       const freeViolation = getNovelAiFreeGenerationViolation({
         mode: effectiveMode,
         width: effectiveWidth,
