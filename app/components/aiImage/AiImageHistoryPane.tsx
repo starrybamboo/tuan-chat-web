@@ -162,7 +162,7 @@ function HistoryImageTile({
         ? (
             <button
               type="button"
-              className="absolute right-1 top-1 flex size-7 items-center justify-center rounded-md bg-base-100/92 text-base-content/65 opacity-0 shadow-sm transition hover:bg-base-100 hover:text-error group-focus-within:opacity-100 group-hover:opacity-100"
+              className="absolute right-1 top-1 flex size-7 items-center justify-center rounded-md bg-transparent text-base-content/65 opacity-0 shadow-none transition hover:bg-transparent hover:text-error group-focus-within:opacity-100 group-hover:opacity-100"
               aria-label="删除绘画记录"
               title="删除绘画记录"
               onClick={onDelete}
