@@ -13,7 +13,7 @@ import type {
 
 import { NoopLogger } from "@blocksuite/global/utils";
 import { AwarenessStore, nanoid, StoreContainer, Text } from "@blocksuite/store";
-import { BlobEngine, DocEngine, IndexedDBBlobSource, IndexedDBDocSource } from "@blocksuite/sync";
+import { BlobEngine, DocEngine, IndexedDBDocSource } from "@blocksuite/sync";
 import { Subject, Subscription } from "rxjs";
 import { Awareness } from "y-protocols/awareness.js";
 import * as Y from "yjs";
@@ -25,6 +25,7 @@ import { clearUpdates } from "@/components/chat/infra/blocksuite/description/des
 import { parseDescriptionDocId } from "@/components/chat/infra/blocksuite/description/descriptionDocId";
 import { BLOCKSUITE_STORE_EXTENSIONS } from "@/components/chat/infra/blocksuite/manager/store";
 import { NonRetryableBlocksuiteDocError } from "@/components/chat/infra/blocksuite/shared/blocksuiteDocError";
+import { BlocksuiteRemoteImageBlobSource } from "@/components/chat/infra/blocksuite/space/runtime/blocksuiteRemoteImageBlobSource";
 import { blocksuiteWsClient } from "@/components/chat/infra/blocksuite/space/runtime/blocksuiteWsClient";
 import { RemoteSnapshotDocSource } from "@/components/chat/infra/blocksuite/space/runtime/remoteDocSource";
 
@@ -523,7 +524,7 @@ export class SpaceWorkspace implements Workspace {
 
     const logger = new NoopLogger();
 
-    // Demo 阶段：仅本地 IndexedDB 存储
+    // 文档结构仍走本地 IndexedDB；图片 blob 则在本地缓存之外镜像到 MinIO。
     const dbPrefix = `tuan-chat-blocksuite:${params.workspaceId}`;
     this.docSync = new DocEngine(
       this._rootDoc,
@@ -533,7 +534,7 @@ export class SpaceWorkspace implements Workspace {
     );
 
     this.blobSync = new BlobEngine(
-      new IndexedDBBlobSource(dbPrefix),
+      new BlocksuiteRemoteImageBlobSource({ dbPrefix }),
       [],
       logger,
     );
