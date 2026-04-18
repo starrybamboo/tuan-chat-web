@@ -1,5 +1,5 @@
 import type { AiImagePageController } from "@/components/aiImage/useAiImagePageController";
-import { ArrowCounterClockwise, CheckCircleIcon, CircleNotch, FileArrowUpIcon, GearSixIcon, SparkleIcon, XCircleIcon } from "@phosphor-icons/react";
+import { ArrowCounterClockwise, CheckCircleIcon, CircleNotch, FileArrowUpIcon, GearSixIcon, ImageSquareIcon, SparkleIcon, XCircleIcon } from "@phosphor-icons/react";
 import { useEffect, useRef, useState } from "react";
 import {
   CUSTOM_RESOLUTION_ID,
@@ -63,9 +63,10 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
     hasSimpleTagsDraft,
     handleAddV4Char,
     handleClearSeed,
-    handleOpenSourceImagePicker,
+    handleClearCurrentDisplayedImage,
     handleClearSourceImage,
     handleCropToClosestValidSize,
+    handleOpenSourceImagePicker,
     handleMoveV4Char,
     handleRemoveV4Char,
     handleRemoveVibeReference,
@@ -83,6 +84,7 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
     handleUpdateV4Char,
     handleUpdateVibeReference,
     hasReferenceConflict,
+    hasCurrentDisplayedImage,
     height,
     imageCount,
     imageCountLimit,
@@ -226,6 +228,11 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
     : hasGeneratedSimpleTags
         ? "border-white/20 bg-white/10 text-white"
         : "border-white/20 bg-white/10 text-white";
+  const clearCurrentImageButtonClassName = `group flex size-11 shrink-0 items-center justify-center rounded-md border transition focus:outline-none focus:ring-2 focus:ring-primary/20 disabled:cursor-not-allowed disabled:opacity-45 ${
+    hasCurrentDisplayedImage
+      ? "border-[#D6DCE3] bg-[#F3F5F7] text-base-content/60 hover:border-error/30 hover:bg-error/5 hover:text-error dark:border-[#2A3138] dark:bg-[#161A1F] dark:hover:border-error/35 dark:hover:bg-error/10"
+      : "border-[#D6DCE3] bg-[#F3F5F7] text-base-content/35 dark:border-[#2A3138] dark:bg-[#161A1F] dark:text-base-content/30"
+  }`;
   const floatingInputActionClassName = "btn btn-xs btn-ghost absolute right-3 top-3 z-10 border-0 bg-transparent px-2 text-base-content/35 shadow-none transition-colors backdrop-blur-0 hover:bg-black/28 hover:text-white focus-visible:text-white dark:text-base-content/40 dark:hover:bg-white/12";
 
   useEffect(() => {
@@ -404,73 +411,89 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
         : null}
       <div className={sideCardClassName}>
         <div className="card-body p-4">
-          <div className="relative w-full" ref={modeSelectorContainerRef}>
+          <div className="mb-3 flex items-stretch gap-2">
             <button
               type="button"
-              className={`flex w-full items-center justify-between rounded-md border px-3 py-3 text-left transition focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 ${
-                isModeSelectorOpen
-                  ? "border-primary bg-primary/5 shadow-sm dark:bg-primary/10"
-                  : "border-[#D6DCE3] bg-[#F3F5F7] hover:border-primary/40 hover:bg-[#EAEFF4] dark:border-[#2A3138] dark:bg-[#161A1F] dark:hover:bg-[#1B2026]"
-              }`}
-              aria-expanded={isModeSelectorOpen}
-              aria-controls="ai-image-mode-selector-panel"
-              onClick={() => setIsModeSelectorOpen(prev => !prev)}
+              className={clearCurrentImageButtonClassName}
+              aria-label="取消当前图片"
+              title={hasCurrentDisplayedImage ? "取消当前图片" : "当前没有可取消的图片"}
+              disabled={!hasCurrentDisplayedImage}
+              onClick={handleClearCurrentDisplayedImage}
             >
-              <div className="flex min-w-0 items-baseline gap-2">
-                <span className="font-medium leading-none text-base-content">{activeModeOption.label}</span>
-                <span className="truncate text-[11px] leading-none text-base-content/45">{MODE_MODEL_LABEL}</span>
-              </div>
-              <ChevronDown className={`ml-3 size-4 shrink-0 text-base-content/60 transition-transform ${isModeSelectorOpen ? "rotate-180" : ""}`} />
+              <span className="relative inline-flex size-5 items-center justify-center">
+                <ImageSquareIcon className="size-5" weight="regular" aria-hidden="true" />
+                <XCircleIcon className="absolute -right-1 -top-1 size-4 text-error" weight="fill" aria-hidden="true" />
+              </span>
             </button>
 
-            {isModeSelectorOpen
-              || isModeSelectorMounted
-              ? (
-                  <div
-                    id="ai-image-mode-selector-panel"
-                    className={`absolute left-0 right-0 top-[calc(100%+0.5rem)] z-40 max-h-[calc(100vh-12rem)] overflow-y-auto rounded-xl border border-[#D6DCE3] bg-[#F3F5F7] p-3 shadow-2xl ring-1 ring-black/5 transform-gpu transition-all duration-200 ease-out dark:border-[#2A3138] dark:bg-[#161A1F] dark:ring-white/5 ${
-                      isModeSelectorOpen
-                        ? "pointer-events-auto translate-y-0 scale-100 opacity-100"
-                        : "pointer-events-none translate-y-2 scale-[0.985] opacity-0"
-                    }`}
-                  >
-                    <div className="mb-3 flex items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <div className="text-sm font-medium text-base-content">模式选择</div>
-                      </div>
-                      <button
-                        type="button"
-                        className="btn btn-ghost btn-xs"
-                        onClick={() => setIsModeSelectorOpen(false)}
-                      >
-                        关闭
-                      </button>
-                    </div>
-                    <div className="flex flex-col gap-2">
-                      {MODE_OPTIONS.map(option => (
+            <div className="relative min-w-0 flex-1" ref={modeSelectorContainerRef}>
+              <button
+                type="button"
+                className={`flex w-full items-center justify-between rounded-md border px-3 py-3 text-left transition focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 ${
+                  isModeSelectorOpen
+                    ? "border-primary bg-primary/5 shadow-sm dark:bg-primary/10"
+                    : "border-[#D6DCE3] bg-[#F3F5F7] hover:border-primary/40 hover:bg-[#EAEFF4] dark:border-[#2A3138] dark:bg-[#161A1F] dark:hover:bg-[#1B2026]"
+                }`}
+                aria-expanded={isModeSelectorOpen}
+                aria-controls="ai-image-mode-selector-panel"
+                onClick={() => setIsModeSelectorOpen(prev => !prev)}
+              >
+                <div className="flex min-w-0 items-baseline gap-2">
+                  <span className="font-medium leading-none text-base-content">{activeModeOption.label}</span>
+                  <span className="truncate text-[11px] leading-none text-base-content/45">{MODE_MODEL_LABEL}</span>
+                </div>
+                <ChevronDown className={`ml-3 size-4 shrink-0 text-base-content/60 transition-transform ${isModeSelectorOpen ? "rotate-180" : ""}`} />
+              </button>
+
+              {isModeSelectorOpen
+                || isModeSelectorMounted
+                ? (
+                    <div
+                      id="ai-image-mode-selector-panel"
+                      className={`absolute left-0 right-0 top-[calc(100%+0.5rem)] z-40 max-h-[calc(100vh-12rem)] overflow-y-auto rounded-xl border border-[#D6DCE3] bg-[#F3F5F7] p-3 shadow-2xl ring-1 ring-black/5 transform-gpu transition-all duration-200 ease-out dark:border-[#2A3138] dark:bg-[#161A1F] dark:ring-white/5 ${
+                        isModeSelectorOpen
+                          ? "pointer-events-auto translate-y-0 scale-100 opacity-100"
+                          : "pointer-events-none translate-y-2 scale-[0.985] opacity-0"
+                      }`}
+                    >
+                      <div className="mb-3 flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <div className="text-sm font-medium text-base-content">模式选择</div>
+                        </div>
                         <button
-                          key={option.value}
                           type="button"
-                          className={`w-full rounded-lg border px-3 py-3 text-left transition focus:outline-none focus:ring-2 focus:ring-primary/20 ${
-                            uiMode === option.value
-                              ? "border-primary bg-primary/5 text-base-content shadow-sm"
-                              : "border-[#D6DCE3] bg-base-100 text-base-content/80 hover:border-primary/40 hover:bg-[#EAEFF4] dark:border-[#2A3138] dark:bg-[#161A1F] dark:hover:border-primary/40 dark:hover:bg-[#1B2026]"
-                          }`}
-                          onClick={() => handleSelectMode(option.value)}
-                          >
-                          <div className="flex min-w-0 items-baseline gap-2">
-                            <span className="font-medium leading-none">{option.label}</span>
-                            <span className="truncate text-[11px] leading-none text-base-content/45">{MODE_MODEL_LABEL}</span>
-                          </div>
-                          <div className="mt-1 text-xs text-base-content/60">
-                            {option.description}
-                          </div>
+                          className="btn btn-ghost btn-xs"
+                          onClick={() => setIsModeSelectorOpen(false)}
+                        >
+                          关闭
                         </button>
-                      ))}
+                      </div>
+                      <div className="flex flex-col gap-2">
+                        {MODE_OPTIONS.map(option => (
+                          <button
+                            key={option.value}
+                            type="button"
+                            className={`w-full rounded-lg border px-3 py-3 text-left transition focus:outline-none focus:ring-2 focus:ring-primary/20 ${
+                              uiMode === option.value
+                                ? "border-primary bg-primary/5 text-base-content shadow-sm"
+                                : "border-[#D6DCE3] bg-base-100 text-base-content/80 hover:border-primary/40 hover:bg-[#EAEFF4] dark:border-[#2A3138] dark:bg-[#161A1F] dark:hover:border-primary/40 dark:hover:bg-[#1B2026]"
+                            }`}
+                            onClick={() => handleSelectMode(option.value)}
+                            >
+                            <div className="flex min-w-0 items-baseline gap-2">
+                              <span className="font-medium leading-none">{option.label}</span>
+                              <span className="truncate text-[11px] leading-none text-base-content/45">{MODE_MODEL_LABEL}</span>
+                            </div>
+                            <div className="mt-1 text-xs text-base-content/60">
+                              {option.description}
+                            </div>
+                          </button>
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                )
-              : null}
+                  )
+                : null}
+            </div>
           </div>
         </div>
       </div>
