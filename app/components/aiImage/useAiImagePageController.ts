@@ -802,8 +802,8 @@ export function useAiImagePageController() {
   }, [selectedPreviewResult, setProFeatureSectionOpen, showErrorToast]);
 
   const handleToggleDirectorTools = useCallback(() => {
-    showErrorToast(getNovelAiFreeOnlyMessage("Director Tools 已禁用。"));
-  }, [showErrorToast]);
+    setIsDirectorToolsOpen(prev => !prev);
+  }, []);
 
   const handleSyncDirectorSourceFromCurrentPreview = useCallback(() => {
     if (!selectedPreviewResult)
