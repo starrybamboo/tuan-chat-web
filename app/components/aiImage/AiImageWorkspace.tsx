@@ -29,6 +29,7 @@ export function AiImageWorkspace({
   const [isHistoryCollapsed, setIsHistoryCollapsed] = useState(false);
   const [isPinnedDrawerOpen, setIsPinnedDrawerOpen] = useState(false);
   const [isPinnedEdgeHovered, setIsPinnedEdgeHovered] = useState(false);
+  const historyPaneWidthClassName = isDirectorToolsOpen ? "w-[196px]" : "w-[160px]";
 
   useEffect(() => {
     if (!pinnedPreviewResult) {
@@ -135,15 +136,19 @@ export function AiImageWorkspace({
           )
         : null}
 
-      {!isHistoryCollapsed
-        ? (
-            <AiImageHistoryPane
-              {...historyPaneProps}
-              isDirectorToolsOpen={isDirectorToolsOpen}
-              onCollapse={() => setIsHistoryCollapsed(true)}
-            />
-          )
-        : null}
+      <div
+        className={`relative shrink-0 overflow-hidden transition-all duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] ${
+          isHistoryCollapsed
+            ? "w-0 translate-x-3 opacity-0 pointer-events-none"
+            : historyPaneWidthClassName
+        }`}
+      >
+        <AiImageHistoryPane
+          {...historyPaneProps}
+          isDirectorToolsOpen={isDirectorToolsOpen}
+          onCollapse={() => setIsHistoryCollapsed(true)}
+        />
+      </div>
     </div>
   );
 }

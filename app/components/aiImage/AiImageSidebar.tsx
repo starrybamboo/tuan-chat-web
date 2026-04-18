@@ -1511,7 +1511,7 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
             <div className="shrink-0 border-t border-[#D6DCE3] bg-[#F3F5F7] p-4 backdrop-blur dark:border-[#2A3138] dark:bg-[#161A1F]">
               <button
                 type="button"
-                className={`btn h-12 w-full justify-between border px-4 disabled:border-0 disabled:bg-base-300 disabled:text-base-content/40 ${
+                className={`btn h-12 w-full justify-between border px-4 disabled:border-base-300 disabled:bg-base-200 disabled:text-base-content/35 ${
                   uiMode === "simple"
                     ? simplePrimaryActionToneClassName
                     : "btn-primary"
