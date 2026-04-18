@@ -86,6 +86,7 @@ export type InpaintDialogSource = {
   height: number;
   seed: number;
   model: string;
+  mode: UiMode;
   prompt: string;
   negativePrompt: string;
   strength: number;

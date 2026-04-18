@@ -880,13 +880,6 @@ export function useAiImagePageController() {
     setError("");
     setLoading(true);
     try {
-      if (mergeStyleTags) {
-        if (effectivePrompt !== basePrompt)
-          setSimplePrompt(effectivePrompt);
-        if (effectiveNegative !== baseNegative)
-          setSimpleNegativePrompt(effectiveNegative);
-      }
-
       const freeViolation = getNovelAiFreeGenerationViolation({
         mode: effectiveMode,
         width: effectiveWidth,
@@ -1063,6 +1056,7 @@ export function useAiImagePageController() {
       height: selectedPreviewResult.height,
       seed: selectedPreviewResult.seed,
       model: selectedPreviewResult.model,
+      mode: uiMode,
       prompt: selectedPreviewHistoryRow?.prompt || (uiMode === "simple" ? simplePrompt : prompt),
       negativePrompt: selectedPreviewHistoryRow?.negativePrompt || (uiMode === "simple" ? simpleNegativePrompt : negativePrompt),
       strength,
@@ -1096,8 +1090,14 @@ export function useAiImagePageController() {
     if (!success)
       return;
 
-    setPrompt(payload.prompt);
-    setNegativePrompt(payload.negativePrompt);
+    if (inpaintDialogSource.mode === "simple") {
+      setSimplePrompt(payload.prompt);
+      setSimpleNegativePrompt(payload.negativePrompt);
+    }
+    else {
+      setPrompt(payload.prompt);
+      setNegativePrompt(payload.negativePrompt);
+    }
     setStrength(payload.strength);
     setInpaintDialogSource(null);
     showSuccessToast("Inpaint 完成，结果已加入本次绘画与历史记录。");
