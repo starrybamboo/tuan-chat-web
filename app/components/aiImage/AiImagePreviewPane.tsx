@@ -362,9 +362,9 @@ export function AiImagePreviewPane({
                         <button
                           type="button"
                           className={previewToolbarIconButtonClassName}
-                          title="Upscale"
-                          aria-label="Upscale"
-                          disabled={isBusy}
+                          title="Upscale 已禁用"
+                          aria-label="Upscale 已禁用"
+                          disabled
                           onClick={() => void onRunUpscale()}
                         >
                           <FrameCornersIcon className="size-[18px]" weight="bold" />
