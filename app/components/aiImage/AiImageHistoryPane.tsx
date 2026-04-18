@@ -151,7 +151,6 @@ function HistoryImageTile({
         type="button"
         className="relative block h-[100px] w-[100px] cursor-grab overflow-hidden text-left active:cursor-grabbing"
         draggable={draggable}
-        title={title}
         onClick={onClick}
         onDragStart={onDragStart}
       >
@@ -164,10 +163,9 @@ function HistoryImageTile({
               type="button"
               className="absolute right-0 top-0 flex size-7 items-center justify-center rounded-md bg-transparent text-base-content/82 opacity-0 shadow-none transition hover:bg-transparent hover:text-error group-focus-within:opacity-100 group-hover:opacity-100"
               aria-label="删除绘画记录"
-              title="删除绘画记录"
               onClick={onDelete}
             >
-              <XMarkICon className="size-3.5" />
+              <XMarkICon className="size-4.5" />
             </button>
           )
         : null}
