@@ -163,9 +163,9 @@ export default function AiImagePage() {
       `}</style>
       {controller.isPageImageDragOver
         ? (
-            <div className="pointer-events-none absolute inset-0 z-40 flex items-center justify-center bg-base-100/60 backdrop-blur-sm">
-              <div className="flex size-[88px] items-center justify-center rounded-[24px] border border-white/10 bg-[#242636]/92 shadow-[0_20px_45px_rgba(0,0,0,0.36)] ring-1 ring-black/10">
-                <UploadSimpleIcon className="size-11 text-white drop-shadow-[0_1px_1px_rgba(0,0,0,0.35)]" weight="bold" aria-hidden="true" />
+            <div className="pointer-events-none absolute inset-0 z-40 flex items-center justify-center bg-base-100/52 backdrop-blur-[2px]">
+              <div className="flex size-[88px] items-center justify-center rounded-[24px] bg-[#242636]/78 shadow-[0_16px_34px_rgba(0,0,0,0.24)] backdrop-blur-sm">
+                <UploadSimpleIcon className="size-11 text-white/90 drop-shadow-[0_1px_1px_rgba(0,0,0,0.28)]" weight="bold" aria-hidden="true" />
               </div>
             </div>
           )
