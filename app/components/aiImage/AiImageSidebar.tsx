@@ -913,6 +913,7 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                         className="inline-flex size-9 shrink-0 items-center justify-center rounded-md border border-[#D6DCE3] bg-[#F3F5F7] text-base-content/72 transition outline-none hover:border-primary/40 hover:text-primary focus:outline-none dark:border-[#2A3138] dark:bg-[#161A1F] dark:text-base-content/70"
                         aria-label={proPromptTab === "prompt" ? "插入随机 Prompt tag" : "插入随机 Undesired Content tag"}
                         title="插入随机 tag 语法"
+                        onMouseDown={event => event.preventDefault()}
                         onClick={handleInsertProRandomizerTag}
                       >
                         <DiceFiveIcon className="size-5" weight="fill" />
