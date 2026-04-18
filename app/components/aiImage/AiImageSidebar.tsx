@@ -220,7 +220,7 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
     : hasGeneratedSimpleTags
         ? "border-white/20 bg-white/10 text-white"
         : "border-white/20 bg-white/10 text-white";
-  const floatingInputActionClassName = "btn btn-xs absolute right-3 top-3 z-10 bg-[#F3F5F7]/92 shadow-sm backdrop-blur-sm hover:bg-[#EAEFF4] dark:bg-[#161A1F]/92 dark:hover:bg-[#1B2026]";
+  const floatingInputActionClassName = "btn btn-xs btn-ghost absolute right-3 top-3 z-10 border-0 bg-transparent px-2 shadow-none backdrop-blur-0 hover:bg-base-100/80 dark:hover:bg-[#1B2026]";
 
   useEffect(() => {
     if (isModeSelectorOpen) {
@@ -649,13 +649,6 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                                   setSimpleNegativePrompt(e.target.value);
                               }}
                             />
-                            <button
-                              type="button"
-                              className={floatingInputActionClassName}
-                              onClick={() => setIsStylePickerOpen(true)}
-                            >
-                              添加画风
-                            </button>
                             {hasSimpleTagsDraft
                               ? (
                                   <button
