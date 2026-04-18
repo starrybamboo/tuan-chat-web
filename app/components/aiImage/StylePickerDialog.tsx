@@ -1,14 +1,15 @@
 import type { AiImageStylePreset } from "@/utils/aiImageStylePresets";
 
-import { useEffect, useState } from "react";
-
 interface StylePickerDialogProps {
   isOpen: boolean;
+  viewMode: "select" | "compare";
   selectedStyleIds: string[];
   compareStyleId: string | null;
   stylePresets: AiImageStylePreset[];
+  compareStylePresets: AiImageStylePreset[];
   onToggleStyle: (id: string) => void;
   onSelectCompareStyle: (id: string) => void;
+  onViewModeChange: (mode: "select" | "compare") => void;
   onClearStyles: () => void;
   onClearCompareStyle: () => void;
   onClose: () => void;
@@ -16,25 +17,22 @@ interface StylePickerDialogProps {
 
 export function StylePickerDialog({
   isOpen,
+  viewMode,
   selectedStyleIds,
   compareStyleId,
   stylePresets,
+  compareStylePresets,
   onToggleStyle,
   onSelectCompareStyle,
+  onViewModeChange,
   onClearStyles,
   onClearCompareStyle,
   onClose,
 }: StylePickerDialogProps) {
-  const [viewMode, setViewMode] = useState<"select" | "compare">("select");
   const selectedStyleIdSet = new Set(selectedStyleIds);
   const currentCountLabel = viewMode === "compare"
     ? (compareStyleId ? "已选 1 个" : "")
     : (selectedStyleIds.length ? `已选 ${selectedStyleIds.length} 个` : "");
-
-  useEffect(() => {
-    if (!isOpen)
-      setViewMode("select");
-  }, [isOpen]);
 
   return (
     <dialog
@@ -53,7 +51,7 @@ export function StylePickerDialog({
               type="button"
               className={`btn btn-sm ${viewMode === "compare" ? "btn-primary" : "btn-ghost"}`}
               aria-pressed={viewMode === "compare"}
-              onClick={() => setViewMode(prev => (prev === "compare" ? "select" : "compare"))}
+              onClick={() => onViewModeChange(viewMode === "compare" ? "select" : "compare")}
             >
               风格对比
             </button>
@@ -78,7 +76,7 @@ export function StylePickerDialog({
           {viewMode === "compare"
             ? (
                 <div className="flex flex-wrap gap-4">
-                {stylePresets.map((preset) => {
+                {compareStylePresets.map((preset) => {
                   const selected = compareStyleId === preset.id;
                   return (
                     <button
@@ -107,8 +105,8 @@ export function StylePickerDialog({
                     </button>
                   );
                 })}
-                {!stylePresets.length
-                  ? <div className="text-sm opacity-60">暂无画风</div>
+                {!compareStylePresets.length
+                  ? <div className="text-sm opacity-60">暂无对比画风</div>
                   : null}
                 </div>
               )

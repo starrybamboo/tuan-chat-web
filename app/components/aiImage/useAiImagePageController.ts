@@ -108,7 +108,7 @@ import {
   deleteAiImageHistory,
   listAiImageHistory,
 } from "@/utils/aiImageHistoryDb";
-import { getAiImageStylePresets } from "@/utils/aiImageStylePresets";
+import { getAiImageCompareStylePresets, getAiImageStylePresets } from "@/utils/aiImageStylePresets";
 import {
   extractNovelAiMetadataFromPngBytes,
   extractNovelAiMetadataFromStealthPixels,
@@ -152,6 +152,7 @@ export function useAiImagePageController() {
   const [simpleConverting, setSimpleConverting] = useState(false);
   const [isPageImageDragOver, setIsPageImageDragOver] = useState(false);
   const [isStylePickerOpen, setIsStylePickerOpen] = useState(false);
+  const [styleSelectionMode, setStyleSelectionMode] = useState<"select" | "compare">("select");
   const [selectedStyleIds, setSelectedStyleIds] = useState<string[]>([]);
   const [compareStyleId, setCompareStyleId] = useState<string | null>(null);
   const [proPromptTab, setProPromptTab] = useState<"prompt" | "negative">("prompt");
@@ -194,10 +195,18 @@ export function useAiImagePageController() {
   }, []);
 
   const stylePresets = useMemo(() => getAiImageStylePresets(), []);
+  const compareStylePresets = useMemo(() => getAiImageCompareStylePresets(), []);
+
   const selectedStylePresets = useMemo(() => {
     const index = new Map<string, AiImageStylePreset>(stylePresets.map(p => [p.id, p]));
     return selectedStyleIds.map(id => index.get(id)).filter(Boolean) as AiImageStylePreset[];
   }, [selectedStyleIds, stylePresets]);
+
+  const compareStylePreset = useMemo(() => {
+    if (!compareStyleId)
+      return null;
+    return compareStylePresets.find(preset => preset.id === compareStyleId) ?? null;
+  }, [compareStyleId, compareStylePresets]);
 
   const selectedStyleTags = useMemo(() => {
     return selectedStylePresets.flatMap((preset) => {
@@ -211,6 +220,28 @@ export function useAiImagePageController() {
   const selectedStyleNegativeTags = useMemo(() => {
     return selectedStylePresets.flatMap(p => p.negativeTags);
   }, [selectedStylePresets]);
+
+  const compareStyleTags = useMemo(() => {
+    if (!compareStylePreset)
+      return [];
+    if (compareStylePreset.tags.length)
+      return compareStylePreset.tags;
+    const fallback = String(compareStylePreset.title || "").trim();
+    return fallback ? [fallback] : [];
+  }, [compareStylePreset]);
+
+  const compareStyleNegativeTags = useMemo(() => {
+    return compareStylePreset?.negativeTags ?? [];
+  }, [compareStylePreset]);
+
+  const activeStyleIds = styleSelectionMode === "compare"
+    ? (compareStyleId ? [compareStyleId] : [])
+    : selectedStyleIds;
+  const activeStylePresets = styleSelectionMode === "compare"
+    ? (compareStylePreset ? [compareStylePreset] : [])
+    : selectedStylePresets;
+  const activeStyleTags = styleSelectionMode === "compare" ? compareStyleTags : selectedStyleTags;
+  const activeStyleNegativeTags = styleSelectionMode === "compare" ? compareStyleNegativeTags : selectedStyleNegativeTags;
 
   const samplerOptions = SAMPLERS_NAI4;
   const noiseScheduleOptions = NOISE_SCHEDULES_NAI4;
@@ -803,8 +834,8 @@ export function useAiImagePageController() {
     const baseNegative = String(args?.negativePrompt ?? (uiMode === "simple" ? simpleNegativePrompt : negativePrompt));
     const mergeStyleTags = uiMode === "simple" && effectiveMode === "txt2img";
     const effectiveImageCount = NOVELAI_FREE_FIXED_IMAGE_COUNT;
-    const effectivePrompt = mergeStyleTags ? mergeTagString(basePrompt, selectedStyleTags).trim() : basePrompt;
-    const effectiveNegative = mergeStyleTags ? mergeTagString(baseNegative, selectedStyleNegativeTags) : baseNegative;
+    const effectivePrompt = mergeStyleTags ? mergeTagString(basePrompt, activeStyleTags).trim() : basePrompt;
+    const effectiveNegative = mergeStyleTags ? mergeTagString(baseNegative, activeStyleNegativeTags) : baseNegative;
     const effectiveWidth = args?.width ?? width;
     const effectiveHeight = args?.height ?? height;
     const effectiveStrength = args?.strength ?? strength;
@@ -976,8 +1007,8 @@ export function useAiImagePageController() {
     sampler,
     scale,
     showErrorToast,
-    selectedStyleNegativeTags,
-    selectedStyleTags,
+    activeStyleNegativeTags,
+    activeStyleTags,
     seed,
     simpleNegativePrompt,
     simplePrompt,
@@ -1067,8 +1098,8 @@ export function useAiImagePageController() {
       const converted = await convertNaturalLanguageToNovelAiTags({ input: trimmed });
       const convertedWithStyles = {
         ...converted,
-        prompt: mergeTagString(converted.prompt, selectedStyleTags).trim(),
-        negativePrompt: mergeTagString(converted.negativePrompt, selectedStyleNegativeTags),
+        prompt: mergeTagString(converted.prompt, activeStyleTags).trim(),
+        negativePrompt: mergeTagString(converted.negativePrompt, activeStyleNegativeTags),
       };
       setSimpleConverted(convertedWithStyles);
       setSimpleConvertedFromText(trimmed);
@@ -1082,8 +1113,8 @@ export function useAiImagePageController() {
       setSimpleConverting(false);
     }
   }, [
-    selectedStyleNegativeTags,
-    selectedStyleTags,
+    activeStyleNegativeTags,
+    activeStyleTags,
     showErrorToast,
     simpleText,
   ]);
@@ -1357,6 +1388,7 @@ export function useAiImagePageController() {
   }, [history]);
 
   const handleToggleStyle = useCallback((id: string) => {
+    setStyleSelectionMode("select");
     setSelectedStyleIds((prev) => {
       if (prev.includes(id))
         return prev.filter(item => item !== id);
@@ -1365,6 +1397,7 @@ export function useAiImagePageController() {
   }, []);
 
   const handleSelectCompareStyle = useCallback((id: string) => {
+    setStyleSelectionMode("compare");
     setCompareStyleId((prev) => {
       if (prev === id)
         return prev;
@@ -1379,6 +1412,14 @@ export function useAiImagePageController() {
   const handleClearCompareStyle = useCallback(() => {
     setCompareStyleId(null);
   }, []);
+
+  const handleClearActiveStyles = useCallback(() => {
+    if (styleSelectionMode === "compare") {
+      setCompareStyleId(null);
+      return;
+    }
+    setSelectedStyleIds([]);
+  }, [styleSelectionMode]);
 
   const handleAddV4Char = useCallback(() => {
     const row = newV4CharEditorRow();
@@ -1644,7 +1685,7 @@ export function useAiImagePageController() {
     handleAddV4Char,
     handleClearSeed,
     handleClearSourceImage,
-    handleClearStyles,
+    handleClearStyles: handleClearActiveStyles,
     handleCropToClosestValidSize,
     handleMoveV4Char,
     handleRemoveV4Char,
@@ -1691,10 +1732,10 @@ export function useAiImagePageController() {
     scale,
     seed,
     seedIsRandom,
-    selectedStyleIds,
-    selectedStyleNegativeTags,
-    selectedStylePresets,
-    selectedStyleTags,
+    selectedStyleIds: activeStyleIds,
+    selectedStyleNegativeTags: activeStyleNegativeTags,
+    selectedStylePresets: activeStylePresets,
+    selectedStyleTags: activeStyleTags,
     setCfgRescale,
     setCharPromptTabs,
     setDynamicThresholding,
@@ -1858,11 +1899,14 @@ export function useAiImagePageController() {
 
   const stylePickerDialogProps = {
     isOpen: isStylePickerOpen,
+    viewMode: styleSelectionMode,
     selectedStyleIds,
     compareStyleId,
     stylePresets,
+    compareStylePresets,
     onToggleStyle: handleToggleStyle,
     onSelectCompareStyle: handleSelectCompareStyle,
+    onViewModeChange: setStyleSelectionMode,
     onClearStyles: handleClearStyles,
     onClearCompareStyle: handleClearCompareStyle,
     onClose: () => setIsStylePickerOpen(false),
