@@ -112,11 +112,11 @@ export function AiImagePreviewPane({
   onSelectPinnedPreview,
   formatDirectorEmotionLabel,
 }: AiImagePreviewPaneProps) {
-  const previewToolbarControlSurfaceClassName = "!rounded-none border border-white/20 bg-base-300/70 shadow-sm";
-  const previewToolbarIconButtonClassName = `inline-flex size-9 shrink-0 items-center justify-center ${previewToolbarControlSurfaceClassName} text-base-content/70 transition-colors hover:border-white/35 hover:text-base-content disabled:cursor-not-allowed disabled:opacity-50`;
+  const previewToolbarControlSurfaceClassName = "!rounded-none border border-white/8 bg-base-300/70 shadow-none";
+  const previewToolbarIconButtonClassName = `inline-flex size-9 shrink-0 items-center justify-center ${previewToolbarControlSurfaceClassName} text-base-content/70 transition-colors hover:bg-base-300/85 hover:text-base-content disabled:cursor-not-allowed disabled:opacity-50`;
   const previewToolbarPillClassName = `inline-flex h-9 items-center ${previewToolbarControlSurfaceClassName} px-3 text-xs font-medium text-base-content`;
-  const previewToolbarActionButtonClassName = `inline-flex h-9 items-center gap-2 ${previewToolbarControlSurfaceClassName} px-3 text-xs text-base-content hover:border-white/35`;
-  const previewToolbarSectionClassName = "inline-flex w-fit max-w-full min-w-0 flex-wrap items-center gap-0 rounded-none bg-base-300/70 p-px shadow-sm";
+  const previewToolbarActionButtonClassName = `inline-flex h-9 items-center gap-2 ${previewToolbarControlSurfaceClassName} px-3 text-xs text-base-content transition-colors hover:bg-base-300/85`;
+  const previewToolbarSectionClassName = "inline-flex w-fit max-w-full min-w-0 flex-wrap items-center gap-0 rounded-none bg-white/22 p-px shadow-sm";
   const directorCanvasContainerClassName = "overflow-hidden rounded-2xl border border-base-300 bg-base-100";
   const directorInsetPanelClassName = "rounded-2xl border border-base-300 bg-base-200/35 p-3";
 
@@ -405,7 +405,7 @@ export function AiImagePreviewPane({
                       <div className={`${previewToolbarSectionClassName} justify-start sm:ml-auto sm:justify-end`}>
                         <button
                           type="button"
-                          className={`${previewToolbarIconButtonClassName} ${isSelectedPreviewPinned ? "border-primary text-primary" : ""}`}
+                          className={`${previewToolbarIconButtonClassName} ${isSelectedPreviewPinned ? "bg-primary/12 text-primary" : ""}`}
                           title={isSelectedPreviewPinned ? "取消固定当前预览" : "固定当前预览"}
                           aria-label={isSelectedPreviewPinned ? "取消固定当前预览" : "固定当前预览"}
                           onClick={onTogglePinnedPreview}
