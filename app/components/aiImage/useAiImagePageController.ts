@@ -1227,9 +1227,25 @@ export function useAiImagePageController() {
     showSuccessToast("已取消固定预览。");
   }, [pinnedPreviewKey, showSuccessToast]);
 
-  const handleCopyPinnedPreviewImage = useCallback(async () => {
-    await copyGeneratedImageToClipboard(pinnedPreviewResult, "已复制 pinned 图片。");
-  }, [copyGeneratedImageToClipboard, pinnedPreviewResult]);
+  const handleSelectPinnedPreview = useCallback(() => {
+    if (!pinnedPreviewKey)
+      return;
+
+    if (pinnedPreviewKey.startsWith("current:")) {
+      const currentKey = pinnedPreviewKey.slice("current:".length);
+      const currentResultIndex = results.findIndex(item => generatedItemKey(item) === currentKey);
+      if (currentResultIndex >= 0)
+        handleSelectCurrentResult(currentResultIndex);
+      return;
+    }
+
+    if (pinnedPreviewKey.startsWith("history:")) {
+      const historyKey = pinnedPreviewKey.slice("history:".length);
+      const historyRow = historyRowByKey.get(historyKey);
+      if (historyRow)
+        handlePreviewHistoryRow(historyRow);
+    }
+  }, [handlePreviewHistoryRow, handleSelectCurrentResult, historyRowByKey, pinnedPreviewKey, results]);
 
   const handleApplyPinnedPreviewSeed = useCallback(() => {
     if (!pinnedPreviewResult)
@@ -1890,7 +1906,7 @@ export function useAiImagePageController() {
     },
     pinnedPreviewResult,
     onClearPinnedPreview: handleClearPinnedPreview,
-    onCopyPinnedPreviewImage: handleCopyPinnedPreviewImage,
+    onJumpToPinnedPreview: handleSelectPinnedPreview,
     onApplyPinnedPreviewSeed: handleApplyPinnedPreviewSeed,
   };
 
