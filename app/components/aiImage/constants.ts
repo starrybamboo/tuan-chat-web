@@ -103,9 +103,9 @@ export const DEFAULT_PRO_IMAGE_SETTINGS = {
 } as const;
 
 export const UC_PRESET_OPTIONS = [
-  { value: 0, label: "标准预设", description: "附加低质量和解剖问题等常见抑制词。" },
-  { value: 1, label: "轻量预设", description: "只附加基础低质量抑制词。" },
-  { value: 2, label: "关闭预设", description: "完全使用你手写的 Undesired Content。" },
+  { value: 0, label: "标准", description: "附加低质量和解剖问题等常见抑制词。" },
+  { value: 1, label: "轻量", description: "只附加基础低质量抑制词。" },
+  { value: 2, label: "无", description: "完全使用你手写的 Undesired Content。" },
 ] as const;
 
 export const DEFAULT_PRO_FEATURE_SECTION_OPEN: Record<ProFeatureSectionKey, boolean> = {
