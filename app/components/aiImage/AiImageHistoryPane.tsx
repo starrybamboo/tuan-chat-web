@@ -56,6 +56,8 @@ interface AiImageHistoryPaneProps {
   onClearHistory: () => void | Promise<void>;
 }
 
+const HISTORY_THUMBNAIL_IMAGE_CLASS_NAME = "block h-full w-full object-contain";
+
 function HistoryDeleteButton({
   label,
   onClick,
@@ -154,7 +156,7 @@ function HistoryImageTile({
         onClick={onClick}
         onDragStart={onDragStart}
       >
-        <img src={dataUrl} className="h-full w-full object-cover transition duration-200 group-hover:scale-[1.02]" alt={alt} />
+        <img src={dataUrl} className={`${HISTORY_THUMBNAIL_IMAGE_CLASS_NAME} transition duration-200 group-hover:scale-[1.02]`} alt={alt} />
       </button>
 
       {onDelete
@@ -235,7 +237,7 @@ export function AiImageHistoryPane({
                         batchIndex: item.batchIndex,
                       })}
                     >
-                      <img src={item.dataUrl} className="mx-auto h-[100px] w-[100px] rounded-xl object-cover" alt="director-current-result" />
+                      <img src={item.dataUrl} className={`${HISTORY_THUMBNAIL_IMAGE_CLASS_NAME} mx-auto rounded-xl`} alt="director-current-result" />
                       <div className="mt-2 flex items-center justify-between gap-2 text-[11px] text-base-content/70">
                         <span className="truncate">{item.toolLabel || "Current"}</span>
                         <span>{`${item.width}×${item.height}`}</span>
@@ -292,7 +294,7 @@ export function AiImageHistoryPane({
                         batchIndex: row.batchIndex ?? undefined,
                       })}
                     >
-                      <img src={row.dataUrl} className="mx-auto h-[100px] w-[100px] rounded-xl object-cover" alt="director-history" />
+                      <img src={row.dataUrl} className={`${HISTORY_THUMBNAIL_IMAGE_CLASS_NAME} mx-auto rounded-xl`} alt="director-history" />
                       <div className="mt-2 flex items-center justify-between gap-2 text-[11px] text-base-content/70">
                         <span className="truncate">{row.toolLabel || `seed ${row.seed}`}</span>
                         <span>{`${row.width}×${row.height}`}</span>

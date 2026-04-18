@@ -85,7 +85,7 @@ export function MetadataImportDialog({
                   <img
                     src={pendingMetadataImport.sourceImage.dataUrl}
                     alt={pendingMetadataImport.sourceImage.name || "import-preview"}
-                    className="h-[220px] w-full rounded-[1rem] object-cover"
+                    className="h-[220px] w-full rounded-[1rem] object-contain"
                   />
                 )
               : null}
