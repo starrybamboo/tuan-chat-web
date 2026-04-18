@@ -116,7 +116,7 @@ export function AiImagePreviewPane({
   const directorInsetPanelClassName = "rounded-2xl border border-base-300 bg-base-200/35 p-3";
 
   return (
-    <div className={`flex min-h-0 flex-1 flex-col gap-3 overflow-auto ${isDirectorToolsOpen ? "bg-base-200 p-4" : "bg-base-200 px-1 py-3"}`}>
+    <div className={`flex min-h-0 flex-1 flex-col gap-3 overflow-auto ${isDirectorToolsOpen ? "bg-base-200 p-4" : "bg-base-200 py-3"}`}>
       {isDirectorToolsOpen
         ? (
             <div className="flex flex-wrap items-center gap-2 rounded-box border border-base-300 bg-base-100 p-3 shadow-sm">
@@ -354,7 +354,7 @@ export function AiImagePreviewPane({
 
       {!isDirectorToolsOpen
         ? (
-            <div className="flex min-h-[520px] flex-1 self-stretch flex-col overflow-hidden rounded-box border border-base-300 bg-base-100 shadow-sm">
+            <div className="flex min-h-[520px] flex-1 self-stretch flex-col overflow-hidden rounded-none border border-base-300 bg-base-100">
               <div className="relative flex min-h-0 flex-1 items-center justify-center overflow-hidden p-3">
                 {isGeneratingImage
                   ? (
