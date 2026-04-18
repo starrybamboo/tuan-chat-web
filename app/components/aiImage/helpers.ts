@@ -76,7 +76,19 @@ export function mergeTagString(base: string, extraTags: string[]) {
   return Array.from(uniq).join(", ");
 }
 
-export const NOVELAI_RANDOMIZER_DEFAULT_BODY = "tag A|tag B";
+export const NOVELAI_RANDOMIZER_TEMPLATE_COUNT = 10;
+export const NOVELAI_RANDOMIZER_TEMPLATE_TAGS = Array.from(
+  { length: NOVELAI_RANDOMIZER_TEMPLATE_COUNT },
+  (_, index) => `tag ${index + 1}`,
+);
+
+function buildNovelAiRandomizerBody(firstTag?: string) {
+  const tags = [...NOVELAI_RANDOMIZER_TEMPLATE_TAGS];
+  const normalizedFirstTag = String(firstTag || "").trim();
+  if (normalizedFirstTag)
+    tags[0] = normalizedFirstTag;
+  return tags.join("|");
+}
 
 function clampSelectionIndex(value: string, index: number | null | undefined) {
   const fallback = value.length;
@@ -101,9 +113,7 @@ export function insertNovelAiRandomizerTag(args: {
   const selectionStart = Math.min(rawStart, rawEnd);
   const selectionEnd = Math.max(rawStart, rawEnd);
   const selectedText = currentValue.slice(selectionStart, selectionEnd).trim();
-  const randomizerBody = selectedText
-    ? `${selectedText}|tag B`
-    : NOVELAI_RANDOMIZER_DEFAULT_BODY;
+  const randomizerBody = buildNovelAiRandomizerBody(selectedText);
   const randomizerTemplate = `||${randomizerBody}||`;
   const before = currentValue.slice(0, selectionStart);
   const after = currentValue.slice(selectionEnd);

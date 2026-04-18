@@ -101,26 +101,26 @@ describe("aiImage helpers", () => {
   });
 
   it("inserts a NovelAI randomizer template with tag separators when appending to prompt tags", () => {
-    expect(insertNovelAiRandomizerTag({
+    const inserted = insertNovelAiRandomizerTag({
       value: "1girl, blue eyes",
       selectionStart: 17,
       selectionEnd: 17,
-    })).toEqual({
-      value: "1girl, blue eyes, ||tag A|tag B||",
-      selectionStart: 20,
-      selectionEnd: 31,
     });
+
+    expect(inserted.value).toBe("1girl, blue eyes, ||tag 1|tag 2|tag 3|tag 4|tag 5|tag 6|tag 7|tag 8|tag 9|tag 10||");
+    expect(inserted.value.slice(inserted.selectionStart, inserted.selectionEnd)).toBe("tag 1|tag 2|tag 3|tag 4|tag 5|tag 6|tag 7|tag 8|tag 9|tag 10");
+    expect(inserted.value.slice(inserted.selectionStart, inserted.selectionEnd).split("|")).toHaveLength(10);
   });
 
   it("wraps the current selection into the first randomizer option", () => {
-    expect(insertNovelAiRandomizerTag({
+    const inserted = insertNovelAiRandomizerTag({
       value: "1girl, blue eyes, smile",
       selectionStart: 7,
       selectionEnd: 16,
-    })).toEqual({
-      value: "1girl, ||blue eyes|tag B||, smile",
-      selectionStart: 9,
-      selectionEnd: 24,
     });
+
+    expect(inserted.value).toBe("1girl, ||blue eyes|tag 2|tag 3|tag 4|tag 5|tag 6|tag 7|tag 8|tag 9|tag 10||, smile");
+    expect(inserted.value.slice(inserted.selectionStart, inserted.selectionEnd)).toBe("blue eyes|tag 2|tag 3|tag 4|tag 5|tag 6|tag 7|tag 8|tag 9|tag 10");
+    expect(inserted.value.slice(inserted.selectionStart, inserted.selectionEnd).split("|")).toHaveLength(10);
   });
 });

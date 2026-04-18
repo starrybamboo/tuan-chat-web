@@ -1,5 +1,5 @@
 import type { AiImagePageController } from "@/components/aiImage/useAiImagePageController";
-import { ArrowCounterClockwise, CheckCircleIcon, CircleNotch, FileArrowUpIcon, GearSixIcon, ImageSquareIcon, ShuffleAngularIcon, SparkleIcon, XCircleIcon } from "@phosphor-icons/react";
+import { ArrowCounterClockwise, CheckCircleIcon, CircleNotch, DiceFiveIcon, FileArrowUpIcon, GearSixIcon, ImageSquareIcon, SparkleIcon, XCircleIcon } from "@phosphor-icons/react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   CUSTOM_RESOLUTION_ID,
@@ -887,12 +887,12 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                     <div className="mt-3 flex items-start gap-3">
                       <button
                         type="button"
-                        className="inline-flex size-9 shrink-0 items-center justify-center rounded-md border border-[#D6DCE3] bg-[#F3F5F7] text-base-content/72 transition hover:border-primary/40 hover:text-primary focus:outline-none focus:ring-2 focus:ring-primary/20 dark:border-[#2A3138] dark:bg-[#161A1F] dark:text-base-content/70"
+                        className="inline-flex size-9 shrink-0 items-center justify-center rounded-md border border-[#D6DCE3] bg-[#F3F5F7] text-base-content/72 transition outline-none hover:border-primary/40 hover:text-primary focus:outline-none dark:border-[#2A3138] dark:bg-[#161A1F] dark:text-base-content/70"
                         aria-label={proPromptTab === "prompt" ? "插入随机 Prompt tag" : "插入随机 Undesired Content tag"}
                         title="插入随机 tag 语法"
                         onClick={handleInsertProRandomizerTag}
                       >
-                        <ShuffleAngularIcon className="size-4" weight="bold" />
+                        <DiceFiveIcon className="size-4" weight="fill" />
                       </button>
                       <AiImageContextLimitMeter
                         className="min-w-0 flex-1 pt-1"
@@ -902,7 +902,6 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                         overflow={activeBaseMeter.overflow}
                         status={tokenSnapshot.status}
                         footerLabel={proPromptTab === "prompt" && qualityToggle ? "Quality Tags Enabled" : undefined}
-                        footerHint={proPromptTab === "prompt" && tokenSnapshot.prompt.hiddenText ? tokenSnapshot.prompt.hiddenText : undefined}
                         rows={[
                           {
                             label: "当前输入",
