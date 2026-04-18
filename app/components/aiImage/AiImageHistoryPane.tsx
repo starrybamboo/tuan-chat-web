@@ -237,20 +237,22 @@ function HistoryActionsFooter({
   onDownloadAll: () => void;
   onClearHistory: () => void | Promise<void>;
 }) {
+  const historyActionButtonClassName = "flex h-9 w-full items-center justify-center gap-2 rounded-md border border-[#D6DCE3] bg-transparent px-3 text-sm font-medium text-base-content/55 shadow-none transition-none focus:outline-none focus:ring-2 focus:ring-primary/20 disabled:cursor-not-allowed disabled:border-base-300 disabled:text-base-content/40 dark:border-[#2A3138] dark:text-base-content/45 dark:disabled:border-[#2A3138]";
+
   return (
     <div className="mt-3 flex shrink-0 flex-col gap-2 border-t border-[#D6DCE3] pt-3 dark:border-[#2A3138]">
       <button
         type="button"
-        className="btn btn-sm btn-outline w-full gap-2"
+        className={historyActionButtonClassName}
         disabled={!historyLength}
         onClick={onDownloadAll}
       >
-        <SharpDownload className="size-4" />
+        <SharpDownload className="size-4 text-current" />
         <span>Download ZIP</span>
       </button>
       <button
         type="button"
-        className="btn btn-sm btn-ghost w-full disabled:border-base-300 disabled:bg-base-200 disabled:text-base-content/40"
+        className={historyActionButtonClassName}
         disabled={!historyLength}
         onClick={() => void onClearHistory()}
       >
