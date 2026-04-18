@@ -356,101 +356,103 @@ export function AiImagePreviewPane({
 
       {!isDirectorToolsOpen
         ? (
-            <div className="relative flex min-h-[520px] flex-1 self-stretch items-center justify-center overflow-hidden rounded-box border border-base-300 bg-base-100 p-3 shadow-sm">
-              {isGeneratingImage
-                ? (
-                    <div className="pointer-events-none absolute inset-x-0 top-0 z-10 h-px bg-primary/65 animate-pulse" />
-                  )
-                : null}
-              {selectedPreviewResult
-                ? <img src={selectedPreviewResult.dataUrl} className="relative z-[1] max-h-[720px] w-auto rounded-box" alt="result" />
-                : <EmptyPreviewPlaceholder />}
-              {pinnedPreviewResult && !isSelectedPreviewPinned
-                ? (
-                    <button
-                      type="button"
-                      className="absolute right-3 top-3 z-[2] overflow-hidden rounded-2xl border border-base-300 bg-base-100/95 p-2 text-left shadow-xl backdrop-blur"
-                      title="切回 pinned 预览"
-                      onClick={onSelectPinnedPreview}
-                    >
-                      <div className="mb-1 flex items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-base-content/60">
-                        <PushPinIcon className="size-3" />
-                        <span>Pinned</span>
-                      </div>
-                      <img src={pinnedPreviewResult.dataUrl} className="h-20 w-20 rounded-xl object-cover" alt="pinned-preview" />
-                    </button>
-                  )
-                : null}
-            </div>
-          )
-        : null}
+            <div className="flex min-h-[520px] flex-1 self-stretch flex-col overflow-hidden rounded-box border border-base-300 bg-base-100 shadow-sm">
+              <div className="relative flex min-h-0 flex-1 items-center justify-center overflow-hidden p-3">
+                {isGeneratingImage
+                  ? (
+                      <div className="pointer-events-none absolute inset-x-0 top-0 z-10 h-px animate-pulse bg-primary/65" />
+                    )
+                  : null}
+                {selectedPreviewResult
+                  ? <img src={selectedPreviewResult.dataUrl} className="relative z-[1] max-h-[720px] w-auto rounded-box" alt="result" />
+                  : <EmptyPreviewPlaceholder />}
+                {pinnedPreviewResult && !isSelectedPreviewPinned
+                  ? (
+                      <button
+                        type="button"
+                        className="absolute right-3 top-3 z-[2] overflow-hidden rounded-2xl border border-base-300 bg-base-100/95 p-2 text-left shadow-xl backdrop-blur"
+                        title="切回 pinned 预览"
+                        onClick={onSelectPinnedPreview}
+                      >
+                        <div className="mb-1 flex items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-base-content/60">
+                          <PushPinIcon className="size-3" />
+                          <span>Pinned</span>
+                        </div>
+                        <img src={pinnedPreviewResult.dataUrl} className="h-20 w-20 rounded-xl object-cover" alt="pinned-preview" />
+                      </button>
+                    )
+                  : null}
+              </div>
 
-      {!isDirectorToolsOpen && selectedPreviewResult
-        ? (
-            <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-base-300 bg-base-100 px-3 py-2 shadow-sm">
-              <div className="flex flex-wrap items-center gap-2">
-                <span className={previewToolbarPillClassName}>{`${selectedPreviewResult.width} × ${selectedPreviewResult.height}`}</span>
-                <button
-                  type="button"
-                  className={previewToolbarIconButtonClassName}
-                  title="展开查看当前预览"
-                  aria-label="展开查看当前预览"
-                  onClick={onOpenPreviewImage}
-                >
-                  <ExpandCornersIcon className="size-4" />
-                </button>
-              </div>
-              <div className="flex flex-wrap items-center gap-2">
-                <button
-                  type="button"
-                  className={`${previewToolbarIconButtonClassName} ${isSelectedPreviewPinned ? "border-primary text-primary" : ""}`}
-                  title={isSelectedPreviewPinned ? "取消固定当前预览" : "固定当前预览"}
-                  aria-label={isSelectedPreviewPinned ? "取消固定当前预览" : "固定当前预览"}
-                  onClick={onTogglePinnedPreview}
-                >
-                  <PushPinIcon className="size-4" />
-                </button>
-                <button
-                  type="button"
-                  className="inline-flex h-9 items-center gap-2 rounded-full border border-base-300 bg-base-100 px-3 text-xs text-base-content shadow-sm hover:border-base-content/30"
-                  disabled={isBusy}
-                  title="打开 Inpaint 蒙版编辑器"
-                  aria-label="打开 Inpaint 蒙版编辑器"
-                  onClick={onOpenInpaint}
-                >
-                  <EditIcon className="size-4" />
-                  <span className="font-semibold">Inpaint</span>
-                </button>
-                <button
-                  type="button"
-                  className={previewToolbarIconButtonClassName}
-                  disabled={!hasSelectedPreviewHistoryRow}
-                  title="导入当前预览的生成设置"
-                  aria-label="导入当前预览的生成设置"
-                  onClick={onApplySelectedPreviewSettings}
-                >
-                  <SlidersIcon className="size-4" />
-                </button>
-                <button
-                  type="button"
-                  className={previewToolbarIconButtonClassName}
-                  title="下载当前预览"
-                  aria-label="下载当前预览"
-                  onClick={onDownloadCurrent}
-                >
-                  <SharpDownload className="size-4" />
-                </button>
-                <button
-                  type="button"
-                  className="inline-flex h-9 items-center gap-2 rounded-full border border-base-300 bg-base-100 px-3 text-xs text-base-content shadow-sm hover:border-base-content/30"
-                  title="将当前预览 seed 回填到设置"
-                  aria-label="将当前预览 seed 回填到设置"
-                  onClick={onApplySelectedPreviewSeed}
-                >
-                  <span className="font-semibold uppercase tracking-[0.16em] text-base-content/55">Seed</span>
-                  <span className="font-mono">{selectedPreviewResult.seed}</span>
-                </button>
-              </div>
+              {selectedPreviewResult
+                ? (
+                    <div className="flex flex-wrap items-center justify-between gap-3 border-t border-base-300 bg-base-100 px-3 py-2">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className={previewToolbarPillClassName}>{`${selectedPreviewResult.width} × ${selectedPreviewResult.height}`}</span>
+                        <button
+                          type="button"
+                          className={previewToolbarIconButtonClassName}
+                          title="展开查看当前预览"
+                          aria-label="展开查看当前预览"
+                          onClick={onOpenPreviewImage}
+                        >
+                          <ExpandCornersIcon className="size-4" />
+                        </button>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <button
+                          type="button"
+                          className={`${previewToolbarIconButtonClassName} ${isSelectedPreviewPinned ? "border-primary text-primary" : ""}`}
+                          title={isSelectedPreviewPinned ? "取消固定当前预览" : "固定当前预览"}
+                          aria-label={isSelectedPreviewPinned ? "取消固定当前预览" : "固定当前预览"}
+                          onClick={onTogglePinnedPreview}
+                        >
+                          <PushPinIcon className="size-4" />
+                        </button>
+                        <button
+                          type="button"
+                          className="inline-flex h-9 items-center gap-2 rounded-full border border-base-300 bg-base-100 px-3 text-xs text-base-content shadow-sm hover:border-base-content/30"
+                          disabled={isBusy}
+                          title="打开 Inpaint 蒙版编辑器"
+                          aria-label="打开 Inpaint 蒙版编辑器"
+                          onClick={onOpenInpaint}
+                        >
+                          <EditIcon className="size-4" />
+                          <span className="font-semibold">Inpaint</span>
+                        </button>
+                        <button
+                          type="button"
+                          className={previewToolbarIconButtonClassName}
+                          disabled={!hasSelectedPreviewHistoryRow}
+                          title="导入当前预览的生成设置"
+                          aria-label="导入当前预览的生成设置"
+                          onClick={onApplySelectedPreviewSettings}
+                        >
+                          <SlidersIcon className="size-4" />
+                        </button>
+                        <button
+                          type="button"
+                          className={previewToolbarIconButtonClassName}
+                          title="下载当前预览"
+                          aria-label="下载当前预览"
+                          onClick={onDownloadCurrent}
+                        >
+                          <SharpDownload className="size-4" />
+                        </button>
+                        <button
+                          type="button"
+                          className="inline-flex h-9 items-center gap-2 rounded-full border border-base-300 bg-base-100 px-3 text-xs text-base-content shadow-sm hover:border-base-content/30"
+                          title="将当前预览 seed 回填到设置"
+                          aria-label="将当前预览 seed 回填到设置"
+                          onClick={onApplySelectedPreviewSeed}
+                        >
+                          <span className="font-semibold uppercase tracking-[0.16em] text-base-content/55">Seed</span>
+                          <span className="font-mono">{selectedPreviewResult.seed}</span>
+                        </button>
+                      </div>
+                    </div>
+                  )
+                : null}
             </div>
           )
         : null}
