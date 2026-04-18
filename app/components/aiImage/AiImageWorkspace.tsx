@@ -39,6 +39,18 @@ export function AiImageWorkspace({
 
   return (
     <div className="relative z-0 flex min-h-0 flex-1 overflow-visible bg-base-200">
+      {isPinnedDrawerOpen && pinnedPreviewResult && !isDirectorToolsOpen
+        ? (
+            <button
+              type="button"
+              className="absolute inset-0 z-[5] bg-black/36 transition-opacity"
+              aria-label="收起 pinned 预览阴影"
+              title="收起 pinned 预览"
+              onClick={() => setIsPinnedDrawerOpen(false)}
+            />
+          )
+        : null}
+
       {pinnedPreviewResult && !isDirectorToolsOpen
         ? (
             <div className="pointer-events-none absolute left-0 top-1/2 z-10 -translate-y-1/2">
@@ -46,7 +58,7 @@ export function AiImageWorkspace({
                 className="pointer-events-auto flex items-stretch gap-2 transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]"
                 style={{ transform: isPinnedDrawerOpen ? "translateX(0)" : "translateX(calc(-100% + 14px))" }}
               >
-                <div className="flex w-11 shrink-0 flex-col items-center justify-center gap-1 rounded-none border border-white/18 bg-base-300/95 px-0 py-2 shadow-xl backdrop-blur">
+                <div className="flex w-11 shrink-0 flex-col items-center justify-start gap-1 rounded-none border border-white/18 bg-base-300/98 px-0 py-2 shadow-xl backdrop-blur">
                   <button
                     type="button"
                     className="inline-flex size-9 items-center justify-center rounded-none text-base-content/72 transition-colors hover:bg-base-200/35 hover:text-base-content"
@@ -77,7 +89,7 @@ export function AiImageWorkspace({
                 </div>
                 <button
                   type="button"
-                  className="relative flex h-[min(74vh,640px)] w-[320px] items-center justify-center overflow-hidden rounded-none border border-white/22 bg-base-100/95 shadow-xl backdrop-blur lg:w-[360px]"
+                  className="relative block shrink-0 overflow-hidden rounded-none bg-transparent shadow-xl"
                   title={isPinnedDrawerOpen ? "收起 pinned 预览" : "展开 pinned 预览"}
                   onClick={() => {
                     if (isPinnedDrawerOpen) {
@@ -89,7 +101,7 @@ export function AiImageWorkspace({
                 >
                   <img
                     src={pinnedPreviewResult.dataUrl}
-                    className="h-full w-full rounded-none object-contain"
+                    className="block max-h-[min(74vh,640px)] w-auto rounded-none object-contain"
                     alt="pinned-preview"
                   />
                 </button>
