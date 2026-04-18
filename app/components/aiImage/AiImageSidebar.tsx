@@ -184,9 +184,9 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
   const subtleSelectClassName = "select select-bordered select-sm border-[#D6DCE3] bg-[#F3F5F7] text-base-content dark:border-[#2A3138] dark:bg-[#161A1F]";
   const simpleResolutionValueInputClassName = "min-w-0 appearance-none bg-transparent text-center text-xs font-semibold leading-none tabular-nums text-base-content focus:outline-none [-moz-appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none";
   const highlightPromptSurfaceClassName = "relative min-h-36 w-full overflow-hidden rounded-md border border-[#D6DCE3] bg-[#F3F5F7] shadow-none transition-colors hover:border-primary active:border-primary focus-within:border-primary focus-within:bg-primary/[0.03] dark:border-[#2A3138] dark:bg-[#161A1F] dark:hover:border-primary";
-  const highlightPromptContentClassName = "min-h-36 px-3 py-2 text-base leading-7";
+  const highlightPromptContentClassName = "min-h-36 px-3 py-2 text-sm leading-6";
   const highlightCharSurfaceClassName = "relative min-h-28 w-full overflow-hidden rounded-md border border-[#D6DCE3] bg-[#F3F5F7] shadow-none transition-colors hover:border-primary active:border-primary focus-within:border-primary focus-within:bg-primary/[0.03] dark:border-[#2A3138] dark:bg-[#161A1F] dark:hover:border-primary";
-  const highlightCharContentClassName = "min-h-28 px-3 py-2 text-base leading-7";
+  const highlightCharContentClassName = "min-h-28 px-3 py-2 text-sm leading-6";
   const [isModeSelectorOpen, setIsModeSelectorOpen] = useState(false);
   const [isModeSelectorMounted, setIsModeSelectorMounted] = useState(false);
   const [isProPromptSettingsOpen, setIsProPromptSettingsOpen] = useState(false);
