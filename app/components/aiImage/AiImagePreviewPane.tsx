@@ -354,7 +354,7 @@ export function AiImagePreviewPane({
 
       {!isDirectorToolsOpen
         ? (
-            <div className="flex min-h-[520px] flex-1 self-stretch flex-col overflow-hidden rounded-none border border-base-300 bg-base-100">
+            <div className="flex min-h-[520px] flex-1 self-stretch flex-col overflow-hidden rounded-none border-y border-base-300 bg-base-100">
               <div className="relative flex min-h-0 flex-1 items-center justify-center overflow-hidden p-3">
                 {isGeneratingImage
                   ? (
