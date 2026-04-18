@@ -944,7 +944,7 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                         ]}
                       />
                     </div>
-                    <div className="-mx-3 -mb-3 mt-3 flex items-center justify-between border-t border-[#2A3138] bg-[#1B1F36] px-4 py-3">
+                    <div className="-mx-3 -mb-3 mt-3 flex items-center justify-between border-t border-[#2A3138] bg-[#161A1F] px-4 py-3">
                       <div className="text-[15px] font-semibold text-base-content/78">
                         Add a Base Img (Optional)
                       </div>
@@ -1106,7 +1106,7 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                       : <div className="text-sm opacity-60">当前模型不支持 Character Prompts。</div>}
                   </ProFeatureSection>
 
-                  <div className="rounded-md border border-[#2A3138] bg-[#1B1F36] shadow-none">
+                  <div className="rounded-md border border-[#2A3138] bg-[#161A1F] shadow-none">
                     <div className="flex items-center gap-3 px-4 py-4">
                       <div className="min-w-0 flex-1">
                         <div className="flex flex-wrap items-center gap-2">
@@ -1125,7 +1125,7 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                     </div>
                   </div>
 
-                  <div className="rounded-md border border-[#2A3138] bg-[#1B1F36] shadow-none">
+                  <div className="rounded-md border border-[#2A3138] bg-[#161A1F] shadow-none">
                     <div className="flex items-center gap-3 px-4 py-4">
                       <div className="min-w-0 flex-1">
                         <div className="flex flex-wrap items-center gap-2">
