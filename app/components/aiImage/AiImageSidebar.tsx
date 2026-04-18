@@ -220,7 +220,7 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
     : hasGeneratedSimpleTags
         ? "border-white/20 bg-white/10 text-white"
         : "border-white/20 bg-white/10 text-white";
-  const floatingInputActionClassName = "btn btn-xs btn-ghost absolute right-3 top-3 z-10 border-0 bg-transparent px-2 text-transparent shadow-none transition-colors backdrop-blur-0 hover:bg-black/28 hover:text-white focus-visible:text-white dark:hover:bg-white/12";
+  const floatingInputActionClassName = "btn btn-xs btn-ghost absolute right-3 top-3 z-10 border-0 bg-transparent px-2 text-base-content/35 shadow-none transition-colors backdrop-blur-0 hover:bg-black/28 hover:text-white focus-visible:text-white dark:text-base-content/40 dark:hover:bg-white/12";
 
   useEffect(() => {
     if (isModeSelectorOpen) {
