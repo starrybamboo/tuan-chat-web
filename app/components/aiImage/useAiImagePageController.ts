@@ -1363,6 +1363,14 @@ export function useAiImagePageController() {
     });
   }, []);
 
+  const handleSelectSingleStyle = useCallback((id: string) => {
+    setSelectedStyleIds((prev) => {
+      if (prev.length === 1 && prev[0] === id)
+        return prev;
+      return [id];
+    });
+  }, []);
+
   const handleClearStyles = useCallback(() => {
     setSelectedStyleIds([]);
   }, []);
@@ -1848,6 +1856,7 @@ export function useAiImagePageController() {
     selectedStyleIds,
     stylePresets,
     onToggleStyle: handleToggleStyle,
+    onSelectSingleStyle: handleSelectSingleStyle,
     onClearStyles: handleClearStyles,
     onClose: () => setIsStylePickerOpen(false),
   };
