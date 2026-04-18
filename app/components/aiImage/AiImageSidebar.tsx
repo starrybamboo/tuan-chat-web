@@ -1008,7 +1008,7 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
           {uiMode === "simple"
             ? (
                 <>
-                  <div className="flex w-[385px] max-w-full flex-wrap items-start gap-[50px]">
+                  <div className="flex w-full max-w-full flex-wrap items-start justify-end gap-[50px]">
                     <div className="relative" ref={simpleResolutionSelectorRef}>
                       <button
                         type="button"
@@ -1079,7 +1079,7 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                       <span>种子 (Seed)</span>
                     </div>
                     <input
-                      className={`h-8 w-[385px] max-w-full appearance-none focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none ${subtleInputClassName}`}
+                      className={`h-8 w-[385px] max-w-full self-end appearance-none focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none ${subtleInputClassName}`}
                       type="number"
                       value={seedIsRandom ? "" : seed}
                       onChange={(e) => {
