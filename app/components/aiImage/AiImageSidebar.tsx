@@ -202,6 +202,9 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
   const isSimpleTagsEditor = simpleEditorMode === "tags";
   const simpleResolutionOptions = [...RESOLUTION_PRESETS, { id: CUSTOM_RESOLUTION_ID, label: "自定义" }] as const;
   const activeSimpleResolutionOption = simpleResolutionOptions.find(option => option.id === simpleResolutionSelection) ?? simpleResolutionOptions[simpleResolutionOptions.length - 1];
+  const hasReadySimpleTags = isSimpleTagsEditor && hasSimpleTagsDraft;
+  const simplePrimaryActionLabel = hasReadySimpleTags ? proGenerateLabel : simpleConvertLabel;
+  const canTriggerSimplePrimaryAction = hasReadySimpleTags ? canGenerateFromSimpleTags : canConvertSimpleText;
 
   useEffect(() => {
     if (isModeSelectorOpen) {
@@ -482,17 +485,6 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                           placeholder=""
                         />
                         <div className="flex flex-wrap items-center gap-2">
-                          <button
-                            type="button"
-                            className={`btn btn-primary self-start ${canConvertSimpleText ? "" : "btn-disabled"}`}
-                            disabled={!canConvertSimpleText}
-                            onClick={() => void handleSimpleConvertToTags()}
-                          >
-                            {simpleConverting
-                              ? <CircleNotch className="size-4 animate-spin" weight="bold" />
-                              : <SparkleIcon className="size-4" weight="fill" />}
-                            {simpleConvertLabel}
-                          </button>
                           {hasSimpleTagsDraft
                             ? (
                                 <button
@@ -654,14 +646,6 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                             >
                               <ArrowCounterClockwise className="size-3.5" weight="bold" />
                               返回描述
-                            </button>
-                            <button
-                              type="button"
-                              className={`btn btn-xs btn-primary shrink-0 ${canGenerateFromSimpleTags ? "" : "btn-disabled"}`}
-                              disabled={!canGenerateFromSimpleTags}
-                              onClick={() => void handleSimpleGenerateFromTags()}
-                            >
-                              按 tag 出图
                             </button>
                           </div>
                         </div>
@@ -1432,19 +1416,45 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
         </div>
       </div>
 
-      {uiMode === "pro"
+      {uiMode === "simple" || uiMode === "pro"
         ? (
             <div className="sticky bottom-0 z-10 border-t border-[#D6DCE3] bg-[#F3F5F7] p-4 backdrop-blur dark:border-[#2A3138] dark:bg-[#161A1F]">
               <button
                 type="button"
                 className="btn btn-primary h-12 w-full justify-between px-4"
-                disabled={!canTriggerProGenerate}
-                onClick={() => void runGenerate()}
+                disabled={uiMode === "simple" ? !canTriggerSimplePrimaryAction : !canTriggerProGenerate}
+                onClick={() => {
+                  if (uiMode === "simple") {
+                    if (hasReadySimpleTags) {
+                      void handleSimpleGenerateFromTags();
+                      return;
+                    }
+                    void handleSimpleConvertToTags();
+                    return;
+                  }
+                  void runGenerate();
+                }}
               >
-                <span className="font-semibold">{proGenerateLabel}</span>
-                <span className="badge badge-sm badge-outline px-2 py-1 text-xs font-semibold text-current">
-                  {`${imageCount}x`}
-                </span>
+                <span className="font-semibold">{uiMode === "simple" ? simplePrimaryActionLabel : proGenerateLabel}</span>
+                {uiMode === "simple"
+                  ? (
+                      hasReadySimpleTags
+                        ? (
+                            <span className="badge badge-sm badge-outline px-2 py-1 text-xs font-semibold text-current">
+                              1x
+                            </span>
+                          )
+                        : (
+                            simpleConverting
+                              ? <CircleNotch className="size-4 animate-spin" weight="bold" />
+                              : <SparkleIcon className="size-4" weight="fill" />
+                          )
+                    )
+                  : (
+                      <span className="badge badge-sm badge-outline px-2 py-1 text-xs font-semibold text-current">
+                        {`${imageCount}x`}
+                      </span>
+                    )}
               </button>
             </div>
           )
