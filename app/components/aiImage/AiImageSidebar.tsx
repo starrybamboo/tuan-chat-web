@@ -1079,7 +1079,7 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                       <span>种子 (Seed)</span>
                     </div>
                     <input
-                      className={`w-full appearance-none focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none ${subtleInputClassName}`}
+                      className={`h-8 w-[380px] max-w-full appearance-none focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none ${subtleInputClassName}`}
                       type="number"
                       value={seedIsRandom ? "" : seed}
                       onChange={(e) => {
