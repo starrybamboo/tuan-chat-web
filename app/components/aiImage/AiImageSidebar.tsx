@@ -63,7 +63,6 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
     handleAddV4Char,
     handleClearSeed,
     handleClearSourceImage,
-    handleClearStyles,
     handleCropToClosestValidSize,
     handleMoveV4Char,
     handleRemoveV4Char,
@@ -110,8 +109,6 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
     scale,
     seed,
     seedIsRandom,
-    selectedStyleIds,
-    selectedStylePresets,
     selectedStyleTags,
     setCfgRescale,
     setCharPromptTabs,
@@ -488,7 +485,7 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                       <div className="flex w-full min-w-0 flex-col items-stretch gap-2">
                         <div className="relative">
                           <textarea
-                            className={`${simplePromptTextareaClassName} pr-28 pb-10`}
+                            className={`${simplePromptTextareaClassName} pr-28 pt-12 pb-10`}
                             value={simpleText}
                             onChange={(e) => {
                               const next = e.target.value;
@@ -504,6 +501,13 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                             }}
                             placeholder=""
                           />
+                          <button
+                            type="button"
+                            className="btn btn-xs absolute right-3 top-3"
+                            onClick={() => setIsStylePickerOpen(true)}
+                          >
+                            添加画风
+                          </button>
                           {hasSimpleTagsDraft
                             ? (
                                 <button
@@ -519,45 +523,6 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                         </div>
                       </div>
                     </div>
-                  </div>
-
-                  <div className="flex flex-col gap-2">
-                    <div className="flex items-center gap-2">
-                      <div className="text-xs opacity-70">画风</div>
-                      <div className="ml-auto flex items-center gap-2">
-                        <button type="button" className="btn btn-xs" onClick={() => setIsStylePickerOpen(true)}>
-                          添加
-                        </button>
-                        {selectedStyleIds.length
-                          ? <button type="button" className="btn btn-xs" onClick={handleClearStyles}>清空</button>
-                          : null}
-                      </div>
-                    </div>
-
-                    {selectedStylePresets.length
-                      ? (
-                          <div className="flex flex-wrap gap-2">
-                            {selectedStylePresets.map((preset) => {
-                              return (
-                                <button
-                                  key={preset.id}
-                                  type="button"
-                                  className="flex items-center gap-2 rounded-box border border-base-300 bg-base-100 pr-2 hover:border-primary"
-                                  onClick={() => setIsStylePickerOpen(true)}
-                                  title="点击继续添加画风"
-                                >
-                                  <div className="w-10 aspect-square rounded-box bg-base-200 overflow-hidden flex items-center justify-center">
-                                    {preset.imageUrl
-                                      ? <img src={preset.imageUrl} alt={preset.title} className="w-full h-full object-cover" />
-                                      : <div className="text-xs opacity-60">{preset.title}</div>}
-                                  </div>
-                                  <div className="text-xs opacity-70 max-w-32 truncate">{preset.title}</div>
-                                </button>
-                              );
-                            })}
-                          </div>
-                        )
-                      : null}
                   </div>
 
                   <div className={`grid transition-all duration-300 ease-out ${simpleConverted ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"}`}>
@@ -649,7 +614,7 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                           </div>
                           <div className="relative">
                             <textarea
-                              className={`${promptTextareaClassName} pr-28 pb-10`}
+                              className={`${promptTextareaClassName} pr-28 pt-12 pb-10`}
                               value={simplePromptTab === "prompt" ? simplePrompt : simpleNegativePrompt}
                               onChange={(e) => {
                                 if (simplePromptTab === "prompt")
@@ -658,6 +623,13 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                                   setSimpleNegativePrompt(e.target.value);
                               }}
                             />
+                            <button
+                              type="button"
+                              className="btn btn-xs absolute right-3 top-3"
+                              onClick={() => setIsStylePickerOpen(true)}
+                            >
+                              添加画风
+                            </button>
                             {hasSimpleTagsDraft
                               ? (
                                   <button
