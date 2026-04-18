@@ -482,12 +482,13 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                             onChange={(e) => {
                               const next = e.target.value;
                               setSimpleText(next);
-                              if (simpleConverted || simplePrompt || simpleNegativePrompt || !isSimpleTextEditor) {
+                              if (simpleConverted) {
                                 setSimpleConverted(null);
                                 setSimpleConvertedFromText("");
-                                setSimplePrompt("");
-                                setSimpleNegativePrompt("");
+                              }
+                              if (!isSimpleTextEditor) {
                                 setSimpleEditorMode("text");
+                                setSimplePromptTab("prompt");
                               }
                             }}
                             placeholder=""
