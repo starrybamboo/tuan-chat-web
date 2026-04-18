@@ -43,15 +43,15 @@ const SEGMENT_CLASS_MAP: Record<SegmentTone, Record<0 | 1 | 2 | 3, { syntax: str
       text: "text-base-content/90 dark:text-base-content/90",
     },
     1: {
-      syntax: "text-amber-800 dark:text-amber-100",
+      syntax: "rounded-sm bg-amber-300/70 text-amber-950 dark:bg-amber-300/24 dark:text-amber-50",
       text: "rounded-sm bg-amber-300/70 text-amber-950 dark:bg-amber-300/24 dark:text-amber-50",
     },
     2: {
-      syntax: "text-orange-800 dark:text-orange-100",
+      syntax: "rounded-sm bg-orange-300/75 font-medium text-orange-950 dark:bg-orange-300/28 dark:text-orange-50",
       text: "rounded-sm bg-orange-300/75 font-medium text-orange-950 dark:bg-orange-300/28 dark:text-orange-50",
     },
     3: {
-      syntax: "text-rose-800 dark:text-rose-100",
+      syntax: "rounded-sm bg-rose-300/80 font-semibold text-rose-950 dark:bg-rose-300/34 dark:text-rose-50",
       text: "rounded-sm bg-rose-300/80 font-semibold text-rose-950 dark:bg-rose-300/34 dark:text-rose-50",
     },
   },
@@ -61,15 +61,15 @@ const SEGMENT_CLASS_MAP: Record<SegmentTone, Record<0 | 1 | 2 | 3, { syntax: str
       text: "text-base-content/90 dark:text-base-content/90",
     },
     1: {
-      syntax: "text-sky-800 dark:text-sky-100",
+      syntax: "rounded-sm bg-sky-300/60 text-sky-950 dark:bg-sky-300/20 dark:text-sky-50",
       text: "rounded-sm bg-sky-300/60 text-sky-950 dark:bg-sky-300/20 dark:text-sky-50",
     },
     2: {
-      syntax: "text-blue-800 dark:text-blue-100",
+      syntax: "rounded-sm bg-blue-300/68 font-medium text-blue-950 dark:bg-blue-300/24 dark:text-blue-50",
       text: "rounded-sm bg-blue-300/68 font-medium text-blue-950 dark:bg-blue-300/24 dark:text-blue-50",
     },
     3: {
-      syntax: "text-indigo-800 dark:text-indigo-100",
+      syntax: "rounded-sm bg-indigo-300/72 font-medium text-indigo-950 dark:bg-indigo-300/28 dark:text-indigo-50",
       text: "rounded-sm bg-indigo-300/72 font-medium text-indigo-950 dark:bg-indigo-300/28 dark:text-indigo-50",
     },
   },
@@ -79,15 +79,15 @@ const SEGMENT_CLASS_MAP: Record<SegmentTone, Record<0 | 1 | 2 | 3, { syntax: str
       text: "text-base-content/90 dark:text-base-content/90",
     },
     1: {
-      syntax: "text-fuchsia-800 dark:text-fuchsia-100",
+      syntax: "rounded-sm bg-fuchsia-300/68 text-fuchsia-950 dark:bg-fuchsia-300/22 dark:text-fuchsia-50",
       text: "rounded-sm bg-fuchsia-300/68 text-fuchsia-950 dark:bg-fuchsia-300/22 dark:text-fuchsia-50",
     },
     2: {
-      syntax: "text-pink-800 dark:text-pink-100",
+      syntax: "rounded-sm bg-pink-300/75 font-medium text-pink-950 dark:bg-pink-300/28 dark:text-pink-50",
       text: "rounded-sm bg-pink-300/75 font-medium text-pink-950 dark:bg-pink-300/28 dark:text-pink-50",
     },
     3: {
-      syntax: "text-rose-800 dark:text-rose-50",
+      syntax: "rounded-sm bg-rose-300/82 font-semibold text-rose-950 dark:bg-rose-300/36 dark:text-rose-50",
       text: "rounded-sm bg-rose-300/82 font-semibold text-rose-950 dark:bg-rose-300/36 dark:text-rose-50",
     },
   },
