@@ -11,7 +11,6 @@ interface StylePickerDialogProps {
   onSelectCompareStyle: (id: string) => void;
   onViewModeChange: (mode: "select" | "compare") => void;
   onClearStyles: () => void;
-  onClearCompareStyle: () => void;
   onClose: () => void;
 }
 
@@ -26,13 +25,10 @@ export function StylePickerDialog({
   onSelectCompareStyle,
   onViewModeChange,
   onClearStyles,
-  onClearCompareStyle,
   onClose,
 }: StylePickerDialogProps) {
   const selectedStyleIdSet = new Set(selectedStyleIds);
-  const currentCountLabel = viewMode === "compare"
-    ? (compareStyleId ? "已选 1 个" : "")
-    : (selectedStyleIds.length ? `已选 ${selectedStyleIds.length} 个` : "");
+  const currentCountLabel = selectedStyleIds.length ? `已选 ${selectedStyleIds.length} 个` : "";
 
   return (
     <dialog
@@ -56,20 +52,16 @@ export function StylePickerDialog({
               风格对比
             </button>
           </div>
-          <div className="ml-auto flex items-center gap-2">
-            <div className="text-xs opacity-70">{currentCountLabel}</div>
-            {(viewMode === "compare" ? Boolean(compareStyleId) : selectedStyleIds.length > 0)
-              ? (
-                  <button
-                    type="button"
-                    className="btn btn-sm btn-ghost"
-                    onClick={viewMode === "compare" ? onClearCompareStyle : onClearStyles}
-                  >
-                    清空
-                  </button>
-                )
-              : null}
-          </div>
+          {viewMode === "select"
+            ? (
+                <div className="ml-auto flex items-center gap-2">
+                  <div className="text-xs opacity-70">{currentCountLabel}</div>
+                  {selectedStyleIds.length
+                    ? <button type="button" className="btn btn-sm btn-ghost" onClick={onClearStyles}>清空</button>
+                    : null}
+                </div>
+              )
+            : null}
         </div>
 
         <div className="min-h-0 flex-1 overflow-y-auto px-6 py-5">

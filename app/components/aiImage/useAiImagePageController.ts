@@ -1400,17 +1400,13 @@ export function useAiImagePageController() {
     setStyleSelectionMode("compare");
     setCompareStyleId((prev) => {
       if (prev === id)
-        return prev;
+        return null;
       return id;
     });
   }, []);
 
   const handleClearStyles = useCallback(() => {
     setSelectedStyleIds([]);
-  }, []);
-
-  const handleClearCompareStyle = useCallback(() => {
-    setCompareStyleId(null);
   }, []);
 
   const handleClearActiveStyles = useCallback(() => {
@@ -1908,7 +1904,6 @@ export function useAiImagePageController() {
     onSelectCompareStyle: handleSelectCompareStyle,
     onViewModeChange: setStyleSelectionMode,
     onClearStyles: handleClearStyles,
-    onClearCompareStyle: handleClearCompareStyle,
     onClose: () => setIsStylePickerOpen(false),
   };
 
