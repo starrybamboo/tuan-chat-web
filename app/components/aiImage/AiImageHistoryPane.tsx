@@ -90,59 +90,62 @@ function DeleteHistoryConfirmModal({
     return null;
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-[#090b22]/78 px-5 py-6 backdrop-blur-[2px]"
-      role="dialog"
-      aria-modal="true"
-      aria-label="删除绘画记录确认"
-      onClick={(event) => {
-        if (event.target === event.currentTarget)
-          onClose();
+    <dialog
+      open={isOpen}
+      className={`modal ${isOpen ? "modal-open" : ""}`}
+      onCancel={(event) => {
+        event.preventDefault();
+        onClose();
       }}
     >
-      <div className="relative w-full max-w-[420px] overflow-hidden rounded-[28px] bg-[#0f1130] px-8 py-10 text-center text-white shadow-[0_30px_100px_rgba(0,0,0,0.5)]">
-        <div className="pointer-events-none absolute inset-0 overflow-hidden">
-          <div className="absolute left-1/2 top-8 h-60 w-60 -translate-x-1/2 rounded-full border border-white/8" />
-          <div className="absolute left-1/2 top-0 h-80 w-80 -translate-x-1/2 rounded-full border border-white/5" />
-          <div className="absolute -left-16 top-20 h-36 w-36 rounded-full bg-[#272a58]/35 blur-3xl" />
-          <div className="absolute right-0 top-0 h-32 w-32 rounded-full bg-[#3d2d68]/30 blur-3xl" />
+      <div className="modal-box relative w-full max-w-[420px] overflow-hidden border border-base-300 bg-base-100 p-0 text-base-content shadow-xl">
+        <div className="relative px-8 py-10 text-center">
+          <div className="pointer-events-none absolute inset-0 overflow-hidden">
+            <div className="absolute left-1/2 top-8 h-60 w-60 -translate-x-1/2 rounded-full border border-base-content/10" />
+            <div className="absolute left-1/2 top-0 h-80 w-80 -translate-x-1/2 rounded-full border border-base-content/5" />
+            <div className="absolute -left-16 top-20 h-36 w-36 rounded-full bg-primary/10 blur-3xl" />
+            <div className="absolute right-0 top-0 h-32 w-32 rounded-full bg-base-content/5 blur-3xl" />
+          </div>
+
+          <button
+            type="button"
+            className="absolute right-5 top-5 inline-flex size-9 items-center justify-center rounded-full text-base-content/65 transition hover:bg-base-200 hover:text-base-content"
+            aria-label="关闭删除确认"
+            title="关闭删除确认"
+            onClick={onClose}
+          >
+            <XMarkICon className="size-6" />
+          </button>
+
+          <div className="relative mx-auto flex size-32 items-center justify-center rounded-full border border-base-content/10 bg-base-200/80 shadow-[inset_0_1px_0_rgba(255,255,255,0.5)]">
+            <TrashSimpleIcon className="size-14 text-primary" weight="regular" aria-hidden="true" />
+          </div>
+
+          <div className="relative mt-6 text-[18px] font-semibold leading-7 text-base-content">
+            Delete this image?
+          </div>
+
+          <button
+            type="button"
+            className="relative mt-8 w-full rounded-[10px] bg-[#f6f2b5] px-4 py-4 text-[16px] font-semibold text-[#10122f] transition hover:bg-[#fbf7c7]"
+            onClick={() => void onConfirm()}
+          >
+            Delete it!
+          </button>
+
+          <button
+            type="button"
+            className="relative mt-4 text-[15px] font-medium text-base-content/65 transition hover:text-base-content"
+            onClick={onClose}
+          >
+            No, keep it!
+          </button>
         </div>
-
-        <button
-          type="button"
-          className="absolute right-5 top-5 inline-flex size-9 items-center justify-center rounded-full text-white/80 transition hover:bg-white/8 hover:text-white"
-          aria-label="关闭删除确认"
-          title="关闭删除确认"
-          onClick={onClose}
-        >
-          <XMarkICon className="size-6" />
-        </button>
-
-        <div className="relative mx-auto flex size-32 items-center justify-center rounded-full border border-[#f7f3bf]/18 bg-[#17183a]/90 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
-          <TrashSimpleIcon className="size-14 text-[#f6f0b2]" weight="regular" aria-hidden="true" />
-        </div>
-
-        <div className="relative mt-6 text-[18px] font-semibold leading-7 text-white">
-          Delete this image?
-        </div>
-
-        <button
-          type="button"
-          className="relative mt-8 w-full rounded-[10px] bg-[#f6f2b5] px-4 py-4 text-[16px] font-semibold text-[#10122f] transition hover:bg-[#fbf7c7]"
-          onClick={() => void onConfirm()}
-        >
-          Delete it!
-        </button>
-
-        <button
-          type="button"
-          className="relative mt-4 text-[15px] font-medium text-white/68 transition hover:text-white"
-          onClick={onClose}
-        >
-          No, keep it!
-        </button>
       </div>
-    </div>
+      <form method="dialog" className="modal-backdrop">
+        <button type="button" onClick={onClose}>close</button>
+      </form>
+    </dialog>
   );
 }
 
@@ -443,92 +446,92 @@ export function AiImageHistoryPane({
     <>
       <div className="min-h-0 w-[160px] shrink-0 overflow-hidden border-l border-[#D6DCE3] bg-[#F3F5F7] p-3 dark:border-[#2A3138] dark:bg-[#161A1F]">
         <div className="flex h-full flex-col">
-        <div className="mb-3 flex items-center gap-2 px-1">
-          <div className="flex items-center gap-1">
-            <div className="text-sm font-medium">History</div>
-            <HistoryHint />
+          <div className="mb-3 flex items-center gap-2 px-1">
+            <div className="flex items-center gap-1">
+              <div className="text-sm font-medium">History</div>
+              <HistoryHint />
+            </div>
+            <button
+              type="button"
+              className="btn btn-ghost btn-square btn-xs ml-auto shrink-0 text-base-content/60 hover:text-base-content"
+              aria-label="收起历史记录侧边栏"
+              title="收起历史记录侧边栏"
+              onClick={onCollapse}
+            >
+              <CaretRightIcon className="size-3.5" weight="bold" />
+            </button>
           </div>
-          <button
-            type="button"
-            className="btn btn-ghost btn-square btn-xs ml-auto shrink-0 text-base-content/60 hover:text-base-content"
-            aria-label="收起历史记录侧边栏"
-            title="收起历史记录侧边栏"
-            onClick={onCollapse}
-          >
-            <CaretRightIcon className="size-3.5" weight="bold" />
-          </button>
-        </div>
-        <div className="flex-1 overflow-auto pr-1">
-          <div className="grid grid-cols-1 justify-items-center gap-2 border-t border-[#D6DCE3] py-3 dark:border-[#2A3138]">
-            {currentResultCards.map(({ item, index, row }) => (
-              <HistoryImageTile
-                key={`${item.batchId}-${item.batchIndex}`}
-                active={!selectedHistoryPreviewKey && selectedResultIndex === index}
-                alt="current-result"
-                dataUrl={item.dataUrl}
-                draggable
-                title={`${row?.mode || mode} · seed ${item.seed} · ${item.width}×${item.height}`}
-                onClick={() => onSelectCurrentResult(index)}
-                onDelete={row?.id != null
-                  ? (event) => {
-                      event.stopPropagation();
-                      requestDeleteHistoryRow(row);
-                    }
-                  : undefined}
-                onDragStart={event => onHistoryImageDragStart(event, {
-                  dataUrl: item.dataUrl,
-                  seed: item.seed,
-                  batchIndex: item.batchIndex,
-                })}
-              />
-            ))}
-            {archivedHistoryRows.map(row => (
-              <HistoryImageTile
-                key={historyRowKey(row)}
-                active={selectedHistoryPreviewKey === historyRowKey(row)}
-                alt="history"
-                dataUrl={row.dataUrl}
-                draggable
-                title={`${row.mode} · seed ${row.seed} · ${row.width}×${row.height}`}
-                onClick={event => onHistoryRowClick(row, event)}
-                onDelete={row.id != null
-                  ? (event) => {
-                      event.stopPropagation();
-                      requestDeleteHistoryRow(row);
-                    }
-                  : undefined}
-                onDragStart={event => onHistoryImageDragStart(event, {
-                  dataUrl: row.dataUrl,
-                  seed: row.seed,
-                  batchIndex: row.batchIndex ?? undefined,
-                })}
-              />
-            ))}
-            {!currentResultCards.length && !archivedHistoryRows.length
-              ? <div className="col-span-1 w-full rounded-xl border border-dashed border-base-300 bg-base-100 px-3 py-5 text-center text-sm text-base-content/55">暂无绘画记录</div>
-              : null}
+          <div className="flex-1 overflow-auto pr-1">
+            <div className="grid grid-cols-1 justify-items-center gap-2 border-t border-[#D6DCE3] py-3 dark:border-[#2A3138]">
+              {currentResultCards.map(({ item, index, row }) => (
+                <HistoryImageTile
+                  key={`${item.batchId}-${item.batchIndex}`}
+                  active={!selectedHistoryPreviewKey && selectedResultIndex === index}
+                  alt="current-result"
+                  dataUrl={item.dataUrl}
+                  draggable
+                  title={`${row?.mode || mode} · seed ${item.seed} · ${item.width}×${item.height}`}
+                  onClick={() => onSelectCurrentResult(index)}
+                  onDelete={row?.id != null
+                    ? (event) => {
+                        event.stopPropagation();
+                        requestDeleteHistoryRow(row);
+                      }
+                    : undefined}
+                  onDragStart={event => onHistoryImageDragStart(event, {
+                    dataUrl: item.dataUrl,
+                    seed: item.seed,
+                    batchIndex: item.batchIndex,
+                  })}
+                />
+              ))}
+              {archivedHistoryRows.map(row => (
+                <HistoryImageTile
+                  key={historyRowKey(row)}
+                  active={selectedHistoryPreviewKey === historyRowKey(row)}
+                  alt="history"
+                  dataUrl={row.dataUrl}
+                  draggable
+                  title={`${row.mode} · seed ${row.seed} · ${row.width}×${row.height}`}
+                  onClick={event => onHistoryRowClick(row, event)}
+                  onDelete={row.id != null
+                    ? (event) => {
+                        event.stopPropagation();
+                        requestDeleteHistoryRow(row);
+                      }
+                    : undefined}
+                  onDragStart={event => onHistoryImageDragStart(event, {
+                    dataUrl: row.dataUrl,
+                    seed: row.seed,
+                    batchIndex: row.batchIndex ?? undefined,
+                  })}
+                />
+              ))}
+              {!currentResultCards.length && !archivedHistoryRows.length
+                ? <div className="col-span-1 w-full rounded-xl border border-dashed border-base-300 bg-base-100 px-3 py-5 text-center text-sm text-base-content/55">暂无绘画记录</div>
+                : null}
+            </div>
+          </div>
+          <div className="mt-3 flex shrink-0 flex-col gap-2 border-t border-[#D6DCE3] pt-3 dark:border-[#2A3138]">
+            <button
+              type="button"
+              className="btn btn-sm btn-outline w-full gap-2"
+              disabled={!history.length}
+              onClick={onDownloadAll}
+            >
+              <SharpDownload className="size-4" />
+              <span>Download ZIP</span>
+            </button>
+            <button
+              type="button"
+              className="btn btn-sm btn-ghost w-full disabled:border-base-300 disabled:bg-base-200 disabled:text-base-content/40"
+              disabled={!history.length}
+              onClick={() => void onClearHistory()}
+            >
+              Clear History
+            </button>
           </div>
         </div>
-        <div className="mt-3 flex shrink-0 flex-col gap-2 border-t border-[#D6DCE3] pt-3 dark:border-[#2A3138]">
-          <button
-            type="button"
-            className="btn btn-sm btn-outline w-full gap-2"
-            disabled={!history.length}
-            onClick={onDownloadAll}
-          >
-            <SharpDownload className="size-4" />
-            <span>Download ZIP</span>
-          </button>
-          <button
-            type="button"
-            className="btn btn-sm btn-ghost w-full"
-            disabled={!history.length}
-            onClick={() => void onClearHistory()}
-          >
-            Clear History
-          </button>
-        </div>
-      </div>
       </div>
       <DeleteHistoryConfirmModal
         isOpen={Boolean(pendingDeleteHistoryRow)}
