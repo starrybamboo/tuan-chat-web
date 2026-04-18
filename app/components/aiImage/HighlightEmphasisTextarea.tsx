@@ -131,7 +131,15 @@ function createSegmentClassName(segment: EmphasisSegment) {
   return SEGMENT_CLASS_MAP[segment.tone][segment.level][segment.kind === "syntax" ? "syntax" : "text"];
 }
 
-function parseNovelAiSegments(value: string) {
+function isNumericEmphasisBoundary(value: string, index: number) {
+  if (index <= 0)
+    return true;
+
+  const previousCharacter = value[index - 1];
+  return !/[\p{L}\p{N}_]/u.test(previousCharacter);
+}
+
+export function parseNovelAiSegments(value: string) {
   const segments: EmphasisSegment[] = [];
   let curlyDepth = 0;
   let squareDepth = 0;
@@ -175,7 +183,7 @@ function parseNovelAiSegments(value: string) {
   while (index < value.length) {
     const rest = value.slice(index);
     const numericMatch = rest.match(NUMERIC_EMPHASIS_PATTERN);
-    if (numericMatch) {
+    if (numericMatch && isNumericEmphasisBoundary(value, index)) {
       const numericWeight = Number(numericMatch[0].slice(0, -2));
       pushSegment(numericMatch[0], "syntax", getCurrentWeight() * numericWeight);
       numericWeights.push(numericWeight);
