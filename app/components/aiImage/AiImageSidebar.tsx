@@ -84,8 +84,6 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
     handleSimpleWidthChange,
     handleSwapImageDimensions,
     handleUpdateV4Char,
-    handleUpdateVibeReference,
-    hasReferenceConflict,
     hasCurrentDisplayedImage,
     height,
     imageCount,
@@ -99,9 +97,6 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
     noise,
     noiseSchedule,
     noiseScheduleOptions,
-    normalizeReferenceStrengths,
-    preciseReference,
-    preciseReferenceInputRef,
     proFeatureSections,
     proGenerateLabel,
     proPromptTab,
@@ -124,8 +119,6 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
     setNegativePrompt,
     setNoise,
     setNoiseSchedule,
-    setNormalizeReferenceStrengths,
-    setPreciseReference,
     setProFeatureSectionOpen,
     setProPromptTab,
     setPrompt,
@@ -170,8 +163,6 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
     v4Chars,
     v4UseCoords,
     v4UseOrder,
-    vibeReferenceInputRef,
-    vibeTransferReferences,
     width,
   } = sidebarProps;
 
@@ -953,7 +944,7 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                         ]}
                       />
                     </div>
-                    <div className="-mx-3 -mb-3 mt-3 flex items-center justify-between border-t border-[#D6DCE3] bg-[#161A1F]/0 px-4 py-3 dark:border-[#2A3138]">
+                    <div className="-mx-3 -mb-3 mt-3 flex items-center justify-between border-t border-[#2A3138] bg-[#1B1F36] px-4 py-3">
                       <div className="text-[15px] font-semibold text-base-content/78">
                         Add a Base Img (Optional)
                       </div>
@@ -1115,188 +1106,43 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                       : <div className="text-sm opacity-60">当前模型不支持 Character Prompts。</div>}
                   </ProFeatureSection>
 
-                  <ProFeatureSection
-                    title="Vibe Transfer"
-                    badge={vibeTransferReferences.length ? `${vibeTransferReferences.length}` : null}
-                    open={proFeatureSections.vibeTransfer}
-                    onToggle={() => toggleProFeatureSection("vibeTransfer")}
-                    action={(
+                  <div className="rounded-md border border-[#2A3138] bg-[#1B1F36] shadow-none">
+                    <div className="flex items-center gap-3 px-4 py-4">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="text-[15px] font-semibold text-base-content">Vibe Transfer</span>
+                        </div>
+                      </div>
                       <button
                         type="button"
-                        className={featureUploadActionClassName}
-                        onClick={() => {
-                          setProFeatureSectionOpen("vibeTransfer", true);
-                          vibeReferenceInputRef.current?.click();
-                        }}
-                        onMouseDown={event => event.preventDefault()}
+                        className={`${featureUploadActionClassName} cursor-not-allowed opacity-45`}
                         aria-label="上传 Vibe Transfer 参考图"
                         title="上传 Vibe Transfer 参考图"
+                        disabled
                       >
                         <FileArrowUpIcon className="size-5" weight="bold" />
                       </button>
-                    )}
-                  >
-                    {isNAI4
-                      ? (
-                          <div className="space-y-3">
-                            <label className="flex cursor-pointer items-start gap-3 rounded-2xl border border-base-300 bg-base-100 px-4 py-3">
-                              <input
-                                type="checkbox"
-                                className="toggle toggle-sm mt-0.5"
-                                checked={normalizeReferenceStrengths}
-                                onChange={event => setNormalizeReferenceStrengths(event.target.checked)}
-                              />
-                              <div>
-                                <div className="text-sm font-medium">Normalize Reference Strengths</div>
-                                <div className="mt-1 text-xs leading-5 text-base-content/60">
-                                  发送请求前会按比例归一化各张参考图的强度，总和保持为 1，更接近 NovelAI 的同名开关行为。
-                                </div>
-                              </div>
-                            </label>
-                            {hasReferenceConflict
-                              ? (
-                                  <div className="rounded-2xl border border-warning/30 bg-warning/10 px-4 py-3 text-sm leading-6 text-warning-content">
-                                    当前同时存在 Vibe Transfer 与 Precise Reference 的旧数据。为对齐 NovelAI 的当前交互，建议保留其中一侧后再生成。
-                                  </div>
-                                )
-                              : null}
-                            {preciseReference && !vibeTransferReferences.length
-                              ? (
-                                  <div className="rounded-2xl border border-base-300 bg-base-200/40 px-4 py-4 text-sm leading-6 text-base-content/60">
-                                    NovelAI 当前交互里 Vibe Transfer 与 Precise Reference 互斥。清除 Precise Reference 后即可添加 Vibe 参考图。
-                                  </div>
-                                )
-                              : null}
-                            {vibeTransferReferences.map((row, idx) => (
-                              <div key={row.id} className="rounded-2xl border border-base-300 bg-base-200/50 p-3">
-                                <div className="mb-3 flex items-center gap-3">
-                                  <img src={row.dataUrl} alt={row.name} className="h-16 w-16 rounded-2xl object-cover" />
-                                  <div className="min-w-0 flex-1">
-                                    <div className="truncate text-sm font-medium">{row.name || `Reference ${idx + 1}`}</div>
-                                    <div className="text-xs text-base-content/60">{`Reference ${idx + 1}`}</div>
-                                  </div>
-                                  <button type="button" className="btn btn-xs btn-ghost" onClick={() => handleRemoveVibeReference(row.id)}>删除</button>
-                                </div>
-                                <div className="space-y-4">
-                                  <label className="form-control gap-2">
-                                    <div className="flex items-center justify-between text-xs text-base-content/70">
-                                      <span>Reference Strength</span>
-                                      <span>{formatSliderValue(row.strength)}</span>
-                                    </div>
-                                    <input className="range range-xs" type="range" min="0" max="1" step="0.01" value={row.strength} onChange={e => handleUpdateVibeReference(row.id, { strength: clampRange(Number(e.target.value), 0, 1, 0.6) })} />
-                                  </label>
-                                  <label className="form-control gap-2">
-                                    <div className="flex items-center justify-between text-xs text-base-content/70">
-                                      <span>Information Extracted</span>
-                                      <span>{formatSliderValue(row.informationExtracted)}</span>
-                                    </div>
-                                    <input
-                                      className="range range-xs"
-                                      type="range"
-                                      min="0"
-                                      max="1"
-                                      step="0.01"
-                                      value={row.informationExtracted}
-                                      disabled={Boolean(row.lockInformationExtracted)}
-                                      onChange={e => handleUpdateVibeReference(row.id, { informationExtracted: clampRange(Number(e.target.value), 0, 1, 1) })}
-                                    />
-                                    {row.lockInformationExtracted
-                                      ? <div className="text-[11px] leading-5 text-base-content/50">该值来自图片 metadata，按 NovelAI 行为保持只读。</div>
-                                      : null}
-                                  </label>
-                                </div>
-                              </div>
-                            ))}
-                            {!vibeTransferReferences.length && !preciseReference
-                              ? (
-                                  <div className="rounded-2xl border border-dashed border-base-300 bg-base-200/30 px-4 py-4 text-sm leading-6 text-base-content/60">
-                                    还没有 Vibe 参考图。添加参考图后可以保留构图和气质，再重新解释细节。
-                                  </div>
-                                )
-                              : null}
-                          </div>
-                        )
-                      : <div className="text-sm opacity-60">当前模型不支持 Vibe Transfer。</div>}
-                  </ProFeatureSection>
+                    </div>
+                  </div>
 
-                  <ProFeatureSection
-                    title="Precise Reference"
-                    badge={preciseReference ? "1" : null}
-                    open={proFeatureSections.preciseReference}
-                    onToggle={() => toggleProFeatureSection("preciseReference")}
-                    action={(
+                  <div className="rounded-md border border-[#2A3138] bg-[#1B1F36] shadow-none">
+                    <div className="flex items-center gap-3 px-4 py-4">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="text-[15px] font-semibold text-base-content">Precise Reference</span>
+                        </div>
+                      </div>
                       <button
                         type="button"
-                        className={featureUploadActionClassName}
-                        onClick={() => {
-                          setProFeatureSectionOpen("preciseReference", true);
-                          preciseReferenceInputRef.current?.click();
-                        }}
-                        onMouseDown={event => event.preventDefault()}
+                        className={`${featureUploadActionClassName} cursor-not-allowed opacity-45`}
                         aria-label="上传 Precise Reference 参考图"
                         title="上传 Precise Reference 参考图"
+                        disabled
                       >
                         <FileArrowUpIcon className="size-5" weight="bold" />
                       </button>
-                    )}
-                  >
-                    {isNAI4
-                      ? (
-                          <div className="space-y-3">
-                            {hasReferenceConflict
-                              ? (
-                                  <div className="rounded-2xl border border-warning/30 bg-warning/10 px-4 py-3 text-sm leading-6 text-warning-content">
-                                    当前同时存在 Precise Reference 与 Vibe Transfer 的旧数据。为对齐 NovelAI 的当前交互，建议保留其中一侧后再生成。
-                                  </div>
-                                )
-                              : null}
-                            {!preciseReference && vibeTransferReferences.length
-                              ? (
-                                  <div className="rounded-2xl border border-base-300 bg-base-200/40 px-4 py-4 text-sm leading-6 text-base-content/60">
-                                    NovelAI 当前交互里 Precise Reference 与 Vibe Transfer 互斥。清除 Vibe 参考图后即可上传单张精确参考图。
-                                  </div>
-                                )
-                              : null}
-                            {preciseReference
-                              ? (
-                                  <div className="rounded-2xl border border-base-300 bg-base-200/50 p-3">
-                                    <div className="mb-3 flex items-center gap-3">
-                                      <img src={preciseReference.dataUrl} alt={preciseReference.name} className="h-16 w-16 rounded-2xl object-cover" />
-                                      <div className="min-w-0 flex-1">
-                                        <div className="truncate text-sm font-medium">{preciseReference.name}</div>
-                                        <div className="text-xs text-base-content/60">Single reference image</div>
-                                      </div>
-                                      <button type="button" className="btn btn-xs btn-ghost" onClick={() => setPreciseReference(null)}>清除</button>
-                                    </div>
-                                    <div className="space-y-4">
-                                      <label className="form-control gap-2">
-                                        <div className="flex items-center justify-between text-xs text-base-content/70">
-                                          <span>Reference Strength</span>
-                                          <span>{formatSliderValue(preciseReference.strength)}</span>
-                                        </div>
-                                        <input className="range range-xs" type="range" min="0" max="1" step="0.01" value={preciseReference.strength} onChange={e => setPreciseReference(prev => (prev ? { ...prev, strength: clampRange(Number(e.target.value), 0, 1, 1) } : prev))} />
-                                      </label>
-                                      <label className="form-control gap-2">
-                                        <div className="flex items-center justify-between text-xs text-base-content/70">
-                                          <span>Fidelity</span>
-                                          <span>{formatSliderValue(preciseReference.informationExtracted)}</span>
-                                        </div>
-                                        <input className="range range-xs" type="range" min="0" max="1" step="0.01" value={preciseReference.informationExtracted} onChange={e => setPreciseReference(prev => (prev ? { ...prev, informationExtracted: clampRange(Number(e.target.value), 0, 1, 1) } : prev))} />
-                                      </label>
-                                    </div>
-                                  </div>
-                                )
-                              : !vibeTransferReferences.length
-                                  ? (
-                                      <div className="rounded-2xl border border-dashed border-base-300 bg-base-200/30 px-4 py-4 text-sm leading-6 text-base-content/60">
-                                        还没有 Precise Reference。上传单张角色或风格参考图后，会更贴近参考图的具体特征。
-                                      </div>
-                                    )
-                                  : null}
-                          </div>
-                        )
-                      : <div className="text-sm opacity-60">当前模型不支持 Precise Reference。</div>}
-                  </ProFeatureSection>
+                    </div>
+                  </div>
                 </div>
               )}
         </div>
