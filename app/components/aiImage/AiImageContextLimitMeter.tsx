@@ -1,4 +1,4 @@
-import { QuestionIcon } from "@phosphor-icons/react";
+import { useState } from "react";
 
 import { NOVELAI_V45_CONTEXT_LIMIT } from "@/components/aiImage/novelaiV45TokenMeter";
 
@@ -46,6 +46,28 @@ export function AiImageContextLimitMeter({
     : status === "fallback"
       ? "估算"
       : "";
+  const [footerTooltipState, setFooterTooltipState] = useState<{ x: number; y: number; visible: boolean }>({
+    x: 0,
+    y: 0,
+    visible: false,
+  });
+
+  const showFooterTooltipAtPointer = (event: React.MouseEvent<HTMLButtonElement>) => {
+    setFooterTooltipState({
+      x: event.clientX,
+      y: event.clientY,
+      visible: true,
+    });
+  };
+
+  const showFooterTooltipAtButton = (event: React.FocusEvent<HTMLButtonElement>) => {
+    const rect = event.currentTarget.getBoundingClientRect();
+    setFooterTooltipState({
+      x: rect.left,
+      y: rect.bottom,
+      visible: true,
+    });
+  };
 
   return (
     <div className={className}>
@@ -76,10 +98,7 @@ export function AiImageContextLimitMeter({
 
         {(footerLabel || footerHint)
           ? (
-              <div
-                className="mt-[13px] flex items-center gap-1 text-[11px] leading-none text-base-content/58"
-                title={footerHint}
-              >
+              <div className="mt-[13px] flex items-center gap-1 text-[11px] leading-none text-base-content/58">
                 {footerLabel
                   ? <span>{footerLabel}</span>
                   : null}
@@ -87,14 +106,35 @@ export function AiImageContextLimitMeter({
                   ? (
                       <button
                         type="button"
-                        className="inline-flex size-4 items-center justify-center rounded-md text-base-content/42 transition hover:text-base-content/72 focus:outline-none focus:ring-2 focus:ring-primary/20"
+                        className="flex size-4 cursor-help items-center justify-center rounded-full bg-transparent text-base-content/28 transition hover:text-base-content/55 focus:outline-none"
                         aria-label={footerHint}
-                        title={footerHint}
+                        onBlur={() => setFooterTooltipState(prev => ({ ...prev, visible: false }))}
+                        onFocus={showFooterTooltipAtButton}
+                        onMouseEnter={showFooterTooltipAtPointer}
+                        onMouseLeave={() => setFooterTooltipState(prev => ({ ...prev, visible: false }))}
+                        onMouseMove={showFooterTooltipAtPointer}
                       >
-                        <QuestionIcon className="size-3.5" weight="bold" />
+                        <span className="flex size-3.5 items-center justify-center rounded-full border border-base-content/16 text-[9px] font-medium leading-none text-current">
+                          ?
+                        </span>
                       </button>
                     )
                   : null}
+              </div>
+            )
+          : null}
+
+        {footerHint && footerTooltipState.visible
+          ? (
+              <div
+                className="pointer-events-none fixed z-30 flex min-h-[80px] w-[300px] items-center rounded-xl border border-base-300 bg-base-100 px-3 py-2 text-[11px] leading-5 text-base-content/72 shadow-xl"
+                style={{
+                  left: footerTooltipState.x,
+                  top: footerTooltipState.y,
+                  transform: "translate(calc(-100% - 10px), 10px)",
+                }}
+              >
+                {footerHint}
               </div>
             )
           : null}
