@@ -76,6 +76,14 @@ export function mergeTagString(base: string, extraTags: string[]) {
   return Array.from(uniq).join(", ");
 }
 
+export function cleanImportedPromptText(value: string) {
+  return String(value || "")
+    .replace(/[\[\]\{\}]/g, "")
+    .replace(/\s*,\s*/g, ", ")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+}
+
 export function clampToMultipleOf64(value: number, fallback: number) {
   const num = Number(value);
   if (!Number.isFinite(num) || num <= 0)

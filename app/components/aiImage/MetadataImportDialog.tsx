@@ -32,8 +32,8 @@ function CleanImportsHint() {
   return (
     <PortalTooltip
       label={CLEAN_IMPORTS_HINT_TEXT}
-      placement="left"
-      gap={10}
+      placement="top"
+      gap={8}
       className="pointer-events-none z-[1100] rounded-xl border border-base-300 bg-base-100 px-3 py-2 text-[11px] leading-5 text-base-content/72 shadow-xl"
     >
       <button

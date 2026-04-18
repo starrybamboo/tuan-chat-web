@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  cleanImportedPromptText,
   clampSimpleModeDimension,
   generatedItemKey,
   mergeTagString,
@@ -91,5 +92,10 @@ describe("aiImage helpers", () => {
       "soft light",
       "best quality",
     ])).toBe("cinematic lighting, soft light, best quality, 1girl");
+  });
+
+  it("cleans imported metadata prompt text by removing brackets and spacing commas", () => {
+    expect(cleanImportedPromptText("masterpiece,[1girl],best quality,{blue eyes}"))
+      .toBe("masterpiece, 1girl, best quality, blue eyes");
   });
 });

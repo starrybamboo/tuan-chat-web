@@ -65,6 +65,7 @@ import {
   clampRange,
   clampSimpleModeDimension,
   clampToMultipleOf64,
+  cleanImportedPromptText,
   createMetadataImportSelection,
   createProFeatureSectionState,
   dataUrlToBase64,
@@ -434,6 +435,7 @@ export function useAiImagePageController() {
   const applyImportedMetadata = useCallback((settings: NovelAiImportedSettings, selection: MetadataImportSelectionState) => {
     setUiMode("pro");
     setIsPageImageDragOver(false);
+    const shouldCleanImportedText = selection.cleanImports;
 
     if (selection.settings) {
       setMode("txt2img");
@@ -447,12 +449,12 @@ export function useAiImagePageController() {
     }
 
     if (selection.prompt && settings.prompt != null)
-      setPrompt(settings.prompt);
+      setPrompt(shouldCleanImportedText ? cleanImportedPromptText(settings.prompt) : settings.prompt);
     else if (selection.prompt && selection.cleanImports)
       setPrompt("");
 
     if (selection.undesiredContent && settings.negativePrompt != null)
-      setNegativePrompt(settings.negativePrompt);
+      setNegativePrompt(shouldCleanImportedText ? cleanImportedPromptText(settings.negativePrompt) : settings.negativePrompt);
     else if (selection.undesiredContent && selection.cleanImports)
       setNegativePrompt("");
 
@@ -527,8 +529,8 @@ export function useAiImagePageController() {
       const importedChars = Array.isArray(settings.v4Chars)
         ? settings.v4Chars.map(item => ({
             id: makeStableId(),
-            prompt: String(item.prompt || ""),
-            negativePrompt: String(item.negativePrompt || ""),
+            prompt: shouldCleanImportedText ? cleanImportedPromptText(String(item.prompt || "")) : String(item.prompt || ""),
+            negativePrompt: shouldCleanImportedText ? cleanImportedPromptText(String(item.negativePrompt || "")) : String(item.negativePrompt || ""),
             centerX: clamp01(item.centerX, 0.5),
             centerY: clamp01(item.centerY, 0.5),
           }))
