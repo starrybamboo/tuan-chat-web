@@ -1215,6 +1215,49 @@ export function useAiImagePageController() {
     }
   }, [handlePreviewHistoryRow, handleSelectCurrentResult, historyRowByKey, pinnedPreviewKey, results]);
 
+  const copyGeneratedImageToClipboard = useCallback(async (image: GeneratedImageItem | null, successMessage: string) => {
+    if (!image)
+      return;
+    if (typeof navigator === "undefined" || !navigator.clipboard?.write || typeof ClipboardItem === "undefined") {
+      showErrorToast("当前环境不支持复制图片到剪贴板。");
+      return;
+    }
+
+    try {
+      const file = fileFromDataUrl(
+        image.dataUrl,
+        `nai_preview.${extensionFromDataUrl(image.dataUrl)}`,
+      );
+      await navigator.clipboard.write([
+        new ClipboardItem({
+          [file.type || "image/png"]: file,
+        }),
+      ]);
+      showSuccessToast(successMessage);
+    }
+    catch {
+      showErrorToast("复制图片失败，请重试。");
+    }
+  }, [showErrorToast, showSuccessToast]);
+
+  const handleClearPinnedPreview = useCallback(() => {
+    if (!pinnedPreviewKey)
+      return;
+    setPinnedPreviewKey(null);
+    showSuccessToast("已取消固定预览。");
+  }, [pinnedPreviewKey, showSuccessToast]);
+
+  const handleCopyPinnedPreviewImage = useCallback(async () => {
+    await copyGeneratedImageToClipboard(pinnedPreviewResult, "已复制 pinned 图片。");
+  }, [copyGeneratedImageToClipboard, pinnedPreviewResult]);
+
+  const handleApplyPinnedPreviewSeed = useCallback(() => {
+    if (!pinnedPreviewResult)
+      return;
+    setSeed(pinnedPreviewResult.seed);
+    showSuccessToast("已把 pinned 预览 seed 回填到设置。");
+  }, [pinnedPreviewResult, showSuccessToast]);
+
   const handleApplyHistorySettings = useCallback((row: AiImageHistoryRow, clickMode: Exclude<HistoryRowClickMode, "preview">) => {
     const importSettings = clickMode === "settings" || clickMode === "settings-with-seed";
     const importSeed = clickMode === "seed" || clickMode === "settings-with-seed";
@@ -1596,29 +1639,8 @@ export function useAiImagePageController() {
   }, [selectedPreviewResult, showSuccessToast]);
 
   const handleCopySelectedPreviewImage = useCallback(async () => {
-    if (!selectedPreviewResult)
-      return;
-    if (typeof navigator === "undefined" || !navigator.clipboard?.write || typeof ClipboardItem === "undefined") {
-      showErrorToast("当前环境不支持复制图片到剪贴板。");
-      return;
-    }
-
-    try {
-      const file = fileFromDataUrl(
-        selectedPreviewResult.dataUrl,
-        `nai_preview.${extensionFromDataUrl(selectedPreviewResult.dataUrl)}`,
-      );
-      await navigator.clipboard.write([
-        new ClipboardItem({
-          [file.type || "image/png"]: file,
-        }),
-      ]);
-      showSuccessToast("已复制当前图片。");
-    }
-    catch {
-      showErrorToast("复制当前图片失败，请重试。");
-    }
-  }, [selectedPreviewResult, showErrorToast, showSuccessToast]);
+    await copyGeneratedImageToClipboard(selectedPreviewResult, "已复制当前图片。");
+  }, [copyGeneratedImageToClipboard, selectedPreviewResult]);
 
   const isBusy = loading || simpleConverting || Boolean(pendingPreviewAction);
   const freeGenerationViolation = getNovelAiFreeGenerationViolation({
@@ -1836,7 +1858,6 @@ export function useAiImagePageController() {
       selectedPreviewResult,
       selectedResultIndex,
       selectedHistoryPreviewKey,
-      pinnedPreviewResult,
       isSelectedPreviewPinned,
       isBusy,
       isGeneratingImage: loading,
@@ -1868,7 +1889,6 @@ export function useAiImagePageController() {
       onCopySelectedPreviewImage: handleCopySelectedPreviewImage,
       onDownloadCurrent: handleDownloadCurrent,
       onApplySelectedPreviewSeed: handleApplySelectedPreviewSeed,
-      onSelectPinnedPreview: handleSelectPinnedPreview,
       formatDirectorEmotionLabel,
     },
     historyPaneProps: {
@@ -1888,6 +1908,11 @@ export function useAiImagePageController() {
       onDownloadAll: handleDownloadAll,
       onClearHistory: handleClearHistory,
     },
+    pinnedPreviewResult,
+    onSelectPinnedPreview: handleSelectPinnedPreview,
+    onClearPinnedPreview: handleClearPinnedPreview,
+    onCopyPinnedPreviewImage: handleCopyPinnedPreviewImage,
+    onApplyPinnedPreviewSeed: handleApplyPinnedPreviewSeed,
   };
 
   const metadataImportDialogProps = {

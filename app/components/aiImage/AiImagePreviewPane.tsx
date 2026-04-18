@@ -16,7 +16,6 @@ interface AiImagePreviewPaneProps {
   selectedPreviewResult: GeneratedImageItem | null;
   selectedResultIndex: number;
   selectedHistoryPreviewKey: string | null;
-  pinnedPreviewResult: GeneratedImageItem | null;
   isSelectedPreviewPinned: boolean;
   isBusy: boolean;
   isGeneratingImage: boolean;
@@ -48,7 +47,6 @@ interface AiImagePreviewPaneProps {
   onCopySelectedPreviewImage: () => void | Promise<void>;
   onDownloadCurrent: () => void;
   onApplySelectedPreviewSeed: () => void;
-  onSelectPinnedPreview: () => void;
   formatDirectorEmotionLabel: (value: NovelAiEmotion) => string;
 }
 
