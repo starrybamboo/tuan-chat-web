@@ -1,4 +1,4 @@
-import { CopyIcon, ImagesSquareIcon, PictureInPictureIcon, XIcon } from "@phosphor-icons/react";
+import { XIcon } from "@phosphor-icons/react";
 import type { Dispatch, SetStateAction } from "react";
 
 import type {
@@ -27,6 +27,50 @@ const METADATA_CHECKBOX_CLASS_NAME = "size-4 shrink-0 rounded-[2px] border borde
 const METADATA_LABEL_ENABLED_CLASS_NAME = "cursor-pointer text-base-content";
 const METADATA_LABEL_DISABLED_CLASS_NAME = "cursor-not-allowed text-base-content/35";
 const CLEAN_IMPORTS_HINT_TEXT = "Remove[] / {}, add spaces after commas";
+
+function ImageToImageActionIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 18 18" fill="none" className={className} aria-hidden="true">
+      <g stroke="currentColor" strokeWidth="1.65" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="4.2" cy="4.2" r="1.45" />
+        <circle cx="13.8" cy="13.8" r="1.45" />
+        <path d="M5.7 4.2h2.75a4.1 4.1 0 0 1 4.1 4.1v1.1" />
+        <path d="M12.3 13.8H9.55a4.1 4.1 0 0 1-4.1-4.1V8.6" />
+        <path d="M11.55 4.2h2.25v2.25" />
+        <path d="M6.45 13.8H4.2v-2.25" />
+      </g>
+    </svg>
+  );
+}
+
+function VibeTransferActionIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 18 18" fill="none" className={className} aria-hidden="true">
+      <g stroke="currentColor" strokeWidth="1.65" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M7.15 4.1h6.1v6.1" />
+        <path d="M10.85 7.15v6.05H4.8V7.15Z" />
+        <path d="M7.15 4.1H4.8v2.35" />
+        <path d="M7.15 4.1l6.1 6.1" />
+      </g>
+    </svg>
+  );
+}
+
+function PreciseReferenceActionIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 18 18" fill="none" className={className} aria-hidden="true">
+      <g stroke="currentColor" strokeWidth="1.55" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M3.4 4.25h11.2a.85.85 0 0 1 .85.85v8.3a.85.85 0 0 1-.85.85H3.4a.85.85 0 0 1-.85-.85V5.1a.85.85 0 0 1 .85-.85Z" />
+        <path d="M6.1 2.9v1.35" />
+        <path d="M11.9 2.9v1.35" />
+        <path d="M5.2 8.3h7.6v4.1H5.2Z" />
+        <path d="M6.2 11.3l1.55-1.55 1.3 1.3 1.85-1.85 1.3 1.3" />
+        <circle cx="6.25" cy="6.2" r=".55" fill="currentColor" stroke="none" />
+        <circle cx="11.75" cy="6.2" r=".55" fill="currentColor" stroke="none" />
+      </g>
+    </svg>
+  );
+}
 
 function CleanImportsHint() {
   return (
@@ -118,7 +162,7 @@ export function MetadataImportDialog({
               disabled
               onClick={() => onImportSourceImageTarget("img2img")}
             >
-              <ImagesSquareIcon className="size-4" weight="regular" aria-hidden="true" />
+              <ImageToImageActionIcon className="size-[15px]" />
               Image2Image
             </button>
             <button
@@ -127,7 +171,7 @@ export function MetadataImportDialog({
               disabled
               onClick={() => onImportSourceImageTarget("vibe")}
             >
-              <CopyIcon className="size-4" weight="regular" aria-hidden="true" />
+              <VibeTransferActionIcon className="size-[15px]" />
               Vibe Transfer
             </button>
             <button
@@ -136,7 +180,7 @@ export function MetadataImportDialog({
               disabled
               onClick={() => onImportSourceImageTarget("precise")}
             >
-              <PictureInPictureIcon className="size-4" weight="regular" aria-hidden="true" />
+              <PreciseReferenceActionIcon className="size-[15px]" />
               Precise Reference
             </button>
           </div>
