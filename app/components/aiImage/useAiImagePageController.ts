@@ -1199,6 +1199,17 @@ export function useAiImagePageController() {
     }
   }, [isDirectorToolsOpen]);
 
+  const handleClearCurrentDisplayedImage = useCallback(() => {
+    if (!selectedPreviewResult)
+      return;
+
+    setSelectedHistoryPreviewKey(null);
+    setSelectedResultIndex(-1);
+    setDirectorSourcePreview(null);
+    setDirectorOutputPreview(null);
+    setIsPreviewImageModalOpen(false);
+  }, [selectedPreviewResult]);
+
   const copyGeneratedImageToClipboard = useCallback(async (image: GeneratedImageItem | null, successMessage: string) => {
     if (!image)
       return;
@@ -1686,6 +1697,7 @@ export function useAiImagePageController() {
         `${selectedPreviewResult.width}×${selectedPreviewResult.height}`,
       ].filter(Boolean).join(" · ")
     : "";
+  const hasCurrentDisplayedImage = Boolean(selectedPreviewResult);
   const ucPresetEnabled = ucPreset !== 2;
   const seedIsRandom = !Number.isFinite(seed) || seed < 0;
   const fixedModelDescription = MODEL_DESCRIPTIONS[model] || "图像生成模型";
@@ -1734,6 +1746,7 @@ export function useAiImagePageController() {
     hasSimpleTagsDraft,
     handleAddV4Char,
     handleClearSeed,
+    handleClearCurrentDisplayedImage,
     handleOpenSourceImagePicker,
     handleClearSourceImage,
     handleClearStyles: handleClearActiveStyles,
@@ -1835,6 +1848,7 @@ export function useAiImagePageController() {
     smea,
     smeaDyn,
     sourceImageDataUrl,
+    hasCurrentDisplayedImage,
     steps,
     strength,
     toggleProFeatureSection,
