@@ -902,6 +902,7 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                         overflow={activeBaseMeter.overflow}
                         status={tokenSnapshot.status}
                         footerLabel={proPromptTab === "prompt" && qualityToggle ? "Quality Tags Enabled" : undefined}
+                        footerHint={proPromptTab === "prompt" && tokenSnapshot.prompt.hiddenText ? tokenSnapshot.prompt.hiddenText : undefined}
                         rows={[
                           {
                             label: "当前输入",

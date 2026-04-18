@@ -76,7 +76,10 @@ export function AiImageContextLimitMeter({
 
         {(footerLabel || footerHint)
           ? (
-              <div className="mt-2 flex items-center gap-1 text-[11px] leading-none text-base-content/58">
+              <div
+                className="mt-[13px] flex items-center gap-1 text-[11px] leading-none text-base-content/58"
+                title={footerHint}
+              >
                 {footerLabel
                   ? <span>{footerLabel}</span>
                   : null}
@@ -86,6 +89,7 @@ export function AiImageContextLimitMeter({
                         type="button"
                         className="inline-flex size-4 items-center justify-center rounded-md text-base-content/42 transition hover:text-base-content/72 focus:outline-none focus:ring-2 focus:ring-primary/20"
                         aria-label={footerHint}
+                        title={footerHint}
                       >
                         <QuestionIcon className="size-3.5" weight="bold" />
                       </button>
