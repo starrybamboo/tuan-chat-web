@@ -12,7 +12,6 @@ interface AiImageWorkspaceProps {
   previewPaneProps: ComponentProps<typeof AiImagePreviewPane>;
   historyPaneProps: Omit<ComponentProps<typeof AiImageHistoryPane>, "isDirectorToolsOpen" | "onCollapse">;
   pinnedPreviewResult: GeneratedImageItem | null;
-  onSelectPinnedPreview: () => void;
   onClearPinnedPreview: () => void;
   onCopyPinnedPreviewImage: () => void | Promise<void>;
   onApplyPinnedPreviewSeed: () => void;
@@ -23,7 +22,6 @@ export function AiImageWorkspace({
   previewPaneProps,
   historyPaneProps,
   pinnedPreviewResult,
-  onSelectPinnedPreview,
   onClearPinnedPreview,
   onCopyPinnedPreviewImage,
   onApplyPinnedPreviewSeed,
@@ -45,13 +43,13 @@ export function AiImageWorkspace({
         ? (
             <div className="pointer-events-none absolute left-0 top-1/2 z-10 -translate-y-1/2">
               <div
-                className="pointer-events-auto flex items-stretch transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]"
+                className="pointer-events-auto flex items-stretch gap-2 transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]"
                 style={{ transform: isPinnedDrawerOpen ? "translateX(0)" : "translateX(calc(-100% + 14px))" }}
               >
-                <div className="flex w-11 shrink-0 flex-col items-center justify-center gap-1 rounded-none border border-r-0 border-white/22 bg-base-100/95 px-0 py-2 shadow-xl backdrop-blur">
+                <div className="flex w-11 shrink-0 flex-col items-center justify-center gap-1 rounded-none border border-white/18 bg-base-300/95 px-0 py-2 shadow-xl backdrop-blur">
                   <button
                     type="button"
-                    className="inline-flex size-9 items-center justify-center rounded-none text-base-content/72 transition-colors hover:bg-base-300/75 hover:text-base-content"
+                    className="inline-flex size-9 items-center justify-center rounded-none text-base-content/72 transition-colors hover:bg-base-200/35 hover:text-base-content"
                     aria-label="取消固定预览"
                     title="取消固定预览"
                     onClick={onClearPinnedPreview}
@@ -60,7 +58,7 @@ export function AiImageWorkspace({
                   </button>
                   <button
                     type="button"
-                    className="inline-flex size-9 items-center justify-center rounded-none text-base-content/72 transition-colors hover:bg-base-300/75 hover:text-base-content"
+                    className="inline-flex size-9 items-center justify-center rounded-none text-base-content/72 transition-colors hover:bg-base-200/35 hover:text-base-content"
                     aria-label="复制 pinned 图片"
                     title="复制 pinned 图片"
                     onClick={() => void onCopyPinnedPreviewImage()}
@@ -69,7 +67,7 @@ export function AiImageWorkspace({
                   </button>
                   <button
                     type="button"
-                    className="inline-flex size-9 items-center justify-center rounded-none text-base-content/72 transition-colors hover:bg-base-300/75 hover:text-base-content"
+                    className="inline-flex size-9 items-center justify-center rounded-none text-base-content/72 transition-colors hover:bg-base-200/35 hover:text-base-content"
                     aria-label="应用 pinned seed"
                     title="应用 pinned seed"
                     onClick={onApplyPinnedPreviewSeed}
@@ -79,11 +77,10 @@ export function AiImageWorkspace({
                 </div>
                 <button
                   type="button"
-                  className="relative flex h-[min(74vh,640px)] w-[320px] items-center justify-center overflow-hidden rounded-none border border-white/22 border-l-0 bg-base-100/95 shadow-xl backdrop-blur lg:w-[360px]"
-                  title={isPinnedDrawerOpen ? "切回 pinned 预览" : "展开 pinned 预览"}
+                  className="relative flex h-[min(74vh,640px)] w-[320px] items-center justify-center overflow-hidden rounded-none border border-white/22 bg-base-100/95 shadow-xl backdrop-blur lg:w-[360px]"
+                  title={isPinnedDrawerOpen ? "收起 pinned 预览" : "展开 pinned 预览"}
                   onClick={() => {
                     if (isPinnedDrawerOpen) {
-                      onSelectPinnedPreview();
                       setIsPinnedDrawerOpen(false);
                       return;
                     }

@@ -384,7 +384,7 @@ export function AiImagePreviewPane({
                       <div className={`${previewToolbarSectionClassName} justify-start sm:ml-auto sm:justify-end`}>
                         <button
                           type="button"
-                          className={`${previewToolbarIconButtonClassName} ${isSelectedPreviewPinned ? "text-primary" : ""}`}
+                          className={previewToolbarIconButtonClassName}
                           title={isSelectedPreviewPinned ? "取消固定当前预览" : "固定当前预览"}
                           aria-label={isSelectedPreviewPinned ? "取消固定当前预览" : "固定当前预览"}
                           onClick={onTogglePinnedPreview}

@@ -1195,26 +1195,6 @@ export function useAiImagePageController() {
     }
   }, [isDirectorToolsOpen]);
 
-  const handleSelectPinnedPreview = useCallback(() => {
-    if (!pinnedPreviewKey)
-      return;
-
-    if (pinnedPreviewKey.startsWith("current:")) {
-      const currentKey = pinnedPreviewKey.slice("current:".length);
-      const currentResultIndex = results.findIndex(item => generatedItemKey(item) === currentKey);
-      if (currentResultIndex >= 0)
-        handleSelectCurrentResult(currentResultIndex);
-      return;
-    }
-
-    if (pinnedPreviewKey.startsWith("history:")) {
-      const historyKey = pinnedPreviewKey.slice("history:".length);
-      const historyRow = historyRowByKey.get(historyKey);
-      if (historyRow)
-        handlePreviewHistoryRow(historyRow);
-    }
-  }, [handlePreviewHistoryRow, handleSelectCurrentResult, historyRowByKey, pinnedPreviewKey, results]);
-
   const copyGeneratedImageToClipboard = useCallback(async (image: GeneratedImageItem | null, successMessage: string) => {
     if (!image)
       return;
@@ -1909,7 +1889,6 @@ export function useAiImagePageController() {
       onClearHistory: handleClearHistory,
     },
     pinnedPreviewResult,
-    onSelectPinnedPreview: handleSelectPinnedPreview,
     onClearPinnedPreview: handleClearPinnedPreview,
     onCopyPinnedPreviewImage: handleCopyPinnedPreviewImage,
     onApplyPinnedPreviewSeed: handleApplyPinnedPreviewSeed,
