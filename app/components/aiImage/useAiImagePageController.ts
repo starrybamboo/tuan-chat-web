@@ -153,6 +153,7 @@ export function useAiImagePageController() {
   const [isPageImageDragOver, setIsPageImageDragOver] = useState(false);
   const [isStylePickerOpen, setIsStylePickerOpen] = useState(false);
   const [selectedStyleIds, setSelectedStyleIds] = useState<string[]>([]);
+  const [compareStyleId, setCompareStyleId] = useState<string | null>(null);
   const [proPromptTab, setProPromptTab] = useState<"prompt" | "negative">("prompt");
   const [charPromptTabs, setCharPromptTabs] = useState<Record<string, "prompt" | "negative">>({});
 
@@ -1363,16 +1364,20 @@ export function useAiImagePageController() {
     });
   }, []);
 
-  const handleSelectSingleStyle = useCallback((id: string) => {
-    setSelectedStyleIds((prev) => {
-      if (prev.length === 1 && prev[0] === id)
+  const handleSelectCompareStyle = useCallback((id: string) => {
+    setCompareStyleId((prev) => {
+      if (prev === id)
         return prev;
-      return [id];
+      return id;
     });
   }, []);
 
   const handleClearStyles = useCallback(() => {
     setSelectedStyleIds([]);
+  }, []);
+
+  const handleClearCompareStyle = useCallback(() => {
+    setCompareStyleId(null);
   }, []);
 
   const handleAddV4Char = useCallback(() => {
@@ -1854,10 +1859,12 @@ export function useAiImagePageController() {
   const stylePickerDialogProps = {
     isOpen: isStylePickerOpen,
     selectedStyleIds,
+    compareStyleId,
     stylePresets,
     onToggleStyle: handleToggleStyle,
-    onSelectSingleStyle: handleSelectSingleStyle,
+    onSelectCompareStyle: handleSelectCompareStyle,
     onClearStyles: handleClearStyles,
+    onClearCompareStyle: handleClearCompareStyle,
     onClose: () => setIsStylePickerOpen(false),
   };
 
