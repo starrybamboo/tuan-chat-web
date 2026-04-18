@@ -722,26 +722,20 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                           }}
                         >
                           <div className="mb-4 flex items-center gap-2 border-b border-[#D6DCE3] pb-3 dark:border-[#2A3138]">
-                            <div className="rounded-md bg-base-100 px-2 py-1 text-sm font-semibold text-base-content shadow-sm dark:bg-[#1B2026]">
+                            <div className="rounded-md bg-base-100 px-2 py-1 text-sm font-medium text-base-content shadow-sm dark:bg-[#1B2026]">
                               Settings
                             </div>
                           </div>
 
                           <div className="space-y-5">
-                            <div className="space-y-3">
-                              <div className="space-y-1">
-                                <div className="text-base font-semibold text-base-content">Add Quality Tags</div>
-                                <div className="text-xs leading-5 text-base-content/55">Base Prompt</div>
-                              </div>
-                              <div className="flex items-center justify-between gap-3 rounded-md border border-[#D6DCE3] bg-base-100 px-3 py-3 dark:border-[#2A3138] dark:bg-[#1B2026]">
-                                <span className="text-sm text-base-content">Quality Tags Enabled</span>
-                                <input
-                                  type="checkbox"
-                                  className="toggle toggle-sm"
-                                  checked={qualityToggle}
-                                  onChange={e => setQualityToggle(e.target.checked)}
-                                />
-                              </div>
+                            <div className="flex items-center justify-between gap-3">
+                              <div className="text-sm font-medium text-base-content">Quality Tags Enabled</div>
+                              <input
+                                type="checkbox"
+                                className="toggle toggle-sm"
+                                checked={qualityToggle}
+                                onChange={e => setQualityToggle(e.target.checked)}
+                              />
                             </div>
 
                             <div className="space-y-3">
