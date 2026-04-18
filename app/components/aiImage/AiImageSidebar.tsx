@@ -23,6 +23,8 @@ import {
   modelLabel,
 } from "@/components/aiImage/helpers";
 import { HighlightEmphasisTextarea } from "@/components/aiImage/HighlightEmphasisTextarea";
+import { AiImageContextLimitMeter } from "@/components/aiImage/AiImageContextLimitMeter";
+import { NOVELAI_V45_CONTEXT_LIMIT, useNovelAiV45TokenSnapshot } from "@/components/aiImage/novelaiV45TokenMeter";
 import { ChevronDown } from "@/icons";
 import { ProFeatureSection } from "@/components/aiImage/ProFeatureSection";
 
@@ -237,6 +239,15 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
       ? "border-[#D6DCE3] bg-[#F3F5F7] text-base-content/60 hover:border-primary/45 hover:text-primary dark:border-[#2A3138] dark:bg-[#161A1F] dark:hover:border-primary/45 dark:hover:text-primary"
       : "border-[#D6DCE3] bg-[#F3F5F7] text-base-content/35 dark:border-[#2A3138] dark:bg-[#161A1F] dark:text-base-content/30"
   }`;
+  const tokenSnapshot = useNovelAiV45TokenSnapshot({
+    prompt,
+    negativePrompt,
+    v4Chars,
+    qualityToggle,
+    ucPreset,
+  });
+  const activeChannelSnapshot = proPromptTab === "prompt" ? tokenSnapshot.prompt : tokenSnapshot.negative;
+  const activeBaseMeter = activeChannelSnapshot.base;
   useEffect(() => {
     if (isModeSelectorOpen) {
       setIsModeSelectorMounted(true);
@@ -849,6 +860,40 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                       }}
                       spellCheck={false}
                     />
+                    <AiImageContextLimitMeter
+                      className="mt-3"
+                      localUsed={activeBaseMeter.localUsed}
+                      totalUsed={activeBaseMeter.totalUsed}
+                      remaining={activeBaseMeter.remaining}
+                      overflow={activeBaseMeter.overflow}
+                      status={tokenSnapshot.status}
+                      footerLabel={proPromptTab === "prompt" ? (qualityToggle ? "Quality Tags Enabled" : "Quality Tags Disabled") : undefined}
+                      footerHint={proPromptTab === "prompt" && tokenSnapshot.prompt.hiddenText ? tokenSnapshot.prompt.hiddenText : undefined}
+                      rows={[
+                        {
+                          label: "当前输入",
+                          value: `${activeBaseMeter.localUsed}`,
+                        },
+                        {
+                          label: proPromptTab === "prompt" ? "已写 Prompt" : "已写 UC",
+                          value: `${activeBaseMeter.writtenTokens}`,
+                        },
+                        ...(activeBaseMeter.hiddenTokens > 0
+                          ? [{
+                              label: activeChannelSnapshot.hiddenLabel,
+                              value: `${activeBaseMeter.hiddenTokens}`,
+                            }]
+                          : []),
+                        {
+                          label: proPromptTab === "prompt" ? "Character Prompts" : "Character UCs",
+                          value: `${activeBaseMeter.characterTokens}`,
+                        },
+                        {
+                          label: "总计",
+                          value: `${activeBaseMeter.totalUsed}/${NOVELAI_V45_CONTEXT_LIMIT}`,
+                        },
+                      ]}
+                    />
                   </div>
 
                   <ProFeatureSection
@@ -938,6 +983,8 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                               const disabledUp = idx === 0 || !v4UseOrder;
                               const disabledDown = idx === v4Chars.length - 1 || !v4UseOrder;
                               const activeTab = charPromptTabs[row.id] || "prompt";
+                              const activeCharChannelSnapshot = activeTab === "prompt" ? tokenSnapshot.prompt : tokenSnapshot.negative;
+                              const activeCharMeter = activeCharChannelSnapshot.characters[row.id];
                               return (
                                 <div key={row.id} className="rounded-2xl border border-base-300 bg-base-100 p-3 shadow-sm">
                                   <div className="mb-3 flex items-center gap-2">
@@ -979,9 +1026,37 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                                       placeholder={activeTab === "prompt" ? "Prompt" : "Undesired Content"}
                                       spellCheck={false}
                                     />
-                                    <div className="h-1 rounded-full bg-base-200">
-                                      <div className="h-full w-10 rounded-full bg-primary/80" />
-                                    </div>
+                                    <AiImageContextLimitMeter
+                                      localUsed={activeCharMeter?.localUsed ?? 0}
+                                      totalUsed={activeCharMeter?.totalUsed ?? 0}
+                                      remaining={activeCharMeter?.remaining ?? NOVELAI_V45_CONTEXT_LIMIT}
+                                      overflow={activeCharMeter?.overflow ?? 0}
+                                      status={tokenSnapshot.status}
+                                      rows={[
+                                        {
+                                          label: "当前角色",
+                                          value: `${activeCharMeter?.localUsed ?? 0}`,
+                                        },
+                                        {
+                                          label: "主输入",
+                                          value: `${activeCharMeter?.baseTokens ?? 0}`,
+                                        },
+                                        ...((activeCharMeter?.hiddenTokens ?? 0) > 0
+                                          ? [{
+                                              label: activeCharChannelSnapshot.hiddenLabel,
+                                              value: `${activeCharMeter?.hiddenTokens ?? 0}`,
+                                            }]
+                                          : []),
+                                        {
+                                          label: "其他角色",
+                                          value: `${activeCharMeter?.otherCharacterTokens ?? 0}`,
+                                        },
+                                        {
+                                          label: "总计",
+                                          value: `${activeCharMeter?.totalUsed ?? 0}/${NOVELAI_V45_CONTEXT_LIMIT}`,
+                                        },
+                                      ]}
+                                    />
                                     {v4UseCoords
                                       ? (
                                           <div className="grid grid-cols-2 gap-2">
