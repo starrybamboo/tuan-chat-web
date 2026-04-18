@@ -1,6 +1,6 @@
 import type { DragEvent, MouseEvent } from "react";
-import { CaretRightIcon } from "@phosphor-icons/react";
-import { useState } from "react";
+import { CaretRightIcon, TrashSimpleIcon } from "@phosphor-icons/react";
+import { useCallback, useEffect, useState } from "react";
 
 import type {
   CurrentResultCard,
@@ -57,6 +57,94 @@ interface AiImageHistoryPaneProps {
 }
 
 const HISTORY_THUMBNAIL_IMAGE_CLASS_NAME = "block h-full w-full object-contain";
+
+function DeleteHistoryConfirmModal({
+  isOpen,
+  onClose,
+  onConfirm,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  onConfirm: () => void | Promise<void>;
+}) {
+  useEffect(() => {
+    if (!isOpen)
+      return;
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape")
+        onClose();
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isOpen, onClose]);
+
+  if (!isOpen)
+    return null;
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-[#090b22]/78 px-5 py-6 backdrop-blur-[2px]"
+      role="dialog"
+      aria-modal="true"
+      aria-label="删除绘画记录确认"
+      onClick={(event) => {
+        if (event.target === event.currentTarget)
+          onClose();
+      }}
+    >
+      <div className="relative w-full max-w-[420px] overflow-hidden rounded-[28px] bg-[#0f1130] px-8 py-10 text-center text-white shadow-[0_30px_100px_rgba(0,0,0,0.5)]">
+        <div className="pointer-events-none absolute inset-0 overflow-hidden">
+          <div className="absolute left-1/2 top-8 h-60 w-60 -translate-x-1/2 rounded-full border border-white/8" />
+          <div className="absolute left-1/2 top-0 h-80 w-80 -translate-x-1/2 rounded-full border border-white/5" />
+          <div className="absolute -left-16 top-20 h-36 w-36 rounded-full bg-[#272a58]/35 blur-3xl" />
+          <div className="absolute right-0 top-0 h-32 w-32 rounded-full bg-[#3d2d68]/30 blur-3xl" />
+        </div>
+
+        <button
+          type="button"
+          className="absolute right-5 top-5 inline-flex size-9 items-center justify-center rounded-full text-white/80 transition hover:bg-white/8 hover:text-white"
+          aria-label="关闭删除确认"
+          title="关闭删除确认"
+          onClick={onClose}
+        >
+          <XMarkICon className="size-6" />
+        </button>
+
+        <div className="relative mx-auto flex size-32 items-center justify-center rounded-full border border-[#f7f3bf]/18 bg-[#17183a]/90 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
+          <TrashSimpleIcon className="size-14 text-[#f6f0b2]" weight="regular" aria-hidden="true" />
+        </div>
+
+        <div className="relative mt-6 text-[18px] font-semibold leading-7 text-white">
+          Delete this image?
+        </div>
+
+        <button
+          type="button"
+          className="relative mt-8 w-full rounded-[10px] bg-[#f6f2b5] px-4 py-4 text-[16px] font-semibold text-[#10122f] transition hover:bg-[#fbf7c7]"
+          onClick={() => void onConfirm()}
+        >
+          Delete it!
+        </button>
+
+        <button
+          type="button"
+          className="relative mt-4 text-[15px] font-medium text-white/68 transition hover:text-white"
+          onClick={onClose}
+        >
+          No, keep it!
+        </button>
+      </div>
+    </div>
+  );
+}
 
 function HistoryDeleteButton({
   label,
@@ -197,11 +285,32 @@ export function AiImageHistoryPane({
   const directorHistoryCardClassName = "group rounded-2xl border p-2 transition-colors";
   const directorHistoryCardIdleClassName = "border-base-300 bg-base-100 hover:border-primary/35 hover:bg-base-200/55";
   const directorHistoryCardActiveClassName = "border-primary/45 bg-primary/10";
+  const [pendingDeleteHistoryRow, setPendingDeleteHistoryRow] = useState<AiImageHistoryRow | null>(null);
+
+  const requestDeleteHistoryRow = useCallback((row: AiImageHistoryRow) => {
+    if (typeof row.id !== "number")
+      return;
+    setPendingDeleteHistoryRow(row);
+  }, []);
+
+  const handleCloseDeleteHistoryRow = useCallback(() => {
+    setPendingDeleteHistoryRow(null);
+  }, []);
+
+  const handleConfirmDeleteHistoryRow = useCallback(async () => {
+    if (!pendingDeleteHistoryRow)
+      return;
+
+    const row = pendingDeleteHistoryRow;
+    setPendingDeleteHistoryRow(null);
+    await onDeleteHistoryRow(row);
+  }, [onDeleteHistoryRow, pendingDeleteHistoryRow]);
 
   if (isDirectorToolsOpen) {
     return (
-      <div className="min-h-0 w-[196px] shrink-0 overflow-auto border-l border-[#D6DCE3] bg-[#F3F5F7] p-3 dark:border-[#2A3138] dark:bg-[#161A1F]">
-        <div className="flex h-full flex-col">
+      <>
+        <div className="min-h-0 w-[196px] shrink-0 overflow-auto border-l border-[#D6DCE3] bg-[#F3F5F7] p-3 dark:border-[#2A3138] dark:bg-[#161A1F]">
+          <div className="flex h-full flex-col">
           <div className="mb-3 flex items-center gap-2 px-1">
             <div className="flex items-center gap-1">
               <div className="text-[10px] font-semibold uppercase tracking-[0.24em] text-base-content/60">History</div>
@@ -250,7 +359,7 @@ export function AiImageHistoryPane({
                               label="删除本次绘画记录"
                               onClick={(event) => {
                                 event.stopPropagation();
-                                void onDeleteHistoryRow(row);
+                                requestDeleteHistoryRow(row);
                               }}
                             />
                           </div>
@@ -307,7 +416,7 @@ export function AiImageHistoryPane({
                               label="删除历史绘画记录"
                               onClick={(event) => {
                                 event.stopPropagation();
-                                void onDeleteHistoryRow(row);
+                                requestDeleteHistoryRow(row);
                               }}
                             />
                           </div>
@@ -319,14 +428,21 @@ export function AiImageHistoryPane({
               </div>
             </details>
           </div>
+          </div>
         </div>
-      </div>
+        <DeleteHistoryConfirmModal
+          isOpen={Boolean(pendingDeleteHistoryRow)}
+          onClose={handleCloseDeleteHistoryRow}
+          onConfirm={() => void handleConfirmDeleteHistoryRow()}
+        />
+      </>
     );
   }
 
   return (
-    <div className="min-h-0 w-[160px] shrink-0 overflow-hidden border-l border-[#D6DCE3] bg-[#F3F5F7] p-3 dark:border-[#2A3138] dark:bg-[#161A1F]">
-      <div className="flex h-full flex-col">
+    <>
+      <div className="min-h-0 w-[160px] shrink-0 overflow-hidden border-l border-[#D6DCE3] bg-[#F3F5F7] p-3 dark:border-[#2A3138] dark:bg-[#161A1F]">
+        <div className="flex h-full flex-col">
         <div className="mb-3 flex items-center gap-2 px-1">
           <div className="flex items-center gap-1">
             <div className="text-sm font-medium">History</div>
@@ -356,7 +472,7 @@ export function AiImageHistoryPane({
                 onDelete={row?.id != null
                   ? (event) => {
                       event.stopPropagation();
-                      void onDeleteHistoryRow(row);
+                      requestDeleteHistoryRow(row);
                     }
                   : undefined}
                 onDragStart={event => onHistoryImageDragStart(event, {
@@ -378,7 +494,7 @@ export function AiImageHistoryPane({
                 onDelete={row.id != null
                   ? (event) => {
                       event.stopPropagation();
-                      void onDeleteHistoryRow(row);
+                      requestDeleteHistoryRow(row);
                     }
                   : undefined}
                 onDragStart={event => onHistoryImageDragStart(event, {
@@ -413,6 +529,12 @@ export function AiImageHistoryPane({
           </button>
         </div>
       </div>
-    </div>
+      </div>
+      <DeleteHistoryConfirmModal
+        isOpen={Boolean(pendingDeleteHistoryRow)}
+        onClose={handleCloseDeleteHistoryRow}
+        onConfirm={() => void handleConfirmDeleteHistoryRow()}
+      />
+    </>
   );
 }
