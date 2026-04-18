@@ -967,7 +967,7 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                       : null}
                     {mode === "img2img" && sourceImageDataUrl
                       ? (
-                          <div className="-mx-3 -mb-3 overflow-hidden border-t border-[#2A3138] bg-[#161A1F]">
+                          <div className="mt-3 overflow-hidden rounded-md border border-[#2A3138] bg-[#161A1F]">
                             <div className="relative min-h-[220px] px-4 py-4">
                               <img
                                 src={sourceImageDataUrl}
