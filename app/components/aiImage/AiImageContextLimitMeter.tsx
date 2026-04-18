@@ -127,7 +127,7 @@ export function AiImageContextLimitMeter({
         {footerHint && footerTooltipState.visible
           ? (
               <div
-                className="pointer-events-none fixed z-30 flex min-h-[80px] w-[300px] items-center rounded-xl border border-base-300 bg-base-100 px-3 py-2 text-[11px] leading-5 text-base-content/72 shadow-xl"
+                className="pointer-events-none fixed z-30 flex min-h-[80px] w-[300px] items-center rounded-xl border border-base-300 bg-base-100 px-3 py-2 text-xs leading-5 text-base-content/72 shadow-xl"
                 style={{
                   left: footerTooltipState.x,
                   top: footerTooltipState.y,
