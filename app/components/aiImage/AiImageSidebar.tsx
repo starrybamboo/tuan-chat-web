@@ -22,6 +22,7 @@ import {
   formatSliderValue,
   insertNovelAiRandomTags,
   modelLabel,
+  resolveNovelAiRandomTagTarget,
 } from "@/components/aiImage/helpers";
 import { HighlightEmphasisTextarea } from "@/components/aiImage/HighlightEmphasisTextarea";
 import { AiImageContextLimitMeter } from "@/components/aiImage/AiImageContextLimitMeter";
@@ -209,6 +210,14 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
   const proPromptSettingsButtonRef = useRef<HTMLButtonElement | null>(null);
   const proPromptEditorPanelRef = useRef<HTMLDivElement | null>(null);
   const proPromptTextareaRef = useRef<HTMLTextAreaElement | null>(null);
+  const proPromptRandomInsertionRef = useRef<Record<"prompt" | "negative", {
+    selectionStart: number;
+    selectionEnd: number;
+    insertedText: string;
+  } | null>>({
+    prompt: null,
+    negative: null,
+  });
   const simpleResolutionSelectorRef = useRef<HTMLDivElement | null>(null);
   const activeModeOption = MODE_OPTIONS.find(option => option.value === uiMode) ?? MODE_OPTIONS[0];
   const isSimplePreviewingConverted = Boolean(simpleConverted);
@@ -384,14 +393,27 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
   }, [isProPromptSettingsOpen]);
 
   const handleInsertProRandomizerTag = useCallback(() => {
-    const insertion = insertNovelAiRandomTags({
-      kind: proPromptTab === "prompt" ? "prompt" : "negative",
-      value: proPromptTab === "prompt" ? prompt : negativePrompt,
+    const activeTab = proPromptTab === "prompt" ? "prompt" : "negative";
+    const activeValue = activeTab === "prompt" ? prompt : negativePrompt;
+    const target = resolveNovelAiRandomTagTarget({
+      currentValue: activeValue,
       selectionStart: proPromptTextareaRef.current?.selectionStart,
       selectionEnd: proPromptTextareaRef.current?.selectionEnd,
+      previousInsertion: proPromptRandomInsertionRef.current[activeTab],
     });
+    const insertion = insertNovelAiRandomTags({
+      kind: activeTab,
+      value: activeValue,
+      selectionStart: target.selectionStart,
+      selectionEnd: target.selectionEnd,
+    });
+    proPromptRandomInsertionRef.current[activeTab] = {
+      selectionStart: insertion.selectionStart,
+      selectionEnd: insertion.selectionEnd,
+      insertedText: insertion.insertedText,
+    };
 
-    if (proPromptTab === "prompt")
+    if (activeTab === "prompt")
       setPrompt(insertion.value);
     else
       setNegativePrompt(insertion.value);

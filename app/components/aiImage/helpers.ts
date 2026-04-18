@@ -228,6 +228,46 @@ export function insertNovelAiRandomTags(args: {
     value,
     selectionStart: insertedSelectionStart,
     selectionEnd: insertedSelectionEnd,
+    insertedText: insertedTags,
+  };
+}
+
+export function resolveNovelAiRandomTagTarget(args: {
+  currentValue: string;
+  selectionStart?: number | null;
+  selectionEnd?: number | null;
+  previousInsertion?: {
+    selectionStart: number;
+    selectionEnd: number;
+    insertedText: string;
+  } | null;
+}) {
+  const currentValue = String(args.currentValue || "");
+  const rawStart = clampSelectionIndex(currentValue, args.selectionStart);
+  const rawEnd = clampSelectionIndex(currentValue, args.selectionEnd);
+  const selectionStart = Math.min(rawStart, rawEnd);
+  const selectionEnd = Math.max(rawStart, rawEnd);
+  const selectedText = currentValue.slice(selectionStart, selectionEnd).trim();
+  if (selectedText) {
+    return { selectionStart, selectionEnd };
+  }
+
+  const previousInsertion = args.previousInsertion;
+  if (!previousInsertion)
+    return { selectionStart, selectionEnd };
+
+  const previousStart = clampSelectionIndex(currentValue, previousInsertion.selectionStart);
+  const previousEnd = clampSelectionIndex(currentValue, previousInsertion.selectionEnd);
+  if (previousEnd <= previousStart)
+    return { selectionStart, selectionEnd };
+
+  const currentInsertedText = currentValue.slice(previousStart, previousEnd);
+  if (currentInsertedText !== previousInsertion.insertedText)
+    return { selectionStart, selectionEnd };
+
+  return {
+    selectionStart: previousStart,
+    selectionEnd: previousEnd,
   };
 }
 
