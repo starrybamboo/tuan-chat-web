@@ -947,20 +947,24 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                         ]}
                       />
                     </div>
-                    <div className="-mx-3 -mb-3 mt-3 flex items-center justify-between border-t border-[#2A3138] bg-[#161A1F] px-4 py-3">
-                      <div className="text-[15px] font-semibold text-base-content/78">
-                        Add a Base Img (Optional)
-                      </div>
-                      <button
-                        type="button"
-                        className={featureUploadActionClassName}
-                        aria-label="上传 Base Img"
-                        title="上传 Base Img"
-                        onClick={handleOpenSourceImagePicker}
-                      >
-                        <FileArrowUpIcon className="size-5" weight="bold" />
-                      </button>
-                    </div>
+                    {!sourceImageDataUrl
+                      ? (
+                          <div className="-mx-3 -mb-3 mt-3 flex items-center justify-between border-t border-[#2A3138] bg-[#161A1F] px-4 py-3">
+                            <div className="text-[15px] font-semibold text-base-content/78">
+                              Add a Base Img (Optional)
+                            </div>
+                            <button
+                              type="button"
+                              className={featureUploadActionClassName}
+                              aria-label="上传 Base Img"
+                              title="上传 Base Img"
+                              onClick={handleOpenSourceImagePicker}
+                            >
+                              <FileArrowUpIcon className="size-5" weight="bold" />
+                            </button>
+                          </div>
+                        )
+                      : null}
                     {mode === "img2img" && sourceImageDataUrl
                       ? (
                           <div className="-mx-3 -mb-3 overflow-hidden border-t border-[#2A3138] bg-[#161A1F]">
