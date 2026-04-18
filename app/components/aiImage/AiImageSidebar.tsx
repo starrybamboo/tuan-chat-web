@@ -506,16 +506,28 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
             ? (
                 <div className="flex items-center justify-between gap-2">
                   <div className="font-medium">{isSimpleTagsEditor || isSimplePreviewingConverted ? "NovelAi Tags" : "提示词 Prompt"}</div>
-                  <button
-                    type="button"
-                    className={floatingInputActionBaseClassName}
-                    disabled={isBusy}
-                    aria-label="清空快速模式内容与画风"
-                    title="清空快速模式内容与画风"
-                    onClick={handleClearSimpleDraft}
-                  >
-                    清空
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      className={floatingInputActionBaseClassName}
+                      disabled={isBusy}
+                      aria-label="添加画风"
+                      title="添加画风"
+                      onClick={() => setIsStylePickerOpen(true)}
+                    >
+                      添加画风
+                    </button>
+                    <button
+                      type="button"
+                      className={floatingInputActionBaseClassName}
+                      disabled={isBusy}
+                      aria-label="清空快速模式内容与画风"
+                      title="清空快速模式内容与画风"
+                      onClick={handleClearSimpleDraft}
+                    >
+                      清空
+                    </button>
+                  </div>
                 </div>
               )
             : null}
@@ -544,13 +556,6 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                             }}
                             placeholder=""
                           />
-                          <button
-                            type="button"
-                            className={floatingInputActionClassName}
-                            onClick={() => setIsStylePickerOpen(true)}
-                          >
-                            添加画风
-                          </button>
                           {hasSimpleTagsDraft
                             ? (
                                 <button
