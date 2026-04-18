@@ -1,5 +1,6 @@
 // AI 生图页面：对齐 NovelAI Image 的桌面端布局与交互；当前保留免费单张 txt2img，并开放预览区 Inpaint。
 import { useCallback, useEffect, useRef, useState } from "react";
+import { UploadSimpleIcon } from "@phosphor-icons/react";
 
 import { AiImageSidebar } from "@/components/aiImage/AiImageSidebar";
 import { AiImageWorkspace } from "@/components/aiImage/AiImageWorkspace";
@@ -162,12 +163,9 @@ export default function AiImagePage() {
       `}</style>
       {controller.isPageImageDragOver
         ? (
-            <div className="pointer-events-none absolute inset-0 z-40 flex items-center justify-center bg-base-100/70 backdrop-blur-sm">
-              <div className="rounded-2xl border-2 border-primary bg-base-100/95 px-6 py-5 text-center shadow-2xl">
-                <div className="text-lg font-semibold text-primary">松开导入到 AI 绘画页</div>
-                <div className="mt-2 text-sm text-base-content/70">
-                  支持外部图片和历史记录图片拖回本页。若检测到 NovelAI metadata，会先弹出导入设置选项；无 metadata 时不会再直接导入 Base Img。
-                </div>
+            <div className="pointer-events-none absolute inset-0 z-40 flex items-center justify-center bg-base-100/60 backdrop-blur-sm">
+              <div className="flex size-[88px] items-center justify-center rounded-[24px] border border-white/10 bg-[#242636]/92 shadow-[0_20px_45px_rgba(0,0,0,0.36)] ring-1 ring-black/10">
+                <UploadSimpleIcon className="size-11 text-white drop-shadow-[0_1px_1px_rgba(0,0,0,0.35)]" weight="bold" aria-hidden="true" />
               </div>
             </div>
           )
