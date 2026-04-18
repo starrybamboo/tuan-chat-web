@@ -2,12 +2,13 @@ import type { TextareaHTMLAttributes } from "react";
 import { useEffect, useId, useLayoutEffect, useRef } from "react";
 
 type SegmentTone = "neutral" | "strengthen" | "weaken" | "inverse";
+type SegmentKind = "text" | "syntax" | "numeric-close";
 
 interface EmphasisSegment {
   text: string;
+  kind: SegmentKind;
   tone: SegmentTone;
   level: 0 | 1 | 2 | 3;
-  syntax: boolean;
 }
 
 interface HighlightEmphasisTextareaProps extends Omit<TextareaHTMLAttributes<HTMLTextAreaElement>, "className"> {
@@ -17,6 +18,7 @@ interface HighlightEmphasisTextareaProps extends Omit<TextareaHTMLAttributes<HTM
 }
 
 const NUMERIC_EMPHASIS_PATTERN = /^-?(?:\d+(?:\.\d+)?|\.\d+)::/;
+const NUMERIC_CLOSE_CLASS_NAME = "bg-emerald-300/78 font-medium text-emerald-950 dark:bg-emerald-300/30 dark:text-emerald-50";
 
 const SEGMENT_CLASS_MAP: Record<SegmentTone, Record<0 | 1 | 2 | 3, { syntax: string; text: string }>> = {
   neutral: {
@@ -123,7 +125,10 @@ function resolveSegmentTone(weight: number): { level: 0 | 1 | 2 | 3; tone: Segme
 }
 
 function createSegmentClassName(segment: EmphasisSegment) {
-  return SEGMENT_CLASS_MAP[segment.tone][segment.level][segment.syntax ? "syntax" : "text"];
+  if (segment.kind === "numeric-close")
+    return NUMERIC_CLOSE_CLASS_NAME;
+
+  return SEGMENT_CLASS_MAP[segment.tone][segment.level][segment.kind === "syntax" ? "syntax" : "text"];
 }
 
 function parseNovelAiSegments(value: string) {
@@ -137,18 +142,22 @@ function parseNovelAiSegments(value: string) {
     return numericWeight * (1.05 ** (curlyDepth - squareDepth));
   }
 
-  function pushSegment(text: string, syntax: boolean, weightOverride?: number) {
+  function pushSegment(text: string, kind: SegmentKind, weightOverride?: number) {
     if (!text)
       return;
 
     const { level, tone } = resolveSegmentTone(weightOverride ?? getCurrentWeight());
-    const nextClassName = SEGMENT_CLASS_MAP[tone][level][syntax ? "syntax" : "text"];
+    const nextClassName = kind === "numeric-close"
+      ? NUMERIC_CLOSE_CLASS_NAME
+      : SEGMENT_CLASS_MAP[tone][level][kind === "syntax" ? "syntax" : "text"];
     const previousSegment = segments[segments.length - 1];
     if (
       previousSegment
+      && previousSegment.kind !== "numeric-close"
+      && kind !== "numeric-close"
       && previousSegment.tone === tone
       && previousSegment.level === level
-      && SEGMENT_CLASS_MAP[previousSegment.tone][previousSegment.level][previousSegment.syntax ? "syntax" : "text"] === nextClassName
+      && createSegmentClassName(previousSegment) === nextClassName
     ) {
       previousSegment.text += text;
       return;
@@ -156,9 +165,9 @@ function parseNovelAiSegments(value: string) {
 
     segments.push({
       text,
+      kind,
       tone,
       level,
-      syntax,
     });
   }
 
@@ -168,14 +177,14 @@ function parseNovelAiSegments(value: string) {
     const numericMatch = rest.match(NUMERIC_EMPHASIS_PATTERN);
     if (numericMatch) {
       const numericWeight = Number(numericMatch[0].slice(0, -2));
-      pushSegment(numericMatch[0], true, getCurrentWeight() * numericWeight);
+      pushSegment(numericMatch[0], "syntax", getCurrentWeight() * numericWeight);
       numericWeights.push(numericWeight);
       index += numericMatch[0].length;
       continue;
     }
 
     if (rest.startsWith("::") && numericWeights.length) {
-      pushSegment("::", true, getCurrentWeight());
+      pushSegment("::", "numeric-close");
       numericWeights.pop();
       index += 2;
       continue;
@@ -183,34 +192,34 @@ function parseNovelAiSegments(value: string) {
 
     const currentCharacter = value[index];
     if (currentCharacter === "{") {
-      pushSegment(currentCharacter, true, getCurrentWeight() * 1.05);
+      pushSegment(currentCharacter, "syntax", getCurrentWeight() * 1.05);
       curlyDepth += 1;
       index += 1;
       continue;
     }
 
     if (currentCharacter === "}") {
-      pushSegment(currentCharacter, true, getCurrentWeight());
+      pushSegment(currentCharacter, "syntax", getCurrentWeight());
       curlyDepth = Math.max(0, curlyDepth - 1);
       index += 1;
       continue;
     }
 
     if (currentCharacter === "[") {
-      pushSegment(currentCharacter, true, getCurrentWeight() / 1.05);
+      pushSegment(currentCharacter, "syntax", getCurrentWeight() / 1.05);
       squareDepth += 1;
       index += 1;
       continue;
     }
 
     if (currentCharacter === "]") {
-      pushSegment(currentCharacter, true, getCurrentWeight());
+      pushSegment(currentCharacter, "syntax", getCurrentWeight());
       squareDepth = Math.max(0, squareDepth - 1);
       index += 1;
       continue;
     }
 
-    pushSegment(currentCharacter, false);
+    pushSegment(currentCharacter, "text");
     index += 1;
   }
 
@@ -282,7 +291,7 @@ export function HighlightEmphasisTextarea({
               >
                 {segments.length
                   ? segments.map((segment, index) => (
-                      <span key={`${index}-${segment.syntax ? "syntax" : "text"}`} className={createSegmentClassName(segment)}>
+                      <span key={`${index}-${segment.kind}`} className={createSegmentClassName(segment)}>
                         {segment.text}
                       </span>
                     ))

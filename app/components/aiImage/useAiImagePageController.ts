@@ -741,6 +741,10 @@ export function useAiImagePageController() {
     setProFeatureSectionOpen("baseImage", true);
   }, [setProFeatureSectionOpen]);
 
+  const handleOpenSourceImagePicker = useCallback(() => {
+    sourceFileInputRef.current?.click();
+  }, []);
+
   const handleCloseMetadataImportDialog = useCallback(() => {
     setPendingMetadataImport(null);
     setMetadataImportSelection(DEFAULT_METADATA_IMPORT_SELECTION);
@@ -1730,6 +1734,7 @@ export function useAiImagePageController() {
     hasSimpleTagsDraft,
     handleAddV4Char,
     handleClearSeed,
+    handleOpenSourceImagePicker,
     handleClearSourceImage,
     handleClearStyles: handleClearActiveStyles,
     handleCropToClosestValidSize,
