@@ -54,7 +54,6 @@ type ModeOptionValue = (typeof MODE_OPTIONS)[number]["value"];
 export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
   const {
     activeResolutionPreset,
-    baseImageDescription,
     canAddVibeReference,
     canConvertSimpleText,
     canGenerate,
@@ -69,7 +68,6 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
     handleAddV4Char,
     handleClearSeed,
     handleClearCurrentDisplayedImage,
-    handleClearSourceImage,
     handleClearSimpleDraft,
     handleCropToClosestValidSize,
     handleOpenSourceImagePicker,
@@ -97,7 +95,6 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
     isDirectorToolsOpen,
     isNAI3,
     isNAI4,
-    isPageImageDragOver,
     mode,
     model,
     negativePrompt,
@@ -168,7 +165,6 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
     simpleText,
     smea,
     smeaDyn,
-    sourceImageDataUrl,
     steps,
     strength,
     toggleProFeatureSection,
@@ -959,57 +955,21 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                         ]}
                       />
                     </div>
-                  </div>
-
-                  <ProFeatureSection
-                    title="Add a Base Img (Optional)"
-                    description={baseImageDescription}
-                    badge={sourceImageDataUrl ? "img2img" : null}
-                    open={proFeatureSections.baseImage}
-                    onToggle={() => toggleProFeatureSection("baseImage")}
-                  >
-                    <div
-                      className={`space-y-3 rounded-2xl border border-dashed p-3 transition-colors ${isPageImageDragOver ? "border-primary bg-primary/5" : "border-base-300/70 bg-base-200/20"}`}
-                    >
-                      {sourceImageDataUrl
-                        ? (
-                            <>
-                              <img
-                                src={sourceImageDataUrl}
-                                alt="base"
-                                className="max-h-52 w-full rounded-2xl border border-base-300 bg-base-200 object-contain"
-                              />
-                              <div className="grid grid-cols-2 gap-2">
-                                <button type="button" className="btn btn-sm" disabled>
-                                  Base Img 已禁用
-                                </button>
-                                <button type="button" className="btn btn-sm btn-ghost" onClick={handleClearSourceImage}>
-                                  Clear
-                                </button>
-                              </div>
-                            </>
-                          )
-                        : (
-                            <button
-                              type="button"
-                              className={`flex min-h-28 w-full items-center justify-center rounded-2xl border px-4 transition-colors ${isPageImageDragOver ? "border-primary bg-primary/10 text-primary" : "border-dashed border-base-300 bg-base-200/60 text-base-content/70 hover:border-primary hover:text-base-content"}`}
-                              aria-label="上传或拖拽导入图片"
-                              title="上传或拖拽导入图片"
-                              onClick={handleOpenSourceImagePicker}
-                            >
-                              <span className={`flex size-[72px] items-center justify-center rounded-[22px] border border-white/10 bg-[#2B2336]/88 shadow-[0_18px_36px_rgba(23,18,33,0.28)] transition-transform ${isPageImageDragOver ? "scale-[1.04]" : ""}`}>
-                                <FileArrowUpIcon className="size-10 text-white" weight="fill" />
-                              </span>
-                            </button>
-                          )}
-                      {isPageImageDragOver
-                        ? <div className="text-xs text-primary">整页任意位置松开都会读取图片并尝试解析 NovelAI metadata。</div>
-                        : null}
-                      <div className="text-xs leading-5 text-base-content/60">
-                        支持整页拖拽、上传，或直接按 Ctrl+V 粘贴 NovelAI 图片；若检测到 metadata，可导入 Prompt / 设置 / Seed。Base Img、Vibe Transfer、Precise Reference 当前全部禁用。
+                    <div className="-mx-3 -mb-3 mt-3 flex items-center justify-between border-t border-[#D6DCE3] bg-[#161A1F]/0 px-4 py-3 dark:border-[#2A3138]">
+                      <div className="text-[15px] font-semibold text-base-content/78">
+                        Add a Base Img (Optional)
                       </div>
+                      <button
+                        type="button"
+                        className="inline-flex h-14 w-[88px] items-center justify-center rounded-md border border-[#D6DCE3] bg-[#F3F5F7] text-base-content/72 transition hover:border-primary/40 hover:text-primary focus:outline-none focus:ring-2 focus:ring-primary/20 dark:border-[#2A3138] dark:bg-[#161A1F] dark:text-base-content/70"
+                        aria-label="上传 Base Img"
+                        title="上传 Base Img"
+                        onClick={handleOpenSourceImagePicker}
+                      >
+                        <FileArrowUpIcon className="size-6" weight="bold" />
+                      </button>
                     </div>
-                  </ProFeatureSection>
+                  </div>
 
                   <ProFeatureSection
                     title="Character Prompts"
