@@ -1,5 +1,5 @@
 import type { AiImagePageController } from "@/components/aiImage/useAiImagePageController";
-import { ArrowCounterClockwise, CheckCircleIcon, CircleNotch, SparkleIcon, XCircleIcon } from "@phosphor-icons/react";
+import { ArrowCounterClockwise, CheckCircleIcon, CircleNotch, GearSixIcon, SparkleIcon, XCircleIcon } from "@phosphor-icons/react";
 import { useEffect, useRef, useState } from "react";
 import {
   CUSTOM_RESOLUTION_ID,
@@ -188,8 +188,10 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
   const simpleResolutionValueInputClassName = "min-w-0 appearance-none bg-transparent text-center text-xs font-semibold leading-none tabular-nums text-base-content focus:outline-none [-moz-appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none";
   const [isModeSelectorOpen, setIsModeSelectorOpen] = useState(false);
   const [isModeSelectorMounted, setIsModeSelectorMounted] = useState(false);
+  const [isProPromptSettingsOpen, setIsProPromptSettingsOpen] = useState(false);
   const [isSimpleResolutionSelectorOpen, setIsSimpleResolutionSelectorOpen] = useState(false);
   const modeSelectorContainerRef = useRef<HTMLDivElement | null>(null);
+  const proPromptSettingsRef = useRef<HTMLDivElement | null>(null);
   const simpleResolutionSelectorRef = useRef<HTMLDivElement | null>(null);
   const activeModeOption = MODE_OPTIONS.find(option => option.value === uiMode) ?? MODE_OPTIONS[0];
   const isSimplePreviewingConverted = Boolean(simpleConverted);
@@ -261,6 +263,32 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
       document.removeEventListener("keydown", handleKeyDown);
     };
   }, [isSimpleResolutionSelectorOpen]);
+
+  useEffect(() => {
+    if (!isProPromptSettingsOpen)
+      return;
+
+    function handlePointerDown(event: PointerEvent) {
+      const container = proPromptSettingsRef.current;
+      const target = event.target;
+      if (!container || !(target instanceof Node))
+        return;
+      if (!container.contains(target))
+        setIsProPromptSettingsOpen(false);
+    }
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape")
+        setIsProPromptSettingsOpen(false);
+    }
+
+    document.addEventListener("pointerdown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isProPromptSettingsOpen]);
 
   function handleSelectMode(nextMode: ModeOptionValue) {
     setUiMode(nextMode);
@@ -599,8 +627,8 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
               )
             : (
                 <div className="flex flex-col gap-3">
-                  <div className={editorPanelClassName}>
-                    <div className="mb-3 flex items-center gap-2">
+                  <div className={`${editorPanelClassName} relative`} ref={proPromptSettingsRef}>
+                    <div className="mb-3 flex items-start justify-between gap-3">
                       <div className={segmentedControlClassName}>
                         <button
                           type="button"
@@ -617,6 +645,80 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                           Undesired Content
                         </button>
                       </div>
+                      <div className="relative shrink-0">
+                        <button
+                          type="button"
+                          className={`inline-flex size-9 items-center justify-center rounded-md border transition focus:outline-none focus:ring-2 focus:ring-primary/20 ${
+                            isProPromptSettingsOpen
+                              ? "border-[#121327] bg-[#121327] text-white shadow-[0_10px_24px_rgba(18,19,39,0.22)]"
+                              : "border-[#121327] bg-[#121327] text-white hover:bg-[#1B1E35]"
+                          }`}
+                          aria-label="打开输入设置"
+                          aria-expanded={isProPromptSettingsOpen}
+                          aria-controls="ai-image-pro-prompt-settings"
+                          onClick={() => setIsProPromptSettingsOpen(prev => !prev)}
+                        >
+                          <GearSixIcon className={`size-4 transition-transform duration-200 ${isProPromptSettingsOpen ? "rotate-90" : ""}`} weight="fill" />
+                        </button>
+
+                        <div
+                          id="ai-image-pro-prompt-settings"
+                          className={`absolute right-0 top-[calc(100%+0.75rem)] z-20 w-64 origin-top-right rounded-2xl border border-[#D6DCE3] bg-[#F8FAFC]/95 p-3 shadow-2xl backdrop-blur-sm transition-all duration-200 ease-out dark:border-[#2A3138] dark:bg-[#111624]/95 ${
+                            isProPromptSettingsOpen
+                              ? "pointer-events-auto translate-x-0 scale-100 opacity-100"
+                              : "pointer-events-none translate-x-3 scale-[0.96] opacity-0"
+                          }`}
+                        >
+                          <div className="space-y-3">
+                            <div className="space-y-2">
+                              <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-base-content/45">Base Prompt</div>
+                              <div className="flex items-center justify-between gap-3 rounded-md border border-[#D6DCE3] bg-base-100/80 px-3 py-2 dark:border-[#2A3138] dark:bg-[#161A1F]/80">
+                                <span className="text-sm text-base-content">Quality Tags Enabled</span>
+                                <input
+                                  type="checkbox"
+                                  className="toggle toggle-sm"
+                                  checked={qualityToggle}
+                                  onChange={e => setQualityToggle(e.target.checked)}
+                                />
+                              </div>
+                            </div>
+
+                            <div className="space-y-2">
+                              <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-base-content/45">Undesired Content</div>
+                              <div className="flex items-center justify-between gap-3 rounded-md border border-[#D6DCE3] bg-base-100/80 px-3 py-2 dark:border-[#2A3138] dark:bg-[#161A1F]/80">
+                                <span className="text-sm text-base-content">UC Preset Enabled</span>
+                                <input
+                                  type="checkbox"
+                                  className="toggle toggle-sm"
+                                  checked={ucPresetEnabled}
+                                  onChange={(e) => {
+                                    if (e.target.checked)
+                                      setUcPreset(prev => (prev === 2 ? 0 : prev));
+                                    else
+                                      setUcPreset(2);
+                                  }}
+                                />
+                              </div>
+
+                              {ucPresetEnabled
+                                ? (
+                                    <select
+                                      className={`${subtleSelectClassName} w-full rounded-md`}
+                                      value={ucPreset}
+                                      onChange={e => setUcPreset(clampIntRange(Number(e.target.value), 0, 1, 0))}
+                                    >
+                                      {UC_PRESET_OPTIONS.filter(option => option.value !== 2).map(option => (
+                                        <option key={option.value} value={option.value}>
+                                          {option.label}
+                                        </option>
+                                      ))}
+                                    </select>
+                                  )
+                                : null}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
                     </div>
                     <textarea
                       className={promptTextareaClassName}
@@ -628,38 +730,6 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                           setNegativePrompt(e.target.value);
                       }}
                     />
-                    <div className="mt-4 h-1 rounded-full bg-base-200">
-                      <div className="h-full w-8 rounded-full bg-primary" />
-                    </div>
-                    <div className="mt-3 flex items-center justify-between text-xs text-base-content/70">
-                      <span>{proPromptTab === "prompt" ? "Quality Tags Enabled" : "UC Preset Enabled"}</span>
-                      {proPromptTab === "prompt"
-                        ? <input type="checkbox" className="toggle toggle-sm" checked={qualityToggle} onChange={e => setQualityToggle(e.target.checked)} />
-                        : (
-                            <input
-                              type="checkbox"
-                              className="toggle toggle-sm"
-                              checked={ucPresetEnabled}
-                              onChange={(e) => {
-                                if (e.target.checked)
-                                  setUcPreset(prev => (prev === 2 ? 0 : prev));
-                                else
-                                  setUcPreset(2);
-                              }}
-                            />
-                          )}
-                    </div>
-                    {proPromptTab === "negative" && ucPresetEnabled
-                      ? (
-                          <select className={`${subtleSelectClassName} mt-2 w-full`} value={ucPreset} onChange={e => setUcPreset(clampIntRange(Number(e.target.value), 0, 1, 0))}>
-                            {UC_PRESET_OPTIONS.filter(option => option.value !== 2).map(option => (
-                              <option key={option.value} value={option.value}>
-                                {option.label}
-                              </option>
-                            ))}
-                          </select>
-                        )
-                      : null}
                   </div>
 
                   <ProFeatureSection
