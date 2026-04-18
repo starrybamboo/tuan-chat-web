@@ -110,9 +110,9 @@ export const UC_PRESET_OPTIONS = [
 
 export const DEFAULT_PRO_FEATURE_SECTION_OPEN: Record<ProFeatureSectionKey, boolean> = {
   baseImage: false,
-  characterPrompts: true,
-  vibeTransfer: true,
-  preciseReference: true,
+  characterPrompts: false,
+  vibeTransfer: false,
+  preciseReference: false,
 };
 
 export const DIRECTOR_TOOL_OPTIONS: readonly DirectorToolOption[] = [
