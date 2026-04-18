@@ -49,7 +49,7 @@ function resolveSelectedContextBlock(
   editor: BlocksuiteEditorElement,
   lastSelectionBlockId: string | null,
 ): BlockComponent | null {
-  const selection = editor.std?.host.selection;
+  const selection = tryGetSelection(editor);
   const selectedBlockId = selection?.find(TextSelection)?.blockId
     ?? selection?.find(BlockSelection)?.blockId
     ?? lastSelectionBlockId;
@@ -77,6 +77,15 @@ function syncSelectionToBlock(std: BlockStdScope, block: BlockComponent) {
       blockId: block.blockId,
     }),
   ]);
+}
+
+function tryGetSelection(editor: BlocksuiteEditorElement) {
+  try {
+    return editor.std?.host.selection;
+  }
+  catch {
+    return null;
+  }
 }
 
 function createSearchText(item: SlashMenuItem): string {
@@ -147,6 +156,7 @@ function buildSlashContextMenuItems(
 export function installBlocksuiteSlashContextMenu(editor: BlocksuiteEditorElement) {
   let activeMenu: { close: () => void } | null = null;
   let lastSelectionBlockId: string | null = null;
+  let selectionSubscription: { unsubscribe: () => void } | null = null;
 
   const closeActiveMenu = () => {
     activeMenu?.close();
@@ -154,23 +164,36 @@ export function installBlocksuiteSlashContextMenu(editor: BlocksuiteEditorElemen
   };
 
   const syncLastSelectionBlockId = () => {
-    const selection = editor.std?.host.selection;
+    const selection = tryGetSelection(editor);
     const blockId = selection?.find(TextSelection)?.blockId ?? selection?.find(BlockSelection)?.blockId;
     if (blockId) {
       lastSelectionBlockId = blockId;
     }
   };
 
-  syncLastSelectionBlockId();
-  const selectionSubscription = editor.std?.host.selection.slots.changed.subscribe(() => {
+  const ensureSelectionSubscription = () => {
+    if (selectionSubscription) {
+      return;
+    }
+
+    const selection = tryGetSelection(editor);
+    if (!selection) {
+      return;
+    }
+
     syncLastSelectionBlockId();
-  });
+    selectionSubscription = selection.slots.changed.subscribe(() => {
+      syncLastSelectionBlockId();
+    });
+  };
 
   const onContextMenu = (event: MouseEvent) => {
     const { std } = editor;
     if (!std || !(event.target instanceof Element) || shouldIgnoreBlocksuiteContextMenuTarget(event.target)) {
       return;
     }
+
+    ensureSelectionSubscription();
 
     const block = resolveSelectedContextBlock(editor, lastSelectionBlockId) ?? resolveDirectContextBlock(editor, event.target);
     if (!block) {
