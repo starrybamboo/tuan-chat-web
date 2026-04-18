@@ -1724,7 +1724,7 @@ export function useAiImagePageController() {
   const pendingMetadataSettings = pendingMetadataImport?.metadata.settings ?? null;
   const canImportMetadataPrompt = pendingMetadataSettings ? hasNonEmptyText(pendingMetadataSettings.prompt) : false;
   const canImportMetadataNegativePrompt = pendingMetadataSettings ? hasNonEmptyText(pendingMetadataSettings.negativePrompt) : false;
-  const canImportMetadataCharacters = Boolean(pendingMetadataSettings);
+  const canImportMetadataCharacters = true;
   const canImportMetadataSettings = pendingMetadataSettings ? hasMetadataSettingsPayload(pendingMetadataSettings) : false;
   const canImportMetadataSeed = pendingMetadataSettings?.seed != null;
   const hasAnyMetadataImportSelection = metadataImportSelection.prompt

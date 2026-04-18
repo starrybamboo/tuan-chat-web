@@ -207,7 +207,7 @@ export function MetadataImportDialog({
                 Import Metadata
               </button>
 
-              <label className="flex items-center gap-3 text-[13px] text-base-content/92 sm:mr-[5px]">
+              <label className="flex items-center gap-3 text-[13px] text-base-content/92 sm:mr-[15px]">
                 <input
                   type="checkbox"
                   className={METADATA_CHECKBOX_CLASS_NAME}
