@@ -114,7 +114,7 @@ export function AiImagePreviewPane({
 }: AiImagePreviewPaneProps) {
   const previewToolbarIconButtonClassName = "inline-flex size-9 shrink-0 items-center justify-center !rounded-none border border-base-300 bg-base-100 text-base-content/70 shadow-sm transition-colors hover:border-base-content/30 hover:text-base-content disabled:cursor-not-allowed disabled:opacity-50";
   const previewToolbarPillClassName = "inline-flex h-9 items-center !rounded-none border border-base-300 bg-base-100 px-3 text-xs font-medium text-base-content shadow-sm";
-  const previewToolbarSectionClassName = "flex w-fit max-w-full min-w-0 flex-wrap items-center gap-2 rounded-none bg-base-300/70 px-2.5 py-1.5 shadow-sm";
+  const previewToolbarSectionClassName = "inline-flex w-fit max-w-full min-w-0 flex-wrap items-center gap-0 rounded-none bg-base-300/70 p-px shadow-sm";
   const directorCanvasContainerClassName = "overflow-hidden rounded-2xl border border-base-300 bg-base-100";
   const directorInsetPanelClassName = "rounded-2xl border border-base-300 bg-base-200/35 p-3";
 
