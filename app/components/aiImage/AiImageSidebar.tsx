@@ -204,14 +204,25 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
   const activeSimpleResolutionOption = simpleResolutionOptions.find(option => option.id === simpleResolutionSelection) ?? simpleResolutionOptions[simpleResolutionOptions.length - 1];
   const hasReadySimpleTags = isSimpleTagsEditor && hasSimpleTagsDraft;
   const hasGeneratedSimpleTags = hasSimpleTagsDraft || Boolean(simpleConverted);
+  const simpleGenerateImageLabel = proGenerateLabel === "免费生成 1 张图像" ? "生成图片" : proGenerateLabel;
   const simplePrimaryActionLabel = hasReadySimpleTags
-    ? proGenerateLabel
+    ? simpleGenerateImageLabel
     : simpleConvertLabel !== "转化为 tags"
         ? simpleConvertLabel
         : hasGeneratedSimpleTags
-            ? "重新生成tags"
+            ? "重生成tags"
             : "生成tags";
   const canTriggerSimplePrimaryAction = hasReadySimpleTags ? canGenerateFromSimpleTags : canConvertSimpleText;
+  const simplePrimaryActionToneClassName = hasReadySimpleTags
+    ? "border-[#7C3AED] bg-[#7C3AED] text-white hover:bg-[#6D28D9]"
+    : hasGeneratedSimpleTags
+        ? "border-[#F59E0B] bg-[#F59E0B] text-white hover:bg-[#D97706]"
+        : "border-[#16A34A] bg-[#16A34A] text-white hover:bg-[#15803D]";
+  const simplePrimaryActionBadgeClassName = hasReadySimpleTags
+    ? "border-white/20 bg-white/10 text-white"
+    : hasGeneratedSimpleTags
+        ? "border-white/20 bg-white/10 text-white"
+        : "border-white/20 bg-white/10 text-white";
 
   useEffect(() => {
     if (isModeSelectorOpen) {
@@ -374,7 +385,8 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
   }
 
   return (
-    <div ref={sidebarSurfaceRef} className={`${isDirectorToolsOpen ? "hidden" : "flex"} h-full min-h-0 w-full min-w-0 flex-col gap-0 overflow-auto bg-[#F3F5F7] p-0 dark:bg-[#161A1F]`}>
+    <div ref={sidebarSurfaceRef} className={`${isDirectorToolsOpen ? "hidden" : "flex"} h-full min-h-0 w-full min-w-0 flex-col gap-0 overflow-hidden bg-[#F3F5F7] p-0 dark:bg-[#161A1F]`}>
+      <div className="min-h-0 flex-1 overflow-y-auto">
       {isModeSelectorMounted
         ? (
             <div
@@ -1424,12 +1436,18 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
         </div>
       </div>
 
+      </div>
+
       {uiMode === "simple" || uiMode === "pro"
         ? (
-            <div className="sticky bottom-0 z-10 border-t border-[#D6DCE3] bg-[#F3F5F7] p-4 backdrop-blur dark:border-[#2A3138] dark:bg-[#161A1F]">
+            <div className="shrink-0 border-t border-[#D6DCE3] bg-[#F3F5F7] p-4 backdrop-blur dark:border-[#2A3138] dark:bg-[#161A1F]">
               <button
                 type="button"
-                className="btn btn-primary h-12 w-full justify-between px-4"
+                className={`btn h-12 w-full justify-between border px-4 disabled:border-0 disabled:bg-base-300 disabled:text-base-content/40 ${
+                  uiMode === "simple"
+                    ? simplePrimaryActionToneClassName
+                    : "btn-primary"
+                }`}
                 disabled={uiMode === "simple" ? !canTriggerSimplePrimaryAction : !canTriggerProGenerate}
                 onClick={() => {
                   if (uiMode === "simple") {
@@ -1448,7 +1466,7 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                   ? (
                       hasReadySimpleTags
                         ? (
-                            <span className="badge badge-sm badge-outline px-2 py-1 text-xs font-semibold text-current">
+                            <span className={`badge badge-sm badge-outline px-2 py-1 text-xs font-semibold ${simplePrimaryActionBadgeClassName}`}>
                               1x
                             </span>
                           )
