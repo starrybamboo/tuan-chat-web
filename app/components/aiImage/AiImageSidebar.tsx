@@ -204,20 +204,19 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
   const activeSimpleResolutionOption = simpleResolutionOptions.find(option => option.id === simpleResolutionSelection) ?? simpleResolutionOptions[simpleResolutionOptions.length - 1];
   const hasReadySimpleTags = isSimpleTagsEditor && hasSimpleTagsDraft;
   const hasGeneratedSimpleTags = hasSimpleTagsDraft || Boolean(simpleConverted);
-  const simpleGenerateImageLabel = proGenerateLabel === "免费生成 1 张图像" ? "生成图片" : proGenerateLabel;
   const simplePrimaryActionLabel = hasReadySimpleTags
-    ? simpleGenerateImageLabel
+    ? proGenerateLabel
     : simpleConvertLabel !== "转化为 tags"
         ? simpleConvertLabel
         : hasGeneratedSimpleTags
-            ? "重生成tags"
+            ? "重新生成tags"
             : "生成tags";
   const canTriggerSimplePrimaryAction = hasReadySimpleTags ? canGenerateFromSimpleTags : canConvertSimpleText;
   const simplePrimaryActionToneClassName = hasReadySimpleTags
     ? "border-[#7C3AED] bg-[#7C3AED] text-white hover:bg-[#6D28D9]"
     : hasGeneratedSimpleTags
         ? "border-[#F59E0B] bg-[#F59E0B] text-white hover:bg-[#D97706]"
-        : "border-[#16A34A] bg-[#16A34A] text-white hover:bg-[#15803D]";
+        : "border-primary bg-primary text-primary-content hover:bg-primary/90";
   const simplePrimaryActionBadgeClassName = hasReadySimpleTags
     ? "border-white/20 bg-white/10 text-white"
     : hasGeneratedSimpleTags
@@ -513,7 +512,7 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                                   onClick={handleReturnToSimpleTags}
                                 >
                                   <ArrowCounterClockwise className="size-3.5" weight="bold" />
-                                  返回转换后 tags
+                                  返回tags
                                 </button>
                               )
                             : null}
