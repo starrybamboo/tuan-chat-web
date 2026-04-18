@@ -1,4 +1,4 @@
-import { ArrowRightIcon, ClipboardTextIcon, PlantIcon, PushPinIcon as PhosphorPushPinIcon, SelectionPlusIcon } from "@phosphor-icons/react";
+import { ArrowRightIcon, ClipboardTextIcon, FrameCornersIcon, MagicWandIcon, PlantIcon, PushPinIcon as PhosphorPushPinIcon, SelectionPlusIcon } from "@phosphor-icons/react";
 import type {
   ActivePreviewAction,
   DirectorToolId,
@@ -357,8 +357,28 @@ export function AiImagePreviewPane({
             <div className="flex min-h-[520px] flex-1 self-stretch flex-col overflow-hidden rounded-none border-y border-base-300 bg-base-100">
               {selectedPreviewResult
                 ? (
-                    <div className="flex justify-end px-3 py-2.5">
+                    <div className="flex justify-center px-3 py-2.5">
                       <div className={previewToolbarSectionClassName}>
+                        <button
+                          type="button"
+                          className={previewToolbarIconButtonClassName}
+                          title="Upscale"
+                          aria-label="Upscale"
+                          disabled={isBusy}
+                          onClick={() => void onRunUpscale()}
+                        >
+                          <MagicWandIcon className="size-[18px]" weight="bold" />
+                        </button>
+                        <button
+                          type="button"
+                          className={previewToolbarIconButtonClassName}
+                          title="Use as Base Image"
+                          aria-label="Use as Base Image"
+                          disabled={isBusy}
+                          onClick={onUseSelectedResultAsBaseImage}
+                        >
+                          <FrameCornersIcon className="size-[18px]" weight="bold" />
+                        </button>
                         <button
                           type="button"
                           className={previewToolbarIconButtonClassName}
