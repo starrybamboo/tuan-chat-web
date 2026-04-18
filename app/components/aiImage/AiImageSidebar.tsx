@@ -220,8 +220,7 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
     : hasGeneratedSimpleTags
         ? "border-white/20 bg-white/10 text-white"
         : "border-white/20 bg-white/10 text-white";
-  const floatingTopInputActionClassName = "btn btn-xs absolute right-3 top-0 z-10 -translate-y-1/2 bg-[#F3F5F7]/92 shadow-sm backdrop-blur-sm hover:bg-[#EAEFF4] dark:bg-[#161A1F]/92 dark:hover:bg-[#1B2026]";
-  const floatingBottomInputActionClassName = "btn btn-xs absolute right-3 bottom-0 z-10 translate-y-1/2 bg-[#F3F5F7]/92 shadow-sm backdrop-blur-sm hover:bg-[#EAEFF4] dark:bg-[#161A1F]/92 dark:hover:bg-[#1B2026]";
+  const floatingInputActionClassName = "btn btn-xs btn-ghost absolute right-3 top-3 z-10 border-0 bg-transparent px-2 shadow-none backdrop-blur-0 hover:bg-base-100/80 dark:hover:bg-[#1B2026]";
 
   useEffect(() => {
     if (isModeSelectorOpen) {
@@ -486,7 +485,7 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                   <div className={`grid transition-all duration-300 ease-out ${isSimpleTextEditor ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"}`}>
                     <div className="min-h-0 overflow-hidden">
                       <div className="flex w-full min-w-0 flex-col items-stretch gap-2">
-                        <div className="relative pt-3 pb-3">
+                        <div className="relative">
                           <textarea
                             className={simplePromptTextareaClassName}
                             value={simpleText}
@@ -506,7 +505,7 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                           />
                           <button
                             type="button"
-                            className={floatingTopInputActionClassName}
+                            className={floatingInputActionClassName}
                             onClick={() => setIsStylePickerOpen(true)}
                           >
                             添加画风
@@ -515,7 +514,7 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                             ? (
                                 <button
                                   type="button"
-                                  className={floatingBottomInputActionClassName}
+                                  className={`${floatingInputActionClassName} top-auto bottom-3`}
                                   onClick={handleReturnToSimpleTags}
                                 >
                                   <ArrowCounterClockwise className="size-3.5" weight="bold" />
@@ -639,7 +638,7 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                               </button>
                             </div>
                           </div>
-                          <div className="relative pb-3">
+                          <div className="relative">
                             <textarea
                               className={promptTextareaClassName}
                               value={simplePromptTab === "prompt" ? simplePrompt : simpleNegativePrompt}
@@ -650,18 +649,11 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                                   setSimpleNegativePrompt(e.target.value);
                               }}
                             />
-                            <button
-                              type="button"
-                              className={floatingTopInputActionClassName}
-                              onClick={() => setIsStylePickerOpen(true)}
-                            >
-                              添加画风
-                            </button>
                             {hasSimpleTagsDraft
                               ? (
                                   <button
                                     type="button"
-                                    className={floatingBottomInputActionClassName}
+                                    className={`${floatingInputActionClassName} top-auto bottom-3`}
                                     onClick={handleReturnToSimpleText}
                                   >
                                     <ArrowCounterClockwise className="size-3.5" weight="bold" />
