@@ -197,13 +197,14 @@ body {
 }
 
 .ai-image-fade-scrollbar {
-  scrollbar-width: none;
-  scrollbar-color: rgba(148, 163, 184, 0.28) transparent;
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
 }
 
 .ai-image-fade-scrollbar::-webkit-scrollbar {
-  width: 0;
-  height: 0;
+  width: 6px;
+  height: 6px;
 }
 
 .ai-image-fade-scrollbar:hover,
@@ -224,13 +225,17 @@ body {
   background: transparent;
 }
 
+.ai-image-fade-scrollbar::-webkit-scrollbar-thumb {
+  background-color: transparent;
+  border: 2px solid transparent;
+  border-radius: 9999px;
+  background-clip: padding-box;
+}
+
 .ai-image-fade-scrollbar:hover::-webkit-scrollbar-thumb,
 .ai-image-fade-scrollbar:focus-within::-webkit-scrollbar-thumb,
 .ai-image-fade-scrollbar:active::-webkit-scrollbar-thumb {
   background-color: rgba(148, 163, 184, 0.34);
-  border: 2px solid transparent;
-  border-radius: 9999px;
-  background-clip: padding-box;
 }
 
 .ai-image-fade-scrollbar::-webkit-scrollbar-corner {
