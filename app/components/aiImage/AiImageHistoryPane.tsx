@@ -58,14 +58,22 @@ interface AiImageHistoryPaneProps {
 
 const HISTORY_THUMBNAIL_IMAGE_CLASS_NAME = "block h-full w-full object-contain";
 
-function DeleteHistoryConfirmModal({
+function HistoryConfirmModal({
   isOpen,
   onClose,
   onConfirm,
+  icon,
+  title,
+  confirmLabel,
+  cancelLabel = "No, keep it!",
 }: {
   isOpen: boolean;
   onClose: () => void;
   onConfirm: () => void | Promise<void>;
+  icon: React.ReactNode;
+  title: string;
+  confirmLabel: string;
+  cancelLabel?: string;
 }) {
   useEffect(() => {
     if (!isOpen)
@@ -118,11 +126,11 @@ function DeleteHistoryConfirmModal({
           </button>
 
           <div className="relative mx-auto flex size-32 items-center justify-center rounded-full border border-base-content/10 bg-base-200/80 shadow-[inset_0_1px_0_rgba(255,255,255,0.5)]">
-            <TrashSimpleIcon className="size-14 text-primary" weight="regular" aria-hidden="true" />
+            {icon}
           </div>
 
           <div className="relative mt-6 text-[18px] font-semibold leading-7 text-base-content">
-            Delete this image?
+            {title}
           </div>
 
           <button
@@ -130,7 +138,7 @@ function DeleteHistoryConfirmModal({
             className="relative mt-8 w-full rounded-[10px] bg-[#f6f2b5] px-4 py-4 text-[16px] font-semibold text-[#10122f] transition hover:bg-[#fbf7c7]"
             onClick={() => void onConfirm()}
           >
-            Delete it!
+            {confirmLabel}
           </button>
 
           <button
@@ -138,7 +146,7 @@ function DeleteHistoryConfirmModal({
             className="relative mt-4 text-[15px] font-medium text-base-content/65 transition hover:text-base-content"
             onClick={onClose}
           >
-            No, keep it!
+            {cancelLabel}
           </button>
         </div>
       </div>
@@ -146,6 +154,51 @@ function DeleteHistoryConfirmModal({
         <button type="button" onClick={onClose}>close</button>
       </form>
     </dialog>
+  );
+}
+
+function DeleteHistoryConfirmModal(props: {
+  isOpen: boolean;
+  onClose: () => void;
+  onConfirm: () => void | Promise<void>;
+}) {
+  return (
+    <HistoryConfirmModal
+      {...props}
+      icon={<TrashSimpleIcon className="size-14 text-primary" weight="regular" aria-hidden="true" />}
+      title="Delete this image?"
+      confirmLabel="Delete it!"
+    />
+  );
+}
+
+function DownloadHistoryConfirmModal(props: {
+  isOpen: boolean;
+  onClose: () => void;
+  onConfirm: () => void | Promise<void>;
+}) {
+  return (
+    <HistoryConfirmModal
+      {...props}
+      icon={<SharpDownload className="size-14 text-primary" aria-hidden="true" />}
+      title="Download all images?"
+      confirmLabel="Download it!"
+    />
+  );
+}
+
+function ClearHistoryConfirmModal(props: {
+  isOpen: boolean;
+  onClose: () => void;
+  onConfirm: () => void | Promise<void>;
+}) {
+  return (
+    <HistoryConfirmModal
+      {...props}
+      icon={<TrashSimpleIcon className="size-14 text-primary" weight="regular" aria-hidden="true" />}
+      title="Clear all history?"
+      confirmLabel="Clear it!"
+    />
   );
 }
 
@@ -230,12 +283,12 @@ function HistoryHint() {
 
 function HistoryActionsFooter({
   historyLength,
-  onDownloadAll,
-  onClearHistory,
+  onRequestDownloadAll,
+  onRequestClearHistory,
 }: {
   historyLength: number;
-  onDownloadAll: () => void;
-  onClearHistory: () => void | Promise<void>;
+  onRequestDownloadAll: () => void;
+  onRequestClearHistory: () => void;
 }) {
   return (
     <div className="mt-3 flex shrink-0 flex-col gap-2 border-t border-[#D6DCE3] pt-3 dark:border-[#2A3138]">
@@ -243,7 +296,7 @@ function HistoryActionsFooter({
         type="button"
         className="btn btn-sm btn-outline w-full gap-2"
         disabled={!historyLength}
-        onClick={onDownloadAll}
+        onClick={onRequestDownloadAll}
       >
         <SharpDownload className="size-4" />
         <span>Download ZIP</span>
@@ -252,7 +305,7 @@ function HistoryActionsFooter({
         type="button"
         className="btn btn-sm btn-ghost w-full disabled:border-base-300 disabled:bg-base-200 disabled:text-base-content/40"
         disabled={!historyLength}
-        onClick={() => void onClearHistory()}
+        onClick={onRequestClearHistory}
       >
         Clear History
       </button>
@@ -321,6 +374,8 @@ export function AiImageHistoryPane({
   const directorHistoryCardIdleClassName = "border-base-300 bg-base-100 hover:border-primary/35 hover:bg-base-200/55";
   const directorHistoryCardActiveClassName = "border-primary/45 bg-primary/10";
   const [pendingDeleteHistoryRow, setPendingDeleteHistoryRow] = useState<AiImageHistoryRow | null>(null);
+  const [isDownloadHistoryConfirmOpen, setIsDownloadHistoryConfirmOpen] = useState(false);
+  const [isClearHistoryConfirmOpen, setIsClearHistoryConfirmOpen] = useState(false);
 
   const requestDeleteHistoryRow = useCallback((row: AiImageHistoryRow) => {
     if (typeof row.id !== "number")
@@ -340,6 +395,43 @@ export function AiImageHistoryPane({
     setPendingDeleteHistoryRow(null);
     await onDeleteHistoryRow(row);
   }, [onDeleteHistoryRow, pendingDeleteHistoryRow]);
+
+  const handleOpenDownloadHistoryConfirm = useCallback(() => {
+    if (!history.length)
+      return;
+    setIsDownloadHistoryConfirmOpen(true);
+  }, [history.length]);
+
+  const handleCloseDownloadHistoryConfirm = useCallback(() => {
+    setIsDownloadHistoryConfirmOpen(false);
+  }, []);
+
+  const handleConfirmDownloadHistory = useCallback(() => {
+    setIsDownloadHistoryConfirmOpen(false);
+    onDownloadAll();
+  }, [onDownloadAll]);
+
+  const handleOpenClearHistoryConfirm = useCallback(() => {
+    if (!history.length)
+      return;
+    setIsClearHistoryConfirmOpen(true);
+  }, [history.length]);
+
+  const handleCloseClearHistoryConfirm = useCallback(() => {
+    setIsClearHistoryConfirmOpen(false);
+  }, []);
+
+  const handleConfirmClearHistory = useCallback(async () => {
+    setIsClearHistoryConfirmOpen(false);
+    await onClearHistory();
+  }, [onClearHistory]);
+
+  useEffect(() => {
+    if (history.length)
+      return;
+    setIsDownloadHistoryConfirmOpen(false);
+    setIsClearHistoryConfirmOpen(false);
+  }, [history.length]);
 
   if (isDirectorToolsOpen) {
     return (
@@ -465,11 +557,21 @@ export function AiImageHistoryPane({
           </div>
           <HistoryActionsFooter
             historyLength={history.length}
-            onDownloadAll={onDownloadAll}
-            onClearHistory={onClearHistory}
+            onRequestDownloadAll={handleOpenDownloadHistoryConfirm}
+            onRequestClearHistory={handleOpenClearHistoryConfirm}
           />
           </div>
         </div>
+        <DownloadHistoryConfirmModal
+          isOpen={isDownloadHistoryConfirmOpen}
+          onClose={handleCloseDownloadHistoryConfirm}
+          onConfirm={handleConfirmDownloadHistory}
+        />
+        <ClearHistoryConfirmModal
+          isOpen={isClearHistoryConfirmOpen}
+          onClose={handleCloseClearHistoryConfirm}
+          onConfirm={() => void handleConfirmClearHistory()}
+        />
         <DeleteHistoryConfirmModal
           isOpen={Boolean(pendingDeleteHistoryRow)}
           onClose={handleCloseDeleteHistoryRow}
@@ -551,11 +653,21 @@ export function AiImageHistoryPane({
           </div>
           <HistoryActionsFooter
             historyLength={history.length}
-            onDownloadAll={onDownloadAll}
-            onClearHistory={onClearHistory}
+            onRequestDownloadAll={handleOpenDownloadHistoryConfirm}
+            onRequestClearHistory={handleOpenClearHistoryConfirm}
           />
         </div>
       </div>
+      <DownloadHistoryConfirmModal
+        isOpen={isDownloadHistoryConfirmOpen}
+        onClose={handleCloseDownloadHistoryConfirm}
+        onConfirm={handleConfirmDownloadHistory}
+      />
+      <ClearHistoryConfirmModal
+        isOpen={isClearHistoryConfirmOpen}
+        onClose={handleCloseClearHistoryConfirm}
+        onConfirm={() => void handleConfirmClearHistory()}
+      />
       <DeleteHistoryConfirmModal
         isOpen={Boolean(pendingDeleteHistoryRow)}
         onClose={handleCloseDeleteHistoryRow}
