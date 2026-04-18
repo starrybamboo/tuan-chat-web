@@ -1,4 +1,4 @@
-import { ClipboardIcon, PlantIcon } from "@phosphor-icons/react";
+import { ClipboardTextIcon, PlantIcon, PushPinIcon as PhosphorPushPinIcon } from "@phosphor-icons/react";
 import type {
   ActivePreviewAction,
   DirectorToolId,
@@ -7,7 +7,7 @@ import type {
   NovelAiEmotion,
 } from "@/components/aiImage/types";
 import { DIRECTOR_EMOTION_OPTIONS, DIRECTOR_TOOL_OPTIONS } from "@/components/aiImage/constants";
-import { ChevronDown, ExpandCornersIcon, PushPinIcon, SharpDownload } from "@/icons";
+import { ChevronDown, ExpandCornersIcon, SharpDownload } from "@/icons";
 
 interface AiImagePreviewPaneProps {
   isDirectorToolsOpen: boolean;
@@ -379,7 +379,7 @@ export function AiImagePreviewPane({
                         onClick={onSelectPinnedPreview}
                       >
                         <div className="mb-1 flex items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-base-content/60">
-                          <PushPinIcon className="size-3" />
+                          <PhosphorPushPinIcon className="size-3.5" weight="regular" />
                           <span>Pinned</span>
                         </div>
                         <img src={pinnedPreviewResult.dataUrl} className="h-20 w-20 rounded-xl object-cover" alt="pinned-preview" />
@@ -400,7 +400,7 @@ export function AiImagePreviewPane({
                           aria-label="展开查看当前预览"
                           onClick={onOpenPreviewImage}
                         >
-                          <ExpandCornersIcon className="size-4" />
+                          <ExpandCornersIcon className="size-[18px]" />
                         </button>
                       </div>
                       <div className={`${previewToolbarSectionClassName} justify-start sm:ml-auto sm:justify-end`}>
@@ -411,7 +411,7 @@ export function AiImagePreviewPane({
                           aria-label={isSelectedPreviewPinned ? "取消固定当前预览" : "固定当前预览"}
                           onClick={onTogglePinnedPreview}
                         >
-                          <PushPinIcon className="size-4" />
+                          <PhosphorPushPinIcon className="size-[18px]" weight="regular" />
                         </button>
                         <button
                           type="button"
@@ -421,7 +421,7 @@ export function AiImagePreviewPane({
                           aria-label="导入当前预览的生成设置"
                           onClick={onApplySelectedPreviewSettings}
                         >
-                          <ClipboardIcon className="size-4" weight="regular" />
+                          <ClipboardTextIcon className="size-[18px]" weight="regular" />
                         </button>
                         <button
                           type="button"
@@ -430,7 +430,7 @@ export function AiImagePreviewPane({
                           aria-label="下载当前预览"
                           onClick={onDownloadCurrent}
                         >
-                          <SharpDownload className="size-4" />
+                          <SharpDownload className="size-[18px]" />
                         </button>
                         <button
                           type="button"
@@ -439,7 +439,7 @@ export function AiImagePreviewPane({
                           aria-label="将当前预览 seed 回填到设置"
                           onClick={onApplySelectedPreviewSeed}
                         >
-                          <PlantIcon className="size-4" weight="regular" />
+                          <PlantIcon className="size-[18px]" weight="regular" />
                           <span className="font-mono text-[11px]">{selectedPreviewResult.seed}</span>
                         </button>
                       </div>
