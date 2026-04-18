@@ -367,7 +367,7 @@ export function AiImagePreviewPane({
                           disabled={isBusy}
                           onClick={() => void onRunUpscale()}
                         >
-                          <MagicWandIcon className="size-[18px]" weight="bold" />
+                          <FrameCornersIcon className="size-[18px]" weight="bold" />
                         </button>
                         <button
                           type="button"
@@ -377,7 +377,7 @@ export function AiImagePreviewPane({
                           disabled={isBusy}
                           onClick={onUseSelectedResultAsBaseImage}
                         >
-                          <FrameCornersIcon className="size-[18px]" weight="bold" />
+                          <MagicWandIcon className="size-[18px]" weight="bold" />
                         </button>
                         <button
                           type="button"
