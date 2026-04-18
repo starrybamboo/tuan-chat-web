@@ -1479,6 +1479,19 @@ export function useAiImagePageController() {
     setSelectedStyleIds([]);
   }, []);
 
+  const handleClearSimpleDraft = useCallback(() => {
+    setSimpleText("");
+    setSimpleConverted(null);
+    setSimpleConvertedFromText("");
+    setSimplePrompt("");
+    setSimpleNegativePrompt("");
+    setSimpleEditorMode("text");
+    setSimplePromptTab("prompt");
+    setSelectedStyleIds([]);
+    setCompareStyleId(null);
+    setStyleSelectionMode("select");
+  }, []);
+
   const handleClearActiveStyles = useCallback(() => {
     if (styleSelectionMode === "compare") {
       setCompareStyleId(null);
@@ -1747,11 +1760,13 @@ export function useAiImagePageController() {
     fixedModelDescription,
     freeGenerationViolation,
     hasSimpleTagsDraft,
+    isBusy,
     handleAddV4Char,
     handleClearSeed,
     handleClearCurrentDisplayedImage,
     handleOpenSourceImagePicker,
     handleClearSourceImage,
+    handleClearSimpleDraft,
     handleClearStyles: handleClearActiveStyles,
     handleCropToClosestValidSize,
     handleMoveV4Char,
