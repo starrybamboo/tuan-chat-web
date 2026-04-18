@@ -18,7 +18,7 @@ interface HighlightEmphasisTextareaProps extends Omit<TextareaHTMLAttributes<HTM
 }
 
 const NUMERIC_EMPHASIS_PATTERN = /^-?(?:\d+(?:\.\d+)?|\.\d+)::/;
-const NUMERIC_CLOSE_CLASS_NAME = "bg-emerald-300/78 font-medium text-emerald-950 dark:bg-emerald-300/30 dark:text-emerald-50";
+const NUMERIC_CLOSE_CLASS_NAME = "bg-emerald-400/82 font-medium text-emerald-950 dark:bg-emerald-400/36 dark:text-emerald-50";
 
 const SEGMENT_CLASS_MAP: Record<SegmentTone, Record<0 | 1 | 2 | 3, { syntax: string; text: string }>> = {
   neutral: {
@@ -45,16 +45,16 @@ const SEGMENT_CLASS_MAP: Record<SegmentTone, Record<0 | 1 | 2 | 3, { syntax: str
       text: "text-base-content/90 dark:text-base-content/90",
     },
     1: {
-      syntax: "bg-amber-300/70 text-amber-950 dark:bg-amber-300/24 dark:text-amber-50",
-      text: "bg-amber-300/70 text-amber-950 dark:bg-amber-300/24 dark:text-amber-50",
+      syntax: "bg-amber-400/78 text-amber-950 dark:bg-amber-400/32 dark:text-amber-50",
+      text: "bg-amber-400/78 text-amber-950 dark:bg-amber-400/32 dark:text-amber-50",
     },
     2: {
-      syntax: "bg-orange-300/75 font-medium text-orange-950 dark:bg-orange-300/28 dark:text-orange-50",
-      text: "bg-orange-300/75 font-medium text-orange-950 dark:bg-orange-300/28 dark:text-orange-50",
+      syntax: "bg-orange-400/82 font-medium text-orange-950 dark:bg-orange-400/36 dark:text-orange-50",
+      text: "bg-orange-400/82 font-medium text-orange-950 dark:bg-orange-400/36 dark:text-orange-50",
     },
     3: {
-      syntax: "bg-rose-300/80 font-semibold text-rose-950 dark:bg-rose-300/34 dark:text-rose-50",
-      text: "bg-rose-300/80 font-semibold text-rose-950 dark:bg-rose-300/34 dark:text-rose-50",
+      syntax: "bg-rose-400/84 font-semibold text-rose-950 dark:bg-rose-400/42 dark:text-rose-50",
+      text: "bg-rose-400/84 font-semibold text-rose-950 dark:bg-rose-400/42 dark:text-rose-50",
     },
   },
   weaken: {
@@ -63,16 +63,16 @@ const SEGMENT_CLASS_MAP: Record<SegmentTone, Record<0 | 1 | 2 | 3, { syntax: str
       text: "text-base-content/90 dark:text-base-content/90",
     },
     1: {
-      syntax: "bg-sky-300/60 text-sky-950 dark:bg-sky-300/20 dark:text-sky-50",
-      text: "bg-sky-300/60 text-sky-950 dark:bg-sky-300/20 dark:text-sky-50",
+      syntax: "bg-sky-400/72 text-sky-950 dark:bg-sky-400/28 dark:text-sky-50",
+      text: "bg-sky-400/72 text-sky-950 dark:bg-sky-400/28 dark:text-sky-50",
     },
     2: {
-      syntax: "bg-blue-300/68 font-medium text-blue-950 dark:bg-blue-300/24 dark:text-blue-50",
-      text: "bg-blue-300/68 font-medium text-blue-950 dark:bg-blue-300/24 dark:text-blue-50",
+      syntax: "bg-blue-400/78 font-medium text-blue-950 dark:bg-blue-400/34 dark:text-blue-50",
+      text: "bg-blue-400/78 font-medium text-blue-950 dark:bg-blue-400/34 dark:text-blue-50",
     },
     3: {
-      syntax: "bg-indigo-300/72 font-medium text-indigo-950 dark:bg-indigo-300/28 dark:text-indigo-50",
-      text: "bg-indigo-300/72 font-medium text-indigo-950 dark:bg-indigo-300/28 dark:text-indigo-50",
+      syntax: "bg-indigo-400/82 font-medium text-indigo-950 dark:bg-indigo-400/38 dark:text-indigo-50",
+      text: "bg-indigo-400/82 font-medium text-indigo-950 dark:bg-indigo-400/38 dark:text-indigo-50",
     },
   },
   inverse: {
@@ -81,16 +81,16 @@ const SEGMENT_CLASS_MAP: Record<SegmentTone, Record<0 | 1 | 2 | 3, { syntax: str
       text: "text-base-content/90 dark:text-base-content/90",
     },
     1: {
-      syntax: "bg-fuchsia-300/68 text-fuchsia-950 dark:bg-fuchsia-300/22 dark:text-fuchsia-50",
-      text: "bg-fuchsia-300/68 text-fuchsia-950 dark:bg-fuchsia-300/22 dark:text-fuchsia-50",
+      syntax: "bg-fuchsia-400/76 text-fuchsia-950 dark:bg-fuchsia-400/30 dark:text-fuchsia-50",
+      text: "bg-fuchsia-400/76 text-fuchsia-950 dark:bg-fuchsia-400/30 dark:text-fuchsia-50",
     },
     2: {
-      syntax: "bg-pink-300/75 font-medium text-pink-950 dark:bg-pink-300/28 dark:text-pink-50",
-      text: "bg-pink-300/75 font-medium text-pink-950 dark:bg-pink-300/28 dark:text-pink-50",
+      syntax: "bg-pink-400/82 font-medium text-pink-950 dark:bg-pink-400/36 dark:text-pink-50",
+      text: "bg-pink-400/82 font-medium text-pink-950 dark:bg-pink-400/36 dark:text-pink-50",
     },
     3: {
-      syntax: "bg-rose-300/82 font-semibold text-rose-950 dark:bg-rose-300/36 dark:text-rose-50",
-      text: "bg-rose-300/82 font-semibold text-rose-950 dark:bg-rose-300/36 dark:text-rose-50",
+      syntax: "bg-rose-400/86 font-semibold text-rose-950 dark:bg-rose-400/44 dark:text-rose-50",
+      text: "bg-rose-400/86 font-semibold text-rose-950 dark:bg-rose-400/44 dark:text-rose-50",
     },
   },
 };
