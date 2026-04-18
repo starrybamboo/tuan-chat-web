@@ -722,14 +722,14 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                           }}
                         >
                           <div className="mb-4 flex items-center gap-2 border-b border-[#D6DCE3] pb-3 dark:border-[#2A3138]">
-                            <div className="rounded-md bg-base-100 px-2 py-1 text-sm font-medium text-base-content shadow-sm dark:bg-[#1B2026]">
+                            <div className="rounded-md bg-base-100 px-2 py-1 text-xs font-medium text-base-content shadow-sm dark:bg-[#1B2026]">
                               Settings
                             </div>
                           </div>
 
                           <div className="space-y-5">
                             <div className="flex items-center justify-between gap-3">
-                              <div className="text-sm font-medium text-base-content">Quality Tags Enabled</div>
+                              <div className="text-sm font-semibold text-base-content">Add Quality tags</div>
                               <input
                                 type="checkbox"
                                 className="toggle toggle-sm"
