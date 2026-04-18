@@ -20,7 +20,7 @@ import {
   clampRange,
   clampToMultipleOf64,
   formatSliderValue,
-  insertNovelAiRandomizerTag,
+  insertNovelAiRandomTags,
   modelLabel,
 } from "@/components/aiImage/helpers";
 import { HighlightEmphasisTextarea } from "@/components/aiImage/HighlightEmphasisTextarea";
@@ -384,7 +384,7 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
   }, [isProPromptSettingsOpen]);
 
   const handleInsertProRandomizerTag = useCallback(() => {
-    const insertion = insertNovelAiRandomizerTag({
+    const insertion = insertNovelAiRandomTags({
       kind: proPromptTab === "prompt" ? "prompt" : "negative",
       value: proPromptTab === "prompt" ? prompt : negativePrompt,
       selectionStart: proPromptTextareaRef.current?.selectionStart,
