@@ -1,4 +1,4 @@
-import { ClipboardTextIcon, LeafIcon, PushPinSimpleIcon } from "@phosphor-icons/react";
+import { ClipboardIcon, PlantIcon } from "@phosphor-icons/react";
 import type {
   ActivePreviewAction,
   DirectorToolId,
@@ -7,7 +7,7 @@ import type {
   NovelAiEmotion,
 } from "@/components/aiImage/types";
 import { DIRECTOR_EMOTION_OPTIONS, DIRECTOR_TOOL_OPTIONS } from "@/components/aiImage/constants";
-import { ChevronDown, ExpandCornersIcon, SharpDownload } from "@/icons";
+import { ChevronDown, ExpandCornersIcon, PushPinIcon, SharpDownload } from "@/icons";
 
 interface AiImagePreviewPaneProps {
   isDirectorToolsOpen: boolean;
@@ -116,6 +116,7 @@ export function AiImagePreviewPane({
   const previewToolbarControlSurfaceClassName = "!rounded-none border-0 bg-base-300/70 shadow-none";
   const previewToolbarIconButtonClassName = `inline-flex size-9 shrink-0 items-center justify-center ${previewToolbarControlSurfaceClassName} text-base-content/70 transition-colors hover:bg-base-300/85 hover:text-base-content disabled:cursor-not-allowed disabled:opacity-50`;
   const previewToolbarPillClassName = `inline-flex h-9 items-center ${previewToolbarControlSurfaceClassName} px-3 text-xs font-medium text-base-content`;
+  const previewToolbarActionButtonClassName = `inline-flex h-9 items-center gap-2 ${previewToolbarControlSurfaceClassName} px-3 text-xs text-base-content transition-colors hover:bg-base-300/85`;
   const previewToolbarSectionClassName = "inline-flex w-fit max-w-full min-w-0 flex-wrap items-center gap-0 rounded-none bg-white/22 p-px shadow-sm";
   const directorCanvasContainerClassName = "overflow-hidden rounded-2xl border border-base-300 bg-base-100";
   const directorInsetPanelClassName = "rounded-2xl border border-base-300 bg-base-200/35 p-3";
@@ -378,7 +379,7 @@ export function AiImagePreviewPane({
                         onClick={onSelectPinnedPreview}
                       >
                         <div className="mb-1 flex items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-base-content/60">
-                          <PushPinSimpleIcon className="size-3" weight="regular" />
+                          <PushPinIcon className="size-3" />
                           <span>Pinned</span>
                         </div>
                         <img src={pinnedPreviewResult.dataUrl} className="h-20 w-20 rounded-xl object-cover" alt="pinned-preview" />
@@ -410,7 +411,7 @@ export function AiImagePreviewPane({
                           aria-label={isSelectedPreviewPinned ? "取消固定当前预览" : "固定当前预览"}
                           onClick={onTogglePinnedPreview}
                         >
-                          <PushPinSimpleIcon className="size-4" weight="regular" />
+                          <PushPinIcon className="size-4" />
                         </button>
                         <button
                           type="button"
@@ -420,7 +421,7 @@ export function AiImagePreviewPane({
                           aria-label="导入当前预览的生成设置"
                           onClick={onApplySelectedPreviewSettings}
                         >
-                          <ClipboardTextIcon className="size-4" weight="regular" />
+                          <ClipboardIcon className="size-4" weight="regular" />
                         </button>
                         <button
                           type="button"
@@ -433,12 +434,13 @@ export function AiImagePreviewPane({
                         </button>
                         <button
                           type="button"
-                          className={previewToolbarIconButtonClassName}
+                          className={previewToolbarActionButtonClassName}
                           title="将当前预览 seed 回填到设置"
                           aria-label="将当前预览 seed 回填到设置"
                           onClick={onApplySelectedPreviewSeed}
                         >
-                          <LeafIcon className="size-4" weight="regular" />
+                          <PlantIcon className="size-4" weight="regular" />
+                          <span className="font-mono text-[11px]">{selectedPreviewResult.seed}</span>
                         </button>
                       </div>
                     </div>
