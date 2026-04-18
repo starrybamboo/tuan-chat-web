@@ -1,11 +1,13 @@
 import type { DocMode } from "@blocksuite/affine/model";
 import type { BlockModel, ExtensionType, Store } from "@blocksuite/affine/store";
+import type { Subscription } from "rxjs";
 
 import { SignalWatcher, WithDisposable } from "@blocksuite/affine/global/lit";
+import { RefNodeSlotsProvider } from "@blocksuite/affine/inlines/reference";
 import { ThemeProvider } from "@blocksuite/affine/shared/services";
 import { BlockStdScope, ShadowlessElement } from "@blocksuite/affine/std";
 import { computed, signal } from "@preact/signals-core";
-import { css, html } from "lit";
+import { css, html, type PropertyValues } from "lit";
 import { property } from "lit/decorators.js";
 import { keyed } from "lit/directives/keyed.js";
 import { when } from "lit/directives/when.js";
@@ -102,6 +104,8 @@ class TCAffineEditorContainer extends SignalWatcher(
   private readonly _specs = computed(() =>
     this._mode.value === "page" ? this._pageSpecs.value : this._edgelessSpecs.value,
   );
+  private _docLinkSubscription: Subscription | null = null;
+  private _docLinkSubscriptionStd: BlockStdScope | null = null;
 
   private readonly _std = computed(() => {
     // std 是 BlockSuite 的“渲染宿主”，负责把 store + specs 变成真正的 editor-host。
@@ -169,7 +173,14 @@ class TCAffineEditorContainer extends SignalWatcher(
     this._disposables.add(this.doc.slots.rootAdded.subscribe(() => this.requestUpdate()));
   }
 
+  override disconnectedCallback() {
+    this._teardownDocLinkSubscription();
+    super.disconnectedCallback();
+  }
+
   override firstUpdated() {
+    this._bindDocLinkSubscription();
+
     if (this.mode === "page") {
       setTimeout(() => {
         if (this.autofocus && this.mode === "page") {
@@ -178,6 +189,10 @@ class TCAffineEditorContainer extends SignalWatcher(
         }
       });
     }
+  }
+
+  override updated(_changedProperties: PropertyValues) {
+    this._bindDocLinkSubscription();
   }
 
   override render() {
@@ -225,11 +240,40 @@ class TCAffineEditorContainer extends SignalWatcher(
     this._mode.value = mode;
   }
 
+  private _bindDocLinkSubscription() {
+    const std = this.std;
+    if (this._docLinkSubscriptionStd === std && this._docLinkSubscription) {
+      return;
+    }
+
+    this._teardownDocLinkSubscription();
+    this._docLinkSubscriptionStd = std;
+
+    try {
+      const provider: any = std.getOptional(RefNodeSlotsProvider as any);
+      this._docLinkSubscription = provider?.docLinkClicked?.subscribe?.((event: { pageId: string; host?: unknown }) => {
+        this.onDocLinkClicked?.(event);
+      }) ?? null;
+    }
+    catch {
+      this._docLinkSubscription = null;
+    }
+  }
+
+  private _teardownDocLinkSubscription() {
+    this._docLinkSubscription?.unsubscribe();
+    this._docLinkSubscription = null;
+    this._docLinkSubscriptionStd = null;
+  }
+
   @property({ attribute: false })
   override accessor autofocus = false;
 
   @property({ attribute: false })
   accessor disableDocTitle = false;
+
+  @property({ attribute: false })
+  accessor onDocLinkClicked: ((event: { pageId: string; host?: unknown }) => void) | null = null;
 }
 
 export function ensureTCAffineEditorContainerDefined() {

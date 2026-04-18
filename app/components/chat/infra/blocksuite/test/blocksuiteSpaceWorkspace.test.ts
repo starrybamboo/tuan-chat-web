@@ -1,7 +1,12 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import * as Y from "yjs";
 
+import { BlocksuiteRemoteImageBlobSource } from "../space/runtime/blocksuiteRemoteImageBlobSource";
 import { SpaceWorkspace } from "../space/runtime/spaceWorkspace";
+
+const { blobEngineCtorArgs } = vi.hoisted(() => ({
+  blobEngineCtorArgs: [] as Array<{ main: unknown; shadows: unknown[]; logger: unknown }>,
+}));
 
 vi.mock("@/components/chat/infra/blocksuite/manager/store", () => ({
   BLOCKSUITE_STORE_EXTENSIONS: [],
@@ -24,8 +29,20 @@ vi.mock("@/components/chat/infra/blocksuite/space/runtime/blocksuiteWsClient", (
   },
 }));
 
+vi.mock("api/instance", () => ({
+  tuanchat: {
+    ossController: {
+      getUploadUrl: vi.fn(),
+    },
+  },
+}));
+
 vi.mock("@blocksuite/sync", () => ({
   BlobEngine: class {
+    constructor(main: unknown, shadows: unknown[], logger: unknown) {
+      blobEngineCtorArgs.push({ main, shadows, logger });
+    }
+
     start() {}
     stop() {}
   },
@@ -46,6 +63,15 @@ function seedExistingDoc(workspace: SpaceWorkspace, docId: string) {
 describe("blocksuiteSpaceWorkspace", () => {
   afterEach(() => {
     vi.clearAllMocks();
+    blobEngineCtorArgs.length = 0;
+  });
+
+  it("workspace 会接入远端图片 blob source", () => {
+    const workspace = new SpaceWorkspace({ workspaceId: "space:blob" });
+
+    expect(blobEngineCtorArgs.at(-1)?.main).toBeInstanceOf(BlocksuiteRemoteImageBlobSource);
+
+    workspace.dispose();
   });
 
   it("能为已存在于 spaces map 的文档惰性 materialize doc 实例", () => {

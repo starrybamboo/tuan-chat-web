@@ -1,5 +1,3 @@
-import { RefNodeSlotsProvider } from "@blocksuite/affine/inlines/reference";
-
 import type { CreateBlocksuiteEditorParams } from "./blocksuiteEditorAssemblyContext";
 
 import {
@@ -134,24 +132,16 @@ export function createBlocksuiteEditorClient(params: CreateBlocksuiteEditorParam
     ...mergedExtensions.edgelessExtensions,
     ...mergedExtensions.sharedExtensions,
   ];
-  addBlocksuiteEditorDisposer(context, installBlocksuiteSlashContextMenu(editor as any));
-
-  try {
-    const std = (editor as any).std;
-    const refProvider = std?.get?.(RefNodeSlotsProvider);
-    refProvider?.docLinkClicked?.subscribe?.(({ pageId: docId }: { pageId: string }) => {
-      handleBlocksuiteDocLinkNavigation({
-        docId,
-        editor: editor as any,
-        workspace: params.workspace,
-        onNavigateToDoc: params.onNavigateToDoc,
-        spaceId: params.spaceId,
-      });
+  (editor as any).onDocLinkClicked = ({ pageId: docId }: { pageId: string }) => {
+    handleBlocksuiteDocLinkNavigation({
+      docId,
+      editor: editor as any,
+      workspace: params.workspace,
+      onNavigateToDoc: params.onNavigateToDoc,
+      spaceId: params.spaceId,
     });
-  }
-  catch {
-    // best-effort; doc link jumping is optional when host-side routing is absent
-  }
+  };
+  addBlocksuiteEditorDisposer(context, installBlocksuiteSlashContextMenu(editor as any));
 
   const style = document.createElement("style");
   style.textContent = `
