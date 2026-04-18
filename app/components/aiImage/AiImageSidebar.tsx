@@ -1,5 +1,5 @@
 import type { AiImagePageController } from "@/components/aiImage/useAiImagePageController";
-import { ArrowCounterClockwise, CheckCircleIcon, CircleNotch, DiceFiveIcon, FileArrowUpIcon, GearSixIcon, ImageSquareIcon, PlusIcon, SparkleIcon, XCircleIcon } from "@phosphor-icons/react";
+import { ArrowCounterClockwise, CheckCircleIcon, CircleNotch, DiceFiveIcon, FileArrowUpIcon, GearSixIcon, ImageSquareIcon, PencilSimpleIcon, PlusIcon, SparkleIcon, TrashIcon, XCircleIcon } from "@phosphor-icons/react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   CUSTOM_RESOLUTION_ID,
@@ -67,6 +67,7 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
     handleAddV4Char,
     handleClearSeed,
     handleClearCurrentDisplayedImage,
+    handleClearSourceImage,
     handleClearSimpleDraft,
     handleCropToClosestValidSize,
     handleOpenSourceImagePicker,
@@ -156,6 +157,7 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
     simpleText,
     smea,
     smeaDyn,
+    sourceImageDataUrl,
     steps,
     strength,
     toggleProFeatureSection,
@@ -171,7 +173,7 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
   const editorPanelClassName = "rounded-2xl border border-[#D6DCE3] bg-[#F3F5F7] p-3 shadow-none dark:border-[#2A3138] dark:bg-[#161A1F]";
   const segmentedControlClassName = "join rounded-xl bg-transparent p-0";
   const segmentedButtonBaseClassName = "btn btn-xs join-item border-0";
-  const featureUploadActionClassName = "inline-flex size-11 items-center justify-center rounded-md border border-[#2A3138] bg-[#161A1F] text-base-content/78 transition hover:border-primary/40 hover:text-primary focus:outline-none focus:ring-2 focus:ring-primary/20";
+  const featureUploadActionClassName = "inline-flex size-11 items-center justify-center rounded-md border border-[#2A3138] bg-[#161A1F] text-base-content/78 transition hover:border-primary/40 hover:text-primary focus:outline-none";
   const featurePrimaryActionClassName = "inline-flex h-11 items-center gap-2 rounded-md border border-[#2A3138] bg-[#161A1F] px-4 text-[15px] font-semibold text-base-content transition hover:border-primary/40 hover:text-primary focus:outline-none focus:ring-2 focus:ring-primary/20";
   const promptTextareaClassName = "textarea textarea-bordered !rounded-none min-h-36 w-full resize-none border-[#D6DCE3] bg-[#F3F5F7] text-base-content leading-7 transition-colors hover:border-primary active:border-primary focus:border-primary focus:bg-primary/[0.03] focus:outline-none dark:border-[#2A3138] dark:bg-[#161A1F] dark:hover:border-primary";
   const simplePromptTextareaClassName = promptTextareaClassName;
@@ -959,6 +961,47 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                         <FileArrowUpIcon className="size-5" weight="bold" />
                       </button>
                     </div>
+                    {mode === "img2img" && sourceImageDataUrl
+                      ? (
+                          <div className="-mx-3 -mb-3 overflow-hidden border-t border-[#2A3138] bg-[#161A1F]">
+                            <div className="relative min-h-[220px] px-4 py-4">
+                              <img
+                                src={sourceImageDataUrl}
+                                alt="Base Img"
+                                className="absolute inset-0 h-full w-full object-cover opacity-28"
+                              />
+                              <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(11,13,27,0.66)_0%,rgba(11,13,27,0.74)_100%)]" />
+                              <div className="relative flex items-start justify-between gap-4">
+                                <div className="min-w-0">
+                                  <div className="text-[15px] font-semibold leading-6 text-white">Image2Image</div>
+                                  <div className="mt-1 text-[13px] leading-5 text-white/72">Transform your image.</div>
+                                </div>
+                                <div className="flex overflow-hidden rounded-md border border-[#2A3138] bg-[#161A1F]">
+                                  <button
+                                    type="button"
+                                    className="inline-flex size-11 items-center justify-center text-white/80 transition hover:bg-white/6 hover:text-white focus:outline-none"
+                                    aria-label="更换 Base Img"
+                                    title="更换 Base Img"
+                                    onClick={handleOpenSourceImagePicker}
+                                  >
+                                    <PencilSimpleIcon className="size-5" weight="bold" />
+                                  </button>
+                                  <span className="h-11 w-px bg-[#2A3138]" aria-hidden="true" />
+                                  <button
+                                    type="button"
+                                    className="inline-flex size-11 items-center justify-center text-white/80 transition hover:bg-white/6 hover:text-white focus:outline-none"
+                                    aria-label="移除 Base Img"
+                                    title="移除 Base Img"
+                                    onClick={handleClearSourceImage}
+                                  >
+                                    <TrashIcon className="size-5" weight="bold" />
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        )
+                      : null}
                   </div>
 
                   <div>
