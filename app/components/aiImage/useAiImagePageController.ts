@@ -89,7 +89,6 @@ import {
   mergeTagString,
   mimeFromDataUrl,
   mimeFromFilename,
-  modelLabel,
   newV4CharEditorRow,
   normalizeReferenceStrengthRows,
   readFileAsBytes,
@@ -1733,9 +1732,6 @@ export function useAiImagePageController() {
     || metadataImportSelection.characters
     || metadataImportSelection.settings
     || metadataImportSelection.seed;
-  const pendingMetadataModelMismatch = pendingMetadataSettings?.model && pendingMetadataSettings.model !== model
-    ? `图片内模型为 ${modelLabel(pendingMetadataSettings.model)}，当前页面仍固定使用 ${modelLabel(model)}。`
-    : "";
   const canConvertSimpleText = !isBusy && Boolean(simpleText.trim());
   const canGenerateFromSimpleTags = canGenerate && Boolean(simplePrompt.trim());
   const hasSimpleTagsDraft = Boolean(simplePrompt.trim() || simpleNegativePrompt.trim());
@@ -1945,7 +1941,6 @@ export function useAiImagePageController() {
 
   const metadataImportDialogProps = {
     pendingMetadataImport,
-    pendingMetadataSettings,
     canImportMetadataPrompt,
     canImportMetadataNegativePrompt,
     canImportMetadataCharacters,
@@ -1954,7 +1949,6 @@ export function useAiImagePageController() {
     hasAnyMetadataImportSelection,
     metadataImportSelection,
     setMetadataImportSelection,
-    pendingMetadataModelMismatch,
     onClose: handleCloseMetadataImportDialog,
     onImportSourceImageTarget: handleImportSourceImageTarget,
     onConfirmMetadataImport: handleConfirmMetadataImport,
