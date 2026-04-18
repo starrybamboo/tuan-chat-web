@@ -5,43 +5,36 @@ import { useEffect, useState } from "react";
 interface StylePickerDialogProps {
   isOpen: boolean;
   selectedStyleIds: string[];
+  compareStyleId: string | null;
   stylePresets: AiImageStylePreset[];
   onToggleStyle: (id: string) => void;
-  onSelectSingleStyle: (id: string) => void;
+  onSelectCompareStyle: (id: string) => void;
   onClearStyles: () => void;
+  onClearCompareStyle: () => void;
   onClose: () => void;
 }
 
 export function StylePickerDialog({
   isOpen,
   selectedStyleIds,
+  compareStyleId,
   stylePresets,
   onToggleStyle,
-  onSelectSingleStyle,
+  onSelectCompareStyle,
   onClearStyles,
+  onClearCompareStyle,
   onClose,
 }: StylePickerDialogProps) {
   const [viewMode, setViewMode] = useState<"select" | "compare">("select");
   const selectedStyleIdSet = new Set(selectedStyleIds);
-  const orderedStylePresets = [...stylePresets].sort((left, right) => {
-    const selectedDelta = Number(selectedStyleIdSet.has(right.id)) - Number(selectedStyleIdSet.has(left.id));
-    if (selectedDelta !== 0)
-      return selectedDelta;
-    return left.title.localeCompare(right.title);
-  });
+  const currentCountLabel = viewMode === "compare"
+    ? (compareStyleId ? "已选 1 个" : "")
+    : (selectedStyleIds.length ? `已选 ${selectedStyleIds.length} 个` : "");
 
   useEffect(() => {
     if (!isOpen)
       setViewMode("select");
   }, [isOpen]);
-
-  useEffect(() => {
-    if (viewMode !== "compare")
-      return;
-    if (selectedStyleIds.length <= 1)
-      return;
-    onSelectSingleStyle(selectedStyleIds[0]);
-  }, [onSelectSingleStyle, selectedStyleIds, viewMode]);
 
   return (
     <dialog
@@ -66,9 +59,17 @@ export function StylePickerDialog({
             </button>
           </div>
           <div className="ml-auto flex items-center gap-2">
-            <div className="text-xs opacity-70">{selectedStyleIds.length ? `已选 ${selectedStyleIds.length} 个` : ""}</div>
-            {selectedStyleIds.length
-              ? <button type="button" className="btn btn-sm btn-ghost" onClick={onClearStyles}>清空</button>
+            <div className="text-xs opacity-70">{currentCountLabel}</div>
+            {(viewMode === "compare" ? Boolean(compareStyleId) : selectedStyleIds.length > 0)
+              ? (
+                  <button
+                    type="button"
+                    className="btn btn-sm btn-ghost"
+                    onClick={viewMode === "compare" ? onClearCompareStyle : onClearStyles}
+                  >
+                    清空
+                  </button>
+                )
               : null}
           </div>
         </div>
@@ -76,22 +77,22 @@ export function StylePickerDialog({
         <div className="min-h-0 flex-1 overflow-y-auto px-6 py-5">
           {viewMode === "compare"
             ? (
-                <div className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-4">
-                {orderedStylePresets.map((preset) => {
-                  const selected = selectedStyleIdSet.has(preset.id);
+                <div className="flex flex-wrap gap-4">
+                {stylePresets.map((preset) => {
+                  const selected = compareStyleId === preset.id;
                   return (
                     <button
                       key={preset.id}
                       type="button"
-                      className={`group flex flex-col overflow-hidden rounded-md border text-left transition focus:outline-none focus:ring-2 focus:ring-primary/20 ${
+                      className={`group flex w-[300px] flex-col overflow-hidden rounded-md border text-left transition focus:outline-none focus:ring-2 focus:ring-primary/20 ${
                         selected
                           ? "border-primary bg-primary/[0.04] shadow-[0_0_0_1px_rgba(47,183,168,0.18)]"
                           : "border-base-300 bg-base-100 hover:border-primary/45"
                       }`}
-                      onClick={() => onSelectSingleStyle(preset.id)}
+                      onClick={() => onSelectCompareStyle(preset.id)}
                       title={preset.tags.length ? preset.tags.join(", ") : preset.title}
                     >
-                      <div className="relative aspect-[3/4] w-full overflow-hidden bg-base-200">
+                      <div className="relative h-[300px] w-[300px] overflow-hidden bg-base-200">
                         {preset.imageUrl
                           ? <img src={preset.imageUrl} alt={preset.title} className="h-full w-full object-cover transition duration-200 group-hover:scale-[1.02]" />
                           : <div className="flex h-full w-full items-center justify-center text-sm opacity-60">{preset.title}</div>}
@@ -106,31 +107,33 @@ export function StylePickerDialog({
                     </button>
                   );
                 })}
-                {!orderedStylePresets.length
+                {!stylePresets.length
                   ? <div className="text-sm opacity-60">暂无画风</div>
                   : null}
                 </div>
               )
             : (
-                <div className="grid grid-cols-2 gap-3 md:grid-cols-4 xl:grid-cols-5">
+                <div className="flex flex-wrap gap-4">
                 {stylePresets.map((preset) => {
                   const selected = selectedStyleIdSet.has(preset.id);
                   return (
                     <button
                       key={preset.id}
                       type="button"
-                      className={`flex flex-col gap-2 rounded-md border p-2 text-left transition focus:outline-none focus:ring-2 focus:ring-primary/20 ${selected ? "border-primary bg-primary/[0.04]" : "border-base-300 bg-base-100 hover:border-primary/45"}`}
+                      className={`flex w-[300px] flex-col overflow-hidden rounded-md border text-left transition focus:outline-none focus:ring-2 focus:ring-primary/20 ${selected ? "border-primary bg-primary/[0.04]" : "border-base-300 bg-base-100 hover:border-primary/45"}`}
                       onClick={() => onToggleStyle(preset.id)}
                       title={preset.tags.length ? preset.tags.join(", ") : preset.title}
                     >
-                      <div className="flex aspect-square w-full items-center justify-center overflow-hidden rounded-md bg-base-200">
+                      <div className="flex h-[300px] w-full items-center justify-center overflow-hidden bg-base-200">
                         {preset.imageUrl
                           ? <img src={preset.imageUrl} alt={preset.title} className="h-full w-full object-cover" />
                           : <div className="text-xs opacity-60">{preset.title}</div>}
                       </div>
-                      <div className="truncate text-sm font-medium">{preset.title}</div>
-                      <div className="truncate text-xs opacity-60">
-                        {preset.tags.length ? preset.tags.join(", ") : preset.title}
+                      <div className="flex flex-col gap-1 px-3 py-2">
+                        <div className="truncate text-sm font-medium">{preset.title}</div>
+                        <div className="truncate text-xs opacity-60">
+                          {preset.tags.length ? preset.tags.join(", ") : preset.title}
+                        </div>
                       </div>
                     </button>
                   );
