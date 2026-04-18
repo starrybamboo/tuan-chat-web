@@ -218,3 +218,11 @@ body.avatar-sampler-active * {
       0 31,
     crosshair;
 }
+
+html.theme-switching .ai-image-shell,
+html.theme-switching .ai-image-shell *,
+html.theme-switching .ai-image-shell *::before,
+html.theme-switching .ai-image-shell *::after {
+  transition: none !important;
+  animation: none !important;
+}
