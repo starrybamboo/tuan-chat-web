@@ -187,6 +187,15 @@ webgal相关
 
 # 依赖
 
+### Blocksuite 参考仓库
+
+自 2026-04-18 起，团剧共创使用的 Blocksuite 参考仓库统一迁移到：
+
+- `D:\A_blocksuite\AFFiNE`
+- `D:\A_blocksuite\OctoBase`
+
+详细说明见 `docs/integrations/blocksuite.md` 和 `docs/vendors/blocksuite/index.md`。
+
 ### UI库
 
 https://daisyui.com/
