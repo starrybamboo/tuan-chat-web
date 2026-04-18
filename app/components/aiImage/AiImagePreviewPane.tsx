@@ -30,7 +30,6 @@ interface AiImagePreviewPaneProps {
   directorEmotion: NovelAiEmotion;
   directorEmotionExtraPrompt: string;
   directorEmotionDefry: number;
-  hasSelectedPreviewHistoryRow: boolean;
   onToggleDirectorTools: () => void;
   onRunUpscale: () => void | Promise<void>;
   onSyncDirectorSourceFromCurrentPreview: () => void;
@@ -46,7 +45,7 @@ interface AiImagePreviewPaneProps {
   onOpenPreviewImage: () => void;
   onTogglePinnedPreview: () => void;
   onOpenInpaint: () => void;
-  onApplySelectedPreviewSettings: () => void;
+  onCopySelectedPreviewImage: () => void | Promise<void>;
   onDownloadCurrent: () => void;
   onApplySelectedPreviewSeed: () => void;
   onSelectPinnedPreview: () => void;
@@ -91,7 +90,6 @@ export function AiImagePreviewPane({
   directorEmotion,
   directorEmotionExtraPrompt,
   directorEmotionDefry,
-  hasSelectedPreviewHistoryRow,
   onToggleDirectorTools,
   onRunUpscale,
   onSyncDirectorSourceFromCurrentPreview,
@@ -107,7 +105,7 @@ export function AiImagePreviewPane({
   onOpenPreviewImage,
   onTogglePinnedPreview,
   onOpenInpaint,
-  onApplySelectedPreviewSettings,
+  onCopySelectedPreviewImage,
   onDownloadCurrent,
   onApplySelectedPreviewSeed,
   onSelectPinnedPreview,
@@ -416,10 +414,9 @@ export function AiImagePreviewPane({
                         <button
                           type="button"
                           className={previewToolbarIconButtonClassName}
-                          disabled={!hasSelectedPreviewHistoryRow}
-                          title="导入当前预览的生成设置"
-                          aria-label="导入当前预览的生成设置"
-                          onClick={onApplySelectedPreviewSettings}
+                          title="复制当前图片"
+                          aria-label="复制当前图片"
+                          onClick={() => void onCopySelectedPreviewImage()}
                         >
                           <ClipboardTextIcon className="size-[18px]" weight="regular" />
                         </button>
