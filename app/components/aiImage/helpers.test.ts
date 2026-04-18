@@ -13,6 +13,15 @@ import {
   resolveImportedValue,
 } from "@/components/aiImage/helpers";
 
+function createSequentialRandom(values: number[]) {
+  let index = 0;
+  return () => {
+    const nextValue = values[index] ?? values[values.length - 1] ?? 0;
+    index += 1;
+    return nextValue;
+  };
+}
+
 describe("aiImage helpers", () => {
   it("uses batch identity for generated items when available", () => {
     expect(generatedItemKey({
@@ -102,25 +111,42 @@ describe("aiImage helpers", () => {
 
   it("inserts a NovelAI randomizer template with tag separators when appending to prompt tags", () => {
     const inserted = insertNovelAiRandomizerTag({
+      kind: "prompt",
+      random: createSequentialRandom(Array(10).fill(0)),
       value: "1girl, blue eyes",
       selectionStart: 17,
       selectionEnd: 17,
     });
 
-    expect(inserted.value).toBe("1girl, blue eyes, ||tag 1|tag 2|tag 3|tag 4|tag 5|tag 6|tag 7|tag 8|tag 9|tag 10||");
-    expect(inserted.value.slice(inserted.selectionStart, inserted.selectionEnd)).toBe("tag 1|tag 2|tag 3|tag 4|tag 5|tag 6|tag 7|tag 8|tag 9|tag 10");
+    expect(inserted.value).toBe("1girl, blue eyes, ||cinematic lighting|dramatic shadows|volumetric lighting|rim light|backlighting|depth of field|bokeh|dynamic angle|dutch angle|wind-blown hair||");
+    expect(inserted.value.slice(inserted.selectionStart, inserted.selectionEnd)).toBe("cinematic lighting|dramatic shadows|volumetric lighting|rim light|backlighting|depth of field|bokeh|dynamic angle|dutch angle|wind-blown hair");
     expect(inserted.value.slice(inserted.selectionStart, inserted.selectionEnd).split("|")).toHaveLength(10);
   });
 
   it("wraps the current selection into the first randomizer option", () => {
     const inserted = insertNovelAiRandomizerTag({
+      kind: "prompt",
+      random: createSequentialRandom(Array(9).fill(0)),
       value: "1girl, blue eyes, smile",
       selectionStart: 7,
       selectionEnd: 16,
     });
 
-    expect(inserted.value).toBe("1girl, ||blue eyes|tag 2|tag 3|tag 4|tag 5|tag 6|tag 7|tag 8|tag 9|tag 10||, smile");
-    expect(inserted.value.slice(inserted.selectionStart, inserted.selectionEnd)).toBe("blue eyes|tag 2|tag 3|tag 4|tag 5|tag 6|tag 7|tag 8|tag 9|tag 10");
+    expect(inserted.value).toBe("1girl, ||blue eyes|cinematic lighting|dramatic shadows|volumetric lighting|rim light|backlighting|depth of field|bokeh|dynamic angle|dutch angle||, smile");
+    expect(inserted.value.slice(inserted.selectionStart, inserted.selectionEnd)).toBe("blue eyes|cinematic lighting|dramatic shadows|volumetric lighting|rim light|backlighting|depth of field|bokeh|dynamic angle|dutch angle");
+    expect(inserted.value.slice(inserted.selectionStart, inserted.selectionEnd).split("|")).toHaveLength(10);
+  });
+
+  it("uses a negative tag pool for undesired content randomizers", () => {
+    const inserted = insertNovelAiRandomizerTag({
+      kind: "negative",
+      random: createSequentialRandom(Array(10).fill(0)),
+      value: "lowres",
+      selectionStart: 6,
+      selectionEnd: 6,
+    });
+
+    expect(inserted.value).toBe("lowres, ||lowres|blurry|bad anatomy|bad hands|extra fingers|missing fingers|deformed|text|watermark|logo||");
     expect(inserted.value.slice(inserted.selectionStart, inserted.selectionEnd).split("|")).toHaveLength(10);
   });
 });

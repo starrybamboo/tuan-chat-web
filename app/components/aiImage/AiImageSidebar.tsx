@@ -385,6 +385,7 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
 
   const handleInsertProRandomizerTag = useCallback(() => {
     const insertion = insertNovelAiRandomizerTag({
+      kind: proPromptTab === "prompt" ? "prompt" : "negative",
       value: proPromptTab === "prompt" ? prompt : negativePrompt,
       selectionStart: proPromptTextareaRef.current?.selectionStart,
       selectionEnd: proPromptTextareaRef.current?.selectionEnd,
