@@ -1008,11 +1008,11 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
           {uiMode === "simple"
             ? (
                 <>
-                  <div className="flex w-full max-w-full flex-wrap items-start justify-end gap-[50px]">
+                  <div className="grid w-full max-w-full grid-cols-[minmax(0,1fr)_135px] items-start gap-[50px]">
                     <div className="relative" ref={simpleResolutionSelectorRef}>
                       <button
                         type="button"
-                        className={`flex h-11 w-[200px] items-center justify-between rounded-xl border border-[#D6DCE3] bg-[#F3F5F7] px-3 py-2 text-left transition focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 hover:border-primary/40 hover:bg-[#EAEFF4] dark:border-[#2A3138] dark:bg-[#161A1F] dark:hover:bg-[#1B2026] ${isSimpleResolutionSelectorOpen ? "border-primary bg-primary/5 shadow-sm dark:bg-primary/10" : ""}`}
+                        className={`flex h-11 w-full items-center justify-between rounded-xl border border-[#D6DCE3] bg-[#F3F5F7] px-3 py-2 text-left transition focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 hover:border-primary/40 hover:bg-[#EAEFF4] dark:border-[#2A3138] dark:bg-[#161A1F] dark:hover:bg-[#1B2026] ${isSimpleResolutionSelectorOpen ? "border-primary bg-primary/5 shadow-sm dark:bg-primary/10" : ""}`}
                         aria-expanded={isSimpleResolutionSelectorOpen}
                         onClick={() => setIsSimpleResolutionSelectorOpen(prev => !prev)}
                       >
@@ -1079,7 +1079,7 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                       <span>种子 (Seed)</span>
                     </div>
                     <input
-                      className={`h-8 w-[385px] max-w-full self-end appearance-none focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none ${subtleInputClassName}`}
+                      className={`h-8 w-full appearance-none focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none ${subtleInputClassName}`}
                       type="number"
                       value={seedIsRandom ? "" : seed}
                       onChange={(e) => {
