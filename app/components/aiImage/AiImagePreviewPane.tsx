@@ -76,7 +76,6 @@ export function AiImagePreviewPane({
   selectedPreviewResult,
   selectedResultIndex,
   selectedHistoryPreviewKey,
-  pinnedPreviewResult,
   isSelectedPreviewPinned,
   isBusy,
   isGeneratingImage,
@@ -108,7 +107,6 @@ export function AiImagePreviewPane({
   onCopySelectedPreviewImage,
   onDownloadCurrent,
   onApplySelectedPreviewSeed,
-  onSelectPinnedPreview,
   formatDirectorEmotionLabel,
 }: AiImagePreviewPaneProps) {
   const previewToolbarControlSurfaceClassName = "!rounded-none border-0 bg-base-300/70 shadow-none";
@@ -368,22 +366,6 @@ export function AiImagePreviewPane({
                 {selectedPreviewResult
                   ? <img src={selectedPreviewResult.dataUrl} className="relative z-[1] max-h-[720px] w-auto rounded-box" alt="result" />
                   : <EmptyPreviewPlaceholder />}
-                {pinnedPreviewResult && !isSelectedPreviewPinned
-                  ? (
-                      <button
-                        type="button"
-                        className="absolute right-3 top-3 z-[2] overflow-hidden rounded-2xl border border-base-300 bg-base-100/95 p-2 text-left shadow-xl backdrop-blur"
-                        title="切回 pinned 预览"
-                        onClick={onSelectPinnedPreview}
-                      >
-                        <div className="mb-1 flex items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-base-content/60">
-                          <PhosphorPushPinIcon className="size-3.5" weight="regular" />
-                          <span>Pinned</span>
-                        </div>
-                        <img src={pinnedPreviewResult.dataUrl} className="h-20 w-20 rounded-xl object-cover" alt="pinned-preview" />
-                      </button>
-                    )
-                  : null}
               </div>
 
               {selectedPreviewResult

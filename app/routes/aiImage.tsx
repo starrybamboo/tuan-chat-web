@@ -219,14 +219,14 @@ export default function AiImagePage() {
           ? (
               <>
                 <div
-                  className="flex min-h-0 min-w-0 shrink-0"
+                  className="relative z-20 flex min-h-0 min-w-0 shrink-0"
                   style={sidebarWidth == null ? undefined : { width: `${sidebarWidth}px` }}
                 >
                   <AiImageSidebar sidebarProps={controller.sidebarProps} />
                 </div>
                 <button
                   type="button"
-                  className="group flex w-2 shrink-0 cursor-col-resize items-stretch justify-center bg-base-200 px-0 touch-none"
+                  className="group relative z-20 flex w-2 shrink-0 cursor-col-resize items-stretch justify-center bg-base-200 px-0 touch-none"
                   aria-label="拖拽调整 AI 生图侧边栏宽度"
                   title="拖拽调整 AI 生图侧边栏宽度"
                   onMouseDown={handleSidebarResizeStart}
