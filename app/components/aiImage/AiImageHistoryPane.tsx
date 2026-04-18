@@ -344,7 +344,7 @@ export function AiImageHistoryPane({
   if (isDirectorToolsOpen) {
     return (
       <>
-        <div className="min-h-0 w-[196px] shrink-0 overflow-auto border-l border-[#D6DCE3] bg-[#F3F5F7] p-3 dark:border-[#2A3138] dark:bg-[#161A1F]">
+        <div className="h-full min-h-0 w-[196px] shrink-0 overflow-hidden border-l border-[#D6DCE3] bg-[#F3F5F7] p-3 dark:border-[#2A3138] dark:bg-[#161A1F]">
           <div className="flex h-full min-h-0 flex-col">
           <div className="mb-3 flex items-center gap-2 px-1">
             <div className="flex items-center gap-1">
@@ -481,7 +481,7 @@ export function AiImageHistoryPane({
 
   return (
     <>
-      <div className="min-h-0 w-[160px] shrink-0 overflow-hidden border-l border-[#D6DCE3] bg-[#F3F5F7] p-3 dark:border-[#2A3138] dark:bg-[#161A1F]">
+      <div className="h-full min-h-0 w-[160px] shrink-0 overflow-hidden border-l border-[#D6DCE3] bg-[#F3F5F7] p-3 dark:border-[#2A3138] dark:bg-[#161A1F]">
         <div className="flex h-full flex-col">
           <div className="mb-3 flex items-center gap-2 px-1">
             <div className="flex items-center gap-1">
