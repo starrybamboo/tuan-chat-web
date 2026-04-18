@@ -119,8 +119,8 @@ export function MetadataImportDialog({
           </div>
 
           <div className="mt-7">
-            <div className="text-[1.42rem] font-semibold leading-tight text-base-content">This image has metadata!</div>
-            <div className="mt-1 text-[1.1rem] font-semibold leading-6 text-base-content/86">Did you want to import that instead?</div>
+            <div className="text-[1rem] font-semibold leading-6 text-base-content">This image has metadata!</div>
+            <div className="text-[1rem] font-semibold leading-6 text-base-content">Did you want to import that instead?</div>
           </div>
 
           <div className="mt-6 grid gap-5 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start">
