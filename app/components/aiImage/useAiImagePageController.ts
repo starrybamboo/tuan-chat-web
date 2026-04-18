@@ -788,10 +788,6 @@ export function useAiImagePageController() {
   }, [setProFeatureSectionOpen, showErrorToast]);
 
   const handleClearHistory = useCallback(async () => {
-    // 这里是明确的 destructive 操作确认，沿用浏览器 confirm 比额外弹层更轻。
-    // eslint-disable-next-line no-alert
-    if (typeof window !== "undefined" && !window.confirm("确定要清空历史绘画吗？此操作不可撤销。"))
-      return;
     await clearAiImageHistory();
     setSelectedHistoryPreviewKey(null);
     await refreshHistory();
