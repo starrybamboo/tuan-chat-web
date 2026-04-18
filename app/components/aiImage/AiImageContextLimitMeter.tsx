@@ -98,7 +98,7 @@ export function AiImageContextLimitMeter({
 
         {(footerLabel || footerHint)
           ? (
-              <div className="mt-[13px] flex items-center gap-1 text-[11px] leading-none text-base-content/58">
+              <div className="mt-[13px] flex items-center gap-1 text-xs leading-none text-base-content/58">
                 {footerLabel
                   ? <span>{footerLabel}</span>
                   : null}
@@ -114,7 +114,7 @@ export function AiImageContextLimitMeter({
                         onMouseLeave={() => setFooterTooltipState(prev => ({ ...prev, visible: false }))}
                         onMouseMove={showFooterTooltipAtPointer}
                       >
-                        <span className="flex size-3.5 items-center justify-center rounded-full border border-base-content/16 text-[9px] font-medium leading-none text-current">
+                        <span className="flex size-4 items-center justify-center rounded-full border border-base-content/16 text-[10px] font-medium leading-none text-current">
                           ?
                         </span>
                       </button>

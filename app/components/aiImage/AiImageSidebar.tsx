@@ -892,7 +892,7 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                         title="插入随机 tag 语法"
                         onClick={handleInsertProRandomizerTag}
                       >
-                        <DiceFiveIcon className="size-4" weight="fill" />
+                        <DiceFiveIcon className="size-5" weight="fill" />
                       </button>
                       <AiImageContextLimitMeter
                         className="min-w-0 flex-1 pt-1"
