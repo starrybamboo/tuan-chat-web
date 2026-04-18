@@ -112,7 +112,7 @@ export function AiImagePreviewPane({
   onSelectPinnedPreview,
   formatDirectorEmotionLabel,
 }: AiImagePreviewPaneProps) {
-  const previewToolbarControlSurfaceClassName = "!rounded-none border border-white/8 bg-base-300/70 shadow-none";
+  const previewToolbarControlSurfaceClassName = "!rounded-none border-0 bg-base-300/70 shadow-none";
   const previewToolbarIconButtonClassName = `inline-flex size-9 shrink-0 items-center justify-center ${previewToolbarControlSurfaceClassName} text-base-content/70 transition-colors hover:bg-base-300/85 hover:text-base-content disabled:cursor-not-allowed disabled:opacity-50`;
   const previewToolbarPillClassName = `inline-flex h-9 items-center ${previewToolbarControlSurfaceClassName} px-3 text-xs font-medium text-base-content`;
   const previewToolbarActionButtonClassName = `inline-flex h-9 items-center gap-2 ${previewToolbarControlSurfaceClassName} px-3 text-xs text-base-content transition-colors hover:bg-base-300/85`;
