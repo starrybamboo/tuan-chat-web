@@ -386,7 +386,7 @@ export function AiImagePreviewPane({
 
               {selectedPreviewResult
                 ? (
-                    <div className="flex flex-wrap items-center justify-between gap-3 border-t border-base-300 bg-base-100 px-3 py-2">
+                    <div className="flex flex-wrap items-center justify-between gap-3 bg-base-200/55 px-3 py-2.5">
                       <div className="flex flex-wrap items-center gap-2">
                         <span className={previewToolbarPillClassName}>{`${selectedPreviewResult.width} × ${selectedPreviewResult.height}`}</span>
                         <button
