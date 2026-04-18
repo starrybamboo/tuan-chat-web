@@ -7,6 +7,7 @@ interface StylePickerDialogProps {
   selectedStyleIds: string[];
   stylePresets: AiImageStylePreset[];
   onToggleStyle: (id: string) => void;
+  onSelectSingleStyle: (id: string) => void;
   onClearStyles: () => void;
   onClose: () => void;
 }
@@ -16,6 +17,7 @@ export function StylePickerDialog({
   selectedStyleIds,
   stylePresets,
   onToggleStyle,
+  onSelectSingleStyle,
   onClearStyles,
   onClose,
 }: StylePickerDialogProps) {
@@ -33,6 +35,14 @@ export function StylePickerDialog({
       setViewMode("select");
   }, [isOpen]);
 
+  useEffect(() => {
+    if (viewMode !== "compare")
+      return;
+    if (selectedStyleIds.length <= 1)
+      return;
+    onSelectSingleStyle(selectedStyleIds[0]);
+  }, [onSelectSingleStyle, selectedStyleIds, viewMode]);
+
   return (
     <dialog
       open={isOpen}
@@ -42,10 +52,10 @@ export function StylePickerDialog({
         onClose();
       }}
     >
-      <div className="modal-box max-w-5xl">
-        <div className="mb-4 flex items-center gap-2">
-          <h3 className="text-lg font-bold">选择画风</h3>
-          <div className="ml-auto flex items-center gap-2">
+      <div className="modal-box relative flex max-h-[min(94vh,1080px)] max-w-[min(96vw,1680px)] flex-col overflow-hidden border border-base-300 bg-base-100 p-0 text-base-content shadow-xl">
+        <div className="flex items-center gap-4 border-b border-base-300 px-6 py-4">
+          <div className="flex items-center gap-2">
+            <h3 className="text-lg font-bold">选择画风</h3>
             <button
               type="button"
               className={`btn btn-sm ${viewMode === "compare" ? "btn-primary" : "btn-ghost"}`}
@@ -54,6 +64,8 @@ export function StylePickerDialog({
             >
               风格对比
             </button>
+          </div>
+          <div className="ml-auto flex items-center gap-2">
             <div className="text-xs opacity-70">{selectedStyleIds.length ? `已选 ${selectedStyleIds.length} 个` : ""}</div>
             {selectedStyleIds.length
               ? <button type="button" className="btn btn-sm btn-ghost" onClick={onClearStyles}>清空</button>
@@ -61,9 +73,10 @@ export function StylePickerDialog({
           </div>
         </div>
 
-        {viewMode === "compare"
-          ? (
-              <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
+        <div className="min-h-0 flex-1 overflow-y-auto px-6 py-5">
+          {viewMode === "compare"
+            ? (
+                <div className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-4">
                 {orderedStylePresets.map((preset) => {
                   const selected = selectedStyleIdSet.has(preset.id);
                   return (
@@ -75,7 +88,7 @@ export function StylePickerDialog({
                           ? "border-primary bg-primary/[0.04] shadow-[0_0_0_1px_rgba(47,183,168,0.18)]"
                           : "border-base-300 bg-base-100 hover:border-primary/45"
                       }`}
-                      onClick={() => onToggleStyle(preset.id)}
+                      onClick={() => onSelectSingleStyle(preset.id)}
                       title={preset.tags.length ? preset.tags.join(", ") : preset.title}
                     >
                       <div className="relative aspect-[3/4] w-full overflow-hidden bg-base-200">
@@ -96,10 +109,10 @@ export function StylePickerDialog({
                 {!orderedStylePresets.length
                   ? <div className="text-sm opacity-60">暂无画风</div>
                   : null}
-              </div>
-            )
-          : (
-              <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4">
+                </div>
+              )
+            : (
+                <div className="grid grid-cols-2 gap-3 md:grid-cols-4 xl:grid-cols-5">
                 {stylePresets.map((preset) => {
                   const selected = selectedStyleIdSet.has(preset.id);
                   return (
@@ -125,10 +138,11 @@ export function StylePickerDialog({
                 {!stylePresets.length
                   ? <div className="text-sm opacity-60">暂无画风</div>
                   : null}
-              </div>
-            )}
+                </div>
+              )}
+        </div>
 
-        <div className="modal-action">
+        <div className="modal-action mt-0 border-t border-base-300 px-6 py-4">
           <button type="button" className="btn" onClick={onClose}>
             关闭
           </button>
