@@ -268,20 +268,25 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
   }
 
   function renderSimpleResolutionGlyph(optionId: string) {
+    let glyph: React.ReactNode;
     if (optionId === "portrait") {
-      return <div className="h-5 w-3 rounded-sm border border-current opacity-80" />;
+      glyph = <div className="h-5 w-3 rounded-sm border border-current opacity-80" />;
     }
-    if (optionId === "landscape") {
-      return <div className="h-3 w-5 rounded-sm border border-current opacity-80" />;
+    else if (optionId === "landscape") {
+      glyph = <div className="h-3 w-5 rounded-sm border border-current opacity-80" />;
     }
-    if (optionId === "square") {
-      return <div className="size-4 rounded-sm border border-current opacity-80" />;
+    else if (optionId === "square") {
+      glyph = <div className="size-4 rounded-sm border border-current opacity-80" />;
     }
-    return (
-      <div className="flex size-4 items-center justify-center rounded-sm border border-dashed border-current opacity-80">
-        <span className="text-[10px] leading-none font-bold">+</span>
-      </div>
-    );
+    else {
+      glyph = (
+        <div className="flex size-4 items-center justify-center rounded-sm border border-dashed border-current opacity-80">
+          <span className="text-[10px] font-bold leading-none">+</span>
+        </div>
+      );
+    }
+
+    return <span className="flex w-5 shrink-0 items-center justify-start">{glyph}</span>;
   }
 
   return (
