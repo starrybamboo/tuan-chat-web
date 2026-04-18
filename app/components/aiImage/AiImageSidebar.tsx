@@ -867,7 +867,7 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                       remaining={activeBaseMeter.remaining}
                       overflow={activeBaseMeter.overflow}
                       status={tokenSnapshot.status}
-                      footerLabel={proPromptTab === "prompt" ? (qualityToggle ? "Quality Tags Enabled" : "Quality Tags Disabled") : undefined}
+                      footerLabel={proPromptTab === "prompt" && qualityToggle ? "Quality Tags Enabled" : undefined}
                       footerHint={proPromptTab === "prompt" && tokenSnapshot.prompt.hiddenText ? tokenSnapshot.prompt.hiddenText : undefined}
                       rows={[
                         {
