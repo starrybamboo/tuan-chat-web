@@ -157,18 +157,19 @@ export function MetadataImportDialog({
                     setMetadataImportSelection(prev => ({
                       ...prev,
                       characters: event.target.checked,
+                      appendCharacters: event.target.checked ? prev.appendCharacters : false,
                     }));
                   }}
                 />
                 <span>Characters</span>
               </label>
 
-              <label className={`pl-7 flex items-center gap-3 text-[12px] leading-none ${canImportMetadataCharacters ? "cursor-pointer text-base-content/80" : "cursor-not-allowed text-base-content/22"}`}>
+              <label className={`pl-7 flex items-center gap-3 text-[12px] leading-none ${canImportMetadataCharacters && metadataImportSelection.characters ? "cursor-pointer text-base-content/80" : "cursor-not-allowed text-base-content/22"}`}>
                 <input
                   type="checkbox"
                   className={METADATA_CHECKBOX_CLASS_NAME}
-                  checked={canImportMetadataCharacters && metadataImportSelection.appendCharacters}
-                  disabled={!canImportMetadataCharacters}
+                  checked={canImportMetadataCharacters && metadataImportSelection.characters && metadataImportSelection.appendCharacters}
+                  disabled={!canImportMetadataCharacters || !metadataImportSelection.characters}
                   onChange={event => setMetadataImportSelection(prev => ({ ...prev, appendCharacters: event.target.checked }))}
                 />
                 <span>Append</span>
@@ -207,7 +208,7 @@ export function MetadataImportDialog({
                 Import Metadata
               </button>
 
-              <label className="flex items-center gap-3 text-[13px] text-base-content/92 sm:mr-[15px]">
+              <label className="flex items-center gap-3 text-[13px] text-base-content/92 sm:mr-[23px]">
                 <input
                   type="checkbox"
                   className={METADATA_CHECKBOX_CLASS_NAME}
