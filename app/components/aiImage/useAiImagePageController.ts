@@ -1595,11 +1595,30 @@ export function useAiImagePageController() {
     showSuccessToast("已把当前预览 seed 回填到设置。");
   }, [selectedPreviewResult, showSuccessToast]);
 
-  const handleApplySelectedPreviewSettings = useCallback(() => {
-    if (!selectedPreviewHistoryRow)
+  const handleCopySelectedPreviewImage = useCallback(async () => {
+    if (!selectedPreviewResult)
       return;
-    handleApplyHistorySettings(selectedPreviewHistoryRow, "settings");
-  }, [handleApplyHistorySettings, selectedPreviewHistoryRow]);
+    if (typeof navigator === "undefined" || !navigator.clipboard?.write || typeof ClipboardItem === "undefined") {
+      showErrorToast("当前环境不支持复制图片到剪贴板。");
+      return;
+    }
+
+    try {
+      const file = fileFromDataUrl(
+        selectedPreviewResult.dataUrl,
+        `nai_preview.${extensionFromDataUrl(selectedPreviewResult.dataUrl)}`,
+      );
+      await navigator.clipboard.write([
+        new ClipboardItem({
+          [file.type || "image/png"]: file,
+        }),
+      ]);
+      showSuccessToast("已复制当前图片。");
+    }
+    catch {
+      showErrorToast("复制当前图片失败，请重试。");
+    }
+  }, [selectedPreviewResult, showErrorToast, showSuccessToast]);
 
   const isBusy = loading || simpleConverting || Boolean(pendingPreviewAction);
   const freeGenerationViolation = getNovelAiFreeGenerationViolation({
@@ -1831,7 +1850,6 @@ export function useAiImagePageController() {
       directorEmotion,
       directorEmotionExtraPrompt,
       directorEmotionDefry,
-      hasSelectedPreviewHistoryRow: Boolean(selectedPreviewHistoryRow),
       onToggleDirectorTools: handleToggleDirectorTools,
       onRunUpscale: handleRunUpscale,
       onSyncDirectorSourceFromCurrentPreview: handleSyncDirectorSourceFromCurrentPreview,
@@ -1847,7 +1865,7 @@ export function useAiImagePageController() {
       onOpenPreviewImage: handleOpenPreviewImage,
       onTogglePinnedPreview: handleTogglePinnedPreview,
       onOpenInpaint: handleOpenInpaint,
-      onApplySelectedPreviewSettings: handleApplySelectedPreviewSettings,
+      onCopySelectedPreviewImage: handleCopySelectedPreviewImage,
       onDownloadCurrent: handleDownloadCurrent,
       onApplySelectedPreviewSeed: handleApplySelectedPreviewSeed,
       onSelectPinnedPreview: handleSelectPinnedPreview,
