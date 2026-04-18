@@ -1,5 +1,5 @@
 import type { AiImagePageController } from "@/components/aiImage/useAiImagePageController";
-import { ArrowCounterClockwise, CheckCircleIcon, CircleNotch, DiceFiveIcon, FileArrowUpIcon, GearSixIcon, ImageSquareIcon, SparkleIcon, XCircleIcon } from "@phosphor-icons/react";
+import { ArrowCounterClockwise, CheckCircleIcon, CircleNotch, DiceFiveIcon, FileArrowUpIcon, GearSixIcon, ImageSquareIcon, SparkleIcon, XCircleIcon, XIcon } from "@phosphor-icons/react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   CUSTOM_RESOLUTION_ID,
@@ -22,6 +22,7 @@ import {
   formatSliderValue,
   insertNovelAiRandomTags,
   modelLabel,
+  replaceTextInRange,
   resolveNovelAiRandomTagTarget,
 } from "@/components/aiImage/helpers";
 import { HighlightEmphasisTextarea } from "@/components/aiImage/HighlightEmphasisTextarea";
@@ -210,6 +211,7 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
   const proPromptSettingsButtonRef = useRef<HTMLButtonElement | null>(null);
   const proPromptEditorPanelRef = useRef<HTMLDivElement | null>(null);
   const proPromptTextareaRef = useRef<HTMLTextAreaElement | null>(null);
+  const proRandomPromptTextareaRef = useRef<HTMLTextAreaElement | null>(null);
   const proPromptRandomInsertionRef = useRef<Record<"prompt" | "negative", {
     selectionStart: number;
     selectionEnd: number;
@@ -217,6 +219,13 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
   } | null>>({
     prompt: null,
     negative: null,
+  });
+  const [proRandomPromptPanels, setProRandomPromptPanels] = useState<Record<"prompt" | "negative", {
+    open: boolean;
+    value: string;
+  }>>({
+    prompt: { open: false, value: "" },
+    negative: { open: false, value: "" },
   });
   const simpleResolutionSelectorRef = useRef<HTMLDivElement | null>(null);
   const activeModeOption = MODE_OPTIONS.find(option => option.value === uiMode) ?? MODE_OPTIONS[0];
@@ -259,6 +268,7 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
   });
   const activeChannelSnapshot = proPromptTab === "prompt" ? tokenSnapshot.prompt : tokenSnapshot.negative;
   const activeBaseMeter = activeChannelSnapshot.base;
+  const activeProRandomPromptPanel = proRandomPromptPanels[proPromptTab === "prompt" ? "prompt" : "negative"];
   useEffect(() => {
     if (isModeSelectorOpen) {
       setIsModeSelectorMounted(true);
@@ -392,40 +402,84 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
     };
   }, [isProPromptSettingsOpen]);
 
-  const handleInsertProRandomizerTag = useCallback(() => {
-    const activeTab = proPromptTab === "prompt" ? "prompt" : "negative";
-    const activeValue = activeTab === "prompt" ? prompt : negativePrompt;
+  const setProRandomPromptPanelState = useCallback((tab: "prompt" | "negative", nextValue: Partial<{
+    open: boolean;
+    value: string;
+  }>) => {
+    setProRandomPromptPanels((prev) => {
+      const current = prev[tab];
+      const updated = { ...current, ...nextValue };
+      if (current.open === updated.open && current.value === updated.value)
+        return prev;
+      return { ...prev, [tab]: updated };
+    });
+  }, []);
+
+  const applyProRandomPromptValue = useCallback((tab: "prompt" | "negative", replacementText: string) => {
+    const activeValue = tab === "prompt" ? prompt : negativePrompt;
     const target = resolveNovelAiRandomTagTarget({
       currentValue: activeValue,
       selectionStart: proPromptTextareaRef.current?.selectionStart,
       selectionEnd: proPromptTextareaRef.current?.selectionEnd,
-      previousInsertion: proPromptRandomInsertionRef.current[activeTab],
+      previousInsertion: proPromptRandomInsertionRef.current[tab],
     });
-    const insertion = insertNovelAiRandomTags({
-      kind: activeTab,
+    const replacement = replaceTextInRange({
       value: activeValue,
+      replacementText,
       selectionStart: target.selectionStart,
       selectionEnd: target.selectionEnd,
     });
-    proPromptRandomInsertionRef.current[activeTab] = {
-      selectionStart: insertion.selectionStart,
-      selectionEnd: insertion.selectionEnd,
-      insertedText: insertion.insertedText,
+    proPromptRandomInsertionRef.current[tab] = {
+      selectionStart: replacement.selectionStart,
+      selectionEnd: replacement.selectionEnd,
+      insertedText: replacement.insertedText,
     };
-
-    if (activeTab === "prompt")
-      setPrompt(insertion.value);
+    if (tab === "prompt")
+      setPrompt(replacement.value);
     else
-      setNegativePrompt(insertion.value);
+      setNegativePrompt(replacement.value);
+    setProRandomPromptPanelState(tab, { open: true, value: replacementText });
+    return replacement;
+  }, [negativePrompt, prompt, setNegativePrompt, setPrompt, setProRandomPromptPanelState]);
 
-    window.requestAnimationFrame(() => {
-      const textarea = proPromptTextareaRef.current;
-      if (!textarea)
-        return;
-      textarea.focus();
-      textarea.setSelectionRange(insertion.selectionStart, insertion.selectionEnd);
+  const handleCloseProRandomPromptPanel = useCallback((tab: "prompt" | "negative") => {
+    proPromptRandomInsertionRef.current[tab] = null;
+    setProRandomPromptPanelState(tab, { open: false, value: "" });
+  }, [setProRandomPromptPanelState]);
+
+  const handleInsertProRandomizerTag = useCallback(() => {
+    const activeTab = proPromptTab === "prompt" ? "prompt" : "negative";
+    const insertion = insertNovelAiRandomTags({
+      kind: activeTab,
+      value: activeTab === "prompt" ? prompt : negativePrompt,
+      selectionStart: proPromptTextareaRef.current?.selectionStart,
+      selectionEnd: proPromptTextareaRef.current?.selectionEnd,
     });
-  }, [negativePrompt, proPromptTab, prompt, setNegativePrompt, setPrompt]);
+    applyProRandomPromptValue(activeTab, insertion.insertedText);
+    window.requestAnimationFrame(() => {
+      proRandomPromptTextareaRef.current?.focus();
+    });
+  }, [applyProRandomPromptValue, negativePrompt, proPromptTab, prompt]);
+
+  const handleRerollProRandomPrompt = useCallback(() => {
+    const activeTab = proPromptTab === "prompt" ? "prompt" : "negative";
+    const currentInsertion = proPromptRandomInsertionRef.current[activeTab];
+    const currentValue = activeTab === "prompt" ? prompt : negativePrompt;
+    const reroll = insertNovelAiRandomTags({
+      kind: activeTab,
+      value: currentValue,
+      selectionStart: currentInsertion?.selectionStart,
+      selectionEnd: currentInsertion?.selectionEnd,
+    });
+    applyProRandomPromptValue(activeTab, reroll.insertedText);
+    window.requestAnimationFrame(() => {
+      proRandomPromptTextareaRef.current?.focus();
+    });
+  }, [applyProRandomPromptValue, negativePrompt, proPromptTab, prompt]);
+
+  const handleProRandomPromptValueChange = useCallback((tab: "prompt" | "negative", nextValue: string) => {
+    applyProRandomPromptValue(tab, nextValue);
+  }, [applyProRandomPromptValue]);
 
   function handleSelectMode(nextMode: ModeOptionValue) {
     setUiMode(nextMode);
@@ -900,19 +954,61 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                       textareaRef={proPromptTextareaRef}
                       value={proPromptTab === "prompt" ? prompt : negativePrompt}
                       onChange={(e) => {
-                        if (proPromptTab === "prompt")
+                        const activeTab = proPromptTab === "prompt" ? "prompt" : "negative";
+                        if (activeTab === "prompt")
                           setPrompt(e.target.value);
                         else
                           setNegativePrompt(e.target.value);
+                        proPromptRandomInsertionRef.current[activeTab] = null;
+                        if (proRandomPromptPanels[activeTab].open)
+                          setProRandomPromptPanelState(activeTab, { open: false, value: "" });
                       }}
                       spellCheck={false}
                     />
+                    {activeProRandomPromptPanel.open
+                      ? (
+                          <div className="mt-3 rounded-none border border-[#1E2137] bg-[#111323] px-4 py-3 text-white shadow-[0_18px_32px_rgba(8,10,24,0.35)]">
+                            <div className="flex items-center justify-between gap-3">
+                              <div className="text-lg font-semibold leading-none">
+                                {proPromptTab === "prompt" ? "Random Prompt" : "Random Undesired Content"}
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <button
+                                  type="button"
+                                  className="inline-flex size-8 items-center justify-center rounded-md text-white/78 transition hover:bg-white/8 hover:text-white focus:outline-none"
+                                  aria-label="关闭随机输入框"
+                                  onMouseDown={event => event.preventDefault()}
+                                  onClick={() => handleCloseProRandomPromptPanel(proPromptTab === "prompt" ? "prompt" : "negative")}
+                                >
+                                  <XIcon className="size-5" weight="bold" />
+                                </button>
+                                <button
+                                  type="button"
+                                  className="inline-flex size-8 items-center justify-center rounded-md text-white/78 transition hover:bg-white/8 hover:text-white focus:outline-none"
+                                  aria-label="重投随机标签"
+                                  onMouseDown={event => event.preventDefault()}
+                                  onClick={handleRerollProRandomPrompt}
+                                >
+                                  <ArrowCounterClockwise className="size-5" weight="bold" />
+                                </button>
+                              </div>
+                            </div>
+                            <textarea
+                              ref={proRandomPromptTextareaRef}
+                              className="mt-3 min-h-28 w-full resize-none border-0 bg-transparent px-0 py-0 text-xl leading-8 text-white focus:outline-none"
+                              value={activeProRandomPromptPanel.value}
+                              spellCheck={false}
+                              onChange={event => handleProRandomPromptValueChange(proPromptTab === "prompt" ? "prompt" : "negative", event.target.value)}
+                            />
+                          </div>
+                        )
+                      : null}
                     <div className="mt-3 flex items-start gap-3">
                       <button
                         type="button"
                         className="inline-flex size-9 shrink-0 items-center justify-center rounded-md border border-[#D6DCE3] bg-[#F3F5F7] text-base-content/72 transition outline-none hover:border-primary/40 hover:text-primary focus:outline-none dark:border-[#2A3138] dark:bg-[#161A1F] dark:text-base-content/70"
-                        aria-label={proPromptTab === "prompt" ? "插入随机 Prompt tag" : "插入随机 Undesired Content tag"}
-                        title="插入随机 tag 语法"
+                        aria-label={proPromptTab === "prompt" ? "打开随机 Prompt 输入框" : "打开随机 Undesired Content 输入框"}
+                        title={proPromptTab === "prompt" ? "打开随机 Prompt 输入框" : "打开随机 Undesired Content 输入框"}
                         onMouseDown={event => event.preventDefault()}
                         onClick={handleInsertProRandomizerTag}
                       >
