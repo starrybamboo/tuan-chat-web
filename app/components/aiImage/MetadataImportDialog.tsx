@@ -1,4 +1,4 @@
-import { GearSixIcon, ImageSquareIcon, SparkleIcon, XIcon } from "@phosphor-icons/react";
+import { CopyIcon, ImagesSquareIcon, PictureInPictureIcon, XIcon } from "@phosphor-icons/react";
 import type { Dispatch, SetStateAction } from "react";
 
 import type {
@@ -23,8 +23,8 @@ interface MetadataImportDialogProps {
 
 const IMAGE_TARGET_BUTTON_CLASS_NAME = "inline-flex h-10 min-w-[9.25rem] items-center justify-center gap-2 rounded-md border border-[#f3efc6] bg-[#f3efc6] px-3 text-[14px] font-semibold text-[#1b2141] transition enabled:hover:bg-[#fff7c9] enabled:hover:border-[#fff7c9] disabled:cursor-not-allowed disabled:border-[#f3efc6]/22 disabled:bg-[#f3efc6]/14 disabled:text-[#f3efc6]/32";
 const METADATA_CHECKBOX_CLASS_NAME = "size-4 shrink-0 rounded-[2px] border border-[#f3efc6] bg-[#f3efc6] accent-[#f3efc6] transition focus:outline-none focus:ring-2 focus:ring-[#f3efc6]/25 focus:border-[#f3efc6] disabled:cursor-not-allowed disabled:opacity-40";
-const METADATA_LABEL_ENABLED_CLASS_NAME = "cursor-pointer text-[#f5f4ff]";
-const METADATA_LABEL_DISABLED_CLASS_NAME = "cursor-not-allowed text-white/28";
+const METADATA_LABEL_ENABLED_CLASS_NAME = "cursor-pointer text-base-content";
+const METADATA_LABEL_DISABLED_CLASS_NAME = "cursor-not-allowed text-base-content/35";
 
 export function MetadataImportDialog({
   pendingMetadataImport,
@@ -51,18 +51,18 @@ export function MetadataImportDialog({
         onClose();
       }}
     >
-      <div className="modal-box relative max-w-[452px] overflow-hidden border border-[#2a2d57] bg-[#171734] p-0 text-white shadow-[0_24px_80px_rgba(0,0,0,0.45)]">
+      <div className="modal-box relative max-w-[452px] overflow-hidden border border-base-300 bg-base-100 p-0 text-base-content shadow-xl">
         <div className="pointer-events-none absolute inset-0 overflow-hidden">
-          <div className="absolute left-1/2 top-10 h-[25rem] w-[25rem] -translate-x-1/2 rounded-full border border-[#3a3d6b]/60" />
-          <div className="absolute left-1/2 top-24 h-[38rem] w-[38rem] -translate-x-1/2 rounded-full border border-[#2d3059]/55" />
-          <div className="absolute -left-20 top-48 h-44 w-44 rounded-full bg-[#20254d]/55 blur-3xl" />
-          <div className="absolute right-0 top-0 h-48 w-48 rounded-full bg-[#232852]/45 blur-3xl" />
+          <div className="absolute left-1/2 top-10 h-[25rem] w-[25rem] -translate-x-1/2 rounded-full border border-base-content/10" />
+          <div className="absolute left-1/2 top-24 h-[38rem] w-[38rem] -translate-x-1/2 rounded-full border border-base-content/5" />
+          <div className="absolute -left-20 top-48 h-44 w-44 rounded-full bg-primary/10 blur-3xl" />
+          <div className="absolute right-0 top-0 h-48 w-48 rounded-full bg-base-content/6 blur-3xl" />
         </div>
 
         <div className="relative px-6 pb-7 pt-5">
           <button
             type="button"
-            className="absolute right-4 top-4 inline-flex size-8 items-center justify-center rounded-md text-white/90 transition hover:text-white"
+            className="absolute right-4 top-4 inline-flex size-8 items-center justify-center rounded-md text-base-content/75 transition hover:text-base-content"
             aria-label="关闭图片导入弹窗"
             title="关闭图片导入弹窗"
             onClick={onClose}
@@ -71,12 +71,12 @@ export function MetadataImportDialog({
           </button>
 
           <div className="max-w-[320px] pr-12">
-            <h3 className="font-serif text-[1.7rem] font-semibold leading-[1.22] text-[#f3efc6]">
+            <h3 className="font-serif text-[1.52rem] font-semibold leading-[1.22] text-base-content">
               What do you want to do with this image?
             </h3>
           </div>
 
-          <div className="mt-5 rounded-md border border-[#2b2f59] bg-[#101127] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
+          <div className="mt-5 rounded-md border border-base-300 bg-base-200/60 p-4 shadow-sm">
             {pendingMetadataImport
               ? (
                   <img
@@ -95,7 +95,7 @@ export function MetadataImportDialog({
               disabled
               onClick={() => onImportSourceImageTarget("img2img")}
             >
-              <ImageSquareIcon className="size-4" weight="regular" aria-hidden="true" />
+              <ImagesSquareIcon className="size-4" weight="regular" aria-hidden="true" />
               Image2Image
             </button>
             <button
@@ -104,7 +104,7 @@ export function MetadataImportDialog({
               disabled
               onClick={() => onImportSourceImageTarget("vibe")}
             >
-              <SparkleIcon className="size-4" weight="regular" aria-hidden="true" />
+              <CopyIcon className="size-4" weight="regular" aria-hidden="true" />
               Vibe Transfer
             </button>
             <button
@@ -113,9 +113,14 @@ export function MetadataImportDialog({
               disabled
               onClick={() => onImportSourceImageTarget("precise")}
             >
-              <GearSixIcon className="size-4" weight="regular" aria-hidden="true" />
+              <PictureInPictureIcon className="size-4" weight="regular" aria-hidden="true" />
               Precise Reference
             </button>
+          </div>
+
+          <div className="mt-7">
+            <div className="text-[1.42rem] font-semibold leading-tight text-base-content">This image has metadata!</div>
+            <div className="mt-1 text-[1.1rem] font-semibold leading-6 text-base-content/86">Did you want to import that instead?</div>
           </div>
 
           <div className="mt-6 grid gap-5 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start">
@@ -159,7 +164,7 @@ export function MetadataImportDialog({
                 <span>Characters</span>
               </label>
 
-              <label className={`pl-7 flex items-center gap-3 text-[12px] leading-none ${canImportMetadataCharacters && metadataImportSelection.characters ? "cursor-pointer text-white/80" : "cursor-not-allowed text-white/22"}`}>
+              <label className={`pl-7 flex items-center gap-3 text-[12px] leading-none ${canImportMetadataCharacters && metadataImportSelection.characters ? "cursor-pointer text-base-content/80" : "cursor-not-allowed text-base-content/22"}`}>
                 <input
                   type="checkbox"
                   className={METADATA_CHECKBOX_CLASS_NAME}
@@ -196,14 +201,14 @@ export function MetadataImportDialog({
             <div className="flex min-w-[9.75rem] flex-col gap-4 sm:items-end">
               <button
                 type="button"
-                className="inline-flex h-12 items-center justify-center rounded-md border border-[#2f3156] bg-[#2a2d57] px-5 text-[14px] font-semibold text-white transition enabled:hover:border-[#3a3d70] enabled:hover:bg-[#343868] disabled:cursor-not-allowed disabled:border-[#2f3156]/55 disabled:bg-[#2a2d57]/55 disabled:text-white/34"
+                className="inline-flex h-12 items-center justify-center rounded-md border border-base-300 bg-base-200 px-5 text-[14px] font-semibold text-base-content transition enabled:hover:border-primary/40 enabled:hover:bg-base-300 disabled:cursor-not-allowed disabled:border-base-300 disabled:bg-base-200 disabled:text-base-content/35"
                 disabled={!hasAnyMetadataImportSelection}
                 onClick={onConfirmMetadataImport}
               >
                 Import Metadata
               </button>
 
-              <label className="flex items-center gap-3 text-[13px] text-white/92">
+              <label className="flex items-center gap-3 text-[13px] text-base-content/92">
                 <input
                   type="checkbox"
                   className={METADATA_CHECKBOX_CLASS_NAME}
