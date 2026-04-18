@@ -165,7 +165,6 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
     strength,
     toggleProFeatureSection,
     ucPreset,
-    ucPresetEnabled,
     uiMode,
     v4Chars,
     v4UseCoords,
@@ -738,41 +737,19 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                               />
                             </div>
 
-                            <div className="space-y-3">
-                              <div className="space-y-1">
-                                <div className="text-base font-semibold text-base-content">Undesired Content Preset</div>
-                                <div className="text-xs leading-5 text-base-content/55">Undesired Content</div>
-                              </div>
-                              <div className="flex items-center justify-between gap-3 rounded-md border border-[#D6DCE3] bg-base-100 px-3 py-3 dark:border-[#2A3138] dark:bg-[#1B2026]">
-                                <span className="text-sm text-base-content">UC Preset Enabled</span>
-                                <input
-                                  type="checkbox"
-                                  className="toggle toggle-sm"
-                                  checked={ucPresetEnabled}
-                                  onChange={(e) => {
-                                    if (e.target.checked)
-                                      setUcPreset(prev => (prev === 2 ? 0 : prev));
-                                    else
-                                      setUcPreset(2);
-                                  }}
-                                />
-                              </div>
-
-                              {ucPresetEnabled
-                                ? (
-                                    <select
-                                      className={`${subtleSelectClassName} w-full rounded-md bg-base-100 dark:bg-[#1B2026]`}
-                                      value={ucPreset}
-                                      onChange={e => setUcPreset(clampIntRange(Number(e.target.value), 0, 1, 0))}
-                                    >
-                                      {UC_PRESET_OPTIONS.filter(option => option.value !== 2).map(option => (
-                                        <option key={option.value} value={option.value}>
-                                          {option.label}
-                                        </option>
-                                      ))}
-                                    </select>
-                                  )
-                                : null}
+                            <div className="space-y-2">
+                              <div className="text-sm font-semibold text-base-content">Undesired Content Preset</div>
+                              <select
+                                className={`${subtleSelectClassName} w-full rounded-md bg-base-100 dark:bg-[#1B2026]`}
+                                value={ucPreset}
+                                onChange={e => setUcPreset(clampIntRange(Number(e.target.value), 0, 2, 0))}
+                              >
+                                {UC_PRESET_OPTIONS.map(option => (
+                                  <option key={option.value} value={option.value}>
+                                    {option.label}
+                                  </option>
+                                ))}
+                              </select>
                             </div>
                           </div>
                         </div>
