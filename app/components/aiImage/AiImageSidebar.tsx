@@ -1008,7 +1008,7 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
           {uiMode === "simple"
             ? (
                 <>
-                  <div className="flex flex-wrap items-start gap-3">
+                  <div className="flex flex-wrap items-start gap-[70px]">
                     <div className="relative" ref={simpleResolutionSelectorRef}>
                       <button
                         type="button"
