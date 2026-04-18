@@ -232,38 +232,6 @@ export function insertNovelAiRandomTags(args: {
   };
 }
 
-export function replaceTextInRange(args: {
-  value: string;
-  replacementText: string;
-  selectionStart?: number | null;
-  selectionEnd?: number | null;
-}) {
-  const currentValue = String(args.value || "");
-  const rawStart = clampSelectionIndex(currentValue, args.selectionStart);
-  const rawEnd = clampSelectionIndex(currentValue, args.selectionEnd);
-  const selectionStart = Math.min(rawStart, rawEnd);
-  const selectionEnd = Math.max(rawStart, rawEnd);
-  const replacementText = String(args.replacementText || "").trim();
-  const before = currentValue.slice(0, selectionStart);
-  const after = currentValue.slice(selectionEnd);
-  const prefix = before && needsTagSeparator(before.at(-1)) && replacementText
-    ? ", "
-    : "";
-  const suffix = after && needsTagSeparator(after[0]) && replacementText
-    ? ", "
-    : "";
-  const value = `${before}${prefix}${replacementText}${suffix}${after}`;
-  const insertedSelectionStart = before.length + prefix.length;
-  const insertedSelectionEnd = insertedSelectionStart + replacementText.length;
-
-  return {
-    value,
-    selectionStart: insertedSelectionStart,
-    selectionEnd: insertedSelectionEnd,
-    insertedText: replacementText,
-  };
-}
-
 export function resolveNovelAiRandomTagTarget(args: {
   currentValue: string;
   selectionStart?: number | null;

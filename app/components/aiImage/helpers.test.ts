@@ -6,7 +6,6 @@ import {
   generatedItemKey,
   insertNovelAiRandomTags,
   mergeTagString,
-  replaceTextInRange,
   resolveNovelAiRandomTagTarget,
   historyRowKey,
   historyRowResultMatchKey,
@@ -183,20 +182,6 @@ describe("aiImage helpers", () => {
     })).toEqual({
       selectionStart: 0,
       selectionEnd: 0,
-    });
-  });
-
-  it("replaces the target range with edited random prompt text", () => {
-    expect(replaceTextInRange({
-      value: "1girl, cinematic lighting, dramatic shadows, smile",
-      replacementText: "1girl, black background, full body",
-      selectionStart: 7,
-      selectionEnd: 43,
-    })).toEqual({
-      value: "1girl, 1girl, black background, full body, smile",
-      selectionStart: 7,
-      selectionEnd: 41,
-      insertedText: "1girl, black background, full body",
     });
   });
 });
