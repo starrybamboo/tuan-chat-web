@@ -97,6 +97,17 @@ describe("aiImage helpers", () => {
     })).toBeNull();
   });
 
+  it("permits img2img generation when a source image is provided", () => {
+    expect(getNovelAiFreeGenerationViolation({
+      mode: "img2img",
+      width: 832,
+      height: 1216,
+      imageCount: 1,
+      steps: 23,
+      sourceImageBase64: "abc123",
+    })).toBeNull();
+  });
+
   it("deduplicates merged style tags while keeping quick mode tags editable", () => {
     expect(mergeTagString("1girl, best quality, cinematic lighting", [
       "cinematic lighting",

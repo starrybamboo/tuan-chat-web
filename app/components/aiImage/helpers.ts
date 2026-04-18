@@ -352,8 +352,12 @@ export function getNovelAiFreeGenerationViolation(args: {
     if (!String(args.maskBase64 || "").trim())
       return "Inpaint 缺少蒙版。";
   }
-  else if (args.mode !== "txt2img" || String(args.sourceImageBase64 || "").trim()) {
-    return getNovelAiFreeOnlyMessage("Base Img / img2img 已禁用。");
+  else if (args.mode === "img2img") {
+    if (!String(args.sourceImageBase64 || "").trim())
+      return "Base Img 缺少源图。";
+  }
+  else if (args.mode !== "txt2img") {
+    return getNovelAiFreeOnlyMessage("当前模式暂未开放。");
   }
   if ((args.vibeTransferReferenceCount ?? 0) > 0 || args.hasPreciseReference)
     return getNovelAiFreeOnlyMessage("Reference Image、Vibe Transfer、Precise Reference 已禁用。");

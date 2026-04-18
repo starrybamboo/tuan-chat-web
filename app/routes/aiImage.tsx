@@ -180,7 +180,7 @@ export default function AiImagePage() {
           const file = event.target.files?.[0];
           if (!file)
             return;
-          void controller.handlePickSourceImage(file);
+          void controller.handlePickSourceImage(file, { target: "img2img" });
           event.target.value = "";
         }}
       />

@@ -144,7 +144,6 @@ export function MetadataImportDialog({
             <button
               type="button"
               className={IMAGE_TARGET_BUTTON_CLASS_NAME}
-              disabled
               onClick={() => onImportSourceImageTarget("img2img")}
             >
               <ReferenceActionIcon className="size-[15px] shrink-0" src={image2imageIconSrc} />

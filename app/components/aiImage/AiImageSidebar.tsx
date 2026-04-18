@@ -171,7 +171,7 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
   const editorPanelClassName = "rounded-2xl border border-[#D6DCE3] bg-[#F3F5F7] p-3 shadow-none dark:border-[#2A3138] dark:bg-[#161A1F]";
   const segmentedControlClassName = "join rounded-xl bg-transparent p-0";
   const segmentedButtonBaseClassName = "btn btn-xs join-item border-0";
-  const featureUploadActionClassName = "inline-flex size-11 items-center justify-center rounded-md border border-[#2A3138] bg-[#1F2340] text-base-content/78 transition hover:border-primary/40 hover:text-primary focus:outline-none focus:ring-2 focus:ring-primary/20";
+  const featureUploadActionClassName = "inline-flex size-11 items-center justify-center rounded-md border border-[#2A3138] bg-[#161A1F] text-base-content/78 transition hover:border-primary/40 hover:text-primary focus:outline-none focus:ring-2 focus:ring-primary/20";
   const featurePrimaryActionClassName = "inline-flex h-11 items-center gap-2 rounded-md border border-[#2A3138] bg-[#161A1F] px-4 text-[15px] font-semibold text-base-content transition hover:border-primary/40 hover:text-primary focus:outline-none focus:ring-2 focus:ring-primary/20";
   const promptTextareaClassName = "textarea textarea-bordered !rounded-none min-h-36 w-full resize-none border-[#D6DCE3] bg-[#F3F5F7] text-base-content leading-7 transition-colors hover:border-primary active:border-primary focus:border-primary focus:bg-primary/[0.03] focus:outline-none dark:border-[#2A3138] dark:bg-[#161A1F] dark:hover:border-primary";
   const simplePromptTextareaClassName = promptTextareaClassName;

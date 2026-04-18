@@ -564,6 +564,7 @@ export function useAiImagePageController() {
     name: string;
     source?: ImageImportSource;
     imageCount?: number;
+    target?: "img2img";
   }) => {
     const dataUrl = base64DataUrl(args.mime, args.bytes);
     const imageBase64 = bytesToBase64(args.bytes);
@@ -597,6 +598,25 @@ export function useAiImagePageController() {
       height: imageSize?.height,
     } satisfies ImportedSourceImagePayload;
 
+    const applySourceImageAsBase = (nextSourceImage: ImportedSourceImagePayload, successMessage?: string) => {
+      setUiMode("pro");
+      setMode("img2img");
+      setSourceImageDataUrl(nextSourceImage.dataUrl);
+      setSourceImageBase64(nextSourceImage.imageBase64);
+      if (nextSourceImage.width && nextSourceImage.height) {
+        const normalizedSize = getClosestValidImageSize(nextSourceImage.width, nextSourceImage.height);
+        setWidth(normalizedSize.width);
+        setHeight(normalizedSize.height);
+      }
+      if (successMessage)
+        showSuccessToast(successMessage);
+    };
+
+    if (args.target === "img2img") {
+      applySourceImageAsBase(sourceImage, "已设置 Base Img。");
+      return;
+    }
+
     if (importedMetadata) {
       setPendingMetadataImport({
         sourceImage,
@@ -612,11 +632,12 @@ export function useAiImagePageController() {
       return;
     }
 
-  }, []);
+    applySourceImageAsBase(sourceImage, "已设置 Base Img。");
+  }, [showSuccessToast]);
 
   const handlePickSourceImage = useCallback(async (
     file: File,
-    options?: { source?: ImageImportSource; imageCount?: number },
+    options?: { source?: ImageImportSource; imageCount?: number; target?: "img2img" },
   ) => {
     const bytes = await readFileAsBytes(file);
     await handleImportSourceImageBytes({
@@ -625,6 +646,7 @@ export function useAiImagePageController() {
       name: file.name,
       source: options?.source,
       imageCount: options?.imageCount,
+      target: options?.target,
     });
   }, [handleImportSourceImageBytes]);
 
@@ -751,13 +773,29 @@ export function useAiImagePageController() {
     setMetadataImportSelection(DEFAULT_METADATA_IMPORT_SELECTION);
   }, []);
 
-  const handleImportSourceImageTarget = useCallback((_target: "img2img" | "vibe" | "precise") => {
+  const handleImportSourceImageTarget = useCallback((target: "img2img" | "vibe" | "precise") => {
     if (!pendingMetadataImport)
       return;
 
+    if (target === "img2img") {
+      setUiMode("pro");
+      setMode("img2img");
+      setSourceImageDataUrl(pendingMetadataImport.sourceImage.dataUrl);
+      setSourceImageBase64(pendingMetadataImport.sourceImage.imageBase64);
+      if (pendingMetadataImport.sourceImage.width && pendingMetadataImport.sourceImage.height) {
+        const normalizedSize = getClosestValidImageSize(
+          pendingMetadataImport.sourceImage.width,
+          pendingMetadataImport.sourceImage.height,
+        );
+        setWidth(normalizedSize.width);
+        setHeight(normalizedSize.height);
+      }
+      showSuccessToast("已设置 Base Img。");
+    }
+
     setPendingMetadataImport(null);
     setMetadataImportSelection(DEFAULT_METADATA_IMPORT_SELECTION);
-  }, [pendingMetadataImport]);
+  }, [pendingMetadataImport, showSuccessToast]);
 
   const handleConfirmMetadataImport = useCallback(() => {
     if (!pendingMetadataImport)
@@ -797,9 +835,19 @@ export function useAiImagePageController() {
   const handleUseSelectedResultAsBaseImage = useCallback(() => {
     if (!selectedPreviewResult)
       return;
-    showErrorToast(getNovelAiFreeOnlyMessage("Base Img / img2img 已禁用；需要局部重绘时，请改用预览区的 Inpaint。"));
-    setProFeatureSectionOpen("baseImage", true);
-  }, [selectedPreviewResult, setProFeatureSectionOpen, showErrorToast]);
+    const sourceImageBase64 = dataUrlToBase64(selectedPreviewResult.dataUrl);
+    if (!sourceImageBase64) {
+      showErrorToast("当前预览图片读取失败，无法设置为 Base Img。");
+      return;
+    }
+    setUiMode("pro");
+    setMode("img2img");
+    setSourceImageDataUrl(selectedPreviewResult.dataUrl);
+    setSourceImageBase64(sourceImageBase64);
+    setWidth(selectedPreviewResult.width);
+    setHeight(selectedPreviewResult.height);
+    showSuccessToast("已把当前预览设置为 Base Img。");
+  }, [selectedPreviewResult, showErrorToast, showSuccessToast]);
 
   const handleToggleDirectorTools = useCallback(() => {
     setIsDirectorToolsOpen(prev => !prev);
