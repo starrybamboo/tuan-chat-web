@@ -1,5 +1,5 @@
 import type { AiImagePageController } from "@/components/aiImage/useAiImagePageController";
-import { ArrowCounterClockwise, CheckCircleIcon, CircleNotch, DiceFiveIcon, FileArrowUpIcon, GearSixIcon, ImageSquareIcon, SparkleIcon, XCircleIcon } from "@phosphor-icons/react";
+import { ArrowCounterClockwise, CheckCircleIcon, CircleNotch, DiceFiveIcon, FileArrowUpIcon, GearSixIcon, ImageSquareIcon, PlusIcon, SparkleIcon, XCircleIcon } from "@phosphor-icons/react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   CUSTOM_RESOLUTION_ID,
@@ -54,14 +54,12 @@ type ModeOptionValue = (typeof MODE_OPTIONS)[number]["value"];
 export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
   const {
     activeResolutionPreset,
-    canAddVibeReference,
     canConvertSimpleText,
     canGenerate,
     canGenerateFromSimpleTags,
     canTriggerProGenerate,
     cfgRescale,
     charPromptTabs,
-    characterPromptDescription,
     dynamicThresholding,
     hasSimpleTagsDraft,
     isBusy,
@@ -103,7 +101,6 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
     noiseScheduleOptions,
     normalizeReferenceStrengths,
     preciseReference,
-    preciseReferenceDescription,
     preciseReferenceInputRef,
     proFeatureSections,
     proGenerateLabel,
@@ -174,7 +171,6 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
     v4UseCoords,
     v4UseOrder,
     vibeReferenceInputRef,
-    vibeTransferDescription,
     vibeTransferReferences,
     width,
   } = sidebarProps;
@@ -183,6 +179,8 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
   const editorPanelClassName = "rounded-2xl border border-[#D6DCE3] bg-[#F3F5F7] p-3 shadow-none dark:border-[#2A3138] dark:bg-[#161A1F]";
   const segmentedControlClassName = "join rounded-xl bg-transparent p-0";
   const segmentedButtonBaseClassName = "btn btn-xs join-item border-0";
+  const featureUploadActionClassName = "inline-flex size-11 items-center justify-center rounded-md border border-[#2A3138] bg-[#1F2340] text-base-content/78 transition hover:border-primary/40 hover:text-primary focus:outline-none focus:ring-2 focus:ring-primary/20";
+  const featurePrimaryActionClassName = "inline-flex h-11 items-center gap-2 rounded-md border border-[#2A3138] bg-[#1F2340] px-4 text-[15px] font-semibold text-base-content transition hover:border-primary/40 hover:text-primary focus:outline-none focus:ring-2 focus:ring-primary/20";
   const promptTextareaClassName = "textarea textarea-bordered !rounded-none min-h-36 w-full resize-none border-[#D6DCE3] bg-[#F3F5F7] text-base-content leading-7 transition-colors hover:border-primary active:border-primary focus:border-primary focus:bg-primary/[0.03] focus:outline-none dark:border-[#2A3138] dark:bg-[#161A1F] dark:hover:border-primary";
   const simplePromptTextareaClassName = promptTextareaClassName;
   const subtleInputClassName = "input input-bordered input-sm !rounded-none border-[#D6DCE3] bg-[#F3F5F7] text-base-content dark:border-[#2A3138] dark:bg-[#161A1F]";
@@ -961,25 +959,25 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                       </div>
                       <button
                         type="button"
-                        className="inline-flex h-14 w-[88px] items-center justify-center rounded-md border border-[#D6DCE3] bg-[#F3F5F7] text-base-content/72 transition hover:border-primary/40 hover:text-primary focus:outline-none focus:ring-2 focus:ring-primary/20 dark:border-[#2A3138] dark:bg-[#161A1F] dark:text-base-content/70"
+                        className={featureUploadActionClassName}
                         aria-label="上传 Base Img"
                         title="上传 Base Img"
                         onClick={handleOpenSourceImagePicker}
                       >
-                        <FileArrowUpIcon className="size-6" weight="bold" />
+                        <FileArrowUpIcon className="size-5" weight="bold" />
                       </button>
                     </div>
                   </div>
 
                   <ProFeatureSection
                     title="Character Prompts"
-                    description={characterPromptDescription}
                     badge={v4Chars.length ? `${v4Chars.length}` : null}
                     open={proFeatureSections.characterPrompts}
                     onToggle={() => toggleProFeatureSection("characterPrompts")}
                     action={(
-                      <button type="button" className="btn btn-xs" onClick={handleAddV4Char} disabled={!isNAI4}>
-                        Add Character
+                      <button type="button" className={featurePrimaryActionClassName} onClick={handleAddV4Char} disabled={!isNAI4}>
+                        <PlusIcon className="size-5" weight="bold" />
+                        <span>Add Character</span>
                       </button>
                     )}
                   >
@@ -1119,21 +1117,22 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
 
                   <ProFeatureSection
                     title="Vibe Transfer"
-                    description={vibeTransferDescription}
                     badge={vibeTransferReferences.length ? `${vibeTransferReferences.length}` : null}
                     open={proFeatureSections.vibeTransfer}
                     onToggle={() => toggleProFeatureSection("vibeTransfer")}
                     action={(
                       <button
                         type="button"
-                        className="btn btn-xs"
+                        className={featureUploadActionClassName}
                         onClick={() => {
                           setProFeatureSectionOpen("vibeTransfer", true);
                           vibeReferenceInputRef.current?.click();
                         }}
-                        disabled={!canAddVibeReference}
+                        onMouseDown={event => event.preventDefault()}
+                        aria-label="上传 Vibe Transfer 参考图"
+                        title="上传 Vibe Transfer 参考图"
                       >
-                        已禁用
+                        <FileArrowUpIcon className="size-5" weight="bold" />
                       </button>
                     )}
                   >
@@ -1222,21 +1221,22 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
 
                   <ProFeatureSection
                     title="Precise Reference"
-                    description={preciseReferenceDescription}
                     badge={preciseReference ? "1" : null}
                     open={proFeatureSections.preciseReference}
                     onToggle={() => toggleProFeatureSection("preciseReference")}
                     action={(
                       <button
                         type="button"
-                        className="btn btn-xs"
+                        className={featureUploadActionClassName}
                         onClick={() => {
                           setProFeatureSectionOpen("preciseReference", true);
                           preciseReferenceInputRef.current?.click();
                         }}
-                        disabled
+                        onMouseDown={event => event.preventDefault()}
+                        aria-label="上传 Precise Reference 参考图"
+                        title="上传 Precise Reference 参考图"
                       >
-                        已禁用
+                        <FileArrowUpIcon className="size-5" weight="bold" />
                       </button>
                     )}
                   >
