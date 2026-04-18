@@ -1,5 +1,5 @@
 import type { AiImagePageController } from "@/components/aiImage/useAiImagePageController";
-import { ArrowCounterClockwise, CheckCircleIcon, CircleNotch, GearSixIcon, SparkleIcon, XCircleIcon } from "@phosphor-icons/react";
+import { ArrowCounterClockwise, CheckCircleIcon, CircleNotch, FileArrowUpIcon, GearSixIcon, SparkleIcon, XCircleIcon } from "@phosphor-icons/react";
 import { useEffect, useRef, useState } from "react";
 import {
   CUSTOM_RESOLUTION_ID,
@@ -63,6 +63,7 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
     hasSimpleTagsDraft,
     handleAddV4Char,
     handleClearSeed,
+    handleOpenSourceImagePicker,
     handleClearSourceImage,
     handleCropToClosestValidSize,
     handleMoveV4Char,
@@ -838,9 +839,14 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                         : (
                             <button
                               type="button"
-                              className={`flex min-h-28 w-full items-center justify-center rounded-2xl border px-4 text-sm transition-colors ${isPageImageDragOver ? "border-primary bg-primary/10 text-primary" : "border-dashed border-base-300 bg-base-200/60 text-base-content/70 hover:border-primary hover:text-base-content"}`}
+                              className={`flex min-h-28 w-full items-center justify-center rounded-2xl border px-4 transition-colors ${isPageImageDragOver ? "border-primary bg-primary/10 text-primary" : "border-dashed border-base-300 bg-base-200/60 text-base-content/70 hover:border-primary hover:text-base-content"}`}
+                              aria-label="上传或拖拽导入图片"
+                              title="上传或拖拽导入图片"
+                              onClick={handleOpenSourceImagePicker}
                             >
-                              {isPageImageDragOver ? "松开读取 metadata" : "拖入 / 粘贴 NovelAI 图片以导入设置"}
+                              <span className={`flex size-[72px] items-center justify-center rounded-[22px] border border-white/10 bg-[#2B2336]/88 shadow-[0_18px_36px_rgba(23,18,33,0.28)] transition-transform ${isPageImageDragOver ? "scale-[1.04]" : ""}`}>
+                                <FileArrowUpIcon className="size-10 text-white" weight="fill" />
+                              </span>
                             </button>
                           )}
                       {isPageImageDragOver
