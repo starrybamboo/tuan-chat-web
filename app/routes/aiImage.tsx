@@ -223,16 +223,16 @@ export default function AiImagePage() {
                   style={sidebarWidth == null ? undefined : { width: `${sidebarWidth}px` }}
                 >
                   <AiImageSidebar sidebarProps={controller.sidebarProps} />
+                  <button
+                    type="button"
+                    className="group absolute inset-y-0 right-0 z-30 w-3 translate-x-1/2 cursor-col-resize touch-none bg-transparent px-0"
+                    aria-label="拖拽调整 AI 生图侧边栏宽度"
+                    title="拖拽调整 AI 生图侧边栏宽度"
+                    onMouseDown={handleSidebarResizeStart}
+                  >
+                    <span className="mx-auto my-3 block h-[calc(100%-1.5rem)] w-px rounded-full bg-base-300/70 transition-colors group-hover:bg-primary/45 group-active:bg-primary" />
+                  </button>
                 </div>
-                <button
-                  type="button"
-                  className="group relative z-20 flex w-2 shrink-0 cursor-col-resize items-stretch justify-center bg-base-200 px-0 touch-none"
-                  aria-label="拖拽调整 AI 生图侧边栏宽度"
-                  title="拖拽调整 AI 生图侧边栏宽度"
-                  onMouseDown={handleSidebarResizeStart}
-                >
-                  <span className="my-3 w-px rounded-full bg-base-300 transition-colors group-hover:bg-primary/45 group-active:bg-primary" />
-                </button>
               </>
             )
           : null}
