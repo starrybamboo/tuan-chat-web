@@ -235,7 +235,7 @@ export function AiImagePreviewPane({
                         <div className="mb-1 text-[11px] font-medium uppercase tracking-[0.18em] text-base-content/50">Prompt</div>
                         <input
                           type="text"
-                          className="input input-sm input-bordered rounded-none w-full"
+                          className="input input-sm input-bordered !rounded-none w-full"
                           value={directorColorizePrompt}
                           disabled={isBusy}
                           placeholder="例如：warm sunset palette"
@@ -246,7 +246,7 @@ export function AiImagePreviewPane({
                         <div className="mb-1 text-[11px] font-medium uppercase tracking-[0.18em] text-base-content/50">Defry</div>
                         <input
                           type="number"
-                          className="input input-sm input-bordered rounded-none w-full"
+                          className="input input-sm input-bordered !rounded-none w-full"
                           value={directorColorizeDefry}
                           disabled={isBusy}
                           min={0}
@@ -264,7 +264,7 @@ export function AiImagePreviewPane({
                       <label className="block">
                         <div className="mb-1 text-[11px] font-medium uppercase tracking-[0.18em] text-base-content/50">Emotion</div>
                         <select
-                          className="select select-sm select-bordered rounded-none w-full"
+                          className="select select-sm select-bordered !rounded-none w-full"
                           value={directorEmotion}
                           disabled={isBusy}
                           onChange={event => onDirectorEmotionChange(event.target.value as NovelAiEmotion)}
@@ -278,7 +278,7 @@ export function AiImagePreviewPane({
                         <div className="mb-1 text-[11px] font-medium uppercase tracking-[0.18em] text-base-content/50">Extra Prompt</div>
                         <input
                           type="text"
-                          className="input input-sm input-bordered rounded-none w-full"
+                          className="input input-sm input-bordered !rounded-none w-full"
                           value={directorEmotionExtraPrompt}
                           disabled={isBusy}
                           placeholder="例如：blushing, watery eyes"
@@ -289,7 +289,7 @@ export function AiImagePreviewPane({
                         <div className="mb-1 text-[11px] font-medium uppercase tracking-[0.18em] text-base-content/50">Defry</div>
                         <input
                           type="number"
-                          className="input input-sm input-bordered rounded-none w-full"
+                          className="input input-sm input-bordered !rounded-none w-full"
                           value={directorEmotionDefry}
                           disabled={isBusy}
                           min={0}

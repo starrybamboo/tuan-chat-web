@@ -354,7 +354,7 @@ export function InpaintDialog({
             <label className="mt-4 block">
               <div className="mb-2 text-sm font-medium">Prompt</div>
               <textarea
-                className="textarea textarea-bordered rounded-none min-h-36 w-full resize-none bg-base-100"
+                className="textarea textarea-bordered !rounded-none min-h-36 w-full resize-none bg-base-100"
                 value={prompt}
                 disabled={isSubmitting}
                 onChange={event => setPrompt(event.target.value)}
@@ -364,7 +364,7 @@ export function InpaintDialog({
             <label className="mt-4 block">
               <div className="mb-2 text-sm font-medium">Undesired Content</div>
               <textarea
-                className="textarea textarea-bordered rounded-none min-h-28 w-full resize-none bg-base-100"
+                className="textarea textarea-bordered !rounded-none min-h-28 w-full resize-none bg-base-100"
                 value={negativePrompt}
                 disabled={isSubmitting}
                 onChange={event => setNegativePrompt(event.target.value)}
