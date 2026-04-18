@@ -49,9 +49,9 @@ export function AiImageContextLimitMeter({
 
   return (
     <div className={className}>
-      <div className="group relative">
+      <div className="relative">
         <div
-          className="relative h-1 w-full overflow-hidden rounded-md bg-base-content/12"
+          className="peer relative h-1 w-full overflow-hidden rounded-md bg-base-content/12"
           role="img"
           aria-label={`Context Limit ${totalUsed}/${NOVELAI_V45_CONTEXT_LIMIT}`}
           tabIndex={0}
@@ -95,7 +95,7 @@ export function AiImageContextLimitMeter({
             )
           : null}
 
-        <div className="pointer-events-none absolute left-0 top-[calc(100%+0.5rem)] z-20 w-72 rounded-md border border-[#D6DCE3] bg-[#F3F5F7] p-3 opacity-0 shadow-[0_18px_36px_rgba(15,23,42,0.16)] transition duration-150 group-hover:opacity-100 group-focus-within:opacity-100 dark:border-[#2A3138] dark:bg-[#161A1F] dark:shadow-[0_20px_40px_rgba(0,0,0,0.38)]">
+        <div className="pointer-events-none absolute left-0 top-[calc(100%+0.5rem)] z-20 w-72 rounded-md border border-[#D6DCE3] bg-[#F3F5F7] p-3 opacity-0 shadow-[0_18px_36px_rgba(15,23,42,0.16)] transition duration-150 peer-hover:opacity-100 peer-focus:opacity-100 peer-focus-visible:opacity-100 dark:border-[#2A3138] dark:bg-[#161A1F] dark:shadow-[0_20px_40px_rgba(0,0,0,0.38)]">
           <div className="flex items-center justify-between gap-3">
             <div className="text-xs font-semibold text-base-content">Context Limit</div>
             <div className="flex items-center gap-2 text-[11px] leading-none text-base-content/62">
