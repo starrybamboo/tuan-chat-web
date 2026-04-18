@@ -77,9 +77,9 @@ export const DIRECTOR_EMOTION_OPTIONS: readonly NovelAiEmotion[] = [
 ] as const;
 
 export const RESOLUTION_PRESETS: ResolutionPreset[] = [
-  { id: "portrait", label: "普通竖版", width: 832, height: 1216 },
+  { id: "portrait", label: "竖版", width: 832, height: 1216 },
   { id: "square", label: "正方形", width: 1024, height: 1024 },
-  { id: "landscape", label: "普通横版", width: 1216, height: 832 },
+  { id: "landscape", label: "横板", width: 1216, height: 832 },
 ];
 
 export const DEFAULT_PRO_IMAGE_SETTINGS = {
