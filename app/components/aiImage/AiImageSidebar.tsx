@@ -619,14 +619,18 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                                   setSimpleNegativePrompt(e.target.value);
                               }}
                             />
-                            <button
-                              type="button"
-                              className="btn btn-xs btn-ghost absolute right-3 bottom-3"
-                              onClick={handleReturnToSimpleText}
-                            >
-                              <ArrowCounterClockwise className="size-3.5" weight="bold" />
-                              返回描述
-                            </button>
+                            {hasSimpleTagsDraft
+                              ? (
+                                  <button
+                                    type="button"
+                                    className="btn btn-xs btn-ghost absolute right-3 bottom-3"
+                                    onClick={handleReturnToSimpleText}
+                                  >
+                                    <ArrowCounterClockwise className="size-3.5" weight="bold" />
+                                    返回描述
+                                  </button>
+                                )
+                              : null}
                           </div>
                         </div>
                       </div>
