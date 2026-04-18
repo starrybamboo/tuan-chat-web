@@ -424,7 +424,7 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
             >
               <span className="relative inline-flex size-5 items-center justify-center">
                 <ImageSquareIcon className="size-5" weight="regular" aria-hidden="true" />
-                <XCircleIcon className="absolute -right-1 -top-1 size-4 text-error" weight="fill" aria-hidden="true" />
+                <XCircleIcon className="absolute -right-1 -top-1 size-4 text-primary" weight="fill" aria-hidden="true" />
               </span>
             </button>
 
