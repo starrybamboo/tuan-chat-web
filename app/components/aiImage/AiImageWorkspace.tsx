@@ -28,13 +28,16 @@ export function AiImageWorkspace({
 }: AiImageWorkspaceProps) {
   const [isHistoryCollapsed, setIsHistoryCollapsed] = useState(false);
   const [isPinnedDrawerOpen, setIsPinnedDrawerOpen] = useState(false);
+  const [isPinnedEdgeHovered, setIsPinnedEdgeHovered] = useState(false);
 
   useEffect(() => {
     if (!pinnedPreviewResult) {
       setIsPinnedDrawerOpen(false);
+      setIsPinnedEdgeHovered(false);
       return;
     }
     setIsPinnedDrawerOpen(false);
+    setIsPinnedEdgeHovered(false);
   }, [pinnedPreviewResult?.dataUrl, pinnedPreviewResult?.seed]);
 
   return (
@@ -45,7 +48,6 @@ export function AiImageWorkspace({
               type="button"
               className="absolute inset-0 z-[5] bg-black/36 transition-opacity"
               aria-label="收起 pinned 预览阴影"
-              title="收起 pinned 预览"
               onClick={() => setIsPinnedDrawerOpen(false)}
             />
           )
@@ -56,7 +58,9 @@ export function AiImageWorkspace({
             <div className="pointer-events-none absolute left-0 top-1/2 z-10 -translate-y-1/2">
               <div
                 className="pointer-events-auto flex items-stretch gap-2 transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]"
-                style={{ transform: isPinnedDrawerOpen ? "translateX(0)" : "translateX(calc(-100% + 14px))" }}
+                style={{ transform: isPinnedDrawerOpen ? "translateX(0)" : (isPinnedEdgeHovered ? "translateX(calc(-100% + 28px))" : "translateX(calc(-100% + 14px))") }}
+                onMouseEnter={() => setIsPinnedEdgeHovered(true)}
+                onMouseLeave={() => setIsPinnedEdgeHovered(false)}
               >
                 <div className="flex w-11 shrink-0 flex-col items-center justify-start gap-1 rounded-none border border-white/18 bg-base-300/98 px-0 py-2 shadow-xl backdrop-blur">
                   <button
@@ -90,7 +94,7 @@ export function AiImageWorkspace({
                 <button
                   type="button"
                   className="relative block shrink-0 overflow-hidden rounded-none bg-transparent shadow-xl"
-                  title={isPinnedDrawerOpen ? "收起 pinned 预览" : "展开 pinned 预览"}
+                  aria-label={isPinnedDrawerOpen ? "收起 pinned 预览" : "展开 pinned 预览"}
                   onClick={() => {
                     if (isPinnedDrawerOpen) {
                       setIsPinnedDrawerOpen(false);
