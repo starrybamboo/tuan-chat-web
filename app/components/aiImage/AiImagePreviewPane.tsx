@@ -9,6 +9,9 @@ import type {
 import { DIRECTOR_EMOTION_OPTIONS, DIRECTOR_TOOL_OPTIONS } from "@/components/aiImage/constants";
 import { ChevronDown, ExpandCornersIcon, SharpDownload } from "@/icons";
 
+const PREVIEW_FRAME_WIDTH = 750;
+const PREVIEW_FRAME_HEIGHT = 1150;
+
 interface AiImagePreviewPaneProps {
   isDirectorToolsOpen: boolean;
   previewMeta: string;
@@ -409,9 +412,23 @@ export function AiImagePreviewPane({
                       <div className="pointer-events-none absolute inset-x-0 top-0 z-10 h-px animate-pulse bg-primary/65" />
                     )
                   : null}
-                {selectedPreviewResult
-                  ? <img src={selectedPreviewResult.dataUrl} className="relative z-[1] max-h-[720px] w-auto rounded-box object-contain" alt="result" />
-                  : <EmptyPreviewPlaceholder />}
+                <div
+                  className="relative z-[1] flex max-w-full items-center justify-center"
+                  style={{
+                    width: `min(${PREVIEW_FRAME_WIDTH}px, 100%)`,
+                    height: `min(${PREVIEW_FRAME_HEIGHT}px, 100%)`,
+                  }}
+                >
+                  {selectedPreviewResult
+                    ? (
+                        <img
+                          src={selectedPreviewResult.dataUrl}
+                          className="max-h-full max-w-full rounded-box object-contain"
+                          alt="result"
+                        />
+                      )
+                    : <EmptyPreviewPlaceholder />}
+                </div>
               </div>
 
               {selectedPreviewResult
