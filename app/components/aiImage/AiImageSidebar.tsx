@@ -398,7 +398,10 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
   }
 
   return (
-    <div ref={sidebarSurfaceRef} className={`${isDirectorToolsOpen ? "hidden" : "flex"} h-full min-h-0 w-full min-w-0 flex-col gap-0 overflow-hidden border-r border-black/5 bg-[#F3F5F7] p-0 shadow-[26px_0_40px_-16px_rgba(15,23,42,0.34)] dark:border-white/5 dark:bg-[#161A1F] dark:shadow-[26px_0_40px_-16px_rgba(0,0,0,0.62)]`}>
+    <div
+      ref={sidebarSurfaceRef}
+      className={`${isDirectorToolsOpen ? "hidden" : "flex"} relative h-full min-h-0 w-full min-w-0 flex-col gap-0 overflow-hidden border-r border-black/5 bg-[#F3F5F7] p-0 shadow-none after:pointer-events-none after:absolute after:inset-y-0 after:right-0 after:w-5 after:bg-linear-to-l after:from-[rgba(15,23,42,0.08)] after:via-[rgba(15,23,42,0.03)] after:to-transparent after:content-[''] dark:border-white/5 dark:bg-[#161A1F] dark:after:from-[rgba(0,0,0,0.2)] dark:after:via-[rgba(0,0,0,0.08)]`}
+    >
       <div className="ai-image-fade-scrollbar min-h-0 flex-1 overflow-y-auto">
       {isModeSelectorMounted
         ? (
