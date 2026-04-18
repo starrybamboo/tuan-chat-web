@@ -1,4 +1,4 @@
-import { ClipboardTextIcon, PlantIcon, TrashSimpleIcon } from "@phosphor-icons/react";
+import { ArrowSquareInIcon, PlantIcon, TrashSimpleIcon } from "@phosphor-icons/react";
 import type { ComponentProps } from "react";
 import { useEffect, useState } from "react";
 
@@ -13,7 +13,7 @@ interface AiImageWorkspaceProps {
   historyPaneProps: Omit<ComponentProps<typeof AiImageHistoryPane>, "isDirectorToolsOpen" | "onCollapse">;
   pinnedPreviewResult: GeneratedImageItem | null;
   onClearPinnedPreview: () => void;
-  onCopyPinnedPreviewImage: () => void | Promise<void>;
+  onJumpToPinnedPreview: () => void;
   onApplyPinnedPreviewSeed: () => void;
 }
 
@@ -23,7 +23,7 @@ export function AiImageWorkspace({
   historyPaneProps,
   pinnedPreviewResult,
   onClearPinnedPreview,
-  onCopyPinnedPreviewImage,
+  onJumpToPinnedPreview,
   onApplyPinnedPreviewSeed,
 }: AiImageWorkspaceProps) {
   const [isHistoryCollapsed, setIsHistoryCollapsed] = useState(false);
@@ -75,11 +75,14 @@ export function AiImageWorkspace({
                   <button
                     type="button"
                     className="inline-flex size-9 items-center justify-center rounded-none text-base-content/72 transition-colors hover:bg-base-200/35 hover:text-base-content"
-                    aria-label="复制 pinned 图片"
-                    title="复制 pinned 图片"
-                    onClick={() => void onCopyPinnedPreviewImage()}
+                    aria-label="跳转到 pinned 图片"
+                    title="跳转到 pinned 图片"
+                    onClick={() => {
+                      onJumpToPinnedPreview();
+                      setIsPinnedDrawerOpen(false);
+                    }}
                   >
-                    <ClipboardTextIcon className="size-[18px]" weight="regular" />
+                    <ArrowSquareInIcon className="size-[18px]" weight="regular" />
                   </button>
                   <button
                     type="button"
