@@ -521,6 +521,45 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                     </div>
                   </div>
 
+                  <div className="flex flex-col gap-2">
+                    <div className="flex items-center gap-2">
+                      <div className="text-xs opacity-70">画风</div>
+                      <div className="ml-auto flex items-center gap-2">
+                        <button type="button" className="btn btn-xs" onClick={() => setIsStylePickerOpen(true)}>
+                          添加
+                        </button>
+                        {selectedStyleIds.length
+                          ? <button type="button" className="btn btn-xs" onClick={handleClearStyles}>清空</button>
+                          : null}
+                      </div>
+                    </div>
+
+                    {selectedStylePresets.length
+                      ? (
+                          <div className="flex flex-wrap gap-2">
+                            {selectedStylePresets.map((preset) => {
+                              return (
+                                <button
+                                  key={preset.id}
+                                  type="button"
+                                  className="flex items-center gap-2 rounded-box border border-base-300 bg-base-100 pr-2 hover:border-primary"
+                                  onClick={() => setIsStylePickerOpen(true)}
+                                  title="点击继续添加画风"
+                                >
+                                  <div className="w-10 aspect-square rounded-box bg-base-200 overflow-hidden flex items-center justify-center">
+                                    {preset.imageUrl
+                                      ? <img src={preset.imageUrl} alt={preset.title} className="w-full h-full object-cover" />
+                                      : <div className="text-xs opacity-60">{preset.title}</div>}
+                                  </div>
+                                  <div className="text-xs opacity-70 max-w-32 truncate">{preset.title}</div>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        )
+                      : null}
+                  </div>
+
                   <div className={`grid transition-all duration-300 ease-out ${simpleConverted ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"}`}>
                     <div className="min-h-0 overflow-hidden">
                       <div className={`rounded-2xl border border-[#D6DCE3] bg-base-100 p-3 shadow-sm transition-all duration-300 ease-out dark:border-[#2A3138] dark:bg-[#1B2026] ${simpleConverted ? "translate-y-0 scale-100" : "translate-y-2 scale-[0.98]"}`}>
@@ -635,45 +674,6 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                         </div>
                       </div>
                     </div>
-                  </div>
-
-                  <div className="flex flex-col gap-2">
-                    <div className="flex items-center gap-2">
-                      <div className="text-xs opacity-70">画风</div>
-                      <div className="ml-auto flex items-center gap-2">
-                        <button type="button" className="btn btn-xs" onClick={() => setIsStylePickerOpen(true)}>
-                          添加
-                        </button>
-                        {selectedStyleIds.length
-                          ? <button type="button" className="btn btn-xs" onClick={handleClearStyles}>清空</button>
-                          : null}
-                      </div>
-                    </div>
-
-                    {selectedStylePresets.length
-                      ? (
-                          <div className="flex flex-wrap gap-2">
-                            {selectedStylePresets.map((preset) => {
-                              return (
-                                <button
-                                  key={preset.id}
-                                  type="button"
-                                  className="flex items-center gap-2 rounded-box border border-base-300 bg-base-100 pr-2 hover:border-primary"
-                                  onClick={() => setIsStylePickerOpen(true)}
-                                  title="点击继续添加画风"
-                                >
-                                  <div className="w-10 aspect-square rounded-box bg-base-200 overflow-hidden flex items-center justify-center">
-                                    {preset.imageUrl
-                                      ? <img src={preset.imageUrl} alt={preset.title} className="w-full h-full object-cover" />
-                                      : <div className="text-xs opacity-60">{preset.title}</div>}
-                                  </div>
-                                  <div className="text-xs opacity-70 max-w-32 truncate">{preset.title}</div>
-                                </button>
-                              );
-                            })}
-                          </div>
-                        )
-                      : null}
                   </div>
 
                 </div>
