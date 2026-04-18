@@ -76,9 +76,9 @@ export function mergeTagString(base: string, extraTags: string[]) {
   return Array.from(uniq).join(", ");
 }
 
-export type NovelAiRandomizerKind = "prompt" | "negative";
-export const NOVELAI_RANDOMIZER_TEMPLATE_COUNT = 10;
-export const NOVELAI_RANDOMIZER_PROMPT_TAG_POOL = [
+export type NovelAiRandomTagKind = "prompt" | "negative";
+export const NOVELAI_RANDOM_TAG_COUNT = 8;
+export const NOVELAI_RANDOM_PROMPT_TAG_POOL = [
   "cinematic lighting",
   "dramatic shadows",
   "volumetric lighting",
@@ -105,7 +105,7 @@ export const NOVELAI_RANDOMIZER_PROMPT_TAG_POOL = [
   "from above",
   "low angle",
 ] as const;
-export const NOVELAI_RANDOMIZER_NEGATIVE_TAG_POOL = [
+export const NOVELAI_RANDOM_NEGATIVE_TAG_POOL = [
   "lowres",
   "blurry",
   "bad anatomy",
@@ -145,27 +145,35 @@ function takeRandomUniqueItems<T>(items: readonly T[], count: number, random: ()
   return picked;
 }
 
-function buildNovelAiRandomizerBody(args: {
-  firstTag?: string;
-  kind?: NovelAiRandomizerKind;
+function buildNovelAiRandomTagList(args: {
+  preservedTag?: string;
+  existingTags?: string[];
+  kind?: NovelAiRandomTagKind;
   random?: () => number;
 }) {
-  const normalizedFirstTag = String(args.firstTag || "").trim();
+  const normalizedPreservedTag = String(args.preservedTag || "").trim();
+  const existingTags = new Set(
+    (args.existingTags ?? [])
+      .map(tag => String(tag || "").trim())
+      .filter(Boolean),
+  );
   const kind = args.kind === "negative" ? "negative" : "prompt";
   const random = args.random ?? Math.random;
   const pool = kind === "negative"
-    ? NOVELAI_RANDOMIZER_NEGATIVE_TAG_POOL
-    : NOVELAI_RANDOMIZER_PROMPT_TAG_POOL;
-  const availablePool = normalizedFirstTag
-    ? pool.filter(tag => tag !== normalizedFirstTag)
-    : pool;
+    ? NOVELAI_RANDOM_NEGATIVE_TAG_POOL
+    : NOVELAI_RANDOM_PROMPT_TAG_POOL;
+  const availablePool = pool.filter((tag) => {
+    if (tag === normalizedPreservedTag)
+      return false;
+    return !existingTags.has(tag);
+  });
   const tags = takeRandomUniqueItems(
     availablePool,
-    normalizedFirstTag ? NOVELAI_RANDOMIZER_TEMPLATE_COUNT - 1 : NOVELAI_RANDOMIZER_TEMPLATE_COUNT,
+    normalizedPreservedTag ? NOVELAI_RANDOM_TAG_COUNT - 1 : NOVELAI_RANDOM_TAG_COUNT,
     random,
   );
 
-  return normalizedFirstTag ? [normalizedFirstTag, ...tags].join("|") : tags.join("|");
+  return normalizedPreservedTag ? [normalizedPreservedTag, ...tags] : tags;
 }
 
 function clampSelectionIndex(value: string, index: number | null | undefined) {
@@ -180,8 +188,8 @@ function needsTagSeparator(character: string | undefined) {
   return Boolean(character && !/[\s,]/.test(character));
 }
 
-export function insertNovelAiRandomizerTag(args: {
-  kind?: NovelAiRandomizerKind;
+export function insertNovelAiRandomTags(args: {
+  kind?: NovelAiRandomTagKind;
   random?: () => number;
   value: string;
   selectionStart?: number | null;
@@ -192,29 +200,34 @@ export function insertNovelAiRandomizerTag(args: {
   const rawEnd = clampSelectionIndex(currentValue, args.selectionEnd);
   const selectionStart = Math.min(rawStart, rawEnd);
   const selectionEnd = Math.max(rawStart, rawEnd);
+  const before = currentValue.slice(0, selectionStart);
+  const after = currentValue.slice(selectionEnd);
   const selectedText = currentValue.slice(selectionStart, selectionEnd).trim();
-  const randomizerBody = buildNovelAiRandomizerBody({
-    firstTag: selectedText,
+  const existingTags = `${before},${after}`
+    .split(",")
+    .map(tag => tag.trim())
+    .filter(Boolean);
+  const randomTags = buildNovelAiRandomTagList({
+    preservedTag: selectedText,
+    existingTags,
     kind: args.kind,
     random: args.random,
   });
-  const randomizerTemplate = `||${randomizerBody}||`;
-  const before = currentValue.slice(0, selectionStart);
-  const after = currentValue.slice(selectionEnd);
+  const insertedTags = randomTags.join(", ");
   const prefix = before && needsTagSeparator(before.at(-1))
     ? ", "
     : "";
   const suffix = after && needsTagSeparator(after[0])
     ? ", "
     : "";
-  const value = `${before}${prefix}${randomizerTemplate}${suffix}${after}`;
-  const placeholderSelectionStart = before.length + prefix.length + 2;
-  const placeholderSelectionEnd = placeholderSelectionStart + randomizerBody.length;
+  const value = `${before}${prefix}${insertedTags}${suffix}${after}`;
+  const insertedSelectionStart = before.length + prefix.length;
+  const insertedSelectionEnd = insertedSelectionStart + insertedTags.length;
 
   return {
     value,
-    selectionStart: placeholderSelectionStart,
-    selectionEnd: placeholderSelectionEnd,
+    selectionStart: insertedSelectionStart,
+    selectionEnd: insertedSelectionEnd,
   };
 }
 
