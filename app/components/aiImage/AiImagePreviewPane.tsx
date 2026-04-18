@@ -112,6 +112,7 @@ export function AiImagePreviewPane({
   const previewToolbarPillClassName = `inline-flex h-9 items-center ${previewToolbarControlSurfaceClassName} px-3 text-xs font-medium text-base-content`;
   const previewToolbarActionButtonClassName = `inline-flex h-9 items-center gap-2 ${previewToolbarControlSurfaceClassName} px-3 text-xs text-base-content transition-colors hover:bg-base-300/85`;
   const previewToolbarSectionClassName = "inline-flex w-fit max-w-full min-w-0 flex-wrap items-center gap-0 rounded-none bg-white/22 p-px shadow-sm";
+  const previewTopActionButtonClassName = "btn btn-sm btn-outline rounded-md border-base-300 bg-base-100/90 text-base-content shadow-none transition hover:border-primary/40 hover:bg-base-200 disabled:border-base-300 disabled:bg-base-200/70 disabled:text-base-content/40";
   const previewThumbnailImageClassName = "block h-24 w-24 object-contain";
   const directorCanvasContainerClassName = "overflow-hidden rounded-2xl border border-base-300 bg-base-100";
   const directorInsetPanelClassName = "rounded-2xl border border-base-300 bg-base-200/35 p-3";
@@ -128,12 +129,11 @@ export function AiImagePreviewPane({
               <div className="ml-auto flex flex-wrap items-center gap-2">
                 <button
                   type="button"
-                  className="btn btn-outline gap-2"
-                  disabled
+                  className="btn btn-outline gap-2 rounded-md"
                   aria-expanded={isDirectorToolsOpen}
                   onClick={onToggleDirectorTools}
                 >
-                  Director Tools 已禁用
+                  收起 Director Tools
                   <ChevronDown className={`size-4 transition-transform ${isDirectorToolsOpen ? "rotate-180" : ""}`} />
                 </button>
                 <button
@@ -356,6 +356,24 @@ export function AiImagePreviewPane({
       {!isDirectorToolsOpen
         ? (
             <div className="flex min-h-[520px] flex-1 self-stretch flex-col overflow-hidden rounded-none border-y border-base-300 bg-base-100">
+              <div className="flex flex-wrap items-center justify-end gap-2 border-b border-base-300/80 px-3 py-2">
+                <button
+                  type="button"
+                  className={previewTopActionButtonClassName}
+                  disabled={!selectedPreviewResult || isBusy}
+                  onClick={onOpenInpaint}
+                >
+                  Inpaint
+                </button>
+                <button
+                  type="button"
+                  className={previewTopActionButtonClassName}
+                  disabled={!selectedPreviewResult || isBusy}
+                  onClick={onToggleDirectorTools}
+                >
+                  Director Tools
+                </button>
+              </div>
               <div className="relative flex min-h-0 flex-1 items-center justify-center overflow-hidden p-3">
                 {isGeneratingImage
                   ? (
