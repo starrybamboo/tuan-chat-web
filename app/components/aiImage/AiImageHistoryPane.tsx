@@ -361,7 +361,7 @@ export function AiImageHistoryPane({
               <CaretRightIcon className="size-3.5" weight="bold" />
             </button>
           </div>
-          <div className="flex-1 overflow-auto pr-1">
+          <div className="ai-image-fade-scrollbar flex-1 overflow-auto pr-1">
             <div className="mb-4">
               <div className="mb-2 px-1 text-[11px] font-medium uppercase tracking-[0.18em] text-base-content/45">Current</div>
               <div className="flex flex-col gap-2">
@@ -498,7 +498,7 @@ export function AiImageHistoryPane({
               <CaretRightIcon className="size-3.5" weight="bold" />
             </button>
           </div>
-          <div className="flex-1 overflow-auto pr-1">
+          <div className="ai-image-fade-scrollbar flex-1 overflow-auto pr-1">
             <div className="grid grid-cols-1 justify-items-center gap-2 border-t border-[#D6DCE3] py-3 dark:border-[#2A3138]">
               {currentResultCards.map(({ item, index, row }) => (
                 <HistoryImageTile

@@ -61,10 +61,12 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
     characterPromptDescription,
     dynamicThresholding,
     hasSimpleTagsDraft,
+    isBusy,
     handleAddV4Char,
     handleClearSeed,
     handleClearCurrentDisplayedImage,
     handleClearSourceImage,
+    handleClearSimpleDraft,
     handleCropToClosestValidSize,
     handleOpenSourceImagePicker,
     handleMoveV4Char,
@@ -190,6 +192,8 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
   const highlightPromptContentClassName = "min-h-36 px-3 py-2 text-sm leading-6";
   const highlightCharSurfaceClassName = "relative min-h-28 w-full overflow-hidden !rounded-none border border-[#D6DCE3] bg-[#F3F5F7] shadow-none transition-colors hover:border-primary active:border-primary focus-within:border-primary focus-within:bg-primary/[0.03] dark:border-[#2A3138] dark:bg-[#161A1F] dark:hover:border-primary";
   const highlightCharContentClassName = "min-h-28 px-3 py-2 text-sm leading-6";
+  const floatingInputActionBaseClassName = "btn btn-xs btn-ghost border-0 bg-transparent px-2 text-base-content/35 shadow-none transition-colors backdrop-blur-0 hover:bg-black/28 hover:text-white focus-visible:text-white disabled:cursor-not-allowed disabled:opacity-40 dark:text-base-content/40 dark:hover:bg-white/12";
+  const floatingInputActionClassName = `${floatingInputActionBaseClassName} absolute right-3 top-3 z-10`;
   const [isModeSelectorOpen, setIsModeSelectorOpen] = useState(false);
   const [isModeSelectorMounted, setIsModeSelectorMounted] = useState(false);
   const [isProPromptSettingsOpen, setIsProPromptSettingsOpen] = useState(false);
@@ -233,8 +237,6 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
       ? "border-[#D6DCE3] bg-[#F3F5F7] text-base-content/60 hover:border-error/30 hover:bg-error/5 hover:text-error dark:border-[#2A3138] dark:bg-[#161A1F] dark:hover:border-error/35 dark:hover:bg-error/10"
       : "border-[#D6DCE3] bg-[#F3F5F7] text-base-content/35 dark:border-[#2A3138] dark:bg-[#161A1F] dark:text-base-content/30"
   }`;
-  const floatingInputActionClassName = "btn btn-xs btn-ghost absolute right-3 top-3 z-10 border-0 bg-transparent px-2 text-base-content/35 shadow-none transition-colors backdrop-blur-0 hover:bg-black/28 hover:text-white focus-visible:text-white dark:text-base-content/40 dark:hover:bg-white/12";
-
   useEffect(() => {
     if (isModeSelectorOpen) {
       setIsModeSelectorMounted(true);
@@ -397,7 +399,7 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
 
   return (
     <div ref={sidebarSurfaceRef} className={`${isDirectorToolsOpen ? "hidden" : "flex"} h-full min-h-0 w-full min-w-0 flex-col gap-0 overflow-hidden bg-[#F3F5F7] p-0 dark:bg-[#161A1F]`}>
-      <div className="min-h-0 flex-1 overflow-y-auto">
+      <div className="ai-image-fade-scrollbar min-h-0 flex-1 overflow-y-auto">
       {isModeSelectorMounted
         ? (
             <div
@@ -450,7 +452,7 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                 ? (
                     <div
                       id="ai-image-mode-selector-panel"
-                      className={`absolute left-0 right-0 top-[calc(100%+0.5rem)] z-40 max-h-[calc(100vh-12rem)] overflow-y-auto rounded-xl border border-[#D6DCE3] bg-[#F3F5F7] p-3 shadow-2xl ring-1 ring-black/5 transform-gpu transition-all duration-200 ease-out dark:border-[#2A3138] dark:bg-[#161A1F] dark:ring-white/5 ${
+                      className={`ai-image-fade-scrollbar absolute left-0 right-0 top-[calc(100%+0.5rem)] z-40 max-h-[calc(100vh-12rem)] overflow-y-auto rounded-xl border border-[#D6DCE3] bg-[#F3F5F7] p-3 shadow-2xl ring-1 ring-black/5 transform-gpu transition-all duration-200 ease-out dark:border-[#2A3138] dark:bg-[#161A1F] dark:ring-white/5 ${
                         isModeSelectorOpen
                           ? "pointer-events-auto translate-y-0 scale-100 opacity-100"
                           : "pointer-events-none translate-y-2 scale-[0.985] opacity-0"
@@ -502,8 +504,18 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
         <div className={`card-body p-4 ${uiMode === "simple" && isSimpleTagsEditor ? "gap-2" : "gap-3"}`}>
           {uiMode === "simple"
             ? (
-                <div className="flex items-center gap-2">
+                <div className="flex items-center justify-between gap-2">
                   <div className="font-medium">{isSimpleTagsEditor || isSimplePreviewingConverted ? "NovelAi Tags" : "提示词 Prompt"}</div>
+                  <button
+                    type="button"
+                    className={floatingInputActionBaseClassName}
+                    disabled={isBusy}
+                    aria-label="清空快速模式内容与画风"
+                    title="清空快速模式内容与画风"
+                    onClick={handleClearSimpleDraft}
+                  >
+                    清空
+                  </button>
                 </div>
               )
             : null}
