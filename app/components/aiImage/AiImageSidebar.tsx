@@ -1012,7 +1012,7 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                     <div className="relative" ref={simpleResolutionSelectorRef}>
                       <button
                         type="button"
-                        className={`flex h-11 w-[185px] items-center justify-between rounded-xl border border-[#D6DCE3] bg-[#F3F5F7] px-3 py-2 text-left transition focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 hover:border-primary/40 hover:bg-[#EAEFF4] dark:border-[#2A3138] dark:bg-[#161A1F] dark:hover:bg-[#1B2026] ${isSimpleResolutionSelectorOpen ? "border-primary bg-primary/5 shadow-sm dark:bg-primary/10" : ""}`}
+                        className={`flex h-11 w-[200px] items-center justify-between rounded-xl border border-[#D6DCE3] bg-[#F3F5F7] px-3 py-2 text-left transition focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 hover:border-primary/40 hover:bg-[#EAEFF4] dark:border-[#2A3138] dark:bg-[#161A1F] dark:hover:bg-[#1B2026] ${isSimpleResolutionSelectorOpen ? "border-primary bg-primary/5 shadow-sm dark:bg-primary/10" : ""}`}
                         aria-expanded={isSimpleResolutionSelectorOpen}
                         onClick={() => setIsSimpleResolutionSelectorOpen(prev => !prev)}
                       >
