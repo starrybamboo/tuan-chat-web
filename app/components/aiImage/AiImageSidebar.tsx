@@ -60,6 +60,7 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
     canTriggerProGenerate,
     cfgRescale,
     charPromptTabs,
+    characterPromptDescription,
     dynamicThresholding,
     hasSimpleTagsDraft,
     isBusy,
@@ -171,7 +172,7 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
   const segmentedControlClassName = "join rounded-xl bg-transparent p-0";
   const segmentedButtonBaseClassName = "btn btn-xs join-item border-0";
   const featureUploadActionClassName = "inline-flex size-11 items-center justify-center rounded-md border border-[#2A3138] bg-[#1F2340] text-base-content/78 transition hover:border-primary/40 hover:text-primary focus:outline-none focus:ring-2 focus:ring-primary/20";
-  const featurePrimaryActionClassName = "inline-flex h-11 items-center gap-2 rounded-md border border-[#2A3138] bg-[#1F2340] px-4 text-[15px] font-semibold text-base-content transition hover:border-primary/40 hover:text-primary focus:outline-none focus:ring-2 focus:ring-primary/20";
+  const featurePrimaryActionClassName = "inline-flex h-11 items-center gap-2 rounded-md border border-[#2A3138] bg-[#161A1F] px-4 text-[15px] font-semibold text-base-content transition hover:border-primary/40 hover:text-primary focus:outline-none focus:ring-2 focus:ring-primary/20";
   const promptTextareaClassName = "textarea textarea-bordered !rounded-none min-h-36 w-full resize-none border-[#D6DCE3] bg-[#F3F5F7] text-base-content leading-7 transition-colors hover:border-primary active:border-primary focus:border-primary focus:bg-primary/[0.03] focus:outline-none dark:border-[#2A3138] dark:bg-[#161A1F] dark:hover:border-primary";
   const simplePromptTextareaClassName = promptTextareaClassName;
   const subtleInputClassName = "input input-bordered input-sm !rounded-none border-[#D6DCE3] bg-[#F3F5F7] text-base-content dark:border-[#2A3138] dark:bg-[#161A1F]";
@@ -960,21 +961,21 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                     </div>
                   </div>
 
-                  <ProFeatureSection
-                    title="Character Prompts"
-                    badge={v4Chars.length ? `${v4Chars.length}` : null}
-                    open={proFeatureSections.characterPrompts}
-                    onToggle={() => toggleProFeatureSection("characterPrompts")}
-                    action={(
+                  <div>
+                    <div className="flex items-start justify-between gap-4 px-1 py-1">
+                      <div className="min-w-0">
+                        <div className="text-[15px] font-semibold leading-6 text-base-content/86">Character Prompts</div>
+                        <div className="mt-1 text-[13px] leading-5 text-base-content/58">{characterPromptDescription}</div>
+                      </div>
                       <button type="button" className={featurePrimaryActionClassName} onClick={handleAddV4Char} disabled={!isNAI4}>
                         <PlusIcon className="size-5" weight="bold" />
                         <span>Add Character</span>
                       </button>
-                    )}
-                  >
-                    {isNAI4
-                      ? (
-                          <div className="space-y-3">
+                    </div>
+                    {proFeatureSections.characterPrompts
+                      ? (isNAI4
+                          ? (
+                              <div className="mt-4 space-y-3">
                             <div className="rounded-2xl bg-base-200/60 p-3">
                               <div className="flex flex-wrap items-center gap-4">
                                 <label className="label cursor-pointer gap-2 py-0">
@@ -1102,9 +1103,10 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                                 )
                               : null}
                           </div>
-                        )
-                      : <div className="text-sm opacity-60">当前模型不支持 Character Prompts。</div>}
-                  </ProFeatureSection>
+                            )
+                          : <div className="mt-4 text-sm opacity-60">当前模型不支持 Character Prompts。</div>)
+                      : null}
+                  </div>
 
                   <div className="rounded-md border border-[#2A3138] bg-[#161A1F] shadow-none">
                     <div className="flex items-center gap-3 px-4 py-4">
