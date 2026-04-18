@@ -234,7 +234,7 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
         : "border-white/20 bg-white/10 text-white";
   const clearCurrentImageButtonClassName = `group flex size-11 shrink-0 items-center justify-center rounded-md border transition focus:outline-none focus:ring-2 focus:ring-primary/20 disabled:cursor-not-allowed disabled:opacity-45 ${
     hasCurrentDisplayedImage
-      ? "border-[#D6DCE3] bg-[#F3F5F7] text-base-content/60 hover:border-error/30 hover:bg-error/5 hover:text-error dark:border-[#2A3138] dark:bg-[#161A1F] dark:hover:border-error/35 dark:hover:bg-error/10"
+      ? "border-[#D6DCE3] bg-[#F3F5F7] text-base-content/60 hover:border-primary/45 hover:text-primary dark:border-[#2A3138] dark:bg-[#161A1F] dark:hover:border-primary/45 dark:hover:text-primary"
       : "border-[#D6DCE3] bg-[#F3F5F7] text-base-content/35 dark:border-[#2A3138] dark:bg-[#161A1F] dark:text-base-content/30"
   }`;
   useEffect(() => {
