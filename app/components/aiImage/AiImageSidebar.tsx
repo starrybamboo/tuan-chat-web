@@ -185,7 +185,7 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
   const charTextareaClassName = "textarea textarea-bordered min-h-28 w-full resize-none border-[#D6DCE3] bg-[#F3F5F7] text-base-content leading-7 transition-colors hover:border-primary active:border-primary focus:border-primary focus:bg-primary/[0.03] focus:outline-none dark:border-[#2A3138] dark:bg-[#161A1F] dark:hover:border-primary";
   const subtleInputClassName = "input input-bordered input-sm border-[#D6DCE3] bg-[#F3F5F7] text-base-content dark:border-[#2A3138] dark:bg-[#161A1F]";
   const subtleSelectClassName = "select select-bordered select-sm border-[#D6DCE3] bg-[#F3F5F7] text-base-content dark:border-[#2A3138] dark:bg-[#161A1F]";
-  const simpleResolutionValueInputClassName = "min-w-0 bg-transparent text-center text-sm font-semibold tabular-nums text-base-content focus:outline-none";
+  const simpleResolutionValueInputClassName = "min-w-0 appearance-none bg-transparent text-center text-xs font-semibold leading-none tabular-nums text-base-content focus:outline-none [-moz-appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none";
   const [isModeSelectorOpen, setIsModeSelectorOpen] = useState(false);
   const [isModeSelectorMounted, setIsModeSelectorMounted] = useState(false);
   const [isSimpleResolutionSelectorOpen, setIsSimpleResolutionSelectorOpen] = useState(false);
@@ -1012,7 +1012,7 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                     <div className="relative" ref={simpleResolutionSelectorRef}>
                       <button
                         type="button"
-                        className={`flex h-11 w-[170px] items-center justify-between rounded-xl border border-[#D6DCE3] bg-[#F3F5F7] px-3 py-2 text-left transition focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 hover:border-primary/40 hover:bg-[#EAEFF4] dark:border-[#2A3138] dark:bg-[#161A1F] dark:hover:bg-[#1B2026] ${isSimpleResolutionSelectorOpen ? "border-primary bg-primary/5 shadow-sm dark:bg-primary/10" : ""}`}
+                        className={`flex h-11 w-[185px] items-center justify-between rounded-xl border border-[#D6DCE3] bg-[#F3F5F7] px-3 py-2 text-left transition focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 hover:border-primary/40 hover:bg-[#EAEFF4] dark:border-[#2A3138] dark:bg-[#161A1F] dark:hover:bg-[#1B2026] ${isSimpleResolutionSelectorOpen ? "border-primary bg-primary/5 shadow-sm dark:bg-primary/10" : ""}`}
                         aria-expanded={isSimpleResolutionSelectorOpen}
                         onClick={() => setIsSimpleResolutionSelectorOpen(prev => !prev)}
                       >
@@ -1051,7 +1051,7 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                         : null}
                     </div>
 
-                    <div className="grid h-11 w-[100px] grid-cols-[minmax(0,1fr)_10px_minmax(0,1fr)] items-center gap-1 rounded-xl border border-[#D6DCE3] bg-[#F3F5F7] px-2 py-2 shadow-sm dark:border-[#2A3138] dark:bg-[#161A1F]">
+                    <div className="grid h-11 w-[135px] grid-cols-[minmax(0,1fr)_10px_minmax(0,1fr)] items-center gap-1 rounded-xl border border-[#D6DCE3] bg-[#F3F5F7] px-3 py-2 shadow-sm dark:border-[#2A3138] dark:bg-[#161A1F]">
                       <input
                         className={simpleResolutionValueInputClassName}
                         type="number"
@@ -1061,7 +1061,7 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                         value={width}
                         onChange={e => handleSimpleWidthChange(Number(e.target.value))}
                       />
-                      <span className="text-center text-sm font-medium text-base-content/55">×</span>
+                      <span className="text-center text-xs font-medium text-base-content/55">×</span>
                       <input
                         className={simpleResolutionValueInputClassName}
                         type="number"
