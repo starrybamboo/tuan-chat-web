@@ -1,6 +1,6 @@
 import type { AiImagePageController } from "@/components/aiImage/useAiImagePageController";
-import { ArrowCounterClockwise, CheckCircleIcon, CircleNotch, FileArrowUpIcon, GearSixIcon, ImageSquareIcon, SparkleIcon, XCircleIcon } from "@phosphor-icons/react";
-import { useEffect, useRef, useState } from "react";
+import { ArrowCounterClockwise, CheckCircleIcon, CircleNotch, FileArrowUpIcon, GearSixIcon, ImageSquareIcon, ShuffleAngularIcon, SparkleIcon, XCircleIcon } from "@phosphor-icons/react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   CUSTOM_RESOLUTION_ID,
   DEFAULT_PRO_IMAGE_SETTINGS,
@@ -20,6 +20,7 @@ import {
   clampRange,
   clampToMultipleOf64,
   formatSliderValue,
+  insertNovelAiRandomizerTag,
   modelLabel,
 } from "@/components/aiImage/helpers";
 import { HighlightEmphasisTextarea } from "@/components/aiImage/HighlightEmphasisTextarea";
@@ -207,6 +208,7 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
   const proPromptSettingsRef = useRef<HTMLDivElement | null>(null);
   const proPromptSettingsButtonRef = useRef<HTMLButtonElement | null>(null);
   const proPromptEditorPanelRef = useRef<HTMLDivElement | null>(null);
+  const proPromptTextareaRef = useRef<HTMLTextAreaElement | null>(null);
   const simpleResolutionSelectorRef = useRef<HTMLDivElement | null>(null);
   const activeModeOption = MODE_OPTIONS.find(option => option.value === uiMode) ?? MODE_OPTIONS[0];
   const isSimplePreviewingConverted = Boolean(simpleConverted);
@@ -380,6 +382,27 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
       window.removeEventListener("scroll", updatePanelPosition, true);
     };
   }, [isProPromptSettingsOpen]);
+
+  const handleInsertProRandomizerTag = useCallback(() => {
+    const insertion = insertNovelAiRandomizerTag({
+      value: proPromptTab === "prompt" ? prompt : negativePrompt,
+      selectionStart: proPromptTextareaRef.current?.selectionStart,
+      selectionEnd: proPromptTextareaRef.current?.selectionEnd,
+    });
+
+    if (proPromptTab === "prompt")
+      setPrompt(insertion.value);
+    else
+      setNegativePrompt(insertion.value);
+
+    window.requestAnimationFrame(() => {
+      const textarea = proPromptTextareaRef.current;
+      if (!textarea)
+        return;
+      textarea.focus();
+      textarea.setSelectionRange(insertion.selectionStart, insertion.selectionEnd);
+    });
+  }, [negativePrompt, proPromptTab, prompt, setNegativePrompt, setPrompt]);
 
   function handleSelectMode(nextMode: ModeOptionValue) {
     setUiMode(nextMode);
@@ -851,6 +874,7 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                       highlightEnabled={highlightEmphasisEnabled}
                       surfaceClassName={highlightPromptSurfaceClassName}
                       contentClassName={highlightPromptContentClassName}
+                      textareaRef={proPromptTextareaRef}
                       value={proPromptTab === "prompt" ? prompt : negativePrompt}
                       onChange={(e) => {
                         if (proPromptTab === "prompt")
@@ -860,40 +884,51 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                       }}
                       spellCheck={false}
                     />
-                    <AiImageContextLimitMeter
-                      className="mt-3"
-                      localUsed={activeBaseMeter.localUsed}
-                      totalUsed={activeBaseMeter.totalUsed}
-                      remaining={activeBaseMeter.remaining}
-                      overflow={activeBaseMeter.overflow}
-                      status={tokenSnapshot.status}
-                      footerLabel={proPromptTab === "prompt" && qualityToggle ? "Quality Tags Enabled" : undefined}
-                      footerHint={proPromptTab === "prompt" && tokenSnapshot.prompt.hiddenText ? tokenSnapshot.prompt.hiddenText : undefined}
-                      rows={[
-                        {
-                          label: "当前输入",
-                          value: `${activeBaseMeter.localUsed}`,
-                        },
-                        {
-                          label: proPromptTab === "prompt" ? "已写 Prompt" : "已写 UC",
-                          value: `${activeBaseMeter.writtenTokens}`,
-                        },
-                        ...(activeBaseMeter.hiddenTokens > 0
-                          ? [{
-                              label: activeChannelSnapshot.hiddenLabel,
-                              value: `${activeBaseMeter.hiddenTokens}`,
-                            }]
-                          : []),
-                        {
-                          label: proPromptTab === "prompt" ? "Character Prompts" : "Character UCs",
-                          value: `${activeBaseMeter.characterTokens}`,
-                        },
-                        {
-                          label: "总计",
-                          value: `${activeBaseMeter.totalUsed}/${NOVELAI_V45_CONTEXT_LIMIT}`,
-                        },
-                      ]}
-                    />
+                    <div className="mt-3 flex items-start gap-3">
+                      <button
+                        type="button"
+                        className="inline-flex size-9 shrink-0 items-center justify-center rounded-md border border-[#D6DCE3] bg-[#F3F5F7] text-base-content/72 transition hover:border-primary/40 hover:text-primary focus:outline-none focus:ring-2 focus:ring-primary/20 dark:border-[#2A3138] dark:bg-[#161A1F] dark:text-base-content/70"
+                        aria-label={proPromptTab === "prompt" ? "插入随机 Prompt tag" : "插入随机 Undesired Content tag"}
+                        title="插入随机 tag 语法"
+                        onClick={handleInsertProRandomizerTag}
+                      >
+                        <ShuffleAngularIcon className="size-4" weight="bold" />
+                      </button>
+                      <AiImageContextLimitMeter
+                        className="min-w-0 flex-1 pt-1"
+                        localUsed={activeBaseMeter.localUsed}
+                        totalUsed={activeBaseMeter.totalUsed}
+                        remaining={activeBaseMeter.remaining}
+                        overflow={activeBaseMeter.overflow}
+                        status={tokenSnapshot.status}
+                        footerLabel={proPromptTab === "prompt" && qualityToggle ? "Quality Tags Enabled" : undefined}
+                        footerHint={proPromptTab === "prompt" && tokenSnapshot.prompt.hiddenText ? tokenSnapshot.prompt.hiddenText : undefined}
+                        rows={[
+                          {
+                            label: "当前输入",
+                            value: `${activeBaseMeter.localUsed}`,
+                          },
+                          {
+                            label: proPromptTab === "prompt" ? "已写 Prompt" : "已写 UC",
+                            value: `${activeBaseMeter.writtenTokens}`,
+                          },
+                          ...(activeBaseMeter.hiddenTokens > 0
+                            ? [{
+                                label: activeChannelSnapshot.hiddenLabel,
+                                value: `${activeBaseMeter.hiddenTokens}`,
+                              }]
+                            : []),
+                          {
+                            label: proPromptTab === "prompt" ? "Character Prompts" : "Character UCs",
+                            value: `${activeBaseMeter.characterTokens}`,
+                          },
+                          {
+                            label: "总计",
+                            value: `${activeBaseMeter.totalUsed}/${NOVELAI_V45_CONTEXT_LIMIT}`,
+                          },
+                        ]}
+                      />
+                    </div>
                   </div>
 
                   <ProFeatureSection

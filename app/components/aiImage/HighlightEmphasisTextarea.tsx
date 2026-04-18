@@ -1,5 +1,5 @@
-import type { TextareaHTMLAttributes } from "react";
-import { useEffect, useId, useLayoutEffect, useRef } from "react";
+import type { MutableRefObject, TextareaHTMLAttributes } from "react";
+import { useCallback, useEffect, useId, useLayoutEffect, useRef } from "react";
 
 type SegmentTone = "neutral" | "strengthen" | "weaken" | "inverse";
 type SegmentKind = "text" | "syntax" | "numeric-close";
@@ -15,6 +15,7 @@ interface HighlightEmphasisTextareaProps extends Omit<TextareaHTMLAttributes<HTM
   contentClassName: string;
   highlightEnabled?: boolean;
   surfaceClassName: string;
+  textareaRef?: MutableRefObject<HTMLTextAreaElement | null>;
 }
 
 const NUMERIC_EMPHASIS_PATTERN = /^-?(?:\d+(?:\.\d+)?|\.\d+)::/;
@@ -243,18 +244,25 @@ export function HighlightEmphasisTextarea({
   readOnly,
   spellCheck = false,
   surfaceClassName,
+  textareaRef,
   value,
   ...textareaProps
 }: HighlightEmphasisTextareaProps) {
   const overlayContentRef = useRef<HTMLDivElement | null>(null);
-  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+  const internalTextareaRef = useRef<HTMLTextAreaElement | null>(null);
   const previousHeightRef = useRef(0);
   const textareaId = useId();
   const stringValue = typeof value === "string" ? value : String(value ?? "");
   const segments = parseNovelAiSegments(stringValue);
 
+  const handleTextareaRef = useCallback((node: HTMLTextAreaElement | null) => {
+    internalTextareaRef.current = node;
+    if (textareaRef)
+      textareaRef.current = node;
+  }, [textareaRef]);
+
   useLayoutEffect(() => {
-    const textarea = textareaRef.current;
+    const textarea = internalTextareaRef.current;
     if (!textarea)
       return;
 
@@ -269,7 +277,7 @@ export function HighlightEmphasisTextarea({
   }, [contentClassName, stringValue]);
 
   useEffect(() => {
-    const textarea = textareaRef.current;
+    const textarea = internalTextareaRef.current;
     if (!textarea || typeof ResizeObserver !== "function")
       return;
 
@@ -313,7 +321,7 @@ export function HighlightEmphasisTextarea({
       <textarea
         {...textareaProps}
         id={textareaId}
-        ref={textareaRef}
+        ref={handleTextareaRef}
         readOnly={readOnly}
         spellCheck={spellCheck}
         value={stringValue}

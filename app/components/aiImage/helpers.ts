@@ -76,6 +76,54 @@ export function mergeTagString(base: string, extraTags: string[]) {
   return Array.from(uniq).join(", ");
 }
 
+export const NOVELAI_RANDOMIZER_DEFAULT_BODY = "tag A|tag B";
+
+function clampSelectionIndex(value: string, index: number | null | undefined) {
+  const fallback = value.length;
+  const numericIndex = Number(index);
+  if (!Number.isFinite(numericIndex))
+    return fallback;
+  return Math.min(value.length, Math.max(0, Math.floor(numericIndex)));
+}
+
+function needsTagSeparator(character: string | undefined) {
+  return Boolean(character && !/[\s,]/.test(character));
+}
+
+export function insertNovelAiRandomizerTag(args: {
+  value: string;
+  selectionStart?: number | null;
+  selectionEnd?: number | null;
+}) {
+  const currentValue = String(args.value || "");
+  const rawStart = clampSelectionIndex(currentValue, args.selectionStart);
+  const rawEnd = clampSelectionIndex(currentValue, args.selectionEnd);
+  const selectionStart = Math.min(rawStart, rawEnd);
+  const selectionEnd = Math.max(rawStart, rawEnd);
+  const selectedText = currentValue.slice(selectionStart, selectionEnd).trim();
+  const randomizerBody = selectedText
+    ? `${selectedText}|tag B`
+    : NOVELAI_RANDOMIZER_DEFAULT_BODY;
+  const randomizerTemplate = `||${randomizerBody}||`;
+  const before = currentValue.slice(0, selectionStart);
+  const after = currentValue.slice(selectionEnd);
+  const prefix = before && needsTagSeparator(before.at(-1))
+    ? ", "
+    : "";
+  const suffix = after && needsTagSeparator(after[0])
+    ? ", "
+    : "";
+  const value = `${before}${prefix}${randomizerTemplate}${suffix}${after}`;
+  const placeholderSelectionStart = before.length + prefix.length + 2;
+  const placeholderSelectionEnd = placeholderSelectionStart + randomizerBody.length;
+
+  return {
+    value,
+    selectionStart: placeholderSelectionStart,
+    selectionEnd: placeholderSelectionEnd,
+  };
+}
+
 export function cleanImportedPromptText(value: string) {
   return String(value || "")
     .replace(/[\[\]\{\}]/g, "")

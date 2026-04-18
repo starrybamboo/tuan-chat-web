@@ -4,6 +4,7 @@ import {
   cleanImportedPromptText,
   clampSimpleModeDimension,
   generatedItemKey,
+  insertNovelAiRandomizerTag,
   mergeTagString,
   historyRowKey,
   historyRowResultMatchKey,
@@ -97,5 +98,29 @@ describe("aiImage helpers", () => {
   it("cleans imported metadata prompt text by removing brackets and spacing commas", () => {
     expect(cleanImportedPromptText("masterpiece,[1girl],best quality,{blue eyes}"))
       .toBe("masterpiece, 1girl, best quality, blue eyes");
+  });
+
+  it("inserts a NovelAI randomizer template with tag separators when appending to prompt tags", () => {
+    expect(insertNovelAiRandomizerTag({
+      value: "1girl, blue eyes",
+      selectionStart: 17,
+      selectionEnd: 17,
+    })).toEqual({
+      value: "1girl, blue eyes, ||tag A|tag B||",
+      selectionStart: 20,
+      selectionEnd: 31,
+    });
+  });
+
+  it("wraps the current selection into the first randomizer option", () => {
+    expect(insertNovelAiRandomizerTag({
+      value: "1girl, blue eyes, smile",
+      selectionStart: 7,
+      selectionEnd: 16,
+    })).toEqual({
+      value: "1girl, ||blue eyes|tag B||, smile",
+      selectionStart: 9,
+      selectionEnd: 24,
+    });
   });
 });
