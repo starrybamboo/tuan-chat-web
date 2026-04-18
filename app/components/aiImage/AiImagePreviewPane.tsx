@@ -112,8 +112,10 @@ export function AiImagePreviewPane({
   onSelectPinnedPreview,
   formatDirectorEmotionLabel,
 }: AiImagePreviewPaneProps) {
-  const previewToolbarIconButtonClassName = "inline-flex size-9 shrink-0 items-center justify-center !rounded-none border border-base-300 bg-base-100 text-base-content/70 shadow-sm transition-colors hover:border-base-content/30 hover:text-base-content disabled:cursor-not-allowed disabled:opacity-50";
-  const previewToolbarPillClassName = "inline-flex h-9 items-center !rounded-none border border-base-300 bg-base-100 px-3 text-xs font-medium text-base-content shadow-sm";
+  const previewToolbarControlSurfaceClassName = "!rounded-none border border-white/20 bg-base-300/70 shadow-sm";
+  const previewToolbarIconButtonClassName = `inline-flex size-9 shrink-0 items-center justify-center ${previewToolbarControlSurfaceClassName} text-base-content/70 transition-colors hover:border-white/35 hover:text-base-content disabled:cursor-not-allowed disabled:opacity-50`;
+  const previewToolbarPillClassName = `inline-flex h-9 items-center ${previewToolbarControlSurfaceClassName} px-3 text-xs font-medium text-base-content`;
+  const previewToolbarActionButtonClassName = `inline-flex h-9 items-center gap-2 ${previewToolbarControlSurfaceClassName} px-3 text-xs text-base-content hover:border-white/35`;
   const previewToolbarSectionClassName = "inline-flex w-fit max-w-full min-w-0 flex-wrap items-center gap-0 rounded-none bg-base-300/70 p-px shadow-sm";
   const directorCanvasContainerClassName = "overflow-hidden rounded-2xl border border-base-300 bg-base-100";
   const directorInsetPanelClassName = "rounded-2xl border border-base-300 bg-base-200/35 p-3";
@@ -412,7 +414,7 @@ export function AiImagePreviewPane({
                         </button>
                         <button
                           type="button"
-                          className="inline-flex h-9 items-center gap-2 !rounded-none border border-base-300 bg-base-100 px-3 text-xs text-base-content shadow-sm hover:border-base-content/30"
+                          className={previewToolbarActionButtonClassName}
                           disabled={isBusy}
                           title="打开 Inpaint 蒙版编辑器"
                           aria-label="打开 Inpaint 蒙版编辑器"
@@ -442,7 +444,7 @@ export function AiImagePreviewPane({
                         </button>
                         <button
                           type="button"
-                          className="inline-flex h-9 items-center gap-2 !rounded-none border border-base-300 bg-base-100 px-3 text-xs text-base-content shadow-sm hover:border-base-content/30"
+                          className={previewToolbarActionButtonClassName}
                           title="将当前预览 seed 回填到设置"
                           aria-label="将当前预览 seed 回填到设置"
                           onClick={onApplySelectedPreviewSeed}
