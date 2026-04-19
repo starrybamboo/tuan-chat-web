@@ -191,6 +191,11 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
   const subtleInputClassName = "input input-bordered input-sm !rounded-none border-[#D6DCE3] bg-[#F3F5F7] text-base-content dark:border-[#2A3138] dark:bg-[#161A1F]";
   const subtleSelectClassName = "select select-bordered select-sm !rounded-none border-[#D6DCE3] bg-[#F3F5F7] text-base-content dark:border-[#2A3138] dark:bg-[#161A1F]";
   const simpleResolutionValueInputClassName = "min-w-0 appearance-none bg-transparent text-center text-xs font-semibold leading-none tabular-nums text-base-content focus:outline-none [-moz-appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none";
+  const proResolutionPresetButtonBaseClassName = "flex min-h-[64px] flex-col items-center justify-center gap-2 rounded-md border px-3 py-3 text-center transition focus:outline-none focus:ring-2 focus:ring-primary/20";
+  const proResolutionInputShellClassName = "flex h-11 items-center rounded-md border border-[#D6DCE3] bg-[#F3F5F7] px-3 transition focus-within:border-primary focus-within:outline-none focus-within:ring-2 focus-within:ring-primary/20 dark:border-[#2A3138] dark:bg-[#161A1F]";
+  const proResolutionValueInputClassName = "w-full appearance-none bg-transparent text-sm font-semibold leading-none text-base-content focus:outline-none [-moz-appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none";
+  const proResolutionSwapButtonClassName = "inline-flex h-11 w-10 items-center justify-center rounded-md border border-[#D6DCE3] bg-[#F3F5F7] text-base-content/72 transition hover:border-primary/40 hover:text-primary focus:outline-none focus:ring-2 focus:ring-primary/20 dark:border-[#2A3138] dark:bg-[#161A1F]";
+  const proSettingsOutlineButtonClassName = "inline-flex h-10 items-center justify-center rounded-md border border-primary/55 bg-transparent px-4 text-[13px] font-semibold text-base-content transition hover:border-transparent hover:bg-[#EAEFF4] focus:outline-none focus:ring-2 focus:ring-primary/20 dark:hover:bg-[#1B2026]";
   const highlightPromptSurfaceClassName = "relative min-h-36 w-full overflow-hidden !rounded-none border border-[#D6DCE3] bg-[#F3F5F7] shadow-none transition-colors hover:border-primary active:border-primary focus-within:border-primary focus-within:bg-primary/[0.03] dark:border-[#2A3138] dark:bg-[#161A1F] dark:hover:border-primary";
   const highlightPromptContentClassName = "min-h-36 px-3 py-2 text-sm leading-6";
   const highlightCharSurfaceClassName = "relative min-h-28 w-full overflow-hidden !rounded-none border border-[#D6DCE3] bg-[#F3F5F7] shadow-none transition-colors hover:border-primary active:border-primary focus-within:border-primary focus-within:bg-primary/[0.03] dark:border-[#2A3138] dark:bg-[#161A1F] dark:hover:border-primary";
@@ -606,7 +611,7 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
     );
   }
 
-  function renderSimpleResolutionGlyph(optionId: string) {
+  function renderResolutionGlyph(optionId: string) {
     let glyph: React.ReactNode;
     if (optionId === "portrait") {
       glyph = <div className="h-5 w-3 rounded-sm border border-current opacity-80" />;
@@ -1486,7 +1491,7 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                         onClick={() => setIsSimpleResolutionSelectorOpen(prev => !prev)}
                       >
                         <div className="flex min-w-0 items-center gap-2.5 text-base-content/80">
-                          {renderSimpleResolutionGlyph(activeSimpleResolutionOption.id)}
+                          {renderResolutionGlyph(activeSimpleResolutionOption.id)}
                           <span className="truncate text-xs font-medium tracking-tight">{activeSimpleResolutionOption.label}</span>
                         </div>
                         <ChevronDown className={`size-4 shrink-0 text-base-content/60 transition-transform ${isSimpleResolutionSelectorOpen ? "rotate-180" : ""}`} />
@@ -1510,7 +1515,7 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                                       setIsSimpleResolutionSelectorOpen(false);
                                     }}
                                   >
-                                    {renderSimpleResolutionGlyph(option.id)}
+                                    {renderResolutionGlyph(option.id)}
                                     <span className="text-xs font-medium">{option.label}</span>
                                   </button>
                                 ))}
@@ -1568,62 +1573,61 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                         <button
                           key={preset.id}
                           type="button"
-                          className={`btn btn-sm h-auto py-2 flex flex-col items-center justify-center gap-1.5 ${activeResolutionPreset?.id === preset.id ? "btn-primary" : "btn-outline"}`}
+                          className={`${proResolutionPresetButtonBaseClassName} ${
+                            activeResolutionPreset?.id === preset.id
+                              ? "border-primary bg-primary text-primary-content shadow-sm"
+                              : "border-[#D6DCE3] bg-transparent text-base-content hover:border-primary/40 hover:bg-[#EAEFF4] dark:border-[#2A3138] dark:hover:bg-[#1B2026]"
+                          }`}
                           onClick={() => {
                             setWidth(preset.width);
                             setHeight(preset.height);
                           }}
                         >
-                          <div className={`border-2 border-current rounded-sm opacity-80 ${preset.id === "portrait" ? "w-4 h-6" : preset.id === "landscape" ? "w-6 h-4" : "w-5 h-5"}`}></div>
-                          <span className="font-normal text-xs">{preset.label}</span>
+                          {renderResolutionGlyph(preset.id)}
+                          <span className="text-xs font-medium">{preset.label}</span>
                         </button>
                       ))}
                     </div>
                   </div>
 
                   <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-end gap-2">
-                    <label className="form-control">
-                      <span className="label-text text-xs">宽 (Width)</span>
-                      <input
-                        className="input input-bordered input-sm !rounded-none"
-                        type="number"
-                        min={NOVELAI_DIMENSION_MIN}
-                        max={NOVELAI_FREE_MAX_DIMENSION}
-                        step={NOVELAI_DIMENSION_STEP}
-                        value={width}
-                        onChange={e => setWidth(Math.min(NOVELAI_FREE_MAX_DIMENSION, clampToMultipleOf64(Number(e.target.value), DEFAULT_PRO_IMAGE_SETTINGS.width)))}
-                      />
+                    <label className="flex flex-col gap-2">
+                      <span className="text-xs text-base-content/70">宽 (Width)</span>
+                      <div className={proResolutionInputShellClassName}>
+                        <input
+                          className={proResolutionValueInputClassName}
+                          type="number"
+                          min={NOVELAI_DIMENSION_MIN}
+                          max={NOVELAI_FREE_MAX_DIMENSION}
+                          step={NOVELAI_DIMENSION_STEP}
+                          value={width}
+                          onChange={e => setWidth(Math.min(NOVELAI_FREE_MAX_DIMENSION, clampToMultipleOf64(Number(e.target.value), DEFAULT_PRO_IMAGE_SETTINGS.width)))}
+                        />
+                      </div>
                     </label>
                     <button
                       type="button"
-                      className="btn btn-square btn-sm btn-outline mb-0.5"
+                      className={`${proResolutionSwapButtonClassName} mb-0.5`}
                       title="交换宽高"
                       aria-label="交换宽高"
                       onClick={handleSwapImageDimensions}
                     >
                       ×
                     </button>
-                    <label className="form-control">
-                      <span className="label-text text-xs">高 (Height)</span>
-                      <input
-                        className="input input-bordered input-sm !rounded-none"
-                        type="number"
-                        min={NOVELAI_DIMENSION_MIN}
-                        max={NOVELAI_FREE_MAX_DIMENSION}
-                        step={NOVELAI_DIMENSION_STEP}
-                        value={height}
-                        onChange={e => setHeight(Math.min(NOVELAI_FREE_MAX_DIMENSION, clampToMultipleOf64(Number(e.target.value), DEFAULT_PRO_IMAGE_SETTINGS.height)))}
-                      />
+                    <label className="flex flex-col gap-2">
+                      <span className="text-xs text-base-content/70">高 (Height)</span>
+                      <div className={proResolutionInputShellClassName}>
+                        <input
+                          className={proResolutionValueInputClassName}
+                          type="number"
+                          min={NOVELAI_DIMENSION_MIN}
+                          max={NOVELAI_FREE_MAX_DIMENSION}
+                          step={NOVELAI_DIMENSION_STEP}
+                          value={height}
+                          onChange={e => setHeight(Math.min(NOVELAI_FREE_MAX_DIMENSION, clampToMultipleOf64(Number(e.target.value), DEFAULT_PRO_IMAGE_SETTINGS.height)))}
+                        />
+                      </div>
                     </label>
-                  </div>
-
-                  <div className="flex flex-wrap gap-2">
-                    <button type="button" className="btn btn-sm btn-outline" onClick={() => void handleCropToClosestValidSize()}>
-                      Crop to Closest Valid Size
-                    </button>
-                    <button type="button" className="btn btn-sm btn-ghost" onClick={handleResetCurrentImageSettings}>
-                      Reset Current Settings
-                    </button>
                   </div>
 
                   <div className="flex flex-col gap-2">
@@ -1651,6 +1655,22 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                           </button>
                         );
                       })}
+                    </div>
+                    <div className="flex flex-wrap gap-2 pt-1">
+                      <button
+                        type="button"
+                        className={proSettingsOutlineButtonClassName}
+                        onClick={() => void handleCropToClosestValidSize()}
+                      >
+                        Crop to Closest Valid Size
+                      </button>
+                      <button
+                        type="button"
+                        className={proSettingsOutlineButtonClassName}
+                        onClick={handleResetCurrentImageSettings}
+                      >
+                        Reset Current Settings
+                      </button>
                     </div>
                   </div>
 
