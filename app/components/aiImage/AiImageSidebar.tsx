@@ -200,7 +200,7 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
   const baseImageToggleButtonClassName = "inline-flex size-11 items-center justify-center bg-transparent text-white/58 transition hover:text-white focus:outline-none";
   const baseImageActionButtonClassName = "inline-flex h-11 items-center gap-2 rounded-md border border-[#2A3138] bg-[#161A1F] px-4 text-[14px] font-semibold text-white/92 transition hover:border-white/20 hover:text-white focus:outline-none focus:ring-2 focus:ring-white/15";
   const baseImageRangeClassName = "mt-2 w-full cursor-pointer appearance-none bg-transparent focus:outline-none [&::-webkit-slider-runnable-track]:h-2 [&::-webkit-slider-runnable-track]:rounded-full [&::-webkit-slider-runnable-track]:bg-white/10 [&::-webkit-slider-thumb]:mt-[-4px] [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:border-0 [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:shadow-sm [&::-webkit-slider-thumb]:shadow-black/30 [&::-moz-range-track]:h-2 [&::-moz-range-track]:rounded-full [&::-moz-range-track]:bg-white/10 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:bg-white [&::-moz-range-thumb]:shadow-sm [&::-moz-range-thumb]:shadow-black/30";
-  const simpleBaseImageAttachmentClassName = "-mt-px overflow-hidden rounded-b-2xl border-x border-b border-[#D6DCE3] bg-[#F3F5F7] shadow-none dark:border-[#2A3138] dark:bg-[#161A1F]";
+  const simpleBaseImageAttachmentClassName = "mt-[2px] overflow-hidden rounded-b-2xl border-x border-b border-[#D6DCE3] bg-[#F3F5F7] shadow-none dark:border-[#2A3138] dark:bg-[#161A1F]";
   const [isModeSelectorOpen, setIsModeSelectorOpen] = useState<boolean>(false);
   const [isModeSelectorMounted, setIsModeSelectorMounted] = useState<boolean>(false);
   const [isProPromptSettingsOpen, setIsProPromptSettingsOpen] = useState<boolean>(false);
@@ -809,31 +809,6 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                       </div>
                   </div>
                   </div>
-                  {selectedStylePresets.length
-                    ? (
-                        <div className="mt-3 flex flex-wrap gap-2">
-                          {selectedStylePresets.map((preset) => {
-                            return (
-                              <button
-                                key={preset.id}
-                                type="button"
-                                className="flex items-center gap-2 rounded-box border border-base-300 bg-base-100 pr-2 hover:border-primary"
-                                onClick={() => setIsStylePickerOpen(true)}
-                                title="点击继续添加画风"
-                              >
-                                <div className="w-10 aspect-square rounded-box bg-base-200 overflow-hidden flex items-center justify-center">
-                                  {preset.imageUrl
-                                    ? <img src={preset.imageUrl} alt={preset.title} className="w-full h-full object-cover" />
-                                    : <div className="text-xs opacity-60">{preset.title}</div>}
-                                </div>
-                                <div className="text-xs opacity-70 max-w-32 truncate">{preset.title}</div>
-                              </button>
-                            );
-                          })}
-                        </div>
-                      )
-                    : null}
-
                   <div className={`grid transition-all duration-300 ease-out ${simpleConverted ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"}`}>
                     <div className="min-h-0 overflow-hidden">
                       <div className={`rounded-2xl border border-[#D6DCE3] bg-base-100 p-3 shadow-sm transition-all duration-300 ease-out dark:border-[#2A3138] dark:bg-[#1B2026] ${simpleConverted ? "translate-y-0 scale-100" : "translate-y-2 scale-[0.98]"}`}>
@@ -872,7 +847,7 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                         </div>
 
                         <textarea
-                          className={`${promptTextareaClassName} mt-3 min-h-28 text-sm`}
+                          className={`${promptTextareaClassName} mt-3 min-h-28 overflow-hidden [field-sizing:content] text-sm`}
                           value={simplePromptTab === "prompt" ? simpleConverted?.prompt ?? "" : simpleConverted?.negativePrompt ?? ""}
                           readOnly
                         />
@@ -952,6 +927,31 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                       </div>
                     </div>
                   </div>
+
+                  {selectedStylePresets.length
+                    ? (
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          {selectedStylePresets.map((preset) => {
+                            return (
+                              <button
+                                key={preset.id}
+                                type="button"
+                                className="flex items-center gap-2 rounded-box border border-base-300 bg-base-100 pr-2 hover:border-primary"
+                                onClick={() => setIsStylePickerOpen(true)}
+                                title="点击继续添加画风"
+                              >
+                                <div className="w-10 aspect-square rounded-box bg-base-200 overflow-hidden flex items-center justify-center">
+                                  {preset.imageUrl
+                                    ? <img src={preset.imageUrl} alt={preset.title} className="w-full h-full object-cover" />
+                                    : <div className="text-xs opacity-60">{preset.title}</div>}
+                                </div>
+                                <div className="text-xs opacity-70 max-w-32 truncate">{preset.title}</div>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )
+                    : null}
 
                 </div>
               )
