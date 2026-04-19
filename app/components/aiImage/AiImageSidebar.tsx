@@ -1659,8 +1659,8 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                   </div>
 
                   <div className="flex flex-col gap-2">
-                    <div className="grid h-11 w-[377px] grid-cols-[25px_repeat(8,44px)] overflow-hidden border border-[#2A3138] bg-[#161A1F] shadow-none">
-                      <div className="flex h-11 w-[25px] shrink-0 items-center justify-center border-r border-[#2A3138] text-white/90" aria-hidden="true">
+                    <div className="grid h-11 w-full grid-cols-9 overflow-hidden border border-[#2A3138] bg-[#161A1F] shadow-none">
+                      <div className="flex h-11 items-center justify-center border-r border-[#2A3138] text-white/90" aria-hidden="true">
                         <ImagesSquareIcon className="size-4.5" weight="regular" />
                       </div>
                       {[1, 2, 3, 4, 5, 6, 7, 8].map(count => {
