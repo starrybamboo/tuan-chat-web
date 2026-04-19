@@ -834,7 +834,7 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                   </div>
 
                   <div className={`grid transition-all duration-300 ease-out ${isSimpleTagsEditor ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"}`}>
-                    <div className="min-h-0 overflow-hidden">
+                  <div className="min-h-0 overflow-hidden">
                       <div className="flex flex-col gap-2">
                         <div className={editorPanelClassName}>
                           <div className="mb-3 flex items-center gap-2">
@@ -882,6 +882,54 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                         </div>
                       </div>
                     </div>
+                  </div>
+
+                  <div className="rounded-md border border-[#2A3138] bg-[#161A1F] shadow-none">
+                    <div className="flex items-center justify-between gap-4 px-4 py-4">
+                      <div className="min-w-0">
+                        <div className="text-[15px] font-semibold leading-6 text-white">Add a Base Img (Optional)</div>
+                        <div className="mt-0.5 text-[13px] leading-5 text-white/58">
+                          上传图片后会先弹出导入弹窗，带 metadata 时可直接切到转换结果。
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          className={featureUploadActionClassName}
+                          aria-label="上传 Base Img"
+                          title="上传 Base Img"
+                          onClick={handleOpenSourceImagePicker}
+                        >
+                          <FileArrowUpIcon className="size-5" weight="bold" />
+                        </button>
+                        {sourceImageDataUrl
+                          ? (
+                              <button
+                                type="button"
+                                className={featureUploadActionClassName}
+                                aria-label="移除 Base Img"
+                                title="移除 Base Img"
+                                onClick={handleClearSourceImage}
+                              >
+                                <TrashIcon className="size-5" weight="bold" />
+                              </button>
+                            )
+                          : null}
+                      </div>
+                    </div>
+                    {sourceImageDataUrl
+                      ? (
+                          <div className="border-t border-[#2A3138] bg-[#161A1F] px-4 py-4">
+                            <div className="overflow-hidden rounded-md border border-[#2A3138] bg-black/20">
+                              <img
+                                src={sourceImageDataUrl}
+                                alt="Base Img"
+                                className="block max-h-56 w-full object-contain"
+                              />
+                            </div>
+                          </div>
+                        )
+                      : null}
                   </div>
 
                 </div>
