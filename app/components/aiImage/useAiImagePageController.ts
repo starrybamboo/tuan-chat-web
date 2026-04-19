@@ -87,11 +87,13 @@ import {
   historyRowKey,
   historyRowResultMatchKey,
   historyRowToGeneratedItem,
+  getNextAvailableV4CharGridCell,
   makeStableId,
   mergeTagString,
   mimeFromDataUrl,
   mimeFromFilename,
   newV4CharEditorRow,
+  normalizeV4CharGridRows,
   normalizeReferenceStrengthRows,
   readFileAsBytes,
   readImagePixels,
@@ -177,6 +179,15 @@ export function useAiImagePageController() {
   const model = resolveFixedImageModel();
   const isNAI3 = false;
   const isNAI4 = true;
+
+  useEffect(() => {
+    if (!v4UseCoords)
+      return;
+    setV4Chars((prev) => {
+      const next = normalizeV4CharGridRows(prev);
+      return next === prev ? prev : next;
+    });
+  }, [v4Chars, v4UseCoords]);
 
   useEffect(() => {
     if (simpleEditorMode !== "tags")
@@ -1818,10 +1829,22 @@ export function useAiImagePageController() {
       ...newV4CharEditorRow({ gender: options?.gender ?? "other" }),
       prompt: options?.defaultPrompt ?? "",
     };
-    setV4Chars(prev => [...prev, row]);
+    setV4Chars((prev) => {
+      if (!v4UseCoords)
+        return [...prev, row];
+      const nextCell = getNextAvailableV4CharGridCell(prev);
+      return [
+        ...prev,
+        {
+          ...row,
+          centerX: nextCell.centerX,
+          centerY: nextCell.centerY,
+        },
+      ];
+    });
     setCharPromptTabs(prev => ({ ...prev, [row.id]: "prompt" }));
     setProFeatureSectionOpen("characterPrompts", true);
-  }, [setProFeatureSectionOpen]);
+  }, [setProFeatureSectionOpen, v4UseCoords]);
 
   const handleRemoveV4Char = useCallback((id: string) => {
     setV4Chars(prev => prev.filter(item => item.id !== id));
@@ -1849,6 +1872,20 @@ export function useAiImagePageController() {
 
   const handleUpdateV4Char = useCallback((id: string, patch: Partial<V4CharEditorRow>) => {
     setV4Chars(prev => prev.map(item => (item.id === id ? { ...item, ...patch } : item)));
+  }, []);
+
+  const handleSetV4UseCoords = useCallback((enabled: boolean) => {
+    setV4UseCoords((prev) => {
+      if (prev === enabled)
+        return prev;
+      return enabled;
+    });
+    if (!enabled)
+      return;
+    setV4Chars((prev) => {
+      const next = normalizeV4CharGridRows(prev);
+      return next === prev ? prev : next;
+    });
   }, []);
 
   const handleUpdateVibeReference = useCallback((id: string, patch: Partial<VibeTransferReferenceRow>) => {
@@ -2312,7 +2349,7 @@ export function useAiImagePageController() {
     setUcPreset,
     setUiMode,
     setV4Chars,
-    setV4UseCoords,
+    handleSetV4UseCoords,
     setV4UseOrder,
     setWidth,
     simpleConvertLabel,

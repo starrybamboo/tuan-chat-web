@@ -18,9 +18,12 @@ import {
   clampIntRange,
   clampRange,
   formatSliderValue,
+  getV4CharGridCellByCenter,
+  getV4CharGridCellByCode,
   insertNovelAiRandomTags,
   modelLabel,
   resolveNovelAiRandomTagTarget,
+  V4_CHAR_GRID_CELLS,
 } from "@/components/aiImage/helpers";
 import { HighlightEmphasisTextarea } from "@/components/aiImage/HighlightEmphasisTextarea";
 import { AiImageContextLimitMeter } from "@/components/aiImage/AiImageContextLimitMeter";
@@ -139,9 +142,7 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
     setStrength,
     setUcPreset,
     setUiMode,
-    setV4Chars,
-    setV4UseCoords,
-    setV4UseOrder,
+    handleSetV4UseCoords,
     simpleConvertLabel,
     simpleConverting,
     simpleEditorMode,
@@ -206,6 +207,7 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
   const [proPromptSettingsPosition, setProPromptSettingsPosition] = useState({ top: 96, left: 96 });
   const [isSimpleResolutionSelectorOpen, setIsSimpleResolutionSelectorOpen] = useState<boolean>(false);
   const [isProResolutionSelectorOpen, setIsProResolutionSelectorOpen] = useState<boolean>(false);
+  const [characterPositionPickerState, setCharacterPositionPickerState] = useState<{ characterId: string; code: string } | null>(null);
   const modeSelectorContainerRef = useRef<HTMLDivElement | null>(null);
   const sidebarSurfaceRef = useRef<HTMLDivElement | null>(null);
   const proPromptSettingsRef = useRef<HTMLDivElement | null>(null);
@@ -270,8 +272,15 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
   const proPromptFooterHint = proPromptTab === "prompt"
     ? (qualityToggle && tokenSnapshot.prompt.hiddenText ? tokenSnapshot.prompt.hiddenText : undefined)
     : (ucPreset !== 2 && tokenSnapshot.negative.hiddenText ? tokenSnapshot.negative.hiddenText : undefined);
-  const showCharacterPositionsGlobalSection = v4Chars.length > 2;
-  const isCharacterOrderAiChoiceEnabled = !v4UseOrder;
+  const showCharacterPositionsGlobalSection = v4Chars.length >= 2;
+  const isCharacterPositionAiChoiceEnabled = !v4UseCoords;
+  const characterPositionAssignments = new Map<string, { characterId: string; index: number }>();
+  v4Chars.forEach((row, idx) => {
+    const code = characterPositionPickerState?.characterId === row.id
+      ? characterPositionPickerState.code
+      : getV4CharGridCellByCenter(row.centerX, row.centerY).code;
+    characterPositionAssignments.set(code, { characterId: row.id, index: idx });
+  });
   const baseImagePanelClassName = isBaseImageToolsOpen
     ? "relative min-h-[220px] px-4 py-4"
     : "relative min-h-[84px] px-4 py-4";
@@ -285,6 +294,17 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
     if (!proFeatureSections.characterPrompts)
       setIsCharacterAddMenuOpen(false);
   }, [proFeatureSections.characterPrompts]);
+  useEffect(() => {
+    setCharacterPositionPickerState((prev) => {
+      if (!prev)
+        return prev;
+      if (!showCharacterPositionsGlobalSection || isCharacterPositionAiChoiceEnabled)
+        return null;
+      if (!v4Chars.some(row => row.id === prev.characterId))
+        return null;
+      return prev;
+    });
+  }, [isCharacterPositionAiChoiceEnabled, showCharacterPositionsGlobalSection, v4Chars]);
   useEffect(() => {
     if (!isCharacterAddMenuOpen)
       return;
@@ -468,6 +488,40 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
       window.removeEventListener("scroll", updatePanelPosition, true);
     };
   }, [isProPromptSettingsOpen]);
+
+  const handleToggleCharacterPositionAiChoice = useCallback(() => {
+    setCharacterPositionPickerState(prev => (prev ? null : prev));
+    handleSetV4UseCoords(isCharacterPositionAiChoiceEnabled);
+  }, [handleSetV4UseCoords, isCharacterPositionAiChoiceEnabled]);
+
+  const handleOpenCharacterPositionPicker = useCallback((characterId: string, code: string) => {
+    setCharacterPositionPickerState((prev) => {
+      if (prev?.characterId === characterId)
+        return null;
+      return { characterId, code };
+    });
+  }, []);
+
+  const handleSelectCharacterPositionCode = useCallback((code: string) => {
+    setCharacterPositionPickerState((prev) => {
+      if (!prev || prev.code === code)
+        return prev;
+      return { ...prev, code };
+    });
+  }, []);
+
+  const handleSaveCharacterPosition = useCallback((characterId: string) => {
+    if (!characterPositionPickerState || characterPositionPickerState.characterId !== characterId)
+      return;
+    const cell = getV4CharGridCellByCode(characterPositionPickerState.code);
+    if (!cell)
+      return;
+    handleUpdateV4Char(characterId, {
+      centerX: cell.centerX,
+      centerY: cell.centerY,
+    });
+    setCharacterPositionPickerState(null);
+  }, [characterPositionPickerState, handleUpdateV4Char]);
 
   const handleInsertProRandomizerTag = useCallback(() => {
     const activeTab = proPromptTab === "prompt" ? "prompt" : "negative";
@@ -1528,6 +1582,9 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                                     : rowGender === "male"
                                       ? GenderMaleIcon
                                       : CircleIcon;
+                                  const currentPositionCode = getV4CharGridCellByCenter(row.centerX, row.centerY).code;
+                                  const isCharacterPositionPickerOpen = characterPositionPickerState?.characterId === row.id;
+                                  const selectedPositionCode = isCharacterPositionPickerOpen ? characterPositionPickerState.code : currentPositionCode;
                                   return (
                                     <div key={row.id} className={characterCardClassName}>
                                       <div className="mb-3 flex items-center gap-2">
@@ -1629,6 +1686,70 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                                             },
                                           ]}
                                         />
+                                        {showCharacterPositionsGlobalSection
+                                          ? (
+                                              <div className="space-y-3">
+                                                <div className="flex flex-wrap items-center gap-2 text-[13px] font-medium leading-5 text-white/90">
+                                                  <span className="text-white/72">Position</span>
+                                                  {isCharacterPositionAiChoiceEnabled
+                                                    ? <span className="text-white/92">AI's Choice</span>
+                                                    : (
+                                                        <>
+                                                          <button
+                                                            type="button"
+                                                            className="inline-flex h-8 items-center rounded-md bg-white/10 px-3 text-[13px] font-semibold text-white transition hover:bg-white/14 focus:outline-none focus:ring-2 focus:ring-white/15"
+                                                            onClick={() => handleOpenCharacterPositionPicker(row.id, currentPositionCode)}
+                                                          >
+                                                            Adjust
+                                                          </button>
+                                                          <span className="text-[22px] font-semibold leading-none tracking-[0.08em] text-white/96">{selectedPositionCode}</span>
+                                                        </>
+                                                      )}
+                                                </div>
+                                                {!isCharacterPositionAiChoiceEnabled && isCharacterPositionPickerOpen
+                                                  ? (
+                                                      <div className="rounded-md border border-[#2A3138] bg-[#131722] px-3 py-3">
+                                                        <div className="grid grid-cols-5 gap-1.5 rounded-md border border-white/6 bg-[#171B2A] p-1.5">
+                                                          {V4_CHAR_GRID_CELLS.map((cell) => {
+                                                            const occupant = characterPositionAssignments.get(cell.code);
+                                                            const occupiedByOther = Boolean(occupant && occupant.characterId !== row.id);
+                                                            const isSelected = selectedPositionCode === cell.code;
+                                                            return (
+                                                              <button
+                                                                key={cell.code}
+                                                                type="button"
+                                                                className={`flex h-10 items-center justify-center rounded-md border text-[18px] font-semibold leading-none transition focus:outline-none ${
+                                                                  occupiedByOther
+                                                                    ? "cursor-not-allowed border-white/8 bg-transparent text-white/42"
+                                                                    : isSelected
+                                                                      ? "border-white/60 bg-white/34 text-white"
+                                                                      : "border-white/8 bg-transparent text-white/72 hover:border-white/20 hover:bg-white/6"
+                                                                }`}
+                                                                disabled={occupiedByOther}
+                                                                aria-label={`选择位置 ${cell.code}`}
+                                                                title={cell.code}
+                                                                onClick={() => handleSelectCharacterPositionCode(cell.code)}
+                                                              >
+                                                                {occupant ? `${occupant.index + 1}` : ""}
+                                                              </button>
+                                                            );
+                                                          })}
+                                                        </div>
+                                                        <div className="mt-4 flex justify-center">
+                                                          <button
+                                                            type="button"
+                                                            className="inline-flex h-11 items-center rounded-md bg-white/10 px-5 text-[18px] font-semibold text-white transition hover:bg-white/14 focus:outline-none focus:ring-2 focus:ring-white/15"
+                                                            onClick={() => handleSaveCharacterPosition(row.id)}
+                                                          >
+                                                            Done
+                                                          </button>
+                                                        </div>
+                                                      </div>
+                                                    )
+                                                  : null}
+                                              </div>
+                                            )
+                                          : null}
                                       </div>
                                     </div>
                                   );
@@ -1642,14 +1763,14 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                                         <button
                                           type="button"
                                           className={`${characterPositionsToggleBaseClassName} ${
-                                            isCharacterOrderAiChoiceEnabled
+                                            isCharacterPositionAiChoiceEnabled
                                               ? "border-[#F2E8A5] bg-[#F2E8A5] text-[#201C0F] hover:bg-[#E7DB87]"
                                               : "border-[#2F3841] bg-[#1B2026] text-white/74 hover:border-primary/40 hover:text-white"
                                           }`}
-                                          aria-pressed={isCharacterOrderAiChoiceEnabled}
-                                          onClick={() => setV4UseOrder(prev => !prev)}
+                                          aria-pressed={isCharacterPositionAiChoiceEnabled}
+                                          onClick={handleToggleCharacterPositionAiChoice}
                                         >
-                                          {isCharacterOrderAiChoiceEnabled
+                                          {isCharacterPositionAiChoiceEnabled
                                             ? <CheckCircleIcon className="size-4 shrink-0" weight="fill" />
                                             : null}
                                           <span>AI's Choice</span>
