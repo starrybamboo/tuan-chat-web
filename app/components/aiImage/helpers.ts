@@ -2,6 +2,7 @@ import { unzipSync } from "fflate";
 
 import type {
   GeneratedImageItem,
+  ImportedSourceImagePayload,
   InternalHistoryImageDragPayload,
   MetadataImportSelectionState,
   NovelAiEmotion,
@@ -439,6 +440,35 @@ export function dataUrlToBase64(dataUrl: string) {
   if (idx < 0)
     return "";
   return value.slice(idx + 1).trim();
+}
+
+export function buildImportedSourceImagePayloadFromDataUrl(args: {
+  dataUrl: string;
+  name?: string;
+  width?: number | null;
+  height?: number | null;
+}): ImportedSourceImagePayload | null {
+  const dataUrl = String(args.dataUrl || "").trim();
+  if (!dataUrl)
+    return null;
+
+  const imageBase64 = dataUrlToBase64(dataUrl);
+  if (!imageBase64)
+    return null;
+
+  return {
+    dataUrl,
+    imageBase64,
+    name: args.name,
+    width: args.width ?? undefined,
+    height: args.height ?? undefined,
+  };
+}
+
+export function resolveEditorImageMode(sourceDataUrl?: string | null): "txt2img" | "img2img" {
+  return buildImportedSourceImagePayloadFromDataUrl({ dataUrl: String(sourceDataUrl || "") })
+    ? "img2img"
+    : "txt2img";
 }
 
 export function base64ToBytes(value: string) {

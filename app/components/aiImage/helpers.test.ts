@@ -1,11 +1,13 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  buildImportedSourceImagePayloadFromDataUrl,
   cleanImportedPromptText,
   clampSimpleModeDimension,
   generatedItemKey,
   insertNovelAiRandomTags,
   mergeTagString,
+  resolveEditorImageMode,
   resolveNovelAiRandomTagTarget,
   historyRowKey,
   historyRowResultMatchKey,
@@ -80,6 +82,27 @@ describe("aiImage helpers", () => {
     expect(resolveImportedValue(undefined, true, 23)).toBe(23);
     expect(resolveImportedValue(false, true, true)).toBe(false);
     expect(resolveImportedValue(0, true, 5)).toBe(0);
+  });
+
+  it("reconstructs a source image payload from a history data url", () => {
+    expect(buildImportedSourceImagePayloadFromDataUrl({
+      dataUrl: "data:image/png;base64,abc123",
+      name: "history-image.png",
+      width: 832,
+      height: 1216,
+    })).toEqual({
+      dataUrl: "data:image/png;base64,abc123",
+      imageBase64: "abc123",
+      name: "history-image.png",
+      width: 832,
+      height: 1216,
+    });
+  });
+
+  it("maps history source images back to editable img2img mode", () => {
+    expect(resolveEditorImageMode("data:image/png;base64,abc123")).toBe("img2img");
+    expect(resolveEditorImageMode("not-a-data-url")).toBe("txt2img");
+    expect(resolveEditorImageMode("")).toBe("txt2img");
   });
 
   it("allows the new 832x1216 / 1216x832 preset sizes in simple mode clamping", () => {

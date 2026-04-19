@@ -61,6 +61,7 @@ import {
 import {
   base64DataUrl,
   base64ToBytes,
+  buildImportedSourceImagePayloadFromDataUrl,
   bytesToBase64,
   clamp01,
   clampIntRange,
@@ -140,9 +141,12 @@ export function useAiImagePageController() {
     writeLocalStorageString(STORAGE_UI_MODE_KEY, uiMode);
   }, [uiMode]);
 
-  const [mode, setMode] = useState<AiImageHistoryMode>("txt2img");
-  const [sourceImageDataUrl, setSourceImageDataUrl] = useState("");
-  const [sourceImageBase64, setSourceImageBase64] = useState("");
+  const [simpleMode, setSimpleMode] = useState<AiImageHistoryMode>("txt2img");
+  const [proMode, setProMode] = useState<AiImageHistoryMode>("txt2img");
+  const [simpleSourceImageDataUrl, setSimpleSourceImageDataUrl] = useState("");
+  const [simpleSourceImageBase64, setSimpleSourceImageBase64] = useState("");
+  const [proSourceImageDataUrl, setProSourceImageDataUrl] = useState("");
+  const [proSourceImageBase64, setProSourceImageBase64] = useState("");
 
   const [simpleText, setSimpleText] = useState("");
   const [simpleConvertedFromText, setSimpleConvertedFromText] = useState("");
@@ -175,14 +179,6 @@ export function useAiImagePageController() {
   const model = resolveFixedImageModel();
   const isNAI3 = false;
   const isNAI4 = true;
-
-  useEffect(() => {
-    if (uiMode === "simple") {
-      setMode("txt2img");
-      setSourceImageDataUrl("");
-      setSourceImageBase64("");
-    }
-  }, [uiMode]);
 
   useEffect(() => {
     if (simpleEditorMode !== "tags")
@@ -286,6 +282,7 @@ export function useAiImagePageController() {
 
   const width = uiMode === "simple" ? simpleWidth : proWidth;
   const height = uiMode === "simple" ? simpleHeight : proHeight;
+  const mode = uiMode === "simple" ? simpleMode : proMode;
   const imageCount = uiMode === "simple" ? DEFAULT_SIMPLE_IMAGE_SETTINGS.imageCount : proImageCount;
   const steps = uiMode === "simple" ? DEFAULT_SIMPLE_IMAGE_SETTINGS.steps : proSteps;
   const scale = uiMode === "simple" ? DEFAULT_SIMPLE_IMAGE_SETTINGS.scale : proScale;
@@ -300,6 +297,8 @@ export function useAiImagePageController() {
   const strength = uiMode === "simple" ? simpleImg2imgStrength : proImg2imgStrength;
   const noise = uiMode === "simple" ? simpleImg2imgNoise : proImg2imgNoise;
   const seed = uiMode === "simple" ? simpleSeed : proSeed;
+  const sourceImageDataUrl = uiMode === "simple" ? simpleSourceImageDataUrl : proSourceImageDataUrl;
+  const sourceImageBase64 = uiMode === "simple" ? simpleSourceImageBase64 : proSourceImageBase64;
 
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState("");
@@ -388,6 +387,80 @@ export function useAiImagePageController() {
   const imageCountLimit = useMemo(() => {
     return NOVELAI_FREE_FIXED_IMAGE_COUNT;
   }, []);
+
+  const setModeForUi = useCallback((targetUiMode: UiMode, nextMode: AiImageHistoryMode) => {
+    if (targetUiMode === "simple") {
+      setSimpleMode(nextMode);
+      return;
+    }
+    setProMode(nextMode);
+  }, []);
+
+  const syncSourceImageSizeForUi = useCallback((targetUiMode: UiMode, width?: number | null, height?: number | null) => {
+    if (!width || !height)
+      return;
+
+    const normalizedSize = getClosestValidImageSize(width, height);
+    if (targetUiMode === "simple") {
+      setSimpleWidth(normalizedSize.width);
+      setSimpleHeight(normalizedSize.height);
+      setSimpleResolutionSelection(inferResolutionSelection(normalizedSize.width, normalizedSize.height));
+      return;
+    }
+
+    setProWidth(normalizedSize.width);
+    setProHeight(normalizedSize.height);
+  }, [inferResolutionSelection]);
+
+  const clearSourceImageForUi = useCallback((targetUiMode: UiMode) => {
+    setModeForUi(targetUiMode, "txt2img");
+    if (targetUiMode === "simple") {
+      setSimpleSourceImageDataUrl("");
+      setSimpleSourceImageBase64("");
+      return;
+    }
+
+    setProSourceImageDataUrl("");
+    setProSourceImageBase64("");
+  }, [setModeForUi]);
+
+  const applySourceImageForUi = useCallback((targetUiMode: UiMode, sourceImage: ImportedSourceImagePayload, successMessage?: string) => {
+    setModeForUi(targetUiMode, "img2img");
+    if (targetUiMode === "simple") {
+      setSimpleSourceImageDataUrl(sourceImage.dataUrl);
+      setSimpleSourceImageBase64(sourceImage.imageBase64);
+    }
+    else {
+      setProSourceImageDataUrl(sourceImage.dataUrl);
+      setProSourceImageBase64(sourceImage.imageBase64);
+    }
+
+    syncSourceImageSizeForUi(targetUiMode, sourceImage.width, sourceImage.height);
+    if (successMessage)
+      showSuccessToast(successMessage);
+  }, [setModeForUi, showSuccessToast, syncSourceImageSizeForUi]);
+
+  const restoreSourceImageForUi = useCallback((targetUiMode: UiMode, args: {
+    dataUrl?: string | null;
+    name?: string;
+    width?: number | null;
+    height?: number | null;
+  }) => {
+    const sourceImage = buildImportedSourceImagePayloadFromDataUrl({
+      dataUrl: String(args.dataUrl || ""),
+      name: args.name,
+      width: args.width,
+      height: args.height,
+    });
+
+    if (!sourceImage) {
+      clearSourceImageForUi(targetUiMode);
+      return false;
+    }
+
+    applySourceImageForUi(targetUiMode, sourceImage);
+    return true;
+  }, [applySourceImageForUi, clearSourceImageForUi]);
 
   useEffect(() => {
     if (!isDirectorToolsOpen || directorSourcePreview || !selectedPreviewResult)
@@ -507,9 +580,7 @@ export function useAiImagePageController() {
     setUiMode("pro");
 
     if (selection.settings) {
-      setMode("txt2img");
-      setSourceImageDataUrl("");
-      setSourceImageBase64("");
+      clearSourceImageForUi("pro");
       setVibeTransferReferences([]);
       setPreciseReference(null);
       setProFeatureSectionOpen("baseImage", false);
@@ -614,7 +685,7 @@ export function useAiImagePageController() {
       );
       setProFeatureSectionOpen("characterPrompts", nextChars.length > 0);
     }
-  }, [inferResolutionSelection, noiseScheduleOptions, proHeight, proWidth, samplerOptions, simpleHeight, simpleWidth, uiMode, v4Chars, setProFeatureSectionOpen]);
+  }, [clearSourceImageForUi, inferResolutionSelection, noiseScheduleOptions, proHeight, proWidth, samplerOptions, simpleHeight, simpleWidth, uiMode, v4Chars, setProFeatureSectionOpen]);
 
   const refreshHistory = useCallback(async () => {
     const rows = await listAiImageHistory({ limit: 30 });
@@ -666,23 +737,7 @@ export function useAiImagePageController() {
     } satisfies ImportedSourceImagePayload;
 
     const applySourceImageAsBase = (nextSourceImage: ImportedSourceImagePayload, successMessage?: string) => {
-      setMode("img2img");
-      setSourceImageDataUrl(nextSourceImage.dataUrl);
-      setSourceImageBase64(nextSourceImage.imageBase64);
-      if (nextSourceImage.width && nextSourceImage.height) {
-        const normalizedSize = getClosestValidImageSize(nextSourceImage.width, nextSourceImage.height);
-        if (uiMode === "simple") {
-          setSimpleWidth(normalizedSize.width);
-          setSimpleHeight(normalizedSize.height);
-          setSimpleResolutionSelection(inferResolutionSelection(normalizedSize.width, normalizedSize.height));
-        }
-        else {
-          setProWidth(normalizedSize.width);
-          setProHeight(normalizedSize.height);
-        }
-      }
-      if (successMessage)
-        showSuccessToast(successMessage);
+      applySourceImageForUi(uiMode, nextSourceImage, successMessage);
     };
 
     if (args.target === "img2img") {
@@ -694,7 +749,7 @@ export function useAiImagePageController() {
       return;
     }
 
-    setPendingMetadataImport({
+      setPendingMetadataImport({
       sourceImage,
       metadata: importedMetadata,
       source: args.source,
@@ -704,9 +759,11 @@ export function useAiImagePageController() {
       ? createMetadataImportSelection(importedMetadata.settings)
       : DEFAULT_METADATA_IMPORT_SELECTION;
     if (uiMode === "simple")
+      nextMetadataImportSelection.settings = false;
+    if (uiMode === "simple")
       nextMetadataImportSelection.characters = false;
     setMetadataImportSelection(nextMetadataImportSelection);
-  }, [inferResolutionSelection, showSuccessToast, uiMode]);
+  }, [applySourceImageForUi, uiMode]);
 
   const handlePickSourceImage = useCallback(async (
     file: File,
@@ -830,12 +887,11 @@ export function useAiImagePageController() {
   }, [handlePickSourceImage]);
 
   const handleClearSourceImage = useCallback(() => {
-    setMode("txt2img");
-    setSourceImageDataUrl("");
-    setSourceImageBase64("");
+    clearSourceImageForUi(uiMode);
     setIsPageImageDragOver(false);
-    setProFeatureSectionOpen("baseImage", true);
-  }, [setProFeatureSectionOpen]);
+    if (uiMode === "pro")
+      setProFeatureSectionOpen("baseImage", true);
+  }, [clearSourceImageForUi, setProFeatureSectionOpen, uiMode]);
 
   const handleOpenSourceImagePicker = useCallback(() => {
     sourceFileInputRef.current?.click();
@@ -851,30 +907,12 @@ export function useAiImagePageController() {
       return;
 
     if (target === "img2img") {
-      setMode("img2img");
-      setSourceImageDataUrl(pendingMetadataImport.sourceImage.dataUrl);
-      setSourceImageBase64(pendingMetadataImport.sourceImage.imageBase64);
-      if (pendingMetadataImport.sourceImage.width && pendingMetadataImport.sourceImage.height) {
-        const normalizedSize = getClosestValidImageSize(
-          pendingMetadataImport.sourceImage.width,
-          pendingMetadataImport.sourceImage.height,
-        );
-        if (uiMode === "simple") {
-          setSimpleWidth(normalizedSize.width);
-          setSimpleHeight(normalizedSize.height);
-          setSimpleResolutionSelection(inferResolutionSelection(normalizedSize.width, normalizedSize.height));
-        }
-        else {
-          setProWidth(normalizedSize.width);
-          setProHeight(normalizedSize.height);
-        }
-      }
-      showSuccessToast("已设置 Base Img。");
+      applySourceImageForUi(uiMode, pendingMetadataImport.sourceImage, "已设置 Base Img。");
     }
 
     setPendingMetadataImport(null);
     setMetadataImportSelection(DEFAULT_METADATA_IMPORT_SELECTION);
-  }, [inferResolutionSelection, pendingMetadataImport, showSuccessToast, uiMode]);
+  }, [applySourceImageForUi, pendingMetadataImport, uiMode]);
 
   const handleConfirmMetadataImport = useCallback(() => {
     const pendingMetadata = pendingMetadataImport?.metadata;
@@ -916,21 +954,21 @@ export function useAiImagePageController() {
     if (!selectedPreviewResult)
       return false;
 
-    const sourceImageBase64 = dataUrlToBase64(selectedPreviewResult.dataUrl);
-    if (!sourceImageBase64) {
+    const sourceImage = buildImportedSourceImagePayloadFromDataUrl({
+      dataUrl: selectedPreviewResult.dataUrl,
+      width: selectedPreviewResult.width,
+      height: selectedPreviewResult.height,
+    });
+    if (!sourceImage) {
       showErrorToast("当前预览图片读取失败，无法设置为 Base Img。");
       return false;
     }
-    setUiMode("pro");
-    setMode("img2img");
-    setSourceImageDataUrl(selectedPreviewResult.dataUrl);
-    setSourceImageBase64(sourceImageBase64);
-    setProWidth(selectedPreviewResult.width);
-    setProHeight(selectedPreviewResult.height);
+
+    applySourceImageForUi(uiMode, sourceImage);
     if (showToast)
       showSuccessToast("已把当前预览设置为 Base Img。");
     return true;
-  }, [selectedPreviewResult, showErrorToast, showSuccessToast]);
+  }, [applySourceImageForUi, selectedPreviewResult, showErrorToast, showSuccessToast, uiMode]);
 
   const handleUseSelectedResultAsBaseImage = useCallback(() => {
     void applySelectedPreviewAsBaseImage(true);
@@ -1470,11 +1508,48 @@ export function useAiImagePageController() {
       return;
     }
 
-    setUiMode("pro");
-
     const normalizedSize = getClosestValidImageSize(row.width, row.height);
+    const restoredSourceImage = restoreSourceImageForUi(uiMode, {
+      dataUrl: row.sourceDataUrl,
+      name: `history_${row.seed}.${extensionFromDataUrl(row.sourceDataUrl || row.dataUrl)}`,
+      width: row.width,
+      height: row.height,
+    });
+
+    if (uiMode === "simple") {
+      setSimpleText("");
+      setSimpleConverted(null);
+      setSimpleConvertedFromText("");
+      setSimplePrompt(row.prompt);
+      setSimpleNegativePrompt(row.negativePrompt);
+      setSimpleEditorMode("tags");
+      setSimplePromptTab("prompt");
+      setSimpleWidth(normalizedSize.width);
+      setSimpleHeight(normalizedSize.height);
+      setSimpleResolutionSelection(inferResolutionSelection(normalizedSize.width, normalizedSize.height));
+      setSimpleImg2imgStrength(clampRange(
+        resolveImportedValue(row.strength, true, DEFAULT_SIMPLE_IMAGE_SETTINGS.strength) ?? DEFAULT_SIMPLE_IMAGE_SETTINGS.strength,
+        0,
+        1,
+        DEFAULT_SIMPLE_IMAGE_SETTINGS.strength,
+      ));
+      setSimpleImg2imgNoise(clampRange(
+        resolveImportedValue(row.noise, true, DEFAULT_SIMPLE_IMAGE_SETTINGS.noise) ?? DEFAULT_SIMPLE_IMAGE_SETTINGS.noise,
+        0,
+        1,
+        DEFAULT_SIMPLE_IMAGE_SETTINGS.noise,
+      ));
+      if (importSeed)
+        setSimpleSeed(row.seed);
+      showSuccessToast([
+        importSeed ? "已按快速模式回填轻量设置与 seed。" : "已按快速模式回填轻量设置。",
+        restoredSourceImage && row.mode === "infill" ? "Inpaint 历史已按 Base Img 恢复。" : "",
+        "高级项保持默认值。",
+      ].filter(Boolean).join(" "));
+      return;
+    }
+
     const droppedPaidSettings = [
-      row.mode === "img2img" ? "Base Img" : row.mode === "infill" ? "Inpaint" : "",
       row.referenceImages?.length ? "Vibe Transfer" : "",
       row.preciseReference ? "Precise Reference" : "",
       (row.imageCount ?? row.batchSize ?? 1) > NOVELAI_FREE_FIXED_IMAGE_COUNT ? "多张生成" : "",
@@ -1482,9 +1557,8 @@ export function useAiImagePageController() {
       row.width > NOVELAI_FREE_MAX_DIMENSION || row.height > NOVELAI_FREE_MAX_DIMENSION ? "超尺寸" : "",
     ].filter(Boolean);
 
-    setMode("txt2img");
-    setSourceImageDataUrl("");
-    setSourceImageBase64("");
+    if (!restoredSourceImage)
+      clearSourceImageForUi("pro");
     setPrompt(row.prompt);
     setNegativePrompt(row.negativePrompt);
     setV4UseCoords(Boolean(row.v4UseCoords));
@@ -1510,7 +1584,7 @@ export function useAiImagePageController() {
     setVibeTransferReferences([]);
     setPreciseReference(null);
     setProFeatureSections(createProFeatureSectionState({
-      baseImage: false,
+      baseImage: restoredSourceImage,
       characterPrompts: restoredChars.length > 0 ? true : DEFAULT_PRO_FEATURE_SECTION_OPEN.characterPrompts,
       vibeTransfer: false,
       preciseReference: false,
@@ -1564,9 +1638,10 @@ export function useAiImagePageController() {
     ));
     showSuccessToast([
       importSeed ? "已导入历史设置与 seed。" : "已导入历史设置，seed 保持当前值。",
+      restoredSourceImage && row.mode === "infill" ? "Inpaint 历史已按 Base Img 恢复。" : "",
       droppedPaidSettings.length ? `已自动忽略会消耗 Anlas 的项：${droppedPaidSettings.join(" / ")}。` : "",
     ].filter(Boolean).join(" "));
-  }, [noiseScheduleOptions, samplerOptions, showSuccessToast, uiMode]);
+  }, [clearSourceImageForUi, inferResolutionSelection, noiseScheduleOptions, restoreSourceImageForUi, samplerOptions, showSuccessToast, uiMode]);
 
   const handleHistoryRowClick = useCallback((row: AiImageHistoryRow, event: MouseEvent<HTMLButtonElement>) => {
     const clickMode: HistoryRowClickMode = (event.metaKey || event.ctrlKey)
@@ -1660,9 +1735,7 @@ export function useAiImagePageController() {
   }, []);
 
   const handleClearSimpleDraft = useCallback(() => {
-    setMode("txt2img");
-    setSourceImageDataUrl("");
-    setSourceImageBase64("");
+    clearSourceImageForUi("simple");
     setSimpleText("");
     setSimpleConverted(null);
     setSimpleConvertedFromText("");
@@ -1683,7 +1756,7 @@ export function useAiImagePageController() {
     setMetadataImportSelection(DEFAULT_METADATA_IMPORT_SELECTION);
     setIsPageImageDragOver(false);
     showSuccessToast("已恢复快速模式默认状态。");
-  }, [showSuccessToast]);
+  }, [clearSourceImageForUi, showSuccessToast]);
 
   const handleClearActiveStyles = useCallback(() => {
     if (styleSelectionMode === "compare") {
@@ -2024,7 +2097,7 @@ export function useAiImagePageController() {
   const canImportMetadataPrompt = pendingMetadataSettings ? hasNonEmptyText(pendingMetadataSettings.prompt) : false;
   const canImportMetadataNegativePrompt = pendingMetadataSettings ? hasNonEmptyText(pendingMetadataSettings.negativePrompt) : false;
   const canImportMetadataCharacters = uiMode === "pro";
-  const canImportMetadataSettings = pendingMetadataSettings ? hasMetadataSettingsPayload(pendingMetadataSettings) : false;
+  const canImportMetadataSettings = uiMode === "pro" && pendingMetadataSettings ? hasMetadataSettingsPayload(pendingMetadataSettings) : false;
   const canImportMetadataSeed = pendingMetadataSettings?.seed != null;
   const hasAnyMetadataImportSelection = metadataImportSelection.prompt
     || metadataImportSelection.undesiredContent
