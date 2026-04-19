@@ -94,6 +94,12 @@ export function MetadataImportDialog({
 }: MetadataImportDialogProps) {
   const isOpen = Boolean(pendingMetadataImport);
   const hasImportedMetadata = Boolean(pendingMetadataImport?.metadata);
+  const previewFrameClassName = hasImportedMetadata
+    ? "mt-5 rounded-md border border-base-300 bg-base-200/60 p-4 shadow-sm"
+    : "mt-5 flex min-h-[18rem] items-center justify-center rounded-md border border-base-300 bg-base-200/60 p-4 shadow-sm";
+  const previewImageClassName = hasImportedMetadata
+    ? "mx-auto h-[220px] w-full max-w-[170px] object-contain"
+    : "mx-auto h-[260px] w-full max-w-full object-contain";
 
   return (
     <dialog
@@ -129,13 +135,13 @@ export function MetadataImportDialog({
             </h3>
           </div>
 
-          <div className="mt-5 rounded-md border border-base-300 bg-base-200/60 p-4 shadow-sm">
+          <div className={previewFrameClassName}>
             {pendingMetadataImport
               ? (
                   <img
                     src={pendingMetadataImport.sourceImage.dataUrl}
                     alt={pendingMetadataImport.sourceImage.name || "import-preview"}
-                    className="mx-auto h-[220px] w-full max-w-[170px] object-contain"
+                    className={previewImageClassName}
                   />
                 )
               : null}
