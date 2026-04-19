@@ -1,5 +1,5 @@
 import type { AiImagePageController } from "@/components/aiImage/useAiImagePageController";
-import { ArrowCounterClockwise, CheckCircleIcon, CircleNotch, DiceFiveIcon, FileArrowUpIcon, GearSixIcon, ImageSquareIcon, PencilSimpleIcon, PlusIcon, SparkleIcon, TrashIcon, XCircleIcon } from "@phosphor-icons/react";
+import { ArrowClockwise, ArrowCounterClockwise, CheckCircleIcon, CircleNotch, DiceFiveIcon, FileArrowUpIcon, GearSixIcon, ImageSquareIcon, PlusIcon, SparkleIcon, TrashIcon, XCircleIcon } from "@phosphor-icons/react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   CUSTOM_RESOLUTION_ID,
@@ -988,7 +988,7 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                                     title="更换 Base Img"
                                     onClick={handleOpenSourceImagePicker}
                                   >
-                                    <PencilSimpleIcon className="size-5" weight="bold" />
+                                    <ArrowClockwise className="size-5" weight="bold" />
                                   </button>
                                   <span className="h-11 w-px bg-[#2A3138]" aria-hidden="true" />
                                   <button
