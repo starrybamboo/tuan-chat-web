@@ -260,13 +260,9 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
     : (ucPreset !== 2 && tokenSnapshot.negative.hiddenText ? tokenSnapshot.negative.hiddenText : undefined);
   const baseImagePanelClassName = isBaseImageToolsOpen
     ? "relative min-h-[220px] px-4 py-4"
-    : "relative min-h-[84px] px-3 py-2";
-  const baseImageHeaderClassName = isBaseImageToolsOpen
-    ? "relative flex items-start justify-between gap-4"
-    : "relative flex items-start justify-between gap-2";
-  const baseImageControlGroupClassName = isBaseImageToolsOpen
-    ? "flex items-center gap-1.5"
-    : "flex items-center gap-1";
+    : "relative min-h-[84px] px-4 py-4";
+  const baseImageHeaderClassName = "relative flex items-start justify-between gap-4";
+  const baseImageControlGroupClassName = "flex items-center gap-1.5";
   useEffect(() => {
     if (!sourceImageDataUrl)
       setIsBaseImageToolsOpen(false);
