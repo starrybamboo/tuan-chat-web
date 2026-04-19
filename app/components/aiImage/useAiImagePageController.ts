@@ -22,6 +22,7 @@ import type {
   ProFeatureSectionKey,
   ResolutionSelection,
   UiMode,
+  V4CharGender,
   V4CharEditorRow,
   VibeTransferReferenceRow,
 } from "@/components/aiImage/types";
@@ -912,7 +913,7 @@ export function useAiImagePageController() {
     const effectiveSourceImageBase64 = args?.sourceImageBase64 ?? (usesSourceImage ? sourceImageBase64 : undefined);
     const effectiveSourceImageDataUrl = args?.sourceImageDataUrl ?? (usesSourceImage ? sourceImageDataUrl : undefined);
     const effectiveMaskBase64 = args?.maskBase64;
-    const v4CharsPayload = isNAI4 && uiMode === "pro" ? v4Chars.map(({ id, ...rest }) => rest) : undefined;
+    const v4CharsPayload = isNAI4 && uiMode === "pro" ? v4Chars.map(({ id, gender, ...rest }) => rest) : undefined;
     const v4UseCoordsPayload = uiMode === "pro" ? v4UseCoords : undefined;
     const v4UseOrderPayload = uiMode === "pro" ? v4UseOrder : undefined;
     const resolvedVibeTransferReferences = uiMode === "pro" && isNAI4
@@ -1589,9 +1590,9 @@ export function useAiImagePageController() {
     setSelectedStyleIds([]);
   }, [styleSelectionMode]);
 
-  const handleAddV4Char = useCallback((options?: { defaultPrompt?: string }) => {
+  const handleAddV4Char = useCallback((options?: { defaultPrompt?: string; gender?: V4CharGender }) => {
     const row = {
-      ...newV4CharEditorRow(),
+      ...newV4CharEditorRow({ gender: options?.gender ?? "other" }),
       prompt: options?.defaultPrompt ?? "",
     };
     setV4Chars(prev => [...prev, row]);
