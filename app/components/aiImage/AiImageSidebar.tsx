@@ -67,14 +67,12 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
     handleClearCurrentDisplayedImage,
     handleClearSourceImage,
     handleClearSimpleDraft,
-    handleCropToClosestValidSize,
     handleOpenSourceImagePicker,
     handleMoveV4Char,
     handleRemoveV4Char,
     handleRemoveVibeReference,
     handleAcceptSimpleConverted,
     handleRejectSimpleConverted,
-    handleResetCurrentImageSettings,
     handleReturnToSimpleTags,
     handleReturnToSimpleText,
     handleSelectProResolutionPreset,
@@ -90,7 +88,6 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
     handleOpenBaseImageInpaint,
     hasCurrentDisplayedImage,
     imageCount,
-    imageCountLimit,
     isDirectorToolsOpen,
     isNAI3,
     isNAI4,
@@ -188,7 +185,6 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
   const subtleInputClassName = "input input-bordered input-sm !rounded-none border-[#D6DCE3] bg-[#F3F5F7] text-base-content dark:border-[#2A3138] dark:bg-[#161A1F]";
   const subtleSelectClassName = "select select-bordered select-sm !rounded-none border-[#D6DCE3] bg-[#F3F5F7] text-base-content dark:border-[#2A3138] dark:bg-[#161A1F]";
   const simpleResolutionValueInputClassName = "min-w-0 appearance-none bg-transparent text-center text-xs font-semibold leading-none tabular-nums text-base-content focus:outline-none [-moz-appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none";
-  const proSettingsOutlineButtonClassName = "inline-flex h-10 items-center justify-center rounded-md border border-primary/55 bg-transparent px-4 text-[13px] font-semibold text-base-content transition hover:border-transparent hover:bg-[#EAEFF4] focus:outline-none focus:ring-2 focus:ring-primary/20 dark:hover:bg-[#1B2026]";
   const highlightPromptSurfaceClassName = "relative min-h-36 w-full overflow-hidden !rounded-none border border-[#D6DCE3] bg-[#F3F5F7] shadow-none transition-colors hover:border-primary active:border-primary focus-within:border-primary focus-within:bg-primary/[0.03] dark:border-[#2A3138] dark:bg-[#161A1F] dark:hover:border-primary";
   const highlightPromptContentClassName = "min-h-36 px-3 py-2 text-sm leading-6";
   const highlightCharSurfaceClassName = "relative min-h-28 w-full overflow-hidden !rounded-none border border-[#D6DCE3] bg-[#F3F5F7] shadow-none transition-colors hover:border-primary active:border-primary focus-within:border-primary focus-within:bg-primary/[0.03] dark:border-[#2A3138] dark:bg-[#161A1F] dark:hover:border-primary";
@@ -1663,20 +1659,20 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                   </div>
 
                   <div className="flex flex-col gap-2">
-                    <div className="flex h-8 items-stretch overflow-hidden border border-[#2A3138] bg-[#161A1F] shadow-none">
-                      <div className="flex w-9 shrink-0 items-center justify-center border-r border-[#2A3138] text-white/90" aria-hidden="true">
+                    <div className="grid h-11 w-[377px] grid-cols-[25px_repeat(8,44px)] overflow-hidden border border-[#2A3138] bg-[#161A1F] shadow-none">
+                      <div className="flex h-11 w-[25px] shrink-0 items-center justify-center border-r border-[#2A3138] text-white/90" aria-hidden="true">
                         <ImagesSquareIcon className="size-4.5" weight="regular" />
                       </div>
-                      {[1, 2, 3, 4].map(count => {
+                      {[1, 2, 3, 4, 5, 6, 7, 8].map(count => {
                         const isActive = imageCount === count;
                         const isDisabled = count !== 1;
                         return (
                           <button
                             key={count}
                             type="button"
-                            className={`flex flex-1 items-center justify-center border-r border-[#2A3138] text-[14px] font-semibold leading-none transition last:border-r-0 ${
+                            className={`flex h-11 w-11 items-center justify-center border-r border-[#2A3138] text-[14px] font-semibold leading-none transition last:border-r-0 ${
                               isActive
-                                ? "bg-[#232543] text-white"
+                                ? "bg-[#1E252D] text-[#EAF7F5]"
                                 : "bg-transparent text-white/35"
                             }`}
                             disabled={isDisabled}
@@ -1687,22 +1683,6 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                           </button>
                         );
                       })}
-                    </div>
-                    <div className="flex flex-wrap gap-2 pt-1">
-                      <button
-                        type="button"
-                        className={proSettingsOutlineButtonClassName}
-                        onClick={() => void handleCropToClosestValidSize()}
-                      >
-                        Crop to Closest Valid Size
-                      </button>
-                      <button
-                        type="button"
-                        className={proSettingsOutlineButtonClassName}
-                        onClick={handleResetCurrentImageSettings}
-                      >
-                        Reset Current Settings
-                      </button>
                     </div>
                   </div>
 
