@@ -1,5 +1,5 @@
 import type { AiImagePageController } from "@/components/aiImage/useAiImagePageController";
-import { ArrowClockwise, ArrowCounterClockwise, CheckCircleIcon, CircleNotch, DiceFiveIcon, FileArrowUpIcon, GearSixIcon, ImageSquareIcon, PlusIcon, SparkleIcon, TrashIcon, XCircleIcon } from "@phosphor-icons/react";
+import { ArrowClockwise, ArrowCounterClockwise, CheckCircleIcon, CircleNotch, DiceFiveIcon, FileArrowUpIcon, GearSixIcon, ImageSquareIcon, PlusIcon, SelectionPlusIcon, SparkleIcon, TrashIcon, XCircleIcon } from "@phosphor-icons/react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   CUSTOM_RESOLUTION_ID,
@@ -86,6 +86,7 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
     handleSimpleWidthChange,
     handleSwapImageDimensions,
     handleUpdateV4Char,
+    handleOpenBaseImageInpaint,
     hasCurrentDisplayedImage,
     height,
     imageCount,
@@ -186,9 +187,13 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
   const highlightCharContentClassName = "min-h-28 px-3 py-2 text-sm leading-6";
   const floatingInputActionBaseClassName = "btn btn-xs btn-ghost border-0 bg-transparent px-2 text-base-content/35 shadow-none transition-colors backdrop-blur-0 hover:bg-black/28 hover:text-white focus-visible:text-white disabled:cursor-not-allowed disabled:opacity-40 dark:text-base-content/40 dark:hover:bg-white/12";
   const floatingInputActionClassName = `${floatingInputActionBaseClassName} absolute right-3 top-3 z-10`;
+  const baseImageToggleButtonClassName = "inline-flex size-11 items-center justify-center bg-transparent text-white/58 transition hover:text-white focus:outline-none";
+  const baseImageActionButtonClassName = "inline-flex h-11 items-center gap-2 rounded-md border border-[#2A3138] bg-[#161A1F] px-4 text-[14px] font-semibold text-white/92 transition hover:border-white/20 hover:text-white focus:outline-none focus:ring-2 focus:ring-white/15";
+  const baseImageRangeClassName = "mt-2 w-full cursor-pointer appearance-none bg-transparent focus:outline-none [&::-webkit-slider-runnable-track]:h-2 [&::-webkit-slider-runnable-track]:rounded-full [&::-webkit-slider-runnable-track]:bg-white/10 [&::-webkit-slider-thumb]:mt-[-4px] [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:border-0 [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:shadow-sm [&::-webkit-slider-thumb]:shadow-black/30 [&::-moz-range-track]:h-2 [&::-moz-range-track]:rounded-full [&::-moz-range-track]:bg-white/10 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:bg-white [&::-moz-range-thumb]:shadow-sm [&::-moz-range-thumb]:shadow-black/30";
   const [isModeSelectorOpen, setIsModeSelectorOpen] = useState(false);
   const [isModeSelectorMounted, setIsModeSelectorMounted] = useState(false);
   const [isProPromptSettingsOpen, setIsProPromptSettingsOpen] = useState(false);
+  const [isBaseImageToolsOpen, setIsBaseImageToolsOpen] = useState(false);
   const [highlightEmphasisEnabled, setHighlightEmphasisEnabled] = useState(true);
   const [proPromptSettingsPosition, setProPromptSettingsPosition] = useState({ top: 96, left: 96 });
   const [isSimpleResolutionSelectorOpen, setIsSimpleResolutionSelectorOpen] = useState(false);
@@ -253,6 +258,10 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
   const proPromptFooterHint = proPromptTab === "prompt"
     ? (qualityToggle && tokenSnapshot.prompt.hiddenText ? tokenSnapshot.prompt.hiddenText : undefined)
     : (ucPreset !== 2 && tokenSnapshot.negative.hiddenText ? tokenSnapshot.negative.hiddenText : undefined);
+  useEffect(() => {
+    if (!sourceImageDataUrl)
+      setIsBaseImageToolsOpen(false);
+  }, [sourceImageDataUrl]);
   useEffect(() => {
     if (isModeSelectorOpen) {
       setIsModeSelectorMounted(true);
@@ -968,11 +977,11 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                     {mode === "img2img" && sourceImageDataUrl
                       ? (
                           <div className="-mx-3 -mb-3 mt-3 overflow-hidden border-t border-[#2A3138] bg-[#161A1F]">
-                            <div className="relative min-h-[220px] px-4 py-4">
-                              <img
-                                src={sourceImageDataUrl}
-                                alt="Base Img"
-                                className="absolute inset-0 h-full w-full object-cover opacity-28"
+                              <div className="relative min-h-[220px] px-4 py-4">
+                                <img
+                                  src={sourceImageDataUrl}
+                                  alt="Base Img"
+                                  className="absolute inset-0 h-full w-full object-cover opacity-28"
                               />
                               <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(11,13,27,0.66)_0%,rgba(11,13,27,0.74)_100%)]" />
                               <div className="relative flex items-start justify-between gap-4">
@@ -980,28 +989,86 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                                   <div className="text-[15px] font-semibold leading-6 text-white">Image2Image</div>
                                   <div className="mt-1 text-[13px] leading-5 text-white/72">Transform your image.</div>
                                 </div>
-                                <div className="flex overflow-hidden rounded-md border border-[#2A3138] bg-[#161A1F]">
+                                <div className="flex items-center gap-1.5">
+                                  <div className="flex overflow-hidden rounded-md border border-[#2A3138] bg-[#161A1F]">
+                                    <button
+                                      type="button"
+                                      className="inline-flex size-11 items-center justify-center text-white/80 transition hover:bg-white/6 hover:text-white focus:outline-none"
+                                      aria-label="更换 Base Img"
+                                      title="更换 Base Img"
+                                      onClick={handleOpenSourceImagePicker}
+                                    >
+                                      <ArrowClockwise className="size-5" weight="bold" />
+                                    </button>
+                                    <span className="h-11 w-px bg-[#2A3138]" aria-hidden="true" />
+                                    <button
+                                      type="button"
+                                      className="inline-flex size-11 items-center justify-center text-white/80 transition hover:bg-white/6 hover:text-white focus:outline-none"
+                                      aria-label="移除 Base Img"
+                                      title="移除 Base Img"
+                                      onClick={handleClearSourceImage}
+                                    >
+                                      <TrashIcon className="size-5" weight="bold" />
+                                    </button>
+                                  </div>
                                   <button
                                     type="button"
-                                    className="inline-flex size-11 items-center justify-center text-white/80 transition hover:bg-white/6 hover:text-white focus:outline-none"
-                                    aria-label="更换 Base Img"
-                                    title="更换 Base Img"
-                                    onClick={handleOpenSourceImagePicker}
+                                    className={baseImageToggleButtonClassName}
+                                    aria-label={isBaseImageToolsOpen ? "收起 Base Img 工具" : "展开 Base Img 工具"}
+                                    title={isBaseImageToolsOpen ? "收起 Base Img 工具" : "展开 Base Img 工具"}
+                                    onClick={() => setIsBaseImageToolsOpen(prev => !prev)}
                                   >
-                                    <ArrowClockwise className="size-5" weight="bold" />
-                                  </button>
-                                  <span className="h-11 w-px bg-[#2A3138]" aria-hidden="true" />
-                                  <button
-                                    type="button"
-                                    className="inline-flex size-11 items-center justify-center text-white/80 transition hover:bg-white/6 hover:text-white focus:outline-none"
-                                    aria-label="移除 Base Img"
-                                    title="移除 Base Img"
-                                    onClick={handleClearSourceImage}
-                                  >
-                                    <TrashIcon className="size-5" weight="bold" />
+                                    <ChevronDown className={`size-5 shrink-0 transition-transform ${isBaseImageToolsOpen ? "rotate-180" : ""}`} />
                                   </button>
                                 </div>
                               </div>
+                              {isBaseImageToolsOpen
+                                ? (
+                                    <div className="relative z-10 mt-4 space-y-4">
+                                      <label className="block">
+                                        <div className="flex items-center justify-between text-[13px] font-semibold leading-5 text-white">
+                                          <span>Strength</span>
+                                          <span>{formatSliderValue(strength)}</span>
+                                        </div>
+                                        <input
+                                          type="range"
+                                          min={0.01}
+                                          max={0.99}
+                                          step={0.01}
+                                          value={strength}
+                                          className={baseImageRangeClassName}
+                                          onChange={event => setStrength(clampRange(Number(event.target.value), 0.01, 0.99, 0.7))}
+                                        />
+                                      </label>
+
+                                      <label className="block">
+                                        <div className="flex items-center justify-between text-[13px] font-semibold leading-5 text-white">
+                                          <span>Noise</span>
+                                          <span>{formatSliderValue(noise)}</span>
+                                        </div>
+                                        <input
+                                          type="range"
+                                          min={0}
+                                          max={0.99}
+                                          step={0.01}
+                                          value={noise}
+                                          className={baseImageRangeClassName}
+                                          onChange={event => setNoise(clampRange(Number(event.target.value), 0, 0.99, 0.2))}
+                                        />
+                                      </label>
+
+                                      <button
+                                        type="button"
+                                        className={baseImageActionButtonClassName}
+                                        disabled={isBusy}
+                                        onClick={() => void handleOpenBaseImageInpaint()}
+                                      >
+                                        <SelectionPlusIcon className="size-5" weight="bold" />
+                                        <span>Inpaint Image</span>
+                                      </button>
+                                    </div>
+                                  )
+                                : null}
                             </div>
                           </div>
                         )
@@ -1470,21 +1537,6 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                                     </label>
                                   )
                                 : <div />}
-                            </div>
-                          )
-                        : null}
-
-                      {mode === "img2img"
-                        ? (
-                            <div className="grid grid-cols-2 gap-2">
-                              <label className="form-control">
-                                <span className="label-text text-xs">Strength</span>
-                                <input className={subtleInputClassName} type="number" value={strength} step="0.01" min="0" max="1" onChange={e => setStrength(clampRange(Number(e.target.value), 0, 1, 0.7))} />
-                              </label>
-                              <label className="form-control">
-                                <span className="label-text text-xs">Noise</span>
-                                <input className={subtleInputClassName} type="number" value={noise} step="0.01" min="0" max="1" onChange={e => setNoise(clampRange(Number(e.target.value), 0, 1, 0.2))} />
-                              </label>
                             </div>
                           )
                         : null}
