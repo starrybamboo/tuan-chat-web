@@ -662,7 +662,7 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
           ? (
               <button
                 type="button"
-                className="grid h-14 w-full grid-cols-[max-content_max-content_max-content_minmax(0,1fr)_auto] items-center gap-[6px] rounded-t-2xl bg-[#F3F5F7] px-3 text-left text-base-content transition hover:bg-[#EAEFF4] focus:outline-none focus:ring-2 focus:ring-primary/20 dark:bg-[#161A1F] dark:text-white dark:hover:bg-[#1B2026]"
+                className="grid h-14 w-full -translate-y-1 grid-cols-[max-content_max-content_max-content_minmax(0,1fr)_auto] items-center gap-[10px] rounded-t-2xl border border-[#D6DCE3] bg-[#F3F5F7] px-3 text-left text-base-content transition hover:bg-[#EAEFF4] focus:outline-none focus:ring-2 focus:ring-primary/20 dark:border-[#2A3138] dark:bg-[#161A1F] dark:text-white dark:hover:bg-[#1B2026]"
                 aria-expanded={isProBottomSettingsOpen}
                 onClick={() => setIsProBottomSettingsOpen(true)}
               >
@@ -678,9 +678,9 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                   <div className="text-xs font-medium leading-none text-base-content/52 dark:text-white/52">Seed</div>
                   <div className="text-sm font-semibold leading-none text-base-content dark:text-white">{seedIsRandom ? "N/A" : seed}</div>
                 </div>
-                <div className="flex min-w-0 items-baseline gap-1 overflow-hidden whitespace-nowrap">
-                  <span className="shrink-0 text-xs font-medium leading-none text-base-content/52 dark:text-white/52">Sampler</span>
-                  <span className="truncate text-sm font-semibold leading-none text-base-content dark:text-white">{SAMPLER_LABELS[sampler] || sampler}</span>
+                <div className="flex min-w-0 flex-col gap-0.5 overflow-hidden">
+                  <div className="truncate text-xs font-medium leading-none text-base-content/52 dark:text-white/52">Sampler</div>
+                  <div className="truncate text-sm font-semibold leading-none text-base-content dark:text-white">{SAMPLER_LABELS[sampler] || sampler}</div>
                 </div>
                 <div className="flex items-center justify-end">
                   <CaretUpIcon className="size-4 rotate-180" weight="bold" />
