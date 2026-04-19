@@ -258,6 +258,15 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
   const proPromptFooterHint = proPromptTab === "prompt"
     ? (qualityToggle && tokenSnapshot.prompt.hiddenText ? tokenSnapshot.prompt.hiddenText : undefined)
     : (ucPreset !== 2 && tokenSnapshot.negative.hiddenText ? tokenSnapshot.negative.hiddenText : undefined);
+  const baseImagePanelClassName = isBaseImageToolsOpen
+    ? "relative min-h-[220px] px-4 py-4"
+    : "relative min-h-[160px] px-3 py-3";
+  const baseImageHeaderClassName = isBaseImageToolsOpen
+    ? "relative flex items-start justify-between gap-4"
+    : "relative flex items-start justify-between gap-3";
+  const baseImageControlGroupClassName = isBaseImageToolsOpen
+    ? "flex items-center gap-1.5"
+    : "flex items-center gap-1";
   useEffect(() => {
     if (!sourceImageDataUrl)
       setIsBaseImageToolsOpen(false);
@@ -977,19 +986,19 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                     {mode === "img2img" && sourceImageDataUrl
                       ? (
                           <div className="-mx-3 -mb-3 mt-3 overflow-hidden border-t border-[#2A3138] bg-[#161A1F]">
-                              <div className="relative min-h-[220px] px-4 py-4">
+                            <div className={baseImagePanelClassName}>
                                 <img
                                   src={sourceImageDataUrl}
                                   alt="Base Img"
                                   className="absolute inset-0 h-full w-full object-cover opacity-28"
                               />
                               <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(11,13,27,0.66)_0%,rgba(11,13,27,0.74)_100%)]" />
-                              <div className="relative flex items-start justify-between gap-4">
+                              <div className={baseImageHeaderClassName}>
                                 <div className="min-w-0">
                                   <div className="text-[15px] font-semibold leading-6 text-white">Image2Image</div>
                                   <div className="mt-1 text-[13px] leading-5 text-white/72">Transform your image.</div>
                                 </div>
-                                <div className="flex items-center gap-1.5">
+                                <div className={baseImageControlGroupClassName}>
                                   <div className="flex overflow-hidden rounded-md border border-[#2A3138] bg-[#161A1F]">
                                     <button
                                       type="button"
