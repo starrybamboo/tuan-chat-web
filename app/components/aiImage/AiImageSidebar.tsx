@@ -191,10 +191,6 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
   const subtleInputClassName = "input input-bordered input-sm !rounded-none border-[#D6DCE3] bg-[#F3F5F7] text-base-content dark:border-[#2A3138] dark:bg-[#161A1F]";
   const subtleSelectClassName = "select select-bordered select-sm !rounded-none border-[#D6DCE3] bg-[#F3F5F7] text-base-content dark:border-[#2A3138] dark:bg-[#161A1F]";
   const simpleResolutionValueInputClassName = "min-w-0 appearance-none bg-transparent text-center text-xs font-semibold leading-none tabular-nums text-base-content focus:outline-none [-moz-appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none";
-  const proResolutionPresetButtonBaseClassName = "flex min-h-[64px] flex-col items-center justify-center gap-2 rounded-md border px-3 py-3 text-center transition focus:outline-none focus:ring-2 focus:ring-primary/20";
-  const proResolutionInputShellClassName = "flex h-11 items-center rounded-md border border-[#D6DCE3] bg-[#F3F5F7] px-3 transition focus-within:border-primary focus-within:outline-none focus-within:ring-2 focus-within:ring-primary/20 dark:border-[#2A3138] dark:bg-[#161A1F]";
-  const proResolutionValueInputClassName = "w-full appearance-none bg-transparent text-sm font-semibold leading-none text-base-content focus:outline-none [-moz-appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none";
-  const proResolutionSwapButtonClassName = "inline-flex h-11 w-10 items-center justify-center rounded-md border border-[#D6DCE3] bg-[#F3F5F7] text-base-content/72 transition hover:border-primary/40 hover:text-primary focus:outline-none focus:ring-2 focus:ring-primary/20 dark:border-[#2A3138] dark:bg-[#161A1F]";
   const proSettingsOutlineButtonClassName = "inline-flex h-10 items-center justify-center rounded-md border border-primary/55 bg-transparent px-4 text-[13px] font-semibold text-base-content transition hover:border-transparent hover:bg-[#EAEFF4] focus:outline-none focus:ring-2 focus:ring-primary/20 dark:hover:bg-[#1B2026]";
   const highlightPromptSurfaceClassName = "relative min-h-36 w-full overflow-hidden !rounded-none border border-[#D6DCE3] bg-[#F3F5F7] shadow-none transition-colors hover:border-primary active:border-primary focus-within:border-primary focus-within:bg-primary/[0.03] dark:border-[#2A3138] dark:bg-[#161A1F] dark:hover:border-primary";
   const highlightPromptContentClassName = "min-h-36 px-3 py-2 text-sm leading-6";
@@ -214,6 +210,7 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
   const [highlightEmphasisEnabled, setHighlightEmphasisEnabled] = useState<boolean>(true);
   const [proPromptSettingsPosition, setProPromptSettingsPosition] = useState({ top: 96, left: 96 });
   const [isSimpleResolutionSelectorOpen, setIsSimpleResolutionSelectorOpen] = useState<boolean>(false);
+  const [isProResolutionSelectorOpen, setIsProResolutionSelectorOpen] = useState<boolean>(false);
   const modeSelectorContainerRef = useRef<HTMLDivElement | null>(null);
   const sidebarSurfaceRef = useRef<HTMLDivElement | null>(null);
   const proPromptSettingsRef = useRef<HTMLDivElement | null>(null);
@@ -230,12 +227,14 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
     negative: null,
   });
   const simpleResolutionSelectorRef = useRef<HTMLDivElement | null>(null);
+  const proResolutionSelectorRef = useRef<HTMLDivElement | null>(null);
   const activeModeOption = MODE_OPTIONS.find(option => option.value === uiMode) ?? MODE_OPTIONS[0];
   const isSimplePreviewingConverted = Boolean(simpleConverted);
   const isSimpleTextEditor = simpleEditorMode === "text" && !isSimplePreviewingConverted;
   const isSimpleTagsEditor = simpleEditorMode === "tags";
   const simpleResolutionOptions = [...RESOLUTION_PRESETS, { id: CUSTOM_RESOLUTION_ID, label: "自定义" }] as const;
   const activeSimpleResolutionOption = simpleResolutionOptions.find(option => option.id === simpleResolutionSelection) ?? simpleResolutionOptions[simpleResolutionOptions.length - 1];
+  const activeProResolutionOption = activeResolutionPreset ?? simpleResolutionOptions[simpleResolutionOptions.length - 1];
   const hasReadySimpleTags = isSimpleTagsEditor && hasSimpleTagsDraft;
   const hasGeneratedSimpleTags = hasSimpleTagsDraft || Boolean(simpleConverted);
   const simplePrimaryActionLabel = hasReadySimpleTags
@@ -377,6 +376,32 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
       document.removeEventListener("keydown", handleKeyDown);
     };
   }, [isSimpleResolutionSelectorOpen]);
+
+  useEffect(() => {
+    if (!isProResolutionSelectorOpen)
+      return;
+
+    function handlePointerDown(event: PointerEvent) {
+      const container = proResolutionSelectorRef.current;
+      const target = event.target;
+      if (!container || !(target instanceof Node))
+        return;
+      if (!container.contains(target))
+        setIsProResolutionSelectorOpen(false);
+    }
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape")
+        setIsProResolutionSelectorOpen(false);
+    }
+
+    document.addEventListener("pointerdown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isProResolutionSelectorOpen]);
 
   useEffect(() => {
     if (!isProPromptSettingsOpen)
@@ -1566,68 +1591,84 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
               )
             : (
                 <>
-                  <div className="flex flex-col gap-2">
-                    <div className="text-xs text-base-content/70">分辨率 (Resolution)</div>
-                    <div className="grid grid-cols-3 gap-2">
-                      {RESOLUTION_PRESETS.map(preset => (
-                        <button
-                          key={preset.id}
-                          type="button"
-                          className={`${proResolutionPresetButtonBaseClassName} ${
-                            activeResolutionPreset?.id === preset.id
-                              ? "border-primary bg-primary text-primary-content shadow-sm"
-                              : "border-[#D6DCE3] bg-transparent text-base-content hover:border-primary/40 hover:bg-[#EAEFF4] dark:border-[#2A3138] dark:hover:bg-[#1B2026]"
-                          }`}
-                          onClick={() => {
-                            setWidth(preset.width);
-                            setHeight(preset.height);
-                          }}
-                        >
-                          {renderResolutionGlyph(preset.id)}
-                          <span className="text-xs font-medium">{preset.label}</span>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
+                  <div className="grid w-full max-w-full grid-cols-[minmax(0,1fr)_135px] items-start gap-[50px]">
+                    <div className="relative" ref={proResolutionSelectorRef}>
+                      <button
+                        type="button"
+                        className={`flex h-11 w-full items-center justify-between !rounded-none border border-[#D6DCE3] bg-[#F3F5F7] px-3 py-2 text-left transition focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 hover:border-primary/40 hover:bg-[#EAEFF4] dark:border-[#2A3138] dark:bg-[#161A1F] dark:hover:bg-[#1B2026] ${isProResolutionSelectorOpen ? "border-primary bg-primary/5 shadow-sm dark:bg-primary/10" : ""}`}
+                        aria-expanded={isProResolutionSelectorOpen}
+                        onClick={() => setIsProResolutionSelectorOpen(prev => !prev)}
+                      >
+                        <div className="flex min-w-0 items-center gap-2.5 text-base-content/80">
+                          {renderResolutionGlyph(activeProResolutionOption.id)}
+                          <span className="truncate text-xs font-medium tracking-tight">{activeProResolutionOption.label}</span>
+                        </div>
+                        <ChevronDown className={`size-4 shrink-0 text-base-content/60 transition-transform ${isProResolutionSelectorOpen ? "rotate-180" : ""}`} />
+                      </button>
 
-                  <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-end gap-2">
-                    <label className="flex flex-col gap-2">
-                      <span className="text-xs text-base-content/70">宽 (Width)</span>
-                      <div className={proResolutionInputShellClassName}>
-                        <input
-                          className={proResolutionValueInputClassName}
-                          type="number"
-                          min={NOVELAI_DIMENSION_MIN}
-                          max={NOVELAI_FREE_MAX_DIMENSION}
-                          step={NOVELAI_DIMENSION_STEP}
-                          value={width}
-                          onChange={e => setWidth(Math.min(NOVELAI_FREE_MAX_DIMENSION, clampToMultipleOf64(Number(e.target.value), DEFAULT_PRO_IMAGE_SETTINGS.width)))}
-                        />
-                      </div>
-                    </label>
-                    <button
-                      type="button"
-                      className={`${proResolutionSwapButtonClassName} mb-0.5`}
-                      title="交换宽高"
-                      aria-label="交换宽高"
-                      onClick={handleSwapImageDimensions}
-                    >
-                      ×
-                    </button>
-                    <label className="flex flex-col gap-2">
-                      <span className="text-xs text-base-content/70">高 (Height)</span>
-                      <div className={proResolutionInputShellClassName}>
-                        <input
-                          className={proResolutionValueInputClassName}
-                          type="number"
-                          min={NOVELAI_DIMENSION_MIN}
-                          max={NOVELAI_FREE_MAX_DIMENSION}
-                          step={NOVELAI_DIMENSION_STEP}
-                          value={height}
-                          onChange={e => setHeight(Math.min(NOVELAI_FREE_MAX_DIMENSION, clampToMultipleOf64(Number(e.target.value), DEFAULT_PRO_IMAGE_SETTINGS.height)))}
-                        />
-                      </div>
-                    </label>
+                      {isProResolutionSelectorOpen
+                        ? (
+                            <div className="absolute left-0 right-0 top-[calc(100%+0.5rem)] z-20 overflow-hidden !rounded-none border border-[#D6DCE3] bg-[#F3F5F7] p-2 shadow-2xl dark:border-[#2A3138] dark:bg-[#161A1F]">
+                              <div className="flex flex-col gap-1">
+                                {simpleResolutionOptions.map(option => (
+                                  <button
+                                    key={option.id}
+                                    type="button"
+                                    className={`flex items-center gap-3 rounded-lg px-4 py-3 text-left transition focus:outline-none focus:ring-2 focus:ring-primary/20 ${
+                                      activeProResolutionOption.id === option.id
+                                        ? "bg-primary/10 text-base-content"
+                                        : "text-base-content/78 hover:bg-base-100 dark:hover:bg-[#1B2026]"
+                                    }`}
+                                    onClick={() => {
+                                      if (option.id !== CUSTOM_RESOLUTION_ID) {
+                                        const preset = RESOLUTION_PRESETS.find(item => item.id === option.id);
+                                        if (preset) {
+                                          setWidth(preset.width);
+                                          setHeight(preset.height);
+                                        }
+                                      }
+                                      setIsProResolutionSelectorOpen(false);
+                                    }}
+                                  >
+                                    {renderResolutionGlyph(option.id)}
+                                    <span className="text-xs font-medium">{option.label}</span>
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                          )
+                        : null}
+                    </div>
+
+                    <div className="grid h-11 w-[135px] grid-cols-[minmax(0,1fr)_10px_minmax(0,1fr)] items-center gap-1 !rounded-none border border-[#D6DCE3] bg-[#F3F5F7] px-3 py-2 shadow-sm dark:border-[#2A3138] dark:bg-[#161A1F]">
+                      <input
+                        className={simpleResolutionValueInputClassName}
+                        type="number"
+                        min={NOVELAI_DIMENSION_MIN}
+                        max={NOVELAI_FREE_MAX_DIMENSION}
+                        step={NOVELAI_DIMENSION_STEP}
+                        value={width}
+                        onChange={e => setWidth(Math.min(NOVELAI_FREE_MAX_DIMENSION, clampToMultipleOf64(Number(e.target.value), DEFAULT_PRO_IMAGE_SETTINGS.width)))}
+                      />
+                      <button
+                        type="button"
+                        className="flex items-center justify-center text-center text-xs font-medium text-base-content/55 focus:outline-none"
+                        title="交换宽高"
+                        aria-label="交换宽高"
+                        onClick={handleSwapImageDimensions}
+                      >
+                        ×
+                      </button>
+                      <input
+                        className={simpleResolutionValueInputClassName}
+                        type="number"
+                        min={NOVELAI_DIMENSION_MIN}
+                        max={NOVELAI_FREE_MAX_DIMENSION}
+                        step={NOVELAI_DIMENSION_STEP}
+                        value={height}
+                        onChange={e => setHeight(Math.min(NOVELAI_FREE_MAX_DIMENSION, clampToMultipleOf64(Number(e.target.value), DEFAULT_PRO_IMAGE_SETTINGS.height)))}
+                      />
+                    </div>
                   </div>
 
                   <div className="flex flex-col gap-2">
