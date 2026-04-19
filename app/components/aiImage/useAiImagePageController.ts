@@ -832,13 +832,14 @@ export function useAiImagePageController() {
     await refreshHistory();
   }, [refreshHistory]);
 
-  const handleUseSelectedResultAsBaseImage = useCallback(() => {
+  const applySelectedPreviewAsBaseImage = useCallback((showToast = false) => {
     if (!selectedPreviewResult)
-      return;
+      return false;
+
     const sourceImageBase64 = dataUrlToBase64(selectedPreviewResult.dataUrl);
     if (!sourceImageBase64) {
       showErrorToast("当前预览图片读取失败，无法设置为 Base Img。");
-      return;
+      return false;
     }
     setUiMode("pro");
     setMode("img2img");
@@ -846,8 +847,14 @@ export function useAiImagePageController() {
     setSourceImageBase64(sourceImageBase64);
     setWidth(selectedPreviewResult.width);
     setHeight(selectedPreviewResult.height);
-    showSuccessToast("已把当前预览设置为 Base Img。");
+    if (showToast)
+      showSuccessToast("已把当前预览设置为 Base Img。");
+    return true;
   }, [selectedPreviewResult, showErrorToast, showSuccessToast]);
+
+  const handleUseSelectedResultAsBaseImage = useCallback(() => {
+    void applySelectedPreviewAsBaseImage(true);
+  }, [applySelectedPreviewAsBaseImage]);
 
   const handleToggleDirectorTools = useCallback(() => {
     setIsDirectorToolsOpen(prev => !prev);
@@ -1091,10 +1098,14 @@ export function useAiImagePageController() {
   ]);
 
   const handleOpenInpaint = useCallback(() => {
-    if (!selectedPreviewResult)
+    const preview = selectedPreviewResult;
+    if (!preview)
       return;
 
-    const sourceImageBase64 = dataUrlToBase64(selectedPreviewResult.dataUrl);
+    if (!applySelectedPreviewAsBaseImage())
+      return;
+
+    const sourceImageBase64 = dataUrlToBase64(preview.dataUrl);
     if (!sourceImageBase64) {
       showErrorToast("当前预览图片读取失败，无法启动 Inpaint。");
       return;
@@ -1102,18 +1113,18 @@ export function useAiImagePageController() {
 
     setError("");
     setInpaintDialogSource({
-      dataUrl: selectedPreviewResult.dataUrl,
+      dataUrl: preview.dataUrl,
       imageBase64: sourceImageBase64,
-      width: selectedPreviewResult.width,
-      height: selectedPreviewResult.height,
-      seed: selectedPreviewResult.seed,
-      model: selectedPreviewResult.model,
+      width: preview.width,
+      height: preview.height,
+      seed: preview.seed,
+      model: preview.model,
       mode: uiMode,
       prompt: selectedPreviewHistoryRow?.prompt || (uiMode === "simple" ? simplePrompt : prompt),
       negativePrompt: selectedPreviewHistoryRow?.negativePrompt || (uiMode === "simple" ? simpleNegativePrompt : negativePrompt),
       strength,
     });
-  }, [negativePrompt, prompt, selectedPreviewHistoryRow, selectedPreviewResult, showErrorToast, simpleNegativePrompt, simplePrompt, strength, uiMode]);
+  }, [applySelectedPreviewAsBaseImage, negativePrompt, prompt, selectedPreviewHistoryRow, selectedPreviewResult, showErrorToast, simpleNegativePrompt, simplePrompt, strength, uiMode]);
 
   const handleOpenBaseImageInpaint = useCallback(async () => {
     if (!sourceImageDataUrl)
