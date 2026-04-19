@@ -263,6 +263,7 @@ export function useAiImagePageController() {
   const [simpleResolutionSelection, setSimpleResolutionSelection] = useState<ResolutionSelection>(DEFAULT_SIMPLE_IMAGE_SETTINGS.simpleResolutionSelection);
   const [proWidth, setProWidth] = useState<number>(DEFAULT_PRO_IMAGE_SETTINGS.width);
   const [proHeight, setProHeight] = useState<number>(DEFAULT_PRO_IMAGE_SETTINGS.height);
+  const [proResolutionSelection, setProResolutionSelection] = useState<ResolutionSelection>(DEFAULT_PRO_IMAGE_SETTINGS.simpleResolutionSelection);
   const [proImageCount, setProImageCount] = useState<number>(DEFAULT_PRO_IMAGE_SETTINGS.imageCount);
   const [proSteps, setProSteps] = useState<number>(DEFAULT_PRO_IMAGE_SETTINGS.steps);
   const [proScale, setProScale] = useState<number>(DEFAULT_PRO_IMAGE_SETTINGS.scale);
@@ -410,6 +411,7 @@ export function useAiImagePageController() {
 
     setProWidth(normalizedSize.width);
     setProHeight(normalizedSize.height);
+    setProResolutionSelection(inferResolutionSelection(normalizedSize.width, normalizedSize.height));
   }, [inferResolutionSelection]);
 
   const clearSourceImageForUi = useCallback((targetUiMode: UiMode) => {
@@ -509,6 +511,14 @@ export function useAiImagePageController() {
   }, [inferResolutionSelection, simpleHeight, simpleResolutionSelection, simpleWidth, uiMode]);
 
   useEffect(() => {
+    if (uiMode !== "pro" || proResolutionSelection === CUSTOM_RESOLUTION_ID)
+      return;
+    const matchedPresetId = inferResolutionSelection(proWidth, proHeight);
+    if (matchedPresetId !== proResolutionSelection)
+      setProResolutionSelection(matchedPresetId);
+  }, [inferResolutionSelection, proHeight, proResolutionSelection, proWidth, uiMode]);
+
+  useEffect(() => {
     if (uiMode !== "simple" || simpleResolutionSelection !== CUSTOM_RESOLUTION_ID)
       return;
 
@@ -527,6 +537,26 @@ export function useAiImagePageController() {
     setSimpleWidth(nextWidth);
     setSimpleHeight(nextHeight);
   }, [simpleHeight, simpleResolutionSelection, simpleWidth, uiMode]);
+
+  useEffect(() => {
+    if (uiMode !== "pro" || proResolutionSelection !== CUSTOM_RESOLUTION_ID)
+      return;
+
+    const nextWidth = Math.min(
+      SIMPLE_MODE_CUSTOM_MAX_DIMENSION,
+      clampToMultipleOf64(proWidth, DEFAULT_PRO_IMAGE_SETTINGS.width),
+    );
+    const nextHeight = Math.min(
+      SIMPLE_MODE_CUSTOM_MAX_DIMENSION,
+      clampToMultipleOf64(proHeight, DEFAULT_PRO_IMAGE_SETTINGS.height),
+    );
+
+    if (nextWidth === proWidth && nextHeight === proHeight)
+      return;
+
+    setProWidth(nextWidth);
+    setProHeight(nextHeight);
+  }, [proHeight, proResolutionSelection, proWidth, uiMode]);
 
   const applyImportedMetadata = useCallback((metadata: NovelAiImageMetadataResult, selection: MetadataImportSelectionState) => {
     setIsPageImageDragOver(false);
@@ -610,6 +640,7 @@ export function useAiImagePageController() {
       );
       setProWidth(normalizedImportedSize.width);
       setProHeight(normalizedImportedSize.height);
+      setProResolutionSelection(inferResolutionSelection(normalizedImportedSize.width, normalizedImportedSize.height));
       setProImageCount(NOVELAI_FREE_FIXED_IMAGE_COUNT);
       const importedSteps = resolveImportedValue(settings.steps, cleanImports, DEFAULT_PRO_IMAGE_SETTINGS.steps);
       if (importedSteps != null)
@@ -1593,6 +1624,7 @@ export function useAiImagePageController() {
       setProSeed(row.seed);
     setProWidth(normalizedSize.width);
     setProHeight(normalizedSize.height);
+    setProResolutionSelection(inferResolutionSelection(normalizedSize.width, normalizedSize.height));
     setProImageCount(NOVELAI_FREE_FIXED_IMAGE_COUNT);
     setProSteps(clampIntRange(
       resolveImportedValue(row.steps, true, DEFAULT_PRO_IMAGE_SETTINGS.steps) ?? DEFAULT_PRO_IMAGE_SETTINGS.steps,
@@ -1830,6 +1862,19 @@ export function useAiImagePageController() {
     setSimpleHeight(preset.height);
   }, []);
 
+  const handleSelectProResolutionPreset = useCallback((selection: ResolutionSelection) => {
+    if (selection === CUSTOM_RESOLUTION_ID) {
+      setProResolutionSelection(CUSTOM_RESOLUTION_ID);
+      return;
+    }
+    const preset = RESOLUTION_PRESETS.find(item => item.id === selection);
+    if (!preset)
+      return;
+    setProResolutionSelection(preset.id);
+    setProWidth(preset.width);
+    setProHeight(preset.height);
+  }, []);
+
   const handleSimpleWidthChange = useCallback((value: number) => {
     setSimpleResolutionSelection(CUSTOM_RESOLUTION_ID);
     const nextHeight = Math.min(
@@ -1843,6 +1888,20 @@ export function useAiImagePageController() {
     setSimpleWidth(nextWidth);
     setSimpleHeight(nextHeight);
   }, [simpleHeight, simpleWidth]);
+
+  const handleProWidthChange = useCallback((value: number) => {
+    setProResolutionSelection(CUSTOM_RESOLUTION_ID);
+    const nextHeight = Math.min(
+      SIMPLE_MODE_CUSTOM_MAX_DIMENSION,
+      clampToMultipleOf64(proHeight, DEFAULT_PRO_IMAGE_SETTINGS.height),
+    );
+    const nextWidth = Math.min(
+      SIMPLE_MODE_CUSTOM_MAX_DIMENSION,
+      clampSimpleModeDimension(value, nextHeight, proWidth || DEFAULT_PRO_IMAGE_SETTINGS.width),
+    );
+    setProWidth(nextWidth);
+    setProHeight(nextHeight);
+  }, [proHeight, proWidth]);
 
   const handleSimpleHeightChange = useCallback((value: number) => {
     setSimpleResolutionSelection(CUSTOM_RESOLUTION_ID);
@@ -1858,11 +1917,26 @@ export function useAiImagePageController() {
     setSimpleHeight(nextHeight);
   }, [simpleHeight, simpleWidth]);
 
+  const handleProHeightChange = useCallback((value: number) => {
+    setProResolutionSelection(CUSTOM_RESOLUTION_ID);
+    const nextWidth = Math.min(
+      SIMPLE_MODE_CUSTOM_MAX_DIMENSION,
+      clampToMultipleOf64(proWidth, DEFAULT_PRO_IMAGE_SETTINGS.width),
+    );
+    const nextHeight = Math.min(
+      SIMPLE_MODE_CUSTOM_MAX_DIMENSION,
+      clampSimpleModeDimension(value, nextWidth, proHeight || DEFAULT_PRO_IMAGE_SETTINGS.height),
+    );
+    setProWidth(nextWidth);
+    setProHeight(nextHeight);
+  }, [proHeight, proWidth]);
+
   const handleSwapImageDimensions = useCallback(() => {
     const nextWidth = clampToMultipleOf64(proHeight, DEFAULT_PRO_IMAGE_SETTINGS.height);
     const nextHeight = clampToMultipleOf64(proWidth, DEFAULT_PRO_IMAGE_SETTINGS.width);
     setProWidth(nextWidth);
     setProHeight(nextHeight);
+    setProResolutionSelection(CUSTOM_RESOLUTION_ID);
   }, [proHeight, proWidth]);
 
   const handleCropToClosestValidSize = useCallback(async () => {
@@ -1883,8 +1957,9 @@ export function useAiImagePageController() {
     const normalizedSize = getClosestValidImageSize(targetWidth, targetHeight);
     setProWidth(normalizedSize.width);
     setProHeight(normalizedSize.height);
+    setProResolutionSelection(inferResolutionSelection(normalizedSize.width, normalizedSize.height));
     showSuccessToast(sourceImageDataUrl ? "已按 Base Img 裁到最近合法尺寸。" : "已把当前尺寸裁到最近合法尺寸。");
-  }, [proHeight, proWidth, showSuccessToast, sourceImageDataUrl]);
+  }, [inferResolutionSelection, proHeight, proWidth, showSuccessToast, sourceImageDataUrl]);
 
   const handleResetCurrentImageSettings = useCallback(() => {
     if (uiMode === "simple") {
@@ -1914,6 +1989,7 @@ export function useAiImagePageController() {
     setProImg2imgStrength(DEFAULT_PRO_IMAGE_SETTINGS.strength);
     setProImg2imgNoise(DEFAULT_PRO_IMAGE_SETTINGS.noise);
     setProSeed(DEFAULT_PRO_IMAGE_SETTINGS.seed);
+    setProResolutionSelection(DEFAULT_PRO_IMAGE_SETTINGS.simpleResolutionSelection);
     showSuccessToast("已重置当前图像设置。");
   }, [showSuccessToast, uiMode]);
 
@@ -2141,9 +2217,12 @@ export function useAiImagePageController() {
     handleResetCurrentImageSettings,
     handleReturnToSimpleTags,
     handleReturnToSimpleText,
+    handleSelectProResolutionPreset,
     handleSelectSimpleResolutionPreset,
     handleSimpleConvertToTags,
     handleSimpleGenerateFromTags,
+    handleProHeightChange,
+    handleProWidthChange,
     handleSimpleHeightChange,
     handleSimpleWidthChange,
     handleSwapImageDimensions,
@@ -2171,6 +2250,7 @@ export function useAiImagePageController() {
     proFeatureSections,
     proGenerateLabel,
     proPromptTab,
+    proResolutionSelection,
     prompt,
     qualityToggle,
     runGenerate,
