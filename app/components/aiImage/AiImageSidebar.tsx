@@ -658,34 +658,36 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
 
     return (
       <div className="relative h-14 shrink-0 bg-[#F3F5F7] px-4 pb-3 dark:bg-[#161A1F]">
-        <button
-          type="button"
-          className={`grid h-14 w-full grid-cols-[repeat(4,minmax(0,1fr))_auto] items-center gap-1 rounded-t-2xl bg-[#F3F5F7] px-3 text-left text-base-content transition hover:bg-[#EAEFF4] focus:outline-none focus:ring-2 focus:ring-primary/20 dark:bg-[#161A1F] dark:text-white dark:hover:bg-[#1B2026] ${
-            isProBottomSettingsOpen ? "pointer-events-none opacity-0" : "opacity-100"
-          }`}
-          aria-expanded={isProBottomSettingsOpen}
-          onClick={() => setIsProBottomSettingsOpen(true)}
-        >
-          <div className="min-w-0">
-            <div className="text-[11px] font-medium text-base-content/52 dark:text-white/52">Steps</div>
-            <div className="text-[13px] font-semibold leading-tight text-base-content dark:text-white">{steps}</div>
-          </div>
-          <div className="min-w-0">
-            <div className="text-[11px] font-medium text-base-content/52 dark:text-white/52">Guidance</div>
-            <div className="text-[13px] font-semibold leading-tight text-base-content dark:text-white">{formatSliderValue(scale)}</div>
-          </div>
-          <div className="min-w-0">
-            <div className="text-[11px] font-medium text-base-content/52 dark:text-white/52">Seed</div>
-            <div className="text-[13px] font-semibold leading-tight text-base-content dark:text-white">{seedIsRandom ? "N/A" : seed}</div>
-          </div>
-          <div className="min-w-0">
-            <div className="text-[11px] font-medium text-base-content/52 dark:text-white/52">Sampler</div>
-            <div className="text-[13px] font-semibold leading-tight text-base-content dark:text-white">{SAMPLER_LABELS[sampler] || sampler}</div>
-          </div>
-          <div className="flex items-center justify-end">
-            <CaretUpIcon className="size-4 rotate-180" weight="bold" />
-          </div>
-        </button>
+        {!isProBottomSettingsOpen
+          ? (
+              <button
+                type="button"
+                className="grid h-14 w-full grid-cols-[max-content_max-content_max-content_minmax(0,1fr)_auto] items-center gap-[6px] rounded-t-2xl bg-[#F3F5F7] px-3 text-left text-base-content transition hover:bg-[#EAEFF4] focus:outline-none focus:ring-2 focus:ring-primary/20 dark:bg-[#161A1F] dark:text-white dark:hover:bg-[#1B2026]"
+                aria-expanded={isProBottomSettingsOpen}
+                onClick={() => setIsProBottomSettingsOpen(true)}
+              >
+                <div className="flex min-w-0 flex-col gap-0.5">
+                  <div className="text-xs font-medium leading-none text-base-content/52 dark:text-white/52">Steps</div>
+                  <div className="text-sm font-semibold leading-none text-base-content dark:text-white">{steps}</div>
+                </div>
+                <div className="flex min-w-0 flex-col gap-0.5">
+                  <div className="text-xs font-medium leading-none text-base-content/52 dark:text-white/52">Guidance</div>
+                  <div className="text-sm font-semibold leading-none text-base-content dark:text-white">{formatSliderValue(scale)}</div>
+                </div>
+                <div className="flex min-w-0 flex-col gap-0.5">
+                  <div className="text-xs font-medium leading-none text-base-content/52 dark:text-white/52">Seed</div>
+                  <div className="text-sm font-semibold leading-none text-base-content dark:text-white">{seedIsRandom ? "N/A" : seed}</div>
+                </div>
+                <div className="flex min-w-0 items-baseline gap-1 overflow-hidden whitespace-nowrap">
+                  <span className="shrink-0 text-xs font-medium leading-none text-base-content/52 dark:text-white/52">Sampler</span>
+                  <span className="truncate text-sm font-semibold leading-none text-base-content dark:text-white">{SAMPLER_LABELS[sampler] || sampler}</span>
+                </div>
+                <div className="flex items-center justify-end">
+                  <CaretUpIcon className="size-4 rotate-180" weight="bold" />
+                </div>
+              </button>
+            )
+          : null}
 
         <div
           className={`absolute inset-x-4 bottom-0 z-20 origin-bottom overflow-hidden rounded-t-2xl border border-[#D6DCE3] bg-[#F3F5F7] text-base-content shadow-[0_-16px_36px_rgba(15,23,42,0.18)] transition-all duration-300 ease-out dark:border-[#2A3138] dark:bg-[#161A1F] dark:text-white dark:shadow-[0_-20px_36px_rgba(0,0,0,0.35)] ${
