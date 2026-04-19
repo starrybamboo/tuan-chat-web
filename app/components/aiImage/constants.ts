@@ -92,7 +92,7 @@ export const DEFAULT_PRO_IMAGE_SETTINGS = {
   noiseSchedule: "karras",
   cfgRescale: 0,
   ucPreset: 0,
-  qualityToggle: true,
+  qualityToggle: false,
   dynamicThresholding: false,
   smea: false,
   smeaDyn: false,
