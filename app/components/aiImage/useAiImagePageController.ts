@@ -617,22 +617,21 @@ export function useAiImagePageController() {
       return;
     }
 
-    if (importedMetadata) {
-      setPendingMetadataImport({
-        sourceImage,
-        metadata: importedMetadata,
-        source: args.source,
-        imageCount: args.imageCount ?? 1,
-      });
-      setMetadataImportSelection(createMetadataImportSelection(importedMetadata.settings));
-      return;
-    }
-
     if ((args.imageCount ?? 1) > 1) {
       return;
     }
 
-    applySourceImageAsBase(sourceImage, "已设置 Base Img。");
+    setPendingMetadataImport({
+      sourceImage,
+      metadata: importedMetadata,
+      source: args.source,
+      imageCount: args.imageCount ?? 1,
+    });
+    setMetadataImportSelection(
+      importedMetadata
+        ? createMetadataImportSelection(importedMetadata.settings)
+        : DEFAULT_METADATA_IMPORT_SELECTION,
+    );
   }, [showSuccessToast]);
 
   const handlePickSourceImage = useCallback(async (
@@ -798,7 +797,8 @@ export function useAiImagePageController() {
   }, [pendingMetadataImport, showSuccessToast]);
 
   const handleConfirmMetadataImport = useCallback(() => {
-    if (!pendingMetadataImport)
+    const pendingMetadata = pendingMetadataImport?.metadata;
+    if (!pendingMetadata)
       return;
 
     const hasAnySelection = metadataImportSelection.prompt
@@ -809,7 +809,7 @@ export function useAiImagePageController() {
     if (!hasAnySelection)
       return;
 
-    applyImportedMetadata(pendingMetadataImport.metadata.settings, metadataImportSelection);
+    applyImportedMetadata(pendingMetadata.settings, metadataImportSelection);
     setPendingMetadataImport(null);
     setMetadataImportSelection(DEFAULT_METADATA_IMPORT_SELECTION);
   }, [applyImportedMetadata, metadataImportSelection, pendingMetadataImport]);
@@ -1771,7 +1771,7 @@ export function useAiImagePageController() {
     : "Customize separate characters.";
   const vibeTransferDescription = "免费模式下已禁用 Vibe Transfer。";
   const preciseReferenceDescription = "免费模式下已禁用 Precise Reference。";
-  const pendingMetadataSettings = pendingMetadataImport?.metadata.settings ?? null;
+  const pendingMetadataSettings = pendingMetadataImport?.metadata?.settings ?? null;
   const canImportMetadataPrompt = pendingMetadataSettings ? hasNonEmptyText(pendingMetadataSettings.prompt) : false;
   const canImportMetadataNegativePrompt = pendingMetadataSettings ? hasNonEmptyText(pendingMetadataSettings.negativePrompt) : false;
   const canImportMetadataCharacters = true;
