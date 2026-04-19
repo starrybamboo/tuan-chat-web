@@ -964,7 +964,7 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                     {!sourceImageDataUrl
                       ? (
                           <div className="-mx-3 -mb-3 mt-3 flex items-center justify-between border-t border-[#2A3138] bg-[#161A1F] px-4 py-3">
-                            <div className="text-[15px] font-semibold text-base-content/78">
+                            <div className="text-[15px] text-base-content/78">
                               Add a Base Img (Optional)
                             </div>
                             <button
@@ -1083,7 +1083,7 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                   <div>
                     <div className="flex items-start justify-between gap-4 px-1 py-1">
                       <div className="min-w-0">
-                        <div className="text-[15px] font-semibold leading-6 text-base-content/86">Character Prompts</div>
+                        <div className="text-[15px] leading-6 text-base-content/86">Character Prompts</div>
                         <div className="mt-1 text-[13px] leading-5 text-base-content/58">{characterPromptDescription}</div>
                       </div>
                       <button type="button" className={featurePrimaryActionClassName} onClick={handleAddV4Char} disabled={!isNAI4}>
