@@ -82,9 +82,12 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
     handleResetCurrentImageSettings,
     handleReturnToSimpleTags,
     handleReturnToSimpleText,
+    handleSelectProResolutionPreset,
     handleSelectSimpleResolutionPreset,
     handleSimpleConvertToTags,
     handleSimpleGenerateFromTags,
+    handleProHeightChange,
+    handleProWidthChange,
     handleSimpleHeightChange,
     handleSimpleWidthChange,
     handleSwapImageDimensions,
@@ -107,6 +110,7 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
     proFeatureSections,
     proGenerateLabel,
     proPromptTab,
+    proResolutionSelection,
     prompt,
     qualityToggle,
     runGenerate,
@@ -234,7 +238,7 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
   const isSimpleTagsEditor = simpleEditorMode === "tags";
   const simpleResolutionOptions = [...RESOLUTION_PRESETS, { id: CUSTOM_RESOLUTION_ID, label: "自定义" }] as const;
   const activeSimpleResolutionOption = simpleResolutionOptions.find(option => option.id === simpleResolutionSelection) ?? simpleResolutionOptions[simpleResolutionOptions.length - 1];
-  const activeProResolutionOption = activeResolutionPreset ?? simpleResolutionOptions[simpleResolutionOptions.length - 1];
+  const activeProResolutionOption = simpleResolutionOptions.find(option => option.id === proResolutionSelection) ?? simpleResolutionOptions[simpleResolutionOptions.length - 1];
   const hasReadySimpleTags = isSimpleTagsEditor && hasSimpleTagsDraft;
   const hasGeneratedSimpleTags = hasSimpleTagsDraft || Boolean(simpleConverted);
   const simplePrimaryActionLabel = hasReadySimpleTags
@@ -1620,13 +1624,7 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                                         : "text-base-content/78 hover:bg-base-100 dark:hover:bg-[#1B2026]"
                                     }`}
                                     onClick={() => {
-                                      if (option.id !== CUSTOM_RESOLUTION_ID) {
-                                        const preset = RESOLUTION_PRESETS.find(item => item.id === option.id);
-                                        if (preset) {
-                                          setWidth(preset.width);
-                                          setHeight(preset.height);
-                                        }
-                                      }
+                                      handleSelectProResolutionPreset(option.id);
                                       setIsProResolutionSelectorOpen(false);
                                     }}
                                   >
@@ -1645,10 +1643,10 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                         className={simpleResolutionValueInputClassName}
                         type="number"
                         min={NOVELAI_DIMENSION_MIN}
-                        max={NOVELAI_FREE_MAX_DIMENSION}
+                        max={SIMPLE_MODE_CUSTOM_MAX_DIMENSION}
                         step={NOVELAI_DIMENSION_STEP}
                         value={width}
-                        onChange={e => setWidth(Math.min(NOVELAI_FREE_MAX_DIMENSION, clampToMultipleOf64(Number(e.target.value), DEFAULT_PRO_IMAGE_SETTINGS.width)))}
+                        onChange={e => handleProWidthChange(Number(e.target.value))}
                       />
                       <button
                         type="button"
@@ -1663,10 +1661,10 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                         className={simpleResolutionValueInputClassName}
                         type="number"
                         min={NOVELAI_DIMENSION_MIN}
-                        max={NOVELAI_FREE_MAX_DIMENSION}
+                        max={SIMPLE_MODE_CUSTOM_MAX_DIMENSION}
                         step={NOVELAI_DIMENSION_STEP}
                         value={height}
-                        onChange={e => setHeight(Math.min(NOVELAI_FREE_MAX_DIMENSION, clampToMultipleOf64(Number(e.target.value), DEFAULT_PRO_IMAGE_SETTINGS.height)))}
+                        onChange={e => handleProHeightChange(Number(e.target.value))}
                       />
                     </div>
                   </div>
