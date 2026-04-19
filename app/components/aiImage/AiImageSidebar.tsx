@@ -724,15 +724,17 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                 <div className="mb-2 flex items-center justify-between pr-4">
                   <span className="text-sm font-semibold text-base-content dark:text-white">{`Steps: ${steps}`}</span>
                 </div>
-                <input
-                  className="range range-xs w-full"
-                  type="range"
-                  min="1"
-                  max="50"
-                  step="1"
-                  value={steps}
-                  onChange={e => setSteps(clampIntRange(Number(e.target.value), 1, 50, 50))}
-                />
+                <div className="pr-4">
+                  <input
+                    className="range range-xs w-full"
+                    type="range"
+                    min="1"
+                    max="50"
+                    step="1"
+                    value={steps}
+                    onChange={e => setSteps(clampIntRange(Number(e.target.value), 1, 50, 50))}
+                  />
+                </div>
               </div>
 
               <div>
@@ -751,15 +753,17 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                     Variety+
                   </button>
                 </div>
-                <input
-                  className="range range-xs w-full"
-                  type="range"
-                  min="0"
-                  max="10"
-                  step="0.1"
-                  value={scale}
-                  onChange={e => setScale(clampRange(Number(e.target.value), 0, 10, 5))}
-                />
+                <div className="pr-4">
+                  <input
+                    className="range range-xs w-full"
+                    type="range"
+                    min="0"
+                    max="10"
+                    step="0.1"
+                    value={scale}
+                    onChange={e => setScale(clampRange(Number(e.target.value), 0, 10, 5))}
+                  />
+                </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4 pr-4">
@@ -793,15 +797,17 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                     ? (
                         <div className="flex flex-col gap-2">
                           <span className="text-sm font-semibold text-base-content dark:text-white">{`Prompt Guidance Rescale: ${cfgRescale}`}</span>
-                          <input
-                            className="range range-xs w-full"
-                            type="range"
-                            min="0"
-                            max="1"
-                            step="0.01"
-                            value={cfgRescale}
-                            onChange={e => setCfgRescale(clampRange(Number(e.target.value), 0, 1, 0))}
-                          />
+                          <div className="pr-4">
+                            <input
+                              className="range range-xs w-full"
+                              type="range"
+                              min="0"
+                              max="1"
+                              step="0.01"
+                              value={cfgRescale}
+                              onChange={e => setCfgRescale(clampRange(Number(e.target.value), 0, 1, 0))}
+                            />
+                          </div>
                         </div>
                       )
                     : null}
