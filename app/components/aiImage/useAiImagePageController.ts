@@ -1817,8 +1817,8 @@ export function useAiImagePageController() {
   const characterPromptDescription = v4Chars.length
     ? "Click to edit a character."
     : "Customize separate characters.";
-  const vibeTransferDescription = "免费模式下已禁用 Vibe Transfer。";
-  const preciseReferenceDescription = "免费模式下已禁用 Precise Reference。";
+  const vibeTransferDescription = "Change the image, keep the vision.";
+  const preciseReferenceDescription = "Add a reference image for a character or style.";
   const pendingMetadataSettings = pendingMetadataImport?.metadata?.settings ?? null;
   const canImportMetadataPrompt = pendingMetadataSettings ? hasNonEmptyText(pendingMetadataSettings.prompt) : false;
   const canImportMetadataNegativePrompt = pendingMetadataSettings ? hasNonEmptyText(pendingMetadataSettings.negativePrompt) : false;

@@ -1,5 +1,5 @@
 import type { AiImagePageController } from "@/components/aiImage/useAiImagePageController";
-import { ArrowClockwise, ArrowCounterClockwise, CaretDownIcon, CaretUpIcon, CheckCircleIcon, CircleIcon, CircleNotch, DiceFiveIcon, FileArrowUpIcon, GenderFemaleIcon, GenderMaleIcon, GearSixIcon, ImageSquareIcon, PlusIcon, SelectionPlusIcon, SparkleIcon, TrashIcon, XCircleIcon } from "@phosphor-icons/react";
+import { ArrowClockwise, ArrowCounterClockwise, CaretDownIcon, CaretUpIcon, CheckCircleIcon, CircleIcon, CircleNotch, DiceFiveIcon, FileArrowUpIcon, GenderFemaleIcon, GenderMaleIcon, GearSixIcon, ImageSquareIcon, ImagesSquareIcon, PlusIcon, SelectionPlusIcon, SparkleIcon, StackSimpleIcon, TrashIcon, XCircleIcon } from "@phosphor-icons/react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   CUSTOM_RESOLUTION_ID,
@@ -100,6 +100,7 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
     noise,
     noiseSchedule,
     noiseScheduleOptions,
+    preciseReferenceDescription,
     proFeatureSections,
     proGenerateLabel,
     proPromptTab,
@@ -167,6 +168,7 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
     v4Chars,
     v4UseCoords,
     v4UseOrder,
+    vibeTransferDescription,
     width,
   } = sidebarProps;
 
@@ -1305,11 +1307,15 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                       : null}
                   </div>
 
-                  <div className="rounded-md border border-[#2A3138] bg-[#161A1F] shadow-none">
-                    <div className="flex items-center gap-3 px-4 py-4">
-                      <div className="min-w-0 flex-1">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span className="text-[15px] font-semibold text-base-content">Vibe Transfer</span>
+                  <div className="overflow-hidden border border-[#2A3138] bg-[#161A1F] shadow-none">
+                    <div className="flex items-start justify-between gap-4 px-4 py-4">
+                      <div className="flex min-w-0 items-start gap-3">
+                        <div className="mt-0.5 flex size-6 shrink-0 items-center justify-center text-white/90" aria-hidden="true">
+                          <StackSimpleIcon className="size-6" weight="regular" />
+                        </div>
+                        <div className="min-w-0">
+                          <div className="text-[15px] font-semibold leading-6 text-white">Vibe Transfer</div>
+                          <div className="mt-0.5 text-[13px] leading-5 text-white/58">{vibeTransferDescription}</div>
                         </div>
                       </div>
                       <button
@@ -1322,24 +1328,28 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                         <FileArrowUpIcon className="size-5" weight="bold" />
                       </button>
                     </div>
-                  </div>
 
-                  <div className="rounded-md border border-[#2A3138] bg-[#161A1F] shadow-none">
-                    <div className="flex items-center gap-3 px-4 py-4">
-                      <div className="min-w-0 flex-1">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span className="text-[15px] font-semibold text-base-content">Precise Reference</span>
+                    <div className="border-t border-[#2A3138]">
+                      <div className="flex items-start justify-between gap-4 px-4 py-4">
+                        <div className="flex min-w-0 items-start gap-3">
+                          <div className="mt-0.5 flex size-6 shrink-0 items-center justify-center text-white/90" aria-hidden="true">
+                            <ImageSquareIcon className="size-6" weight="regular" />
+                          </div>
+                          <div className="min-w-0">
+                            <div className="text-[15px] font-semibold leading-6 text-white">Precise Reference</div>
+                            <div className="mt-0.5 text-[13px] leading-5 text-white/58">{preciseReferenceDescription}</div>
+                          </div>
                         </div>
+                        <button
+                          type="button"
+                          className={`${featureUploadActionClassName} cursor-not-allowed opacity-45`}
+                          aria-label="上传 Precise Reference 参考图"
+                          title="上传 Precise Reference 参考图"
+                          disabled
+                        >
+                          <FileArrowUpIcon className="size-5" weight="bold" />
+                        </button>
                       </div>
-                      <button
-                        type="button"
-                        className={`${featureUploadActionClassName} cursor-not-allowed opacity-45`}
-                        aria-label="上传 Precise Reference 参考图"
-                        title="上传 Precise Reference 参考图"
-                        disabled
-                      >
-                        <FileArrowUpIcon className="size-5" weight="bold" />
-                      </button>
                     </div>
                   </div>
                 </div>
@@ -1504,28 +1514,31 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                     </button>
                   </div>
 
-                  <div className="rounded-box border border-base-300 bg-base-200/60 px-3 py-2 text-xs leading-5 text-base-content/65">
-                    {`当前已切到免费模式：尺寸按 64px 步进对齐，宽高都不超过 ${NOVELAI_FREE_MAX_DIMENSION}，`}
-                    <code>Number of Images</code>
-                    固定为 1。
-                  </div>
-
                   <div className="flex flex-col gap-2">
-                    <div className="flex items-center justify-between text-xs text-base-content/70">
-                      <span>Number of Images</span>
-                      <span>免费模式固定为 1</span>
-                    </div>
-                    <div className="join w-full">
-                      {Array.from({ length: imageCountLimit }, (_, index) => index + 1).map(count => (
-                        <button
-                          key={count}
-                          type="button"
-                          className={`btn btn-sm join-item flex-1 ${imageCount === count ? "btn-primary" : "btn-outline"}`}
-                          onClick={() => setImageCount(count)}
-                        >
-                          {count}
-                        </button>
-                      ))}
+                    <div className="flex h-8 items-stretch overflow-hidden border border-[#2A3138] bg-[#161A1F] shadow-none">
+                      <div className="flex w-9 shrink-0 items-center justify-center border-r border-[#2A3138] text-white/90" aria-hidden="true">
+                        <ImagesSquareIcon className="size-4.5" weight="regular" />
+                      </div>
+                      {[1, 2, 3, 4].map(count => {
+                        const isActive = imageCount === count;
+                        const isDisabled = count !== 1;
+                        return (
+                          <button
+                            key={count}
+                            type="button"
+                            className={`flex flex-1 items-center justify-center border-r border-[#2A3138] text-[14px] font-semibold leading-none transition last:border-r-0 ${
+                              isActive
+                                ? "bg-[#232543] text-white"
+                                : "bg-transparent text-white/35"
+                            }`}
+                            disabled={isDisabled}
+                            aria-pressed={isActive}
+                            onClick={() => setImageCount(count)}
+                          >
+                            {count}
+                          </button>
+                        );
+                      })}
                     </div>
                   </div>
 
