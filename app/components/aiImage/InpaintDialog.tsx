@@ -1,9 +1,15 @@
 import type { PointerEvent as ReactPointerEvent } from "react";
 import type { InpaintDialogSource, InpaintSubmitPayload } from "@/components/aiImage/types";
+import {
+  ArrowClockwiseIcon,
+  ArrowCounterClockwiseIcon,
+  EraserIcon,
+  FloppyDiskIcon,
+  PencilSimpleLineIcon,
+  TrashIcon,
+  XIcon,
+} from "@phosphor-icons/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { NOVELAI_FREE_MAX_DIMENSION } from "@/components/aiImage/constants";
-import { formatSliderValue, modelLabel } from "@/components/aiImage/helpers";
-import { CloseIcon, EditIcon } from "@/icons";
 
 type InpaintTool = "paint" | "erase";
 
@@ -42,13 +48,58 @@ export function InpaintDialog({
   const drawingPointerIdRef = useRef<number | null>(null);
   const isDrawingRef = useRef(false);
   const lastPointRef = useRef<CanvasPoint | null>(null);
+  const undoStackRef = useRef<ImageData[]>([]);
+  const redoStackRef = useRef<ImageData[]>([]);
 
   const [prompt, setPrompt] = useState("");
   const [negativePrompt, setNegativePrompt] = useState("");
   const [strength, setStrength] = useState(0.7);
-  const [brushSize, setBrushSize] = useState(48);
+  const [brushSize, setBrushSize] = useState(24);
   const [tool, setTool] = useState<InpaintTool>("paint");
   const [hasMask, setHasMask] = useState(false);
+  const [historyVersion, setHistoryVersion] = useState(0);
+
+  const getMaskContext = useCallback(() => {
+    const canvas = canvasRef.current;
+    const context = canvas?.getContext("2d", { willReadFrequently: true });
+    if (!canvas || !context)
+      return null;
+    return { canvas, context };
+  }, []);
+
+  const syncHistoryVersion = useCallback(() => {
+    setHistoryVersion(prev => prev + 1);
+  }, []);
+
+  const syncMaskPresence = useCallback(() => {
+    const target = getMaskContext();
+    if (!target) {
+      setHasMask(false);
+      return;
+    }
+    setHasMask(hasAnyMaskPixels(target.context, target.canvas.width, target.canvas.height));
+  }, [getMaskContext]);
+
+  const pushUndoSnapshot = useCallback(() => {
+    const target = getMaskContext();
+    if (!target)
+      return;
+
+    undoStackRef.current.push(target.context.getImageData(0, 0, target.canvas.width, target.canvas.height));
+    redoStackRef.current = [];
+    syncHistoryVersion();
+  }, [getMaskContext, syncHistoryVersion]);
+
+  const restoreSnapshot = useCallback((snapshot: ImageData) => {
+    const target = getMaskContext();
+    if (!target)
+      return;
+
+    target.context.clearRect(0, 0, target.canvas.width, target.canvas.height);
+    target.context.putImageData(snapshot, 0, 0);
+    syncMaskPresence();
+    syncHistoryVersion();
+  }, [getMaskContext, syncHistoryVersion, syncMaskPresence]);
 
   useEffect(() => {
     if (!isOpen || !source)
@@ -57,29 +108,63 @@ export function InpaintDialog({
     setPrompt(source.prompt);
     setNegativePrompt(source.negativePrompt);
     setStrength(source.strength);
-    setBrushSize(48);
+    setBrushSize(24);
     setTool("paint");
     setHasMask(false);
+    undoStackRef.current = [];
+    redoStackRef.current = [];
+    syncHistoryVersion();
 
-    const canvas = canvasRef.current;
-    const context = canvas?.getContext("2d");
-    if (!canvas || !context)
+    const target = getMaskContext();
+    if (!target)
       return;
 
-    canvas.width = source.width;
-    canvas.height = source.height;
-    context.clearRect(0, 0, canvas.width, canvas.height);
-  }, [isOpen, source]);
+    target.canvas.width = source.width;
+    target.canvas.height = source.height;
+    target.context.clearRect(0, 0, target.canvas.width, target.canvas.height);
+  }, [getMaskContext, isOpen, source, syncHistoryVersion]);
 
-  const syncMaskPresence = useCallback(() => {
-    const canvas = canvasRef.current;
-    const context = canvas?.getContext("2d");
-    if (!canvas || !context) {
-      setHasMask(false);
+  useEffect(() => {
+    if (!isOpen)
       return;
-    }
-    setHasMask(hasAnyMaskPixels(context, canvas.width, canvas.height));
-  }, []);
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        if (!isSubmitting)
+          onClose();
+        return;
+      }
+
+      const isUndo = (event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "z" && !event.shiftKey;
+      const isRedo = ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "y")
+        || ((event.ctrlKey || event.metaKey) && event.shiftKey && event.key.toLowerCase() === "z");
+
+      if (isUndo && undoStackRef.current.length > 0) {
+        event.preventDefault();
+        const target = getMaskContext();
+        const previousSnapshot = undoStackRef.current.pop();
+        if (!target || !previousSnapshot)
+          return;
+        redoStackRef.current.push(target.context.getImageData(0, 0, target.canvas.width, target.canvas.height));
+        restoreSnapshot(previousSnapshot);
+        return;
+      }
+
+      if (isRedo && redoStackRef.current.length > 0) {
+        event.preventDefault();
+        const target = getMaskContext();
+        const nextSnapshot = redoStackRef.current.pop();
+        if (!target || !nextSnapshot)
+          return;
+        undoStackRef.current.push(target.context.getImageData(0, 0, target.canvas.width, target.canvas.height));
+        restoreSnapshot(nextSnapshot);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [getMaskContext, isOpen, isSubmitting, onClose, restoreSnapshot]);
 
   const resolveCanvasPoint = useCallback((event: ReactPointerEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current;
@@ -97,14 +182,14 @@ export function InpaintDialog({
   }, []);
 
   const drawStroke = useCallback((from: CanvasPoint, to: CanvasPoint) => {
-    const canvas = canvasRef.current;
-    const context = canvas?.getContext("2d");
-    if (!canvas || !context)
+    const target = getMaskContext();
+    if (!target)
       return;
 
+    const { context } = target;
     context.save();
-    context.lineCap = "round";
-    context.lineJoin = "round";
+    context.lineCap = "square";
+    context.lineJoin = "miter";
     context.lineWidth = brushSize;
 
     if (tool === "erase") {
@@ -114,8 +199,8 @@ export function InpaintDialog({
     }
     else {
       context.globalCompositeOperation = "source-over";
-      context.strokeStyle = "rgba(59, 130, 246, 0.82)";
-      context.fillStyle = "rgba(59, 130, 246, 0.82)";
+      context.strokeStyle = "rgba(252, 90, 123, 0.82)";
+      context.fillStyle = "rgba(252, 90, 123, 0.82)";
     }
 
     context.beginPath();
@@ -123,43 +208,14 @@ export function InpaintDialog({
     context.lineTo(to.x, to.y);
     context.stroke();
 
-    context.beginPath();
-    context.arc(to.x, to.y, brushSize / 2, 0, Math.PI * 2);
-    context.fill();
+    context.fillRect(
+      to.x - brushSize / 2,
+      to.y - brushSize / 2,
+      brushSize,
+      brushSize,
+    );
     context.restore();
-  }, [brushSize, tool]);
-
-  const handlePointerDown = useCallback((event: ReactPointerEvent<HTMLCanvasElement>) => {
-    if (event.button !== 0)
-      return;
-
-    const point = resolveCanvasPoint(event);
-    if (!point)
-      return;
-
-    event.preventDefault();
-    drawingPointerIdRef.current = event.pointerId;
-    isDrawingRef.current = true;
-    lastPointRef.current = point;
-    event.currentTarget.setPointerCapture(event.pointerId);
-    drawStroke(point, point);
-    if (tool === "paint")
-      setHasMask(true);
-  }, [drawStroke, resolveCanvasPoint, tool]);
-
-  const handlePointerMove = useCallback((event: ReactPointerEvent<HTMLCanvasElement>) => {
-    if (!isDrawingRef.current || drawingPointerIdRef.current !== event.pointerId)
-      return;
-
-    const point = resolveCanvasPoint(event);
-    const previousPoint = lastPointRef.current;
-    if (!point || !previousPoint)
-      return;
-
-    event.preventDefault();
-    drawStroke(previousPoint, point);
-    lastPointRef.current = point;
-  }, [drawStroke, resolveCanvasPoint]);
+  }, [brushSize, getMaskContext, tool]);
 
   const finishDrawing = useCallback((event: ReactPointerEvent<HTMLCanvasElement>) => {
     if (!isDrawingRef.current || drawingPointerIdRef.current !== event.pointerId)
@@ -177,22 +233,75 @@ export function InpaintDialog({
     syncMaskPresence();
   }, [syncMaskPresence]);
 
-  const handleClearMask = useCallback(() => {
-    const canvas = canvasRef.current;
-    const context = canvas?.getContext("2d");
-    if (!canvas || !context)
+  const handlePointerDown = useCallback((event: ReactPointerEvent<HTMLCanvasElement>) => {
+    if (event.button !== 0)
       return;
 
-    context.clearRect(0, 0, canvas.width, canvas.height);
+    const point = resolveCanvasPoint(event);
+    if (!point)
+      return;
+
+    pushUndoSnapshot();
+    event.preventDefault();
+    drawingPointerIdRef.current = event.pointerId;
+    isDrawingRef.current = true;
+    lastPointRef.current = point;
+    event.currentTarget.setPointerCapture(event.pointerId);
+    drawStroke(point, point);
+    if (tool === "paint")
+      setHasMask(true);
+  }, [drawStroke, pushUndoSnapshot, resolveCanvasPoint, tool]);
+
+  const handlePointerMove = useCallback((event: ReactPointerEvent<HTMLCanvasElement>) => {
+    if (!isDrawingRef.current || drawingPointerIdRef.current !== event.pointerId)
+      return;
+
+    const point = resolveCanvasPoint(event);
+    const previousPoint = lastPointRef.current;
+    if (!point || !previousPoint)
+      return;
+
+    event.preventDefault();
+    drawStroke(previousPoint, point);
+    lastPointRef.current = point;
+  }, [drawStroke, resolveCanvasPoint]);
+
+  const handleClearMask = useCallback(() => {
+    const target = getMaskContext();
+    if (!target || !hasMask)
+      return;
+
+    pushUndoSnapshot();
+    target.context.clearRect(0, 0, target.canvas.width, target.canvas.height);
     setHasMask(false);
-  }, []);
+  }, [getMaskContext, hasMask, pushUndoSnapshot]);
+
+  const handleUndo = useCallback(() => {
+    const target = getMaskContext();
+    const previousSnapshot = undoStackRef.current.pop();
+    if (!target || !previousSnapshot)
+      return;
+
+    redoStackRef.current.push(target.context.getImageData(0, 0, target.canvas.width, target.canvas.height));
+    restoreSnapshot(previousSnapshot);
+  }, [getMaskContext, restoreSnapshot]);
+
+  const handleRedo = useCallback(() => {
+    const target = getMaskContext();
+    const nextSnapshot = redoStackRef.current.pop();
+    if (!target || !nextSnapshot)
+      return;
+
+    undoStackRef.current.push(target.context.getImageData(0, 0, target.canvas.width, target.canvas.height));
+    restoreSnapshot(nextSnapshot);
+  }, [getMaskContext, restoreSnapshot]);
 
   const buildMaskDataUrl = useCallback(() => {
-    const canvas = canvasRef.current;
-    const context = canvas?.getContext("2d");
-    if (!canvas || !context)
+    const target = getMaskContext();
+    if (!target)
       return "";
 
+    const { canvas, context } = target;
     const sourcePixels = context.getImageData(0, 0, canvas.width, canvas.height);
     const exportCanvas = document.createElement("canvas");
     exportCanvas.width = canvas.width;
@@ -213,7 +322,7 @@ export function InpaintDialog({
     }
     exportContext.putImageData(exportPixels, 0, 0);
     return exportCanvas.toDataURL("image/png");
-  }, []);
+  }, [getMaskContext]);
 
   const handleSubmit = useCallback(async () => {
     const nextPrompt = prompt.trim();
@@ -232,196 +341,164 @@ export function InpaintDialog({
     });
   }, [buildMaskDataUrl, hasMask, isSubmitting, negativePrompt, onSubmit, prompt, source, strength]);
 
+  const toolbarButtonClassName = "inline-flex size-10 items-center justify-center rounded-md border border-white/10 bg-white/[0.06] text-white/72 transition hover:border-white/24 hover:bg-white/[0.1] hover:text-white focus:outline-none focus:ring-2 focus:ring-white/16 disabled:cursor-not-allowed disabled:opacity-35";
+  const floatingPanelClassName = "rounded-md border border-white/10 bg-[#191b31]/94 p-3 shadow-[0_18px_48px_rgba(0,0,0,0.34)] backdrop-blur";
+  const actionButtonClassName = "inline-flex h-10 items-center justify-center rounded-md border border-white/10 px-4 text-sm font-medium transition focus:outline-none focus:ring-2 focus:ring-white/16 disabled:cursor-not-allowed disabled:opacity-40";
+  const canUndo = historyVersion >= 0 && undoStackRef.current.length > 0;
+  const canRedo = historyVersion >= 0 && redoStackRef.current.length > 0;
   const sourceMeta = useMemo(() => {
     if (!source)
-      return "暂无可编辑的图像";
-    return [
-      `${source.width}×${source.height}`,
-      `seed: ${source.seed}`,
-      modelLabel(source.model),
-    ].join(" · ");
+      return "";
+    return `${source.width} × ${source.height}`;
   }, [source]);
 
+  if (!isOpen || !source)
+    return null;
+
   return (
-    <dialog
-      open={isOpen}
-      className={`modal ${isOpen ? "modal-open" : ""}`}
-      onCancel={(event) => {
-        event.preventDefault();
-        onClose();
-      }}
-    >
-      <div className="modal-box relative flex max-h-[min(94vh,1100px)] max-w-[min(96vw,1560px)] flex-col overflow-hidden border border-base-300 bg-base-100 p-0 text-base-content shadow-xl">
-        <div className="flex items-center gap-3 border-b border-base-300 px-5 py-4">
-          <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-2 text-base font-semibold">
-              <EditIcon className="size-4" />
-              <span>Inpaint</span>
-            </div>
-            <div className="mt-1 truncate text-xs text-base-content/60">{sourceMeta}</div>
+    <div className="absolute inset-0 z-50 overflow-hidden bg-[#111224] text-white">
+      <div className="absolute left-4 top-4 z-20 flex flex-col gap-3">
+        <div className={floatingPanelClassName}>
+          <div className="flex items-center justify-between gap-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-white/64">
+            <span>Pen Size</span>
+            <span className="text-white">{brushSize}</span>
           </div>
-          <button
-            type="button"
-            className="btn btn-ghost btn-sm btn-circle border border-base-300 bg-base-200 text-base-content hover:bg-base-300"
-            aria-label="关闭 Inpaint"
-            title="关闭 Inpaint"
-            disabled={isSubmitting}
-            onClick={onClose}
-          >
-            <CloseIcon className="size-4" />
-          </button>
+          <input
+            type="range"
+            min={4}
+            max={96}
+            step={2}
+            value={brushSize}
+            className="mt-3 h-1.5 w-40 cursor-pointer appearance-none bg-transparent focus:outline-none [&::-webkit-slider-runnable-track]:h-1.5 [&::-webkit-slider-runnable-track]:rounded-full [&::-webkit-slider-runnable-track]:bg-white/12 [&::-webkit-slider-thumb]:mt-[-5px] [&::-webkit-slider-thumb]:size-4 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:border-0 [&::-webkit-slider-thumb]:bg-[#f6e6a5] [&::-webkit-slider-thumb]:shadow-[0_0_0_1px_rgba(17,18,36,0.35)] [&::-moz-range-track]:h-1.5 [&::-moz-range-track]:rounded-full [&::-moz-range-track]:bg-white/12 [&::-moz-range-thumb]:size-4 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:bg-[#f6e6a5]"
+            onChange={event => setBrushSize(Number(event.target.value))}
+          />
         </div>
 
-        <div className="grid min-h-0 flex-1 gap-0 xl:grid-cols-[minmax(0,1fr)_360px]">
-          <div className="min-h-0 overflow-auto bg-base-200/35 p-4">
-            <div className="mb-3 flex flex-wrap items-center gap-2">
-              <div className="join rounded-xl bg-base-100 p-1 shadow-sm">
-                <button
-                  type="button"
-                  className={`btn btn-sm join-item border-0 ${tool === "paint" ? "bg-primary text-primary-content" : "bg-transparent text-base-content/70 hover:bg-base-200 hover:text-base-content"}`}
-                  onClick={() => setTool("paint")}
-                >
-                  绘制蒙版
-                </button>
-                <button
-                  type="button"
-                  className={`btn btn-sm join-item border-0 ${tool === "erase" ? "bg-base-content text-base-100" : "bg-transparent text-base-content/70 hover:bg-base-200 hover:text-base-content"}`}
-                  onClick={() => setTool("erase")}
-                >
-                  擦除
-                </button>
-              </div>
-              <label className="ml-auto flex items-center gap-3 rounded-xl border border-base-300 bg-base-100 px-3 py-2 text-xs shadow-sm">
-                <span className="uppercase tracking-[0.16em] text-base-content/55">Brush</span>
-                <input
-                  type="range"
-                  min={8}
-                  max={192}
-                  step={2}
-                  value={brushSize}
-                  onChange={event => setBrushSize(Number(event.target.value))}
-                />
-                <span className="font-mono text-base-content/75">
-                  {brushSize}
-                  px
-                </span>
-              </label>
-              <button
-                type="button"
-                className="btn btn-sm btn-ghost"
-                disabled={!hasMask}
-                onClick={handleClearMask}
-              >
-                清空蒙版
-              </button>
-            </div>
+        <div className={`${floatingPanelClassName} flex items-center gap-2`}>
+          <button
+            type="button"
+            className={`${actionButtonClassName} ${tool === "paint" ? "border-[#f6e6a5]/60 bg-[#f6e6a5]/18 text-[#fff3bf]" : "bg-white/[0.04] text-white/78"}`}
+            onClick={() => setTool("paint")}
+          >
+            Draw Mask
+          </button>
+          <button
+            type="button"
+            className={`${actionButtonClassName} ${tool === "erase" ? "border-white/28 bg-white/[0.14] text-white" : "bg-white/[0.04] text-white/78"}`}
+            onClick={() => setTool("erase")}
+          >
+            Erase
+          </button>
+        </div>
+      </div>
 
-            <div className="rounded-2xl border border-base-300 bg-base-100 p-3 shadow-sm">
-              <div className="mb-3 text-xs leading-5 text-base-content/65">
-                在图像上涂抹需要重绘的区域。蓝色覆盖层会被送入 NovelAI 的 `infill` 请求，其余区域保持不变。
-              </div>
-              <div className="flex justify-center overflow-auto rounded-2xl bg-base-200/40 p-3">
-                {source
-                  ? (
-                      <div className="relative inline-block">
-                        <img
-                          src={source.dataUrl}
-                          alt="inpaint-source"
-                          className="block max-h-[70vh] max-w-full rounded-xl border border-base-300 object-contain shadow-sm"
-                        />
-                        <canvas
-                          ref={canvasRef}
-                          className="absolute inset-0 h-full w-full touch-none rounded-xl"
-                          onPointerDown={handlePointerDown}
-                          onPointerMove={handlePointerMove}
-                          onPointerUp={finishDrawing}
-                          onPointerCancel={finishDrawing}
-                        />
-                      </div>
-                    )
-                  : <div className="py-20 text-sm text-base-content/60">暂无可编辑的图像</div>}
-              </div>
-            </div>
-          </div>
+      <div className="absolute right-4 top-4 z-20 flex items-center gap-2">
+        <div className="rounded-md border border-white/10 bg-white/[0.04] px-3 py-2 text-xs text-white/62">
+          {sourceMeta}
+        </div>
+        <button
+          type="button"
+          className={`${actionButtonClassName} border-[#f6e6a5]/55 bg-[#f6e6a5] text-[#222133] hover:bg-[#fff1af]`}
+          disabled={!hasMask || isSubmitting}
+          onClick={() => void handleSubmit()}
+        >
+          <FloppyDiskIcon className="mr-2 size-[18px]" weight="bold" />
+          {isSubmitting ? "保存中" : "Save & Close"}
+        </button>
+        <button
+          type="button"
+          className={toolbarButtonClassName}
+          aria-label="关闭 Inpaint"
+          title="关闭 Inpaint"
+          disabled={isSubmitting}
+          onClick={onClose}
+        >
+          <XIcon className="size-[18px]" weight="bold" />
+        </button>
+      </div>
 
-          <div className="min-h-0 overflow-auto border-l border-base-300 bg-base-100 p-4">
-            <div className="rounded-2xl border border-warning/30 bg-warning/10 px-3 py-2 text-xs leading-5 text-base-content/80">
-              {`Inpaint 会消耗 NovelAI Anlas。当前页面仍保持单张、宽高都不超过 ${NOVELAI_FREE_MAX_DIMENSION}、`}
-              <code>steps &lt;= 28</code>
-              的限制，其他付费入口继续关闭。
-            </div>
-
-            <label className="mt-4 block">
-              <div className="mb-2 text-sm font-medium">Prompt</div>
-              <textarea
-                className="textarea textarea-bordered !rounded-none min-h-36 w-full resize-none bg-base-100"
-                value={prompt}
-                disabled={isSubmitting}
-                onChange={event => setPrompt(event.target.value)}
-              />
-            </label>
-
-            <label className="mt-4 block">
-              <div className="mb-2 text-sm font-medium">Undesired Content</div>
-              <textarea
-                className="textarea textarea-bordered !rounded-none min-h-28 w-full resize-none bg-base-100"
-                value={negativePrompt}
-                disabled={isSubmitting}
-                onChange={event => setNegativePrompt(event.target.value)}
-              />
-            </label>
-
-            <label className="mt-4 block rounded-2xl border border-base-300 bg-base-200/30 px-3 py-3">
-              <div className="flex items-center gap-3">
-                <div>
-                  <div className="text-sm font-medium">Strength</div>
-                  <div className="mt-1 text-xs text-base-content/60">数值越高，重绘区域偏离原图越明显。</div>
-                </div>
-                <div className="ml-auto font-mono text-sm text-base-content/75">{formatSliderValue(strength)}</div>
-              </div>
-              <input
-                type="range"
-                className="range range-primary mt-3"
-                min={0.01}
-                max={1}
-                step={0.01}
-                value={strength}
-                disabled={isSubmitting}
-                onChange={event => setStrength(Number(event.target.value))}
-              />
-            </label>
-
-            <div className="mt-4 rounded-2xl border border-base-300 bg-base-200/20 px-3 py-3 text-xs leading-5 text-base-content/65">
-              当前蒙版状态：
-              {hasMask ? " 已检测到可提交的绘制区域。" : " 还没有绘制蒙版。"}
-            </div>
-
-            {error ? <div className="mt-4 text-sm text-error">{error}</div> : null}
-
-            <div className="mt-6 flex flex-wrap items-center justify-end gap-2">
-              <button
-                type="button"
-                className="btn btn-ghost"
-                disabled={isSubmitting}
-                onClick={onClose}
-              >
-                取消
-              </button>
-              <button
-                type="button"
-                className="btn btn-primary"
-                disabled={!source || isSubmitting || !prompt.trim() || !hasMask}
-                onClick={() => void handleSubmit()}
-              >
-                {isSubmitting ? "生成中..." : "开始 Inpaint"}
-              </button>
-            </div>
+      <div className="flex h-full min-h-0 w-full min-w-0 flex-col">
+        <div className="flex min-h-0 flex-1 items-center justify-center px-5 pb-24 pt-20">
+          <div className="relative flex max-h-full max-w-full items-center justify-center">
+            <img
+              src={source.dataUrl}
+              alt="inpaint-source"
+              className="block max-h-[calc(100vh-11rem)] max-w-[calc(100vw-6rem)] select-none object-contain shadow-[0_20px_60px_rgba(0,0,0,0.45)]"
+              draggable={false}
+            />
+            <canvas
+              ref={canvasRef}
+              className={`absolute inset-0 h-full w-full touch-none ${tool === "erase" ? "cursor-cell" : "cursor-crosshair"}`}
+              onPointerDown={handlePointerDown}
+              onPointerMove={handlePointerMove}
+              onPointerUp={finishDrawing}
+              onPointerCancel={finishDrawing}
+            />
           </div>
         </div>
       </div>
-      <form method="dialog" className="modal-backdrop">
-        <button type="button" onClick={onClose}>close</button>
-      </form>
-    </dialog>
+
+      <div className="pointer-events-none absolute bottom-4 left-1/2 z-20 -translate-x-1/2">
+        <div className="pointer-events-auto flex items-center gap-2 rounded-md border border-white/10 bg-[#191b31]/94 px-3 py-2 shadow-[0_18px_48px_rgba(0,0,0,0.34)] backdrop-blur">
+          <button
+            type="button"
+            className={`${toolbarButtonClassName} ${tool === "paint" ? "border-[#f06d8b]/55 bg-[#f06d8b]/18 text-[#ff95ad]" : ""}`}
+            aria-label="切换为绘制蒙版"
+            title="绘制蒙版"
+            onClick={() => setTool("paint")}
+          >
+            <PencilSimpleLineIcon className="size-[18px]" weight="bold" />
+          </button>
+          <button
+            type="button"
+            className={`${toolbarButtonClassName} ${tool === "erase" ? "border-white/24 bg-white/[0.12] text-white" : ""}`}
+            aria-label="切换为擦除"
+            title="擦除"
+            onClick={() => setTool("erase")}
+          >
+            <EraserIcon className="size-[18px]" weight="bold" />
+          </button>
+          <div className="mx-1 h-7 w-px bg-white/10" />
+          <button
+            type="button"
+            className={toolbarButtonClassName}
+            aria-label="清空蒙版"
+            title="清空蒙版"
+            disabled={!hasMask}
+            onClick={handleClearMask}
+          >
+            <TrashIcon className="size-[18px]" weight="bold" />
+          </button>
+          <button
+            type="button"
+            className={toolbarButtonClassName}
+            aria-label="撤销"
+            title="撤销"
+            disabled={!canUndo}
+            onClick={handleUndo}
+          >
+            <ArrowCounterClockwiseIcon className="size-[18px]" weight="bold" />
+          </button>
+          <button
+            type="button"
+            className={toolbarButtonClassName}
+            aria-label="重做"
+            title="重做"
+            disabled={!canRedo}
+            onClick={handleRedo}
+          >
+            <ArrowClockwiseIcon className="size-[18px]" weight="bold" />
+          </button>
+        </div>
+      </div>
+
+      {error
+        ? (
+            <div className="absolute bottom-4 right-4 z-20 rounded-md border border-[#ff6b82]/30 bg-[#2c1720]/92 px-3 py-2 text-sm text-[#ffb4c0] shadow-[0_18px_48px_rgba(0,0,0,0.34)]">
+              {error}
+            </div>
+          )
+        : null}
+    </div>
   );
 }
