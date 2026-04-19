@@ -742,7 +742,7 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                   <span className="text-sm font-semibold text-base-content dark:text-white">{`Prompt Guidance: ${scale}`}</span>
                   <button
                     type="button"
-                    className={`inline-flex h-7 items-center rounded-md border px-2.5 text-xs font-semibold transition focus:outline-none focus:ring-2 focus:ring-primary/20 ${
+                    className={`inline-flex h-7 items-center rounded-md border px-2.5 text-xs font-semibold transition focus:outline-none ${
                       qualityToggle
                         ? "border-transparent bg-primary/10 text-primary"
                         : "border-transparent bg-[#F3F5F7] text-base-content/72 hover:text-primary dark:bg-[#161A1F] dark:text-white/72 dark:hover:text-primary"
