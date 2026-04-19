@@ -1115,6 +1115,39 @@ export function useAiImagePageController() {
     });
   }, [negativePrompt, prompt, selectedPreviewHistoryRow, selectedPreviewResult, showErrorToast, simpleNegativePrompt, simplePrompt, strength, uiMode]);
 
+  const handleOpenBaseImageInpaint = useCallback(async () => {
+    if (!sourceImageDataUrl)
+      return;
+
+    const sourceImageBase64 = dataUrlToBase64(sourceImageDataUrl);
+    if (!sourceImageBase64) {
+      showErrorToast("当前 Base Img 读取失败，无法启动 Inpaint。");
+      return;
+    }
+
+    let sourceImageSize: { width: number; height: number } | null = null;
+    try {
+      sourceImageSize = await readImageSize(sourceImageDataUrl);
+    }
+    catch {
+      // 读取失败时回退到当前画布尺寸。
+    }
+
+    setError("");
+    setInpaintDialogSource({
+      dataUrl: sourceImageDataUrl,
+      imageBase64: sourceImageBase64,
+      width: sourceImageSize?.width ?? width,
+      height: sourceImageSize?.height ?? height,
+      seed,
+      model,
+      mode: uiMode,
+      prompt: uiMode === "simple" ? simplePrompt : prompt,
+      negativePrompt: uiMode === "simple" ? simpleNegativePrompt : negativePrompt,
+      strength,
+    });
+  }, [height, negativePrompt, model, prompt, seed, simpleNegativePrompt, simplePrompt, sourceImageDataUrl, showErrorToast, strength, uiMode, width]);
+
   const handleCloseInpaintDialog = useCallback(() => {
     if (loading)
       return;
@@ -1827,6 +1860,7 @@ export function useAiImagePageController() {
     handleSwapImageDimensions,
     handleUpdateV4Char,
     handleUpdateVibeReference,
+    handleOpenBaseImageInpaint,
     hasReferenceConflict,
     height,
     imageCount,
