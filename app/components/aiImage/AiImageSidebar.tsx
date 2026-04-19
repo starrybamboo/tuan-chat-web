@@ -199,6 +199,7 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
   const [isModeSelectorMounted, setIsModeSelectorMounted] = useState<boolean>(false);
   const [isProPromptSettingsOpen, setIsProPromptSettingsOpen] = useState<boolean>(false);
   const [isBaseImageToolsOpen, setIsBaseImageToolsOpen] = useState<boolean>(false);
+  const [isProBottomSettingsOpen, setIsProBottomSettingsOpen] = useState<boolean>(true);
   const [isCharacterAddMenuOpen, setIsCharacterAddMenuOpen] = useState<boolean>(false);
   const [highlightEmphasisEnabled, setHighlightEmphasisEnabled] = useState<boolean>(true);
   const [proPromptSettingsPosition, setProPromptSettingsPosition] = useState({ top: 96, left: 96 });
@@ -649,6 +650,154 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
     }
 
     return <span className="flex w-5 shrink-0 items-center justify-start">{glyph}</span>;
+  }
+
+  function renderProBottomSettingsDrawer() {
+    if (uiMode !== "pro")
+      return null;
+
+    return (
+      <div className="relative shrink-0 border-t border-[#D6DCE3] bg-[#F3F5F7] px-4 py-3 dark:border-[#2A3138] dark:bg-[#161A1F]">
+        <button
+          type="button"
+          className="flex h-11 w-full items-center justify-between rounded-md border border-[#D6DCE3] bg-[#F3F5F7] px-4 text-left text-sm font-semibold text-base-content transition hover:border-primary/40 hover:bg-[#EAEFF4] focus:outline-none focus:ring-2 focus:ring-primary/20 dark:border-[#2A3138] dark:bg-[#161A1F] dark:hover:bg-[#1B2026]"
+          aria-expanded={isProBottomSettingsOpen}
+          onClick={() => setIsProBottomSettingsOpen(prev => !prev)}
+        >
+          <span>更多绘图设置</span>
+          <CaretDownIcon className={`size-4 transition-transform ${isProBottomSettingsOpen ? "rotate-180" : ""}`} weight="bold" />
+        </button>
+
+        {isProBottomSettingsOpen
+          ? (
+              <div className="absolute inset-x-4 bottom-[calc(100%+0.5rem)] z-20 max-h-[28rem] overflow-y-auto rounded-2xl border border-[#D6DCE3] bg-[#F3F5F7] p-4 shadow-2xl dark:border-[#2A3138] dark:bg-[#161A1F]">
+                <div className="space-y-4">
+                  <div className="rounded-box border border-base-300 bg-base-200 p-4">
+                    <div className="space-y-4">
+                      <div>
+                        <div className="mb-2 flex items-center justify-between">
+                          <span className="text-sm font-semibold">{`步数 (Steps): ${steps}`}</span>
+                        </div>
+                        <input
+                          className="range range-xs w-full"
+                          type="range"
+                          min="1"
+                          max={String(NOVELAI_FREE_MAX_STEPS)}
+                          step="1"
+                          value={steps}
+                          onChange={e => setSteps(clampIntRange(Number(e.target.value), 1, NOVELAI_FREE_MAX_STEPS, NOVELAI_FREE_MAX_STEPS))}
+                        />
+                      </div>
+                      <div>
+                        <div className="mb-2 flex items-center justify-between">
+                          <span className="text-sm font-semibold">{`提示词相关性 (Prompt Guidance): ${scale}`}</span>
+                          <span className="badge badge-outline badge-sm">Variety+</span>
+                        </div>
+                        <input
+                          className="range range-xs w-full"
+                          type="range"
+                          min="0"
+                          max="20"
+                          step="0.1"
+                          value={scale}
+                          onChange={e => setScale(clampRange(Number(e.target.value), 0, 20, 5))}
+                        />
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="flex flex-col gap-2">
+                          <div className="flex items-center justify-between text-xs text-base-content/70">
+                            <span>种子 (Seed)</span>
+                            <span>{seedIsRandom ? "随机" : "固定"}</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <input
+                              className={`flex-1 w-full ${subtleInputClassName}`}
+                              type="number"
+                              value={seedIsRandom ? "" : seed}
+                              placeholder="留空即随机"
+                              onChange={(e) => {
+                                const value = e.target.value.trim();
+                                setSeed(value ? Number(value) : -1);
+                              }}
+                            />
+                            <button
+                              type="button"
+                              className="btn btn-sm btn-outline border-base-content/20 shrink-0"
+                              onClick={handleClearSeed}
+                              disabled={seedIsRandom}
+                              title="转为随机种子"
+                            >
+                              随机
+                            </button>
+                          </div>
+                        </div>
+                        <div className="flex flex-col gap-2">
+                          <div className="text-xs text-base-content/70">采样器 (Sampler)</div>
+                          <select className={`w-full ${subtleSelectClassName}`} value={sampler} onChange={e => setSampler(e.target.value)}>
+                            {samplerOptions.map(s => <option key={s} value={s}>{SAMPLER_LABELS[s] || s}</option>)}
+                          </select>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <details className="collapse collapse-arrow border border-base-300 bg-base-100" open>
+                    <summary className="collapse-title pr-12 text-sm font-medium">
+                      Advanced Settings
+                    </summary>
+                    <div className="collapse-content space-y-3">
+                      {noiseScheduleOptions.length
+                        ? (
+                            <div className="grid grid-cols-2 gap-2">
+                              <label className="form-control">
+                                <span className="label-text text-xs">Noise Schedule</span>
+                                <select className={subtleSelectClassName} value={noiseSchedule} onChange={e => setNoiseSchedule(e.target.value)}>
+                                  {noiseScheduleOptions.map(s => <option key={s} value={s}>{SCHEDULE_LABELS[s] || s}</option>)}
+                                </select>
+                              </label>
+                              {isNAI4
+                                ? (
+                                    <label className="form-control">
+                                      <span className="label-text text-xs">CFG Rescale</span>
+                                      <input className={subtleInputClassName} type="number" value={cfgRescale} step="0.01" onChange={e => setCfgRescale(clampRange(Number(e.target.value), 0, 1, 0))} />
+                                    </label>
+                                  )
+                                : <div />}
+                            </div>
+                          )
+                        : null}
+
+                      {isNAI4
+                        ? (
+                            <label className="label cursor-pointer justify-start gap-3">
+                              <input type="checkbox" className="toggle toggle-sm" checked={dynamicThresholding} onChange={e => setDynamicThresholding(e.target.checked)} />
+                              <span className="label-text">Dynamic Thresholding</span>
+                            </label>
+                          )
+                        : null}
+
+                      {isNAI3
+                        ? (
+                            <>
+                              <label className="label cursor-pointer justify-start gap-3">
+                                <input type="checkbox" className="toggle toggle-sm" checked={smea} onChange={e => setSmea(e.target.checked)} />
+                                <span className="label-text">SMEA</span>
+                              </label>
+                              <label className="label cursor-pointer justify-start gap-3">
+                                <input type="checkbox" className="toggle toggle-sm" checked={smeaDyn} onChange={e => setSmeaDyn(e.target.checked)} />
+                                <span className="label-text">SMEA Dyn</span>
+                              </label>
+                            </>
+                          )
+                        : null}
+                    </div>
+                  </details>
+                </div>
+              </div>
+            )
+          : null}
+      </div>
+    );
   }
 
   return (
@@ -1686,132 +1835,14 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                     </div>
                   </div>
 
-                  <div className="rounded-box border border-base-300 bg-base-200 p-4">
-                    <div className="space-y-4">
-                      <div>
-                        <div className="mb-2 flex items-center justify-between">
-                          <span className="text-sm font-semibold">{`步数 (Steps): ${steps}`}</span>
-                        </div>
-                        <input
-                          className="range range-xs w-full"
-                          type="range"
-                          min="1"
-                          max={String(NOVELAI_FREE_MAX_STEPS)}
-                          step="1"
-                          value={steps}
-                          onChange={e => setSteps(clampIntRange(Number(e.target.value), 1, NOVELAI_FREE_MAX_STEPS, NOVELAI_FREE_MAX_STEPS))}
-                        />
-                      </div>
-                      <div>
-                        <div className="mb-2 flex items-center justify-between">
-                          <span className="text-sm font-semibold">{`提示词相关性 (Prompt Guidance): ${scale}`}</span>
-                          <span className="badge badge-outline badge-sm">Variety+</span>
-                        </div>
-                        <input
-                          className="range range-xs w-full"
-                          type="range"
-                          min="0"
-                          max="20"
-                          step="0.1"
-                          value={scale}
-                          onChange={e => setScale(clampRange(Number(e.target.value), 0, 20, 5))}
-                        />
-                      </div>
-                      <div className="grid grid-cols-2 gap-3">
-                        <div className="flex flex-col gap-2">
-                          <div className="flex items-center justify-between text-xs text-base-content/70">
-                            <span>种子 (Seed)</span>
-                            <span>{seedIsRandom ? "随机" : "固定"}</span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <input
-                              className={`flex-1 w-full ${subtleInputClassName}`}
-                              type="number"
-                              value={seedIsRandom ? "" : seed}
-                              placeholder="留空即随机"
-                              onChange={(e) => {
-                                const value = e.target.value.trim();
-                                setSeed(value ? Number(value) : -1);
-                              }}
-                            />
-                            <button
-                              type="button"
-                              className="btn btn-sm btn-outline border-base-content/20 shrink-0"
-                              onClick={handleClearSeed}
-                              disabled={seedIsRandom}
-                              title="转为随机种子"
-                            >
-                              随机
-                            </button>
-                          </div>
-                        </div>
-                        <div className="flex flex-col gap-2">
-                          <div className="text-xs text-base-content/70">采样器 (Sampler)</div>
-                          <select className={`w-full ${subtleSelectClassName}`} value={sampler} onChange={e => setSampler(e.target.value)}>
-                            {samplerOptions.map(s => <option key={s} value={s}>{SAMPLER_LABELS[s] || s}</option>)}
-                          </select>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <details className="collapse collapse-arrow border border-base-300 bg-base-100" open>
-                    <summary className="collapse-title pr-12 text-sm font-medium">
-                      Advanced Settings
-                    </summary>
-                    <div className="collapse-content space-y-3">
-                      {noiseScheduleOptions.length
-                        ? (
-                            <div className="grid grid-cols-2 gap-2">
-                              <label className="form-control">
-                                <span className="label-text text-xs">Noise Schedule</span>
-                                <select className={subtleSelectClassName} value={noiseSchedule} onChange={e => setNoiseSchedule(e.target.value)}>
-                                  {noiseScheduleOptions.map(s => <option key={s} value={s}>{SCHEDULE_LABELS[s] || s}</option>)}
-                                </select>
-                              </label>
-                              {isNAI4
-                                ? (
-                                    <label className="form-control">
-                                      <span className="label-text text-xs">CFG Rescale</span>
-                                      <input className={subtleInputClassName} type="number" value={cfgRescale} step="0.01" onChange={e => setCfgRescale(clampRange(Number(e.target.value), 0, 1, 0))} />
-                                    </label>
-                                  )
-                                : <div />}
-                            </div>
-                          )
-                        : null}
-
-                      {isNAI4
-                        ? (
-                            <label className="label cursor-pointer justify-start gap-3">
-                              <input type="checkbox" className="toggle toggle-sm" checked={dynamicThresholding} onChange={e => setDynamicThresholding(e.target.checked)} />
-                              <span className="label-text">Dynamic Thresholding</span>
-                            </label>
-                          )
-                        : null}
-
-                      {isNAI3
-                        ? (
-                            <>
-                              <label className="label cursor-pointer justify-start gap-3">
-                                <input type="checkbox" className="toggle toggle-sm" checked={smea} onChange={e => setSmea(e.target.checked)} />
-                                <span className="label-text">SMEA</span>
-                              </label>
-                              <label className="label cursor-pointer justify-start gap-3">
-                                <input type="checkbox" className="toggle toggle-sm" checked={smeaDyn} onChange={e => setSmeaDyn(e.target.checked)} />
-                                <span className="label-text">SMEA Dyn</span>
-                              </label>
-                            </>
-                          )
-                        : null}
-                    </div>
-                  </details>
                 </>
               )}
         </div>
       </div>
 
       </div>
+
+      {renderProBottomSettingsDrawer()}
 
       {uiMode === "simple" || uiMode === "pro"
         ? (
