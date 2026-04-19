@@ -66,8 +66,6 @@ import {
   clamp01,
   clampIntRange,
   clampRange,
-  clampSimpleModeDimension,
-  clampToMultipleOf64,
   cleanImportedPromptText,
   createMetadataImportSelection,
   createProFeatureSectionState,
@@ -259,10 +257,14 @@ export function useAiImagePageController() {
 
   const [simpleWidth, setSimpleWidth] = useState<number>(DEFAULT_SIMPLE_IMAGE_SETTINGS.width);
   const [simpleHeight, setSimpleHeight] = useState<number>(DEFAULT_SIMPLE_IMAGE_SETTINGS.height);
+  const [simpleWidthInput, setSimpleWidthInput] = useState<string>(String(DEFAULT_SIMPLE_IMAGE_SETTINGS.width));
+  const [simpleHeightInput, setSimpleHeightInput] = useState<string>(String(DEFAULT_SIMPLE_IMAGE_SETTINGS.height));
   const [simpleSeed, setSimpleSeed] = useState<number>(DEFAULT_SIMPLE_IMAGE_SETTINGS.seed);
   const [simpleResolutionSelection, setSimpleResolutionSelection] = useState<ResolutionSelection>(DEFAULT_SIMPLE_IMAGE_SETTINGS.simpleResolutionSelection);
   const [proWidth, setProWidth] = useState<number>(DEFAULT_PRO_IMAGE_SETTINGS.width);
   const [proHeight, setProHeight] = useState<number>(DEFAULT_PRO_IMAGE_SETTINGS.height);
+  const [proWidthInput, setProWidthInput] = useState<string>(String(DEFAULT_PRO_IMAGE_SETTINGS.width));
+  const [proHeightInput, setProHeightInput] = useState<string>(String(DEFAULT_PRO_IMAGE_SETTINGS.height));
   const [proResolutionSelection, setProResolutionSelection] = useState<ResolutionSelection>(DEFAULT_PRO_IMAGE_SETTINGS.simpleResolutionSelection);
   const [proImageCount, setProImageCount] = useState<number>(DEFAULT_PRO_IMAGE_SETTINGS.imageCount);
   const [proSteps, setProSteps] = useState<number>(DEFAULT_PRO_IMAGE_SETTINGS.steps);
@@ -283,6 +285,9 @@ export function useAiImagePageController() {
 
   const width = uiMode === "simple" ? simpleWidth : proWidth;
   const height = uiMode === "simple" ? simpleHeight : proHeight;
+  const widthInput = uiMode === "simple" ? simpleWidthInput : proWidthInput;
+  const heightInput = uiMode === "simple" ? simpleHeightInput : proHeightInput;
+  const hasCompleteDimensionInputs = widthInput.trim().length > 0 && heightInput.trim().length > 0;
   const mode = uiMode === "simple" ? simpleMode : proMode;
   const imageCount = uiMode === "simple" ? DEFAULT_SIMPLE_IMAGE_SETTINGS.imageCount : proImageCount;
   const steps = uiMode === "simple" ? DEFAULT_SIMPLE_IMAGE_SETTINGS.steps : proSteps;
@@ -389,6 +394,24 @@ export function useAiImagePageController() {
     return NOVELAI_FREE_FIXED_IMAGE_COUNT;
   }, []);
 
+  const clampCustomDimensionInput = useCallback((value: number | string, fallback: number) => {
+    const numericValue = Math.floor(Number(value));
+    if (!Number.isFinite(numericValue))
+      return fallback;
+    return Math.max(1, Math.min(SIMPLE_MODE_CUSTOM_MAX_DIMENSION, numericValue));
+  }, []);
+
+  const syncDimensionInputsForUi = useCallback((targetUiMode: UiMode, nextWidth: number, nextHeight: number) => {
+    if (targetUiMode === "simple") {
+      setSimpleWidthInput(String(nextWidth));
+      setSimpleHeightInput(String(nextHeight));
+      return;
+    }
+
+    setProWidthInput(String(nextWidth));
+    setProHeightInput(String(nextHeight));
+  }, []);
+
   const setModeForUi = useCallback((targetUiMode: UiMode, nextMode: AiImageHistoryMode) => {
     if (targetUiMode === "simple") {
       setSimpleMode(nextMode);
@@ -406,13 +429,15 @@ export function useAiImagePageController() {
       setSimpleWidth(normalizedSize.width);
       setSimpleHeight(normalizedSize.height);
       setSimpleResolutionSelection(inferResolutionSelection(normalizedSize.width, normalizedSize.height));
+      syncDimensionInputsForUi("simple", normalizedSize.width, normalizedSize.height);
       return;
     }
 
     setProWidth(normalizedSize.width);
     setProHeight(normalizedSize.height);
     setProResolutionSelection(inferResolutionSelection(normalizedSize.width, normalizedSize.height));
-  }, [inferResolutionSelection]);
+    syncDimensionInputsForUi("pro", normalizedSize.width, normalizedSize.height);
+  }, [inferResolutionSelection, syncDimensionInputsForUi]);
 
   const clearSourceImageForUi = useCallback((targetUiMode: UiMode) => {
     setModeForUi(targetUiMode, "txt2img");
@@ -522,41 +547,31 @@ export function useAiImagePageController() {
     if (uiMode !== "simple" || simpleResolutionSelection !== CUSTOM_RESOLUTION_ID)
       return;
 
-    const nextWidth = Math.min(
-      SIMPLE_MODE_CUSTOM_MAX_DIMENSION,
-      clampToMultipleOf64(simpleWidth, DEFAULT_SIMPLE_IMAGE_SETTINGS.width),
-    );
-    const nextHeight = Math.min(
-      SIMPLE_MODE_CUSTOM_MAX_DIMENSION,
-      clampToMultipleOf64(simpleHeight, DEFAULT_SIMPLE_IMAGE_SETTINGS.height),
-    );
+    const nextWidth = clampCustomDimensionInput(simpleWidth, DEFAULT_SIMPLE_IMAGE_SETTINGS.width);
+    const nextHeight = clampCustomDimensionInput(simpleHeight, DEFAULT_SIMPLE_IMAGE_SETTINGS.height);
 
     if (nextWidth === simpleWidth && nextHeight === simpleHeight)
       return;
 
     setSimpleWidth(nextWidth);
     setSimpleHeight(nextHeight);
-  }, [simpleHeight, simpleResolutionSelection, simpleWidth, uiMode]);
+    syncDimensionInputsForUi("simple", nextWidth, nextHeight);
+  }, [clampCustomDimensionInput, simpleHeight, simpleResolutionSelection, simpleWidth, syncDimensionInputsForUi, uiMode]);
 
   useEffect(() => {
     if (uiMode !== "pro" || proResolutionSelection !== CUSTOM_RESOLUTION_ID)
       return;
 
-    const nextWidth = Math.min(
-      SIMPLE_MODE_CUSTOM_MAX_DIMENSION,
-      clampToMultipleOf64(proWidth, DEFAULT_PRO_IMAGE_SETTINGS.width),
-    );
-    const nextHeight = Math.min(
-      SIMPLE_MODE_CUSTOM_MAX_DIMENSION,
-      clampToMultipleOf64(proHeight, DEFAULT_PRO_IMAGE_SETTINGS.height),
-    );
+    const nextWidth = clampCustomDimensionInput(proWidth, DEFAULT_PRO_IMAGE_SETTINGS.width);
+    const nextHeight = clampCustomDimensionInput(proHeight, DEFAULT_PRO_IMAGE_SETTINGS.height);
 
     if (nextWidth === proWidth && nextHeight === proHeight)
       return;
 
     setProWidth(nextWidth);
     setProHeight(nextHeight);
-  }, [proHeight, proResolutionSelection, proWidth, uiMode]);
+    syncDimensionInputsForUi("pro", nextWidth, nextHeight);
+  }, [clampCustomDimensionInput, proHeight, proResolutionSelection, proWidth, syncDimensionInputsForUi, uiMode]);
 
   const applyImportedMetadata = useCallback((metadata: NovelAiImageMetadataResult, selection: MetadataImportSelectionState) => {
     setIsPageImageDragOver(false);
@@ -1860,7 +1875,8 @@ export function useAiImagePageController() {
     setSimpleResolutionSelection(preset.id);
     setSimpleWidth(preset.width);
     setSimpleHeight(preset.height);
-  }, []);
+    syncDimensionInputsForUi("simple", preset.width, preset.height);
+  }, [syncDimensionInputsForUi]);
 
   const handleSelectProResolutionPreset = useCallback((selection: ResolutionSelection) => {
     if (selection === CUSTOM_RESOLUTION_ID) {
@@ -1873,71 +1889,69 @@ export function useAiImagePageController() {
     setProResolutionSelection(preset.id);
     setProWidth(preset.width);
     setProHeight(preset.height);
-  }, []);
+    syncDimensionInputsForUi("pro", preset.width, preset.height);
+  }, [syncDimensionInputsForUi]);
 
-  const handleSimpleWidthChange = useCallback((value: number) => {
+  const handleSimpleWidthChange = useCallback((value: string) => {
     setSimpleResolutionSelection(CUSTOM_RESOLUTION_ID);
-    const nextHeight = Math.min(
-      SIMPLE_MODE_CUSTOM_MAX_DIMENSION,
-      clampToMultipleOf64(simpleHeight, DEFAULT_SIMPLE_IMAGE_SETTINGS.height),
-    );
-    const nextWidth = Math.min(
-      SIMPLE_MODE_CUSTOM_MAX_DIMENSION,
-      clampSimpleModeDimension(value, nextHeight, simpleWidth || DEFAULT_SIMPLE_IMAGE_SETTINGS.width),
-    );
+    const trimmedValue = value.trim();
+    setSimpleWidthInput(trimmedValue);
+    if (!trimmedValue)
+      return;
+    const nextHeight = clampCustomDimensionInput(simpleHeight, DEFAULT_SIMPLE_IMAGE_SETTINGS.height);
+    const nextWidth = clampCustomDimensionInput(trimmedValue, simpleWidth || DEFAULT_SIMPLE_IMAGE_SETTINGS.width);
     setSimpleWidth(nextWidth);
     setSimpleHeight(nextHeight);
-  }, [simpleHeight, simpleWidth]);
+    syncDimensionInputsForUi("simple", nextWidth, nextHeight);
+  }, [clampCustomDimensionInput, simpleHeight, simpleWidth, syncDimensionInputsForUi]);
 
-  const handleProWidthChange = useCallback((value: number) => {
+  const handleProWidthChange = useCallback((value: string) => {
     setProResolutionSelection(CUSTOM_RESOLUTION_ID);
-    const nextHeight = Math.min(
-      SIMPLE_MODE_CUSTOM_MAX_DIMENSION,
-      clampToMultipleOf64(proHeight, DEFAULT_PRO_IMAGE_SETTINGS.height),
-    );
-    const nextWidth = Math.min(
-      SIMPLE_MODE_CUSTOM_MAX_DIMENSION,
-      clampSimpleModeDimension(value, nextHeight, proWidth || DEFAULT_PRO_IMAGE_SETTINGS.width),
-    );
+    const trimmedValue = value.trim();
+    setProWidthInput(trimmedValue);
+    if (!trimmedValue)
+      return;
+    const nextHeight = clampCustomDimensionInput(proHeight, DEFAULT_PRO_IMAGE_SETTINGS.height);
+    const nextWidth = clampCustomDimensionInput(trimmedValue, proWidth || DEFAULT_PRO_IMAGE_SETTINGS.width);
     setProWidth(nextWidth);
     setProHeight(nextHeight);
-  }, [proHeight, proWidth]);
+    syncDimensionInputsForUi("pro", nextWidth, nextHeight);
+  }, [clampCustomDimensionInput, proHeight, proWidth, syncDimensionInputsForUi]);
 
-  const handleSimpleHeightChange = useCallback((value: number) => {
+  const handleSimpleHeightChange = useCallback((value: string) => {
     setSimpleResolutionSelection(CUSTOM_RESOLUTION_ID);
-    const nextWidth = Math.min(
-      SIMPLE_MODE_CUSTOM_MAX_DIMENSION,
-      clampToMultipleOf64(simpleWidth, DEFAULT_SIMPLE_IMAGE_SETTINGS.width),
-    );
-    const nextHeight = Math.min(
-      SIMPLE_MODE_CUSTOM_MAX_DIMENSION,
-      clampSimpleModeDimension(value, nextWidth, simpleHeight || DEFAULT_SIMPLE_IMAGE_SETTINGS.height),
-    );
+    const trimmedValue = value.trim();
+    setSimpleHeightInput(trimmedValue);
+    if (!trimmedValue)
+      return;
+    const nextWidth = clampCustomDimensionInput(simpleWidth, DEFAULT_SIMPLE_IMAGE_SETTINGS.width);
+    const nextHeight = clampCustomDimensionInput(trimmedValue, simpleHeight || DEFAULT_SIMPLE_IMAGE_SETTINGS.height);
     setSimpleWidth(nextWidth);
     setSimpleHeight(nextHeight);
-  }, [simpleHeight, simpleWidth]);
+    syncDimensionInputsForUi("simple", nextWidth, nextHeight);
+  }, [clampCustomDimensionInput, simpleHeight, simpleWidth, syncDimensionInputsForUi]);
 
-  const handleProHeightChange = useCallback((value: number) => {
+  const handleProHeightChange = useCallback((value: string) => {
     setProResolutionSelection(CUSTOM_RESOLUTION_ID);
-    const nextWidth = Math.min(
-      SIMPLE_MODE_CUSTOM_MAX_DIMENSION,
-      clampToMultipleOf64(proWidth, DEFAULT_PRO_IMAGE_SETTINGS.width),
-    );
-    const nextHeight = Math.min(
-      SIMPLE_MODE_CUSTOM_MAX_DIMENSION,
-      clampSimpleModeDimension(value, nextWidth, proHeight || DEFAULT_PRO_IMAGE_SETTINGS.height),
-    );
+    const trimmedValue = value.trim();
+    setProHeightInput(trimmedValue);
+    if (!trimmedValue)
+      return;
+    const nextWidth = clampCustomDimensionInput(proWidth, DEFAULT_PRO_IMAGE_SETTINGS.width);
+    const nextHeight = clampCustomDimensionInput(trimmedValue, proHeight || DEFAULT_PRO_IMAGE_SETTINGS.height);
     setProWidth(nextWidth);
     setProHeight(nextHeight);
-  }, [proHeight, proWidth]);
+    syncDimensionInputsForUi("pro", nextWidth, nextHeight);
+  }, [clampCustomDimensionInput, proHeight, proWidth, syncDimensionInputsForUi]);
 
   const handleSwapImageDimensions = useCallback(() => {
-    const nextWidth = clampToMultipleOf64(proHeight, DEFAULT_PRO_IMAGE_SETTINGS.height);
-    const nextHeight = clampToMultipleOf64(proWidth, DEFAULT_PRO_IMAGE_SETTINGS.width);
+    const nextWidth = clampCustomDimensionInput(proHeight, DEFAULT_PRO_IMAGE_SETTINGS.height);
+    const nextHeight = clampCustomDimensionInput(proWidth, DEFAULT_PRO_IMAGE_SETTINGS.width);
     setProWidth(nextWidth);
     setProHeight(nextHeight);
     setProResolutionSelection(CUSTOM_RESOLUTION_ID);
-  }, [proHeight, proWidth]);
+    syncDimensionInputsForUi("pro", nextWidth, nextHeight);
+  }, [clampCustomDimensionInput, proHeight, proWidth, syncDimensionInputsForUi]);
 
   const handleCropToClosestValidSize = useCallback(async () => {
     let targetWidth = proWidth;
@@ -1958,8 +1972,9 @@ export function useAiImagePageController() {
     setProWidth(normalizedSize.width);
     setProHeight(normalizedSize.height);
     setProResolutionSelection(inferResolutionSelection(normalizedSize.width, normalizedSize.height));
+    syncDimensionInputsForUi("pro", normalizedSize.width, normalizedSize.height);
     showSuccessToast(sourceImageDataUrl ? "已按 Base Img 裁到最近合法尺寸。" : "已把当前尺寸裁到最近合法尺寸。");
-  }, [inferResolutionSelection, proHeight, proWidth, showSuccessToast, sourceImageDataUrl]);
+  }, [inferResolutionSelection, proHeight, proWidth, showSuccessToast, sourceImageDataUrl, syncDimensionInputsForUi]);
 
   const handleResetCurrentImageSettings = useCallback(() => {
     if (uiMode === "simple") {
@@ -1969,6 +1984,7 @@ export function useAiImagePageController() {
       setSimpleImg2imgNoise(DEFAULT_SIMPLE_IMAGE_SETTINGS.noise);
       setSimpleSeed(DEFAULT_SIMPLE_IMAGE_SETTINGS.seed);
       setSimpleResolutionSelection(DEFAULT_SIMPLE_IMAGE_SETTINGS.simpleResolutionSelection);
+      syncDimensionInputsForUi("simple", DEFAULT_SIMPLE_IMAGE_SETTINGS.width, DEFAULT_SIMPLE_IMAGE_SETTINGS.height);
       showSuccessToast("已重置快速模式图像设置。");
       return;
     }
@@ -1990,8 +2006,9 @@ export function useAiImagePageController() {
     setProImg2imgNoise(DEFAULT_PRO_IMAGE_SETTINGS.noise);
     setProSeed(DEFAULT_PRO_IMAGE_SETTINGS.seed);
     setProResolutionSelection(DEFAULT_PRO_IMAGE_SETTINGS.simpleResolutionSelection);
+    syncDimensionInputsForUi("pro", DEFAULT_PRO_IMAGE_SETTINGS.width, DEFAULT_PRO_IMAGE_SETTINGS.height);
     showSuccessToast("已重置当前图像设置。");
-  }, [showSuccessToast, uiMode]);
+  }, [showSuccessToast, syncDimensionInputsForUi, uiMode]);
 
   const handleClearSeed = useCallback(() => {
     if (uiMode === "simple")
@@ -2123,7 +2140,7 @@ export function useAiImagePageController() {
     vibeTransferReferenceCount: vibeTransferReferences.length,
     hasPreciseReference: Boolean(preciseReference),
   });
-  const canGenerate = !isBusy && !freeGenerationViolation;
+  const canGenerate = !isBusy && !freeGenerationViolation && hasCompleteDimensionInputs;
   const canTriggerProGenerate = canGenerate && Boolean(prompt.trim());
   const proGenerateLabel = loading || simpleConverting
     ? "生成中..."
@@ -2324,6 +2341,8 @@ export function useAiImagePageController() {
     vibeReferenceInputRef,
     vibeTransferDescription,
     vibeTransferReferences,
+    widthInput,
+    heightInput,
     width,
   };
 

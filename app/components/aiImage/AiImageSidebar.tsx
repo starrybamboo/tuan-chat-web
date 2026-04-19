@@ -6,9 +6,6 @@ import vibeTransferIconSrc from "@/components/aiImage/assets/vibe-transfer.png";
 import {
   CUSTOM_RESOLUTION_ID,
   DEFAULT_PRO_IMAGE_SETTINGS,
-  NOVELAI_DIMENSION_MIN,
-  NOVELAI_DIMENSION_STEP,
-  NOVELAI_FREE_MAX_DIMENSION,
   NOVELAI_FREE_MAX_STEPS,
   RESOLUTION_PRESETS,
   SAMPLER_LABELS,
@@ -20,7 +17,6 @@ import {
   clamp01,
   clampIntRange,
   clampRange,
-  clampToMultipleOf64,
   formatSliderValue,
   insertNovelAiRandomTags,
   modelLabel,
@@ -56,7 +52,6 @@ type ModeOptionValue = (typeof MODE_OPTIONS)[number]["value"];
 
 export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
   const {
-    activeResolutionPreset,
     canConvertSimpleText,
     canGenerate,
     canGenerateFromSimpleTags,
@@ -94,7 +89,6 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
     handleUpdateV4Char,
     handleOpenBaseImageInpaint,
     hasCurrentDisplayedImage,
-    height,
     imageCount,
     imageCountLimit,
     isDirectorToolsOpen,
@@ -124,7 +118,6 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
     setCfgRescale,
     setCharPromptTabs,
     setDynamicThresholding,
-    setHeight,
     setImageCount,
     setIsStylePickerOpen,
     setNegativePrompt,
@@ -153,7 +146,6 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
     setV4Chars,
     setV4UseCoords,
     setV4UseOrder,
-    setWidth,
     simpleConvertLabel,
     simpleConverting,
     simpleEditorMode,
@@ -176,7 +168,8 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
     v4UseCoords,
     v4UseOrder,
     vibeTransferDescription,
-    width,
+    widthInput,
+    heightInput,
   } = sidebarProps;
 
   const sideCardClassName = "card border-x-0 border-b border-t-0 border-[#D6DCE3] bg-[#F3F5F7] shadow-none dark:border-[#2A3138] dark:bg-[#161A1F]";
@@ -1558,21 +1551,21 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                       <input
                         className={simpleResolutionValueInputClassName}
                         type="number"
-                        min={NOVELAI_DIMENSION_MIN}
-                        max={simpleResolutionSelection === CUSTOM_RESOLUTION_ID ? SIMPLE_MODE_CUSTOM_MAX_DIMENSION : NOVELAI_FREE_MAX_DIMENSION}
-                        step={NOVELAI_DIMENSION_STEP}
-                        value={width}
-                        onChange={e => handleSimpleWidthChange(Number(e.target.value))}
+                        min={1}
+                        max={SIMPLE_MODE_CUSTOM_MAX_DIMENSION}
+                        step={1}
+                        value={widthInput}
+                        onChange={e => handleSimpleWidthChange(e.target.value)}
                       />
                       <span className="text-center text-xs font-medium text-base-content/55">×</span>
                       <input
                         className={simpleResolutionValueInputClassName}
                         type="number"
-                        min={NOVELAI_DIMENSION_MIN}
-                        max={simpleResolutionSelection === CUSTOM_RESOLUTION_ID ? SIMPLE_MODE_CUSTOM_MAX_DIMENSION : NOVELAI_FREE_MAX_DIMENSION}
-                        step={NOVELAI_DIMENSION_STEP}
-                        value={height}
-                        onChange={e => handleSimpleHeightChange(Number(e.target.value))}
+                        min={1}
+                        max={SIMPLE_MODE_CUSTOM_MAX_DIMENSION}
+                        step={1}
+                        value={heightInput}
+                        onChange={e => handleSimpleHeightChange(e.target.value)}
                       />
                     </div>
                   </div>
@@ -1642,11 +1635,11 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                       <input
                         className={simpleResolutionValueInputClassName}
                         type="number"
-                        min={NOVELAI_DIMENSION_MIN}
+                        min={1}
                         max={SIMPLE_MODE_CUSTOM_MAX_DIMENSION}
-                        step={NOVELAI_DIMENSION_STEP}
-                        value={width}
-                        onChange={e => handleProWidthChange(Number(e.target.value))}
+                        step={1}
+                        value={widthInput}
+                        onChange={e => handleProWidthChange(e.target.value)}
                       />
                       <button
                         type="button"
@@ -1660,11 +1653,11 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                       <input
                         className={simpleResolutionValueInputClassName}
                         type="number"
-                        min={NOVELAI_DIMENSION_MIN}
+                        min={1}
                         max={SIMPLE_MODE_CUSTOM_MAX_DIMENSION}
-                        step={NOVELAI_DIMENSION_STEP}
-                        value={height}
-                        onChange={e => handleProHeightChange(Number(e.target.value))}
+                        step={1}
+                        value={heightInput}
+                        onChange={e => handleProHeightChange(e.target.value)}
                       />
                     </div>
                   </div>
