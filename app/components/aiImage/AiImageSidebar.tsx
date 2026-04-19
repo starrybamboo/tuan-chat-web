@@ -175,9 +175,9 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
   const segmentedControlClassName = "join rounded-xl bg-transparent p-0";
   const segmentedButtonBaseClassName = "btn btn-xs join-item border-0";
   const featureUploadActionClassName = "inline-flex size-11 items-center justify-center rounded-md border border-[#2A3138] bg-[#161A1F] text-base-content/78 transition hover:border-primary/40 hover:text-primary focus:outline-none";
-  const characterAddTriggerClassName = "inline-flex h-9 items-center gap-1.5 rounded-md border border-[#2A3138] bg-[#161A1F] px-3 text-[14px] font-semibold text-base-content transition hover:border-primary/40 hover:text-primary focus:outline-none";
-  const characterAddMenuPanelClassName = "absolute right-0 top-0 z-30 w-[8.25rem] overflow-hidden border border-[#2A3138] bg-[#161A1F] shadow-2xl";
-  const characterAddMenuItemClassName = "flex h-10 w-full items-center gap-2.5 px-4 text-left text-[15px] font-semibold text-base-content/92 transition hover:bg-white/6 focus:outline-none";
+  const characterAddTriggerClassName = "inline-flex h-8 items-center gap-1 rounded-md border border-[#2A3138] bg-[#161A1F] px-2.5 text-[13px] font-semibold text-base-content transition hover:border-primary/40 hover:text-primary focus:outline-none";
+  const characterAddMenuPanelClassName = "absolute right-0 top-0 z-30 w-[8.75rem] overflow-hidden border border-[#2A3138] bg-[#161A1F] shadow-2xl";
+  const characterAddMenuItemClassName = "flex h-11 w-full items-center gap-2.5 px-4 text-left text-[15px] font-semibold text-base-content/92 transition hover:bg-white/6 focus:outline-none";
   const promptTextareaClassName = "textarea textarea-bordered !rounded-none min-h-36 w-full resize-none border-[#D6DCE3] bg-[#F3F5F7] text-base-content leading-7 transition-colors hover:border-primary active:border-primary focus:border-primary focus:bg-primary/[0.03] focus:outline-none dark:border-[#2A3138] dark:bg-[#161A1F] dark:hover:border-primary";
   const simplePromptTextareaClassName = promptTextareaClassName;
   const subtleInputClassName = "input input-bordered input-sm !rounded-none border-[#D6DCE3] bg-[#F3F5F7] text-base-content dark:border-[#2A3138] dark:bg-[#161A1F]";
@@ -1140,7 +1140,7 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                                   role="menuitem"
                                   onClick={() => {
                                     setIsCharacterAddMenuOpen(false);
-                                    handleAddV4Char({ defaultPrompt: "girl" });
+                                    handleAddV4Char({ defaultPrompt: "girl," });
                                   }}
                                 >
                                   <GenderFemaleIcon className="size-4 shrink-0 text-white/90" weight="regular" />
@@ -1152,7 +1152,7 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                                   role="menuitem"
                                   onClick={() => {
                                     setIsCharacterAddMenuOpen(false);
-                                    handleAddV4Char({ defaultPrompt: "boy" });
+                                    handleAddV4Char({ defaultPrompt: "boy," });
                                   }}
                                 >
                                   <GenderMaleIcon className="size-4 shrink-0 text-white/90" weight="regular" />
@@ -1179,133 +1179,89 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                       ? (isNAI4
                           ? (
                               <div className="mt-4 space-y-3">
-                            <div className="rounded-2xl bg-base-200/60 p-3">
-                              <div className="flex flex-wrap items-center gap-4">
-                                <label className="label cursor-pointer gap-2 py-0">
-                                  <span className="label-text text-xs">Use Order</span>
-                                  <input type="checkbox" className="toggle toggle-sm" checked={v4UseOrder} onChange={e => setV4UseOrder(e.target.checked)} />
-                                </label>
-                                <label className="label cursor-pointer gap-2 py-0">
-                                  <span className="label-text text-xs">Use Coords</span>
-                                  <input type="checkbox" className="toggle toggle-sm" checked={v4UseCoords} onChange={e => setV4UseCoords(e.target.checked)} />
-                                </label>
-                              </div>
-                              <div className="mt-3 text-xs leading-5 text-base-content/60">
-                                {v4UseCoords
-                                  ? "开启坐标后，每个角色都会显示中心点位置输入。"
-                                  : "关闭坐标时，角色位置交由模型决定。"}
-                              </div>
-                            </div>
-
-                            {v4Chars.map((row, idx) => {
-                              const disabledUp = idx === 0 || !v4UseOrder;
-                              const disabledDown = idx === v4Chars.length - 1 || !v4UseOrder;
-                              const activeTab = charPromptTabs[row.id] || "prompt";
-                              const activeCharChannelSnapshot = activeTab === "prompt" ? tokenSnapshot.prompt : tokenSnapshot.negative;
-                              const activeCharMeter = activeCharChannelSnapshot.characters[row.id];
-                              return (
-                                <div key={row.id} className="rounded-2xl border border-base-300 bg-base-100 p-3 shadow-sm">
-                                  <div className="mb-3 flex items-center gap-2">
-                                    <div className="rounded-full bg-base-200 px-2 py-1 text-xs font-medium text-base-content/70">{`Character ${idx + 1}`}</div>
-                                    <div className="ml-auto join">
-                                      <button type="button" className="btn btn-xs join-item" onClick={() => handleMoveV4Char(row.id, -1)} disabled={disabledUp}>上移</button>
-                                      <button type="button" className="btn btn-xs join-item" onClick={() => handleMoveV4Char(row.id, 1)} disabled={disabledDown}>下移</button>
+                                {v4Chars.map((row, idx) => {
+                                  const disabledUp = idx === 0 || !v4UseOrder;
+                                  const disabledDown = idx === v4Chars.length - 1 || !v4UseOrder;
+                                  const activeTab = charPromptTabs[row.id] || "prompt";
+                                  const activeCharChannelSnapshot = activeTab === "prompt" ? tokenSnapshot.prompt : tokenSnapshot.negative;
+                                  const activeCharMeter = activeCharChannelSnapshot.characters[row.id];
+                                  return (
+                                    <div key={row.id} className="rounded-2xl border border-base-300 bg-base-100 p-3 shadow-sm">
+                                      <div className="mb-3 flex items-center gap-2">
+                                        <div className="rounded-full bg-base-200 px-2 py-1 text-xs font-medium text-base-content/70">{`Character ${idx + 1}`}</div>
+                                        <div className="ml-auto join">
+                                          <button type="button" className="btn btn-xs join-item" onClick={() => handleMoveV4Char(row.id, -1)} disabled={disabledUp}>上移</button>
+                                          <button type="button" className="btn btn-xs join-item" onClick={() => handleMoveV4Char(row.id, 1)} disabled={disabledDown}>下移</button>
+                                        </div>
+                                        <button type="button" className="btn btn-xs btn-ghost" onClick={() => handleRemoveV4Char(row.id)}>删除</button>
+                                      </div>
+                                      <div className="space-y-3">
+                                        <div className={segmentedControlClassName}>
+                                          <button
+                                            type="button"
+                                            className={`${segmentedButtonBaseClassName} ${activeTab === "prompt" ? "bg-base-100 text-base-content shadow-sm" : "bg-transparent text-base-content/60 hover:bg-base-100 hover:text-base-content"}`}
+                                            onClick={() => setCharPromptTabs(prev => ({ ...prev, [row.id]: "prompt" }))}
+                                          >
+                                            Prompt
+                                          </button>
+                                          <button
+                                            type="button"
+                                            className={`${segmentedButtonBaseClassName} ${activeTab === "negative" ? "bg-base-100 text-base-content shadow-sm" : "bg-transparent text-base-content/60 hover:bg-base-100 hover:text-base-content"}`}
+                                            onClick={() => setCharPromptTabs(prev => ({ ...prev, [row.id]: "negative" }))}
+                                          >
+                                            Undesired Content
+                                          </button>
+                                        </div>
+                                        <HighlightEmphasisTextarea
+                                          highlightEnabled={highlightEmphasisEnabled}
+                                          surfaceClassName={highlightCharSurfaceClassName}
+                                          contentClassName={highlightCharContentClassName}
+                                          value={activeTab === "prompt" ? row.prompt : row.negativePrompt}
+                                          onChange={(e) => {
+                                            if (activeTab === "prompt")
+                                              handleUpdateV4Char(row.id, { prompt: e.target.value });
+                                            else
+                                              handleUpdateV4Char(row.id, { negativePrompt: e.target.value });
+                                          }}
+                                          placeholder=""
+                                          spellCheck={false}
+                                        />
+                                        <AiImageContextLimitMeter
+                                          localUsed={activeCharMeter?.localUsed ?? 0}
+                                          totalUsed={activeCharMeter?.totalUsed ?? 0}
+                                          remaining={activeCharMeter?.remaining ?? NOVELAI_V45_CONTEXT_LIMIT}
+                                          overflow={activeCharMeter?.overflow ?? 0}
+                                          status={tokenSnapshot.status}
+                                          rows={[
+                                            {
+                                              label: "当前角色",
+                                              value: `${activeCharMeter?.localUsed ?? 0}`,
+                                            },
+                                            {
+                                              label: "主输入",
+                                              value: `${activeCharMeter?.baseTokens ?? 0}`,
+                                            },
+                                            ...((activeCharMeter?.hiddenTokens ?? 0) > 0
+                                              ? [{
+                                                  label: activeCharChannelSnapshot.hiddenLabel,
+                                                  value: `${activeCharMeter?.hiddenTokens ?? 0}`,
+                                                }]
+                                              : []),
+                                            {
+                                              label: "其他角色",
+                                              value: `${activeCharMeter?.otherCharacterTokens ?? 0}`,
+                                            },
+                                            {
+                                              label: "总计",
+                                              value: `${activeCharMeter?.totalUsed ?? 0}/${NOVELAI_V45_CONTEXT_LIMIT}`,
+                                            },
+                                          ]}
+                                        />
+                                      </div>
                                     </div>
-                                    <button type="button" className="btn btn-xs btn-ghost" onClick={() => handleRemoveV4Char(row.id)}>删除</button>
-                                  </div>
-                                  <div className="space-y-3">
-                                    <div className={segmentedControlClassName}>
-                                      <button
-                                        type="button"
-                                        className={`${segmentedButtonBaseClassName} ${activeTab === "prompt" ? "bg-base-100 text-base-content shadow-sm" : "bg-transparent text-base-content/60 hover:bg-base-100 hover:text-base-content"}`}
-                                        onClick={() => setCharPromptTabs(prev => ({ ...prev, [row.id]: "prompt" }))}
-                                      >
-                                        Prompt
-                                      </button>
-                                      <button
-                                        type="button"
-                                        className={`${segmentedButtonBaseClassName} ${activeTab === "negative" ? "bg-base-100 text-base-content shadow-sm" : "bg-transparent text-base-content/60 hover:bg-base-100 hover:text-base-content"}`}
-                                        onClick={() => setCharPromptTabs(prev => ({ ...prev, [row.id]: "negative" }))}
-                                      >
-                                        Undesired Content
-                                      </button>
-                                    </div>
-                                    <HighlightEmphasisTextarea
-                                      highlightEnabled={highlightEmphasisEnabled}
-                                      surfaceClassName={highlightCharSurfaceClassName}
-                                      contentClassName={highlightCharContentClassName}
-                                      value={activeTab === "prompt" ? row.prompt : row.negativePrompt}
-                                      onChange={(e) => {
-                                        if (activeTab === "prompt")
-                                          handleUpdateV4Char(row.id, { prompt: e.target.value });
-                                        else
-                                          handleUpdateV4Char(row.id, { negativePrompt: e.target.value });
-                                      }}
-                                      placeholder=""
-                                      spellCheck={false}
-                                    />
-                                    <AiImageContextLimitMeter
-                                      localUsed={activeCharMeter?.localUsed ?? 0}
-                                      totalUsed={activeCharMeter?.totalUsed ?? 0}
-                                      remaining={activeCharMeter?.remaining ?? NOVELAI_V45_CONTEXT_LIMIT}
-                                      overflow={activeCharMeter?.overflow ?? 0}
-                                      status={tokenSnapshot.status}
-                                      rows={[
-                                        {
-                                          label: "当前角色",
-                                          value: `${activeCharMeter?.localUsed ?? 0}`,
-                                        },
-                                        {
-                                          label: "主输入",
-                                          value: `${activeCharMeter?.baseTokens ?? 0}`,
-                                        },
-                                        ...((activeCharMeter?.hiddenTokens ?? 0) > 0
-                                          ? [{
-                                              label: activeCharChannelSnapshot.hiddenLabel,
-                                              value: `${activeCharMeter?.hiddenTokens ?? 0}`,
-                                            }]
-                                          : []),
-                                        {
-                                          label: "其他角色",
-                                          value: `${activeCharMeter?.otherCharacterTokens ?? 0}`,
-                                        },
-                                        {
-                                          label: "总计",
-                                          value: `${activeCharMeter?.totalUsed ?? 0}/${NOVELAI_V45_CONTEXT_LIMIT}`,
-                                        },
-                                      ]}
-                                    />
-                                    {v4UseCoords
-                                      ? (
-                                          <div className="grid grid-cols-2 gap-2">
-                                            <label className="form-control gap-1">
-                                              <span className="label-text text-xs">Center X</span>
-                                              <input className="input input-bordered input-sm !rounded-none" type="number" min="0" max="1" step="0.01" value={row.centerX} onChange={e => handleUpdateV4Char(row.id, { centerX: clamp01(Number(e.target.value), 0.5) })} />
-                                            </label>
-                                            <label className="form-control gap-1">
-                                              <span className="label-text text-xs">Center Y</span>
-                                              <input className="input input-bordered input-sm !rounded-none" type="number" min="0" max="1" step="0.01" value={row.centerY} onChange={e => handleUpdateV4Char(row.id, { centerY: clamp01(Number(e.target.value), 0.5) })} />
-                                            </label>
-                                          </div>
-                                        )
-                                      : <div className="text-xs text-base-content/60">Position: AI&apos;s Choice</div>}
-                                  </div>
-                                </div>
-                              );
-                            })}
-
-                            {!v4Chars.length
-                              ? (
-                                  <div className="rounded-2xl border border-dashed border-base-300 bg-base-200/30 px-4 py-4 text-sm leading-6 text-base-content/60">
-                                    还没有角色提示词。点击右上角的
-                                    {" "}
-                                    <span className="font-medium text-base-content">Add Character</span>
-                                    {" "}
-                                    为每个角色单独填写 Prompt / UC。
-                                  </div>
-                                )
-                              : null}
-                          </div>
+                                  );
+                                })}
+                              </div>
                             )
                           : <div className="mt-4 text-sm opacity-60">当前模型不支持 Character Prompts。</div>)
                       : null}
