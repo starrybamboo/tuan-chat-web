@@ -102,6 +102,31 @@ export const DEFAULT_PRO_IMAGE_SETTINGS = {
   simpleResolutionSelection: "portrait" as ResolutionSelection,
 } as const;
 
+export const DEFAULT_SIMPLE_IMAGE_SETTINGS = {
+  width: DEFAULT_PRO_IMAGE_SETTINGS.width,
+  height: DEFAULT_PRO_IMAGE_SETTINGS.height,
+  imageCount: NOVELAI_FREE_FIXED_IMAGE_COUNT,
+  steps: 23,
+  scale: 5,
+  sampler: "k_euler_a",
+  noiseSchedule: "karras",
+  cfgRescale: 0,
+  ucPreset: DEFAULT_PRO_IMAGE_SETTINGS.ucPreset,
+  qualityToggle: DEFAULT_PRO_IMAGE_SETTINGS.qualityToggle,
+  dynamicThresholding: DEFAULT_PRO_IMAGE_SETTINGS.dynamicThresholding,
+  smea: DEFAULT_PRO_IMAGE_SETTINGS.smea,
+  smeaDyn: DEFAULT_PRO_IMAGE_SETTINGS.smeaDyn,
+  strength: DEFAULT_PRO_IMAGE_SETTINGS.strength,
+  noise: DEFAULT_PRO_IMAGE_SETTINGS.noise,
+  seed: DEFAULT_PRO_IMAGE_SETTINGS.seed,
+  simpleResolutionSelection: DEFAULT_PRO_IMAGE_SETTINGS.simpleResolutionSelection,
+} as const;
+
+export const DEFAULT_IMG2IMG_SETTINGS = {
+  strength: DEFAULT_PRO_IMAGE_SETTINGS.strength,
+  noise: DEFAULT_PRO_IMAGE_SETTINGS.noise,
+} as const;
+
 export const UC_PRESET_OPTIONS = [
   { value: 0, label: "标准", description: "附加低质量和解剖问题等常见抑制词。" },
   { value: 1, label: "轻量", description: "只附加基础低质量抑制词。" },
