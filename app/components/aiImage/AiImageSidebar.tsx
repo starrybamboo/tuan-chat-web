@@ -683,7 +683,7 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                   <div className="truncate text-sm font-semibold leading-none text-base-content dark:text-white">{SAMPLER_LABELS[sampler] || sampler}</div>
                 </div>
                 <div className="flex items-center justify-end">
-                  <CaretUpIcon className="size-4 rotate-180" weight="bold" />
+                  <CaretUpIcon className="size-4" weight="bold" />
                 </div>
               </button>
             )
@@ -1876,7 +1876,7 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
 
       {uiMode === "simple" || uiMode === "pro"
         ? (
-            <div className="shrink-0 border-t border-[#D6DCE3] bg-[#F3F5F7] p-4 backdrop-blur dark:border-[#2A3138] dark:bg-[#161A1F]">
+            <div className="shrink-0 bg-[#F3F5F7] p-4 backdrop-blur dark:bg-[#161A1F]">
               <button
                 type="button"
                 className={`btn h-12 w-full justify-between border px-4 disabled:border-base-300 disabled:bg-base-200 disabled:text-base-content/35 ${
