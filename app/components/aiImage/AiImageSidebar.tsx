@@ -1,6 +1,8 @@
 import type { AiImagePageController } from "@/components/aiImage/useAiImagePageController";
-import { ArrowClockwise, ArrowCounterClockwise, CaretDownIcon, CaretUpIcon, CheckCircleIcon, CircleIcon, CircleNotch, DiceFiveIcon, FileArrowUpIcon, GenderFemaleIcon, GenderMaleIcon, GearSixIcon, ImageSquareIcon, ImagesSquareIcon, PlusIcon, SelectionPlusIcon, SparkleIcon, StackSimpleIcon, TrashIcon, XCircleIcon } from "@phosphor-icons/react";
+import { ArrowClockwise, ArrowCounterClockwise, CaretDownIcon, CaretUpIcon, CheckCircleIcon, CircleIcon, CircleNotch, DiceFiveIcon, FileArrowUpIcon, GenderFemaleIcon, GenderMaleIcon, GearSixIcon, ImageSquareIcon, ImagesSquareIcon, PlusIcon, SelectionPlusIcon, SparkleIcon, TrashIcon, XCircleIcon } from "@phosphor-icons/react";
 import { useCallback, useEffect, useRef, useState } from "react";
+import preciseReferenceIconSrc from "@/components/aiImage/assets/precise-reference.png";
+import vibeTransferIconSrc from "@/components/aiImage/assets/vibe-transfer.png";
 import {
   CUSTOM_RESOLUTION_ID,
   DEFAULT_PRO_IMAGE_SETTINGS,
@@ -27,6 +29,7 @@ import {
 import { HighlightEmphasisTextarea } from "@/components/aiImage/HighlightEmphasisTextarea";
 import { AiImageContextLimitMeter } from "@/components/aiImage/AiImageContextLimitMeter";
 import { NOVELAI_V45_CONTEXT_LIMIT, useNovelAiV45TokenSnapshot } from "@/components/aiImage/novelaiV45TokenMeter";
+import { ReferenceActionIcon } from "@/components/aiImage/ReferenceActionIcon";
 import { ChevronDown } from "@/icons";
 import { ProFeatureSection } from "@/components/aiImage/ProFeatureSection";
 
@@ -1308,10 +1311,10 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                   </div>
 
                   <div className="overflow-hidden border border-[#2A3138] bg-[#161A1F] shadow-none">
-                    <div className="flex items-start justify-between gap-4 px-4 py-4">
-                      <div className="flex min-w-0 items-start gap-3">
-                        <div className="mt-0.5 flex size-6 shrink-0 items-center justify-center text-white/90" aria-hidden="true">
-                          <StackSimpleIcon className="size-6" weight="regular" />
+                    <div className="flex items-center justify-between gap-4 px-4 py-4">
+                      <div className="flex min-w-0 items-center gap-3">
+                        <div className="flex size-6 shrink-0 items-center justify-center text-white/90" aria-hidden="true">
+                          <ReferenceActionIcon className="size-5 shrink-0" src={vibeTransferIconSrc} />
                         </div>
                         <div className="min-w-0">
                           <div className="text-[15px] font-semibold leading-6 text-white">Vibe Transfer</div>
@@ -1330,10 +1333,10 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                     </div>
 
                     <div className="border-t border-[#2A3138]">
-                      <div className="flex items-start justify-between gap-4 px-4 py-4">
-                        <div className="flex min-w-0 items-start gap-3">
-                          <div className="mt-0.5 flex size-6 shrink-0 items-center justify-center text-white/90" aria-hidden="true">
-                            <ImageSquareIcon className="size-6" weight="regular" />
+                      <div className="flex items-center justify-between gap-4 px-4 py-4">
+                        <div className="flex min-w-0 items-center gap-3">
+                          <div className="flex size-6 shrink-0 items-center justify-center text-white/90" aria-hidden="true">
+                            <ReferenceActionIcon className="size-5 shrink-0" src={preciseReferenceIconSrc} />
                           </div>
                           <div className="min-w-0">
                             <div className="text-[15px] font-semibold leading-6 text-white">Precise Reference</div>
