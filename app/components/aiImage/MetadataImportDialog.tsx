@@ -8,6 +8,7 @@ import type {
 import image2imageIconSrc from "@/components/aiImage/assets/image2image.png";
 import preciseReferenceIconSrc from "@/components/aiImage/assets/precise-reference.png";
 import vibeTransferIconSrc from "@/components/aiImage/assets/vibe-transfer.png";
+import { ReferenceActionIcon } from "@/components/aiImage/ReferenceActionIcon";
 import PortalTooltip from "@/components/common/portalTooltip";
 
 interface MetadataImportDialogProps {
@@ -30,32 +31,6 @@ const METADATA_CHECKBOX_CLASS_NAME = "size-4 shrink-0 rounded-[2px] border borde
 const METADATA_LABEL_ENABLED_CLASS_NAME = "cursor-pointer text-base-content";
 const METADATA_LABEL_DISABLED_CLASS_NAME = "cursor-not-allowed text-base-content/35";
 const CLEAN_IMPORTS_HINT_TEXT = "Remove[] / {}, add spaces after commas";
-
-function ReferenceActionIcon({
-  className,
-  src,
-}: {
-  className?: string;
-  src: string;
-}) {
-  return (
-    <span
-      aria-hidden="true"
-      className={className}
-      style={{
-        backgroundColor: "currentColor",
-        WebkitMaskImage: `url(${src})`,
-        maskImage: `url(${src})`,
-        WebkitMaskRepeat: "no-repeat",
-        maskRepeat: "no-repeat",
-        WebkitMaskPosition: "center",
-        maskPosition: "center",
-        WebkitMaskSize: "contain",
-        maskSize: "contain",
-      }}
-    />
-  );
-}
 
 function CleanImportsHint() {
   return (
