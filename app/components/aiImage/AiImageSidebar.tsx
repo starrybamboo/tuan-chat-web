@@ -1,5 +1,5 @@
 import type { AiImagePageController } from "@/components/aiImage/useAiImagePageController";
-import { ArrowClockwise, ArrowCounterClockwise, CheckCircleIcon, CircleIcon, CircleNotch, DiceFiveIcon, FileArrowUpIcon, GenderFemaleIcon, GenderMaleIcon, GearSixIcon, ImageSquareIcon, PlusIcon, SelectionPlusIcon, SparkleIcon, TrashIcon, XCircleIcon } from "@phosphor-icons/react";
+import { ArrowClockwise, ArrowCounterClockwise, CaretDownIcon, CaretUpIcon, CheckCircleIcon, CircleIcon, CircleNotch, DiceFiveIcon, FileArrowUpIcon, GenderFemaleIcon, GenderMaleIcon, GearSixIcon, ImageSquareIcon, PlusIcon, SelectionPlusIcon, SparkleIcon, TrashIcon, XCircleIcon } from "@phosphor-icons/react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   CUSTOM_RESOLUTION_ID,
@@ -176,8 +176,11 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
   const segmentedButtonBaseClassName = "btn btn-xs join-item border-0";
   const featureUploadActionClassName = "inline-flex size-11 items-center justify-center rounded-md border border-[#2A3138] bg-[#161A1F] text-base-content/78 transition hover:border-primary/40 hover:text-primary focus:outline-none";
   const characterAddTriggerClassName = "inline-flex h-8 items-center gap-1 rounded-md border border-[#2A3138] bg-[#161A1F] px-2.5 text-[13px] font-semibold text-base-content transition hover:border-primary/40 hover:text-primary focus:outline-none";
-  const characterAddMenuPanelClassName = "absolute right-0 top-0 z-30 w-[8.75rem] overflow-hidden border border-[#2A3138] bg-[#161A1F] shadow-2xl";
-  const characterAddMenuItemClassName = "flex h-11 w-full items-center gap-2.5 px-4 text-left text-[15px] font-semibold text-base-content/92 transition hover:bg-white/6 focus:outline-none";
+  const characterAddMenuPanelClassName = "absolute right-0 top-0 z-30 w-[7.25rem] overflow-hidden border border-[#2A3138] bg-[#161A1F] shadow-2xl";
+  const characterAddMenuItemClassName = "flex h-11 w-full items-center gap-2 px-3 text-left text-[14px] font-semibold text-base-content/92 transition hover:bg-white/6 focus:outline-none";
+  const characterCardClassName = "rounded-2xl border border-[#2A3138] bg-[#161A1F] p-3 shadow-none";
+  const characterCardHeaderActionClassName = "inline-flex size-7 items-center justify-center rounded-md text-white/56 transition hover:bg-white/6 hover:text-white focus:outline-none disabled:cursor-not-allowed disabled:opacity-35";
+  const characterCardTitleIconClassName = "size-4 shrink-0 text-white/80";
   const promptTextareaClassName = "textarea textarea-bordered !rounded-none min-h-36 w-full resize-none border-[#D6DCE3] bg-[#F3F5F7] text-base-content leading-7 transition-colors hover:border-primary active:border-primary focus:border-primary focus:bg-primary/[0.03] focus:outline-none dark:border-[#2A3138] dark:bg-[#161A1F] dark:hover:border-primary";
   const simplePromptTextareaClassName = promptTextareaClassName;
   const subtleInputClassName = "input input-bordered input-sm !rounded-none border-[#D6DCE3] bg-[#F3F5F7] text-base-content dark:border-[#2A3138] dark:bg-[#161A1F]";
@@ -1140,7 +1143,7 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                                   role="menuitem"
                                   onClick={() => {
                                     setIsCharacterAddMenuOpen(false);
-                                    handleAddV4Char({ defaultPrompt: "girl," });
+                                    handleAddV4Char({ defaultPrompt: "girl,", gender: "female" });
                                   }}
                                 >
                                   <GenderFemaleIcon className="size-4 shrink-0 text-white/90" weight="regular" />
@@ -1152,7 +1155,7 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                                   role="menuitem"
                                   onClick={() => {
                                     setIsCharacterAddMenuOpen(false);
-                                    handleAddV4Char({ defaultPrompt: "boy," });
+                                    handleAddV4Char({ defaultPrompt: "boy,", gender: "male" });
                                   }}
                                 >
                                   <GenderMaleIcon className="size-4 shrink-0 text-white/90" weight="regular" />
@@ -1164,7 +1167,7 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                                   role="menuitem"
                                   onClick={() => {
                                     setIsCharacterAddMenuOpen(false);
-                                    handleAddV4Char();
+                                    handleAddV4Char({ gender: "other" });
                                   }}
                                 >
                                   <CircleIcon className="size-4 shrink-0 text-white/85" weight="regular" />
@@ -1185,28 +1188,63 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                                   const activeTab = charPromptTabs[row.id] || "prompt";
                                   const activeCharChannelSnapshot = activeTab === "prompt" ? tokenSnapshot.prompt : tokenSnapshot.negative;
                                   const activeCharMeter = activeCharChannelSnapshot.characters[row.id];
+                                  const rowGender = row.gender || "other";
+                                  const RowGenderIcon = rowGender === "female"
+                                    ? GenderFemaleIcon
+                                    : rowGender === "male"
+                                      ? GenderMaleIcon
+                                      : CircleIcon;
                                   return (
-                                    <div key={row.id} className="rounded-2xl border border-base-300 bg-base-100 p-3 shadow-sm">
+                                    <div key={row.id} className={characterCardClassName}>
                                       <div className="mb-3 flex items-center gap-2">
-                                        <div className="rounded-full bg-base-200 px-2 py-1 text-xs font-medium text-base-content/70">{`Character ${idx + 1}`}</div>
-                                        <div className="ml-auto join">
-                                          <button type="button" className="btn btn-xs join-item" onClick={() => handleMoveV4Char(row.id, -1)} disabled={disabledUp}>上移</button>
-                                          <button type="button" className="btn btn-xs join-item" onClick={() => handleMoveV4Char(row.id, 1)} disabled={disabledDown}>下移</button>
+                                        <div className="flex min-w-0 items-center gap-1.5 text-white/92">
+                                          <RowGenderIcon className={characterCardTitleIconClassName} weight="regular" />
+                                          <div className="truncate text-[14px] font-medium leading-6">{`Character ${idx + 1}`}</div>
                                         </div>
-                                        <button type="button" className="btn btn-xs btn-ghost" onClick={() => handleRemoveV4Char(row.id)}>删除</button>
+                                        <div className="ml-auto flex items-center gap-0.5">
+                                          <button
+                                            type="button"
+                                            className={characterCardHeaderActionClassName}
+                                            onClick={() => handleMoveV4Char(row.id, -1)}
+                                            disabled={disabledUp}
+                                            aria-label="上移角色"
+                                            title="上移角色"
+                                          >
+                                            <CaretUpIcon className="size-4" weight="bold" />
+                                          </button>
+                                          <button
+                                            type="button"
+                                            className={characterCardHeaderActionClassName}
+                                            onClick={() => handleMoveV4Char(row.id, 1)}
+                                            disabled={disabledDown}
+                                            aria-label="下移角色"
+                                            title="下移角色"
+                                          >
+                                            <CaretDownIcon className="size-4" weight="bold" />
+                                          </button>
+                                          <button
+                                            type="button"
+                                            className={characterCardHeaderActionClassName}
+                                            onClick={() => handleRemoveV4Char(row.id)}
+                                            aria-label="删除角色"
+                                            title="删除角色"
+                                          >
+                                            <TrashIcon className="size-4" weight="bold" />
+                                          </button>
+                                        </div>
                                       </div>
                                       <div className="space-y-3">
                                         <div className={segmentedControlClassName}>
                                           <button
                                             type="button"
-                                            className={`${segmentedButtonBaseClassName} ${activeTab === "prompt" ? "bg-base-100 text-base-content shadow-sm" : "bg-transparent text-base-content/60 hover:bg-base-100 hover:text-base-content"}`}
+                                            className={`${segmentedButtonBaseClassName} ${activeTab === "prompt" ? "bg-white/10 text-white shadow-none" : "bg-transparent text-white/55 hover:bg-white/6 hover:text-white"}`}
                                             onClick={() => setCharPromptTabs(prev => ({ ...prev, [row.id]: "prompt" }))}
                                           >
                                             Prompt
                                           </button>
                                           <button
                                             type="button"
-                                            className={`${segmentedButtonBaseClassName} ${activeTab === "negative" ? "bg-base-100 text-base-content shadow-sm" : "bg-transparent text-base-content/60 hover:bg-base-100 hover:text-base-content"}`}
+                                            className={`${segmentedButtonBaseClassName} ${activeTab === "negative" ? "bg-white/10 text-white shadow-none" : "bg-transparent text-white/55 hover:bg-white/6 hover:text-white"}`}
                                             onClick={() => setCharPromptTabs(prev => ({ ...prev, [row.id]: "negative" }))}
                                           >
                                             Undesired Content

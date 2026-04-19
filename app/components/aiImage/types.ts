@@ -5,6 +5,8 @@ import type { NovelAiImageMetadataResult } from "@/utils/novelaiImageMetadata";
 
 export type UiMode = "simple" | "pro";
 
+export type V4CharGender = "female" | "male" | "other";
+
 export type V4PromptCenter = {
   x: number;
   y: number;
@@ -19,6 +21,7 @@ export type V4CharPayload = {
 
 export type V4CharEditorRow = {
   id: string;
+  gender?: V4CharGender;
 } & V4CharPayload;
 
 export type VibeTransferReferencePayload = {

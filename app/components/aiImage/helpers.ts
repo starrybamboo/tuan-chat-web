@@ -6,6 +6,7 @@ import type {
   MetadataImportSelectionState,
   NovelAiEmotion,
   ProFeatureSectionKey,
+  V4CharGender,
   V4CharEditorRow,
 } from "@/components/aiImage/types";
 import type {
@@ -48,9 +49,10 @@ export function makeStableId() {
   return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
 
-export function newV4CharEditorRow(): V4CharEditorRow {
+export function newV4CharEditorRow(options?: { gender?: V4CharGender }): V4CharEditorRow {
   return {
     id: makeStableId(),
+    gender: options?.gender ?? "other",
     prompt: "",
     negativePrompt: "",
     centerX: 0.5,
