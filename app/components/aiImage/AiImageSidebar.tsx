@@ -695,8 +695,8 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
               : "pointer-events-none translate-y-6 scale-[0.98] opacity-0"
           }`}
         >
-          <div className="max-h-[28rem] overflow-y-auto p-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-            <div className="mb-4 flex items-center justify-between gap-3">
+          <div className="overflow-visible pb-4 pl-4 pr-0 pt-4">
+            <div className="mb-4 flex items-center justify-between gap-3 pr-4">
               <div className="text-sm font-semibold text-base-content/92 dark:text-white/92">AI Settings</div>
               <div className="flex items-center gap-2">
                 <button
@@ -721,7 +721,7 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
 
             <div className="space-y-4">
               <div>
-                <div className="mb-2 flex items-center justify-between">
+                <div className="mb-2 flex items-center justify-between pr-4">
                   <span className="text-sm font-semibold text-base-content dark:text-white">{`Steps: ${steps}`}</span>
                 </div>
                 <input
@@ -736,7 +736,7 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
               </div>
 
               <div>
-                <div className="mb-2 flex items-center justify-between gap-3">
+                <div className="mb-2 flex items-center justify-between gap-3 pr-4">
                   <span className="text-sm font-semibold text-base-content dark:text-white">{`Prompt Guidance: ${scale}`}</span>
                   <button
                     type="button"
@@ -762,7 +762,7 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-4 pr-4">
                 <div className="flex flex-col gap-2">
                   <div className="text-sm font-semibold text-base-content dark:text-white">Seed</div>
                   <input
@@ -785,10 +785,10 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
               </div>
 
               <details className="collapse collapse-arrow border-0 bg-transparent" open>
-                <summary className="collapse-title min-h-0 px-0 py-0 pr-8 text-sm font-semibold text-base-content dark:text-white">
+                <summary className="collapse-title min-h-0 px-0 py-0 pr-12 text-sm font-semibold text-base-content dark:text-white">
                   Advanced Settings
                 </summary>
-                <div className="collapse-content space-y-4 px-0 pb-0 pt-4">
+                <div className="collapse-content space-y-4 px-0 pb-0 pr-4 pt-4">
                   {isNAI4
                     ? (
                         <div className="flex flex-col gap-2">
