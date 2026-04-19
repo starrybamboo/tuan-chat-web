@@ -684,14 +684,13 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                   </div>
                   </div>
 
-                  <div className="mt-1">
+                  <div className="mt-0">
                     {sourceImageDataUrl
                       ? (
                           <div className={simpleBaseImageCardClassName}>
                             <div className="flex items-center justify-between gap-3 border-b border-[#D6DCE3] px-3 py-3 dark:border-[#2A3138]">
                               <div className="min-w-0">
                                 <div className="text-[13px] font-semibold text-base-content">Base Img</div>
-                                <div className="mt-0.5 text-[12px] leading-5 text-base-content/58">Import an image to switch to img2img.</div>
                               </div>
                               <div className="flex items-center gap-1.5">
                                 <button
@@ -728,7 +727,6 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                           <div className="flex items-center justify-between gap-3 rounded-2xl border border-dashed border-[#D6DCE3] bg-[#F3F5F7] px-3 py-3 dark:border-[#2A3138] dark:bg-[#161A1F]">
                             <div className="min-w-0">
                               <div className="text-[13px] font-medium text-base-content">Add a Base Img (Optional)</div>
-                              <div className="mt-0.5 text-[12px] leading-5 text-base-content/58">Import an image to switch to img2img.</div>
                             </div>
                             <button
                               type="button"
@@ -882,54 +880,6 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                         </div>
                       </div>
                     </div>
-                  </div>
-
-                  <div className="rounded-md border border-[#2A3138] bg-[#161A1F] shadow-none">
-                    <div className="flex items-center justify-between gap-4 px-4 py-4">
-                      <div className="min-w-0">
-                        <div className="text-[15px] font-semibold leading-6 text-white">Add a Base Img (Optional)</div>
-                        <div className="mt-0.5 text-[13px] leading-5 text-white/58">
-                          上传图片后会先弹出导入弹窗，带 metadata 时可直接切到转换结果。
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <button
-                          type="button"
-                          className={featureUploadActionClassName}
-                          aria-label="上传 Base Img"
-                          title="上传 Base Img"
-                          onClick={handleOpenSourceImagePicker}
-                        >
-                          <FileArrowUpIcon className="size-5" weight="bold" />
-                        </button>
-                        {sourceImageDataUrl
-                          ? (
-                              <button
-                                type="button"
-                                className={featureUploadActionClassName}
-                                aria-label="移除 Base Img"
-                                title="移除 Base Img"
-                                onClick={handleClearSourceImage}
-                              >
-                                <TrashIcon className="size-5" weight="bold" />
-                              </button>
-                            )
-                          : null}
-                      </div>
-                    </div>
-                    {sourceImageDataUrl
-                      ? (
-                          <div className="border-t border-[#2A3138] bg-[#161A1F] px-4 py-4">
-                            <div className="overflow-hidden rounded-md border border-[#2A3138] bg-black/20">
-                              <img
-                                src={sourceImageDataUrl}
-                                alt="Base Img"
-                                className="block max-h-56 w-full object-contain"
-                              />
-                            </div>
-                          </div>
-                        )
-                      : null}
                   </div>
 
                 </div>
