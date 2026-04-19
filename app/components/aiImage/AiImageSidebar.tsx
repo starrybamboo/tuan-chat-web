@@ -695,7 +695,7 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
               : "pointer-events-none translate-y-6 scale-[0.98] opacity-0"
           }`}
         >
-          <div className="ai-image-fade-scrollbar max-h-[28rem] overflow-y-auto p-4">
+          <div className="max-h-[28rem] overflow-y-auto p-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             <div className="mb-4 flex items-center justify-between gap-3">
               <div className="text-sm font-semibold text-base-content/92 dark:text-white/92">AI Settings</div>
               <div className="flex items-center gap-2">
@@ -742,8 +742,8 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                     type="button"
                     className={`inline-flex h-7 items-center rounded-md border px-2.5 text-xs font-semibold transition focus:outline-none focus:ring-2 focus:ring-primary/20 ${
                       qualityToggle
-                        ? "border-primary/30 bg-primary/10 text-primary"
-                        : "border-[#D6DCE3] bg-[#F3F5F7] text-base-content/72 hover:border-primary/30 hover:text-primary dark:border-[#2A3138] dark:bg-[#161A1F] dark:text-white/72 dark:hover:border-primary/30 dark:hover:text-primary"
+                        ? "border-transparent bg-primary/10 text-primary"
+                        : "border-transparent bg-[#F3F5F7] text-base-content/72 hover:text-primary dark:bg-[#161A1F] dark:text-white/72 dark:hover:text-primary"
                     }`}
                     aria-pressed={qualityToggle}
                     onClick={() => setQualityToggle(!qualityToggle)}
@@ -766,7 +766,7 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                 <div className="flex flex-col gap-2">
                   <div className="text-sm font-semibold text-base-content dark:text-white">Seed</div>
                   <input
-                    className={`${subtleInputClassName} border-[#D6DCE3] bg-[#F3F5F7] text-base-content placeholder:text-base-content/28 dark:border-[#2A3138] dark:bg-[#161A1F] dark:text-white dark:placeholder:text-white/28`}
+                    className={`${subtleInputClassName} border-[#D6DCE3] bg-[#F3F5F7] text-base-content placeholder:text-base-content/28 [-moz-appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none dark:border-[#2A3138] dark:bg-[#161A1F] dark:text-white dark:placeholder:text-white/28`}
                     type="number"
                     value={seedIsRandom ? "" : seed}
                     placeholder="Enter a seed"
