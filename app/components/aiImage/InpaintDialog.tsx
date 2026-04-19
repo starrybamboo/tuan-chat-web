@@ -354,6 +354,7 @@ export function InpaintDialog({
   const floatingPanelClassName = "rounded-md border border-white/10 bg-[#191b31]/94 p-3 shadow-[0_18px_48px_rgba(0,0,0,0.34)] backdrop-blur";
   const actionButtonClassName = "inline-flex h-10 items-center justify-center rounded-md border border-white/10 px-4 text-sm font-medium transition focus:outline-none focus:ring-2 focus:ring-white/16 disabled:cursor-not-allowed disabled:opacity-40";
   const topActionButtonClassName = "inline-flex h-10 items-center justify-center border-0 px-4 text-sm font-medium transition focus:outline-none focus:ring-2 focus:ring-white/16 disabled:cursor-not-allowed disabled:opacity-40 rounded-none";
+  const topIconActionButtonClassName = "inline-flex size-10 items-center justify-center border-0 bg-white/[0.06] text-white/72 transition hover:bg-white/[0.1] hover:text-white focus:outline-none focus:ring-2 focus:ring-white/16 disabled:cursor-not-allowed disabled:opacity-35 rounded-none";
   const canUndo = historyVersion >= 0 && undoStackRef.current.length > 0;
   const canRedo = historyVersion >= 0 && redoStackRef.current.length > 0;
 
@@ -400,14 +401,13 @@ export function InpaintDialog({
       <div className="absolute right-4 top-4 z-20 flex items-stretch overflow-hidden border border-white/10 shadow-[0_18px_48px_rgba(0,0,0,0.34)]">
         <button
           type="button"
-          className={`${topActionButtonClassName} bg-[#1f2238] text-white/82 hover:bg-[#262944] hover:text-white`}
+          className={topIconActionButtonClassName}
           aria-label="下载原图"
           title="下载原图"
           disabled={isSubmitting}
           onClick={handleDownloadSource}
         >
-          <DownloadSimpleIcon className="mr-2 size-[18px]" weight="bold" />
-          下载
+          <DownloadSimpleIcon className="size-[18px]" weight="bold" />
         </button>
         <button
           type="button"
@@ -420,7 +420,7 @@ export function InpaintDialog({
         </button>
         <button
           type="button"
-          className={`${topActionButtonClassName} border-l border-white/10 bg-[#1f2238] px-3 text-white/82 hover:bg-[#262944] hover:text-white`}
+          className={`${topIconActionButtonClassName} border-l border-white/10`}
           aria-label="关闭 Inpaint"
           title="关闭 Inpaint"
           disabled={isSubmitting}
