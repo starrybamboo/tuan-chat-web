@@ -176,8 +176,8 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
   const segmentedButtonBaseClassName = "btn btn-xs join-item border-0";
   const featureUploadActionClassName = "inline-flex size-11 items-center justify-center rounded-md border border-[#2A3138] bg-[#161A1F] text-base-content/78 transition hover:border-primary/40 hover:text-primary focus:outline-none";
   const characterAddTriggerClassName = "inline-flex h-8 items-center gap-1 rounded-md border border-[#2A3138] bg-[#161A1F] px-2.5 text-[13px] font-semibold text-base-content transition hover:border-primary/40 hover:text-primary focus:outline-none";
-  const characterAddMenuPanelClassName = "absolute right-0 top-0 z-30 w-[7.25rem] overflow-hidden border border-[#2A3138] bg-[#161A1F] shadow-2xl";
-  const characterAddMenuItemClassName = "flex h-11 w-full items-center gap-2 px-3 text-left text-[14px] font-semibold text-base-content/92 transition hover:bg-white/6 focus:outline-none";
+  const characterAddMenuPanelClassName = "absolute right-0 top-0 z-30 w-[139.72px] overflow-hidden border border-[#2A3138] bg-[#161A1F] shadow-2xl";
+  const characterAddMenuItemClassName = "flex h-8 w-full items-center gap-1.5 px-3 text-left text-[13px] font-medium leading-none text-base-content/92 transition hover:bg-white/6 focus:outline-none";
   const characterCardClassName = "rounded-2xl border border-[#2A3138] bg-[#161A1F] p-3 shadow-none";
   const characterCardHeaderActionClassName = "inline-flex size-7 items-center justify-center rounded-md text-white/56 transition hover:bg-white/6 hover:text-white focus:outline-none disabled:cursor-not-allowed disabled:opacity-35";
   const characterCardTitleIconClassName = "size-4 shrink-0 text-white/80";
@@ -1146,7 +1146,7 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                                     handleAddV4Char({ defaultPrompt: "girl,", gender: "female" });
                                   }}
                                 >
-                                  <GenderFemaleIcon className="size-4 shrink-0 text-white/90" weight="regular" />
+                                  <GenderFemaleIcon className="size-3.5 shrink-0 text-white/90" weight="regular" />
                                   <span>Female</span>
                                 </button>
                                 <button
@@ -1158,7 +1158,7 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                                     handleAddV4Char({ defaultPrompt: "boy,", gender: "male" });
                                   }}
                                 >
-                                  <GenderMaleIcon className="size-4 shrink-0 text-white/90" weight="regular" />
+                                  <GenderMaleIcon className="size-3.5 shrink-0 text-white/90" weight="regular" />
                                   <span>Male</span>
                                 </button>
                                 <button
@@ -1170,7 +1170,7 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                                     handleAddV4Char({ gender: "other" });
                                   }}
                                 >
-                                  <CircleIcon className="size-4 shrink-0 text-white/85" weight="regular" />
+                                  <CircleIcon className="size-3.5 shrink-0 text-white/85" weight="regular" />
                                   <span>Other</span>
                                 </button>
                               </div>
