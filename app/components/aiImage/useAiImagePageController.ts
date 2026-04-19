@@ -455,10 +455,56 @@ export function useAiImagePageController() {
     setSimpleHeight(nextHeight);
   }, [simpleHeight, simpleResolutionSelection, simpleWidth, uiMode]);
 
-  const applyImportedMetadata = useCallback((settings: NovelAiImportedSettings, selection: MetadataImportSelectionState) => {
-    setUiMode("pro");
+  const applyImportedMetadata = useCallback((metadata: NovelAiImageMetadataResult, selection: MetadataImportSelectionState) => {
     setIsPageImageDragOver(false);
     const shouldCleanImportedText = selection.cleanImports;
+    const settings = metadata.settings;
+
+    if (uiMode === "simple") {
+      const importedPrompt = selection.prompt && settings.prompt != null
+        ? (shouldCleanImportedText ? cleanImportedPromptText(settings.prompt) : settings.prompt)
+        : "";
+      const importedNegativePrompt = selection.undesiredContent && settings.negativePrompt != null
+        ? (shouldCleanImportedText ? cleanImportedPromptText(settings.negativePrompt) : settings.negativePrompt)
+        : "";
+
+      if (importedPrompt || importedNegativePrompt) {
+        setSimpleConverted({
+          prompt: importedPrompt,
+          negativePrompt: importedNegativePrompt,
+          raw: JSON.stringify(metadata.raw),
+        });
+        setSimpleConvertedFromText("");
+        setSimplePromptTab("prompt");
+      }
+
+      if (selection.seed && settings.seed != null)
+        setSimpleSeed(settings.seed);
+      else if (selection.seed && selection.cleanImports)
+        setSimpleSeed(DEFAULT_SIMPLE_IMAGE_SETTINGS.seed);
+
+      if (selection.settings) {
+        const cleanImports = selection.cleanImports;
+        const normalizedImportedSize = getClosestValidImageSize(
+          resolveImportedValue(settings.width, cleanImports, DEFAULT_SIMPLE_IMAGE_SETTINGS.width) ?? simpleWidth,
+          resolveImportedValue(settings.height, cleanImports, DEFAULT_SIMPLE_IMAGE_SETTINGS.height) ?? simpleHeight,
+        );
+        setSimpleWidth(normalizedImportedSize.width);
+        setSimpleHeight(normalizedImportedSize.height);
+        setSimpleResolutionSelection(inferResolutionSelection(normalizedImportedSize.width, normalizedImportedSize.height));
+
+        const importedStrength = resolveImportedValue(settings.strength, cleanImports, DEFAULT_SIMPLE_IMAGE_SETTINGS.strength);
+        if (importedStrength != null)
+          setSimpleImg2imgStrength(clampRange(importedStrength, 0, 1, DEFAULT_SIMPLE_IMAGE_SETTINGS.strength));
+        const importedNoise = resolveImportedValue(settings.noise, cleanImports, DEFAULT_SIMPLE_IMAGE_SETTINGS.noise);
+        if (importedNoise != null)
+          setSimpleImg2imgNoise(clampRange(importedNoise, 0, 1, DEFAULT_SIMPLE_IMAGE_SETTINGS.noise));
+      }
+
+      return;
+    }
+
+    setUiMode("pro");
 
     if (selection.settings) {
       setMode("txt2img");
@@ -526,7 +572,7 @@ export function useAiImagePageController() {
         setProSmeaDyn(Boolean(importedSmeaDyn));
       const importedStrength = resolveImportedValue(settings.strength, cleanImports, DEFAULT_PRO_IMAGE_SETTINGS.strength);
       if (importedStrength != null)
-      setProImg2imgStrength(clampRange(importedStrength, 0, 1, DEFAULT_PRO_IMAGE_SETTINGS.strength));
+        setProImg2imgStrength(clampRange(importedStrength, 0, 1, DEFAULT_PRO_IMAGE_SETTINGS.strength));
       const importedNoise = resolveImportedValue(settings.noise, cleanImports, DEFAULT_PRO_IMAGE_SETTINGS.noise);
       if (importedNoise != null)
         setProImg2imgNoise(clampRange(importedNoise, 0, 1, DEFAULT_PRO_IMAGE_SETTINGS.noise));
@@ -568,7 +614,7 @@ export function useAiImagePageController() {
       );
       setProFeatureSectionOpen("characterPrompts", nextChars.length > 0);
     }
-  }, [noiseScheduleOptions, proHeight, proWidth, samplerOptions, v4Chars, setProFeatureSectionOpen]);
+  }, [inferResolutionSelection, noiseScheduleOptions, proHeight, proWidth, samplerOptions, simpleHeight, simpleWidth, uiMode, v4Chars, setProFeatureSectionOpen]);
 
   const refreshHistory = useCallback(async () => {
     const rows = await listAiImageHistory({ limit: 30 });
@@ -620,14 +666,20 @@ export function useAiImagePageController() {
     } satisfies ImportedSourceImagePayload;
 
     const applySourceImageAsBase = (nextSourceImage: ImportedSourceImagePayload, successMessage?: string) => {
-      setUiMode("pro");
       setMode("img2img");
       setSourceImageDataUrl(nextSourceImage.dataUrl);
       setSourceImageBase64(nextSourceImage.imageBase64);
       if (nextSourceImage.width && nextSourceImage.height) {
         const normalizedSize = getClosestValidImageSize(nextSourceImage.width, nextSourceImage.height);
-        setProWidth(normalizedSize.width);
-        setProHeight(normalizedSize.height);
+        if (uiMode === "simple") {
+          setSimpleWidth(normalizedSize.width);
+          setSimpleHeight(normalizedSize.height);
+          setSimpleResolutionSelection(inferResolutionSelection(normalizedSize.width, normalizedSize.height));
+        }
+        else {
+          setProWidth(normalizedSize.width);
+          setProHeight(normalizedSize.height);
+        }
       }
       if (successMessage)
         showSuccessToast(successMessage);
@@ -648,12 +700,13 @@ export function useAiImagePageController() {
       source: args.source,
       imageCount: args.imageCount ?? 1,
     });
-    setMetadataImportSelection(
-      importedMetadata
-        ? createMetadataImportSelection(importedMetadata.settings)
-        : DEFAULT_METADATA_IMPORT_SELECTION,
-    );
-  }, [showSuccessToast]);
+    const nextMetadataImportSelection = importedMetadata
+      ? createMetadataImportSelection(importedMetadata.settings)
+      : DEFAULT_METADATA_IMPORT_SELECTION;
+    if (uiMode === "simple")
+      nextMetadataImportSelection.characters = false;
+    setMetadataImportSelection(nextMetadataImportSelection);
+  }, [inferResolutionSelection, showSuccessToast, uiMode]);
 
   const handlePickSourceImage = useCallback(async (
     file: File,
@@ -798,7 +851,6 @@ export function useAiImagePageController() {
       return;
 
     if (target === "img2img") {
-      setUiMode("pro");
       setMode("img2img");
       setSourceImageDataUrl(pendingMetadataImport.sourceImage.dataUrl);
       setSourceImageBase64(pendingMetadataImport.sourceImage.imageBase64);
@@ -807,15 +859,22 @@ export function useAiImagePageController() {
           pendingMetadataImport.sourceImage.width,
           pendingMetadataImport.sourceImage.height,
         );
-        setProWidth(normalizedSize.width);
-        setProHeight(normalizedSize.height);
+        if (uiMode === "simple") {
+          setSimpleWidth(normalizedSize.width);
+          setSimpleHeight(normalizedSize.height);
+          setSimpleResolutionSelection(inferResolutionSelection(normalizedSize.width, normalizedSize.height));
+        }
+        else {
+          setProWidth(normalizedSize.width);
+          setProHeight(normalizedSize.height);
+        }
       }
       showSuccessToast("已设置 Base Img。");
     }
 
     setPendingMetadataImport(null);
     setMetadataImportSelection(DEFAULT_METADATA_IMPORT_SELECTION);
-  }, [pendingMetadataImport, showSuccessToast]);
+  }, [inferResolutionSelection, pendingMetadataImport, showSuccessToast, uiMode]);
 
   const handleConfirmMetadataImport = useCallback(() => {
     const pendingMetadata = pendingMetadataImport?.metadata;
@@ -830,7 +889,7 @@ export function useAiImagePageController() {
     if (!hasAnySelection)
       return;
 
-    applyImportedMetadata(pendingMetadata.settings, metadataImportSelection);
+    applyImportedMetadata(pendingMetadata, metadataImportSelection);
     setPendingMetadataImport(null);
     setMetadataImportSelection(DEFAULT_METADATA_IMPORT_SELECTION);
   }, [applyImportedMetadata, metadataImportSelection, pendingMetadataImport]);
@@ -1951,7 +2010,7 @@ export function useAiImagePageController() {
   const pendingMetadataSettings = pendingMetadataImport?.metadata?.settings ?? null;
   const canImportMetadataPrompt = pendingMetadataSettings ? hasNonEmptyText(pendingMetadataSettings.prompt) : false;
   const canImportMetadataNegativePrompt = pendingMetadataSettings ? hasNonEmptyText(pendingMetadataSettings.negativePrompt) : false;
-  const canImportMetadataCharacters = true;
+  const canImportMetadataCharacters = uiMode === "pro";
   const canImportMetadataSettings = pendingMetadataSettings ? hasMetadataSettingsPayload(pendingMetadataSettings) : false;
   const canImportMetadataSeed = pendingMetadataSettings?.seed != null;
   const hasAnyMetadataImportSelection = metadataImportSelection.prompt
