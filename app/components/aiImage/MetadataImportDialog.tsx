@@ -93,6 +93,7 @@ export function MetadataImportDialog({
   onConfirmMetadataImport,
 }: MetadataImportDialogProps) {
   const isOpen = Boolean(pendingMetadataImport);
+  const hasImportedMetadata = Boolean(pendingMetadataImport?.metadata);
 
   return (
     <dialog
@@ -169,108 +170,114 @@ export function MetadataImportDialog({
             </button>
           </div>
 
-          <div className="mt-7">
-            <div className="text-[1rem] font-semibold leading-6 text-base-content">This image has metadata!</div>
-            <div className="text-[1rem] font-semibold leading-6 text-base-content">Did you want to import that instead?</div>
-          </div>
+          {hasImportedMetadata
+            ? (
+                <>
+                  <div className="mt-7">
+                    <div className="text-[1rem] font-semibold leading-6 text-base-content">This image has metadata!</div>
+                    <div className="text-[1rem] font-semibold leading-6 text-base-content">Did you want to import that instead?</div>
+                  </div>
 
-          <div className="mt-6 grid gap-5 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start">
-            <div className="space-y-3">
-              <label className={`flex items-center gap-3 text-[13px] leading-none ${canImportMetadataPrompt ? METADATA_LABEL_ENABLED_CLASS_NAME : METADATA_LABEL_DISABLED_CLASS_NAME}`}>
-                <input
-                  type="checkbox"
-                  className={METADATA_CHECKBOX_CLASS_NAME}
-                  checked={canImportMetadataPrompt && metadataImportSelection.prompt}
-                  disabled={!canImportMetadataPrompt}
-                  onChange={event => setMetadataImportSelection(prev => ({ ...prev, prompt: event.target.checked }))}
-                />
-                <span>Prompt</span>
-              </label>
+                  <div className="mt-6 grid gap-5 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start">
+                    <div className="space-y-3">
+                      <label className={`flex items-center gap-3 text-[13px] leading-none ${canImportMetadataPrompt ? METADATA_LABEL_ENABLED_CLASS_NAME : METADATA_LABEL_DISABLED_CLASS_NAME}`}>
+                        <input
+                          type="checkbox"
+                          className={METADATA_CHECKBOX_CLASS_NAME}
+                          checked={canImportMetadataPrompt && metadataImportSelection.prompt}
+                          disabled={!canImportMetadataPrompt}
+                          onChange={event => setMetadataImportSelection(prev => ({ ...prev, prompt: event.target.checked }))}
+                        />
+                        <span>Prompt</span>
+                      </label>
 
-              <label className={`flex items-center gap-3 text-[13px] leading-none ${canImportMetadataNegativePrompt ? METADATA_LABEL_ENABLED_CLASS_NAME : METADATA_LABEL_DISABLED_CLASS_NAME}`}>
-                <input
-                  type="checkbox"
-                  className={METADATA_CHECKBOX_CLASS_NAME}
-                  checked={canImportMetadataNegativePrompt && metadataImportSelection.undesiredContent}
-                  disabled={!canImportMetadataNegativePrompt}
-                  onChange={event => setMetadataImportSelection(prev => ({ ...prev, undesiredContent: event.target.checked }))}
-                />
-                <span>Undesired Content</span>
-              </label>
+                      <label className={`flex items-center gap-3 text-[13px] leading-none ${canImportMetadataNegativePrompt ? METADATA_LABEL_ENABLED_CLASS_NAME : METADATA_LABEL_DISABLED_CLASS_NAME}`}>
+                        <input
+                          type="checkbox"
+                          className={METADATA_CHECKBOX_CLASS_NAME}
+                          checked={canImportMetadataNegativePrompt && metadataImportSelection.undesiredContent}
+                          disabled={!canImportMetadataNegativePrompt}
+                          onChange={event => setMetadataImportSelection(prev => ({ ...prev, undesiredContent: event.target.checked }))}
+                        />
+                        <span>Undesired Content</span>
+                      </label>
 
-              <label className={`flex items-center gap-3 text-[13px] leading-none ${canImportMetadataCharacters ? METADATA_LABEL_ENABLED_CLASS_NAME : METADATA_LABEL_DISABLED_CLASS_NAME}`}>
-                <input
-                  type="checkbox"
-                  className={METADATA_CHECKBOX_CLASS_NAME}
-                  checked={canImportMetadataCharacters && metadataImportSelection.characters}
-                  disabled={!canImportMetadataCharacters}
-                  onChange={(event) => {
-                    setMetadataImportSelection(prev => ({
-                      ...prev,
-                      characters: event.target.checked,
-                      appendCharacters: event.target.checked ? prev.appendCharacters : false,
-                    }));
-                  }}
-                />
-                <span>Characters</span>
-              </label>
+                      <label className={`flex items-center gap-3 text-[13px] leading-none ${canImportMetadataCharacters ? METADATA_LABEL_ENABLED_CLASS_NAME : METADATA_LABEL_DISABLED_CLASS_NAME}`}>
+                        <input
+                          type="checkbox"
+                          className={METADATA_CHECKBOX_CLASS_NAME}
+                          checked={canImportMetadataCharacters && metadataImportSelection.characters}
+                          disabled={!canImportMetadataCharacters}
+                          onChange={(event) => {
+                            setMetadataImportSelection(prev => ({
+                              ...prev,
+                              characters: event.target.checked,
+                              appendCharacters: event.target.checked ? prev.appendCharacters : false,
+                            }));
+                          }}
+                        />
+                        <span>Characters</span>
+                      </label>
 
-              <label className={`pl-7 flex items-center gap-3 text-[12px] leading-none ${canImportMetadataCharacters && metadataImportSelection.characters ? "cursor-pointer text-base-content/80" : "cursor-not-allowed text-base-content/22"}`}>
-                <input
-                  type="checkbox"
-                  className={METADATA_CHECKBOX_CLASS_NAME}
-                  checked={canImportMetadataCharacters && metadataImportSelection.characters && metadataImportSelection.appendCharacters}
-                  disabled={!canImportMetadataCharacters || !metadataImportSelection.characters}
-                  onChange={event => setMetadataImportSelection(prev => ({ ...prev, appendCharacters: event.target.checked }))}
-                />
-                <span>Append</span>
-              </label>
+                      <label className={`pl-7 flex items-center gap-3 text-[12px] leading-none ${canImportMetadataCharacters && metadataImportSelection.characters ? "cursor-pointer text-base-content/80" : "cursor-not-allowed text-base-content/22"}`}>
+                        <input
+                          type="checkbox"
+                          className={METADATA_CHECKBOX_CLASS_NAME}
+                          checked={canImportMetadataCharacters && metadataImportSelection.characters && metadataImportSelection.appendCharacters}
+                          disabled={!canImportMetadataCharacters || !metadataImportSelection.characters}
+                          onChange={event => setMetadataImportSelection(prev => ({ ...prev, appendCharacters: event.target.checked }))}
+                        />
+                        <span>Append</span>
+                      </label>
 
-              <label className={`flex items-center gap-3 text-[13px] leading-none ${canImportMetadataSettings ? METADATA_LABEL_ENABLED_CLASS_NAME : METADATA_LABEL_DISABLED_CLASS_NAME}`}>
-                <input
-                  type="checkbox"
-                  className={METADATA_CHECKBOX_CLASS_NAME}
-                  checked={canImportMetadataSettings && metadataImportSelection.settings}
-                  disabled={!canImportMetadataSettings}
-                  onChange={event => setMetadataImportSelection(prev => ({ ...prev, settings: event.target.checked }))}
-                />
-                <span>Settings</span>
-              </label>
+                      <label className={`flex items-center gap-3 text-[13px] leading-none ${canImportMetadataSettings ? METADATA_LABEL_ENABLED_CLASS_NAME : METADATA_LABEL_DISABLED_CLASS_NAME}`}>
+                        <input
+                          type="checkbox"
+                          className={METADATA_CHECKBOX_CLASS_NAME}
+                          checked={canImportMetadataSettings && metadataImportSelection.settings}
+                          disabled={!canImportMetadataSettings}
+                          onChange={event => setMetadataImportSelection(prev => ({ ...prev, settings: event.target.checked }))}
+                        />
+                        <span>Settings</span>
+                      </label>
 
-              <label className={`flex items-center gap-3 text-[13px] leading-none ${canImportMetadataSeed ? METADATA_LABEL_ENABLED_CLASS_NAME : METADATA_LABEL_DISABLED_CLASS_NAME}`}>
-                <input
-                  type="checkbox"
-                  className={METADATA_CHECKBOX_CLASS_NAME}
-                  checked={canImportMetadataSeed && metadataImportSelection.seed}
-                  disabled={!canImportMetadataSeed}
-                  onChange={event => setMetadataImportSelection(prev => ({ ...prev, seed: event.target.checked }))}
-                />
-                <span>Seed</span>
-              </label>
-            </div>
+                      <label className={`flex items-center gap-3 text-[13px] leading-none ${canImportMetadataSeed ? METADATA_LABEL_ENABLED_CLASS_NAME : METADATA_LABEL_DISABLED_CLASS_NAME}`}>
+                        <input
+                          type="checkbox"
+                          className={METADATA_CHECKBOX_CLASS_NAME}
+                          checked={canImportMetadataSeed && metadataImportSelection.seed}
+                          disabled={!canImportMetadataSeed}
+                          onChange={event => setMetadataImportSelection(prev => ({ ...prev, seed: event.target.checked }))}
+                        />
+                        <span>Seed</span>
+                      </label>
+                    </div>
 
-            <div className="flex min-w-[9.75rem] flex-col gap-4 sm:items-end">
-              <button
-                type="button"
-                className="inline-flex h-12 items-center justify-center rounded-md border border-base-300 bg-base-200 px-5 text-[14px] font-semibold text-base-content transition enabled:hover:border-primary/40 enabled:hover:bg-base-300 disabled:cursor-not-allowed disabled:border-base-300 disabled:bg-base-200 disabled:text-base-content/35"
-                disabled={!hasAnyMetadataImportSelection}
-                onClick={onConfirmMetadataImport}
-              >
-                Import Metadata
-              </button>
+                    <div className="flex min-w-[9.75rem] flex-col gap-4 sm:items-end">
+                      <button
+                        type="button"
+                        className="inline-flex h-12 items-center justify-center rounded-md border border-base-300 bg-base-200 px-5 text-[14px] font-semibold text-base-content transition enabled:hover:border-primary/40 enabled:hover:bg-base-300 disabled:cursor-not-allowed disabled:border-base-300 disabled:bg-base-200 disabled:text-base-content/35"
+                        disabled={!hasAnyMetadataImportSelection}
+                        onClick={onConfirmMetadataImport}
+                      >
+                        Import Metadata
+                      </button>
 
-              <label className="flex items-center gap-3 text-[13px] text-base-content/92 sm:mr-[23px]">
-                <input
-                  type="checkbox"
-                  className={METADATA_CHECKBOX_CLASS_NAME}
-                  checked={metadataImportSelection.cleanImports}
-                  onChange={event => setMetadataImportSelection(prev => ({ ...prev, cleanImports: event.target.checked }))}
-                />
-                <span>Clean Imports</span>
-                <CleanImportsHint />
-              </label>
-            </div>
-          </div>
+                      <label className="flex items-center gap-3 text-[13px] text-base-content/92 sm:mr-[23px]">
+                        <input
+                          type="checkbox"
+                          className={METADATA_CHECKBOX_CLASS_NAME}
+                          checked={metadataImportSelection.cleanImports}
+                          onChange={event => setMetadataImportSelection(prev => ({ ...prev, cleanImports: event.target.checked }))}
+                        />
+                        <span>Clean Imports</span>
+                        <CleanImportsHint />
+                      </label>
+                    </div>
+                  </div>
+                </>
+              )
+            : null}
         </div>
       </div>
       <form method="dialog" className="modal-backdrop">

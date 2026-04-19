@@ -101,7 +101,7 @@ export type InpaintSubmitPayload = {
 
 export type PendingMetadataImportState = {
   sourceImage: ImportedSourceImagePayload;
-  metadata: NovelAiImageMetadataResult;
+  metadata: NovelAiImageMetadataResult | null;
   source?: ImageImportSource;
   imageCount: number;
 };
