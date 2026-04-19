@@ -59,7 +59,6 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
     cfgRescale,
     charPromptTabs,
     characterPromptDescription,
-    dynamicThresholding,
     hasSimpleTagsDraft,
     isBusy,
     handleAddV4Char,
@@ -115,7 +114,6 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
     selectedStyleTags,
     setCfgRescale,
     setCharPromptTabs,
-    setDynamicThresholding,
     setImageCount,
     setIsStylePickerOpen,
     setNegativePrompt,
@@ -740,24 +738,27 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
               <div>
                 <div className="mb-2 flex items-center justify-between gap-3">
                   <span className="text-sm font-semibold text-base-content dark:text-white">{`Prompt Guidance: ${scale}`}</span>
-                  <label className="inline-flex h-7 items-center gap-2 rounded-md border border-base-content/14 bg-base-100 px-2.5 text-xs font-semibold text-base-content/78 dark:border-white/16 dark:bg-[#272A46] dark:text-white/78">
-                    <span>Variety+</span>
-                    <input
-                      type="checkbox"
-                      className="toggle toggle-xs"
-                      checked={qualityToggle}
-                      onChange={e => setQualityToggle(e.target.checked)}
-                    />
-                  </label>
+                  <button
+                    type="button"
+                    className={`inline-flex h-7 items-center rounded-md border px-2.5 text-xs font-semibold transition focus:outline-none focus:ring-2 focus:ring-primary/20 ${
+                      qualityToggle
+                        ? "border-primary/30 bg-primary/10 text-primary"
+                        : "border-[#D6DCE3] bg-[#F3F5F7] text-base-content/72 hover:border-primary/30 hover:text-primary dark:border-[#2A3138] dark:bg-[#161A1F] dark:text-white/72 dark:hover:border-primary/30 dark:hover:text-primary"
+                    }`}
+                    aria-pressed={qualityToggle}
+                    onClick={() => setQualityToggle(!qualityToggle)}
+                  >
+                    Variety+
+                  </button>
                 </div>
                 <input
                   className="range range-xs w-full"
                   type="range"
-                  min="1"
+                  min="0"
                   max="10"
                   step="0.1"
                   value={scale}
-                  onChange={e => setScale(clampRange(Number(e.target.value), 1, 10, 5))}
+                  onChange={e => setScale(clampRange(Number(e.target.value), 0, 10, 5))}
                 />
               </div>
 
@@ -765,7 +766,7 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                 <div className="flex flex-col gap-2">
                   <div className="text-sm font-semibold text-base-content dark:text-white">Seed</div>
                   <input
-                    className={`${subtleInputClassName} border-[#D6DCE3] bg-base-100 text-base-content placeholder:text-base-content/28 dark:border-[#2A2E4A] dark:bg-[#171A2C] dark:text-white dark:placeholder:text-white/28`}
+                    className={`${subtleInputClassName} border-[#D6DCE3] bg-[#F3F5F7] text-base-content placeholder:text-base-content/28 dark:border-[#2A3138] dark:bg-[#161A1F] dark:text-white dark:placeholder:text-white/28`}
                     type="number"
                     value={seedIsRandom ? "" : seed}
                     placeholder="Enter a seed"
@@ -777,7 +778,7 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                 </div>
                 <div className="flex flex-col gap-2">
                   <div className="text-sm font-semibold text-base-content dark:text-white">Sampler</div>
-                  <select className={`${subtleSelectClassName} border-[#D6DCE3] bg-base-100 text-base-content dark:border-[#2A2E4A] dark:bg-[#171A2C] dark:text-white`} value={sampler} onChange={e => setSampler(e.target.value)}>
+                  <select className={`${subtleSelectClassName} border-[#D6DCE3] bg-[#F3F5F7] text-base-content dark:border-[#2A3138] dark:bg-[#161A1F] dark:text-white`} value={sampler} onChange={e => setSampler(e.target.value)}>
                     {samplerOptions.map(s => <option key={s} value={s}>{SAMPLER_LABELS[s] || s}</option>)}
                   </select>
                 </div>
@@ -809,19 +810,10 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                     ? (
                         <div className="flex flex-col gap-2">
                           <span className="text-sm font-semibold text-base-content dark:text-white">Noise Schedule</span>
-                          <select className={`${subtleSelectClassName} border-[#D6DCE3] bg-base-100 text-base-content dark:border-[#2A2E4A] dark:bg-[#171A2C] dark:text-white`} value={noiseSchedule} onChange={e => setNoiseSchedule(e.target.value)}>
+                          <select className={`${subtleSelectClassName} border-[#D6DCE3] bg-[#F3F5F7] text-base-content dark:border-[#2A3138] dark:bg-[#161A1F] dark:text-white`} value={noiseSchedule} onChange={e => setNoiseSchedule(e.target.value)}>
                             {noiseScheduleOptions.map(s => <option key={s} value={s}>{SCHEDULE_LABELS[s] || s}</option>)}
                           </select>
                         </div>
-                      )
-                    : null}
-
-                  {isNAI4
-                    ? (
-                        <label className="label cursor-pointer justify-start gap-3 px-0">
-                          <input type="checkbox" className="toggle toggle-sm" checked={dynamicThresholding} onChange={e => setDynamicThresholding(e.target.checked)} />
-                          <span className="label-text text-base-content/78 dark:text-white/78">Dynamic Thresholding</span>
-                        </label>
                       )
                     : null}
 
