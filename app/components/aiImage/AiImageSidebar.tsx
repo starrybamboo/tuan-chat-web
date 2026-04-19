@@ -73,6 +73,7 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
     handleRemoveVibeReference,
     handleAcceptSimpleConverted,
     handleRejectSimpleConverted,
+    handleResetCurrentImageSettings,
     handleReturnToSimpleTags,
     handleReturnToSimpleText,
     handleSelectProResolutionPreset,
@@ -699,14 +700,25 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
           <div className="ai-image-fade-scrollbar max-h-[28rem] overflow-y-auto p-4">
             <div className="mb-4 flex items-center justify-between gap-3">
               <div className="text-sm font-semibold text-base-content/92 dark:text-white/92">AI Settings</div>
-              <button
-                type="button"
-                className="inline-flex size-8 items-center justify-center rounded-md text-base-content/72 transition hover:bg-black/5 hover:text-base-content focus:outline-none dark:text-white/72 dark:hover:bg-white/8 dark:hover:text-white"
-                aria-label="收起 AI 设置"
-                onClick={() => setIsProBottomSettingsOpen(false)}
-              >
-                <CaretDownIcon className="size-4" weight="bold" />
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  className="inline-flex size-8 items-center justify-center rounded-md text-base-content/72 transition hover:bg-black/5 hover:text-base-content focus:outline-none dark:text-white/72 dark:hover:bg-white/8 dark:hover:text-white"
+                  aria-label="重置绘图设置"
+                  title="重置绘图设置"
+                  onClick={handleResetCurrentImageSettings}
+                >
+                  <ArrowCounterClockwise className="size-4" weight="bold" />
+                </button>
+                <button
+                  type="button"
+                  className="inline-flex size-8 items-center justify-center rounded-md text-base-content/72 transition hover:bg-black/5 hover:text-base-content focus:outline-none dark:text-white/72 dark:hover:bg-white/8 dark:hover:text-white"
+                  aria-label="收起 AI 设置"
+                  onClick={() => setIsProBottomSettingsOpen(false)}
+                >
+                  <CaretDownIcon className="size-4" weight="bold" />
+                </button>
+              </div>
             </div>
 
             <div className="space-y-4">
@@ -718,28 +730,34 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                   className="range range-xs w-full"
                   type="range"
                   min="1"
-                  max={String(NOVELAI_FREE_MAX_STEPS)}
+                  max="50"
                   step="1"
                   value={steps}
-                  onChange={e => setSteps(clampIntRange(Number(e.target.value), 1, NOVELAI_FREE_MAX_STEPS, NOVELAI_FREE_MAX_STEPS))}
+                  onChange={e => setSteps(clampIntRange(Number(e.target.value), 1, 50, 50))}
                 />
               </div>
 
               <div>
                 <div className="mb-2 flex items-center justify-between gap-3">
                   <span className="text-sm font-semibold text-base-content dark:text-white">{`Prompt Guidance: ${scale}`}</span>
-                  <span className="inline-flex h-7 items-center rounded-md border border-base-content/14 bg-base-100 px-2.5 text-xs font-semibold text-base-content/78 dark:border-white/16 dark:bg-[#272A46] dark:text-white/78">
-                    Variety+
-                  </span>
+                  <label className="inline-flex h-7 items-center gap-2 rounded-md border border-base-content/14 bg-base-100 px-2.5 text-xs font-semibold text-base-content/78 dark:border-white/16 dark:bg-[#272A46] dark:text-white/78">
+                    <span>Variety+</span>
+                    <input
+                      type="checkbox"
+                      className="toggle toggle-xs"
+                      checked={qualityToggle}
+                      onChange={e => setQualityToggle(e.target.checked)}
+                    />
+                  </label>
                 </div>
                 <input
                   className="range range-xs w-full"
                   type="range"
-                  min="0"
-                  max="20"
+                  min="1"
+                  max="10"
                   step="0.1"
                   value={scale}
-                  onChange={e => setScale(clampRange(Number(e.target.value), 0, 20, 5))}
+                  onChange={e => setScale(clampRange(Number(e.target.value), 1, 10, 5))}
                 />
               </div>
 
