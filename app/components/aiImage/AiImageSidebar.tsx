@@ -200,8 +200,7 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
   const baseImageToggleButtonClassName = "inline-flex size-11 items-center justify-center bg-transparent text-white/58 transition hover:text-white focus:outline-none";
   const baseImageActionButtonClassName = "inline-flex h-11 items-center gap-2 rounded-md border border-[#2A3138] bg-[#161A1F] px-4 text-[14px] font-semibold text-white/92 transition hover:border-white/20 hover:text-white focus:outline-none focus:ring-2 focus:ring-white/15";
   const baseImageRangeClassName = "mt-2 w-full cursor-pointer appearance-none bg-transparent focus:outline-none [&::-webkit-slider-runnable-track]:h-2 [&::-webkit-slider-runnable-track]:rounded-full [&::-webkit-slider-runnable-track]:bg-white/10 [&::-webkit-slider-thumb]:mt-[-4px] [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:border-0 [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:shadow-sm [&::-webkit-slider-thumb]:shadow-black/30 [&::-moz-range-track]:h-2 [&::-moz-range-track]:rounded-full [&::-moz-range-track]:bg-white/10 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:bg-white [&::-moz-range-thumb]:shadow-sm [&::-moz-range-thumb]:shadow-black/30";
-  const simpleBaseImageCardClassName = "overflow-hidden rounded-2xl border border-[#D6DCE3] bg-[#F3F5F7] shadow-sm dark:border-[#2A3138] dark:bg-[#161A1F]";
-  const simpleBaseImageActionButtonClassName = "inline-flex size-9 items-center justify-center rounded-md border border-[#D6DCE3] bg-base-100 text-base-content/72 transition hover:border-primary/40 hover:text-primary focus:outline-none dark:border-[#2A3138] dark:bg-[#1B2026]";
+  const simpleBaseImageAttachmentClassName = "-mt-px overflow-hidden rounded-b-2xl border-x border-b border-[#D6DCE3] bg-[#F3F5F7] shadow-none dark:border-[#2A3138] dark:bg-[#161A1F]";
   const [isModeSelectorOpen, setIsModeSelectorOpen] = useState<boolean>(false);
   const [isModeSelectorMounted, setIsModeSelectorMounted] = useState<boolean>(false);
   const [isProPromptSettingsOpen, setIsProPromptSettingsOpen] = useState<boolean>(false);
@@ -483,6 +482,130 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
     setIsModeSelectorOpen(false);
   }
 
+  function renderSimpleBaseImageSection() {
+    if (!sourceImageDataUrl) {
+      return (
+        <div className={simpleBaseImageAttachmentClassName}>
+          <div className="flex items-center justify-between gap-3 px-4 py-3">
+            <div className="text-[15px] text-base-content/58">
+              Add a Base Img (Optional)
+            </div>
+            <button
+              type="button"
+              className={featureUploadActionClassName}
+              aria-label="上传 Base Img"
+              title="上传 Base Img"
+              onClick={handleOpenSourceImagePicker}
+            >
+              <FileArrowUpIcon className="size-5" weight="bold" />
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    if (mode !== "img2img")
+      return null;
+
+    return (
+      <div className={simpleBaseImageAttachmentClassName}>
+        <div className={baseImagePanelClassName}>
+          <img
+            src={sourceImageDataUrl}
+            alt="Base Img"
+            className="absolute inset-0 h-full w-full object-cover opacity-28"
+          />
+          <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(11,13,27,0.66)_0%,rgba(11,13,27,0.74)_100%)]" />
+          <div className={baseImageHeaderClassName}>
+            <div className="min-w-0">
+              <div className="text-[15px] font-semibold leading-6 text-white">Image2Image</div>
+              <div className="mt-1 text-[13px] leading-5 text-white/72">Transform your image.</div>
+            </div>
+            <div className={baseImageControlGroupClassName}>
+              <div className="flex overflow-hidden rounded-md border border-[#2A3138] bg-[#161A1F]">
+                <button
+                  type="button"
+                  className="inline-flex size-11 items-center justify-center text-white/80 transition hover:bg-white/6 hover:text-white focus:outline-none"
+                  aria-label="更换 Base Img"
+                  title="更换 Base Img"
+                  onClick={handleOpenSourceImagePicker}
+                >
+                  <ArrowClockwise className="size-5" weight="bold" />
+                </button>
+                <span className="h-11 w-px bg-[#2A3138]" aria-hidden="true" />
+                <button
+                  type="button"
+                  className="inline-flex size-11 items-center justify-center text-white/80 transition hover:bg-white/6 hover:text-white focus:outline-none"
+                  aria-label="移除 Base Img"
+                  title="移除 Base Img"
+                  onClick={handleClearSourceImage}
+                >
+                  <TrashIcon className="size-5" weight="bold" />
+                </button>
+              </div>
+              <button
+                type="button"
+                className={baseImageToggleButtonClassName}
+                aria-label={isBaseImageToolsOpen ? "收起 Base Img 工具" : "展开 Base Img 工具"}
+                title={isBaseImageToolsOpen ? "收起 Base Img 工具" : "展开 Base Img 工具"}
+                onClick={() => setIsBaseImageToolsOpen(prev => !prev)}
+              >
+                <ChevronDown className={`size-5 shrink-0 transition-transform ${isBaseImageToolsOpen ? "rotate-180" : ""}`} />
+              </button>
+            </div>
+          </div>
+          {isBaseImageToolsOpen
+            ? (
+                <div className="relative z-10 mt-4 space-y-4">
+                  <label className="block">
+                    <div className="flex items-center justify-between text-[13px] font-semibold leading-5 text-white">
+                      <span>Strength</span>
+                      <span>{formatSliderValue(strength)}</span>
+                    </div>
+                    <input
+                      type="range"
+                      min={0.01}
+                      max={0.99}
+                      step={0.01}
+                      value={strength}
+                      className={baseImageRangeClassName}
+                      onChange={event => setStrength(clampRange(Number(event.target.value), 0.01, 0.99, 0.7))}
+                    />
+                  </label>
+
+                  <label className="block">
+                    <div className="flex items-center justify-between text-[13px] font-semibold leading-5 text-white">
+                      <span>Noise</span>
+                      <span>{formatSliderValue(noise)}</span>
+                    </div>
+                    <input
+                      type="range"
+                      min={0}
+                      max={0.99}
+                      step={0.01}
+                      value={noise}
+                      className={baseImageRangeClassName}
+                      onChange={event => setNoise(clampRange(Number(event.target.value), 0, 0.99, 0.2))}
+                    />
+                  </label>
+
+                  <button
+                    type="button"
+                    className={baseImageActionButtonClassName}
+                    disabled={isBusy}
+                    onClick={() => void handleOpenBaseImageInpaint()}
+                  >
+                    <SelectionPlusIcon className="size-5" weight="bold" />
+                    <span>Inpaint Image</span>
+                  </button>
+                </div>
+              )
+            : null}
+        </div>
+      </div>
+    );
+  }
+
   function renderSimpleResolutionGlyph(optionId: string) {
     let glyph: React.ReactNode;
     if (optionId === "portrait") {
@@ -645,11 +768,12 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
 
           {uiMode === "simple"
             ? (
-                <div className={`flex flex-col ${isSimpleTagsEditor ? "gap-1" : "gap-3"}`}>
+                <div className="flex flex-col gap-0">
                   <div className={`grid transition-all duration-300 ease-out ${isSimpleTextEditor ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"}`}>
                     <div className="min-h-0 overflow-hidden">
-                      <div className="flex w-full min-w-0 flex-col items-stretch gap-2">
-                        <div className="relative">
+                      <div className="flex w-full min-w-0 flex-col items-stretch">
+                        <div className={editorPanelClassName}>
+                          <div className="relative">
                           <textarea
                             className={simplePromptTextareaClassName}
                             value={simpleText}
@@ -677,73 +801,17 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                                   <ArrowCounterClockwise className="size-3.5" weight="bold" />
                                   返回tags
                                 </button>
-                              )
+                                )
                             : null}
                         </div>
+                          {renderSimpleBaseImageSection()}
+                        </div>
+                      </div>
                   </div>
                   </div>
-                  </div>
-
-                  <div className="mt-0">
-                    {sourceImageDataUrl
-                      ? (
-                          <div className={simpleBaseImageCardClassName}>
-                            <div className="flex items-center justify-between gap-3 border-b border-[#D6DCE3] px-3 py-3 dark:border-[#2A3138]">
-                              <div className="min-w-0">
-                                <div className="text-[13px] font-semibold text-base-content">Base Img</div>
-                              </div>
-                              <div className="flex items-center gap-1.5">
-                                <button
-                                  type="button"
-                                  className={simpleBaseImageActionButtonClassName}
-                                  aria-label="更换 Base Img"
-                                  title="更换 Base Img"
-                                  onClick={handleOpenSourceImagePicker}
-                                >
-                                  <ArrowClockwise className="size-4" weight="bold" />
-                                </button>
-                                <button
-                                  type="button"
-                                  className={simpleBaseImageActionButtonClassName}
-                                  aria-label="移除 Base Img"
-                                  title="移除 Base Img"
-                                  onClick={handleClearSourceImage}
-                                >
-                                  <TrashIcon className="size-4" weight="bold" />
-                                </button>
-                              </div>
-                            </div>
-                            <div className="relative h-28 overflow-hidden">
-                              <img
-                                src={sourceImageDataUrl}
-                                alt="Base Img"
-                                className="absolute inset-0 h-full w-full object-cover opacity-30"
-                              />
-                              <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(15,23,42,0.18)_0%,rgba(15,23,42,0.72)_100%)]" />
-                            </div>
-                          </div>
-                        )
-                      : (
-                          <div className="flex items-center justify-between gap-3 rounded-2xl border border-dashed border-[#D6DCE3] bg-[#F3F5F7] px-3 py-3 dark:border-[#2A3138] dark:bg-[#161A1F]">
-                            <div className="min-w-0">
-                              <div className="text-[13px] font-medium text-base-content">Add a Base Img (Optional)</div>
-                            </div>
-                            <button
-                              type="button"
-                              className={simpleBaseImageActionButtonClassName}
-                              aria-label="上传 Base Img"
-                              title="上传 Base Img"
-                              onClick={handleOpenSourceImagePicker}
-                            >
-                              <FileArrowUpIcon className="size-4.5" weight="bold" />
-                            </button>
-                          </div>
-                        )}
-                  </div>
-
                   {selectedStylePresets.length
                     ? (
-                        <div className="flex flex-wrap gap-2">
+                        <div className="mt-3 flex flex-wrap gap-2">
                           {selectedStylePresets.map((preset) => {
                             return (
                               <button
@@ -808,6 +876,8 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                           value={simplePromptTab === "prompt" ? simpleConverted?.prompt ?? "" : simpleConverted?.negativePrompt ?? ""}
                           readOnly
                         />
+
+                        {renderSimpleBaseImageSection()}
 
                         <div className="mt-3 flex flex-wrap justify-end gap-2">
                           <button
@@ -877,6 +947,7 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                                 )
                               : null}
                           </div>
+                          {renderSimpleBaseImageSection()}
                         </div>
                       </div>
                     </div>
