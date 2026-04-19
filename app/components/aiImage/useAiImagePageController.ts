@@ -1589,8 +1589,11 @@ export function useAiImagePageController() {
     setSelectedStyleIds([]);
   }, [styleSelectionMode]);
 
-  const handleAddV4Char = useCallback(() => {
-    const row = newV4CharEditorRow();
+  const handleAddV4Char = useCallback((options?: { defaultPrompt?: string }) => {
+    const row = {
+      ...newV4CharEditorRow(),
+      prompt: options?.defaultPrompt ?? "",
+    };
     setV4Chars(prev => [...prev, row]);
     setCharPromptTabs(prev => ({ ...prev, [row.id]: "prompt" }));
     setProFeatureSectionOpen("characterPrompts", true);
@@ -1811,7 +1814,7 @@ export function useAiImagePageController() {
   const canAddVibeReference = false;
   const baseImageDescription = "Base Img / img2img 仍禁用；局部重绘请从右侧预览工具条进入 Inpaint。";
   const characterPromptDescription = v4Chars.length
-    ? `${v4Chars.length} character slot${v4Chars.length > 1 ? "s" : ""} ready.`
+    ? "Click to edit a character."
     : "Customize separate characters.";
   const vibeTransferDescription = "免费模式下已禁用 Vibe Transfer。";
   const preciseReferenceDescription = "免费模式下已禁用 Precise Reference。";

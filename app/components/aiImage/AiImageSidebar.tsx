@@ -1,5 +1,5 @@
 import type { AiImagePageController } from "@/components/aiImage/useAiImagePageController";
-import { ArrowClockwise, ArrowCounterClockwise, CheckCircleIcon, CircleNotch, DiceFiveIcon, FileArrowUpIcon, GearSixIcon, ImageSquareIcon, PlusIcon, SelectionPlusIcon, SparkleIcon, TrashIcon, XCircleIcon } from "@phosphor-icons/react";
+import { ArrowClockwise, ArrowCounterClockwise, CheckCircleIcon, CircleIcon, CircleNotch, DiceFiveIcon, FileArrowUpIcon, GenderFemaleIcon, GenderMaleIcon, GearSixIcon, ImageSquareIcon, PlusIcon, SelectionPlusIcon, SparkleIcon, TrashIcon, XCircleIcon } from "@phosphor-icons/react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   CUSTOM_RESOLUTION_ID,
@@ -175,7 +175,9 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
   const segmentedControlClassName = "join rounded-xl bg-transparent p-0";
   const segmentedButtonBaseClassName = "btn btn-xs join-item border-0";
   const featureUploadActionClassName = "inline-flex size-11 items-center justify-center rounded-md border border-[#2A3138] bg-[#161A1F] text-base-content/78 transition hover:border-primary/40 hover:text-primary focus:outline-none";
-  const featurePrimaryActionClassName = "inline-flex h-11 items-center gap-2 rounded-md border border-[#2A3138] bg-[#161A1F] px-4 text-[15px] font-semibold text-base-content transition hover:border-primary/40 hover:text-primary focus:outline-none focus:ring-2 focus:ring-primary/20";
+  const characterAddTriggerClassName = "inline-flex h-11 items-center gap-2 rounded-md border border-[#2A3138] bg-[#161A1F] px-4 text-[15px] font-semibold text-base-content transition hover:border-primary/40 hover:text-primary focus:outline-none";
+  const characterAddMenuPanelClassName = "absolute right-0 top-0 z-30 w-[7.75rem] overflow-hidden border border-[#2A3138] bg-[#161A1F] shadow-2xl";
+  const characterAddMenuItemClassName = "flex h-10 w-full items-center gap-2.5 px-3.5 text-left text-[14px] font-semibold text-base-content/92 transition hover:bg-white/6 focus:outline-none";
   const promptTextareaClassName = "textarea textarea-bordered !rounded-none min-h-36 w-full resize-none border-[#D6DCE3] bg-[#F3F5F7] text-base-content leading-7 transition-colors hover:border-primary active:border-primary focus:border-primary focus:bg-primary/[0.03] focus:outline-none dark:border-[#2A3138] dark:bg-[#161A1F] dark:hover:border-primary";
   const simplePromptTextareaClassName = promptTextareaClassName;
   const subtleInputClassName = "input input-bordered input-sm !rounded-none border-[#D6DCE3] bg-[#F3F5F7] text-base-content dark:border-[#2A3138] dark:bg-[#161A1F]";
@@ -194,6 +196,7 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
   const [isModeSelectorMounted, setIsModeSelectorMounted] = useState(false);
   const [isProPromptSettingsOpen, setIsProPromptSettingsOpen] = useState(false);
   const [isBaseImageToolsOpen, setIsBaseImageToolsOpen] = useState(false);
+  const [isCharacterAddMenuOpen, setIsCharacterAddMenuOpen] = useState(false);
   const [highlightEmphasisEnabled, setHighlightEmphasisEnabled] = useState(true);
   const [proPromptSettingsPosition, setProPromptSettingsPosition] = useState({ top: 96, left: 96 });
   const [isSimpleResolutionSelectorOpen, setIsSimpleResolutionSelectorOpen] = useState(false);
@@ -201,6 +204,7 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
   const sidebarSurfaceRef = useRef<HTMLDivElement | null>(null);
   const proPromptSettingsRef = useRef<HTMLDivElement | null>(null);
   const proPromptSettingsButtonRef = useRef<HTMLButtonElement | null>(null);
+  const characterAddMenuRef = useRef<HTMLDivElement | null>(null);
   const proPromptEditorPanelRef = useRef<HTMLDivElement | null>(null);
   const proPromptTextareaRef = useRef<HTMLTextAreaElement | null>(null);
   const proPromptRandomInsertionRef = useRef<Record<"prompt" | "negative", {
@@ -267,6 +271,35 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
     if (!sourceImageDataUrl)
       setIsBaseImageToolsOpen(false);
   }, [sourceImageDataUrl]);
+  useEffect(() => {
+    if (!proFeatureSections.characterPrompts)
+      setIsCharacterAddMenuOpen(false);
+  }, [proFeatureSections.characterPrompts]);
+  useEffect(() => {
+    if (!isCharacterAddMenuOpen)
+      return;
+
+    function handlePointerDown(event: PointerEvent) {
+      const container = characterAddMenuRef.current;
+      const target = event.target;
+      if (!container || !(target instanceof Node))
+        return;
+      if (!container.contains(target))
+        setIsCharacterAddMenuOpen(false);
+    }
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape")
+        setIsCharacterAddMenuOpen(false);
+    }
+
+    document.addEventListener("pointerdown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isCharacterAddMenuOpen]);
   useEffect(() => {
     if (isModeSelectorOpen) {
       setIsModeSelectorMounted(true);
@@ -964,7 +997,7 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                     {!sourceImageDataUrl
                       ? (
                           <div className="-mx-3 -mb-3 mt-3 flex items-center justify-between border-t border-[#2A3138] bg-[#161A1F] px-4 py-3">
-                            <div className="text-[15px] text-base-content/78">
+                            <div className="text-[15px] text-base-content/58">
                               Add a Base Img (Optional)
                             </div>
                             <button
@@ -1086,10 +1119,61 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                         <div className="text-[15px] leading-6 text-base-content/86">Character Prompts</div>
                         <div className="mt-1 text-[13px] leading-5 text-base-content/58">{characterPromptDescription}</div>
                       </div>
-                      <button type="button" className={featurePrimaryActionClassName} onClick={handleAddV4Char} disabled={!isNAI4}>
-                        <PlusIcon className="size-5" weight="bold" />
-                        <span>Add Character</span>
-                      </button>
+                      <div ref={characterAddMenuRef} className="relative shrink-0">
+                        <button
+                          type="button"
+                          className={`${characterAddTriggerClassName} ${isCharacterAddMenuOpen ? "invisible pointer-events-none" : ""}`}
+                          aria-haspopup="menu"
+                          aria-expanded={isCharacterAddMenuOpen}
+                          onClick={() => setIsCharacterAddMenuOpen(prev => !prev)}
+                          disabled={!isNAI4}
+                        >
+                          <PlusIcon className="size-5" weight="bold" />
+                          <span>Add Character</span>
+                        </button>
+                        {isCharacterAddMenuOpen
+                          ? (
+                              <div className={characterAddMenuPanelClassName} role="menu" aria-label="Add Character presets">
+                                <button
+                                  type="button"
+                                  className={characterAddMenuItemClassName}
+                                  role="menuitem"
+                                  onClick={() => {
+                                    setIsCharacterAddMenuOpen(false);
+                                    handleAddV4Char({ defaultPrompt: "girl, tags" });
+                                  }}
+                                >
+                                  <GenderFemaleIcon className="size-4 shrink-0 text-white/90" weight="regular" />
+                                  <span>Female</span>
+                                </button>
+                                <button
+                                  type="button"
+                                  className={characterAddMenuItemClassName}
+                                  role="menuitem"
+                                  onClick={() => {
+                                    setIsCharacterAddMenuOpen(false);
+                                    handleAddV4Char({ defaultPrompt: "boy, tags" });
+                                  }}
+                                >
+                                  <GenderMaleIcon className="size-4 shrink-0 text-white/90" weight="regular" />
+                                  <span>Male</span>
+                                </button>
+                                <button
+                                  type="button"
+                                  className={characterAddMenuItemClassName}
+                                  role="menuitem"
+                                  onClick={() => {
+                                    setIsCharacterAddMenuOpen(false);
+                                    handleAddV4Char();
+                                  }}
+                                >
+                                  <CircleIcon className="size-4 shrink-0 text-white/85" weight="regular" />
+                                  <span>Other</span>
+                                </button>
+                              </div>
+                            )
+                          : null}
+                      </div>
                     </div>
                     {proFeatureSections.characterPrompts
                       ? (isNAI4
