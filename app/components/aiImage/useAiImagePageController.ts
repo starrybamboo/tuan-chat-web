@@ -1660,6 +1660,9 @@ export function useAiImagePageController() {
   }, []);
 
   const handleClearSimpleDraft = useCallback(() => {
+    setMode("txt2img");
+    setSourceImageDataUrl("");
+    setSourceImageBase64("");
     setSimpleText("");
     setSimpleConverted(null);
     setSimpleConvertedFromText("");
@@ -1667,10 +1670,20 @@ export function useAiImagePageController() {
     setSimpleNegativePrompt("");
     setSimpleEditorMode("text");
     setSimplePromptTab("prompt");
+    setSimpleWidth(DEFAULT_SIMPLE_IMAGE_SETTINGS.width);
+    setSimpleHeight(DEFAULT_SIMPLE_IMAGE_SETTINGS.height);
+    setSimpleImg2imgStrength(DEFAULT_SIMPLE_IMAGE_SETTINGS.strength);
+    setSimpleImg2imgNoise(DEFAULT_SIMPLE_IMAGE_SETTINGS.noise);
+    setSimpleSeed(DEFAULT_SIMPLE_IMAGE_SETTINGS.seed);
+    setSimpleResolutionSelection(DEFAULT_SIMPLE_IMAGE_SETTINGS.simpleResolutionSelection);
     setSelectedStyleIds([]);
     setCompareStyleId(null);
     setStyleSelectionMode("select");
-  }, []);
+    setPendingMetadataImport(null);
+    setMetadataImportSelection(DEFAULT_METADATA_IMPORT_SELECTION);
+    setIsPageImageDragOver(false);
+    showSuccessToast("已恢复快速模式默认状态。");
+  }, [showSuccessToast]);
 
   const handleClearActiveStyles = useCallback(() => {
     if (styleSelectionMode === "compare") {
