@@ -335,6 +335,7 @@ export function useAiImagePageController() {
   const [isDirectorToolsOpen, setIsDirectorToolsOpen] = useState<boolean>(false);
   const [activeDirectorTool, setActiveDirectorTool] = useState<DirectorToolId>("removeBackground");
   const pendingPreviewAction = "" as ActivePreviewAction;
+  const [directorSourceItems, setDirectorSourceItems] = useState<GeneratedImageItem[]>([]);
   const [directorSourcePreview, setDirectorSourcePreview] = useState<GeneratedImageItem | null>(null);
   const [directorOutputPreview, setDirectorOutputPreview] = useState<GeneratedImageItem | null>(null);
   const [directorColorizePrompt, setDirectorColorizePrompt] = useState("");
@@ -408,7 +409,7 @@ export function useAiImagePageController() {
   }, [historyRowByKey, pinnedPreviewKey, results]);
   const isSelectedPreviewPinned = Boolean(selectedPreviewIdentityKey && pinnedPreviewKey === selectedPreviewIdentityKey);
   const directorTool = DIRECTOR_TOOL_OPTIONS_BY_ID[activeDirectorTool];
-  const directorInputPreview = directorSourcePreview ?? selectedPreviewResult;
+  const directorInputPreview = directorSourcePreview;
   const inferResolutionSelection = useCallback((nextWidth: number, nextHeight: number): ResolutionSelection => {
     return RESOLUTION_PRESETS.find(item => item.width === nextWidth && item.height === nextHeight)?.id ?? CUSTOM_RESOLUTION_ID;
   }, []);
@@ -539,17 +540,6 @@ export function useAiImagePageController() {
     applySourceImageForUi(targetUiMode, sourceImage);
     return true;
   }, [applySourceImageForUi, clearSourceImageForUi]);
-
-  useEffect(() => {
-    if (!isDirectorToolsOpen || directorSourcePreview || !selectedPreviewResult)
-      return;
-    setDirectorSourcePreview(selectedPreviewResult);
-  }, [directorSourcePreview, isDirectorToolsOpen, selectedPreviewResult]);
-
-  useEffect(() => {
-    if (!selectedPreviewResult)
-      setIsDirectorToolsOpen(false);
-  }, [selectedPreviewResult]);
 
   useEffect(() => {
     if (!selectedPreviewResult && isPreviewImageModalOpen)
@@ -877,6 +867,52 @@ export function useAiImagePageController() {
     });
   }, [handleImportSourceImageBytes]);
 
+  const handlePickDirectorSourceImages = useCallback(async (files: FileList | File[]) => {
+    const fileList = Array.from(files).filter(file => file.type.startsWith("image/") || file.name);
+    if (!fileList.length) {
+      showErrorToast("请先导入图片文件。");
+      return;
+    }
+
+    const importedItems: GeneratedImageItem[] = [];
+    for (const file of fileList) {
+      const bytes = await readFileAsBytes(file);
+      const mime = file.type || mimeFromFilename(file.name);
+      const dataUrl = base64DataUrl(mime, bytes);
+      let imageSize: { width: number; height: number } = {
+        width: DEFAULT_PRO_IMAGE_SETTINGS.width,
+        height: DEFAULT_PRO_IMAGE_SETTINGS.height,
+      };
+      try {
+        const resolvedSize = await readImageSize(dataUrl);
+        imageSize = resolvedSize;
+      }
+      catch {
+        // 保持默认尺寸兜底。
+      }
+
+      const batchId = makeStableId();
+      importedItems.push({
+        dataUrl,
+        seed: -1,
+        width: imageSize.width,
+        height: imageSize.height,
+        model,
+        batchId,
+        batchIndex: 0,
+        batchSize: 1,
+        toolLabel: file.name,
+      });
+    }
+
+    if (!importedItems.length)
+      return;
+
+    setDirectorSourceItems(prev => [...importedItems, ...prev]);
+    setDirectorSourcePreview(importedItems[0]);
+    setDirectorOutputPreview(null);
+  }, [model, showErrorToast]);
+
   const handlePickSourceHistoryImage = useCallback(async (
     payload: InternalHistoryImageDragPayload,
     options?: { source?: ImageImportSource; imageCount?: number },
@@ -918,22 +954,28 @@ export function useAiImagePageController() {
   }, []);
 
   const handlePageImageDragEnter = useCallback((event: DragEvent<HTMLDivElement>) => {
+    if (isDirectorToolsOpen)
+      return;
     const nextIsImageDrag = hasFileDrag(event.dataTransfer) || hasInternalHistoryImageDrag(event.dataTransfer);
     if (!nextIsImageDrag)
       return;
     event.preventDefault();
     event.stopPropagation();
     setIsPageImageDragOver(nextIsImageDrag);
-  }, []);
+  }, [isDirectorToolsOpen]);
 
   const handlePageImageDragLeave = useCallback((event: DragEvent<HTMLDivElement>) => {
+    if (isDirectorToolsOpen)
+      return;
     event.preventDefault();
     event.stopPropagation();
     if (!event.currentTarget.contains(event.relatedTarget as Node | null))
       setIsPageImageDragOver(false);
-  }, []);
+  }, [isDirectorToolsOpen]);
 
   const handlePageImageDragOver = useCallback((event: DragEvent<HTMLDivElement>) => {
+    if (isDirectorToolsOpen)
+      return;
     const nextIsImageDrag = hasFileDrag(event.dataTransfer) || hasInternalHistoryImageDrag(event.dataTransfer);
     if (!nextIsImageDrag)
       return;
@@ -942,9 +984,11 @@ export function useAiImagePageController() {
     event.dataTransfer.dropEffect = "copy";
     if (nextIsImageDrag !== isPageImageDragOver)
       setIsPageImageDragOver(nextIsImageDrag);
-  }, [isPageImageDragOver]);
+  }, [isDirectorToolsOpen, isPageImageDragOver]);
 
   const handlePageImageDrop = useCallback((event: DragEvent<HTMLDivElement>) => {
+    if (isDirectorToolsOpen)
+      return;
     const hasImportableDrag = hasFileDrag(event.dataTransfer) || hasInternalHistoryImageDrag(event.dataTransfer);
     if (!hasImportableDrag)
       return;
@@ -964,7 +1008,7 @@ export function useAiImagePageController() {
     }
     setIsPageImageDragOver(false);
     void handlePickSourceImage(files[0], { source: "drop", imageCount: files.length });
-  }, [handlePickSourceHistoryImage, handlePickSourceImage, showErrorToast]);
+  }, [handlePickSourceHistoryImage, handlePickSourceImage, isDirectorToolsOpen, showErrorToast]);
 
   useEffect(() => {
     if (typeof document === "undefined")
@@ -1073,6 +1117,11 @@ export function useAiImagePageController() {
 
   const handleToggleDirectorTools = useCallback(() => {
     setIsDirectorToolsOpen(prev => !prev);
+  }, []);
+
+  const handleSelectDirectorSourceItem = useCallback((item: GeneratedImageItem) => {
+    setDirectorSourcePreview(item);
+    setDirectorOutputPreview(null);
   }, []);
 
   const handleSyncDirectorSourceFromCurrentPreview = useCallback(() => {
@@ -2454,6 +2503,7 @@ export function useAiImagePageController() {
       pendingPreviewAction,
       activeDirectorTool,
       directorTool,
+      directorSourceItems,
       directorInputPreview,
       directorOutputPreview,
       directorColorizePrompt,
@@ -2463,8 +2513,9 @@ export function useAiImagePageController() {
       directorEmotionDefry,
       onToggleDirectorTools: handleToggleDirectorTools,
       onRunUpscale: handleRunUpscale,
-      onSyncDirectorSourceFromCurrentPreview: handleSyncDirectorSourceFromCurrentPreview,
       onUseSelectedResultAsBaseImage: handleUseSelectedResultAsBaseImage,
+      onPickDirectorSourceImages: handlePickDirectorSourceImages,
+      onSelectDirectorSourceItem: handleSelectDirectorSourceItem,
       onDirectorColorizePromptChange: setDirectorColorizePrompt,
       onDirectorColorizeDefryChange: setDirectorColorizeDefry,
       onDirectorEmotionChange: setDirectorEmotion,
