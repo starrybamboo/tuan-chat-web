@@ -475,9 +475,6 @@ export function AiImagePreviewPane({
                     onClick={() => void onRunDirectorTool()}
                   >
                     <span>{pendingPreviewAction === activeDirectorTool ? "Transforming..." : "Transform"}</span>
-                    <span className="inline-flex items-center rounded-md bg-[#111326]/12 px-2 py-0.5 text-[11px] font-semibold">
-                      0
-                    </span>
                   </button>
                 </div>
               </div>
