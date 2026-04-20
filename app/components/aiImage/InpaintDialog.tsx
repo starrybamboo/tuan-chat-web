@@ -171,6 +171,24 @@ export function InpaintDialog({
     showMaskBorder,
   ]);
 
+  const loadImageFromDataUrl = useCallback(async (dataUrl: string) => {
+    await new Promise<void>((resolve, reject) => {
+      const image = new Image();
+      image.onload = () => {
+        const target = getMaskContext();
+        if (!target) {
+          resolve();
+          return;
+        }
+        target.context.clearRect(0, 0, target.canvas.width, target.canvas.height);
+        target.context.drawImage(image, 0, 0, target.canvas.width, target.canvas.height);
+        resolve();
+      };
+      image.onerror = () => reject(new Error("读取 Inpaint 蒙版失败"));
+      image.src = dataUrl;
+    });
+  }, [getMaskContext]);
+
   const syncMaskPresence = useCallback(() => {
     const target = getMaskContext();
     if (!target || !target.canvas.width || !target.canvas.height) {
@@ -207,36 +225,59 @@ export function InpaintDialog({
     if (!isOpen || !source)
       return;
 
-    setPrompt(source.prompt);
-    setNegativePrompt(source.negativePrompt);
-    setStrength(source.strength);
-    setBrushSize(4);
-    setTool("paint");
-    setIsSquareBrush(true);
-    setMaskColor(MASK_COLOR_OPTIONS[4]);
-    setMaskOpacity(45);
-    setShowMaskBorder(true);
-    setIsBoardPanelOpen(false);
-    setBrushCursorPoint(null);
-    setHasMask(false);
-    undoStackRef.current = [];
-    redoStackRef.current = [];
-    syncHistoryVersion();
+    let cancelled = false;
 
-    const displayCanvas = canvasRef.current;
-    if (!displayCanvas)
-      return;
+    const initializeDialog = async () => {
+      setPrompt(source.prompt);
+      setNegativePrompt(source.negativePrompt);
+      setStrength(source.strength);
+      setBrushSize(4);
+      setTool("paint");
+      setIsSquareBrush(true);
+      setMaskColor(MASK_COLOR_OPTIONS[4]);
+      setMaskOpacity(45);
+      setShowMaskBorder(true);
+      setIsBoardPanelOpen(false);
+      setBrushCursorPoint(null);
+      setHasMask(false);
+      undoStackRef.current = [];
+      redoStackRef.current = [];
+      syncHistoryVersion();
 
-    displayCanvas.width = source.width;
-    displayCanvas.height = source.height;
-    displayCanvas.getContext("2d")?.clearRect(0, 0, source.width, source.height);
+      const displayCanvas = canvasRef.current;
+      if (!displayCanvas)
+        return;
 
-    const target = getMaskContext();
-    if (!target)
-      return;
+      displayCanvas.width = source.width;
+      displayCanvas.height = source.height;
+      displayCanvas.getContext("2d")?.clearRect(0, 0, source.width, source.height);
 
-    target.context.clearRect(0, 0, target.canvas.width, target.canvas.height);
-  }, [getMaskContext, isOpen, source, syncHistoryVersion]);
+      const target = getMaskContext();
+      if (!target)
+        return;
+
+      target.context.clearRect(0, 0, target.canvas.width, target.canvas.height);
+      if (source.maskDataUrl) {
+        try {
+          await loadImageFromDataUrl(source.maskDataUrl);
+        }
+        catch {
+          // 蒙版读取失败时回退为清空状态。
+        }
+      }
+
+      if (cancelled)
+        return;
+
+      renderMaskPreview();
+      syncMaskPresence();
+    };
+
+    void initializeDialog();
+    return () => {
+      cancelled = true;
+    };
+  }, [getMaskContext, isOpen, loadImageFromDataUrl, renderMaskPreview, source, syncHistoryVersion, syncMaskPresence]);
 
   useEffect(() => {
     if (!isOpen || !source)
