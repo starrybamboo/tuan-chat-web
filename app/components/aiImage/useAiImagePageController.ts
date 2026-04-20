@@ -489,17 +489,12 @@ export function useAiImagePageController() {
     setProSourceImageSize(null);
   }, [clearInfillMaskForUi, setModeForUi]);
 
-  const applySourceImageForUi = useCallback((
-    targetUiMode: UiMode,
-    sourceImage: ImportedSourceImagePayload,
-    options?: { successMessage?: string; preserveInfillMask?: boolean },
-  ) => {
+  const applySourceImageForUi = useCallback((targetUiMode: UiMode, sourceImage: ImportedSourceImagePayload, successMessage?: string) => {
     const nextSourceImageSize = sourceImage.width && sourceImage.height
       ? { width: sourceImage.width, height: sourceImage.height }
       : null;
     setModeForUi(targetUiMode, "img2img");
-    if (!options?.preserveInfillMask)
-      clearInfillMaskForUi(targetUiMode);
+    clearInfillMaskForUi(targetUiMode);
     if (targetUiMode === "simple") {
       setSimpleSourceImageDataUrl(sourceImage.dataUrl);
       setSimpleSourceImageBase64(sourceImage.imageBase64);
@@ -512,8 +507,8 @@ export function useAiImagePageController() {
     }
 
     syncSourceImageSizeForUi(targetUiMode, sourceImage.width, sourceImage.height);
-    if (options?.successMessage)
-      showSuccessToast(options.successMessage);
+    if (successMessage)
+      showSuccessToast(successMessage);
   }, [clearInfillMaskForUi, setModeForUi, showSuccessToast, syncSourceImageSizeForUi]);
 
   const resolveInfillMaskBase64ForUi = useCallback((targetUiMode: UiMode) => {
@@ -833,7 +828,7 @@ export function useAiImagePageController() {
     } satisfies ImportedSourceImagePayload;
 
     const applySourceImageAsBase = (nextSourceImage: ImportedSourceImagePayload, successMessage?: string) => {
-      applySourceImageForUi(uiMode, nextSourceImage, { successMessage });
+      applySourceImageForUi(uiMode, nextSourceImage, successMessage);
     };
 
     if (args.target === "img2img") {
@@ -1073,7 +1068,7 @@ export function useAiImagePageController() {
       return;
 
     if (target === "img2img") {
-      applySourceImageForUi(uiMode, pendingMetadataImport.sourceImage, { successMessage: "已设置 Base Img。" });
+      applySourceImageForUi(uiMode, pendingMetadataImport.sourceImage, "已设置 Base Img。");
     }
 
     setPendingMetadataImport(null);
@@ -1116,7 +1111,7 @@ export function useAiImagePageController() {
     await refreshHistory();
   }, [refreshHistory]);
 
-  const applySelectedPreviewAsBaseImage = useCallback((showToast = false, preserveInfillMask = false) => {
+  const applySelectedPreviewAsBaseImage = useCallback((showToast = false) => {
     if (!selectedPreviewResult)
       return false;
 
@@ -1130,12 +1125,11 @@ export function useAiImagePageController() {
       return false;
     }
 
-    applySourceImageForUi(uiMode, sourceImage, {
-      preserveInfillMask,
-      successMessage: showToast ? "已把当前预览设置为 Base Img。" : undefined,
-    });
+    applySourceImageForUi(uiMode, sourceImage);
+    if (showToast)
+      showSuccessToast("已把当前预览设置为 Base Img。");
     return true;
-  }, [applySourceImageForUi, selectedPreviewResult, showErrorToast, uiMode]);
+  }, [applySourceImageForUi, selectedPreviewResult, showErrorToast, showSuccessToast, uiMode]);
 
   const handleUseSelectedResultAsBaseImage = useCallback(() => {
     void applySelectedPreviewAsBaseImage(true);
@@ -1561,7 +1555,7 @@ export function useAiImagePageController() {
       return;
 
     const shouldSyncBaseImage = sourceImageDataUrl !== preview.dataUrl;
-    if (shouldSyncBaseImage && !applySelectedPreviewAsBaseImage(false, true))
+    if (shouldSyncBaseImage && !applySelectedPreviewAsBaseImage())
       return;
 
     const sourceImageBase64 = dataUrlToBase64(preview.dataUrl);
@@ -1574,7 +1568,7 @@ export function useAiImagePageController() {
     setInpaintDialogSource({
       dataUrl: preview.dataUrl,
       imageBase64: sourceImageBase64,
-      maskDataUrl: infillMaskDataUrl,
+      maskDataUrl: shouldSyncBaseImage ? "" : infillMaskDataUrl,
       width: preview.width,
       height: preview.height,
       seed: preview.seed,
