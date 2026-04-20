@@ -607,18 +607,31 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                 <button
                   type="button"
                   className="inline-flex size-11 items-center justify-center text-base-content/70 transition hover:bg-base-200 hover:text-base-content focus:outline-none focus:ring-2 focus:ring-primary/20 dark:text-white/80 dark:hover:bg-white/6 dark:hover:text-white dark:focus:ring-white/15"
-                  aria-label="清除蒙版"
-                  title="清除蒙版"
+                  aria-label="清空"
+                  title="清空"
                   disabled={isBusy}
-                  onClick={handleClearInfillMask}
+                  onClick={handleClearSourceImage}
                 >
                   <TrashIcon className="size-5" weight="bold" />
+                </button>
+                <span className="h-11 w-px bg-[#D6DCE3] dark:bg-[#2A3138]" aria-hidden="true" />
+                <button
+                  type="button"
+                  className="inline-flex size-11 items-center justify-center text-base-content/70 transition hover:bg-base-200 hover:text-base-content focus:outline-none focus:ring-2 focus:ring-primary/20 dark:text-white/80 dark:hover:bg-white/6 dark:hover:text-white dark:focus:ring-white/15"
+                  aria-label={isBaseImageToolsOpen ? "收起" : "展开"}
+                  title={isBaseImageToolsOpen ? "收起" : "展开"}
+                  disabled={isBusy}
+                  onClick={() => setIsBaseImageToolsOpen(prev => !prev)}
+                >
+                  <ChevronDown className={`size-5 shrink-0 transition-transform ${isBaseImageToolsOpen ? "rotate-180" : ""}`} />
                 </button>
               </div>
             </div>
           </div>
 
-          <div className="mt-4 space-y-4">
+          {isBaseImageToolsOpen
+            ? (
+                <div className="mt-4 space-y-4">
             <div>
               <div className="text-[13px] font-semibold leading-5 text-base-content dark:text-white">Mask</div>
               <div className="mt-2 overflow-hidden rounded-md border border-[#D6DCE3] bg-[#F3F5F7] dark:border-[#2A3138] dark:bg-[#0B0D1B]">
@@ -654,7 +667,9 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                 onChange={event => setStrength(clampRange(Number(event.target.value), 0.01, 1, 0.7))}
               />
             </label>
-          </div>
+                </div>
+              )
+            : null}
         </div>
       </div>
     );
@@ -701,18 +716,31 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                 <button
                   type="button"
                   className="inline-flex size-11 items-center justify-center text-white/80 transition hover:bg-white/6 hover:text-white focus:outline-none focus:ring-2 focus:ring-white/15"
-                  aria-label="清除蒙版"
-                  title="清除蒙版"
+                  aria-label="清空"
+                  title="清空"
                   disabled={isBusy}
-                  onClick={handleClearInfillMask}
+                  onClick={handleClearSourceImage}
                 >
                   <TrashIcon className="size-5" weight="bold" />
+                </button>
+                <span className="h-11 w-px bg-[#2A3138]" aria-hidden="true" />
+                <button
+                  type="button"
+                  className="inline-flex size-11 items-center justify-center text-white/80 transition hover:bg-white/6 hover:text-white focus:outline-none focus:ring-2 focus:ring-white/15"
+                  aria-label={isBaseImageToolsOpen ? "收起" : "展开"}
+                  title={isBaseImageToolsOpen ? "收起" : "展开"}
+                  disabled={isBusy}
+                  onClick={() => setIsBaseImageToolsOpen(prev => !prev)}
+                >
+                  <ChevronDown className={`size-5 shrink-0 transition-transform ${isBaseImageToolsOpen ? "rotate-180" : ""}`} />
                 </button>
               </div>
             </div>
           </div>
 
-          <div className="mt-4 space-y-4">
+          {isBaseImageToolsOpen
+            ? (
+                <div className="mt-4 space-y-4">
             <div>
               <div className="text-[13px] font-semibold leading-5 text-white">Mask</div>
               <div className="mt-2 overflow-hidden rounded-md border border-[#2A3138] bg-[#0B0D1B]">
@@ -748,7 +776,9 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                 onChange={event => setStrength(clampRange(Number(event.target.value), 0.01, 1, 0.7))}
               />
             </label>
-          </div>
+                </div>
+              )
+            : null}
         </div>
       </div>
     );
