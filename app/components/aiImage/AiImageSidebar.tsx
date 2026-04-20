@@ -22,6 +22,7 @@ import {
   getV4CharGridCellByCode,
   insertNovelAiRandomTags,
   modelLabel,
+  resolveSimpleGenerateMode,
   resolveNovelAiRandomTagTarget,
   V4_CHAR_GRID_CELLS,
 } from "@/components/aiImage/helpers";
@@ -235,7 +236,8 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
   const simpleResolutionOptions = [...RESOLUTION_PRESETS, { id: CUSTOM_RESOLUTION_ID, label: "自定义" }] as const;
   const activeSimpleResolutionOption = simpleResolutionOptions.find(option => option.id === simpleResolutionSelection) ?? simpleResolutionOptions[simpleResolutionOptions.length - 1];
   const activeProResolutionOption = simpleResolutionOptions.find(option => option.id === proResolutionSelection) ?? simpleResolutionOptions[simpleResolutionOptions.length - 1];
-  const hasReadySimpleTags = isSimpleTagsEditor && (hasSimpleTagsDraft || mode === "infill");
+  const simpleGenerateMode = resolveSimpleGenerateMode(mode);
+  const hasReadySimpleTags = isSimpleTagsEditor && (hasSimpleTagsDraft || simpleGenerateMode === "infill");
   const hasGeneratedSimpleTags = hasSimpleTagsDraft || Boolean(simpleConverted);
   const simplePrimaryActionLabel = hasReadySimpleTags
     ? proGenerateLabel
