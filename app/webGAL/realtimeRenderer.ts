@@ -3484,6 +3484,9 @@ export class RealtimeRenderer {
       const dialogNotend = hasAnnotation(msg.annotations, ANNOTATION_IDS.DIALOG_NOTEND);
       const dialogConcat = hasAnnotation(msg.annotations, ANNOTATION_IDS.DIALOG_CONCAT);
       const dialogNext = hasAnnotation(msg.annotations, ANNOTATION_IDS.DIALOG_NEXT);
+      const dialogFigureIdPart = shouldShowFigure && spriteFileName && figurePosition
+        ? ` -figureId=${resolveFigureSlot(figurePosition).id}`
+        : "";
 
       // 根据消息类型生成不同的指令
       if (isIntroText) {
@@ -3511,7 +3514,7 @@ export class RealtimeRenderer {
             await this.appendLine(targetRoomId, `:${content}${nextPart};`, syncToFile);
           }
           else {
-            await this.appendLine(targetRoomId, `${roleName}: ${content}${notendPart}${concatPart}${nextPart};`, syncToFile);
+            await this.appendLine(targetRoomId, `${roleName}: ${content}${dialogFigureIdPart}${notendPart}${concatPart}${nextPart};`, syncToFile);
           }
         };
         if (diceRenderMode === "trpg") {
@@ -3608,7 +3611,7 @@ export class RealtimeRenderer {
         const notendPart = dialogNotend ? " -notend" : "";
         const concatPart = dialogConcat ? " -concat" : "";
         const nextPart = dialogNext ? " -next" : "";
-        await this.appendLine(targetRoomId, `${roleName}: ${processedContent}${vocalPart}${notendPart}${concatPart}${nextPart};`, syncToFile);
+        await this.appendLine(targetRoomId, `${roleName}: ${processedContent}${vocalPart}${dialogFigureIdPart}${notendPart}${concatPart}${nextPart};`, syncToFile);
       }
 
       finalizeMessageLineRange();
