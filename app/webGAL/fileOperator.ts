@@ -243,12 +243,12 @@ export async function uploadFile(url: string, path: string, fileName?: string | 
       return uploadedFileName;
     }
     catch (error) {
-      const unsupported = error instanceof TerreUploadByUrlError
-        && (error.status === 404 || error.status === 405);
-      if (!unsupported) {
+      const shouldFallbackToBrowserUpload = error instanceof TerreUploadByUrlError
+        && (error.status === 404 || error.status === 405 || error.status >= 500);
+      if (!shouldFallbackToBrowserUpload) {
         throw error;
       }
-      console.warn("[fileOperator] 当前 Terre 不支持 uploadByUrl，回退到浏览器上传流程", error);
+      console.warn("[fileOperator] Terre uploadByUrl 不可用，回退到浏览器上传流程", error);
     }
   }
 
