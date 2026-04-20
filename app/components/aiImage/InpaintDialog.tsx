@@ -44,7 +44,8 @@ interface BrushCursorPoint {
 }
 
 const MASK_BORDER_OFFSETS = createMaskBorderOffsets(1);
-const BRUSH_CURSOR_STROKE_COLOR = "#9CA3AF";
+const BRUSH_CURSOR_STROKE_COLOR = "#000000";
+const BRUSH_CURSOR_CROSS_SIZE = 13;
 
 export function InpaintDialog({
   isOpen,
@@ -591,47 +592,32 @@ export function InpaintDialog({
                       top: `${brushCursorPoint.y}px`,
                     }}
                   >
-                    <svg
-                      viewBox="0 0 100 100"
-                      className="block"
+                    <div
+                      className={`relative block border ${isSquareBrush ? "rounded-none" : "rounded-full"}`}
                       style={{
                         width: `${brushCursorDisplaySize}px`,
                         height: `${brushCursorDisplaySize}px`,
+                        borderColor: BRUSH_CURSOR_STROKE_COLOR,
+                        boxSizing: "border-box",
                       }}
                     >
-                      {isSquareBrush
-                        ? (
-                            <rect
-                              x="8"
-                              y="8"
-                              width="84"
-                              height="84"
-                              fill="none"
-                              stroke={BRUSH_CURSOR_STROKE_COLOR}
-                              strokeWidth="4"
-                              strokeLinejoin="miter"
-                              strokeLinecap="square"
-                            />
-                          )
-                        : (
-                            <circle
-                              cx="50"
-                              cy="50"
-                              r="42"
-                              fill="none"
-                              stroke={BRUSH_CURSOR_STROKE_COLOR}
-                              strokeWidth="4"
-                            />
-                          )}
-                      <path
-                        d="M50 28V72M28 50H72"
-                        fill="none"
-                        stroke={BRUSH_CURSOR_STROKE_COLOR}
-                        strokeWidth="4"
-                        strokeLinejoin="miter"
-                        strokeLinecap="square"
+                      <span
+                        className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
+                        style={{
+                          width: `${BRUSH_CURSOR_CROSS_SIZE}px`,
+                          height: "1px",
+                          backgroundColor: BRUSH_CURSOR_STROKE_COLOR,
+                        }}
                       />
-                    </svg>
+                      <span
+                        className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
+                        style={{
+                          width: "1px",
+                          height: `${BRUSH_CURSOR_CROSS_SIZE}px`,
+                          backgroundColor: BRUSH_CURSOR_STROKE_COLOR,
+                        }}
+                      />
+                    </div>
                   </div>
                 )
               : null}
