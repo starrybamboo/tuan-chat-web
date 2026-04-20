@@ -196,14 +196,14 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
   const highlightCharContentClassName = "min-h-28 px-3 py-2 text-sm leading-6";
   const floatingInputActionBaseClassName = "btn btn-xs btn-ghost border-0 bg-transparent px-2 text-base-content/35 shadow-none transition-colors backdrop-blur-0 hover:bg-black/28 hover:text-white focus-visible:text-white disabled:cursor-not-allowed disabled:opacity-40 dark:text-base-content/40 dark:hover:bg-white/12";
   const floatingInputActionClassName = `${floatingInputActionBaseClassName} absolute right-3 top-3 z-10`;
-  const baseImageToggleButtonClassName = "inline-flex size-11 items-center justify-center bg-transparent text-white/58 transition hover:text-white focus:outline-none";
+  const baseImageToggleButtonClassName = "inline-flex size-11 items-center justify-center bg-transparent text-base-content/60 transition hover:text-base-content focus:outline-none focus-visible:text-base-content dark:text-white/58 dark:hover:text-white dark:focus-visible:text-white";
   const baseImageActionButtonClassName = "inline-flex h-11 items-center gap-2 rounded-md border border-[#2A3138] bg-[#161A1F] px-4 text-[14px] font-semibold text-white/92 transition hover:border-white/20 hover:text-white focus:outline-none focus:ring-2 focus:ring-white/15";
   const baseImageRangeClassName = "mt-2 w-full cursor-pointer appearance-none bg-transparent focus:outline-none [&::-webkit-slider-runnable-track]:h-2 [&::-webkit-slider-runnable-track]:rounded-full [&::-webkit-slider-runnable-track]:bg-white/10 [&::-webkit-slider-thumb]:mt-[-4px] [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:border-0 [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:shadow-sm [&::-webkit-slider-thumb]:shadow-black/30 [&::-moz-range-track]:h-2 [&::-moz-range-track]:rounded-full [&::-moz-range-track]:bg-white/10 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:bg-white [&::-moz-range-thumb]:shadow-sm [&::-moz-range-thumb]:shadow-black/30";
   const simpleBaseImageAttachmentClassName = "mt-[2px] overflow-hidden !rounded-none border-x border-b border-[#D6DCE3] bg-[#F3F5F7] shadow-none dark:border-[#2A3138] dark:bg-[#161A1F]";
   const [isModeSelectorOpen, setIsModeSelectorOpen] = useState<boolean>(false);
   const [isModeSelectorMounted, setIsModeSelectorMounted] = useState<boolean>(false);
   const [isProPromptSettingsOpen, setIsProPromptSettingsOpen] = useState<boolean>(false);
-  const [isBaseImageToolsOpen, setIsBaseImageToolsOpen] = useState<boolean>(false);
+  const [isBaseImageToolsOpen, setIsBaseImageToolsOpen] = useState<boolean>(() => mode === "img2img" || mode === "infill");
   const [isProBottomSettingsOpen, setIsProBottomSettingsOpen] = useState<boolean>(false);
   const [isCharacterAddMenuOpen, setIsCharacterAddMenuOpen] = useState<boolean>(false);
   const [highlightEmphasisEnabled, setHighlightEmphasisEnabled] = useState<boolean>(true);
@@ -293,6 +293,15 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
     if (!sourceImageDataUrl)
       setIsBaseImageToolsOpen(false);
   }, [sourceImageDataUrl]);
+  const previousModeRef = useRef(mode);
+  useEffect(() => {
+    const prev = previousModeRef.current;
+    previousModeRef.current = mode;
+    if (prev === mode)
+      return;
+    if (mode === "img2img" || mode === "infill")
+      setIsBaseImageToolsOpen(true);
+  }, [mode]);
   useEffect(() => {
     if (!proFeatureSections.characterPrompts)
       setIsCharacterAddMenuOpen(false);
@@ -619,7 +628,7 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                 <span className="h-11 w-px bg-[#D6DCE3] dark:bg-[#2A3138]" aria-hidden="true" />
                 <button
                   type="button"
-                  className={infillActionButtonClassName}
+                  className={baseImageToggleButtonClassName}
                   aria-label={isBaseImageToolsOpen ? "收起" : "展开"}
                   title={isBaseImageToolsOpen ? "收起" : "展开"}
                   disabled={isBusy}
@@ -730,7 +739,7 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                 <span className="h-11 w-px bg-[#2A3138]" aria-hidden="true" />
                 <button
                   type="button"
-                  className={infillActionButtonClassName}
+                  className={baseImageToggleButtonClassName}
                   aria-label={isBaseImageToolsOpen ? "收起" : "展开"}
                   title={isBaseImageToolsOpen ? "收起" : "展开"}
                   disabled={isBusy}
