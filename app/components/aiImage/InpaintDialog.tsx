@@ -528,7 +528,7 @@ export function InpaintDialog({
   const sharedPanelClassName = "rounded-md border border-white/10 bg-white/[0.06] shadow-[0_18px_48px_rgba(0,0,0,0.34)] backdrop-blur";
   const bottomToolButtonClassName = "inline-flex size-10 items-center justify-center rounded-md border border-transparent bg-transparent text-white/60 transition hover:bg-white/[0.08] hover:text-white focus:outline-none focus:ring-2 focus:ring-white/16 disabled:cursor-not-allowed disabled:opacity-35";
   const boardButtonClassName = `${bottomToolButtonClassName} ${isBoardPanelOpen ? "bg-white/[0.12] text-white" : ""}`;
-  const boardPanelClassName = "absolute right-0 bottom-[calc(100%+10px)] z-30 w-[320px] rounded-md border border-white/10 bg-white/[0.06] p-3 shadow-[0_18px_48px_rgba(0,0,0,0.34)] backdrop-blur";
+  const boardPanelClassName = `absolute right-0 bottom-[calc(100%+10px)] z-30 w-[320px] p-3 ${sharedPanelClassName}`;
   const canUndo = historyVersion >= 0 && undoStackRef.current.length > 0;
   const canRedo = historyVersion >= 0 && redoStackRef.current.length > 0;
 
