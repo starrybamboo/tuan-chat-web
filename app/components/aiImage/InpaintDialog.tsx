@@ -543,10 +543,10 @@ export function InpaintDialog({
 
       <div className="pointer-events-none absolute bottom-2 left-1/2 z-20 w-[830px] max-w-[calc(100vw-6rem)] -translate-x-1/2">
         <div className={`pointer-events-auto flex h-[50px] items-stretch justify-between gap-0 px-2 ${sharedPanelClassName}`}>
-          <div className="flex items-center gap-0">
+          <div className="flex items-center gap-1.5">
             <button
               type="button"
-              className={`${bottomToolButtonClassName} rounded-r-none ${tool === "paint" ? "bg-white/[0.12] text-white" : ""}`}
+              className={`${bottomToolButtonClassName} ${tool === "paint" ? "bg-white/[0.12] text-white" : ""}`}
               aria-label="绘制蒙版"
               title="绘制蒙版"
               onClick={() => setTool("paint")}
@@ -555,7 +555,7 @@ export function InpaintDialog({
             </button>
             <button
               type="button"
-              className={`${bottomToolButtonClassName} -ml-px rounded-l-none ${tool === "erase" ? "bg-white/[0.12] text-white" : ""}`}
+              className={`${bottomToolButtonClassName} ${tool === "erase" ? "bg-white/[0.12] text-white" : ""}`}
               aria-label="擦除蒙版"
               title="擦除蒙版"
               onClick={() => setTool("erase")}
@@ -563,7 +563,7 @@ export function InpaintDialog({
               <EraserIcon className="size-[18px]" weight="bold" />
             </button>
           </div>
-          <div className="flex items-center gap-0">
+          <div className="flex items-center gap-1.5">
             <button
               type="button"
               className={bottomToolButtonClassName}
@@ -576,7 +576,7 @@ export function InpaintDialog({
             </button>
             <button
               type="button"
-              className={`${bottomToolButtonClassName} -ml-px`}
+              className={bottomToolButtonClassName}
               aria-label="撤销"
               title="撤销"
               disabled={!canUndo}
@@ -586,7 +586,7 @@ export function InpaintDialog({
             </button>
             <button
               type="button"
-              className={`${bottomToolButtonClassName} -ml-px`}
+              className={bottomToolButtonClassName}
               aria-label="重做"
               title="重做"
               disabled={!canRedo}
