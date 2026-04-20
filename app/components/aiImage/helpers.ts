@@ -29,6 +29,8 @@ import {
   NOVELAI_FREE_MAX_DIMENSION,
   NOVELAI_FREE_MAX_STEPS,
   NOVELAI_FREE_ONLY_NOTICE,
+  RESOLUTION_PRESETS,
+  SIMPLE_MODE_CUSTOM_MAX_DIMENSION,
   SIMPLE_MODE_MAX_IMAGE_AREA,
 } from "@/components/aiImage/constants";
 
@@ -405,6 +407,10 @@ export function getNovelAiFreeOnlyMessage(detail?: string) {
   return suffix ? `${NOVELAI_FREE_ONLY_NOTICE} ${suffix}` : NOVELAI_FREE_ONLY_NOTICE;
 }
 
+function isPresetResolution(width: number, height: number) {
+  return RESOLUTION_PRESETS.some(preset => preset.width === width && preset.height === height);
+}
+
 export function getNovelAiFreeGenerationViolation(args: {
   mode: AiImageHistoryMode;
   width: number;
@@ -412,6 +418,8 @@ export function getNovelAiFreeGenerationViolation(args: {
   imageCount: number;
   steps: number;
   sourceImageBase64?: string;
+  sourceImageWidth?: number;
+  sourceImageHeight?: number;
   maskBase64?: string;
   vibeTransferReferenceCount?: number;
   hasPreciseReference?: boolean;
@@ -428,6 +436,16 @@ export function getNovelAiFreeGenerationViolation(args: {
   }
   else if (args.mode !== "txt2img") {
     return getNovelAiFreeOnlyMessage("当前模式暂未开放。");
+  }
+  const sourceImageWidth = Math.floor(Number(args.sourceImageWidth));
+  const sourceImageHeight = Math.floor(Number(args.sourceImageHeight));
+  if (
+    Number.isFinite(sourceImageWidth)
+    && Number.isFinite(sourceImageHeight)
+    && !isPresetResolution(sourceImageWidth, sourceImageHeight)
+    && (sourceImageWidth > SIMPLE_MODE_CUSTOM_MAX_DIMENSION || sourceImageHeight > SIMPLE_MODE_CUSTOM_MAX_DIMENSION)
+  ) {
+    return getNovelAiFreeOnlyMessage(`导入图像若不是预设尺寸，任意一边不能超过 ${SIMPLE_MODE_CUSTOM_MAX_DIMENSION}。`);
   }
   if ((args.vibeTransferReferenceCount ?? 0) > 0 || args.hasPreciseReference)
     return getNovelAiFreeOnlyMessage("Reference Image、Vibe Transfer、Precise Reference 已禁用。");

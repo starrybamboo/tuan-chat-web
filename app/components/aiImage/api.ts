@@ -91,10 +91,12 @@ async function requestNovelAiBinaryViaProxy(requestUrl: string, payload: unknown
 export async function generateNovelImageViaProxy(args: {
   mode: AiImageHistoryMode;
   sourceImageBase64?: string;
+  sourceImageWidth?: number;
+  sourceImageHeight?: number;
   maskBase64?: string;
   strength: number;
   noise: number;
-  prompt: string;
+  prompt?: string;
   negativePrompt: string;
   v4Chars?: V4CharPayload[];
   v4UseCoords?: boolean;
@@ -118,7 +120,7 @@ export async function generateNovelImageViaProxy(args: {
   seed?: number;
 }) {
   const prompt = String(args.prompt || "").trim();
-  if (!prompt)
+  if (!prompt && args.prompt == null)
     throw new Error("缺少 prompt");
 
   const freeViolation = getNovelAiFreeGenerationViolation({
@@ -128,6 +130,8 @@ export async function generateNovelImageViaProxy(args: {
     imageCount: args.imageCount,
     steps: args.steps,
     sourceImageBase64: args.sourceImageBase64,
+    sourceImageWidth: args.sourceImageWidth,
+    sourceImageHeight: args.sourceImageHeight,
     maskBase64: args.maskBase64,
     vibeTransferReferenceCount: args.vibeTransferReferences?.length ?? 0,
     hasPreciseReference: Boolean(args.preciseReference),

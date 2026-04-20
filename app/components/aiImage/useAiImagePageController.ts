@@ -145,8 +145,10 @@ export function useAiImagePageController() {
   const [proMode, setProMode] = useState<AiImageHistoryMode>("txt2img");
   const [simpleSourceImageDataUrl, setSimpleSourceImageDataUrl] = useState("");
   const [simpleSourceImageBase64, setSimpleSourceImageBase64] = useState("");
+  const [simpleSourceImageSize, setSimpleSourceImageSize] = useState<{ width: number; height: number } | null>(null);
   const [proSourceImageDataUrl, setProSourceImageDataUrl] = useState("");
   const [proSourceImageBase64, setProSourceImageBase64] = useState("");
+  const [proSourceImageSize, setProSourceImageSize] = useState<{ width: number; height: number } | null>(null);
   const [simpleInfillMaskDataUrl, setSimpleInfillMaskDataUrl] = useState("");
   const [proInfillMaskDataUrl, setProInfillMaskDataUrl] = useState("");
 
@@ -318,6 +320,7 @@ export function useAiImagePageController() {
   const seed = uiMode === "simple" ? simpleSeed : proSeed;
   const sourceImageDataUrl = uiMode === "simple" ? simpleSourceImageDataUrl : proSourceImageDataUrl;
   const sourceImageBase64 = uiMode === "simple" ? simpleSourceImageBase64 : proSourceImageBase64;
+  const sourceImageSize = uiMode === "simple" ? simpleSourceImageSize : proSourceImageSize;
   const infillMaskDataUrl = uiMode === "simple" ? simpleInfillMaskDataUrl : proInfillMaskDataUrl;
 
   const [loading, setLoading] = useState<boolean>(false);
@@ -467,23 +470,30 @@ export function useAiImagePageController() {
     if (targetUiMode === "simple") {
       setSimpleSourceImageDataUrl("");
       setSimpleSourceImageBase64("");
+      setSimpleSourceImageSize(null);
       return;
     }
 
     setProSourceImageDataUrl("");
     setProSourceImageBase64("");
+    setProSourceImageSize(null);
   }, [clearInfillMaskForUi, setModeForUi]);
 
   const applySourceImageForUi = useCallback((targetUiMode: UiMode, sourceImage: ImportedSourceImagePayload, successMessage?: string) => {
+    const nextSourceImageSize = sourceImage.width && sourceImage.height
+      ? { width: sourceImage.width, height: sourceImage.height }
+      : null;
     setModeForUi(targetUiMode, "img2img");
     clearInfillMaskForUi(targetUiMode);
     if (targetUiMode === "simple") {
       setSimpleSourceImageDataUrl(sourceImage.dataUrl);
       setSimpleSourceImageBase64(sourceImage.imageBase64);
+      setSimpleSourceImageSize(nextSourceImageSize);
     }
     else {
       setProSourceImageDataUrl(sourceImage.dataUrl);
       setProSourceImageBase64(sourceImage.imageBase64);
+      setProSourceImageSize(nextSourceImageSize);
     }
 
     syncSourceImageSizeForUi(targetUiMode, sourceImage.width, sourceImage.height);
@@ -1092,6 +1102,8 @@ export function useAiImagePageController() {
     mode?: AiImageHistoryMode;
     sourceImageBase64?: string;
     sourceImageDataUrl?: string;
+    sourceImageWidth?: number;
+    sourceImageHeight?: number;
     maskBase64?: string;
     width?: number;
     height?: number;
@@ -1111,6 +1123,8 @@ export function useAiImagePageController() {
     const usesSourceImage = effectiveMode === "img2img" || effectiveMode === "infill";
     const effectiveSourceImageBase64 = args?.sourceImageBase64 ?? (usesSourceImage ? sourceImageBase64 : undefined);
     const effectiveSourceImageDataUrl = args?.sourceImageDataUrl ?? (usesSourceImage ? sourceImageDataUrl : undefined);
+    const effectiveSourceImageWidth = args?.sourceImageWidth ?? (usesSourceImage ? sourceImageSize?.width : undefined);
+    const effectiveSourceImageHeight = args?.sourceImageHeight ?? (usesSourceImage ? sourceImageSize?.height : undefined);
     const effectiveMaskBase64 = args?.maskBase64 ?? (effectiveMode === "infill" ? resolveInfillMaskBase64ForUi(uiMode) : undefined);
     const v4CharsPayload = isNAI4 && uiMode === "pro" ? v4Chars.map(({ id, gender, ...rest }) => rest) : undefined;
     const v4UseCoordsPayload = uiMode === "pro" ? v4UseCoords : undefined;
@@ -1146,6 +1160,8 @@ export function useAiImagePageController() {
         imageCount: effectiveImageCount,
         steps,
         sourceImageBase64: effectiveSourceImageBase64,
+        sourceImageWidth: effectiveSourceImageWidth,
+        sourceImageHeight: effectiveSourceImageHeight,
         maskBase64: effectiveMaskBase64,
         vibeTransferReferenceCount: resolvedVibeTransferReferences.length,
         hasPreciseReference: Boolean(preciseReferencePayload),
@@ -1158,6 +1174,8 @@ export function useAiImagePageController() {
       const res = await generateNovelImageViaProxy({
         mode: effectiveMode,
         sourceImageBase64: effectiveSourceImageBase64,
+        sourceImageWidth: effectiveSourceImageWidth,
+        sourceImageHeight: effectiveSourceImageHeight,
         maskBase64: effectiveMaskBase64,
         strength: effectiveStrength,
         noise,
@@ -1284,6 +1302,7 @@ export function useAiImagePageController() {
     seed,
     simpleNegativePrompt,
     simplePrompt,
+    sourceImageSize,
     smea,
     smeaDyn,
     sourceImageBase64,
@@ -1378,6 +1397,8 @@ export function useAiImagePageController() {
     if (inpaintDialogSource.mode === "simple") {
       setSimplePrompt(payload.prompt);
       setSimpleNegativePrompt(payload.negativePrompt);
+      setSimpleEditorMode("tags");
+      setSimplePromptTab("prompt");
       setSimpleImg2imgStrength(nextStrength);
       setSimpleInfillMaskDataUrl(payload.maskDataUrl);
     }
@@ -2196,12 +2217,14 @@ export function useAiImagePageController() {
     imageCount,
     steps,
     sourceImageBase64,
+    sourceImageWidth: sourceImageSize?.width,
+    sourceImageHeight: sourceImageSize?.height,
     maskBase64: mode === "infill" ? resolveInfillMaskBase64ForUi(uiMode) : undefined,
     vibeTransferReferenceCount: vibeTransferReferences.length,
     hasPreciseReference: Boolean(preciseReference),
   });
   const canGenerate = !isBusy && !freeGenerationViolation && hasCompleteDimensionInputs;
-  const canTriggerProGenerate = canGenerate && Boolean(prompt.trim());
+  const canTriggerProGenerate = canGenerate;
   const proGenerateLabel = loading || simpleConverting
     ? "生成中..."
     : pendingPreviewAction
@@ -2258,7 +2281,7 @@ export function useAiImagePageController() {
     || metadataImportSelection.settings
     || metadataImportSelection.seed;
   const canConvertSimpleText = !isBusy && Boolean(simpleText.trim());
-  const canGenerateFromSimpleTags = canGenerate && Boolean(simplePrompt.trim());
+  const canGenerateFromSimpleTags = canGenerate && (Boolean(simplePrompt.trim()) || mode === "infill");
   const hasSimpleTagsDraft = Boolean(simplePrompt.trim() || simpleNegativePrompt.trim());
   const simpleConvertLabel = simpleConverting ? "转化中..." : loading || pendingPreviewAction ? "处理中..." : "转化为 tags";
 
