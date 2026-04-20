@@ -1688,8 +1688,8 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                                         />
                                         {showCharacterPositionsGlobalSection
                                           ? (
-                                              <div className="space-y-3">
-                                                <div className="flex flex-wrap items-center gap-2 text-[13px] font-medium leading-5 text-white/90">
+                                              <div className="relative space-y-3">
+                                                <div className="flex flex-wrap items-center gap-2 text-[12px] font-medium leading-5 text-white/90">
                                                   <span className="text-white/72">Position</span>
                                                   {isCharacterPositionAiChoiceEnabled
                                                     ? <span className="text-white/92">AI's Choice</span>
@@ -1697,19 +1697,19 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                                                         <>
                                                           <button
                                                             type="button"
-                                                            className="inline-flex h-8 items-center rounded-md bg-white/10 px-3 text-[13px] font-semibold text-white transition hover:bg-white/14 focus:outline-none focus:ring-2 focus:ring-white/15"
+                                                            className="inline-flex h-8 items-center rounded-md bg-white/10 px-3 text-[12px] font-semibold text-white transition hover:bg-white/14 focus:outline-none focus:ring-2 focus:ring-white/15"
                                                             onClick={() => handleOpenCharacterPositionPicker(row.id, currentPositionCode)}
                                                           >
                                                             Adjust
                                                           </button>
-                                                          <span className="text-[22px] font-semibold leading-none tracking-[0.08em] text-white/96">{selectedPositionCode}</span>
+                                                          <span className="text-[20px] font-semibold leading-none tracking-[0.08em] text-white/96">{selectedPositionCode}</span>
                                                         </>
                                                       )}
                                                 </div>
                                                 {!isCharacterPositionAiChoiceEnabled && isCharacterPositionPickerOpen
                                                   ? (
-                                                      <div className="rounded-md border border-[#2A3138] bg-[#131722] px-3 py-3">
-                                                        <div className="grid grid-cols-5 gap-1.5 rounded-md border border-white/6 bg-[#171B2A] p-1.5">
+                                                      <div className="absolute inset-0 z-20 rounded-md border border-[#2A3138] bg-[#161A1F] px-3 py-3 shadow-2xl">
+                                                        <div className="grid grid-cols-5 gap-1.5 rounded-md border border-[#2A3138] bg-[#161A1F] p-1.5">
                                                           {V4_CHAR_GRID_CELLS.map((cell) => {
                                                             const occupant = characterPositionAssignments.get(cell.code);
                                                             const occupiedByOther = Boolean(occupant && occupant.characterId !== row.id);
@@ -1722,7 +1722,7 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                                                                   occupiedByOther
                                                                     ? "cursor-not-allowed border-white/8 bg-transparent text-white/42"
                                                                     : isSelected
-                                                                      ? "border-white/60 bg-white/34 text-white"
+                                                                      ? "border-white/60 bg-white/18 text-white"
                                                                       : "border-white/8 bg-transparent text-white/72 hover:border-white/20 hover:bg-white/6"
                                                                 }`}
                                                                 disabled={occupiedByOther}
@@ -1738,7 +1738,7 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                                                         <div className="mt-4 flex justify-center">
                                                           <button
                                                             type="button"
-                                                            className="inline-flex h-11 items-center rounded-md bg-white/10 px-5 text-[18px] font-semibold text-white transition hover:bg-white/14 focus:outline-none focus:ring-2 focus:ring-white/15"
+                                                            className="inline-flex h-11 items-center rounded-md bg-white/10 px-5 text-[16px] font-semibold text-white transition hover:bg-white/14 focus:outline-none focus:ring-2 focus:ring-white/15"
                                                             onClick={() => handleSaveCharacterPosition(row.id)}
                                                           >
                                                             Done
