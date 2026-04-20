@@ -516,6 +516,32 @@ export function useAiImagePageController() {
     return dataUrlToBase64(dataUrl) || "";
   }, [proInfillMaskDataUrl, simpleInfillMaskDataUrl]);
 
+  const resolveSeparatedInfillMaskBase64ForUi = useCallback(async (targetUiMode: UiMode) => {
+    const dataUrl = targetUiMode === "simple" ? simpleInfillMaskDataUrl : proInfillMaskDataUrl;
+    if (!dataUrl)
+      return "";
+
+    const pixels = await readImagePixels(dataUrl);
+    const canvas = document.createElement("canvas");
+    canvas.width = pixels.width;
+    canvas.height = pixels.height;
+    const context = canvas.getContext("2d");
+    if (!context)
+      throw new Error("Inpaint 蒙版处理失败。");
+
+    // 发送给 inpaint 的 mask 只表达重绘区域，不携带 UI 叠层的颜色和透明过渡。
+    const imageData = context.createImageData(pixels.width, pixels.height);
+    for (let index = 0; index < pixels.data.length; index += 4) {
+      const value = pixels.data[index + 3] > 0 ? 255 : 0;
+      imageData.data[index] = value;
+      imageData.data[index + 1] = value;
+      imageData.data[index + 2] = value;
+      imageData.data[index + 3] = 255;
+    }
+    context.putImageData(imageData, 0, 0);
+    return dataUrlToBase64(canvas.toDataURL("image/png")) || "";
+  }, [proInfillMaskDataUrl, simpleInfillMaskDataUrl]);
+
   useEffect(() => {
     if (mode !== "infill")
       return;
@@ -1398,6 +1424,9 @@ export function useAiImagePageController() {
       if (freeViolation)
         throw new Error(freeViolation);
 
+      const requestMaskBase64 = args?.maskBase64 ?? (effectiveMode === "infill"
+        ? await resolveSeparatedInfillMaskBase64ForUi(uiMode)
+        : undefined);
       const seedInput = Number(seed);
       const seedValue = Number.isFinite(seedInput) && seedInput >= 0 ? Math.floor(seedInput) : undefined;
       const res = await generateNovelImageViaProxy({
@@ -1405,7 +1434,7 @@ export function useAiImagePageController() {
         sourceImageBase64: effectiveSourceImageBase64,
         sourceImageWidth: effectiveSourceImageWidth,
         sourceImageHeight: effectiveSourceImageHeight,
-        maskBase64: effectiveMaskBase64,
+        maskBase64: requestMaskBase64,
         strength: effectiveStrength,
         noise,
         prompt: effectivePrompt,
@@ -1547,6 +1576,7 @@ export function useAiImagePageController() {
     width,
     normalizeReferenceStrengths,
     resolveInfillMaskBase64ForUi,
+    resolveSeparatedInfillMaskBase64ForUi,
   ]);
 
   const handleOpenInpaint = useCallback(() => {
