@@ -4,7 +4,6 @@ import {
   ArrowClockwiseIcon,
   ArrowCounterClockwiseIcon,
   DownloadSimpleIcon,
-  EraserIcon,
   FloppyDiskIcon,
   PencilSimpleLineIcon,
   TrashIcon,
@@ -12,8 +11,6 @@ import {
 } from "@phosphor-icons/react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { triggerBrowserDownload } from "@/components/aiImage/helpers";
-
-type InpaintTool = "paint" | "erase";
 
 interface InpaintDialogProps {
   isOpen: boolean;
@@ -25,6 +22,11 @@ interface InpaintDialogProps {
 }
 
 interface CanvasPoint {
+  x: number;
+  y: number;
+}
+
+interface BrushCursorPoint {
   x: number;
   y: number;
 }
@@ -56,8 +58,8 @@ export function InpaintDialog({
   const [prompt, setPrompt] = useState("");
   const [negativePrompt, setNegativePrompt] = useState("");
   const [strength, setStrength] = useState(0.7);
-  const [brushSize, setBrushSize] = useState(24);
-  const [tool, setTool] = useState<InpaintTool>("paint");
+  const [brushSize, setBrushSize] = useState(4);
+  const [brushCursorPoint, setBrushCursorPoint] = useState<BrushCursorPoint | null>(null);
   const [hasMask, setHasMask] = useState(false);
   const [historyVersion, setHistoryVersion] = useState(0);
 
@@ -110,8 +112,8 @@ export function InpaintDialog({
     setPrompt(source.prompt);
     setNegativePrompt(source.negativePrompt);
     setStrength(source.strength);
-    setBrushSize(24);
-    setTool("paint");
+    setBrushSize(4);
+    setBrushCursorPoint(null);
     setHasMask(false);
     undoStackRef.current = [];
     redoStackRef.current = [];
@@ -178,9 +180,18 @@ export function InpaintDialog({
       return null;
 
     return {
-      x: (event.clientX - rect.left) * (canvas.width / rect.width),
-      y: (event.clientY - rect.top) * (canvas.height / rect.height),
-    } satisfies CanvasPoint;
+      canvasPoint: {
+        x: (event.clientX - rect.left) * (canvas.width / rect.width),
+        y: (event.clientY - rect.top) * (canvas.height / rect.height),
+      },
+      cursorPoint: {
+        x: event.clientX - rect.left,
+        y: event.clientY - rect.top,
+      },
+    } satisfies {
+      canvasPoint: CanvasPoint;
+      cursorPoint: BrushCursorPoint;
+    };
   }, []);
 
   const drawStroke = useCallback((from: CanvasPoint, to: CanvasPoint) => {
@@ -193,17 +204,9 @@ export function InpaintDialog({
     context.lineCap = "square";
     context.lineJoin = "miter";
     context.lineWidth = brushSize;
-
-    if (tool === "erase") {
-      context.globalCompositeOperation = "destination-out";
-      context.strokeStyle = "rgba(0, 0, 0, 1)";
-      context.fillStyle = "rgba(0, 0, 0, 1)";
-    }
-    else {
-      context.globalCompositeOperation = "source-over";
-      context.strokeStyle = "rgba(252, 90, 123, 0.82)";
-      context.fillStyle = "rgba(252, 90, 123, 0.82)";
-    }
+    context.globalCompositeOperation = "source-over";
+    context.strokeStyle = "rgba(255, 255, 255, 1)";
+    context.fillStyle = "rgba(255, 255, 255, 1)";
 
     context.beginPath();
     context.moveTo(from.x, from.y);
@@ -217,7 +220,7 @@ export function InpaintDialog({
       brushSize,
     );
     context.restore();
-  }, [brushSize, getMaskContext, tool]);
+  }, [brushSize, getMaskContext]);
 
   const finishDrawing = useCallback((event: ReactPointerEvent<HTMLCanvasElement>) => {
     if (!isDrawingRef.current || drawingPointerIdRef.current !== event.pointerId)
@@ -247,26 +250,41 @@ export function InpaintDialog({
     event.preventDefault();
     drawingPointerIdRef.current = event.pointerId;
     isDrawingRef.current = true;
-    lastPointRef.current = point;
+    lastPointRef.current = point.canvasPoint;
+    setBrushCursorPoint(point.cursorPoint);
     event.currentTarget.setPointerCapture(event.pointerId);
-    drawStroke(point, point);
-    if (tool === "paint")
-      setHasMask(true);
-  }, [drawStroke, pushUndoSnapshot, resolveCanvasPoint, tool]);
+    drawStroke(point.canvasPoint, point.canvasPoint);
+    setHasMask(true);
+  }, [drawStroke, pushUndoSnapshot, resolveCanvasPoint]);
 
   const handlePointerMove = useCallback((event: ReactPointerEvent<HTMLCanvasElement>) => {
+    const point = resolveCanvasPoint(event);
+    if (point)
+      setBrushCursorPoint(point.cursorPoint);
+
     if (!isDrawingRef.current || drawingPointerIdRef.current !== event.pointerId)
       return;
 
-    const point = resolveCanvasPoint(event);
     const previousPoint = lastPointRef.current;
     if (!point || !previousPoint)
       return;
 
     event.preventDefault();
-    drawStroke(previousPoint, point);
-    lastPointRef.current = point;
+    drawStroke(previousPoint, point.canvasPoint);
+    lastPointRef.current = point.canvasPoint;
   }, [drawStroke, resolveCanvasPoint]);
+
+  const handlePointerEnter = useCallback((event: ReactPointerEvent<HTMLCanvasElement>) => {
+    const point = resolveCanvasPoint(event);
+    if (!point)
+      return;
+    setBrushCursorPoint(point.cursorPoint);
+  }, [resolveCanvasPoint]);
+
+  const handlePointerLeave = useCallback(() => {
+    if (!isDrawingRef.current)
+      setBrushCursorPoint(null);
+  }, []);
 
   const handleClearMask = useCallback(() => {
     const target = getMaskContext();
@@ -351,8 +369,6 @@ export function InpaintDialog({
   }, [source]);
 
   const toolbarButtonClassName = "inline-flex size-10 items-center justify-center rounded-md border border-white/10 bg-white/[0.06] text-white/72 transition hover:border-white/24 hover:bg-white/[0.1] hover:text-white focus:outline-none focus:ring-2 focus:ring-white/16 disabled:cursor-not-allowed disabled:opacity-35";
-  const floatingPanelClassName = "rounded-md border border-white/10 bg-[#191b31]/94 p-3 shadow-[0_18px_48px_rgba(0,0,0,0.34)] backdrop-blur";
-  const actionButtonClassName = "inline-flex h-10 items-center justify-center rounded-md border border-white/10 px-4 text-sm font-medium transition focus:outline-none focus:ring-2 focus:ring-white/16 disabled:cursor-not-allowed disabled:opacity-40";
   const topActionButtonClassName = "inline-flex h-10 items-center justify-center border-0 px-4 text-sm font-medium transition focus:outline-none focus:ring-2 focus:ring-white/16 disabled:cursor-not-allowed disabled:opacity-40 rounded-none";
   const topIconActionButtonClassName = "inline-flex size-10 items-center justify-center border-0 bg-white/[0.06] text-white/72 transition hover:bg-white/[0.1] hover:text-white focus:outline-none focus:ring-2 focus:ring-white/16 disabled:cursor-not-allowed disabled:opacity-35 rounded-none";
   const canUndo = historyVersion >= 0 && undoStackRef.current.length > 0;
@@ -363,38 +379,35 @@ export function InpaintDialog({
 
   return (
     <div className="absolute inset-0 z-50 overflow-hidden bg-base-200 text-white">
-      <div className="absolute left-4 top-4 z-20 flex flex-col gap-3">
-        <div className={floatingPanelClassName}>
-          <div className="flex items-center justify-between gap-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-white/64">
-            <span>Pen Size</span>
-            <span className="text-white">{brushSize}</span>
+      <div className="absolute left-4 top-4 z-20 overflow-hidden rounded-md border border-white/10 bg-[#191b31]/94 shadow-[0_18px_48px_rgba(0,0,0,0.34)] backdrop-blur">
+        <div className="flex items-stretch">
+          <button
+            type="button"
+            className="flex min-h-[96px] w-24 flex-col items-center justify-center gap-2 border-r border-white/10 bg-[#14172c] px-3 text-sm font-medium text-white/88 transition hover:bg-[#171a31] focus:outline-none focus:ring-2 focus:ring-white/16"
+          >
+            <span className="inline-flex size-7 items-center justify-center rounded-md border border-white/12 bg-white/[0.04] text-white/86">
+              <PencilSimpleLineIcon className="size-[18px]" weight="bold" />
+            </span>
+            <span className="leading-none">Draw Mask</span>
+          </button>
+          <div className="min-w-[160px] px-4 py-3">
+            <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/64">
+              Pen Size: {brushSize}
+            </div>
+            <input
+              type="range"
+              min={4}
+              max={50}
+              step={1}
+              value={brushSize}
+              className="mt-3 h-1.5 w-40 cursor-pointer appearance-none bg-transparent focus:outline-none [&::-webkit-slider-runnable-track]:h-1.5 [&::-webkit-slider-runnable-track]:rounded-full [&::-webkit-slider-runnable-track]:bg-white/12 [&::-webkit-slider-thumb]:mt-[-5px] [&::-webkit-slider-thumb]:size-4 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:border-0 [&::-webkit-slider-thumb]:bg-[#f6e6a5] [&::-webkit-slider-thumb]:shadow-[0_0_0_1px_rgba(17,18,36,0.35)] [&::-moz-range-track]:h-1.5 [&::-moz-range-track]:rounded-full [&::-moz-range-track]:bg-white/12 [&::-moz-range-thumb]:size-4 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:bg-[#f6e6a5]"
+              onChange={event => setBrushSize(Number(event.target.value))}
+            />
+            <div className="mt-3 flex items-center gap-2 text-sm text-white/78">
+              <span className="inline-flex size-4 shrink-0 border border-white/14 bg-[#0f1221]" />
+              <span>Square Brush</span>
+            </div>
           </div>
-          <input
-            type="range"
-            min={4}
-            max={96}
-            step={2}
-            value={brushSize}
-            className="mt-3 h-1.5 w-40 cursor-pointer appearance-none bg-transparent focus:outline-none [&::-webkit-slider-runnable-track]:h-1.5 [&::-webkit-slider-runnable-track]:rounded-full [&::-webkit-slider-runnable-track]:bg-white/12 [&::-webkit-slider-thumb]:mt-[-5px] [&::-webkit-slider-thumb]:size-4 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:border-0 [&::-webkit-slider-thumb]:bg-[#f6e6a5] [&::-webkit-slider-thumb]:shadow-[0_0_0_1px_rgba(17,18,36,0.35)] [&::-moz-range-track]:h-1.5 [&::-moz-range-track]:rounded-full [&::-moz-range-track]:bg-white/12 [&::-moz-range-thumb]:size-4 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:bg-[#f6e6a5]"
-            onChange={event => setBrushSize(Number(event.target.value))}
-          />
-        </div>
-
-        <div className={`${floatingPanelClassName} flex items-center gap-2`}>
-          <button
-            type="button"
-            className={`${actionButtonClassName} ${tool === "paint" ? "border-[#f6e6a5]/60 bg-[#f6e6a5]/18 text-[#fff3bf]" : "bg-white/[0.04] text-white/78"}`}
-            onClick={() => setTool("paint")}
-          >
-            Draw Mask
-          </button>
-          <button
-            type="button"
-            className={`${actionButtonClassName} ${tool === "erase" ? "border-white/28 bg-white/[0.14] text-white" : "bg-white/[0.04] text-white/78"}`}
-            onClick={() => setTool("erase")}
-          >
-            Erase
-          </button>
         </div>
       </div>
 
@@ -441,37 +454,47 @@ export function InpaintDialog({
             />
             <canvas
               ref={canvasRef}
-              className={`absolute inset-0 h-full w-full touch-none ${tool === "erase" ? "cursor-cell" : "cursor-crosshair"}`}
+              className="absolute inset-0 h-full w-full cursor-none touch-none opacity-0"
               onPointerDown={handlePointerDown}
               onPointerMove={handlePointerMove}
               onPointerUp={finishDrawing}
               onPointerCancel={finishDrawing}
+              onPointerEnter={handlePointerEnter}
+              onPointerLeave={handlePointerLeave}
             />
+            {brushCursorPoint
+              ? (
+                  <div
+                    className="pointer-events-none absolute z-10 -translate-x-1/2 -translate-y-1/2 drop-shadow-[0_0_2px_rgba(5,6,12,0.35)]"
+                    style={{ left: `${brushCursorPoint.x}px`, top: `${brushCursorPoint.y}px` }}
+                  >
+                    <svg viewBox="0 0 24 24" className="block size-6 text-white/80">
+                      <path
+                        d="M6 3H9V5H7V7H5V9H3V15H5V17H7V19H9V21H15V19H17V17H19V15H21V9H19V7H17V5H15V3H9V5H6V3Z"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="1.25"
+                        strokeLinejoin="miter"
+                        strokeLinecap="square"
+                      />
+                      <path
+                        d="M12 7V17M7 12H17"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="1.1"
+                        strokeLinejoin="miter"
+                        strokeLinecap="square"
+                      />
+                    </svg>
+                  </div>
+                )
+              : null}
           </div>
         </div>
       </div>
 
       <div className="pointer-events-none absolute bottom-4 left-1/2 z-20 -translate-x-1/2">
         <div className="pointer-events-auto flex items-center gap-2 rounded-md border border-white/10 bg-[#191b31]/94 px-3 py-2 shadow-[0_18px_48px_rgba(0,0,0,0.34)] backdrop-blur">
-          <button
-            type="button"
-            className={`${toolbarButtonClassName} ${tool === "paint" ? "border-[#f06d8b]/55 bg-[#f06d8b]/18 text-[#ff95ad]" : ""}`}
-            aria-label="切换为绘制蒙版"
-            title="绘制蒙版"
-            onClick={() => setTool("paint")}
-          >
-            <PencilSimpleLineIcon className="size-[18px]" weight="bold" />
-          </button>
-          <button
-            type="button"
-            className={`${toolbarButtonClassName} ${tool === "erase" ? "border-white/24 bg-white/[0.12] text-white" : ""}`}
-            aria-label="切换为擦除"
-            title="擦除"
-            onClick={() => setTool("erase")}
-          >
-            <EraserIcon className="size-[18px]" weight="bold" />
-          </button>
-          <div className="mx-1 h-7 w-px bg-white/10" />
           <button
             type="button"
             className={toolbarButtonClassName}
