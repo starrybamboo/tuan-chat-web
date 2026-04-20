@@ -205,8 +205,8 @@ export function InpaintDialog({
     context.lineJoin = "miter";
     context.lineWidth = brushSize;
     context.globalCompositeOperation = "source-over";
-    context.strokeStyle = "rgba(255, 255, 255, 1)";
-    context.fillStyle = "rgba(255, 255, 255, 1)";
+    context.strokeStyle = "rgba(246, 110, 139, 0.55)";
+    context.fillStyle = "rgba(246, 110, 139, 0.55)";
 
     context.beginPath();
     context.moveTo(from.x, from.y);
@@ -371,6 +371,7 @@ export function InpaintDialog({
   const toolbarButtonClassName = "inline-flex size-10 items-center justify-center rounded-md border border-white/10 bg-white/[0.06] text-white/72 transition hover:border-white/24 hover:bg-white/[0.1] hover:text-white focus:outline-none focus:ring-2 focus:ring-white/16 disabled:cursor-not-allowed disabled:opacity-35";
   const topActionButtonClassName = "inline-flex h-10 items-center justify-center border-0 px-4 text-sm font-medium transition focus:outline-none focus:ring-2 focus:ring-white/16 disabled:cursor-not-allowed disabled:opacity-40 rounded-none";
   const topIconActionButtonClassName = "inline-flex size-10 items-center justify-center border-0 bg-white/[0.06] text-white/72 transition hover:bg-white/[0.1] hover:text-white focus:outline-none focus:ring-2 focus:ring-white/16 disabled:cursor-not-allowed disabled:opacity-35 rounded-none";
+  const brushCursorDisplaySize = Math.max(22, Math.round(brushSize * 1.7));
   const canUndo = historyVersion >= 0 && undoStackRef.current.length > 0;
   const canRedo = historyVersion >= 0 && redoStackRef.current.length > 0;
 
@@ -383,7 +384,7 @@ export function InpaintDialog({
         <div className="flex items-stretch">
           <button
             type="button"
-            className="flex min-h-[96px] w-24 flex-col items-center justify-center gap-2 border-r border-white/10 bg-[#14172c] px-3 text-sm font-medium text-white/88 transition hover:bg-[#171a31] focus:outline-none focus:ring-2 focus:ring-white/16"
+            className="flex min-h-[96px] w-24 flex-col items-center justify-center gap-2 border-r border-white/10 bg-[#191b31]/94 px-3 text-sm font-medium whitespace-nowrap text-white/88 transition hover:bg-white/[0.04] focus:outline-none focus:ring-2 focus:ring-white/16"
           >
             <span className="inline-flex size-7 items-center justify-center rounded-md border border-white/12 bg-white/[0.04] text-white/86">
               <PencilSimpleLineIcon className="size-[18px]" weight="bold" />
@@ -391,7 +392,7 @@ export function InpaintDialog({
             <span className="leading-none">Draw Mask</span>
           </button>
           <div className="min-w-[160px] px-4 py-3">
-            <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/64">
+            <div className="flex items-center justify-between gap-3 text-sm font-medium text-white/86">
               Pen Size: {brushSize}
             </div>
             <input
@@ -403,7 +404,7 @@ export function InpaintDialog({
               className="mt-3 h-1.5 w-40 cursor-pointer appearance-none bg-transparent focus:outline-none [&::-webkit-slider-runnable-track]:h-1.5 [&::-webkit-slider-runnable-track]:rounded-full [&::-webkit-slider-runnable-track]:bg-white/12 [&::-webkit-slider-thumb]:mt-[-5px] [&::-webkit-slider-thumb]:size-4 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:border-0 [&::-webkit-slider-thumb]:bg-[#f6e6a5] [&::-webkit-slider-thumb]:shadow-[0_0_0_1px_rgba(17,18,36,0.35)] [&::-moz-range-track]:h-1.5 [&::-moz-range-track]:rounded-full [&::-moz-range-track]:bg-white/12 [&::-moz-range-thumb]:size-4 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:bg-[#f6e6a5]"
               onChange={event => setBrushSize(Number(event.target.value))}
             />
-            <div className="mt-3 flex items-center gap-2 text-sm text-white/78">
+            <div className="mt-3 flex items-center gap-2 text-sm font-medium text-white/82">
               <span className="inline-flex size-4 shrink-0 border border-white/14 bg-[#0f1221]" />
               <span>Square Brush</span>
             </div>
@@ -454,7 +455,7 @@ export function InpaintDialog({
             />
             <canvas
               ref={canvasRef}
-              className="absolute inset-0 h-full w-full cursor-none touch-none opacity-0"
+              className="absolute inset-0 h-full w-full cursor-none touch-none"
               onPointerDown={handlePointerDown}
               onPointerMove={handlePointerMove}
               onPointerUp={finishDrawing}
@@ -466,9 +467,19 @@ export function InpaintDialog({
               ? (
                   <div
                     className="pointer-events-none absolute z-10 -translate-x-1/2 -translate-y-1/2 drop-shadow-[0_0_2px_rgba(5,6,12,0.35)]"
-                    style={{ left: `${brushCursorPoint.x}px`, top: `${brushCursorPoint.y}px` }}
+                    style={{
+                      left: `${brushCursorPoint.x}px`,
+                      top: `${brushCursorPoint.y}px`,
+                    }}
                   >
-                    <svg viewBox="0 0 24 24" className="block size-6 text-white/80">
+                    <svg
+                      viewBox="0 0 24 24"
+                      className="block text-white/80"
+                      style={{
+                        width: `${brushCursorDisplaySize}px`,
+                        height: `${brushCursorDisplaySize}px`,
+                      }}
+                    >
                       <path
                         d="M6 3H9V5H7V7H5V9H3V15H5V17H7V19H9V21H15V19H17V17H19V15H21V9H19V7H17V5H15V3H9V5H6V3Z"
                         fill="none"
