@@ -116,13 +116,12 @@ export function AiImagePreviewPane({
   const previewToolbarSectionClassName = "inline-flex w-fit max-w-full min-w-0 flex-wrap items-center gap-0 rounded-none bg-white/22 p-px shadow-sm";
   const previewThumbnailImageClassName = "block h-24 w-24 object-contain";
 
-  const directorShellClassName = "flex min-h-0 flex-1 flex-col overflow-hidden rounded-md border border-[#242743] bg-[#111326] text-[#eef0ff] shadow-[0_18px_48px_rgba(5,8,20,0.28)]";
-  const directorFrameClassName = "rounded-md border border-[#242743] bg-[#171a31]";
-  const directorCanvasClassName = "relative flex min-h-[360px] flex-1 items-center justify-center overflow-hidden rounded-md bg-[#0d1020] p-4";
-  const directorMetaPillClassName = "inline-flex items-center rounded-md border border-[#2f3356] bg-[#181b32] px-2.5 py-1 text-[11px] font-medium text-[#c2c7ea]";
-  const directorControlButtonClassName = "inline-flex h-9 items-center justify-center rounded-md border border-[#2e3254] bg-[#171a31] px-3 text-[12px] font-medium text-[#d9ddf7] transition hover:border-[#464b78] hover:text-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary disabled:cursor-not-allowed disabled:opacity-40";
-  const directorThumbButtonClassName = "group relative block overflow-hidden rounded-md border border-[#272a47] bg-[#101224] transition hover:border-[#464b78] focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary";
-  const directorToolButtonClassName = "inline-flex h-10 items-center justify-center rounded-md border px-3 text-[12px] font-medium transition focus:outline-none focus:ring-2 focus:ring-primary/20";
+  const directorShellClassName = "flex min-h-0 flex-1 flex-col overflow-hidden bg-[#111326] text-[#eef0ff]";
+  const directorFrameClassName = "bg-transparent";
+  const directorCanvasClassName = "relative flex min-h-[360px] flex-1 items-center justify-center overflow-hidden bg-[#0d1020] p-4";
+  const directorControlButtonClassName = "inline-flex h-9 items-center justify-center rounded-md bg-transparent px-3 text-[12px] font-medium text-[#d9ddf7] transition hover:bg-white/6 hover:text-white focus:outline-none focus:ring-2 focus:ring-primary/20 disabled:cursor-not-allowed disabled:opacity-40";
+  const directorThumbButtonClassName = "group relative block overflow-hidden bg-[#101224] transition focus:outline-none focus:ring-2 focus:ring-primary/20";
+  const directorToolButtonClassName = "inline-flex h-10 items-center justify-center rounded-md px-3 text-[12px] font-medium transition focus:outline-none focus:ring-2 focus:ring-primary/20";
   const directorFieldClassName = "h-10 w-full rounded-md border border-[#2d3150] bg-[#101224] px-3 text-sm text-[#eef0ff] placeholder:text-[#7378a3] transition focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary";
   const directorSelectClassName = "h-10 w-full rounded-md border border-[#2d3150] bg-[#101224] px-3 text-sm text-[#eef0ff] transition focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary";
   const directorDefryOptions = [0, 1, 2, 3, 4, 5] as const;
@@ -132,8 +131,8 @@ export function AiImagePreviewPane({
       {isDirectorToolsOpen
         ? (
             <div className={directorShellClassName}>
-              <div className="flex items-center justify-between gap-3 border-b border-[#242743] px-4 py-3">
-                <div className="flex min-w-0 items-center gap-2">
+              <div className="flex items-center justify-start px-4 py-3">
+                <div className="flex items-center">
                   <button
                     type="button"
                     className={directorControlButtonClassName}
@@ -142,35 +141,14 @@ export function AiImagePreviewPane({
                   >
                     <ChevronDown className="size-4 rotate-90" />
                   </button>
-                  {previewMeta
-                    ? <span className={`${directorMetaPillClassName} max-w-[320px] truncate`}>{previewMeta}</span>
-                    : null}
-                </div>
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    className={directorControlButtonClassName}
-                    disabled={!selectedPreviewResult || isBusy}
-                    onClick={onSyncDirectorSourceFromCurrentPreview}
-                  >
-                    Current
-                  </button>
-                  <button
-                    type="button"
-                    className={directorControlButtonClassName}
-                    disabled={!selectedPreviewResult || isBusy}
-                    onClick={onUseSelectedResultAsBaseImage}
-                  >
-                    Base Img
-                  </button>
                 </div>
               </div>
 
               <div className="flex min-h-0 flex-1 gap-4 overflow-hidden p-4">
-                <div className={`flex w-[72px] shrink-0 flex-col gap-2 p-2 ${directorFrameClassName}`}>
+                <div className={`flex w-[72px] shrink-0 flex-col gap-2 ${directorFrameClassName}`}>
                   <button
                     type="button"
-                    className="inline-flex h-10 items-center justify-center rounded-md border border-[#2c3050] bg-[#101224] text-[#d9ddf7] transition hover:border-[#464b78] hover:text-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary disabled:cursor-not-allowed disabled:opacity-40"
+                    className="inline-flex h-10 items-center justify-center rounded-md bg-transparent text-[#d9ddf7] transition hover:bg-white/6 hover:text-white focus:outline-none focus:ring-2 focus:ring-primary/20 disabled:cursor-not-allowed disabled:opacity-40"
                     disabled={!selectedPreviewResult || isBusy}
                     onClick={onSyncDirectorSourceFromCurrentPreview}
                   >
@@ -184,7 +162,7 @@ export function AiImagePreviewPane({
                             <button
                               key={`${item.batchId}-${item.batchIndex}`}
                               type="button"
-                              className={`${directorThumbButtonClassName} ${isActive ? "border-[#f3efc6] shadow-[0_0_0_1px_rgba(243,239,198,0.35)]" : ""}`}
+                              className={`${directorThumbButtonClassName} ${isActive ? "ring-1 ring-[#f3efc6]/50" : ""}`}
                               onClick={() => onSelectCurrentResult(index)}
                             >
                               <img src={item.dataUrl} alt={`director-result-${index + 1}`} className="block aspect-[5/7] w-full object-cover" />
@@ -200,11 +178,11 @@ export function AiImagePreviewPane({
                 </div>
 
                 <div className="grid min-h-0 min-w-0 flex-1 gap-4 xl:grid-cols-2">
-                  <div className={`flex min-h-0 flex-col gap-3 p-3 ${directorFrameClassName}`}>
+                  <div className={`flex min-h-0 flex-col gap-3 ${directorFrameClassName}`}>
                     <div className="flex items-center justify-between gap-3">
                       <span className="text-[11px] font-semibold uppercase tracking-[0.24em] text-[#9ca2cb]">Input</span>
                       {directorInputPreview?.toolLabel
-                        ? <span className={directorMetaPillClassName}>{directorInputPreview.toolLabel}</span>
+                        ? <span className="text-[11px] text-[#9ca2cb]">{directorInputPreview.toolLabel}</span>
                         : null}
                     </div>
                     <div className={directorCanvasClassName}>
@@ -214,18 +192,18 @@ export function AiImagePreviewPane({
                       {directorInputPreview
                         ? (
                             <div className="absolute bottom-3 left-1/2 -translate-x-1/2">
-                              <span className={directorMetaPillClassName}>{`${directorInputPreview.width} × ${directorInputPreview.height}`}</span>
+                              <span className="text-[11px] font-medium text-[#c2c7ea]">{`${directorInputPreview.width} × ${directorInputPreview.height}`}</span>
                             </div>
                           )
                         : null}
                     </div>
                   </div>
 
-                  <div className={`flex min-h-0 flex-col gap-3 p-3 ${directorFrameClassName}`}>
+                  <div className={`flex min-h-0 flex-col gap-3 ${directorFrameClassName}`}>
                     <div className="flex items-center justify-between gap-3">
                       <span className="text-[11px] font-semibold uppercase tracking-[0.24em] text-[#9ca2cb]">Output</span>
                       {directorOutputPreview?.toolLabel
-                        ? <span className={directorMetaPillClassName}>{directorOutputPreview.toolLabel}</span>
+                        ? <span className="text-[11px] text-[#9ca2cb]">{directorOutputPreview.toolLabel}</span>
                         : null}
                     </div>
                     <div className={directorCanvasClassName}>
@@ -235,14 +213,14 @@ export function AiImagePreviewPane({
                       {directorOutputPreview
                         ? (
                             <div className="absolute bottom-3 left-1/2 -translate-x-1/2">
-                              <span className={directorMetaPillClassName}>{`${directorOutputPreview.width} × ${directorOutputPreview.height}`}</span>
+                              <span className="text-[11px] font-medium text-[#c2c7ea]">{`${directorOutputPreview.width} × ${directorOutputPreview.height}`}</span>
                             </div>
                           )
                         : null}
                       {!directorOutputPreview && pendingPreviewAction === activeDirectorTool
                         ? (
                             <div className="absolute bottom-3 left-1/2 -translate-x-1/2">
-                              <span className={directorMetaPillClassName}>Transforming...</span>
+                              <span className="text-[11px] font-medium text-[#c2c7ea]">Transforming...</span>
                             </div>
                           )
                         : null}
@@ -251,13 +229,13 @@ export function AiImagePreviewPane({
                 </div>
               </div>
 
-              <div className="border-t border-[#242743] bg-[#17192f] p-4">
+              <div className="bg-[#111326] p-4">
                 {directorTool.parameterMode === "colorize"
                   ? (
-                      <div className={`mb-3 grid gap-3 p-3 ${directorFrameClassName} xl:grid-cols-[220px_minmax(0,1fr)]`}>
+                      <div className={`mb-3 grid gap-3 ${directorFrameClassName} xl:grid-cols-[220px_minmax(0,1fr)]`}>
                         <div className="min-w-0">
                           <div className="mb-2 text-[11px] font-medium uppercase tracking-[0.18em] text-[#9ca2cb]">Defry</div>
-                          <div className="flex items-center gap-1 rounded-md border border-[#2d3150] bg-[#101224] p-1">
+                          <div className="flex items-center gap-1 rounded-md bg-[#101224] p-1">
                             {directorDefryOptions.map((value) => {
                               const isActive = Number(directorColorizeDefry) === value;
                               return (
@@ -293,7 +271,7 @@ export function AiImagePreviewPane({
 
                 {directorTool.parameterMode === "emotion"
                   ? (
-                      <div className={`mb-3 grid gap-3 p-3 ${directorFrameClassName} xl:grid-cols-[180px_minmax(0,1fr)_220px]`}>
+                      <div className={`mb-3 grid gap-3 ${directorFrameClassName} xl:grid-cols-[180px_minmax(0,1fr)_220px]`}>
                         <label className="min-w-0">
                           <div className="mb-2 text-[11px] font-medium uppercase tracking-[0.18em] text-[#9ca2cb]">Emotion</div>
                           <select
@@ -319,7 +297,7 @@ export function AiImagePreviewPane({
                         </label>
                         <div className="min-w-0">
                           <div className="mb-2 text-[11px] font-medium uppercase tracking-[0.18em] text-[#9ca2cb]">Defry</div>
-                          <div className="flex items-center gap-1 rounded-md border border-[#2d3150] bg-[#101224] p-1">
+                          <div className="flex items-center gap-1 rounded-md bg-[#101224] p-1">
                             {directorDefryOptions.map((value) => {
                               const isActive = Number(directorEmotionDefry) === value;
                               return (
@@ -343,7 +321,7 @@ export function AiImagePreviewPane({
                     )
                   : null}
 
-                <div className={`flex flex-wrap items-center gap-2 p-3 ${directorFrameClassName}`}>
+                <div className={`flex flex-wrap items-center gap-2 ${directorFrameClassName}`}>
                   {DIRECTOR_TOOL_OPTIONS.map(tool => {
                     const isActive = activeDirectorTool === tool.id;
                     return (
@@ -352,8 +330,8 @@ export function AiImagePreviewPane({
                         type="button"
                         className={`${directorToolButtonClassName} ${
                           isActive
-                            ? "border-[#f3efc6] bg-[#f3efc6] text-[#111326]"
-                            : "border-[#2e3254] bg-[#171a31] text-[#d9ddf7] hover:border-[#464b78] hover:text-white"
+                            ? "bg-[#f3efc6] text-[#111326]"
+                            : "bg-transparent text-[#d9ddf7] hover:bg-white/6 hover:text-white"
                         }`}
                         disabled={isBusy}
                         onClick={() => onActiveDirectorToolChange(tool.id)}
