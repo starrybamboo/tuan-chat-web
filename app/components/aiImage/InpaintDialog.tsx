@@ -372,6 +372,7 @@ export function InpaintDialog({
   const topActionButtonClassName = "inline-flex h-10 items-center justify-center border-0 px-4 text-sm font-medium transition focus:outline-none focus:ring-2 focus:ring-white/16 disabled:cursor-not-allowed disabled:opacity-40 rounded-none";
   const topIconActionButtonClassName = "inline-flex size-10 items-center justify-center border-0 bg-white/[0.06] text-white/72 transition hover:bg-white/[0.1] hover:text-white focus:outline-none focus:ring-2 focus:ring-white/16 disabled:cursor-not-allowed disabled:opacity-35 rounded-none";
   const brushCursorDisplaySize = Math.max(22, Math.round(brushSize * 1.7));
+  const sharedPanelClassName = "rounded-md border border-white/10 bg-white/[0.06] shadow-[0_18px_48px_rgba(0,0,0,0.34)] backdrop-blur";
   const canUndo = historyVersion >= 0 && undoStackRef.current.length > 0;
   const canRedo = historyVersion >= 0 && redoStackRef.current.length > 0;
 
@@ -380,11 +381,11 @@ export function InpaintDialog({
 
   return (
     <div className="absolute inset-0 z-50 overflow-hidden bg-base-200 text-white">
-      <div className="absolute left-4 top-4 z-20 overflow-hidden rounded-md border border-white/10 bg-[#191b31]/94 shadow-[0_18px_48px_rgba(0,0,0,0.34)] backdrop-blur">
+      <div className={`absolute left-4 top-4 z-20 overflow-hidden ${sharedPanelClassName}`}>
         <div className="flex items-stretch">
           <button
             type="button"
-            className="flex min-h-[96px] w-24 flex-col items-center justify-center gap-2 border-r border-white/10 bg-[#191b31]/94 px-3 text-sm font-medium whitespace-nowrap text-white/88 transition hover:bg-white/[0.04] focus:outline-none focus:ring-2 focus:ring-white/16"
+            className="flex min-h-[96px] w-24 flex-col items-center justify-center gap-2 border-r border-white/10 bg-transparent px-3 text-sm font-medium whitespace-nowrap text-white/88 transition hover:bg-white/[0.04] focus:outline-none focus:ring-2 focus:ring-white/16"
           >
             <span className="inline-flex size-7 items-center justify-center rounded-md border border-white/12 bg-white/[0.04] text-white/86">
               <PencilSimpleLineIcon className="size-[18px]" weight="bold" />
@@ -505,7 +506,7 @@ export function InpaintDialog({
       </div>
 
       <div className="pointer-events-none absolute bottom-4 left-1/2 z-20 -translate-x-1/2">
-        <div className="pointer-events-auto flex items-center gap-2 rounded-md border border-white/10 bg-[#191b31]/94 px-3 py-2 shadow-[0_18px_48px_rgba(0,0,0,0.34)] backdrop-blur">
+        <div className={`pointer-events-auto flex items-center gap-2 px-3 py-2 ${sharedPanelClassName}`}>
           <button
             type="button"
             className={toolbarButtonClassName}
