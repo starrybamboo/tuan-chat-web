@@ -1,5 +1,7 @@
 # 简介
 
+> 文档维护人：降星驰（QQ：735845305，Email：735845305@qq.com）
+
 这是团剧共创的前端项目。项目采用react作为框架，采用响应式界面设计。使用electron构建pc客户端，使用混合开发模式构建安卓客户端。基于webgal导出跑团replay。
 ## 在开始之前
 
@@ -27,7 +29,7 @@ node node_modules/electron/install.js
 
 如果要执行 electron 打包（electron-builder）：
 - 安装包会携带 `WebGAL_Terre` 运行时。
-- `pnpm electron:prepare:resources` 会从 `../WebGAL_Terre/release` 同步运行时到 `extraResources/`。
+- `pnpm electron:prepare:resources` 默认会从 `D:\A_webgal\WebGAL_Terre\release` 同步运行时到 `extraResources/`（按仓库相对路径等价于 `..\..\A_webgal\WebGAL_Terre\release`）。
 - 如果 `WebGAL_Terre` 不在默认位置，可设置环境变量 `WEBGAL_TERRE_RELEASE_DIR` 指向 release 目录。
 - 也可以手动把 `WebGAL_Terre` release 内容放到 `extraResources/`，并确保 `WebGAL_Terre.exe` 位于该目录根层级。
 

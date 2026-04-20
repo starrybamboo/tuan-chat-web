@@ -6,7 +6,14 @@ import { fileURLToPath } from "node:url";
 const scriptDir = dirname(fileURLToPath(import.meta.url));
 const projectRoot = resolve(scriptDir, "..");
 
-const DEFAULT_WEBGAL_TERRE_RELEASE_DIR = resolve(projectRoot, "..", "WebGAL_Terre", "release");
+const DEFAULT_WEBGAL_TERRE_RELEASE_DIR = resolve(
+  projectRoot,
+  "..",
+  "..",
+  "A_webgal",
+  "WebGAL_Terre",
+  "release",
+);
 const sourceReleaseDirRaw = String(
   process.env.WEBGAL_TERRE_RELEASE_DIR || DEFAULT_WEBGAL_TERRE_RELEASE_DIR,
 ).trim();
