@@ -1,4 +1,8 @@
-import { createMaskBorderOffsets, hasAnyMaskAlpha } from "@/components/aiImage/inpaintMaskUtils";
+import {
+  createMaskBorderOffsets,
+  hasAnyMaskAlpha,
+  mapBrushCursorDisplaySize,
+} from "@/components/aiImage/inpaintMaskUtils";
 
 describe("inpaintMaskUtils", () => {
   it("detects whether the mask contains any alpha", () => {
@@ -26,5 +30,11 @@ describe("inpaintMaskUtils", () => {
       "0,1",
     ]);
     expect(new Set(serializedOffsets).size).toBe(serializedOffsets.length);
+  });
+
+  it("maps pen size to the requested preview dimensions", () => {
+    expect(mapBrushCursorDisplaySize(4)).toBe(30);
+    expect(mapBrushCursorDisplaySize(50)).toBe(385);
+    expect(mapBrushCursorDisplaySize(27)).toBe(208);
   });
 });

@@ -31,6 +31,11 @@ export function hasAnyMaskAlpha(data: Uint8ClampedArray) {
   return false;
 }
 
+export function mapBrushCursorDisplaySize(brushSize: number) {
+  const clampedSize = Math.min(50, Math.max(4, brushSize));
+  return Math.round(30 + ((clampedSize - 4) * (385 - 30)) / (50 - 4));
+}
+
 export function createMaskBorderOffsets(radius: number) {
   const normalizedRadius = Math.max(1, Math.round(radius));
   const offsets: Array<{ x: number; y: number }> = [];
@@ -59,6 +64,11 @@ function hexToRgba(hex: string, alpha: number) {
   return `rgba(${red}, ${green}, ${blue}, ${alpha})`;
 }
 
+export function buildMaskSolidColor(color: string, opacity: number) {
+  const alpha = Math.max(0.05, Math.min(1, opacity / 100));
+  return hexToRgba(color, alpha);
+}
+
 export function buildMaskPaintStyle(
   context: CanvasRenderingContext2D,
   color: string,
@@ -66,7 +76,7 @@ export function buildMaskPaintStyle(
   pattern: MaskPattern,
 ) {
   const alpha = Math.max(0.05, Math.min(1, opacity / 100));
-  const solidColor = hexToRgba(color, alpha);
+  const solidColor = buildMaskSolidColor(color, opacity);
   if (pattern === "solid")
     return solidColor;
 

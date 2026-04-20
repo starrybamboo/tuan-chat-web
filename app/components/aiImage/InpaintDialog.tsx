@@ -15,8 +15,10 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { triggerBrowserDownload } from "@/components/aiImage/helpers";
 import {
   buildMaskPaintStyle,
+  buildMaskSolidColor,
   createMaskBorderOffsets,
   hasAnyMaskAlpha,
+  mapBrushCursorDisplaySize,
   MASK_COLOR_OPTIONS,
   MASK_PATTERN_OPTIONS,
   type MaskPattern,
@@ -42,6 +44,7 @@ interface BrushCursorPoint {
 }
 
 const MASK_BORDER_OFFSETS = createMaskBorderOffsets(1);
+const BRUSH_CURSOR_STROKE_COLOR = "#9CA3AF";
 
 export function InpaintDialog({
   isOpen,
@@ -148,15 +151,17 @@ export function InpaintDialog({
       return;
 
     borderContext.clearRect(0, 0, borderCanvas.width, borderCanvas.height);
-    borderContext.globalAlpha = 0.55;
     for (const offset of MASK_BORDER_OFFSETS)
       borderContext.drawImage(maskCanvas, offset.x, offset.y);
-    borderContext.globalAlpha = 1;
     borderContext.globalCompositeOperation = "destination-out";
     borderContext.drawImage(maskCanvas, 0, 0);
+    borderContext.globalCompositeOperation = "source-in";
+    borderContext.fillStyle = buildMaskSolidColor(maskColor, Math.max(maskOpacity, 70));
+    borderContext.fillRect(0, 0, borderCanvas.width, borderCanvas.height);
     borderContext.globalCompositeOperation = "source-over";
     displayContext.drawImage(borderCanvas, 0, 0);
   }, [
+    buildMaskSolidColor,
     ensureBufferCanvas,
     getDisplayContext,
     getMaskContext,
@@ -478,7 +483,7 @@ export function InpaintDialog({
   const toolbarButtonClassName = "inline-flex size-10 items-center justify-center rounded-md border border-white/10 bg-white/[0.06] text-white/72 transition hover:border-white/24 hover:bg-white/[0.1] hover:text-white focus:outline-none focus:ring-2 focus:ring-white/16 disabled:cursor-not-allowed disabled:opacity-35";
   const topActionButtonClassName = "inline-flex h-10 items-center justify-center border-0 px-4 text-sm font-medium transition focus:outline-none focus:ring-2 focus:ring-white/16 disabled:cursor-not-allowed disabled:opacity-40 rounded-none";
   const topIconActionButtonClassName = "inline-flex size-10 items-center justify-center border-0 bg-white/[0.06] text-white/72 transition hover:bg-white/[0.1] hover:text-white focus:outline-none focus:ring-2 focus:ring-white/16 disabled:cursor-not-allowed disabled:opacity-35 rounded-none";
-  const brushCursorDisplaySize = Math.max(22, Math.round(brushSize * 1.7));
+  const brushCursorDisplaySize = mapBrushCursorDisplaySize(brushSize);
   const sharedPanelClassName = "rounded-md border border-[#2A3138] bg-[#161A1F] shadow-[0_18px_48px_rgba(0,0,0,0.34)]";
   const bottomToolButtonClassName = "inline-flex size-10 items-center justify-center rounded-md border border-transparent bg-transparent text-white/60 transition hover:bg-white/[0.08] hover:text-white focus:outline-none focus:ring-2 focus:ring-white/16 disabled:cursor-not-allowed disabled:opacity-35";
   const boardButtonClassName = `${bottomToolButtonClassName} ${isBoardPanelOpen ? "bg-white/[0.12] text-white" : ""}`;
@@ -587,8 +592,8 @@ export function InpaintDialog({
                     }}
                   >
                     <svg
-                      viewBox="0 0 24 24"
-                      className="block text-white/80"
+                      viewBox="0 0 100 100"
+                      className="block"
                       style={{
                         width: `${brushCursorDisplaySize}px`,
                         height: `${brushCursorDisplaySize}px`,
@@ -596,30 +601,33 @@ export function InpaintDialog({
                     >
                       {isSquareBrush
                         ? (
-                            <path
-                              d="M6 3H9V5H7V7H5V9H3V15H5V17H7V19H9V21H15V19H17V17H19V15H21V9H19V7H17V5H15V3H9V5H6V3Z"
+                            <rect
+                              x="8"
+                              y="8"
+                              width="84"
+                              height="84"
                               fill="none"
-                              stroke="currentColor"
-                              strokeWidth="1.25"
+                              stroke={BRUSH_CURSOR_STROKE_COLOR}
+                              strokeWidth="4"
                               strokeLinejoin="miter"
                               strokeLinecap="square"
                             />
                           )
                         : (
                             <circle
-                              cx="12"
-                              cy="12"
-                              r="8.25"
+                              cx="50"
+                              cy="50"
+                              r="42"
                               fill="none"
-                              stroke="currentColor"
-                              strokeWidth="1.25"
+                              stroke={BRUSH_CURSOR_STROKE_COLOR}
+                              strokeWidth="4"
                             />
                           )}
                       <path
-                        d="M12 7V17M7 12H17"
+                        d="M50 28V72M28 50H72"
                         fill="none"
-                        stroke="currentColor"
-                        strokeWidth="1.1"
+                        stroke={BRUSH_CURSOR_STROKE_COLOR}
+                        strokeWidth="4"
                         strokeLinejoin="miter"
                         strokeLinecap="square"
                       />
