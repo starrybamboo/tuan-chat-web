@@ -219,7 +219,7 @@ export function AiImagePreviewPane({
                 <div className={`flex w-[128px] shrink-0 flex-col gap-2 ${directorFrameClassName}`}>
                   <button
                     type="button"
-                    className="inline-flex h-10 items-center justify-center rounded-md bg-[#f3efc6] text-[#111326] shadow-[0_8px_18px_rgba(243,239,198,0.18)] transition duration-200 ease-out hover:-translate-y-0.5 hover:bg-[#fff7c9] hover:text-[#111326] hover:shadow-[0_12px_24px_rgba(243,239,198,0.28)] active:translate-y-0 active:scale-[0.98] active:shadow-[0_6px_14px_rgba(243,239,198,0.2)] focus:outline-none disabled:cursor-not-allowed disabled:bg-[#f3efc6]/30 disabled:text-[#111326]/45 disabled:shadow-none"
+                    className="inline-flex h-9 w-[100px] items-center justify-center rounded-md bg-[#f3efc6] text-[#111326] shadow-[0_8px_18px_rgba(243,239,198,0.18)] transition duration-200 ease-out hover:-translate-y-0.5 hover:bg-[#fff7c9] hover:text-[#111326] hover:shadow-[0_12px_24px_rgba(243,239,198,0.28)] active:translate-y-0 active:scale-[0.98] active:shadow-[0_6px_14px_rgba(243,239,198,0.2)] focus:outline-none disabled:cursor-not-allowed disabled:bg-[#f3efc6]/30 disabled:text-[#111326]/45 disabled:shadow-none"
                     disabled={isBusy}
                     onClick={() => directorUploadInputRef.current?.click()}
                   >
