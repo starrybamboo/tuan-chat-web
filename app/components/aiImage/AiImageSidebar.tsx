@@ -625,18 +625,17 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                 >
                   <TrashIcon className="size-5" weight="bold" />
                 </button>
-                <span className="h-11 w-px bg-[#D6DCE3] dark:bg-[#2A3138]" aria-hidden="true" />
-                <button
-                  type="button"
-                  className={baseImageToggleButtonClassName}
-                  aria-label={isBaseImageToolsOpen ? "收起" : "展开"}
-                  title={isBaseImageToolsOpen ? "收起" : "展开"}
-                  disabled={isBusy}
-                  onClick={() => setIsBaseImageToolsOpen(prev => !prev)}
-                >
-                  <ChevronDown className={`size-5 shrink-0 transition-transform ${isBaseImageToolsOpen ? "rotate-180" : ""}`} />
-                </button>
               </div>
+              <button
+                type="button"
+                className={baseImageToggleButtonClassName}
+                aria-label={isBaseImageToolsOpen ? "收起" : "展开"}
+                title={isBaseImageToolsOpen ? "收起" : "展开"}
+                disabled={isBusy}
+                onClick={() => setIsBaseImageToolsOpen(prev => !prev)}
+              >
+                <ChevronDown className={`size-5 shrink-0 transition-transform ${isBaseImageToolsOpen ? "rotate-180" : ""}`} />
+              </button>
             </div>
           </div>
 
@@ -736,18 +735,17 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                 >
                   <TrashIcon className="size-5" weight="bold" />
                 </button>
-                <span className="h-11 w-px bg-[#2A3138]" aria-hidden="true" />
-                <button
-                  type="button"
-                  className={baseImageToggleButtonClassName}
-                  aria-label={isBaseImageToolsOpen ? "收起" : "展开"}
-                  title={isBaseImageToolsOpen ? "收起" : "展开"}
-                  disabled={isBusy}
-                  onClick={() => setIsBaseImageToolsOpen(prev => !prev)}
-                >
-                  <ChevronDown className={`size-5 shrink-0 transition-transform ${isBaseImageToolsOpen ? "rotate-180" : ""}`} />
-                </button>
               </div>
+              <button
+                type="button"
+                className={baseImageToggleButtonClassName}
+                aria-label={isBaseImageToolsOpen ? "收起" : "展开"}
+                title={isBaseImageToolsOpen ? "收起" : "展开"}
+                disabled={isBusy}
+                onClick={() => setIsBaseImageToolsOpen(prev => !prev)}
+              >
+                <ChevronDown className={`size-5 shrink-0 transition-transform ${isBaseImageToolsOpen ? "rotate-180" : ""}`} />
+              </button>
             </div>
           </div>
 
