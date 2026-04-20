@@ -392,7 +392,7 @@ export function InpaintDialog({
   const topIconActionButtonClassName = "inline-flex size-10 items-center justify-center border-0 bg-white/[0.06] text-white/72 transition hover:bg-white/[0.1] hover:text-white focus:outline-none focus:ring-2 focus:ring-white/16 disabled:cursor-not-allowed disabled:opacity-35 rounded-none";
   const brushCursorDisplaySize = Math.max(22, Math.round(brushSize * 1.7));
   const sharedPanelClassName = "rounded-md border border-white/10 bg-white/[0.06] shadow-[0_18px_48px_rgba(0,0,0,0.34)] backdrop-blur";
-  const bottomToolButtonClassName = "inline-flex size-10 items-center justify-center rounded-md border border-white/10 bg-white/[0.06] text-white/72 transition hover:border-white/24 hover:bg-white/[0.1] hover:text-white focus:outline-none focus:ring-2 focus:ring-white/16 disabled:cursor-not-allowed disabled:opacity-35";
+  const bottomToolButtonClassName = "inline-flex size-10 items-center justify-center rounded-md border border-transparent bg-transparent text-white/60 transition hover:bg-white/[0.08] hover:text-white focus:outline-none focus:ring-2 focus:ring-white/16 disabled:cursor-not-allowed disabled:opacity-35";
   const canUndo = historyVersion >= 0 && undoStackRef.current.length > 0;
   const canRedo = historyVersion >= 0 && redoStackRef.current.length > 0;
 
@@ -541,12 +541,12 @@ export function InpaintDialog({
         </div>
       </div>
 
-      <div className="pointer-events-none absolute bottom-2 left-1/2 z-20 -translate-x-1/2">
-        <div className={`pointer-events-auto flex items-stretch gap-0 px-2 py-2 ${sharedPanelClassName}`}>
-          <div className="flex items-center gap-0 pr-2">
+      <div className="pointer-events-none absolute bottom-2 left-1/2 z-20 w-[calc(100vw-6rem)] max-w-[calc(100vw-6rem)] -translate-x-1/2">
+        <div className={`pointer-events-auto flex items-stretch justify-between gap-0 px-2 py-2 ${sharedPanelClassName}`}>
+          <div className="flex items-center gap-0 pr-1.5">
             <button
               type="button"
-              className={`${bottomToolButtonClassName} rounded-r-none ${tool === "paint" ? "border-[#f6e6a5]/45 bg-[#f6e6a5]/16 text-[#fff3bf]" : ""}`}
+              className={`${bottomToolButtonClassName} rounded-r-none ${tool === "paint" ? "bg-white/[0.12] text-white" : ""}`}
               aria-label="绘制蒙版"
               title="绘制蒙版"
               onClick={() => setTool("paint")}
@@ -555,7 +555,7 @@ export function InpaintDialog({
             </button>
             <button
               type="button"
-              className={`${bottomToolButtonClassName} -ml-px rounded-l-none ${tool === "erase" ? "border-[#f6e6a5]/45 bg-[#f6e6a5]/16 text-[#fff3bf]" : ""}`}
+              className={`${bottomToolButtonClassName} -ml-px rounded-l-none ${tool === "erase" ? "bg-white/[0.12] text-white" : ""}`}
               aria-label="擦除蒙版"
               title="擦除蒙版"
               onClick={() => setTool("erase")}
@@ -564,7 +564,7 @@ export function InpaintDialog({
             </button>
           </div>
           <div className="mx-2 w-px bg-white/10" />
-          <div className="flex items-center gap-0">
+          <div className="flex items-center gap-0 pl-1.5">
             <button
               type="button"
               className={bottomToolButtonClassName}
