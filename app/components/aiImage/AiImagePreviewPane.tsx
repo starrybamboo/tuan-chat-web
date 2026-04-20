@@ -188,10 +188,10 @@ export function AiImagePreviewPane({
               </div>
 
               <div className="flex min-h-0 flex-1 gap-4 overflow-hidden p-4">
-                <div className={`flex w-[72px] shrink-0 flex-col gap-2 ${directorFrameClassName}`}>
+                <div className={`flex w-[100px] shrink-0 flex-col gap-2 ${directorFrameClassName}`}>
                   <button
                     type="button"
-                    className="inline-flex h-10 items-center justify-center rounded-md bg-[#f3efc6] text-[#111326] transition hover:bg-[#fff7c9] hover:text-[#111326] focus:outline-none disabled:cursor-not-allowed disabled:bg-[#f3efc6]/30 disabled:text-[#111326]/45"
+                    className="inline-flex h-10 items-center justify-center rounded-md bg-[#f3efc6] text-[#111326] shadow-[0_8px_18px_rgba(243,239,198,0.18)] transition duration-200 ease-out hover:-translate-y-0.5 hover:bg-[#fff7c9] hover:text-[#111326] hover:shadow-[0_12px_24px_rgba(243,239,198,0.28)] active:translate-y-0 active:scale-[0.98] active:shadow-[0_6px_14px_rgba(243,239,198,0.2)] focus:outline-none disabled:cursor-not-allowed disabled:bg-[#f3efc6]/30 disabled:text-[#111326]/45 disabled:shadow-none"
                     disabled={isBusy}
                     onClick={() => directorUploadInputRef.current?.click()}
                   >
@@ -217,17 +217,17 @@ export function AiImagePreviewPane({
                             <button
                               key={`${item.batchId}-${item.batchIndex}`}
                               type="button"
-                              className={`${directorThumbButtonClassName} ${isActive ? "ring-1 ring-primary/60" : ""}`}
+                              className={`${directorThumbButtonClassName} h-[100px] w-[100px] rounded-xl border bg-base-100 shadow-sm transition-colors ${isActive ? "border-primary shadow-[0_0_0_1px_rgba(99,102,241,0.35)]" : "border-base-300 hover:border-primary/45"}`}
                               onClick={() => onSelectDirectorSourceItem(item)}
                             >
-                              <span className="flex h-[100px] w-full items-center justify-center bg-base-100">
-                                <img src={item.dataUrl} alt={`director-result-${index + 1}`} className="block h-full w-full object-contain" />
+                              <span className="flex h-[100px] w-[100px] items-center justify-center bg-base-100">
+                                <img src={item.dataUrl} alt={`director-result-${index + 1}`} className="block h-full w-full object-contain transition duration-200 group-hover:scale-[1.02]" />
                               </span>
                             </button>
                           );
                         })
                       : (
-                          <div className={`flex h-24 items-center justify-center ${directorFrameClassName}`}>
+                          <div className="flex h-[100px] w-[100px] items-center justify-center rounded-xl border border-dashed border-base-300 bg-base-100 px-3 py-5 text-center text-sm text-base-content/55">
                             <EmptyPreviewPlaceholder />
                           </div>
                         )}
@@ -397,7 +397,7 @@ export function AiImagePreviewPane({
                   })}
                   <button
                     type="button"
-                    className="ml-auto inline-flex h-10 items-center justify-center gap-2 rounded-md border border-[#f3efc6] bg-[#f3efc6] px-4 text-[12px] font-semibold text-[#111326] transition hover:bg-[#fff7c9] hover:border-[#fff7c9] focus:outline-none disabled:cursor-not-allowed disabled:border-[#f3efc6]/25 disabled:bg-[#f3efc6]/18 disabled:text-[#f3efc6]/40"
+                    className="ml-auto inline-flex h-10 items-center justify-center gap-2 rounded-md border border-[#f3efc6] bg-[#f3efc6] px-4 text-[12px] font-semibold text-[#111326] shadow-[0_10px_20px_rgba(243,239,198,0.16)] transition duration-200 ease-out hover:-translate-y-0.5 hover:bg-[#fff7c9] hover:border-[#fff7c9] hover:shadow-[0_14px_28px_rgba(243,239,198,0.24)] active:translate-y-0 active:scale-[0.985] active:shadow-[0_7px_16px_rgba(243,239,198,0.18)] focus:outline-none disabled:cursor-not-allowed disabled:border-[#f3efc6]/25 disabled:bg-[#f3efc6]/18 disabled:text-[#f3efc6]/40 disabled:shadow-none"
                     disabled={!directorInputPreview || isBusy}
                     onClick={() => void onRunDirectorTool()}
                   >
