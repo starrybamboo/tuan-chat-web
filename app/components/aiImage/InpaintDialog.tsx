@@ -499,7 +499,7 @@ export function InpaintDialog({
 
   const handleSubmit = useCallback(async () => {
     const nextPrompt = prompt.trim();
-    if (!source || !nextPrompt || !hasMask || isSubmitting)
+    if (!source || !hasMask || isSubmitting)
       return;
 
     const maskDataUrl = buildMaskDataUrl();
