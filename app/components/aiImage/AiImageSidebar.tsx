@@ -570,6 +570,8 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
     if (!sourceImageDataUrl || !infillMaskDataUrl)
       return null;
 
+    const infillActionButtonClassName = "inline-flex size-11 items-center justify-center bg-black/[0.03] text-base-content/70 transition hover:bg-black/[0.06] hover:text-base-content focus:outline-none focus-visible:bg-black/[0.06] focus-visible:text-base-content disabled:cursor-not-allowed disabled:opacity-40 dark:bg-white/[0.04] dark:text-white/80 dark:hover:bg-white/[0.08] dark:hover:text-white dark:focus-visible:bg-white/[0.08] dark:focus-visible:text-white";
+
     return (
       <div className={simpleBaseImageAttachmentClassName}>
         <div className="px-4 py-4">
@@ -595,7 +597,7 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
               <div className="flex overflow-hidden rounded-md border border-[#D6DCE3] bg-[#F3F5F7] dark:border-[#2A3138] dark:bg-[#161A1F]">
                 <button
                   type="button"
-                  className="inline-flex size-11 items-center justify-center text-base-content/70 transition hover:bg-base-200 hover:text-base-content focus:outline-none focus:ring-2 focus:ring-primary/20 dark:text-white/80 dark:hover:bg-white/6 dark:hover:text-white dark:focus:ring-white/15"
+                  className={infillActionButtonClassName}
                   aria-label="编辑蒙版"
                   title="编辑蒙版"
                   disabled={isBusy}
@@ -606,7 +608,7 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                 <span className="h-11 w-px bg-[#D6DCE3] dark:bg-[#2A3138]" aria-hidden="true" />
                 <button
                   type="button"
-                  className="inline-flex size-11 items-center justify-center text-base-content/70 transition hover:bg-base-200 hover:text-base-content focus:outline-none focus:ring-2 focus:ring-primary/20 dark:text-white/80 dark:hover:bg-white/6 dark:hover:text-white dark:focus:ring-white/15"
+                  className={infillActionButtonClassName}
                   aria-label="清空"
                   title="清空"
                   disabled={isBusy}
@@ -617,7 +619,7 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                 <span className="h-11 w-px bg-[#D6DCE3] dark:bg-[#2A3138]" aria-hidden="true" />
                 <button
                   type="button"
-                  className="inline-flex size-11 items-center justify-center text-base-content/70 transition hover:bg-base-200 hover:text-base-content focus:outline-none focus:ring-2 focus:ring-primary/20 dark:text-white/80 dark:hover:bg-white/6 dark:hover:text-white dark:focus:ring-white/15"
+                  className={infillActionButtonClassName}
                   aria-label={isBaseImageToolsOpen ? "收起" : "展开"}
                   title={isBaseImageToolsOpen ? "收起" : "展开"}
                   disabled={isBusy}
@@ -679,6 +681,8 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
     if (!sourceImageDataUrl || !infillMaskDataUrl)
       return null;
 
+    const infillActionButtonClassName = "inline-flex size-11 items-center justify-center bg-white/[0.04] text-white/80 transition hover:bg-white/[0.08] hover:text-white focus:outline-none focus-visible:bg-white/[0.08] focus-visible:text-white disabled:cursor-not-allowed disabled:opacity-40";
+
     return (
       <div className="-mx-3 -mb-3 mt-3 overflow-hidden border-t border-[#2A3138] bg-[#161A1F]">
         <div className="px-4 py-4">
@@ -704,7 +708,7 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
               <div className="flex overflow-hidden rounded-md border border-[#2A3138] bg-[#161A1F]">
                 <button
                   type="button"
-                  className="inline-flex size-11 items-center justify-center text-white/80 transition hover:bg-white/6 hover:text-white focus:outline-none focus:ring-2 focus:ring-white/15"
+                  className={infillActionButtonClassName}
                   aria-label="编辑蒙版"
                   title="编辑蒙版"
                   disabled={isBusy}
@@ -715,7 +719,7 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                 <span className="h-11 w-px bg-[#2A3138]" aria-hidden="true" />
                 <button
                   type="button"
-                  className="inline-flex size-11 items-center justify-center text-white/80 transition hover:bg-white/6 hover:text-white focus:outline-none focus:ring-2 focus:ring-white/15"
+                  className={infillActionButtonClassName}
                   aria-label="清空"
                   title="清空"
                   disabled={isBusy}
@@ -726,7 +730,7 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                 <span className="h-11 w-px bg-[#2A3138]" aria-hidden="true" />
                 <button
                   type="button"
-                  className="inline-flex size-11 items-center justify-center text-white/80 transition hover:bg-white/6 hover:text-white focus:outline-none focus:ring-2 focus:ring-white/15"
+                  className={infillActionButtonClassName}
                   aria-label={isBaseImageToolsOpen ? "收起" : "展开"}
                   title={isBaseImageToolsOpen ? "收起" : "展开"}
                   disabled={isBusy}
