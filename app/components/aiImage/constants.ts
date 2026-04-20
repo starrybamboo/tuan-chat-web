@@ -153,6 +153,14 @@ export const DIRECTOR_TOOL_OPTIONS_BY_ID = Object.fromEntries(
   DIRECTOR_TOOL_OPTIONS.map(tool => [tool.id, tool]),
 ) as Record<DirectorToolId, DirectorToolOption>;
 
+export const DEFAULT_DIRECTOR_TOOL_ID: DirectorToolId = "lineArt";
+
+const DISABLED_DIRECTOR_TOOL_IDS = new Set<DirectorToolId>(["removeBackground"]);
+
+export function isDirectorToolDisabled(toolId: DirectorToolId) {
+  return DISABLED_DIRECTOR_TOOL_IDS.has(toolId);
+}
+
 export const PREVIEW_ACTION_LABELS: Record<Exclude<ActivePreviewAction, "">, string> = {
   upscale: "Upscale 4x",
   removeBackground: "Remove BG",

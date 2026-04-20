@@ -38,10 +38,12 @@ import type {
 import type { NovelAiNl2TagsResult } from "@/utils/novelaiNl2Tags";
 
 import {
+  augmentNovelImageViaProxy,
   generateNovelImageViaProxy,
 } from "@/components/aiImage/api";
 import {
   CUSTOM_RESOLUTION_ID,
+  DEFAULT_DIRECTOR_TOOL_ID,
   DEFAULT_PRO_FEATURE_SECTION_OPEN,
   DEFAULT_PRO_IMAGE_SETTINGS,
   DEFAULT_SIMPLE_IMAGE_SETTINGS,
@@ -57,6 +59,7 @@ import {
   SAMPLERS_NAI4,
   SIMPLE_MODE_CUSTOM_MAX_DIMENSION,
   STORAGE_UI_MODE_KEY,
+  isDirectorToolDisabled,
 } from "@/components/aiImage/constants";
 import {
   base64DataUrl,
@@ -334,8 +337,8 @@ export function useAiImagePageController() {
   const [metadataImportSelection, setMetadataImportSelection] = useState<MetadataImportSelectionState>(DEFAULT_METADATA_IMPORT_SELECTION);
   const [isDirectorToolsOpen, setIsDirectorToolsOpen] = useState<boolean>(false);
   const [isDirectorImageDragOver, setIsDirectorImageDragOver] = useState<boolean>(false);
-  const [activeDirectorTool, setActiveDirectorTool] = useState<DirectorToolId>("removeBackground");
-  const pendingPreviewAction = "" as ActivePreviewAction;
+  const [activeDirectorTool, setActiveDirectorTool] = useState<DirectorToolId>(DEFAULT_DIRECTOR_TOOL_ID);
+  const [pendingPreviewAction, setPendingPreviewAction] = useState<ActivePreviewAction>("");
   const [directorSourceItems, setDirectorSourceItems] = useState<GeneratedImageItem[]>([]);
   const [directorSourcePreview, setDirectorSourcePreview] = useState<GeneratedImageItem | null>(null);
   const [directorOutputPreview, setDirectorOutputPreview] = useState<GeneratedImageItem | null>(null);
@@ -1132,10 +1135,6 @@ export function useAiImagePageController() {
     void applySelectedPreviewAsBaseImage(true);
   }, [applySelectedPreviewAsBaseImage]);
 
-  const handleToggleDirectorTools = useCallback(() => {
-    setIsDirectorToolsOpen(prev => !prev);
-  }, []);
-
   const handleSelectDirectorSourceItem = useCallback((item: GeneratedImageItem) => {
     setDirectorSourcePreview(item);
     setDirectorOutputPreview(null);
@@ -1214,6 +1213,17 @@ export function useAiImagePageController() {
     showSuccessToast("已把当前预览同步为导演工具输入图。");
   }, [selectedPreviewResult, showSuccessToast]);
 
+  const handleToggleDirectorTools = useCallback(() => {
+    setIsDirectorToolsOpen((prev) => {
+      const nextOpen = !prev;
+      if (nextOpen && !directorSourcePreview && selectedPreviewResult) {
+        setDirectorSourcePreview(selectedPreviewResult);
+        setDirectorOutputPreview(null);
+      }
+      return nextOpen;
+    });
+  }, [directorSourcePreview, selectedPreviewResult]);
+
   const handleRunUpscale = useCallback(async () => {
     if (!selectedPreviewResult)
       return;
@@ -1225,11 +1235,94 @@ export function useAiImagePageController() {
     if (!directorInputPreview || !directorTool)
       return;
 
-    showErrorToast(getNovelAiFreeOnlyMessage("Director Tools 已禁用。"));
+    if (isDirectorToolDisabled(activeDirectorTool)) {
+      showErrorToast("Remove BG 已禁用。");
+      return;
+    }
+
+    const imageBase64 = dataUrlToBase64(directorInputPreview.dataUrl);
+    if (!imageBase64) {
+      showErrorToast("导演工具输入图读取失败。");
+      return;
+    }
+
+    setError("");
+    setPendingPreviewAction(activeDirectorTool);
+    setDirectorOutputPreview(null);
+
+    try {
+      const response = await augmentNovelImageViaProxy({
+        requestType: directorTool.requestType,
+        imageBase64,
+        width: directorInputPreview.width,
+        height: directorInputPreview.height,
+        prompt: directorTool.parameterMode === "colorize"
+          ? directorColorizePrompt
+          : directorTool.parameterMode === "emotion"
+            ? directorEmotionExtraPrompt
+            : undefined,
+        defry: directorTool.parameterMode === "colorize"
+          ? directorColorizeDefry
+          : directorTool.parameterMode === "emotion"
+            ? directorEmotionDefry
+            : undefined,
+        emotion: directorTool.parameterMode === "emotion" ? directorEmotion : undefined,
+      });
+      const nextDataUrl = response.dataUrls[0];
+      if (!nextDataUrl)
+        throw new Error("Director Tools 没有返回图像。");
+
+      let nextSize = {
+        width: directorInputPreview.width,
+        height: directorInputPreview.height,
+      };
+      try {
+        nextSize = await readImageSize(nextDataUrl);
+      }
+      catch {
+        // 读取返回图尺寸失败时沿用输入图尺寸。
+      }
+
+      const nextOutput = {
+        dataUrl: nextDataUrl,
+        seed: -1,
+        width: nextSize.width,
+        height: nextSize.height,
+        model: directorInputPreview.model || model,
+        batchId: makeStableId(),
+        batchIndex: 0,
+        batchSize: 1,
+        toolLabel: directorTool.label,
+      } satisfies GeneratedImageItem;
+
+      setDirectorOutputPreview(nextOutput);
+      setResults([nextOutput]);
+      setSelectedResultIndex(0);
+      setSelectedHistoryPreviewKey(null);
+      showSuccessToast(`${directorTool.label} 已完成。`);
+    }
+    catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      setError(message);
+      showErrorToast(message);
+    }
+    finally {
+      setPendingPreviewAction("");
+    }
   }, [
+    activeDirectorTool,
+    directorColorizeDefry,
+    directorColorizePrompt,
+    directorEmotion,
+    directorEmotionDefry,
+    directorEmotionExtraPrompt,
     directorInputPreview,
     directorTool,
+    model,
+    setError,
+    setPendingPreviewAction,
     showErrorToast,
+    showSuccessToast,
   ]);
 
   const runGenerate = useCallback(async (args?: {

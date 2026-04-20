@@ -20,7 +20,7 @@ import type {
   NovelAiEmotion,
 } from "@/components/aiImage/types";
 
-import { DIRECTOR_EMOTION_OPTIONS, DIRECTOR_TOOL_OPTIONS } from "@/components/aiImage/constants";
+import { DIRECTOR_EMOTION_OPTIONS, DIRECTOR_TOOL_OPTIONS, isDirectorToolDisabled } from "@/components/aiImage/constants";
 import { ChevronDown, ExpandCornersIcon, SharpDownload } from "@/icons";
 
 interface AiImagePreviewPaneProps {
@@ -169,6 +169,7 @@ export function AiImagePreviewPane({
   const directorCornerPillClassName = "inline-flex items-center rounded-md border border-base-300 bg-base-100/96 px-3 py-2 text-[11px] font-medium text-base-content/72 shadow-sm";
   const directorDefryOptions = [0, 1, 2, 3, 4, 5] as const;
   const directorDisplayedOutput = directorOutputPreview ?? selectedPreviewResult;
+  const isActiveDirectorToolDisabled = isDirectorToolDisabled(activeDirectorTool);
 
   const handleDirectorSidebarDrop = (event: React.DragEvent<HTMLDivElement>) => {
     event.preventDefault();
@@ -452,16 +453,20 @@ export function AiImagePreviewPane({
                 <div className={`flex flex-wrap items-center gap-2 ${directorFrameClassName}`}>
                   {DIRECTOR_TOOL_OPTIONS.map(tool => {
                     const isActive = activeDirectorTool === tool.id;
+                    const isDisabled = isDirectorToolDisabled(tool.id);
                     return (
                       <button
                         key={tool.id}
                         type="button"
                         className={`${directorToolButtonClassName} ${
-                          isActive
+                          isDisabled
+                            ? "cursor-not-allowed bg-base-300/55 text-base-content/35"
+                            : isActive
                             ? "bg-[#f3efc6] text-[#111326]"
                             : "bg-transparent text-base-content/82 hover:bg-base-300 hover:text-base-content"
                         }`}
-                        disabled={isBusy}
+                        title={isDisabled ? "Remove BG 已禁用" : tool.description}
+                        disabled={isBusy || isDisabled}
                         onClick={() => onActiveDirectorToolChange(tool.id)}
                       >
                         {tool.label}
@@ -471,7 +476,7 @@ export function AiImagePreviewPane({
                   <button
                     type="button"
                     className="ml-auto inline-flex h-10 items-center justify-center gap-2 rounded-md border border-[#f3efc6] bg-[#f3efc6] px-4 text-[12px] font-semibold text-[#111326] shadow-[0_10px_20px_rgba(243,239,198,0.16)] transition duration-200 ease-out hover:-translate-y-0.5 hover:bg-[#fff7c9] hover:border-[#fff7c9] hover:shadow-[0_14px_28px_rgba(243,239,198,0.24)] active:translate-y-0 active:scale-[0.985] active:shadow-[0_7px_16px_rgba(243,239,198,0.18)] focus:outline-none disabled:cursor-not-allowed disabled:border-[#f3efc6]/25 disabled:bg-[#f3efc6]/18 disabled:text-[#f3efc6]/40 disabled:shadow-none"
-                    disabled={!directorInputPreview || isBusy}
+                    disabled={!directorInputPreview || isBusy || isActiveDirectorToolDisabled}
                     onClick={() => void onRunDirectorTool()}
                   >
                     <span>{pendingPreviewAction === activeDirectorTool ? "Transforming..." : "Transform"}</span>

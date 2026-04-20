@@ -1,4 +1,6 @@
 import type {
+  NovelAiDirectorRequestType,
+  NovelAiEmotion,
   PreciseReferencePayload,
   V4CharPayload,
   V4PromptCenter,
@@ -63,6 +65,10 @@ function resolveBackendGenerateImageUrl() {
   return resolveBackendNovelApiUrl("/ai/generate-image");
 }
 
+function resolveBackendAugmentImageUrl() {
+  return resolveBackendNovelApiUrl("/ai/augment-image");
+}
+
 async function requestNovelAiBinaryViaProxy(requestUrl: string, payload: unknown) {
   const res = await fetch(requestUrl, {
     method: "POST",
@@ -86,6 +92,75 @@ async function requestNovelAiBinaryViaProxy(requestUrl: string, payload: unknown
   }
 
   return dataUrls;
+}
+
+export type NovelAiDirectorToolPayload = {
+  req_type: NovelAiDirectorRequestType;
+  use_new_shared_trial: true;
+  image: string;
+  width: number;
+  height: number;
+  prompt?: string;
+  defry?: number;
+  emotion?: NovelAiEmotion;
+};
+
+export function buildNovelAiDirectorToolPayload(args: {
+  requestType: NovelAiDirectorRequestType;
+  imageBase64: string;
+  width: number;
+  height: number;
+  prompt?: string;
+  defry?: number;
+  emotion?: NovelAiEmotion;
+}) {
+  const payload: NovelAiDirectorToolPayload = {
+    req_type: args.requestType,
+    use_new_shared_trial: true,
+    image: String(args.imageBase64 || "").trim(),
+    width: Math.max(1, Math.floor(Number(args.width) || 0)),
+    height: Math.max(1, Math.floor(Number(args.height) || 0)),
+  };
+  const prompt = String(args.prompt || "").trim();
+  if (prompt)
+    payload.prompt = prompt;
+  if (Number.isFinite(args.defry))
+    payload.defry = clampIntRange(Number(args.defry), 0, 5, 0);
+  if (args.emotion)
+    payload.emotion = args.emotion;
+  return payload;
+}
+
+export async function augmentNovelImageViaProxy(args: {
+  requestType: NovelAiDirectorRequestType;
+  imageBase64: string;
+  width: number;
+  height: number;
+  prompt?: string;
+  defry?: number;
+  emotion?: NovelAiEmotion;
+}) {
+  const imageBase64 = String(args.imageBase64 || "").trim();
+  if (!imageBase64)
+    throw new Error("Director Tools 缺少源图片。");
+
+  const payload = buildNovelAiDirectorToolPayload({
+    requestType: args.requestType,
+    imageBase64,
+    width: args.width,
+    height: args.height,
+    prompt: args.prompt,
+    defry: args.defry,
+    emotion: args.emotion,
+  });
+
+  const requestUrl = resolveBackendAugmentImageUrl();
+  console.warn("[ai-image] request augment-image via backend", {
+    requestUrl,
+    reqType: payload.req_type,
+  });
+  const dataUrls = await requestNovelAiBinaryViaProxy(requestUrl, payload);
+  return { dataUrls };
 }
 
 export async function generateNovelImageViaProxy(args: {
