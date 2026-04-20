@@ -59,6 +59,7 @@ export function InpaintDialog({
   const [negativePrompt, setNegativePrompt] = useState("");
   const [strength, setStrength] = useState(0.7);
   const [brushSize, setBrushSize] = useState(4);
+  const [isSquareBrush, setIsSquareBrush] = useState(true);
   const [brushCursorPoint, setBrushCursorPoint] = useState<BrushCursorPoint | null>(null);
   const [hasMask, setHasMask] = useState(false);
   const [historyVersion, setHistoryVersion] = useState(0);
@@ -113,6 +114,7 @@ export function InpaintDialog({
     setNegativePrompt(source.negativePrompt);
     setStrength(source.strength);
     setBrushSize(4);
+    setIsSquareBrush(true);
     setBrushCursorPoint(null);
     setHasMask(false);
     undoStackRef.current = [];
@@ -201,8 +203,8 @@ export function InpaintDialog({
 
     const { context } = target;
     context.save();
-    context.lineCap = "square";
-    context.lineJoin = "miter";
+    context.lineCap = isSquareBrush ? "square" : "round";
+    context.lineJoin = isSquareBrush ? "miter" : "round";
     context.lineWidth = brushSize;
     context.globalCompositeOperation = "source-over";
     context.strokeStyle = "rgba(246, 110, 139, 0.55)";
@@ -213,14 +215,21 @@ export function InpaintDialog({
     context.lineTo(to.x, to.y);
     context.stroke();
 
-    context.fillRect(
-      to.x - brushSize / 2,
-      to.y - brushSize / 2,
-      brushSize,
-      brushSize,
-    );
+    if (isSquareBrush) {
+      context.fillRect(
+        to.x - brushSize / 2,
+        to.y - brushSize / 2,
+        brushSize,
+        brushSize,
+      );
+    }
+    else {
+      context.beginPath();
+      context.arc(to.x, to.y, brushSize / 2, 0, Math.PI * 2);
+      context.fill();
+    }
     context.restore();
-  }, [brushSize, getMaskContext]);
+  }, [brushSize, getMaskContext, isSquareBrush]);
 
   const finishDrawing = useCallback((event: ReactPointerEvent<HTMLCanvasElement>) => {
     if (!isDrawingRef.current || drawingPointerIdRef.current !== event.pointerId)
@@ -381,20 +390,18 @@ export function InpaintDialog({
 
   return (
     <div className="absolute inset-0 z-50 overflow-hidden bg-base-200 text-white">
-      <div className={`absolute left-4 top-4 z-20 overflow-hidden ${sharedPanelClassName}`}>
-        <div className="flex items-stretch">
-          <button
-            type="button"
-            className="flex min-h-[96px] w-24 flex-col items-center justify-center gap-2 border-r border-white/10 bg-transparent px-3 text-sm font-medium whitespace-nowrap text-white/88 transition hover:bg-white/[0.04] focus:outline-none focus:ring-2 focus:ring-white/16"
-          >
+      <div className={`absolute left-4 top-4 z-20 h-[87px] w-[236px] overflow-hidden ${sharedPanelClassName}`}>
+        <div className="flex h-full items-stretch">
+          <div className="flex w-[92px] shrink-0 flex-col items-center justify-center gap-2 border-r border-white/10 px-3 text-sm font-medium whitespace-nowrap text-white/88">
             <span className="inline-flex size-7 items-center justify-center rounded-md border border-white/12 bg-white/[0.04] text-white/86">
               <PencilSimpleLineIcon className="size-[18px]" weight="bold" />
             </span>
             <span className="leading-none">Draw Mask</span>
-          </button>
-          <div className="min-w-[160px] px-4 py-3">
+          </div>
+          <div className="flex min-w-0 flex-1 flex-col justify-center px-3 py-2">
             <div className="flex items-center justify-between gap-3 text-sm font-medium text-white/86">
-              Pen Size: {brushSize}
+              <span>Pen Size</span>
+              <span>{brushSize}</span>
             </div>
             <input
               type="range"
@@ -405,10 +412,15 @@ export function InpaintDialog({
               className="mt-3 h-1.5 w-40 cursor-pointer appearance-none bg-transparent focus:outline-none [&::-webkit-slider-runnable-track]:h-1.5 [&::-webkit-slider-runnable-track]:rounded-full [&::-webkit-slider-runnable-track]:bg-white/12 [&::-webkit-slider-thumb]:mt-[-5px] [&::-webkit-slider-thumb]:size-4 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:border-0 [&::-webkit-slider-thumb]:bg-[#f6e6a5] [&::-webkit-slider-thumb]:shadow-[0_0_0_1px_rgba(17,18,36,0.35)] [&::-moz-range-track]:h-1.5 [&::-moz-range-track]:rounded-full [&::-moz-range-track]:bg-white/12 [&::-moz-range-thumb]:size-4 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:bg-[#f6e6a5]"
               onChange={event => setBrushSize(Number(event.target.value))}
             />
-            <div className="mt-3 flex items-center gap-2 text-sm font-medium text-white/82">
-              <span className="inline-flex size-4 shrink-0 border border-white/14 bg-[#0f1221]" />
+            <label className="mt-2 flex cursor-pointer items-center gap-2 text-sm font-medium text-white/82">
+              <input
+                type="checkbox"
+                checked={isSquareBrush}
+                className="size-4 rounded border border-white/14 bg-white/[0.04] accent-[#f6e6a5]"
+                onChange={event => setIsSquareBrush(event.target.checked)}
+              />
               <span>Square Brush</span>
-            </div>
+            </label>
           </div>
         </div>
       </div>
@@ -481,14 +493,27 @@ export function InpaintDialog({
                         height: `${brushCursorDisplaySize}px`,
                       }}
                     >
-                      <path
-                        d="M6 3H9V5H7V7H5V9H3V15H5V17H7V19H9V21H15V19H17V17H19V15H21V9H19V7H17V5H15V3H9V5H6V3Z"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="1.25"
-                        strokeLinejoin="miter"
-                        strokeLinecap="square"
-                      />
+                      {isSquareBrush
+                        ? (
+                            <path
+                              d="M6 3H9V5H7V7H5V9H3V15H5V17H7V19H9V21H15V19H17V17H19V15H21V9H19V7H17V5H15V3H9V5H6V3Z"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="1.25"
+                              strokeLinejoin="miter"
+                              strokeLinecap="square"
+                            />
+                          )
+                        : (
+                            <circle
+                              cx="12"
+                              cy="12"
+                              r="8.25"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="1.25"
+                            />
+                          )}
                       <path
                         d="M12 7V17M7 12H17"
                         fill="none"
