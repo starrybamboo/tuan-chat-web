@@ -525,7 +525,7 @@ export function InpaintDialog({
   const topActionButtonClassName = "inline-flex h-10 items-center justify-center border-0 px-4 text-sm font-medium transition focus:outline-none focus:ring-2 focus:ring-white/16 disabled:cursor-not-allowed disabled:opacity-40 rounded-none";
   const topIconActionButtonClassName = "inline-flex size-10 items-center justify-center border-0 bg-white/[0.06] text-white/72 transition hover:bg-white/[0.1] hover:text-white focus:outline-none focus:ring-2 focus:ring-white/16 disabled:cursor-not-allowed disabled:opacity-35 rounded-none";
   const brushCursorDisplaySize = Math.max(22, Math.round(brushSize * 1.7));
-  const sharedPanelClassName = "rounded-md border border-white/10 bg-white/[0.06] shadow-[0_18px_48px_rgba(0,0,0,0.34)] backdrop-blur";
+  const sharedPanelClassName = "rounded-md border border-[#2A3138] bg-[#161A1F] shadow-[0_18px_48px_rgba(0,0,0,0.34)]";
   const bottomToolButtonClassName = "inline-flex size-10 items-center justify-center rounded-md border border-transparent bg-transparent text-white/60 transition hover:bg-white/[0.08] hover:text-white focus:outline-none focus:ring-2 focus:ring-white/16 disabled:cursor-not-allowed disabled:opacity-35";
   const boardButtonClassName = `${bottomToolButtonClassName} ${isBoardPanelOpen ? "bg-white/[0.12] text-white" : ""}`;
   const boardPanelClassName = `absolute right-0 bottom-[calc(100%+10px)] z-30 w-[320px] p-3 ${sharedPanelClassName}`;
