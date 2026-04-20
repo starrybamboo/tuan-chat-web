@@ -10,6 +10,7 @@ import {
   resolveEditorImageMode,
   resolveSimpleGenerateMode,
   resolveNovelAiRandomTagTarget,
+  shouldKeepSimpleTagsEditor,
   historyRowKey,
   historyRowResultMatchKey,
   historyRowToGeneratedItem,
@@ -109,6 +110,21 @@ describe("aiImage helpers", () => {
   it("keeps simple mode generation on infill after an inpaint save", () => {
     expect(resolveSimpleGenerateMode("infill")).toBe("infill");
     expect(resolveSimpleGenerateMode("txt2img")).toBe("txt2img");
+  });
+
+  it("keeps the simple tags editor active for infill even without prompt text", () => {
+    expect(shouldKeepSimpleTagsEditor({
+      mode: "infill",
+      prompt: "",
+      negativePrompt: "",
+      hasConvertedDraft: false,
+    })).toBe(true);
+    expect(shouldKeepSimpleTagsEditor({
+      mode: "txt2img",
+      prompt: "",
+      negativePrompt: "",
+      hasConvertedDraft: false,
+    })).toBe(false);
   });
 
   it("allows the new 832x1216 / 1216x832 preset sizes in simple mode clamping", () => {

@@ -102,6 +102,7 @@ import {
   resolveFixedImageModel,
   resolveImportedValue,
   resolveSimpleGenerateMode,
+  shouldKeepSimpleTagsEditor,
   triggerBlobDownload,
   triggerBrowserDownload,
   writeLocalStorageString,
@@ -197,15 +198,18 @@ export function useAiImagePageController() {
   useEffect(() => {
     if (simpleEditorMode !== "tags")
       return;
-    if (simpleConverted)
-      return;
-    if (simplePrompt.trim() || simpleNegativePrompt.trim())
+    if (shouldKeepSimpleTagsEditor({
+      mode: simpleMode,
+      prompt: simplePrompt,
+      negativePrompt: simpleNegativePrompt,
+      hasConvertedDraft: Boolean(simpleConverted),
+    }))
       return;
 
     setSimpleConvertedFromText("");
     setSimpleEditorMode("text");
     setSimplePromptTab("prompt");
-  }, [simpleConverted, simpleEditorMode, simpleNegativePrompt, simplePrompt]);
+  }, [simpleConverted, simpleEditorMode, simpleMode, simpleNegativePrompt, simplePrompt]);
 
   const toggleProFeatureSection = useCallback((section: ProFeatureSectionKey) => {
     setProFeatureSections(prev => ({ ...prev, [section]: !prev[section] }));

@@ -560,6 +560,19 @@ export function resolveSimpleGenerateMode(mode: AiImageHistoryMode): AiImageHist
   return mode === "infill" ? "infill" : "txt2img";
 }
 
+export function shouldKeepSimpleTagsEditor(args: {
+  mode: AiImageHistoryMode;
+  prompt: string;
+  negativePrompt: string;
+  hasConvertedDraft: boolean;
+}) {
+  if (args.hasConvertedDraft)
+    return true;
+  if (resolveSimpleGenerateMode(args.mode) === "infill")
+    return true;
+  return Boolean(String(args.prompt || "").trim() || String(args.negativePrompt || "").trim());
+}
+
 export function base64ToBytes(value: string) {
   const normalized = String(value || "").replace(/\s+/g, "");
   if (!normalized)
