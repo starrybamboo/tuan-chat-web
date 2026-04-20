@@ -180,8 +180,8 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
   const characterCardClassName = "rounded-2xl border border-[#2A3138] bg-[#161A1F] p-3 shadow-none";
   const characterCardHeaderActionClassName = "inline-flex size-7 items-center justify-center rounded-md text-white/56 transition hover:bg-white/6 hover:text-white focus:outline-none disabled:cursor-not-allowed disabled:opacity-35";
   const characterCardTitleIconClassName = "size-4 shrink-0 text-white/80";
-  const characterPositionsSectionClassName = "flex items-center justify-between gap-3 rounded-md border border-[#2A3138] bg-[#161A1F] px-4 py-3";
-  const characterPositionsToggleBaseClassName = "inline-flex h-9 items-center gap-2 rounded-md border px-3 text-[14px] font-semibold transition focus:outline-none focus:ring-2 focus:ring-primary/20";
+  const characterPositionsSectionClassName = "flex items-center justify-between gap-3 bg-[#161A1F] py-3 pr-4";
+  const characterPositionsToggleBaseClassName = "inline-flex h-9 min-w-[110px] items-center justify-center rounded-md border px-3 text-[14px] font-semibold transition whitespace-nowrap focus:outline-none focus-visible:outline-none";
   const promptTextareaClassName = "textarea textarea-bordered !rounded-none min-h-36 w-full resize-none border-[#D6DCE3] bg-[#F3F5F7] text-base-content leading-7 transition-colors hover:border-primary active:border-primary focus:border-primary focus:bg-primary/[0.03] focus:outline-none dark:border-[#2A3138] dark:bg-[#161A1F] dark:hover:border-primary";
   const simplePromptTextareaClassName = promptTextareaClassName;
   const subtleInputClassName = "input input-bordered input-sm !rounded-none border-[#D6DCE3] bg-[#F3F5F7] text-base-content dark:border-[#2A3138] dark:bg-[#161A1F]";
@@ -1770,9 +1770,6 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                                           aria-pressed={isCharacterPositionAiChoiceEnabled}
                                           onClick={handleToggleCharacterPositionAiChoice}
                                         >
-                                          {isCharacterPositionAiChoiceEnabled
-                                            ? <CheckCircleIcon className="size-4 shrink-0" weight="fill" />
-                                            : null}
                                           <span>AI's Choice</span>
                                         </button>
                                       </div>
