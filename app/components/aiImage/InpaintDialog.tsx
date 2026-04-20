@@ -14,15 +14,12 @@ import {
 import { useCallback, useEffect, useRef, useState } from "react";
 import { triggerBrowserDownload } from "@/components/aiImage/helpers";
 import {
-  buildMaskPaintStyle,
   buildMaskSolidColor,
   createMaskBorderOffsets,
   hasAnyMaskAlpha,
   mapDisplaySizeToCanvasSize,
   mapBrushCursorDisplaySize,
   MASK_COLOR_OPTIONS,
-  MASK_PATTERN_OPTIONS,
-  type MaskPattern,
 } from "@/components/aiImage/inpaintMaskUtils";
 
 interface InpaintDialogProps {
@@ -44,7 +41,8 @@ interface BrushCursorPoint {
   y: number;
 }
 
-const MASK_BORDER_OFFSETS = createMaskBorderOffsets(4);
+const ROUND_MASK_BORDER_OFFSETS = createMaskBorderOffsets(4);
+const SQUARE_MASK_BORDER_OFFSETS = createMaskBorderOffsets(4, "square");
 const BRUSH_CURSOR_STROKE_COLOR = "#000000";
 const BRUSH_CURSOR_CROSS_SIZE = 13;
 
@@ -75,7 +73,6 @@ export function InpaintDialog({
   const [maskColor, setMaskColor] = useState<(typeof MASK_COLOR_OPTIONS)[number]>(MASK_COLOR_OPTIONS[4]);
   const [maskOpacity, setMaskOpacity] = useState(45);
   const [showMaskBorder, setShowMaskBorder] = useState(true);
-  const [maskPattern, setMaskPattern] = useState<MaskPattern>("solid");
   const [isBoardPanelOpen, setIsBoardPanelOpen] = useState(false);
   const [brushCursorPoint, setBrushCursorPoint] = useState<BrushCursorPoint | null>(null);
   const [hasMask, setHasMask] = useState(false);
@@ -137,7 +134,7 @@ export function InpaintDialog({
       return;
 
     fillContext.clearRect(0, 0, fillCanvas.width, fillCanvas.height);
-    fillContext.fillStyle = buildMaskPaintStyle(fillContext, maskColor, maskOpacity, maskPattern);
+    fillContext.fillStyle = buildMaskSolidColor(maskColor, maskOpacity);
     fillContext.fillRect(0, 0, fillCanvas.width, fillCanvas.height);
     fillContext.globalCompositeOperation = "destination-in";
     fillContext.drawImage(maskCanvas, 0, 0);
@@ -153,7 +150,8 @@ export function InpaintDialog({
       return;
 
     borderContext.clearRect(0, 0, borderCanvas.width, borderCanvas.height);
-    for (const offset of MASK_BORDER_OFFSETS)
+    const activeBorderOffsets = isSquareBrush ? SQUARE_MASK_BORDER_OFFSETS : ROUND_MASK_BORDER_OFFSETS;
+    for (const offset of activeBorderOffsets)
       borderContext.drawImage(maskCanvas, offset.x, offset.y);
     borderContext.globalCompositeOperation = "destination-out";
     borderContext.drawImage(maskCanvas, 0, 0);
@@ -167,9 +165,9 @@ export function InpaintDialog({
     ensureBufferCanvas,
     getDisplayContext,
     getMaskContext,
+    isSquareBrush,
     maskColor,
     maskOpacity,
-    maskPattern,
     showMaskBorder,
   ]);
 
@@ -218,7 +216,6 @@ export function InpaintDialog({
     setMaskColor(MASK_COLOR_OPTIONS[4]);
     setMaskOpacity(45);
     setShowMaskBorder(true);
-    setMaskPattern("solid");
     setIsBoardPanelOpen(false);
     setBrushCursorPoint(null);
     setHasMask(false);
@@ -245,7 +242,7 @@ export function InpaintDialog({
     if (!isOpen || !source)
       return;
     renderMaskPreview();
-  }, [isOpen, maskColor, maskOpacity, maskPattern, renderMaskPreview, showMaskBorder, source]);
+  }, [isOpen, isSquareBrush, maskColor, maskOpacity, renderMaskPreview, showMaskBorder, source]);
 
   useEffect(() => {
     if (!isOpen)
@@ -354,18 +351,20 @@ export function InpaintDialog({
       const deltaX = to.x - from.x;
       const deltaY = to.y - from.y;
       const distance = Math.hypot(deltaX, deltaY);
-      const stampSpacing = Math.max(1, Math.min(brushMetrics.width, brushMetrics.height) / 2);
+      const stampWidth = Math.max(1, Math.round(brushMetrics.width));
+      const stampHeight = Math.max(1, Math.round(brushMetrics.height));
+      const stampSpacing = Math.max(1, Math.min(stampWidth, stampHeight) / 2);
       const stampCount = Math.max(1, Math.ceil(distance / stampSpacing));
 
       for (let index = 0; index <= stampCount; index += 1) {
         const progress = stampCount === 0 ? 0 : index / stampCount;
-        const stampX = from.x + deltaX * progress;
-        const stampY = from.y + deltaY * progress;
+        const stampX = Math.round(from.x + deltaX * progress);
+        const stampY = Math.round(from.y + deltaY * progress);
         context.fillRect(
-          stampX - brushMetrics.width / 2,
-          stampY - brushMetrics.height / 2,
-          brushMetrics.width,
-          brushMetrics.height,
+          stampX - stampWidth / 2,
+          stampY - stampHeight / 2,
+          stampWidth,
+          stampHeight,
         );
       }
     }
@@ -732,56 +731,6 @@ export function InpaintDialog({
                         />
                         <span>Border</span>
                       </label>
-
-                      <div className="mt-4 text-[11px] font-medium text-white/55">Mask Pattern</div>
-                      <div className="mt-2 grid grid-cols-7 gap-2">
-                        {MASK_PATTERN_OPTIONS.map(option => (
-                          <button
-                            key={option.id}
-                            type="button"
-                            className={`flex size-8 items-center justify-center rounded-md border transition focus:outline-none focus:ring-2 focus:ring-white/20 ${
-                              maskPattern === option.id ? "border-white/80 bg-white/[0.12]" : "border-white/10 bg-white/[0.04] hover:border-white/25"
-                            }`}
-                            aria-label={option.label}
-                            title={option.label}
-                            onClick={() => setMaskPattern(option.id)}
-                          >
-                            {option.id === "solid"
-                              ? <span className="block size-4 rounded-sm bg-white" />
-                              : null}
-                            {option.id === "stripe"
-                              ? <span className="block size-4 rounded-sm bg-[repeating-linear-gradient(135deg,rgba(255,255,255,0.95)_0_2px,transparent_2px_5px)]" />
-                              : null}
-                            {option.id === "checker"
-                              ? <span className="block size-4 rounded-sm bg-[linear-gradient(45deg,rgba(255,255,255,0.95)_25%,transparent_25%,transparent_75%,rgba(255,255,255,0.95)_75%),linear-gradient(45deg,rgba(255,255,255,0.95)_25%,transparent_25%,transparent_75%,rgba(255,255,255,0.95)_75%)] bg-[length:8px_8px] bg-[position:0_0,4px_4px]" />
-                              : null}
-                            {option.id === "dots"
-                              ? <span className="block size-4 rounded-sm bg-[radial-gradient(circle_at_25%_25%,rgba(255,255,255,0.95)_0_1.3px,transparent_1.4px),radial-gradient(circle_at_75%_75%,rgba(255,255,255,0.95)_0_1.3px,transparent_1.4px)] bg-[length:8px_8px]" />
-                              : null}
-                            {option.id === "grid"
-                              ? <span className="block size-4 rounded-sm bg-[linear-gradient(rgba(255,255,255,0.95)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.95)_1px,transparent_1px)] bg-[length:8px_8px] bg-white/[0.12]" />
-                              : null}
-                            {option.id === "cross"
-                              ? (
-                                  <span className="relative block size-4 rounded-sm bg-white/[0.08]">
-                                    <span className="absolute left-1/2 top-1/2 h-[1.5px] w-2.5 -translate-x-1/2 -translate-y-1/2 bg-white/90" />
-                                    <span className="absolute left-1/2 top-1/2 h-2.5 w-[1.5px] -translate-x-1/2 -translate-y-1/2 bg-white/90" />
-                                  </span>
-                                )
-                              : null}
-                            {option.id === "blocks"
-                              ? (
-                                  <span className="grid size-4 grid-cols-2 gap-[2px] rounded-sm bg-white/[0.08] p-[2px]">
-                                    <span className="rounded-[1px] bg-white/90" />
-                                    <span className="rounded-[1px] bg-white/90" />
-                                    <span className="rounded-[1px] bg-white/90" />
-                                    <span className="rounded-[1px] bg-white/90" />
-                                  </span>
-                                )
-                              : null}
-                          </button>
-                        ))}
-                      </div>
                     </div>
                   )
                 : null}
