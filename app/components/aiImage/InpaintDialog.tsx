@@ -6,6 +6,7 @@ import {
   DownloadSimpleIcon,
   FloppyDiskIcon,
   EraserIcon,
+  PaletteIcon,
   PencilSimpleLineIcon,
   TrashIcon,
   XIcon,
@@ -30,6 +31,113 @@ interface CanvasPoint {
 interface BrushCursorPoint {
   x: number;
   y: number;
+}
+
+type MaskPattern = "solid" | "stripe" | "checker" | "dots" | "grid" | "cross" | "blocks";
+
+const MASK_COLOR_OPTIONS = [
+  "#5b6dff",
+  "#f0bd2d",
+  "#d85ec3",
+  "#46c6cf",
+  "#f05d52",
+  "#4fca67",
+  "#b06bf1",
+  "#f39d3f",
+  "#4f99e0",
+  "#c9c13e",
+] as const;
+
+const MASK_PATTERN_OPTIONS: Array<{ id: MaskPattern; label: string }> = [
+  { id: "solid", label: "Solid" },
+  { id: "stripe", label: "Stripe" },
+  { id: "checker", label: "Checker" },
+  { id: "dots", label: "Dots" },
+  { id: "grid", label: "Grid" },
+  { id: "cross", label: "Cross" },
+  { id: "blocks", label: "Blocks" },
+];
+
+function hexToRgba(hex: string, alpha: number) {
+  const normalized = String(hex || "").replace("#", "").trim();
+  if (!/^[0-9a-fA-F]{6}$/.test(normalized))
+    return `rgba(246, 110, 139, ${alpha})`;
+
+  const red = Number.parseInt(normalized.slice(0, 2), 16);
+  const green = Number.parseInt(normalized.slice(2, 4), 16);
+  const blue = Number.parseInt(normalized.slice(4, 6), 16);
+  return `rgba(${red}, ${green}, ${blue}, ${alpha})`;
+}
+
+function buildMaskPaintStyle(context: CanvasRenderingContext2D, color: string, opacity: number, pattern: MaskPattern) {
+  const alpha = Math.max(0.05, Math.min(1, opacity / 100));
+  const solidColor = hexToRgba(color, alpha);
+  if (pattern === "solid")
+    return solidColor;
+
+  const tile = document.createElement("canvas");
+  tile.width = 24;
+  tile.height = 24;
+  const tileContext = tile.getContext("2d");
+  if (!tileContext)
+    return solidColor;
+
+  tileContext.clearRect(0, 0, tile.width, tile.height);
+  tileContext.strokeStyle = solidColor;
+  tileContext.fillStyle = solidColor;
+
+  if (pattern === "stripe") {
+    tileContext.lineWidth = 4;
+    tileContext.beginPath();
+    tileContext.moveTo(-4, 24);
+    tileContext.lineTo(24, -4);
+    tileContext.stroke();
+  }
+  else if (pattern === "checker") {
+    tileContext.globalAlpha = alpha;
+    tileContext.fillRect(0, 0, 8, 8);
+    tileContext.fillRect(16, 0, 8, 8);
+    tileContext.fillRect(8, 8, 8, 8);
+    tileContext.fillRect(0, 16, 8, 8);
+    tileContext.fillRect(16, 16, 8, 8);
+  }
+  else if (pattern === "dots") {
+    tileContext.beginPath();
+    tileContext.arc(6, 6, 2.1, 0, Math.PI * 2);
+    tileContext.arc(18, 6, 2.1, 0, Math.PI * 2);
+    tileContext.arc(12, 18, 2.1, 0, Math.PI * 2);
+    tileContext.fill();
+  }
+  else if (pattern === "grid") {
+    tileContext.lineWidth = 1.6;
+    tileContext.beginPath();
+    tileContext.moveTo(0, 8);
+    tileContext.lineTo(24, 8);
+    tileContext.moveTo(0, 16);
+    tileContext.lineTo(24, 16);
+    tileContext.moveTo(8, 0);
+    tileContext.lineTo(8, 24);
+    tileContext.moveTo(16, 0);
+    tileContext.lineTo(16, 24);
+    tileContext.stroke();
+  }
+  else if (pattern === "cross") {
+    tileContext.lineWidth = 2;
+    tileContext.beginPath();
+    tileContext.moveTo(6, 6);
+    tileContext.lineTo(18, 18);
+    tileContext.moveTo(18, 6);
+    tileContext.lineTo(6, 18);
+    tileContext.stroke();
+  }
+  else {
+    tileContext.fillRect(2, 2, 6, 6);
+    tileContext.fillRect(16, 2, 6, 6);
+    tileContext.fillRect(2, 16, 6, 6);
+    tileContext.fillRect(16, 16, 6, 6);
+  }
+
+  return context.createPattern(tile, "repeat") ?? solidColor;
 }
 
 function hasAnyMaskPixels(context: CanvasRenderingContext2D, width: number, height: number) {
@@ -62,6 +170,11 @@ export function InpaintDialog({
   const [brushSize, setBrushSize] = useState(4);
   const [tool, setTool] = useState<"paint" | "erase">("paint");
   const [isSquareBrush, setIsSquareBrush] = useState(true);
+  const [maskColor, setMaskColor] = useState<(typeof MASK_COLOR_OPTIONS)[number]>(MASK_COLOR_OPTIONS[4]);
+  const [maskOpacity, setMaskOpacity] = useState(45);
+  const [showMaskBorder, setShowMaskBorder] = useState(true);
+  const [maskPattern, setMaskPattern] = useState<MaskPattern>("solid");
+  const [isBoardPanelOpen, setIsBoardPanelOpen] = useState(false);
   const [brushCursorPoint, setBrushCursorPoint] = useState<BrushCursorPoint | null>(null);
   const [hasMask, setHasMask] = useState(false);
   const [historyVersion, setHistoryVersion] = useState(0);
@@ -118,6 +231,11 @@ export function InpaintDialog({
     setBrushSize(4);
     setTool("paint");
     setIsSquareBrush(true);
+    setMaskColor(MASK_COLOR_OPTIONS[4]);
+    setMaskOpacity(45);
+    setShowMaskBorder(true);
+    setMaskPattern("solid");
+    setIsBoardPanelOpen(false);
     setBrushCursorPoint(null);
     setHasMask(false);
     undoStackRef.current = [];
@@ -216,8 +334,9 @@ export function InpaintDialog({
     }
     else {
       context.globalCompositeOperation = "source-over";
-      context.strokeStyle = "rgba(246, 110, 139, 0.55)";
-      context.fillStyle = "rgba(246, 110, 139, 0.55)";
+      const fillStyle = buildMaskPaintStyle(context, maskColor, maskOpacity, maskPattern);
+      context.strokeStyle = fillStyle;
+      context.fillStyle = fillStyle;
     }
 
     context.beginPath();
@@ -232,14 +351,29 @@ export function InpaintDialog({
         brushSize,
         brushSize,
       );
+      if (tool !== "erase" && showMaskBorder) {
+        context.strokeStyle = "rgba(255, 255, 255, 0.55)";
+        context.lineWidth = Math.max(1, brushSize * 0.08);
+        context.strokeRect(
+          to.x - brushSize / 2,
+          to.y - brushSize / 2,
+          brushSize,
+          brushSize,
+        );
+      }
     }
     else {
       context.beginPath();
       context.arc(to.x, to.y, brushSize / 2, 0, Math.PI * 2);
       context.fill();
+      if (tool !== "erase" && showMaskBorder) {
+        context.strokeStyle = "rgba(255, 255, 255, 0.55)";
+        context.lineWidth = Math.max(1, brushSize * 0.08);
+        context.stroke();
+      }
     }
     context.restore();
-  }, [brushSize, getMaskContext, isSquareBrush, tool]);
+  }, [brushSize, getMaskContext, isSquareBrush, maskColor, maskOpacity, maskPattern, showMaskBorder, tool]);
 
   const finishDrawing = useCallback((event: ReactPointerEvent<HTMLCanvasElement>) => {
     if (!isDrawingRef.current || drawingPointerIdRef.current !== event.pointerId)
@@ -393,6 +527,8 @@ export function InpaintDialog({
   const brushCursorDisplaySize = Math.max(22, Math.round(brushSize * 1.7));
   const sharedPanelClassName = "rounded-md border border-white/10 bg-white/[0.06] shadow-[0_18px_48px_rgba(0,0,0,0.34)] backdrop-blur";
   const bottomToolButtonClassName = "inline-flex size-10 items-center justify-center rounded-md border border-transparent bg-transparent text-white/60 transition hover:bg-white/[0.08] hover:text-white focus:outline-none focus:ring-2 focus:ring-white/16 disabled:cursor-not-allowed disabled:opacity-35";
+  const boardButtonClassName = `${bottomToolButtonClassName} ${isBoardPanelOpen ? "bg-white/[0.12] text-white" : ""}`;
+  const boardPanelClassName = "absolute right-0 bottom-[calc(100%+10px)] z-30 w-[320px] rounded-md border border-white/10 bg-[#191b31]/96 p-3 shadow-[0_18px_48px_rgba(0,0,0,0.38)] backdrop-blur";
   const canUndo = historyVersion >= 0 && undoStackRef.current.length > 0;
   const canRedo = historyVersion >= 0 && redoStackRef.current.length > 0;
 
@@ -593,6 +729,113 @@ export function InpaintDialog({
               onClick={handleRedo}
             >
               <ArrowClockwiseIcon className="size-[18px]" weight="bold" />
+            </button>
+          </div>
+          <div className="relative flex items-center">
+            {isBoardPanelOpen
+              ? (
+                  <div className={boardPanelClassName}>
+                    <div className="mb-3 text-[11px] font-medium text-white/55">Mask Color</div>
+                    <div className="flex flex-wrap gap-2">
+                      {MASK_COLOR_OPTIONS.map(color => (
+                        <button
+                          key={color}
+                          type="button"
+                          className={`inline-flex size-6 items-center justify-center rounded-full border transition focus:outline-none focus:ring-2 focus:ring-white/20 ${
+                            maskColor === color ? "border-white/85 ring-2 ring-white/20" : "border-white/10"
+                          }`}
+                          aria-label={`选择蒙版颜色 ${color}`}
+                          onClick={() => setMaskColor(color)}
+                        >
+                          <span className="size-4 rounded-full" style={{ backgroundColor: color }} />
+                        </button>
+                      ))}
+                    </div>
+
+                    <div className="mt-4 flex items-center justify-between gap-3 text-sm font-medium text-white">
+                      <span>Mask Opacity</span>
+                      <span>{maskOpacity}%</span>
+                    </div>
+                    <input
+                      type="range"
+                      min={10}
+                      max={100}
+                      step={1}
+                      value={maskOpacity}
+                      className="mt-2 h-1.5 w-full cursor-pointer appearance-none bg-transparent focus:outline-none [&::-webkit-slider-runnable-track]:h-1.5 [&::-webkit-slider-runnable-track]:rounded-full [&::-webkit-slider-runnable-track]:bg-white/10 [&::-webkit-slider-thumb]:mt-[-5px] [&::-webkit-slider-thumb]:size-4 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:border-0 [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:shadow-[0_0_0_1px_rgba(17,18,36,0.35)] [&::-moz-range-track]:h-1.5 [&::-moz-range-track]:rounded-full [&::-moz-range-track]:bg-white/10 [&::-moz-range-thumb]:size-4 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:bg-white"
+                      onChange={event => setMaskOpacity(Number(event.target.value))}
+                    />
+
+                    <label className="mt-4 flex items-center gap-2 text-[11px] font-medium text-white">
+                      <input
+                        type="checkbox"
+                        checked={showMaskBorder}
+                        className="size-3.5 rounded border border-white/20 bg-white/[0.04] accent-white"
+                        onChange={event => setShowMaskBorder(event.target.checked)}
+                      />
+                      <span>Border</span>
+                    </label>
+
+                    <div className="mt-4 text-[11px] font-medium text-white/55">Mask Pattern</div>
+                    <div className="mt-2 grid grid-cols-7 gap-2">
+                      {MASK_PATTERN_OPTIONS.map(option => (
+                        <button
+                          key={option.id}
+                          type="button"
+                          className={`flex size-8 items-center justify-center rounded-md border transition focus:outline-none focus:ring-2 focus:ring-white/20 ${
+                            maskPattern === option.id ? "border-white/80 bg-white/[0.12]" : "border-white/10 bg-white/[0.04] hover:border-white/25"
+                          }`}
+                          aria-label={option.label}
+                          title={option.label}
+                          onClick={() => setMaskPattern(option.id)}
+                        >
+                          {option.id === "solid"
+                            ? <span className="block size-4 rounded-sm bg-white" />
+                            : null}
+                          {option.id === "stripe"
+                            ? <span className="block size-4 rounded-sm bg-[repeating-linear-gradient(135deg,rgba(255,255,255,0.95)_0_2px,transparent_2px_5px)]" />
+                            : null}
+                          {option.id === "checker"
+                            ? <span className="block size-4 rounded-sm bg-[linear-gradient(45deg,rgba(255,255,255,0.95)_25%,transparent_25%,transparent_75%,rgba(255,255,255,0.95)_75%),linear-gradient(45deg,rgba(255,255,255,0.95)_25%,transparent_25%,transparent_75%,rgba(255,255,255,0.95)_75%)] bg-[length:8px_8px] bg-[position:0_0,4px_4px]" />
+                            : null}
+                          {option.id === "dots"
+                            ? <span className="block size-4 rounded-sm bg-[radial-gradient(circle_at_25%_25%,rgba(255,255,255,0.95)_0_1.3px,transparent_1.4px),radial-gradient(circle_at_75%_75%,rgba(255,255,255,0.95)_0_1.3px,transparent_1.4px)] bg-[length:8px_8px]" />
+                            : null}
+                          {option.id === "grid"
+                            ? <span className="block size-4 rounded-sm bg-[linear-gradient(rgba(255,255,255,0.95)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.95)_1px,transparent_1px)] bg-[length:8px_8px] bg-white/[0.12]" />
+                            : null}
+                          {option.id === "cross"
+                            ? (
+                                <span className="relative block size-4 rounded-sm bg-white/[0.08]">
+                                  <span className="absolute left-1/2 top-1/2 h-[1.5px] w-2.5 -translate-x-1/2 -translate-y-1/2 bg-white/90" />
+                                  <span className="absolute left-1/2 top-1/2 h-2.5 w-[1.5px] -translate-x-1/2 -translate-y-1/2 bg-white/90" />
+                                </span>
+                              )
+                            : null}
+                          {option.id === "blocks"
+                            ? (
+                                <span className="grid size-4 grid-cols-2 gap-[2px] rounded-sm bg-white/[0.08] p-[2px]">
+                                  <span className="rounded-[1px] bg-white/90" />
+                                  <span className="rounded-[1px] bg-white/90" />
+                                  <span className="rounded-[1px] bg-white/90" />
+                                  <span className="rounded-[1px] bg-white/90" />
+                                </span>
+                              )
+                            : null}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )
+              : null}
+            <button
+              type="button"
+              className={boardButtonClassName}
+              aria-label="打开画板"
+              title="画板"
+              onClick={() => setIsBoardPanelOpen(prev => !prev)}
+            >
+              <PaletteIcon className="size-[18px]" weight="bold" />
             </button>
           </div>
         </div>
