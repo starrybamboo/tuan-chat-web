@@ -147,6 +147,8 @@ export function useAiImagePageController() {
   const [simpleSourceImageBase64, setSimpleSourceImageBase64] = useState("");
   const [proSourceImageDataUrl, setProSourceImageDataUrl] = useState("");
   const [proSourceImageBase64, setProSourceImageBase64] = useState("");
+  const [simpleInfillMaskDataUrl, setSimpleInfillMaskDataUrl] = useState("");
+  const [proInfillMaskDataUrl, setProInfillMaskDataUrl] = useState("");
 
   const [simpleText, setSimpleText] = useState("");
   const [simpleConvertedFromText, setSimpleConvertedFromText] = useState("");
@@ -316,6 +318,7 @@ export function useAiImagePageController() {
   const seed = uiMode === "simple" ? simpleSeed : proSeed;
   const sourceImageDataUrl = uiMode === "simple" ? simpleSourceImageDataUrl : proSourceImageDataUrl;
   const sourceImageBase64 = uiMode === "simple" ? simpleSourceImageBase64 : proSourceImageBase64;
+  const infillMaskDataUrl = uiMode === "simple" ? simpleInfillMaskDataUrl : proInfillMaskDataUrl;
 
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState("");
@@ -431,6 +434,14 @@ export function useAiImagePageController() {
     setProMode(nextMode);
   }, []);
 
+  const clearInfillMaskForUi = useCallback((targetUiMode: UiMode) => {
+    if (targetUiMode === "simple") {
+      setSimpleInfillMaskDataUrl("");
+      return;
+    }
+    setProInfillMaskDataUrl("");
+  }, []);
+
   const syncSourceImageSizeForUi = useCallback((targetUiMode: UiMode, width?: number | null, height?: number | null) => {
     if (!width || !height)
       return;
@@ -452,6 +463,7 @@ export function useAiImagePageController() {
 
   const clearSourceImageForUi = useCallback((targetUiMode: UiMode) => {
     setModeForUi(targetUiMode, "txt2img");
+    clearInfillMaskForUi(targetUiMode);
     if (targetUiMode === "simple") {
       setSimpleSourceImageDataUrl("");
       setSimpleSourceImageBase64("");
@@ -460,10 +472,11 @@ export function useAiImagePageController() {
 
     setProSourceImageDataUrl("");
     setProSourceImageBase64("");
-  }, [setModeForUi]);
+  }, [clearInfillMaskForUi, setModeForUi]);
 
   const applySourceImageForUi = useCallback((targetUiMode: UiMode, sourceImage: ImportedSourceImagePayload, successMessage?: string) => {
     setModeForUi(targetUiMode, "img2img");
+    clearInfillMaskForUi(targetUiMode);
     if (targetUiMode === "simple") {
       setSimpleSourceImageDataUrl(sourceImage.dataUrl);
       setSimpleSourceImageBase64(sourceImage.imageBase64);
@@ -476,7 +489,19 @@ export function useAiImagePageController() {
     syncSourceImageSizeForUi(targetUiMode, sourceImage.width, sourceImage.height);
     if (successMessage)
       showSuccessToast(successMessage);
-  }, [setModeForUi, showSuccessToast, syncSourceImageSizeForUi]);
+  }, [clearInfillMaskForUi, setModeForUi, showSuccessToast, syncSourceImageSizeForUi]);
+
+  const resolveInfillMaskBase64ForUi = useCallback((targetUiMode: UiMode) => {
+    const dataUrl = targetUiMode === "simple" ? simpleInfillMaskDataUrl : proInfillMaskDataUrl;
+    return dataUrlToBase64(dataUrl) || "";
+  }, [proInfillMaskDataUrl, simpleInfillMaskDataUrl]);
+
+  useEffect(() => {
+    if (mode !== "infill")
+      return;
+    if (!sourceImageDataUrl || !sourceImageBase64 || !infillMaskDataUrl)
+      setModeForUi(uiMode, sourceImageDataUrl ? "img2img" : "txt2img");
+  }, [infillMaskDataUrl, mode, setModeForUi, sourceImageBase64, sourceImageDataUrl, uiMode]);
 
   const restoreSourceImageForUi = useCallback((targetUiMode: UiMode, args: {
     dataUrl?: string | null;
@@ -1086,7 +1111,7 @@ export function useAiImagePageController() {
     const usesSourceImage = effectiveMode === "img2img" || effectiveMode === "infill";
     const effectiveSourceImageBase64 = args?.sourceImageBase64 ?? (usesSourceImage ? sourceImageBase64 : undefined);
     const effectiveSourceImageDataUrl = args?.sourceImageDataUrl ?? (usesSourceImage ? sourceImageDataUrl : undefined);
-    const effectiveMaskBase64 = args?.maskBase64;
+    const effectiveMaskBase64 = args?.maskBase64 ?? (effectiveMode === "infill" ? resolveInfillMaskBase64ForUi(uiMode) : undefined);
     const v4CharsPayload = isNAI4 && uiMode === "pro" ? v4Chars.map(({ id, gender, ...rest }) => rest) : undefined;
     const v4UseCoordsPayload = uiMode === "pro" ? v4UseCoords : undefined;
     const v4UseOrderPayload = uiMode === "pro" ? v4UseOrder : undefined;
@@ -1273,6 +1298,7 @@ export function useAiImagePageController() {
     v4UseOrder,
     width,
     normalizeReferenceStrengths,
+    resolveInfillMaskBase64ForUi,
   ]);
 
   const handleOpenInpaint = useCallback(() => {
@@ -1344,41 +1370,37 @@ export function useAiImagePageController() {
     setInpaintDialogSource(null);
   }, [loading]);
 
-  const handleRunInpaint = useCallback(async (payload: InpaintSubmitPayload) => {
+  const handleSaveInpaintMask = useCallback((payload: InpaintSubmitPayload) => {
     if (!inpaintDialogSource)
       return;
 
-    const success = await runGenerate({
-      mode: "infill",
-      prompt: payload.prompt,
-      negativePrompt: payload.negativePrompt,
-      sourceImageBase64: inpaintDialogSource.imageBase64,
-      sourceImageDataUrl: inpaintDialogSource.dataUrl,
-      maskBase64: dataUrlToBase64(payload.maskDataUrl),
-      width: inpaintDialogSource.width,
-      height: inpaintDialogSource.height,
-      strength: payload.strength,
-      toolLabel: "Inpaint",
-    });
-
-    if (!success)
-      return;
-
+    const nextStrength = clampRange(Number(payload.strength), 0.01, 1, 0.7);
     if (inpaintDialogSource.mode === "simple") {
       setSimplePrompt(payload.prompt);
       setSimpleNegativePrompt(payload.negativePrompt);
+      setSimpleImg2imgStrength(nextStrength);
+      setSimpleInfillMaskDataUrl(payload.maskDataUrl);
     }
     else {
       setPrompt(payload.prompt);
       setNegativePrompt(payload.negativePrompt);
+      setProImg2imgStrength(nextStrength);
+      setProInfillMaskDataUrl(payload.maskDataUrl);
     }
-    if (inpaintDialogSource.mode === "simple")
-      setSimpleImg2imgStrength(payload.strength);
-    else
-      setProImg2imgStrength(payload.strength);
+
+    setError("");
+    setModeForUi(inpaintDialogSource.mode, "infill");
     setInpaintDialogSource(null);
-    showSuccessToast("Inpaint 完成，结果已加入本次绘画与历史记录。");
-  }, [inpaintDialogSource, runGenerate, showSuccessToast]);
+  }, [inpaintDialogSource, setModeForUi]);
+
+  const handleReturnFromInfillSettings = useCallback(() => {
+    setModeForUi(uiMode, sourceImageDataUrl ? "img2img" : "txt2img");
+  }, [setModeForUi, sourceImageDataUrl, uiMode]);
+
+  const handleClearInfillMask = useCallback(() => {
+    clearInfillMaskForUi(uiMode);
+    setModeForUi(uiMode, sourceImageDataUrl ? "img2img" : "txt2img");
+  }, [clearInfillMaskForUi, setModeForUi, sourceImageDataUrl, uiMode]);
 
   const handleSimpleConvertToTags = useCallback(async () => {
     const trimmed = simpleText.trim();
@@ -2174,6 +2196,7 @@ export function useAiImagePageController() {
     imageCount,
     steps,
     sourceImageBase64,
+    maskBase64: mode === "infill" ? resolveInfillMaskBase64ForUi(uiMode) : undefined,
     vibeTransferReferenceCount: vibeTransferReferences.length,
     hasPreciseReference: Boolean(preciseReference),
   });
@@ -2260,6 +2283,7 @@ export function useAiImagePageController() {
     handleClearCurrentDisplayedImage,
     handleOpenSourceImagePicker,
     handleClearSourceImage,
+    handleClearInfillMask,
     handleClearSimpleDraft,
     handleClearStyles: handleClearActiveStyles,
     handleCropToClosestValidSize,
@@ -2283,10 +2307,12 @@ export function useAiImagePageController() {
     handleUpdateV4Char,
     handleUpdateVibeReference,
     handleOpenBaseImageInpaint,
+    handleReturnFromInfillSettings,
     hasReferenceConflict,
     height,
     imageCount,
     imageCountLimit,
+    infillMaskDataUrl,
     isDirectorToolsOpen,
     isNAI3,
     isNAI4,
@@ -2477,7 +2503,7 @@ export function useAiImagePageController() {
     isSubmitting: loading,
     error,
     onClose: handleCloseInpaintDialog,
-    onSubmit: handleRunInpaint,
+    onSubmit: handleSaveInpaintMask,
   };
 
   const stylePickerDialogProps = {

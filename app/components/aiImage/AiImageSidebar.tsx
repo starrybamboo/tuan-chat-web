@@ -1,5 +1,5 @@
 import type { AiImagePageController } from "@/components/aiImage/useAiImagePageController";
-import { ArrowClockwise, ArrowCounterClockwise, CaretDownIcon, CaretUpIcon, CheckCircleIcon, CircleIcon, CircleNotch, DiceFiveIcon, FileArrowUpIcon, GenderFemaleIcon, GenderMaleIcon, GearSixIcon, ImageSquareIcon, ImagesSquareIcon, PlusIcon, SelectionPlusIcon, SparkleIcon, TrashIcon, XCircleIcon } from "@phosphor-icons/react";
+import { ArrowClockwise, ArrowCounterClockwise, CaretDownIcon, CaretLeftIcon, CaretUpIcon, CheckCircleIcon, CircleIcon, CircleNotch, DiceFiveIcon, FileArrowUpIcon, GenderFemaleIcon, GenderMaleIcon, GearSixIcon, ImageSquareIcon, ImagesSquareIcon, PencilSimpleLineIcon, PlusIcon, SelectionPlusIcon, SparkleIcon, TrashIcon, XCircleIcon } from "@phosphor-icons/react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import preciseReferenceIconSrc from "@/components/aiImage/assets/precise-reference.png";
 import vibeTransferIconSrc from "@/components/aiImage/assets/vibe-transfer.png";
@@ -89,8 +89,11 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
     handleSwapImageDimensions,
     handleUpdateV4Char,
     handleOpenBaseImageInpaint,
+    handleClearInfillMask,
+    handleReturnFromInfillSettings,
     hasCurrentDisplayedImage,
     imageCount,
+    infillMaskDataUrl,
     isDirectorToolsOpen,
     isNAI3,
     isNAI4,
@@ -563,6 +566,208 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
     setIsModeSelectorOpen(false);
   }
 
+  function renderSimpleInfillSection() {
+    if (!sourceImageDataUrl || !infillMaskDataUrl)
+      return null;
+
+    return (
+      <div className={simpleBaseImageAttachmentClassName}>
+        <div className="relative px-4 py-4">
+          <img
+            src={sourceImageDataUrl}
+            alt="Base Img"
+            className="absolute inset-0 h-full w-full object-cover opacity-20"
+          />
+          <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(11,13,27,0.76)_0%,rgba(11,13,27,0.86)_100%)]" />
+
+          <div className="relative z-10">
+            <div className={baseImageHeaderClassName}>
+              <div className="min-w-0">
+                <div className="flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    className="inline-flex size-9 items-center justify-center rounded-md text-white/80 transition hover:bg-white/6 hover:text-white focus:outline-none focus:ring-2 focus:ring-white/15"
+                    aria-label="返回"
+                    title="返回"
+                    onClick={handleReturnFromInfillSettings}
+                  >
+                    <CaretLeftIcon className="size-5" weight="bold" />
+                  </button>
+                  <div className="text-[15px] font-semibold leading-6 text-white">Inpaint</div>
+                </div>
+                <div className="mt-1 text-[13px] leading-5 text-white/72">Change part of an image.</div>
+              </div>
+              <div className={baseImageControlGroupClassName}>
+                <div className="flex overflow-hidden rounded-md border border-[#2A3138] bg-[#161A1F]">
+                  <button
+                    type="button"
+                    className="inline-flex size-11 items-center justify-center text-white/80 transition hover:bg-white/6 hover:text-white focus:outline-none focus:ring-2 focus:ring-white/15"
+                    aria-label="编辑蒙版"
+                    title="编辑蒙版"
+                    disabled={isBusy}
+                    onClick={() => void handleOpenBaseImageInpaint()}
+                  >
+                    <PencilSimpleLineIcon className="size-5" weight="bold" />
+                  </button>
+                  <span className="h-11 w-px bg-[#2A3138]" aria-hidden="true" />
+                  <button
+                    type="button"
+                    className="inline-flex size-11 items-center justify-center text-white/80 transition hover:bg-white/6 hover:text-white focus:outline-none focus:ring-2 focus:ring-white/15"
+                    aria-label="清除蒙版"
+                    title="清除蒙版"
+                    disabled={isBusy}
+                    onClick={handleClearInfillMask}
+                  >
+                    <TrashIcon className="size-5" weight="bold" />
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div className="relative z-10 mt-4 space-y-4">
+              <div>
+                <div className="text-[13px] font-semibold leading-5 text-white">Mask</div>
+                <div className="mt-2 overflow-hidden rounded-md border border-[#2A3138] bg-[#0B0D1B]">
+                  <div className="relative aspect-[4/3] w-full">
+                    <img
+                      src={sourceImageDataUrl}
+                      alt="Inpaint Mask"
+                      className="absolute inset-0 h-full w-full object-cover opacity-95"
+                      draggable={false}
+                    />
+                    <img
+                      src={infillMaskDataUrl}
+                      alt="Mask Overlay"
+                      className="absolute inset-0 h-full w-full object-cover opacity-55 mix-blend-screen"
+                      draggable={false}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <label className="block">
+                <div className="flex items-center justify-between text-[13px] font-semibold leading-5 text-white">
+                  <span>Strength</span>
+                  <span>{formatSliderValue(strength)}</span>
+                </div>
+                <input
+                  type="range"
+                  min={0.01}
+                  max={1}
+                  step={0.01}
+                  value={strength}
+                  className={baseImageRangeClassName}
+                  onChange={event => setStrength(clampRange(Number(event.target.value), 0.01, 1, 0.7))}
+                />
+              </label>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  function renderProInfillSection() {
+    if (!sourceImageDataUrl || !infillMaskDataUrl)
+      return null;
+
+    return (
+      <div className="-mx-3 -mb-3 mt-3 overflow-hidden border-t border-[#2A3138] bg-[#161A1F]">
+        <div className="relative px-4 py-4">
+          <img
+            src={sourceImageDataUrl}
+            alt="Base Img"
+            className="absolute inset-0 h-full w-full object-cover opacity-20"
+          />
+          <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(11,13,27,0.76)_0%,rgba(11,13,27,0.86)_100%)]" />
+
+          <div className="relative z-10">
+            <div className={baseImageHeaderClassName}>
+              <div className="min-w-0">
+                <div className="flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    className="inline-flex size-9 items-center justify-center rounded-md text-white/80 transition hover:bg-white/6 hover:text-white focus:outline-none focus:ring-2 focus:ring-white/15"
+                    aria-label="返回"
+                    title="返回"
+                    onClick={handleReturnFromInfillSettings}
+                  >
+                    <CaretLeftIcon className="size-5" weight="bold" />
+                  </button>
+                  <div className="text-[15px] font-semibold leading-6 text-white">Inpaint</div>
+                </div>
+                <div className="mt-1 text-[13px] leading-5 text-white/72">Change part of an image.</div>
+              </div>
+              <div className={baseImageControlGroupClassName}>
+                <div className="flex overflow-hidden rounded-md border border-[#2A3138] bg-[#161A1F]">
+                  <button
+                    type="button"
+                    className="inline-flex size-11 items-center justify-center text-white/80 transition hover:bg-white/6 hover:text-white focus:outline-none focus:ring-2 focus:ring-white/15"
+                    aria-label="编辑蒙版"
+                    title="编辑蒙版"
+                    disabled={isBusy}
+                    onClick={() => void handleOpenBaseImageInpaint()}
+                  >
+                    <PencilSimpleLineIcon className="size-5" weight="bold" />
+                  </button>
+                  <span className="h-11 w-px bg-[#2A3138]" aria-hidden="true" />
+                  <button
+                    type="button"
+                    className="inline-flex size-11 items-center justify-center text-white/80 transition hover:bg-white/6 hover:text-white focus:outline-none focus:ring-2 focus:ring-white/15"
+                    aria-label="清除蒙版"
+                    title="清除蒙版"
+                    disabled={isBusy}
+                    onClick={handleClearInfillMask}
+                  >
+                    <TrashIcon className="size-5" weight="bold" />
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div className="relative z-10 mt-4 space-y-4">
+              <div>
+                <div className="text-[13px] font-semibold leading-5 text-white">Mask</div>
+                <div className="mt-2 overflow-hidden rounded-md border border-[#2A3138] bg-[#0B0D1B]">
+                  <div className="relative aspect-[4/3] w-full">
+                    <img
+                      src={sourceImageDataUrl}
+                      alt="Inpaint Mask"
+                      className="absolute inset-0 h-full w-full object-cover opacity-95"
+                      draggable={false}
+                    />
+                    <img
+                      src={infillMaskDataUrl}
+                      alt="Mask Overlay"
+                      className="absolute inset-0 h-full w-full object-cover opacity-55 mix-blend-screen"
+                      draggable={false}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <label className="block">
+                <div className="flex items-center justify-between text-[13px] font-semibold leading-5 text-white">
+                  <span>Strength</span>
+                  <span>{formatSliderValue(strength)}</span>
+                </div>
+                <input
+                  type="range"
+                  min={0.01}
+                  max={1}
+                  step={0.01}
+                  value={strength}
+                  className={baseImageRangeClassName}
+                  onChange={event => setStrength(clampRange(Number(event.target.value), 0.01, 1, 0.7))}
+                />
+              </label>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   function renderSimpleBaseImageSection() {
     if (!sourceImageDataUrl) {
       return (
@@ -584,6 +789,9 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
         </div>
       );
     }
+
+    if (mode === "infill")
+      return renderSimpleInfillSection();
 
     if (mode !== "img2img")
       return null;
@@ -646,11 +854,11 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                     <input
                       type="range"
                       min={0.01}
-                      max={0.99}
+                      max={1}
                       step={0.01}
                       value={strength}
                       className={baseImageRangeClassName}
-                      onChange={event => setStrength(clampRange(Number(event.target.value), 0.01, 0.99, 0.7))}
+                      onChange={event => setStrength(clampRange(Number(event.target.value), 0.01, 1, 0.7))}
                     />
                   </label>
 
@@ -1385,7 +1593,7 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                         ]}
                       />
                     </div>
-                    {!sourceImageDataUrl
+                     {!sourceImageDataUrl
                       ? (
                           <div className="-mx-3 -mb-3 mt-3 flex items-center justify-between border-t border-[#2A3138] bg-[#161A1F] px-4 py-3">
                             <div className="text-[15px] text-base-content/58">
@@ -1402,6 +1610,9 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                             </button>
                           </div>
                         )
+                      : null}
+                    {mode === "infill" && sourceImageDataUrl
+                      ? renderProInfillSection()
                       : null}
                     {mode === "img2img" && sourceImageDataUrl
                       ? (
@@ -1462,11 +1673,11 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                                         <input
                                           type="range"
                                           min={0.01}
-                                          max={0.99}
+                                          max={1}
                                           step={0.01}
                                           value={strength}
                                           className={baseImageRangeClassName}
-                                          onChange={event => setStrength(clampRange(Number(event.target.value), 0.01, 0.99, 0.7))}
+                                          onChange={event => setStrength(clampRange(Number(event.target.value), 0.01, 1, 0.7))}
                                         />
                                       </label>
 
