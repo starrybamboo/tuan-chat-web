@@ -216,7 +216,7 @@ export function AiImagePreviewPane({
               </div>
 
               <div className="flex min-h-0 flex-1 gap-4 overflow-hidden p-4">
-                <div className={`flex w-[100px] shrink-0 flex-col gap-2 ${directorFrameClassName}`}>
+                <div className={`flex w-[112px] shrink-0 flex-col gap-2 ${directorFrameClassName}`}>
                   <button
                     type="button"
                     className="inline-flex h-10 items-center justify-center rounded-md bg-[#f3efc6] text-[#111326] shadow-[0_8px_18px_rgba(243,239,198,0.18)] transition duration-200 ease-out hover:-translate-y-0.5 hover:bg-[#fff7c9] hover:text-[#111326] hover:shadow-[0_12px_24px_rgba(243,239,198,0.28)] active:translate-y-0 active:scale-[0.98] active:shadow-[0_6px_14px_rgba(243,239,198,0.2)] focus:outline-none disabled:cursor-not-allowed disabled:bg-[#f3efc6]/30 disabled:text-[#111326]/45 disabled:shadow-none"
@@ -227,7 +227,7 @@ export function AiImagePreviewPane({
                   </button>
 
                   <div
-                    className="flex-1 space-y-2 overflow-y-auto overflow-x-hidden pr-1"
+                    className="flex-1 space-y-2 overflow-y-auto overflow-x-hidden pr-3"
                     onDragEnter={(event) => {
                       event.preventDefault();
                       event.stopPropagation();
@@ -249,7 +249,7 @@ export function AiImagePreviewPane({
                             >
                               <button
                                 type="button"
-                                className="absolute right-1 top-1 z-10 inline-flex size-6 items-center justify-center rounded-md bg-base-100/92 text-base-content/62 opacity-0 shadow-sm transition hover:text-error group-hover:opacity-100"
+                                className="absolute right-2 top-2 z-10 inline-flex size-6 items-center justify-center rounded-md bg-transparent text-base-content/62 opacity-0 transition hover:bg-transparent hover:text-error group-hover:opacity-100"
                                 title="删除左侧栏图片"
                                 aria-label="删除左侧栏图片"
                                 onClick={(event) => {
@@ -280,7 +280,7 @@ export function AiImagePreviewPane({
                     <div className={directorCanvasClassName}>
                       {directorInputPreview
                         ? <img src={directorInputPreview.dataUrl} className="max-h-full max-w-full object-contain" alt="director-input" />
-                        : null}
+                        : <EmptyPreviewPlaceholder />}
                       {directorInputPreview
                         ? (
                             <>
