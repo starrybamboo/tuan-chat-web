@@ -502,10 +502,6 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
     });
   }, []);
 
-  const handleCloseCharacterPositionPicker = useCallback(() => {
-    setCharacterPositionPickerState(null);
-  }, []);
-
   const handleSelectCharacterPositionCode = useCallback((code: string) => {
     setCharacterPositionPickerState((prev) => {
       if (!prev || prev.code === code)
@@ -1720,20 +1716,9 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                                       {showCharacterPositionsGlobalSection && !isCharacterPositionAiChoiceEnabled && isCharacterPositionPickerOpen
                                         ? (
                                             <div className="absolute inset-0 z-20 flex flex-col rounded-2xl border border-[#2A3138] bg-[#161A1F] p-3 shadow-2xl">
-                                              <div className="flex items-center justify-between gap-3">
-                                                <div className="flex min-w-0 items-center gap-2 text-[12px] font-medium leading-5 text-white/90">
-                                                  <span className="text-white/72">Position</span>
-                                                  <span className="text-[18px] font-semibold leading-none tracking-[0.08em] text-white/96">{selectedPositionCode}</span>
-                                                </div>
-                                                <button
-                                                  type="button"
-                                                  className="inline-flex size-8 items-center justify-center rounded-md text-white/58 transition hover:bg-white/6 hover:text-white focus:outline-none focus-visible:outline-none"
-                                                  aria-label="关闭位置选择"
-                                                  title="关闭位置选择"
-                                                  onClick={handleCloseCharacterPositionPicker}
-                                                >
-                                                  <XCircleIcon className="size-5" weight="bold" />
-                                                </button>
+                                              <div className="flex items-center gap-2 text-[12px] font-medium leading-5 text-white/90">
+                                                <span className="text-white/72">Position</span>
+                                                <span className="text-[18px] font-semibold leading-none tracking-[0.08em] text-white/96">{selectedPositionCode}</span>
                                               </div>
                                               <div className="mt-3 grid flex-1 grid-cols-5 gap-1.5 rounded-md border border-[#2A3138] bg-[#161A1F] p-1.5">
                                                 {V4_CHAR_GRID_CELLS.map((cell) => {
