@@ -644,51 +644,41 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
           {isBaseImageToolsOpen
             ? (
                 <div className="mt-4 space-y-4">
-                  <div>
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <div className="text-[13px] font-semibold leading-5 text-base-content dark:text-white">Base</div>
-                        <div className="mt-2 overflow-hidden rounded-md border border-[#D6DCE3] bg-[#F3F5F7] dark:border-[#2A3138] dark:bg-[#0B0D1B]">
-                          <div className="relative h-[220px] w-full">
-                            <img
-                              src={sourceImageDataUrl}
-                              alt="Inpaint Base"
-                              className="absolute inset-0 h-full w-full object-contain"
-                              draggable={false}
-                            />
-                          </div>
-                        </div>
-                      </div>
-                      <div>
-                        <div className="text-[13px] font-semibold leading-5 text-base-content dark:text-white">Mask</div>
-                        <div className="mt-2 overflow-hidden rounded-md border border-[#D6DCE3] bg-[#0F172A] dark:border-[#2A3138] dark:bg-[#020617]">
-                          <div className="relative h-[220px] w-full">
-                            <img
-                              src={infillMaskDataUrl}
-                              alt="Inpaint Mask"
-                              className="absolute inset-0 h-full w-full object-contain"
-                              draggable={false}
-                            />
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  <label className="block">
-                    <div className="flex items-center justify-between text-[13px] font-semibold leading-5 text-base-content dark:text-white">
-                      <span>Strength</span>
-                      <span>{formatSliderValue(strength)}</span>
-                    </div>
-                    <input
-                      type="range"
-                      min={0.01}
-                      max={1}
-                      step={0.01}
-                      value={strength}
-                      className={baseImageRangeClassName}
-                      onChange={event => setStrength(clampRange(Number(event.target.value), 0.01, 1, 0.7))}
-                    />
-                  </label>
+            <div>
+              <div className="text-[13px] font-semibold leading-5 text-base-content dark:text-white">Mask</div>
+              <div className="mt-2 overflow-hidden rounded-md border border-[#D6DCE3] bg-[#F3F5F7] dark:border-[#2A3138] dark:bg-[#0B0D1B]">
+                <div className="relative h-[220px] w-full">
+                  <img
+                    src={sourceImageDataUrl}
+                    alt="Inpaint Mask"
+                    className="absolute inset-0 h-full w-full object-contain"
+                    draggable={false}
+                  />
+                  <img
+                    src={infillMaskDataUrl}
+                    alt="Mask Overlay"
+                    className="absolute inset-0 h-full w-full object-contain opacity-55 mix-blend-screen"
+                    draggable={false}
+                  />
+                </div>
+              </div>
+            </div>
+
+            <label className="block">
+              <div className="flex items-center justify-between text-[13px] font-semibold leading-5 text-base-content dark:text-white">
+                <span>Strength</span>
+                <span>{formatSliderValue(strength)}</span>
+              </div>
+              <input
+                type="range"
+                min={0.01}
+                max={1}
+                step={0.01}
+                value={strength}
+                className={baseImageRangeClassName}
+                onChange={event => setStrength(clampRange(Number(event.target.value), 0.01, 1, 0.7))}
+              />
+            </label>
                 </div>
               )
             : null}
@@ -764,51 +754,41 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
           {isBaseImageToolsOpen
             ? (
                 <div className="mt-4 space-y-4">
-                  <div>
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <div className="text-[13px] font-semibold leading-5 text-white">Base</div>
-                        <div className="mt-2 overflow-hidden rounded-md border border-[#2A3138] bg-[#0B0D1B]">
-                          <div className="relative h-[220px] w-full">
-                            <img
-                              src={sourceImageDataUrl}
-                              alt="Inpaint Base"
-                              className="absolute inset-0 h-full w-full object-contain"
-                              draggable={false}
-                            />
-                          </div>
-                        </div>
-                      </div>
-                      <div>
-                        <div className="text-[13px] font-semibold leading-5 text-white">Mask</div>
-                        <div className="mt-2 overflow-hidden rounded-md border border-[#2A3138] bg-[#020617]">
-                          <div className="relative h-[220px] w-full">
-                            <img
-                              src={infillMaskDataUrl}
-                              alt="Inpaint Mask"
-                              className="absolute inset-0 h-full w-full object-contain"
-                              draggable={false}
-                            />
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  <label className="block">
-                    <div className="flex items-center justify-between text-[13px] font-semibold leading-5 text-white">
-                      <span>Strength</span>
-                      <span>{formatSliderValue(strength)}</span>
-                    </div>
-                    <input
-                      type="range"
-                      min={0.01}
-                      max={1}
-                      step={0.01}
-                      value={strength}
-                      className={baseImageRangeClassName}
-                      onChange={event => setStrength(clampRange(Number(event.target.value), 0.01, 1, 0.7))}
-                    />
-                  </label>
+            <div>
+              <div className="text-[13px] font-semibold leading-5 text-white">Mask</div>
+              <div className="mt-2 overflow-hidden rounded-md border border-[#2A3138] bg-[#0B0D1B]">
+                <div className="relative h-[220px] w-full">
+                  <img
+                    src={sourceImageDataUrl}
+                    alt="Inpaint Mask"
+                    className="absolute inset-0 h-full w-full object-contain"
+                    draggable={false}
+                  />
+                  <img
+                    src={infillMaskDataUrl}
+                    alt="Mask Overlay"
+                    className="absolute inset-0 h-full w-full object-contain opacity-55 mix-blend-screen"
+                    draggable={false}
+                  />
+                </div>
+              </div>
+            </div>
+
+            <label className="block">
+              <div className="flex items-center justify-between text-[13px] font-semibold leading-5 text-white">
+                <span>Strength</span>
+                <span>{formatSliderValue(strength)}</span>
+              </div>
+              <input
+                type="range"
+                min={0.01}
+                max={1}
+                step={0.01}
+                value={strength}
+                className={baseImageRangeClassName}
+                onChange={event => setStrength(clampRange(Number(event.target.value), 0.01, 1, 0.7))}
+              />
+            </label>
                 </div>
               )
             : null}
