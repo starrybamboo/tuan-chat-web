@@ -528,7 +528,7 @@ export function InpaintDialog({
   const sharedPanelClassName = "rounded-md border border-white/10 bg-white/[0.06] shadow-[0_18px_48px_rgba(0,0,0,0.34)] backdrop-blur";
   const bottomToolButtonClassName = "inline-flex size-10 items-center justify-center rounded-md border border-transparent bg-transparent text-white/60 transition hover:bg-white/[0.08] hover:text-white focus:outline-none focus:ring-2 focus:ring-white/16 disabled:cursor-not-allowed disabled:opacity-35";
   const boardButtonClassName = `${bottomToolButtonClassName} ${isBoardPanelOpen ? "bg-white/[0.12] text-white" : ""}`;
-  const boardPanelClassName = "absolute right-0 bottom-[calc(100%+10px)] z-30 w-[320px] rounded-md border border-white/10 bg-[#191b31]/96 p-3 shadow-[0_18px_48px_rgba(0,0,0,0.38)] backdrop-blur";
+  const boardPanelClassName = "absolute right-0 bottom-[calc(100%+10px)] z-30 w-[320px] rounded-md border border-white/10 bg-white/[0.06] p-3 shadow-[0_18px_48px_rgba(0,0,0,0.34)] backdrop-blur";
   const canUndo = historyVersion >= 0 && undoStackRef.current.length > 0;
   const canRedo = historyVersion >= 0 && redoStackRef.current.length > 0;
 
@@ -700,6 +700,113 @@ export function InpaintDialog({
             </button>
           </div>
           <div className="flex items-center gap-1.5">
+            <div className="relative flex items-center">
+              <button
+                type="button"
+                className={boardButtonClassName}
+                aria-label="打开画板"
+                title="画板"
+                onClick={() => setIsBoardPanelOpen(prev => !prev)}
+              >
+                <PaletteIcon className="size-[18px]" weight="bold" />
+              </button>
+              {isBoardPanelOpen
+                ? (
+                    <div className={boardPanelClassName}>
+                      <div className="mb-3 text-[11px] font-medium text-white/55">Mask Color</div>
+                      <div className="flex flex-wrap gap-2">
+                        {MASK_COLOR_OPTIONS.map(color => (
+                          <button
+                            key={color}
+                            type="button"
+                            className={`inline-flex size-6 items-center justify-center rounded-full border transition focus:outline-none focus:ring-2 focus:ring-white/20 ${
+                              maskColor === color ? "border-white/85 ring-2 ring-white/20" : "border-white/10"
+                            }`}
+                            aria-label={`选择蒙版颜色 ${color}`}
+                            onClick={() => setMaskColor(color)}
+                          >
+                            <span className="size-4 rounded-full" style={{ backgroundColor: color }} />
+                          </button>
+                        ))}
+                      </div>
+
+                      <div className="mt-4 flex items-center justify-between gap-3 text-sm font-medium text-white">
+                        <span>Mask Opacity</span>
+                        <span>{maskOpacity}%</span>
+                      </div>
+                      <input
+                        type="range"
+                        min={10}
+                        max={100}
+                        step={1}
+                        value={maskOpacity}
+                        className="mt-2 h-1.5 w-full cursor-pointer appearance-none bg-transparent focus:outline-none [&::-webkit-slider-runnable-track]:h-1.5 [&::-webkit-slider-runnable-track]:rounded-full [&::-webkit-slider-runnable-track]:bg-white/10 [&::-webkit-slider-thumb]:mt-[-5px] [&::-webkit-slider-thumb]:size-4 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:border-0 [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:shadow-[0_0_0_1px_rgba(17,18,36,0.35)] [&::-moz-range-track]:h-1.5 [&::-moz-range-track]:rounded-full [&::-moz-range-track]:bg-white/10 [&::-moz-range-thumb]:size-4 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:bg-white"
+                        onChange={event => setMaskOpacity(Number(event.target.value))}
+                      />
+
+                      <label className="mt-4 flex items-center gap-2 text-[11px] font-medium text-white">
+                        <input
+                          type="checkbox"
+                          checked={showMaskBorder}
+                          className="size-3.5 rounded border border-white/20 bg-white/[0.04] accent-white"
+                          onChange={event => setShowMaskBorder(event.target.checked)}
+                        />
+                        <span>Border</span>
+                      </label>
+
+                      <div className="mt-4 text-[11px] font-medium text-white/55">Mask Pattern</div>
+                      <div className="mt-2 grid grid-cols-7 gap-2">
+                        {MASK_PATTERN_OPTIONS.map(option => (
+                          <button
+                            key={option.id}
+                            type="button"
+                            className={`flex size-8 items-center justify-center rounded-md border transition focus:outline-none focus:ring-2 focus:ring-white/20 ${
+                              maskPattern === option.id ? "border-white/80 bg-white/[0.12]" : "border-white/10 bg-white/[0.04] hover:border-white/25"
+                            }`}
+                            aria-label={option.label}
+                            title={option.label}
+                            onClick={() => setMaskPattern(option.id)}
+                          >
+                            {option.id === "solid"
+                              ? <span className="block size-4 rounded-sm bg-white" />
+                              : null}
+                            {option.id === "stripe"
+                              ? <span className="block size-4 rounded-sm bg-[repeating-linear-gradient(135deg,rgba(255,255,255,0.95)_0_2px,transparent_2px_5px)]" />
+                              : null}
+                            {option.id === "checker"
+                              ? <span className="block size-4 rounded-sm bg-[linear-gradient(45deg,rgba(255,255,255,0.95)_25%,transparent_25%,transparent_75%,rgba(255,255,255,0.95)_75%),linear-gradient(45deg,rgba(255,255,255,0.95)_25%,transparent_25%,transparent_75%,rgba(255,255,255,0.95)_75%)] bg-[length:8px_8px] bg-[position:0_0,4px_4px]" />
+                              : null}
+                            {option.id === "dots"
+                              ? <span className="block size-4 rounded-sm bg-[radial-gradient(circle_at_25%_25%,rgba(255,255,255,0.95)_0_1.3px,transparent_1.4px),radial-gradient(circle_at_75%_75%,rgba(255,255,255,0.95)_0_1.3px,transparent_1.4px)] bg-[length:8px_8px]" />
+                              : null}
+                            {option.id === "grid"
+                              ? <span className="block size-4 rounded-sm bg-[linear-gradient(rgba(255,255,255,0.95)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.95)_1px,transparent_1px)] bg-[length:8px_8px] bg-white/[0.12]" />
+                              : null}
+                            {option.id === "cross"
+                              ? (
+                                  <span className="relative block size-4 rounded-sm bg-white/[0.08]">
+                                    <span className="absolute left-1/2 top-1/2 h-[1.5px] w-2.5 -translate-x-1/2 -translate-y-1/2 bg-white/90" />
+                                    <span className="absolute left-1/2 top-1/2 h-2.5 w-[1.5px] -translate-x-1/2 -translate-y-1/2 bg-white/90" />
+                                  </span>
+                                )
+                              : null}
+                            {option.id === "blocks"
+                              ? (
+                                  <span className="grid size-4 grid-cols-2 gap-[2px] rounded-sm bg-white/[0.08] p-[2px]">
+                                    <span className="rounded-[1px] bg-white/90" />
+                                    <span className="rounded-[1px] bg-white/90" />
+                                    <span className="rounded-[1px] bg-white/90" />
+                                    <span className="rounded-[1px] bg-white/90" />
+                                  </span>
+                                )
+                              : null}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )
+                : null}
+            </div>
             <button
               type="button"
               className={bottomToolButtonClassName}
@@ -729,113 +836,6 @@ export function InpaintDialog({
               onClick={handleRedo}
             >
               <ArrowClockwiseIcon className="size-[18px]" weight="bold" />
-            </button>
-          </div>
-          <div className="relative flex items-center">
-            {isBoardPanelOpen
-              ? (
-                  <div className={boardPanelClassName}>
-                    <div className="mb-3 text-[11px] font-medium text-white/55">Mask Color</div>
-                    <div className="flex flex-wrap gap-2">
-                      {MASK_COLOR_OPTIONS.map(color => (
-                        <button
-                          key={color}
-                          type="button"
-                          className={`inline-flex size-6 items-center justify-center rounded-full border transition focus:outline-none focus:ring-2 focus:ring-white/20 ${
-                            maskColor === color ? "border-white/85 ring-2 ring-white/20" : "border-white/10"
-                          }`}
-                          aria-label={`选择蒙版颜色 ${color}`}
-                          onClick={() => setMaskColor(color)}
-                        >
-                          <span className="size-4 rounded-full" style={{ backgroundColor: color }} />
-                        </button>
-                      ))}
-                    </div>
-
-                    <div className="mt-4 flex items-center justify-between gap-3 text-sm font-medium text-white">
-                      <span>Mask Opacity</span>
-                      <span>{maskOpacity}%</span>
-                    </div>
-                    <input
-                      type="range"
-                      min={10}
-                      max={100}
-                      step={1}
-                      value={maskOpacity}
-                      className="mt-2 h-1.5 w-full cursor-pointer appearance-none bg-transparent focus:outline-none [&::-webkit-slider-runnable-track]:h-1.5 [&::-webkit-slider-runnable-track]:rounded-full [&::-webkit-slider-runnable-track]:bg-white/10 [&::-webkit-slider-thumb]:mt-[-5px] [&::-webkit-slider-thumb]:size-4 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:border-0 [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:shadow-[0_0_0_1px_rgba(17,18,36,0.35)] [&::-moz-range-track]:h-1.5 [&::-moz-range-track]:rounded-full [&::-moz-range-track]:bg-white/10 [&::-moz-range-thumb]:size-4 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:bg-white"
-                      onChange={event => setMaskOpacity(Number(event.target.value))}
-                    />
-
-                    <label className="mt-4 flex items-center gap-2 text-[11px] font-medium text-white">
-                      <input
-                        type="checkbox"
-                        checked={showMaskBorder}
-                        className="size-3.5 rounded border border-white/20 bg-white/[0.04] accent-white"
-                        onChange={event => setShowMaskBorder(event.target.checked)}
-                      />
-                      <span>Border</span>
-                    </label>
-
-                    <div className="mt-4 text-[11px] font-medium text-white/55">Mask Pattern</div>
-                    <div className="mt-2 grid grid-cols-7 gap-2">
-                      {MASK_PATTERN_OPTIONS.map(option => (
-                        <button
-                          key={option.id}
-                          type="button"
-                          className={`flex size-8 items-center justify-center rounded-md border transition focus:outline-none focus:ring-2 focus:ring-white/20 ${
-                            maskPattern === option.id ? "border-white/80 bg-white/[0.12]" : "border-white/10 bg-white/[0.04] hover:border-white/25"
-                          }`}
-                          aria-label={option.label}
-                          title={option.label}
-                          onClick={() => setMaskPattern(option.id)}
-                        >
-                          {option.id === "solid"
-                            ? <span className="block size-4 rounded-sm bg-white" />
-                            : null}
-                          {option.id === "stripe"
-                            ? <span className="block size-4 rounded-sm bg-[repeating-linear-gradient(135deg,rgba(255,255,255,0.95)_0_2px,transparent_2px_5px)]" />
-                            : null}
-                          {option.id === "checker"
-                            ? <span className="block size-4 rounded-sm bg-[linear-gradient(45deg,rgba(255,255,255,0.95)_25%,transparent_25%,transparent_75%,rgba(255,255,255,0.95)_75%),linear-gradient(45deg,rgba(255,255,255,0.95)_25%,transparent_25%,transparent_75%,rgba(255,255,255,0.95)_75%)] bg-[length:8px_8px] bg-[position:0_0,4px_4px]" />
-                            : null}
-                          {option.id === "dots"
-                            ? <span className="block size-4 rounded-sm bg-[radial-gradient(circle_at_25%_25%,rgba(255,255,255,0.95)_0_1.3px,transparent_1.4px),radial-gradient(circle_at_75%_75%,rgba(255,255,255,0.95)_0_1.3px,transparent_1.4px)] bg-[length:8px_8px]" />
-                            : null}
-                          {option.id === "grid"
-                            ? <span className="block size-4 rounded-sm bg-[linear-gradient(rgba(255,255,255,0.95)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.95)_1px,transparent_1px)] bg-[length:8px_8px] bg-white/[0.12]" />
-                            : null}
-                          {option.id === "cross"
-                            ? (
-                                <span className="relative block size-4 rounded-sm bg-white/[0.08]">
-                                  <span className="absolute left-1/2 top-1/2 h-[1.5px] w-2.5 -translate-x-1/2 -translate-y-1/2 bg-white/90" />
-                                  <span className="absolute left-1/2 top-1/2 h-2.5 w-[1.5px] -translate-x-1/2 -translate-y-1/2 bg-white/90" />
-                                </span>
-                              )
-                            : null}
-                          {option.id === "blocks"
-                            ? (
-                                <span className="grid size-4 grid-cols-2 gap-[2px] rounded-sm bg-white/[0.08] p-[2px]">
-                                  <span className="rounded-[1px] bg-white/90" />
-                                  <span className="rounded-[1px] bg-white/90" />
-                                  <span className="rounded-[1px] bg-white/90" />
-                                  <span className="rounded-[1px] bg-white/90" />
-                                </span>
-                              )
-                            : null}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )
-              : null}
-            <button
-              type="button"
-              className={boardButtonClassName}
-              aria-label="打开画板"
-              title="画板"
-              onClick={() => setIsBoardPanelOpen(prev => !prev)}
-            >
-              <PaletteIcon className="size-[18px]" weight="bold" />
             </button>
           </div>
         </div>
