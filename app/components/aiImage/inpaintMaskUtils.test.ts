@@ -33,6 +33,22 @@ describe("inpaintMaskUtils", () => {
     expect(new Set(serializedOffsets).size).toBe(serializedOffsets.length);
   });
 
+  it("builds square border offsets when requested", () => {
+    const offsets = createMaskBorderOffsets(1, "square");
+    const serializedOffsets = offsets.map(offset => `${offset.x},${offset.y}`);
+
+    expect(serializedOffsets).toEqual([
+      "-1,-1",
+      "0,-1",
+      "1,-1",
+      "-1,0",
+      "1,0",
+      "-1,1",
+      "0,1",
+      "1,1",
+    ]);
+  });
+
   it("maps pen size to the requested preview dimensions", () => {
     expect(mapBrushCursorDisplaySize(4)).toBe(30);
     expect(mapBrushCursorDisplaySize(50)).toBe(385);
