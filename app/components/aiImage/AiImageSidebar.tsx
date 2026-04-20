@@ -1689,7 +1689,7 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                                         {showCharacterPositionsGlobalSection
                                           ? (
                                               <div className="relative space-y-3">
-                                                <div className="flex flex-wrap items-center gap-2 text-[12px] font-medium leading-5 text-white/90">
+                                                <div className={`flex flex-wrap items-center gap-2 text-[12px] font-medium leading-5 text-white/90 ${isCharacterPositionAiChoiceEnabled || isCharacterPositionPickerOpen ? "invisible" : ""}`}>
                                                   <span className="text-white/72">Position</span>
                                                   {isCharacterPositionAiChoiceEnabled
                                                     ? <span className="text-white/92">AI's Choice</span>
