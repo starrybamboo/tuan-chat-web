@@ -1141,6 +1141,19 @@ export function useAiImagePageController() {
     setDirectorOutputPreview(null);
   }, []);
 
+  const handleRemoveDirectorSourceItem = useCallback((item: GeneratedImageItem) => {
+    const targetKey = generatedItemKey(item);
+    setDirectorSourceItems((prev) => {
+      const nextItems = prev.filter(entry => generatedItemKey(entry) !== targetKey);
+      setDirectorSourcePreview((prevPreview) => {
+        if (!prevPreview || generatedItemKey(prevPreview) !== targetKey)
+          return prevPreview;
+        return nextItems[0] ?? null;
+      });
+      return nextItems;
+    });
+  }, []);
+
   const handleDirectorImageDragEnter = useCallback((event: DragEvent<HTMLDivElement>) => {
     const nextIsImageDrag = hasFileDrag(event.dataTransfer) || hasInternalHistoryImageDrag(event.dataTransfer);
     if (!nextIsImageDrag)
@@ -1628,19 +1641,14 @@ export function useAiImagePageController() {
   const handleSelectCurrentResult = useCallback((index: number) => {
     setSelectedHistoryPreviewKey(null);
     setSelectedResultIndex(index);
-    if (isDirectorToolsOpen) {
-      const nextItem = results[index] || null;
-      setDirectorSourcePreview(nextItem);
+    if (isDirectorToolsOpen)
       setDirectorOutputPreview(null);
-    }
-  }, [isDirectorToolsOpen, results]);
+  }, [isDirectorToolsOpen]);
 
   const handlePreviewHistoryRow = useCallback((row: AiImageHistoryRow) => {
     setSelectedHistoryPreviewKey(historyRowKey(row));
-    if (isDirectorToolsOpen) {
-      setDirectorSourcePreview(historyRowToGeneratedItem(row));
+    if (isDirectorToolsOpen)
       setDirectorOutputPreview(null);
-    }
   }, [isDirectorToolsOpen]);
 
   const handleClearCurrentDisplayedImage = useCallback(() => {
@@ -2634,6 +2642,7 @@ export function useAiImagePageController() {
       onUseSelectedResultAsBaseImage: handleUseSelectedResultAsBaseImage,
       onPickDirectorSourceImages: handlePickDirectorSourceImages,
       onSelectDirectorSourceItem: handleSelectDirectorSourceItem,
+      onRemoveDirectorSourceItem: handleRemoveDirectorSourceItem,
       onAddDirectorDisplayedToSourceRail: handleAddDirectorDisplayedToSourceRail,
       onDirectorImageDragEnter: handleDirectorImageDragEnter,
       onDirectorImageDragLeave: handleDirectorImageDragLeave,

@@ -8,6 +8,7 @@ import {
   PushPinIcon as PhosphorPushPinIcon,
   SelectionPlusIcon,
   UploadSimpleIcon,
+  XIcon,
 } from "@phosphor-icons/react";
 import { useRef } from "react";
 
@@ -50,6 +51,7 @@ interface AiImagePreviewPaneProps {
   onUseSelectedResultAsBaseImage: () => void;
   onPickDirectorSourceImages: (files: FileList | File[]) => void | Promise<void>;
   onSelectDirectorSourceItem: (item: GeneratedImageItem) => void;
+  onRemoveDirectorSourceItem: (item: GeneratedImageItem) => void;
   onAddDirectorDisplayedToSourceRail: () => void;
   onDirectorImageDragEnter: (event: React.DragEvent<HTMLDivElement>) => void;
   onDirectorImageDragLeave: (event: React.DragEvent<HTMLDivElement>) => void;
@@ -120,6 +122,7 @@ export function AiImagePreviewPane({
   onUseSelectedResultAsBaseImage,
   onPickDirectorSourceImages,
   onSelectDirectorSourceItem,
+  onRemoveDirectorSourceItem,
   onAddDirectorDisplayedToSourceRail,
   onDirectorImageDragEnter,
   onDirectorImageDragLeave,
@@ -240,23 +243,35 @@ export function AiImagePreviewPane({
                       ? directorSourceItems.map((item, index) => {
                           const isActive = directorInputPreview?.batchId === item.batchId && directorInputPreview.batchIndex === item.batchIndex;
                           return (
-                            <button
+                            <div
                               key={`${item.batchId}-${item.batchIndex}`}
-                              type="button"
-                              className={`${directorThumbButtonClassName} h-[100px] w-[100px] rounded-xl border bg-base-100 shadow-sm transition-colors ${isActive ? "border-primary shadow-[0_0_0_1px_rgba(99,102,241,0.35)]" : "border-base-300 hover:border-primary/45"}`}
-                              onClick={() => onSelectDirectorSourceItem(item)}
+                              className={`${directorThumbButtonClassName} relative h-[100px] w-[100px] rounded-xl border bg-base-100 shadow-sm transition-colors ${isActive ? "border-primary shadow-[0_0_0_1px_rgba(99,102,241,0.35)]" : "border-base-300 hover:border-primary/45"}`}
                             >
-                              <span className="flex h-[100px] w-[100px] items-center justify-center bg-base-100">
-                                <img src={item.dataUrl} alt={`director-result-${index + 1}`} className="block h-full w-full object-contain transition duration-200 group-hover:scale-[1.02]" />
-                              </span>
-                            </button>
+                              <button
+                                type="button"
+                                className="absolute right-1 top-1 z-10 inline-flex size-6 items-center justify-center rounded-md bg-base-100/92 text-base-content/62 opacity-0 shadow-sm transition hover:text-error group-hover:opacity-100"
+                                title="删除左侧栏图片"
+                                aria-label="删除左侧栏图片"
+                                onClick={(event) => {
+                                  event.stopPropagation();
+                                  onRemoveDirectorSourceItem(item);
+                                }}
+                              >
+                                <XIcon className="size-3.5" weight="bold" />
+                              </button>
+                              <button
+                                type="button"
+                                className="block h-[100px] w-[100px]"
+                                onClick={() => onSelectDirectorSourceItem(item)}
+                              >
+                                <span className="flex h-[100px] w-[100px] items-center justify-center bg-base-100">
+                                  <img src={item.dataUrl} alt={`director-result-${index + 1}`} className="block h-full w-full object-contain transition duration-200 group-hover:scale-[1.02]" />
+                                </span>
+                              </button>
+                            </div>
                           );
                         })
-                      : (
-                          <div className="flex h-[100px] w-[100px] items-center justify-center rounded-xl border border-dashed border-base-300 bg-base-100 px-3 py-5 text-center text-sm text-base-content/55">
-                            <EmptyPreviewPlaceholder />
-                          </div>
-                        )}
+                      : null}
                   </div>
                 </div>
 
@@ -265,7 +280,7 @@ export function AiImagePreviewPane({
                     <div className={directorCanvasClassName}>
                       {directorInputPreview
                         ? <img src={directorInputPreview.dataUrl} className="max-h-full max-w-full object-contain" alt="director-input" />
-                        : <EmptyPreviewPlaceholder />}
+                        : null}
                       {directorInputPreview
                         ? (
                             <>
