@@ -135,9 +135,9 @@ export function AiImagePreviewPane({
   const directorShellClassName = "flex min-h-0 flex-1 flex-col overflow-hidden bg-base-200 text-base-content";
   const directorFrameClassName = "bg-transparent";
   const directorCanvasClassName = "relative flex min-h-[360px] flex-1 items-center justify-center overflow-hidden bg-base-100 p-4";
-  const directorControlButtonClassName = "inline-flex h-9 items-center justify-center rounded-md bg-transparent px-3 text-[12px] font-medium text-base-content transition hover:bg-black/5 hover:text-base-content focus:outline-none focus:ring-2 focus:ring-primary/20 disabled:cursor-not-allowed disabled:opacity-40 dark:hover:bg-white/8";
-  const directorThumbButtonClassName = "group relative block overflow-hidden bg-base-100 transition focus:outline-none focus:ring-2 focus:ring-primary/20";
-  const directorToolButtonClassName = "inline-flex h-10 items-center justify-center rounded-md px-3 text-[12px] font-medium transition focus:outline-none focus:ring-2 focus:ring-primary/20";
+  const directorControlButtonClassName = "inline-flex h-9 items-center justify-center rounded-md bg-transparent px-3 text-[12px] font-medium text-base-content transition hover:bg-black/5 hover:text-base-content focus:outline-none disabled:cursor-not-allowed disabled:opacity-40 dark:hover:bg-white/8";
+  const directorThumbButtonClassName = "group relative block overflow-hidden bg-base-100 transition focus:outline-none";
+  const directorToolButtonClassName = "inline-flex h-10 items-center justify-center rounded-md px-3 text-[12px] font-medium transition focus:outline-none";
   const directorFieldClassName = "h-10 w-full rounded-md border border-base-300 bg-base-100 px-3 text-sm text-base-content placeholder:text-base-content/45 transition focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary";
   const directorSelectClassName = "h-10 w-full rounded-md border border-base-300 bg-base-100 px-3 text-sm text-base-content transition focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary";
   const directorDefryOptions = [0, 1, 2, 3, 4, 5] as const;
@@ -191,7 +191,7 @@ export function AiImagePreviewPane({
                 <div className={`flex w-[72px] shrink-0 flex-col gap-2 ${directorFrameClassName}`}>
                   <button
                     type="button"
-                    className="inline-flex h-10 items-center justify-center rounded-md bg-transparent text-base-content transition hover:bg-base-300 hover:text-base-content focus:outline-none focus:ring-2 focus:ring-primary/20 disabled:cursor-not-allowed disabled:opacity-40"
+                    className="inline-flex h-10 items-center justify-center rounded-md bg-[#f3efc6] text-[#111326] transition hover:bg-[#fff7c9] hover:text-[#111326] focus:outline-none disabled:cursor-not-allowed disabled:bg-[#f3efc6]/30 disabled:text-[#111326]/45"
                     disabled={isBusy}
                     onClick={() => directorUploadInputRef.current?.click()}
                   >
@@ -220,7 +220,9 @@ export function AiImagePreviewPane({
                               className={`${directorThumbButtonClassName} ${isActive ? "ring-1 ring-primary/60" : ""}`}
                               onClick={() => onSelectDirectorSourceItem(item)}
                             >
-                              <img src={item.dataUrl} alt={`director-result-${index + 1}`} className="block aspect-[5/7] w-full object-cover" />
+                              <span className="flex h-[100px] w-full items-center justify-center bg-base-100">
+                                <img src={item.dataUrl} alt={`director-result-${index + 1}`} className="block h-full w-full object-contain" />
+                              </span>
                             </button>
                           );
                         })
@@ -295,7 +297,7 @@ export function AiImagePreviewPane({
                                 <button
                                   key={value}
                                   type="button"
-                                  className={`inline-flex h-8 min-w-8 items-center justify-center rounded-md px-2 text-[12px] font-medium transition focus:outline-none focus:ring-2 focus:ring-primary/20 ${
+                                  className={`inline-flex h-8 min-w-8 items-center justify-center rounded-md px-2 text-[12px] font-medium transition focus:outline-none ${
                                     isActive
                                       ? "bg-[#f3efc6] text-[#111326]"
                                       : "text-base-content/75 hover:bg-base-300 hover:text-base-content"
@@ -357,7 +359,7 @@ export function AiImagePreviewPane({
                                 <button
                                   key={value}
                                   type="button"
-                                  className={`inline-flex h-8 min-w-8 items-center justify-center rounded-md px-2 text-[12px] font-medium transition focus:outline-none focus:ring-2 focus:ring-primary/20 ${
+                                  className={`inline-flex h-8 min-w-8 items-center justify-center rounded-md px-2 text-[12px] font-medium transition focus:outline-none ${
                                     isActive
                                       ? "bg-[#f3efc6] text-[#111326]"
                                       : "text-base-content/75 hover:bg-base-300 hover:text-base-content"
@@ -395,7 +397,7 @@ export function AiImagePreviewPane({
                   })}
                   <button
                     type="button"
-                    className="ml-auto inline-flex h-10 items-center justify-center gap-2 rounded-md border border-[#f3efc6] bg-[#f3efc6] px-4 text-[12px] font-semibold text-[#111326] transition hover:bg-[#fff7c9] hover:border-[#fff7c9] focus:outline-none focus:ring-2 focus:ring-primary/20 disabled:cursor-not-allowed disabled:border-[#f3efc6]/25 disabled:bg-[#f3efc6]/18 disabled:text-[#f3efc6]/40"
+                    className="ml-auto inline-flex h-10 items-center justify-center gap-2 rounded-md border border-[#f3efc6] bg-[#f3efc6] px-4 text-[12px] font-semibold text-[#111326] transition hover:bg-[#fff7c9] hover:border-[#fff7c9] focus:outline-none disabled:cursor-not-allowed disabled:border-[#f3efc6]/25 disabled:bg-[#f3efc6]/18 disabled:text-[#f3efc6]/40"
                     disabled={!directorInputPreview || isBusy}
                     onClick={() => void onRunDirectorTool()}
                   >
