@@ -5,6 +5,7 @@ import {
   ArrowCounterClockwiseIcon,
   DownloadSimpleIcon,
   FloppyDiskIcon,
+  EraserIcon,
   PencilSimpleLineIcon,
   TrashIcon,
   XIcon,
@@ -59,6 +60,7 @@ export function InpaintDialog({
   const [negativePrompt, setNegativePrompt] = useState("");
   const [strength, setStrength] = useState(0.7);
   const [brushSize, setBrushSize] = useState(4);
+  const [tool, setTool] = useState<"paint" | "erase">("paint");
   const [isSquareBrush, setIsSquareBrush] = useState(true);
   const [brushCursorPoint, setBrushCursorPoint] = useState<BrushCursorPoint | null>(null);
   const [hasMask, setHasMask] = useState(false);
@@ -114,6 +116,7 @@ export function InpaintDialog({
     setNegativePrompt(source.negativePrompt);
     setStrength(source.strength);
     setBrushSize(4);
+    setTool("paint");
     setIsSquareBrush(true);
     setBrushCursorPoint(null);
     setHasMask(false);
@@ -206,9 +209,16 @@ export function InpaintDialog({
     context.lineCap = isSquareBrush ? "square" : "round";
     context.lineJoin = isSquareBrush ? "miter" : "round";
     context.lineWidth = brushSize;
-    context.globalCompositeOperation = "source-over";
-    context.strokeStyle = "rgba(246, 110, 139, 0.55)";
-    context.fillStyle = "rgba(246, 110, 139, 0.55)";
+    if (tool === "erase") {
+      context.globalCompositeOperation = "destination-out";
+      context.strokeStyle = "rgba(0, 0, 0, 1)";
+      context.fillStyle = "rgba(0, 0, 0, 1)";
+    }
+    else {
+      context.globalCompositeOperation = "source-over";
+      context.strokeStyle = "rgba(246, 110, 139, 0.55)";
+      context.fillStyle = "rgba(246, 110, 139, 0.55)";
+    }
 
     context.beginPath();
     context.moveTo(from.x, from.y);
@@ -229,7 +239,7 @@ export function InpaintDialog({
       context.fill();
     }
     context.restore();
-  }, [brushSize, getMaskContext, isSquareBrush]);
+  }, [brushSize, getMaskContext, isSquareBrush, tool]);
 
   const finishDrawing = useCallback((event: ReactPointerEvent<HTMLCanvasElement>) => {
     if (!isDrawingRef.current || drawingPointerIdRef.current !== event.pointerId)
@@ -382,6 +392,7 @@ export function InpaintDialog({
   const topIconActionButtonClassName = "inline-flex size-10 items-center justify-center border-0 bg-white/[0.06] text-white/72 transition hover:bg-white/[0.1] hover:text-white focus:outline-none focus:ring-2 focus:ring-white/16 disabled:cursor-not-allowed disabled:opacity-35 rounded-none";
   const brushCursorDisplaySize = Math.max(22, Math.round(brushSize * 1.7));
   const sharedPanelClassName = "rounded-md border border-white/10 bg-white/[0.06] shadow-[0_18px_48px_rgba(0,0,0,0.34)] backdrop-blur";
+  const bottomToolButtonClassName = "inline-flex size-10 items-center justify-center rounded-md border border-white/10 bg-white/[0.06] text-white/72 transition hover:border-white/24 hover:bg-white/[0.1] hover:text-white focus:outline-none focus:ring-2 focus:ring-white/16 disabled:cursor-not-allowed disabled:opacity-35";
   const canUndo = historyVersion >= 0 && undoStackRef.current.length > 0;
   const canRedo = historyVersion >= 0 && redoStackRef.current.length > 0;
 
@@ -392,14 +403,14 @@ export function InpaintDialog({
     <div className="absolute inset-0 z-50 overflow-hidden bg-base-200 text-white">
       <div className={`absolute left-4 top-4 z-20 h-[87px] w-[236px] overflow-hidden ${sharedPanelClassName}`}>
         <div className="flex h-full items-stretch">
-          <div className="flex w-[92px] shrink-0 flex-col items-center justify-center gap-2 border-r border-white/10 px-3 text-sm font-medium whitespace-nowrap text-white/88">
-            <span className="inline-flex size-7 items-center justify-center rounded-md border border-white/12 bg-white/[0.04] text-white/86">
-              <PencilSimpleLineIcon className="size-[18px]" weight="bold" />
+          <div className="flex w-[92px] shrink-0 flex-col items-center justify-center gap-1.5 border-r border-white/10 px-2 text-[11px] font-medium whitespace-nowrap text-white/88">
+            <span className="inline-flex size-6 items-center justify-center rounded-md border border-white/12 bg-white/[0.04] text-white/86">
+              <PencilSimpleLineIcon className="size-[16px]" weight="bold" />
             </span>
             <span className="leading-none">Draw Mask</span>
           </div>
-          <div className="flex min-w-0 flex-1 flex-col justify-center px-3 py-2">
-            <div className="flex items-center justify-between gap-3 text-sm font-medium text-white/86">
+          <div className="flex min-w-0 flex-1 flex-col justify-center px-2 py-1.5">
+            <div className="flex items-center justify-between gap-2 text-[11px] font-medium text-white/82">
               <span>Pen Size</span>
               <span>{brushSize}</span>
             </div>
@@ -409,14 +420,14 @@ export function InpaintDialog({
               max={50}
               step={1}
               value={brushSize}
-              className="mt-3 h-1.5 w-40 cursor-pointer appearance-none bg-transparent focus:outline-none [&::-webkit-slider-runnable-track]:h-1.5 [&::-webkit-slider-runnable-track]:rounded-full [&::-webkit-slider-runnable-track]:bg-white/12 [&::-webkit-slider-thumb]:mt-[-5px] [&::-webkit-slider-thumb]:size-4 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:border-0 [&::-webkit-slider-thumb]:bg-[#f6e6a5] [&::-webkit-slider-thumb]:shadow-[0_0_0_1px_rgba(17,18,36,0.35)] [&::-moz-range-track]:h-1.5 [&::-moz-range-track]:rounded-full [&::-moz-range-track]:bg-white/12 [&::-moz-range-thumb]:size-4 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:bg-[#f6e6a5]"
+              className="mt-2 h-1.5 w-full cursor-pointer appearance-none bg-transparent focus:outline-none [&::-webkit-slider-runnable-track]:h-1.5 [&::-webkit-slider-runnable-track]:rounded-full [&::-webkit-slider-runnable-track]:bg-white/12 [&::-webkit-slider-thumb]:mt-[-5px] [&::-webkit-slider-thumb]:size-4 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:border-0 [&::-webkit-slider-thumb]:bg-[#f6e6a5] [&::-webkit-slider-thumb]:shadow-[0_0_0_1px_rgba(17,18,36,0.35)] [&::-moz-range-track]:h-1.5 [&::-moz-range-track]:rounded-full [&::-moz-range-track]:bg-white/12 [&::-moz-range-thumb]:size-4 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:bg-[#f6e6a5]"
               onChange={event => setBrushSize(Number(event.target.value))}
             />
-            <label className="mt-2 flex cursor-pointer items-center gap-2 text-sm font-medium text-white/82">
+            <label className="mt-1.5 flex cursor-pointer items-center gap-2 text-[11px] font-medium text-white/82">
               <input
                 type="checkbox"
                 checked={isSquareBrush}
-                className="size-4 rounded border border-white/14 bg-white/[0.04] accent-[#f6e6a5]"
+                className="size-3.5 rounded border border-white/14 bg-white/[0.04] accent-[#f6e6a5]"
                 onChange={event => setIsSquareBrush(event.target.checked)}
               />
               <span>Square Brush</span>
@@ -458,7 +469,7 @@ export function InpaintDialog({
       </div>
 
       <div className="flex h-full min-h-0 w-full min-w-0 flex-col">
-        <div className="flex min-h-0 flex-1 items-center justify-center px-5 pb-24 pt-20">
+        <div className="flex min-h-0 flex-1 items-center justify-center px-5 pb-14 pt-16">
           <div className="relative flex max-h-full max-w-full items-center justify-center">
             <img
               src={source.dataUrl}
@@ -530,38 +541,61 @@ export function InpaintDialog({
         </div>
       </div>
 
-      <div className="pointer-events-none absolute bottom-4 left-1/2 z-20 -translate-x-1/2">
-        <div className={`pointer-events-auto flex items-center gap-2 px-3 py-2 ${sharedPanelClassName}`}>
-          <button
-            type="button"
-            className={toolbarButtonClassName}
-            aria-label="清空蒙版"
-            title="清空蒙版"
-            disabled={!hasMask}
-            onClick={handleClearMask}
-          >
-            <TrashIcon className="size-[18px]" weight="bold" />
-          </button>
-          <button
-            type="button"
-            className={toolbarButtonClassName}
-            aria-label="撤销"
-            title="撤销"
-            disabled={!canUndo}
-            onClick={handleUndo}
-          >
-            <ArrowCounterClockwiseIcon className="size-[18px]" weight="bold" />
-          </button>
-          <button
-            type="button"
-            className={toolbarButtonClassName}
-            aria-label="重做"
-            title="重做"
-            disabled={!canRedo}
-            onClick={handleRedo}
-          >
-            <ArrowClockwiseIcon className="size-[18px]" weight="bold" />
-          </button>
+      <div className="pointer-events-none absolute bottom-2 left-1/2 z-20 -translate-x-1/2">
+        <div className={`pointer-events-auto flex items-stretch gap-0 px-2 py-2 ${sharedPanelClassName}`}>
+          <div className="flex items-center gap-0 pr-2">
+            <button
+              type="button"
+              className={`${bottomToolButtonClassName} rounded-r-none ${tool === "paint" ? "border-[#f6e6a5]/45 bg-[#f6e6a5]/16 text-[#fff3bf]" : ""}`}
+              aria-label="绘制蒙版"
+              title="绘制蒙版"
+              onClick={() => setTool("paint")}
+            >
+              <PencilSimpleLineIcon className="size-[18px]" weight="bold" />
+            </button>
+            <button
+              type="button"
+              className={`${bottomToolButtonClassName} -ml-px rounded-l-none ${tool === "erase" ? "border-[#f6e6a5]/45 bg-[#f6e6a5]/16 text-[#fff3bf]" : ""}`}
+              aria-label="擦除蒙版"
+              title="擦除蒙版"
+              onClick={() => setTool("erase")}
+            >
+              <EraserIcon className="size-[18px]" weight="bold" />
+            </button>
+          </div>
+          <div className="mx-2 w-px bg-white/10" />
+          <div className="flex items-center gap-0">
+            <button
+              type="button"
+              className={bottomToolButtonClassName}
+              aria-label="清空蒙版"
+              title="清空蒙版"
+              disabled={!hasMask}
+              onClick={handleClearMask}
+            >
+              <TrashIcon className="size-[18px]" weight="bold" />
+            </button>
+            <button
+              type="button"
+              className={`${bottomToolButtonClassName} -ml-px`}
+              aria-label="撤销"
+              title="撤销"
+              disabled={!canUndo}
+              onClick={handleUndo}
+            >
+              <ArrowCounterClockwiseIcon className="size-[18px]" weight="bold" />
+            </button>
+            <button
+              type="button"
+              className={`${bottomToolButtonClassName} -ml-px`}
+              aria-label="重做"
+              title="重做"
+              disabled={!canRedo}
+              onClick={handleRedo}
+            >
+              <ArrowClockwiseIcon className="size-[18px]" weight="bold" />
+            </button>
+          </div>
         </div>
       </div>
 
