@@ -266,6 +266,8 @@ export type RealtimeGameConfig = {
   baseTemplate: "none" | "black";
   /** 是否开启紧急回避（Show_panic） */
   showPanicEnabled: boolean;
+  /** 是否允许玩家打开完整设置（Allow_Full_Settings） */
+  allowOpenFullSettings: boolean;
   /** 默认语言（Default_Language） */
   defaultLanguage: "" | "zh_CN" | "zh_TW" | "en" | "ja" | "fr" | "de";
   /** 是否开启鉴赏模式（Enable_Appreciation） */
@@ -293,6 +295,7 @@ const DEFAULT_REALTIME_GAME_CONFIG: RealtimeGameConfig = {
   packageName: "",
   baseTemplate: "none",
   showPanicEnabled: false,
+  allowOpenFullSettings: true,
   defaultLanguage: "",
   enableAppreciation: true,
   typingSoundEnabled: false,
@@ -1699,6 +1702,7 @@ export class RealtimeRenderer {
     upsertGameConfigEntry(configEntries, "Description", this.gameConfig.description);
     upsertGameConfigEntry(configEntries, "Package_name", this.gameConfig.packageName);
     upsertGameConfigEntry(configEntries, "Show_panic", this.gameConfig.showPanicEnabled ? "true" : "false");
+    upsertGameConfigEntry(configEntries, "Allow_Full_Settings", this.gameConfig.allowOpenFullSettings ? "true" : "false");
     upsertGameConfigEntry(configEntries, "Default_Language", this.gameConfig.defaultLanguage);
     upsertGameConfigEntry(configEntries, "Enable_Appreciation", this.gameConfig.enableAppreciation ? "true" : "false");
     upsertGameConfigEntry(configEntries, "TypingSoundEnabled", this.gameConfig.typingSoundEnabled ? "true" : "false");

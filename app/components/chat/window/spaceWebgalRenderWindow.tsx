@@ -1123,6 +1123,18 @@ export default function SpaceWebgalRenderWindow({ spaceId }: SpaceWebgalRenderWi
                             onChange={event => setGameConfig({ enableAppreciation: event.target.checked })}
                           />
                         </label>
+                        <label className="flex items-center justify-between gap-2 rounded-md border border-base-300 px-3 py-2">
+                          <ConfigItemLabel
+                            label="允许打开完整设置"
+                            description="允许玩家在 WebGAL 里打开完整设置页；关闭后会隐藏设置入口。"
+                          />
+                          <input
+                            type="checkbox"
+                            className="toggle toggle-sm toggle-primary"
+                            checked={gameConfig.allowOpenFullSettings}
+                            onChange={event => setGameConfig({ allowOpenFullSettings: event.target.checked })}
+                          />
+                        </label>
                         <div className={`rounded-md border border-base-300 md:col-span-2 ${typingSoundDetailExpanded ? "p-3" : "px-3 py-2"}`}>
                           <div className={`flex flex-wrap items-center justify-between gap-2${typingSoundDetailExpanded ? " mb-3" : ""}`}>
                             <ConfigItemLabel

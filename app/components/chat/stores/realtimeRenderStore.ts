@@ -43,6 +43,8 @@ export type RealtimeWebgalGameConfig = {
   baseTemplate: RealtimeWebgalBaseTemplate;
   /** 是否启用紧急回避（Show_panic） */
   showPanicEnabled: boolean;
+  /** 是否允许玩家打开完整设置（Allow_Full_Settings） */
+  allowOpenFullSettings: boolean;
   /** 默认语言（Default_Language） */
   defaultLanguage: RealtimeWebgalDefaultLanguage;
   /** 是否开启鉴赏模式（Enable_Appreciation） */
@@ -70,6 +72,7 @@ const DEFAULT_REALTIME_WEBGAL_GAME_CONFIG: RealtimeWebgalGameConfig = {
   packageName: "",
   baseTemplate: "none",
   showPanicEnabled: false,
+  allowOpenFullSettings: true,
   defaultLanguage: "",
   enableAppreciation: true,
   typingSoundEnabled: false,
@@ -221,6 +224,7 @@ function buildCloudSettingsSnapshot(state: Pick<RealtimeRenderState, "ttsApiUrl"
     packageName: state.gameConfig.packageName,
     baseTemplate: state.gameConfig.baseTemplate,
     showPanicEnabled: state.gameConfig.showPanicEnabled,
+    allowOpenFullSettings: state.gameConfig.allowOpenFullSettings,
     defaultLanguage: state.gameConfig.defaultLanguage,
     enableAppreciation: state.gameConfig.enableAppreciation,
     typingSoundEnabled: state.gameConfig.typingSoundEnabled,
@@ -339,6 +343,7 @@ export const useRealtimeRenderStore = create<RealtimeRenderState>((set, get) => 
       && current.packageName === merged.packageName
       && current.baseTemplate === merged.baseTemplate
       && current.showPanicEnabled === merged.showPanicEnabled
+      && current.allowOpenFullSettings === merged.allowOpenFullSettings
       && current.defaultLanguage === merged.defaultLanguage
       && current.enableAppreciation === merged.enableAppreciation
       && current.typingSoundEnabled === merged.typingSoundEnabled
@@ -405,6 +410,7 @@ export const useRealtimeRenderStore = create<RealtimeRenderState>((set, get) => 
       const persistedPackageName = persisted?.packageName;
       const persistedBaseTemplate = persisted?.baseTemplate;
       const persistedShowPanicEnabled = persisted?.showPanicEnabled;
+      const persistedAllowOpenFullSettings = persisted?.allowOpenFullSettings;
       const persistedDefaultLanguage = persisted?.defaultLanguage;
       const persistedEnableAppreciation = persisted?.enableAppreciation;
       const persistedTypingSoundEnabled = persisted?.typingSoundEnabled;
@@ -457,6 +463,9 @@ export const useRealtimeRenderStore = create<RealtimeRenderState>((set, get) => 
         showPanicEnabled: typeof persistedShowPanicEnabled === "boolean"
           ? persistedShowPanicEnabled
           : DEFAULT_REALTIME_WEBGAL_GAME_CONFIG.showPanicEnabled,
+        allowOpenFullSettings: typeof persistedAllowOpenFullSettings === "boolean"
+          ? persistedAllowOpenFullSettings
+          : DEFAULT_REALTIME_WEBGAL_GAME_CONFIG.allowOpenFullSettings,
         defaultLanguage: normalizeDefaultLanguage(persistedDefaultLanguage),
         enableAppreciation: typeof persistedEnableAppreciation === "boolean"
           ? persistedEnableAppreciation
