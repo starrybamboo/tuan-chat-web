@@ -18,6 +18,7 @@ export type RealtimeRenderCloudSettings = {
   packageName?: string;
   showPanicEnabled?: boolean;
   allowOpenFullSettings?: boolean;
+  speakerFocusEnabled?: boolean;
   defaultLanguage?: string;
   enableAppreciation?: boolean;
   typingSoundEnabled?: boolean;

@@ -45,6 +45,8 @@ export type RealtimeWebgalGameConfig = {
   showPanicEnabled: boolean;
   /** 是否允许玩家打开完整设置（Allow_Full_Settings） */
   allowOpenFullSettings: boolean;
+  /** 是否启用角色发言聚焦（Enable_Speaker_Focus） */
+  speakerFocusEnabled: boolean;
   /** 默认语言（Default_Language） */
   defaultLanguage: RealtimeWebgalDefaultLanguage;
   /** 是否开启鉴赏模式（Enable_Appreciation） */
@@ -73,6 +75,7 @@ const DEFAULT_REALTIME_WEBGAL_GAME_CONFIG: RealtimeWebgalGameConfig = {
   baseTemplate: "none",
   showPanicEnabled: false,
   allowOpenFullSettings: true,
+  speakerFocusEnabled: true,
   defaultLanguage: "",
   enableAppreciation: true,
   typingSoundEnabled: false,
@@ -225,6 +228,7 @@ function buildCloudSettingsSnapshot(state: Pick<RealtimeRenderState, "ttsApiUrl"
     baseTemplate: state.gameConfig.baseTemplate,
     showPanicEnabled: state.gameConfig.showPanicEnabled,
     allowOpenFullSettings: state.gameConfig.allowOpenFullSettings,
+    speakerFocusEnabled: state.gameConfig.speakerFocusEnabled,
     defaultLanguage: state.gameConfig.defaultLanguage,
     enableAppreciation: state.gameConfig.enableAppreciation,
     typingSoundEnabled: state.gameConfig.typingSoundEnabled,
@@ -344,6 +348,7 @@ export const useRealtimeRenderStore = create<RealtimeRenderState>((set, get) => 
       && current.baseTemplate === merged.baseTemplate
       && current.showPanicEnabled === merged.showPanicEnabled
       && current.allowOpenFullSettings === merged.allowOpenFullSettings
+      && current.speakerFocusEnabled === merged.speakerFocusEnabled
       && current.defaultLanguage === merged.defaultLanguage
       && current.enableAppreciation === merged.enableAppreciation
       && current.typingSoundEnabled === merged.typingSoundEnabled
@@ -411,6 +416,7 @@ export const useRealtimeRenderStore = create<RealtimeRenderState>((set, get) => 
       const persistedBaseTemplate = persisted?.baseTemplate;
       const persistedShowPanicEnabled = persisted?.showPanicEnabled;
       const persistedAllowOpenFullSettings = persisted?.allowOpenFullSettings;
+      const persistedSpeakerFocusEnabled = persisted?.speakerFocusEnabled;
       const persistedDefaultLanguage = persisted?.defaultLanguage;
       const persistedEnableAppreciation = persisted?.enableAppreciation;
       const persistedTypingSoundEnabled = persisted?.typingSoundEnabled;
@@ -466,6 +472,9 @@ export const useRealtimeRenderStore = create<RealtimeRenderState>((set, get) => 
         allowOpenFullSettings: typeof persistedAllowOpenFullSettings === "boolean"
           ? persistedAllowOpenFullSettings
           : DEFAULT_REALTIME_WEBGAL_GAME_CONFIG.allowOpenFullSettings,
+        speakerFocusEnabled: typeof persistedSpeakerFocusEnabled === "boolean"
+          ? persistedSpeakerFocusEnabled
+          : DEFAULT_REALTIME_WEBGAL_GAME_CONFIG.speakerFocusEnabled,
         defaultLanguage: normalizeDefaultLanguage(persistedDefaultLanguage),
         enableAppreciation: typeof persistedEnableAppreciation === "boolean"
           ? persistedEnableAppreciation
