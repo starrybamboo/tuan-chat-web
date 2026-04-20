@@ -1,4 +1,5 @@
 import { ArrowRightIcon, ClipboardTextIcon, FrameCornersIcon, MagicWandIcon, PlantIcon, PushPinIcon as PhosphorPushPinIcon, SelectionPlusIcon } from "@phosphor-icons/react";
+
 import type {
   ActivePreviewAction,
   DirectorToolId,
@@ -6,6 +7,7 @@ import type {
   GeneratedImageItem,
   NovelAiEmotion,
 } from "@/components/aiImage/types";
+
 import { DIRECTOR_EMOTION_OPTIONS, DIRECTOR_TOOL_OPTIONS } from "@/components/aiImage/constants";
 import { ChevronDown, ExpandCornersIcon, SharpDownload } from "@/icons";
 
@@ -113,222 +115,264 @@ export function AiImagePreviewPane({
   const previewToolbarActionButtonClassName = `inline-flex h-9 items-center gap-2 ${previewToolbarControlSurfaceClassName} px-3 text-xs text-base-content transition-colors hover:bg-base-300/85`;
   const previewToolbarSectionClassName = "inline-flex w-fit max-w-full min-w-0 flex-wrap items-center gap-0 rounded-none bg-white/22 p-px shadow-sm";
   const previewThumbnailImageClassName = "block h-24 w-24 object-contain";
-  const directorCanvasContainerClassName = "overflow-hidden rounded-2xl border border-base-300 bg-base-100";
-  const directorInsetPanelClassName = "rounded-2xl border border-base-300 bg-base-200/35 p-3";
+
+  const directorShellClassName = "flex min-h-0 flex-1 flex-col overflow-hidden rounded-md border border-[#242743] bg-[#111326] text-[#eef0ff] shadow-[0_18px_48px_rgba(5,8,20,0.28)]";
+  const directorFrameClassName = "rounded-md border border-[#242743] bg-[#171a31]";
+  const directorCanvasClassName = "relative flex min-h-[360px] flex-1 items-center justify-center overflow-hidden rounded-md bg-[#0d1020] p-4";
+  const directorMetaPillClassName = "inline-flex items-center rounded-md border border-[#2f3356] bg-[#181b32] px-2.5 py-1 text-[11px] font-medium text-[#c2c7ea]";
+  const directorControlButtonClassName = "inline-flex h-9 items-center justify-center rounded-md border border-[#2e3254] bg-[#171a31] px-3 text-[12px] font-medium text-[#d9ddf7] transition hover:border-[#464b78] hover:text-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary disabled:cursor-not-allowed disabled:opacity-40";
+  const directorThumbButtonClassName = "group relative block overflow-hidden rounded-md border border-[#272a47] bg-[#101224] transition hover:border-[#464b78] focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary";
+  const directorToolButtonClassName = "inline-flex h-10 items-center justify-center rounded-md border px-3 text-[12px] font-medium transition focus:outline-none focus:ring-2 focus:ring-primary/20";
+  const directorFieldClassName = "h-10 w-full rounded-md border border-[#2d3150] bg-[#101224] px-3 text-sm text-[#eef0ff] placeholder:text-[#7378a3] transition focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary";
+  const directorSelectClassName = "h-10 w-full rounded-md border border-[#2d3150] bg-[#101224] px-3 text-sm text-[#eef0ff] transition focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary";
+  const directorDefryOptions = [0, 1, 2, 3, 4, 5] as const;
 
   return (
-    <div className={`flex min-h-0 flex-1 flex-col gap-3 overflow-auto ${isDirectorToolsOpen ? "bg-base-200 p-4" : "bg-base-200 py-3"}`}>
+    <div className={`flex min-h-0 flex-1 flex-col gap-3 overflow-auto ${isDirectorToolsOpen ? "bg-[#14162b] p-4" : "bg-base-200 py-3"}`}>
       {isDirectorToolsOpen
         ? (
-            <div className="flex flex-wrap items-center gap-2 rounded-box border border-base-300 bg-base-100 p-3 shadow-sm">
-              <div>
-                <div className="text-sm font-medium">Director Workspace</div>
-                <div className="text-xs text-base-content/60">{previewMeta || "选择输入图并执行 Transform"}</div>
-              </div>
-              <div className="ml-auto flex flex-wrap items-center gap-2">
-                <button
-                  type="button"
-                  className="btn btn-outline gap-2 rounded-md"
-                  aria-expanded={isDirectorToolsOpen}
-                  onClick={onToggleDirectorTools}
-                >
-                  收起 Director Tools
-                  <ChevronDown className={`size-4 transition-transform ${isDirectorToolsOpen ? "rotate-180" : ""}`} />
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-outline"
-                  disabled
-                  onClick={() => void onRunUpscale()}
-                >
-                  Upscale 已禁用
-                </button>
-              </div>
-            </div>
-          )
-        : null}
-
-      {isDirectorToolsOpen
-        ? (
-            <div className="rounded-2xl border border-base-300 bg-base-100 p-4 text-base-content shadow-sm">
-              <div className="flex flex-wrap items-start gap-3">
-                <div className="min-w-0 flex-1">
-                  <div className="text-sm font-semibold">Director Tools</div>
-                  <div className="mt-1 text-xs leading-5 text-base-content/60">
-                    对齐 NovelAI 当前 Director Tools：左侧保持输入图，右侧展示输出图，底部只保留官方当前可见工具和统一的 Transform 动作。
-                  </div>
-                </div>
-                <div className="ml-auto flex flex-wrap gap-2">
+            <div className={directorShellClassName}>
+              <div className="flex items-center justify-between gap-3 border-b border-[#242743] px-4 py-3">
+                <div className="flex min-w-0 items-center gap-2">
                   <button
                     type="button"
-                    className="btn btn-sm btn-ghost"
+                    className={directorControlButtonClassName}
+                    aria-expanded={isDirectorToolsOpen}
+                    onClick={onToggleDirectorTools}
+                  >
+                    <ChevronDown className="size-4 rotate-90" />
+                  </button>
+                  {previewMeta
+                    ? <span className={`${directorMetaPillClassName} max-w-[320px] truncate`}>{previewMeta}</span>
+                    : null}
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    className={directorControlButtonClassName}
                     disabled={!selectedPreviewResult || isBusy}
                     onClick={onSyncDirectorSourceFromCurrentPreview}
                   >
-                    使用当前预览作为输入
+                    Current
                   </button>
                   <button
                     type="button"
-                    className="btn btn-sm btn-ghost"
+                    className={directorControlButtonClassName}
                     disabled={!selectedPreviewResult || isBusy}
                     onClick={onUseSelectedResultAsBaseImage}
                   >
-                    用作 Base Img
+                    Base Img
                   </button>
                 </div>
               </div>
 
-              <div className="mt-4 grid gap-3 xl:grid-cols-2">
-                <div className={directorCanvasContainerClassName}>
-                  <div className="flex items-center justify-between border-b border-base-300 px-3 py-2">
-                    <div>
-                      <div className="text-[11px] font-semibold uppercase tracking-[0.24em] text-base-content/45">Input</div>
-                      <div className="text-xs text-base-content/60">
-                        {directorInputPreview ? `${directorInputPreview.width}×${directorInputPreview.height}` : "先从当前预览或历史里选一张图"}
-                      </div>
-                    </div>
-                    {directorInputPreview?.toolLabel
-                      ? <span className="badge badge-sm badge-outline border-primary/30 text-base-content">{directorInputPreview.toolLabel}</span>
-                      : null}
-                  </div>
-                  <div className="flex min-h-[360px] items-center justify-center bg-base-200/40 p-3">
-                    {directorInputPreview
-                      ? <img src={directorInputPreview.dataUrl} className="max-h-[320px] w-auto rounded-box object-contain" alt="director-input" />
+              <div className="flex min-h-0 flex-1 gap-4 overflow-hidden p-4">
+                <div className={`flex w-[72px] shrink-0 flex-col gap-2 p-2 ${directorFrameClassName}`}>
+                  <button
+                    type="button"
+                    className="inline-flex h-10 items-center justify-center rounded-md border border-[#2c3050] bg-[#101224] text-[#d9ddf7] transition hover:border-[#464b78] hover:text-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary disabled:cursor-not-allowed disabled:opacity-40"
+                    disabled={!selectedPreviewResult || isBusy}
+                    onClick={onSyncDirectorSourceFromCurrentPreview}
+                  >
+                    <FrameCornersIcon className="size-4" weight="bold" />
+                  </button>
+                  <div className="flex-1 space-y-2 overflow-auto pr-1">
+                    {results.length
+                      ? results.map((item, index) => {
+                          const isActive = !selectedHistoryPreviewKey && selectedResultIndex === index;
+                          return (
+                            <button
+                              key={`${item.batchId}-${item.batchIndex}`}
+                              type="button"
+                              className={`${directorThumbButtonClassName} ${isActive ? "border-[#f3efc6] shadow-[0_0_0_1px_rgba(243,239,198,0.35)]" : ""}`}
+                              onClick={() => onSelectCurrentResult(index)}
+                            >
+                              <img src={item.dataUrl} alt={`director-result-${index + 1}`} className="block aspect-[5/7] w-full object-cover" />
+                            </button>
+                          );
+                        })
                       : (
-                          <div className="text-center text-sm text-base-content/60">
-                            <div className="font-medium text-base-content/85">等待输入图</div>
-                            <div className="mt-1">从本次绘画或历史绘画中选中一张图片，然后点击“使用当前预览作为输入”。</div>
+                          <div className={`flex h-24 items-center justify-center ${directorFrameClassName}`}>
+                            <EmptyPreviewPlaceholder />
                           </div>
                         )}
                   </div>
                 </div>
 
-                <div className={directorCanvasContainerClassName}>
-                  <div className="flex items-center justify-between border-b border-base-300 px-3 py-2">
-                    <div>
-                      <div className="text-[11px] font-semibold uppercase tracking-[0.24em] text-base-content/45">Output</div>
-                      <div className="text-xs text-base-content/60">
-                        {directorOutputPreview ? `${directorOutputPreview.width}×${directorOutputPreview.height}` : "Transform 结果会显示在这里"}
-                      </div>
+                <div className="grid min-h-0 min-w-0 flex-1 gap-4 xl:grid-cols-2">
+                  <div className={`flex min-h-0 flex-col gap-3 p-3 ${directorFrameClassName}`}>
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="text-[11px] font-semibold uppercase tracking-[0.24em] text-[#9ca2cb]">Input</span>
+                      {directorInputPreview?.toolLabel
+                        ? <span className={directorMetaPillClassName}>{directorInputPreview.toolLabel}</span>
+                        : null}
                     </div>
-                    {directorOutputPreview?.toolLabel
-                      ? <span className="badge badge-sm badge-primary badge-outline">{directorOutputPreview.toolLabel}</span>
-                      : null}
+                    <div className={directorCanvasClassName}>
+                      {directorInputPreview
+                        ? <img src={directorInputPreview.dataUrl} className="max-h-full max-w-full object-contain" alt="director-input" />
+                        : <EmptyPreviewPlaceholder />}
+                      {directorInputPreview
+                        ? (
+                            <div className="absolute bottom-3 left-1/2 -translate-x-1/2">
+                              <span className={directorMetaPillClassName}>{`${directorInputPreview.width} × ${directorInputPreview.height}`}</span>
+                            </div>
+                          )
+                        : null}
+                    </div>
                   </div>
-                  <div className="flex min-h-[360px] items-center justify-center bg-base-200/40 p-3">
-                    {directorOutputPreview
-                      ? <img src={directorOutputPreview.dataUrl} className="max-h-[320px] w-auto rounded-box object-contain" alt="director-output" />
-                      : (
-                          <div className="text-center text-sm text-base-content/60">
-                            <div className="font-medium text-base-content/85">{pendingPreviewAction === activeDirectorTool ? "Transforming..." : "等待输出图"}</div>
-                            <div className="mt-1">选择下方工具并执行 Transform 后，结果会保留在右侧，同时加入当前预览和历史。</div>
-                          </div>
-                        )}
+
+                  <div className={`flex min-h-0 flex-col gap-3 p-3 ${directorFrameClassName}`}>
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="text-[11px] font-semibold uppercase tracking-[0.24em] text-[#9ca2cb]">Output</span>
+                      {directorOutputPreview?.toolLabel
+                        ? <span className={directorMetaPillClassName}>{directorOutputPreview.toolLabel}</span>
+                        : null}
+                    </div>
+                    <div className={directorCanvasClassName}>
+                      {directorOutputPreview
+                        ? <img src={directorOutputPreview.dataUrl} className="max-h-full max-w-full object-contain" alt="director-output" />
+                        : <EmptyPreviewPlaceholder />}
+                      {directorOutputPreview
+                        ? (
+                            <div className="absolute bottom-3 left-1/2 -translate-x-1/2">
+                              <span className={directorMetaPillClassName}>{`${directorOutputPreview.width} × ${directorOutputPreview.height}`}</span>
+                            </div>
+                          )
+                        : null}
+                      {!directorOutputPreview && pendingPreviewAction === activeDirectorTool
+                        ? (
+                            <div className="absolute bottom-3 left-1/2 -translate-x-1/2">
+                              <span className={directorMetaPillClassName}>Transforming...</span>
+                            </div>
+                          )
+                        : null}
+                    </div>
                   </div>
                 </div>
               </div>
 
-              {directorTool.parameterMode === "colorize"
-                ? (
-                    <div className={`mt-4 grid gap-3 ${directorInsetPanelClassName} md:grid-cols-[minmax(0,1fr)_160px]`}>
-                      <label className="block">
-                        <div className="mb-1 text-[11px] font-medium uppercase tracking-[0.18em] text-base-content/50">Prompt</div>
-                        <input
-                          type="text"
-                          className="input input-sm input-bordered !rounded-none w-full"
-                          value={directorColorizePrompt}
-                          disabled={isBusy}
-                          placeholder="例如：warm sunset palette"
-                          onChange={event => onDirectorColorizePromptChange(event.target.value)}
-                        />
-                      </label>
-                      <label className="block">
-                        <div className="mb-1 text-[11px] font-medium uppercase tracking-[0.18em] text-base-content/50">Defry</div>
-                        <input
-                          type="number"
-                          className="input input-sm input-bordered !rounded-none w-full"
-                          value={directorColorizeDefry}
-                          disabled={isBusy}
-                          min={0}
-                          step="0.1"
-                          onChange={event => onDirectorColorizeDefryChange(Number(event.target.value))}
-                        />
-                      </label>
-                    </div>
-                  )
-                : null}
+              <div className="border-t border-[#242743] bg-[#17192f] p-4">
+                {directorTool.parameterMode === "colorize"
+                  ? (
+                      <div className={`mb-3 grid gap-3 p-3 ${directorFrameClassName} xl:grid-cols-[220px_minmax(0,1fr)]`}>
+                        <div className="min-w-0">
+                          <div className="mb-2 text-[11px] font-medium uppercase tracking-[0.18em] text-[#9ca2cb]">Defry</div>
+                          <div className="flex items-center gap-1 rounded-md border border-[#2d3150] bg-[#101224] p-1">
+                            {directorDefryOptions.map((value) => {
+                              const isActive = Number(directorColorizeDefry) === value;
+                              return (
+                                <button
+                                  key={value}
+                                  type="button"
+                                  className={`inline-flex h-8 min-w-8 items-center justify-center rounded-md px-2 text-[12px] font-medium transition focus:outline-none focus:ring-2 focus:ring-primary/20 ${
+                                    isActive
+                                      ? "bg-[#f3efc6] text-[#111326]"
+                                      : "text-[#c2c7ea] hover:bg-[#1d2039] hover:text-white"
+                                  }`}
+                                  onClick={() => onDirectorColorizeDefryChange(value)}
+                                >
+                                  {value}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                        <label className="min-w-0">
+                          <div className="mb-2 text-[11px] font-medium uppercase tracking-[0.18em] text-[#9ca2cb]">Prompt (Optional)</div>
+                          <input
+                            type="text"
+                            className={directorFieldClassName}
+                            value={directorColorizePrompt}
+                            disabled={isBusy}
+                            onChange={event => onDirectorColorizePromptChange(event.target.value)}
+                          />
+                        </label>
+                      </div>
+                    )
+                  : null}
 
-              {directorTool.parameterMode === "emotion"
-                ? (
-                    <div className={`mt-4 grid gap-3 ${directorInsetPanelClassName} md:grid-cols-[180px_minmax(0,1fr)_160px]`}>
-                      <label className="block">
-                        <div className="mb-1 text-[11px] font-medium uppercase tracking-[0.18em] text-base-content/50">Emotion</div>
-                        <select
-                          className="select select-sm select-bordered !rounded-none w-full"
-                          value={directorEmotion}
-                          disabled={isBusy}
-                          onChange={event => onDirectorEmotionChange(event.target.value as NovelAiEmotion)}
-                        >
-                          {DIRECTOR_EMOTION_OPTIONS.map(item => (
-                            <option key={item} value={item}>{formatDirectorEmotionLabel(item)}</option>
-                          ))}
-                        </select>
-                      </label>
-                      <label className="block">
-                        <div className="mb-1 text-[11px] font-medium uppercase tracking-[0.18em] text-base-content/50">Extra Prompt</div>
-                        <input
-                          type="text"
-                          className="input input-sm input-bordered !rounded-none w-full"
-                          value={directorEmotionExtraPrompt}
-                          disabled={isBusy}
-                          placeholder="例如：blushing, watery eyes"
-                          onChange={event => onDirectorEmotionExtraPromptChange(event.target.value)}
-                        />
-                      </label>
-                      <label className="block">
-                        <div className="mb-1 text-[11px] font-medium uppercase tracking-[0.18em] text-base-content/50">Defry</div>
-                        <input
-                          type="number"
-                          className="input input-sm input-bordered !rounded-none w-full"
-                          value={directorEmotionDefry}
-                          disabled={isBusy}
-                          min={0}
-                          step="0.1"
-                          onChange={event => onDirectorEmotionDefryChange(Number(event.target.value))}
-                        />
-                      </label>
-                    </div>
-                  )
-                : null}
+                {directorTool.parameterMode === "emotion"
+                  ? (
+                      <div className={`mb-3 grid gap-3 p-3 ${directorFrameClassName} xl:grid-cols-[180px_minmax(0,1fr)_220px]`}>
+                        <label className="min-w-0">
+                          <div className="mb-2 text-[11px] font-medium uppercase tracking-[0.18em] text-[#9ca2cb]">Emotion</div>
+                          <select
+                            className={directorSelectClassName}
+                            value={directorEmotion}
+                            disabled={isBusy}
+                            onChange={event => onDirectorEmotionChange(event.target.value as NovelAiEmotion)}
+                          >
+                            {DIRECTOR_EMOTION_OPTIONS.map(item => (
+                              <option key={item} value={item}>{formatDirectorEmotionLabel(item)}</option>
+                            ))}
+                          </select>
+                        </label>
+                        <label className="min-w-0">
+                          <div className="mb-2 text-[11px] font-medium uppercase tracking-[0.18em] text-[#9ca2cb]">Prompt</div>
+                          <input
+                            type="text"
+                            className={directorFieldClassName}
+                            value={directorEmotionExtraPrompt}
+                            disabled={isBusy}
+                            onChange={event => onDirectorEmotionExtraPromptChange(event.target.value)}
+                          />
+                        </label>
+                        <div className="min-w-0">
+                          <div className="mb-2 text-[11px] font-medium uppercase tracking-[0.18em] text-[#9ca2cb]">Defry</div>
+                          <div className="flex items-center gap-1 rounded-md border border-[#2d3150] bg-[#101224] p-1">
+                            {directorDefryOptions.map((value) => {
+                              const isActive = Number(directorEmotionDefry) === value;
+                              return (
+                                <button
+                                  key={value}
+                                  type="button"
+                                  className={`inline-flex h-8 min-w-8 items-center justify-center rounded-md px-2 text-[12px] font-medium transition focus:outline-none focus:ring-2 focus:ring-primary/20 ${
+                                    isActive
+                                      ? "bg-[#f3efc6] text-[#111326]"
+                                      : "text-[#c2c7ea] hover:bg-[#1d2039] hover:text-white"
+                                  }`}
+                                  onClick={() => onDirectorEmotionDefryChange(value)}
+                                >
+                                  {value}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  : null}
 
-              <div className={`mt-4 ${directorInsetPanelClassName}`}>
-                <div className="flex flex-wrap items-center gap-2">
-                  {DIRECTOR_TOOL_OPTIONS.map(tool => (
-                    <button
-                      key={tool.id}
-                      type="button"
-                      className={`btn btn-sm ${activeDirectorTool === tool.id ? "btn-primary" : "btn-ghost"}`}
-                      disabled={isBusy}
-                      onClick={() => onActiveDirectorToolChange(tool.id)}
-                    >
-                      {tool.label}
-                    </button>
-                  ))}
+                <div className={`flex flex-wrap items-center gap-2 p-3 ${directorFrameClassName}`}>
+                  {DIRECTOR_TOOL_OPTIONS.map(tool => {
+                    const isActive = activeDirectorTool === tool.id;
+                    return (
+                      <button
+                        key={tool.id}
+                        type="button"
+                        className={`${directorToolButtonClassName} ${
+                          isActive
+                            ? "border-[#f3efc6] bg-[#f3efc6] text-[#111326]"
+                            : "border-[#2e3254] bg-[#171a31] text-[#d9ddf7] hover:border-[#464b78] hover:text-white"
+                        }`}
+                        disabled={isBusy}
+                        onClick={() => onActiveDirectorToolChange(tool.id)}
+                      >
+                        {tool.label}
+                      </button>
+                    );
+                  })}
                   <button
                     type="button"
-                    className="btn btn-primary btn-sm ml-auto"
+                    className="ml-auto inline-flex h-10 items-center justify-center gap-2 rounded-md border border-[#f3efc6] bg-[#f3efc6] px-4 text-[12px] font-semibold text-[#111326] transition hover:bg-[#fff7c9] hover:border-[#fff7c9] focus:outline-none focus:ring-2 focus:ring-primary/20 disabled:cursor-not-allowed disabled:border-[#f3efc6]/25 disabled:bg-[#f3efc6]/18 disabled:text-[#f3efc6]/40"
                     disabled={!directorInputPreview || isBusy}
                     onClick={() => void onRunDirectorTool()}
                   >
-                    {pendingPreviewAction === activeDirectorTool ? "Transforming..." : "Transform"}
+                    <span>{pendingPreviewAction === activeDirectorTool ? "Transforming..." : "Transform"}</span>
+                    <span className="inline-flex items-center rounded-md bg-[#111326]/12 px-2 py-0.5 text-[11px] font-semibold">
+                      0
+                    </span>
                   </button>
-                </div>
-                <div className="mt-2 text-[11px] leading-5 text-base-content/55">
-                  {directorTool.parameterMode === "emotion"
-                    ? "Emotion 会按官方规则把情绪值与额外提示词拼成 `emotion;;extra prompt` 后发送。"
-                    : directorTool.parameterMode === "colorize"
-                      ? "Colorize 会把 prompt 与 defry 直接扁平透传到 augment-image。"
-                      : `${directorTool.label} 会直接使用当前输入图执行 ${directorTool.requestType}。`}
                 </div>
               </div>
             </div>
@@ -440,8 +484,8 @@ export function AiImagePreviewPane({
                         <button
                           type="button"
                           className={previewToolbarIconButtonClassName}
-                          title="展开查看当前预览"
-                          aria-label="展开查看当前预览"
+                          title="查看当前预览"
+                          aria-label="查看当前预览"
                           onClick={onOpenPreviewImage}
                         >
                           <ExpandCornersIcon className="size-[18px]" />
