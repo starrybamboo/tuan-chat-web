@@ -282,15 +282,16 @@ export function AiImagePreviewPane({
                                 <button
                                   type="button"
                                   className={directorCornerButtonClassName}
-                                  title="Upscale"
-                                  aria-label="Upscale"
+                                  title="Upscale 已禁用"
+                                  aria-label="Upscale 已禁用"
+                                  disabled                                
                                   onClick={() => void onRunDirectorInputUpscale()}
                                 >
                                   <FrameCornersIcon className="size-[18px]" weight="bold" />
                                 </button>
                               </div>
                               <div className={`${directorCornerActionsClassName} right-3`}>
-                                <span className={directorCornerPillClassName}>{`${directorInputPreview.width} 脳 ${directorInputPreview.height}`}</span>
+                                <span className={directorCornerPillClassName}>{`${directorInputPreview.width} × ${directorInputPreview.height}`}</span>
                               </div>
                             </>
                           )
@@ -307,7 +308,7 @@ export function AiImagePreviewPane({
                         ? (
                             <>
                               <div className={`${directorCornerActionsClassName} left-3`}>
-                                <span className={directorCornerPillClassName}>{`${directorDisplayedOutput.width} 脳 ${directorDisplayedOutput.height}`}</span>
+                                <span className={directorCornerPillClassName}>{`${directorDisplayedOutput.width} × ${directorDisplayedOutput.height}`}</span>
                               </div>
                               <div className={`${directorCornerActionsClassName} right-3`}>
                                 <button
@@ -592,7 +593,7 @@ export function AiImagePreviewPane({
                 ? (
                     <div className="flex flex-wrap items-center gap-3 px-3 py-2.5">
                       <div className={previewToolbarSectionClassName}>
-                        <span className={previewToolbarPillClassName}>{`${selectedPreviewResult.width} 脳 ${selectedPreviewResult.height}`}</span>
+                        <span className={previewToolbarPillClassName}>{`${selectedPreviewResult.width} × ${selectedPreviewResult.height}`}</span>
                         <button
                           type="button"
                           className={previewToolbarIconButtonClassName}
