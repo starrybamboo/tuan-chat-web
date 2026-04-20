@@ -1138,7 +1138,7 @@ export default function SpaceWebgalRenderWindow({ spaceId }: SpaceWebgalRenderWi
                         <label className="flex items-center justify-between gap-2 rounded-md border border-base-300 px-3 py-2">
                           <ConfigItemLabel
                             label="角色发言聚焦"
-                            description="说话角色自动提亮，其他立绘自动压暗；这是开发期配置，不会在游戏内提供给玩家切换。"
+                            description="命中发言目标时，其他立绘会自动压暗；当前角色保持原亮度。这是开发期配置，不会在游戏内提供给玩家切换。"
                           />
                           <input
                             type="checkbox"
