@@ -1135,6 +1135,18 @@ export default function SpaceWebgalRenderWindow({ spaceId }: SpaceWebgalRenderWi
                             onChange={event => setGameConfig({ allowOpenFullSettings: event.target.checked })}
                           />
                         </label>
+                        <label className="flex items-center justify-between gap-2 rounded-md border border-base-300 px-3 py-2">
+                          <ConfigItemLabel
+                            label="角色发言聚焦"
+                            description="说话角色自动提亮，其他立绘自动压暗；这是开发期配置，不会在游戏内提供给玩家切换。"
+                          />
+                          <input
+                            type="checkbox"
+                            className="toggle toggle-sm toggle-primary"
+                            checked={gameConfig.speakerFocusEnabled}
+                            onChange={event => setGameConfig({ speakerFocusEnabled: event.target.checked })}
+                          />
+                        </label>
                         <div className={`rounded-md border border-base-300 md:col-span-2 ${typingSoundDetailExpanded ? "p-3" : "px-3 py-2"}`}>
                           <div className={`flex flex-wrap items-center justify-between gap-2${typingSoundDetailExpanded ? " mb-3" : ""}`}>
                             <ConfigItemLabel
