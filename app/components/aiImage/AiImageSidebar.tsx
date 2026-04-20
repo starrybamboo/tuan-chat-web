@@ -201,7 +201,7 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
   const [isModeSelectorMounted, setIsModeSelectorMounted] = useState<boolean>(false);
   const [isProPromptSettingsOpen, setIsProPromptSettingsOpen] = useState<boolean>(false);
   const [isBaseImageToolsOpen, setIsBaseImageToolsOpen] = useState<boolean>(false);
-  const [isProBottomSettingsOpen, setIsProBottomSettingsOpen] = useState<boolean>(true);
+  const [isProBottomSettingsOpen, setIsProBottomSettingsOpen] = useState<boolean>(false);
   const [isCharacterAddMenuOpen, setIsCharacterAddMenuOpen] = useState<boolean>(false);
   const [highlightEmphasisEnabled, setHighlightEmphasisEnabled] = useState<boolean>(true);
   const [proPromptSettingsPosition, setProPromptSettingsPosition] = useState({ top: 96, left: 96 });
