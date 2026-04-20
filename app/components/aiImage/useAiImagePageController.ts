@@ -1654,6 +1654,25 @@ export function useAiImagePageController() {
     setIsPreviewImageModalOpen(false);
   }, [selectedPreviewResult]);
 
+  const createDirectorSourceClone = useCallback((image: GeneratedImageItem) => {
+    return {
+      ...image,
+      batchId: makeStableId(),
+      batchIndex: 0,
+      batchSize: 1,
+    } satisfies GeneratedImageItem;
+  }, []);
+
+  const addDirectorImageToSourceRail = useCallback((image: GeneratedImageItem | null) => {
+    if (!image)
+      return false;
+    const clone = createDirectorSourceClone(image);
+    setDirectorSourceItems(prev => [clone, ...prev]);
+    setDirectorSourcePreview(clone);
+    setDirectorOutputPreview(null);
+    return true;
+  }, [createDirectorSourceClone]);
+
   const copyGeneratedImageToClipboard = useCallback(async (image: GeneratedImageItem | null, successMessage: string) => {
     if (!image)
       return;
@@ -1678,6 +1697,39 @@ export function useAiImagePageController() {
       showErrorToast("复制图片失败，请重试。");
     }
   }, [showErrorToast, showSuccessToast]);
+
+  const downloadGeneratedImage = useCallback((image: GeneratedImageItem | null, filePrefix: string) => {
+    if (!image)
+      return;
+    triggerBrowserDownload(
+      image.dataUrl,
+      `${filePrefix}_${image.seed}_${image.batchIndex + 1}.${extensionFromDataUrl(image.dataUrl)}`,
+    );
+  }, []);
+
+  const handleRunDirectorInputUpscale = useCallback(async () => {
+    if (!directorInputPreview)
+      return;
+    showErrorToast(getNovelAiFreeOnlyMessage("Upscale ????"));
+  }, [directorInputPreview, showErrorToast]);
+
+  const handleAddDirectorDisplayedToSourceRail = useCallback(() => {
+    if (addDirectorImageToSourceRail(directorOutputPreview ?? selectedPreviewResult))
+      showSuccessToast("??????????????");
+  }, [addDirectorImageToSourceRail, directorOutputPreview, selectedPreviewResult, showSuccessToast]);
+
+  const handleCopyDirectorInputImage = useCallback(async () => {
+    await copyGeneratedImageToClipboard(directorInputPreview, "??????????");
+  }, [copyGeneratedImageToClipboard, directorInputPreview]);
+
+  const handleCopyDirectorOutputImage = useCallback(async () => {
+    await copyGeneratedImageToClipboard(directorOutputPreview ?? selectedPreviewResult, "??????????");
+  }, [copyGeneratedImageToClipboard, directorOutputPreview, selectedPreviewResult]);
+
+  const handleDownloadDirectorOutputImage = useCallback(() => {
+    downloadGeneratedImage(directorOutputPreview ?? selectedPreviewResult, "nai_director");
+  }, [directorOutputPreview, downloadGeneratedImage, selectedPreviewResult]);
+
 
   const handleClearPinnedPreview = useCallback(() => {
     if (!pinnedPreviewKey)
@@ -1917,13 +1969,8 @@ export function useAiImagePageController() {
   }, [directorOutputPreview, directorSourcePreview, pinnedPreviewKey, refreshHistory, results, selectedHistoryPreviewKey]);
 
   const handleDownloadCurrent = useCallback(() => {
-    if (!selectedPreviewResult)
-      return;
-    triggerBrowserDownload(
-      selectedPreviewResult.dataUrl,
-      `nai_${selectedPreviewResult.seed}_${selectedPreviewResult.batchIndex + 1}.${extensionFromDataUrl(selectedPreviewResult.dataUrl)}`,
-    );
-  }, [selectedPreviewResult]);
+    downloadGeneratedImage(selectedPreviewResult, "nai");
+  }, [downloadGeneratedImage, selectedPreviewResult]);
 
   const handleDownloadAll = useCallback(() => {
     if (!history.length)
@@ -2583,9 +2630,11 @@ export function useAiImagePageController() {
       directorEmotionDefry,
       onToggleDirectorTools: handleToggleDirectorTools,
       onRunUpscale: handleRunUpscale,
+      onRunDirectorInputUpscale: handleRunDirectorInputUpscale,
       onUseSelectedResultAsBaseImage: handleUseSelectedResultAsBaseImage,
       onPickDirectorSourceImages: handlePickDirectorSourceImages,
       onSelectDirectorSourceItem: handleSelectDirectorSourceItem,
+      onAddDirectorDisplayedToSourceRail: handleAddDirectorDisplayedToSourceRail,
       onDirectorImageDragEnter: handleDirectorImageDragEnter,
       onDirectorImageDragLeave: handleDirectorImageDragLeave,
       onDirectorImageDragOver: handleDirectorImageDragOver,
@@ -2602,7 +2651,10 @@ export function useAiImagePageController() {
       onTogglePinnedPreview: handleTogglePinnedPreview,
       onOpenInpaint: handleOpenInpaint,
       onCopySelectedPreviewImage: handleCopySelectedPreviewImage,
+      onCopyDirectorInputImage: handleCopyDirectorInputImage,
+      onCopyDirectorOutputImage: handleCopyDirectorOutputImage,
       onDownloadCurrent: handleDownloadCurrent,
+      onDownloadDirectorOutputImage: handleDownloadDirectorOutputImage,
       onApplySelectedPreviewSeed: handleApplySelectedPreviewSeed,
       formatDirectorEmotionLabel,
     },

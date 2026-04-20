@@ -1,4 +1,14 @@
-import { ArrowRightIcon, ClipboardTextIcon, FrameCornersIcon, MagicWandIcon, PlantIcon, PushPinIcon as PhosphorPushPinIcon, SelectionPlusIcon, UploadSimpleIcon } from "@phosphor-icons/react";
+import {
+  ArrowLeftIcon,
+  ArrowRightIcon,
+  ClipboardTextIcon,
+  FrameCornersIcon,
+  MagicWandIcon,
+  PlantIcon,
+  PushPinIcon as PhosphorPushPinIcon,
+  SelectionPlusIcon,
+  UploadSimpleIcon,
+} from "@phosphor-icons/react";
 import { useRef } from "react";
 
 import type {
@@ -36,9 +46,11 @@ interface AiImagePreviewPaneProps {
   directorEmotionDefry: number;
   onToggleDirectorTools: () => void;
   onRunUpscale: () => void | Promise<void>;
+  onRunDirectorInputUpscale: () => void | Promise<void>;
   onUseSelectedResultAsBaseImage: () => void;
   onPickDirectorSourceImages: (files: FileList | File[]) => void | Promise<void>;
   onSelectDirectorSourceItem: (item: GeneratedImageItem) => void;
+  onAddDirectorDisplayedToSourceRail: () => void;
   onDirectorImageDragEnter: (event: React.DragEvent<HTMLDivElement>) => void;
   onDirectorImageDragLeave: (event: React.DragEvent<HTMLDivElement>) => void;
   onDirectorImageDragOver: (event: React.DragEvent<HTMLDivElement>) => void;
@@ -55,7 +67,10 @@ interface AiImagePreviewPaneProps {
   onTogglePinnedPreview: () => void;
   onOpenInpaint: () => void;
   onCopySelectedPreviewImage: () => void | Promise<void>;
+  onCopyDirectorInputImage: () => void | Promise<void>;
+  onCopyDirectorOutputImage: () => void | Promise<void>;
   onDownloadCurrent: () => void;
+  onDownloadDirectorOutputImage: () => void;
   onApplySelectedPreviewSeed: () => void;
   formatDirectorEmotionLabel: (value: NovelAiEmotion) => string;
 }
@@ -101,9 +116,11 @@ export function AiImagePreviewPane({
   directorEmotionDefry,
   onToggleDirectorTools,
   onRunUpscale,
+  onRunDirectorInputUpscale,
   onUseSelectedResultAsBaseImage,
   onPickDirectorSourceImages,
   onSelectDirectorSourceItem,
+  onAddDirectorDisplayedToSourceRail,
   onDirectorImageDragEnter,
   onDirectorImageDragLeave,
   onDirectorImageDragOver,
@@ -120,11 +137,15 @@ export function AiImagePreviewPane({
   onTogglePinnedPreview,
   onOpenInpaint,
   onCopySelectedPreviewImage,
+  onCopyDirectorInputImage,
+  onCopyDirectorOutputImage,
   onDownloadCurrent,
+  onDownloadDirectorOutputImage,
   onApplySelectedPreviewSeed,
   formatDirectorEmotionLabel,
 }: AiImagePreviewPaneProps) {
   const directorUploadInputRef = useRef<HTMLInputElement | null>(null);
+
   const previewToolbarControlSurfaceClassName = "!rounded-none border-0 bg-base-300/70 shadow-none";
   const previewToolbarIconButtonClassName = `inline-flex size-9 shrink-0 items-center justify-center ${previewToolbarControlSurfaceClassName} text-base-content/70 transition-colors hover:bg-base-300/85 hover:text-base-content disabled:cursor-not-allowed disabled:opacity-50`;
   const previewToolbarPillClassName = `inline-flex h-9 items-center ${previewToolbarControlSurfaceClassName} px-3 text-xs font-medium text-base-content`;
@@ -140,6 +161,9 @@ export function AiImagePreviewPane({
   const directorToolButtonClassName = "inline-flex h-10 items-center justify-center rounded-md px-3 text-[12px] font-medium transition focus:outline-none";
   const directorFieldClassName = "h-10 w-full rounded-md border border-base-300 bg-base-100 px-3 text-sm text-base-content placeholder:text-base-content/45 transition focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary";
   const directorSelectClassName = "h-10 w-full rounded-md border border-base-300 bg-base-100 px-3 text-sm text-base-content transition focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary";
+  const directorCornerActionsClassName = "absolute bottom-3 flex items-center gap-2";
+  const directorCornerButtonClassName = "inline-flex size-9 items-center justify-center rounded-md border border-base-300 bg-base-100/96 text-base-content/72 shadow-sm transition hover:-translate-y-0.5 hover:border-primary/45 hover:text-base-content active:translate-y-0 active:scale-[0.98] focus:outline-none disabled:cursor-not-allowed disabled:opacity-35";
+  const directorCornerPillClassName = "inline-flex items-center rounded-md border border-base-300 bg-base-100/96 px-3 py-2 text-[11px] font-medium text-base-content/72 shadow-sm";
   const directorDefryOptions = [0, 1, 2, 3, 4, 5] as const;
   const directorDisplayedOutput = directorOutputPreview ?? selectedPreviewResult;
 
@@ -174,6 +198,7 @@ export function AiImagePreviewPane({
                   event.target.value = "";
                 }}
               />
+
               <div className="flex items-center justify-start px-4 py-3">
                 <div className="flex items-center">
                   <button
@@ -197,6 +222,7 @@ export function AiImagePreviewPane({
                   >
                     <UploadSimpleIcon className="size-4" weight="bold" />
                   </button>
+
                   <div
                     className="flex-1 space-y-2 overflow-y-auto overflow-x-hidden pr-1"
                     onDragEnter={(event) => {
@@ -242,9 +268,31 @@ export function AiImagePreviewPane({
                         : <EmptyPreviewPlaceholder />}
                       {directorInputPreview
                         ? (
-                            <div className="absolute bottom-3 left-1/2 -translate-x-1/2">
-                              <span className="text-[11px] font-medium text-base-content/72">{`${directorInputPreview.width} × ${directorInputPreview.height}`}</span>
-                            </div>
+                            <>
+                              <div className={`${directorCornerActionsClassName} left-3`}>
+                                <button
+                                  type="button"
+                                  className={directorCornerButtonClassName}
+                                  title="复制当前左图"
+                                  aria-label="复制当前左图"
+                                  onClick={() => void onCopyDirectorInputImage()}
+                                >
+                                  <ClipboardTextIcon className="size-[18px]" weight="regular" />
+                                </button>
+                                <button
+                                  type="button"
+                                  className={directorCornerButtonClassName}
+                                  title="Upscale"
+                                  aria-label="Upscale"
+                                  onClick={() => void onRunDirectorInputUpscale()}
+                                >
+                                  <FrameCornersIcon className="size-[18px]" weight="bold" />
+                                </button>
+                              </div>
+                              <div className={`${directorCornerActionsClassName} right-3`}>
+                                <span className={directorCornerPillClassName}>{`${directorInputPreview.width} 脳 ${directorInputPreview.height}`}</span>
+                              </div>
+                            </>
                           )
                         : null}
                     </div>
@@ -257,15 +305,46 @@ export function AiImagePreviewPane({
                         : <EmptyPreviewPlaceholder />}
                       {directorDisplayedOutput
                         ? (
-                            <div className="absolute bottom-3 left-1/2 -translate-x-1/2">
-                              <span className="text-[11px] font-medium text-base-content/72">{`${directorDisplayedOutput.width} × ${directorDisplayedOutput.height}`}</span>
-                            </div>
+                            <>
+                              <div className={`${directorCornerActionsClassName} left-3`}>
+                                <span className={directorCornerPillClassName}>{`${directorDisplayedOutput.width} 脳 ${directorDisplayedOutput.height}`}</span>
+                              </div>
+                              <div className={`${directorCornerActionsClassName} right-3`}>
+                                <button
+                                  type="button"
+                                  className={directorCornerButtonClassName}
+                                  title="添加到左侧栏"
+                                  aria-label="添加到左侧栏"
+                                  onClick={onAddDirectorDisplayedToSourceRail}
+                                >
+                                  <ArrowLeftIcon className="size-[18px]" weight="bold" />
+                                </button>
+                                <button
+                                  type="button"
+                                  className={directorCornerButtonClassName}
+                                  title="复制当前右图"
+                                  aria-label="复制当前右图"
+                                  onClick={() => void onCopyDirectorOutputImage()}
+                                >
+                                  <ClipboardTextIcon className="size-[18px]" weight="regular" />
+                                </button>
+                                <button
+                                  type="button"
+                                  className={directorCornerButtonClassName}
+                                  title="下载当前右图"
+                                  aria-label="下载当前右图"
+                                  onClick={onDownloadDirectorOutputImage}
+                                >
+                                  <SharpDownload className="size-[18px]" />
+                                </button>
+                              </div>
+                            </>
                           )
                         : null}
                       {!directorDisplayedOutput && pendingPreviewAction === activeDirectorTool
                         ? (
                             <div className="absolute bottom-3 left-1/2 -translate-x-1/2">
-                              <span className="text-[11px] font-medium text-base-content/72">Transforming...</span>
+                              <span className={directorCornerPillClassName}>Transforming...</span>
                             </div>
                           )
                         : null}
@@ -513,7 +592,7 @@ export function AiImagePreviewPane({
                 ? (
                     <div className="flex flex-wrap items-center gap-3 px-3 py-2.5">
                       <div className={previewToolbarSectionClassName}>
-                        <span className={previewToolbarPillClassName}>{`${selectedPreviewResult.width} × ${selectedPreviewResult.height}`}</span>
+                        <span className={previewToolbarPillClassName}>{`${selectedPreviewResult.width} 脳 ${selectedPreviewResult.height}`}</span>
                         <button
                           type="button"
                           className={previewToolbarIconButtonClassName}
