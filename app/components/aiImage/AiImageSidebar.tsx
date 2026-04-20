@@ -235,7 +235,7 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
   const simpleResolutionOptions = [...RESOLUTION_PRESETS, { id: CUSTOM_RESOLUTION_ID, label: "自定义" }] as const;
   const activeSimpleResolutionOption = simpleResolutionOptions.find(option => option.id === simpleResolutionSelection) ?? simpleResolutionOptions[simpleResolutionOptions.length - 1];
   const activeProResolutionOption = simpleResolutionOptions.find(option => option.id === proResolutionSelection) ?? simpleResolutionOptions[simpleResolutionOptions.length - 1];
-  const hasReadySimpleTags = isSimpleTagsEditor && hasSimpleTagsDraft;
+  const hasReadySimpleTags = isSimpleTagsEditor && (hasSimpleTagsDraft || mode === "infill");
   const hasGeneratedSimpleTags = hasSimpleTagsDraft || Boolean(simpleConverted);
   const simplePrimaryActionLabel = hasReadySimpleTags
     ? proGenerateLabel

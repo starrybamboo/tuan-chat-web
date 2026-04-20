@@ -131,6 +131,34 @@ describe("aiImage helpers", () => {
     })).toBeNull();
   });
 
+  it("blocks imported non-preset source images when either side exceeds 1024", () => {
+    expect(getNovelAiFreeGenerationViolation({
+      mode: "infill",
+      width: 1024,
+      height: 960,
+      imageCount: 1,
+      steps: 23,
+      sourceImageBase64: "abc123",
+      sourceImageWidth: 1536,
+      sourceImageHeight: 960,
+      maskBase64: "mask123",
+    })).toContain("任意一边不能超过 1024");
+  });
+
+  it("allows imported preset source images to exceed 1024 on one side", () => {
+    expect(getNovelAiFreeGenerationViolation({
+      mode: "infill",
+      width: 1216,
+      height: 832,
+      imageCount: 1,
+      steps: 23,
+      sourceImageBase64: "abc123",
+      sourceImageWidth: 1216,
+      sourceImageHeight: 832,
+      maskBase64: "mask123",
+    })).toBeNull();
+  });
+
   it("deduplicates merged style tags while keeping quick mode tags editable", () => {
     expect(mergeTagString("1girl, best quality, cinematic lighting", [
       "cinematic lighting",
