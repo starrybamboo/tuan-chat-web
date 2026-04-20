@@ -29,7 +29,7 @@ export function AiImageWorkspace({
   const [isHistoryCollapsed, setIsHistoryCollapsed] = useState(false);
   const [isPinnedDrawerOpen, setIsPinnedDrawerOpen] = useState(false);
   const [isPinnedEdgeHovered, setIsPinnedEdgeHovered] = useState(false);
-  const historyPaneWidthClassName = isDirectorToolsOpen ? "w-[196px]" : "w-[160px]";
+  const historyPaneWidthClassName = "w-[160px]";
 
   useEffect(() => {
     if (!pinnedPreviewResult) {
@@ -145,7 +145,7 @@ export function AiImageWorkspace({
       >
         <AiImageHistoryPane
           {...historyPaneProps}
-          isDirectorToolsOpen={isDirectorToolsOpen}
+          isDirectorToolsOpen={false}
           onCollapse={() => setIsHistoryCollapsed(true)}
         />
       </div>
