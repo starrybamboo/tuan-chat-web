@@ -36,6 +36,12 @@ export function mapBrushCursorDisplaySize(brushSize: number) {
   return Math.round(30 + ((clampedSize - 4) * (385 - 30)) / (50 - 4));
 }
 
+export function mapDisplaySizeToCanvasSize(displaySize: number, canvasSize: number, renderedSize: number) {
+  if (canvasSize <= 0 || renderedSize <= 0)
+    return Math.max(1, displaySize);
+  return (displaySize * canvasSize) / renderedSize;
+}
+
 export function createMaskBorderOffsets(radius: number) {
   const normalizedRadius = Math.max(1, Math.round(radius));
   const offsets: Array<{ x: number; y: number }> = [];
