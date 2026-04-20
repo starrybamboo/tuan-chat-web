@@ -13,6 +13,14 @@ import {
 } from "@phosphor-icons/react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { triggerBrowserDownload } from "@/components/aiImage/helpers";
+import {
+  buildMaskPaintStyle,
+  createMaskBorderOffsets,
+  hasAnyMaskAlpha,
+  MASK_COLOR_OPTIONS,
+  MASK_PATTERN_OPTIONS,
+  type MaskPattern,
+} from "@/components/aiImage/inpaintMaskUtils";
 
 interface InpaintDialogProps {
   isOpen: boolean;
@@ -33,121 +41,7 @@ interface BrushCursorPoint {
   y: number;
 }
 
-type MaskPattern = "solid" | "stripe" | "checker" | "dots" | "grid" | "cross" | "blocks";
-
-const MASK_COLOR_OPTIONS = [
-  "#5b6dff",
-  "#f0bd2d",
-  "#d85ec3",
-  "#46c6cf",
-  "#f05d52",
-  "#4fca67",
-  "#b06bf1",
-  "#f39d3f",
-  "#4f99e0",
-  "#c9c13e",
-] as const;
-
-const MASK_PATTERN_OPTIONS: Array<{ id: MaskPattern; label: string }> = [
-  { id: "solid", label: "Solid" },
-  { id: "stripe", label: "Stripe" },
-  { id: "checker", label: "Checker" },
-  { id: "dots", label: "Dots" },
-  { id: "grid", label: "Grid" },
-  { id: "cross", label: "Cross" },
-  { id: "blocks", label: "Blocks" },
-];
-
-function hexToRgba(hex: string, alpha: number) {
-  const normalized = String(hex || "").replace("#", "").trim();
-  if (!/^[0-9a-fA-F]{6}$/.test(normalized))
-    return `rgba(246, 110, 139, ${alpha})`;
-
-  const red = Number.parseInt(normalized.slice(0, 2), 16);
-  const green = Number.parseInt(normalized.slice(2, 4), 16);
-  const blue = Number.parseInt(normalized.slice(4, 6), 16);
-  return `rgba(${red}, ${green}, ${blue}, ${alpha})`;
-}
-
-function buildMaskPaintStyle(context: CanvasRenderingContext2D, color: string, opacity: number, pattern: MaskPattern) {
-  const alpha = Math.max(0.05, Math.min(1, opacity / 100));
-  const solidColor = hexToRgba(color, alpha);
-  if (pattern === "solid")
-    return solidColor;
-
-  const tile = document.createElement("canvas");
-  tile.width = 24;
-  tile.height = 24;
-  const tileContext = tile.getContext("2d");
-  if (!tileContext)
-    return solidColor;
-
-  tileContext.clearRect(0, 0, tile.width, tile.height);
-  tileContext.strokeStyle = solidColor;
-  tileContext.fillStyle = solidColor;
-
-  if (pattern === "stripe") {
-    tileContext.lineWidth = 4;
-    tileContext.beginPath();
-    tileContext.moveTo(-4, 24);
-    tileContext.lineTo(24, -4);
-    tileContext.stroke();
-  }
-  else if (pattern === "checker") {
-    tileContext.globalAlpha = alpha;
-    tileContext.fillRect(0, 0, 8, 8);
-    tileContext.fillRect(16, 0, 8, 8);
-    tileContext.fillRect(8, 8, 8, 8);
-    tileContext.fillRect(0, 16, 8, 8);
-    tileContext.fillRect(16, 16, 8, 8);
-  }
-  else if (pattern === "dots") {
-    tileContext.beginPath();
-    tileContext.arc(6, 6, 2.1, 0, Math.PI * 2);
-    tileContext.arc(18, 6, 2.1, 0, Math.PI * 2);
-    tileContext.arc(12, 18, 2.1, 0, Math.PI * 2);
-    tileContext.fill();
-  }
-  else if (pattern === "grid") {
-    tileContext.lineWidth = 1.6;
-    tileContext.beginPath();
-    tileContext.moveTo(0, 8);
-    tileContext.lineTo(24, 8);
-    tileContext.moveTo(0, 16);
-    tileContext.lineTo(24, 16);
-    tileContext.moveTo(8, 0);
-    tileContext.lineTo(8, 24);
-    tileContext.moveTo(16, 0);
-    tileContext.lineTo(16, 24);
-    tileContext.stroke();
-  }
-  else if (pattern === "cross") {
-    tileContext.lineWidth = 2;
-    tileContext.beginPath();
-    tileContext.moveTo(6, 6);
-    tileContext.lineTo(18, 18);
-    tileContext.moveTo(18, 6);
-    tileContext.lineTo(6, 18);
-    tileContext.stroke();
-  }
-  else {
-    tileContext.fillRect(2, 2, 6, 6);
-    tileContext.fillRect(16, 2, 6, 6);
-    tileContext.fillRect(2, 16, 6, 6);
-    tileContext.fillRect(16, 16, 6, 6);
-  }
-
-  return context.createPattern(tile, "repeat") ?? solidColor;
-}
-
-function hasAnyMaskPixels(context: CanvasRenderingContext2D, width: number, height: number) {
-  const alpha = context.getImageData(0, 0, width, height).data;
-  for (let index = 3; index < alpha.length; index += 4) {
-    if (alpha[index] > 0)
-      return true;
-  }
-  return false;
-}
+const MASK_BORDER_OFFSETS = createMaskBorderOffsets(1);
 
 export function InpaintDialog({
   isOpen,
@@ -158,6 +52,9 @@ export function InpaintDialog({
   onSubmit,
 }: InpaintDialogProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const maskCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const fillPreviewCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const borderPreviewCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const drawingPointerIdRef = useRef<number | null>(null);
   const isDrawingRef = useRef(false);
   const lastPointRef = useRef<CanvasPoint | null>(null);
@@ -179,30 +76,109 @@ export function InpaintDialog({
   const [hasMask, setHasMask] = useState(false);
   const [historyVersion, setHistoryVersion] = useState(0);
 
-  const getMaskContext = useCallback(() => {
+  const ensureBufferCanvas = useCallback((targetRef: { current: HTMLCanvasElement | null }, width: number, height: number) => {
+    let bufferCanvas = targetRef.current;
+    if (!bufferCanvas) {
+      bufferCanvas = document.createElement("canvas");
+      targetRef.current = bufferCanvas;
+    }
+    if (bufferCanvas.width !== width)
+      bufferCanvas.width = width;
+    if (bufferCanvas.height !== height)
+      bufferCanvas.height = height;
+    return bufferCanvas;
+  }, []);
+
+  const getDisplayContext = useCallback(() => {
     const canvas = canvasRef.current;
-    const context = canvas?.getContext("2d", { willReadFrequently: true });
+    const context = canvas?.getContext("2d");
     if (!canvas || !context)
       return null;
     return { canvas, context };
   }, []);
 
+  const getMaskContext = useCallback(() => {
+    const displayCanvas = canvasRef.current;
+    if (!displayCanvas)
+      return null;
+
+    const canvas = ensureBufferCanvas(maskCanvasRef, displayCanvas.width, displayCanvas.height);
+    const context = canvas.getContext("2d", { willReadFrequently: true });
+    if (!canvas || !context)
+      return null;
+    return { canvas, context };
+  }, [ensureBufferCanvas]);
+
   const syncHistoryVersion = useCallback(() => {
     setHistoryVersion(prev => prev + 1);
   }, []);
 
+  const renderMaskPreview = useCallback(() => {
+    const displayTarget = getDisplayContext();
+    const maskTarget = getMaskContext();
+    if (!displayTarget || !maskTarget)
+      return;
+
+    const { canvas: displayCanvas, context: displayContext } = displayTarget;
+    const { canvas: maskCanvas } = maskTarget;
+    if (!displayCanvas.width || !displayCanvas.height)
+      return;
+
+    displayContext.clearRect(0, 0, displayCanvas.width, displayCanvas.height);
+
+    const fillCanvas = ensureBufferCanvas(fillPreviewCanvasRef, displayCanvas.width, displayCanvas.height);
+    const fillContext = fillCanvas.getContext("2d");
+    if (!fillContext)
+      return;
+
+    fillContext.clearRect(0, 0, fillCanvas.width, fillCanvas.height);
+    fillContext.fillStyle = buildMaskPaintStyle(fillContext, maskColor, maskOpacity, maskPattern);
+    fillContext.fillRect(0, 0, fillCanvas.width, fillCanvas.height);
+    fillContext.globalCompositeOperation = "destination-in";
+    fillContext.drawImage(maskCanvas, 0, 0);
+    fillContext.globalCompositeOperation = "source-over";
+    displayContext.drawImage(fillCanvas, 0, 0);
+
+    if (!showMaskBorder)
+      return;
+
+    const borderCanvas = ensureBufferCanvas(borderPreviewCanvasRef, displayCanvas.width, displayCanvas.height);
+    const borderContext = borderCanvas.getContext("2d");
+    if (!borderContext)
+      return;
+
+    borderContext.clearRect(0, 0, borderCanvas.width, borderCanvas.height);
+    borderContext.globalAlpha = 0.55;
+    for (const offset of MASK_BORDER_OFFSETS)
+      borderContext.drawImage(maskCanvas, offset.x, offset.y);
+    borderContext.globalAlpha = 1;
+    borderContext.globalCompositeOperation = "destination-out";
+    borderContext.drawImage(maskCanvas, 0, 0);
+    borderContext.globalCompositeOperation = "source-over";
+    displayContext.drawImage(borderCanvas, 0, 0);
+  }, [
+    ensureBufferCanvas,
+    getDisplayContext,
+    getMaskContext,
+    maskColor,
+    maskOpacity,
+    maskPattern,
+    showMaskBorder,
+  ]);
+
   const syncMaskPresence = useCallback(() => {
     const target = getMaskContext();
-    if (!target) {
+    if (!target || !target.canvas.width || !target.canvas.height) {
       setHasMask(false);
       return;
     }
-    setHasMask(hasAnyMaskPixels(target.context, target.canvas.width, target.canvas.height));
+    const pixels = target.context.getImageData(0, 0, target.canvas.width, target.canvas.height);
+    setHasMask(hasAnyMaskAlpha(pixels.data));
   }, [getMaskContext]);
 
   const pushUndoSnapshot = useCallback(() => {
     const target = getMaskContext();
-    if (!target)
+    if (!target || !target.canvas.width || !target.canvas.height)
       return;
 
     undoStackRef.current.push(target.context.getImageData(0, 0, target.canvas.width, target.canvas.height));
@@ -217,9 +193,10 @@ export function InpaintDialog({
 
     target.context.clearRect(0, 0, target.canvas.width, target.canvas.height);
     target.context.putImageData(snapshot, 0, 0);
+    renderMaskPreview();
     syncMaskPresence();
     syncHistoryVersion();
-  }, [getMaskContext, syncHistoryVersion, syncMaskPresence]);
+  }, [getMaskContext, renderMaskPreview, syncHistoryVersion, syncMaskPresence]);
 
   useEffect(() => {
     if (!isOpen || !source)
@@ -242,14 +219,27 @@ export function InpaintDialog({
     redoStackRef.current = [];
     syncHistoryVersion();
 
+    const displayCanvas = canvasRef.current;
+    if (!displayCanvas)
+      return;
+
+    displayCanvas.width = source.width;
+    displayCanvas.height = source.height;
+    displayCanvas.getContext("2d")?.clearRect(0, 0, source.width, source.height);
+
     const target = getMaskContext();
     if (!target)
       return;
 
-    target.canvas.width = source.width;
-    target.canvas.height = source.height;
     target.context.clearRect(0, 0, target.canvas.width, target.canvas.height);
-  }, [getMaskContext, isOpen, source, syncHistoryVersion]);
+    renderMaskPreview();
+  }, [getMaskContext, isOpen, renderMaskPreview, source, syncHistoryVersion]);
+
+  useEffect(() => {
+    if (!isOpen || !source)
+      return;
+    renderMaskPreview();
+  }, [isOpen, maskColor, maskOpacity, maskPattern, renderMaskPreview, showMaskBorder, source]);
 
   useEffect(() => {
     if (!isOpen)
@@ -334,9 +324,8 @@ export function InpaintDialog({
     }
     else {
       context.globalCompositeOperation = "source-over";
-      const fillStyle = buildMaskPaintStyle(context, maskColor, maskOpacity, maskPattern);
-      context.strokeStyle = fillStyle;
-      context.fillStyle = fillStyle;
+      context.strokeStyle = "rgba(255, 255, 255, 1)";
+      context.fillStyle = "rgba(255, 255, 255, 1)";
     }
 
     context.beginPath();
@@ -351,29 +340,15 @@ export function InpaintDialog({
         brushSize,
         brushSize,
       );
-      if (tool !== "erase" && showMaskBorder) {
-        context.strokeStyle = "rgba(255, 255, 255, 0.55)";
-        context.lineWidth = Math.max(1, brushSize * 0.08);
-        context.strokeRect(
-          to.x - brushSize / 2,
-          to.y - brushSize / 2,
-          brushSize,
-          brushSize,
-        );
-      }
     }
     else {
       context.beginPath();
       context.arc(to.x, to.y, brushSize / 2, 0, Math.PI * 2);
       context.fill();
-      if (tool !== "erase" && showMaskBorder) {
-        context.strokeStyle = "rgba(255, 255, 255, 0.55)";
-        context.lineWidth = Math.max(1, brushSize * 0.08);
-        context.stroke();
-      }
     }
     context.restore();
-  }, [brushSize, getMaskContext, isSquareBrush, maskColor, maskOpacity, maskPattern, showMaskBorder, tool]);
+    renderMaskPreview();
+  }, [brushSize, getMaskContext, isSquareBrush, renderMaskPreview, tool]);
 
   const finishDrawing = useCallback((event: ReactPointerEvent<HTMLCanvasElement>) => {
     if (!isDrawingRef.current || drawingPointerIdRef.current !== event.pointerId)
@@ -446,8 +421,9 @@ export function InpaintDialog({
 
     pushUndoSnapshot();
     target.context.clearRect(0, 0, target.canvas.width, target.canvas.height);
+    renderMaskPreview();
     setHasMask(false);
-  }, [getMaskContext, hasMask, pushUndoSnapshot]);
+  }, [getMaskContext, hasMask, pushUndoSnapshot, renderMaskPreview]);
 
   const handleUndo = useCallback(() => {
     const target = getMaskContext();
@@ -470,32 +446,11 @@ export function InpaintDialog({
   }, [getMaskContext, restoreSnapshot]);
 
   const buildMaskDataUrl = useCallback(() => {
-    const target = getMaskContext();
-    if (!target)
+    const maskCanvas = maskCanvasRef.current;
+    if (!maskCanvas || !maskCanvas.width || !maskCanvas.height)
       return "";
-
-    const { canvas, context } = target;
-    const sourcePixels = context.getImageData(0, 0, canvas.width, canvas.height);
-    const exportCanvas = document.createElement("canvas");
-    exportCanvas.width = canvas.width;
-    exportCanvas.height = canvas.height;
-    const exportContext = exportCanvas.getContext("2d");
-    if (!exportContext)
-      return "";
-
-    const exportPixels = exportContext.createImageData(exportCanvas.width, exportCanvas.height);
-    for (let index = 0; index < sourcePixels.data.length; index += 4) {
-      const alpha = sourcePixels.data[index + 3];
-      if (!alpha)
-        continue;
-      exportPixels.data[index] = 255;
-      exportPixels.data[index + 1] = 255;
-      exportPixels.data[index + 2] = 255;
-      exportPixels.data[index + 3] = alpha;
-    }
-    exportContext.putImageData(exportPixels, 0, 0);
-    return exportCanvas.toDataURL("image/png");
-  }, [getMaskContext]);
+    return maskCanvas.toDataURL("image/png");
+  }, []);
 
   const handleSubmit = useCallback(async () => {
     const nextPrompt = prompt.trim();
