@@ -44,7 +44,7 @@ interface BrushCursorPoint {
   y: number;
 }
 
-const MASK_BORDER_OFFSETS = createMaskBorderOffsets(1);
+const MASK_BORDER_OFFSETS = createMaskBorderOffsets(4);
 const BRUSH_CURSOR_STROKE_COLOR = "#000000";
 const BRUSH_CURSOR_CROSS_SIZE = 13;
 
@@ -339,9 +339,6 @@ export function InpaintDialog({
 
     const { context } = target;
     context.save();
-    context.lineCap = isSquareBrush ? "square" : "round";
-    context.lineJoin = isSquareBrush ? "miter" : "round";
-    context.lineWidth = brushMetrics.lineWidth;
     if (tool === "erase") {
       context.globalCompositeOperation = "destination-out";
       context.strokeStyle = "rgba(0, 0, 0, 1)";
@@ -353,20 +350,34 @@ export function InpaintDialog({
       context.fillStyle = "rgba(255, 255, 255, 1)";
     }
 
-    context.beginPath();
-    context.moveTo(from.x, from.y);
-    context.lineTo(to.x, to.y);
-    context.stroke();
-
     if (isSquareBrush) {
-      context.fillRect(
-        to.x - brushMetrics.width / 2,
-        to.y - brushMetrics.height / 2,
-        brushMetrics.width,
-        brushMetrics.height,
-      );
+      const deltaX = to.x - from.x;
+      const deltaY = to.y - from.y;
+      const distance = Math.hypot(deltaX, deltaY);
+      const stampSpacing = Math.max(1, Math.min(brushMetrics.width, brushMetrics.height) / 2);
+      const stampCount = Math.max(1, Math.ceil(distance / stampSpacing));
+
+      for (let index = 0; index <= stampCount; index += 1) {
+        const progress = stampCount === 0 ? 0 : index / stampCount;
+        const stampX = from.x + deltaX * progress;
+        const stampY = from.y + deltaY * progress;
+        context.fillRect(
+          stampX - brushMetrics.width / 2,
+          stampY - brushMetrics.height / 2,
+          brushMetrics.width,
+          brushMetrics.height,
+        );
+      }
     }
     else {
+      context.lineCap = "round";
+      context.lineJoin = "round";
+      context.lineWidth = brushMetrics.lineWidth;
+      context.beginPath();
+      context.moveTo(from.x, from.y);
+      context.lineTo(to.x, to.y);
+      context.stroke();
+
       context.beginPath();
       context.arc(to.x, to.y, brushMetrics.radius, 0, Math.PI * 2);
       context.fill();
