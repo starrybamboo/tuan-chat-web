@@ -1554,7 +1554,8 @@ export function useAiImagePageController() {
     if (!preview)
       return;
 
-    if (!applySelectedPreviewAsBaseImage())
+    const shouldSyncBaseImage = sourceImageDataUrl !== preview.dataUrl;
+    if (shouldSyncBaseImage && !applySelectedPreviewAsBaseImage())
       return;
 
     const sourceImageBase64 = dataUrlToBase64(preview.dataUrl);
@@ -1567,6 +1568,7 @@ export function useAiImagePageController() {
     setInpaintDialogSource({
       dataUrl: preview.dataUrl,
       imageBase64: sourceImageBase64,
+      maskDataUrl: shouldSyncBaseImage ? "" : infillMaskDataUrl,
       width: preview.width,
       height: preview.height,
       seed: preview.seed,
@@ -1576,7 +1578,7 @@ export function useAiImagePageController() {
       negativePrompt: selectedPreviewHistoryRow?.negativePrompt || (uiMode === "simple" ? simpleNegativePrompt : negativePrompt),
       strength,
     });
-  }, [applySelectedPreviewAsBaseImage, negativePrompt, prompt, selectedPreviewHistoryRow, selectedPreviewResult, showErrorToast, simpleNegativePrompt, simplePrompt, strength, uiMode]);
+  }, [applySelectedPreviewAsBaseImage, infillMaskDataUrl, negativePrompt, prompt, selectedPreviewHistoryRow, selectedPreviewResult, showErrorToast, simpleNegativePrompt, simplePrompt, sourceImageDataUrl, strength, uiMode]);
 
   const handleOpenBaseImageInpaint = useCallback(async () => {
     if (!sourceImageDataUrl)
@@ -1600,6 +1602,7 @@ export function useAiImagePageController() {
     setInpaintDialogSource({
       dataUrl: sourceImageDataUrl,
       imageBase64: sourceImageBase64,
+      maskDataUrl: infillMaskDataUrl,
       width: sourceImageSize?.width ?? width,
       height: sourceImageSize?.height ?? height,
       seed,
@@ -1609,7 +1612,7 @@ export function useAiImagePageController() {
       negativePrompt: uiMode === "simple" ? simpleNegativePrompt : negativePrompt,
       strength,
     });
-  }, [height, negativePrompt, model, prompt, seed, simpleNegativePrompt, simplePrompt, sourceImageDataUrl, showErrorToast, strength, uiMode, width]);
+  }, [height, infillMaskDataUrl, negativePrompt, model, prompt, seed, simpleNegativePrompt, simplePrompt, sourceImageDataUrl, showErrorToast, strength, uiMode, width]);
 
   const handleCloseInpaintDialog = useCallback(() => {
     if (loading)
@@ -1624,14 +1627,12 @@ export function useAiImagePageController() {
 
     const nextStrength = clampRange(Number(payload.strength), 0.01, 1, 0.7);
     if (inpaintDialogSource.mode === "simple") {
-      setSimpleNegativePrompt(payload.negativePrompt);
       setSimpleEditorMode("tags");
       setSimplePromptTab("prompt");
       setSimpleImg2imgStrength(nextStrength);
       setSimpleInfillMaskDataUrl(payload.maskDataUrl);
     }
     else {
-      setNegativePrompt(payload.negativePrompt);
       setProImg2imgStrength(nextStrength);
       setProInfillMaskDataUrl(payload.maskDataUrl);
     }

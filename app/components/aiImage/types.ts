@@ -85,6 +85,7 @@ export type ImportedSourceImagePayload = {
 export type InpaintDialogSource = {
   dataUrl: string;
   imageBase64: string;
+  maskDataUrl?: string;
   width: number;
   height: number;
   seed: number;
