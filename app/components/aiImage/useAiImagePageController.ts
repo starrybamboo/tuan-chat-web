@@ -1710,20 +1710,20 @@ export function useAiImagePageController() {
   const handleRunDirectorInputUpscale = useCallback(async () => {
     if (!directorInputPreview)
       return;
-    showErrorToast(getNovelAiFreeOnlyMessage("Upscale ????"));
+    showErrorToast(getNovelAiFreeOnlyMessage("Upscale 已禁用。"));
   }, [directorInputPreview, showErrorToast]);
 
   const handleAddDirectorDisplayedToSourceRail = useCallback(() => {
     if (addDirectorImageToSourceRail(directorOutputPreview ?? selectedPreviewResult))
-      showSuccessToast("??????????????");
+      showSuccessToast("已把当前右侧图片加入左侧栏。");
   }, [addDirectorImageToSourceRail, directorOutputPreview, selectedPreviewResult, showSuccessToast]);
 
   const handleCopyDirectorInputImage = useCallback(async () => {
-    await copyGeneratedImageToClipboard(directorInputPreview, "??????????");
+    await copyGeneratedImageToClipboard(directorInputPreview, "已复制当前左侧图片。");
   }, [copyGeneratedImageToClipboard, directorInputPreview]);
 
   const handleCopyDirectorOutputImage = useCallback(async () => {
-    await copyGeneratedImageToClipboard(directorOutputPreview ?? selectedPreviewResult, "??????????");
+    await copyGeneratedImageToClipboard(directorOutputPreview ?? selectedPreviewResult, "已复制当前右侧图片。");
   }, [copyGeneratedImageToClipboard, directorOutputPreview, selectedPreviewResult]);
 
   const handleDownloadDirectorOutputImage = useCallback(() => {
