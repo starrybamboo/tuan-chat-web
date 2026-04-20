@@ -1624,7 +1624,6 @@ export function useAiImagePageController() {
 
     const nextStrength = clampRange(Number(payload.strength), 0.01, 1, 0.7);
     if (inpaintDialogSource.mode === "simple") {
-      setSimplePrompt(payload.prompt);
       setSimpleNegativePrompt(payload.negativePrompt);
       setSimpleEditorMode("tags");
       setSimplePromptTab("prompt");
@@ -1632,7 +1631,6 @@ export function useAiImagePageController() {
       setSimpleInfillMaskDataUrl(payload.maskDataUrl);
     }
     else {
-      setPrompt(payload.prompt);
       setNegativePrompt(payload.negativePrompt);
       setProImg2imgStrength(nextStrength);
       setProInfillMaskDataUrl(payload.maskDataUrl);
