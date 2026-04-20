@@ -22,6 +22,7 @@ interface AiImagePreviewPaneProps {
   isSelectedPreviewPinned: boolean;
   isBusy: boolean;
   isGeneratingImage: boolean;
+  isDirectorImageDragOver: boolean;
   pendingPreviewAction: ActivePreviewAction;
   activeDirectorTool: DirectorToolId;
   directorTool: DirectorToolOption;
@@ -38,6 +39,10 @@ interface AiImagePreviewPaneProps {
   onUseSelectedResultAsBaseImage: () => void;
   onPickDirectorSourceImages: (files: FileList | File[]) => void | Promise<void>;
   onSelectDirectorSourceItem: (item: GeneratedImageItem) => void;
+  onDirectorImageDragEnter: (event: React.DragEvent<HTMLDivElement>) => void;
+  onDirectorImageDragLeave: (event: React.DragEvent<HTMLDivElement>) => void;
+  onDirectorImageDragOver: (event: React.DragEvent<HTMLDivElement>) => void;
+  onDirectorImageDrop: (event: React.DragEvent<HTMLDivElement>) => void;
   onDirectorColorizePromptChange: (value: string) => void;
   onDirectorColorizeDefryChange: (value: number) => void;
   onDirectorEmotionChange: (value: NovelAiEmotion) => void;
@@ -82,6 +87,7 @@ export function AiImagePreviewPane({
   isSelectedPreviewPinned,
   isBusy,
   isGeneratingImage,
+  isDirectorImageDragOver,
   pendingPreviewAction,
   activeDirectorTool,
   directorTool,
@@ -98,6 +104,10 @@ export function AiImagePreviewPane({
   onUseSelectedResultAsBaseImage,
   onPickDirectorSourceImages,
   onSelectDirectorSourceItem,
+  onDirectorImageDragEnter,
+  onDirectorImageDragLeave,
+  onDirectorImageDragOver,
+  onDirectorImageDrop,
   onDirectorColorizePromptChange,
   onDirectorColorizeDefryChange,
   onDirectorEmotionChange,
@@ -144,7 +154,13 @@ export function AiImagePreviewPane({
     <div className={`flex min-h-0 flex-1 flex-col gap-3 overflow-auto ${isDirectorToolsOpen ? "bg-base-200 p-4" : "bg-base-200 py-3"}`}>
       {isDirectorToolsOpen
         ? (
-            <div className={directorShellClassName}>
+            <div
+              className={`relative ${directorShellClassName}`}
+              onDragEnter={onDirectorImageDragEnter}
+              onDragLeave={onDirectorImageDragLeave}
+              onDragOver={onDirectorImageDragOver}
+              onDrop={onDirectorImageDrop}
+            >
               <input
                 ref={directorUploadInputRef}
                 type="file"
@@ -255,6 +271,16 @@ export function AiImagePreviewPane({
                   </div>
                 </div>
               </div>
+
+              {isDirectorImageDragOver
+                ? (
+                    <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center bg-base-100/52 backdrop-blur-[2px]">
+                      <div className="flex size-[88px] items-center justify-center rounded-[24px] bg-[#242636]/78 shadow-[0_16px_34px_rgba(0,0,0,0.24)] backdrop-blur-sm">
+                        <UploadSimpleIcon className="size-11 text-white/90 drop-shadow-[0_1px_1px_rgba(0,0,0,0.28)]" weight="bold" aria-hidden="true" />
+                      </div>
+                    </div>
+                  )
+                : null}
 
               <div className="bg-base-200 p-4">
                 {directorTool.parameterMode === "colorize"
