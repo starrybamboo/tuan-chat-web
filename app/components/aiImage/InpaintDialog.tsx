@@ -232,8 +232,7 @@ export function InpaintDialog({
       return;
 
     target.context.clearRect(0, 0, target.canvas.width, target.canvas.height);
-    renderMaskPreview();
-  }, [getMaskContext, isOpen, renderMaskPreview, source, syncHistoryVersion]);
+  }, [getMaskContext, isOpen, source, syncHistoryVersion]);
 
   useEffect(() => {
     if (!isOpen || !source)
