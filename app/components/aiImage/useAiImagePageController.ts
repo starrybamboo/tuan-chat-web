@@ -101,6 +101,7 @@ import {
   readLocalStorageString,
   resolveFixedImageModel,
   resolveImportedValue,
+  resolveSimpleGenerateMode,
   triggerBlobDownload,
   triggerBrowserDownload,
   writeLocalStorageString,
@@ -1494,12 +1495,13 @@ export function useAiImagePageController() {
   }, [showErrorToast, simpleNegativePrompt, simplePrompt, simpleText]);
 
   const handleSimpleGenerateFromTags = useCallback(async () => {
-    if (!simplePrompt.trim()) {
+    const nextGenerateMode = resolveSimpleGenerateMode(mode);
+    if (nextGenerateMode === "txt2img" && !simplePrompt.trim()) {
       showErrorToast("prompt 为空：请先补充 tags");
       return;
     }
-    await runGenerate({ mode: "txt2img", prompt: simplePrompt, negativePrompt: simpleNegativePrompt });
-  }, [runGenerate, showErrorToast, simpleNegativePrompt, simplePrompt]);
+    await runGenerate({ mode: nextGenerateMode, prompt: simplePrompt, negativePrompt: simpleNegativePrompt });
+  }, [mode, runGenerate, showErrorToast, simpleNegativePrompt, simplePrompt]);
 
   const handleSelectCurrentResult = useCallback((index: number) => {
     setSelectedHistoryPreviewKey(null);
@@ -2281,7 +2283,8 @@ export function useAiImagePageController() {
     || metadataImportSelection.settings
     || metadataImportSelection.seed;
   const canConvertSimpleText = !isBusy && Boolean(simpleText.trim());
-  const canGenerateFromSimpleTags = canGenerate && (Boolean(simplePrompt.trim()) || mode === "infill");
+  const simpleGenerateMode = resolveSimpleGenerateMode(mode);
+  const canGenerateFromSimpleTags = canGenerate && (Boolean(simplePrompt.trim()) || simpleGenerateMode === "infill");
   const hasSimpleTagsDraft = Boolean(simplePrompt.trim() || simpleNegativePrompt.trim());
   const simpleConvertLabel = simpleConverting ? "转化中..." : loading || pendingPreviewAction ? "处理中..." : "转化为 tags";
 

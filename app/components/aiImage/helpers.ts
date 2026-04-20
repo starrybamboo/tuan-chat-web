@@ -556,6 +556,10 @@ export function resolveEditorImageMode(sourceDataUrl?: string | null): "txt2img"
     : "txt2img";
 }
 
+export function resolveSimpleGenerateMode(mode: AiImageHistoryMode): AiImageHistoryMode {
+  return mode === "infill" ? "infill" : "txt2img";
+}
+
 export function base64ToBytes(value: string) {
   const normalized = String(value || "").replace(/\s+/g, "");
   if (!normalized)

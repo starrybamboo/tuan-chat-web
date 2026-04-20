@@ -8,6 +8,7 @@ import {
   insertNovelAiRandomTags,
   mergeTagString,
   resolveEditorImageMode,
+  resolveSimpleGenerateMode,
   resolveNovelAiRandomTagTarget,
   historyRowKey,
   historyRowResultMatchKey,
@@ -103,6 +104,11 @@ describe("aiImage helpers", () => {
     expect(resolveEditorImageMode("data:image/png;base64,abc123")).toBe("img2img");
     expect(resolveEditorImageMode("not-a-data-url")).toBe("txt2img");
     expect(resolveEditorImageMode("")).toBe("txt2img");
+  });
+
+  it("keeps simple mode generation on infill after an inpaint save", () => {
+    expect(resolveSimpleGenerateMode("infill")).toBe("infill");
+    expect(resolveSimpleGenerateMode("txt2img")).toBe("txt2img");
   });
 
   it("allows the new 832x1216 / 1216x832 preset sizes in simple mode clamping", () => {
