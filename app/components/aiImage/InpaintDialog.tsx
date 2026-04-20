@@ -539,13 +539,13 @@ export function InpaintDialog({
     <div className="absolute inset-0 z-50 overflow-hidden bg-base-200 text-white">
       <div className={`absolute left-4 top-4 z-20 h-[87px] w-[236px] overflow-hidden ${sharedPanelClassName}`}>
         <div className="flex h-full items-stretch">
-          <div className="flex w-[92px] shrink-0 flex-col items-center justify-center gap-1.5 border-r border-white/10 px-2 text-[11px] font-medium whitespace-nowrap text-white/88">
+          <div className="flex w-[92px] shrink-0 flex-col items-center justify-center gap-2 border-r border-white/10 px-2 text-[11px] font-medium whitespace-nowrap text-white/88">
             <span className="inline-flex size-6 items-center justify-center rounded-md border border-white/12 bg-white/[0.04] text-white/86">
               <PencilSimpleLineIcon className="size-[16px]" weight="bold" />
             </span>
             <span className="leading-none">Draw Mask</span>
           </div>
-          <div className="flex min-w-0 flex-1 flex-col justify-center px-2 py-1.5">
+          <div className="flex min-w-0 flex-1 flex-col justify-center px-3 py-2">
             <div className="flex items-center justify-between gap-2 text-[11px] font-medium text-white/82">
               <span>Pen Size</span>
               <span>{brushSize}</span>
@@ -556,10 +556,10 @@ export function InpaintDialog({
               max={50}
               step={1}
               value={brushSize}
-              className="mt-2 h-1.5 w-full cursor-pointer appearance-none bg-transparent focus:outline-none [&::-webkit-slider-runnable-track]:h-1.5 [&::-webkit-slider-runnable-track]:rounded-full [&::-webkit-slider-runnable-track]:bg-white/12 [&::-webkit-slider-thumb]:mt-[-5px] [&::-webkit-slider-thumb]:size-4 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:border-0 [&::-webkit-slider-thumb]:bg-[#f6e6a5] [&::-webkit-slider-thumb]:shadow-[0_0_0_1px_rgba(17,18,36,0.35)] [&::-moz-range-track]:h-1.5 [&::-moz-range-track]:rounded-full [&::-moz-range-track]:bg-white/12 [&::-moz-range-thumb]:size-4 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:bg-[#f6e6a5]"
+              className="mt-2.5 h-1.5 w-full cursor-pointer appearance-none bg-transparent focus:outline-none [&::-webkit-slider-runnable-track]:h-1.5 [&::-webkit-slider-runnable-track]:rounded-full [&::-webkit-slider-runnable-track]:bg-white/12 [&::-webkit-slider-thumb]:mt-[-5px] [&::-webkit-slider-thumb]:size-4 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:border-0 [&::-webkit-slider-thumb]:bg-[#f6e6a5] [&::-webkit-slider-thumb]:shadow-[0_0_0_1px_rgba(17,18,36,0.35)] [&::-moz-range-track]:h-1.5 [&::-moz-range-track]:rounded-full [&::-moz-range-track]:bg-white/12 [&::-moz-range-thumb]:size-4 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:bg-[#f6e6a5]"
               onChange={event => setBrushSize(Number(event.target.value))}
             />
-            <label className="mt-1.5 flex cursor-pointer items-center gap-2 text-[11px] font-medium text-white/82">
+            <label className="mt-2 flex cursor-pointer items-center gap-2 text-[11px] font-medium text-white/82">
               <input
                 type="checkbox"
                 checked={isSquareBrush}
