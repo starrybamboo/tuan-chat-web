@@ -1,6 +1,7 @@
 import {
   createMaskBorderOffsets,
   hasAnyMaskAlpha,
+  mapDisplaySizeToCanvasSize,
   mapBrushCursorDisplaySize,
 } from "@/components/aiImage/inpaintMaskUtils";
 
@@ -36,5 +37,11 @@ describe("inpaintMaskUtils", () => {
     expect(mapBrushCursorDisplaySize(4)).toBe(30);
     expect(mapBrushCursorDisplaySize(50)).toBe(385);
     expect(mapBrushCursorDisplaySize(27)).toBe(208);
+  });
+
+  it("maps preview size back to canvas size using the rendered ratio", () => {
+    expect(mapDisplaySizeToCanvasSize(30, 1000, 500)).toBe(60);
+    expect(mapDisplaySizeToCanvasSize(385, 2000, 1000)).toBe(770);
+    expect(mapDisplaySizeToCanvasSize(20, 0, 0)).toBe(20);
   });
 });

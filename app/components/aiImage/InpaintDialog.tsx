@@ -18,6 +18,7 @@ import {
   buildMaskSolidColor,
   createMaskBorderOffsets,
   hasAnyMaskAlpha,
+  mapDisplaySizeToCanvasSize,
   mapBrushCursorDisplaySize,
   MASK_COLOR_OPTIONS,
   MASK_PATTERN_OPTIONS,
@@ -312,16 +313,35 @@ export function InpaintDialog({
     };
   }, []);
 
+  const brushCursorDisplaySize = mapBrushCursorDisplaySize(brushSize);
+
+  const getBrushCanvasMetrics = useCallback(() => {
+    const canvas = canvasRef.current;
+    if (!canvas)
+      return null;
+
+    const rect = canvas.getBoundingClientRect();
+    const canvasBrushWidth = mapDisplaySizeToCanvasSize(brushCursorDisplaySize, canvas.width, rect.width);
+    const canvasBrushHeight = mapDisplaySizeToCanvasSize(brushCursorDisplaySize, canvas.height, rect.height);
+    return {
+      width: canvasBrushWidth,
+      height: canvasBrushHeight,
+      radius: Math.max(1, Math.min(canvasBrushWidth, canvasBrushHeight) / 2),
+      lineWidth: Math.max(1, (canvasBrushWidth + canvasBrushHeight) / 2),
+    };
+  }, [brushCursorDisplaySize]);
+
   const drawStroke = useCallback((from: CanvasPoint, to: CanvasPoint) => {
     const target = getMaskContext();
-    if (!target)
+    const brushMetrics = getBrushCanvasMetrics();
+    if (!target || !brushMetrics)
       return;
 
     const { context } = target;
     context.save();
     context.lineCap = isSquareBrush ? "square" : "round";
     context.lineJoin = isSquareBrush ? "miter" : "round";
-    context.lineWidth = brushSize;
+    context.lineWidth = brushMetrics.lineWidth;
     if (tool === "erase") {
       context.globalCompositeOperation = "destination-out";
       context.strokeStyle = "rgba(0, 0, 0, 1)";
@@ -340,20 +360,20 @@ export function InpaintDialog({
 
     if (isSquareBrush) {
       context.fillRect(
-        to.x - brushSize / 2,
-        to.y - brushSize / 2,
-        brushSize,
-        brushSize,
+        to.x - brushMetrics.width / 2,
+        to.y - brushMetrics.height / 2,
+        brushMetrics.width,
+        brushMetrics.height,
       );
     }
     else {
       context.beginPath();
-      context.arc(to.x, to.y, brushSize / 2, 0, Math.PI * 2);
+      context.arc(to.x, to.y, brushMetrics.radius, 0, Math.PI * 2);
       context.fill();
     }
     context.restore();
     renderMaskPreview();
-  }, [brushSize, getMaskContext, isSquareBrush, renderMaskPreview, tool]);
+  }, [getBrushCanvasMetrics, getMaskContext, isSquareBrush, renderMaskPreview, tool]);
 
   const finishDrawing = useCallback((event: ReactPointerEvent<HTMLCanvasElement>) => {
     if (!isDrawingRef.current || drawingPointerIdRef.current !== event.pointerId)
@@ -484,7 +504,6 @@ export function InpaintDialog({
   const toolbarButtonClassName = "inline-flex size-10 items-center justify-center rounded-md border border-white/10 bg-white/[0.06] text-white/72 transition hover:border-white/24 hover:bg-white/[0.1] hover:text-white focus:outline-none focus:ring-2 focus:ring-white/16 disabled:cursor-not-allowed disabled:opacity-35";
   const topActionButtonClassName = "inline-flex h-10 items-center justify-center border-0 px-4 text-sm font-medium transition focus:outline-none focus:ring-2 focus:ring-white/16 disabled:cursor-not-allowed disabled:opacity-40 rounded-none";
   const topIconActionButtonClassName = "inline-flex size-10 items-center justify-center border-0 bg-white/[0.06] text-white/72 transition hover:bg-white/[0.1] hover:text-white focus:outline-none focus:ring-2 focus:ring-white/16 disabled:cursor-not-allowed disabled:opacity-35 rounded-none";
-  const brushCursorDisplaySize = mapBrushCursorDisplaySize(brushSize);
   const sharedPanelClassName = "rounded-md border border-[#2A3138] bg-[#161A1F] shadow-[0_18px_48px_rgba(0,0,0,0.34)]";
   const bottomToolButtonClassName = "inline-flex size-10 items-center justify-center rounded-md border border-transparent bg-transparent text-white/60 transition hover:bg-white/[0.08] hover:text-white focus:outline-none focus:ring-2 focus:ring-white/16 disabled:cursor-not-allowed disabled:opacity-35";
   const boardButtonClassName = `${bottomToolButtonClassName} ${isBoardPanelOpen ? "bg-white/[0.12] text-white" : ""}`;
@@ -593,11 +612,12 @@ export function InpaintDialog({
                     }}
                   >
                     <div
-                      className={`relative block border ${isSquareBrush ? "rounded-none" : "rounded-full"}`}
+                      className="relative block border"
                       style={{
                         width: `${brushCursorDisplaySize}px`,
                         height: `${brushCursorDisplaySize}px`,
                         borderColor: BRUSH_CURSOR_STROKE_COLOR,
+                        borderRadius: isSquareBrush ? "0" : "9999px",
                         boxSizing: "border-box",
                       }}
                     >
