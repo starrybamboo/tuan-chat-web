@@ -541,9 +541,9 @@ export function InpaintDialog({
         </div>
       </div>
 
-      <div className="pointer-events-none absolute bottom-2 left-1/2 z-20 w-[calc(100vw-6rem)] max-w-[calc(100vw-6rem)] -translate-x-1/2">
-        <div className={`pointer-events-auto flex items-stretch justify-between gap-0 px-2 py-2 ${sharedPanelClassName}`}>
-          <div className="flex items-center gap-0 pr-1.5">
+      <div className="pointer-events-none absolute bottom-2 left-1/2 z-20 w-[830px] max-w-[calc(100vw-6rem)] -translate-x-1/2">
+        <div className={`pointer-events-auto flex h-[50px] items-stretch justify-between gap-0 px-2 ${sharedPanelClassName}`}>
+          <div className="flex items-center gap-0">
             <button
               type="button"
               className={`${bottomToolButtonClassName} rounded-r-none ${tool === "paint" ? "bg-white/[0.12] text-white" : ""}`}
@@ -563,8 +563,7 @@ export function InpaintDialog({
               <EraserIcon className="size-[18px]" weight="bold" />
             </button>
           </div>
-          <div className="mx-2 w-px bg-white/10" />
-          <div className="flex items-center gap-0 pl-1.5">
+          <div className="flex items-center gap-0">
             <button
               type="button"
               className={bottomToolButtonClassName}
