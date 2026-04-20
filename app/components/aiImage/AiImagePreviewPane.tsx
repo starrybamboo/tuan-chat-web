@@ -385,7 +385,7 @@ export function AiImagePreviewPane({
                       <div className={`mb-3 grid gap-3 ${directorFrameClassName} xl:grid-cols-[220px_minmax(0,1fr)]`}>
                         <div className="min-w-0">
                           <div className="mb-2 text-[11px] font-medium uppercase tracking-[0.18em] text-base-content/55">Defry</div>
-                          <div className="flex items-center gap-1 rounded-md bg-[#101224] p-1">
+                          <div className="flex items-center gap-1 rounded-md border border-base-300 bg-base-100 p-1">
                             {directorDefryOptions.map((value) => {
                               const isActive = Number(directorColorizeDefry) === value;
                               return (
@@ -421,7 +421,7 @@ export function AiImagePreviewPane({
 
                 {directorTool.parameterMode === "emotion"
                   ? (
-                      <div className={`mb-3 grid gap-3 ${directorFrameClassName} xl:grid-cols-[180px_minmax(0,1fr)_220px]`}>
+                      <div className={`mb-3 grid gap-3 ${directorFrameClassName} xl:grid-cols-[180px_minmax(0,1fr)]`}>
                         <label className="min-w-0">
                           <div className="mb-2 text-[11px] font-medium uppercase tracking-[0.18em] text-base-content/55">Emotion</div>
                           <select
@@ -445,28 +445,6 @@ export function AiImagePreviewPane({
                             onChange={event => onDirectorEmotionExtraPromptChange(event.target.value)}
                           />
                         </label>
-                        <div className="min-w-0">
-                          <div className="mb-2 text-[11px] font-medium uppercase tracking-[0.18em] text-base-content/55">Defry</div>
-                          <div className="flex items-center gap-1 rounded-md bg-[#101224] p-1">
-                            {directorDefryOptions.map((value) => {
-                              const isActive = Number(directorEmotionDefry) === value;
-                              return (
-                                <button
-                                  key={value}
-                                  type="button"
-                                  className={`inline-flex h-8 min-w-8 items-center justify-center rounded-md px-2 text-[12px] font-medium transition focus:outline-none ${
-                                    isActive
-                                      ? "bg-[#f3efc6] text-[#111326]"
-                                      : "text-base-content/75 hover:bg-base-300 hover:text-base-content"
-                                  }`}
-                                  onClick={() => onDirectorEmotionDefryChange(value)}
-                                >
-                                  {value}
-                                </button>
-                              );
-                            })}
-                          </div>
-                        </div>
                       </div>
                     )
                   : null}
