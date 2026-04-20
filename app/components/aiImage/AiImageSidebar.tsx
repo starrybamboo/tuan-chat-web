@@ -1715,12 +1715,12 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
 
                                       {showCharacterPositionsGlobalSection && !isCharacterPositionAiChoiceEnabled && isCharacterPositionPickerOpen
                                         ? (
-                                            <div className="absolute inset-0 z-20 flex flex-col rounded-2xl border border-[#2A3138] bg-[#161A1F] p-3 shadow-2xl">
-                                              <div className="flex items-center gap-2 text-[12px] font-medium leading-5 text-white/90">
+                                            <div className="absolute inset-0 z-20 flex flex-col rounded-2xl border border-[#2A3138] bg-[#161A1F] p-2.5 shadow-2xl">
+                                              <div className="flex items-center gap-1.5 text-[11px] font-medium leading-5 text-white/90">
                                                 <span className="text-white/72">Position</span>
-                                                <span className="text-[18px] font-semibold leading-none tracking-[0.08em] text-white/96">{selectedPositionCode}</span>
+                                                <span className="text-[16px] font-semibold leading-none tracking-[0.08em] text-white/96">{selectedPositionCode}</span>
                                               </div>
-                                              <div className="mt-3 grid flex-1 grid-cols-5 gap-1.5 rounded-md border border-[#2A3138] bg-[#161A1F] p-1.5">
+                                              <div className="mt-2 grid grid-cols-5 gap-1 rounded-md border border-[#2A3138] bg-[#161A1F] p-1">
                                                 {V4_CHAR_GRID_CELLS.map((cell) => {
                                                   const occupant = characterPositionAssignments.get(cell.code);
                                                   const occupiedByOther = Boolean(occupant && occupant.characterId !== row.id);
@@ -1729,7 +1729,7 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                                                     <button
                                                       key={cell.code}
                                                       type="button"
-                                                      className={`flex h-10 items-center justify-center rounded-md border text-[18px] font-semibold leading-none transition focus:outline-none ${
+                                                      className={`flex h-8 items-center justify-center rounded-md border text-[16px] font-semibold leading-none transition focus:outline-none ${
                                                         occupiedByOther
                                                           ? "cursor-not-allowed border-white/8 bg-transparent text-white/42"
                                                           : isSelected
@@ -1746,10 +1746,10 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                                                   );
                                                 })}
                                               </div>
-                                              <div className="mt-3 flex justify-center">
+                                              <div className="mt-2 flex justify-center">
                                                 <button
                                                   type="button"
-                                                  className="inline-flex h-11 items-center rounded-md bg-white/10 px-5 text-[16px] font-semibold text-white transition hover:bg-white/14 focus:outline-none focus:ring-2 focus:ring-white/15"
+                                                  className="inline-flex h-9 items-center rounded-md bg-white/10 px-4 text-[14px] font-semibold text-white transition hover:bg-white/14 focus:outline-none focus:ring-2 focus:ring-white/15"
                                                   onClick={() => handleSaveCharacterPosition(row.id)}
                                                 >
                                                   Done
