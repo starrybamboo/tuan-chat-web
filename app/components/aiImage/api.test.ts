@@ -130,7 +130,9 @@ describe("aiImage api", () => {
     }));
     expect((requestInit?.headers as Record<string, string> | undefined)?.["Content-Type"]).toBeUndefined();
     expect(requestInit?.body).toBeInstanceOf(FormData);
-    const requestPart = (requestInit?.body as FormData).get("request") as Blob;
+    const formData = requestInit?.body as FormData;
+    expect(formData.get("use_new_shared_trial")).toBe("true");
+    const requestPart = formData.get("request") as Blob;
     const requestBody = JSON.parse(await requestPart.text());
     expect(requestBody.action).toBe("infill");
     expect(requestBody.parameters.image).toBe("source-base64");
