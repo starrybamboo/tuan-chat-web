@@ -86,7 +86,7 @@ describe("aiImage api", () => {
     expect(result.dataUrls[0]).toMatch(/^data:image\/png;base64,/);
   });
 
-  it("adds the infill add_original_image safeguard for infill requests", async () => {
+  it("aligns infill requests with the official request structure", async () => {
     const pngBytes = new Uint8Array([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]);
     const fetchMock = vi.fn().mockResolvedValue(new Response(pngBytes, {
       status: 200,
@@ -128,6 +128,18 @@ describe("aiImage api", () => {
     expect(requestBody.parameters.mask).toBe("mask-base64");
     expect(requestBody.parameters.noise).toBe(0.2);
     expect(requestBody.parameters.inpaintImg2ImgStrength).toBe(0.7);
-    expect(requestBody.parameters.add_original_image).toBe(true);
+    expect(requestBody.parameters.img2img).toEqual({
+      strength: 0.7,
+      color_correct: true,
+    });
+    expect(requestBody.parameters.add_original_image).toBe(false);
+    expect(requestBody.parameters.autoSmea).toBe(false);
+    expect(requestBody.parameters.legacy_uc).toBe(false);
+    expect(requestBody.parameters.normalize_reference_strength_multiple).toBe(true);
+    expect(requestBody.parameters.image_format).toBe("png");
+    expect(requestBody.parameters.stream).toBe("msgpack");
+    expect(requestBody.parameters.extra_noise_seed).toBe(0);
+    expect(requestBody.parameters.use_coords).toBe(true);
+    expect(requestBody.parameters.qualityToggle).toBe(true);
   });
 });

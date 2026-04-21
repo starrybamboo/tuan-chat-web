@@ -134,8 +134,8 @@ const DEFAULT_METADATA_IMPORT_SELECTION: MetadataImportSelectionState = {
   cleanImports: false,
 };
 
-const DEFAULT_INPAINT_PROMPT = "repair masked area, match surrounding image, same character, same outfit, same lighting, detailed anime face";
-const DEFAULT_INPAINT_NEGATIVE_PROMPT = "gray patch, gray block, monochrome, blur, artifacts, bad anatomy";
+const DEFAULT_INPAINT_PROMPT = "very aesthetic, masterpiece, no text";
+const DEFAULT_INPAINT_NEGATIVE_PROMPT = "nsfw, lowres, artistic error, film grain, scan artifacts, worst quality, bad quality, jpeg artifacts, very displeasing, chromatic aberration, dithering, halftone, screentone, multiple views, logo, too many watermarks, negative space, blank page";
 
 export function useAiImagePageController() {
   const sourceFileInputRef = useRef<HTMLInputElement | null>(null);
