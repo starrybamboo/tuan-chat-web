@@ -1,8 +1,13 @@
 import {
+  buildBinaryMaskGrid,
+  buildSolidInpaintMaskGrid,
   createMaskBorderOffsets,
+  dilateMaskGrid,
+  fillClosedMaskGrid,
   hasAnyMaskAlpha,
   mapDisplaySizeToCanvasSize,
   mapBrushCursorDisplaySize,
+  renderMaskGridToRgba,
 } from "@/components/aiImage/inpaintMaskUtils";
 
 describe("inpaintMaskUtils", () => {
@@ -59,5 +64,57 @@ describe("inpaintMaskUtils", () => {
     expect(mapDisplaySizeToCanvasSize(30, 1000, 500)).toBe(60);
     expect(mapDisplaySizeToCanvasSize(385, 2000, 1000)).toBe(770);
     expect(mapDisplaySizeToCanvasSize(20, 0, 0)).toBe(20);
+  });
+
+  it("fills enclosed areas for a closed stroke mask", () => {
+    const width = 7;
+    const height = 7;
+    const mask = new Uint8ClampedArray(width * height * 4);
+    const paint = (x: number, y: number) => {
+      const index = (y * width + x) * 4 + 3;
+      mask[index] = 255;
+    };
+
+    for (let x = 1; x <= 5; x += 1) {
+      paint(x, 1);
+      paint(x, 5);
+    }
+    for (let y = 1; y <= 5; y += 1) {
+      paint(1, y);
+      paint(5, y);
+    }
+
+    const solid = buildSolidInpaintMaskGrid(mask, width, height, { closeRadius: 0 });
+    expect(solid[3 * width + 3]).toBe(1);
+    expect(solid[0]).toBe(0);
+    expect(solid[width * height - 1]).toBe(0);
+  });
+
+  it("closes small gaps before filling the interior", () => {
+    const width = 7;
+    const height = 7;
+    const raw = new Uint8ClampedArray(width * height * 4);
+    const paint = (x: number, y: number) => {
+      raw[(y * width + x) * 4 + 3] = 255;
+    };
+
+    for (let x = 1; x <= 5; x += 1) {
+      if (x !== 3)
+        paint(x, 1);
+      paint(x, 5);
+    }
+    for (let y = 1; y <= 5; y += 1) {
+      paint(1, y);
+      paint(5, y);
+    }
+
+    const stroke = buildBinaryMaskGrid(raw);
+    const closed = dilateMaskGrid(stroke, width, height, 1);
+    const filled = fillClosedMaskGrid(closed, width, height);
+    expect(filled[3 * width + 3]).toBe(1);
+
+    const rgba = renderMaskGridToRgba(filled);
+    expect(rgba[(3 * width + 3) * 4]).toBe(255);
+    expect(rgba[(0 * width + 0) * 4]).toBe(0);
   });
 });

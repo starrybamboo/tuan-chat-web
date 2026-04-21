@@ -124,6 +124,7 @@ import {
 } from "@/utils/novelaiImageMetadata";
 import { convertNaturalLanguageToNovelAiTags } from "@/utils/novelaiNl2Tags";
 import { compositeFocusedInpaintResult, prepareFocusedInpaintPayload } from "@/components/aiImage/inpaintFocusUtils";
+import { buildSolidInpaintMaskGrid, renderMaskGridToRgba } from "@/components/aiImage/inpaintMaskUtils";
 
 const DEFAULT_METADATA_IMPORT_SELECTION: MetadataImportSelectionState = {
   prompt: true,
@@ -549,14 +550,11 @@ export function useAiImagePageController() {
       throw new Error("Inpaint 蒙版处理失败。");
 
     // Inpaint 请求只发送独立的黑白 mask：圈内为白色重绘区，圈外为黑色保留区。
+    const solidMask = buildSolidInpaintMaskGrid(pixels.data, pixels.width, pixels.height, {
+      closeRadius: 3,
+    });
     const imageData = baseContext.createImageData(pixels.width, pixels.height);
-    for (let index = 0; index < pixels.data.length; index += 4) {
-      const value = pixels.data[index + 3] > 0 ? 255 : 0;
-      imageData.data[index] = value;
-      imageData.data[index + 1] = value;
-      imageData.data[index + 2] = value;
-      imageData.data[index + 3] = 255;
-    }
+    imageData.data.set(renderMaskGridToRgba(solidMask));
     baseContext.putImageData(imageData, 0, 0);
 
     // 轻微扩张 + 羽化边缘，减少上游重绘时出现的方块灰边。
@@ -608,14 +606,11 @@ export function useAiImagePageController() {
     if (!baseContext)
       throw new Error("Inpaint 混合蒙版处理失败。");
 
+    const solidMask = buildSolidInpaintMaskGrid(pixels.data, pixels.width, pixels.height, {
+      closeRadius: 1,
+    });
     const imageData = baseContext.createImageData(pixels.width, pixels.height);
-    for (let index = 0; index < pixels.data.length; index += 4) {
-      const value = pixels.data[index + 3] > 0 ? 255 : 0;
-      imageData.data[index] = value;
-      imageData.data[index + 1] = value;
-      imageData.data[index + 2] = value;
-      imageData.data[index + 3] = 255;
-    }
+    imageData.data.set(renderMaskGridToRgba(solidMask));
     baseContext.putImageData(imageData, 0, 0);
 
     const finalCanvas = document.createElement("canvas");
