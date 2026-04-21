@@ -86,7 +86,7 @@ describe("aiImage api", () => {
     expect(result.dataUrls[0]).toMatch(/^data:image\/png;base64,/);
   });
 
-  it("does not force add_original_image for infill requests", async () => {
+  it("adds the infill add_original_image safeguard for infill requests", async () => {
     const pngBytes = new Uint8Array([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]);
     const fetchMock = vi.fn().mockResolvedValue(new Response(pngBytes, {
       status: 200,
@@ -128,6 +128,6 @@ describe("aiImage api", () => {
     expect(requestBody.parameters.mask).toBe("mask-base64");
     expect(requestBody.parameters.noise).toBe(0.2);
     expect(requestBody.parameters.inpaintImg2ImgStrength).toBe(0.7);
-    expect(requestBody.parameters.add_original_image).toBeUndefined();
+    expect(requestBody.parameters.add_original_image).toBe(true);
   });
 });

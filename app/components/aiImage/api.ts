@@ -276,6 +276,8 @@ export async function generateNovelImageViaProxy(args: {
     parameters.legacy = false;
     parameters.legacy_v3_extend = false;
     parameters.noise_schedule = args.noiseSchedule;
+    if (args.mode === "infill")
+      parameters.add_original_image = true;
 
     if (isNAI4) {
       const cfgRescale = Number.isFinite(args.cfgRescale) ? Number(args.cfgRescale) : 0;
