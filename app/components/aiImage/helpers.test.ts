@@ -8,11 +8,9 @@ import {
   fitNovelAiImageSizeWithinAreaLimit,
   generatedItemKey,
   getClosestValidImageSize,
-  insertNovelAiRandomTags,
   mergeTagString,
   resolveEditorImageMode,
   resolveSimpleGenerateMode,
-  resolveNovelAiRandomTagTarget,
   sanitizeNovelAiTagInput,
   shouldKeepSimpleTagsEditor,
   toggleNovelAiLineComments,
@@ -22,15 +20,6 @@ import {
   getNovelAiFreeGenerationViolation,
   resolveImportedValue,
 } from "@/components/aiImage/helpers";
-
-function createSequentialRandom(values: number[]) {
-  let index = 0;
-  return () => {
-    const nextValue = values[index] ?? values[values.length - 1] ?? 0;
-    index += 1;
-    return nextValue;
-  };
-}
 
 describe("aiImage helpers", () => {
   it("uses batch identity for generated items when available", () => {
@@ -349,78 +338,4 @@ describe("aiImage helpers", () => {
     });
   });
 
-  it("inserts usable prompt tags instead of randomizer syntax", () => {
-    const inserted = insertNovelAiRandomTags({
-      kind: "prompt",
-      random: createSequentialRandom(Array(8).fill(0)),
-      value: "1girl, blue eyes",
-      selectionStart: 17,
-      selectionEnd: 17,
-    });
-
-    expect(inserted.value).toBe("1girl, blue eyes, cinematic lighting, dramatic shadows, volumetric lighting, rim light, backlighting, depth of field, bokeh, dynamic angle");
-    expect(inserted.value.slice(inserted.selectionStart, inserted.selectionEnd)).toBe("cinematic lighting, dramatic shadows, volumetric lighting, rim light, backlighting, depth of field, bokeh, dynamic angle");
-    expect(inserted.value.slice(inserted.selectionStart, inserted.selectionEnd).split(", ")).toHaveLength(8);
-    expect(inserted.insertedText).toBe("cinematic lighting, dramatic shadows, volumetric lighting, rim light, backlighting, depth of field, bokeh, dynamic angle");
-  });
-
-  it("preserves the selected tag as the first usable prompt tag", () => {
-    const inserted = insertNovelAiRandomTags({
-      kind: "prompt",
-      random: createSequentialRandom(Array(7).fill(0)),
-      value: "1girl, blue eyes, smile",
-      selectionStart: 7,
-      selectionEnd: 16,
-    });
-
-    expect(inserted.value).toBe("1girl, blue eyes, cinematic lighting, dramatic shadows, volumetric lighting, rim light, backlighting, depth of field, bokeh, smile");
-    expect(inserted.value.slice(inserted.selectionStart, inserted.selectionEnd)).toBe("blue eyes, cinematic lighting, dramatic shadows, volumetric lighting, rim light, backlighting, depth of field, bokeh");
-    expect(inserted.value.slice(inserted.selectionStart, inserted.selectionEnd).split(", ")).toHaveLength(8);
-  });
-
-  it("uses a negative tag pool for usable undesired content tags", () => {
-    const inserted = insertNovelAiRandomTags({
-      kind: "negative",
-      random: createSequentialRandom(Array(8).fill(0)),
-      value: "lowres",
-      selectionStart: 6,
-      selectionEnd: 6,
-    });
-
-    expect(inserted.value).toBe("lowres, blurry, bad anatomy, bad hands, extra fingers, missing fingers, deformed, text, watermark");
-    expect(inserted.value.slice(inserted.selectionStart, inserted.selectionEnd).split(", ")).toHaveLength(8);
-  });
-
-  it("reuses the previous random tag range when there is no active selection", () => {
-    const insertedText = "cinematic lighting, dramatic shadows";
-    expect(resolveNovelAiRandomTagTarget({
-      currentValue: `1girl, ${insertedText}`,
-      selectionStart: 0,
-      selectionEnd: 0,
-      previousInsertion: {
-        selectionStart: 7,
-        selectionEnd: 7 + insertedText.length,
-        insertedText,
-      },
-    })).toEqual({
-      selectionStart: 7,
-      selectionEnd: 7 + insertedText.length,
-    });
-  });
-
-  it("falls back to the current caret when the previous random range was edited", () => {
-    expect(resolveNovelAiRandomTagTarget({
-      currentValue: "1girl, cinematic lighting, edited manually",
-      selectionStart: 0,
-      selectionEnd: 0,
-      previousInsertion: {
-        selectionStart: 7,
-        selectionEnd: 42,
-        insertedText: "cinematic lighting, dramatic shadows",
-      },
-    })).toEqual({
-      selectionStart: 0,
-      selectionEnd: 0,
-    });
-  });
 });

@@ -1,5 +1,5 @@
 import type { AiImagePageController } from "@/components/aiImage/useAiImagePageController";
-import { ArrowClockwise, ArrowCounterClockwise, CaretDownIcon, CaretLeftIcon, CaretUpIcon, CheckCircleIcon, CircleIcon, CircleNotch, DiceFiveIcon, FileArrowUpIcon, GenderFemaleIcon, GenderMaleIcon, GearSixIcon, ImageSquareIcon, ImagesSquareIcon, PencilSimpleLineIcon, PlusIcon, SelectionPlusIcon, SparkleIcon, TrashIcon, XCircleIcon } from "@phosphor-icons/react";
+import { ArrowClockwise, ArrowCounterClockwise, CaretDownIcon, CaretLeftIcon, CaretUpIcon, CheckCircleIcon, CircleIcon, CircleNotch, FileArrowUpIcon, GenderFemaleIcon, GenderMaleIcon, GearSixIcon, ImageSquareIcon, ImagesSquareIcon, PencilSimpleLineIcon, PlusIcon, SelectionPlusIcon, SparkleIcon, TrashIcon, XCircleIcon } from "@phosphor-icons/react";
 import type { KeyboardEvent as ReactKeyboardEvent } from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import preciseReferenceIconSrc from "@/components/aiImage/assets/precise-reference.png";
@@ -19,10 +19,8 @@ import {
   formatSliderValue,
   getV4CharGridCellByCenter,
   getV4CharGridCellByCode,
-  insertNovelAiRandomTags,
   modelLabel,
   resolveSimpleGenerateMode,
-  resolveNovelAiRandomTagTarget,
   toggleNovelAiLineComments,
   V4_CHAR_GRID_CELLS,
 } from "@/components/aiImage/helpers";
@@ -294,14 +292,6 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
   const characterAddMenuRef = useRef<HTMLDivElement | null>(null);
   const proPromptEditorPanelRef = useRef<HTMLDivElement | null>(null);
   const proPromptTextareaRef = useRef<HTMLTextAreaElement | null>(null);
-  const proPromptRandomInsertionRef = useRef<Record<"prompt" | "negative", {
-    selectionStart: number;
-    selectionEnd: number;
-    insertedText: string;
-  } | null>>({
-    prompt: null,
-    negative: null,
-  });
   const simpleResolutionSelectorRef = useRef<HTMLDivElement | null>(null);
   const proResolutionSelectorRef = useRef<HTMLDivElement | null>(null);
   const activeModeOption = MODE_OPTIONS.find(option => option.value === uiMode) ?? MODE_OPTIONS[0];
@@ -611,41 +601,6 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
     });
     setCharacterPositionPickerState(null);
   }, [characterPositionPickerState, handleUpdateV4Char]);
-
-  const handleInsertProRandomizerTag = useCallback(() => {
-    const activeTab = proPromptTab === "prompt" ? "prompt" : "negative";
-    const activeValue = activeTab === "prompt" ? prompt : negativePrompt;
-    const target = resolveNovelAiRandomTagTarget({
-      currentValue: activeValue,
-      selectionStart: proPromptTextareaRef.current?.selectionStart,
-      selectionEnd: proPromptTextareaRef.current?.selectionEnd,
-      previousInsertion: proPromptRandomInsertionRef.current[activeTab],
-    });
-    const insertion = insertNovelAiRandomTags({
-      kind: activeTab,
-      value: activeValue,
-      selectionStart: target.selectionStart,
-      selectionEnd: target.selectionEnd,
-    });
-    proPromptRandomInsertionRef.current[activeTab] = {
-      selectionStart: insertion.selectionStart,
-      selectionEnd: insertion.selectionEnd,
-      insertedText: insertion.insertedText,
-    };
-
-    if (activeTab === "prompt")
-      setPrompt(insertion.value);
-    else
-      setNegativePrompt(insertion.value);
-
-    window.requestAnimationFrame(() => {
-      const textarea = proPromptTextareaRef.current;
-      if (!textarea)
-        return;
-      textarea.focus();
-      textarea.setSelectionRange(insertion.selectionStart, insertion.selectionEnd);
-    });
-  }, [negativePrompt, proPromptTab, prompt, setNegativePrompt, setPrompt]);
 
   function handleSelectMode(nextMode: ModeOptionValue) {
     setUiMode(nextMode);
@@ -1653,19 +1608,9 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                       onKeyDown={handleToggleLineCommentForProPrompt}
                       spellCheck={false}
                     />
-                    <div className="mt-3 flex items-start gap-3">
-                      <button
-                        type="button"
-                        className="inline-flex size-9 shrink-0 items-center justify-center rounded-md border border-[#D6DCE3] bg-[#F3F5F7] text-base-content/72 transition outline-none hover:border-primary/40 hover:text-primary focus:outline-none dark:border-[#2A3138] dark:bg-[#161A1F] dark:text-base-content/70"
-                        aria-label={proPromptTab === "prompt" ? "插入随机 Prompt tag" : "插入随机 Undesired Content tag"}
-                        title="插入随机 tag 语法"
-                        onMouseDown={event => event.preventDefault()}
-                        onClick={handleInsertProRandomizerTag}
-                      >
-                        <DiceFiveIcon className="size-5" weight="fill" />
-                      </button>
+                    <div className="mt-3">
                       <AiImageContextLimitMeter
-                        className="min-w-0 flex-1 pt-1"
+                        className="min-w-0"
                         localUsed={activeBaseMeter.localUsed}
                         totalUsed={activeBaseMeter.totalUsed}
                         remaining={activeBaseMeter.remaining}
