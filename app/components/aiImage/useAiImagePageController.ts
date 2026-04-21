@@ -124,7 +124,7 @@ import {
 } from "@/utils/novelaiImageMetadata";
 import { convertNaturalLanguageToNovelAiTags } from "@/utils/novelaiNl2Tags";
 import { compositeFocusedInpaintResult, prepareFocusedInpaintPayload } from "@/components/aiImage/inpaintFocusUtils";
-import { buildSolidInpaintMaskGrid, renderMaskGridToRgba } from "@/components/aiImage/inpaintMaskUtils";
+import { buildSolidInpaintMaskGrid, erodeMaskGrid, findMaskGridBounds, renderMaskGridToRgba } from "@/components/aiImage/inpaintMaskUtils";
 
 const DEFAULT_METADATA_IMPORT_SELECTION: MetadataImportSelectionState = {
   prompt: true,
@@ -609,8 +609,13 @@ export function useAiImagePageController() {
     const solidMask = buildSolidInpaintMaskGrid(pixels.data, pixels.width, pixels.height, {
       closeRadius: 1,
     });
+    const maskBounds = findMaskGridBounds(solidMask, pixels.width, pixels.height);
+    const insetRadius = maskBounds
+      ? clampIntRange(Math.round(Math.min(maskBounds.width, maskBounds.height) * 0.04), 2, 12, 6)
+      : 6;
+    const blendMask = erodeMaskGrid(solidMask, pixels.width, pixels.height, insetRadius);
     const imageData = baseContext.createImageData(pixels.width, pixels.height);
-    imageData.data.set(renderMaskGridToRgba(solidMask));
+    imageData.data.set(renderMaskGridToRgba(blendMask));
     baseContext.putImageData(imageData, 0, 0);
 
     const finalCanvas = document.createElement("canvas");
@@ -622,7 +627,7 @@ export function useAiImagePageController() {
     finalContext.fillStyle = "#000";
     finalContext.fillRect(0, 0, finalCanvas.width, finalCanvas.height);
     if ("filter" in finalContext)
-      finalContext.filter = "blur(1px)";
+      finalContext.filter = "blur(2px)";
     finalContext.drawImage(baseCanvas, 0, 0);
     if ("filter" in finalContext)
       finalContext.filter = "none";

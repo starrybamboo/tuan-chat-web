@@ -3,6 +3,8 @@ import {
   buildSolidInpaintMaskGrid,
   createMaskBorderOffsets,
   dilateMaskGrid,
+  erodeMaskGrid,
+  findMaskGridBounds,
   fillClosedMaskGrid,
   hasAnyMaskAlpha,
   mapDisplaySizeToCanvasSize,
@@ -116,5 +118,30 @@ describe("inpaintMaskUtils", () => {
     const rgba = renderMaskGridToRgba(filled);
     expect(rgba[(3 * width + 3) * 4]).toBe(255);
     expect(rgba[(0 * width + 0) * 4]).toBe(0);
+  });
+
+  it("finds bounds and erodes the solid mask inward", () => {
+    const width = 7;
+    const height = 7;
+    const mask = new Uint8Array(width * height);
+    for (let y = 1; y <= 5; y += 1) {
+      for (let x = 1; x <= 5; x += 1) {
+        mask[y * width + x] = 1;
+      }
+    }
+
+    expect(findMaskGridBounds(mask, width, height)).toEqual({
+      left: 1,
+      top: 1,
+      right: 5,
+      bottom: 5,
+      width: 5,
+      height: 5,
+    });
+
+    const eroded = erodeMaskGrid(mask, width, height, 1);
+    expect(eroded[3 * width + 3]).toBe(1);
+    expect(eroded[1 * width + 1]).toBe(0);
+    expect(eroded[1 * width + 3]).toBe(0);
   });
 });
