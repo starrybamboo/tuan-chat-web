@@ -530,15 +530,15 @@ export function useAiImagePageController() {
       return "";
 
     const pixels = await readImagePixels(dataUrl);
-    const canvas = document.createElement("canvas");
-    canvas.width = pixels.width;
-    canvas.height = pixels.height;
-    const context = canvas.getContext("2d");
-    if (!context)
+    const baseCanvas = document.createElement("canvas");
+    baseCanvas.width = pixels.width;
+    baseCanvas.height = pixels.height;
+    const baseContext = baseCanvas.getContext("2d");
+    if (!baseContext)
       throw new Error("Inpaint 蒙版处理失败。");
 
     // Inpaint 请求只发送独立的黑白 mask：圈内为白色重绘区，圈外为黑色保留区。
-    const imageData = context.createImageData(pixels.width, pixels.height);
+    const imageData = baseContext.createImageData(pixels.width, pixels.height);
     for (let index = 0; index < pixels.data.length; index += 4) {
       const value = pixels.data[index + 3] > 0 ? 255 : 0;
       imageData.data[index] = value;
@@ -546,8 +546,42 @@ export function useAiImagePageController() {
       imageData.data[index + 2] = value;
       imageData.data[index + 3] = 255;
     }
-    context.putImageData(imageData, 0, 0);
-    return dataUrlToBase64(canvas.toDataURL("image/png")) || "";
+    baseContext.putImageData(imageData, 0, 0);
+
+    // 轻微扩张 + 羽化边缘，减少上游重绘时出现的方块灰边。
+    const expandRadius = 4;
+    const blurRadius = 4;
+    const expandedCanvas = document.createElement("canvas");
+    expandedCanvas.width = pixels.width;
+    expandedCanvas.height = pixels.height;
+    const expandedContext = expandedCanvas.getContext("2d");
+    if (!expandedContext)
+      throw new Error("Inpaint 蒙版扩张失败。");
+    expandedContext.fillStyle = "#000";
+    expandedContext.fillRect(0, 0, expandedCanvas.width, expandedCanvas.height);
+    for (let offsetY = -expandRadius; offsetY <= expandRadius; offsetY += 1) {
+      for (let offsetX = -expandRadius; offsetX <= expandRadius; offsetX += 1) {
+        if (offsetX * offsetX + offsetY * offsetY > expandRadius * expandRadius)
+          continue;
+        expandedContext.drawImage(baseCanvas, offsetX, offsetY);
+      }
+    }
+
+    const finalCanvas = document.createElement("canvas");
+    finalCanvas.width = pixels.width;
+    finalCanvas.height = pixels.height;
+    const finalContext = finalCanvas.getContext("2d");
+    if (!finalContext)
+      throw new Error("Inpaint 蒙版羽化失败。");
+    finalContext.fillStyle = "#000";
+    finalContext.fillRect(0, 0, finalCanvas.width, finalCanvas.height);
+    if ("filter" in finalContext)
+      finalContext.filter = `blur(${blurRadius}px)`;
+    finalContext.drawImage(expandedCanvas, 0, 0);
+    if ("filter" in finalContext)
+      finalContext.filter = "none";
+
+    return dataUrlToBase64(finalCanvas.toDataURL("image/png")) || "";
   }, [proInfillMaskDataUrl, simpleInfillMaskDataUrl]);
 
   useEffect(() => {
