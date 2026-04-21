@@ -2,6 +2,7 @@ import { Tokenizer } from "@huggingface/tokenizers";
 import { useEffect, useMemo, useState } from "react";
 
 import type { V4CharEditorRow } from "@/components/aiImage/types";
+import { sanitizeNovelAiTagInput } from "@/components/aiImage/helpers";
 
 export const NOVELAI_V45_CONTEXT_LIMIT = 512;
 export const NOVELAI_V45_CURATED_QUALITY_TAGS = "location, masterpiece, no text, -0.8::feet::, rating:general";
@@ -70,7 +71,7 @@ const tokenCountCache = new Map<string, TokenCountResult>();
 let tokenizerPromise: Promise<Tokenizer | null> | null = null;
 
 function trimText(value: string) {
-  return String(value || "").trim();
+  return sanitizeNovelAiTagInput(String(value || ""));
 }
 
 function trimKey(value: string) {

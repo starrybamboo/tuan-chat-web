@@ -42,7 +42,7 @@ export function AiImageWorkspace({
   }, [pinnedPreviewResult?.dataUrl, pinnedPreviewResult?.seed]);
 
   return (
-    <div className="relative z-0 flex min-h-0 flex-1 overflow-visible bg-base-200">
+    <div className="relative z-0 flex min-h-0 min-w-0 flex-1 overflow-visible bg-base-200">
       {isPinnedDrawerOpen && pinnedPreviewResult && !isDirectorToolsOpen
         ? (
             <button

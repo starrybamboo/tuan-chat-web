@@ -34,6 +34,23 @@ describe("novelai V4.5 token meter helpers", () => {
     expect(requests.baseNegativeCombinedText).toBe(`${getNovelAiV45UcPresetText(1)}, bad hands`);
   });
 
+  it("ignores whole-line comments when building token requests", () => {
+    const requests = buildNovelAiV45TextRequests({
+      prompt: "1girl\n// cinematic lighting\ncity lights",
+      negativePrompt: "// lowres\nbad hands",
+      qualityToggle: false,
+      ucPreset: 2,
+      v4Chars: [
+        { id: "a", prompt: "blue hair\n// comment", negativePrompt: "// comment\nextra fingers", centerX: 0.5, centerY: 0.5 },
+      ],
+    });
+
+    expect(requests.basePromptText).toBe("1girl\ncity lights");
+    expect(requests.baseNegativeText).toBe("bad hands");
+    expect(requests.characters[0].promptText).toBe("blue hair");
+    expect(requests.characters[0].negativeText).toBe("extra fingers");
+  });
+
   it("creates base and character snapshots from pre-counted tokens", () => {
     const requests = buildNovelAiV45TextRequests({
       prompt: "1girl",

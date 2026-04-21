@@ -26,12 +26,9 @@ import {
   NOVELAI_DIMENSION_MIN,
   NOVELAI_DIMENSION_STEP,
   NOVELAI_FREE_FIXED_IMAGE_COUNT,
-  NOVELAI_FREE_MAX_DIMENSION,
+  NOVELAI_FREE_MAX_IMAGE_AREA,
   NOVELAI_FREE_MAX_STEPS,
   NOVELAI_FREE_ONLY_NOTICE,
-  RESOLUTION_PRESETS,
-  SIMPLE_MODE_CUSTOM_MAX_DIMENSION,
-  SIMPLE_MODE_MAX_IMAGE_AREA,
 } from "@/components/aiImage/constants";
 
 export function clamp01(input: number, fallback = 0.5) {
@@ -148,6 +145,20 @@ export function mergeTagString(base: string, extraTags: string[]) {
   return Array.from(uniq).join(", ");
 }
 
+export function stripNovelAiLineComments(value: string) {
+  const raw = String(value ?? "");
+  if (!raw)
+    return "";
+
+  const lines = raw.split("\n");
+  const kept = lines.filter(line => !line.trimStart().startsWith("//"));
+  return kept.join("\n");
+}
+
+export function sanitizeNovelAiTagInput(value: string) {
+  return stripNovelAiLineComments(value).trim();
+}
+
 export type NovelAiRandomTagKind = "prompt" | "negative";
 export const NOVELAI_RANDOM_TAG_COUNT = 8;
 export const NOVELAI_RANDOM_PROMPT_TAG_POOL = [
@@ -256,6 +267,216 @@ function clampSelectionIndex(value: string, index: number | null | undefined) {
   return Math.min(value.length, Math.max(0, Math.floor(numericIndex)));
 }
 
+type NovelAiLineCommentToggleResult = {
+  value: string;
+  selectionStart: number;
+  selectionEnd: number;
+};
+
+function getLineIndentSize(line: string) {
+  const match = line.match(/^[\t ]*/);
+  return match ? match[0].length : 0;
+}
+
+function isLineCommented(line: string, indentSize: number) {
+  return line.slice(indentSize).startsWith("//");
+}
+
+function splitLinesWithMeta(value: string) {
+  const lines: Array<{ start: number; end: number; text: string; hasNewline: boolean }> = [];
+  let start = 0;
+  for (let index = 0; index < value.length; index += 1) {
+    if (value[index] !== "\n")
+      continue;
+    lines.push({
+      start,
+      end: index,
+      text: value.slice(start, index),
+      hasNewline: true,
+    });
+    start = index + 1;
+  }
+  lines.push({
+    start,
+    end: value.length,
+    text: value.slice(start),
+    hasNewline: false,
+  });
+  return lines;
+}
+
+function findLineIndexAt(lines: Array<{ start: number; end: number }>, pos: number) {
+  for (let index = 0; index < lines.length; index += 1) {
+    const line = lines[index];
+    if (pos < line.start)
+      continue;
+    if (pos <= line.end)
+      return index;
+  }
+  return Math.max(0, lines.length - 1);
+}
+
+export function toggleNovelAiLineComments(args: {
+  value: string;
+  selectionStart?: number | null;
+  selectionEnd?: number | null;
+}): NovelAiLineCommentToggleResult {
+  const currentValue = String(args.value ?? "");
+  const rawStart = clampSelectionIndex(currentValue, args.selectionStart);
+  const rawEnd = clampSelectionIndex(currentValue, args.selectionEnd);
+  const selectionStart = Math.min(rawStart, rawEnd);
+  const selectionEnd = Math.max(rawStart, rawEnd);
+
+  const lines = splitLinesWithMeta(currentValue);
+  const effectiveSelectionEnd = selectionEnd > selectionStart && selectionEnd > 0 && currentValue[selectionEnd - 1] === "\n"
+    ? selectionEnd - 1
+    : selectionEnd;
+  const startLineIndex = findLineIndexAt(lines, selectionStart);
+  const endLineIndex = findLineIndexAt(lines, effectiveSelectionEnd);
+
+  const targetLines = lines.slice(startLineIndex, endLineIndex + 1);
+  const nonEmptyTargetLines = targetLines.filter(line => line.text.trim().length > 0);
+  const shouldUncomment = nonEmptyTargetLines.length > 0
+    && nonEmptyTargetLines.every((line) => {
+      const indentSize = getLineIndentSize(line.text);
+      return isLineCommented(line.text, indentSize);
+    });
+
+  type EditedLine = {
+    oldStart: number;
+    oldEnd: number;
+    hasNewline: boolean;
+    oldText: string;
+    newText: string;
+    newStart: number;
+    editPos: number;
+    insertLen: number;
+    removeLen: number;
+  };
+
+  const editedLines: EditedLine[] = lines.map((line, index) => {
+    if (index < startLineIndex || index > endLineIndex) {
+      return {
+        oldStart: line.start,
+        oldEnd: line.end,
+        hasNewline: line.hasNewline,
+        oldText: line.text,
+        newText: line.text,
+        newStart: 0,
+        editPos: 0,
+        insertLen: 0,
+        removeLen: 0,
+      };
+    }
+
+    const indentSize = getLineIndentSize(line.text);
+    const commented = isLineCommented(line.text, indentSize);
+
+    if (shouldUncomment) {
+      if (!commented) {
+        return {
+          oldStart: line.start,
+          oldEnd: line.end,
+          hasNewline: line.hasNewline,
+          oldText: line.text,
+          newText: line.text,
+          newStart: 0,
+          editPos: indentSize,
+          insertLen: 0,
+          removeLen: 0,
+        };
+      }
+
+      const afterIndent = line.text.slice(indentSize);
+      const removeLen = afterIndent.startsWith("// ")
+        ? 3
+        : 2;
+      const newText = `${line.text.slice(0, indentSize)}${afterIndent.slice(removeLen)}`;
+      return {
+        oldStart: line.start,
+        oldEnd: line.end,
+        hasNewline: line.hasNewline,
+        oldText: line.text,
+        newText,
+        newStart: 0,
+        editPos: indentSize,
+        insertLen: 0,
+        removeLen,
+      };
+    }
+
+    if (commented) {
+      return {
+        oldStart: line.start,
+        oldEnd: line.end,
+        hasNewline: line.hasNewline,
+        oldText: line.text,
+        newText: line.text,
+        newStart: 0,
+        editPos: indentSize,
+        insertLen: 0,
+        removeLen: 0,
+      };
+    }
+
+    const insert = line.text.trim().length ? "// " : "//";
+    const newText = `${line.text.slice(0, indentSize)}${insert}${line.text.slice(indentSize)}`;
+    return {
+      oldStart: line.start,
+      oldEnd: line.end,
+      hasNewline: line.hasNewline,
+      oldText: line.text,
+      newText,
+      newStart: 0,
+      editPos: indentSize,
+      insertLen: insert.length,
+      removeLen: 0,
+    };
+  });
+
+  let cursor = 0;
+  for (const line of editedLines) {
+    line.newStart = cursor;
+    cursor += line.newText.length;
+    if (line.hasNewline)
+      cursor += 1;
+  }
+
+  const nextValue = editedLines.map(line => `${line.newText}${line.hasNewline ? "\n" : ""}`).join("");
+
+  function mapPos(pos: number) {
+    const clamped = Math.min(currentValue.length, Math.max(0, Math.floor(pos)));
+    const lineIndex = findLineIndexAt(lines, clamped);
+    const line = editedLines[lineIndex] ?? editedLines[editedLines.length - 1];
+    const oldOffset = clamped - line.oldStart;
+    let nextOffset = oldOffset;
+
+    if (line.insertLen > 0) {
+      if (oldOffset > line.editPos)
+        nextOffset = oldOffset + line.insertLen;
+    }
+    else if (line.removeLen > 0) {
+      if (oldOffset <= line.editPos) {
+        nextOffset = oldOffset;
+      }
+      else if (oldOffset <= line.editPos + line.removeLen) {
+        nextOffset = line.editPos;
+      }
+      else {
+        nextOffset = Math.max(line.editPos, oldOffset - line.removeLen);
+      }
+    }
+
+    return Math.min(nextValue.length, Math.max(0, line.newStart + nextOffset));
+  }
+
+  return {
+    value: nextValue,
+    selectionStart: mapPos(selectionStart),
+    selectionEnd: mapPos(selectionEnd),
+  };
+}
+
 function needsTagSeparator(character: string | undefined) {
   return Boolean(character && !/[\s,]/.test(character));
 }
@@ -358,57 +579,64 @@ export function clampToMultipleOf64(value: number, fallback: number) {
   return Math.max(NOVELAI_DIMENSION_MIN, Math.round(num / NOVELAI_DIMENSION_STEP) * NOVELAI_DIMENSION_STEP);
 }
 
+export function getNovelAiImageArea(width: number, height: number) {
+  const normalizedWidth = Math.max(0, Math.floor(Number(width) || 0));
+  const normalizedHeight = Math.max(0, Math.floor(Number(height) || 0));
+  return normalizedWidth * normalizedHeight;
+}
+
+export function isNovelAiImageAreaWithinLimit(width: number, height: number) {
+  return getNovelAiImageArea(width, height) <= NOVELAI_FREE_MAX_IMAGE_AREA;
+}
+
 export function clampSimpleModeDimension(value: number, otherDimension: number, fallback: number) {
-  const normalizedOther = Math.min(NOVELAI_FREE_MAX_DIMENSION, clampToMultipleOf64(otherDimension, fallback));
+  const normalizedOther = clampToMultipleOf64(otherDimension, fallback);
   const normalizedValue = clampToMultipleOf64(value, fallback);
   const maxByArea = Math.max(
     NOVELAI_DIMENSION_MIN,
-    Math.floor(SIMPLE_MODE_MAX_IMAGE_AREA / Math.max(NOVELAI_DIMENSION_MIN, normalizedOther) / NOVELAI_DIMENSION_STEP) * NOVELAI_DIMENSION_STEP,
+    Math.floor(NOVELAI_FREE_MAX_IMAGE_AREA / Math.max(NOVELAI_DIMENSION_MIN, normalizedOther) / NOVELAI_DIMENSION_STEP) * NOVELAI_DIMENSION_STEP,
   );
-  return Math.max(NOVELAI_DIMENSION_MIN, Math.min(normalizedValue, maxByArea, NOVELAI_FREE_MAX_DIMENSION));
+  return Math.max(NOVELAI_DIMENSION_MIN, Math.min(normalizedValue, maxByArea));
 }
 
 export function getClosestValidImageSize(rawWidth: number, rawHeight: number) {
-  let nextWidth = clampToMultipleOf64(rawWidth, DEFAULT_PRO_IMAGE_SETTINGS.width);
-  let nextHeight = clampToMultipleOf64(rawHeight, DEFAULT_PRO_IMAGE_SETTINGS.height);
+  return {
+    width: clampToMultipleOf64(rawWidth, DEFAULT_PRO_IMAGE_SETTINGS.width),
+    height: clampToMultipleOf64(rawHeight, DEFAULT_PRO_IMAGE_SETTINGS.height),
+  };
+}
 
-  if (nextWidth <= NOVELAI_FREE_MAX_DIMENSION && nextHeight <= NOVELAI_FREE_MAX_DIMENSION) {
-    return { width: nextWidth, height: nextHeight };
-  }
+export function fitNovelAiImageSizeWithinAreaLimit(rawWidth: number, rawHeight: number) {
+  let { width, height } = getClosestValidImageSize(rawWidth, rawHeight);
+  if (isNovelAiImageAreaWithinLimit(width, height))
+    return { width, height };
 
-  const scale = Math.min(
-    1,
-    NOVELAI_FREE_MAX_DIMENSION / nextWidth,
-    NOVELAI_FREE_MAX_DIMENSION / nextHeight,
-  );
-  nextWidth = clampToMultipleOf64(nextWidth * scale, DEFAULT_PRO_IMAGE_SETTINGS.width);
-  nextHeight = clampToMultipleOf64(nextHeight * scale, DEFAULT_PRO_IMAGE_SETTINGS.height);
+  const area = getNovelAiImageArea(width, height);
+  const scale = Math.sqrt(NOVELAI_FREE_MAX_IMAGE_AREA / Math.max(1, area));
+  width = clampToMultipleOf64(width * scale, DEFAULT_PRO_IMAGE_SETTINGS.width);
+  height = clampToMultipleOf64(height * scale, DEFAULT_PRO_IMAGE_SETTINGS.height);
 
-  while (nextWidth > NOVELAI_FREE_MAX_DIMENSION || nextHeight > NOVELAI_FREE_MAX_DIMENSION) {
-    if (nextWidth >= nextHeight && nextWidth > NOVELAI_DIMENSION_MIN) {
-      nextWidth -= NOVELAI_DIMENSION_STEP;
+  while (!isNovelAiImageAreaWithinLimit(width, height)) {
+    if (width >= height && width > NOVELAI_DIMENSION_MIN) {
+      width -= NOVELAI_DIMENSION_STEP;
       continue;
     }
-    if (nextHeight > NOVELAI_DIMENSION_MIN) {
-      nextHeight -= NOVELAI_DIMENSION_STEP;
+    if (height > NOVELAI_DIMENSION_MIN) {
+      height -= NOVELAI_DIMENSION_STEP;
       continue;
     }
     break;
   }
 
   return {
-    width: Math.max(NOVELAI_DIMENSION_MIN, nextWidth),
-    height: Math.max(NOVELAI_DIMENSION_MIN, nextHeight),
+    width: Math.max(NOVELAI_DIMENSION_MIN, width),
+    height: Math.max(NOVELAI_DIMENSION_MIN, height),
   };
 }
 
 export function getNovelAiFreeOnlyMessage(detail?: string) {
   const suffix = String(detail || "").trim();
   return suffix ? `${NOVELAI_FREE_ONLY_NOTICE} ${suffix}` : NOVELAI_FREE_ONLY_NOTICE;
-}
-
-function isPresetResolution(width: number, height: number) {
-  return RESOLUTION_PRESETS.some(preset => preset.width === width && preset.height === height);
 }
 
 export function getNovelAiFreeGenerationViolation(args: {
@@ -442,10 +670,9 @@ export function getNovelAiFreeGenerationViolation(args: {
   if (
     Number.isFinite(sourceImageWidth)
     && Number.isFinite(sourceImageHeight)
-    && !isPresetResolution(sourceImageWidth, sourceImageHeight)
-    && (sourceImageWidth > SIMPLE_MODE_CUSTOM_MAX_DIMENSION || sourceImageHeight > SIMPLE_MODE_CUSTOM_MAX_DIMENSION)
+    && !isNovelAiImageAreaWithinLimit(sourceImageWidth, sourceImageHeight)
   ) {
-    return getNovelAiFreeOnlyMessage(`导入图像若不是预设尺寸，任意一边不能超过 ${SIMPLE_MODE_CUSTOM_MAX_DIMENSION}。`);
+    return getNovelAiFreeOnlyMessage("导入图像总面积不能超过 1024x1024。");
   }
   if ((args.vibeTransferReferenceCount ?? 0) > 0 || args.hasPreciseReference)
     return getNovelAiFreeOnlyMessage("Reference Image、Vibe Transfer、Precise Reference 已禁用。");
@@ -453,8 +680,8 @@ export function getNovelAiFreeGenerationViolation(args: {
     return getNovelAiFreeOnlyMessage("当前仅允许单张生成。");
   if (args.steps > NOVELAI_FREE_MAX_STEPS)
     return getNovelAiFreeOnlyMessage("当前仅允许 steps <= 28。");
-  if (args.width > NOVELAI_FREE_MAX_DIMENSION || args.height > NOVELAI_FREE_MAX_DIMENSION)
-    return getNovelAiFreeOnlyMessage(`当前仅允许宽高不超过 ${NOVELAI_FREE_MAX_DIMENSION}。`);
+  if (!isNovelAiImageAreaWithinLimit(args.width, args.height))
+    return getNovelAiFreeOnlyMessage("当前仅允许宽高乘积不超过 1024x1024。");
   return null;
 }
 
@@ -638,6 +865,52 @@ export function historyRowToGeneratedItem(row: AiImageHistoryRow): GeneratedImag
     batchIndex: row.batchIndex ?? 0,
     batchSize: row.batchSize ?? 1,
     toolLabel: row.toolLabel,
+  };
+}
+
+export function buildDirectorToolHistoryRow(args: {
+  output: GeneratedImageItem;
+  source: GeneratedImageItem;
+  toolLabel: string;
+  sourceHistoryRow?: AiImageHistoryRow | null;
+  createdAt?: number;
+}): Omit<AiImageHistoryRow, "id"> {
+  const sourceHistoryRow = args.sourceHistoryRow ?? null;
+  return {
+    createdAt: args.createdAt ?? Date.now(),
+    mode: sourceHistoryRow?.mode ?? "img2img",
+    model: args.output.model,
+    seed: args.output.seed,
+    width: args.output.width,
+    height: args.output.height,
+    prompt: sourceHistoryRow?.prompt ?? "",
+    negativePrompt: sourceHistoryRow?.negativePrompt ?? "",
+    imageCount: args.output.batchSize ?? 1,
+    steps: sourceHistoryRow?.steps,
+    scale: sourceHistoryRow?.scale,
+    sampler: sourceHistoryRow?.sampler,
+    noiseSchedule: sourceHistoryRow?.noiseSchedule,
+    cfgRescale: sourceHistoryRow?.cfgRescale,
+    ucPreset: sourceHistoryRow?.ucPreset,
+    qualityToggle: sourceHistoryRow?.qualityToggle,
+    dynamicThresholding: sourceHistoryRow?.dynamicThresholding,
+    smea: sourceHistoryRow?.smea,
+    smeaDyn: sourceHistoryRow?.smeaDyn,
+    strength: sourceHistoryRow?.strength,
+    noise: sourceHistoryRow?.noise,
+    v4Chars: sourceHistoryRow?.v4Chars?.map(item => ({ ...item })),
+    v4UseCoords: sourceHistoryRow?.v4UseCoords,
+    v4UseOrder: sourceHistoryRow?.v4UseOrder,
+    referenceImages: sourceHistoryRow?.referenceImages?.map(item => ({ ...item })),
+    preciseReference: sourceHistoryRow?.preciseReference
+      ? { ...sourceHistoryRow.preciseReference }
+      : null,
+    dataUrl: args.output.dataUrl,
+    toolLabel: args.toolLabel,
+    sourceDataUrl: args.source.dataUrl,
+    batchId: args.output.batchId,
+    batchIndex: args.output.batchIndex,
+    batchSize: args.output.batchSize,
   };
 }
 

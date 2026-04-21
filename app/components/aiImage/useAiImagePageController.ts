@@ -52,18 +52,18 @@ import {
   MODEL_DESCRIPTIONS,
   NOISE_SCHEDULES_NAI4,
   NOVELAI_FREE_FIXED_IMAGE_COUNT,
-  NOVELAI_FREE_MAX_DIMENSION,
+  NOVELAI_FREE_MAX_IMAGE_AREA,
   NOVELAI_FREE_MAX_STEPS,
   PREVIEW_ACTION_LABELS,
   RESOLUTION_PRESETS,
   SAMPLERS_NAI4,
-  SIMPLE_MODE_CUSTOM_MAX_DIMENSION,
   STORAGE_UI_MODE_KEY,
   isDirectorToolDisabled,
 } from "@/components/aiImage/constants";
 import {
   base64DataUrl,
   base64ToBytes,
+  buildDirectorToolHistoryRow,
   buildImportedSourceImagePayloadFromDataUrl,
   bytesToBase64,
   clamp01,
@@ -77,9 +77,11 @@ import {
   extractImageFilesFromTransfer,
   extractInternalHistoryImageDragPayload,
   fileFromDataUrl,
+  fitNovelAiImageSizeWithinAreaLimit,
   formatDirectorEmotionLabel,
   generatedItemKey,
   getClosestValidImageSize,
+  getNovelAiImageArea,
   getNovelAiFreeGenerationViolation,
   getNovelAiFreeOnlyMessage,
   hasFileDrag,
@@ -106,6 +108,7 @@ import {
   resolveInpaintModel,
   resolveImportedValue,
   resolveSimpleGenerateMode,
+  sanitizeNovelAiTagInput,
   shouldKeepSimpleTagsEditor,
   triggerBlobDownload,
   triggerBrowserDownload,
@@ -138,7 +141,7 @@ const DEFAULT_METADATA_IMPORT_SELECTION: MetadataImportSelectionState = {
 
 const DEFAULT_INPAINT_PROMPT = "very aesthetic, masterpiece, no text";
 const DEFAULT_INPAINT_NEGATIVE_PROMPT = "nsfw, lowres, artistic error, film grain, scan artifacts, worst quality, bad quality, jpeg artifacts, very displeasing, chromatic aberration, dithering, halftone, screentone, multiple views, logo, too many watermarks, negative space, blank page";
-const DEFAULT_INPAINT_STRENGTH = 0.55;
+const DEFAULT_INPAINT_STRENGTH = 1;
 const DEFAULT_INPAINT_NOISE = 0;
 
 export function useAiImagePageController() {
@@ -326,6 +329,7 @@ export function useAiImagePageController() {
   const height = uiMode === "simple" ? simpleHeight : proHeight;
   const widthInput = uiMode === "simple" ? simpleWidthInput : proWidthInput;
   const heightInput = uiMode === "simple" ? simpleHeightInput : proHeightInput;
+  const roundedRequestedSize = getClosestValidImageSize(width, height);
   const hasCompleteDimensionInputs = widthInput.trim().length > 0 && heightInput.trim().length > 0;
   const mode = uiMode === "simple" ? simpleMode : proMode;
   const imageCount = uiMode === "simple" ? DEFAULT_SIMPLE_IMAGE_SETTINGS.imageCount : proImageCount;
@@ -445,7 +449,7 @@ export function useAiImagePageController() {
     const numericValue = Math.floor(Number(value));
     if (!Number.isFinite(numericValue))
       return fallback;
-    return Math.max(1, Math.min(SIMPLE_MODE_CUSTOM_MAX_DIMENSION, numericValue));
+    return Math.max(1, numericValue);
   }, []);
 
   const syncDimensionInputsForUi = useCallback((targetUiMode: UiMode, nextWidth: number, nextHeight: number) => {
@@ -458,6 +462,38 @@ export function useAiImagePageController() {
     setProWidthInput(String(nextWidth));
     setProHeightInput(String(nextHeight));
   }, []);
+
+  const commitRoundedDimensionsForUi = useCallback((targetUiMode: UiMode) => {
+    if (targetUiMode === "simple") {
+      if (!simpleWidthInput.trim() || !simpleHeightInput.trim())
+        return;
+      const rounded = getClosestValidImageSize(simpleWidth, simpleHeight);
+      setSimpleWidth(rounded.width);
+      setSimpleHeight(rounded.height);
+      setSimpleResolutionSelection(inferResolutionSelection(rounded.width, rounded.height));
+      syncDimensionInputsForUi("simple", rounded.width, rounded.height);
+      return;
+    }
+
+    if (!proWidthInput.trim() || !proHeightInput.trim())
+      return;
+    const rounded = getClosestValidImageSize(proWidth, proHeight);
+    setProWidth(rounded.width);
+    setProHeight(rounded.height);
+    setProResolutionSelection(inferResolutionSelection(rounded.width, rounded.height));
+    syncDimensionInputsForUi("pro", rounded.width, rounded.height);
+  }, [
+    inferResolutionSelection,
+    proHeight,
+    proHeightInput,
+    proWidth,
+    proWidthInput,
+    simpleHeight,
+    simpleHeightInput,
+    simpleWidth,
+    simpleWidthInput,
+    syncDimensionInputsForUi,
+  ]);
 
   const setModeForUi = useCallback((targetUiMode: UiMode, nextMode: AiImageHistoryMode) => {
     if (targetUiMode === "simple") {
@@ -1381,8 +1417,18 @@ export function useAiImagePageController() {
   }, [selectedPreviewResult, showSuccessToast]);
 
   const handleToggleDirectorTools = useCallback(() => {
+    if (!isDirectorToolsOpen && selectedPreviewResult) {
+      const previewKey = generatedItemKey(selectedPreviewResult);
+      setDirectorSourceItems((currentItems) => {
+        if (currentItems.some(item => generatedItemKey(item) === previewKey))
+          return currentItems;
+        return [selectedPreviewResult, ...currentItems];
+      });
+      setDirectorSourcePreview(selectedPreviewResult);
+      setDirectorOutputPreview(selectedPreviewResult);
+    }
     setIsDirectorToolsOpen(prev => !prev);
-  }, []);
+  }, [isDirectorToolsOpen, selectedPreviewResult]);
 
   const handleRunUpscale = useCallback(async () => {
     if (!selectedPreviewResult)
@@ -1396,7 +1442,7 @@ export function useAiImagePageController() {
       return;
 
     if (isDirectorToolDisabled(activeDirectorTool)) {
-      showErrorToast("Remove BG 已禁用。");
+      showErrorToast(`${directorTool.label} 已禁用。`);
       return;
     }
 
@@ -1454,11 +1500,21 @@ export function useAiImagePageController() {
         batchSize: 1,
         toolLabel: directorTool.label,
       } satisfies GeneratedImageItem;
+      const directorSourceHistoryRow = historyRowByResultMatchKey.get(generatedItemKey(directorInputPreview)) || null;
 
       setDirectorOutputPreview(nextOutput);
       setResults([nextOutput]);
       setSelectedResultIndex(0);
       setSelectedHistoryPreviewKey(null);
+      await addAiImageHistoryBatch([
+        buildDirectorToolHistoryRow({
+          output: nextOutput,
+          source: directorInputPreview,
+          toolLabel: directorTool.label,
+          sourceHistoryRow: directorSourceHistoryRow,
+        }),
+      ]);
+      await refreshHistory();
       showSuccessToast(`${directorTool.label} 已完成。`);
     }
     catch (error) {
@@ -1478,7 +1534,9 @@ export function useAiImagePageController() {
     directorEmotionExtraPrompt,
     directorInputPreview,
     directorTool,
+    historyRowByResultMatchKey,
     model,
+    refreshHistory,
     setError,
     setPendingPreviewAction,
     showErrorToast,
@@ -1503,18 +1561,19 @@ export function useAiImagePageController() {
     const effectiveMode = args?.mode ?? mode;
     const infillPrompt = uiMode === "simple" ? simpleInfillPrompt : proInfillPrompt;
     const infillNegativePrompt = uiMode === "simple" ? simpleInfillNegativePrompt : proInfillNegativePrompt;
-    const basePrompt = String(args?.prompt ?? (effectiveMode === "infill"
+    const basePrompt = sanitizeNovelAiTagInput(String(args?.prompt ?? (effectiveMode === "infill"
       ? infillPrompt || DEFAULT_INPAINT_PROMPT
-      : (uiMode === "simple" ? simplePrompt : prompt))).trim();
-    const baseNegative = String(args?.negativePrompt ?? (effectiveMode === "infill"
+      : (uiMode === "simple" ? simplePrompt : prompt))));
+    const baseNegative = sanitizeNovelAiTagInput(String(args?.negativePrompt ?? (effectiveMode === "infill"
       ? infillNegativePrompt || DEFAULT_INPAINT_NEGATIVE_PROMPT
-      : (uiMode === "simple" ? simpleNegativePrompt : negativePrompt)));
+      : (uiMode === "simple" ? simpleNegativePrompt : negativePrompt))));
     const mergeStyleTags = uiMode === "simple" && effectiveMode === "txt2img";
     const effectiveImageCount = NOVELAI_FREE_FIXED_IMAGE_COUNT;
     const effectivePrompt = mergeStyleTags ? mergeTagString(basePrompt, activeStyleTags).trim() : basePrompt;
     const effectiveNegative = mergeStyleTags ? mergeTagString(baseNegative, activeStyleNegativeTags) : baseNegative;
-    const effectiveWidth = args?.width ?? width;
-    const effectiveHeight = args?.height ?? height;
+    const roundedRequestSize = getClosestValidImageSize(args?.width ?? width, args?.height ?? height);
+    const effectiveWidth = roundedRequestSize.width;
+    const effectiveHeight = roundedRequestSize.height;
     const effectiveStrength = args?.strength ?? (effectiveMode === "infill" ? currentInfillStrength : currentImg2imgStrength);
     const effectiveNoise = args?.noise ?? (effectiveMode === "infill" ? currentInfillNoise : currentImg2imgNoise);
     const usesSourceImage = effectiveMode === "img2img" || effectiveMode === "infill";
@@ -1543,12 +1602,8 @@ export function useAiImagePageController() {
     setError("");
     setLoading(true);
     try {
-      if (mergeStyleTags) {
-        if (effectivePrompt !== basePrompt)
-          setSimplePrompt(effectivePrompt);
-        if (effectiveNegative !== baseNegative)
-          setSimpleNegativePrompt(effectiveNegative);
-      }
+      if (effectiveMode === "txt2img" && !effectivePrompt)
+        throw new Error("prompt 为空：请先补充 tags");
 
       const freeViolation = getNovelAiFreeGenerationViolation({
         mode: effectiveMode,
@@ -1921,12 +1976,7 @@ export function useAiImagePageController() {
     setSimpleConverting(true);
     try {
       const converted = await convertNaturalLanguageToNovelAiTags({ input: trimmed });
-      const convertedWithStyles = {
-        ...converted,
-        prompt: mergeTagString(converted.prompt, activeStyleTags).trim(),
-        negativePrompt: mergeTagString(converted.negativePrompt, activeStyleNegativeTags),
-      };
-      setSimpleConverted(convertedWithStyles);
+      setSimpleConverted(converted);
       setSimpleConvertedFromText(trimmed);
       setSimplePromptTab("prompt");
     }
@@ -1938,8 +1988,6 @@ export function useAiImagePageController() {
       setSimpleConverting(false);
     }
   }, [
-    activeStyleNegativeTags,
-    activeStyleTags,
     showErrorToast,
     simpleText,
   ]);
@@ -1971,7 +2019,7 @@ export function useAiImagePageController() {
   }, []);
 
   const handleReturnToSimpleTags = useCallback(() => {
-    if (!simplePrompt.trim() && !simpleNegativePrompt.trim()) {
+    if (!sanitizeNovelAiTagInput(simplePrompt) && !sanitizeNovelAiTagInput(simpleNegativePrompt)) {
       showErrorToast("当前没有可返回的 tags");
       return;
     }
@@ -1983,7 +2031,7 @@ export function useAiImagePageController() {
 
   const handleSimpleGenerateFromTags = useCallback(async () => {
     const nextGenerateMode = resolveSimpleGenerateMode(mode);
-    if (nextGenerateMode === "txt2img" && !simplePrompt.trim()) {
+    if (nextGenerateMode === "txt2img" && !sanitizeNovelAiTagInput(simplePrompt)) {
       showErrorToast("prompt 为空：请先补充 tags");
       return;
     }
@@ -2184,7 +2232,7 @@ export function useAiImagePageController() {
       row.preciseReference ? "Precise Reference" : "",
       (row.imageCount ?? row.batchSize ?? 1) > NOVELAI_FREE_FIXED_IMAGE_COUNT ? "多张生成" : "",
       (row.steps ?? NOVELAI_FREE_MAX_STEPS) > NOVELAI_FREE_MAX_STEPS ? "高步数" : "",
-      row.width > NOVELAI_FREE_MAX_DIMENSION || row.height > NOVELAI_FREE_MAX_DIMENSION ? "超尺寸" : "",
+      getNovelAiImageArea(row.width, row.height) > NOVELAI_FREE_MAX_IMAGE_AREA ? "超尺寸" : "",
     ].filter(Boolean);
 
     if (!restoredSourceImage)
@@ -2554,6 +2602,14 @@ export function useAiImagePageController() {
     syncDimensionInputsForUi("pro", nextWidth, nextHeight);
   }, [clampCustomDimensionInput, proHeight, proWidth, syncDimensionInputsForUi]);
 
+  const handleCommitSimpleDimensions = useCallback(() => {
+    commitRoundedDimensionsForUi("simple");
+  }, [commitRoundedDimensionsForUi]);
+
+  const handleCommitProDimensions = useCallback(() => {
+    commitRoundedDimensionsForUi("pro");
+  }, [commitRoundedDimensionsForUi]);
+
   const handleCropToClosestValidSize = useCallback(async () => {
     let targetWidth = proWidth;
     let targetHeight = proHeight;
@@ -2569,7 +2625,7 @@ export function useAiImagePageController() {
       }
     }
 
-    const normalizedSize = getClosestValidImageSize(targetWidth, targetHeight);
+    const normalizedSize = fitNovelAiImageSizeWithinAreaLimit(targetWidth, targetHeight);
     setProWidth(normalizedSize.width);
     setProHeight(normalizedSize.height);
     setProResolutionSelection(inferResolutionSelection(normalizedSize.width, normalizedSize.height));
@@ -2753,8 +2809,8 @@ export function useAiImagePageController() {
   const isBusy = loading || simpleConverting || Boolean(pendingPreviewAction);
   const freeGenerationViolation = getNovelAiFreeGenerationViolation({
     mode,
-    width,
-    height,
+    width: roundedRequestedSize.width,
+    height: roundedRequestedSize.height,
     imageCount,
     steps,
     sourceImageBase64,
@@ -2823,8 +2879,8 @@ export function useAiImagePageController() {
     || metadataImportSelection.seed;
   const canConvertSimpleText = !isBusy && Boolean(simpleText.trim());
   const simpleGenerateMode = resolveSimpleGenerateMode(mode);
-  const canGenerateFromSimpleTags = canGenerate && (Boolean(simplePrompt.trim()) || simpleGenerateMode === "infill");
-  const hasSimpleTagsDraft = Boolean(simplePrompt.trim() || simpleNegativePrompt.trim());
+  const canGenerateFromSimpleTags = canGenerate && (Boolean(sanitizeNovelAiTagInput(simplePrompt)) || simpleGenerateMode === "infill");
+  const hasSimpleTagsDraft = Boolean(sanitizeNovelAiTagInput(simplePrompt) || sanitizeNovelAiTagInput(simpleNegativePrompt));
   const simpleConvertLabel = simpleConverting ? "转化中..." : loading || pendingPreviewAction ? "处理中..." : "转化为 tags";
 
   const sidebarProps = {
@@ -2857,6 +2913,8 @@ export function useAiImagePageController() {
     handleRemoveVibeReference,
     handleAcceptSimpleConverted,
     handleRejectSimpleConverted,
+    handleCommitProDimensions,
+    handleCommitSimpleDimensions,
     handleResetCurrentImageSettings,
     handleReturnToSimpleTags,
     handleReturnToSimpleText,

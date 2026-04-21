@@ -22,6 +22,7 @@ import {
   getNovelAiFreeGenerationViolation,
   isNaiV4Family,
   resolveInpaintModel,
+  sanitizeNovelAiTagInput,
 } from "@/components/aiImage/helpers";
 
 import type { AiGenerateImageRequest } from "../../../api/novelai/models/AiGenerateImageRequest";
@@ -138,7 +139,7 @@ export function buildNovelAiDirectorToolPayload(args: {
     width: Math.max(1, Math.floor(Number(args.width) || 0)),
     height: Math.max(1, Math.floor(Number(args.height) || 0)),
   };
-  const prompt = String(args.prompt || "").trim();
+  const prompt = sanitizeNovelAiTagInput(String(args.prompt || ""));
   if (prompt)
     payload.prompt = prompt;
   if (Number.isFinite(args.defry))
@@ -211,7 +212,7 @@ export async function generateNovelImageViaProxy(args: {
   dynamicThresholding: boolean;
   seed?: number;
 }) {
-  const prompt = String(args.prompt || "").trim();
+  const prompt = sanitizeNovelAiTagInput(String(args.prompt || ""));
   if (!prompt && args.prompt == null)
     throw new Error("缺少 prompt");
 
@@ -231,7 +232,7 @@ export async function generateNovelImageViaProxy(args: {
   if (freeViolation)
     throw new Error(freeViolation);
 
-  const negativePrompt = String(args.negativePrompt || "");
+  const negativePrompt = sanitizeNovelAiTagInput(String(args.negativePrompt || ""));
   const model = String(args.model || DEFAULT_IMAGE_MODEL);
   const requestModel = args.mode === "infill" ? resolveInpaintModel(model) : model;
 
@@ -323,14 +324,14 @@ export async function generateNovelImageViaProxy(args: {
         };
         charCenters.push(center);
         return {
-          char_caption: String(item.prompt || ""),
+          char_caption: sanitizeNovelAiTagInput(String(item.prompt || "")),
           centers: [center],
         };
       });
       const charCaptionsNegative = v4Chars.map((item, index) => {
         const center = charCenters[index] || { x: 0.5, y: 0.5 };
         return {
-          char_caption: String(item.negativePrompt || ""),
+          char_caption: sanitizeNovelAiTagInput(String(item.negativePrompt || "")),
           centers: [center],
         };
       });

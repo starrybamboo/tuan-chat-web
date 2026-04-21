@@ -2,7 +2,7 @@ import type { MutableRefObject, TextareaHTMLAttributes } from "react";
 import { useCallback, useEffect, useId, useLayoutEffect, useRef } from "react";
 
 type SegmentTone = "neutral" | "strengthen" | "weaken" | "inverse";
-type SegmentKind = "text" | "syntax" | "numeric-close";
+type SegmentKind = "text" | "syntax" | "numeric-close" | "comment";
 
 interface EmphasisSegment {
   text: string;
@@ -19,7 +19,10 @@ interface HighlightEmphasisTextareaProps extends Omit<TextareaHTMLAttributes<HTM
 }
 
 const NUMERIC_EMPHASIS_PATTERN = /^-?(?:\d+(?:\.\d+)?|\.\d+)::/;
-const NUMERIC_CLOSE_CLASS_NAME = "bg-emerald-400/82 font-medium text-emerald-950 dark:bg-emerald-400/36 dark:text-emerald-50";
+// The overlay must keep identical text metrics to the real textarea, otherwise
+// emphasized spans change width and the caret appears to drift while typing.
+const COMMENT_CLASS_NAME = "text-base-content/45 dark:text-base-content/45";
+const NUMERIC_CLOSE_CLASS_NAME = "bg-emerald-400/82 text-emerald-950 dark:bg-emerald-400/36 dark:text-emerald-50";
 
 const SEGMENT_CLASS_MAP: Record<SegmentTone, Record<0 | 1 | 2 | 3, { syntax: string; text: string }>> = {
   neutral: {
@@ -50,12 +53,12 @@ const SEGMENT_CLASS_MAP: Record<SegmentTone, Record<0 | 1 | 2 | 3, { syntax: str
       text: "bg-amber-400/78 text-amber-950 dark:bg-amber-400/32 dark:text-amber-50",
     },
     2: {
-      syntax: "bg-orange-400/82 font-medium text-orange-950 dark:bg-orange-400/36 dark:text-orange-50",
-      text: "bg-orange-400/82 font-medium text-orange-950 dark:bg-orange-400/36 dark:text-orange-50",
+      syntax: "bg-orange-400/82 text-orange-950 dark:bg-orange-400/36 dark:text-orange-50",
+      text: "bg-orange-400/82 text-orange-950 dark:bg-orange-400/36 dark:text-orange-50",
     },
     3: {
-      syntax: "bg-rose-400/84 font-semibold text-rose-950 dark:bg-rose-400/42 dark:text-rose-50",
-      text: "bg-rose-400/84 font-semibold text-rose-950 dark:bg-rose-400/42 dark:text-rose-50",
+      syntax: "bg-rose-400/84 text-rose-950 dark:bg-rose-400/42 dark:text-rose-50",
+      text: "bg-rose-400/84 text-rose-950 dark:bg-rose-400/42 dark:text-rose-50",
     },
   },
   weaken: {
@@ -68,12 +71,12 @@ const SEGMENT_CLASS_MAP: Record<SegmentTone, Record<0 | 1 | 2 | 3, { syntax: str
       text: "bg-sky-400/72 text-sky-950 dark:bg-sky-400/28 dark:text-sky-50",
     },
     2: {
-      syntax: "bg-blue-400/78 font-medium text-blue-950 dark:bg-blue-400/34 dark:text-blue-50",
-      text: "bg-blue-400/78 font-medium text-blue-950 dark:bg-blue-400/34 dark:text-blue-50",
+      syntax: "bg-blue-400/78 text-blue-950 dark:bg-blue-400/34 dark:text-blue-50",
+      text: "bg-blue-400/78 text-blue-950 dark:bg-blue-400/34 dark:text-blue-50",
     },
     3: {
-      syntax: "bg-indigo-400/82 font-medium text-indigo-950 dark:bg-indigo-400/38 dark:text-indigo-50",
-      text: "bg-indigo-400/82 font-medium text-indigo-950 dark:bg-indigo-400/38 dark:text-indigo-50",
+      syntax: "bg-indigo-400/82 text-indigo-950 dark:bg-indigo-400/38 dark:text-indigo-50",
+      text: "bg-indigo-400/82 text-indigo-950 dark:bg-indigo-400/38 dark:text-indigo-50",
     },
   },
   inverse: {
@@ -86,12 +89,12 @@ const SEGMENT_CLASS_MAP: Record<SegmentTone, Record<0 | 1 | 2 | 3, { syntax: str
       text: "bg-fuchsia-400/76 text-fuchsia-950 dark:bg-fuchsia-400/30 dark:text-fuchsia-50",
     },
     2: {
-      syntax: "bg-pink-400/82 font-medium text-pink-950 dark:bg-pink-400/36 dark:text-pink-50",
-      text: "bg-pink-400/82 font-medium text-pink-950 dark:bg-pink-400/36 dark:text-pink-50",
+      syntax: "bg-pink-400/82 text-pink-950 dark:bg-pink-400/36 dark:text-pink-50",
+      text: "bg-pink-400/82 text-pink-950 dark:bg-pink-400/36 dark:text-pink-50",
     },
     3: {
-      syntax: "bg-rose-400/86 font-semibold text-rose-950 dark:bg-rose-400/44 dark:text-rose-50",
-      text: "bg-rose-400/86 font-semibold text-rose-950 dark:bg-rose-400/44 dark:text-rose-50",
+      syntax: "bg-rose-400/86 text-rose-950 dark:bg-rose-400/44 dark:text-rose-50",
+      text: "bg-rose-400/86 text-rose-950 dark:bg-rose-400/44 dark:text-rose-50",
     },
   },
 };
@@ -126,10 +129,20 @@ function resolveSegmentTone(weight: number): { level: 0 | 1 | 2 | 3; tone: Segme
 }
 
 function createSegmentClassName(segment: EmphasisSegment) {
+  if (segment.kind === "comment")
+    return COMMENT_CLASS_NAME;
   if (segment.kind === "numeric-close")
     return NUMERIC_CLOSE_CLASS_NAME;
 
   return SEGMENT_CLASS_MAP[segment.tone][segment.level][segment.kind === "syntax" ? "syntax" : "text"];
+}
+
+function resolveSegmentClassName(kind: SegmentKind, tone: SegmentTone, level: 0 | 1 | 2 | 3) {
+  if (kind === "comment")
+    return COMMENT_CLASS_NAME;
+  if (kind === "numeric-close")
+    return NUMERIC_CLOSE_CLASS_NAME;
+  return SEGMENT_CLASS_MAP[tone][level][kind === "syntax" ? "syntax" : "text"];
 }
 
 function isNumericEmphasisBoundary(value: string, index: number) {
@@ -138,6 +151,15 @@ function isNumericEmphasisBoundary(value: string, index: number) {
 
   const previousCharacter = value[index - 1];
   return !/[\p{L}\p{N}_]/u.test(previousCharacter);
+}
+
+function matchWholeLineComment(value: string, index: number) {
+  if (index > 0 && value[index - 1] !== "\n")
+    return null;
+
+  const lineEnd = value.indexOf("\n", index);
+  const lineText = value.slice(index, lineEnd === -1 ? value.length : lineEnd);
+  return lineText.trimStart().startsWith("//") ? lineText : null;
 }
 
 export function parseNovelAiSegments(value: string) {
@@ -156,9 +178,7 @@ export function parseNovelAiSegments(value: string) {
       return;
 
     const { level, tone } = resolveSegmentTone(weightOverride ?? getCurrentWeight());
-    const nextClassName = kind === "numeric-close"
-      ? NUMERIC_CLOSE_CLASS_NAME
-      : SEGMENT_CLASS_MAP[tone][level][kind === "syntax" ? "syntax" : "text"];
+    const nextClassName = resolveSegmentClassName(kind, tone, level);
     const previousSegment = segments[segments.length - 1];
     if (
       previousSegment
@@ -182,6 +202,13 @@ export function parseNovelAiSegments(value: string) {
 
   let index = 0;
   while (index < value.length) {
+    const lineComment = matchWholeLineComment(value, index);
+    if (lineComment != null) {
+      pushSegment(lineComment, "comment");
+      index += lineComment.length;
+      continue;
+    }
+
     const rest = value.slice(index);
     const numericMatch = rest.match(NUMERIC_EMPHASIS_PATTERN);
     if (numericMatch && isNumericEmphasisBoundary(value, index)) {
@@ -326,7 +353,7 @@ export function HighlightEmphasisTextarea({
         spellCheck={spellCheck}
         value={stringValue}
         placeholder={highlightEnabled ? "" : placeholder}
-        className={`${contentClassName} relative z-10 block w-full resize-none overflow-hidden bg-transparent focus:outline-none ${
+        className={`${contentClassName} whitespace-pre-wrap break-words relative z-10 block w-full resize-none overflow-hidden bg-transparent focus:outline-none ${
           highlightEnabled
             ? "text-transparent caret-base-content selection:bg-primary/20 placeholder:text-transparent"
             : "text-base-content"

@@ -1,16 +1,15 @@
 import type { AiImagePageController } from "@/components/aiImage/useAiImagePageController";
 import { ArrowClockwise, ArrowCounterClockwise, CaretDownIcon, CaretLeftIcon, CaretUpIcon, CheckCircleIcon, CircleIcon, CircleNotch, DiceFiveIcon, FileArrowUpIcon, GenderFemaleIcon, GenderMaleIcon, GearSixIcon, ImageSquareIcon, ImagesSquareIcon, PencilSimpleLineIcon, PlusIcon, SelectionPlusIcon, SparkleIcon, TrashIcon, XCircleIcon } from "@phosphor-icons/react";
+import type { KeyboardEvent as ReactKeyboardEvent } from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import preciseReferenceIconSrc from "@/components/aiImage/assets/precise-reference.png";
 import vibeTransferIconSrc from "@/components/aiImage/assets/vibe-transfer.png";
 import {
   CUSTOM_RESOLUTION_ID,
-  DEFAULT_PRO_IMAGE_SETTINGS,
   NOVELAI_FREE_MAX_STEPS,
   RESOLUTION_PRESETS,
   SAMPLER_LABELS,
   SCHEDULE_LABELS,
-  SIMPLE_MODE_CUSTOM_MAX_DIMENSION,
   UC_PRESET_OPTIONS,
 } from "@/components/aiImage/constants";
 import {
@@ -24,6 +23,7 @@ import {
   modelLabel,
   resolveSimpleGenerateMode,
   resolveNovelAiRandomTagTarget,
+  toggleNovelAiLineComments,
   V4_CHAR_GRID_CELLS,
 } from "@/components/aiImage/helpers";
 import { HighlightEmphasisTextarea } from "@/components/aiImage/HighlightEmphasisTextarea";
@@ -57,7 +57,6 @@ type ModeOptionValue = (typeof MODE_OPTIONS)[number]["value"];
 export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
   const {
     canConvertSimpleText,
-    canGenerate,
     canGenerateFromSimpleTags,
     canTriggerProGenerate,
     cfgRescale,
@@ -75,7 +74,10 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
     handleRemoveV4Char,
     handleRemoveVibeReference,
     handleAcceptSimpleConverted,
+    handleCommitProDimensions,
+    handleCommitSimpleDimensions,
     handleRejectSimpleConverted,
+    freeGenerationViolation,
     handleResetCurrentImageSettings,
     handleReturnToSimpleTags,
     handleReturnToSimpleText,
@@ -118,7 +120,6 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
     seed,
     seedIsRandom,
     selectedStylePresets,
-    selectedStyleTags,
     setCfgRescale,
     setCharPromptTabs,
     setImageCount,
@@ -154,7 +155,6 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
     simpleNegativePrompt,
     simplePromptTab,
     simplePrompt,
-    simpleResolutionArea,
     simpleResolutionSelection,
     simpleText,
     smea,
@@ -172,6 +172,81 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
     widthInput,
     heightInput,
   } = sidebarProps;
+
+  const isToggleLineCommentShortcut = useCallback((event: ReactKeyboardEvent<HTMLTextAreaElement>) => {
+    if (event.altKey)
+      return false;
+    if (!event.ctrlKey && !event.metaKey)
+      return false;
+    return event.code === "Slash" || event.key === "/" || event.key === "?";
+  }, []);
+
+  const handleToggleLineCommentForProPrompt = useCallback((event: ReactKeyboardEvent<HTMLTextAreaElement>) => {
+    if (!isToggleLineCommentShortcut(event))
+      return;
+    event.preventDefault();
+
+    const textarea = event.currentTarget;
+    const toggled = toggleNovelAiLineComments({
+      value: textarea.value,
+      selectionStart: textarea.selectionStart,
+      selectionEnd: textarea.selectionEnd,
+    });
+    if (proPromptTab === "prompt")
+      setPrompt(toggled.value);
+    else
+      setNegativePrompt(toggled.value);
+
+    window.requestAnimationFrame(() => {
+      textarea.focus();
+      textarea.setSelectionRange(toggled.selectionStart, toggled.selectionEnd);
+    });
+  }, [isToggleLineCommentShortcut, proPromptTab, setNegativePrompt, setPrompt]);
+
+  const handleToggleLineCommentForSimpleTags = useCallback((event: ReactKeyboardEvent<HTMLTextAreaElement>) => {
+    if (!isToggleLineCommentShortcut(event))
+      return;
+    event.preventDefault();
+
+    const textarea = event.currentTarget;
+    const toggled = toggleNovelAiLineComments({
+      value: textarea.value,
+      selectionStart: textarea.selectionStart,
+      selectionEnd: textarea.selectionEnd,
+    });
+    if (simplePromptTab === "prompt")
+      setSimplePrompt(toggled.value);
+    else
+      setSimpleNegativePrompt(toggled.value);
+
+    window.requestAnimationFrame(() => {
+      textarea.focus();
+      textarea.setSelectionRange(toggled.selectionStart, toggled.selectionEnd);
+    });
+  }, [isToggleLineCommentShortcut, setSimpleNegativePrompt, setSimplePrompt, simplePromptTab]);
+
+  const handleToggleLineCommentForV4Char = useCallback((event: ReactKeyboardEvent<HTMLTextAreaElement>, characterId: string) => {
+    if (!isToggleLineCommentShortcut(event))
+      return;
+    event.preventDefault();
+
+    const textarea = event.currentTarget;
+    const toggled = toggleNovelAiLineComments({
+      value: textarea.value,
+      selectionStart: textarea.selectionStart,
+      selectionEnd: textarea.selectionEnd,
+    });
+    const activeTab = charPromptTabs[characterId] === "negative" ? "negative" : "prompt";
+    if (activeTab === "prompt")
+      handleUpdateV4Char(characterId, { prompt: toggled.value });
+    else
+      handleUpdateV4Char(characterId, { negativePrompt: toggled.value });
+
+    window.requestAnimationFrame(() => {
+      textarea.focus();
+      textarea.setSelectionRange(toggled.selectionStart, toggled.selectionEnd);
+    });
+  }, [charPromptTabs, handleUpdateV4Char, isToggleLineCommentShortcut]);
 
   const sideCardClassName = "card border-x-0 border-b border-t-0 border-[#D6DCE3] bg-[#F3F5F7] shadow-none dark:border-[#2A3138] dark:bg-[#161A1F]";
   const editorPanelClassName = "rounded-2xl border border-[#D6DCE3] bg-[#F3F5F7] p-3 shadow-none dark:border-[#2A3138] dark:bg-[#161A1F]";
@@ -926,11 +1001,11 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
 
   function renderResolutionGlyph(optionId: string) {
     let glyph: React.ReactNode;
-    if (optionId === "portrait") {
+    if (optionId === "tall") {
       glyph = <div className="h-5 w-3 rounded-sm border border-current opacity-80" />;
     }
-    else if (optionId === "landscape") {
-      glyph = <div className="h-3 w-5 rounded-sm border border-current opacity-80" />;
+    else if (optionId === "wide") {
+      glyph = <div className="h-2.5 w-5 rounded-sm border border-current opacity-80" />;
     }
     else if (optionId === "square") {
       glyph = <div className="size-4 rounded-sm border border-current opacity-80" />;
@@ -1421,6 +1496,7 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                                 else
                                   setSimpleNegativePrompt(e.target.value);
                               }}
+                              onKeyDown={handleToggleLineCommentForSimpleTags}
                             />
                             {hasSimpleTagsDraft
                               ? (
@@ -1574,6 +1650,7 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                         else
                           setNegativePrompt(e.target.value);
                       }}
+                      onKeyDown={handleToggleLineCommentForProPrompt}
                       spellCheck={false}
                     />
                     <div className="mt-3 flex items-start gap-3">
@@ -1893,6 +1970,7 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                                               else
                                                 handleUpdateV4Char(row.id, { negativePrompt: e.target.value });
                                             }}
+                                            onKeyDown={event => handleToggleLineCommentForV4Char(event, row.id)}
                                             placeholder=""
                                             spellCheck={false}
                                           />
@@ -2136,22 +2214,26 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                         className={simpleResolutionValueInputClassName}
                         type="number"
                         min={1}
-                        max={SIMPLE_MODE_CUSTOM_MAX_DIMENSION}
-                        step={1}
+                        step={64}
                         value={widthInput}
                         onChange={e => handleSimpleWidthChange(e.target.value)}
+                        onBlur={handleCommitSimpleDimensions}
                       />
                       <span className="text-center text-xs font-medium text-base-content/55">×</span>
                       <input
                         className={simpleResolutionValueInputClassName}
                         type="number"
                         min={1}
-                        max={SIMPLE_MODE_CUSTOM_MAX_DIMENSION}
-                        step={1}
+                        step={64}
                         value={heightInput}
                         onChange={e => handleSimpleHeightChange(e.target.value)}
+                        onBlur={handleCommitSimpleDimensions}
                       />
                     </div>
+                  </div>
+
+                  <div className="text-[11px] leading-5 text-base-content/55">
+                    自动按 64 舍入；总面积超过 1024×1024 时将禁用生成。
                   </div>
 
                   <div className="flex flex-col gap-2">
@@ -2220,10 +2302,10 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                         className={simpleResolutionValueInputClassName}
                         type="number"
                         min={1}
-                        max={SIMPLE_MODE_CUSTOM_MAX_DIMENSION}
-                        step={1}
+                        step={64}
                         value={widthInput}
                         onChange={e => handleProWidthChange(e.target.value)}
+                        onBlur={handleCommitProDimensions}
                       />
                       <button
                         type="button"
@@ -2238,12 +2320,16 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                         className={simpleResolutionValueInputClassName}
                         type="number"
                         min={1}
-                        max={SIMPLE_MODE_CUSTOM_MAX_DIMENSION}
-                        step={1}
+                        step={64}
                         value={heightInput}
                         onChange={e => handleProHeightChange(e.target.value)}
+                        onBlur={handleCommitProDimensions}
                       />
                     </div>
+                  </div>
+
+                  <div className="text-[11px] leading-5 text-base-content/55">
+                    自动按 64 舍入；总面积超过 1024×1024 时将禁用生成。
                   </div>
 
                   <div className="flex flex-col gap-2">
@@ -2294,6 +2380,7 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                     : "btn-primary"
                 }`}
                 disabled={uiMode === "simple" ? !canTriggerSimplePrimaryAction : !canTriggerProGenerate}
+                title={uiMode === "pro" && freeGenerationViolation ? freeGenerationViolation : undefined}
                 onClick={() => {
                   if (uiMode === "simple") {
                     if (hasReadySimpleTags) {

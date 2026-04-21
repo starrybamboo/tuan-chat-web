@@ -192,8 +192,15 @@ body {
 }
 
 .hidden-scrollbar {
-  overflow-y: auto;
+  overflow: auto;
+  -ms-overflow-style: none;
   scrollbar-width: none;
+}
+
+.hidden-scrollbar::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
 }
 
 .ai-image-fade-scrollbar {
