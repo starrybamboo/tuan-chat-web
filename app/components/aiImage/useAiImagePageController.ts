@@ -550,45 +550,6 @@ export function useAiImagePageController() {
     return dataUrlToBase64(canvas.toDataURL("image/png")) || "";
   }, [proInfillMaskDataUrl, simpleInfillMaskDataUrl]);
 
-  const resolvePreparedInfillSourceBase64 = useCallback(async (args: {
-    sourceDataUrl?: string;
-    sourceImageBase64?: string;
-    maskDataUrl?: string;
-  }) => {
-    const sourceDataUrl = String(args.sourceDataUrl || "").trim();
-    const maskDataUrl = String(args.maskDataUrl || "").trim();
-    if (!sourceDataUrl || !maskDataUrl)
-      return String(args.sourceImageBase64 || "").trim();
-
-    const sourcePixels = await readImagePixels(sourceDataUrl);
-    const maskPixels = await readImagePixels(maskDataUrl);
-    const canvas = document.createElement("canvas");
-    canvas.width = sourcePixels.width;
-    canvas.height = sourcePixels.height;
-    const context = canvas.getContext("2d");
-    if (!context)
-      throw new Error("Inpaint 原图处理失败。");
-
-    const imageData = context.createImageData(sourcePixels.width, sourcePixels.height);
-    for (let index = 0; index < sourcePixels.data.length; index += 4) {
-      const maskActive = maskPixels.data[index + 3] > 0;
-      if (maskActive) {
-        imageData.data[index] = 255;
-        imageData.data[index + 1] = 255;
-        imageData.data[index + 2] = 255;
-        imageData.data[index + 3] = 255;
-      }
-      else {
-        imageData.data[index] = sourcePixels.data[index];
-        imageData.data[index + 1] = sourcePixels.data[index + 1];
-        imageData.data[index + 2] = sourcePixels.data[index + 2];
-        imageData.data[index + 3] = sourcePixels.data[index + 3];
-      }
-    }
-    context.putImageData(imageData, 0, 0);
-    return dataUrlToBase64(canvas.toDataURL("image/png")) || String(args.sourceImageBase64 || "").trim();
-  }, []);
-
   useEffect(() => {
     if (mode !== "infill")
       return;
@@ -1433,9 +1394,6 @@ export function useAiImagePageController() {
     const effectiveSourceImageDataUrl = args?.sourceImageDataUrl ?? (usesSourceImage ? sourceImageDataUrl : undefined);
     const effectiveSourceImageWidth = args?.sourceImageWidth ?? (usesSourceImage ? sourceImageSize?.width : undefined);
     const effectiveSourceImageHeight = args?.sourceImageHeight ?? (usesSourceImage ? sourceImageSize?.height : undefined);
-    const effectiveUiMaskDataUrl = effectiveMode === "infill"
-      ? (uiMode === "simple" ? simpleInfillMaskDataUrl : proInfillMaskDataUrl)
-      : undefined;
     const effectiveMaskBase64 = args?.maskBase64 ?? (effectiveMode === "infill" ? resolveInfillMaskBase64ForUi(uiMode) : undefined);
     const v4CharsPayload = isNAI4 && uiMode === "pro" ? v4Chars.map(({ id, gender, ...rest }) => rest) : undefined;
     const v4UseCoordsPayload = uiMode === "pro" ? v4UseCoords : undefined;
@@ -1480,13 +1438,6 @@ export function useAiImagePageController() {
       if (freeViolation)
         throw new Error(freeViolation);
 
-      const requestSourceImageBase64 = args?.sourceImageBase64 ?? (effectiveMode === "infill"
-        ? await resolvePreparedInfillSourceBase64({
-            sourceDataUrl: effectiveSourceImageDataUrl,
-            sourceImageBase64: effectiveSourceImageBase64,
-            maskDataUrl: effectiveUiMaskDataUrl,
-          })
-        : effectiveSourceImageBase64);
       const requestMaskBase64 = args?.maskBase64 ?? (effectiveMode === "infill"
         ? await resolveSeparatedInfillMaskBase64ForUi(uiMode)
         : undefined);
@@ -1521,7 +1472,7 @@ export function useAiImagePageController() {
       const seedValue = Number.isFinite(seedInput) && seedInput >= 0 ? Math.floor(seedInput) : undefined;
       const res = await generateNovelImageViaProxy({
         mode: effectiveMode,
-        sourceImageBase64: requestSourceImageBase64,
+        sourceImageBase64: effectiveSourceImageBase64,
         sourceImageWidth: effectiveSourceImageWidth,
         sourceImageHeight: effectiveSourceImageHeight,
         maskBase64: requestMaskBase64,
@@ -1650,7 +1601,6 @@ export function useAiImagePageController() {
     seed,
     simpleInfillNegativePrompt,
     simpleInfillPrompt,
-    simpleInfillMaskDataUrl,
     simpleNegativePrompt,
     simplePrompt,
     sourceImageSize,
@@ -1670,9 +1620,7 @@ export function useAiImagePageController() {
     normalizeReferenceStrengths,
     proInfillNegativePrompt,
     proInfillPrompt,
-    proInfillMaskDataUrl,
     resolveInfillMaskBase64ForUi,
-    resolvePreparedInfillSourceBase64,
     resolveSeparatedInfillMaskBase64ForUi,
   ]);
 
