@@ -126,6 +126,8 @@ describe("aiImage api", () => {
     expect(requestBody.action).toBe("infill");
     expect(requestBody.parameters.image).toBe("source-base64");
     expect(requestBody.parameters.mask).toBe("mask-base64");
+    expect(requestBody.parameters.noise).toBe(0.2);
+    expect(requestBody.parameters.inpaintImg2ImgStrength).toBe(0.7);
     expect(requestBody.parameters.add_original_image).toBeUndefined();
   });
 });

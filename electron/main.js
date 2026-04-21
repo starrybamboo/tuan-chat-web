@@ -521,6 +521,23 @@ app.whenReady().then(async () => {
       parameters.strength = strength;
       parameters.noise = noise;
     }
+    else if (mode === "infill") {
+      const imageBase64 = String(req?.sourceImageBase64 || "").trim();
+      const maskBase64 = String(req?.maskBase64 || "").trim();
+      if (!imageBase64) {
+        throw new Error("infill 缂哄皯婧愬浘鐗囷紙sourceImageBase64锛?);
+      }
+      if (!maskBase64) {
+        throw new Error("infill 缂哄皯钂欑増锛坢askBase64锛?);
+      }
+      const strength = Number.isFinite(req?.strength) ? Number(req.strength) : 0.7;
+      const noise = Number.isFinite(req?.noise) ? Number(req.noise) : 0.2;
+      parameters.image = imageBase64;
+      parameters.mask = maskBase64;
+      parameters.strength = Math.max(0, Math.min(1, strength));
+      parameters.noise = Math.max(0, Math.min(1, noise));
+      parameters.inpaintImg2ImgStrength = Math.max(0, Math.min(1, strength));
+    }
 
     if (isNAI3 || isNAI4) {
       parameters.params_version = 3;
