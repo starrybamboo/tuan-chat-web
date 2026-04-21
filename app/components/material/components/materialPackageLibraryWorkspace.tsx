@@ -140,19 +140,27 @@ function ShortcutCard({
   return (
     <button
       type="button"
-      className="group text-left"
+      className="group w-full rounded-md text-left transition-all duration-300 ease-in-out"
       onClick={onClick}
     >
       <div className="flex h-full flex-col">
-        <div className="flex aspect-[1.25/1] items-center justify-center rounded-[26px] border border-dashed border-primary/30 bg-base-100/30 text-primary/75 transition duration-300 hover:-translate-y-1 hover:border-primary/45 hover:bg-primary/6 hover:text-primary">
-          <div className="rounded-[22px] border border-primary/12 bg-primary/8 p-6">
-            <ActionIcon icon={icon} className="size-10" />
+        <div className="relative overflow-hidden rounded-md border border-dashed border-primary/30 bg-base-200 text-primary/75 transition-all duration-300 group-hover:-translate-y-0.5 group-hover:border-primary/45 group-hover:bg-primary/6 group-hover:text-primary">
+          <div className="flex aspect-square w-full items-center justify-center">
+            <div className="rounded-md border border-primary/12 bg-primary/8 p-6 shadow-sm">
+              <ActionIcon icon={icon} className="size-10" />
+            </div>
           </div>
         </div>
-        <div className="space-y-2 px-1 pt-4">
-          <div className="text-lg font-semibold text-base-content">{title}</div>
-          <div className="text-sm text-base-content/62">{description}</div>
-          <div className="text-xs text-base-content/45">{caption}</div>
+        <div className="px-1 text-base">
+          <div className="mt-4 text-lg font-bold leading-7 text-base-content line-clamp-2">
+            {title}
+          </div>
+          <div className="mt-3 text-sm leading-relaxed text-base-content/80 line-clamp-3">
+            {description}
+          </div>
+          <div className="mt-3 text-xs text-base-content/55 line-clamp-2">
+            {caption}
+          </div>
         </div>
       </div>
     </button>
