@@ -82,6 +82,7 @@ async function requestNovelAiBinaryViaProxy(requestUrl: string, payload: unknown
       new Blob([JSON.stringify(payload)], { type: "application/json" }),
       "blob",
     );
+    formData.append("use_new_shared_trial", "true");
     body = formData;
   }
   else {
