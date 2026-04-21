@@ -228,9 +228,12 @@ export async function generateNovelImageViaProxy(args: {
   const imageCount = NOVELAI_FREE_FIXED_IMAGE_COUNT;
 
   const resolvedSampler = args.sampler === "k_euler_a" ? "k_euler_ancestral" : args.sampler;
+  const normalizedSeed = Number.isFinite(seed) && seed > 0 ? Math.floor(seed) : Math.floor(Math.random() * 2 ** 32);
+  const extraNoiseSeed = normalizedSeed > 0 ? normalizedSeed - 1 : 0;
+  const isInfillMode = args.mode === "infill";
 
   const parameters: Record<string, any> = {
-    seed,
+    seed: normalizedSeed,
     width,
     height,
     n_samples: imageCount,
@@ -239,7 +242,7 @@ export async function generateNovelImageViaProxy(args: {
     sampler: resolvedSampler,
     negative_prompt: negativePrompt,
     ucPreset: clampIntRange(args.ucPreset, 0, 2, 2),
-    qualityToggle: Boolean(args.qualityToggle),
+    qualityToggle: isInfillMode ? true : Boolean(args.qualityToggle),
     dynamic_thresholding: Boolean(args.dynamicThresholding),
   };
 
@@ -269,6 +272,10 @@ export async function generateNovelImageViaProxy(args: {
     parameters.strength = Math.max(0, Math.min(1, strength));
     parameters.noise = Math.max(0, Math.min(1, noise));
     parameters.inpaintImg2ImgStrength = Math.max(0, Math.min(1, strength));
+    parameters.img2img = {
+      strength: parameters.inpaintImg2ImgStrength,
+      color_correct: true,
+    };
   }
 
   if (isNAI3 || isNAI4) {
@@ -276,12 +283,19 @@ export async function generateNovelImageViaProxy(args: {
     parameters.legacy = false;
     parameters.legacy_v3_extend = false;
     parameters.noise_schedule = args.noiseSchedule;
-    if (args.mode === "infill")
-      parameters.add_original_image = true;
+    if (isInfillMode) {
+      parameters.add_original_image = false;
+      parameters.autoSmea = false;
+      parameters.legacy_uc = false;
+      parameters.normalize_reference_strength_multiple = true;
+      parameters.image_format = "png";
+      parameters.stream = "msgpack";
+      parameters.extra_noise_seed = extraNoiseSeed;
+    }
 
     if (isNAI4) {
       const cfgRescale = Number.isFinite(args.cfgRescale) ? Number(args.cfgRescale) : 0;
-      const useCoords = Boolean(args.v4UseCoords);
+      const useCoords = isInfillMode ? true : Boolean(args.v4UseCoords);
       const useOrder = args.v4UseOrder == null ? true : Boolean(args.v4UseOrder);
       const v4Chars = Array.isArray(args.v4Chars) ? args.v4Chars : [];
       const charCenters: V4PromptCenter[] = [];

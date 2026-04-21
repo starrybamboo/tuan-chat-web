@@ -519,6 +519,8 @@ app.whenReady().then(async () => {
     const sampler = String(req?.sampler || "k_euler_ancestral");
     const noiseSchedule = String(req?.noiseSchedule || "karras");
     const qualityToggle = Boolean(req?.qualityToggle);
+    const normalizedSeed = Number.isFinite(seed) && seed > 0 ? Math.floor(seed) : Math.floor(Math.random() * 2 ** 32);
+    const extraNoiseSeed = normalizedSeed > 0 ? normalizedSeed - 1 : 0;
 
     const width = clampToMultipleOf64(req?.width, 1024);
     const height = clampToMultipleOf64(req?.height, 1024);
@@ -549,7 +551,7 @@ app.whenReady().then(async () => {
     const v4UseOrder = req?.v4UseOrder == null ? true : Boolean(req.v4UseOrder);
 
     const parameters = {
-      seed,
+      seed: normalizedSeed,
       width,
       height,
       n_samples: 1,
@@ -559,7 +561,7 @@ app.whenReady().then(async () => {
       negative_prompt: negativePrompt,
       // align with novelai-bot defaults
       ucPreset: 2,
-      qualityToggle,
+      qualityToggle: mode === "infill" ? true : qualityToggle,
     };
 
     if (mode === "img2img") {
@@ -589,6 +591,10 @@ app.whenReady().then(async () => {
       parameters.strength = Math.max(0, Math.min(1, strength));
       parameters.noise = Math.max(0, Math.min(1, noise));
       parameters.inpaintImg2ImgStrength = Math.max(0, Math.min(1, strength));
+      parameters.img2img = {
+        strength: parameters.inpaintImg2ImgStrength,
+        color_correct: true,
+      };
     }
 
     if (isNAI3 || isNAI4) {
@@ -596,6 +602,15 @@ app.whenReady().then(async () => {
       parameters.legacy = false;
       parameters.legacy_v3_extend = false;
       parameters.noise_schedule = noiseSchedule;
+      if (mode === "infill") {
+        parameters.add_original_image = false;
+        parameters.autoSmea = false;
+        parameters.legacy_uc = false;
+        parameters.normalize_reference_strength_multiple = true;
+        parameters.image_format = "png";
+        parameters.stream = "msgpack";
+        parameters.extra_noise_seed = extraNoiseSeed;
+      }
 
       if (isNAI4) {
         const cfgRescale = Number.isFinite(req?.cfgRescale) ? Number(req.cfgRescale) : 0;
@@ -628,7 +643,7 @@ app.whenReady().then(async () => {
         parameters.reference_information_extracted_multiple = [];
         parameters.reference_strength_multiple = [];
         parameters.skip_cfg_above_sigma = null;
-        parameters.use_coords = v4UseCoords;
+        parameters.use_coords = mode === "infill" ? true : v4UseCoords;
         parameters.v4_prompt = {
           caption: {
             base_caption: prompt,
