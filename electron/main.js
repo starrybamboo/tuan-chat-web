@@ -148,6 +148,58 @@ function navigateMainWindowToPath(targetPath) {
   });
 }
 
+function decodeImageInputToBuffer(value) {
+  const raw = String(value || "").trim();
+  if (!raw) {
+    return null;
+  }
+
+  const dataUrlMatch = /^data:.*?;base64,(.+)$/i.exec(raw);
+  const base64 = dataUrlMatch ? dataUrlMatch[1] : raw;
+  try {
+    return Buffer.from(base64, "base64");
+  }
+  catch {
+    return null;
+  }
+}
+
+function sanitizeDebugSegment(value) {
+  return String(value || "")
+    .trim()
+    .replace(/[<>:"/\\|?*\u0000-\u001F]/g, "-")
+    .replace(/\s+/g, "-")
+    .slice(0, 48) || "debug";
+}
+
+function writeAiImageDebugBundle(payload) {
+  const rootDir = path.join(__dirname, "..", ".logs", "ai-image-debug");
+  const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+  const category = sanitizeDebugSegment(payload?.category || "debug");
+  const targetDir = path.join(rootDir, `${timestamp}_${category}`);
+  fs.mkdirSync(targetDir, { recursive: true });
+
+  const binaryTargets = [
+    ["source.png", payload?.sourceDataUrl],
+    ["mask-ui.png", payload?.uiMaskDataUrl],
+    ["mask-request.png", payload?.requestMaskDataUrl],
+  ];
+
+  for (const [fileName, data] of binaryTargets) {
+    const buffer = decodeImageInputToBuffer(data);
+    if (buffer)
+      fs.writeFileSync(path.join(targetDir, fileName), buffer);
+  }
+
+  fs.writeFileSync(
+    path.join(targetDir, "request.json"),
+    JSON.stringify(payload?.requestBody ?? {}, null, 2),
+    "utf8",
+  );
+
+  return targetDir;
+}
+
 async function createWindow() {
   // 创建浏览器窗口
   mainWindow = new BrowserWindow({
@@ -687,6 +739,22 @@ app.whenReady().then(async () => {
       height,
       model,
     };
+  });
+
+  ipcMain.handle("ai-image:save-debug-bundle", async (_event, payload) => {
+    try {
+      const directory = writeAiImageDebugBundle(payload);
+      return {
+        ok: true,
+        directory,
+      };
+    }
+    catch (error) {
+      return {
+        ok: false,
+        error: error instanceof Error ? error.message : String(error),
+      };
+    }
   });
 
   app.on("activate", () => {

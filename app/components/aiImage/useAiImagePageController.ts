@@ -103,6 +103,7 @@ import {
   readImageSize,
   readLocalStorageString,
   resolveFixedImageModel,
+  resolveInpaintModel,
   resolveImportedValue,
   resolveSimpleGenerateMode,
   shouldKeepSimpleTagsEditor,
@@ -1427,6 +1428,33 @@ export function useAiImagePageController() {
       const requestMaskBase64 = args?.maskBase64 ?? (effectiveMode === "infill"
         ? await resolveSeparatedInfillMaskBase64ForUi(uiMode)
         : undefined);
+      if (effectiveMode === "infill" && typeof window !== "undefined" && window.electronAPI?.saveAiImageDebugBundle) {
+        const requestBody = {
+          mode: effectiveMode,
+          model: resolveInpaintModel(model),
+          width: effectiveWidth,
+          height: effectiveHeight,
+          strength: effectiveStrength,
+          noise,
+          prompt: effectivePrompt,
+          negativePrompt: effectiveNegative,
+          sampler,
+          noiseSchedule,
+          cfgRescale,
+          ucPreset,
+          qualityToggle,
+          dynamicThresholding,
+          sourceImageWidth: effectiveSourceImageWidth,
+          sourceImageHeight: effectiveSourceImageHeight,
+        };
+        void window.electronAPI.saveAiImageDebugBundle({
+          category: "infill",
+          sourceDataUrl: effectiveSourceImageDataUrl,
+          uiMaskDataUrl: effectiveMode === "infill" ? (uiMode === "simple" ? simpleInfillMaskDataUrl : proInfillMaskDataUrl) : undefined,
+          requestMaskDataUrl: requestMaskBase64 ? base64DataUrl("image/png", base64ToBytes(requestMaskBase64)) : undefined,
+          requestBody,
+        });
+      }
       const seedInput = Number(seed);
       const seedValue = Number.isFinite(seedInput) && seedInput >= 0 ? Math.floor(seedInput) : undefined;
       const res = await generateNovelImageViaProxy({
