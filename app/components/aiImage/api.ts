@@ -263,9 +263,12 @@ export async function generateNovelImageViaProxy(args: {
       throw new Error("infill 缺少蒙版（maskBase64）");
 
     const strength = Number.isFinite(args.strength) ? Number(args.strength) : 0.7;
+    const noise = Number.isFinite(args.noise) ? Number(args.noise) : 0.2;
     parameters.image = imageBase64;
     parameters.mask = maskBase64;
     parameters.strength = Math.max(0, Math.min(1, strength));
+    parameters.noise = Math.max(0, Math.min(1, noise));
+    parameters.inpaintImg2ImgStrength = Math.max(0, Math.min(1, strength));
   }
 
   if (isNAI3 || isNAI4) {
