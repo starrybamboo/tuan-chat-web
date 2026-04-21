@@ -123,6 +123,7 @@ import {
   extractNovelAiMetadataFromStealthPixels,
 } from "@/utils/novelaiImageMetadata";
 import { convertNaturalLanguageToNovelAiTags } from "@/utils/novelaiNl2Tags";
+import { compositeFocusedInpaintResult, prepareFocusedInpaintPayload } from "@/components/aiImage/inpaintFocusUtils";
 
 const DEFAULT_METADATA_IMPORT_SELECTION: MetadataImportSelectionState = {
   prompt: true,
@@ -1521,12 +1522,27 @@ export function useAiImagePageController() {
       const requestMaskBase64 = args?.maskBase64 ?? (effectiveMode === "infill"
         ? await resolveSeparatedInfillMaskBase64ForUi(uiMode)
         : undefined);
+      const requestMaskDataUrl = requestMaskBase64 ? base64DataUrl("image/png", base64ToBytes(requestMaskBase64)) : undefined;
+      const focusedInpaint = effectiveMode === "infill"
+        && effectiveSourceImageDataUrl
+        && requestMaskDataUrl
+        ? await prepareFocusedInpaintPayload({
+            sourceDataUrl: effectiveSourceImageDataUrl,
+            maskDataUrl: requestMaskDataUrl,
+          })
+        : null;
+      const requestSourceImageBase64 = focusedInpaint?.sourceImageBase64 ?? effectiveSourceImageBase64;
+      const requestSourceImageWidth = focusedInpaint?.targetSize.width ?? effectiveSourceImageWidth;
+      const requestSourceImageHeight = focusedInpaint?.targetSize.height ?? effectiveSourceImageHeight;
+      const requestWidth = focusedInpaint?.targetSize.width ?? effectiveWidth;
+      const requestHeight = focusedInpaint?.targetSize.height ?? effectiveHeight;
+      const requestMaskPayloadBase64 = focusedInpaint?.maskBase64 ?? requestMaskBase64;
       if (effectiveMode === "infill" && typeof window !== "undefined" && window.electronAPI?.saveAiImageDebugBundle) {
         const requestBody = {
           mode: effectiveMode,
           model: resolveInpaintModel(model),
-          width: effectiveWidth,
-          height: effectiveHeight,
+          width: requestWidth,
+          height: requestHeight,
           strength: effectiveStrength,
           noise: effectiveNoise,
           prompt: effectivePrompt,
@@ -1537,14 +1553,15 @@ export function useAiImagePageController() {
           ucPreset,
           qualityToggle,
           dynamicThresholding,
-          sourceImageWidth: effectiveSourceImageWidth,
-          sourceImageHeight: effectiveSourceImageHeight,
+          sourceImageWidth: requestSourceImageWidth,
+          sourceImageHeight: requestSourceImageHeight,
+          focusedCropRect: focusedInpaint?.cropRect,
         };
         void window.electronAPI.saveAiImageDebugBundle({
           category: "infill",
           sourceDataUrl: effectiveSourceImageDataUrl,
           uiMaskDataUrl: effectiveMode === "infill" ? (uiMode === "simple" ? simpleInfillMaskDataUrl : proInfillMaskDataUrl) : undefined,
-          requestMaskDataUrl: requestMaskBase64 ? base64DataUrl("image/png", base64ToBytes(requestMaskBase64)) : undefined,
+          requestMaskDataUrl: requestMaskDataUrl,
           requestBody,
         });
       }
@@ -1552,10 +1569,10 @@ export function useAiImagePageController() {
       const seedValue = Number.isFinite(seedInput) && seedInput >= 0 ? Math.floor(seedInput) : undefined;
       const res = await generateNovelImageViaProxy({
         mode: effectiveMode,
-        sourceImageBase64: effectiveSourceImageBase64,
-        sourceImageWidth: effectiveSourceImageWidth,
-        sourceImageHeight: effectiveSourceImageHeight,
-        maskBase64: requestMaskBase64,
+        sourceImageBase64: requestSourceImageBase64,
+        sourceImageWidth: requestSourceImageWidth,
+        sourceImageHeight: requestSourceImageHeight,
+        maskBase64: requestMaskPayloadBase64,
         strength: effectiveStrength,
         noise: effectiveNoise,
         prompt: effectivePrompt,
@@ -1566,8 +1583,8 @@ export function useAiImagePageController() {
         vibeTransferReferences: vibeTransferPayload,
         preciseReference: preciseReferencePayload,
         model,
-        width: effectiveWidth,
-        height: effectiveHeight,
+        width: requestWidth,
+        height: requestHeight,
         imageCount: effectiveImageCount,
         steps,
         scale,
@@ -1582,17 +1599,29 @@ export function useAiImagePageController() {
         seed: seedValue,
       });
 
+      const resolvedDataUrls = focusedInpaint && effectiveSourceImageDataUrl && requestMaskDataUrl
+        ? await Promise.all(res.dataUrls.map(async (dataUrl) => {
+            return await compositeFocusedInpaintResult({
+              sourceDataUrl: effectiveSourceImageDataUrl,
+              generatedCropDataUrl: dataUrl,
+              fullMaskDataUrl: requestMaskDataUrl,
+              cropRect: focusedInpaint.cropRect,
+            });
+          }))
+        : res.dataUrls;
       const batchId = makeStableId();
-      const generatedItems = res.dataUrls.map((dataUrl, batchIndex) => {
+      const resultWidth = focusedInpaint ? (effectiveSourceImageWidth ?? effectiveWidth) : res.width;
+      const resultHeight = focusedInpaint ? (effectiveSourceImageHeight ?? effectiveHeight) : res.height;
+      const generatedItems = resolvedDataUrls.map((dataUrl, batchIndex) => {
         return {
           dataUrl,
           seed: res.seed,
-          width: res.width,
-          height: res.height,
+          width: resultWidth,
+          height: resultHeight,
           model: res.model,
           batchId,
           batchIndex,
-          batchSize: res.dataUrls.length,
+          batchSize: resolvedDataUrls.length,
           toolLabel: args?.toolLabel,
         } satisfies GeneratedImageItem;
       });
@@ -1609,8 +1638,8 @@ export function useAiImagePageController() {
         mode: effectiveMode,
         model: res.model,
         seed: res.seed,
-        width: res.width,
-        height: res.height,
+        width: resultWidth,
+        height: resultHeight,
         prompt: effectivePrompt,
         negativePrompt: effectiveNegative,
         imageCount: effectiveImageCount,
