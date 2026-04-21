@@ -1632,6 +1632,11 @@ export function useAiImagePageController() {
       return;
     }
 
+    const currentInfillPrompt = uiMode === "simple" ? simpleInfillPrompt : proInfillPrompt;
+    const currentInfillNegativePrompt = uiMode === "simple" ? simpleInfillNegativePrompt : proInfillNegativePrompt;
+    const sourcePrompt = String(selectedPreviewHistoryRow?.prompt || "").trim();
+    const sourceNegativePrompt = String(selectedPreviewHistoryRow?.negativePrompt || "").trim();
+
     setError("");
     setInpaintDialogSource({
       dataUrl: preview.dataUrl,
@@ -1642,11 +1647,15 @@ export function useAiImagePageController() {
       seed: preview.seed,
       model: preview.model,
       mode: uiMode,
-      prompt: uiMode === "simple" ? simpleInfillPrompt : proInfillPrompt,
-      negativePrompt: uiMode === "simple" ? simpleInfillNegativePrompt : proInfillNegativePrompt,
+      prompt: shouldSyncBaseImage
+        ? sourcePrompt || currentInfillPrompt || DEFAULT_INPAINT_PROMPT
+        : currentInfillPrompt || sourcePrompt || DEFAULT_INPAINT_PROMPT,
+      negativePrompt: shouldSyncBaseImage
+        ? sourceNegativePrompt || currentInfillNegativePrompt || DEFAULT_INPAINT_NEGATIVE_PROMPT
+        : currentInfillNegativePrompt || sourceNegativePrompt || DEFAULT_INPAINT_NEGATIVE_PROMPT,
       strength,
     });
-  }, [applySelectedPreviewAsBaseImage, infillMaskDataUrl, proInfillNegativePrompt, proInfillPrompt, selectedPreviewResult, showErrorToast, simpleInfillNegativePrompt, simpleInfillPrompt, sourceImageDataUrl, strength, uiMode]);
+  }, [applySelectedPreviewAsBaseImage, infillMaskDataUrl, proInfillNegativePrompt, proInfillPrompt, selectedPreviewHistoryRow, selectedPreviewResult, showErrorToast, simpleInfillNegativePrompt, simpleInfillPrompt, sourceImageDataUrl, strength, uiMode]);
 
   const handleOpenBaseImageInpaint = useCallback(async () => {
     if (!sourceImageDataUrl)
@@ -1666,6 +1675,15 @@ export function useAiImagePageController() {
       // 读取失败时回退到当前画布尺寸。
     }
 
+    const matchedSourceHistoryRow = history.find(row =>
+      row.dataUrl === sourceImageDataUrl
+      || row.sourceDataUrl === sourceImageDataUrl,
+    ) || null;
+    const currentInfillPrompt = uiMode === "simple" ? simpleInfillPrompt : proInfillPrompt;
+    const currentInfillNegativePrompt = uiMode === "simple" ? simpleInfillNegativePrompt : proInfillNegativePrompt;
+    const sourcePrompt = String(matchedSourceHistoryRow?.prompt || "").trim();
+    const sourceNegativePrompt = String(matchedSourceHistoryRow?.negativePrompt || "").trim();
+
     setError("");
     setInpaintDialogSource({
       dataUrl: sourceImageDataUrl,
@@ -1676,11 +1694,11 @@ export function useAiImagePageController() {
       seed,
       model,
       mode: uiMode,
-      prompt: uiMode === "simple" ? simpleInfillPrompt : proInfillPrompt,
-      negativePrompt: uiMode === "simple" ? simpleInfillNegativePrompt : proInfillNegativePrompt,
+      prompt: sourcePrompt || currentInfillPrompt || DEFAULT_INPAINT_PROMPT,
+      negativePrompt: sourceNegativePrompt || currentInfillNegativePrompt || DEFAULT_INPAINT_NEGATIVE_PROMPT,
       strength,
     });
-  }, [height, infillMaskDataUrl, model, proInfillNegativePrompt, proInfillPrompt, seed, showErrorToast, simpleInfillNegativePrompt, simpleInfillPrompt, sourceImageDataUrl, strength, uiMode, width]);
+  }, [height, history, infillMaskDataUrl, model, proInfillNegativePrompt, proInfillPrompt, seed, showErrorToast, simpleInfillNegativePrompt, simpleInfillPrompt, sourceImageDataUrl, strength, uiMode, width]);
 
   const handleCloseInpaintDialog = useCallback(() => {
     if (loading)
