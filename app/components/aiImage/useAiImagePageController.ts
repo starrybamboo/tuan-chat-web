@@ -136,6 +136,8 @@ const DEFAULT_METADATA_IMPORT_SELECTION: MetadataImportSelectionState = {
 
 const DEFAULT_INPAINT_PROMPT = "very aesthetic, masterpiece, no text";
 const DEFAULT_INPAINT_NEGATIVE_PROMPT = "nsfw, lowres, artistic error, film grain, scan artifacts, worst quality, bad quality, jpeg artifacts, very displeasing, chromatic aberration, dithering, halftone, screentone, multiple views, logo, too many watermarks, negative space, blank page";
+const DEFAULT_INPAINT_STRENGTH = 0.55;
+const DEFAULT_INPAINT_NOISE = 0;
 
 export function useAiImagePageController() {
   const sourceFileInputRef = useRef<HTMLInputElement | null>(null);
@@ -313,6 +315,10 @@ export function useAiImagePageController() {
   const [simpleImg2imgNoise, setSimpleImg2imgNoise] = useState<number>(DEFAULT_SIMPLE_IMAGE_SETTINGS.noise);
   const [proImg2imgStrength, setProImg2imgStrength] = useState<number>(DEFAULT_PRO_IMAGE_SETTINGS.strength);
   const [proImg2imgNoise, setProImg2imgNoise] = useState<number>(DEFAULT_PRO_IMAGE_SETTINGS.noise);
+  const [simpleInfillStrength, setSimpleInfillStrength] = useState<number>(DEFAULT_INPAINT_STRENGTH);
+  const [simpleInfillNoise, setSimpleInfillNoise] = useState<number>(DEFAULT_INPAINT_NOISE);
+  const [proInfillStrength, setProInfillStrength] = useState<number>(DEFAULT_INPAINT_STRENGTH);
+  const [proInfillNoise, setProInfillNoise] = useState<number>(DEFAULT_INPAINT_NOISE);
 
   const width = uiMode === "simple" ? simpleWidth : proWidth;
   const height = uiMode === "simple" ? simpleHeight : proHeight;
@@ -331,8 +337,12 @@ export function useAiImagePageController() {
   const dynamicThresholding = uiMode === "simple" ? DEFAULT_SIMPLE_IMAGE_SETTINGS.dynamicThresholding : proDynamicThresholding;
   const smea = uiMode === "simple" ? DEFAULT_SIMPLE_IMAGE_SETTINGS.smea : proSmea;
   const smeaDyn = uiMode === "simple" ? DEFAULT_SIMPLE_IMAGE_SETTINGS.smeaDyn : proSmeaDyn;
-  const strength = uiMode === "simple" ? simpleImg2imgStrength : proImg2imgStrength;
-  const noise = uiMode === "simple" ? simpleImg2imgNoise : proImg2imgNoise;
+  const currentImg2imgStrength = uiMode === "simple" ? simpleImg2imgStrength : proImg2imgStrength;
+  const currentImg2imgNoise = uiMode === "simple" ? simpleImg2imgNoise : proImg2imgNoise;
+  const currentInfillStrength = uiMode === "simple" ? simpleInfillStrength : proInfillStrength;
+  const currentInfillNoise = uiMode === "simple" ? simpleInfillNoise : proInfillNoise;
+  const strength = mode === "infill" ? currentInfillStrength : currentImg2imgStrength;
+  const noise = mode === "infill" ? currentInfillNoise : currentImg2imgNoise;
   const seed = uiMode === "simple" ? simpleSeed : proSeed;
   const sourceImageDataUrl = uiMode === "simple" ? simpleSourceImageDataUrl : proSourceImageDataUrl;
   const sourceImageBase64 = uiMode === "simple" ? simpleSourceImageBase64 : proSourceImageBase64;
@@ -686,6 +696,37 @@ export function useAiImagePageController() {
     syncDimensionInputsForUi("pro", nextWidth, nextHeight);
   }, [clampCustomDimensionInput, proHeight, proResolutionSelection, proWidth, syncDimensionInputsForUi, uiMode]);
 
+  const applyModeStrengthAndNoise = useCallback((targetUiMode: UiMode, targetMode: AiImageHistoryMode | undefined, nextStrength: number | undefined, nextNoise: number | undefined) => {
+    const normalizedMode = targetMode === "infill" ? "infill" : "img2img";
+    if (targetUiMode === "simple") {
+      if (normalizedMode === "infill") {
+        if (nextStrength != null)
+          setSimpleInfillStrength(clampRange(nextStrength, 0.01, 1, DEFAULT_INPAINT_STRENGTH));
+        if (nextNoise != null)
+          setSimpleInfillNoise(clampRange(nextNoise, 0, 0.99, DEFAULT_INPAINT_NOISE));
+        return;
+      }
+      if (nextStrength != null)
+        setSimpleImg2imgStrength(clampRange(nextStrength, 0.01, 1, DEFAULT_SIMPLE_IMAGE_SETTINGS.strength));
+      if (nextNoise != null)
+        setSimpleImg2imgNoise(clampRange(nextNoise, 0, 0.99, DEFAULT_SIMPLE_IMAGE_SETTINGS.noise));
+      return;
+    }
+
+    if (normalizedMode === "infill") {
+      if (nextStrength != null)
+        setProInfillStrength(clampRange(nextStrength, 0.01, 1, DEFAULT_INPAINT_STRENGTH));
+      if (nextNoise != null)
+        setProInfillNoise(clampRange(nextNoise, 0, 0.99, DEFAULT_INPAINT_NOISE));
+      return;
+    }
+
+    if (nextStrength != null)
+      setProImg2imgStrength(clampRange(nextStrength, 0.01, 1, DEFAULT_PRO_IMAGE_SETTINGS.strength));
+    if (nextNoise != null)
+      setProImg2imgNoise(clampRange(nextNoise, 0, 0.99, DEFAULT_PRO_IMAGE_SETTINGS.noise));
+  }, []);
+
   const applyImportedMetadata = useCallback((metadata: NovelAiImageMetadataResult, selection: MetadataImportSelectionState) => {
     setIsPageImageDragOver(false);
     const shouldCleanImportedText = selection.cleanImports;
@@ -724,12 +765,17 @@ export function useAiImagePageController() {
         setSimpleHeight(normalizedImportedSize.height);
         setSimpleResolutionSelection(inferResolutionSelection(normalizedImportedSize.width, normalizedImportedSize.height));
 
-        const importedStrength = resolveImportedValue(settings.strength, cleanImports, DEFAULT_SIMPLE_IMAGE_SETTINGS.strength);
-        if (importedStrength != null)
-          setSimpleImg2imgStrength(clampRange(importedStrength, 0, 1, DEFAULT_SIMPLE_IMAGE_SETTINGS.strength));
-        const importedNoise = resolveImportedValue(settings.noise, cleanImports, DEFAULT_SIMPLE_IMAGE_SETTINGS.noise);
-        if (importedNoise != null)
-          setSimpleImg2imgNoise(clampRange(importedNoise, 0, 1, DEFAULT_SIMPLE_IMAGE_SETTINGS.noise));
+        const importedStrength = resolveImportedValue(
+          settings.strength,
+          cleanImports,
+          settings.mode === "infill" ? DEFAULT_INPAINT_STRENGTH : DEFAULT_SIMPLE_IMAGE_SETTINGS.strength,
+        );
+        const importedNoise = resolveImportedValue(
+          settings.noise,
+          cleanImports,
+          settings.mode === "infill" ? DEFAULT_INPAINT_NOISE : DEFAULT_SIMPLE_IMAGE_SETTINGS.noise,
+        );
+        applyModeStrengthAndNoise("simple", settings.mode, importedStrength ?? undefined, importedNoise ?? undefined);
       }
 
       return;
@@ -800,12 +846,17 @@ export function useAiImagePageController() {
       const importedSmeaDyn = resolveImportedValue(settings.smeaDyn, cleanImports, DEFAULT_PRO_IMAGE_SETTINGS.smeaDyn);
       if (importedSmeaDyn != null)
         setProSmeaDyn(Boolean(importedSmeaDyn));
-      const importedStrength = resolveImportedValue(settings.strength, cleanImports, DEFAULT_PRO_IMAGE_SETTINGS.strength);
-      if (importedStrength != null)
-        setProImg2imgStrength(clampRange(importedStrength, 0, 1, DEFAULT_PRO_IMAGE_SETTINGS.strength));
-      const importedNoise = resolveImportedValue(settings.noise, cleanImports, DEFAULT_PRO_IMAGE_SETTINGS.noise);
-      if (importedNoise != null)
-        setProImg2imgNoise(clampRange(importedNoise, 0, 1, DEFAULT_PRO_IMAGE_SETTINGS.noise));
+      const importedStrength = resolveImportedValue(
+        settings.strength,
+        cleanImports,
+        settings.mode === "infill" ? DEFAULT_INPAINT_STRENGTH : DEFAULT_PRO_IMAGE_SETTINGS.strength,
+      );
+      const importedNoise = resolveImportedValue(
+        settings.noise,
+        cleanImports,
+        settings.mode === "infill" ? DEFAULT_INPAINT_NOISE : DEFAULT_PRO_IMAGE_SETTINGS.noise,
+      );
+      applyModeStrengthAndNoise("pro", settings.mode, importedStrength ?? undefined, importedNoise ?? undefined);
       const importedV4UseCoords = resolveImportedValue(settings.v4UseCoords, cleanImports, false);
       if (importedV4UseCoords != null)
         setV4UseCoords(Boolean(importedV4UseCoords));
@@ -844,7 +895,7 @@ export function useAiImagePageController() {
       );
       setProFeatureSectionOpen("characterPrompts", nextChars.length > 0);
     }
-  }, [clearSourceImageForUi, inferResolutionSelection, noiseScheduleOptions, proHeight, proWidth, samplerOptions, simpleHeight, simpleWidth, uiMode, v4Chars, setProFeatureSectionOpen]);
+  }, [applyModeStrengthAndNoise, clearSourceImageForUi, inferResolutionSelection, noiseScheduleOptions, proHeight, proWidth, samplerOptions, simpleHeight, simpleWidth, uiMode, v4Chars, setProFeatureSectionOpen]);
 
   const refreshHistory = useCallback(async () => {
     const rows = await listAiImageHistory({ limit: 30 });
@@ -1398,6 +1449,7 @@ export function useAiImagePageController() {
     width?: number;
     height?: number;
     strength?: number;
+    noise?: number;
     toolLabel?: string;
   }) => {
     const effectiveMode = args?.mode ?? mode;
@@ -1415,7 +1467,8 @@ export function useAiImagePageController() {
     const effectiveNegative = mergeStyleTags ? mergeTagString(baseNegative, activeStyleNegativeTags) : baseNegative;
     const effectiveWidth = args?.width ?? width;
     const effectiveHeight = args?.height ?? height;
-    const effectiveStrength = args?.strength ?? strength;
+    const effectiveStrength = args?.strength ?? (effectiveMode === "infill" ? currentInfillStrength : currentImg2imgStrength);
+    const effectiveNoise = args?.noise ?? (effectiveMode === "infill" ? currentInfillNoise : currentImg2imgNoise);
     const usesSourceImage = effectiveMode === "img2img" || effectiveMode === "infill";
     const effectiveSourceImageBase64 = args?.sourceImageBase64 ?? (usesSourceImage ? sourceImageBase64 : undefined);
     const effectiveSourceImageDataUrl = args?.sourceImageDataUrl ?? (usesSourceImage ? sourceImageDataUrl : undefined);
@@ -1475,7 +1528,7 @@ export function useAiImagePageController() {
           width: effectiveWidth,
           height: effectiveHeight,
           strength: effectiveStrength,
-          noise,
+          noise: effectiveNoise,
           prompt: effectivePrompt,
           negativePrompt: effectiveNegative,
           sampler,
@@ -1504,7 +1557,7 @@ export function useAiImagePageController() {
         sourceImageHeight: effectiveSourceImageHeight,
         maskBase64: requestMaskBase64,
         strength: effectiveStrength,
-        noise,
+        noise: effectiveNoise,
         prompt: effectivePrompt,
         negativePrompt: effectiveNegative,
         v4Chars: v4CharsPayload,
@@ -1572,7 +1625,7 @@ export function useAiImagePageController() {
         smea,
         smeaDyn,
         strength: effectiveStrength,
-        noise,
+        noise: effectiveNoise,
         v4Chars: v4CharsPayload,
         v4UseCoords: v4UseCoordsPayload ?? false,
         v4UseOrder: v4UseOrderPayload ?? true,
@@ -1614,7 +1667,6 @@ export function useAiImagePageController() {
     dynamicThresholding,
     isNAI4,
     negativePrompt,
-    noise,
     noiseSchedule,
     preciseReference,
     prompt,
@@ -1636,7 +1688,10 @@ export function useAiImagePageController() {
     sourceImageBase64,
     sourceImageDataUrl,
     steps,
-    strength,
+    currentImg2imgNoise,
+    currentImg2imgStrength,
+    currentInfillNoise,
+    currentInfillStrength,
     ucPreset,
     uiMode,
     v4Chars,
@@ -1687,9 +1742,9 @@ export function useAiImagePageController() {
       negativePrompt: shouldSyncBaseImage
         ? sourceNegativePrompt || currentInfillNegativePrompt || DEFAULT_INPAINT_NEGATIVE_PROMPT
         : currentInfillNegativePrompt || sourceNegativePrompt || DEFAULT_INPAINT_NEGATIVE_PROMPT,
-      strength,
+      strength: currentInfillStrength,
     });
-  }, [applySelectedPreviewAsBaseImage, infillMaskDataUrl, proInfillNegativePrompt, proInfillPrompt, selectedPreviewHistoryRow, selectedPreviewResult, showErrorToast, simpleInfillNegativePrompt, simpleInfillPrompt, sourceImageDataUrl, strength, uiMode]);
+  }, [applySelectedPreviewAsBaseImage, currentInfillStrength, infillMaskDataUrl, proInfillNegativePrompt, proInfillPrompt, selectedPreviewHistoryRow, selectedPreviewResult, showErrorToast, simpleInfillNegativePrompt, simpleInfillPrompt, sourceImageDataUrl, uiMode]);
 
   const handleOpenBaseImageInpaint = useCallback(async () => {
     if (!sourceImageDataUrl)
@@ -1730,9 +1785,9 @@ export function useAiImagePageController() {
       mode: uiMode,
       prompt: sourcePrompt || currentInfillPrompt || DEFAULT_INPAINT_PROMPT,
       negativePrompt: sourceNegativePrompt || currentInfillNegativePrompt || DEFAULT_INPAINT_NEGATIVE_PROMPT,
-      strength,
+      strength: currentInfillStrength,
     });
-  }, [height, history, infillMaskDataUrl, model, proInfillNegativePrompt, proInfillPrompt, seed, showErrorToast, simpleInfillNegativePrompt, simpleInfillPrompt, sourceImageDataUrl, strength, uiMode, width]);
+  }, [height, history, currentInfillStrength, infillMaskDataUrl, model, proInfillNegativePrompt, proInfillPrompt, seed, showErrorToast, simpleInfillNegativePrompt, simpleInfillPrompt, sourceImageDataUrl, uiMode, width]);
 
   const handleCloseInpaintDialog = useCallback(() => {
     if (loading)
@@ -1745,19 +1800,19 @@ export function useAiImagePageController() {
     if (!inpaintDialogSource)
       return;
 
-    const nextStrength = clampRange(Number(payload.strength), 0.01, 1, 0.7);
+    const nextStrength = clampRange(Number(payload.strength), 0.01, 1, DEFAULT_INPAINT_STRENGTH);
     if (inpaintDialogSource.mode === "simple") {
       setSimpleInfillPrompt(String(payload.prompt || "").trim() || DEFAULT_INPAINT_PROMPT);
       setSimpleInfillNegativePrompt(String(payload.negativePrompt || "").trim() || DEFAULT_INPAINT_NEGATIVE_PROMPT);
       setSimpleEditorMode("tags");
       setSimplePromptTab("prompt");
-      setSimpleImg2imgStrength(nextStrength);
+      setSimpleInfillStrength(nextStrength);
       setSimpleInfillMaskDataUrl(payload.maskDataUrl);
     }
     else {
       setProInfillPrompt(String(payload.prompt || "").trim() || DEFAULT_INPAINT_PROMPT);
       setProInfillNegativePrompt(String(payload.negativePrompt || "").trim() || DEFAULT_INPAINT_NEGATIVE_PROMPT);
-      setProImg2imgStrength(nextStrength);
+      setProInfillStrength(nextStrength);
       setProInfillMaskDataUrl(payload.maskDataUrl);
     }
 
@@ -2027,18 +2082,12 @@ export function useAiImagePageController() {
       setSimpleWidth(normalizedSize.width);
       setSimpleHeight(normalizedSize.height);
       setSimpleResolutionSelection(inferResolutionSelection(normalizedSize.width, normalizedSize.height));
-      setSimpleImg2imgStrength(clampRange(
-        resolveImportedValue(row.strength, true, DEFAULT_SIMPLE_IMAGE_SETTINGS.strength) ?? DEFAULT_SIMPLE_IMAGE_SETTINGS.strength,
-        0,
-        1,
-        DEFAULT_SIMPLE_IMAGE_SETTINGS.strength,
-      ));
-      setSimpleImg2imgNoise(clampRange(
-        resolveImportedValue(row.noise, true, DEFAULT_SIMPLE_IMAGE_SETTINGS.noise) ?? DEFAULT_SIMPLE_IMAGE_SETTINGS.noise,
-        0,
-        1,
-        DEFAULT_SIMPLE_IMAGE_SETTINGS.noise,
-      ));
+      applyModeStrengthAndNoise(
+        "simple",
+        row.mode,
+        resolveImportedValue(row.strength, true, row.mode === "infill" ? DEFAULT_INPAINT_STRENGTH : DEFAULT_SIMPLE_IMAGE_SETTINGS.strength) ?? undefined,
+        resolveImportedValue(row.noise, true, row.mode === "infill" ? DEFAULT_INPAINT_NOISE : DEFAULT_SIMPLE_IMAGE_SETTINGS.noise) ?? undefined,
+      );
       if (importSeed)
         setSimpleSeed(row.seed);
       showSuccessToast([
@@ -2125,24 +2174,18 @@ export function useAiImagePageController() {
     setProDynamicThresholding(resolveImportedValue(row.dynamicThresholding, true, DEFAULT_PRO_IMAGE_SETTINGS.dynamicThresholding) ?? DEFAULT_PRO_IMAGE_SETTINGS.dynamicThresholding);
     setProSmea(resolveImportedValue(row.smea, true, DEFAULT_PRO_IMAGE_SETTINGS.smea) ?? DEFAULT_PRO_IMAGE_SETTINGS.smea);
     setProSmeaDyn(resolveImportedValue(row.smeaDyn, true, DEFAULT_PRO_IMAGE_SETTINGS.smeaDyn) ?? DEFAULT_PRO_IMAGE_SETTINGS.smeaDyn);
-    setProImg2imgStrength(clampRange(
-      resolveImportedValue(row.strength, true, DEFAULT_PRO_IMAGE_SETTINGS.strength) ?? DEFAULT_PRO_IMAGE_SETTINGS.strength,
-      0,
-      1,
-      DEFAULT_PRO_IMAGE_SETTINGS.strength,
-    ));
-    setProImg2imgNoise(clampRange(
-      resolveImportedValue(row.noise, true, DEFAULT_PRO_IMAGE_SETTINGS.noise) ?? DEFAULT_PRO_IMAGE_SETTINGS.noise,
-      0,
-      1,
-      DEFAULT_PRO_IMAGE_SETTINGS.noise,
-    ));
+    applyModeStrengthAndNoise(
+      "pro",
+      row.mode,
+      resolveImportedValue(row.strength, true, row.mode === "infill" ? DEFAULT_INPAINT_STRENGTH : DEFAULT_PRO_IMAGE_SETTINGS.strength) ?? undefined,
+      resolveImportedValue(row.noise, true, row.mode === "infill" ? DEFAULT_INPAINT_NOISE : DEFAULT_PRO_IMAGE_SETTINGS.noise) ?? undefined,
+    );
     showSuccessToast([
       importSeed ? "已导入历史设置与 seed。" : "已导入历史设置，seed 保持当前值。",
       restoredSourceImage && row.mode === "infill" ? "Inpaint 历史已按 Base Img 恢复。" : "",
       droppedPaidSettings.length ? `已自动忽略会消耗 Anlas 的项：${droppedPaidSettings.join(" / ")}。` : "",
     ].filter(Boolean).join(" "));
-  }, [clearSourceImageForUi, inferResolutionSelection, noiseScheduleOptions, restoreSourceImageForUi, samplerOptions, showSuccessToast, uiMode]);
+  }, [applyModeStrengthAndNoise, clearSourceImageForUi, inferResolutionSelection, noiseScheduleOptions, restoreSourceImageForUi, samplerOptions, showSuccessToast, uiMode]);
 
   const handleHistoryRowClick = useCallback((row: AiImageHistoryRow, event: MouseEvent<HTMLButtonElement>) => {
     const clickMode: HistoryRowClickMode = (event.metaKey || event.ctrlKey)
@@ -2243,6 +2286,8 @@ export function useAiImagePageController() {
     setSimpleHeight(DEFAULT_SIMPLE_IMAGE_SETTINGS.height);
     setSimpleImg2imgStrength(DEFAULT_SIMPLE_IMAGE_SETTINGS.strength);
     setSimpleImg2imgNoise(DEFAULT_SIMPLE_IMAGE_SETTINGS.noise);
+    setSimpleInfillStrength(DEFAULT_INPAINT_STRENGTH);
+    setSimpleInfillNoise(DEFAULT_INPAINT_NOISE);
     setSimpleSeed(DEFAULT_SIMPLE_IMAGE_SETTINGS.seed);
     setSimpleResolutionSelection(DEFAULT_SIMPLE_IMAGE_SETTINGS.simpleResolutionSelection);
     setSelectedStyleIds([]);
@@ -2457,6 +2502,8 @@ export function useAiImagePageController() {
       setSimpleHeight(DEFAULT_SIMPLE_IMAGE_SETTINGS.height);
       setSimpleImg2imgStrength(DEFAULT_SIMPLE_IMAGE_SETTINGS.strength);
       setSimpleImg2imgNoise(DEFAULT_SIMPLE_IMAGE_SETTINGS.noise);
+      setSimpleInfillStrength(DEFAULT_INPAINT_STRENGTH);
+      setSimpleInfillNoise(DEFAULT_INPAINT_NOISE);
       setSimpleSeed(DEFAULT_SIMPLE_IMAGE_SETTINGS.seed);
       setSimpleResolutionSelection(DEFAULT_SIMPLE_IMAGE_SETTINGS.simpleResolutionSelection);
       syncDimensionInputsForUi("simple", DEFAULT_SIMPLE_IMAGE_SETTINGS.width, DEFAULT_SIMPLE_IMAGE_SETTINGS.height);
@@ -2479,6 +2526,8 @@ export function useAiImagePageController() {
     setProSmeaDyn(DEFAULT_PRO_IMAGE_SETTINGS.smeaDyn);
     setProImg2imgStrength(DEFAULT_PRO_IMAGE_SETTINGS.strength);
     setProImg2imgNoise(DEFAULT_PRO_IMAGE_SETTINGS.noise);
+    setProInfillStrength(DEFAULT_INPAINT_STRENGTH);
+    setProInfillNoise(DEFAULT_INPAINT_NOISE);
     setProSeed(DEFAULT_PRO_IMAGE_SETTINGS.seed);
     setProResolutionSelection(DEFAULT_PRO_IMAGE_SETTINGS.simpleResolutionSelection);
     syncDimensionInputsForUi("pro", DEFAULT_PRO_IMAGE_SETTINGS.width, DEFAULT_PRO_IMAGE_SETTINGS.height);
@@ -2581,20 +2630,36 @@ export function useAiImagePageController() {
   }, []);
 
   const setStrength = useCallback((value: number) => {
+    if (mode === "infill") {
+      if (uiMode === "simple") {
+        setSimpleInfillStrength(value);
+        return;
+      }
+      setProInfillStrength(value);
+      return;
+    }
     if (uiMode === "simple") {
       setSimpleImg2imgStrength(value);
       return;
     }
     setProImg2imgStrength(value);
-  }, [uiMode]);
+  }, [mode, uiMode]);
 
   const setNoise = useCallback((value: number) => {
+    if (mode === "infill") {
+      if (uiMode === "simple") {
+        setSimpleInfillNoise(value);
+        return;
+      }
+      setProInfillNoise(value);
+      return;
+    }
     if (uiMode === "simple") {
       setSimpleImg2imgNoise(value);
       return;
     }
     setProImg2imgNoise(value);
-  }, [uiMode]);
+  }, [mode, uiMode]);
 
   const setSeed = useCallback((value: number) => {
     if (uiMode === "simple") {
