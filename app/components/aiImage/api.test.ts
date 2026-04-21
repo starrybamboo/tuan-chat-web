@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { augmentNovelImageViaProxy, buildNovelAiDirectorToolPayload } from "@/components/aiImage/api";
+import { augmentNovelImageViaProxy, buildNovelAiDirectorToolPayload, generateNovelImageViaProxy } from "@/components/aiImage/api";
 
 describe("aiImage api", () => {
   afterEach(() => {
@@ -84,5 +84,48 @@ describe("aiImage api", () => {
     });
     expect(result.dataUrls).toHaveLength(1);
     expect(result.dataUrls[0]).toMatch(/^data:image\/png;base64,/);
+  });
+
+  it("does not force add_original_image for infill requests", async () => {
+    const pngBytes = new Uint8Array([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]);
+    const fetchMock = vi.fn().mockResolvedValue(new Response(pngBytes, {
+      status: 200,
+      headers: {
+        "Content-Type": "image/png",
+      },
+    }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await generateNovelImageViaProxy({
+      mode: "infill",
+      sourceImageBase64: "source-base64",
+      maskBase64: "mask-base64",
+      strength: 0.7,
+      noise: 0.2,
+      prompt: "repair face",
+      negativePrompt: "",
+      model: "nai-diffusion-4-5-curated",
+      width: 1024,
+      height: 1024,
+      imageCount: 1,
+      steps: 23,
+      scale: 5,
+      sampler: "k_euler_a",
+      noiseSchedule: "karras",
+      cfgRescale: 0,
+      ucPreset: 0,
+      smea: false,
+      smeaDyn: false,
+      qualityToggle: false,
+      dynamicThresholding: false,
+      seed: 1,
+    });
+
+    const [, requestInit] = fetchMock.mock.calls[0] ?? [];
+    const requestBody = JSON.parse(String(requestInit?.body));
+    expect(requestBody.action).toBe("infill");
+    expect(requestBody.parameters.image).toBe("source-base64");
+    expect(requestBody.parameters.mask).toBe("mask-base64");
+    expect(requestBody.parameters.add_original_image).toBeUndefined();
   });
 });
