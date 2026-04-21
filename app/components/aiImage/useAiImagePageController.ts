@@ -1248,15 +1248,8 @@ export function useAiImagePageController() {
   }, [selectedPreviewResult, showSuccessToast]);
 
   const handleToggleDirectorTools = useCallback(() => {
-    setIsDirectorToolsOpen((prev) => {
-      const nextOpen = !prev;
-      if (nextOpen && !directorSourcePreview && selectedPreviewResult) {
-        setDirectorSourcePreview(selectedPreviewResult);
-        setDirectorOutputPreview(null);
-      }
-      return nextOpen;
-    });
-  }, [directorSourcePreview, selectedPreviewResult]);
+    setIsDirectorToolsOpen(prev => !prev);
+  }, []);
 
   const handleRunUpscale = useCallback(async () => {
     if (!selectedPreviewResult)
