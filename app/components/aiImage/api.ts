@@ -299,7 +299,6 @@ export async function generateNovelImageViaProxy(args: {
         };
       });
 
-      parameters.add_original_image = true;
       parameters.cfg_rescale = cfgRescale;
       parameters.characterPrompts = [];
       parameters.controlnet_strength = 1;
