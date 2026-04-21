@@ -195,6 +195,61 @@ export function findMaskGridBounds(mask: Uint8Array, width: number, height: numb
   } satisfies MaskGridBounds;
 }
 
+export function buildRoundedRectMaskGrid(bounds: MaskGridBounds, width: number, height: number, options?: {
+  padding?: number;
+  cornerRadius?: number;
+}) {
+  const padding = Math.max(0, Math.round(options?.padding ?? 0));
+  const left = Math.max(0, bounds.left - padding);
+  const top = Math.max(0, bounds.top - padding);
+  const right = Math.min(width - 1, bounds.right + padding);
+  const bottom = Math.min(height - 1, bounds.bottom + padding);
+  const rectWidth = right - left + 1;
+  const rectHeight = bottom - top + 1;
+  const radius = Math.max(0, Math.min(
+    Math.round(options?.cornerRadius ?? 0),
+    Math.floor(rectWidth / 2),
+    Math.floor(rectHeight / 2),
+  ));
+  const mask = new Uint8Array(width * height);
+
+  for (let y = top; y <= bottom; y += 1) {
+    for (let x = left; x <= right; x += 1) {
+      let inside = true;
+      if (radius > 0) {
+        const cornerLeft = left + radius;
+        const cornerRight = right - radius;
+        const cornerTop = top + radius;
+        const cornerBottom = bottom - radius;
+        if (x < cornerLeft && y < cornerTop) {
+          const dx = x - cornerLeft;
+          const dy = y - cornerTop;
+          inside = dx * dx + dy * dy <= radius * radius;
+        }
+        else if (x > cornerRight && y < cornerTop) {
+          const dx = x - cornerRight;
+          const dy = y - cornerTop;
+          inside = dx * dx + dy * dy <= radius * radius;
+        }
+        else if (x < cornerLeft && y > cornerBottom) {
+          const dx = x - cornerLeft;
+          const dy = y - cornerBottom;
+          inside = dx * dx + dy * dy <= radius * radius;
+        }
+        else if (x > cornerRight && y > cornerBottom) {
+          const dx = x - cornerRight;
+          const dy = y - cornerBottom;
+          inside = dx * dx + dy * dy <= radius * radius;
+        }
+      }
+      if (inside)
+        mask[y * width + x] = 1;
+    }
+  }
+
+  return mask;
+}
+
 export function buildSolidInpaintMaskGrid(data: Uint8ClampedArray, width: number, height: number, options?: {
   alphaThreshold?: number;
   closeRadius?: number;

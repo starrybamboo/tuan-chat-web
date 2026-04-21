@@ -1,5 +1,6 @@
 import {
   buildBinaryMaskGrid,
+  buildRoundedRectMaskGrid,
   buildSolidInpaintMaskGrid,
   createMaskBorderOffsets,
   dilateMaskGrid,
@@ -143,5 +144,24 @@ describe("inpaintMaskUtils", () => {
     expect(eroded[3 * width + 3]).toBe(1);
     expect(eroded[1 * width + 1]).toBe(0);
     expect(eroded[1 * width + 3]).toBe(0);
+  });
+
+  it("builds a padded rounded rectangle mask from bounds", () => {
+    const mask = buildRoundedRectMaskGrid({
+      left: 3,
+      top: 3,
+      right: 5,
+      bottom: 5,
+      width: 3,
+      height: 3,
+    }, 12, 12, {
+      padding: 2,
+      cornerRadius: 2,
+    });
+
+    expect(mask[5 * 12 + 5]).toBe(1);
+    expect(mask[1 * 12 + 1]).toBe(0);
+    expect(mask[3 * 12 + 3]).toBe(1);
+    expect(mask[2 * 12 + 1]).toBe(0);
   });
 });
