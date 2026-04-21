@@ -134,6 +134,9 @@ const DEFAULT_METADATA_IMPORT_SELECTION: MetadataImportSelectionState = {
   cleanImports: false,
 };
 
+const DEFAULT_INPAINT_PROMPT = "repair masked area, match surrounding image, same character, same outfit, same lighting, detailed anime face";
+const DEFAULT_INPAINT_NEGATIVE_PROMPT = "gray patch, gray block, monochrome, blur, artifacts, bad anatomy";
+
 export function useAiImagePageController() {
   const sourceFileInputRef = useRef<HTMLInputElement | null>(null);
   const vibeReferenceInputRef = useRef<HTMLInputElement | null>(null);
@@ -157,6 +160,10 @@ export function useAiImagePageController() {
   const [proSourceImageSize, setProSourceImageSize] = useState<{ width: number; height: number } | null>(null);
   const [simpleInfillMaskDataUrl, setSimpleInfillMaskDataUrl] = useState("");
   const [proInfillMaskDataUrl, setProInfillMaskDataUrl] = useState("");
+  const [simpleInfillPrompt, setSimpleInfillPrompt] = useState(DEFAULT_INPAINT_PROMPT);
+  const [simpleInfillNegativePrompt, setSimpleInfillNegativePrompt] = useState(DEFAULT_INPAINT_NEGATIVE_PROMPT);
+  const [proInfillPrompt, setProInfillPrompt] = useState(DEFAULT_INPAINT_PROMPT);
+  const [proInfillNegativePrompt, setProInfillNegativePrompt] = useState(DEFAULT_INPAINT_NEGATIVE_PROMPT);
 
   const [simpleText, setSimpleText] = useState("");
   const [simpleConvertedFromText, setSimpleConvertedFromText] = useState("");
@@ -1368,8 +1375,14 @@ export function useAiImagePageController() {
     toolLabel?: string;
   }) => {
     const effectiveMode = args?.mode ?? mode;
-    const basePrompt = String(args?.prompt ?? (uiMode === "simple" ? simplePrompt : prompt)).trim();
-    const baseNegative = String(args?.negativePrompt ?? (uiMode === "simple" ? simpleNegativePrompt : negativePrompt));
+    const infillPrompt = uiMode === "simple" ? simpleInfillPrompt : proInfillPrompt;
+    const infillNegativePrompt = uiMode === "simple" ? simpleInfillNegativePrompt : proInfillNegativePrompt;
+    const basePrompt = String(args?.prompt ?? (effectiveMode === "infill"
+      ? infillPrompt || DEFAULT_INPAINT_PROMPT
+      : (uiMode === "simple" ? simplePrompt : prompt))).trim();
+    const baseNegative = String(args?.negativePrompt ?? (effectiveMode === "infill"
+      ? infillNegativePrompt || DEFAULT_INPAINT_NEGATIVE_PROMPT
+      : (uiMode === "simple" ? simpleNegativePrompt : negativePrompt)));
     const mergeStyleTags = uiMode === "simple" && effectiveMode === "txt2img";
     const effectiveImageCount = NOVELAI_FREE_FIXED_IMAGE_COUNT;
     const effectivePrompt = mergeStyleTags ? mergeTagString(basePrompt, activeStyleTags).trim() : basePrompt;
@@ -1587,6 +1600,8 @@ export function useAiImagePageController() {
     activeStyleNegativeTags,
     activeStyleTags,
     seed,
+    simpleInfillNegativePrompt,
+    simpleInfillPrompt,
     simpleNegativePrompt,
     simplePrompt,
     sourceImageSize,
@@ -1604,6 +1619,8 @@ export function useAiImagePageController() {
     v4UseOrder,
     width,
     normalizeReferenceStrengths,
+    proInfillNegativePrompt,
+    proInfillPrompt,
     resolveInfillMaskBase64ForUi,
     resolveSeparatedInfillMaskBase64ForUi,
   ]);
@@ -1633,11 +1650,11 @@ export function useAiImagePageController() {
       seed: preview.seed,
       model: preview.model,
       mode: uiMode,
-      prompt: selectedPreviewHistoryRow?.prompt || (uiMode === "simple" ? simplePrompt : prompt),
-      negativePrompt: selectedPreviewHistoryRow?.negativePrompt || (uiMode === "simple" ? simpleNegativePrompt : negativePrompt),
+      prompt: uiMode === "simple" ? simpleInfillPrompt : proInfillPrompt,
+      negativePrompt: uiMode === "simple" ? simpleInfillNegativePrompt : proInfillNegativePrompt,
       strength,
     });
-  }, [applySelectedPreviewAsBaseImage, infillMaskDataUrl, negativePrompt, prompt, selectedPreviewHistoryRow, selectedPreviewResult, showErrorToast, simpleNegativePrompt, simplePrompt, sourceImageDataUrl, strength, uiMode]);
+  }, [applySelectedPreviewAsBaseImage, infillMaskDataUrl, proInfillNegativePrompt, proInfillPrompt, selectedPreviewResult, showErrorToast, simpleInfillNegativePrompt, simpleInfillPrompt, sourceImageDataUrl, strength, uiMode]);
 
   const handleOpenBaseImageInpaint = useCallback(async () => {
     if (!sourceImageDataUrl)
@@ -1667,11 +1684,11 @@ export function useAiImagePageController() {
       seed,
       model,
       mode: uiMode,
-      prompt: uiMode === "simple" ? simplePrompt : prompt,
-      negativePrompt: uiMode === "simple" ? simpleNegativePrompt : negativePrompt,
+      prompt: uiMode === "simple" ? simpleInfillPrompt : proInfillPrompt,
+      negativePrompt: uiMode === "simple" ? simpleInfillNegativePrompt : proInfillNegativePrompt,
       strength,
     });
-  }, [height, infillMaskDataUrl, negativePrompt, model, prompt, seed, simpleNegativePrompt, simplePrompt, sourceImageDataUrl, showErrorToast, strength, uiMode, width]);
+  }, [height, infillMaskDataUrl, model, proInfillNegativePrompt, proInfillPrompt, seed, showErrorToast, simpleInfillNegativePrompt, simpleInfillPrompt, sourceImageDataUrl, strength, uiMode, width]);
 
   const handleCloseInpaintDialog = useCallback(() => {
     if (loading)
@@ -1686,12 +1703,16 @@ export function useAiImagePageController() {
 
     const nextStrength = clampRange(Number(payload.strength), 0.01, 1, 0.7);
     if (inpaintDialogSource.mode === "simple") {
+      setSimpleInfillPrompt(String(payload.prompt || "").trim() || DEFAULT_INPAINT_PROMPT);
+      setSimpleInfillNegativePrompt(String(payload.negativePrompt || "").trim() || DEFAULT_INPAINT_NEGATIVE_PROMPT);
       setSimpleEditorMode("tags");
       setSimplePromptTab("prompt");
       setSimpleImg2imgStrength(nextStrength);
       setSimpleInfillMaskDataUrl(payload.maskDataUrl);
     }
     else {
+      setProInfillPrompt(String(payload.prompt || "").trim() || DEFAULT_INPAINT_PROMPT);
+      setProInfillNegativePrompt(String(payload.negativePrompt || "").trim() || DEFAULT_INPAINT_NEGATIVE_PROMPT);
       setProImg2imgStrength(nextStrength);
       setProInfillMaskDataUrl(payload.maskDataUrl);
     }
