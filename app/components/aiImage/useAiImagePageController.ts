@@ -595,6 +595,46 @@ export function useAiImagePageController() {
     return dataUrlToBase64(finalCanvas.toDataURL("image/png")) || "";
   }, [proInfillMaskDataUrl, simpleInfillMaskDataUrl]);
 
+  const resolveBlendInfillMaskDataUrlForUi = useCallback(async (targetUiMode: UiMode) => {
+    const dataUrl = targetUiMode === "simple" ? simpleInfillMaskDataUrl : proInfillMaskDataUrl;
+    if (!dataUrl)
+      return "";
+
+    const pixels = await readImagePixels(dataUrl);
+    const baseCanvas = document.createElement("canvas");
+    baseCanvas.width = pixels.width;
+    baseCanvas.height = pixels.height;
+    const baseContext = baseCanvas.getContext("2d");
+    if (!baseContext)
+      throw new Error("Inpaint 混合蒙版处理失败。");
+
+    const imageData = baseContext.createImageData(pixels.width, pixels.height);
+    for (let index = 0; index < pixels.data.length; index += 4) {
+      const value = pixels.data[index + 3] > 0 ? 255 : 0;
+      imageData.data[index] = value;
+      imageData.data[index + 1] = value;
+      imageData.data[index + 2] = value;
+      imageData.data[index + 3] = 255;
+    }
+    baseContext.putImageData(imageData, 0, 0);
+
+    const finalCanvas = document.createElement("canvas");
+    finalCanvas.width = pixels.width;
+    finalCanvas.height = pixels.height;
+    const finalContext = finalCanvas.getContext("2d");
+    if (!finalContext)
+      throw new Error("Inpaint 混合蒙版羽化失败。");
+    finalContext.fillStyle = "#000";
+    finalContext.fillRect(0, 0, finalCanvas.width, finalCanvas.height);
+    if ("filter" in finalContext)
+      finalContext.filter = "blur(1px)";
+    finalContext.drawImage(baseCanvas, 0, 0);
+    if ("filter" in finalContext)
+      finalContext.filter = "none";
+
+    return finalCanvas.toDataURL("image/png");
+  }, [proInfillMaskDataUrl, simpleInfillMaskDataUrl]);
+
   useEffect(() => {
     if (mode !== "infill")
       return;
@@ -1523,6 +1563,10 @@ export function useAiImagePageController() {
         ? await resolveSeparatedInfillMaskBase64ForUi(uiMode)
         : undefined);
       const requestMaskDataUrl = requestMaskBase64 ? base64DataUrl("image/png", base64ToBytes(requestMaskBase64)) : undefined;
+      const blendMaskDataUrl = effectiveMode === "infill"
+        ? await resolveBlendInfillMaskDataUrlForUi(uiMode)
+        : "";
+      const resolvedCompositeMaskDataUrl = blendMaskDataUrl || requestMaskDataUrl || "";
       const focusedInpaint = effectiveMode === "infill"
         && effectiveSourceImageDataUrl
         && requestMaskDataUrl
@@ -1599,12 +1643,12 @@ export function useAiImagePageController() {
         seed: seedValue,
       });
 
-      const resolvedDataUrls = focusedInpaint && effectiveSourceImageDataUrl && requestMaskDataUrl
+      const resolvedDataUrls = focusedInpaint && effectiveSourceImageDataUrl && resolvedCompositeMaskDataUrl
         ? await Promise.all(res.dataUrls.map(async (dataUrl) => {
             return await compositeFocusedInpaintResult({
               sourceDataUrl: effectiveSourceImageDataUrl,
               generatedCropDataUrl: dataUrl,
-              fullMaskDataUrl: requestMaskDataUrl,
+              fullMaskDataUrl: resolvedCompositeMaskDataUrl,
               cropRect: focusedInpaint.cropRect,
             });
           }))
@@ -1733,6 +1777,7 @@ export function useAiImagePageController() {
     proInfillPrompt,
     resolveInfillMaskBase64ForUi,
     resolveSeparatedInfillMaskBase64ForUi,
+    resolveBlendInfillMaskDataUrlForUi,
   ]);
 
   const handleOpenInpaint = useCallback(() => {
