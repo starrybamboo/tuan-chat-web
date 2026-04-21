@@ -11,6 +11,15 @@ export const MASK_COLOR_OPTIONS = [
   "#c9c13e",
 ] as const;
 
+export type MaskGridBounds = {
+  left: number;
+  top: number;
+  right: number;
+  bottom: number;
+  width: number;
+  height: number;
+};
+
 export function hasAnyMaskAlpha(data: Uint8ClampedArray) {
   for (let index = 3; index < data.length; index += 4) {
     if (data[index] > 0)
@@ -79,6 +88,37 @@ export function dilateMaskGrid(mask: Uint8Array, width: number, height: number, 
   return expanded;
 }
 
+export function erodeMaskGrid(mask: Uint8Array, width: number, height: number, radius: number, shape: "round" | "square" = "round") {
+  if (radius <= 0)
+    return mask.slice();
+
+  const eroded = mask.slice();
+  const offsets = createMaskBorderOffsets(radius, shape);
+  for (let y = 0; y < height; y += 1) {
+    for (let x = 0; x < width; x += 1) {
+      const index = y * width + x;
+      if (mask[index] !== 1) {
+        eroded[index] = 0;
+        continue;
+      }
+
+      for (const offset of offsets) {
+        const nextX = x + offset.x;
+        const nextY = y + offset.y;
+        if (nextX < 0 || nextY < 0 || nextX >= width || nextY >= height) {
+          eroded[index] = 0;
+          break;
+        }
+        if (mask[nextY * width + nextX] !== 1) {
+          eroded[index] = 0;
+          break;
+        }
+      }
+    }
+  }
+  return eroded;
+}
+
 export function fillClosedMaskGrid(mask: Uint8Array, width: number, height: number) {
   const outside = new Uint8Array(mask.length);
   const queue = new Int32Array(mask.length);
@@ -122,6 +162,37 @@ export function fillClosedMaskGrid(mask: Uint8Array, width: number, height: numb
       filled[index] = 1;
   }
   return filled;
+}
+
+export function findMaskGridBounds(mask: Uint8Array, width: number, height: number) {
+  let minX = width;
+  let minY = height;
+  let maxX = -1;
+  let maxY = -1;
+
+  for (let y = 0; y < height; y += 1) {
+    for (let x = 0; x < width; x += 1) {
+      const index = y * width + x;
+      if (mask[index] !== 1)
+        continue;
+      minX = Math.min(minX, x);
+      minY = Math.min(minY, y);
+      maxX = Math.max(maxX, x);
+      maxY = Math.max(maxY, y);
+    }
+  }
+
+  if (maxX < minX || maxY < minY)
+    return null;
+
+  return {
+    left: minX,
+    top: minY,
+    right: maxX,
+    bottom: maxY,
+    width: maxX - minX + 1,
+    height: maxY - minY + 1,
+  } satisfies MaskGridBounds;
 }
 
 export function buildSolidInpaintMaskGrid(data: Uint8ClampedArray, width: number, height: number, options?: {
