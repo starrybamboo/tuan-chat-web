@@ -124,7 +124,7 @@ import {
 } from "@/utils/novelaiImageMetadata";
 import { convertNaturalLanguageToNovelAiTags } from "@/utils/novelaiNl2Tags";
 import { compositeFocusedInpaintResult, prepareFocusedInpaintPayload } from "@/components/aiImage/inpaintFocusUtils";
-import { buildSolidInpaintMaskGrid, erodeMaskGrid, findMaskGridBounds, renderMaskGridToRgba } from "@/components/aiImage/inpaintMaskUtils";
+import { buildRoundedRectMaskGrid, buildSolidInpaintMaskGrid, erodeMaskGrid, findMaskGridBounds, renderMaskGridToRgba } from "@/components/aiImage/inpaintMaskUtils";
 
 const DEFAULT_METADATA_IMPORT_SELECTION: MetadataImportSelectionState = {
   prompt: true,
@@ -553,8 +553,15 @@ export function useAiImagePageController() {
     const solidMask = buildSolidInpaintMaskGrid(pixels.data, pixels.width, pixels.height, {
       closeRadius: 3,
     });
+    const maskBounds = findMaskGridBounds(solidMask, pixels.width, pixels.height);
+    const requestMask = maskBounds
+      ? buildRoundedRectMaskGrid(maskBounds, pixels.width, pixels.height, {
+          padding: clampIntRange(Math.round(Math.max(maskBounds.width, maskBounds.height) * 0.18), 18, 72, 36),
+          cornerRadius: clampIntRange(Math.round(Math.min(maskBounds.width, maskBounds.height) * 0.16), 12, 48, 24),
+        })
+      : solidMask;
     const imageData = baseContext.createImageData(pixels.width, pixels.height);
-    imageData.data.set(renderMaskGridToRgba(solidMask));
+    imageData.data.set(renderMaskGridToRgba(requestMask));
     baseContext.putImageData(imageData, 0, 0);
 
     // 轻微扩张 + 羽化边缘，减少上游重绘时出现的方块灰边。
