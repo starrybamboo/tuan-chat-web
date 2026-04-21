@@ -69,14 +69,30 @@ function resolveBackendAugmentImageUrl() {
   return resolveBackendNovelApiUrl("/ai/augment-image");
 }
 
-async function requestNovelAiBinaryViaProxy(requestUrl: string, payload: unknown) {
+async function requestNovelAiBinaryViaProxy(requestUrl: string, payload: unknown, options?: { multipart?: boolean }) {
+  const headers: Record<string, string> = {
+    "Accept": "application/octet-stream",
+  };
+  let body: BodyInit;
+
+  if (options?.multipart) {
+    const formData = new FormData();
+    formData.append(
+      "request",
+      new Blob([JSON.stringify(payload)], { type: "application/json" }),
+      "blob",
+    );
+    body = formData;
+  }
+  else {
+    headers["Content-Type"] = "application/json";
+    body = JSON.stringify(payload);
+  }
+
   const res = await fetch(requestUrl, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "Accept": "application/octet-stream",
-    },
-    body: JSON.stringify(payload),
+    headers,
+    body,
   });
 
   if (!res.ok) {
@@ -388,6 +404,6 @@ export async function generateNovelImageViaProxy(args: {
     action: payload.action,
     model: payload.model,
   });
-  const dataUrls = await requestNovelAiBinaryViaProxy(requestUrl, payload);
+  const dataUrls = await requestNovelAiBinaryViaProxy(requestUrl, payload, { multipart: true });
   return { dataUrls, seed, width, height, model: requestModel };
 }

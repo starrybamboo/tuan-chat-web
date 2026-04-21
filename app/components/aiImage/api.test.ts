@@ -122,7 +122,16 @@ describe("aiImage api", () => {
     });
 
     const [, requestInit] = fetchMock.mock.calls[0] ?? [];
-    const requestBody = JSON.parse(String(requestInit?.body));
+    expect(requestInit).toEqual(expect.objectContaining({
+      method: "POST",
+      headers: expect.objectContaining({
+        "Accept": "application/octet-stream",
+      }),
+    }));
+    expect((requestInit?.headers as Record<string, string> | undefined)?.["Content-Type"]).toBeUndefined();
+    expect(requestInit?.body).toBeInstanceOf(FormData);
+    const requestPart = (requestInit?.body as FormData).get("request") as Blob;
+    const requestBody = JSON.parse(await requestPart.text());
     expect(requestBody.action).toBe("infill");
     expect(requestBody.parameters.image).toBe("source-base64");
     expect(requestBody.parameters.mask).toBe("mask-base64");
