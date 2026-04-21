@@ -537,11 +537,10 @@ export function useAiImagePageController() {
     if (!context)
       throw new Error("Inpaint 蒙版处理失败。");
 
-    // 当前 NovelAI inpaint 实测要求黑色为重绘区域、白色为保留区域；
-    // 因此前端编辑层在发送前需要转换为反相的黑白 mask。
+    // Inpaint 请求只发送独立的黑白 mask：圈内为白色重绘区，圈外为黑色保留区。
     const imageData = context.createImageData(pixels.width, pixels.height);
     for (let index = 0; index < pixels.data.length; index += 4) {
-      const value = pixels.data[index + 3] > 0 ? 0 : 255;
+      const value = pixels.data[index + 3] > 0 ? 255 : 0;
       imageData.data[index] = value;
       imageData.data[index + 1] = value;
       imageData.data[index + 2] = value;
