@@ -134,8 +134,24 @@ const DEFAULT_METADATA_IMPORT_SELECTION: MetadataImportSelectionState = {
   cleanImports: false,
 };
 
+const INPAINT_PROMPT_SUFFIX = "repair masked area, same character, same outfit, same lighting, detailed anime face, seamless skin";
+const INPAINT_NEGATIVE_SUFFIX = "gray patch, gray block, monochrome, blur, artifacts";
 const DEFAULT_INPAINT_PROMPT = "repair masked area, match surrounding image, same character, same outfit, same lighting, detailed anime face";
 const DEFAULT_INPAINT_NEGATIVE_PROMPT = "gray patch, gray block, monochrome, blur, artifacts, bad anatomy";
+
+function buildInpaintPrompt(basePrompt: string) {
+  const normalized = String(basePrompt || "").trim();
+  if (!normalized)
+    return DEFAULT_INPAINT_PROMPT;
+  return `${normalized}, ${INPAINT_PROMPT_SUFFIX}`;
+}
+
+function buildInpaintNegativePrompt(baseNegativePrompt: string) {
+  const normalized = String(baseNegativePrompt || "").trim();
+  if (!normalized)
+    return DEFAULT_INPAINT_NEGATIVE_PROMPT;
+  return `${normalized}, ${INPAINT_NEGATIVE_SUFFIX}`;
+}
 
 export function useAiImagePageController() {
   const sourceFileInputRef = useRef<HTMLInputElement | null>(null);
@@ -1639,6 +1655,17 @@ export function useAiImagePageController() {
       return;
     }
 
+    const sourcePrompt = selectedPreviewHistoryRow?.prompt || (uiMode === "simple" ? simplePrompt : prompt);
+    const sourceNegativePrompt = selectedPreviewHistoryRow?.negativePrompt || (uiMode === "simple" ? simpleNegativePrompt : negativePrompt);
+    const currentInpaintPrompt = uiMode === "simple" ? simpleInfillPrompt : proInfillPrompt;
+    const currentInpaintNegativePrompt = uiMode === "simple" ? simpleInfillNegativePrompt : proInfillNegativePrompt;
+    const nextInpaintPrompt = !String(currentInpaintPrompt || "").trim() || currentInpaintPrompt === DEFAULT_INPAINT_PROMPT
+      ? buildInpaintPrompt(sourcePrompt)
+      : currentInpaintPrompt;
+    const nextInpaintNegativePrompt = !String(currentInpaintNegativePrompt || "").trim() || currentInpaintNegativePrompt === DEFAULT_INPAINT_NEGATIVE_PROMPT
+      ? buildInpaintNegativePrompt(sourceNegativePrompt)
+      : currentInpaintNegativePrompt;
+
     setError("");
     setInpaintDialogSource({
       dataUrl: preview.dataUrl,
@@ -1649,11 +1676,11 @@ export function useAiImagePageController() {
       seed: preview.seed,
       model: preview.model,
       mode: uiMode,
-      prompt: uiMode === "simple" ? simpleInfillPrompt : proInfillPrompt,
-      negativePrompt: uiMode === "simple" ? simpleInfillNegativePrompt : proInfillNegativePrompt,
+      prompt: nextInpaintPrompt,
+      negativePrompt: nextInpaintNegativePrompt,
       strength,
     });
-  }, [applySelectedPreviewAsBaseImage, infillMaskDataUrl, proInfillNegativePrompt, proInfillPrompt, selectedPreviewResult, showErrorToast, simpleInfillNegativePrompt, simpleInfillPrompt, sourceImageDataUrl, strength, uiMode]);
+  }, [applySelectedPreviewAsBaseImage, infillMaskDataUrl, negativePrompt, prompt, proInfillNegativePrompt, proInfillPrompt, selectedPreviewHistoryRow, selectedPreviewResult, showErrorToast, simpleInfillNegativePrompt, simpleInfillPrompt, simpleNegativePrompt, simplePrompt, sourceImageDataUrl, strength, uiMode]);
 
   const handleOpenBaseImageInpaint = useCallback(async () => {
     if (!sourceImageDataUrl)
@@ -1673,6 +1700,17 @@ export function useAiImagePageController() {
       // 读取失败时回退到当前画布尺寸。
     }
 
+    const sourcePrompt = uiMode === "simple" ? simplePrompt : prompt;
+    const sourceNegativePrompt = uiMode === "simple" ? simpleNegativePrompt : negativePrompt;
+    const currentInpaintPrompt = uiMode === "simple" ? simpleInfillPrompt : proInfillPrompt;
+    const currentInpaintNegativePrompt = uiMode === "simple" ? simpleInfillNegativePrompt : proInfillNegativePrompt;
+    const nextInpaintPrompt = !String(currentInpaintPrompt || "").trim() || currentInpaintPrompt === DEFAULT_INPAINT_PROMPT
+      ? buildInpaintPrompt(sourcePrompt)
+      : currentInpaintPrompt;
+    const nextInpaintNegativePrompt = !String(currentInpaintNegativePrompt || "").trim() || currentInpaintNegativePrompt === DEFAULT_INPAINT_NEGATIVE_PROMPT
+      ? buildInpaintNegativePrompt(sourceNegativePrompt)
+      : currentInpaintNegativePrompt;
+
     setError("");
     setInpaintDialogSource({
       dataUrl: sourceImageDataUrl,
@@ -1683,11 +1721,11 @@ export function useAiImagePageController() {
       seed,
       model,
       mode: uiMode,
-      prompt: uiMode === "simple" ? simpleInfillPrompt : proInfillPrompt,
-      negativePrompt: uiMode === "simple" ? simpleInfillNegativePrompt : proInfillNegativePrompt,
+      prompt: nextInpaintPrompt,
+      negativePrompt: nextInpaintNegativePrompt,
       strength,
     });
-  }, [height, infillMaskDataUrl, model, proInfillNegativePrompt, proInfillPrompt, seed, showErrorToast, simpleInfillNegativePrompt, simpleInfillPrompt, sourceImageDataUrl, strength, uiMode, width]);
+  }, [height, infillMaskDataUrl, model, negativePrompt, prompt, proInfillNegativePrompt, proInfillPrompt, seed, showErrorToast, simpleInfillNegativePrompt, simpleInfillPrompt, simpleNegativePrompt, simplePrompt, sourceImageDataUrl, strength, uiMode, width]);
 
   const handleCloseInpaintDialog = useCallback(() => {
     if (loading)
