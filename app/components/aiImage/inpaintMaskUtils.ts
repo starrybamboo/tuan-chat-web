@@ -11,6 +11,40 @@ export const MASK_COLOR_OPTIONS = [
   "#c9c13e",
 ] as const;
 
+export const NOVELAI_MASK_LAYER_SCALE_FACTOR = 8;
+
+export type MaskDrawShape = "circle" | "square";
+
+export interface MaskBufferSize {
+  width: number;
+  height: number;
+}
+
+export interface MaskRectLike {
+  left: number;
+  top: number;
+  width: number;
+  height: number;
+}
+
+export interface PixelSnappedCircleMaskStamp {
+  centerX: number;
+  centerY: number;
+  left: number;
+  top: number;
+  radius: number;
+  size: number;
+}
+
+export interface MaskOutlineSegment {
+  orientation: "horizontal" | "vertical";
+  left: number;
+  top: number;
+  length: number;
+}
+
+export type PixelCircleMaskOutlineSegment = MaskOutlineSegment;
+
 export type MaskGridBounds = {
   left: number;
   top: number;
@@ -19,6 +53,43 @@ export type MaskGridBounds = {
   width: number;
   height: number;
 };
+
+export function resolveNovelAiMaskBufferSize(sourceWidth: number, sourceHeight: number): MaskBufferSize {
+  // NovelAI stores mask layers at 1/8 resolution, then scales them back up for preview/export.
+  return {
+    width: Math.max(1, Math.floor(Math.max(1, sourceWidth) / NOVELAI_MASK_LAYER_SCALE_FACTOR)),
+    height: Math.max(1, Math.floor(Math.max(1, sourceHeight) / NOVELAI_MASK_LAYER_SCALE_FACTOR)),
+  };
+}
+
+export function mapSourcePointToMaskPoint(
+  point: { x: number; y: number },
+  sourceSize: MaskBufferSize,
+  maskSize: MaskBufferSize,
+) {
+  if (sourceSize.width <= 0 || sourceSize.height <= 0)
+    return { x: point.x, y: point.y };
+
+  return {
+    x: point.x * (maskSize.width / sourceSize.width),
+    y: point.y * (maskSize.height / sourceSize.height),
+  };
+}
+
+export function projectMaskRectToSourceRect(
+  rect: MaskRectLike,
+  sourceSize: MaskBufferSize,
+  maskSize: MaskBufferSize,
+) {
+  const scaleX = maskSize.width > 0 ? sourceSize.width / maskSize.width : 1;
+  const scaleY = maskSize.height > 0 ? sourceSize.height / maskSize.height : 1;
+  return {
+    left: rect.left * scaleX,
+    top: rect.top * scaleY,
+    width: rect.width * scaleX,
+    height: rect.height * scaleY,
+  };
+}
 
 export function hasAnyMaskAlpha(data: Uint8ClampedArray) {
   for (let index = 3; index < data.length; index += 4) {
@@ -33,10 +104,288 @@ export function mapBrushCursorDisplaySize(brushSize: number) {
   return Math.round(30 + ((clampedSize - 4) * (385 - 30)) / (50 - 4));
 }
 
+export function normalizeMaskBrushSize(brushSize: number, shape: MaskDrawShape) {
+  const clampedSize = Math.max(4, Math.min(50, Math.round(brushSize)));
+  if (shape === "square")
+    return clampedSize;
+  return Math.max(4, 2 * Math.round(clampedSize / 2));
+}
+
 export function mapDisplaySizeToCanvasSize(displaySize: number, canvasSize: number, renderedSize: number) {
   if (canvasSize <= 0 || renderedSize <= 0)
     return Math.max(1, displaySize);
   return (displaySize * canvasSize) / renderedSize;
+}
+
+export function resolveSquareMaskStampRect(centerX: number, centerY: number, size: number) {
+  const stampSize = Math.max(1, Math.round(size));
+  return {
+    left: Math.round(centerX - stampSize / 2),
+    top: Math.round(centerY - stampSize / 2),
+    width: stampSize,
+    height: stampSize,
+  };
+}
+
+function resolvePixelSnappedBrushCenter(position: number, radius: number) {
+  return Math.round(position - radius) + radius;
+}
+
+function resolvePixelSnappedCircleCenter(position: number) {
+  return Math.floor(position) + 0.5;
+}
+
+function resolvePixelSnappedMaskLineStampCount(distance: number, radius: number) {
+  return Math.max(1, Math.ceil(distance / Math.max(1, radius * 0.25)));
+}
+
+export function resolvePixelSnappedSquareMaskStampRect(centerX: number, centerY: number, size: number) {
+  const stampSize = Math.max(1, Math.round(size));
+  const radius = stampSize / 2;
+  const snappedCenterX = resolvePixelSnappedBrushCenter(centerX, radius);
+  const snappedCenterY = resolvePixelSnappedBrushCenter(centerY, radius);
+  return {
+    left: Math.round(snappedCenterX - radius),
+    top: Math.round(snappedCenterY - radius),
+    width: stampSize,
+    height: stampSize,
+  };
+}
+
+export function buildPixelSnappedSquareMaskStampRects(
+  from: { x: number; y: number },
+  to: { x: number; y: number },
+  size: number,
+) {
+  const stampSize = Math.max(1, Math.round(size));
+  const radius = stampSize / 2;
+  const deltaX = to.x - from.x;
+  const deltaY = to.y - from.y;
+  const distance = Math.hypot(deltaX, deltaY);
+
+  if (distance <= 0)
+    return [resolvePixelSnappedSquareMaskStampRect(from.x, from.y, stampSize)];
+
+  // Match NovelAI's line-stamp density: ceil(distance / max(1, averageRadius * 0.25)).
+  const stampCount = resolvePixelSnappedMaskLineStampCount(distance, radius);
+  const rects: Array<ReturnType<typeof resolvePixelSnappedSquareMaskStampRect>> = [];
+  let previousRectKey = "";
+
+  for (let index = 0; index <= stampCount; index += 1) {
+    const progress = index / stampCount;
+    const stampRect = resolvePixelSnappedSquareMaskStampRect(
+      from.x + deltaX * progress,
+      from.y + deltaY * progress,
+      stampSize,
+    );
+    const rectKey = `${stampRect.left},${stampRect.top},${stampRect.width},${stampRect.height}`;
+    if (rectKey === previousRectKey)
+      continue;
+    previousRectKey = rectKey;
+    rects.push(stampRect);
+  }
+
+  return rects;
+}
+
+export function resolvePixelSnappedCircleMaskStamp(centerX: number, centerY: number, radius: number): PixelSnappedCircleMaskStamp {
+  const snappedRadius = Math.max(1, Math.round(radius));
+  const snappedCenterX = resolvePixelSnappedCircleCenter(centerX);
+  const snappedCenterY = resolvePixelSnappedCircleCenter(centerY);
+  const size = snappedRadius * 2 + 1;
+  return {
+    centerX: snappedCenterX,
+    centerY: snappedCenterY,
+    left: Math.floor(snappedCenterX) - snappedRadius,
+    top: Math.floor(snappedCenterY) - snappedRadius,
+    radius: snappedRadius,
+    size,
+  };
+}
+
+export function buildPixelSnappedCircleMaskStamps(
+  from: { x: number; y: number },
+  to: { x: number; y: number },
+  radius: number,
+) {
+  const snappedRadius = Math.max(1, Math.round(radius));
+  const deltaX = to.x - from.x;
+  const deltaY = to.y - from.y;
+  const distance = Math.hypot(deltaX, deltaY);
+
+  if (distance <= 0)
+    return [resolvePixelSnappedCircleMaskStamp(from.x, from.y, snappedRadius)];
+
+  const stampCount = resolvePixelSnappedMaskLineStampCount(distance, snappedRadius);
+  const stamps: PixelSnappedCircleMaskStamp[] = [];
+  let previousStampKey = "";
+
+  for (let index = 0; index <= stampCount; index += 1) {
+    const progress = index / stampCount;
+    const stamp = resolvePixelSnappedCircleMaskStamp(
+      from.x + deltaX * progress,
+      from.y + deltaY * progress,
+      snappedRadius,
+    );
+    const stampKey = `${stamp.left},${stamp.top},${stamp.radius}`;
+    if (stampKey === previousStampKey)
+      continue;
+    previousStampKey = stampKey;
+    stamps.push(stamp);
+  }
+
+  return stamps;
+}
+
+const pixelCircleMaskDataCache = new Map<number, { data: Uint8Array; size: number }>();
+const pixelCircleMaskOutlineDataCache = new Map<number, { data: Uint8Array; size: number }>();
+const pixelCircleMaskOutlineSegmentCache = new Map<number, {
+  size: number;
+  segments: PixelCircleMaskOutlineSegment[];
+}>();
+
+export function getPixelCircleMaskData(radius: number) {
+  const snappedRadius = Math.max(1, Math.round(radius));
+  const cached = pixelCircleMaskDataCache.get(snappedRadius);
+  if (cached)
+    return cached;
+
+  const size = snappedRadius * 2 + 1;
+  const data = new Uint8Array(size * size);
+  const markPixel = (x: number, y: number) => {
+    if (x < 0 || y < 0 || x >= size || y >= size)
+      return;
+    data[y * size + x] = 1;
+  };
+
+  for (let y = 0; y <= snappedRadius; y += 1) {
+    for (let x = 0; x <= snappedRadius; x += 1) {
+      const outerDistance = Math.sqrt((x + 0.5) * (x + 0.5) + (y + 0.5) * (y + 0.5));
+      const innerDistance = Math.sqrt((x - 0.5) * (x - 0.5) + (y - 0.5) * (y - 0.5));
+      if (Math.min(outerDistance, innerDistance) > snappedRadius)
+        continue;
+
+      markPixel(snappedRadius + x, snappedRadius + y);
+      markPixel(snappedRadius - x, snappedRadius + y);
+      markPixel(snappedRadius + x, snappedRadius - y);
+      markPixel(snappedRadius - x, snappedRadius - y);
+    }
+  }
+
+  const nextValue = { data, size };
+  pixelCircleMaskDataCache.set(snappedRadius, nextValue);
+  return nextValue;
+}
+
+export function getPixelCircleMaskOutlineData(radius: number) {
+  const snappedRadius = Math.max(1, Math.round(radius));
+  const cached = pixelCircleMaskOutlineDataCache.get(snappedRadius);
+  if (cached)
+    return cached;
+
+  const circle = getPixelCircleMaskData(snappedRadius);
+  const outline = new Uint8Array(circle.data.length);
+  const isFilled = (x: number, y: number) => {
+    if (x < 0 || y < 0 || x >= circle.size || y >= circle.size)
+      return 0;
+    return circle.data[y * circle.size + x];
+  };
+
+  for (let y = 0; y < circle.size; y += 1) {
+    for (let x = 0; x < circle.size; x += 1) {
+      const index = y * circle.size + x;
+      if (circle.data[index] !== 1)
+        continue;
+      let hasOutsideNeighbor = false;
+      for (let offsetY = -1; offsetY <= 1 && !hasOutsideNeighbor; offsetY += 1) {
+        for (let offsetX = -1; offsetX <= 1; offsetX += 1) {
+          if (offsetX === 0 && offsetY === 0)
+            continue;
+          if (isFilled(x + offsetX, y + offsetY) !== 1) {
+            hasOutsideNeighbor = true;
+            break;
+          }
+        }
+      }
+      if (hasOutsideNeighbor)
+        outline[index] = 1;
+    }
+  }
+
+  const nextValue = {
+    data: outline,
+    size: circle.size,
+  };
+  pixelCircleMaskOutlineDataCache.set(snappedRadius, nextValue);
+  return nextValue;
+}
+
+export function getPixelCircleMaskOutlineSegments(radius: number) {
+  const snappedRadius = Math.max(1, Math.round(radius));
+  const cached = pixelCircleMaskOutlineSegmentCache.get(snappedRadius);
+  if (cached)
+    return cached;
+
+  const circle = getPixelCircleMaskData(snappedRadius);
+  const segments = buildMaskOutlineSegments(circle.data, circle.size, circle.size);
+
+  const nextValue = {
+    size: circle.size,
+    segments,
+  };
+  pixelCircleMaskOutlineSegmentCache.set(snappedRadius, nextValue);
+  return nextValue;
+}
+
+export function buildMaskOutlineSegments(mask: Uint8Array, width: number, height: number) {
+  const segments: MaskOutlineSegment[] = [];
+  const isFilled = (x: number, y: number) => {
+    if (x < 0 || y < 0 || x >= width || y >= height)
+      return 0;
+    return mask[y * width + x];
+  };
+
+  for (let y = 0; y < height; y += 1) {
+    for (let x = 0; x < width; x += 1) {
+      if (mask[y * width + x] !== 1)
+        continue;
+
+      if (isFilled(x, y - 1) !== 1) {
+        segments.push({
+          orientation: "horizontal",
+          left: x,
+          top: y,
+          length: 1,
+        });
+      }
+      if (isFilled(x, y + 1) !== 1) {
+        segments.push({
+          orientation: "horizontal",
+          left: x,
+          top: y + 1,
+          length: 1,
+        });
+      }
+      if (isFilled(x - 1, y) !== 1) {
+        segments.push({
+          orientation: "vertical",
+          left: x,
+          top: y,
+          length: 1,
+        });
+      }
+      if (isFilled(x + 1, y) !== 1) {
+        segments.push({
+          orientation: "vertical",
+          left: x + 1,
+          top: y,
+          length: 1,
+        });
+      }
+    }
+  }
+
+  return segments;
 }
 
 export function createMaskBorderOffsets(radius: number, shape: "round" | "square" = "round") {

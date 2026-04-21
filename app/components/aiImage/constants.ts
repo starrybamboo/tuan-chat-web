@@ -15,12 +15,10 @@ export const JPEG_REJECT_ERROR = "上游返回 JPEG（有损），已按策略�
 export const CUSTOM_RESOLUTION_ID = "custom" as const;
 export const NOVELAI_DIMENSION_MIN = 64;
 export const NOVELAI_DIMENSION_STEP = 64;
-export const NOVELAI_FREE_MAX_DIMENSION = 1216;
+export const NOVELAI_FREE_MAX_IMAGE_AREA = 1024 * 1024;
 export const NOVELAI_FREE_MAX_STEPS = 28;
 export const NOVELAI_FREE_FIXED_IMAGE_COUNT = 1;
-export const NOVELAI_FREE_ONLY_NOTICE = `当前默认禁用大部分会消耗 NovelAI Anlas 的操作；保留免费单张 txt2img，并单独开放 Inpaint（仍限制为单张、${NOVELAI_FREE_MAX_DIMENSION}x${NOVELAI_FREE_MAX_DIMENSION} 以内、steps <= 28）。`;
-export const SIMPLE_MODE_MAX_IMAGE_AREA = 1024 * 1024;
-export const SIMPLE_MODE_CUSTOM_MAX_DIMENSION = 1024;
+export const NOVELAI_FREE_ONLY_NOTICE = `当前默认禁用大部分会消耗 NovelAI Anlas 的操作；保留免费单张 txt2img，并单独开放 Inpaint（仍限制为单张、自定义尺寸总面积不超过 1024x1024、steps <= 28）。`;
 
 export const AVAILABLE_MODEL_OPTIONS = [
   "nai-diffusion-4-5-curated",
@@ -77,14 +75,14 @@ export const DIRECTOR_EMOTION_OPTIONS: readonly NovelAiEmotion[] = [
 ] as const;
 
 export const RESOLUTION_PRESETS: ResolutionPreset[] = [
-  { id: "portrait", label: "竖版", width: 832, height: 1216 },
+  { id: "wide", label: "宽屏", width: 1408, height: 704 },
   { id: "square", label: "正方形", width: 1024, height: 1024 },
-  { id: "landscape", label: "横板", width: 1216, height: 832 },
+  { id: "tall", label: "竖屏", width: 704, height: 1408 },
 ];
 
 export const DEFAULT_PRO_IMAGE_SETTINGS = {
-  width: 832,
-  height: 1216,
+  width: 1408,
+  height: 704,
   imageCount: NOVELAI_FREE_FIXED_IMAGE_COUNT,
   steps: 23,
   scale: 5,
@@ -99,7 +97,7 @@ export const DEFAULT_PRO_IMAGE_SETTINGS = {
   strength: 0.7,
   noise: 0.2,
   seed: -1,
-  simpleResolutionSelection: "portrait" as ResolutionSelection,
+  simpleResolutionSelection: "wide" as ResolutionSelection,
 } as const;
 
 export const DEFAULT_SIMPLE_IMAGE_SETTINGS = {
@@ -155,7 +153,7 @@ export const DIRECTOR_TOOL_OPTIONS_BY_ID = Object.fromEntries(
 
 export const DEFAULT_DIRECTOR_TOOL_ID: DirectorToolId = "lineArt";
 
-const DISABLED_DIRECTOR_TOOL_IDS = new Set<DirectorToolId>(["removeBackground"]);
+const DISABLED_DIRECTOR_TOOL_IDS = new Set<DirectorToolId>(["removeBackground", "emotion"]);
 
 export function isDirectorToolDisabled(toolId: DirectorToolId) {
   return DISABLED_DIRECTOR_TOOL_IDS.has(toolId);

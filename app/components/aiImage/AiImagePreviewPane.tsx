@@ -179,7 +179,7 @@ export function AiImagePreviewPane({
   };
 
   return (
-    <div className={`flex min-h-0 flex-1 flex-col gap-3 overflow-auto ${isDirectorToolsOpen ? "bg-base-200 p-4" : "bg-base-200 py-3"}`}>
+    <div className={`flex min-h-0 min-w-0 flex-1 flex-col gap-3 overflow-auto ${isDirectorToolsOpen ? "bg-base-200 p-4" : "bg-base-200 py-3"}`}>
       {isDirectorToolsOpen
         ? (
             <div
@@ -562,7 +562,7 @@ export function AiImagePreviewPane({
                     )
                   : null}
                 <div
-                  className="relative z-[1] flex items-center justify-center"
+                  className="relative z-[1] flex max-h-full max-w-full items-center justify-center"
                   style={selectedPreviewResult
                     ? {
                         width: `${selectedPreviewResult.width}px`,

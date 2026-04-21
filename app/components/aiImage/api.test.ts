@@ -153,4 +153,47 @@ describe("aiImage api", () => {
     expect(requestBody.parameters.use_coords).toBe(true);
     expect(requestBody.parameters.qualityToggle).toBe(true);
   });
+
+  it("strips whole-line comments before sending prompt payloads", async () => {
+    const pngBytes = new Uint8Array([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]);
+    const fetchMock = vi.fn().mockResolvedValue(new Response(pngBytes, {
+      status: 200,
+      headers: {
+        "Content-Type": "image/png",
+      },
+    }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await generateNovelImageViaProxy({
+      mode: "txt2img",
+      strength: 0.7,
+      noise: 0.2,
+      prompt: "1girl\n// cinematic lighting\ncity lights",
+      negativePrompt: "// blurry\nbad hands",
+      model: "nai-diffusion-4-5-curated",
+      width: 1407,
+      height: 702,
+      imageCount: 1,
+      steps: 23,
+      scale: 5,
+      sampler: "k_euler_a",
+      noiseSchedule: "karras",
+      cfgRescale: 0,
+      ucPreset: 0,
+      smea: false,
+      smeaDyn: false,
+      qualityToggle: false,
+      dynamicThresholding: false,
+      seed: 1,
+    });
+
+    const [, requestInit] = fetchMock.mock.calls[0] ?? [];
+    const formData = requestInit?.body as FormData;
+    const requestPart = formData.get("request") as Blob;
+    const requestBody = JSON.parse(await requestPart.text());
+    expect(requestBody.input).toBe("1girl\ncity lights");
+    expect(requestBody.parameters.negative_prompt).toBe("bad hands");
+    expect(requestBody.parameters.width).toBe(1408);
+    expect(requestBody.parameters.height).toBe(704);
+  });
 });
