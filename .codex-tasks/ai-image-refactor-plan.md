@@ -42,13 +42,13 @@
 
 - 目标：拆分预览区、工具栏和 Director 相关组件
 - 验证：`corepack pnpm typecheck` 通过
-- Commit：本批次提交中，hash 将在下一次计划更新时回写
+- Commit：`3314850d` `refactor: 拆分 AI 生图 preview pane / split ai image preview pane`
 
-### [ ] 批次 5：拆分 `InpaintDialog.tsx`
+### [√] 批次 5：拆分 `InpaintDialog.tsx`
 
 - 目标：拆分视口、mask 编辑和工具面板逻辑
-- 验证：待执行
-- Commit：待执行
+- 验证：`corepack pnpm typecheck` 通过
+- Commit：本批次提交中，hash 将在下一次计划更新时回写
 
 ### [ ] 批次 6：拆分 `AiImageSidebar.tsx`
 
@@ -72,3 +72,5 @@
 - 2026-04-22：批次 3 完成。`AiImageHistoryPane.tsx` 已拆分为 `history/` 子组件，主文件保留状态与装配逻辑。
 - 2026-04-22：进入批次 4，准备拆分 `AiImagePreviewPane.tsx`。
 - 2026-04-22：批次 4 完成。`AiImagePreviewPane.tsx` 已拆分为 `preview/` 子组件，主文件保留入口切换与装配逻辑。
+- 2026-04-22：进入批次 5，准备拆分 `InpaintDialog.tsx`。
+- 2026-04-22：批次 5 完成。`InpaintDialog.tsx` 已拆分出 `inpaintViewportUtils` 与工具面板/顶部操作栏/底部操作栏组件，主文件保留绘制与交互逻辑。

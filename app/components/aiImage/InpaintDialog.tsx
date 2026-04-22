@@ -3,20 +3,26 @@ import type {
   PointerEvent as ReactPointerEvent,
 } from "react";
 import type { InpaintDialogSource, InpaintSubmitPayload } from "@/components/aiImage/types";
-import { ZoomInIcon as AppZoomInIcon, ZoomOutIcon as AppZoomOutIcon } from "@/icons";
 import {
   ArrowClockwiseIcon,
   ArrowCounterClockwiseIcon,
-  DownloadSimpleIcon,
-  FloppyDiskIcon,
   EraserIcon,
-  PaletteIcon,
   PencilSimpleLineIcon,
-  TrashIcon,
-  XIcon,
 } from "@phosphor-icons/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { triggerBrowserDownload } from "@/components/aiImage/helpers";
+import { InpaintBottomBar } from "@/components/aiImage/inpaint/InpaintBottomBar";
+import { InpaintToolPanel } from "@/components/aiImage/inpaint/InpaintToolPanel";
+import { InpaintTopBar } from "@/components/aiImage/inpaint/InpaintTopBar";
+import {
+  clampInpaintZoom,
+  clampViewportPan,
+  INPAINT_ZOOM_STEP,
+  type InpaintViewportSize,
+  type InpaintViewportTransform,
+  resolveCenteredViewportPan,
+  resolveInpaintViewportSize,
+} from "@/components/aiImage/inpaint/inpaintViewportUtils";
 import {
   buildBinaryMaskGrid,
   buildMaskOutlineSegments,
@@ -54,68 +60,14 @@ interface BrushCursorPoint {
   y: number;
 }
 
-interface InpaintViewportSize {
-  width: number;
-  height: number;
-}
-
 interface InpaintViewportPanSession {
   startClientX: number;
   startClientY: number;
   startPanX: number;
   startPanY: number;
 }
-
-interface InpaintViewportTransform {
-  zoom: number;
-  panX: number;
-  panY: number;
-}
-
-const INPAINT_MIN_ZOOM = 0.5;
-const INPAINT_MAX_ZOOM = 4;
-const INPAINT_ZOOM_STEP = 1.15;
 const BRUSH_CURSOR_STROKE_COLOR = "#000000";
 const BRUSH_CURSOR_CROSS_SIZE = 13;
-
-function clampInpaintZoom(value: number) {
-  if (!Number.isFinite(value))
-    return 1;
-  return Math.min(INPAINT_MAX_ZOOM, Math.max(INPAINT_MIN_ZOOM, value));
-}
-
-function resolveInpaintViewportSize(element: HTMLDivElement | null): InpaintViewportSize {
-  if (!element)
-    return { width: 0, height: 0 };
-  const rect = element.getBoundingClientRect();
-  return {
-    width: Math.max(0, Math.floor(rect.width)),
-    height: Math.max(0, Math.floor(rect.height)),
-  };
-}
-
-function resolveCenteredViewportPan(viewport: InpaintViewportSize, content: { width: number; height: number }) {
-  return {
-    x: (viewport.width - content.width) / 2,
-    y: (viewport.height - content.height) / 2,
-  };
-}
-
-function clampViewportPan(
-  pan: { x: number; y: number },
-  viewport: InpaintViewportSize,
-  content: { width: number; height: number },
-) {
-  const centered = resolveCenteredViewportPan(viewport, content);
-  return {
-    x: content.width <= viewport.width
-      ? centered.x
-      : Math.min(0, Math.max(viewport.width - content.width, pan.x)),
-    y: content.height <= viewport.height
-      ? centered.y
-      : Math.min(0, Math.max(viewport.height - content.height, pan.y)),
-  };
-}
 
 export function InpaintDialog({
   isOpen,
@@ -1002,82 +954,24 @@ export function InpaintDialog({
 
   return (
     <div className="absolute inset-0 z-50 overflow-hidden bg-base-200 text-white">
-      <div
-        className={`pointer-events-auto absolute left-4 top-4 z-20 w-[236px] ${sharedPanelClassName}`}
-        onMouseDown={event => event.stopPropagation()}
-      >
-        <div className="flex h-full items-stretch">
-          <div className="flex w-[92px] shrink-0 flex-col items-center justify-center gap-2 border-r border-white/10 px-2 text-[11px] font-medium whitespace-nowrap text-white/88">
-            <span className="inline-flex size-6 items-center justify-center rounded-md border border-white/12 bg-white/[0.04] text-white/86">
-              <PencilSimpleLineIcon className="size-[16px]" weight="bold" />
-            </span>
-            <span className="leading-none">Draw Mask</span>
-          </div>
-          <div className="flex min-w-0 flex-1 flex-col justify-center px-3 py-2">
-            <div className="flex items-center justify-between gap-2 text-[11px] font-medium text-white/82">
-              <span>Pen Size</span>
-              <span>{brushSize}</span>
-            </div>
-            <input
-              type="range"
-              min={4}
-              max={50}
-              step={1}
-              value={brushSize}
-              className="mt-2.5 h-1.5 w-full cursor-pointer appearance-none bg-transparent focus:outline-none [&::-webkit-slider-runnable-track]:h-1.5 [&::-webkit-slider-runnable-track]:rounded-full [&::-webkit-slider-runnable-track]:bg-white/12 [&::-webkit-slider-thumb]:mt-[-5px] [&::-webkit-slider-thumb]:size-4 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:border-0 [&::-webkit-slider-thumb]:bg-[#f6e6a5] [&::-webkit-slider-thumb]:shadow-[0_0_0_1px_rgba(17,18,36,0.35)] [&::-moz-range-track]:h-1.5 [&::-moz-range-track]:rounded-full [&::-moz-range-track]:bg-white/12 [&::-moz-range-thumb]:size-4 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:bg-[#f6e6a5]"
-              onChange={event => handleBrushSizeChange(Number(event.target.value))}
-            />
-            <div className="mt-2 flex select-none items-center gap-2 text-[11px] font-medium text-white/82">
-              <input
-                type="checkbox"
-                checked={isSquareBrush}
-                className="size-3.5 rounded border border-white/14 bg-white/[0.04] accent-[#f6e6a5]"
-                aria-label="启用方形画刷"
-                onChange={event => handleMaskDrawShapeChange(event.target.checked ? "square" : "circle")}
-              />
-              <button
-                type="button"
-                className="cursor-pointer border-0 bg-transparent p-0 text-[11px] font-medium text-white/82"
-                onClick={handleToggleSquareBrush}
-              >
-                Square Brush
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
+      <InpaintToolPanel
+        sharedPanelClassName={sharedPanelClassName}
+        brushSize={brushSize}
+        isSquareBrush={isSquareBrush}
+        onBrushSizeChange={handleBrushSizeChange}
+        onMaskDrawShapeChange={handleMaskDrawShapeChange}
+        onToggleSquareBrush={handleToggleSquareBrush}
+      />
 
-      <div className="absolute right-4 top-4 z-20 flex items-stretch overflow-hidden border border-white/10 shadow-[0_18px_48px_rgba(0,0,0,0.34)]">
-        <button
-          type="button"
-          className={topIconActionButtonClassName}
-          aria-label="下载原图"
-          title="下载原图"
-          disabled={isSubmitting}
-          onClick={handleDownloadSource}
-        >
-          <DownloadSimpleIcon className="size-[18px]" weight="bold" />
-        </button>
-        <button
-          type="button"
-          className={`${topActionButtonClassName} border-l border-white/10 bg-[#f6e6a5] text-[#222133] hover:bg-[#fff1af]`}
-          disabled={!hasMask || isSubmitting}
-          onClick={() => void handleSubmit()}
-        >
-          <FloppyDiskIcon className="mr-2 size-[18px]" weight="bold" />
-          {isSubmitting ? "保存中" : "Save & Close"}
-        </button>
-        <button
-          type="button"
-          className={`${topIconActionButtonClassName} border-l border-white/10`}
-          aria-label="关闭 Inpaint"
-          title="关闭 Inpaint"
-          disabled={isSubmitting}
-          onClick={onClose}
-        >
-          <XIcon className="size-[18px]" weight="bold" />
-        </button>
-      </div>
+      <InpaintTopBar
+        hasMask={hasMask}
+        isSubmitting={isSubmitting}
+        onDownloadSource={handleDownloadSource}
+        onSubmit={handleSubmit}
+        onClose={onClose}
+        topIconActionButtonClassName={topIconActionButtonClassName}
+        topActionButtonClassName={topActionButtonClassName}
+      />
 
       <div className="flex h-full min-h-0 w-full min-w-0 flex-col">
         <div className="min-h-0 flex-1 px-5 pb-14 pt-16">
@@ -1188,163 +1082,34 @@ export function InpaintDialog({
         </div>
       </div>
 
-      <div className="pointer-events-none absolute bottom-16 right-4 z-20">
-        <div className={`pointer-events-auto flex items-center gap-1.5 px-2 ${sharedPanelClassName}`}>
-          <button
-            type="button"
-            className={zoomPanelButtonClassName}
-            aria-label="缩小画布"
-            title="缩小"
-            onClick={handleZoomOut}
-          >
-            <span className="inline-flex size-[18px] items-center justify-center" aria-hidden="true">
-              <AppZoomOutIcon />
-            </span>
-          </button>
-          <button
-            type="button"
-            className={zoomPanelLabelClassName}
-            aria-label="重置缩放"
-            title="重置缩放（滚轮缩放，中键拖动）"
-            onClick={handleResetZoom}
-          >
-            {zoomLabel}
-          </button>
-          <button
-            type="button"
-            className={zoomPanelButtonClassName}
-            aria-label="放大画布"
-            title="放大"
-            onClick={handleZoomIn}
-          >
-            <span className="inline-flex size-[18px] items-center justify-center" aria-hidden="true">
-              <AppZoomInIcon />
-            </span>
-          </button>
-        </div>
-      </div>
-
-      <div className="pointer-events-none absolute bottom-2 left-1/2 z-20 w-[830px] max-w-[calc(100vw-6rem)] -translate-x-1/2">
-        <div className={`pointer-events-auto flex h-[50px] items-stretch justify-between gap-0 px-2 ${sharedPanelClassName}`}>
-          <div className="flex items-center gap-1.5">
-            <button
-              type="button"
-              className={`${bottomToolButtonClassName} ${tool === "paint" ? "bg-white/[0.12] text-white" : ""}`}
-              aria-label="绘制蒙版"
-              title="绘制蒙版"
-              onClick={() => setTool("paint")}
-            >
-              <PencilSimpleLineIcon className="size-[18px]" weight="bold" />
-            </button>
-            <button
-              type="button"
-              className={`${bottomToolButtonClassName} ${tool === "erase" ? "bg-white/[0.12] text-white" : ""}`}
-              aria-label="擦除蒙版"
-              title="擦除蒙版"
-              onClick={() => setTool("erase")}
-            >
-              <EraserIcon className="size-[18px]" weight="bold" />
-            </button>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <div className="relative flex items-center">
-              <button
-                type="button"
-                className={boardButtonClassName}
-                aria-label="打开画板"
-                title="画板"
-                onClick={() => setIsBoardPanelOpen(prev => !prev)}
-              >
-                <PaletteIcon className="size-[18px]" weight="bold" />
-              </button>
-              {isBoardPanelOpen
-                ? (
-                    <div className={boardPanelClassName}>
-                      <div className="mb-3 text-[11px] font-medium text-white/55">Mask Color</div>
-                      <div className="flex flex-wrap gap-2">
-                        {MASK_COLOR_OPTIONS.map(color => (
-                          <button
-                            key={color}
-                            type="button"
-                            className={`inline-flex size-6 items-center justify-center rounded-full border transition focus:outline-none focus:ring-2 focus:ring-white/20 ${
-                              maskColor === color ? "border-white/85 ring-2 ring-white/20" : "border-white/10"
-                            }`}
-                            aria-label={`选择蒙版颜色 ${color}`}
-                            onClick={() => setMaskColor(color)}
-                          >
-                            <span className="size-4 rounded-full" style={{ backgroundColor: color }} />
-                          </button>
-                        ))}
-                      </div>
-
-                      <div className="mt-4 flex items-center justify-between gap-3 text-sm font-medium text-white">
-                        <span>Mask Opacity</span>
-                        <span>{maskOpacity}%</span>
-                      </div>
-                      <input
-                        type="range"
-                        min={10}
-                        max={100}
-                        step={1}
-                        value={maskOpacity}
-                        className="mt-2 h-1.5 w-full cursor-pointer appearance-none bg-transparent focus:outline-none [&::-webkit-slider-runnable-track]:h-1.5 [&::-webkit-slider-runnable-track]:rounded-full [&::-webkit-slider-runnable-track]:bg-white/10 [&::-webkit-slider-thumb]:mt-[-5px] [&::-webkit-slider-thumb]:size-4 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:border-0 [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:shadow-[0_0_0_1px_rgba(17,18,36,0.35)] [&::-moz-range-track]:h-1.5 [&::-moz-range-track]:rounded-full [&::-moz-range-track]:bg-white/10 [&::-moz-range-thumb]:size-4 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:bg-white"
-                        onChange={event => setMaskOpacity(Number(event.target.value))}
-                      />
-
-                      <label className="mt-4 flex items-center gap-2 text-[11px] font-medium text-white">
-                        <input
-                          type="checkbox"
-                          checked={showMaskBorder}
-                          className="size-3.5 rounded border border-white/20 bg-white/[0.04] accent-white"
-                          onChange={event => setShowMaskBorder(event.target.checked)}
-                        />
-                        <span>Border</span>
-                      </label>
-                    </div>
-                  )
-                : null}
-            </div>
-            <button
-              type="button"
-              className={bottomToolButtonClassName}
-              aria-label="清空蒙版"
-              title="清空蒙版"
-              disabled={!hasMask}
-              onClick={handleClearMask}
-            >
-              <TrashIcon className="size-[18px]" weight="bold" />
-            </button>
-            <button
-              type="button"
-              className={bottomToolButtonClassName}
-              aria-label="撤销"
-              title="撤销"
-              disabled={!canUndo}
-              onClick={handleUndo}
-            >
-              <ArrowCounterClockwiseIcon className="size-[18px]" weight="bold" />
-            </button>
-            <button
-              type="button"
-              className={bottomToolButtonClassName}
-              aria-label="重做"
-              title="重做"
-              disabled={!canRedo}
-              onClick={handleRedo}
-            >
-              <ArrowClockwiseIcon className="size-[18px]" weight="bold" />
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {error
-        ? (
-            <div className="absolute bottom-4 right-4 z-20 rounded-md border border-[#ff6b82]/30 bg-[#2c1720]/92 px-3 py-2 text-sm text-[#ffb4c0] shadow-[0_18px_48px_rgba(0,0,0,0.34)]">
-              {error}
-            </div>
-          )
-        : null}
+      <InpaintBottomBar
+        sharedPanelClassName={sharedPanelClassName}
+        zoomPanelButtonClassName={zoomPanelButtonClassName}
+        zoomPanelLabelClassName={zoomPanelLabelClassName}
+        bottomToolButtonClassName={bottomToolButtonClassName}
+        boardButtonClassName={boardButtonClassName}
+        boardPanelClassName={boardPanelClassName}
+        zoomLabel={zoomLabel}
+        tool={tool}
+        isBoardPanelOpen={isBoardPanelOpen}
+        maskColor={maskColor}
+        maskOpacity={maskOpacity}
+        showMaskBorder={showMaskBorder}
+        hasMask={hasMask}
+        canUndo={canUndo}
+        canRedo={canRedo}
+        onZoomOut={handleZoomOut}
+        onResetZoom={handleResetZoom}
+        onZoomIn={handleZoomIn}
+        onSetTool={setTool}
+        onToggleBoardPanel={() => setIsBoardPanelOpen(prev => !prev)}
+        onSetMaskColor={setMaskColor}
+        onSetMaskOpacity={setMaskOpacity}
+        onSetShowMaskBorder={setShowMaskBorder}
+        onClearMask={handleClearMask}
+        onUndo={handleUndo}
+        onRedo={handleRedo}
+      />
     </div>
   );
 }
