@@ -130,6 +130,7 @@ import {
   resolveFocusedGenerateContext,
   validateGenerateContext,
 } from "@/components/aiImage/controller/generateActions";
+import { importSourceImageBytesAction } from "@/components/aiImage/controller/importActions";
 import {
   applyHistorySettingsAction,
   applyImportedMetadataAction,
@@ -912,67 +913,26 @@ export function useAiImagePageController() {
     imageCount?: number;
     target?: "img2img";
   }) => {
-    const dataUrl = base64DataUrl(args.mime, args.bytes);
-    const imageBase64 = bytesToBase64(args.bytes);
-    let importedMetadata: NovelAiImageMetadataResult | null = extractNovelAiMetadataFromPngBytes(args.bytes);
-
-    if (!importedMetadata) {
-      try {
-        const pixels = await readImagePixels(dataUrl);
-        importedMetadata = extractNovelAiMetadataFromStealthPixels(pixels);
-      }
-      catch (e) {
-        console.warn("[ai-image] failed to inspect imported image pixels", e);
-      }
-    }
-
-    setError("");
-    setIsPageImageDragOver(false);
-    let imageSize: { width: number; height: number } | null = null;
-    try {
-      imageSize = await readImageSize(dataUrl);
-    }
-    catch {
-      // ignore
-    }
-
-    const sourceImage = {
-      dataUrl,
-      imageBase64,
+    await importSourceImageBytesAction({
+      bytes: args.bytes,
+      mime: args.mime,
       name: args.name,
-      width: imageSize?.width,
-      height: imageSize?.height,
-    } satisfies ImportedSourceImagePayload;
-
-    const applySourceImageAsBase = (nextSourceImage: ImportedSourceImagePayload, successMessage?: string) => {
-      applySourceImageForUi(uiMode, nextSourceImage, successMessage);
-    };
-
-    if (args.target === "img2img") {
-      applySourceImageAsBase(sourceImage, "已设置 Base Img。");
-      return;
-    }
-
-    if ((args.imageCount ?? 1) > 1) {
-      return;
-    }
-
-      setPendingMetadataImport({
-      sourceImage,
-      metadata: importedMetadata,
       source: args.source,
-      imageCount: args.imageCount ?? 1,
+      imageCount: args.imageCount,
+      target: args.target,
+      uiMode,
+      setError,
+      setIsPageImageDragOver,
+      readImageSize,
+      applySourceImageForUi,
+      setPendingMetadataImport,
+      defaultMetadataImportSelection: DEFAULT_METADATA_IMPORT_SELECTION,
+      setMetadataImportSelection,
+      extractNovelAiMetadataFromPngBytes,
+      extractNovelAiMetadataFromStealthPixels,
+      readImagePixels,
     });
-    const nextMetadataImportSelection = importedMetadata
-      ? createMetadataImportSelection(importedMetadata.settings)
-      : DEFAULT_METADATA_IMPORT_SELECTION;
-    if (uiMode === "simple")
-      nextMetadataImportSelection.settings = false;
-    if (uiMode === "simple")
-      nextMetadataImportSelection.characters = false;
-    setMetadataImportSelection(nextMetadataImportSelection);
   }, [applySourceImageForUi, uiMode]);
-
   const handlePickSourceImage = useCallback(async (
     file: File,
     options?: { source?: ImageImportSource; imageCount?: number; target?: "img2img" },
