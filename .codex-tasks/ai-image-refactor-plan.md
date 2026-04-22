@@ -30,13 +30,13 @@
 
 - 目标：拆分请求构建、后端 URL、tokenizer 与 snapshot 逻辑
 - 验证：`corepack pnpm typecheck` 通过；`corepack pnpm vitest run app/components/aiImage/api.test.ts` 通过；`corepack pnpm vitest run app/components/aiImage/novelaiV45TokenMeter.test.ts` 通过
-- Commit：本批次提交中，hash 将在下一次计划更新时回写
+- Commit：`af8b2764` `refactor: 拆分 AI 生图 api 与 token meter / split ai image api and token meter`
 
-### [ ] 批次 3：拆分 `AiImageHistoryPane.tsx`
+### [√] 批次 3：拆分 `AiImageHistoryPane.tsx`
 
 - 目标：拆分确认弹窗、列表项、页脚操作和分区组件
-- 验证：待执行
-- Commit：待执行
+- 验证：`corepack pnpm typecheck` 通过
+- Commit：本批次提交中，hash 将在下一次计划更新时回写
 
 ### [ ] 批次 4：拆分 `AiImagePreviewPane.tsx`
 
@@ -68,3 +68,5 @@
 - 2026-04-22：批次 1 完成。`helpers.ts` 已拆分为 `utils/` 下多个领域文件，现有导出入口保持兼容。
 - 2026-04-22：进入批次 2，准备拆分 `api.ts` 与 `novelaiV45TokenMeter.ts`。
 - 2026-04-22：批次 2 完成。`api.ts` 已拆分为 `api/` 子模块，`novelaiV45TokenMeter.ts` 已拆分为 `tokenMeter/` 子模块，旧入口保持兼容导出。
+- 2026-04-22：进入批次 3，准备拆分 `AiImageHistoryPane.tsx`。
+- 2026-04-22：批次 3 完成。`AiImageHistoryPane.tsx` 已拆分为 `history/` 子组件，主文件保留状态与装配逻辑。
