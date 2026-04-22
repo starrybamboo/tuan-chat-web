@@ -139,6 +139,15 @@ import {
   saveInpaintMaskAction,
 } from "@/components/aiImage/controller/inpaintActions";
 import {
+  historyImageDragStartAction,
+  pageImageDragEnterAction,
+  pageImageDragLeaveAction,
+  pageImageDragOverAction,
+  pageImageDropAction,
+  pasteSourceImageAction,
+  pickSourceHistoryImageAction,
+} from "@/components/aiImage/controller/dndActions";
+import {
   applyHistorySettingsAction,
   applyImportedMetadataAction,
 } from "@/components/aiImage/controller/metadataHistoryActions";
@@ -993,19 +1002,12 @@ export function useAiImagePageController() {
     payload: InternalHistoryImageDragPayload,
     options?: { source?: ImageImportSource; imageCount?: number },
   ) => {
-    const imageBase64 = dataUrlToBase64(payload.dataUrl);
-    if (!imageBase64) {
-      setIsPageImageDragOver(false);
-      showErrorToast("拖拽历史图片失败：未读取到图片数据。");
-      return;
-    }
-
-    await handleImportSourceImageBytes({
-      bytes: base64ToBytes(imageBase64),
-      mime: mimeFromDataUrl(payload.dataUrl),
-      name: payload.name,
-      source: options?.source,
-      imageCount: options?.imageCount,
+    await pickSourceHistoryImageAction({
+      payload,
+      options,
+      setIsPageImageDragOver,
+      showErrorToast,
+      handleImportSourceImageBytes,
     });
   }, [handleImportSourceImageBytes, showErrorToast]);
 
@@ -1013,77 +1015,46 @@ export function useAiImagePageController() {
     event: DragEvent<HTMLElement>,
     payload: { dataUrl: string; seed: number; batchIndex?: number },
   ) => {
-    const fileName = historyImageDragFileName(payload.dataUrl, payload.seed, payload.batchIndex);
-    event.dataTransfer.effectAllowed = "copy";
-    event.dataTransfer.setData(INTERNAL_HISTORY_IMAGE_DRAG_MIME, JSON.stringify({
-      dataUrl: payload.dataUrl,
-      name: fileName,
-    } satisfies InternalHistoryImageDragPayload));
-    event.dataTransfer.setData("text/plain", fileName);
-
-    try {
-      event.dataTransfer.items.add(fileFromDataUrl(payload.dataUrl, fileName));
-    }
-    catch (error) {
-      console.warn("[ai-image] failed to attach dragged history image file", error);
-    }
+    historyImageDragStartAction({
+      event: event as unknown as DragEvent,
+      payload,
+    });
   }, []);
 
   const handlePageImageDragEnter = useCallback((event: DragEvent<HTMLDivElement>) => {
-    if (isDirectorToolsOpen)
-      return;
-    const nextIsImageDrag = hasFileDrag(event.dataTransfer) || hasInternalHistoryImageDrag(event.dataTransfer);
-    if (!nextIsImageDrag)
-      return;
-    event.preventDefault();
-    event.stopPropagation();
-    setIsPageImageDragOver(nextIsImageDrag);
+    pageImageDragEnterAction({
+      event: event as unknown as DragEvent,
+      isDirectorToolsOpen,
+      setIsPageImageDragOver,
+    });
   }, [isDirectorToolsOpen]);
 
   const handlePageImageDragLeave = useCallback((event: DragEvent<HTMLDivElement>) => {
-    if (isDirectorToolsOpen)
-      return;
-    event.preventDefault();
-    event.stopPropagation();
-    if (!event.currentTarget.contains(event.relatedTarget as Node | null))
-      setIsPageImageDragOver(false);
+    pageImageDragLeaveAction({
+      event: event as unknown as DragEvent,
+      isDirectorToolsOpen,
+      setIsPageImageDragOver,
+    });
   }, [isDirectorToolsOpen]);
 
   const handlePageImageDragOver = useCallback((event: DragEvent<HTMLDivElement>) => {
-    if (isDirectorToolsOpen)
-      return;
-    const nextIsImageDrag = hasFileDrag(event.dataTransfer) || hasInternalHistoryImageDrag(event.dataTransfer);
-    if (!nextIsImageDrag)
-      return;
-    event.preventDefault();
-    event.stopPropagation();
-    event.dataTransfer.dropEffect = "copy";
-    if (nextIsImageDrag !== isPageImageDragOver)
-      setIsPageImageDragOver(nextIsImageDrag);
+    pageImageDragOverAction({
+      event: event as unknown as DragEvent,
+      isDirectorToolsOpen,
+      isPageImageDragOver,
+      setIsPageImageDragOver,
+    });
   }, [isDirectorToolsOpen, isPageImageDragOver]);
 
   const handlePageImageDrop = useCallback((event: DragEvent<HTMLDivElement>) => {
-    if (isDirectorToolsOpen)
-      return;
-    const hasImportableDrag = hasFileDrag(event.dataTransfer) || hasInternalHistoryImageDrag(event.dataTransfer);
-    if (!hasImportableDrag)
-      return;
-    event.preventDefault();
-    event.stopPropagation();
-    const internalPayload = extractInternalHistoryImageDragPayload(event.dataTransfer);
-    if (internalPayload) {
-      setIsPageImageDragOver(false);
-      void handlePickSourceHistoryImage(internalPayload, { source: "drop", imageCount: 1 });
-      return;
-    }
-    const files = extractImageFilesFromTransfer(event.dataTransfer);
-    if (!files.length) {
-      setIsPageImageDragOver(false);
-      showErrorToast("拖拽导入目前只支持图片文件。");
-      return;
-    }
-    setIsPageImageDragOver(false);
-    void handlePickSourceImage(files[0], { source: "drop", imageCount: files.length });
+    void pageImageDropAction({
+      event: event as unknown as DragEvent,
+      isDirectorToolsOpen,
+      setIsPageImageDragOver,
+      showErrorToast,
+      handlePickSourceHistoryImage,
+      handlePickSourceImage,
+    });
   }, [handlePickSourceHistoryImage, handlePickSourceImage, isDirectorToolsOpen, showErrorToast]);
 
   useEffect(() => {
@@ -1091,12 +1062,10 @@ export function useAiImagePageController() {
       return;
 
     const onPaste = (event: ClipboardEvent) => {
-      const files = extractImageFilesFromTransfer(event.clipboardData);
-      if (!files.length)
-        return;
-
-      event.preventDefault();
-      void handlePickSourceImage(files[0], { source: "paste", imageCount: files.length });
+      void pasteSourceImageAction({
+        event,
+        handlePickSourceImage,
+      });
     };
 
     document.addEventListener("paste", onPaste);
