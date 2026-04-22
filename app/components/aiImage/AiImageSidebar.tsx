@@ -28,6 +28,9 @@ import { HighlightEmphasisTextarea } from "@/components/aiImage/HighlightEmphasi
 import { AiImageContextLimitMeter } from "@/components/aiImage/AiImageContextLimitMeter";
 import { NOVELAI_V45_CONTEXT_LIMIT, useNovelAiV45TokenSnapshot } from "@/components/aiImage/novelaiV45TokenMeter";
 import { ReferenceActionIcon } from "@/components/aiImage/ReferenceActionIcon";
+import { renderSimpleBaseImageSectionContent, renderProInfillSectionContent, renderSimpleInfillSectionContent } from "@/components/aiImage/sidebar/baseImageSections";
+import { renderProBottomSettingsDrawerContent } from "@/components/aiImage/sidebar/ProBottomSettingsDrawer";
+import { renderResolutionGlyph as renderResolutionGlyphContent } from "@/components/aiImage/sidebar/renderResolutionGlyph";
 import { ChevronDown } from "@/icons";
 import { ProFeatureSection } from "@/components/aiImage/ProFeatureSection";
 
@@ -608,567 +611,108 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
   }
 
   function renderSimpleInfillSection() {
-    if (!sourceImageDataUrl || !infillMaskDataUrl)
-      return null;
-
-    const infillActionButtonClassName = "inline-flex size-11 items-center justify-center bg-black/[0.03] text-base-content/70 transition hover:bg-black/[0.06] hover:text-base-content focus:outline-none focus-visible:bg-black/[0.06] focus-visible:text-base-content disabled:cursor-not-allowed disabled:opacity-40 dark:bg-white/[0.04] dark:text-white/80 dark:hover:bg-white/[0.08] dark:hover:text-white dark:focus-visible:bg-white/[0.08] dark:focus-visible:text-white";
-
-    return (
-      <div className={simpleBaseImageAttachmentClassName}>
-        <div className="px-4 py-4">
-          <div className={baseImageHeaderClassName}>
-            <div className="min-w-0">
-              <div className="flex items-start gap-2">
-                <button
-                  type="button"
-                  className="mt-[1px] inline-flex size-9 items-center justify-center rounded-md text-base-content/70 transition hover:bg-base-200 hover:text-base-content focus:outline-none focus:ring-2 focus:ring-primary/20 dark:text-white/80 dark:hover:bg-white/6 dark:hover:text-white dark:focus:ring-white/15"
-                  aria-label="返回"
-                  title="返回"
-                  onClick={handleReturnFromInfillSettings}
-                >
-                  <CaretLeftIcon className="size-5" weight="bold" />
-                </button>
-                <div className="min-w-0">
-                  <div className="text-[15px] font-semibold leading-6 text-base-content dark:text-white">Inpaint</div>
-                  <div className="mt-1 text-[13px] leading-5 text-base-content/58 dark:text-white/72">Change part of an image.</div>
-                </div>
-              </div>
-            </div>
-            <div className={baseImageControlGroupClassName}>
-              <div className="flex overflow-hidden rounded-md border border-[#D6DCE3] bg-[#F3F5F7] dark:border-[#2A3138] dark:bg-[#161A1F]">
-                <button
-                  type="button"
-                  className={infillActionButtonClassName}
-                  aria-label="编辑蒙版"
-                  title="编辑蒙版"
-                  disabled={isBusy}
-                  onClick={() => void handleOpenBaseImageInpaint()}
-                >
-                  <PencilSimpleLineIcon className="size-5" weight="bold" />
-                </button>
-                <span className="h-11 w-px bg-[#D6DCE3] dark:bg-[#2A3138]" aria-hidden="true" />
-                <button
-                  type="button"
-                  className={infillActionButtonClassName}
-                  aria-label="清空"
-                  title="清空"
-                  disabled={isBusy}
-                  onClick={handleClearSourceImage}
-                >
-                  <TrashIcon className="size-5" weight="bold" />
-                </button>
-              </div>
-              <button
-                type="button"
-                className={baseImageToggleButtonClassName}
-                aria-label={isBaseImageToolsOpen ? "收起" : "展开"}
-                title={isBaseImageToolsOpen ? "收起" : "展开"}
-                disabled={isBusy}
-                onClick={() => setIsBaseImageToolsOpen(prev => !prev)}
-              >
-                <ChevronDown className={`size-5 shrink-0 transition-transform ${isBaseImageToolsOpen ? "rotate-180" : ""}`} />
-              </button>
-            </div>
-          </div>
-
-          {isBaseImageToolsOpen
-            ? (
-                <div className="mt-4 space-y-4">
-            <div>
-              <div className="text-[13px] font-semibold leading-5 text-base-content dark:text-white">Mask</div>
-              <div className="mt-2 overflow-hidden rounded-md border border-[#D6DCE3] bg-[#F3F5F7] dark:border-[#2A3138] dark:bg-[#0B0D1B]">
-                <div className="relative h-[220px] w-full">
-                  <img
-                    src={sourceImageDataUrl}
-                    alt="Inpaint Mask"
-                    className="absolute inset-0 h-full w-full object-contain"
-                    draggable={false}
-                  />
-                  <img
-                    src={infillMaskDataUrl}
-                    alt="Mask Overlay"
-                    className="absolute inset-0 h-full w-full object-contain opacity-55 mix-blend-screen"
-                    draggable={false}
-                  />
-                </div>
-              </div>
-            </div>
-
-            <label className="block">
-              <div className="flex items-center justify-between text-[13px] font-semibold leading-5 text-base-content dark:text-white">
-                <span>Strength</span>
-                <span>{formatSliderValue(strength)}</span>
-              </div>
-              <input
-                type="range"
-                min={0.01}
-                max={1}
-                step={0.01}
-                value={strength}
-                className={baseImageRangeClassName}
-                onChange={event => setStrength(clampRange(Number(event.target.value), 0.01, 1, 0.7))}
-              />
-            </label>
-                </div>
-              )
-            : null}
-        </div>
-      </div>
-    );
+    return renderSimpleInfillSectionContent({
+      sourceImageDataUrl,
+      infillMaskDataUrl,
+      isBusy,
+      isBaseImageToolsOpen,
+      strength,
+      simpleBaseImageAttachmentClassName,
+      baseImageHeaderClassName,
+      baseImageControlGroupClassName,
+      baseImageToggleButtonClassName,
+      baseImageRangeClassName,
+      onOpenBaseImageInpaint: handleOpenBaseImageInpaint,
+      onClearSourceImage: handleClearSourceImage,
+      onReturnFromInfillSettings: handleReturnFromInfillSettings,
+      onToggleBaseImageTools: () => setIsBaseImageToolsOpen(prev => !prev),
+      setStrength,
+    });
   }
 
   function renderProInfillSection() {
-    if (!sourceImageDataUrl || !infillMaskDataUrl)
-      return null;
-
-    const infillActionButtonClassName = "inline-flex size-11 items-center justify-center bg-white/[0.04] text-white/80 transition hover:bg-white/[0.08] hover:text-white focus:outline-none focus-visible:bg-white/[0.08] focus-visible:text-white disabled:cursor-not-allowed disabled:opacity-40";
-
-    return (
-      <div className="-mx-3 -mb-3 mt-3 overflow-hidden border-t border-[#2A3138] bg-[#161A1F]">
-        <div className="px-4 py-4">
-          <div className={baseImageHeaderClassName}>
-            <div className="min-w-0">
-              <div className="flex items-start gap-2">
-                <button
-                  type="button"
-                  className="mt-[1px] inline-flex size-9 items-center justify-center rounded-md text-white/80 transition hover:bg-white/6 hover:text-white focus:outline-none focus:ring-2 focus:ring-white/15"
-                  aria-label="返回"
-                  title="返回"
-                  onClick={handleReturnFromInfillSettings}
-                >
-                  <CaretLeftIcon className="size-5" weight="bold" />
-                </button>
-                <div className="min-w-0">
-                  <div className="text-[15px] font-semibold leading-6 text-white">Inpaint</div>
-                  <div className="mt-1 text-[13px] leading-5 text-white/72">Change part of an image.</div>
-                </div>
-              </div>
-            </div>
-            <div className={baseImageControlGroupClassName}>
-              <div className="flex overflow-hidden rounded-md border border-[#2A3138] bg-[#161A1F]">
-                <button
-                  type="button"
-                  className={infillActionButtonClassName}
-                  aria-label="编辑蒙版"
-                  title="编辑蒙版"
-                  disabled={isBusy}
-                  onClick={() => void handleOpenBaseImageInpaint()}
-                >
-                  <PencilSimpleLineIcon className="size-5" weight="bold" />
-                </button>
-                <span className="h-11 w-px bg-[#2A3138]" aria-hidden="true" />
-                <button
-                  type="button"
-                  className={infillActionButtonClassName}
-                  aria-label="清空"
-                  title="清空"
-                  disabled={isBusy}
-                  onClick={handleClearSourceImage}
-                >
-                  <TrashIcon className="size-5" weight="bold" />
-                </button>
-              </div>
-              <button
-                type="button"
-                className={baseImageToggleButtonClassName}
-                aria-label={isBaseImageToolsOpen ? "收起" : "展开"}
-                title={isBaseImageToolsOpen ? "收起" : "展开"}
-                disabled={isBusy}
-                onClick={() => setIsBaseImageToolsOpen(prev => !prev)}
-              >
-                <ChevronDown className={`size-5 shrink-0 transition-transform ${isBaseImageToolsOpen ? "rotate-180" : ""}`} />
-              </button>
-            </div>
-          </div>
-
-          {isBaseImageToolsOpen
-            ? (
-                <div className="mt-4 space-y-4">
-            <div>
-              <div className="text-[13px] font-semibold leading-5 text-white">Mask</div>
-              <div className="mt-2 overflow-hidden rounded-md border border-[#2A3138] bg-[#0B0D1B]">
-                <div className="relative h-[220px] w-full">
-                  <img
-                    src={sourceImageDataUrl}
-                    alt="Inpaint Mask"
-                    className="absolute inset-0 h-full w-full object-contain"
-                    draggable={false}
-                  />
-                  <img
-                    src={infillMaskDataUrl}
-                    alt="Mask Overlay"
-                    className="absolute inset-0 h-full w-full object-contain opacity-55 mix-blend-screen"
-                    draggable={false}
-                  />
-                </div>
-              </div>
-            </div>
-
-            <label className="block">
-              <div className="flex items-center justify-between text-[13px] font-semibold leading-5 text-white">
-                <span>Strength</span>
-                <span>{formatSliderValue(strength)}</span>
-              </div>
-              <input
-                type="range"
-                min={0.01}
-                max={1}
-                step={0.01}
-                value={strength}
-                className={baseImageRangeClassName}
-                onChange={event => setStrength(clampRange(Number(event.target.value), 0.01, 1, 0.7))}
-              />
-            </label>
-                </div>
-              )
-            : null}
-        </div>
-      </div>
-    );
+    return renderProInfillSectionContent({
+      sourceImageDataUrl,
+      infillMaskDataUrl,
+      isBusy,
+      isBaseImageToolsOpen,
+      strength,
+      baseImageHeaderClassName,
+      baseImageControlGroupClassName,
+      baseImageToggleButtonClassName,
+      baseImageRangeClassName,
+      onOpenBaseImageInpaint: handleOpenBaseImageInpaint,
+      onClearSourceImage: handleClearSourceImage,
+      onReturnFromInfillSettings: handleReturnFromInfillSettings,
+      onToggleBaseImageTools: () => setIsBaseImageToolsOpen(prev => !prev),
+      setStrength,
+    });
   }
 
   function renderSimpleBaseImageSection() {
-    if (!sourceImageDataUrl) {
-      return (
-        <div className={simpleBaseImageAttachmentClassName}>
-          <div className="flex items-center justify-between gap-3 px-4 py-3">
-            <div className="text-[15px] text-base-content/58">
-              Add a Base Img (Optional)
-            </div>
-            <button
-              type="button"
-              className={featureUploadActionClassName}
-              aria-label="上传 Base Img"
-              title="上传 Base Img"
-              onClick={handleOpenSourceImagePicker}
-            >
-              <FileArrowUpIcon className="size-5" weight="bold" />
-            </button>
-          </div>
-        </div>
-      );
-    }
-
-    if (mode === "infill")
-      return renderSimpleInfillSection();
-
-    if (mode !== "img2img")
-      return null;
-
-    return (
-      <div className={simpleBaseImageAttachmentClassName}>
-        <div className={baseImagePanelClassName}>
-          <img
-            src={sourceImageDataUrl}
-            alt="Base Img"
-            className="absolute inset-0 h-full w-full object-cover opacity-28"
-          />
-          <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(11,13,27,0.66)_0%,rgba(11,13,27,0.74)_100%)]" />
-          <div className={baseImageHeaderClassName}>
-            <div className="min-w-0">
-              <div className="text-[15px] font-semibold leading-6 text-white">Image2Image</div>
-              <div className="mt-1 text-[13px] leading-5 text-white/72">Transform your image.</div>
-            </div>
-            <div className={baseImageControlGroupClassName}>
-              <div className="flex overflow-hidden rounded-md border border-[#2A3138] bg-[#161A1F]">
-                <button
-                  type="button"
-                  className="inline-flex size-11 items-center justify-center text-white/80 transition hover:bg-white/6 hover:text-white focus:outline-none"
-                  aria-label="更换 Base Img"
-                  title="更换 Base Img"
-                  onClick={handleOpenSourceImagePicker}
-                >
-                  <ArrowClockwise className="size-5" weight="bold" />
-                </button>
-                <span className="h-11 w-px bg-[#2A3138]" aria-hidden="true" />
-                <button
-                  type="button"
-                  className="inline-flex size-11 items-center justify-center text-white/80 transition hover:bg-white/6 hover:text-white focus:outline-none"
-                  aria-label="移除 Base Img"
-                  title="移除 Base Img"
-                  onClick={handleClearSourceImage}
-                >
-                  <TrashIcon className="size-5" weight="bold" />
-                </button>
-              </div>
-              <button
-                type="button"
-                className={baseImageToggleButtonClassName}
-                aria-label={isBaseImageToolsOpen ? "收起 Base Img 工具" : "展开 Base Img 工具"}
-                title={isBaseImageToolsOpen ? "收起 Base Img 工具" : "展开 Base Img 工具"}
-                onClick={() => setIsBaseImageToolsOpen(prev => !prev)}
-              >
-                <ChevronDown className={`size-5 shrink-0 transition-transform ${isBaseImageToolsOpen ? "rotate-180" : ""}`} />
-              </button>
-            </div>
-          </div>
-          {isBaseImageToolsOpen
-            ? (
-                <div className="relative z-10 mt-4 space-y-4">
-                  <label className="block">
-                    <div className="flex items-center justify-between text-[13px] font-semibold leading-5 text-white">
-                      <span>Strength</span>
-                      <span>{formatSliderValue(strength)}</span>
-                    </div>
-                    <input
-                      type="range"
-                      min={0.01}
-                      max={1}
-                      step={0.01}
-                      value={strength}
-                      className={baseImageRangeClassName}
-                      onChange={event => setStrength(clampRange(Number(event.target.value), 0.01, 1, 0.7))}
-                    />
-                  </label>
-
-                  <label className="block">
-                    <div className="flex items-center justify-between text-[13px] font-semibold leading-5 text-white">
-                      <span>Noise</span>
-                      <span>{formatSliderValue(noise)}</span>
-                    </div>
-                    <input
-                      type="range"
-                      min={0}
-                      max={0.99}
-                      step={0.01}
-                      value={noise}
-                      className={baseImageRangeClassName}
-                      onChange={event => setNoise(clampRange(Number(event.target.value), 0, 0.99, 0.2))}
-                    />
-                  </label>
-
-                  <button
-                    type="button"
-                    className={baseImageActionButtonClassName}
-                    disabled={isBusy}
-                    onClick={() => void handleOpenBaseImageInpaint()}
-                  >
-                    <SelectionPlusIcon className="size-5" weight="bold" />
-                    <span>Inpaint Image</span>
-                  </button>
-                </div>
-              )
-            : null}
-        </div>
-      </div>
-    );
+    return renderSimpleBaseImageSectionContent({
+      sourceImageDataUrl,
+      infillMaskDataUrl,
+      mode,
+      isBusy,
+      isBaseImageToolsOpen,
+      strength,
+      noise,
+      featureUploadActionClassName,
+      simpleBaseImageAttachmentClassName,
+      baseImagePanelClassName,
+      baseImageHeaderClassName,
+      baseImageControlGroupClassName,
+      baseImageToggleButtonClassName,
+      baseImageActionButtonClassName,
+      baseImageRangeClassName,
+      onOpenSourceImagePicker: handleOpenSourceImagePicker,
+      onOpenBaseImageInpaint: handleOpenBaseImageInpaint,
+      onClearSourceImage: handleClearSourceImage,
+      onReturnFromInfillSettings: handleReturnFromInfillSettings,
+      onToggleBaseImageTools: () => setIsBaseImageToolsOpen(prev => !prev),
+      setStrength,
+      setNoise,
+    });
   }
 
   function renderResolutionGlyph(optionId: string) {
-    let glyph: React.ReactNode;
-    if (optionId === "tall") {
-      glyph = <div className="h-5 w-3 rounded-sm border border-current opacity-80" />;
-    }
-    else if (optionId === "wide") {
-      glyph = <div className="h-2.5 w-5 rounded-sm border border-current opacity-80" />;
-    }
-    else if (optionId === "square") {
-      glyph = <div className="size-4 rounded-sm border border-current opacity-80" />;
-    }
-    else {
-      glyph = (
-        <div className="flex size-4 items-center justify-center rounded-sm border border-dashed border-current opacity-80">
-          <span className="text-[10px] font-bold leading-none">+</span>
-        </div>
-      );
-    }
-
-    return <span className="flex w-5 shrink-0 items-center justify-start">{glyph}</span>;
+    return renderResolutionGlyphContent(optionId);
   }
 
   function renderProBottomSettingsDrawer() {
-    if (uiMode !== "pro")
-      return null;
-
-    return (
-      <div className="relative h-14 shrink-0 bg-[#F3F5F7] px-4 pb-3 dark:bg-[#161A1F]">
-        {!isProBottomSettingsOpen
-          ? (
-              <button
-                type="button"
-                className="grid h-14 w-full -translate-y-1 grid-cols-[max-content_max-content_max-content_minmax(0,1fr)_auto] items-center gap-[10px] rounded-t-2xl border border-[#D6DCE3] bg-[#F3F5F7] px-3 text-left text-base-content transition hover:bg-[#EAEFF4] focus:outline-none focus:ring-2 focus:ring-primary/20 dark:border-[#2A3138] dark:bg-[#161A1F] dark:text-white dark:hover:bg-[#1B2026]"
-                aria-expanded={isProBottomSettingsOpen}
-                onClick={() => setIsProBottomSettingsOpen(true)}
-              >
-                <div className="flex min-w-0 flex-col gap-0.5">
-                  <div className="text-xs font-medium leading-none text-base-content/52 dark:text-white/52">Steps</div>
-                  <div className="text-sm font-semibold leading-none text-base-content dark:text-white">{steps}</div>
-                </div>
-                <div className="flex min-w-0 flex-col gap-0.5">
-                  <div className="text-xs font-medium leading-none text-base-content/52 dark:text-white/52">Guidance</div>
-                  <div className="text-sm font-semibold leading-none text-base-content dark:text-white">{formatSliderValue(scale)}</div>
-                </div>
-                <div className="flex min-w-0 flex-col gap-0.5">
-                  <div className="text-xs font-medium leading-none text-base-content/52 dark:text-white/52">Seed</div>
-                  <div className="text-sm font-semibold leading-none text-base-content dark:text-white">{seedIsRandom ? "N/A" : seed}</div>
-                </div>
-                <div className="flex min-w-0 flex-col gap-0.5 overflow-hidden">
-                  <div className="truncate text-xs font-medium leading-none text-base-content/52 dark:text-white/52">Sampler</div>
-                  <div className="truncate text-sm font-semibold leading-none text-base-content dark:text-white">{SAMPLER_LABELS[sampler] || sampler}</div>
-                </div>
-                <div className="flex items-center justify-end">
-                  <CaretUpIcon className="size-4" weight="bold" />
-                </div>
-              </button>
-            )
-          : null}
-
-        <div
-          className={`absolute inset-x-4 bottom-0 z-20 origin-bottom overflow-hidden rounded-t-2xl border border-[#D6DCE3] bg-[#F3F5F7] text-base-content shadow-[0_-16px_36px_rgba(15,23,42,0.18)] transition-all duration-300 ease-out dark:border-[#2A3138] dark:bg-[#161A1F] dark:text-white dark:shadow-[0_-20px_36px_rgba(0,0,0,0.35)] ${
-            isProBottomSettingsOpen
-              ? "pointer-events-auto translate-y-0 scale-100 opacity-100"
-              : "pointer-events-none translate-y-6 scale-[0.98] opacity-0"
-          }`}
-        >
-          <div className="overflow-visible pb-4 pl-4 pr-0 pt-4">
-            <div className="mb-4 flex items-center justify-between gap-3 pr-4">
-              <div className="text-sm font-semibold text-base-content/92 dark:text-white/92">AI Settings</div>
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  className="inline-flex size-8 items-center justify-center rounded-md text-base-content/72 transition hover:bg-black/5 hover:text-base-content focus:outline-none dark:text-white/72 dark:hover:bg-white/8 dark:hover:text-white"
-                  aria-label="重置绘图设置"
-                  title="重置绘图设置"
-                  onClick={handleResetCurrentImageSettings}
-                >
-                  <ArrowCounterClockwise className="size-4" weight="bold" />
-                </button>
-                <button
-                  type="button"
-                  className="inline-flex size-8 items-center justify-center rounded-md text-base-content/72 transition hover:bg-black/5 hover:text-base-content focus:outline-none dark:text-white/72 dark:hover:bg-white/8 dark:hover:text-white"
-                  aria-label="收起 AI 设置"
-                  onClick={() => setIsProBottomSettingsOpen(false)}
-                >
-                  <CaretDownIcon className="size-4" weight="bold" />
-                </button>
-              </div>
-            </div>
-
-            <div className="space-y-4">
-              <div>
-                <div className="mb-2 flex items-center justify-between pr-4">
-                  <span className="text-sm font-semibold text-base-content dark:text-white">{`Steps: ${steps}`}</span>
-                </div>
-                <div className="pr-4">
-                  <input
-                    className="range range-xs w-full"
-                    type="range"
-                    min="1"
-                    max="50"
-                    step="1"
-                    value={steps}
-                    onChange={e => setSteps(clampIntRange(Number(e.target.value), 1, 50, 50))}
-                  />
-                </div>
-              </div>
-
-              <div>
-                <div className="mb-2 flex items-center justify-between gap-3 pr-4">
-                  <span className="text-sm font-semibold text-base-content dark:text-white">{`Prompt Guidance: ${scale}`}</span>
-                  <button
-                    type="button"
-                    className={`inline-flex h-7 items-center rounded-md border px-2.5 text-xs font-semibold transition focus:outline-none ${
-                      qualityToggle
-                        ? "border-transparent bg-primary/10 text-primary"
-                        : "border-transparent bg-[#F3F5F7] text-base-content/72 hover:text-primary dark:bg-[#161A1F] dark:text-white/72 dark:hover:text-primary"
-                    }`}
-                    aria-pressed={qualityToggle}
-                    onClick={() => setQualityToggle(!qualityToggle)}
-                  >
-                    Variety+
-                  </button>
-                </div>
-                <div className="pr-4">
-                  <input
-                    className="range range-xs w-full"
-                    type="range"
-                    min="0"
-                    max="10"
-                    step="0.1"
-                    value={scale}
-                    onChange={e => setScale(clampRange(Number(e.target.value), 0, 10, 5))}
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4 pr-4">
-                <div className="flex flex-col gap-2">
-                  <div className="text-sm font-semibold text-base-content dark:text-white">Seed</div>
-                  <input
-                    className={`${subtleInputClassName} border-[#D6DCE3] bg-[#F3F5F7] text-base-content placeholder:text-base-content/28 [-moz-appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none dark:border-[#2A3138] dark:bg-[#161A1F] dark:text-white dark:placeholder:text-white/28`}
-                    type="number"
-                    value={seedIsRandom ? "" : seed}
-                    placeholder="Enter a seed"
-                    onChange={(e) => {
-                      const value = e.target.value.trim();
-                      setSeed(value ? Number(value) : -1);
-                    }}
-                  />
-                </div>
-                <div className="flex flex-col gap-2">
-                  <div className="text-sm font-semibold text-base-content dark:text-white">Sampler</div>
-                  <select className={`${subtleSelectClassName} border-[#D6DCE3] bg-[#F3F5F7] text-base-content dark:border-[#2A3138] dark:bg-[#161A1F] dark:text-white`} value={sampler} onChange={e => setSampler(e.target.value)}>
-                    {samplerOptions.map(s => <option key={s} value={s}>{SAMPLER_LABELS[s] || s}</option>)}
-                  </select>
-                </div>
-              </div>
-
-              <details className="collapse collapse-arrow border-0 bg-transparent" open>
-                <summary className="collapse-title min-h-0 px-0 py-0 pr-12 text-sm font-semibold text-base-content dark:text-white">
-                  Advanced Settings
-                </summary>
-                <div className="collapse-content space-y-4 px-0 pb-0 pr-4 pt-4">
-                  {isNAI4
-                    ? (
-                        <div className="flex flex-col gap-2">
-                          <span className="text-sm font-semibold text-base-content dark:text-white">{`Prompt Guidance Rescale: ${cfgRescale}`}</span>
-                          <div className="pr-4">
-                            <input
-                              className="range range-xs w-full"
-                              type="range"
-                              min="0"
-                              max="1"
-                              step="0.01"
-                              value={cfgRescale}
-                              onChange={e => setCfgRescale(clampRange(Number(e.target.value), 0, 1, 0))}
-                            />
-                          </div>
-                        </div>
-                      )
-                    : null}
-
-                  {noiseScheduleOptions.length
-                    ? (
-                        <div className="flex flex-col gap-2">
-                          <span className="text-sm font-semibold text-base-content dark:text-white">Noise Schedule</span>
-                          <select className={`${subtleSelectClassName} border-[#D6DCE3] bg-[#F3F5F7] text-base-content dark:border-[#2A3138] dark:bg-[#161A1F] dark:text-white`} value={noiseSchedule} onChange={e => setNoiseSchedule(e.target.value)}>
-                            {noiseScheduleOptions.map(s => <option key={s} value={s}>{SCHEDULE_LABELS[s] || s}</option>)}
-                          </select>
-                        </div>
-                      )
-                    : null}
-
-                  {isNAI3
-                    ? (
-                        <>
-                          <label className="label cursor-pointer justify-start gap-3 px-0">
-                            <input type="checkbox" className="toggle toggle-sm" checked={smea} onChange={e => setSmea(e.target.checked)} />
-                            <span className="label-text text-base-content/78 dark:text-white/78">SMEA</span>
-                          </label>
-                          <label className="label cursor-pointer justify-start gap-3 px-0">
-                            <input type="checkbox" className="toggle toggle-sm" checked={smeaDyn} onChange={e => setSmeaDyn(e.target.checked)} />
-                            <span className="label-text text-base-content/78 dark:text-white/78">SMEA Dyn</span>
-                          </label>
-                        </>
-                      )
-                    : null}
-                </div>
-              </details>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
+    return renderProBottomSettingsDrawerContent({
+      uiMode,
+      isProBottomSettingsOpen,
+      steps,
+      scale,
+      seedIsRandom,
+      seed,
+      sampler,
+      samplerOptions,
+      subtleInputClassName,
+      subtleSelectClassName,
+      noiseScheduleOptions,
+      noiseSchedule,
+      isNAI4,
+      isNAI3,
+      cfgRescale,
+      qualityToggle,
+      smea,
+      smeaDyn,
+      onResetCurrentImageSettings: handleResetCurrentImageSettings,
+      onOpenDrawer: () => setIsProBottomSettingsOpen(true),
+      onCloseDrawer: () => setIsProBottomSettingsOpen(false),
+      setSteps,
+      setQualityToggle,
+      setScale,
+      setSeed,
+      setSampler,
+      setCfgRescale,
+      setNoiseSchedule,
+      setSmea,
+      setSmeaDyn,
+    });
   }
 
   return (
