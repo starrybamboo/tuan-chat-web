@@ -135,6 +135,10 @@ import {
   importSourceImageBytesAction,
 } from "@/components/aiImage/controller/importActions";
 import {
+  buildBaseImageInpaintStateAction,
+  saveInpaintMaskAction,
+} from "@/components/aiImage/controller/inpaintActions";
+import {
   applyHistorySettingsAction,
   applyImportedMetadataAction,
 } from "@/components/aiImage/controller/metadataHistoryActions";
@@ -1585,46 +1589,32 @@ export function useAiImagePageController() {
   }, [applySelectedPreviewAsBaseImage, currentInfillStrength, infillMaskDataUrl, proInfillNegativePrompt, proInfillPrompt, selectedPreviewHistoryRow, selectedPreviewResult, showErrorToast, simpleInfillNegativePrompt, simpleInfillPrompt, sourceImageDataUrl, uiMode]);
 
   const handleOpenBaseImageInpaint = useCallback(async () => {
-    if (!sourceImageDataUrl)
-      return;
-
-    const sourceImageBase64 = dataUrlToBase64(sourceImageDataUrl);
-    if (!sourceImageBase64) {
-      showErrorToast("当前 Base Img 读取失败，无法启动 Inpaint。");
-      return;
-    }
-
-    let sourceImageSize: { width: number; height: number } | null = null;
     try {
-      sourceImageSize = await readImageSize(sourceImageDataUrl);
+      const nextState = await buildBaseImageInpaintStateAction({
+        sourceImageDataUrl,
+        readImageSize,
+        history,
+        uiMode,
+        simpleInfillPrompt,
+        proInfillPrompt,
+        simpleInfillNegativePrompt,
+        proInfillNegativePrompt,
+        infillMaskDataUrl,
+        width,
+        height,
+        seed,
+        model,
+        currentInfillStrength,
+      });
+      if (!nextState)
+        return;
+      setError("");
+      setInpaintDialogSource(nextState);
     }
-    catch {
-      // 读取失败时回退到当前画布尺寸。
+    catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      showErrorToast(message);
     }
-
-    const matchedSourceHistoryRow = history.find(row =>
-      row.dataUrl === sourceImageDataUrl
-      || row.sourceDataUrl === sourceImageDataUrl,
-    ) || null;
-    const currentInfillPrompt = uiMode === "simple" ? simpleInfillPrompt : proInfillPrompt;
-    const currentInfillNegativePrompt = uiMode === "simple" ? simpleInfillNegativePrompt : proInfillNegativePrompt;
-    const sourcePrompt = String(matchedSourceHistoryRow?.prompt || "").trim();
-    const sourceNegativePrompt = String(matchedSourceHistoryRow?.negativePrompt || "").trim();
-
-    setError("");
-    setInpaintDialogSource({
-      dataUrl: sourceImageDataUrl,
-      imageBase64: sourceImageBase64,
-      maskDataUrl: infillMaskDataUrl,
-      width: sourceImageSize?.width ?? width,
-      height: sourceImageSize?.height ?? height,
-      seed,
-      model,
-      mode: uiMode,
-      prompt: sourcePrompt || currentInfillPrompt || DEFAULT_INPAINT_PROMPT,
-      negativePrompt: sourceNegativePrompt || currentInfillNegativePrompt || DEFAULT_INPAINT_NEGATIVE_PROMPT,
-      strength: currentInfillStrength,
-    });
   }, [height, history, currentInfillStrength, infillMaskDataUrl, model, proInfillNegativePrompt, proInfillPrompt, seed, showErrorToast, simpleInfillNegativePrompt, simpleInfillPrompt, sourceImageDataUrl, uiMode, width]);
 
   const handleCloseInpaintDialog = useCallback(() => {
@@ -1635,28 +1625,23 @@ export function useAiImagePageController() {
   }, [loading]);
 
   const handleSaveInpaintMask = useCallback((payload: InpaintSubmitPayload) => {
-    if (!inpaintDialogSource)
-      return;
-
-    const nextStrength = clampRange(Number(payload.strength), 0.01, 1, DEFAULT_INPAINT_STRENGTH);
-    if (inpaintDialogSource.mode === "simple") {
-      setSimpleInfillPrompt(String(payload.prompt || "").trim() || DEFAULT_INPAINT_PROMPT);
-      setSimpleInfillNegativePrompt(String(payload.negativePrompt || "").trim() || DEFAULT_INPAINT_NEGATIVE_PROMPT);
-      setSimpleEditorMode("tags");
-      setSimplePromptTab("prompt");
-      setSimpleInfillStrength(nextStrength);
-      setSimpleInfillMaskDataUrl(payload.maskDataUrl);
-    }
-    else {
-      setProInfillPrompt(String(payload.prompt || "").trim() || DEFAULT_INPAINT_PROMPT);
-      setProInfillNegativePrompt(String(payload.negativePrompt || "").trim() || DEFAULT_INPAINT_NEGATIVE_PROMPT);
-      setProInfillStrength(nextStrength);
-      setProInfillMaskDataUrl(payload.maskDataUrl);
-    }
-
-    setError("");
-    setModeForUi(inpaintDialogSource.mode, "infill");
-    setInpaintDialogSource(null);
+    saveInpaintMaskAction({
+      inpaintDialogSource,
+      payload,
+      setSimpleInfillPrompt,
+      setSimpleInfillNegativePrompt,
+      setSimpleEditorMode,
+      setSimplePromptTab,
+      setSimpleInfillStrength,
+      setSimpleInfillMaskDataUrl,
+      setProInfillPrompt,
+      setProInfillNegativePrompt,
+      setProInfillStrength,
+      setProInfillMaskDataUrl,
+      setError,
+      setModeForUi,
+      setInpaintDialogSource,
+    });
   }, [inpaintDialogSource, setModeForUi]);
 
   const handleReturnFromInfillSettings = useCallback(() => {
