@@ -54,13 +54,13 @@
 
 - 目标：按面板区块拆分 Sidebar
 - 验证：`corepack pnpm typecheck` 通过
-- Commit：本批次提交中，hash 将在下一次计划更新时回写
+- Commit：`6b857ae8` `refactor: 拆分 AI 生图 sidebar / split ai image sidebar`
 
 ### [√] 批次 7：拆分 `useAiImagePageController.ts`
 
 - 目标：将 controller 瘦身为装配层
 - 验证：`corepack pnpm typecheck` 通过
-- Commit：本批次提交中，hash 将在本轮提交后回写
+- Commit：`87c8cc6e` `refactor: 瘦身 AI 生图 controller / slim ai image controller`
 
 ## 执行日志
 
