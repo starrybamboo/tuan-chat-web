@@ -1472,140 +1472,106 @@ export function useAiImagePageController() {
     noise?: number;
     toolLabel?: string;
   }) => {
-    const effectiveMode = args?.mode ?? mode;
-    const infillPrompt = uiMode === "simple" ? simpleInfillPrompt : proInfillPrompt;
-    const infillNegativePrompt = uiMode === "simple" ? simpleInfillNegativePrompt : proInfillNegativePrompt;
-    const basePrompt = sanitizeNovelAiTagInput(String(args?.prompt ?? (effectiveMode === "infill"
-      ? infillPrompt || DEFAULT_INPAINT_PROMPT
-      : (uiMode === "simple" ? simplePrompt : prompt))));
-    const baseNegative = sanitizeNovelAiTagInput(String(args?.negativePrompt ?? (effectiveMode === "infill"
-      ? infillNegativePrompt || DEFAULT_INPAINT_NEGATIVE_PROMPT
-      : (uiMode === "simple" ? simpleNegativePrompt : negativePrompt))));
-    const mergeStyleTags = uiMode === "simple" && effectiveMode === "txt2img";
-    const effectiveImageCount = NOVELAI_FREE_FIXED_IMAGE_COUNT;
-    const effectivePrompt = mergeStyleTags ? mergeTagString(basePrompt, activeStyleTags).trim() : basePrompt;
-    const effectiveNegative = mergeStyleTags ? mergeTagString(baseNegative, activeStyleNegativeTags) : baseNegative;
-    const roundedRequestSize = getClosestValidImageSize(args?.width ?? width, args?.height ?? height);
-    const effectiveWidth = roundedRequestSize.width;
-    const effectiveHeight = roundedRequestSize.height;
-    const effectiveStrength = args?.strength ?? (effectiveMode === "infill" ? currentInfillStrength : currentImg2imgStrength);
-    const effectiveNoise = args?.noise ?? (effectiveMode === "infill" ? currentInfillNoise : currentImg2imgNoise);
-    const usesSourceImage = effectiveMode === "img2img" || effectiveMode === "infill";
-    const effectiveSourceImageBase64 = args?.sourceImageBase64 ?? (usesSourceImage ? sourceImageBase64 : undefined);
-    const effectiveSourceImageDataUrl = args?.sourceImageDataUrl ?? (usesSourceImage ? sourceImageDataUrl : undefined);
-    const effectiveSourceImageWidth = args?.sourceImageWidth ?? (usesSourceImage ? sourceImageSize?.width : undefined);
-    const effectiveSourceImageHeight = args?.sourceImageHeight ?? (usesSourceImage ? sourceImageSize?.height : undefined);
-    const effectiveMaskBase64 = args?.maskBase64 ?? (effectiveMode === "infill" ? resolveInfillMaskBase64ForUi(uiMode) : undefined);
-    const v4CharsPayload = isNAI4 && uiMode === "pro" ? v4Chars.map(({ id, gender, ...rest }) => rest) : undefined;
-    const v4UseCoordsPayload = uiMode === "pro" ? v4UseCoords : undefined;
-    const v4UseOrderPayload = uiMode === "pro" ? v4UseOrder : undefined;
-    const resolvedVibeTransferReferences = uiMode === "pro" && isNAI4
-      ? (normalizeReferenceStrengths ? normalizeReferenceStrengthRows(vibeTransferReferences) : vibeTransferReferences)
-      : [];
-    const vibeTransferPayload = uiMode === "pro" && isNAI4
-      ? resolvedVibeTransferReferences.map(({ id, dataUrl, name, lockInformationExtracted, ...rest }) => rest)
-      : undefined;
-    const preciseReferencePayload = uiMode === "pro" && isNAI4 && preciseReference
-      ? {
-          imageBase64: preciseReference.imageBase64,
-          strength: preciseReference.strength,
-          informationExtracted: preciseReference.informationExtracted,
-        }
-      : null;
+    const context = buildGenerateContext({
+      mode: args?.mode,
+      currentMode: mode,
+      uiMode,
+      simpleInfillPrompt,
+      proInfillPrompt,
+      simpleInfillNegativePrompt,
+      proInfillNegativePrompt,
+      prompt: args?.prompt,
+      negativePrompt: args?.negativePrompt,
+      simplePrompt,
+      promptText: prompt,
+      simpleNegativePrompt,
+      negativePromptText: negativePrompt,
+      activeStyleTags,
+      activeStyleNegativeTags,
+      width: args?.width ?? width,
+      height: args?.height ?? height,
+      strength: args?.strength ?? ((args?.mode ?? mode) === "infill" ? currentInfillStrength : currentImg2imgStrength),
+      noise: args?.noise ?? ((args?.mode ?? mode) === "infill" ? currentInfillNoise : currentImg2imgNoise),
+      sourceImageBase64: args?.sourceImageBase64 ?? sourceImageBase64,
+      sourceImageDataUrl: args?.sourceImageDataUrl ?? sourceImageDataUrl,
+      sourceImageWidth: args?.sourceImageWidth ?? sourceImageSize?.width,
+      sourceImageHeight: args?.sourceImageHeight ?? sourceImageSize?.height,
+      maskBase64: args?.maskBase64 ?? ((args?.mode ?? mode) === "infill" ? resolveInfillMaskBase64ForUi(uiMode) : undefined),
+      isNAI4,
+      v4Chars,
+      v4UseCoords,
+      v4UseOrder,
+      normalizeReferenceStrengths,
+      vibeTransferReferences,
+      preciseReference,
+    });
 
     setError("");
     setLoading(true);
     try {
-      if (effectiveMode === "txt2img" && !effectivePrompt)
-        throw new Error("prompt 为空：请先补充 tags");
-
-      const freeViolation = getNovelAiFreeGenerationViolation({
-        mode: effectiveMode,
-        width: effectiveWidth,
-        height: effectiveHeight,
-        imageCount: effectiveImageCount,
+      validateGenerateContext({
+        context,
         steps,
-        sourceImageBase64: effectiveSourceImageBase64,
-        sourceImageWidth: effectiveSourceImageWidth,
-        sourceImageHeight: effectiveSourceImageHeight,
-        maskBase64: effectiveMaskBase64,
-        vibeTransferReferenceCount: resolvedVibeTransferReferences.length,
-        hasPreciseReference: Boolean(preciseReferencePayload),
       });
-      if (freeViolation)
-        throw new Error(freeViolation);
 
-      const requestMaskBase64 = args?.maskBase64 ?? (effectiveMode === "infill"
-        ? await resolveSeparatedInfillMaskBase64ForUi(uiMode)
-        : undefined);
-      const requestMaskDataUrl = requestMaskBase64 ? base64DataUrl("image/png", base64ToBytes(requestMaskBase64)) : undefined;
-      const blendMaskDataUrl = effectiveMode === "infill"
-        ? await resolveBlendInfillMaskDataUrlForUi(uiMode)
-        : "";
-      const resolvedCompositeMaskDataUrl = blendMaskDataUrl || requestMaskDataUrl || "";
-      const focusedInpaint = effectiveMode === "infill"
-        && effectiveSourceImageDataUrl
-        && requestMaskDataUrl
-        ? await prepareFocusedInpaintPayload({
-            sourceDataUrl: effectiveSourceImageDataUrl,
-            maskDataUrl: requestMaskDataUrl,
-          })
-        : null;
-      const requestSourceImageBase64 = focusedInpaint?.sourceImageBase64 ?? effectiveSourceImageBase64;
-      const requestSourceImageWidth = focusedInpaint?.targetSize.width ?? effectiveSourceImageWidth;
-      const requestSourceImageHeight = focusedInpaint?.targetSize.height ?? effectiveSourceImageHeight;
-      const requestWidth = focusedInpaint?.targetSize.width ?? effectiveWidth;
-      const requestHeight = focusedInpaint?.targetSize.height ?? effectiveHeight;
-      const requestMaskPayloadBase64 = focusedInpaint?.maskBase64 ?? requestMaskBase64;
-      if (effectiveMode === "infill" && typeof window !== "undefined" && window.electronAPI?.saveAiImageDebugBundle) {
+      const focusedContext = await resolveFocusedGenerateContext({
+        context,
+        maskBase64: args?.maskBase64,
+        uiMode,
+        resolveSeparatedInfillMaskBase64ForUi,
+        resolveBlendInfillMaskDataUrlForUi,
+      });
+
+      if (context.effectiveMode === "infill" && typeof window !== "undefined" && window.electronAPI?.saveAiImageDebugBundle) {
         const requestBody = {
-          mode: effectiveMode,
+          mode: context.effectiveMode,
           model: resolveInpaintModel(model),
-          width: requestWidth,
-          height: requestHeight,
-          strength: effectiveStrength,
-          noise: effectiveNoise,
-          prompt: effectivePrompt,
-          negativePrompt: effectiveNegative,
+          width: focusedContext.requestWidth,
+          height: focusedContext.requestHeight,
+          strength: context.effectiveStrength,
+          noise: context.effectiveNoise,
+          prompt: context.effectivePrompt,
+          negativePrompt: context.effectiveNegative,
           sampler,
           noiseSchedule,
           cfgRescale,
           ucPreset,
           qualityToggle,
           dynamicThresholding,
-          sourceImageWidth: requestSourceImageWidth,
-          sourceImageHeight: requestSourceImageHeight,
-          focusedCropRect: focusedInpaint?.cropRect,
+          sourceImageWidth: focusedContext.requestSourceImageWidth,
+          sourceImageHeight: focusedContext.requestSourceImageHeight,
+          focusedCropRect: focusedContext.focusedInpaint?.cropRect,
         };
         void window.electronAPI.saveAiImageDebugBundle({
           category: "infill",
-          sourceDataUrl: effectiveSourceImageDataUrl,
-          uiMaskDataUrl: effectiveMode === "infill" ? (uiMode === "simple" ? simpleInfillMaskDataUrl : proInfillMaskDataUrl) : undefined,
-          requestMaskDataUrl: requestMaskDataUrl,
+          sourceDataUrl: context.effectiveSourceImageDataUrl,
+          uiMaskDataUrl: context.effectiveMode === "infill" ? (uiMode === "simple" ? simpleInfillMaskDataUrl : proInfillMaskDataUrl) : undefined,
+          requestMaskDataUrl: focusedContext.requestMaskDataUrl,
           requestBody,
         });
       }
+
       const seedInput = Number(seed);
       const seedValue = Number.isFinite(seedInput) && seedInput >= 0 ? Math.floor(seedInput) : undefined;
       const res = await generateNovelImageViaProxy({
-        mode: effectiveMode,
-        sourceImageBase64: requestSourceImageBase64,
-        sourceImageWidth: requestSourceImageWidth,
-        sourceImageHeight: requestSourceImageHeight,
-        maskBase64: requestMaskPayloadBase64,
-        strength: effectiveStrength,
-        noise: effectiveNoise,
-        prompt: effectivePrompt,
-        negativePrompt: effectiveNegative,
-        v4Chars: v4CharsPayload,
-        v4UseCoords: v4UseCoordsPayload,
-        v4UseOrder: v4UseOrderPayload,
-        vibeTransferReferences: vibeTransferPayload,
-        preciseReference: preciseReferencePayload,
+        mode: context.effectiveMode,
+        sourceImageBase64: focusedContext.requestSourceImageBase64,
+        sourceImageWidth: focusedContext.requestSourceImageWidth,
+        sourceImageHeight: focusedContext.requestSourceImageHeight,
+        maskBase64: focusedContext.requestMaskPayloadBase64,
+        strength: context.effectiveStrength,
+        noise: context.effectiveNoise,
+        prompt: context.effectivePrompt,
+        negativePrompt: context.effectiveNegative,
+        v4Chars: context.v4CharsPayload,
+        v4UseCoords: context.v4UseCoordsPayload,
+        v4UseOrder: context.v4UseOrderPayload,
+        vibeTransferReferences: context.vibeTransferPayload,
+        preciseReference: context.preciseReferencePayload,
         model,
-        width: requestWidth,
-        height: requestHeight,
-        imageCount: effectiveImageCount,
+        width: focusedContext.requestWidth,
+        height: focusedContext.requestHeight,
+        imageCount: context.effectiveImageCount,
         steps,
         scale,
         sampler,
@@ -1619,50 +1585,26 @@ export function useAiImagePageController() {
         seed: seedValue,
       });
 
-      const resolvedDataUrls = focusedInpaint && effectiveSourceImageDataUrl && resolvedCompositeMaskDataUrl
-        ? await Promise.all(res.dataUrls.map(async (dataUrl) => {
-            return await compositeFocusedInpaintResult({
-              sourceDataUrl: effectiveSourceImageDataUrl,
-              generatedCropDataUrl: dataUrl,
-              fullMaskDataUrl: resolvedCompositeMaskDataUrl,
-              cropRect: focusedInpaint.cropRect,
-            });
-          }))
-        : res.dataUrls;
-      const batchId = makeStableId();
-      const resultWidth = focusedInpaint ? (effectiveSourceImageWidth ?? effectiveWidth) : res.width;
-      const resultHeight = focusedInpaint ? (effectiveSourceImageHeight ?? effectiveHeight) : res.height;
-      const generatedItems = resolvedDataUrls.map((dataUrl, batchIndex) => {
-        return {
-          dataUrl,
-          seed: res.seed,
-          width: resultWidth,
-          height: resultHeight,
-          model: res.model,
-          batchId,
-          batchIndex,
-          batchSize: resolvedDataUrls.length,
-          toolLabel: args?.toolLabel,
-        } satisfies GeneratedImageItem;
+      const finalized = await finalizeGenerateResult({
+        context,
+        focusedContext,
+        response: res,
+        toolLabel: args?.toolLabel,
+        setResults,
+        setSelectedResultIndex,
+        setSelectedHistoryPreviewKey,
+        uiMode,
+        seedValue,
+        setSimpleSeed,
+        setProSeed,
       });
 
-      setResults(generatedItems);
-      setSelectedResultIndex(0);
-      setSelectedHistoryPreviewKey(null);
-      if (uiMode === "simple")
-        setSimpleSeed(seedValue == null ? DEFAULT_SIMPLE_IMAGE_SETTINGS.seed : res.seed);
-      else
-        setProSeed(seedValue == null ? DEFAULT_PRO_IMAGE_SETTINGS.seed : res.seed);
-      await addAiImageHistoryBatch(generatedItems.map(item => ({
-        createdAt: Date.now(),
-        mode: effectiveMode,
-        model: res.model,
-        seed: res.seed,
-        width: resultWidth,
-        height: resultHeight,
-        prompt: effectivePrompt,
-        negativePrompt: effectiveNegative,
-        imageCount: effectiveImageCount,
+      await addAiImageHistoryBatch(buildHistoryRowsFromGenerateResult({
+        generatedItems: finalized.generatedItems,
+        context,
+        response: res,
+        resultWidth: finalized.resultWidth,
+        resultHeight: finalized.resultHeight,
         steps,
         scale,
         sampler,
@@ -1673,33 +1615,16 @@ export function useAiImagePageController() {
         dynamicThresholding,
         smea,
         smeaDyn,
-        strength: effectiveStrength,
-        noise: effectiveNoise,
-        v4Chars: v4CharsPayload,
-        v4UseCoords: v4UseCoordsPayload ?? false,
-        v4UseOrder: v4UseOrderPayload ?? true,
-        referenceImages: resolvedVibeTransferReferences.map(({ imageBase64, id, lockInformationExtracted, ...ref }) => ref),
-        preciseReference: preciseReference
-          ? {
-              name: preciseReference.name,
-              dataUrl: preciseReference.dataUrl,
-              strength: preciseReference.strength,
-              informationExtracted: preciseReference.informationExtracted,
-            }
-          : null,
-        dataUrl: item.dataUrl,
+        preciseReference,
         toolLabel: args?.toolLabel,
-        sourceDataUrl: effectiveMode === "img2img" || effectiveMode === "infill" ? effectiveSourceImageDataUrl : undefined,
-        batchId,
-        batchIndex: item.batchIndex,
-        batchSize: item.batchSize,
-      })));
+        batchId: finalized.batchId,
+      }));
       await refreshHistory();
       return true;
     }
     catch (e) {
       const message = e instanceof Error ? e.message : String(e);
-      if (effectiveMode === "infill")
+      if (context.effectiveMode === "infill")
         setError(message);
       else
         showErrorToast(message);
@@ -1755,7 +1680,6 @@ export function useAiImagePageController() {
     resolveSeparatedInfillMaskBase64ForUi,
     resolveBlendInfillMaskDataUrlForUi,
   ]);
-
   const handleOpenInpaint = useCallback(() => {
     const preview = selectedPreviewResult;
     if (!preview)
