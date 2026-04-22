@@ -36,13 +36,13 @@
 
 - 目标：拆分确认弹窗、列表项、页脚操作和分区组件
 - 验证：`corepack pnpm typecheck` 通过
-- Commit：本批次提交中，hash 将在下一次计划更新时回写
+- Commit：`5e61b26a` `refactor: 拆分 AI 生图 history pane / split ai image history pane`
 
-### [ ] 批次 4：拆分 `AiImagePreviewPane.tsx`
+### [√] 批次 4：拆分 `AiImagePreviewPane.tsx`
 
 - 目标：拆分预览区、工具栏和 Director 相关组件
-- 验证：待执行
-- Commit：待执行
+- 验证：`corepack pnpm typecheck` 通过
+- Commit：本批次提交中，hash 将在下一次计划更新时回写
 
 ### [ ] 批次 5：拆分 `InpaintDialog.tsx`
 
@@ -70,3 +70,5 @@
 - 2026-04-22：批次 2 完成。`api.ts` 已拆分为 `api/` 子模块，`novelaiV45TokenMeter.ts` 已拆分为 `tokenMeter/` 子模块，旧入口保持兼容导出。
 - 2026-04-22：进入批次 3，准备拆分 `AiImageHistoryPane.tsx`。
 - 2026-04-22：批次 3 完成。`AiImageHistoryPane.tsx` 已拆分为 `history/` 子组件，主文件保留状态与装配逻辑。
+- 2026-04-22：进入批次 4，准备拆分 `AiImagePreviewPane.tsx`。
+- 2026-04-22：批次 4 完成。`AiImagePreviewPane.tsx` 已拆分为 `preview/` 子组件，主文件保留入口切换与装配逻辑。
