@@ -130,7 +130,10 @@ import {
   resolveFocusedGenerateContext,
   validateGenerateContext,
 } from "@/components/aiImage/controller/generateActions";
-import { importSourceImageBytesAction } from "@/components/aiImage/controller/importActions";
+import {
+  importSourceFileAction,
+  importSourceImageBytesAction,
+} from "@/components/aiImage/controller/importActions";
 import {
   applyHistorySettingsAction,
   applyImportedMetadataAction,
@@ -937,14 +940,10 @@ export function useAiImagePageController() {
     file: File,
     options?: { source?: ImageImportSource; imageCount?: number; target?: "img2img" },
   ) => {
-    const bytes = await readFileAsBytes(file);
-    await handleImportSourceImageBytes({
-      bytes,
-      mime: file.type || mimeFromFilename(file.name),
-      name: file.name,
-      source: options?.source,
-      imageCount: options?.imageCount,
-      target: options?.target,
+    await importSourceFileAction({
+      file,
+      options,
+      importSourceImageBytes: handleImportSourceImageBytes,
     });
   }, [handleImportSourceImageBytes]);
 
