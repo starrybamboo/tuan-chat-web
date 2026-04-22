@@ -11,6 +11,8 @@ import {
   base64DataUrl,
   bytesToBase64,
   createMetadataImportSelection,
+  mimeFromFilename,
+  readFileAsBytes,
 } from "@/components/aiImage/helpers";
 
 async function inspectImportedMetadata(args: {
@@ -108,4 +110,27 @@ export async function importSourceImageBytesAction(args: {
     nextMetadataImportSelection.characters = false;
 
   args.setMetadataImportSelection(nextMetadataImportSelection);
+}
+
+export async function importSourceFileAction(args: {
+  file: File;
+  options?: { source?: ImageImportSource; imageCount?: number; target?: "img2img" };
+  importSourceImageBytes: (args: {
+    bytes: Uint8Array;
+    mime: string;
+    name: string;
+    source?: ImageImportSource;
+    imageCount?: number;
+    target?: "img2img";
+  }) => Promise<void>;
+}) {
+  const bytes = await readFileAsBytes(args.file);
+  await args.importSourceImageBytes({
+    bytes,
+    mime: args.file.type || mimeFromFilename(args.file.name),
+    name: args.file.name,
+    source: args.options?.source,
+    imageCount: args.options?.imageCount,
+    target: args.options?.target,
+  });
 }
