@@ -123,6 +123,14 @@ import {
   buildWorkspaceProps,
 } from "@/components/aiImage/controller/buildViewModels";
 import {
+  buildGenerateContext,
+  buildHistoryRowsFromGenerateResult,
+  buildOpenInpaintState,
+  finalizeGenerateResult,
+  resolveFocusedGenerateContext,
+  validateGenerateContext,
+} from "@/components/aiImage/controller/generateActions";
+import {
   applyHistorySettingsAction,
   applyImportedMetadataAction,
 } from "@/components/aiImage/controller/metadataHistoryActions";
@@ -1759,33 +1767,24 @@ export function useAiImagePageController() {
 
     const sourceImageBase64 = dataUrlToBase64(preview.dataUrl);
     if (!sourceImageBase64) {
-      showErrorToast("当前预览图片读取失败，无法启动 Inpaint。");
+      showErrorToast("???????????????????????Inpaint??");
       return;
     }
 
-    const currentInfillPrompt = uiMode === "simple" ? simpleInfillPrompt : proInfillPrompt;
-    const currentInfillNegativePrompt = uiMode === "simple" ? simpleInfillNegativePrompt : proInfillNegativePrompt;
-    const sourcePrompt = String(selectedPreviewHistoryRow?.prompt || "").trim();
-    const sourceNegativePrompt = String(selectedPreviewHistoryRow?.negativePrompt || "").trim();
-
     setError("");
-    setInpaintDialogSource({
-      dataUrl: preview.dataUrl,
-      imageBase64: sourceImageBase64,
-      maskDataUrl: shouldSyncBaseImage ? "" : infillMaskDataUrl,
-      width: preview.width,
-      height: preview.height,
-      seed: preview.seed,
-      model: preview.model,
-      mode: uiMode,
-      prompt: shouldSyncBaseImage
-        ? sourcePrompt || currentInfillPrompt || DEFAULT_INPAINT_PROMPT
-        : currentInfillPrompt || sourcePrompt || DEFAULT_INPAINT_PROMPT,
-      negativePrompt: shouldSyncBaseImage
-        ? sourceNegativePrompt || currentInfillNegativePrompt || DEFAULT_INPAINT_NEGATIVE_PROMPT
-        : currentInfillNegativePrompt || sourceNegativePrompt || DEFAULT_INPAINT_NEGATIVE_PROMPT,
-      strength: currentInfillStrength,
-    });
+    setInpaintDialogSource(buildOpenInpaintState({
+      selectedPreviewResult: preview,
+      selectedPreviewHistoryRow,
+      shouldSyncBaseImage,
+      dataUrlToBase64,
+      infillMaskDataUrl,
+      uiMode,
+      simpleInfillPrompt,
+      proInfillPrompt,
+      simpleInfillNegativePrompt,
+      proInfillNegativePrompt,
+      currentInfillStrength,
+    }));
   }, [applySelectedPreviewAsBaseImage, currentInfillStrength, infillMaskDataUrl, proInfillNegativePrompt, proInfillPrompt, selectedPreviewHistoryRow, selectedPreviewResult, showErrorToast, simpleInfillNegativePrompt, simpleInfillPrompt, sourceImageDataUrl, uiMode]);
 
   const handleOpenBaseImageInpaint = useCallback(async () => {
