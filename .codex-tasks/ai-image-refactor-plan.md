@@ -80,3 +80,4 @@
 - 2026-04-22：批次 7 完成。`useAiImagePageController.ts` 已将末尾的 view-model 组装外提到 `controller/buildViewModels.ts`，主文件保留状态与行为实现。
 - 2026-04-22：第二轮减重。`useAiImagePageController.ts` 继续外提 `metadata/history` 相关长回调到 `controller/metadataHistoryActions.ts`，文件从 3188 行降到 3006 行，`corepack pnpm typecheck` 通过。
 - 2026-04-22：继续减重。`AiImageSidebar.tsx` 的 `simple/pro` 主体区已拆到 `sidebar/SimpleEditorContent.tsx` 与 `sidebar/ProEditorContent.tsx`，主文件当前降到 1177 行，`corepack pnpm typecheck` 通过。
+- 2026-04-22：继续减重。`InpaintDialog.tsx` 的中间画布 stage 已拆到 `inpaint/InpaintCanvasStage.tsx`，主文件当前降到 1028 行，`corepack pnpm typecheck` 通过。
