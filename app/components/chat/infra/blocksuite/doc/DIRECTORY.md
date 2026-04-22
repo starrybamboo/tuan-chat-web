@@ -176,6 +176,7 @@ frame 专题文档目录。
 ### [doc/](./)
 
 - [ARCHITECTURE-OVERVIEW.md](./ARCHITECTURE-OVERVIEW.md)：最新分层架构图与依赖图
+- [ARCHITECTURE-DIAGRAM.md](./ARCHITECTURE-DIAGRAM.md)：面向总览阅读的可视化 HTML 架构图
 - [BUSINESS.md](./BUSINESS.md)：Blocksuite 业务需求口径
 - [DIRECTORY.md](./DIRECTORY.md)：当前这份目录字典
 - [editor/README.md](./editor/README.md)：editor 专区总入口
