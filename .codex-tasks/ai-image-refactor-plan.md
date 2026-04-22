@@ -87,4 +87,5 @@
 - 2026-04-22：继续减重。导演工具链路已外提到 `controller/directorActions.ts`，当前主文件降到 2802 行，`corepack pnpm typecheck` 通过。
 - 2026-04-22：继续减重。`handleOpenBaseImageInpaint` 与 `handleSaveInpaintMask` 已外提到 `controller/inpaintActions.ts`，当前主文件降到 2787 行，`corepack pnpm typecheck` 通过。
 - 2026-04-22：继续减重。页面级拖拽/粘贴链路已外提到 `controller/dndActions.ts`，`corepack pnpm typecheck` 通过。
+- 2026-04-22：继续减重。预览交互动作已外提到 `controller/previewActions.ts`，controller 当前降到 2760 行，`corepack pnpm typecheck` 通过。
 - 2026-04-22：继续减重。`handlePickSourceImage` 也已并入 `controller/importActions.ts`，导入链路职责完成闭合，`corepack pnpm typecheck` 通过。

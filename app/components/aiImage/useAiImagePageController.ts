@@ -152,6 +152,15 @@ import {
   applyImportedMetadataAction,
 } from "@/components/aiImage/controller/metadataHistoryActions";
 import {
+  applyPinnedPreviewSeedAction,
+  applySelectedPreviewSeedAction,
+  clearPinnedPreviewAction,
+  downloadCurrentAction,
+  openPreviewImageAction,
+  selectPinnedPreviewAction,
+  togglePinnedPreviewAction,
+} from "@/components/aiImage/controller/previewActions";
+import {
   buildDirectorSourceItemAction,
   pickDirectorSourceHistoryImageAction,
   pickDirectorSourceImagesAction,
@@ -1796,42 +1805,33 @@ export function useAiImagePageController() {
 
 
   const handleClearPinnedPreview = useCallback(() => {
-    if (!pinnedPreviewKey)
-      return;
-    setPinnedPreviewKey(null);
-    showSuccessToast("已取消固定预览。");
+    clearPinnedPreviewAction({
+      pinnedPreviewKey,
+      setPinnedPreviewKey,
+      showSuccessToast,
+    });
   }, [pinnedPreviewKey, showSuccessToast]);
 
   const handleSelectPinnedPreview = useCallback(() => {
-    if (!pinnedPreviewKey)
-      return;
-
-    if (pinnedPreviewKey.startsWith("current:")) {
-      const currentKey = pinnedPreviewKey.slice("current:".length);
-      const currentResultIndex = results.findIndex(item => generatedItemKey(item) === currentKey);
-      if (currentResultIndex >= 0)
-        handleSelectCurrentResult(currentResultIndex);
-      return;
-    }
-
-    if (pinnedPreviewKey.startsWith("history:")) {
-      const historyKey = pinnedPreviewKey.slice("history:".length);
-      const historyRow = historyRowByKey.get(historyKey);
-      if (historyRow)
-        handlePreviewHistoryRow(historyRow);
-    }
+    selectPinnedPreviewAction({
+      pinnedPreviewKey,
+      results,
+      generatedItemKey,
+      handleSelectCurrentResult,
+      historyRowByKey,
+      handlePreviewHistoryRow,
+    });
   }, [handlePreviewHistoryRow, handleSelectCurrentResult, historyRowByKey, pinnedPreviewKey, results]);
 
   const handleApplyPinnedPreviewSeed = useCallback(() => {
-    if (!pinnedPreviewResult)
-      return;
-    if (uiMode === "simple")
-      setSimpleSeed(pinnedPreviewResult.seed);
-    else
-      setProSeed(pinnedPreviewResult.seed);
-    showSuccessToast("已把 pinned 预览 seed 回填到设置。");
+    applyPinnedPreviewSeedAction({
+      pinnedPreviewResult,
+      uiMode,
+      setSimpleSeed,
+      setProSeed,
+      showSuccessToast,
+    });
   }, [pinnedPreviewResult, showSuccessToast, uiMode]);
-
   const handleApplyHistorySettings = useCallback((row: AiImageHistoryRow, clickMode: Exclude<HistoryRowClickMode, "preview">) => {
     applyHistorySettingsAction({
       row,
@@ -1941,9 +1941,11 @@ export function useAiImagePageController() {
   }, [directorOutputPreview, directorSourcePreview, pinnedPreviewKey, refreshHistory, results, selectedHistoryPreviewKey]);
 
   const handleDownloadCurrent = useCallback(() => {
-    downloadGeneratedImage(selectedPreviewResult, "nai");
+    downloadCurrentAction({
+      selectedPreviewResult,
+      downloadGeneratedImage,
+    });
   }, [downloadGeneratedImage, selectedPreviewResult]);
-
   const handleDownloadAll = useCallback(() => {
     if (!history.length)
       return;
@@ -2255,29 +2257,31 @@ export function useAiImagePageController() {
   }, [uiMode]);
 
   const handleOpenPreviewImage = useCallback(() => {
-    if (!selectedPreviewResult)
-      return;
-    setIsPreviewImageModalOpen(true);
+    openPreviewImageAction({
+      selectedPreviewResult,
+      setIsPreviewImageModalOpen,
+    });
   }, [selectedPreviewResult]);
 
   const handleTogglePinnedPreview = useCallback(() => {
-    if (!selectedPreviewResult || !selectedPreviewIdentityKey)
-      return;
-    const nextPinnedKey = pinnedPreviewKey === selectedPreviewIdentityKey ? null : selectedPreviewIdentityKey;
-    setPinnedPreviewKey(nextPinnedKey);
-    showSuccessToast(nextPinnedKey ? "已固定当前预览。" : "已取消固定当前预览。");
+    togglePinnedPreviewAction({
+      selectedPreviewResult,
+      selectedPreviewIdentityKey,
+      pinnedPreviewKey,
+      setPinnedPreviewKey,
+      showSuccessToast,
+    });
   }, [pinnedPreviewKey, selectedPreviewIdentityKey, selectedPreviewResult, showSuccessToast]);
 
   const handleApplySelectedPreviewSeed = useCallback(() => {
-    if (!selectedPreviewResult)
-      return;
-    if (uiMode === "simple")
-      setSimpleSeed(selectedPreviewResult.seed);
-    else
-      setProSeed(selectedPreviewResult.seed);
-    showSuccessToast("已把当前预览 seed 回填到设置。");
+    applySelectedPreviewSeedAction({
+      selectedPreviewResult,
+      uiMode,
+      setSimpleSeed,
+      setProSeed,
+      showSuccessToast,
+    });
   }, [selectedPreviewResult, showSuccessToast, uiMode]);
-
   const handleCopySelectedPreviewImage = useCallback(async () => {
     await copyGeneratedImageToClipboard(selectedPreviewResult, "已复制当前图片。");
   }, [copyGeneratedImageToClipboard, selectedPreviewResult]);
