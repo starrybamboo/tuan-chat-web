@@ -27,10 +27,12 @@ import {
 import { HighlightEmphasisTextarea } from "@/components/aiImage/HighlightEmphasisTextarea";
 import { AiImageContextLimitMeter } from "@/components/aiImage/AiImageContextLimitMeter";
 import { NOVELAI_V45_CONTEXT_LIMIT, useNovelAiV45TokenSnapshot } from "@/components/aiImage/novelaiV45TokenMeter";
+import { ProEditorContent } from "@/components/aiImage/sidebar/ProEditorContent";
 import { ReferenceActionIcon } from "@/components/aiImage/ReferenceActionIcon";
 import { renderSimpleBaseImageSectionContent, renderProInfillSectionContent, renderSimpleInfillSectionContent } from "@/components/aiImage/sidebar/baseImageSections";
 import { renderProBottomSettingsDrawerContent } from "@/components/aiImage/sidebar/ProBottomSettingsDrawer";
 import { renderResolutionGlyph as renderResolutionGlyphContent } from "@/components/aiImage/sidebar/renderResolutionGlyph";
+import { SimpleEditorContent } from "@/components/aiImage/sidebar/SimpleEditorContent";
 import { ChevronDown } from "@/icons";
 import { ProFeatureSection } from "@/components/aiImage/ProFeatureSection";
 
@@ -825,828 +827,90 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
         <div className={`card-body p-4 ${uiMode === "simple" && isSimpleTagsEditor ? "gap-2" : "gap-3"}`}>
           {uiMode === "simple"
             ? (
-                <div className="flex items-center justify-between gap-2">
-                  <div className="font-medium">{isSimpleTagsEditor || isSimplePreviewingConverted ? "NovelAi Tags" : "提示词 Prompt"}</div>
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      className={floatingInputActionBaseClassName}
-                      disabled={isBusy}
-                      aria-label="添加画风"
-                      title="添加画风"
-                      onClick={() => setIsStylePickerOpen(true)}
-                    >
-                      添加画风
-                    </button>
-                    <button
-                      type="button"
-                      className={floatingInputActionBaseClassName}
-                      disabled={isBusy}
-                      aria-label="清空快速模式内容与画风"
-                      title="清空快速模式内容与画风"
-                      onClick={handleClearSimpleDraft}
-                    >
-                      清空
-                    </button>
-                  </div>
-                </div>
-              )
-            : null}
-
-          {uiMode === "simple"
-            ? (
-                <div className="flex flex-col gap-0">
-                  <div className={`grid transition-all duration-300 ease-out ${isSimpleTextEditor ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"}`}>
-                    <div className="min-h-0 overflow-hidden">
-                      <div className="flex w-full min-w-0 flex-col items-stretch">
-                        <div className={editorPanelClassName}>
-                          <div className="relative">
-                          <textarea
-                            className={simplePromptTextareaClassName}
-                            value={simpleText}
-                            onChange={(e) => {
-                              const next = e.target.value;
-                              setSimpleText(next);
-                              if (simpleConverted) {
-                                setSimpleConverted(null);
-                                setSimpleConvertedFromText("");
-                              }
-                              if (!isSimpleTextEditor) {
-                                setSimpleEditorMode("text");
-                                setSimplePromptTab("prompt");
-                              }
-                            }}
-                            placeholder=""
-                          />
-                          {hasSimpleTagsDraft
-                            ? (
-                                <button
-                                  type="button"
-                                  className={`${floatingInputActionClassName} top-auto bottom-3`}
-                                  onClick={handleReturnToSimpleTags}
-                                >
-                                  <ArrowCounterClockwise className="size-3.5" weight="bold" />
-                                  返回tags
-                                </button>
-                                )
-                            : null}
-                        </div>
-                          {renderSimpleBaseImageSection()}
-                        </div>
-                      </div>
-                  </div>
-                  </div>
-                  <div className={`grid transition-all duration-300 ease-out ${simpleConverted ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"}`}>
-                    <div className="min-h-0 overflow-hidden">
-                      <div className={`rounded-2xl border border-[#D6DCE3] bg-base-100 p-3 shadow-sm transition-all duration-300 ease-out dark:border-[#2A3138] dark:bg-[#1B2026] ${simpleConverted ? "translate-y-0 scale-100" : "translate-y-2 scale-[0.98]"}`}>
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="flex min-w-0 items-center gap-3">
-                            <div className="flex size-9 shrink-0 items-center justify-center rounded-xl border border-primary/20 bg-primary/10 text-primary">
-                              <SparkleIcon className="size-4" weight="fill" />
-                            </div>
-                            <div className="min-w-0">
-                              <div className="text-sm font-semibold text-base-content">候选 tags</div>
-                              <div className="text-xs text-base-content/55">待确认</div>
-                            </div>
-                          </div>
-                          <div className="rounded-full border border-primary/20 bg-primary/[0.08] px-2 py-1 text-[11px] font-medium text-primary">
-                            预览
-                          </div>
-                        </div>
-
-                        <div className="mt-3 flex items-center gap-2">
-                          <div className={segmentedControlClassName}>
-                            <button
-                              type="button"
-                              className={`${segmentedButtonBaseClassName} ${simplePromptTab === "prompt" ? "bg-base-100 text-base-content shadow-sm" : "bg-transparent text-base-content/60 hover:bg-base-100 hover:text-base-content"}`}
-                              onClick={() => setSimplePromptTab("prompt")}
-                            >
-                              Base Prompt
-                            </button>
-                            <button
-                              type="button"
-                              className={`${segmentedButtonBaseClassName} ${simplePromptTab === "negative" ? "bg-base-100 text-base-content shadow-sm" : "bg-transparent text-base-content/60 hover:bg-base-100 hover:text-base-content"}`}
-                              onClick={() => setSimplePromptTab("negative")}
-                            >
-                              Undesired Content
-                            </button>
-                          </div>
-                        </div>
-
-                        <textarea
-                          className={`${promptTextareaClassName} mt-3 min-h-28 overflow-hidden [field-sizing:content] text-sm`}
-                          value={simplePromptTab === "prompt" ? simpleConverted?.prompt ?? "" : simpleConverted?.negativePrompt ?? ""}
-                          readOnly
-                        />
-
-                        {renderSimpleBaseImageSection()}
-
-                        <div className="mt-3 flex flex-wrap justify-end gap-2">
-                          <button
-                            type="button"
-                            className="btn btn-ghost btn-sm"
-                            onClick={handleRejectSimpleConverted}
-                          >
-                            <XCircleIcon className="size-4" weight="fill" />
-                            拒绝
-                          </button>
-                          <button
-                            type="button"
-                            className="btn btn-primary btn-sm"
-                            onClick={handleAcceptSimpleConverted}
-                          >
-                            <CheckCircleIcon className="size-4" weight="fill" />
-                            接受
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className={`grid transition-all duration-300 ease-out ${isSimpleTagsEditor ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"}`}>
-                  <div className="min-h-0 overflow-hidden">
-                      <div className="flex flex-col gap-2">
-                        <div className={editorPanelClassName}>
-                          <div className="mb-3 flex items-center gap-2">
-                            <div className={segmentedControlClassName}>
-                              <button
-                                type="button"
-                                className={`${segmentedButtonBaseClassName} ${simplePromptTab === "prompt" ? "bg-base-100 text-base-content shadow-sm" : "bg-transparent text-base-content/60 hover:bg-base-100 hover:text-base-content"}`}
-                                onClick={() => setSimplePromptTab("prompt")}
-                              >
-                                Base Prompt
-                              </button>
-                              <button
-                                type="button"
-                                className={`${segmentedButtonBaseClassName} ${simplePromptTab === "negative" ? "bg-base-100 text-base-content shadow-sm" : "bg-transparent text-base-content/60 hover:bg-base-100 hover:text-base-content"}`}
-                                onClick={() => setSimplePromptTab("negative")}
-                              >
-                                Undesired Content
-                              </button>
-                            </div>
-                          </div>
-                          <div className="relative">
-                            <textarea
-                              className={`${promptTextareaClassName} overflow-hidden [field-sizing:content]`}
-                              value={simplePromptTab === "prompt" ? simplePrompt : simpleNegativePrompt}
-                              onChange={(e) => {
-                                if (simplePromptTab === "prompt")
-                                  setSimplePrompt(e.target.value);
-                                else
-                                  setSimpleNegativePrompt(e.target.value);
-                              }}
-                              onKeyDown={handleToggleLineCommentForSimpleTags}
-                            />
-                            {hasSimpleTagsDraft
-                              ? (
-                                  <button
-                                    type="button"
-                                    className={`${floatingInputActionClassName} top-auto bottom-3`}
-                                    onClick={handleReturnToSimpleText}
-                                  >
-                                    <ArrowCounterClockwise className="size-3.5" weight="bold" />
-                                    返回描述
-                                  </button>
-                                )
-                              : null}
-                          </div>
-                          {renderSimpleBaseImageSection()}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {selectedStylePresets.length
-                    ? (
-                        <div className="mt-3 flex flex-wrap gap-2">
-                          {selectedStylePresets.map((preset) => {
-                            return (
-                              <button
-                                key={preset.id}
-                                type="button"
-                                className="flex items-center gap-2 rounded-box border border-base-300 bg-base-100 pr-2 hover:border-primary"
-                                onClick={() => setIsStylePickerOpen(true)}
-                                title="点击继续添加画风"
-                              >
-                                <div className="w-10 aspect-square rounded-box bg-base-200 overflow-hidden flex items-center justify-center">
-                                  {preset.imageUrl
-                                    ? <img src={preset.imageUrl} alt={preset.title} className="w-full h-full object-cover" />
-                                    : <div className="text-xs opacity-60">{preset.title}</div>}
-                                </div>
-                                <div className="text-xs opacity-70 max-w-32 truncate">{preset.title}</div>
-                              </button>
-                            );
-                          })}
-                        </div>
-                      )
-                    : null}
-
-                </div>
+                <SimpleEditorContent
+                  sidebarProps={sidebarProps}
+                  local={{
+                    isSimpleTagsEditor,
+                    isSimplePreviewingConverted,
+                    isSimpleTextEditor,
+                    floatingInputActionBaseClassName,
+                    editorPanelClassName,
+                    segmentedControlClassName,
+                    segmentedButtonBaseClassName,
+                    floatingInputActionClassName,
+                    promptTextareaClassName,
+                    simplePromptTextareaClassName,
+                    renderSimpleBaseImageSection,
+                    handleToggleLineCommentForSimpleTags,
+                  }}
+                />
               )
             : (
-                <div className="flex flex-col gap-3">
-                  <div className={editorPanelClassName} ref={proPromptEditorPanelRef}>
-                    <div className="mb-3 flex items-start justify-between gap-3">
-                      <div className={segmentedControlClassName}>
-                        <button
-                          type="button"
-                          className={`${segmentedButtonBaseClassName} ${proPromptTab === "prompt" ? "bg-base-100 text-base-content shadow-sm" : "bg-transparent text-base-content/60 hover:bg-base-100 hover:text-base-content"}`}
-                          onClick={() => setProPromptTab("prompt")}
-                        >
-                          Base Prompt
-                        </button>
-                        <button
-                          type="button"
-                          className={`${segmentedButtonBaseClassName} ${proPromptTab === "negative" ? "bg-base-100 text-base-content shadow-sm" : "bg-transparent text-base-content/60 hover:bg-base-100 hover:text-base-content"}`}
-                          onClick={() => setProPromptTab("negative")}
-                        >
-                          Undesired Content
-                        </button>
-                      </div>
-                      <div className="shrink-0" ref={proPromptSettingsRef}>
-                        <button
-                          ref={proPromptSettingsButtonRef}
-                          type="button"
-                          className={`inline-flex size-9 items-center justify-center rounded-md border transition focus:outline-none focus:ring-2 focus:ring-primary/20 ${
-                            isProPromptSettingsOpen
-                              ? "border-primary/40 bg-[#F3F5F7] text-base-content shadow-sm dark:bg-[#161A1F]"
-                              : "border-[#D6DCE3] bg-[#F3F5F7] text-base-content/70 hover:border-primary/40 hover:text-base-content dark:border-[#2A3138] dark:bg-[#161A1F] dark:text-base-content/70 dark:hover:text-base-content"
-                          }`}
-                          aria-label="打开输入设置"
-                          aria-expanded={isProPromptSettingsOpen}
-                          aria-controls="ai-image-pro-prompt-settings"
-                          onClick={() => setIsProPromptSettingsOpen(prev => !prev)}
-                        >
-                          <GearSixIcon className={`size-4 transition-transform duration-200 ${isProPromptSettingsOpen ? "rotate-90" : ""}`} weight="fill" />
-                        </button>
-
-                        <div
-                          id="ai-image-pro-prompt-settings"
-                          className={`fixed z-40 w-80 origin-top-left rounded-2xl border border-[#D6DCE3] bg-[#F3F5F7] p-4 shadow-[0_18px_40px_rgba(15,23,42,0.18)] transition-all duration-200 ease-out dark:border-[#2A3138] dark:bg-[#161A1F] dark:shadow-[0_24px_48px_rgba(0,0,0,0.42)] ${
-                            isProPromptSettingsOpen
-                              ? "pointer-events-auto translate-x-0 scale-100 opacity-100"
-                              : "pointer-events-none -translate-x-2 scale-[0.98] opacity-0"
-                          }`}
-                          style={{
-                            top: `${proPromptSettingsPosition.top}px`,
-                            left: `${proPromptSettingsPosition.left}px`,
-                          }}
-                        >
-                          <div className="mb-4 flex items-center gap-2 border-b border-[#D6DCE3] pb-3 dark:border-[#2A3138]">
-                            <div className="rounded-md bg-base-100 px-2 py-1 text-xs font-medium text-base-content shadow-sm dark:bg-[#1B2026]">
-                              Settings
-                            </div>
-                          </div>
-
-                          <div className="space-y-5">
-                            <div className="flex items-center justify-between gap-3">
-                              <div className="text-sm font-semibold text-base-content">Add Quality tags</div>
-                              <input
-                                type="checkbox"
-                                className="toggle toggle-sm"
-                                checked={qualityToggle}
-                                onChange={e => setQualityToggle(e.target.checked)}
-                              />
-                            </div>
-
-                            <div className="flex items-center justify-between gap-3">
-                              <div className="text-sm font-semibold text-base-content">Highlight Emphasis</div>
-                              <input
-                                type="checkbox"
-                                className="toggle toggle-sm"
-                                checked={highlightEmphasisEnabled}
-                                onChange={e => setHighlightEmphasisEnabled(e.target.checked)}
-                              />
-                            </div>
-
-                            <div className="space-y-2">
-                              <div className="text-sm font-semibold text-base-content">Undesired Content Preset</div>
-                              <select
-                                className={`${subtleSelectClassName} w-full !rounded-none bg-base-100 dark:bg-[#1B2026]`}
-                                value={ucPreset}
-                                onChange={e => setUcPreset(clampIntRange(Number(e.target.value), 0, 2, 0))}
-                              >
-                                {UC_PRESET_OPTIONS.map(option => (
-                                  <option key={option.value} value={option.value}>
-                                    {option.label}
-                                  </option>
-                                ))}
-                              </select>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                    <HighlightEmphasisTextarea
-                      highlightEnabled={highlightEmphasisEnabled}
-                      surfaceClassName={highlightPromptSurfaceClassName}
-                      contentClassName={highlightPromptContentClassName}
-                      textareaRef={proPromptTextareaRef}
-                      value={proPromptTab === "prompt" ? prompt : negativePrompt}
-                      onChange={(e) => {
-                        if (proPromptTab === "prompt")
-                          setPrompt(e.target.value);
-                        else
-                          setNegativePrompt(e.target.value);
-                      }}
-                      onKeyDown={handleToggleLineCommentForProPrompt}
-                      spellCheck={false}
-                    />
-                    <div className="mt-3">
-                      <AiImageContextLimitMeter
-                        className="min-w-0"
-                        localUsed={activeBaseMeter.localUsed}
-                        totalUsed={activeBaseMeter.totalUsed}
-                        remaining={activeBaseMeter.remaining}
-                        overflow={activeBaseMeter.overflow}
-                        status={tokenSnapshot.status}
-                        footerLabel={proPromptFooterLabel}
-                        footerHint={proPromptFooterHint}
-                        rows={[
-                          {
-                            label: "当前输入",
-                            value: `${activeBaseMeter.localUsed}`,
-                          },
-                          {
-                            label: proPromptTab === "prompt" ? "已写 Prompt" : "已写 UC",
-                            value: `${activeBaseMeter.writtenTokens}`,
-                          },
-                          ...(activeBaseMeter.hiddenTokens > 0
-                            ? [{
-                                label: activeChannelSnapshot.hiddenLabel,
-                                value: `${activeBaseMeter.hiddenTokens}`,
-                              }]
-                            : []),
-                          {
-                            label: proPromptTab === "prompt" ? "Character Prompts" : "Character UCs",
-                            value: `${activeBaseMeter.characterTokens}`,
-                          },
-                          {
-                            label: "总计",
-                            value: `${activeBaseMeter.totalUsed}/${NOVELAI_V45_CONTEXT_LIMIT}`,
-                          },
-                        ]}
-                      />
-                    </div>
-                     {!sourceImageDataUrl
-                      ? (
-                          <div className="-mx-3 -mb-3 mt-3 flex items-center justify-between border-t border-[#2A3138] bg-[#161A1F] px-4 py-3">
-                            <div className="text-[15px] text-base-content/58">
-                              Add a Base Img (Optional)
-                            </div>
-                            <button
-                              type="button"
-                              className={featureUploadActionClassName}
-                              aria-label="上传 Base Img"
-                              title="上传 Base Img"
-                              onClick={handleOpenSourceImagePicker}
-                            >
-                              <FileArrowUpIcon className="size-5" weight="bold" />
-                            </button>
-                          </div>
-                        )
-                      : null}
-                    {mode === "infill" && sourceImageDataUrl
-                      ? renderProInfillSection()
-                      : null}
-                    {mode === "img2img" && sourceImageDataUrl
-                      ? (
-                          <div className="-mx-3 -mb-3 mt-3 overflow-hidden border-t border-[#2A3138] bg-[#161A1F]">
-                            <div className={baseImagePanelClassName}>
-                                <img
-                                  src={sourceImageDataUrl}
-                                  alt="Base Img"
-                                  className="absolute inset-0 h-full w-full object-cover opacity-28"
-                              />
-                              <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(11,13,27,0.66)_0%,rgba(11,13,27,0.74)_100%)]" />
-                              <div className={baseImageHeaderClassName}>
-                                <div className="min-w-0">
-                                  <div className="text-[15px] font-semibold leading-6 text-white">Image2Image</div>
-                                  <div className="mt-1 text-[13px] leading-5 text-white/72">Transform your image.</div>
-                                </div>
-                                <div className={baseImageControlGroupClassName}>
-                                  <div className="flex overflow-hidden rounded-md border border-[#2A3138] bg-[#161A1F]">
-                                    <button
-                                      type="button"
-                                      className="inline-flex size-11 items-center justify-center text-white/80 transition hover:bg-white/6 hover:text-white focus:outline-none"
-                                      aria-label="更换 Base Img"
-                                      title="更换 Base Img"
-                                      onClick={handleOpenSourceImagePicker}
-                                    >
-                                      <ArrowClockwise className="size-5" weight="bold" />
-                                    </button>
-                                    <span className="h-11 w-px bg-[#2A3138]" aria-hidden="true" />
-                                    <button
-                                      type="button"
-                                      className="inline-flex size-11 items-center justify-center text-white/80 transition hover:bg-white/6 hover:text-white focus:outline-none"
-                                      aria-label="移除 Base Img"
-                                      title="移除 Base Img"
-                                      onClick={handleClearSourceImage}
-                                    >
-                                      <TrashIcon className="size-5" weight="bold" />
-                                    </button>
-                                  </div>
-                                  <button
-                                    type="button"
-                                    className={baseImageToggleButtonClassName}
-                                    aria-label={isBaseImageToolsOpen ? "收起 Base Img 工具" : "展开 Base Img 工具"}
-                                    title={isBaseImageToolsOpen ? "收起 Base Img 工具" : "展开 Base Img 工具"}
-                                    onClick={() => setIsBaseImageToolsOpen(prev => !prev)}
-                                  >
-                                    <ChevronDown className={`size-5 shrink-0 transition-transform ${isBaseImageToolsOpen ? "rotate-180" : ""}`} />
-                                  </button>
-                                </div>
-                              </div>
-                              {isBaseImageToolsOpen
-                                ? (
-                                    <div className="relative z-10 mt-4 space-y-4">
-                                      <label className="block">
-                                        <div className="flex items-center justify-between text-[13px] font-semibold leading-5 text-white">
-                                          <span>Strength</span>
-                                          <span>{formatSliderValue(strength)}</span>
-                                        </div>
-                                        <input
-                                          type="range"
-                                          min={0.01}
-                                          max={1}
-                                          step={0.01}
-                                          value={strength}
-                                          className={baseImageRangeClassName}
-                                          onChange={event => setStrength(clampRange(Number(event.target.value), 0.01, 1, 0.7))}
-                                        />
-                                      </label>
-
-                                      <label className="block">
-                                        <div className="flex items-center justify-between text-[13px] font-semibold leading-5 text-white">
-                                          <span>Noise</span>
-                                          <span>{formatSliderValue(noise)}</span>
-                                        </div>
-                                        <input
-                                          type="range"
-                                          min={0}
-                                          max={0.99}
-                                          step={0.01}
-                                          value={noise}
-                                          className={baseImageRangeClassName}
-                                          onChange={event => setNoise(clampRange(Number(event.target.value), 0, 0.99, 0.2))}
-                                        />
-                                      </label>
-
-                                      <button
-                                        type="button"
-                                        className={baseImageActionButtonClassName}
-                                        disabled={isBusy}
-                                        onClick={() => void handleOpenBaseImageInpaint()}
-                                      >
-                                        <SelectionPlusIcon className="size-5" weight="bold" />
-                                        <span>Inpaint Image</span>
-                                      </button>
-                                    </div>
-                                  )
-                                : null}
-                            </div>
-                          </div>
-                        )
-                      : null}
-                  </div>
-
-                  <div>
-                    <div className="flex items-start justify-between gap-4 px-1 py-1">
-                      <div className="min-w-0">
-                        <div className="text-[15px] leading-6 text-base-content/86">Character Prompts</div>
-                        <div className="mt-1 text-[13px] leading-5 text-base-content/58">{characterPromptDescription}</div>
-                      </div>
-                      <div ref={characterAddMenuRef} className="relative shrink-0">
-                        <button
-                          type="button"
-                          className={`${characterAddTriggerClassName} ${isCharacterAddMenuOpen ? "invisible pointer-events-none" : ""}`}
-                          aria-haspopup="menu"
-                          aria-expanded={isCharacterAddMenuOpen}
-                          onClick={() => setIsCharacterAddMenuOpen(prev => !prev)}
-                          disabled={!isNAI4}
-                        >
-                          <PlusIcon className="size-5" weight="bold" />
-                          <span>Add Character</span>
-                        </button>
-                        {isCharacterAddMenuOpen
-                          ? (
-                              <div className={characterAddMenuPanelClassName} role="menu" aria-label="Add Character presets">
-                                <button
-                                  type="button"
-                                  className={characterAddMenuItemClassName}
-                                  role="menuitem"
-                                  onClick={() => {
-                                    setIsCharacterAddMenuOpen(false);
-                                    handleAddV4Char({ defaultPrompt: "girl,", gender: "female" });
-                                  }}
-                                >
-                                  <GenderFemaleIcon className="size-3.5 shrink-0 text-white/90" weight="regular" />
-                                  <span>Female</span>
-                                </button>
-                                <button
-                                  type="button"
-                                  className={characterAddMenuItemClassName}
-                                  role="menuitem"
-                                  onClick={() => {
-                                    setIsCharacterAddMenuOpen(false);
-                                    handleAddV4Char({ defaultPrompt: "boy,", gender: "male" });
-                                  }}
-                                >
-                                  <GenderMaleIcon className="size-3.5 shrink-0 text-white/90" weight="regular" />
-                                  <span>Male</span>
-                                </button>
-                                <button
-                                  type="button"
-                                  className={characterAddMenuItemClassName}
-                                  role="menuitem"
-                                  onClick={() => {
-                                    setIsCharacterAddMenuOpen(false);
-                                    handleAddV4Char({ gender: "other" });
-                                  }}
-                                >
-                                  <CircleIcon className="size-3.5 shrink-0 text-white/85" weight="regular" />
-                                  <span>Other</span>
-                                </button>
-                              </div>
-                            )
-                          : null}
-                      </div>
-                    </div>
-                    {proFeatureSections.characterPrompts
-                      ? (isNAI4
-                          ? (
-                              <div className="mt-4 space-y-3">
-                                {v4Chars.map((row, idx) => {
-                                  const disabledUp = idx === 0 || !v4UseOrder;
-                                  const disabledDown = idx === v4Chars.length - 1 || !v4UseOrder;
-                                  const activeTab = charPromptTabs[row.id] || "prompt";
-                                  const activeCharChannelSnapshot = activeTab === "prompt" ? tokenSnapshot.prompt : tokenSnapshot.negative;
-                                  const activeCharMeter = activeCharChannelSnapshot.characters[row.id];
-                                  const rowGender = row.gender || "other";
-                                  const RowGenderIcon = rowGender === "female"
-                                    ? GenderFemaleIcon
-                                    : rowGender === "male"
-                                      ? GenderMaleIcon
-                                      : CircleIcon;
-                                  const currentPositionCode = getV4CharGridCellByCenter(row.centerX, row.centerY).code;
-                                  const isCharacterPositionPickerOpen = characterPositionPickerState?.characterId === row.id;
-                                  const selectedPositionCode = isCharacterPositionPickerOpen ? characterPositionPickerState.code : currentPositionCode;
-                                  return (
-                                    <div key={row.id} className={characterCardClassName}>
-                                      <div className={isCharacterPositionPickerOpen ? "invisible pointer-events-none select-none" : ""}>
-                                        <div className="mb-3 flex items-center gap-2">
-                                          <div className="flex min-w-0 items-center gap-1.5 text-white/92">
-                                            <RowGenderIcon className={characterCardTitleIconClassName} weight="regular" />
-                                            <div className="truncate text-[14px] font-medium leading-6">{`Character ${idx + 1}`}</div>
-                                          </div>
-                                          <div className="ml-auto flex items-center gap-0.5">
-                                            <button
-                                              type="button"
-                                              className={characterCardHeaderActionClassName}
-                                              onClick={() => handleMoveV4Char(row.id, -1)}
-                                              disabled={disabledUp}
-                                              aria-label="上移角色"
-                                              title="上移角色"
-                                            >
-                                              <CaretUpIcon className="size-4" weight="bold" />
-                                            </button>
-                                            <button
-                                              type="button"
-                                              className={characterCardHeaderActionClassName}
-                                              onClick={() => handleMoveV4Char(row.id, 1)}
-                                              disabled={disabledDown}
-                                              aria-label="下移角色"
-                                              title="下移角色"
-                                            >
-                                              <CaretDownIcon className="size-4" weight="bold" />
-                                            </button>
-                                            <button
-                                              type="button"
-                                              className={characterCardHeaderActionClassName}
-                                              onClick={() => handleRemoveV4Char(row.id)}
-                                              aria-label="删除角色"
-                                              title="删除角色"
-                                            >
-                                              <TrashIcon className="size-4" weight="bold" />
-                                            </button>
-                                          </div>
-                                        </div>
-                                        <div className="space-y-3">
-                                          <div className={segmentedControlClassName}>
-                                            <button
-                                              type="button"
-                                              className={`${segmentedButtonBaseClassName} ${activeTab === "prompt" ? "bg-white/10 text-white shadow-none" : "bg-transparent text-white/55 hover:bg-white/6 hover:text-white"}`}
-                                              onClick={() => setCharPromptTabs(prev => ({ ...prev, [row.id]: "prompt" }))}
-                                            >
-                                              Prompt
-                                            </button>
-                                            <button
-                                              type="button"
-                                              className={`${segmentedButtonBaseClassName} ${activeTab === "negative" ? "bg-white/10 text-white shadow-none" : "bg-transparent text-white/55 hover:bg-white/6 hover:text-white"}`}
-                                              onClick={() => setCharPromptTabs(prev => ({ ...prev, [row.id]: "negative" }))}
-                                            >
-                                              Undesired Content
-                                            </button>
-                                          </div>
-                                          <HighlightEmphasisTextarea
-                                            highlightEnabled={highlightEmphasisEnabled}
-                                            surfaceClassName={highlightCharSurfaceClassName}
-                                            contentClassName={highlightCharContentClassName}
-                                            value={activeTab === "prompt" ? row.prompt : row.negativePrompt}
-                                            onChange={(e) => {
-                                              if (activeTab === "prompt")
-                                                handleUpdateV4Char(row.id, { prompt: e.target.value });
-                                              else
-                                                handleUpdateV4Char(row.id, { negativePrompt: e.target.value });
-                                            }}
-                                            onKeyDown={event => handleToggleLineCommentForV4Char(event, row.id)}
-                                            placeholder=""
-                                            spellCheck={false}
-                                          />
-                                          <AiImageContextLimitMeter
-                                            localUsed={activeCharMeter?.localUsed ?? 0}
-                                            totalUsed={activeCharMeter?.totalUsed ?? 0}
-                                            remaining={activeCharMeter?.remaining ?? NOVELAI_V45_CONTEXT_LIMIT}
-                                            overflow={activeCharMeter?.overflow ?? 0}
-                                            status={tokenSnapshot.status}
-                                            rows={[
-                                              {
-                                                label: "当前角色",
-                                                value: `${activeCharMeter?.localUsed ?? 0}`,
-                                              },
-                                              {
-                                                label: "主输入",
-                                                value: `${activeCharMeter?.baseTokens ?? 0}`,
-                                              },
-                                              ...((activeCharMeter?.hiddenTokens ?? 0) > 0
-                                                ? [{
-                                                    label: activeCharChannelSnapshot.hiddenLabel,
-                                                    value: `${activeCharMeter?.hiddenTokens ?? 0}`,
-                                                  }]
-                                                : []),
-                                              {
-                                                label: "其他角色",
-                                                value: `${activeCharMeter?.otherCharacterTokens ?? 0}`,
-                                              },
-                                              {
-                                                label: "总计",
-                                                value: `${activeCharMeter?.totalUsed ?? 0}/${NOVELAI_V45_CONTEXT_LIMIT}`,
-                                              },
-                                            ]}
-                                          />
-                                          {showCharacterPositionsGlobalSection
-                                            ? (
-                                                <div className="relative space-y-3">
-                                                  <div className={`flex flex-wrap items-center gap-2 text-[12px] font-medium leading-5 text-white/90 ${isCharacterPositionAiChoiceEnabled || isCharacterPositionPickerOpen ? "invisible" : ""}`}>
-                                                    <span className="text-white/72">Position</span>
-                                                    {isCharacterPositionAiChoiceEnabled
-                                                      ? <span className="text-white/92">AI's Choice</span>
-                                                      : (
-                                                          <>
-                                                            <button
-                                                              type="button"
-                                                              className="inline-flex h-8 items-center rounded-md bg-white/10 px-3 text-[12px] font-semibold text-white transition hover:bg-white/14 focus:outline-none focus:ring-2 focus:ring-white/15"
-                                                              onClick={() => handleOpenCharacterPositionPicker(row.id, currentPositionCode)}
-                                                            >
-                                                              Adjust
-                                                            </button>
-                                                            <span className="text-[20px] font-semibold leading-none tracking-[0.08em] text-white/96">{selectedPositionCode}</span>
-                                                          </>
-                                                        )}
-                                                  </div>
-                                                </div>
-                                              )
-                                            : null}
-                                        </div>
-                                      </div>
-
-                                      {showCharacterPositionsGlobalSection && !isCharacterPositionAiChoiceEnabled && isCharacterPositionPickerOpen
-                                        ? (
-                                            <div className="absolute inset-0 z-20 flex flex-col rounded-2xl border border-[#2A3138] bg-[#161A1F] p-2.5 shadow-2xl">
-                                              <div className="flex items-center gap-1.5 text-[11px] font-medium leading-5 text-white/90">
-                                                <span className="text-white/72">Position</span>
-                                                <span className="text-[16px] font-semibold leading-none tracking-[0.08em] text-white/96">{selectedPositionCode}</span>
-                                              </div>
-                                              <div className="mt-2 grid grid-cols-5 gap-1 rounded-md border border-[#2A3138] bg-[#161A1F] p-1">
-                                                {V4_CHAR_GRID_CELLS.map((cell) => {
-                                                  const occupant = characterPositionAssignments.get(cell.code);
-                                                  const occupiedByOther = Boolean(occupant && occupant.characterId !== row.id);
-                                                  const isSelected = selectedPositionCode === cell.code;
-                                                  return (
-                                                    <button
-                                                      key={cell.code}
-                                                      type="button"
-                                                      className={`flex h-8 items-center justify-center rounded-md border text-[16px] font-semibold leading-none transition focus:outline-none ${
-                                                        occupiedByOther
-                                                          ? "cursor-not-allowed border-white/8 bg-transparent text-white/42"
-                                                          : isSelected
-                                                            ? "border-white/60 bg-white/18 text-white"
-                                                            : "border-white/8 bg-transparent text-white/72 hover:border-white/20 hover:bg-white/6"
-                                                      }`}
-                                                      disabled={occupiedByOther}
-                                                      aria-label={`选择位置 ${cell.code}`}
-                                                      title={cell.code}
-                                                      onClick={() => handleSelectCharacterPositionCode(cell.code)}
-                                                    >
-                                                      {occupant ? `${occupant.index + 1}` : ""}
-                                                    </button>
-                                                  );
-                                                })}
-                                              </div>
-                                              <div className="mt-2 flex justify-center">
-                                                <button
-                                                  type="button"
-                                                  className="inline-flex h-9 items-center rounded-md bg-white/10 px-4 text-[14px] font-semibold text-white transition hover:bg-white/14 focus:outline-none focus:ring-2 focus:ring-white/15"
-                                                  onClick={() => handleSaveCharacterPosition(row.id)}
-                                                >
-                                                  Done
-                                                </button>
-                                              </div>
-                                            </div>
-                                          )
-                                        : null}
-                                    </div>
-                                  );
-                                })}
-                                {showCharacterPositionsGlobalSection
-                                  ? (
-                                      <div className={characterPositionsSectionClassName}>
-                                        <div className="min-w-0 text-[15px] font-medium leading-6 text-white/92">
-                                          Character Positions (Global)
-                                        </div>
-                                        <button
-                                          type="button"
-                                          className={`${characterPositionsToggleBaseClassName} ${
-                                            isCharacterPositionAiChoiceEnabled
-                                              ? "border-[#F2E8A5] bg-[#F2E8A5] text-[#201C0F] hover:bg-[#E7DB87]"
-                                              : "border-[#2F3841] bg-[#1B2026] text-white/74 hover:border-primary/40 hover:text-white"
-                                          }`}
-                                          aria-pressed={isCharacterPositionAiChoiceEnabled}
-                                          onClick={handleToggleCharacterPositionAiChoice}
-                                        >
-                                          <span>AI's Choice</span>
-                                        </button>
-                                      </div>
-                                    )
-                                  : null}
-                              </div>
-                            )
-                          : <div className="mt-4 text-sm opacity-60">当前模型不支持 Character Prompts。</div>)
-                      : null}
-                  </div>
-
-                  <div className="flex flex-col gap-3">
-                    <div className="rounded-md border border-[#2A3138] bg-[#161A1F] shadow-none">
-                      <div className="flex items-center justify-between gap-4 px-4 py-4">
-                        <div className="flex min-w-0 items-center gap-3">
-                          <div className="flex size-8 shrink-0 items-center justify-center text-white/90" aria-hidden="true">
-                            <ReferenceActionIcon className="size-6 shrink-0" src={vibeTransferIconSrc} />
-                          </div>
-                          <div className="min-w-0">
-                            <div className="text-[15px] font-semibold leading-6 text-white">Vibe Transfer</div>
-                            <div className="mt-0.5 text-[13px] leading-5 text-white/58">{vibeTransferDescription}</div>
-                          </div>
-                        </div>
-                        <button
-                          type="button"
-                          className={`${featureUploadActionClassName} cursor-not-allowed opacity-45`}
-                          aria-label="上传 Vibe Transfer 参考图"
-                          title="上传 Vibe Transfer 参考图"
-                          disabled
-                        >
-                          <FileArrowUpIcon className="size-5" weight="bold" />
-                        </button>
-                      </div>
-                    </div>
-
-                    <div className="rounded-md border border-[#2A3138] bg-[#161A1F] shadow-none">
-                      <div className="flex items-center justify-between gap-4 px-4 py-4">
-                        <div className="flex min-w-0 items-center gap-3">
-                          <div className="flex size-8 shrink-0 items-center justify-center text-white/90" aria-hidden="true">
-                            <ReferenceActionIcon className="size-6 shrink-0" src={preciseReferenceIconSrc} />
-                          </div>
-                          <div className="min-w-0">
-                            <div className="text-[15px] font-semibold leading-6 text-white">Precise Reference</div>
-                            <div className="mt-0.5 text-[13px] leading-5 text-white/58">{preciseReferenceDescription}</div>
-                          </div>
-                        </div>
-                        <button
-                          type="button"
-                          className={`${featureUploadActionClassName} cursor-not-allowed opacity-45`}
-                          aria-label="上传 Precise Reference 参考图"
-                          title="上传 Precise Reference 参考图"
-                          disabled
-                        >
-                          <FileArrowUpIcon className="size-5" weight="bold" />
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+                <ProEditorContent
+                  sidebarProps={sidebarProps}
+                  local={{
+                    editorPanelClassName,
+                    segmentedControlClassName,
+                    segmentedButtonBaseClassName,
+                    highlightPromptSurfaceClassName,
+                    highlightPromptContentClassName,
+                    proPromptSettingsRef,
+                    proPromptSettingsButtonRef,
+                    isProPromptSettingsOpen,
+                    setIsProPromptSettingsOpen,
+                    proPromptSettingsPosition,
+                    subtleSelectClassName,
+                    highlightEmphasisEnabled,
+                    setHighlightEmphasisEnabled,
+                    proPromptTextareaRef,
+                    activeBaseMeter,
+                    activeChannelSnapshot,
+                    proPromptFooterLabel,
+                    proPromptFooterHint,
+                    featureUploadActionClassName,
+                    renderProInfillSection,
+                    baseImagePanelClassName,
+                    baseImageHeaderClassName,
+                    baseImageControlGroupClassName,
+                    baseImageToggleButtonClassName,
+                    baseImageRangeClassName,
+                    baseImageActionButtonClassName,
+                    strength,
+                    setStrength,
+                    noise,
+                    setNoise,
+                    characterAddMenuRef,
+                    isCharacterAddMenuOpen,
+                    setIsCharacterAddMenuOpen,
+                    characterAddTriggerClassName,
+                    characterAddMenuPanelClassName,
+                    characterAddMenuItemClassName,
+                    characterCardClassName,
+                    characterCardHeaderActionClassName,
+                    characterCardTitleIconClassName,
+                    handleToggleLineCommentForProPrompt,
+                    handleToggleLineCommentForV4Char,
+                    highlightCharSurfaceClassName,
+                    highlightCharContentClassName,
+                    showCharacterPositionsGlobalSection,
+                    isCharacterPositionAiChoiceEnabled,
+                    characterPositionPickerState,
+                    characterPositionAssignments,
+                    handleOpenCharacterPositionPicker,
+                    handleSelectCharacterPositionCode,
+                    handleSaveCharacterPosition,
+                    characterPositionsSectionClassName,
+                    characterPositionsToggleBaseClassName,
+                    handleToggleCharacterPositionAiChoice,
+                    tokenSnapshot,
+                    characterPromptDescription,
+                    isBaseImageToolsOpen,
+                    setIsBaseImageToolsOpen,
+                  }}
+                />
               )}
         </div>
       </div>
-
       <div className={sideCardClassName}>
         <div className="card-body gap-3 p-4">
           <div className="flex items-center gap-2">
