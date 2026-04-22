@@ -84,4 +84,5 @@
 - 2026-04-22：继续减重。`useAiImagePageController.ts` 已开始拆 `generate/inpaint` 辅助逻辑，新增 `controller/generateActions.ts`，并将 `handleOpenInpaint` 外提到 helper，`corepack pnpm typecheck` 通过。
 - 2026-04-22：继续减重。`useAiImagePageController.ts` 的 `runGenerate` 已切到 `controller/generateActions.ts` 上，主文件当前降到 2929 行，`corepack pnpm typecheck` 通过。
 - 2026-04-22：继续减重。`useAiImagePageController.ts` 的导入链路已开始外提到 `controller/importActions.ts`，当前主文件降到 2889 行，`corepack pnpm typecheck` 通过。
+- 2026-04-22：继续减重。导演工具链路已外提到 `controller/directorActions.ts`，当前主文件降到 2802 行，`corepack pnpm typecheck` 通过。
 - 2026-04-22：继续减重。`handlePickSourceImage` 也已并入 `controller/importActions.ts`，导入链路职责完成闭合，`corepack pnpm typecheck` 通过。

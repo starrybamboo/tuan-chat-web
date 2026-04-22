@@ -139,6 +139,12 @@ import {
   applyImportedMetadataAction,
 } from "@/components/aiImage/controller/metadataHistoryActions";
 import {
+  buildDirectorSourceItemAction,
+  pickDirectorSourceHistoryImageAction,
+  pickDirectorSourceImagesAction,
+  runDirectorToolAction,
+} from "@/components/aiImage/controller/directorActions";
+import {
   addAiImageHistoryBatch,
   clearAiImageHistory,
   deleteAiImageHistory,
@@ -948,66 +954,36 @@ export function useAiImagePageController() {
   }, [handleImportSourceImageBytes]);
 
   const buildDirectorSourceItem = useCallback(async (args: { dataUrl: string; name?: string }) => {
-    let imageSize: { width: number; height: number } = {
-      width: DEFAULT_PRO_IMAGE_SETTINGS.width,
-      height: DEFAULT_PRO_IMAGE_SETTINGS.height,
-    };
-    try {
-      const resolvedSize = await readImageSize(args.dataUrl);
-      imageSize = resolvedSize;
-    }
-    catch {
-      // 保持默认尺寸兜底。
-    }
-
-    return {
+    return await buildDirectorSourceItemAction({
       dataUrl: args.dataUrl,
-      seed: -1,
-      width: imageSize.width,
-      height: imageSize.height,
+      name: args.name,
       model,
-      batchId: makeStableId(),
-      batchIndex: 0,
-      batchSize: 1,
-      toolLabel: args.name,
-    } satisfies GeneratedImageItem;
+      readImageSize,
+    });
   }, [model]);
 
   const handlePickDirectorSourceImages = useCallback(async (files: FileList | File[]) => {
-    const fileList = Array.from(files).filter(file => file.type.startsWith("image/") || file.name);
-    if (!fileList.length) {
-      showErrorToast("请先导入图片文件。");
-      return;
-    }
-
-    const importedItems: GeneratedImageItem[] = [];
-    for (const file of fileList) {
-      const bytes = await readFileAsBytes(file);
-      const mime = file.type || mimeFromFilename(file.name);
-      const dataUrl = base64DataUrl(mime, bytes);
-      importedItems.push(await buildDirectorSourceItem({
-        dataUrl,
-        name: file.name,
-      }));
-    }
-
-    if (!importedItems.length)
-      return;
-
-    setDirectorSourceItems(prev => [...importedItems, ...prev]);
-    setDirectorSourcePreview(importedItems[0]);
-    setDirectorOutputPreview(null);
-  }, [buildDirectorSourceItem, showErrorToast]);
+    await pickDirectorSourceImagesAction({
+      files,
+      showErrorToast,
+      model,
+      readImageSize,
+      setDirectorSourceItems,
+      setDirectorSourcePreview,
+      setDirectorOutputPreview,
+    });
+  }, [model, showErrorToast]);
 
   const handlePickDirectorSourceHistoryImage = useCallback(async (payload: InternalHistoryImageDragPayload) => {
-    const item = await buildDirectorSourceItem({
-      dataUrl: payload.dataUrl,
-      name: payload.name,
+    await pickDirectorSourceHistoryImageAction({
+      payload,
+      model,
+      readImageSize,
+      setDirectorSourceItems,
+      setDirectorSourcePreview,
+      setDirectorOutputPreview,
     });
-    setDirectorSourceItems(prev => [item, ...prev]);
-    setDirectorSourcePreview(item);
-    setDirectorOutputPreview(null);
-  }, [buildDirectorSourceItem]);
+  }, [model]);
 
   const handlePickSourceHistoryImage = useCallback(async (
     payload: InternalHistoryImageDragPayload,
@@ -1311,93 +1287,31 @@ export function useAiImagePageController() {
   }, [selectedPreviewResult, showErrorToast]);
 
   const handleRunDirectorTool = useCallback(async () => {
-    if (!directorInputPreview || !directorTool)
-      return;
-
-    if (isDirectorToolDisabled(activeDirectorTool)) {
-      showErrorToast(`${directorTool.label} 已禁用。`);
-      return;
-    }
-
-    const imageBase64 = dataUrlToBase64(directorInputPreview.dataUrl);
-    if (!imageBase64) {
-      showErrorToast("导演工具输入图读取失败。");
-      return;
-    }
-
-    setError("");
-    setPendingPreviewAction(activeDirectorTool);
-    setDirectorOutputPreview(null);
-
-    try {
-      const response = await augmentNovelImageViaProxy({
-        requestType: directorTool.requestType,
-        imageBase64,
-        width: directorInputPreview.width,
-        height: directorInputPreview.height,
-        prompt: directorTool.parameterMode === "colorize"
-          ? directorColorizePrompt
-          : directorTool.parameterMode === "emotion"
-            ? directorEmotionExtraPrompt
-            : undefined,
-        defry: directorTool.parameterMode === "colorize"
-          ? directorColorizeDefry
-          : directorTool.parameterMode === "emotion"
-            ? directorEmotionDefry
-            : undefined,
-        emotion: directorTool.parameterMode === "emotion" ? directorEmotion : undefined,
-      });
-      const nextDataUrl = response.dataUrls[0];
-      if (!nextDataUrl)
-        throw new Error("Director Tools 没有返回图像。");
-
-      let nextSize = {
-        width: directorInputPreview.width,
-        height: directorInputPreview.height,
-      };
-      try {
-        nextSize = await readImageSize(nextDataUrl);
-      }
-      catch {
-        // 读取返回图尺寸失败时沿用输入图尺寸。
-      }
-
-      const nextOutput = {
-        dataUrl: nextDataUrl,
-        seed: -1,
-        width: nextSize.width,
-        height: nextSize.height,
-        model: directorInputPreview.model || model,
-        batchId: makeStableId(),
-        batchIndex: 0,
-        batchSize: 1,
-        toolLabel: directorTool.label,
-      } satisfies GeneratedImageItem;
-      const directorSourceHistoryRow = historyRowByResultMatchKey.get(generatedItemKey(directorInputPreview)) || null;
-
-      setDirectorOutputPreview(nextOutput);
-      setResults([nextOutput]);
-      setSelectedResultIndex(0);
-      setSelectedHistoryPreviewKey(null);
-      await addAiImageHistoryBatch([
-        buildDirectorToolHistoryRow({
-          output: nextOutput,
-          source: directorInputPreview,
-          toolLabel: directorTool.label,
-          sourceHistoryRow: directorSourceHistoryRow,
-        }),
-      ]);
-      await refreshHistory();
-      showSuccessToast(`${directorTool.label} 已完成。`);
-    }
-    catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      setError(message);
-      showErrorToast(message);
-    }
-    finally {
-      setPendingPreviewAction("");
-    }
+    await runDirectorToolAction({
+      directorInputPreview,
+      directorTool,
+      activeDirectorTool,
+      isDirectorToolDisabled,
+      showErrorToast,
+      setError,
+      setPendingPreviewAction,
+      setDirectorOutputPreview,
+      augmentNovelImageViaProxy,
+      directorColorizePrompt,
+      directorEmotionExtraPrompt,
+      directorColorizeDefry,
+      directorEmotionDefry,
+      directorEmotion,
+      readImageSize,
+      model,
+      historyRowByResultMatchKey,
+      setResults,
+      setSelectedResultIndex,
+      setSelectedHistoryPreviewKey,
+      addAiImageHistoryBatch,
+      refreshHistory,
+      showSuccessToast,
+    });
   }, [
     activeDirectorTool,
     directorColorizeDefry,
