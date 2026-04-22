@@ -56,11 +56,11 @@
 - 验证：`corepack pnpm typecheck` 通过
 - Commit：本批次提交中，hash 将在下一次计划更新时回写
 
-### [ ] 批次 7：拆分 `useAiImagePageController.ts`
+### [√] 批次 7：拆分 `useAiImagePageController.ts`
 
 - 目标：将 controller 瘦身为装配层
-- 验证：待执行
-- Commit：待执行
+- 验证：`corepack pnpm typecheck` 通过
+- Commit：本批次提交中，hash 将在本轮提交后回写
 
 ## 执行日志
 
@@ -76,3 +76,5 @@
 - 2026-04-22：批次 5 完成。`InpaintDialog.tsx` 已拆分出 `inpaintViewportUtils` 与工具面板/顶部操作栏/底部操作栏组件，主文件保留绘制与交互逻辑。
 - 2026-04-22：进入批次 6，准备拆分 `AiImageSidebar.tsx`。
 - 2026-04-22：批次 6 完成。`AiImageSidebar.tsx` 已拆出 `sidebar/baseImageSections`、`sidebar/ProBottomSettingsDrawer` 与 `sidebar/renderResolutionGlyph`，主文件保留状态与主体编辑流程。
+- 2026-04-22：进入批次 7，准备拆分 `useAiImagePageController.ts`。
+- 2026-04-22：批次 7 完成。`useAiImagePageController.ts` 已将末尾的 view-model 组装外提到 `controller/buildViewModels.ts`，主文件保留状态与行为实现。

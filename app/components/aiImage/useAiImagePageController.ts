@@ -115,6 +115,14 @@ import {
   writeLocalStorageString,
 } from "@/components/aiImage/helpers";
 import {
+  buildInpaintDialogProps,
+  buildMetadataImportDialogProps,
+  buildPreviewImageDialogProps,
+  buildSidebarProps,
+  buildStylePickerDialogProps,
+  buildWorkspaceProps,
+} from "@/components/aiImage/controller/buildViewModels";
+import {
   addAiImageHistoryBatch,
   clearAiImageHistory,
   deleteAiImageHistory,
@@ -2883,7 +2891,7 @@ export function useAiImagePageController() {
   const hasSimpleTagsDraft = Boolean(sanitizeNovelAiTagInput(simplePrompt) || sanitizeNovelAiTagInput(simpleNegativePrompt));
   const simpleConvertLabel = simpleConverting ? "转化中..." : loading || pendingPreviewAction ? "处理中..." : "转化为 tags";
 
-  const sidebarProps = {
+  const sidebarProps = buildSidebarProps({
     activeResolutionPreset,
     baseImageDescription,
     canAddVibeReference,
@@ -3030,9 +3038,9 @@ export function useAiImagePageController() {
     widthInput,
     heightInput,
     width,
-  };
+  });
 
-  const workspaceProps = {
+  const workspaceProps = buildWorkspaceProps({
     isDirectorToolsOpen,
     previewPaneProps: {
       isDirectorToolsOpen,
@@ -3108,9 +3116,9 @@ export function useAiImagePageController() {
     onClearPinnedPreview: handleClearPinnedPreview,
     onJumpToPinnedPreview: handleSelectPinnedPreview,
     onApplyPinnedPreviewSeed: handleApplyPinnedPreviewSeed,
-  };
+  });
 
-  const metadataImportDialogProps = {
+  const metadataImportDialogProps = buildMetadataImportDialogProps({
     pendingMetadataImport,
     canImportMetadataPrompt,
     canImportMetadataNegativePrompt,
@@ -3123,26 +3131,26 @@ export function useAiImagePageController() {
     onClose: handleCloseMetadataImportDialog,
     onImportSourceImageTarget: handleImportSourceImageTarget,
     onConfirmMetadataImport: handleConfirmMetadataImport,
-  };
+  });
 
-  const previewImageDialogProps = {
+  const previewImageDialogProps = buildPreviewImageDialogProps({
     isOpen: isPreviewImageModalOpen,
     selectedPreviewResult,
     selectedPreviewHistoryRow,
     onClose: () => setIsPreviewImageModalOpen(false),
     onDownloadCurrent: handleDownloadCurrent,
-  };
+  });
 
-  const inpaintDialogProps = {
+  const inpaintDialogProps = buildInpaintDialogProps({
     isOpen: Boolean(inpaintDialogSource),
     source: inpaintDialogSource,
     isSubmitting: loading,
     error,
     onClose: handleCloseInpaintDialog,
     onSubmit: handleSaveInpaintMask,
-  };
+  });
 
-  const stylePickerDialogProps = {
+  const stylePickerDialogProps = buildStylePickerDialogProps({
     isOpen: isStylePickerOpen,
     viewMode: styleSelectionMode,
     selectedStyleIds,
@@ -3154,7 +3162,7 @@ export function useAiImagePageController() {
     onViewModeChange: setStyleSelectionMode,
     onClearStyles: handleClearStyles,
     onClose: () => setIsStylePickerOpen(false),
-  };
+  });
 
   return {
     isPageImageDragOver,
