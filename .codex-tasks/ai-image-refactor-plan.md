@@ -13,6 +13,8 @@
 
 - 目标：按领域拆分纯函数与工具方法
 - 目标文件：
+  - `app/components/aiImage/utils/base.ts`
+  - `app/components/aiImage/utils/v4Character.ts`
   - `app/components/aiImage/utils/promptText.ts`
   - `app/components/aiImage/utils/imageData.ts`
   - `app/components/aiImage/utils/historyMapping.ts`
@@ -22,13 +24,13 @@
   - `app/components/aiImage/utils/storage.ts`
   - `app/components/aiImage/utils/metadataImport.ts`
 - 验证：`corepack pnpm typecheck` 通过；`corepack pnpm vitest run app/components/aiImage/helpers.test.ts` 通过
-- Commit：本批次提交中，hash 将在下一次计划更新时回写
+- Commit：`6d55a345` `refactor: 拆分 AI 生图 helpers / split ai image helpers`
 
-### [ ] 批次 2：拆分 `api.ts` 与 `novelaiV45TokenMeter.ts`
+### [√] 批次 2：拆分 `api.ts` 与 `novelaiV45TokenMeter.ts`
 
 - 目标：拆分请求构建、后端 URL、tokenizer 与 snapshot 逻辑
-- 验证：待执行
-- Commit：待执行
+- 验证：`corepack pnpm typecheck` 通过；`corepack pnpm vitest run app/components/aiImage/api.test.ts` 通过；`corepack pnpm vitest run app/components/aiImage/novelaiV45TokenMeter.test.ts` 通过
+- Commit：本批次提交中，hash 将在下一次计划更新时回写
 
 ### [ ] 批次 3：拆分 `AiImageHistoryPane.tsx`
 
@@ -64,3 +66,5 @@
 
 - 2026-04-22：计划创建，待开始批次 1。
 - 2026-04-22：批次 1 完成。`helpers.ts` 已拆分为 `utils/` 下多个领域文件，现有导出入口保持兼容。
+- 2026-04-22：进入批次 2，准备拆分 `api.ts` 与 `novelaiV45TokenMeter.ts`。
+- 2026-04-22：批次 2 完成。`api.ts` 已拆分为 `api/` 子模块，`novelaiV45TokenMeter.ts` 已拆分为 `tokenMeter/` 子模块，旧入口保持兼容导出。
