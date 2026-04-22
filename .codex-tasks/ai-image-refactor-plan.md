@@ -82,3 +82,4 @@
 - 2026-04-22：继续减重。`AiImageSidebar.tsx` 的 `simple/pro` 主体区已拆到 `sidebar/SimpleEditorContent.tsx` 与 `sidebar/ProEditorContent.tsx`，主文件当前降到 1177 行，`corepack pnpm typecheck` 通过。
 - 2026-04-22：继续减重。`InpaintDialog.tsx` 的中间画布 stage 已拆到 `inpaint/InpaintCanvasStage.tsx`，主文件当前降到 1028 行，`corepack pnpm typecheck` 通过。
 - 2026-04-22：继续减重。`useAiImagePageController.ts` 已开始拆 `generate/inpaint` 辅助逻辑，新增 `controller/generateActions.ts`，并将 `handleOpenInpaint` 外提到 helper，`corepack pnpm typecheck` 通过。
+- 2026-04-22：继续减重。`useAiImagePageController.ts` 的 `runGenerate` 已切到 `controller/generateActions.ts` 上，主文件当前降到 2929 行，`corepack pnpm typecheck` 通过。

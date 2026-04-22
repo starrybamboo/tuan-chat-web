@@ -257,8 +257,12 @@ export function buildOpenInpaintState(args: Record<string, any>) {
     seed: preview.seed,
     model: preview.model,
     mode: args.uiMode,
-    prompt: currentInfillPrompt || sourcePrompt || DEFAULT_INPAINT_PROMPT,
-    negativePrompt: currentInfillNegativePrompt || sourceNegativePrompt || DEFAULT_INPAINT_NEGATIVE_PROMPT,
+    prompt: args.shouldSyncBaseImage
+      ? sourcePrompt || currentInfillPrompt || DEFAULT_INPAINT_PROMPT
+      : currentInfillPrompt || sourcePrompt || DEFAULT_INPAINT_PROMPT,
+    negativePrompt: args.shouldSyncBaseImage
+      ? sourceNegativePrompt || currentInfillNegativePrompt || DEFAULT_INPAINT_NEGATIVE_PROMPT
+      : currentInfillNegativePrompt || sourceNegativePrompt || DEFAULT_INPAINT_NEGATIVE_PROMPT,
     strength: args.currentInfillStrength,
   };
 }
