@@ -78,3 +78,4 @@
 - 2026-04-22：批次 6 完成。`AiImageSidebar.tsx` 已拆出 `sidebar/baseImageSections`、`sidebar/ProBottomSettingsDrawer` 与 `sidebar/renderResolutionGlyph`，主文件保留状态与主体编辑流程。
 - 2026-04-22：进入批次 7，准备拆分 `useAiImagePageController.ts`。
 - 2026-04-22：批次 7 完成。`useAiImagePageController.ts` 已将末尾的 view-model 组装外提到 `controller/buildViewModels.ts`，主文件保留状态与行为实现。
+- 2026-04-22：第二轮减重。`useAiImagePageController.ts` 继续外提 `metadata/history` 相关长回调到 `controller/metadataHistoryActions.ts`，文件从 3188 行降到 3006 行，`corepack pnpm typecheck` 通过。

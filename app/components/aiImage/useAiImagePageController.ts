@@ -123,6 +123,10 @@ import {
   buildWorkspaceProps,
 } from "@/components/aiImage/controller/buildViewModels";
 import {
+  applyHistorySettingsAction,
+  applyImportedMetadataAction,
+} from "@/components/aiImage/controller/metadataHistoryActions";
+import {
   addAiImageHistoryBatch,
   clearAiImageHistory,
   deleteAiImageHistory,
@@ -820,174 +824,68 @@ export function useAiImagePageController() {
   }, []);
 
   const applyImportedMetadata = useCallback((metadata: NovelAiImageMetadataResult, selection: MetadataImportSelectionState) => {
-    setIsPageImageDragOver(false);
-    const shouldCleanImportedText = selection.cleanImports;
-    const settings = metadata.settings;
-
-    if (uiMode === "simple") {
-      const importedPrompt = selection.prompt && settings.prompt != null
-        ? (shouldCleanImportedText ? cleanImportedPromptText(settings.prompt) : settings.prompt)
-        : "";
-      const importedNegativePrompt = selection.undesiredContent && settings.negativePrompt != null
-        ? (shouldCleanImportedText ? cleanImportedPromptText(settings.negativePrompt) : settings.negativePrompt)
-        : "";
-
-      if (importedPrompt || importedNegativePrompt) {
-        setSimpleConverted({
-          prompt: importedPrompt,
-          negativePrompt: importedNegativePrompt,
-          raw: JSON.stringify(metadata.raw),
-        });
-        setSimpleConvertedFromText("");
-        setSimplePromptTab("prompt");
-      }
-
-      if (selection.seed && settings.seed != null)
-        setSimpleSeed(settings.seed);
-      else if (selection.seed && selection.cleanImports)
-        setSimpleSeed(DEFAULT_SIMPLE_IMAGE_SETTINGS.seed);
-
-      if (selection.settings) {
-        const cleanImports = selection.cleanImports;
-        const normalizedImportedSize = getClosestValidImageSize(
-          resolveImportedValue(settings.width, cleanImports, DEFAULT_SIMPLE_IMAGE_SETTINGS.width) ?? simpleWidth,
-          resolveImportedValue(settings.height, cleanImports, DEFAULT_SIMPLE_IMAGE_SETTINGS.height) ?? simpleHeight,
-        );
-        setSimpleWidth(normalizedImportedSize.width);
-        setSimpleHeight(normalizedImportedSize.height);
-        setSimpleResolutionSelection(inferResolutionSelection(normalizedImportedSize.width, normalizedImportedSize.height));
-
-        const importedStrength = resolveImportedValue(
-          settings.strength,
-          cleanImports,
-          settings.mode === "infill" ? DEFAULT_INPAINT_STRENGTH : DEFAULT_SIMPLE_IMAGE_SETTINGS.strength,
-        );
-        const importedNoise = resolveImportedValue(
-          settings.noise,
-          cleanImports,
-          settings.mode === "infill" ? DEFAULT_INPAINT_NOISE : DEFAULT_SIMPLE_IMAGE_SETTINGS.noise,
-        );
-        applyModeStrengthAndNoise("simple", settings.mode, importedStrength ?? undefined, importedNoise ?? undefined);
-      }
-
-      return;
-    }
-
-    setUiMode("pro");
-
-    if (selection.settings) {
-      clearSourceImageForUi("pro");
-      setVibeTransferReferences([]);
-      setPreciseReference(null);
-      setProFeatureSectionOpen("baseImage", false);
-      setProFeatureSectionOpen("vibeTransfer", false);
-      setProFeatureSectionOpen("preciseReference", false);
-    }
-
-    if (selection.prompt && settings.prompt != null)
-      setPrompt(shouldCleanImportedText ? cleanImportedPromptText(settings.prompt) : settings.prompt);
-    else if (selection.prompt && selection.cleanImports)
-      setPrompt("");
-
-    if (selection.undesiredContent && settings.negativePrompt != null)
-      setNegativePrompt(shouldCleanImportedText ? cleanImportedPromptText(settings.negativePrompt) : settings.negativePrompt);
-    else if (selection.undesiredContent && selection.cleanImports)
-      setNegativePrompt("");
-
-    if (selection.seed && settings.seed != null)
-      setProSeed(settings.seed);
-    else if (selection.seed && selection.cleanImports)
-      setProSeed(DEFAULT_PRO_IMAGE_SETTINGS.seed);
-    if (selection.settings) {
-      const cleanImports = selection.cleanImports;
-      const normalizedImportedSize = getClosestValidImageSize(
-        resolveImportedValue(settings.width, cleanImports, DEFAULT_PRO_IMAGE_SETTINGS.width) ?? proWidth,
-        resolveImportedValue(settings.height, cleanImports, DEFAULT_PRO_IMAGE_SETTINGS.height) ?? proHeight,
-      );
-      setProWidth(normalizedImportedSize.width);
-      setProHeight(normalizedImportedSize.height);
-      setProResolutionSelection(inferResolutionSelection(normalizedImportedSize.width, normalizedImportedSize.height));
-      setProImageCount(NOVELAI_FREE_FIXED_IMAGE_COUNT);
-      const importedSteps = resolveImportedValue(settings.steps, cleanImports, DEFAULT_PRO_IMAGE_SETTINGS.steps);
-      if (importedSteps != null)
-        setProSteps(clampIntRange(importedSteps, 1, NOVELAI_FREE_MAX_STEPS, DEFAULT_PRO_IMAGE_SETTINGS.steps));
-      const importedScale = resolveImportedValue(settings.scale, cleanImports, DEFAULT_PRO_IMAGE_SETTINGS.scale);
-      if (importedScale != null)
-        setProScale(clampRange(importedScale, 0, 20, DEFAULT_PRO_IMAGE_SETTINGS.scale));
-      const importedSampler = resolveImportedValue(settings.sampler, cleanImports, samplerOptions[0] || DEFAULT_PRO_IMAGE_SETTINGS.sampler);
-      if (importedSampler != null)
-        setProSampler(importedSampler);
-      const importedNoiseSchedule = resolveImportedValue(settings.noiseSchedule, cleanImports, noiseScheduleOptions[0] || DEFAULT_PRO_IMAGE_SETTINGS.noiseSchedule);
-      if (importedNoiseSchedule != null)
-        setProNoiseSchedule(importedNoiseSchedule);
-      const importedCfgRescale = resolveImportedValue(settings.cfgRescale, cleanImports, DEFAULT_PRO_IMAGE_SETTINGS.cfgRescale);
-      if (importedCfgRescale != null)
-        setProCfgRescale(clampRange(importedCfgRescale, 0, 1, DEFAULT_PRO_IMAGE_SETTINGS.cfgRescale));
-      const importedUcPreset = resolveImportedValue(settings.ucPreset, cleanImports, DEFAULT_PRO_IMAGE_SETTINGS.ucPreset);
-      if (importedUcPreset != null)
-        setProUcPreset(clampIntRange(importedUcPreset, 0, 2, DEFAULT_PRO_IMAGE_SETTINGS.ucPreset));
-      const importedQualityToggle = resolveImportedValue(settings.qualityToggle, cleanImports, DEFAULT_PRO_IMAGE_SETTINGS.qualityToggle);
-      if (importedQualityToggle != null)
-        setProQualityToggle(Boolean(importedQualityToggle));
-      const importedDynamicThresholding = resolveImportedValue(settings.dynamicThresholding, cleanImports, DEFAULT_PRO_IMAGE_SETTINGS.dynamicThresholding);
-      if (importedDynamicThresholding != null)
-        setProDynamicThresholding(Boolean(importedDynamicThresholding));
-      const importedSmea = resolveImportedValue(settings.smea, cleanImports, DEFAULT_PRO_IMAGE_SETTINGS.smea);
-      if (importedSmea != null)
-        setProSmea(Boolean(importedSmea));
-      const importedSmeaDyn = resolveImportedValue(settings.smeaDyn, cleanImports, DEFAULT_PRO_IMAGE_SETTINGS.smeaDyn);
-      if (importedSmeaDyn != null)
-        setProSmeaDyn(Boolean(importedSmeaDyn));
-      const importedStrength = resolveImportedValue(
-        settings.strength,
-        cleanImports,
-        settings.mode === "infill" ? DEFAULT_INPAINT_STRENGTH : DEFAULT_PRO_IMAGE_SETTINGS.strength,
-      );
-      const importedNoise = resolveImportedValue(
-        settings.noise,
-        cleanImports,
-        settings.mode === "infill" ? DEFAULT_INPAINT_NOISE : DEFAULT_PRO_IMAGE_SETTINGS.noise,
-      );
-      applyModeStrengthAndNoise("pro", settings.mode, importedStrength ?? undefined, importedNoise ?? undefined);
-      const importedV4UseCoords = resolveImportedValue(settings.v4UseCoords, cleanImports, false);
-      if (importedV4UseCoords != null)
-        setV4UseCoords(Boolean(importedV4UseCoords));
-      const importedV4UseOrder = resolveImportedValue(settings.v4UseOrder, cleanImports, true);
-      if (importedV4UseOrder != null)
-        setV4UseOrder(Boolean(importedV4UseOrder));
-
-      if (cleanImports || (settings.vibeTransferReferences?.length ?? 0) > 0) {
-        setVibeTransferReferences([]);
-      }
-
-      if (cleanImports || settings.preciseReference) {
-        setPreciseReference(null);
-      }
-    }
-
-    if (selection.characters) {
-      const importedChars = Array.isArray(settings.v4Chars)
-        ? settings.v4Chars.map(item => ({
-            id: makeStableId(),
-            prompt: shouldCleanImportedText ? cleanImportedPromptText(String(item.prompt || "")) : String(item.prompt || ""),
-            negativePrompt: shouldCleanImportedText ? cleanImportedPromptText(String(item.negativePrompt || "")) : String(item.negativePrompt || ""),
-            centerX: clamp01(item.centerX, 0.5),
-            centerY: clamp01(item.centerY, 0.5),
-          }))
-        : [];
-      const nextChars = importedChars.length
-        ? (selection.appendCharacters ? [...v4Chars, ...importedChars] : importedChars)
-        : (selection.cleanImports ? [] : v4Chars);
-      setV4Chars(nextChars);
-      setCharPromptTabs(
-        nextChars.reduce<Record<string, "prompt" | "negative">>((acc, item) => {
-          acc[item.id] = "prompt";
-          return acc;
-        }, {}),
-      );
-      setProFeatureSectionOpen("characterPrompts", nextChars.length > 0);
-    }
-  }, [applyModeStrengthAndNoise, clearSourceImageForUi, inferResolutionSelection, noiseScheduleOptions, proHeight, proWidth, samplerOptions, simpleHeight, simpleWidth, uiMode, v4Chars, setProFeatureSectionOpen]);
+    applyImportedMetadataAction({
+      metadata,
+      selection,
+      uiMode,
+      simpleWidth,
+      simpleHeight,
+      proWidth,
+      proHeight,
+      v4Chars,
+      samplerOptions,
+      noiseScheduleOptions,
+      setIsPageImageDragOver,
+      setSimpleConverted,
+      setSimpleConvertedFromText,
+      setSimplePromptTab,
+      setSimpleSeed,
+      setSimpleWidth,
+      setSimpleHeight,
+      setSimpleResolutionSelection,
+      setUiMode,
+      clearSourceImageForUi,
+      setVibeTransferReferences,
+      setPreciseReference,
+      setProFeatureSectionOpen,
+      setPrompt,
+      setNegativePrompt,
+      setProSeed,
+      setProWidth,
+      setProHeight,
+      setProResolutionSelection,
+      setProImageCount,
+      setProSteps,
+      setProScale,
+      setProSampler,
+      setProNoiseSchedule,
+      setProCfgRescale,
+      setProUcPreset,
+      setProQualityToggle,
+      setProDynamicThresholding,
+      setProSmea,
+      setProSmeaDyn,
+      applyModeStrengthAndNoise,
+      setV4UseCoords,
+      setV4UseOrder,
+      setV4Chars,
+      setCharPromptTabs,
+      inferResolutionSelection,
+    });
+  }, [
+    applyModeStrengthAndNoise,
+    clearSourceImageForUi,
+    inferResolutionSelection,
+    noiseScheduleOptions,
+    proHeight,
+    proWidth,
+    samplerOptions,
+    simpleHeight,
+    simpleWidth,
+    uiMode,
+    v4Chars,
+    setProFeatureSectionOpen,
+  ]);
 
   const refreshHistory = useCallback(async () => {
     const rows = await listAiImageHistory({ limit: 30 });
@@ -2185,144 +2083,64 @@ export function useAiImagePageController() {
   }, [pinnedPreviewResult, showSuccessToast, uiMode]);
 
   const handleApplyHistorySettings = useCallback((row: AiImageHistoryRow, clickMode: Exclude<HistoryRowClickMode, "preview">) => {
-    const importSettings = clickMode === "settings" || clickMode === "settings-with-seed";
-    const importSeed = clickMode === "seed" || clickMode === "settings-with-seed";
-    setSelectedHistoryPreviewKey(historyRowKey(row));
-
-    if (!importSettings) {
-      if (importSeed)
-        if (uiMode === "simple")
-          setSimpleSeed(row.seed);
-        else
-          setProSeed(row.seed);
-      if (importSeed)
-        showSuccessToast("已导入历史 seed，其他设置保持当前值。");
-      return;
-    }
-
-    const normalizedSize = getClosestValidImageSize(row.width, row.height);
-    const restoredSourceImage = restoreSourceImageForUi(uiMode, {
-      dataUrl: row.sourceDataUrl,
-      name: `history_${row.seed}.${extensionFromDataUrl(row.sourceDataUrl || row.dataUrl)}`,
-      width: row.width,
-      height: row.height,
+    applyHistorySettingsAction({
+      row,
+      clickMode,
+      uiMode,
+      samplerOptions,
+      noiseScheduleOptions,
+      setSelectedHistoryPreviewKey,
+      setSimpleSeed,
+      setProSeed,
+      showSuccessToast,
+      restoreSourceImageForUi,
+      setSimpleText,
+      setSimpleConverted,
+      setSimpleConvertedFromText,
+      setSimplePrompt,
+      setSimpleNegativePrompt,
+      setSimpleEditorMode,
+      setSimplePromptTab,
+      setSimpleWidth,
+      setSimpleHeight,
+      setSimpleResolutionSelection,
+      applyModeStrengthAndNoise,
+      clearSourceImageForUi,
+      setPrompt,
+      setNegativePrompt,
+      setV4UseCoords,
+      setV4UseOrder,
+      setV4Chars,
+      setCharPromptTabs,
+      setVibeTransferReferences,
+      setPreciseReference,
+      setProFeatureSections,
+      setProWidth,
+      setProHeight,
+      setProResolutionSelection,
+      setProImageCount,
+      setProSteps,
+      setProScale,
+      setProSampler,
+      setProNoiseSchedule,
+      setProCfgRescale,
+      setProUcPreset,
+      setProQualityToggle,
+      setProDynamicThresholding,
+      setProSmea,
+      setProSmeaDyn,
+      inferResolutionSelection,
     });
-
-    if (uiMode === "simple") {
-      setSimpleText("");
-      setSimpleConverted(null);
-      setSimpleConvertedFromText("");
-      setSimplePrompt(row.prompt);
-      setSimpleNegativePrompt(row.negativePrompt);
-      setSimpleEditorMode("tags");
-      setSimplePromptTab("prompt");
-      setSimpleWidth(normalizedSize.width);
-      setSimpleHeight(normalizedSize.height);
-      setSimpleResolutionSelection(inferResolutionSelection(normalizedSize.width, normalizedSize.height));
-      applyModeStrengthAndNoise(
-        "simple",
-        row.mode,
-        resolveImportedValue(row.strength, true, row.mode === "infill" ? DEFAULT_INPAINT_STRENGTH : DEFAULT_SIMPLE_IMAGE_SETTINGS.strength) ?? undefined,
-        resolveImportedValue(row.noise, true, row.mode === "infill" ? DEFAULT_INPAINT_NOISE : DEFAULT_SIMPLE_IMAGE_SETTINGS.noise) ?? undefined,
-      );
-      if (importSeed)
-        setSimpleSeed(row.seed);
-      showSuccessToast([
-        importSeed ? "已按快速模式回填轻量设置与 seed。" : "已按快速模式回填轻量设置。",
-        restoredSourceImage && row.mode === "infill" ? "Inpaint 历史已按 Base Img 恢复。" : "",
-        "高级项保持默认值。",
-      ].filter(Boolean).join(" "));
-      return;
-    }
-
-    const droppedPaidSettings = [
-      row.referenceImages?.length ? "Vibe Transfer" : "",
-      row.preciseReference ? "Precise Reference" : "",
-      (row.imageCount ?? row.batchSize ?? 1) > NOVELAI_FREE_FIXED_IMAGE_COUNT ? "多张生成" : "",
-      (row.steps ?? NOVELAI_FREE_MAX_STEPS) > NOVELAI_FREE_MAX_STEPS ? "高步数" : "",
-      getNovelAiImageArea(row.width, row.height) > NOVELAI_FREE_MAX_IMAGE_AREA ? "超尺寸" : "",
-    ].filter(Boolean);
-
-    if (!restoredSourceImage)
-      clearSourceImageForUi("pro");
-    setPrompt(row.prompt);
-    setNegativePrompt(row.negativePrompt);
-    setV4UseCoords(Boolean(row.v4UseCoords));
-    setV4UseOrder(row.v4UseOrder == null ? true : Boolean(row.v4UseOrder));
-    const restoredChars = Array.isArray(row.v4Chars)
-      ? row.v4Chars.map((item) => {
-          return {
-            id: makeStableId(),
-            prompt: String(item.prompt || ""),
-            negativePrompt: String(item.negativePrompt || ""),
-            centerX: clamp01(item.centerX, 0.5),
-            centerY: clamp01(item.centerY, 0.5),
-          };
-        })
-      : [];
-    setV4Chars(restoredChars);
-    setCharPromptTabs(
-      restoredChars.reduce<Record<string, "prompt" | "negative">>((acc, item) => {
-        acc[item.id] = "prompt";
-        return acc;
-      }, {}),
-    );
-    setVibeTransferReferences([]);
-    setPreciseReference(null);
-    setProFeatureSections(createProFeatureSectionState({
-      baseImage: restoredSourceImage,
-      characterPrompts: restoredChars.length > 0 ? true : DEFAULT_PRO_FEATURE_SECTION_OPEN.characterPrompts,
-      vibeTransfer: false,
-      preciseReference: false,
-    }));
-    if (importSeed)
-      setProSeed(row.seed);
-    setProWidth(normalizedSize.width);
-    setProHeight(normalizedSize.height);
-    setProResolutionSelection(inferResolutionSelection(normalizedSize.width, normalizedSize.height));
-    setProImageCount(NOVELAI_FREE_FIXED_IMAGE_COUNT);
-    setProSteps(clampIntRange(
-      resolveImportedValue(row.steps, true, DEFAULT_PRO_IMAGE_SETTINGS.steps) ?? DEFAULT_PRO_IMAGE_SETTINGS.steps,
-      1,
-      NOVELAI_FREE_MAX_STEPS,
-      DEFAULT_PRO_IMAGE_SETTINGS.steps,
-    ));
-    setProScale(clampRange(
-      resolveImportedValue(row.scale, true, DEFAULT_PRO_IMAGE_SETTINGS.scale) ?? DEFAULT_PRO_IMAGE_SETTINGS.scale,
-      0,
-      20,
-      DEFAULT_PRO_IMAGE_SETTINGS.scale,
-    ));
-    setProSampler(row.sampler || samplerOptions[0] || DEFAULT_PRO_IMAGE_SETTINGS.sampler);
-    setProNoiseSchedule(row.noiseSchedule || noiseScheduleOptions[0] || DEFAULT_PRO_IMAGE_SETTINGS.noiseSchedule);
-    setProCfgRescale(clampRange(
-      resolveImportedValue(row.cfgRescale, true, DEFAULT_PRO_IMAGE_SETTINGS.cfgRescale) ?? DEFAULT_PRO_IMAGE_SETTINGS.cfgRescale,
-      0,
-      1,
-      DEFAULT_PRO_IMAGE_SETTINGS.cfgRescale,
-    ));
-    setProUcPreset(clampIntRange(
-      resolveImportedValue(row.ucPreset, true, DEFAULT_PRO_IMAGE_SETTINGS.ucPreset) ?? DEFAULT_PRO_IMAGE_SETTINGS.ucPreset,
-      0,
-      2,
-      DEFAULT_PRO_IMAGE_SETTINGS.ucPreset,
-    ));
-    setProQualityToggle(resolveImportedValue(row.qualityToggle, true, DEFAULT_PRO_IMAGE_SETTINGS.qualityToggle) ?? DEFAULT_PRO_IMAGE_SETTINGS.qualityToggle);
-    setProDynamicThresholding(resolveImportedValue(row.dynamicThresholding, true, DEFAULT_PRO_IMAGE_SETTINGS.dynamicThresholding) ?? DEFAULT_PRO_IMAGE_SETTINGS.dynamicThresholding);
-    setProSmea(resolveImportedValue(row.smea, true, DEFAULT_PRO_IMAGE_SETTINGS.smea) ?? DEFAULT_PRO_IMAGE_SETTINGS.smea);
-    setProSmeaDyn(resolveImportedValue(row.smeaDyn, true, DEFAULT_PRO_IMAGE_SETTINGS.smeaDyn) ?? DEFAULT_PRO_IMAGE_SETTINGS.smeaDyn);
-    applyModeStrengthAndNoise(
-      "pro",
-      row.mode,
-      resolveImportedValue(row.strength, true, row.mode === "infill" ? DEFAULT_INPAINT_STRENGTH : DEFAULT_PRO_IMAGE_SETTINGS.strength) ?? undefined,
-      resolveImportedValue(row.noise, true, row.mode === "infill" ? DEFAULT_INPAINT_NOISE : DEFAULT_PRO_IMAGE_SETTINGS.noise) ?? undefined,
-    );
-    showSuccessToast([
-      importSeed ? "已导入历史设置与 seed。" : "已导入历史设置，seed 保持当前值。",
-      restoredSourceImage && row.mode === "infill" ? "Inpaint 历史已按 Base Img 恢复。" : "",
-      droppedPaidSettings.length ? `已自动忽略会消耗 Anlas 的项：${droppedPaidSettings.join(" / ")}。` : "",
-    ].filter(Boolean).join(" "));
-  }, [applyModeStrengthAndNoise, clearSourceImageForUi, inferResolutionSelection, noiseScheduleOptions, restoreSourceImageForUi, samplerOptions, showSuccessToast, uiMode]);
+  }, [
+    applyModeStrengthAndNoise,
+    clearSourceImageForUi,
+    inferResolutionSelection,
+    noiseScheduleOptions,
+    restoreSourceImageForUi,
+    samplerOptions,
+    showSuccessToast,
+    uiMode,
+  ]);
 
   const handleHistoryRowClick = useCallback((row: AiImageHistoryRow, event: MouseEvent<HTMLButtonElement>) => {
     const clickMode: HistoryRowClickMode = (event.metaKey || event.ctrlKey)
