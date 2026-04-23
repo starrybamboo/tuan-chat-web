@@ -216,6 +216,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
 export default function App() {
   const location = useLocation();
   const isBlocksuiteFrame = location.pathname.startsWith("/blocksuite-frame");
+  const isScrollSequenceDemo = location.pathname === "/scroll-sequence-demo";
   const [isTestEnvSplashOpen, setIsTestEnvSplashOpen] = React.useState(false);
 
   React.useEffect(() => {
@@ -267,6 +268,17 @@ export default function App() {
       <>
         <Outlet />
         <div id="modal-root"></div>
+        <ToastWindowRenderer />
+      </>
+    );
+  }
+
+  if (isScrollSequenceDemo) {
+    return (
+      <>
+        <Outlet />
+        <div id="modal-root"></div>
+        <Toaster />
         <ToastWindowRenderer />
       </>
     );
