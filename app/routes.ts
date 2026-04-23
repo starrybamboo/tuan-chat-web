@@ -16,6 +16,7 @@ export default [
   // Blocksuite iframe: used for strong style isolation.
   route("blocksuite-frame", "routes/blocksuiteFrame.tsx"),
   route("room-map/:spaceId/:roomId", "routes/roomMapFrame.tsx"),
+  route("scroll-sequence-demo", "routes/scrollSequenceDemo.tsx"),
 
   // Dedicated login page (avoid wrapping by dashboard layout to prevent double modals).
   route("login", "routes/login.tsx"),
