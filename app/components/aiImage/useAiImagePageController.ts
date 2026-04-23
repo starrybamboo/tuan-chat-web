@@ -1,4 +1,4 @@
-// AI 生图页面：对齐 NovelAI Image 的桌面端布局与交互；当前保留免费单张 txt2img，并开放预览区 Inpaint。
+// AI 闂傚倸鍊搁崐鐑芥倿閿曞倹鍎戠憸鐗堝笒閸ㄥ倸鈹戦悩瀹犲缂佹劖顨婇獮鏍垝閻熸壆鍘梺鑽ゅ枑鐎氬牓鎮㈠▽绉嗗洤鐐婇柨鏂垮⒔濞夊潡姊婚崒娆戝妽闁活亜缍婂畷纭呫亹閹烘垹鐤呴梺鐐藉劜閸撴艾霉閺嶎厽鐓忓┑鐐靛亾濞呭棝鏌ｉ幘鍗炲姕缂佺粯鐩獮瀣倷閸偄娅欏┑鐘灱椤鎽梺闈涙搐鐎氭澘顕ｉ幘顔嘉╅柕澶涘娴滆埖淇?NovelAI Image 闂傚倸鍊搁崐鐑芥倿閿曞倹鍎戠憸鐗堝笒缁€澶屸偓鍏夊亾闁逞屽墴閸┾偓妞ゆ帊绀侀崵顒勬煕濞嗗繐鏆ｅ┑鈥崇摠缁楃喖鍩€椤掑嫮宓侀悗锝庡枟閺呮粎绱掑☉姗嗗剱妞ゃ儱鐗撳缁樼瑹閳ь剙顭囪閹广垽宕奸妷銉︽К闂佸憡娲﹂崜娆擃敋闁秵鐓曠€光偓閳ь剟宕戦悙鍝勭；闁靛璐熸禍婊堟煛瀹ュ啫濮€濠㈣锕㈤弻锟犲幢濡吋鍣伴梺鍝勭焿缂嶄線銆侀弬娆惧悑闁告侗鍙庡鐣岀磽閸屾瑧顦︽い鎴濇嚇钘濆ù鍏兼綑缁犳岸鏌￠崒姘辨皑闁衡偓娴犲鐓曢柕澶嬪灥鐎氼參寮冲Ο鑽ょ瘈闁汇垽娼ф禒婊堟煟鎺抽崝搴ㄥ礆閹烘埈鍚嬮柛銉ｅ妽濞堟澘顪冮妶鍛婵☆偅鐟╅敐鐐哄即閵忕姷楠囬梺鍓插亽閸嬪嫭绂嶉弽顬＄懓顭ㄩ崘顏喰ㄩ梺鍝勭灱閸犳牠鐛崱姘兼Щ闂佸搫妫滄ご鎼佸Φ閸曨垰围闁告侗鍠栧▍锝夋煠閹稿骸濮嶉柡灞剧洴婵＄兘鏁愰崨顓х€风紓鍌欒兌婵敻鏁冮姀銈呰摕闁跨喓濮撮獮銏ょ叓閸ャ劍灏瑙勬礋濮婂宕掑▎鎺戝帯濡炪値鍘奸悧蹇涘箲閵忋倕绠涙い鏂垮⒔閻撳姊虹紒妯虹伇婵☆偄瀚板畷褰掑磼閻愬鍘遍悗鍏夊亾闁逞屽墴瀹曟垵鈽夊顓炲幑闂侀€炲苯澧存慨濠冩そ瀹曨偊宕熼鈧粣娑㈡⒑缁嬫鍎戦柛鐘崇墵楠?txt2img闂傚倸鍊搁崐鐑芥倿閿旈敮鍋撶粭娑樻噽閻瑩鏌熸潏楣冩闁搞倖鍔栭妵鍕冀椤愵澀娌梺鎼炲€栭崝娆撳蓟閿濆妫樻繛鍡欏亾閻ゅ洭姊洪幖鐐测偓鏍洪悢鐓庤摕鐎广儱鐗滃銊╂⒑閸涘﹥灏甸柛鐘查叄椤㈡岸鏁愭径濞⑩晠鏌ㄩ弬鎸庢儓濞存粍绻堝娲川婵犲倸顫庨梺绋款儐閹告悂鍩㈤幘璇参╅柍鍝勫€婚崢浠嬫⒑缂佹ɑ鐓ラ柟鑺ョ矒楠炲﹪宕橀鐣屽幗濠德板€愰崑鎾翠繆椤愶絿鈯曠紒?Inpaint闂?
 import type { DragEvent, MouseEvent } from "react";
 
 import { zipSync } from "fflate";
@@ -30,7 +30,6 @@ import type {
   AiImageHistoryMode,
   AiImageHistoryRow,
 } from "@/utils/aiImageHistoryDb";
-import type { AiImageStylePreset } from "@/utils/aiImageStylePresets";
 import type {
   NovelAiImageMetadataResult,
   NovelAiImportedSettings,
@@ -166,13 +165,15 @@ import {
   pickDirectorSourceImagesAction,
   runDirectorToolAction,
 } from "@/components/aiImage/controller/directorActions";
+import { useAiImageDimensionsState } from "@/components/aiImage/controller/useAiImageDimensionsState";
+import { useAiImagePreviewState } from "@/components/aiImage/controller/useAiImagePreviewState";
+import { useAiImageStyleState } from "@/components/aiImage/controller/useAiImageStyleState";
 import {
   addAiImageHistoryBatch,
   clearAiImageHistory,
   deleteAiImageHistory,
   listAiImageHistory,
 } from "@/utils/aiImageHistoryDb";
-import { getAiImageCompareStylePresets, getAiImageStylePresets } from "@/utils/aiImageStylePresets";
 import {
   extractNovelAiMetadataFromPngBytes,
   extractNovelAiMetadataFromStealthPixels,
@@ -209,16 +210,6 @@ export function useAiImagePageController() {
     writeLocalStorageString(STORAGE_UI_MODE_KEY, uiMode);
   }, [uiMode]);
 
-  const [simpleMode, setSimpleMode] = useState<AiImageHistoryMode>("txt2img");
-  const [proMode, setProMode] = useState<AiImageHistoryMode>("txt2img");
-  const [simpleSourceImageDataUrl, setSimpleSourceImageDataUrl] = useState("");
-  const [simpleSourceImageBase64, setSimpleSourceImageBase64] = useState("");
-  const [simpleSourceImageSize, setSimpleSourceImageSize] = useState<{ width: number; height: number } | null>(null);
-  const [proSourceImageDataUrl, setProSourceImageDataUrl] = useState("");
-  const [proSourceImageBase64, setProSourceImageBase64] = useState("");
-  const [proSourceImageSize, setProSourceImageSize] = useState<{ width: number; height: number } | null>(null);
-  const [simpleInfillMaskDataUrl, setSimpleInfillMaskDataUrl] = useState("");
-  const [proInfillMaskDataUrl, setProInfillMaskDataUrl] = useState("");
   const [simpleInfillPrompt, setSimpleInfillPrompt] = useState(DEFAULT_INPAINT_PROMPT);
   const [simpleInfillNegativePrompt, setSimpleInfillNegativePrompt] = useState(DEFAULT_INPAINT_NEGATIVE_PROMPT);
   const [proInfillPrompt, setProInfillPrompt] = useState(DEFAULT_INPAINT_PROMPT);
@@ -233,10 +224,6 @@ export function useAiImagePageController() {
   const [simplePromptTab, setSimplePromptTab] = useState<"prompt" | "negative">("prompt");
   const [simpleConverting, setSimpleConverting] = useState<boolean>(false);
   const [isPageImageDragOver, setIsPageImageDragOver] = useState<boolean>(false);
-  const [isStylePickerOpen, setIsStylePickerOpen] = useState<boolean>(false);
-  const [styleSelectionMode, setStyleSelectionMode] = useState<"select" | "compare">("select");
-  const [selectedStyleIds, setSelectedStyleIds] = useState<string[]>([]);
-  const [compareStyleId, setCompareStyleId] = useState<string | null>(null);
   const [proPromptTab, setProPromptTab] = useState<"prompt" | "negative">("prompt");
   const [charPromptTabs, setCharPromptTabs] = useState<Record<string, "prompt" | "negative">>({});
 
@@ -248,10 +235,10 @@ export function useAiImagePageController() {
   const [v4Chars, setV4Chars] = useState<V4CharEditorRow[]>([]);
   const [vibeTransferReferences, setVibeTransferReferences] = useState<VibeTransferReferenceRow[]>([]);
   const [preciseReference, setPreciseReference] = useState<PreciseReferenceRow | null>(null);
-  // 参考 NovelAI 的专业模式交互：把高级引用能力拆成可折叠模块，减少长表单噪音，并在导入/新增内容时自动展开对应区块。
+  // 闂傚倸鍊搁崐椋庣矆娓氣偓楠炲鏁撻悩鍐蹭画闂侀潧顦弲娑氬閻熸噴褰掓偐瀹割喖鍓伴梺?NovelAI 闂傚倸鍊搁崐鐑芥倿閿曞倹鍎戠憸鐗堝笒缁€澶屸偓鍏夊亾闁逞屽墴閸┾偓妞ゆ帊绀侀崵顒€霉濠婂懎浠ч柛鎺撳浮椤㈡﹢濮€閻樻鍟嬮梺璇叉捣閺佸摜娑甸崼鏇炲嚑闁哄诞鈧弨鑺ャ亜閺冣偓閺嬬粯绗熷☉銏＄厱闁哄啫鐗婇弫閬嶆煙瀹勭増鍤囩€规洘绮撻獮鎾诲箳閹垮啫鎮梻鍌氬€搁…顒勫磻閸曨個娲Χ閸ワ絽浜炬繛鎴炲笚濞呭﹦鈧娲﹂崜姘嚗閸曨剛绠鹃柟鐑樻⒐閸も偓濡炪値鍘归崝鎴濈暦閻旂⒈鏁冮柨鏇楀亾婵炲牊绻勭槐鎾诲磼濞嗘埈妲悷婊勬緲椤﹂潧鐣烽敓鐘茬闁伙絽鑻粊锕傛煙閸忚偐鏆橀柛銊ㄥ吹瀵囧焵椤掑嫭鈷戦柟鑲╁仜閸旀鏌￠崨顔炬创闁瑰嘲绻掗埀顒婄秵閸撴稓澹曢挊澹濆綊鏁愰崨顔藉創闂佺粯绻愮换婵嬪蓟濞戙垹绠涢柛蹇撴憸閺佹牠姊虹€圭媭娼愰柣鈺婂灠椤繘宕崝鍊熸缁辨帒螣鐞涒剝鐎奸梻鍌欑閹诧繝寮婚妸褎宕叉俊顖濇閺嗭附淇婇妶鍌氫壕濡炪値鍋呯划鎾诲春閳ь剚銇勯幒鍡椾壕闂佷紮绲介崲鏌ュ煘閹达箑骞㈤煫鍥ㄦ濞兼梹绻濋悽闈涗粶婵☆偅顨呴湁婵娉涢悞鍨亜閹哄秶鍔嶇紒鈧€ｎ喗鐓涚€光偓閳ь剟宕伴幘璇茬劦妞ゆ帊鑳堕埊鏇㈡煥濮橆兘鏀芥い鏂垮悑瀹告繈鏌熼崣澶嬪€愰柟顔ㄥ洤閱囬柕蹇曞Т缂佲晜淇婇妶鍥ラ柛瀣⊕椤ㄣ儱顫㈠畝鈧禍浠嬫⒒娴ｅ憡鍟炵紒璇插€婚埀顒佸嚬閸犳氨鍒掗弮鍫濈畾鐟滃寮ㄦ禒瀣厓闁芥ê顦伴ˉ婊堟煟韫囨梻鎳囬柡灞界Х椤т線鏌涢幘瀵哥畵闁宠绉瑰鎾閻樼绱遍梻渚€娼чˇ顐﹀疾濠婂牊鍋傞柕澶涘缁犻箖鏌熺€电鍓遍柣鎺楃畺閹顫濋銏犵ギ闂佸搫鏈惄顖炲极閹版澘閱囬柣鏇氭閸濇鈹戦悙鑼憼缂侇喖绉归獮鍐磼閻愰潧绁﹂柣搴秵閸犳寮插鍫熺厾闁诡厽甯掗崝銈嗕繆瀹割喕閭慨濠冩そ閹筹繝濡堕崨顒佸媰缂傚倷绀侀鍛崲濡櫣鏆︽繝闈涚墔濞岊亪鏌ｉ敐鍛拱婵炲牓绠栧铏圭磼濡儵鎷婚梺鍛婎焼閸ャ劉鎷诲銈嗙墬缁嬪繑绂嶅鍫㈠彄闁搞儯鍔嶇亸闈涱熆瑜嬮崹浠嬪蓟濞戞ǚ鏋庨柟鎯у閺嗩偊姊洪崫鍕潶闁告柨鐭傞崺銉﹀緞婵炪垻鍠栧畷褰掝敋閸涱剛纾鹃梻鍌氬€峰ù鍥ㄧ珶閸繄鏆﹂柣銏㈩焾缁愭鏌″畵顔兼噺濞堥箖姊虹紒妯虹伇婵☆偄瀚崕顐︽⒒娓氣偓濞佳囁囨禒瀣獥闁哄诞鈧弸鏂库攽閸屾碍鍟為柍?闂傚倸鍊搁崐椋庣矆娓氣偓楠炴牠顢曢敃鈧壕褰掓煟閻旂厧浜伴柣鏂挎閹便劌顪冪拠韫闁荤姳璀﹂崹鍫曞蓟濞戙垹绠涢梻鍫熺⊕閻忓牏绱撴担鎻掍壕闂佸憡鍔﹂崰妤呮偂閺囩喓绠鹃柟瀛樼箓閼稿湱鈧鍣ｇ粻鏍蓟濞戙垺鍋勯梺鍨儏閺嬬娀姊洪崫鍕効缂佺粯绻傞悾宄邦潨閳ь剟宕洪埄鍐╁缂佸鏅濋敃鍌涒拻濞达綀顫夐崑鐘绘煕婵犲啰澧遍柛鎺撳浮楠炴ê鐣烽崶銊︻啎婵犵數濞€濞佳囶敄閸涱喖鍔旈梻鍌欑窔濞佳囨晬韫囨稑绀嬫い鎾跺椤掑嫭鈷戦悹鍥ㄥ絻椤掋垺銇勯弮鈧悧鐘茬暦娴兼潙绠虫俊銈傚亾缁炬儳顭烽弻鐔煎礈瑜忕敮娑㈡煕婵犲嫭鏆柡宀嬬秮婵偓闁绘ê鍚€缁敻姊洪幖鐐测偓鎰板磻閹惧墎纾介柛灞剧懇濡剧兘鏌涢弬璺ㄐч柟顕嗙節閸ㄦ儳鐣烽崶銊︻啎闂備胶绮…鍫ヮ敋瑜庣€靛ジ鎮╃紒妯煎幈闂佸搫娲㈤崝灞炬櫠椤旀祹褰掓偐閾忣偄鍞夊┑?
   const [proFeatureSections, setProFeatureSections] = useState<Record<ProFeatureSectionKey, boolean>>(() => createProFeatureSectionState());
 
-  // 当前页面固定使用单一模型，避免简单模式额外暴露一个用户无法从结果感知收益的选择步骤。
+  // 闂傚倷娴囧畷鐢稿窗閹邦喖鍨濋幖娣灪濞呯姵淇婇妶鍛櫣缂佺姳鍗抽弻娑樷槈濮楀牊鏁惧┑鐐叉噽婵炩偓闁哄矉绲借灒闁绘挸绨肩紓鎾寸箾鐎涙鐭嬬紒顔芥崌瀵鏁愭径濠庢綂闂佺粯锚閸熷潡寮抽崼婵冩斀闁斥晛鍟ㄦ禒鐘绘煕閺冣偓閸ㄥ灝顕ｇ拠娴嬫闁靛繒濮堥妸鈺傜厪濠㈣埖鐩顕€鏌涙惔銏″磳婵﹦鍎ょ€电厧鈻庨幋鐐蹭还闂備胶顭堥鍡涘箲閸ヮ剛宓侀煫鍥ㄧ☉瀹告繃銇勯弽銊р槈缁剧虎鍨跺娲濞戣京鍙氶梻鍌氬鐎氼剟鍩㈤幘璇差潊闁靛牆妫岄幏娲⒑閸涘﹦鈽夋い顓у墮閳绘捇寮撮悢铏诡啎闂佸憡鐟ラˇ顖炴倶閳哄啰纾兼い鏃囶潐濞呭﹦鈧鍠栭悥濂哥嵁婵犲倻鏆﹂柛銉戝嫮浜梻浣规偠閸斿秹宕曢幎鑺ュ仼闁绘垼妫勯悙濠囨煥濠靛棙鍣稿瑙勬礋濮婅櫣绱掑Ο铏逛紘婵犳鍠撻崐婵嗩嚕閺屻儺鏁嗛柛灞绢殔娴滈箖鏌涜箛鎿冩Ц濞存粓绠栧娲川婵犲啫顦╂繛瀛樼矌閸嬬喎危閹邦剦娼╅柤鍝ヮ暯閹疯櫣绱撴担鍓插創婵炲娲滅划濠氬箥椤斿墽锛滄繝銏ｆ硾閿曪箓宕洪敐澶嬬厵妞ゆ棁妫勯崝銈夋煃鐟欏嫬鐏╅柍褜鍓ㄧ紞鍡樼閻愭亽鈧線宕ㄧ€涙ǚ鎷洪梺鍛婄箓鐎氼厼顔忓┑瀣厱闁绘劘娉涜闂佺懓鍢查幊妯虹暦濠婂牆绠甸柟鐑樻惄閸氭瑩姊婚崒姘肩叕闁稿瀚叅闁挎梻鏅悷瑙勪繆閵堝懏鍣圭紒鐙欏洦鐓曟繝闈涙椤忔挳鏌ｉ弬鎸庮棦闁哄被鍊濆畷顐﹀Ψ閿旇姤鐦庡┑鐘媰鐏炶棄顫梺閫涚┒閸旀垿寮幇鏉垮耿婵°倐鍋撻柟浠嬫涧閳规垿鍩ラ崱妞剧暗缂備浇鍩栧畝鎼佸箖閿熺媭鏁冮柨鏃傜帛閺咃綁姊虹紒妯兼喛闁稿鎸搁湁闁绘挸瀛╂径鍕磼缂佹娲存鐐差儔閹瑧鈧稒锚閸擃喖鈹戦悙鑼憼缂侇喖閰ｅ畷鎴﹀Χ閸滀礁娈ㄥ銈嗗姧缁犳垵娲垮┑鐘灱濞夋盯鏁冮敃鍌ゆ晣婵炲樊浜濋埛鎺懨归敐鍛喐濞寸姰鍨洪妵鍕箣濠靛浂妫﹂梺杞扮劍閹瑰洦淇婇悜鑺ユ櫆闁告挆灞芥櫗婵犵數濮伴崹鐓庘枖濞戙埄鏁勯柛鈩冪懃椤ユ岸鏌ゆ慨鎰偓妤冨閸忕浜滈柡鍐ｅ亾闁稿骸鍟块弳鈺冪磽閸屾瑦绁板鏉戞憸閺侇噣鏁撻悩闈涚ウ濠碘槅鍨伴惃鐑藉磻閹剧粯鍋ㄩ柛娑橈攻閻濇娊姊洪崨濠傜仯缂侇喗鐟ラ～蹇涙惞鐟欏嫬鏋傞梺鍛婃处閸嬫帒螞閸℃稒鈷戦柛婵勫劚鏍￠梺鍦嚀濞差參鐛崘顔芥櫢闁绘娅曞▍銏ゆ⒑缂佹﹩鐒鹃悘蹇旂懇瀹曨偄螖閸涱喒鎷洪梺鍛婄☉閿曘儳浜搁锔界厽闁硅櫣鍋熼悾鍨殽閻愭煡鍙勭€规洜鍠栭、娑樷槈濮橆剙绠洪梻鍌欑窔濞佳団€﹂崼銉ョ？闂侇剙绋侀弫鍌涖亜閹惧崬鐏柣鎾冲暟閹茬顭ㄩ崼婵堫槶濠电偛妫欓幏鏌ュ炊椤掆偓缁犮儲銇勯弮鍌涘殌濞存粎鍋撻幈銊ノ熺粙鍨婵犵鈧啿鎮戦柕鍥у椤㈡洟鎮╅懠顑跨礄濠电姷顣槐鏇㈠礂濮椻偓瀹曟椽鍩勯崘顏嗩啎闂佽鍨庨崒姘兼闂傚倷绀侀幉锟犲礉閿曞倸绐楅柡宥庡墰缁?
   const model = resolveFixedImageModel();
   const isNAI3 = false;
   const isNAI4 = true;
@@ -265,22 +252,6 @@ export function useAiImagePageController() {
     });
   }, [v4Chars, v4UseCoords]);
 
-  useEffect(() => {
-    if (simpleEditorMode !== "tags")
-      return;
-    if (shouldKeepSimpleTagsEditor({
-      mode: simpleMode,
-      prompt: simplePrompt,
-      negativePrompt: simpleNegativePrompt,
-      hasConvertedDraft: Boolean(simpleConverted),
-    }))
-      return;
-
-    setSimpleConvertedFromText("");
-    setSimpleEditorMode("text");
-    setSimplePromptTab("prompt");
-  }, [simpleConverted, simpleEditorMode, simpleMode, simpleNegativePrompt, simplePrompt]);
-
   const toggleProFeatureSection = useCallback((section: ProFeatureSectionKey) => {
     setProFeatureSections(prev => ({ ...prev, [section]: !prev[section] }));
   }, []);
@@ -292,120 +263,6 @@ export function useAiImagePageController() {
       return { ...prev, [section]: open };
     });
   }, []);
-
-  const stylePresets = useMemo(() => getAiImageStylePresets(), []);
-  const compareStylePresets = useMemo(() => getAiImageCompareStylePresets(), []);
-
-  const selectedStylePresets = useMemo(() => {
-    const index = new Map<string, AiImageStylePreset>(stylePresets.map(p => [p.id, p]));
-    return selectedStyleIds.map(id => index.get(id)).filter(Boolean) as AiImageStylePreset[];
-  }, [selectedStyleIds, stylePresets]);
-
-  const compareStylePreset = useMemo(() => {
-    if (!compareStyleId)
-      return null;
-    return compareStylePresets.find(preset => preset.id === compareStyleId) ?? null;
-  }, [compareStyleId, compareStylePresets]);
-
-  const selectedStyleTags = useMemo(() => {
-    return selectedStylePresets.flatMap((preset) => {
-      if (preset.tags.length)
-        return preset.tags;
-      const fallback = String(preset.title || "").trim();
-      return fallback ? [fallback] : [];
-    });
-  }, [selectedStylePresets]);
-
-  const selectedStyleNegativeTags = useMemo(() => {
-    return selectedStylePresets.flatMap(p => p.negativeTags);
-  }, [selectedStylePresets]);
-
-  const compareStyleTags = useMemo(() => {
-    if (!compareStylePreset)
-      return [];
-    if (compareStylePreset.tags.length)
-      return compareStylePreset.tags;
-    const fallback = String(compareStylePreset.title || "").trim();
-    return fallback ? [fallback] : [];
-  }, [compareStylePreset]);
-
-  const compareStyleNegativeTags = useMemo(() => {
-    return compareStylePreset?.negativeTags ?? [];
-  }, [compareStylePreset]);
-
-  const activeStyleIds = styleSelectionMode === "compare"
-    ? (compareStyleId ? [compareStyleId] : [])
-    : selectedStyleIds;
-  const activeStylePresets = styleSelectionMode === "compare"
-    ? (compareStylePreset ? [compareStylePreset] : [])
-    : selectedStylePresets;
-  const activeStyleTags = styleSelectionMode === "compare" ? compareStyleTags : selectedStyleTags;
-  const activeStyleNegativeTags = styleSelectionMode === "compare" ? compareStyleNegativeTags : selectedStyleNegativeTags;
-
-  const samplerOptions = SAMPLERS_NAI4;
-  const noiseScheduleOptions = NOISE_SCHEDULES_NAI4;
-
-  const [simpleWidth, setSimpleWidth] = useState<number>(DEFAULT_SIMPLE_IMAGE_SETTINGS.width);
-  const [simpleHeight, setSimpleHeight] = useState<number>(DEFAULT_SIMPLE_IMAGE_SETTINGS.height);
-  const [simpleWidthInput, setSimpleWidthInput] = useState<string>(String(DEFAULT_SIMPLE_IMAGE_SETTINGS.width));
-  const [simpleHeightInput, setSimpleHeightInput] = useState<string>(String(DEFAULT_SIMPLE_IMAGE_SETTINGS.height));
-  const [simpleSeed, setSimpleSeed] = useState<number>(DEFAULT_SIMPLE_IMAGE_SETTINGS.seed);
-  const [simpleResolutionSelection, setSimpleResolutionSelection] = useState<ResolutionSelection>(DEFAULT_SIMPLE_IMAGE_SETTINGS.simpleResolutionSelection);
-  const [proWidth, setProWidth] = useState<number>(DEFAULT_PRO_IMAGE_SETTINGS.width);
-  const [proHeight, setProHeight] = useState<number>(DEFAULT_PRO_IMAGE_SETTINGS.height);
-  const [proWidthInput, setProWidthInput] = useState<string>(String(DEFAULT_PRO_IMAGE_SETTINGS.width));
-  const [proHeightInput, setProHeightInput] = useState<string>(String(DEFAULT_PRO_IMAGE_SETTINGS.height));
-  const [proResolutionSelection, setProResolutionSelection] = useState<ResolutionSelection>(DEFAULT_PRO_IMAGE_SETTINGS.simpleResolutionSelection);
-  const [proImageCount, setProImageCount] = useState<number>(DEFAULT_PRO_IMAGE_SETTINGS.imageCount);
-  const [proSteps, setProSteps] = useState<number>(DEFAULT_PRO_IMAGE_SETTINGS.steps);
-  const [proScale, setProScale] = useState<number>(DEFAULT_PRO_IMAGE_SETTINGS.scale);
-  const [proSampler, setProSampler] = useState<string>(DEFAULT_PRO_IMAGE_SETTINGS.sampler);
-  const [proNoiseSchedule, setProNoiseSchedule] = useState<string>(DEFAULT_PRO_IMAGE_SETTINGS.noiseSchedule);
-  const [proCfgRescale, setProCfgRescale] = useState<number>(DEFAULT_PRO_IMAGE_SETTINGS.cfgRescale);
-  const [proUcPreset, setProUcPreset] = useState<number>(DEFAULT_PRO_IMAGE_SETTINGS.ucPreset);
-  const [proSmea, setProSmea] = useState<boolean>(DEFAULT_PRO_IMAGE_SETTINGS.smea);
-  const [proSmeaDyn, setProSmeaDyn] = useState<boolean>(DEFAULT_PRO_IMAGE_SETTINGS.smeaDyn);
-  const [proQualityToggle, setProQualityToggle] = useState<boolean>(DEFAULT_PRO_IMAGE_SETTINGS.qualityToggle);
-  const [proDynamicThresholding, setProDynamicThresholding] = useState<boolean>(DEFAULT_PRO_IMAGE_SETTINGS.dynamicThresholding);
-  const [proSeed, setProSeed] = useState<number>(DEFAULT_PRO_IMAGE_SETTINGS.seed);
-  const [simpleImg2imgStrength, setSimpleImg2imgStrength] = useState<number>(DEFAULT_SIMPLE_IMAGE_SETTINGS.strength);
-  const [simpleImg2imgNoise, setSimpleImg2imgNoise] = useState<number>(DEFAULT_SIMPLE_IMAGE_SETTINGS.noise);
-  const [proImg2imgStrength, setProImg2imgStrength] = useState<number>(DEFAULT_PRO_IMAGE_SETTINGS.strength);
-  const [proImg2imgNoise, setProImg2imgNoise] = useState<number>(DEFAULT_PRO_IMAGE_SETTINGS.noise);
-  const [simpleInfillStrength, setSimpleInfillStrength] = useState<number>(DEFAULT_INPAINT_STRENGTH);
-  const [simpleInfillNoise, setSimpleInfillNoise] = useState<number>(DEFAULT_INPAINT_NOISE);
-  const [proInfillStrength, setProInfillStrength] = useState<number>(DEFAULT_INPAINT_STRENGTH);
-  const [proInfillNoise, setProInfillNoise] = useState<number>(DEFAULT_INPAINT_NOISE);
-
-  const width = uiMode === "simple" ? simpleWidth : proWidth;
-  const height = uiMode === "simple" ? simpleHeight : proHeight;
-  const widthInput = uiMode === "simple" ? simpleWidthInput : proWidthInput;
-  const heightInput = uiMode === "simple" ? simpleHeightInput : proHeightInput;
-  const roundedRequestedSize = getClosestValidImageSize(width, height);
-  const hasCompleteDimensionInputs = widthInput.trim().length > 0 && heightInput.trim().length > 0;
-  const mode = uiMode === "simple" ? simpleMode : proMode;
-  const imageCount = uiMode === "simple" ? DEFAULT_SIMPLE_IMAGE_SETTINGS.imageCount : proImageCount;
-  const steps = uiMode === "simple" ? DEFAULT_SIMPLE_IMAGE_SETTINGS.steps : proSteps;
-  const scale = uiMode === "simple" ? DEFAULT_SIMPLE_IMAGE_SETTINGS.scale : proScale;
-  const sampler = uiMode === "simple" ? DEFAULT_SIMPLE_IMAGE_SETTINGS.sampler : proSampler;
-  const noiseSchedule = uiMode === "simple" ? DEFAULT_SIMPLE_IMAGE_SETTINGS.noiseSchedule : proNoiseSchedule;
-  const cfgRescale = uiMode === "simple" ? DEFAULT_SIMPLE_IMAGE_SETTINGS.cfgRescale : proCfgRescale;
-  const ucPreset = uiMode === "simple" ? DEFAULT_SIMPLE_IMAGE_SETTINGS.ucPreset : proUcPreset;
-  const qualityToggle = uiMode === "simple" ? DEFAULT_SIMPLE_IMAGE_SETTINGS.qualityToggle : proQualityToggle;
-  const dynamicThresholding = uiMode === "simple" ? DEFAULT_SIMPLE_IMAGE_SETTINGS.dynamicThresholding : proDynamicThresholding;
-  const smea = uiMode === "simple" ? DEFAULT_SIMPLE_IMAGE_SETTINGS.smea : proSmea;
-  const smeaDyn = uiMode === "simple" ? DEFAULT_SIMPLE_IMAGE_SETTINGS.smeaDyn : proSmeaDyn;
-  const currentImg2imgStrength = uiMode === "simple" ? simpleImg2imgStrength : proImg2imgStrength;
-  const currentImg2imgNoise = uiMode === "simple" ? simpleImg2imgNoise : proImg2imgNoise;
-  const currentInfillStrength = uiMode === "simple" ? simpleInfillStrength : proInfillStrength;
-  const currentInfillNoise = uiMode === "simple" ? simpleInfillNoise : proInfillNoise;
-  const strength = mode === "infill" ? currentInfillStrength : currentImg2imgStrength;
-  const noise = mode === "infill" ? currentInfillNoise : currentImg2imgNoise;
-  const seed = uiMode === "simple" ? simpleSeed : proSeed;
-  const sourceImageDataUrl = uiMode === "simple" ? simpleSourceImageDataUrl : proSourceImageDataUrl;
-  const sourceImageBase64 = uiMode === "simple" ? simpleSourceImageBase64 : proSourceImageBase64;
-  const sourceImageSize = uiMode === "simple" ? simpleSourceImageSize : proSourceImageSize;
-  const infillMaskDataUrl = uiMode === "simple" ? simpleInfillMaskDataUrl : proInfillMaskDataUrl;
 
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState("");
@@ -423,16 +280,8 @@ export function useAiImagePageController() {
   const [directorEmotion, setDirectorEmotion] = useState<NovelAiEmotion>("neutral");
   const [directorEmotionDefry, setDirectorEmotionDefry] = useState<number>(0);
   const [directorEmotionExtraPrompt, setDirectorEmotionExtraPrompt] = useState("");
-  const [results, setResults] = useState<GeneratedImageItem[]>([]);
-  const [selectedResultIndex, setSelectedResultIndex] = useState<number>(0);
-  const [selectedHistoryPreviewKey, setSelectedHistoryPreviewKey] = useState<string | null>(null);
-  const [pinnedPreviewKey, setPinnedPreviewKey] = useState<string | null>(null);
-  const [isPreviewImageModalOpen, setIsPreviewImageModalOpen] = useState<boolean>(false);
   const [inpaintDialogSource, setInpaintDialogSource] = useState<InpaintDialogSource | null>(null);
   const [normalizeReferenceStrengths, setNormalizeReferenceStrengths] = useState<boolean>(false);
-
-  const [history, setHistory] = useState<AiImageHistoryRow[]>([]);
-  const [isHistoryExpanded, setIsHistoryExpanded] = useState<boolean>(false);
 
   const showSuccessToast = useCallback((message: string) => {
     toast.success(message);
@@ -442,322 +291,183 @@ export function useAiImagePageController() {
     toast.error(message);
   }, []);
 
-  const historyRowByKey = useMemo(() => {
-    return new Map(history.map(row => [historyRowKey(row), row] as const));
-  }, [history]);
-  const historyRowByResultMatchKey = useMemo(() => {
-    return new Map(history.map(row => [historyRowResultMatchKey(row), row] as const));
-  }, [history]);
-  const selectedResult = results[selectedResultIndex] || null;
-  const selectedHistoryPreviewRow = useMemo(() => {
-    if (!selectedHistoryPreviewKey)
-      return null;
-    return historyRowByKey.get(selectedHistoryPreviewKey) || null;
-  }, [historyRowByKey, selectedHistoryPreviewKey]);
-  const selectedPreviewResult = useMemo<GeneratedImageItem | null>(() => {
-    if (selectedHistoryPreviewRow)
-      return historyRowToGeneratedItem(selectedHistoryPreviewRow);
-    return selectedResult;
-  }, [selectedHistoryPreviewRow, selectedResult]);
-  const selectedPreviewHistoryRow = useMemo(() => {
-    if (selectedHistoryPreviewRow)
-      return selectedHistoryPreviewRow;
-    if (!selectedResult)
-      return null;
-    return historyRowByResultMatchKey.get(generatedItemKey(selectedResult)) || null;
-  }, [historyRowByResultMatchKey, selectedHistoryPreviewRow, selectedResult]);
-  const selectedPreviewIdentityKey = useMemo(() => {
-    if (selectedHistoryPreviewRow)
-      return `history:${historyRowKey(selectedHistoryPreviewRow)}`;
-    if (selectedResult)
-      return `current:${generatedItemKey(selectedResult)}`;
-    return null;
-  }, [selectedHistoryPreviewRow, selectedResult]);
-  const pinnedPreviewResult = useMemo<GeneratedImageItem | null>(() => {
-    if (!pinnedPreviewKey)
-      return null;
-    if (pinnedPreviewKey.startsWith("current:")) {
-      const currentKey = pinnedPreviewKey.slice("current:".length);
-      return results.find(item => generatedItemKey(item) === currentKey) || null;
-    }
-    if (pinnedPreviewKey.startsWith("history:")) {
-      const historyKey = pinnedPreviewKey.slice("history:".length);
-      const historyMatch = historyRowByKey.get(historyKey);
-      return historyMatch ? historyRowToGeneratedItem(historyMatch) : null;
-    }
-    return null;
-  }, [historyRowByKey, pinnedPreviewKey, results]);
-  const isSelectedPreviewPinned = Boolean(selectedPreviewIdentityKey && pinnedPreviewKey === selectedPreviewIdentityKey);
+  const {
+    isStylePickerOpen,
+    setIsStylePickerOpen,
+    styleSelectionMode,
+    setStyleSelectionMode,
+    selectedStyleIds,
+    setSelectedStyleIds,
+    compareStyleId,
+    setCompareStyleId,
+    stylePresets,
+    compareStylePresets,
+    activeStyleIds,
+    activeStylePresets,
+    activeStyleTags,
+    activeStyleNegativeTags,
+    handleToggleStyle,
+    handleSelectCompareStyle,
+    handleClearStyles,
+    handleClearActiveStyles,
+  } = useAiImageStyleState();
+  const {
+    samplerOptions,
+    noiseScheduleOptions,
+    simpleMode,
+    proMode,
+    mode,
+    setModeForUi,
+    simpleSourceImageDataUrl,
+    simpleSourceImageBase64,
+    simpleSourceImageSize,
+    proSourceImageDataUrl,
+    proSourceImageBase64,
+    proSourceImageSize,
+    sourceImageDataUrl,
+    sourceImageBase64,
+    sourceImageSize,
+    simpleInfillMaskDataUrl,
+    setSimpleInfillMaskDataUrl,
+    proInfillMaskDataUrl,
+    setProInfillMaskDataUrl,
+    infillMaskDataUrl,
+    clearInfillMaskForUi,
+    width,
+    height,
+    widthInput,
+    heightInput,
+    roundedRequestedSize,
+    hasCompleteDimensionInputs,
+    imageCount,
+    steps,
+    scale,
+    sampler,
+    noiseSchedule,
+    cfgRescale,
+    ucPreset,
+    qualityToggle,
+    dynamicThresholding,
+    smea,
+    smeaDyn,
+    currentImg2imgStrength,
+    currentImg2imgNoise,
+    currentInfillStrength,
+    currentInfillNoise,
+    strength,
+    noise,
+    seed,
+    seedIsRandom,
+    imageCountLimit,
+    simpleWidth,
+    setSimpleWidth,
+    simpleHeight,
+    setSimpleHeight,
+    simpleSeed,
+    setSimpleSeed,
+    simpleResolutionSelection,
+    setSimpleResolutionSelection,
+    proWidth,
+    setProWidth,
+    proHeight,
+    setProHeight,
+    proResolutionSelection,
+    setProResolutionSelection,
+    setProImageCount,
+    setProSteps,
+    setProScale,
+    setProSampler,
+    setProNoiseSchedule,
+    setProCfgRescale,
+    setProUcPreset,
+    setProSmea,
+    setProSmeaDyn,
+    setProQualityToggle,
+    setProDynamicThresholding,
+    setProSeed,
+    setSimpleImg2imgStrength,
+    setSimpleImg2imgNoise,
+    setProImg2imgStrength,
+    setProImg2imgNoise,
+    setSimpleInfillStrength,
+    setSimpleInfillNoise,
+    setProInfillStrength,
+    setProInfillNoise,
+    inferResolutionSelection,
+    applyModeStrengthAndNoise,
+    clearSourceImageForUi,
+    applySourceImageForUi,
+    resolveInfillMaskBase64ForUi,
+    resolveSeparatedInfillMaskBase64ForUi,
+    resolveBlendInfillMaskDataUrlForUi,
+    restoreSourceImageForUi,
+    activeResolutionPreset,
+    simpleResolutionArea,
+    handleSelectSimpleResolutionPreset,
+    handleSelectProResolutionPreset,
+    handleSimpleWidthChange,
+    handleProWidthChange,
+    handleSimpleHeightChange,
+    handleProHeightChange,
+    handleSwapImageDimensions,
+    handleCommitSimpleDimensions,
+    handleCommitProDimensions,
+    handleCropToClosestValidSize,
+    handleResetCurrentImageSettings,
+    handleClearSeed,
+    setWidth,
+    setHeight,
+    setImageCount,
+    setSteps,
+    setScale,
+    setSampler,
+    setNoiseSchedule,
+    setCfgRescale,
+    setUcPreset,
+    setQualityToggle,
+    setDynamicThresholding,
+    setSmea,
+    setSmeaDyn,
+    setStrength,
+    setNoise,
+    setSeed,
+  } = useAiImageDimensionsState({
+    uiMode,
+    showSuccessToast,
+    readImagePixels,
+    readImageSize,
+  });
+  const {
+    results,
+    setResults,
+    selectedResultIndex,
+    setSelectedResultIndex,
+    selectedHistoryPreviewKey,
+    setSelectedHistoryPreviewKey,
+    pinnedPreviewKey,
+    setPinnedPreviewKey,
+    isPreviewImageModalOpen,
+    setIsPreviewImageModalOpen,
+    history,
+    setHistory,
+    isHistoryExpanded,
+    setIsHistoryExpanded,
+    historyRowByKey,
+    historyRowByResultMatchKey,
+    selectedResult,
+    selectedHistoryPreviewRow,
+    selectedPreviewResult,
+    selectedPreviewHistoryRow,
+    selectedPreviewIdentityKey,
+    pinnedPreviewResult,
+    currentResultCards,
+    archivedHistoryRows,
+    isSelectedPreviewPinned,
+    previewMeta,
+    hasCurrentDisplayedImage,
+  } = useAiImagePreviewState();
   const directorTool = DIRECTOR_TOOL_OPTIONS_BY_ID[activeDirectorTool];
   const directorInputPreview = directorSourcePreview;
-  const inferResolutionSelection = useCallback((nextWidth: number, nextHeight: number): ResolutionSelection => {
-    return RESOLUTION_PRESETS.find(item => item.width === nextWidth && item.height === nextHeight)?.id ?? CUSTOM_RESOLUTION_ID;
-  }, []);
-  const imageCountLimit = useMemo(() => {
-    return NOVELAI_FREE_FIXED_IMAGE_COUNT;
-  }, []);
-
-  const clampCustomDimensionInput = useCallback((value: number | string, fallback: number) => {
-    const numericValue = Math.floor(Number(value));
-    if (!Number.isFinite(numericValue))
-      return fallback;
-    return Math.max(1, numericValue);
-  }, []);
-
-  const syncDimensionInputsForUi = useCallback((targetUiMode: UiMode, nextWidth: number, nextHeight: number) => {
-    if (targetUiMode === "simple") {
-      setSimpleWidthInput(String(nextWidth));
-      setSimpleHeightInput(String(nextHeight));
-      return;
-    }
-
-    setProWidthInput(String(nextWidth));
-    setProHeightInput(String(nextHeight));
-  }, []);
-
-  const commitRoundedDimensionsForUi = useCallback((targetUiMode: UiMode) => {
-    if (targetUiMode === "simple") {
-      if (!simpleWidthInput.trim() || !simpleHeightInput.trim())
-        return;
-      const rounded = getClosestValidImageSize(simpleWidth, simpleHeight);
-      setSimpleWidth(rounded.width);
-      setSimpleHeight(rounded.height);
-      setSimpleResolutionSelection(inferResolutionSelection(rounded.width, rounded.height));
-      syncDimensionInputsForUi("simple", rounded.width, rounded.height);
-      return;
-    }
-
-    if (!proWidthInput.trim() || !proHeightInput.trim())
-      return;
-    const rounded = getClosestValidImageSize(proWidth, proHeight);
-    setProWidth(rounded.width);
-    setProHeight(rounded.height);
-    setProResolutionSelection(inferResolutionSelection(rounded.width, rounded.height));
-    syncDimensionInputsForUi("pro", rounded.width, rounded.height);
-  }, [
-    inferResolutionSelection,
-    proHeight,
-    proHeightInput,
-    proWidth,
-    proWidthInput,
-    simpleHeight,
-    simpleHeightInput,
-    simpleWidth,
-    simpleWidthInput,
-    syncDimensionInputsForUi,
-  ]);
-
-  const setModeForUi = useCallback((targetUiMode: UiMode, nextMode: AiImageHistoryMode) => {
-    if (targetUiMode === "simple") {
-      setSimpleMode(nextMode);
-      return;
-    }
-    setProMode(nextMode);
-  }, []);
-
-  const clearInfillMaskForUi = useCallback((targetUiMode: UiMode) => {
-    if (targetUiMode === "simple") {
-      setSimpleInfillMaskDataUrl("");
-      return;
-    }
-    setProInfillMaskDataUrl("");
-  }, []);
-
-  const syncSourceImageSizeForUi = useCallback((targetUiMode: UiMode, width?: number | null, height?: number | null) => {
-    if (!width || !height)
-      return;
-
-    const normalizedSize = getClosestValidImageSize(width, height);
-    if (targetUiMode === "simple") {
-      setSimpleWidth(normalizedSize.width);
-      setSimpleHeight(normalizedSize.height);
-      setSimpleResolutionSelection(inferResolutionSelection(normalizedSize.width, normalizedSize.height));
-      syncDimensionInputsForUi("simple", normalizedSize.width, normalizedSize.height);
-      return;
-    }
-
-    setProWidth(normalizedSize.width);
-    setProHeight(normalizedSize.height);
-    setProResolutionSelection(inferResolutionSelection(normalizedSize.width, normalizedSize.height));
-    syncDimensionInputsForUi("pro", normalizedSize.width, normalizedSize.height);
-  }, [inferResolutionSelection, syncDimensionInputsForUi]);
-
-  const clearSourceImageForUi = useCallback((targetUiMode: UiMode) => {
-    setModeForUi(targetUiMode, "txt2img");
-    clearInfillMaskForUi(targetUiMode);
-    if (targetUiMode === "simple") {
-      setSimpleSourceImageDataUrl("");
-      setSimpleSourceImageBase64("");
-      setSimpleSourceImageSize(null);
-      return;
-    }
-
-    setProSourceImageDataUrl("");
-    setProSourceImageBase64("");
-    setProSourceImageSize(null);
-  }, [clearInfillMaskForUi, setModeForUi]);
-
-  const applySourceImageForUi = useCallback((targetUiMode: UiMode, sourceImage: ImportedSourceImagePayload, successMessage?: string) => {
-    const nextSourceImageSize = sourceImage.width && sourceImage.height
-      ? { width: sourceImage.width, height: sourceImage.height }
-      : null;
-    setModeForUi(targetUiMode, "img2img");
-    clearInfillMaskForUi(targetUiMode);
-    if (targetUiMode === "simple") {
-      setSimpleSourceImageDataUrl(sourceImage.dataUrl);
-      setSimpleSourceImageBase64(sourceImage.imageBase64);
-      setSimpleSourceImageSize(nextSourceImageSize);
-    }
-    else {
-      setProSourceImageDataUrl(sourceImage.dataUrl);
-      setProSourceImageBase64(sourceImage.imageBase64);
-      setProSourceImageSize(nextSourceImageSize);
-    }
-
-    syncSourceImageSizeForUi(targetUiMode, sourceImage.width, sourceImage.height);
-    if (successMessage)
-      showSuccessToast(successMessage);
-  }, [clearInfillMaskForUi, setModeForUi, showSuccessToast, syncSourceImageSizeForUi]);
-
-  const resolveInfillMaskBase64ForUi = useCallback((targetUiMode: UiMode) => {
-    const dataUrl = targetUiMode === "simple" ? simpleInfillMaskDataUrl : proInfillMaskDataUrl;
-    return dataUrlToBase64(dataUrl) || "";
-  }, [proInfillMaskDataUrl, simpleInfillMaskDataUrl]);
-
-  const resolveSeparatedInfillMaskBase64ForUi = useCallback(async (targetUiMode: UiMode) => {
-    const dataUrl = targetUiMode === "simple" ? simpleInfillMaskDataUrl : proInfillMaskDataUrl;
-    if (!dataUrl)
-      return "";
-
-    const pixels = await readImagePixels(dataUrl);
-    const baseCanvas = document.createElement("canvas");
-    baseCanvas.width = pixels.width;
-    baseCanvas.height = pixels.height;
-    const baseContext = baseCanvas.getContext("2d");
-    if (!baseContext)
-      throw new Error("Inpaint 蒙版处理失败。");
-
-    // Inpaint 请求只发送独立的黑白 mask：圈内为白色重绘区，圈外为黑色保留区。
-    const solidMask = buildSolidInpaintMaskGrid(pixels.data, pixels.width, pixels.height, {
-      closeRadius: 3,
-    });
-    const maskBounds = findMaskGridBounds(solidMask, pixels.width, pixels.height);
-    const requestMask = maskBounds
-      ? buildRoundedRectMaskGrid(maskBounds, pixels.width, pixels.height, {
-          padding: clampIntRange(Math.round(Math.max(maskBounds.width, maskBounds.height) * 0.18), 18, 72, 36),
-          cornerRadius: clampIntRange(Math.round(Math.min(maskBounds.width, maskBounds.height) * 0.16), 12, 48, 24),
-        })
-      : solidMask;
-    const imageData = baseContext.createImageData(pixels.width, pixels.height);
-    imageData.data.set(renderMaskGridToRgba(requestMask));
-    baseContext.putImageData(imageData, 0, 0);
-
-    // 轻微扩张 + 羽化边缘，减少上游重绘时出现的方块灰边。
-    const expandRadius = 4;
-    const blurRadius = 4;
-    const expandedCanvas = document.createElement("canvas");
-    expandedCanvas.width = pixels.width;
-    expandedCanvas.height = pixels.height;
-    const expandedContext = expandedCanvas.getContext("2d");
-    if (!expandedContext)
-      throw new Error("Inpaint 蒙版扩张失败。");
-    expandedContext.fillStyle = "#000";
-    expandedContext.fillRect(0, 0, expandedCanvas.width, expandedCanvas.height);
-    for (let offsetY = -expandRadius; offsetY <= expandRadius; offsetY += 1) {
-      for (let offsetX = -expandRadius; offsetX <= expandRadius; offsetX += 1) {
-        if (offsetX * offsetX + offsetY * offsetY > expandRadius * expandRadius)
-          continue;
-        expandedContext.drawImage(baseCanvas, offsetX, offsetY);
-      }
-    }
-
-    const finalCanvas = document.createElement("canvas");
-    finalCanvas.width = pixels.width;
-    finalCanvas.height = pixels.height;
-    const finalContext = finalCanvas.getContext("2d");
-    if (!finalContext)
-      throw new Error("Inpaint 蒙版羽化失败。");
-    finalContext.fillStyle = "#000";
-    finalContext.fillRect(0, 0, finalCanvas.width, finalCanvas.height);
-    if ("filter" in finalContext)
-      finalContext.filter = `blur(${blurRadius}px)`;
-    finalContext.drawImage(expandedCanvas, 0, 0);
-    if ("filter" in finalContext)
-      finalContext.filter = "none";
-
-    return dataUrlToBase64(finalCanvas.toDataURL("image/png")) || "";
-  }, [proInfillMaskDataUrl, simpleInfillMaskDataUrl]);
-
-  const resolveBlendInfillMaskDataUrlForUi = useCallback(async (targetUiMode: UiMode) => {
-    const dataUrl = targetUiMode === "simple" ? simpleInfillMaskDataUrl : proInfillMaskDataUrl;
-    if (!dataUrl)
-      return "";
-
-    const pixels = await readImagePixels(dataUrl);
-    const baseCanvas = document.createElement("canvas");
-    baseCanvas.width = pixels.width;
-    baseCanvas.height = pixels.height;
-    const baseContext = baseCanvas.getContext("2d");
-    if (!baseContext)
-      throw new Error("Inpaint 混合蒙版处理失败。");
-
-    const solidMask = buildSolidInpaintMaskGrid(pixels.data, pixels.width, pixels.height, {
-      closeRadius: 1,
-    });
-    const maskBounds = findMaskGridBounds(solidMask, pixels.width, pixels.height);
-    const insetRadius = maskBounds
-      ? clampIntRange(Math.round(Math.min(maskBounds.width, maskBounds.height) * 0.04), 2, 12, 6)
-      : 6;
-    const blendMask = erodeMaskGrid(solidMask, pixels.width, pixels.height, insetRadius);
-    const imageData = baseContext.createImageData(pixels.width, pixels.height);
-    imageData.data.set(renderMaskGridToRgba(blendMask));
-    baseContext.putImageData(imageData, 0, 0);
-
-    const finalCanvas = document.createElement("canvas");
-    finalCanvas.width = pixels.width;
-    finalCanvas.height = pixels.height;
-    const finalContext = finalCanvas.getContext("2d");
-    if (!finalContext)
-      throw new Error("Inpaint 混合蒙版羽化失败。");
-    finalContext.fillStyle = "#000";
-    finalContext.fillRect(0, 0, finalCanvas.width, finalCanvas.height);
-    if ("filter" in finalContext)
-      finalContext.filter = "blur(2px)";
-    finalContext.drawImage(baseCanvas, 0, 0);
-    if ("filter" in finalContext)
-      finalContext.filter = "none";
-
-    return finalCanvas.toDataURL("image/png");
-  }, [proInfillMaskDataUrl, simpleInfillMaskDataUrl]);
-
-  useEffect(() => {
-    if (mode !== "infill")
-      return;
-    if (!sourceImageDataUrl || !sourceImageBase64 || !infillMaskDataUrl)
-      setModeForUi(uiMode, sourceImageDataUrl ? "img2img" : "txt2img");
-  }, [infillMaskDataUrl, mode, setModeForUi, sourceImageBase64, sourceImageDataUrl, uiMode]);
-
-  const restoreSourceImageForUi = useCallback((targetUiMode: UiMode, args: {
-    dataUrl?: string | null;
-    name?: string;
-    width?: number | null;
-    height?: number | null;
-  }) => {
-    const sourceImage = buildImportedSourceImagePayloadFromDataUrl({
-      dataUrl: String(args.dataUrl || ""),
-      name: args.name,
-      width: args.width,
-      height: args.height,
-    });
-
-    if (!sourceImage) {
-      clearSourceImageForUi(targetUiMode);
-      return false;
-    }
-
-    applySourceImageForUi(targetUiMode, sourceImage);
-    return true;
-  }, [applySourceImageForUi, clearSourceImageForUi]);
 
   useEffect(() => {
     if (!selectedPreviewResult && isPreviewImageModalOpen)
@@ -770,98 +480,20 @@ export function useAiImagePageController() {
   }, [pinnedPreviewKey, pinnedPreviewResult]);
 
   useEffect(() => {
-    if (!samplerOptions.includes(proSampler as any))
-      setProSampler(samplerOptions[0]);
-  }, [proSampler, samplerOptions]);
-
-  useEffect(() => {
-    if (!noiseScheduleOptions.length)
+    if (simpleEditorMode !== "tags")
       return;
-    if (!noiseScheduleOptions.includes(proNoiseSchedule as any))
-      setProNoiseSchedule(noiseScheduleOptions[0]);
-  }, [proNoiseSchedule, noiseScheduleOptions]);
-
-  useEffect(() => {
-    if (proImageCount > imageCountLimit)
-      setProImageCount(imageCountLimit);
-  }, [imageCountLimit, proImageCount]);
-
-  useEffect(() => {
-    if (uiMode !== "simple" || simpleResolutionSelection === CUSTOM_RESOLUTION_ID)
-      return;
-    const matchedPresetId = inferResolutionSelection(simpleWidth, simpleHeight);
-    if (matchedPresetId !== simpleResolutionSelection)
-      setSimpleResolutionSelection(matchedPresetId);
-  }, [inferResolutionSelection, simpleHeight, simpleResolutionSelection, simpleWidth, uiMode]);
-
-  useEffect(() => {
-    if (uiMode !== "pro" || proResolutionSelection === CUSTOM_RESOLUTION_ID)
-      return;
-    const matchedPresetId = inferResolutionSelection(proWidth, proHeight);
-    if (matchedPresetId !== proResolutionSelection)
-      setProResolutionSelection(matchedPresetId);
-  }, [inferResolutionSelection, proHeight, proResolutionSelection, proWidth, uiMode]);
-
-  useEffect(() => {
-    if (uiMode !== "simple" || simpleResolutionSelection !== CUSTOM_RESOLUTION_ID)
+    if (shouldKeepSimpleTagsEditor({
+      mode: simpleMode,
+      prompt: simplePrompt,
+      negativePrompt: simpleNegativePrompt,
+      hasConvertedDraft: Boolean(simpleConverted),
+    }))
       return;
 
-    const nextWidth = clampCustomDimensionInput(simpleWidth, DEFAULT_SIMPLE_IMAGE_SETTINGS.width);
-    const nextHeight = clampCustomDimensionInput(simpleHeight, DEFAULT_SIMPLE_IMAGE_SETTINGS.height);
-
-    if (nextWidth === simpleWidth && nextHeight === simpleHeight)
-      return;
-
-    setSimpleWidth(nextWidth);
-    setSimpleHeight(nextHeight);
-    syncDimensionInputsForUi("simple", nextWidth, nextHeight);
-  }, [clampCustomDimensionInput, simpleHeight, simpleResolutionSelection, simpleWidth, syncDimensionInputsForUi, uiMode]);
-
-  useEffect(() => {
-    if (uiMode !== "pro" || proResolutionSelection !== CUSTOM_RESOLUTION_ID)
-      return;
-
-    const nextWidth = clampCustomDimensionInput(proWidth, DEFAULT_PRO_IMAGE_SETTINGS.width);
-    const nextHeight = clampCustomDimensionInput(proHeight, DEFAULT_PRO_IMAGE_SETTINGS.height);
-
-    if (nextWidth === proWidth && nextHeight === proHeight)
-      return;
-
-    setProWidth(nextWidth);
-    setProHeight(nextHeight);
-    syncDimensionInputsForUi("pro", nextWidth, nextHeight);
-  }, [clampCustomDimensionInput, proHeight, proResolutionSelection, proWidth, syncDimensionInputsForUi, uiMode]);
-
-  const applyModeStrengthAndNoise = useCallback((targetUiMode: UiMode, targetMode: AiImageHistoryMode | undefined, nextStrength: number | undefined, nextNoise: number | undefined) => {
-    const normalizedMode = targetMode === "infill" ? "infill" : "img2img";
-    if (targetUiMode === "simple") {
-      if (normalizedMode === "infill") {
-        if (nextStrength != null)
-          setSimpleInfillStrength(clampRange(nextStrength, 0.01, 1, DEFAULT_INPAINT_STRENGTH));
-        if (nextNoise != null)
-          setSimpleInfillNoise(clampRange(nextNoise, 0, 0.99, DEFAULT_INPAINT_NOISE));
-        return;
-      }
-      if (nextStrength != null)
-        setSimpleImg2imgStrength(clampRange(nextStrength, 0.01, 1, DEFAULT_SIMPLE_IMAGE_SETTINGS.strength));
-      if (nextNoise != null)
-        setSimpleImg2imgNoise(clampRange(nextNoise, 0, 0.99, DEFAULT_SIMPLE_IMAGE_SETTINGS.noise));
-      return;
-    }
-
-    if (normalizedMode === "infill") {
-      if (nextStrength != null)
-        setProInfillStrength(clampRange(nextStrength, 0.01, 1, DEFAULT_INPAINT_STRENGTH));
-      if (nextNoise != null)
-        setProInfillNoise(clampRange(nextNoise, 0, 0.99, DEFAULT_INPAINT_NOISE));
-      return;
-    }
-
-    if (nextStrength != null)
-      setProImg2imgStrength(clampRange(nextStrength, 0.01, 1, DEFAULT_PRO_IMAGE_SETTINGS.strength));
-    if (nextNoise != null)
-      setProImg2imgNoise(clampRange(nextNoise, 0, 0.99, DEFAULT_PRO_IMAGE_SETTINGS.noise));
-  }, []);
+    setSimpleConvertedFromText("");
+    setSimpleEditorMode("text");
+    setSimplePromptTab("prompt");
+  }, [simpleConverted, simpleEditorMode, simpleMode, simpleNegativePrompt, simplePrompt]);
 
   const applyImportedMetadata = useCallback((metadata: NovelAiImageMetadataResult, selection: MetadataImportSelectionState) => {
     applyImportedMetadataAction({
@@ -1102,7 +734,7 @@ export function useAiImagePageController() {
       return;
 
     if (target === "img2img") {
-      applySourceImageForUi(uiMode, pendingMetadataImport.sourceImage, "已设置 Base Img。");
+      applySourceImageForUi(uiMode, pendingMetadataImport.sourceImage, "Base image applied.");
     }
 
     setPendingMetadataImport(null);
@@ -1129,13 +761,13 @@ export function useAiImagePageController() {
 
   const handlePickVibeReferences = useCallback(async (files: FileList | File[]) => {
     void files;
-    showErrorToast(getNovelAiFreeOnlyMessage("Vibe Transfer 已禁用。"));
+    showErrorToast(getNovelAiFreeOnlyMessage("Vibe Transfer is disabled."));
     setProFeatureSectionOpen("vibeTransfer", true);
   }, [setProFeatureSectionOpen, showErrorToast]);
 
   const handlePickPreciseReference = useCallback(async (file: File) => {
     void file;
-    showErrorToast(getNovelAiFreeOnlyMessage("Precise Reference 已禁用。"));
+    showErrorToast(getNovelAiFreeOnlyMessage("Precise Reference is disabled."));
     setProFeatureSectionOpen("preciseReference", true);
   }, [setProFeatureSectionOpen, showErrorToast]);
 
@@ -1155,13 +787,13 @@ export function useAiImagePageController() {
       height: selectedPreviewResult.height,
     });
     if (!sourceImage) {
-      showErrorToast("当前预览图片读取失败，无法设置为 Base Img。");
+      showErrorToast("Failed to read preview image as base image.");
       return false;
     }
 
     applySourceImageForUi(uiMode, sourceImage);
     if (showToast)
-      showSuccessToast("已把当前预览设置为 Base Img。");
+      showSuccessToast("Preview applied as base image.");
     return true;
   }, [applySourceImageForUi, selectedPreviewResult, showErrorToast, showSuccessToast, uiMode]);
 
@@ -1231,7 +863,7 @@ export function useAiImagePageController() {
     const files = extractImageFilesFromTransfer(event.dataTransfer);
     if (!files.length) {
       setIsDirectorImageDragOver(false);
-      showErrorToast("拖拽导入目前只支持图片文件。");
+      showErrorToast("Drag-and-drop currently supports image files only.");
       return;
     }
 
@@ -1244,7 +876,7 @@ export function useAiImagePageController() {
       return;
     setDirectorSourcePreview(selectedPreviewResult);
     setDirectorOutputPreview(null);
-    showSuccessToast("已把当前预览同步为导演工具输入图。");
+    showSuccessToast("Synced the current preview to the director input.");
   }, [selectedPreviewResult, showSuccessToast]);
 
   const handleToggleDirectorTools = useCallback(() => {
@@ -1265,7 +897,7 @@ export function useAiImagePageController() {
     if (!selectedPreviewResult)
       return;
 
-    showErrorToast(getNovelAiFreeOnlyMessage("Upscale 已禁用。"));
+    showErrorToast(getNovelAiFreeOnlyMessage("Upscale is disabled."));
   }, [selectedPreviewResult, showErrorToast]);
 
   const handleRunDirectorTool = useCallback(async () => {
@@ -1634,7 +1266,7 @@ export function useAiImagePageController() {
   const handleSimpleConvertToTags = useCallback(async () => {
     const trimmed = simpleText.trim();
     if (!trimmed) {
-      showErrorToast("请先输入一行自然语言描述");
+      showErrorToast("Please enter a natural-language prompt first.");
       return;
     }
 
@@ -1659,7 +1291,7 @@ export function useAiImagePageController() {
 
   const handleAcceptSimpleConverted = useCallback(() => {
     if (!simpleConverted?.prompt.trim()) {
-      showErrorToast("转换结果为空：请重新转化后再试");
+      showErrorToast("Converted result is empty. Please try again.");
       return;
     }
 
@@ -1685,7 +1317,7 @@ export function useAiImagePageController() {
 
   const handleReturnToSimpleTags = useCallback(() => {
     if (!sanitizeNovelAiTagInput(simplePrompt) && !sanitizeNovelAiTagInput(simpleNegativePrompt)) {
-      showErrorToast("当前没有可返回的 tags");
+      showErrorToast("There are no tags to return to.");
       return;
     }
     setSimpleConverted(null);
@@ -1697,7 +1329,7 @@ export function useAiImagePageController() {
   const handleSimpleGenerateFromTags = useCallback(async () => {
     const nextGenerateMode = resolveSimpleGenerateMode(mode);
     if (nextGenerateMode === "txt2img" && !sanitizeNovelAiTagInput(simplePrompt)) {
-      showErrorToast("prompt 为空：请先补充 tags");
+      showErrorToast("Prompt is empty. Please complete the tags first.");
       return;
     }
     await runGenerate({ mode: nextGenerateMode, prompt: simplePrompt, negativePrompt: simpleNegativePrompt });
@@ -1750,7 +1382,7 @@ export function useAiImagePageController() {
     if (!image)
       return;
     if (typeof navigator === "undefined" || !navigator.clipboard?.write || typeof ClipboardItem === "undefined") {
-      showErrorToast("当前环境不支持复制图片到剪贴板。");
+      showErrorToast("Clipboard image copy is not supported in this environment.");
       return;
     }
 
@@ -1767,7 +1399,7 @@ export function useAiImagePageController() {
       showSuccessToast(successMessage);
     }
     catch {
-      showErrorToast("复制图片失败，请重试。");
+      showErrorToast("Failed to copy image. Please try again.");
     }
   }, [showErrorToast, showSuccessToast]);
 
@@ -1783,20 +1415,20 @@ export function useAiImagePageController() {
   const handleRunDirectorInputUpscale = useCallback(async () => {
     if (!directorInputPreview)
       return;
-    showErrorToast(getNovelAiFreeOnlyMessage("Upscale 已禁用。"));
+    showErrorToast(getNovelAiFreeOnlyMessage("Upscale is disabled."));
   }, [directorInputPreview, showErrorToast]);
 
   const handleAddDirectorDisplayedToSourceRail = useCallback(() => {
     if (addDirectorImageToSourceRail(directorOutputPreview ?? selectedPreviewResult))
-      showSuccessToast("已把当前右侧图片加入左侧栏。");
+      showSuccessToast("Added the current right-side image to the source rail.");
   }, [addDirectorImageToSourceRail, directorOutputPreview, selectedPreviewResult, showSuccessToast]);
 
   const handleCopyDirectorInputImage = useCallback(async () => {
-    await copyGeneratedImageToClipboard(directorInputPreview, "已复制当前左侧图片。");
+    await copyGeneratedImageToClipboard(directorInputPreview, "Copied the current left image.");
   }, [copyGeneratedImageToClipboard, directorInputPreview]);
 
   const handleCopyDirectorOutputImage = useCallback(async () => {
-    await copyGeneratedImageToClipboard(directorOutputPreview ?? selectedPreviewResult, "已复制当前右侧图片。");
+    await copyGeneratedImageToClipboard(directorOutputPreview ?? selectedPreviewResult, "Copied the current right image.");
   }, [copyGeneratedImageToClipboard, directorOutputPreview, selectedPreviewResult]);
 
   const handleDownloadDirectorOutputImage = useCallback(() => {
@@ -1832,6 +1464,33 @@ export function useAiImagePageController() {
       showSuccessToast,
     });
   }, [pinnedPreviewResult, showSuccessToast, uiMode]);
+  const handleOpenPreviewImage = useCallback(() => {
+    openPreviewImageAction({
+      selectedPreviewResult,
+      setIsPreviewImageModalOpen,
+    });
+  }, [selectedPreviewResult]);
+  const handleTogglePinnedPreview = useCallback(() => {
+    togglePinnedPreviewAction({
+      selectedPreviewResult,
+      selectedPreviewIdentityKey,
+      pinnedPreviewKey,
+      setPinnedPreviewKey,
+      showSuccessToast,
+    });
+  }, [pinnedPreviewKey, selectedPreviewIdentityKey, selectedPreviewResult, showSuccessToast]);
+  const handleApplySelectedPreviewSeed = useCallback(() => {
+    applySelectedPreviewSeedAction({
+      selectedPreviewResult,
+      uiMode,
+      setSimpleSeed,
+      setProSeed,
+      showSuccessToast,
+    });
+  }, [selectedPreviewResult, showSuccessToast, uiMode]);
+  const handleCopySelectedPreviewImage = useCallback(async () => {
+    await copyGeneratedImageToClipboard(selectedPreviewResult, "Copied the current image.");
+  }, [copyGeneratedImageToClipboard, selectedPreviewResult]);
   const handleApplyHistorySettings = useCallback((row: AiImageHistoryRow, clickMode: Exclude<HistoryRowClickMode, "preview">) => {
     applyHistorySettingsAction({
       row,
@@ -1958,27 +1617,6 @@ export function useAiImagePageController() {
     triggerBlobDownload(new Blob([archive], { type: "application/zip" }), `nai_history_${Date.now()}.zip`);
   }, [history]);
 
-  const handleToggleStyle = useCallback((id: string) => {
-    setStyleSelectionMode("select");
-    setSelectedStyleIds((prev) => {
-      if (prev.includes(id))
-        return prev.filter(item => item !== id);
-      return [...prev, id];
-    });
-  }, []);
-
-  const handleSelectCompareStyle = useCallback((id: string) => {
-    setStyleSelectionMode("compare");
-    setCompareStyleId((prev) => {
-      if (prev === id)
-        return null;
-      return id;
-    });
-  }, []);
-
-  const handleClearStyles = useCallback(() => {
-    setSelectedStyleIds([]);
-  }, []);
 
   const handleClearSimpleDraft = useCallback(() => {
     clearSourceImageForUi("simple");
@@ -2003,16 +1641,9 @@ export function useAiImagePageController() {
     setPendingMetadataImport(null);
     setMetadataImportSelection(DEFAULT_METADATA_IMPORT_SELECTION);
     setIsPageImageDragOver(false);
-    showSuccessToast("已恢复快速模式默认状态。");
+    showSuccessToast("Reset simple mode to defaults.");
   }, [clearSourceImageForUi, showSuccessToast]);
 
-  const handleClearActiveStyles = useCallback(() => {
-    if (styleSelectionMode === "compare") {
-      setCompareStyleId(null);
-      return;
-    }
-    setSelectedStyleIds([]);
-  }, [styleSelectionMode]);
 
   const handleAddV4Char = useCallback((options?: { defaultPrompt?: string; gender?: V4CharGender }) => {
     const row = {
@@ -2086,306 +1717,6 @@ export function useAiImagePageController() {
     setVibeTransferReferences(prev => prev.filter(item => item.id !== id));
   }, []);
 
-  const activeResolutionPreset = useMemo(() => {
-    return RESOLUTION_PRESETS.find(item => item.width === proWidth && item.height === proHeight) || null;
-  }, [proHeight, proWidth]);
-  const simpleResolutionArea = simpleWidth * simpleHeight;
-
-  const handleSelectSimpleResolutionPreset = useCallback((selection: ResolutionSelection) => {
-    if (selection === CUSTOM_RESOLUTION_ID) {
-      setSimpleResolutionSelection(CUSTOM_RESOLUTION_ID);
-      return;
-    }
-    const preset = RESOLUTION_PRESETS.find(item => item.id === selection);
-    if (!preset)
-      return;
-    setSimpleResolutionSelection(preset.id);
-    setSimpleWidth(preset.width);
-    setSimpleHeight(preset.height);
-    syncDimensionInputsForUi("simple", preset.width, preset.height);
-  }, [syncDimensionInputsForUi]);
-
-  const handleSelectProResolutionPreset = useCallback((selection: ResolutionSelection) => {
-    if (selection === CUSTOM_RESOLUTION_ID) {
-      setProResolutionSelection(CUSTOM_RESOLUTION_ID);
-      return;
-    }
-    const preset = RESOLUTION_PRESETS.find(item => item.id === selection);
-    if (!preset)
-      return;
-    setProResolutionSelection(preset.id);
-    setProWidth(preset.width);
-    setProHeight(preset.height);
-    syncDimensionInputsForUi("pro", preset.width, preset.height);
-  }, [syncDimensionInputsForUi]);
-
-  const handleSimpleWidthChange = useCallback((value: string) => {
-    setSimpleResolutionSelection(CUSTOM_RESOLUTION_ID);
-    const trimmedValue = value.trim();
-    setSimpleWidthInput(trimmedValue);
-    if (!trimmedValue)
-      return;
-    const nextHeight = clampCustomDimensionInput(simpleHeight, DEFAULT_SIMPLE_IMAGE_SETTINGS.height);
-    const nextWidth = clampCustomDimensionInput(trimmedValue, simpleWidth || DEFAULT_SIMPLE_IMAGE_SETTINGS.width);
-    setSimpleWidth(nextWidth);
-    setSimpleHeight(nextHeight);
-    syncDimensionInputsForUi("simple", nextWidth, nextHeight);
-  }, [clampCustomDimensionInput, simpleHeight, simpleWidth, syncDimensionInputsForUi]);
-
-  const handleProWidthChange = useCallback((value: string) => {
-    setProResolutionSelection(CUSTOM_RESOLUTION_ID);
-    const trimmedValue = value.trim();
-    setProWidthInput(trimmedValue);
-    if (!trimmedValue)
-      return;
-    const nextHeight = clampCustomDimensionInput(proHeight, DEFAULT_PRO_IMAGE_SETTINGS.height);
-    const nextWidth = clampCustomDimensionInput(trimmedValue, proWidth || DEFAULT_PRO_IMAGE_SETTINGS.width);
-    setProWidth(nextWidth);
-    setProHeight(nextHeight);
-    syncDimensionInputsForUi("pro", nextWidth, nextHeight);
-  }, [clampCustomDimensionInput, proHeight, proWidth, syncDimensionInputsForUi]);
-
-  const handleSimpleHeightChange = useCallback((value: string) => {
-    setSimpleResolutionSelection(CUSTOM_RESOLUTION_ID);
-    const trimmedValue = value.trim();
-    setSimpleHeightInput(trimmedValue);
-    if (!trimmedValue)
-      return;
-    const nextWidth = clampCustomDimensionInput(simpleWidth, DEFAULT_SIMPLE_IMAGE_SETTINGS.width);
-    const nextHeight = clampCustomDimensionInput(trimmedValue, simpleHeight || DEFAULT_SIMPLE_IMAGE_SETTINGS.height);
-    setSimpleWidth(nextWidth);
-    setSimpleHeight(nextHeight);
-    syncDimensionInputsForUi("simple", nextWidth, nextHeight);
-  }, [clampCustomDimensionInput, simpleHeight, simpleWidth, syncDimensionInputsForUi]);
-
-  const handleProHeightChange = useCallback((value: string) => {
-    setProResolutionSelection(CUSTOM_RESOLUTION_ID);
-    const trimmedValue = value.trim();
-    setProHeightInput(trimmedValue);
-    if (!trimmedValue)
-      return;
-    const nextWidth = clampCustomDimensionInput(proWidth, DEFAULT_PRO_IMAGE_SETTINGS.width);
-    const nextHeight = clampCustomDimensionInput(trimmedValue, proHeight || DEFAULT_PRO_IMAGE_SETTINGS.height);
-    setProWidth(nextWidth);
-    setProHeight(nextHeight);
-    syncDimensionInputsForUi("pro", nextWidth, nextHeight);
-  }, [clampCustomDimensionInput, proHeight, proWidth, syncDimensionInputsForUi]);
-
-  const handleSwapImageDimensions = useCallback(() => {
-    const nextWidth = clampCustomDimensionInput(proHeight, DEFAULT_PRO_IMAGE_SETTINGS.height);
-    const nextHeight = clampCustomDimensionInput(proWidth, DEFAULT_PRO_IMAGE_SETTINGS.width);
-    setProWidth(nextWidth);
-    setProHeight(nextHeight);
-    setProResolutionSelection(CUSTOM_RESOLUTION_ID);
-    syncDimensionInputsForUi("pro", nextWidth, nextHeight);
-  }, [clampCustomDimensionInput, proHeight, proWidth, syncDimensionInputsForUi]);
-
-  const handleCommitSimpleDimensions = useCallback(() => {
-    commitRoundedDimensionsForUi("simple");
-  }, [commitRoundedDimensionsForUi]);
-
-  const handleCommitProDimensions = useCallback(() => {
-    commitRoundedDimensionsForUi("pro");
-  }, [commitRoundedDimensionsForUi]);
-
-  const handleCropToClosestValidSize = useCallback(async () => {
-    let targetWidth = proWidth;
-    let targetHeight = proHeight;
-
-    if (sourceImageDataUrl) {
-      try {
-        const sourceSize = await readImageSize(sourceImageDataUrl);
-        targetWidth = sourceSize.width;
-        targetHeight = sourceSize.height;
-      }
-      catch {
-        // 读取源图尺寸失败时退回当前输入框数值。
-      }
-    }
-
-    const normalizedSize = fitNovelAiImageSizeWithinAreaLimit(targetWidth, targetHeight);
-    setProWidth(normalizedSize.width);
-    setProHeight(normalizedSize.height);
-    setProResolutionSelection(inferResolutionSelection(normalizedSize.width, normalizedSize.height));
-    syncDimensionInputsForUi("pro", normalizedSize.width, normalizedSize.height);
-    showSuccessToast(sourceImageDataUrl ? "已按 Base Img 裁到最近合法尺寸。" : "已把当前尺寸裁到最近合法尺寸。");
-  }, [inferResolutionSelection, proHeight, proWidth, showSuccessToast, sourceImageDataUrl, syncDimensionInputsForUi]);
-
-  const handleResetCurrentImageSettings = useCallback(() => {
-    if (uiMode === "simple") {
-      setSimpleWidth(DEFAULT_SIMPLE_IMAGE_SETTINGS.width);
-      setSimpleHeight(DEFAULT_SIMPLE_IMAGE_SETTINGS.height);
-      setSimpleImg2imgStrength(DEFAULT_SIMPLE_IMAGE_SETTINGS.strength);
-      setSimpleImg2imgNoise(DEFAULT_SIMPLE_IMAGE_SETTINGS.noise);
-      setSimpleInfillStrength(DEFAULT_INPAINT_STRENGTH);
-      setSimpleInfillNoise(DEFAULT_INPAINT_NOISE);
-      setSimpleSeed(DEFAULT_SIMPLE_IMAGE_SETTINGS.seed);
-      setSimpleResolutionSelection(DEFAULT_SIMPLE_IMAGE_SETTINGS.simpleResolutionSelection);
-      syncDimensionInputsForUi("simple", DEFAULT_SIMPLE_IMAGE_SETTINGS.width, DEFAULT_SIMPLE_IMAGE_SETTINGS.height);
-      showSuccessToast("已重置快速模式图像设置。");
-      return;
-    }
-
-    setProWidth(DEFAULT_PRO_IMAGE_SETTINGS.width);
-    setProHeight(DEFAULT_PRO_IMAGE_SETTINGS.height);
-    setProImageCount(DEFAULT_PRO_IMAGE_SETTINGS.imageCount);
-    setProSteps(DEFAULT_PRO_IMAGE_SETTINGS.steps);
-    setProScale(DEFAULT_PRO_IMAGE_SETTINGS.scale);
-    setProSampler(DEFAULT_PRO_IMAGE_SETTINGS.sampler);
-    setProNoiseSchedule(DEFAULT_PRO_IMAGE_SETTINGS.noiseSchedule);
-    setProCfgRescale(DEFAULT_PRO_IMAGE_SETTINGS.cfgRescale);
-    setProUcPreset(DEFAULT_PRO_IMAGE_SETTINGS.ucPreset);
-    setProQualityToggle(DEFAULT_PRO_IMAGE_SETTINGS.qualityToggle);
-    setProDynamicThresholding(DEFAULT_PRO_IMAGE_SETTINGS.dynamicThresholding);
-    setProSmea(DEFAULT_PRO_IMAGE_SETTINGS.smea);
-    setProSmeaDyn(DEFAULT_PRO_IMAGE_SETTINGS.smeaDyn);
-    setProImg2imgStrength(DEFAULT_PRO_IMAGE_SETTINGS.strength);
-    setProImg2imgNoise(DEFAULT_PRO_IMAGE_SETTINGS.noise);
-    setProInfillStrength(DEFAULT_INPAINT_STRENGTH);
-    setProInfillNoise(DEFAULT_INPAINT_NOISE);
-    setProSeed(DEFAULT_PRO_IMAGE_SETTINGS.seed);
-    setProResolutionSelection(DEFAULT_PRO_IMAGE_SETTINGS.simpleResolutionSelection);
-    syncDimensionInputsForUi("pro", DEFAULT_PRO_IMAGE_SETTINGS.width, DEFAULT_PRO_IMAGE_SETTINGS.height);
-    showSuccessToast("已重置当前图像设置。");
-  }, [showSuccessToast, syncDimensionInputsForUi, uiMode]);
-
-  const handleClearSeed = useCallback(() => {
-    if (uiMode === "simple")
-      setSimpleSeed(DEFAULT_SIMPLE_IMAGE_SETTINGS.seed);
-    else
-      setProSeed(DEFAULT_PRO_IMAGE_SETTINGS.seed);
-  }, [uiMode]);
-
-  const handleOpenPreviewImage = useCallback(() => {
-    openPreviewImageAction({
-      selectedPreviewResult,
-      setIsPreviewImageModalOpen,
-    });
-  }, [selectedPreviewResult]);
-
-  const handleTogglePinnedPreview = useCallback(() => {
-    togglePinnedPreviewAction({
-      selectedPreviewResult,
-      selectedPreviewIdentityKey,
-      pinnedPreviewKey,
-      setPinnedPreviewKey,
-      showSuccessToast,
-    });
-  }, [pinnedPreviewKey, selectedPreviewIdentityKey, selectedPreviewResult, showSuccessToast]);
-
-  const handleApplySelectedPreviewSeed = useCallback(() => {
-    applySelectedPreviewSeedAction({
-      selectedPreviewResult,
-      uiMode,
-      setSimpleSeed,
-      setProSeed,
-      showSuccessToast,
-    });
-  }, [selectedPreviewResult, showSuccessToast, uiMode]);
-  const handleCopySelectedPreviewImage = useCallback(async () => {
-    await copyGeneratedImageToClipboard(selectedPreviewResult, "已复制当前图片。");
-  }, [copyGeneratedImageToClipboard, selectedPreviewResult]);
-
-  const setWidth = useCallback((value: number) => {
-    if (uiMode === "simple") {
-      setSimpleWidth(value);
-      return;
-    }
-    setProWidth(value);
-  }, [uiMode]);
-
-  const setHeight = useCallback((value: number) => {
-    if (uiMode === "simple") {
-      setSimpleHeight(value);
-      return;
-    }
-    setProHeight(value);
-  }, [uiMode]);
-
-  const setImageCount = useCallback((value: number) => {
-    setProImageCount(value);
-  }, []);
-
-  const setSteps = useCallback((value: number) => {
-    setProSteps(value);
-  }, []);
-
-  const setScale = useCallback((value: number) => {
-    setProScale(value);
-  }, []);
-
-  const setSampler = useCallback((value: string) => {
-    setProSampler(value);
-  }, []);
-
-  const setNoiseSchedule = useCallback((value: string) => {
-    setProNoiseSchedule(value);
-  }, []);
-
-  const setCfgRescale = useCallback((value: number) => {
-    setProCfgRescale(value);
-  }, []);
-
-  const setUcPreset = useCallback((value: number) => {
-    setProUcPreset(value);
-  }, []);
-
-  const setQualityToggle = useCallback((value: boolean) => {
-    setProQualityToggle(value);
-  }, []);
-
-  const setDynamicThresholding = useCallback((value: boolean) => {
-    setProDynamicThresholding(value);
-  }, []);
-
-  const setSmea = useCallback((value: boolean) => {
-    setProSmea(value);
-  }, []);
-
-  const setSmeaDyn = useCallback((value: boolean) => {
-    setProSmeaDyn(value);
-  }, []);
-
-  const setStrength = useCallback((value: number) => {
-    if (mode === "infill") {
-      if (uiMode === "simple") {
-        setSimpleInfillStrength(value);
-        return;
-      }
-      setProInfillStrength(value);
-      return;
-    }
-    if (uiMode === "simple") {
-      setSimpleImg2imgStrength(value);
-      return;
-    }
-    setProImg2imgStrength(value);
-  }, [mode, uiMode]);
-
-  const setNoise = useCallback((value: number) => {
-    if (mode === "infill") {
-      if (uiMode === "simple") {
-        setSimpleInfillNoise(value);
-        return;
-      }
-      setProInfillNoise(value);
-      return;
-    }
-    if (uiMode === "simple") {
-      setSimpleImg2imgNoise(value);
-      return;
-    }
-    setProImg2imgNoise(value);
-  }, [mode, uiMode]);
-
-  const setSeed = useCallback((value: number) => {
-    if (uiMode === "simple") {
-      setSimpleSeed(value);
-      return;
-    }
-    setProSeed(value);
-  }, [uiMode]);
-
   const isBusy = loading || simpleConverting || Boolean(pendingPreviewAction);
   const freeGenerationViolation = getNovelAiFreeGenerationViolation({
     mode,
@@ -2403,44 +1734,15 @@ export function useAiImagePageController() {
   const canGenerate = !isBusy && !freeGenerationViolation && hasCompleteDimensionInputs;
   const canTriggerProGenerate = canGenerate;
   const proGenerateLabel = loading || simpleConverting
-    ? "生成中..."
+    ? "Working..."
     : pendingPreviewAction
-      ? `${PREVIEW_ACTION_LABELS[pendingPreviewAction]}中...`
-      : "免费生成 1 张图像";
-  const currentResultCards = useMemo(() => {
-    return results.map((item, index) => {
-      return {
-        item,
-        index,
-        row: historyRowByResultMatchKey.get(generatedItemKey(item)) || null,
-      };
-    });
-  }, [historyRowByResultMatchKey, results]);
-  const currentHistoryRowKeys = useMemo(() => {
-    return new Set(
-      currentResultCards
-        .map(card => (card.row ? historyRowKey(card.row) : null))
-        .filter((value): value is string => Boolean(value)),
-    );
-  }, [currentResultCards]);
-  const archivedHistoryRows = useMemo(() => {
-    return history.filter(row => !currentHistoryRowKeys.has(historyRowKey(row)));
-  }, [currentHistoryRowKeys, history]);
-  const previewMeta = selectedPreviewResult
-    ? [
-        selectedPreviewResult.toolLabel || selectedPreviewHistoryRow?.toolLabel || "",
-        `seed: ${selectedPreviewResult.seed}`,
-        `${selectedPreviewResult.width}×${selectedPreviewResult.height}`,
-      ].filter(Boolean).join(" · ")
-    : "";
-  const hasCurrentDisplayedImage = Boolean(selectedPreviewResult);
+      ? `${PREVIEW_ACTION_LABELS[pendingPreviewAction]}...`
+      : "Generate 1 image";
   const ucPresetEnabled = ucPreset !== 2;
-  const seedIsRandom = !Number.isFinite(seed) || seed < 0;
-  const fixedModelDescription = MODEL_DESCRIPTIONS[model] || "图像生成模型";
+  const fixedModelDescription = MODEL_DESCRIPTIONS[model] || "Image generation model";
   const hasReferenceConflict = vibeTransferReferences.length > 0 && Boolean(preciseReference);
-  // 对齐 NovelAI 当前入口行为：Vibe Transfer 与 Precise Reference 在 UI 上互斥，避免出现官方面板里不存在的参数组合。
   const canAddVibeReference = false;
-  const baseImageDescription = "Base Img / img2img 仍禁用；局部重绘请从右侧预览工具条进入 Inpaint。";
+  const baseImageDescription = "Base Img / img2img is disabled. Use Inpaint from the preview tools.";
   const characterPromptDescription = v4Chars.length
     ? "Click to edit a character."
     : "Customize separate characters.";
@@ -2461,7 +1763,7 @@ export function useAiImagePageController() {
   const simpleGenerateMode = resolveSimpleGenerateMode(mode);
   const canGenerateFromSimpleTags = canGenerate && (Boolean(sanitizeNovelAiTagInput(simplePrompt)) || simpleGenerateMode === "infill");
   const hasSimpleTagsDraft = Boolean(sanitizeNovelAiTagInput(simplePrompt) || sanitizeNovelAiTagInput(simpleNegativePrompt));
-  const simpleConvertLabel = simpleConverting ? "转化中..." : loading || pendingPreviewAction ? "处理中..." : "转化为 tags";
+  const simpleConvertLabel = simpleConverting ? "Converting..." : loading || pendingPreviewAction ? "Processing..." : "Convert to tags";
 
   const sidebarProps = buildSidebarProps({
     activeResolutionPreset,
@@ -2474,7 +1776,6 @@ export function useAiImagePageController() {
     cfgRescale,
     charPromptTabs,
     characterPromptDescription,
-    dynamicThresholding,
     fixedModelDescription,
     freeGenerationViolation,
     hasSimpleTagsDraft,
