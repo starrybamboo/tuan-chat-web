@@ -56,6 +56,10 @@ const BUILTIN_ANNOTATIONS: AnnotationDefinition[] = [
   { id: "effect.en_chat.webp", label: "en_chat", category: "特效", tone: "accent", source: "builtin", iconUrl: "/annotations/effects/en_chat.webp", hideLabel: true, effectFrames: 35, showInNormalMode: true },
   { id: "effect.en_getit.webp", label: "en_getit", category: "特效", tone: "accent", source: "builtin", iconUrl: "/annotations/effects/en_getit.webp", hideLabel: true, effectFrames: 20, showInNormalMode: true },
   { id: "effect.en_angry.webp", label: "en_angry", category: "特效", tone: "accent", source: "builtin", iconUrl: "/annotations/effects/en_angry.webp", hideLabel: true, effectFrames: 26, showInNormalMode: true },
+  { id: "effect.en_sleep.webp", label: "en_sleep", category: "特效", tone: "accent", source: "builtin", iconUrl: "/annotations/effects/en_sleep.webp", hideLabel: true, effectFrames: 26, showInNormalMode: true },
+  { id: "effect.en_cry.webp", label: "en_cry", category: "特效", tone: "accent", source: "builtin", iconUrl: "/annotations/effects/en_cry.webp", hideLabel: true, effectFrames: 26, showInNormalMode: true },
+  { id: "effect.en_dizzy.webp", label: "en_dizzy", category: "特效", tone: "accent", source: "builtin", iconUrl: "/annotations/effects/en_dizzy.webp", hideLabel: true, effectFrames: 26, showInNormalMode: true },
+  { id: "effect.en_heartbreak.webp", label: "en_heartbreak", category: "特效", tone: "accent", source: "builtin", iconUrl: "/annotations/effects/en_heartbreak.webp", hideLabel: true, effectFrames: 34, showInNormalMode: true },
 
   { id: "figure.mini-avatar", label: "小头像", category: "立绘", tone: "accent", source: "builtin", showInNormalMode: true },
   { id: "figure.anim.ba-exit-to-left", label: "从左退场", category: "立绘", tone: "accent", source: "builtin", icon: ExitToLeftIcon, hideLabel: true, showInNormalMode: true },
