@@ -32,6 +32,9 @@ import { ReferenceActionIcon } from "@/components/aiImage/ReferenceActionIcon";
 import { renderSimpleBaseImageSectionContent, renderProInfillSectionContent, renderSimpleInfillSectionContent } from "@/components/aiImage/sidebar/baseImageSections";
 import { renderProBottomSettingsDrawerContent } from "@/components/aiImage/sidebar/ProBottomSettingsDrawer";
 import { renderResolutionGlyph as renderResolutionGlyphContent } from "@/components/aiImage/sidebar/renderResolutionGlyph";
+import { useDelayedPresence } from "@/components/aiImage/sidebar/useDelayedPresence";
+import { useDismissibleLayer } from "@/components/aiImage/sidebar/useDismissibleLayer";
+import { useFloatingPanelPosition } from "@/components/aiImage/sidebar/useFloatingPanelPosition";
 import { SimpleEditorContent } from "@/components/aiImage/sidebar/SimpleEditorContent";
 import { ChevronDown } from "@/icons";
 import { ProFeatureSection } from "@/components/aiImage/ProFeatureSection";
@@ -55,6 +58,7 @@ const MODE_OPTIONS = [
 
 const MODE_MODEL_LABEL = "NAI Diffusion V4.5 Curated";
 const MODE_SELECTOR_TRANSITION_MS = 180;
+const RESOLUTION_OPTIONS = [...RESOLUTION_PRESETS, { id: CUSTOM_RESOLUTION_ID, label: "自定义" }] as const;
 type ModeOptionValue = (typeof MODE_OPTIONS)[number]["value"];
 
 export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
@@ -280,13 +284,11 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
   const baseImageRangeClassName = "mt-2 w-full cursor-pointer appearance-none bg-transparent focus:outline-none [&::-webkit-slider-runnable-track]:h-2 [&::-webkit-slider-runnable-track]:rounded-full [&::-webkit-slider-runnable-track]:bg-white/10 [&::-webkit-slider-thumb]:mt-[-4px] [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:border-0 [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:shadow-sm [&::-webkit-slider-thumb]:shadow-black/30 [&::-moz-range-track]:h-2 [&::-moz-range-track]:rounded-full [&::-moz-range-track]:bg-white/10 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:bg-white [&::-moz-range-thumb]:shadow-sm [&::-moz-range-thumb]:shadow-black/30";
   const simpleBaseImageAttachmentClassName = "mt-[2px] overflow-hidden !rounded-none border-x border-b border-[#D6DCE3] bg-[#F3F5F7] shadow-none dark:border-[#2A3138] dark:bg-[#161A1F]";
   const [isModeSelectorOpen, setIsModeSelectorOpen] = useState<boolean>(false);
-  const [isModeSelectorMounted, setIsModeSelectorMounted] = useState<boolean>(false);
   const [isProPromptSettingsOpen, setIsProPromptSettingsOpen] = useState<boolean>(false);
   const [isBaseImageToolsOpen, setIsBaseImageToolsOpen] = useState<boolean>(() => mode === "img2img" || mode === "infill");
   const [isProBottomSettingsOpen, setIsProBottomSettingsOpen] = useState<boolean>(false);
   const [isCharacterAddMenuOpen, setIsCharacterAddMenuOpen] = useState<boolean>(false);
   const [highlightEmphasisEnabled, setHighlightEmphasisEnabled] = useState<boolean>(true);
-  const [proPromptSettingsPosition, setProPromptSettingsPosition] = useState({ top: 96, left: 96 });
   const [isSimpleResolutionSelectorOpen, setIsSimpleResolutionSelectorOpen] = useState<boolean>(false);
   const [isProResolutionSelectorOpen, setIsProResolutionSelectorOpen] = useState<boolean>(false);
   const [characterPositionPickerState, setCharacterPositionPickerState] = useState<{ characterId: string; code: string } | null>(null);
@@ -299,13 +301,18 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
   const proPromptTextareaRef = useRef<HTMLTextAreaElement | null>(null);
   const simpleResolutionSelectorRef = useRef<HTMLDivElement | null>(null);
   const proResolutionSelectorRef = useRef<HTMLDivElement | null>(null);
+  const isModeSelectorMounted = useDelayedPresence(isModeSelectorOpen, MODE_SELECTOR_TRANSITION_MS);
+  const proPromptSettingsPosition = useFloatingPanelPosition({
+    isOpen: isProPromptSettingsOpen,
+    anchorRef: sidebarSurfaceRef,
+    targetRef: proPromptEditorPanelRef,
+  });
   const activeModeOption = MODE_OPTIONS.find(option => option.value === uiMode) ?? MODE_OPTIONS[0];
   const isSimplePreviewingConverted = Boolean(simpleConverted);
   const isSimpleTextEditor = simpleEditorMode === "text" && !isSimplePreviewingConverted;
   const isSimpleTagsEditor = simpleEditorMode === "tags";
-  const simpleResolutionOptions = [...RESOLUTION_PRESETS, { id: CUSTOM_RESOLUTION_ID, label: "自定义" }] as const;
-  const activeSimpleResolutionOption = simpleResolutionOptions.find(option => option.id === simpleResolutionSelection) ?? simpleResolutionOptions[simpleResolutionOptions.length - 1];
-  const activeProResolutionOption = simpleResolutionOptions.find(option => option.id === proResolutionSelection) ?? simpleResolutionOptions[simpleResolutionOptions.length - 1];
+  const activeSimpleResolutionOption = RESOLUTION_OPTIONS.find(option => option.id === simpleResolutionSelection) ?? RESOLUTION_OPTIONS[RESOLUTION_OPTIONS.length - 1];
+  const activeProResolutionOption = RESOLUTION_OPTIONS.find(option => option.id === proResolutionSelection) ?? RESOLUTION_OPTIONS[RESOLUTION_OPTIONS.length - 1];
   const simpleGenerateMode = resolveSimpleGenerateMode(mode);
   const hasReadySimpleTags = isSimpleTagsEditor && (hasSimpleTagsDraft || simpleGenerateMode === "infill");
   const hasGeneratedSimpleTags = hasSimpleTagsDraft || Boolean(simpleConverted);
@@ -314,8 +321,8 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
     : simpleConvertLabel !== "转化为 tags"
         ? simpleConvertLabel
         : hasGeneratedSimpleTags
-            ? "重新生成tags"
-            : "生成tags";
+            ? "重新生成 tags"
+            : "生成 tags";
   const canTriggerSimplePrimaryAction = hasReadySimpleTags ? canGenerateFromSimpleTags : canConvertSimpleText;
   const simplePrimaryActionToneClassName = hasReadySimpleTags
     ? "border-[#7C3AED] bg-[#7C3AED] text-white hover:bg-[#6D28D9]"
@@ -374,10 +381,25 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
     if (mode === "img2img" || mode === "infill")
       setIsBaseImageToolsOpen(true);
   }, [mode]);
+  const closeCharacterAddMenu = useCallback(() => {
+    setIsCharacterAddMenuOpen(false);
+  }, []);
+  const closeModeSelector = useCallback(() => {
+    setIsModeSelectorOpen(false);
+  }, []);
+  const closeSimpleResolutionSelector = useCallback(() => {
+    setIsSimpleResolutionSelectorOpen(false);
+  }, []);
+  const closeProResolutionSelector = useCallback(() => {
+    setIsProResolutionSelectorOpen(false);
+  }, []);
+  const closeProPromptSettings = useCallback(() => {
+    setIsProPromptSettingsOpen(false);
+  }, []);
   useEffect(() => {
     if (!proFeatureSections.characterPrompts)
-      setIsCharacterAddMenuOpen(false);
-  }, [proFeatureSections.characterPrompts]);
+      closeCharacterAddMenu();
+  }, [closeCharacterAddMenu, proFeatureSections.characterPrompts]);
   useEffect(() => {
     setCharacterPositionPickerState((prev) => {
       if (!prev)
@@ -389,189 +411,32 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
       return prev;
     });
   }, [isCharacterPositionAiChoiceEnabled, showCharacterPositionsGlobalSection, v4Chars]);
-  useEffect(() => {
-    if (!isCharacterAddMenuOpen)
-      return;
 
-    function handlePointerDown(event: PointerEvent) {
-      const container = characterAddMenuRef.current;
-      const target = event.target;
-      if (!container || !(target instanceof Node))
-        return;
-      if (!container.contains(target))
-        setIsCharacterAddMenuOpen(false);
-    }
-
-    function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape")
-        setIsCharacterAddMenuOpen(false);
-    }
-
-    document.addEventListener("pointerdown", handlePointerDown);
-    document.addEventListener("keydown", handleKeyDown);
-    return () => {
-      document.removeEventListener("pointerdown", handlePointerDown);
-      document.removeEventListener("keydown", handleKeyDown);
-    };
-  }, [isCharacterAddMenuOpen]);
-  useEffect(() => {
-    if (isModeSelectorOpen) {
-      setIsModeSelectorMounted(true);
-      return;
-    }
-
-    const timer = window.setTimeout(() => {
-      setIsModeSelectorMounted(false);
-    }, MODE_SELECTOR_TRANSITION_MS);
-    return () => window.clearTimeout(timer);
-  }, [isModeSelectorOpen]);
-
-  useEffect(() => {
-    if (!isModeSelectorOpen)
-      return;
-
-    function handlePointerDown(event: PointerEvent) {
-      const container = modeSelectorContainerRef.current;
-      const target = event.target;
-      if (!container || !(target instanceof Node))
-        return;
-      if (!container.contains(target))
-        setIsModeSelectorOpen(false);
-    }
-
-    function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape")
-        setIsModeSelectorOpen(false);
-    }
-
-    document.addEventListener("pointerdown", handlePointerDown);
-    document.addEventListener("keydown", handleKeyDown);
-    return () => {
-      document.removeEventListener("pointerdown", handlePointerDown);
-      document.removeEventListener("keydown", handleKeyDown);
-    };
-  }, [isModeSelectorOpen]);
-
-  useEffect(() => {
-    if (!isSimpleResolutionSelectorOpen)
-      return;
-
-    function handlePointerDown(event: PointerEvent) {
-      const container = simpleResolutionSelectorRef.current;
-      const target = event.target;
-      if (!container || !(target instanceof Node))
-        return;
-      if (!container.contains(target))
-        setIsSimpleResolutionSelectorOpen(false);
-    }
-
-    function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape")
-        setIsSimpleResolutionSelectorOpen(false);
-    }
-
-    document.addEventListener("pointerdown", handlePointerDown);
-    document.addEventListener("keydown", handleKeyDown);
-    return () => {
-      document.removeEventListener("pointerdown", handlePointerDown);
-      document.removeEventListener("keydown", handleKeyDown);
-    };
-  }, [isSimpleResolutionSelectorOpen]);
-
-  useEffect(() => {
-    if (!isProResolutionSelectorOpen)
-      return;
-
-    function handlePointerDown(event: PointerEvent) {
-      const container = proResolutionSelectorRef.current;
-      const target = event.target;
-      if (!container || !(target instanceof Node))
-        return;
-      if (!container.contains(target))
-        setIsProResolutionSelectorOpen(false);
-    }
-
-    function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape")
-        setIsProResolutionSelectorOpen(false);
-    }
-
-    document.addEventListener("pointerdown", handlePointerDown);
-    document.addEventListener("keydown", handleKeyDown);
-    return () => {
-      document.removeEventListener("pointerdown", handlePointerDown);
-      document.removeEventListener("keydown", handleKeyDown);
-    };
-  }, [isProResolutionSelectorOpen]);
-
-  useEffect(() => {
-    if (!isProPromptSettingsOpen)
-      return;
-
-    function updatePanelPosition() {
-      const sidebarSurface = sidebarSurfaceRef.current;
-      const editorPanel = proPromptEditorPanelRef.current;
-      if (!sidebarSurface || !editorPanel)
-        return;
-
-      const panelWidth = 320;
-      const gap = 12;
-      const viewportPadding = 16;
-      const sidebarRect = sidebarSurface.getBoundingClientRect();
-      const editorPanelRect = editorPanel.getBoundingClientRect();
-      const maxLeft = Math.max(
-        viewportPadding,
-        window.innerWidth - panelWidth - viewportPadding,
-      );
-      const maxTop = Math.max(
-        viewportPadding,
-        window.innerHeight - 240,
-      );
-      const nextLeft = Math.max(
-        viewportPadding,
-        Math.min(
-          sidebarRect.right + gap,
-          maxLeft,
-        ),
-      );
-      const nextTop = Math.min(
-        Math.max(viewportPadding, editorPanelRect.top),
-        maxTop,
-      );
-
-      setProPromptSettingsPosition((prev) => {
-        if (prev.top === nextTop && prev.left === nextLeft)
-          return prev;
-        return { top: nextTop, left: nextLeft };
-      });
-    }
-
-    function handlePointerDown(event: PointerEvent) {
-      const container = proPromptSettingsRef.current;
-      const target = event.target;
-      if (!container || !(target instanceof Node))
-        return;
-      if (!container.contains(target))
-        setIsProPromptSettingsOpen(false);
-    }
-
-    function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape")
-        setIsProPromptSettingsOpen(false);
-    }
-
-    updatePanelPosition();
-    document.addEventListener("pointerdown", handlePointerDown);
-    document.addEventListener("keydown", handleKeyDown);
-    window.addEventListener("resize", updatePanelPosition);
-    window.addEventListener("scroll", updatePanelPosition, true);
-    return () => {
-      document.removeEventListener("pointerdown", handlePointerDown);
-      document.removeEventListener("keydown", handleKeyDown);
-      window.removeEventListener("resize", updatePanelPosition);
-      window.removeEventListener("scroll", updatePanelPosition, true);
-    };
-  }, [isProPromptSettingsOpen]);
+  useDismissibleLayer({
+    isOpen: isCharacterAddMenuOpen,
+    containerRef: characterAddMenuRef,
+    onDismiss: closeCharacterAddMenu,
+  });
+  useDismissibleLayer({
+    isOpen: isModeSelectorOpen,
+    containerRef: modeSelectorContainerRef,
+    onDismiss: closeModeSelector,
+  });
+  useDismissibleLayer({
+    isOpen: isSimpleResolutionSelectorOpen,
+    containerRef: simpleResolutionSelectorRef,
+    onDismiss: closeSimpleResolutionSelector,
+  });
+  useDismissibleLayer({
+    isOpen: isProResolutionSelectorOpen,
+    containerRef: proResolutionSelectorRef,
+    onDismiss: closeProResolutionSelector,
+  });
+  useDismissibleLayer({
+    isOpen: isProPromptSettingsOpen,
+    containerRef: proPromptSettingsRef,
+    onDismiss: closeProPromptSettings,
+  });
 
   const handleToggleCharacterPositionAiChoice = useCallback(() => {
     setCharacterPositionPickerState(prev => (prev ? null : prev));
@@ -609,7 +474,7 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
 
   function handleSelectMode(nextMode: ModeOptionValue) {
     setUiMode(nextMode);
-    setIsModeSelectorOpen(false);
+    closeModeSelector();
   }
 
   function renderSimpleInfillSection() {
@@ -730,7 +595,7 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
               className={`fixed inset-0 z-30 bg-black/20 backdrop-blur-[1.5px] transition-opacity duration-200 ease-out dark:bg-black/35 ${
                 isModeSelectorOpen ? "pointer-events-auto opacity-100" : "pointer-events-none opacity-0"
               }`}
-              onClick={() => setIsModeSelectorOpen(false)}
+              onClick={closeModeSelector}
             />
           )
         : null}
@@ -788,7 +653,7 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                         <button
                           type="button"
                           className="btn btn-ghost btn-xs"
-                          onClick={() => setIsModeSelectorOpen(false)}
+                          onClick={closeModeSelector}
                         >
                           关闭
                         </button>
@@ -938,7 +803,7 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                         ? (
                             <div className="absolute left-0 right-0 top-[calc(100%+0.5rem)] z-20 overflow-hidden !rounded-none border border-[#D6DCE3] bg-[#F3F5F7] p-2 shadow-2xl dark:border-[#2A3138] dark:bg-[#161A1F]">
                               <div className="flex flex-col gap-1">
-                                {simpleResolutionOptions.map(option => (
+                                {RESOLUTION_OPTIONS.map(option => (
                                   <button
                                     key={option.id}
                                     type="button"
@@ -949,7 +814,7 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                                     }`}
                                     onClick={() => {
                                       handleSelectSimpleResolutionPreset(option.id);
-                                      setIsSimpleResolutionSelectorOpen(false);
+                                      closeSimpleResolutionSelector();
                                     }}
                                   >
                                     {renderResolutionGlyph(option.id)}
@@ -1026,7 +891,7 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                         ? (
                             <div className="absolute left-0 right-0 top-[calc(100%+0.5rem)] z-20 overflow-hidden !rounded-none border border-[#D6DCE3] bg-[#F3F5F7] p-2 shadow-2xl dark:border-[#2A3138] dark:bg-[#161A1F]">
                               <div className="flex flex-col gap-1">
-                                {simpleResolutionOptions.map(option => (
+                                {RESOLUTION_OPTIONS.map(option => (
                                   <button
                                     key={option.id}
                                     type="button"
@@ -1037,7 +902,7 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
                                     }`}
                                     onClick={() => {
                                       handleSelectProResolutionPreset(option.id);
-                                      setIsProResolutionSelectorOpen(false);
+                                      closeProResolutionSelector();
                                     }}
                                   >
                                     {renderResolutionGlyph(option.id)}
