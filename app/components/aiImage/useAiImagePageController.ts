@@ -1,7 +1,6 @@
-// AI 生图页面：对齐 NovelAI Image 的桌面端布局与交互；当前保留免费单张 txt2img，并开放预览区 Inpaint。
+// AI 鐢熷浘椤甸潰锛氬榻?NovelAI Image 鐨勬闈㈢甯冨眬涓庝氦浜掞紱褰撳墠淇濈暀鍏嶈垂鍗曞紶 txt2img锛屽苟寮€鏀鹃瑙堝尯 Inpaint銆?
 import type { DragEvent, MouseEvent } from "react";
 
-import { zipSync } from "fflate";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "react-hot-toast";
 
@@ -61,7 +60,6 @@ import {
 } from "@/components/aiImage/constants";
 import {
   base64DataUrl,
-  base64ToBytes,
   buildDirectorToolHistoryRow,
   buildImportedSourceImagePayloadFromDataUrl,
   bytesToBase64,
@@ -72,7 +70,6 @@ import {
   createMetadataImportSelection,
   createProFeatureSectionState,
   dataUrlToBase64,
-  extensionFromDataUrl,
   extractImageFilesFromTransfer,
   extractInternalHistoryImageDragPayload,
   fileFromDataUrl,
@@ -151,15 +148,6 @@ import {
   applyImportedMetadataAction,
 } from "@/components/aiImage/controller/metadataHistoryActions";
 import {
-  applyPinnedPreviewSeedAction,
-  applySelectedPreviewSeedAction,
-  clearPinnedPreviewAction,
-  downloadCurrentAction,
-  openPreviewImageAction,
-  selectPinnedPreviewAction,
-  togglePinnedPreviewAction,
-} from "@/components/aiImage/controller/previewActions";
-import {
   buildDirectorSourceItemAction,
   pickDirectorSourceHistoryImageAction,
   pickDirectorSourceImagesAction,
@@ -167,6 +155,7 @@ import {
 } from "@/components/aiImage/controller/directorActions";
 import { useAiImageDimensionsState } from "@/components/aiImage/controller/useAiImageDimensionsState";
 import { useAiImageImportActions } from "@/components/aiImage/controller/useAiImageImportActions";
+import { useAiImagePreviewActions } from "@/components/aiImage/controller/useAiImagePreviewActions";
 import { useAiImagePreviewState } from "@/components/aiImage/controller/useAiImagePreviewState";
 import { useAiImageStyleState } from "@/components/aiImage/controller/useAiImageStyleState";
 import {
@@ -236,10 +225,10 @@ export function useAiImagePageController() {
   const [v4Chars, setV4Chars] = useState<V4CharEditorRow[]>([]);
   const [vibeTransferReferences, setVibeTransferReferences] = useState<VibeTransferReferenceRow[]>([]);
   const [preciseReference, setPreciseReference] = useState<PreciseReferenceRow | null>(null);
-  // 参考 NovelAI 的专业模式交互：把高级引用能力拆成可折叠模块，减少长表单噪音，并在导入新内容时自动展开对应区块。
+  // 鍙傝€?NovelAI 鐨勪笓涓氭ā寮忎氦浜掞細鎶婇珮绾у紩鐢ㄨ兘鍔涙媶鎴愬彲鎶樺彔妯″潡锛屽噺灏戦暱琛ㄥ崟鍣煶锛屽苟鍦ㄥ鍏ユ柊鍐呭鏃惰嚜鍔ㄥ睍寮€瀵瑰簲鍖哄潡銆?
   const [proFeatureSections, setProFeatureSections] = useState<Record<ProFeatureSectionKey, boolean>>(() => createProFeatureSectionState());
 
-  // 当前页面固定使用单一模型，避免简单模式额外暴露一个用户无法从结果感知收益的选择步骤。
+  // 褰撳墠椤甸潰鍥哄畾浣跨敤鍗曚竴妯″瀷锛岄伩鍏嶇畝鍗曟ā寮忛澶栨毚闇蹭竴涓敤鎴锋棤娉曚粠缁撴灉鎰熺煡鏀剁泭鐨勯€夋嫨姝ラ銆?
   const model = resolveFixedImageModel();
   const isNAI3 = false;
   const isNAI4 = true;
@@ -1083,162 +1072,49 @@ export function useAiImagePageController() {
     await runGenerate({ mode: nextGenerateMode, prompt: simplePrompt, negativePrompt: simpleNegativePrompt });
   }, [mode, runGenerate, showErrorToast, simpleNegativePrompt, simplePrompt]);
 
-  const handleSelectCurrentResult = useCallback((index: number) => {
-    setSelectedHistoryPreviewKey(null);
-    setSelectedResultIndex(index);
-    if (isDirectorToolsOpen)
-      setDirectorOutputPreview(null);
-  }, [isDirectorToolsOpen]);
+  const {
+    handleSelectCurrentResult,
+    handlePreviewHistoryRow,
+    handleClearCurrentDisplayedImage,
+    handleRunDirectorInputUpscale,
+    handleAddDirectorDisplayedToSourceRail,
+    handleCopyDirectorInputImage,
+    handleCopyDirectorOutputImage,
+    handleDownloadDirectorOutputImage,
+    handleClearPinnedPreview,
+    handleSelectPinnedPreview,
+    handleApplyPinnedPreviewSeed,
+    handleOpenPreviewImage,
+    handleTogglePinnedPreview,
+    handleApplySelectedPreviewSeed,
+    handleCopySelectedPreviewImage,
+    handleDownloadCurrent,
+    handleDownloadAll,
+  } = useAiImagePreviewActions({
+    uiMode,
+    isDirectorToolsOpen,
+    selectedPreviewResult,
+    selectedPreviewIdentityKey,
+    pinnedPreviewKey,
+    pinnedPreviewResult,
+    results,
+    history,
+    historyRowByKey,
+    directorInputPreview,
+    directorOutputPreview,
+    showErrorToast,
+    showSuccessToast,
+    setSelectedHistoryPreviewKey,
+    setSelectedResultIndex,
+    setDirectorSourceItems,
+    setDirectorSourcePreview,
+    setDirectorOutputPreview,
+    setIsPreviewImageModalOpen,
+    setPinnedPreviewKey,
+    setSimpleSeed,
+    setProSeed,
+  });
 
-  const handlePreviewHistoryRow = useCallback((row: AiImageHistoryRow) => {
-    setSelectedHistoryPreviewKey(historyRowKey(row));
-    if (isDirectorToolsOpen)
-      setDirectorOutputPreview(null);
-  }, [isDirectorToolsOpen]);
-
-  const handleClearCurrentDisplayedImage = useCallback(() => {
-    if (!selectedPreviewResult)
-      return;
-
-    setSelectedHistoryPreviewKey(null);
-    setSelectedResultIndex(-1);
-    setDirectorSourcePreview(null);
-    setDirectorOutputPreview(null);
-    setIsPreviewImageModalOpen(false);
-  }, [selectedPreviewResult]);
-
-  const createDirectorSourceClone = useCallback((image: GeneratedImageItem) => {
-    return {
-      ...image,
-      batchId: makeStableId(),
-      batchIndex: 0,
-      batchSize: 1,
-    } satisfies GeneratedImageItem;
-  }, []);
-
-  const addDirectorImageToSourceRail = useCallback((image: GeneratedImageItem | null) => {
-    if (!image)
-      return false;
-    const clone = createDirectorSourceClone(image);
-    setDirectorSourceItems(prev => [clone, ...prev]);
-    setDirectorSourcePreview(clone);
-    setDirectorOutputPreview(null);
-    return true;
-  }, [createDirectorSourceClone]);
-
-  const copyGeneratedImageToClipboard = useCallback(async (image: GeneratedImageItem | null, successMessage: string) => {
-    if (!image)
-      return;
-    if (typeof navigator === "undefined" || !navigator.clipboard?.write || typeof ClipboardItem === "undefined") {
-      showErrorToast("Clipboard image copy is not supported in this environment.");
-      return;
-    }
-
-    try {
-      const file = fileFromDataUrl(
-        image.dataUrl,
-        `nai_preview.${extensionFromDataUrl(image.dataUrl)}`,
-      );
-      await navigator.clipboard.write([
-        new ClipboardItem({
-          [file.type || "image/png"]: file,
-        }),
-      ]);
-      showSuccessToast(successMessage);
-    }
-    catch {
-      showErrorToast("Failed to copy image. Please try again.");
-    }
-  }, [showErrorToast, showSuccessToast]);
-
-  const downloadGeneratedImage = useCallback((image: GeneratedImageItem | null, filePrefix: string) => {
-    if (!image)
-      return;
-    triggerBrowserDownload(
-      image.dataUrl,
-      `${filePrefix}_${image.seed}_${image.batchIndex + 1}.${extensionFromDataUrl(image.dataUrl)}`,
-    );
-  }, []);
-
-  const handleRunDirectorInputUpscale = useCallback(async () => {
-    if (!directorInputPreview)
-      return;
-    showErrorToast(getNovelAiFreeOnlyMessage("Upscale is disabled."));
-  }, [directorInputPreview, showErrorToast]);
-
-  const handleAddDirectorDisplayedToSourceRail = useCallback(() => {
-    if (addDirectorImageToSourceRail(directorOutputPreview ?? selectedPreviewResult))
-      showSuccessToast("Added the current right-side image to the source rail.");
-  }, [addDirectorImageToSourceRail, directorOutputPreview, selectedPreviewResult, showSuccessToast]);
-
-  const handleCopyDirectorInputImage = useCallback(async () => {
-    await copyGeneratedImageToClipboard(directorInputPreview, "Copied the current left image.");
-  }, [copyGeneratedImageToClipboard, directorInputPreview]);
-
-  const handleCopyDirectorOutputImage = useCallback(async () => {
-    await copyGeneratedImageToClipboard(directorOutputPreview ?? selectedPreviewResult, "Copied the current right image.");
-  }, [copyGeneratedImageToClipboard, directorOutputPreview, selectedPreviewResult]);
-
-  const handleDownloadDirectorOutputImage = useCallback(() => {
-    downloadGeneratedImage(directorOutputPreview ?? selectedPreviewResult, "nai_director");
-  }, [directorOutputPreview, downloadGeneratedImage, selectedPreviewResult]);
-
-
-  const handleClearPinnedPreview = useCallback(() => {
-    clearPinnedPreviewAction({
-      pinnedPreviewKey,
-      setPinnedPreviewKey,
-      showSuccessToast,
-    });
-  }, [pinnedPreviewKey, showSuccessToast]);
-
-  const handleSelectPinnedPreview = useCallback(() => {
-    selectPinnedPreviewAction({
-      pinnedPreviewKey,
-      results,
-      generatedItemKey,
-      handleSelectCurrentResult,
-      historyRowByKey,
-      handlePreviewHistoryRow,
-    });
-  }, [handlePreviewHistoryRow, handleSelectCurrentResult, historyRowByKey, pinnedPreviewKey, results]);
-
-  const handleApplyPinnedPreviewSeed = useCallback(() => {
-    applyPinnedPreviewSeedAction({
-      pinnedPreviewResult,
-      uiMode,
-      setSimpleSeed,
-      setProSeed,
-      showSuccessToast,
-    });
-  }, [pinnedPreviewResult, showSuccessToast, uiMode]);
-  const handleOpenPreviewImage = useCallback(() => {
-    openPreviewImageAction({
-      selectedPreviewResult,
-      setIsPreviewImageModalOpen,
-    });
-  }, [selectedPreviewResult]);
-  const handleTogglePinnedPreview = useCallback(() => {
-    togglePinnedPreviewAction({
-      selectedPreviewResult,
-      selectedPreviewIdentityKey,
-      pinnedPreviewKey,
-      setPinnedPreviewKey,
-      showSuccessToast,
-    });
-  }, [pinnedPreviewKey, selectedPreviewIdentityKey, selectedPreviewResult, showSuccessToast]);
-  const handleApplySelectedPreviewSeed = useCallback(() => {
-    applySelectedPreviewSeedAction({
-      selectedPreviewResult,
-      uiMode,
-      setSimpleSeed,
-      setProSeed,
-      showSuccessToast,
-    });
-  }, [selectedPreviewResult, showSuccessToast, uiMode]);
-  const handleCopySelectedPreviewImage = useCallback(async () => {
-    await copyGeneratedImageToClipboard(selectedPreviewResult, "Copied the current image.");
-  }, [copyGeneratedImageToClipboard, selectedPreviewResult]);
   const handleApplyHistorySettings = useCallback((row: AiImageHistoryRow, clickMode: Exclude<HistoryRowClickMode, "preview">) => {
     applyHistorySettingsAction({
       row,
@@ -1346,24 +1222,6 @@ export function useAiImagePageController() {
       });
     }
   }, [directorOutputPreview, directorSourcePreview, pinnedPreviewKey, refreshHistory, results, selectedHistoryPreviewKey]);
-
-  const handleDownloadCurrent = useCallback(() => {
-    downloadCurrentAction({
-      selectedPreviewResult,
-      downloadGeneratedImage,
-    });
-  }, [downloadGeneratedImage, selectedPreviewResult]);
-  const handleDownloadAll = useCallback(() => {
-    if (!history.length)
-      return;
-    const archiveEntries = history.reduce<Record<string, Uint8Array>>((acc, row, index) => {
-      const entryName = `nai_${row.seed}_${(row.batchIndex ?? 0) + 1}_${row.id ?? row.createdAt ?? index + 1}.${extensionFromDataUrl(row.dataUrl)}`;
-      acc[entryName] = base64ToBytes(dataUrlToBase64(row.dataUrl));
-      return acc;
-    }, {});
-    const archive = zipSync(archiveEntries);
-    triggerBlobDownload(new Blob([archive], { type: "application/zip" }), `nai_history_${Date.now()}.zip`);
-  }, [history]);
 
 
   const handleClearSimpleDraft = useCallback(() => {
