@@ -12,6 +12,36 @@ const executorPublic = new RuleNameSpace(
 
 export default executorPublic;
 
+async function executeRollCommand(
+  args: string[],
+  cpi: CPI,
+  options?: {
+    fallbackInput?: string;
+    prependInput?: string;
+  },
+): Promise<boolean> {
+  const isForceToast = UTILS.doesHaveArg(args, "h");
+  const rawInput = args.join("");
+  const input = rawInput
+    ? `${options?.prependInput ?? ""}${rawInput}`
+    : options?.fallbackInput ?? `1d${cpi.getSpaceData("defaultDice") || "100"}`;
+  try {
+    const diceResult = roll(input);
+    if (isForceToast) {
+      cpi.replyMessage(`掷骰结果：${input} = ${diceResult.expanded} = ${diceResult.result}`, {
+        visibility: "kp_and_sender",
+      });
+      return true;
+    }
+    cpi.replyMessage(`掷骰结果：${input} = ${diceResult.expanded} = ${diceResult.result}`);
+    return true;
+  }
+  catch (error) {
+    cpi.replyMessage(`掷骰错误：${error ?? "未知错误"}`);
+    return false;
+  }
+}
+
 const cmdR = new CommandExecutor(
   "r",
   ["r"],
@@ -19,31 +49,25 @@ const cmdR = new CommandExecutor(
   [".r 1d100", ".r 3d6*5", ".r"],
   ".r [掷骰表达式]",
   async (args: string[], mentioned: UserRole[], cpi: CPI): Promise<boolean> => {
-    const isForceToast = UTILS.doesHaveArg(args, "h");
-    let input = args.join("");
-    if (!input) {
-      // 从空间数据中获取默认骰子面数，默认为 100
-      const defaultDice = cpi.getSpaceData("defaultDice") || "100";
-      input = `1d${defaultDice}`;
-    }
-    try {
-      const diceResult = roll(input);
-      if (isForceToast) {
-        cpi.replyMessage(`掷骰结果：${input} = ${diceResult.expanded} = ${diceResult.result}`, {
-          visibility: "kp_and_sender",
-        });
-        return true;
-      }
-      cpi.replyMessage(`掷骰结果：${input} = ${diceResult.expanded} = ${diceResult.result}`);
-      return true;
-    }
-    catch (error) {
-      cpi.replyMessage(`掷骰错误：${error ?? "未知错误"}`);
-      return false;
-    }
+    return executeRollCommand(args, cpi);
   },
 );
 executorPublic.addCmd(cmdR);
+
+const cmdRd = new CommandExecutor(
+  "rd",
+  ["rd"],
+  "快捷掷单骰",
+  [".rd", ".rd20", ".rd 6"],
+  ".rd [骰子面数/表达式]",
+  async (args: string[], mentioned: UserRole[], cpi: CPI): Promise<boolean> => {
+    return executeRollCommand(args, cpi, {
+      fallbackInput: "1d100",
+      prependInput: "1d",
+    });
+  },
+);
+executorPublic.addCmd(cmdRd);
 
 /**
  * 属性设置指令
