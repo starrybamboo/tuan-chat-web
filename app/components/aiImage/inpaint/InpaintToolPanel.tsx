@@ -46,7 +46,7 @@ export function InpaintToolPanel({
               type="checkbox"
               checked={isSquareBrush}
               className="size-3.5 rounded border border-white/14 bg-white/[0.04] accent-[#f6e6a5]"
-              aria-label="鍚敤鏂瑰舰鐢诲埛"
+              aria-label="启用方形画刷"
               onChange={event => onMaskDrawShapeChange(event.target.checked ? "square" : "circle")}
             />
             <button

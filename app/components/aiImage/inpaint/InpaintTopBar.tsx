@@ -26,8 +26,8 @@ export function InpaintTopBar({
       <button
         type="button"
         className={topIconActionButtonClassName}
-        aria-label="涓嬭浇鍘熷浘"
-        title="涓嬭浇鍘熷浘"
+        aria-label="下载原图"
+        title="下载原图"
         disabled={isSubmitting}
         onClick={onDownloadSource}
       >
@@ -40,13 +40,13 @@ export function InpaintTopBar({
         onClick={() => void onSubmit()}
       >
         <FloppyDiskIcon className="mr-2 size-[18px]" weight="bold" />
-        {isSubmitting ? "淇濆瓨涓?" : "Save & Close"}
+        {isSubmitting ? "保存中..." : "保存并关闭"}
       </button>
       <button
         type="button"
         className={`${topIconActionButtonClassName} border-l border-white/10`}
-        aria-label="鍏抽棴 Inpaint"
-        title="鍏抽棴 Inpaint"
+        aria-label="关闭 Inpaint"
+        title="关闭 Inpaint"
         disabled={isSubmitting}
         onClick={onClose}
       >
