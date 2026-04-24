@@ -1,4 +1,4 @@
-// AI 鐢熷浘椤甸潰锛氬榻?NovelAI Image 鐨勬闈㈢甯冨眬涓庝氦浜掞紱褰撳墠淇濈暀鍏嶈垂鍗曞紶 txt2img锛屽苟寮€鏀鹃瑙堝尯 Inpaint銆?
+// AI 闁汇垻鍠庡ù妯汇亜閻㈠憡妗ㄩ柨娑欒壘椤曨喗顬?NovelAI Image 闁汇劌瀚、鎴︽閵忋埄浼傞悽顖氬暙閻剚绋夋惔婵囧攭濞存粍甯槐杈亹閹惧啿顤呭ǎ鍥ㄧ箘閺嗏偓闁稿繐绉烽崹鍌炲础閺囩偟鐐?txt2img闁挎稑鑻懟鐔奉嚕閳ь剟寮ㄦィ鍐炬殨閻熸瑥鐗嗙亸?Inpaint闁?
 import type { DragEvent, MouseEvent } from "react";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -101,7 +101,6 @@ import {
   readImageSize,
   readLocalStorageString,
   resolveFixedImageModel,
-  resolveInpaintModel,
   resolveImportedValue,
   resolveSimpleGenerateMode,
   sanitizeNovelAiTagInput,
@@ -119,44 +118,17 @@ import {
   buildWorkspaceProps,
 } from "@/components/aiImage/controller/buildViewModels";
 import {
-  buildGenerateContext,
-  buildHistoryRowsFromGenerateResult,
-  buildOpenInpaintState,
-  finalizeGenerateResult,
-  resolveFocusedGenerateContext,
-  validateGenerateContext,
-} from "@/components/aiImage/controller/generateActions";
-import {
-  importSourceFileAction,
-  importSourceImageBytesAction,
-} from "@/components/aiImage/controller/importActions";
-import {
-  buildBaseImageInpaintStateAction,
-  saveInpaintMaskAction,
-} from "@/components/aiImage/controller/inpaintActions";
-import {
-  historyImageDragStartAction,
-  pageImageDragEnterAction,
-  pageImageDragLeaveAction,
-  pageImageDragOverAction,
-  pageImageDropAction,
-  pasteSourceImageAction,
-  pickSourceHistoryImageAction,
-} from "@/components/aiImage/controller/dndActions";
-import {
-  applyHistorySettingsAction,
-  applyImportedMetadataAction,
-} from "@/components/aiImage/controller/metadataHistoryActions";
-import {
-  buildDirectorSourceItemAction,
-  pickDirectorSourceHistoryImageAction,
-  pickDirectorSourceImagesAction,
   runDirectorToolAction,
 } from "@/components/aiImage/controller/directorActions";
+import { useAiImageCharacterActions } from "@/components/aiImage/controller/useAiImageCharacterActions";
 import { useAiImageDimensionsState } from "@/components/aiImage/controller/useAiImageDimensionsState";
+import { useAiImageHistoryActions } from "@/components/aiImage/controller/useAiImageHistoryActions";
 import { useAiImageImportActions } from "@/components/aiImage/controller/useAiImageImportActions";
+import { useAiImageGenerationActions } from "@/components/aiImage/controller/useAiImageGenerationActions";
+import { useAiImageInpaintActions } from "@/components/aiImage/controller/useAiImageInpaintActions";
 import { useAiImagePreviewActions } from "@/components/aiImage/controller/useAiImagePreviewActions";
 import { useAiImagePreviewState } from "@/components/aiImage/controller/useAiImagePreviewState";
+import { useAiImageSimpleActions } from "@/components/aiImage/controller/useAiImageSimpleActions";
 import { useAiImageStyleState } from "@/components/aiImage/controller/useAiImageStyleState";
 import {
   addAiImageHistoryBatch,
@@ -169,8 +141,6 @@ import {
   extractNovelAiMetadataFromStealthPixels,
 } from "@/utils/novelaiImageMetadata";
 import { convertNaturalLanguageToNovelAiTags } from "@/utils/novelaiNl2Tags";
-import { compositeFocusedInpaintResult, prepareFocusedInpaintPayload } from "@/components/aiImage/inpaintFocusUtils";
-import { buildRoundedRectMaskGrid, buildSolidInpaintMaskGrid, erodeMaskGrid, findMaskGridBounds, renderMaskGridToRgba } from "@/components/aiImage/inpaintMaskUtils";
 
 const DEFAULT_METADATA_IMPORT_SELECTION: MetadataImportSelectionState = {
   prompt: true,
@@ -225,10 +195,10 @@ export function useAiImagePageController() {
   const [v4Chars, setV4Chars] = useState<V4CharEditorRow[]>([]);
   const [vibeTransferReferences, setVibeTransferReferences] = useState<VibeTransferReferenceRow[]>([]);
   const [preciseReference, setPreciseReference] = useState<PreciseReferenceRow | null>(null);
-  // 鍙傝€?NovelAI 鐨勪笓涓氭ā寮忎氦浜掞細鎶婇珮绾у紩鐢ㄨ兘鍔涙媶鎴愬彲鎶樺彔妯″潡锛屽噺灏戦暱琛ㄥ崟鍣煶锛屽苟鍦ㄥ鍏ユ柊鍐呭鏃惰嚜鍔ㄥ睍寮€瀵瑰簲鍖哄潡銆?
+  // 闁告瑥鍊介埀?NovelAI 闁汇劌瀚粭鎾寸▔濮橆劷浣割嚕韫囧孩鍞夊ù婊勫釜缁变即骞庢繝鍥╁蒋缂佺嫏鍐┛闁活潿鍔忛崗姗€宕濆☉娆忣€曢柟瀛樺姇瑜版煡骞庡Ο鍝勭秾婵☆垪鈧櫕鍋ラ柨娑樿嫰閸ｈ櫣浜搁幋锔芥瘣閻炴稏鍔屽畷鐔煎闯椤忓牏鍙鹃柨娑樿嫰閼荤喖宕烽妸銉殼闁稿繈鍎查弻濠囧礃閸涱収鍟囬柡鍐╁劶閸ゆ粓宕濋妸銉ф綌鐎殿喒鍋撻悗鐢垫嚀缁ㄦ煡宕犻崫鍕仴闁?
   const [proFeatureSections, setProFeatureSections] = useState<Record<ProFeatureSectionKey, boolean>>(() => createProFeatureSectionState());
 
-  // 褰撳墠椤甸潰鍥哄畾浣跨敤鍗曚竴妯″瀷锛岄伩鍏嶇畝鍗曟ā寮忛澶栨毚闇蹭竴涓敤鎴锋棤娉曚粠缁撴灉鎰熺煡鏀剁泭鐨勯€夋嫨姝ラ銆?
+  // 鐟滅増鎸告晶鐘炽亜閻㈠憡妗ㄩ柛銉ユ惈閻ｇ偓鎷呯捄銊︽殢闁告娲戠粩鏉懳熼垾宕団偓鐑芥晬瀹€鍕級闁稿繐绉堕悾婵嬪础閺囩唽浣割嚕韫囨侗鏉哄鑸电墬濮ｆ岸妫侀煫顓狀伇濞戞搩浜為弫銈夊箣闁垮锟ユ繛澶嬫磻缁姷绱掗幘瀵镐函闁规壆鍠撻悡锟犲绩閸撲焦鎶勯柣銊ュ閳ь剙顦扮€氥劌顫㈤妷鈺娾偓鍐Υ?
   const model = resolveFixedImageModel();
   const isNAI3 = false;
   const isNAI4 = true;
@@ -469,94 +439,78 @@ export function useAiImagePageController() {
       setPinnedPreviewKey(null);
   }, [pinnedPreviewKey, pinnedPreviewResult]);
 
-  useEffect(() => {
-    if (simpleEditorMode !== "tags")
-      return;
-    if (shouldKeepSimpleTagsEditor({
-      mode: simpleMode,
-      prompt: simplePrompt,
-      negativePrompt: simpleNegativePrompt,
-      hasConvertedDraft: Boolean(simpleConverted),
-    }))
-      return;
-
-    setSimpleConvertedFromText("");
-    setSimpleEditorMode("text");
-    setSimplePromptTab("prompt");
-  }, [simpleConverted, simpleEditorMode, simpleMode, simpleNegativePrompt, simplePrompt]);
-
-  const applyImportedMetadata = useCallback((metadata: NovelAiImageMetadataResult, selection: MetadataImportSelectionState) => {
-    applyImportedMetadataAction({
-      metadata,
-      selection,
-      uiMode,
-      simpleWidth,
-      simpleHeight,
-      proWidth,
-      proHeight,
-      v4Chars,
-      samplerOptions,
-      noiseScheduleOptions,
-      setIsPageImageDragOver,
-      setSimpleConverted,
-      setSimpleConvertedFromText,
-      setSimplePromptTab,
-      setSimpleSeed,
-      setSimpleWidth,
-      setSimpleHeight,
-      setSimpleResolutionSelection,
-      setUiMode,
-      clearSourceImageForUi,
-      setVibeTransferReferences,
-      setPreciseReference,
-      setProFeatureSectionOpen,
-      setPrompt,
-      setNegativePrompt,
-      setProSeed,
-      setProWidth,
-      setProHeight,
-      setProResolutionSelection,
-      setProImageCount,
-      setProSteps,
-      setProScale,
-      setProSampler,
-      setProNoiseSchedule,
-      setProCfgRescale,
-      setProUcPreset,
-      setProQualityToggle,
-      setProDynamicThresholding,
-      setProSmea,
-      setProSmeaDyn,
-      applyModeStrengthAndNoise,
-      setV4UseCoords,
-      setV4UseOrder,
-      setV4Chars,
-      setCharPromptTabs,
-      inferResolutionSelection,
-    });
-  }, [
-    applyModeStrengthAndNoise,
-    clearSourceImageForUi,
-    inferResolutionSelection,
-    noiseScheduleOptions,
-    proHeight,
-    proWidth,
-    samplerOptions,
-    simpleHeight,
-    simpleWidth,
+  const {
+    refreshHistory,
+    applyImportedMetadata,
+    handleApplyHistorySettings,
+    handleHistoryRowClick,
+    handleDeleteHistoryRow,
+  } = useAiImageHistoryActions({
     uiMode,
+    samplerOptions,
+    noiseScheduleOptions,
+    simpleWidth,
+    simpleHeight,
+    proWidth,
+    proHeight,
     v4Chars,
+    results,
+    pinnedPreviewKey,
+    directorSourcePreview,
+    directorOutputPreview,
+    selectedHistoryPreviewKey,
+    setHistory,
+    setSelectedHistoryPreviewKey,
+    setResults,
+    setSelectedResultIndex,
+    setPinnedPreviewKey,
+    setDirectorSourcePreview,
+    setDirectorOutputPreview,
+    setIsPageImageDragOver,
+    setSimpleConverted,
+    setSimpleConvertedFromText,
+    setSimplePromptTab,
+    setSimpleSeed,
+    setSimpleWidth,
+    setSimpleHeight,
+    setSimpleResolutionSelection,
+    setUiMode,
+    clearSourceImageForUi,
+    setVibeTransferReferences,
+    setPreciseReference,
     setProFeatureSectionOpen,
-  ]);
+    setPrompt,
+    setNegativePrompt,
+    setProSeed,
+    setProWidth,
+    setProHeight,
+    setProResolutionSelection,
+    setProImageCount,
+    setProSteps,
+    setProScale,
+    setProSampler,
+    setProNoiseSchedule,
+    setProCfgRescale,
+    setProUcPreset,
+    setProQualityToggle,
+    setProDynamicThresholding,
+    setProSmea,
+    setProSmeaDyn,
+    applyModeStrengthAndNoise,
+    setV4UseCoords,
+    setV4UseOrder,
+    setV4Chars,
+    setCharPromptTabs,
+    inferResolutionSelection,
+    setSimpleText,
+    setSimplePrompt,
+    setSimpleNegativePrompt,
+    setSimpleEditorMode,
+    setProFeatureSections,
+    restoreSourceImageForUi,
+    showSuccessToast,
+  });
 
-  const refreshHistory = useCallback(async () => {
-    const rows = await listAiImageHistory({ limit: 30 });
-    setHistory(rows);
-  }, []);
-
-  useEffect(() => {
-    void refreshHistory();
-  }, [refreshHistory]);
 
   const {
     handlePickSourceImage,
@@ -616,461 +570,179 @@ export function useAiImagePageController() {
     defaultMetadataImportSelection: DEFAULT_METADATA_IMPORT_SELECTION,
   });
 
-  const handleToggleDirectorTools = useCallback(() => {
-    if (!isDirectorToolsOpen && selectedPreviewResult) {
-      const previewKey = generatedItemKey(selectedPreviewResult);
-      setDirectorSourceItems((currentItems) => {
-        if (currentItems.some(item => generatedItemKey(item) === previewKey))
-          return currentItems;
-        return [selectedPreviewResult, ...currentItems];
-      });
-      setDirectorSourcePreview(selectedPreviewResult);
-      setDirectorOutputPreview(selectedPreviewResult);
-    }
-    setIsDirectorToolsOpen(prev => !prev);
-  }, [isDirectorToolsOpen, selectedPreviewResult]);
-
-  const handleRunUpscale = useCallback(async () => {
-    if (!selectedPreviewResult)
-      return;
-
-    showErrorToast(getNovelAiFreeOnlyMessage("Upscale is disabled."));
-  }, [selectedPreviewResult, showErrorToast]);
-
-  const handleRunDirectorTool = useCallback(async () => {
-    await runDirectorToolAction({
-      directorInputPreview,
-      directorTool,
-      activeDirectorTool,
-      isDirectorToolDisabled,
-      showErrorToast,
-      setError,
-      setPendingPreviewAction,
-      setDirectorOutputPreview,
-      augmentNovelImageViaProxy,
-      directorColorizePrompt,
-      directorEmotionExtraPrompt,
-      directorColorizeDefry,
-      directorEmotionDefry,
-      directorEmotion,
-      readImageSize,
-      model,
-      historyRowByResultMatchKey,
-      setResults,
-      setSelectedResultIndex,
-      setSelectedHistoryPreviewKey,
-      addAiImageHistoryBatch,
-      refreshHistory,
-      showSuccessToast,
-    });
-  }, [
-    activeDirectorTool,
-    directorColorizeDefry,
-    directorColorizePrompt,
-    directorEmotion,
-    directorEmotionDefry,
-    directorEmotionExtraPrompt,
-    directorInputPreview,
-    directorTool,
-    historyRowByResultMatchKey,
-    model,
-    refreshHistory,
-    setError,
-    setPendingPreviewAction,
-    showErrorToast,
-    showSuccessToast,
-  ]);
-
-  const runGenerate = useCallback(async (args?: {
-    prompt?: string;
-    negativePrompt?: string;
-    mode?: AiImageHistoryMode;
-    sourceImageBase64?: string;
-    sourceImageDataUrl?: string;
-    sourceImageWidth?: number;
-    sourceImageHeight?: number;
-    maskBase64?: string;
-    width?: number;
-    height?: number;
-    strength?: number;
-    noise?: number;
-    toolLabel?: string;
-  }) => {
-    const context = buildGenerateContext({
-      mode: args?.mode,
-      currentMode: mode,
-      uiMode,
-      simpleInfillPrompt,
-      proInfillPrompt,
-      simpleInfillNegativePrompt,
-      proInfillNegativePrompt,
-      prompt: args?.prompt,
-      negativePrompt: args?.negativePrompt,
-      simplePrompt,
-      promptText: prompt,
-      simpleNegativePrompt,
-      negativePromptText: negativePrompt,
-      activeStyleTags,
-      activeStyleNegativeTags,
-      width: args?.width ?? width,
-      height: args?.height ?? height,
-      strength: args?.strength ?? ((args?.mode ?? mode) === "infill" ? currentInfillStrength : currentImg2imgStrength),
-      noise: args?.noise ?? ((args?.mode ?? mode) === "infill" ? currentInfillNoise : currentImg2imgNoise),
-      sourceImageBase64: args?.sourceImageBase64 ?? sourceImageBase64,
-      sourceImageDataUrl: args?.sourceImageDataUrl ?? sourceImageDataUrl,
-      sourceImageWidth: args?.sourceImageWidth ?? sourceImageSize?.width,
-      sourceImageHeight: args?.sourceImageHeight ?? sourceImageSize?.height,
-      maskBase64: args?.maskBase64 ?? ((args?.mode ?? mode) === "infill" ? resolveInfillMaskBase64ForUi(uiMode) : undefined),
-      isNAI4,
-      v4Chars,
-      v4UseCoords,
-      v4UseOrder,
-      normalizeReferenceStrengths,
-      vibeTransferReferences,
-      preciseReference,
-    });
-
-    setError("");
-    setLoading(true);
-    try {
-      validateGenerateContext({
-        context,
-        steps,
-      });
-
-      const focusedContext = await resolveFocusedGenerateContext({
-        context,
-        maskBase64: args?.maskBase64,
-        uiMode,
-        resolveSeparatedInfillMaskBase64ForUi,
-        resolveBlendInfillMaskDataUrlForUi,
-      });
-
-      if (context.effectiveMode === "infill" && typeof window !== "undefined" && window.electronAPI?.saveAiImageDebugBundle) {
-        const requestBody = {
-          mode: context.effectiveMode,
-          model: resolveInpaintModel(model),
-          width: focusedContext.requestWidth,
-          height: focusedContext.requestHeight,
-          strength: context.effectiveStrength,
-          noise: context.effectiveNoise,
-          prompt: context.effectivePrompt,
-          negativePrompt: context.effectiveNegative,
-          sampler,
-          noiseSchedule,
-          cfgRescale,
-          ucPreset,
-          qualityToggle,
-          dynamicThresholding,
-          sourceImageWidth: focusedContext.requestSourceImageWidth,
-          sourceImageHeight: focusedContext.requestSourceImageHeight,
-          focusedCropRect: focusedContext.focusedInpaint?.cropRect,
-        };
-        void window.electronAPI.saveAiImageDebugBundle({
-          category: "infill",
-          sourceDataUrl: context.effectiveSourceImageDataUrl,
-          uiMaskDataUrl: context.effectiveMode === "infill" ? (uiMode === "simple" ? simpleInfillMaskDataUrl : proInfillMaskDataUrl) : undefined,
-          requestMaskDataUrl: focusedContext.requestMaskDataUrl,
-          requestBody,
-        });
-      }
-
-      const seedInput = Number(seed);
-      const seedValue = Number.isFinite(seedInput) && seedInput >= 0 ? Math.floor(seedInput) : undefined;
-      const res = await generateNovelImageViaProxy({
-        mode: context.effectiveMode,
-        sourceImageBase64: focusedContext.requestSourceImageBase64,
-        sourceImageWidth: focusedContext.requestSourceImageWidth,
-        sourceImageHeight: focusedContext.requestSourceImageHeight,
-        maskBase64: focusedContext.requestMaskPayloadBase64,
-        strength: context.effectiveStrength,
-        noise: context.effectiveNoise,
-        prompt: context.effectivePrompt,
-        negativePrompt: context.effectiveNegative,
-        v4Chars: context.v4CharsPayload,
-        v4UseCoords: context.v4UseCoordsPayload,
-        v4UseOrder: context.v4UseOrderPayload,
-        vibeTransferReferences: context.vibeTransferPayload,
-        preciseReference: context.preciseReferencePayload,
-        model,
-        width: focusedContext.requestWidth,
-        height: focusedContext.requestHeight,
-        imageCount: context.effectiveImageCount,
-        steps,
-        scale,
-        sampler,
-        noiseSchedule,
-        cfgRescale,
-        ucPreset,
-        smea,
-        smeaDyn,
-        qualityToggle,
-        dynamicThresholding,
-        seed: seedValue,
-      });
-
-      const finalized = await finalizeGenerateResult({
-        context,
-        focusedContext,
-        response: res,
-        toolLabel: args?.toolLabel,
-        setResults,
-        setSelectedResultIndex,
-        setSelectedHistoryPreviewKey,
-        uiMode,
-        seedValue,
-        setSimpleSeed,
-        setProSeed,
-      });
-
-      await addAiImageHistoryBatch(buildHistoryRowsFromGenerateResult({
-        generatedItems: finalized.generatedItems,
-        context,
-        response: res,
-        resultWidth: finalized.resultWidth,
-        resultHeight: finalized.resultHeight,
-        steps,
-        scale,
-        sampler,
-        noiseSchedule,
-        cfgRescale,
-        ucPreset,
-        qualityToggle,
-        dynamicThresholding,
-        smea,
-        smeaDyn,
-        preciseReference,
-        toolLabel: args?.toolLabel,
-        batchId: finalized.batchId,
-      }));
-      await refreshHistory();
-      return true;
-    }
-    catch (e) {
-      const message = e instanceof Error ? e.message : String(e);
-      if (context.effectiveMode === "infill")
-        setError(message);
-      else
-        showErrorToast(message);
-      return false;
-    }
-    finally {
-      setLoading(false);
-    }
-  }, [
-    cfgRescale,
-    height,
+  const {
+    handleToggleDirectorTools,
+    handleRunUpscale,
+    handleRunDirectorTool,
+    runGenerate,
+  } = useAiImageGenerationActions({
+    uiMode,
     mode,
     model,
-    dynamicThresholding,
     isNAI4,
-    negativePrompt,
-    noiseSchedule,
-    preciseReference,
+    isDirectorToolsOpen,
+    selectedPreviewResult,
     prompt,
-    qualityToggle,
-    refreshHistory,
-    sampler,
-    scale,
-    showErrorToast,
-    activeStyleNegativeTags,
-    activeStyleTags,
-    seed,
-    simpleInfillNegativePrompt,
-    simpleInfillPrompt,
-    simpleNegativePrompt,
+    negativePrompt,
     simplePrompt,
-    sourceImageSize,
+    simpleNegativePrompt,
+    simpleInfillPrompt,
+    proInfillPrompt,
+    simpleInfillNegativePrompt,
+    proInfillNegativePrompt,
+    width,
+    height,
+    seed,
+    steps,
+    scale,
+    sampler,
+    noiseSchedule,
+    cfgRescale,
+    ucPreset,
+    qualityToggle,
+    dynamicThresholding,
     smea,
     smeaDyn,
+    currentImg2imgStrength,
+    currentImg2imgNoise,
+    currentInfillStrength,
+    currentInfillNoise,
     sourceImageBase64,
     sourceImageDataUrl,
-    steps,
-    currentImg2imgNoise,
-    currentImg2imgStrength,
-    currentInfillNoise,
-    currentInfillStrength,
-    ucPreset,
-    uiMode,
+    sourceImageSize,
     v4Chars,
-    vibeTransferReferences,
     v4UseCoords,
     v4UseOrder,
-    width,
     normalizeReferenceStrengths,
-    proInfillNegativePrompt,
-    proInfillPrompt,
+    vibeTransferReferences,
+    preciseReference,
+    activeStyleTags,
+    activeStyleNegativeTags,
+    directorInputPreview,
+    directorTool,
+    activeDirectorTool,
+    directorColorizePrompt,
+    directorEmotionExtraPrompt,
+    directorColorizeDefry,
+    directorEmotionDefry,
+    directorEmotion,
+    historyRowByResultMatchKey,
+    readImageSize,
     resolveInfillMaskBase64ForUi,
     resolveSeparatedInfillMaskBase64ForUi,
     resolveBlendInfillMaskDataUrlForUi,
-  ]);
-  const handleOpenInpaint = useCallback(() => {
-    const preview = selectedPreviewResult;
-    if (!preview)
-      return;
-
-    const shouldSyncBaseImage = sourceImageDataUrl !== preview.dataUrl;
-    if (shouldSyncBaseImage && !applySelectedPreviewAsBaseImage())
-      return;
-
-    const sourceImageBase64 = dataUrlToBase64(preview.dataUrl);
-    if (!sourceImageBase64) {
-      showErrorToast("???????????????????????Inpaint??");
-      return;
-    }
-
-    setError("");
-    setInpaintDialogSource(buildOpenInpaintState({
-      selectedPreviewResult: preview,
-      selectedPreviewHistoryRow,
-      shouldSyncBaseImage,
-      dataUrlToBase64,
-      infillMaskDataUrl,
-      uiMode,
-      simpleInfillPrompt,
-      proInfillPrompt,
-      simpleInfillNegativePrompt,
-      proInfillNegativePrompt,
-      currentInfillStrength,
-    }));
-  }, [applySelectedPreviewAsBaseImage, currentInfillStrength, infillMaskDataUrl, proInfillNegativePrompt, proInfillPrompt, selectedPreviewHistoryRow, selectedPreviewResult, showErrorToast, simpleInfillNegativePrompt, simpleInfillPrompt, sourceImageDataUrl, uiMode]);
-
-  const handleOpenBaseImageInpaint = useCallback(async () => {
-    try {
-      const nextState = await buildBaseImageInpaintStateAction({
-        sourceImageDataUrl,
-        readImageSize,
-        history,
-        uiMode,
-        simpleInfillPrompt,
-        proInfillPrompt,
-        simpleInfillNegativePrompt,
-        proInfillNegativePrompt,
-        infillMaskDataUrl,
-        width,
-        height,
-        seed,
-        model,
-        currentInfillStrength,
-      });
-      if (!nextState)
-        return;
-      setError("");
-      setInpaintDialogSource(nextState);
-    }
-    catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      showErrorToast(message);
-    }
-  }, [height, history, currentInfillStrength, infillMaskDataUrl, model, proInfillNegativePrompt, proInfillPrompt, seed, showErrorToast, simpleInfillNegativePrompt, simpleInfillPrompt, sourceImageDataUrl, uiMode, width]);
-
-  const handleCloseInpaintDialog = useCallback(() => {
-    if (loading)
-      return;
-    setError("");
-    setInpaintDialogSource(null);
-  }, [loading]);
-
-  const handleSaveInpaintMask = useCallback((payload: InpaintSubmitPayload) => {
-    saveInpaintMaskAction({
-      inpaintDialogSource,
-      payload,
-      setSimpleInfillPrompt,
-      setSimpleInfillNegativePrompt,
-      setSimpleEditorMode,
-      setSimplePromptTab,
-      setSimpleInfillStrength,
-      setSimpleInfillMaskDataUrl,
-      setProInfillPrompt,
-      setProInfillNegativePrompt,
-      setProInfillStrength,
-      setProInfillMaskDataUrl,
-      setError,
-      setModeForUi,
-      setInpaintDialogSource,
-    });
-  }, [inpaintDialogSource, setModeForUi]);
-
-  const handleReturnFromInfillSettings = useCallback(() => {
-    setModeForUi(uiMode, sourceImageDataUrl ? "img2img" : "txt2img");
-  }, [setModeForUi, sourceImageDataUrl, uiMode]);
-
-  const handleClearInfillMask = useCallback(() => {
-    clearInfillMaskForUi(uiMode);
-    setModeForUi(uiMode, sourceImageDataUrl ? "img2img" : "txt2img");
-  }, [clearInfillMaskForUi, setModeForUi, sourceImageDataUrl, uiMode]);
-
-  const handleSimpleConvertToTags = useCallback(async () => {
-    const trimmed = simpleText.trim();
-    if (!trimmed) {
-      showErrorToast("Please enter a natural-language prompt first.");
-      return;
-    }
-
-    setSimpleConverting(true);
-    try {
-      const converted = await convertNaturalLanguageToNovelAiTags({ input: trimmed });
-      setSimpleConverted(converted);
-      setSimpleConvertedFromText(trimmed);
-      setSimplePromptTab("prompt");
-    }
-    catch (e) {
-      const message = e instanceof Error ? e.message : String(e);
-      showErrorToast(message);
-    }
-    finally {
-      setSimpleConverting(false);
-    }
-  }, [
+    setError,
+    setLoading,
+    setPendingPreviewAction,
+    setDirectorOutputPreview,
+    setResults,
+    setSelectedResultIndex,
+    setSelectedHistoryPreviewKey,
+    setSimpleSeed,
+    setProSeed,
+    setDirectorSourceItems,
+    setDirectorSourcePreview,
+    refreshHistory,
     showErrorToast,
+    showSuccessToast,
+    generateNovelImageViaProxy,
+    augmentNovelImageViaProxy,
+    addAiImageHistoryBatch,
+  });
+
+  const {
+    handleSimpleConvertToTags,
+    handleAcceptSimpleConverted,
+    handleRejectSimpleConverted,
+    handleReturnToSimpleText,
+    handleReturnToSimpleTags,
+    handleSimpleGenerateFromTags,
+    handleClearSimpleDraft,
+    simpleConvertLabel,
+  } = useAiImageSimpleActions({
+    mode,
+    simpleMode,
     simpleText,
-  ]);
-
-  const handleAcceptSimpleConverted = useCallback(() => {
-    if (!simpleConverted?.prompt.trim()) {
-      showErrorToast("Converted result is empty. Please try again.");
-      return;
-    }
-
-    setSimplePrompt(simpleConverted.prompt);
-    setSimpleNegativePrompt(simpleConverted.negativePrompt);
-    setSimpleConverted(null);
-    setSimpleConvertedFromText(simpleText.trim());
-    setSimpleEditorMode("tags");
-    setSimplePromptTab("prompt");
-  }, [showErrorToast, simpleConverted, simpleText]);
-
-  const handleRejectSimpleConverted = useCallback(() => {
-    setSimpleConverted(null);
-    setSimpleConvertedFromText("");
-  }, []);
-
-  const handleReturnToSimpleText = useCallback(() => {
-    setSimpleConverted(null);
-    setSimpleConvertedFromText("");
-    setSimpleEditorMode("text");
-    setSimplePromptTab("prompt");
-  }, []);
-
-  const handleReturnToSimpleTags = useCallback(() => {
-    if (!sanitizeNovelAiTagInput(simplePrompt) && !sanitizeNovelAiTagInput(simpleNegativePrompt)) {
-      showErrorToast("There are no tags to return to.");
-      return;
-    }
-    setSimpleConverted(null);
-    setSimpleConvertedFromText(simpleText.trim());
-    setSimpleEditorMode("tags");
-    setSimplePromptTab("prompt");
-  }, [showErrorToast, simpleNegativePrompt, simplePrompt, simpleText]);
-
-  const handleSimpleGenerateFromTags = useCallback(async () => {
-    const nextGenerateMode = resolveSimpleGenerateMode(mode);
-    if (nextGenerateMode === "txt2img" && !sanitizeNovelAiTagInput(simplePrompt)) {
-      showErrorToast("Prompt is empty. Please complete the tags first.");
-      return;
-    }
-    await runGenerate({ mode: nextGenerateMode, prompt: simplePrompt, negativePrompt: simpleNegativePrompt });
-  }, [mode, runGenerate, showErrorToast, simpleNegativePrompt, simplePrompt]);
+    simplePrompt,
+    simpleNegativePrompt,
+    simpleConverted,
+    simpleEditorMode,
+    simpleConverting,
+    loading,
+    pendingPreviewAction,
+    clearSourceImageForUi,
+    runGenerate,
+    setSimpleConverted,
+    setSimpleConvertedFromText,
+    setSimplePrompt,
+    setSimpleNegativePrompt,
+    setSimpleEditorMode,
+    setSimplePromptTab,
+    setSimpleConverting,
+    setSimpleText,
+    setSimpleWidth,
+    setSimpleHeight,
+    setSimpleImg2imgStrength,
+    setSimpleImg2imgNoise,
+    setSimpleInfillStrength,
+    setSimpleInfillNoise,
+    setSimpleSeed,
+    setSimpleResolutionSelection,
+    setSelectedStyleIds,
+    setCompareStyleId,
+    setStyleSelectionMode,
+    setPendingMetadataImport,
+    setMetadataImportSelection,
+    setIsPageImageDragOver,
+    showErrorToast,
+    showSuccessToast,
+    convertNaturalLanguageToNovelAiTags,
+    defaultMetadataImportSelection: DEFAULT_METADATA_IMPORT_SELECTION,
+  });
+  const {
+    handleOpenInpaint,
+    handleOpenBaseImageInpaint,
+    handleCloseInpaintDialog,
+    handleSaveInpaintMask,
+    handleReturnFromInfillSettings,
+    handleClearInfillMask,
+  } = useAiImageInpaintActions({
+    uiMode,
+    loading,
+    mode,
+    model,
+    width,
+    height,
+    seed,
+    sourceImageDataUrl,
+    infillMaskDataUrl,
+    simpleInfillPrompt,
+    proInfillPrompt,
+    simpleInfillNegativePrompt,
+    proInfillNegativePrompt,
+    currentInfillStrength,
+    selectedPreviewResult,
+    selectedPreviewHistoryRow,
+    history,
+    inpaintDialogSource,
+    readImageSize,
+    applySelectedPreviewAsBaseImage,
+    setError,
+    setInpaintDialogSource,
+    setSimpleInfillPrompt,
+    setSimpleInfillNegativePrompt,
+    setSimpleEditorMode,
+    setSimplePromptTab,
+    setSimpleInfillStrength,
+    setSimpleInfillMaskDataUrl,
+    setProInfillPrompt,
+    setProInfillNegativePrompt,
+    setProInfillStrength,
+    setProInfillMaskDataUrl,
+    clearInfillMaskForUi,
+    setModeForUi,
+    showErrorToast,
+  });
 
   const {
     handleSelectCurrentResult,
@@ -1115,213 +787,22 @@ export function useAiImagePageController() {
     setProSeed,
   });
 
-  const handleApplyHistorySettings = useCallback((row: AiImageHistoryRow, clickMode: Exclude<HistoryRowClickMode, "preview">) => {
-    applyHistorySettingsAction({
-      row,
-      clickMode,
-      uiMode,
-      samplerOptions,
-      noiseScheduleOptions,
-      setSelectedHistoryPreviewKey,
-      setSimpleSeed,
-      setProSeed,
-      showSuccessToast,
-      restoreSourceImageForUi,
-      setSimpleText,
-      setSimpleConverted,
-      setSimpleConvertedFromText,
-      setSimplePrompt,
-      setSimpleNegativePrompt,
-      setSimpleEditorMode,
-      setSimplePromptTab,
-      setSimpleWidth,
-      setSimpleHeight,
-      setSimpleResolutionSelection,
-      applyModeStrengthAndNoise,
-      clearSourceImageForUi,
-      setPrompt,
-      setNegativePrompt,
-      setV4UseCoords,
-      setV4UseOrder,
-      setV4Chars,
-      setCharPromptTabs,
-      setVibeTransferReferences,
-      setPreciseReference,
-      setProFeatureSections,
-      setProWidth,
-      setProHeight,
-      setProResolutionSelection,
-      setProImageCount,
-      setProSteps,
-      setProScale,
-      setProSampler,
-      setProNoiseSchedule,
-      setProCfgRescale,
-      setProUcPreset,
-      setProQualityToggle,
-      setProDynamicThresholding,
-      setProSmea,
-      setProSmeaDyn,
-      inferResolutionSelection,
-    });
-  }, [
-    applyModeStrengthAndNoise,
-    clearSourceImageForUi,
-    inferResolutionSelection,
-    noiseScheduleOptions,
-    restoreSourceImageForUi,
-    samplerOptions,
-    showSuccessToast,
-    uiMode,
-  ]);
-
-  const handleHistoryRowClick = useCallback((row: AiImageHistoryRow, event: MouseEvent<HTMLButtonElement>) => {
-    const clickMode: HistoryRowClickMode = (event.metaKey || event.ctrlKey)
-      ? (event.shiftKey ? "settings-with-seed" : "settings")
-      : (event.shiftKey ? "seed" : "preview");
-
-    if (clickMode === "preview") {
-      handlePreviewHistoryRow(row);
-      return;
-    }
-
-    handleApplyHistorySettings(row, clickMode);
-  }, [handleApplyHistorySettings, handlePreviewHistoryRow]);
-
-  const handleDeleteHistoryRow = useCallback(async (row: AiImageHistoryRow) => {
-    if (typeof row.id !== "number")
-      return;
-
-    const rowKey = historyRowKey(row);
-    const rowResultMatchKey = historyRowResultMatchKey(row);
-    const rowGeneratedItemKey = generatedItemKey(historyRowToGeneratedItem(row));
-    const deleteIndex = results.findIndex(item => generatedItemKey(item) === rowResultMatchKey);
-    const nextResults = deleteIndex >= 0
-      ? results.filter((_, index) => index !== deleteIndex)
-      : results;
-
-    await deleteAiImageHistory(row.id);
-    await refreshHistory();
-    if (selectedHistoryPreviewKey === rowKey)
-      setSelectedHistoryPreviewKey(null);
-    if (directorSourcePreview && generatedItemKey(directorSourcePreview) === rowGeneratedItemKey)
-      setDirectorSourcePreview(null);
-    if (directorOutputPreview && generatedItemKey(directorOutputPreview) === rowGeneratedItemKey)
-      setDirectorOutputPreview(null);
-    if (pinnedPreviewKey === `history:${rowKey}` || (deleteIndex >= 0 && pinnedPreviewKey === `current:${rowResultMatchKey}`))
-      setPinnedPreviewKey(null);
-
-    if (deleteIndex >= 0) {
-      setResults(nextResults);
-      setSelectedResultIndex((prev) => {
-        if (!nextResults.length)
-          return 0;
-        if (prev > deleteIndex)
-          return prev - 1;
-        return Math.min(prev, nextResults.length - 1);
-      });
-    }
-  }, [directorOutputPreview, directorSourcePreview, pinnedPreviewKey, refreshHistory, results, selectedHistoryPreviewKey]);
-
-
-  const handleClearSimpleDraft = useCallback(() => {
-    clearSourceImageForUi("simple");
-    setSimpleText("");
-    setSimpleConverted(null);
-    setSimpleConvertedFromText("");
-    setSimplePrompt("");
-    setSimpleNegativePrompt("");
-    setSimpleEditorMode("text");
-    setSimplePromptTab("prompt");
-    setSimpleWidth(DEFAULT_SIMPLE_IMAGE_SETTINGS.width);
-    setSimpleHeight(DEFAULT_SIMPLE_IMAGE_SETTINGS.height);
-    setSimpleImg2imgStrength(DEFAULT_SIMPLE_IMAGE_SETTINGS.strength);
-    setSimpleImg2imgNoise(DEFAULT_SIMPLE_IMAGE_SETTINGS.noise);
-    setSimpleInfillStrength(DEFAULT_INPAINT_STRENGTH);
-    setSimpleInfillNoise(DEFAULT_INPAINT_NOISE);
-    setSimpleSeed(DEFAULT_SIMPLE_IMAGE_SETTINGS.seed);
-    setSimpleResolutionSelection(DEFAULT_SIMPLE_IMAGE_SETTINGS.simpleResolutionSelection);
-    setSelectedStyleIds([]);
-    setCompareStyleId(null);
-    setStyleSelectionMode("select");
-    setPendingMetadataImport(null);
-    setMetadataImportSelection(DEFAULT_METADATA_IMPORT_SELECTION);
-    setIsPageImageDragOver(false);
-    showSuccessToast("Reset simple mode to defaults.");
-  }, [clearSourceImageForUi, showSuccessToast]);
-
-
-  const handleAddV4Char = useCallback((options?: { defaultPrompt?: string; gender?: V4CharGender }) => {
-    const row = {
-      ...newV4CharEditorRow({ gender: options?.gender ?? "other" }),
-      prompt: options?.defaultPrompt ?? "",
-    };
-    setV4Chars((prev) => {
-      if (!v4UseCoords)
-        return [...prev, row];
-      const nextCell = getNextAvailableV4CharGridCell(prev);
-      return [
-        ...prev,
-        {
-          ...row,
-          centerX: nextCell.centerX,
-          centerY: nextCell.centerY,
-        },
-      ];
-    });
-    setCharPromptTabs(prev => ({ ...prev, [row.id]: "prompt" }));
-    setProFeatureSectionOpen("characterPrompts", true);
-  }, [setProFeatureSectionOpen, v4UseCoords]);
-
-  const handleRemoveV4Char = useCallback((id: string) => {
-    setV4Chars(prev => prev.filter(item => item.id !== id));
-    setCharPromptTabs((prev) => {
-      const next = { ...prev };
-      delete next[id];
-      return next;
-    });
-  }, []);
-
-  const handleMoveV4Char = useCallback((id: string, direction: -1 | 1) => {
-    setV4Chars((prev) => {
-      const idx = prev.findIndex(item => item.id === id);
-      if (idx < 0)
-        return prev;
-      const nextIdx = idx + direction;
-      if (nextIdx < 0 || nextIdx >= prev.length)
-        return prev;
-      const next = prev.slice();
-      const [moved] = next.splice(idx, 1);
-      next.splice(nextIdx, 0, moved);
-      return next;
-    });
-  }, []);
-
-  const handleUpdateV4Char = useCallback((id: string, patch: Partial<V4CharEditorRow>) => {
-    setV4Chars(prev => prev.map(item => (item.id === id ? { ...item, ...patch } : item)));
-  }, []);
-
-  const handleSetV4UseCoords = useCallback((enabled: boolean) => {
-    setV4UseCoords((prev) => {
-      if (prev === enabled)
-        return prev;
-      return enabled;
-    });
-    if (!enabled)
-      return;
-    setV4Chars((prev) => {
-      const next = normalizeV4CharGridRows(prev);
-      return next === prev ? prev : next;
-    });
-  }, []);
-
-  const handleUpdateVibeReference = useCallback((id: string, patch: Partial<VibeTransferReferenceRow>) => {
-    setVibeTransferReferences(prev => prev.map(item => (item.id === id ? { ...item, ...patch } : item)));
-  }, []);
-
-  const handleRemoveVibeReference = useCallback((id: string) => {
-    setVibeTransferReferences(prev => prev.filter(item => item.id !== id));
-  }, []);
+  const {
+    handleAddV4Char,
+    handleRemoveV4Char,
+    handleMoveV4Char,
+    handleUpdateV4Char,
+    handleSetV4UseCoords,
+    handleUpdateVibeReference,
+    handleRemoveVibeReference,
+  } = useAiImageCharacterActions({
+    v4UseCoords,
+    setV4Chars,
+    setCharPromptTabs,
+    setProFeatureSectionOpen,
+    setV4UseCoords,
+    setVibeTransferReferences,
+  });
 
   const isBusy = loading || simpleConverting || Boolean(pendingPreviewAction);
   const freeGenerationViolation = getNovelAiFreeGenerationViolation({
@@ -1369,7 +850,6 @@ export function useAiImagePageController() {
   const simpleGenerateMode = resolveSimpleGenerateMode(mode);
   const canGenerateFromSimpleTags = canGenerate && (Boolean(sanitizeNovelAiTagInput(simplePrompt)) || simpleGenerateMode === "infill");
   const hasSimpleTagsDraft = Boolean(sanitizeNovelAiTagInput(simplePrompt) || sanitizeNovelAiTagInput(simpleNegativePrompt));
-  const simpleConvertLabel = simpleConverting ? "Converting..." : loading || pendingPreviewAction ? "Processing..." : "Convert to tags";
 
   const sidebarProps = buildSidebarProps({
     activeResolutionPreset,
