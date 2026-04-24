@@ -1,6 +1,6 @@
 import type { ChatMessageResponse } from "../../../../../api";
 
-import { ArrowClockwiseIcon, FileTextIcon, WarningCircleIcon } from "@phosphor-icons/react";
+import { FileTextIcon, WarningCircleIcon } from "@phosphor-icons/react";
 import React, { use, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import toast from "react-hot-toast";
 
@@ -84,7 +84,6 @@ function DocCardMessageImpl({ messageResponse }: { messageResponse: ChatMessageR
     errorMessage: "",
   });
   const [isOpen, setIsOpen] = useState(false);
-  const [retryEpoch, setRetryEpoch] = useState(0);
   const isMobile = useIsMobile();
   const prewarmedDocKeyRef = useRef("");
   const prewarmInFlightDocKeyRef = useRef("");
@@ -263,7 +262,7 @@ function DocCardMessageImpl({ messageResponse }: { messageResponse: ChatMessageR
       cancelled = true;
       cleanup();
     };
-  }, [docId, isSupportedDocId, message.messageId, payload?.imageUrl, payload?.title, previewSpaceId, retryEpoch]);
+  }, [docId, isSupportedDocId, message.messageId, payload?.imageUrl, payload?.title, previewSpaceId]);
 
   const title = preview.title || payload?.title || (docId ? `文档：${docId}` : "文档");
   const coverUrl = preview.imageUrl || payload?.imageUrl || "";
@@ -273,15 +272,6 @@ function DocCardMessageImpl({ messageResponse }: { messageResponse: ChatMessageR
     ? "无效的文档消息"
     : (!isSupportedDocId ? "不支持的文档引用" : (!(typeof previewSpaceId === "number" && previewSpaceId > 0) ? "缺少空间信息，无法打开文档预览" : ""));
   const isDisabled = Boolean(disabledReason);
-
-  const retryPreviewLoad = useCallback(() => {
-    requestSnapshotPrewarm("focus");
-    setPreviewLoadState({
-      status: "loading",
-      errorMessage: "",
-    });
-    setRetryEpoch(prev => prev + 1);
-  }, [requestSnapshotPrewarm]);
 
   const openPreview = () => {
     if (isDisabled) {
@@ -403,21 +393,9 @@ function DocCardMessageImpl({ messageResponse }: { messageResponse: ChatMessageR
           <div className="flex h-full min-h-0 flex-col overflow-hidden">
             {previewLoadState.status === "error" && !isDisabled
               ? (
-                  <div className="mx-4 mt-4 flex items-center justify-between gap-3 rounded-md border border-warning/30 bg-warning/10 px-3 py-2 text-sm text-base-content">
-                    <div className="flex min-w-0 items-center gap-2">
-                      <WarningCircleIcon className="size-4 shrink-0 text-warning" />
-                      <span className="truncate">{previewLoadState.errorMessage || "文档信息加载失败"}</span>
-                    </div>
-                    <button
-                      type="button"
-                      className="btn btn-ghost btn-xs shrink-0"
-                      onClick={() => {
-                        retryPreviewLoad();
-                      }}
-                    >
-                      <ArrowClockwiseIcon className="size-3.5" />
-                      重试
-                    </button>
+                  <div className="mx-4 mt-4 flex items-center gap-2 rounded-md border border-warning/30 bg-warning/10 px-3 py-2 text-sm text-base-content">
+                    <WarningCircleIcon className="size-4 shrink-0 text-warning" />
+                    <span className="truncate">{previewLoadState.errorMessage || "文档信息加载失败"}</span>
                   </div>
                 )
               : null}
@@ -426,7 +404,6 @@ function DocCardMessageImpl({ messageResponse }: { messageResponse: ChatMessageR
             {(!isDisabled && typeof previewSpaceId === "number" && previewSpaceId > 0) && (
               <div className="w-full h-full overflow-hidden bg-base-100">
                 <BlocksuiteDescriptionEditor
-                  key={`doc-card-preview:${docId}:${previewSpaceId}:${retryEpoch}`}
                   workspaceId={`space:${previewSpaceId}`}
                   spaceId={previewSpaceId}
                   docId={docId}
