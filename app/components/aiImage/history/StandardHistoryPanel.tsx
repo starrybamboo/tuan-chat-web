@@ -51,7 +51,7 @@ export function StandardHistoryPanel({
   onCollapse,
 }: StandardHistoryPanelProps) {
   return (
-    <div className="h-full min-h-0 w-[160px] shrink-0 overflow-hidden border-l border-base-300 bg-base-200 p-3">
+    <div className="h-full min-h-0 w-[160px] shrink-0 overflow-hidden border-l border-[#D6DCE3] bg-[#F3F5F7] p-3 dark:border-[#2A3138] dark:bg-[#161A1F]">
       <div className="flex h-full flex-col">
         <div className="mb-3 flex items-center gap-2 px-1">
           <div className="flex items-center gap-1">
@@ -69,7 +69,7 @@ export function StandardHistoryPanel({
           </button>
         </div>
         <div className="ai-image-fade-scrollbar flex-1 overflow-auto pr-1">
-          <div className="grid grid-cols-1 justify-items-center gap-2 border-t border-base-300 py-3">
+          <div className="grid grid-cols-1 justify-items-center gap-2 border-t border-[#D6DCE3] py-3 dark:border-[#2A3138]">
             {currentResultCards.map(({ item, index, row }) => (
               <HistoryImageTile
                 key={`${item.batchId}-${item.batchIndex}`}
