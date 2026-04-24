@@ -77,7 +77,7 @@ export function DirectorHistoryPanel({
   const directorHistoryCardActiveClassName = "border-primary/45 bg-primary/10";
 
   return (
-    <div className="h-full min-h-0 w-[196px] shrink-0 overflow-hidden border-l border-base-300 bg-base-200 p-3">
+    <div className="h-full min-h-0 w-[196px] shrink-0 overflow-hidden border-l border-[#D6DCE3] bg-[#F3F5F7] p-3 dark:border-[#2A3138] dark:bg-[#161A1F]">
       <div className="flex h-full min-h-0 flex-col">
         <div className="mb-3 flex items-center gap-2 px-1">
           <div className="flex items-center gap-1">
@@ -140,7 +140,7 @@ export function DirectorHistoryPanel({
           </div>
 
           <details
-            className="rounded-2xl border border-base-300 bg-base-100 px-2 py-1"
+            className="rounded-2xl border border-[#D6DCE3] bg-[#F3F5F7] px-2 py-1 dark:border-[#2A3138] dark:bg-[#161A1F]"
             open={isHistoryExpanded}
             onToggle={(event) => {
               onHistoryExpandedChange(event.currentTarget.open);

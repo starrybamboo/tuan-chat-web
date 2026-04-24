@@ -112,7 +112,7 @@ export function DirectorWorkspace({
         <div className={`flex w-[128px] shrink-0 flex-col gap-2 ${directorFrameClassName}`}>
           <button
             type="button"
-            className="inline-flex h-9 w-[100px] items-center justify-center rounded-md border border-primary bg-primary text-primary-content shadow-[0_8px_18px_rgba(0,0,0,0.12)] transition duration-200 ease-out hover:-translate-y-0.5 hover:bg-primary/90 hover:shadow-[0_12px_24px_rgba(0,0,0,0.18)] active:translate-y-0 active:scale-[0.98] active:shadow-[0_6px_14px_rgba(0,0,0,0.14)] focus:outline-none disabled:cursor-not-allowed disabled:border-primary/20 disabled:bg-primary/20 disabled:text-primary-content/45 disabled:shadow-none"
+            className="inline-flex h-9 w-[100px] items-center justify-center rounded-md bg-[#f3efc6] text-[#111326] shadow-[0_8px_18px_rgba(243,239,198,0.18)] transition duration-200 ease-out hover:-translate-y-0.5 hover:bg-[#fff7c9] hover:text-[#111326] hover:shadow-[0_12px_24px_rgba(243,239,198,0.28)] active:translate-y-0 active:scale-[0.98] active:shadow-[0_6px_14px_rgba(243,239,198,0.2)] focus:outline-none disabled:cursor-not-allowed disabled:bg-[#f3efc6]/30 disabled:text-[#111326]/45 disabled:shadow-none"
             disabled={isBusy}
             onClick={() => directorUploadInputRef.current?.click()}
           >
@@ -265,8 +265,8 @@ export function DirectorWorkspace({
       {isDirectorImageDragOver
         ? (
             <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center bg-base-100/52 backdrop-blur-[2px]">
-              <div className="flex size-[88px] items-center justify-center rounded-[24px] border border-base-300/60 bg-base-300/90 shadow-[0_16px_34px_rgba(0,0,0,0.18)] backdrop-blur-sm">
-                <UploadSimpleIcon className="size-11 text-base-content/85 drop-shadow-[0_1px_1px_rgba(0,0,0,0.16)]" weight="bold" aria-hidden="true" />
+              <div className="flex size-[88px] items-center justify-center rounded-[24px] bg-[#242636]/78 shadow-[0_16px_34px_rgba(0,0,0,0.24)] backdrop-blur-sm">
+                <UploadSimpleIcon className="size-11 text-white/90 drop-shadow-[0_1px_1px_rgba(0,0,0,0.28)]" weight="bold" aria-hidden="true" />
               </div>
             </div>
           )
@@ -287,7 +287,7 @@ export function DirectorWorkspace({
                           type="button"
                           className={`inline-flex h-8 min-w-8 items-center justify-center rounded-md px-2 text-[12px] font-medium transition focus:outline-none ${
                             isActive
-                              ? "bg-primary text-primary-content"
+                              ? "bg-[#f3efc6] text-[#111326]"
                               : "text-base-content/75 hover:bg-base-300 hover:text-base-content"
                           }`}
                           onClick={() => onDirectorColorizeDefryChange(value)}
@@ -354,7 +354,7 @@ export function DirectorWorkspace({
                   isDisabled
                     ? "cursor-not-allowed bg-base-300/55 text-base-content/35"
                     : isActive
-                      ? "bg-primary text-primary-content"
+                      ? "bg-[#f3efc6] text-[#111326]"
                       : "bg-transparent text-base-content/82 hover:bg-base-300 hover:text-base-content"
                 }`}
                 title={isDisabled ? "Remove BG disabled" : tool.description}
@@ -367,7 +367,7 @@ export function DirectorWorkspace({
           })}
           <button
             type="button"
-            className="ml-auto inline-flex h-10 items-center justify-center gap-2 rounded-md border border-primary bg-primary px-4 text-[12px] font-semibold text-primary-content shadow-[0_10px_20px_rgba(0,0,0,0.12)] transition duration-200 ease-out hover:-translate-y-0.5 hover:bg-primary/90 hover:border-primary/90 hover:shadow-[0_14px_28px_rgba(0,0,0,0.18)] active:translate-y-0 active:scale-[0.985] active:shadow-[0_7px_16px_rgba(0,0,0,0.14)] focus:outline-none disabled:cursor-not-allowed disabled:border-primary/20 disabled:bg-primary/20 disabled:text-primary-content/40 disabled:shadow-none"
+            className="ml-auto inline-flex h-10 items-center justify-center gap-2 rounded-md border border-[#f3efc6] bg-[#f3efc6] px-4 text-[12px] font-semibold text-[#111326] shadow-[0_10px_20px_rgba(243,239,198,0.16)] transition duration-200 ease-out hover:-translate-y-0.5 hover:bg-[#fff7c9] hover:border-[#fff7c9] hover:shadow-[0_14px_28px_rgba(243,239,198,0.24)] active:translate-y-0 active:scale-[0.985] active:shadow-[0_7px_16px_rgba(243,239,198,0.18)] focus:outline-none disabled:cursor-not-allowed disabled:border-[#f3efc6]/25 disabled:bg-[#f3efc6]/18 disabled:text-[#f3efc6]/40 disabled:shadow-none"
             disabled={!directorInputPreview || isBusy || isActiveDirectorToolDisabled}
             onClick={() => void onRunDirectorTool()}
           >
