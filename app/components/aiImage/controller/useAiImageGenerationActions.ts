@@ -202,7 +202,7 @@ export function useAiImageGenerationActions({
   const handleRunUpscale = useCallback(() => {
     if (!selectedPreviewResult)
       return;
-    showErrorToast(getNovelAiFreeOnlyMessage("Upscale is disabled."));
+    showErrorToast(getNovelAiFreeOnlyMessage("放大功能暂不可用。"));
   }, [selectedPreviewResult, showErrorToast]);
 
   const handleRunDirectorTool = useCallback(async () => {

@@ -280,7 +280,7 @@ export function useAiImageImportActions({
       return;
 
     if (target === "img2img")
-      applySourceImageForUi(uiMode, pendingMetadataImport.sourceImage, "Base image applied.");
+      applySourceImageForUi(uiMode, pendingMetadataImport.sourceImage, "已应用底图。");
 
     setPendingMetadataImport(null);
     setMetadataImportSelection(defaultMetadataImportSelection);
@@ -306,13 +306,13 @@ export function useAiImageImportActions({
 
   const handlePickVibeReferences = useCallback(async (files: FileList | File[]) => {
     void files;
-    showErrorToast(getNovelAiFreeOnlyMessage("Vibe Transfer is disabled."));
+    showErrorToast(getNovelAiFreeOnlyMessage("Vibe Transfer 暂不可用。"));
     setProFeatureSectionOpen("vibeTransfer", true);
   }, [setProFeatureSectionOpen, showErrorToast]);
 
   const handlePickPreciseReference = useCallback(async (file: File) => {
     void file;
-    showErrorToast(getNovelAiFreeOnlyMessage("Precise Reference is disabled."));
+    showErrorToast(getNovelAiFreeOnlyMessage("Precise Reference 暂不可用。"));
     setProFeatureSectionOpen("preciseReference", true);
   }, [setProFeatureSectionOpen, showErrorToast]);
 
@@ -332,13 +332,13 @@ export function useAiImageImportActions({
       height: selectedPreviewResult.height,
     });
     if (!sourceImage) {
-      showErrorToast("Failed to read preview image as base image.");
+      showErrorToast("读取预览图作为底图失败。");
       return false;
     }
 
     applySourceImageForUi(uiMode, sourceImage);
     if (showToast)
-      showSuccessToast("Preview applied as base image.");
+      showSuccessToast("已将预览图应用为底图。");
     return true;
   }, [applySourceImageForUi, selectedPreviewResult, showErrorToast, showSuccessToast, uiMode]);
 
@@ -408,7 +408,7 @@ export function useAiImageImportActions({
     const files = extractImageFilesFromTransfer(event.dataTransfer);
     if (!files.length) {
       setIsDirectorImageDragOver(false);
-      showErrorToast("Drag-and-drop currently supports image files only.");
+      showErrorToast("当前拖放仅支持图片文件。");
       return;
     }
 
@@ -421,7 +421,7 @@ export function useAiImageImportActions({
       return;
     setDirectorSourcePreview(selectedPreviewResult);
     setDirectorOutputPreview(null);
-    showSuccessToast("Synced the current preview to the director input.");
+    showSuccessToast("已将当前预览同步到导演工具输入。");
   }, [selectedPreviewResult, setDirectorOutputPreview, setDirectorSourcePreview, showSuccessToast]);
 
   return {

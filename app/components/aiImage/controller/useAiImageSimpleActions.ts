@@ -1,3 +1,5 @@
+import type { MetadataImportSelectionState, PendingMetadataImportState, ResolutionSelection } from "@/components/aiImage/types";
+import type { NovelAiNl2TagsResult } from "@/utils/novelaiNl2Tags";
 import { useCallback, useEffect } from "react";
 
 import type { AiImageHistoryMode } from "@/utils/aiImageHistoryDb";
@@ -27,7 +29,7 @@ interface UseAiImageSimpleActionsOptions {
     negativePrompt?: string;
     mode?: AiImageHistoryMode;
   }) => Promise<boolean>;
-  setSimpleConverted: (value: any) => void;
+  setSimpleConverted: (value: NovelAiNl2TagsResult | null) => void;
   setSimpleConvertedFromText: (value: string) => void;
   setSimplePrompt: (value: string) => void;
   setSimpleNegativePrompt: (value: string) => void;
@@ -42,17 +44,17 @@ interface UseAiImageSimpleActionsOptions {
   setSimpleInfillStrength: (value: number) => void;
   setSimpleInfillNoise: (value: number) => void;
   setSimpleSeed: (value: number) => void;
-  setSimpleResolutionSelection: (value: string) => void;
+  setSimpleResolutionSelection: (value: ResolutionSelection) => void;
   setSelectedStyleIds: (value: string[]) => void;
   setCompareStyleId: (value: string | null) => void;
   setStyleSelectionMode: (value: "select" | "compare") => void;
-  setPendingMetadataImport: (value: any) => void;
-  setMetadataImportSelection: (value: any) => void;
+  setPendingMetadataImport: (value: PendingMetadataImportState | null) => void;
+  setMetadataImportSelection: (value: MetadataImportSelectionState) => void;
   setIsPageImageDragOver: (value: boolean) => void;
   showErrorToast: (message: string) => void;
   showSuccessToast: (message: string) => void;
-  convertNaturalLanguageToNovelAiTags: (args: { input: string }) => Promise<any>;
-  defaultMetadataImportSelection: any;
+  convertNaturalLanguageToNovelAiTags: (args: { input: string }) => Promise<NovelAiNl2TagsResult>;
+  defaultMetadataImportSelection: MetadataImportSelectionState;
 }
 
 export function useAiImageSimpleActions({
@@ -123,7 +125,7 @@ export function useAiImageSimpleActions({
   const handleSimpleConvertToTags = useCallback(async () => {
     const trimmed = simpleText.trim();
     if (!trimmed) {
-      showErrorToast("Please enter a natural-language prompt first.");
+      showErrorToast("请先输入自然语言描述。");
       return;
     }
 
@@ -153,7 +155,7 @@ export function useAiImageSimpleActions({
 
   const handleAcceptSimpleConverted = useCallback(() => {
     if (!simpleConverted?.prompt.trim()) {
-      showErrorToast("Converted result is empty. Please try again.");
+      showErrorToast("转换结果为空，请重试。");
       return;
     }
 
@@ -189,7 +191,7 @@ export function useAiImageSimpleActions({
 
   const handleReturnToSimpleTags = useCallback(() => {
     if (!sanitizeNovelAiTagInput(simplePrompt) && !sanitizeNovelAiTagInput(simpleNegativePrompt)) {
-      showErrorToast("There are no tags to return to.");
+      showErrorToast("当前没有可返回的 tags。");
       return;
     }
     setSimpleConverted(null);
@@ -210,7 +212,7 @@ export function useAiImageSimpleActions({
   const handleSimpleGenerateFromTags = useCallback(async () => {
     const nextGenerateMode = resolveSimpleGenerateMode(mode);
     if (nextGenerateMode === "txt2img" && !sanitizeNovelAiTagInput(simplePrompt)) {
-      showErrorToast("Prompt is empty. Please complete the tags first.");
+      showErrorToast("Prompt 为空，请先补全 tags。");
       return;
     }
     await runGenerate({ mode: nextGenerateMode, prompt: simplePrompt, negativePrompt: simpleNegativePrompt });
@@ -239,7 +241,7 @@ export function useAiImageSimpleActions({
     setPendingMetadataImport(null);
     setMetadataImportSelection(defaultMetadataImportSelection);
     setIsPageImageDragOver(false);
-    showSuccessToast("Reset simple mode to defaults.");
+    showSuccessToast("已将简单模式重置为默认值。");
   }, [
     clearSourceImageForUi,
     defaultMetadataImportSelection,
@@ -268,10 +270,10 @@ export function useAiImageSimpleActions({
   ]);
 
   const simpleConvertLabel = simpleConverting
-    ? "Converting..."
+    ? "转换中..."
     : loading || pendingPreviewAction
-        ? "Processing..."
-        : "Convert to tags";
+        ? "处理中..."
+        : "转为 tags";
 
   return {
     handleSimpleConvertToTags,

@@ -1,7 +1,8 @@
 import { useCallback } from "react";
 
-import type { InpaintSubmitPayload, UiMode } from "@/components/aiImage/types";
+import type { GeneratedImageItem, InpaintDialogSource, InpaintSubmitPayload, UiMode } from "@/components/aiImage/types";
 import type { AiImageHistoryRow } from "@/utils/aiImageHistoryDb";
+import type { AiImageHistoryMode } from "@/utils/aiImageHistoryDb";
 
 import { buildOpenInpaintState } from "@/components/aiImage/controller/generateActions";
 import { buildBaseImageInpaintStateAction, saveInpaintMaskAction } from "@/components/aiImage/controller/inpaintActions";
@@ -10,7 +11,7 @@ import { dataUrlToBase64, resolveSimpleGenerateMode } from "@/components/aiImage
 interface UseAiImageInpaintActionsOptions {
   uiMode: UiMode;
   loading: boolean;
-  mode: any;
+  mode: AiImageHistoryMode;
   model: string;
   width: number;
   height: number;
@@ -22,14 +23,14 @@ interface UseAiImageInpaintActionsOptions {
   simpleInfillNegativePrompt: string;
   proInfillNegativePrompt: string;
   currentInfillStrength: number;
-  selectedPreviewResult: any;
+  selectedPreviewResult: GeneratedImageItem | null;
   selectedPreviewHistoryRow: AiImageHistoryRow | null;
   history: AiImageHistoryRow[];
-  inpaintDialogSource: any;
+  inpaintDialogSource: InpaintDialogSource | null;
   readImageSize: (dataUrl: string) => Promise<{ width: number; height: number }>;
   applySelectedPreviewAsBaseImage: () => boolean;
   setError: (value: string) => void;
-  setInpaintDialogSource: (value: any) => void;
+  setInpaintDialogSource: (value: InpaintDialogSource | null) => void;
   setSimpleInfillPrompt: (value: string) => void;
   setSimpleInfillNegativePrompt: (value: string) => void;
   setSimpleEditorMode: (value: "text" | "tags") => void;
@@ -41,7 +42,7 @@ interface UseAiImageInpaintActionsOptions {
   setProInfillStrength: (value: number) => void;
   setProInfillMaskDataUrl: (value: string) => void;
   clearInfillMaskForUi: (mode: UiMode) => void;
-  setModeForUi: (mode: UiMode, nextMode: any) => void;
+  setModeForUi: (mode: UiMode, nextMode: AiImageHistoryMode) => void;
   showErrorToast: (message: string) => void;
 }
 

@@ -65,7 +65,7 @@ export async function pickDirectorSourceImagesAction(args: {
 }) {
   const fileList = Array.from(args.files).filter(file => file.type.startsWith("image/") || file.name);
   if (!fileList.length) {
-    args.showErrorToast("Please choose at least one image file.");
+    args.showErrorToast("请先选择至少一张图片。");
     return;
   }
 
@@ -139,13 +139,13 @@ export async function runDirectorToolAction(args: {
     return;
 
   if (args.isDirectorToolDisabled(args.activeDirectorTool)) {
-    args.showErrorToast(`${args.directorTool.label} is disabled right now.`);
+    args.showErrorToast(`${args.directorTool.label} 当前不可用。`);
     return;
   }
 
   const imageBase64 = dataUrlToBase64(args.directorInputPreview.dataUrl);
   if (!imageBase64) {
-    args.showErrorToast("The selected director image could not be converted.");
+    args.showErrorToast("当前导演工具输入图像无法转换。");
     return;
   }
 
@@ -173,7 +173,7 @@ export async function runDirectorToolAction(args: {
     });
     const nextDataUrl = response.dataUrls[0];
     if (!nextDataUrl)
-      throw new Error("Director Tools did not return an output image.");
+      throw new Error("导演工具未返回输出图像。");
 
     let nextSize = {
       width: args.directorInputPreview.width,
@@ -212,7 +212,7 @@ export async function runDirectorToolAction(args: {
       }),
     ]);
     await args.refreshHistory();
-    args.showSuccessToast(`${args.directorTool.label} completed.`);
+    args.showSuccessToast(`${args.directorTool.label} 已完成。`);
   }
   catch (error) {
     const message = error instanceof Error ? error.message : String(error);
