@@ -84,10 +84,12 @@ export function getNovelAiV45UcPresetText(ucPreset: number) {
   return NOVELAI_V45_UC_PRESET_TEXT[ucPreset] ?? "";
 }
 
+type TokenMeterCharacterInput = Pick<V4CharEditorRow, "id" | "prompt" | "negativePrompt"> & Partial<V4CharEditorRow>;
+
 export function buildNovelAiV45TextRequests(args: {
   prompt: string;
   negativePrompt: string;
-  v4Chars: V4CharEditorRow[];
+  v4Chars: TokenMeterCharacterInput[];
   qualityToggle: boolean;
   ucPreset: number;
 }): NovelAiV45TextRequests {

@@ -1,7 +1,7 @@
 import type { AiImagePageController } from "@/components/aiImage/useAiImagePageController";
 import { ArrowClockwise, ArrowCounterClockwise, CaretDownIcon, CaretLeftIcon, CaretUpIcon, CheckCircleIcon, CircleIcon, CircleNotch, FileArrowUpIcon, GenderFemaleIcon, GenderMaleIcon, GearSixIcon, ImageSquareIcon, ImagesSquareIcon, PencilSimpleLineIcon, PlusIcon, SelectionPlusIcon, SparkleIcon, TrashIcon, XCircleIcon } from "@phosphor-icons/react";
 import type { KeyboardEvent as ReactKeyboardEvent } from "react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import preciseReferenceIconSrc from "@/components/aiImage/assets/precise-reference.png";
 import vibeTransferIconSrc from "@/components/aiImage/assets/vibe-transfer.png";
 import {
@@ -27,7 +27,7 @@ import {
 import { HighlightEmphasisTextarea } from "@/components/aiImage/HighlightEmphasisTextarea";
 import { AiImageContextLimitMeter } from "@/components/aiImage/AiImageContextLimitMeter";
 import { NOVELAI_V45_CONTEXT_LIMIT, useNovelAiV45TokenSnapshot } from "@/components/aiImage/novelaiV45TokenMeter";
-import { ProEditorContent } from "@/components/aiImage/sidebar/ProEditorContent";
+import { ProEditorContent, type ProEditorContentLocalProps } from "@/components/aiImage/sidebar/ProEditorContent";
 import { ReferenceActionIcon } from "@/components/aiImage/ReferenceActionIcon";
 import { renderSimpleBaseImageSectionContent, renderProInfillSectionContent, renderSimpleInfillSectionContent } from "@/components/aiImage/sidebar/baseImageSections";
 import { renderProBottomSettingsDrawerContent } from "@/components/aiImage/sidebar/ProBottomSettingsDrawer";
@@ -35,7 +35,7 @@ import { renderResolutionGlyph as renderResolutionGlyphContent } from "@/compone
 import { useDelayedPresence } from "@/components/aiImage/sidebar/useDelayedPresence";
 import { useDismissibleLayer } from "@/components/aiImage/sidebar/useDismissibleLayer";
 import { useFloatingPanelPosition } from "@/components/aiImage/sidebar/useFloatingPanelPosition";
-import { SimpleEditorContent } from "@/components/aiImage/sidebar/SimpleEditorContent";
+import { SimpleEditorContent, type SimpleEditorContentLocalProps } from "@/components/aiImage/sidebar/SimpleEditorContent";
 import { ChevronDown } from "@/icons";
 import { ProFeatureSection } from "@/components/aiImage/ProFeatureSection";
 
@@ -61,7 +61,7 @@ const MODE_SELECTOR_TRANSITION_MS = 180;
 const RESOLUTION_OPTIONS = [...RESOLUTION_PRESETS, { id: CUSTOM_RESOLUTION_ID, label: "自定义" }] as const;
 type ModeOptionValue = (typeof MODE_OPTIONS)[number]["value"];
 
-export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
+export const AiImageSidebar = memo(function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
   const {
     canConvertSimpleText,
     canGenerateFromSimpleTags,
@@ -582,6 +582,153 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
     });
   }
 
+  const simpleEditorLocal = useMemo<SimpleEditorContentLocalProps>(() => ({
+    isSimpleTagsEditor,
+    isSimplePreviewingConverted,
+    isSimpleTextEditor,
+    floatingInputActionBaseClassName,
+    editorPanelClassName,
+    segmentedControlClassName,
+    segmentedButtonBaseClassName,
+    floatingInputActionClassName,
+    promptTextareaClassName,
+    simplePromptTextareaClassName,
+    renderSimpleBaseImageSection,
+    handleToggleLineCommentForSimpleTags,
+  }), [
+    editorPanelClassName,
+    floatingInputActionBaseClassName,
+    floatingInputActionClassName,
+    handleToggleLineCommentForSimpleTags,
+    isSimplePreviewingConverted,
+    isSimpleTagsEditor,
+    isSimpleTextEditor,
+    promptTextareaClassName,
+    renderSimpleBaseImageSection,
+    segmentedButtonBaseClassName,
+    segmentedControlClassName,
+    simplePromptTextareaClassName,
+  ]);
+
+  const proEditorLocal = useMemo<ProEditorContentLocalProps>(() => ({
+    editorPanelClassName,
+    segmentedControlClassName,
+    segmentedButtonBaseClassName,
+    highlightPromptSurfaceClassName,
+    highlightPromptContentClassName,
+    proPromptEditorPanelRef,
+    proPromptSettingsRef,
+    proPromptSettingsButtonRef,
+    isProPromptSettingsOpen,
+    setIsProPromptSettingsOpen,
+    proPromptSettingsPosition,
+    subtleSelectClassName,
+    highlightEmphasisEnabled,
+    setHighlightEmphasisEnabled,
+    proPromptTextareaRef,
+    activeBaseMeter,
+    activeChannelSnapshot,
+    proPromptFooterLabel,
+    proPromptFooterHint,
+    featureUploadActionClassName,
+    renderProInfillSection,
+    baseImagePanelClassName,
+    baseImageHeaderClassName,
+    baseImageControlGroupClassName,
+    baseImageToggleButtonClassName,
+    baseImageRangeClassName,
+    baseImageActionButtonClassName,
+    strength,
+    setStrength,
+    noise,
+    setNoise,
+    characterAddMenuRef,
+    isCharacterAddMenuOpen,
+    setIsCharacterAddMenuOpen,
+    characterAddTriggerClassName,
+    characterAddMenuPanelClassName,
+    characterAddMenuItemClassName,
+    characterCardClassName,
+    characterCardHeaderActionClassName,
+    characterCardTitleIconClassName,
+    handleToggleLineCommentForProPrompt,
+    handleToggleLineCommentForV4Char,
+    highlightCharSurfaceClassName,
+    highlightCharContentClassName,
+    showCharacterPositionsGlobalSection,
+    isCharacterPositionAiChoiceEnabled,
+    characterPositionPickerState,
+    characterPositionAssignments,
+    handleOpenCharacterPositionPicker,
+    handleSelectCharacterPositionCode,
+    handleSaveCharacterPosition,
+    characterPositionsSectionClassName,
+    characterPositionsToggleBaseClassName,
+    handleToggleCharacterPositionAiChoice,
+    tokenSnapshot,
+    characterPromptDescription,
+    isBaseImageToolsOpen,
+    setIsBaseImageToolsOpen,
+  }), [
+    activeBaseMeter,
+    activeChannelSnapshot,
+    baseImageActionButtonClassName,
+    baseImageControlGroupClassName,
+    baseImageHeaderClassName,
+    baseImagePanelClassName,
+    baseImageRangeClassName,
+    baseImageToggleButtonClassName,
+    characterAddMenuItemClassName,
+    characterAddMenuPanelClassName,
+    characterAddMenuRef,
+    characterAddTriggerClassName,
+    characterCardClassName,
+    characterCardHeaderActionClassName,
+    characterCardTitleIconClassName,
+    characterPositionAssignments,
+    characterPositionPickerState,
+    characterPositionsSectionClassName,
+    characterPositionsToggleBaseClassName,
+    characterPromptDescription,
+    editorPanelClassName,
+    featureUploadActionClassName,
+    handleOpenCharacterPositionPicker,
+    handleSaveCharacterPosition,
+    handleSelectCharacterPositionCode,
+    handleToggleCharacterPositionAiChoice,
+    handleToggleLineCommentForProPrompt,
+    handleToggleLineCommentForV4Char,
+    highlightCharContentClassName,
+    highlightCharSurfaceClassName,
+    highlightEmphasisEnabled,
+    highlightPromptContentClassName,
+    highlightPromptSurfaceClassName,
+    isBaseImageToolsOpen,
+    isCharacterAddMenuOpen,
+    isCharacterPositionAiChoiceEnabled,
+    isProPromptSettingsOpen,
+    noise,
+    proPromptEditorPanelRef,
+    proPromptFooterHint,
+    proPromptFooterLabel,
+    proPromptSettingsButtonRef,
+    proPromptSettingsPosition,
+    proPromptSettingsRef,
+    proPromptTextareaRef,
+    segmentedButtonBaseClassName,
+    segmentedControlClassName,
+    setHighlightEmphasisEnabled,
+    setIsBaseImageToolsOpen,
+    setIsCharacterAddMenuOpen,
+    setIsProPromptSettingsOpen,
+    setNoise,
+    setStrength,
+    showCharacterPositionsGlobalSection,
+    strength,
+    subtleSelectClassName,
+    tokenSnapshot,
+  ]);
+
   return (
     <div
       ref={sidebarSurfaceRef}
@@ -694,84 +841,13 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
             ? (
                 <SimpleEditorContent
                   sidebarProps={sidebarProps}
-                  local={{
-                    isSimpleTagsEditor,
-                    isSimplePreviewingConverted,
-                    isSimpleTextEditor,
-                    floatingInputActionBaseClassName,
-                    editorPanelClassName,
-                    segmentedControlClassName,
-                    segmentedButtonBaseClassName,
-                    floatingInputActionClassName,
-                    promptTextareaClassName,
-                    simplePromptTextareaClassName,
-                    renderSimpleBaseImageSection,
-                    handleToggleLineCommentForSimpleTags,
-                  }}
+                  local={simpleEditorLocal}
                 />
               )
             : (
                 <ProEditorContent
                   sidebarProps={sidebarProps}
-                  local={{
-                    editorPanelClassName,
-                    segmentedControlClassName,
-                    segmentedButtonBaseClassName,
-                    highlightPromptSurfaceClassName,
-                    highlightPromptContentClassName,
-                    proPromptSettingsRef,
-                    proPromptSettingsButtonRef,
-                    isProPromptSettingsOpen,
-                    setIsProPromptSettingsOpen,
-                    proPromptSettingsPosition,
-                    subtleSelectClassName,
-                    highlightEmphasisEnabled,
-                    setHighlightEmphasisEnabled,
-                    proPromptTextareaRef,
-                    activeBaseMeter,
-                    activeChannelSnapshot,
-                    proPromptFooterLabel,
-                    proPromptFooterHint,
-                    featureUploadActionClassName,
-                    renderProInfillSection,
-                    baseImagePanelClassName,
-                    baseImageHeaderClassName,
-                    baseImageControlGroupClassName,
-                    baseImageToggleButtonClassName,
-                    baseImageRangeClassName,
-                    baseImageActionButtonClassName,
-                    strength,
-                    setStrength,
-                    noise,
-                    setNoise,
-                    characterAddMenuRef,
-                    isCharacterAddMenuOpen,
-                    setIsCharacterAddMenuOpen,
-                    characterAddTriggerClassName,
-                    characterAddMenuPanelClassName,
-                    characterAddMenuItemClassName,
-                    characterCardClassName,
-                    characterCardHeaderActionClassName,
-                    characterCardTitleIconClassName,
-                    handleToggleLineCommentForProPrompt,
-                    handleToggleLineCommentForV4Char,
-                    highlightCharSurfaceClassName,
-                    highlightCharContentClassName,
-                    showCharacterPositionsGlobalSection,
-                    isCharacterPositionAiChoiceEnabled,
-                    characterPositionPickerState,
-                    characterPositionAssignments,
-                    handleOpenCharacterPositionPicker,
-                    handleSelectCharacterPositionCode,
-                    handleSaveCharacterPosition,
-                    characterPositionsSectionClassName,
-                    characterPositionsToggleBaseClassName,
-                    handleToggleCharacterPositionAiChoice,
-                    tokenSnapshot,
-                    characterPromptDescription,
-                    isBaseImageToolsOpen,
-                    setIsBaseImageToolsOpen,
-                  }}
+                  local={proEditorLocal}
                 />
               )}
         </div>
@@ -1039,4 +1115,4 @@ export function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
     </div>
 
   );
-}
+});

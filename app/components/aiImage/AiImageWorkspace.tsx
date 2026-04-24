@@ -1,3 +1,4 @@
+import { memo } from "react";
 import { ArrowSquareInIcon, PlantIcon, TrashSimpleIcon } from "@phosphor-icons/react";
 import type { ComponentProps } from "react";
 import { useEffect, useState } from "react";
@@ -17,7 +18,7 @@ interface AiImageWorkspaceProps {
   onApplyPinnedPreviewSeed: () => void;
 }
 
-export function AiImageWorkspace({
+export const AiImageWorkspace = memo(function AiImageWorkspace({
   isDirectorToolsOpen,
   previewPaneProps,
   historyPaneProps,
@@ -48,7 +49,7 @@ export function AiImageWorkspace({
             <button
               type="button"
               className="absolute inset-0 z-[5] bg-black/36 transition-opacity"
-              aria-label="收起 pinned 预览阴影"
+              aria-label="?? pinned ????"
               onClick={() => setIsPinnedDrawerOpen(false)}
             />
           )
@@ -67,8 +68,8 @@ export function AiImageWorkspace({
                   <button
                     type="button"
                     className="inline-flex size-9 items-center justify-center rounded-none text-base-content/72 transition-colors hover:bg-base-200/35 hover:text-base-content"
-                    aria-label="取消固定预览"
-                    title="取消固定预览"
+                    aria-label="??????"
+                    title="??????"
                     onClick={onClearPinnedPreview}
                   >
                     <TrashSimpleIcon className="size-[18px]" weight="regular" />
@@ -76,8 +77,8 @@ export function AiImageWorkspace({
                   <button
                     type="button"
                     className="inline-flex size-9 items-center justify-center rounded-none text-base-content/72 transition-colors hover:bg-base-200/35 hover:text-base-content"
-                    aria-label="跳转到 pinned 图片"
-                    title="跳转到 pinned 图片"
+                    aria-label="??? pinned ??"
+                    title="??? pinned ??"
                     onClick={() => {
                       onJumpToPinnedPreview();
                       setIsPinnedDrawerOpen(false);
@@ -88,8 +89,8 @@ export function AiImageWorkspace({
                   <button
                     type="button"
                     className="inline-flex size-9 items-center justify-center rounded-none text-base-content/72 transition-colors hover:bg-base-200/35 hover:text-base-content"
-                    aria-label="应用 pinned seed"
-                    title="应用 pinned seed"
+                    aria-label="?? pinned seed"
+                    title="?? pinned seed"
                     onClick={onApplyPinnedPreviewSeed}
                   >
                     <PlantIcon className="size-[18px]" weight="regular" />
@@ -98,7 +99,7 @@ export function AiImageWorkspace({
                 <button
                   type="button"
                   className="relative block shrink-0 overflow-hidden rounded-none bg-transparent shadow-xl"
-                  aria-label={isPinnedDrawerOpen ? "收起 pinned 预览" : "展开 pinned 预览"}
+                  aria-label={isPinnedDrawerOpen ? "?? pinned ??" : "?? pinned ??"}
                   onClick={() => {
                     if (isPinnedDrawerOpen) {
                       setIsPinnedDrawerOpen(false);
@@ -126,8 +127,8 @@ export function AiImageWorkspace({
               <button
                 type="button"
                 className="flex size-10 items-center justify-center bg-transparent text-base-content/62 transition hover:text-base-content/90 focus:outline-none"
-                aria-label="展开历史记录侧边栏"
-                title="展开历史记录侧边栏"
+                aria-label="?????????"
+                title="?????????"
                 onClick={() => setIsHistoryCollapsed(false)}
               >
                 <HistoryIcon className="size-6" />
@@ -151,4 +152,4 @@ export function AiImageWorkspace({
       </div>
     </div>
   );
-}
+});

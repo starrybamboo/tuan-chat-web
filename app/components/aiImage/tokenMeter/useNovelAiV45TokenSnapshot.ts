@@ -21,15 +21,23 @@ export function useNovelAiV45TokenSnapshot(args: {
       .join("\u0001");
   }, [args.v4Chars]);
 
+  const tokenChars = useMemo(() => {
+    return args.v4Chars.map(({ id, prompt, negativePrompt }) => ({
+      id,
+      prompt,
+      negativePrompt,
+    }));
+  }, [serializedChars]);
+
   const requests = useMemo(() => {
     return buildNovelAiV45TextRequests({
       prompt: args.prompt,
       negativePrompt: args.negativePrompt,
-      v4Chars: args.v4Chars,
+      v4Chars: tokenChars,
       qualityToggle: args.qualityToggle,
       ucPreset: args.ucPreset,
     });
-  }, [args.negativePrompt, args.prompt, args.qualityToggle, args.ucPreset, serializedChars, args.v4Chars]);
+  }, [args.negativePrompt, args.prompt, args.qualityToggle, args.ucPreset, tokenChars]);
 
   const [tokenState, setTokenState] = useState<{
     status: "loading" | "ready" | "fallback";
