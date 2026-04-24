@@ -190,15 +190,15 @@ export default function MaterialPackageLibraryWorkspace({
     <div className={`h-full min-h-0 overflow-y-auto text-base-content ${embedded ? "bg-base-300/40" : "bg-[radial-gradient(circle_at_top_left,oklch(var(--p)/0.1),transparent_26%),linear-gradient(180deg,oklch(var(--b2)/0.98),oklch(var(--b1)/1))] border-t border-base-300"}`}>
       {embedded && (
         <div className="sticky top-0 z-20 border-t border-b border-gray-300 bg-base-200/95 backdrop-blur dark:border-gray-700">
-          <div className="mx-auto flex w-full max-w-6xl flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-6 sm:py-2.5">
-            <div className="flex min-w-0 items-center gap-3">
-              <div className="truncate text-sm font-semibold text-base-content">{title}</div>
-              <span className="hidden rounded-full border border-base-300 bg-base-100 px-2 py-0.5 text-[11px] text-base-content/68 sm:inline-flex">
+          <div className="mx-auto flex w-full max-w-6xl flex-col gap-3 px-4 py-3 sm:h-12 sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:px-6 sm:py-0">
+            <div className="flex min-w-0 items-center gap-3 sm:flex-1">
+              <div className="min-w-0 flex-1 truncate text-sm font-semibold text-base-content">{title}</div>
+              <span className="hidden shrink-0 whitespace-nowrap rounded-full border border-base-300 bg-base-100 px-2 py-0.5 text-[11px] text-base-content/68 xl:inline-flex">
                 {topBarInfo}
               </span>
             </div>
 
-            <div className="flex w-full min-w-0 flex-col gap-3 sm:w-auto sm:flex-row sm:items-center sm:justify-end">
+            <div className="flex w-full min-w-0 flex-col gap-3 sm:w-auto sm:flex-row sm:items-center sm:justify-end sm:gap-2">
               {headerActions.length > 0 && (
                 <div className="flex items-center gap-2 overflow-x-auto pb-1 sm:pb-0">
                   {headerActions.map(action => (
@@ -217,8 +217,8 @@ export default function MaterialPackageLibraryWorkspace({
                 </div>
               )}
 
-              <div className="relative w-full sm:w-[22rem]">
-                <label className="flex items-center gap-2 rounded-md border border-base-300 bg-base-100 px-3 py-2 transition focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20">
+              <div className="relative w-full sm:w-[16rem] lg:w-[20rem] xl:w-[22rem]">
+                <label className="flex h-9 items-center gap-2 rounded-md border border-base-300 bg-base-100 px-3 transition focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20">
                   <MagnifyingGlassIcon className="size-4 shrink-0 text-base-content/38" />
                   <input
                     type="text"
