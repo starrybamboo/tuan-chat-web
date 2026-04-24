@@ -1,4 +1,4 @@
-import type { ComponentProps } from "react";
+import type { ComponentProps, Dispatch, RefObject, SetStateAction } from "react";
 
 import { useMemo } from "react";
 
@@ -9,7 +9,22 @@ import { InpaintDialog } from "@/components/aiImage/InpaintDialog";
 import { MetadataImportDialog } from "@/components/aiImage/MetadataImportDialog";
 import { PreviewImageDialog } from "@/components/aiImage/PreviewImageDialog";
 import { StylePickerDialog } from "@/components/aiImage/StylePickerDialog";
-import { buildInpaintDialogProps, buildMetadataImportDialogProps, buildPreviewImageDialogProps, buildStylePickerDialogProps, buildWorkspaceProps } from "@/components/aiImage/controller/buildViewModels";
+import type {
+  MetadataImportSelectionState,
+  PreciseReferenceRow,
+  ProFeatureSectionKey,
+  V4CharGender,
+  ResolutionPreset,
+  ResolutionSelection,
+  UiMode,
+  V4CharEditorRow,
+  VibeTransferReferenceRow,
+} from "@/components/aiImage/types";
+import type { AiImageHistoryMode } from "@/utils/aiImageHistoryDb";
+import type { NovelAiNl2TagsResult } from "@/utils/novelaiNl2Tags";
+import type { AiImageStylePreset } from "@/utils/aiImageStylePresets";
+
+import { buildInpaintDialogProps, buildMetadataImportDialogProps, buildPreviewImageDialogProps, buildSidebarProps, buildStylePickerDialogProps, buildWorkspaceProps } from "@/components/aiImage/controller/buildViewModels";
 import { generatedItemKey } from "@/components/aiImage/helpers";
 
 type WorkspaceProps = ComponentProps<typeof AiImageWorkspace>;
@@ -19,6 +34,169 @@ type MetadataImportDialogProps = ComponentProps<typeof MetadataImportDialog>;
 type PreviewImageDialogProps = ComponentProps<typeof PreviewImageDialog>;
 type InpaintDialogProps = ComponentProps<typeof InpaintDialog>;
 type StylePickerDialogProps = ComponentProps<typeof StylePickerDialog>;
+type RunGenerate = (args?: {
+  prompt?: string;
+  negativePrompt?: string;
+  mode?: AiImageHistoryMode;
+  sourceImageBase64?: string;
+  sourceImageDataUrl?: string;
+  sourceImageWidth?: number;
+  sourceImageHeight?: number;
+  maskBase64?: string;
+  width?: number;
+  height?: number;
+  strength?: number;
+  noise?: number;
+  toolLabel?: string;
+}) => Promise<boolean>;
+
+interface SidebarViewModelArgs {
+  activeResolutionPreset: ResolutionPreset | null;
+  baseImageDescription: string;
+  canAddVibeReference: boolean;
+  canConvertSimpleText: boolean;
+  canGenerate: boolean;
+  canGenerateFromSimpleTags: boolean;
+  canTriggerProGenerate: boolean;
+  cfgRescale: number;
+  charPromptTabs: Record<string, "prompt" | "negative">;
+  characterPromptDescription: string;
+  fixedModelDescription: string;
+  freeGenerationViolation: string | null;
+  hasSimpleTagsDraft: boolean;
+  isBusy: boolean;
+  handleAddV4Char: (options?: { defaultPrompt?: string; gender?: V4CharGender }) => void;
+  handleClearSeed: () => void;
+  handleClearCurrentDisplayedImage: () => void;
+  handleOpenSourceImagePicker: () => void;
+  handleClearSourceImage: () => void;
+  handleClearInfillMask: () => void;
+  handleClearSimpleDraft: () => void;
+  handleClearStyles: () => void;
+  handleCropToClosestValidSize: () => void | Promise<void>;
+  handleMoveV4Char: (id: string, direction: -1 | 1) => void;
+  handleRemoveV4Char: (id: string) => void;
+  handleRemoveVibeReference: (id: string) => void;
+  handleAcceptSimpleConverted: () => void;
+  handleRejectSimpleConverted: () => void;
+  handleCommitProDimensions: () => void;
+  handleCommitSimpleDimensions: () => void;
+  handleResetCurrentImageSettings: () => void;
+  handleReturnToSimpleTags: () => void;
+  handleReturnToSimpleText: () => void;
+  handleSelectProResolutionPreset: (selection: ResolutionSelection) => void;
+  handleSelectSimpleResolutionPreset: (selection: ResolutionSelection) => void;
+  handleSimpleConvertToTags: () => void | Promise<void>;
+  handleSimpleGenerateFromTags: () => void | Promise<void>;
+  handleProHeightChange: (value: string) => void;
+  handleProWidthChange: (value: string) => void;
+  handleSimpleHeightChange: (value: string) => void;
+  handleSimpleWidthChange: (value: string) => void;
+  handleSwapImageDimensions: () => void;
+  handleUpdateV4Char: (id: string, patch: Partial<V4CharEditorRow>) => void;
+  handleUpdateVibeReference: (id: string, patch: Partial<VibeTransferReferenceRow>) => void;
+  handleOpenBaseImageInpaint: () => void;
+  handleReturnFromInfillSettings: () => void;
+  handleSetV4UseCoords: (nextValue: boolean) => void;
+  hasReferenceConflict: boolean;
+  height: number;
+  heightInput: string;
+  imageCount: number;
+  imageCountLimit: number;
+  infillMaskDataUrl: string;
+  isDirectorToolsOpen: boolean;
+  isNAI3: boolean;
+  isNAI4: boolean;
+  isPageImageDragOver: boolean;
+  mode: AiImageHistoryMode;
+  model: string;
+  negativePrompt: string;
+  noise: number;
+  noiseSchedule: string;
+  noiseScheduleOptions: readonly string[];
+  normalizeReferenceStrengths: boolean;
+  preciseReference: PreciseReferenceRow | null;
+  preciseReferenceDescription: string;
+  preciseReferenceInputRef: RefObject<HTMLInputElement | null>;
+  proFeatureSections: Record<ProFeatureSectionKey, boolean>;
+  proGenerateLabel: string;
+  proPromptTab: "prompt" | "negative";
+  proResolutionSelection: ResolutionSelection;
+  prompt: string;
+  qualityToggle: boolean;
+  runGenerate: RunGenerate;
+  sampler: string;
+  samplerOptions: readonly string[];
+  scale: number;
+  seed: number;
+  seedIsRandom: boolean;
+  selectedStyleIds: string[];
+  selectedStyleNegativeTags: string[];
+  selectedStylePresets: AiImageStylePreset[];
+  selectedStyleTags: string[];
+  setCfgRescale: (value: number) => void;
+  setCharPromptTabs: Dispatch<SetStateAction<Record<string, "prompt" | "negative">>>;
+  setDynamicThresholding: (value: boolean) => void;
+  setHeight: (value: number) => void;
+  setImageCount: (value: number) => void;
+  setIsStylePickerOpen: Dispatch<SetStateAction<boolean>>;
+  setNegativePrompt: (value: string) => void;
+  setNoise: (value: number) => void;
+  setNoiseSchedule: (value: string) => void;
+  setNormalizeReferenceStrengths: Dispatch<SetStateAction<boolean>>;
+  setPreciseReference: Dispatch<SetStateAction<PreciseReferenceRow | null>>;
+  setProFeatureSectionOpen: (section: ProFeatureSectionKey, open: boolean) => void;
+  setProPromptTab: Dispatch<SetStateAction<"prompt" | "negative">>;
+  setPrompt: (value: string) => void;
+  setQualityToggle: (value: boolean) => void;
+  setSampler: (value: string) => void;
+  setScale: (value: number) => void;
+  setSeed: (value: number) => void;
+  setSimpleEditorMode: Dispatch<SetStateAction<"text" | "tags">>;
+  setSimpleConverted: Dispatch<SetStateAction<NovelAiNl2TagsResult | null>>;
+  setSimpleConvertedFromText: Dispatch<SetStateAction<string>>;
+  setSimpleNegativePrompt: Dispatch<SetStateAction<string>>;
+  setSimplePromptTab: Dispatch<SetStateAction<"prompt" | "negative">>;
+  setSimplePrompt: Dispatch<SetStateAction<string>>;
+  setSimpleText: Dispatch<SetStateAction<string>>;
+  setSmea: (value: boolean) => void;
+  setSmeaDyn: (value: boolean) => void;
+  setSteps: (value: number) => void;
+  setStrength: (value: number) => void;
+  setUcPreset: (value: number) => void;
+  setUiMode: Dispatch<SetStateAction<UiMode>>;
+  setV4Chars: Dispatch<SetStateAction<V4CharEditorRow[]>>;
+  setV4UseOrder: Dispatch<SetStateAction<boolean>>;
+  setWidth: (value: number) => void;
+  simpleConvertLabel: string;
+  simpleConverting: boolean;
+  simpleEditorMode: "text" | "tags";
+  simpleConverted: NovelAiNl2TagsResult | null;
+  simpleNegativePrompt: string;
+  simplePromptTab: "prompt" | "negative";
+  simplePrompt: string;
+  simpleResolutionArea: number;
+  simpleResolutionSelection: ResolutionSelection;
+  simpleText: string;
+  smea: boolean;
+  smeaDyn: boolean;
+  sourceImageDataUrl: string;
+  hasCurrentDisplayedImage: boolean;
+  steps: number;
+  strength: number;
+  toggleProFeatureSection: (section: ProFeatureSectionKey) => void;
+  ucPreset: number;
+  ucPresetEnabled: boolean;
+  uiMode: UiMode;
+  v4Chars: V4CharEditorRow[];
+  v4UseCoords: boolean;
+  v4UseOrder: boolean;
+  vibeReferenceInputRef: RefObject<HTMLInputElement | null>;
+  vibeTransferDescription: string;
+  vibeTransferReferences: VibeTransferReferenceRow[];
+  width: number;
+  widthInput: string;
+}
 
 export function useAiImageWorkspaceProps(args: WorkspaceProps) {
   const {
@@ -47,6 +225,450 @@ export function useAiImageWorkspaceProps(args: WorkspaceProps) {
     onJumpToPinnedPreview,
     pinnedPreviewResult,
     previewPaneProps,
+  ]);
+}
+
+export function useAiImageSidebarProps(args: SidebarViewModelArgs) {
+  const {
+    activeResolutionPreset,
+    baseImageDescription,
+    canAddVibeReference,
+    canConvertSimpleText,
+    canGenerate,
+    canGenerateFromSimpleTags,
+    canTriggerProGenerate,
+    cfgRescale,
+    charPromptTabs,
+    characterPromptDescription,
+    fixedModelDescription,
+    freeGenerationViolation,
+    hasSimpleTagsDraft,
+    isBusy,
+    handleAddV4Char,
+    handleClearSeed,
+    handleClearCurrentDisplayedImage,
+    handleOpenSourceImagePicker,
+    handleClearSourceImage,
+    handleClearInfillMask,
+    handleClearSimpleDraft,
+    handleClearStyles,
+    handleCropToClosestValidSize,
+    handleMoveV4Char,
+    handleRemoveV4Char,
+    handleRemoveVibeReference,
+    handleAcceptSimpleConverted,
+    handleRejectSimpleConverted,
+    handleCommitProDimensions,
+    handleCommitSimpleDimensions,
+    handleResetCurrentImageSettings,
+    handleReturnToSimpleTags,
+    handleReturnToSimpleText,
+    handleSelectProResolutionPreset,
+    handleSelectSimpleResolutionPreset,
+    handleSimpleConvertToTags,
+    handleSimpleGenerateFromTags,
+    handleProHeightChange,
+    handleProWidthChange,
+    handleSimpleHeightChange,
+    handleSimpleWidthChange,
+    handleSwapImageDimensions,
+    handleUpdateV4Char,
+    handleUpdateVibeReference,
+    handleOpenBaseImageInpaint,
+    handleReturnFromInfillSettings,
+    handleSetV4UseCoords,
+    hasReferenceConflict,
+    height,
+    heightInput,
+    imageCount,
+    imageCountLimit,
+    infillMaskDataUrl,
+    isDirectorToolsOpen,
+    isNAI3,
+    isNAI4,
+    isPageImageDragOver,
+    mode,
+    model,
+    negativePrompt,
+    noise,
+    noiseSchedule,
+    noiseScheduleOptions,
+    normalizeReferenceStrengths,
+    preciseReference,
+    preciseReferenceDescription,
+    preciseReferenceInputRef,
+    proFeatureSections,
+    proGenerateLabel,
+    proPromptTab,
+    proResolutionSelection,
+    prompt,
+    qualityToggle,
+    runGenerate,
+    sampler,
+    samplerOptions,
+    scale,
+    seed,
+    seedIsRandom,
+    selectedStyleIds,
+    selectedStyleNegativeTags,
+    selectedStylePresets,
+    selectedStyleTags,
+    setCfgRescale,
+    setCharPromptTabs,
+    setDynamicThresholding,
+    setHeight,
+    setImageCount,
+    setIsStylePickerOpen,
+    setNegativePrompt,
+    setNoise,
+    setNoiseSchedule,
+    setNormalizeReferenceStrengths,
+    setPreciseReference,
+    setProFeatureSectionOpen,
+    setProPromptTab,
+    setPrompt,
+    setQualityToggle,
+    setSampler,
+    setScale,
+    setSeed,
+    setSimpleEditorMode,
+    setSimpleConverted,
+    setSimpleConvertedFromText,
+    setSimpleNegativePrompt,
+    setSimplePromptTab,
+    setSimplePrompt,
+    setSimpleText,
+    setSmea,
+    setSmeaDyn,
+    setSteps,
+    setStrength,
+    setUcPreset,
+    setUiMode,
+    setV4Chars,
+    setV4UseOrder,
+    setWidth,
+    simpleConvertLabel,
+    simpleConverting,
+    simpleEditorMode,
+    simpleConverted,
+    simpleNegativePrompt,
+    simplePromptTab,
+    simplePrompt,
+    simpleResolutionArea,
+    simpleResolutionSelection,
+    simpleText,
+    smea,
+    smeaDyn,
+    sourceImageDataUrl,
+    hasCurrentDisplayedImage,
+    steps,
+    strength,
+    toggleProFeatureSection,
+    ucPreset,
+    ucPresetEnabled,
+    uiMode,
+    v4Chars,
+    v4UseCoords,
+    v4UseOrder,
+    vibeReferenceInputRef,
+    vibeTransferDescription,
+    vibeTransferReferences,
+    width,
+    widthInput,
+  } = args;
+
+  return useMemo(() => buildSidebarProps({
+    activeResolutionPreset,
+    baseImageDescription,
+    canAddVibeReference,
+    canConvertSimpleText,
+    canGenerate,
+    canGenerateFromSimpleTags,
+    canTriggerProGenerate,
+    cfgRescale,
+    charPromptTabs,
+    characterPromptDescription,
+    fixedModelDescription,
+    freeGenerationViolation,
+    hasSimpleTagsDraft,
+    isBusy,
+    handleAddV4Char,
+    handleClearSeed,
+    handleClearCurrentDisplayedImage,
+    handleOpenSourceImagePicker,
+    handleClearSourceImage,
+    handleClearInfillMask,
+    handleClearSimpleDraft,
+    handleClearStyles,
+    handleCropToClosestValidSize,
+    handleMoveV4Char,
+    handleRemoveV4Char,
+    handleRemoveVibeReference,
+    handleAcceptSimpleConverted,
+    handleRejectSimpleConverted,
+    handleCommitProDimensions,
+    handleCommitSimpleDimensions,
+    handleResetCurrentImageSettings,
+    handleReturnToSimpleTags,
+    handleReturnToSimpleText,
+    handleSelectProResolutionPreset,
+    handleSelectSimpleResolutionPreset,
+    handleSimpleConvertToTags,
+    handleSimpleGenerateFromTags,
+    handleProHeightChange,
+    handleProWidthChange,
+    handleSimpleHeightChange,
+    handleSimpleWidthChange,
+    handleSwapImageDimensions,
+    handleUpdateV4Char,
+    handleUpdateVibeReference,
+    handleOpenBaseImageInpaint,
+    handleReturnFromInfillSettings,
+    hasReferenceConflict,
+    height,
+    imageCount,
+    imageCountLimit,
+    infillMaskDataUrl,
+    isDirectorToolsOpen,
+    isNAI3,
+    isNAI4,
+    isPageImageDragOver,
+    mode,
+    model,
+    negativePrompt,
+    noise,
+    noiseSchedule,
+    noiseScheduleOptions,
+    normalizeReferenceStrengths,
+    preciseReference,
+    preciseReferenceDescription,
+    preciseReferenceInputRef,
+    proFeatureSections,
+    proGenerateLabel,
+    proPromptTab,
+    proResolutionSelection,
+    prompt,
+    qualityToggle,
+    runGenerate,
+    sampler,
+    samplerOptions,
+    scale,
+    seed,
+    seedIsRandom,
+    selectedStyleIds,
+    selectedStyleNegativeTags,
+    selectedStylePresets,
+    selectedStyleTags,
+    setCfgRescale,
+    setCharPromptTabs,
+    setDynamicThresholding,
+    setHeight,
+    setImageCount,
+    setIsStylePickerOpen,
+    setNegativePrompt,
+    setNoise,
+    setNoiseSchedule,
+    setNormalizeReferenceStrengths,
+    setPreciseReference,
+    setProFeatureSectionOpen,
+    setProPromptTab,
+    setPrompt,
+    setQualityToggle,
+    setSampler,
+    setScale,
+    setSeed,
+    setSimpleEditorMode,
+    setSimpleConverted,
+    setSimpleConvertedFromText,
+    setSimpleNegativePrompt,
+    setSimplePromptTab,
+    setSimplePrompt,
+    setSimpleText,
+    setSmea,
+    setSmeaDyn,
+    setSteps,
+    setStrength,
+    setUcPreset,
+    setUiMode,
+    setV4Chars,
+    handleSetV4UseCoords,
+    setV4UseOrder,
+    setWidth,
+    simpleConvertLabel,
+    simpleConverting,
+    simpleEditorMode,
+    simpleConverted,
+    simpleNegativePrompt,
+    simplePromptTab,
+    simplePrompt,
+    simpleResolutionArea,
+    simpleResolutionSelection,
+    simpleText,
+    smea,
+    smeaDyn,
+    sourceImageDataUrl,
+    hasCurrentDisplayedImage,
+    steps,
+    strength,
+    toggleProFeatureSection,
+    ucPreset,
+    ucPresetEnabled,
+    uiMode,
+    v4Chars,
+    v4UseCoords,
+    v4UseOrder,
+    vibeReferenceInputRef,
+    vibeTransferDescription,
+    vibeTransferReferences,
+    widthInput,
+    heightInput,
+    width,
+  }), [
+    activeResolutionPreset,
+    baseImageDescription,
+    canAddVibeReference,
+    canConvertSimpleText,
+    canGenerate,
+    canGenerateFromSimpleTags,
+    canTriggerProGenerate,
+    cfgRescale,
+    charPromptTabs,
+    characterPromptDescription,
+    fixedModelDescription,
+    freeGenerationViolation,
+    handleAcceptSimpleConverted,
+    handleAddV4Char,
+    handleClearCurrentDisplayedImage,
+    handleClearInfillMask,
+    handleClearSeed,
+    handleClearSimpleDraft,
+    handleClearSourceImage,
+    handleClearStyles,
+    handleCommitProDimensions,
+    handleCommitSimpleDimensions,
+    handleCropToClosestValidSize,
+    handleMoveV4Char,
+    handleOpenBaseImageInpaint,
+    handleOpenSourceImagePicker,
+    handleProHeightChange,
+    handleProWidthChange,
+    handleRejectSimpleConverted,
+    handleRemoveV4Char,
+    handleRemoveVibeReference,
+    handleResetCurrentImageSettings,
+    handleReturnFromInfillSettings,
+    handleReturnToSimpleTags,
+    handleReturnToSimpleText,
+    handleSelectProResolutionPreset,
+    handleSelectSimpleResolutionPreset,
+    handleSetV4UseCoords,
+    handleSimpleConvertToTags,
+    handleSimpleGenerateFromTags,
+    handleSimpleHeightChange,
+    handleSimpleWidthChange,
+    handleSwapImageDimensions,
+    handleUpdateV4Char,
+    handleUpdateVibeReference,
+    hasCurrentDisplayedImage,
+    hasReferenceConflict,
+    hasSimpleTagsDraft,
+    height,
+    heightInput,
+    imageCount,
+    imageCountLimit,
+    infillMaskDataUrl,
+    isBusy,
+    isDirectorToolsOpen,
+    isNAI3,
+    isNAI4,
+    isPageImageDragOver,
+    mode,
+    model,
+    negativePrompt,
+    noise,
+    noiseSchedule,
+    noiseScheduleOptions,
+    normalizeReferenceStrengths,
+    preciseReference,
+    preciseReferenceDescription,
+    preciseReferenceInputRef,
+    proFeatureSections,
+    proGenerateLabel,
+    proPromptTab,
+    proResolutionSelection,
+    prompt,
+    qualityToggle,
+    runGenerate,
+    sampler,
+    samplerOptions,
+    scale,
+    seed,
+    seedIsRandom,
+    selectedStyleIds,
+    selectedStyleNegativeTags,
+    selectedStylePresets,
+    selectedStyleTags,
+    setCfgRescale,
+    setCharPromptTabs,
+    setDynamicThresholding,
+    setHeight,
+    setImageCount,
+    setIsStylePickerOpen,
+    setNegativePrompt,
+    setNoise,
+    setNoiseSchedule,
+    setNormalizeReferenceStrengths,
+    setPreciseReference,
+    setProFeatureSectionOpen,
+    setProPromptTab,
+    setPrompt,
+    setQualityToggle,
+    setSampler,
+    setScale,
+    setSeed,
+    setSimpleConverted,
+    setSimpleConvertedFromText,
+    setSimpleEditorMode,
+    setSimpleNegativePrompt,
+    setSimplePrompt,
+    setSimplePromptTab,
+    setSimpleText,
+    setSmea,
+    setSmeaDyn,
+    setSteps,
+    setStrength,
+    setUcPreset,
+    setUiMode,
+    setV4Chars,
+    setV4UseOrder,
+    setWidth,
+    simpleConvertLabel,
+    simpleConverting,
+    simpleConverted,
+    simpleEditorMode,
+    simpleNegativePrompt,
+    simplePrompt,
+    simplePromptTab,
+    simpleResolutionArea,
+    simpleResolutionSelection,
+    simpleText,
+    smea,
+    smeaDyn,
+    sourceImageDataUrl,
+    steps,
+    strength,
+    toggleProFeatureSection,
+    ucPreset,
+    ucPresetEnabled,
+    uiMode,
+    v4Chars,
+    v4UseCoords,
+    v4UseOrder,
+    vibeReferenceInputRef,
+    vibeTransferDescription,
+    vibeTransferReferences,
+    width,
+    widthInput,
   ]);
 }
 
