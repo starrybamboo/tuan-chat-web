@@ -64,10 +64,10 @@ export const AiImageWorkspace = memo(function AiImageWorkspace({
                 onMouseEnter={() => setIsPinnedEdgeHovered(true)}
                 onMouseLeave={() => setIsPinnedEdgeHovered(false)}
               >
-                <div className="flex w-11 shrink-0 flex-col items-center justify-start gap-1 rounded-none border border-white/18 bg-base-300/98 px-0 py-2 shadow-xl backdrop-blur">
+                <div className="flex w-11 shrink-0 flex-col items-center justify-start gap-1 rounded-none border border-base-300 bg-base-100/95 px-0 py-2 shadow-xl backdrop-blur">
                   <button
                     type="button"
-                    className="inline-flex size-9 items-center justify-center rounded-none text-base-content/72 transition-colors hover:bg-base-200/35 hover:text-base-content"
+                    className="inline-flex size-9 items-center justify-center rounded-none text-base-content/72 transition-colors hover:bg-base-200 hover:text-base-content"
                     aria-label="Unpin preview"
                     title="Unpin preview"
                     onClick={onClearPinnedPreview}
@@ -76,7 +76,7 @@ export const AiImageWorkspace = memo(function AiImageWorkspace({
                   </button>
                   <button
                     type="button"
-                    className="inline-flex size-9 items-center justify-center rounded-none text-base-content/72 transition-colors hover:bg-base-200/35 hover:text-base-content"
+                    className="inline-flex size-9 items-center justify-center rounded-none text-base-content/72 transition-colors hover:bg-base-200 hover:text-base-content"
                     aria-label="Jump to pinned image"
                     title="Jump to pinned image"
                     onClick={() => {
@@ -88,7 +88,7 @@ export const AiImageWorkspace = memo(function AiImageWorkspace({
                   </button>
                   <button
                     type="button"
-                    className="inline-flex size-9 items-center justify-center rounded-none text-base-content/72 transition-colors hover:bg-base-200/35 hover:text-base-content"
+                    className="inline-flex size-9 items-center justify-center rounded-none text-base-content/72 transition-colors hover:bg-base-200 hover:text-base-content"
                     aria-label="Apply pinned seed"
                     title="Apply pinned seed"
                     onClick={onApplyPinnedPreviewSeed}

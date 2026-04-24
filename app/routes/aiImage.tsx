@@ -115,10 +115,6 @@ export default function AiImagePage() {
     >
       <style>{`
         .ai-image-shell {
-          --color-primary: #2fb7a8;
-          --color-primary-content: #ffffff;
-          --color-info: #59cabc;
-          --color-info-content: #ffffff;
           --ai-image-surface-radius: 0.375rem;
         }
 
@@ -164,8 +160,8 @@ export default function AiImagePage() {
       {controller.isPageImageDragOver
         ? (
             <div className="pointer-events-none absolute inset-0 z-40 flex items-center justify-center bg-base-100/52 backdrop-blur-[2px]">
-              <div className="flex size-[88px] items-center justify-center rounded-[24px] bg-[#242636]/78 shadow-[0_16px_34px_rgba(0,0,0,0.24)] backdrop-blur-sm">
-                <UploadSimpleIcon className="size-11 text-white/90 drop-shadow-[0_1px_1px_rgba(0,0,0,0.28)]" weight="bold" aria-hidden="true" />
+              <div className="flex size-[88px] items-center justify-center rounded-[24px] border border-base-300/60 bg-base-300/90 shadow-[0_16px_34px_rgba(0,0,0,0.18)] backdrop-blur-sm">
+                <UploadSimpleIcon className="size-11 text-base-content/85 drop-shadow-[0_1px_1px_rgba(0,0,0,0.16)]" weight="bold" aria-hidden="true" />
               </div>
             </div>
           )
