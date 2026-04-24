@@ -1,7 +1,7 @@
 import type { Tag } from "../../../api";
 
 import React, { useCallback, useEffect, useState } from "react";
-import { useGlobalContext } from "@/components/globalContextProvider";
+import { useGlobalUserId } from "@/components/globalContextProvider";
 import { CheckIcon, PlusOutline, XMarkICon } from "@/icons";
 import { useAddTagMutation, useDeleteTagMutation, useGetTagsQuery } from "../../../api/hooks/userTagQurryHooks";
 
@@ -42,7 +42,7 @@ function TagManagement({ userId, size = "default", canEdit }: TagManagementProps
     targetId: userId ?? -1,
   });
 
-  const loginUserId = useGlobalContext().userId ?? -1;
+  const loginUserId = useGlobalUserId() ?? -1;
 
   // 本地状态管理标签列表（用于实时更新UI）
   const [localTags, setLocalTags] = useState<Tag[]>([]);

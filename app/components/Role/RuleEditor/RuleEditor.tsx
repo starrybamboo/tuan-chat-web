@@ -4,7 +4,7 @@ import { useAllRuleListQuery, useCreateRuleMutation, useGetRuleDetailQuery, useU
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import toast from "react-hot-toast";
 import { useLocation, useNavigate } from "react-router";
-import { useGlobalContext } from "@/components/globalContextProvider";
+import { useGlobalUserId } from "@/components/globalContextProvider";
 import { EditIcon, SaveIcon } from "@/icons";
 import Section from "../Editors/Section";
 import RuleCloneModal from "./RuleCloneModal";
@@ -89,7 +89,7 @@ export default function RuleEditor({
 }: RuleEditorProps) {
   const navigate = useNavigate();
   const location = useLocation();
-  const { userId } = useGlobalContext();
+  const userId = useGlobalUserId();
   const createRuleMutation = useCreateRuleMutation();
   const updateRuleMutation = useUpdateRuleMutation();
   const [ruleEdit, setRuleEdit] = useState<Rule>({});

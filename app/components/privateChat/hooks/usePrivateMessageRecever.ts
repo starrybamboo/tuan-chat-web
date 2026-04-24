@@ -3,12 +3,11 @@ import { useMemo } from "react";
 import type { MessageDirectResponse } from "@tuanchat/openapi-client/models/MessageDirectResponse";
 import type { DirectMessageEvent } from "api/wsModels";
 
-import { useGlobalContext } from "@/components/globalContextProvider";
+import { useGlobalWebSocket } from "@/components/globalContextProvider";
 import { useGetUserInfoQuery } from "api/hooks/UserHooks";
 
 export function usePrivateMessageReceiver(userId: number, currentContactUserId: number | null, historyMessages: MessageDirectResponse[]) {
-  const globalContext = useGlobalContext();
-  const webSocketUtils = globalContext.websocketUtils;
+  const webSocketUtils = useGlobalWebSocket();
 
   // 当前联系人信息
   const currentContactUserInfo = useGetUserInfoQuery(currentContactUserId || -1).data?.data;

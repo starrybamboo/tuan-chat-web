@@ -2,7 +2,7 @@ import React from "react";
 import { UserFollower } from "@/components/common/Follow/UserFollower";
 import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
 import TagManagement from "@/components/common/userTags";
-import { useGlobalContext } from "@/components/globalContextProvider";
+import { useGlobalUserId } from "@/components/globalContextProvider";
 
 import GNSSpiderChart from "@/components/profile/cards/GNSSpiderChart";
 import { useGetUserProfileQuery } from "../../../../api/hooks/UserHooks";
@@ -21,7 +21,7 @@ interface HomeTabProps {
 
 const HomeTab: React.FC<HomeTabProps> = ({ userId }) => {
   const userQuery = useGetUserProfileQuery(userId);
-  const loginUserId = useGlobalContext().userId ?? -1;
+  const loginUserId = useGlobalUserId() ?? -1;
   const user = userQuery.data?.data;
 
   // 使用自定义 hooks 管理状态

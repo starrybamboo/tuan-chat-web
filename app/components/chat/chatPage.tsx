@@ -38,7 +38,7 @@ import { checkIsKpInSpaceMembers, resolveSubWindowDocPermission } from "@/compon
 import { useLocalStorage } from "@/components/common/customHooks/useLocalStorage";
 import { useScreenSize } from "@/components/common/customHooks/useScreenSize";
 import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
-import { useGlobalContext } from "@/components/globalContextProvider";
+import { useGlobalUserId, useGlobalWebSocket } from "@/components/globalContextProvider";
 
 const EMPTY_ARRAY: never[] = [];
 interface CachedDocRoute {
@@ -129,8 +129,9 @@ export default function ChatPage() {
   const activeSpaceInfoQuery = useGetSpaceInfoQuery(activeSpaceIdForQuery);
   const activeSpaceInfo = activeSpaceInfoQuery.data?.data;
 
-  const globalContext = useGlobalContext();
-  const userId = globalContext.userId ?? -1;
+  const globalUserId = useGlobalUserId();
+  const userId = globalUserId ?? -1;
+  const webSocketUtils = useGlobalWebSocket();
   const {
     tutorialUpdatePrompt,
     tutorialPromptType,
@@ -574,7 +575,7 @@ export default function ChatPage() {
   useSearchParamsState<"none" | "user" | "role" | "search" | "initiative" | "map">("rightSideDrawer", "none");
 
   const { unreadMessagesNumber, privateEntryBadgeCount } = useChatUnreadIndicators({
-    globalContext,
+    webSocketUtils,
     userId,
     isPrivateChatMode,
     activeRoomId,
@@ -589,7 +590,7 @@ export default function ChatPage() {
     closeSpaceContextMenu,
   } = useChatPageContextMenus();
   const { isSpaceContextArchived, isSpaceContextOwner } = useChatPageSpaceContextMenu({
-    currentUserId: globalContext.userId,
+    currentUserId: globalUserId,
     spaceContextMenu,
     spaces,
   });
@@ -597,7 +598,7 @@ export default function ChatPage() {
   const { getSpaceUnreadMessagesNumber, isSpaceOwner, spaceContext } = useChatPageSpaceContext({
     activeRoomId,
     activeSpaceId,
-    globalUserId: globalContext.userId,
+    globalUserId,
     setActiveRoomId,
     setActiveSpaceId,
     spaces,

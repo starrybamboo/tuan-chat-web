@@ -38,7 +38,7 @@ import { useChatInputUiStore } from "@/components/chat/stores/chatInputUiStore";
 import { useEntityHeaderOverrideStore } from "@/components/chat/stores/entityHeaderOverrideStore";
 import { createRoomUiStore, RoomUiStoreProvider } from "@/components/chat/stores/roomUiStore";
 import useCommandExecutor from "@/components/common/dicer/cmdPre";
-import { useGlobalContext } from "@/components/globalContextProvider";
+import { useGlobalUserId, useGlobalWebSocket } from "@/components/globalContextProvider";
 
 import { PremiereExporter } from "@/webGAL";
 import {
@@ -87,9 +87,8 @@ function RoomWindow({
   const room = useGetRoomInfoQuery(roomId).data?.data;
   const roomHeaderOverride = useEntityHeaderOverrideStore(state => state.headers[`room:${roomId}`]);
 
-  const globalContext = useGlobalContext();
-  const userId = globalContext.userId;
-  const webSocketUtils = globalContext.websocketUtils;
+  const userId = useGlobalUserId();
+  const webSocketUtils = useGlobalWebSocket();
 
   const sendMessageMutation = useSendMessageMutation(roomId);
   const batchSendMessageMutation = useBatchSendMessageMutation(roomId);

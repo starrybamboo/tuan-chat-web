@@ -177,38 +177,6 @@ export function OpenAbleDrawer({
 
   const renderedWidth = clamp(width, bounds.min, bounds.max);
 
-  const handleMouseDown = useCallback((e: React.MouseEvent) => {
-    // 保留鼠标事件回退兼容性
-    isDragging.current = true;
-    startX.current = e.clientX;
-    startWidth.current = width;
-    document.body.style.cursor = "col-resize";
-    document.body.style.userSelect = "none";
-
-    const handleMouseMove = (ev: MouseEvent) => {
-      if (!isDragging.current)
-        return;
-
-      const deltaX = handlePosition === "left"
-        ? (startX.current - ev.clientX)
-        : (ev.clientX - startX.current);
-      const newWidth = clamp(startWidth.current + deltaX, bounds.min, bounds.max);
-      setWidth(newWidth);
-      onWidthChange?.(newWidth);
-    };
-
-    const handleMouseUp = () => {
-      isDragging.current = false;
-      document.body.style.cursor = "";
-      document.body.style.userSelect = "";
-      document.removeEventListener("mousemove", handleMouseMove);
-      document.removeEventListener("mouseup", handleMouseUp);
-    };
-
-    document.addEventListener("mousemove", handleMouseMove);
-    document.addEventListener("mouseup", handleMouseUp);
-  }, [width, clamp, bounds.min, bounds.max, onWidthChange, handlePosition]);
-
   // 使用 Pointer Events，可以在 pointermove 进入子元素（如 WebGAL canvas）时仍保持拖拽
   const handlePointerDown = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
     isDragging.current = true;
@@ -217,9 +185,10 @@ export function OpenAbleDrawer({
     document.body.style.cursor = "col-resize";
     document.body.style.userSelect = "none";
 
-    const pointerId = (e as any).pointerId;
+    const pointerId = e.pointerId;
+    const captureTarget = e.currentTarget;
     try {
-      (e.target as Element)?.setPointerCapture?.(pointerId);
+      captureTarget.setPointerCapture(pointerId);
     }
     catch {
       // ignore
@@ -239,7 +208,7 @@ export function OpenAbleDrawer({
     const handlePointerUp = () => {
       isDragging.current = false;
       try {
-        (e.target as Element)?.releasePointerCapture?.(pointerId);
+        captureTarget.releasePointerCapture(pointerId);
       }
       catch {
         // ignore
@@ -280,7 +249,6 @@ export function OpenAbleDrawer({
       <div
         className={`absolute top-0 h-full w-4 cursor-col-resize z-2000 ${handlePosition === "left" ? "left-0" : "right-0"} hover:bg-info/20 transition-colors pointer-events-auto`}
         onPointerDown={handlePointerDown}
-        onMouseDown={handleMouseDown}
         style={{ touchAction: "none" }}
         title="拖拽调整宽度"
       >

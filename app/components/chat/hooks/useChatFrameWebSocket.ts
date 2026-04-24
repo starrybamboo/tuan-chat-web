@@ -1,6 +1,6 @@
 import { useCallback, useMemo } from "react";
 
-import { useGlobalContext } from "@/components/globalContextProvider";
+import { useGlobalWebSocket } from "@/components/globalContextProvider";
 
 import type { ChatMessageRequest, ChatMessageResponse } from "../../../../api";
 
@@ -12,7 +12,7 @@ type UseChatFrameWebSocketResult = {
 };
 
 export default function useChatFrameWebSocket(roomId: number): UseChatFrameWebSocketResult {
-  const { websocketUtils } = useGlobalContext();
+  const websocketUtils = useGlobalWebSocket();
 
   const send = useCallback((message: ChatMessageRequest) => {
     websocketUtils.send({ type: 3, data: message });

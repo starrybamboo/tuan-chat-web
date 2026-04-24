@@ -12,7 +12,7 @@ import { tuanchat } from "@/../api/instance";
 import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
 import { ROLE_DEFAULT_AVATAR_URL } from "@/constants/defaultAvatar";
 import { getRoleRule } from "@/utils/roleRuleStorage";
-import { useGlobalContext } from "../../globalContextProvider";
+import { useGlobalUserId } from "../../globalContextProvider";
 import { RoleListItem } from "./RoleListItem";
 
 // ... SidebarProps 接口不再需要 setSelectedRoleId 和 onEnterCreateEntry
@@ -41,7 +41,7 @@ export function Sidebar({
   const [isRuleCollapsed, setIsRuleCollapsed] = useState(true);
   const [searchParams] = useSearchParams();
   // 获取用户数据
-  const userId = useGlobalContext().userId;
+  const userId = useGlobalUserId();
   const diceRolesQuery = useGetUserRolesByTypeQuery(userId ?? -1, 1);
   const normalRolesQuery = useGetUserRolesByTypeQuery(userId ?? -1, 0);
   const ruleListQuery = useRuleListQuery();

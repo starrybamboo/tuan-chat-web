@@ -15,7 +15,7 @@ import ChatSpaceSidebar from "@/components/chat/space/chatSpaceSidebar";
 import { useDrawerPreferenceStore } from "@/components/chat/stores/drawerPreferenceStore";
 import { useLocalStorage } from "@/components/common/customHooks/useLocalStorage";
 import { useScreenSize } from "@/components/common/customHooks/useScreenSize";
-import { useGlobalContext } from "@/components/globalContextProvider";
+import { useGlobalUserId, useGlobalWebSocket } from "@/components/globalContextProvider";
 import { scheduleNonCriticalTask } from "@/utils/scheduleNonCriticalTask";
 
 const EMPTY_ARRAY: never[] = [];
@@ -51,8 +51,9 @@ export default function DiscoverPage(props: DiscoverPageProps) {
   const screenSize = useScreenSize();
   const navigate = useNavigate();
   const [searchParam] = useSearchParams();
-  const globalContext = useGlobalContext();
-  const userId = globalContext.userId ?? -1;
+  const globalUserId = useGlobalUserId();
+  const userId = globalUserId ?? -1;
+  const webSocketUtils = useGlobalWebSocket();
   const [storedIds, setStoredChatIds] = useLocalStorage<{ spaceId?: number | null; roomId?: number | null }>("storedChatIds", {});
   const [shouldLoadPrivateIndicators, setShouldLoadPrivateIndicators] = useState(false);
   const activeSpaceId = useMemo(() => {
@@ -97,7 +98,7 @@ export default function DiscoverPage(props: DiscoverPageProps) {
     unreadMessagesNumber,
     privateEntryBadgeCount,
   } = useChatUnreadIndicators({
-    globalContext,
+    webSocketUtils,
     userId,
     isPrivateChatMode: false,
     activeRoomId: null,
@@ -126,7 +127,7 @@ export default function DiscoverPage(props: DiscoverPageProps) {
     closeSpaceContextMenu,
   } = useChatPageContextMenus();
   const { isSpaceContextArchived, isSpaceContextOwner } = useChatPageSpaceContextMenu({
-    currentUserId: globalContext.userId,
+    currentUserId: globalUserId,
     spaceContextMenu,
     spaces,
   });
@@ -142,13 +143,13 @@ export default function DiscoverPage(props: DiscoverPageProps) {
   const spaceContextValue = useMemo(() => {
     return {
       spaceId: activeSpaceId ?? undefined,
-      isSpaceOwner: Boolean(activeSpace && activeSpace.userId === globalContext.userId),
+      isSpaceOwner: Boolean(activeSpace && activeSpace.userId === globalUserId),
       setActiveSpaceId,
       setActiveRoomId,
       toggleLeftDrawer,
       spaceMembers: EMPTY_ARRAY,
     };
-  }, [activeSpace, activeSpaceId, globalContext.userId, setActiveRoomId, setActiveSpaceId, toggleLeftDrawer]);
+  }, [activeSpace, activeSpaceId, globalUserId, setActiveRoomId, setActiveSpaceId, toggleLeftDrawer]);
 
   const chatLeftPanelWidth = useDrawerPreferenceStore(state => state.chatLeftPanelWidth);
   const setChatLeftPanelWidth = useDrawerPreferenceStore(state => state.setChatLeftPanelWidth);

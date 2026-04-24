@@ -2,7 +2,7 @@ import type { UserNotificationItem } from "@/components/notification/notificatio
 
 import { startTransition, useMemo, useState } from "react";
 import { useNavigate } from "react-router";
-import { useGlobalContext } from "@/components/globalContextProvider";
+import { useGlobalUserId } from "@/components/globalContextProvider";
 import {
   useMarkAllNotificationsReadMutation,
   useMarkNotificationsReadMutation,
@@ -13,7 +13,7 @@ import NotificationList from "@/components/notification/notificationList";
 
 export default function NotificationPage() {
   const navigate = useNavigate();
-  const { userId } = useGlobalContext();
+  const userId = useGlobalUserId();
   const [unreadOnly, setUnreadOnly] = useState(false);
   const [busyNotificationId, setBusyNotificationId] = useState<number | null>(null);
   const unreadCountQuery = useNotificationUnreadCountQuery(Boolean(userId));

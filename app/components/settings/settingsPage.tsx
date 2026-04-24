@@ -2,7 +2,7 @@ import type { SecurityTab } from "@/components/profile/profileTab/components/Acc
 import { useGetMyUserInfoQuery, useUpdateUserInfoMutation } from "api/hooks/UserHooks";
 import { useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
-import { useGlobalContext } from "@/components/globalContextProvider";
+import { useGlobalUserId } from "@/components/globalContextProvider";
 import { AccountSecurityModal } from "@/components/profile/profileTab/components/AccountSecurityModal";
 import {
   buildUserExtraWithNotificationSettings,
@@ -16,8 +16,7 @@ import {
 } from "@/components/settings/notificationPreferences";
 
 export default function SettingsPage() {
-  const globalContext = useGlobalContext();
-  const currentUserId = globalContext.userId ?? -1;
+  const currentUserId = useGlobalUserId() ?? -1;
   const isLoggedIn = currentUserId > 0;
 
   const userInfoQuery = useGetMyUserInfoQuery(isLoggedIn);

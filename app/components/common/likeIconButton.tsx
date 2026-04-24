@@ -4,7 +4,7 @@
 import type { MarkTarget } from "../../../api";
 import React from "react";
 import { toast } from "react-hot-toast";
-import { useGlobalContext } from "@/components/globalContextProvider";
+import { useGlobalUserId } from "@/components/globalContextProvider";
 import {
   useGetLikeCountQuery,
   useIsLikedQuery,
@@ -46,7 +46,7 @@ export default function LikeIconButton({
   const likeMutation = useLikeMutation();
   const unlikeMutation = useUnlikeMutation();
 
-  const userId: number | null = useGlobalContext().userId;
+  const userId: number | null = useGlobalUserId();
 
   const defaultIcon = (
     <svg

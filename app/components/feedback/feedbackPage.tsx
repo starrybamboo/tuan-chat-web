@@ -5,7 +5,7 @@ import FeedbackComposer from "@/components/feedback/feedbackComposer";
 import { useFeedbackIssuesInfiniteQuery } from "@/components/feedback/feedbackHooks";
 import FeedbackIssueDetailView from "@/components/feedback/feedbackIssueDetail";
 import FeedbackIssueList from "@/components/feedback/feedbackIssueList";
-import { useGlobalContext } from "@/components/globalContextProvider";
+import { useGlobalUserId } from "@/components/globalContextProvider";
 
 function parseIssueId(rawIssueId?: string) {
   const issueId = Number(rawIssueId);
@@ -18,7 +18,7 @@ function parseIssueId(rawIssueId?: string) {
 export default function FeedbackPage() {
   const { issueId: rawIssueId } = useParams();
   const navigate = useNavigate();
-  const { userId } = useGlobalContext();
+  const userId = useGlobalUserId();
   const selectedIssueId = parseIssueId(rawIssueId);
 
   const [keywordInput, setKeywordInput] = useState("");

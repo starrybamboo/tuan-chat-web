@@ -26,7 +26,7 @@ import { extractRoomJumpPayload } from "@/components/chat/utils/roomJump";
 import RoleAvatarComponent from "@/components/common/roleAvatar";
 import toastWindow from "@/components/common/toastWindow/toastWindow";
 import { UserAvatarByUser } from "@/components/common/userAccess";
-import { useGlobalContext } from "@/components/globalContextProvider";
+import { useGlobalUserId } from "@/components/globalContextProvider";
 import { CommentOutline, Edit2Outline, EmojiIconWhite, InsertLineBelow, ListUnordered, MoreMenu, NarratorIcon, ScreenIcon } from "@/icons";
 import {
   ANNOTATION_IDS,
@@ -143,7 +143,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
 
   const updateMessageMutation = useUpdateMessageMutation();
 
-  const userId = useGlobalContext().userId;
+  const userId = useGlobalUserId();
 
   const roomContext = use(RoomContext);
   const spaceContext = use(SpaceContext);

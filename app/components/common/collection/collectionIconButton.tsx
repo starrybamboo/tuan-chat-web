@@ -1,7 +1,7 @@
 import type { CollectionCheckRequest } from "../../../../api";
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
-import { useGlobalContext } from "@/components/globalContextProvider";
+import { useGlobalUserId } from "@/components/globalContextProvider";
 
 import { Arrowleft, Arrowright, RoundStarBorder, RoundStarFilled } from "@/icons";
 import {
@@ -164,7 +164,7 @@ export default function CollectionIconButton({
     }
   };
   // 点击收藏按钮
-  const userId: number | null = useGlobalContext().userId;
+  const userId: number | null = useGlobalUserId();
   const toggleCollection = (collectionId: number) => {
     const showCollectionList = () => {
       toastWindow(_close => (<CollectionListPop resourceId={targetInfo.resourceId} resourceType={targetInfo.resourceType} />));

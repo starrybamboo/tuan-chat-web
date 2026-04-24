@@ -2,7 +2,7 @@ import React, { useMemo } from "react";
 import { Link, useNavigate } from "react-router";
 import Pagination from "@/components/common/pagination";
 
-import { useGlobalContext } from "@/components/globalContextProvider";
+import { useGlobalUserId } from "@/components/globalContextProvider";
 import { ContentCard } from "@/components/repository/home/RepositoryHome";
 import { useRepositoryListByUserQuery } from "../../../../api/hooks/repositoryQueryHooks";
 import { useRuleListQuery } from "../../../../api/hooks/ruleQueryHooks";
@@ -26,7 +26,7 @@ const UserRepositoriesList: React.FC<UserRepositoriesListProps> = ({
   isLoading,
 }) => {
   const navigate = useNavigate();
-  const currentUserId = useGlobalContext().userId ?? -1;
+  const currentUserId = useGlobalUserId() ?? -1;
   const totalPages = Math.ceil(totalRecords / 10);
 
   // 获取用户仓库数据
