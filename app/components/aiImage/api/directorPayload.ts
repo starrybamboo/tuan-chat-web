@@ -58,7 +58,7 @@ export async function augmentNovelImageViaProxy(args: {
 }) {
   const imageBase64 = String(args.imageBase64 || "").trim();
   if (!imageBase64)
-    throw new Error("Director Tools 缂哄皯婧愬浘鐗囥€?");
+    throw new Error("Director Tools 缺少源图。");
 
   const payload = buildNovelAiDirectorToolPayload({
     requestType: args.requestType,

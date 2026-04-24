@@ -58,7 +58,7 @@ export async function generateNovelImageViaProxy(args: {
 }) {
   const prompt = sanitizeNovelAiTagInput(String(args.prompt || ""));
   if (!prompt && args.prompt == null)
-    throw new Error("缂哄皯 prompt");
+    throw new Error("缺少 prompt。");
 
   const freeViolation = getNovelAiFreeGenerationViolation({
     mode: args.mode,
@@ -111,7 +111,7 @@ export async function generateNovelImageViaProxy(args: {
   if (args.mode === "img2img") {
     const imageBase64 = String(args.sourceImageBase64 || "").trim();
     if (!imageBase64)
-      throw new Error("img2img 缂哄皯婧愬浘鐗囷紙sourceImageBase64锛?");
+      throw new Error("img2img 缺少源图（sourceImageBase64）。");
 
     const strength = Number.isFinite(args.strength) ? Number(args.strength) : 0.7;
     const noise = Number.isFinite(args.noise) ? Number(args.noise) : 0.2;
@@ -123,9 +123,9 @@ export async function generateNovelImageViaProxy(args: {
     const imageBase64 = String(args.sourceImageBase64 || "").trim();
     const maskBase64 = String(args.maskBase64 || "").trim();
     if (!imageBase64)
-      throw new Error("infill 缂哄皯婧愬浘鐗囷紙sourceImageBase64锛?");
+      throw new Error("infill 缺少源图（sourceImageBase64）。");
     if (!maskBase64)
-      throw new Error("infill 缂哄皯钂欑増锛坢askBase64锛?");
+      throw new Error("infill 缺少蒙版（maskBase64）。");
 
     const strength = Number.isFinite(args.strength) ? Number(args.strength) : 0.7;
     const noise = Number.isFinite(args.noise) ? Number(args.noise) : 0.2;
@@ -227,9 +227,8 @@ export async function generateNovelImageViaProxy(args: {
         parameters.sm_dyn = false;
         delete parameters.noise_schedule;
       }
-      if (Number.isFinite(parameters.scale) && parameters.scale > 10) {
+      if (Number.isFinite(parameters.scale) && parameters.scale > 10)
         parameters.scale = parameters.scale / 2;
-      }
     }
   }
 

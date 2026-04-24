@@ -10,14 +10,14 @@ export async function buildBaseImageInpaintStateAction(args: Record<string, any>
 
   const sourceImageBase64 = dataUrlToBase64(args.sourceImageDataUrl);
   if (!sourceImageBase64)
-    throw new Error("褰撳墠 Base Img 璇诲彇澶辫触锛屾棤娉曞惎鍔?Inpaint銆?");
+    throw new Error("当前 Base Img 读取失败，无法启动 Inpaint。");
 
   let sourceImageSize: { width: number; height: number } | null = null;
   try {
     sourceImageSize = await args.readImageSize(args.sourceImageDataUrl);
   }
   catch {
-    // fall back to current canvas size
+    // Fall back to the current canvas size.
   }
 
   const matchedSourceHistoryRow = args.history.find((row: any) =>
