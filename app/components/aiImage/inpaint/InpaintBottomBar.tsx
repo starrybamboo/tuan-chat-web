@@ -72,8 +72,8 @@ export function InpaintBottomBar({
           <button
             type="button"
             className={zoomPanelButtonClassName}
-            aria-label="缂╁皬鐢诲竷"
-            title="缂╁皬"
+            aria-label="缩小画布"
+            title="缩小"
             onClick={onZoomOut}
           >
             <span className="inline-flex size-[18px] items-center justify-center" aria-hidden="true">
@@ -83,8 +83,8 @@ export function InpaintBottomBar({
           <button
             type="button"
             className={zoomPanelLabelClassName}
-            aria-label="閲嶇疆缂╂斁"
-            title="閲嶇疆缂╂斁锛堟粴杞缉鏀撅紝涓敭鎷栧姩锛?"
+            aria-label="重置缩放"
+            title="重置缩放（滚轮缩放，中键拖动画布）"
             onClick={onResetZoom}
           >
             {zoomLabel}
@@ -92,8 +92,8 @@ export function InpaintBottomBar({
           <button
             type="button"
             className={zoomPanelButtonClassName}
-            aria-label="鏀惧ぇ鐢诲竷"
-            title="鏀惧ぇ"
+            aria-label="放大画布"
+            title="放大"
             onClick={onZoomIn}
           >
             <span className="inline-flex size-[18px] items-center justify-center" aria-hidden="true">
@@ -109,8 +109,8 @@ export function InpaintBottomBar({
             <button
               type="button"
               className={`${bottomToolButtonClassName} ${tool === "paint" ? "bg-white/[0.12] text-white" : ""}`}
-              aria-label="缁樺埗钂欑増"
-              title="缁樺埗钂欑増"
+              aria-label="绘制蒙版"
+              title="绘制蒙版"
               onClick={() => onSetTool("paint")}
             >
               <PencilSimpleLineIcon className="size-[18px]" weight="bold" />
@@ -118,8 +118,8 @@ export function InpaintBottomBar({
             <button
               type="button"
               className={`${bottomToolButtonClassName} ${tool === "erase" ? "bg-white/[0.12] text-white" : ""}`}
-              aria-label="鎿﹂櫎钂欑増"
-              title="鎿﹂櫎钂欑増"
+              aria-label="擦除蒙版"
+              title="擦除蒙版"
               onClick={() => onSetTool("erase")}
             >
               <EraserIcon className="size-[18px]" weight="bold" />
@@ -130,8 +130,8 @@ export function InpaintBottomBar({
               <button
                 type="button"
                 className={boardButtonClassName}
-                aria-label="鎵撳紑鐢绘澘"
-                title="鐢绘澘"
+                aria-label="打开调色板"
+                title="调色板"
                 onClick={onToggleBoardPanel}
               >
                 <PaletteIcon className="size-[18px]" weight="bold" />
@@ -148,7 +148,7 @@ export function InpaintBottomBar({
                             className={`inline-flex size-6 items-center justify-center rounded-full border transition focus:outline-none focus:ring-2 focus:ring-white/20 ${
                               maskColor === color ? "border-white/85 ring-2 ring-white/20" : "border-white/10"
                             }`}
-                            aria-label={`閫夋嫨钂欑増棰滆壊 ${color}`}
+                            aria-label={`选择蒙版颜色 ${color}`}
                             onClick={() => onSetMaskColor(color)}
                           >
                             <span className="size-4 rounded-full" style={{ backgroundColor: color }} />
@@ -186,8 +186,8 @@ export function InpaintBottomBar({
             <button
               type="button"
               className={bottomToolButtonClassName}
-              aria-label="娓呯┖钂欑増"
-              title="娓呯┖钂欑増"
+              aria-label="清空蒙版"
+              title="清空蒙版"
               disabled={!hasMask}
               onClick={onClearMask}
             >
@@ -196,8 +196,8 @@ export function InpaintBottomBar({
             <button
               type="button"
               className={bottomToolButtonClassName}
-              aria-label="鎾ら攢"
-              title="鎾ら攢"
+              aria-label="撤销"
+              title="撤销"
               disabled={!canUndo}
               onClick={onUndo}
             >
@@ -206,8 +206,8 @@ export function InpaintBottomBar({
             <button
               type="button"
               className={bottomToolButtonClassName}
-              aria-label="閲嶅仛"
-              title="閲嶅仛"
+              aria-label="重做"
+              title="重做"
               disabled={!canRedo}
               onClick={onRedo}
             >
