@@ -51,9 +51,9 @@ describe("blocksuiteEditorLifecycleHydration", () => {
     })).toBe(true);
   });
 
-  it("启动期 hydrate 未落定时延后 render-ready", () => {
-    expect(shouldDelayRenderReady("timed-out")).toBe(true);
-    expect(shouldDelayRenderReady("error")).toBe(true);
+  it("启动期 hydrate 未落定时不再阻塞 render-ready", () => {
+    expect(shouldDelayRenderReady("timed-out")).toBe(false);
+    expect(shouldDelayRenderReady("error")).toBe(false);
     expect(shouldDelayRenderReady("snapshot-hit")).toBe(false);
     expect(shouldDelayRenderReady("not-applicable")).toBe(false);
   });
