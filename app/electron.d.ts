@@ -41,6 +41,17 @@ export type IElectronAPI = {
     height: number;
     model: string;
   }>;
+  saveAiImageDebugBundle?: (payload: {
+    category: "infill";
+    sourceDataUrl?: string;
+    uiMaskDataUrl?: string;
+    requestMaskDataUrl?: string;
+    requestBody: Record<string, unknown>;
+  }) => Promise<{
+    ok: boolean;
+    directory?: string;
+    error?: string;
+  }>;
   showDesktopNotification?: (payload: {
     title: string;
     body: string;

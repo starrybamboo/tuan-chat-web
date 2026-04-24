@@ -1,10 +1,46 @@
-import type { PointerEvent as ReactPointerEvent } from "react";
+import type {
+  MouseEvent as ReactMouseEvent,
+  PointerEvent as ReactPointerEvent,
+} from "react";
 import type { InpaintDialogSource, InpaintSubmitPayload } from "@/components/aiImage/types";
+import {
+  ArrowClockwiseIcon,
+  ArrowCounterClockwiseIcon,
+  EraserIcon,
+  PencilSimpleLineIcon,
+} from "@phosphor-icons/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { formatSliderValue, modelLabel } from "@/components/aiImage/helpers";
-import { CloseIcon, EditIcon } from "@/icons";
-
-type InpaintTool = "paint" | "erase";
+import { triggerBrowserDownload } from "@/components/aiImage/helpers";
+import { InpaintBottomBar } from "@/components/aiImage/inpaint/InpaintBottomBar";
+import { InpaintCanvasStage } from "@/components/aiImage/inpaint/InpaintCanvasStage";
+import { InpaintToolPanel } from "@/components/aiImage/inpaint/InpaintToolPanel";
+import { InpaintTopBar } from "@/components/aiImage/inpaint/InpaintTopBar";
+import {
+  clampInpaintZoom,
+  clampViewportPan,
+  INPAINT_ZOOM_STEP,
+  type InpaintViewportSize,
+  type InpaintViewportTransform,
+  resolveCenteredViewportPan,
+  resolveInpaintViewportSize,
+} from "@/components/aiImage/inpaint/inpaintViewportUtils";
+import {
+  buildBinaryMaskGrid,
+  buildMaskOutlineSegments,
+  buildPixelSnappedCircleMaskStamps,
+  buildPixelSnappedSquareMaskStampRects,
+  buildMaskSolidColor,
+  getPixelCircleMaskData,
+  getPixelCircleMaskOutlineSegments,
+  hasAnyMaskAlpha,
+  mapSourcePointToMaskPoint,
+  MASK_COLOR_OPTIONS,
+  normalizeMaskBrushSize,
+  projectMaskRectToSourceRect,
+  resolvePixelSnappedCircleMaskStamp,
+  resolvePixelSnappedSquareMaskStampRect,
+  resolveNovelAiMaskBufferSize,
+} from "@/components/aiImage/inpaintMaskUtils";
 
 interface InpaintDialogProps {
   isOpen: boolean;
@@ -20,14 +56,19 @@ interface CanvasPoint {
   y: number;
 }
 
-function hasAnyMaskPixels(context: CanvasRenderingContext2D, width: number, height: number) {
-  const alpha = context.getImageData(0, 0, width, height).data;
-  for (let index = 3; index < alpha.length; index += 4) {
-    if (alpha[index] > 0)
-      return true;
-  }
-  return false;
+interface BrushCursorPoint {
+  x: number;
+  y: number;
 }
+
+interface InpaintViewportPanSession {
+  startClientX: number;
+  startClientY: number;
+  startPanX: number;
+  startPanY: number;
+}
+const BRUSH_CURSOR_STROKE_COLOR = "#000000";
+const BRUSH_CURSOR_CROSS_SIZE = 13;
 
 export function InpaintDialog({
   isOpen,
@@ -38,47 +79,419 @@ export function InpaintDialog({
   onSubmit,
 }: InpaintDialogProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const canvasViewportRef = useRef<HTMLDivElement | null>(null);
+  const maskCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const fillPreviewCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const drawingPointerIdRef = useRef<number | null>(null);
   const isDrawingRef = useRef(false);
   const lastPointRef = useRef<CanvasPoint | null>(null);
+  const undoStackRef = useRef<ImageData[]>([]);
+  const redoStackRef = useRef<ImageData[]>([]);
+  const viewportPanSessionRef = useRef<InpaintViewportPanSession | null>(null);
+  const hasInitializedViewportTransformRef = useRef(false);
+  const renderMaskPreviewRef = useRef<() => void>(() => {});
 
   const [prompt, setPrompt] = useState("");
   const [negativePrompt, setNegativePrompt] = useState("");
-  const [strength, setStrength] = useState(0.7);
-  const [brushSize, setBrushSize] = useState(48);
-  const [tool, setTool] = useState<InpaintTool>("paint");
+  const [strength, setStrength] = useState(1);
+  const [brushSize, setBrushSize] = useState(() => normalizeMaskBrushSize(4, "square"));
+  const [tool, setTool] = useState<"paint" | "erase">("paint");
+  const [maskDrawShape, setMaskDrawShape] = useState<"circle" | "square">("square");
+  const [maskColor, setMaskColor] = useState<(typeof MASK_COLOR_OPTIONS)[number]>(MASK_COLOR_OPTIONS[4]);
+  const [maskOpacity, setMaskOpacity] = useState(45);
+  const [showMaskBorder, setShowMaskBorder] = useState(true);
+  const [isBoardPanelOpen, setIsBoardPanelOpen] = useState(false);
+  const [brushCursorPoint, setBrushCursorPoint] = useState<BrushCursorPoint | null>(null);
+  const [viewportSize, setViewportSize] = useState<InpaintViewportSize>({ width: 0, height: 0 });
+  const [viewportTransform, setViewportTransform] = useState<InpaintViewportTransform>({
+    zoom: 1,
+    panX: 0,
+    panY: 0,
+  });
+  const [isViewportPanning, setIsViewportPanning] = useState(false);
   const [hasMask, setHasMask] = useState(false);
+  const [historyVersion, setHistoryVersion] = useState(0);
+  const isSquareBrush = maskDrawShape === "square";
+  const sourceCanvasSize = useMemo(() => ({
+    width: source?.width ?? 0,
+    height: source?.height ?? 0,
+  }), [source?.height, source?.width]);
+  // Match NovelAI: edit the mask on a dedicated 1/8-resolution layer, then scale it back up.
+  const maskBufferSize = useMemo(() => resolveNovelAiMaskBufferSize(
+    sourceCanvasSize.width,
+    sourceCanvasSize.height,
+  ), [sourceCanvasSize.height, sourceCanvasSize.width]);
+  const fittedViewportWidth = Math.max(1, viewportSize.width);
+  const fittedViewportHeight = Math.max(1, viewportSize.height);
+  const baseScale = source
+    ? Math.min(1, fittedViewportWidth / source.width, fittedViewportHeight / source.height)
+    : 1;
+  const viewportScale = baseScale * viewportTransform.zoom;
+
+  const ensureBufferCanvas = useCallback((targetRef: { current: HTMLCanvasElement | null }, width: number, height: number) => {
+    let bufferCanvas = targetRef.current;
+    if (!bufferCanvas) {
+      bufferCanvas = document.createElement("canvas");
+      targetRef.current = bufferCanvas;
+    }
+    if (bufferCanvas.width !== width)
+      bufferCanvas.width = width;
+    if (bufferCanvas.height !== height)
+      bufferCanvas.height = height;
+    return bufferCanvas;
+  }, []);
+
+  const getDisplayContext = useCallback(() => {
+    const canvas = canvasRef.current;
+    const context = canvas?.getContext("2d");
+    if (!canvas || !context)
+      return null;
+    return { canvas, context };
+  }, []);
+
+  const getMaskContext = useCallback(() => {
+    if (!source || maskBufferSize.width <= 0 || maskBufferSize.height <= 0)
+      return null;
+
+    const canvas = ensureBufferCanvas(maskCanvasRef, maskBufferSize.width, maskBufferSize.height);
+    const context = canvas.getContext("2d", { willReadFrequently: true });
+    if (!canvas || !context)
+      return null;
+    return { canvas, context };
+  }, [ensureBufferCanvas, maskBufferSize.height, maskBufferSize.width, source]);
+
+  const syncHistoryVersion = useCallback(() => {
+    setHistoryVersion(prev => prev + 1);
+  }, []);
+
+  const renderMaskPreview = useCallback(() => {
+    const displayTarget = getDisplayContext();
+    const maskTarget = getMaskContext();
+    if (!displayTarget || !maskTarget)
+      return;
+
+    const { canvas: displayCanvas, context: displayContext } = displayTarget;
+    const { canvas: maskCanvas, context: maskContext } = maskTarget;
+    if (!displayCanvas.width || !displayCanvas.height)
+      return;
+
+    displayContext.clearRect(0, 0, displayCanvas.width, displayCanvas.height);
+
+    const fillCanvas = ensureBufferCanvas(fillPreviewCanvasRef, displayCanvas.width, displayCanvas.height);
+    const fillContext = fillCanvas.getContext("2d");
+    if (!fillContext)
+      return;
+
+    fillContext.clearRect(0, 0, fillCanvas.width, fillCanvas.height);
+    fillContext.fillStyle = buildMaskSolidColor(maskColor, maskOpacity);
+    fillContext.fillRect(0, 0, fillCanvas.width, fillCanvas.height);
+    fillContext.globalCompositeOperation = "destination-in";
+    // Keep nearest-neighbor scaling so the blocky mask grid remains visible like NovelAI.
+    fillContext.imageSmoothingEnabled = false;
+    fillContext.drawImage(maskCanvas, 0, 0, fillCanvas.width, fillCanvas.height);
+    fillContext.globalCompositeOperation = "source-over";
+    displayContext.drawImage(fillCanvas, 0, 0);
+
+    if (!showMaskBorder)
+      return;
+
+    const maskGrid = buildBinaryMaskGrid(maskContext.getImageData(0, 0, maskCanvas.width, maskCanvas.height).data);
+    const outlineSegments = buildMaskOutlineSegments(maskGrid, maskCanvas.width, maskCanvas.height);
+    if (outlineSegments.length === 0)
+      return;
+
+    const scaleX = displayCanvas.width / maskCanvas.width;
+    const scaleY = displayCanvas.height / maskCanvas.height;
+    displayContext.save();
+    displayContext.beginPath();
+    for (const segment of outlineSegments) {
+      if (segment.orientation === "horizontal") {
+        const y = segment.top * scaleY;
+        displayContext.moveTo(segment.left * scaleX, y);
+        displayContext.lineTo((segment.left + segment.length) * scaleX, y);
+        continue;
+      }
+
+      const x = segment.left * scaleX;
+      displayContext.moveTo(x, segment.top * scaleY);
+      displayContext.lineTo(x, (segment.top + segment.length) * scaleY);
+    }
+    displayContext.strokeStyle = buildMaskSolidColor(maskColor, Math.max(maskOpacity, 70));
+    displayContext.lineWidth = 1;
+    displayContext.stroke();
+    displayContext.restore();
+  }, [
+    buildBinaryMaskGrid,
+    buildMaskOutlineSegments,
+    buildMaskSolidColor,
+    ensureBufferCanvas,
+    getDisplayContext,
+    getMaskContext,
+    maskColor,
+    maskOpacity,
+    showMaskBorder,
+  ]);
+
+  useEffect(() => {
+    renderMaskPreviewRef.current = renderMaskPreview;
+  }, [renderMaskPreview]);
+
+  const loadImageFromDataUrl = useCallback(async (dataUrl: string) => {
+    await new Promise<void>((resolve, reject) => {
+      const image = new Image();
+      image.onload = () => {
+        const target = getMaskContext();
+        if (!target) {
+          resolve();
+          return;
+        }
+        target.context.clearRect(0, 0, target.canvas.width, target.canvas.height);
+        target.context.imageSmoothingEnabled = false;
+        target.context.drawImage(image, 0, 0, target.canvas.width, target.canvas.height);
+        resolve();
+      };
+      image.onerror = () => reject(new Error("读取 Inpaint 蒙版失败"));
+      image.src = dataUrl;
+    });
+  }, [getMaskContext]);
+
+  const syncMaskPresence = useCallback(() => {
+    const target = getMaskContext();
+    if (!target || !target.canvas.width || !target.canvas.height) {
+      setHasMask(false);
+      return;
+    }
+    const pixels = target.context.getImageData(0, 0, target.canvas.width, target.canvas.height);
+    setHasMask(hasAnyMaskAlpha(pixels.data));
+  }, [getMaskContext]);
+
+  const pushUndoSnapshot = useCallback(() => {
+    const target = getMaskContext();
+    if (!target || !target.canvas.width || !target.canvas.height)
+      return;
+
+    undoStackRef.current.push(target.context.getImageData(0, 0, target.canvas.width, target.canvas.height));
+    redoStackRef.current = [];
+    syncHistoryVersion();
+  }, [getMaskContext, syncHistoryVersion]);
+
+  const restoreSnapshot = useCallback((snapshot: ImageData) => {
+    const target = getMaskContext();
+    if (!target)
+      return;
+
+    target.context.clearRect(0, 0, target.canvas.width, target.canvas.height);
+    target.context.putImageData(snapshot, 0, 0);
+    renderMaskPreview();
+    syncMaskPresence();
+    syncHistoryVersion();
+  }, [getMaskContext, renderMaskPreview, syncHistoryVersion, syncMaskPresence]);
 
   useEffect(() => {
     if (!isOpen || !source)
       return;
 
-    setPrompt(source.prompt);
-    setNegativePrompt(source.negativePrompt);
-    setStrength(source.strength);
-    setBrushSize(48);
-    setTool("paint");
-    setHasMask(false);
+    let cancelled = false;
 
-    const canvas = canvasRef.current;
-    const context = canvas?.getContext("2d");
-    if (!canvas || !context)
-      return;
-
-    canvas.width = source.width;
-    canvas.height = source.height;
-    context.clearRect(0, 0, canvas.width, canvas.height);
-  }, [isOpen, source]);
-
-  const syncMaskPresence = useCallback(() => {
-    const canvas = canvasRef.current;
-    const context = canvas?.getContext("2d");
-    if (!canvas || !context) {
+    const initializeDialog = async () => {
+      setPrompt(source.prompt);
+      setNegativePrompt(source.negativePrompt);
+      setStrength(source.strength);
+      setBrushSize(normalizeMaskBrushSize(4, "square"));
+      setTool("paint");
+      setMaskDrawShape("square");
+      setMaskColor(MASK_COLOR_OPTIONS[4]);
+      setMaskOpacity(45);
+      setShowMaskBorder(true);
+      setIsBoardPanelOpen(false);
+      setBrushCursorPoint(null);
+      setViewportTransform({
+        zoom: 1,
+        panX: 0,
+        panY: 0,
+      });
+      setIsViewportPanning(false);
       setHasMask(false);
+      viewportPanSessionRef.current = null;
+      hasInitializedViewportTransformRef.current = false;
+      undoStackRef.current = [];
+      redoStackRef.current = [];
+      syncHistoryVersion();
+
+      const displayCanvas = canvasRef.current;
+      if (!displayCanvas)
+        return;
+
+      displayCanvas.width = source.width;
+      displayCanvas.height = source.height;
+      displayCanvas.getContext("2d")?.clearRect(0, 0, source.width, source.height);
+
+      const target = getMaskContext();
+      if (!target)
+        return;
+
+      target.context.clearRect(0, 0, target.canvas.width, target.canvas.height);
+      if (source.maskDataUrl) {
+        try {
+          await loadImageFromDataUrl(source.maskDataUrl);
+        }
+        catch {
+          // 蒙版读取失败时回退为清空状态。
+        }
+      }
+
+      if (cancelled)
+        return;
+
+      renderMaskPreviewRef.current();
+      syncMaskPresence();
+    };
+
+    void initializeDialog();
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    getMaskContext,
+    isOpen,
+    loadImageFromDataUrl,
+    source?.dataUrl,
+    source?.height,
+    source?.maskDataUrl,
+    source?.negativePrompt,
+    source?.prompt,
+    source?.strength,
+    source?.width,
+    syncHistoryVersion,
+    syncMaskPresence,
+  ]);
+
+  useEffect(() => {
+    if (!isOpen)
       return;
-    }
-    setHasMask(hasAnyMaskPixels(context, canvas.width, canvas.height));
-  }, []);
+
+    const viewport = canvasViewportRef.current;
+    if (!viewport)
+      return;
+
+    const syncViewportSize = () => {
+      setViewportSize((previous) => {
+        const next = resolveInpaintViewportSize(viewport);
+        if (previous.width === next.width && previous.height === next.height)
+          return previous;
+        return next;
+      });
+    };
+
+    syncViewportSize();
+
+    const resizeObserver = typeof ResizeObserver === "undefined"
+      ? null
+      : new ResizeObserver(() => syncViewportSize());
+    resizeObserver?.observe(viewport);
+    window.addEventListener("resize", syncViewportSize);
+
+    return () => {
+      resizeObserver?.disconnect();
+      window.removeEventListener("resize", syncViewportSize);
+    };
+  }, [isOpen]);
+
+  useEffect(() => {
+    if (!isOpen)
+      return;
+
+    const handleWindowMouseMove = (event: MouseEvent) => {
+      const panSession = viewportPanSessionRef.current;
+      if (!panSession || !source)
+        return;
+
+      event.preventDefault();
+      setViewportTransform((previous) => {
+        const scale = baseScale * previous.zoom;
+        const content = {
+          width: source.width * scale,
+          height: source.height * scale,
+        };
+        const nextPan = clampViewportPan({
+          x: panSession.startPanX + (event.clientX - panSession.startClientX),
+          y: panSession.startPanY + (event.clientY - panSession.startClientY),
+        }, viewportSize, content);
+        if (nextPan.x === previous.panX && nextPan.y === previous.panY)
+          return previous;
+        return {
+          ...previous,
+          panX: nextPan.x,
+          panY: nextPan.y,
+        };
+      });
+    };
+
+    const stopViewportPan = () => {
+      if (!viewportPanSessionRef.current)
+        return;
+      viewportPanSessionRef.current = null;
+      setIsViewportPanning(false);
+    };
+
+    window.addEventListener("mousemove", handleWindowMouseMove);
+    window.addEventListener("mouseup", stopViewportPan);
+    window.addEventListener("blur", stopViewportPan);
+
+    return () => {
+      window.removeEventListener("mousemove", handleWindowMouseMove);
+      window.removeEventListener("mouseup", stopViewportPan);
+      window.removeEventListener("blur", stopViewportPan);
+    };
+  }, [baseScale, isOpen, source, viewportSize]);
+
+  useEffect(() => {
+    if (!isOpen || !source)
+      return;
+    renderMaskPreview();
+  }, [isOpen, isSquareBrush, maskColor, maskOpacity, renderMaskPreview, showMaskBorder, source]);
+
+  useEffect(() => {
+    if (!isOpen)
+      return;
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        if (!isSubmitting)
+          onClose();
+        return;
+      }
+
+      const isUndo = (event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "z" && !event.shiftKey;
+      const isRedo = ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "y")
+        || ((event.ctrlKey || event.metaKey) && event.shiftKey && event.key.toLowerCase() === "z");
+
+      if (isUndo && undoStackRef.current.length > 0) {
+        event.preventDefault();
+        const target = getMaskContext();
+        const previousSnapshot = undoStackRef.current.pop();
+        if (!target || !previousSnapshot)
+          return;
+        redoStackRef.current.push(target.context.getImageData(0, 0, target.canvas.width, target.canvas.height));
+        restoreSnapshot(previousSnapshot);
+        return;
+      }
+
+      if (isRedo && redoStackRef.current.length > 0) {
+        event.preventDefault();
+        const target = getMaskContext();
+        const nextSnapshot = redoStackRef.current.pop();
+        if (!target || !nextSnapshot)
+          return;
+        undoStackRef.current.push(target.context.getImageData(0, 0, target.canvas.width, target.canvas.height));
+        restoreSnapshot(nextSnapshot);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [getMaskContext, isOpen, isSubmitting, onClose, restoreSnapshot]);
 
   const resolveCanvasPoint = useCallback((event: ReactPointerEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current;
@@ -89,76 +502,140 @@ export function InpaintDialog({
     if (!rect.width || !rect.height)
       return null;
 
+    const canvasX = (event.clientX - rect.left) * (canvas.width / rect.width);
+    const canvasY = (event.clientY - rect.top) * (canvas.height / rect.height);
+
     return {
-      x: (event.clientX - rect.left) * (canvas.width / rect.width),
-      y: (event.clientY - rect.top) * (canvas.height / rect.height),
-    } satisfies CanvasPoint;
+      canvasPoint: {
+        x: canvasX,
+        y: canvasY,
+      },
+      cursorPoint: {
+        x: canvasX,
+        y: canvasY,
+      },
+    } satisfies {
+      canvasPoint: CanvasPoint;
+      cursorPoint: BrushCursorPoint;
+    };
+  }, []);
+
+  const brushMaskMetrics = useMemo(() => ({
+    squareSize: Math.max(1, Math.round(brushSize)),
+    radius: Math.max(1, Math.round(brushSize / 2)),
+  }), [brushSize]);
+  const brushCursorCrossCanvasSize = viewportScale > 0 ? BRUSH_CURSOR_CROSS_SIZE / viewportScale : BRUSH_CURSOR_CROSS_SIZE;
+  const brushCursorStrokeWidth = viewportScale > 0 ? 1 / viewportScale : 1;
+  const activeBrushCursorOverlay = useMemo(() => {
+    if (!brushCursorPoint || sourceCanvasSize.width <= 0 || sourceCanvasSize.height <= 0)
+      return null;
+
+    const maskCursorPoint = mapSourcePointToMaskPoint(brushCursorPoint, sourceCanvasSize, maskBufferSize);
+    if (isSquareBrush) {
+      return {
+        rect: projectMaskRectToSourceRect(
+          resolvePixelSnappedSquareMaskStampRect(maskCursorPoint.x, maskCursorPoint.y, brushMaskMetrics.squareSize),
+          sourceCanvasSize,
+          maskBufferSize,
+        ),
+        pixelOutline: null,
+      };
+    }
+
+    const circleStamp = resolvePixelSnappedCircleMaskStamp(maskCursorPoint.x, maskCursorPoint.y, brushMaskMetrics.radius);
+    const rect = projectMaskRectToSourceRect({
+      left: circleStamp.left,
+      top: circleStamp.top,
+      width: circleStamp.size,
+      height: circleStamp.size,
+    }, sourceCanvasSize, maskBufferSize);
+    const circleOutline = getPixelCircleMaskOutlineSegments(circleStamp.radius);
+    const pixelWidth = circleOutline.size > 0 ? rect.width / circleOutline.size : rect.width;
+    const pixelHeight = circleOutline.size > 0 ? rect.height / circleOutline.size : rect.height;
+
+    return {
+      rect,
+      pixelOutline: {
+        segments: circleOutline.segments,
+        pixelWidth,
+        pixelHeight,
+      },
+    };
+  }, [
+    brushCursorPoint,
+    brushMaskMetrics.radius,
+    brushMaskMetrics.squareSize,
+    isSquareBrush,
+    maskBufferSize,
+    sourceCanvasSize,
+  ]);
+
+  const applyPixelSnappedCircleStamp = useCallback((
+    context: CanvasRenderingContext2D,
+    stamp: ReturnType<typeof resolvePixelSnappedCircleMaskStamp>,
+    nextTool: "paint" | "erase",
+  ) => {
+    const circleMaskData = getPixelCircleMaskData(stamp.radius);
+    const imageData = context.getImageData(stamp.left, stamp.top, circleMaskData.size, circleMaskData.size);
+    for (let index = 0; index < circleMaskData.data.length; index += 1) {
+      if (circleMaskData.data[index] !== 1)
+        continue;
+      const pixelOffset = index * 4;
+      if (nextTool === "erase") {
+        imageData.data[pixelOffset + 3] = 0;
+      }
+      else {
+        imageData.data[pixelOffset] = 255;
+        imageData.data[pixelOffset + 1] = 255;
+        imageData.data[pixelOffset + 2] = 255;
+        imageData.data[pixelOffset + 3] = 255;
+      }
+    }
+    context.putImageData(imageData, stamp.left, stamp.top);
   }, []);
 
   const drawStroke = useCallback((from: CanvasPoint, to: CanvasPoint) => {
-    const canvas = canvasRef.current;
-    const context = canvas?.getContext("2d");
-    if (!canvas || !context)
+    const target = getMaskContext();
+    if (!target || sourceCanvasSize.width <= 0 || sourceCanvasSize.height <= 0)
       return;
 
-    context.save();
-    context.lineCap = "round";
-    context.lineJoin = "round";
-    context.lineWidth = brushSize;
-
-    if (tool === "erase") {
-      context.globalCompositeOperation = "destination-out";
-      context.strokeStyle = "rgba(0, 0, 0, 1)";
-      context.fillStyle = "rgba(0, 0, 0, 1)";
+    const maskFrom = mapSourcePointToMaskPoint(from, sourceCanvasSize, maskBufferSize);
+    const maskTo = mapSourcePointToMaskPoint(to, sourceCanvasSize, maskBufferSize);
+    const { context } = target;
+    if (isSquareBrush) {
+      context.save();
+      if (tool === "erase") {
+        context.globalCompositeOperation = "destination-out";
+        context.fillStyle = "rgba(0, 0, 0, 1)";
+      }
+      else {
+        context.globalCompositeOperation = "source-over";
+        context.fillStyle = "rgba(255, 255, 255, 1)";
+      }
+      const stampRects = buildPixelSnappedSquareMaskStampRects(maskFrom, maskTo, brushMaskMetrics.squareSize);
+      for (const stampRect of stampRects) {
+        context.fillRect(stampRect.left, stampRect.top, stampRect.width, stampRect.height);
+      }
+      context.restore();
     }
     else {
-      context.globalCompositeOperation = "source-over";
-      context.strokeStyle = "rgba(59, 130, 246, 0.82)";
-      context.fillStyle = "rgba(59, 130, 246, 0.82)";
+      // NovelAI mask circles also use pixelSnap; they do not fall back to generic arc() strokes.
+      const circleStamps = buildPixelSnappedCircleMaskStamps(maskFrom, maskTo, brushMaskMetrics.radius);
+      for (const circleStamp of circleStamps)
+        applyPixelSnappedCircleStamp(context, circleStamp, tool);
     }
-
-    context.beginPath();
-    context.moveTo(from.x, from.y);
-    context.lineTo(to.x, to.y);
-    context.stroke();
-
-    context.beginPath();
-    context.arc(to.x, to.y, brushSize / 2, 0, Math.PI * 2);
-    context.fill();
-    context.restore();
-  }, [brushSize, tool]);
-
-  const handlePointerDown = useCallback((event: ReactPointerEvent<HTMLCanvasElement>) => {
-    if (event.button !== 0)
-      return;
-
-    const point = resolveCanvasPoint(event);
-    if (!point)
-      return;
-
-    event.preventDefault();
-    drawingPointerIdRef.current = event.pointerId;
-    isDrawingRef.current = true;
-    lastPointRef.current = point;
-    event.currentTarget.setPointerCapture(event.pointerId);
-    drawStroke(point, point);
-    if (tool === "paint")
-      setHasMask(true);
-  }, [drawStroke, resolveCanvasPoint, tool]);
-
-  const handlePointerMove = useCallback((event: ReactPointerEvent<HTMLCanvasElement>) => {
-    if (!isDrawingRef.current || drawingPointerIdRef.current !== event.pointerId)
-      return;
-
-    const point = resolveCanvasPoint(event);
-    const previousPoint = lastPointRef.current;
-    if (!point || !previousPoint)
-      return;
-
-    event.preventDefault();
-    drawStroke(previousPoint, point);
-    lastPointRef.current = point;
-  }, [drawStroke, resolveCanvasPoint]);
+    renderMaskPreview();
+  }, [
+    applyPixelSnappedCircleStamp,
+    brushMaskMetrics.radius,
+    brushMaskMetrics.squareSize,
+    getMaskContext,
+    isSquareBrush,
+    maskBufferSize,
+    renderMaskPreview,
+    sourceCanvasSize,
+    tool,
+  ]);
 
   const finishDrawing = useCallback((event: ReactPointerEvent<HTMLCanvasElement>) => {
     if (!isDrawingRef.current || drawingPointerIdRef.current !== event.pointerId)
@@ -176,47 +653,214 @@ export function InpaintDialog({
     syncMaskPresence();
   }, [syncMaskPresence]);
 
-  const handleClearMask = useCallback(() => {
-    const canvas = canvasRef.current;
-    const context = canvas?.getContext("2d");
-    if (!canvas || !context)
+  const handlePointerDown = useCallback((event: ReactPointerEvent<HTMLCanvasElement>) => {
+    if (event.button !== 0)
       return;
 
-    context.clearRect(0, 0, canvas.width, canvas.height);
-    setHasMask(false);
+    const point = resolveCanvasPoint(event);
+    if (!point)
+      return;
+
+    pushUndoSnapshot();
+    event.preventDefault();
+    drawingPointerIdRef.current = event.pointerId;
+    isDrawingRef.current = true;
+    lastPointRef.current = point.canvasPoint;
+    setBrushCursorPoint(point.cursorPoint);
+    event.currentTarget.setPointerCapture(event.pointerId);
+    drawStroke(point.canvasPoint, point.canvasPoint);
+    setHasMask(true);
+  }, [drawStroke, pushUndoSnapshot, resolveCanvasPoint]);
+
+  const handlePointerMove = useCallback((event: ReactPointerEvent<HTMLCanvasElement>) => {
+    if (viewportPanSessionRef.current) {
+      setBrushCursorPoint(null);
+      return;
+    }
+
+    const point = resolveCanvasPoint(event);
+    if (point)
+      setBrushCursorPoint(point.cursorPoint);
+
+    if (!isDrawingRef.current || drawingPointerIdRef.current !== event.pointerId)
+      return;
+
+    const previousPoint = lastPointRef.current;
+    if (!point || !previousPoint)
+      return;
+
+    event.preventDefault();
+    drawStroke(previousPoint, point.canvasPoint);
+    lastPointRef.current = point.canvasPoint;
+  }, [drawStroke, resolveCanvasPoint]);
+
+  const handlePointerEnter = useCallback((event: ReactPointerEvent<HTMLCanvasElement>) => {
+    if (viewportPanSessionRef.current)
+      return;
+
+    const point = resolveCanvasPoint(event);
+    if (!point)
+      return;
+    setBrushCursorPoint(point.cursorPoint);
+  }, [resolveCanvasPoint]);
+
+  const handlePointerLeave = useCallback(() => {
+    if (!isDrawingRef.current)
+      setBrushCursorPoint(null);
   }, []);
 
-  const buildMaskDataUrl = useCallback(() => {
-    const canvas = canvasRef.current;
-    const context = canvas?.getContext("2d");
-    if (!canvas || !context)
-      return "";
+  const queueViewportZoom = useCallback((factor: number, clientPoint?: { x: number; y: number }) => {
+    const viewport = canvasViewportRef.current;
+    if (!viewport || !source || viewportSize.width <= 0 || viewportSize.height <= 0)
+      return;
 
-    const sourcePixels = context.getImageData(0, 0, canvas.width, canvas.height);
+    const viewportRect = viewport.getBoundingClientRect();
+    const anchorLeft = clientPoint ? clientPoint.x - viewportRect.left : viewportSize.width / 2;
+    const anchorTop = clientPoint ? clientPoint.y - viewportRect.top : viewportSize.height / 2;
+
+    setViewportTransform((previous) => {
+      const nextZoom = clampInpaintZoom(previous.zoom * factor);
+      if (nextZoom === previous.zoom)
+        return previous;
+
+      const previousScale = baseScale * previous.zoom;
+      const nextScale = baseScale * nextZoom;
+      const contentX = (anchorLeft - previous.panX) / previousScale;
+      const contentY = (anchorTop - previous.panY) / previousScale;
+      const nextPan = clampViewportPan({
+        x: anchorLeft - contentX * nextScale,
+        y: anchorTop - contentY * nextScale,
+      }, viewportSize, {
+        width: source.width * nextScale,
+        height: source.height * nextScale,
+      });
+
+      return {
+        zoom: nextZoom,
+        panX: nextPan.x,
+        panY: nextPan.y,
+      };
+    });
+  }, [baseScale, source, viewportSize]);
+
+  const handleZoomIn = useCallback(() => {
+    queueViewportZoom(INPAINT_ZOOM_STEP);
+  }, [queueViewportZoom]);
+
+  const handleZoomOut = useCallback(() => {
+    queueViewportZoom(1 / INPAINT_ZOOM_STEP);
+  }, [queueViewportZoom]);
+
+  const handleResetZoom = useCallback(() => {
+    if (!source || viewportSize.width <= 0 || viewportSize.height <= 0) {
+      setViewportTransform({
+        zoom: 1,
+        panX: 0,
+        panY: 0,
+      });
+      return;
+    }
+
+    const centeredPan = resolveCenteredViewportPan(viewportSize, {
+      width: source.width * baseScale,
+      height: source.height * baseScale,
+    });
+    setViewportTransform({
+      zoom: 1,
+      panX: centeredPan.x,
+      panY: centeredPan.y,
+    });
+  }, [baseScale, source, viewportSize]);
+
+  const handleViewportMouseDown = useCallback((event: ReactMouseEvent<HTMLDivElement>) => {
+    if (event.button !== 1)
+      return;
+
+    event.preventDefault();
+    event.stopPropagation();
+    viewportPanSessionRef.current = {
+      startClientX: event.clientX,
+      startClientY: event.clientY,
+      startPanX: viewportTransform.panX,
+      startPanY: viewportTransform.panY,
+    };
+    setIsViewportPanning(true);
+    setBrushCursorPoint(null);
+  }, [viewportTransform.panX, viewportTransform.panY]);
+
+  const handleViewportAuxClick = useCallback((event: ReactMouseEvent<HTMLDivElement>) => {
+    if (event.button !== 1)
+      return;
+    event.preventDefault();
+    event.stopPropagation();
+  }, []);
+
+  const handleBrushSizeChange = useCallback((nextBrushSize: number) => {
+    setBrushSize(normalizeMaskBrushSize(nextBrushSize, maskDrawShape));
+  }, [maskDrawShape]);
+
+  const handleMaskDrawShapeChange = useCallback((nextShape: "circle" | "square") => {
+    setMaskDrawShape(nextShape);
+    setBrushSize(previous => normalizeMaskBrushSize(previous, nextShape));
+  }, []);
+
+  const handleToggleSquareBrush = useCallback((event?: { preventDefault?: () => void; stopPropagation?: () => void }) => {
+    event?.preventDefault?.();
+    event?.stopPropagation?.();
+    handleMaskDrawShapeChange(maskDrawShape === "square" ? "circle" : "square");
+  }, [handleMaskDrawShapeChange, maskDrawShape]);
+
+  const handleClearMask = useCallback(() => {
+    const target = getMaskContext();
+    if (!target || !hasMask)
+      return;
+
+    pushUndoSnapshot();
+    target.context.clearRect(0, 0, target.canvas.width, target.canvas.height);
+    renderMaskPreview();
+    setHasMask(false);
+  }, [getMaskContext, hasMask, pushUndoSnapshot, renderMaskPreview]);
+
+  const handleUndo = useCallback(() => {
+    const target = getMaskContext();
+    const previousSnapshot = undoStackRef.current.pop();
+    if (!target || !previousSnapshot)
+      return;
+
+    redoStackRef.current.push(target.context.getImageData(0, 0, target.canvas.width, target.canvas.height));
+    restoreSnapshot(previousSnapshot);
+  }, [getMaskContext, restoreSnapshot]);
+
+  const handleRedo = useCallback(() => {
+    const target = getMaskContext();
+    const nextSnapshot = redoStackRef.current.pop();
+    if (!target || !nextSnapshot)
+      return;
+
+    undoStackRef.current.push(target.context.getImageData(0, 0, target.canvas.width, target.canvas.height));
+    restoreSnapshot(nextSnapshot);
+  }, [getMaskContext, restoreSnapshot]);
+
+  const buildMaskDataUrl = useCallback(() => {
+    const maskCanvas = maskCanvasRef.current;
+    if (!maskCanvas || !maskCanvas.width || !maskCanvas.height || !source)
+      return "";
     const exportCanvas = document.createElement("canvas");
-    exportCanvas.width = canvas.width;
-    exportCanvas.height = canvas.height;
+    exportCanvas.width = source.width;
+    exportCanvas.height = source.height;
     const exportContext = exportCanvas.getContext("2d");
     if (!exportContext)
       return "";
-
-    const exportPixels = exportContext.createImageData(exportCanvas.width, exportCanvas.height);
-    for (let index = 0; index < sourcePixels.data.length; index += 4) {
-      const alpha = sourcePixels.data[index + 3];
-      if (!alpha)
-        continue;
-      exportPixels.data[index] = 255;
-      exportPixels.data[index + 1] = 255;
-      exportPixels.data[index + 2] = 255;
-      exportPixels.data[index + 3] = alpha;
-    }
-    exportContext.putImageData(exportPixels, 0, 0);
+    exportContext.clearRect(0, 0, exportCanvas.width, exportCanvas.height);
+    // Persist a full-size PNG while keeping the authored mask geometry from the low-res buffer.
+    exportContext.imageSmoothingEnabled = false;
+    exportContext.drawImage(maskCanvas, 0, 0, exportCanvas.width, exportCanvas.height);
     return exportCanvas.toDataURL("image/png");
-  }, []);
+  }, [source]);
 
   const handleSubmit = useCallback(async () => {
     const nextPrompt = prompt.trim();
-    if (!source || !nextPrompt || !hasMask || isSubmitting)
+    if (!source || !hasMask || isSubmitting)
       return;
 
     const maskDataUrl = buildMaskDataUrl();
@@ -231,196 +875,156 @@ export function InpaintDialog({
     });
   }, [buildMaskDataUrl, hasMask, isSubmitting, negativePrompt, onSubmit, prompt, source, strength]);
 
-  const sourceMeta = useMemo(() => {
+  const handleDownloadSource = useCallback(() => {
     if (!source)
-      return "暂无可编辑的图像";
-    return [
-      `${source.width}×${source.height}`,
-      `seed: ${source.seed}`,
-      modelLabel(source.model),
-    ].join(" · ");
+      return;
+
+    triggerBrowserDownload(source.dataUrl, `inpaint-source-${source.seed}.png`);
   }, [source]);
 
+  const toolbarButtonClassName = "inline-flex size-10 items-center justify-center rounded-md border border-white/10 bg-white/[0.06] text-white/72 transition hover:border-white/24 hover:bg-white/[0.1] hover:text-white focus:outline-none focus:ring-2 focus:ring-white/16 disabled:cursor-not-allowed disabled:opacity-35";
+  const topActionButtonClassName = "inline-flex h-10 items-center justify-center border-0 px-4 text-sm font-medium transition focus:outline-none focus:ring-2 focus:ring-white/16 disabled:cursor-not-allowed disabled:opacity-40 rounded-none";
+  const topIconActionButtonClassName = "inline-flex size-10 items-center justify-center border-0 bg-white/[0.06] text-white/72 transition hover:bg-white/[0.1] hover:text-white focus:outline-none focus:ring-2 focus:ring-white/16 disabled:cursor-not-allowed disabled:opacity-35 rounded-none";
+  const sharedPanelClassName = "rounded-md border border-[#2A3138] bg-[#161A1F] shadow-[0_18px_48px_rgba(0,0,0,0.34)]";
+  const bottomToolButtonClassName = "inline-flex size-10 items-center justify-center rounded-md border border-transparent bg-transparent text-white/60 transition hover:bg-white/[0.08] hover:text-white focus:outline-none focus:ring-2 focus:ring-white/16 disabled:cursor-not-allowed disabled:opacity-35";
+  const zoomPanelButtonClassName = "inline-flex h-10 items-center justify-center rounded-md border border-transparent bg-transparent px-2 text-white/60 transition hover:bg-white/[0.08] hover:text-white focus:outline-none focus:ring-2 focus:ring-white/16 disabled:cursor-not-allowed disabled:opacity-35";
+  const zoomPanelLabelClassName = "inline-flex h-10 min-w-14 items-center justify-center rounded-md border border-white/10 bg-white/[0.06] px-3 text-[11px] font-semibold text-white/82 transition hover:bg-white/[0.1] hover:text-white focus:outline-none focus:ring-2 focus:ring-white/16";
+  const boardButtonClassName = `${bottomToolButtonClassName} ${isBoardPanelOpen ? "bg-white/[0.12] text-white" : ""}`;
+  const boardPanelClassName = `absolute right-0 bottom-[calc(100%+10px)] z-30 w-[320px] p-3 ${sharedPanelClassName}`;
+  const canUndo = historyVersion >= 0 && undoStackRef.current.length > 0;
+  const canRedo = historyVersion >= 0 && redoStackRef.current.length > 0;
+  const zoomLabel = `${Math.round(viewportTransform.zoom * 100)}%`;
+
+  useEffect(() => {
+    if (!isOpen || !source || viewportSize.width <= 0 || viewportSize.height <= 0)
+      return;
+
+    setViewportTransform((previous) => {
+      const content = {
+        width: source.width * baseScale * previous.zoom,
+        height: source.height * baseScale * previous.zoom,
+      };
+      if (!hasInitializedViewportTransformRef.current) {
+        hasInitializedViewportTransformRef.current = true;
+        const centeredPan = resolveCenteredViewportPan(viewportSize, content);
+        return {
+          ...previous,
+          panX: centeredPan.x,
+          panY: centeredPan.y,
+        };
+      }
+
+      const clampedPan = clampViewportPan({
+        x: previous.panX,
+        y: previous.panY,
+      }, viewportSize, content);
+      if (clampedPan.x === previous.panX && clampedPan.y === previous.panY)
+        return previous;
+      return {
+        ...previous,
+        panX: clampedPan.x,
+        panY: clampedPan.y,
+      };
+    });
+  }, [baseScale, isOpen, source, viewportSize]);
+
+  useEffect(() => {
+    if (!isOpen)
+      return;
+
+    const viewport = canvasViewportRef.current;
+    if (!viewport)
+      return;
+
+    // 原生 wheel 监听必须显式关闭 passive，才能彻底阻止页面滚动。
+    const handleViewportWheel = (event: WheelEvent) => {
+      event.preventDefault();
+      event.stopPropagation();
+      queueViewportZoom(
+        event.deltaY < 0 ? INPAINT_ZOOM_STEP : 1 / INPAINT_ZOOM_STEP,
+        { x: event.clientX, y: event.clientY },
+      );
+    };
+
+    viewport.addEventListener("wheel", handleViewportWheel, { passive: false });
+    return () => viewport.removeEventListener("wheel", handleViewportWheel);
+  }, [isOpen, queueViewportZoom]);
+
+  if (!isOpen || !source)
+    return null;
+
   return (
-    <dialog
-      open={isOpen}
-      className={`modal ${isOpen ? "modal-open" : ""}`}
-      onCancel={(event) => {
-        event.preventDefault();
-        onClose();
-      }}
-    >
-      <div className="modal-box relative flex max-h-[min(94vh,1100px)] max-w-[min(96vw,1560px)] flex-col overflow-hidden border border-base-300 bg-base-100 p-0 text-base-content shadow-xl">
-        <div className="flex items-center gap-3 border-b border-base-300 px-5 py-4">
-          <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-2 text-base font-semibold">
-              <EditIcon className="size-4" />
-              <span>Inpaint</span>
-            </div>
-            <div className="mt-1 truncate text-xs text-base-content/60">{sourceMeta}</div>
-          </div>
-          <button
-            type="button"
-            className="btn btn-ghost btn-sm btn-circle border border-base-300 bg-base-200 text-base-content hover:bg-base-300"
-            aria-label="关闭 Inpaint"
-            title="关闭 Inpaint"
-            disabled={isSubmitting}
-            onClick={onClose}
-          >
-            <CloseIcon className="size-4" />
-          </button>
-        </div>
+    <div className="absolute inset-0 z-50 overflow-hidden bg-base-200 text-white">
+      <InpaintToolPanel
+        sharedPanelClassName={sharedPanelClassName}
+        brushSize={brushSize}
+        isSquareBrush={isSquareBrush}
+        onBrushSizeChange={handleBrushSizeChange}
+        onMaskDrawShapeChange={handleMaskDrawShapeChange}
+        onToggleSquareBrush={handleToggleSquareBrush}
+      />
 
-        <div className="grid min-h-0 flex-1 gap-0 xl:grid-cols-[minmax(0,1fr)_360px]">
-          <div className="min-h-0 overflow-auto bg-base-200/35 p-4">
-            <div className="mb-3 flex flex-wrap items-center gap-2">
-              <div className="join rounded-xl bg-base-100 p-1 shadow-sm">
-                <button
-                  type="button"
-                  className={`btn btn-sm join-item border-0 ${tool === "paint" ? "bg-primary text-primary-content" : "bg-transparent text-base-content/70 hover:bg-base-200 hover:text-base-content"}`}
-                  onClick={() => setTool("paint")}
-                >
-                  绘制蒙版
-                </button>
-                <button
-                  type="button"
-                  className={`btn btn-sm join-item border-0 ${tool === "erase" ? "bg-base-content text-base-100" : "bg-transparent text-base-content/70 hover:bg-base-200 hover:text-base-content"}`}
-                  onClick={() => setTool("erase")}
-                >
-                  擦除
-                </button>
-              </div>
-              <label className="ml-auto flex items-center gap-3 rounded-xl border border-base-300 bg-base-100 px-3 py-2 text-xs shadow-sm">
-                <span className="uppercase tracking-[0.16em] text-base-content/55">Brush</span>
-                <input
-                  type="range"
-                  min={8}
-                  max={192}
-                  step={2}
-                  value={brushSize}
-                  onChange={event => setBrushSize(Number(event.target.value))}
-                />
-                <span className="font-mono text-base-content/75">
-                  {brushSize}
-                  px
-                </span>
-              </label>
-              <button
-                type="button"
-                className="btn btn-sm btn-ghost"
-                disabled={!hasMask}
-                onClick={handleClearMask}
-              >
-                清空蒙版
-              </button>
-            </div>
+      <InpaintTopBar
+        hasMask={hasMask}
+        isSubmitting={isSubmitting}
+        onDownloadSource={handleDownloadSource}
+        onSubmit={handleSubmit}
+        onClose={onClose}
+        topIconActionButtonClassName={topIconActionButtonClassName}
+        topActionButtonClassName={topActionButtonClassName}
+      />
 
-            <div className="rounded-2xl border border-base-300 bg-base-100 p-3 shadow-sm">
-              <div className="mb-3 text-xs leading-5 text-base-content/65">
-                在图像上涂抹需要重绘的区域。蓝色覆盖层会被送入 NovelAI 的 `infill` 请求，其余区域保持不变。
-              </div>
-              <div className="flex justify-center overflow-auto rounded-2xl bg-base-200/40 p-3">
-                {source
-                  ? (
-                      <div className="relative inline-block">
-                        <img
-                          src={source.dataUrl}
-                          alt="inpaint-source"
-                          className="block max-h-[70vh] max-w-full rounded-xl border border-base-300 object-contain shadow-sm"
-                        />
-                        <canvas
-                          ref={canvasRef}
-                          className="absolute inset-0 h-full w-full touch-none rounded-xl"
-                          onPointerDown={handlePointerDown}
-                          onPointerMove={handlePointerMove}
-                          onPointerUp={finishDrawing}
-                          onPointerCancel={finishDrawing}
-                        />
-                      </div>
-                    )
-                  : <div className="py-20 text-sm text-base-content/60">暂无可编辑的图像</div>}
-              </div>
-            </div>
-          </div>
+      <InpaintCanvasStage
+        canvasViewportRef={canvasViewportRef}
+        canvasRef={canvasRef}
+        source={source}
+        isViewportPanning={isViewportPanning}
+        viewportTransform={viewportTransform}
+        viewportScale={viewportScale}
+        onViewportMouseDownCapture={handleViewportMouseDown}
+        onViewportAuxClick={handleViewportAuxClick}
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={finishDrawing}
+        onPointerCancel={finishDrawing}
+        onPointerEnter={handlePointerEnter}
+        onPointerLeave={handlePointerLeave}
+        brushCursorPoint={brushCursorPoint}
+        activeBrushCursorOverlay={activeBrushCursorOverlay}
+        isSquareBrush={isSquareBrush}
+        brushCursorStrokeWidth={brushCursorStrokeWidth}
+        brushCursorCrossCanvasSize={brushCursorCrossCanvasSize}
+        brushCursorStrokeColor={BRUSH_CURSOR_STROKE_COLOR}
+      />
 
-          <div className="min-h-0 overflow-auto border-l border-base-300 bg-base-100 p-4">
-            <div className="rounded-2xl border border-warning/30 bg-warning/10 px-3 py-2 text-xs leading-5 text-base-content/80">
-              Inpaint 会消耗 NovelAI Anlas。当前页面仍保持单张、1024 以内和
-              <code>steps &lt;= 28</code>
-              的限制，其他付费入口继续关闭。
-            </div>
-
-            <label className="mt-4 block">
-              <div className="mb-2 text-sm font-medium">Prompt</div>
-              <textarea
-                className="textarea textarea-bordered min-h-36 w-full resize-none bg-base-100"
-                value={prompt}
-                disabled={isSubmitting}
-                onChange={event => setPrompt(event.target.value)}
-              />
-            </label>
-
-            <label className="mt-4 block">
-              <div className="mb-2 text-sm font-medium">Undesired Content</div>
-              <textarea
-                className="textarea textarea-bordered min-h-28 w-full resize-none bg-base-100"
-                value={negativePrompt}
-                disabled={isSubmitting}
-                onChange={event => setNegativePrompt(event.target.value)}
-              />
-            </label>
-
-            <label className="mt-4 block rounded-2xl border border-base-300 bg-base-200/30 px-3 py-3">
-              <div className="flex items-center gap-3">
-                <div>
-                  <div className="text-sm font-medium">Strength</div>
-                  <div className="mt-1 text-xs text-base-content/60">数值越高，重绘区域偏离原图越明显。</div>
-                </div>
-                <div className="ml-auto font-mono text-sm text-base-content/75">{formatSliderValue(strength)}</div>
-              </div>
-              <input
-                type="range"
-                className="range range-primary mt-3"
-                min={0.01}
-                max={1}
-                step={0.01}
-                value={strength}
-                disabled={isSubmitting}
-                onChange={event => setStrength(Number(event.target.value))}
-              />
-            </label>
-
-            <div className="mt-4 rounded-2xl border border-base-300 bg-base-200/20 px-3 py-3 text-xs leading-5 text-base-content/65">
-              当前蒙版状态：
-              {hasMask ? " 已检测到可提交的绘制区域。" : " 还没有绘制蒙版。"}
-            </div>
-
-            {error ? <div className="mt-4 text-sm text-error">{error}</div> : null}
-
-            <div className="mt-6 flex flex-wrap items-center justify-end gap-2">
-              <button
-                type="button"
-                className="btn btn-ghost"
-                disabled={isSubmitting}
-                onClick={onClose}
-              >
-                取消
-              </button>
-              <button
-                type="button"
-                className="btn btn-primary"
-                disabled={!source || isSubmitting || !prompt.trim() || !hasMask}
-                onClick={() => void handleSubmit()}
-              >
-                {isSubmitting ? "生成中..." : "开始 Inpaint"}
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-      <form method="dialog" className="modal-backdrop">
-        <button type="button" onClick={onClose}>close</button>
-      </form>
-    </dialog>
+      <InpaintBottomBar
+        sharedPanelClassName={sharedPanelClassName}
+        zoomPanelButtonClassName={zoomPanelButtonClassName}
+        zoomPanelLabelClassName={zoomPanelLabelClassName}
+        bottomToolButtonClassName={bottomToolButtonClassName}
+        boardButtonClassName={boardButtonClassName}
+        boardPanelClassName={boardPanelClassName}
+        zoomLabel={zoomLabel}
+        tool={tool}
+        isBoardPanelOpen={isBoardPanelOpen}
+        maskColor={maskColor}
+        maskOpacity={maskOpacity}
+        showMaskBorder={showMaskBorder}
+        hasMask={hasMask}
+        canUndo={canUndo}
+        canRedo={canRedo}
+        onZoomOut={handleZoomOut}
+        onResetZoom={handleResetZoom}
+        onZoomIn={handleZoomIn}
+        onSetTool={setTool}
+        onToggleBoardPanel={() => setIsBoardPanelOpen(prev => !prev)}
+        onSetMaskColor={setMaskColor}
+        onSetMaskOpacity={setMaskOpacity}
+        onSetShowMaskBorder={setShowMaskBorder}
+        onClearMask={handleClearMask}
+        onUndo={handleUndo}
+        onRedo={handleRedo}
+      />
+    </div>
   );
 }
