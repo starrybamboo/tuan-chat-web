@@ -16,7 +16,6 @@ import type { BlocksuiteEditorHandle, BlocksuiteTcHeaderState } from "./blocksui
 
 import {
   LATE_REMOTE_HYDRATION_WAIT_MS,
-  shouldDelayRenderReady,
   shouldEnsureTcHeaderFallback,
   shouldUseRemoteFirstHydration,
   waitForRemoteHydrationSettled,
@@ -315,20 +314,7 @@ export function useBlocksuiteEditorLifecycle(params: UseBlocksuiteEditorLifecycl
           });
         };
 
-        if (shouldUseRemoteFirstHydration(docId) && shouldDelayRenderReady(remoteSnapshotDecision.state)) {
-          // 启动期远端判断失败或超时时，再给 hydration 一个补救窗口，减少首屏闪烁。
-          void waitForRemoteHydrationSettled({
-            workspace: workspace as any,
-            docId,
-            signal: abort.signal,
-            timeoutMs: LATE_REMOTE_HYDRATION_WAIT_MS,
-          }).finally(() => {
-            postRenderReady();
-          });
-        }
-        else {
-          postRenderReady();
-        }
+        postRenderReady();
 
         // 宿主层统一拦截撤销/重做快捷键，只在焦点位于当前 editor 内时转发给 Blocksuite。
         const onUndoRedoKeyDown = (event: KeyboardEvent) => {
