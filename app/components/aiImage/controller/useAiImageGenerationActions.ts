@@ -86,6 +86,7 @@ interface UseAiImageGenerationActionsOptions {
   resolveInfillMaskBase64ForUi: (targetUiMode: UiMode) => string;
   resolveSeparatedInfillMaskBase64ForUi: (targetUiMode: UiMode) => Promise<string>;
   resolveBlendInfillMaskDataUrlForUi: (targetUiMode: UiMode) => Promise<string>;
+  setIsDirectorToolsOpen: Dispatch<SetStateAction<boolean>>;
   setError: (value: string) => void;
   setLoading: (value: boolean) => void;
   setPendingPreviewAction: Dispatch<SetStateAction<ActivePreviewAction>>;
@@ -161,6 +162,7 @@ export function useAiImageGenerationActions({
   resolveInfillMaskBase64ForUi,
   resolveSeparatedInfillMaskBase64ForUi,
   resolveBlendInfillMaskDataUrlForUi,
+  setIsDirectorToolsOpen,
   setError,
   setLoading,
   setPendingPreviewAction,
@@ -180,7 +182,11 @@ export function useAiImageGenerationActions({
   addAiImageHistoryBatch,
 }: UseAiImageGenerationActionsOptions) {
   const handleToggleDirectorTools = useCallback(() => {
-    if (isDirectorToolsOpen || !selectedPreviewResult)
+    if (isDirectorToolsOpen) {
+      setIsDirectorToolsOpen(false);
+      return;
+    }
+    if (!selectedPreviewResult)
       return;
 
     const previewKey = generatedItemKey(selectedPreviewResult);
@@ -191,12 +197,14 @@ export function useAiImageGenerationActions({
     });
     setDirectorSourcePreview(selectedPreviewResult);
     setDirectorOutputPreview(selectedPreviewResult);
+    setIsDirectorToolsOpen(true);
   }, [
     isDirectorToolsOpen,
     selectedPreviewResult,
     setDirectorOutputPreview,
     setDirectorSourceItems,
     setDirectorSourcePreview,
+    setIsDirectorToolsOpen,
   ]);
 
   const handleRunUpscale = useCallback(() => {

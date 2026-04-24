@@ -631,6 +631,7 @@ export function useAiImagePageController() {
     resolveInfillMaskBase64ForUi,
     resolveSeparatedInfillMaskBase64ForUi,
     resolveBlendInfillMaskDataUrlForUi,
+    setIsDirectorToolsOpen,
     setError,
     setLoading,
     setPendingPreviewAction,

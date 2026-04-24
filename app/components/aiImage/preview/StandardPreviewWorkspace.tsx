@@ -140,7 +140,7 @@ export function StandardPreviewWorkspace({
           ? (
               <div className="flex flex-wrap items-center gap-3 px-3 py-2.5">
                 <div className={previewToolbarSectionClassName}>
-                  <span className={previewToolbarPillClassName}>{`${selectedPreviewResult.width} ? ${selectedPreviewResult.height}`}</span>
+                  <span className={previewToolbarPillClassName}>{`${selectedPreviewResult.width} × ${selectedPreviewResult.height}`}</span>
                   <button
                     type="button"
                     className={previewToolbarIconButtonClassName}

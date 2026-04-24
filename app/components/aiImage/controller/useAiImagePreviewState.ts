@@ -97,7 +97,7 @@ export function useAiImagePreviewState() {
     ? [
         selectedPreviewResult.toolLabel || selectedPreviewHistoryRow?.toolLabel || "",
         `seed: ${selectedPreviewResult.seed}`,
-        `${selectedPreviewResult.width}×${selectedPreviewResult.height}`,
+        `${selectedPreviewResult.width} × ${selectedPreviewResult.height}`,
       ].filter(Boolean).join(" · ")
     : "";
 
