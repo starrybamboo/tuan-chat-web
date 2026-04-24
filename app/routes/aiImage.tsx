@@ -1,6 +1,6 @@
 // AI 生图页面：对齐 NovelAI Image 的桌面端布局与交互；当前保留免费单张 txt2img，并开放预览区 Inpaint。
-import { useCallback, useEffect, useRef, useState } from "react";
 import { UploadSimpleIcon } from "@phosphor-icons/react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { AiImageSidebar } from "@/components/aiImage/AiImageSidebar";
 import { AiImageWorkspace } from "@/components/aiImage/AiImageWorkspace";
@@ -9,6 +9,7 @@ import { MetadataImportDialog } from "@/components/aiImage/MetadataImportDialog"
 import { PreviewImageDialog } from "@/components/aiImage/PreviewImageDialog";
 import { StylePickerDialog } from "@/components/aiImage/StylePickerDialog";
 import { useAiImagePageController } from "@/components/aiImage/useAiImagePageController";
+import { useHorizontalResizeDrag } from "@/components/common/customHooks/useHorizontalResizeDrag";
 
 const AI_IMAGE_SIDEBAR_MIN_RATIO = 0.18;
 const AI_IMAGE_SIDEBAR_MAX_RATIO = 0.23;
@@ -60,50 +61,33 @@ export default function AiImagePage() {
     return () => window.removeEventListener("resize", syncSidebarWidth);
   }, []);
 
-  const handleSidebarResizeStart = useCallback((event: React.MouseEvent<HTMLButtonElement>) => {
-    if (!isSidebarVisible)
-      return;
-
+  const getSidebarResizeStartWidth = useCallback(() => {
     const layoutElement = layoutRef.current;
     if (!layoutElement)
-      return;
-
-    event.preventDefault();
+      return null;
 
     const containerWidth = layoutElement.clientWidth;
     if (!containerWidth)
-      return;
+      return null;
 
-    const startX = event.clientX;
-    const startWidth = sidebarWidth ?? clampAiImageSidebarWidth(
+    return sidebarWidth ?? clampAiImageSidebarWidth(
       Math.round(containerWidth * AI_IMAGE_SIDEBAR_DEFAULT_RATIO),
       containerWidth,
     );
-    const previousCursor = document.body.style.cursor;
-    const previousUserSelect = document.body.style.userSelect;
+  }, [sidebarWidth]);
 
-    document.body.style.cursor = "col-resize";
-    document.body.style.userSelect = "none";
-
-    const handleMouseMove = (moveEvent: MouseEvent) => {
+  const handleSidebarResizeStart = useHorizontalResizeDrag<HTMLButtonElement>({
+    enabled: isSidebarVisible,
+    getStartSize: getSidebarResizeStartWidth,
+    resolveNextSize: ({ startSize, deltaX }) => {
       const nextContainerWidth = layoutRef.current?.clientWidth ?? 0;
       if (!nextContainerWidth)
-        return;
+        return null;
 
-      const deltaX = moveEvent.clientX - startX;
-      setSidebarWidth(clampAiImageSidebarWidth(startWidth + deltaX, nextContainerWidth));
-    };
-
-    const handleMouseUp = () => {
-      document.body.style.cursor = previousCursor;
-      document.body.style.userSelect = previousUserSelect;
-      window.removeEventListener("mousemove", handleMouseMove);
-      window.removeEventListener("mouseup", handleMouseUp);
-    };
-
-    window.addEventListener("mousemove", handleMouseMove);
-    window.addEventListener("mouseup", handleMouseUp);
-  }, [isSidebarVisible, sidebarWidth]);
+      return clampAiImageSidebarWidth(startSize + deltaX, nextContainerWidth);
+    },
+    onResize: setSidebarWidth,
+  });
 
   return (
     <div
@@ -113,7 +97,8 @@ export default function AiImagePage() {
       onDragOver={controller.handlePageImageDragOver}
       onDrop={controller.handlePageImageDrop}
     >
-      <style>{`
+      <style>
+        {`
         .ai-image-shell {
           --color-primary: #2fb7a8;
           --color-primary-content: #ffffff;
@@ -160,7 +145,8 @@ export default function AiImagePage() {
         ) {
           border-radius: 9999px !important;
         }
-      `}</style>
+      `}
+      </style>
       {controller.isPageImageDragOver
         ? (
             <div className="pointer-events-none absolute inset-0 z-40 flex items-center justify-center bg-base-100/52 backdrop-blur-[2px]">
@@ -226,7 +212,7 @@ export default function AiImagePage() {
                     className="group absolute inset-y-0 right-0 z-30 w-3 translate-x-1/2 cursor-col-resize touch-none bg-transparent px-0"
                     aria-label="拖拽调整 AI 生图侧边栏宽度"
                     title="拖拽调整 AI 生图侧边栏宽度"
-                    onMouseDown={handleSidebarResizeStart}
+                    onPointerDown={handleSidebarResizeStart}
                   >
                     <span className="mx-auto my-3 block h-[calc(100%-1.5rem)] w-px rounded-full bg-base-300/70 transition-colors group-hover:bg-primary/45 group-active:bg-primary" />
                   </button>
