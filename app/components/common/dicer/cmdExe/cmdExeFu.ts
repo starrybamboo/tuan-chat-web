@@ -1,4 +1,5 @@
 import { roll } from "@/components/common/dicer/dice";
+import { executeStShowCommand } from "@/components/common/dicer/cmdExe/cmdExePublic";
 import UTILS from "@/components/common/dicer/utils/utils";
 
 import { CommandExecutor, RuleNameSpace } from "../cmd";
@@ -59,8 +60,8 @@ const cmdSt = new CommandExecutor(
   "st",
   [],
   "属性设置",
-  [".st 力量70", ".st show 敏捷", ".st 力量+10", ".st 敏捷-5"],
-  ".st [属性名][属性值] / .st show [属性名]",
+  [".st 力量70", ".st show", ".st show 敏捷", ".st 力量+10", ".st 敏捷-5"],
+  ".st [属性名][属性值] / .st show [属性名]...",
   async (args: string[], mentioned: UserRole[], cpi: CPI): Promise<boolean> => {
     const role = mentioned[0];
     const input = args.join("");
@@ -70,36 +71,14 @@ const cmdSt = new CommandExecutor(
     } = {};
       // 使用正则匹配所有属性+数值的组合
     const matches = input.matchAll(/([^\d+-]+)([+-]?)(\d+)/g);
+    if (args[0]?.toLowerCase() === "show") {
+      return executeStShowCommand(args, role, cpi);
+    }
+
     const curAbility = cpi.getRoleAbilityList(role.roleId);
     if (!curAbility) {
       cpi.sendToast("非法操作，当前角色不存在于提及列表中。");
       return false;
-    }
-
-    if (args[0]?.toLowerCase() === "show") {
-      if (!("ability" in curAbility || "basic" in curAbility || "skill" in curAbility)) {
-        cpi.sendToast("当前角色没有属性信息，请先设置属性。");
-        return false;
-      }
-
-      // TODO: 展示全部属性的功能
-      const showProps = args.slice(1).filter(arg => arg.trim() !== "");
-      if (showProps.length === 0) {
-        cpi.sendToast("请指定要展示的属性");
-        return false;
-      }
-
-      const result: string[] = [];
-      for (const prop of showProps) {
-        const normalizedKey = prop.toLowerCase();
-        const key = PROPERTY_NAMES_MAP[normalizedKey] || prop;
-        const value = UTILS.getRoleAbilityValue(curAbility, key) ?? 0; // 修改这里，添加默认值0
-
-        result.push(`${key}: ${value}`);
-      }
-
-      cpi.sendToast(`${role?.roleName || "当前角色"}的属性展示：\n${result.join("\n")}`);
-      return true;
     }
 
     // st 实现

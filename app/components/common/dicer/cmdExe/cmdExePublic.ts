@@ -1,5 +1,6 @@
 import { CommandExecutor, RuleNameSpace } from "@/components/common/dicer/cmd";
 import { cmdWw } from "@/components/common/dicer/cmdExe/cmdExeWw";
+import { openStShowCardWindow } from "@/components/common/dicer/cmdExe/stShowCard";
 import { roll } from "@/components/common/dicer/dice";
 import UTILS from "@/components/common/dicer/utils/utils";
 
@@ -11,6 +12,36 @@ const executorPublic = new RuleNameSpace(
 );
 
 export default executorPublic;
+
+export async function executeStShowCommand(
+  args: string[],
+  role: UserRole | undefined,
+  cpi: CPI,
+): Promise<boolean> {
+  if (!role) {
+    cpi.sendToast("非法操作，当前角色不存在于提及列表中。");
+    return false;
+  }
+
+  const curAbility = cpi.getRoleAbilityList(role.roleId);
+  if (!curAbility) {
+    cpi.sendToast("非法操作，当前角色不存在于提及列表中。");
+    return false;
+  }
+
+  if (!("ability" in curAbility || "basic" in curAbility || "skill" in curAbility)) {
+    cpi.sendToast("当前角色没有属性信息，请先设置属性。");
+    return false;
+  }
+
+  const showProps = args.slice(1).filter(arg => arg.trim() !== "");
+  await openStShowCardWindow({
+    ability: curAbility,
+    roleName: role.roleName || "当前角色",
+    requestedKeys: showProps,
+  });
+  return true;
+}
 
 async function executeRollCommand(
   args: string[],
@@ -76,8 +107,8 @@ const cmdSt = new CommandExecutor(
   "st",
   [],
   "属性设置",
-  [".st 力量70", ".st show 敏捷", ".st 力量+10", ".st 敏捷-5", ".st 力量 -25"],
-  ".st [属性名][属性值] / .st show [属性名]",
+  [".st 力量70", ".st show", ".st show 敏捷", ".st 力量+10", ".st 敏捷-5", ".st 力量 -25"],
+  ".st [属性名][属性值] / .st show [属性名]...",
   async (args: string[], mentioned: UserRole[], cpi: CPI): Promise<boolean> => {
     const role = mentioned[0];
     const input = args.join("");
@@ -85,34 +116,14 @@ const cmdSt = new CommandExecutor(
     const abilityChanges: {
       [key: string]: { old: number; op: string; val: number; new: number };
     } = {};
+    if (args[0]?.toLowerCase() === "show") {
+      return executeStShowCommand(args, role, cpi);
+    }
+
     const curAbility = cpi.getRoleAbilityList(role.roleId);
     if (!curAbility) {
       cpi.sendToast("非法操作，当前角色不存在于提及列表中。");
       return false;
-    }
-
-    if (args[0]?.toLowerCase() === "show") {
-      if (!("ability" in curAbility || "basic" in curAbility || "skill" in curAbility)) {
-        cpi.sendToast("当前角色没有属性信息，请先设置属性。");
-        return false;
-      }
-
-      const showProps = args.slice(1).filter(arg => arg.trim() !== "");
-      if (showProps.length === 0) {
-        cpi.sendToast("请指定要展示的属性");
-        return false;
-      }
-
-      const result: string[] = [];
-      for (const prop of showProps) {
-        const key = prop.toLowerCase();
-        const value = UTILS.getRoleAbilityValue(curAbility, key) ?? 0; // 修改这里，添加默认值0
-
-        result.push(`${key}: ${value}`);
-      }
-
-      cpi.sendToast(`${role?.roleName || "当前角色"}的属性展示：\n${result.join("\n")}`);
-      return true;
     }
 
     const applyChange = (rawKey: string, operator: string, value: number) => {

@@ -322,6 +322,15 @@ export interface NewFriendRequestPush extends BaseMessage<{
     type: 21;
 }
 
+// 好友申请已接受 (type: 24)
+export interface FriendRequestAcceptedPush extends BaseMessage<{
+    friendReqId: number;
+    requesterUserId: number;
+    accepterUserId: number;
+}> {
+    type: 24;
+}
+
 // 志愿者注册成功 (type: 20000)
 interface VolunteerRegisterSuccessPush extends BaseMessage<null> {
     type: 20000;
