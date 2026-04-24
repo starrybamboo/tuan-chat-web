@@ -38,6 +38,7 @@ interface MaterialPackageLibraryWorkspaceProps {
   emptyDescription: string;
   loading: boolean;
   embedded?: boolean;
+  showEmbeddedHeaderActions?: boolean;
   skeletonPrefix: string;
   onKeywordChange: (value: string) => void;
   onOpenItem: (index: number) => void;
@@ -180,6 +181,7 @@ export default function MaterialPackageLibraryWorkspace({
   emptyDescription,
   loading,
   embedded = false,
+  showEmbeddedHeaderActions = true,
   skeletonPrefix,
   onKeywordChange,
   onOpenItem,
@@ -199,7 +201,7 @@ export default function MaterialPackageLibraryWorkspace({
             </div>
 
             <div className="flex w-full min-w-0 flex-col gap-3 sm:w-auto sm:flex-row sm:items-center sm:justify-end sm:gap-2">
-              {headerActions.length > 0 && (
+              {showEmbeddedHeaderActions && headerActions.length > 0 && (
                 <div className="flex items-center gap-2 overflow-x-auto pb-1 sm:pb-0">
                   {headerActions.map(action => (
                     <button
