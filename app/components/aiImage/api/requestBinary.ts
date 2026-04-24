@@ -1,4 +1,5 @@
 import { extractImageDataUrlsFromBinary } from "@/components/aiImage/helpers";
+import { fetchWithUnifiedAuth } from "../../../../api/unifiedAuthFetch";
 
 export async function requestNovelAiBinaryViaProxy(requestUrl: string, payload: unknown, options?: { multipart?: boolean }) {
   const headers: Record<string, string> = {
@@ -21,7 +22,7 @@ export async function requestNovelAiBinaryViaProxy(requestUrl: string, payload: 
     body = JSON.stringify(payload);
   }
 
-  const res = await fetch(requestUrl, {
+  const res = await fetchWithUnifiedAuth(requestUrl, {
     method: "POST",
     headers,
     body,
