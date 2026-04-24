@@ -66,13 +66,20 @@ export default function useRoomImportActions({
   ensureRuntimeAvatarIdForRole,
   roomUiStoreApi,
 }: UseRoomImportActionsParams): UseRoomImportActionsResult {
-  const ensureLoadedDocSnapshotReadyForSharing = useCallback(async (docId: string): Promise<void> => {
+  const ensureLoadedDocSnapshotReadyForSharing = useCallback(async (params: {
+    docId: string;
+    sourceSpaceId?: number;
+  }): Promise<void> => {
+    const docId = String(params.docId ?? "").trim();
     const parsed = parseDescriptionDocId(docId);
-    if (!parsed || !spaceId || spaceId <= 0) {
+    const targetSpaceId = typeof params.sourceSpaceId === "number" && params.sourceSpaceId > 0
+      ? params.sourceSpaceId
+      : spaceId;
+    if (!parsed || !targetSpaceId || targetSpaceId <= 0) {
       recordDocCardShareObservation("share-sync-skip", {
         docId,
         reason: !parsed ? "unsupported-doc-id" : "invalid-space",
-        spaceId,
+        spaceId: targetSpaceId,
       });
       return;
     }
@@ -83,7 +90,7 @@ export default function useRoomImportActions({
       import("@/components/chat/infra/blocksuite/shared/base64"),
     ]);
 
-    const workspace = getSpaceWorkspaceIfExists(spaceId) as {
+    const workspace = getSpaceWorkspaceIfExists(targetSpaceId) as {
       getDoc?: (targetDocId: string) => { ready?: boolean } | null;
       encodeDocAsUpdate?: (targetDocId: string) => Uint8Array;
     } | null;
@@ -92,7 +99,7 @@ export default function useRoomImportActions({
     if (!workspace || !currentDoc?.ready || typeof workspace.encodeDocAsUpdate !== "function") {
       recordDocCardShareObservation("share-sync-skip", {
         docId,
-        spaceId,
+        spaceId: targetSpaceId,
         reason: !workspace ? "workspace-missing" : (!currentDoc?.ready ? "doc-not-ready" : "encode-unavailable"),
       });
       return;
@@ -100,7 +107,7 @@ export default function useRoomImportActions({
 
     recordDocCardShareObservation("share-sync-start", {
       docId,
-      spaceId,
+      spaceId: targetSpaceId,
       entityType: parsed.entityType,
       entityId: parsed.entityId,
       docType: parsed.docType,
@@ -110,7 +117,7 @@ export default function useRoomImportActions({
     if (!(update instanceof Uint8Array) || update.length === 0) {
       recordDocCardShareObservation("share-sync-skip", {
         docId,
-        spaceId,
+        spaceId: targetSpaceId,
         reason: "empty-update",
       });
       return;
@@ -129,7 +136,7 @@ export default function useRoomImportActions({
       });
       recordDocCardShareObservation("share-sync-success", {
         docId,
-        spaceId,
+        spaceId: targetSpaceId,
         entityType: parsed.entityType,
         entityId: parsed.entityId,
         docType: parsed.docType,
@@ -139,7 +146,7 @@ export default function useRoomImportActions({
     catch (error) {
       recordDocCardShareObservation("share-sync-failed", {
         docId,
-        spaceId,
+        spaceId: targetSpaceId,
         entityType: parsed.entityType,
         entityId: parsed.entityId,
         docType: parsed.docType,
@@ -342,7 +349,10 @@ export default function useRoomImportActions({
 
     let excerpt = typeof payload?.excerpt === "string" ? payload.excerpt.trim() : "";
     try {
-      await ensureLoadedDocSnapshotReadyForSharing(docId);
+      await ensureLoadedDocSnapshotReadyForSharing({
+        docId,
+        sourceSpaceId,
+      });
     }
     catch (error) {
       console.error("[DocCard] Failed to publish latest snapshot before share", error);

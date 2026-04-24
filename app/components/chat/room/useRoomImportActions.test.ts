@@ -5,6 +5,22 @@ import type { ChatMessageResponse } from "../../../../api";
 import { createRoomUiStore } from "../stores/roomUiStore";
 import useRoomImportActions from "./useRoomImportActions";
 
+const {
+  mockedGetSpaceWorkspaceIfExists,
+  mockedGetOrCreateSpaceDoc,
+  mockedSetRemoteSnapshot,
+  mockedUint8ArrayToBase64,
+  mockedExtractDocExcerptFromStore,
+} = vi.hoisted(() => {
+  return {
+    mockedGetSpaceWorkspaceIfExists: vi.fn(() => null),
+    mockedGetOrCreateSpaceDoc: vi.fn(() => null),
+    mockedSetRemoteSnapshot: vi.fn(async () => undefined),
+    mockedUint8ArrayToBase64: vi.fn(() => ""),
+    mockedExtractDocExcerptFromStore: vi.fn(() => ""),
+  };
+});
+
 vi.mock("react", async () => {
   const actual = await vi.importActual<typeof import("react")>("react");
   return {
@@ -28,20 +44,20 @@ vi.mock("@/components/common/dicer/utils/utils", () => ({
 }));
 
 vi.mock("@/components/chat/infra/blocksuite/space/spaceWorkspaceRegistry", () => ({
-  getSpaceWorkspaceIfExists: vi.fn(() => null),
-  getOrCreateSpaceDoc: vi.fn(() => null),
+  getSpaceWorkspaceIfExists: mockedGetSpaceWorkspaceIfExists,
+  getOrCreateSpaceDoc: mockedGetOrCreateSpaceDoc,
 }));
 
 vi.mock("@/components/chat/infra/blocksuite/description/descriptionDocRemote", () => ({
-  setRemoteSnapshot: vi.fn(async () => undefined),
+  setRemoteSnapshot: mockedSetRemoteSnapshot,
 }));
 
 vi.mock("@/components/chat/infra/blocksuite/shared/base64", () => ({
-  uint8ArrayToBase64: vi.fn(() => ""),
+  uint8ArrayToBase64: mockedUint8ArrayToBase64,
 }));
 
 vi.mock("@/components/chat/infra/blocksuite/document/docExcerpt", () => ({
-  extractDocExcerptFromStore: vi.fn(() => ""),
+  extractDocExcerptFromStore: mockedExtractDocExcerptFromStore,
 }));
 
 function createMessage(messageId: number): ChatMessageResponse["message"] {
@@ -63,6 +79,16 @@ function createMessage(messageId: number): ChatMessageResponse["message"] {
 describe("useRoomImportActions", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockedGetSpaceWorkspaceIfExists.mockReset();
+    mockedGetSpaceWorkspaceIfExists.mockReturnValue(null);
+    mockedGetOrCreateSpaceDoc.mockReset();
+    mockedGetOrCreateSpaceDoc.mockReturnValue(null);
+    mockedSetRemoteSnapshot.mockReset();
+    mockedSetRemoteSnapshot.mockResolvedValue(undefined);
+    mockedUint8ArrayToBase64.mockReset();
+    mockedUint8ArrayToBase64.mockReturnValue("");
+    mockedExtractDocExcerptFromStore.mockReset();
+    mockedExtractDocExcerptFromStore.mockReturnValue("");
   });
 
   it("导入链路在发送失败后停止推进进度", async () => {
@@ -147,6 +173,59 @@ describe("useRoomImportActions", () => {
           excerpt: "摘要",
         }),
       },
+    }));
+  });
+
+  it("跨空间发送文档卡片时会从源空间同步最新快照", async () => {
+    const roomUiStoreApi = createRoomUiStore();
+    const sendMessageWithInsert = vi.fn().mockResolvedValue(createMessage(12));
+    const encodeDocAsUpdate = vi.fn(() => new Uint8Array([1, 2, 3]));
+    const getDoc = vi.fn((targetDocId: string) => {
+      return targetDocId === "udoc:123:description" ? { ready: true } : null;
+    });
+
+    mockedGetSpaceWorkspaceIfExists.mockImplementation(((targetSpaceId: number) => {
+      if (targetSpaceId === 99) {
+        return {
+          getDoc,
+          encodeDocAsUpdate,
+        };
+      }
+      return null;
+    }) as any);
+    mockedUint8ArrayToBase64.mockReturnValue("AQID");
+
+    const { handleSendDocCard } = useRoomImportActions({
+      roomId: 1,
+      spaceId: 2,
+      isSpaceOwner: false,
+      curRoleId: 3,
+      notMember: false,
+      isSubmitting: false,
+      setIsSubmitting: vi.fn(),
+      roomContext: {} as any,
+      sendMessageWithInsert,
+      sendMessageBatch: vi.fn(async () => []),
+      ensureRuntimeAvatarIdForRole: vi.fn(async () => 7),
+      roomUiStoreApi,
+    });
+
+    await handleSendDocCard({
+      docId: "udoc:123:description",
+      spaceId: 99,
+      title: "跨空间文档",
+    });
+
+    expect(mockedGetSpaceWorkspaceIfExists).toHaveBeenCalledWith(99);
+    expect(encodeDocAsUpdate).toHaveBeenCalledWith("udoc:123:description");
+    expect(mockedSetRemoteSnapshot).toHaveBeenCalledWith(expect.objectContaining({
+      entityType: "space_user_doc",
+      entityId: 123,
+      docType: "description",
+      snapshot: expect.objectContaining({
+        v: 1,
+        updateB64: "AQID",
+      }),
     }));
   });
 
