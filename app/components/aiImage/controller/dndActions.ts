@@ -34,7 +34,7 @@ export async function pickSourceHistoryImageAction(args: {
   const imageBase64 = dataUrlToBase64(args.payload.dataUrl);
   if (!imageBase64) {
     args.setIsPageImageDragOver(false);
-    args.showErrorToast("鎷栨嫿鍘嗗彶鍥剧墖澶辫触锛氭湭璇诲彇鍒板浘鐗囨暟鎹€?");
+    args.showErrorToast("拖拽历史图片失败：未读取到图片数据。");
     return;
   }
 
@@ -141,7 +141,7 @@ export async function pageImageDropAction(args: {
   const files = extractImageFilesFromTransfer(args.event.dataTransfer);
   if (!files.length) {
     args.setIsPageImageDragOver(false);
-    args.showErrorToast("鎷栨嫿瀵煎叆鐩墠鍙敮鎸佸浘鐗囨枃浠躲€?");
+    args.showErrorToast("拖拽导入目前只支持图片文件。");
     return;
   }
   args.setIsPageImageDragOver(false);

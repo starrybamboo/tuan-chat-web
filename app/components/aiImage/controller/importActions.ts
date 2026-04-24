@@ -86,7 +86,7 @@ export async function importSourceImageBytesAction(args: {
   } satisfies ImportedSourceImagePayload;
 
   if (args.target === "img2img") {
-    args.applySourceImageForUi(args.uiMode, sourceImage, "宸茶缃?Base Img銆?");
+    args.applySourceImageForUi(args.uiMode, sourceImage, "已设置 Base Img。");
     return;
   }
 

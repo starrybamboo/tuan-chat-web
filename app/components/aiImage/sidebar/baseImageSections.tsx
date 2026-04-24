@@ -54,8 +54,8 @@ export function renderSimpleInfillSectionContent({
               <button
                 type="button"
                 className="mt-[1px] inline-flex size-9 items-center justify-center rounded-md text-base-content/70 transition hover:bg-base-200 hover:text-base-content focus:outline-none focus:ring-2 focus:ring-primary/20 dark:text-white/80 dark:hover:bg-white/6 dark:hover:text-white dark:focus:ring-white/15"
-                aria-label="杩斿洖"
-                title="杩斿洖"
+                aria-label="返回"
+                title="返回"
                 onClick={onReturnFromInfillSettings}
               >
                 <CaretLeftIcon className="size-5" weight="bold" />
@@ -71,8 +71,8 @@ export function renderSimpleInfillSectionContent({
               <button
                 type="button"
                 className={infillActionButtonClassName}
-                aria-label="缂栬緫钂欑増"
-                title="缂栬緫钂欑増"
+                aria-label="编辑蒙版"
+                title="编辑蒙版"
                 disabled={isBusy}
                 onClick={() => void onOpenBaseImageInpaint()}
               >
@@ -82,8 +82,8 @@ export function renderSimpleInfillSectionContent({
               <button
                 type="button"
                 className={infillActionButtonClassName}
-                aria-label="娓呯┖"
-                title="娓呯┖"
+                aria-label="清空"
+                title="清空"
                 disabled={isBusy}
                 onClick={onClearSourceImage}
               >
@@ -93,8 +93,8 @@ export function renderSimpleInfillSectionContent({
             <button
               type="button"
               className={baseImageToggleButtonClassName}
-              aria-label={isBaseImageToolsOpen ? "鏀惰捣" : "灞曞紑"}
-              title={isBaseImageToolsOpen ? "鏀惰捣" : "灞曞紑"}
+              aria-label={isBaseImageToolsOpen ? "收起" : "展开"}
+              title={isBaseImageToolsOpen ? "收起" : "展开"}
               disabled={isBusy}
               onClick={onToggleBaseImageTools}
             >
@@ -179,8 +179,8 @@ export function renderProInfillSectionContent({
               <button
                 type="button"
                 className="mt-[1px] inline-flex size-9 items-center justify-center rounded-md text-white/80 transition hover:bg-white/6 hover:text-white focus:outline-none focus:ring-2 focus:ring-white/15"
-                aria-label="杩斿洖"
-                title="杩斿洖"
+                aria-label="返回"
+                title="返回"
                 onClick={onReturnFromInfillSettings}
               >
                 <CaretLeftIcon className="size-5" weight="bold" />
@@ -196,8 +196,8 @@ export function renderProInfillSectionContent({
               <button
                 type="button"
                 className={infillActionButtonClassName}
-                aria-label="缂栬緫钂欑増"
-                title="缂栬緫钂欑増"
+                aria-label="编辑蒙版"
+                title="编辑蒙版"
                 disabled={isBusy}
                 onClick={() => void onOpenBaseImageInpaint()}
               >
@@ -207,8 +207,8 @@ export function renderProInfillSectionContent({
               <button
                 type="button"
                 className={infillActionButtonClassName}
-                aria-label="娓呯┖"
-                title="娓呯┖"
+                aria-label="清空"
+                title="清空"
                 disabled={isBusy}
                 onClick={onClearSourceImage}
               >
@@ -218,8 +218,8 @@ export function renderProInfillSectionContent({
             <button
               type="button"
               className={baseImageToggleButtonClassName}
-              aria-label={isBaseImageToolsOpen ? "鏀惰捣" : "灞曞紑"}
-              title={isBaseImageToolsOpen ? "鏀惰捣" : "灞曞紑"}
+              aria-label={isBaseImageToolsOpen ? "收起" : "展开"}
+              title={isBaseImageToolsOpen ? "收起" : "展开"}
               disabled={isBusy}
               onClick={onToggleBaseImageTools}
             >
@@ -331,8 +331,8 @@ export function renderSimpleBaseImageSectionContent({
           <button
             type="button"
             className={featureUploadActionClassName}
-            aria-label="涓婁紶 Base Img"
-            title="涓婁紶 Base Img"
+            aria-label="上传 Base Img"
+            title="上传 Base Img"
             onClick={onOpenSourceImagePicker}
           >
             <FileArrowUpIcon className="size-5" weight="bold" />
@@ -384,8 +384,8 @@ export function renderSimpleBaseImageSectionContent({
               <button
                 type="button"
                 className="inline-flex size-11 items-center justify-center text-white/80 transition hover:bg-white/6 hover:text-white focus:outline-none"
-                aria-label="鏇存崲 Base Img"
-                title="鏇存崲 Base Img"
+                aria-label="更换 Base Img"
+                title="更换 Base Img"
                 onClick={onOpenSourceImagePicker}
               >
                 <ArrowClockwise className="size-5" weight="bold" />
@@ -394,8 +394,8 @@ export function renderSimpleBaseImageSectionContent({
               <button
                 type="button"
                 className="inline-flex size-11 items-center justify-center text-white/80 transition hover:bg-white/6 hover:text-white focus:outline-none"
-                aria-label="绉婚櫎 Base Img"
-                title="绉婚櫎 Base Img"
+                aria-label="移除 Base Img"
+                title="移除 Base Img"
                 onClick={onClearSourceImage}
               >
                 <TrashIcon className="size-5" weight="bold" />
@@ -404,8 +404,8 @@ export function renderSimpleBaseImageSectionContent({
             <button
               type="button"
               className={baseImageToggleButtonClassName}
-              aria-label={isBaseImageToolsOpen ? "鏀惰捣 Base Img 宸ュ叿" : "灞曞紑 Base Img 宸ュ叿"}
-              title={isBaseImageToolsOpen ? "鏀惰捣 Base Img 宸ュ叿" : "灞曞紑 Base Img 宸ュ叿"}
+              aria-label={isBaseImageToolsOpen ? "收起 Base Img 工具" : "展开 Base Img 工具"}
+              title={isBaseImageToolsOpen ? "收起 Base Img 工具" : "展开 Base Img 工具"}
               onClick={onToggleBaseImageTools}
             >
               <ChevronDown className={`size-5 shrink-0 transition-transform ${isBaseImageToolsOpen ? "rotate-180" : ""}`} />
