@@ -1,5 +1,6 @@
 import type { ScreenSize } from "@/utils/getScreenSize";
 import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useHorizontalResizeDrag } from "@/components/common/customHooks/useHorizontalResizeDrag";
 import { getScreenSize } from "@/utils/getScreenSize";
 
 /**
@@ -93,9 +94,6 @@ export function OpenAbleDrawer({
     return clamp(seed, base.min, base.max);
   });
   const containerRef = useRef<HTMLDivElement | null>(null);
-  const isDragging = useRef(false);
-  const startX = useRef(0);
-  const startWidth = useRef(0);
 
   const recomputeBounds = useCallback(() => {
     const base = getBaseBounds();
@@ -177,51 +175,17 @@ export function OpenAbleDrawer({
 
   const renderedWidth = clamp(width, bounds.min, bounds.max);
 
-  // 使用 Pointer Events，可以在 pointermove 进入子元素（如 WebGAL canvas）时仍保持拖拽
-  const handlePointerDown = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
-    isDragging.current = true;
-    startX.current = e.clientX;
-    startWidth.current = width;
-    document.body.style.cursor = "col-resize";
-    document.body.style.userSelect = "none";
-
-    const pointerId = e.pointerId;
-    const captureTarget = e.currentTarget;
-    try {
-      captureTarget.setPointerCapture(pointerId);
-    }
-    catch {
-      // ignore
-    }
-
-    const handlePointerMove = (ev: PointerEvent) => {
-      if (!isDragging.current)
-        return;
-      const deltaX = handlePosition === "left"
-        ? (startX.current - ev.clientX)
-        : (ev.clientX - startX.current);
-      const newWidth = clamp(startWidth.current + deltaX, bounds.min, bounds.max);
+  const handlePointerDown = useHorizontalResizeDrag<HTMLDivElement>({
+    getStartSize: () => width,
+    resolveNextSize: ({ startSize, deltaX }) => {
+      const directedDeltaX = handlePosition === "left" ? -deltaX : deltaX;
+      return clamp(startSize + directedDeltaX, bounds.min, bounds.max);
+    },
+    onResize: (newWidth) => {
       setWidth(newWidth);
       onWidthChange?.(newWidth);
-    };
-
-    const handlePointerUp = () => {
-      isDragging.current = false;
-      try {
-        captureTarget.releasePointerCapture(pointerId);
-      }
-      catch {
-        // ignore
-      }
-      document.body.style.cursor = "";
-      document.body.style.userSelect = "";
-      document.removeEventListener("pointermove", handlePointerMove);
-      document.removeEventListener("pointerup", handlePointerUp);
-    };
-
-    document.addEventListener("pointermove", handlePointerMove);
-    document.addEventListener("pointerup", handlePointerUp);
-  }, [width, clamp, bounds.min, bounds.max, onWidthChange, handlePosition]);
+    },
+  });
 
   if (!isOpen) {
     return null;
