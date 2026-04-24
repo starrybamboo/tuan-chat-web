@@ -4,29 +4,52 @@ import { useLayoutEffect, useRef } from "react";
 import { createSeoMeta } from "@/utils/seo";
 import "./scrollSequenceDemo.css";
 
-const HERO_FRAME_COUNT = 120;
-const BATTERY_FRAME_COUNT = 150;
+const HERO_FRAME_COUNT = 150;
+const STAGE_FRAME_COUNT = 180;
 
-const HISTORY_ENTRIES = [
+const STORY_STAGES = [
   {
-    year: "1993",
-    title: "零汞生产线落地",
-    description: "把传统快消品叙事换成一条可被滚动推进的时间轴，适合品牌站展示关键节点。",
+    label: "角色",
+    title: "先让每个人，拥有能被记住的轮廓。",
+    description: "身份、头像、立绘、关系与能力沉淀在同一处，创作者进入房间时，不再从空白开始。",
   },
   {
-    year: "2002",
-    title: "Power Ring 概念成形",
-    description: "把“技术亮点”拆成横向卡片，用 pinned 容器让用户像翻看展板一样横向阅读。",
+    label: "分镜",
+    title: "一句发言，也可以成为下一格画面。",
+    description: "对话、选择、旁白与场景节点沿着时间线展开，团队把灵感接成连续的戏剧段落。",
   },
   {
-    year: "2016",
-    title: "营销页开始电影化",
-    description: "真正有冲击力的部分不是花哨组件，而是滚动、文案、光影和主视觉同步推进。",
+    label: "演出",
+    title: "故事不是停在文本里，而是被实时点亮。",
+    description: "角色发言、素材包、WebGAL 预览与房间协作一起推进，让跑团现场变成可观看的舞台。",
   },
   {
-    year: "2023",
-    title: "进入多层叙事阶段",
-    description: "一屏负责气氛建立，下一屏负责证据和里程碑，这就是 Nanfu 那类首页的常见结构。",
+    label: "共创",
+    title: "同一个世界，可以被更多人继续进入。",
+    description: "公开素材、归档模组与 Fork 流程把一次创作延展为社区资产，新的剧本从旧火花里生长。",
+  },
+] as const;
+
+const FLOW_CARDS = [
+  {
+    index: "01",
+    title: "写下第一句",
+    description: "从角色视角发言，保留现场语气与行动意图。",
+  },
+  {
+    index: "02",
+    title: "接住分支",
+    description: "把选择、检定与临场补充留在同一条叙事线上。",
+  },
+  {
+    index: "03",
+    title: "同步画面",
+    description: "素材和演出参数跟随消息流进入预览舞台。",
+  },
+  {
+    index: "04",
+    title: "归档成篇",
+    description: "完整片段沉淀为可回看、可复用、可继续创作的内容。",
   },
 ] as const;
 
@@ -39,8 +62,8 @@ function lerp(start: number, end: number, progress: number) {
 }
 
 function easeOutCubic(progress: number) {
-  const next = 1 - progress;
-  return 1 - next * next * next;
+  const nextProgress = 1 - progress;
+  return 1 - nextProgress * nextProgress * nextProgress;
 }
 
 function toFrameProgress(progress: number, frameCount: number) {
@@ -53,25 +76,25 @@ function toFrameProgress(progress: number, frameCount: number) {
   return frameIndex / (frameCount - 1);
 }
 
-function drawCapsule(
+function roundedRect(
   context: CanvasRenderingContext2D,
   x: number,
   y: number,
   width: number,
   height: number,
+  radius: number,
 ) {
-  const radius = height / 2;
-
+  const safeRadius = Math.min(radius, width / 2, height / 2);
   context.beginPath();
-  context.moveTo(x + radius, y);
-  context.lineTo(x + width - radius, y);
-  context.arcTo(x + width, y, x + width, y + radius, radius);
-  context.lineTo(x + width, y + height - radius);
-  context.arcTo(x + width, y + height, x + width - radius, y + height, radius);
-  context.lineTo(x + radius, y + height);
-  context.arcTo(x, y + height, x, y + height - radius, radius);
-  context.lineTo(x, y + radius);
-  context.arcTo(x, y, x + radius, y, radius);
+  context.moveTo(x + safeRadius, y);
+  context.lineTo(x + width - safeRadius, y);
+  context.arcTo(x + width, y, x + width, y + safeRadius, safeRadius);
+  context.lineTo(x + width, y + height - safeRadius);
+  context.arcTo(x + width, y + height, x + width - safeRadius, y + height, safeRadius);
+  context.lineTo(x + safeRadius, y + height);
+  context.arcTo(x, y + height, x, y + height - safeRadius, safeRadius);
+  context.lineTo(x, y + safeRadius);
+  context.arcTo(x, y, x + safeRadius, y, safeRadius);
   context.closePath();
 }
 
@@ -105,15 +128,15 @@ function createProceduralSequence(
     const rect = canvas.getBoundingClientRect();
     const nextWidth = Math.max(1, Math.round(rect.width));
     const nextHeight = Math.max(1, Math.round(rect.height));
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const devicePixelRatio = Math.min(window.devicePixelRatio || 1, 2);
 
-    canvas.width = Math.max(1, Math.round(nextWidth * dpr));
-    canvas.height = Math.max(1, Math.round(nextHeight * dpr));
+    canvas.width = Math.max(1, Math.round(nextWidth * devicePixelRatio));
+    canvas.height = Math.max(1, Math.round(nextHeight * devicePixelRatio));
 
     width = nextWidth;
     height = nextHeight;
 
-    context.setTransform(dpr, 0, 0, dpr, 0, 0);
+    context.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
     render(currentProgress);
   };
 
@@ -134,6 +157,54 @@ function createProceduralSequence(
   };
 }
 
+function drawPortraitCard(
+  context: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  colorShift: number,
+  progress: number,
+) {
+  context.save();
+  context.translate(x, y);
+
+  const cardGradient = context.createLinearGradient(0, 0, width, height);
+  cardGradient.addColorStop(0, `hsla(${258 + colorShift}, 94%, 72%, 0.92)`);
+  cardGradient.addColorStop(0.45, `hsla(${318 + colorShift}, 84%, 64%, 0.82)`);
+  cardGradient.addColorStop(1, `hsla(${198 + colorShift}, 88%, 58%, 0.9)`);
+  roundedRect(context, 0, 0, width, height, Math.min(width, height) * 0.08);
+  context.fillStyle = cardGradient;
+  context.fill();
+
+  const shade = context.createLinearGradient(0, 0, 0, height);
+  shade.addColorStop(0, "rgba(255,255,255,0.3)");
+  shade.addColorStop(0.5, "rgba(9,8,18,0)");
+  shade.addColorStop(1, "rgba(7,7,11,0.72)");
+  context.fillStyle = shade;
+  context.fill();
+
+  context.globalAlpha = 0.5;
+  context.fillStyle = "rgba(255,255,255,0.7)";
+  context.beginPath();
+  context.ellipse(width * 0.5, height * 0.35, width * 0.18, height * 0.12, 0, 0, Math.PI * 2);
+  context.fill();
+
+  context.globalAlpha = 0.82;
+  context.strokeStyle = "rgba(255,255,255,0.64)";
+  context.lineWidth = Math.max(2, width * 0.018);
+  context.beginPath();
+  context.moveTo(width * 0.28, height * 0.67);
+  context.quadraticCurveTo(width * 0.5, height * (0.46 + progress * 0.04), width * 0.72, height * 0.67);
+  context.stroke();
+
+  context.globalAlpha = 1;
+  context.fillStyle = "rgba(255,255,255,0.78)";
+  context.font = `700 ${Math.max(10, width * 0.12)}px system-ui`;
+  context.fillText("TC", width * 0.12, height * 0.9);
+  context.restore();
+}
+
 function drawHeroFrame(
   context: CanvasRenderingContext2D,
   width: number,
@@ -141,241 +212,147 @@ function drawHeroFrame(
   progress: number,
 ) {
   const eased = easeOutCubic(progress);
-
-  const background = context.createLinearGradient(0, 0, 0, height);
-  background.addColorStop(0, "#05060b");
-  background.addColorStop(0.5, "#0a0d13");
-  background.addColorStop(1, "#12090a");
+  const background = context.createLinearGradient(0, 0, width, height);
+  background.addColorStop(0, "#07070b");
+  background.addColorStop(0.5, "#101026");
+  background.addColorStop(1, "#05050a");
   context.fillStyle = background;
   context.fillRect(0, 0, width, height);
 
-  const glow = context.createRadialGradient(
-    lerp(width * 0.84, width * 0.58, eased),
-    lerp(height * 0.18, height * 0.28, eased),
-    10,
-    lerp(width * 0.84, width * 0.58, eased),
-    lerp(height * 0.18, height * 0.28, eased),
-    width * 0.55,
-  );
-  glow.addColorStop(0, "rgba(255, 99, 58, 0.42)");
-  glow.addColorStop(0.45, "rgba(255, 70, 30, 0.14)");
-  glow.addColorStop(1, "rgba(0, 0, 0, 0)");
+  const glow = context.createRadialGradient(width * 0.72, height * 0.22, 0, width * 0.72, height * 0.22, width * 0.62);
+  glow.addColorStop(0, "rgba(151, 97, 255, 0.34)");
+  glow.addColorStop(0.45, "rgba(255, 93, 171, 0.18)");
+  glow.addColorStop(1, "rgba(5, 5, 10, 0)");
   context.fillStyle = glow;
   context.fillRect(0, 0, width, height);
 
   context.save();
-  context.strokeStyle = "rgba(255, 255, 255, 0.08)";
+  context.globalAlpha = 0.26;
+  context.strokeStyle = "rgba(255,255,255,0.16)";
   context.lineWidth = 1;
-  const lineGap = Math.max(18, width / 26);
-  for (let index = 0; index < width + height; index += lineGap) {
-    const offset = (progress * lineGap * 2) % lineGap;
+  const gridGap = Math.max(28, width / 20);
+  for (let gridX = -gridGap; gridX < width + gridGap; gridX += gridGap) {
+    const offset = (progress * gridGap * 1.8) % gridGap;
     context.beginPath();
-    context.moveTo(index - offset, 0);
-    context.lineTo(index - height - offset, height);
+    context.moveTo(gridX + offset, 0);
+    context.lineTo(gridX - height * 0.35 + offset, height);
     context.stroke();
   }
   context.restore();
 
-  context.save();
-  context.translate(
-    lerp(width * 0.8, width * 0.58, eased),
-    lerp(height * 0.58, height * 0.48, eased),
-  );
-  context.rotate(lerp(-0.34, -0.08, eased));
+  const cardWidth = Math.min(width * 0.19, 184);
+  const cardHeight = cardWidth * 1.64;
+  const cardBaseX = lerp(width * 0.62, width * 0.54, eased);
+  const cardBaseY = height * 0.48;
+  const cardCount = 9;
 
-  const bodyWidth = Math.min(width * 0.76, 920);
-  const bodyHeight = Math.min(bodyWidth * 0.24, height * 0.28);
-  const bodyX = -bodyWidth / 2;
-  const bodyY = -bodyHeight / 2;
-  const capWidth = bodyHeight * 0.95;
-  const ringX = lerp(bodyX + bodyWidth * 0.76, bodyX + bodyWidth * 0.68, eased);
+  for (let index = 0; index < cardCount; index += 1) {
+    const row = Math.floor(index / 3);
+    const column = index % 3;
+    const stagger = index / cardCount;
+    const cardProgress = easeOutCubic(clamp01((progress - stagger * 0.08) / 0.72));
+    const x = cardBaseX + (column - 1) * cardWidth * 0.74 + Math.sin(index * 1.7) * 14;
+    const y = cardBaseY + (row - 1) * cardHeight * 0.5 - cardProgress * height * 0.08;
 
-  context.shadowColor = "rgba(0, 0, 0, 0.42)";
-  context.shadowBlur = 42;
-  context.shadowOffsetY = 24;
-  drawCapsule(context, bodyX, bodyY, bodyWidth, bodyHeight);
-  context.fillStyle = "rgba(0, 0, 0, 0.28)";
-  context.fill();
-  context.shadowColor = "transparent";
-
-  const shellGradient = context.createLinearGradient(bodyX, bodyY, bodyX + bodyWidth, bodyY + bodyHeight);
-  shellGradient.addColorStop(0, "#5b5f68");
-  shellGradient.addColorStop(0.1, "#d8dde7");
-  shellGradient.addColorStop(0.18, "#bfc4cd");
-  shellGradient.addColorStop(0.19, "#91241b");
-  shellGradient.addColorStop(0.58, "#ff4f2e");
-  shellGradient.addColorStop(0.88, "#971f15");
-  shellGradient.addColorStop(1, "#4d0d08");
-  drawCapsule(context, bodyX, bodyY, bodyWidth, bodyHeight);
-  context.fillStyle = shellGradient;
-  context.fill();
-
-  const capGradient = context.createLinearGradient(bodyX, bodyY, bodyX + capWidth, bodyY);
-  capGradient.addColorStop(0, "#6d727e");
-  capGradient.addColorStop(0.55, "#e8edf7");
-  capGradient.addColorStop(1, "#7a7f88");
-  drawCapsule(context, bodyX, bodyY, capWidth, bodyHeight);
-  context.fillStyle = capGradient;
-  context.fill();
+    context.save();
+    context.translate(x, y);
+    context.rotate(lerp(-0.24, 0.12, (index % 4) / 3) + Math.sin(progress * Math.PI + index) * 0.025);
+    context.globalAlpha = lerp(0.36, 0.92, cardProgress);
+    context.shadowColor = "rgba(0, 0, 0, 0.42)";
+    context.shadowBlur = 30;
+    context.shadowOffsetY = 20;
+    drawPortraitCard(context, -cardWidth / 2, -cardHeight / 2, cardWidth, cardHeight, index * 14, progress);
+    context.restore();
+  }
 
   context.save();
-  context.beginPath();
-  context.rect(bodyX + capWidth * 1.08, bodyY + bodyHeight * 0.12, bodyWidth * 0.58, bodyHeight * 0.76);
-  context.clip();
-  const stripeGradient = context.createLinearGradient(bodyX, bodyY, bodyX + bodyWidth, bodyY);
-  stripeGradient.addColorStop(0, "rgba(255, 255, 255, 0)");
-  stripeGradient.addColorStop(0.25, "rgba(255, 255, 255, 0.28)");
-  stripeGradient.addColorStop(0.55, "rgba(255, 255, 255, 0.05)");
-  stripeGradient.addColorStop(1, "rgba(255, 255, 255, 0)");
-  context.fillStyle = stripeGradient;
-  context.fillRect(
-    lerp(bodyX - bodyWidth * 0.3, bodyX + bodyWidth * 0.2, progress),
-    bodyY,
-    bodyWidth * 0.42,
-    bodyHeight,
-  );
-  context.restore();
-
-  const ringGradient = context.createLinearGradient(ringX, bodyY, ringX + bodyHeight * 0.18, bodyY);
-  ringGradient.addColorStop(0, "#ffe5cf");
-  ringGradient.addColorStop(0.5, "#ffca87");
-  ringGradient.addColorStop(1, "#ff7a33");
-  context.fillStyle = ringGradient;
-  context.fillRect(ringX, bodyY + bodyHeight * 0.03, bodyHeight * 0.2, bodyHeight * 0.94);
-
-  context.shadowColor = "rgba(255, 169, 74, 0.8)";
-  context.shadowBlur = 28;
-  context.fillStyle = "rgba(255, 214, 160, 0.9)";
-  context.fillRect(ringX + bodyHeight * 0.02, bodyY + bodyHeight * 0.16, bodyHeight * 0.06, bodyHeight * 0.68);
-  context.shadowColor = "transparent";
-
-  context.fillStyle = "rgba(255, 255, 255, 0.84)";
-  context.font = `${Math.max(18, bodyHeight * 0.28)}px Arial`;
-  context.textBaseline = "middle";
-  context.fillText("SCROLL SEQUENCE", bodyX + capWidth * 1.26, bodyY + bodyHeight * 0.4);
-
-  context.fillStyle = "rgba(255, 244, 232, 0.92)";
-  context.font = `700 ${Math.max(28, bodyHeight * 0.42)}px Arial`;
-  context.fillText("REACT DEMO", bodyX + capWidth * 1.24, bodyY + bodyHeight * 0.7);
-
-  context.restore();
-
-  for (let index = 0; index < 14; index += 1) {
-    const particleProgress = (progress * 1.3 + index / 14) % 1;
-    const particleX = lerp(width * 0.2, width * 0.9, particleProgress);
-    const particleY = lerp(height * 0.78, height * 0.16, particleProgress);
-    const particleSize = lerp(1.5, 4.2, 1 - particleProgress);
-
-    context.fillStyle = `rgba(255, ${Math.round(120 + particleProgress * 90)}, 85, ${lerp(0.08, 0.34, 1 - particleProgress)})`;
+  context.globalCompositeOperation = "screen";
+  for (let index = 0; index < 22; index += 1) {
+    const particleProgress = (progress * 0.7 + index / 22) % 1;
+    const particleX = lerp(width * 0.18, width * 0.9, particleProgress);
+    const particleY = height * (0.18 + 0.58 * Math.abs(Math.sin(index * 0.82 + progress * 2.2)));
+    const particleSize = lerp(1.2, 4.6, 1 - particleProgress);
+    context.fillStyle = `rgba(190, 147, 255, ${lerp(0.08, 0.42, 1 - particleProgress)})`;
     context.beginPath();
     context.arc(particleX, particleY, particleSize, 0, Math.PI * 2);
     context.fill();
   }
+  context.restore();
 }
 
-function drawBatteryFrame(
+function drawStageFrame(
   context: CanvasRenderingContext2D,
   width: number,
   height: number,
   progress: number,
 ) {
   const eased = easeOutCubic(progress);
-
   const background = context.createLinearGradient(0, 0, width, height);
-  background.addColorStop(0, "#07080d");
-  background.addColorStop(0.55, "#0e1118");
-  background.addColorStop(1, "#180d0a");
+  background.addColorStop(0, "#080812");
+  background.addColorStop(0.48, "#11112a");
+  background.addColorStop(1, "#07070b");
   context.fillStyle = background;
   context.fillRect(0, 0, width, height);
 
+  const stageGlow = context.createRadialGradient(width * 0.5, height * 0.42, 0, width * 0.5, height * 0.42, width * 0.45);
+  stageGlow.addColorStop(0, "rgba(87, 211, 255, 0.28)");
+  stageGlow.addColorStop(0.5, "rgba(179, 106, 255, 0.16)");
+  stageGlow.addColorStop(1, "rgba(7, 7, 11, 0)");
+  context.fillStyle = stageGlow;
+  context.fillRect(0, 0, width, height);
+
+  const panelWidth = Math.min(width * 0.58, 620);
+  const panelHeight = Math.min(height * 0.58, 420);
+  const panelX = width * 0.5 - panelWidth / 2;
+  const panelY = height * 0.5 - panelHeight / 2;
+
   context.save();
-  context.strokeStyle = "rgba(255, 255, 255, 0.06)";
-  context.lineWidth = 1;
-  const ringCount = 8;
-  const ringCenterX = width * 0.5;
-  const ringCenterY = height * 0.52;
-  for (let index = 0; index < ringCount; index += 1) {
-    const radius = lerp(width * 0.16, width * 0.44, index / ringCount);
-    context.beginPath();
-    context.ellipse(ringCenterX, ringCenterY, radius, radius * 0.34, 0, 0, Math.PI * 2);
-    context.stroke();
-  }
+  context.shadowColor = "rgba(0,0,0,0.45)";
+  context.shadowBlur = 40;
+  context.shadowOffsetY = 24;
+  roundedRect(context, panelX, panelY, panelWidth, panelHeight, 28);
+  context.fillStyle = "rgba(255,255,255,0.08)";
+  context.fill();
+  context.strokeStyle = "rgba(255,255,255,0.2)";
+  context.stroke();
   context.restore();
 
-  const shellWidth = Math.min(width * 0.34, 220);
-  const shellHeight = Math.min(height * 0.7, 500);
-  const shellX = width * 0.5 - shellWidth / 2;
-  const shellY = height * 0.15;
-  const capHeight = shellHeight * 0.08;
-
-  context.save();
-  context.shadowColor = "rgba(0, 0, 0, 0.45)";
-  context.shadowBlur = 32;
-  context.shadowOffsetY = 18;
-  context.fillStyle = "rgba(0, 0, 0, 0.32)";
-  context.fillRect(shellX, shellY, shellWidth, shellHeight);
-  context.shadowColor = "transparent";
-
-  const shellGradient = context.createLinearGradient(shellX, shellY, shellX + shellWidth, shellY);
-  shellGradient.addColorStop(0, "#2a2f3a");
-  shellGradient.addColorStop(0.28, "#9098a8");
-  shellGradient.addColorStop(0.5, "#d6deed");
-  shellGradient.addColorStop(0.72, "#8c95a6");
-  shellGradient.addColorStop(1, "#272c35");
-  context.fillStyle = shellGradient;
-  context.fillRect(shellX, shellY, shellWidth, shellHeight);
-
-  context.fillStyle = "#11141b";
-  context.fillRect(shellX + shellWidth * 0.08, shellY + capHeight, shellWidth * 0.84, shellHeight - capHeight * 1.22);
-
-  const chargeHeight = (shellHeight - capHeight * 1.5) * eased;
-  const chargeGradient = context.createLinearGradient(0, shellY + shellHeight, 0, shellY + capHeight);
-  chargeGradient.addColorStop(0, "#ff5f32");
-  chargeGradient.addColorStop(0.45, "#ff8c48");
-  chargeGradient.addColorStop(1, "#ffe8c7");
-
-  context.shadowColor = "rgba(255, 120, 64, 0.54)";
-  context.shadowBlur = 26;
-  context.fillStyle = chargeGradient;
-  context.fillRect(
-    shellX + shellWidth * 0.12,
-    shellY + shellHeight - capHeight * 0.72 - chargeHeight,
-    shellWidth * 0.76,
-    chargeHeight,
-  );
-  context.shadowColor = "transparent";
-
-  context.fillStyle = "#d7ddea";
-  context.fillRect(shellX + shellWidth * 0.28, shellY, shellWidth * 0.44, capHeight);
-
-  context.strokeStyle = "rgba(255, 186, 121, 0.88)";
-  context.lineWidth = 4;
+  const frameGap = panelWidth * 0.035;
+  const frameWidth = (panelWidth - frameGap * 4) / 3;
+  const frameHeight = panelHeight * 0.62;
   for (let index = 0; index < 3; index += 1) {
-    const arcProgress = clamp01(eased - index * 0.12);
-    if (arcProgress <= 0) {
-      continue;
-    }
-    context.beginPath();
-    context.arc(
-      width * 0.5,
-      height * 0.52,
-      width * (0.18 + index * 0.07),
-      -Math.PI * 0.85,
-      -Math.PI * 0.85 + Math.PI * 1.7 * arcProgress,
-    );
-    context.stroke();
+    const frameProgress = clamp01(eased - index * 0.16);
+    const frameX = panelX + frameGap + index * (frameWidth + frameGap);
+    const frameY = panelY + panelHeight * 0.14 + Math.sin(progress * Math.PI + index) * 8;
+    drawPortraitCard(context, frameX, frameY, frameWidth, frameHeight, index * 32, frameProgress);
   }
 
-  context.fillStyle = "rgba(255, 248, 239, 0.92)";
-  context.font = `700 ${Math.max(22, width * 0.085)}px Arial`;
+  context.save();
+  context.strokeStyle = "rgba(255,255,255,0.44)";
+  context.lineWidth = 3;
+  context.beginPath();
+  context.moveTo(panelX + panelWidth * 0.18, panelY + panelHeight * 0.84);
+  context.bezierCurveTo(
+    panelX + panelWidth * 0.32,
+    panelY + panelHeight * lerp(0.78, 0.68, eased),
+    panelX + panelWidth * 0.68,
+    panelY + panelHeight * lerp(0.9, 0.72, eased),
+    panelX + panelWidth * 0.84,
+    panelY + panelHeight * 0.72,
+  );
+  context.stroke();
+  context.restore();
+
+  context.fillStyle = "rgba(255,255,255,0.9)";
+  context.font = `800 ${Math.max(22, width * 0.055)}px system-ui`;
   context.textAlign = "center";
   context.fillText(`${Math.round(progress * 100)}%`, width * 0.5, height * 0.9);
-  context.restore();
 }
 
 function setHeroOverlayState(
   heroCopy: HTMLDivElement,
   heroPanel: HTMLDivElement,
+  scrollHint: HTMLDivElement,
   progress: number,
 ) {
   const copyProgress = clamp01(progress / 0.28);
@@ -383,15 +360,12 @@ function setHeroOverlayState(
 
   heroCopy.style.opacity = String(1 - copyProgress);
   heroCopy.style.transform = `translate3d(0, ${lerp(0, -56, copyProgress)}px, 0) scale(${lerp(1, 0.96, copyProgress)})`;
-
   heroPanel.style.opacity = String(panelProgress);
   heroPanel.style.transform = `translate3d(0, ${lerp(42, 0, panelProgress)}px, 0)`;
+  scrollHint.style.opacity = String(1 - clamp01((progress - 0.08) / 0.2));
 }
 
-function setActiveHistoryCard(
-  cards: HTMLElement[],
-  progress: number,
-) {
+function setActiveFlowCard(cards: HTMLElement[], progress: number) {
   const activeIndex = Math.min(
     cards.length - 1,
     Math.round(clamp01(progress) * Math.max(cards.length - 1, 1)),
@@ -406,8 +380,8 @@ function setActiveHistoryCard(
 
 export function meta(_args: Route.MetaArgs) {
   return createSeoMeta({
-    title: "滚动序列动画示例",
-    description: "React 技术栈下的 Nanfu 风格滚动序列动画示例。",
+    title: "团剧共创展示页",
+    description: "团剧共创的沉浸式展示页。",
     path: "/scroll-sequence-demo",
     index: false,
   });
@@ -422,11 +396,11 @@ export default function ScrollSequenceDemoPage() {
   const heroCopyRef = useRef<HTMLDivElement>(null);
   const heroPanelRef = useRef<HTMLDivElement>(null);
   const scrollHintRef = useRef<HTMLDivElement>(null);
-  const historySectionRef = useRef<HTMLElement>(null);
-  const historyStickyRef = useRef<HTMLDivElement>(null);
-  const historyCanvasRef = useRef<HTMLCanvasElement>(null);
-  const historyViewportRef = useRef<HTMLDivElement>(null);
-  const historyTrackRef = useRef<HTMLDivElement>(null);
+  const flowSectionRef = useRef<HTMLElement>(null);
+  const flowStickyRef = useRef<HTMLDivElement>(null);
+  const stageCanvasRef = useRef<HTMLCanvasElement>(null);
+  const flowViewportRef = useRef<HTMLDivElement>(null);
+  const flowTrackRef = useRef<HTMLDivElement>(null);
 
   useLayoutEffect(() => {
     const page = pageRef.current;
@@ -437,11 +411,11 @@ export default function ScrollSequenceDemoPage() {
     const heroCopy = heroCopyRef.current;
     const heroPanel = heroPanelRef.current;
     const scrollHint = scrollHintRef.current;
-    const historySection = historySectionRef.current;
-    const historySticky = historyStickyRef.current;
-    const historyCanvas = historyCanvasRef.current;
-    const historyViewport = historyViewportRef.current;
-    const historyTrack = historyTrackRef.current;
+    const flowSection = flowSectionRef.current;
+    const flowSticky = flowStickyRef.current;
+    const stageCanvas = stageCanvasRef.current;
+    const flowViewport = flowViewportRef.current;
+    const flowTrack = flowTrackRef.current;
 
     if (
       !page
@@ -452,49 +426,40 @@ export default function ScrollSequenceDemoPage() {
       || !heroCopy
       || !heroPanel
       || !scrollHint
-      || !historySection
-      || !historySticky
-      || !historyCanvas
-      || !historyViewport
-      || !historyTrack
+      || !flowSection
+      || !flowSticky
+      || !stageCanvas
+      || !flowViewport
+      || !flowTrack
     ) {
       return;
     }
 
-    const heroSequence = createProceduralSequence(heroCanvas, drawHeroFrame);
-    const batterySequence = createProceduralSequence(historyCanvas, drawBatteryFrame);
-    const historyCards = Array.from(historyTrack.querySelectorAll<HTMLElement>(".scroll-sequence-demo__historyCard"));
-
-    if (!heroSequence || !batterySequence) {
+    const heroSequence = createProceduralSequence(
+      heroCanvas,
+      (context, width, height, progress) => drawHeroFrame(context, width, height, toFrameProgress(progress, HERO_FRAME_COUNT)),
+    );
+    const stageSequence = createProceduralSequence(
+      stageCanvas,
+      (context, width, height, progress) => drawStageFrame(context, width, height, toFrameProgress(progress, STAGE_FRAME_COUNT)),
+    );
+    if (!heroSequence || !stageSequence) {
       return;
     }
 
-    const renderHeroFrame = (progress: number) => {
-      heroSequence.render(toFrameProgress(progress, HERO_FRAME_COUNT));
-    };
-
-    const renderBatteryFrame = (progress: number) => {
-      batterySequence.render(toFrameProgress(progress, BATTERY_FRAME_COUNT));
-      setActiveHistoryCard(historyCards, progress);
-    };
-
-    renderHeroFrame(0);
-    renderBatteryFrame(0);
-    setHeroOverlayState(heroCopy, heroPanel, 0);
-
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-      return () => {
-        heroSequence.destroy();
-        batterySequence.destroy();
-      };
-    }
-
+    const renderHeroFrame = heroSequence.render;
+    const renderStageFrame = stageSequence.render;
+    const flowCards = Array.from(flowTrack.querySelectorAll<HTMLElement>(".scroll-sequence-demo__flowCard"));
     let disposed = false;
     let cleanupAnimation: (() => void) | undefined;
 
-    void (async () => {
+    (async () => {
       try {
-        const [{ gsap }, { ScrollTrigger }, { default: Lenis }] = await Promise.all([
+        const [
+          { default: gsap },
+          { ScrollTrigger },
+          { default: Lenis },
+        ] = await Promise.all([
           import("gsap"),
           import("gsap/ScrollTrigger"),
           import("lenis"),
@@ -524,91 +489,64 @@ export default function ScrollSequenceDemoPage() {
         gsap.ticker.add(ticker);
         gsap.ticker.lagSmoothing(0);
 
-        const context = gsap.context(() => {
-          gsap.set(heroCopy, {
-            autoAlpha: 1,
-            scale: 1,
-            transformOrigin: "left bottom",
-            y: 0,
-          });
+        const animationContext = gsap.context(() => {
+          gsap.set(heroCopy, { autoAlpha: 1, scale: 1, transformOrigin: "left bottom", y: 0 });
           gsap.set(heroPanel, { autoAlpha: 0, y: 42 });
           gsap.set(scrollHint, { autoAlpha: 1, y: 0 });
           gsap.set(heroSurface, { opacity: 1 });
-          gsap.set(historyTrack, { x: 0 });
+          gsap.set(flowTrack, { x: 0 });
 
           const heroState = { progress: 0 };
-          gsap.timeline(
-            {
-              defaults: { ease: "none" },
-              scrollTrigger: {
-                trigger: heroSection,
-                start: "top top",
-                end: () => `+=${Math.max(window.innerHeight * 1.85, heroSection.offsetHeight - window.innerHeight)}`,
-                scrub: 1.08,
-                pin: heroSticky,
-                pinSpacing: false,
-                anticipatePin: 1,
-                invalidateOnRefresh: true,
-              },
+          gsap.timeline({
+            defaults: { ease: "none" },
+            scrollTrigger: {
+              trigger: heroSection,
+              start: "top top",
+              end: () => `+=${Math.max(window.innerHeight * 1.85, heroSection.offsetHeight - window.innerHeight)}`,
+              scrub: 1.08,
+              pin: heroSticky,
+              pinSpacing: false,
+              anticipatePin: 1,
+              invalidateOnRefresh: true,
             },
-          )
+          })
             .to(heroState, {
               duration: 1,
               progress: 1,
               onUpdate: () => {
                 renderHeroFrame(heroState.progress);
+                setHeroOverlayState(heroCopy, heroPanel, scrollHint, heroState.progress);
               },
             }, 0)
-            .to(heroCopy, {
-              autoAlpha: 0,
-              duration: 0.28,
-              scale: 0.96,
-              y: -56,
-            }, 0)
-            .to(scrollHint, {
-              autoAlpha: 0,
-              duration: 0.2,
-              y: 12,
-            }, 0.08)
-            .to(heroSurface, {
-              duration: 1,
-              opacity: 0.72,
-            }, 0)
-            .to(heroPanel, {
-              autoAlpha: 1,
-              duration: 0.24,
-              ease: "power2.out",
-              y: 0,
-            }, 0.34);
+            .to(heroSurface, { duration: 1, opacity: 0.72 }, 0);
 
-          const historyState = { progress: 0 };
-          gsap.timeline(
-            {
-              defaults: { ease: "none" },
-              scrollTrigger: {
-                trigger: historySection,
-                start: "top top",
-                end: () => {
-                  const maxOffset = Math.max(historyTrack.scrollWidth - historyViewport.clientWidth, 0);
-                  return `+=${Math.max(window.innerHeight * 2.05, maxOffset + window.innerHeight * 0.8)}`;
-                },
-                scrub: 1.12,
-                pin: historySticky,
-                pinSpacing: false,
-                anticipatePin: 1,
-                invalidateOnRefresh: true,
+          const flowState = { progress: 0 };
+          gsap.timeline({
+            defaults: { ease: "none" },
+            scrollTrigger: {
+              trigger: flowSection,
+              start: "top top",
+              end: () => {
+                const maxOffset = Math.max(flowTrack.scrollWidth - flowViewport.clientWidth, 0);
+                return `+=${Math.max(window.innerHeight * 2.05, maxOffset + window.innerHeight * 0.8)}`;
               },
+              scrub: 1.12,
+              pin: flowSticky,
+              pinSpacing: false,
+              anticipatePin: 1,
+              invalidateOnRefresh: true,
             },
-          )
-            .to(historyTrack, {
+          })
+            .to(flowTrack, {
               duration: 1,
-              x: () => -Math.max(historyTrack.scrollWidth - historyViewport.clientWidth, 0),
+              x: () => -Math.max(flowTrack.scrollWidth - flowViewport.clientWidth, 0),
             }, 0)
-            .to(historyState, {
+            .to(flowState, {
               duration: 1,
               progress: 1,
               onUpdate: () => {
-                renderBatteryFrame(historyState.progress);
+                renderStageFrame(flowState.progress);
+                setActiveFlowCard(flowCards, flowState.progress);
               },
             }, 0);
         }, page);
@@ -617,14 +555,14 @@ export default function ScrollSequenceDemoPage() {
         lenis.resize?.();
 
         cleanupAnimation = () => {
-          context.revert();
+          animationContext.revert();
           gsap.ticker.remove(ticker);
           lenis.destroy();
           ScrollTrigger.refresh();
         };
       }
       catch (error) {
-        console.error("初始化滚动序列动画失败", error);
+        console.error("初始化团剧共创展示页动画失败", error);
       }
     })();
 
@@ -632,87 +570,87 @@ export default function ScrollSequenceDemoPage() {
       disposed = true;
       cleanupAnimation?.();
       heroSequence.destroy();
-      batterySequence.destroy();
+      stageSequence.destroy();
     };
   }, []);
 
   return (
     <main ref={pageRef} className="scroll-sequence-demo">
       <a className="scroll-sequence-demo__backLink" href="/">
-        返回主应用
+        进入应用
       </a>
 
       <section ref={heroSectionRef} className="scroll-sequence-demo__heroSection">
         <div ref={heroStickyRef} className="scroll-sequence-demo__heroSticky">
           <div ref={heroSurfaceRef} className="scroll-sequence-demo__heroSurface" />
-          <canvas
-            ref={heroCanvasRef}
-            className="scroll-sequence-demo__heroCanvas"
-            aria-hidden="true"
-          />
+          <canvas ref={heroCanvasRef} className="scroll-sequence-demo__heroCanvas" aria-hidden="true" />
+
           <div ref={heroCopyRef} className="scroll-sequence-demo__heroCopy">
-            <p className="scroll-sequence-demo__eyebrow">LENIS / GSAP / SCROLLTRIGGER</p>
+            <p className="scroll-sequence-demo__eyebrow">TUAN CHAT / ANIME ROLEPLAY STUDIO</p>
             <h1 className="scroll-sequence-demo__heroTitle">
-              用 React 直接做
+              从一段发言，
               <br />
-              Nanfu 风格滚动页
+              踏进共创世界。
             </h1>
             <p className="scroll-sequence-demo__heroDescription">
-              这版已经接入 Lenis 平滑滚动和 GSAP ScrollTrigger 的 pin / scrub。
-              React 只负责结构，滚动时间线和高频更新都留在 DOM 与 canvas 层。
+              角色、分镜、素材与演出在同一条叙事线上汇合。
+              每一次跑团现场，都可以生长成新的团剧。
             </p>
+            <div className="scroll-sequence-demo__heroActions">
+              <a href="/chat/discover/material">探索素材</a>
+              <a href="/chat">进入房间</a>
+            </div>
           </div>
 
           <aside ref={heroPanelRef} className="scroll-sequence-demo__heroPanel">
-            <span className="scroll-sequence-demo__panelTag">IMPLEMENTATION</span>
-            <h2>滚动曲线、pin 和时间线交给 GSAP</h2>
+            <span className="scroll-sequence-demo__panelTag">LIVE STORYBOARD</span>
+            <h2>把聊天现场，变成正在展开的动画分镜。</h2>
             <p>
-              主视觉的帧推进、文案淡出、信息面板淡入和第二屏横向时间轴，
-              现在都通过一套 ScrollTrigger 时间线统一驱动。
+              成员发言、角色状态、素材引用与舞台预览同步推进，灵感不再散落在多个窗口。
             </p>
           </aside>
 
           <div ref={scrollHintRef} className="scroll-sequence-demo__scrollHint">
-            向下滚动，查看第二段横向时间轴
+            向下滚动
           </div>
         </div>
       </section>
 
-      <section className="scroll-sequence-demo__bridge">
-        <p className="scroll-sequence-demo__bridgeLabel">SECOND CHAPTER</p>
-        <h2>再往下，把时间轴也接进同一套滚动叙事</h2>
-        <p>
-          这一步对应 Nanfu 那种“主视觉结束后，进入横向信息展板”的结构。
-        </p>
+      <section className="scroll-sequence-demo__chapters" aria-label="团剧共创创作阶段">
+        {STORY_STAGES.map(stage => (
+          <article key={stage.label} className="scroll-sequence-demo__chapter">
+            <div className="scroll-sequence-demo__chapterInner">
+              <h2>{stage.label}。</h2>
+              <p className="scroll-sequence-demo__chapterTitle">{stage.title}</p>
+              <p>{stage.description}</p>
+            </div>
+          </article>
+        ))}
       </section>
 
-      <section ref={historySectionRef} className="scroll-sequence-demo__historySection">
-        <div ref={historyStickyRef} className="scroll-sequence-demo__historySticky">
-          <div className="scroll-sequence-demo__historyHeader">
-            <p className="scroll-sequence-demo__eyebrow">HORIZONTAL TIMELINE</p>
-            <h2 className="scroll-sequence-demo__historyTitle">滚动继续推进，横向卡片与次级 canvas 同步更新</h2>
+      <section ref={flowSectionRef} className="scroll-sequence-demo__flowSection">
+        <div ref={flowStickyRef} className="scroll-sequence-demo__flowSticky">
+          <div className="scroll-sequence-demo__flowHeader">
+            <p className="scroll-sequence-demo__eyebrow">FROM CHAT TO SCENE</p>
+            <h2 className="scroll-sequence-demo__flowTitle">让故事像分镜一样被推进。</h2>
           </div>
 
-          <div className="scroll-sequence-demo__historyLayout">
-            <div className="scroll-sequence-demo__historyVisual">
-              <canvas
-                ref={historyCanvasRef}
-                className="scroll-sequence-demo__historyCanvas"
-                aria-hidden="true"
-              />
-              <div className="scroll-sequence-demo__historyMeter">
-                <span>Power Ring</span>
-                <strong>150 Frames</strong>
+          <div className="scroll-sequence-demo__flowLayout">
+            <div className="scroll-sequence-demo__stageVisual">
+              <canvas ref={stageCanvasRef} className="scroll-sequence-demo__stageCanvas" aria-hidden="true" />
+              <div className="scroll-sequence-demo__stageMeter">
+                <span>Scene Sync</span>
+                <strong>180 Frames</strong>
               </div>
             </div>
 
-            <div ref={historyViewportRef} className="scroll-sequence-demo__historyViewport">
-              <div ref={historyTrackRef} className="scroll-sequence-demo__historyTrack">
-                {HISTORY_ENTRIES.map(entry => (
-                  <article key={entry.year} className="scroll-sequence-demo__historyCard" data-active="false">
-                    <span className="scroll-sequence-demo__historyYear">{entry.year}</span>
-                    <h3>{entry.title}</h3>
-                    <p>{entry.description}</p>
+            <div ref={flowViewportRef} className="scroll-sequence-demo__flowViewport">
+              <div ref={flowTrackRef} className="scroll-sequence-demo__flowTrack">
+                {FLOW_CARDS.map(card => (
+                  <article key={card.index} className="scroll-sequence-demo__flowCard" data-active="false">
+                    <span className="scroll-sequence-demo__flowIndex">{card.index}</span>
+                    <h3>{card.title}</h3>
+                    <p>{card.description}</p>
                   </article>
                 ))}
               </div>
@@ -722,12 +660,14 @@ export default function ScrollSequenceDemoPage() {
       </section>
 
       <section className="scroll-sequence-demo__outro">
-        <p className="scroll-sequence-demo__eyebrow">NEXT STEP</p>
-        <h2>这个版本已经是 Lenis + GSAP ScrollTrigger 骨架</h2>
+        <p className="scroll-sequence-demo__eyebrow">OPEN THE ROOM</p>
+        <h2>下一幕，从你的团队开始。</h2>
         <p>
-          现在你只需要把程序绘制的序列帧替换成真实资源，就可以继续向正式品牌页推进。
-          如果要更像 Nanfu，再往下就是接真实产品渲染、视频序列或 WebGL 主视觉。
+          创建空间，邀请角色入场，把一次即兴的对话变成可以被回看、扩写和继续演出的团剧。
         </p>
+        <a className="scroll-sequence-demo__primaryCta" href="/chat">
+          进入团剧共创
+        </a>
       </section>
     </main>
   );
