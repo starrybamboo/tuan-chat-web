@@ -87,8 +87,8 @@ export function DirectorHistoryPanel({
           <button
             type="button"
             className="btn btn-ghost btn-square btn-xs ml-auto shrink-0 text-base-content/60 hover:text-base-content"
-            aria-label="鏀惰捣鍘嗗彶璁板綍渚ц竟鏍?"
-            title="鏀惰捣鍘嗗彶璁板綍渚ц竟鏍?"
+            aria-label="收起历史记录侧边栏"
+            title="收起历史记录侧边栏"
             onClick={onCollapse}
           >
             <CaretRightIcon className="size-3.5" weight="bold" />
@@ -117,14 +117,14 @@ export function DirectorHistoryPanel({
                     <img src={item.dataUrl} className={`${HISTORY_THUMBNAIL_IMAGE_CLASS_NAME} mx-auto rounded-xl`} alt="director-current-result" />
                     <div className="mt-2 flex items-center justify-between gap-2 text-[11px] text-base-content/70">
                       <span className="truncate">{item.toolLabel || "Current"}</span>
-                      <span>{`${item.width}脳${item.height}`}</span>
+                      <span>{`${item.width}×${item.height}`}</span>
                     </div>
                   </button>
                   {row?.id != null
                     ? (
                         <div className="mt-1 flex justify-end">
                           <HistoryDeleteButton
-                            label="鍒犻櫎鏈缁樼敾璁板綍"
+                            label="删除本次绘图记录"
                             onClick={(event) => {
                               event.stopPropagation();
                               onRequestDeleteHistoryRow(row);
@@ -135,7 +135,7 @@ export function DirectorHistoryPanel({
                     : null}
                 </div>
               ))}
-              {!currentResultCards.length ? <div className="px-1 py-2 text-xs text-base-content/45">No Current</div> : null}
+              {!currentResultCards.length ? <div className="px-1 py-2 text-xs text-base-content/45">暂无当前结果</div> : null}
             </div>
           </div>
 
@@ -146,7 +146,7 @@ export function DirectorHistoryPanel({
               onHistoryExpandedChange(event.currentTarget.open);
             }}
           >
-            <summary className="cursor-pointer list-none px-1 py-1" title={isHistoryExpanded ? "鎶樺彔鍘嗗彶缁樼敾" : "灞曞紑鍘嗗彶缁樼敾"}>
+            <summary className="cursor-pointer list-none px-1 py-1" title={isHistoryExpanded ? "折叠历史绘图" : "展开历史绘图"}>
               <div className="flex items-center gap-2">
                 <div className="text-[11px] font-medium uppercase tracking-[0.18em] text-base-content/45">History</div>
                 <div className="ml-auto flex items-center gap-2 text-[11px] text-base-content/45">
@@ -174,14 +174,14 @@ export function DirectorHistoryPanel({
                     <img src={row.dataUrl} className={`${HISTORY_THUMBNAIL_IMAGE_CLASS_NAME} mx-auto rounded-xl`} alt="director-history" />
                     <div className="mt-2 flex items-center justify-between gap-2 text-[11px] text-base-content/70">
                       <span className="truncate">{row.toolLabel || `seed ${row.seed}`}</span>
-                      <span>{`${row.width}脳${row.height}`}</span>
+                      <span>{`${row.width}×${row.height}`}</span>
                     </div>
                   </button>
                   {row.id != null
                     ? (
                         <div className="mt-1 flex justify-end">
                           <HistoryDeleteButton
-                            label="鍒犻櫎鍘嗗彶缁樼敾璁板綍"
+                            label="删除历史绘图记录"
                             onClick={(event) => {
                               event.stopPropagation();
                               onRequestDeleteHistoryRow(row);
@@ -192,7 +192,7 @@ export function DirectorHistoryPanel({
                     : null}
                 </div>
               ))}
-              {!archivedHistoryRows.length ? <div className="px-1 py-2 text-xs text-base-content/45">No History</div> : null}
+              {!archivedHistoryRows.length ? <div className="px-1 py-2 text-xs text-base-content/45">暂无历史记录</div> : null}
             </div>
           </details>
         </div>

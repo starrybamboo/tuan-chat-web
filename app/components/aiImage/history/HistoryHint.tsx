@@ -5,7 +5,7 @@ import type {
 import { useState } from "react";
 
 export function HistoryHint() {
-  const hintText = "鍗曞嚮棰勮锛孋trl/Cmd+鍗曞嚮瀵煎叆璁剧疆锛孲hift+鍗曞嚮瀵煎叆 seed锛孋trl/Cmd+Shift+鍗曞嚮瀵煎叆璁剧疆涓?seed銆?";
+  const hintText = "单击预览，Ctrl/Cmd+单击导入设置，Shift+单击导入 seed，Ctrl/Cmd+Shift+单击同时导入设置和 seed。";
   const [tooltipState, setTooltipState] = useState<{ x: number; y: number; visible: boolean }>({
     x: 0,
     y: 0,
