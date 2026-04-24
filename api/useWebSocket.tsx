@@ -1213,16 +1213,14 @@ export function useWebSocket() {
    * 对收到的消息，按照type进行分类处理
    */
   const onMessage = useCallback((message: WsMessage<any>) => {
-    switch (message.type) {
-      case 1:{  // 私聊新消息
-        handleDirectChatMessage(message.data as DirectMessageEvent)
-        break;
-      }
-      case 4:{ // 群聊新消息
+    const wsMessageHandlers: Record<number, () => void> = {
+      1: () => {
+        handleDirectChatMessage(message.data as DirectMessageEvent);
+      },
+      4: () => {
         handleChatMessage(message.data as ChatMessageResponse);
-        break;
-      }
-      case 11:{ // 成员变动
+      },
+      11: () => {
         const event = message as MemberChangePush;
         invalidateMemberChangeQueries(queryClient, event.data);
         // 如果是加入群组，要更新订阅信息，以及所有的房间信息
@@ -1239,44 +1237,37 @@ export function useWebSocket() {
             queryClient.invalidateQueries({ queryKey: ["getUserRooms"] });
           },500)
         }
-        break;
-      }
-      case 12:{ // 角色变动
+      },
+      12: () => {
         const event = message as RoleChangePush
         invalidateRoleChangeQueries(queryClient, event.data);
-        break;
-      }
-      case 14:{ // 房间解散
+      },
+      14: () => {
         const event = message as RoomDismissPush;
         cleanupRoomDescriptionDocOnDissolve(event.data.roomId);
         queryClient.invalidateQueries({ queryKey: ["getUserSpaces"] });
         queryClient.invalidateQueries({ queryKey: ["getUserRooms"] });
-        break;
-      }
-      case 15:{ // 房间extra变动
+      },
+      15: () => {
         const event = message.data as RoomExtraChangeEvent;
         queryClient.invalidateQueries({queryKey: ['getRoomExtra',event.roomId,event.key]});
         console.log("Room extra change:", event);
-        break;
-      }
-        case 19:{ // 房间DND地图变动
-          const event = message.data as RoomDndMapChangeEvent;
-          queryClient.setQueryData(roomDndMapQueryKey(event.roomId), (prev) => {
-            return applyRoomDndMapChange(prev as any, event);
-          });
-          break;
-        }
-      case 16: { // 房间禁言状态变动
+      },
+      16: () => {
         const { roomId } = message.data;
         queryClient.invalidateQueries({ queryKey: ['getRoomExtra', roomId] });
         queryClient.invalidateQueries({ queryKey: ['getRoomInfo', roomId] });
-        break;
-      }
-      case 17: { // 成员的发言状态变动
-        handleChatStatusChange(message.data as ChatStatusEvent)
-        break;
-      }
-      case 21: { // 新的好友申请
+      },
+      17: () => {
+        handleChatStatusChange(message.data as ChatStatusEvent);
+      },
+      19: () => {
+        const event = message.data as RoomDndMapChangeEvent;
+        queryClient.setQueryData(roomDndMapQueryKey(event.roomId), (prev) => {
+          return applyRoomDndMapChange(prev as any, event);
+        });
+      },
+      21: () => {
         const event = message as NewFriendRequestPush;
         console.info("New friend request push:", event.data);
         // 当前前端可能尚未接入好友申请列表，这里先做“缓存刷新钩子”，未来接入后能自动生效。
@@ -1284,29 +1275,19 @@ export function useWebSocket() {
         queryClient.invalidateQueries({ queryKey: ["friendRequestPage"] });
         queryClient.invalidateQueries({ queryKey: ["friendRequests"] });
         notifyNewFriendRequest(event);
-        break;
-      }
-      case 24: { // 好友申请已接受
-        const event = message as FriendRequestAcceptedPush;
-        console.info("Friend request accepted push:", event.data);
-        queryClient.invalidateQueries({ queryKey: ["friendList"] });
-        queryClient.invalidateQueries({ queryKey: ["friendRequestPage"] });
-        queryClient.invalidateQueries({ queryKey: ["friendCheck"] });
-        break;
-      }
-      case 22: { // 空间频道树变更
+      },
+      22: () => {
         const event = message as SpaceSidebarTreeUpdatedPush;
         const spaceId = event?.data?.spaceId;
         if (typeof spaceId === "number" && Number.isFinite(spaceId) && spaceId > 0) {
           queryClient.invalidateQueries({ queryKey: ["getSpaceSidebarTree", spaceId] });
         }
-        break;
-      }
-      case 23: { // 用户通知
+      },
+      23: () => {
         const event = message as UserNotificationPush;
         const notification = event?.data;
         if (!notification) {
-          break;
+          return;
         }
         prependNotificationToCaches(queryClient, notification);
 
@@ -1329,9 +1310,15 @@ export function useWebSocket() {
         }
 
         void notifyNewUserNotification(notification);
-        break;
-      }
-      case 100: { // Token invalidated
+      },
+      24: () => {
+        const event = message as FriendRequestAcceptedPush;
+        console.info("Friend request accepted push:", event.data);
+        queryClient.invalidateQueries({ queryKey: ["friendList"] });
+        queryClient.invalidateQueries({ queryKey: ["friendRequestPage"] });
+        queryClient.invalidateQueries({ queryKey: ["friendCheck"] });
+      },
+      100: () => {
         try {
           closingRef.current = true;
           wsRef.current?.close();
@@ -1349,22 +1336,25 @@ export function useWebSocket() {
           }
           handleUnauthorized({ source: "ws" });
         });
-        break;
-      }
-      default: {
-        const msgType = message.type;
-        const firstTime = !unhandledWsTypes.current.has(msgType);
-        unhandledWsTypes.current.add(msgType);
-        if (firstTime) {
-          console.warn(
-            `[WS] Unhandled message type: ${msgType}. 已记录到 window.__TC_WS_DEBUG__，请补齐前端处理逻辑。`,
-            message,
-          );
-        }
-        syncWsDebugToWindow();
-        break;
-      }
+      },
+    };
+
+    const handler = wsMessageHandlers[message.type];
+    if (handler) {
+      handler();
+      return;
     }
+
+    const msgType = message.type;
+    const firstTime = !unhandledWsTypes.current.has(msgType);
+    unhandledWsTypes.current.add(msgType);
+    if (firstTime) {
+      console.warn(
+        `[WS] Unhandled message type: ${msgType}. 已记录到 window.__TC_WS_DEBUG__，请补齐前端处理逻辑。`,
+        message,
+      );
+    }
+    syncWsDebugToWindow();
   }, []);
 
   /**
