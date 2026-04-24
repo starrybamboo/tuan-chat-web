@@ -37,6 +37,10 @@ type SharedRemoteState = {
   updatesInflight: Map<string, Promise<RemoteUpdates | null>>;
 };
 
+type CancelableRequestLike<T> = Promise<T> & {
+  cancel?: () => void;
+};
+
 function buildRemoteCacheKey(key: RemoteKey) {
   return `${key.entityType}:${key.entityId}:${key.docType}`;
 }
@@ -106,6 +110,51 @@ const snapshotDeleteInflight = sharedRemoteState.snapshotDeleteInflight;
 const UPDATES_CACHE_TTL_MS = 800;
 const updatesCache = sharedRemoteState.updatesCache;
 const updatesInflight = sharedRemoteState.updatesInflight;
+const REMOTE_SNAPSHOT_REQUEST_TIMEOUT_MS = 8000;
+const REMOTE_UPDATES_REQUEST_TIMEOUT_MS = 8000;
+
+async function awaitWithTimeout<T>(
+  request: CancelableRequestLike<T>,
+  timeoutMs: number,
+  label: string,
+): Promise<T> {
+  if (!(timeoutMs > 0)) {
+    return await request;
+  }
+
+  return await new Promise<T>((resolve, reject) => {
+    let settled = false;
+    const timer = setTimeout(() => {
+      if (settled) {
+        return;
+      }
+      settled = true;
+      try {
+        request.cancel?.();
+      }
+      catch {
+        // ignore cancel failure
+      }
+      reject(new Error(`${label} timed out after ${timeoutMs}ms`));
+    }, timeoutMs);
+
+    request.then((value) => {
+      if (settled) {
+        return;
+      }
+      settled = true;
+      clearTimeout(timer);
+      resolve(value);
+    }, (error) => {
+      if (settled) {
+        return;
+      }
+      settled = true;
+      clearTimeout(timer);
+      reject(error);
+    });
+  });
+}
 
 function invalidateRemoteUpdatesCache(baseCacheKey: string) {
   for (const key of updatesCache.keys()) {
@@ -226,11 +275,11 @@ export async function getRemoteSnapshot(params: {
 
   const task = (async (): Promise<StoredSnapshot | null> => {
   // 优先从 blocksuite_doc 表读取
-    const res = await tuanchat.blocksuiteDocController.getDoc(
+    const res = await awaitWithTimeout(tuanchat.blocksuiteDocController.getDoc(
       params.entityType,
       params.entityId,
       params.docType,
-    );
+    ), REMOTE_SNAPSHOT_REQUEST_TIMEOUT_MS, "blocksuite snapshot request");
     // Most endpoints wrap data inside ApiResult: { code, msg, data }
     // Some deployments may return the snapshot object directly.
     const fromTable = tryParseSnapshot((res as any)?.data ?? res ?? null);
@@ -443,13 +492,13 @@ export async function getRemoteUpdates(params: {
   }
 
   const task = (async (): Promise<RemoteUpdates | null> => {
-    const res = await tuanchat.blocksuiteDocController.listDocUpdates(
+    const res = await awaitWithTimeout(tuanchat.blocksuiteDocController.listDocUpdates(
       params.entityType,
       params.entityId,
       params.docType,
       params.afterServerTime,
       params.limit,
-    );
+    ), REMOTE_UPDATES_REQUEST_TIMEOUT_MS, "blocksuite updates request");
 
     const raw = (res as any)?.data ?? res ?? null;
     if (isRemoteUpdates(raw)) {

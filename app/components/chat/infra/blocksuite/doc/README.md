@@ -5,6 +5,7 @@
 必读（需求口径与概念对齐）：
 - 业务需求说明（后续需求变更都更新这里）：`BUSINESS.md`
 - 架构总览与依赖图：`ARCHITECTURE-OVERVIEW.md`
+- 可视化架构图：`ARCHITECTURE-DIAGRAM.md`
 - Guide 专题入口（按问题拆分的深入说明）：`guide/README.md`
 - editor 专区入口：`editor/README.md`
 - 业务能力如何接入 editor：`editor/INTEGRATION.md`

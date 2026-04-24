@@ -65,10 +65,6 @@ export function shouldEnsureTcHeaderFallback(params: {
     || params.hydrationState === "empty";
 }
 
-export function shouldDelayRenderReady(snapshotState: RemoteSnapshotState): boolean {
-  return snapshotState === "error" || snapshotState === "timed-out";
-}
-
 export async function fetchDescriptionRemoteSnapshotUpdate(docId: string): Promise<Uint8Array | null> {
   const key = parseDescriptionDocId(docId);
   if (!key) {
