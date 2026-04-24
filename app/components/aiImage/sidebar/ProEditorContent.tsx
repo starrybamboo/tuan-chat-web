@@ -334,7 +334,7 @@ export const ProEditorContent = memo(function ProEditorContent({
                     </div>
                      {!sourceImageDataUrl
                       ? (
-                          <div className="-mx-3 -mb-3 mt-3 flex items-center justify-between border-t border-[#2A3138] bg-[#161A1F] px-4 py-3">
+                          <div className="-mx-3 -mb-3 mt-3 flex items-center justify-between border-t border-base-300 bg-base-100 px-4 py-3">
                             <div className="text-[15px] text-base-content/58">
                               Add a Base Img (Optional)
                             </div>
@@ -740,15 +740,15 @@ export const ProEditorContent = memo(function ProEditorContent({
                   </div>
 
                   <div className="flex flex-col gap-3">
-                    <div className="rounded-md border border-[#2A3138] bg-[#161A1F] shadow-none">
+                    <div className="rounded-md border border-base-300 bg-base-100 shadow-none">
                       <div className="flex items-center justify-between gap-4 px-4 py-4">
                         <div className="flex min-w-0 items-center gap-3">
-                          <div className="flex size-8 shrink-0 items-center justify-center text-white/90" aria-hidden="true">
+                          <div className="flex size-8 shrink-0 items-center justify-center text-base-content/90" aria-hidden="true">
                             <ReferenceActionIcon className="size-6 shrink-0" src={vibeTransferIconSrc} />
                           </div>
                           <div className="min-w-0">
-                            <div className="text-[15px] font-semibold leading-6 text-white">Vibe Transfer</div>
-                            <div className="mt-0.5 text-[13px] leading-5 text-white/58">{vibeTransferDescription}</div>
+                            <div className="text-[15px] font-semibold leading-6 text-base-content">Vibe Transfer</div>
+                            <div className="mt-0.5 text-[13px] leading-5 text-base-content/58">{vibeTransferDescription}</div>
                           </div>
                         </div>
                         <button
@@ -763,15 +763,15 @@ export const ProEditorContent = memo(function ProEditorContent({
                       </div>
                     </div>
 
-                    <div className="rounded-md border border-[#2A3138] bg-[#161A1F] shadow-none">
+                    <div className="rounded-md border border-base-300 bg-base-100 shadow-none">
                       <div className="flex items-center justify-between gap-4 px-4 py-4">
                         <div className="flex min-w-0 items-center gap-3">
-                          <div className="flex size-8 shrink-0 items-center justify-center text-white/90" aria-hidden="true">
+                          <div className="flex size-8 shrink-0 items-center justify-center text-base-content/90" aria-hidden="true">
                             <ReferenceActionIcon className="size-6 shrink-0" src={preciseReferenceIconSrc} />
                           </div>
                           <div className="min-w-0">
-                            <div className="text-[15px] font-semibold leading-6 text-white">Precise Reference</div>
-                            <div className="mt-0.5 text-[13px] leading-5 text-white/58">{preciseReferenceDescription}</div>
+                            <div className="text-[15px] font-semibold leading-6 text-base-content">Precise Reference</div>
+                            <div className="mt-0.5 text-[13px] leading-5 text-base-content/58">{preciseReferenceDescription}</div>
                           </div>
                         </div>
                         <button
