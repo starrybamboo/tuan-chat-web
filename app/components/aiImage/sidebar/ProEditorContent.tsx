@@ -12,6 +12,8 @@ import {
   SelectionPlusIcon,
   TrashIcon,
 } from "@phosphor-icons/react";
+import type { Dispatch, KeyboardEvent as ReactKeyboardEvent, ReactNode, RefObject, SetStateAction } from "react";
+import { memo } from "react";
 import preciseReferenceIconSrc from "@/components/aiImage/assets/precise-reference.png";
 import vibeTransferIconSrc from "@/components/aiImage/assets/vibe-transfer.png";
 import { UC_PRESET_OPTIONS } from "@/components/aiImage/constants";
@@ -19,15 +21,77 @@ import { AiImageContextLimitMeter } from "@/components/aiImage/AiImageContextLim
 import { clampIntRange, clampRange, formatSliderValue, getV4CharGridCellByCenter, V4_CHAR_GRID_CELLS } from "@/components/aiImage/helpers";
 import { HighlightEmphasisTextarea } from "@/components/aiImage/HighlightEmphasisTextarea";
 import { NOVELAI_V45_CONTEXT_LIMIT } from "@/components/aiImage/novelaiV45TokenMeter";
+import type { NovelAiV45ChannelSnapshot, NovelAiV45TokenSnapshot } from "@/components/aiImage/tokenMeter/snapshot";
 import { ReferenceActionIcon } from "@/components/aiImage/ReferenceActionIcon";
 import { ChevronDown } from "@/icons";
 
+export interface ProEditorContentLocalProps {
+  editorPanelClassName: string;
+  segmentedControlClassName: string;
+  segmentedButtonBaseClassName: string;
+  highlightPromptSurfaceClassName: string;
+  highlightPromptContentClassName: string;
+  proPromptEditorPanelRef: RefObject<HTMLDivElement | null>;
+  proPromptSettingsRef: RefObject<HTMLDivElement | null>;
+  proPromptSettingsButtonRef: RefObject<HTMLButtonElement | null>;
+  isProPromptSettingsOpen: boolean;
+  setIsProPromptSettingsOpen: Dispatch<SetStateAction<boolean>>;
+  proPromptSettingsPosition: { top: number; left: number };
+  subtleSelectClassName: string;
+  highlightEmphasisEnabled: boolean;
+  setHighlightEmphasisEnabled: Dispatch<SetStateAction<boolean>>;
+  proPromptTextareaRef: RefObject<HTMLTextAreaElement | null>;
+  activeBaseMeter: NovelAiV45ChannelSnapshot["base"];
+  activeChannelSnapshot: NovelAiV45ChannelSnapshot;
+  proPromptFooterLabel?: string;
+  proPromptFooterHint?: string;
+  featureUploadActionClassName: string;
+  renderProInfillSection: () => ReactNode;
+  baseImagePanelClassName: string;
+  baseImageHeaderClassName: string;
+  baseImageControlGroupClassName: string;
+  baseImageToggleButtonClassName: string;
+  baseImageRangeClassName: string;
+  baseImageActionButtonClassName: string;
+  strength: number;
+  setStrength: (value: number) => void;
+  noise: number;
+  setNoise: (value: number) => void;
+  characterAddMenuRef: RefObject<HTMLDivElement | null>;
+  isCharacterAddMenuOpen: boolean;
+  setIsCharacterAddMenuOpen: Dispatch<SetStateAction<boolean>>;
+  characterAddTriggerClassName: string;
+  characterAddMenuPanelClassName: string;
+  characterAddMenuItemClassName: string;
+  characterCardClassName: string;
+  characterCardHeaderActionClassName: string;
+  characterCardTitleIconClassName: string;
+  handleToggleLineCommentForProPrompt: (event: ReactKeyboardEvent<HTMLTextAreaElement>) => void;
+  handleToggleLineCommentForV4Char: (event: ReactKeyboardEvent<HTMLTextAreaElement>, characterId: string) => void;
+  highlightCharSurfaceClassName: string;
+  highlightCharContentClassName: string;
+  showCharacterPositionsGlobalSection: boolean;
+  isCharacterPositionAiChoiceEnabled: boolean;
+  characterPositionPickerState: { characterId: string; code: string } | null;
+  characterPositionAssignments: Map<string, { characterId: string; index: number }>;
+  handleOpenCharacterPositionPicker: (characterId: string, code: string) => void;
+  handleSelectCharacterPositionCode: (code: string) => void;
+  handleSaveCharacterPosition: (characterId: string) => void;
+  characterPositionsSectionClassName: string;
+  characterPositionsToggleBaseClassName: string;
+  handleToggleCharacterPositionAiChoice: () => void;
+  tokenSnapshot: NovelAiV45TokenSnapshot;
+  characterPromptDescription: string;
+  isBaseImageToolsOpen: boolean;
+  setIsBaseImageToolsOpen: Dispatch<SetStateAction<boolean>>;
+}
+
 type ProEditorContentProps = {
   sidebarProps: AiImagePageController["sidebarProps"];
-  local: Record<string, any>;
+  local: ProEditorContentLocalProps;
 };
 
-export function ProEditorContent({
+export const ProEditorContent = memo(function ProEditorContent({
   sidebarProps,
   local,
 }: ProEditorContentProps) {
@@ -724,4 +788,4 @@ export function ProEditorContent({
                   </div>
                 </div>
   );
-}
+});

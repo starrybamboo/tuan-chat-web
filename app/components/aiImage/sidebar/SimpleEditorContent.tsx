@@ -5,13 +5,30 @@ import {
   SparkleIcon,
   XCircleIcon,
 } from "@phosphor-icons/react";
+import type { KeyboardEvent as ReactKeyboardEvent, ReactNode } from "react";
+import { memo } from "react";
+
+export interface SimpleEditorContentLocalProps {
+  isSimpleTagsEditor: boolean;
+  isSimplePreviewingConverted: boolean;
+  isSimpleTextEditor: boolean;
+  floatingInputActionBaseClassName: string;
+  editorPanelClassName: string;
+  segmentedControlClassName: string;
+  segmentedButtonBaseClassName: string;
+  floatingInputActionClassName: string;
+  promptTextareaClassName: string;
+  simplePromptTextareaClassName: string;
+  renderSimpleBaseImageSection: () => ReactNode;
+  handleToggleLineCommentForSimpleTags: (event: ReactKeyboardEvent<HTMLTextAreaElement>) => void;
+}
 
 type SimpleEditorContentProps = {
   sidebarProps: AiImagePageController["sidebarProps"];
-  local: Record<string, any>;
+  local: SimpleEditorContentLocalProps;
 };
 
-export function SimpleEditorContent({
+export const SimpleEditorContent = memo(function SimpleEditorContent({
   sidebarProps,
   local,
 }: SimpleEditorContentProps) {
@@ -271,4 +288,4 @@ export function SimpleEditorContent({
                 </div>
     </>
   );
-}
+});

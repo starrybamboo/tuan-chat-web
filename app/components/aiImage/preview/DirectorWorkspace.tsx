@@ -143,8 +143,8 @@ export function DirectorWorkspace({
                       <button
                         type="button"
                         className="absolute right-2 top-2 z-10 inline-flex size-6 items-center justify-center rounded-md bg-transparent text-base-content/62 opacity-0 transition hover:bg-transparent hover:text-error group-hover:opacity-100"
-                        title="鍒犻櫎宸︿晶鏍忓浘鐗?"
-                        aria-label="鍒犻櫎宸︿晶鏍忓浘鐗?"
+                        title="Remove left rail image"
+                        aria-label="Remove left rail image"
                         onClick={(event) => {
                           event.stopPropagation();
                           onRemoveDirectorSourceItem(item);
@@ -181,8 +181,8 @@ export function DirectorWorkspace({
                         <button
                           type="button"
                           className={directorCornerButtonClassName}
-                          title="澶嶅埗褰撳墠宸﹀浘"
-                          aria-label="澶嶅埗褰撳墠宸﹀浘"
+                          title="Copy left image"
+                          aria-label="Copy left image"
                           onClick={() => void onCopyDirectorInputImage()}
                         >
                           <ClipboardTextIcon className="size-[18px]" weight="regular" />
@@ -190,8 +190,8 @@ export function DirectorWorkspace({
                         <button
                           type="button"
                           className={directorCornerButtonClassName}
-                          title="Upscale 宸茬鐢?"
-                          aria-label="Upscale 宸茬鐢?"
+                          title="Upscale disabled"
+                          aria-label="Upscale disabled"
                           disabled
                           onClick={() => void onRunDirectorInputUpscale()}
                         >
@@ -199,7 +199,7 @@ export function DirectorWorkspace({
                         </button>
                       </div>
                       <div className={`${directorCornerActionsClassName} right-3`}>
-                        <span className={directorCornerPillClassName}>{`${directorInputPreview.width} 脳 ${directorInputPreview.height}`}</span>
+                        <span className={directorCornerPillClassName}>{`${directorInputPreview.width} ? ${directorInputPreview.height}`}</span>
                       </div>
                     </>
                   )
@@ -216,14 +216,14 @@ export function DirectorWorkspace({
                 ? (
                     <>
                       <div className={`${directorCornerActionsClassName} left-3`}>
-                        <span className={directorCornerPillClassName}>{`${directorDisplayedOutput.width} 脳 ${directorDisplayedOutput.height}`}</span>
+                        <span className={directorCornerPillClassName}>{`${directorDisplayedOutput.width} ? ${directorDisplayedOutput.height}`}</span>
                       </div>
                       <div className={`${directorCornerActionsClassName} right-3`}>
                         <button
                           type="button"
                           className={directorCornerButtonClassName}
-                          title="娣诲姞鍒板乏渚ф爮"
-                          aria-label="娣诲姞鍒板乏渚ф爮"
+                          title="Add to left rail"
+                          aria-label="Add to left rail"
                           onClick={onAddDirectorDisplayedToSourceRail}
                         >
                           <ArrowLeftIcon className="size-[18px]" weight="bold" />
@@ -231,8 +231,8 @@ export function DirectorWorkspace({
                         <button
                           type="button"
                           className={directorCornerButtonClassName}
-                          title="澶嶅埗褰撳墠鍙冲浘"
-                          aria-label="澶嶅埗褰撳墠鍙冲浘"
+                          title="Copy right image"
+                          aria-label="Copy right image"
                           onClick={() => void onCopyDirectorOutputImage()}
                         >
                           <ClipboardTextIcon className="size-[18px]" weight="regular" />
@@ -240,8 +240,8 @@ export function DirectorWorkspace({
                         <button
                           type="button"
                           className={directorCornerButtonClassName}
-                          title="涓嬭浇褰撳墠鍙冲浘"
-                          aria-label="涓嬭浇褰撳墠鍙冲浘"
+                          title="Download right image"
+                          aria-label="Download right image"
                           onClick={onDownloadDirectorOutputImage}
                         >
                           <SharpDownload className="size-[18px]" />
@@ -357,7 +357,7 @@ export function DirectorWorkspace({
                       ? "bg-[#f3efc6] text-[#111326]"
                       : "bg-transparent text-base-content/82 hover:bg-base-300 hover:text-base-content"
                 }`}
-                title={isDisabled ? "Remove BG 宸茬鐢?" : tool.description}
+                title={isDisabled ? "Remove BG disabled" : tool.description}
                 disabled={isBusy || isDisabled}
                 onClick={() => onActiveDirectorToolChange(tool.id)}
               >

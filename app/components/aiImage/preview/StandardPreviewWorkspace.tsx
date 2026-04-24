@@ -66,8 +66,8 @@ export function StandardPreviewWorkspace({
                   <button
                     type="button"
                     className={previewToolbarIconButtonClassName}
-                    title="Upscale 宸茬鐢?"
-                    aria-label="Upscale 宸茬鐢?"
+                    title="Upscale disabled"
+                    aria-label="Upscale disabled"
                     disabled
                     onClick={() => void onRunUpscale()}
                   >
@@ -86,8 +86,8 @@ export function StandardPreviewWorkspace({
                   <button
                     type="button"
                     className={previewToolbarIconButtonClassName}
-                    title="鎵撳紑 Inpaint"
-                    aria-label="鎵撳紑 Inpaint"
+                    title="Open Inpaint"
+                    aria-label="Open Inpaint"
                     disabled={isBusy}
                     onClick={onOpenInpaint}
                   >
@@ -96,8 +96,8 @@ export function StandardPreviewWorkspace({
                   <button
                     type="button"
                     className={previewToolbarIconButtonClassName}
-                    title="鎵撳紑 Director Tools"
-                    aria-label="鎵撳紑 Director Tools"
+                    title="Open Director Tools"
+                    aria-label="Open Director Tools"
                     disabled={isBusy}
                     onClick={onToggleDirectorTools}
                   >
@@ -140,12 +140,12 @@ export function StandardPreviewWorkspace({
           ? (
               <div className="flex flex-wrap items-center gap-3 px-3 py-2.5">
                 <div className={previewToolbarSectionClassName}>
-                  <span className={previewToolbarPillClassName}>{`${selectedPreviewResult.width} 脳 ${selectedPreviewResult.height}`}</span>
+                  <span className={previewToolbarPillClassName}>{`${selectedPreviewResult.width} ? ${selectedPreviewResult.height}`}</span>
                   <button
                     type="button"
                     className={previewToolbarIconButtonClassName}
-                    title="鏌ョ湅褰撳墠棰勮"
-                    aria-label="鏌ョ湅褰撳墠棰勮"
+                    title="Open current preview"
+                    aria-label="Open current preview"
                     onClick={onOpenPreviewImage}
                   >
                     <ExpandCornersIcon className="size-[18px]" />
@@ -155,8 +155,8 @@ export function StandardPreviewWorkspace({
                   <button
                     type="button"
                     className={previewToolbarIconButtonClassName}
-                    title={isSelectedPreviewPinned ? "鍙栨秷鍥哄畾褰撳墠棰勮" : "鍥哄畾褰撳墠棰勮"}
-                    aria-label={isSelectedPreviewPinned ? "鍙栨秷鍥哄畾褰撳墠棰勮" : "鍥哄畾褰撳墠棰勮"}
+                    title={isSelectedPreviewPinned ? "Unpin current preview" : "Pin current preview"}
+                    aria-label={isSelectedPreviewPinned ? "Unpin current preview" : "Pin current preview"}
                     onClick={onTogglePinnedPreview}
                   >
                     <PhosphorPushPinIcon className="size-[18px]" weight="regular" />
@@ -164,8 +164,8 @@ export function StandardPreviewWorkspace({
                   <button
                     type="button"
                     className={previewToolbarIconButtonClassName}
-                    title="澶嶅埗褰撳墠鍥剧墖"
-                    aria-label="澶嶅埗褰撳墠鍥剧墖"
+                    title="Copy current image"
+                    aria-label="Copy current image"
                     onClick={() => void onCopySelectedPreviewImage()}
                   >
                     <ClipboardTextIcon className="size-[18px]" weight="regular" />
@@ -173,8 +173,8 @@ export function StandardPreviewWorkspace({
                   <button
                     type="button"
                     className={previewToolbarIconButtonClassName}
-                    title="涓嬭浇褰撳墠棰勮"
-                    aria-label="涓嬭浇褰撳墠棰勮"
+                    title="Download current preview"
+                    aria-label="Download current preview"
                     onClick={onDownloadCurrent}
                   >
                     <SharpDownload className="size-[18px]" />
@@ -182,8 +182,8 @@ export function StandardPreviewWorkspace({
                   <button
                     type="button"
                     className={previewToolbarActionButtonClassName}
-                    title="灏嗗綋鍓嶉瑙?seed 鍥炲～鍒拌缃?"
-                    aria-label="灏嗗綋鍓嶉瑙?seed 鍥炲～鍒拌缃?"
+                    title="Apply current preview seed"
+                    aria-label="Apply current preview seed"
                     onClick={onApplySelectedPreviewSeed}
                   >
                     <PlantIcon className="size-[18px]" weight="regular" />
