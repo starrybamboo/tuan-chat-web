@@ -1,13 +1,27 @@
-import type { MouseEvent as ReactMouseEvent } from "react";
+import type { Dispatch, SetStateAction, MouseEvent as ReactMouseEvent } from "react";
+
 import { useCallback, useEffect } from "react";
 
-import type { HistoryRowClickMode, MetadataImportSelectionState, UiMode, V4CharEditorRow } from "@/components/aiImage/types";
-import type { AiImageHistoryRow } from "@/utils/aiImageHistoryDb";
+import type {
+  HistoryRowClickMode,
+  MetadataImportSelectionState,
+  NovelAiEmotion,
+  PreciseReferenceRow,
+  ProFeatureSectionKey,
+  ResolutionSelection,
+  UiMode,
+  V4CharEditorRow,
+  VibeTransferReferenceRow,
+} from "@/components/aiImage/types";
+import type { AiImageHistoryMode, AiImageHistoryRow } from "@/utils/aiImageHistoryDb";
 import type { NovelAiImageMetadataResult } from "@/utils/novelaiImageMetadata";
+import type { NovelAiNl2TagsResult } from "@/utils/novelaiNl2Tags";
 
 import { applyHistorySettingsAction, applyImportedMetadataAction } from "@/components/aiImage/controller/metadataHistoryActions";
 import { deleteAiImageHistory, listAiImageHistory } from "@/utils/aiImageHistoryDb";
 import { generatedItemKey, historyRowKey, historyRowResultMatchKey, historyRowToGeneratedItem } from "@/components/aiImage/helpers";
+
+type ProFeatureSectionsState = Record<ProFeatureSectionKey, boolean>;
 
 interface UseAiImageHistoryActionsOptions {
   uiMode: UiMode;
@@ -18,37 +32,37 @@ interface UseAiImageHistoryActionsOptions {
   proWidth: number;
   proHeight: number;
   v4Chars: V4CharEditorRow[];
-  results: any[];
+  results: AiImageHistoryRow[] | ReturnType<typeof historyRowToGeneratedItem>[];
   pinnedPreviewKey: string | null;
-  directorSourcePreview: any;
-  directorOutputPreview: any;
+  directorSourcePreview: ReturnType<typeof historyRowToGeneratedItem> | null;
+  directorOutputPreview: ReturnType<typeof historyRowToGeneratedItem> | null;
   selectedHistoryPreviewKey: string | null;
   setHistory: (value: AiImageHistoryRow[]) => void;
   setSelectedHistoryPreviewKey: (value: string | null) => void;
-  setResults: (value: any) => void;
-  setSelectedResultIndex: (value: any) => void;
+  setResults: Dispatch<SetStateAction<ReturnType<typeof historyRowToGeneratedItem>[]>>;
+  setSelectedResultIndex: Dispatch<SetStateAction<number>>;
   setPinnedPreviewKey: (value: string | null) => void;
-  setDirectorSourcePreview: (value: any) => void;
-  setDirectorOutputPreview: (value: any) => void;
+  setDirectorSourcePreview: Dispatch<SetStateAction<ReturnType<typeof historyRowToGeneratedItem> | null>>;
+  setDirectorOutputPreview: Dispatch<SetStateAction<ReturnType<typeof historyRowToGeneratedItem> | null>>;
   setIsPageImageDragOver: (value: boolean) => void;
-  setSimpleConverted: (value: any) => void;
+  setSimpleConverted: (value: NovelAiNl2TagsResult | null) => void;
   setSimpleConvertedFromText: (value: string) => void;
   setSimplePromptTab: (value: "prompt" | "negative") => void;
   setSimpleSeed: (value: number) => void;
   setSimpleWidth: (value: number) => void;
   setSimpleHeight: (value: number) => void;
-  setSimpleResolutionSelection: (value: any) => void;
+  setSimpleResolutionSelection: (value: ResolutionSelection) => void;
   setUiMode: (value: UiMode) => void;
   clearSourceImageForUi: (value: UiMode) => void;
-  setVibeTransferReferences: (value: any[]) => void;
-  setPreciseReference: (value: any) => void;
-  setProFeatureSectionOpen: (section: any, open: boolean) => void;
+  setVibeTransferReferences: (value: VibeTransferReferenceRow[]) => void;
+  setPreciseReference: (value: PreciseReferenceRow | null) => void;
+  setProFeatureSectionOpen: (section: ProFeatureSectionKey, open: boolean) => void;
   setPrompt: (value: string) => void;
   setNegativePrompt: (value: string) => void;
   setProSeed: (value: number) => void;
   setProWidth: (value: number) => void;
   setProHeight: (value: number) => void;
-  setProResolutionSelection: (value: any) => void;
+  setProResolutionSelection: (value: ResolutionSelection) => void;
   setProImageCount: (value: number) => void;
   setProSteps: (value: number) => void;
   setProScale: (value: number) => void;
@@ -60,31 +74,97 @@ interface UseAiImageHistoryActionsOptions {
   setProDynamicThresholding: (value: boolean) => void;
   setProSmea: (value: boolean) => void;
   setProSmeaDyn: (value: boolean) => void;
-  applyModeStrengthAndNoise: (targetUiMode: UiMode, targetMode: any, nextStrength: number | undefined, nextNoise: number | undefined) => void;
+  applyModeStrengthAndNoise: (targetUiMode: UiMode, targetMode: AiImageHistoryMode | undefined, nextStrength: number | undefined, nextNoise: number | undefined) => void;
   setV4UseCoords: (value: boolean) => void;
   setV4UseOrder: (value: boolean) => void;
   setV4Chars: (value: V4CharEditorRow[]) => void;
   setCharPromptTabs: (value: Record<string, "prompt" | "negative">) => void;
-  inferResolutionSelection: (width: number, height: number) => any;
+  inferResolutionSelection: (width: number, height: number) => ResolutionSelection;
   setSimpleText: (value: string) => void;
   setSimplePrompt: (value: string) => void;
   setSimpleNegativePrompt: (value: string) => void;
   setSimpleEditorMode: (value: "text" | "tags") => void;
-  setProFeatureSections: (value: any) => void;
+  setProFeatureSections: (value: ProFeatureSectionsState) => void;
   restoreSourceImageForUi: (targetUiMode: UiMode, args: {
     dataUrl?: string | null;
     name: string;
     width?: number | null;
     height?: number | null;
-  }) => any;
+  }) => boolean;
   showSuccessToast: (message: string) => void;
 }
 
-export function useAiImageHistoryActions(options: UseAiImageHistoryActionsOptions) {
+type GeneratedImageItem = ReturnType<typeof historyRowToGeneratedItem>;
+
+export function useAiImageHistoryActions({
+  uiMode,
+  samplerOptions,
+  noiseScheduleOptions,
+  simpleWidth,
+  simpleHeight,
+  proWidth,
+  proHeight,
+  v4Chars,
+  results,
+  pinnedPreviewKey,
+  directorSourcePreview,
+  directorOutputPreview,
+  selectedHistoryPreviewKey,
+  setHistory,
+  setSelectedHistoryPreviewKey,
+  setResults,
+  setSelectedResultIndex,
+  setPinnedPreviewKey,
+  setDirectorSourcePreview,
+  setDirectorOutputPreview,
+  setIsPageImageDragOver,
+  setSimpleConverted,
+  setSimpleConvertedFromText,
+  setSimplePromptTab,
+  setSimpleSeed,
+  setSimpleWidth,
+  setSimpleHeight,
+  setSimpleResolutionSelection,
+  setUiMode,
+  clearSourceImageForUi,
+  setVibeTransferReferences,
+  setPreciseReference,
+  setProFeatureSectionOpen,
+  setPrompt,
+  setNegativePrompt,
+  setProSeed,
+  setProWidth,
+  setProHeight,
+  setProResolutionSelection,
+  setProImageCount,
+  setProSteps,
+  setProScale,
+  setProSampler,
+  setProNoiseSchedule,
+  setProCfgRescale,
+  setProUcPreset,
+  setProQualityToggle,
+  setProDynamicThresholding,
+  setProSmea,
+  setProSmeaDyn,
+  applyModeStrengthAndNoise,
+  setV4UseCoords,
+  setV4UseOrder,
+  setV4Chars,
+  setCharPromptTabs,
+  inferResolutionSelection,
+  setSimpleText,
+  setSimplePrompt,
+  setSimpleNegativePrompt,
+  setSimpleEditorMode,
+  setProFeatureSections,
+  restoreSourceImageForUi,
+  showSuccessToast,
+}: UseAiImageHistoryActionsOptions) {
   const refreshHistory = useCallback(async () => {
     const rows = await listAiImageHistory({ limit: 30 });
-    options.setHistory(rows);
-  }, [options]);
+    setHistory(rows);
+  }, [setHistory]);
 
   useEffect(() => {
     void refreshHistory();
@@ -94,103 +174,215 @@ export function useAiImageHistoryActions(options: UseAiImageHistoryActionsOption
     applyImportedMetadataAction({
       metadata,
       selection,
-      uiMode: options.uiMode,
-      simpleWidth: options.simpleWidth,
-      simpleHeight: options.simpleHeight,
-      proWidth: options.proWidth,
-      proHeight: options.proHeight,
-      v4Chars: options.v4Chars,
-      samplerOptions: options.samplerOptions,
-      noiseScheduleOptions: options.noiseScheduleOptions,
-      setIsPageImageDragOver: options.setIsPageImageDragOver,
-      setSimpleConverted: options.setSimpleConverted,
-      setSimpleConvertedFromText: options.setSimpleConvertedFromText,
-      setSimplePromptTab: options.setSimplePromptTab,
-      setSimpleSeed: options.setSimpleSeed,
-      setSimpleWidth: options.setSimpleWidth,
-      setSimpleHeight: options.setSimpleHeight,
-      setSimpleResolutionSelection: options.setSimpleResolutionSelection,
-      setUiMode: options.setUiMode,
-      clearSourceImageForUi: options.clearSourceImageForUi,
-      setVibeTransferReferences: options.setVibeTransferReferences,
-      setPreciseReference: options.setPreciseReference,
-      setProFeatureSectionOpen: options.setProFeatureSectionOpen,
-      setPrompt: options.setPrompt,
-      setNegativePrompt: options.setNegativePrompt,
-      setProSeed: options.setProSeed,
-      setProWidth: options.setProWidth,
-      setProHeight: options.setProHeight,
-      setProResolutionSelection: options.setProResolutionSelection,
-      setProImageCount: options.setProImageCount,
-      setProSteps: options.setProSteps,
-      setProScale: options.setProScale,
-      setProSampler: options.setProSampler,
-      setProNoiseSchedule: options.setProNoiseSchedule,
-      setProCfgRescale: options.setProCfgRescale,
-      setProUcPreset: options.setProUcPreset,
-      setProQualityToggle: options.setProQualityToggle,
-      setProDynamicThresholding: options.setProDynamicThresholding,
-      setProSmea: options.setProSmea,
-      setProSmeaDyn: options.setProSmeaDyn,
-      applyModeStrengthAndNoise: options.applyModeStrengthAndNoise,
-      setV4UseCoords: options.setV4UseCoords,
-      setV4UseOrder: options.setV4UseOrder,
-      setV4Chars: options.setV4Chars,
-      setCharPromptTabs: options.setCharPromptTabs,
-      inferResolutionSelection: options.inferResolutionSelection,
+      current: {
+        uiMode,
+        simpleWidth,
+        simpleHeight,
+        proWidth,
+        proHeight,
+        v4Chars,
+        samplerOptions,
+        noiseScheduleOptions,
+      },
+      shared: {
+        setIsPageImageDragOver,
+        setUiMode,
+        clearSourceImageForUi,
+        applyModeStrengthAndNoise,
+        inferResolutionSelection,
+      },
+      simple: {
+        setSimpleConverted,
+        setSimpleConvertedFromText,
+        setSimplePromptTab,
+        setSimpleSeed,
+        setSimpleWidth,
+        setSimpleHeight,
+        setSimpleResolutionSelection,
+      },
+      pro: {
+        setPrompt,
+        setNegativePrompt,
+        setProSeed,
+        setProWidth,
+        setProHeight,
+        setProResolutionSelection,
+        setProImageCount,
+        setProSteps,
+        setProScale,
+        setProSampler,
+        setProNoiseSchedule,
+        setProCfgRescale,
+        setProUcPreset,
+        setProQualityToggle,
+        setProDynamicThresholding,
+        setProSmea,
+        setProSmeaDyn,
+        setProFeatureSectionOpen,
+      },
+      characters: {
+        setV4UseCoords,
+        setV4UseOrder,
+        setV4Chars,
+        setCharPromptTabs,
+      },
+      references: {
+        setVibeTransferReferences,
+        setPreciseReference,
+      },
     });
-  }, [options]);
+  }, [
+    applyModeStrengthAndNoise,
+    clearSourceImageForUi,
+    inferResolutionSelection,
+    noiseScheduleOptions,
+    proHeight,
+    proWidth,
+    samplerOptions,
+    setCharPromptTabs,
+    setIsPageImageDragOver,
+    setNegativePrompt,
+    setPreciseReference,
+    setProCfgRescale,
+    setProDynamicThresholding,
+    setProFeatureSectionOpen,
+    setProHeight,
+    setProImageCount,
+    setProNoiseSchedule,
+    setProQualityToggle,
+    setProResolutionSelection,
+    setProScale,
+    setProSeed,
+    setProSmea,
+    setProSmeaDyn,
+    setProSampler,
+    setProSteps,
+    setProUcPreset,
+    setProWidth,
+    setPrompt,
+    setSimpleConverted,
+    setSimpleConvertedFromText,
+    setSimpleHeight,
+    setSimplePromptTab,
+    setSimpleResolutionSelection,
+    setSimpleSeed,
+    setSimpleWidth,
+    setUiMode,
+    setV4Chars,
+    setV4UseCoords,
+    setV4UseOrder,
+    setVibeTransferReferences,
+    simpleHeight,
+    simpleWidth,
+    uiMode,
+    v4Chars,
+  ]);
 
   const handleApplyHistorySettings = useCallback((row: AiImageHistoryRow, clickMode: Exclude<HistoryRowClickMode, "preview">) => {
     applyHistorySettingsAction({
       row,
       clickMode,
-      uiMode: options.uiMode,
-      samplerOptions: options.samplerOptions,
-      noiseScheduleOptions: options.noiseScheduleOptions,
-      setSelectedHistoryPreviewKey: options.setSelectedHistoryPreviewKey,
-      setSimpleSeed: options.setSimpleSeed,
-      setProSeed: options.setProSeed,
-      showSuccessToast: options.showSuccessToast,
-      restoreSourceImageForUi: options.restoreSourceImageForUi,
-      setSimpleText: options.setSimpleText,
-      setSimpleConverted: options.setSimpleConverted,
-      setSimpleConvertedFromText: options.setSimpleConvertedFromText,
-      setSimplePrompt: options.setSimplePrompt,
-      setSimpleNegativePrompt: options.setSimpleNegativePrompt,
-      setSimpleEditorMode: options.setSimpleEditorMode,
-      setSimplePromptTab: options.setSimplePromptTab,
-      setSimpleWidth: options.setSimpleWidth,
-      setSimpleHeight: options.setSimpleHeight,
-      setSimpleResolutionSelection: options.setSimpleResolutionSelection,
-      applyModeStrengthAndNoise: options.applyModeStrengthAndNoise,
-      clearSourceImageForUi: options.clearSourceImageForUi,
-      setPrompt: options.setPrompt,
-      setNegativePrompt: options.setNegativePrompt,
-      setV4UseCoords: options.setV4UseCoords,
-      setV4UseOrder: options.setV4UseOrder,
-      setV4Chars: options.setV4Chars,
-      setCharPromptTabs: options.setCharPromptTabs,
-      setVibeTransferReferences: options.setVibeTransferReferences,
-      setPreciseReference: options.setPreciseReference,
-      setProFeatureSections: options.setProFeatureSections,
-      setProWidth: options.setProWidth,
-      setProHeight: options.setProHeight,
-      setProResolutionSelection: options.setProResolutionSelection,
-      setProImageCount: options.setProImageCount,
-      setProSteps: options.setProSteps,
-      setProScale: options.setProScale,
-      setProSampler: options.setProSampler,
-      setProNoiseSchedule: options.setProNoiseSchedule,
-      setProCfgRescale: options.setProCfgRescale,
-      setProUcPreset: options.setProUcPreset,
-      setProQualityToggle: options.setProQualityToggle,
-      setProDynamicThresholding: options.setProDynamicThresholding,
-      setProSmea: options.setProSmea,
-      setProSmeaDyn: options.setProSmeaDyn,
-      inferResolutionSelection: options.inferResolutionSelection,
+      uiMode,
+      samplerOptions,
+      noiseScheduleOptions,
+      shared: {
+        setSelectedHistoryPreviewKey,
+        showSuccessToast,
+        restoreSourceImageForUi,
+        clearSourceImageForUi,
+        applyModeStrengthAndNoise,
+        inferResolutionSelection,
+      },
+      simple: {
+        setSimpleSeed,
+        setSimpleText,
+        setSimpleConverted,
+        setSimpleConvertedFromText,
+        setSimplePrompt,
+        setSimpleNegativePrompt,
+        setSimpleEditorMode,
+        setSimplePromptTab,
+        setSimpleWidth,
+        setSimpleHeight,
+        setSimpleResolutionSelection,
+      },
+      pro: {
+        setPrompt,
+        setNegativePrompt,
+        setProSeed,
+        setProFeatureSections,
+        setProWidth,
+        setProHeight,
+        setProResolutionSelection,
+        setProImageCount,
+        setProSteps,
+        setProScale,
+        setProSampler,
+        setProNoiseSchedule,
+        setProCfgRescale,
+        setProUcPreset,
+        setProQualityToggle,
+        setProDynamicThresholding,
+        setProSmea,
+        setProSmeaDyn,
+      },
+      characters: {
+        setV4UseCoords,
+        setV4UseOrder,
+        setV4Chars,
+        setCharPromptTabs,
+      },
+      references: {
+        setVibeTransferReferences,
+        setPreciseReference,
+      },
     });
-  }, [options]);
+  }, [
+    applyModeStrengthAndNoise,
+    clearSourceImageForUi,
+    inferResolutionSelection,
+    noiseScheduleOptions,
+    restoreSourceImageForUi,
+    samplerOptions,
+    setCharPromptTabs,
+    setNegativePrompt,
+    setPreciseReference,
+    setProCfgRescale,
+    setProDynamicThresholding,
+    setProFeatureSections,
+    setProHeight,
+    setProImageCount,
+    setProNoiseSchedule,
+    setProQualityToggle,
+    setProResolutionSelection,
+    setProScale,
+    setProSeed,
+    setProSmea,
+    setProSmeaDyn,
+    setProSampler,
+    setProSteps,
+    setProUcPreset,
+    setProWidth,
+    setPrompt,
+    setSelectedHistoryPreviewKey,
+    setSimpleConverted,
+    setSimpleConvertedFromText,
+    setSimpleEditorMode,
+    setSimpleHeight,
+    setSimpleNegativePrompt,
+    setSimplePrompt,
+    setSimplePromptTab,
+    setSimpleResolutionSelection,
+    setSimpleSeed,
+    setSimpleText,
+    setSimpleWidth,
+    setV4Chars,
+    setV4UseCoords,
+    setV4UseOrder,
+    setVibeTransferReferences,
+    showSuccessToast,
+    uiMode,
+  ]);
 
   const handleHistoryRowClick = useCallback((row: AiImageHistoryRow, event: ReactMouseEvent<HTMLButtonElement>) => {
     const clickMode: HistoryRowClickMode = (event.metaKey || event.ctrlKey)
@@ -198,12 +390,12 @@ export function useAiImageHistoryActions(options: UseAiImageHistoryActionsOption
       : (event.shiftKey ? "seed" : "preview");
 
     if (clickMode === "preview") {
-      options.setSelectedHistoryPreviewKey(historyRowKey(row));
+      setSelectedHistoryPreviewKey(historyRowKey(row));
       return;
     }
 
     handleApplyHistorySettings(row, clickMode);
-  }, [handleApplyHistorySettings, options]);
+  }, [handleApplyHistorySettings, setSelectedHistoryPreviewKey]);
 
   const handleDeleteHistoryRow = useCallback(async (row: AiImageHistoryRow) => {
     if (typeof row.id !== "number")
@@ -212,25 +404,24 @@ export function useAiImageHistoryActions(options: UseAiImageHistoryActionsOption
     const rowKey = historyRowKey(row);
     const rowResultMatchKey = historyRowResultMatchKey(row);
     const rowGeneratedItemKey = generatedItemKey(historyRowToGeneratedItem(row));
-    const deleteIndex = options.results.findIndex(item => generatedItemKey(item) === rowResultMatchKey);
-    const nextResults = deleteIndex >= 0
-      ? options.results.filter((_, index) => index !== deleteIndex)
-      : options.results;
+    const nextResults = (results as GeneratedImageItem[]).filter(item => generatedItemKey(item) !== rowResultMatchKey);
+    const deleteIndex = (results as GeneratedImageItem[]).findIndex(item => generatedItemKey(item) === rowResultMatchKey);
 
     await deleteAiImageHistory(row.id);
     await refreshHistory();
-    if (options.selectedHistoryPreviewKey === rowKey)
-      options.setSelectedHistoryPreviewKey(null);
-    if (options.directorSourcePreview && generatedItemKey(options.directorSourcePreview) === rowGeneratedItemKey)
-      options.setDirectorSourcePreview(null);
-    if (options.directorOutputPreview && generatedItemKey(options.directorOutputPreview) === rowGeneratedItemKey)
-      options.setDirectorOutputPreview(null);
-    if (options.pinnedPreviewKey === `history:${rowKey}` || (deleteIndex >= 0 && options.pinnedPreviewKey === `current:${rowResultMatchKey}`))
-      options.setPinnedPreviewKey(null);
+
+    if (selectedHistoryPreviewKey === rowKey)
+      setSelectedHistoryPreviewKey(null);
+    if (directorSourcePreview && generatedItemKey(directorSourcePreview) === rowGeneratedItemKey)
+      setDirectorSourcePreview(null);
+    if (directorOutputPreview && generatedItemKey(directorOutputPreview) === rowGeneratedItemKey)
+      setDirectorOutputPreview(null);
+    if (pinnedPreviewKey === `history:${rowKey}` || (deleteIndex >= 0 && pinnedPreviewKey === `current:${rowResultMatchKey}`))
+      setPinnedPreviewKey(null);
 
     if (deleteIndex >= 0) {
-      options.setResults(nextResults);
-      options.setSelectedResultIndex((prev: number) => {
+      setResults(nextResults);
+      setSelectedResultIndex((prev) => {
         if (!nextResults.length)
           return 0;
         if (prev > deleteIndex)
@@ -238,7 +429,20 @@ export function useAiImageHistoryActions(options: UseAiImageHistoryActionsOption
         return Math.min(prev, nextResults.length - 1);
       });
     }
-  }, [options, refreshHistory]);
+  }, [
+    directorOutputPreview,
+    directorSourcePreview,
+    pinnedPreviewKey,
+    refreshHistory,
+    results,
+    selectedHistoryPreviewKey,
+    setDirectorOutputPreview,
+    setDirectorSourcePreview,
+    setPinnedPreviewKey,
+    setResults,
+    setSelectedHistoryPreviewKey,
+    setSelectedResultIndex,
+  ]);
 
   return {
     refreshHistory,

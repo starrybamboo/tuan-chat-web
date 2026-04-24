@@ -1,8 +1,16 @@
 import type {
   GeneratedImageItem,
+  InpaintDialogSource,
+  PreciseReferencePayload,
+  PreciseReferenceRow,
   UiMode,
+  V4CharEditorRow,
+  V4CharPayload,
+  VibeTransferReferencePayload,
+  VibeTransferReferenceRow,
 } from "@/components/aiImage/types";
-import type { AiImageHistoryMode } from "@/utils/aiImageHistoryDb";
+import type { PreparedFocusedInpaintPayload } from "@/components/aiImage/inpaintFocusUtils";
+import type { AiImageHistoryMode, AiImageHistoryRow } from "@/utils/aiImageHistoryDb";
 
 import {
   DEFAULT_PRO_IMAGE_SETTINGS,
@@ -12,13 +20,11 @@ import {
 import {
   base64DataUrl,
   base64ToBytes,
-  generatedItemKey,
   getClosestValidImageSize,
   getNovelAiFreeGenerationViolation,
   makeStableId,
   mergeTagString,
   normalizeReferenceStrengthRows,
-  resolveInpaintModel,
   sanitizeNovelAiTagInput,
 } from "@/components/aiImage/helpers";
 import { compositeFocusedInpaintResult, prepareFocusedInpaintPayload } from "@/components/aiImage/inpaintFocusUtils";
@@ -26,7 +32,186 @@ import { compositeFocusedInpaintResult, prepareFocusedInpaintPayload } from "@/c
 const DEFAULT_INPAINT_PROMPT = "very aesthetic, masterpiece, no text";
 const DEFAULT_INPAINT_NEGATIVE_PROMPT = "nsfw, lowres, artistic error, film grain, scan artifacts, worst quality, bad quality, jpeg artifacts, very displeasing, chromatic aberration, dithering, halftone, screentone, multiple views, logo, too many watermarks, negative space, blank page";
 
-export function buildGenerateContext(args: Record<string, any>) {
+export type GenerateImageResponse = {
+  dataUrls: string[];
+  seed: number;
+  width: number;
+  height: number;
+  model: string;
+};
+
+export type GenerateRequestOverrides = {
+  prompt?: string;
+  negativePrompt?: string;
+  mode?: AiImageHistoryMode;
+  sourceImageBase64?: string;
+  sourceImageDataUrl?: string;
+  sourceImageWidth?: number;
+  sourceImageHeight?: number;
+  maskBase64?: string;
+  width?: number;
+  height?: number;
+  strength?: number;
+  noise?: number;
+  toolLabel?: string;
+};
+
+export type GenerateContext = {
+  effectiveMode: AiImageHistoryMode;
+  effectivePrompt: string;
+  effectiveNegative: string;
+  effectiveImageCount: number;
+  effectiveWidth: number;
+  effectiveHeight: number;
+  effectiveStrength: number;
+  effectiveNoise: number;
+  effectiveSourceImageBase64?: string;
+  effectiveSourceImageDataUrl?: string;
+  effectiveSourceImageWidth?: number;
+  effectiveSourceImageHeight?: number;
+  effectiveMaskBase64?: string;
+  v4CharsPayload?: V4CharPayload[];
+  v4UseCoordsPayload?: boolean;
+  v4UseOrderPayload?: boolean;
+  resolvedVibeTransferReferences: VibeTransferReferenceRow[];
+  vibeTransferPayload?: VibeTransferReferencePayload[];
+  preciseReferencePayload: PreciseReferencePayload | null;
+};
+
+export type FocusedGenerateContext = {
+  requestMaskBase64?: string;
+  requestMaskDataUrl?: string;
+  blendMaskDataUrl: string;
+  resolvedCompositeMaskDataUrl: string;
+  focusedInpaint: PreparedFocusedInpaintPayload | null;
+  requestSourceImageBase64?: string;
+  requestSourceImageWidth?: number;
+  requestSourceImageHeight?: number;
+  requestWidth: number;
+  requestHeight: number;
+  requestMaskPayloadBase64?: string;
+};
+
+type BuildGenerateContextArgs = {
+  mode?: AiImageHistoryMode;
+  currentMode: AiImageHistoryMode;
+  uiMode: UiMode;
+  simpleInfillPrompt: string;
+  proInfillPrompt: string;
+  simpleInfillNegativePrompt: string;
+  proInfillNegativePrompt: string;
+  prompt?: string;
+  negativePrompt?: string;
+  simplePrompt: string;
+  promptText: string;
+  simpleNegativePrompt: string;
+  negativePromptText: string;
+  activeStyleTags: string[];
+  activeStyleNegativeTags: string[];
+  width: number;
+  height: number;
+  strength: number;
+  noise: number;
+  sourceImageBase64?: string;
+  sourceImageDataUrl?: string;
+  sourceImageWidth?: number;
+  sourceImageHeight?: number;
+  maskBase64?: string;
+  isNAI4: boolean;
+  v4Chars: V4CharEditorRow[];
+  v4UseCoords: boolean;
+  v4UseOrder: boolean;
+  normalizeReferenceStrengths: boolean;
+  vibeTransferReferences: VibeTransferReferenceRow[];
+  preciseReference: PreciseReferenceRow | null;
+};
+
+type ResolveFocusedGenerateContextArgs = {
+  context: GenerateContext;
+  maskBase64?: string;
+  uiMode: UiMode;
+  resolveSeparatedInfillMaskBase64ForUi: (targetUiMode: UiMode) => Promise<string>;
+  resolveBlendInfillMaskDataUrlForUi: (targetUiMode: UiMode) => Promise<string>;
+};
+
+type ValidateGenerateContextArgs = {
+  context: GenerateContext;
+  steps: number;
+};
+
+type FinalizeGenerateResultArgs = {
+  context: GenerateContext;
+  focusedContext: FocusedGenerateContext;
+  response: GenerateImageResponse;
+  toolLabel?: string;
+  setResults: (value: GeneratedImageItem[]) => void;
+  setSelectedResultIndex: (value: number) => void;
+  setSelectedHistoryPreviewKey: (value: string | null) => void;
+  uiMode: UiMode;
+  seedValue?: number;
+  setSimpleSeed: (value: number) => void;
+  setProSeed: (value: number) => void;
+};
+
+type FinalizedGenerateResult = {
+  generatedItems: GeneratedImageItem[];
+  batchId: string;
+  resultWidth: number;
+  resultHeight: number;
+};
+
+type BuildHistoryRowsFromGenerateResultArgs = {
+  generatedItems: GeneratedImageItem[];
+  context: GenerateContext;
+  response: GenerateImageResponse;
+  resultWidth: number;
+  resultHeight: number;
+  steps: number;
+  scale: number;
+  sampler: string;
+  noiseSchedule: string;
+  cfgRescale: number;
+  ucPreset: number;
+  qualityToggle: boolean;
+  dynamicThresholding: boolean;
+  smea: boolean;
+  smeaDyn: boolean;
+  preciseReference: PreciseReferenceRow | null;
+  toolLabel?: string;
+  batchId: string;
+};
+
+type BuildOpenInpaintStateArgs = {
+  selectedPreviewResult: GeneratedImageItem | null;
+  dataUrlToBase64: (dataUrl: string) => string;
+  uiMode: UiMode;
+  simpleInfillPrompt: string;
+  proInfillPrompt: string;
+  simpleInfillNegativePrompt: string;
+  proInfillNegativePrompt: string;
+  selectedPreviewHistoryRow: AiImageHistoryRow | null;
+  shouldSyncBaseImage: boolean;
+  infillMaskDataUrl: string;
+  currentInfillStrength: number;
+};
+
+function stripCharacterEditorRow(row: V4CharEditorRow): V4CharPayload {
+  const { id: _id, gender: _gender, ...payload } = row;
+  return payload;
+}
+
+function stripReferenceEditorRow(row: VibeTransferReferenceRow): VibeTransferReferencePayload {
+  const {
+    id: _id,
+    dataUrl: _dataUrl,
+    name: _name,
+    lockInformationExtracted: _lockInformationExtracted,
+    ...payload
+  } = row;
+  return payload;
+}
+
+export function buildGenerateContext(args: BuildGenerateContextArgs): GenerateContext {
   const effectiveMode = args.mode ?? args.currentMode;
   const infillPrompt = args.uiMode === "simple" ? args.simpleInfillPrompt : args.proInfillPrompt;
   const infillNegativePrompt = args.uiMode === "simple" ? args.simpleInfillNegativePrompt : args.proInfillNegativePrompt;
@@ -37,61 +222,43 @@ export function buildGenerateContext(args: Record<string, any>) {
     ? infillNegativePrompt || DEFAULT_INPAINT_NEGATIVE_PROMPT
     : (args.uiMode === "simple" ? args.simpleNegativePrompt : args.negativePromptText))));
   const mergeStyleTags = args.uiMode === "simple" && effectiveMode === "txt2img";
-  const effectiveImageCount = NOVELAI_FREE_FIXED_IMAGE_COUNT;
-  const effectivePrompt = mergeStyleTags ? mergeTagString(basePrompt, args.activeStyleTags).trim() : basePrompt;
-  const effectiveNegative = mergeStyleTags ? mergeTagString(baseNegative, args.activeStyleNegativeTags) : baseNegative;
   const roundedRequestSize = getClosestValidImageSize(args.width, args.height);
-  const effectiveWidth = roundedRequestSize.width;
-  const effectiveHeight = roundedRequestSize.height;
-  const effectiveStrength = args.strength;
-  const effectiveNoise = args.noise;
-  const usesSourceImage = effectiveMode === "img2img" || effectiveMode === "infill";
-  const effectiveSourceImageBase64 = usesSourceImage ? args.sourceImageBase64 : undefined;
-  const effectiveSourceImageDataUrl = usesSourceImage ? args.sourceImageDataUrl : undefined;
-  const effectiveSourceImageWidth = usesSourceImage ? args.sourceImageWidth : undefined;
-  const effectiveSourceImageHeight = usesSourceImage ? args.sourceImageHeight : undefined;
-  const effectiveMaskBase64 = effectiveMode === "infill" ? args.maskBase64 : undefined;
-  const v4CharsPayload = args.isNAI4 && args.uiMode === "pro" ? args.v4Chars.map(({ id, gender, ...rest }: any) => rest) : undefined;
-  const v4UseCoordsPayload = args.uiMode === "pro" ? args.v4UseCoords : undefined;
-  const v4UseOrderPayload = args.uiMode === "pro" ? args.v4UseOrder : undefined;
   const resolvedVibeTransferReferences = args.uiMode === "pro" && args.isNAI4
     ? (args.normalizeReferenceStrengths ? normalizeReferenceStrengthRows(args.vibeTransferReferences) : args.vibeTransferReferences)
     : [];
-  const vibeTransferPayload = args.uiMode === "pro" && args.isNAI4
-    ? resolvedVibeTransferReferences.map(({ imageBase64, id, dataUrl, name, lockInformationExtracted, ...rest }: any) => rest)
-    : undefined;
-  const preciseReferencePayload = args.uiMode === "pro" && args.isNAI4 && args.preciseReference
-    ? {
-        imageBase64: args.preciseReference.imageBase64,
-        strength: args.preciseReference.strength,
-        informationExtracted: args.preciseReference.informationExtracted,
-      }
-    : null;
 
   return {
     effectiveMode,
-    effectivePrompt,
-    effectiveNegative,
-    effectiveImageCount,
-    effectiveWidth,
-    effectiveHeight,
-    effectiveStrength,
-    effectiveNoise,
-    effectiveSourceImageBase64,
-    effectiveSourceImageDataUrl,
-    effectiveSourceImageWidth,
-    effectiveSourceImageHeight,
-    effectiveMaskBase64,
-    v4CharsPayload,
-    v4UseCoordsPayload,
-    v4UseOrderPayload,
+    effectivePrompt: mergeStyleTags ? mergeTagString(basePrompt, args.activeStyleTags).trim() : basePrompt,
+    effectiveNegative: mergeStyleTags ? mergeTagString(baseNegative, args.activeStyleNegativeTags) : baseNegative,
+    effectiveImageCount: NOVELAI_FREE_FIXED_IMAGE_COUNT,
+    effectiveWidth: roundedRequestSize.width,
+    effectiveHeight: roundedRequestSize.height,
+    effectiveStrength: args.strength,
+    effectiveNoise: args.noise,
+    effectiveSourceImageBase64: effectiveMode === "img2img" || effectiveMode === "infill" ? args.sourceImageBase64 : undefined,
+    effectiveSourceImageDataUrl: effectiveMode === "img2img" || effectiveMode === "infill" ? args.sourceImageDataUrl : undefined,
+    effectiveSourceImageWidth: effectiveMode === "img2img" || effectiveMode === "infill" ? args.sourceImageWidth : undefined,
+    effectiveSourceImageHeight: effectiveMode === "img2img" || effectiveMode === "infill" ? args.sourceImageHeight : undefined,
+    effectiveMaskBase64: effectiveMode === "infill" ? args.maskBase64 : undefined,
+    v4CharsPayload: args.isNAI4 && args.uiMode === "pro" ? args.v4Chars.map(stripCharacterEditorRow) : undefined,
+    v4UseCoordsPayload: args.uiMode === "pro" ? args.v4UseCoords : undefined,
+    v4UseOrderPayload: args.uiMode === "pro" ? args.v4UseOrder : undefined,
     resolvedVibeTransferReferences,
-    vibeTransferPayload,
-    preciseReferencePayload,
+    vibeTransferPayload: args.uiMode === "pro" && args.isNAI4
+      ? resolvedVibeTransferReferences.map(stripReferenceEditorRow)
+      : undefined,
+    preciseReferencePayload: args.uiMode === "pro" && args.isNAI4 && args.preciseReference
+      ? {
+          imageBase64: args.preciseReference.imageBase64,
+          strength: args.preciseReference.strength,
+          informationExtracted: args.preciseReference.informationExtracted,
+        }
+      : null,
   };
 }
 
-export async function resolveFocusedGenerateContext(args: Record<string, any>) {
+export async function resolveFocusedGenerateContext(args: ResolveFocusedGenerateContextArgs): Promise<FocusedGenerateContext> {
   const requestMaskBase64 = args.maskBase64 ?? (args.context.effectiveMode === "infill"
     ? await args.resolveSeparatedInfillMaskBase64ForUi(args.uiMode)
     : undefined);
@@ -124,9 +291,9 @@ export async function resolveFocusedGenerateContext(args: Record<string, any>) {
   };
 }
 
-export function validateGenerateContext(args: Record<string, any>) {
+export function validateGenerateContext(args: ValidateGenerateContextArgs) {
   if (args.context.effectiveMode === "txt2img" && !args.context.effectivePrompt)
-    throw new Error("prompt 涓虹┖锛氳鍏堣ˉ鍏?tags");
+    throw new Error("Prompt is required before generating tags.");
 
   const freeViolation = getNovelAiFreeGenerationViolation({
     mode: args.context.effectiveMode,
@@ -145,38 +312,41 @@ export function validateGenerateContext(args: Record<string, any>) {
     throw new Error(freeViolation);
 }
 
-export async function finalizeGenerateResult(args: Record<string, any>) {
+export async function finalizeGenerateResult(args: FinalizeGenerateResultArgs): Promise<FinalizedGenerateResult> {
   const resolvedDataUrls = args.focusedContext.focusedInpaint && args.context.effectiveSourceImageDataUrl && args.focusedContext.resolvedCompositeMaskDataUrl
-    ? await Promise.all(args.response.dataUrls.map(async (dataUrl: string) => {
+    ? await Promise.all(args.response.dataUrls.map(async (dataUrl) => {
         return await compositeFocusedInpaintResult({
-          sourceDataUrl: args.context.effectiveSourceImageDataUrl,
+          sourceDataUrl: args.context.effectiveSourceImageDataUrl!,
           generatedCropDataUrl: dataUrl,
           fullMaskDataUrl: args.focusedContext.resolvedCompositeMaskDataUrl,
-          cropRect: args.focusedContext.focusedInpaint.cropRect,
+          cropRect: args.focusedContext.focusedInpaint!.cropRect,
         });
       }))
     : args.response.dataUrls;
 
   const batchId = makeStableId();
-  const resultWidth = args.focusedContext.focusedInpaint ? (args.context.effectiveSourceImageWidth ?? args.context.effectiveWidth) : args.response.width;
-  const resultHeight = args.focusedContext.focusedInpaint ? (args.context.effectiveSourceImageHeight ?? args.context.effectiveHeight) : args.response.height;
-  const generatedItems = resolvedDataUrls.map((dataUrl: string, batchIndex: number) => {
-    return {
-      dataUrl,
-      seed: args.response.seed,
-      width: resultWidth,
-      height: resultHeight,
-      model: args.response.model,
-      batchId,
-      batchIndex,
-      batchSize: resolvedDataUrls.length,
-      toolLabel: args.toolLabel,
-    } satisfies GeneratedImageItem;
-  });
+  const resultWidth = args.focusedContext.focusedInpaint
+    ? (args.context.effectiveSourceImageWidth ?? args.context.effectiveWidth)
+    : args.response.width;
+  const resultHeight = args.focusedContext.focusedInpaint
+    ? (args.context.effectiveSourceImageHeight ?? args.context.effectiveHeight)
+    : args.response.height;
+  const generatedItems = resolvedDataUrls.map((dataUrl, batchIndex) => ({
+    dataUrl,
+    seed: args.response.seed,
+    width: resultWidth,
+    height: resultHeight,
+    model: args.response.model,
+    batchId,
+    batchIndex,
+    batchSize: resolvedDataUrls.length,
+    toolLabel: args.toolLabel,
+  } satisfies GeneratedImageItem));
 
   args.setResults(generatedItems);
   args.setSelectedResultIndex(0);
   args.setSelectedHistoryPreviewKey(null);
+
   if (args.uiMode === "simple")
     args.setSimpleSeed(args.seedValue == null ? DEFAULT_SIMPLE_IMAGE_SETTINGS.seed : args.response.seed);
   else
@@ -190,8 +360,8 @@ export async function finalizeGenerateResult(args: Record<string, any>) {
   };
 }
 
-export function buildHistoryRowsFromGenerateResult(args: Record<string, any>) {
-  return args.generatedItems.map((item: GeneratedImageItem) => ({
+export function buildHistoryRowsFromGenerateResult(args: BuildHistoryRowsFromGenerateResultArgs): Array<Omit<AiImageHistoryRow, "id">> {
+  return args.generatedItems.map((item) => ({
     createdAt: Date.now(),
     mode: args.context.effectiveMode,
     model: args.response.model,
@@ -216,7 +386,11 @@ export function buildHistoryRowsFromGenerateResult(args: Record<string, any>) {
     v4Chars: args.context.v4CharsPayload,
     v4UseCoords: args.context.v4UseCoordsPayload ?? false,
     v4UseOrder: args.context.v4UseOrderPayload ?? true,
-    referenceImages: args.context.resolvedVibeTransferReferences.map(({ imageBase64, id, lockInformationExtracted, ...ref }: any) => ref),
+    referenceImages: args.context.vibeTransferPayload?.map((reference, index) => ({
+      ...reference,
+      name: args.context.resolvedVibeTransferReferences[index]?.name ?? "",
+      dataUrl: args.context.resolvedVibeTransferReferences[index]?.dataUrl ?? "",
+    })),
     preciseReference: args.preciseReference
       ? {
           name: args.preciseReference.name,
@@ -227,21 +401,23 @@ export function buildHistoryRowsFromGenerateResult(args: Record<string, any>) {
       : null,
     dataUrl: item.dataUrl,
     toolLabel: args.toolLabel,
-    sourceDataUrl: args.context.effectiveMode === "img2img" || args.context.effectiveMode === "infill" ? args.context.effectiveSourceImageDataUrl : undefined,
+    sourceDataUrl: args.context.effectiveMode === "img2img" || args.context.effectiveMode === "infill"
+      ? args.context.effectiveSourceImageDataUrl
+      : undefined,
     batchId: args.batchId,
     batchIndex: item.batchIndex,
     batchSize: item.batchSize,
   }));
 }
 
-export function buildOpenInpaintState(args: Record<string, any>) {
+export function buildOpenInpaintState(args: BuildOpenInpaintStateArgs): InpaintDialogSource | null {
   const preview = args.selectedPreviewResult;
   if (!preview)
     return null;
 
   const sourceImageBase64 = args.dataUrlToBase64(preview.dataUrl);
   if (!sourceImageBase64)
-    throw new Error("褰撳墠棰勮鍥剧墖璇诲彇澶辫触锛屾棤娉曞惎鍔?Inpaint銆?");
+    throw new Error("The selected preview could not be converted into an inpaint source image.");
 
   const currentInfillPrompt = args.uiMode === "simple" ? args.simpleInfillPrompt : args.proInfillPrompt;
   const currentInfillNegativePrompt = args.uiMode === "simple" ? args.simpleInfillNegativePrompt : args.proInfillNegativePrompt;

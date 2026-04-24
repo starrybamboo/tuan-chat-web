@@ -1,12 +1,34 @@
+import type { Dispatch, SetStateAction } from "react";
+
 import { useCallback } from "react";
 
-import type { AiImageHistoryMode } from "@/utils/aiImageHistoryDb";
-import type { GeneratedImageItem, PreciseReferenceRow, UiMode, V4CharEditorRow, VibeTransferReferenceRow } from "@/components/aiImage/types";
+import type {
+  ActivePreviewAction,
+  DirectorToolId,
+  DirectorToolOption,
+  GeneratedImageItem,
+  NovelAiEmotion,
+  PreciseReferenceRow,
+  UiMode,
+  V4CharEditorRow,
+  VibeTransferReferenceRow,
+} from "@/components/aiImage/types";
+import type { AiImageHistoryMode, AiImageHistoryRow } from "@/utils/aiImageHistoryDb";
 
-import { buildGenerateContext, buildHistoryRowsFromGenerateResult, finalizeGenerateResult, resolveFocusedGenerateContext, validateGenerateContext } from "@/components/aiImage/controller/generateActions";
+import {
+  buildGenerateContext,
+  buildHistoryRowsFromGenerateResult,
+  finalizeGenerateResult,
+  resolveFocusedGenerateContext,
+  validateGenerateContext,
+} from "@/components/aiImage/controller/generateActions";
 import { generatedItemKey, getNovelAiFreeOnlyMessage, resolveInpaintModel } from "@/components/aiImage/helpers";
 import { isDirectorToolDisabled } from "@/components/aiImage/constants";
 import { runDirectorToolAction } from "@/components/aiImage/controller/directorActions";
+
+type GenerateNovelImageViaProxy = typeof import("@/components/aiImage/api").generateNovelImageViaProxy;
+type AugmentNovelImageViaProxy = typeof import("@/components/aiImage/api").augmentNovelImageViaProxy;
+type AddAiImageHistoryBatch = typeof import("@/utils/aiImageHistoryDb").addAiImageHistoryBatch;
 
 interface UseAiImageGenerationActionsOptions {
   uiMode: UiMode;
@@ -52,84 +74,187 @@ interface UseAiImageGenerationActionsOptions {
   activeStyleTags: string[];
   activeStyleNegativeTags: string[];
   directorInputPreview: GeneratedImageItem | null;
-  directorTool: any;
-  activeDirectorTool: any;
+  directorTool: DirectorToolOption;
+  activeDirectorTool: DirectorToolId;
   directorColorizePrompt: string;
   directorEmotionExtraPrompt: string;
   directorColorizeDefry: number;
   directorEmotionDefry: number;
-  directorEmotion: any;
-  historyRowByResultMatchKey: Map<string, any>;
+  directorEmotion: NovelAiEmotion;
+  historyRowByResultMatchKey: Map<string, AiImageHistoryRow>;
   readImageSize: (dataUrl: string) => Promise<{ width: number; height: number }>;
   resolveInfillMaskBase64ForUi: (targetUiMode: UiMode) => string;
   resolveSeparatedInfillMaskBase64ForUi: (targetUiMode: UiMode) => Promise<string>;
   resolveBlendInfillMaskDataUrlForUi: (targetUiMode: UiMode) => Promise<string>;
   setError: (value: string) => void;
   setLoading: (value: boolean) => void;
-  setPendingPreviewAction: (value: any) => void;
-  setDirectorOutputPreview: (value: any) => void;
-  setResults: (value: any) => void;
-  setSelectedResultIndex: (value: number) => void;
+  setPendingPreviewAction: Dispatch<SetStateAction<ActivePreviewAction>>;
+  setDirectorOutputPreview: Dispatch<SetStateAction<GeneratedImageItem | null>>;
+  setResults: Dispatch<SetStateAction<GeneratedImageItem[]>>;
+  setSelectedResultIndex: Dispatch<SetStateAction<number>>;
   setSelectedHistoryPreviewKey: (value: string | null) => void;
   setSimpleSeed: (value: number) => void;
   setProSeed: (value: number) => void;
-  setDirectorSourceItems: (value: any) => void;
-  setDirectorSourcePreview: (value: any) => void;
+  setDirectorSourceItems: Dispatch<SetStateAction<GeneratedImageItem[]>>;
+  setDirectorSourcePreview: Dispatch<SetStateAction<GeneratedImageItem | null>>;
   refreshHistory: () => Promise<void>;
   showErrorToast: (message: string) => void;
   showSuccessToast: (message: string) => void;
-  generateNovelImageViaProxy: (args: any) => Promise<any>;
-  augmentNovelImageViaProxy: (args: any) => Promise<any>;
-  addAiImageHistoryBatch: (rows: any[]) => Promise<void>;
+  generateNovelImageViaProxy: GenerateNovelImageViaProxy;
+  augmentNovelImageViaProxy: AugmentNovelImageViaProxy;
+  addAiImageHistoryBatch: AddAiImageHistoryBatch;
 }
 
-export function useAiImageGenerationActions(options: UseAiImageGenerationActionsOptions) {
+export function useAiImageGenerationActions({
+  uiMode,
+  mode,
+  model,
+  isNAI4,
+  isDirectorToolsOpen,
+  selectedPreviewResult,
+  prompt,
+  negativePrompt,
+  simplePrompt,
+  simpleNegativePrompt,
+  simpleInfillPrompt,
+  proInfillPrompt,
+  simpleInfillNegativePrompt,
+  proInfillNegativePrompt,
+  width,
+  height,
+  seed,
+  steps,
+  scale,
+  sampler,
+  noiseSchedule,
+  cfgRescale,
+  ucPreset,
+  qualityToggle,
+  dynamicThresholding,
+  smea,
+  smeaDyn,
+  currentImg2imgStrength,
+  currentImg2imgNoise,
+  currentInfillStrength,
+  currentInfillNoise,
+  sourceImageBase64,
+  sourceImageDataUrl,
+  sourceImageSize,
+  v4Chars,
+  v4UseCoords,
+  v4UseOrder,
+  normalizeReferenceStrengths,
+  vibeTransferReferences,
+  preciseReference,
+  activeStyleTags,
+  activeStyleNegativeTags,
+  directorInputPreview,
+  directorTool,
+  activeDirectorTool,
+  directorColorizePrompt,
+  directorEmotionExtraPrompt,
+  directorColorizeDefry,
+  directorEmotionDefry,
+  directorEmotion,
+  historyRowByResultMatchKey,
+  readImageSize,
+  resolveInfillMaskBase64ForUi,
+  resolveSeparatedInfillMaskBase64ForUi,
+  resolveBlendInfillMaskDataUrlForUi,
+  setError,
+  setLoading,
+  setPendingPreviewAction,
+  setDirectorOutputPreview,
+  setResults,
+  setSelectedResultIndex,
+  setSelectedHistoryPreviewKey,
+  setSimpleSeed,
+  setProSeed,
+  setDirectorSourceItems,
+  setDirectorSourcePreview,
+  refreshHistory,
+  showErrorToast,
+  showSuccessToast,
+  generateNovelImageViaProxy,
+  augmentNovelImageViaProxy,
+  addAiImageHistoryBatch,
+}: UseAiImageGenerationActionsOptions) {
   const handleToggleDirectorTools = useCallback(() => {
-    if (!options.isDirectorToolsOpen && options.selectedPreviewResult) {
-      const previewKey = generatedItemKey(options.selectedPreviewResult);
-      options.setDirectorSourceItems((currentItems: GeneratedImageItem[]) => {
-        if (currentItems.some(item => generatedItemKey(item) === previewKey))
-          return currentItems;
-        return [options.selectedPreviewResult as GeneratedImageItem, ...currentItems];
-      });
-      options.setDirectorSourcePreview(options.selectedPreviewResult);
-      options.setDirectorOutputPreview(options.selectedPreviewResult);
-    }
-  }, [options]);
-
-  const handleRunUpscale = useCallback(async () => {
-    if (!options.selectedPreviewResult)
+    if (isDirectorToolsOpen || !selectedPreviewResult)
       return;
-    options.showErrorToast(getNovelAiFreeOnlyMessage("Upscale is disabled."));
-  }, [options]);
+
+    const previewKey = generatedItemKey(selectedPreviewResult);
+    setDirectorSourceItems((currentItems) => {
+      if (currentItems.some(item => generatedItemKey(item) === previewKey))
+        return currentItems;
+      return [selectedPreviewResult, ...currentItems];
+    });
+    setDirectorSourcePreview(selectedPreviewResult);
+    setDirectorOutputPreview(selectedPreviewResult);
+  }, [
+    isDirectorToolsOpen,
+    selectedPreviewResult,
+    setDirectorOutputPreview,
+    setDirectorSourceItems,
+    setDirectorSourcePreview,
+  ]);
+
+  const handleRunUpscale = useCallback(() => {
+    if (!selectedPreviewResult)
+      return;
+    showErrorToast(getNovelAiFreeOnlyMessage("Upscale is disabled."));
+  }, [selectedPreviewResult, showErrorToast]);
 
   const handleRunDirectorTool = useCallback(async () => {
     await runDirectorToolAction({
-      directorInputPreview: options.directorInputPreview,
-      directorTool: options.directorTool,
-      activeDirectorTool: options.activeDirectorTool,
+      directorInputPreview,
+      directorTool,
+      activeDirectorTool,
       isDirectorToolDisabled,
-      showErrorToast: options.showErrorToast,
-      setError: options.setError,
-      setPendingPreviewAction: options.setPendingPreviewAction,
-      setDirectorOutputPreview: options.setDirectorOutputPreview,
-      augmentNovelImageViaProxy: options.augmentNovelImageViaProxy,
-      directorColorizePrompt: options.directorColorizePrompt,
-      directorEmotionExtraPrompt: options.directorEmotionExtraPrompt,
-      directorColorizeDefry: options.directorColorizeDefry,
-      directorEmotionDefry: options.directorEmotionDefry,
-      directorEmotion: options.directorEmotion,
-      readImageSize: options.readImageSize,
-      model: options.model,
-      historyRowByResultMatchKey: options.historyRowByResultMatchKey,
-      setResults: options.setResults,
-      setSelectedResultIndex: options.setSelectedResultIndex,
-      setSelectedHistoryPreviewKey: options.setSelectedHistoryPreviewKey,
-      addAiImageHistoryBatch: options.addAiImageHistoryBatch,
-      refreshHistory: options.refreshHistory,
-      showSuccessToast: options.showSuccessToast,
+      showErrorToast,
+      setError,
+      setPendingPreviewAction,
+      setDirectorOutputPreview,
+      augmentNovelImageViaProxy,
+      directorColorizePrompt,
+      directorEmotionExtraPrompt,
+      directorColorizeDefry,
+      directorEmotionDefry,
+      directorEmotion,
+      readImageSize,
+      model,
+      historyRowByResultMatchKey,
+      setResults,
+      setSelectedResultIndex,
+      setSelectedHistoryPreviewKey,
+      addAiImageHistoryBatch,
+      refreshHistory,
+      showSuccessToast,
     });
-  }, [options]);
+  }, [
+    activeDirectorTool,
+    addAiImageHistoryBatch,
+    augmentNovelImageViaProxy,
+    directorColorizeDefry,
+    directorColorizePrompt,
+    directorEmotion,
+    directorEmotionDefry,
+    directorEmotionExtraPrompt,
+    directorInputPreview,
+    directorTool,
+    historyRowByResultMatchKey,
+    model,
+    readImageSize,
+    refreshHistory,
+    setDirectorOutputPreview,
+    setError,
+    setPendingPreviewAction,
+    setResults,
+    setSelectedHistoryPreviewKey,
+    setSelectedResultIndex,
+    showErrorToast,
+    showSuccessToast,
+  ]);
 
   const runGenerate = useCallback(async (args?: {
     prompt?: string;
@@ -146,69 +271,71 @@ export function useAiImageGenerationActions(options: UseAiImageGenerationActions
     noise?: number;
     toolLabel?: string;
   }) => {
+    const targetMode = args?.mode ?? mode;
     const context = buildGenerateContext({
       mode: args?.mode,
-      currentMode: options.mode,
-      uiMode: options.uiMode,
-      simpleInfillPrompt: options.simpleInfillPrompt,
-      proInfillPrompt: options.proInfillPrompt,
-      simpleInfillNegativePrompt: options.simpleInfillNegativePrompt,
-      proInfillNegativePrompt: options.proInfillNegativePrompt,
+      currentMode: mode,
+      uiMode,
+      simpleInfillPrompt,
+      proInfillPrompt,
+      simpleInfillNegativePrompt,
+      proInfillNegativePrompt,
       prompt: args?.prompt,
       negativePrompt: args?.negativePrompt,
-      simplePrompt: options.simplePrompt,
-      promptText: options.prompt,
-      simpleNegativePrompt: options.simpleNegativePrompt,
-      negativePromptText: options.negativePrompt,
-      activeStyleTags: options.activeStyleTags,
-      activeStyleNegativeTags: options.activeStyleNegativeTags,
-      width: args?.width ?? options.width,
-      height: args?.height ?? options.height,
-      strength: args?.strength ?? ((args?.mode ?? options.mode) === "infill" ? options.currentInfillStrength : options.currentImg2imgStrength),
-      noise: args?.noise ?? ((args?.mode ?? options.mode) === "infill" ? options.currentInfillNoise : options.currentImg2imgNoise),
-      sourceImageBase64: args?.sourceImageBase64 ?? options.sourceImageBase64,
-      sourceImageDataUrl: args?.sourceImageDataUrl ?? options.sourceImageDataUrl,
-      sourceImageWidth: args?.sourceImageWidth ?? options.sourceImageSize?.width,
-      sourceImageHeight: args?.sourceImageHeight ?? options.sourceImageSize?.height,
-      maskBase64: args?.maskBase64 ?? ((args?.mode ?? options.mode) === "infill" ? options.resolveInfillMaskBase64ForUi(options.uiMode) : undefined),
-      isNAI4: options.isNAI4,
-      v4Chars: options.v4Chars,
-      v4UseCoords: options.v4UseCoords,
-      v4UseOrder: options.v4UseOrder,
-      normalizeReferenceStrengths: options.normalizeReferenceStrengths,
-      vibeTransferReferences: options.vibeTransferReferences,
-      preciseReference: options.preciseReference,
+      simplePrompt,
+      promptText: prompt,
+      simpleNegativePrompt,
+      negativePromptText: negativePrompt,
+      activeStyleTags,
+      activeStyleNegativeTags,
+      width: args?.width ?? width,
+      height: args?.height ?? height,
+      strength: args?.strength ?? (targetMode === "infill" ? currentInfillStrength : currentImg2imgStrength),
+      noise: args?.noise ?? (targetMode === "infill" ? currentInfillNoise : currentImg2imgNoise),
+      sourceImageBase64: args?.sourceImageBase64 ?? sourceImageBase64,
+      sourceImageDataUrl: args?.sourceImageDataUrl ?? sourceImageDataUrl,
+      sourceImageWidth: args?.sourceImageWidth ?? sourceImageSize?.width,
+      sourceImageHeight: args?.sourceImageHeight ?? sourceImageSize?.height,
+      maskBase64: args?.maskBase64 ?? (targetMode === "infill" ? resolveInfillMaskBase64ForUi(uiMode) : undefined),
+      isNAI4,
+      v4Chars,
+      v4UseCoords,
+      v4UseOrder,
+      normalizeReferenceStrengths,
+      vibeTransferReferences,
+      preciseReference,
     });
 
-    options.setError("");
-    options.setLoading(true);
+    setError("");
+    setLoading(true);
+
     try {
-      validateGenerateContext({ context, steps: options.steps });
+      validateGenerateContext({ context, steps });
 
       const focusedContext = await resolveFocusedGenerateContext({
         context,
         maskBase64: args?.maskBase64,
-        uiMode: options.uiMode,
-        resolveSeparatedInfillMaskBase64ForUi: options.resolveSeparatedInfillMaskBase64ForUi,
-        resolveBlendInfillMaskDataUrlForUi: options.resolveBlendInfillMaskDataUrlForUi,
+        uiMode,
+        resolveSeparatedInfillMaskBase64ForUi,
+        resolveBlendInfillMaskDataUrlForUi,
       });
 
       if (context.effectiveMode === "infill" && typeof window !== "undefined" && window.electronAPI?.saveAiImageDebugBundle) {
         const requestBody = {
           mode: context.effectiveMode,
-          model: resolveInpaintModel(options.model),
+          model: resolveInpaintModel(model),
           width: focusedContext.requestWidth,
           height: focusedContext.requestHeight,
           strength: context.effectiveStrength,
           noise: context.effectiveNoise,
           prompt: context.effectivePrompt,
           negativePrompt: context.effectiveNegative,
-          sampler: options.sampler,
-          noiseSchedule: options.noiseSchedule,
-          cfgRescale: options.cfgRescale,
-          ucPreset: options.ucPreset,
-          qualityToggle: options.qualityToggle,
-          dynamicThresholding: options.dynamicThresholding,
+          sampler,
+          noiseSchedule,
+          cfgRescale,
+          ucPreset,
+          qualityToggle,
+          dynamicThresholding,
           sourceImageWidth: focusedContext.requestSourceImageWidth,
           sourceImageHeight: focusedContext.requestSourceImageHeight,
           focusedCropRect: focusedContext.focusedInpaint?.cropRect,
@@ -221,9 +348,9 @@ export function useAiImageGenerationActions(options: UseAiImageGenerationActions
         });
       }
 
-      const seedInput = Number(options.seed);
+      const seedInput = Number(seed);
       const seedValue = Number.isFinite(seedInput) && seedInput >= 0 ? Math.floor(seedInput) : undefined;
-      const response = await options.generateNovelImageViaProxy({
+      const response = await generateNovelImageViaProxy({
         mode: context.effectiveMode,
         sourceImageBase64: focusedContext.requestSourceImageBase64,
         sourceImageWidth: focusedContext.requestSourceImageWidth,
@@ -238,20 +365,20 @@ export function useAiImageGenerationActions(options: UseAiImageGenerationActions
         v4UseOrder: context.v4UseOrderPayload,
         vibeTransferReferences: context.vibeTransferPayload,
         preciseReference: context.preciseReferencePayload,
-        model: options.model,
+        model,
         width: focusedContext.requestWidth,
         height: focusedContext.requestHeight,
         imageCount: context.effectiveImageCount,
-        steps: options.steps,
-        scale: options.scale,
-        sampler: options.sampler,
-        noiseSchedule: options.noiseSchedule,
-        cfgRescale: options.cfgRescale,
-        ucPreset: options.ucPreset,
-        smea: options.smea,
-        smeaDyn: options.smeaDyn,
-        qualityToggle: options.qualityToggle,
-        dynamicThresholding: options.dynamicThresholding,
+        steps,
+        scale,
+        sampler,
+        noiseSchedule,
+        cfgRescale,
+        ucPreset,
+        smea,
+        smeaDyn,
+        qualityToggle,
+        dynamicThresholding,
         seed: seedValue,
       });
 
@@ -260,50 +387,107 @@ export function useAiImageGenerationActions(options: UseAiImageGenerationActions
         focusedContext,
         response,
         toolLabel: args?.toolLabel,
-        setResults: options.setResults,
-        setSelectedResultIndex: options.setSelectedResultIndex,
-        setSelectedHistoryPreviewKey: options.setSelectedHistoryPreviewKey,
-        uiMode: options.uiMode,
+        setResults,
+        setSelectedResultIndex,
+        setSelectedHistoryPreviewKey,
+        uiMode,
         seedValue,
-        setSimpleSeed: options.setSimpleSeed,
-        setProSeed: options.setProSeed,
+        setSimpleSeed,
+        setProSeed,
       });
 
-      await options.addAiImageHistoryBatch(buildHistoryRowsFromGenerateResult({
+      const historyRows = buildHistoryRowsFromGenerateResult({
         generatedItems: finalized.generatedItems,
         context,
         response,
         resultWidth: finalized.resultWidth,
         resultHeight: finalized.resultHeight,
-        steps: options.steps,
-        scale: options.scale,
-        sampler: options.sampler,
-        noiseSchedule: options.noiseSchedule,
-        cfgRescale: options.cfgRescale,
-        ucPreset: options.ucPreset,
-        qualityToggle: options.qualityToggle,
-        dynamicThresholding: options.dynamicThresholding,
-        smea: options.smea,
-        smeaDyn: options.smeaDyn,
-        preciseReference: options.preciseReference,
+        steps,
+        scale,
+        sampler,
+        noiseSchedule,
+        cfgRescale,
+        ucPreset,
+        qualityToggle,
+        dynamicThresholding,
+        smea,
+        smeaDyn,
+        preciseReference,
         toolLabel: args?.toolLabel,
         batchId: finalized.batchId,
-      }));
-      await options.refreshHistory();
+      });
+
+      await addAiImageHistoryBatch(historyRows);
+      await refreshHistory();
       return true;
     }
     catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       if (context.effectiveMode === "infill")
-        options.setError(message);
+        setError(message);
       else
-        options.showErrorToast(message);
+        showErrorToast(message);
       return false;
     }
     finally {
-      options.setLoading(false);
+      setLoading(false);
     }
-  }, [options]);
+  }, [
+    activeStyleNegativeTags,
+    activeStyleTags,
+    addAiImageHistoryBatch,
+    cfgRescale,
+    currentImg2imgNoise,
+    currentImg2imgStrength,
+    currentInfillNoise,
+    currentInfillStrength,
+    dynamicThresholding,
+    generateNovelImageViaProxy,
+    height,
+    isNAI4,
+    mode,
+    model,
+    negativePrompt,
+    noiseSchedule,
+    normalizeReferenceStrengths,
+    preciseReference,
+    proInfillNegativePrompt,
+    proInfillPrompt,
+    prompt,
+    qualityToggle,
+    refreshHistory,
+    resolveBlendInfillMaskDataUrlForUi,
+    resolveInfillMaskBase64ForUi,
+    resolveSeparatedInfillMaskBase64ForUi,
+    scale,
+    seed,
+    setError,
+    setLoading,
+    setProSeed,
+    setResults,
+    setSelectedHistoryPreviewKey,
+    setSelectedResultIndex,
+    setSimpleSeed,
+    showErrorToast,
+    simpleInfillNegativePrompt,
+    simpleInfillPrompt,
+    simpleNegativePrompt,
+    simplePrompt,
+    smea,
+    smeaDyn,
+    sourceImageBase64,
+    sourceImageDataUrl,
+    sourceImageSize,
+    steps,
+    ucPreset,
+    uiMode,
+    v4Chars,
+    v4UseCoords,
+    v4UseOrder,
+    vibeTransferReferences,
+    width,
+    sampler,
+  ]);
 
   return {
     handleToggleDirectorTools,

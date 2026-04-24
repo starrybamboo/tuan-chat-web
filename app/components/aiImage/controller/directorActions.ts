@@ -1,7 +1,14 @@
+import type { Dispatch, SetStateAction } from "react";
+
 import type {
+  ActivePreviewAction,
+  DirectorToolId,
+  DirectorToolOption,
   GeneratedImageItem,
   InternalHistoryImageDragPayload,
+  NovelAiEmotion,
 } from "@/components/aiImage/types";
+import type { AiImageHistoryRow } from "@/utils/aiImageHistoryDb";
 
 import { DEFAULT_PRO_IMAGE_SETTINGS } from "@/components/aiImage/constants";
 import {
@@ -14,6 +21,9 @@ import {
   readFileAsBytes,
 } from "@/components/aiImage/helpers";
 
+type AugmentNovelImageViaProxy = typeof import("@/components/aiImage/api").augmentNovelImageViaProxy;
+type AddAiImageHistoryBatch = typeof import("@/utils/aiImageHistoryDb").addAiImageHistoryBatch;
+
 export async function buildDirectorSourceItemAction(args: {
   dataUrl: string;
   name?: string;
@@ -25,11 +35,10 @@ export async function buildDirectorSourceItemAction(args: {
     height: DEFAULT_PRO_IMAGE_SETTINGS.height,
   };
   try {
-    const resolvedSize = await args.readImageSize(args.dataUrl);
-    imageSize = resolvedSize;
+    imageSize = await args.readImageSize(args.dataUrl);
   }
   catch {
-    // keep fallback size
+    // Keep the fallback size when the imported image cannot be measured.
   }
 
   return {
@@ -50,13 +59,13 @@ export async function pickDirectorSourceImagesAction(args: {
   showErrorToast: (message: string) => void;
   model: string;
   readImageSize: (dataUrl: string) => Promise<{ width: number; height: number }>;
-  setDirectorSourceItems: (updater: (prev: GeneratedImageItem[]) => GeneratedImageItem[]) => void;
-  setDirectorSourcePreview: (value: GeneratedImageItem | null) => void;
-  setDirectorOutputPreview: (value: GeneratedImageItem | null) => void;
+  setDirectorSourceItems: Dispatch<SetStateAction<GeneratedImageItem[]>>;
+  setDirectorSourcePreview: Dispatch<SetStateAction<GeneratedImageItem | null>>;
+  setDirectorOutputPreview: Dispatch<SetStateAction<GeneratedImageItem | null>>;
 }) {
   const fileList = Array.from(args.files).filter(file => file.type.startsWith("image/") || file.name);
   if (!fileList.length) {
-    args.showErrorToast("璇峰厛瀵煎叆鍥剧墖鏂囦欢銆?");
+    args.showErrorToast("Please choose at least one image file.");
     return;
   }
 
@@ -85,9 +94,9 @@ export async function pickDirectorSourceHistoryImageAction(args: {
   payload: InternalHistoryImageDragPayload;
   model: string;
   readImageSize: (dataUrl: string) => Promise<{ width: number; height: number }>;
-  setDirectorSourceItems: (updater: (prev: GeneratedImageItem[]) => GeneratedImageItem[]) => void;
-  setDirectorSourcePreview: (value: GeneratedImageItem | null) => void;
-  setDirectorOutputPreview: (value: GeneratedImageItem | null) => void;
+  setDirectorSourceItems: Dispatch<SetStateAction<GeneratedImageItem[]>>;
+  setDirectorSourcePreview: Dispatch<SetStateAction<GeneratedImageItem | null>>;
+  setDirectorOutputPreview: Dispatch<SetStateAction<GeneratedImageItem | null>>;
 }) {
   const item = await buildDirectorSourceItemAction({
     dataUrl: args.payload.dataUrl,
@@ -95,23 +104,48 @@ export async function pickDirectorSourceHistoryImageAction(args: {
     model: args.model,
     readImageSize: args.readImageSize,
   });
+
   args.setDirectorSourceItems(prev => [item, ...prev]);
   args.setDirectorSourcePreview(item);
   args.setDirectorOutputPreview(null);
 }
 
-export async function runDirectorToolAction(args: Record<string, any>) {
-  if (!args.directorInputPreview || !args.directorTool)
+export async function runDirectorToolAction(args: {
+  directorInputPreview: GeneratedImageItem | null;
+  directorTool: DirectorToolOption;
+  activeDirectorTool: DirectorToolId;
+  isDirectorToolDisabled: (toolId: DirectorToolId) => boolean;
+  showErrorToast: (message: string) => void;
+  setError: (value: string) => void;
+  setPendingPreviewAction: Dispatch<SetStateAction<ActivePreviewAction>>;
+  setDirectorOutputPreview: Dispatch<SetStateAction<GeneratedImageItem | null>>;
+  augmentNovelImageViaProxy: AugmentNovelImageViaProxy;
+  directorColorizePrompt: string;
+  directorEmotionExtraPrompt: string;
+  directorColorizeDefry: number;
+  directorEmotionDefry: number;
+  directorEmotion: NovelAiEmotion;
+  readImageSize: (dataUrl: string) => Promise<{ width: number; height: number }>;
+  model: string;
+  historyRowByResultMatchKey: Map<string, AiImageHistoryRow>;
+  setResults: Dispatch<SetStateAction<GeneratedImageItem[]>>;
+  setSelectedResultIndex: Dispatch<SetStateAction<number>>;
+  setSelectedHistoryPreviewKey: (value: string | null) => void;
+  addAiImageHistoryBatch: AddAiImageHistoryBatch;
+  refreshHistory: () => Promise<void>;
+  showSuccessToast: (message: string) => void;
+}) {
+  if (!args.directorInputPreview)
     return;
 
   if (args.isDirectorToolDisabled(args.activeDirectorTool)) {
-    args.showErrorToast(`${args.directorTool.label} 宸茬鐢ㄣ€俙`);
+    args.showErrorToast(`${args.directorTool.label} is disabled right now.`);
     return;
   }
 
   const imageBase64 = dataUrlToBase64(args.directorInputPreview.dataUrl);
   if (!imageBase64) {
-    args.showErrorToast("瀵兼紨宸ュ叿杈撳叆鍥捐鍙栧け璐ャ€?");
+    args.showErrorToast("The selected director image could not be converted.");
     return;
   }
 
@@ -139,7 +173,7 @@ export async function runDirectorToolAction(args: Record<string, any>) {
     });
     const nextDataUrl = response.dataUrls[0];
     if (!nextDataUrl)
-      throw new Error("Director Tools 娌℃湁杩斿洖鍥惧儚銆?");
+      throw new Error("Director Tools did not return an output image.");
 
     let nextSize = {
       width: args.directorInputPreview.width,
@@ -149,7 +183,7 @@ export async function runDirectorToolAction(args: Record<string, any>) {
       nextSize = await args.readImageSize(nextDataUrl);
     }
     catch {
-      // keep input image size
+      // Fall back to the source image size when the output cannot be measured.
     }
 
     const nextOutput = {
@@ -178,7 +212,7 @@ export async function runDirectorToolAction(args: Record<string, any>) {
       }),
     ]);
     await args.refreshHistory();
-    args.showSuccessToast(`${args.directorTool.label} 宸插畬鎴愩€俙`);
+    args.showSuccessToast(`${args.directorTool.label} completed.`);
   }
   catch (error) {
     const message = error instanceof Error ? error.message : String(error);
