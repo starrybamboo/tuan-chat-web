@@ -293,7 +293,7 @@ export async function resolveFocusedGenerateContext(args: ResolveFocusedGenerate
 
 export function validateGenerateContext(args: ValidateGenerateContextArgs) {
   if (args.context.effectiveMode === "txt2img" && !args.context.effectivePrompt)
-    throw new Error("Prompt is required before generating tags.");
+    throw new Error("生成前请先补全 tags。");
 
   const freeViolation = getNovelAiFreeGenerationViolation({
     mode: args.context.effectiveMode,
@@ -417,7 +417,7 @@ export function buildOpenInpaintState(args: BuildOpenInpaintStateArgs): InpaintD
 
   const sourceImageBase64 = args.dataUrlToBase64(preview.dataUrl);
   if (!sourceImageBase64)
-    throw new Error("The selected preview could not be converted into an inpaint source image.");
+    throw new Error("当前预览图无法转换为局部重绘底图。");
 
   const currentInfillPrompt = args.uiMode === "simple" ? args.simpleInfillPrompt : args.proInfillPrompt;
   const currentInfillNegativePrompt = args.uiMode === "simple" ? args.simpleInfillNegativePrompt : args.proInfillNegativePrompt;

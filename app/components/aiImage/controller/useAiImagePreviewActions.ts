@@ -126,7 +126,7 @@ export function useAiImagePreviewActions({
     if (!image)
       return;
     if (typeof navigator === "undefined" || !navigator.clipboard?.write || typeof ClipboardItem === "undefined") {
-      showErrorToast("Clipboard image copy is not supported in this environment.");
+      showErrorToast("当前环境不支持复制图片到剪贴板。");
       return;
     }
 
@@ -143,7 +143,7 @@ export function useAiImagePreviewActions({
       showSuccessToast(successMessage);
     }
     catch {
-      showErrorToast("Failed to copy image. Please try again.");
+      showErrorToast("复制图片失败，请重试。");
     }
   }, [showErrorToast, showSuccessToast]);
 
@@ -159,22 +159,22 @@ export function useAiImagePreviewActions({
   const handleRunDirectorInputUpscale = useCallback(async () => {
     if (!directorInputPreview)
       return;
-    showErrorToast("Upscale is disabled.");
+    showErrorToast("放大功能暂不可用。");
   }, [directorInputPreview, showErrorToast]);
 
   const handleAddDirectorDisplayedToSourceRail = useCallback(() => {
     const clone = addDirectorImageToSourceRail(directorOutputPreview ?? selectedPreviewResult);
     if (!clone)
       return;
-    showSuccessToast("Added the current right-side image to the source rail.");
+    showSuccessToast("已将当前右侧图像加入素材栏。");
   }, [addDirectorImageToSourceRail, directorOutputPreview, selectedPreviewResult, showSuccessToast]);
 
   const handleCopyDirectorInputImage = useCallback(async () => {
-    await copyGeneratedImageToClipboard(directorInputPreview, "Copied the current left image.");
+    await copyGeneratedImageToClipboard(directorInputPreview, "已复制当前左侧图像。");
   }, [copyGeneratedImageToClipboard, directorInputPreview]);
 
   const handleCopyDirectorOutputImage = useCallback(async () => {
-    await copyGeneratedImageToClipboard(directorOutputPreview ?? selectedPreviewResult, "Copied the current right image.");
+    await copyGeneratedImageToClipboard(directorOutputPreview ?? selectedPreviewResult, "已复制当前右侧图像。");
   }, [copyGeneratedImageToClipboard, directorOutputPreview, selectedPreviewResult]);
 
   const handleDownloadDirectorOutputImage = useCallback(() => {
@@ -238,7 +238,7 @@ export function useAiImagePreviewActions({
   }, [selectedPreviewResult, setProSeed, setSimpleSeed, showSuccessToast, uiMode]);
 
   const handleCopySelectedPreviewImage = useCallback(async () => {
-    await copyGeneratedImageToClipboard(selectedPreviewResult, "Copied the current image.");
+    await copyGeneratedImageToClipboard(selectedPreviewResult, "已复制当前图像。");
   }, [copyGeneratedImageToClipboard, selectedPreviewResult]);
 
   const handleDownloadCurrent = useCallback(() => {

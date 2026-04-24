@@ -359,7 +359,7 @@ export function applyHistorySettingsAction(args: {
         simple.setSimpleSeed(row.seed);
       else
         pro.setProSeed(row.seed);
-      shared.showSuccessToast("Seed applied from history.");
+      shared.showSuccessToast("已从历史记录应用 seed。");
     }
     return;
   }
@@ -394,8 +394,8 @@ export function applyHistorySettingsAction(args: {
       simple.setSimpleSeed(row.seed);
 
     const successParts = [
-      importSeed ? "History settings and seed applied." : "History settings applied.",
-      restoredSourceImage && row.mode === "infill" ? "Base image restored for infill." : "",
+      importSeed ? "已应用历史设置和 seed。" : "已应用历史设置。",
+      restoredSourceImage && row.mode === "infill" ? "已为局部重绘恢复底图。" : "",
     ];
     shared.showSuccessToast(successParts.filter(Boolean).join(" "));
     return;
@@ -488,9 +488,9 @@ export function applyHistorySettingsAction(args: {
   );
 
   const successParts = [
-    importSeed ? "History settings and seed applied." : "History settings applied.",
-    restoredSourceImage && row.mode === "infill" ? "Base image restored for infill." : "",
-    droppedPaidSettings.length ? `Skipped free-tier-incompatible settings: ${droppedPaidSettings.join(", ")}.` : "",
+    importSeed ? "已应用历史设置和 seed。" : "已应用历史设置。",
+    restoredSourceImage && row.mode === "infill" ? "已为局部重绘恢复底图。" : "",
+    droppedPaidSettings.length ? `已跳过免费档不兼容设置：${droppedPaidSettings.join("、")}。` : "",
   ];
   shared.showSuccessToast(successParts.filter(Boolean).join(" "));
 }

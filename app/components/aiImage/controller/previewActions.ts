@@ -1,3 +1,6 @@
+import type { GeneratedImageItem } from "@/components/aiImage/types";
+import type { AiImageHistoryRow } from "@/utils/aiImageHistoryDb";
+
 export function clearPinnedPreviewAction(args: {
   pinnedPreviewKey: string | null;
   setPinnedPreviewKey: (value: string | null) => void;
@@ -6,16 +9,16 @@ export function clearPinnedPreviewAction(args: {
   if (!args.pinnedPreviewKey)
     return;
   args.setPinnedPreviewKey(null);
-  args.showSuccessToast("宸插彇娑堝浐瀹氶瑙堛€?");
+  args.showSuccessToast("已清除固定预览。");
 }
 
 export function selectPinnedPreviewAction(args: {
   pinnedPreviewKey: string | null;
-  results: any[];
-  generatedItemKey: (item: any) => string;
+  results: GeneratedImageItem[];
+  generatedItemKey: (item: GeneratedImageItem) => string;
   handleSelectCurrentResult: (index: number) => void;
-  historyRowByKey: Map<string, any>;
-  handlePreviewHistoryRow: (row: any) => void;
+  historyRowByKey: Map<string, AiImageHistoryRow>;
+  handlePreviewHistoryRow: (row: AiImageHistoryRow) => void;
 }) {
   if (!args.pinnedPreviewKey)
     return;
@@ -49,11 +52,11 @@ export function applyPinnedPreviewSeedAction(args: {
     args.setSimpleSeed(args.pinnedPreviewResult.seed);
   else
     args.setProSeed(args.pinnedPreviewResult.seed);
-  args.showSuccessToast("宸叉妸 pinned 棰勮 seed 鍥炲～鍒拌缃€?");
+  args.showSuccessToast("已应用固定预览 seed。");
 }
 
 export function openPreviewImageAction(args: {
-  selectedPreviewResult: unknown;
+  selectedPreviewResult: GeneratedImageItem | null;
   setIsPreviewImageModalOpen: (value: boolean) => void;
 }) {
   if (!args.selectedPreviewResult)
@@ -62,7 +65,7 @@ export function openPreviewImageAction(args: {
 }
 
 export function togglePinnedPreviewAction(args: {
-  selectedPreviewResult: unknown;
+  selectedPreviewResult: GeneratedImageItem | null;
   selectedPreviewIdentityKey: string | null;
   pinnedPreviewKey: string | null;
   setPinnedPreviewKey: (value: string | null) => void;
@@ -72,7 +75,7 @@ export function togglePinnedPreviewAction(args: {
     return;
   const nextPinnedKey = args.pinnedPreviewKey === args.selectedPreviewIdentityKey ? null : args.selectedPreviewIdentityKey;
   args.setPinnedPreviewKey(nextPinnedKey);
-  args.showSuccessToast(nextPinnedKey ? "宸插浐瀹氬綋鍓嶉瑙堛€?" : "宸插彇娑堝浐瀹氬綋鍓嶉瑙堛€?");
+  args.showSuccessToast(nextPinnedKey ? "已固定当前预览。" : "已取消固定当前预览。");
 }
 
 export function applySelectedPreviewSeedAction(args: {
@@ -88,12 +91,12 @@ export function applySelectedPreviewSeedAction(args: {
     args.setSimpleSeed(args.selectedPreviewResult.seed);
   else
     args.setProSeed(args.selectedPreviewResult.seed);
-  args.showSuccessToast("宸叉妸褰撳墠棰勮 seed 鍥炲～鍒拌缃€?");
+  args.showSuccessToast("已应用当前预览 seed。");
 }
 
 export function downloadCurrentAction(args: {
-  selectedPreviewResult: any;
-  downloadGeneratedImage: (image: any, filePrefix: string) => void;
+  selectedPreviewResult: GeneratedImageItem | null;
+  downloadGeneratedImage: (image: GeneratedImageItem | null, filePrefix: string) => void;
 }) {
   args.downloadGeneratedImage(args.selectedPreviewResult, "nai");
 }
