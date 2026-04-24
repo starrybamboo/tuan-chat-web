@@ -123,8 +123,8 @@ export function renderProBottomSettingsDrawerContent({
               <button
                 type="button"
                 className="inline-flex size-8 items-center justify-center rounded-md text-base-content/72 transition hover:bg-black/5 hover:text-base-content focus:outline-none dark:text-white/72 dark:hover:bg-white/8 dark:hover:text-white"
-                aria-label="閲嶇疆缁樺浘璁剧疆"
-                title="閲嶇疆缁樺浘璁剧疆"
+                aria-label="重置绘图设置"
+                title="重置绘图设置"
                 onClick={onResetCurrentImageSettings}
               >
                 <ArrowCounterClockwise className="size-4" weight="bold" />
@@ -132,7 +132,8 @@ export function renderProBottomSettingsDrawerContent({
               <button
                 type="button"
                 className="inline-flex size-8 items-center justify-center rounded-md text-base-content/72 transition hover:bg-black/5 hover:text-base-content focus:outline-none dark:text-white/72 dark:hover:bg-white/8 dark:hover:text-white"
-                aria-label="鏀惰捣 AI 璁剧疆"
+                aria-label="收起 AI 设置"
+                title="收起 AI 设置"
                 onClick={onCloseDrawer}
               >
                 <CaretDownIcon className="size-4" weight="bold" />
