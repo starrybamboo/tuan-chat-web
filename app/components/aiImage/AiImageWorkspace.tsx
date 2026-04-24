@@ -49,7 +49,7 @@ export const AiImageWorkspace = memo(function AiImageWorkspace({
             <button
               type="button"
               className="absolute inset-0 z-[5] bg-black/36 transition-opacity"
-              aria-label="?? pinned ????"
+              aria-label="Close pinned preview scrim"
               onClick={() => setIsPinnedDrawerOpen(false)}
             />
           )
@@ -68,8 +68,8 @@ export const AiImageWorkspace = memo(function AiImageWorkspace({
                   <button
                     type="button"
                     className="inline-flex size-9 items-center justify-center rounded-none text-base-content/72 transition-colors hover:bg-base-200/35 hover:text-base-content"
-                    aria-label="??????"
-                    title="??????"
+                    aria-label="Unpin preview"
+                    title="Unpin preview"
                     onClick={onClearPinnedPreview}
                   >
                     <TrashSimpleIcon className="size-[18px]" weight="regular" />
@@ -77,8 +77,8 @@ export const AiImageWorkspace = memo(function AiImageWorkspace({
                   <button
                     type="button"
                     className="inline-flex size-9 items-center justify-center rounded-none text-base-content/72 transition-colors hover:bg-base-200/35 hover:text-base-content"
-                    aria-label="??? pinned ??"
-                    title="??? pinned ??"
+                    aria-label="Jump to pinned image"
+                    title="Jump to pinned image"
                     onClick={() => {
                       onJumpToPinnedPreview();
                       setIsPinnedDrawerOpen(false);
@@ -89,8 +89,8 @@ export const AiImageWorkspace = memo(function AiImageWorkspace({
                   <button
                     type="button"
                     className="inline-flex size-9 items-center justify-center rounded-none text-base-content/72 transition-colors hover:bg-base-200/35 hover:text-base-content"
-                    aria-label="?? pinned seed"
-                    title="?? pinned seed"
+                    aria-label="Apply pinned seed"
+                    title="Apply pinned seed"
                     onClick={onApplyPinnedPreviewSeed}
                   >
                     <PlantIcon className="size-[18px]" weight="regular" />
@@ -99,7 +99,7 @@ export const AiImageWorkspace = memo(function AiImageWorkspace({
                 <button
                   type="button"
                   className="relative block shrink-0 overflow-hidden rounded-none bg-transparent shadow-xl"
-                  aria-label={isPinnedDrawerOpen ? "?? pinned ??" : "?? pinned ??"}
+                  aria-label={isPinnedDrawerOpen ? "Collapse pinned preview" : "Expand pinned preview"}
                   onClick={() => {
                     if (isPinnedDrawerOpen) {
                       setIsPinnedDrawerOpen(false);
@@ -127,8 +127,8 @@ export const AiImageWorkspace = memo(function AiImageWorkspace({
               <button
                 type="button"
                 className="flex size-10 items-center justify-center bg-transparent text-base-content/62 transition hover:text-base-content/90 focus:outline-none"
-                aria-label="?????????"
-                title="?????????"
+                aria-label="Expand history sidebar"
+                title="Expand history sidebar"
                 onClick={() => setIsHistoryCollapsed(false)}
               >
                 <HistoryIcon className="size-6" />
