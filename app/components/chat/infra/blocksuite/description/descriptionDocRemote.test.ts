@@ -26,6 +26,27 @@ vi.mock("@/components/chat/infra/blocksuite/shared/docCardShareObservability", (
 
 type DescriptionDocRemoteModule = typeof import("./descriptionDocRemote");
 
+type CancelableDeferred<T> = {
+  promise: Promise<T> & { cancel: ReturnType<typeof vi.fn> };
+  resolve: (value: T) => void;
+  reject: (error?: unknown) => void;
+  cancel: ReturnType<typeof vi.fn>;
+};
+
+function createCancelableDeferred<T>(): CancelableDeferred<T> {
+  let resolve!: (value: T) => void;
+  let reject!: (error?: unknown) => void;
+  const cancel = vi.fn(() => {
+    reject(new Error("cancelled"));
+  });
+  const base = new Promise<T>((res, rej) => {
+    resolve = res;
+    reject = rej;
+  });
+  const promise = Object.assign(base, { cancel });
+  return { promise, resolve, reject, cancel };
+}
+
 function clearSharedRemoteState() {
   delete (globalThis as unknown as Record<string, unknown>).__tcDescriptionDocRemoteState_v2;
   if (typeof window !== "undefined") {
@@ -100,5 +121,58 @@ describe("descriptionDocRemote", () => {
 
     await expect(descriptionDocRemote.getRemoteSnapshot(params)).resolves.toEqual(snapshot);
     expect(getDocMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("远端快照请求超时后会取消请求，且不会阻塞下一次读取", async () => {
+    const params = {
+      entityType: "room" as const,
+      entityId: 56,
+      docType: "description" as const,
+    };
+    const first = createCancelableDeferred<{ data: null }>();
+    const snapshot = {
+      v: 1 as const,
+      updateB64: "Aw==",
+      updatedAt: Date.now(),
+    };
+    getDocMock
+      .mockReturnValueOnce(first.promise)
+      .mockResolvedValueOnce({ data: snapshot });
+
+    const firstTask = descriptionDocRemote.getRemoteSnapshot(params);
+    const rejection = expect(firstTask).rejects.toThrow("blocksuite snapshot request timed out");
+    await vi.advanceTimersByTimeAsync(8000);
+    await rejection;
+    expect(first.cancel).toHaveBeenCalledTimes(1);
+
+    await expect(descriptionDocRemote.getRemoteSnapshot(params)).resolves.toEqual(snapshot);
+    expect(getDocMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("远端增量请求超时后会取消请求，且不会复用挂住的 inflight", async () => {
+    const params = {
+      entityType: "room" as const,
+      entityId: 78,
+      docType: "description" as const,
+      afterServerTime: 0,
+      limit: 2000,
+    };
+    const first = createCancelableDeferred<{ data: null }>();
+    const updates = {
+      updates: ["AQ=="],
+      latestServerTime: 123,
+    };
+    listDocUpdatesMock
+      .mockReturnValueOnce(first.promise)
+      .mockResolvedValueOnce({ data: updates });
+
+    const firstTask = descriptionDocRemote.getRemoteUpdates(params);
+    const rejection = expect(firstTask).rejects.toThrow("blocksuite updates request timed out");
+    await vi.advanceTimersByTimeAsync(8000);
+    await rejection;
+    expect(first.cancel).toHaveBeenCalledTimes(1);
+
+    await expect(descriptionDocRemote.getRemoteUpdates(params)).resolves.toEqual(updates);
+    expect(listDocUpdatesMock).toHaveBeenCalledTimes(2);
   });
 });
