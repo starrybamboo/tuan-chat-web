@@ -66,7 +66,10 @@ export function shouldEnsureTcHeaderFallback(params: {
 }
 
 export function shouldDelayRenderReady(snapshotState: RemoteSnapshotState): boolean {
-  return snapshotState === "error" || snapshotState === "timed-out";
+  // 远端 hydrate 已经有独立的超时与后台重试机制，这里不再阻塞首帧可见性。
+  // 否则某次网络抖动会把用户侧卡在宿主 skeleton 上，即使 editor 已经可以挂出来。
+  void snapshotState;
+  return false;
 }
 
 export async function fetchDescriptionRemoteSnapshotUpdate(docId: string): Promise<Uint8Array | null> {
