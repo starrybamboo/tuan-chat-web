@@ -148,6 +148,58 @@ function navigateMainWindowToPath(targetPath) {
   });
 }
 
+function decodeImageInputToBuffer(value) {
+  const raw = String(value || "").trim();
+  if (!raw) {
+    return null;
+  }
+
+  const dataUrlMatch = /^data:.*?;base64,(.+)$/i.exec(raw);
+  const base64 = dataUrlMatch ? dataUrlMatch[1] : raw;
+  try {
+    return Buffer.from(base64, "base64");
+  }
+  catch {
+    return null;
+  }
+}
+
+function sanitizeDebugSegment(value) {
+  return String(value || "")
+    .trim()
+    .replace(/[<>:"/\\|?*\u0000-\u001F]/g, "-")
+    .replace(/\s+/g, "-")
+    .slice(0, 48) || "debug";
+}
+
+function writeAiImageDebugBundle(payload) {
+  const rootDir = path.join(__dirname, "..", ".logs", "ai-image-debug");
+  const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+  const category = sanitizeDebugSegment(payload?.category || "debug");
+  const targetDir = path.join(rootDir, `${timestamp}_${category}`);
+  fs.mkdirSync(targetDir, { recursive: true });
+
+  const binaryTargets = [
+    ["source.png", payload?.sourceDataUrl],
+    ["mask-ui.png", payload?.uiMaskDataUrl],
+    ["mask-request.png", payload?.requestMaskDataUrl],
+  ];
+
+  for (const [fileName, data] of binaryTargets) {
+    const buffer = decodeImageInputToBuffer(data);
+    if (buffer)
+      fs.writeFileSync(path.join(targetDir, fileName), buffer);
+  }
+
+  fs.writeFileSync(
+    path.join(targetDir, "request.json"),
+    JSON.stringify(payload?.requestBody ?? {}, null, 2),
+    "utf8",
+  );
+
+  return targetDir;
+}
+
 async function createWindow() {
   // 创建浏览器窗口
   mainWindow = new BrowserWindow({
@@ -467,6 +519,8 @@ app.whenReady().then(async () => {
     const sampler = String(req?.sampler || "k_euler_ancestral");
     const noiseSchedule = String(req?.noiseSchedule || "karras");
     const qualityToggle = Boolean(req?.qualityToggle);
+    const normalizedSeed = Number.isFinite(seed) && seed > 0 ? Math.floor(seed) : Math.floor(Math.random() * 2 ** 32);
+    const extraNoiseSeed = normalizedSeed > 0 ? normalizedSeed - 1 : 0;
 
     const width = clampToMultipleOf64(req?.width, 1024);
     const height = clampToMultipleOf64(req?.height, 1024);
@@ -497,7 +551,7 @@ app.whenReady().then(async () => {
     const v4UseOrder = req?.v4UseOrder == null ? true : Boolean(req.v4UseOrder);
 
     const parameters = {
-      seed,
+      seed: normalizedSeed,
       width,
       height,
       n_samples: 1,
@@ -507,7 +561,7 @@ app.whenReady().then(async () => {
       negative_prompt: negativePrompt,
       // align with novelai-bot defaults
       ucPreset: 2,
-      qualityToggle,
+      qualityToggle: mode === "infill" ? true : qualityToggle,
     };
 
     if (mode === "img2img") {
@@ -521,12 +575,42 @@ app.whenReady().then(async () => {
       parameters.strength = strength;
       parameters.noise = noise;
     }
+    else if (mode === "infill") {
+      const imageBase64 = String(req?.sourceImageBase64 || "").trim();
+      const maskBase64 = String(req?.maskBase64 || "").trim();
+      if (!imageBase64) {
+        throw new Error("infill 缂哄皯婧愬浘鐗囷紙sourceImageBase64锛?);
+      }
+      if (!maskBase64) {
+        throw new Error("infill 缂哄皯钂欑増锛坢askBase64锛?);
+      }
+      const strength = Number.isFinite(req?.strength) ? Number(req.strength) : 0.7;
+      const noise = Number.isFinite(req?.noise) ? Number(req.noise) : 0.2;
+      parameters.image = imageBase64;
+      parameters.mask = maskBase64;
+      parameters.strength = Math.max(0, Math.min(1, strength));
+      parameters.noise = Math.max(0, Math.min(1, noise));
+      parameters.inpaintImg2ImgStrength = Math.max(0, Math.min(1, strength));
+      parameters.img2img = {
+        strength: parameters.inpaintImg2ImgStrength,
+        color_correct: true,
+      };
+    }
 
     if (isNAI3 || isNAI4) {
       parameters.params_version = 3;
       parameters.legacy = false;
       parameters.legacy_v3_extend = false;
       parameters.noise_schedule = noiseSchedule;
+      if (mode === "infill") {
+        parameters.add_original_image = false;
+        parameters.autoSmea = false;
+        parameters.legacy_uc = false;
+        parameters.normalize_reference_strength_multiple = true;
+        parameters.image_format = "png";
+        parameters.stream = "msgpack";
+        parameters.extra_noise_seed = extraNoiseSeed;
+      }
 
       if (isNAI4) {
         const cfgRescale = Number.isFinite(req?.cfgRescale) ? Number(req.cfgRescale) : 0;
@@ -550,7 +634,6 @@ app.whenReady().then(async () => {
           };
         });
 
-        parameters.add_original_image = true;
         parameters.cfg_rescale = cfgRescale;
         parameters.characterPrompts = [];
         parameters.controlnet_strength = 1;
@@ -560,7 +643,7 @@ app.whenReady().then(async () => {
         parameters.reference_information_extracted_multiple = [];
         parameters.reference_strength_multiple = [];
         parameters.skip_cfg_above_sigma = null;
-        parameters.use_coords = v4UseCoords;
+        parameters.use_coords = mode === "infill" ? true : v4UseCoords;
         parameters.v4_prompt = {
           caption: {
             base_caption: prompt,
@@ -671,6 +754,22 @@ app.whenReady().then(async () => {
       height,
       model,
     };
+  });
+
+  ipcMain.handle("ai-image:save-debug-bundle", async (_event, payload) => {
+    try {
+      const directory = writeAiImageDebugBundle(payload);
+      return {
+        ok: true,
+        directory,
+      };
+    }
+    catch (error) {
+      return {
+        ok: false,
+        error: error instanceof Error ? error.message : String(error),
+      };
+    }
   });
 
   app.on("activate", () => {

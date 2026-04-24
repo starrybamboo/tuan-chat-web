@@ -846,10 +846,10 @@ export default function useCommandExecutor(roleId: number, ruleId: number, roomC
         }
         const commandMessageMeta = await commandMessageMetaPromise;
         commandMessageCommitted = true;
-        const resolvedOptimisticReplyMessageId = typeof optimisticReplyMessageId === "number"
+        const resolvedOptimisticReplyMessageId = typeof optimisticReplyMessageId === "number" && Number.isFinite(optimisticReplyMessageId)
           ? optimisticReplyMessageId
           : null;
-        const resolvedCommandMessageId = typeof commandMessageMeta.commandMessageId === "number"
+        const resolvedCommandMessageId = typeof commandMessageMeta.commandMessageId === "number" && Number.isFinite(commandMessageMeta.commandMessageId)
           ? commandMessageMeta.commandMessageId
           : null;
         if (resolvedOptimisticReplyMessageId !== null && resolvedCommandMessageId !== null) {

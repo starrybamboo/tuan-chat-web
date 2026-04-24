@@ -6,6 +6,8 @@ export type AiImageStylePreset = {
   negativeTags: string[];
 };
 
+export type AiImageStylePresetSource = "select" | "compare";
+
 type AiImageStyleTagConfig = {
   tags?: string[];
   negativeTags?: string[];
@@ -19,6 +21,13 @@ const STYLE_TAGS_BY_ID: Record<string, AiImageStyleTagConfig> = {
   // 例子（可删）：
   // "anime-clean": { tags: ["anime", "clean lineart", "vibrant colors"] },
   // "cinematic": { tags: ["cinematic lighting", "film grain"], negativeTags: ["lowres"] },
+  akizero1510: { tags: ["akizero1510"] },
+  rurudo: { tags: ["rurudo"] },
+};
+
+const COMPARE_STYLE_TAGS_BY_ID: Record<string, AiImageStyleTagConfig> = {
+  akizero1510: { tags: ["akizero1510"] },
+  rurudo: { tags: ["rurudo"] },
 };
 
 function toStyleTitleFromId(id: string) {
@@ -52,24 +61,21 @@ function normalizeId(value: string) {
   return String(value || "").trim();
 }
 
-export function getAiImageStylePresets(): AiImageStylePreset[] {
-  const images = import.meta.glob("../assets/ai-image/styles/*.{png,webp,jpg,jpeg}", {
-    eager: true,
-    import: "default",
-  }) as Record<string, string>;
+function buildAiImageStylePresets(images: Record<string, string>, configById: Record<string, AiImageStyleTagConfig>) {
+  const configIds = Object.keys(configById).map(normalizeId).filter(Boolean);
 
   const imageIds = Object.keys(images)
     .map(path => basenameNoExt(path))
     .map(normalizeId)
     .filter(Boolean);
 
-  const allIds = uniqStrings([...imageIds, ...Object.keys(STYLE_TAGS_BY_ID)]);
+  const allIds = uniqStrings([...imageIds, ...configIds]);
 
   return allIds
     .map((id) => {
       const imagePath = Object.keys(images).find(path => basenameNoExt(path) === id);
       const imageUrl = imagePath ? images[imagePath] : undefined;
-      const config = STYLE_TAGS_BY_ID[id] || {};
+      const config = configById[id] || {};
       return {
         id,
         title: toStyleTitleFromId(id),
@@ -79,4 +85,22 @@ export function getAiImageStylePresets(): AiImageStylePreset[] {
       };
     })
     .sort((a, b) => a.title.localeCompare(b.title));
+}
+
+export function getAiImageStylePresets() {
+  const images = import.meta.glob("../assets/ai-image/styles/*.{png,webp,jpg,jpeg}", {
+    eager: true,
+    import: "default",
+  }) as Record<string, string>;
+
+  return buildAiImageStylePresets(images, STYLE_TAGS_BY_ID);
+}
+
+export function getAiImageCompareStylePresets() {
+  const images = import.meta.glob("../assets/ai-image/compare-styles/*.{png,webp,jpg,jpeg}", {
+    eager: true,
+    import: "default",
+  }) as Record<string, string>;
+
+  return buildAiImageStylePresets(images, COMPARE_STYLE_TAGS_BY_ID);
 }

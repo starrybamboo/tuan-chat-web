@@ -5,6 +5,8 @@ import type { NovelAiImageMetadataResult } from "@/utils/novelaiImageMetadata";
 
 export type UiMode = "simple" | "pro";
 
+export type V4CharGender = "female" | "male" | "other";
+
 export type V4PromptCenter = {
   x: number;
   y: number;
@@ -19,6 +21,7 @@ export type V4CharPayload = {
 
 export type V4CharEditorRow = {
   id: string;
+  gender?: V4CharGender;
 } & V4CharPayload;
 
 export type VibeTransferReferencePayload = {
@@ -82,10 +85,12 @@ export type ImportedSourceImagePayload = {
 export type InpaintDialogSource = {
   dataUrl: string;
   imageBase64: string;
+  maskDataUrl?: string;
   width: number;
   height: number;
   seed: number;
   model: string;
+  mode: UiMode;
   prompt: string;
   negativePrompt: string;
   strength: number;
@@ -100,7 +105,7 @@ export type InpaintSubmitPayload = {
 
 export type PendingMetadataImportState = {
   sourceImage: ImportedSourceImagePayload;
-  metadata: NovelAiImageMetadataResult;
+  metadata: NovelAiImageMetadataResult | null;
   source?: ImageImportSource;
   imageCount: number;
 };

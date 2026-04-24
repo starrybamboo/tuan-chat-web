@@ -1,15 +1,18 @@
+import { XIcon } from "@phosphor-icons/react";
 import type { Dispatch, SetStateAction } from "react";
 
 import type {
   MetadataImportSelectionState,
   PendingMetadataImportState,
 } from "@/components/aiImage/types";
-import type { NovelAiImportedSettings } from "@/utils/novelaiImageMetadata";
-import { XMarkICon } from "@/icons";
+import image2imageIconSrc from "@/components/aiImage/assets/image2image.png";
+import preciseReferenceIconSrc from "@/components/aiImage/assets/precise-reference.png";
+import vibeTransferIconSrc from "@/components/aiImage/assets/vibe-transfer.png";
+import { ReferenceActionIcon } from "@/components/aiImage/ReferenceActionIcon";
+import PortalTooltip from "@/components/common/portalTooltip";
 
 interface MetadataImportDialogProps {
   pendingMetadataImport: PendingMetadataImportState | null;
-  pendingMetadataSettings: NovelAiImportedSettings | null;
   canImportMetadataPrompt: boolean;
   canImportMetadataNegativePrompt: boolean;
   canImportMetadataCharacters: boolean;
@@ -18,15 +21,40 @@ interface MetadataImportDialogProps {
   hasAnyMetadataImportSelection: boolean;
   metadataImportSelection: MetadataImportSelectionState;
   setMetadataImportSelection: Dispatch<SetStateAction<MetadataImportSelectionState>>;
-  pendingMetadataModelMismatch: string;
   onClose: () => void;
   onImportSourceImageTarget: (target: "img2img" | "vibe" | "precise") => void;
   onConfirmMetadataImport: () => void;
 }
 
+const IMAGE_TARGET_BUTTON_CLASS_NAME = "inline-flex h-10 min-w-[9.25rem] items-center justify-center gap-2 rounded-md border border-[#f3efc6] bg-[#f3efc6] px-3 text-[14px] font-semibold text-[#1b2141] transition enabled:hover:bg-[#fff7c9] enabled:hover:border-[#fff7c9] disabled:cursor-not-allowed disabled:border-[#f3efc6]/22 disabled:bg-[#f3efc6]/14 disabled:text-[#f3efc6]/32";
+const METADATA_CHECKBOX_CLASS_NAME = "size-4 shrink-0 rounded-[2px] border border-[#f3efc6] bg-[#f3efc6] accent-[#f3efc6] transition focus:outline-none focus:ring-2 focus:ring-[#f3efc6]/25 focus:border-[#f3efc6] disabled:cursor-not-allowed disabled:opacity-40";
+const METADATA_LABEL_ENABLED_CLASS_NAME = "cursor-pointer text-base-content";
+const METADATA_LABEL_DISABLED_CLASS_NAME = "cursor-not-allowed text-base-content/35";
+const CLEAN_IMPORTS_HINT_TEXT = "Remove[] / {}, add spaces after commas";
+
+function CleanImportsHint() {
+  return (
+    <PortalTooltip
+      label={CLEAN_IMPORTS_HINT_TEXT}
+      placement="top"
+      gap={8}
+      className="pointer-events-none z-[1100] rounded-xl border border-base-300 bg-base-100 px-3 py-2 text-[11px] leading-5 text-base-content/72 shadow-xl"
+    >
+      <button
+        type="button"
+        className="flex size-4 cursor-help items-center justify-center rounded-full bg-transparent text-base-content/28 transition hover:text-base-content/55 focus:outline-none"
+        aria-label={CLEAN_IMPORTS_HINT_TEXT}
+      >
+        <span className="flex size-3.5 items-center justify-center rounded-full border border-base-content/16 text-[9px] font-medium leading-none text-current">
+          ?
+        </span>
+      </button>
+    </PortalTooltip>
+  );
+}
+
 export function MetadataImportDialog({
   pendingMetadataImport,
-  pendingMetadataSettings,
   canImportMetadataPrompt,
   canImportMetadataNegativePrompt,
   canImportMetadataCharacters,
@@ -35,12 +63,18 @@ export function MetadataImportDialog({
   hasAnyMetadataImportSelection,
   metadataImportSelection,
   setMetadataImportSelection,
-  pendingMetadataModelMismatch,
   onClose,
   onImportSourceImageTarget,
   onConfirmMetadataImport,
 }: MetadataImportDialogProps) {
   const isOpen = Boolean(pendingMetadataImport);
+  const hasImportedMetadata = Boolean(pendingMetadataImport?.metadata);
+  const previewFrameClassName = hasImportedMetadata
+    ? "mt-5 rounded-md border border-base-300 bg-base-200/60 p-4 shadow-sm"
+    : "mt-5 flex min-h-[18rem] items-center justify-center rounded-md border border-base-300 bg-base-200/60 p-4 shadow-sm";
+  const previewImageClassName = hasImportedMetadata
+    ? "mx-auto h-[220px] w-full max-w-[170px] object-contain"
+    : "mx-auto h-[260px] w-full max-w-full object-contain";
 
   return (
     <dialog
@@ -51,41 +85,38 @@ export function MetadataImportDialog({
         onClose();
       }}
     >
-      <div className="modal-box relative max-w-[480px] overflow-hidden border border-base-300 bg-base-100 p-0 text-base-content shadow-xl">
+      <div className="modal-box relative max-w-[452px] overflow-hidden border border-base-300 bg-base-100 p-0 text-base-content shadow-xl">
         <div className="pointer-events-none absolute inset-0 overflow-hidden">
-          <div className="absolute left-1/2 top-20 h-80 w-80 -translate-x-1/2 rounded-full border border-base-content/10" />
-          <div className="absolute left-1/2 top-40 h-[32rem] w-[32rem] -translate-x-1/2 rounded-full border border-base-content/5" />
-          <div className="absolute -left-16 top-32 h-36 w-36 rounded-full bg-primary/10 blur-3xl" />
-          <div className="absolute right-0 top-0 h-44 w-44 rounded-full bg-base-content/6 blur-3xl" />
+          <div className="absolute left-1/2 top-10 h-[25rem] w-[25rem] -translate-x-1/2 rounded-full border border-base-content/10" />
+          <div className="absolute left-1/2 top-24 h-[38rem] w-[38rem] -translate-x-1/2 rounded-full border border-base-content/5" />
+          <div className="absolute -left-20 top-48 h-44 w-44 rounded-full bg-primary/10 blur-3xl" />
+          <div className="absolute right-0 top-0 h-48 w-48 rounded-full bg-base-content/6 blur-3xl" />
         </div>
 
-        <div className="relative p-6">
+        <div className="relative px-6 pb-7 pt-5">
           <button
             type="button"
-            className="btn btn-ghost btn-sm btn-circle absolute right-4 top-4 border border-base-300 bg-base-200 text-base-content hover:bg-base-300"
+            className="absolute right-4 top-4 inline-flex size-8 items-center justify-center rounded-md text-base-content/75 transition hover:text-base-content"
             aria-label="关闭图片导入弹窗"
             title="关闭图片导入弹窗"
             onClick={onClose}
           >
-            <XMarkICon className="size-5" />
+            <XIcon className="size-6" weight="bold" />
           </button>
 
-          <div className="max-w-[300px] pr-12">
-            <h3 className="font-serif text-[2rem] font-semibold leading-tight text-base-content">
+          <div className="max-w-[320px] pr-12">
+            <h3 className="font-serif text-[1.52rem] font-semibold leading-[1.22] text-base-content">
               What do you want to do with this image?
             </h3>
-            <div className="mt-2 text-sm leading-6 text-base-content/65">
-              当前先保留 NovelAI 的 metadata 导入流程，但会自动屏蔽所有会消耗 Anlas 的图片入口。
-            </div>
           </div>
 
-          <div className="mt-5 rounded-[1.25rem] border border-base-300 bg-base-200/60 p-3 shadow-sm">
+          <div className={previewFrameClassName}>
             {pendingMetadataImport
               ? (
                   <img
                     src={pendingMetadataImport.sourceImage.dataUrl}
                     alt={pendingMetadataImport.sourceImage.name || "import-preview"}
-                    className="h-[220px] w-full rounded-[1rem] object-cover"
+                    className={previewImageClassName}
                   />
                 )
               : null}
@@ -94,157 +125,140 @@ export function MetadataImportDialog({
           <div className="mt-4 flex flex-wrap justify-center gap-3">
             <button
               type="button"
-              className="btn btn-primary min-w-[10.5rem]"
-              disabled
+              className={IMAGE_TARGET_BUTTON_CLASS_NAME}
               onClick={() => onImportSourceImageTarget("img2img")}
             >
+              <ReferenceActionIcon className="size-[15px] shrink-0" src={image2imageIconSrc} />
               Image2Image
             </button>
             <button
               type="button"
-              className="btn btn-primary min-w-[10.5rem]"
+              className={IMAGE_TARGET_BUTTON_CLASS_NAME}
               disabled
               onClick={() => onImportSourceImageTarget("vibe")}
             >
+              <ReferenceActionIcon className="size-[15px] shrink-0" src={vibeTransferIconSrc} />
               Vibe Transfer
             </button>
             <button
               type="button"
-              className="btn btn-primary min-w-[10.5rem]"
+              className={IMAGE_TARGET_BUTTON_CLASS_NAME}
               disabled
               onClick={() => onImportSourceImageTarget("precise")}
             >
+              <ReferenceActionIcon className="size-[15px] shrink-0" src={preciseReferenceIconSrc} />
               Precise Reference
             </button>
           </div>
-          <div className="mt-3 text-center text-xs leading-5 text-base-content/60">
-            当前免费模式下，这三类入口都会消耗 Anlas，已暂时禁用；仍可继续导入 metadata。
-          </div>
 
-          <div className="mt-7">
-            <div className="text-[1.65rem] font-semibold leading-tight text-base-content">This image has metadata!</div>
-            <div className="mt-1 text-sm leading-6 text-base-content/70">Did you want to import that instead?</div>
-          </div>
-
-          <div className="mt-4 grid gap-4 sm:grid-cols-[1fr_auto]">
-            <div className="space-y-2">
-              <label className={`flex items-center gap-3 text-sm ${canImportMetadataPrompt ? "cursor-pointer text-base-content" : "cursor-not-allowed text-base-content/35"}`}>
-                <input
-                  type="checkbox"
-                  className="checkbox checkbox-sm rounded-sm border-base-300 bg-base-100 checked:border-primary checked:bg-primary checked:text-primary-content"
-                  checked={canImportMetadataPrompt && metadataImportSelection.prompt}
-                  disabled={!canImportMetadataPrompt}
-                  onChange={event => setMetadataImportSelection(prev => ({ ...prev, prompt: event.target.checked }))}
-                />
-                <span>Prompt</span>
-              </label>
-
-              <label className={`flex items-center gap-3 text-sm ${canImportMetadataNegativePrompt ? "cursor-pointer text-base-content" : "cursor-not-allowed text-base-content/35"}`}>
-                <input
-                  type="checkbox"
-                  className="checkbox checkbox-sm rounded-sm border-base-300 bg-base-100 checked:border-primary checked:bg-primary checked:text-primary-content"
-                  checked={canImportMetadataNegativePrompt && metadataImportSelection.undesiredContent}
-                  disabled={!canImportMetadataNegativePrompt}
-                  onChange={event => setMetadataImportSelection(prev => ({ ...prev, undesiredContent: event.target.checked }))}
-                />
-                <span>Undesired Content</span>
-              </label>
-
-              <label className={`flex items-center gap-3 text-sm ${canImportMetadataCharacters ? "cursor-pointer text-base-content" : "cursor-not-allowed text-base-content/35"}`}>
-                <input
-                  type="checkbox"
-                  className="checkbox checkbox-sm rounded-sm border-base-300 bg-base-100 checked:border-primary checked:bg-primary checked:text-primary-content"
-                  checked={canImportMetadataCharacters && metadataImportSelection.characters}
-                  disabled={!canImportMetadataCharacters}
-                  onChange={(event) => {
-                    setMetadataImportSelection(prev => ({
-                      ...prev,
-                      characters: event.target.checked,
-                      appendCharacters: event.target.checked ? prev.appendCharacters : false,
-                    }));
-                  }}
-                />
-                <span>Characters</span>
-              </label>
-
-              <label className={`ml-7 flex items-center gap-3 text-sm ${canImportMetadataCharacters && metadataImportSelection.characters ? "cursor-pointer text-base-content/85" : "cursor-not-allowed text-base-content/30"}`}>
-                <input
-                  type="checkbox"
-                  className="checkbox checkbox-sm rounded-sm border-base-300 bg-base-100 checked:border-primary checked:bg-primary checked:text-primary-content"
-                  checked={canImportMetadataCharacters && metadataImportSelection.characters && metadataImportSelection.appendCharacters}
-                  disabled={!canImportMetadataCharacters || !metadataImportSelection.characters}
-                  onChange={event => setMetadataImportSelection(prev => ({ ...prev, appendCharacters: event.target.checked }))}
-                />
-                <span>Append</span>
-              </label>
-
-              <label className={`flex items-center gap-3 text-sm ${canImportMetadataSettings ? "cursor-pointer text-base-content" : "cursor-not-allowed text-base-content/35"}`}>
-                <input
-                  type="checkbox"
-                  className="checkbox checkbox-sm rounded-sm border-base-300 bg-base-100 checked:border-primary checked:bg-primary checked:text-primary-content"
-                  checked={canImportMetadataSettings && metadataImportSelection.settings}
-                  disabled={!canImportMetadataSettings}
-                  onChange={event => setMetadataImportSelection(prev => ({ ...prev, settings: event.target.checked }))}
-                />
-                <span>Settings</span>
-              </label>
-
-              <label className={`flex items-center gap-3 text-sm ${canImportMetadataSeed ? "cursor-pointer text-base-content" : "cursor-not-allowed text-base-content/35"}`}>
-                <input
-                  type="checkbox"
-                  className="checkbox checkbox-sm rounded-sm border-base-300 bg-base-100 checked:border-primary checked:bg-primary checked:text-primary-content"
-                  checked={canImportMetadataSeed && metadataImportSelection.seed}
-                  disabled={!canImportMetadataSeed}
-                  onChange={event => setMetadataImportSelection(prev => ({ ...prev, seed: event.target.checked }))}
-                />
-                <span>Seed</span>
-              </label>
-            </div>
-
-            <div className="flex min-w-[12rem] flex-col justify-end gap-3">
-              <button
-                type="button"
-                className="btn btn-primary disabled:border-base-300 disabled:bg-base-200 disabled:text-base-content/35"
-                disabled={!hasAnyMetadataImportSelection}
-                onClick={onConfirmMetadataImport}
-              >
-                Import Metadata
-              </button>
-
-              <label className="flex items-center justify-end gap-3 text-sm text-base-content/70">
-                <span>Clean Imports</span>
-                <input
-                  type="checkbox"
-                  className="checkbox checkbox-sm rounded-sm border-base-300 bg-base-100 checked:border-primary checked:bg-primary checked:text-primary-content"
-                  checked={metadataImportSelection.cleanImports}
-                  onChange={event => setMetadataImportSelection(prev => ({ ...prev, cleanImports: event.target.checked }))}
-                />
-              </label>
-            </div>
-          </div>
-
-          <div className="mt-5 space-y-2 text-xs leading-5 text-base-content/55">
-            <div>
-              Metadata Source:
-              {" "}
-              {pendingMetadataImport?.metadata.source === "stealth" ? "stealth metadata" : "PNG metadata"}
-            </div>
-            {pendingMetadataSettings?.width && pendingMetadataSettings?.height
-              ? <div>{`Metadata Size: ${pendingMetadataSettings.width}×${pendingMetadataSettings.height}`}</div>
-              : null}
-            {pendingMetadataSettings?.mode === "img2img" || pendingMetadataSettings?.mode === "infill"
-              ? (
-                  <div>
-                    {pendingMetadataSettings.mode === "infill"
-                      ? "该 metadata 标记为 Inpaint；当前导入流程不会自动恢复底图与蒙版，只保留可安全导入的 metadata。"
-                      : "该 metadata 标记为 img2img；当前免费模式会忽略这类付费设置，只保留可安全导入的 metadata。"}
+          {hasImportedMetadata
+            ? (
+                <>
+                  <div className="mt-7">
+                    <div className="text-[1rem] font-semibold leading-6 text-base-content">This image has metadata!</div>
+                    <div className="text-[1rem] font-semibold leading-6 text-base-content">Did you want to import that instead?</div>
                   </div>
-                )
-              : null}
-            {pendingMetadataModelMismatch
-              ? <div>{pendingMetadataModelMismatch}</div>
-              : null}
-          </div>
+
+                  <div className="mt-6 grid gap-5 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start">
+                    <div className="space-y-3">
+                      <label className={`flex items-center gap-3 text-[13px] leading-none ${canImportMetadataPrompt ? METADATA_LABEL_ENABLED_CLASS_NAME : METADATA_LABEL_DISABLED_CLASS_NAME}`}>
+                        <input
+                          type="checkbox"
+                          className={METADATA_CHECKBOX_CLASS_NAME}
+                          checked={canImportMetadataPrompt && metadataImportSelection.prompt}
+                          disabled={!canImportMetadataPrompt}
+                          onChange={event => setMetadataImportSelection(prev => ({ ...prev, prompt: event.target.checked }))}
+                        />
+                        <span>Prompt</span>
+                      </label>
+
+                      <label className={`flex items-center gap-3 text-[13px] leading-none ${canImportMetadataNegativePrompt ? METADATA_LABEL_ENABLED_CLASS_NAME : METADATA_LABEL_DISABLED_CLASS_NAME}`}>
+                        <input
+                          type="checkbox"
+                          className={METADATA_CHECKBOX_CLASS_NAME}
+                          checked={canImportMetadataNegativePrompt && metadataImportSelection.undesiredContent}
+                          disabled={!canImportMetadataNegativePrompt}
+                          onChange={event => setMetadataImportSelection(prev => ({ ...prev, undesiredContent: event.target.checked }))}
+                        />
+                        <span>Undesired Content</span>
+                      </label>
+
+                      <label className={`flex items-center gap-3 text-[13px] leading-none ${canImportMetadataCharacters ? METADATA_LABEL_ENABLED_CLASS_NAME : METADATA_LABEL_DISABLED_CLASS_NAME}`}>
+                        <input
+                          type="checkbox"
+                          className={METADATA_CHECKBOX_CLASS_NAME}
+                          checked={canImportMetadataCharacters && metadataImportSelection.characters}
+                          disabled={!canImportMetadataCharacters}
+                          onChange={(event) => {
+                            setMetadataImportSelection(prev => ({
+                              ...prev,
+                              characters: event.target.checked,
+                              appendCharacters: event.target.checked ? prev.appendCharacters : false,
+                            }));
+                          }}
+                        />
+                        <span>Characters</span>
+                      </label>
+
+                      <label className={`pl-7 flex items-center gap-3 text-[12px] leading-none ${canImportMetadataCharacters && metadataImportSelection.characters ? "cursor-pointer text-base-content/80" : "cursor-not-allowed text-base-content/22"}`}>
+                        <input
+                          type="checkbox"
+                          className={METADATA_CHECKBOX_CLASS_NAME}
+                          checked={canImportMetadataCharacters && metadataImportSelection.characters && metadataImportSelection.appendCharacters}
+                          disabled={!canImportMetadataCharacters || !metadataImportSelection.characters}
+                          onChange={event => setMetadataImportSelection(prev => ({ ...prev, appendCharacters: event.target.checked }))}
+                        />
+                        <span>Append</span>
+                      </label>
+
+                      <label className={`flex items-center gap-3 text-[13px] leading-none ${canImportMetadataSettings ? METADATA_LABEL_ENABLED_CLASS_NAME : METADATA_LABEL_DISABLED_CLASS_NAME}`}>
+                        <input
+                          type="checkbox"
+                          className={METADATA_CHECKBOX_CLASS_NAME}
+                          checked={canImportMetadataSettings && metadataImportSelection.settings}
+                          disabled={!canImportMetadataSettings}
+                          onChange={event => setMetadataImportSelection(prev => ({ ...prev, settings: event.target.checked }))}
+                        />
+                        <span>Settings</span>
+                      </label>
+
+                      <label className={`flex items-center gap-3 text-[13px] leading-none ${canImportMetadataSeed ? METADATA_LABEL_ENABLED_CLASS_NAME : METADATA_LABEL_DISABLED_CLASS_NAME}`}>
+                        <input
+                          type="checkbox"
+                          className={METADATA_CHECKBOX_CLASS_NAME}
+                          checked={canImportMetadataSeed && metadataImportSelection.seed}
+                          disabled={!canImportMetadataSeed}
+                          onChange={event => setMetadataImportSelection(prev => ({ ...prev, seed: event.target.checked }))}
+                        />
+                        <span>Seed</span>
+                      </label>
+                    </div>
+
+                    <div className="flex min-w-[9.75rem] flex-col gap-4 sm:items-end">
+                      <button
+                        type="button"
+                        className="inline-flex h-12 items-center justify-center rounded-md border border-base-300 bg-base-200 px-5 text-[14px] font-semibold text-base-content transition enabled:hover:border-primary/40 enabled:hover:bg-base-300 disabled:cursor-not-allowed disabled:border-base-300 disabled:bg-base-200 disabled:text-base-content/35"
+                        disabled={!hasAnyMetadataImportSelection}
+                        onClick={onConfirmMetadataImport}
+                      >
+                        Import Metadata
+                      </button>
+
+                      <label className="flex items-center gap-3 text-[13px] text-base-content/92 sm:mr-[23px]">
+                        <input
+                          type="checkbox"
+                          className={METADATA_CHECKBOX_CLASS_NAME}
+                          checked={metadataImportSelection.cleanImports}
+                          onChange={event => setMetadataImportSelection(prev => ({ ...prev, cleanImports: event.target.checked }))}
+                        />
+                        <span>Clean Imports</span>
+                        <CleanImportsHint />
+                      </label>
+                    </div>
+                  </div>
+                </>
+              )
+            : null}
         </div>
       </div>
       <form method="dialog" className="modal-backdrop">

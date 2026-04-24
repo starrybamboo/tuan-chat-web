@@ -15,11 +15,10 @@ export const JPEG_REJECT_ERROR = "上游返回 JPEG（有损），已按策略�
 export const CUSTOM_RESOLUTION_ID = "custom" as const;
 export const NOVELAI_DIMENSION_MIN = 64;
 export const NOVELAI_DIMENSION_STEP = 64;
-export const NOVELAI_FREE_MAX_DIMENSION = 1024;
+export const NOVELAI_FREE_MAX_IMAGE_AREA = 1024 * 1024;
 export const NOVELAI_FREE_MAX_STEPS = 28;
 export const NOVELAI_FREE_FIXED_IMAGE_COUNT = 1;
-export const NOVELAI_FREE_ONLY_NOTICE = "当前默认禁用大部分会消耗 NovelAI Anlas 的操作；保留免费单张 txt2img，并单独开放 Inpaint（仍限制为单张、1024x1024 以内、steps <= 28）。";
-export const SIMPLE_MODE_MAX_IMAGE_AREA = 1024 * 1024;
+export const NOVELAI_FREE_ONLY_NOTICE = `当前默认禁用大部分会消耗 NovelAI Anlas 的操作；保留免费单张 txt2img，并单独开放 Inpaint（仍限制为单张、自定义尺寸总面积不超过 1024x1024、steps <= 28）。`;
 
 export const AVAILABLE_MODEL_OPTIONS = [
   "nai-diffusion-4-5-curated",
@@ -76,14 +75,14 @@ export const DIRECTOR_EMOTION_OPTIONS: readonly NovelAiEmotion[] = [
 ] as const;
 
 export const RESOLUTION_PRESETS: ResolutionPreset[] = [
-  { id: "portrait", label: "普通竖版", width: 704, height: 1024 },
+  { id: "wide", label: "宽屏", width: 1408, height: 704 },
   { id: "square", label: "正方形", width: 1024, height: 1024 },
-  { id: "landscape", label: "普通横版", width: 1024, height: 704 },
+  { id: "tall", label: "竖屏", width: 704, height: 1408 },
 ];
 
 export const DEFAULT_PRO_IMAGE_SETTINGS = {
-  width: 704,
-  height: 1024,
+  width: 1408,
+  height: 704,
   imageCount: NOVELAI_FREE_FIXED_IMAGE_COUNT,
   steps: 23,
   scale: 5,
@@ -91,27 +90,52 @@ export const DEFAULT_PRO_IMAGE_SETTINGS = {
   noiseSchedule: "karras",
   cfgRescale: 0,
   ucPreset: 0,
-  qualityToggle: true,
+  qualityToggle: false,
   dynamicThresholding: false,
   smea: false,
   smeaDyn: false,
   strength: 0.7,
   noise: 0.2,
   seed: -1,
-  simpleResolutionSelection: "portrait" as ResolutionSelection,
+  simpleResolutionSelection: "wide" as ResolutionSelection,
+} as const;
+
+export const DEFAULT_SIMPLE_IMAGE_SETTINGS = {
+  width: DEFAULT_PRO_IMAGE_SETTINGS.width,
+  height: DEFAULT_PRO_IMAGE_SETTINGS.height,
+  imageCount: NOVELAI_FREE_FIXED_IMAGE_COUNT,
+  steps: 23,
+  scale: 5,
+  sampler: "k_euler_a",
+  noiseSchedule: "karras",
+  cfgRescale: 0,
+  ucPreset: DEFAULT_PRO_IMAGE_SETTINGS.ucPreset,
+  qualityToggle: DEFAULT_PRO_IMAGE_SETTINGS.qualityToggle,
+  dynamicThresholding: DEFAULT_PRO_IMAGE_SETTINGS.dynamicThresholding,
+  smea: DEFAULT_PRO_IMAGE_SETTINGS.smea,
+  smeaDyn: DEFAULT_PRO_IMAGE_SETTINGS.smeaDyn,
+  strength: DEFAULT_PRO_IMAGE_SETTINGS.strength,
+  noise: DEFAULT_PRO_IMAGE_SETTINGS.noise,
+  seed: DEFAULT_PRO_IMAGE_SETTINGS.seed,
+  simpleResolutionSelection: DEFAULT_PRO_IMAGE_SETTINGS.simpleResolutionSelection,
+} as const;
+
+export const DEFAULT_IMG2IMG_SETTINGS = {
+  strength: DEFAULT_PRO_IMAGE_SETTINGS.strength,
+  noise: DEFAULT_PRO_IMAGE_SETTINGS.noise,
 } as const;
 
 export const UC_PRESET_OPTIONS = [
-  { value: 0, label: "标准预设", description: "附加低质量和解剖问题等常见抑制词。" },
-  { value: 1, label: "轻量预设", description: "只附加基础低质量抑制词。" },
-  { value: 2, label: "关闭预设", description: "完全使用你手写的 Undesired Content。" },
+  { value: 0, label: "标准", description: "附加低质量和解剖问题等常见抑制词。" },
+  { value: 1, label: "轻量", description: "只附加基础低质量抑制词。" },
+  { value: 2, label: "无", description: "完全使用你手写的 Undesired Content。" },
 ] as const;
 
 export const DEFAULT_PRO_FEATURE_SECTION_OPEN: Record<ProFeatureSectionKey, boolean> = {
   baseImage: false,
-  characterPrompts: true,
-  vibeTransfer: true,
-  preciseReference: true,
+  characterPrompts: false,
+  vibeTransfer: false,
+  preciseReference: false,
 };
 
 export const DIRECTOR_TOOL_OPTIONS: readonly DirectorToolOption[] = [
@@ -126,6 +150,14 @@ export const DIRECTOR_TOOL_OPTIONS: readonly DirectorToolOption[] = [
 export const DIRECTOR_TOOL_OPTIONS_BY_ID = Object.fromEntries(
   DIRECTOR_TOOL_OPTIONS.map(tool => [tool.id, tool]),
 ) as Record<DirectorToolId, DirectorToolOption>;
+
+export const DEFAULT_DIRECTOR_TOOL_ID: DirectorToolId = "lineArt";
+
+const DISABLED_DIRECTOR_TOOL_IDS = new Set<DirectorToolId>(["removeBackground", "emotion"]);
+
+export function isDirectorToolDisabled(toolId: DirectorToolId) {
+  return DISABLED_DIRECTOR_TOOL_IDS.has(toolId);
+}
 
 export const PREVIEW_ACTION_LABELS: Record<Exclude<ActivePreviewAction, "">, string> = {
   upscale: "Upscale 4x",
