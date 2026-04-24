@@ -297,6 +297,7 @@ export default function MaterialLibraryPage({
         : "换个关键词试试，或者稍后再来看看新的公开内容。"}
       loading={loading}
       embedded={embedded}
+      showEmbeddedHeaderActions={activeTab !== "mine"}
       skeletonPrefix="material-skeleton"
       onKeywordChange={setKeyword}
       onOpenItem={(index) => {
@@ -374,4 +375,3 @@ export default function MaterialLibraryPage({
     />
   );
 }
-
