@@ -64,8 +64,8 @@ function HistoryConfirmModal({
           <button
             type="button"
             className="absolute right-5 top-5 inline-flex size-9 items-center justify-center rounded-full text-base-content/65 transition hover:bg-base-200 hover:text-base-content"
-            aria-label="鍏抽棴鍒犻櫎纭"
-            title="鍏抽棴鍒犻櫎纭"
+            aria-label="关闭确认弹窗"
+            title="关闭确认弹窗"
             onClick={onClose}
           >
             <XMarkICon className="size-6" />
@@ -97,7 +97,7 @@ function HistoryConfirmModal({
         </div>
       </div>
       <form method="dialog" className="modal-backdrop">
-        <button type="button" onClick={onClose}>close</button>
+        <button type="button" onClick={onClose}>关闭</button>
       </form>
     </dialog>
   );
@@ -112,8 +112,9 @@ export function DeleteHistoryConfirmModal(props: {
     <HistoryConfirmModal
       {...props}
       icon={<TrashSimpleIcon className="size-14 text-primary" weight="regular" aria-hidden="true" />}
-      title="Delete this image?"
-      confirmLabel="Delete it!"
+      title="删除这张图片？"
+      confirmLabel="确认删除"
+      cancelLabel="先保留"
     />
   );
 }
@@ -127,8 +128,9 @@ export function DownloadHistoryConfirmModal(props: {
     <HistoryConfirmModal
       {...props}
       icon={<SharpDownload className="size-14 text-primary" aria-hidden="true" />}
-      title="Download all images?"
-      confirmLabel="Download it!"
+      title="下载全部图片？"
+      confirmLabel="开始下载"
+      cancelLabel="暂不下载"
     />
   );
 }
@@ -142,8 +144,9 @@ export function ClearHistoryConfirmModal(props: {
     <HistoryConfirmModal
       {...props}
       icon={<TrashSimpleIcon className="size-14 text-primary" weight="regular" aria-hidden="true" />}
-      title="Clear all history?"
-      confirmLabel="Clear it!"
+      title="清空全部历史记录？"
+      confirmLabel="确认清空"
+      cancelLabel="先不清空"
     />
   );
 }

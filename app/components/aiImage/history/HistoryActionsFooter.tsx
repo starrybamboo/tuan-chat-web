@@ -18,7 +18,7 @@ export function HistoryActionsFooter({
         onClick={onRequestDownloadAll}
       >
         <SharpDownload className="size-4" />
-        <span>Download ZIP</span>
+        <span>下载全部</span>
       </button>
       <button
         type="button"
@@ -26,7 +26,7 @@ export function HistoryActionsFooter({
         disabled={!historyLength}
         onClick={onRequestClearHistory}
       >
-        Clear History
+        清空历史
       </button>
     </div>
   );

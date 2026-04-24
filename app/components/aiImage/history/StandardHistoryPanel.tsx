@@ -61,8 +61,8 @@ export function StandardHistoryPanel({
           <button
             type="button"
             className="btn btn-ghost btn-square btn-xs ml-auto shrink-0 text-base-content/60 hover:text-base-content"
-            aria-label="鏀惰捣鍘嗗彶璁板綍渚ц竟鏍?"
-            title="鏀惰捣鍘嗗彶璁板綍渚ц竟鏍?"
+            aria-label="收起历史记录侧边栏"
+            title="收起历史记录侧边栏"
             onClick={onCollapse}
           >
             <CaretRightIcon className="size-3.5" weight="bold" />
@@ -77,7 +77,7 @@ export function StandardHistoryPanel({
                 alt="current-result"
                 dataUrl={item.dataUrl}
                 draggable
-                title={`${row?.mode || mode} 路 seed ${item.seed} 路 ${item.width}脳${item.height}`}
+                title={`${row?.mode || mode} · seed ${item.seed} · ${item.width}×${item.height}`}
                 onClick={() => onSelectCurrentResult(index)}
                 onDelete={row?.id != null
                   ? (event) => {
@@ -99,7 +99,7 @@ export function StandardHistoryPanel({
                 alt="history"
                 dataUrl={row.dataUrl}
                 draggable
-                title={`${row.mode} 路 seed ${row.seed} 路 ${row.width}脳${row.height}`}
+                title={`${row.mode} · seed ${row.seed} · ${row.width}×${row.height}`}
                 onClick={event => onHistoryRowClick(row, event)}
                 onDelete={row.id != null
                   ? (event) => {
@@ -115,7 +115,7 @@ export function StandardHistoryPanel({
               />
             ))}
             {!currentResultCards.length && !archivedHistoryRows.length
-              ? <div className="col-span-1 w-full rounded-xl border border-dashed border-base-300 bg-base-100 px-3 py-5 text-center text-sm text-base-content/55">鏆傛棤缁樼敾璁板綍</div>
+              ? <div className="col-span-1 w-full rounded-xl border border-dashed border-base-300 bg-base-100 px-3 py-5 text-center text-sm text-base-content/55">暂无绘图记录</div>
               : null}
           </div>
         </div>
