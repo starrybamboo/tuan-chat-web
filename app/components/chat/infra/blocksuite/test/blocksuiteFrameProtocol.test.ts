@@ -6,7 +6,10 @@ import {
   parseBlocksuiteFrameMessage,
   readBlocksuiteFrameMessageFromEvent,
 } from "../shared/frameProtocol";
-import { readInitialBlocksuiteFrameProtocolState } from "../useBlocksuiteFrameProtocol";
+import {
+  mergeBlocksuiteFrameParams,
+  readInitialBlocksuiteFrameProtocolState,
+} from "../useBlocksuiteFrameProtocol";
 
 describe("blocksuiteFrameProtocol", () => {
   it("会生成统一 envelope", () => {
@@ -123,6 +126,67 @@ describe("blocksuiteFrameProtocol", () => {
         forcedMode: "edgeless",
         prewarmOnly: true,
       },
+    });
+  });
+
+  it("sync-params 未发生实际变化时复用原 frameParams 引用", () => {
+    const prev = {
+      workspaceId: "space-1",
+      docId: "doc-1",
+      spaceId: 12,
+      readOnly: false,
+      tcHeaderEnabled: true,
+      tcHeaderTitle: "标题",
+      tcHeaderImageUrl: "https://example.com/a.png",
+      allowModeSwitch: true,
+      fullscreenEdgeless: true,
+      forcedMode: "page" as const,
+      prewarmOnly: false,
+    };
+
+    const next = mergeBlocksuiteFrameParams(prev, {
+      workspaceId: "space-1",
+      docId: "doc-1",
+      spaceId: 12,
+      readOnly: false,
+      tcHeader: true,
+      tcHeaderTitle: "标题",
+      tcHeaderImageUrl: "https://example.com/a.png",
+      allowModeSwitch: true,
+      fullscreenEdgeless: true,
+      mode: "page",
+      prewarmOnly: false,
+    });
+
+    expect(next).toBe(prev);
+  });
+
+  it("sync-params 变化时返回新的 frameParams", () => {
+    const prev = {
+      workspaceId: "space-1",
+      docId: "doc-1",
+      spaceId: 12,
+      readOnly: false,
+      tcHeaderEnabled: true,
+      tcHeaderTitle: "标题",
+      tcHeaderImageUrl: "https://example.com/a.png",
+      allowModeSwitch: true,
+      fullscreenEdgeless: false,
+      forcedMode: "page" as const,
+      prewarmOnly: false,
+    };
+
+    const next = mergeBlocksuiteFrameParams(prev, {
+      readOnly: true,
+      mode: "edgeless",
+      fullscreenEdgeless: true,
+    });
+
+    expect(next).not.toBe(prev);
+    expect(next).toMatchObject({
+      readOnly: true,
+      forcedMode: "edgeless",
+      fullscreenEdgeless: true,
     });
   });
 });
