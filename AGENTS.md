@@ -16,3 +16,11 @@
 - 如果用户提到“团剧共创”与 WebGAL / Terre 联动、完整设置开关、角色发言聚焦、空间级 WebGAL 设置，先读 `docs/reference/webgal-tuanchat-index.md`
 - 前端页面不要产生对功能进行叙述的文字
 - helloagent不要落文档知识库
+- 不要调用方案设计
+
+## 编码注意事项
+
+- 文本文件统一使用 UTF-8 保存。
+- 通过脚本/命令写文件时显式指定编码（PowerShell 用 `-Encoding utf8`，Python 用 `encoding=utf-8`），避免默认 ANSI/GBK 造成乱码。
+- 发现乱码先检查文件编码与终端解码设置，必要时用支持 UTF-8 的编辑器重存。
+- Java 源码不要带 UTF-8 BOM，否则 javac 会报 `非法字符: '\ufeff'`；如遇此类编译错误先清 BOM。

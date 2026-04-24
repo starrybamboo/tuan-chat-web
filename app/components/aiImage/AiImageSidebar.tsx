@@ -259,8 +259,8 @@ export const AiImageSidebar = memo(function AiImageSidebar({ sidebarProps }: AiI
   const editorPanelClassName = "rounded-2xl border border-[#D6DCE3] bg-[#F3F5F7] p-3 shadow-none dark:border-[#2A3138] dark:bg-[#161A1F]";
   const segmentedControlClassName = "join rounded-xl bg-transparent p-0";
   const segmentedButtonBaseClassName = "btn btn-xs join-item border-0";
-  const featureUploadActionClassName = "inline-flex size-11 items-center justify-center rounded-md border border-[#2A3138] bg-[#161A1F] text-base-content/78 transition hover:border-primary/40 hover:text-primary focus:outline-none";
-  const characterAddTriggerClassName = "inline-flex h-8 items-center gap-1 rounded-md border border-[#2A3138] bg-[#161A1F] px-2.5 text-[13px] font-semibold text-base-content transition hover:border-primary/40 hover:text-primary focus:outline-none";
+  const featureUploadActionClassName = "inline-flex size-11 items-center justify-center rounded-md border border-base-300 bg-base-100 text-base-content/78 transition hover:border-primary/40 hover:bg-base-200 hover:text-primary focus:outline-none focus:ring-2 focus:ring-primary/20";
+  const characterAddTriggerClassName = "inline-flex h-8 items-center gap-1 rounded-md border border-base-300 bg-base-100 px-2.5 text-[13px] font-semibold text-base-content transition hover:border-primary/40 hover:bg-base-200 hover:text-primary focus:outline-none focus:ring-2 focus:ring-primary/20";
   const characterAddMenuPanelClassName = "absolute right-0 top-0 z-30 w-[139.72px] overflow-hidden border border-[#2A3138] bg-[#161A1F] shadow-2xl";
   const characterAddMenuItemClassName = "flex h-8 w-full items-center gap-1.5 px-3 text-left text-[13px] font-medium leading-none text-base-content/92 transition hover:bg-white/6 focus:outline-none";
   const characterCardClassName = "relative overflow-hidden rounded-2xl border border-[#2A3138] bg-[#161A1F] p-3 shadow-none";
@@ -1027,8 +1027,8 @@ export const AiImageSidebar = memo(function AiImageSidebar({ sidebarProps }: AiI
                   </div>
 
                   <div className="flex flex-col gap-2">
-                    <div className="grid h-11 w-full grid-cols-9 overflow-hidden border border-[#2A3138] bg-[#161A1F] shadow-none">
-                      <div className="flex h-11 items-center justify-center border-r border-[#2A3138] text-white/90" aria-hidden="true">
+                    <div className="grid h-11 w-full grid-cols-9 overflow-hidden border border-base-300 bg-base-100 shadow-none">
+                      <div className="flex h-11 items-center justify-center border-r border-base-300 text-base-content/90" aria-hidden="true">
                         <ImagesSquareIcon className="size-4.5" weight="regular" />
                       </div>
                       {[1, 2, 3, 4, 5, 6, 7, 8].map(count => {
@@ -1038,10 +1038,10 @@ export const AiImageSidebar = memo(function AiImageSidebar({ sidebarProps }: AiI
                           <button
                             key={count}
                             type="button"
-                            className={`flex h-11 w-11 items-center justify-center border-r border-[#2A3138] text-[14px] font-semibold leading-none transition last:border-r-0 ${
+                            className={`flex h-11 w-11 items-center justify-center border-r border-base-300 text-[14px] font-semibold leading-none transition last:border-r-0 ${
                               isActive
-                                ? "bg-[#1E252D] text-[#EAF7F5]"
-                                : "bg-transparent text-white/35"
+                                ? "bg-primary/10 text-primary"
+                                : "bg-transparent text-base-content/35"
                             }`}
                             disabled={isDisabled}
                             aria-pressed={isActive}
