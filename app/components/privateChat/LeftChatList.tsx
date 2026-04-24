@@ -1,6 +1,6 @@
 import { ChatCircleIcon, UserCirclePlusIcon, UserListIcon } from "@phosphor-icons/react";
 import { useNavigate, useParams } from "react-router";
-import { useGlobalContext } from "@/components/globalContextProvider";
+import { useGlobalUserId, useGlobalWebSocket } from "@/components/globalContextProvider";
 import { SidebarSimpleIcon } from "@/icons";
 import { getScreenSize } from "@/utils/getScreenSize";
 import ChatList from "./components/ChatList";
@@ -17,8 +17,8 @@ export default function LeftChatList({ setIsOpenLeftDrawer }: { setIsOpenLeftDra
     msOverflowStyle: "none",
   };
 
-  const globalContext = useGlobalContext();
-  const userId = globalContext.userId || -1;
+  const userId = useGlobalUserId() || -1;
+  const webSocketUtils = useGlobalWebSocket();
   const { targetUserId: urlTargetUserId, roomId: urlRoomId } = useParams();
   const navigate = useNavigate();
   const currentContactUserId = urlRoomId
@@ -33,7 +33,7 @@ export default function LeftChatList({ setIsOpenLeftDrawer }: { setIsOpenLeftDra
     realTimeContacts,
     sortedRealTimeMessages,
     deletedThisContactId,
-  } = usePrivateMessageList({ globalContext, userId });
+  } = usePrivateMessageList({ webSocketUtils, userId });
 
   // 未读消息数
   const { unreadMessageNumbers, updateReadlinePosition }

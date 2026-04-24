@@ -2,12 +2,12 @@ import { useSpaceInvitedMutation } from "api/hooks/chatQueryHooks";
 import { tuanchat } from "api/instance";
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router";
-import { useGlobalContext } from "@/components/globalContextProvider";
+import { useGlobalUserId } from "@/components/globalContextProvider";
 
 export default function InvitePage() {
   const { code } = useParams<{ code: string }>();
   const navigate = useNavigate();
-  const { userId } = useGlobalContext();
+  const userId = useGlobalUserId();
   const [isProcessing, setIsProcessing] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [attempt, setAttempt] = useState(0);

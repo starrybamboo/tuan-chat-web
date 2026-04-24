@@ -2,7 +2,7 @@ import type { UserRole } from "../../../api";
 import { useGetInfiniteUserRolesQuery, useGetRoleQuery } from "api/hooks/RoleAndAvatarHooks";
 import { useMemo, useState } from "react";
 import { useResolvedRoleAvatarUrl } from "@/components/common/roleAccess.shared";
-import { useGlobalContext } from "@/components/globalContextProvider";
+import { useGlobalUserId } from "@/components/globalContextProvider";
 
 interface DiceMaidenLinkModalProps {
   isOpen: boolean;
@@ -107,8 +107,7 @@ export default function DiceMaidenLinkModal({
   currentDicerRoleId,
   onConfirm,
 }: DiceMaidenLinkModalProps) {
-  const globalContext = useGlobalContext();
-  const userId = globalContext.userId ?? -1;
+  const userId = useGlobalUserId() ?? -1;
 
   // 获取用户的所有角色
   const { data: userRolesQuery, fetchNextPage, hasNextPage, isFetchingNextPage } = useGetInfiniteUserRolesQuery(userId);

@@ -4,7 +4,7 @@ import { SpaceContext } from "@/components/chat/core/spaceContext";
 import { hasHostPrivileges } from "@/components/chat/utils/memberPermissions";
 import ConfirmModal from "@/components/common/comfirmModel";
 import { useResolvedRoleAvatarUrl } from "@/components/common/roleAccess.shared";
-import { useGlobalContext } from "@/components/globalContextProvider";
+import { useGlobalUserId } from "@/components/globalContextProvider";
 import ExpansionModule from "@/components/Role/rules/ExpansionModule";
 import { useDeleteRole1Mutation } from "../../../api/hooks/chatQueryHooks";
 import { useGetRoleQuery, useGetUserRolesQuery } from "../../../api/hooks/RoleAndAvatarHooks";
@@ -51,7 +51,7 @@ export function RoleDetail({
   const ruleId = spaceContext.ruleId;
   const hasHostAccess = hasHostPrivileges(roomContext.curMember?.memberType);
   const deleteRoleMutation = useDeleteRole1Mutation();
-  const userId = useGlobalContext().userId ?? -1;
+  const userId = useGlobalUserId() ?? -1;
   const userRole = useGetUserRolesQuery(userId);
   const [isKickConfirmOpen, setIsKickConfirmOpen] = useState(false);
 

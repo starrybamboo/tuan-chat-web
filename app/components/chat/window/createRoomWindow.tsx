@@ -4,7 +4,7 @@ import React, { useEffect, useState } from "react";
 import checkBack from "@/components/common/autoContrastText";
 import { MemberSelect } from "@/components/common/memberSelect";
 import { ImgUploaderWithCopper } from "@/components/common/uploader/imgUploaderWithCropper";
-import { useGlobalContext } from "@/components/globalContextProvider";
+import { useGlobalUserId } from "@/components/globalContextProvider";
 
 interface CreateRoomWindowProps {
   spaceId: number;
@@ -13,8 +13,8 @@ interface CreateRoomWindowProps {
 }
 
 export default function CreateRoomWindow({ spaceId, spaceAvatar, onSuccess }: CreateRoomWindowProps) {
-  const globalContext = useGlobalContext();
-  const getUserInfo = useGetUserInfoQuery(Number(globalContext.userId));
+  const userId = useGlobalUserId();
+  const getUserInfo = useGetUserInfoQuery(Number(userId));
   const userInfo = getUserInfo.data?.data;
 
   // 创建房间

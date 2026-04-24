@@ -20,7 +20,7 @@ import MessageContentRenderer from "@/components/chat/message/messageContentRend
 import { useRoomRoleSelectionStore } from "@/components/chat/stores/roomRoleSelectionStore";
 import { setMaterialItemDragData } from "@/components/chat/utils/materialItemDrag";
 import { ImgUploader } from "@/components/common/uploader/imgUploader";
-import { useGlobalContext } from "@/components/globalContextProvider";
+import { useGlobalUserId } from "@/components/globalContextProvider";
 import { useMaterialEditorActionStore } from "@/components/material/stores/materialEditorActionStore";
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
 import { useGetUserRolesQuery } from "../../../../api/hooks/RoleAndAvatarHooks";
@@ -200,7 +200,7 @@ export default function MaterialPackageWorkbench({
   onUpdateDraft,
   onCoverUpload,
 }: MaterialPackageWorkbenchProps) {
-  const { userId } = useGlobalContext();
+  const userId = useGlobalUserId();
   const userRolesQuery = useGetUserRolesQuery(userId ?? -1);
   const availableRoles = useMemo(() => userRolesQuery.data?.data ?? [], [userRolesQuery.data?.data]);
   const curAvatarIdMap = useRoomRoleSelectionStore(state => state.curAvatarIdMap);

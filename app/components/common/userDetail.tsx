@@ -3,7 +3,7 @@ import useSearchParamsState from "@/components/common/customHooks/useSearchParam
 import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
 import UserStatusDot from "@/components/common/userStatusBadge.jsx";
 import TagManagement from "@/components/common/userTags";
-import { useGlobalContext } from "@/components/globalContextProvider";
+import { useGlobalUserId } from "@/components/globalContextProvider";
 import { useGetUserFollowersQuery, useGetUserFollowingsQuery } from "../../../api/hooks/userFollowQueryHooks";
 import { useGetUserProfileQuery } from "../../../api/hooks/UserHooks";
 import { FollowButton } from "./Follow/FollowButton";
@@ -20,7 +20,7 @@ interface UserDetailProps {
  */
 export function UserDetail({ userId }: UserDetailProps) {
   const userQuery = useGetUserProfileQuery(userId);
-  const loginUserId = useGlobalContext().userId ?? -1;
+  const loginUserId = useGlobalUserId() ?? -1;
 
   const user = userQuery.data?.data;
   const [isFFWindowOpen, setIsFFWindowOpen] = useSearchParamsState<boolean>(`userEditPop${userId}`, false);

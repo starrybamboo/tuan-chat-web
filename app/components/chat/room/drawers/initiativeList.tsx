@@ -5,7 +5,7 @@ import { RoomContext } from "@/components/chat/core/roomContext";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
 import UTILS from "@/components/common/dicer/utils/utils";
 import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
-import { useGlobalContext } from "@/components/globalContextProvider";
+import { useGlobalUserId } from "@/components/globalContextProvider";
 import { buildMessageExtraForRequest } from "@/types/messageDraft";
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
 import { useGetRolesAbilitiesQueries, useUpdateRoleAbilityByRoleIdMutation } from "../../../../../api/hooks/abilityQueryHooks";
@@ -182,7 +182,7 @@ export default function InitiativeList() {
   const roomContext = use(RoomContext);
   const spaceContext = use(SpaceContext);
   const roomId = roomContext.roomId ?? -1;
-  const globalContext = useGlobalContext();
+  const currentUserId = useGlobalUserId();
   const initiativeRuleScope = typeof spaceContext.ruleId === "number"
     ? `rule-${spaceContext.ruleId}`
     : "default";
@@ -211,7 +211,7 @@ export default function InitiativeList() {
   const [sortKey, setSortKey] = useState<SortKey>("value");
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
   const spaceOwner = spaceContext.isSpaceOwner;
-  const curUserId = globalContext.userId ?? -1;
+  const curUserId = currentUserId ?? -1;
   const sendMessageMutation = useSendMessageMutation(roomId);
   const { mutateAsync: updateRoleAbilityByRoleIdAsync } = useUpdateRoleAbilityByRoleIdMutation();
   const isPokemonRule = spaceContext.ruleId === 7;

@@ -4,7 +4,6 @@ import { formatLocalDateTime } from "@/utils/dateUtil";
 import { useQueryClient } from "@tanstack/react-query";
 import {useCallback, useEffect, useMemo, useRef, useState} from "react";
 import { useImmer } from "use-immer";
-import {useGlobalContext} from "@/components/globalContextProvider";
 import toast from "react-hot-toast";
 import React from "react";
 import { useNavigate } from "react-router";
@@ -422,7 +421,6 @@ function getActiveGroupRoomId(): number | null {
 }
 
 export function useWebSocket() {
-  const globalContext = useGlobalContext();
   const readCurrentToken = useCallback(() => {
     if (typeof window === "undefined")
       return "";
@@ -857,12 +855,11 @@ export function useWebSocket() {
   const resolveSelfUserId = useCallback((fallbackUserId?: number) => {
     const uidRaw = (typeof window !== "undefined") ? window.localStorage.getItem("uid") : null;
     const uidFallback = uidRaw && !Number.isNaN(Number(uidRaw)) ? Number(uidRaw) : 0;
-    const userIdFromContext = globalContext.userId ?? uidFallback;
-    if (userIdFromContext > 0) {
-      return userIdFromContext;
+    if (uidFallback > 0) {
+      return uidFallback;
     }
     return (typeof fallbackUserId === "number" && fallbackUserId > 0) ? fallbackUserId : 0;
-  }, [globalContext.userId]);
+  }, []);
 
   const pushOptimisticDirectMessage = useCallback((request: MessageDirectSendRequest) => {
     const receiverId = Number(request?.receiverId);

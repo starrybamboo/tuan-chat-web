@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
-import { useGlobalContext } from "@/components/globalContextProvider";
+import { useGlobalUserId } from "@/components/globalContextProvider";
 
 import GNSPreferenceEditor from "@/components/profile/toastWindows/GNSEditorToastWindow";
 import { useGetMyUserInfoQuery, useGetUserProfileQuery, useUpdateUserInfoMutation } from "../../../../api/hooks/UserHooks";
@@ -88,7 +88,7 @@ const GNSSpiderChart: React.FC<GNSSpiderChartProps> = ({ userId }) => {
     Simulationism: 0,
   });
   const [isEditOpen, setIsEditOpen] = useState(false);
-  const loginUserId = useGlobalContext().userId ?? -1;
+  const loginUserId = useGlobalUserId() ?? -1;
   const isOwner = loginUserId === userId;
 
   // API hooks

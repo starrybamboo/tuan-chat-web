@@ -13,7 +13,7 @@ import { RoomContext } from "@/components/chat/core/roomContext";
 import { buildSpaceDocId } from "@/components/chat/infra/blocksuite/space/spaceDocId";
 import BlocksuiteDescriptionEditor from "@/components/chat/shared/components/BlockSuite/blocksuiteDescriptionEditor";
 import RoleList from "@/components/chat/shared/components/roleLists";
-import { useGlobalContext } from "@/components/globalContextProvider";
+import { useGlobalUserId } from "@/components/globalContextProvider";
 import { BaselineArrowBackIosNew, RoleListIcon, Setting } from "@/icons";
 import { SpaceContext } from "../core/spaceContext";
 
@@ -22,8 +22,7 @@ function RoomSettingWindow({ onClose, roomId: propRoomId, defaultTab = "role" }:
   roomId?: number;
   defaultTab?: "role" | "setting";
 }) {
-  const globalContext = useGlobalContext();
-  const userId = globalContext.userId;
+  const userId = useGlobalUserId();
 
   // 获取context，可能为null（当组件在SpaceContext.Provider外部使用时）
   const spaceContext = use(SpaceContext);

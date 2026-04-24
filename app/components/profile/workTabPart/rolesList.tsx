@@ -2,7 +2,7 @@ import type { UserRole } from "../../../../api";
 import React from "react";
 import { Link } from "react-router";
 import Pagination from "@/components/common/pagination";
-import { useGlobalContext } from "@/components/globalContextProvider";
+import { useGlobalUserId } from "@/components/globalContextProvider";
 import UserRoleCard from "@/components/profile/cards/userRoleCard";
 
 interface UserRolesListProps {
@@ -25,7 +25,7 @@ const RolesList: React.FC<UserRolesListProps> = ({
   onPageChange,
   isLoading,
 }) => {
-  const currentUserId = useGlobalContext().userId ?? -1;
+  const currentUserId = useGlobalUserId() ?? -1;
   const totalPages = Math.ceil(totalRecords / 10);
 
   if (isLoading) {

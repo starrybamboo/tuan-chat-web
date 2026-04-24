@@ -1,7 +1,7 @@
 import { useEffect, useMemo } from "react";
 import { useGetInboxMessageWithUserQuery, useUpdateReadPositionMutation } from "api/hooks/MessageDirectQueryHooks";
 import { useParams } from "react-router";
-import { useGlobalContext } from "@/components/globalContextProvider";
+import { useGlobalUserId } from "@/components/globalContextProvider";
 import ContextMenu from "./components/ContextMenu";
 import MessageInput from "./components/MessageInput";
 import MessageWindow from "./components/MessageWindow";
@@ -12,8 +12,7 @@ import { usePrivateUnreadStateStore } from "./privateUnreadStateStore";
 import { getLatestIncomingSync } from "./privateUnreadUtils";
 
 export default function RightChatView({ setIsOpenLeftDrawer }: { setIsOpenLeftDrawer: (isOpen: boolean) => void }) {
-  const globalContext = useGlobalContext();
-  const userId = globalContext.userId || -1;
+  const userId = useGlobalUserId() || -1;
   const { targetUserId: urlTargetUserId, roomId: urlRoomId } = useParams();
   const currentContactUserId = urlRoomId ? Number.parseInt(urlRoomId) : (urlTargetUserId ? Number.parseInt(urlTargetUserId) : null);
 

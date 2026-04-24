@@ -13,7 +13,7 @@ import LikeIconButton from "@/components/common/likeIconButton";
 import ShareIconButton from "@/components/common/share/shareIconButton";
 import UserAvatarComponent from "@/components/common/userAvatar";
 import SlidableChatPreview from "@/components/community/slidableChatPreview";
-import { useGlobalContext } from "@/components/globalContextProvider";
+import { useGlobalUserId } from "@/components/globalContextProvider";
 import { CommentOutline } from "@/icons";
 import { useDeleteMomentFeedMutation } from "../../../../api/hooks/activitiesFeedQuerryHooks";
 import { useGetUserInfoQuery } from "../../../../api/hooks/UserHooks";
@@ -41,7 +41,7 @@ const PostsCard: React.FC<PostsCardProps> = ({
 }) => {
   const navigate = useNavigate();
   const isFeed = displayType === "feed";
-  const loginUserId = useGlobalContext().userId ?? -1;
+  const loginUserId = useGlobalUserId() ?? -1;
 
   // 统一的数据提取
   const userId = res?.userId ?? -1;

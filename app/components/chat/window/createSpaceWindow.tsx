@@ -6,15 +6,15 @@ import React, { useEffect, useState } from "react";
 import checkBack from "@/components/common/autoContrastText";
 import { MemberSelect } from "@/components/common/memberSelect";
 import { ImgUploaderWithCopper } from "@/components/common/uploader/imgUploaderWithCropper";
-import { useGlobalContext } from "@/components/globalContextProvider";
+import { useGlobalUserId } from "@/components/globalContextProvider";
 
 interface CreateSpaceWindowProps {
   onSuccess?: () => void;
 }
 
 export default function CreateSpaceWindow({ onSuccess }: CreateSpaceWindowProps) {
-  const globalContext = useGlobalContext();
-  const getUserInfo = useGetUserInfoQuery(Number(globalContext.userId));
+  const userId = useGlobalUserId();
+  const getUserInfo = useGetUserInfoQuery(Number(userId));
   const userInfo = getUserInfo.data?.data;
 
   // 创建空间
@@ -36,7 +36,7 @@ export default function CreateSpaceWindow({ onSuccess }: CreateSpaceWindowProps)
   const [spaceAvatarTextColor, setSpaceAvatarTextColor] = useState("text-black");
 
   // 获取用户好友
-  const followingQuery = useGetUserFollowingsQuery(globalContext.userId ?? -1, { pageNo: 1, pageSize: 100 });
+  const followingQuery = useGetUserFollowingsQuery(userId ?? -1, { pageNo: 1, pageSize: 100 });
   const friends = followingQuery.data?.data?.list?.filter(user => user.status === 2) ?? [];
 
   // 处理邀请用户uid

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef } from "react";
 
 import type { FriendResponse } from "@tuanchat/openapi-client/models/FriendResponse";
 import type { MessageDirectResponse } from "@tuanchat/openapi-client/models/MessageDirectResponse";
+import type { WebsocketUtils } from "api/useWebSocket";
 import type { DirectMessageEvent } from "api/wsModels";
 
 import { useLocalStorage } from "@/components/common/customHooks/useLocalStorage";
@@ -11,20 +12,18 @@ import { useGetInboxMessagePageQuery } from "api/hooks/MessageDirectQueryHooks";
 import type { MessageDirectType } from "../types/messageDirect";
 
 type UsePrivateMessageListParams = {
-  globalContext: any;
+  webSocketUtils: WebsocketUtils;
   userId: number;
   includeFriendList?: boolean;
   enabled?: boolean;
 };
 
 export function usePrivateMessageList({
-  globalContext,
+  webSocketUtils,
   userId,
   includeFriendList = true,
   enabled = true,
 }: UsePrivateMessageListParams) {
-  const webSocketUtils = globalContext.websocketUtils;
-
   // 好友列表
   const friendListQuery = useGetFriendListQuery({ pageNo: 1, pageSize: 100 }, includeFriendList && enabled);
   const friendUserInfos: FriendResponse[] = useMemo(

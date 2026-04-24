@@ -3,7 +3,7 @@ import { toast } from "react-hot-toast";
 import { RoomContext } from "@/components/chat/core/roomContext";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
 import { RoleAvatarByRole } from "@/components/common/roleAccess";
-import { useGlobalContext } from "@/components/globalContextProvider";
+import { useGlobalUserId } from "@/components/globalContextProvider";
 import { AddRingLight } from "@/icons";
 import { useAddRoomRoleMutation, useGetRoomNpcRoleQuery, useGetRoomRoleQuery } from "../../../../api/hooks/chatQueryHooks";
 import { useGetUserRolesQuery } from "../../../../api/hooks/RoleAndAvatarHooks";
@@ -44,7 +44,7 @@ export function AddRoleWindow({
     return spaceRoles.filter(r => !roleIdInRoomSet.has(r.roleId));
   }, [roleIdInRoomSet, spaceRoles]);
 
-  const userId = useGlobalContext().userId;
+  const userId = useGlobalUserId();
   const userRolesQuery = useGetUserRolesQuery(userId ?? -1);
   const userRoles = useMemo(() => userRolesQuery.data?.data ?? [], [userRolesQuery.data?.data]);
 

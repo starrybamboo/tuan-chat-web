@@ -10,7 +10,7 @@ import {
 } from "@/components/chat/room/contextMenu/messageMediaQuickActions";
 import { useSideDrawerStore } from "@/components/chat/stores/sideDrawerStore";
 import { copyDocToSpaceDoc, copyDocToSpaceUserDoc } from "@/components/chat/utils/docCopy";
-import { useGlobalContext } from "@/components/globalContextProvider";
+import { useGlobalUserId } from "@/components/globalContextProvider";
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
 import { tuanchat } from "../../../../../api/instance";
 
@@ -48,7 +48,7 @@ export default function ChatFrameContextMenu({
   onOpenAnnotations,
   onInsertAfter,
 }: ContextMenuProps) {
-  const globalContext = useGlobalContext();
+  const currentUserId = useGlobalUserId();
   const spaceContext = use(SpaceContext);
   const queryClient = useQueryClient();
   const navigate = useNavigate();
@@ -80,7 +80,7 @@ export default function ChatFrameContextMenu({
   const message = contextMenuMessageId
     ? historyMessages.find(message => message.message.messageId === contextMenuMessageId)
     : undefined;
-  const canEditMessage = !!message && (message.message.userId === globalContext.userId || spaceContext.isSpaceOwner);
+  const canEditMessage = !!message && (message.message.userId === currentUserId || spaceContext.isSpaceOwner);
   const canToggleBackground = canEditMessage
     && !!message?.message.extra?.imageMessage
     && message.message.messageType === MESSAGE_TYPE.IMG;

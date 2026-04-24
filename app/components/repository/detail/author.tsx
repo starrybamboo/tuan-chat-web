@@ -4,11 +4,11 @@ import { useCallback, useState } from "react";
 import { FollowButton } from "@/components/common/Follow/FollowButton";
 import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
 import { UserDetail } from "@/components/common/userDetail";
-import { useGlobalContext } from "@/components/globalContextProvider";
+import { useGlobalUserId } from "@/components/globalContextProvider";
 
 export default function Author({ userId }: { userId?: number }) {
   // 获取全局用户ID
-  const { userId: contextUserId } = useGlobalContext();
+  const contextUserId = useGlobalUserId();
 
   // 弹窗状态
   const [isUserCardOpen, setIsUserCardOpen] = useState(false);

@@ -10,7 +10,7 @@ import {
   SPACE_MEMBER_TYPE,
 } from "@/components/chat/utils/memberPermissions";
 import { UserAvatarByUser } from "@/components/common/userAccess";
-import { useGlobalContext } from "@/components/globalContextProvider";
+import { useGlobalUserId } from "@/components/globalContextProvider";
 import {
   useDeleteRoomMemberMutation,
   useDeleteSpaceMemberMutation,
@@ -206,8 +206,7 @@ function ActionButtons({
 
 export default function MemberLists({ members, className, isSpace }: { members: (SpaceMember)[]; className?: string; isSpace: boolean }) {
   // 获取上下文与全局信息
-  const globalCtx = useGlobalContext();
-  const curUserId = globalCtx.userId ?? -1;
+  const curUserId = useGlobalUserId() ?? -1;
   const roomContext = use(RoomContext);
   const spaceContext = use(SpaceContext);
   const roomId = roomContext.roomId ?? -1;

@@ -4,7 +4,7 @@ import ActivityNotice from "@/components/activities/cards/activituNoticeCard";
 import PublishPostCard from "@/components/activities/cards/publishPostCard";
 import TrendingTopics from "@/components/activities/cards/trendingTopicsCard";
 import PostsCard from "@/components/common/acticityAndFeedPostsCard/postsCard";
-import { useGlobalContext } from "@/components/globalContextProvider";
+import { useGlobalUserId } from "@/components/globalContextProvider";
 import { useGetFollowingMomentFeedInfiniteQuery } from "../../../api/hooks/activitiesFeedQuerryHooks";
 
 /**
@@ -12,7 +12,7 @@ import { useGetFollowingMomentFeedInfiniteQuery } from "../../../api/hooks/activ
  */
 function ActivitiesPage() {
   const [activeTab, setActiveTab] = useState<"all" | "repository">("all");
-  const loginUserId = useGlobalContext().userId ?? -1;
+  const loginUserId = useGlobalUserId() ?? -1;
   const RENDER_MIN = 3;
   // 固定请求参数引用，避免 queryKey 抖动导致重复拉第一页
   const feedRequest = useMemo<FeedPageRequest>(() => ({

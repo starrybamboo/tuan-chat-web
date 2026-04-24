@@ -11,7 +11,7 @@ import useSearchParamsState from "@/components/common/customHooks/useSearchParam
 import LikeIconButton from "@/components/common/likeIconButton";
 import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
 import UserAvatarComponent from "@/components/common/userAvatar";
-import { useGlobalContext } from "@/components/globalContextProvider";
+import { useGlobalUserId } from "@/components/globalContextProvider";
 import { ChevronRightIcon, CloseIcon } from "@/icons";
 import {
   DEFAULT_COMMENT_CHILD_LIMIT,
@@ -133,7 +133,7 @@ export default function CommentComponent({
   parentComment?: CommentVO | null;
 }) {
   const commentContext = use(CommentContext);
-  const userId: number | null = useGlobalContext().userId;
+  const userId: number | null = useGlobalUserId();
   const getCommentByIdQuery = useGetCommentByIdQuery(typeof comment === "number" ? comment : -1);
   const commentVO = typeof comment === "number" ? getCommentByIdQuery.data : comment;
   const deleteCommentMutation = useDeleteCommentMutation();

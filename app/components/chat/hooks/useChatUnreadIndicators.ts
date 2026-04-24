@@ -3,9 +3,10 @@ import { useEffect, useMemo } from "react";
 import { usePrivateMessageList } from "@/components/privateChat/hooks/usePrivateMessageList";
 import { useUnreadCount } from "@/components/privateChat/hooks/useUnreadCount";
 import { useGetFriendRequestPageQuery } from "api/hooks/friendQueryHooks";
+import type { WebsocketUtils } from "api/useWebSocket";
 
 type UseChatUnreadIndicatorsParams = {
-  globalContext: any;
+  webSocketUtils: WebsocketUtils;
   userId: number;
   isPrivateChatMode: boolean;
   activeRoomId: number | null;
@@ -19,7 +20,7 @@ type UseChatUnreadIndicatorsResult = {
 };
 
 export default function useChatUnreadIndicators({
-  globalContext,
+  webSocketUtils,
   userId,
   isPrivateChatMode,
   activeRoomId,
@@ -27,7 +28,7 @@ export default function useChatUnreadIndicators({
   enablePrivateEntryBadge = true,
 }: UseChatUnreadIndicatorsParams): UseChatUnreadIndicatorsResult {
   const privateMessageList = usePrivateMessageList({
-    globalContext,
+    webSocketUtils,
     userId,
     includeFriendList: false,
     enabled: enablePrivateEntryBadge,
@@ -60,10 +61,9 @@ export default function useChatUnreadIndicators({
     return privateTotalUnreadMessages + pendingFriendRequestCount;
   }, [pendingFriendRequestCount, privateTotalUnreadMessages]);
 
-  const websocketUtils = globalContext.websocketUtils;
   const unreadMessagesNumber = useMemo(() => {
-    return (websocketUtils?.unreadMessagesNumber ?? {}) as Record<number, number>;
-  }, [websocketUtils?.unreadMessagesNumber]);
+    return (webSocketUtils?.unreadMessagesNumber ?? {}) as Record<number, number>;
+  }, [webSocketUtils?.unreadMessagesNumber]);
   const totalUnreadMessages = useMemo(() => {
     const values = Object.values(unreadMessagesNumber) as number[];
     return values.reduce((sum, count) => sum + count, 0);

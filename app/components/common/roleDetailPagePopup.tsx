@@ -6,7 +6,7 @@ import { RoomContext } from "@/components/chat/core/roomContext";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
 import { hasHostPrivileges } from "@/components/chat/utils/memberPermissions";
 import ConfirmModal from "@/components/common/comfirmModel";
-import { useGlobalContext } from "@/components/globalContextProvider";
+import { useGlobalUserId } from "@/components/globalContextProvider";
 import CharacterDetail from "@/components/Role/CharacterDetail";
 import { getRoleRule, setRoleRule } from "@/utils/roleRuleStorage";
 import { resolveRoleRuleSelection, shouldPersistRoleRuleSelection } from "@/utils/roleRuleSelection";
@@ -98,7 +98,7 @@ export function RoleDetailPagePopup({
 
   const isManager = useMemo(() => hasHostPrivileges(curMember?.memberType), [curMember?.memberType]);
 
-  const userId = useGlobalContext().userId ?? -1;
+  const userId = useGlobalUserId() ?? -1;
   const userRole = useGetUserRolesQuery(userId);
 
   const canKick = useMemo(() => {

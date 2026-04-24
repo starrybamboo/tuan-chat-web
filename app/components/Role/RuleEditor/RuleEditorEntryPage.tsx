@@ -3,7 +3,7 @@ import { useGetRuleDetailQuery } from "api/hooks/ruleQueryHooks";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router";
 
-import { useGlobalContext } from "@/components/globalContextProvider";
+import { useGlobalUserId } from "@/components/globalContextProvider";
 import CreatePageHeader from "@/components/Role/RoleCreation/CreatePageHeader";
 import RulesSection from "@/components/Role/rules/RulesSection";
 
@@ -18,7 +18,7 @@ type RuleScope = "all" | "mine";
 
 export default function RuleEditorEntryPage({ onBack }: RuleEditorEntryPageProps) {
   const navigate = useNavigate();
-  const { userId } = useGlobalContext();
+  const userId = useGlobalUserId();
   const [scope, setScope] = useState<RuleScope>("all");
   const [ruleName, setRuleName] = useState("");
   const [ruleDescription, setRuleDescription] = useState("");
