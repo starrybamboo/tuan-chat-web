@@ -199,7 +199,7 @@ export function DirectorWorkspace({
                         </button>
                       </div>
                       <div className={`${directorCornerActionsClassName} right-3`}>
-                        <span className={directorCornerPillClassName}>{`${directorInputPreview.width} ? ${directorInputPreview.height}`}</span>
+                        <span className={directorCornerPillClassName}>{`${directorInputPreview.width} × ${directorInputPreview.height}`}</span>
                       </div>
                     </>
                   )
@@ -216,7 +216,7 @@ export function DirectorWorkspace({
                 ? (
                     <>
                       <div className={`${directorCornerActionsClassName} left-3`}>
-                        <span className={directorCornerPillClassName}>{`${directorDisplayedOutput.width} ? ${directorDisplayedOutput.height}`}</span>
+                        <span className={directorCornerPillClassName}>{`${directorDisplayedOutput.width} × ${directorDisplayedOutput.height}`}</span>
                       </div>
                       <div className={`${directorCornerActionsClassName} right-3`}>
                         <button
