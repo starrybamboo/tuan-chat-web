@@ -70,6 +70,10 @@ export function useBlocksuiteEditorLifecycle(params: UseBlocksuiteEditorLifecycl
   const docRuntimeRef = useRef<{ workspace: any; docId: string } | null>(null);
   const readOnlyRef = useRef(readOnly);
   const instanceIdRef = useRef(instanceId);
+  const tcHeaderFallbackRef = useRef({
+    title: tcHeaderFallbackTitle,
+    imageUrl: tcHeaderFallbackImageUrl,
+  });
   const [tcHeaderState, setTcHeaderState] = useState<BlocksuiteTcHeaderState>(null);
   const [startupError, setStartupError] = useState<string | null>(null);
   const [reloadEpoch, setReloadEpoch] = useState(0);
@@ -85,6 +89,13 @@ export function useBlocksuiteEditorLifecycle(params: UseBlocksuiteEditorLifecycl
   useEffect(() => {
     instanceIdRef.current = instanceId;
   }, [instanceId]);
+
+  useEffect(() => {
+    tcHeaderFallbackRef.current = {
+      title: tcHeaderFallbackTitle,
+      imageUrl: tcHeaderFallbackImageUrl,
+    };
+  }, [tcHeaderFallbackImageUrl, tcHeaderFallbackTitle]);
 
   useEffect(() => {
     if (!tcHeaderEnabled)
@@ -197,8 +208,8 @@ export function useBlocksuiteEditorLifecycle(params: UseBlocksuiteEditorLifecycl
             })) {
               // 当前 hydration 状态足够稳定，可以立即补兜底 header。
               applyHeaderState(ensureBlocksuiteDocHeader(store, {
-                title: tcHeaderFallbackTitle,
-                imageUrl: tcHeaderFallbackImageUrl,
+                title: tcHeaderFallbackRef.current.title,
+                imageUrl: tcHeaderFallbackRef.current.imageUrl,
               }));
             }
             else {
@@ -214,8 +225,8 @@ export function useBlocksuiteEditorLifecycle(params: UseBlocksuiteEditorLifecycl
 
                 try {
                   applyHeaderState(ensureBlocksuiteDocHeader(store, {
-                    title: tcHeaderFallbackTitle,
-                    imageUrl: tcHeaderFallbackImageUrl,
+                    title: tcHeaderFallbackRef.current.title,
+                    imageUrl: tcHeaderFallbackRef.current.imageUrl,
                   }));
                 }
                 catch (error) {
@@ -423,12 +434,9 @@ export function useBlocksuiteEditorLifecycle(params: UseBlocksuiteEditorLifecycl
     docModeProvider,
     isFull,
     postToParent,
-    readOnly,
     reloadEpoch,
     spaceId,
     tcHeaderEnabled,
-    tcHeaderFallbackImageUrl,
-    tcHeaderFallbackTitle,
     workspaceId,
   ]);
 
