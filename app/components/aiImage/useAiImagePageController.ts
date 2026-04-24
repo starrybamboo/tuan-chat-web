@@ -1,4 +1,4 @@
-// AI 闁汇垻鍠庡ù妯汇亜閻㈠憡妗ㄩ柨娑欒壘椤曨喗顬?NovelAI Image 闁汇劌瀚、鎴︽閵忋埄浼傞悽顖氬暙閻剚绋夋惔婵囧攭濞存粍甯槐杈亹閹惧啿顤呭ǎ鍥ㄧ箘閺嗏偓闁稿繐绉烽崹鍌炲础閺囩偟鐐?txt2img闁挎稑鑻懟鐔奉嚕閳ь剟寮ㄦィ鍐炬殨閻熸瑥鐗嗙亸?Inpaint闁?
+// AI image page: aligned with NovelAI Image desktop layout and interactions; keeps free single-image txt2img and preview-area Inpaint.
 import type { DragEvent, MouseEvent } from "react";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -195,10 +195,10 @@ export function useAiImagePageController() {
   const [v4Chars, setV4Chars] = useState<V4CharEditorRow[]>([]);
   const [vibeTransferReferences, setVibeTransferReferences] = useState<VibeTransferReferenceRow[]>([]);
   const [preciseReference, setPreciseReference] = useState<PreciseReferenceRow | null>(null);
-  // 闁告瑥鍊介埀?NovelAI 闁汇劌瀚粭鎾寸▔濮橆劷浣割嚕韫囧孩鍞夊ù婊勫釜缁变即骞庢繝鍥╁蒋缂佺嫏鍐┛闁活潿鍔忛崗姗€宕濆☉娆忣€曢柟瀛樺姇瑜版煡骞庡Ο鍝勭秾婵☆垪鈧櫕鍋ラ柨娑樿嫰閸ｈ櫣浜搁幋锔芥瘣閻炴稏鍔屽畷鐔煎闯椤忓牏鍙鹃柨娑樿嫰閼荤喖宕烽妸銉殼闁稿繈鍎查弻濠囧礃閸涱収鍟囬柡鍐╁劶閸ゆ粓宕濋妸銉ф綌鐎殿喒鍋撻悗鐢垫嚀缁ㄦ煡宕犻崫鍕仴闁?
+  // Follow the NovelAI pro-mode interaction model: fold advanced reference capabilities into expandable sections to reduce long-form noise and auto-open the related section when importing content.
   const [proFeatureSections, setProFeatureSections] = useState<Record<ProFeatureSectionKey, boolean>>(() => createProFeatureSectionState());
 
-  // 鐟滅増鎸告晶鐘炽亜閻㈠憡妗ㄩ柛銉ユ惈閻ｇ偓鎷呯捄銊︽殢闁告娲戠粩鏉懳熼垾宕団偓鐑芥晬瀹€鍕級闁稿繐绉堕悾婵嬪础閺囩唽浣割嚕韫囨侗鏉哄鑸电墬濮ｆ岸妫侀煫顓狀伇濞戞搩浜為弫銈夊箣闁垮锟ユ繛澶嬫磻缁姷绱掗幘瀵镐函闁规壆鍠撻悡锟犲绩閸撲焦鎶勯柣銊ュ閳ь剙顦扮€氥劌顫㈤妷鈺娾偓鍐Υ?
+  // This page intentionally uses a single fixed model so simple mode does not expose an extra choice that users cannot meaningfully evaluate from the result.
   const model = resolveFixedImageModel();
   const isNAI3 = false;
   const isNAI4 = true;
