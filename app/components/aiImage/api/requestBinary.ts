@@ -2,7 +2,7 @@ import { extractImageDataUrlsFromBinary } from "@/components/aiImage/helpers";
 
 export async function requestNovelAiBinaryViaProxy(requestUrl: string, payload: unknown, options?: { multipart?: boolean }) {
   const headers: Record<string, string> = {
-    "Accept": "application/octet-stream",
+    Accept: "application/octet-stream",
   };
   let body: BodyInit;
 
@@ -29,14 +29,14 @@ export async function requestNovelAiBinaryViaProxy(requestUrl: string, payload: 
 
   if (!res.ok) {
     const text = await res.text().catch(() => "");
-    throw new Error(`璇锋眰澶辫触: ${res.status} ${res.statusText}${text ? ` - ${text}` : ""}`);
+    throw new Error(`请求失败：${res.status} ${res.statusText}${text ? ` - ${text}` : ""}`);
   }
 
   const bytes = new Uint8Array(await res.arrayBuffer());
   const dataUrls = extractImageDataUrlsFromBinary(bytes);
   if (!dataUrls.length) {
     const text = await new Response(bytes).text().catch(() => "");
-    throw new Error(`鍝嶅簲涓嶆槸鍙瘑鍒殑鍥剧墖/ZIP${text ? `: ${text.slice(0, 200)}` : ""}`);
+    throw new Error(`响应不是可识别的图片或 ZIP${text ? `：${text.slice(0, 200)}` : ""}`);
   }
 
   return dataUrls;
