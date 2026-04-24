@@ -14,6 +14,7 @@ import type {
     ChatStatusEvent,
     ChatStatusType,
     DirectMessageEvent,
+    FriendRequestAcceptedPush,
     MemberChangePush, RoleChangePush, RoomExtraChangeEvent, RoomDndMapChangeEvent, UserNotificationPush,
   } from "./wsModels";
 import type { NewFriendRequestPush } from "./wsModels";
@@ -1288,6 +1289,14 @@ export function useWebSocket() {
         notifyNewFriendRequest(event);
         break;
       }
+      case 24: { // 好友申请已接受
+        const event = message as FriendRequestAcceptedPush;
+        console.info("Friend request accepted push:", event.data);
+        queryClient.invalidateQueries({ queryKey: ["friendList"] });
+        queryClient.invalidateQueries({ queryKey: ["friendRequestPage"] });
+        queryClient.invalidateQueries({ queryKey: ["friendCheck"] });
+        break;
+      }
       case 22: { // 空间频道树变更
         const event = message as SpaceSidebarTreeUpdatedPush;
         const spaceId = event?.data?.spaceId;
@@ -1561,7 +1570,7 @@ export function useWebSocket() {
       queryClient.invalidateQueries({ queryKey: ["getInboxMessagePage"] });
       queryClient.invalidateQueries({ queryKey: ["inboxMessageWithUser"] });
 
-      // 好友申请同意后，发送方需要立刻看到好友列表/申请列表变化。
+      // 兼容旧服务端：若通过私聊系统文案通知“好友申请同意”，也刷新相关缓存。
       if ((message?.content ?? "").trim() === "好友申请同意") {
         queryClient.invalidateQueries({ queryKey: ["friendList"] });
         queryClient.invalidateQueries({ queryKey: ["friendRequestPage"] });

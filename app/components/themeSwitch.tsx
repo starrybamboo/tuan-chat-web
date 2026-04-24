@@ -1,7 +1,21 @@
 import { MoonIcon, SunIcon } from "@phosphor-icons/react";
 import { useMediaQuery } from "@uidotdev/usehooks";
-import { useEffect } from "react";
+import { useLayoutEffect } from "react";
 import { useLocalStorage } from "@/components/common/customHooks/useLocalStorage";
+
+const THEME_SWITCHING_CLASS_NAME = "theme-switching";
+
+function syncDocumentTheme(isDark: boolean, lightTheme: string, darkTheme: string) {
+  const htmlElement = document.documentElement;
+
+  htmlElement.classList.add(THEME_SWITCHING_CLASS_NAME);
+  htmlElement.setAttribute("data-theme", isDark ? darkTheme : lightTheme);
+  htmlElement.classList.toggle("dark", isDark);
+
+  window.requestAnimationFrame(() => {
+    htmlElement.classList.remove(THEME_SWITCHING_CLASS_NAME);
+  });
+}
 
 export default function ThemeSwitch() {
   // 浏览器的暗亮模式
@@ -14,15 +28,10 @@ export default function ThemeSwitch() {
   // 站点 CSS 里自定义的 DaisyUI 主题名是 "dark"（并且 Tailwind 的 dark: 变体也只匹配 data-theme=dark）
   const darkTheme = "dark";
 
-  // 2. 使用 useEffect 来同步 DOM
-  // 每当最终模式 (isEffectivelyDark) 发生变化时，此代码块将运行
-  useEffect(() => {
-    const htmlElement = document.documentElement;
+  // 2. 使用 useLayoutEffect 在浏览器绘制前同步 DOM，减少主题切换闪烁
+  useLayoutEffect(() => {
     const isEffectivelyDark = reverseDarkMode !== prefersIsDarkMode;
-    // 为 DaisyUI 设置 data-theme 属性
-    htmlElement.setAttribute("data-theme", isEffectivelyDark ? darkTheme : lightTheme);
-    // 同步 class="dark"，方便其他依赖 class 的逻辑/组件保持一致
-    htmlElement.classList.toggle("dark", isEffectivelyDark);
+    syncDocumentTheme(isEffectivelyDark, lightTheme, darkTheme);
   }, [lightTheme, darkTheme, reverseDarkMode, prefersIsDarkMode]);
 
   return (

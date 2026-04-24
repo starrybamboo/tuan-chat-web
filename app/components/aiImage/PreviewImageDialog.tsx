@@ -1,96 +1,78 @@
 import type { GeneratedImageItem } from "@/components/aiImage/types";
-import type { AiImageHistoryRow } from "@/utils/aiImageHistoryDb";
-import { SharpDownload, XMarkICon } from "@/icons";
+import { useEffect, useState } from "react";
+
+const PREVIEW_IMAGE_DIALOG_TRANSITION_MS = 180;
 
 interface PreviewImageDialogProps {
   isOpen: boolean;
   selectedPreviewResult: GeneratedImageItem | null;
-  selectedPreviewHistoryRow: AiImageHistoryRow | null;
   onClose: () => void;
-  onDownloadCurrent: () => void;
 }
 
 export function PreviewImageDialog({
   isOpen,
   selectedPreviewResult,
-  selectedPreviewHistoryRow,
   onClose,
-  onDownloadCurrent,
 }: PreviewImageDialogProps) {
-  const previewMeta = selectedPreviewResult
-    ? [
-        selectedPreviewResult.toolLabel || selectedPreviewHistoryRow?.toolLabel || "",
-        `seed: ${selectedPreviewResult.seed}`,
-        `${selectedPreviewResult.width}×${selectedPreviewResult.height}`,
-      ].filter(Boolean).join(" · ")
-    : "暂无可查看的预览";
+  const [shouldRender, setShouldRender] = useState(isOpen);
+  const [isVisible, setIsVisible] = useState(false);
+
+  useEffect(() => {
+    if (isOpen) {
+      setShouldRender(true);
+      const raf = window.requestAnimationFrame(() => {
+        setIsVisible(true);
+      });
+      return () => window.cancelAnimationFrame(raf);
+    }
+
+    setIsVisible(false);
+    const timer = window.setTimeout(() => {
+      setShouldRender(false);
+    }, PREVIEW_IMAGE_DIALOG_TRANSITION_MS);
+    return () => window.clearTimeout(timer);
+  }, [isOpen]);
+
+  useEffect(() => {
+    if (!isOpen)
+      return;
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape")
+        onClose();
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen, onClose]);
+
+  if (!shouldRender || !selectedPreviewResult)
+    return null;
 
   return (
-    <dialog
-      open={isOpen}
-      className={`modal ${isOpen ? "modal-open" : ""}`}
-      onCancel={(event) => {
-        event.preventDefault();
-        onClose();
+    <div
+      className={`fixed inset-0 z-50 flex items-center justify-center bg-base-200/75 backdrop-blur-[2px] transition-opacity duration-200 ease-out ${
+        isVisible ? "opacity-100" : "pointer-events-none opacity-0"
+      }`}
+      onClick={(event) => {
+        if (event.target === event.currentTarget)
+          onClose();
       }}
+      role="dialog"
+      aria-modal="true"
+      aria-label="预览图片"
     >
-      <div className="modal-box relative flex max-h-[min(92vh,960px)] max-w-[min(94vw,1440px)] flex-col overflow-hidden border border-base-300 bg-base-100 p-0 text-base-content shadow-xl">
-        <div className="flex items-center gap-3 border-b border-base-300 px-5 py-4">
-          <div className="min-w-0 flex-1">
-            <div className="text-base font-semibold">查看预览</div>
-            <div className="mt-1 truncate text-xs text-base-content/60">{previewMeta}</div>
-          </div>
-          <button
-            type="button"
-            className="btn btn-ghost btn-sm btn-circle border border-base-300 bg-base-200 text-base-content hover:bg-base-300"
-            aria-label="关闭预览大图"
-            title="关闭预览大图"
-            onClick={onClose}
-          >
-            <XMarkICon className="size-5" />
-          </button>
-        </div>
-
-        <div className="flex min-h-[60vh] items-center justify-center bg-base-200/50 p-4">
-          {selectedPreviewResult
-            ? (
-                <img
-                  src={selectedPreviewResult.dataUrl}
-                  alt="preview-expanded"
-                  className="max-h-[calc(92vh-12rem)] w-auto max-w-full rounded-2xl border border-base-300 bg-base-100 object-contain shadow-sm"
-                />
-              )
-            : (
-                <div className="text-sm text-base-content/60">暂无可查看的预览</div>
-              )}
-        </div>
-
-        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-base-300 px-5 py-4">
-          <div className="text-xs text-base-content/60">按 `Esc` 或点击右上角关闭。</div>
-          <div className="flex flex-wrap items-center gap-2">
-            <button
-              type="button"
-              className="btn btn-sm btn-outline gap-2"
-              disabled={!selectedPreviewResult}
-              onClick={onDownloadCurrent}
-            >
-              <SharpDownload className="size-4" />
-              <span>下载当前</span>
-            </button>
-            <button
-              type="button"
-              className="btn btn-sm btn-primary"
-              disabled={!selectedPreviewResult}
-              onClick={onClose}
-            >
-              完成
-            </button>
-          </div>
-        </div>
+      <div
+        className={`transform-gpu transition-all duration-200 ease-out ${
+          isVisible ? "translate-y-0 scale-100 opacity-100" : "translate-y-2 scale-[0.985] opacity-0"
+        }`}
+      >
+        <img
+          src={selectedPreviewResult.dataUrl}
+          alt="preview-expanded"
+          className="max-h-[92vh] max-w-[94vw] rounded-2xl object-contain shadow-[0_30px_90px_rgba(0,0,0,0.35)]"
+        />
       </div>
-      <form method="dialog" className="modal-backdrop">
-        <button type="button" onClick={onClose}>close</button>
-      </form>
-    </dialog>
+    </div>
   );
 }
