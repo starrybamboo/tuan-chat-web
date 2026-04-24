@@ -145,6 +145,7 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
   const {
     editorHandle,
     tcHeaderState,
+    startupError,
   } = useBlocksuiteEditorLifecycle({
     workspaceId,
     docId,
@@ -315,7 +316,17 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
         <div
           ref={editorHandle.hostContainerRef}
           className={`${(isFull || isEdgelessFullscreen || isBrowserFullscreen) ? "flex-1 min-h-0" : "min-h-32"} w-full ${currentMode === "edgeless" ? "affine-edgeless-viewport" : "affine-page-viewport"}`}
-        />
+        >
+          {startupError
+            ? (
+                <div className="flex h-full min-h-0 items-center justify-center bg-base-200 p-6">
+                  <div className="rounded-md border border-error/30 bg-base-100 p-4 text-sm text-error">
+                    {startupError}
+                  </div>
+                </div>
+              )
+            : null}
+        </div>
       </div>
     </div>
   );

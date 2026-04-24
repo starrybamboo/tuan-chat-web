@@ -4,7 +4,6 @@ import { getRemoteSnapshot } from "@/components/chat/infra/blocksuite/descriptio
 
 import {
   fetchDescriptionRemoteSnapshotUpdate,
-  shouldDelayRenderReady,
   shouldEnsureTcHeaderFallback,
   shouldUseRemoteFirstHydration,
   waitForRemoteHydrationSettled,
@@ -49,13 +48,6 @@ describe("blocksuiteEditorLifecycleHydration", () => {
       tcHeaderEnabled: true,
       hydrationState: "empty",
     })).toBe(true);
-  });
-
-  it("启动期 hydrate 未落定时延后 render-ready", () => {
-    expect(shouldDelayRenderReady("timed-out")).toBe(true);
-    expect(shouldDelayRenderReady("error")).toBe(true);
-    expect(shouldDelayRenderReady("snapshot-hit")).toBe(false);
-    expect(shouldDelayRenderReady("not-applicable")).toBe(false);
   });
 
   it("远端 hydrate 在超时内完成时返回 completed", async () => {
