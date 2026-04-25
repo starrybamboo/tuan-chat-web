@@ -77,12 +77,12 @@ export function renderProBottomSettingsDrawerContent({
     return null;
 
   return (
-    <div className="relative h-14 shrink-0 bg-[#F3F5F7] px-4 pb-3 dark:bg-[#161A1F]">
+    <div className="relative h-14 shrink-0 bg-transparent px-4 pb-3">
       {!isProBottomSettingsOpen
         ? (
             <button
               type="button"
-              className="grid h-14 w-full -translate-y-1 grid-cols-[max-content_max-content_max-content_minmax(0,1fr)_auto] items-center gap-[10px] rounded-t-2xl border border-[#D6DCE3] bg-[#F3F5F7] px-3 text-left text-base-content transition hover:bg-[#EAEFF4] focus:outline-none focus:ring-2 focus:ring-primary/20 dark:border-[#2A3138] dark:bg-[#161A1F] dark:text-white dark:hover:bg-[#1B2026]"
+              className="grid h-14 w-full -translate-y-1 grid-cols-[max-content_max-content_max-content_minmax(0,1fr)_auto] items-center gap-[10px] rounded-t-2xl border border-base-300 bg-base-100 px-3 text-left text-base-content transition hover:bg-base-200 focus:outline-none focus:ring-2 focus:ring-primary/20 dark:text-white"
               aria-expanded={isProBottomSettingsOpen}
               onClick={onOpenDrawer}
             >
