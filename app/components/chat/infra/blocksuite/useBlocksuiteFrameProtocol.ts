@@ -2,7 +2,10 @@ import type { DocMode } from "@blocksuite/affine/model";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 
-import type { BlocksuiteFrameToHostPayload } from "./shared/frameProtocol";
+import type {
+  BlocksuiteFrameSyncParams,
+  BlocksuiteFrameToHostPayload,
+} from "./shared/frameProtocol";
 
 import { isBlocksuiteDebugEnabled } from "./shared/debugFlags";
 import {
@@ -28,6 +31,8 @@ type BlocksuiteFrameProtocolParams = {
     prewarmOnly: boolean;
   };
 };
+
+type FrameParamsState = BlocksuiteFrameProtocolParams["frameParams"];
 
 function parseBool01(v: string | null | undefined): boolean {
   return v === "1" || v === "true";
@@ -55,6 +60,41 @@ export function readInitialBlocksuiteFrameProtocolState(search = typeof window =
       prewarmOnly: parseBool01(sp.get("prewarmOnly")),
     },
   };
+}
+
+export function mergeBlocksuiteFrameParams(
+  prev: FrameParamsState,
+  message: Partial<BlocksuiteFrameSyncParams>,
+): FrameParamsState {
+  const next: FrameParamsState = {
+    workspaceId: message.workspaceId ?? prev.workspaceId,
+    docId: message.docId ?? prev.docId,
+    spaceId: typeof message.spaceId === "number" && Number.isFinite(message.spaceId) ? message.spaceId : prev.spaceId,
+    readOnly: typeof message.readOnly === "boolean" ? message.readOnly : prev.readOnly,
+    tcHeaderEnabled: typeof message.tcHeader === "boolean" ? message.tcHeader : prev.tcHeaderEnabled,
+    tcHeaderTitle: message.tcHeaderTitle ?? prev.tcHeaderTitle,
+    tcHeaderImageUrl: message.tcHeaderImageUrl ?? prev.tcHeaderImageUrl,
+    allowModeSwitch: typeof message.allowModeSwitch === "boolean" ? message.allowModeSwitch : prev.allowModeSwitch,
+    fullscreenEdgeless: typeof message.fullscreenEdgeless === "boolean" ? message.fullscreenEdgeless : prev.fullscreenEdgeless,
+    forcedMode: isBlocksuiteDocMode(message.mode) ? message.mode : prev.forcedMode,
+    prewarmOnly: typeof message.prewarmOnly === "boolean" ? message.prewarmOnly : prev.prewarmOnly,
+  };
+
+  return (
+    next.workspaceId === prev.workspaceId
+    && next.docId === prev.docId
+    && next.spaceId === prev.spaceId
+    && next.readOnly === prev.readOnly
+    && next.tcHeaderEnabled === prev.tcHeaderEnabled
+    && next.tcHeaderTitle === prev.tcHeaderTitle
+    && next.tcHeaderImageUrl === prev.tcHeaderImageUrl
+    && next.allowModeSwitch === prev.allowModeSwitch
+    && next.fullscreenEdgeless === prev.fullscreenEdgeless
+    && next.forcedMode === prev.forcedMode
+    && next.prewarmOnly === prev.prewarmOnly
+  )
+    ? prev
+    : next;
 }
 
 export function useBlocksuiteFrameProtocol() {
@@ -131,19 +171,7 @@ export function useBlocksuiteFrameProtocol() {
           setInstanceId(typeof message.editorInstanceId === "string" ? message.editorInstanceId : "");
         }
 
-        setFrameParams(prev => ({
-          workspaceId: message.workspaceId ?? prev.workspaceId,
-          docId: message.docId ?? prev.docId,
-          spaceId: typeof message.spaceId === "number" && Number.isFinite(message.spaceId) ? message.spaceId : prev.spaceId,
-          readOnly: typeof message.readOnly === "boolean" ? message.readOnly : prev.readOnly,
-          tcHeaderEnabled: typeof message.tcHeader === "boolean" ? message.tcHeader : prev.tcHeaderEnabled,
-          tcHeaderTitle: message.tcHeaderTitle ?? prev.tcHeaderTitle,
-          tcHeaderImageUrl: message.tcHeaderImageUrl ?? prev.tcHeaderImageUrl,
-          allowModeSwitch: typeof message.allowModeSwitch === "boolean" ? message.allowModeSwitch : prev.allowModeSwitch,
-          fullscreenEdgeless: typeof message.fullscreenEdgeless === "boolean" ? message.fullscreenEdgeless : prev.fullscreenEdgeless,
-          forcedMode: isBlocksuiteDocMode(message.mode) ? message.mode : prev.forcedMode,
-          prewarmOnly: typeof message.prewarmOnly === "boolean" ? message.prewarmOnly : prev.prewarmOnly,
-        }));
+        setFrameParams(prev => mergeBlocksuiteFrameParams(prev, message));
       }
     };
 
