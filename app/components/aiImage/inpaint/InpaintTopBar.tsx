@@ -22,7 +22,7 @@ export function InpaintTopBar({
   topActionButtonClassName: string;
 }) {
   return (
-    <div className="absolute right-4 top-4 z-20 flex items-stretch overflow-hidden border border-white/10 shadow-[0_18px_48px_rgba(0,0,0,0.34)]">
+    <div className="absolute right-4 top-4 z-20 flex items-stretch overflow-hidden border border-base-300 shadow-[0_18px_48px_rgba(0,0,0,0.18)]">
       <button
         type="button"
         className={topIconActionButtonClassName}
@@ -35,7 +35,7 @@ export function InpaintTopBar({
       </button>
       <button
         type="button"
-        className={`${topActionButtonClassName} border-l border-white/10 bg-[#f6e6a5] text-[#222133] hover:bg-[#fff1af]`}
+        className={`${topActionButtonClassName} border-l border-base-300 bg-primary text-primary-content hover:bg-primary/90`}
         disabled={!hasMask || isSubmitting}
         onClick={() => void onSubmit()}
       >
@@ -44,7 +44,7 @@ export function InpaintTopBar({
       </button>
       <button
         type="button"
-        className={`${topIconActionButtonClassName} border-l border-white/10`}
+        className={`${topIconActionButtonClassName} border-l border-base-300`}
         aria-label="关闭 Inpaint"
         title="关闭 Inpaint"
         disabled={isSubmitting}

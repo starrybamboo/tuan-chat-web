@@ -43,7 +43,7 @@ export function renderSimpleInfillSectionContent({
   if (!sourceImageDataUrl || !infillMaskDataUrl)
     return null;
 
-  const infillActionButtonClassName = "inline-flex size-11 items-center justify-center bg-black/[0.03] text-base-content/70 transition hover:bg-black/[0.06] hover:text-base-content focus:outline-none focus-visible:bg-black/[0.06] focus-visible:text-base-content disabled:cursor-not-allowed disabled:opacity-40 dark:bg-white/[0.04] dark:text-white/80 dark:hover:bg-white/[0.08] dark:hover:text-white dark:focus-visible:bg-white/[0.08] dark:focus-visible:text-white";
+  const infillActionButtonClassName = "inline-flex size-11 items-center justify-center bg-base-200 text-base-content/70 transition hover:bg-base-300 hover:text-base-content focus:outline-none focus-visible:bg-base-300 focus-visible:text-base-content disabled:cursor-not-allowed disabled:opacity-40";
 
   return (
     <div className={simpleBaseImageAttachmentClassName}>
@@ -53,7 +53,7 @@ export function renderSimpleInfillSectionContent({
             <div className="flex items-start gap-2">
               <button
                 type="button"
-                className="mt-[1px] inline-flex size-9 items-center justify-center rounded-md text-base-content/70 transition hover:bg-base-200 hover:text-base-content focus:outline-none focus:ring-2 focus:ring-primary/20 dark:text-white/80 dark:hover:bg-white/6 dark:hover:text-white dark:focus:ring-white/15"
+                className="mt-[1px] inline-flex size-9 items-center justify-center rounded-md text-base-content/70 transition hover:bg-base-200 hover:text-base-content focus:outline-none focus:ring-2 focus:ring-primary/20"
                 aria-label="返回"
                 title="返回"
                 onClick={onReturnFromInfillSettings}
@@ -61,13 +61,13 @@ export function renderSimpleInfillSectionContent({
                 <CaretLeftIcon className="size-5" weight="bold" />
               </button>
               <div className="min-w-0">
-                <div className="text-[15px] font-semibold leading-6 text-base-content dark:text-white">Inpaint</div>
-                <div className="mt-1 text-[13px] leading-5 text-base-content/58 dark:text-white/72">Change part of an image.</div>
+                <div className="text-[15px] font-semibold leading-6 text-base-content">Inpaint</div>
+                <div className="mt-1 text-[13px] leading-5 text-base-content/58">Change part of an image.</div>
               </div>
             </div>
           </div>
           <div className={baseImageControlGroupClassName}>
-            <div className="flex overflow-hidden rounded-md border border-[#D6DCE3] bg-[#F3F5F7] dark:border-[#2A3138] dark:bg-[#161A1F]">
+            <div className="flex overflow-hidden rounded-md border border-base-300 bg-base-100">
               <button
                 type="button"
                 className={infillActionButtonClassName}
@@ -78,7 +78,7 @@ export function renderSimpleInfillSectionContent({
               >
                 <PencilSimpleLineIcon className="size-5" weight="bold" />
               </button>
-              <span className="h-11 w-px bg-[#D6DCE3] dark:bg-[#2A3138]" aria-hidden="true" />
+              <span className="h-11 w-px bg-base-300" aria-hidden="true" />
               <button
                 type="button"
                 className={infillActionButtonClassName}
@@ -107,8 +107,8 @@ export function renderSimpleInfillSectionContent({
           ? (
               <div className="mt-4 space-y-4">
                 <div>
-                  <div className="text-[13px] font-semibold leading-5 text-base-content dark:text-white">Mask</div>
-                  <div className="mt-2 overflow-hidden rounded-md border border-[#D6DCE3] bg-[#F3F5F7] dark:border-[#2A3138] dark:bg-[#0B0D1B]">
+                  <div className="text-[13px] font-semibold leading-5 text-base-content">Mask</div>
+                  <div className="mt-2 overflow-hidden rounded-md border border-base-300 bg-base-200">
                     <div className="relative h-[220px] w-full">
                       <img
                         src={sourceImageDataUrl}
@@ -127,7 +127,7 @@ export function renderSimpleInfillSectionContent({
                 </div>
 
                 <label className="block">
-                  <div className="flex items-center justify-between text-[13px] font-semibold leading-5 text-base-content dark:text-white">
+                  <div className="flex items-center justify-between text-[13px] font-semibold leading-5 text-base-content">
                     <span>Strength</span>
                     <span>{formatSliderValue(strength)}</span>
                   </div>
@@ -168,17 +168,17 @@ export function renderProInfillSectionContent({
   if (!sourceImageDataUrl || !infillMaskDataUrl)
     return null;
 
-  const infillActionButtonClassName = "inline-flex size-11 items-center justify-center bg-white/[0.04] text-white/80 transition hover:bg-white/[0.08] hover:text-white focus:outline-none focus-visible:bg-white/[0.08] focus-visible:text-white disabled:cursor-not-allowed disabled:opacity-40";
+  const infillActionButtonClassName = "inline-flex size-11 items-center justify-center bg-base-200 text-base-content/70 transition hover:bg-base-300 hover:text-base-content focus:outline-none focus-visible:bg-base-300 focus-visible:text-base-content disabled:cursor-not-allowed disabled:opacity-40";
 
   return (
-    <div className="-mx-3 -mb-3 mt-3 overflow-hidden border-t border-[#2A3138] bg-[#161A1F]">
+    <div className="-mx-3 -mb-3 mt-3 overflow-hidden border-t border-base-300 bg-base-100">
       <div className="px-4 py-4">
         <div className={baseImageHeaderClassName}>
           <div className="min-w-0">
             <div className="flex items-start gap-2">
               <button
                 type="button"
-                className="mt-[1px] inline-flex size-9 items-center justify-center rounded-md text-white/80 transition hover:bg-white/6 hover:text-white focus:outline-none focus:ring-2 focus:ring-white/15"
+                className="mt-[1px] inline-flex size-9 items-center justify-center rounded-md text-base-content/70 transition hover:bg-base-200 hover:text-base-content focus:outline-none focus:ring-2 focus:ring-primary/20"
                 aria-label="返回"
                 title="返回"
                 onClick={onReturnFromInfillSettings}
@@ -186,13 +186,13 @@ export function renderProInfillSectionContent({
                 <CaretLeftIcon className="size-5" weight="bold" />
               </button>
               <div className="min-w-0">
-                <div className="text-[15px] font-semibold leading-6 text-white">Inpaint</div>
-                <div className="mt-1 text-[13px] leading-5 text-white/72">Change part of an image.</div>
+                <div className="text-[15px] font-semibold leading-6 text-base-content">Inpaint</div>
+                <div className="mt-1 text-[13px] leading-5 text-base-content/58">Change part of an image.</div>
               </div>
             </div>
           </div>
           <div className={baseImageControlGroupClassName}>
-            <div className="flex overflow-hidden rounded-md border border-[#2A3138] bg-[#161A1F]">
+            <div className="flex overflow-hidden rounded-md border border-base-300 bg-base-100">
               <button
                 type="button"
                 className={infillActionButtonClassName}
@@ -203,7 +203,7 @@ export function renderProInfillSectionContent({
               >
                 <PencilSimpleLineIcon className="size-5" weight="bold" />
               </button>
-              <span className="h-11 w-px bg-[#2A3138]" aria-hidden="true" />
+              <span className="h-11 w-px bg-base-300" aria-hidden="true" />
               <button
                 type="button"
                 className={infillActionButtonClassName}
@@ -232,8 +232,8 @@ export function renderProInfillSectionContent({
           ? (
               <div className="mt-4 space-y-4">
                 <div>
-                  <div className="text-[13px] font-semibold leading-5 text-white">Mask</div>
-                  <div className="mt-2 overflow-hidden rounded-md border border-[#2A3138] bg-[#0B0D1B]">
+                  <div className="text-[13px] font-semibold leading-5 text-base-content">Mask</div>
+                  <div className="mt-2 overflow-hidden rounded-md border border-base-300 bg-base-200">
                     <div className="relative h-[220px] w-full">
                       <img
                         src={sourceImageDataUrl}
@@ -252,7 +252,7 @@ export function renderProInfillSectionContent({
                 </div>
 
                 <label className="block">
-                  <div className="flex items-center justify-between text-[13px] font-semibold leading-5 text-white">
+                  <div className="flex items-center justify-between text-[13px] font-semibold leading-5 text-base-content">
                     <span>Strength</span>
                     <span>{formatSliderValue(strength)}</span>
                   </div>
@@ -376,24 +376,24 @@ export function renderSimpleBaseImageSectionContent({
         <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(11,13,27,0.66)_0%,rgba(11,13,27,0.74)_100%)]" />
         <div className={baseImageHeaderClassName}>
           <div className="min-w-0">
-            <div className="text-[15px] font-semibold leading-6 text-white">Image2Image</div>
-            <div className="mt-1 text-[13px] leading-5 text-white/72">Transform your image.</div>
+            <div className="text-[15px] font-semibold leading-6 text-base-content">Image2Image</div>
+            <div className="mt-1 text-[13px] leading-5 text-base-content/58">Transform your image.</div>
           </div>
           <div className={baseImageControlGroupClassName}>
-            <div className="flex overflow-hidden rounded-md border border-[#2A3138] bg-[#161A1F]">
+            <div className="flex overflow-hidden rounded-md border border-base-300 bg-base-100">
               <button
                 type="button"
-                className="inline-flex size-11 items-center justify-center text-white/80 transition hover:bg-white/6 hover:text-white focus:outline-none"
+                className="inline-flex size-11 items-center justify-center text-base-content/70 transition hover:bg-base-200 hover:text-base-content focus:outline-none"
                 aria-label="更换 Base Img"
                 title="更换 Base Img"
                 onClick={onOpenSourceImagePicker}
               >
                 <ArrowClockwise className="size-5" weight="bold" />
               </button>
-              <span className="h-11 w-px bg-[#2A3138]" aria-hidden="true" />
+              <span className="h-11 w-px bg-base-300" aria-hidden="true" />
               <button
                 type="button"
-                className="inline-flex size-11 items-center justify-center text-white/80 transition hover:bg-white/6 hover:text-white focus:outline-none"
+                className="inline-flex size-11 items-center justify-center text-base-content/70 transition hover:bg-base-200 hover:text-base-content focus:outline-none"
                 aria-label="移除 Base Img"
                 title="移除 Base Img"
                 onClick={onClearSourceImage}
@@ -416,7 +416,7 @@ export function renderSimpleBaseImageSectionContent({
           ? (
               <div className="relative z-10 mt-4 space-y-4">
                 <label className="block">
-                  <div className="flex items-center justify-between text-[13px] font-semibold leading-5 text-white">
+                  <div className="flex items-center justify-between text-[13px] font-semibold leading-5 text-base-content">
                     <span>Strength</span>
                     <span>{formatSliderValue(strength)}</span>
                   </div>
@@ -432,7 +432,7 @@ export function renderSimpleBaseImageSectionContent({
                 </label>
 
                 <label className="block">
-                  <div className="flex items-center justify-between text-[13px] font-semibold leading-5 text-white">
+                  <div className="flex items-center justify-between text-[13px] font-semibold leading-5 text-base-content">
                     <span>Noise</span>
                     <span>{formatSliderValue(noise)}</span>
                   </div>

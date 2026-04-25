@@ -882,14 +882,14 @@ export function InpaintDialog({
     triggerBrowserDownload(source.dataUrl, `inpaint-source-${source.seed}.png`);
   }, [source]);
 
-  const toolbarButtonClassName = "inline-flex size-10 items-center justify-center rounded-md border border-white/10 bg-white/[0.06] text-white/72 transition hover:border-white/24 hover:bg-white/[0.1] hover:text-white focus:outline-none focus:ring-2 focus:ring-white/16 disabled:cursor-not-allowed disabled:opacity-35";
-  const topActionButtonClassName = "inline-flex h-10 items-center justify-center border-0 px-4 text-sm font-medium transition focus:outline-none focus:ring-2 focus:ring-white/16 disabled:cursor-not-allowed disabled:opacity-40 rounded-none";
-  const topIconActionButtonClassName = "inline-flex size-10 items-center justify-center border-0 bg-white/[0.06] text-white/72 transition hover:bg-white/[0.1] hover:text-white focus:outline-none focus:ring-2 focus:ring-white/16 disabled:cursor-not-allowed disabled:opacity-35 rounded-none";
-  const sharedPanelClassName = "rounded-md border border-[#2A3138] bg-[#161A1F] shadow-[0_18px_48px_rgba(0,0,0,0.34)]";
-  const bottomToolButtonClassName = "inline-flex size-10 items-center justify-center rounded-md border border-transparent bg-transparent text-white/60 transition hover:bg-white/[0.08] hover:text-white focus:outline-none focus:ring-2 focus:ring-white/16 disabled:cursor-not-allowed disabled:opacity-35";
-  const zoomPanelButtonClassName = "inline-flex h-10 items-center justify-center rounded-md border border-transparent bg-transparent px-2 text-white/60 transition hover:bg-white/[0.08] hover:text-white focus:outline-none focus:ring-2 focus:ring-white/16 disabled:cursor-not-allowed disabled:opacity-35";
-  const zoomPanelLabelClassName = "inline-flex h-10 min-w-14 items-center justify-center rounded-md border border-white/10 bg-white/[0.06] px-3 text-[11px] font-semibold text-white/82 transition hover:bg-white/[0.1] hover:text-white focus:outline-none focus:ring-2 focus:ring-white/16";
-  const boardButtonClassName = `${bottomToolButtonClassName} ${isBoardPanelOpen ? "bg-white/[0.12] text-white" : ""}`;
+  const toolbarButtonClassName = "inline-flex size-10 items-center justify-center rounded-md border border-base-300 bg-base-200 text-base-content/72 transition hover:border-base-300 hover:bg-base-300 hover:text-base-content focus:outline-none focus:ring-2 focus:ring-primary/20 disabled:cursor-not-allowed disabled:opacity-35";
+  const topActionButtonClassName = "inline-flex h-10 items-center justify-center border-0 px-4 text-sm font-medium transition focus:outline-none focus:ring-2 focus:ring-primary/20 disabled:cursor-not-allowed disabled:opacity-40 rounded-none";
+  const topIconActionButtonClassName = "inline-flex size-10 items-center justify-center border-0 bg-base-200 text-base-content/72 transition hover:bg-base-300 hover:text-base-content focus:outline-none focus:ring-2 focus:ring-primary/20 disabled:cursor-not-allowed disabled:opacity-35 rounded-none";
+  const sharedPanelClassName = "rounded-md border border-base-300 bg-base-100 shadow-[0_18px_48px_rgba(0,0,0,0.18)]";
+  const bottomToolButtonClassName = "inline-flex size-10 items-center justify-center rounded-md border border-transparent bg-transparent text-base-content/60 transition hover:bg-base-200 hover:text-base-content focus:outline-none focus:ring-2 focus:ring-primary/20 disabled:cursor-not-allowed disabled:opacity-35";
+  const zoomPanelButtonClassName = "inline-flex h-10 items-center justify-center rounded-md border border-transparent bg-transparent px-2 text-base-content/60 transition hover:bg-base-200 hover:text-base-content focus:outline-none focus:ring-2 focus:ring-primary/20 disabled:cursor-not-allowed disabled:opacity-35";
+  const zoomPanelLabelClassName = "inline-flex h-10 min-w-14 items-center justify-center rounded-md border border-base-300 bg-base-200 px-3 text-[11px] font-semibold text-base-content/82 transition hover:bg-base-300 hover:text-base-content focus:outline-none focus:ring-2 focus:ring-primary/20";
+  const boardButtonClassName = `${bottomToolButtonClassName} ${isBoardPanelOpen ? "bg-base-300 text-base-content" : ""}`;
   const boardPanelClassName = `absolute right-0 bottom-[calc(100%+10px)] z-30 w-[320px] p-3 ${sharedPanelClassName}`;
   const canUndo = historyVersion >= 0 && undoStackRef.current.length > 0;
   const canRedo = historyVersion >= 0 && redoStackRef.current.length > 0;
@@ -954,7 +954,7 @@ export function InpaintDialog({
     return null;
 
   return (
-    <div className="absolute inset-0 z-50 overflow-hidden bg-base-200 text-white">
+    <div className="absolute inset-0 z-50 overflow-hidden bg-base-200 text-base-content">
       <InpaintToolPanel
         sharedPanelClassName={sharedPanelClassName}
         brushSize={brushSize}
