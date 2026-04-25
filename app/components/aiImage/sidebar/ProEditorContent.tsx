@@ -355,34 +355,34 @@ export const ProEditorContent = memo(function ProEditorContent({
                       : null}
                     {mode === "img2img" && sourceImageDataUrl
                       ? (
-                          <div className="-mx-3 -mb-3 mt-3 overflow-hidden border-t border-[#2A3138] bg-[#161A1F]">
+                          <div className="-mx-3 -mb-3 mt-3 overflow-hidden border-t border-primary/15 bg-linear-to-br from-primary/10 via-base-100 to-base-100 dark:border-base-300 dark:from-base-100 dark:via-base-100 dark:to-base-100">
                             <div className={baseImagePanelClassName}>
                                 <img
                                   src={sourceImageDataUrl}
                                   alt="Base Img"
-                                  className="absolute inset-0 h-full w-full object-cover opacity-28"
+                                  className="absolute inset-0 h-full w-full object-cover opacity-46 saturate-[1.1] contrast-110 brightness-[1.03] dark:opacity-30 dark:saturate-100 dark:contrast-100 dark:brightness-100"
                               />
-                              <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(11,13,27,0.66)_0%,rgba(11,13,27,0.74)_100%)]" />
+                              <div className="absolute inset-0 bg-linear-to-b from-primary/12 via-base-100/72 to-base-100/92 dark:from-black/42 dark:via-base-100/58 dark:to-base-100/84" />
                               <div className={baseImageHeaderClassName}>
                                 <div className="min-w-0">
-                                  <div className="text-[15px] font-semibold leading-6 text-white">Image2Image</div>
-                                  <div className="mt-1 text-[13px] leading-5 text-white/72">Transform your image.</div>
+                                  <div className="text-[15px] font-semibold leading-6 text-base-content">Image2Image</div>
+                                  <div className="mt-1 text-[13px] leading-5 text-base-content/58">Transform your image.</div>
                                 </div>
                                 <div className={baseImageControlGroupClassName}>
-                                  <div className="flex overflow-hidden rounded-md border border-[#2A3138] bg-[#161A1F]">
+                                  <div className="flex overflow-hidden rounded-md border border-base-300 bg-base-100/86 backdrop-blur-sm">
                                     <button
                                       type="button"
-                                      className="inline-flex size-11 items-center justify-center text-white/80 transition hover:bg-white/6 hover:text-white focus:outline-none"
+                                      className="inline-flex size-11 items-center justify-center text-base-content/70 transition hover:bg-base-200/85 hover:text-base-content focus:outline-none focus:ring-2 focus:ring-primary/20"
                                       aria-label="更换 Base Img"
                                       title="更换 Base Img"
                                       onClick={handleOpenSourceImagePicker}
                                     >
                                       <ArrowClockwise className="size-5" weight="bold" />
                                     </button>
-                                    <span className="h-11 w-px bg-[#2A3138]" aria-hidden="true" />
+                                    <span className="h-11 w-px bg-base-300" aria-hidden="true" />
                                     <button
                                       type="button"
-                                      className="inline-flex size-11 items-center justify-center text-white/80 transition hover:bg-white/6 hover:text-white focus:outline-none"
+                                      className="inline-flex size-11 items-center justify-center text-base-content/70 transition hover:bg-base-200/85 hover:text-base-content focus:outline-none focus:ring-2 focus:ring-primary/20"
                                       aria-label="移除 Base Img"
                                       title="移除 Base Img"
                                       onClick={handleClearSourceImage}
@@ -405,7 +405,7 @@ export const ProEditorContent = memo(function ProEditorContent({
                                 ? (
                                     <div className="relative z-10 mt-4 space-y-4">
                                       <label className="block">
-                                        <div className="flex items-center justify-between text-[13px] font-semibold leading-5 text-white">
+                                        <div className="flex items-center justify-between text-[13px] font-semibold leading-5 text-base-content">
                                           <span>Strength</span>
                                           <span>{formatSliderValue(strength)}</span>
                                         </div>
@@ -421,7 +421,7 @@ export const ProEditorContent = memo(function ProEditorContent({
                                       </label>
 
                                       <label className="block">
-                                        <div className="flex items-center justify-between text-[13px] font-semibold leading-5 text-white">
+                                        <div className="flex items-center justify-between text-[13px] font-semibold leading-5 text-base-content">
                                           <span>Noise</span>
                                           <span>{formatSliderValue(noise)}</span>
                                         </div>
