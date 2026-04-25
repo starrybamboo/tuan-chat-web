@@ -108,7 +108,7 @@ export function InpaintBottomBar({
           <div className="flex items-center gap-1.5">
             <button
               type="button"
-              className={`${bottomToolButtonClassName} ${tool === "paint" ? "bg-white/[0.12] text-white" : ""}`}
+              className={`${bottomToolButtonClassName} ${tool === "paint" ? "bg-base-300 text-base-content" : ""}`}
               aria-label="绘制蒙版"
               title="绘制蒙版"
               onClick={() => onSetTool("paint")}
@@ -117,7 +117,7 @@ export function InpaintBottomBar({
             </button>
             <button
               type="button"
-              className={`${bottomToolButtonClassName} ${tool === "erase" ? "bg-white/[0.12] text-white" : ""}`}
+              className={`${bottomToolButtonClassName} ${tool === "erase" ? "bg-base-300 text-base-content" : ""}`}
               aria-label="擦除蒙版"
               title="擦除蒙版"
               onClick={() => onSetTool("erase")}
@@ -139,14 +139,14 @@ export function InpaintBottomBar({
               {isBoardPanelOpen
                 ? (
                     <div className={boardPanelClassName}>
-                      <div className="mb-3 text-[11px] font-medium text-white/55">Mask Color</div>
+                      <div className="mb-3 text-[11px] font-medium text-base-content/55">Mask Color</div>
                       <div className="flex flex-wrap gap-2">
                         {MASK_COLOR_OPTIONS.map(color => (
                           <button
                             key={color}
                             type="button"
-                            className={`inline-flex size-6 items-center justify-center rounded-full border transition focus:outline-none focus:ring-2 focus:ring-white/20 ${
-                              maskColor === color ? "border-white/85 ring-2 ring-white/20" : "border-white/10"
+                            className={`inline-flex size-6 items-center justify-center rounded-full border transition focus:outline-none focus:ring-2 focus:ring-primary/20 ${
+                              maskColor === color ? "border-base-content/85 ring-2 ring-primary/20" : "border-base-300"
                             }`}
                             aria-label={`选择蒙版颜色 ${color}`}
                             onClick={() => onSetMaskColor(color)}
@@ -156,7 +156,7 @@ export function InpaintBottomBar({
                         ))}
                       </div>
 
-                      <div className="mt-4 flex items-center justify-between gap-3 text-sm font-medium text-white">
+                      <div className="mt-4 flex items-center justify-between gap-3 text-sm font-medium text-base-content">
                         <span>Mask Opacity</span>
                         <span>{maskOpacity}%</span>
                       </div>
@@ -166,15 +166,15 @@ export function InpaintBottomBar({
                         max={100}
                         step={1}
                         value={maskOpacity}
-                        className="mt-2 h-1.5 w-full cursor-pointer appearance-none bg-transparent focus:outline-none [&::-webkit-slider-runnable-track]:h-1.5 [&::-webkit-slider-runnable-track]:rounded-full [&::-webkit-slider-runnable-track]:bg-white/10 [&::-webkit-slider-thumb]:mt-[-5px] [&::-webkit-slider-thumb]:size-4 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:border-0 [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:shadow-[0_0_0_1px_rgba(17,18,36,0.35)] [&::-moz-range-track]:h-1.5 [&::-moz-range-track]:rounded-full [&::-moz-range-track]:bg-white/10 [&::-moz-range-thumb]:size-4 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:bg-white"
+                        className="mt-2 h-1.5 w-full cursor-pointer appearance-none bg-transparent focus:outline-none [&::-webkit-slider-runnable-track]:h-1.5 [&::-webkit-slider-runnable-track]:rounded-full [&::-webkit-slider-runnable-track]:bg-base-content/10 [&::-webkit-slider-thumb]:mt-[-5px] [&::-webkit-slider-thumb]:size-4 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:border-0 [&::-webkit-slider-thumb]:bg-base-content [&::-webkit-slider-thumb]:shadow-[0_0_0_1px_rgba(17,18,36,0.18)] [&::-moz-range-track]:h-1.5 [&::-moz-range-track]:rounded-full [&::-moz-range-track]:bg-base-content/10 [&::-moz-range-thumb]:size-4 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:bg-base-content"
                         onChange={event => onSetMaskOpacity(Number(event.target.value))}
                       />
 
-                      <label className="mt-4 flex items-center gap-2 text-[11px] font-medium text-white">
+                      <label className="mt-4 flex items-center gap-2 text-[11px] font-medium text-base-content">
                         <input
                           type="checkbox"
                           checked={showMaskBorder}
-                          className="size-3.5 rounded border border-white/20 bg-white/[0.04] accent-white"
+                          className="size-3.5 rounded border border-base-300 bg-base-100 accent-primary"
                           onChange={event => onSetShowMaskBorder(event.target.checked)}
                         />
                         <span>Border</span>

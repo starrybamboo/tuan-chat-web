@@ -255,8 +255,8 @@ export const AiImageSidebar = memo(function AiImageSidebar({ sidebarProps }: AiI
     });
   }, [charPromptTabs, handleUpdateV4Char, isToggleLineCommentShortcut]);
 
-  const sideCardClassName = "card border-x-0 border-b border-t-0 border-[#D6DCE3] bg-[#F3F5F7] shadow-none dark:border-[#2A3138] dark:bg-[#161A1F]";
-  const editorPanelClassName = "rounded-2xl border border-[#D6DCE3] bg-[#F3F5F7] p-3 shadow-none dark:border-[#2A3138] dark:bg-[#161A1F]";
+  const sideCardClassName = "card border-x-0 border-b border-t-0 border-base-300 bg-base-100 shadow-none";
+  const editorPanelClassName = "rounded-2xl border border-base-300 bg-base-100 p-3 shadow-none";
   const segmentedControlClassName = "join rounded-xl bg-transparent p-0";
   const segmentedButtonBaseClassName = "btn btn-xs join-item border-0";
   const featureUploadActionClassName = "inline-flex size-11 items-center justify-center rounded-md border border-base-300 bg-base-100 text-base-content/78 transition hover:border-primary/40 hover:bg-base-200 hover:text-primary focus:outline-none focus:ring-2 focus:ring-primary/20";
@@ -280,9 +280,9 @@ export const AiImageSidebar = memo(function AiImageSidebar({ sidebarProps }: AiI
   const floatingInputActionBaseClassName = "btn btn-xs btn-ghost border-0 bg-transparent px-2 text-base-content/35 shadow-none transition-colors backdrop-blur-0 hover:bg-black/28 hover:text-white focus-visible:text-white disabled:cursor-not-allowed disabled:opacity-40 dark:text-base-content/40 dark:hover:bg-white/12";
   const floatingInputActionClassName = `${floatingInputActionBaseClassName} absolute right-3 top-3 z-10`;
   const baseImageToggleButtonClassName = "inline-flex size-11 items-center justify-center bg-transparent text-base-content/60 transition hover:text-base-content focus:outline-none focus-visible:text-base-content dark:text-white/58 dark:hover:text-white dark:focus-visible:text-white";
-  const baseImageActionButtonClassName = "inline-flex h-11 items-center gap-2 rounded-md border border-[#2A3138] bg-[#161A1F] px-4 text-[14px] font-semibold text-white/92 transition hover:border-white/20 hover:text-white focus:outline-none focus:ring-2 focus:ring-white/15";
+  const baseImageActionButtonClassName = "inline-flex h-11 items-center gap-2 rounded-md border border-base-300 bg-base-100 px-4 text-[14px] font-semibold text-base-content transition hover:border-primary/40 hover:bg-base-200 hover:text-primary focus:outline-none focus:ring-2 focus:ring-primary/20";
   const baseImageRangeClassName = "mt-2 w-full cursor-pointer appearance-none bg-transparent focus:outline-none [&::-webkit-slider-runnable-track]:h-2 [&::-webkit-slider-runnable-track]:rounded-full [&::-webkit-slider-runnable-track]:bg-white/10 [&::-webkit-slider-thumb]:mt-[-4px] [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:border-0 [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:shadow-sm [&::-webkit-slider-thumb]:shadow-black/30 [&::-moz-range-track]:h-2 [&::-moz-range-track]:rounded-full [&::-moz-range-track]:bg-white/10 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:bg-white [&::-moz-range-thumb]:shadow-sm [&::-moz-range-thumb]:shadow-black/30";
-  const simpleBaseImageAttachmentClassName = "mt-[2px] overflow-hidden !rounded-none border-x border-b border-[#D6DCE3] bg-[#F3F5F7] shadow-none dark:border-[#2A3138] dark:bg-[#161A1F]";
+  const simpleBaseImageAttachmentClassName = "mt-[2px] overflow-hidden !rounded-none border-x border-b border-base-300 bg-base-100 shadow-none";
   const [isModeSelectorOpen, setIsModeSelectorOpen] = useState<boolean>(false);
   const [isProPromptSettingsOpen, setIsProPromptSettingsOpen] = useState<boolean>(false);
   const [isBaseImageToolsOpen, setIsBaseImageToolsOpen] = useState<boolean>(() => mode === "img2img" || mode === "infill");
@@ -732,7 +732,7 @@ export const AiImageSidebar = memo(function AiImageSidebar({ sidebarProps }: AiI
   return (
     <div
       ref={sidebarSurfaceRef}
-      className={`${isDirectorToolsOpen ? "hidden" : "flex"} relative h-full min-h-0 w-full min-w-0 flex-col gap-0 overflow-hidden border-r border-black/5 bg-[#F3F5F7] p-0 shadow-none after:pointer-events-none after:absolute after:inset-y-0 after:right-0 after:w-5 after:bg-linear-to-l after:from-[rgba(15,23,42,0.08)] after:via-[rgba(15,23,42,0.03)] after:to-transparent after:content-[''] dark:border-white/5 dark:bg-[#161A1F] dark:after:from-[rgba(0,0,0,0.2)] dark:after:via-[rgba(0,0,0,0.08)]`}
+      className={`${isDirectorToolsOpen ? "hidden" : "flex"} relative h-full min-h-0 w-full min-w-0 flex-col gap-0 overflow-hidden border-r border-base-300 bg-base-100 p-0 shadow-none after:pointer-events-none after:absolute after:inset-y-0 after:right-0 after:w-5 after:bg-linear-to-l after:from-[rgba(15,23,42,0.08)] after:via-[rgba(15,23,42,0.03)] after:to-transparent after:content-[''] dark:after:from-[rgba(0,0,0,0.2)] dark:after:via-[rgba(0,0,0,0.08)]`}
     >
       <div className="ai-image-fade-scrollbar min-h-0 flex-1 overflow-y-auto">
       {isModeSelectorMounted
@@ -1065,7 +1065,7 @@ export const AiImageSidebar = memo(function AiImageSidebar({ sidebarProps }: AiI
 
       {uiMode === "simple" || uiMode === "pro"
         ? (
-            <div className="shrink-0 bg-[#F3F5F7] p-4 backdrop-blur dark:bg-[#161A1F]">
+            <div className="shrink-0 bg-base-100 p-4 backdrop-blur">
               <button
                 type="button"
                 className={`btn h-12 w-full justify-between border px-4 disabled:border-base-300 disabled:bg-base-200 disabled:text-base-content/35 ${
