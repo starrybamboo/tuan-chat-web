@@ -24,7 +24,7 @@ export interface AiImageHistoryPaneProps {
   directorInputPreviewKey?: string;
   isHistoryExpanded: boolean;
   onHistoryExpandedChange: (expanded: boolean) => void;
-  onSelectCurrentResult: (index: number) => void;
+  onCurrentResultCardClick: (index: number, row: AiImageHistoryRow | null, event: MouseEvent<HTMLButtonElement>) => void;
   onHistoryRowClick: (row: AiImageHistoryRow, event: MouseEvent<HTMLButtonElement>) => void;
   onHistoryImageDragStart: (
     event: DragEvent<HTMLElement>,

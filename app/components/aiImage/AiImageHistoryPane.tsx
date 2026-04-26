@@ -20,7 +20,7 @@ export function AiImageHistoryPane({
   directorInputPreviewKey,
   isHistoryExpanded,
   onHistoryExpandedChange,
-  onSelectCurrentResult,
+  onCurrentResultCardClick,
   onHistoryRowClick,
   onHistoryImageDragStart,
   onDeleteHistoryRow,
@@ -98,7 +98,7 @@ export function AiImageHistoryPane({
               directorInputPreviewKey={directorInputPreviewKey}
               isHistoryExpanded={isHistoryExpanded}
               onHistoryExpandedChange={onHistoryExpandedChange}
-              onSelectCurrentResult={onSelectCurrentResult}
+              onCurrentResultCardClick={onCurrentResultCardClick}
               onHistoryRowClick={onHistoryRowClick}
               onHistoryImageDragStart={onHistoryImageDragStart}
               onRequestDeleteHistoryRow={requestDeleteHistoryRow}
@@ -115,7 +115,7 @@ export function AiImageHistoryPane({
               archivedHistoryRows={archivedHistoryRows}
               selectedHistoryPreviewKey={selectedHistoryPreviewKey}
               selectedResultIndex={selectedResultIndex}
-              onSelectCurrentResult={onSelectCurrentResult}
+              onCurrentResultCardClick={onCurrentResultCardClick}
               onHistoryRowClick={onHistoryRowClick}
               onHistoryImageDragStart={onHistoryImageDragStart}
               onRequestDeleteHistoryRow={requestDeleteHistoryRow}

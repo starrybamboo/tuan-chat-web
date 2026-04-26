@@ -444,6 +444,7 @@ export function useAiImagePageController() {
     applyImportedMetadata,
     handleApplyHistorySettings,
     handleHistoryRowClick,
+    handleCurrentResultCardClick,
     handleDeleteHistoryRow,
   } = useAiImageHistoryActions({
     uiMode,
@@ -1065,7 +1066,7 @@ export function useAiImagePageController() {
       directorInputPreview,
       isHistoryExpanded,
       onHistoryExpandedChange: setIsHistoryExpanded,
-      onSelectCurrentResult: handleSelectCurrentResult,
+      onCurrentResultCardClick: handleCurrentResultCardClick,
       onHistoryRowClick: handleHistoryRowClick,
       onHistoryImageDragStart: handleHistoryImageDragStart,
       onDeleteHistoryRow: handleDeleteHistoryRow,

@@ -740,7 +740,7 @@ export function createAiImageHistoryPaneProps(args: {
   directorInputPreview: PreviewPaneProps["directorInputPreview"];
   isHistoryExpanded: HistoryPaneProps["isHistoryExpanded"];
   onHistoryExpandedChange: HistoryPaneProps["onHistoryExpandedChange"];
-  onSelectCurrentResult: HistoryPaneProps["onSelectCurrentResult"];
+  onCurrentResultCardClick: HistoryPaneProps["onCurrentResultCardClick"];
   onHistoryRowClick: HistoryPaneProps["onHistoryRowClick"];
   onHistoryImageDragStart: HistoryPaneProps["onHistoryImageDragStart"];
   onDeleteHistoryRow: HistoryPaneProps["onDeleteHistoryRow"];
@@ -757,7 +757,7 @@ export function createAiImageHistoryPaneProps(args: {
     directorInputPreviewKey: args.directorInputPreview ? generatedItemKey(args.directorInputPreview) : undefined,
     isHistoryExpanded: args.isHistoryExpanded,
     onHistoryExpandedChange: args.onHistoryExpandedChange,
-    onSelectCurrentResult: args.onSelectCurrentResult,
+    onCurrentResultCardClick: args.onCurrentResultCardClick,
     onHistoryRowClick: args.onHistoryRowClick,
     onHistoryImageDragStart: args.onHistoryImageDragStart,
     onDeleteHistoryRow: args.onDeleteHistoryRow,
