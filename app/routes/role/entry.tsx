@@ -32,17 +32,17 @@ export default function RoleCreationPage() {
   useEffect(() => {
     const typeParam = searchParams.get("type");
     if (typeParam === "normal") {
-      setMode("self");
+      queueMicrotask(() => setMode("self"));
     }
     else if (typeParam === "dice") {
-      setMode("dice");
+      queueMicrotask(() => setMode("dice"));
     }
     else if (typeParam === "rule") {
-      setMode("rule");
+      queueMicrotask(() => setMode("rule"));
     }
     else {
       // 当 query 被清理/无效时，回退到入口
-      setMode("entry");
+      queueMicrotask(() => setMode("entry"));
     }
   }, [searchParams]);
 

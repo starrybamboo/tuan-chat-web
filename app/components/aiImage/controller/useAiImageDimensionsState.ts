@@ -1,6 +1,7 @@
-import type { AiImageHistoryMode } from "@/utils/aiImageHistoryDb";
-import type { ImportedSourceImagePayload, ResolutionSelection, UiMode } from "@/components/aiImage/types";
 import { useCallback, useEffect, useMemo, useState } from "react";
+
+import type { ImportedSourceImagePayload, ResolutionSelection, UiMode } from "@/components/aiImage/types";
+import type { AiImageHistoryMode } from "@/utils/aiImageHistoryDb";
 
 import {
   CUSTOM_RESOLUTION_ID,
@@ -30,21 +31,21 @@ import {
 const DEFAULT_INPAINT_STRENGTH = 1;
 const DEFAULT_INPAINT_NOISE = 0;
 
-interface ReadImageSizeResult {
+type ReadImageSizeResult = {
   width: number;
   height: number;
-}
+};
 
-interface ReadImagePixelsResult extends ReadImageSizeResult {
+type ReadImagePixelsResult = {
   data: Uint8ClampedArray;
-}
+} & ReadImageSizeResult;
 
-interface UseAiImageDimensionsStateOptions {
+type UseAiImageDimensionsStateOptions = {
   uiMode: UiMode;
   showSuccessToast: (message: string) => void;
   readImagePixels: (dataUrl: string) => Promise<ReadImagePixelsResult>;
   readImageSize: (dataUrl: string) => Promise<ReadImageSizeResult>;
-}
+};
 
 export function useAiImageDimensionsState({
   uiMode,
@@ -360,24 +361,24 @@ export function useAiImageDimensionsState({
     if (mode !== "infill")
       return;
     if (!sourceImageDataUrl || !sourceImageBase64 || !infillMaskDataUrl)
-      setModeForUi(uiMode, sourceImageDataUrl ? "img2img" : "txt2img");
+      queueMicrotask(() => setModeForUi(uiMode, sourceImageDataUrl ? "img2img" : "txt2img"));
   }, [infillMaskDataUrl, mode, setModeForUi, sourceImageBase64, sourceImageDataUrl, uiMode]);
 
   useEffect(() => {
     if (!samplerOptions.includes(proSampler as any))
-      setProSampler(samplerOptions[0]);
+      queueMicrotask(() => setProSampler(samplerOptions[0]));
   }, [proSampler, samplerOptions]);
 
   useEffect(() => {
     if (!noiseScheduleOptions.length)
       return;
     if (!noiseScheduleOptions.includes(proNoiseSchedule as any))
-      setProNoiseSchedule(noiseScheduleOptions[0]);
+      queueMicrotask(() => setProNoiseSchedule(noiseScheduleOptions[0]));
   }, [noiseScheduleOptions, proNoiseSchedule]);
 
   useEffect(() => {
     if (proImageCount > imageCountLimit)
-      setProImageCount(imageCountLimit);
+      queueMicrotask(() => setProImageCount(imageCountLimit));
   }, [imageCountLimit, proImageCount]);
 
   useEffect(() => {
@@ -385,7 +386,7 @@ export function useAiImageDimensionsState({
       return;
     const matchedPresetId = inferResolutionSelection(simpleWidth, simpleHeight);
     if (matchedPresetId !== simpleResolutionSelection)
-      setSimpleResolutionSelection(matchedPresetId);
+      queueMicrotask(() => setSimpleResolutionSelection(matchedPresetId));
   }, [inferResolutionSelection, simpleHeight, simpleResolutionSelection, simpleWidth, uiMode]);
 
   useEffect(() => {
@@ -393,7 +394,7 @@ export function useAiImageDimensionsState({
       return;
     const matchedPresetId = inferResolutionSelection(proWidth, proHeight);
     if (matchedPresetId !== proResolutionSelection)
-      setProResolutionSelection(matchedPresetId);
+      queueMicrotask(() => setProResolutionSelection(matchedPresetId));
   }, [inferResolutionSelection, proHeight, proResolutionSelection, proWidth, uiMode]);
 
   useEffect(() => {
@@ -403,9 +404,9 @@ export function useAiImageDimensionsState({
     const nextHeight = clampCustomDimensionInput(simpleHeight, DEFAULT_SIMPLE_IMAGE_SETTINGS.height);
     if (nextWidth === simpleWidth && nextHeight === simpleHeight)
       return;
-    setSimpleWidth(nextWidth);
-    setSimpleHeight(nextHeight);
-    syncDimensionInputsForUi("simple", nextWidth, nextHeight);
+    queueMicrotask(() => setSimpleWidth(nextWidth));
+    queueMicrotask(() => setSimpleHeight(nextHeight));
+    queueMicrotask(() => syncDimensionInputsForUi("simple", nextWidth, nextHeight));
   }, [clampCustomDimensionInput, simpleHeight, simpleResolutionSelection, simpleWidth, syncDimensionInputsForUi, uiMode]);
 
   useEffect(() => {
@@ -415,9 +416,9 @@ export function useAiImageDimensionsState({
     const nextHeight = clampCustomDimensionInput(proHeight, DEFAULT_PRO_IMAGE_SETTINGS.height);
     if (nextWidth === proWidth && nextHeight === proHeight)
       return;
-    setProWidth(nextWidth);
-    setProHeight(nextHeight);
-    syncDimensionInputsForUi("pro", nextWidth, nextHeight);
+    queueMicrotask(() => setProWidth(nextWidth));
+    queueMicrotask(() => setProHeight(nextHeight));
+    queueMicrotask(() => syncDimensionInputsForUi("pro", nextWidth, nextHeight));
   }, [clampCustomDimensionInput, proHeight, proResolutionSelection, proWidth, syncDimensionInputsForUi, uiMode]);
 
   const applyModeStrengthAndNoise = useCallback((targetUiMode: UiMode, targetMode: AiImageHistoryMode | undefined, nextStrength: number | undefined, nextNoise: number | undefined) => {

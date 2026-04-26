@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useId, useState } from "react";
 import { Controller } from "react-hook-form";
 import { ImgUploaderWithSelector } from "@/components/common/uploader/ImgUploaderWithSelector";
 
@@ -19,8 +19,7 @@ export default function RepositoryCoverImage({
   const setRepositoryOriginalImage = useCallback((originalImage: string) => {
     setValue("originalImage", originalImage);
   }, [setValue]);
-  // 生成唯一的仓库头像名称, 避免覆盖
-  const uniqueRepositoryAvatarName = `repository_avatar_${Date.now()}`;
+  const uniqueRepositoryAvatarName = `repository_avatar_${useId().replace(/:/g, "")}`;
 
   return (
     <div className="mb-5">

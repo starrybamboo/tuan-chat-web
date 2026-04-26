@@ -11,9 +11,9 @@ vi.mock("react", async () => {
   return {
     ...actual,
     default: actual,
-    useCallback: ((fn: any) => fn),
+    useCallback: (fn: any) => fn,
     useEffect: vi.fn(),
-    useState: ((value: any) => [value, vi.fn()] as const),
+    useState: (value: any) => [value, vi.fn()] as const,
   };
 });
 

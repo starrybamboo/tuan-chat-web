@@ -17,8 +17,8 @@ import { installMediaDebugBridge } from "@/components/chat/infra/media/mediaDebu
 import { useDrawerPreferenceStore } from "@/components/chat/stores/drawerPreferenceStore";
 import { ToastWindowRenderer } from "@/components/common/toastWindow/toastWindowRenderer";
 import { GlobalContextProvider } from "@/components/globalContextProvider";
-import { createSeoMeta, getCanonicalHref } from "@/utils/seo";
 import { consumeAuthToast } from "@/utils/auth/unauthorized";
+import { createSeoMeta, getCanonicalHref } from "@/utils/seo";
 import "./app.css";
 import "./animation.css";
 
@@ -216,7 +216,8 @@ export function Layout({ children }: { children: React.ReactNode }) {
 export default function App() {
   const location = useLocation();
   const isBlocksuiteFrame = location.pathname.startsWith("/blocksuite-frame");
-  const isScrollSequenceDemo = location.pathname === "/scroll-sequence-demo";
+  const isScrollSequenceStandalone = location.pathname === "/scroll-sequence-demo"
+    || location.pathname === "/scroll-sequence-motion-demo";
   const [isTestEnvSplashOpen, setIsTestEnvSplashOpen] = React.useState(false);
 
   React.useEffect(() => {
@@ -273,7 +274,7 @@ export default function App() {
     );
   }
 
-  if (isScrollSequenceDemo) {
+  if (isScrollSequenceStandalone) {
     return (
       <>
         <Outlet />

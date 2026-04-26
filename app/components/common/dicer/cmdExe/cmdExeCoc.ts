@@ -1,6 +1,6 @@
 import { CommandExecutor, RuleNameSpace } from "@/components/common/dicer/cmd";
-import { parseDiceExpression, rollDice } from "@/components/common/dicer/dice";
 import { executeStShowCommand } from "@/components/common/dicer/cmdExe/cmdExePublic";
+import { parseDiceExpression, rollDice } from "@/components/common/dicer/dice";
 import UTILS from "@/components/common/dicer/utils/utils";
 
 // 属性名中英文对照表

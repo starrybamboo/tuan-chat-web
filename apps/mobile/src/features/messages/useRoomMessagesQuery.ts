@@ -32,7 +32,7 @@ export function useRoomMessagesQuery(roomId: number | null, pageSize: number = 2
     let disposed = false;
 
     if (!isAuthenticated || typeof roomId !== "number" || roomId <= 0) {
-      setCachedMessages([]);
+      queueMicrotask(() => setCachedMessages([]));
       return;
     }
 

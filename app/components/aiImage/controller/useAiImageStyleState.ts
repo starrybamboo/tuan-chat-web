@@ -1,6 +1,7 @@
 import { useCallback, useMemo, useState } from "react";
 
 import type { AiImageStylePreset } from "@/utils/aiImageStylePresets";
+
 import { getAiImageCompareStylePresets, getAiImageStylePresets } from "@/utils/aiImageStylePresets";
 
 export function useAiImageStyleState() {

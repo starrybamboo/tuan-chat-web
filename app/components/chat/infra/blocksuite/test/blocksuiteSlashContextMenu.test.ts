@@ -1,5 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { installBlocksuiteSlashContextMenu } from "../editors/blocksuiteSlashContextMenu";
+
 vi.mock("@blocksuite/affine/components/context-menu", () => ({
   menu: {
     action: vi.fn(),
@@ -25,8 +27,6 @@ vi.mock("../manager/slashMenuRuntime", () => ({
   groupBlocksuiteSlashMenuItems: vi.fn(() => []),
   resolveBlocksuiteSlashMenuItems: vi.fn(() => []),
 }));
-
-import { installBlocksuiteSlashContextMenu } from "../editors/blocksuiteSlashContextMenu";
 
 describe("blocksuiteSlashContextMenu", () => {
   afterEach(() => {

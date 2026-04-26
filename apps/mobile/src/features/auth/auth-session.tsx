@@ -1,27 +1,28 @@
-import { extractOpenApiErrorMessage } from "@tuanchat/domain/open-api-result";
 import type { UserLoginRequest } from "@tuanchat/openapi-client/models/UserLoginRequest";
 import type { PropsWithChildren } from "react";
-import { createContext, useCallback, useContext, useEffect, useState } from "react";
+import type { StoredAuthSession } from "./auth-storage";
+import { extractOpenApiErrorMessage } from "@tuanchat/domain/open-api-result";
 
+import { createContext, use, useCallback, useEffect, useMemo, useState } from "react";
 import { mobileApiClient } from "@/lib/api";
-import { mobileQueryClient } from "@/providers/query-client";
 
+import { mobileQueryClient } from "@/providers/query-client";
 import {
   clearStoredAuthSession,
   readStoredAuthSession,
+
   writeStoredAuthSession,
-  type StoredAuthSession,
 } from "./auth-storage";
 
 export type LoginMethod = "username" | "userId";
 
-type LoginInput = {
+interface LoginInput {
   identifier: string;
   password: string;
   method: LoginMethod;
-};
+}
 
-type AuthSessionContextValue = {
+interface AuthSessionContextValue {
   session: StoredAuthSession | null;
   isBootstrapping: boolean;
   isSigningIn: boolean;
@@ -29,7 +30,7 @@ type AuthSessionContextValue = {
   replaceSession: (session: StoredAuthSession | null) => Promise<void>;
   signIn: (input: LoginInput) => Promise<void>;
   signOut: () => Promise<void>;
-};
+}
 
 const AuthSessionContext = createContext<AuthSessionContextValue | null>(null);
 
@@ -155,7 +156,7 @@ export function AuthSessionProvider({ children }: PropsWithChildren) {
     await mobileQueryClient.invalidateQueries();
   }, []);
 
-  const signIn = async (input: LoginInput) => {
+  const signIn = useCallback(async (input: LoginInput) => {
     setIsSigningIn(true);
     try {
       const nextSession = await performLogin(input);
@@ -164,9 +165,9 @@ export function AuthSessionProvider({ children }: PropsWithChildren) {
     finally {
       setIsSigningIn(false);
     }
-  };
+  }, [replaceSession]);
 
-  const signOut = async () => {
+  const signOut = useCallback(async () => {
     try {
       await mobileApiClient.userController.logout();
     }
@@ -175,19 +176,20 @@ export function AuthSessionProvider({ children }: PropsWithChildren) {
     }
 
     await replaceSession(null);
-  };
+  }, [replaceSession]);
+  const contextValue = useMemo(() => ({
+    session,
+    isBootstrapping,
+    isSigningIn,
+    isAuthenticated: Boolean(session?.token),
+    replaceSession,
+    signIn,
+    signOut,
+  }), [isBootstrapping, isSigningIn, replaceSession, session, signIn, signOut]);
 
   return (
     <AuthSessionContext
-      value={{
-        session,
-        isBootstrapping,
-        isSigningIn,
-        isAuthenticated: Boolean(session?.token),
-        replaceSession,
-        signIn,
-        signOut,
-      }}
+      value={contextValue}
     >
       {children}
     </AuthSessionContext>
@@ -195,7 +197,7 @@ export function AuthSessionProvider({ children }: PropsWithChildren) {
 }
 
 export function useAuthSession() {
-  const value = useContext(AuthSessionContext);
+  const value = use(AuthSessionContext);
   if (!value) {
     throw new Error("useAuthSession 必须在 AuthSessionProvider 内使用。");
   }

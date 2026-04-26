@@ -8,10 +8,6 @@ import {
   filterBlocksuiteDocTitlePageSpecs,
 } from "../editors/extensions/buildBlocksuiteCoreEditorExtensions";
 import {
-  buildBlocksuiteRoleMentionKey,
-  parseBlocksuiteMentionKey,
-} from "../shared/mentionKey";
-import {
   createBlocksuiteDocMenuGroup,
   handleBlocksuiteDocLinkNavigation,
   parseBlocksuiteRoomIdFromDocKey,
@@ -34,6 +30,10 @@ import { EmbedIframeNoCredentiallessViewOverride } from "../editors/extensions/e
 import { RoomMapEmbedOptionExtension } from "../editors/extensions/embed/roomMapEmbedOption";
 import { listBlocksuiteMentionRoles } from "../services/blocksuiteRoleService";
 import { listBlocksuiteSpaceMemberIds } from "../services/blocksuiteSpaceMemberService";
+import {
+  buildBlocksuiteRoleMentionKey,
+  parseBlocksuiteMentionKey,
+} from "../shared/mentionKey";
 
 vi.mock("../manager/view", () => ({
   getEdgelessSpecs: () => [],

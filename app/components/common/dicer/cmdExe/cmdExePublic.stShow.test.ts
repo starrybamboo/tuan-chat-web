@@ -1,5 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import executorPublic from "./cmdExePublic";
+
 const { openStShowCardWindowMock } = vi.hoisted(() => ({
   openStShowCardWindowMock: vi.fn(),
 }));
@@ -7,8 +9,6 @@ const { openStShowCardWindowMock } = vi.hoisted(() => ({
 vi.mock("./stShowCard", () => ({
   openStShowCardWindow: openStShowCardWindowMock,
 }));
-
-import executorPublic from "./cmdExePublic";
 
 describe("通用 st show 指令", () => {
   let cpi: CPI;

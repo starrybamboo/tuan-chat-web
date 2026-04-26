@@ -2,12 +2,12 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 
-import { buildBlocksuiteMentionAnchorRect } from "../shared/mentionAnchorRect";
 import { BlocksuiteMentionProfileCardView } from "../../../shared/components/BlockSuite/blocksuiteMentionProfilePopover";
 import {
   buildBlocksuiteMentionPopoverPosition,
   getBlocksuiteMentionProfileHref,
 } from "../../../shared/components/BlockSuite/blocksuiteMentionProfilePopover.shared";
+import { buildBlocksuiteMentionAnchorRect } from "../shared/mentionAnchorRect";
 
 describe("blocksuiteMentionProfilePopover", () => {
   it("会把 iframe foreign realm 的 frameElement 坐标换算到宿主视口", () => {

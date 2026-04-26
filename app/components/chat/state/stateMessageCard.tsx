@@ -5,12 +5,12 @@ import { RoomContext } from "@/components/chat/core/roomContext";
 import { useOptionalStateRuntimeContext } from "@/components/chat/state/stateRuntimeContext";
 import { collectStateEventScopeLabels, formatStateEventAtomDetail, formatStateEventPreviewText, formatStateScopeLabel, getNormalizedStateEventExtra } from "@/types/stateEvent";
 
-type StateMessageCardProps = {
+interface StateMessageCardProps {
   message: Pick<Message, "content" | "extra"> & Partial<Pick<Message, "messageId">>;
-};
+}
 
 export default function StateMessageCard({ message }: StateMessageCardProps) {
-  const roomContext = React.useContext(RoomContext);
+  const roomContext = React.use(RoomContext);
   const runtime = useOptionalStateRuntimeContext();
   const [expanded, setExpanded] = React.useState(false);
   const normalizedStateEvent = React.useMemo(() => getNormalizedStateEventExtra(message.extra), [message.extra]);

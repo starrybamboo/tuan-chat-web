@@ -134,9 +134,9 @@ function SubRoomWindowImpl({ onSendDocCard }: SubRoomWindowProps) {
       ? "先攻栏"
       : activePane === "state"
         ? "状态"
-      : activePane === "doc"
-        ? "文档"
-        : "WebGAL 预览";
+        : activePane === "doc"
+          ? "文档"
+          : "WebGAL 预览";
 
   const close = React.useCallback(() => {
     setIsOpen(false);
@@ -160,7 +160,7 @@ function SubRoomWindowImpl({ onSendDocCard }: SubRoomWindowProps) {
       handlePosition="left"
     >
       <div className="h-full flex flex-col min-h-0 bg-base-200 dark:bg-slate-950/25 backdrop-blur-xl border-l border-base-300 shadow-none">
-        <div className="border-gray-300 dark:border-gray-700 border-t border-b flex justify-between items-center overflow-visible relative z-50">
+        <div className="border-gray-300 dark:border-gray-700 border-y flex justify-between items-center overflow-visible relative z-50">
           <div className="flex justify-between items-center w-full px-2 h-10">
             <div className="flex items-center gap-2 min-w-0">
               {activePane === "map" && <CheckerboardIcon className="size-5 opacity-80" />}

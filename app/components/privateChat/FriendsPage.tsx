@@ -35,10 +35,10 @@ export default function FriendsPage({
   useEffect(() => {
     const tabParam = searchParams.get("tab");
     if (tabParam === "all" || tabParam === "pending" || tabParam === "add" || tabParam === "blacklist") {
-      setTab(tabParam);
+      queueMicrotask(() => setTab(tabParam));
     }
     else {
-      setTab("all");
+      queueMicrotask(() => setTab("all"));
     }
   }, [searchParams]);
 
@@ -162,7 +162,7 @@ export default function FriendsPage({
   return (
     <div className="flex flex-col h-full w-full bg-white/30 dark:bg-slate-950/30">
       {/* 顶部栏 */}
-      <div className="border-gray-300 dark:border-gray-700 border-t border-b flex justify-between items-center overflow-visible relative z-10">
+      <div className="border-gray-300 dark:border-gray-700 border-y flex justify-between items-center overflow-visible relative z-10">
         <div
           className="flex justify-between items-center w-full px-2 h-10
           bg-white/40 dark:bg-slate-950/25 backdrop-blur-xl
@@ -792,4 +792,3 @@ export default function FriendsPage({
     </div>
   );
 }
-

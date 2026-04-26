@@ -2,7 +2,7 @@ import type { RoleAvatar } from "api";
 import type { UploadContext } from "../../RoleInfoCard/AvatarUploadCropper";
 import type { Role } from "../../types";
 import { useUpdateAvatarNameMutation } from "api/hooks/RoleAndAvatarHooks";
-import { useCallback, useState } from "react";
+import { useCallback, useId, useState } from "react";
 import { DoubleClickEditableText } from "@/components/common/DoubleClickEditableText";
 import { BaselineDeleteOutline } from "@/icons";
 import { CharacterCopper } from "../../RoleInfoCard/AvatarUploadCropper";
@@ -79,6 +79,8 @@ export function SpriteListGrid({
   const [droppedFiles, setDroppedFiles] = useState<File[] | null>(null);
   const [droppedBatchId, setDroppedBatchId] = useState<number | null>(null);
   const [isDragActive, setIsDragActive] = useState(false);
+  const uploadFileNameId = useId().replace(/:/g, "");
+  const uploadFileName = fileName ?? `avatar-upload-${uploadFileNameId}`;
 
   // 当前选中的头像
   const currentAvatar = avatars[selectedIndex] || null;
@@ -219,7 +221,7 @@ export function SpriteListGrid({
               <CharacterCopper
                 setDownloadUrl={() => { }}
                 setCopperedDownloadUrl={() => { }}
-                fileName={fileName ?? `avatar-upload-${Date.now()}`}
+                fileName={uploadFileName}
                 scene={3}
                 externalFiles={droppedFiles}
                 externalFilesBatchId={droppedBatchId ?? undefined}
@@ -435,7 +437,7 @@ export function SpriteListGrid({
             <CharacterCopper
               setDownloadUrl={() => { }}
               setCopperedDownloadUrl={() => { }}
-              fileName={fileName ?? `avatar-upload-${Date.now()}`}
+              fileName={uploadFileName}
               scene={3}
               externalFiles={droppedFiles}
               externalFilesBatchId={droppedBatchId ?? undefined}

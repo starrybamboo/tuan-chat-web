@@ -37,19 +37,19 @@ export default function DicerConfigJsonModal({
     if (copywritingTemplates) {
       try {
         const formatted = JSON.stringify(copywritingTemplates, null, 2);
-        setJsonText(formatted);
-        setIsEdited(false);
-        setJsonError("");
+        queueMicrotask(() => setJsonText(formatted));
+        queueMicrotask(() => setIsEdited(false));
+        queueMicrotask(() => setJsonError(""));
       }
       catch (e) {
         console.error("解析骰娘配置JSON失败", e);
-        setJsonText("无法解析配置数据");
+        queueMicrotask(() => setJsonText("无法解析配置数据"));
       }
     }
     else {
-      setJsonText("{}");
-      setIsEdited(false);
-      setJsonError("");
+      queueMicrotask(() => setJsonText("{}"));
+      queueMicrotask(() => setIsEdited(false));
+      queueMicrotask(() => setJsonError(""));
     }
   }, [copywritingTemplates, isOpen]);
 

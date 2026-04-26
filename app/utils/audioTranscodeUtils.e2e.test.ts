@@ -1,8 +1,8 @@
 import type { Browser, Page } from "playwright";
 
 import { build } from "esbuild";
-import { createServer } from "node:http";
 import { createReadStream, existsSync, mkdtempSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { createServer } from "node:http";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { chromium } from "playwright";

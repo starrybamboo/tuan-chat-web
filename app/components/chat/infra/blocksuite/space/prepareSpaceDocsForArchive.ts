@@ -1,11 +1,13 @@
 import { diffUpdate, encodeStateVectorFromUpdate, mergeUpdates } from "yjs";
 
-import { tuanchat } from "api/instance";
+import type { StoredSnapshot } from "@/components/chat/infra/blocksuite/description/descriptionDocRemote";
+
 import { deleteUpdatesByIds, listUpdateRecords } from "@/components/chat/infra/blocksuite/description/descriptionDocDb";
-import { getRemoteSnapshot, getRemoteUpdates, pushRemoteUpdate, setRemoteSnapshot, type StoredSnapshot } from "@/components/chat/infra/blocksuite/description/descriptionDocRemote";
+import { getRemoteSnapshot, getRemoteUpdates, pushRemoteUpdate, setRemoteSnapshot } from "@/components/chat/infra/blocksuite/description/descriptionDocRemote";
+import { base64ToUint8Array, uint8ArrayToBase64 } from "@/components/chat/infra/blocksuite/shared/base64";
 import { buildSpaceDocId } from "@/components/chat/infra/blocksuite/space/spaceDocId";
 import { encodeLoadedSpaceDocAsUpdateIfExistsForSpace } from "@/components/chat/infra/blocksuite/space/spaceWorkspaceRegistry";
-import { base64ToUint8Array, uint8ArrayToBase64 } from "@/components/chat/infra/blocksuite/shared/base64";
+import { tuanchat } from "api/instance";
 
 type RemoteKey = {
   entityType: "space_doc";

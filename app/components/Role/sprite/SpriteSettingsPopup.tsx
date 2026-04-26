@@ -577,7 +577,7 @@ export function SpriteSettingsPopup({
           onAvatarSelect={handleAvatarSelectById}
           onAvatarDeleted={handleAvatarDeleted}
           onUpload={handleAvatarUpload}
-          fileName={role?.id ? `avatar-${role.id}-${Date.now()}` : undefined}
+          fileName={role?.id ? `avatar-${role.id}` : undefined}
           selectedIndices={filteredSelectedIndices}
           isMultiSelectMode={isMultiSelectMode}
           onMultiSelectChange={(indices, isMultiMode) => {

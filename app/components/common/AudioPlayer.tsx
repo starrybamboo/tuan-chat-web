@@ -31,16 +31,16 @@ export default function AudioPlayer({
   useEffect(() => {
     if (audioFile) {
       const url = URL.createObjectURL(audioFile);
-      setAudioUrl(url);
+      queueMicrotask(() => setAudioUrl(url));
       return () => URL.revokeObjectURL(url);
     }
 
     if (externalAudioUrl) {
-      setAudioUrl(externalAudioUrl);
+      queueMicrotask(() => setAudioUrl(externalAudioUrl));
       return;
     }
 
-    setAudioUrl(null);
+    queueMicrotask(() => setAudioUrl(null));
   }, [audioFile, externalAudioUrl]);
 
   const hasAudio = Boolean(audioFile || externalAudioUrl);

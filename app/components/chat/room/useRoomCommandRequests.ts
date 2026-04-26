@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { toast } from "react-hot-toast";
 
 import { isCommand } from "@/components/common/dicer/cmdPre";
@@ -95,14 +95,8 @@ export default function useRoomCommandRequests({
   isSubmitting,
   commandExecutor,
 }: UseRoomCommandRequestsParams): UseRoomCommandRequestsResult {
-  const [, setConsumedVersion] = useState(0);
-  const consumedRequestKeysRef = useRef<Set<string>>(readConsumedRequestKeys(userId));
-  const storageBucketKeyRef = useRef<string>(buildStorageBucketKey(userId));
-  const nextStorageBucketKey = buildStorageBucketKey(userId);
-  if (storageBucketKeyRef.current !== nextStorageBucketKey) {
-    storageBucketKeyRef.current = nextStorageBucketKey;
-    consumedRequestKeysRef.current = readConsumedRequestKeys(userId);
-  }
+  const [consumedVersion, setConsumedVersion] = useState(0);
+  const consumedRequestKeys = useMemo(() => readConsumedRequestKeys(userId), [consumedVersion, userId]);
 
   const containsCommandRequestAllToken = useCallback((text: string) => {
     const raw = String(text ?? "");
@@ -140,8 +134,8 @@ export default function useRoomCommandRequests({
 
   const isCommandRequestConsumed = useCallback((requestMessageId: number) => {
     const requestKey = buildRequestConsumeKey(roomId, requestMessageId);
-    return consumedRequestKeysRef.current.has(requestKey);
-  }, [roomId]);
+    return consumedRequestKeys.has(requestKey);
+  }, [consumedRequestKeys, roomId]);
 
   const handleExecuteCommandRequest = useCallback((payload: CommandRequestPayload) => {
     const { command, threadId, requestMessageId } = payload;
@@ -160,15 +154,13 @@ export default function useRoomCommandRequests({
       return;
     }
     const requestKey = buildRequestConsumeKey(roomId, requestMessageId);
-    if (consumedRequestKeysRef.current.has(requestKey)) {
+    if (consumedRequestKeys.has(requestKey)) {
       toast.error("该检定请求已执行");
       return;
     }
 
-    const nextConsumedRequestKeys = new Set(consumedRequestKeysRef.current);
-    nextConsumedRequestKeys.add(requestKey);
-    consumedRequestKeysRef.current = nextConsumedRequestKeys;
-    writeConsumedRequestKeys(userId, nextConsumedRequestKeys);
+    consumedRequestKeys.add(requestKey);
+    writeConsumedRequestKeys(userId, consumedRequestKeys);
     setConsumedVersion(version => version + 1);
 
     void commandExecutor({
@@ -177,7 +169,7 @@ export default function useRoomCommandRequests({
       threadId,
       replyMessageId: requestMessageId,
     });
-  }, [commandExecutor, isSpaceOwner, isSubmitting, noRole, notMember, roomId, userId]);
+  }, [commandExecutor, consumedRequestKeys, isSpaceOwner, isSubmitting, noRole, notMember, roomId, userId]);
 
   return {
     containsCommandRequestAllToken,

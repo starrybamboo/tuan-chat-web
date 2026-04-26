@@ -1,10 +1,12 @@
-import type { Message, RoleAbility } from "../../../../api";
-
 import { describe, expect, it } from "vitest";
-import { createStateDefinition, MemoryStateDefinitionResolver } from "./stateDefinitionResolver";
-import { buildStateRuntime } from "./stateRuntime";
+
 import { buildCommandStateEventExtra, buildRoleStateEventScope, STATE_EVENT_STATUS_MODIFIER_OP, STATE_EVENT_VAR_OP } from "@/types/stateEvent";
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
+
+import type { Message, RoleAbility } from "../../../../api";
+
+import { createStateDefinition, MemoryStateDefinitionResolver } from "./stateDefinitionResolver";
+import { buildStateRuntime } from "./stateRuntime";
 
 function createStateMessage(messageId: number, extra: ReturnType<typeof buildCommandStateEventExtra>): Pick<Message, "messageId" | "messageType" | "content" | "status" | "extra"> {
   return {

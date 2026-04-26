@@ -85,7 +85,7 @@ export function DoubleClickEditableText<T = string>({
 
   useEffect(() => {
     if (!isEditing) {
-      setDraft(inputValue);
+      queueMicrotask(() => setDraft(inputValue));
     }
   }, [inputValue, isEditing]);
 

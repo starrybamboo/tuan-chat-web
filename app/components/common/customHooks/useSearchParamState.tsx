@@ -10,17 +10,11 @@ import { useSearchParams } from "react-router";
 export default function useSearchParamsState<T>(key: string, defaultValue: T, shortenUrl: boolean = true) {
   const [searchParams, setSearchParams] = useSearchParams();
   const valueStr = searchParams.get(key);
-  const cacheRef = React.useRef<{ raw: string | null; parsed: T } | null>(null);
   const value = React.useMemo(() => {
     if (valueStr == null) {
       return defaultValue;
     }
-    if (cacheRef.current && cacheRef.current.raw === valueStr) {
-      return cacheRef.current.parsed;
-    }
-    const parsed = JSON.parse(valueStr) as T;
-    cacheRef.current = { raw: valueStr, parsed };
-    return parsed;
+    return JSON.parse(valueStr) as T;
   }, [defaultValue, valueStr]);
   const setValue = (newValue: T) => {
     setSearchParams((prev) => {

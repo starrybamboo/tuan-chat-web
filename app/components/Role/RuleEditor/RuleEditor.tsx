@@ -101,7 +101,6 @@ export default function RuleEditor({
   const [isEditing, setIsEditing] = useState(mode === "create");
   const [editorSaveSignal, setEditorSaveSignal] = useState(0);
   const [pendingHeaderSave, setPendingHeaderSave] = useState(false);
-  const handleSaveRef = useRef<() => void>(() => {});
   const appliedPrefillLocationKeyRef = useRef<string | null>(null);
   const appliedTemplateLocationKeyRef = useRef<string | null>(null);
 
@@ -170,14 +169,14 @@ export default function RuleEditor({
   }, [isSavingRule, navigate, onBack]);
 
   useEffect(() => {
-    setIsEditing(mode === "create");
-    setPendingHeaderSave(false);
+    queueMicrotask(() => setIsEditing(mode === "create"));
+    queueMicrotask(() => setPendingHeaderSave(false));
   }, [mode]);
 
   useEffect(() => {
     if (mode === "edit") {
-      setIsEditing(false);
-      setPendingHeaderSave(false);
+      queueMicrotask(() => setIsEditing(false));
+      queueMicrotask(() => setPendingHeaderSave(false));
     }
   }, [mode, ruleId]);
 
@@ -206,7 +205,7 @@ export default function RuleEditor({
     toast.success("规则导入成功");
   }
 
-  function handleSave() {
+  const handleSave = useCallback(() => {
     if (isSavingRule)
       return;
 
@@ -319,16 +318,26 @@ export default function RuleEditor({
         onError: onMutationError,
       });
     }
-  }
-
-  handleSaveRef.current = handleSave;
+  }, [
+    createRuleMutation,
+    editingMap,
+    isRuleNameDuplicated,
+    isSavingRule,
+    mode,
+    navigate,
+    ruleDetail?.authorId,
+    ruleEdit,
+    ruleId,
+    updateRuleMutation,
+    userId,
+  ]);
 
   useEffect(() => {
     // 避免新建页面还残留上一次编辑的规则内容
     if (mode !== "edit") {
       if (loadedRuleId !== null) {
-        setLoadedRuleId(null);
-        setRuleEdit({});
+        queueMicrotask(() => setLoadedRuleId(null));
+        queueMicrotask(() => setRuleEdit({}));
       }
       return;
     }
@@ -339,13 +348,13 @@ export default function RuleEditor({
     if (nextRuleId !== loadedRuleId) {
       // ruleId 变化但数据还没到，先清空本地数据，等待 query 灌入
       if (!ruleDetail || !nextRuleId) {
-        setLoadedRuleId(null);
-        setRuleEdit({});
+        queueMicrotask(() => setLoadedRuleId(null));
+        queueMicrotask(() => setRuleEdit({}));
         return;
       }
 
-      setRuleEdit(ruleDetail);
-      setLoadedRuleId(nextRuleId);
+      queueMicrotask(() => setRuleEdit(ruleDetail));
+      queueMicrotask(() => setLoadedRuleId(nextRuleId));
     }
   }, [loadedRuleId, mode, ruleDetail, ruleId]);
 
@@ -364,11 +373,11 @@ export default function RuleEditor({
       return;
     }
 
-    setRuleEdit(prev => ({
+    queueMicrotask(() => setRuleEdit(prev => ({
       ...prev,
       ruleName: prefillRuleName,
       ruleDescription: prefillRuleDescription,
-    }));
+    })));
 
     appliedPrefillLocationKeyRef.current = location.key;
   }, [location.key, mode, prefillRuleDescription, prefillRuleName]);
@@ -392,7 +401,7 @@ export default function RuleEditor({
       return;
     }
 
-    setRuleEdit(prev => ({
+    queueMicrotask(() => setRuleEdit(prev => ({
       ...prev,
       actTemplate: templateRule.actTemplate,
       abilityFormula: templateRule.abilityFormula,
@@ -401,7 +410,7 @@ export default function RuleEditor({
       dicerConfig: templateRule.dicerConfig,
       ruleName: (prev.ruleName ?? "").trim() || prefillRuleName || templateRule.ruleName || "",
       ruleDescription: (prev.ruleDescription ?? "").trim() || prefillRuleDescription || templateRule.ruleDescription || "",
-    }));
+    })));
 
     appliedTemplateLocationKeyRef.current = location.key;
   }, [
@@ -425,9 +434,9 @@ export default function RuleEditor({
       return;
     }
 
-    setPendingHeaderSave(false);
-    handleSaveRef.current();
-  }, [hasEditingModule, pendingHeaderSave]);
+    queueMicrotask(() => setPendingHeaderSave(false));
+    queueMicrotask(() => handleSave());
+  }, [handleSave, hasEditingModule, pendingHeaderSave]);
 
   const handleHeaderPrimaryAction = () => {
     if (isSavingRule) {
@@ -446,8 +455,7 @@ export default function RuleEditor({
   const moduleSaveSignal = editorSaveSignal;
   const isCreateTemplateInitializing = mode === "create"
     && prefillTemplateRuleId > 0
-    && prefillTemplateQuery.isLoading
-    && appliedTemplateLocationKeyRef.current !== location.key;
+    && prefillTemplateQuery.isLoading;
 
   if (isQueryLoading || isCreateTemplateInitializing) {
     return <RuleEditorSkeleton />;
@@ -657,4 +665,3 @@ export default function RuleEditor({
     </div>
   );
 }
-

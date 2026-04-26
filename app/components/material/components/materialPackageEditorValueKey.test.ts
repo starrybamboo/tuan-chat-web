@@ -36,9 +36,11 @@ describe("materialPackageEditorValueKey", () => {
 
   it("不同素材包仍然生成不同 key", () => {
     expect(buildGlobalMaterialPackageEditorValueKey("mine", { packageId: 1 }))
-      .not.toBe(buildGlobalMaterialPackageEditorValueKey("mine", { packageId: 2 }));
+      .not
+      .toBe(buildGlobalMaterialPackageEditorValueKey("mine", { packageId: 2 }));
 
     expect(buildSpaceMaterialPackageEditorValueKey({ spacePackageId: 1 }))
-      .not.toBe(buildSpaceMaterialPackageEditorValueKey({ spacePackageId: 2 }));
+      .not
+      .toBe(buildSpaceMaterialPackageEditorValueKey({ spacePackageId: 2 }));
   });
 });

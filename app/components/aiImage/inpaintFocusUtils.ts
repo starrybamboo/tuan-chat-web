@@ -30,7 +30,6 @@ export type PreparedFocusedInpaintPayload = {
 
 const FOCUSED_TARGET_AREA = 1024 * 1024;
 const FOCUSED_MAX_DIMENSION = 1024;
-const FOCUSED_MIN_DIMENSION = 256;
 const FOCUSED_PADDING_MIN = 96;
 const FOCUSED_PADDING_RATIO = 0.75;
 const MASK_ACTIVE_THRESHOLD = 8;

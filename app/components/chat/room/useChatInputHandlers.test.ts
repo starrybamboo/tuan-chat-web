@@ -1,6 +1,10 @@
 import type { KeyboardEvent } from "react";
+
 import { vi } from "vitest";
+
 import { useChatComposerStore } from "@/components/chat/stores/chatComposerStore";
+
+import useChatInputHandlers from "./useChatInputHandlers";
 
 const mocks = vi.hoisted(() => ({
   toastErrorMock: vi.fn(),
@@ -33,8 +37,6 @@ vi.mock("@/components/chat/utils/mediaAnnotationPreference", () => ({
   applyRoomMediaAnnotationPreferenceToComposer: mocks.applyRoomMediaAnnotationPreferenceToComposerMock,
 }));
 
-import useChatInputHandlers from "./useChatInputHandlers";
-
 function createKeyboardEvent(key: string, options?: { shiftKey?: boolean }) {
   return {
     key,
@@ -51,7 +53,7 @@ describe("useChatInputHandlers", () => {
     useChatComposerStore.getState().reset();
   });
 
-  function createHook() {
+  function useTestHook() {
     const handleMessageSubmit = vi.fn();
     const hook = useChatInputHandlers({
       atMentionRef: { current: null },
@@ -65,7 +67,7 @@ describe("useChatInputHandlers", () => {
   }
 
   it("组合输入期间点击发送会在 compositionend 后再提交", async () => {
-    const { handleMessageSubmit, onCompositionStart, onCompositionEnd, requestMessageSubmit } = createHook();
+    const { handleMessageSubmit, onCompositionStart, onCompositionEnd, requestMessageSubmit } = useTestHook();
 
     onCompositionStart();
     requestMessageSubmit();
@@ -79,7 +81,7 @@ describe("useChatInputHandlers", () => {
   });
 
   it("组合输入期间重复点击发送只会补提一次", async () => {
-    const { handleMessageSubmit, onCompositionStart, onCompositionEnd, requestMessageSubmit } = createHook();
+    const { handleMessageSubmit, onCompositionStart, onCompositionEnd, requestMessageSubmit } = useTestHook();
 
     onCompositionStart();
     requestMessageSubmit();
@@ -92,7 +94,7 @@ describe("useChatInputHandlers", () => {
   });
 
   it("非组合输入时按 Enter 会立即提交", () => {
-    const { handleKeyDown, handleMessageSubmit } = createHook();
+    const { handleKeyDown, handleMessageSubmit } = useTestHook();
 
     const event = createKeyboardEvent("Enter");
     handleKeyDown(event);
@@ -102,7 +104,7 @@ describe("useChatInputHandlers", () => {
   });
 
   it("按 Tab 时不再拦截默认行为", () => {
-    const { handleKeyDown, handleMessageSubmit } = createHook();
+    const { handleKeyDown, handleMessageSubmit } = useTestHook();
 
     const event = createKeyboardEvent("Tab");
     handleKeyDown(event);
@@ -112,7 +114,7 @@ describe("useChatInputHandlers", () => {
   });
 
   it("粘贴普通文件时会提示不支持且不会写入草稿", () => {
-    const { handlePasteFiles } = createHook();
+    const { handlePasteFiles } = useTestHook();
     const pdfFile = new File(["pdf"], "notes.pdf", { type: "application/pdf" });
 
     handlePasteFiles([pdfFile]);
@@ -125,7 +127,7 @@ describe("useChatInputHandlers", () => {
   });
 
   it("粘贴视频和普通文件时只保留视频附件", () => {
-    const { handlePasteFiles } = createHook();
+    const { handlePasteFiles } = useTestHook();
     const videoFile = new File(["video"], "clip.mp4", { type: "video/mp4" });
     const pdfFile = new File(["pdf"], "notes.pdf", { type: "application/pdf" });
 

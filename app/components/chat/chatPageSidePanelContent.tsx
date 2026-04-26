@@ -1,5 +1,5 @@
-import type { Room } from "api";
 import type { SpaceMaterialPackageResponse } from "@tuanchat/openapi-client/models/SpaceMaterialPackageResponse";
+import type { Room } from "api";
 import type { ActiveMaterialSelection, OpenSpaceDetailPanelOptions, RoomSettingTab, SpaceDetailTab } from "@/components/chat/chatPage.types";
 import type { MinimalDocMeta, SidebarTree } from "@/components/chat/room/sidebarTree";
 import React from "react";
@@ -64,4 +64,3 @@ export default function ChatPageSidePanelContent(props: ChatPageSidePanelContent
     </React.Suspense>
   );
 }
-

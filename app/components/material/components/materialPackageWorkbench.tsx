@@ -1,6 +1,6 @@
+import type { MaterialNode } from "@tuanchat/openapi-client/models/MaterialNode";
 import type { DragEvent } from "react";
 import type { UserRole } from "../../../../api";
-import type { MaterialNode } from "@tuanchat/openapi-client/models/MaterialNode";
 import type { MaterialMessageComposerHandle } from "./materialMessageComposer";
 import type { MaterialPackageDraft } from "./materialPackageEditorShared";
 import type { MaterialEditorActionScope } from "@/components/chat/chatPage.types";
@@ -15,6 +15,7 @@ import {
   PlusIcon,
   TrashIcon,
 } from "@phosphor-icons/react";
+import { MaterialNode as MaterialNodeModel } from "@tuanchat/openapi-client/models/MaterialNode";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import MessageContentRenderer from "@/components/chat/message/messageContentRenderer";
 import { useRoomRoleSelectionStore } from "@/components/chat/stores/roomRoleSelectionStore";
@@ -24,7 +25,6 @@ import { useGlobalUserId } from "@/components/globalContextProvider";
 import { useMaterialEditorActionStore } from "@/components/material/stores/materialEditorActionStore";
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
 import { useGetUserRolesQuery } from "../../../../api/hooks/RoleAndAvatarHooks";
-import { MaterialNode as MaterialNodeModel } from "@tuanchat/openapi-client/models/MaterialNode";
 import { MaterialComposerProvider } from "./materialComposerContext";
 import MaterialMessageComposer from "./materialMessageComposer";
 import MaterialMessageEditorCard from "./materialMessageEditorCard";
@@ -238,13 +238,13 @@ export default function MaterialPackageWorkbench({
   useEffect(() => {
     const folderKeys = collectFolderKeys(rootNodes);
     if (!hasInitializedTree) {
-      setExpandedKeys(folderKeys);
-      setHasInitializedTree(true);
+      queueMicrotask(() => setExpandedKeys(folderKeys));
+      queueMicrotask(() => setHasInitializedTree(true));
       return;
     }
 
     const validKeys = new Set(folderKeys);
-    setExpandedKeys(previous => previous.filter(key => validKeys.has(key)));
+    queueMicrotask(() => setExpandedKeys(previous => previous.filter(key => validKeys.has(key))));
   }, [hasInitializedTree, rootNodes]);
 
   useEffect(() => {
@@ -253,7 +253,7 @@ export default function MaterialPackageWorkbench({
     }
 
     if (!selectedNode) {
-      setSelectedNodeKey(ROOT_NODE_KEY);
+      queueMicrotask(() => setSelectedNodeKey(ROOT_NODE_KEY));
     }
   }, [selectedNode, selectedNodeKey]);
 
@@ -262,7 +262,7 @@ export default function MaterialPackageWorkbench({
     const candidatePath = parseNodePath(candidate);
     const nextSelectedNodeKey = candidatePath.length > 0 ? serializeNodePath(candidatePath) : ROOT_NODE_KEY;
 
-    setSelectedNodeKey(nextSelectedNodeKey);
+    queueMicrotask(() => setSelectedNodeKey(nextSelectedNodeKey));
 
     if (nextSelectedNodeKey === ROOT_NODE_KEY) {
       return;
@@ -270,7 +270,7 @@ export default function MaterialPackageWorkbench({
 
     const nextPath = parseNodePath(nextSelectedNodeKey);
     const ancestorKeys = nextPath.slice(0, -1).map((_, index) => serializeNodePath(nextPath.slice(0, index + 1)));
-    setExpandedKeys(previous => Array.from(new Set([...previous, ...ancestorKeys])));
+    queueMicrotask(() => setExpandedKeys(previous => Array.from(new Set([...previous, ...ancestorKeys]))));
   }, [requestedSelectedNodeKey, selectionSyncKey]);
 
   const toggleFolder = (nodeKey: string) => {
@@ -461,13 +461,6 @@ export default function MaterialPackageWorkbench({
     updateSelectedMaterialMessages(messages => messages.filter((_, index) => index !== messageIndex));
   };
 
-  const scrollToComposer = () => {
-    composerContainerRef.current?.scrollIntoView({
-      behavior: "smooth",
-      block: "start",
-    });
-  };
-
   const buildAssetDragPayload = (message: MessageDraft, assetIndex: number): MaterialItemDragPayload | null => {
     if (!selectedNode || selectedNode.type !== MaterialNodeModel.type.MATERIAL) {
       return null;
@@ -585,7 +578,8 @@ export default function MaterialPackageWorkbench({
   return (
     <div className={showStructureSidebar
       ? "grid min-w-0 overflow-hidden lg:min-h-[680px] lg:grid-cols-[320px_minmax(0,1fr)]"
-      : "flex min-h-0 min-w-0 overflow-hidden lg:min-h-[680px]"}>
+      : "flex min-h-0 min-w-0 overflow-hidden lg:min-h-[680px]"}
+    >
       {showStructureSidebar && (
         <aside className="border-b border-base-300 bg-base-200/45 lg:min-h-0 lg:border-r lg:border-b-0">
           <div className="border-b border-base-300 px-3 py-3">
@@ -1015,4 +1009,3 @@ export default function MaterialPackageWorkbench({
     </div>
   );
 }
-

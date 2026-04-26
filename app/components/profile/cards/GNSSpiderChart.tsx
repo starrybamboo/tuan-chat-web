@@ -132,7 +132,7 @@ const GNSSpiderChart: React.FC<GNSSpiderChartProps> = ({ userId }) => {
           Simulationism: 0,
         };
 
-    setRatings((previousRatings) => {
+    queueMicrotask(() => setRatings((previousRatings) => {
       if (
         previousRatings.Gamism === nextRatings.Gamism
         && previousRatings.Narrativism === nextRatings.Narrativism
@@ -141,7 +141,7 @@ const GNSSpiderChart: React.FC<GNSSpiderChartProps> = ({ userId }) => {
         return previousRatings;
       }
       return nextRatings;
-    });
+    }));
   }, [userId, hasGnsPreference, gameplayScore, narrativeScore, simulationScore]);
 
   const hasConfiguredScores = Object.values(ratings).some(rating => rating > 0);

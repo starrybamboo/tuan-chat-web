@@ -15,6 +15,8 @@ import type {
 } from "@/components/aiImage/types";
 import type { AiImageHistoryMode, AiImageHistoryRow } from "@/utils/aiImageHistoryDb";
 
+import { isDirectorToolDisabled } from "@/components/aiImage/constants";
+import { runDirectorToolAction } from "@/components/aiImage/controller/directorActions";
 import {
   buildGenerateContext,
   buildHistoryRowsFromGenerateResult,
@@ -23,14 +25,12 @@ import {
   validateGenerateContext,
 } from "@/components/aiImage/controller/generateActions";
 import { generatedItemKey, getNovelAiFreeOnlyMessage, resolveInpaintModel } from "@/components/aiImage/helpers";
-import { isDirectorToolDisabled } from "@/components/aiImage/constants";
-import { runDirectorToolAction } from "@/components/aiImage/controller/directorActions";
 
 type GenerateNovelImageViaProxy = typeof import("@/components/aiImage/api").generateNovelImageViaProxy;
 type AugmentNovelImageViaProxy = typeof import("@/components/aiImage/api").augmentNovelImageViaProxy;
 type AddAiImageHistoryBatch = typeof import("@/utils/aiImageHistoryDb").addAiImageHistoryBatch;
 
-interface UseAiImageGenerationActionsOptions {
+type UseAiImageGenerationActionsOptions = {
   uiMode: UiMode;
   mode: AiImageHistoryMode;
   model: string;
@@ -104,7 +104,7 @@ interface UseAiImageGenerationActionsOptions {
   generateNovelImageViaProxy: GenerateNovelImageViaProxy;
   augmentNovelImageViaProxy: AugmentNovelImageViaProxy;
   addAiImageHistoryBatch: AddAiImageHistoryBatch;
-}
+};
 
 export function useAiImageGenerationActions({
   uiMode,

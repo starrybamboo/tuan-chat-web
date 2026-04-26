@@ -1,12 +1,13 @@
 import type { RefObject } from "react";
+
 import { useEffect, useState } from "react";
 
-interface FloatingPanelPosition {
+type FloatingPanelPosition = {
   top: number;
   left: number;
-}
+};
 
-interface UseFloatingPanelPositionOptions {
+type UseFloatingPanelPositionOptions = {
   isOpen: boolean;
   anchorRef: RefObject<HTMLElement | null>;
   targetRef: RefObject<HTMLElement | null>;
@@ -15,7 +16,7 @@ interface UseFloatingPanelPositionOptions {
   viewportPadding?: number;
   gap?: number;
   initialPosition?: FloatingPanelPosition;
-}
+};
 
 const DEFAULT_FLOATING_POSITION: FloatingPanelPosition = { top: 96, left: 96 };
 

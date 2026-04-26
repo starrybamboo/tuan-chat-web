@@ -23,7 +23,7 @@ function createDefaultBlobState(): BlobState {
 function normalizeBlobKey(key: string): string {
   return key
     .replace(/=+$/g, "")
-    .replace(/[^A-Za-z0-9_-]/g, "_");
+    .replace(/[^\w-]/g, "_");
 }
 
 function isRemoteImageBlob(blob: Blob): boolean {

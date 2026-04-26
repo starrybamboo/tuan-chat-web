@@ -1,11 +1,10 @@
-import type { Dispatch, SetStateAction, MouseEvent as ReactMouseEvent } from "react";
+import type { Dispatch, MouseEvent as ReactMouseEvent, SetStateAction } from "react";
 
 import { useCallback, useEffect } from "react";
 
 import type {
   HistoryRowClickMode,
   MetadataImportSelectionState,
-  NovelAiEmotion,
   PreciseReferenceRow,
   ProFeatureSectionKey,
   ResolutionSelection,
@@ -18,12 +17,12 @@ import type { NovelAiImageMetadataResult } from "@/utils/novelaiImageMetadata";
 import type { NovelAiNl2TagsResult } from "@/utils/novelaiNl2Tags";
 
 import { applyHistorySettingsAction, applyImportedMetadataAction } from "@/components/aiImage/controller/metadataHistoryActions";
-import { deleteAiImageHistory, listAiImageHistory } from "@/utils/aiImageHistoryDb";
 import { generatedItemKey, historyRowKey, historyRowResultMatchKey, historyRowToGeneratedItem, resolveHistoryRowClickMode } from "@/components/aiImage/helpers";
+import { deleteAiImageHistory, listAiImageHistory } from "@/utils/aiImageHistoryDb";
 
 type ProFeatureSectionsState = Record<ProFeatureSectionKey, boolean>;
 
-interface UseAiImageHistoryActionsOptions {
+type UseAiImageHistoryActionsOptions = {
   uiMode: UiMode;
   samplerOptions: readonly string[];
   noiseScheduleOptions: readonly string[];
@@ -92,7 +91,7 @@ interface UseAiImageHistoryActionsOptions {
     height?: number | null;
   }) => boolean;
   showSuccessToast: (message: string) => void;
-}
+};
 
 type GeneratedImageItem = ReturnType<typeof historyRowToGeneratedItem>;
 

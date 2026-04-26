@@ -1,12 +1,12 @@
-import { memo } from "react";
-
 import type {
   AiImagePreviewPaneProps,
 } from "@/components/aiImage/preview/types";
+
+import { memo } from "react";
 import { DirectorWorkspace } from "@/components/aiImage/preview/DirectorWorkspace";
 import { StandardPreviewWorkspace } from "@/components/aiImage/preview/StandardPreviewWorkspace";
 
-export const AiImagePreviewPane = memo(function AiImagePreviewPane(props: AiImagePreviewPaneProps) {
+export const AiImagePreviewPane = memo((props: AiImagePreviewPaneProps) => {
   return (
     <div className={`flex min-h-0 min-w-0 flex-1 flex-col gap-3 overflow-auto ${props.isDirectorToolsOpen ? "bg-base-200 p-4" : "bg-base-200 py-3"}`}>
       {props.isDirectorToolsOpen

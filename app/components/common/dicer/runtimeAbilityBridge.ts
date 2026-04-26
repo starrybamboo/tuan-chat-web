@@ -1,6 +1,6 @@
-import type { ChatMessageResponse, RoleAbility } from "../../../../api";
-
 import { buildStateRuntime } from "@/components/chat/state/stateRuntime";
+
+import type { ChatMessageResponse, RoleAbility } from "../../../../api";
 
 type RuntimeRoleValues = Record<string, number>;
 

@@ -1,6 +1,6 @@
 import type { MaterialAssetUploadKind } from "./materialComposerShared";
 import { FileArrowUpIcon, ImageIcon, MusicNotesIcon, VideoCameraIcon } from "@phosphor-icons/react";
-import { useId, useMemo, useRef } from "react";
+import { useId, useRef } from "react";
 import toast from "react-hot-toast";
 import { ImgUploader } from "@/components/common/uploader/imgUploader";
 import { useMaterialComposerContext } from "./materialComposerContext";
@@ -40,16 +40,16 @@ function getAccept(kind: MaterialAssetUploadKind) {
   }
 }
 
-function getIcon(kind: MaterialAssetUploadKind) {
+function MaterialAssetUploadIcon({ kind }: { kind: MaterialAssetUploadKind }) {
   switch (kind) {
     case "image":
-      return ImageIcon;
+      return <ImageIcon className="size-4" />;
     case "audio":
-      return MusicNotesIcon;
+      return <MusicNotesIcon className="size-4" />;
     case "video":
-      return VideoCameraIcon;
+      return <VideoCameraIcon className="size-4" />;
     case "file":
-      return FileArrowUpIcon;
+      return <FileArrowUpIcon className="size-4" />;
   }
 }
 
@@ -75,7 +75,6 @@ export default function MaterialPackageAssetUploadButton({
   const { queueFiles } = useMaterialComposerContext();
   const inputId = useId();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
-  const Icon = useMemo(() => getIcon(kind), [kind]);
   const resolvedButtonClassName = `${buttonClassName} ${fullWidth ? "w-full justify-start" : ""}`;
 
   const handleSelect = (file: File) => {
@@ -101,7 +100,7 @@ export default function MaterialPackageAssetUploadButton({
     if (disabled) {
       return (
         <button type="button" className={resolvedButtonClassName} disabled>
-          <Icon className="size-4" />
+          <MaterialAssetUploadIcon kind={kind} />
           <span>{getActionLabel(kind)}</span>
         </button>
       );
@@ -110,7 +109,7 @@ export default function MaterialPackageAssetUploadButton({
     return (
       <ImgUploader setImg={handleSelect}>
         <button type="button" className={resolvedButtonClassName}>
-          <Icon className="size-4" />
+          <MaterialAssetUploadIcon kind={kind} />
           <span>{getActionLabel(kind)}</span>
         </button>
       </ImgUploader>
@@ -138,7 +137,7 @@ export default function MaterialPackageAssetUploadButton({
         disabled={disabled}
         onClick={() => fileInputRef.current?.click()}
       >
-        <Icon className="size-4" />
+        <MaterialAssetUploadIcon kind={kind} />
         <span>{getActionLabel(kind)}</span>
       </button>
     </>

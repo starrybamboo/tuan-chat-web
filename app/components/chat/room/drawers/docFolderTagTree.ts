@@ -152,4 +152,3 @@ export function buildFolderNodes(docs: SpaceUserDocResponse[], localTagPaths: st
 
   return roots;
 }
-

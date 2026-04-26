@@ -1,6 +1,7 @@
+import { vi } from "vitest";
+
 import type { UploadUtils } from "@/utils/UploadUtils";
 
-import { vi } from "vitest";
 import { MessageType } from "../../../../api/wsModels";
 import { buildMessageDraftsFromComposerSnapshot } from "./messageDraftBuilder";
 

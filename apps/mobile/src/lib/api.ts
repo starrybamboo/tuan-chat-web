@@ -1,7 +1,7 @@
 import { Platform } from "react-native";
-import { TuanChat } from "@tuanchat/openapi-client/TuanChat";
 
 import { getStoredAuthToken } from "@/features/auth/auth-storage";
+import { TuanChat } from "@tuanchat/openapi-client/TuanChat";
 
 function resolveDefaultApiBaseUrl() {
   const explicitBaseUrl = process.env.EXPO_PUBLIC_TUANCHAT_API_BASE_URL;

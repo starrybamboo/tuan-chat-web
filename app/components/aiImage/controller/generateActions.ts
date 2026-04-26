@@ -1,3 +1,4 @@
+import type { PreparedFocusedInpaintPayload } from "@/components/aiImage/inpaintFocusUtils";
 import type {
   GeneratedImageItem,
   InpaintDialogSource,
@@ -9,7 +10,6 @@ import type {
   VibeTransferReferencePayload,
   VibeTransferReferenceRow,
 } from "@/components/aiImage/types";
-import type { PreparedFocusedInpaintPayload } from "@/components/aiImage/inpaintFocusUtils";
 import type { AiImageHistoryMode, AiImageHistoryRow } from "@/utils/aiImageHistoryDb";
 
 import {
@@ -361,7 +361,7 @@ export async function finalizeGenerateResult(args: FinalizeGenerateResultArgs): 
 }
 
 export function buildHistoryRowsFromGenerateResult(args: BuildHistoryRowsFromGenerateResultArgs): Array<Omit<AiImageHistoryRow, "id">> {
-  return args.generatedItems.map((item) => ({
+  return args.generatedItems.map(item => ({
     createdAt: Date.now(),
     mode: args.context.effectiveMode,
     model: args.response.model,

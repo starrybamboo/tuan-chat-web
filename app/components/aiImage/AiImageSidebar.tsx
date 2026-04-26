@@ -1,43 +1,29 @@
-import type { AiImagePageController } from "@/components/aiImage/useAiImagePageController";
-import { ArrowClockwise, ArrowCounterClockwise, CaretDownIcon, CaretLeftIcon, CaretUpIcon, CheckCircleIcon, CircleIcon, CircleNotch, FileArrowUpIcon, GenderFemaleIcon, GenderMaleIcon, GearSixIcon, ImageSquareIcon, ImagesSquareIcon, PencilSimpleLineIcon, PlusIcon, SelectionPlusIcon, SparkleIcon, TrashIcon, XCircleIcon } from "@phosphor-icons/react";
 import type { KeyboardEvent as ReactKeyboardEvent } from "react";
+import type { ProEditorContentLocalProps } from "@/components/aiImage/sidebar/ProEditorContent";
+import type { SimpleEditorContentLocalProps } from "@/components/aiImage/sidebar/SimpleEditorContent";
+import type { AiImagePageController } from "@/components/aiImage/useAiImagePageController";
+import { CircleNotch, ImageSquareIcon, ImagesSquareIcon, SparkleIcon, XCircleIcon } from "@phosphor-icons/react";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import preciseReferenceIconSrc from "@/components/aiImage/assets/precise-reference.png";
-import vibeTransferIconSrc from "@/components/aiImage/assets/vibe-transfer.png";
 import {
   CUSTOM_RESOLUTION_ID,
-  NOVELAI_FREE_MAX_STEPS,
   RESOLUTION_PRESETS,
-  SAMPLER_LABELS,
-  SCHEDULE_LABELS,
-  UC_PRESET_OPTIONS,
 } from "@/components/aiImage/constants";
 import {
-  clamp01,
-  clampIntRange,
-  clampRange,
-  formatSliderValue,
   getV4CharGridCellByCenter,
   getV4CharGridCellByCode,
-  modelLabel,
   resolveSimpleGenerateMode,
   toggleNovelAiLineComments,
-  V4_CHAR_GRID_CELLS,
 } from "@/components/aiImage/helpers";
-import { HighlightEmphasisTextarea } from "@/components/aiImage/HighlightEmphasisTextarea";
-import { AiImageContextLimitMeter } from "@/components/aiImage/AiImageContextLimitMeter";
-import { NOVELAI_V45_CONTEXT_LIMIT, useNovelAiV45TokenSnapshot } from "@/components/aiImage/novelaiV45TokenMeter";
-import { ProEditorContent, type ProEditorContentLocalProps } from "@/components/aiImage/sidebar/ProEditorContent";
-import { ReferenceActionIcon } from "@/components/aiImage/ReferenceActionIcon";
-import { renderSimpleBaseImageSectionContent, renderProInfillSectionContent, renderSimpleInfillSectionContent } from "@/components/aiImage/sidebar/baseImageSections";
+import { useNovelAiV45TokenSnapshot } from "@/components/aiImage/novelaiV45TokenMeter";
+import { renderProInfillSectionContent, renderSimpleBaseImageSectionContent } from "@/components/aiImage/sidebar/baseImageSections";
 import { renderProBottomSettingsDrawerContent } from "@/components/aiImage/sidebar/ProBottomSettingsDrawer";
+import { ProEditorContent } from "@/components/aiImage/sidebar/ProEditorContent";
 import { renderResolutionGlyph as renderResolutionGlyphContent } from "@/components/aiImage/sidebar/renderResolutionGlyph";
+import { SimpleEditorContent } from "@/components/aiImage/sidebar/SimpleEditorContent";
 import { useDelayedPresence } from "@/components/aiImage/sidebar/useDelayedPresence";
 import { useDismissibleLayer } from "@/components/aiImage/sidebar/useDismissibleLayer";
 import { useFloatingPanelPosition } from "@/components/aiImage/sidebar/useFloatingPanelPosition";
-import { SimpleEditorContent, type SimpleEditorContentLocalProps } from "@/components/aiImage/sidebar/SimpleEditorContent";
 import { ChevronDown } from "@/icons";
-import { ProFeatureSection } from "@/components/aiImage/ProFeatureSection";
 
 interface AiImageSidebarProps {
   sidebarProps: AiImagePageController["sidebarProps"];
@@ -61,7 +47,7 @@ const MODE_SELECTOR_TRANSITION_MS = 180;
 const RESOLUTION_OPTIONS = [...RESOLUTION_PRESETS, { id: CUSTOM_RESOLUTION_ID, label: "自定义" }] as const;
 type ModeOptionValue = (typeof MODE_OPTIONS)[number]["value"];
 
-export const AiImageSidebar = memo(function AiImageSidebar({ sidebarProps }: AiImageSidebarProps) {
+export const AiImageSidebar = memo(({ sidebarProps }: AiImageSidebarProps) => {
   const {
     canConvertSimpleText,
     canGenerateFromSimpleTags,
@@ -71,23 +57,13 @@ export const AiImageSidebar = memo(function AiImageSidebar({ sidebarProps }: AiI
     characterPromptDescription,
     hasSimpleTagsDraft,
     isBusy,
-    handleAddV4Char,
-    handleClearSeed,
     handleClearCurrentDisplayedImage,
     handleClearSourceImage,
-    handleClearSimpleDraft,
     handleOpenSourceImagePicker,
-    handleMoveV4Char,
-    handleRemoveV4Char,
-    handleRemoveVibeReference,
-    handleAcceptSimpleConverted,
     handleCommitProDimensions,
     handleCommitSimpleDimensions,
-    handleRejectSimpleConverted,
     freeGenerationViolation,
     handleResetCurrentImageSettings,
-    handleReturnToSimpleTags,
-    handleReturnToSimpleText,
     handleSelectProResolutionPreset,
     handleSelectSimpleResolutionPreset,
     handleSimpleConvertToTags,
@@ -99,7 +75,6 @@ export const AiImageSidebar = memo(function AiImageSidebar({ sidebarProps }: AiI
     handleSwapImageDimensions,
     handleUpdateV4Char,
     handleOpenBaseImageInpaint,
-    handleClearInfillMask,
     handleReturnFromInfillSettings,
     hasCurrentDisplayedImage,
     imageCount,
@@ -108,12 +83,10 @@ export const AiImageSidebar = memo(function AiImageSidebar({ sidebarProps }: AiI
     isNAI3,
     isNAI4,
     mode,
-    model,
     negativePrompt,
     noise,
     noiseSchedule,
     noiseScheduleOptions,
-    preciseReferenceDescription,
     proFeatureSections,
     proGenerateLabel,
     proPromptTab,
@@ -126,56 +99,39 @@ export const AiImageSidebar = memo(function AiImageSidebar({ sidebarProps }: AiI
     scale,
     seed,
     seedIsRandom,
-    selectedStylePresets,
     setCfgRescale,
-    setCharPromptTabs,
     setImageCount,
-    setIsStylePickerOpen,
     setNegativePrompt,
     setNoise,
     setNoiseSchedule,
-    setProFeatureSectionOpen,
-    setProPromptTab,
     setPrompt,
     setQualityToggle,
     setSampler,
     setScale,
     setSeed,
-    setSimpleEditorMode,
-    setSimpleConverted,
-    setSimpleConvertedFromText,
     setSimpleNegativePrompt,
-    setSimplePromptTab,
     setSimplePrompt,
-    setSimpleText,
     setSmea,
     setSmeaDyn,
     setSteps,
     setStrength,
-    setUcPreset,
     setUiMode,
     handleSetV4UseCoords,
     simpleConvertLabel,
     simpleConverting,
     simpleEditorMode,
     simpleConverted,
-    simpleNegativePrompt,
     simplePromptTab,
-    simplePrompt,
     simpleResolutionSelection,
-    simpleText,
     smea,
     smeaDyn,
     sourceImageDataUrl,
     steps,
     strength,
-    toggleProFeatureSection,
     ucPreset,
     uiMode,
     v4Chars,
     v4UseCoords,
-    v4UseOrder,
-    vibeTransferDescription,
     widthInput,
     heightInput,
   } = sidebarProps;
@@ -319,21 +275,21 @@ export const AiImageSidebar = memo(function AiImageSidebar({ sidebarProps }: AiI
   const simplePrimaryActionLabel = hasReadySimpleTags
     ? proGenerateLabel
     : simpleConvertLabel !== "转化为 tags"
-        ? simpleConvertLabel
-        : hasGeneratedSimpleTags
-            ? "重新生成 tags"
-            : "生成 tags";
+      ? simpleConvertLabel
+      : hasGeneratedSimpleTags
+        ? "重新生成 tags"
+        : "生成 tags";
   const canTriggerSimplePrimaryAction = hasReadySimpleTags ? canGenerateFromSimpleTags : canConvertSimpleText;
   const simplePrimaryActionToneClassName = hasReadySimpleTags
     ? "border-[#7C3AED] bg-[#7C3AED] text-white hover:bg-[#6D28D9]"
     : hasGeneratedSimpleTags
-        ? "border-[#F59E0B] bg-[#F59E0B] text-white hover:bg-[#D97706]"
-        : "border-primary bg-primary text-primary-content hover:bg-primary/90";
+      ? "border-[#F59E0B] bg-[#F59E0B] text-white hover:bg-[#D97706]"
+      : "border-primary bg-primary text-primary-content hover:bg-primary/90";
   const simplePrimaryActionBadgeClassName = hasReadySimpleTags
     ? "border-white/20 bg-white/10 text-white"
     : hasGeneratedSimpleTags
-        ? "border-white/20 bg-white/10 text-white"
-        : "border-white/20 bg-white/10 text-white";
+      ? "border-white/20 bg-white/10 text-white"
+      : "border-white/20 bg-white/10 text-white";
   const clearCurrentImageButtonClassName = `group flex size-11 shrink-0 items-center justify-center rounded-md border transition focus:outline-none focus:ring-2 focus:ring-primary/20 disabled:cursor-not-allowed disabled:opacity-45 ${
     hasCurrentDisplayedImage
       ? "border-[#D6DCE3] bg-[#F3F5F7] text-base-content/60 hover:border-primary/45 hover:text-primary dark:border-[#2A3138] dark:bg-[#161A1F] dark:hover:border-primary/45 dark:hover:text-primary"
@@ -370,7 +326,7 @@ export const AiImageSidebar = memo(function AiImageSidebar({ sidebarProps }: AiI
   const baseImageControlGroupClassName = "flex items-center gap-1.5";
   useEffect(() => {
     if (!sourceImageDataUrl)
-      setIsBaseImageToolsOpen(false);
+      queueMicrotask(() => setIsBaseImageToolsOpen(false));
   }, [sourceImageDataUrl]);
   const previousModeRef = useRef(mode);
   useEffect(() => {
@@ -379,7 +335,7 @@ export const AiImageSidebar = memo(function AiImageSidebar({ sidebarProps }: AiI
     if (prev === mode)
       return;
     if (mode === "img2img" || mode === "infill")
-      setIsBaseImageToolsOpen(true);
+      queueMicrotask(() => setIsBaseImageToolsOpen(true));
   }, [mode]);
   const closeCharacterAddMenu = useCallback(() => {
     setIsCharacterAddMenuOpen(false);
@@ -398,10 +354,10 @@ export const AiImageSidebar = memo(function AiImageSidebar({ sidebarProps }: AiI
   }, []);
   useEffect(() => {
     if (!proFeatureSections.characterPrompts)
-      closeCharacterAddMenu();
+      queueMicrotask(() => closeCharacterAddMenu());
   }, [closeCharacterAddMenu, proFeatureSections.characterPrompts]);
   useEffect(() => {
-    setCharacterPositionPickerState((prev) => {
+    queueMicrotask(() => setCharacterPositionPickerState((prev) => {
       if (!prev)
         return prev;
       if (!showCharacterPositionsGlobalSection || isCharacterPositionAiChoiceEnabled)
@@ -409,7 +365,7 @@ export const AiImageSidebar = memo(function AiImageSidebar({ sidebarProps }: AiI
       if (!v4Chars.some(row => row.id === prev.characterId))
         return null;
       return prev;
-    });
+    }));
   }, [isCharacterPositionAiChoiceEnabled, showCharacterPositionsGlobalSection, v4Chars]);
 
   useDismissibleLayer({
@@ -477,27 +433,7 @@ export const AiImageSidebar = memo(function AiImageSidebar({ sidebarProps }: AiI
     closeModeSelector();
   }
 
-  function renderSimpleInfillSection() {
-    return renderSimpleInfillSectionContent({
-      sourceImageDataUrl,
-      infillMaskDataUrl,
-      isBusy,
-      isBaseImageToolsOpen,
-      strength,
-      simpleBaseImageAttachmentClassName,
-      baseImageHeaderClassName,
-      baseImageControlGroupClassName,
-      baseImageToggleButtonClassName,
-      baseImageRangeClassName,
-      onOpenBaseImageInpaint: handleOpenBaseImageInpaint,
-      onClearSourceImage: handleClearSourceImage,
-      onReturnFromInfillSettings: handleReturnFromInfillSettings,
-      onToggleBaseImageTools: () => setIsBaseImageToolsOpen(prev => !prev),
-      setStrength,
-    });
-  }
-
-  function renderProInfillSection() {
+  const renderProInfillSection = useCallback(() => {
     return renderProInfillSectionContent({
       sourceImageDataUrl,
       infillMaskDataUrl,
@@ -514,9 +450,23 @@ export const AiImageSidebar = memo(function AiImageSidebar({ sidebarProps }: AiI
       onToggleBaseImageTools: () => setIsBaseImageToolsOpen(prev => !prev),
       setStrength,
     });
-  }
+  }, [
+    baseImageControlGroupClassName,
+    baseImageHeaderClassName,
+    baseImageRangeClassName,
+    baseImageToggleButtonClassName,
+    handleClearSourceImage,
+    handleOpenBaseImageInpaint,
+    handleReturnFromInfillSettings,
+    infillMaskDataUrl,
+    isBaseImageToolsOpen,
+    isBusy,
+    setStrength,
+    sourceImageDataUrl,
+    strength,
+  ]);
 
-  function renderSimpleBaseImageSection() {
+  const renderSimpleBaseImageSection = useCallback(() => {
     return renderSimpleBaseImageSectionContent({
       sourceImageDataUrl,
       infillMaskDataUrl,
@@ -541,7 +491,29 @@ export const AiImageSidebar = memo(function AiImageSidebar({ sidebarProps }: AiI
       setStrength,
       setNoise,
     });
-  }
+  }, [
+    baseImageActionButtonClassName,
+    baseImageControlGroupClassName,
+    baseImageHeaderClassName,
+    baseImagePanelClassName,
+    baseImageRangeClassName,
+    baseImageToggleButtonClassName,
+    featureUploadActionClassName,
+    handleClearSourceImage,
+    handleOpenBaseImageInpaint,
+    handleOpenSourceImagePicker,
+    handleReturnFromInfillSettings,
+    infillMaskDataUrl,
+    isBaseImageToolsOpen,
+    isBusy,
+    mode,
+    noise,
+    setNoise,
+    setStrength,
+    simpleBaseImageAttachmentClassName,
+    sourceImageDataUrl,
+    strength,
+  ]);
 
   function renderResolutionGlyph(optionId: string) {
     return renderResolutionGlyphContent(optionId);
@@ -721,6 +693,7 @@ export const AiImageSidebar = memo(function AiImageSidebar({ sidebarProps }: AiI
     proPromptSettingsPosition,
     proPromptSettingsRef,
     proPromptTextareaRef,
+    renderProInfillSection,
     segmentedButtonBaseClassName,
     segmentedControlClassName,
     setHighlightEmphasisEnabled,
@@ -741,329 +714,329 @@ export const AiImageSidebar = memo(function AiImageSidebar({ sidebarProps }: AiI
       className={`${isDirectorToolsOpen ? "hidden" : "flex"} relative h-full min-h-0 w-full min-w-0 flex-col gap-0 overflow-hidden border-r border-base-300 bg-base-100 p-0 shadow-none after:pointer-events-none after:absolute after:inset-y-0 after:right-0 after:w-5 after:bg-linear-to-l after:from-[rgba(15,23,42,0.08)] after:via-[rgba(15,23,42,0.03)] after:to-transparent after:content-[''] dark:after:from-[rgba(0,0,0,0.2)] dark:after:via-[rgba(0,0,0,0.08)]`}
     >
       <div className="ai-image-fade-scrollbar min-h-0 flex-1 overflow-y-auto">
-      {isModeSelectorMounted
-        ? (
-            <div
-              aria-hidden="true"
-              className={`fixed inset-0 z-30 bg-black/20 backdrop-blur-[1.5px] transition-opacity duration-200 ease-out dark:bg-black/35 ${
-                isModeSelectorOpen ? "pointer-events-auto opacity-100" : "pointer-events-none opacity-0"
-              }`}
-              onClick={closeModeSelector}
-            />
-          )
-        : null}
-      <div className={sideCardClassName}>
-        <div className="card-body p-4">
-          <div className="mb-3 flex items-stretch gap-2">
-            <button
-              type="button"
-              className={clearCurrentImageButtonClassName}
-              aria-label="取消当前图片"
-              title={hasCurrentDisplayedImage ? "取消当前图片" : "当前没有可取消的图片"}
-              disabled={!hasCurrentDisplayedImage}
-              onClick={handleClearCurrentDisplayedImage}
-            >
-              <span className="relative inline-flex size-5 items-center justify-center">
-                <ImageSquareIcon className="size-5" weight="regular" aria-hidden="true" />
-                <XCircleIcon className="absolute -right-1 -top-1 size-4 text-primary" weight="fill" aria-hidden="true" />
-              </span>
-            </button>
-
-            <div className="relative min-w-0 flex-1" ref={modeSelectorContainerRef}>
+        {isModeSelectorMounted
+          ? (
+              <div
+                aria-hidden="true"
+                className={`fixed inset-0 z-30 bg-black/20 backdrop-blur-[1.5px] transition-opacity duration-200 ease-out dark:bg-black/35 ${
+                  isModeSelectorOpen ? "pointer-events-auto opacity-100" : "pointer-events-none opacity-0"
+                }`}
+                onClick={closeModeSelector}
+              />
+            )
+          : null}
+        <div className={sideCardClassName}>
+          <div className="card-body p-4">
+            <div className="mb-3 flex items-stretch gap-2">
               <button
                 type="button"
-                className={`flex w-full items-center justify-between rounded-md border px-3 py-3 text-left transition focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 ${
-                  isModeSelectorOpen
-                    ? "border-primary bg-primary/5 shadow-sm dark:bg-primary/10"
-                    : "border-[#D6DCE3] bg-[#F3F5F7] hover:border-primary/40 hover:bg-[#EAEFF4] dark:border-[#2A3138] dark:bg-[#161A1F] dark:hover:bg-[#1B2026]"
-                }`}
-                aria-expanded={isModeSelectorOpen}
-                aria-controls="ai-image-mode-selector-panel"
-                onClick={() => setIsModeSelectorOpen(prev => !prev)}
+                className={clearCurrentImageButtonClassName}
+                aria-label="取消当前图片"
+                title={hasCurrentDisplayedImage ? "取消当前图片" : "当前没有可取消的图片"}
+                disabled={!hasCurrentDisplayedImage}
+                onClick={handleClearCurrentDisplayedImage}
               >
-                <div className="flex min-w-0 items-baseline gap-2">
-                  <span className="font-medium leading-none text-base-content">{activeModeOption.label}</span>
-                  <span className="truncate text-[11px] leading-none text-base-content/45">{MODE_MODEL_LABEL}</span>
-                </div>
-                <ChevronDown className={`ml-3 size-4 shrink-0 text-base-content/60 transition-transform ${isModeSelectorOpen ? "rotate-180" : ""}`} />
+                <span className="relative inline-flex size-5 items-center justify-center">
+                  <ImageSquareIcon className="size-5" weight="regular" aria-hidden="true" />
+                  <XCircleIcon className="absolute -right-1 -top-1 size-4 text-primary" weight="fill" aria-hidden="true" />
+                </span>
               </button>
 
-              {isModeSelectorOpen
-                || isModeSelectorMounted
-                ? (
-                    <div
-                      id="ai-image-mode-selector-panel"
-                      className={`ai-image-fade-scrollbar absolute left-0 right-0 top-[calc(100%+0.5rem)] z-40 max-h-[calc(100vh-12rem)] overflow-y-auto rounded-xl border border-[#D6DCE3] bg-[#F3F5F7] p-3 shadow-2xl ring-1 ring-black/5 transform-gpu transition-all duration-200 ease-out dark:border-[#2A3138] dark:bg-[#161A1F] dark:ring-white/5 ${
-                        isModeSelectorOpen
-                          ? "pointer-events-auto translate-y-0 scale-100 opacity-100"
-                          : "pointer-events-none translate-y-2 scale-[0.985] opacity-0"
-                      }`}
-                    >
-                      <div className="mb-3 flex items-start justify-between gap-3">
-                        <div className="min-w-0">
-                          <div className="text-sm font-medium text-base-content">模式选择</div>
-                        </div>
-                        <button
-                          type="button"
-                          className="btn btn-ghost btn-xs"
-                          onClick={closeModeSelector}
-                        >
-                          关闭
-                        </button>
-                      </div>
-                      <div className="flex flex-col gap-2">
-                        {MODE_OPTIONS.map(option => (
+              <div className="relative min-w-0 flex-1" ref={modeSelectorContainerRef}>
+                <button
+                  type="button"
+                  className={`flex w-full items-center justify-between rounded-md border px-3 py-3 text-left transition focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 ${
+                    isModeSelectorOpen
+                      ? "border-primary bg-primary/5 shadow-sm dark:bg-primary/10"
+                      : "border-[#D6DCE3] bg-[#F3F5F7] hover:border-primary/40 hover:bg-[#EAEFF4] dark:border-[#2A3138] dark:bg-[#161A1F] dark:hover:bg-[#1B2026]"
+                  }`}
+                  aria-expanded={isModeSelectorOpen}
+                  aria-controls="ai-image-mode-selector-panel"
+                  onClick={() => setIsModeSelectorOpen(prev => !prev)}
+                >
+                  <div className="flex min-w-0 items-baseline gap-2">
+                    <span className="font-medium leading-none text-base-content">{activeModeOption.label}</span>
+                    <span className="truncate text-[11px] leading-none text-base-content/45">{MODE_MODEL_LABEL}</span>
+                  </div>
+                  <ChevronDown className={`ml-3 size-4 shrink-0 text-base-content/60 transition-transform ${isModeSelectorOpen ? "rotate-180" : ""}`} />
+                </button>
+
+                {isModeSelectorOpen
+                  || isModeSelectorMounted
+                  ? (
+                      <div
+                        id="ai-image-mode-selector-panel"
+                        className={`ai-image-fade-scrollbar absolute left-0 right-0 top-[calc(100%+0.5rem)] z-40 max-h-[calc(100vh-12rem)] overflow-y-auto rounded-xl border border-[#D6DCE3] bg-[#F3F5F7] p-3 shadow-2xl ring-1 ring-black/5 transform-gpu transition-all duration-200 ease-out dark:border-[#2A3138] dark:bg-[#161A1F] dark:ring-white/5 ${
+                          isModeSelectorOpen
+                            ? "pointer-events-auto translate-y-0 scale-100 opacity-100"
+                            : "pointer-events-none translate-y-2 scale-[0.985] opacity-0"
+                        }`}
+                      >
+                        <div className="mb-3 flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <div className="text-sm font-medium text-base-content">模式选择</div>
+                          </div>
                           <button
-                            key={option.value}
                             type="button"
-                            className={`w-full rounded-lg border px-3 py-3 text-left transition focus:outline-none focus:ring-2 focus:ring-primary/20 ${
-                              uiMode === option.value
-                                ? "border-primary bg-primary/5 text-base-content shadow-sm"
-                                : "border-[#D6DCE3] bg-base-100 text-base-content/80 hover:border-primary/40 hover:bg-[#EAEFF4] dark:border-[#2A3138] dark:bg-[#161A1F] dark:hover:border-primary/40 dark:hover:bg-[#1B2026]"
-                            }`}
-                            onClick={() => handleSelectMode(option.value)}
-                            >
-                            <div className="flex min-w-0 items-baseline gap-2">
-                              <span className="font-medium leading-none">{option.label}</span>
-                              <span className="truncate text-[11px] leading-none text-base-content/45">{MODE_MODEL_LABEL}</span>
-                            </div>
-                            <div className="mt-1 text-xs text-base-content/60">
-                              {option.description}
-                            </div>
+                            className="btn btn-ghost btn-xs"
+                            onClick={closeModeSelector}
+                          >
+                            关闭
                           </button>
-                        ))}
+                        </div>
+                        <div className="flex flex-col gap-2">
+                          {MODE_OPTIONS.map(option => (
+                            <button
+                              key={option.value}
+                              type="button"
+                              className={`w-full rounded-lg border px-3 py-3 text-left transition focus:outline-none focus:ring-2 focus:ring-primary/20 ${
+                                uiMode === option.value
+                                  ? "border-primary bg-primary/5 text-base-content shadow-sm"
+                                  : "border-[#D6DCE3] bg-base-100 text-base-content/80 hover:border-primary/40 hover:bg-[#EAEFF4] dark:border-[#2A3138] dark:bg-[#161A1F] dark:hover:border-primary/40 dark:hover:bg-[#1B2026]"
+                              }`}
+                              onClick={() => handleSelectMode(option.value)}
+                            >
+                              <div className="flex min-w-0 items-baseline gap-2">
+                                <span className="font-medium leading-none">{option.label}</span>
+                                <span className="truncate text-[11px] leading-none text-base-content/45">{MODE_MODEL_LABEL}</span>
+                              </div>
+                              <div className="mt-1 text-xs text-base-content/60">
+                                {option.description}
+                              </div>
+                            </button>
+                          ))}
+                        </div>
                       </div>
-                    </div>
-                  )
-                : null}
+                    )
+                  : null}
+              </div>
             </div>
           </div>
         </div>
-      </div>
 
-      <div className={sideCardClassName}>
-        <div className={`card-body p-4 ${uiMode === "simple" && isSimpleTagsEditor ? "gap-2" : "gap-3"}`}>
-          {uiMode === "simple"
-            ? (
-                <SimpleEditorContent
-                  sidebarProps={sidebarProps}
-                  local={simpleEditorLocal}
-                />
-              )
-            : (
-                <ProEditorContent
-                  sidebarProps={sidebarProps}
-                  local={proEditorLocal}
-                />
-              )}
-        </div>
-      </div>
-      <div className={sideCardClassName}>
-        <div className="card-body gap-3 p-4">
-          <div className="flex items-center gap-2">
-            <div className="font-medium">绘图设置</div>
+        <div className={sideCardClassName}>
+          <div className={`card-body p-4 ${uiMode === "simple" && isSimpleTagsEditor ? "gap-2" : "gap-3"}`}>
+            {uiMode === "simple"
+              ? (
+                  <SimpleEditorContent
+                    sidebarProps={sidebarProps}
+                    local={simpleEditorLocal}
+                  />
+                )
+              : (
+                  <ProEditorContent
+                    sidebarProps={sidebarProps}
+                    local={proEditorLocal}
+                  />
+                )}
           </div>
-          {uiMode === "simple"
-            ? (
-                <>
-                  <div className="grid w-full max-w-full grid-cols-[minmax(0,1fr)_135px] items-start gap-[50px]">
-                    <div className="relative" ref={simpleResolutionSelectorRef}>
-                      <button
-                        type="button"
-                        className={`flex h-11 w-full items-center justify-between !rounded-none border border-[#D6DCE3] bg-[#F3F5F7] px-3 py-2 text-left transition focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 hover:border-primary/40 hover:bg-[#EAEFF4] dark:border-[#2A3138] dark:bg-[#161A1F] dark:hover:bg-[#1B2026] ${isSimpleResolutionSelectorOpen ? "border-primary bg-primary/5 shadow-sm dark:bg-primary/10" : ""}`}
-                        aria-expanded={isSimpleResolutionSelectorOpen}
-                        onClick={() => setIsSimpleResolutionSelectorOpen(prev => !prev)}
-                      >
-                        <div className="flex min-w-0 items-center gap-2.5 text-base-content/80">
-                          {renderResolutionGlyph(activeSimpleResolutionOption.id)}
-                          <span className="truncate text-xs font-medium tracking-tight">{activeSimpleResolutionOption.label}</span>
-                        </div>
-                        <ChevronDown className={`size-4 shrink-0 text-base-content/60 transition-transform ${isSimpleResolutionSelectorOpen ? "rotate-180" : ""}`} />
-                      </button>
-
-                      {isSimpleResolutionSelectorOpen
-                        ? (
-                            <div className="absolute left-0 right-0 top-[calc(100%+0.5rem)] z-20 overflow-hidden !rounded-none border border-[#D6DCE3] bg-[#F3F5F7] p-2 shadow-2xl dark:border-[#2A3138] dark:bg-[#161A1F]">
-                              <div className="flex flex-col gap-1">
-                                {RESOLUTION_OPTIONS.map(option => (
-                                  <button
-                                    key={option.id}
-                                    type="button"
-                                    className={`flex items-center gap-3 rounded-lg px-4 py-3 text-left transition focus:outline-none focus:ring-2 focus:ring-primary/20 ${
-                                      simpleResolutionSelection === option.id
-                                        ? "bg-primary/10 text-base-content"
-                                        : "text-base-content/78 hover:bg-base-100 dark:hover:bg-[#1B2026]"
-                                    }`}
-                                    onClick={() => {
-                                      handleSelectSimpleResolutionPreset(option.id);
-                                      closeSimpleResolutionSelector();
-                                    }}
-                                  >
-                                    {renderResolutionGlyph(option.id)}
-                                    <span className="text-xs font-medium">{option.label}</span>
-                                  </button>
-                                ))}
-                              </div>
-                            </div>
-                          )
-                        : null}
-                    </div>
-
-                    <div className="grid h-11 w-[135px] grid-cols-[minmax(0,1fr)_10px_minmax(0,1fr)] items-center gap-1 !rounded-none border border-[#D6DCE3] bg-[#F3F5F7] px-3 py-2 shadow-sm dark:border-[#2A3138] dark:bg-[#161A1F]">
-                      <input
-                        className={simpleResolutionValueInputClassName}
-                        type="number"
-                        min={1}
-                        step={64}
-                        value={widthInput}
-                        onChange={e => handleSimpleWidthChange(e.target.value)}
-                        onBlur={handleCommitSimpleDimensions}
-                      />
-                      <span className="text-center text-xs font-medium text-base-content/55">×</span>
-                      <input
-                        className={simpleResolutionValueInputClassName}
-                        type="number"
-                        min={1}
-                        step={64}
-                        value={heightInput}
-                        onChange={e => handleSimpleHeightChange(e.target.value)}
-                        onBlur={handleCommitSimpleDimensions}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="text-[11px] leading-5 text-base-content/55">
-                    自动按 64 舍入；总面积超过 1024×1024 时将禁用生成。
-                  </div>
-
-                  <div className="flex flex-col gap-2">
-                    <div className="flex items-center text-xs text-base-content/70">
-                      <span>种子 (Seed)</span>
-                    </div>
-                    <input
-                      className={`h-8 w-full appearance-none focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none ${subtleInputClassName}`}
-                      type="number"
-                      value={seedIsRandom ? "" : seed}
-                      onChange={(e) => {
-                        const value = e.target.value.trim();
-                        setSeed(value ? Number(value) : -1);
-                      }}
-                    />
-                  </div>
-                </>
-              )
-            : (
-                <>
-                  <div className="grid w-full max-w-full grid-cols-[minmax(0,1fr)_135px] items-start gap-[50px]">
-                    <div className="relative" ref={proResolutionSelectorRef}>
-                      <button
-                        type="button"
-                        className={`flex h-11 w-full items-center justify-between !rounded-none border border-[#D6DCE3] bg-[#F3F5F7] px-3 py-2 text-left transition focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 hover:border-primary/40 hover:bg-[#EAEFF4] dark:border-[#2A3138] dark:bg-[#161A1F] dark:hover:bg-[#1B2026] ${isProResolutionSelectorOpen ? "border-primary bg-primary/5 shadow-sm dark:bg-primary/10" : ""}`}
-                        aria-expanded={isProResolutionSelectorOpen}
-                        onClick={() => setIsProResolutionSelectorOpen(prev => !prev)}
-                      >
-                        <div className="flex min-w-0 items-center gap-2.5 text-base-content/80">
-                          {renderResolutionGlyph(activeProResolutionOption.id)}
-                          <span className="truncate text-xs font-medium tracking-tight">{activeProResolutionOption.label}</span>
-                        </div>
-                        <ChevronDown className={`size-4 shrink-0 text-base-content/60 transition-transform ${isProResolutionSelectorOpen ? "rotate-180" : ""}`} />
-                      </button>
-
-                      {isProResolutionSelectorOpen
-                        ? (
-                            <div className="absolute left-0 right-0 top-[calc(100%+0.5rem)] z-20 overflow-hidden !rounded-none border border-[#D6DCE3] bg-[#F3F5F7] p-2 shadow-2xl dark:border-[#2A3138] dark:bg-[#161A1F]">
-                              <div className="flex flex-col gap-1">
-                                {RESOLUTION_OPTIONS.map(option => (
-                                  <button
-                                    key={option.id}
-                                    type="button"
-                                    className={`flex items-center gap-3 rounded-lg px-4 py-3 text-left transition focus:outline-none focus:ring-2 focus:ring-primary/20 ${
-                                      activeProResolutionOption.id === option.id
-                                        ? "bg-primary/10 text-base-content"
-                                        : "text-base-content/78 hover:bg-base-100 dark:hover:bg-[#1B2026]"
-                                    }`}
-                                    onClick={() => {
-                                      handleSelectProResolutionPreset(option.id);
-                                      closeProResolutionSelector();
-                                    }}
-                                  >
-                                    {renderResolutionGlyph(option.id)}
-                                    <span className="text-xs font-medium">{option.label}</span>
-                                  </button>
-                                ))}
-                              </div>
-                            </div>
-                          )
-                        : null}
-                    </div>
-
-                    <div className="grid h-11 w-[135px] grid-cols-[minmax(0,1fr)_10px_minmax(0,1fr)] items-center gap-1 !rounded-none border border-[#D6DCE3] bg-[#F3F5F7] px-3 py-2 shadow-sm dark:border-[#2A3138] dark:bg-[#161A1F]">
-                      <input
-                        className={simpleResolutionValueInputClassName}
-                        type="number"
-                        min={1}
-                        step={64}
-                        value={widthInput}
-                        onChange={e => handleProWidthChange(e.target.value)}
-                        onBlur={handleCommitProDimensions}
-                      />
-                      <button
-                        type="button"
-                        className="flex items-center justify-center text-center text-xs font-medium text-base-content/55 focus:outline-none"
-                        title="交换宽高"
-                        aria-label="交换宽高"
-                        onClick={handleSwapImageDimensions}
-                      >
-                        ×
-                      </button>
-                      <input
-                        className={simpleResolutionValueInputClassName}
-                        type="number"
-                        min={1}
-                        step={64}
-                        value={heightInput}
-                        onChange={e => handleProHeightChange(e.target.value)}
-                        onBlur={handleCommitProDimensions}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="text-[11px] leading-5 text-base-content/55">
-                    自动按 64 舍入；总面积超过 1024×1024 时将禁用生成。
-                  </div>
-
-                  <div className="flex flex-col gap-2">
-                    <div className="grid h-11 w-full grid-cols-9 overflow-hidden border border-base-300 bg-base-100 shadow-none">
-                      <div className="flex h-11 items-center justify-center border-r border-base-300 text-base-content/90" aria-hidden="true">
-                        <ImagesSquareIcon className="size-4.5" weight="regular" />
-                      </div>
-                      {[1, 2, 3, 4, 5, 6, 7, 8].map(count => {
-                        const isActive = imageCount === count;
-                        const isDisabled = count !== 1;
-                        return (
-                          <button
-                            key={count}
-                            type="button"
-                            className={`flex h-11 w-11 items-center justify-center border-r border-base-300 text-[14px] font-semibold leading-none transition last:border-r-0 ${
-                              isActive
-                                ? "bg-primary/10 text-primary"
-                                : "bg-transparent text-base-content/35"
-                            }`}
-                            disabled={isDisabled}
-                            aria-pressed={isActive}
-                            onClick={() => setImageCount(count)}
-                          >
-                            {count}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-
-                </>
-              )}
         </div>
-      </div>
+        <div className={sideCardClassName}>
+          <div className="card-body gap-3 p-4">
+            <div className="flex items-center gap-2">
+              <div className="font-medium">绘图设置</div>
+            </div>
+            {uiMode === "simple"
+              ? (
+                  <>
+                    <div className="grid w-full max-w-full grid-cols-[minmax(0,1fr)_135px] items-start gap-[50px]">
+                      <div className="relative" ref={simpleResolutionSelectorRef}>
+                        <button
+                          type="button"
+                          className={`flex h-11 w-full items-center justify-between !rounded-none border border-[#D6DCE3] bg-[#F3F5F7] px-3 py-2 text-left transition focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 hover:border-primary/40 hover:bg-[#EAEFF4] dark:border-[#2A3138] dark:bg-[#161A1F] dark:hover:bg-[#1B2026] ${isSimpleResolutionSelectorOpen ? "border-primary bg-primary/5 shadow-sm dark:bg-primary/10" : ""}`}
+                          aria-expanded={isSimpleResolutionSelectorOpen}
+                          onClick={() => setIsSimpleResolutionSelectorOpen(prev => !prev)}
+                        >
+                          <div className="flex min-w-0 items-center gap-2.5 text-base-content/80">
+                            {renderResolutionGlyph(activeSimpleResolutionOption.id)}
+                            <span className="truncate text-xs font-medium tracking-tight">{activeSimpleResolutionOption.label}</span>
+                          </div>
+                          <ChevronDown className={`size-4 shrink-0 text-base-content/60 transition-transform ${isSimpleResolutionSelectorOpen ? "rotate-180" : ""}`} />
+                        </button>
+
+                        {isSimpleResolutionSelectorOpen
+                          ? (
+                              <div className="absolute left-0 right-0 top-[calc(100%+0.5rem)] z-20 overflow-hidden !rounded-none border border-[#D6DCE3] bg-[#F3F5F7] p-2 shadow-2xl dark:border-[#2A3138] dark:bg-[#161A1F]">
+                                <div className="flex flex-col gap-1">
+                                  {RESOLUTION_OPTIONS.map(option => (
+                                    <button
+                                      key={option.id}
+                                      type="button"
+                                      className={`flex items-center gap-3 rounded-lg px-4 py-3 text-left transition focus:outline-none focus:ring-2 focus:ring-primary/20 ${
+                                        simpleResolutionSelection === option.id
+                                          ? "bg-primary/10 text-base-content"
+                                          : "text-base-content/78 hover:bg-base-100 dark:hover:bg-[#1B2026]"
+                                      }`}
+                                      onClick={() => {
+                                        handleSelectSimpleResolutionPreset(option.id);
+                                        closeSimpleResolutionSelector();
+                                      }}
+                                    >
+                                      {renderResolutionGlyph(option.id)}
+                                      <span className="text-xs font-medium">{option.label}</span>
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+                            )
+                          : null}
+                      </div>
+
+                      <div className="grid h-11 w-[135px] grid-cols-[minmax(0,1fr)_10px_minmax(0,1fr)] items-center gap-1 !rounded-none border border-[#D6DCE3] bg-[#F3F5F7] px-3 py-2 shadow-sm dark:border-[#2A3138] dark:bg-[#161A1F]">
+                        <input
+                          className={simpleResolutionValueInputClassName}
+                          type="number"
+                          min={1}
+                          step={64}
+                          value={widthInput}
+                          onChange={e => handleSimpleWidthChange(e.target.value)}
+                          onBlur={handleCommitSimpleDimensions}
+                        />
+                        <span className="text-center text-xs font-medium text-base-content/55">×</span>
+                        <input
+                          className={simpleResolutionValueInputClassName}
+                          type="number"
+                          min={1}
+                          step={64}
+                          value={heightInput}
+                          onChange={e => handleSimpleHeightChange(e.target.value)}
+                          onBlur={handleCommitSimpleDimensions}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="text-[11px] leading-5 text-base-content/55">
+                      自动按 64 舍入；总面积超过 1024×1024 时将禁用生成。
+                    </div>
+
+                    <div className="flex flex-col gap-2">
+                      <div className="flex items-center text-xs text-base-content/70">
+                        <span>种子 (Seed)</span>
+                      </div>
+                      <input
+                        className={`h-8 w-full appearance-none focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none ${subtleInputClassName}`}
+                        type="number"
+                        value={seedIsRandom ? "" : seed}
+                        onChange={(e) => {
+                          const value = e.target.value.trim();
+                          setSeed(value ? Number(value) : -1);
+                        }}
+                      />
+                    </div>
+                  </>
+                )
+              : (
+                  <>
+                    <div className="grid w-full max-w-full grid-cols-[minmax(0,1fr)_135px] items-start gap-[50px]">
+                      <div className="relative" ref={proResolutionSelectorRef}>
+                        <button
+                          type="button"
+                          className={`flex h-11 w-full items-center justify-between !rounded-none border border-[#D6DCE3] bg-[#F3F5F7] px-3 py-2 text-left transition focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 hover:border-primary/40 hover:bg-[#EAEFF4] dark:border-[#2A3138] dark:bg-[#161A1F] dark:hover:bg-[#1B2026] ${isProResolutionSelectorOpen ? "border-primary bg-primary/5 shadow-sm dark:bg-primary/10" : ""}`}
+                          aria-expanded={isProResolutionSelectorOpen}
+                          onClick={() => setIsProResolutionSelectorOpen(prev => !prev)}
+                        >
+                          <div className="flex min-w-0 items-center gap-2.5 text-base-content/80">
+                            {renderResolutionGlyph(activeProResolutionOption.id)}
+                            <span className="truncate text-xs font-medium tracking-tight">{activeProResolutionOption.label}</span>
+                          </div>
+                          <ChevronDown className={`size-4 shrink-0 text-base-content/60 transition-transform ${isProResolutionSelectorOpen ? "rotate-180" : ""}`} />
+                        </button>
+
+                        {isProResolutionSelectorOpen
+                          ? (
+                              <div className="absolute left-0 right-0 top-[calc(100%+0.5rem)] z-20 overflow-hidden !rounded-none border border-[#D6DCE3] bg-[#F3F5F7] p-2 shadow-2xl dark:border-[#2A3138] dark:bg-[#161A1F]">
+                                <div className="flex flex-col gap-1">
+                                  {RESOLUTION_OPTIONS.map(option => (
+                                    <button
+                                      key={option.id}
+                                      type="button"
+                                      className={`flex items-center gap-3 rounded-lg px-4 py-3 text-left transition focus:outline-none focus:ring-2 focus:ring-primary/20 ${
+                                        activeProResolutionOption.id === option.id
+                                          ? "bg-primary/10 text-base-content"
+                                          : "text-base-content/78 hover:bg-base-100 dark:hover:bg-[#1B2026]"
+                                      }`}
+                                      onClick={() => {
+                                        handleSelectProResolutionPreset(option.id);
+                                        closeProResolutionSelector();
+                                      }}
+                                    >
+                                      {renderResolutionGlyph(option.id)}
+                                      <span className="text-xs font-medium">{option.label}</span>
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+                            )
+                          : null}
+                      </div>
+
+                      <div className="grid h-11 w-[135px] grid-cols-[minmax(0,1fr)_10px_minmax(0,1fr)] items-center gap-1 !rounded-none border border-[#D6DCE3] bg-[#F3F5F7] px-3 py-2 shadow-sm dark:border-[#2A3138] dark:bg-[#161A1F]">
+                        <input
+                          className={simpleResolutionValueInputClassName}
+                          type="number"
+                          min={1}
+                          step={64}
+                          value={widthInput}
+                          onChange={e => handleProWidthChange(e.target.value)}
+                          onBlur={handleCommitProDimensions}
+                        />
+                        <button
+                          type="button"
+                          className="flex items-center justify-center text-center text-xs font-medium text-base-content/55 focus:outline-none"
+                          title="交换宽高"
+                          aria-label="交换宽高"
+                          onClick={handleSwapImageDimensions}
+                        >
+                          ×
+                        </button>
+                        <input
+                          className={simpleResolutionValueInputClassName}
+                          type="number"
+                          min={1}
+                          step={64}
+                          value={heightInput}
+                          onChange={e => handleProHeightChange(e.target.value)}
+                          onBlur={handleCommitProDimensions}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="text-[11px] leading-5 text-base-content/55">
+                      自动按 64 舍入；总面积超过 1024×1024 时将禁用生成。
+                    </div>
+
+                    <div className="flex flex-col gap-2">
+                      <div className="grid h-11 w-full grid-cols-9 overflow-hidden border border-base-300 bg-base-100 shadow-none">
+                        <div className="flex h-11 items-center justify-center border-r border-base-300 text-base-content/90" aria-hidden="true">
+                          <ImagesSquareIcon className="size-4.5" weight="regular" />
+                        </div>
+                        {[1, 2, 3, 4, 5, 6, 7, 8].map((count) => {
+                          const isActive = imageCount === count;
+                          const isDisabled = count !== 1;
+                          return (
+                            <button
+                              key={count}
+                              type="button"
+                              className={`flex h-11 w-11 items-center justify-center border-r border-base-300 text-[14px] font-semibold leading-none transition last:border-r-0 ${
+                                isActive
+                                  ? "bg-primary/10 text-primary"
+                                  : "bg-transparent text-base-content/35"
+                              }`}
+                              disabled={isDisabled}
+                              aria-pressed={isActive}
+                              onClick={() => setImageCount(count)}
+                            >
+                              {count}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                  </>
+                )}
+          </div>
+        </div>
 
       </div>
 

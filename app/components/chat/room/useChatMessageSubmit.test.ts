@@ -22,8 +22,8 @@ vi.mock("react", async () => {
   return {
     ...actual,
     default: actual,
-    useCallback: ((fn: any) => fn),
-    useRef: ((value: any) => ({ current: value })),
+    useCallback: (fn: any) => fn,
+    useRef: (value: any) => ({ current: value }),
   };
 });
 
@@ -430,7 +430,7 @@ describe("useChatMessageSubmit", () => {
     });
 
     const roomUiStoreApi = createRoomUiStore();
-    const sendMessageWithInsert = vi.fn(async (request) => ({
+    const sendMessageWithInsert = vi.fn(async request => ({
       ...createMessage(11),
       messageType: request.messageType,
       content: request.content,
@@ -476,7 +476,7 @@ describe("useChatMessageSubmit", () => {
 
     const roomUiStoreApi = createRoomUiStore();
     const commandExecutor = vi.fn();
-    const sendMessageWithInsert = vi.fn(async (request) => ({
+    const sendMessageWithInsert = vi.fn(async request => ({
       ...createMessage(20),
       messageType: request.messageType,
       content: request.content,
@@ -539,7 +539,7 @@ describe("useChatMessageSubmit", () => {
     });
 
     const roomUiStoreApi = createRoomUiStore();
-    const sendMessageWithInsert = vi.fn(async (request) => ({
+    const sendMessageWithInsert = vi.fn(async request => ({
       ...createMessage(21),
       messageType: request.messageType,
       content: request.content,

@@ -1,11 +1,12 @@
 import type { Message } from "@tuanchat/openapi-client/models/Message";
+import type { MessageSubmitPhase } from "./mobileChatUtils";
 import type {
   MobileMessageAttachment,
   MobileMessageAttachmentKind,
 } from "@/features/messages/mobileMessageAttachment";
 import type { MobileMessageMode } from "@/features/messages/mobileMessageComposer";
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, TextInput, View } from "react-native";
 
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, TextInput, View } from "react-native";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { Spacing } from "@/constants/theme";
@@ -20,13 +21,13 @@ import {
   getMobileMessageSubmitLabel,
   MOBILE_MESSAGE_MODE,
 } from "@/features/messages/mobileMessageComposer";
-import { useTheme } from "@/hooks/use-theme";
 
+import { useTheme } from "@/hooks/use-theme";
 import {
   getMessageAttachmentMetaText,
   getMessagePreview,
   getMessageSubmitPhaseText,
-  type MessageSubmitPhase,
+
 } from "./mobileChatUtils";
 
 const styles = StyleSheet.create({

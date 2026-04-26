@@ -836,4 +836,3 @@ export default function DocFolderForUser({ onSendDocCard }: DocFolderForUserProp
     </div>
   );
 }
-

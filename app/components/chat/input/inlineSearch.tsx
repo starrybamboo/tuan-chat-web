@@ -45,7 +45,7 @@ function SearchBar({ className = "" }: SearchBarProps) {
 
   useEffect(() => {
     roleCacheRef.current = new Map();
-    setRoles([]);
+    queueMicrotask(() => setRoles([]));
   }, [roomId]);
 
   useEffect(() => {

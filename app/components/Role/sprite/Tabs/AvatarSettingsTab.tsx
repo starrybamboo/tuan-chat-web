@@ -83,9 +83,9 @@ export function AvatarSettingsTab({
       moodLabels.forEach((label) => {
         defaultMoodMap[label] = normalizedAvatarTitleRecord[label] || "";
       });
-      setPendingMoodMap({ ...defaultMoodMap, label: normalizedAvatarTitleRecord.label || "" });
-      setEditingName(normalizedAvatarTitleRecord.label || "");
-      setEditingCategory(currentAvatar.category?.trim() || DEFAULT_CATEGORY);
+      queueMicrotask(() => setPendingMoodMap({ ...defaultMoodMap, label: normalizedAvatarTitleRecord.label || "" }));
+      queueMicrotask(() => setEditingName(normalizedAvatarTitleRecord.label || ""));
+      queueMicrotask(() => setEditingCategory(currentAvatar.category?.trim() || DEFAULT_CATEGORY));
       moodControlRef.current?.setValue(defaultMoodMap);
     }
   }, [currentAvatar, normalizedAvatarTitleRecord, moodLabels, DEFAULT_CATEGORY]);

@@ -46,7 +46,7 @@ export default function RoleLayout() {
       }
     };
 
-    setIsDesktop(mediaQuery.matches);
+    queueMicrotask(() => setIsDesktop(mediaQuery.matches));
     mediaQuery.addEventListener("change", handleChange);
     return () => mediaQuery.removeEventListener("change", handleChange);
   }, []);

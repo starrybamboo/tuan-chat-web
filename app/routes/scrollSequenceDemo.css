@@ -29,13 +29,19 @@ html.lenis body {
     radial-gradient(circle at 72% 12%, rgba(166, 129, 255, 0.22), transparent 30%),
     radial-gradient(circle at 14% 48%, rgba(97, 215, 255, 0.14), transparent 28%),
     linear-gradient(180deg, #07070b 0%, #101026 42%, #07070b 100%);
-  font-family: Inter, "PingFang SC", "Microsoft YaHei", system-ui, -apple-system, sans-serif;
+  font-family:
+    Inter,
+    "PingFang SC",
+    "Microsoft YaHei",
+    system-ui,
+    -apple-system,
+    sans-serif;
 }
 
-.scroll-sequence-demo__backLink {
+.scroll-sequence-demo__backLink,
+.scroll-sequence-demo__compareLink {
   position: fixed;
   top: 22px;
-  left: 22px;
   z-index: 20;
   display: inline-flex;
   align-items: center;
@@ -54,7 +60,16 @@ html.lenis body {
     transform 180ms ease;
 }
 
-.scroll-sequence-demo__backLink:hover {
+.scroll-sequence-demo__backLink {
+  left: 22px;
+}
+
+.scroll-sequence-demo__compareLink {
+  right: 22px;
+}
+
+.scroll-sequence-demo__backLink:hover,
+.scroll-sequence-demo__compareLink:hover {
   border-color: rgba(255, 255, 255, 0.32);
   background: rgba(18, 18, 36, 0.82);
   transform: translateY(-1px);
@@ -73,6 +88,12 @@ html.lenis body {
 
 .scroll-sequence-demo__heroSticky {
   height: 100vh;
+}
+
+.scroll-sequence-demo--motion .scroll-sequence-demo__heroSticky,
+.scroll-sequence-demo--motion .scroll-sequence-demo__flowSticky {
+  position: sticky;
+  top: 0;
 }
 
 .scroll-sequence-demo__heroSurface {
@@ -181,9 +202,7 @@ html.lenis body {
   padding: 24px 22px 22px;
   border: 1px solid var(--demo-line);
   border-radius: 30px;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.03)),
-    var(--demo-panel);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.03)), var(--demo-panel);
   box-shadow: 0 28px 80px rgba(0, 0, 0, 0.36);
   backdrop-filter: blur(20px);
   opacity: 0;
@@ -390,9 +409,7 @@ html.lenis body {
   padding: 28px;
   border: 1px solid var(--demo-line);
   border-radius: 34px;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.11), rgba(255, 255, 255, 0.04)),
-    rgba(16, 16, 34, 0.72);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.11), rgba(255, 255, 255, 0.04)), rgba(16, 16, 34, 0.72);
   box-shadow: 0 24px 80px rgba(0, 0, 0, 0.28);
   backdrop-filter: blur(18px);
   transition:
@@ -403,9 +420,7 @@ html.lenis body {
 
 .scroll-sequence-demo__flowCard[data-active="true"] {
   border-color: rgba(255, 255, 255, 0.32);
-  background:
-    linear-gradient(180deg, rgba(166, 129, 255, 0.2), rgba(255, 106, 179, 0.08)),
-    rgba(16, 16, 34, 0.82);
+  background: linear-gradient(180deg, rgba(166, 129, 255, 0.2), rgba(255, 106, 179, 0.08)), rgba(16, 16, 34, 0.82);
   transform: translateY(-10px);
 }
 
@@ -498,6 +513,11 @@ html.lenis body {
   .scroll-sequence-demo__backLink {
     top: 14px;
     left: 14px;
+  }
+
+  .scroll-sequence-demo__compareLink {
+    top: 14px;
+    right: 14px;
   }
 
   .scroll-sequence-demo__heroTitle {

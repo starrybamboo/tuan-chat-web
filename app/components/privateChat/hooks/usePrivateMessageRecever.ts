@@ -49,4 +49,3 @@ function mergeMessages(historyMessages: MessageDirectResponse[], currentContactM
 
   return allMessages;
 }
-

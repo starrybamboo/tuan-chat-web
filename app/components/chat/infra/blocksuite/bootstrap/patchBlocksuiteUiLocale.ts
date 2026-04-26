@@ -1,5 +1,7 @@
+import type { BlocksuiteFilterableListOptions } from "../i18n/blocksuiteUiLocale";
+
 import {
-  type BlocksuiteFilterableListOptions,
+
   localizeBlocksuiteFilterableListOptions,
   translateBlocksuiteElementAttributes,
   translateBlocksuiteElementText,

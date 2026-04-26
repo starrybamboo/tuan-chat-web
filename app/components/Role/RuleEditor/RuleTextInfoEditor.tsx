@@ -34,8 +34,8 @@ export default function RuleTextInfoEditor({
   // 非编辑态总是同步；受控编辑态下也允许外部同步（用于创建时模板预填）
   useEffect(() => {
     if (!isEditing || isForcedEditingMode) {
-      setLocalName(ruleName ?? "");
-      setLocalDescription(ruleDescription ?? "");
+      queueMicrotask(() => setLocalName(ruleName ?? ""));
+      queueMicrotask(() => setLocalDescription(ruleDescription ?? ""));
     }
   }, [isEditing, isForcedEditingMode, ruleDescription, ruleName]);
 
@@ -58,9 +58,9 @@ export default function RuleTextInfoEditor({
     }
 
     prevCloneVersionRef.current = cloneVersion;
-    setLocalName(ruleName ?? "");
-    setLocalDescription(ruleDescription ?? "");
-    setIsEditing(false);
+    queueMicrotask(() => setLocalName(ruleName ?? ""));
+    queueMicrotask(() => setLocalDescription(ruleDescription ?? ""));
+    queueMicrotask(() => setIsEditing(false));
   }, [cloneVersion, ruleDescription, ruleName]);
 
   useEffect(() => {
@@ -69,11 +69,11 @@ export default function RuleTextInfoEditor({
     }
 
     if (forcedEditing) {
-      setIsEditing(true);
+      queueMicrotask(() => setIsEditing(true));
       return;
     }
 
-    setIsEditing(false);
+    queueMicrotask(() => setIsEditing(false));
   }, [forcedEditing]);
 
   useEffect(() => {
@@ -90,7 +90,7 @@ export default function RuleTextInfoEditor({
     }
 
     onApply({ ruleName: localName, ruleDescription: localDescription });
-    setIsEditing(false);
+    queueMicrotask(() => setIsEditing(false));
   }, [isEditing, localDescription, localName, onApply, saveSignal]);
 
   const handleStartEditing = () => {

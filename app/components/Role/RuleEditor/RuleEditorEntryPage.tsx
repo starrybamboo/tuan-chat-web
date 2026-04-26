@@ -75,8 +75,8 @@ export default function RuleEditorEntryPage({ onBack }: RuleEditorEntryPageProps
       return;
     }
 
-    setRuleName((templateRule.ruleName ?? "").trim());
-    setRuleDescription((templateRule.ruleDescription ?? "").trim());
+    queueMicrotask(() => setRuleName((templateRule.ruleName ?? "").trim()));
+    queueMicrotask(() => setRuleDescription((templateRule.ruleDescription ?? "").trim()));
     appliedTemplateIdRef.current = selectedTemplateRuleId;
   }, [selectedTemplateRuleId, selectedTemplateRuleQuery.data, selectedTemplateRuleQuery.isSuccess]);
 

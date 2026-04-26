@@ -1,11 +1,12 @@
-import { menu, popMenu, type MenuConfig, type PopupTarget } from "@blocksuite/affine/components/context-menu";
-import { focusBlockEnd } from "@blocksuite/affine-shared/commands";
+import type { MenuConfig, PopupTarget } from "@blocksuite/affine/components/context-menu";
 import type { SlashMenuActionItem, SlashMenuContext, SlashMenuItem } from "@blocksuite/affine/widgets/slash-menu";
+import type { BlockComponent, BlockStdScope } from "@blocksuite/std";
+
+import { focusBlockEnd } from "@blocksuite/affine-shared/commands";
+import { menu, popMenu } from "@blocksuite/affine/components/context-menu";
+import { BlockSelection, TextSelection } from "@blocksuite/std";
 import { html } from "lit";
 
-import type { BlockStdScope } from "@blocksuite/std";
-
-import { BlockComponent, BlockSelection, TextSelection } from "@blocksuite/std";
 import { groupBlocksuiteSlashMenuItems, resolveBlocksuiteSlashMenuItems } from "../manager/slashMenuRuntime";
 
 type BlocksuiteEditorElement = HTMLElement & {

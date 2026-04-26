@@ -1,7 +1,7 @@
-import type { ChatMessageResponse, Message } from "../../../../api";
-
 import { getDiceResultExtra } from "@/types/messageExtra";
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
+
+import type { ChatMessageResponse, Message } from "../../../../api";
 
 import { hasHostPrivileges } from "./memberPermissions";
 

@@ -24,7 +24,7 @@ export default function TutorialUpdatePromptModal({
 
   useEffect(() => {
     if (open) {
-      setSuppress(false);
+      queueMicrotask(() => setSuppress(false));
     }
   }, [open]);
 

@@ -401,20 +401,20 @@ function DocCardMessageImpl({ messageResponse }: { messageResponse: ChatMessageR
               : null}
 
             <div className="flex-1 min-h-0 overflow-hidden">
-            {(!isDisabled && typeof previewSpaceId === "number" && previewSpaceId > 0) && (
-              <div className="w-full h-full overflow-hidden bg-base-100">
-                <BlocksuiteDescriptionEditor
-                  workspaceId={`space:${previewSpaceId}`}
-                  spaceId={previewSpaceId}
-                  docId={docId}
-                  readOnly
-                  tcHeader={{ enabled: true, fallbackTitle: title, fallbackImageUrl: coverUrl }}
-                  allowModeSwitch
-                  fullscreenEdgeless
-                  className="h-full min-h-0"
-                />
-              </div>
-            )}
+              {(!isDisabled && typeof previewSpaceId === "number" && previewSpaceId > 0) && (
+                <div className="w-full h-full overflow-hidden bg-base-100">
+                  <BlocksuiteDescriptionEditor
+                    workspaceId={`space:${previewSpaceId}`}
+                    spaceId={previewSpaceId}
+                    docId={docId}
+                    readOnly
+                    tcHeader={{ enabled: true, fallbackTitle: title, fallbackImageUrl: coverUrl }}
+                    allowModeSwitch
+                    fullscreenEdgeless
+                    className="h-full min-h-0"
+                  />
+                </div>
+              )}
             </div>
           </div>
         </div>

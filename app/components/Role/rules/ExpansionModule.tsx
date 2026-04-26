@@ -90,7 +90,7 @@ export default function ExpansionModule({
 
   // 当 roleId 或 ruleId 变化时，重置本地编辑状态，防止显示上一次编辑的内容
   useEffect(() => {
-    setLocalEdits({});
+    queueMicrotask(() => setLocalEdits({}));
   }, [roleId, selectedRuleId]);
 
   // 构建当前渲染所需的数据

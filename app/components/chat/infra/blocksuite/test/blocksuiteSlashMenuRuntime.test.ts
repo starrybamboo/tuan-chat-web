@@ -1,4 +1,6 @@
-import { SlashMenuExtension, type SlashMenuContext, type SlashMenuItem } from "@blocksuite/affine/widgets/slash-menu";
+import type { SlashMenuContext, SlashMenuItem } from "@blocksuite/affine/widgets/slash-menu";
+
+import { SlashMenuExtension } from "@blocksuite/affine/widgets/slash-menu";
 import { describe, expect, it } from "vitest";
 
 import { groupBlocksuiteSlashMenuItems, resolveBlocksuiteSlashMenuItems } from "../manager/slashMenuRuntime";

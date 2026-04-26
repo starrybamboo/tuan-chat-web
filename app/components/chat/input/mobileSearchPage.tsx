@@ -41,7 +41,7 @@ export default function MobileSearchPage({ isOpen, onClose }: MobileSearchPagePr
 
   useEffect(() => {
     roleCacheRef.current = new Map();
-    setRoles([]);
+    queueMicrotask(() => setRoles([]));
   }, [roomId]);
 
   useEffect(() => {
@@ -124,7 +124,7 @@ export default function MobileSearchPage({ isOpen, onClose }: MobileSearchPagePr
   // 重置搜索状态当关闭时
   useEffect(() => {
     if (!isOpen) {
-      setSearchText("");
+      queueMicrotask(() => setSearchText(""));
     }
   }, [isOpen]);
 

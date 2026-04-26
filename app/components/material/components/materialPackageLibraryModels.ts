@@ -76,4 +76,3 @@ export function buildSpaceMaterialPackageCardModel(
     updateTime: item.updateTime,
   };
 }
-

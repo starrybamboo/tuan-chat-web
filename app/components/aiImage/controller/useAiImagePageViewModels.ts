@@ -2,27 +2,26 @@ import type { ComponentProps, Dispatch, RefObject, SetStateAction } from "react"
 
 import { useMemo } from "react";
 
-import { AiImageHistoryPane } from "@/components/aiImage/AiImageHistoryPane";
-import { AiImagePreviewPane } from "@/components/aiImage/AiImagePreviewPane";
-import { AiImageWorkspace } from "@/components/aiImage/AiImageWorkspace";
-import { InpaintDialog } from "@/components/aiImage/InpaintDialog";
-import { MetadataImportDialog } from "@/components/aiImage/MetadataImportDialog";
-import { PreviewImageDialog } from "@/components/aiImage/PreviewImageDialog";
-import { StylePickerDialog } from "@/components/aiImage/StylePickerDialog";
+import type { AiImageHistoryPane } from "@/components/aiImage/AiImageHistoryPane";
+import type { AiImagePreviewPane } from "@/components/aiImage/AiImagePreviewPane";
+import type { AiImageWorkspace } from "@/components/aiImage/AiImageWorkspace";
+import type { InpaintDialog } from "@/components/aiImage/InpaintDialog";
+import type { MetadataImportDialog } from "@/components/aiImage/MetadataImportDialog";
+import type { PreviewImageDialog } from "@/components/aiImage/PreviewImageDialog";
+import type { StylePickerDialog } from "@/components/aiImage/StylePickerDialog";
 import type {
-  MetadataImportSelectionState,
   PreciseReferenceRow,
   ProFeatureSectionKey,
-  V4CharGender,
   ResolutionPreset,
   ResolutionSelection,
   UiMode,
   V4CharEditorRow,
+  V4CharGender,
   VibeTransferReferenceRow,
 } from "@/components/aiImage/types";
 import type { AiImageHistoryMode } from "@/utils/aiImageHistoryDb";
-import type { NovelAiNl2TagsResult } from "@/utils/novelaiNl2Tags";
 import type { AiImageStylePreset } from "@/utils/aiImageStylePresets";
+import type { NovelAiNl2TagsResult } from "@/utils/novelaiNl2Tags";
 
 import { buildInpaintDialogProps, buildMetadataImportDialogProps, buildPreviewImageDialogProps, buildSidebarProps, buildStylePickerDialogProps, buildWorkspaceProps } from "@/components/aiImage/controller/buildViewModels";
 import { generatedItemKey } from "@/components/aiImage/helpers";
@@ -50,7 +49,7 @@ type RunGenerate = (args?: {
   toolLabel?: string;
 }) => Promise<boolean>;
 
-interface SidebarViewModelArgs {
+type SidebarViewModelArgs = {
   activeResolutionPreset: ResolutionPreset | null;
   baseImageDescription: string;
   canAddVibeReference: boolean;
@@ -196,7 +195,7 @@ interface SidebarViewModelArgs {
   vibeTransferReferences: VibeTransferReferenceRow[];
   width: number;
   widthInput: string;
-}
+};
 
 export function useAiImageWorkspaceProps(args: WorkspaceProps) {
   const {

@@ -1,5 +1,3 @@
-/* eslint-disable react-refresh/only-export-components */
-
 import type { Room } from "../../../../api";
 
 import React from "react";

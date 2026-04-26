@@ -6,13 +6,13 @@ import type {
   AiImageHistoryRow,
 } from "@/utils/aiImageHistoryDb";
 
-export interface HistoryDragPayload {
+export type HistoryDragPayload = {
   dataUrl: string;
   seed: number;
   batchIndex?: number;
-}
+};
 
-export interface AiImageHistoryPaneProps {
+export type AiImageHistoryPaneProps = {
   isDirectorToolsOpen: boolean;
   onCollapse: () => void;
   history: AiImageHistoryRow[];
@@ -33,4 +33,4 @@ export interface AiImageHistoryPaneProps {
   onDeleteHistoryRow: (row: AiImageHistoryRow) => void | Promise<void>;
   onDownloadAll: () => void;
   onClearHistory: () => void | Promise<void>;
-}
+};

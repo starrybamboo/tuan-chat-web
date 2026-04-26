@@ -1,5 +1,7 @@
 import { vi } from "vitest";
 
+import useRoomCommandRequests from "./useRoomCommandRequests";
+
 const mocks = vi.hoisted(() => ({
   toastErrorMock: vi.fn(),
   isCommandMock: vi.fn(),
@@ -11,6 +13,7 @@ vi.mock("react", async () => {
     ...actual,
     default: actual,
     useCallback: <T extends (...args: any[]) => any>(fn: T) => fn,
+    useMemo: <T>(fn: () => T) => fn(),
     useRef: <T>(value: T) => ({ current: value }),
     useState: <T>(value: T | (() => T)) => [typeof value === "function" ? (value as () => T)() : value, vi.fn()] as const,
   };
@@ -25,8 +28,6 @@ vi.mock("react-hot-toast", () => ({
 vi.mock("@/components/common/dicer/cmdPre", () => ({
   isCommand: mocks.isCommandMock,
 }));
-
-import useRoomCommandRequests from "./useRoomCommandRequests";
 
 class MemoryStorage {
   private readonly storage = new Map<string, string>();
@@ -98,13 +99,13 @@ describe("useRoomCommandRequests", () => {
 
     const persisted = JSON.parse(window.localStorage.getItem(COMMAND_REQUEST_ONCE_STORAGE_KEY) ?? "{}");
     expect(persisted).toEqual({
-      "11": ["7:101"],
+      11: ["7:101"],
     });
   });
 
   it("同一条检定请求再次执行时会被本地一次性保护拦截", () => {
     window.localStorage.setItem(COMMAND_REQUEST_ONCE_STORAGE_KEY, JSON.stringify({
-      "11": ["7:101"],
+      11: ["7:101"],
     }));
 
     const commandExecutor = vi.fn(async () => {});

@@ -5,7 +5,7 @@ export function useDelayedPresence(isOpen: boolean, delayMs: number) {
 
   useEffect(() => {
     if (isOpen) {
-      setIsPresent(true);
+      queueMicrotask(() => setIsPresent(true));
       return;
     }
 

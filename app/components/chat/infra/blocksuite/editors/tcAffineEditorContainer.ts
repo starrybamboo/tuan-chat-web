@@ -1,5 +1,6 @@
 import type { DocMode } from "@blocksuite/affine/model";
 import type { BlockModel, ExtensionType, Store } from "@blocksuite/affine/store";
+import type { PropertyValues } from "lit";
 import type { Subscription } from "rxjs";
 
 import { SignalWatcher, WithDisposable } from "@blocksuite/affine/global/lit";
@@ -7,7 +8,7 @@ import { RefNodeSlotsProvider } from "@blocksuite/affine/inlines/reference";
 import { ThemeProvider } from "@blocksuite/affine/shared/services";
 import { BlockStdScope, ShadowlessElement } from "@blocksuite/affine/std";
 import { computed, signal } from "@preact/signals-core";
-import { css, html, type PropertyValues } from "lit";
+import { css, html } from "lit";
 import { property } from "lit/decorators.js";
 import { keyed } from "lit/directives/keyed.js";
 import { when } from "lit/directives/when.js";
@@ -104,6 +105,7 @@ class TCAffineEditorContainer extends SignalWatcher(
   private readonly _specs = computed(() =>
     this._mode.value === "page" ? this._pageSpecs.value : this._edgelessSpecs.value,
   );
+
   private _docLinkSubscription: Subscription | null = null;
   private _docLinkSubscriptionStd: BlockStdScope | null = null;
 

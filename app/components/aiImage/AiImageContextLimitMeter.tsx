@@ -2,10 +2,10 @@ import { useState } from "react";
 
 import { NOVELAI_V45_CONTEXT_LIMIT } from "@/components/aiImage/novelaiV45TokenMeter";
 
-type MeterRow = {
+interface MeterRow {
   label: string;
   value: string;
-};
+}
 
 interface AiImageContextLimitMeterProps {
   localUsed: number;

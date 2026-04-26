@@ -1,9 +1,8 @@
-import { memo } from "react";
-import { ArrowSquareInIcon, PlantIcon, TrashSimpleIcon } from "@phosphor-icons/react";
 import type { ComponentProps } from "react";
-import { useEffect, useState } from "react";
-
 import type { GeneratedImageItem } from "@/components/aiImage/types";
+import { ArrowSquareInIcon, PlantIcon, TrashSimpleIcon } from "@phosphor-icons/react";
+import { memo, useEffect, useState } from "react";
+
 import { AiImageHistoryPane } from "@/components/aiImage/AiImageHistoryPane";
 import { AiImagePreviewPane } from "@/components/aiImage/AiImagePreviewPane";
 import { HistoryIcon } from "@/icons";
@@ -18,7 +17,7 @@ interface AiImageWorkspaceProps {
   onApplyPinnedPreviewSeed: () => void;
 }
 
-export const AiImageWorkspace = memo(function AiImageWorkspace({
+export const AiImageWorkspace = memo(({
   isDirectorToolsOpen,
   previewPaneProps,
   historyPaneProps,
@@ -26,7 +25,7 @@ export const AiImageWorkspace = memo(function AiImageWorkspace({
   onClearPinnedPreview,
   onJumpToPinnedPreview,
   onApplyPinnedPreviewSeed,
-}: AiImageWorkspaceProps) {
+}: AiImageWorkspaceProps) => {
   const [isHistoryCollapsed, setIsHistoryCollapsed] = useState(false);
   const [isPinnedDrawerOpen, setIsPinnedDrawerOpen] = useState(false);
   const [isPinnedEdgeHovered, setIsPinnedEdgeHovered] = useState(false);
@@ -34,13 +33,13 @@ export const AiImageWorkspace = memo(function AiImageWorkspace({
 
   useEffect(() => {
     if (!pinnedPreviewResult) {
-      setIsPinnedDrawerOpen(false);
-      setIsPinnedEdgeHovered(false);
+      queueMicrotask(() => setIsPinnedDrawerOpen(false));
+      queueMicrotask(() => setIsPinnedEdgeHovered(false));
       return;
     }
-    setIsPinnedDrawerOpen(false);
-    setIsPinnedEdgeHovered(false);
-  }, [pinnedPreviewResult?.dataUrl, pinnedPreviewResult?.seed]);
+    queueMicrotask(() => setIsPinnedDrawerOpen(false));
+    queueMicrotask(() => setIsPinnedEdgeHovered(false));
+  }, [pinnedPreviewResult]);
 
   return (
     <div className="relative z-0 flex min-h-0 min-w-0 flex-1 overflow-visible bg-base-200">

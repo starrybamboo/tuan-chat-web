@@ -226,4 +226,3 @@ function Image({ children, updateImgFiles }: { children: React.ReactNode; update
     </ImgUploader>
   );
 }
-

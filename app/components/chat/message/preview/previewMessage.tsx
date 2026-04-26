@@ -1,5 +1,5 @@
 import type { Message } from "../../../../../api";
-import { use, useEffect, useRef } from "react";
+import { use } from "react";
 import { useGetMessageByIdSmartly } from "@/components/chat/core/hooks";
 import { RoomContext } from "@/components/chat/core/roomContext";
 import { canCurrentUserViewMessage } from "@/components/chat/utils/hiddenDiceVisibility";
@@ -10,11 +10,11 @@ import { useGetRoleQuery } from "../../../../../api/hooks/RoleAndAvatarHooks";
 import { getMessagePreviewText } from "./getMessagePreviewText";
 import { MessagePreviewContent } from "./messagePreviewContent";
 
-type PreviewRenderState = {
+interface PreviewRenderState {
   previewMessage?: Message;
   previewText: string;
   isPlainTextOnly: boolean;
-};
+}
 
 export function buildPreviewRenderState({
   messageBody,
@@ -65,36 +65,19 @@ export function PreviewMessage({ message, className, withMediaPreview }: {
   withMediaPreview?: boolean;
 }) {
   const roomContext = use(RoomContext);
-  const previewCacheRef = useRef<{ key: number; message: Message } | null>(null);
   // 如果传的是id就从历史消息里面找，没找到就去query。如果是Message类型就直接拿来用
   const getMessageByIdSmartly = useGetMessageByIdSmartly(typeof message === "number" ? message : -1);
   const messageBody = typeof message === "number"
     ? getMessageByIdSmartly
     : message;
-  const resolvedMessageId = typeof message === "number"
-    ? (roomContext.chatHistory?.resolveMessageId(message) ?? message)
-    : (message.messageId ?? -1);
   const hasResolvedMessage = Boolean(messageBody);
   const canViewMessage = hasResolvedMessage && canCurrentUserViewMessage(messageBody, {
     currentUserId: roomContext.curMember?.userId,
     memberType: roomContext.curMember?.memberType,
   });
-  useEffect(() => {
-    if (!messageBody || !canViewMessage || !Number.isFinite(resolvedMessageId)) {
-      return;
-    }
-    previewCacheRef.current = {
-      key: resolvedMessageId,
-      message: messageBody,
-    };
-  }, [canViewMessage, messageBody, resolvedMessageId]);
-
-  const fallbackPreviewMessage = previewCacheRef.current?.key === resolvedMessageId
-    ? previewCacheRef.current.message
-    : undefined;
   const renderState = buildPreviewRenderState({
     messageBody,
-    fallbackPreviewMessage,
+    fallbackPreviewMessage: undefined,
     canViewMessage,
   });
   const previewMessage = renderState.previewMessage;

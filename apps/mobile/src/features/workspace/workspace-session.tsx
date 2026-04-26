@@ -35,9 +35,9 @@ export function WorkspaceSessionProvider({ children }: PropsWithChildren) {
     }
 
     if (!isAuthenticated) {
-      setSelectedSpaceIdState(null);
-      setSelectedRoomIdState(null);
-      setHasHydratedSelection(false);
+      queueMicrotask(() => setSelectedSpaceIdState(null));
+      queueMicrotask(() => setSelectedRoomIdState(null));
+      queueMicrotask(() => setHasHydratedSelection(false));
       void clearStoredWorkspaceSelection();
       return () => {
         cancelled = true;

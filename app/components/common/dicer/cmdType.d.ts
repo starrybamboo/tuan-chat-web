@@ -45,7 +45,7 @@ interface ExecutorProp { // eslint-disable-line ts/consistent-type-definitions
   mentionedRoles?: UserRole[];
 }
 
-type ReplyMessageVisibility = "public" | "kp_and_sender"; // eslint-disable-line ts/consistent-type-definitions
+type ReplyMessageVisibility = "public" | "kp_and_sender";
 
 interface ReplyMessageOptions { // eslint-disable-line ts/consistent-type-definitions
   visibility?: ReplyMessageVisibility;

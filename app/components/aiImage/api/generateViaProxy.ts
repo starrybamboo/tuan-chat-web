@@ -5,8 +5,9 @@ import type {
   VibeTransferReferencePayload,
 } from "@/components/aiImage/types";
 import type { AiImageHistoryMode } from "@/utils/aiImageHistoryDb";
-import type { AiGenerateImageRequest } from "../../../../api/novelai/models/AiGenerateImageRequest";
 
+import { resolveBackendGenerateImageUrl } from "@/components/aiImage/api/backendUrls";
+import { requestNovelAiBinaryViaProxy } from "@/components/aiImage/api/requestBinary";
 import {
   DEFAULT_IMAGE_MODEL,
   NOVELAI_FREE_FIXED_IMAGE_COUNT,
@@ -22,8 +23,8 @@ import {
   resolveInpaintModel,
   sanitizeNovelAiTagInput,
 } from "@/components/aiImage/helpers";
-import { resolveBackendGenerateImageUrl } from "@/components/aiImage/api/backendUrls";
-import { requestNovelAiBinaryViaProxy } from "@/components/aiImage/api/requestBinary";
+
+import type { AiGenerateImageRequest } from "../../../../api/novelai/models/AiGenerateImageRequest";
 
 export async function generateNovelImageViaProxy(args: {
   mode: AiImageHistoryMode;

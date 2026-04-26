@@ -2,7 +2,7 @@ import { useCreateSpaceMutation } from "api/hooks/chatQueryHooks";
 import { useGetRulePageInfiniteQuery } from "api/hooks/ruleQueryHooks";
 import { useGetUserFollowingsQuery } from "api/hooks/userFollowQueryHooks";
 import { useGetUserInfoQuery } from "api/hooks/UserHooks";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useId, useState } from "react";
 import checkBack from "@/components/common/autoContrastText";
 import { MemberSelect } from "@/components/common/memberSelect";
 import { ImgUploaderWithCopper } from "@/components/common/uploader/imgUploaderWithCropper";
@@ -16,15 +16,22 @@ export default function CreateSpaceWindow({ onSuccess }: CreateSpaceWindowProps)
   const userId = useGlobalUserId();
   const getUserInfo = useGetUserInfoQuery(Number(userId));
   const userInfo = getUserInfo.data?.data;
+  const spaceAvatarUploadId = useId().replace(/:/g, "");
+  const defaultSpaceAvatar = String(userInfo?.avatar ?? "");
+  const defaultSpaceOriginalAvatar = String(userInfo?.originalAvatar ?? userInfo?.avatar ?? "");
+  const defaultSpaceName = userInfo?.username ? `${String(userInfo.username)}的空间` : "";
 
   // 创建空间
   const createSpaceMutation = useCreateSpaceMutation();
 
   // 创建空间的头像
-  const [spaceAvatar, setSpaceAvatar] = useState<string>(() => String(userInfo?.avatar));
-  const [spaceOriginalAvatar, setSpaceOriginalAvatar] = useState<string>(() => String(userInfo?.originalAvatar ?? userInfo?.avatar ?? ""));
+  const [spaceAvatarDraft, setSpaceAvatarDraft] = useState<string | null>(null);
+  const [spaceOriginalAvatarDraft, setSpaceOriginalAvatarDraft] = useState<string | null>(null);
   // 创建空间的名称
-  const [spaceName, setSpaceName] = useState<string>(() => `${String(userInfo?.username)}的空间`);
+  const [spaceNameDraft, setSpaceNameDraft] = useState<string | null>(null);
+  const spaceAvatar = spaceAvatarDraft ?? defaultSpaceAvatar;
+  const spaceOriginalAvatar = spaceOriginalAvatarDraft ?? defaultSpaceOriginalAvatar;
+  const spaceName = spaceNameDraft ?? defaultSpaceName;
 
   // 当前选择的空间规则Id
   const [selectedRuleId, setSelectedRuleId] = useState<number>(1);
@@ -56,15 +63,6 @@ export default function CreateSpaceWindow({ onSuccess }: CreateSpaceWindowProps)
     }
   }, [spaceAvatar]);
 
-  // 当用户信息加载后，更新默认值
-  useEffect(() => {
-    if (userInfo) {
-      setSpaceAvatar(String(userInfo.avatar));
-      setSpaceOriginalAvatar(String(userInfo.originalAvatar ?? userInfo.avatar ?? ""));
-      setSpaceName(`${String(userInfo.username)}的空间`);
-    }
-  }, [userInfo]);
-
   // 创建空间
   async function createSpace(userIds: number[]) {
     createSpaceMutation.mutate({
@@ -89,12 +87,12 @@ export default function CreateSpaceWindow({ onSuccess }: CreateSpaceWindowProps)
       <div className="flex justify-center mb-6">
         <ImgUploaderWithCopper
           setOriginalDownloadUrl={(url) => {
-            setSpaceOriginalAvatar(url);
+            setSpaceOriginalAvatarDraft(url);
           }}
           setCopperedDownloadUrl={(url) => {
-            setSpaceAvatar(url);
+            setSpaceAvatarDraft(url);
           }}
-          fileName={`new-space-avatar-${Date.now()}`}
+          fileName={`new-space-avatar-${spaceAvatarUploadId}`}
           aspect={1}
         >
           <div className="relative group overflow-hidden rounded-lg">
@@ -121,11 +119,12 @@ export default function CreateSpaceWindow({ onSuccess }: CreateSpaceWindowProps)
         </label>
         <input
           type="text"
-          placeholder={spaceName}
+          value={spaceName}
+          placeholder={defaultSpaceName}
           className="input input-bordered w-full"
           onChange={(e) => {
             const inputValue = e.target.value;
-            setSpaceName(inputValue === "" ? `${String(userInfo?.username)}的空间` : inputValue);
+            setSpaceNameDraft(inputValue === "" ? null : inputValue);
           }}
         />
       </div>

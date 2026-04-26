@@ -3,23 +3,23 @@ import { describe, expect, it } from "vitest";
 import {
   buildDirectorToolHistoryRow,
   buildImportedSourceImagePayloadFromDataUrl,
-  cleanImportedPromptText,
   clampSimpleModeDimension,
+  cleanImportedPromptText,
   fitNovelAiImageSizeWithinAreaLimit,
   generatedItemKey,
   getClosestValidImageSize,
+  getNovelAiFreeGenerationViolation,
+  historyRowKey,
+  historyRowResultMatchKey,
+  historyRowToGeneratedItem,
   mergeTagString,
   resolveEditorImageMode,
   resolveHistoryRowClickMode,
+  resolveImportedValue,
   resolveSimpleGenerateMode,
   sanitizeNovelAiTagInput,
   shouldKeepSimpleTagsEditor,
   toggleNovelAiLineComments,
-  historyRowKey,
-  historyRowResultMatchKey,
-  historyRowToGeneratedItem,
-  getNovelAiFreeGenerationViolation,
-  resolveImportedValue,
 } from "@/components/aiImage/helpers";
 
 describe("aiImage helpers", () => {
@@ -345,5 +345,4 @@ describe("aiImage helpers", () => {
       selectionEnd: 17,
     });
   });
-
 });

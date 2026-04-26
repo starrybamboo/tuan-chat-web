@@ -51,13 +51,13 @@ export default function SettingsPage() {
     }
 
     const settingsFromServer = readNotificationSettingsFromUserExtra(userInfo.extra);
-    setGroupMessagePopupEnabled(settingsFromServer.groupMessagePopupEnabled);
-    setFeedbackInAppEnabled(settingsFromServer.feedbackInAppEnabled);
-    setFeedbackDesktopEnabled(settingsFromServer.feedbackDesktopEnabled);
+    queueMicrotask(() => setGroupMessagePopupEnabled(settingsFromServer.groupMessagePopupEnabled));
+    queueMicrotask(() => setFeedbackInAppEnabled(settingsFromServer.feedbackInAppEnabled));
+    queueMicrotask(() => setFeedbackDesktopEnabled(settingsFromServer.feedbackDesktopEnabled));
     writeGroupMessagePopupEnabledToLocalStorage(settingsFromServer.groupMessagePopupEnabled);
     writeFeedbackInAppEnabledToLocalStorage(settingsFromServer.feedbackInAppEnabled);
     writeFeedbackDesktopEnabledToLocalStorage(settingsFromServer.feedbackDesktopEnabled);
-    setInitializedFromServer(true);
+    queueMicrotask(() => setInitializedFromServer(true));
   }, [initializedFromServer, isLoggedIn, userInfoQuery.data]);
 
   const saveNotificationSettings = async (nextSettings: {

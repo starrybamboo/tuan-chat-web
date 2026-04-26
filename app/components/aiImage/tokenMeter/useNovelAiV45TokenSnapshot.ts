@@ -1,12 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
 
-import type { V4CharEditorRow } from "@/components/aiImage/types";
 import type { TokenCountsByText } from "@/components/aiImage/tokenMeter/tokenizer";
-import { countNovelAiV45Tokens } from "@/components/aiImage/tokenMeter/tokenizer";
+import type { V4CharEditorRow } from "@/components/aiImage/types";
+
 import {
   buildNovelAiV45TextRequests,
   buildNovelAiV45TokenSnapshot,
 } from "@/components/aiImage/tokenMeter/snapshot";
+import { countNovelAiV45Tokens } from "@/components/aiImage/tokenMeter/tokenizer";
 
 export function useNovelAiV45TokenSnapshot(args: {
   prompt: string;
@@ -15,19 +16,13 @@ export function useNovelAiV45TokenSnapshot(args: {
   qualityToggle: boolean;
   ucPreset: number;
 }) {
-  const serializedChars = useMemo(() => {
-    return args.v4Chars
-      .map(row => `${row.id}\u0000${row.prompt}\u0000${row.negativePrompt}`)
-      .join("\u0001");
-  }, [args.v4Chars]);
-
   const tokenChars = useMemo(() => {
     return args.v4Chars.map(({ id, prompt, negativePrompt }) => ({
       id,
       prompt,
       negativePrompt,
     }));
-  }, [serializedChars]);
+  }, [args.v4Chars]);
 
   const requests = useMemo(() => {
     return buildNovelAiV45TextRequests({
@@ -91,14 +86,14 @@ export function useNovelAiV45TokenSnapshot(args: {
       });
     }
 
-    setTokenState((prev) => {
+    queueMicrotask(() => setTokenState((prev) => {
       if (prev.status === "loading")
         return prev;
       return {
         status: "loading",
         countsByText: prev.countsByText,
       };
-    });
+    }));
     void run();
 
     return () => {

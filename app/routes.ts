@@ -17,6 +17,7 @@ export default [
   route("blocksuite-frame", "routes/blocksuiteFrame.tsx"),
   route("room-map/:spaceId/:roomId", "routes/roomMapFrame.tsx"),
   route("scroll-sequence-demo", "routes/scrollSequenceDemo.tsx"),
+  route("scroll-sequence-motion-demo", "routes/scrollSequenceMotionDemo.tsx"),
 
   // Dedicated login page (avoid wrapping by dashboard layout to prevent double modals).
   route("login", "routes/login.tsx"),

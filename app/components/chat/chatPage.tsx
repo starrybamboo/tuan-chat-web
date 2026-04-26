@@ -386,12 +386,8 @@ export default function ChatPage() {
   const isKPInSpace = useMemo(() => {
     return checkIsKpInSpaceMembers(spaceMembers, userId);
   }, [spaceMembers, userId]);
-  const isSpaceOwnerInActiveSpace = useMemo(() => {
-    if (!activeSpaceId || activeSpaceId <= 0)
-      return false;
-    const ownerId = typeof activeSpace?.userId === "number" ? activeSpace.userId : Number.NaN;
-    return Number.isFinite(ownerId) && ownerId === userId;
-  }, [activeSpace?.userId, activeSpaceId, userId]);
+  const ownerId = typeof activeSpace?.userId === "number" ? activeSpace.userId : Number.NaN;
+  const isSpaceOwnerInActiveSpace = Boolean(activeSpaceId && activeSpaceId > 0 && Number.isFinite(ownerId) && ownerId === userId);
   const cachedSubWindowDocKpPermission = useMemo(() => {
     if (!activeSpaceId || activeSpaceId <= 0)
       return false;
@@ -454,19 +450,19 @@ export default function ChatPage() {
     if (!isDocRoute || !activeSpaceId || activeSpaceId <= 0 || !activeDocId) {
       return;
     }
-    setCachedDocRoute((prev) => {
+    queueMicrotask(() => setCachedDocRoute((prev) => {
       if (prev?.spaceId === activeSpaceId && prev.docId === activeDocId) {
         return prev;
       }
       return { spaceId: activeSpaceId, docId: activeDocId };
-    });
+    }));
   }, [activeDocId, activeSpaceId, isDocRoute]);
 
   useEffect(() => {
     if (isDocRoute) {
       return;
     }
-    setCachedDocRoute(null);
+    queueMicrotask(() => setCachedDocRoute(null));
   }, [isDocRoute]);
 
   const docRouteForRender = useMemo<CachedDocRoute | null>(() => {

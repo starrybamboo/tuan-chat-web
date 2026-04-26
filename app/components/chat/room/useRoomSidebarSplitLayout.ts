@@ -130,7 +130,7 @@ export default function useRoomSidebarSplitLayout({
 
   useLayoutEffect(() => {
     if (!enabled || !containerNode) {
-      setContainerHeight(0);
+      queueMicrotask(() => setContainerHeight(0));
       return;
     }
 
@@ -158,16 +158,16 @@ export default function useRoomSidebarSplitLayout({
   }, [containerNode, enabled]);
 
   useEffect(() => {
-    setLoadedStorageKey(null);
-    setSplitRatio(DEFAULT_ROOM_SIDEBAR_SPLIT_RATIO);
+    queueMicrotask(() => setLoadedStorageKey(null));
+    queueMicrotask(() => setSplitRatio(DEFAULT_ROOM_SIDEBAR_SPLIT_RATIO));
 
     if (!enabled) {
-      setLoadedStorageKey(storageKey);
+      queueMicrotask(() => setLoadedStorageKey(storageKey));
       return;
     }
 
-    setSplitRatio(readStoredRatio(storageKey));
-    setLoadedStorageKey(storageKey);
+    queueMicrotask(() => setSplitRatio(readStoredRatio(storageKey)));
+    queueMicrotask(() => setLoadedStorageKey(storageKey));
   }, [enabled, storageKey]);
 
   useEffect(() => {
@@ -178,7 +178,7 @@ export default function useRoomSidebarSplitLayout({
       return;
     }
 
-    setSplitRatio(metrics.ratio);
+    queueMicrotask(() => setSplitRatio(metrics.ratio));
   }, [enabled, metrics.ratio, metrics.usableHeight, splitRatio]);
 
   useEffect(() => {

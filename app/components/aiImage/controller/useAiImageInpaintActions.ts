@@ -1,14 +1,13 @@
 import { useCallback } from "react";
 
 import type { GeneratedImageItem, InpaintDialogSource, InpaintSubmitPayload, UiMode } from "@/components/aiImage/types";
-import type { AiImageHistoryRow } from "@/utils/aiImageHistoryDb";
-import type { AiImageHistoryMode } from "@/utils/aiImageHistoryDb";
+import type { AiImageHistoryMode, AiImageHistoryRow } from "@/utils/aiImageHistoryDb";
 
 import { buildOpenInpaintState } from "@/components/aiImage/controller/generateActions";
 import { buildBaseImageInpaintStateAction, saveInpaintMaskAction } from "@/components/aiImage/controller/inpaintActions";
-import { dataUrlToBase64, resolveSimpleGenerateMode } from "@/components/aiImage/helpers";
+import { dataUrlToBase64 } from "@/components/aiImage/helpers";
 
-interface UseAiImageInpaintActionsOptions {
+type UseAiImageInpaintActionsOptions = {
   uiMode: UiMode;
   loading: boolean;
   mode: AiImageHistoryMode;
@@ -44,12 +43,11 @@ interface UseAiImageInpaintActionsOptions {
   clearInfillMaskForUi: (mode: UiMode) => void;
   setModeForUi: (mode: UiMode, nextMode: AiImageHistoryMode) => void;
   showErrorToast: (message: string) => void;
-}
+};
 
 export function useAiImageInpaintActions({
   uiMode,
   loading,
-  mode,
   model,
   width,
   height,

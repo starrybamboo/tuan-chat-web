@@ -1,6 +1,6 @@
 import type { DocMode } from "@blocksuite/affine/model";
 
-import { useMemo, useRef } from "react";
+import { useMemo, useState } from "react";
 
 import { buildBlocksuiteFrameSrc } from "@/components/chat/infra/blocksuite/shared/frameSrc";
 
@@ -24,82 +24,50 @@ type UseBlocksuiteFrameInitParams = {
   hasFrameReadyOnce: boolean;
 };
 
+type BlocksuiteFrameInitParams = {
+  instanceId: string;
+  workspaceId: string;
+  spaceId?: string;
+  docId: string;
+  readOnly: "1" | "0";
+  allowModeSwitch: "1" | "0";
+  fullscreenEdgeless: "1" | "0";
+  mode: DocMode;
+  tcHeader: "1" | "0";
+  tcHeaderTitle?: string;
+  tcHeaderImageUrl?: string;
+};
+
+function createFrameInitParams(params: UseBlocksuiteFrameInitParams): BlocksuiteFrameInitParams {
+  const tcHeaderEnabled = Boolean(params.tcHeader?.enabled);
+  return {
+    instanceId: params.instanceId,
+    workspaceId: params.workspaceId,
+    spaceId: typeof params.spaceId === "number" && Number.isFinite(params.spaceId) ? String(params.spaceId) : undefined,
+    docId: params.docId,
+    readOnly: params.readOnly ? "1" : "0",
+    allowModeSwitch: params.allowModeSwitch ? "1" : "0",
+    fullscreenEdgeless: params.fullscreenEdgeless ? "1" : "0",
+    mode: params.forcedMode,
+    tcHeader: tcHeaderEnabled ? "1" : "0",
+    tcHeaderTitle: tcHeaderEnabled ? params.tcHeader?.fallbackTitle : undefined,
+    tcHeaderImageUrl: tcHeaderEnabled ? params.tcHeader?.fallbackImageUrl : undefined,
+  };
+}
+
 export function useBlocksuiteFrameInit(params: UseBlocksuiteFrameInitParams) {
   const {
-    instanceId,
-    workspaceId,
-    spaceId,
-    docId,
-    readOnly,
-    allowModeSwitch,
-    fullscreenEdgeless,
-    forcedMode,
-    tcHeader,
     className,
     isEdgelessFullscreenActive,
     isFrameReady,
     hasFrameReadyOnce,
   } = params;
 
-  const tcHeaderEnabled = Boolean(tcHeader?.enabled);
-  const frozenTcHeaderFallbackRef = useRef<{
-    workspaceId: string;
-    docId: string;
-    title?: string;
-    imageUrl?: string;
-  } | null>(null);
-
-  // tcHeader 的 fallback 只在文档切换时更新，避免标题/封面抖动影响 iframe 初始化参数。
-  if (tcHeaderEnabled) {
-    const prev = frozenTcHeaderFallbackRef.current;
-    if (!prev || prev.workspaceId !== workspaceId || prev.docId !== docId) {
-      frozenTcHeaderFallbackRef.current = {
-        workspaceId,
-        docId,
-        title: tcHeader?.fallbackTitle,
-        imageUrl: tcHeader?.fallbackImageUrl,
-      };
-    }
-  }
-  else if (frozenTcHeaderFallbackRef.current) {
-    frozenTcHeaderFallbackRef.current = null;
-  }
-
-  const frozenTcHeaderTitle = frozenTcHeaderFallbackRef.current?.title;
-  const frozenTcHeaderImageUrl = frozenTcHeaderFallbackRef.current?.imageUrl;
-
-  const initParams = useMemo(() => {
-    // query 参数统一转成 iframe 可消费的稳定字符串格式。
-    return {
-      instanceId,
-      workspaceId,
-      spaceId: typeof spaceId === "number" && Number.isFinite(spaceId) ? String(spaceId) : undefined,
-      docId,
-      readOnly: readOnly ? "1" : "0",
-      allowModeSwitch: allowModeSwitch ? "1" : "0",
-      fullscreenEdgeless: fullscreenEdgeless ? "1" : "0",
-      mode: forcedMode,
-      tcHeader: tcHeaderEnabled ? "1" : "0",
-      tcHeaderTitle: frozenTcHeaderTitle,
-      tcHeaderImageUrl: frozenTcHeaderImageUrl,
-    };
-  }, [
-    allowModeSwitch,
-    docId,
-    forcedMode,
-    frozenTcHeaderImageUrl,
-    frozenTcHeaderTitle,
-    fullscreenEdgeless,
-    instanceId,
-    readOnly,
-    spaceId,
-    tcHeaderEnabled,
-    workspaceId,
-  ]);
-
   // iframe 首次挂载后保持初始参数不变，避免 src 变化触发整帧重建。
-  const frozenInitParamsRef = useRef(initParams);
-  const frozenInitParams = frozenInitParamsRef.current;
+  const [frozenInitParams] = useState(() => createFrameInitParams(params));
+  const tcHeaderEnabled = frozenInitParams.tcHeader === "1";
+  const frozenTcHeaderTitle = frozenInitParams.tcHeaderTitle;
+  const frozenTcHeaderImageUrl = frozenInitParams.tcHeaderImageUrl;
 
   const src = useMemo(() => {
     return buildBlocksuiteFrameSrc({

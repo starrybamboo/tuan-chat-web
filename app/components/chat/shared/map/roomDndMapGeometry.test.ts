@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  MAX_GRID_DIMENSION,
-  MIN_GRID_DIMENSION,
   buildTokenPositionStyle,
   clampGridDimension,
+  MAX_GRID_DIMENSION,
+  MIN_GRID_DIMENSION,
   resolveGridCellAtPoint,
 } from "./roomDndMapGeometry";
 

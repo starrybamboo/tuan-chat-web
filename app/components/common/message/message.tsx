@@ -85,7 +85,6 @@ function createMessage(type: MessageType, message: string, className?: string) {
         <span>{message}</span>
       </div>,
       container,
-      Date.now().valueOf(),
     );
   };
 

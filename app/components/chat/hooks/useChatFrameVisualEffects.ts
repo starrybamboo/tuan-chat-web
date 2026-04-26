@@ -152,7 +152,7 @@ export default function useChatFrameVisualEffects({
       }
     }
     if (newEffect !== currentEffect) {
-      setCurrentEffect(newEffect);
+      queueMicrotask(() => setCurrentEffect(newEffect));
     }
   }, [enableEffects, currentVirtuosoIndex, effectNode, virtuosoIndexToMessageIndex, currentEffect]);
 

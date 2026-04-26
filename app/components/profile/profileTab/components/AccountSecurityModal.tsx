@@ -71,7 +71,7 @@ export function AccountSecurityModal({
 
   useEffect(() => {
     if (isOpen) {
-      setActiveTab(initialTab);
+      queueMicrotask(() => setActiveTab(initialTab));
     }
   }, [initialTab, isOpen]);
 

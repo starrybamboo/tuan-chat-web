@@ -1,9 +1,8 @@
 import type { MouseEvent } from "react";
-import { CaretRightIcon } from "@phosphor-icons/react";
-
 import type {
   HistoryDragPayload,
 } from "@/components/aiImage/history/types";
+
 import type {
   CurrentResultCard,
 } from "@/components/aiImage/types";
@@ -11,6 +10,7 @@ import type {
   AiImageHistoryMode,
   AiImageHistoryRow,
 } from "@/utils/aiImageHistoryDb";
+import { CaretRightIcon } from "@phosphor-icons/react";
 import { historyRowKey } from "@/components/aiImage/helpers";
 import { HistoryActionsFooter } from "@/components/aiImage/history/HistoryActionsFooter";
 import { HistoryHint } from "@/components/aiImage/history/HistoryHint";

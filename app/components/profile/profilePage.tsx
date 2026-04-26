@@ -71,7 +71,7 @@ function ProfilePage() {
       <div
         role="tablist"
         ref={navRef}
-        className="relative flex border-gray-300 dark:border-gray-700 border-b border-t md:pl-10 bg-base-200"
+        className="relative flex border-gray-300 dark:border-gray-700 border-y md:pl-10 bg-base-200"
       >
         {/* 高亮条 */}
         <div

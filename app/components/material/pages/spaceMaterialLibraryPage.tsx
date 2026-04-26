@@ -13,8 +13,8 @@ import {
 import MaterialEditorDropLayer from "../components/materialEditorDropLayer";
 import MaterialPackageEditor from "../components/materialPackageEditor";
 import { buildMaterialPackageEditorDraft } from "../components/materialPackageEditorDraft";
-import { buildSpaceMaterialPackageEditorValueKey } from "../components/materialPackageEditorValueKey";
 import MaterialPackageEditorInlinePage from "../components/materialPackageEditorInlinePage";
+import { buildSpaceMaterialPackageEditorValueKey } from "../components/materialPackageEditorValueKey";
 import MaterialPackageImportModal from "../components/materialPackageImportModal";
 import MaterialPackageLibraryFrame from "../components/materialPackageLibraryFrame";
 import { buildSpaceMaterialPackageCardModel } from "../components/materialPackageLibraryModels";
@@ -100,7 +100,7 @@ export default function SpaceMaterialLibraryPage({
 
   useEffect(() => {
     if (selectedPackageId !== null && isCreating) {
-      setIsCreating(false);
+      queueMicrotask(() => setIsCreating(false));
     }
   }, [isCreating, selectedPackageId]);
 
@@ -362,4 +362,3 @@ export default function SpaceMaterialLibraryPage({
     </>
   );
 }
-

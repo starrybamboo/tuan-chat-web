@@ -1,11 +1,12 @@
 import type { RefObject } from "react";
+
 import { useEffect } from "react";
 
-interface UseDismissibleLayerOptions {
+type UseDismissibleLayerOptions = {
   isOpen: boolean;
   containerRef: RefObject<HTMLElement | null>;
   onDismiss: () => void;
-}
+};
 
 export function useDismissibleLayer({
   isOpen,

@@ -1,4 +1,5 @@
 import type { SlashMenuContext, SlashMenuItem } from "@blocksuite/affine/widgets/slash-menu";
+
 import { SlashMenuExtension } from "@blocksuite/affine/widgets/slash-menu";
 
 import { translateBlocksuiteSlashItem } from "../i18n/blocksuiteUiLocale";

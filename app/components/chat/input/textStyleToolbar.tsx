@@ -430,8 +430,8 @@ function TextStyleToolbar({ chatInputRef, visible = true, className = "" }: Text
   // visible 关闭时强制隐藏浮动工具栏（但不要条件调用 hooks）
   useEffect(() => {
     if (!visible) {
-      setIsFloatingVisible(false);
-      setToolbarPos(null);
+      queueMicrotask(() => setIsFloatingVisible(false));
+      queueMicrotask(() => setToolbarPos(null));
       savedSelectionRef.current = null;
     }
   }, [visible]);

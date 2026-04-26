@@ -33,7 +33,7 @@ export default function ChatPageLayout({
 }: ChatPageLayoutProps) {
   return (
     <div
-      className={`flex flex-row flex-1 h-full min-h-0 min-w-0 relative overflow-x-hidden overflow-y-hidden ${screenSize === "sm" ? "bg-base-100 pt-[var(--tc-safe-area-top)] pb-[var(--tc-safe-area-bottom)]" : "bg-base-200"}`}
+      className={`flex flex-row flex-1 h-full min-h-0 min-w-0 relative overflow-hidden ${screenSize === "sm" ? "bg-base-100 pt-[var(--tc-safe-area-top)] pb-[var(--tc-safe-area-bottom)]" : "bg-base-200"}`}
     >
       {shouldShowLeftDrawerToggle && (
         <div

@@ -49,7 +49,7 @@ export default function UpdatesToastWindow() {
           </span>
         </div>
 
-        <div className="max-h-[60vh] overflow-y-auto w-full overflow-auto">
+        <div className="max-h-[60vh] overflow-auto w-full">
           <Suspense fallback={<div className="flex min-h-40 items-center justify-center text-sm opacity-70">正在加载更新内容...</div>}>
             <LazyMarkDownViewer content={currentContent} />
           </Suspense>

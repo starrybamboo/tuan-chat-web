@@ -1,4 +1,5 @@
 import type { Dispatch, DragEvent as ReactDragEvent, RefObject, SetStateAction } from "react";
+
 import { useCallback, useEffect } from "react";
 
 import type {
@@ -11,14 +12,12 @@ import type {
   ProFeatureSectionKey,
   UiMode,
 } from "@/components/aiImage/types";
-import type { AiImageHistoryRow } from "@/utils/aiImageHistoryDb";
 import type { NovelAiImageMetadataResult } from "@/utils/novelaiImageMetadata";
-import type { AiImageHistoryMode } from "@/utils/aiImageHistoryDb";
 
 import {
-  importSourceFileAction,
-  importSourceImageBytesAction,
-} from "@/components/aiImage/controller/importActions";
+  pickDirectorSourceHistoryImageAction,
+  pickDirectorSourceImagesAction,
+} from "@/components/aiImage/controller/directorActions";
 import {
   historyImageDragStartAction,
   pageImageDragEnterAction,
@@ -29,9 +28,9 @@ import {
   pickSourceHistoryImageAction,
 } from "@/components/aiImage/controller/dndActions";
 import {
-  pickDirectorSourceHistoryImageAction,
-  pickDirectorSourceImagesAction,
-} from "@/components/aiImage/controller/directorActions";
+  importSourceFileAction,
+  importSourceImageBytesAction,
+} from "@/components/aiImage/controller/importActions";
 import {
   buildImportedSourceImagePayloadFromDataUrl,
   extractImageFilesFromTransfer,
@@ -45,7 +44,7 @@ import { clearAiImageHistory } from "@/utils/aiImageHistoryDb";
 
 type Setter<T> = Dispatch<SetStateAction<T>>;
 
-interface UseAiImageImportActionsOptions {
+type UseAiImageImportActionsOptions = {
   uiMode: UiMode;
   model: string;
   isDirectorToolsOpen: boolean;
@@ -76,7 +75,7 @@ interface UseAiImageImportActionsOptions {
   extractNovelAiMetadataFromPngBytes: (bytes: Uint8Array) => NovelAiImageMetadataResult | null;
   extractNovelAiMetadataFromStealthPixels: (pixels: { width: number; height: number; data: Uint8ClampedArray }) => NovelAiImageMetadataResult | null;
   defaultMetadataImportSelection: MetadataImportSelectionState;
-}
+};
 
 export function useAiImageImportActions({
   uiMode,
@@ -362,7 +361,7 @@ export function useAiImageImportActions({
       });
       return nextItems;
     });
-  }, [setDirectorSourceItems, setDirectorSourcePreview, setDirectorOutputPreview]);
+  }, [setDirectorSourceItems, setDirectorSourcePreview]);
 
   const handleDirectorImageDragEnter = useCallback((event: ReactDragEvent<HTMLDivElement>) => {
     const nextIsImageDrag = hasFileDrag(event.dataTransfer) || hasInternalHistoryImageDrag(event.dataTransfer);

@@ -1,8 +1,8 @@
-import type { MetadataImportSelectionState, PendingMetadataImportState, ResolutionSelection } from "@/components/aiImage/types";
-import type { NovelAiNl2TagsResult } from "@/utils/novelaiNl2Tags";
 import { useCallback, useEffect } from "react";
 
+import type { MetadataImportSelectionState, PendingMetadataImportState, ResolutionSelection } from "@/components/aiImage/types";
 import type { AiImageHistoryMode } from "@/utils/aiImageHistoryDb";
+import type { NovelAiNl2TagsResult } from "@/utils/novelaiNl2Tags";
 
 import {
   DEFAULT_SIMPLE_IMAGE_SETTINGS,
@@ -12,7 +12,7 @@ import { resolveSimpleGenerateMode, sanitizeNovelAiTagInput, shouldKeepSimpleTag
 const DEFAULT_INPAINT_STRENGTH = 1;
 const DEFAULT_INPAINT_NOISE = 0;
 
-interface UseAiImageSimpleActionsOptions {
+type UseAiImageSimpleActionsOptions = {
   mode: AiImageHistoryMode;
   simpleMode: AiImageHistoryMode;
   simpleText: string;
@@ -55,7 +55,7 @@ interface UseAiImageSimpleActionsOptions {
   showSuccessToast: (message: string) => void;
   convertNaturalLanguageToNovelAiTags: (args: { input: string }) => Promise<NovelAiNl2TagsResult>;
   defaultMetadataImportSelection: MetadataImportSelectionState;
-}
+};
 
 export function useAiImageSimpleActions({
   mode,
@@ -105,8 +105,9 @@ export function useAiImageSimpleActions({
       prompt: simplePrompt,
       negativePrompt: simpleNegativePrompt,
       hasConvertedDraft: Boolean(simpleConverted),
-    }))
+    })) {
       return;
+    }
 
     setSimpleConvertedFromText("");
     setSimpleEditorMode("text");
@@ -272,8 +273,8 @@ export function useAiImageSimpleActions({
   const simpleConvertLabel = simpleConverting
     ? "转换中..."
     : loading || pendingPreviewAction
-        ? "处理中..."
-        : "转为 tags";
+      ? "处理中..."
+      : "转为 tags";
 
   return {
     handleSimpleConvertToTags,

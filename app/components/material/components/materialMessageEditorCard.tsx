@@ -151,7 +151,7 @@ export default function MaterialMessageEditorCard({
     });
   }, [message, onAdoptIdentity, updateMessage]);
 
-  const openExpressionChooser = useCallback((fullScreen: boolean) => {
+  const openExpressionChooser = useCallback(function openExpressionChooser(fullScreen: boolean) {
     toastWindow(
       onClose => (
         <RoomContext value={roomContextValue}>

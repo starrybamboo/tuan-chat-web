@@ -6,9 +6,9 @@
  * You can remove the `reset-project` script from package.json and safely delete this file after running it.
  */
 
-const fs = require("fs");
-const path = require("path");
-const readline = require("readline");
+const fs = require("node:fs");
+const path = require("node:path");
+const readline = require("node:readline");
 
 const root = process.cwd();
 const oldDirs = ["src", "scripts"];
@@ -47,7 +47,7 @@ const rl = readline.createInterface({
   output: process.stdout,
 });
 
-const moveDirectories = async (userInput) => {
+async function moveDirectories(userInput) {
   try {
     if (userInput === "y") {
       // Create the app-example directory
@@ -63,11 +63,13 @@ const moveDirectories = async (userInput) => {
           const newDirPath = path.join(root, exampleDir, dir);
           await fs.promises.rename(oldDirPath, newDirPath);
           console.log(`➡️ /${dir} moved to /${exampleDir}/${dir}.`);
-        } else {
+        }
+        else {
           await fs.promises.rm(oldDirPath, { recursive: true, force: true });
           console.log(`❌ /${dir} deleted.`);
         }
-      } else {
+      }
+      else {
         console.log(`➡️ /${dir} does not exist, skipping.`);
       }
     }
@@ -93,12 +95,13 @@ const moveDirectories = async (userInput) => {
         userInput === "y"
           ? `\n4. Delete the /${exampleDir} directory when you're done referencing it.`
           : ""
-      }`
+      }`,
     );
-  } catch (error) {
+  }
+  catch (error) {
     console.error(`❌ Error during script execution: ${error.message}`);
   }
-};
+}
 
 rl.question(
   "Do you want to move existing files to /example instead of deleting them? (Y/n): ",
@@ -106,9 +109,10 @@ rl.question(
     const userInput = answer.trim().toLowerCase() || "y";
     if (userInput === "y" || userInput === "n") {
       moveDirectories(userInput).finally(() => rl.close());
-    } else {
+    }
+    else {
       console.log("❌ Invalid input. Please enter 'Y' or 'N'.");
       rl.close();
     }
-  }
+  },
 );

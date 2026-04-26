@@ -1,5 +1,5 @@
-import { useEffect, useMemo } from "react";
 import { useGetInboxMessageWithUserQuery, useUpdateReadPositionMutation } from "api/hooks/MessageDirectQueryHooks";
+import { useEffect, useMemo } from "react";
 import { useParams } from "react-router";
 import { useGlobalUserId } from "@/components/globalContextProvider";
 import ContextMenu from "./components/ContextMenu";
@@ -25,7 +25,7 @@ export default function RightChatView({ setIsOpenLeftDrawer }: { setIsOpenLeftDr
     }
     return getLatestIncomingSync(allMessages, currentContactUserId);
   }, [allMessages, currentContactUserId]);
-  const optimisticReadSync = usePrivateUnreadStateStore(state => {
+  const optimisticReadSync = usePrivateUnreadStateStore((state) => {
     if (!currentContactUserId) {
       return 0;
     }

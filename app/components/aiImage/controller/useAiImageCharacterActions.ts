@@ -1,17 +1,19 @@
 import type { Dispatch, SetStateAction } from "react";
+
 import { useCallback } from "react";
 
 import type { V4CharEditorRow, V4CharGender, VibeTransferReferenceRow } from "@/components/aiImage/types";
+
 import { getNextAvailableV4CharGridCell, newV4CharEditorRow, normalizeV4CharGridRows } from "@/components/aiImage/helpers";
 
-interface UseAiImageCharacterActionsOptions {
+type UseAiImageCharacterActionsOptions = {
   v4UseCoords: boolean;
   setV4Chars: Dispatch<SetStateAction<V4CharEditorRow[]>>;
   setCharPromptTabs: Dispatch<SetStateAction<Record<string, "prompt" | "negative">>>;
   setProFeatureSectionOpen: (section: "characterPrompts", open: boolean) => void;
   setV4UseCoords: Dispatch<SetStateAction<boolean>>;
   setVibeTransferReferences: Dispatch<SetStateAction<VibeTransferReferenceRow[]>>;
-}
+};
 
 export function useAiImageCharacterActions({
   v4UseCoords,

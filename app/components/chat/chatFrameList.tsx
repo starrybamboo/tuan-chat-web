@@ -1,6 +1,6 @@
 import type { VirtuosoHandle } from "react-virtuoso";
 import type { ChatMessageResponse } from "../../../api";
-import React, { memo, useCallback, useEffect, useRef } from "react";
+import React, { memo, useCallback, useEffect, useRef, useState } from "react";
 import { Virtuoso } from "react-virtuoso";
 import { addDroppedFilesToComposer, isFileDrag } from "@/components/chat/utils/dndUpload";
 import { getChatFrameItemKey } from "./chatFrameListKey";
@@ -183,6 +183,7 @@ export default function ChatFrameList({
   const { handleDragOver, handleDrop } = useChatFrameListDragHandlers(roomId);
   const computeItemKey = useCallback((index: number, item: ChatMessageResponse) => getChatFrameItemKey(index, item), []);
   const renderDebugRef = useRef<{ renderCount: number; keys: string[] }>({ renderCount: 0, keys: [] });
+  const [isAtBottom, setIsAtBottom] = useState(true);
 
   useEffect(() => {
     const nextKeys = historyMessages.map((item, index) => computeItemKey(index, item));
@@ -256,6 +257,7 @@ export default function ChatFrameList({
                 atBottom && updateLastReadSyncId(roomId);
               }
               isAtBottomRef.current = atBottom;
+              setIsAtBottom(atBottom);
             }}
             atTopStateChange={(atTop) => {
               isAtTopRef.current = atTop;
@@ -271,7 +273,7 @@ export default function ChatFrameList({
           enabled={enableUnreadIndicator}
           unreadMessageNumber={unreadMessageNumber}
           historyLength={historyMessages.length}
-          isAtBottom={isAtBottomRef.current}
+          isAtBottom={isAtBottom}
           onScrollToBottom={scrollToBottom}
         />
       </div>

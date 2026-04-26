@@ -5,8 +5,8 @@ import type { StateRuntimeContextValue } from "@/components/chat/state/stateRunt
 import React from "react";
 import { toast } from "react-hot-toast";
 import { RoomContext } from "@/components/chat/core/roomContext";
-import { useStateRuntimeContext } from "@/components/chat/state/stateRuntimeContext";
 import { getFallbackRoleAbilityValue } from "@/components/chat/state/stateRuntime";
+import { useStateRuntimeContext } from "@/components/chat/state/stateRuntimeContext";
 import RoleAvatarComponent from "@/components/common/roleAvatar";
 import {
   buildCommandStateEventExtra,
@@ -17,25 +17,25 @@ import {
 } from "@/types/stateEvent";
 import { MessageType } from "../../../../../api/wsModels";
 
-type StateValueRow = {
+interface StateValueRow {
   key: string;
   baseValue: number;
   displayValue: number;
-};
+}
 
-type PrimaryStatConfig = {
+interface PrimaryStatConfig {
   label: string;
   keys: string[];
   className: string;
-};
+}
 
-type PrimaryStatViewModel = {
+interface PrimaryStatViewModel {
   config: PrimaryStatConfig;
   row: StateValueRow;
   maxRow?: StateValueRow;
-};
+}
 
-type RoleStateRowViewModel = {
+interface RoleStateRowViewModel {
   roleId: number;
   roleName: string;
   avatarId: number;
@@ -44,7 +44,7 @@ type RoleStateRowViewModel = {
   secondaryRows: StateValueRow[];
   activeStates: ActiveStateInstance[];
   hasRoomContent: boolean;
-};
+}
 
 const PRIMARY_STAT_CONFIGS: PrimaryStatConfig[] = [
   {
@@ -261,7 +261,7 @@ function CompactRoleRow({ row }: { row: RoleStateRowViewModel }) {
 }
 
 export default function StateDrawer() {
-  const roomContext = React.useContext(RoomContext);
+  const roomContext = React.use(RoomContext);
   const runtime = useStateRuntimeContext();
   const [isAdvancingTurn, setIsAdvancingTurn] = React.useState(false);
 
@@ -311,10 +311,7 @@ export default function StateDrawer() {
     }
   }, [
     isAdvancingTurn,
-    roomContext.curAvatarId,
-    roomContext.curRoleId,
-    roomContext.roomId,
-    roomContext.sendMessageWithInsert,
+    roomContext,
   ]);
 
   const roomRows = React.useMemo(() => {
@@ -476,7 +473,8 @@ export default function StateDrawer() {
               >
                 <div className="font-medium">{item.statusId}</div>
                 <div className="mt-1 opacity-80">
-                  消息 #{item.messageId}
+                  消息 #
+                  {item.messageId}
                   {" · "}
                   {formatScopeText(item.scope)}
                   {" · "}

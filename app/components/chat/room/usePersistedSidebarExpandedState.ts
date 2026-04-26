@@ -75,7 +75,7 @@ export default function usePersistedSidebarExpandedState({
 
   useEffect(() => {
     if (activeSpaceId == null || !Number.isFinite(activeSpaceId) || activeSpaceId <= 0) {
-      setExpandedByKey(null);
+      queueMicrotask(() => setExpandedByKey(null));
       lastStorageIdentityRef.current = null;
       return;
     }
@@ -86,7 +86,7 @@ export default function usePersistedSidebarExpandedState({
     }
 
     lastStorageIdentityRef.current = storageIdentity;
-    setExpandedByKey(normalizedInitialExpandedMap);
+    queueMicrotask(() => setExpandedByKey(normalizedInitialExpandedMap));
     getSidebarExpandedMap({
       userId: currentUserId,
       spaceId: activeSpaceId,
@@ -120,7 +120,7 @@ export default function usePersistedSidebarExpandedState({
       return;
     }
 
-    setExpandedByKey(next);
+    queueMicrotask(() => setExpandedByKey(next));
     setSidebarExpandedMap({
       userId: currentUserId,
       spaceId: activeSpaceId,

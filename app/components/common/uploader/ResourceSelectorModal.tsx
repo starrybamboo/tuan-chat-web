@@ -543,4 +543,3 @@ export function ResourceSelectorModal({
     </div>
   );
 }
-

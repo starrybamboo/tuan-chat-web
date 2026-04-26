@@ -8,6 +8,17 @@ interface MessageBubbleProps {
   isOwn: boolean; // 是否是自己的消息
 }
 
+function formatMessageTimeLabel(createTime?: string | null) {
+  if (!createTime) {
+    return "";
+  }
+  const parsed = new Date(createTime);
+  if (Number.isNaN(parsed.getTime())) {
+    return "";
+  }
+  return parsed.toLocaleString("zh-CN", { hour12: false });
+}
+
 export default function MessageBubble({ message, isOwn }: MessageBubbleProps) {
   const senderUser = {
     userId: message.senderId,
@@ -15,6 +26,7 @@ export default function MessageBubble({ message, isOwn }: MessageBubbleProps) {
     avatar: message.senderAvatar,
     avatarThumbUrl: message.senderAvatarThumbUrl,
   };
+  const messageTimeLabel = formatMessageTimeLabel(message.createTime || null);
 
   // 渲染消息内容（文本/图片/视频）
   const renderMessageContent = () => {
@@ -88,9 +100,7 @@ export default function MessageBubble({ message, isOwn }: MessageBubbleProps) {
             uniqueKey={`${message.senderId}${message.messageId}`}
           />
           <div className={`text-xs text-base-content/70 absolute left-12 -bottom-4 opacity-0 message-time-${message.messageId} transition-opacity duration-200`}>
-            {new Date(message.createTime || Date.now()).getFullYear() !== new Date().getFullYear() && `${new Date(message.createTime || Date.now()).getFullYear()}/`}
-            {new Date(message.createTime || Date.now()).toLocaleDateString() !== new Date().toLocaleDateString() && `${new Date(message.createTime || Date.now()).toLocaleDateString(undefined, { month: "2-digit", day: "2-digit" })} `}
-            {new Date(message.createTime || Date.now()).toLocaleTimeString()}
+            {messageTimeLabel}
           </div>
         </>
       )}
@@ -128,9 +138,7 @@ export default function MessageBubble({ message, isOwn }: MessageBubbleProps) {
             uniqueKey={`${message.senderId}${message.messageId}`}
           />
           <div className={`text-xs text-base-content/70 absolute right-12 -bottom-4 opacity-0 message-time-${message.messageId} transition-opacity duration-200`}>
-            {new Date(message.createTime || Date.now()).getFullYear() !== new Date().getFullYear() && `${new Date(message.createTime || Date.now()).getFullYear()}/`}
-            {new Date(message.createTime || Date.now()).toLocaleDateString() !== new Date().toLocaleDateString() && `${new Date(message.createTime || Date.now()).toLocaleDateString(undefined, { month: "2-digit", day: "2-digit" })} `}
-            {new Date(message.createTime || Date.now()).toLocaleTimeString()}
+            {messageTimeLabel}
           </div>
         </div>
       )}

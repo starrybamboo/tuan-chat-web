@@ -57,10 +57,10 @@ export default function useChatPageSidebarTree({
 
   useEffect(() => {
     if (!activeSpaceId || activeSpaceId <= 0) {
-      setCachedTreeJson(null);
+      queueMicrotask(() => setCachedTreeJson(null));
       return;
     }
-    setCachedTreeJson(readCachedSidebarTreeJson(activeSpaceId));
+    queueMicrotask(() => setCachedTreeJson(readCachedSidebarTreeJson(activeSpaceId)));
   }, [activeSpaceId]);
 
   useEffect(() => {
@@ -71,7 +71,7 @@ export default function useChatPageSidebarTree({
       return;
     }
     writeCachedSidebarTreeJson(activeSpaceId, remoteTreeJson);
-    setCachedTreeJson(remoteTreeJson);
+    queueMicrotask(() => setCachedTreeJson(remoteTreeJson));
   }, [activeSpaceId, remoteTreeJson]);
 
   const sidebarTree = useMemo(() => {
