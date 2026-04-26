@@ -7,6 +7,7 @@ import {
 } from "@phosphor-icons/react";
 import type { KeyboardEvent as ReactKeyboardEvent, ReactNode } from "react";
 import { memo } from "react";
+import { HighlightEmphasisTextarea } from "@/components/aiImage/HighlightEmphasisTextarea";
 
 export interface SimpleEditorContentLocalProps {
   isSimpleTagsEditor: boolean;
@@ -19,6 +20,9 @@ export interface SimpleEditorContentLocalProps {
   floatingInputActionClassName: string;
   promptTextareaClassName: string;
   simplePromptTextareaClassName: string;
+  highlightPromptSurfaceClassName: string;
+  highlightPromptContentClassName: string;
+  highlightEmphasisEnabled: boolean;
   renderSimpleBaseImageSection: () => ReactNode;
   handleToggleLineCommentForSimpleTags: (event: ReactKeyboardEvent<HTMLTextAreaElement>) => void;
 }
@@ -67,6 +71,9 @@ export const SimpleEditorContent = memo(function SimpleEditorContent({
     floatingInputActionClassName,
     promptTextareaClassName,
     simplePromptTextareaClassName,
+    highlightPromptSurfaceClassName,
+    highlightPromptContentClassName,
+    highlightEmphasisEnabled,
     renderSimpleBaseImageSection,
     handleToggleLineCommentForSimpleTags,
   } = local;
@@ -177,10 +184,13 @@ export const SimpleEditorContent = memo(function SimpleEditorContent({
                           </div>
                         </div>
 
-                        <textarea
-                          className={`${promptTextareaClassName} mt-3 min-h-28 overflow-hidden [field-sizing:content] text-sm`}
+                        <HighlightEmphasisTextarea
+                          highlightEnabled={highlightEmphasisEnabled}
+                          surfaceClassName={`${highlightPromptSurfaceClassName} mt-3 min-h-28`}
+                          contentClassName={`${highlightPromptContentClassName} min-h-28`}
                           value={simplePromptTab === "prompt" ? simpleConverted?.prompt ?? "" : simpleConverted?.negativePrompt ?? ""}
                           readOnly
+                          spellCheck={false}
                         />
 
                         {renderSimpleBaseImageSection()}
@@ -230,8 +240,10 @@ export const SimpleEditorContent = memo(function SimpleEditorContent({
                             </div>
                           </div>
                           <div className="relative">
-                            <textarea
-                              className={`${promptTextareaClassName} overflow-hidden [field-sizing:content]`}
+                            <HighlightEmphasisTextarea
+                              highlightEnabled={highlightEmphasisEnabled}
+                              surfaceClassName={highlightPromptSurfaceClassName}
+                              contentClassName={highlightPromptContentClassName}
                               value={simplePromptTab === "prompt" ? simplePrompt : simpleNegativePrompt}
                               onChange={(e) => {
                                 if (simplePromptTab === "prompt")
@@ -240,6 +252,7 @@ export const SimpleEditorContent = memo(function SimpleEditorContent({
                                   setSimpleNegativePrompt(e.target.value);
                               }}
                               onKeyDown={handleToggleLineCommentForSimpleTags}
+                              spellCheck={false}
                             />
                             {hasSimpleTagsDraft
                               ? (
