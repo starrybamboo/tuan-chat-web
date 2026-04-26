@@ -5,8 +5,8 @@ import "katex/dist/katex.min.css";
 import "../styles/affine-embed-synced-doc-header.css";
 import "../styles/frameBase.css";
 import "../styles/tcHeader.css";
-import { patchBlocksuiteUiLocale } from "./patchBlocksuiteUiLocale";
 import { ensureBlocksuiteCoreElementsDefined } from "../spec/coreElements.browser";
+import { patchBlocksuiteUiLocale } from "./patchBlocksuiteUiLocale";
 
 /**
  * iframe 内浏览器运行时的最小 bootstrap。

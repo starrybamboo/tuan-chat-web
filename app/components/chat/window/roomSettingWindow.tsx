@@ -121,7 +121,7 @@ function RoomSettingWindow({ onClose, roomId: propRoomId, defaultTab = "role" }:
         }
       },
     });
-  }, [onClose, propRoomId, room?.avatar, room?.description, room?.name, updateRoomMutation]);
+  }, [onClose, propRoomId, room?.avatar, room?.description, room?.name, room?.originalAvatar, updateRoomMutation]);
 
   const scheduleRoomRedundantSync = useCallback((header: BlocksuiteDocHeader) => {
     if (typeof window === "undefined")

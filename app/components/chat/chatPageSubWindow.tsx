@@ -384,7 +384,7 @@ export default function ChatPageSubWindow({
 
   useEffect(() => {
     if (!isDesktop || !activeSpaceId || isOpen) {
-      setIsRightEdgeActive(false);
+      queueMicrotask(() => setIsRightEdgeActive(false));
       return;
     }
     if (typeof window === "undefined") {

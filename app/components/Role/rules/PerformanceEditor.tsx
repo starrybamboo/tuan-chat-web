@@ -81,7 +81,7 @@ export default function PerformanceEditor({
 
     const wasEditing = prevIsEditingRef.current;
     if (wasEditing && !isEditing) {
-      handleSaveAndExit();
+      queueMicrotask(() => handleSaveAndExit());
     }
     prevIsEditingRef.current = isEditing;
   }, [handleSaveAndExit, isEditing, isEditingControlled]);

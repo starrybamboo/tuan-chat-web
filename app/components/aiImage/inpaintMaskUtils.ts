@@ -15,33 +15,33 @@ export const NOVELAI_MASK_LAYER_SCALE_FACTOR = 8;
 
 export type MaskDrawShape = "circle" | "square";
 
-export interface MaskBufferSize {
+export type MaskBufferSize = {
   width: number;
   height: number;
-}
+};
 
-export interface MaskRectLike {
+export type MaskRectLike = {
   left: number;
   top: number;
   width: number;
   height: number;
-}
+};
 
-export interface PixelSnappedCircleMaskStamp {
+export type PixelSnappedCircleMaskStamp = {
   centerX: number;
   centerY: number;
   left: number;
   top: number;
   radius: number;
   size: number;
-}
+};
 
-export interface MaskOutlineSegment {
+export type MaskOutlineSegment = {
   orientation: "horizontal" | "vertical";
   left: number;
   top: number;
   length: number;
-}
+};
 
 export type PixelCircleMaskOutlineSegment = MaskOutlineSegment;
 
@@ -627,7 +627,7 @@ export function renderMaskGridToRgba(mask: Uint8Array) {
 
 function hexToRgba(hex: string, alpha: number) {
   const normalized = String(hex || "").replace("#", "").trim();
-  if (!/^[0-9a-fA-F]{6}$/.test(normalized))
+  if (!/^[0-9a-f]{6}$/i.test(normalized))
     return `rgba(246, 110, 139, ${alpha})`;
 
   const red = Number.parseInt(normalized.slice(0, 2), 16);

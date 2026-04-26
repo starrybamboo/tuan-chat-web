@@ -4,13 +4,13 @@ import type {
   RefObject,
 } from "react";
 
-import type { InpaintDialogSource } from "@/components/aiImage/types";
 import type { InpaintViewportTransform } from "@/components/aiImage/inpaint/inpaintViewportUtils";
+import type { InpaintDialogSource } from "@/components/aiImage/types";
 
-type BrushCursorPoint = {
+interface BrushCursorPoint {
   x: number;
   y: number;
-};
+}
 
 type BrushCursorOverlay = {
   rect: {

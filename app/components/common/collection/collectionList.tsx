@@ -73,7 +73,8 @@ export default function CollectionList({ selectedId, onSelect, onAddCollection }
     "https://tuan.chat/avatar/avatar/9a9760f951b59d50571e3c136ba55a2e_15012.webp",
     "https://tuan.chat/avatar/avatar/1ada3a88c27d7629dbb59faaa4a2e265_16514.webp",
   ];
-  const tuanPicsUrl = tuanPicsUrls[Math.floor(Math.random() * tuanPicsUrls.length)];
+  const placeholderImageIndex = Math.abs(selectedId ?? selectId ?? 0) % tuanPicsUrls.length;
+  const tuanPicsUrl = tuanPicsUrls[placeholderImageIndex];
 
   return (
     <div className="space-y-2 w-full ">

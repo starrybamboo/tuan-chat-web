@@ -229,7 +229,7 @@ export function ImgUploaderWithCopper({
           downloadUrl = originalDownloadUrl;
         }
         else {
-        downloadUrl = await uploadUtils.uploadImg(fileWithNewName);
+          downloadUrl = await uploadUtils.uploadImg(fileWithNewName);
         }
         setDownloadUrl(downloadUrl);
       }

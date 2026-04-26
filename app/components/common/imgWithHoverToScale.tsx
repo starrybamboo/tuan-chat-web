@@ -109,7 +109,7 @@ export default function ImgWithHoverToScale({
         top = 15; // 留15px边距
       }
 
-      setPreviewPosition({ left, top });
+      queueMicrotask(() => setPreviewPosition({ left, top }));
     }
   }, [showPreview, previewSize]);
 

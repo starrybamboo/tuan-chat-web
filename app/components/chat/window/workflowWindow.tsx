@@ -85,29 +85,29 @@ export default function WorkflowWindow() {
   const { isFullscreen, toggleFullscreen } = useWorkflowFullscreen(reactFlowInstanceRef);
 
   useEffect(() => {
-    setPositionsLoaded(false);
+    queueMicrotask(() => setPositionsLoaded(false));
     if (spaceId <= 0) {
       persistedPositionsRef.current = new Map();
-      setPositionsLoaded(true);
+      queueMicrotask(() => setPositionsLoaded(true));
       return;
     }
     persistedPositionsRef.current = loadPersistedPositions(spaceId);
-    setPositionsLoaded(true);
+    queueMicrotask(() => setPositionsLoaded(true));
   }, [spaceId]);
 
   useLayoutEffect(() => {
     if (!spaceInfo)
       return;
     const normalized = normalizeRoomMap(spaceInfo.roomMap);
-    setStartRoomIds(normalized.startRoomIds);
+    queueMicrotask(() => setStartRoomIds(normalized.startRoomIds));
     startRoomIdsRef.current = normalized.startRoomIds;
-    setEndNodeIds(normalized.endNodeIds);
+    queueMicrotask(() => setEndNodeIds(normalized.endNodeIds));
     endNodeIdsRef.current = normalized.endNodeIds;
-    setEndNodeIncomingRoomIds(normalized.endNodeIncomingRoomIds);
+    queueMicrotask(() => setEndNodeIncomingRoomIds(normalized.endNodeIncomingRoomIds));
     endNodeIncomingRoomIdsRef.current = normalized.endNodeIncomingRoomIds;
     if (!roomMapsEqual(roomMapRef.current, normalized.links)) {
       roomMapRef.current = normalized.links;
-      setRoomMapState(normalized.links);
+      queueMicrotask(() => setRoomMapState(normalized.links));
       initialized.current = false;
     }
   }, [spaceInfo]);
@@ -221,7 +221,7 @@ export default function WorkflowWindow() {
           newEdges.push(buildEndEdge(endNodeId, sourceRoomId));
       });
     });
-    setEdges(newEdges);
+    queueMicrotask(() => setEdges(newEdges));
   }, [allRoomIds, endNodeIds, endNodeIncomingRoomIds, roomMapState, startTargetIds]);
 
   useEffect(() => {
@@ -243,7 +243,7 @@ export default function WorkflowWindow() {
       return;
 
     if (allRoomIds.length === 0) {
-      setNodes([]);
+      queueMicrotask(() => setNodes([]));
       return;
     }
 

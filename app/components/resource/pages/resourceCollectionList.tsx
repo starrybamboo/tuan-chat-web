@@ -171,4 +171,3 @@ export function ResourceCollectionList({ type, isPublic, searchText: _searchText
     </div>
   );
 }
-

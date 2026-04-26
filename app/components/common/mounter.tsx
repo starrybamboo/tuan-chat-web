@@ -12,7 +12,7 @@ export function Mounter({ children, targetId }: { children: React.ReactNode; tar
   const [isMounted, setIsMounted] = useState(false);
   const modalRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
-    setIsMounted(true);
+    queueMicrotask(() => setIsMounted(true));
     return () => setIsMounted(false);
   }, []);
   useEffect(() => {

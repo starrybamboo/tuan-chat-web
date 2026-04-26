@@ -107,6 +107,7 @@ export function PreviewTab({
   const pendingRenderImageRef = useRef<HTMLImageElement | null>(null);
   const pendingRenderSpriteUrlRef = useRef<string | null>(null);
   const [renderDrawVersion, setRenderDrawVersion] = useState(0);
+  const displayRenderTransform = renderSpriteUrl === renderSpriteRequestUrl ? computedTransform : renderTransform;
 
   // 图片加载缓存：同一 URL 只加载一次（含 in-flight 复用）
   const imageLoadCacheRef = useRef<Map<string, Promise<HTMLImageElement>>>(new Map());
@@ -122,8 +123,6 @@ export function PreviewTab({
     if (!renderSpriteRequestUrl) {
       pendingRenderImageRef.current = null;
       pendingRenderSpriteUrlRef.current = null;
-      setRenderSpriteUrl(null);
-      setRenderTransform(computedTransform);
       return;
     }
 
@@ -237,17 +236,6 @@ export function PreviewTab({
     pendingRenderImageRef.current = null;
     pendingRenderSpriteUrlRef.current = null;
   }, [renderDrawVersion, previewMode, renderSpriteRequestUrl]);
-
-  // If only the transform changes but sprite stays the same, apply immediately.
-  useEffect(() => {
-    if (previewMode !== "render")
-      return;
-    if (!renderSpriteRequestUrl)
-      return;
-    if (renderSpriteRequestUrl !== renderSpriteUrl)
-      return;
-    setRenderTransform(computedTransform);
-  }, [previewMode, renderSpriteRequestUrl, renderSpriteUrl, computedTransform]);
 
   // Cycle through preview modes
   const cyclePreviewMode = () => {
@@ -402,7 +390,7 @@ export function PreviewTab({
                   <div className="w-full max-w-4xl">
                     <RenderPreview
                       previewCanvasRef={previewCanvasRef}
-                      transform={renderTransform}
+                      transform={displayRenderTransform}
                       characterName={characterName}
                       dialogContent="这是一段示例对话内容。"
                     />
@@ -427,7 +415,7 @@ export function PreviewTab({
       <div className="mt-4 flex shrink-0 items-center justify-end gap-2">
         {currentAvatar?.avatarId && (
           <CharacterCopper
-            fileName={`avatar-replace-${currentAvatar.avatarId}-${Date.now()}`}
+            fileName={`avatar-replace-${currentAvatar.avatarId}`}
             scene={3}
             mutate={handleReplaceAvatar}
             stateKey={replaceStateKey}

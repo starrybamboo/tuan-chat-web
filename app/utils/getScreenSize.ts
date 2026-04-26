@@ -37,7 +37,7 @@ export function useIsMobile() {
   useEffect(() => {
     const mediaQuery = window.matchMedia("(max-width: 639px)");
     // 初始化媒体查询状态，避免首帧不一致
-    setIsMobile(mediaQuery.matches);
+    queueMicrotask(() => setIsMobile(mediaQuery.matches));
     const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches);
     mediaQuery.addEventListener("change", handler);
     return () => mediaQuery.removeEventListener("change", handler);

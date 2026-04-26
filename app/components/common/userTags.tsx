@@ -74,11 +74,11 @@ function TagManagement({ userId, size = "default", canEdit }: TagManagementProps
         ...tag,
         color: validateColor(tag.color || "blue"),
       }));
-      setLocalTags(validatedTags);
+      queueMicrotask(() => setLocalTags(validatedTags));
     }
     else if (tagsData?.data === null || (Array.isArray(tagsData?.data) && tagsData.data.length === 0)) {
       // 明确处理空数据的情况
-      setLocalTags([]);
+      queueMicrotask(() => setLocalTags([]));
     }
   }, [tagsData, validateColor]);
 

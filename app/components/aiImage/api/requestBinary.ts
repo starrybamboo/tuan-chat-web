@@ -1,4 +1,5 @@
 import { extractImageDataUrlsFromBinary } from "@/components/aiImage/helpers";
+
 import { fetchWithUnifiedAuth } from "../../../../api/unifiedAuthFetch";
 
 export async function requestNovelAiBinaryViaProxy(requestUrl: string, payload: unknown, options?: { multipart?: boolean }) {

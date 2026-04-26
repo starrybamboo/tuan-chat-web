@@ -2,13 +2,9 @@ import type {
   MouseEvent as ReactMouseEvent,
   PointerEvent as ReactPointerEvent,
 } from "react";
+import type { InpaintViewportSize, InpaintViewportTransform } from "@/components/aiImage/inpaint/inpaintViewportUtils";
 import type { InpaintDialogSource, InpaintSubmitPayload } from "@/components/aiImage/types";
-import {
-  ArrowClockwiseIcon,
-  ArrowCounterClockwiseIcon,
-  EraserIcon,
-  PencilSimpleLineIcon,
-} from "@phosphor-icons/react";
+
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { triggerBrowserDownload } from "@/components/aiImage/helpers";
 import { InpaintBottomBar } from "@/components/aiImage/inpaint/InpaintBottomBar";
@@ -19,17 +15,16 @@ import {
   clampInpaintZoom,
   clampViewportPan,
   INPAINT_ZOOM_STEP,
-  type InpaintViewportSize,
-  type InpaintViewportTransform,
+
   resolveCenteredViewportPan,
   resolveInpaintViewportSize,
 } from "@/components/aiImage/inpaint/inpaintViewportUtils";
 import {
   buildBinaryMaskGrid,
   buildMaskOutlineSegments,
+  buildMaskSolidColor,
   buildPixelSnappedCircleMaskStamps,
   buildPixelSnappedSquareMaskStampRects,
-  buildMaskSolidColor,
   getPixelCircleMaskData,
   getPixelCircleMaskOutlineSegments,
   hasAnyMaskAlpha,
@@ -37,9 +32,9 @@ import {
   MASK_COLOR_OPTIONS,
   normalizeMaskBrushSize,
   projectMaskRectToSourceRect,
+  resolveNovelAiMaskBufferSize,
   resolvePixelSnappedCircleMaskStamp,
   resolvePixelSnappedSquareMaskStampRect,
-  resolveNovelAiMaskBufferSize,
 } from "@/components/aiImage/inpaintMaskUtils";
 
 interface InpaintDialogProps {
@@ -74,7 +69,6 @@ export function InpaintDialog({
   isOpen,
   source,
   isSubmitting,
-  error,
   onClose,
   onSubmit,
 }: InpaintDialogProps) {
@@ -110,7 +104,7 @@ export function InpaintDialog({
   });
   const [isViewportPanning, setIsViewportPanning] = useState(false);
   const [hasMask, setHasMask] = useState(false);
-  const [historyVersion, setHistoryVersion] = useState(0);
+  const [historyState, setHistoryState] = useState({ version: 0, undoCount: 0, redoCount: 0 });
   const isSquareBrush = maskDrawShape === "square";
   const sourceCanvasSize = useMemo(() => ({
     width: source?.width ?? 0,
@@ -161,7 +155,11 @@ export function InpaintDialog({
   }, [ensureBufferCanvas, maskBufferSize.height, maskBufferSize.width, source]);
 
   const syncHistoryVersion = useCallback(() => {
-    setHistoryVersion(prev => prev + 1);
+    setHistoryState(prev => ({
+      version: prev.version + 1,
+      undoCount: undoStackRef.current.length,
+      redoCount: redoStackRef.current.length,
+    }));
   }, []);
 
   const renderMaskPreview = useCallback(() => {
@@ -221,9 +219,6 @@ export function InpaintDialog({
     displayContext.stroke();
     displayContext.restore();
   }, [
-    buildBinaryMaskGrid,
-    buildMaskOutlineSegments,
-    buildMaskSolidColor,
     ensureBufferCanvas,
     getDisplayContext,
     getMaskContext,
@@ -355,13 +350,7 @@ export function InpaintDialog({
     getMaskContext,
     isOpen,
     loadImageFromDataUrl,
-    source?.dataUrl,
-    source?.height,
-    source?.maskDataUrl,
-    source?.negativePrompt,
-    source?.prompt,
-    source?.strength,
-    source?.width,
+    source,
     syncHistoryVersion,
     syncMaskPresence,
   ]);
@@ -891,8 +880,8 @@ export function InpaintDialog({
   const zoomPanelLabelClassName = "inline-flex h-10 min-w-14 items-center justify-center rounded-md border border-base-300 bg-base-200 px-3 text-[11px] font-semibold text-base-content/82 transition hover:bg-base-300 hover:text-base-content focus:outline-none focus:ring-2 focus:ring-primary/20";
   const boardButtonClassName = `${bottomToolButtonClassName} ${isBoardPanelOpen ? "bg-base-300 text-base-content" : ""}`;
   const boardPanelClassName = `absolute right-0 bottom-[calc(100%+10px)] z-30 w-[320px] p-3 ${sharedPanelClassName}`;
-  const canUndo = historyVersion >= 0 && undoStackRef.current.length > 0;
-  const canRedo = historyVersion >= 0 && redoStackRef.current.length > 0;
+  const canUndo = historyState.undoCount > 0;
+  const canRedo = historyState.redoCount > 0;
   const zoomLabel = `${Math.round(viewportTransform.zoom * 100)}%`;
 
   useEffect(() => {

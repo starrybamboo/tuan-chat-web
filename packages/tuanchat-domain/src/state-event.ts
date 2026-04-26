@@ -82,11 +82,11 @@ export type StateEventNextTurn = {
   type: "nextTurn";
 };
 
-export type StateEventAtom =
-  | StateEventVarOp
-  | StateEventStatusApply
-  | StateEventStatusRemove
-  | StateEventNextTurn;
+export type StateEventAtom
+  = | StateEventVarOp
+    | StateEventStatusApply
+    | StateEventStatusRemove
+    | StateEventNextTurn;
 
 export type StateEventExtra = {
   source: StateEventSource;
@@ -334,7 +334,7 @@ export function formatStateKeyLabel(key: string): string {
   if (!normalized) {
     return "变量";
   }
-  return /^[A-Z0-9_:-]+$/i.test(normalized) ? normalized.toUpperCase() : normalized;
+  return /^[\w:-]+$/.test(normalized) ? normalized.toUpperCase() : normalized;
 }
 
 export function formatStateScopeLabel(scope: StateEventScope, options?: StateScopeLabelOptions): string {

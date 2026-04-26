@@ -1,3 +1,4 @@
+import type { Ref } from "react";
 import type { SpaceMember } from "../../../../../api";
 import { use, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import toast from "react-hot-toast";
@@ -32,6 +33,38 @@ function getSpaceMemberTypeActions(memberType?: number | null): Array<{ memberTy
   return actions;
 }
 
+function MemberActionMenuItem({
+  label,
+  onClick,
+  onAfterClick,
+  danger = false,
+  first = false,
+  firstItemRef,
+}: {
+  label: string;
+  onClick: () => void;
+  onAfterClick: () => void;
+  danger?: boolean;
+  first?: boolean;
+  firstItemRef: Ref<HTMLButtonElement>;
+}) {
+  return (
+    <li>
+      <button
+        ref={first ? firstItemRef : undefined}
+        type="button"
+        className={`justify-start w-full text-left ${danger ? "text-error hover:text-error" : ""}`}
+        onClick={() => {
+          onClick();
+          onAfterClick();
+        }}
+      >
+        {label}
+      </button>
+    </li>
+  );
+}
+
 function ActionButtons({
   member,
   isSpace,
@@ -64,23 +97,10 @@ function ActionButtons({
   const canManageSpaceTarget = isSpace && canManageSpaceMemberPermissions && !isSelf;
 
   const shouldHide = !isSelf && !canManageRoomTarget && !canManageSpaceTarget;
-
-  const MenuItem = ({ label, onClick, danger = false, first = false }: { label: string; onClick: () => void; danger?: boolean; first?: boolean }) => (
-    <li>
-      <button
-        ref={first ? firstItemRef : undefined}
-        type="button"
-        className={`justify-start w-full text-left ${danger ? "text-error hover:text-error" : ""}`}
-        onClick={() => {
-          onClick();
-          setOpen(false);
-          triggerBtnRef.current?.focus();
-        }}
-      >
-        {label}
-      </button>
-    </li>
-  );
+  const closeMenuAndRefocus = useCallback(() => {
+    setOpen(false);
+    triggerBtnRef.current?.focus();
+  }, []);
 
   // 外部点击关闭 & 键盘Esc关闭
   useEffect(() => {
@@ -178,24 +198,26 @@ function ActionButtons({
           className={`menu menu-xs dropdown-content absolute right-0 z-20 p-2 shadow bg-base-200 rounded-box w-48 overflow-auto max-h-60 animate-fadeIn ${placeUp ? "bottom-full mb-1 origin-bottom" : "top-full mt-1 origin-top"}`}
           aria-label="成员操作菜单"
         >
-          {isSelf && <MenuItem first label={isSpace ? "退出空间" : "退出群聊"} onClick={onRemove} danger />}
+          {isSelf && <MemberActionMenuItem first firstItemRef={firstItemRef} label={isSpace ? "退出空间" : "退出群聊"} onClick={onRemove} onAfterClick={closeMenuAndRefocus} danger />}
           {canManageRoomTarget && (
             <>
-              <MenuItem first={!isSelf} label="移出房间" onClick={onRemove} danger />
+              <MemberActionMenuItem first={!isSelf} firstItemRef={firstItemRef} label="移出房间" onClick={onRemove} onAfterClick={closeMenuAndRefocus} danger />
             </>
           )}
           {canManageSpaceTarget && (
             <>
               {spaceMemberTypeActions.map((action, index) => (
-                <MenuItem
+                <MemberActionMenuItem
                   key={`${member.userId}-${action.memberType}`}
                   first={!isSelf && index === 0}
+                  firstItemRef={firstItemRef}
                   label={action.label}
                   onClick={() => onUpdateMemberType(action.memberType)}
+                  onAfterClick={closeMenuAndRefocus}
                 />
               ))}
-              <MenuItem label="转让GM/KP" onClick={onTransfer} />
-              <MenuItem label="移出空间" onClick={onRemove} danger />
+              <MemberActionMenuItem firstItemRef={firstItemRef} label="转让GM/KP" onClick={onTransfer} onAfterClick={closeMenuAndRefocus} />
+              <MemberActionMenuItem firstItemRef={firstItemRef} label="移出空间" onClick={onRemove} onAfterClick={closeMenuAndRefocus} danger />
             </>
           )}
         </ul>

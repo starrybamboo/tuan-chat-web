@@ -1,18 +1,11 @@
-import type { Room } from "@tuanchat/openapi-client/models/Room";
 import type { Space } from "@tuanchat/openapi-client/models/Space";
-import type { MemberPreviewItem } from "@/features/members/memberUtils";
 import type { ComponentProps, ReactNode } from "react";
 
 import { SymbolView } from "expo-symbols";
-import { useState } from "react";
 import { Image, Modal, Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { ThemedText } from "@/components/themed-text";
-import {
-  getCurrentMemberIdentityText,
-  getCurrentRoomPresenceText,
-} from "@/features/members/memberUtils";
 import { DEFAULT_TUANCHAT_API_BASE_URL } from "@/lib/api";
 
 import { getErrorMessage } from "./mobileChatUtils";
@@ -23,18 +16,12 @@ const drawerPalette = {
   activeBorder: "rgba(121, 162, 255, 0.68)",
   activityRail: "#171b22",
   activitySurface: "#212732",
-  avatarSurface: "#2a303a",
-  badge: "#2d3440",
   body: "#1b2027",
   border: "#303642",
-  footer: "#1d2229",
-  header: "#1d2229",
   primary: "#f3f6fb",
   secondary: "#aab4c4",
-  sectionHeader: "#2a313c",
   shell: "#171c22",
   sidebar: "#1d2229",
-  spaceRail: "#1c2128",
   tertiary: "#6f7b8b",
 } as const;
 
@@ -99,15 +86,12 @@ const styles = StyleSheet.create({
     borderRightColor: drawerPalette.border,
     borderRightWidth: StyleSheet.hairlineWidth,
     paddingBottom: 8,
-    paddingHorizontal: 8,
+    paddingHorizontal: 6,
     paddingTop: 10,
     width: 56,
   },
   activityRailTop: {
     gap: 8,
-  },
-  activityRailBottom: {
-    marginTop: "auto",
   },
   activityButtonWrap: {
     position: "relative",
@@ -142,12 +126,6 @@ const styles = StyleSheet.create({
     marginHorizontal: 2,
     marginVertical: 8,
   },
-  spaceRail: {
-    backgroundColor: drawerPalette.spaceRail,
-    borderRightColor: drawerPalette.border,
-    borderRightWidth: StyleSheet.hairlineWidth,
-    width: 56,
-  },
   spaceRailContent: {
     alignItems: "center",
     gap: 10,
@@ -156,7 +134,7 @@ const styles = StyleSheet.create({
   },
   spaceButtonWrap: {
     position: "relative",
-    width: 48,
+    width: 44,
   },
   spaceButtonPill: {
     backgroundColor: drawerPalette.accent,
@@ -179,6 +157,11 @@ const styles = StyleSheet.create({
     height: 40,
     justifyContent: "center",
     width: 40,
+  },
+  createSpaceAvatar: {
+    borderColor: drawerPalette.accent,
+    borderStyle: "dashed",
+    borderWidth: 1,
   },
   spaceAvatarText: {
     color: drawerPalette.primary,
@@ -229,106 +212,50 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   sectionScrollContent: {
-    gap: 6,
-    paddingBottom: 8,
-    paddingTop: 8,
+    gap: 14,
+    paddingBottom: 18,
+    paddingTop: 12,
   },
   sectionWrap: {
+    paddingHorizontal: 12,
+  },
+  navSectionLabel: {
+    color: drawerPalette.tertiary,
+    fontSize: 11,
+    fontWeight: "800",
+    letterSpacing: 1,
+    lineHeight: 14,
+    marginBottom: 8,
     paddingHorizontal: 4,
   },
-  sectionHeader: {
-    alignItems: "center",
-    backgroundColor: drawerPalette.sectionHeader,
-    borderRadius: 8,
-    flexDirection: "row",
-    gap: 4,
-    paddingHorizontal: 8,
-    paddingVertical: 6,
-  },
-  sectionHeaderTitle: {
-    color: drawerPalette.primary,
-    flex: 1,
-    fontSize: 12.5,
-    fontWeight: "700",
-    letterSpacing: 0.8,
-    lineHeight: 16,
-  },
-  sectionHeaderAction: {
-    alignItems: "center",
-    borderRadius: 6,
-    height: 20,
-    justifyContent: "center",
-    width: 20,
-  },
-  treeWrap: {
+  navSectionBody: {
     gap: 2,
-    paddingTop: 4,
   },
-  categoryRow: {
+  navRow: {
     alignItems: "center",
     borderRadius: 8,
-    flexDirection: "row",
-    gap: 4,
-    minHeight: 30,
-    paddingHorizontal: 8,
-  },
-  categoryLabel: {
-    color: drawerPalette.secondary,
-    flex: 1,
-    fontSize: 12,
-    fontWeight: "600",
-    lineHeight: 16,
-  },
-  categoryBody: {
-    gap: 2,
-    paddingLeft: 8,
-    paddingRight: 4,
-  },
-  rowItem: {
-    alignItems: "center",
-    borderRadius: 10,
     flexDirection: "row",
     gap: 8,
-    minHeight: 42,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
+    minHeight: 34,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
   },
-  rowAvatar: {
-    alignItems: "center",
-    backgroundColor: drawerPalette.avatarSurface,
-    borderRadius: 10,
-    height: 32,
-    justifyContent: "center",
-    width: 32,
+  navDot: {
+    borderRadius: 999,
+    height: 7,
+    width: 7,
   },
-  rowAvatarText: {
-    color: drawerPalette.primary,
-    fontSize: 12,
-    fontWeight: "700",
-    lineHeight: 14,
-  },
-  avatarImage: {
-    borderRadius: 12,
-    height: "100%",
-    width: "100%",
-  },
-  rowTitle: {
+  navRowTitle: {
     color: drawerPalette.primary,
     flex: 1,
     fontSize: 13,
     fontWeight: "700",
     lineHeight: 16,
   },
-  rowMeta: {
-    color: drawerPalette.secondary,
-    fontSize: 11,
-    lineHeight: 14,
-  },
-  rowBadge: {
-    backgroundColor: drawerPalette.badge,
-    borderRadius: 999,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
+  avatarImage: {
+    borderRadius: 12,
+    height: "100%",
+    width: "100%",
   },
   emptyText: {
     color: drawerPalette.secondary,
@@ -337,68 +264,19 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 10,
   },
-  footer: {
-    alignItems: "center",
-    backgroundColor: drawerPalette.footer,
-    borderTopColor: drawerPalette.border,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    flexDirection: "row",
-    gap: 10,
-    minHeight: 62,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-  },
-  footerAvatar: {
-    alignItems: "center",
-    backgroundColor: drawerPalette.avatarSurface,
-    borderRadius: 10,
-    height: 34,
-    justifyContent: "center",
-    width: 34,
-  },
-  footerAvatarText: {
-    color: drawerPalette.primary,
-    fontSize: 13,
-    fontWeight: "800",
-    lineHeight: 15,
-  },
-  footerTextWrap: {
-    flex: 1,
-    minWidth: 0,
-  },
-  footerName: {
-    color: drawerPalette.primary,
-    fontSize: 13,
-    fontWeight: "700",
-    lineHeight: 16,
-  },
-  footerMeta: {
-    color: drawerPalette.secondary,
-    fontSize: 11,
-    lineHeight: 14,
-    marginTop: 1,
-  },
 });
 
 interface MobileChatDrawerProps {
-  currentRoomId: number | null;
   currentSpaceId: number | null;
-  currentRoomMember: MemberPreviewItem | null;
-  currentSpaceMember: MemberPreviewItem | null;
   currentUserId: number | null;
   currentUsername?: string | null;
-  memberCount: number;
   onOpenMembers: () => void;
   onOpenSearch: () => void;
   onOpenTools: () => void;
+  onCreateSpace?: () => void;
   onRefreshWorkspace: () => void;
   onRequestClose: () => void;
-  onSelectRoom: (roomId: number | null) => void;
   onSelectSpace: (spaceId: number | null) => void;
-  rooms: Room[];
-  roomsError: unknown;
-  roomsIsError: boolean;
-  roomsIsPending: boolean;
   spaces: Space[];
   spacesError: unknown;
   spacesIsError: boolean;
@@ -581,151 +459,81 @@ function SpaceRailButton({
   );
 }
 
-function SidebarSectionHeader({
-  actionIcon,
-  actionLabel,
-  onAction,
-  title,
-}: {
-  actionIcon?: ComponentProps<typeof SymbolView>["name"];
-  actionLabel?: string;
-  onAction?: () => void;
-  title: string;
-}) {
+function CreateSpaceButton({ onPress }: { onPress?: () => void }) {
   return (
-    <View style={styles.sectionHeader}>
-      <IconButton
-        iconName={{ ios: "chevron.down", android: "expand_more", web: "expand_more" }}
-        label={`${title}折叠状态`}
-        size={14}
-        style={styles.sectionHeaderAction}
-      />
-      <ThemedText style={styles.sectionHeaderTitle}>{title}</ThemedText>
-      {actionIcon && actionLabel
-        ? (
-            <IconButton
-              iconName={actionIcon}
-              label={actionLabel}
-              onPress={onAction}
-              size={14}
-              style={styles.sectionHeaderAction}
-            />
-          )
-        : null}
-    </View>
-  );
-}
-
-function SidebarCategory({
-  children,
-  defaultExpanded = true,
-  title,
-}: {
-  children: ReactNode;
-  defaultExpanded?: boolean;
-  title: string;
-}) {
-  const [expanded, setExpanded] = useState(defaultExpanded);
-
-  return (
-    <View>
-      <Pressable onPress={() => setExpanded(current => !current)} style={styles.categoryRow}>
-        <SymbolView
-          name={{ ios: "chevron.down", android: expanded ? "expand_more" : "chevron_right", web: expanded ? "expand_more" : "chevron_right" }}
-          size={16}
-          tintColor={drawerPalette.secondary}
-          weight="medium"
-        />
-        <ThemedText style={styles.categoryLabel}>{title}</ThemedText>
+    <View style={styles.spaceButtonWrap}>
+      <Pressable
+        accessibilityLabel="创建空间"
+        disabled={!onPress}
+        onPress={onPress}
+        style={[styles.spaceButton, { opacity: onPress ? 1 : 0.5 }]}
+      >
+        <View style={[styles.spaceAvatar, styles.createSpaceAvatar]}>
+          <SymbolView name={{ ios: "plus", android: "add", web: "add" }} size={24} tintColor={drawerPalette.accent} weight="medium" />
+        </View>
       </Pressable>
-      {expanded ? <View style={styles.categoryBody}>{children}</View> : null}
     </View>
   );
 }
 
-function SidebarRoomRow({
+function DiscoverNavRow({
+  active,
+  color,
+  label,
   onPress,
-  room,
-  selected,
 }: {
-  onPress: () => void;
-  room: Room;
-  selected: boolean;
+  active?: boolean;
+  color: string;
+  label: string;
+  onPress?: () => void;
 }) {
-  const roomName = room.name?.trim() || "未命名房间";
-  const roomAvatarUrl = resolveEntityImageUrl(room.avatar);
-
   return (
     <Pressable
+      accessibilityLabel={label}
       onPress={onPress}
       style={[
-        styles.rowItem,
-        selected
-          ? {
-              backgroundColor: drawerPalette.active,
-              borderColor: drawerPalette.activeBorder,
-              borderWidth: 1,
-            }
-          : null,
+        styles.navRow,
+        active ? { backgroundColor: "rgba(10, 14, 20, 0.44)" } : null,
       ]}
     >
-      <View style={styles.rowAvatar}>
-        {roomAvatarUrl
-          ? <Image source={{ uri: roomAvatarUrl }} style={styles.avatarImage} />
-          : <ThemedText style={styles.rowAvatarText}>{getInitials(roomName)}</ThemedText>}
-      </View>
-      <ThemedText numberOfLines={1} style={styles.rowTitle}>{roomName}</ThemedText>
+      <View style={[styles.navDot, { backgroundColor: color }]} />
+      <ThemedText numberOfLines={1} style={styles.navRowTitle}>{label}</ThemedText>
     </Pressable>
   );
 }
 
-function SidebarDocRow({
+function DiscoverNavSection({
+  children,
   title,
 }: {
+  children: ReactNode;
   title: string;
 }) {
   return (
-    <View style={styles.rowItem}>
-      <View style={styles.rowAvatar}>
-        <SymbolView
-          name={{ ios: "doc.text.fill", android: "description", web: "description" }}
-          size={16}
-          tintColor={drawerPalette.primary}
-          weight="medium"
-        />
-      </View>
-      <ThemedText numberOfLines={1} style={styles.rowTitle}>{title}</ThemedText>
+    <View style={styles.sectionWrap}>
+      <ThemedText style={styles.navSectionLabel}>{title}</ThemedText>
+      <View style={styles.navSectionBody}>{children}</View>
     </View>
   );
 }
 
 export function MobileChatDrawer({
-  currentRoomId,
   currentSpaceId,
-  currentRoomMember,
-  currentSpaceMember,
   currentUserId,
   currentUsername,
-  memberCount,
+  onCreateSpace,
   onOpenMembers,
   onOpenSearch,
   onOpenTools,
   onRefreshWorkspace,
   onRequestClose,
-  onSelectRoom,
   onSelectSpace,
-  rooms,
-  roomsError,
-  roomsIsError,
-  roomsIsPending,
   spaces,
   spacesError,
   spacesIsError,
   spacesIsPending,
   visible,
 }: MobileChatDrawerProps) {
-  const selectedSpace = spaces.find(space => space.spaceId === currentSpaceId) ?? null;
-  const selectedRoom = rooms.find(room => room.roomId === currentRoomId) ?? null;
   const displayName = currentUsername?.trim()
     || (typeof currentUserId === "number" ? `用户 #${currentUserId}` : "当前账号");
 
@@ -740,47 +548,47 @@ export function MobileChatDrawer({
       <View style={styles.backdrop}>
         <SafeAreaView edges={["top", "bottom"]} style={styles.panelWrap}>
           <View style={styles.panel}>
-              <View style={styles.shellToolbar}>
-                <View style={styles.shellToolbarRow}>
-                  <IconButton
-                    disabled
-                    iconName={{ ios: "message.fill", android: "chat", web: "chat" }}
-                    label="聊天入口"
-                    style={styles.shellToolbarButton}
-                  />
-                  <IconButton
-                    disabled
-                    iconName={{ ios: "photo.on.rectangle", android: "image", web: "image" }}
-                    label="图像入口"
-                    style={styles.shellToolbarButton}
-                  />
-                  <IconButton
-                    disabled
-                    iconName={{ ios: "paintbrush.pointed.fill", android: "brush", web: "brush" }}
-                    label="创作入口"
-                    style={styles.shellToolbarButton}
-                  />
-                  <View style={styles.shellToolbarSeparator} />
-                  <IconButton
-                    onPress={onOpenSearch}
-                    iconName={{ ios: "magnifyingglass", android: "search", web: "search" }}
-                    label="搜索消息"
-                    style={styles.shellToolbarButton}
-                  />
-                  <IconButton
-                    onPress={onOpenMembers}
-                    iconName={{ ios: "person.2.fill", android: "group", web: "group" }}
-                    label="房间成员"
-                    style={styles.shellToolbarButton}
-                  />
-                  <View style={styles.shellToolbarSeparator} />
-                  <IconButton
-                    onPress={onRefreshWorkspace}
-                    iconName={{ ios: "arrow.clockwise", android: "refresh", web: "refresh" }}
-                    label="刷新数据"
-                    style={styles.shellToolbarButton}
-                  />
-                </View>
+            <View style={styles.shellToolbar}>
+              <View style={styles.shellToolbarRow}>
+                <IconButton
+                  disabled
+                  iconName={{ ios: "message.fill", android: "chat", web: "chat" }}
+                  label="聊天入口"
+                  style={styles.shellToolbarButton}
+                />
+                <IconButton
+                  disabled
+                  iconName={{ ios: "photo.on.rectangle", android: "image", web: "image" }}
+                  label="图像入口"
+                  style={styles.shellToolbarButton}
+                />
+                <IconButton
+                  disabled
+                  iconName={{ ios: "paintbrush.pointed.fill", android: "brush", web: "brush" }}
+                  label="创作入口"
+                  style={styles.shellToolbarButton}
+                />
+                <View style={styles.shellToolbarSeparator} />
+                <IconButton
+                  onPress={onOpenSearch}
+                  iconName={{ ios: "magnifyingglass", android: "search", web: "search" }}
+                  label="搜索消息"
+                  style={styles.shellToolbarButton}
+                />
+                <IconButton
+                  onPress={onOpenMembers}
+                  iconName={{ ios: "person.2.fill", android: "group", web: "group" }}
+                  label="房间成员"
+                  style={styles.shellToolbarButton}
+                />
+                <View style={styles.shellToolbarSeparator} />
+                <IconButton
+                  onPress={onRefreshWorkspace}
+                  iconName={{ ios: "arrow.clockwise", android: "refresh", web: "refresh" }}
+                  label="刷新数据"
+                  style={styles.shellToolbarButton}
+                />
+              </View>
               <Pressable accessibilityLabel="个人入口" onPress={onOpenTools} style={styles.shellToolbarAvatar}>
                 <ThemedText style={{ color: drawerPalette.primary, fontSize: 11, fontWeight: "700", lineHeight: 12 }}>
                   {getInitials(displayName).slice(0, 1)}
@@ -805,22 +613,13 @@ export function MobileChatDrawer({
 
                 <View style={styles.divider} />
 
-                <View style={styles.activityRailBottom}>
-                  <ActivityButton
-                    primary
-                    iconName={{ ios: "plus", android: "add", web: "add" }}
-                    label="创建"
-                  />
-                </View>
-              </View>
-
-              <View style={styles.spaceRail}>
                 <ScrollView
                   contentContainerStyle={styles.spaceRailContent}
                   showsVerticalScrollIndicator={false}
+                  style={{ flex: 1 }}
                 >
                   {spaces.length > 0
-                    ? spaces.map(space => {
+                    ? spaces.map((space) => {
                         const label = space.name?.trim() || "空间";
                         return (
                           <SpaceRailButton
@@ -828,7 +627,10 @@ export function MobileChatDrawer({
                             active={space.spaceId === currentSpaceId}
                             avatarUrl={space.avatar}
                             label={label}
-                            onPress={() => onSelectSpace(space.spaceId ?? null)}
+                            onPress={() => {
+                              onSelectSpace(space.spaceId ?? null);
+                              onRequestClose();
+                            }}
                           />
                         );
                       })
@@ -840,6 +642,7 @@ export function MobileChatDrawer({
                           isPending={spacesIsPending}
                         />
                       )}
+                  <CreateSpaceButton onPress={onCreateSpace ?? onOpenTools} />
                 </ScrollView>
               </View>
 
@@ -847,20 +650,14 @@ export function MobileChatDrawer({
                 <View style={styles.sidebarHeader}>
                   <View style={styles.sidebarHeaderTitleWrap}>
                     <SymbolView
-                      name={{ ios: "house.fill", android: "home", web: "home" }}
+                      name={{ ios: "safari.fill", android: "explore", web: "explore" }}
                       size={14}
                       tintColor={drawerPalette.secondary}
                       weight="medium"
                     />
                     <ThemedText numberOfLines={1} style={styles.sidebarHeaderTitle}>
-                      {selectedSpace?.name?.trim() || "未选择空间"}
+                      发现
                     </ThemedText>
-                    <SymbolView
-                      name={{ ios: "chevron.down", android: "expand_more", web: "expand_more" }}
-                      size={14}
-                      tintColor={drawerPalette.secondary}
-                      weight="medium"
-                    />
                   </View>
 
                   <View style={styles.sidebarHeaderActionRow}>
@@ -886,74 +683,16 @@ export function MobileChatDrawer({
                   showsVerticalScrollIndicator={false}
                   style={styles.sectionScroll}
                 >
-                  <View style={styles.sectionWrap}>
-                    <SidebarSectionHeader
-                      title="频道与文档"
-                    />
+                  <DiscoverNavSection title="局外素材">
+                    <DiscoverNavRow active color="#d4a72c" label="素材广场" onPress={onRequestClose} />
+                    <DiscoverNavRow color="#cf3d9f" label="我的素材包" onPress={onOpenTools} />
+                  </DiscoverNavSection>
 
-                    <View style={styles.treeWrap}>
-                      <SidebarCategory title="频道">
-                        {rooms.length > 0
-                          ? rooms.map(room => (
-                              <SidebarRoomRow
-                                key={String(room.roomId ?? room.name ?? "room")}
-                                onPress={() => onSelectRoom(room.roomId ?? null)}
-                                room={room}
-                                selected={room.roomId === currentRoomId}
-                              />
-                            ))
-                          : (
-                              <DrawerStateText
-                                emptyText="当前空间下还没有可进入房间。"
-                                error={roomsError}
-                                isError={roomsIsError}
-                                isPending={roomsIsPending}
-                              />
-                            )}
-                      </SidebarCategory>
-
-                      <SidebarCategory defaultExpanded={false} title="文档">
-                        {selectedSpace
-                          ? <SidebarDocRow title="空间简介" />
-                          : <ThemedText style={styles.emptyText}>当前空间还没有文档。</ThemedText>}
-                      </SidebarCategory>
-                    </View>
-                  </View>
-
-                  <View style={styles.sectionWrap}>
-                    <SidebarSectionHeader
-                      actionIcon={{ ios: "shippingbox.fill", android: "inventory_2", web: "inventory_2" }}
-                      actionLabel="局内素材包"
-                      onAction={onOpenTools}
-                      title="素材包"
-                    />
-
-                    <View style={styles.treeWrap}>
-                      <SidebarCategory defaultExpanded={false} title="局内素材包">
-                        <ThemedText style={styles.emptyText}>
-                          当前空间还没有导入素材包。
-                        </ThemedText>
-                      </SidebarCategory>
-                    </View>
-                  </View>
+                  <DiscoverNavSection title="归档仓库">
+                    <DiscoverNavRow color="#10b89a" label="广场" onPress={onOpenTools} />
+                    <DiscoverNavRow color="#6b69d6" label="我的归档" onPress={onOpenTools} />
+                  </DiscoverNavSection>
                 </ScrollView>
-
-                <View style={styles.footer}>
-                  <View style={styles.footerAvatar}>
-                    <ThemedText style={styles.footerAvatarText}>{getInitials(displayName)}</ThemedText>
-                  </View>
-                  <View style={styles.footerTextWrap}>
-                    <ThemedText numberOfLines={1} style={styles.footerName}>{displayName}</ThemedText>
-                    <ThemedText numberOfLines={1} style={styles.footerMeta}>
-                      {getCurrentMemberIdentityText(currentSpaceMember)}
-                    </ThemedText>
-                    <ThemedText numberOfLines={1} style={styles.footerMeta}>
-                      {selectedRoom
-                        ? `当前房间：${selectedRoom.name ?? "未命名房间"} · ${memberCount} 位成员`
-                        : getCurrentRoomPresenceText(currentRoomMember, currentSpaceMember)}
-                    </ThemedText>
-                  </View>
-                </View>
               </View>
             </View>
           </View>

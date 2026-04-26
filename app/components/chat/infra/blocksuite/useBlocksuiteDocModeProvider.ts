@@ -148,7 +148,7 @@ export function useBlocksuiteDocModeProvider(
     if (allowModeSwitch) {
       const initial = docModeProvider.getPrimaryMode(docId);
       currentModeRef.current = initial;
-      setCurrentMode(prev => prev === initial ? prev : initial);
+      queueMicrotask(() => setCurrentMode(prev => prev === initial ? prev : initial));
       return;
     }
 

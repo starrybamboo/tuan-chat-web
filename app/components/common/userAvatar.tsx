@@ -76,6 +76,14 @@ export default function UserAvatarComponent({
   const [hasMountedDetail, setHasMountedDetail] = useState(false); // 首次点击后再加载内容
   const anchorRef = useRef<HTMLDivElement | null>(null);
   const portalRef = useRef<HTMLDivElement | null>(null);
+  const [portalElement] = useState<HTMLDivElement | null>(() => {
+    if (typeof document === "undefined") {
+      return null;
+    }
+    const div = document.createElement("div");
+    div.setAttribute("data-avatar-portal", "");
+    return div;
+  });
   const [pos, setPos] = useState<{ left: number; top: number; placement: "right" | "left" } | null>(null);
 
   // hover 逻辑：悬停打开，移出后延迟关闭；允许在 Portal 内容上保持
@@ -218,16 +226,16 @@ export default function UserAvatarComponent({
 
   // Portal 容器
   useEffect(() => {
-    if (!portalRef.current) {
-      const div = document.createElement("div");
-      div.setAttribute("data-avatar-portal", "");
-      document.body.appendChild(div);
-      portalRef.current = div;
+    if (!portalElement) {
+      return;
     }
+    document.body.appendChild(portalElement);
+    portalRef.current = portalElement;
     return () => {
-      // 不删除以复用
+      portalRef.current = null;
+      portalElement.remove();
     };
-  }, []);
+  }, [portalElement]);
 
   return (
     <div
@@ -254,7 +262,7 @@ export default function UserAvatarComponent({
         </div>
       )}
       {/* Portal 卡片：只受 stopToastWindow 控制 */}
-      {portalRef.current && hasMountedDetail && isOpen && !stopToastWindow && pos && createPortal(
+      {portalElement && hasMountedDetail && isOpen && !stopToastWindow && pos && createPortal(
         <div
           style={{
             position: "fixed",
@@ -268,7 +276,7 @@ export default function UserAvatarComponent({
         >
           <UserDetail userId={userId} />
         </div>,
-        portalRef.current,
+        portalElement,
       )}
     </div>
   );

@@ -1,17 +1,17 @@
 export type MessageTextDiffSegmentKind = "equal" | "insert" | "delete";
 
-export interface MessageTextDiffSegment {
+export type MessageTextDiffSegment = {
   kind: MessageTextDiffSegmentKind;
   text: string;
-}
+};
 
-export interface MessageTextDiffSummary {
+export type MessageTextDiffSummary = {
   insertedChars: number;
   deletedChars: number;
   unchangedChars: number;
-}
+};
 
-export interface MessageTextDiff {
+export type MessageTextDiff = {
   beforeText: string;
   afterText: string;
   segments: MessageTextDiffSegment[];
@@ -19,9 +19,9 @@ export interface MessageTextDiff {
   afterSegments: MessageTextDiffSegment[];
   hasChanges: boolean;
   summary: MessageTextDiffSummary;
-}
+};
 
-const MESSAGE_TEXT_TOKEN_PATTERN = /\s+|[\p{Script=Han}]|[\p{Letter}\p{Number}_]+|./gu;
+const MESSAGE_TEXT_TOKEN_PATTERN = /\s+|\p{Script=Han}|[\p{Letter}\p{Number}_]+|./gu;
 
 function tokenizeMessageText(input: string): string[] {
   if (!input) {

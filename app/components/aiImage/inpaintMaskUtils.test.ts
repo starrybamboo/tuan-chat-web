@@ -1,23 +1,23 @@
 import {
-  buildPixelSnappedSquareMaskStampRects,
-  buildPixelSnappedCircleMaskStamps,
   buildBinaryMaskGrid,
   buildMaskOutlineSegments,
+  buildPixelSnappedCircleMaskStamps,
+  buildPixelSnappedSquareMaskStampRects,
   buildRoundedRectMaskGrid,
   buildSolidInpaintMaskGrid,
   createMaskBorderOffsets,
   dilateMaskGrid,
   erodeMaskGrid,
-  findMaskGridBounds,
   fillClosedMaskGrid,
+  findMaskGridBounds,
   getPixelCircleMaskData,
   getPixelCircleMaskOutlineData,
   getPixelCircleMaskOutlineSegments,
   hasAnyMaskAlpha,
-  mapDisplaySizeToCanvasSize,
   mapBrushCursorDisplaySize,
-  normalizeMaskBrushSize,
+  mapDisplaySizeToCanvasSize,
   mapSourcePointToMaskPoint,
+  normalizeMaskBrushSize,
   projectMaskRectToSourceRect,
   renderMaskGridToRgba,
   resolveNovelAiMaskBufferSize,
@@ -29,12 +29,24 @@ import {
 describe("inpaintMaskUtils", () => {
   it("detects whether the mask contains any alpha", () => {
     const emptyMask = new Uint8ClampedArray([
-      0, 0, 0, 0,
-      0, 0, 0, 0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
     ]);
     const paintedMask = new Uint8ClampedArray([
-      0, 0, 0, 0,
-      255, 255, 255, 180,
+      0,
+      0,
+      0,
+      0,
+      255,
+      255,
+      255,
+      180,
     ]);
 
     expect(hasAnyMaskAlpha(emptyMask)).toBe(false);
@@ -254,9 +266,15 @@ describe("inpaintMaskUtils", () => {
 
   it("builds generic mask outline segments without adding a full outer cell ring", () => {
     const mask = new Uint8Array([
-      0, 1, 0,
-      1, 1, 0,
-      0, 0, 0,
+      0,
+      1,
+      0,
+      1,
+      1,
+      0,
+      0,
+      0,
+      0,
     ]);
     const serializedSegments = buildMaskOutlineSegments(mask, 3, 3)
       .map(segment => `${segment.orientation}:${segment.left},${segment.top},${segment.length}`);

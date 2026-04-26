@@ -1,5 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import {
+  BlocksuiteRemoteImageBlobSource,
+  buildBlocksuiteRemoteImageFileName,
+} from "../space/runtime/blocksuiteRemoteImageBlobSource";
+
 const { getUploadUrlMock } = vi.hoisted(() => ({
   getUploadUrlMock: vi.fn(),
 }));
@@ -41,11 +46,6 @@ vi.mock("@blocksuite/sync", () => {
     IndexedDBBlobSource: MemoryIndexedDBBlobSource,
   };
 });
-
-import {
-  BlocksuiteRemoteImageBlobSource,
-  buildBlocksuiteRemoteImageFileName,
-} from "../space/runtime/blocksuiteRemoteImageBlobSource";
 
 describe("blocksuiteRemoteImageBlobSource", () => {
   beforeEach(() => {

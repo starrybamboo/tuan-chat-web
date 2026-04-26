@@ -1,10 +1,10 @@
-import { XIcon } from "@phosphor-icons/react";
 import type { Dispatch, SetStateAction } from "react";
-
 import type {
   MetadataImportSelectionState,
   PendingMetadataImportState,
 } from "@/components/aiImage/types";
+
+import { XIcon } from "@phosphor-icons/react";
 import image2imageIconSrc from "@/components/aiImage/assets/image2image.png";
 import preciseReferenceIconSrc from "@/components/aiImage/assets/precise-reference.png";
 import vibeTransferIconSrc from "@/components/aiImage/assets/vibe-transfer.png";

@@ -8,8 +8,8 @@ import { hasHostPrivileges } from "@/components/chat/utils/memberPermissions";
 import ConfirmModal from "@/components/common/comfirmModel";
 import { useGlobalUserId } from "@/components/globalContextProvider";
 import CharacterDetail from "@/components/Role/CharacterDetail";
-import { getRoleRule, setRoleRule } from "@/utils/roleRuleStorage";
 import { resolveRoleRuleSelection, shouldPersistRoleRuleSelection } from "@/utils/roleRuleSelection";
+import { getRoleRule, setRoleRule } from "@/utils/roleRuleStorage";
 import { useDeleteRole1Mutation } from "../../../api/hooks/chatQueryHooks";
 import { useGetRoleQuery, useGetUserRolesQuery } from "../../../api/hooks/RoleAndAvatarHooks";
 
@@ -62,7 +62,7 @@ export function RoleDetailPagePopup({
   useEffect(() => {
     if (!fetchedRole)
       return;
-    setRole(toRoleViewModel(roleId, fetchedRole));
+    queueMicrotask(() => setRole(toRoleViewModel(roleId, fetchedRole)));
   }, [fetchedRole, roleId]);
 
   const [selectedRuleId, setSelectedRuleId] = useState<number>(() => {
@@ -77,7 +77,7 @@ export function RoleDetailPagePopup({
       spaceRuleId: ruleIdFromSpace,
       storedRuleId,
     });
-    setSelectedRuleId(prev => (prev === nextRuleId ? prev : nextRuleId));
+    queueMicrotask(() => setSelectedRuleId(prev => (prev === nextRuleId ? prev : nextRuleId)));
   }, [ruleIdFromSpace, storedRuleId]);
 
   useEffect(() => {

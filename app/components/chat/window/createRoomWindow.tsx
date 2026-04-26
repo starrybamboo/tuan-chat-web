@@ -1,6 +1,6 @@
 import { useCreateRoomMutation, useGetSpaceInfoQuery, useGetSpaceMembersQuery } from "api/hooks/chatQueryHooks";
 import { useGetUserInfoQuery } from "api/hooks/UserHooks";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useId, useState } from "react";
 import checkBack from "@/components/common/autoContrastText";
 import { MemberSelect } from "@/components/common/memberSelect";
 import { ImgUploaderWithCopper } from "@/components/common/uploader/imgUploaderWithCropper";
@@ -16,17 +16,24 @@ export default function CreateRoomWindow({ spaceId, spaceAvatar, onSuccess }: Cr
   const userId = useGlobalUserId();
   const getUserInfo = useGetUserInfoQuery(Number(userId));
   const userInfo = getUserInfo.data?.data;
+  const roomAvatarUploadId = useId().replace(/:/g, "");
 
   // 创建房间
   const createRoomMutation = useCreateRoomMutation(spaceId);
   const getSpaceInfo = useGetSpaceInfoQuery(spaceId);
   const spaceInfo = getSpaceInfo.data?.data;
+  const defaultRoomAvatar = String(spaceInfo?.avatar ?? spaceAvatar ?? "");
+  const defaultRoomOriginalAvatar = String(spaceInfo?.originalAvatar ?? spaceInfo?.avatar ?? spaceAvatar ?? "");
+  const defaultRoomName = userInfo?.username ? `${String(userInfo.username)}的房间` : "";
 
   // 创建房间的头像
-  const [roomAvatar, setRoomAvatar] = useState<string>(spaceAvatar || "");
-  const [roomOriginalAvatar, setRoomOriginalAvatar] = useState<string>(() => String(spaceInfo?.originalAvatar ?? spaceInfo?.avatar ?? spaceAvatar ?? ""));
+  const [roomAvatarDraft, setRoomAvatarDraft] = useState<string | null>(null);
+  const [roomOriginalAvatarDraft, setRoomOriginalAvatarDraft] = useState<string | null>(null);
   // 创建房间的名称
-  const [roomName, setRoomName] = useState<string>(() => `${String(userInfo?.username)}的房间`);
+  const [roomNameDraft, setRoomNameDraft] = useState<string | null>(null);
+  const roomAvatar = roomAvatarDraft ?? defaultRoomAvatar;
+  const roomOriginalAvatar = roomOriginalAvatarDraft ?? defaultRoomOriginalAvatar;
+  const roomName = roomNameDraft ?? defaultRoomName;
 
   // 房间头像文字颜色
   const [roomAvatarTextColor, setRoomAvatarTextColor] = useState("text-black");
@@ -53,25 +60,6 @@ export default function CreateRoomWindow({ spaceId, spaceAvatar, onSuccess }: Cr
     }
   }, [roomAvatar]);
 
-  // 当用户信息加载后，更新默认值
-  useEffect(() => {
-    if (userInfo) {
-      setRoomName(`${String(userInfo.username)}的房间`);
-    }
-  }, [userInfo]);
-
-  // 当传入的 spaceAvatar 变化时更新房间头像
-  useEffect(() => {
-    const nextAvatar = spaceInfo?.avatar ?? spaceAvatar;
-    const nextOriginalAvatar = spaceInfo?.originalAvatar ?? spaceInfo?.avatar ?? spaceAvatar;
-    if (nextAvatar) {
-      setRoomAvatar(nextAvatar);
-    }
-    if (nextOriginalAvatar) {
-      setRoomOriginalAvatar(nextOriginalAvatar);
-    }
-  }, [spaceAvatar, spaceInfo?.avatar, spaceInfo?.originalAvatar]);
-
   // 创建房间
   async function createRoom(spaceId: number, userIds: number[]) {
     createRoomMutation.mutate({
@@ -97,12 +85,12 @@ export default function CreateRoomWindow({ spaceId, spaceAvatar, onSuccess }: Cr
       <div className="flex justify-center mb-6">
         <ImgUploaderWithCopper
           setOriginalDownloadUrl={(url) => {
-            setRoomOriginalAvatar(url);
+            setRoomOriginalAvatarDraft(url);
           }}
           setCopperedDownloadUrl={(url) => {
-            setRoomAvatar(url);
+            setRoomAvatarDraft(url);
           }}
-          fileName={`new-room-avatar-${Date.now()}`}
+          fileName={`new-room-avatar-${roomAvatarUploadId}`}
           aspect={1}
         >
           <div className="relative group overflow-hidden rounded-lg">
@@ -129,11 +117,12 @@ export default function CreateRoomWindow({ spaceId, spaceAvatar, onSuccess }: Cr
         </label>
         <input
           type="text"
-          placeholder={roomName}
+          value={roomName}
+          placeholder={defaultRoomName}
           className="input input-bordered w-full"
           onChange={(e) => {
             const inputValue = e.target.value;
-            setRoomName(inputValue === "" ? `${String(userInfo?.username)}的房间` : inputValue);
+            setRoomNameDraft(inputValue === "" ? null : inputValue);
           }}
         />
       </div>

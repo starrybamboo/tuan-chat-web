@@ -1,12 +1,13 @@
 import type { ChatMessageRequest, ChatMessageResponse, RoleAbility, RoleAvatar, UserRole } from "../../../../api";
 import type { RoomContextType } from "@/components/chat/core/roomContext";
+import type { DicerMessageVisibility } from "@/components/common/dicer/commandMessageVisibility";
 import { useEffect, useRef } from "react";
 import toast from "react-hot-toast";
 import { useParams } from "react-router";
 import { getNextAppendPosition } from "@/components/chat/shared/messageOrder";
 import { initAliasMapOnce, RULES } from "@/components/common/dicer/aliasRegistry";
-import { resolveCommandMessageVisibility, type DicerMessageVisibility } from "@/components/common/dicer/commandMessageVisibility";
 import executorPublic from "@/components/common/dicer/cmdExe/cmdExePublic";
+import { resolveCommandMessageVisibility } from "@/components/common/dicer/commandMessageVisibility";
 import { buildDicerReplyContent, selectWeightedCopywritingSuffix } from "@/components/common/dicer/dicerReplyPreparation";
 import { syncOptimisticReplyMessageIds } from "@/components/common/dicer/optimisticReplyMessageLink";
 import { buildRuntimeRoleValuesByRoleId, mergeRuntimeRoleValuesIntoAbility } from "@/components/common/dicer/runtimeAbilityBridge";

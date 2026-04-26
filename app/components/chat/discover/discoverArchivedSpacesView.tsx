@@ -89,7 +89,7 @@ export default function DiscoverArchivedSpacesView({ mode }: DiscoverArchivedSpa
 
   useEffect(() => {
     if (!activeRepositoryId) {
-      setIsRepositoryViewModeOpen(false);
+      queueMicrotask(() => setIsRepositoryViewModeOpen(false));
     }
   }, [activeRepositoryId]);
 
@@ -294,7 +294,7 @@ export default function DiscoverArchivedSpacesView({ mode }: DiscoverArchivedSpa
   return (
     <div className="flex flex-col w-full h-full min-h-0 min-w-0 bg-base-300/40 text-base-content">
       {!shouldHideRepositoryHeader && (
-        <div className="sticky top-0 z-20 bg-base-200 border-t border-b border-gray-300 dark:border-gray-700">
+        <div className="sticky top-0 z-20 bg-base-200 border-y border-gray-300 dark:border-gray-700">
           <div className="flex items-center justify-between gap-4 px-6 h-12">
             {activeRepositoryId
               ? (
@@ -543,4 +543,3 @@ export default function DiscoverArchivedSpacesView({ mode }: DiscoverArchivedSpa
     </div>
   );
 }
-

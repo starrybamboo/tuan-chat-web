@@ -250,7 +250,7 @@ export function toggleNovelAiLineComments(args: {
 
 export function cleanImportedPromptText(value: string) {
   return String(value || "")
-    .replace(/[\[\]\{\}]/g, "")
+    .replace(/[[\]{}]/g, "")
     .replace(/\s*,\s*/g, ", ")
     .replace(/\s{2,}/g, " ")
     .trim();

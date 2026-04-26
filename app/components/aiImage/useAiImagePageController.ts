@@ -1,38 +1,22 @@
 // AI image page: aligned with NovelAI Image desktop layout and interactions; keeps free single-image txt2img and preview-area Inpaint.
-import type { DragEvent, MouseEvent } from "react";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "react-hot-toast";
 
 import type {
   ActivePreviewAction,
   DirectorToolId,
   GeneratedImageItem,
-  HistoryRowClickMode,
-  ImageImportSource,
-  ImportedSourceImagePayload,
   InpaintDialogSource,
-  InpaintSubmitPayload,
-  InternalHistoryImageDragPayload,
   MetadataImportSelectionState,
   NovelAiEmotion,
   PendingMetadataImportState,
   PreciseReferenceRow,
   ProFeatureSectionKey,
-  ResolutionSelection,
   UiMode,
-  V4CharGender,
   V4CharEditorRow,
   VibeTransferReferenceRow,
 } from "@/components/aiImage/types";
-import type {
-  AiImageHistoryMode,
-  AiImageHistoryRow,
-} from "@/utils/aiImageHistoryDb";
-import type {
-  NovelAiImageMetadataResult,
-  NovelAiImportedSettings,
-} from "@/utils/novelaiImageMetadata";
 import type { NovelAiNl2TagsResult } from "@/utils/novelaiNl2Tags";
 
 import {
@@ -40,78 +24,18 @@ import {
   generateNovelImageViaProxy,
 } from "@/components/aiImage/api";
 import {
-  CUSTOM_RESOLUTION_ID,
   DEFAULT_DIRECTOR_TOOL_ID,
-  DEFAULT_PRO_FEATURE_SECTION_OPEN,
-  DEFAULT_PRO_IMAGE_SETTINGS,
-  DEFAULT_SIMPLE_IMAGE_SETTINGS,
   DIRECTOR_TOOL_OPTIONS_BY_ID,
-  INTERNAL_HISTORY_IMAGE_DRAG_MIME,
   MODEL_DESCRIPTIONS,
-  NOISE_SCHEDULES_NAI4,
-  NOVELAI_FREE_FIXED_IMAGE_COUNT,
-  NOVELAI_FREE_MAX_IMAGE_AREA,
-  NOVELAI_FREE_MAX_STEPS,
   PREVIEW_ACTION_LABELS,
-  RESOLUTION_PRESETS,
-  SAMPLERS_NAI4,
   STORAGE_UI_MODE_KEY,
-  isDirectorToolDisabled,
 } from "@/components/aiImage/constants";
-import {
-  base64DataUrl,
-  buildDirectorToolHistoryRow,
-  buildImportedSourceImagePayloadFromDataUrl,
-  bytesToBase64,
-  clamp01,
-  clampIntRange,
-  clampRange,
-  cleanImportedPromptText,
-  createMetadataImportSelection,
-  createProFeatureSectionState,
-  dataUrlToBase64,
-  extractImageFilesFromTransfer,
-  extractInternalHistoryImageDragPayload,
-  fileFromDataUrl,
-  fitNovelAiImageSizeWithinAreaLimit,
-  formatDirectorEmotionLabel,
-  generatedItemKey,
-  getClosestValidImageSize,
-  getNovelAiImageArea,
-  getNovelAiFreeGenerationViolation,
-  getNovelAiFreeOnlyMessage,
-  hasFileDrag,
-  hasInternalHistoryImageDrag,
-  hasMetadataSettingsPayload,
-  hasNonEmptyText,
-  historyImageDragFileName,
-  historyRowKey,
-  historyRowResultMatchKey,
-  historyRowToGeneratedItem,
-  getNextAvailableV4CharGridCell,
-  makeStableId,
-  mergeTagString,
-  mimeFromDataUrl,
-  mimeFromFilename,
-  newV4CharEditorRow,
-  normalizeV4CharGridRows,
-  normalizeReferenceStrengthRows,
-  readFileAsBytes,
-  readImagePixels,
-  readImageSize,
-  readLocalStorageString,
-  resolveFixedImageModel,
-  resolveImportedValue,
-  resolveSimpleGenerateMode,
-  sanitizeNovelAiTagInput,
-  shouldKeepSimpleTagsEditor,
-  triggerBlobDownload,
-  triggerBrowserDownload,
-  writeLocalStorageString,
-} from "@/components/aiImage/helpers";
-import {
-  buildSidebarProps,
-} from "@/components/aiImage/controller/buildViewModels";
+import { useAiImageCharacterActions } from "@/components/aiImage/controller/useAiImageCharacterActions";
+import { useAiImageDimensionsState } from "@/components/aiImage/controller/useAiImageDimensionsState";
+import { useAiImageGenerationActions } from "@/components/aiImage/controller/useAiImageGenerationActions";
+import { useAiImageHistoryActions } from "@/components/aiImage/controller/useAiImageHistoryActions";
+import { useAiImageImportActions } from "@/components/aiImage/controller/useAiImageImportActions";
+import { useAiImageInpaintActions } from "@/components/aiImage/controller/useAiImageInpaintActions";
 import {
   createAiImageHistoryPaneProps,
   createAiImagePreviewPaneProps,
@@ -120,21 +44,27 @@ import {
   useAiImageSidebarProps,
   useAiImageWorkspaceProps,
 } from "@/components/aiImage/controller/useAiImagePageViewModels";
-import { useAiImageCharacterActions } from "@/components/aiImage/controller/useAiImageCharacterActions";
-import { useAiImageDimensionsState } from "@/components/aiImage/controller/useAiImageDimensionsState";
-import { useAiImageHistoryActions } from "@/components/aiImage/controller/useAiImageHistoryActions";
-import { useAiImageImportActions } from "@/components/aiImage/controller/useAiImageImportActions";
-import { useAiImageGenerationActions } from "@/components/aiImage/controller/useAiImageGenerationActions";
-import { useAiImageInpaintActions } from "@/components/aiImage/controller/useAiImageInpaintActions";
 import { useAiImagePreviewActions } from "@/components/aiImage/controller/useAiImagePreviewActions";
 import { useAiImagePreviewState } from "@/components/aiImage/controller/useAiImagePreviewState";
 import { useAiImageSimpleActions } from "@/components/aiImage/controller/useAiImageSimpleActions";
 import { useAiImageStyleState } from "@/components/aiImage/controller/useAiImageStyleState";
 import {
+  createProFeatureSectionState,
+  formatDirectorEmotionLabel,
+  getNovelAiFreeGenerationViolation,
+  hasMetadataSettingsPayload,
+  hasNonEmptyText,
+  normalizeV4CharGridRows,
+  readImagePixels,
+  readImageSize,
+  readLocalStorageString,
+  resolveFixedImageModel,
+  resolveSimpleGenerateMode,
+  sanitizeNovelAiTagInput,
+  writeLocalStorageString,
+} from "@/components/aiImage/helpers";
+import {
   addAiImageHistoryBatch,
-  clearAiImageHistory,
-  deleteAiImageHistory,
-  listAiImageHistory,
 } from "@/utils/aiImageHistoryDb";
 import {
   extractNovelAiMetadataFromPngBytes,
@@ -154,8 +84,6 @@ const DEFAULT_METADATA_IMPORT_SELECTION: MetadataImportSelectionState = {
 
 const DEFAULT_INPAINT_PROMPT = "very aesthetic, masterpiece, no text";
 const DEFAULT_INPAINT_NEGATIVE_PROMPT = "nsfw, lowres, artistic error, film grain, scan artifacts, worst quality, bad quality, jpeg artifacts, very displeasing, chromatic aberration, dithering, halftone, screentone, multiple views, logo, too many watermarks, negative space, blank page";
-const DEFAULT_INPAINT_STRENGTH = 1;
-const DEFAULT_INPAINT_NOISE = 0;
 
 export function useAiImagePageController() {
   const sourceFileInputRef = useRef<HTMLInputElement | null>(null);
@@ -176,7 +104,7 @@ export function useAiImagePageController() {
   const [proInfillNegativePrompt, setProInfillNegativePrompt] = useState(DEFAULT_INPAINT_NEGATIVE_PROMPT);
 
   const [simpleText, setSimpleText] = useState("");
-  const [simpleConvertedFromText, setSimpleConvertedFromText] = useState("");
+  const [, setSimpleConvertedFromText] = useState("");
   const [simpleConverted, setSimpleConverted] = useState<NovelAiNl2TagsResult | null>(null);
   const [simplePrompt, setSimplePrompt] = useState("");
   const [simpleNegativePrompt, setSimpleNegativePrompt] = useState("");
@@ -206,10 +134,10 @@ export function useAiImagePageController() {
   useEffect(() => {
     if (!v4UseCoords)
       return;
-    setV4Chars((prev) => {
+    queueMicrotask(() => setV4Chars((prev) => {
       const next = normalizeV4CharGridRows(prev);
       return next === prev ? prev : next;
-    });
+    }));
   }, [v4Chars, v4UseCoords]);
 
   const toggleProFeatureSection = useCallback((section: ProFeatureSectionKey) => {
@@ -275,21 +203,12 @@ export function useAiImagePageController() {
     samplerOptions,
     noiseScheduleOptions,
     simpleMode,
-    proMode,
     mode,
     setModeForUi,
-    simpleSourceImageDataUrl,
-    simpleSourceImageBase64,
-    simpleSourceImageSize,
-    proSourceImageDataUrl,
-    proSourceImageBase64,
-    proSourceImageSize,
     sourceImageDataUrl,
     sourceImageBase64,
     sourceImageSize,
-    simpleInfillMaskDataUrl,
     setSimpleInfillMaskDataUrl,
-    proInfillMaskDataUrl,
     setProInfillMaskDataUrl,
     infillMaskDataUrl,
     clearInfillMaskForUi,
@@ -323,7 +242,6 @@ export function useAiImagePageController() {
     setSimpleWidth,
     simpleHeight,
     setSimpleHeight,
-    simpleSeed,
     setSimpleSeed,
     simpleResolutionSelection,
     setSimpleResolutionSelection,
@@ -347,12 +265,9 @@ export function useAiImagePageController() {
     setProSeed,
     setSimpleImg2imgStrength,
     setSimpleImg2imgNoise,
-    setProImg2imgStrength,
-    setProImg2imgNoise,
     setSimpleInfillStrength,
     setSimpleInfillNoise,
     setProInfillStrength,
-    setProInfillNoise,
     inferResolutionSelection,
     applyModeStrengthAndNoise,
     clearSourceImageForUi,
@@ -414,8 +329,6 @@ export function useAiImagePageController() {
     setIsHistoryExpanded,
     historyRowByKey,
     historyRowByResultMatchKey,
-    selectedResult,
-    selectedHistoryPreviewRow,
     selectedPreviewResult,
     selectedPreviewHistoryRow,
     selectedPreviewIdentityKey,
@@ -432,17 +345,16 @@ export function useAiImagePageController() {
   useEffect(() => {
     if (!selectedPreviewResult && isPreviewImageModalOpen)
       setIsPreviewImageModalOpen(false);
-  }, [isPreviewImageModalOpen, selectedPreviewResult]);
+  }, [isPreviewImageModalOpen, selectedPreviewResult, setIsPreviewImageModalOpen]);
 
   useEffect(() => {
     if (pinnedPreviewKey && !pinnedPreviewResult)
       setPinnedPreviewKey(null);
-  }, [pinnedPreviewKey, pinnedPreviewResult]);
+  }, [pinnedPreviewKey, pinnedPreviewResult, setPinnedPreviewKey]);
 
   const {
     refreshHistory,
     applyImportedMetadata,
-    handleApplyHistorySettings,
     handleHistoryRowClick,
     handleCurrentResultCardClick,
     handleDeleteHistoryRow,
@@ -512,7 +424,6 @@ export function useAiImagePageController() {
     showSuccessToast,
   });
 
-
   const {
     handlePickSourceImage,
     handlePickDirectorSourceImages,
@@ -537,7 +448,6 @@ export function useAiImagePageController() {
     handleDirectorImageDragLeave,
     handleDirectorImageDragOver,
     handleDirectorImageDrop,
-    handleSyncDirectorSourceFromCurrentPreview,
   } = useAiImageImportActions({
     uiMode,
     model,
@@ -748,7 +658,6 @@ export function useAiImagePageController() {
 
   const {
     handleSelectCurrentResult,
-    handlePreviewHistoryRow,
     handleClearCurrentDisplayedImage,
     handleRunDirectorInputUpscale,
     handleAddDirectorDisplayedToSourceRail,

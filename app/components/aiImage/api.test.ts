@@ -67,13 +67,10 @@ describe("aiImage api", () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
     const [requestUrl, requestInit] = fetchMock.mock.calls[0] ?? [];
     expect(String(requestUrl)).toMatch(/\/api\/novelapi\/ai\/augment-image$/);
-    expect(requestInit).toEqual(expect.objectContaining({
-      method: "POST",
-      headers: expect.objectContaining({
-        "Content-Type": "application/json",
-        "Accept": "application/octet-stream",
-      }),
-    }));
+    expect(requestInit?.method).toBe("POST");
+    const requestHeaders = new Headers(requestInit?.headers);
+    expect(requestHeaders.get("Content-Type")).toBe("application/json");
+    expect(requestHeaders.get("Accept")).toBe("application/octet-stream");
 
     expect(JSON.parse(String(requestInit?.body))).toEqual({
       req_type: "lineart",
@@ -122,13 +119,10 @@ describe("aiImage api", () => {
     });
 
     const [, requestInit] = fetchMock.mock.calls[0] ?? [];
-    expect(requestInit).toEqual(expect.objectContaining({
-      method: "POST",
-      headers: expect.objectContaining({
-        "Accept": "application/octet-stream",
-      }),
-    }));
-    expect((requestInit?.headers as Record<string, string> | undefined)?.["Content-Type"]).toBeUndefined();
+    expect(requestInit?.method).toBe("POST");
+    const requestHeaders = new Headers(requestInit?.headers);
+    expect(requestHeaders.get("Accept")).toBe("application/octet-stream");
+    expect(requestHeaders.get("Content-Type")).toBeNull();
     expect(requestInit?.body).toBeInstanceOf(FormData);
     const formData = requestInit?.body as FormData;
     expect(formData.get("use_new_shared_trial")).toBe("true");

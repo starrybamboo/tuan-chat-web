@@ -62,7 +62,7 @@ function AvatarPreviewComponent({
   // 渲染图片预览
   const renderImagePreview = () => (
     <div className={`bg-gray-50 rounded border flex items-center justify-center overflow-hidden ${className}`}>
-      {previewCanvasRef?.current
+      {previewCanvasRef
         ? (
             <canvas ref={previewCanvasRef} className={`object-contain ${imageClassName} w-full h-full`} />
           )

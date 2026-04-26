@@ -1,50 +1,50 @@
 import type { RoleAbility } from "../../../../../api";
 
-import { tuanchat } from "../../../../../api/instance";
-import toastWindow from "@/components/common/toastWindow/toastWindow";
 import UTILS from "@/components/common/dicer/utils/utils";
+import toastWindow from "@/components/common/toastWindow/toastWindow";
 import { formatStateKeyLabel } from "@/types/stateEvent";
+import { tuanchat } from "../../../../../api/instance";
 
-type RuleTemplateLike = {
+interface RuleTemplateLike {
   basicDefault?: Record<string, string>;
   abilityFormula?: Record<string, string>;
   skillDefault?: Record<string, string>;
-};
+}
 
 type AbilitySection = "basic" | "ability" | "skill";
 
-type RawEntry = {
+interface RawEntry {
   key: string;
   value: string;
   section: AbilitySection;
   canonicalKey: string;
-};
+}
 
-export type StShowDisplayEntry = {
+export interface StShowDisplayEntry {
   key: string;
   label: string;
   value: string;
-};
+}
 
-export type StShowCardModel = {
+export interface StShowCardModel {
   entries: StShowDisplayEntry[];
   requestedMode: boolean;
   hiddenDefaultCount: number;
-};
+}
 
-type BuildStShowCardModelParams = {
+interface BuildStShowCardModelParams {
   ability: RoleAbility;
   template?: RuleTemplateLike | null;
   requestedKeys?: string[];
   keyAliasMap?: Record<string, string>;
-};
+}
 
-type OpenStShowCardWindowParams = {
+interface OpenStShowCardWindowParams {
   ability: RoleAbility;
   roleName?: string;
   requestedKeys?: string[];
   keyAliasMap?: Record<string, string>;
-};
+}
 
 const RULE_TEMPLATE_CACHE_TTL_MS = 5 * 60_000;
 const PRIMARY_VALUE_PAIRS = [
@@ -202,11 +202,11 @@ function buildDefaultValueMap(
   return nextMap;
 }
 
-type CanonicalEntryGroup = {
+interface CanonicalEntryGroup {
   canonicalKey: string;
   representative: RawEntry;
   entries: RawEntry[];
-};
+}
 
 function buildCanonicalEntryGroups(rawEntries: RawEntry[]): CanonicalEntryGroup[] {
   const groupMap = new Map<string, CanonicalEntryGroup>();

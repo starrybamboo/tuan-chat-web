@@ -13,6 +13,7 @@ interface ChatFrameMessageItemProps {
   canJumpToWebGAL: boolean;
   movable: boolean;
   isSelecting: boolean;
+  baseVersionMessage?: ChatMessageResponse | null;
   onExecuteCommandRequest?: (payload: {
     command: string;
     threadId?: number;
@@ -36,6 +37,7 @@ export default function ChatFrameMessageItem({
   canJumpToWebGAL,
   movable,
   isSelecting,
+  baseVersionMessage,
   onExecuteCommandRequest,
   isCommandRequestConsumed,
   onEditWebgalChoose,
@@ -88,6 +90,7 @@ export default function ChatFrameMessageItem({
         isCommandRequestConsumed={isCommandRequestConsumed}
         onToggleSelection={onToggleSelection}
         onEditWebgalChoose={onEditWebgalChoose}
+        baseVersionMessage={baseVersionMessage}
       />
       {!isSelecting && (
         <div className="relative h-4 -mt-2 group/insert select-none">

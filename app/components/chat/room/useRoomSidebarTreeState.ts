@@ -93,18 +93,18 @@ export default function useRoomSidebarTreeState({
 
   useEffect(() => {
     if (!canEdit) {
-      setLocalTree(null);
+      queueMicrotask(() => setLocalTree(null));
       return;
     }
     if (isDragging) {
       return;
     }
-    setLocalTree((prev) => {
+    queueMicrotask(() => setLocalTree((prev) => {
       if (isSameSidebarTree(prev, displayTree)) {
         return prev;
       }
       return displayTree;
-    });
+    }));
   }, [canEdit, displayTree, isDragging]);
 
   const treeToRender = canEdit ? (localTree ?? displayTree) : displayTree;

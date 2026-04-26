@@ -1,12 +1,12 @@
-import { useCallback, useEffect, useState } from "react";
-
 import type {
   AiImageHistoryPaneProps,
 } from "@/components/aiImage/history/types";
-import { DeleteHistoryConfirmModal, DownloadHistoryConfirmModal, ClearHistoryConfirmModal } from "@/components/aiImage/history/HistoryConfirmModal";
-import { DirectorHistoryPanel } from "@/components/aiImage/history/DirectorHistoryPanel";
-import { StandardHistoryPanel } from "@/components/aiImage/history/StandardHistoryPanel";
+
 import type { AiImageHistoryRow } from "@/utils/aiImageHistoryDb";
+import { useCallback, useEffect, useState } from "react";
+import { DirectorHistoryPanel } from "@/components/aiImage/history/DirectorHistoryPanel";
+import { ClearHistoryConfirmModal, DeleteHistoryConfirmModal, DownloadHistoryConfirmModal } from "@/components/aiImage/history/HistoryConfirmModal";
+import { StandardHistoryPanel } from "@/components/aiImage/history/StandardHistoryPanel";
 
 export function AiImageHistoryPane({
   isDirectorToolsOpen,
@@ -83,8 +83,8 @@ export function AiImageHistoryPane({
   useEffect(() => {
     if (history.length)
       return;
-    setIsDownloadHistoryConfirmOpen(false);
-    setIsClearHistoryConfirmOpen(false);
+    queueMicrotask(() => setIsDownloadHistoryConfirmOpen(false));
+    queueMicrotask(() => setIsClearHistoryConfirmOpen(false));
   }, [history.length]);
 
   return (

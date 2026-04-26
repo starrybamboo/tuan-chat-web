@@ -27,7 +27,7 @@ export function mergeOptimisticReadSyncMap(
   };
 }
 
-export const usePrivateUnreadStateStore = create<PrivateUnreadState>((set) => ({
+export const usePrivateUnreadStateStore = create<PrivateUnreadState>(set => ({
   optimisticReadSyncMap: {},
   markContactAsRead: (contactId, syncId) => {
     set((state) => {

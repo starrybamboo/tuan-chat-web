@@ -82,7 +82,8 @@
     "fflate": "0.8.2",
     "gsap": "^3.15.0",
     "isbot": "^5",
-    "lenis": "^1.3.23"
+    "lenis": "^1.3.23",
+    "motion": "^12.38.0"
   },
   "devDependencies": {
     "@antfu/eslint-config": "^4.11.0",
@@ -111,9 +112,9 @@
     "@tailwindcss/vite": "^4.0.17",
     "@tanstack/eslint-plugin-query": "^5.68.0",
     "@tanstack/react-query": "^5.69.0",
+    "@toeverything/theme": "1.1.23",
     "@tuanchat/domain": "workspace:*",
     "@tuanchat/query": "workspace:*",
-    "@toeverything/theme": "1.1.23",
     "@types/jest": "^30.0.0",
     "@types/node": "^20",
     "@types/qrcode": "^1.5.6",
@@ -125,6 +126,7 @@
     "@vitest/coverage-v8": "^2.1.8",
     "@xyflow/react": "^12.8.2",
     "ahooks": "^3.8.5",
+    "babel-plugin-react-compiler": "1.0.0",
     "browser-image-compression": "^2.0.2",
     "dagre": "^0.8.5",
     "daisyui": "^5.1.24",
@@ -173,6 +175,7 @@
     "use-immer": "^0.11.0",
     "vaul": "^1.1.2",
     "vite": "^6.2.6",
+    "vite-plugin-babel": "1.6.0",
     "vite-tsconfig-paths": "^5.1.4",
     "vitest": "^2.1.8",
     "wavesurfer.js": "^7.9.5",

@@ -1,9 +1,10 @@
 import { useEffect, useMemo } from "react";
 
+import type { WebsocketUtils } from "api/useWebSocket";
+
 import { usePrivateMessageList } from "@/components/privateChat/hooks/usePrivateMessageList";
 import { useUnreadCount } from "@/components/privateChat/hooks/useUnreadCount";
 import { useGetFriendRequestPageQuery } from "api/hooks/friendQueryHooks";
-import type { WebsocketUtils } from "api/useWebSocket";
 
 type UseChatUnreadIndicatorsParams = {
   webSocketUtils: WebsocketUtils;

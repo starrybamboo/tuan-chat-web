@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  NOVELAI_V45_CURATED_QUALITY_TAGS,
   buildNovelAiV45TextRequests,
   buildNovelAiV45TokenSnapshot,
   getNovelAiV45UcPresetText,
+  NOVELAI_V45_CURATED_QUALITY_TAGS,
 } from "@/components/aiImage/novelaiV45TokenMeter";
 
 describe("novelai V4.5 token meter helpers", () => {

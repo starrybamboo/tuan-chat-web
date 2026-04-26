@@ -1,10 +1,8 @@
-/* eslint-disable react-refresh/only-export-components */
-
 import type { ReactNode } from "react";
 import type { MediaAnnotationPreferenceType } from "@/components/chat/utils/mediaAnnotationPreference";
 
 import { produce } from "immer";
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { createContext, use, useCallback, useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import { preheatChatMediaPreprocess } from "@/components/chat/utils/attachmentPreprocess";
 import { resolveTempAnnotationsForMedia } from "@/components/chat/utils/mediaAnnotationPreference";
@@ -286,7 +284,7 @@ export function MaterialComposerProvider({
 
   useEffect(() => {
     ensureMaterialComposerMediaPreferences();
-    reset();
+    queueMicrotask(() => reset());
   }, [composerKey, reset]);
 
   const value = useMemo<MaterialComposerContextValue>(() => ({
@@ -337,14 +335,14 @@ export function MaterialComposerProvider({
   ]);
 
   return (
-    <MaterialComposerContext.Provider value={value}>
+    <MaterialComposerContext value={value}>
       {children}
-    </MaterialComposerContext.Provider>
+    </MaterialComposerContext>
   );
 }
 
 export function useMaterialComposerContext() {
-  const value = useContext(MaterialComposerContext);
+  const value = use(MaterialComposerContext);
   if (!value) {
     throw new Error("useMaterialComposerContext 必须在 MaterialComposerProvider 内使用");
   }

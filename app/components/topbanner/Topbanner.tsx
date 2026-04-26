@@ -193,7 +193,7 @@ export default function Topbar() {
                   );
                 })}
               </div>
-              <div className="mx-2 border border-l h-5 opacity-40" />
+              <div className="mx-2 border h-5 opacity-40" />
             </div>
             <div className="flex items-center gap-1">
               {/* <span className="hidden sm:inline text-xs opacity-70 select-none">Bug反馈</span> */}

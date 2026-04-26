@@ -8,7 +8,7 @@ import type {
   NovelAiEmotion,
 } from "@/components/aiImage/types";
 
-export interface AiImagePreviewPaneProps {
+export type AiImagePreviewPaneProps = {
   isDirectorToolsOpen: boolean;
   previewMeta: string;
   results: GeneratedImageItem[];
@@ -60,4 +60,4 @@ export interface AiImagePreviewPaneProps {
   onDownloadDirectorOutputImage: () => void;
   onApplySelectedPreviewSeed: () => void;
   formatDirectorEmotionLabel: (value: NovelAiEmotion) => string;
-}
+};

@@ -1,9 +1,9 @@
 import type { UserRole } from "../../../api";
 
-type RoleTypeMeta = {
+interface RoleTypeMeta {
   label: string;
   className: string;
-};
+}
 
 export function getUserRoleTypeMeta(role: Pick<UserRole, "type" | "npc" | "role" | "diceMaiden">): RoleTypeMeta {
   if (role.type === 2 || role.npc) {

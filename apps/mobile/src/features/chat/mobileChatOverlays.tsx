@@ -442,7 +442,8 @@ export function MobileChatSearchSheet({
                       输入关键词搜索消息内容、作者或消息编号
                     </ThemedText>
                     <ThemedText themeColor="textSecondary" type="small">
-                      当前房间：{currentRoomName}
+                      当前房间：
+                      {currentRoomName}
                     </ThemedText>
                   </View>
                 )}
@@ -507,7 +508,10 @@ export function MobileChatMembersSheet({
                   <ThemedText type="smallBold">返回聊天</ThemedText>
                 </Pressable>
               </View>
-              <ThemedText themeColor="textSecondary">当前房间：{roomName}</ThemedText>
+              <ThemedText themeColor="textSecondary">
+                当前房间：
+                {roomName}
+              </ThemedText>
             </View>
 
             <View style={styles.helperBlock}>

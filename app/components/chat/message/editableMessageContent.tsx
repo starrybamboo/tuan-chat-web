@@ -47,18 +47,18 @@ function EditableMessageContent({
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState(content);
   const wasEditingRef = useRef(false);
-  const getEditorText = useCallback(() => {
+  const getEditorText = () => {
     const raw = chatInputRef.current?.getRawElement();
     if (!raw) {
       return editContent;
     }
     const text = raw.textContent ?? "";
     return normalizeEditorText(text);
-  }, [chatInputRef, editContent]);
+  };
 
   useEffect(() => {
     if (!isEditing) {
-      setEditContent(content);
+      queueMicrotask(() => setEditContent(content));
     }
   }, [content, isEditing]);
 

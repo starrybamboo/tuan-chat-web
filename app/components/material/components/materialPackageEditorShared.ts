@@ -15,4 +15,3 @@ export function createEmptyMaterialPackageContent(): MaterialPackageContent {
     root: [],
   };
 }
-

@@ -185,4 +185,3 @@ function mergeMessages(
 
   return Object.fromEntries(mergedMessages);
 }
-

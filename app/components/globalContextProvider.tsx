@@ -45,11 +45,11 @@ const DEFAULT_WEBSOCKET_UTILS: WebsocketUtils = {
 
 const GlobalUserIdContext = createContext<number | null>(null);
 const GlobalWebSocketContext = createContext<WebsocketUtils>(DEFAULT_WEBSOCKET_UTILS);
-// eslint-disable-next-line react-refresh/only-export-components
+
 export const useGlobalUserId = () => use(GlobalUserIdContext);
-// eslint-disable-next-line react-refresh/only-export-components
+
 export const useGlobalWebSocket = () => use(GlobalWebSocketContext);
-// eslint-disable-next-line react-refresh/only-export-components
+
 export function useGlobalContext(): GlobalContextType {
   const userId = useGlobalUserId();
   const websocketUtils = useGlobalWebSocket();

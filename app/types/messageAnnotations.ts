@@ -19,10 +19,6 @@ const EFFECT_DURATION_MS_BY_ID: Record<string, number> = {
   "effect.12": 1968,
   "effect.13": 3408,
   "effect.14": 1248,
-  "effect.15": 2448,
-  "effect.16": 2448,
-  "effect.17": 2448,
-  "effect.18": 1920,
 };
 const EFFECT_ANNOTATION_FRAMES: Record<string, number> = {
   "effect.1": 36,
@@ -39,10 +35,6 @@ const EFFECT_ANNOTATION_FRAMES: Record<string, number> = {
   "effect.12": 35,
   "effect.13": 20,
   "effect.14": 26,
-  "effect.15": 26,
-  "effect.16": 26,
-  "effect.17": 26,
-  "effect.18": 34,
 };
 const EFFECT_TEXTURE_FILE_BY_ID: Record<string, string> = {
   "effect.1": "en_hmm.webp",
@@ -59,10 +51,6 @@ const EFFECT_TEXTURE_FILE_BY_ID: Record<string, string> = {
   "effect.12": "en_chat.webp",
   "effect.13": "en_getit.webp",
   "effect.14": "en_angry.webp",
-  "effect.15": "en_sleep.webp",
-  "effect.16": "en_cry.webp",
-  "effect.17": "en_dizzy.webp",
-  "effect.18": "en_heartbreak.webp",
 };
 const EFFECT_ID_BY_TEXTURE_FILE = (() => {
   const map: Record<string, string> = {};

@@ -44,7 +44,7 @@ function approximateNovelAiV45TokenCount(text: string) {
   const normalized = trimText(text);
   if (!normalized)
     return 0;
-  const units = normalized.match(/[A-Za-z]+|\d+\.\d+|\d+|[^\s]/g) ?? [];
+  const units = normalized.match(/[A-Z]+|\d+\.\d+|\d+|\S/gi) ?? [];
   return units.length + 1;
 }
 

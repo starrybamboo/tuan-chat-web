@@ -191,7 +191,7 @@ export default function MaterialPackageLibraryWorkspace({
   return (
     <div className={`h-full min-h-0 overflow-y-auto text-base-content ${embedded ? "bg-base-300/40" : "bg-[radial-gradient(circle_at_top_left,oklch(var(--p)/0.1),transparent_26%),linear-gradient(180deg,oklch(var(--b2)/0.98),oklch(var(--b1)/1))] border-t border-base-300"}`}>
       {embedded && (
-        <div className="sticky top-0 z-20 border-t border-b border-gray-300 bg-base-200/95 backdrop-blur dark:border-gray-700">
+        <div className="sticky top-0 z-20 border-y border-gray-300 bg-base-200/95 backdrop-blur dark:border-gray-700">
           <div className="mx-auto flex w-full max-w-6xl flex-col gap-3 px-4 py-3 sm:h-12 sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:px-6 sm:py-0">
             <div className="flex min-w-0 items-center gap-3 sm:flex-1">
               <div className="min-w-0 flex-1 truncate text-sm font-semibold text-base-content">{title}</div>

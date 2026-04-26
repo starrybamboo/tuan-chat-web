@@ -1,6 +1,6 @@
 import type {
-  V4CharGender,
   V4CharEditorRow,
+  V4CharGender,
 } from "@/components/aiImage/types";
 
 import {

@@ -1,10 +1,11 @@
-import type { TuanChat } from "@tuanchat/openapi-client/TuanChat";
 import { useQuery } from "@tanstack/react-query";
 
-export interface ResourceQueryOptions {
+import type { TuanChat } from "@tuanchat/openapi-client/TuanChat";
+
+export type ResourceQueryOptions = {
   enabled?: boolean;
   staleTime?: number;
-}
+};
 
 type SpaceClient = Pick<TuanChat, "spaceController" | "roomController">;
 

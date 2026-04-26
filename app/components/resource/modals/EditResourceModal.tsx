@@ -250,4 +250,3 @@ export function EditResourceModal({
     </div>
   );
 }
-

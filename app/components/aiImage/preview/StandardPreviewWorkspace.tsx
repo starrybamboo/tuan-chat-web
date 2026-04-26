@@ -1,14 +1,14 @@
+import type { AiImagePreviewPaneProps } from "@/components/aiImage/preview/types";
+
 import {
   ArrowRightIcon,
   ClipboardTextIcon,
   FrameCornersIcon,
   MagicWandIcon,
-  PlantIcon,
   PushPinIcon as PhosphorPushPinIcon,
+  PlantIcon,
   SelectionPlusIcon,
 } from "@phosphor-icons/react";
-
-import type { AiImagePreviewPaneProps } from "@/components/aiImage/preview/types";
 import { EmptyPreviewPlaceholder } from "@/components/aiImage/preview/EmptyPreviewPlaceholder";
 import { ExpandCornersIcon, SharpDownload } from "@/icons";
 

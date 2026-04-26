@@ -5,6 +5,8 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router";
 import Pagination from "@/components/common/pagination";
 
+const EMPTY_STRING_LIST: string[] = [];
+
 // 卡片内容类型定义
 interface ContentCardProps {
   // 可选的图片
@@ -68,10 +70,10 @@ export function ContentCard({
   minTime,
   maxTime,
   badgeLabel,
-  topBadges = [],
+  topBadges = EMPTY_STRING_LIST,
   subtitle,
-  metadata = [],
-  hoverMetadata = [],
+  metadata = EMPTY_STRING_LIST,
+  hoverMetadata = EMPTY_STRING_LIST,
   imageAspect = "square",
   placeholder,
   titleSuffix,
@@ -79,11 +81,8 @@ export function ContentCard({
   hoverHint,
   imageOnLoad,
 }: ContentCardProps & { imageOnLoad?: () => void }) {
-  const [hasImageError, setHasImageError] = useState(false);
-
-  useEffect(() => {
-    setHasImageError(false);
-  }, [image]);
+  const [failedImage, setFailedImage] = useState<string | null>(null);
+  const hasImageError = Boolean(image && failedImage === image);
 
   // 根据大小设置基础样式
   const sizeClasses = {
@@ -144,8 +143,13 @@ export function ContentCard({
               src={image}
               alt={imageAlt || title || "Content image"}
               className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.04]"
-              onLoad={imageOnLoad}
-              onError={() => setHasImageError(true)}
+              onLoad={() => {
+                if (failedImage === image) {
+                  setFailedImage(null);
+                }
+                imageOnLoad?.();
+              }}
+              onError={() => setFailedImage(image ?? null)}
             />
           )}
           {shouldShowPlaceholder && (
@@ -483,7 +487,7 @@ export default function RepositoryHome() {
               {(() => {
                 if (repositoryList.isLoading || (currentItems.length !== 0 && !imagesReady)) {
                   return Array.from({ length: 8 }, (_, index) => (
-                    <div key={`loading-skeleton-${index}-${Math.random()}`} className="animate-pulse">
+                    <div key={`loading-skeleton-${index}`} className="animate-pulse">
                       <div className="bg-base-300 aspect-square rounded-none mb-4"></div>
                       <div className="h-4 bg-base-300 rounded mb-2"></div>
                       <div className="h-3 bg-base-300 rounded mb-1"></div>

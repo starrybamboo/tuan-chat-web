@@ -147,7 +147,7 @@ export default function NumericalEditor({
 
     const wasEditing = prevIsEditingRef.current;
     if (wasEditing && !isEditing) {
-      handleExitEditing();
+      queueMicrotask(() => handleExitEditing());
     }
     prevIsEditingRef.current = isEditing;
   }, [handleExitEditing, isEditing, isEditingControlled]);

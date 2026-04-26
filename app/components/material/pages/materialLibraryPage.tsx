@@ -10,8 +10,8 @@ import {
   useUpdateMaterialPackageMutation,
 } from "../../../../api/hooks/materialPackageQueryHooks";
 import { buildMaterialPackageEditorDraft } from "../components/materialPackageEditorDraft";
-import { buildGlobalMaterialPackageEditorValueKey } from "../components/materialPackageEditorValueKey";
 import { createEmptyMaterialPackageContent } from "../components/materialPackageEditorShared";
+import { buildGlobalMaterialPackageEditorValueKey } from "../components/materialPackageEditorValueKey";
 import MaterialPackageLibraryFrame from "../components/materialPackageLibraryFrame";
 import { buildGlobalMaterialPackageCardModel } from "../components/materialPackageLibraryModels";
 import MaterialPackageLibrarySidebar from "../components/materialPackageLibrarySidebar";
@@ -80,24 +80,24 @@ export default function MaterialLibraryPage({
 
   useEffect(() => {
     if (mode) {
-      setSelectedPackageId(null);
-      setIsCreating(false);
-      setKeyword("");
+      queueMicrotask(() => setSelectedPackageId(null));
+      queueMicrotask(() => setIsCreating(false));
+      queueMicrotask(() => setKeyword(""));
     }
   }, [mode]);
 
   useEffect(() => {
     if (!mode && initialTab) {
-      setInternalActiveTab(initialTab);
-      setSelectedPackageId(null);
-      setIsCreating(false);
-      setKeyword("");
+      queueMicrotask(() => setInternalActiveTab(initialTab));
+      queueMicrotask(() => setSelectedPackageId(null));
+      queueMicrotask(() => setIsCreating(false));
+      queueMicrotask(() => setKeyword(""));
     }
   }, [initialTab, mode]);
 
   useEffect(() => {
     if (selectedPackageId !== null && !packages.some(item => item.packageId === selectedPackageId)) {
-      setSelectedPackageId(null);
+      queueMicrotask(() => setSelectedPackageId(null));
     }
   }, [packages, selectedPackageId]);
 

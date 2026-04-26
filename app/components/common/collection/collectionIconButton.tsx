@@ -123,8 +123,9 @@ export default function CollectionIconButton({
   const GetCollectionId = isCollectedQuery?.data?.data ?? 0;
   const [isCollected, setIsCollected] = useState(initialIsCollected);
   useEffect(() => {
-    if (typeof isCollectedQuery?.data?.data === "number") {
-      setIsCollected(isCollectedQuery.data?.data);
+    const nextCollected = isCollectedQuery?.data?.data;
+    if (typeof nextCollected === "number") {
+      queueMicrotask(() => setIsCollected(nextCollected));
     }
   }, [isCollectedQuery.data]);
 
@@ -137,7 +138,7 @@ export default function CollectionIconButton({
   useEffect(() => {
     const serverCount = countData?.data?.data;
     if (typeof serverCount === "number") {
-      setCollectionCount(() => serverCount);
+      queueMicrotask(() => setCollectionCount(() => serverCount));
     }
   }, [countData]);
 

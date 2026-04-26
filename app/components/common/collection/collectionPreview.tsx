@@ -29,7 +29,7 @@ export default function CollectionPreview({ collectionId, resourceId, collection
     () => {
       const actualHeight = previewRef.current?.offsetHeight;
       if (actualHeight) {
-        setSpan(Math.ceil(actualHeight / BASE_ROW_HEIGHT));
+        queueMicrotask(() => setSpan(Math.ceil(actualHeight / BASE_ROW_HEIGHT)));
       }
     },
     [previewRef],

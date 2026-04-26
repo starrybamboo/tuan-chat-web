@@ -127,7 +127,7 @@ export function OpenAbleDrawer({
   }, [clamp, recomputeBounds]);
 
   useLayoutEffect(() => {
-    syncBoundsAndWidth();
+    queueMicrotask(() => syncBoundsAndWidth());
   }, [syncBoundsAndWidth]);
 
   useEffect(() => {
@@ -147,10 +147,10 @@ export function OpenAbleDrawer({
     if (!Number.isFinite(controlledWidth)) {
       return;
     }
-    setWidth((prev) => {
+    queueMicrotask(() => setWidth((prev) => {
       const nextWidth = clamp(controlledWidth as number, bounds.min, bounds.max);
       return nextWidth === prev ? prev : nextWidth;
-    });
+    }));
   }, [bounds.max, bounds.min, clamp, controlledWidth]);
 
   useEffect(() => {

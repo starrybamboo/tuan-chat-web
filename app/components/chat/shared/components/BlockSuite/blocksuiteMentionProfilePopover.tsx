@@ -4,12 +4,12 @@ import type { BlocksuiteMentionProfilePopoverState } from "./blocksuiteMentionPr
 import { ArrowSquareOut, CircleNotch, UserCircle } from "@phosphor-icons/react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { getScreenSize } from "@/utils/getScreenSize";
 import { useGetRoleQuery } from "../../../../../../api/hooks/RoleAndAvatarHooks";
 import { useGetUserProfileQuery } from "../../../../../../api/hooks/UserHooks";
 import { RoleDetailPagePopup } from "../../../../common/roleDetailPagePopup";
 import { ToastWindow } from "../../../../common/toastWindow/ToastWindowComponent";
 import UserStatusDot from "../../../../common/userStatusBadge.jsx";
-import { getScreenSize } from "@/utils/getScreenSize";
 import {
   buildBlocksuiteMentionPopoverPosition,
   getBlocksuiteMentionProfileHref,
@@ -280,7 +280,7 @@ export function BlocksuiteMentionProfilePopover(props: {
   const userHref = href ?? "/profile/0";
 
   useEffect(() => {
-    setMounted(true);
+    queueMicrotask(() => setMounted(true));
   }, []);
 
   useEffect(() => {
@@ -409,4 +409,3 @@ export function BlocksuiteMentionProfilePopover(props: {
     portalTarget,
   );
 }
-

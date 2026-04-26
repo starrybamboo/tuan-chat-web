@@ -1,7 +1,8 @@
-import type { Message } from "../../../../api";
-
 import { describe, expect, it } from "vitest";
+
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
+
+import type { Message } from "../../../../api";
 
 import { canCurrentUserViewMessage, filterVisibleChatMessages, isHiddenDiceMessage } from "./hiddenDiceVisibility";
 

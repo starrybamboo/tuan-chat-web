@@ -341,12 +341,12 @@ export function CollectionListDetail(props: CollectionListDetailProps) {
     setShowDeleteConfirm(true);
   }, []);
 
-  const handleDeleteConfirm = useCallback(() => {
+  const handleDeleteConfirm = () => {
     if (collectionList?.collectionListId && onDelete) {
       onDelete(collectionList.collectionListId);
       setShowDeleteConfirm(false);
     }
-  }, [collectionList?.collectionListId, onDelete]);
+  };
 
   const handleDeleteCancel = useCallback(() => {
     setShowDeleteConfirm(false);
@@ -663,4 +663,3 @@ export function CollectionListDetail(props: CollectionListDetailProps) {
     </div>
   );
 }
-

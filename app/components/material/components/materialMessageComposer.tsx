@@ -71,11 +71,11 @@ export default function MaterialMessageComposer({
   }), []);
 
   useEffect(() => {
-    setCurrentChatStatus("idle");
-    setInputSnapshot({
+    queueMicrotask(() => setCurrentChatStatus("idle"));
+    queueMicrotask(() => setInputSnapshot({
       plainText: "",
       textWithoutMentions: "",
-    });
+    }));
     setInputText("");
   }, [composerKey, setInputText]);
 

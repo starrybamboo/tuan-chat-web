@@ -2,13 +2,14 @@ import type { PropsWithChildren } from "react";
 import type { ChatMessageResponse, RoleAbility } from "../../../../api";
 import type { StateDefinitionResolver } from "./stateDefinitionResolver";
 
+import type { StateRuntime } from "./stateRuntime";
 import { useQueries } from "@tanstack/react-query";
 import React from "react";
-import { tuanchat } from "../../../../api/instance";
-import { buildStateRuntime, type StateRuntime } from "./stateRuntime";
-import { EMPTY_STATE_DEFINITION_RESOLVER } from "./stateDefinitionResolver";
 import { getNormalizedStateEventExtra } from "@/types/stateEvent";
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
+import { tuanchat } from "../../../../api/instance";
+import { EMPTY_STATE_DEFINITION_RESOLVER } from "./stateDefinitionResolver";
+import { buildStateRuntime } from "./stateRuntime";
 
 export type StateRuntimeContextValue = StateRuntime & {
   currentRoleId: number;
@@ -125,14 +126,14 @@ export function StateRuntimeProvider({
   }), [abilityQueries, currentRoleId, fallbackRoleAbilitiesByRoleId, runtime]);
 
   return (
-    <StateRuntimeContext.Provider value={value}>
+    <StateRuntimeContext value={value}>
       {children}
-    </StateRuntimeContext.Provider>
+    </StateRuntimeContext>
   );
 }
 
 export function useStateRuntimeContext(): StateRuntimeContextValue {
-  const context = React.useContext(StateRuntimeContext);
+  const context = React.use(StateRuntimeContext);
   if (!context) {
     throw new Error("useStateRuntimeContext 必须在 StateRuntimeProvider 内使用");
   }
@@ -140,5 +141,5 @@ export function useStateRuntimeContext(): StateRuntimeContextValue {
 }
 
 export function useOptionalStateRuntimeContext(): StateRuntimeContextValue | null {
-  return React.useContext(StateRuntimeContext);
+  return React.use(StateRuntimeContext);
 }

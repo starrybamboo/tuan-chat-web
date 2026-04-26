@@ -49,7 +49,7 @@ sequenceDiagram
 
 ## 2. 首开 query 会被冻结
 
-[useBlocksuiteFrameInit.ts](../../shared/components/BlockSuite/useBlocksuiteFrameInit.ts) 会把首开参数冻结到 `frozenInitParamsRef`。
+[useBlocksuiteFrameInit.ts](../../shared/components/BlockSuite/useBlocksuiteFrameInit.ts) 会用 lazy state 冻结首开参数。
 
 目的：
 

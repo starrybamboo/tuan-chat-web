@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+
 import { buildRoleStateEventScope, collectStateEventScopeLabels, formatStateEventAtomDetail, formatStateScopeLabel } from "./stateEvent";
 
 describe("stateEvent display helpers", () => {

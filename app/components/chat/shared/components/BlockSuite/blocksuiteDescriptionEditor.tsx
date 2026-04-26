@@ -155,13 +155,13 @@ function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEdito
 
   // 当 docId 变化时，重置 ready 状态以显示 loading skeleton
   useEffect(() => {
-    setIsFrameReady(false);
+    queueMicrotask(() => setIsFrameReady(false));
   }, [docId]);
 
   // 一旦 iframe ready 过一次，就算后续切 doc 了也不再显示 skeleton 了（除非再次切回初始 doc），以避免频繁切 doc 时的闪烁
   useEffect(() => {
     if (isFrameReady) {
-      setHasFrameReadyOnce(true);
+      queueMicrotask(() => setHasFrameReadyOnce(true));
     }
   }, [isFrameReady]);
 

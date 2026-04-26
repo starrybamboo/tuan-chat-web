@@ -17,7 +17,7 @@ export default function RuleCloneModal({
 
   useEffect(() => {
     if (!isOpen) {
-      setSelectedRuleId(0);
+      queueMicrotask(() => setSelectedRuleId(0));
     }
   }, [isOpen]);
 
@@ -117,4 +117,3 @@ export default function RuleCloneModal({
     </dialog>
   );
 }
-

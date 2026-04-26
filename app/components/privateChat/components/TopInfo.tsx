@@ -2,7 +2,7 @@ import { ChevronRight } from "@/icons";
 
 export default function TopInfo({ setIsOpenLeftDrawer, currentContactUserInfo }: { setIsOpenLeftDrawer: (isOpen: boolean) => void; currentContactUserInfo: any }) {
   return (
-    <div className="border-gray-300 dark:border-gray-700 border-b border-t flex justify-between items-center overflow-visible relative z-10">
+    <div className="border-gray-300 dark:border-gray-700 border-y flex justify-between items-center overflow-visible relative z-10">
       <div
         className="flex justify-between items-center w-full px-2 h-10
         bg-white/40 dark:bg-slate-950/25 backdrop-blur-xl

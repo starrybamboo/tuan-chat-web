@@ -3,13 +3,13 @@ import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useUpdateReadPositionMutation } from "api/hooks/MessageDirectQueryHooks";
 
 import type { MessageDirectType } from "../types/messageDirect";
+
 import { usePrivateUnreadStateStore } from "../privateUnreadStateStore";
 import { getLatestIncomingSync, getUnreadMessageCountForMessages } from "../privateUnreadUtils";
 
 export function useUnreadCount({ realTimeContacts, sortedRealTimeMessages, userId, urlRoomId, isInboxReady }: { realTimeContacts: number[]; sortedRealTimeMessages: [string, MessageDirectType[]][]; userId: number; urlRoomId: string | undefined; isInboxReady: boolean }) {
   const prevUrlRoomIdRef = useRef<string | undefined>(undefined);
   const prevUserIdRef = useRef<number | undefined>(undefined);
-  const stableUnreadRef = useRef<Record<number, number>>({});
   const optimisticReadSyncMap = usePrivateUnreadStateStore(state => state.optimisticReadSyncMap);
   const markContactAsRead = usePrivateUnreadStateStore(state => state.markContactAsRead);
   const resetOptimisticReadSync = usePrivateUnreadStateStore(state => state.reset);
@@ -30,9 +30,8 @@ export function useUnreadCount({ realTimeContacts, sortedRealTimeMessages, userI
   }, [getMessagesByContact, markContactAsRead]);
 
   const unreadMessageNumbers = useMemo(() => {
-    // 历史数据未就绪时，沿用最近一次稳定结果，避免 readLine 未注入造成误判。
     if (userId <= 0 || !isInboxReady) {
-      return stableUnreadRef.current;
+      return {};
     }
 
     const counts: Record<number, number> = {};
@@ -50,14 +49,7 @@ export function useUnreadCount({ realTimeContacts, sortedRealTimeMessages, userI
   }, [realTimeContacts, getMessagesByContact, userId, isInboxReady, optimisticReadSyncMap]);
 
   useEffect(() => {
-    if (userId > 0 && isInboxReady) {
-      stableUnreadRef.current = unreadMessageNumbers;
-    }
-  }, [unreadMessageNumbers, userId, isInboxReady]);
-
-  useEffect(() => {
     if (prevUserIdRef.current != null && prevUserIdRef.current !== userId) {
-      stableUnreadRef.current = {};
       resetOptimisticReadSync();
     }
     prevUserIdRef.current = userId;
@@ -65,7 +57,6 @@ export function useUnreadCount({ realTimeContacts, sortedRealTimeMessages, userI
 
   useEffect(() => {
     if (userId <= 0) {
-      stableUnreadRef.current = {};
       resetOptimisticReadSync();
     }
   }, [resetOptimisticReadSync, userId]);

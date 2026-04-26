@@ -19,14 +19,14 @@ export function PreviewImageDialog({
 
   useEffect(() => {
     if (isOpen) {
-      setShouldRender(true);
+      queueMicrotask(() => setShouldRender(true));
       const raf = window.requestAnimationFrame(() => {
         setIsVisible(true);
       });
       return () => window.cancelAnimationFrame(raf);
     }
 
-    setIsVisible(false);
+    queueMicrotask(() => setIsVisible(false));
     const timer = window.setTimeout(() => {
       setShouldRender(false);
     }, PREVIEW_IMAGE_DIALOG_TRANSITION_MS);

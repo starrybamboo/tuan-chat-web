@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { Doc, applyUpdate, encodeStateAsUpdate, encodeStateVector } from "yjs";
+import { applyUpdate, Doc, encodeStateAsUpdate, encodeStateVector } from "yjs";
 
 import { deleteUpdatesByIds, listUpdateRecords } from "@/components/chat/infra/blocksuite/description/descriptionDocDb";
 import { getRemoteSnapshot, getRemoteUpdates, pushRemoteUpdate, setRemoteSnapshot } from "@/components/chat/infra/blocksuite/description/descriptionDocRemote";

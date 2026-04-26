@@ -228,7 +228,7 @@ export function MobileChatWebShell({
   const baseUrl = useMemo(() => {
     return resolveChatWebBaseUrl();
   }, []);
-  const initialUrlRef = useRef(resolveHostedUrl(baseUrl, pendingNotificationTargetPath));
+  const [initialUrl] = useState(() => resolveHostedUrl(baseUrl, pendingNotificationTargetPath));
   const injectedJavaScriptBeforeContentLoaded = useMemo(() => {
     return buildBridgeScript(session, insets);
   }, [insets, session]);
@@ -396,7 +396,6 @@ export function MobileChatWebShell({
   }
 
   // 仅在 native 平台加载 WebView，避免 web 端 bundle 直接触达原生实现。
-  // eslint-disable-next-line ts/no-require-imports
   const { WebView } = require("react-native-webview") as {
     WebView: ComponentType<{
       allowFileAccess?: boolean;
@@ -434,7 +433,7 @@ export function MobileChatWebShell({
         originWhitelist={["*"]}
         setSupportMultipleWindows={false}
         sharedCookiesEnabled
-        source={{ uri: initialUrlRef.current }}
+        source={{ uri: initialUrl }}
         style={styles.root}
         thirdPartyCookiesEnabled
       />

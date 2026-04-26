@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 
 import { HighlightEmphasisTextarea, parseNovelAiSegments } from "@/components/aiImage/HighlightEmphasisTextarea";
 
-describe("HighlightEmphasisTextarea", () => {
+describe("highlightEmphasisTextarea", () => {
   it("does not treat trailing digits inside a tag as a new numeric emphasis", () => {
     const segments = parseNovelAiSegments("1.2::tag3::");
 

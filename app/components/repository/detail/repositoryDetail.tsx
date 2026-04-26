@@ -801,4 +801,3 @@ export default function RepositoryDetailComponent({
     </>
   );
 }
-

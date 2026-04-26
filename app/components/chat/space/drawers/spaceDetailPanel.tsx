@@ -3,10 +3,10 @@ import type { SpaceDetailTab } from "@/components/chat/chatPage.types";
 import { use, useState } from "react";
 import toast from "react-hot-toast";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
-import { canInviteSpectators, canManageMemberPermissions } from "@/components/chat/utils/memberPermissions";
-import { canViewSpaceDetailTab } from "@/components/chat/utils/spaceDetailPermissions";
 import MemberLists from "@/components/chat/shared/components/memberLists";
 import RoleList from "@/components/chat/shared/components/roleLists";
+import { canInviteSpectators, canManageMemberPermissions } from "@/components/chat/utils/memberPermissions";
+import { canViewSpaceDetailTab } from "@/components/chat/utils/spaceDetailPermissions";
 import AddMemberWindow from "@/components/chat/window/addMemberWindow";
 import { AddRoleWindow } from "@/components/chat/window/addRoleWindow";
 import SpaceSettingWindow from "@/components/chat/window/spaceSettingWindow";
@@ -117,7 +117,7 @@ export default function SpaceDetailPanel({ activeTab, onClose }: { activeTab: Sp
   };
   return (
     <div className="h-full w-full overflow-hidden">
-      <div className="flex items-center gap-2 h-10 px-2 border-t border-b border-gray-300 dark:border-gray-700 bg-base-100">
+      <div className="flex items-center gap-2 h-10 px-2 border-y border-gray-300 dark:border-gray-700 bg-base-100">
         <button
           type="button"
           className="btn btn-ghost btn-sm btn-square"

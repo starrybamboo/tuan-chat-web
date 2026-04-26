@@ -23,9 +23,28 @@ function clampAiImageSidebarWidth(nextWidth: number, containerWidth: number) {
 
 export default function AiImagePage() {
   const controller = useAiImagePageController();
+  const {
+    handlePageImageDragEnter,
+    handlePageImageDragLeave,
+    handlePageImageDragOver,
+    handlePageImageDrop,
+    handlePickPreciseReference,
+    handlePickSourceImage,
+    handlePickVibeReferences,
+    inpaintDialogProps,
+    isPageImageDragOver,
+    metadataImportDialogProps,
+    preciseReferenceInputRef,
+    previewImageDialogProps,
+    sidebarProps,
+    sourceFileInputRef,
+    stylePickerDialogProps,
+    vibeReferenceInputRef,
+    workspaceProps,
+  } = controller;
   const layoutRef = useRef<HTMLDivElement | null>(null);
   const [sidebarWidth, setSidebarWidth] = useState<number | null>(null);
-  const isSidebarVisible = !controller.sidebarProps.isDirectorToolsOpen;
+  const isSidebarVisible = !sidebarProps.isDirectorToolsOpen;
 
   useEffect(() => {
     const layoutElement = layoutRef.current;
@@ -92,10 +111,10 @@ export default function AiImagePage() {
   return (
     <div
       className="ai-image-shell relative flex h-full min-h-0 w-full min-w-0 flex-col overflow-hidden bg-base-100"
-      onDragEnter={controller.handlePageImageDragEnter}
-      onDragLeave={controller.handlePageImageDragLeave}
-      onDragOver={controller.handlePageImageDragOver}
-      onDrop={controller.handlePageImageDrop}
+      onDragEnter={handlePageImageDragEnter}
+      onDragLeave={handlePageImageDragLeave}
+      onDragOver={handlePageImageDragOver}
+      onDrop={handlePageImageDrop}
     >
       <style>
         {`
@@ -147,7 +166,7 @@ export default function AiImagePage() {
         }
       `}
       </style>
-      {controller.isPageImageDragOver
+      {isPageImageDragOver
         ? (
             <div className="pointer-events-none absolute inset-0 z-40 flex items-center justify-center bg-base-100/52 backdrop-blur-[2px]">
               <div className="flex size-[88px] items-center justify-center rounded-[24px] bg-[#242636]/78 shadow-[0_16px_34px_rgba(0,0,0,0.24)] backdrop-blur-sm">
@@ -158,7 +177,7 @@ export default function AiImagePage() {
         : null}
 
       <input
-        ref={controller.sourceFileInputRef}
+        ref={sourceFileInputRef}
         type="file"
         accept="image/*"
         className="hidden"
@@ -166,12 +185,12 @@ export default function AiImagePage() {
           const file = event.target.files?.[0];
           if (!file)
             return;
-          void controller.handlePickSourceImage(file, { source: "picker", imageCount: 1 });
+          void handlePickSourceImage(file, { source: "picker", imageCount: 1 });
           event.target.value = "";
         }}
       />
       <input
-        ref={controller.vibeReferenceInputRef}
+        ref={vibeReferenceInputRef}
         type="file"
         accept="image/*"
         multiple
@@ -180,12 +199,12 @@ export default function AiImagePage() {
           const files = event.target.files;
           if (!files?.length)
             return;
-          void controller.handlePickVibeReferences(files);
+          void handlePickVibeReferences(files);
           event.target.value = "";
         }}
       />
       <input
-        ref={controller.preciseReferenceInputRef}
+        ref={preciseReferenceInputRef}
         type="file"
         accept="image/*"
         className="hidden"
@@ -193,7 +212,7 @@ export default function AiImagePage() {
           const file = event.target.files?.[0];
           if (!file)
             return;
-          void controller.handlePickPreciseReference(file);
+          void handlePickPreciseReference(file);
           event.target.value = "";
         }}
       />
@@ -206,7 +225,7 @@ export default function AiImagePage() {
                   className="relative z-20 flex min-h-0 min-w-0 shrink-0"
                   style={sidebarWidth == null ? undefined : { width: `${sidebarWidth}px` }}
                 >
-                  <AiImageSidebar sidebarProps={controller.sidebarProps} />
+                  <AiImageSidebar sidebarProps={sidebarProps} />
                   <button
                     type="button"
                     className="group absolute inset-y-0 right-0 z-30 w-3 translate-x-1/2 cursor-col-resize touch-none bg-transparent px-0"
@@ -220,13 +239,13 @@ export default function AiImagePage() {
               </>
             )
           : null}
-        <AiImageWorkspace {...controller.workspaceProps} />
+        <AiImageWorkspace {...workspaceProps} />
       </div>
 
-      <MetadataImportDialog {...controller.metadataImportDialogProps} />
-      <PreviewImageDialog {...controller.previewImageDialogProps} />
-      <InpaintDialog {...controller.inpaintDialogProps} />
-      <StylePickerDialog {...controller.stylePickerDialogProps} />
+      <MetadataImportDialog {...metadataImportDialogProps} />
+      <PreviewImageDialog {...previewImageDialogProps} />
+      <InpaintDialog {...inpaintDialogProps} />
+      <StylePickerDialog {...stylePickerDialogProps} />
     </div>
   );
 }

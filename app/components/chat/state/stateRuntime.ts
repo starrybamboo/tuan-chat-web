@@ -1,5 +1,3 @@
-import type { Message, RoleAbility } from "../../../../api";
-import type { StateDefinition, StateDefinitionResolver } from "./stateDefinitionResolver";
 import type { StateEventAtom, StateEventScope, StateEventStackMode } from "@/types/stateEvent";
 
 import {
@@ -14,6 +12,9 @@ import {
   STATE_EVENT_VAR_OP,
 } from "@/types/stateEvent";
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
+
+import type { Message, RoleAbility } from "../../../../api";
+import type { StateDefinition, StateDefinitionResolver } from "./stateDefinitionResolver";
 
 export type StateValueMap = Record<string, number>;
 

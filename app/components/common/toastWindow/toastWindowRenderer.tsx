@@ -37,7 +37,7 @@ export function ToastWindowRenderer() {
 
   useEffect(() => {
     // 确保只在客户端运行
-    setIsClient(true);
+    queueMicrotask(() => setIsClient(true));
   }, []);
 
   useEffect(() => {

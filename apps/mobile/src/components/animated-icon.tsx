@@ -1,16 +1,17 @@
-import { Image } from 'expo-image';
-import { useState } from 'react';
-import { Dimensions, StyleSheet, View } from 'react-native';
-import Animated, { Easing, Keyframe } from 'react-native-reanimated';
-import { scheduleOnRN } from 'react-native-worklets';
+import { Image } from "expo-image";
+import { useState } from "react";
+import { Dimensions, StyleSheet, View } from "react-native";
+import Animated, { Easing, Keyframe } from "react-native-reanimated";
+import { scheduleOnRN } from "react-native-worklets";
 
-const INITIAL_SCALE_FACTOR = Dimensions.get('screen').height / 90;
+const INITIAL_SCALE_FACTOR = Dimensions.get("screen").height / 90;
 const DURATION = 600;
 
 export function AnimatedSplashOverlay() {
   const [visible, setVisible] = useState(true);
 
-  if (!visible) return null;
+  if (!visible)
+    return null;
 
   const splashKeyframe = new Keyframe({
     0: {
@@ -34,7 +35,7 @@ export function AnimatedSplashOverlay() {
   return (
     <Animated.View
       entering={splashKeyframe.duration(DURATION).withCallback((finished) => {
-        'worklet';
+        "worklet";
         if (finished) {
           scheduleOnRN(setVisible, false);
         }
@@ -73,10 +74,10 @@ const logoKeyframe = new Keyframe({
 
 const glowKeyframe = new Keyframe({
   0: {
-    transform: [{ rotateZ: '0deg' }],
+    transform: [{ rotateZ: "0deg" }],
   },
   100: {
-    transform: [{ rotateZ: '7200deg' }],
+    transform: [{ rotateZ: "7200deg" }],
   },
 });
 
@@ -84,12 +85,12 @@ export function AnimatedIcon() {
   return (
     <View style={styles.iconContainer}>
       <Animated.View entering={glowKeyframe.duration(60 * 1000 * 4)} style={styles.glow}>
-        <Image style={styles.glow} source={require('@/assets/images/logo-glow.png')} />
+        <Image style={styles.glow} source={require("@/assets/images/logo-glow.png")} />
       </Animated.View>
 
       <Animated.View entering={keyframe.duration(DURATION)} style={styles.background} />
       <Animated.View style={styles.imageContainer} entering={logoKeyframe.duration(DURATION)}>
-        <Image style={styles.image} source={require('@/assets/images/expo-logo.png')} />
+        <Image style={styles.image} source={require("@/assets/images/expo-logo.png")} />
       </Animated.View>
     </View>
   );
@@ -97,23 +98,23 @@ export function AnimatedIcon() {
 
 const styles = StyleSheet.create({
   imageContainer: {
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   glow: {
     width: 201,
     height: 201,
-    position: 'absolute',
+    position: "absolute",
   },
   iconContainer: {
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     width: 128,
     height: 128,
     zIndex: 100,
   },
   image: {
-    position: 'absolute',
+    position: "absolute",
     width: 76,
     height: 71,
   },
@@ -122,11 +123,11 @@ const styles = StyleSheet.create({
     experimental_backgroundImage: `linear-gradient(180deg, #3C9FFE, #0274DF)`,
     width: 128,
     height: 128,
-    position: 'absolute',
+    position: "absolute",
   },
   backgroundSolidColor: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: '#208AEF',
+    backgroundColor: "#208AEF",
     zIndex: 1000,
   },
 });

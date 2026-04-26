@@ -54,7 +54,7 @@ export function useCharacterData(options: UseCharacterDataOptions = {}): Charact
     if (!isValidRuleId || !ruleDetail || loadedRuleId === selectedRuleId)
       return;
 
-    setCharacterData((prev) => {
+    queueMicrotask(() => setCharacterData((prev) => {
       const mergeSection = (sectionKey: CharacterSectionKey, template?: Record<string, string>) => {
         if (templateMergeStrategy === "preserveExisting" && hasContent(prev[sectionKey]))
           return prev[sectionKey];
@@ -68,9 +68,9 @@ export function useCharacterData(options: UseCharacterDataOptions = {}): Charact
         ability: mergeSection("ability", ruleDetail.abilityFormula),
         skill: mergeSection("skill", ruleDetail.skillDefault),
       };
-    });
+    }));
 
-    setLoadedRuleId(selectedRuleId);
+    queueMicrotask(() => setLoadedRuleId(selectedRuleId));
   }, [isValidRuleId, ruleDetail, loadedRuleId, selectedRuleId, templateMergeStrategy]);
 
   const handleCharacterDataChange = useCallback((data: Partial<CharacterData>) => {

@@ -5,6 +5,7 @@ import {
   createBlocksuiteEditorAssemblyContext,
   disposeBlocksuiteEditorAssemblyContext,
 } from "./blocksuiteEditorAssemblyContext";
+import { installBlocksuiteSlashContextMenu } from "./blocksuiteSlashContextMenu";
 import {
   buildBlocksuiteCoreEditorExtensions,
 } from "./extensions/buildBlocksuiteCoreEditorExtensions";
@@ -16,7 +17,6 @@ import { buildBlocksuiteMentionExtensions } from "./extensions/buildBlocksuiteMe
 import { buildBlocksuiteQuickSearchExtension } from "./extensions/buildBlocksuiteQuickSearchExtension";
 import { buildBlocksuiteEmbedExtensions } from "./extensions/embed/buildBlocksuiteEmbedExtensions";
 import { mergeBlocksuiteExtensionBundles } from "./extensions/types";
-import { installBlocksuiteSlashContextMenu } from "./blocksuiteSlashContextMenu";
 import { ensureTCAffineEditorContainerDefined, TC_AFFINE_EDITOR_CONTAINER_TAG } from "./tcAffineEditorContainer";
 
 /**

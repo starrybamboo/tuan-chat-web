@@ -6,7 +6,7 @@ export default function LoginButton({ autoOpen }: { autoOpen?: boolean }) {
 
   useEffect(() => {
     if (autoOpen) {
-      setIsLoginModalOpen(true);
+      queueMicrotask(() => setIsLoginModalOpen(true));
     }
   }, [autoOpen]);
 

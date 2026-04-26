@@ -1,6 +1,6 @@
+import type { TokenCountsByText } from "@/components/aiImage/tokenMeter/tokenizer";
 import type { V4CharEditorRow } from "@/components/aiImage/types";
 
-import type { TokenCountsByText } from "@/components/aiImage/tokenMeter/tokenizer";
 import {
   trimKey,
   trimText,

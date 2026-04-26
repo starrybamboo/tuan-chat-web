@@ -51,7 +51,7 @@ type RestoreSourceImageForUi = (targetUiMode: UiMode, args: {
   height?: number | null;
 }) => boolean;
 
-interface SimpleMetadataControls {
+type SimpleMetadataControls = {
   setSimpleConverted: (value: NovelAiNl2TagsResult | null) => void;
   setSimpleConvertedFromText: (value: string) => void;
   setSimplePromptTab: (value: "prompt" | "negative") => void;
@@ -63,9 +63,9 @@ interface SimpleMetadataControls {
   setSimplePrompt: (value: string) => void;
   setSimpleNegativePrompt: (value: string) => void;
   setSimpleEditorMode: (value: "text" | "tags") => void;
-}
+};
 
-interface ProMetadataControls {
+type ProMetadataControls = {
   setPrompt: (value: string) => void;
   setNegativePrompt: (value: string) => void;
   setProSeed: (value: number) => void;
@@ -85,21 +85,21 @@ interface ProMetadataControls {
   setProSmeaDyn: (value: boolean) => void;
   setProFeatureSectionOpen: (section: ProFeatureSectionKey, open: boolean) => void;
   setProFeatureSections: (value: ProFeatureSectionsState) => void;
-}
+};
 
-interface CharacterMetadataControls {
+type CharacterMetadataControls = {
   setV4UseCoords: (value: boolean) => void;
   setV4UseOrder: (value: boolean) => void;
   setV4Chars: (value: V4CharEditorRow[]) => void;
   setCharPromptTabs: (value: Record<string, "prompt" | "negative">) => void;
-}
+};
 
-interface ReferenceMetadataControls {
+type ReferenceMetadataControls = {
   setVibeTransferReferences: (value: VibeTransferReferenceRow[]) => void;
   setPreciseReference: (value: PreciseReferenceRow | null) => void;
-}
+};
 
-interface SharedMetadataControls {
+type SharedMetadataControls = {
   setIsPageImageDragOver: (value: boolean) => void;
   setUiMode: (value: UiMode) => void;
   setSelectedHistoryPreviewKey: (value: string | null) => void;
@@ -108,9 +108,9 @@ interface SharedMetadataControls {
   applyModeStrengthAndNoise: ApplyModeStrengthAndNoise;
   inferResolutionSelection: InferResolutionSelection;
   showSuccessToast: (message: string) => void;
-}
+};
 
-interface ImportedMetadataContext {
+type ImportedMetadataContext = {
   uiMode: UiMode;
   simpleWidth: number;
   simpleHeight: number;
@@ -119,7 +119,7 @@ interface ImportedMetadataContext {
   v4Chars: V4CharEditorRow[];
   samplerOptions: readonly string[];
   noiseScheduleOptions: readonly string[];
-}
+};
 
 export function applyImportedMetadataAction(args: {
   metadata: NovelAiImageMetadataResult;
@@ -301,7 +301,7 @@ export function applyImportedMetadataAction(args: {
 
   if (selection.characters) {
     const importedChars = Array.isArray(settings.v4Chars)
-      ? settings.v4Chars.map((item) => ({
+      ? settings.v4Chars.map(item => ({
           id: makeStableId(),
           prompt: shouldCleanImportedText ? cleanImportedPromptText(String(item.prompt || "")) : String(item.prompt || ""),
           negativePrompt: shouldCleanImportedText ? cleanImportedPromptText(String(item.negativePrompt || "")) : String(item.negativePrompt || ""),
@@ -418,7 +418,7 @@ export function applyHistorySettingsAction(args: {
   characters.setV4UseOrder(row.v4UseOrder == null ? true : Boolean(row.v4UseOrder));
 
   const restoredChars = Array.isArray(row.v4Chars)
-    ? row.v4Chars.map((item) => ({
+    ? row.v4Chars.map(item => ({
         id: makeStableId(),
         prompt: String(item.prompt || ""),
         negativePrompt: String(item.negativePrompt || ""),

@@ -7,10 +7,10 @@ import { html } from "lit";
 import type { BlocksuiteEditorAssemblyContext } from "../blocksuiteEditorAssemblyContext";
 import type { BlocksuiteExtensionBundle } from "./types";
 
-import { buildBlocksuiteRoleMentionKey } from "../../shared/mentionKey";
 import { listBlocksuiteMentionRoles } from "../../services/blocksuiteRoleService";
-import { BlocksuiteRoleServiceExtension } from "../../services/tuanChatRoleService";
 import { listBlocksuiteSpaceMemberIds } from "../../services/blocksuiteSpaceMemberService";
+import { BlocksuiteRoleServiceExtension } from "../../services/tuanChatRoleService";
+import { buildBlocksuiteRoleMentionKey } from "../../shared/mentionKey";
 
 const MENTION_MENU_LOCK_MS = 400;
 const MENTION_COMMIT_DEDUP_MS = 600;

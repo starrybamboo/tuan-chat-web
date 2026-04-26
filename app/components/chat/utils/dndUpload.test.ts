@@ -1,5 +1,8 @@
 import { vi } from "vitest";
+
 import { useChatComposerStore } from "@/components/chat/stores/chatComposerStore";
+
+import { addDroppedFilesToComposer, getFileDragOverlayText } from "./dndUpload";
 
 const mocks = vi.hoisted(() => ({
   toastSuccessMock: vi.fn(),
@@ -22,8 +25,6 @@ vi.mock("@/components/chat/utils/attachmentPreprocess", () => ({
 vi.mock("@/components/chat/utils/mediaAnnotationPreference", () => ({
   applyRoomMediaAnnotationPreferenceToComposer: mocks.applyRoomMediaAnnotationPreferenceToComposerMock,
 }));
-
-import { addDroppedFilesToComposer, getFileDragOverlayText } from "./dndUpload";
 
 function createDataTransfer(files: File[]): DataTransfer {
   return {

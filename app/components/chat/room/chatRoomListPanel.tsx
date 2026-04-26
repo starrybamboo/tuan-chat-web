@@ -1,5 +1,5 @@
-import type { Room } from "../../../../api";
 import type { SpaceMaterialPackageResponse } from "@tuanchat/openapi-client/models/SpaceMaterialPackageResponse";
+import type { Room } from "../../../../api";
 import type { MinimalDocMeta, SidebarTree } from "./sidebarTree";
 import type { ActiveMaterialSelection, OpenSpaceDetailPanelOptions, SpaceDetailTab } from "@/components/chat/chatPage.types";
 
@@ -641,4 +641,3 @@ export default function ChatRoomListPanel(props: ChatRoomListPanelProps) {
     </>
   );
 }
-

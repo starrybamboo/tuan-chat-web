@@ -1,5 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { createBlocksuiteEditorClient } from "../editors/createBlocksuiteEditor.client";
+
 const {
   mockHandleBlocksuiteDocLinkNavigation,
   mockCreateBlocksuiteEditorAssemblyContext,
@@ -75,8 +77,6 @@ vi.mock("../editors/tcAffineEditorContainer", () => ({
   ensureTCAffineEditorContainerDefined: vi.fn(),
   TC_AFFINE_EDITOR_CONTAINER_TAG: "tc-affine-editor-container",
 }));
-
-import { createBlocksuiteEditorClient } from "../editors/createBlocksuiteEditor.client";
 
 describe("blocksuiteEditorClient", () => {
   const originalDocument = globalThis.document;

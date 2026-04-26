@@ -81,4 +81,3 @@ export function useProfileEditing(user: UserProfileInfoResponse | undefined) {
     isSaving: updateUserInfoMutation.isPending,
   };
 }
-

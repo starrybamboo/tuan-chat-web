@@ -1,8 +1,8 @@
-import type { Message } from "../../../../../api";
-
 import { resolveRenderedSoundMessagePurpose } from "@/components/chat/infra/audioMessage/audioMessagePurpose";
 import { ANNOTATION_IDS, isImageMessageBackground, setAnnotation } from "@/types/messageAnnotations";
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
+
+import type { Message } from "../../../../../api";
 
 const LEGACY_AUDIO_PURPOSE_MARKERS = /\[(播放BGM|播放音效)\]/g;
 

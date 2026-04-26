@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 import LoginModal from "@/components/auth/LoginModal";
-import { createSeoMeta } from "@/utils/seo";
 import { normalizeAuthRedirectPath } from "@/utils/auth/redirect";
+import { createSeoMeta } from "@/utils/seo";
 
 export function meta() {
   return createSeoMeta({
@@ -20,7 +20,7 @@ export default function LoginPage() {
   const [isOpen, setIsOpen] = useState(true);
 
   useEffect(() => {
-    setIsOpen(true);
+    queueMicrotask(() => setIsOpen(true));
   }, [redirect]);
 
   return (

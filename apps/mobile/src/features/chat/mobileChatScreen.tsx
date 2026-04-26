@@ -52,7 +52,6 @@ import {
 import { useRoomMessagesLiveSync } from "@/features/messages/useRoomMessagesLiveSync";
 import { useRoomMessagesQuery } from "@/features/messages/useRoomMessagesQuery";
 import { useSendRoomMessageMutation } from "@/features/messages/useSendRoomMessageMutation";
-import { useMobileNotificationSession } from "@/features/notifications/useMobileNotificationSession";
 import { useUserRoomsQuery } from "@/features/rooms/use-user-rooms-query";
 import { useUserActiveSpacesQuery } from "@/features/spaces/use-user-active-spaces-query";
 import { useWorkspaceSession } from "@/features/workspace/workspace-session";
@@ -77,7 +76,6 @@ import {
 
   parsePositiveIntegerInput,
 } from "./mobileChatUtils";
-import { MobileChatWebShell } from "./mobileChatWebShell";
 
 const styles = StyleSheet.create({
   screen: {
@@ -516,12 +514,7 @@ export default function MobileChatScreen() {
   const previousRoomIdRef = useRef<number | null>(null);
   const previousLastMessageIdRef = useRef<number | null>(null);
 
-  const { isAuthenticated, isBootstrapping, isSigningIn, replaceSession, session, signIn, signOut } = useAuthSession();
-  const {
-    acknowledgeTargetPath,
-    pendingTargetPath,
-    presentNotification,
-  } = useMobileNotificationSession();
+  const { isAuthenticated, isBootstrapping, isSigningIn, session, signIn, signOut } = useAuthSession();
   const { selectedSpaceId, selectedRoomId, setSelectedRoomId, setSelectedSpaceId } = useWorkspaceSession();
   const spacesQuery = useUserActiveSpacesQuery();
   const roomsQuery = useUserRoomsQuery(selectedSpaceId);
@@ -742,13 +735,6 @@ export default function MobileChatScreen() {
     });
   };
 
-  const handleSelectRoom = (roomId: number | null) => {
-    startTransition(() => {
-      setSelectedRoomId(roomId);
-    });
-    setDrawerVisible(false);
-  };
-
   const handleSelectMessageAnchor = (message: Message) => {
     setMessageAnchorId(message.messageId ?? null);
     setMessageError(null);
@@ -867,13 +853,6 @@ export default function MobileChatScreen() {
     await signOut();
   };
 
-  const handleRemoteSessionChange = async (nextSession: typeof session) => {
-    setToolSheetVisible(false);
-    setMembersSheetVisible(false);
-    setSearchSheetVisible(false);
-    await replaceSession(nextSession);
-  };
-
   const handleMobileBack = () => {
     if (membersSheetVisible) {
       setMembersSheetVisible(false);
@@ -900,18 +879,6 @@ export default function MobileChatScreen() {
           </View>
         </SafeAreaView>
       </ThemedView>
-    );
-  }
-
-  if (Platform.OS !== "web") {
-    return (
-      <MobileChatWebShell
-        onNotificationTargetSettled={acknowledgeTargetPath}
-        onPresentNotification={presentNotification}
-        onSessionChange={handleRemoteSessionChange}
-        pendingNotificationTargetPath={pendingTargetPath}
-        session={session}
-      />
     );
   }
 
@@ -1134,24 +1101,15 @@ export default function MobileChatScreen() {
       </SafeAreaView>
 
       <MobileChatDrawer
-        currentRoomId={selectedRoomId}
-        currentRoomMember={currentRoomMember}
         currentSpaceId={selectedSpaceId}
-        currentSpaceMember={currentSpaceMember}
         currentUserId={currentUserId}
         currentUsername={session?.username}
-        memberCount={roomMembers.length}
         onOpenMembers={handleOpenMembers}
         onOpenSearch={handleOpenSearch}
         onOpenTools={() => setToolSheetVisible(true)}
         onRefreshWorkspace={() => void handleRefreshWorkspace()}
         onRequestClose={() => setDrawerVisible(false)}
-        onSelectRoom={handleSelectRoom}
         onSelectSpace={handleSelectSpace}
-        rooms={availableRooms}
-        roomsError={roomsQuery.error}
-        roomsIsError={roomsQuery.isError}
-        roomsIsPending={roomsQuery.isPending}
         spaces={activeSpaces}
         spacesError={spacesQuery.error}
         spacesIsError={spacesQuery.isError}

@@ -1,6 +1,6 @@
 import type { VirtuosoHandle } from "react-virtuoso";
 
-import { useCallback, useRef } from "react";
+import { useCallback, useRef, useState } from "react";
 import toast from "react-hot-toast";
 
 import { computeMoveMessageUpdates } from "@/components/chat/hooks/chatFrameDragUtils";
@@ -41,7 +41,7 @@ export default function useChatFrameDragAndDrop({
   selectedMessageIds,
 }: UseChatFrameDragAndDropParams): UseChatFrameDragAndDropResult {
   const dragStartMessageIdRef = useRef(-1);
-  const isDragging = dragStartMessageIdRef.current >= 0;
+  const [isDragging, setIsDragging] = useState(false);
   const scrollerRef = useRef<HTMLElement | null>(null);
   const { cleanupDragIndicator, dropPositionRef, scheduleCheckPosition } = useChatFrameDragIndicator({
     dragStartMessageIdRef,
@@ -89,6 +89,7 @@ export default function useChatFrameDragAndDrop({
     e.stopPropagation();
     e.dataTransfer.effectAllowed = "move";
     dragStartMessageIdRef.current = historyMessages[index].message.messageId;
+    setIsDragging(true);
     attachWindowDragOver();
     const clone = document.createElement("div");
     clone.className = "p-2 bg-info text-info-content rounded shadow";
@@ -123,6 +124,7 @@ export default function useChatFrameDragAndDrop({
 
   const handleDragEnd = useCallback(() => {
     dragStartMessageIdRef.current = -1;
+    setIsDragging(false);
     detachWindowDragOver();
     cleanupDragState();
   }, [cleanupDragState, detachWindowDragOver]);
@@ -156,6 +158,7 @@ export default function useChatFrameDragAndDrop({
     }
 
     dragStartMessageIdRef.current = -1;
+    setIsDragging(false);
     detachWindowDragOver();
     cleanupDragState();
   }, [

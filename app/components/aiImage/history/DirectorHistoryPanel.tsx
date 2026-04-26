@@ -1,13 +1,13 @@
 import type { MouseEvent } from "react";
-import { CaretRightIcon } from "@phosphor-icons/react";
-
 import type {
   HistoryDragPayload,
 } from "@/components/aiImage/history/types";
+
 import type {
   CurrentResultCard,
 } from "@/components/aiImage/types";
 import type { AiImageHistoryRow } from "@/utils/aiImageHistoryDb";
+import { CaretRightIcon } from "@phosphor-icons/react";
 import {
   generatedItemKey,
   historyRowKey,

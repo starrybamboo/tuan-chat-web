@@ -22,6 +22,8 @@ import useChatFrameSelectionContext from "@/components/chat/hooks/useChatFrameSe
 import useChatFrameVisualEffects from "@/components/chat/hooks/useChatFrameVisualEffects";
 import useChatFrameWebSocket from "@/components/chat/hooks/useChatFrameWebSocket";
 import { openMessageAnnotationPicker } from "@/components/chat/message/annotations/openMessageAnnotationPicker";
+import { getBaseMessageForVersionDiff, VERSION_STATE_MODIFIED } from "@/components/chat/message/diff/messageVersionDiff";
+import useRoomBaseArchiveMessages from "@/components/chat/message/diff/useRoomBaseArchiveMessages";
 import {
   toggleImageMessageBackground,
   toggleSoundMessageBgm,
@@ -64,6 +66,7 @@ interface ChatFrameProps {
   isCommandRequestConsumed?: (requestMessageId: number) => boolean;
   spaceName?: string;
   roomName?: string;
+  baseArchiveCommitId?: number | null;
   sendMessageWithInsert?: (message: ChatMessageRequest) => Promise<Message | null>;
 }
 
@@ -83,6 +86,7 @@ function ChatFrame(props: ChatFrameProps) {
     isCommandRequestConsumed,
     spaceName,
     roomName,
+    baseArchiveCommitId,
   } = props;
   const roomContext = use(RoomContext);
   const spaceContext = use(SpaceContext);
@@ -164,6 +168,19 @@ function ChatFrame(props: ChatFrameProps) {
     deleteMessageMutation,
     updateMessageMutation,
   });
+  const shouldLoadBaseArchiveMessages = useMemo(() => {
+    return Boolean(baseArchiveCommitId)
+      && historyMessages.some(message =>
+        message.message.versionState === VERSION_STATE_MODIFIED
+        && typeof message.message.inheritedArchiveMessageId === "number"
+        && Number.isFinite(message.message.inheritedArchiveMessageId),
+      );
+  }, [baseArchiveCommitId, historyMessages]);
+  const { baseMessageByArchiveId } = useRoomBaseArchiveMessages(
+    roomId,
+    baseArchiveCommitId,
+    shouldLoadBaseArchiveMessages,
+  );
   const updateWebgalChooseEditorOption = useCallback((index: number, key: keyof WebgalChooseOptionDraft, value: string) => {
     setWebgalChooseEditorOptions(prev => prev.map((option, idx) => (
       idx === index ? { ...option, [key]: value } : option
@@ -487,6 +504,7 @@ function ChatFrame(props: ChatFrameProps) {
     isSelecting,
     baseDraggable,
     canJumpToWebGAL,
+    getBaseVersionMessage: message => getBaseMessageForVersionDiff(message, baseMessageByArchiveId),
     isMessageMovable,
     onExecuteCommandRequest,
     isCommandRequestConsumed,

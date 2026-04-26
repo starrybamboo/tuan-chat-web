@@ -132,7 +132,7 @@ export default function useRoomRoleState({
   }, [roomRolesThatUserOwn]);
 
   useEffect(() => {
-    setRuntimeAvatarIdMap((prev) => {
+    queueMicrotask(() => setRuntimeAvatarIdMap((prev) => {
       const next: Record<number, number> = {};
       let hasChanges = false;
 
@@ -163,7 +163,7 @@ export default function useRoomRoleState({
         return prev;
       }
       return next;
-    });
+    }));
   }, [availableRoleIds, roomRolesThatUserOwn]);
 
   const pickDefaultAvatarId = useCallback((avatars: Array<{ avatarId?: number; avatarTitle?: { label?: string } }>): number => {

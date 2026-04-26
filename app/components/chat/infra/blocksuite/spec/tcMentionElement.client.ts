@@ -13,9 +13,9 @@ import { property } from "lit/decorators.js";
 import type { BlocksuiteFrameToHostPayload } from "../shared/frameProtocol";
 
 import { BlocksuiteRoleProvider } from "../services/tuanChatRoleService";
+import { postBlocksuiteFrameMessage } from "../shared/frameProtocol";
 import { buildBlocksuiteMentionAnchorRect } from "../shared/mentionAnchorRect";
 import { parseBlocksuiteMentionKey } from "../shared/mentionKey";
-import { postBlocksuiteFrameMessage } from "../shared/frameProtocol";
 
 function getBlocksuiteFrameInstanceId(): string | undefined {
   try {

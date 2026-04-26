@@ -10,6 +10,8 @@ import TextStyleToolbar from "@/components/chat/input/textStyleToolbar";
 import { buildAnnotationMap } from "@/components/chat/message/annotations/annotationCatalog";
 import MessageAnnotationsBar from "@/components/chat/message/annotations/messageAnnotationsBar";
 import { openMessageAnnotationPicker } from "@/components/chat/message/annotations/openMessageAnnotationPicker";
+import { buildMessageTextDiff } from "@/components/chat/message/diff/messageTextDiff";
+import MessageTextDiffPreview from "@/components/chat/message/diff/MessageTextDiffPreview";
 import EditableMessageContent from "@/components/chat/message/editableMessageContent";
 import MessageContentRenderer from "@/components/chat/message/messageContentRenderer";
 import ForwardMessage from "@/components/chat/message/preview/forwardMessage";
@@ -85,7 +87,7 @@ function HoverToolbarActionButton({ label, onClick, children }: HoverToolbarActi
   );
 }
 
-function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecuteCommandRequest, isCommandRequestConsumed, onToggleSelection, onEditWebgalChoose }: {
+function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecuteCommandRequest, isCommandRequestConsumed, onToggleSelection, onEditWebgalChoose, baseVersionMessage }: {
   /** 包含聊天消息内容、发送者等信息的数据对象 */
   chatMessageResponse: ChatMessageResponse;
   /** 控制是否应用气泡样式，默认为false */
@@ -95,6 +97,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
   isCommandRequestConsumed?: (requestMessageId: number) => boolean;
   onToggleSelection?: (messageId: number) => void;
   onEditWebgalChoose?: (messageId: number) => void;
+  baseVersionMessage?: ChatMessageResponse | null;
 }) {
   const message = chatMessageResponse.message;
   const annotations = useMemo(() => {
@@ -104,17 +107,16 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
     }
     return base;
   }, [message.annotations, message.extra?.imageMessage?.background, message.messageType]);
-  const effectPreview = useMemo(() => {
-    const annotationMap = buildAnnotationMap();
-    for (const id of annotations) {
-      const def = annotationMap.get(id);
-      if (def?.category === "特效" && def.iconUrl) {
-        const duration = getEffectDurationMs(id) ?? EFFECT_PREVIEW_DURATION_MS;
-        return { iconUrl: def.iconUrl, durationMs: duration };
+  const annotationMap = buildAnnotationMap();
+  const effectAnnotation = annotations
+    .map(id => annotationMap.get(id))
+    .find(def => def?.category === "特效" && def.iconUrl);
+  const effectPreview = effectAnnotation?.iconUrl
+    ? {
+        iconUrl: effectAnnotation.iconUrl,
+        durationMs: getEffectDurationMs(effectAnnotation.id) ?? EFFECT_PREVIEW_DURATION_MS,
       }
-    }
-    return null;
-  }, [annotations]);
+    : null;
   const effectIconUrl = effectPreview?.iconUrl ?? null;
   const [effectPreviewVisible, setEffectPreviewVisible] = useState(false);
   const [effectPreviewToken, setEffectPreviewToken] = useState(0);
@@ -164,6 +166,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
   const [isEditingRoleName, setIsEditingRoleName] = useState(false);
   const [editingRoleName, setEditingRoleName] = useState("");
   const [isEditingContent, setIsEditingContent] = useState(false);
+  const [isVersionDiffOpen, setIsVersionDiffOpen] = useState(false);
   const editInputRef = useRef<ChatInputAreaHandle | null>(null);
 
   // 判断是否为旁白（无角色）- 包括 roleId 为空/undefined/0/负数 的情况
@@ -232,6 +235,38 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
     && isThresholdTrackedMessageType
     && messageContentLength > roomContentAlertThreshold;
   const thresholdCounterText = `${formatTextEnhanceVisibleLength(messageContentLength)}/${formatTextEnhanceVisibleLength(roomContentAlertThreshold)}`;
+  const versionDiff = useMemo(() => {
+    if (!baseVersionMessage) {
+      return null;
+    }
+    return buildMessageTextDiff(baseVersionMessage.message.content ?? "", message.content ?? "");
+  }, [baseVersionMessage, message.content]);
+  const canShowVersionDiff = Boolean(versionDiff?.hasChanges);
+  const handleToggleVersionDiff = useCallback((event: React.MouseEvent<HTMLButtonElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
+    setIsVersionDiffOpen(value => !value);
+  }, []);
+  const versionDiffToggle = canShowVersionDiff
+    ? (
+        <button
+          type="button"
+          className="rounded border border-info/30 bg-info/10 px-1.5 py-0.5 text-[10px] leading-none text-info/90 transition hover:bg-info/15"
+          onClick={handleToggleVersionDiff}
+          title={isVersionDiffOpen ? "收起版本差异" : "查看版本差异"}
+          aria-expanded={isVersionDiffOpen}
+        >
+          已修改
+        </button>
+      )
+    : null;
+  const versionDiffPreview = canShowVersionDiff && isVersionDiffOpen && versionDiff
+    ? (
+        <div className="mt-2 w-full max-w-3xl">
+          <MessageTextDiffPreview diff={versionDiff} />
+        </div>
+      )
+    : null;
 
   // 更新消息并同步到本地缓存
   const updateMessageAndSync = useCallback((newMessage: Message) => {
@@ -992,6 +1027,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
                                   : null
                               )
                         )}
+                    {versionDiffToggle && <span className="shrink-0">{versionDiffToggle}</span>}
                     <span className="hidden sm:inline text-xs text-base-content/50 ml-auto transition-opacity duration-200 opacity-0 group-hover:opacity-100 shrink-0">
                       {isEdited && <span className="text-warning mr-1">(已编辑)</span>}
                       {formattedTime}
@@ -1014,6 +1050,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
                       </div>
                     )}
                   </div>
+                  {versionDiffPreview}
                   {renderAnnotationsBar(CHAT_MESSAGE_ANNOTATIONS_CLASS)}
                 </div>
               </div>
@@ -1131,6 +1168,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
                                   : null
                               )
                         )}
+                    {versionDiffToggle && <span className="shrink-0 pt-1">{versionDiffToggle}</span>}
                     <div className="text-xs text-base-content/50 pt-1 ml-auto transition-opacity duration-200 opacity-0 group-hover:opacity-100 shrink-0">
                       {isEdited && <span className="text-warning mr-1">(已编辑)</span>}
                       {formattedTime}
@@ -1153,6 +1191,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
                       </div>
                     )}
                   </div>
+                  {versionDiffPreview}
                   {renderAnnotationsBar("mt-1.5")}
                 </div>
               </div>
@@ -1182,6 +1221,10 @@ export const ChatBubble = React.memo(ChatBubbleComponent, (prevProps, nextProps)
     && prevMsg.messageType === nextMsg.messageType
     && prevMsg.status === nextMsg.status
     && prevMsg.replyMessageId === nextMsg.replyMessageId
+    && prevMsg.inheritedArchiveMessageId === nextMsg.inheritedArchiveMessageId
+    && prevMsg.versionState === nextMsg.versionState
+    && prevProps.baseVersionMessage?.message.messageId === nextProps.baseVersionMessage?.message.messageId
+    && prevProps.baseVersionMessage?.message.content === nextProps.baseVersionMessage?.message.content
     && prevProps.useChatBubbleStyle === nextProps.useChatBubbleStyle
   );
 

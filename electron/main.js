@@ -579,10 +579,10 @@ app.whenReady().then(async () => {
       const imageBase64 = String(req?.sourceImageBase64 || "").trim();
       const maskBase64 = String(req?.maskBase64 || "").trim();
       if (!imageBase64) {
-        throw new Error("infill 缂哄皯婧愬浘鐗囷紙sourceImageBase64锛?);
+        throw new Error("infill 缺少源图（sourceImageBase64）。");
       }
       if (!maskBase64) {
-        throw new Error("infill 缂哄皯钂欑増锛坢askBase64锛?);
+        throw new Error("infill 缺少蒙版（maskBase64）。");
       }
       const strength = Number.isFinite(req?.strength) ? Number(req.strength) : 0.7;
       const noise = Number.isFinite(req?.noise) ? Number(req.noise) : 0.2;

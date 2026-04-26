@@ -31,7 +31,7 @@ export default function useChatFrameSelection({ onDeleteMessage }: UseChatFrameS
 
   useEffect(() => {
     if (selectedMessageIds.size === 0) {
-      setSelectionAnchorMessageId(null);
+      queueMicrotask(() => setSelectionAnchorMessageId(null));
     }
   }, [selectedMessageIds.size]);
 

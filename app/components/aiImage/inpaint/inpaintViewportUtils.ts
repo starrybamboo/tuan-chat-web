@@ -1,13 +1,13 @@
-export interface InpaintViewportSize {
+export type InpaintViewportSize = {
   width: number;
   height: number;
-}
+};
 
-export interface InpaintViewportTransform {
+export type InpaintViewportTransform = {
   zoom: number;
   panX: number;
   panY: number;
-}
+};
 
 const INPAINT_MIN_ZOOM = 0.5;
 const INPAINT_MAX_ZOOM = 4;

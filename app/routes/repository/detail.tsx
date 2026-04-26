@@ -6,12 +6,12 @@ import RepositoryDetailComponent from "@/components/repository/detail/repository
 import { createSeoMeta } from "@/utils/seo";
 // import { useLocation } from "react-router";
 
-type RepositorySeoData = {
+interface RepositorySeoData {
   repositoryName?: string | null;
   description?: string | null;
   authorName?: string | null;
   image?: string | null;
-};
+}
 
 function buildRepositorySeoDescription(repository: RepositorySeoData | null | undefined, repositoryId?: string) {
   const repositoryDescription = repository?.description?.trim();

@@ -174,16 +174,16 @@ function AtMentionController({ ref, chatInputRef, allRoles }: AtMentionProps & {
 
   // 4. 相关的 Effects
   useEffect(() => {
-    setSelectedIndex(0);
+    queueMicrotask(() => setSelectedIndex(0));
   }, [showDialog, searchKey]); // searchKey 依赖是必要的，以便在过滤列表更改时重置
 
   useEffect(() => {
     if (showDialog) {
       const { x: cursorX, y: cursorY } = getSelectionCoords();
-      setDialogPosition({
+      queueMicrotask(() => setDialogPosition({
         x: Math.min(cursorX, screen.width - 100),
         y: cursorY,
-      });
+      }));
     }
   }, [showDialog, searchKey]);
 

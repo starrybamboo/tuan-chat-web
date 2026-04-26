@@ -1,5 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import executorCoc from "./cmdExeCoc";
+import executorFu from "./cmdExeFu";
+
 const { executeStShowCommandMock } = vi.hoisted(() => ({
   executeStShowCommandMock: vi.fn(),
 }));
@@ -11,9 +14,6 @@ vi.mock("./cmdExePublic", async () => {
     executeStShowCommand: executeStShowCommandMock,
   };
 });
-
-import executorCoc from "./cmdExeCoc";
-import executorFu from "./cmdExeFu";
 
 describe("规则 st show 委托", () => {
   let cpi: CPI;

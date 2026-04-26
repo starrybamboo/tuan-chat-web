@@ -1,7 +1,6 @@
 {
   "extends": "./tsconfig.expo-base.json",
   "compilerOptions": {
-    "strict": true,
     "baseUrl": ".",
     "paths": {
       "@/*": [
@@ -28,7 +27,8 @@
       "@tuanchat/query/*": [
         "../../packages/tuanchat-query/src/*"
       ]
-    }
+    },
+    "strict": true
   },
   "include": [
     "**/*.ts",

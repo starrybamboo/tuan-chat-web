@@ -1,9 +1,11 @@
-import { zipSync } from "fflate";
 import type { SetStateAction } from "react";
+
+import { zipSync } from "fflate";
 import { useCallback } from "react";
 
 import type { GeneratedImageItem } from "@/components/aiImage/types";
 import type { AiImageHistoryRow } from "@/utils/aiImageHistoryDb";
+
 import {
   applyPinnedPreviewSeedAction,
   applySelectedPreviewSeedAction,
@@ -20,10 +22,11 @@ import {
   fileFromDataUrl,
   generatedItemKey,
   makeStableId,
+  triggerBlobDownload,
+  triggerBrowserDownload,
 } from "@/components/aiImage/helpers";
-import { triggerBlobDownload, triggerBrowserDownload } from "@/components/aiImage/helpers";
 
-interface UseAiImagePreviewActionsOptions {
+type UseAiImagePreviewActionsOptions = {
   uiMode: "simple" | "pro";
   isDirectorToolsOpen: boolean;
   selectedPreviewResult: GeneratedImageItem | null;
@@ -46,7 +49,7 @@ interface UseAiImagePreviewActionsOptions {
   setPinnedPreviewKey: (value: string | null) => void;
   setSimpleSeed: (value: number) => void;
   setProSeed: (value: number) => void;
-}
+};
 
 export function useAiImagePreviewActions({
   uiMode,

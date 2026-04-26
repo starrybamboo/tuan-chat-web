@@ -20,4 +20,3 @@ export async function relayAiGatewayText(params: {
 
   return String(result?.data ?? "");
 }
-

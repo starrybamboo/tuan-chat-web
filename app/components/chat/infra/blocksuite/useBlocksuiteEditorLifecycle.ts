@@ -17,7 +17,6 @@ import type { BlocksuiteEditorHandle, BlocksuiteTcHeaderState } from "./blocksui
 import {
   LATE_REMOTE_HYDRATION_WAIT_MS,
   shouldEnsureTcHeaderFallback,
-  shouldUseRemoteFirstHydration,
   waitForRemoteHydrationSettled,
   waitForRemoteSnapshotDecision,
 } from "./blocksuiteEditorLifecycleHydration";
@@ -100,7 +99,7 @@ export function useBlocksuiteEditorLifecycle(params: UseBlocksuiteEditorLifecycl
   useEffect(() => {
     if (!tcHeaderEnabled)
       return;
-    setTcHeaderState(null);
+    queueMicrotask(() => setTcHeaderState(null));
   }, [docId, tcHeaderEnabled]);
 
   useEffect(() => {
@@ -114,7 +113,7 @@ export function useBlocksuiteEditorLifecycle(params: UseBlocksuiteEditorLifecycl
     let unsubscribeHeader: (() => void) | null = null;
     let retainedRuntime: Awaited<ReturnType<typeof loadBlocksuiteRuntime>> | null = null;
     let hasPostedRenderReady = false;
-    setStartupError(null);
+    queueMicrotask(() => setStartupError(null));
 
     const revealFrame = () => {
       if (hasPostedRenderReady)

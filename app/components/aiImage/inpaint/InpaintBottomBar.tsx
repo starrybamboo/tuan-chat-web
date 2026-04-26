@@ -7,8 +7,8 @@ import {
   TrashIcon,
 } from "@phosphor-icons/react";
 
-import { ZoomInIcon as AppZoomInIcon, ZoomOutIcon as AppZoomOutIcon } from "@/icons";
 import { MASK_COLOR_OPTIONS } from "@/components/aiImage/inpaintMaskUtils";
+import { ZoomInIcon as AppZoomInIcon, ZoomOutIcon as AppZoomOutIcon } from "@/icons";
 
 export function InpaintBottomBar({
   sharedPanelClassName,
@@ -158,7 +158,10 @@ export function InpaintBottomBar({
 
                       <div className="mt-4 flex items-center justify-between gap-3 text-sm font-medium text-base-content">
                         <span>Mask Opacity</span>
-                        <span>{maskOpacity}%</span>
+                        <span>
+                          {maskOpacity}
+                          %
+                        </span>
                       </div>
                       <input
                         type="range"

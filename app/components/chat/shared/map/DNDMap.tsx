@@ -23,10 +23,10 @@ import {
   upsertRoomDndMapToken,
 } from "./roomDndMapApi";
 import {
-  MAX_GRID_DIMENSION,
   buildGridOverlayStyle,
   buildTokenPositionStyle,
   clampGridDimension,
+  MAX_GRID_DIMENSION,
   resolveGridCellAtPoint,
 } from "./roomDndMapGeometry";
 
@@ -143,7 +143,7 @@ function useContainedImageRect(mapImgUrl: string) {
     image?.addEventListener("load", handleLoad);
     const observer = new ResizeObserver(() => updateRect());
     observer.observe(container);
-    updateRect();
+    queueMicrotask(() => updateRect());
 
     return () => {
       image?.removeEventListener("load", handleLoad);
@@ -313,7 +313,7 @@ export default function DNDMap({ roomId: roomIdProp, spaceId: spaceIdProp, varia
     },
   });
 
-  const handleUploadMap = useCallback(async (file: File) => {
+  const handleUploadMap = async (file: File) => {
     if (!roomId || roomId <= 0) {
       return;
     }
@@ -337,7 +337,7 @@ export default function DNDMap({ roomId: roomIdProp, spaceId: spaceIdProp, varia
       console.error(err);
       toast.error("上传失败，请重试");
     }
-  }, [map?.gridColor, map?.gridCols, map?.gridRows, mapUpsertMutation, roomId, uploadUtil]);
+  };
 
   const handleReset = useCallback(() => {
     confirmToast(() => {

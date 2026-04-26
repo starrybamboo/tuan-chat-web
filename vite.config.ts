@@ -12,12 +12,14 @@ import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
 import { fetch as undiciFetch } from "undici";
 import { defineConfig } from "vite";
+import babel from "vite-plugin-babel";
 import tsconfigPaths from "vite-tsconfig-paths";
 
-const _ReactCompilerConfig = {
-  // React Compiler configuration options
-  // You can add specific options here if needed
-};
+const REACT_COMPILER_EXCLUDED_SOURCE_SUFFIXES = [
+  "/app/components/chat/infra/blocksuite/spec/tcMentionElement.client.ts",
+  "/app/components/chat/infra/blocksuite/editors/tcAffineEditorContainer.ts",
+  "/app/components/chat/infra/blocksuite/editors/extensions/embed/embedIframeNoCredentiallessElements.ts",
+];
 
 /**
  * Fix CommonJS default export issues for modules like lodash that have no default export.
@@ -326,18 +328,36 @@ export default defineConfig(() => {
 
       reactRouter(),
       tsconfigPaths(),
-      // NOTE: React Compiler is experimental and currently broken.
-      // Disabling it for now to unblock BlockSuite playground migration.
-      // To re-enable: uncomment the babel() plugin and ensure react/compiler-runtime is properly installed.
-      // babel({
-      //   filter: /app\/(routes\/role|components\/Role).*\.[jt]sx?$/,
-      //   babelConfig: {
-      //     presets: ["@babel/preset-typescript"],
-      //     plugins: [
-      //       ["babel-plugin-react-compiler", ReactCompilerConfig],
-      //     ],
-      //   },
-      // }),
+      babel({
+        filter: (id) => {
+          const normalizedId = id.split("?")[0].replace(/\\/g, "/");
+          if (!/\.[jt]sx?$/.test(normalizedId)) {
+            return false;
+          }
+          if (
+            normalizedId.includes("/node_modules/")
+            || normalizedId.includes("/build/")
+            || normalizedId.includes("/dist/")
+            || normalizedId.includes("/release/")
+            || normalizedId.includes("/extraResources/")
+          ) {
+            return false;
+          }
+          return !REACT_COMPILER_EXCLUDED_SOURCE_SUFFIXES.some(suffix => normalizedId.endsWith(suffix));
+        },
+        babelConfig: {
+          presets: [
+            [
+              "@babel/preset-typescript",
+              {
+                allExtensions: true,
+                isTSX: true,
+              },
+            ],
+          ],
+          plugins: ["babel-plugin-react-compiler"],
+        },
+      }),
     ],
     base: "/",
     resolve: {

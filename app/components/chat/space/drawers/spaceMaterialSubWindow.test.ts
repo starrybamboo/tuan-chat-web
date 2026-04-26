@@ -2,6 +2,8 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import SpaceMaterialSubWindow from "./spaceMaterialSubWindow";
+
 let lastEditorProps: Record<string, unknown> | null = null;
 
 const mockUseSpaceMaterialPackagesQuery = vi.fn();
@@ -20,8 +22,6 @@ vi.mock("@/components/material/components/materialPackageEditor", () => ({
     return createElement("div", null, "mock-editor");
   },
 }));
-
-import SpaceMaterialSubWindow from "./spaceMaterialSubWindow";
 
 describe("spaceMaterialSubWindow", () => {
   beforeEach(() => {

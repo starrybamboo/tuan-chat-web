@@ -1,12 +1,13 @@
-import type { ApiResultUserInfoResponse } from "@tuanchat/openapi-client/models/ApiResultUserInfoResponse";
-import type { TuanChat } from "@tuanchat/openapi-client/TuanChat";
 import { useQuery } from "@tanstack/react-query";
 
-export interface UserQueryOptions {
+import type { ApiResultUserInfoResponse } from "@tuanchat/openapi-client/models/ApiResultUserInfoResponse";
+import type { TuanChat } from "@tuanchat/openapi-client/TuanChat";
+
+export type UserQueryOptions = {
   enabled?: boolean;
   staleTime?: number;
   refetchOnMount?: boolean | "always";
-}
+};
 
 type UserClient = Pick<TuanChat, "userController">;
 

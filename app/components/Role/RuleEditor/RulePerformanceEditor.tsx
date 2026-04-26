@@ -99,7 +99,7 @@ export default function RulePerformanceEditor({
 
     prevCloneVersionRef.current = cloneVersion;
     dispatch({ type: "SYNC_PROPS", payload: data ?? {} });
-    setIsEditing(false);
+    queueMicrotask(() => setIsEditing(false));
   }, [cloneVersion, data]);
 
   useEffect(() => {
@@ -108,11 +108,11 @@ export default function RulePerformanceEditor({
     }
 
     if (forcedEditing) {
-      setIsEditing(true);
+      queueMicrotask(() => setIsEditing(true));
       return;
     }
 
-    setIsEditing(false);
+    queueMicrotask(() => setIsEditing(false));
   }, [forcedEditing]);
 
   useEffect(() => {
@@ -129,7 +129,7 @@ export default function RulePerformanceEditor({
     }
 
     onSave?.(localData ?? {});
-    setIsEditing(false);
+    queueMicrotask(() => setIsEditing(false));
   }, [isEditing, localData, onSave, saveSignal]);
 
   // 将编辑态变化上报给父组件，用于保存前校验

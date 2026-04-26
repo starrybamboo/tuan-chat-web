@@ -16,10 +16,10 @@ export type StateDefinition = {
   stackMode: StateEventStackMode;
 };
 
-export interface StateDefinitionResolver {
-  resolveById(statusId: string): StateDefinition | null;
-  resolveLatestByName(statusName: string): StateDefinition | null;
-}
+export type StateDefinitionResolver = {
+  resolveById: (statusId: string) => StateDefinition | null;
+  resolveLatestByName: (statusName: string) => StateDefinition | null;
+};
 
 export class EmptyStateDefinitionResolver implements StateDefinitionResolver {
   resolveById(): StateDefinition | null {

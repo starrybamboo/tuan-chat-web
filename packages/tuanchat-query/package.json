@@ -1,7 +1,7 @@
 {
   "name": "@tuanchat/query",
-  "private": true,
   "type": "module",
+  "private": true,
   "exports": {
     ".": "./src/index.ts",
     "./chat": "./src/chat.ts",

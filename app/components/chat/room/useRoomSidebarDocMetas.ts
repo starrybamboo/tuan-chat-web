@@ -24,7 +24,7 @@ export default function useRoomSidebarDocMetas({
   const [extraDocMetas, setExtraDocMetas] = useState<MinimalDocMeta[]>([]);
 
   useEffect(() => {
-    setExtraDocMetas([]);
+    queueMicrotask(() => setExtraDocMetas([]));
   }, [activeSpaceId]);
 
   const visibleDocMetas = useMemo(() => {

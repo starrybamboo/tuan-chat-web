@@ -1,6 +1,6 @@
 import type { SubmitHandler } from "react-hook-form";
 import { useAddRepositoryMutation } from "api/hooks/repositoryQueryHooks";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
 import message from "@/components/common/message/message";
 
@@ -27,7 +27,6 @@ export function useRepositoryForm() {
     reset,
     control,
     setValue,
-    watch,
     formState: { errors },
   } = useForm<RepositoryCreateRequest>({
     defaultValues: {
@@ -39,6 +38,10 @@ export function useRepositoryForm() {
       originalImage: "",
     },
     mode: "onChange",
+  });
+  const ruleId = useWatch({
+    control,
+    name: "ruleId",
   });
 
   // 数据提交行为
@@ -65,6 +68,6 @@ export function useRepositoryForm() {
     submit,
     modalOpen,
     setModalOpen,
-    ruleId: watch("ruleId"),
+    ruleId,
   };
 }
