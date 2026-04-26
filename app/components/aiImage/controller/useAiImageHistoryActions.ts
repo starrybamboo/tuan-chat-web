@@ -19,7 +19,7 @@ import type { NovelAiNl2TagsResult } from "@/utils/novelaiNl2Tags";
 
 import { applyHistorySettingsAction, applyImportedMetadataAction } from "@/components/aiImage/controller/metadataHistoryActions";
 import { deleteAiImageHistory, listAiImageHistory } from "@/utils/aiImageHistoryDb";
-import { generatedItemKey, historyRowKey, historyRowResultMatchKey, historyRowToGeneratedItem } from "@/components/aiImage/helpers";
+import { generatedItemKey, historyRowKey, historyRowResultMatchKey, historyRowToGeneratedItem, resolveHistoryRowClickMode } from "@/components/aiImage/helpers";
 
 type ProFeatureSectionsState = Record<ProFeatureSectionKey, boolean>;
 
@@ -385,9 +385,7 @@ export function useAiImageHistoryActions({
   ]);
 
   const handleHistoryRowClick = useCallback((row: AiImageHistoryRow, event: ReactMouseEvent<HTMLButtonElement>) => {
-    const clickMode: HistoryRowClickMode = (event.metaKey || event.ctrlKey)
-      ? (event.shiftKey ? "settings-with-seed" : "settings")
-      : (event.shiftKey ? "seed" : "preview");
+    const clickMode = resolveHistoryRowClickMode(event);
 
     if (clickMode === "preview") {
       setSelectedHistoryPreviewKey(historyRowKey(row));
@@ -396,6 +394,22 @@ export function useAiImageHistoryActions({
 
     handleApplyHistorySettings(row, clickMode);
   }, [handleApplyHistorySettings, setSelectedHistoryPreviewKey]);
+
+  const handleCurrentResultCardClick = useCallback((index: number, row: AiImageHistoryRow | null, event: ReactMouseEvent<HTMLButtonElement>) => {
+    const clickMode = resolveHistoryRowClickMode(event);
+
+    if (clickMode === "preview" || !row) {
+      setSelectedHistoryPreviewKey(null);
+      setSelectedResultIndex(index);
+      setDirectorOutputPreview(null);
+      return;
+    }
+
+    handleApplyHistorySettings(row, clickMode);
+    setSelectedHistoryPreviewKey(null);
+    setSelectedResultIndex(index);
+    setDirectorOutputPreview(null);
+  }, [handleApplyHistorySettings, setDirectorOutputPreview, setSelectedHistoryPreviewKey, setSelectedResultIndex]);
 
   const handleDeleteHistoryRow = useCallback(async (row: AiImageHistoryRow) => {
     if (typeof row.id !== "number")
@@ -449,6 +463,7 @@ export function useAiImageHistoryActions({
     applyImportedMetadata,
     handleApplyHistorySettings,
     handleHistoryRowClick,
+    handleCurrentResultCardClick,
     handleDeleteHistoryRow,
   };
 }

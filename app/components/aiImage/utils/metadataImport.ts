@@ -1,4 +1,5 @@
 import type {
+  HistoryRowClickMode,
   MetadataImportSelectionState,
   ProFeatureSectionKey,
 } from "@/components/aiImage/types";
@@ -58,4 +59,14 @@ export function createProFeatureSectionState(overrides?: Partial<Record<ProFeatu
     ...DEFAULT_PRO_FEATURE_SECTION_OPEN,
     ...overrides,
   };
+}
+
+export function resolveHistoryRowClickMode(modifiers: {
+  ctrlKey: boolean;
+  metaKey: boolean;
+  shiftKey: boolean;
+}): HistoryRowClickMode {
+  if (modifiers.metaKey || modifiers.ctrlKey)
+    return modifiers.shiftKey ? "settings-with-seed" : "settings";
+  return modifiers.shiftKey ? "seed" : "preview";
 }

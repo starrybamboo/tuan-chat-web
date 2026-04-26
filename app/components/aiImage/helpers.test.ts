@@ -10,6 +10,7 @@ import {
   getClosestValidImageSize,
   mergeTagString,
   resolveEditorImageMode,
+  resolveHistoryRowClickMode,
   resolveSimpleGenerateMode,
   sanitizeNovelAiTagInput,
   shouldKeepSimpleTagsEditor,
@@ -198,6 +199,13 @@ describe("aiImage helpers", () => {
       width: 832,
       height: 1216,
     });
+  });
+
+  it("maps Ctrl/Cmd and Shift modifiers to the expected history import actions", () => {
+    expect(resolveHistoryRowClickMode({ ctrlKey: false, metaKey: false, shiftKey: false })).toBe("preview");
+    expect(resolveHistoryRowClickMode({ ctrlKey: true, metaKey: false, shiftKey: false })).toBe("settings");
+    expect(resolveHistoryRowClickMode({ ctrlKey: false, metaKey: false, shiftKey: true })).toBe("seed");
+    expect(resolveHistoryRowClickMode({ ctrlKey: false, metaKey: true, shiftKey: true })).toBe("settings-with-seed");
   });
 
   it("maps history source images back to editable img2img mode", () => {

@@ -45,7 +45,7 @@ interface DirectorHistoryPanelProps {
   directorInputPreviewKey?: string;
   isHistoryExpanded: boolean;
   onHistoryExpandedChange: (expanded: boolean) => void;
-  onSelectCurrentResult: (index: number) => void;
+  onCurrentResultCardClick: (index: number, row: AiImageHistoryRow | null, event: MouseEvent<HTMLButtonElement>) => void;
   onHistoryRowClick: (row: AiImageHistoryRow, event: MouseEvent<HTMLButtonElement>) => void;
   onHistoryImageDragStart: (
     event: React.DragEvent<HTMLElement>,
@@ -64,7 +64,7 @@ export function DirectorHistoryPanel({
   directorInputPreviewKey,
   isHistoryExpanded,
   onHistoryExpandedChange,
-  onSelectCurrentResult,
+  onCurrentResultCardClick,
   onHistoryRowClick,
   onHistoryImageDragStart,
   onRequestDeleteHistoryRow,
@@ -107,7 +107,7 @@ export function DirectorHistoryPanel({
                     type="button"
                     className="w-full cursor-grab text-left active:cursor-grabbing"
                     draggable
-                    onClick={() => onSelectCurrentResult(index)}
+                    onClick={event => onCurrentResultCardClick(index, row, event)}
                     onDragStart={event => onHistoryImageDragStart(event, {
                       dataUrl: item.dataUrl,
                       seed: item.seed,

@@ -23,7 +23,7 @@ interface StandardHistoryPanelProps {
   archivedHistoryRows: AiImageHistoryRow[];
   selectedHistoryPreviewKey: string | null;
   selectedResultIndex: number;
-  onSelectCurrentResult: (index: number) => void;
+  onCurrentResultCardClick: (index: number, row: AiImageHistoryRow | null, event: MouseEvent<HTMLButtonElement>) => void;
   onHistoryRowClick: (row: AiImageHistoryRow, event: MouseEvent<HTMLButtonElement>) => void;
   onHistoryImageDragStart: (
     event: React.DragEvent<HTMLElement>,
@@ -42,7 +42,7 @@ export function StandardHistoryPanel({
   archivedHistoryRows,
   selectedHistoryPreviewKey,
   selectedResultIndex,
-  onSelectCurrentResult,
+  onCurrentResultCardClick,
   onHistoryRowClick,
   onHistoryImageDragStart,
   onRequestDeleteHistoryRow,
@@ -78,7 +78,7 @@ export function StandardHistoryPanel({
                 dataUrl={item.dataUrl}
                 draggable
                 title={`${row?.mode || mode} · seed ${item.seed} · ${item.width}×${item.height}`}
-                onClick={() => onSelectCurrentResult(index)}
+                onClick={event => onCurrentResultCardClick(index, row, event)}
                 onDelete={row?.id != null
                   ? (event) => {
                       event.stopPropagation();
