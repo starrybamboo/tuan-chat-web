@@ -4,7 +4,7 @@ import { ArrowClockwise, CaretLeftIcon, FileArrowUpIcon, PencilSimpleLineIcon, S
 import { clampRange, formatSliderValue } from "@/components/aiImage/helpers";
 import { ChevronDown } from "@/icons";
 
-const INFILL_APPEND_MIN_HEIGHT = 80;
+const INFILL_APPEND_MIN_HEIGHT = 60;
 
 function autoResizeInfillAppendTextarea(target: HTMLTextAreaElement) {
   target.style.height = `${INFILL_APPEND_MIN_HEIGHT}px`;
@@ -145,7 +145,7 @@ export function renderSimpleInfillSectionContent({
                   </div>
                 </div>
 
-                <label className="block">
+                <label className="ml-auto block w-full max-w-[360px]">
                   <div className="flex items-center justify-between text-[13px] font-semibold leading-5 text-base-content">
                     <span>Strength</span>
                     <span>{formatSliderValue(strength)}</span>
@@ -161,7 +161,7 @@ export function renderSimpleInfillSectionContent({
                   />
                 </label>
 
-                <label className="block">
+                <label className="ml-auto block w-full max-w-[360px]">
                   <div className="mb-2 text-[13px] font-semibold leading-5 text-base-content">Append Tags</div>
                   <textarea
                     className={infillAppendInputClassName}
