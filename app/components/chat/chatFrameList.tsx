@@ -22,6 +22,7 @@ interface SelectionToolbarProps {
   onSelectAll: () => void;
   onRegexFilter: () => void;
   onExportFile: () => void;
+  onExportPremiere?: () => void;
   onExportImage: () => void;
   onForward: () => void;
   onBatchDelete: () => void;
@@ -36,6 +37,7 @@ const SelectionToolbar = memo(({
   onSelectAll,
   onRegexFilter,
   onExportFile,
+  onExportPremiere,
   onExportImage,
   onForward,
   onBatchDelete,
@@ -48,7 +50,7 @@ const SelectionToolbar = memo(({
   return (
     <div className="absolute top-0 bg-base-300 w-full p-2 shadow-sm z-15 flex justify-between items-center rounded">
       <span>{`已选择${selectedCount} 条消息`}</span>
-      <div className="gap-x-4 flex">
+      <div className="gap-2 flex flex-wrap justify-end">
         <button className="btn btn-sm" onClick={onSelectAll} type="button" disabled={!canSelectAll}>
           全选
         </button>
@@ -61,6 +63,11 @@ const SelectionToolbar = memo(({
         <button className="btn btn-sm btn-accent" onClick={onExportFile} type="button" disabled={!hasSelection}>
           导出成文件
         </button>
+        {onExportPremiere && (
+          <button className="btn btn-sm btn-accent" onClick={onExportPremiere} type="button" disabled={!hasSelection}>
+            生成 PR 文件
+          </button>
+        )}
         <button className="btn btn-sm btn-secondary" onClick={onExportImage} type="button" disabled={!hasSelection}>
           生成图片
         </button>
@@ -148,6 +155,7 @@ interface ChatFrameListProps {
   onSelectAll: () => void;
   onRegexFilter: () => void;
   onExportFile: () => void;
+  onExportPremiere?: () => void;
   onCancelSelection: () => void;
   setIsExportImageWindowOpen: (open: boolean) => void;
   setIsForwardWindowOpen: (open: boolean) => void;
@@ -174,6 +182,7 @@ export default function ChatFrameList({
   onSelectAll,
   onRegexFilter,
   onExportFile,
+  onExportPremiere,
   onCancelSelection,
   setIsExportImageWindowOpen,
   setIsForwardWindowOpen,
@@ -227,6 +236,7 @@ export default function ChatFrameList({
           onSelectAll={onSelectAll}
           onRegexFilter={onRegexFilter}
           onExportFile={onExportFile}
+          onExportPremiere={onExportPremiere}
           onExportImage={() => setIsExportImageWindowOpen(true)}
           onForward={() => setIsForwardWindowOpen(true)}
           onBatchDelete={handleBatchDelete}

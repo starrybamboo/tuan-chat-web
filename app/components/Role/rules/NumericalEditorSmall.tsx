@@ -1,9 +1,11 @@
 import {
   useUpdateKeyFieldByRoleIdMutation,
+  useUpdateRoleAbilityByRoleIdMutation,
 } from "api/hooks/abilityQueryHooks";
 import { useEffect, useReducer, useState } from "react";
 import AddFieldForm from "../Editors/AddFieldForm";
 import EditableField from "../Editors/EditableField";
+import { buildRoleAbilityFieldKeyPayload, buildRoleAbilitySectionUpdatePayload } from "./roleAbilityFieldPayload";
 
 type NumericalData = Record<string, string>;
 type FieldType = "basic" | "ability" | "skill";
@@ -64,6 +66,7 @@ export default function NumericalEditorSmall({
   fieldType,
 }: NumericalEditorSmallProps) {
   const { mutate: updateKeyField } = useUpdateKeyFieldByRoleIdMutation();
+  const { mutate: updateFieldValue } = useUpdateRoleAbilityByRoleIdMutation();
   const [editingKey, setEditingKey] = useState<string | null>(null);
 
   const [localData, dispatch] = useReducer(dataReducer, data);
@@ -85,15 +88,9 @@ export default function NumericalEditorSmall({
       [fieldKey]: newValue,
     };
 
-    const fieldUpdateRequest = {
-      roleId,
-      ruleId,
-      ...(fieldType === "basic" && { basicFields: { [fieldKey]: newValue } }),
-      ...(fieldType === "ability" && { abilityFields: { [fieldKey]: newValue } }),
-      ...(fieldType === "skill" && { skillFields: { [fieldKey]: newValue } }),
-    };
-
-    updateKeyField(fieldUpdateRequest, {
+    updateFieldValue(buildRoleAbilitySectionUpdatePayload(roleId, ruleId, fieldType, {
+      [fieldKey]: newValue,
+    }), {
       onSuccess: () => {
         onChange(updatedData);
         setEditingKey(null);
@@ -112,15 +109,9 @@ export default function NumericalEditorSmall({
       payload: { key: newFieldKey, value: newFieldValue },
     });
 
-    const fieldUpdateRequest = {
-      roleId,
-      ruleId,
-      ...(fieldType === "basic" && { basicFields: { [newFieldKey]: newFieldValue } }),
-      ...(fieldType === "ability" && { abilityFields: { [newFieldKey]: newFieldValue } }),
-      ...(fieldType === "skill" && { skillFields: { [newFieldKey]: newFieldValue } }),
-    };
-
-    updateKeyField(fieldUpdateRequest, {
+    updateFieldValue(buildRoleAbilitySectionUpdatePayload(roleId, ruleId, fieldType, {
+      [newFieldKey]: newFieldValue,
+    }), {
       onSuccess: () => {
         onChange(updatedData);
       },
@@ -133,15 +124,9 @@ export default function NumericalEditorSmall({
 
     dispatch({ type: "DELETE_FIELD", payload: fieldKey });
 
-    const fieldUpdateRequest = {
-      roleId,
-      ruleId,
-      ...(fieldType === "basic" && { basicFields: { [fieldKey]: null as any } }),
-      ...(fieldType === "ability" && { abilityFields: { [fieldKey]: null as any } }),
-      ...(fieldType === "skill" && { skillFields: { [fieldKey]: null as any } }),
-    };
-
-    updateKeyField(fieldUpdateRequest, {
+    updateKeyField(buildRoleAbilityFieldKeyPayload(roleId, ruleId, fieldType, {
+      [fieldKey]: null,
+    }), {
       onSuccess: () => {
         onChange(updatedData);
         setEditingKey(prevKey => (prevKey === fieldKey ? null : prevKey));
@@ -164,30 +149,9 @@ export default function NumericalEditorSmall({
       payload: { oldKey, newKey },
     });
 
-    const fieldUpdateRequest = {
-      roleId,
-      ruleId,
-      ...(fieldType === "basic" && {
-        basicFields: {
-          [oldKey]: null as any,
-          [newKey]: String(value),
-        },
-      }),
-      ...(fieldType === "ability" && {
-        abilityFields: {
-          [oldKey]: null as any,
-          [newKey]: String(value),
-        },
-      }),
-      ...(fieldType === "skill" && {
-        skillFields: {
-          [oldKey]: null as any,
-          [newKey]: String(value),
-        },
-      }),
-    };
-
-    updateKeyField(fieldUpdateRequest, {
+    updateKeyField(buildRoleAbilityFieldKeyPayload(roleId, ruleId, fieldType, {
+      [oldKey]: newKey,
+    }), {
       onSuccess: () => {
         onChange(updatedData);
         setEditingKey(newKey);

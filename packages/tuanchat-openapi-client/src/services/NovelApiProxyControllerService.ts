@@ -4,7 +4,6 @@
 /* eslint-disable */
 import type { NovelApiAnnotateImageRequest } from '../models/NovelApiAnnotateImageRequest';
 import type { NovelApiAugmentImageRequest } from '../models/NovelApiAugmentImageRequest';
-import type { NovelApiGenerateImageRequest } from '../models/NovelApiGenerateImageRequest';
 import type { NovelApiUpscaleImageRequest } from '../models/NovelApiUpscaleImageRequest';
 import type { CancelablePromise } from '../core/CancelablePromise';
 import type { BaseHttpRequest } from '../core/BaseHttpRequest';
@@ -24,7 +23,7 @@ export class NovelApiProxyControllerService {
     ): CancelablePromise<string> {
         return this.httpRequest.request({
             method: 'POST',
-            url: '/api/novelapi/ai/upscale',
+            url: '/novelapi/ai/upscale',
             headers: {
                 'Accept': accept,
             },
@@ -35,23 +34,26 @@ export class NovelApiProxyControllerService {
     /**
      * NovelAI 生图代理
      * 透传请求到 NovelAI /ai/generate-image 并回传二进制结果
-     * @param requestBody
+     * @param formData
      * @param accept
      * @returns string OK
      * @throws ApiError
      */
-    public generateImage(
-        requestBody: NovelApiGenerateImageRequest,
+    public generateImageMultipart1(
+        formData: {
+            request: string;
+            use_new_shared_trial?: string;
+        },
         accept?: string,
     ): CancelablePromise<string> {
         return this.httpRequest.request({
             method: 'POST',
-            url: '/api/novelapi/ai/generate-image',
+            url: '/novelapi/ai/generate-image',
             headers: {
                 'Accept': accept,
             },
-            body: requestBody,
-            mediaType: 'application/json',
+            formData: formData,
+            mediaType: 'multipart/form-data',
         });
     }
     /**
@@ -68,7 +70,7 @@ export class NovelApiProxyControllerService {
     ): CancelablePromise<string> {
         return this.httpRequest.request({
             method: 'POST',
-            url: '/api/novelapi/ai/augment-image',
+            url: '/novelapi/ai/augment-image',
             headers: {
                 'Accept': accept,
             },
@@ -90,7 +92,7 @@ export class NovelApiProxyControllerService {
     ): CancelablePromise<string> {
         return this.httpRequest.request({
             method: 'POST',
-            url: '/api/novelapi/ai/annotate-image',
+            url: '/novelapi/ai/annotate-image',
             headers: {
                 'Accept': accept,
             },

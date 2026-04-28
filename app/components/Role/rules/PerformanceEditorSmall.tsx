@@ -1,10 +1,12 @@
 import {
   useUpdateKeyFieldByRoleIdMutation,
+  useUpdateRoleAbilityByRoleIdMutation,
 } from "api/hooks/abilityQueryHooks";
 import { useState } from "react";
 import { getGridSpan } from "@/utils/gridSpan";
 import AddFieldForm from "../Editors/AddFieldForm";
 import PerformanceField from "../Editors/PerformanceField";
+import { buildRoleAbilityFieldKeyPayload, buildRoleAbilitySectionUpdatePayload } from "./roleAbilityFieldPayload";
 
 interface PerformanceEditorSmallProps {
   fields: Record<string, string>;
@@ -22,6 +24,7 @@ export default function PerformanceEditorSmall({
   ruleId,
 }: PerformanceEditorSmallProps) {
   const { mutate: updateKeyField } = useUpdateKeyFieldByRoleIdMutation();
+  const { mutate: updateFieldValue } = useUpdateRoleAbilityByRoleIdMutation();
   const [editingKey, setEditingKey] = useState<string | null>(null);
 
   const fieldKeys = Object.keys(fields);
@@ -31,13 +34,9 @@ export default function PerformanceEditorSmall({
     const updatedFields = { ...fields };
     delete updatedFields[key];
     onChange(updatedFields);
-    updateKeyField({
-      ruleId,
-      roleId,
-      actFields: {
-        [key]: null as any,
-      },
-    });
+    updateKeyField(buildRoleAbilityFieldKeyPayload(roleId, ruleId, "act", {
+      [key]: null,
+    }));
     setEditingKey(prevKey => (prevKey === key ? null : prevKey));
   };
 
@@ -46,13 +45,9 @@ export default function PerformanceEditorSmall({
     if (!nextKey)
       return;
     onChange({ ...fields, [nextKey]: value });
-    updateKeyField({
-      ruleId,
-      roleId,
-      actFields: {
-        [nextKey]: value,
-      },
-    });
+    updateFieldValue(buildRoleAbilitySectionUpdatePayload(roleId, ruleId, "act", {
+      [nextKey]: value,
+    }));
   };
 
   const handleValueChange = (key: string, value: string) => {
@@ -60,14 +55,10 @@ export default function PerformanceEditorSmall({
   };
 
   const handleValueCommit = (key: string, value: string) => {
-    updateKeyField(
-      {
-        ruleId,
-        roleId,
-        actFields: {
-          [key]: value,
-        },
-      },
+    updateFieldValue(
+      buildRoleAbilitySectionUpdatePayload(roleId, ruleId, "act", {
+        [key]: value,
+      }),
       {
         onSuccess: () => {
           setEditingKey(null);
@@ -84,14 +75,9 @@ export default function PerformanceEditorSmall({
     newFields[newKey] = newFields[oldKey];
     delete newFields[oldKey];
     onChange(newFields);
-    updateKeyField({
-      ruleId,
-      roleId,
-      actFields: {
-        [oldKey]: null as any,
-        [newKey]: String(newFields[newKey] ?? ""),
-      },
-    });
+    updateKeyField(buildRoleAbilityFieldKeyPayload(roleId, ruleId, "act", {
+      [oldKey]: newKey,
+    }));
     setEditingKey(newKey);
   };
 

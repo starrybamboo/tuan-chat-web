@@ -342,32 +342,3 @@ export function drawStageFrame(
   context.textAlign = "center";
   context.fillText(`${Math.round(progress * 100)}%`, width * 0.5, height * 0.9);
 }
-
-export function setHeroOverlayState(
-  heroCopy: HTMLDivElement,
-  heroPanel: HTMLDivElement,
-  scrollHint: HTMLDivElement,
-  progress: number,
-) {
-  const copyProgress = clamp01(progress / 0.28);
-  const panelProgress = easeOutCubic(clamp01((progress - 0.34) / 0.24));
-
-  heroCopy.style.opacity = String(1 - copyProgress);
-  heroCopy.style.transform = `translate3d(0, ${lerp(0, -56, copyProgress)}px, 0) scale(${lerp(1, 0.96, copyProgress)})`;
-  heroPanel.style.opacity = String(panelProgress);
-  heroPanel.style.transform = `translate3d(0, ${lerp(42, 0, panelProgress)}px, 0)`;
-  scrollHint.style.opacity = String(1 - clamp01((progress - 0.08) / 0.2));
-}
-
-export function setActiveFlowCard(cards: HTMLElement[], progress: number) {
-  const activeIndex = Math.min(
-    cards.length - 1,
-    Math.round(clamp01(progress) * Math.max(cards.length - 1, 1)),
-  );
-
-  cards.forEach((card, index) => {
-    const isActive = index === activeIndex;
-    card.dataset.active = isActive ? "true" : "false";
-    card.setAttribute("aria-current", isActive ? "true" : "false");
-  });
-}

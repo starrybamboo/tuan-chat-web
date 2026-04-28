@@ -23,7 +23,7 @@ export type RoomUpdateRequest = {
      */
     originalAvatar?: string;
     /**
-     * 场景默认描述
+     * 场景简要描述，概述本房间的剧情走向
      */
     description?: string;
 };

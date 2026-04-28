@@ -8,13 +8,13 @@ import { tuanchat } from "api/instance";
 import { strToU8, zip } from "fflate";
 import React, { use, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { toast } from "react-hot-toast";
-import { useStore } from "zustand";
 // hooks (local)
 import RealtimeRenderOrchestrator from "@/components/chat/core/realtimeRenderOrchestrator";
 import { RoomContext } from "@/components/chat/core/roomContext";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
 import useChatInputStatus from "@/components/chat/hooks/useChatInputStatus";
 import { useChatHistory } from "@/components/chat/infra/indexedDB/useChatHistory";
+import { resolveMessageDiffBaseCommitId } from "@/components/chat/message/diff/messageVersionDiff";
 import RoomDocRefDropLayer from "@/components/chat/room/roomDocRefDropLayer";
 import RoomSideDrawerGuards from "@/components/chat/room/roomSideDrawerGuards";
 import RoomWindowLayout from "@/components/chat/room/roomWindowLayout";
@@ -32,6 +32,7 @@ import useRoomMessageActions from "@/components/chat/room/useRoomMessageActions"
 import useRoomMessageScroll from "@/components/chat/room/useRoomMessageScroll";
 import useRoomOverlaysController from "@/components/chat/room/useRoomOverlaysController";
 import useRoomRoleState from "@/components/chat/room/useRoomRoleState";
+import { compareChatMessageResponsesByOrder } from "@/components/chat/shared/messageOrder";
 import { StateRuntimeProvider } from "@/components/chat/state/stateRuntimeContext";
 import { useAudioMessageAutoPlayStore } from "@/components/chat/stores/audioMessageAutoPlayStore";
 import { useChatInputUiStore } from "@/components/chat/stores/chatInputUiStore";
@@ -49,6 +50,7 @@ import {
   useSendMessageMutation,
   useUpdateMessageMutation,
 } from "../../../../api/hooks/chatQueryHooks";
+import { useRepositoryDetailByIdQuery } from "../../../../api/hooks/repositoryQueryHooks";
 
 function RoomWindow({
   roomId,
@@ -85,7 +87,16 @@ function RoomWindow({
 
   const space = useGetSpaceInfoQuery(spaceId).data?.data;
   const room = useGetRoomInfoQuery(roomId).data?.data;
+  const repositoryId = typeof space?.repositoryId === "number" && Number.isFinite(space.repositoryId)
+    ? space.repositoryId
+    : 0;
+  const repositoryQuery = useRepositoryDetailByIdQuery(repositoryId);
+  const baseArchiveCommitIdForMessageDiff = resolveMessageDiffBaseCommitId({
+    parentCommitId: space?.parentCommitId,
+    repositoryCommitId: repositoryQuery.data?.data?.commitId,
+  });
   const roomHeaderOverride = useEntityHeaderOverrideStore(state => state.headers[`room:${roomId}`]);
+  const [isFullMessageDiffOpen, setIsFullMessageDiffOpen] = useState(false);
 
   const userId = useGlobalUserId();
   const webSocketUtils = useGlobalWebSocket();
@@ -157,7 +168,6 @@ function RoomWindow({
   const mainHistoryMessages = useRoomMainHistoryMessages({
     historyMessages,
   });
-
   const virtuosoRef = useRef<VirtuosoHandle | null>(null);
   const { scrollToGivenMessage } = useRoomMessageScroll({
     targetMessageId,
@@ -548,9 +558,10 @@ function RoomWindow({
     }
   }, [chatHistory, isReloadingAllMessages, roomId, roomUiStore]);
 
-  const handleExportPremiere = useCallback(async () => {
-    if (!historyMessages || historyMessages.length === 0) {
-      toast.error("没有可导出的消息");
+  const handleExportPremiere = useCallback(async (selectedMessages: ChatMessageResponse[]) => {
+    const exportMessages = [...selectedMessages].sort(compareChatMessageResponsesByOrder);
+    if (exportMessages.length === 0) {
+      toast.error("请选择要生成 PR 文件的消息");
       return;
     }
 
@@ -729,7 +740,7 @@ function RoomWindow({
       };
 
       await exporter.processMessages(
-        historyMessages,
+        exportMessages,
         fetchAvatar,
         fetchRoleName,
         fetchUserName,
@@ -834,7 +845,7 @@ function RoomWindow({
       console.error(e);
       toast.error("导出失败，请检查控制台", { id: loadToastId });
     }
-  }, [historyMessages, roomId, queryClient, backgroundUrl]);
+  }, [roomId, queryClient, backgroundUrl]);
 
   const roomName = roomHeaderOverride?.title ?? room?.name;
   const spaceName = space?.name;
@@ -847,18 +858,22 @@ function RoomWindow({
     isCommandRequestConsumed,
     spaceName,
     roomName,
-    baseArchiveCommitId: space?.parentCommitId,
+    baseArchiveCommitId: baseArchiveCommitIdForMessageDiff,
     messageScope,
     threadRootMessageId,
     sendMessageWithInsert,
+    onExportPremiere: handleExportPremiere,
+    showFullMessageDiff: isFullMessageDiffOpen,
   }), [
     handleExecuteCommandRequest,
+    handleExportPremiere,
+    isFullMessageDiffOpen,
     isCommandRequestConsumed,
     setBackgroundUrl,
     setCurrentEffect,
     roomName,
     spaceName,
-    space?.parentCommitId,
+    baseArchiveCommitIdForMessageDiff,
     messageScope,
     sendMessageWithInsert,
     threadRootMessageId,
@@ -880,6 +895,8 @@ function RoomWindow({
     onClearBackground: handleClearBackground,
     onClearFigure: handleClearFigure,
     onSendWebgalChoose: handleSendWebgalChoose,
+    onOpenFullMessageDiff: () => setIsFullMessageDiffOpen(value => !value),
+    isFullMessageDiffOpen,
     isKP: spaceContext.isSpaceOwner,
     onStopBgmForAll: handleStopBgmForAll,
     noRole,
@@ -901,9 +918,6 @@ function RoomWindow({
     onCompositionStart,
     onCompositionEnd,
   };
-
-  const canUndo = useStore(roomUiStore, state => state.messageUndoStack.length > 0);
-  const canRedo = useStore(roomUiStore, state => state.messageRedoStack.length > 0);
 
   return (
     <RoomUiStoreProvider store={roomUiStore}>
@@ -933,6 +947,7 @@ function RoomWindow({
             <RoomWindowLayout
               roomId={roomId}
               roomName={roomName}
+              room={room}
               toggleLeftDrawer={spaceContext.toggleLeftDrawer}
               onCloseSubWindow={onCloseSubWindow}
               backgroundUrl={backgroundUrl}
@@ -943,13 +958,8 @@ function RoomWindow({
               hideComposer={viewMode}
               hideSecondaryPanels={hideSecondaryPanels}
               chatAreaComposerTarget={messageScope === "thread" ? "thread" : "main"}
-              onExportPremiere={handleExportPremiere}
               onClearAndReloadAllMessages={handleClearAndReloadAllMessages}
-              onUndo={handleUndoLastMessageAction}
-              onRedo={handleRedoLastMessageAction}
               isReloadingAllMessages={isReloadingAllMessages}
-              canUndo={canUndo}
-              canRedo={canRedo}
               onSendDocCard={handleSendDocCard}
             />
           </RoomDocRefDropLayer>

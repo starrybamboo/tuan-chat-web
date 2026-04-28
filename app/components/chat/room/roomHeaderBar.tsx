@@ -1,8 +1,10 @@
-import { ArrowClockwise, ArrowCounterClockwise, ArrowSquareIn, Broom, DotsThreeVerticalIcon, ExportIcon, FilmStrip } from "@phosphor-icons/react";
+import type { Room } from "@tuanchat/openapi-client/models/Room";
+import { ArrowSquareIn, Broom, DotsThreeVerticalIcon, ExportIcon } from "@phosphor-icons/react";
 import React from "react";
 import { useLocation } from "react-router";
 import SearchBar from "@/components/chat/input/inlineSearch";
 import MobileSearchPage from "@/components/chat/input/mobileSearchPage";
+import RoomDescriptionDropdown from "@/components/chat/room/roomDescriptionDropdown";
 import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
 import { useRoomUiStore } from "@/components/chat/stores/roomUiStore";
 import { useSideDrawerStore } from "@/components/chat/stores/sideDrawerStore";
@@ -17,30 +19,26 @@ import {
 } from "@/icons";
 import { getScreenSize } from "@/utils/getScreenSize";
 
+function ToolbarDivider() {
+  return <div className="mx-0.5 h-5 w-px shrink-0 bg-base-content/20" aria-hidden="true" />;
+}
+
 interface RoomHeaderBarProps {
   roomName?: string;
+  room?: Room | null;
   toggleLeftDrawer: () => void;
   onCloseSubWindow?: () => void;
-  onExportPremiere?: () => void;
   onClearAndReloadAllMessages?: () => void | Promise<void>;
-  onUndo?: () => void;
-  onRedo?: () => void;
   isReloadingAllMessages?: boolean;
-  canUndo?: boolean;
-  canRedo?: boolean;
 }
 
 function RoomHeaderBarImpl({
   roomName,
+  room,
   toggleLeftDrawer,
   onCloseSubWindow,
-  onExportPremiere,
   onClearAndReloadAllMessages,
-  onUndo,
-  onRedo,
   isReloadingAllMessages = false,
-  canUndo = false,
-  canRedo = false,
 }: RoomHeaderBarProps) {
   const sideDrawerState = useSideDrawerStore(state => state.state);
   const setSideDrawerState = useSideDrawerStore(state => state.setState);
@@ -59,6 +57,8 @@ function RoomHeaderBarImpl({
   const hasSideDrawerOpen = sideDrawerState !== "none";
   const canUseDevTools = Boolean(import.meta.env?.DEV) || import.meta.env.MODE === "test";
   const canClearAndReloadMessages = canUseDevTools && Boolean(onClearAndReloadAllMessages);
+  const roomDescriptionPreview = room?.description?.trim() || "暂无房间描述";
+  const hasRoomDescription = Boolean(room?.description?.trim());
 
   const closeThreadPane = () => {
     setComposerTarget("main");
@@ -96,12 +96,6 @@ function RoomHeaderBarImpl({
       setSideDrawerState("none");
     }
     setMultiSelecting(true);
-    blurActiveElement();
-  };
-
-  const handleOpenPremiere = () => {
-    closeThreadPane();
-    onExportPremiere?.();
     blurActiveElement();
   };
 
@@ -197,7 +191,7 @@ function RoomHeaderBarImpl({
         bg-white/40 dark:bg-slate-950/25 backdrop-blur-xl
         border border-white/40 dark:border-white/10"
           >
-            <div className="flex items-center gap-2 min-w-0">
+            <div className="flex flex-1 items-center gap-2 min-w-0">
               {onCloseSubWindow && (
                 <div className="tooltip tooltip-bottom" data-tip="关闭副窗口">
                   <button
@@ -221,48 +215,38 @@ function RoomHeaderBarImpl({
                   <BaselineArrowBackIosNew className="size-6" />
                 </button>
               </div>
-              <span className="text-center font-semibold line-clamp-1 truncate max-w-[50vw] sm:max-w-none min-w-0 text-sm sm:text-base">
-                <span className="hidden sm:inline">「 </span>
-                {roomName}
-                <span className="hidden sm:inline"> 」</span>
+              <div className="flex min-w-0 shrink-0 items-center gap-1">
+                <span className="text-center font-semibold line-clamp-1 truncate max-w-[50vw] sm:max-w-none min-w-0 text-sm sm:text-base">
+                  <span className="hidden sm:inline">「 </span>
+                  {roomName}
+                  <span className="hidden sm:inline"> 」</span>
+                </span>
+                <RoomDescriptionDropdown room={room} />
+              </div>
+              <span
+                className={`hidden min-w-0 flex-1 truncate text-xs sm:block ${hasRoomDescription ? "text-base-content/45" : "text-base-content/25"}`}
+                title={roomDescriptionPreview}
+              >
+                {roomDescriptionPreview}
               </span>
             </div>
-            <div className="flex gap-2 items-center overflow-visible">
+            <div className="flex shrink-0 gap-2 items-center overflow-visible">
               {canClearAndReloadMessages && (
-                <div className="tooltip tooltip-bottom relative z-50" data-tip="清空本地并重拉全量消息（开发/测试）">
-                  <button
-                    type="button"
-                    className="btn btn-ghost btn-square btn-xs text-warning"
-                    disabled={isReloadingAllMessages}
-                    onClick={handleRequestClearAndReloadMessages}
-                    aria-label="清空并重拉消息（开发/测试）"
-                  >
-                    <Broom className="size-5" />
-                  </button>
-                </div>
+                <>
+                  <div className="tooltip tooltip-bottom relative z-50" data-tip="清空本地并重拉全量消息（开发/测试）">
+                    <button
+                      type="button"
+                      className="btn btn-ghost btn-square btn-xs text-warning"
+                      disabled={isReloadingAllMessages}
+                      onClick={handleRequestClearAndReloadMessages}
+                      aria-label="清空并重拉消息（开发/测试）"
+                    >
+                      <Broom className="size-5" />
+                    </button>
+                  </div>
+                  {!isMobile && <ToolbarDivider />}
+                </>
               )}
-              <div className="tooltip tooltip-bottom relative z-50" data-tip="撤销 (Ctrl+Z)">
-                <button
-                  type="button"
-                  className="btn btn-ghost btn-square btn-xs"
-                  disabled={!canUndo}
-                  onClick={() => onUndo?.()}
-                  aria-label="撤销"
-                >
-                  <ArrowCounterClockwise className="size-5" />
-                </button>
-              </div>
-              <div className="tooltip tooltip-bottom relative z-50" data-tip="回退 (Ctrl+Y / Ctrl+Shift+Z)">
-                <button
-                  type="button"
-                  className="btn btn-ghost btn-square btn-xs"
-                  disabled={!canRedo}
-                  onClick={() => onRedo?.()}
-                  aria-label="回退"
-                >
-                  <ArrowClockwise className="size-5" />
-                </button>
-              </div>
               {isMobile
                 ? (
                     <div ref={mobileToolsMenuRef} className={`dropdown dropdown-end ${isMobileToolsMenuOpen ? "dropdown-open" : ""}`}>
@@ -305,17 +289,6 @@ function RoomHeaderBarImpl({
                             }}
                           >
                             导出/多选
-                          </button>
-                        </li>
-                        <li>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              closeMobileToolsMenu();
-                              handleOpenPremiere();
-                            }}
-                          >
-                            导出 PR 工程
                           </button>
                         </li>
                         <li>
@@ -372,36 +345,6 @@ function RoomHeaderBarImpl({
                     <>
                       <div
                         className="tooltip tooltip-bottom hover:text-info relative z-50"
-                        data-tip="导入记录"
-                        onClick={handleOpenImport}
-                      >
-                        <ArrowSquareIn className="size-6" />
-                      </div>
-                      <div
-                        className="tooltip tooltip-bottom hover:text-info relative z-50"
-                        data-tip="导出/多选"
-                        onClick={handleOpenExport}
-                      >
-                        <ExportIcon className="size-6" />
-                      </div>
-                      <div
-                        className="tooltip tooltip-bottom hover:text-info relative z-50"
-                        data-tip="导出 PR 工程"
-                        onClick={handleOpenPremiere}
-                      >
-                        <FilmStrip className="size-6" />
-                      </div>
-                      <div
-                        className="tooltip tooltip-bottom hover:text-info relative z-50"
-                        data-tip={`切换到${useChatBubbleStyle ? "传统" : "气泡"}样式`}
-                        onClick={() => {
-                          toggleUseChatBubbleStyle();
-                        }}
-                      >
-                        <Bubble2 className="size-6" />
-                      </div>
-                      <div
-                        className="tooltip tooltip-bottom hover:text-info relative z-50"
                         data-tip="房间成员"
                         data-side-drawer-toggle="true"
                         onClick={handleToggleMemberDrawer}
@@ -416,6 +359,32 @@ function RoomHeaderBarImpl({
                       >
                         <RoleListIcon className="size-6" />
                       </div>
+                      <ToolbarDivider />
+                      <div
+                        className="tooltip tooltip-bottom hover:text-info relative z-50"
+                        data-tip="导入记录"
+                        onClick={handleOpenImport}
+                      >
+                        <ArrowSquareIn className="size-6" />
+                      </div>
+                      <div
+                        className="tooltip tooltip-bottom hover:text-info relative z-50"
+                        data-tip="导出/多选"
+                        onClick={handleOpenExport}
+                      >
+                        <ExportIcon className="size-6" />
+                      </div>
+                      <ToolbarDivider />
+                      <div
+                        className="tooltip tooltip-bottom hover:text-info relative z-50"
+                        data-tip={`切换到${useChatBubbleStyle ? "传统" : "气泡"}样式`}
+                        onClick={() => {
+                          toggleUseChatBubbleStyle();
+                        }}
+                      >
+                        <Bubble2 className="size-6" />
+                      </div>
+                      <ToolbarDivider />
                       <SearchBar className="w-64" />
                     </>
                   )}
