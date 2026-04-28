@@ -1,6 +1,7 @@
 import { gzipSync, strToU8 } from "fflate";
 
 import {
+  embedNovelAiMetadataIntoPngBytes,
   extractNovelAiMetadataFromPngBytes,
   extractNovelAiMetadataFromStealthPixels,
   normalizeNovelAiMetadata,
@@ -28,6 +29,15 @@ function concatBytes(...parts: Uint8Array[]) {
 
 function asciiBytes(value: string) {
   return new TextEncoder().encode(value);
+}
+
+function decodeBase64(value: string) {
+  const binary = atob(value);
+  const bytes = new Uint8Array(binary.length);
+  for (let index = 0; index < binary.length; index += 1) {
+    bytes[index] = binary.charCodeAt(index);
+  }
+  return bytes;
 }
 
 function makeChunk(type: string, data: Uint8Array) {
@@ -271,5 +281,74 @@ describe("novelaiImageMetadata", () => {
   it("returns null when metadata does not expose importable settings", () => {
     expect(normalizeNovelAiMetadata({ Source: "NovelAI" })).toBeNull();
     expect(extractNovelAiMetadataFromPngBytes(buildPngWithTextChunks({ Software: "NovelAI" }))).toBeNull();
+  });
+
+  it("re-embeds png metadata into a composited png", () => {
+    const sourceMetadataBytes = buildPngWithTextChunks({
+      Source: "NovelAI",
+      Comment: JSON.stringify({
+        input: "repair torn sleeve",
+        model: "nai-diffusion-4-5-curated-inpainting",
+        action: "infill",
+        parameters: {
+          seed: 31415,
+          width: 1024,
+          height: 1024,
+          steps: 28,
+          strength: 0.55,
+          negative_prompt: "extra fingers",
+        },
+      }),
+    });
+    const metadata = extractNovelAiMetadataFromPngBytes(sourceMetadataBytes);
+    const blankPngBytes = decodeBase64("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGD4DwABBAEAeG4G3QAAAABJRU5ErkJggg==");
+
+    const embedded = extractNovelAiMetadataFromPngBytes(
+      embedNovelAiMetadataIntoPngBytes(blankPngBytes, metadata),
+    );
+
+    expect(embedded?.settings).toMatchObject({
+      mode: "infill",
+      prompt: "repair torn sleeve",
+      negativePrompt: "extra fingers",
+      seed: 31415,
+      steps: 28,
+      strength: 0.55,
+    });
+  });
+
+  it("converts stealth metadata into png text metadata when re-embedding", () => {
+    const stealth = encodeStealthPayload({
+      Source: "NovelAI",
+      Comment: JSON.stringify({
+        input: "best quality, city at night",
+        model: "nai-diffusion-4-5-curated",
+        action: "generate",
+        parameters: {
+          seed: 777,
+          width: 1024,
+          height: 1024,
+          steps: 30,
+          scale: 5,
+          sampler: "k_euler",
+          negative_prompt: "bad hands",
+        },
+      }),
+    });
+    const metadata = extractNovelAiMetadataFromStealthPixels(stealth);
+    const blankPngBytes = decodeBase64("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGD4DwABBAEAeG4G3QAAAABJRU5ErkJggg==");
+
+    const embedded = extractNovelAiMetadataFromPngBytes(
+      embedNovelAiMetadataIntoPngBytes(blankPngBytes, metadata),
+    );
+
+    expect(embedded?.source).toBe("png-text");
+    expect(embedded?.settings).toMatchObject({
+      mode: "txt2img",
+      prompt: "best quality, city at night",
+      negativePrompt: "bad hands",
+      seed: 777,
+      sampler: "k_euler",
+    });
   });
 });

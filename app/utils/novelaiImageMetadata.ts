@@ -59,6 +59,20 @@ const PNG_SIGNATURE = new Uint8Array([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 
 const STEALTH_MAGIC = "stealth_pngcomp";
 const utf8Decoder = new TextDecoder("utf-8");
 const latin1Decoder = new TextDecoder("latin1");
+const utf8Encoder = new TextEncoder();
+const CRC32_TABLE = (() => {
+  const table = new Uint32Array(256);
+  for (let index = 0; index < 256; index += 1) {
+    let value = index;
+    for (let bit = 0; bit < 8; bit += 1) {
+      value = (value & 1) === 1
+        ? (0xEDB88320 ^ (value >>> 1))
+        : (value >>> 1);
+    }
+    table[index] = value >>> 0;
+  }
+  return table;
+})();
 
 function asRecord(value: unknown): Record<string, unknown> | null {
   if (!value || typeof value !== "object" || Array.isArray(value))
@@ -100,6 +114,63 @@ function decodeLatin1(bytes: Uint8Array) {
 
 function decodeUtf8(bytes: Uint8Array) {
   return utf8Decoder.decode(bytes);
+}
+
+function encodeUtf8(value: string) {
+  return utf8Encoder.encode(value);
+}
+
+function concatBytes(...parts: Uint8Array[]) {
+  const totalLength = parts.reduce((sum, part) => sum + part.length, 0);
+  const merged = new Uint8Array(totalLength);
+  let offset = 0;
+  for (const part of parts) {
+    merged.set(part, offset);
+    offset += part.length;
+  }
+  return merged;
+}
+
+function writeUint32Be(value: number) {
+  return new Uint8Array([
+    (value >>> 24) & 0xFF,
+    (value >>> 16) & 0xFF,
+    (value >>> 8) & 0xFF,
+    value & 0xFF,
+  ]);
+}
+
+function crc32(bytes: Uint8Array) {
+  let crc = 0xFFFFFFFF;
+  for (let index = 0; index < bytes.length; index += 1) {
+    const tableIndex = (crc ^ bytes[index]) & 0xFF;
+    crc = (CRC32_TABLE[tableIndex] ^ (crc >>> 8)) >>> 0;
+  }
+  return (crc ^ 0xFFFFFFFF) >>> 0;
+}
+
+function makePngChunk(type: string, data: Uint8Array) {
+  const typeBytes = encodeUtf8(type);
+  const crcValue = crc32(concatBytes(typeBytes, data));
+  return concatBytes(
+    writeUint32Be(data.length),
+    typeBytes,
+    data,
+    writeUint32Be(crcValue),
+  );
+}
+
+function makeInternationalTextChunk(key: string, value: string) {
+  const keyBytes = encodeUtf8(key);
+  const valueBytes = encodeUtf8(value);
+  return makePngChunk(
+    "iTXt",
+    concatBytes(
+      keyBytes,
+      new Uint8Array([0, 0, 0, 0, 0]),
+      valueBytes,
+    ),
+  );
 }
 
 function parseTextChunk(chunkType: string, chunkData: Uint8Array) {
@@ -637,6 +708,44 @@ function normalizeRawMetadata(raw: Record<string, unknown>) {
   return next;
 }
 
+function serializeMetadataTextValue(value: unknown) {
+  if (typeof value === "string")
+    return value;
+  if (typeof value === "number" || typeof value === "boolean")
+    return String(value);
+  if (value == null)
+    return null;
+  try {
+    return JSON.stringify(value);
+  }
+  catch {
+    return null;
+  }
+}
+
+function buildNovelAiPngTextEntries(metadata: NovelAiImageMetadataResult) {
+  const entries: Record<string, string> = {};
+  for (const [key, value] of Object.entries(metadata.raw)) {
+    const normalizedKey = String(key || "").trim();
+    if (!normalizedKey)
+      continue;
+    const serializedValue = serializeMetadataTextValue(value);
+    if (serializedValue != null)
+      entries[normalizedKey] = serializedValue;
+  }
+
+  if (!entries.Source)
+    entries.Source = "NovelAI";
+
+  if (!entries.Comment) {
+    const fallbackComment = serializeMetadataTextValue(metadata.raw);
+    if (fallbackComment != null)
+      entries.Comment = fallbackComment;
+  }
+
+  return entries;
+}
+
 export function extractNovelAiMetadataFromPngBytes(bytes: Uint8Array): NovelAiImageMetadataResult | null {
   const rawEntries = parsePngTextEntries(bytes);
   if (!rawEntries)
@@ -729,4 +838,51 @@ export function extractNovelAiMetadataFromStealthPixels(image: NovelAiStealthIma
   catch {
     return null;
   }
+}
+
+export function embedNovelAiMetadataIntoPngBytes(
+  imageBytes: Uint8Array,
+  metadata: NovelAiImageMetadataResult | null,
+): Uint8Array {
+  if (!metadata || !hasPngSignature(imageBytes))
+    return imageBytes;
+
+  const textChunks = Object.entries(buildNovelAiPngTextEntries(metadata))
+    .map(([key, value]) => makeInternationalTextChunk(key, value));
+  if (!textChunks.length)
+    return imageBytes;
+
+  const outputChunks: Uint8Array[] = [PNG_SIGNATURE];
+  let offset = PNG_SIGNATURE.length;
+  let inserted = false;
+
+  while (offset + 12 <= imageBytes.length) {
+    const chunkLength = readUint32Be(imageBytes, offset);
+    if (chunkLength == null)
+      break;
+
+    const typeStart = offset + 4;
+    const typeEnd = typeStart + 4;
+    const dataEnd = typeEnd + chunkLength;
+    const crcEnd = dataEnd + 4;
+    if (crcEnd > imageBytes.length)
+      break;
+
+    const chunkType = decodeLatin1(imageBytes.subarray(typeStart, typeEnd));
+    const chunkBytes = imageBytes.subarray(offset, crcEnd);
+
+    if (chunkType === "IEND") {
+      outputChunks.push(...textChunks);
+      outputChunks.push(chunkBytes);
+      inserted = true;
+      break;
+    }
+
+    if (chunkType !== "tEXt" && chunkType !== "zTXt" && chunkType !== "iTXt")
+      outputChunks.push(chunkBytes);
+
+    offset = crcEnd;
+  }
+
+  return inserted ? concatBytes(...outputChunks) : imageBytes;
 }
