@@ -145,7 +145,7 @@ export function renderSimpleInfillSectionContent({
                   </div>
                 </div>
 
-                <label className="ml-auto block w-full max-w-[360px]">
+                <label className="block w-full">
                   <div className="flex items-center justify-between text-[13px] font-semibold leading-5 text-base-content">
                     <span>Strength</span>
                     <span>{formatSliderValue(strength)}</span>
@@ -161,7 +161,7 @@ export function renderSimpleInfillSectionContent({
                   />
                 </label>
 
-                <label className="ml-auto block w-full max-w-[360px]">
+                <label className="block w-full">
                   <div className="mb-2 text-[13px] font-semibold leading-5 text-base-content">Append Tags</div>
                   <textarea
                     className={infillAppendInputClassName}
