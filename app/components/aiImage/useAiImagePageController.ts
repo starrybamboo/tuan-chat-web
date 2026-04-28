@@ -102,6 +102,7 @@ export function useAiImagePageController() {
   const [simpleInfillNegativePrompt, setSimpleInfillNegativePrompt] = useState(DEFAULT_INPAINT_NEGATIVE_PROMPT);
   const [proInfillPrompt, setProInfillPrompt] = useState(DEFAULT_INPAINT_PROMPT);
   const [proInfillNegativePrompt, setProInfillNegativePrompt] = useState(DEFAULT_INPAINT_NEGATIVE_PROMPT);
+  const [infillAppendPrompt, setInfillAppendPrompt] = useState("");
 
   const [simpleText, setSimpleText] = useState("");
   const [, setSimpleConvertedFromText] = useState("");
@@ -117,6 +118,7 @@ export function useAiImagePageController() {
 
   const [prompt, setPrompt] = useState("");
   const [negativePrompt, setNegativePrompt] = useState("");
+
 
   const [v4UseCoords, setV4UseCoords] = useState<boolean>(false);
   const [v4UseOrder, setV4UseOrder] = useState<boolean>(true);
@@ -312,6 +314,11 @@ export function useAiImagePageController() {
     readImagePixels,
     readImageSize,
   });
+
+  useEffect(() => {
+    setInfillAppendPrompt("");
+  }, [sourceImageDataUrl]);
+
   const {
     results,
     setResults,
@@ -501,6 +508,7 @@ export function useAiImagePageController() {
     proInfillPrompt,
     simpleInfillNegativePrompt,
     proInfillNegativePrompt,
+    infillAppendPrompt,
     width,
     height,
     seed,
@@ -809,6 +817,7 @@ export function useAiImagePageController() {
     handleUpdateVibeReference,
     handleOpenBaseImageInpaint,
     handleReturnFromInfillSettings,
+    infillAppendPrompt,
     handleSetV4UseCoords,
     hasReferenceConflict,
     height,
@@ -850,6 +859,7 @@ export function useAiImagePageController() {
     setCharPromptTabs,
     setDynamicThresholding,
     setHeight,
+    setInfillAppendPrompt,
     setImageCount,
     setIsStylePickerOpen,
     setNegativePrompt,

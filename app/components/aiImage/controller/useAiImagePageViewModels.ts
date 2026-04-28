@@ -96,6 +96,7 @@ type SidebarViewModelArgs = {
   handleUpdateVibeReference: (id: string, patch: Partial<VibeTransferReferenceRow>) => void;
   handleOpenBaseImageInpaint: () => void;
   handleReturnFromInfillSettings: () => void;
+  infillAppendPrompt: string;
   handleSetV4UseCoords: (nextValue: boolean) => void;
   hasReferenceConflict: boolean;
   height: number;
@@ -137,6 +138,7 @@ type SidebarViewModelArgs = {
   setCharPromptTabs: Dispatch<SetStateAction<Record<string, "prompt" | "negative">>>;
   setDynamicThresholding: (value: boolean) => void;
   setHeight: (value: number) => void;
+  setInfillAppendPrompt: Dispatch<SetStateAction<string>>;
   setImageCount: (value: number) => void;
   setIsStylePickerOpen: Dispatch<SetStateAction<boolean>>;
   setNegativePrompt: (value: string) => void;
@@ -275,6 +277,7 @@ export function useAiImageSidebarProps(args: SidebarViewModelArgs) {
     handleUpdateVibeReference,
     handleOpenBaseImageInpaint,
     handleReturnFromInfillSettings,
+    infillAppendPrompt,
     handleSetV4UseCoords,
     hasReferenceConflict,
     height,
@@ -316,6 +319,7 @@ export function useAiImageSidebarProps(args: SidebarViewModelArgs) {
     setCharPromptTabs,
     setDynamicThresholding,
     setHeight,
+    setInfillAppendPrompt,
     setImageCount,
     setIsStylePickerOpen,
     setNegativePrompt,
@@ -423,6 +427,7 @@ export function useAiImageSidebarProps(args: SidebarViewModelArgs) {
     handleUpdateVibeReference,
     handleOpenBaseImageInpaint,
     handleReturnFromInfillSettings,
+    infillAppendPrompt,
     hasReferenceConflict,
     height,
     imageCount,
@@ -462,6 +467,7 @@ export function useAiImageSidebarProps(args: SidebarViewModelArgs) {
     setCharPromptTabs,
     setDynamicThresholding,
     setHeight,
+    setInfillAppendPrompt,
     setImageCount,
     setIsStylePickerOpen,
     setNegativePrompt,
@@ -573,6 +579,7 @@ export function useAiImageSidebarProps(args: SidebarViewModelArgs) {
     hasSimpleTagsDraft,
     height,
     heightInput,
+    infillAppendPrompt,
     imageCount,
     imageCountLimit,
     infillMaskDataUrl,
@@ -611,6 +618,7 @@ export function useAiImageSidebarProps(args: SidebarViewModelArgs) {
     setCharPromptTabs,
     setDynamicThresholding,
     setHeight,
+    setInfillAppendPrompt,
     setImageCount,
     setIsStylePickerOpen,
     setNegativePrompt,
