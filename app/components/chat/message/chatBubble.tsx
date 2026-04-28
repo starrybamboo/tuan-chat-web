@@ -87,7 +87,7 @@ function HoverToolbarActionButton({ label, onClick, children }: HoverToolbarActi
   );
 }
 
-function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecuteCommandRequest, isCommandRequestConsumed, onToggleSelection, onEditWebgalChoose, baseVersionMessage }: {
+function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecuteCommandRequest, isCommandRequestConsumed, onToggleSelection, onEditWebgalChoose, baseVersionMessage, showFullMessageDiff, showAddedMessageDiff = true }: {
   /** 包含聊天消息内容、发送者等信息的数据对象 */
   chatMessageResponse: ChatMessageResponse;
   /** 控制是否应用气泡样式，默认为false */
@@ -98,6 +98,8 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
   onToggleSelection?: (messageId: number) => void;
   onEditWebgalChoose?: (messageId: number) => void;
   baseVersionMessage?: ChatMessageResponse | null;
+  showFullMessageDiff?: boolean;
+  showAddedMessageDiff?: boolean;
 }) {
   const message = chatMessageResponse.message;
   const annotations = useMemo(() => {
@@ -166,7 +168,6 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
   const [isEditingRoleName, setIsEditingRoleName] = useState(false);
   const [editingRoleName, setEditingRoleName] = useState("");
   const [isEditingContent, setIsEditingContent] = useState(false);
-  const [isVersionDiffOpen, setIsVersionDiffOpen] = useState(false);
   const editInputRef = useRef<ChatInputAreaHandle | null>(null);
 
   // 判断是否为旁白（无角色）- 包括 roleId 为空/undefined/0/负数 的情况
@@ -237,36 +238,19 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
   const thresholdCounterText = `${formatTextEnhanceVisibleLength(messageContentLength)}/${formatTextEnhanceVisibleLength(roomContentAlertThreshold)}`;
   const versionDiff = useMemo(() => {
     if (!baseVersionMessage) {
-      return null;
+      return showFullMessageDiff && showAddedMessageDiff ? buildMessageTextDiff("", message.content ?? "") : null;
     }
     return buildMessageTextDiff(baseVersionMessage.message.content ?? "", message.content ?? "");
-  }, [baseVersionMessage, message.content]);
-  const canShowVersionDiff = Boolean(versionDiff?.hasChanges);
-  const handleToggleVersionDiff = useCallback((event: React.MouseEvent<HTMLButtonElement>) => {
-    event.preventDefault();
-    event.stopPropagation();
-    setIsVersionDiffOpen(value => !value);
-  }, []);
-  const versionDiffToggle = canShowVersionDiff
-    ? (
-        <button
-          type="button"
-          className="rounded border border-info/30 bg-info/10 px-1.5 py-0.5 text-[10px] leading-none text-info/90 transition hover:bg-info/15"
-          onClick={handleToggleVersionDiff}
-          title={isVersionDiffOpen ? "收起版本差异" : "查看版本差异"}
-          aria-expanded={isVersionDiffOpen}
-        >
-          已修改
-        </button>
-      )
-    : null;
-  const versionDiffPreview = canShowVersionDiff && isVersionDiffOpen && versionDiff
+  }, [baseVersionMessage, message.content, showAddedMessageDiff, showFullMessageDiff]);
+  const canShowVersionDiff = Boolean(versionDiff && (showFullMessageDiff || versionDiff.hasChanges));
+  const versionDiffPreview = canShowVersionDiff && showFullMessageDiff && versionDiff
     ? (
         <div className="mt-2 w-full max-w-3xl">
           <MessageTextDiffPreview diff={versionDiff} />
         </div>
       )
     : null;
+  const shouldHideOriginalContentInFullDiff = Boolean(versionDiffPreview);
 
   // 更新消息并同步到本地缓存
   const updateMessageAndSync = useCallback((newMessage: Message) => {
@@ -1027,29 +1011,30 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
                                   : null
                               )
                         )}
-                    {versionDiffToggle && <span className="shrink-0">{versionDiffToggle}</span>}
                     <span className="hidden sm:inline text-xs text-base-content/50 ml-auto transition-opacity duration-200 opacity-0 group-hover:opacity-100 shrink-0">
                       {isEdited && <span className="text-warning mr-1">(已编辑)</span>}
                       {formattedTime}
                     </span>
                   </div>
-                  <div
-                    className={`${CHAT_MESSAGE_BUBBLE_BASE_CLASS} cursor-pointer ${
-                      isOutOfCharacterTextMessage
-                        ? "border-2 border-dashed border-warning/45 bg-warning/12 text-base-content/90 shadow-none hover:bg-warning/18 hover:shadow-none"
-                        : "bg-base-200 hover:shadow-lg hover:bg-base-300"
-                    } ${isMessageOverRoomContentThreshold ? "outline outline-1 outline-warning/70" : ""}`}
-                    onClick={triggerEffectPreview}
-                  >
-                    {renderedContent}
-                    {isMessageOverRoomContentThreshold && (
-                      <div className="mt-1 flex justify-end">
-                        <span className="rounded px-1 text-[11px] leading-4 font-medium bg-warning/20 text-warning shadow-sm">
-                          {thresholdCounterText}
-                        </span>
-                      </div>
-                    )}
-                  </div>
+                  {!shouldHideOriginalContentInFullDiff && (
+                    <div
+                      className={`${CHAT_MESSAGE_BUBBLE_BASE_CLASS} cursor-pointer ${
+                        isOutOfCharacterTextMessage
+                          ? "border-2 border-dashed border-warning/45 bg-warning/12 text-base-content/90 shadow-none hover:bg-warning/18 hover:shadow-none"
+                          : "bg-base-200 hover:shadow-lg hover:bg-base-300"
+                      } ${isMessageOverRoomContentThreshold ? "outline outline-1 outline-warning/70" : ""}`}
+                      onClick={triggerEffectPreview}
+                    >
+                      {renderedContent}
+                      {isMessageOverRoomContentThreshold && (
+                        <div className="mt-1 flex justify-end">
+                          <span className="rounded px-1 text-[11px] leading-4 font-medium bg-warning/20 text-warning shadow-sm">
+                            {thresholdCounterText}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  )}
                   {versionDiffPreview}
                   {renderAnnotationsBar(CHAT_MESSAGE_ANNOTATIONS_CLASS)}
                 </div>
@@ -1168,29 +1153,30 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
                                   : null
                               )
                         )}
-                    {versionDiffToggle && <span className="shrink-0 pt-1">{versionDiffToggle}</span>}
                     <div className="text-xs text-base-content/50 pt-1 ml-auto transition-opacity duration-200 opacity-0 group-hover:opacity-100 shrink-0">
                       {isEdited && <span className="text-warning mr-1">(已编辑)</span>}
                       {formattedTime}
                     </div>
                   </div>
-                  <div
-                    className={`relative transition-all duration-200 rounded-lg p-1.5 sm:p-2 cursor-pointer break-words text-base sm:text-sm lg:text-base ${
-                      isOutOfCharacterTextMessage
-                        ? "border-2 border-dashed border-warning/40 bg-warning/10 text-base-content/90"
-                        : "hover:bg-base-200/50"
-                    } ${isMessageOverRoomContentThreshold ? "outline outline-1 outline-warning/70" : ""}`}
-                    onClick={triggerEffectPreview}
-                  >
-                    {renderedContent}
-                    {isMessageOverRoomContentThreshold && (
-                      <div className="mt-1 flex justify-end">
-                        <span className="rounded px-1 text-[11px] leading-4 font-medium bg-warning/20 text-warning shadow-sm">
-                          {thresholdCounterText}
-                        </span>
-                      </div>
-                    )}
-                  </div>
+                  {!shouldHideOriginalContentInFullDiff && (
+                    <div
+                      className={`relative transition-all duration-200 rounded-lg p-1.5 sm:p-2 cursor-pointer break-words text-base sm:text-sm lg:text-base ${
+                        isOutOfCharacterTextMessage
+                          ? "border-2 border-dashed border-warning/40 bg-warning/10 text-base-content/90"
+                          : "hover:bg-base-200/50"
+                      } ${isMessageOverRoomContentThreshold ? "outline outline-1 outline-warning/70" : ""}`}
+                      onClick={triggerEffectPreview}
+                    >
+                      {renderedContent}
+                      {isMessageOverRoomContentThreshold && (
+                        <div className="mt-1 flex justify-end">
+                          <span className="rounded px-1 text-[11px] leading-4 font-medium bg-warning/20 text-warning shadow-sm">
+                            {thresholdCounterText}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  )}
                   {versionDiffPreview}
                   {renderAnnotationsBar("mt-1.5")}
                 </div>
@@ -1225,6 +1211,8 @@ export const ChatBubble = React.memo(ChatBubbleComponent, (prevProps, nextProps)
     && prevMsg.versionState === nextMsg.versionState
     && prevProps.baseVersionMessage?.message.messageId === nextProps.baseVersionMessage?.message.messageId
     && prevProps.baseVersionMessage?.message.content === nextProps.baseVersionMessage?.message.content
+    && prevProps.showFullMessageDiff === nextProps.showFullMessageDiff
+    && prevProps.showAddedMessageDiff === nextProps.showAddedMessageDiff
     && prevProps.useChatBubbleStyle === nextProps.useChatBubbleStyle
   );
 

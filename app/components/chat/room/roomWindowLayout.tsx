@@ -1,3 +1,4 @@
+import type { Room } from "@tuanchat/openapi-client/models/Room";
 import type { DocRefDragPayload } from "@/components/chat/utils/docRef";
 import React from "react";
 import ChatFrame from "@/components/chat/chatFrame";
@@ -14,6 +15,7 @@ type RoomComposerPanelProps = React.ComponentProps<typeof RoomComposerPanel>;
 interface RoomWindowLayoutProps {
   roomId: number;
   roomName?: string;
+  room?: Room | null;
   toggleLeftDrawer: () => void;
   onCloseSubWindow?: () => void;
   backgroundUrl: string | null;
@@ -25,19 +27,15 @@ interface RoomWindowLayoutProps {
   hideSecondaryPanels?: boolean;
   /** 点击消息区域时，输入框默认切换到哪个发送目标 */
   chatAreaComposerTarget?: "main" | "thread";
-  onExportPremiere?: () => void;
   onClearAndReloadAllMessages?: () => void | Promise<void>;
-  onUndo?: () => void;
-  onRedo?: () => void;
   isReloadingAllMessages?: boolean;
-  canUndo?: boolean;
-  canRedo?: boolean;
   onSendDocCard?: (payload: DocRefDragPayload) => Promise<void> | void;
 }
 
 export default function RoomWindowLayout({
   roomId,
   roomName,
+  room,
   toggleLeftDrawer,
   onCloseSubWindow,
   backgroundUrl,
@@ -48,13 +46,8 @@ export default function RoomWindowLayout({
   hideComposer = false,
   hideSecondaryPanels = false,
   chatAreaComposerTarget = "main",
-  onExportPremiere,
   onClearAndReloadAllMessages,
-  onUndo,
-  onRedo,
   isReloadingAllMessages = false,
-  canUndo = false,
-  canRedo = false,
   onSendDocCard,
 }: RoomWindowLayoutProps) {
   const setComposerTarget = useRoomUiStore(state => state.setComposerTarget);
@@ -81,15 +74,11 @@ export default function RoomWindowLayout({
         <div className="flex-1 min-w-0 flex flex-col h-full min-h-0">
           <RoomHeaderBar
             roomName={roomName}
+            room={room}
             toggleLeftDrawer={toggleLeftDrawer}
             onCloseSubWindow={onCloseSubWindow}
-            onExportPremiere={onExportPremiere}
             onClearAndReloadAllMessages={onClearAndReloadAllMessages}
-            onUndo={onUndo}
-            onRedo={onRedo}
             isReloadingAllMessages={isReloadingAllMessages}
-            canUndo={canUndo}
-            canRedo={canRedo}
           />
           <div className="flex-1 w-full flex bg-transparent relative min-h-0">
             <div className="flex-1 min-w-0 flex flex-col min-h-0" data-tc-doc-ref-drop-zone>

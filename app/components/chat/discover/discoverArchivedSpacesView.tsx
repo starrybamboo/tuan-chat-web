@@ -3,7 +3,7 @@ import type { ApiResultPageBaseRespRepository } from "@tuanchat/openapi-client/m
 import type { Repository } from "@tuanchat/openapi-client/models/Repository";
 import type { Space } from "@tuanchat/openapi-client/models/Space";
 
-import { CompassIcon, PackageIcon } from "@phosphor-icons/react";
+import { ArrowLeftIcon, CompassIcon, PackageIcon } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
 import { tuanchat } from "api/instance";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -302,14 +302,13 @@ export default function DiscoverArchivedSpacesView({ mode }: DiscoverArchivedSpa
                     <div className="flex min-w-0 items-center gap-3">
                       <button
                         type="button"
-                        className="btn btn-sm btn-outline"
+                        className="btn btn-sm btn-ghost btn-square"
                         onClick={closeRepositoryPanel}
+                        aria-label="返回发现"
+                        title="返回发现"
                       >
-                        返回发现
+                        <ArrowLeftIcon className="size-5" weight="bold" />
                       </button>
-                      <div className="min-w-0 text-sm font-bold text-base-content/90 truncate">
-                        {`仓库 #${activeRepositoryId}`}
-                      </div>
                     </div>
                     <button
                       type="button"
@@ -340,9 +339,9 @@ export default function DiscoverArchivedSpacesView({ mode }: DiscoverArchivedSpa
         </div>
       )}
 
-      <div className={shouldHideRepositoryHeader ? "flex-1 min-h-0 overflow-hidden" : "flex-1 min-h-0 overflow-y-auto"}>
+      <div className={activeRepositoryId || shouldHideRepositoryHeader ? "flex-1 min-h-0 overflow-hidden" : "flex-1 min-h-0 overflow-y-auto"}>
         <div className={activeRepositoryId
-          ? (isRepositoryViewModeOpen ? "w-full h-full" : "w-full")
+          ? "w-full h-full"
           : "mx-auto w-full max-w-6xl px-6 py-6 space-y-6"}
         >
           {activeRepositoryId

@@ -1,8 +1,8 @@
-import type { Space } from "@tuanchat/openapi-client/models/Space";
 import type { RepositoryData } from "./constants";
+import type { RepositorySpaceCandidate } from "./repositoryDetail.helpers";
 import { useQueryClient } from "@tanstack/react-query";
 import { useGetUserRoomsQuery, useGetUserSpacesQuery } from "api/hooks/chatQueryHooks";
-import { useRepositoryDetailByIdQuery, useRepositoryForkListQuery } from "api/hooks/repositoryQueryHooks";
+import { useRepositoryDetailByIdQuery } from "api/hooks/repositoryQueryHooks";
 import { useRuleListQuery } from "api/hooks/ruleQueryHooks";
 import { tuanchat } from "api/instance";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -14,6 +14,15 @@ import {
   BLOCKSUITE_FULL_PANEL_EDITOR_CLASS,
 } from "@/components/chat/shared/components/BlockSuite/blocksuiteDescriptionEditor.shared";
 import Author from "./author";
+import {
+  findRecoverableRepositorySpace,
+  isValidCommitId,
+  isValidSpaceId,
+  listRepositorySpaceCandidates,
+
+  resolvePreviewRoomId,
+  resolveRepositoryPrimaryAction,
+} from "./repositoryDetail.helpers";
 // import IssueTab from "./issueTab";
 
 interface RepositoryDetailComponentProps {
@@ -23,21 +32,6 @@ interface RepositoryDetailComponentProps {
   embedded?: boolean;
   viewModeOpen?: boolean;
   onViewModeOpenChange?: (open: boolean) => void;
-}
-
-type RepositorySpaceCandidate = Space & { spaceId: number };
-
-function isValidSpaceId(value: number | null | undefined): value is number {
-  return typeof value === "number" && Number.isFinite(value) && value > 0;
-}
-
-function parseSpaceUpdateTime(value?: string): number {
-  const timestamp = Date.parse(value ?? "");
-  return Number.isFinite(timestamp) ? timestamp : 0;
-}
-
-function isValidCommitId(value: number | null | undefined): value is number {
-  return typeof value === "number" && Number.isFinite(value) && value > 0;
 }
 
 async function cloneSpaceByCommitId(repositoryId: number, commitId: number): Promise<number> {
@@ -56,23 +50,9 @@ async function recoverArchivedSpaceById(spaceId: number): Promise<void> {
   }
 }
 
-function isRepositorySpaceCandidate(space: Space, repositoryId: number): space is RepositorySpaceCandidate {
-  return space.repositoryId === repositoryId && isValidSpaceId(space.spaceId);
-}
-
-function listRepositorySpaceCandidates(spaces: Space[], repositoryId: number): RepositorySpaceCandidate[] {
-  if (!isValidSpaceId(repositoryId)) {
-    return [];
-  }
-  return spaces
-    .filter(space => isRepositorySpaceCandidate(space, repositoryId))
-    .sort((a, b) => parseSpaceUpdateTime(b.updateTime) - parseSpaceUpdateTime(a.updateTime));
-}
-
 export default function RepositoryDetailComponent({
   repositoryData: propRepositoryData,
   repositoryId: propRepositoryId,
-  onOpenRepository,
   embedded = false,
   viewModeOpen,
   onViewModeOpenChange,
@@ -94,7 +74,7 @@ export default function RepositoryDetailComponent({
   const { data: fetchedRepositoryData, isLoading: isLoadingRepository, isError: isRepositoryError } = useRepositoryDetailByIdQuery(repositoryId);
   const RuleList = useRuleListQuery();
 
-  // 查看模组内容弹窗（支持受控/非受控）
+  // 房间预览弹窗（支持受控/非受控）
   const [internalIsViewModeOpen, setInternalIsViewModeOpen] = useState(false);
   const isViewModeOpen = typeof viewModeOpen === "boolean" ? viewModeOpen : internalIsViewModeOpen;
   const setViewModeOpen = (next: boolean) => {
@@ -105,19 +85,6 @@ export default function RepositoryDetailComponent({
     setInternalIsViewModeOpen(next);
   };
 
-  const [isForkListOpen, setIsForkListOpen] = useState(false);
-
-  const forkListQuery = useRepositoryForkListQuery({
-    repositoryId,
-    pageNo: 1,
-    pageSize: 50,
-  });
-
-  const forkRepositories = useMemo(() => {
-    const list = forkListQuery.data?.data?.list ?? [];
-    return list.filter(repo => repo.repositoryId && repo.repositoryId !== repositoryId);
-  }, [forkListQuery.data, repositoryId]);
-
   // 获取 userSpace 数据
   const getUserSpaces = useGetUserSpacesQuery();
   const userSpaces = useMemo(() => getUserSpaces.data?.data ?? [], [getUserSpaces.data?.data]);
@@ -125,8 +92,7 @@ export default function RepositoryDetailComponent({
   const repositorySpace = repositorySpaces[0] ?? null;
 
   const [isCloningModule, setIsCloningModule] = useState(false);
-  const [isRecoveringSuggestedSpace, setIsRecoveringSuggestedSpace] = useState(false);
-  const [showRecoverSuggestionDialog, setShowRecoverSuggestionDialog] = useState(false);
+  const [isRecoveringRepositorySpace, setIsRecoveringRepositorySpace] = useState(false);
   const cloningModuleLockRef = useRef(false);
   const errorToastTimerRef = useRef<number | null>(null);
 
@@ -136,11 +102,12 @@ export default function RepositoryDetailComponent({
     if (!linkedSpaceId) {
       return null;
     }
-    return userSpaces.find(space => space.spaceId === linkedSpaceId) ?? repositorySpace ?? null;
+    return (userSpaces.find(space => space.spaceId === linkedSpaceId) as RepositorySpaceCandidate | undefined) ?? repositorySpace ?? null;
   }, [linkedSpaceId, repositorySpace, userSpaces]);
   const roomsQuery = useGetUserRoomsQuery(linkedSpaceId ?? -1);
-  const linkedRooms = useMemo(() => roomsQuery.data?.data?.rooms ?? [], [roomsQuery.data?.data?.rooms]);
-  const viewRoomId = linkedRooms[0]?.roomId ?? null;
+  const linkedRooms = useMemo(() => (roomsQuery.data?.data?.rooms ?? []).filter(room => isValidSpaceId(room.roomId)), [roomsQuery.data?.data?.rooms]);
+  const [selectedViewRoomId, setSelectedViewRoomId] = useState<number | null>(null);
+  const viewRoomId = useMemo(() => resolvePreviewRoomId(linkedRooms, selectedViewRoomId), [linkedRooms, selectedViewRoomId]);
 
   // 图片加载状态
   const [imageLoading, setImageLoading] = useState(true);
@@ -189,17 +156,14 @@ export default function RepositoryDetailComponent({
     return null;
   }, [repositoryData?.commitId]);
 
-  const suggestedRecoverSpace = useMemo(() => {
-    if (latestRepositoryCommitId == null) {
-      return null;
-    }
-    return repositorySpaces.find((space) => {
-      const spaceCommitId = typeof space.parentCommitId === "number" && Number.isFinite(space.parentCommitId)
-        ? space.parentCommitId
-        : null;
-      return space.status === 2 && spaceCommitId === latestRepositoryCommitId;
-    }) ?? null;
-  }, [latestRepositoryCommitId, repositorySpaces]);
+  const recoverableRepositorySpace = useMemo(
+    () => findRecoverableRepositorySpace(repositorySpaces, latestRepositoryCommitId),
+    [latestRepositoryCommitId, repositorySpaces],
+  );
+  const primaryAction = useMemo(
+    () => resolveRepositoryPrimaryAction({ linkedSpace, recoverableSpace: recoverableRepositorySpace }),
+    [linkedSpace, recoverableRepositorySpace],
+  );
 
   const repositoryImage = repositoryData?.image?.trim() ?? "";
 
@@ -268,25 +232,6 @@ export default function RepositoryDetailComponent({
       }
     };
   }, []);
-
-  const isRootRepository = useMemo(() => repositoryData?.parent == null, [repositoryData]);
-
-  const openRepositoryDetail = (id: number) => {
-    if (!id || !Number.isFinite(id))
-      return;
-    if (onOpenRepository) {
-      onOpenRepository(id);
-      return;
-    }
-    navigate(`/repository/detail/${id}`);
-  };
-
-  const openCommitChainPage = () => {
-    if (!isValidSpaceId(repositoryId)) {
-      return;
-    }
-    navigate(`/repository/commit-chain/${repositoryId}`);
-  };
 
   // ===== 条件渲染：加载和错误状态 =====
   // 如果正在加载，显示加载状态
@@ -389,39 +334,18 @@ export default function RepositoryDetailComponent({
     }
   };
 
-  const handleCloneModule = () => {
-    if (isCloningModule || isRecoveringSuggestedSpace) {
-      return;
-    }
-    if (suggestedRecoverSpace && isValidSpaceId(suggestedRecoverSpace.spaceId)) {
-      setShowRecoverSuggestionDialog(true);
-      return;
-    }
-    void cloneModule();
-  };
-
-  const handleCloneAfterSuggestion = () => {
-    if (isCloningModule || isRecoveringSuggestedSpace) {
-      return;
-    }
-    setShowRecoverSuggestionDialog(false);
-    void cloneModule();
-  };
-
-  const handleRecoverSuggestedSpace = async () => {
-    const targetSpaceId = suggestedRecoverSpace?.spaceId;
+  const handleRecoverRepositorySpace = async () => {
+    const targetSpaceId = primaryAction.kind === "recover" ? primaryAction.space.spaceId : null;
     if (!isValidSpaceId(targetSpaceId)) {
-      setShowRecoverSuggestionDialog(false);
       return;
     }
-    if (isCloningModule || isRecoveringSuggestedSpace) {
+    if (isCloningModule || isRecoveringRepositorySpace) {
       return;
     }
 
-    setIsRecoveringSuggestedSpace(true);
+    setIsRecoveringRepositorySpace(true);
     try {
       await recoverArchivedSpaceById(targetSpaceId);
-      setShowRecoverSuggestionDialog(false);
       setViewModeOpen(false);
       await refreshUserSpaceCaches();
       await navigateToSpace(targetSpaceId);
@@ -431,47 +355,40 @@ export default function RepositoryDetailComponent({
       showErrorToast("恢复编辑失败，请重试");
     }
     finally {
-      setIsRecoveringSuggestedSpace(false);
+      setIsRecoveringRepositorySpace(false);
     }
   };
 
-  // 构建信息数组，只包含有数据的字段
-  const infos = [
-    repositoryData.parent && { label: "Forked By", value: repositoryData.parent },
-    (repositoryData.minPeople || repositoryData.maxPeople) && {
-      label: "玩家人数",
-      value: repositoryData.minPeople && repositoryData.maxPeople
-        ? `${repositoryData.minPeople}-${repositoryData.maxPeople}人`
-        : repositoryData.minPeople
-          ? `${repositoryData.minPeople}+人`
-          : `最多${repositoryData.maxPeople}人`,
-    },
-    (repositoryData.minTime || repositoryData.maxTime) && {
-      label: "游戏时间",
-      value: repositoryData.minTime && repositoryData.maxTime
-        ? `${repositoryData.minTime}-${repositoryData.maxTime}小时`
-        : repositoryData.minTime
-          ? `${repositoryData.minTime}+小时`
-          : `最长${repositoryData.maxTime}小时`,
-    },
-    repositoryData.authorName && { label: "作者", value: repositoryData.authorName },
-    repositoryData.userId && { label: "上传者ID", value: String(repositoryData.userId) },
-    repositoryData.ruleName && { label: "规则", value: String(repositoryData.ruleName) },
-    repositoryData.createTime && { label: "创建时间", value: new Date(repositoryData.createTime).toLocaleDateString("zh-CN") },
-    repositoryData.updateTime && { label: "最后更新", value: new Date(repositoryData.updateTime).toLocaleString("zh-CN") },
-  ].filter((item): item is { label: string; value: string } => Boolean(item)); // 类型断言过滤
-  const layoutContainerClassName = embedded && isViewModeOpen
-    ? "w-full h-full relative z-10"
+  const handlePrimaryAction = () => {
+    if (isCloningModule || isRecoveringRepositorySpace) {
+      return;
+    }
+    if (primaryAction.kind === "continue") {
+      setViewModeOpen(false);
+      void navigateToSpace(primaryAction.space.spaceId);
+      return;
+    }
+    if (primaryAction.kind === "recover") {
+      void handleRecoverRepositorySpace();
+      return;
+    }
+    void cloneModule();
+  };
+
+  const layoutContainerClassName = embedded
+    ? "w-full h-full min-h-0 relative z-10"
     : "mx-auto max-w-7xl p-4 relative z-10";
-  const rootContainerClassName = embedded && isViewModeOpen
-    ? "bg-base-100 relative h-full"
+  const rootContainerClassName = embedded
+    ? "bg-base-100 relative h-full min-h-0 overflow-hidden"
     : "bg-base-100 relative";
-  const viewLayerHostClassName = embedded && isViewModeOpen
-    ? "relative h-full"
+  const viewLayerHostClassName = embedded
+    ? "relative h-full min-h-0"
     : "relative";
   const detailLayoutClassName = embedded && isViewModeOpen
     ? "hidden"
-    : "flex flex-col gap-6 md:flex-row md:gap-6";
+    : embedded
+      ? "flex h-full min-h-0 flex-col gap-6 p-4 md:flex-row md:gap-6"
+      : "flex flex-col gap-6 md:flex-row md:gap-6";
   const viewOverlayClassName = embedded
     ? "absolute inset-0 z-30 border border-base-300 bg-base-100 shadow-lg overflow-hidden"
     : "absolute inset-0 z-20 rounded-lg border border-base-300 bg-base-100 shadow-lg overflow-hidden";
@@ -483,9 +400,16 @@ export default function RepositoryDetailComponent({
         </>
       )
     : "创建副本";
-  const primaryActionButtonContent = suggestedRecoverSpace
-    ? "恢复编辑"
-    : createCopyButtonContent;
+  const primaryActionButtonContent = primaryAction.kind === "continue"
+    ? "进入编辑"
+    : primaryAction.kind === "recover"
+      ? (
+          <>
+            {isRecoveringRepositorySpace && <span className="loading loading-spinner loading-xs"></span>}
+            恢复编辑
+          </>
+        )
+      : createCopyButtonContent;
 
   return (
     <>
@@ -537,89 +461,9 @@ export default function RepositoryDetailComponent({
                     <h1 className="text-2xl font-bold leading-snug wrap-break-words">
                       {repositoryData.repositoryName}
                     </h1>
-                    <p className="text-sm text-base-content/70 leading-relaxed whitespace-pre-wrap wrap-break-words">
-                      {repositoryData.description || "暂无描述"}
-                    </p>
                   </div>
 
-                  {infos.length > 0 && (
-                    <div className="flex border border-base-300 rounded-lg p-3 gap-3">
-                      <div className="flex flex-col gap-2">
-                        {infos.map(info => (
-                          <h3 key={`label-${info.label}`} className="text-sm font-semibold">{info.label}</h3>
-                        ))}
-                      </div>
-                      <div className="divider divider-horizontal m-0" />
-                      <div className="flex flex-col gap-2">
-                        {infos.map(info => (
-                          <h4 key={`value-${info.label}`} className="text-sm">{info.value}</h4>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {isRootRepository && (
-                    <div className="rounded-lg border border-base-300 p-3">
-                      <div className="flex items-center justify-between">
-                        <div className="text-sm font-semibold">Fork 仓库</div>
-                        <button
-                          type="button"
-                          className="btn btn-xs btn-outline"
-                          onClick={() => setIsForkListOpen(prev => !prev)}
-                        >
-                          {isForkListOpen ? "收起" : `展开 ${forkRepositories.length}`}
-                        </button>
-                      </div>
-                      {isForkListOpen && (
-                        <div className="mt-3 space-y-2">
-                          {forkListQuery.isLoading && (
-                            <div className="text-xs text-base-content/60">加载中...</div>
-                          )}
-                          {forkListQuery.isError && (
-                            <div className="text-xs text-error">加载失败</div>
-                          )}
-                          {!forkListQuery.isLoading && !forkListQuery.isError && forkRepositories.length === 0 && (
-                            <div className="text-xs text-base-content/60">暂无 fork 仓库</div>
-                          )}
-                          {forkRepositories.map((repo) => {
-                            const id = repo.repositoryId ?? -1;
-                            const name = repo.repositoryName ?? `仓库 #${id}`;
-                            return (
-                              <button
-                                key={id}
-                                type="button"
-                                className="w-full text-left rounded-md border border-base-300 bg-base-200/60 px-3 py-2 text-xs transition hover:bg-base-300/60"
-                                onClick={() => openRepositoryDetail(id)}
-                              >
-                                <div className="font-semibold truncate">{name}</div>
-                                {repo.description && (
-                                  <div className="text-[11px] text-base-content/60 line-clamp-2">{repo.description}</div>
-                                )}
-                              </button>
-                            );
-                          })}
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  <div className="flex flex-col gap-3">
-                    <Author userId={repositoryData.userId} />
-                    <button
-                      type="button"
-                      className="btn btn-outline w-full"
-                      onClick={openCommitChainPage}
-                    >
-                      查看 Commit 链
-                    </button>
-                    <button
-                      type="button"
-                      className="btn btn-primary w-full"
-                      onClick={() => setViewModeOpen(true)}
-                    >
-                      查看模组内容
-                    </button>
-                  </div>
+                  <Author userId={repositoryData.userId} />
                 </div>
               </div>
 
@@ -649,8 +493,8 @@ export default function RepositoryDetailComponent({
                           <button
                             type="button"
                             className="btn btn-sm gap-2"
-                            onClick={handleCloneModule}
-                            disabled={isCloningModule || isRecoveringSuggestedSpace}
+                            onClick={handlePrimaryAction}
+                            disabled={isCloningModule || isRecoveringRepositorySpace}
                           >
                             {primaryActionButtonContent}
                           </button>
@@ -673,8 +517,31 @@ export default function RepositoryDetailComponent({
                           {linkedSpace.name}
                         </span>
                       )}
+                      {linkedSpaceId && !roomsQuery.isLoading && !roomsQuery.isError && linkedRooms.length === 1 && (
+                        <span className="text-base-content/60 truncate">
+                          ·
+                          {linkedRooms[0]?.name ?? `房间 #${linkedRooms[0]?.roomId}`}
+                        </span>
+                      )}
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
+                      {linkedSpaceId && !roomsQuery.isLoading && !roomsQuery.isError && linkedRooms.length > 1 && (
+                        <select
+                          className="select select-sm select-bordered max-w-56"
+                          aria-label="选择预览房间"
+                          value={viewRoomId ?? ""}
+                          onChange={(event) => {
+                            const nextRoomId = Number(event.target.value);
+                            setSelectedViewRoomId(Number.isFinite(nextRoomId) ? nextRoomId : null);
+                          }}
+                        >
+                          {linkedRooms.map(room => (
+                            <option key={room.roomId} value={room.roomId}>
+                              {room.name ?? `房间 #${room.roomId}`}
+                            </option>
+                          ))}
+                        </select>
+                      )}
                       <button
                         type="button"
                         className="btn btn-sm btn-ghost"
@@ -685,8 +552,8 @@ export default function RepositoryDetailComponent({
                       <button
                         type="button"
                         className="btn btn-sm btn-primary gap-2"
-                        onClick={handleCloneModule}
-                        disabled={isCloningModule || isRecoveringSuggestedSpace}
+                        onClick={handlePrimaryAction}
+                        disabled={isCloningModule || isRecoveringRepositorySpace}
                       >
                         {primaryActionButtonContent}
                       </button>
@@ -697,12 +564,12 @@ export default function RepositoryDetailComponent({
                     {!linkedSpaceId && (
                       <div className="flex h-full flex-col items-center justify-center text-base-content/60 gap-3">
                         <div className="text-base">暂无可查看的模组内容</div>
-                        <div className="text-sm">{suggestedRecoverSpace ? "先恢复编辑后再查看" : "先创建副本后再查看"}</div>
+                        <div className="text-sm">{primaryAction.kind === "recover" ? "先恢复编辑后再查看" : "先创建副本后再查看"}</div>
                         <button
                           type="button"
                           className="btn btn-sm btn-primary gap-2"
-                          onClick={handleCloneModule}
-                          disabled={isCloningModule || isRecoveringSuggestedSpace}
+                          onClick={handlePrimaryAction}
+                          disabled={isCloningModule || isRecoveringRepositorySpace}
                         >
                           {primaryActionButtonContent}
                         </button>
@@ -747,52 +614,6 @@ export default function RepositoryDetailComponent({
           </div>
         </div>
       </div>
-      {showRecoverSuggestionDialog && suggestedRecoverSpace && (
-        <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/35 p-4">
-          <div className="w-full max-w-lg rounded-xl border border-base-300 bg-base-100 p-5 shadow-xl">
-            <div className="text-lg font-semibold">恢复原空间继续编辑</div>
-            <div className="mt-2 text-sm text-base-content/70 leading-relaxed">
-              检测到你已有与当前仓库最新提交一致的归档空间。
-              直接恢复原空间通常更省事，也不会再额外创建一个副本仓库。
-            </div>
-            <div className="mt-3 rounded-lg bg-base-200 px-3 py-2 text-sm">
-              {`空间：${suggestedRecoverSpace.name ?? `#${suggestedRecoverSpace.spaceId}`}`}
-              {latestRepositoryCommitId != null && (
-                <span className="ml-2 text-xs text-base-content/60">
-                  {`commit #${latestRepositoryCommitId}`}
-                </span>
-              )}
-            </div>
-            <div className="mt-4 flex flex-wrap justify-end gap-2">
-              <button
-                type="button"
-                className="btn btn-ghost btn-sm"
-                onClick={() => setShowRecoverSuggestionDialog(false)}
-                disabled={isRecoveringSuggestedSpace || isCloningModule}
-              >
-                取消
-              </button>
-              <button
-                type="button"
-                className="btn btn-outline btn-sm"
-                onClick={handleCloneAfterSuggestion}
-                disabled={isRecoveringSuggestedSpace || isCloningModule}
-              >
-                仍要创建副本
-              </button>
-              <button
-                type="button"
-                className="btn btn-primary btn-sm gap-2"
-                onClick={handleRecoverSuggestedSpace}
-                disabled={isRecoveringSuggestedSpace || isCloningModule}
-              >
-                {isRecoveringSuggestedSpace && <span className="loading loading-spinner loading-xs"></span>}
-                恢复编辑
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
       {errorToastMessage && (
         <div className="fixed bottom-6 right-6 bg-red-500 text-white px-4 py-2 rounded shadow-lg z-50 fade-in-out">
           {`❌ ${errorToastMessage}`}

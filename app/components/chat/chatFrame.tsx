@@ -1,5 +1,6 @@
 import type { VirtuosoHandle } from "react-virtuoso";
 import type { ChatMessageRequest, ChatMessageResponse, Message } from "../../../api";
+import type { GalPatchProposal } from "@/components/chat/galgameAi";
 import type { ChatFrameMessageScope } from "@/components/chat/hooks/useChatFrameMessages";
 import type { WebgalChooseOptionDraft } from "@/components/chat/shared/webgal/webgalChooseDraft";
 
@@ -9,6 +10,7 @@ import ChatFrameLoadingState from "@/components/chat/chatFrameLoadingState";
 import ChatFrameView from "@/components/chat/chatFrameView";
 import { RoomContext } from "@/components/chat/core/roomContext";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
+import { buildGalProposalMessagePreview } from "@/components/chat/galgameAi";
 import useChatFrameDragAndDrop from "@/components/chat/hooks/useChatFrameDragAndDrop";
 import useChatFrameIndexing from "@/components/chat/hooks/useChatFrameIndexing";
 import useChatFrameMessageActions from "@/components/chat/hooks/useChatFrameMessageActions";
@@ -68,6 +70,9 @@ interface ChatFrameProps {
   roomName?: string;
   baseArchiveCommitId?: number | null;
   sendMessageWithInsert?: (message: ChatMessageRequest) => Promise<Message | null>;
+  onExportPremiere?: (selectedMessages: ChatMessageResponse[]) => void | Promise<void>;
+  showFullMessageDiff?: boolean;
+  galPatchProposal?: GalPatchProposal | null;
 }
 
 function ChatFrame(props: ChatFrameProps) {
@@ -87,6 +92,9 @@ function ChatFrame(props: ChatFrameProps) {
     spaceName,
     roomName,
     baseArchiveCommitId,
+    onExportPremiere,
+    showFullMessageDiff = false,
+    galPatchProposal = null,
   } = props;
   const roomContext = use(RoomContext);
   const spaceContext = use(SpaceContext);
@@ -170,17 +178,43 @@ function ChatFrame(props: ChatFrameProps) {
   });
   const shouldLoadBaseArchiveMessages = useMemo(() => {
     return Boolean(baseArchiveCommitId)
-      && historyMessages.some(message =>
-        message.message.versionState === VERSION_STATE_MODIFIED
-        && typeof message.message.inheritedArchiveMessageId === "number"
-        && Number.isFinite(message.message.inheritedArchiveMessageId),
-      );
-  }, [baseArchiveCommitId, historyMessages]);
-  const { baseMessageByArchiveId } = useRoomBaseArchiveMessages(
+      && (showFullMessageDiff
+        || historyMessages.some(message =>
+          message.message.versionState === VERSION_STATE_MODIFIED
+          && typeof message.message.inheritedArchiveMessageId === "number"
+          && Number.isFinite(message.message.inheritedArchiveMessageId),
+        ));
+  }, [baseArchiveCommitId, historyMessages, showFullMessageDiff]);
+  const {
+    baseMessageByArchiveId,
+    loading: isBaseArchiveMessagesLoading,
+  } = useRoomBaseArchiveMessages(
     roomId,
     baseArchiveCommitId,
     shouldLoadBaseArchiveMessages,
   );
+  const canRenderFullMessageDiff = showFullMessageDiff
+    && (!shouldLoadBaseArchiveMessages || !isBaseArchiveMessagesLoading);
+  const getBaseVersionMessage = useCallback((message: ChatMessageResponse) => {
+    if (canRenderFullMessageDiff) {
+      const inheritedArchiveMessageId = message.message.inheritedArchiveMessageId;
+      return typeof inheritedArchiveMessageId === "number" && Number.isFinite(inheritedArchiveMessageId)
+        ? (baseMessageByArchiveId.get(inheritedArchiveMessageId) ?? null)
+        : null;
+    }
+    return getBaseMessageForVersionDiff(message, baseMessageByArchiveId);
+  }, [baseMessageByArchiveId, canRenderFullMessageDiff]);
+  const galProposalPreview = useMemo(() => buildGalProposalMessagePreview({
+    historyMessages,
+    proposal: galPatchProposal,
+  }), [galPatchProposal, historyMessages]);
+  const renderedHistoryMessages = galProposalPreview?.messages ?? historyMessages;
+  const getRenderedBaseVersionMessage = useCallback((message: ChatMessageResponse) => {
+    if (galProposalPreview) {
+      return galProposalPreview.baseMessageByPreviewId.get(message.message.messageId) ?? null;
+    }
+    return getBaseVersionMessage(message);
+  }, [galProposalPreview, getBaseVersionMessage]);
   const updateWebgalChooseEditorOption = useCallback((index: number, key: keyof WebgalChooseOptionDraft, value: string) => {
     setWebgalChooseEditorOptions(prev => prev.map((option, idx) => (
       idx === index ? { ...option, [key]: value } : option
@@ -356,7 +390,7 @@ function ChatFrame(props: ChatFrameProps) {
     applyContextMenuMessageUpdate(messageId, toggleSoundMessageBgm);
   }, [applyContextMenuMessageUpdate]);
 
-  const { virtuosoIndexToMessageIndex, messageIndexToVirtuosoIndex } = useChatFrameIndexing(historyMessages.length);
+  const { virtuosoIndexToMessageIndex, messageIndexToVirtuosoIndex } = useChatFrameIndexing(renderedHistoryMessages.length);
 
   const {
     isAtBottomRef,
@@ -364,8 +398,8 @@ function ChatFrame(props: ChatFrameProps) {
     unreadMessageNumber,
     scrollToBottom,
   } = useChatFrameScrollState({
-    enableUnreadIndicator,
-    historyMessages,
+    enableUnreadIndicator: enableUnreadIndicator && !galProposalPreview,
+    historyMessages: renderedHistoryMessages,
     roomId,
     chatHistory,
     unreadMessagesNumber,
@@ -455,6 +489,16 @@ function ChatFrame(props: ChatFrameProps) {
     setIsExportFileWindowOpen(true);
   }, [selectedMessages.length, setIsExportFileWindowOpen]);
 
+  const handleExportPremiere = useCallback(() => {
+    if (!onExportPremiere)
+      return;
+    if (selectedMessages.length === 0) {
+      toast.error("请选择要生成 PR 文件的消息");
+      return;
+    }
+    void onExportPremiere(selectedMessages);
+  }, [onExportPremiere, selectedMessages]);
+
   const {
     handleForward,
   } = useChatFrameMessageActions({
@@ -497,14 +541,17 @@ function ChatFrame(props: ChatFrameProps) {
    */
   const baseDraggable = canParticipateInRoom(roomContext.curMember?.memberType);
   const canJumpToWebGAL = !!roomContext.jumpToMessageInWebGAL;
+  const isGalProposalPreviewActive = Boolean(galProposalPreview);
 
   const renderMessage = useChatFrameMessageRenderer({
     selectedMessageIds,
     isDragging,
     isSelecting,
-    baseDraggable,
-    canJumpToWebGAL,
-    getBaseVersionMessage: message => getBaseMessageForVersionDiff(message, baseMessageByArchiveId),
+    baseDraggable: baseDraggable && !isGalProposalPreviewActive,
+    canJumpToWebGAL: canJumpToWebGAL && !isGalProposalPreviewActive,
+    getBaseVersionMessage: getRenderedBaseVersionMessage,
+    showFullMessageDiff: isGalProposalPreviewActive || canRenderFullMessageDiff,
+    showAddedMessageDiff: !isGalProposalPreviewActive,
     isMessageMovable,
     onExecuteCommandRequest,
     isCommandRequestConsumed,
@@ -527,7 +574,7 @@ function ChatFrame(props: ChatFrameProps) {
   return (
     <ChatFrameView
       listProps={{
-        historyMessages,
+        historyMessages: renderedHistoryMessages,
         virtuosoRef,
         scrollerRef,
         isAtBottomRef,
@@ -549,6 +596,7 @@ function ChatFrame(props: ChatFrameProps) {
         onSelectAll: handleSelectAll,
         onRegexFilter: () => setIsRegexSelectWindowOpen(true),
         onExportFile: handleExportFile,
+        onExportPremiere: onExportPremiere ? handleExportPremiere : undefined,
         onCancelSelection: exitSelection,
       }}
       overlaysProps={{

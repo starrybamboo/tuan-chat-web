@@ -11,6 +11,8 @@ interface UseChatFrameMessageRendererParams {
   baseDraggable: boolean;
   canJumpToWebGAL: boolean;
   getBaseVersionMessage?: (message: ChatMessageResponse) => ChatMessageResponse | null;
+  showFullMessageDiff?: boolean;
+  showAddedMessageDiff?: boolean;
   isMessageMovable?: (message: Message) => boolean;
   onExecuteCommandRequest?: (payload: {
     command: string;
@@ -36,6 +38,8 @@ export default function useChatFrameMessageRenderer({
   baseDraggable,
   canJumpToWebGAL,
   getBaseVersionMessage,
+  showFullMessageDiff = false,
+  showAddedMessageDiff = true,
   isMessageMovable,
   onExecuteCommandRequest,
   isCommandRequestConsumed,
@@ -68,6 +72,8 @@ export default function useChatFrameMessageRenderer({
         isCommandRequestConsumed={isCommandRequestConsumed}
         onEditWebgalChoose={onEditWebgalChoose}
         baseVersionMessage={getBaseVersionMessage?.(chatMessageResponse) ?? null}
+        showFullMessageDiff={showFullMessageDiff}
+        showAddedMessageDiff={showAddedMessageDiff}
         onToggleSelection={onToggleSelection}
         onMessageClick={event => onMessageClick(event, messageId)}
         onDragOver={onDragOver}
@@ -81,6 +87,8 @@ export default function useChatFrameMessageRenderer({
     baseDraggable,
     canJumpToWebGAL,
     getBaseVersionMessage,
+    showAddedMessageDiff,
+    showFullMessageDiff,
     isDragging,
     isMessageMovable,
     isSelecting,

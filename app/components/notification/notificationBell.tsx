@@ -1,8 +1,10 @@
 import type { UserNotificationItem } from "@/components/notification/notificationTypes";
 
 import { BellIcon } from "@phosphor-icons/react";
+import { motion } from "motion/react";
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router";
+import { interactiveButtonMotionProps } from "@/components/common/motion/interactiveButtonMotion";
 import {
   useMarkAllNotificationsReadMutation,
   useMarkNotificationsReadMutation,
@@ -90,11 +92,12 @@ export default function NotificationBell() {
 
   return (
     <div ref={dropdownRef} className={`dropdown dropdown-end ${isOpen ? "dropdown-open" : ""}`}>
-      <button
+      <motion.button
         type="button"
         className="btn btn-ghost btn-circle btn-sm hover:bg-base-200"
         aria-label="通知中心"
         onClick={() => setIsOpen(current => !current)}
+        {...interactiveButtonMotionProps}
       >
         <div className="indicator">
           <BellIcon className="size-6 opacity-80" />
@@ -106,7 +109,7 @@ export default function NotificationBell() {
               )
             : null}
         </div>
-      </button>
+      </motion.button>
 
       {isOpen
         ? (

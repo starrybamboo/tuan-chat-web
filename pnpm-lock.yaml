@@ -29,15 +29,9 @@ importers:
       fflate:
         specifier: 0.8.2
         version: 0.8.2
-      gsap:
-        specifier: ^3.15.0
-        version: 3.15.0
       isbot:
         specifier: ^5
         version: 5.1.32
-      lenis:
-        specifier: ^1.3.23
-        version: 1.3.23(react@19.2.3)
       motion:
         specifier: ^12.38.0
         version: 12.38.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
@@ -6097,9 +6091,6 @@ packages:
   graphlib@2.1.8:
     resolution: {integrity: sha512-jcLLfkpoVGmH7/InMC/1hIvOPSUh38oJtGhvrOFGzioE1DZ+0YW16RgmOJhHiuWTvGiJQ9Z1Ik43JvkRPRvE+A==}
 
-  gsap@3.15.0:
-    resolution: {integrity: sha512-dMW4CWBTUK1AEEDeZc1g4xpPGIrSf9fJF960qbTZmN/QwZIWY5wgliS6JWl9/25fpTGJrMRtSjGtOmPnfjZB+A==}
-
   handlebars@4.7.8:
     resolution: {integrity: sha512-vafaFqs8MZkRrSX7sFVUdo3ap/eNiLnb4IakshzvP56X5Nr1iGKAIqdX6tMlm6HcNRIkr6AxO5jFEoJzzpT8aQ==}
     engines: {node: '>=0.4.7'}
@@ -6916,20 +6907,6 @@ packages:
 
   lazy-val@1.0.5:
     resolution: {integrity: sha512-0/BnGCCfyUMkBpeDgWihanIAF9JmZhHBgUhEqzvf+adhNGLoP6TaiI5oF8oyb3I45P+PcnrqihSf01M0l0G5+Q==}
-
-  lenis@1.3.23:
-    resolution: {integrity: sha512-YxYq3TJqj9sJNv0V9SkyQHejt14xwyIwgDaaMK89Uf9SxQfIszu+gTQSSphh6BWlLTNVKvvXAGkg+Zf+oFIevg==}
-    peerDependencies:
-      '@nuxt/kit': '>=3.0.0'
-      react: '>=17.0.0'
-      vue: '>=3.0.0'
-    peerDependenciesMeta:
-      '@nuxt/kit':
-        optional: true
-      react:
-        optional: true
-      vue:
-        optional: true
 
   leven@3.1.0:
     resolution: {integrity: sha512-qsda+H8jTaUaN/x5vzW2rzc+8Rw4TAQ/4KjB46IwK5VH+IlVeeeje/EoZRpiXvIqjFgK84QffqPztGI3VBLG1A==}
@@ -17144,7 +17121,7 @@ snapshots:
   config-file-ts@0.2.8-rc1:
     dependencies:
       glob: 10.5.0
-      typescript: 5.9.3
+      typescript: 5.8.2
 
   connect@3.7.0:
     dependencies:
@@ -18970,8 +18947,6 @@ snapshots:
     dependencies:
       lodash: 4.17.21
 
-  gsap@3.15.0: {}
-
   handlebars@4.7.8:
     dependencies:
       minimist: 1.2.8
@@ -20047,10 +20022,6 @@ snapshots:
   lan-network@0.2.1: {}
 
   lazy-val@1.0.5: {}
-
-  lenis@1.3.23(react@19.2.3):
-    optionalDependencies:
-      react: 19.2.3
 
   leven@3.1.0: {}
 

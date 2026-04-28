@@ -14,6 +14,8 @@ interface ChatFrameMessageItemProps {
   movable: boolean;
   isSelecting: boolean;
   baseVersionMessage?: ChatMessageResponse | null;
+  showFullMessageDiff?: boolean;
+  showAddedMessageDiff?: boolean;
   onExecuteCommandRequest?: (payload: {
     command: string;
     threadId?: number;
@@ -38,6 +40,8 @@ export default function ChatFrameMessageItem({
   movable,
   isSelecting,
   baseVersionMessage,
+  showFullMessageDiff,
+  showAddedMessageDiff,
   onExecuteCommandRequest,
   isCommandRequestConsumed,
   onEditWebgalChoose,
@@ -91,6 +95,8 @@ export default function ChatFrameMessageItem({
         onToggleSelection={onToggleSelection}
         onEditWebgalChoose={onEditWebgalChoose}
         baseVersionMessage={baseVersionMessage}
+        showFullMessageDiff={showFullMessageDiff}
+        showAddedMessageDiff={showAddedMessageDiff}
       />
       {!isSelecting && (
         <div className="relative h-4 -mt-2 group/insert select-none">

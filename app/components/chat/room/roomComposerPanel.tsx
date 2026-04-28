@@ -50,6 +50,8 @@ interface RoomComposerPanelProps {
   onClearBackground: () => void;
   onClearFigure: () => void;
   onSendWebgalChoose: (payload: WebgalChoosePayload) => Promise<void> | void;
+  onOpenFullMessageDiff?: () => void;
+  isFullMessageDiffOpen?: boolean;
   onOpenImportChatText?: () => void;
 
   /** KP（房主）权限标记，用于显示“停止全员BGM” */
@@ -100,6 +102,8 @@ function RoomComposerPanelImpl({
   onClearBackground,
   onClearFigure,
   onSendWebgalChoose,
+  onOpenFullMessageDiff,
+  isFullMessageDiffOpen,
   onOpenImportChatText,
   isKP,
   onStopBgmForAll,
@@ -387,6 +391,8 @@ function RoomComposerPanelImpl({
     onClearBackground,
     onClearFigure,
     onSendWebgalChoose,
+    onOpenFullMessageDiff,
+    isFullMessageDiffOpen,
     isKP,
     onStopBgmForAll,
     noRole,
@@ -398,6 +404,7 @@ function RoomComposerPanelImpl({
     autoReplyMode,
     currentChatStatus,
     handleMessageSubmit,
+    isFullMessageDiffOpen,
     isKP,
     isSpectator,
     isSubmitting,
@@ -406,6 +413,7 @@ function RoomComposerPanelImpl({
     onChangeChatStatus,
     onClearBackground,
     onClearFigure,
+    onOpenFullMessageDiff,
     onSendEffect,
     onSendWebgalChoose,
     onStopBgmForAll,
