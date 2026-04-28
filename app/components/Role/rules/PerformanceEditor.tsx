@@ -8,6 +8,7 @@ import { getGridSpan, getGridSpanMobile } from "@/utils/gridSpan";
 
 import AddFieldForm from "../Editors/AddFieldForm";
 import PerformanceField from "../Editors/PerformanceField";
+import { buildRoleAbilityFieldKeyPayload, buildRoleAbilitySectionUpdatePayload } from "./roleAbilityFieldPayload";
 
 interface PerformanceEditorProps {
   fields: Record<string, string>;
@@ -55,13 +56,7 @@ export default function PerformanceEditor({
 
   const handleSaveAndExit = useCallback(() => {
     setIsTransitioning(true);
-    const updateData = {
-      roleId,
-      ruleId,
-      act: fields,
-      ability: {}, // 表演编辑器不修改能力字段，传空对象
-    };
-    updateFiledAbility(updateData, {
+    updateFiledAbility(buildRoleAbilitySectionUpdatePayload(roleId, ruleId, "act", fields), {
       onSuccess: () => {
         setTimeout(() => {
           setInternalIsEditing(false);
@@ -87,16 +82,9 @@ export default function PerformanceEditor({
   }, [handleSaveAndExit, isEditing, isEditingControlled]);
 
   const handleDeleteField = (key: string) => {
-    updateKeyField(
-      {
-        ruleId,
-        roleId,
-        actFields: {
-          [key]: "",
-        },
-        abilityFields: {},
-      },
-    );
+    updateKeyField(buildRoleAbilityFieldKeyPayload(roleId, ruleId, "act", {
+      [key]: null,
+    }));
     const nextFields = { ...fields };
     delete nextFields[key];
     onChange(nextFields);
@@ -117,6 +105,9 @@ export default function PerformanceEditor({
     newFields[newKey] = newFields[oldKey];
     delete newFields[oldKey];
     onChange(newFields);
+    updateKeyField(buildRoleAbilityFieldKeyPayload(roleId, ruleId, "act", {
+      [oldKey]: newKey,
+    }));
   };
 
   return (

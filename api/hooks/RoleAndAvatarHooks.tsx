@@ -33,6 +33,7 @@ import type { Role } from '@/components/Role/types';
 import { ROLE_DEFAULT_AVATAR_URL } from '@/constants/defaultAvatar';
 import { shouldRetryRoleQueryError } from "@/utils/roleApiError";
 import { seedUserRoleListQueryCache, seedUserRoleQueryCache } from "../roleQueryCache";
+import { invalidateRoleAbilityCaches } from "./abilityMutationInvalidation";
 import { invalidateRoleCreateQueries, invalidateUserRoleListQueries } from "./roleMutationInvalidation";
 
 export function seedRoleAvatarQueryCaches(queryClient: any, avatar: RoleAvatar, roleId?: number): void {
@@ -394,8 +395,7 @@ export function useCopyRoleMutation() {
       // 统一失效相关查询
       invalidateUserRoleListQueries(queryClient);
       queryClient.invalidateQueries({ queryKey: ["getRoleAvatars", newRole.id] });
-      queryClient.invalidateQueries({ queryKey: ["listRoleAbility", newRole.id] });
-      queryClient.invalidateQueries({ queryKey: ["roleAbilityByRule"] });
+      void invalidateRoleAbilityCaches(queryClient, { roleId: newRole.id });
     },
   });
 }
