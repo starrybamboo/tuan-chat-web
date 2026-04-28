@@ -210,7 +210,7 @@ export default function ExpansionModule({
   }, [globalIsEditing, handleCopywritingSave, isEditingControlled, localEdits.copywritingTemplates]);
 
   // 检查是否规则未创建
-  const isRuleNotCreated = !abilityQuery.isLoading && !abilityQuery.data && ruleDetailQuery.data;
+  const isRuleNotCreated = !abilityQuery.isLoading && !abilityQuery.isFetching && !abilityQuery.data && ruleDetailQuery.data;
 
   // 手动创建规则数据
   const handleCreateRule = () => {
@@ -227,7 +227,7 @@ export default function ExpansionModule({
   };
 
   // 检查加载状态
-  const isLoading = ruleDetailQuery.isLoading || abilityQuery.isLoading || !renderData;
+  const isLoading = ruleDetailQuery.isLoading || abilityQuery.isLoading || abilityQuery.isFetching || !renderData;
 
   // 2. 使用 useEffect 监听 isLoading 的变化
   useEffect(() => {

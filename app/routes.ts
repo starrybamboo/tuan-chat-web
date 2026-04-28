@@ -9,7 +9,6 @@ const ENABLE_AI_IMAGE_ROUTE = isDevOrTestEnvironment({
   mode: import.meta.env.MODE,
   apiBaseUrl: import.meta.env.VITE_API_BASE_URL,
 });
-const ENABLE_GEMINI_LAB_ROUTE = import.meta.env.DEV;
 const ENABLE_FEEDBACK_ROUTE = import.meta.env.DEV || import.meta.env.MODE === "test";
 
 export default [
@@ -69,7 +68,6 @@ export default [
     route("resource", "routes/resource.tsx"),
     route("doc/:spaceId/:docId", "routes/doc.tsx"),
     ...(ENABLE_AI_IMAGE_ROUTE ? [route("ai-image", "routes/aiImage.tsx")] : []),
-    ...(ENABLE_GEMINI_LAB_ROUTE ? [route("gemini-lab", "routes/geminiLab.tsx")] : []),
     ...(ENABLE_FEEDBACK_ROUTE ? [route("feedback/:issueId?", "routes/feedback.tsx")] : []),
     route("invite/:code", "routes/invite.tsx"),
   ]),

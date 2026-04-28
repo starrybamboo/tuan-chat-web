@@ -1,11 +1,16 @@
 import { useEffect, useMemo, useState } from "react";
 
 export const LEGACY_ROOM_DEFAULT_DESCRIPTION = "房间默认描述";
-export const SCENE_DEFAULT_DESCRIPTION = "场景默认描述";
+export const LEGACY_SCENE_DEFAULT_DESCRIPTION = "场景默认描述";
+export const SCENE_DEFAULT_DESCRIPTION = "场景简要描述";
 
 function normalizeSceneDefaultDescription(value?: string): string {
   const normalized = String(value ?? "").trim();
-  if (!normalized || normalized === LEGACY_ROOM_DEFAULT_DESCRIPTION)
+  if (
+    !normalized
+    || normalized === LEGACY_ROOM_DEFAULT_DESCRIPTION
+    || normalized === LEGACY_SCENE_DEFAULT_DESCRIPTION
+  )
     return SCENE_DEFAULT_DESCRIPTION;
   return normalized;
 }
@@ -68,7 +73,7 @@ export default function WorkflowSceneDescriptionEditor({
         />
         <div className="min-w-0">
           <div className="truncate text-base font-semibold">{roomName}</div>
-          <div className="text-xs text-base-content/60">场景默认描述（skip 模式展示）</div>
+          <div className="text-xs text-base-content/60">场景简要描述（skip 模式展示）</div>
         </div>
       </div>
 
@@ -89,7 +94,7 @@ export default function WorkflowSceneDescriptionEditor({
           onClick={handleSave}
           disabled={isSaving}
         >
-          {isSaving ? "保存中..." : "保存场景默认描述"}
+          {isSaving ? "保存中..." : "保存场景简要描述"}
         </button>
       </div>
     </div>

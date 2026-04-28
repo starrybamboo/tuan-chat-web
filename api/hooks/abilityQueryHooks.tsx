@@ -6,6 +6,12 @@ import type {AbilitySetRequest} from "@tuanchat/openapi-client/models/AbilitySet
 import type {AbilityFieldUpdateRequest2} from "@tuanchat/openapi-client/models/AbilityFieldUpdateRequest2";
 import type {AbilityUpdateRequest2} from "@tuanchat/openapi-client/models/AbilityUpdateRequest2";
 import { relayAiGatewayText } from "../../app/utils/aiRelay";
+import {
+    invalidateRoleAbilityCaches,
+    roleAbilityByRuleQueryKey,
+    roleAbilityListQueryKey,
+} from "./abilityMutationInvalidation";
+import { normalizeRoleAbilityCacheData } from "./roleAbilityCacheData";
 
 type JsonObject = Record<string, unknown>;
 type RulePackId = "coc" | "dnd" | "fu" | "generic";
@@ -561,7 +567,7 @@ async function getRuleTemplates(ruleId: number) {
  */
 export function useGetRoleAbilitiesQuery(roleId: number) {
     return useQuery({
-        queryKey: ["listRoleAbility", roleId],
+        queryKey: roleAbilityListQueryKey(roleId),
         queryFn: () => tuanchat.abilityController.listRoleAbility(roleId),
         staleTime: 10000,
         enabled: roleId > 0,
@@ -574,7 +580,7 @@ export function useGetRoleAbilitiesQuery(roleId: number) {
 export function useGetRolesAbilitiesQueries(roleIds: number[]) {
     const results = useQueries({
         queries: roleIds.map((roleId) => ({
-            queryKey: ["listRoleAbility", roleId],
+            queryKey: roleAbilityListQueryKey(roleId),
             queryFn: () => tuanchat.abilityController.listRoleAbility(roleId),
             staleTime: 10000,
             enabled: roleId > 0,
@@ -593,8 +599,7 @@ export function useSetRoleAbilityMutation() {
         mutationFn: (req: AbilitySetRequest) => tuanchat.abilityController.setRoleAbility(req),
         mutationKey: ["setRoleAbility"],
         onSuccess: (_, variables) => {
-            queryClient.invalidateQueries({ queryKey: ["listRoleAbility", variables.roleId] });
-            queryClient.invalidateQueries({ queryKey: ["roleAbilityByRule"] });
+            return invalidateRoleAbilityCaches(queryClient, { roleId: variables.roleId, ruleId: variables.ruleId });
         },
     });
 }
@@ -604,9 +609,8 @@ function useDeleteRoleAbilityMutation() {
     return useMutation({
         mutationFn: (abilityId: number) => tuanchat.abilityController.deleteRoleAbility(abilityId),
         mutationKey: ["deleteRoleAbility"],
-        onSuccess: (_, variables) => {
-            queryClient.invalidateQueries({ queryKey: ["listRoleAbility"] });
-            queryClient.invalidateQueries({ queryKey: ["roleAbilityByRule"] });
+        onSuccess: () => {
+            return invalidateRoleAbilityCaches(queryClient);
         }
     })
 }
@@ -616,9 +620,8 @@ export function useUpdateRoleAbilityMutation() {
     return useMutation({
         mutationFn: (req: AbilityUpdateRequest) => tuanchat.abilityController.updateRoleAbility(req),
         mutationKey: ["updateRoleAbility"],
-        onSuccess: (_, variables) => {
-            queryClient.invalidateQueries({ queryKey: ["listRoleAbility"] });
-            queryClient.invalidateQueries({ queryKey: ["roleAbilityByRule"] });
+        onSuccess: () => {
+            return invalidateRoleAbilityCaches(queryClient);
         }
     })
 }
@@ -628,8 +631,7 @@ export function useUpdateRoleAbilityByRoleIdMutation() {
         mutationFn: (req: AbilityUpdateRequest2) => tuanchat.abilityController.updateRoleAbility1(req),
         mutationKey: ["updateRoleAbilityByRoleId"],
         onSuccess: (_, variables) => {
-            queryClient.invalidateQueries({ queryKey: ["listRoleAbility"] });
-            queryClient.invalidateQueries({ queryKey: ["roleAbilityByRule"] });
+            return invalidateRoleAbilityCaches(queryClient, { roleId: variables.roleId, ruleId: variables.ruleId });
         }
     })
 }
@@ -639,9 +641,8 @@ function useUpdateKeyFieldMutation() {
     return useMutation({
         mutationFn:  (req: AbilityFieldUpdateRequest) => tuanchat.abilityController.updateRoleAbilityField(req),
         mutationKey: ["updateRoleAbilityField"],
-        onSuccess: (_, variables) => {
-            queryClient.invalidateQueries({ queryKey: ["listRoleAbility"] });
-            queryClient.invalidateQueries({ queryKey: ["roleAbilityByRule"] });
+        onSuccess: () => {
+            return invalidateRoleAbilityCaches(queryClient);
         }
     })
 }
@@ -651,8 +652,7 @@ export function useUpdateKeyFieldByRoleIdMutation() {
         mutationFn:  (req: AbilityFieldUpdateRequest2) => tuanchat.abilityController.updateRoleAbilityField1(req),
         mutationKey: ["updateRoleAbilityByRoleId"],
         onSuccess: (_, variables) => {
-            queryClient.invalidateQueries({ queryKey: ["listRoleAbility"] });
-            queryClient.invalidateQueries({ queryKey: ["roleAbilityByRule"] });
+            return invalidateRoleAbilityCaches(queryClient, { roleId: variables.roleId, ruleId: variables.ruleId });
         }
     })
 }
@@ -661,37 +661,12 @@ export function useUpdateKeyFieldByRoleIdMutation() {
 // 获取能力,根据角色和规则
 export function useAbilityByRuleAndRole(roleId:number,ruleId: number){
     return useQuery({
-      queryKey: ["roleAbilityByRule", roleId, ruleId],
+      queryKey: roleAbilityByRuleQueryKey(roleId, ruleId),
       queryFn: async () => {
         try {
           const res = await tuanchat.abilityController.getByRuleAndRole(ruleId, roleId);
           if (res.success && res.data) {
-                      // 解析后端返回的 extra.copywriting Ϊ Record<string, string[]>
-                      let extraCopywriting: Record<string, string[]> | undefined = undefined;
-                      const extra = (res.data as any)?.extra as Record<string, unknown> | undefined;
-                      const cw = extra && (extra as any).copywriting;
-                      if (typeof cw === "string") {
-                          try {
-                              const parsed = JSON.parse(cw);
-                              if (parsed && typeof parsed === "object") {
-                                  extraCopywriting = parsed as Record<string, string[]>;
-                              }
-                          } catch {
-                              // ignore parse errors
-                          }
-                      } else if (cw && typeof cw === "object") {
-                          extraCopywriting = cw as Record<string, string[]>;
-                      }
-            return {
-              abilityId : res.data.abilityId || 0 ,
-              roleId: roleId,
-              ruleId: ruleId,
-              actTemplate: res.data.act || {}, // 表演字段
-              basicDefault: res.data.basic || {}, // 基础属性
-              abilityDefault: res.data.ability || {}, // 能力数据
-                          skillDefault: res.data.skill || {}, // 技能数据
-                          extraCopywriting,
-            }
+            return normalizeRoleAbilityCacheData(res.data, { roleId, ruleId });
           }
           return null;
         } catch (error: any) {

@@ -393,6 +393,8 @@ export function useUpdateSpaceArchiveStatusMutation() {
         onSuccess: () => {
 queryClient.invalidateQueries({ queryKey: ['getUserSpaces'] });
 queryClient.invalidateQueries({ queryKey: ['getUserActiveSpaces'] });
+            queryClient.invalidateQueries({ queryKey: ['repositoryDetail'] });
+            queryClient.invalidateQueries({ queryKey: ['repositoryCommitChain'] });
             queryClient.invalidateQueries({ queryKey: ['getSpaceMemberList'] });
             queryClient.invalidateQueries({ queryKey: ['getRoomMemberList'] });
         }
@@ -410,6 +412,8 @@ export function useRecoverSpaceMutation() {
         onSuccess: () => {
 queryClient.invalidateQueries({ queryKey: ['getUserSpaces'] });
 queryClient.invalidateQueries({ queryKey: ['getUserActiveSpaces'] });
+            queryClient.invalidateQueries({ queryKey: ['repositoryDetail'] });
+            queryClient.invalidateQueries({ queryKey: ['repositoryCommitChain'] });
             queryClient.invalidateQueries({ queryKey: ['getSpaceMemberList'] });
             queryClient.invalidateQueries({ queryKey: ['getRoomMemberList'] });
         }

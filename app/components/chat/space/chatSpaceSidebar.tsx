@@ -1,10 +1,12 @@
 import type { Space } from "../../../../api";
 
 import { ChatCircleIcon } from "@phosphor-icons/react";
+import { motion } from "motion/react";
 import React, { useMemo, useRef, useState } from "react";
 import { Link } from "react-router";
 import SpaceButton from "@/components/chat/shared/components/spaceButton";
 import { shouldSelectSpaceFromSidebar } from "@/components/chat/space/chatSpaceSidebarNavigation";
+import { interactiveButtonMotionProps } from "@/components/common/motion/interactiveButtonMotion";
 import PortalTooltip from "@/components/common/portalTooltip";
 import { AddIcon, CompassIcon, SidebarSimpleIcon } from "@/icons";
 
@@ -23,6 +25,8 @@ interface ChatSpaceSidebarProps {
   onToggleLeftDrawer?: () => void;
   isLeftDrawerOpen?: boolean;
 }
+
+const MotionLink = motion.create(Link);
 
 export default function ChatSpaceSidebar({
   isPrivateChatMode,
@@ -109,14 +113,15 @@ export default function ChatSpaceSidebar({
       {showCollapsedToggle && (
         <div className="rounded w-10 relative z-20 hover:z-50 mx-2 mt-1 mb-1">
           <PortalTooltip label="展开侧边栏" placement="right">
-            <button
+            <motion.button
               className="w-10 btn btn-square z-9999"
               type="button"
               aria-label="展开侧边栏"
               onClick={onToggleLeftDrawer}
+              {...interactiveButtonMotionProps}
             >
               <SidebarSimpleIcon className="size-6" />
-            </button>
+            </motion.button>
           </PortalTooltip>
         </div>
       )}
@@ -129,14 +134,15 @@ export default function ChatSpaceSidebar({
             }`}
           />
           <PortalTooltip label="发现" placement="right">
-            <Link
+            <MotionLink
               to="/chat/discover/material"
               className={`w-10 btn btn-square ${isDiscoverMode ? "text-info" : ""}`}
               aria-label="发现"
               aria-current={isDiscoverMode ? "page" : undefined}
+              {...interactiveButtonMotionProps}
             >
               <CompassIcon className="size-6" />
-            </Link>
+            </MotionLink>
           </PortalTooltip>
         </div>
 
@@ -147,11 +153,12 @@ export default function ChatSpaceSidebar({
             }`}
           />
           <PortalTooltip label="私信" placement="right">
-            <button
+            <motion.button
               className="w-10 btn btn-square"
               type="button"
               aria-label="私信"
               onClick={onOpenPrivate}
+              {...interactiveButtonMotionProps}
             >
               <div className="indicator">
                 {(privateUnreadMessagesNumber > 0)
@@ -163,7 +170,7 @@ export default function ChatSpaceSidebar({
                   : null}
                 <ChatCircleIcon className="size-6" weight="bold" />
               </div>
-            </button>
+            </motion.button>
           </PortalTooltip>
         </div>
       </div>
@@ -268,16 +275,17 @@ export default function ChatSpaceSidebar({
         ))}
       </div>
       <PortalTooltip label="创建" placement="right">
-        <button
+        <motion.button
           className="btn btn-square btn-dash btn-info w-10 mx-2 relative z-20 hover:z-50"
           type="button"
           aria-label="创建空间"
           onClick={onCreateSpace}
+          {...interactiveButtonMotionProps}
         >
           <div className="avatar mask mask-squircle flex content-center">
             <AddIcon></AddIcon>
           </div>
-        </button>
+        </motion.button>
       </PortalTooltip>
     </div>
   );

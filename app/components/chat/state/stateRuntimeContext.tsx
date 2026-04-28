@@ -7,6 +7,8 @@ import { useQueries } from "@tanstack/react-query";
 import React from "react";
 import { getNormalizedStateEventExtra } from "@/types/stateEvent";
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
+import { roleAbilityByRuleQueryKey } from "../../../../api/hooks/abilityMutationInvalidation";
+import { normalizeRoleAbilityCacheData } from "../../../../api/hooks/roleAbilityCacheData";
 import { tuanchat } from "../../../../api/instance";
 import { EMPTY_STATE_DEFINITION_RESOLVER } from "./stateDefinitionResolver";
 import { buildStateRuntime } from "./stateRuntime";
@@ -71,7 +73,7 @@ export function StateRuntimeProvider({
   );
   const abilityQueries = useQueries({
     queries: roleIds.map(roleId => ({
-      queryKey: ["roleAbilityByRule", roleId, ruleId],
+      queryKey: roleAbilityByRuleQueryKey(roleId, ruleId),
       enabled: roleId > 0 && ruleId > 0,
       staleTime: 60_000,
       retry: (failureCount: number, error: any) => {
@@ -84,7 +86,7 @@ export function StateRuntimeProvider({
       queryFn: async (): Promise<RoleAbility | null> => {
         try {
           const response = await tuanchat.abilityController.getByRuleAndRole(ruleId, roleId);
-          return response.data ?? null;
+          return normalizeRoleAbilityCacheData(response.data, { roleId, ruleId }) as RoleAbility | null;
         }
         catch (error: any) {
           const statusCode = error?.response?.status || error?.status;

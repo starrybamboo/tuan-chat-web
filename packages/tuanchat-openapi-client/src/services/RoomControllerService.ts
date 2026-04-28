@@ -87,7 +87,7 @@ export class RoomControllerService {
         });
     }
     /**
-     * 更新房间信息(名称、头像、描述)
+     * 更新房间信息(名称、头像、场景简要描述)
      * @param requestBody
      * @returns ApiResultVoid OK
      * @throws ApiError

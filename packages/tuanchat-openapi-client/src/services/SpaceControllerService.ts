@@ -204,6 +204,22 @@ export class SpaceControllerService {
         });
     }
     /**
+     * 按当前归档实现重建归档空间快照
+     * @param requestBody
+     * @returns ApiResultVoid OK
+     * @throws ApiError
+     */
+    public rebuildArchivedSpaceSnapshot(
+        requestBody: SpaceRecoverRequest,
+    ): CancelablePromise<ApiResultVoid> {
+        return this.httpRequest.request({
+            method: 'POST',
+            url: '/space/archive/rebuild',
+            body: requestBody,
+            mediaType: 'application/json',
+        });
+    }
+    /**
      * 获取空间
      * @param spaceId
      * @param commitId

@@ -1,5 +1,7 @@
 import type { Space } from "../../../../../api";
+import { motion } from "motion/react";
 import React from "react";
+import { interactiveButtonMotionProps } from "@/components/common/motion/interactiveButtonMotion";
 import PortalTooltip from "@/components/common/portalTooltip";
 import { resolveEntityImageUrl } from "./entityImageUrl";
 
@@ -26,11 +28,12 @@ export default function SpaceButton({ space, unreadMessageNumber, onclick, isAct
       >
       </div>
       <PortalTooltip label={displayName} placement="right">
-        <button
+        <motion.button
           className="w-10 btn btn-square relative"
           type="button"
           aria-label={displayName}
           onClick={onclick}
+          {...interactiveButtonMotionProps}
         >
           <div className="indicator">
             {(unreadMessageNumber && unreadMessageNumber > 0)
@@ -64,7 +67,7 @@ export default function SpaceButton({ space, unreadMessageNumber, onclick, isAct
               />
             </div>
           </div>
-        </button>
+        </motion.button>
       </PortalTooltip>
     </div>
   );

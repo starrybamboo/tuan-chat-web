@@ -2,7 +2,7 @@ import { CheckerboardIcon, FileTextIcon, FilmSlateIcon, ListChecks, PulseIcon, S
 import { useRealtimeRenderStore } from "@/components/chat/stores/realtimeRenderStore";
 import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
 import { useSideDrawerStore } from "@/components/chat/stores/sideDrawerStore";
-import { WebgalIcon } from "@/icons";
+import { BranchIcon, WebgalIcon } from "@/icons";
 
 interface ChatToolbarDockProps {
   isInline: boolean;
@@ -14,6 +14,8 @@ interface ChatToolbarDockProps {
   onOpenWebgalChooseModal?: () => void;
   isSpectator?: boolean;
   onToggleRealtimeRender?: () => void;
+  onOpenFullMessageDiff?: () => void;
+  isFullMessageDiffOpen?: boolean;
   showRunControls?: boolean;
 }
 
@@ -24,6 +26,8 @@ export default function ChatToolbarDock({
   onSendEffect,
   onOpenWebgalChooseModal,
   onToggleRealtimeRender,
+  onOpenFullMessageDiff,
+  isFullMessageDiffOpen = false,
   showRunControls,
 }: ChatToolbarDockProps) {
   const webgalLinkMode = useRoomPreferenceStore(state => state.webgalLinkMode);
@@ -66,6 +70,18 @@ export default function ChatToolbarDock({
               </>
             )}
           </ul>
+        </div>
+      )}
+
+      {showWebgalControls && webgalLinkMode && onOpenFullMessageDiff && (
+        <div
+          className={`tooltip tooltip-top mt-0.5 md:mt-1 ${isFullMessageDiffOpen ? "text-info" : "hover:text-info"}`}
+          data-tip={isFullMessageDiffOpen ? "关闭消息差异" : "消息差异"}
+          aria-label="消息差异"
+          title="消息差异"
+          onClick={onOpenFullMessageDiff}
+        >
+          <BranchIcon className="size-6 cursor-pointer" />
         </div>
       )}
 

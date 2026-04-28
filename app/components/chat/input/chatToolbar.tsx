@@ -1,7 +1,7 @@
 import type { WebgalChooseOptionDraft } from "@/components/chat/shared/webgal/webgalChooseDraft";
 import type { WebgalChoosePayload } from "@/types/webgalChoose";
 
-import { ArrowSquareIn, FilmSlateIcon } from "@phosphor-icons/react";
+import { ArrowSquareIn, FilePlusIcon } from "@phosphor-icons/react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "react-hot-toast";
 import ChatStatusBar from "@/components/chat/chatStatusBar";
@@ -12,15 +12,13 @@ import { useChatComposerStore } from "@/components/chat/stores/chatComposerStore
 import { preheatChatMediaPreprocess } from "@/components/chat/utils/attachmentPreprocess";
 import StickerWindow from "@/components/chat/window/StickerWindow";
 import { useScreenSize } from "@/components/common/customHooks/useScreenSize";
-import { ImgUploader } from "@/components/common/uploader/imgUploader";
 import {
   DiceD6Icon,
   EmojiIconWhite,
-  GalleryBroken,
   LinkFilled,
-  MusicNote,
   SendIcon,
 } from "@/icons";
+import { ALLOWED_IMG_TYPES } from "@/utils/allowedImgFiles";
 
 interface ChatToolbarProps {
   /** 当前房间（用于BGM个人开关/ֹͣȫԱBGM） */
@@ -75,6 +73,8 @@ interface ChatToolbarProps {
   onClearBackground?: () => void;
   onClearFigure?: () => void;
   onSendWebgalChoose?: (payload: WebgalChoosePayload) => Promise<void> | void;
+  onOpenFullMessageDiff?: () => void;
+  isFullMessageDiffOpen?: boolean;
   // 发送音频
   setAudioFile?: (file: File | null) => void;
   onApplyImageTempAnnotations?: () => void;
@@ -114,6 +114,8 @@ function ChatToolbar({
   onClearBackground,
   onClearFigure,
   onSendWebgalChoose,
+  onOpenFullMessageDiff,
+  isFullMessageDiffOpen,
   onToggleRealtimeRender,
   setAudioFile,
   onApplyAudioTempAnnotations,
@@ -127,8 +129,7 @@ function ChatToolbar({
   showWebgalControls = false,
   showRunControls = false,
 }: ChatToolbarProps) {
-  const audioInputRef = useRef<HTMLInputElement>(null);
-  const videoInputRef = useRef<HTMLInputElement>(null);
+  const mediaInputRef = useRef<HTMLInputElement>(null);
   const emojiDropdownRef = useRef<HTMLDivElement>(null);
   const [isEmojiOpen, setIsEmojiOpen] = useState(false);
 
@@ -198,34 +199,40 @@ function ChatToolbar({
     };
   }, []);
 
-  const handleAudioSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !setAudioFile)
-      return;
-
-    setAudioFile(file);
-    preheatChatMediaPreprocess({ audioFiles: [file] });
-    onApplyAudioTempAnnotations?.();
-    // 重置 input value，允许重复选择同一文件
-    e.target.value = "";
-  };
-
-  const handleVideoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleMediaSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) {
       return;
     }
 
-    if (!file.type.startsWith("video/")) {
-      toast.error("请选择视频文件");
+    if (ALLOWED_IMG_TYPES.includes(file.type)) {
+      updateImgFiles((draft) => {
+        draft.push(file);
+      });
+      preheatChatMediaPreprocess({ imageFiles: [file] });
+      onApplyImageTempAnnotations?.();
       e.target.value = "";
       return;
     }
 
-    updateFileAttachments((draft) => {
-      draft.push(file);
-    });
-    preheatChatMediaPreprocess({ videoFiles: [file] });
+    if (file.type.startsWith("audio/") && setAudioFile) {
+      setAudioFile(file);
+      preheatChatMediaPreprocess({ audioFiles: [file] });
+      onApplyAudioTempAnnotations?.();
+      e.target.value = "";
+      return;
+    }
+
+    if (file.type.startsWith("video/")) {
+      updateFileAttachments((draft) => {
+        draft.push(file);
+      });
+      preheatChatMediaPreprocess({ videoFiles: [file] });
+      e.target.value = "";
+      return;
+    }
+
+    toast.error("当前仅支持图片、音频、视频");
     e.target.value = "";
   };
 
@@ -311,13 +318,38 @@ function ChatToolbar({
     />
   );
   const richActionDisabledClass = disableRichMessageActions ? "cursor-not-allowed opacity-20" : "cursor-pointer";
-  const imageActionButton = (
-    <div
-      className={isMobile ? "" : "tooltip tooltip-top"}
-      data-tip={isMobile ? undefined : "发送图片"}
-      onClick={disableRichMessageActions ? handleBlockedRichMessageAction : undefined}
-    >
-      <GalleryBroken className={`size-6 jump_icon mt-1 md:mt-0 ${richActionDisabledClass}`}></GalleryBroken>
+  const openMediaPicker = useCallback(() => {
+    if (disableRichMessageActions) {
+      handleBlockedRichMessageAction();
+      return;
+    }
+    setIsEmojiOpen(false);
+    mediaInputRef.current?.click();
+  }, [disableRichMessageActions, handleBlockedRichMessageAction]);
+
+  const mediaActionButton = (
+    <div>
+      <div
+        role="button"
+        tabIndex={3}
+        className={richActionDisabledClass}
+        aria-label="发送媒体"
+        title="发送媒体"
+        onClick={openMediaPicker}
+      >
+        <div className={isMobile ? "" : "tooltip tooltip-top"} data-tip={isMobile ? undefined : "发送媒体"}>
+          <FilePlusIcon className="size-6 jump_icon mt-1 md:mt-0" />
+        </div>
+      </div>
+      <input
+        type="file"
+        ref={mediaInputRef}
+        className="hidden"
+        accept={setAudioFile ? "image/*,audio/*,video/*" : "image/*,video/*"}
+        title="选择媒体文件"
+        aria-label="选择媒体文件"
+        onChange={handleMediaSelect}
+      />
     </div>
   );
 
@@ -391,68 +423,7 @@ function ChatToolbar({
                 </ul>
               </div>
 
-              {/* 发送图片 */}
-              {disableRichMessageActions
-                ? imageActionButton
-                : (
-                    <ImgUploader setImg={(newImg) => {
-                      updateImgFiles((draft) => {
-                        draft.push(newImg);
-                      });
-                      preheatChatMediaPreprocess({ imageFiles: [newImg] });
-                      onApplyImageTempAnnotations?.();
-                    }}
-                    >
-                      {imageActionButton}
-                    </ImgUploader>
-                  )}
-
-              {/* 发送音频 */}
-              {setAudioFile && (
-                <div className={isMobile ? "" : "tooltip tooltip-top"} data-tip={isMobile ? undefined : "发送音频"}>
-                  <MusicNote
-                    className={`size-6 jump_icon relative md:-top-px ${richActionDisabledClass}`}
-                    onClick={() => {
-                      if (disableRichMessageActions) {
-                        handleBlockedRichMessageAction();
-                        return;
-                      }
-                      audioInputRef.current?.click();
-                    }}
-                  />
-                  <input
-                    type="file"
-                    ref={audioInputRef}
-                    className="hidden"
-                    accept="audio/*"
-                    title="选择音频文件"
-                    aria-label="选择音频文件"
-                    onChange={handleAudioSelect}
-                  />
-                </div>
-              )}
-
-              <div className={isMobile ? "" : "tooltip tooltip-top"} data-tip={isMobile ? undefined : "发送视频"}>
-                <FilmSlateIcon
-                  className={`size-6 jump_icon relative md:-top-px ${richActionDisabledClass}`}
-                  onClick={() => {
-                    if (disableRichMessageActions) {
-                      handleBlockedRichMessageAction();
-                      return;
-                    }
-                    videoInputRef.current?.click();
-                  }}
-                />
-                <input
-                  type="file"
-                  ref={videoInputRef}
-                  className="hidden"
-                  accept="video/*"
-                  title="选择视频文件"
-                  aria-label="选择视频文件"
-                  onChange={handleVideoSelect}
-                />
-              </div>
+              {mediaActionButton}
 
               {/* 导入文本 */}
               {onOpenImportChatText && (
@@ -569,6 +540,8 @@ function ChatToolbar({
             onOpenWebgalChooseModal={onSendWebgalChoose ? openWebgalChooseModal : undefined}
             isSpectator={isSpectator}
             onToggleRealtimeRender={onToggleRealtimeRender}
+            onOpenFullMessageDiff={onOpenFullMessageDiff}
+            isFullMessageDiffOpen={isFullMessageDiffOpen}
             showRunControls={showRunControls}
           />
         </div>
