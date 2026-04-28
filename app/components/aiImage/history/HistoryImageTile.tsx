@@ -3,6 +3,7 @@ import type {
   MouseEvent,
 } from "react";
 
+import { SelectionPlusIcon } from "@phosphor-icons/react";
 import { XMarkICon } from "@/icons";
 
 export const HISTORY_THUMBNAIL_IMAGE_CLASS_NAME = "block h-full w-full object-contain";
@@ -15,6 +16,7 @@ interface HistoryImageTileProps {
   onClick: (event: MouseEvent<HTMLButtonElement>) => void;
   onDelete?: (event: MouseEvent<HTMLButtonElement>) => void;
   onDragStart?: (event: DragEvent<HTMLButtonElement>) => void;
+  showInpaintBadge?: boolean;
   title: string;
 }
 
@@ -26,6 +28,7 @@ export function HistoryImageTile({
   onClick,
   onDelete,
   onDragStart,
+  showInpaintBadge = false,
   title,
 }: HistoryImageTileProps) {
   return (
@@ -39,6 +42,13 @@ export function HistoryImageTile({
         onDragStart={onDragStart}
       >
         <img src={dataUrl} className={`${HISTORY_THUMBNAIL_IMAGE_CLASS_NAME} transition duration-200 group-hover:scale-[1.02]`} alt={alt} />
+        {showInpaintBadge
+          ? (
+              <div className="pointer-events-none absolute bottom-1.5 right-1.5 flex size-6 items-center justify-center rounded-md bg-black/28 text-white/78 backdrop-blur-[1px]">
+                <SelectionPlusIcon className="size-3.5" weight="bold" />
+              </div>
+            )
+          : null}
       </button>
 
       {onDelete

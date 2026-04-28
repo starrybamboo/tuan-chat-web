@@ -77,6 +77,7 @@ export function StandardHistoryPanel({
                 alt="current-result"
                 dataUrl={item.dataUrl}
                 draggable
+                showInpaintBadge={row?.mode === "infill"}
                 title={`${row?.mode || mode} · seed ${item.seed} · ${item.width}×${item.height}`}
                 onClick={event => onCurrentResultCardClick(index, row, event)}
                 onDelete={row?.id != null
@@ -99,6 +100,7 @@ export function StandardHistoryPanel({
                 alt="history"
                 dataUrl={row.dataUrl}
                 draggable
+                showInpaintBadge={row.mode === "infill"}
                 title={`${row.mode} · seed ${row.seed} · ${row.width}×${row.height}`}
                 onClick={event => onHistoryRowClick(row, event)}
                 onDelete={row.id != null
