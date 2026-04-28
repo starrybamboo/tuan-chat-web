@@ -372,6 +372,7 @@ export default defineConfig(() => {
       dedupe: [
         "react",
         "react-dom",
+        "react/compiler-runtime",
         "react/jsx-runtime",
         "react/jsx-dev-runtime",
         "react-router",
@@ -634,6 +635,7 @@ export default defineConfig(() => {
         // Ensure React JSX runtime is properly converted to ESM for browser.
         "react",
         "react-dom",
+        "react/compiler-runtime",
         "react/jsx-runtime",
         "react/jsx-dev-runtime",
 

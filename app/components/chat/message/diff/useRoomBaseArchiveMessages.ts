@@ -14,7 +14,7 @@ type UseRoomBaseArchiveMessagesResult = {
 
 export default function useRoomBaseArchiveMessages(
   roomId: number,
-  parentCommitId: number | null | undefined,
+  baseArchiveCommitId: number | null | undefined,
   enabled: boolean,
 ): UseRoomBaseArchiveMessagesResult {
   const [messages, setMessages] = useState<ChatMessageResponse[]>([]);
@@ -22,7 +22,7 @@ export default function useRoomBaseArchiveMessages(
   const [error, setError] = useState<unknown>(null);
 
   useEffect(() => {
-    if (!enabled || roomId <= 0 || !parentCommitId) {
+    if (!enabled || roomId <= 0 || !baseArchiveCommitId) {
       queueMicrotask(() => setMessages([]));
       queueMicrotask(() => setLoading(false));
       queueMicrotask(() => setError(null));
@@ -36,7 +36,7 @@ export default function useRoomBaseArchiveMessages(
     tuanchat.chatController.getHistoryMessages({
       roomId,
       syncId: 0,
-      commitId: parentCommitId,
+      commitId: baseArchiveCommitId,
     })
       .then((response) => {
         if (cancelled) {
@@ -61,7 +61,7 @@ export default function useRoomBaseArchiveMessages(
     return () => {
       cancelled = true;
     };
-  }, [enabled, parentCommitId, roomId]);
+  }, [baseArchiveCommitId, enabled, roomId]);
 
   const baseMessageByArchiveId = useMemo(() => buildBaseArchiveMessageIndex(messages), [messages]);
 

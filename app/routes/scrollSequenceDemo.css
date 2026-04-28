@@ -1,14 +1,20 @@
-.lenis.lenis-smooth {
-  scroll-behavior: auto !important;
-}
-
-html.lenis,
-html.lenis body {
+html.scroll-sequence-demo-native-scroll,
+html.scroll-sequence-demo-native-scroll body.scroll-sequence-demo-native-scroll {
   height: auto;
+  max-height: none;
+  min-height: 100%;
 }
 
-.lenis.lenis-stopped {
-  overflow: hidden;
+html.scroll-sequence-demo-native-scroll {
+  position: relative;
+  overflow-x: clip;
+  overflow-y: auto;
+  background: #07070b;
+}
+
+html.scroll-sequence-demo-native-scroll body.scroll-sequence-demo-native-scroll {
+  position: relative;
+  overflow: visible;
 }
 
 .scroll-sequence-demo {
@@ -38,8 +44,7 @@ html.lenis body {
     sans-serif;
 }
 
-.scroll-sequence-demo__backLink,
-.scroll-sequence-demo__compareLink {
+.scroll-sequence-demo__backLink {
   position: fixed;
   top: 22px;
   z-index: 20;
@@ -64,12 +69,7 @@ html.lenis body {
   left: 22px;
 }
 
-.scroll-sequence-demo__compareLink {
-  right: 22px;
-}
-
-.scroll-sequence-demo__backLink:hover,
-.scroll-sequence-demo__compareLink:hover {
+.scroll-sequence-demo__backLink:hover {
   border-color: rgba(255, 255, 255, 0.32);
   background: rgba(18, 18, 36, 0.82);
   transform: translateY(-1px);
@@ -513,11 +513,6 @@ html.lenis body {
   .scroll-sequence-demo__backLink {
     top: 14px;
     left: 14px;
-  }
-
-  .scroll-sequence-demo__compareLink {
-    top: 14px;
-    right: 14px;
   }
 
   .scroll-sequence-demo__heroTitle {

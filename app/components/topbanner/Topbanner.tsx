@@ -1,9 +1,11 @@
 import { ChatsIcon, CheckCircleIcon, GearSixIcon, IdentificationCardIcon, PaintBrushBroadIcon, SignOutIcon, UserIcon } from "@phosphor-icons/react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { lazy, Suspense, useEffect, useRef, useState } from "react";
-import { Link, useNavigate } from "react-router";
+import { motion, useAnimationControls } from "motion/react";
+import { lazy, Suspense, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { Link, useLocation, useNavigate } from "react-router";
 import WebgalStarter from "@/components/chat/shared/webgal/webgalStarter";
 import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
+import { interactiveButtonMotionProps } from "@/components/common/motion/interactiveButtonMotion";
 import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
 import UserAvatarComponent from "@/components/common/userAvatar";
 import NotificationBell from "@/components/notification/notificationBell";
@@ -16,6 +18,60 @@ import { useGetUserInfoQuery } from "../../../api/hooks/UserHooks";
 import ThemeSwitch from "../themeSwitch";
 
 const LazyLoginButton = lazy(() => import("../auth/LoginButton"));
+const MotionLink = motion.create(Link);
+const topNavMotionVariants = {
+  rest: { scale: 1, y: 0 },
+  hover: { scale: 1.06, y: -1.5 },
+  tap: { scale: 0.95, y: 0 },
+} as const;
+const topNavMotionTransition = { type: "spring", stiffness: 560, damping: 30, mass: 0.5 } as const;
+
+function TopNavMotionLink({
+  to,
+  label,
+  Icon,
+  compact = false,
+}: {
+  to: string;
+  label: string;
+  Icon: typeof ChatsIcon;
+  compact?: boolean;
+}) {
+  const location = useLocation();
+  const controls = useAnimationControls();
+  const linkRef = useRef<HTMLAnchorElement | null>(null);
+
+  const syncHoverState = useCallback(() => {
+    void controls.start(linkRef.current?.matches(":hover") ? "hover" : "rest");
+  }, [controls]);
+
+  useLayoutEffect(() => {
+    const frameId = window.requestAnimationFrame(syncHoverState);
+    return () => window.cancelAnimationFrame(frameId);
+  }, [location.pathname, syncHoverState]);
+
+  return (
+    <MotionLink
+      ref={linkRef}
+      to={to}
+      className={compact
+        ? "btn btn-ghost btn-square btn-sm hover:bg-base-200"
+        : "btn btn-ghost btn-sm gap-1 px-2 hover:bg-base-200"}
+      aria-label={label}
+      initial="rest"
+      animate={controls}
+      whileHover="hover"
+      whileTap="tap"
+      variants={topNavMotionVariants}
+      transition={topNavMotionTransition}
+      onHoverStart={() => controls.start("hover")}
+      onHoverEnd={() => controls.start("rest")}
+    >
+      <Icon className="size-6 opacity-80" />
+      {compact ? null : <span className="text-sm whitespace-nowrap">{label}</span>}
+    </MotionLink>
+  );
+}
 
 export default function Topbar() {
   const switchRef = useRef<HTMLDivElement | null>(null);
@@ -53,7 +109,6 @@ export default function Topbar() {
     apiBaseUrl: import.meta.env.VITE_API_BASE_URL,
     hostname: typeof window === "undefined" ? undefined : window.location.hostname,
   });
-  const canUseGeminiLab = import.meta.env.DEV;
   const canUseFeedback = import.meta.env.DEV || import.meta.env.MODE === "test";
 
   // 点击外部关闭下拉菜单
@@ -131,7 +186,6 @@ export default function Topbar() {
     { to: "/chat/discover/material", label: "聊天", icon: ChatsIcon },
     { to: "/role", label: "角色", icon: IdentificationCardIcon },
     ...(canUseAiImage ? [{ to: "/ai-image", label: "AI生图", icon: PaintBrushBroadIcon }] : []),
-    ...(canUseGeminiLab ? [{ to: "/gemini-lab", label: "Gemini实验", icon: GearSixIcon }] : []),
     ...(canUseFeedback ? [{ to: "/feedback", label: "反馈", icon: CheckCircleIcon }] : []),
   ];
 
@@ -141,7 +195,11 @@ export default function Topbar() {
         {/* 左侧导航区域 */}
         <div className="navbar-start gap-4">
           <div className="hidden md:flex">
-            <Link to="/chat/discover/material" className="flex items-center">
+            <MotionLink
+              to="/chat/discover/material"
+              className="flex items-center"
+              {...interactiveButtonMotionProps}
+            >
               <img
                 src="/favicon.ico"
                 alt="Logo"
@@ -151,7 +209,7 @@ export default function Topbar() {
                   event.currentTarget.src = "/logo.svg";
                 }}
               />
-            </Link>
+            </MotionLink>
           </div>
 
           <div className="hidden lg:flex items-center gap-2">
@@ -159,15 +217,12 @@ export default function Topbar() {
               {navItems.map((item) => {
                 const Icon = item.icon;
                 return (
-                  <Link
+                  <TopNavMotionLink
                     key={item.to}
                     to={item.to}
-                    className="btn btn-ghost btn-sm gap-1 px-2 hover:bg-base-200"
-                    aria-label={item.label}
-                  >
-                    <Icon className="size-6 opacity-80" />
-                    <span className="text-sm whitespace-nowrap">{item.label}</span>
-                  </Link>
+                    label={item.label}
+                    Icon={Icon}
+                  />
                 );
               })}
             </div>
@@ -182,14 +237,13 @@ export default function Topbar() {
                 {navItems.map((item) => {
                   const Icon = item.icon;
                   return (
-                    <Link
+                    <TopNavMotionLink
                       key={item.to}
                       to={item.to}
-                      className="btn btn-ghost btn-square btn-sm hover:bg-base-200"
-                      aria-label={item.label}
-                    >
-                      <Icon className="size-6 opacity-80" />
-                    </Link>
+                      label={item.label}
+                      Icon={Icon}
+                      compact
+                    />
                   );
                 })}
               </div>
@@ -198,25 +252,27 @@ export default function Topbar() {
             <div className="flex items-center gap-1">
               {/* <span className="hidden sm:inline text-xs opacity-70 select-none">Bug反馈</span> */}
               <div className="tooltip tooltip-bottom" data-tip="Discord：Bug反馈">
-                <a
+                <motion.a
                   href="https://discord.gg/JbfkEqR6Wp"
                   target="_blank"
                   rel="noreferrer noopener"
                   aria-label="Discord Bug反馈"
                   className="btn btn-ghost btn-square btn-sm hover:bg-base-200 transition-colors duration-200"
+                  {...interactiveButtonMotionProps}
                 >
                   <DiscordIcon className="size-6 opacity-80" />
-                </a>
+                </motion.a>
               </div>
               <div className="tooltip tooltip-bottom" data-tip="QQ：扫码反馈 Bug">
-                <button
+                <motion.button
                   type="button"
                   aria-label="QQ Bug反馈"
                   className="btn btn-ghost btn-square btn-sm hover:bg-base-200 transition-colors duration-200"
                   onClick={() => setIsBugQqOpen(true)}
+                  {...interactiveButtonMotionProps}
                 >
                   <QQIcon className="size-6 opacity-80" />
-                </button>
+                </motion.button>
               </div>
             </div>
             {isLoggedIn ? <NotificationBell /> : null}
@@ -226,11 +282,12 @@ export default function Topbar() {
                     ref={userDropdownRef}
                     className={`dropdown dropdown-end ${isUserDropdownOpen ? "dropdown-open" : ""}`}
                   >
-                    <button
+                    <motion.button
                       tabIndex={0}
                       type="button"
                       className="btn btn-ghost btn-circle btn-sm hover:bg-base-200"
                       onClick={() => setIsUserDropdownOpen(!isUserDropdownOpen)}
+                      {...interactiveButtonMotionProps}
                     >
                       <UserAvatarComponent
                         userId={userId || 1}
@@ -240,7 +297,7 @@ export default function Topbar() {
                         stopToastWindow={true}
                         clickEnterProfilePage={false}
                       />
-                    </button>
+                    </motion.button>
                     <div tabIndex={0} className="dropdown-content z-50 card card-compact w-64 p-0 shadow-lg bg-base-100 rounded-lg mt-2">
                       {/* Header */}
                       <div className="card-body p-4 border-b border-base-300">

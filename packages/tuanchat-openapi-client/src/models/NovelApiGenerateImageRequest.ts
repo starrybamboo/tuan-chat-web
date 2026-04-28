@@ -7,15 +7,15 @@
  */
 export type NovelApiGenerateImageRequest = {
     /**
-     * 输入提示词
+     * 输入提示词，允许为空并透传到上游。
      */
-    input: string;
+    input?: string;
     /**
      * NovelAI 模型名
      */
     model: string;
     /**
-     * 动作类型（generate/img2img）
+     * 动作类型（generate/img2img/infill）
      */
     action?: string;
     /**
