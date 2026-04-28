@@ -4,6 +4,19 @@ import { ArrowClockwise, CaretLeftIcon, FileArrowUpIcon, PencilSimpleLineIcon, S
 import { clampRange, formatSliderValue } from "@/components/aiImage/helpers";
 import { ChevronDown } from "@/icons";
 
+const INFILL_APPEND_MIN_HEIGHT = 80;
+
+function autoResizeInfillAppendTextarea(target: HTMLTextAreaElement) {
+  target.style.height = `${INFILL_APPEND_MIN_HEIGHT}px`;
+  target.style.height = `${Math.max(INFILL_APPEND_MIN_HEIGHT, target.scrollHeight)}px`;
+}
+
+function bindInfillAppendTextarea(node: HTMLTextAreaElement | null) {
+  if (!node)
+    return;
+  autoResizeInfillAppendTextarea(node);
+}
+
 interface SharedBaseImageSectionProps {
   sourceImageDataUrl: string;
   infillMaskDataUrl: string;
@@ -152,9 +165,13 @@ export function renderSimpleInfillSectionContent({
                   <div className="mb-2 text-[13px] font-semibold leading-5 text-base-content">Append Tags</div>
                   <textarea
                     className={infillAppendInputClassName}
-                    rows={3}
+                    rows={1}
+                    ref={bindInfillAppendTextarea}
                     value={infillAppendPrompt}
-                    onChange={event => onInfillAppendPromptChange(event.target.value)}
+                    onChange={(event) => {
+                      onInfillAppendPromptChange(event.target.value);
+                      autoResizeInfillAppendTextarea(event.currentTarget);
+                    }}
                   />
                 </label>
               </div>
@@ -290,9 +307,13 @@ export function renderProInfillSectionContent({
                   <div className="mb-2 text-[13px] font-semibold leading-5 text-base-content">Append Tags</div>
                   <textarea
                     className={infillAppendInputClassName}
-                    rows={3}
+                    rows={1}
+                    ref={bindInfillAppendTextarea}
                     value={infillAppendPrompt}
-                    onChange={event => onInfillAppendPromptChange(event.target.value)}
+                    onChange={(event) => {
+                      onInfillAppendPromptChange(event.target.value);
+                      autoResizeInfillAppendTextarea(event.currentTarget);
+                    }}
                   />
                 </label>
               </div>
