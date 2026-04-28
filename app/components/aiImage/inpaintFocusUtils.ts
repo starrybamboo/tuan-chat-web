@@ -1,4 +1,13 @@
-import { dataUrlToBase64 } from "@/components/aiImage/helpers";
+import {
+  base64DataUrl,
+  base64ToBytes,
+  dataUrlToBase64,
+} from "@/components/aiImage/helpers";
+import {
+  embedNovelAiMetadataIntoPngBytes,
+  extractNovelAiMetadataFromPngBytes,
+  extractNovelAiMetadataFromStealthPixels,
+} from "@/utils/novelaiImageMetadata";
 
 export type FocusedMaskBounds = {
   left: number;
@@ -124,6 +133,52 @@ export function resolveFocusedTargetSize(cropWidth: number, cropHeight: number) 
 
 function canvasToPngBase64(canvas: HTMLCanvasElement) {
   return dataUrlToBase64(canvas.toDataURL("image/png"));
+}
+
+async function extractNovelAiMetadataFromDataUrl(dataUrl: string) {
+  const imageBase64 = dataUrlToBase64(dataUrl);
+  if (!imageBase64)
+    return null;
+
+  const pngMetadata = extractNovelAiMetadataFromPngBytes(base64ToBytes(imageBase64));
+  if (pngMetadata)
+    return pngMetadata;
+
+  const image = await loadImage(dataUrl);
+  const canvas = document.createElement("canvas");
+  canvas.width = image.naturalWidth;
+  canvas.height = image.naturalHeight;
+  const context = canvas.getContext("2d", { willReadFrequently: true });
+  if (!context)
+    return null;
+
+  context.drawImage(image, 0, 0, canvas.width, canvas.height);
+  return extractNovelAiMetadataFromStealthPixels(context.getImageData(0, 0, canvas.width, canvas.height));
+}
+
+async function preserveCompositeNovelAiMetadata(args: {
+  compositedDataUrl: string;
+  generatedCropDataUrl: string;
+  sourceDataUrl: string;
+}) {
+  try {
+    const metadata = await extractNovelAiMetadataFromDataUrl(args.generatedCropDataUrl)
+      || await extractNovelAiMetadataFromDataUrl(args.sourceDataUrl);
+    if (!metadata)
+      return args.compositedDataUrl;
+
+    const compositedBytes = base64ToBytes(dataUrlToBase64(args.compositedDataUrl));
+    if (!compositedBytes.length)
+      return args.compositedDataUrl;
+
+    return base64DataUrl(
+      "image/png",
+      embedNovelAiMetadataIntoPngBytes(compositedBytes, metadata),
+    );
+  }
+  catch {
+    return args.compositedDataUrl;
+  }
 }
 
 export async function prepareFocusedInpaintPayload(args: {
@@ -256,5 +311,10 @@ export async function compositeFocusedInpaintResult(args: {
   }
 
   outputContext.putImageData(blended, args.cropRect.left, args.cropRect.top);
-  return outputCanvas.toDataURL("image/png");
+  const compositedDataUrl = outputCanvas.toDataURL("image/png");
+  return await preserveCompositeNovelAiMetadata({
+    compositedDataUrl,
+    generatedCropDataUrl: args.generatedCropDataUrl,
+    sourceDataUrl: args.sourceDataUrl,
+  });
 }
