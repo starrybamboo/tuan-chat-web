@@ -7,6 +7,7 @@ import { ChevronDown } from "@/icons";
 interface SharedBaseImageSectionProps {
   sourceImageDataUrl: string;
   infillMaskDataUrl: string;
+  infillAppendPrompt: string;
   isBusy: boolean;
   isBaseImageToolsOpen: boolean;
   strength: number;
@@ -14,16 +15,19 @@ interface SharedBaseImageSectionProps {
   baseImageControlGroupClassName: string;
   baseImageToggleButtonClassName: string;
   baseImageRangeClassName: string;
+  infillAppendInputClassName: string;
   onOpenBaseImageInpaint: () => void | Promise<void>;
   onClearSourceImage: () => void;
   onReturnFromInfillSettings: () => void;
   onToggleBaseImageTools: () => void;
+  onInfillAppendPromptChange: (value: string) => void;
   setStrength: (value: number) => void;
 }
 
 export function renderSimpleInfillSectionContent({
   sourceImageDataUrl,
   infillMaskDataUrl,
+  infillAppendPrompt,
   isBusy,
   isBaseImageToolsOpen,
   strength,
@@ -32,10 +36,12 @@ export function renderSimpleInfillSectionContent({
   baseImageControlGroupClassName,
   baseImageToggleButtonClassName,
   baseImageRangeClassName,
+  infillAppendInputClassName,
   onOpenBaseImageInpaint,
   onClearSourceImage,
   onReturnFromInfillSettings,
   onToggleBaseImageTools,
+  onInfillAppendPromptChange,
   setStrength,
 }: SharedBaseImageSectionProps & {
   simpleBaseImageAttachmentClassName: string;
@@ -141,6 +147,16 @@ export function renderSimpleInfillSectionContent({
                     onChange={event => setStrength(clampRange(Number(event.target.value), 0.01, 1, 0.7))}
                   />
                 </label>
+
+                <label className="block">
+                  <div className="mb-2 text-[13px] font-semibold leading-5 text-base-content">Append Tags</div>
+                  <textarea
+                    className={infillAppendInputClassName}
+                    rows={3}
+                    value={infillAppendPrompt}
+                    onChange={event => onInfillAppendPromptChange(event.target.value)}
+                  />
+                </label>
               </div>
             )
           : null}
@@ -152,6 +168,7 @@ export function renderSimpleInfillSectionContent({
 export function renderProInfillSectionContent({
   sourceImageDataUrl,
   infillMaskDataUrl,
+  infillAppendPrompt,
   isBusy,
   isBaseImageToolsOpen,
   strength,
@@ -159,10 +176,12 @@ export function renderProInfillSectionContent({
   baseImageControlGroupClassName,
   baseImageToggleButtonClassName,
   baseImageRangeClassName,
+  infillAppendInputClassName,
   onOpenBaseImageInpaint,
   onClearSourceImage,
   onReturnFromInfillSettings,
   onToggleBaseImageTools,
+  onInfillAppendPromptChange,
   setStrength,
 }: SharedBaseImageSectionProps) {
   if (!sourceImageDataUrl || !infillMaskDataUrl)
@@ -266,6 +285,16 @@ export function renderProInfillSectionContent({
                     onChange={event => setStrength(clampRange(Number(event.target.value), 0.01, 1, 0.7))}
                   />
                 </label>
+
+                <label className="block">
+                  <div className="mb-2 text-[13px] font-semibold leading-5 text-base-content">Append Tags</div>
+                  <textarea
+                    className={infillAppendInputClassName}
+                    rows={3}
+                    value={infillAppendPrompt}
+                    onChange={event => onInfillAppendPromptChange(event.target.value)}
+                  />
+                </label>
               </div>
             )
           : null}
@@ -290,11 +319,14 @@ export function renderSimpleBaseImageSectionContent({
   baseImageToggleButtonClassName,
   baseImageActionButtonClassName,
   baseImageRangeClassName,
+  infillAppendInputClassName,
   onOpenSourceImagePicker,
   onOpenBaseImageInpaint,
   onClearSourceImage,
   onReturnFromInfillSettings,
   onToggleBaseImageTools,
+  infillAppendPrompt,
+  onInfillAppendPromptChange,
   setStrength,
   setNoise,
 }: {
@@ -313,11 +345,14 @@ export function renderSimpleBaseImageSectionContent({
   baseImageToggleButtonClassName: string;
   baseImageActionButtonClassName: string;
   baseImageRangeClassName: string;
+  infillAppendInputClassName: string;
   onOpenSourceImagePicker: () => void;
   onOpenBaseImageInpaint: () => void | Promise<void>;
   onClearSourceImage: () => void;
   onReturnFromInfillSettings: () => void;
   onToggleBaseImageTools: () => void;
+  infillAppendPrompt: string;
+  onInfillAppendPromptChange: (value: string) => void;
   setStrength: (value: number) => void;
   setNoise: (value: number) => void;
 }) {
@@ -354,10 +389,13 @@ export function renderSimpleBaseImageSectionContent({
       baseImageControlGroupClassName,
       baseImageToggleButtonClassName,
       baseImageRangeClassName,
+      infillAppendInputClassName,
       onOpenBaseImageInpaint,
       onClearSourceImage,
       onReturnFromInfillSettings,
       onToggleBaseImageTools,
+      infillAppendPrompt,
+      onInfillAppendPromptChange,
       setStrength,
     });
   }

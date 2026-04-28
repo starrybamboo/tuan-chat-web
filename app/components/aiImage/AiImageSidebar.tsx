@@ -76,6 +76,7 @@ export const AiImageSidebar = memo(({ sidebarProps }: AiImageSidebarProps) => {
     handleUpdateV4Char,
     handleOpenBaseImageInpaint,
     handleReturnFromInfillSettings,
+    infillAppendPrompt,
     hasCurrentDisplayedImage,
     imageCount,
     infillMaskDataUrl,
@@ -101,6 +102,7 @@ export const AiImageSidebar = memo(({ sidebarProps }: AiImageSidebarProps) => {
     seedIsRandom,
     setCfgRescale,
     setImageCount,
+    setInfillAppendPrompt,
     setNegativePrompt,
     setNoise,
     setNoiseSchedule,
@@ -233,6 +235,7 @@ export const AiImageSidebar = memo(({ sidebarProps }: AiImageSidebarProps) => {
   const highlightPromptContentClassName = "min-h-36 px-3 py-2 text-sm leading-6";
   const highlightCharSurfaceClassName = "relative min-h-28 w-full overflow-hidden !rounded-none border border-[#D6DCE3] bg-[#F3F5F7] shadow-none transition-colors hover:border-primary active:border-primary focus-within:border-primary focus-within:bg-primary/[0.03] dark:border-[#2A3138] dark:bg-[#161A1F] dark:hover:border-primary";
   const highlightCharContentClassName = "min-h-28 px-3 py-2 text-sm leading-6";
+  const infillAppendInputClassName = "w-full rounded-md border border-[#D6DCE3] bg-[#F3F5F7] px-3 py-2 text-sm leading-6 text-base-content transition focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 dark:border-[#2A3138] dark:bg-[#161A1F]";
   const floatingInputActionBaseClassName = "btn btn-xs btn-ghost border-0 bg-transparent px-2 text-base-content/35 shadow-none transition-colors backdrop-blur-0 hover:bg-black/28 hover:text-white focus-visible:text-white disabled:cursor-not-allowed disabled:opacity-40 dark:text-base-content/40 dark:hover:bg-white/12";
   const floatingInputActionClassName = `${floatingInputActionBaseClassName} absolute right-3 top-3 z-10`;
   const baseImageToggleButtonClassName = "inline-flex size-11 items-center justify-center bg-transparent text-base-content/60 transition hover:text-base-content focus:outline-none focus-visible:text-base-content dark:text-white/58 dark:hover:text-white dark:focus-visible:text-white";
@@ -444,15 +447,20 @@ export const AiImageSidebar = memo(({ sidebarProps }: AiImageSidebarProps) => {
       baseImageControlGroupClassName,
       baseImageToggleButtonClassName,
       baseImageRangeClassName,
+      infillAppendInputClassName,
       onOpenBaseImageInpaint: handleOpenBaseImageInpaint,
       onClearSourceImage: handleClearSourceImage,
       onReturnFromInfillSettings: handleReturnFromInfillSettings,
       onToggleBaseImageTools: () => setIsBaseImageToolsOpen(prev => !prev),
+      infillAppendPrompt,
+      onInfillAppendPromptChange: setInfillAppendPrompt,
       setStrength,
     });
   }, [
     baseImageControlGroupClassName,
     baseImageHeaderClassName,
+    infillAppendInputClassName,
+    infillAppendPrompt,
     baseImageRangeClassName,
     baseImageToggleButtonClassName,
     handleClearSourceImage,
@@ -461,6 +469,7 @@ export const AiImageSidebar = memo(({ sidebarProps }: AiImageSidebarProps) => {
     infillMaskDataUrl,
     isBaseImageToolsOpen,
     isBusy,
+    setInfillAppendPrompt,
     setStrength,
     sourceImageDataUrl,
     strength,
@@ -483,11 +492,14 @@ export const AiImageSidebar = memo(({ sidebarProps }: AiImageSidebarProps) => {
       baseImageToggleButtonClassName,
       baseImageActionButtonClassName,
       baseImageRangeClassName,
+      infillAppendInputClassName,
       onOpenSourceImagePicker: handleOpenSourceImagePicker,
       onOpenBaseImageInpaint: handleOpenBaseImageInpaint,
       onClearSourceImage: handleClearSourceImage,
       onReturnFromInfillSettings: handleReturnFromInfillSettings,
       onToggleBaseImageTools: () => setIsBaseImageToolsOpen(prev => !prev),
+      infillAppendPrompt,
+      onInfillAppendPromptChange: setInfillAppendPrompt,
       setStrength,
       setNoise,
     });
@@ -495,6 +507,8 @@ export const AiImageSidebar = memo(({ sidebarProps }: AiImageSidebarProps) => {
     baseImageActionButtonClassName,
     baseImageControlGroupClassName,
     baseImageHeaderClassName,
+    infillAppendInputClassName,
+    infillAppendPrompt,
     baseImagePanelClassName,
     baseImageRangeClassName,
     baseImageToggleButtonClassName,
@@ -509,6 +523,7 @@ export const AiImageSidebar = memo(({ sidebarProps }: AiImageSidebarProps) => {
     mode,
     noise,
     setNoise,
+    setInfillAppendPrompt,
     setStrength,
     simpleBaseImageAttachmentClassName,
     sourceImageDataUrl,

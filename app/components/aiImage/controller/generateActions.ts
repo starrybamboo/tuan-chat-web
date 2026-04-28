@@ -100,6 +100,7 @@ type BuildGenerateContextArgs = {
   proInfillPrompt: string;
   simpleInfillNegativePrompt: string;
   proInfillNegativePrompt: string;
+  infillAppendPrompt: string;
   prompt?: string;
   negativePrompt?: string;
   simplePrompt: string;
@@ -211,25 +212,56 @@ function stripReferenceEditorRow(row: VibeTransferReferenceRow): VibeTransferRef
   return payload;
 }
 
+function appendInfillTags(base: string, appended: string) {
+  const normalizedBase = sanitizeNovelAiTagInput(base);
+  const normalizedAppended = sanitizeNovelAiTagInput(appended);
+  if (!normalizedAppended)
+    return normalizedBase;
+
+  const baseTags = normalizedBase
+    .split(",")
+    .map(item => item.trim())
+    .filter(Boolean);
+  const appendedTags = normalizedAppended
+    .split(",")
+    .map(item => item.trim())
+    .filter(Boolean);
+  if (!appendedTags.length)
+    return normalizedBase;
+
+  const seen = new Set(baseTags);
+  const merged = [...baseTags];
+  for (const tag of appendedTags) {
+    if (seen.has(tag))
+      continue;
+    seen.add(tag);
+    merged.push(tag);
+  }
+  return merged.join(", ");
+}
+
 export function buildGenerateContext(args: BuildGenerateContextArgs): GenerateContext {
   const effectiveMode = args.mode ?? args.currentMode;
   const infillPrompt = args.uiMode === "simple" ? args.simpleInfillPrompt : args.proInfillPrompt;
   const infillNegativePrompt = args.uiMode === "simple" ? args.simpleInfillNegativePrompt : args.proInfillNegativePrompt;
-  const basePrompt = sanitizeNovelAiTagInput(String(args.prompt ?? (effectiveMode === "infill"
+  const basePrompt = sanitizeNovelAiTagInput(String(effectiveMode === "infill"
     ? infillPrompt || DEFAULT_INPAINT_PROMPT
-    : (args.uiMode === "simple" ? args.simplePrompt : args.promptText))));
-  const baseNegative = sanitizeNovelAiTagInput(String(args.negativePrompt ?? (effectiveMode === "infill"
+    : (args.prompt ?? (args.uiMode === "simple" ? args.simplePrompt : args.promptText))));
+  const baseNegative = sanitizeNovelAiTagInput(String(effectiveMode === "infill"
     ? infillNegativePrompt || DEFAULT_INPAINT_NEGATIVE_PROMPT
-    : (args.uiMode === "simple" ? args.simpleNegativePrompt : args.negativePromptText))));
+    : (args.negativePrompt ?? (args.uiMode === "simple" ? args.simpleNegativePrompt : args.negativePromptText))));
   const mergeStyleTags = args.uiMode === "simple" && effectiveMode === "txt2img";
   const roundedRequestSize = getClosestValidImageSize(args.width, args.height);
   const resolvedVibeTransferReferences = args.uiMode === "pro" && args.isNAI4
     ? (args.normalizeReferenceStrengths ? normalizeReferenceStrengthRows(args.vibeTransferReferences) : args.vibeTransferReferences)
     : [];
+  const effectivePrompt = effectiveMode === "infill"
+    ? appendInfillTags(basePrompt, args.infillAppendPrompt)
+    : (mergeStyleTags ? mergeTagString(basePrompt, args.activeStyleTags).trim() : basePrompt);
 
   return {
     effectiveMode,
-    effectivePrompt: mergeStyleTags ? mergeTagString(basePrompt, args.activeStyleTags).trim() : basePrompt,
+    effectivePrompt,
     effectiveNegative: mergeStyleTags ? mergeTagString(baseNegative, args.activeStyleNegativeTags) : baseNegative,
     effectiveImageCount: NOVELAI_FREE_FIXED_IMAGE_COUNT,
     effectiveWidth: roundedRequestSize.width,
