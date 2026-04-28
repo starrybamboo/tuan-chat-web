@@ -10,6 +10,7 @@ import executorPublic from "@/components/common/dicer/cmdExe/cmdExePublic";
 import { resolveCommandMessageVisibility } from "@/components/common/dicer/commandMessageVisibility";
 import { buildDicerReplyContent, selectWeightedCopywritingSuffix } from "@/components/common/dicer/dicerReplyPreparation";
 import { syncOptimisticReplyMessageIds } from "@/components/common/dicer/optimisticReplyMessageLink";
+import { getCachedDicerRoleAbility, setCachedDicerRoleAbility } from "@/components/common/dicer/roleAbilityCache";
 import { buildRuntimeRoleValuesByRoleId, mergeRuntimeRoleValuesIntoAbility } from "@/components/common/dicer/runtimeAbilityBridge";
 import UTILS from "@/components/common/dicer/utils/utils";
 import { buildMessageExtraForRequest } from "@/types/messageDraft";
@@ -40,7 +41,6 @@ let stableDiceMessageSeed = 0;
 const DICER_DEBUG_PREFIX = "[TC_DICER_FLOW]";
 const DICER_AVATAR_CACHE_TTL_MS = 15 * 60_000;
 const DICER_COPYWRITING_CACHE_TTL_MS = 15 * 60_000;
-const ROLE_ABILITY_CACHE_TTL_MS = 10 * 60_000;
 
 interface ExpiringCacheEntry<T> {
   value: T;
@@ -49,7 +49,6 @@ interface ExpiringCacheEntry<T> {
 
 const dicerAvatarCache = new Map<number, ExpiringCacheEntry<RoleAvatar[]>>();
 const dicerCopywritingCache = new Map<string, ExpiringCacheEntry<Record<string, string[]>>>();
-const roleAbilityCache = new Map<string, ExpiringCacheEntry<RoleAbility>>();
 
 function createStableDiceMessageKey(roomId: number, optimisticMessageId: number): string {
   stableDiceMessageSeed += 1;
@@ -86,54 +85,23 @@ function writeCacheValue<T>(value: T, ttlMs: number): ExpiringCacheEntry<T> {
   };
 }
 
-function cloneRoleAbility(ability: RoleAbility): RoleAbility {
-  try {
-    return JSON.parse(JSON.stringify(ability ?? {})) as RoleAbility;
-  }
-  catch {
-    return {
-      ...(ability ?? {}),
-      act: { ...(ability?.act ?? {}) },
-      basic: { ...(ability?.basic ?? {}) },
-      ability: { ...(ability?.ability ?? {}) },
-      skill: { ...(ability?.skill ?? {}) },
-      record: { ...(ability?.record ?? {}) },
-      extra: { ...(ability?.extra ?? {}) },
-    } as RoleAbility;
-  }
-}
-
-function buildRoleAbilityCacheKey(ruleId: number, roleId: number): string {
-  return `${ruleId}:${roleId}`;
-}
-
-function getCachedRoleAbility(ruleId: number, roleId: number): RoleAbility | null {
-  const cacheKey = buildRoleAbilityCacheKey(ruleId, roleId);
-  const cached = readCacheValue(roleAbilityCache.get(cacheKey));
-  if (!cached) {
-    return null;
-  }
-  return cloneRoleAbility(cached);
-}
-
-function setCachedRoleAbility(ruleId: number, roleId: number, ability: RoleAbility): void {
-  const cacheKey = buildRoleAbilityCacheKey(ruleId, roleId);
-  roleAbilityCache.set(cacheKey, writeCacheValue(cloneRoleAbility(ability), ROLE_ABILITY_CACHE_TTL_MS));
-}
-
 async function getOrFetchRoleAbility(ruleId: number, roleId: number): Promise<RoleAbility> {
-  const cached = getCachedRoleAbility(ruleId, roleId);
+  const cached = getCachedDicerRoleAbility(ruleId, roleId);
   if (cached) {
     return cached;
   }
   const abilityQuery = await tuanchat.abilityController.getByRuleAndRole(ruleId, roleId);
   const ability = (abilityQuery.data || {}) as RoleAbility;
-  setCachedRoleAbility(ruleId, roleId, {
+  setCachedDicerRoleAbility(ruleId, roleId, {
     ...ability,
     roleId: ability.roleId ?? roleId,
     ruleId: ability.ruleId ?? ruleId,
   });
-  return cloneRoleAbility(ability);
+  return getCachedDicerRoleAbility(ruleId, roleId) ?? {
+    ...ability,
+    roleId: ability.roleId ?? roleId,
+    ruleId: ability.ruleId ?? ruleId,
+  };
 }
 
 async function getCachedDicerAvatars(dicerRoleId: number): Promise<RoleAvatar[]> {
@@ -713,6 +681,7 @@ export default function useCommandExecutor(roleId: number, ruleId: number, roomC
         dicerMessagePreview: dicerMessageQueue.map(item => item.content.slice(0, 80)),
       });
       // 遍历mentionedRoles，更新或创建角色能力
+      const abilityPersistTasks: Promise<unknown>[] = [];
       for (const [id, ability] of mentionedRoles) {
         if (id <= 0) {
           continue;
@@ -731,18 +700,19 @@ export default function useCommandExecutor(roleId: number, ruleId: number, roomC
 
         // 如果后端返回了 abilityId，说明已存在记录，调用更新接口；否则调用创建接口
         if (ability && (ability.abilityId ?? 0) > 0) {
-          updateAbilityMutation.mutate(payload);
+          abilityPersistTasks.push(updateAbilityMutation.mutateAsync(payload));
         }
         else {
-          setAbilityMutation.mutate(payload);
+          abilityPersistTasks.push(setAbilityMutation.mutateAsync(payload));
         }
-        setCachedRoleAbility(ruleId, id, {
+        setCachedDicerRoleAbility(ruleId, id, {
           ...ability,
           ...payload,
           roleId: id,
           ruleId,
         } as RoleAbility);
       }
+      await Promise.all(abilityPersistTasks);
       // 更新 Space dicerData（如果被修改）
       if (spaceDicerDataModified && space && space.spaceId) {
         setSpaceExtraMutation.mutate({

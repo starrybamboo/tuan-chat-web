@@ -5,6 +5,7 @@ import {
 import { useCallback, useEffect, useReducer, useRef, useState } from "react";
 import AddFieldForm from "../Editors/AddFieldForm";
 import EditableField from "../Editors/EditableField";
+import { buildRoleAbilityFieldKeyPayload, buildRoleAbilitySectionUpdatePayload } from "./roleAbilityFieldPayload";
 
 // Type for numerical data - flat structure
 type NumericalData = Record<string, string>;
@@ -106,28 +107,7 @@ export default function NumericalEditor({
     // 更新前端状态
     onChange(localData);
 
-    // 数据本身就是字符串格式，直接使用
-
-    // 根据字段类型构建更新对象
-    const updatedAbility: any = {
-      roleId,
-      ruleId,
-    };
-
-    // 根据fieldType设置对应的字段
-    switch (fieldType) {
-      case "basic":
-        updatedAbility.basic = localData;
-        break;
-      case "ability":
-        updatedAbility.ability = localData;
-        break;
-      case "skill":
-        updatedAbility.skill = localData;
-        break;
-    }
-
-    updateFiledAbility(updatedAbility, {
+    updateFiledAbility(buildRoleAbilitySectionUpdatePayload(roleId, ruleId, fieldType, localData), {
       onSuccess: () => {
         setTimeout(() => {
           setInternalIsEditing(false);
@@ -184,17 +164,9 @@ export default function NumericalEditor({
       payload: { key: newFieldKey, value: newFieldValue },
     });
 
-    // 使用 API 更新字段 (根据 AbilityFieldUpdateRequest 定义)
-    const fieldUpdateRequest = {
-      roleId,
-      ruleId,
-      // 根据字段类型使用对应的字段
-      ...(fieldType === "basic" && { basicFields: { [newFieldKey]: newFieldValue } }),
-      ...(fieldType === "ability" && { abilityFields: { [newFieldKey]: newFieldValue } }),
-      ...(fieldType === "skill" && { skillFields: { [newFieldKey]: newFieldValue } }),
-    };
-
-    updateKeyField(fieldUpdateRequest, {
+    updateFiledAbility(buildRoleAbilitySectionUpdatePayload(roleId, ruleId, fieldType, {
+      [newFieldKey]: newFieldValue,
+    }), {
       onSuccess: () => {
         onChange(updatedData);
       },
@@ -210,17 +182,9 @@ export default function NumericalEditor({
     // 更新本地状态
     dispatch({ type: "DELETE_FIELD", payload: fieldKey });
 
-    // 使用 API 删除字段（传 null 表示删除）
-    const fieldUpdateRequest = {
-      roleId,
-      ruleId,
-      // 根据字段类型使用对应的字段
-      ...(fieldType === "basic" && { basicFields: { [fieldKey]: null as any } }),
-      ...(fieldType === "ability" && { abilityFields: { [fieldKey]: null as any } }),
-      ...(fieldType === "skill" && { skillFields: { [fieldKey]: null as any } }),
-    };
-
-    updateKeyField(fieldUpdateRequest, {
+    updateKeyField(buildRoleAbilityFieldKeyPayload(roleId, ruleId, fieldType, {
+      [fieldKey]: null,
+    }), {
       onSuccess: () => {
         onChange(updatedData);
       },
@@ -245,32 +209,9 @@ export default function NumericalEditor({
       payload: { oldKey, newKey },
     });
 
-    // 删除旧字段，添加新字段
-    const fieldUpdateRequest = {
-      roleId,
-      ruleId,
-      // 根据字段类型使用对应的字段
-      ...(fieldType === "basic" && {
-        basicFields: {
-          [oldKey]: null as any, // 删除旧字段，类型断言因为API支持null
-          [newKey]: String(value), // 添加新字段
-        },
-      }),
-      ...(fieldType === "ability" && {
-        abilityFields: {
-          [oldKey]: null as any,
-          [newKey]: String(value),
-        },
-      }),
-      ...(fieldType === "skill" && {
-        skillFields: {
-          [oldKey]: null as any,
-          [newKey]: String(value),
-        },
-      }),
-    };
-
-    updateKeyField(fieldUpdateRequest, {
+    updateKeyField(buildRoleAbilityFieldKeyPayload(roleId, ruleId, fieldType, {
+      [oldKey]: newKey,
+    }), {
       onSuccess: () => {
         onChange(updatedData);
       },
