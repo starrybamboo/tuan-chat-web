@@ -60,8 +60,8 @@ export default function CharacterDetailLeftPanel({
   return (
     <div className="lg:col-span-1 self-start lg:sticky lg:top-4 space-y-6">
       <div className="card-sm md:card-xl bg-base-100 shadow-xs rounded-xl md:border-2 md:border-base-content/10">
-        <div className="card-body p-4 max-h-168">
-          <div className="flex justify-center mt-6 mb-2">
+        <div className="card-body flex flex-col p-4">
+          <div className="flex flex-1 items-center justify-center">
             {isQueryLoading
               ? (
                   <div className="flex flex-col items-center gap-3">
