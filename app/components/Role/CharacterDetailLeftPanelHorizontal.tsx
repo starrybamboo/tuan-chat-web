@@ -1,19 +1,19 @@
 import type { CharacterDetailLeftPanelProps } from "./CharacterDetailLeftPanel";
 import { ChevronRightIcon, DiceFiveIcon, GearOutline, MicrophoneIcon } from "app/icons";
+import RoleBasicInfoEditor from "./RoleBasicInfoEditor";
 import AudioPlayer from "./RoleInfoCard/AudioPlayer";
 import CharacterAvatar from "./RoleInfoCard/CharacterAvatar";
 
 export default function CharacterDetailLeftPanelHorizontal({
   isQueryLoading,
-  isEditing,
   isDiceMaiden,
   localRole,
   roleAvatars,
   selectedAvatarId,
   selectedAvatarUrl,
   selectedSpriteUrl,
-  charCount,
   maxDescriptionLength,
+  maxRoleNameLength,
   currentRuleName,
   currentDicerRoleId,
   dicerRoleError,
@@ -25,7 +25,7 @@ export default function CharacterDetailLeftPanelHorizontal({
   onAvatarSelect,
   onAvatarDelete,
   onAvatarUpload,
-  setLocalRole,
+  onBaseRoleSave,
   onAudioRoleUpdate,
   onAudioDelete,
 }: CharacterDetailLeftPanelProps) {
@@ -102,39 +102,15 @@ export default function CharacterDetailLeftPanelHorizontal({
               <ChevronRightIcon className="w-4 h-4 shrink-0 text-base-content/50" />
             </button>
           </div>
-
-          {isEditing && (
-            <div className="mt-4">
-              <label className="input rounded-md w-full">
-                <input
-                  type="text"
-                  value={localRole.name}
-                  onChange={e => setLocalRole(prev => ({ ...prev, name: e.target.value }))}
-                  placeholder="角色名称"
-                />
-              </label>
-              <textarea
-                value={localRole.description}
-                onChange={(e) => {
-                  setLocalRole(prev => ({ ...prev, description: e.target.value }));
-                }}
-                placeholder="角色描述"
-                className="textarea textarea-sm w-full h-28 resize-none mt-3 rounded-md"
-              />
-              <div className="text-right mt-1">
-                <span className={`text-sm font-bold ${charCount > maxDescriptionLength ? "text-error" : "text-base-content/70"
-                }`}
-                >
-                  {charCount}
-                  /
-                  {maxDescriptionLength}
-                  {charCount > maxDescriptionLength && (
-                    <span className="ml-2">(已超出描述字数上限)</span>
-                  )}
-                </span>
-              </div>
-            </div>
-          )}
+          <RoleBasicInfoEditor
+            localRole={localRole}
+            maxRoleNameLength={maxRoleNameLength}
+            maxDescriptionLength={maxDescriptionLength}
+            onBaseRoleSave={onBaseRoleSave}
+            className="mt-4"
+            nameClassName="text-left text-xl font-semibold"
+            descriptionDisplayClassName="text-sm wrap-break-words line-clamp-5 overflow-hidden text-ellipsis"
+          />
         </div>
 
         <div className="hidden lg:flex lg:flex-nowrap lg:gap-0 lg:divide-x lg:divide-base-content/10">
@@ -165,55 +141,15 @@ export default function CharacterDetailLeftPanelHorizontal({
 
           <div className="flex-1 min-w-0 lg:px-6 lg:max-w-md">
             <div className="flex flex-col gap-3">
-              <div className="min-w-0">
-                <h1 className="font-semibold text-2xl truncate">
-                  {localRole.name || "未命名角色"}
-                </h1>
-                <p className="text-base-content/60 text-sm">
-                  {currentRuleName || "未选择规则"}
-                </p>
-              </div>
-
-              <div>
-                {isEditing
-                  ? (
-                      <div>
-                        <label className="input rounded-md w-full">
-                          <input
-                            type="text"
-                            value={localRole.name}
-                            onChange={e => setLocalRole(prev => ({ ...prev, name: e.target.value }))}
-                            placeholder="角色名称"
-                          />
-                        </label>
-                        <textarea
-                          value={localRole.description}
-                          onChange={(e) => {
-                            setLocalRole(prev => ({ ...prev, description: e.target.value }));
-                          }}
-                          placeholder="角色描述"
-                          className="textarea textarea-sm w-full h-28 resize-none mt-3 rounded-md"
-                        />
-                        <div className="text-right mt-1">
-                          <span className={`text-sm font-bold ${charCount > maxDescriptionLength ? "text-error" : "text-base-content/70"
-                          }`}
-                          >
-                            {charCount}
-                            /
-                            {maxDescriptionLength}
-                            {charCount > maxDescriptionLength && (
-                              <span className="ml-2">(已超出描述字数上限)</span>
-                            )}
-                          </span>
-                        </div>
-                      </div>
-                    )
-                  : (
-                      <p className="text-base wrap-break-words max-w-full line-clamp-6 overflow-hidden text-ellipsis">
-                        {localRole.description || "暂无描述"}
-                      </p>
-                    )}
-              </div>
+              <RoleBasicInfoEditor
+                localRole={localRole}
+                maxRoleNameLength={maxRoleNameLength}
+                maxDescriptionLength={maxDescriptionLength}
+                onBaseRoleSave={onBaseRoleSave}
+                supportingText={currentRuleName || "未选择规则"}
+                nameClassName="truncate text-left text-2xl font-semibold"
+                descriptionDisplayClassName="text-base wrap-break-words max-w-full line-clamp-6 overflow-hidden text-ellipsis"
+              />
 
               <div className="text-xs text-base-content/60">
                 角色ID号：

@@ -1,21 +1,20 @@
 import type { RoleAvatar } from "api";
-import type { Dispatch, SetStateAction } from "react";
 import type { Role } from "./types";
 import { ChevronRightIcon, DiceFiveIcon, GearOutline, MicrophoneIcon } from "app/icons";
+import RoleBasicInfoEditor from "./RoleBasicInfoEditor";
 import AudioPlayer from "./RoleInfoCard/AudioPlayer";
 import CharacterAvatar from "./RoleInfoCard/CharacterAvatar";
 
 export interface CharacterDetailLeftPanelProps {
   isQueryLoading: boolean;
-  isEditing: boolean;
   isDiceMaiden: boolean;
   localRole: Role;
   roleAvatars: RoleAvatar[];
   selectedAvatarId: number;
   selectedAvatarUrl: string;
   selectedSpriteUrl: string;
-  charCount: number;
   maxDescriptionLength: number;
+  maxRoleNameLength: number;
   currentRuleName?: string;
   currentDicerRoleId?: number;
   dicerRoleError: string | null;
@@ -27,22 +26,21 @@ export interface CharacterDetailLeftPanelProps {
   onAvatarSelect: (avatarId: number) => void;
   onAvatarDelete: (avatarId: number) => void;
   onAvatarUpload: (data: any) => void;
-  setLocalRole: Dispatch<SetStateAction<Role>>;
+  onBaseRoleSave: (updatedRole: Role) => void;
   onAudioRoleUpdate: (updatedRole: Role) => void;
   onAudioDelete: () => void;
 }
 
 export default function CharacterDetailLeftPanel({
   isQueryLoading,
-  isEditing,
   isDiceMaiden,
   localRole,
   roleAvatars,
   selectedAvatarId,
   selectedAvatarUrl,
   selectedSpriteUrl,
-  charCount,
   maxDescriptionLength,
+  maxRoleNameLength,
   currentRuleName,
   currentDicerRoleId,
   dicerRoleError,
@@ -54,7 +52,7 @@ export default function CharacterDetailLeftPanel({
   onAvatarSelect,
   onAvatarDelete,
   onAvatarUpload,
-  setLocalRole,
+  onBaseRoleSave,
   onAudioRoleUpdate,
   onAudioDelete,
 }: CharacterDetailLeftPanelProps) {
@@ -85,56 +83,16 @@ export default function CharacterDetailLeftPanel({
                   />
                 )}
           </div>
-          {!isEditing && (
-            <div className="divider font-bold text-center text-xl flex">
-              <span className="shrink-0 lg:max-w-48 truncate">
-                {localRole.name}
-              </span>
-            </div>
-          )}
-          {isEditing && <div className="divider my-0" />}
-          <div>
-            {isEditing
-              ? (
-                  <div>
-                    <label className="input rounded-md w-full">
-                      <input
-                        type="text"
-                        value={localRole.name}
-                        onChange={e => setLocalRole(prev => ({ ...prev, name: e.target.value }))}
-                        placeholder="角色名称"
-                      />
-                    </label>
-                    <textarea
-                      value={localRole.description}
-                      onChange={(e) => {
-                        setLocalRole(prev => ({ ...prev, description: e.target.value }));
-                      }}
-                      placeholder="角色描述"
-                      className="textarea textarea-sm w-full h-24 resize-none mt-4 rounded-md"
-                    />
-                    <div className="text-right mt-1">
-                      <span className={`text-sm font-bold ${charCount > maxDescriptionLength ? "text-error" : "text-base-content/70"
-                      }`}
-                      >
-                        {charCount}
-                        /
-                        {maxDescriptionLength}
-                        {charCount > maxDescriptionLength && (
-                          <span className="ml-2">(已超出描述字数上限)</span>
-                        )}
-                      </span>
-                    </div>
-                  </div>
-                )
-              : (
-                  <>
-                    <p className="text-base wrap-break-words max-w-full text-center line-clamp-6 overflow-hidden text-ellipsis">
-                      {localRole.description || "暂无描述"}
-                    </p>
-                  </>
-                )}
-          </div>
+          <div className="divider my-0" />
+          <RoleBasicInfoEditor
+            localRole={localRole}
+            maxRoleNameLength={maxRoleNameLength}
+            maxDescriptionLength={maxDescriptionLength}
+            onBaseRoleSave={onBaseRoleSave}
+            align="center"
+            nameClassName="truncate text-center text-xl font-bold"
+            descriptionDisplayClassName="text-base wrap-break-words max-w-full line-clamp-6 overflow-hidden text-ellipsis"
+          />
         </div>
 
         <p className="text-center text-xs text-base-content/60">
