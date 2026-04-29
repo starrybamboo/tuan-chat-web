@@ -153,12 +153,12 @@ export default function CharacterDetailLeftPanelHorizontal({
           />
         </div>
 
-        <div className="hidden min-w-0 md:flex lg:hidden md:items-center md:gap-6">
-          <div className="flex w-56 shrink-0 items-center justify-center">
+        <div className="hidden min-w-0 md:flex lg:hidden md:items-center md:gap-4">
+          <div className="flex w-52 shrink-0 items-center justify-center">
             {isQueryLoading
               ? (
                   <div className="flex flex-col items-center gap-3">
-                    <div className="skeleton h-36 w-36 rounded-xl"></div>
+                    <div className="skeleton h-40 w-40 rounded-xl"></div>
                   </div>
                 )
               : (
@@ -168,7 +168,7 @@ export default function CharacterDetailLeftPanelHorizontal({
                     selectedAvatarId={selectedAvatarId}
                     selectedAvatarUrl={selectedAvatarUrl}
                     selectedSpriteUrl={selectedSpriteUrl}
-                    avatarSizeClassName="w-40"
+                    avatarSizeClassName="w-44"
                     onchange={onAvatarChange}
                     onAvatarSelect={onAvatarSelect}
                     onAvatarDelete={onAvatarDelete}
@@ -241,11 +241,11 @@ export default function CharacterDetailLeftPanelHorizontal({
         </div>
 
         <div className="hidden lg:flex lg:flex-nowrap lg:gap-0 lg:divide-x lg:divide-base-content/10">
-          <div className="lg:w-64 shrink-0 flex items-start justify-center lg:pr-6">
+          <div className="lg:w-64 shrink-0 flex items-start justify-center lg:pr-4">
             {isQueryLoading
               ? (
                   <div className="flex flex-col items-center gap-3">
-                    <div className="skeleton w-32 h-32 rounded-xl"></div>
+                    <div className="skeleton h-36 w-36 rounded-xl"></div>
                     <div className="skeleton h-4 w-20"></div>
                   </div>
                 )
@@ -256,7 +256,7 @@ export default function CharacterDetailLeftPanelHorizontal({
                     selectedAvatarId={selectedAvatarId}
                     selectedAvatarUrl={selectedAvatarUrl}
                     selectedSpriteUrl={selectedSpriteUrl}
-                    avatarSizeClassName="w-52"
+                    avatarSizeClassName="w-56"
                     onchange={onAvatarChange}
                     onAvatarSelect={onAvatarSelect}
                     onAvatarDelete={onAvatarDelete}
