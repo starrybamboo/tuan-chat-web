@@ -484,7 +484,7 @@ export const ProEditorContent = memo(function ProEditorContent({
                                     handleAddV4Char({ defaultPrompt: "girl,", gender: "female" });
                                   }}
                                 >
-                                  <GenderFemaleIcon className="size-3.5 shrink-0 text-white/90" weight="regular" />
+                                  <GenderFemaleIcon className="size-3.5 shrink-0 text-base-content/80" weight="regular" />
                                   <span>Female</span>
                                 </button>
                                 <button
@@ -496,7 +496,7 @@ export const ProEditorContent = memo(function ProEditorContent({
                                     handleAddV4Char({ defaultPrompt: "boy,", gender: "male" });
                                   }}
                                 >
-                                  <GenderMaleIcon className="size-3.5 shrink-0 text-white/90" weight="regular" />
+                                  <GenderMaleIcon className="size-3.5 shrink-0 text-base-content/80" weight="regular" />
                                   <span>Male</span>
                                 </button>
                                 <button
@@ -508,7 +508,7 @@ export const ProEditorContent = memo(function ProEditorContent({
                                     handleAddV4Char({ gender: "other" });
                                   }}
                                 >
-                                  <CircleIcon className="size-3.5 shrink-0 text-white/85" weight="regular" />
+                                  <CircleIcon className="size-3.5 shrink-0 text-base-content/75" weight="regular" />
                                   <span>Other</span>
                                 </button>
                               </div>
@@ -539,7 +539,7 @@ export const ProEditorContent = memo(function ProEditorContent({
                                     <div key={row.id} className={characterCardClassName}>
                                       <div className={isCharacterPositionPickerOpen ? "invisible pointer-events-none select-none" : ""}>
                                         <div className="mb-3 flex items-center gap-2">
-                                          <div className="flex min-w-0 items-center gap-1.5 text-white/92">
+                                          <div className="flex min-w-0 items-center gap-1.5 text-base-content/90">
                                             <RowGenderIcon className={characterCardTitleIconClassName} weight="regular" />
                                             <div className="truncate text-[14px] font-medium leading-6">{`Character ${idx + 1}`}</div>
                                           </div>
@@ -579,14 +579,14 @@ export const ProEditorContent = memo(function ProEditorContent({
                                           <div className={segmentedControlClassName}>
                                             <button
                                               type="button"
-                                              className={`${segmentedButtonBaseClassName} ${activeTab === "prompt" ? "bg-white/10 text-white shadow-none" : "bg-transparent text-white/55 hover:bg-white/6 hover:text-white"}`}
+                                              className={`${segmentedButtonBaseClassName} ${activeTab === "prompt" ? "bg-base-200 text-base-content shadow-none" : "bg-transparent text-base-content/55 hover:bg-base-200 hover:text-base-content"}`}
                                               onClick={() => setCharPromptTabs(prev => ({ ...prev, [row.id]: "prompt" }))}
                                             >
                                               Prompt
                                             </button>
                                             <button
                                               type="button"
-                                              className={`${segmentedButtonBaseClassName} ${activeTab === "negative" ? "bg-white/10 text-white shadow-none" : "bg-transparent text-white/55 hover:bg-white/6 hover:text-white"}`}
+                                              className={`${segmentedButtonBaseClassName} ${activeTab === "negative" ? "bg-base-200 text-base-content shadow-none" : "bg-transparent text-base-content/55 hover:bg-base-200 hover:text-base-content"}`}
                                               onClick={() => setCharPromptTabs(prev => ({ ...prev, [row.id]: "negative" }))}
                                             >
                                               Undesired Content
@@ -641,20 +641,20 @@ export const ProEditorContent = memo(function ProEditorContent({
                                           {showCharacterPositionsGlobalSection
                                             ? (
                                                 <div className="relative space-y-3">
-                                                  <div className={`flex flex-wrap items-center gap-2 text-[12px] font-medium leading-5 text-white/90 ${isCharacterPositionAiChoiceEnabled || isCharacterPositionPickerOpen ? "invisible" : ""}`}>
-                                                    <span className="text-white/72">Position</span>
+                                                  <div className={`flex flex-wrap items-center gap-2 text-[12px] font-medium leading-5 text-base-content/90 ${isCharacterPositionAiChoiceEnabled || isCharacterPositionPickerOpen ? "invisible" : ""}`}>
+                                                    <span className="text-base-content/70">Position</span>
                                                     {isCharacterPositionAiChoiceEnabled
-                                                      ? <span className="text-white/92">AI's Choice</span>
+                                                      ? <span className="text-base-content/90">AI's Choice</span>
                                                       : (
                                                           <>
                                                             <button
                                                               type="button"
-                                                              className="inline-flex h-8 items-center rounded-md bg-white/10 px-3 text-[12px] font-semibold text-white transition hover:bg-white/14 focus:outline-none focus:ring-2 focus:ring-white/15"
+                                                              className="inline-flex h-8 items-center rounded-md bg-base-200 px-3 text-[12px] font-semibold text-base-content transition hover:bg-base-300 focus:outline-none focus:ring-2 focus:ring-primary/20"
                                                               onClick={() => handleOpenCharacterPositionPicker(row.id, currentPositionCode)}
                                                             >
                                                               Adjust
                                                             </button>
-                                                            <span className="text-[20px] font-semibold leading-none tracking-[0.08em] text-white/96">{selectedPositionCode}</span>
+                                                            <span className="text-[20px] font-semibold leading-none tracking-[0.08em] text-base-content/95">{selectedPositionCode}</span>
                                                           </>
                                                         )}
                                                   </div>
@@ -666,12 +666,12 @@ export const ProEditorContent = memo(function ProEditorContent({
 
                                       {showCharacterPositionsGlobalSection && !isCharacterPositionAiChoiceEnabled && isCharacterPositionPickerOpen
                                         ? (
-                                            <div className="absolute inset-0 z-20 flex flex-col rounded-2xl border border-[#2A3138] bg-[#161A1F] p-2.5 shadow-2xl">
-                                              <div className="flex items-center gap-1.5 text-[11px] font-medium leading-5 text-white/90">
-                                                <span className="text-white/72">Position</span>
-                                                <span className="text-[16px] font-semibold leading-none tracking-[0.08em] text-white/96">{selectedPositionCode}</span>
+                                            <div className="absolute inset-0 z-20 flex flex-col rounded-2xl border border-base-300 bg-base-100 p-2.5 shadow-2xl">
+                                              <div className="flex items-center gap-1.5 text-[11px] font-medium leading-5 text-base-content/90">
+                                                <span className="text-base-content/70">Position</span>
+                                                <span className="text-[16px] font-semibold leading-none tracking-[0.08em] text-base-content/95">{selectedPositionCode}</span>
                                               </div>
-                                              <div className="mt-2 grid grid-cols-5 gap-1 rounded-md border border-[#2A3138] bg-[#161A1F] p-1">
+                                              <div className="mt-2 grid grid-cols-5 gap-1 rounded-md border border-base-300 bg-base-100 p-1">
                                                 {V4_CHAR_GRID_CELLS.map((cell) => {
                                                   const occupant = characterPositionAssignments.get(cell.code);
                                                   const occupiedByOther = Boolean(occupant && occupant.characterId !== row.id);
@@ -682,10 +682,10 @@ export const ProEditorContent = memo(function ProEditorContent({
                                                       type="button"
                                                       className={`flex h-8 items-center justify-center rounded-md border text-[16px] font-semibold leading-none transition focus:outline-none ${
                                                         occupiedByOther
-                                                          ? "cursor-not-allowed border-white/8 bg-transparent text-white/42"
+                                                          ? "cursor-not-allowed border-base-300 bg-transparent text-base-content/35"
                                                           : isSelected
-                                                            ? "border-white/60 bg-white/18 text-white"
-                                                            : "border-white/8 bg-transparent text-white/72 hover:border-white/20 hover:bg-white/6"
+                                                            ? "border-primary/50 bg-primary/10 text-primary"
+                                                            : "border-base-300 bg-transparent text-base-content/70 hover:border-primary/30 hover:bg-base-200"
                                                       }`}
                                                       disabled={occupiedByOther}
                                                       aria-label={`选择位置 ${cell.code}`}
@@ -700,7 +700,7 @@ export const ProEditorContent = memo(function ProEditorContent({
                                               <div className="mt-2 flex justify-center">
                                                 <button
                                                   type="button"
-                                                  className="inline-flex h-9 items-center rounded-md bg-white/10 px-4 text-[14px] font-semibold text-white transition hover:bg-white/14 focus:outline-none focus:ring-2 focus:ring-white/15"
+                                                  className="inline-flex h-9 items-center rounded-md bg-base-200 px-4 text-[14px] font-semibold text-base-content transition hover:bg-base-300 focus:outline-none focus:ring-2 focus:ring-primary/20"
                                                   onClick={() => handleSaveCharacterPosition(row.id)}
                                                 >
                                                   Done
@@ -715,15 +715,15 @@ export const ProEditorContent = memo(function ProEditorContent({
                                 {showCharacterPositionsGlobalSection
                                   ? (
                                       <div className={characterPositionsSectionClassName}>
-                                        <div className="min-w-0 text-[15px] font-medium leading-6 text-white/92">
+                                        <div className="min-w-0 text-[15px] font-medium leading-6 text-base-content/90">
                                           Character Positions (Global)
                                         </div>
                                         <button
                                           type="button"
                                           className={`${characterPositionsToggleBaseClassName} ${
                                             isCharacterPositionAiChoiceEnabled
-                                              ? "border-[#F2E8A5] bg-[#F2E8A5] text-[#201C0F] hover:bg-[#E7DB87]"
-                                              : "border-[#2F3841] bg-[#1B2026] text-white/74 hover:border-primary/40 hover:text-white"
+                                              ? "border-primary/40 bg-primary/10 text-primary hover:bg-primary/15"
+                                              : "border-base-300 bg-base-100 text-base-content/70 hover:border-primary/40 hover:text-base-content"
                                           }`}
                                           aria-pressed={isCharacterPositionAiChoiceEnabled}
                                           onClick={handleToggleCharacterPositionAiChoice}
