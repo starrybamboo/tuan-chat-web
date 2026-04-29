@@ -159,26 +159,28 @@ export default function CharacterDetailLeftPanelHorizontal({
           </div>
 
           <div className="lg:w-80 space-y-3 lg:pl-6">
-            <div
-              className="card bg-base-100 rounded-xl cursor-pointer transition-all duration-200"
-              onClick={onOpenRuleModal}
-            >
-              <div className="card-body p-4 hover:bg-base-300">
+            <div className="card bg-base-100 rounded-xl transition-all duration-200">
+              <div className="card-body p-4">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                      <GearOutline className="w-4 h-4 text-primary" />
+                  <div
+                    className="flex items-center justify-between cursor-pointer hover:bg-base-300 rounded-xl p-2 -m-2 w-full"
+                    onClick={onOpenRuleModal}
+                  >
+                    <div className="flex min-w-0 flex-1 items-center gap-3">
+                      <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                        <GearOutline className="w-4 h-4 text-primary" />
+                      </div>
+                      <div className="min-w-0">
+                        <h3 className="font-semibold text-sm">当前规则</h3>
+                        <p className="text-primary font-medium text-sm">
+                          {currentRuleName || "未选择规则"}
+                        </p>
+                      </div>
                     </div>
-                    <div>
-                      <h3 className="font-semibold text-sm">当前规则</h3>
-                      <p className="text-primary font-medium text-sm">
-                        {currentRuleName || "未选择规则"}
-                      </p>
+                    <div className="flex shrink-0 items-center gap-1 whitespace-nowrap pl-3 text-base-content/50">
+                      <span className="text-xs">切换</span>
+                      <ChevronRightIcon className="w-4 h-4" />
                     </div>
-                  </div>
-                  <div className="flex items-center gap-1 text-base-content/50">
-                    <span className="text-xs">切换</span>
-                    <ChevronRightIcon className="w-4 h-4" />
                   </div>
                 </div>
               </div>
@@ -191,11 +193,11 @@ export default function CharacterDetailLeftPanelHorizontal({
                     className="flex items-center justify-between cursor-pointer hover:bg-base-300 rounded-xl p-2 -m-2"
                     onClick={onOpenDiceMaidenLinkModal}
                   >
-                    <div className="flex items-center gap-3">
+                    <div className="flex min-w-0 flex-1 items-center gap-3">
                       <div className="w-8 h-8 rounded-full bg-accent/10 flex items-center justify-center">
                         <DiceFiveIcon className="w-4 h-4 text-accent" />
                       </div>
-                      <div>
+                      <div className="min-w-0">
                         <h3 className="font-semibold text-sm">关联骰娘</h3>
                         <p className={`font-medium text-sm ${
                           dicerRoleError ? "text-error" : "text-accent"
@@ -207,7 +209,7 @@ export default function CharacterDetailLeftPanelHorizontal({
                         </p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-1 text-base-content/50">
+                    <div className="flex shrink-0 items-center gap-1 whitespace-nowrap pl-3 text-base-content/50">
                       <span className="text-xs">{currentDicerRoleId ? "更改" : "设置"}</span>
                       <ChevronRightIcon className="w-4 h-4" />
                     </div>
@@ -222,18 +224,18 @@ export default function CharacterDetailLeftPanelHorizontal({
                   className="flex items-center justify-between cursor-pointer hover:bg-base-300 rounded-xl p-2 -m-2"
                   onClick={onOpenAudioModal}
                 >
-                  <div className="flex items-center gap-3">
+                  <div className="flex min-w-0 flex-1 items-center gap-3">
                     <div className="w-8 h-8 rounded-full bg-secondary/10 flex items-center justify-center">
                       <MicrophoneIcon className="w-4 h-4 text-secondary" />
                     </div>
-                    <div>
+                    <div className="min-w-0">
                       <h3 className="font-semibold text-sm">上传音频</h3>
                       <p className="text-secondary font-medium text-sm">
                         {localRole.voiceUrl ? "已上传音频" : "用于AI生成角色音色"}
                       </p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-1 text-base-content/50">
+                  <div className="flex shrink-0 items-center gap-1 whitespace-nowrap pl-3 text-base-content/50">
                     <span className="text-xs">上传</span>
                     <ChevronRightIcon className="w-4 h-4" />
                   </div>
