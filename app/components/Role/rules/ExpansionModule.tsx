@@ -361,6 +361,8 @@ export default function ExpansionModule({
 
   const hasQuickTools = Boolean(onOpenStImportModal || onOpenAIGenerateModal);
   const hasDesktopQuickTools = hasQuickTools && !isSmall;
+  const desktopConfigButtonClass = "md:h-10 md:min-h-10 md:px-4 md:text-sm md:font-medium";
+  const desktopQuickToolButtonClass = "btn btn-sm h-10 min-h-10 rounded-lg px-4 text-sm font-medium";
 
   const tabButtons = !isDiceMaiden
     ? (
@@ -368,7 +370,7 @@ export default function ExpansionModule({
           <div className={`flex min-w-0 flex-1 flex-nowrap gap-1 md:flex-nowrap md:justify-start md:gap-3 ${isSmall ? "" : ""}`}>
             <button
               type="button"
-              className={`btn ${isSmall ? "btn-sm" : "btn-md"} h-10 min-h-10 flex-none px-3 text-sm whitespace-nowrap rounded-lg ${isSmall ? "" : "md:h-12 md:min-h-12 md:px-5 md:text-base md:font-semibold"} ${activeTab === "basic" ? "btn-primary" : "btn-ghost"}`}
+              className={`btn ${isSmall ? "btn-sm" : "btn-md"} h-10 min-h-10 flex-none px-3 text-sm whitespace-nowrap rounded-lg ${isSmall ? "" : desktopConfigButtonClass} ${activeTab === "basic" ? "btn-primary" : "btn-ghost"}`}
               onClick={() => setActiveTab("basic")}
             >
               <span className="md:hidden">基础</span>
@@ -376,7 +378,7 @@ export default function ExpansionModule({
             </button>
             <button
               type="button"
-              className={`btn ${isSmall ? "btn-sm" : "btn-md"} h-10 min-h-10 flex-none px-3 text-sm whitespace-nowrap rounded-lg ${isSmall ? "" : "md:h-12 md:min-h-12 md:px-5 md:text-base md:font-semibold"} ${activeTab === "ability" ? "btn-primary" : "btn-ghost"}`}
+              className={`btn ${isSmall ? "btn-sm" : "btn-md"} h-10 min-h-10 flex-none px-3 text-sm whitespace-nowrap rounded-lg ${isSmall ? "" : desktopConfigButtonClass} ${activeTab === "ability" ? "btn-primary" : "btn-ghost"}`}
               onClick={() => setActiveTab("ability")}
             >
               <span className="md:hidden">能力</span>
@@ -384,7 +386,7 @@ export default function ExpansionModule({
             </button>
             <button
               type="button"
-              className={`btn ${isSmall ? "btn-sm" : "btn-md"} h-10 min-h-10 flex-none px-3 text-sm whitespace-nowrap rounded-lg ${isSmall ? "" : "md:h-12 md:min-h-12 md:px-5 md:text-base md:font-semibold"} ${activeTab === "skill" ? "btn-primary" : "btn-ghost"}`}
+              className={`btn ${isSmall ? "btn-sm" : "btn-md"} h-10 min-h-10 flex-none px-3 text-sm whitespace-nowrap rounded-lg ${isSmall ? "" : desktopConfigButtonClass} ${activeTab === "skill" ? "btn-primary" : "btn-ghost"}`}
               onClick={() => setActiveTab("skill")}
             >
               <span className="md:hidden">技能</span>
@@ -392,7 +394,7 @@ export default function ExpansionModule({
             </button>
             <button
               type="button"
-              className={`btn ${isSmall ? "btn-sm" : "btn-md"} h-10 min-h-10 flex-none px-3 text-sm whitespace-nowrap rounded-lg ${isSmall ? "" : "md:h-12 md:min-h-12 md:px-5 md:text-base md:font-semibold"} ${activeTab === "act" ? "btn-primary" : "btn-ghost"}`}
+              className={`btn ${isSmall ? "btn-sm" : "btn-md"} h-10 min-h-10 flex-none px-3 text-sm whitespace-nowrap rounded-lg ${isSmall ? "" : desktopConfigButtonClass} ${activeTab === "act" ? "btn-primary" : "btn-ghost"}`}
               onClick={() => setActiveTab("act")}
             >
               <span className="md:hidden">表演</span>
@@ -405,7 +407,7 @@ export default function ExpansionModule({
                 <button
                   type="button"
                   onClick={onOpenStImportModal}
-                  className="btn btn-sm h-9 min-h-9 rounded-md bg-info/70 px-3 text-info-content"
+                  className={`${desktopQuickToolButtonClass} bg-info/70 text-info-content`}
                 >
                   ST导入
                 </button>
@@ -414,7 +416,7 @@ export default function ExpansionModule({
                 <button
                   type="button"
                   onClick={onOpenAIGenerateModal}
-                  className="btn btn-sm h-9 min-h-9 rounded-md px-3"
+                  className={desktopQuickToolButtonClass}
                 >
                   AI生成
                 </button>
