@@ -76,6 +76,7 @@ export const AiImageSidebar = memo(({ sidebarProps }: AiImageSidebarProps) => {
     handleUpdateV4Char,
     handleOpenBaseImageInpaint,
     handleReturnFromInfillSettings,
+    infillAppendPrompt,
     hasCurrentDisplayedImage,
     imageCount,
     infillMaskDataUrl,
@@ -101,6 +102,7 @@ export const AiImageSidebar = memo(({ sidebarProps }: AiImageSidebarProps) => {
     seedIsRandom,
     setCfgRescale,
     setImageCount,
+    setInfillAppendPrompt,
     setNegativePrompt,
     setNoise,
     setNoiseSchedule,
@@ -217,12 +219,12 @@ export const AiImageSidebar = memo(({ sidebarProps }: AiImageSidebarProps) => {
   const segmentedButtonBaseClassName = "btn btn-xs join-item border-0";
   const featureUploadActionClassName = "inline-flex size-11 items-center justify-center rounded-md border border-base-300 bg-base-100 text-base-content/78 transition hover:border-primary/40 hover:bg-base-200 hover:text-primary focus:outline-none focus:ring-2 focus:ring-primary/20";
   const characterAddTriggerClassName = "inline-flex h-8 items-center gap-1 rounded-md border border-base-300 bg-base-100 px-2.5 text-[13px] font-semibold text-base-content transition hover:border-primary/40 hover:bg-base-200 hover:text-primary focus:outline-none focus:ring-2 focus:ring-primary/20";
-  const characterAddMenuPanelClassName = "absolute right-0 top-0 z-30 w-[139.72px] overflow-hidden border border-[#2A3138] bg-[#161A1F] shadow-2xl";
-  const characterAddMenuItemClassName = "flex h-8 w-full items-center gap-1.5 px-3 text-left text-[13px] font-medium leading-none text-base-content/92 transition hover:bg-white/6 focus:outline-none";
-  const characterCardClassName = "relative overflow-hidden rounded-2xl border border-[#2A3138] bg-[#161A1F] p-3 shadow-none";
-  const characterCardHeaderActionClassName = "inline-flex size-7 items-center justify-center rounded-md text-white/56 transition hover:bg-white/6 hover:text-white focus:outline-none disabled:cursor-not-allowed disabled:opacity-35";
-  const characterCardTitleIconClassName = "size-4 shrink-0 text-white/80";
-  const characterPositionsSectionClassName = "flex items-center justify-between gap-3 bg-[#161A1F] py-3 pr-4";
+  const characterAddMenuPanelClassName = "absolute right-0 top-0 z-30 w-[139.72px] overflow-hidden rounded-md border border-base-300 bg-base-100 shadow-2xl";
+  const characterAddMenuItemClassName = "flex h-8 w-full items-center gap-1.5 px-3 text-left text-[13px] font-medium leading-none text-base-content/90 transition hover:bg-base-200 focus:outline-none";
+  const characterCardClassName = "relative overflow-hidden rounded-2xl border border-base-300 bg-base-100 p-3 shadow-none";
+  const characterCardHeaderActionClassName = "inline-flex size-7 items-center justify-center rounded-md text-base-content/60 transition hover:bg-base-200 hover:text-base-content focus:outline-none disabled:cursor-not-allowed disabled:opacity-35";
+  const characterCardTitleIconClassName = "size-4 shrink-0 text-base-content/80";
+  const characterPositionsSectionClassName = "flex items-center justify-between gap-3 bg-base-100 py-3 pr-4";
   const characterPositionsToggleBaseClassName = "inline-flex h-9 min-w-[110px] items-center justify-center rounded-md border px-3 text-[14px] font-semibold transition whitespace-nowrap focus:outline-none focus-visible:outline-none";
   const promptTextareaClassName = "textarea textarea-bordered !rounded-none min-h-36 w-full resize-none border-[#D6DCE3] bg-[#F3F5F7] text-base-content leading-7 transition-colors hover:border-primary active:border-primary focus:border-primary focus:bg-primary/[0.03] focus:outline-none dark:border-[#2A3138] dark:bg-[#161A1F] dark:hover:border-primary";
   const simplePromptTextareaClassName = promptTextareaClassName;
@@ -233,6 +235,7 @@ export const AiImageSidebar = memo(({ sidebarProps }: AiImageSidebarProps) => {
   const highlightPromptContentClassName = "min-h-36 px-3 py-2 text-sm leading-6";
   const highlightCharSurfaceClassName = "relative min-h-28 w-full overflow-hidden !rounded-none border border-[#D6DCE3] bg-[#F3F5F7] shadow-none transition-colors hover:border-primary active:border-primary focus-within:border-primary focus-within:bg-primary/[0.03] dark:border-[#2A3138] dark:bg-[#161A1F] dark:hover:border-primary";
   const highlightCharContentClassName = "min-h-28 px-3 py-2 text-sm leading-6";
+  const infillAppendInputClassName = "block w-full resize-none overflow-hidden rounded-md border border-[#D6DCE3] bg-[#F3F5F7] px-3 py-2 text-sm leading-6 text-base-content transition focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 dark:border-[#2A3138] dark:bg-[#161A1F]";
   const floatingInputActionBaseClassName = "btn btn-xs btn-ghost border-0 bg-transparent px-2 text-base-content/35 shadow-none transition-colors backdrop-blur-0 hover:bg-black/28 hover:text-white focus-visible:text-white disabled:cursor-not-allowed disabled:opacity-40 dark:text-base-content/40 dark:hover:bg-white/12";
   const floatingInputActionClassName = `${floatingInputActionBaseClassName} absolute right-3 top-3 z-10`;
   const baseImageToggleButtonClassName = "inline-flex size-11 items-center justify-center bg-transparent text-base-content/60 transition hover:text-base-content focus:outline-none focus-visible:text-base-content dark:text-white/58 dark:hover:text-white dark:focus-visible:text-white";
@@ -444,15 +447,20 @@ export const AiImageSidebar = memo(({ sidebarProps }: AiImageSidebarProps) => {
       baseImageControlGroupClassName,
       baseImageToggleButtonClassName,
       baseImageRangeClassName,
+      infillAppendInputClassName,
       onOpenBaseImageInpaint: handleOpenBaseImageInpaint,
       onClearSourceImage: handleClearSourceImage,
       onReturnFromInfillSettings: handleReturnFromInfillSettings,
       onToggleBaseImageTools: () => setIsBaseImageToolsOpen(prev => !prev),
+      infillAppendPrompt,
+      onInfillAppendPromptChange: setInfillAppendPrompt,
       setStrength,
     });
   }, [
     baseImageControlGroupClassName,
     baseImageHeaderClassName,
+    infillAppendInputClassName,
+    infillAppendPrompt,
     baseImageRangeClassName,
     baseImageToggleButtonClassName,
     handleClearSourceImage,
@@ -461,6 +469,7 @@ export const AiImageSidebar = memo(({ sidebarProps }: AiImageSidebarProps) => {
     infillMaskDataUrl,
     isBaseImageToolsOpen,
     isBusy,
+    setInfillAppendPrompt,
     setStrength,
     sourceImageDataUrl,
     strength,
@@ -483,11 +492,14 @@ export const AiImageSidebar = memo(({ sidebarProps }: AiImageSidebarProps) => {
       baseImageToggleButtonClassName,
       baseImageActionButtonClassName,
       baseImageRangeClassName,
+      infillAppendInputClassName,
       onOpenSourceImagePicker: handleOpenSourceImagePicker,
       onOpenBaseImageInpaint: handleOpenBaseImageInpaint,
       onClearSourceImage: handleClearSourceImage,
       onReturnFromInfillSettings: handleReturnFromInfillSettings,
       onToggleBaseImageTools: () => setIsBaseImageToolsOpen(prev => !prev),
+      infillAppendPrompt,
+      onInfillAppendPromptChange: setInfillAppendPrompt,
       setStrength,
       setNoise,
     });
@@ -495,6 +507,8 @@ export const AiImageSidebar = memo(({ sidebarProps }: AiImageSidebarProps) => {
     baseImageActionButtonClassName,
     baseImageControlGroupClassName,
     baseImageHeaderClassName,
+    infillAppendInputClassName,
+    infillAppendPrompt,
     baseImagePanelClassName,
     baseImageRangeClassName,
     baseImageToggleButtonClassName,
@@ -509,6 +523,7 @@ export const AiImageSidebar = memo(({ sidebarProps }: AiImageSidebarProps) => {
     mode,
     noise,
     setNoise,
+    setInfillAppendPrompt,
     setStrength,
     simpleBaseImageAttachmentClassName,
     sourceImageDataUrl,

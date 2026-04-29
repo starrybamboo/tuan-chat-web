@@ -45,6 +45,7 @@ type UseAiImageGenerationActionsOptions = {
   proInfillPrompt: string;
   simpleInfillNegativePrompt: string;
   proInfillNegativePrompt: string;
+  infillAppendPrompt: string;
   width: number;
   height: number;
   seed: number;
@@ -121,6 +122,7 @@ export function useAiImageGenerationActions({
   proInfillPrompt,
   simpleInfillNegativePrompt,
   proInfillNegativePrompt,
+  infillAppendPrompt,
   width,
   height,
   seed,
@@ -288,6 +290,7 @@ export function useAiImageGenerationActions({
       proInfillPrompt,
       simpleInfillNegativePrompt,
       proInfillNegativePrompt,
+      infillAppendPrompt,
       prompt: args?.prompt,
       negativePrompt: args?.negativePrompt,
       simplePrompt,
@@ -452,6 +455,7 @@ export function useAiImageGenerationActions({
     dynamicThresholding,
     generateNovelImageViaProxy,
     height,
+    infillAppendPrompt,
     isNAI4,
     mode,
     model,
