@@ -360,14 +360,15 @@ export default function ExpansionModule({
   };
 
   const hasQuickTools = Boolean(onOpenStImportModal || onOpenAIGenerateModal);
+  const hasDesktopQuickTools = hasQuickTools && !isSmall;
 
   const tabButtons = !isDiceMaiden
     ? (
         <div className={`flex min-w-0 items-center gap-1 md:gap-2 rounded-lg ${isSmall ? "w-full" : ""}`}>
-          <div className={`flex min-w-0 flex-1 flex-nowrap gap-1 md:flex-wrap md:justify-start md:gap-2 ${isSmall ? "" : "md:justify-center"}`}>
+          <div className={`flex min-w-0 flex-1 flex-nowrap gap-1 md:flex-nowrap md:justify-start md:gap-3 ${isSmall ? "" : ""}`}>
             <button
               type="button"
-              className={`btn ${isSmall ? "btn-sm" : "btn-md"} h-10 min-h-10 flex-none px-3 text-sm whitespace-nowrap md:h-auto md:min-h-0 md:px-4 md:text-sm rounded-lg ${activeTab === "basic" ? "btn-primary" : "btn-ghost"}`}
+              className={`btn ${isSmall ? "btn-sm" : "btn-md"} h-10 min-h-10 flex-none px-3 text-sm whitespace-nowrap rounded-lg ${isSmall ? "" : "md:h-12 md:min-h-12 md:px-5 md:text-base md:font-semibold"} ${activeTab === "basic" ? "btn-primary" : "btn-ghost"}`}
               onClick={() => setActiveTab("basic")}
             >
               <span className="md:hidden">基础</span>
@@ -375,7 +376,7 @@ export default function ExpansionModule({
             </button>
             <button
               type="button"
-              className={`btn ${isSmall ? "btn-sm" : "btn-md"} h-10 min-h-10 flex-none px-3 text-sm whitespace-nowrap md:h-auto md:min-h-0 md:px-4 md:text-sm rounded-lg ${activeTab === "ability" ? "btn-primary" : "btn-ghost"}`}
+              className={`btn ${isSmall ? "btn-sm" : "btn-md"} h-10 min-h-10 flex-none px-3 text-sm whitespace-nowrap rounded-lg ${isSmall ? "" : "md:h-12 md:min-h-12 md:px-5 md:text-base md:font-semibold"} ${activeTab === "ability" ? "btn-primary" : "btn-ghost"}`}
               onClick={() => setActiveTab("ability")}
             >
               <span className="md:hidden">能力</span>
@@ -383,7 +384,7 @@ export default function ExpansionModule({
             </button>
             <button
               type="button"
-              className={`btn ${isSmall ? "btn-sm" : "btn-md"} h-10 min-h-10 flex-none px-3 text-sm whitespace-nowrap md:h-auto md:min-h-0 md:px-4 md:text-sm rounded-lg ${activeTab === "skill" ? "btn-primary" : "btn-ghost"}`}
+              className={`btn ${isSmall ? "btn-sm" : "btn-md"} h-10 min-h-10 flex-none px-3 text-sm whitespace-nowrap rounded-lg ${isSmall ? "" : "md:h-12 md:min-h-12 md:px-5 md:text-base md:font-semibold"} ${activeTab === "skill" ? "btn-primary" : "btn-ghost"}`}
               onClick={() => setActiveTab("skill")}
             >
               <span className="md:hidden">技能</span>
@@ -391,13 +392,35 @@ export default function ExpansionModule({
             </button>
             <button
               type="button"
-              className={`btn ${isSmall ? "btn-sm" : "btn-md"} h-10 min-h-10 flex-none px-3 text-sm whitespace-nowrap md:h-auto md:min-h-0 md:px-4 md:text-sm rounded-lg ${activeTab === "act" ? "btn-primary" : "btn-ghost"}`}
+              className={`btn ${isSmall ? "btn-sm" : "btn-md"} h-10 min-h-10 flex-none px-3 text-sm whitespace-nowrap rounded-lg ${isSmall ? "" : "md:h-12 md:min-h-12 md:px-5 md:text-base md:font-semibold"} ${activeTab === "act" ? "btn-primary" : "btn-ghost"}`}
               onClick={() => setActiveTab("act")}
             >
               <span className="md:hidden">表演</span>
               <span className="hidden md:inline">表演配置</span>
             </button>
           </div>
+          {hasDesktopQuickTools && (
+            <div className="hidden shrink-0 items-center gap-2 md:flex">
+              {onOpenStImportModal && (
+                <button
+                  type="button"
+                  onClick={onOpenStImportModal}
+                  className="btn btn-sm h-9 min-h-9 rounded-md bg-info/70 px-3 text-info-content"
+                >
+                  ST导入
+                </button>
+              )}
+              {onOpenAIGenerateModal && (
+                <button
+                  type="button"
+                  onClick={onOpenAIGenerateModal}
+                  className="btn btn-sm h-9 min-h-9 rounded-md px-3"
+                >
+                  AI生成
+                </button>
+              )}
+            </div>
+          )}
           {hasQuickTools && (
             <div className={`dropdown md:hidden ${isSmall ? "" : "dropdown-end"}`}>
               <button
