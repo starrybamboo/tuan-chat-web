@@ -153,8 +153,8 @@ export default function CharacterDetailLeftPanelHorizontal({
           />
         </div>
 
-        <div className="hidden md:grid lg:hidden md:grid-cols-[auto_minmax(220px,1fr)_280px] md:items-center md:gap-4">
-          <div className="shrink-0 flex items-start justify-center">
+        <div className="hidden md:grid lg:hidden md:grid-cols-[240px_minmax(220px,1fr)_320px] md:items-center md:gap-6">
+          <div className="flex min-w-0 items-center justify-center">
             {isQueryLoading
               ? (
                   <div className="flex flex-col items-center gap-3">
@@ -178,14 +178,13 @@ export default function CharacterDetailLeftPanelHorizontal({
                 )}
           </div>
 
-          <div className="min-w-0 self-center md:max-w-[280px]">
+          <div className="min-w-0 self-center">
             <div className="flex flex-col gap-3">
               <RoleBasicInfoEditor
                 localRole={localRole}
                 maxRoleNameLength={maxRoleNameLength}
                 maxDescriptionLength={maxDescriptionLength}
                 onBaseRoleSave={onBaseRoleSave}
-                supportingText={currentRuleName || "未选择规则"}
                 nameClassName="truncate text-left text-2xl font-semibold"
                 descriptionDisplayClassName="text-sm wrap-break-words max-w-full line-clamp-5 overflow-hidden text-ellipsis"
               />
@@ -197,7 +196,7 @@ export default function CharacterDetailLeftPanelHorizontal({
             </div>
           </div>
 
-          <div className="w-[280px] shrink-0 space-y-2 justify-self-end">
+          <div className="flex w-full min-w-0 flex-col gap-2 justify-self-stretch">
             {renderCompactActionButton({
               title: "当前规则",
               subtitle: currentRuleName || "未选择规则",
