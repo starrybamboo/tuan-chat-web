@@ -203,7 +203,7 @@ export default function CharacterDetailLeftPanelHorizontal({
           />
         </div>
 
-        <div className="hidden h-full min-w-0 md:grid lg:hidden md:grid-cols-[13rem_minmax(0,1fr)_19rem] md:gap-4">
+        <div className="hidden h-full min-w-0 md:grid lg:hidden md:grid-cols-[13rem_15rem_minmax(0,1fr)] md:gap-4">
           <div className="flex h-full items-center justify-center">
             {isQueryLoading
               ? (
