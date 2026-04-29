@@ -87,7 +87,7 @@ export default function RoleBasicInfoEditor({
           <button
             type="button"
             onClick={startEditing}
-            className={`w-full rounded-md px-1 py-1 ${textAlignClassName} ${nameClassName}`}
+            className={`relative w-full rounded-md px-1 py-1 transition-colors hover:text-primary ${textAlignClassName} ${nameClassName} after:absolute after:bottom-0 after:left-1/2 after:h-0.5 after:w-0 after:-translate-x-1/2 after:rounded-full after:bg-primary after:transition-all after:duration-200 hover:after:w-10`}
           >
             {displayValue || "未命名角色"}
           </button>
