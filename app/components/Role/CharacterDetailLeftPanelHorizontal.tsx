@@ -169,6 +169,7 @@ export default function CharacterDetailLeftPanelHorizontal({
                     selectedAvatarUrl={selectedAvatarUrl}
                     selectedSpriteUrl={selectedSpriteUrl}
                     avatarSizeClassName="w-44"
+                    containerClassName="items-center justify-center"
                     onchange={onAvatarChange}
                     onAvatarSelect={onAvatarSelect}
                     onAvatarDelete={onAvatarDelete}
@@ -275,6 +276,7 @@ export default function CharacterDetailLeftPanelHorizontal({
                     selectedAvatarUrl={selectedAvatarUrl}
                     selectedSpriteUrl={selectedSpriteUrl}
                     avatarSizeClassName="w-56"
+                    containerClassName="items-center justify-center"
                     onchange={onAvatarChange}
                     onAvatarSelect={onAvatarSelect}
                     onAvatarDelete={onAvatarDelete}
