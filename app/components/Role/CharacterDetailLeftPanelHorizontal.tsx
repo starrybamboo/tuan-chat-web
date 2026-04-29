@@ -71,7 +71,7 @@ export default function CharacterDetailLeftPanelHorizontal({
 
   return (
     <div className="card-sm md:card-xl bg-base-100 shadow-xs rounded-xl md:border-2 md:border-base-content/10">
-      <div className="card-body p-4">
+      <div className="card-body p-4 md:h-[29rem]">
         <div className="md:hidden">
           <div className="grid grid-cols-4 gap-2">
             <div className={`col-start-1 col-span-2 row-start-1 ${isDiceMaiden ? "row-span-2" : "row-span-3"} flex items-center justify-center`}>
@@ -153,8 +153,8 @@ export default function CharacterDetailLeftPanelHorizontal({
           />
         </div>
 
-        <div className="hidden min-w-0 md:flex lg:hidden md:items-center md:gap-4">
-          <div className="flex w-52 shrink-0 items-center justify-center">
+        <div className="hidden h-full min-w-0 md:flex lg:hidden md:items-start md:gap-4">
+          <div className="flex w-52 shrink-0 items-start justify-center">
             {isQueryLoading
               ? (
                   <div className="flex flex-col items-center gap-3">
@@ -178,20 +178,38 @@ export default function CharacterDetailLeftPanelHorizontal({
                 )}
           </div>
 
-          <div className="min-w-0 flex-[1_1_0%] self-center">
-            <div className="flex flex-col gap-3">
+          <div className="min-w-0 flex-[1_1_0%] self-stretch">
+            <div className="flex h-full min-h-0 flex-col">
               <RoleBasicInfoEditor
                 localRole={localRole}
                 maxRoleNameLength={maxRoleNameLength}
                 maxDescriptionLength={maxDescriptionLength}
                 onBaseRoleSave={onBaseRoleSave}
+                showDescription={false}
+                className="space-y-0"
                 nameClassName="truncate text-left text-2xl font-semibold"
-                descriptionDisplayClassName="text-sm wrap-break-words max-w-full line-clamp-5 overflow-hidden text-ellipsis"
+                nameDisplayClassName="rounded-none px-0 py-0"
               />
 
-              <div className="text-xs text-base-content/60">
-                角色ID号：
-                {localRole.id}
+              <div className="divider my-0" />
+
+              <div className="flex min-h-0 flex-1 flex-col">
+                <RoleBasicInfoEditor
+                  localRole={localRole}
+                  maxRoleNameLength={maxRoleNameLength}
+                  maxDescriptionLength={maxDescriptionLength}
+                  onBaseRoleSave={onBaseRoleSave}
+                  showName={false}
+                  className="flex min-h-0 flex-1 flex-col justify-start space-y-0"
+                  descriptionDisplayClassName="min-h-0 flex-1 wrap-break-words text-sm leading-6 overflow-hidden text-ellipsis"
+                  descriptionButtonClassName="rounded-none px-0 py-0 text-left hover:bg-transparent"
+                  descriptionEditorClassName="flex min-h-0 flex-1 flex-col"
+                />
+
+                <div className="pt-2 text-xs text-base-content/60">
+                  角色ID号：
+                  {localRole.id}
+                </div>
               </div>
             </div>
           </div>
