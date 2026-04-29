@@ -153,8 +153,8 @@ export default function CharacterDetailLeftPanelHorizontal({
           />
         </div>
 
-        <div className="hidden md:grid lg:hidden md:grid-cols-[240px_minmax(220px,1fr)_320px] md:items-center md:gap-6">
-          <div className="flex min-w-0 items-center justify-center">
+        <div className="hidden min-w-0 md:flex lg:hidden md:items-center md:gap-6">
+          <div className="flex w-56 shrink-0 items-center justify-center">
             {isQueryLoading
               ? (
                   <div className="flex flex-col items-center gap-3">
@@ -178,7 +178,7 @@ export default function CharacterDetailLeftPanelHorizontal({
                 )}
           </div>
 
-          <div className="min-w-0 self-center">
+          <div className="min-w-0 flex-[1_1_0%] self-center">
             <div className="flex flex-col gap-3">
               <RoleBasicInfoEditor
                 localRole={localRole}
@@ -196,7 +196,7 @@ export default function CharacterDetailLeftPanelHorizontal({
             </div>
           </div>
 
-          <div className="flex w-full min-w-0 flex-col gap-2 justify-self-stretch">
+          <div className="flex min-w-0 flex-[0_1_18rem] flex-col gap-2 self-stretch">
             {renderCompactActionButton({
               title: "当前规则",
               subtitle: currentRuleName || "未选择规则",
