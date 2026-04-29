@@ -36,7 +36,7 @@ export default function RoleSidebarActionCard({
             </div>
             <div className="min-w-0 space-y-0.5">
               <h3 className="text-sm font-semibold">{title}</h3>
-              <p className={`text-xs font-medium leading-5 ${subtitleClassName}`}>
+              <p className={`truncate text-xs font-medium leading-5 ${subtitleClassName}`}>
                 {subtitle}
               </p>
             </div>
