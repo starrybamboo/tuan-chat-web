@@ -2,9 +2,7 @@ import type { ReactNode } from "react";
 import type { CharacterDetailLeftPanelProps } from "./CharacterDetailLeftPanel";
 import { ChevronRightIcon, DiceFiveIcon, GearOutline, MicrophoneIcon } from "app/icons";
 import RoleBasicInfoEditor from "./RoleBasicInfoEditor";
-import AudioPlayer from "./RoleInfoCard/AudioPlayer";
 import CharacterAvatar from "./RoleInfoCard/CharacterAvatar";
-import RoleSidebarActionCard from "./RoleSidebarActionCard";
 
 export default function CharacterDetailLeftPanelHorizontal({
   isQueryLoading,
@@ -28,8 +26,6 @@ export default function CharacterDetailLeftPanelHorizontal({
   onAvatarDelete,
   onAvatarUpload,
   onBaseRoleSave,
-  onAudioRoleUpdate,
-  onAudioDelete,
 }: CharacterDetailLeftPanelProps) {
   const renderCompactActionButton = ({
     title,
@@ -203,7 +199,7 @@ export default function CharacterDetailLeftPanelHorizontal({
           />
         </div>
 
-        <div className="hidden h-full min-w-0 md:grid lg:hidden md:grid-cols-[13rem_15rem_minmax(0,1fr)] md:gap-4">
+        <div className="hidden h-full min-w-0 md:grid md:grid-cols-[13rem_minmax(15rem,1fr)_minmax(0,1fr)] md:gap-4">
           <div className="flex h-full items-center justify-center">
             {isQueryLoading
               ? (
@@ -228,7 +224,7 @@ export default function CharacterDetailLeftPanelHorizontal({
                 )}
           </div>
 
-          <div className="grid min-w-0 h-full grid-rows-[auto_auto_minmax(0,1fr)_auto]">
+          <div className="grid h-full min-w-60 grid-rows-[auto_auto_minmax(0,1fr)_auto]">
             <div className="min-w-0">
               <RoleBasicInfoEditor
                 localRole={localRole}
@@ -271,103 +267,6 @@ export default function CharacterDetailLeftPanelHorizontal({
           </div>
         </div>
 
-        <div className="hidden lg:flex lg:flex-nowrap lg:gap-0 lg:divide-x lg:divide-base-content/10">
-          <div className="lg:w-64 shrink-0 flex items-start justify-center lg:pr-4">
-            {isQueryLoading
-              ? (
-                  <div className="flex flex-col items-center gap-3">
-                    <div className="skeleton h-36 w-36 rounded-xl"></div>
-                    <div className="skeleton h-4 w-20"></div>
-                  </div>
-                )
-              : (
-                  <CharacterAvatar
-                    role={localRole}
-                    roleAvatars={roleAvatars}
-                    selectedAvatarId={selectedAvatarId}
-                    selectedAvatarUrl={selectedAvatarUrl}
-                    selectedSpriteUrl={selectedSpriteUrl}
-                    avatarSizeClassName="w-56"
-                    onchange={onAvatarChange}
-                    onAvatarSelect={onAvatarSelect}
-                    onAvatarDelete={onAvatarDelete}
-                    onAvatarUpload={onAvatarUpload}
-                    useUrlState={false}
-                  />
-                )}
-          </div>
-
-          <div className="flex-1 min-w-0 lg:px-6 lg:max-w-md">
-            <div className="flex flex-col gap-3">
-              <RoleBasicInfoEditor
-                localRole={localRole}
-                maxRoleNameLength={maxRoleNameLength}
-                maxDescriptionLength={maxDescriptionLength}
-                onBaseRoleSave={onBaseRoleSave}
-                supportingText={currentRuleName || "未选择规则"}
-                nameClassName="truncate text-left text-2xl font-semibold"
-                descriptionDisplayClassName="text-base wrap-break-words max-w-full line-clamp-6 overflow-hidden text-ellipsis"
-              />
-
-              <div className="text-xs text-base-content/60">
-                角色ID号：
-                {localRole.id}
-              </div>
-            </div>
-          </div>
-
-          <div className="lg:w-80 space-y-3 lg:pl-6">
-            <RoleSidebarActionCard
-              title="当前规则"
-              subtitle={currentRuleName || "未选择规则"}
-              subtitleClassName="text-primary"
-              actionLabel="切换"
-              onClick={onOpenRuleModal}
-              icon={(
-                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10">
-                  <GearOutline className="h-4 w-4 text-primary" />
-                </div>
-              )}
-            />
-
-            {!isDiceMaiden && (
-              <RoleSidebarActionCard
-                title="关联骰娘"
-                subtitle={currentDicerRoleId
-                  ? dicerRoleError || linkedDicerRoleName || `ID: ${currentDicerRoleId}`
-                  : "选择使用的骰娘角色"}
-                subtitleClassName={dicerRoleError ? "text-error" : "text-accent"}
-                actionLabel={currentDicerRoleId ? "更改" : "设置"}
-                onClick={onOpenDiceMaidenLinkModal}
-                icon={(
-                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-accent/10">
-                    <DiceFiveIcon className="h-4 w-4 text-accent" />
-                  </div>
-                )}
-              />
-            )}
-
-            <RoleSidebarActionCard
-              title="上传音频"
-              subtitle={localRole.voiceUrl ? "已上传音频" : "用于AI生成角色音色"}
-              subtitleClassName="text-secondary"
-              actionLabel="上传"
-              onClick={onOpenAudioModal}
-              icon={(
-                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-secondary/10">
-                  <MicrophoneIcon className="h-4 w-4 text-secondary" />
-                </div>
-              )}
-            />
-
-            <AudioPlayer
-              role={localRole}
-              size="compact"
-              onRoleUpdate={onAudioRoleUpdate}
-              onDelete={onAudioDelete}
-            />
-          </div>
-        </div>
       </div>
     </div>
   );
