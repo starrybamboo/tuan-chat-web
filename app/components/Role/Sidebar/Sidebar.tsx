@@ -1,16 +1,12 @@
-import type { RoleAvatar, UserRole } from "api";
 import type { Rule } from "@tuanchat/openapi-client/models/Rule";
 import type { Role } from "../types";
-import { useQueryClient } from "@tanstack/react-query";
-import { seedRoleAvatarQueryCaches, useDeleteRolesMutation, useGetUserRolesByTypeQuery } from "api/hooks/RoleAndAvatarHooks";
+import { useDeleteRolesMutation } from "api/hooks/RoleAndAvatarHooks";
 import { useDeleteRuleMutation, useRuleListQuery } from "api/hooks/ruleQueryHooks";
 // import { useCreateRoleMutation, useDeleteRolesMutation, useGetInfiniteUserRolesQuery, useUpdateRoleWithLocalMutation, useUploadAvatarMutation } from "api/queryHooks";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import { Link, NavLink, useNavigate, useSearchParams } from "react-router";
-import { tuanchat } from "@/../api/instance";
 import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
-import { ROLE_DEFAULT_AVATAR_URL } from "@/constants/defaultAvatar";
 import { getRoleRule } from "@/utils/roleRuleStorage";
 import { useGlobalContext } from "../../globalContextProvider";
 import { RoleListItem } from "./RoleListItem";
@@ -42,8 +38,6 @@ export function Sidebar({
   const [searchParams] = useSearchParams();
   // 获取用户数据
   const userId = useGlobalContext().userId;
-  const diceRolesQuery = useGetUserRolesByTypeQuery(userId ?? -1, 1);
-  const normalRolesQuery = useGetUserRolesByTypeQuery(userId ?? -1, 0);
   const ruleListQuery = useRuleListQuery();
   // 创建角色接口
   // const { mutateAsync: createRole } = useCreateRoleMutation();
@@ -60,7 +54,6 @@ export function Sidebar({
   const [deleteCharacterId, setDeleteCharacterId] = useState<number | null>(null);
   const [deleteRuleId, setDeleteRuleId] = useState<number | null>(null);
   const [deletingRuleId, setDeletingRuleId] = useState<number | null>(null);
-  const queryClient = useQueryClient();
   // 删除角色
   const handleDelete = (id: number) => {
     setDeleteConfirmOpen(true);
@@ -72,115 +65,6 @@ export function Sidebar({
     setDeleteCharacterId(null);
     setDeleteRuleId(null);
   };
-
-  const loadRoles = useCallback(async () => {
-    type RoleListAvatarFields = UserRole & {
-      avatarUrl?: string;
-      avatarThumbUrl?: string;
-    };
-
-    const convertRole = (role: RoleListAvatarFields) => ({
-      id: role.roleId || 0,
-      name: role.roleName || "",
-      description: role.description || "无描述",
-      avatar: role.avatarUrl || "",
-      avatarThumb: role.avatarThumbUrl || role.avatarUrl || "",
-      avatarId: role.avatarId || 0,
-      voiceUrl: role.voiceUrl || undefined, // 添加 voiceUrl 字段
-      // 透传类型，便于侧边栏分类（若后端无该字段则为 0）
-      type: (role as unknown as { type?: number; diceMaiden?: boolean }).type
-        ?? (((role as unknown as { diceMaiden?: boolean }).diceMaiden) ? 1 : 0),
-      extra: role.extra || {}, // 添加 extra 字段
-    });
-
-    // 有query数据时
-    const diceUserRoles = diceRolesQuery.data ?? [];
-    const normalUserRoles = normalRolesQuery.data ?? [];
-    if (diceUserRoles.length > 0 || normalUserRoles.length > 0) {
-      // 将API返回的角色数据映射为前端使用的格式
-      const mappedRoles = [...diceUserRoles, ...normalUserRoles].map(convertRole);
-      const filteredMappedRoles = mappedRoles.filter(role => role.type !== 2);
-      filteredMappedRoles.forEach((role) => {
-        if (!role.avatarId || (!role.avatar && !role.avatarThumb)) {
-          return;
-        }
-        seedRoleAvatarQueryCaches(queryClient, {
-          avatarId: role.avatarId,
-          roleId: role.id,
-          avatarUrl: role.avatar,
-          avatarThumbUrl: role.avatarThumb || role.avatar,
-        } as RoleAvatar, role.id);
-      });
-
-      // 将映射后的角色数据设置到状态中
-      setRoles((prev) => {
-        const filteredPrev = prev.filter(role => role.type !== 2);
-        const prevById = new Map(filteredPrev.map(role => [role.id, role]));
-        return filteredMappedRoles.map((role) => {
-          const previousRole = prevById.get(role.id);
-          if (!previousRole) {
-            return role;
-          }
-
-          return {
-            ...previousRole,
-            ...role,
-            avatar: role.avatar || previousRole.avatar,
-            avatarThumb: role.avatarThumb || previousRole.avatarThumb || role.avatar,
-          };
-        });
-      });
-
-      // 角色列表已直接带回头像 URL 时无需再补查；仅对旧响应格式兜底。
-      const avatarPromises = filteredMappedRoles.map(async (role) => {
-        if (!role.avatarId || role.avatar || role.avatarThumb) {
-          return null;
-        }
-
-        const cachedAvatar = queryClient.getQueryData<{ data?: RoleAvatar }>(["getRoleAvatar", role.avatarId])?.data;
-        if (cachedAvatar?.avatarUrl || cachedAvatar?.avatarThumbUrl) {
-          const avatarUrl = cachedAvatar.avatarUrl || ROLE_DEFAULT_AVATAR_URL;
-          const avatarThumbUrl = cachedAvatar.avatarThumbUrl || avatarUrl;
-          return { id: role.id, avatar: avatarUrl, avatarThumb: avatarThumbUrl };
-        }
-
-        try {
-          const res = await queryClient.fetchQuery({
-            queryKey: ["getRoleAvatar", role.avatarId],
-            queryFn: () => tuanchat.avatarController.getRoleAvatar(role.avatarId),
-            staleTime: 86400000,
-          });
-          if (res.success && res.data) {
-            const avatarUrl = res.data.avatarUrl || ROLE_DEFAULT_AVATAR_URL;
-            const avatarThumbUrl = res.data.avatarThumbUrl || avatarUrl;
-            seedRoleAvatarQueryCaches(queryClient, res.data, role.id);
-            return { id: role.id, avatar: avatarUrl, avatarThumb: avatarThumbUrl };
-          }
-        }
-        catch (error) {
-          console.error(`加载角色 ${role.id} 的头像时出错`, error);
-          return null;
-        }
-
-        return null;
-      });
-
-      // 等待所有头像加载完成并一次性更新状态
-      const avatarResults = await Promise.all(avatarPromises);
-      const validAvatars = avatarResults.filter(result => result !== null);
-
-      if (validAvatars.length > 0) {
-        setRoles((prevChars) => {
-          return prevChars.map((char) => {
-            const avatarData = validAvatars.find(avatar => avatar?.id === char.id);
-            return avatarData
-              ? { ...char, avatar: avatarData.avatar, avatarThumb: avatarData.avatarThumb }
-              : char;
-          });
-        });
-      }
-    }
-  }, [diceRolesQuery.data, normalRolesQuery.data, queryClient, setRoles]);
 
   // 创建新角色
   // const handleCreate = async () => {
@@ -237,21 +121,6 @@ export function Sidebar({
       drawerCheckbox.checked = false;
   };
 
-  // 初始化角色数据
-  useEffect(() => {
-    const roleQueriesReady = !diceRolesQuery.isLoading && !normalRolesQuery.isLoading;
-    if (roleQueriesReady && (diceRolesQuery.isSuccess || normalRolesQuery.isSuccess)) {
-      void loadRoles();
-    }
-  }, [
-    diceRolesQuery.isLoading,
-    normalRolesQuery.isLoading,
-    diceRolesQuery.isSuccess,
-    normalRolesQuery.isSuccess,
-    diceRolesQuery.dataUpdatedAt,
-    normalRolesQuery.dataUpdatedAt,
-    loadRoles,
-  ]);
   // 过滤角色列表（按搜索）
   const filteredRoles = roles
     .filter(role => role.name.toLowerCase().includes(searchQuery.toLowerCase())
@@ -851,4 +720,3 @@ export function Sidebar({
     </>
   );
 }
-

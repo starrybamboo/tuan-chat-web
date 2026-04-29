@@ -1,10 +1,15 @@
 import type { Route } from "./+types/role";
 import type { Role } from "@/components/Role/types"; // 确保路径正确
+import { useQueryClient } from "@tanstack/react-query";
 import { CaretRightIcon } from "@phosphor-icons/react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Outlet, useParams } from "react-router"; // 引入 Outlet 和 useParams
 import { Drawer } from "vaul";
+import { seedRoleAvatarQueryCaches, useGetUserRolesByTypeQuery } from "api/hooks/RoleAndAvatarHooks";
+import { tuanchat } from "@/../api/instance";
+import { hydrateRoleList } from "@/components/Role/roleListData";
 import { Sidebar } from "@/components/Role/Sidebar/Sidebar"; // 确保路径正确
+import { useGlobalContext } from "@/components/globalContextProvider";
 import { createSeoMeta } from "@/utils/seo";
 
 export function meta(_args: Route.MetaArgs) {
@@ -20,6 +25,11 @@ export default function RoleLayout() {
   const [roles, setRoles] = useState<Role[]>([]);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const rolesRef = useRef<Role[]>([]);
+  const queryClient = useQueryClient();
+  const userId = useGlobalContext().userId;
+  const diceRolesQuery = useGetUserRolesByTypeQuery(userId ?? -1, 1);
+  const normalRolesQuery = useGetUserRolesByTypeQuery(userId ?? -1, 0);
   const [isDesktop, setIsDesktop] = useState(() => {
     if (typeof window === "undefined") {
       return true;
@@ -50,6 +60,45 @@ export default function RoleLayout() {
     mediaQuery.addEventListener("change", handleChange);
     return () => mediaQuery.removeEventListener("change", handleChange);
   }, []);
+
+  useEffect(() => {
+    rolesRef.current = roles;
+  }, [roles]);
+
+  useEffect(() => {
+    const roleQueriesReady = !diceRolesQuery.isLoading && !normalRolesQuery.isLoading;
+    if (!roleQueriesReady || (!diceRolesQuery.isSuccess && !normalRolesQuery.isSuccess)) {
+      return;
+    }
+
+    let isCancelled = false;
+
+    void hydrateRoleList({
+      previousRoles: rolesRef.current,
+      diceRoles: diceRolesQuery.data ?? [],
+      normalRoles: normalRolesQuery.data ?? [],
+      queryClient,
+      seedRoleAvatarQueryCaches,
+      fetchRoleAvatar: avatarId => tuanchat.avatarController.getRoleAvatar(avatarId),
+    }).then((nextRoles) => {
+      if (isCancelled) {
+        return;
+      }
+      setRoles(nextRoles);
+    });
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [
+    diceRolesQuery.data,
+    diceRolesQuery.isLoading,
+    diceRolesQuery.isSuccess,
+    normalRolesQuery.data,
+    normalRolesQuery.isLoading,
+    normalRolesQuery.isSuccess,
+    queryClient,
+  ]);
 
   return (
     <div className="relative flex h-full w-full min-w-0 overflow-hidden bg-base-100 md:bg-base-200">
