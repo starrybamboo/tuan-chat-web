@@ -1,9 +1,10 @@
 import type { RoleAvatar } from "api";
 import type { Role } from "./types";
-import { ChevronRightIcon, DiceFiveIcon, GearOutline, MicrophoneIcon } from "app/icons";
+import { DiceFiveIcon, GearOutline, MicrophoneIcon } from "app/icons";
 import RoleBasicInfoEditor from "./RoleBasicInfoEditor";
 import AudioPlayer from "./RoleInfoCard/AudioPlayer";
 import CharacterAvatar from "./RoleInfoCard/CharacterAvatar";
+import RoleSidebarActionCard from "./RoleSidebarActionCard";
 
 export interface CharacterDetailLeftPanelProps {
   isQueryLoading: boolean;
@@ -101,94 +102,57 @@ export default function CharacterDetailLeftPanel({
         </p>
 
         <div>
-          <div className="card bg-base-100 rounded-xl transition-all duration-200 mb-4">
-            <div className="card-body p-4">
-              <div className="flex items-center justify-between">
-                <div
-                  className="flex items-center justify-between cursor-pointer hover:bg-base-300 rounded-xl p-2 -m-2 w-full"
-                  onClick={onOpenRuleModal}
-                >
-                  <div className="flex min-w-0 flex-1 items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                      <GearOutline className="w-4 h-4 text-primary" />
-                    </div>
-                    <div className="min-w-0">
-                      <h3 className="font-semibold text-sm">当前规则</h3>
-                      <p className="text-primary font-medium text-sm">
-                        {currentRuleName || "未选择规则"}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex shrink-0 items-center gap-1 whitespace-nowrap pl-3 text-base-content/50">
-                    <span className="text-xs">切换</span>
-                    <ChevronRightIcon className="w-4 h-4" />
-                  </div>
-                </div>
+          <RoleSidebarActionCard
+            title="当前规则"
+            subtitle={currentRuleName || "未选择规则"}
+            subtitleClassName="text-primary"
+            actionLabel="切换"
+            onClick={onOpenRuleModal}
+            className="mb-4"
+            icon={(
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10">
+                <GearOutline className="h-4 w-4 text-primary" />
               </div>
-            </div>
-          </div>
+            )}
+          />
 
-          <div className="card bg-base-100 rounded-xl transition-all duration-200 mb-4">
-            <div className="card-body p-4">
-              <div
-                className="flex items-center justify-between cursor-pointer hover:bg-base-300 rounded-xl p-2 -m-2"
-                onClick={onOpenAudioModal}
-              >
-                <div className="flex min-w-0 flex-1 items-center gap-3">
-                  <div className="w-8 h-8 rounded-full bg-secondary/10 flex items-center justify-center">
-                    <MicrophoneIcon className="w-4 h-4 text-secondary" />
-                  </div>
-                  <div className="min-w-0">
-                    <h3 className="font-semibold text-sm">上传音频</h3>
-                    <p className="text-secondary font-medium text-sm">
-                      {localRole.voiceUrl ? "已上传音频" : "用于AI生成角色音色"}
-                    </p>
-                  </div>
-                </div>
-                <div className="flex shrink-0 items-center gap-1 whitespace-nowrap pl-3 text-base-content/50">
-                  <span className="text-xs">上传</span>
-                  <ChevronRightIcon className="w-4 h-4" />
-                </div>
+          <RoleSidebarActionCard
+            title="上传音频"
+            subtitle={localRole.voiceUrl ? "已上传音频" : "用于AI生成角色音色"}
+            subtitleClassName="text-secondary"
+            actionLabel="上传"
+            onClick={onOpenAudioModal}
+            className="mb-4"
+            icon={(
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-secondary/10">
+                <MicrophoneIcon className="h-4 w-4 text-secondary" />
               </div>
-
+            )}
+            extraContent={(
               <AudioPlayer
                 role={localRole}
                 onRoleUpdate={onAudioRoleUpdate}
                 onDelete={onAudioDelete}
               />
-            </div>
-          </div>
+            )}
+          />
 
           {!isDiceMaiden && (
-            <div className="card bg-base-100 rounded-xl transition-all duration-200 mb-4">
-              <div className="card-body p-4">
-                <div
-                  className="flex items-center justify-between cursor-pointer hover:bg-base-300 rounded-xl p-2 -m-2"
-                  onClick={onOpenDiceMaidenLinkModal}
-                >
-                  <div className="flex min-w-0 flex-1 items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-accent/10 flex items-center justify-center">
-                      <DiceFiveIcon className="w-4 h-4 text-accent" />
-                    </div>
-                    <div className="min-w-0">
-                      <h3 className="font-semibold text-sm">关联骰娘</h3>
-                      <p className={`font-medium text-sm ${
-                        dicerRoleError ? "text-error" : "text-accent"
-                      }`}
-                      >
-                        {currentDicerRoleId
-                          ? dicerRoleError || linkedDicerRoleName || `ID: ${currentDicerRoleId}`
-                          : "选择使用的骰娘角色"}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex shrink-0 items-center gap-1 whitespace-nowrap pl-3 text-base-content/50">
-                    <span className="text-xs">{currentDicerRoleId ? "更改" : "设置"}</span>
-                    <ChevronRightIcon className="w-4 h-4" />
-                  </div>
+            <RoleSidebarActionCard
+              title="关联骰娘"
+              subtitle={currentDicerRoleId
+                ? dicerRoleError || linkedDicerRoleName || `ID: ${currentDicerRoleId}`
+                : "选择使用的骰娘角色"}
+              subtitleClassName={dicerRoleError ? "text-error" : "text-accent"}
+              actionLabel={currentDicerRoleId ? "更改" : "设置"}
+              onClick={onOpenDiceMaidenLinkModal}
+              className="mb-4"
+              icon={(
+                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-accent/10">
+                  <DiceFiveIcon className="h-4 w-4 text-accent" />
                 </div>
-              </div>
-            </div>
+              )}
+            />
           )}
         </div>
       </div>
