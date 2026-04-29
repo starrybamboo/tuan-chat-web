@@ -92,6 +92,7 @@ export default function CreateRoomWindow({ spaceId, spaceAvatar, onSuccess }: Cr
           }}
           fileName={`new-room-avatar-${roomAvatarUploadId}`}
           aspect={1}
+          copperedCompressionPreset="spaceAvatar"
         >
           <div className="relative group overflow-hidden rounded-lg">
             <img
