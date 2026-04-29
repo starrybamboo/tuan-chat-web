@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import type { CharacterDetailLeftPanelProps } from "./CharacterDetailLeftPanel";
 import { ChevronRightIcon, DiceFiveIcon, GearOutline, MicrophoneIcon } from "app/icons";
 import RoleBasicInfoEditor from "./RoleBasicInfoEditor";
@@ -30,6 +31,44 @@ export default function CharacterDetailLeftPanelHorizontal({
   onAudioRoleUpdate,
   onAudioDelete,
 }: CharacterDetailLeftPanelProps) {
+  const renderCompactActionButton = ({
+    title,
+    subtitle,
+    subtitleClassName,
+    actionLabel,
+    icon,
+    onClick,
+  }: {
+    title: string;
+    subtitle: string;
+    subtitleClassName: string;
+    actionLabel: string;
+    icon: ReactNode;
+    onClick: () => void;
+  }) => (
+    <button
+      type="button"
+      className="flex min-w-0 items-center justify-between gap-3 rounded-xl border border-base-content/10 bg-base-100/70 px-3 py-2.5 text-left transition-colors hover:bg-base-300/50"
+      onClick={onClick}
+    >
+      <div className="flex min-w-0 flex-1 items-center gap-3">
+        <div className="flex size-8 shrink-0 items-center justify-center">
+          {icon}
+        </div>
+        <div className="min-w-0 space-y-0.5">
+          <div className="truncate text-sm font-semibold">{title}</div>
+          <div className={`truncate text-xs font-medium leading-5 ${subtitleClassName}`}>
+            {subtitle}
+          </div>
+        </div>
+      </div>
+      <div className="flex shrink-0 items-center gap-1 whitespace-nowrap pl-2 text-base-content/50">
+        <span className="text-xs">{actionLabel}</span>
+        <ChevronRightIcon className="h-4 w-4" />
+      </div>
+    </button>
+  );
+
   return (
     <div className="card-sm md:card-xl bg-base-100 shadow-xs rounded-xl md:border-2 md:border-base-content/10">
       <div className="card-body p-4">
@@ -114,7 +153,7 @@ export default function CharacterDetailLeftPanelHorizontal({
           />
         </div>
 
-        <div className="hidden md:flex lg:hidden md:gap-5">
+        <div className="hidden md:grid lg:hidden md:grid-cols-[auto_minmax(220px,1fr)_280px] md:items-center md:gap-4">
           <div className="shrink-0 flex items-start justify-center">
             {isQueryLoading
               ? (
@@ -139,7 +178,7 @@ export default function CharacterDetailLeftPanelHorizontal({
                 )}
           </div>
 
-          <div className="min-w-0 flex-1 self-center">
+          <div className="min-w-0 self-center md:max-w-[280px]">
             <div className="flex flex-col gap-3">
               <RoleBasicInfoEditor
                 localRole={localRole}
@@ -158,49 +197,47 @@ export default function CharacterDetailLeftPanelHorizontal({
             </div>
           </div>
 
-          <div className="w-64 shrink-0 space-y-3">
-            <RoleSidebarActionCard
-              title="当前规则"
-              subtitle={currentRuleName || "未选择规则"}
-              subtitleClassName="text-primary"
-              actionLabel="切换"
-              onClick={onOpenRuleModal}
-              icon={(
+          <div className="w-[280px] shrink-0 space-y-2 justify-self-end">
+            {renderCompactActionButton({
+              title: "当前规则",
+              subtitle: currentRuleName || "未选择规则",
+              subtitleClassName: "text-primary",
+              actionLabel: "切换",
+              onClick: onOpenRuleModal,
+              icon: (
                 <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10">
                   <GearOutline className="h-4 w-4 text-primary" />
                 </div>
-              )}
-            />
+              ),
+            })}
 
-            {!isDiceMaiden && (
-              <RoleSidebarActionCard
-                title="关联骰娘"
-                subtitle={currentDicerRoleId
-                  ? dicerRoleError || linkedDicerRoleName || `ID: ${currentDicerRoleId}`
-                  : "选择使用的骰娘角色"}
-                subtitleClassName={dicerRoleError ? "text-error" : "text-accent"}
-                actionLabel={currentDicerRoleId ? "更改" : "设置"}
-                onClick={onOpenDiceMaidenLinkModal}
-                icon={(
-                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-accent/10">
-                    <DiceFiveIcon className="h-4 w-4 text-accent" />
-                  </div>
-                )}
-              />
-            )}
+            {!isDiceMaiden && renderCompactActionButton({
+              title: "关联骰娘",
+              subtitle: currentDicerRoleId
+                ? dicerRoleError || linkedDicerRoleName || `ID: ${currentDicerRoleId}`
+                : "选择使用的骰娘角色",
+              subtitleClassName: dicerRoleError ? "text-error" : "text-accent",
+              actionLabel: currentDicerRoleId ? "更改" : "设置",
+              onClick: onOpenDiceMaidenLinkModal,
+              icon: (
+                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-accent/10">
+                  <DiceFiveIcon className="h-4 w-4 text-accent" />
+                </div>
+              ),
+            })}
 
-            <RoleSidebarActionCard
-              title="上传音频"
-              subtitle={localRole.voiceUrl ? "已上传音频" : "用于AI生成角色音色"}
-              subtitleClassName="text-secondary"
-              actionLabel="上传"
-              onClick={onOpenAudioModal}
-              icon={(
+            {renderCompactActionButton({
+              title: "上传音频",
+              subtitle: localRole.voiceUrl ? "已上传音频" : "用于AI生成角色音色",
+              subtitleClassName: "text-secondary",
+              actionLabel: "上传",
+              onClick: onOpenAudioModal,
+              icon: (
                 <div className="flex h-8 w-8 items-center justify-center rounded-full bg-secondary/10">
                   <MicrophoneIcon className="h-4 w-4 text-secondary" />
                 </div>
-              )}
-            />
+              ),
+            })}
           </div>
         </div>
 

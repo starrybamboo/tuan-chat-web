@@ -416,7 +416,7 @@ export default function ExpansionModule({
                 <button
                   type="button"
                   onClick={onOpenAIGenerateModal}
-                  className={desktopQuickToolButtonClass}
+                  className={`${desktopQuickToolButtonClass} bg-info/70 text-info-content`}
                 >
                   AI生成
                 </button>
