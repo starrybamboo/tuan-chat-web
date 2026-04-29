@@ -71,7 +71,7 @@ export default function CharacterDetailLeftPanelHorizontal({
 
   return (
     <div className="card-sm md:card-xl bg-base-100 shadow-xs rounded-xl md:border-2 md:border-base-content/10">
-      <div className="card-body p-4 md:h-[29rem]">
+      <div className="card-body p-4 md:h-116">
         <div className="md:hidden">
           <div className="grid grid-cols-4 gap-2">
             <div className={`col-start-1 col-span-2 row-start-1 ${isDiceMaiden ? "row-span-2" : "row-span-3"} flex items-center justify-center`}>
@@ -201,7 +201,7 @@ export default function CharacterDetailLeftPanelHorizontal({
                   onBaseRoleSave={onBaseRoleSave}
                   showName={false}
                   className="flex min-h-0 flex-1 flex-col justify-start space-y-0"
-                  descriptionDisplayClassName="min-h-0 flex-1 wrap-break-words text-sm leading-6 overflow-hidden text-ellipsis"
+                  descriptionDisplayClassName="max-h-28 overflow-hidden text-ellipsis wrap-break-words text-sm leading-6 line-clamp-4"
                   descriptionButtonClassName="rounded-none px-0 py-0 text-left hover:bg-transparent"
                   descriptionEditorClassName="flex min-h-0 flex-1 flex-col"
                 />
