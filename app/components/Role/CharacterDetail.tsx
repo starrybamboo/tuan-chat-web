@@ -118,9 +118,6 @@ function CharacterDetailInner({
       selectedSpriteUrl: avatarFromList?.spriteUrl ?? "",
     };
   }, [localRole.avatarId, localRole.avatar, roleAvatars]);
-
-  // 字数统计：由描述派生，避免在 useEffect 中 setState
-  const charCount = useMemo(() => localRole.description?.length || 0, [localRole.description]);
   // 描述的最大储存量
   const MAX_DESCRIPTION_LENGTH = 140;
   const MAX_ROLE_NAME_LENGTH = 50;
@@ -321,6 +318,12 @@ function CharacterDetailInner({
       .replace(/\s+$/g, ""); // 移除末尾空格
   };
 
+  const buildCleanedRole = (sourceRole: Role) => ({
+    ...sourceRole,
+    name: cleanText(sourceRole.name),
+    description: cleanText(sourceRole.description),
+  });
+
   const buildQuickDicerName = () => {
     const cleaned = cleanText(localRole.name || "").trim();
     const baseName = cleaned || `角色${localRole.id}`;
@@ -330,23 +333,33 @@ function CharacterDetailInner({
     return trimmed || `角色${localRole.id}-骰娘`;
   };
 
-  // 保存角色基础信息（名称、描述、头像等）
-  const handleSaveRoleBase = (afterSave?: () => void) => {
-    setIsTransitioning(true);
-    const cleanedRole = {
-      ...localRole,
-      name: cleanText(localRole.name),
-      description: cleanText(localRole.description),
-    };
+  const saveRoleBase = (nextRole: Role, options?: { withTransition?: boolean; afterSave?: () => void }) => {
+    if (options?.withTransition) {
+      setIsTransitioning(true);
+    }
+    const cleanedRole = buildCleanedRole(nextRole);
     updateRole(cleanedRole, {
       onSuccess: () => {
-        setTimeout(() => {
-          onSave(cleanedRole); // 通知父级更新全局状态
-          afterSave?.();
-          setIsTransitioning(false);
-        }, 300);
+        setLocalRole(prev => prev.name === cleanedRole.name
+          && prev.description === cleanedRole.description
+          && prev.avatarId === cleanedRole.avatarId
+          && prev.voiceUrl === cleanedRole.voiceUrl
+          ? prev
+          : cleanedRole);
+        if (options?.withTransition) {
+          setTimeout(() => {
+            options.afterSave?.();
+            setIsTransitioning(false);
+          }, 300);
+          return;
+        }
+        options?.afterSave?.();
       },
-      onError: () => setIsTransitioning(false),
+      onError: () => {
+        if (options?.withTransition) {
+          setIsTransitioning(false);
+        }
+      },
     });
   };
 
@@ -355,8 +368,11 @@ function CharacterDetailInner({
   };
 
   const handleSaveAll = () => {
-    handleSaveRoleBase(() => {
-      setIsEditing(false);
+    saveRoleBase(localRole, {
+      withTransition: true,
+      afterSave: () => {
+        setIsEditing(false);
+      },
     });
   };
 
@@ -373,11 +389,7 @@ function CharacterDetailInner({
     };
     setLocalRole(updatedRole);
     setSelectedAvatarId(avatarId); // 更新选中ID,URL会自动通过useMemo计算
-    const cleanedRole = {
-      ...updatedRole,
-      name: cleanText(localRole.name),
-      description: cleanText(localRole.description),
-    };
+    const cleanedRole = buildCleanedRole(updatedRole);
     updateRole(cleanedRole);
   };
 
@@ -689,15 +701,14 @@ function CharacterDetailInner({
             <div className="space-y-6">
               <CharacterDetailLeftPanelHorizontal
                 isQueryLoading={isQueryLoading}
-                isEditing={isEditing}
                 isDiceMaiden={isDiceMaiden}
                 localRole={localRole}
                 roleAvatars={roleAvatars}
                 selectedAvatarId={selectedAvatarId}
                 selectedAvatarUrl={selectedAvatarUrl}
                 selectedSpriteUrl={selectedSpriteUrl}
-                charCount={charCount}
                 maxDescriptionLength={MAX_DESCRIPTION_LENGTH}
+                maxRoleNameLength={MAX_ROLE_NAME_LENGTH}
                 currentRuleName={currentRuleData?.ruleName}
                 currentDicerRoleId={currentDicerRoleId}
                 dicerRoleError={dicerRoleError}
@@ -709,7 +720,7 @@ function CharacterDetailInner({
                 onAvatarSelect={handleAvatarSelect}
                 onAvatarDelete={handleAvatarDelete}
                 onAvatarUpload={handleAvatarUpload}
-                setLocalRole={setLocalRole}
+                onBaseRoleSave={saveRoleBase}
                 onAudioRoleUpdate={(updatedRole) => {
                   setLocalRole(updatedRole);
                   updateRole(updatedRole);
@@ -731,15 +742,14 @@ function CharacterDetailInner({
               <div className="lg:hidden">
                 <CharacterDetailLeftPanelHorizontal
                   isQueryLoading={isQueryLoading}
-                  isEditing={isEditing}
                   isDiceMaiden={isDiceMaiden}
                   localRole={localRole}
                   roleAvatars={roleAvatars}
                   selectedAvatarId={selectedAvatarId}
                   selectedAvatarUrl={selectedAvatarUrl}
                   selectedSpriteUrl={selectedSpriteUrl}
-                  charCount={charCount}
                   maxDescriptionLength={MAX_DESCRIPTION_LENGTH}
+                  maxRoleNameLength={MAX_ROLE_NAME_LENGTH}
                   currentRuleName={currentRuleData?.ruleName}
                   currentDicerRoleId={currentDicerRoleId}
                   dicerRoleError={dicerRoleError}
@@ -751,7 +761,7 @@ function CharacterDetailInner({
                   onAvatarSelect={handleAvatarSelect}
                   onAvatarDelete={handleAvatarDelete}
                   onAvatarUpload={handleAvatarUpload}
-                  setLocalRole={setLocalRole}
+                  onBaseRoleSave={saveRoleBase}
                   onAudioRoleUpdate={(updatedRole) => {
                     setLocalRole(updatedRole);
                     updateRole(updatedRole);
@@ -768,15 +778,14 @@ function CharacterDetailInner({
               <div className="hidden lg:block">
                 <CharacterDetailLeftPanel
                   isQueryLoading={isQueryLoading}
-                  isEditing={isEditing}
                   isDiceMaiden={isDiceMaiden}
                   localRole={localRole}
                   roleAvatars={roleAvatars}
                   selectedAvatarId={selectedAvatarId}
                   selectedAvatarUrl={selectedAvatarUrl}
                   selectedSpriteUrl={selectedSpriteUrl}
-                  charCount={charCount}
                   maxDescriptionLength={MAX_DESCRIPTION_LENGTH}
+                  maxRoleNameLength={MAX_ROLE_NAME_LENGTH}
                   currentRuleName={currentRuleData?.ruleName}
                   currentDicerRoleId={currentDicerRoleId}
                   dicerRoleError={dicerRoleError}
@@ -788,7 +797,7 @@ function CharacterDetailInner({
                   onAvatarSelect={handleAvatarSelect}
                   onAvatarDelete={handleAvatarDelete}
                   onAvatarUpload={handleAvatarUpload}
-                  setLocalRole={setLocalRole}
+                  onBaseRoleSave={saveRoleBase}
                   onAudioRoleUpdate={(updatedRole) => {
                     setLocalRole(updatedRole);
                     updateRole(updatedRole);
