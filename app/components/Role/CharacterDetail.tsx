@@ -629,9 +629,9 @@ function CharacterDetailInner({
             </div>
           )
         : (
-            <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-              {/* 移动端：使用水平布局版本 */}
-              <div className="lg:hidden">
+            <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
+              {/* 中小屏与 lg：使用水平布局版本 */}
+              <div className="xl:hidden">
                 <CharacterDetailLeftPanelHorizontal
                   isQueryLoading={isQueryLoading}
                   isDiceMaiden={isDiceMaiden}
@@ -666,8 +666,8 @@ function CharacterDetailInner({
                 />
               </div>
 
-              {/* 桌面端：使用原左侧布局 */}
-              <div className="hidden lg:block">
+              {/* 更大桌面端：使用原左侧布局 */}
+              <div className="hidden xl:block">
                 <CharacterDetailLeftPanel
                   isQueryLoading={isQueryLoading}
                   isDiceMaiden={isDiceMaiden}
@@ -703,7 +703,7 @@ function CharacterDetailInner({
               </div>
 
               {/* 右侧：编辑信息、预览、扩展模块 */}
-              <div className="lg:col-span-3 space-y-6">
+              <div className="xl:col-span-3 space-y-6">
                 {rightPanel}
               </div>
             </div>
