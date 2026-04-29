@@ -13,7 +13,6 @@ import { useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import { Link } from "react-router";
 import { ROLE_DEFAULT_AVATAR_URL } from "@/constants/defaultAvatar";
-import CharacterDetailLeftPanel from "./CharacterDetailLeftPanel";
 import CharacterDetailLeftPanelHorizontal from "./CharacterDetailLeftPanelHorizontal";
 import DiceMaidenLinkModal from "./DiceMaidenLinkModal";
 import AIGenerateModal from "./RoleCreation/steps/AIGenerateModal";
@@ -629,81 +628,40 @@ function CharacterDetailInner({
             </div>
           )
         : (
-            <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
-              {/* 中小屏与 lg：使用水平布局版本 */}
-              <div className="xl:hidden">
-                <CharacterDetailLeftPanelHorizontal
-                  isQueryLoading={isQueryLoading}
-                  isDiceMaiden={isDiceMaiden}
-                  localRole={localRole}
-                  roleAvatars={roleAvatars}
-                  selectedAvatarId={selectedAvatarId}
-                  selectedAvatarUrl={selectedAvatarUrl}
-                  selectedSpriteUrl={selectedSpriteUrl}
-                  maxDescriptionLength={MAX_DESCRIPTION_LENGTH}
-                  maxRoleNameLength={MAX_ROLE_NAME_LENGTH}
-                  currentRuleName={currentRuleData?.ruleName}
-                  currentDicerRoleId={currentDicerRoleId}
-                  dicerRoleError={dicerRoleError}
-                  linkedDicerRoleName={linkedDicerRoleData?.data?.roleName}
-                  onOpenRuleModal={handleOpenRuleModal}
-                  onOpenAudioModal={handleOpenAudioModal}
-                  onOpenDiceMaidenLinkModal={handleOpenDiceMaidenLinkModal}
-                  onAvatarChange={handleAvatarChange}
-                  onAvatarSelect={handleAvatarSelect}
-                  onAvatarDelete={handleAvatarDelete}
-                  onAvatarUpload={handleAvatarUpload}
-                  onBaseRoleSave={saveRoleBase}
-                  onAudioRoleUpdate={(updatedRole) => {
-                    setLocalRole(updatedRole);
-                    updateRole(updatedRole);
-                  }}
-                  onAudioDelete={() => {
-                    const updatedRole = { ...localRole, voiceUrl: undefined };
-                    setLocalRole(updatedRole);
-                    updateRole(updatedRole);
-                  }}
-                />
-              </div>
-
-              {/* 更大桌面端：使用原左侧布局 */}
-              <div className="hidden xl:block">
-                <CharacterDetailLeftPanel
-                  isQueryLoading={isQueryLoading}
-                  isDiceMaiden={isDiceMaiden}
-                  localRole={localRole}
-                  roleAvatars={roleAvatars}
-                  selectedAvatarId={selectedAvatarId}
-                  selectedAvatarUrl={selectedAvatarUrl}
-                  selectedSpriteUrl={selectedSpriteUrl}
-                  maxDescriptionLength={MAX_DESCRIPTION_LENGTH}
-                  maxRoleNameLength={MAX_ROLE_NAME_LENGTH}
-                  currentRuleName={currentRuleData?.ruleName}
-                  currentDicerRoleId={currentDicerRoleId}
-                  dicerRoleError={dicerRoleError}
-                  linkedDicerRoleName={linkedDicerRoleData?.data?.roleName}
-                  onOpenRuleModal={handleOpenRuleModal}
-                  onOpenAudioModal={handleOpenAudioModal}
-                  onOpenDiceMaidenLinkModal={handleOpenDiceMaidenLinkModal}
-                  onAvatarChange={handleAvatarChange}
-                  onAvatarSelect={handleAvatarSelect}
-                  onAvatarDelete={handleAvatarDelete}
-                  onAvatarUpload={handleAvatarUpload}
-                  onBaseRoleSave={saveRoleBase}
-                  onAudioRoleUpdate={(updatedRole) => {
-                    setLocalRole(updatedRole);
-                    updateRole(updatedRole);
-                  }}
-                  onAudioDelete={() => {
-                    const updatedRole = { ...localRole, voiceUrl: undefined };
-                    setLocalRole(updatedRole);
-                    updateRole(updatedRole);
-                  }}
-                />
-              </div>
-
-              {/* 右侧：编辑信息、预览、扩展模块 */}
-              <div className="xl:col-span-3 space-y-6">
+            <div className="space-y-6">
+              <CharacterDetailLeftPanelHorizontal
+                isQueryLoading={isQueryLoading}
+                isDiceMaiden={isDiceMaiden}
+                localRole={localRole}
+                roleAvatars={roleAvatars}
+                selectedAvatarId={selectedAvatarId}
+                selectedAvatarUrl={selectedAvatarUrl}
+                selectedSpriteUrl={selectedSpriteUrl}
+                maxDescriptionLength={MAX_DESCRIPTION_LENGTH}
+                maxRoleNameLength={MAX_ROLE_NAME_LENGTH}
+                currentRuleName={currentRuleData?.ruleName}
+                currentDicerRoleId={currentDicerRoleId}
+                dicerRoleError={dicerRoleError}
+                linkedDicerRoleName={linkedDicerRoleData?.data?.roleName}
+                onOpenRuleModal={handleOpenRuleModal}
+                onOpenAudioModal={handleOpenAudioModal}
+                onOpenDiceMaidenLinkModal={handleOpenDiceMaidenLinkModal}
+                onAvatarChange={handleAvatarChange}
+                onAvatarSelect={handleAvatarSelect}
+                onAvatarDelete={handleAvatarDelete}
+                onAvatarUpload={handleAvatarUpload}
+                onBaseRoleSave={saveRoleBase}
+                onAudioRoleUpdate={(updatedRole) => {
+                  setLocalRole(updatedRole);
+                  updateRole(updatedRole);
+                }}
+                onAudioDelete={() => {
+                  const updatedRole = { ...localRole, voiceUrl: undefined };
+                  setLocalRole(updatedRole);
+                  updateRole(updatedRole);
+                }}
+              />
+              <div className="space-y-6">
                 {rightPanel}
               </div>
             </div>
