@@ -20,7 +20,6 @@ interface CharacterAvatarProps {
   onAvatarUpload: (data: any) => void;
   useUrlState?: boolean;
   editable?: boolean;
-  containerClassName?: string;
 }
 
 export default function CharacterAvatar({
@@ -33,7 +32,6 @@ export default function CharacterAvatar({
   avatarSizeClassName = "w-[50%] md:w-48",
   useUrlState = true,
   editable = true,
-  containerClassName = "justify-center",
 }: CharacterAvatarProps) {
   const [changeAvatarConfirmOpenUrl, setChangeAvatarConfirmOpenUrl] = useSearchParamsState<boolean>(`changeAvatarPop`, false);
   const [changeAvatarConfirmOpenLocal, setChangeAvatarConfirmOpenLocal] = useState(false);
@@ -53,7 +51,7 @@ export default function CharacterAvatar({
   };
 
   return (
-    <div className={`flex ${containerClassName}`}>
+    <div className="flex justify-center">
       <div
         className={`avatar flex items-center justify-center ${avatarSizeClassName} ${editable ? "cursor-pointer group" : "cursor-default"}`}
         onClick={() => {

@@ -117,7 +117,7 @@ export default function CharacterDetailLeftPanelHorizontal({
 
   return (
     <div className="card-sm md:card-xl bg-base-100 shadow-xs rounded-xl md:border-2 md:border-base-content/10">
-      <div className="card-body p-4 md:h-60">
+      <div className="card-body p-4 md:h-80">
         <div className="md:hidden">
           <div className="grid grid-cols-4 gap-2">
             <div className={`col-start-1 col-span-2 row-start-1 ${isDiceMaiden ? "row-span-2" : "row-span-3"} flex items-center justify-center`}>
@@ -199,12 +199,12 @@ export default function CharacterDetailLeftPanelHorizontal({
           />
         </div>
 
-        <div className="hidden h-full min-w-0 md:grid md:grid-cols-[13rem_minmax(15rem,1fr)_minmax(0,1fr)] md:gap-4">
+        <div className="hidden h-full min-w-0 md:grid md:grid-cols-[15rem_minmax(15rem,1fr)_minmax(14.5rem,15.5rem)] md:gap-4">
           <div className="flex h-full items-center justify-center">
             {isQueryLoading
               ? (
                   <div className="flex flex-col items-center gap-3">
-                    <div className="skeleton h-40 w-40 rounded-xl"></div>
+                    <div className="skeleton h-44 w-44 rounded-xl"></div>
                   </div>
                 )
               : (
@@ -214,7 +214,7 @@ export default function CharacterDetailLeftPanelHorizontal({
                     selectedAvatarId={selectedAvatarId}
                     selectedAvatarUrl={selectedAvatarUrl}
                     selectedSpriteUrl={selectedSpriteUrl}
-                    avatarSizeClassName="w-44"
+                    avatarSizeClassName="w-54"
                     onchange={onAvatarChange}
                     onAvatarSelect={onAvatarSelect}
                     onAvatarDelete={onAvatarDelete}
@@ -240,20 +240,19 @@ export default function CharacterDetailLeftPanelHorizontal({
 
             <div className="divider my-0" />
 
-            <div className="min-h-0 pt-3">
-              <div className="max-h-28 overflow-hidden">
-                <RoleBasicInfoEditor
-                  localRole={localRole}
-                  maxRoleNameLength={maxRoleNameLength}
-                  maxDescriptionLength={maxDescriptionLength}
-                  onBaseRoleSave={onBaseRoleSave}
-                  showName={false}
-                  className="space-y-0"
-                  descriptionDisplayClassName="text-sm leading-6 wrap-break-words line-clamp-4 overflow-hidden text-ellipsis"
-                  descriptionButtonClassName="rounded-none px-0 py-0 text-left"
-                  descriptionEditorClassName="flex min-h-0 flex-col"
-                />
-              </div>
+            <div className="flex min-h-0 flex-col pt-1">
+              <RoleBasicInfoEditor
+                localRole={localRole}
+                maxRoleNameLength={maxRoleNameLength}
+                maxDescriptionLength={maxDescriptionLength}
+                onBaseRoleSave={onBaseRoleSave}
+                showName={false}
+                className="flex h-full flex-col space-y-0"
+                descriptionDisplayClassName="min-h-36 text-sm leading-6 wrap-break-words line-clamp-6 overflow-hidden text-ellipsis"
+                descriptionButtonClassName="flex h-full items-start rounded-none px-0 py-0 text-left"
+                descriptionEditorClassName="flex min-h-0 flex-1 flex-col"
+                descriptionTextareaClassName="min-h-32 flex-1"
+              />
             </div>
 
             <div className="self-end pt-2 text-xs text-base-content/60">
@@ -262,8 +261,9 @@ export default function CharacterDetailLeftPanelHorizontal({
             </div>
           </div>
 
-          <div className="grid min-w-0 auto-rows-max gap-2 content-start">
+          <div className="flex h-full min-w-0 flex-col gap-2">
             {actionCards.map(card => renderCompactActionButton(card))}
+            <div className="min-h-0 flex-1 rounded-xl border border-base-content/10 bg-base-100/40" aria-hidden="true" />
           </div>
         </div>
 
