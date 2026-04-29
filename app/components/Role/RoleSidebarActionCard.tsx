@@ -23,7 +23,7 @@ export default function RoleSidebarActionCard({
   className = "",
 }: RoleSidebarActionCardProps) {
   return (
-    <div className={`card rounded-xl bg-base-100 transition-all duration-200 ${className}`}>
+    <div className={`card w-full rounded-xl bg-base-100 transition-all duration-200 ${className}`}>
       <div className="card-body gap-3 p-4">
         <button
           type="button"
