@@ -1,3 +1,5 @@
+import type { QueryClient } from "@tanstack/react-query";
+
 import type { BlocksuiteMentionRoleEntry } from "../services/blocksuiteRoleService";
 
 import { createBlocksuiteQuickSearchService } from "../services/quickSearchService";
@@ -21,6 +23,7 @@ export type CreateBlocksuiteEditorParams = {
   autofocus?: boolean;
   disableDocTitle?: boolean;
   onNavigateToDoc?: (params: { spaceId: number; docId: string }) => void;
+  queryClient?: QueryClient;
 };
 
 export type EditorDisposer = () => void;
@@ -33,6 +36,7 @@ export type BlocksuiteEditorAssemblyContext = {
   docModeProvider: CreateBlocksuiteEditorParams["docModeProvider"];
   spaceId?: number;
   onNavigateToDoc?: CreateBlocksuiteEditorParams["onNavigateToDoc"];
+  queryClient?: QueryClient;
   userService: ReturnType<typeof createTuanChatUserService>;
   roleService: ReturnType<typeof createTuanChatRoleService>;
   quickSearchService: ReturnType<typeof createBlocksuiteQuickSearchService>;
@@ -62,8 +66,9 @@ export function createBlocksuiteEditorAssemblyContext(params: CreateBlocksuiteEd
     docModeProvider: params.docModeProvider,
     spaceId: params.spaceId,
     onNavigateToDoc: params.onNavigateToDoc,
-    userService: createTuanChatUserService(),
-    roleService: createTuanChatRoleService(),
+    queryClient: params.queryClient,
+    userService: createTuanChatUserService({ queryClient: params.queryClient }),
+    roleService: createTuanChatRoleService({ queryClient: params.queryClient }),
     quickSearchService: createBlocksuiteQuickSearchService({
       searchDoc: quickSearchPicker.searchDoc,
       dispose: quickSearchPicker.dispose,

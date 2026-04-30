@@ -5,6 +5,7 @@ import { hasHostPrivileges, isObserverLike } from "@/components/chat/utils/membe
 import type { RoomMember, SpaceMember } from "../../../../api";
 
 import { useGetMemberListQuery } from "../../../../api/hooks/chatQueryHooks";
+import { isInitialQueryReady } from "./roomPrewarmReadiness";
 
 type UseRoomMemberStateParams = {
   roomId: number;
@@ -17,7 +18,10 @@ type UseRoomMemberStateResult = {
   curMember: RoomMemberWithSpace | undefined;
   isSpectator: boolean;
   notMember: boolean;
+  isMemberDataReady: boolean;
 };
+
+type ResolvedRoomMemberState = Omit<UseRoomMemberStateResult, "isMemberDataReady">;
 
 export type RoomMemberWithSpace = RoomMember & SpaceMember;
 
@@ -33,7 +37,7 @@ export function resolveRoomMemberState({
   roomMembers,
   userId,
   spaceMembers,
-}: ResolveRoomMemberStateParams): UseRoomMemberStateResult {
+}: ResolveRoomMemberStateParams): ResolvedRoomMemberState {
   const spaceMemberByUserId = new Map<number, SpaceMember>();
   for (const member of spaceMembers) {
     if (typeof member.userId === "number") {
@@ -102,5 +106,6 @@ export default function useRoomMemberState({
     curMember: roomMemberState.curMember,
     isSpectator: roomMemberState.isSpectator,
     notMember: roomMemberState.notMember,
+    isMemberDataReady: isInitialQueryReady(membersQuery),
   };
 }

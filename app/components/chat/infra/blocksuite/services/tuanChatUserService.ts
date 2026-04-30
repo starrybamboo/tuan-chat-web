@@ -1,8 +1,10 @@
 import type { AffineUserInfo, UserService } from "@blocksuite/affine/shared/services";
 import type { Signal } from "@preact/signals-core";
+import type { QueryClient } from "@tanstack/react-query";
 
 import { signal } from "@preact/signals-core";
 
+import { fetchUserInfoWithCache } from "@tuanchat/query/users";
 import { tuanchat } from "api/instance";
 
 type CacheEntry = {
@@ -34,8 +36,10 @@ function parseUserId(id: string): number | null {
 export function createTuanChatUserService(params?: {
   /** cache ttl in ms; default 10 minutes */
   ttlMs?: number;
+  queryClient?: QueryClient;
 }): TuanChatUserService {
   const ttlMs = params?.ttlMs ?? 10 * 60 * 1000;
+  const queryClient = params?.queryClient;
 
   const cache = new Map<string, CacheEntry>();
 
@@ -79,7 +83,9 @@ export function createTuanChatUserService(params?: {
           return;
         }
 
-        const resp = await tuanchat.userController.getUserInfo(userId);
+        const resp = queryClient
+          ? await fetchUserInfoWithCache(queryClient, tuanchat, userId, { staleTime: ttlMs })
+          : await tuanchat.userController.getUserInfo(userId);
         if (!resp.success) {
           entry.userInfo$.value = { id, removed: true };
           entry.error$.value = resp.errMsg ?? "Failed to load user";

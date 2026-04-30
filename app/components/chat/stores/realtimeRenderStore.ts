@@ -1,3 +1,5 @@
+import type { QueryClient } from "@tanstack/react-query";
+
 import { create } from "zustand";
 
 import type { RealtimeRenderCloudSettings } from "@/components/chat/infra/cloud/realtimeRenderSettingsCloud";
@@ -115,6 +117,9 @@ type RealtimeRenderState = {
   /** 当前已加载配置对应的 spaceId（用于云端保存） */
   activeSpaceId: number | null;
 
+  /** 非 React action 持有的 React Query 缓存入口，用于云端配置读写后同步缓存 */
+  queryClient: QueryClient | null;
+
   /** 云端配置是否已加载 */
   hydrated: boolean;
 
@@ -138,6 +143,7 @@ type RealtimeRenderState = {
   setTtsApiUrl: (value: string) => void;
   setTerrePortOverride: (port: number | null) => void;
   setGameConfig: (next: Partial<RealtimeWebgalGameConfig>) => void;
+  setQueryClient: (queryClient: QueryClient | null) => void;
   ensureHydrated: (spaceId?: number | null) => Promise<void>;
 
   setRuntime: (runtime: {
@@ -242,12 +248,12 @@ let hydratePromise: Promise<void> | null = null;
 let hydrateSpaceId: number | null = null;
 let persistQueue: Promise<void> = Promise.resolve();
 
-function enqueuePersist(spaceId: number, settings: RealtimeRenderCloudSettings): void {
+function enqueuePersist(spaceId: number, settings: RealtimeRenderCloudSettings, queryClient?: QueryClient | null): void {
   persistQueue = persistQueue
     .catch(() => {})
     .then(async () => {
       try {
-        await setRealtimeRenderSettingsToCloud(spaceId, settings);
+        await setRealtimeRenderSettingsToCloud(spaceId, settings, queryClient);
       }
       catch (error) {
         console.warn("[realtimeRenderStore] 保存 WebGAL 实时渲染配置失败:", error);
@@ -266,6 +272,7 @@ export const useRealtimeRenderStore = create<RealtimeRenderState>((set, get) => 
   terrePort: getDefaultTerrePort(),
   gameConfig: DEFAULT_REALTIME_WEBGAL_GAME_CONFIG,
   activeSpaceId: null,
+  queryClient: null,
   hydrated: false,
 
   status: "idle",
@@ -284,7 +291,7 @@ export const useRealtimeRenderStore = create<RealtimeRenderState>((set, get) => 
     const state = get();
     const spaceId = state.activeSpaceId;
     if (spaceId != null) {
-      enqueuePersist(spaceId, buildCloudSettingsSnapshot(state));
+      enqueuePersist(spaceId, buildCloudSettingsSnapshot(state), state.queryClient);
     }
   },
   setRoomContentAlertThreshold: (value) => {
@@ -296,7 +303,7 @@ export const useRealtimeRenderStore = create<RealtimeRenderState>((set, get) => 
     const state = get();
     const spaceId = state.activeSpaceId;
     if (spaceId != null) {
-      enqueuePersist(spaceId, buildCloudSettingsSnapshot(state));
+      enqueuePersist(spaceId, buildCloudSettingsSnapshot(state), state.queryClient);
     }
   },
   setTtsApiUrl: (value) => {
@@ -308,7 +315,7 @@ export const useRealtimeRenderStore = create<RealtimeRenderState>((set, get) => 
     const state = get();
     const spaceId = state.activeSpaceId;
     if (spaceId != null) {
-      enqueuePersist(spaceId, buildCloudSettingsSnapshot(state));
+      enqueuePersist(spaceId, buildCloudSettingsSnapshot(state), state.queryClient);
     }
   },
   setTerrePortOverride: (port) => {
@@ -324,7 +331,7 @@ export const useRealtimeRenderStore = create<RealtimeRenderState>((set, get) => 
     const state = get();
     const spaceId = state.activeSpaceId;
     if (spaceId != null) {
-      enqueuePersist(spaceId, buildCloudSettingsSnapshot(state));
+      enqueuePersist(spaceId, buildCloudSettingsSnapshot(state), state.queryClient);
     }
   },
   setGameConfig: (next) => {
@@ -364,9 +371,10 @@ export const useRealtimeRenderStore = create<RealtimeRenderState>((set, get) => 
     const state = get();
     const spaceId = state.activeSpaceId;
     if (spaceId != null) {
-      enqueuePersist(spaceId, buildCloudSettingsSnapshot(state));
+      enqueuePersist(spaceId, buildCloudSettingsSnapshot(state), state.queryClient);
     }
   },
+  setQueryClient: queryClient => set(state => (state.queryClient === queryClient ? state : { queryClient })),
   ensureHydrated: async (spaceId) => {
     const normalizedSpaceId = normalizeSpaceId(spaceId) ?? get().activeSpaceId;
     if (normalizedSpaceId == null) {
@@ -393,7 +401,7 @@ export const useRealtimeRenderStore = create<RealtimeRenderState>((set, get) => 
     hydratePromise = (async () => {
       let persisted: RealtimeRenderCloudSettings | null = null;
       try {
-        persisted = await getRealtimeRenderSettingsFromCloud(normalizedSpaceId);
+        persisted = await getRealtimeRenderSettingsFromCloud(normalizedSpaceId, get().queryClient);
       }
       catch (error) {
         console.warn("[realtimeRenderStore] 加载 WebGAL 实时渲染配置失败，回退默认配置:", error);

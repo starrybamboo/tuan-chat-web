@@ -1,4 +1,5 @@
 import { useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
+import { getUserInfoQueryKey, USER_INFO_STALE_TIME_MS } from "@tuanchat/query/users";
 import type { MessageDirectReadUpdateRequest, MessageDirectRecallRequest, MessageDirectSendRequest } from "api";
 import { tuanchat } from "../instance";
 import { useMemo } from "react";
@@ -96,9 +97,10 @@ export function useUpdateReadPositionMutation() {
 function useGetFriendsUserInfoQuery(friends: (number | undefined)[]) {
   return useQueries({
     queries: friends.map(friendId => ({
-      queryKey: ['getAllMyFriendsInfo', friendId],
+      queryKey: getUserInfoQueryKey(friendId || -1),
       queryFn: () => tuanchat.userController.getUserInfo(friendId || -1),
-      staleTime: 300000, 
+      staleTime: USER_INFO_STALE_TIME_MS,
+      enabled: typeof friendId === "number" && friendId > 0,
     }))
   });
 }

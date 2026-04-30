@@ -1,3 +1,5 @@
+import type { QueryClient } from "@tanstack/react-query";
+
 import { useCallback } from "react";
 import { toast } from "react-hot-toast";
 
@@ -35,6 +37,7 @@ type UseRoomImportActionsParams = {
   sendMessageWithInsert: (message: ChatMessageRequest) => Promise<ChatMessageResponse["message"] | null>;
   sendMessageBatch: (messages: ChatMessageRequest[]) => Promise<ChatMessageResponse["message"][]>;
   ensureRuntimeAvatarIdForRole: (roleId: number) => Promise<number>;
+  queryClient?: QueryClient;
   roomUiStoreApi: RoomUiStoreApi;
 };
 
@@ -64,6 +67,7 @@ export default function useRoomImportActions({
   sendMessageWithInsert,
   sendMessageBatch,
   ensureRuntimeAvatarIdForRole,
+  queryClient,
   roomUiStoreApi,
 }: UseRoomImportActionsParams): UseRoomImportActionsResult {
   const ensureLoadedDocSnapshotReadyForSharing = useCallback(async (params: {
@@ -204,7 +208,10 @@ export default function useRoomImportActions({
         if (dicerRoleId != null && dicerAvatarId != null) {
           return;
         }
-        const resolvedDicerRoleId = await UTILS.getDicerRoleId(roomContext);
+        const resolvedDicerRoleId = await UTILS.getDicerRoleId(
+          roomContext,
+          queryClient ? { queryClient } : undefined,
+        );
         dicerRoleId = resolvedDicerRoleId;
         const ensured = await ensureAvatarIdForRole(resolvedDicerRoleId);
         dicerAvatarId = ensured > 0 ? ensured : 0;
@@ -300,6 +307,7 @@ export default function useRoomImportActions({
     ensureRuntimeAvatarIdForRole,
     isSubmitting,
     notMember,
+    queryClient,
     roomContext,
     roomId,
     roomUiStoreApi,

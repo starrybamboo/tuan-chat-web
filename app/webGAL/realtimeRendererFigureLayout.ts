@@ -2,6 +2,8 @@ import type { FigurePositionKey } from "@/types/voiceRenderTypes";
 
 import { FIGURE_POSITION_IDS, FIGURE_POSITION_ORDER } from "@/types/voiceRenderTypes";
 
+import type { RoleAvatar } from "../../api";
+
 export const IMAGE_MESSAGE_FIGURE_ID = "image_message";
 export const EFFECT_OFFSET_X = -200;
 const WEBGAL_STAGE_WIDTH = 2560;
@@ -156,6 +158,56 @@ export function buildFigureArgs(id: string, transform: string): string {
     parts.push(transform);
   }
   return parts.join(" ");
+}
+
+export function buildRoleFigureTransformString(
+  avatar: RoleAvatar | undefined,
+  offsetX = 0,
+  offsetY = 0,
+): string {
+  if (!avatar && offsetX === 0 && offsetY === 0) {
+    return "";
+  }
+
+  const spriteTransform = avatar?.spriteTransform;
+  const rotationRad = spriteTransform?.rotation
+    ? (spriteTransform.rotation * Math.PI / 180)
+    : 0;
+
+  const transform = {
+    position: {
+      x: (spriteTransform?.positionX ?? 0) + offsetX,
+      y: (spriteTransform?.positionY ?? 0) + offsetY,
+    },
+    scale: {
+      x: spriteTransform?.scale ?? 1,
+      y: spriteTransform?.scale ?? 1,
+    },
+    alpha: spriteTransform?.alpha ?? 1,
+    rotation: rotationRad,
+  };
+  return `-transform=${JSON.stringify(transform)}`;
+}
+
+export function buildImageFigureTransformString(
+  imageMessage: ImageFigureMessageShape | undefined,
+  offsetX = 0,
+): string {
+  const presetLayout = resolveImageFigureLayout(imageMessage);
+  const layout = clampImageFigureLayoutToSafeZone(imageMessage, presetLayout);
+  const transform = {
+    position: {
+      x: offsetX,
+      y: layout.offsetY,
+    },
+    scale: {
+      x: layout.scale,
+      y: layout.scale,
+    },
+    alpha: 1,
+    rotation: 0,
+  };
+  return `-transform=${JSON.stringify(transform)}`;
 }
 
 type ClearFigureOptions = {

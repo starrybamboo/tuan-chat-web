@@ -13,6 +13,7 @@ const QUALITY_STEP = 6;
 const FALLBACK_MAX_EDGES = [128, 112, 96, 80, 64];
 const DEFAULT_DOWNLOAD_TIMEOUT_MS = 10_000;
 const DEFAULT_CONCURRENCY = 6;
+const IMMUTABLE_CACHE_CONTROL = "public, max-age=31536000, immutable";
 const DEFAULT_DB = {
   host: "127.0.0.1",
   port: "5432",
@@ -416,8 +417,9 @@ async function putObject(ossConfig, objectName, body, contentType) {
   const dateStamp = amzDate.slice(0, 8);
   const payloadHash = sha256Hex(body);
   const host = uploadUrl.host;
-  const signedHeaders = "content-type;host;x-amz-content-sha256;x-amz-date";
+  const signedHeaders = "cache-control;content-type;host;x-amz-content-sha256;x-amz-date";
   const canonicalHeaders = [
+    `cache-control:${IMMUTABLE_CACHE_CONTROL}`,
     `content-type:${contentType}`,
     `host:${host}`,
     `x-amz-content-sha256:${payloadHash}`,
@@ -451,6 +453,7 @@ async function putObject(ossConfig, objectName, body, contentType) {
     method: "PUT",
     headers: {
       "authorization": authorization,
+      "cache-control": IMMUTABLE_CACHE_CONTROL,
       "content-type": contentType,
       "x-amz-content-sha256": payloadHash,
       "x-amz-date": amzDate,

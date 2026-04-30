@@ -65,6 +65,9 @@ describe("blocksuiteRemoteImageBlobSource", () => {
       data: {
         uploadUrl: "https://upload.example/blocksuite-image",
         downloadUrl: "https://download.example/blocksuite-image",
+        uploadHeaders: {
+          "Cache-Control": "public, max-age=31536000, immutable",
+        },
       },
     });
 
@@ -91,6 +94,10 @@ describe("blocksuiteRemoteImageBlobSource", () => {
         expect.objectContaining({
           method: "PUT",
           body: imageBlob,
+          headers: expect.objectContaining({
+            "Cache-Control": "public, max-age=31536000, immutable",
+            "Content-Type": "image/png",
+          }),
         }),
       );
       expect(latestState?.uploading).toBe(false);

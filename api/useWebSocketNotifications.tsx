@@ -6,6 +6,7 @@ import type { ChatMessageResponse } from "@tuanchat/openapi-client/models/ChatMe
 import type { UserNotificationItem } from "@/components/notification/notificationTypes";
 import type { DirectMessageEvent, NewFriendRequestPush } from "./wsModels";
 
+import { fetchUserInfoWithCache } from "@tuanchat/query/users";
 import {
   readFeedbackDesktopEnabledFromLocalStorage,
   readFeedbackInAppEnabledFromLocalStorage,
@@ -15,6 +16,7 @@ import { showDesktopNotification } from "@/utils/desktopNotification";
 import { isRunningInsideNativeAppWebView, postNativeAppNotification } from "@/utils/nativeAppBridge";
 import { useCallback } from "react";
 import toast from "react-hot-toast";
+import { fetchRoomInfoWithCache } from "./hooks/chatQueryHooks";
 import { tuanchat } from "./instance";
 import {
   DirectMessageToastContent,
@@ -137,9 +139,8 @@ export function useWebSocketNotifications({
 
     if (!senderInfo && (!senderNameFromMessage || !senderAvatarFromMessage)) {
       try {
-        const userResp = await tuanchat.userController.getUserInfo(message.senderId);
+        const userResp = await fetchUserInfoWithCache(queryClient, tuanchat, message.senderId);
         senderInfo = userResp.data;
-        queryClient.setQueryData(["getUserInfo", message.senderId], userResp);
       }
       catch {
         // ignore
@@ -255,10 +256,9 @@ export function useWebSocketNotifications({
 
     if (roomSpaceId == null) {
       try {
-        const roomInfoResp = await tuanchat.roomController.getRoomInfo(message.roomId);
+        const roomInfoResp = await fetchRoomInfoWithCache(queryClient, message.roomId);
         const roomInfo = roomInfoResp.data;
         if (roomInfo) {
-          queryClient.setQueryData(["getRoomInfo", message.roomId], roomInfoResp);
           roomName = (roomInfo.name ?? "").trim() || roomName;
           if (typeof roomInfo.spaceId === "number" && roomInfo.spaceId > 0) {
             roomSpaceId = roomInfo.spaceId;
@@ -273,9 +273,8 @@ export function useWebSocketNotifications({
     let senderInfo = queryClient.getQueryData<ApiResultUserInfoResponse>(["getUserInfo", message.userId])?.data;
     if (!senderInfo) {
       try {
-        const userResp = await tuanchat.userController.getUserInfo(message.userId);
+        const userResp = await fetchUserInfoWithCache(queryClient, tuanchat, message.userId);
         senderInfo = userResp.data;
-        queryClient.setQueryData(["getUserInfo", message.userId], userResp);
       }
       catch {
         // ignore

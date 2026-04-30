@@ -1,11 +1,13 @@
 import type { ExtensionType } from "@blocksuite/store";
 import type { Signal } from "@preact/signals-core";
+import type { QueryClient } from "@tanstack/react-query";
 
 import { createIdentifier } from "@blocksuite/global/di";
 import { signal } from "@preact/signals-core";
 
 import type { UserRole } from "@tuanchat/openapi-client/models/UserRole";
 
+import { fetchRoleWithCache } from "api/hooks/RoleAndAvatarHooks";
 import { tuanchat } from "api/instance";
 
 export type BlocksuiteRoleInfo = {
@@ -72,8 +74,10 @@ function toRoleInfo(id: string, role: UserRole): BlocksuiteRoleInfo {
 
 export function createTuanChatRoleService(params?: {
   ttlMs?: number;
+  queryClient?: QueryClient;
 }): TuanChatRoleService {
   const ttlMs = params?.ttlMs ?? 10 * 60 * 1000;
+  const queryClient = params?.queryClient;
   const cache = new Map<string, CacheEntry>();
 
   const getOrCreate = (idRaw: string): CacheEntry => {
@@ -130,7 +134,9 @@ export function createTuanChatRoleService(params?: {
           return;
         }
 
-        const response = await tuanchat.roleController.getRole(roleId);
+        const response = queryClient
+          ? await fetchRoleWithCache(queryClient, roleId)
+          : await tuanchat.roleController.getRole(roleId);
         if (!response.success || !response.data) {
           setRemoved(id, response.errMsg ?? "Failed to load role");
           return;

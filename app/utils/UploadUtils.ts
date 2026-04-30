@@ -1,11 +1,13 @@
 import { Md5 } from "ts-md5";
 
 import type { ImageCompressionOptions, ImageCompressionPreset } from "@/utils/imgCompressUtils";
+import type { OssUploadHeaders } from "@/utils/ossUploadTarget";
 
 import { isAudioUploadDebugEnabled } from "@/utils/audioDebugFlags";
 import { transcodeAudioFileToOpusOrThrow } from "@/utils/audioTranscodeUtils";
 import { assertAudioUploadInputSizeOrThrow, buildDefaultAudioUploadTranscodeOptions } from "@/utils/audioUploadPolicy";
 import { compressImage, DEFAULT_IMAGE_COMPRESSION_OPTIONS, IMAGE_COMPRESSION_PRESETS } from "@/utils/imgCompressUtils";
+import { resolveOssUploadTarget } from "@/utils/ossUploadTarget";
 import { transcodeVideoFileToWebmOrThrow } from "@/utils/videoTranscodeUtils";
 
 import { tuanchat } from "../../api/instance";
@@ -25,10 +27,7 @@ export class UploadUtils {
   private static readonly imagePrepareCache = new WeakMap<File, Map<string, Promise<PreparedImagePayload>>>();
   private static readonly videoPrepareCache = new WeakMap<File, Promise<File>>();
   private static readonly audioPrepareCache = new WeakMap<File, Map<string, Promise<File>>>();
-  private static readonly devOssUploadProxyPath = "/api/oss-upload-proxy";
   private static readonly defaultEnableBrowserVideoTranscode = true;
-  // 上传文件名采用 hash_size.ext，可视作内容寻址；同 URL 可长期强缓存。
-  private static readonly immutableUploadCacheControl = "public, max-age=31536000, immutable";
 
   private static getOrCreateNestedPromise<T>(
     cache: WeakMap<File, Map<string, Promise<T>>>,
@@ -380,7 +379,7 @@ export class UploadUtils {
       console.warn(`${debugPrefix} uploadUrl`, ossData.data.uploadUrl);
 
     if (ossData.data.uploadUrl) {
-      await this.executeUpload(ossData.data.uploadUrl, processedFile);
+      await this.executeUpload(ossData.data.uploadUrl, processedFile, ossData.data.uploadHeaders);
     }
     else if (debugEnabled) {
       console.warn(`${debugPrefix} dedup hit: skip upload`, { fileName: newFileName });
@@ -425,7 +424,7 @@ export class UploadUtils {
     }
 
     if (ossData.data.uploadUrl) {
-      await this.executeUpload(ossData.data.uploadUrl, file);
+      await this.executeUpload(ossData.data.uploadUrl, file, ossData.data.uploadHeaders);
     }
 
     return ossData.data.downloadUrl;
@@ -476,7 +475,7 @@ export class UploadUtils {
     }
 
     if (ossData.data.uploadUrl) {
-      await this.executeUpload(ossData.data.uploadUrl, uploadCandidate);
+      await this.executeUpload(ossData.data.uploadUrl, uploadCandidate, ossData.data.uploadHeaders);
     }
 
     return {
@@ -507,7 +506,7 @@ export class UploadUtils {
     }
 
     if (ossData.data.uploadUrl) {
-      await this.executeUpload(ossData.data.uploadUrl, file);
+      await this.executeUpload(ossData.data.uploadUrl, file, ossData.data.uploadHeaders);
     }
 
     return ossData.data.downloadUrl;
@@ -554,7 +553,7 @@ export class UploadUtils {
     }
 
     if (ossData.data.uploadUrl) {
-      await this.executeUpload(ossData.data.uploadUrl, file);
+      await this.executeUpload(ossData.data.uploadUrl, file, ossData.data.uploadHeaders);
     }
 
     return ossData.data.downloadUrl;
@@ -709,54 +708,7 @@ export class UploadUtils {
     });
   }
 
-  private resolveUploadTarget(url: string, file: File): {
-    targetUrl: string;
-    headers?: Record<string, string>;
-    viaDevProxy: boolean;
-  } {
-    const directHeaders: Record<string, string> = {
-      "Cache-Control": UploadUtils.immutableUploadCacheControl,
-    };
-    if (file.type) {
-      directHeaders["Content-Type"] = file.type;
-    }
-    if (!import.meta.env.DEV || typeof window === "undefined") {
-      return {
-        targetUrl: url,
-        headers: directHeaders,
-        viaDevProxy: false,
-      };
-    }
-
-    try {
-      const target = new URL(url, window.location.href);
-      if (target.origin === window.location.origin) {
-        return {
-          targetUrl: url,
-          headers: directHeaders,
-          viaDevProxy: false,
-        };
-      }
-    }
-    catch {
-      return {
-        targetUrl: url,
-        headers: directHeaders,
-        viaDevProxy: false,
-      };
-    }
-
-    return {
-      targetUrl: UploadUtils.devOssUploadProxyPath,
-      headers: {
-        "X-TC-OSS-Upload-Url": encodeURIComponent(url),
-        ...directHeaders,
-      },
-      viaDevProxy: true,
-    };
-  }
-
-  private async uploadWithTimeout(url: string, file: File, headers?: Record<string, string>): Promise<Response> {
+  private async uploadWithTimeout(url: string, file: File, headers?: OssUploadHeaders): Promise<Response> {
     const controller = new AbortController();
     const t = globalThis.setTimeout(() => controller.abort(), 120_000);
 
@@ -773,8 +725,8 @@ export class UploadUtils {
     }
   }
 
-  private async executeUpload(url: string, file: File): Promise<void> {
-    const { targetUrl, headers, viaDevProxy } = this.resolveUploadTarget(url, file);
+  private async executeUpload(url: string, file: File, uploadHeaders?: OssUploadHeaders): Promise<void> {
+    const { targetUrl, headers, viaDevProxy } = resolveOssUploadTarget(url, file, uploadHeaders);
     const response = await this.uploadWithTimeout(targetUrl, file, headers);
     if (!response.ok) {
       if (response.status === 413) {

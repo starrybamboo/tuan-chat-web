@@ -34,6 +34,9 @@ describe("uploadUtils.uploadVideo", () => {
       data: {
         uploadUrl: "https://upload.example/video",
         downloadUrl: "https://cdn.example/video.webm",
+        uploadHeaders: {
+          "Cache-Control": "public, max-age=31536000, immutable",
+        },
       },
     });
 
@@ -49,7 +52,9 @@ describe("uploadUtils.uploadVideo", () => {
       scene: 1,
       dedupCheck: true,
     });
-    expect(uploadSpy).toHaveBeenCalledWith("https://upload.example/video", transcodedFile);
+    expect(uploadSpy).toHaveBeenCalledWith("https://upload.example/video", transcodedFile, {
+      "Cache-Control": "public, max-age=31536000, immutable",
+    });
     expect(result).toEqual({
       url: "https://cdn.example/video.webm",
       fileName: "clip.webm",
@@ -81,7 +86,7 @@ describe("uploadUtils.uploadVideo", () => {
       scene: 1,
       dedupCheck: true,
     });
-    expect(uploadSpy).toHaveBeenCalledWith("https://upload.example/video-direct", file);
+    expect(uploadSpy).toHaveBeenCalledWith("https://upload.example/video-direct", file, undefined);
     expect(result).toEqual({
       url: "https://cdn.example/video-direct.mkv",
       fileName: "movie.mkv",
@@ -117,7 +122,7 @@ describe("uploadUtils.uploadVideo", () => {
       dedupCheck: true,
     });
     expect(warnSpy).toHaveBeenCalled();
-    expect(uploadSpy).toHaveBeenCalledWith("https://upload.example/video2", file);
+    expect(uploadSpy).toHaveBeenCalledWith("https://upload.example/video2", file, undefined);
     expect(result).toEqual({
       url: "https://cdn.example/video2.mkv",
       fileName: "sample.mkv",

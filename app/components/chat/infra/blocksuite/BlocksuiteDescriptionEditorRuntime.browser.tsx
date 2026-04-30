@@ -2,6 +2,7 @@ import type { DocMode } from "@blocksuite/affine/model";
 import type { DescriptionEntityType } from "@/components/chat/infra/blocksuite/description/descriptionDocId";
 import type { BlocksuiteDocHeader } from "@/components/chat/infra/blocksuite/document/docHeader";
 import type { BlocksuiteFrameToHostPayload } from "@/components/chat/infra/blocksuite/shared/frameProtocol";
+import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import { parseDescriptionDocId } from "@/components/chat/infra/blocksuite/description/descriptionDocId";
@@ -96,6 +97,7 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
   } = props;
 
   const isFull = true;
+  const queryClient = useQueryClient();
   const [isForcePullingCloud, setIsForcePullingCloud] = useState(false);
   const tcHeaderEnabled = Boolean(tcHeader?.enabled);
 
@@ -156,6 +158,7 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
     tcHeaderFallbackTitle: tcHeader?.fallbackTitle,
     tcHeaderFallbackImageUrl: tcHeader?.fallbackImageUrl,
     docModeProvider,
+    queryClient,
     isFull,
     postToParent,
   });

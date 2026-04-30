@@ -16,7 +16,7 @@ import type { RealtimeWebgalGameConfig } from "@/components/chat/stores/realtime
 import type { ChatMessageResponse, RoleAvatar, Room, UserRole } from "../../api";
 import type { RealtimeTTSConfig } from "./realtimeRenderer";
 
-import { tuanchat } from "../../api/instance";
+import { fetchRoleAvatarWithCache } from "../../api/hooks/RoleAndAvatarHooks";
 import { onWebgalAvatarUpdated } from "./avatarSync";
 import {
   collectMessageAssetWarmupPlan,
@@ -135,7 +135,8 @@ function useRealtimeRender({
       return false;
     }
     const cached = queryClient.getQueryData<any>(["getRoleAvatar", avatarId]);
-    return Boolean(cached?.data ?? cached?.data?.data ?? cached);
+    const candidate = cached?.data ?? cached;
+    return Boolean(candidate && typeof candidate === "object" && "avatarId" in candidate);
   }, [queryClient]);
 
   const fetchAndCacheAvatars = useCallback(async (
@@ -149,10 +150,7 @@ function useRealtimeRender({
     let completedCount = 0;
     await runWithConcurrencyLimit(avatarIds, DEFAULT_REALTIME_ASSET_CONCURRENCY, async (avatarId) => {
       try {
-        const avatarResponse = await tuanchat.avatarController.getRoleAvatar(avatarId);
-        if (avatarResponse.data) {
-          queryClient.setQueryData(["getRoleAvatar", avatarId], avatarResponse);
-        }
+        await fetchRoleAvatarWithCache(queryClient, avatarId);
       }
       catch (error) {
         console.error(`获取头像 ${avatarId} 失败:`, error);
@@ -228,7 +226,7 @@ function useRealtimeRender({
     if (rendererRef.current && avatars.length > 0) {
       avatars.forEach((avatar) => {
         if (avatar.avatarId) {
-          queryClient.setQueryData(["getRoleAvatar", avatar.avatarId], { data: avatar });
+          queryClient.setQueryData(["getRoleAvatar", avatar.avatarId], { success: true, data: avatar });
         }
       });
     }
@@ -239,7 +237,7 @@ function useRealtimeRender({
       if (!avatarId || !avatar) {
         return;
       }
-      queryClient.setQueryData(["getRoleAvatar", avatarId], { data: avatar });
+      queryClient.setQueryData(["getRoleAvatar", avatarId], { success: true, data: avatar });
       if (rendererRef.current) {
         rendererRef.current.invalidateAvatarCaches(avatarId);
       }
@@ -439,9 +437,8 @@ function useRealtimeRender({
 
     if (!cached?.data && avatarId && avatarId > 0) {
       try {
-        const avatarResponse = await tuanchat.avatarController.getRoleAvatar(avatarId);
+        const avatarResponse = await fetchRoleAvatarWithCache(queryClient, avatarId);
         if (avatarResponse.data) {
-          queryClient.setQueryData(["getRoleAvatar", avatarId], avatarResponse);
           console.warn(`[useRealtimeRender] 成功获取头像 ${avatarId}:`, avatarResponse.data.avatarUrl || avatarResponse.data.spriteUrl);
         }
       }
@@ -552,7 +549,7 @@ function useRealtimeRender({
     if (rendererRef.current) {
       newAvatars.forEach((avatar) => {
         if (avatar.avatarId) {
-          queryClient.setQueryData(["getRoleAvatar", avatar.avatarId], { data: avatar });
+          queryClient.setQueryData(["getRoleAvatar", avatar.avatarId], { success: true, data: avatar });
         }
       });
     }
@@ -614,10 +611,7 @@ function useRealtimeRender({
 
     if (!cached?.data && avatarId && avatarId > 0) {
       try {
-        const avatarResponse = await tuanchat.avatarController.getRoleAvatar(avatarId);
-        if (avatarResponse.data) {
-          queryClient.setQueryData(["getRoleAvatar", avatarId], avatarResponse);
-        }
+        await fetchRoleAvatarWithCache(queryClient, avatarId);
       }
       catch (error) {
         console.error("获取头像信息失败:", error);

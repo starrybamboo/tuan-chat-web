@@ -1,7 +1,13 @@
 import type { ChatMessageResponse, UserRole } from "../../../../api";
 
-import type { CollapsibleSectionKey, RenderableRoom, RoomRenderState, SpaceWebgalSettingsTab } from "./spaceWebgalRenderWindowParts";
-import { useGetSpaceInfoQuery, useGetUserRoomsQuery } from "api/hooks/chatQueryHooks";
+import type { BatchProgress, CollapsibleSectionKey, RenderableRoom, RoomRenderState, SpaceWebgalSettingsTab } from "./spaceWebgalRenderWindowParts";
+import { useQueryClient } from "@tanstack/react-query";
+import {
+  fetchRoomNpcRoleWithCache,
+  fetchRoomRoleWithCache,
+  useGetSpaceInfoQuery,
+  useGetUserRoomsQuery,
+} from "api/hooks/chatQueryHooks";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import toast from "react-hot-toast";
 import {
@@ -10,28 +16,23 @@ import {
   MIN_ROOM_CONTENT_ALERT_THRESHOLD,
   useRealtimeRenderStore,
 } from "@/components/chat/stores/realtimeRenderStore";
-import WorkflowWindow from "@/components/chat/window/workflowWindow";
 import launchWebGal, { appendWebgalLaunchHints } from "@/utils/launchWebGal";
 import { pollPort } from "@/utils/pollPort";
 import { UploadUtils } from "@/utils/UploadUtils";
 import { getTerreBaseUrl, getTerreHealthcheckUrl } from "@/webGAL/terreConfig";
 import useRealtimeRender from "@/webGAL/useRealtimeRender";
 import { tuanchat } from "../../../../api/instance";
+import { SpaceWebgalRenderWindowHeader } from "./spaceWebgalRenderWindowHeader";
+import { SpaceWebgalBatchStatusPanel } from "./spaceWebgalRenderWindowPanels";
 import {
-  BASE_TEMPLATE_OPTIONS,
-  buildRoomStatusMeta,
-  buildStatusMeta,
   COLLAPSIBLE_SECTION_KEYS,
-  ConfigHelpButton,
-  ConfigItemLabel,
-  DEFAULT_LANGUAGE_OPTIONS,
   DEFAULT_SECTION_EXPANDED,
   extractArrayPayload,
   getErrorMessage,
   isRenderableRoom,
-  SectionCollapseToggle,
   sortMessagesForRender,
 } from "./spaceWebgalRenderWindowParts";
+import { SpaceWebgalRenderWindowSettings } from "./spaceWebgalRenderWindowSettings";
 
 interface SpaceWebgalRenderWindowProps {
   spaceId: number;
@@ -40,6 +41,7 @@ interface SpaceWebgalRenderWindowProps {
 export default function SpaceWebgalRenderWindow({ spaceId }: SpaceWebgalRenderWindowProps) {
   const spaceInfoQuery = useGetSpaceInfoQuery(spaceId);
   const roomsQuery = useGetUserRoomsQuery(spaceId);
+  const queryClient = useQueryClient();
   const rooms = useMemo(() => {
     return roomsQuery.data?.data?.rooms ?? [];
   }, [roomsQuery.data?.data?.rooms]);
@@ -50,6 +52,7 @@ export default function SpaceWebgalRenderWindow({ spaceId }: SpaceWebgalRenderWi
   const spaceName = spaceInfoQuery.data?.data?.name;
 
   const ensureHydrated = useRealtimeRenderStore(state => state.ensureHydrated);
+  const setRealtimeRenderQueryClient = useRealtimeRenderStore(state => state.setQueryClient);
   const ttsEnabled = useRealtimeRenderStore(state => state.ttsEnabled);
   const setTtsEnabled = useRealtimeRenderStore(state => state.setTtsEnabled);
   const ttsApiUrl = useRealtimeRenderStore(state => state.ttsApiUrl);
@@ -77,7 +80,7 @@ export default function SpaceWebgalRenderWindow({ spaceId }: SpaceWebgalRenderWi
   const [isTitleImageUploading, setIsTitleImageUploading] = useState(false);
   const [isStartupLogoUploading, setIsStartupLogoUploading] = useState(false);
   const [isTypingSoundSeUploading, setIsTypingSoundSeUploading] = useState(false);
-  const [batchProgress, setBatchProgress] = useState<{ current: number; total: number; roomName?: string } | null>(null);
+  const [batchProgress, setBatchProgress] = useState<BatchProgress | null>(null);
   const [roomRenderStateMap, setRoomRenderStateMap] = useState<Record<number, RoomRenderState>>({});
   const [ttsApiInput, setTtsApiInput] = useState("");
   const [descriptionInput, setDescriptionInput] = useState("");
@@ -91,6 +94,10 @@ export default function SpaceWebgalRenderWindow({ spaceId }: SpaceWebgalRenderWi
   const [roomContentAlertThresholdInput, setRoomContentAlertThresholdInput] = useState("");
   const [renderPortExpanded, setRenderPortExpanded] = useState(false);
   const [sectionExpandedMap, setSectionExpandedMap] = useState<Record<CollapsibleSectionKey, boolean>>(DEFAULT_SECTION_EXPANDED);
+
+  useEffect(() => {
+    setRealtimeRenderQueryClient(queryClient);
+  }, [queryClient, setRealtimeRenderQueryClient]);
 
   useEffect(() => {
     void ensureHydrated(spaceId);
@@ -202,8 +209,8 @@ export default function SpaceWebgalRenderWindow({ spaceId }: SpaceWebgalRenderWi
     for (const room of targetRooms) {
       const roomId = room.roomId;
       const [playerRolesResult, npcRolesResult] = await Promise.allSettled([
-        tuanchat.roomRoleController.roomRole(roomId),
-        tuanchat.roomRoleController.roomNpcRole(roomId),
+        fetchRoomRoleWithCache(queryClient, roomId),
+        fetchRoomNpcRoleWithCache(queryClient, roomId),
       ]);
 
       if (playerRolesResult.status === "fulfilled") {
@@ -224,7 +231,7 @@ export default function SpaceWebgalRenderWindow({ spaceId }: SpaceWebgalRenderWi
       }
     }
     return Array.from(roleMap.values());
-  }, []);
+  }, [queryClient]);
 
   const handleStartRealtimeRender = useCallback(async (): Promise<boolean> => {
     if (realtimeStatus === "initializing") {
@@ -567,6 +574,11 @@ export default function SpaceWebgalRenderWindow({ spaceId }: SpaceWebgalRenderWi
     toast.success("Terre 端口已保存");
   }, [setTerrePortOverride, terrePortInput]);
 
+  const handleTerrePortInputChange = useCallback((value: string) => {
+    setTerrePortInput(value);
+    setTerrePortError(null);
+  }, []);
+
   const handleSaveRoomContentAlertThreshold = useCallback(() => {
     const trimmedValue = roomContentAlertThresholdInput.trim();
     if (!trimmedValue) {
@@ -618,8 +630,10 @@ export default function SpaceWebgalRenderWindow({ spaceId }: SpaceWebgalRenderWi
   const isAllSectionsExpanded = COLLAPSIBLE_SECTION_KEYS.every(key => sectionExpandedMap[key]);
   const isAllSectionsCollapsed = COLLAPSIBLE_SECTION_KEYS.every(key => !sectionExpandedMap[key]);
 
-  const renderStatusMeta = buildStatusMeta(realtimeStatus);
   const isTtsConfigVisible = sectionExpandedMap.ttsLayer;
+  const handleToggleRenderPortExpanded = useCallback(() => {
+    setRenderPortExpanded(prev => !prev);
+  }, []);
   const webgalEditorUrl = useMemo(() => {
     const match = realtimePreviewUrl?.match(/\/games\/([^/]+)/);
     const gameDir = match?.[1] || `realtime_${spaceId}`;
@@ -629,771 +643,89 @@ export default function SpaceWebgalRenderWindow({ spaceId }: SpaceWebgalRenderWi
   return (
     <div className="h-full w-full overflow-y-auto">
       <div className="w-full min-w-0 p-4 space-y-4">
-        <div className="rounded-lg border border-base-300 bg-base-100 p-4">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <div className="text-base font-semibold">空间级 WebGAL 渲染</div>
-              <div className="text-xs text-base-content/70 mt-1">
-                游戏名使用空间名称+ID，渲染范围为当前空间下所有未删除房间。
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className={`badge ${renderStatusMeta.badgeClass}`}>{renderStatusMeta.label}</div>
-              <button
-                type="button"
-                className="h-8 w-8 rounded-md flex items-center justify-center text-base-content/60 hover:text-base-content hover:bg-base-200 transition-colors"
-                title={renderPortExpanded ? "收起渲染端口设置" : "展开渲染端口设置"}
-                aria-label={renderPortExpanded ? "收起渲染端口设置" : "展开渲染端口设置"}
-                onClick={() => setRenderPortExpanded(prev => !prev)}
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className={`h-4 w-4 transition-transform duration-200 ${renderPortExpanded ? "rotate-180" : ""}`}
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="m19 9-7 7-7-7" />
-                </svg>
-              </button>
-            </div>
-          </div>
+        <SpaceWebgalRenderWindowHeader
+          realtimeStatus={realtimeStatus}
+          realtimeInitProgress={realtimeInitProgress}
+          isRealtimeActive={isRealtimeActive}
+          isBatchRendering={isBatchRendering}
+          renderPortExpanded={renderPortExpanded}
+          terrePort={terrePort}
+          terrePortInput={terrePortInput}
+          terrePortError={terrePortError}
+          webgalEditorUrl={webgalEditorUrl}
+          batchProgress={batchProgress}
+          onToggleRealtimeRender={handleToggleRealtimeRender}
+          onToggleRenderPortExpanded={handleToggleRenderPortExpanded}
+          onTerrePortInputChange={handleTerrePortInputChange}
+          onSaveTerrePort={handleSaveTerrePort}
+        />
 
-          <div className="mt-4 flex flex-wrap gap-2">
-            <button
-              type="button"
-              className={`btn btn-sm ${isRealtimeActive ? "btn-outline" : "btn-primary"}`}
-              disabled={realtimeStatus === "initializing" || isBatchRendering}
-              onClick={handleToggleRealtimeRender}
-            >
-              {isRealtimeActive ? "停止渲染器" : "启动并渲染全部房间"}
-            </button>
-            <a
-              href={webgalEditorUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="btn btn-sm btn-outline"
-              title="打开 WebGAL 编辑器"
-            >
-              打开 WebGAL 编辑器
-            </a>
-          </div>
-          {renderPortExpanded && (
-            <div className="mt-3 rounded-md border border-base-300 px-3 py-2">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <div className="text-sm">{`Terre 端口（当前：${terrePort}）`}</div>
-                <div className="flex items-center gap-2">
-                  <input
-                    type="text"
-                    inputMode="numeric"
-                    className="input input-bordered input-sm w-36"
-                    placeholder="默认"
-                    value={terrePortInput}
-                    onChange={(event) => {
-                      setTerrePortInput(event.target.value);
-                      setTerrePortError(null);
-                    }}
-                    onKeyDown={(event) => {
-                      if (event.key === "Enter") {
-                        handleSaveTerrePort();
-                      }
-                    }}
-                  />
-                  <button
-                    type="button"
-                    className="btn btn-sm btn-outline"
-                    onClick={handleSaveTerrePort}
-                  >
-                    保存
-                  </button>
-                </div>
-              </div>
-              {terrePortError && <div className="text-xs text-error mt-1">{terrePortError}</div>}
-            </div>
-          )}
-
-          {batchProgress && (
-            <div className="mt-3 text-sm text-base-content/80">
-              正在渲染：
-              {batchProgress.current}
-              /
-              {batchProgress.total}
-              {batchProgress.roomName ? `（${batchProgress.roomName}）` : ""}
-            </div>
-          )}
-          {realtimeInitProgress && realtimeStatus === "initializing" && (
-            <div className="mt-2 text-xs text-base-content/70">
-              {realtimeInitProgress.message}
-            </div>
-          )}
-        </div>
-
-        <div role="tablist" className="tabs tabs-boxed w-fit">
-          <button
-            type="button"
-            role="tab"
-            aria-selected={settingsTab === "render"}
-            className={`tab ${settingsTab === "render" ? "tab-active" : ""}`}
-            onClick={() => setSettingsTab("render")}
-          >
-            渲染设置
-          </button>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={settingsTab === "roomContent"}
-            className={`tab ${settingsTab === "roomContent" ? "tab-active" : ""}`}
-            onClick={() => setSettingsTab("roomContent")}
-          >
-            房间内容
-          </button>
-        </div>
-
-        {settingsTab === "render"
-          ? (
-              <>
-                <div className="flex flex-wrap items-center justify-end gap-2">
-                  <button
-                    type="button"
-                    className="btn btn-xs btn-outline"
-                    disabled={isAllSectionsExpanded}
-                    onClick={handleExpandAllSections}
-                  >
-                    一键展开
-                  </button>
-                  <button
-                    type="button"
-                    className="btn btn-xs btn-outline"
-                    disabled={isAllSectionsCollapsed}
-                    onClick={handleCollapseAllSections}
-                  >
-                    一键折叠
-                  </button>
-                </div>
-
-                <div className={`rounded-lg border border-base-300 bg-base-100 ${sectionExpandedMap.workflowLayer ? "p-4" : "px-4 py-2"}`}>
-                  <div className={`flex items-center justify-between gap-2${sectionExpandedMap.workflowLayer ? " mb-3" : ""}`}>
-                    <div className="flex items-center gap-2 min-w-0">
-                      <div className="text-sm font-semibold shrink-0">流程图</div>
-                      <span className="text-xs text-base-content/60 truncate">（修改流程图请打开全屏修改）</span>
-                    </div>
-                    <SectionCollapseToggle
-                      expanded={sectionExpandedMap.workflowLayer}
-                      label="流程图"
-                      onClick={() => toggleSection("workflowLayer")}
-                    />
-                  </div>
-                  {sectionExpandedMap.workflowLayer && (
-                    <div className="rounded-md border border-base-300 px-2 py-2 overflow-x-auto">
-                      <WorkflowWindow />
-                    </div>
-                  )}
-                </div>
-
-                <div className={`rounded-lg border border-base-300 bg-base-100 ${sectionExpandedMap.renderLayer ? "p-4" : "px-4 py-2"}`}>
-                  <div className={`flex items-center justify-between gap-2${sectionExpandedMap.renderLayer ? " mb-3" : ""}`}>
-                    <div className="text-sm font-semibold">渲染表现层</div>
-                    <SectionCollapseToggle
-                      expanded={sectionExpandedMap.renderLayer}
-                      label="渲染表现层"
-                      onClick={() => toggleSection("renderLayer")}
-                    />
-                  </div>
-                  {sectionExpandedMap.renderLayer && (
-                    <div className="grid gap-2 md:grid-cols-2">
-                      <label className="flex items-center justify-between gap-2 rounded-md border border-base-300 px-3 py-2">
-                        <span className="text-sm">自动填充立绘</span>
-                        <input
-                          type="checkbox"
-                          className="toggle toggle-sm toggle-primary"
-                          checked={autoFigureEnabled}
-                          onChange={event => setAutoFigureEnabled(event.target.checked)}
-                        />
-                      </label>
-                      <label className="flex items-center justify-between gap-2 rounded-md border border-base-300 px-3 py-2">
-                        <span className="text-sm">小头像</span>
-                        <input
-                          type="checkbox"
-                          className="toggle toggle-sm toggle-primary"
-                          checked={miniAvatarEnabled}
-                          onChange={event => setMiniAvatarEnabled(event.target.checked)}
-                        />
-                      </label>
-                    </div>
-                  )}
-                </div>
-
-                <div className={`rounded-lg border border-base-300 bg-base-100 ${isTtsConfigVisible ? "p-4" : "px-4 py-2"}`}>
-                  <div className={`flex flex-wrap items-center justify-between gap-2${isTtsConfigVisible ? " mb-3" : ""}`}>
-                    <div className="text-sm font-semibold">TTS 配音层</div>
-                    <div className="flex items-center gap-2">
-                      <label className="flex items-center gap-2 rounded-md border border-base-300 px-2 py-1 text-xs">
-                        <span>AI 配音</span>
-                        <input
-                          type="checkbox"
-                          className="toggle toggle-xs toggle-primary"
-                          checked={ttsEnabled}
-                          onChange={event => setTtsEnabled(event.target.checked)}
-                        />
-                      </label>
-                      <SectionCollapseToggle
-                        expanded={sectionExpandedMap.ttsLayer}
-                        label="TTS 配音层"
-                        onClick={() => toggleSection("ttsLayer")}
-                      />
-                    </div>
-                  </div>
-                  {isTtsConfigVisible && (
-                    <div className="rounded-md border border-base-300 px-3 py-2">
-                      <div className="text-sm mb-2">TTS API 地址</div>
-                      <div className="flex gap-2">
-                        <input
-                          type="text"
-                          className="input input-bordered input-sm flex-1"
-                          placeholder="http://localhost:9000"
-                          value={ttsApiInput}
-                          onChange={event => setTtsApiInput(event.target.value)}
-                          onKeyDown={(event) => {
-                            if (event.key === "Enter") {
-                              handleSaveTtsApi();
-                            }
-                          }}
-                        />
-                        <button
-                          type="button"
-                          className="btn btn-sm btn-outline"
-                          onClick={handleSaveTtsApi}
-                        >
-                          保存
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                <div className={`rounded-lg border border-base-300 bg-base-100 ${sectionExpandedMap.gameLayer ? "p-4" : "px-4 py-2"}`}>
-                  <div className={`flex items-center justify-between gap-2${sectionExpandedMap.gameLayer ? " mb-3" : ""}`}>
-                    <div className="text-sm font-semibold">WebGAL 游戏层（config.txt）</div>
-                    <SectionCollapseToggle
-                      expanded={sectionExpandedMap.gameLayer}
-                      label="WebGAL 游戏层"
-                      onClick={() => toggleSection("gameLayer")}
-                    />
-                  </div>
-                  {sectionExpandedMap.gameLayer && (
-                    <div className="space-y-3">
-                      <div className="grid gap-2 md:grid-cols-2">
-                        <label className="flex items-center justify-between gap-2 rounded-md border border-base-300 px-3 py-2">
-                          <ConfigItemLabel
-                            label="未设置标题背景图时使用群聊头像"
-                            description="如果你没有上传标题背景图，就自动用群聊头像当首页背景。"
-                          />
-                          <input
-                            type="checkbox"
-                            className="toggle toggle-sm toggle-primary"
-                            checked={gameConfig.coverFromRoomAvatarEnabled}
-                            onChange={event => setGameConfig({ coverFromRoomAvatarEnabled: event.target.checked })}
-                          />
-                        </label>
-                        <label className="flex items-center justify-between gap-2 rounded-md border border-base-300 px-3 py-2">
-                          <ConfigItemLabel
-                            label="未设置启动图时使用群聊头像"
-                            description="如果你没有上传启动图，就自动用群聊头像当启动图。"
-                          />
-                          <input
-                            type="checkbox"
-                            className="toggle toggle-sm toggle-primary"
-                            checked={gameConfig.startupLogoFromRoomAvatarEnabled}
-                            onChange={event => setGameConfig({ startupLogoFromRoomAvatarEnabled: event.target.checked })}
-                          />
-                        </label>
-                        <label className="flex items-center justify-between gap-2 rounded-md border border-base-300 px-3 py-2">
-                          <ConfigItemLabel
-                            label="游戏图标使用群聊头像"
-                            description="让游戏图标和群聊头像保持一致。"
-                          />
-                          <input
-                            type="checkbox"
-                            className="toggle toggle-sm toggle-primary"
-                            checked={gameConfig.gameIconFromRoomAvatarEnabled}
-                            onChange={event => setGameConfig({ gameIconFromRoomAvatarEnabled: event.target.checked })}
-                          />
-                        </label>
-                        <label className="flex items-center justify-between gap-2 rounded-md border border-base-300 px-3 py-2">
-                          <ConfigItemLabel
-                            label="游戏名使用空间名+ID"
-                            description="自动用“空间名 + 编号”当游戏名，避免重名。"
-                          />
-                          <input
-                            type="checkbox"
-                            className="toggle toggle-sm toggle-primary"
-                            checked={gameConfig.gameNameFromRoomNameEnabled}
-                            onChange={event => setGameConfig({ gameNameFromRoomNameEnabled: event.target.checked })}
-                          />
-                        </label>
-                        <label className="flex items-center justify-between gap-2 rounded-md border border-base-300 px-3 py-2">
-                          <ConfigItemLabel
-                            label="启用紧急回避"
-                            description="需要快速遮住画面时可以一键隐藏当前内容。"
-                          />
-                          <input
-                            type="checkbox"
-                            className="toggle toggle-sm toggle-primary"
-                            checked={gameConfig.showPanicEnabled}
-                            onChange={event => setGameConfig({ showPanicEnabled: event.target.checked })}
-                          />
-                        </label>
-                        <label className="flex items-center justify-between gap-2 rounded-md border border-base-300 px-3 py-2">
-                          <ConfigItemLabel
-                            label="启用鉴赏模式"
-                            description="开启后可在菜单里查看已看过的内容，方便回顾。"
-                          />
-                          <input
-                            type="checkbox"
-                            className="toggle toggle-sm toggle-primary"
-                            checked={gameConfig.enableAppreciation}
-                            onChange={event => setGameConfig({ enableAppreciation: event.target.checked })}
-                          />
-                        </label>
-                        <label className="flex items-center justify-between gap-2 rounded-md border border-base-300 px-3 py-2">
-                          <ConfigItemLabel
-                            label="允许打开完整设置"
-                            description="允许玩家在 WebGAL 里打开完整设置页；关闭后会隐藏设置入口。"
-                          />
-                          <input
-                            type="checkbox"
-                            className="toggle toggle-sm toggle-primary"
-                            checked={gameConfig.allowOpenFullSettings}
-                            onChange={event => setGameConfig({ allowOpenFullSettings: event.target.checked })}
-                          />
-                        </label>
-                        <label className="flex items-center justify-between gap-2 rounded-md border border-base-300 px-3 py-2">
-                          <ConfigItemLabel
-                            label="角色发言聚焦"
-                            description="命中发言目标时，其他立绘会自动压暗；当前角色保持原亮度。这是开发期配置，不会在游戏内提供给玩家切换。"
-                          />
-                          <input
-                            type="checkbox"
-                            className="toggle toggle-sm toggle-primary"
-                            checked={gameConfig.speakerFocusEnabled}
-                            onChange={event => setGameConfig({ speakerFocusEnabled: event.target.checked })}
-                          />
-                        </label>
-                        <div className={`rounded-md border border-base-300 md:col-span-2 ${typingSoundDetailExpanded ? "p-3" : "px-3 py-2"}`}>
-                          <div className={`flex flex-wrap items-center justify-between gap-2${typingSoundDetailExpanded ? " mb-3" : ""}`}>
-                            <ConfigItemLabel
-                              label="启用打字音"
-                              description="文字一个个出现时会播放轻微按键音，展开后可以细调频率和音效。"
-                            />
-                            <div className="flex items-center gap-2">
-                              <label className="flex items-center gap-2 rounded-md border border-base-300 px-2 py-1 text-xs">
-                                <span>打字音</span>
-                                <input
-                                  type="checkbox"
-                                  className="toggle toggle-xs toggle-primary"
-                                  checked={gameConfig.typingSoundEnabled}
-                                  onChange={event => setGameConfig({ typingSoundEnabled: event.target.checked })}
-                                />
-                              </label>
-                              <SectionCollapseToggle
-                                expanded={typingSoundDetailExpanded}
-                                label="打字音细化设置"
-                                onClick={() => setTypingSoundDetailExpanded(prev => !prev)}
-                              />
-                            </div>
-                          </div>
-                          {typingSoundDetailExpanded && (
-                            <div className="rounded-md border border-base-300 px-3 py-2">
-                              <div className="grid gap-2 md:grid-cols-2">
-                                <div>
-                                  <div className="mb-1 text-xs text-base-content/70">每隔多少个字播放一次</div>
-                                  <div className="flex gap-2">
-                                    <input
-                                      type="number"
-                                      min={0.1}
-                                      max={20}
-                                      step={0.1}
-                                      className="input input-bordered input-sm flex-1"
-                                      value={typingSoundIntervalInput}
-                                      onChange={event => setTypingSoundIntervalInput(event.target.value)}
-                                      onKeyDown={(event) => {
-                                        if (event.key === "Enter") {
-                                          handleSaveTypingSoundInterval();
-                                        }
-                                      }}
-                                    />
-                                    <button
-                                      type="button"
-                                      className="btn btn-sm btn-outline"
-                                      onClick={handleSaveTypingSoundInterval}
-                                    >
-                                      保存
-                                    </button>
-                                  </div>
-                                </div>
-                                <div>
-                                  <div className="mb-1 text-xs text-base-content/70">标点额外停顿（毫秒）</div>
-                                  <div className="flex gap-2">
-                                    <input
-                                      type="number"
-                                      min={0}
-                                      max={5000}
-                                      step={10}
-                                      className="input input-bordered input-sm flex-1"
-                                      value={typingSoundPunctuationPauseInput}
-                                      onChange={event => setTypingSoundPunctuationPauseInput(event.target.value)}
-                                      onKeyDown={(event) => {
-                                        if (event.key === "Enter") {
-                                          handleSaveTypingSoundPunctuationPause();
-                                        }
-                                      }}
-                                    />
-                                    <button
-                                      type="button"
-                                      className="btn btn-sm btn-outline"
-                                      onClick={handleSaveTypingSoundPunctuationPause}
-                                    >
-                                      保存
-                                    </button>
-                                  </div>
-                                </div>
-                              </div>
-                              <div className="mt-3">
-                                <div className="mb-1 text-xs text-base-content/70">打字音效文件</div>
-                                <div className="flex flex-wrap items-center gap-2">
-                                  <button
-                                    type="button"
-                                    className="btn btn-sm btn-outline"
-                                    onClick={handlePickTypingSoundSe}
-                                    disabled={isTypingSoundSeUploading}
-                                  >
-                                    {isTypingSoundSeUploading ? "上传中..." : "上传音频"}
-                                  </button>
-                                  <button
-                                    type="button"
-                                    className="btn btn-sm btn-ghost"
-                                    onClick={handleClearTypingSoundSe}
-                                    disabled={isTypingSoundSeUploading || !gameConfig.typingSoundSeUrl}
-                                  >
-                                    恢复默认
-                                  </button>
-                                  <span className="text-xs text-base-content/70">
-                                    {gameConfig.typingSoundSeUrl ? "已设置自定义打字音" : "使用默认打字音"}
-                                  </span>
-                                </div>
-                                {gameConfig.typingSoundSeUrl && (
-                                  <audio className="mt-2 h-8 w-full max-w-sm" controls preload="none" src={gameConfig.typingSoundSeUrl} />
-                                )}
-                                <input
-                                  ref={typingSoundSeFileInputRef}
-                                  type="file"
-                                  accept="audio/*"
-                                  className="hidden"
-                                  onChange={handleTypingSoundSeFileChange}
-                                />
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                        <label className="flex items-center justify-between gap-2 rounded-md border border-base-300 px-3 py-2">
-                          <ConfigItemLabel
-                            label="默认语言"
-                            description="玩家第一次打开游戏时默认显示的语言。"
-                          />
-                          <select
-                            className="select select-bordered select-sm w-40"
-                            value={gameConfig.defaultLanguage}
-                            onChange={event => setGameConfig({ defaultLanguage: event.target.value as typeof gameConfig.defaultLanguage })}
-                          >
-                            {DEFAULT_LANGUAGE_OPTIONS.map(option => (
-                              <option key={option.value || "empty"} value={option.value}>{option.label}</option>
-                            ))}
-                          </select>
-                        </label>
-                        <label className="flex items-center justify-between gap-2 rounded-md border border-base-300 px-3 py-2">
-                          <ConfigItemLabel
-                            label="WebGAL模板"
-                            description="none 为内置默认模板；black 会覆盖为 WebGAL Black。"
-                          />
-                          <select
-                            className="select select-bordered select-sm w-40"
-                            value={gameConfig.baseTemplate}
-                            onChange={event => setGameConfig({ baseTemplate: event.target.value as typeof gameConfig.baseTemplate })}
-                          >
-                            {BASE_TEMPLATE_OPTIONS.map(option => (
-                              <option key={option.value} value={option.value}>{option.label}</option>
-                            ))}
-                          </select>
-                        </label>
-                      </div>
-
-                      <div className="grid gap-2 md:grid-cols-2">
-                        <div className="rounded-md border border-base-300 px-3 py-2">
-                          <div className="mb-2 flex items-center gap-1 text-sm">
-                            <span>游戏简介（Description）</span>
-                            <ConfigHelpButton label="游戏简介（Description）" description="给玩家看的简介文字，会显示在游戏信息里。" />
-                          </div>
-                          <div className="flex gap-2">
-                            <input
-                              type="text"
-                              className="input input-bordered input-sm flex-1"
-                              placeholder="留空则不设定"
-                              value={descriptionInput}
-                              onChange={event => setDescriptionInput(event.target.value)}
-                              onKeyDown={(event) => {
-                                if (event.key === "Enter") {
-                                  handleSaveDescription();
-                                }
-                              }}
-                            />
-                            <button
-                              type="button"
-                              className="btn btn-sm btn-outline"
-                              onClick={handleSaveDescription}
-                            >
-                              保存
-                            </button>
-                          </div>
-                        </div>
-
-                        <div className="rounded-md border border-base-300 px-3 py-2">
-                          <div className="mb-2 flex items-center gap-1 text-sm">
-                            <span>游戏包名（Package_name）</span>
-                            <ConfigHelpButton label="游戏包名（Package_name）" description="打包发布时使用的应用标识；不确定可先保持当前值。" />
-                          </div>
-                          <div className="flex gap-2">
-                            <input
-                              type="text"
-                              className="input input-bordered input-sm flex-1"
-                              placeholder="如 com.openwebgal.demo"
-                              value={packageNameInput}
-                              onChange={event => setPackageNameInput(event.target.value)}
-                              onKeyDown={(event) => {
-                                if (event.key === "Enter") {
-                                  handleSavePackageName();
-                                }
-                              }}
-                            />
-                            <button
-                              type="button"
-                              className="btn btn-sm btn-outline"
-                              onClick={handleSavePackageName}
-                            >
-                              保存
-                            </button>
-                          </div>
-                        </div>
-
-                        <div className="rounded-md border border-base-300 px-3 py-2 md:col-span-2">
-                          <div className="mb-2 flex items-center gap-1 text-sm">
-                            <span>标题背景图（Title_img）</span>
-                            <ConfigHelpButton
-                              label="标题背景图（Title_img）"
-                              description="进入游戏首页时看到的大背景图。"
-                            />
-                          </div>
-                          <div className="flex flex-wrap items-center gap-2">
-                            <button
-                              type="button"
-                              className="btn btn-sm btn-outline"
-                              onClick={handlePickTitleImage}
-                              disabled={isTitleImageUploading}
-                            >
-                              {isTitleImageUploading ? "上传中..." : "上传图片"}
-                            </button>
-                            <button
-                              type="button"
-                              className="btn btn-sm btn-ghost"
-                              onClick={handleClearTitleImage}
-                              disabled={isTitleImageUploading || !gameConfig.titleImageUrl}
-                            >
-                              清空
-                            </button>
-                            <span className="text-xs text-base-content/70">
-                              {gameConfig.titleImageUrl ? "已设置标题背景图" : "未设置标题背景图（可用上方头像兜底）"}
-                            </span>
-                          </div>
-                          {gameConfig.titleImageUrl && (
-                            <div className="mt-2 h-20 w-36 overflow-hidden rounded-md border border-base-300">
-                              <img
-                                src={gameConfig.titleImageUrl}
-                                alt="标题背景图预览"
-                                className="h-full w-full object-cover"
-                                loading="lazy"
-                              />
-                            </div>
-                          )}
-                          <input
-                            ref={titleImageFileInputRef}
-                            type="file"
-                            accept="image/*"
-                            className="hidden"
-                            onChange={handleTitleImageFileChange}
-                          />
-                        </div>
-
-                        <div className="rounded-md border border-base-300 px-3 py-2 md:col-span-2">
-                          <div className="mb-2 flex items-center gap-1 text-sm">
-                            <span>启动图（Game_Logo）</span>
-                            <ConfigHelpButton
-                              label="启动图（Game_Logo）"
-                              description="游戏刚启动时显示的图片。"
-                            />
-                          </div>
-                          <div className="flex flex-wrap items-center gap-2">
-                            <button
-                              type="button"
-                              className="btn btn-sm btn-outline"
-                              onClick={handlePickStartupLogo}
-                              disabled={isStartupLogoUploading}
-                            >
-                              {isStartupLogoUploading ? "上传中..." : "上传图片"}
-                            </button>
-                            <button
-                              type="button"
-                              className="btn btn-sm btn-ghost"
-                              onClick={handleClearStartupLogo}
-                              disabled={isStartupLogoUploading || !gameConfig.startupLogoUrl}
-                            >
-                              清空
-                            </button>
-                            <span className="text-xs text-base-content/70">
-                              {gameConfig.startupLogoUrl ? "已设置启动图" : "未设置启动图（可用上方头像兜底）"}
-                            </span>
-                          </div>
-                          {gameConfig.startupLogoUrl && (
-                            <div className="mt-2 h-20 w-36 overflow-hidden rounded-md border border-base-300">
-                              <img
-                                src={gameConfig.startupLogoUrl}
-                                alt="启动图预览"
-                                className="h-full w-full object-cover"
-                                loading="lazy"
-                              />
-                            </div>
-                          )}
-                          <input
-                            ref={startupLogoFileInputRef}
-                            type="file"
-                            accept="image/*"
-                            className="hidden"
-                            onChange={handleStartupLogoFileChange}
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </>
-            )
-          : (
-              <div className="rounded-lg border border-base-300 bg-base-100 p-4 space-y-3">
-                <div>
-                  <div className="text-sm font-semibold">单条消息预警阈值</div>
-                  <div className="text-xs text-base-content/70 mt-1">
-                    WebGAL 对话框单条文本可见行数有限，建议将超长内容拆分发送，避免右侧只显示前两行。
-                  </div>
-                </div>
-                <div className="rounded-md border border-base-300 p-3 space-y-3">
-                  <div className="text-xs text-base-content/70">
-                    推荐值：
-                    {DEFAULT_ROOM_CONTENT_ALERT_THRESHOLD}
-                    字（中文对话一般可稳定落在两行内）。
-                  </div>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <input
-                      type="number"
-                      min={MIN_ROOM_CONTENT_ALERT_THRESHOLD}
-                      max={MAX_ROOM_CONTENT_ALERT_THRESHOLD}
-                      step={1}
-                      className="input input-bordered input-sm w-44"
-                      value={roomContentAlertThresholdInput}
-                      onChange={(event) => {
-                        setRoomContentAlertThresholdInput(event.target.value);
-                      }}
-                      onKeyDown={(event) => {
-                        if (event.key === "Enter") {
-                          handleSaveRoomContentAlertThreshold();
-                        }
-                      }}
-                    />
-                    <button
-                      type="button"
-                      className="btn btn-sm btn-outline"
-                      onClick={handleSaveRoomContentAlertThreshold}
-                    >
-                      保存
-                    </button>
-                    <button
-                      type="button"
-                      className="btn btn-sm btn-ghost"
-                      onClick={() => {
-                        setRoomContentAlertThreshold(DEFAULT_ROOM_CONTENT_ALERT_THRESHOLD);
-                        setRoomContentAlertThresholdInput(String(DEFAULT_ROOM_CONTENT_ALERT_THRESHOLD));
-                      }}
-                    >
-                      恢复推荐值
-                    </button>
-                  </div>
-                  <div className="text-xs text-base-content/70">
-                    当前阈值：
-                    {roomContentAlertThreshold}
-                    字。超过阈值会在左侧输入区提示，并在发送时阻止提交。
-                  </div>
-                </div>
-              </div>
-            )}
+        <SpaceWebgalRenderWindowSettings
+          settingsTab={settingsTab}
+          sectionExpandedMap={sectionExpandedMap}
+          isAllSectionsExpanded={isAllSectionsExpanded}
+          isAllSectionsCollapsed={isAllSectionsCollapsed}
+          isTtsConfigVisible={isTtsConfigVisible}
+          autoFigureEnabled={autoFigureEnabled}
+          miniAvatarEnabled={miniAvatarEnabled}
+          ttsEnabled={ttsEnabled}
+          ttsApiInput={ttsApiInput}
+          gameConfig={gameConfig}
+          descriptionInput={descriptionInput}
+          packageNameInput={packageNameInput}
+          typingSoundIntervalInput={typingSoundIntervalInput}
+          typingSoundPunctuationPauseInput={typingSoundPunctuationPauseInput}
+          typingSoundDetailExpanded={typingSoundDetailExpanded}
+          isTitleImageUploading={isTitleImageUploading}
+          isStartupLogoUploading={isStartupLogoUploading}
+          isTypingSoundSeUploading={isTypingSoundSeUploading}
+          roomContentAlertThreshold={roomContentAlertThreshold}
+          roomContentAlertThresholdInput={roomContentAlertThresholdInput}
+          titleImageFileInputRef={titleImageFileInputRef}
+          startupLogoFileInputRef={startupLogoFileInputRef}
+          typingSoundSeFileInputRef={typingSoundSeFileInputRef}
+          onSettingsTabChange={setSettingsTab}
+          onExpandAllSections={handleExpandAllSections}
+          onCollapseAllSections={handleCollapseAllSections}
+          onToggleSection={toggleSection}
+          setAutoFigureEnabled={setAutoFigureEnabled}
+          setMiniAvatarEnabled={setMiniAvatarEnabled}
+          setTtsEnabled={setTtsEnabled}
+          setTtsApiInput={setTtsApiInput}
+          setGameConfig={setGameConfig}
+          setDescriptionInput={setDescriptionInput}
+          setPackageNameInput={setPackageNameInput}
+          setTypingSoundIntervalInput={setTypingSoundIntervalInput}
+          setTypingSoundPunctuationPauseInput={setTypingSoundPunctuationPauseInput}
+          setTypingSoundDetailExpanded={setTypingSoundDetailExpanded}
+          setRoomContentAlertThreshold={setRoomContentAlertThreshold}
+          setRoomContentAlertThresholdInput={setRoomContentAlertThresholdInput}
+          handleSaveTtsApi={handleSaveTtsApi}
+          handleSaveDescription={handleSaveDescription}
+          handleSavePackageName={handleSavePackageName}
+          handleSaveTypingSoundInterval={handleSaveTypingSoundInterval}
+          handleSaveTypingSoundPunctuationPause={handleSaveTypingSoundPunctuationPause}
+          handlePickTypingSoundSe={handlePickTypingSoundSe}
+          handleTypingSoundSeFileChange={handleTypingSoundSeFileChange}
+          handleClearTypingSoundSe={handleClearTypingSoundSe}
+          handlePickTitleImage={handlePickTitleImage}
+          handleTitleImageFileChange={handleTitleImageFileChange}
+          handleClearTitleImage={handleClearTitleImage}
+          handlePickStartupLogo={handlePickStartupLogo}
+          handleStartupLogoFileChange={handleStartupLogoFileChange}
+          handleClearStartupLogo={handleClearStartupLogo}
+          handleSaveRoomContentAlertThreshold={handleSaveRoomContentAlertThreshold}
+        />
 
       </div>
       {isBatchRendering && (
-        <div className="fixed bottom-4 right-4 z-50 w-[min(560px,calc(100vw-2rem))] rounded-lg border border-base-300 bg-base-100/95 shadow-2xl backdrop-blur">
-          <div className="flex items-center justify-between gap-2 border-b border-base-300 px-4 py-3">
-            <div className="text-sm font-semibold">房间渲染状态</div>
-            <div className="text-xs text-base-content/70">
-              {`空间：${spaceName || `#${spaceId}`} | 未删除房间：${renderableRooms.length}`}
-            </div>
-          </div>
-          <div className="px-4 py-3">
-            <div className="text-xs text-base-content/70 mb-2">
-              {`进度：${batchProgress?.current ?? 0}/${batchProgress?.total ?? renderableRooms.length}${batchProgress?.roomName ? `（${batchProgress.roomName}）` : ""}`}
-            </div>
-            {renderableRooms.length === 0
-              ? (
-                  <div className="text-sm text-base-content/70">暂无可渲染房间。</div>
-                )
-              : (
-                  <div className="space-y-2 max-h-[40vh] overflow-y-auto pr-1">
-                    {renderableRooms.map((room) => {
-                      const state = roomRenderStateMap[room.roomId] ?? { status: "idle", messageCount: 0 };
-                      const roomStatusMeta = buildRoomStatusMeta(state.status);
-                      const roomName = room.name?.trim() || `房间#${room.roomId}`;
-                      return (
-                        <div key={room.roomId} className="rounded-md border border-base-300 px-3 py-2">
-                          <div className="flex items-center justify-between gap-3">
-                            <div className="min-w-0">
-                              <div className="text-sm font-medium truncate">{roomName}</div>
-                              <div className="text-xs text-base-content/70">{`Room ID: ${room.roomId}`}</div>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <span className={`badge badge-sm ${roomStatusMeta.badgeClass}`}>{roomStatusMeta.label}</span>
-                              <span className="text-xs text-base-content/70">
-                                {state.messageCount}
-                                {" "}
-                                条消息
-                              </span>
-                            </div>
-                          </div>
-                          {state.errorMessage && (
-                            <div className="text-xs text-error mt-1 truncate" title={state.errorMessage}>
-                              {state.errorMessage}
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-          </div>
-        </div>
+        <SpaceWebgalBatchStatusPanel
+          spaceId={spaceId}
+          spaceName={spaceName}
+          renderableRooms={renderableRooms}
+          roomRenderStateMap={roomRenderStateMap}
+          batchProgress={batchProgress}
+        />
       )}
     </div>
   );

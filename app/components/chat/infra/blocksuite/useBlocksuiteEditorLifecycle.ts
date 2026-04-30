@@ -1,4 +1,5 @@
 import type { DocModeProvider } from "@blocksuite/affine/shared/services";
+import type { QueryClient } from "@tanstack/react-query";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
@@ -42,6 +43,7 @@ type UseBlocksuiteEditorLifecycleParams = {
   tcHeaderFallbackTitle?: string;
   tcHeaderFallbackImageUrl?: string;
   docModeProvider: DocModeProvider;
+  queryClient?: QueryClient;
   isFull: boolean;
   postToParent: (payload: BlocksuiteFrameToHostPayload) => boolean;
 };
@@ -57,6 +59,7 @@ export function useBlocksuiteEditorLifecycle(params: UseBlocksuiteEditorLifecycl
     tcHeaderFallbackTitle,
     tcHeaderFallbackImageUrl,
     docModeProvider,
+    queryClient,
     isFull,
     postToParent,
   } = params;
@@ -261,6 +264,7 @@ export function useBlocksuiteEditorLifecycle(params: UseBlocksuiteEditorLifecycl
           spaceId,
           autofocus: !readOnlyRef.current,
           disableDocTitle: tcHeaderEnabled,
+          queryClient,
           onNavigateToDoc: ({ spaceId, docId }) => {
             const parsed = parseSpaceDocId(docId);
 
@@ -433,6 +437,7 @@ export function useBlocksuiteEditorLifecycle(params: UseBlocksuiteEditorLifecycl
     docModeProvider,
     isFull,
     postToParent,
+    queryClient,
     reloadEpoch,
     spaceId,
     tcHeaderEnabled,

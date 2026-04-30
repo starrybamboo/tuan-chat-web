@@ -2,13 +2,12 @@ import type { Rule } from "@tuanchat/openapi-client/models/Rule";
 import type { RoleAvatar, UserRole } from "api";
 import type { Role } from "../types";
 import { useQueryClient } from "@tanstack/react-query";
-import { seedRoleAvatarQueryCaches, useDeleteRolesMutation, useGetUserRolesByTypeQuery } from "api/hooks/RoleAndAvatarHooks";
+import { fetchRoleAvatarWithCache, seedRoleAvatarQueryCaches, useDeleteRolesMutation, useGetUserRolesByTypeQuery } from "api/hooks/RoleAndAvatarHooks";
 import { useDeleteRuleMutation, useRuleListQuery } from "api/hooks/ruleQueryHooks";
 // import { useCreateRoleMutation, useDeleteRolesMutation, useGetInfiniteUserRolesQuery, useUpdateRoleWithLocalMutation, useUploadAvatarMutation } from "api/queryHooks";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import { Link, NavLink, useNavigate, useSearchParams } from "react-router";
-import { tuanchat } from "@/../api/instance";
 import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
 import { ROLE_DEFAULT_AVATAR_URL } from "@/constants/defaultAvatar";
 import { getRoleRule } from "@/utils/roleRuleStorage";
@@ -145,11 +144,7 @@ export function Sidebar({
         }
 
         try {
-          const res = await queryClient.fetchQuery({
-            queryKey: ["getRoleAvatar", role.avatarId],
-            queryFn: () => tuanchat.avatarController.getRoleAvatar(role.avatarId),
-            staleTime: 86400000,
-          });
+          const res = await fetchRoleAvatarWithCache(queryClient, role.avatarId);
           if (res.success && res.data) {
             const avatarUrl = res.data.avatarUrl || ROLE_DEFAULT_AVATAR_URL;
             const avatarThumbUrl = res.data.avatarThumbUrl || avatarUrl;

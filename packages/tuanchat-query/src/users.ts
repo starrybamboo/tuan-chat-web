@@ -1,3 +1,5 @@
+import type { QueryClient } from "@tanstack/react-query";
+
 import { useQuery } from "@tanstack/react-query";
 
 import type { ApiResultUserInfoResponse } from "@tuanchat/openapi-client/models/ApiResultUserInfoResponse";
@@ -10,6 +12,7 @@ export type UserQueryOptions = {
 };
 
 type UserClient = Pick<TuanChat, "userController">;
+export const USER_INFO_STALE_TIME_MS = 600_000;
 
 export function getUserInfoQueryKey(userId: number) {
   return ["getUserInfo", userId] as const;
@@ -31,7 +34,7 @@ export function useGetUserInfoQuery(client: UserClient, userId: number, options?
   return useQuery({
     queryKey: getUserInfoQueryKey(userId),
     queryFn: () => client.userController.getUserInfo(userId),
-    staleTime: options?.staleTime ?? 600_000,
+    staleTime: options?.staleTime ?? USER_INFO_STALE_TIME_MS,
     refetchOnMount: options?.refetchOnMount,
     enabled: (options?.enabled ?? true) && userId > 0,
   });
@@ -41,7 +44,7 @@ export function useGetUserProfileQuery(client: UserClient, userId: number, optio
   return useQuery({
     queryKey: getUserProfileInfoQueryKey(userId),
     queryFn: () => client.userController.getUserProfileInfo(userId),
-    staleTime: options?.staleTime ?? 600_000,
+    staleTime: options?.staleTime ?? USER_INFO_STALE_TIME_MS,
     refetchOnMount: options?.refetchOnMount,
     enabled: (options?.enabled ?? true) && userId > 0,
   });
@@ -55,7 +58,7 @@ export function useGetMyUserInfoQuery(client: UserClient, enabledOrOptions: bool
   return useQuery({
     queryKey: getMyUserInfoQueryKey(),
     queryFn: () => client.userController.getMyUserInfo(),
-    staleTime: options.staleTime ?? 600_000,
+    staleTime: options.staleTime ?? USER_INFO_STALE_TIME_MS,
     refetchOnMount: options.refetchOnMount,
     enabled: options.enabled ?? true,
   });
@@ -66,7 +69,23 @@ export function useGetUserInfoByUsernameQuery(client: UserClient, username: stri
   return useQuery({
     queryKey: getUserInfoByUsernameQueryKey(trimmed),
     queryFn: () => client.userController.getUserInfoByUsername(trimmed) as Promise<ApiResultUserInfoResponse>,
-    staleTime: 600_000,
+    staleTime: USER_INFO_STALE_TIME_MS,
     enabled: trimmed.length > 0,
+  });
+}
+
+export function fetchUserInfoWithCache(queryClient: QueryClient, client: UserClient, userId: number, options?: UserQueryOptions) {
+  return queryClient.fetchQuery({
+    queryKey: getUserInfoQueryKey(userId),
+    queryFn: () => client.userController.getUserInfo(userId),
+    staleTime: options?.staleTime ?? USER_INFO_STALE_TIME_MS,
+  });
+}
+
+export function fetchMyUserInfoWithCache(queryClient: QueryClient, client: UserClient, options?: UserQueryOptions) {
+  return queryClient.fetchQuery({
+    queryKey: getMyUserInfoQueryKey(),
+    queryFn: () => client.userController.getMyUserInfo(),
+    staleTime: options?.staleTime ?? USER_INFO_STALE_TIME_MS,
   });
 }
