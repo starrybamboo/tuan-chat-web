@@ -1,21 +1,21 @@
 import type { RoleAvatar } from "api";
-import type { Dispatch, SetStateAction } from "react";
 import type { Role } from "./types";
-import { ChevronRightIcon, DiceFiveIcon, GearOutline, MicrophoneIcon } from "app/icons";
+import { DiceFiveIcon, GearOutline, MicrophoneIcon } from "app/icons";
+import RoleBasicInfoEditor from "./RoleBasicInfoEditor";
 import AudioPlayer from "./RoleInfoCard/AudioPlayer";
 import CharacterAvatar from "./RoleInfoCard/CharacterAvatar";
+import RoleSidebarActionCard from "./RoleSidebarActionCard";
 
 export interface CharacterDetailLeftPanelProps {
   isQueryLoading: boolean;
-  isEditing: boolean;
   isDiceMaiden: boolean;
   localRole: Role;
   roleAvatars: RoleAvatar[];
   selectedAvatarId: number;
   selectedAvatarUrl: string;
   selectedSpriteUrl: string;
-  charCount: number;
   maxDescriptionLength: number;
+  maxRoleNameLength: number;
   currentRuleName?: string;
   currentDicerRoleId?: number;
   dicerRoleError: string | null;
@@ -27,22 +27,22 @@ export interface CharacterDetailLeftPanelProps {
   onAvatarSelect: (avatarId: number) => void;
   onAvatarDelete: (avatarId: number) => void;
   onAvatarUpload: (data: any) => void;
-  setLocalRole: Dispatch<SetStateAction<Role>>;
+  onAvatarTitleSave?: (avatarId: number, title: string) => void;
+  onBaseRoleSave: (updatedRole: Role) => void;
   onAudioRoleUpdate: (updatedRole: Role) => void;
   onAudioDelete: () => void;
 }
 
 export default function CharacterDetailLeftPanel({
   isQueryLoading,
-  isEditing,
   isDiceMaiden,
   localRole,
   roleAvatars,
   selectedAvatarId,
   selectedAvatarUrl,
   selectedSpriteUrl,
-  charCount,
   maxDescriptionLength,
+  maxRoleNameLength,
   currentRuleName,
   currentDicerRoleId,
   dicerRoleError,
@@ -54,15 +54,15 @@ export default function CharacterDetailLeftPanel({
   onAvatarSelect,
   onAvatarDelete,
   onAvatarUpload,
-  setLocalRole,
+  onBaseRoleSave,
   onAudioRoleUpdate,
   onAudioDelete,
 }: CharacterDetailLeftPanelProps) {
   return (
     <div className="lg:col-span-1 self-start lg:sticky lg:top-4 space-y-6">
       <div className="card-sm md:card-xl bg-base-100 shadow-xs rounded-xl md:border-2 md:border-base-content/10">
-        <div className="card-body p-4 max-h-168">
-          <div className="flex justify-center mt-6 mb-2">
+        <div className="card-body flex flex-col p-4">
+          <div className="flex flex-1 items-center justify-center">
             {isQueryLoading
               ? (
                   <div className="flex flex-col items-center gap-3">
@@ -85,152 +85,77 @@ export default function CharacterDetailLeftPanel({
                   />
                 )}
           </div>
-          {!isEditing && (
-            <div className="divider font-bold text-center text-xl flex">
-              <span className="shrink-0 lg:max-w-48 truncate">
-                {localRole.name}
-              </span>
-            </div>
-          )}
-          {isEditing && <div className="divider my-0" />}
-          <div>
-            {isEditing
-              ? (
-                  <div>
-                    <label className="input rounded-md w-full">
-                      <input
-                        type="text"
-                        value={localRole.name}
-                        onChange={e => setLocalRole(prev => ({ ...prev, name: e.target.value }))}
-                        placeholder="角色名称"
-                      />
-                    </label>
-                    <textarea
-                      value={localRole.description}
-                      onChange={(e) => {
-                        setLocalRole(prev => ({ ...prev, description: e.target.value }));
-                      }}
-                      placeholder="角色描述"
-                      className="textarea textarea-sm w-full h-24 resize-none mt-4 rounded-md"
-                    />
-                    <div className="text-right mt-1">
-                      <span className={`text-sm font-bold ${charCount > maxDescriptionLength ? "text-error" : "text-base-content/70"
-                      }`}
-                      >
-                        {charCount}
-                        /
-                        {maxDescriptionLength}
-                        {charCount > maxDescriptionLength && (
-                          <span className="ml-2">(已超出描述字数上限)</span>
-                        )}
-                      </span>
-                    </div>
-                  </div>
-                )
-              : (
-                  <>
-                    <p className="text-base wrap-break-words max-w-full text-center line-clamp-6 overflow-hidden text-ellipsis">
-                      {localRole.description || "暂无描述"}
-                    </p>
-                  </>
-                )}
-          </div>
+          <div className="divider my-0" />
+          <RoleBasicInfoEditor
+            localRole={localRole}
+            maxRoleNameLength={maxRoleNameLength}
+            maxDescriptionLength={maxDescriptionLength}
+            onBaseRoleSave={onBaseRoleSave}
+            align="center"
+            nameClassName="truncate text-xl font-bold"
+            descriptionEditorClassName="pt-6"
+            descriptionDisplayClassName="w-full text-base wrap-break-words max-w-full line-clamp-6 overflow-hidden text-ellipsis"
+            descriptionButtonClassName="py-3"
+          />
         </div>
 
         <p className="text-center text-xs text-base-content/60">
           角色ID号：
           {localRole.id}
         </p>
-        <div className="divider p-4 my-0" />
 
         <div>
-          <div
-            className="card bg-base-100 rounded-xl cursor-pointer transition-all duration-200"
+          <RoleSidebarActionCard
+            title="当前规则"
+            subtitle={currentRuleName || "未选择规则"}
+            subtitleClassName="text-primary"
+            actionLabel="切换"
             onClick={onOpenRuleModal}
-          >
-            <div className="card-body p-4 hover:bg-base-300">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                    <GearOutline className="w-4 h-4 text-primary" />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-sm">当前规则</h3>
-                    <p className="text-primary font-medium text-sm">
-                      {currentRuleName || "未选择规则"}
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-1 text-base-content/50">
-                  <span className="text-xs">切换</span>
-                  <ChevronRightIcon className="w-4 h-4" />
-                </div>
+            className="mb-4"
+            icon={(
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10">
+                <GearOutline className="h-4 w-4 text-primary" />
               </div>
-            </div>
-          </div>
-          <div className="divider p-4 my-0" />
+            )}
+          />
 
-          <div className="card bg-base-100 rounded-xl transition-all duration-200 mb-4">
-            <div className="card-body p-4">
-              <div
-                className="flex items-center justify-between cursor-pointer hover:bg-base-300 rounded-xl p-2 -m-2"
-                onClick={onOpenAudioModal}
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full bg-secondary/10 flex items-center justify-center">
-                    <MicrophoneIcon className="w-4 h-4 text-secondary" />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-sm">上传音频</h3>
-                    <p className="text-secondary font-medium text-sm">
-                      {localRole.voiceUrl ? "已上传音频" : "用于AI生成角色音色"}
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-1 text-base-content/50">
-                  <span className="text-xs">上传</span>
-                  <ChevronRightIcon className="w-4 h-4" />
-                </div>
+          <RoleSidebarActionCard
+            title="上传音频"
+            subtitle={localRole.voiceUrl ? "已上传音频" : "用于AI生成角色音色"}
+            subtitleClassName="text-secondary"
+            actionLabel="上传"
+            onClick={onOpenAudioModal}
+            className="mb-4"
+            icon={(
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-secondary/10">
+                <MicrophoneIcon className="h-4 w-4 text-secondary" />
               </div>
-
+            )}
+            extraContent={(
               <AudioPlayer
                 role={localRole}
                 onRoleUpdate={onAudioRoleUpdate}
                 onDelete={onAudioDelete}
               />
-            </div>
-          </div>
+            )}
+          />
 
           {!isDiceMaiden && (
-            <div className="card bg-base-100 rounded-xl transition-all duration-200 mb-4">
-              <div className="card-body p-4">
-                <div
-                  className="flex items-center justify-between cursor-pointer hover:bg-base-300 rounded-xl p-2 -m-2"
-                  onClick={onOpenDiceMaidenLinkModal}
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-accent/10 flex items-center justify-center">
-                      <DiceFiveIcon className="w-4 h-4 text-accent" />
-                    </div>
-                    <div>
-                      <h3 className="font-semibold text-sm">关联骰娘</h3>
-                      <p className={`font-medium text-sm ${
-                        dicerRoleError ? "text-error" : "text-accent"
-                      }`}
-                      >
-                        {currentDicerRoleId
-                          ? dicerRoleError || linkedDicerRoleName || `ID: ${currentDicerRoleId}`
-                          : "选择使用的骰娘角色"}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-1 text-base-content/50">
-                    <span className="text-xs">{currentDicerRoleId ? "更改" : "设置"}</span>
-                    <ChevronRightIcon className="w-4 h-4" />
-                  </div>
+            <RoleSidebarActionCard
+              title="关联骰娘"
+              subtitle={currentDicerRoleId
+                ? dicerRoleError || linkedDicerRoleName || `ID: ${currentDicerRoleId}`
+                : "选择使用的骰娘角色"}
+              subtitleClassName={dicerRoleError ? "text-error" : "text-accent"}
+              actionLabel={currentDicerRoleId ? "更改" : "设置"}
+              onClick={onOpenDiceMaidenLinkModal}
+              className="mb-4"
+              icon={(
+                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-accent/10">
+                  <DiceFiveIcon className="h-4 w-4 text-accent" />
                 </div>
-              </div>
-            </div>
+              )}
+            />
           )}
         </div>
       </div>

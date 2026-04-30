@@ -321,7 +321,6 @@ export default function MaterialLibraryPage({
       loadingMore={activePackagesQuery.isFetchingNextPage}
       hasMore={Boolean(activePackagesQuery.hasNextPage)}
       embedded={embedded}
-      showEmbeddedHeaderActions={activeTab !== "mine"}
       skeletonPrefix="material-skeleton"
       onKeywordChange={setKeyword}
       onLoadMore={handleLoadMore}
@@ -400,3 +399,4 @@ export default function MaterialLibraryPage({
     />
   );
 }
+
