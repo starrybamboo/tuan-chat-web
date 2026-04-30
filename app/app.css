@@ -12,9 +12,8 @@
 @source "../electron/**/*.jsx";
 @source "../electron/**/*.ts";
 @source "../electron/**/*.tsx";
-@plugin "daisyui";
 @plugin "daisyui" {
-  themes: all;
+  themes: false;
 }
 @plugin "daisyui/theme" {
   name: "light";
@@ -112,170 +111,12 @@ body {
     font-size: 15px; /* 基础缩放 (15/16=0.9375) */
     --scale-factor: 0.9375;
   }
-
-  /* 移动端：聊天输入框文字与 placeholder 同步变小（仅影响 ChatInputArea） */
-  .chatInputTextarea {
-    font-size: 0.875rem;
-  }
-  .chatInputTextarea.div-textarea[data-has-text="false"]::before {
-    font-size: inherit;
-  }
 }
 @media (max-width: 480px) {
   :root {
     font-size: 14px; /* 基础缩放 (14/16=0.875) */
     --scale-factor: 0.875;
   }
-
-  /* 更窄屏进一步缩小 */
-  .chatInputTextarea {
-    font-size: 0.8125rem;
-  }
-  .chatInputTextarea.div-textarea[data-has-text="false"]::before {
-    font-size: inherit;
-  }
-}
-
-.div-textarea {
-  position: relative;
-}
-
-.div-textarea[data-has-text="false"]::before {
-  content: attr(data-placeholder);
-  opacity: 0.6;
-  pointer-events: none;
-  position: absolute;
-  inset: 0;
-  padding: 0.5rem;
-  white-space: pre-wrap;
-}
-
-.chatInputTextarea {
-  word-break: break-all;
-  word-wrap: break-word;
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
-}
-
-.chatInputTextarea {
-  word-break: break-all;
-  word-wrap: break-word;
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
-}
-
-@keyframes jump {
-  0%,
-  100% {
-    transform: translateY(0);
-  }
-  50% {
-    transform: translateY(-3px);
-  }
-}
-
-.jump_icon {
-  @apply hover:text-info hover:[animation:jump_0.4s_ease-in-out];
-}
-
-@keyframes highlight-fade-out {
-  from {
-    background-color: hsla(207, 90%, 54%, 0.4);
-  }
-  to {
-    background-color: transparent;
-  }
-}
-.highlight-animation {
-  border-radius: 0.5rem;
-  animation: highlight-fade-out 3s ease-out;
-}
-
-.hidden-scrollbar {
-  overflow: auto;
-  -ms-overflow-style: none;
-  scrollbar-width: none;
-}
-
-.hidden-scrollbar::-webkit-scrollbar {
-  display: none;
-  width: 0;
-  height: 0;
-}
-
-.ai-image-fade-scrollbar {
-  scrollbar-gutter: stable;
-  scrollbar-width: thin;
-  scrollbar-color: transparent transparent;
-}
-
-.ai-image-fade-scrollbar::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-
-.ai-image-fade-scrollbar:hover,
-.ai-image-fade-scrollbar:focus-within,
-.ai-image-fade-scrollbar:active {
-  scrollbar-width: thin;
-  scrollbar-color: rgba(148, 163, 184, 0.42) transparent;
-}
-
-.ai-image-fade-scrollbar:hover::-webkit-scrollbar,
-.ai-image-fade-scrollbar:focus-within::-webkit-scrollbar,
-.ai-image-fade-scrollbar:active::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-
-.ai-image-fade-scrollbar::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.ai-image-fade-scrollbar::-webkit-scrollbar-thumb {
-  background-color: transparent;
-  border: 2px solid transparent;
-  border-radius: 9999px;
-  background-clip: padding-box;
-}
-
-.ai-image-fade-scrollbar:hover::-webkit-scrollbar-thumb,
-.ai-image-fade-scrollbar:focus-within::-webkit-scrollbar-thumb,
-.ai-image-fade-scrollbar:active::-webkit-scrollbar-thumb {
-  background-color: rgba(148, 163, 184, 0.34);
-}
-
-.ai-image-fade-scrollbar::-webkit-scrollbar-corner {
-  background: transparent;
-}
-
-@keyframes portal-tooltip-fade-in {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-
-.portal-tooltip {
-  animation: portal-tooltip-fade-in 120ms ease-out;
 }
 
 /* 不要覆写 Tailwind 的 `.hidden` 为 `!important`：会破坏 `hidden lg:flex` 等响应式切换。 */
-
-body.avatar-sampler-active,
-body.avatar-sampler-active * {
-  cursor:
-    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'><path fill='%23000' d='M20.7 4.6l6.7 6.7-3 3-1.4-1.4-9.6 9.6v4.5h-4.5l9.6-9.6-1.4-1.4 3-3zM7 25h2v2H7z'/></svg>")
-      0 31,
-    crosshair;
-}
-
-html.theme-switching .ai-image-shell,
-html.theme-switching .ai-image-shell *,
-html.theme-switching .ai-image-shell *::before,
-html.theme-switching .ai-image-shell *::after {
-  transition: none !important;
-  animation: none !important;
-}

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { createRoot } from "react-dom/client";
+import "./messageAnimations.css";
 
 enum MessageType {
   INFO = "info",

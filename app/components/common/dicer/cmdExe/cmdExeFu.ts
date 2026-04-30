@@ -1,30 +1,9 @@
 import { executeStShowCommand } from "@/components/common/dicer/cmdExe/cmdExePublic";
 import { roll } from "@/components/common/dicer/dice";
+import { FU_PROPERTY_ALIASES } from "@/components/common/dicer/roleAbilityAliasMaps";
 import UTILS from "@/components/common/dicer/utils/utils";
 
 import { CommandExecutor, RuleNameSpace } from "../cmd";
-
-// noinspection NonAsciiCharacters
-const PROPERTY_NAMES_MAP: Record<string, string> = {
-  灵巧度: "敏捷",
-  dex: "敏捷",
-  灵巧: "敏捷",
-  敏捷: "敏捷",
-  敏捷值: "敏捷",
-  洞察力: "洞察",
-  ins: "洞察",
-  洞察: "洞察",
-  洞察值: "洞察",
-  感知: "洞察",
-  感知值: "洞察",
-  力量值: "力量",
-  mig: "力量",
-  力量: "力量",
-  意志力: "意志",
-  wlp: "意志",
-  意志: "意志",
-  意志值: "意志",
-};
 
 const PROPERTY_SHORTS_MAP: Record<string, string> = {
   dd: "dex dex",
@@ -50,7 +29,7 @@ const executorFu = new RuleNameSpace(
   "fu",
   ["最终物语"],
   "最终物语规则的指令集",
-  new Map<string, string>(Object.entries(PROPERTY_NAMES_MAP)),
+  new Map<string, string>(Object.entries(FU_PROPERTY_ALIASES)),
 );
 
 export default executorFu;
@@ -89,7 +68,7 @@ const cmdSt = new CommandExecutor(
 
       // 统一转换为小写进行比较
       const normalizedKey = rawKey.toLowerCase();
-      const key = PROPERTY_NAMES_MAP[normalizedKey] || rawKey;
+      const key = FU_PROPERTY_ALIASES[normalizedKey] || rawKey;
 
       const currentValue = Number.parseInt(UTILS.getRoleAbilityValue(curAbility, key) ?? "0"); // 原有值（默认0）
       let newValue: number;
@@ -195,8 +174,8 @@ const cmdFu = new CommandExecutor(
             fmtNames.push(...PROPERTY_SHORTS_MAP[name].split(" "));
           }
           // 2. 对于其他内容，进行属性名映射
-          else if (name in PROPERTY_NAMES_MAP) {
-            fmtNames.push(PROPERTY_NAMES_MAP[name]);
+          else if (name in FU_PROPERTY_ALIASES) {
+            fmtNames.push(FU_PROPERTY_ALIASES[name]);
           }
         }
         catch (error) {

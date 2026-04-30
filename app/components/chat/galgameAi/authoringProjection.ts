@@ -1,16 +1,16 @@
-import type { RoleAvatar } from "@tuanchat/openapi-client/models/RoleAvatar";
+import type { AnnotationDefinition } from "@/components/chat/message/annotations/annotationCatalog";
 import type { Message } from "@tuanchat/openapi-client/models/Message";
+import type { RoleAvatar } from "@tuanchat/openapi-client/models/RoleAvatar";
 import type { Room } from "@tuanchat/openapi-client/models/Room";
 import type { Space } from "@tuanchat/openapi-client/models/Space";
 import type { UserRole } from "@tuanchat/openapi-client/models/UserRole";
 
 import { resolveRenderedSoundMessagePurpose } from "@/components/chat/infra/audioMessage/audioMessagePurpose";
-import type { AnnotationDefinition } from "@/components/chat/message/annotations/annotationCatalog";
 import { ANNOTATION_IDS, getSceneEffectFromAnnotations, hasAnnotation, hasClearBackgroundAnnotation, hasClearBgmAnnotation, hasClearFigureAnnotation, hasClearImageAnnotation, isImageMessageBackground, isImageMessageShown, normalizeAnnotations } from "@/types/messageAnnotations";
 
-import { MessageType } from "../../../../api/wsModels";
-
 import type { GalAnnotation, GalAuthoringContext, GalDocumentFingerprint, GalMessagePurpose, GalMessageView, GalNarrator, GalReference, GalRoleAvatarVariant, GalRoomContext, GalRoomRole, GalSpaceContext, GalStoryFlow } from "./authoringTypes";
+
+import { MessageType } from "../../../../api/wsModels";
 
 const INTRO_TEXT_MESSAGE_TYPE = 9;
 

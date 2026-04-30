@@ -16,8 +16,8 @@ export default function CreateSpaceWindow({ onSuccess }: CreateSpaceWindowProps)
   const userId = useGlobalUserId();
   const getUserInfo = useGetUserInfoQuery(Number(userId));
   const userInfo = getUserInfo.data?.data;
-  const spaceAvatarUploadId = useId().replace(/:/g, "");
-  const defaultSpaceAvatar = String(userInfo?.avatar ?? "");
+  const spaceAvatarThumbUploadId = useId().replace(/:/g, "");
+  const defaultSpaceAvatar = String(userInfo?.avatarThumbUrl ?? userInfo?.avatar ?? "");
   const defaultSpaceOriginalAvatar = String(userInfo?.originalAvatar ?? userInfo?.avatar ?? "");
   const defaultSpaceName = userInfo?.username ? `${String(userInfo.username)}的空间` : "";
 
@@ -25,11 +25,11 @@ export default function CreateSpaceWindow({ onSuccess }: CreateSpaceWindowProps)
   const createSpaceMutation = useCreateSpaceMutation();
 
   // 创建空间的头像
-  const [spaceAvatarDraft, setSpaceAvatarDraft] = useState<string | null>(null);
+  const [spaceAvatarThumbDraft, setSpaceAvatarThumbDraft] = useState<string | null>(null);
   const [spaceOriginalAvatarDraft, setSpaceOriginalAvatarDraft] = useState<string | null>(null);
   // 创建空间的名称
   const [spaceNameDraft, setSpaceNameDraft] = useState<string | null>(null);
-  const spaceAvatar = spaceAvatarDraft ?? defaultSpaceAvatar;
+  const spaceAvatarThumb = spaceAvatarThumbDraft ?? defaultSpaceAvatar;
   const spaceOriginalAvatar = spaceOriginalAvatarDraft ?? defaultSpaceOriginalAvatar;
   const spaceName = spaceNameDraft ?? defaultSpaceName;
 
@@ -40,7 +40,7 @@ export default function CreateSpaceWindow({ onSuccess }: CreateSpaceWindowProps)
   const rules = getRulesQuery.data?.pages.flatMap(page => page.data?.list ?? []) ?? [];
 
   // 空间头像文字颜色
-  const [spaceAvatarTextColor, setSpaceAvatarTextColor] = useState("text-black");
+  const [spaceAvatarThumbTextColor, setSpaceAvatarThumbTextColor] = useState("text-black");
 
   // 获取用户好友
   const followingQuery = useGetUserFollowingsQuery(userId ?? -1, { pageNo: 1, pageSize: 100 });
@@ -53,22 +53,23 @@ export default function CreateSpaceWindow({ onSuccess }: CreateSpaceWindowProps)
 
   // 监听头像变化，自动调整文字颜色
   useEffect(() => {
-    if (spaceAvatar) {
-      checkBack(spaceAvatar).then(() => {
+    if (spaceAvatarThumb) {
+      checkBack(spaceAvatarThumb).then(() => {
         const computedColor = getComputedStyle(document.documentElement)
           .getPropertyValue("--text-color")
           .trim();
-        setSpaceAvatarTextColor(computedColor === "white" ? "text-white" : "text-black");
+        setSpaceAvatarThumbTextColor(computedColor === "white" ? "text-white" : "text-black");
       });
     }
-  }, [spaceAvatar]);
+  }, [spaceAvatarThumb]);
 
   // 创建空间
   async function createSpace(userIds: number[]) {
     createSpaceMutation.mutate({
       userIdList: userIds,
-      avatar: spaceAvatar,
-      originalAvatar: spaceOriginalAvatar || spaceAvatar,
+      avatar: spaceAvatarThumb,
+      avatarThumbUrl: spaceAvatarThumb,
+      originalAvatar: spaceOriginalAvatar || spaceAvatarThumb,
       spaceName,
       ruleId: selectedRuleId,
     }, {
@@ -90,21 +91,22 @@ export default function CreateSpaceWindow({ onSuccess }: CreateSpaceWindowProps)
             setSpaceOriginalAvatarDraft(url);
           }}
           setCopperedDownloadUrl={(url) => {
-            setSpaceAvatarDraft(url);
+            setSpaceAvatarThumbDraft(url);
           }}
-          fileName={`new-space-avatar-${spaceAvatarUploadId}`}
+          fileName={`new-space-avatar-${spaceAvatarThumbUploadId}`}
           aspect={1}
+          copperedCompressionPreset="avatarThumb"
         >
           <div className="relative group overflow-hidden rounded-lg">
             <img
-              src={spaceAvatar}
+              src={spaceAvatarThumb}
               alt="space avatar"
               className="w-24 h-24 mx-auto transition-all duration-300 group-hover:scale-110 group-hover:brightness-75 rounded"
             />
             <div
               className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 bg-opacity-20 backdrop-blur-sm"
             >
-              <span className={`${spaceAvatarTextColor} font-bold px-2 py-1 rounded`}>
+              <span className={`${spaceAvatarThumbTextColor} font-bold px-2 py-1 rounded`}>
                 上传头像
               </span>
             </div>

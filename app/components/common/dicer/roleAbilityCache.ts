@@ -2,10 +2,10 @@ import type { RoleAbility } from "../../../../api";
 
 const ROLE_ABILITY_CACHE_TTL_MS = 10 * 60_000;
 
-interface ExpiringCacheEntry<T> {
+type ExpiringCacheEntry<T> = {
   value: T;
   expireAt: number;
-}
+};
 
 const roleAbilityCache = new Map<string, ExpiringCacheEntry<RoleAbility>>();
 

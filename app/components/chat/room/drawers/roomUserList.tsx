@@ -1,5 +1,5 @@
 import { AddressBookIcon, UsersIcon } from "@phosphor-icons/react";
-import { use, useMemo, useState } from "react";
+import { lazy, Suspense, use, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import { RoomContext } from "@/components/chat/core/roomContext";
 import MemberLists from "@/components/chat/shared/components/memberLists";
@@ -10,8 +10,16 @@ import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponen
 import { getScreenSize } from "@/utils/getScreenSize";
 import { useAddRoomMemberMutation, useAddRoomRoleMutation, useGetRoomNpcRoleQuery, useGetRoomRoleQuery } from "../../../../../api/hooks/chatQueryHooks";
 import RoleList from "../../shared/components/roleLists";
-import { AddNpcRoleWindow } from "../../window/addNpcRoleWindow";
-import { AddRoleWindow } from "../../window/addRoleWindow";
+
+const LazyAddRoleWindow = lazy(async () => {
+  const module = await import("../../window/addRoleWindow");
+  return { default: module.AddRoleWindow };
+});
+
+const LazyAddNpcRoleWindow = lazy(async () => {
+  const module = await import("../../window/addNpcRoleWindow");
+  return { default: module.AddNpcRoleWindow };
+});
 
 export default function RoomUserList({ type}: { type: string }) {
   const isRole = type === "Role";
@@ -167,11 +175,27 @@ export default function RoomUserList({ type}: { type: string }) {
       </ToastWindow>
       {/* 弹窗 */}
       <ToastWindow isOpen={isRoleHandleOpen} onClose={() => setIsRoleHandleOpen(false)}>
-        <AddRoleWindow handleAddRole={handleAddRole} />
+        {isRoleHandleOpen && (
+          <Suspense fallback={<RoomUserListToastFallback />}>
+            <LazyAddRoleWindow handleAddRole={handleAddRole} />
+          </Suspense>
+        )}
       </ToastWindow>
       <ToastWindow isOpen={isNpcRoleHandleOpen} onClose={() => setIsNpcRoleHandleOpen(false)}>
-        <AddNpcRoleWindow handleAddRole={handleAddNpcRole} />
+        {isNpcRoleHandleOpen && (
+          <Suspense fallback={<RoomUserListToastFallback />}>
+            <LazyAddNpcRoleWindow handleAddRole={handleAddNpcRole} />
+          </Suspense>
+        )}
       </ToastWindow>
+    </div>
+  );
+}
+
+function RoomUserListToastFallback() {
+  return (
+    <div className="flex min-h-40 w-full items-center justify-center text-base-content/60">
+      <span className="loading loading-spinner loading-md"></span>
     </div>
   );
 }

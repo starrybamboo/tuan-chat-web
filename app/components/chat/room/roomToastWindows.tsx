@@ -1,8 +1,17 @@
 import React from "react";
-import { AddNpcRoleWindow } from "@/components/chat/window/addNpcRoleWindow";
-import { AddRoleWindow } from "@/components/chat/window/addRoleWindow";
-import RenderWindow from "@/components/chat/window/renderWindow";
 import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
+
+const LazyAddRoleWindow = React.lazy(async () => {
+  const module = await import("@/components/chat/window/addRoleWindow");
+  return { default: module.AddRoleWindow };
+});
+
+const LazyAddNpcRoleWindow = React.lazy(async () => {
+  const module = await import("@/components/chat/window/addNpcRoleWindow");
+  return { default: module.AddNpcRoleWindow };
+});
+
+const LazyRenderWindow = React.lazy(() => import("@/components/chat/window/renderWindow"));
 
 interface RoomToastWindowsProps {
   isRoleHandleOpen: boolean;
@@ -32,22 +41,42 @@ export default function RoomToastWindows({
         isOpen={isRoleHandleOpen}
         onClose={() => setIsRoleAddWindowOpen(false)}
       >
-        <AddRoleWindow handleAddRole={handleAddRole}></AddRoleWindow>
+        {isRoleHandleOpen && (
+          <React.Suspense fallback={<RoomToastWindowFallback />}>
+            <LazyAddRoleWindow handleAddRole={handleAddRole}></LazyAddRoleWindow>
+          </React.Suspense>
+        )}
       </ToastWindow>
 
       <ToastWindow
         isOpen={isNpcRoleHandleOpen}
         onClose={() => setIsNpcRoleAddWindowOpen(false)}
       >
-        <AddNpcRoleWindow handleAddRole={handleAddNpcRole}></AddNpcRoleWindow>
+        {isNpcRoleHandleOpen && (
+          <React.Suspense fallback={<RoomToastWindowFallback />}>
+            <LazyAddNpcRoleWindow handleAddRole={handleAddNpcRole}></LazyAddNpcRoleWindow>
+          </React.Suspense>
+        )}
       </ToastWindow>
 
       <ToastWindow
         isOpen={isRenderWindowOpen}
         onClose={() => setIsRenderWindowOpen(false)}
       >
-        <RenderWindow></RenderWindow>
+        {isRenderWindowOpen && (
+          <React.Suspense fallback={<RoomToastWindowFallback />}>
+            <LazyRenderWindow></LazyRenderWindow>
+          </React.Suspense>
+        )}
       </ToastWindow>
     </>
+  );
+}
+
+function RoomToastWindowFallback() {
+  return (
+    <div className="flex min-h-40 w-full items-center justify-center text-base-content/60">
+      <span className="loading loading-spinner loading-md"></span>
+    </div>
   );
 }

@@ -871,7 +871,6 @@ export function InpaintDialog({
     triggerBrowserDownload(source.dataUrl, `inpaint-source-${source.seed}.png`);
   }, [source]);
 
-  const toolbarButtonClassName = "inline-flex size-10 items-center justify-center rounded-md border border-base-300 bg-base-200 text-base-content/72 transition hover:border-base-300 hover:bg-base-300 hover:text-base-content focus:outline-none focus:ring-2 focus:ring-primary/20 disabled:cursor-not-allowed disabled:opacity-35";
   const topActionButtonClassName = "inline-flex h-10 items-center justify-center border-0 px-4 text-sm font-medium transition focus:outline-none focus:ring-2 focus:ring-primary/20 disabled:cursor-not-allowed disabled:opacity-40 rounded-none";
   const topIconActionButtonClassName = "inline-flex size-10 items-center justify-center border-0 bg-base-200 text-base-content/72 transition hover:bg-base-300 hover:text-base-content focus:outline-none focus:ring-2 focus:ring-primary/20 disabled:cursor-not-allowed disabled:opacity-35 rounded-none";
   const sharedPanelClassName = "rounded-md border border-base-300 bg-base-100 shadow-[0_18px_48px_rgba(0,0,0,0.18)]";

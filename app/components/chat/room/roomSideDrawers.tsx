@@ -1,6 +1,5 @@
 import type { DocRefDragPayload } from "@/components/chat/utils/docRef";
 import React from "react";
-import DocFolderForUser from "@/components/chat/room/drawers/docFolderForUser";
 import ExportChatDrawer from "@/components/chat/room/drawers/exportChatDrawer";
 import RoomUserList from "@/components/chat/room/drawers/roomUserList";
 import { useDrawerPreferenceStore } from "@/components/chat/stores/drawerPreferenceStore";
@@ -10,6 +9,8 @@ import { VaulSideDrawer } from "@/components/common/vaulSideDrawer";
 interface RoomSideDrawersProps {
   onSendDocCard?: (payload: DocRefDragPayload) => Promise<void> | void;
 }
+
+const LazyDocFolderForUser = React.lazy(() => import("@/components/chat/room/drawers/docFolderForUser"));
 
 function RoomSideDrawersImpl({ onSendDocCard }: RoomSideDrawersProps) {
   const sideDrawerState = useSideDrawerStore(state => state.state);
@@ -78,7 +79,11 @@ function RoomSideDrawersImpl({ onSendDocCard }: RoomSideDrawersProps) {
         panelClassName={sidebarPanelClassName}
       >
         <div className="flex-1 min-h-0 overflow-hidden">
-          <DocFolderForUser onSendDocCard={onSendDocCard} />
+          {sideDrawerState === "docFolder" && (
+            <React.Suspense fallback={<RoomSideDrawerFallback text="正在加载文档..." />}>
+              <LazyDocFolderForUser onSendDocCard={onSendDocCard} />
+            </React.Suspense>
+          )}
         </div>
       </VaulSideDrawer>
 
@@ -88,3 +93,12 @@ function RoomSideDrawersImpl({ onSendDocCard }: RoomSideDrawersProps) {
 
 const RoomSideDrawers = React.memo(RoomSideDrawersImpl);
 export default RoomSideDrawers;
+
+function RoomSideDrawerFallback({ text }: { text: string }) {
+  return (
+    <div className="flex h-full w-full items-center justify-center text-sm text-base-content/60">
+      <span className="loading loading-spinner loading-md"></span>
+      <span className="ml-2">{text}</span>
+    </div>
+  );
+}

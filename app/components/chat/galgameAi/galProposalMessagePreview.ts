@@ -57,6 +57,13 @@ function hasTextChange(base: GalMessageView | undefined, projected: GalMessageVi
   return (base?.content ?? "") !== (projected?.content ?? "");
 }
 
+function currentTextDiffersFromBase(current: Message | undefined, base: GalMessageView | undefined) {
+  if (!current || !base) {
+    return false;
+  }
+  return (current.content ?? "") !== (base.content ?? "");
+}
+
 export function buildGalProposalMessagePreview(params: {
   historyMessages: ChatMessageResponse[];
   proposal: GalPatchProposal | null | undefined;
@@ -82,7 +89,12 @@ export function buildGalProposalMessagePreview(params: {
       }));
     }
     else if (hasTextChange(base, projected)) {
-      baseMessageByPreviewId.set(response.message.messageId, toResponse(toMessageFromView(base, index, original)));
+      baseMessageByPreviewId.set(
+        response.message.messageId,
+        original && currentTextDiffersFromBase(original, base)
+          ? toResponse(original)
+          : toResponse(toMessageFromView(base, index, original)),
+      );
     }
     return response;
   });
@@ -91,13 +103,14 @@ export function buildGalProposalMessagePreview(params: {
     .filter(base => !projectedById.has(base.messageId))
     .map((base, index) => {
       const original = originalById.get(base.messageId)?.message;
+      const beforeMessage = original ?? toMessageFromView(base, proposal.projectedSnapshot.length + index, original);
       const deletedPreview = toResponse({
-        ...toMessageFromView(base, proposal.projectedSnapshot.length + index, original),
+        ...beforeMessage,
         content: "",
       });
       baseMessageByPreviewId.set(
         deletedPreview.message.messageId,
-        toResponse(toMessageFromView(base, proposal.projectedSnapshot.length + index, original)),
+        toResponse(beforeMessage),
       );
       return deletedPreview;
     });

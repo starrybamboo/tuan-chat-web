@@ -2,6 +2,8 @@ import type { Route } from "./+types/chatLayout";
 
 import ChatPage from "@/components/chat/chatPage";
 import { createSeoMeta } from "@/utils/seo";
+import "@/components/chat/chatRouteStyles.css";
+import "@/components/common/scrollbar.css";
 
 export function meta(_args: Route.MetaArgs) {
   return createSeoMeta({

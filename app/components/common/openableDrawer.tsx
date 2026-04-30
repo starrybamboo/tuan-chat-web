@@ -1,4 +1,5 @@
 import type { ScreenSize } from "@/utils/getScreenSize";
+import { AnimatePresence, motion } from "motion/react";
 import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useHorizontalResizeDrag } from "@/components/common/customHooks/useHorizontalResizeDrag";
 import { getScreenSize } from "@/utils/getScreenSize";
@@ -100,8 +101,11 @@ export function OpenAbleDrawer({
     const baseMin = base.min;
     const baseMax = base.max;
 
-    // 覆盖模式或小屏：不需要根据父容器收紧
-    if (!isOpen || screenSize === "sm" || overWrite) {
+    const safeMinRemainingWidth = Number.isFinite(minRemainingWidth) ? Math.max(0, minRemainingWidth) : 0;
+
+    // 未要求保留同级内容宽度时，直接使用调用方给出的 min/max。
+    // 左侧栏的父 flex 容器会随抽屉内容变宽；若再用父宽反算 max，会导致需要多次拖拽才能拉满。
+    if (!isOpen || screenSize === "sm" || overWrite || safeMinRemainingWidth <= 0) {
       return { min: baseMin, max: baseMax };
     }
 
@@ -110,7 +114,6 @@ export function OpenAbleDrawer({
       return { min: baseMin, max: baseMax };
     }
 
-    const safeMinRemainingWidth = Number.isFinite(minRemainingWidth) ? Math.max(0, minRemainingWidth) : 0;
     const maxAllowed = Math.max(0, parentWidth - safeMinRemainingWidth);
     const effectiveMax = Math.min(baseMax, maxAllowed);
     const effectiveMin = Math.min(baseMin, effectiveMax);
@@ -187,40 +190,56 @@ export function OpenAbleDrawer({
     },
   });
 
-  if (!isOpen) {
-    return null;
-  }
-
   if (screenSize === "sm" || overWrite) {
     return (
-      <div className={`absolute inset-0 z-40 w-full pointer-events-auto ${className ?? ""}`}>
-        {children}
-      </div>
+      <AnimatePresence initial={false}>
+        {isOpen && (
+          <motion.div
+            className={`absolute inset-0 z-40 w-full pointer-events-auto ${className ?? ""}`}
+            initial={{ opacity: 0, x: handlePosition === "right" ? -18 : 18 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: handlePosition === "right" ? -18 : 18 }}
+            transition={{ duration: 0.02, ease: "easeOut" }}
+          >
+            {children}
+          </motion.div>
+        )}
+      </AnimatePresence>
     );
   }
 
   // 大屏情况下，返回可调整宽度的容器
   return (
-    <div
-      ref={containerRef}
-      className={`relative min-w-0 z-40 pointer-events-auto ${className ?? ""}`}
-      style={{
-        width: `${Math.max(0, renderedWidth)}px`,
-        maxWidth: "100%",
-      }}
-    >
-      {/* 拖拽手柄（默认在左侧） - 加宽并提升 z-index，同时使用 pointer 事件以避免被子元素捕获 */}
-      <div
-        className={`absolute top-0 h-full w-4 cursor-col-resize z-2000 ${handlePosition === "left" ? "left-0" : "right-0"} hover:bg-info/20 transition-colors pointer-events-auto`}
-        onPointerDown={handlePointerDown}
-        style={{ touchAction: "none" }}
-        title="拖拽调整宽度"
-      >
-        <div
-          className={`absolute top-0 h-full w-0.5 bg-base-content/18 ${handlePosition === "left" ? "left-0" : "right-0"}`}
-        />
-      </div>
-      {children}
-    </div>
+    <AnimatePresence initial={false}>
+      {isOpen && (
+        <motion.div
+          ref={containerRef}
+          className={`relative min-w-0 z-40 pointer-events-auto overflow-hidden ${className ?? ""}`}
+          initial={{ width: 0, opacity: 0 }}
+          animate={{ width: Math.max(0, renderedWidth), opacity: 1 }}
+          exit={{ width: 0, opacity: 0 }}
+          transition={{
+            width: { duration: 0.02, ease: "easeOut" },
+            opacity: { duration: 0.02 },
+          }}
+          style={{ maxWidth: "100%" }}
+        >
+          {/* 拖拽手柄（默认在左侧） - 加宽并提升 z-index，同时使用 pointer 事件以避免被子元素捕获 */}
+          <div
+            className={`absolute top-0 h-full w-4 cursor-col-resize z-2000 ${handlePosition === "left" ? "left-0" : "right-0"} hover:bg-info/20 transition-colors pointer-events-auto`}
+            onPointerDown={handlePointerDown}
+            style={{ touchAction: "none" }}
+            title="拖拽调整宽度"
+          >
+            <div
+              className={`absolute top-0 h-full w-0.5 bg-base-content/18 ${handlePosition === "left" ? "left-0" : "right-0"}`}
+            />
+          </div>
+          <div className="h-full min-w-0" style={{ width: Math.max(0, renderedWidth) }}>
+            {children}
+          </div>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 }

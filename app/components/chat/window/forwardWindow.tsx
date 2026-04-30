@@ -179,7 +179,7 @@ function ForwardWindow({
           {filteredRooms.map((room) => {
             const roomId = room.roomId ?? -1;
             const displayName = headers[`room:${roomId}`]?.title || room.name || "未命名房间";
-            const avatar = headers[`room:${roomId}`]?.imageUrl || room.avatar || "/favicon.ico";
+            const avatar = headers[`room:${roomId}`]?.imageUrl || room.avatarThumbUrl || room.avatar || "/favicon.ico";
             const isCurrentRoomForwarding = forwardingRoomId === roomId;
 
             return (

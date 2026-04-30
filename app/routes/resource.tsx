@@ -1,6 +1,7 @@
 import type { Route } from "./+types/resource";
 import ResourcePage from "@/components/resource/pages/resourcePage";
 import { createSeoMeta } from "@/utils/seo";
+import "@/components/resource/resourceRouteStyles.css";
 
 export function meta(_args: Route.MetaArgs) {
   return createSeoMeta({

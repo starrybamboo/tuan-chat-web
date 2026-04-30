@@ -10,6 +10,7 @@ import { PreviewImageDialog } from "@/components/aiImage/PreviewImageDialog";
 import { StylePickerDialog } from "@/components/aiImage/StylePickerDialog";
 import { useAiImagePageController } from "@/components/aiImage/useAiImagePageController";
 import { useHorizontalResizeDrag } from "@/components/common/customHooks/useHorizontalResizeDrag";
+import "@/components/aiImage/aiImageRouteStyles.css";
 
 const AI_IMAGE_SIDEBAR_MIN_RATIO = 0.18;
 const AI_IMAGE_SIDEBAR_MAX_RATIO = 0.23;

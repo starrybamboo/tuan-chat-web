@@ -659,7 +659,10 @@ export function useApplyCropMutation() {
         const uploadUtils = new UploadUtils();
         const [newSpriteOriginalUrl, newSpriteUrl] = await Promise.all([
           uploadUtils.uploadOriginalImg(croppedFile, 3),
-          uploadUtils.uploadImg(croppedFile, 3, 0.9, 2560),
+          uploadUtils.uploadImg(croppedFile, 3, {
+            maxWidthOrHeight: 2560,
+            quality: 0.9,
+          }),
         ]);
 
 
@@ -745,8 +748,14 @@ export function useApplyCropAvatarMutation() {
         const uploadUtils = new UploadUtils();
         const [newAvatarOriginalUrl, newAvatarUrl, newAvatarThumbUrl] = await Promise.all([
           uploadUtils.uploadOriginalImg(croppedFile, 2),
-          uploadUtils.uploadImg(croppedFile, 2, 0.9, 2560),
-          uploadUtils.uploadImg(croppedFile, 2, 0.8, 128),
+          uploadUtils.uploadImg(croppedFile, 2, {
+            maxWidthOrHeight: 2560,
+            quality: 0.9,
+          }),
+          uploadUtils.uploadImg(croppedFile, 2, {
+            maxWidthOrHeight: 128,
+            quality: 0.8,
+          }),
         ]);
 
 

@@ -2,7 +2,8 @@ import type { DocMode } from "@blocksuite/affine/model";
 import type { KeyboardEvent as ReactKeyboardEvent, RefObject } from "react";
 import type { BlocksuiteTcHeaderState } from "./blocksuiteRuntimeTypes";
 import { FileTextIcon } from "@phosphor-icons/react";
-import { useCallback } from "react";
+import { useCallback, useMemo } from "react";
+import { parseDescriptionDocId } from "@/components/chat/infra/blocksuite/description/descriptionDocId";
 import { setBlocksuiteDocHeader } from "@/components/chat/infra/blocksuite/document/docHeader";
 import { ResizableImg } from "@/components/common/resizableImg";
 import toastWindow from "@/components/common/toastWindow/toastWindow";
@@ -47,6 +48,10 @@ export function BlocksuiteTcHeader(props: BlocksuiteTcHeaderProps) {
   const tcHeaderImageUrl = tcHeaderState?.header.imageUrl ?? fallbackImageUrl ?? "";
   const tcHeaderTitle = tcHeaderState?.header.title ?? fallbackTitle ?? "";
   const hasTcHeaderImage = Boolean(tcHeaderImageUrl.trim());
+  const copperedCompressionPreset = useMemo(() => {
+    const parsed = parseDescriptionDocId(docId);
+    return parsed && ["space", "room", "space_user_doc", "space_doc"].includes(parsed.entityType) ? "avatarThumb" : undefined;
+  }, [docId]);
 
   const handleOpenTcHeaderImagePreview = useCallback(() => {
     const imageUrl = tcHeaderImageUrl.trim();
@@ -90,6 +95,7 @@ export function BlocksuiteTcHeader(props: BlocksuiteTcHeaderProps) {
                   }}
                   fileName={`blocksuite-header-${docId.replaceAll(":", "-")}`}
                   aspect={1}
+                  copperedCompressionPreset={copperedCompressionPreset}
                 >
                   <div className={`tc-blocksuite-tc-header-avatar${hasTcHeaderImage ? "" : " tc-blocksuite-tc-header-avatar-empty"}`} aria-label="更换头像">
                     {hasTcHeaderImage

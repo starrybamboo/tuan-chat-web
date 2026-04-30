@@ -16,6 +16,10 @@ export type SpaceAddRequest = {
      */
     avatar?: string;
     /**
+     * 空间头像缩略图的url
+     */
+    avatarThumbUrl?: string;
+    /**
      * 空间头像原图
      */
     originalAvatar?: string;

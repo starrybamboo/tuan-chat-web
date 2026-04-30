@@ -315,13 +315,19 @@ export const AiImageSidebar = memo(({ sidebarProps }: AiImageSidebarProps) => {
     : (ucPreset !== 2 && tokenSnapshot.negative.hiddenText ? tokenSnapshot.negative.hiddenText : undefined);
   const showCharacterPositionsGlobalSection = v4Chars.length >= 2;
   const isCharacterPositionAiChoiceEnabled = !v4UseCoords;
-  const characterPositionAssignments = new Map<string, { characterId: string; index: number }>();
-  v4Chars.forEach((row, idx) => {
-    const code = characterPositionPickerState?.characterId === row.id
-      ? characterPositionPickerState.code
-      : getV4CharGridCellByCenter(row.centerX, row.centerY).code;
-    characterPositionAssignments.set(code, { characterId: row.id, index: idx });
-  });
+  const activeCharacterPositionPickerCharacterId = characterPositionPickerState?.characterId;
+  const activeCharacterPositionPickerCode = characterPositionPickerState?.code;
+  const characterPositionAssignments = useMemo(() => {
+    const assignments = new Map<string, { characterId: string; index: number }>();
+    v4Chars.forEach((row, idx) => {
+      const fallbackCode = getV4CharGridCellByCenter(row.centerX, row.centerY).code;
+      const code = activeCharacterPositionPickerCharacterId === row.id
+        ? (activeCharacterPositionPickerCode ?? fallbackCode)
+        : fallbackCode;
+      assignments.set(code, { characterId: row.id, index: idx });
+    });
+    return assignments;
+  }, [activeCharacterPositionPickerCharacterId, activeCharacterPositionPickerCode, v4Chars]);
   const baseImagePanelClassName = isBaseImageToolsOpen
     ? "relative min-h-[220px] px-4 py-4"
     : "relative min-h-[84px] px-4 py-4";
@@ -578,7 +584,6 @@ export const AiImageSidebar = memo(({ sidebarProps }: AiImageSidebarProps) => {
     segmentedControlClassName,
     segmentedButtonBaseClassName,
     floatingInputActionClassName,
-    promptTextareaClassName,
     simplePromptTextareaClassName,
     highlightPromptSurfaceClassName,
     highlightPromptContentClassName,
@@ -596,7 +601,6 @@ export const AiImageSidebar = memo(({ sidebarProps }: AiImageSidebarProps) => {
     isSimplePreviewingConverted,
     isSimpleTagsEditor,
     isSimpleTextEditor,
-    promptTextareaClassName,
     renderSimpleBaseImageSection,
     segmentedButtonBaseClassName,
     segmentedControlClassName,

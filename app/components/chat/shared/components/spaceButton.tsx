@@ -3,6 +3,7 @@ import { motion } from "motion/react";
 import React from "react";
 import { interactiveButtonMotionProps } from "@/components/common/motion/interactiveButtonMotion";
 import PortalTooltip from "@/components/common/portalTooltip";
+import { withOssResizeProcess } from "@/utils/ossImageProcess";
 import { resolveEntityImageUrl } from "./entityImageUrl";
 
 export default function SpaceButton({ space, unreadMessageNumber, onclick, isActive }: {
@@ -13,7 +14,7 @@ export default function SpaceButton({ space, unreadMessageNumber, onclick, isAct
 }) {
   const displayName = space.name || "未命名空间";
   const fallbackAvatar = "/favicon.ico";
-  const displayAvatar = resolveEntityImageUrl(space.avatar, fallbackAvatar);
+  const displayAvatar = withOssResizeProcess(resolveEntityImageUrl(space.avatarThumbUrl || space.avatar, fallbackAvatar), 128);
   const isDev = typeof import.meta !== "undefined" && Boolean(import.meta.env?.DEV);
 
   return (

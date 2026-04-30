@@ -6,6 +6,7 @@ import { Outlet, useParams } from "react-router"; // 引入 Outlet 和 useParams
 import { Drawer } from "vaul";
 import { Sidebar } from "@/components/Role/Sidebar/Sidebar"; // 确保路径正确
 import { createSeoMeta } from "@/utils/seo";
+import "@/components/Role/roleRouteStyles.css";
 
 export function meta(_args: Route.MetaArgs) {
   return createSeoMeta({

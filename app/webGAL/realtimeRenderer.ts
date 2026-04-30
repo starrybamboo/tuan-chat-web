@@ -4,7 +4,7 @@ import type { QueryClient } from "@tanstack/react-query";
  * WebGAL 实时渲染器，负责将聊天消息写入场景并提供预览控制。
  */
 import type { InferRequest } from "@/tts/engines/index/apiClient";
-import type { FigureAnimationSettings, FigurePositionKey } from "@/types/voiceRenderTypes";
+import type { FigureAnimationSettings } from "@/types/voiceRenderTypes";
 import type { WebgalDiceRenderPayload } from "@/types/webgalDice";
 
 import { compareChatMessageResponsesByOrder } from "@/components/chat/shared/messageOrder";
@@ -26,13 +26,7 @@ import {
   isImageMessageBackground,
   isImageMessageShown,
 } from "@/types/messageAnnotations";
-import {
-  FIGURE_POSITION_IDS,
-  FIGURE_POSITION_ORDER,
-
-  isFigurePosition,
-  MESSAGE_TYPE,
-} from "@/types/voiceRenderTypes";
+import { isFigurePosition, MESSAGE_TYPE } from "@/types/voiceRenderTypes";
 import { buildWebgalChooseScriptLines, extractWebgalChoosePayload } from "@/types/webgalChoose";
 import { extractWebgalDicePayload, isLikelyAnkoDiceContent, isLikelyTrpgDiceContent } from "@/types/webgalDice";
 import { checkGameExist, getTerreApis } from "@/webGAL/index";
@@ -49,6 +43,8 @@ import { getTerreBaseUrl, getTerreWsUrl } from "@/webGAL/terreConfig";
  * 4. 增量更新：新消息来时只更新对应房间的场景内容
  */
 import type { ChatMessageResponse, RoleAvatar, Room, UserRole } from "../../api";
+import type { ImageFigureMessageShape } from "./realtimeRendererFigureLayout";
+import type { WorkflowGraph, WorkflowTransitionOption } from "./realtimeRendererWorkflow";
 
 import { checkFileExist, getAsyncMsg, getFileExtensionFromUrl, readTextFile, uploadFile } from "./fileOperator";
 import {
@@ -56,172 +52,43 @@ import {
   DEFAULT_REALTIME_ASSET_CONCURRENCY,
   runWithConcurrencyLimit,
 } from "./realtimeRenderAssetWarmup";
+import {
+  buildClearFigureLines,
+  buildFigureArgs,
+  buildSceneInitLines,
+  clampImageFigureLayoutToSafeZone,
+  DEFAULT_KEEP_OFFSET_PART,
+  DEFAULT_RESTORE_TRANSFORM_PART,
+  EFFECT_OFFSET_X,
+  EFFECT_SCREEN_WIDTH,
+  EFFECT_SCREEN_Y,
+  IMAGE_MESSAGE_FIGURE_ID,
 
-/**
- * WebGAL 文本拓展语法处理工具
- *
- * 支持的语法：
- * 1. ע﷨: [ҪעĴ](ע) -  [Ц]()
- * 2. 文本增强语法: [文本](style=color:#66327C\; ruby=注音)
- *
- * 参数说明：
- * - style: 文本颜色等样式（仅作用于文本层）
- * - style-alltext: 作用于所有层（文本、描边、占位）的样式，如斜体、字体大小
- * - ruby: 注音文本
- */
-const TextEnhanceSyntax = {
-  /**
-   * 匹配文本拓展语法的正则表达式
-   * 匹配 [文本](参数) 格式
-   */
-  PATTERN: /\[([^\]]+)\]\(([^)]+)\)/g,
+  resolveFigureSlot,
+  resolveImageFigureLayout,
+  resolveSlotOffsetById,
+} from "./realtimeRendererFigureLayout";
+import {
+  buildImageFileName,
+  getSafeExtensionFromUrl,
+  hasFileExtension,
+  hashString,
+} from "./realtimeRendererFileNames";
+import {
+  parseGameConfig,
+  sanitizeGameConfigValue,
+  serializeGameConfig,
+  upsertGameConfigEntry,
+} from "./realtimeRendererGameConfig";
+import { TextEnhanceSyntax } from "./realtimeRendererTextEnhance";
+import {
+  normalizeWorkflowRoomIds,
+  parseWorkflowRoomMap,
+  sanitizeChooseOptionLabel,
+  splitDiceContentToSteps,
 
-  /**
-   * 检测是否为文本增强语法（而非简单注音）
-   * 如果包含 style= 则为文本增强语法
-   */
-  isEnhancedSyntax(params: string): boolean {
-    return params.includes("style=");
-  },
+} from "./realtimeRendererWorkflow";
 
-  /**
-   * 处理消息内容，正确转义 WebGAL 特殊字符
-   *
-   * 处理规则：
-   * 1. 对于文本拓展语法 [文本](参数) 内的分号，保持 \; 转义形式
-   * 2. 对于普通文本中的分号，替换为中文分号 ；
-   * 3. 换行符替换为空格
-   * 4. 普通文本中的冒号替换为中文冒号 ：
-   *
-   * @param content 原始消息内容
-   * @returns 处理后的内容
-   */
-  processContent(content: string): string {
-    // 先找出所有的文本拓展语法块，暂时替换为占位符
-    const syntaxBlocks: string[] = [];
-    let processed = content.replace(this.PATTERN, (match, _text, _params) => {
-      const index = syntaxBlocks.length;
-      syntaxBlocks.push(match);
-      return `\x00SYNTAX_BLOCK_${index}\x00`;
-    });
-
-    // 处理普通文本部分
-    processed = processed
-      .replace(/\r?\n+/g, "|")
-      .replace(/;/g, "；")
-      .replace(/:/g, "：");
-
-    // 恢复文本拓展语法块
-    syntaxBlocks.forEach((block, index) => {
-      processed = processed.replace(`\x00SYNTAX_BLOCK_${index}\x00`, block);
-    });
-
-    return processed;
-  },
-
-  /**
-   * 构建文本增强语法字符串
-   */
-  build(text: string, options: {
-    style?: string;
-    styleAllText?: string;
-    ruby?: string;
-  }): string {
-    const params: string[] = [];
-
-    // style-alltext 必须在 style 之前（WebGAL 的要求）
-    if (options.styleAllText) {
-      // 转义分号
-      params.push(`style-alltext=${options.styleAllText.replace(/;/g, "\\;")}`);
-    }
-
-    if (options.style) {
-      // 转义分号
-      params.push(`style=${options.style.replace(/;/g, "\\;")}`);
-    }
-
-    if (options.ruby) {
-      params.push(`ruby=${options.ruby}`);
-    }
-
-    if (params.length === 0) {
-      // 如果没有参数，返回简单注音格式
-      return `[${text}]()`;
-    }
-
-    return `[${text}](${params.join(" ")})`;
-  },
-
-  /**
-   * 构建简单注音语法
-   *
-   * @param text 要注音的文本
-   * @param ruby 注音
-   * @returns WebGAL 注音语法字符串
-   */
-  buildRuby(text: string, ruby: string): string {
-    return `[${text}](${ruby})`;
-  },
-
-  /**
-   * 构建彩色文本
-   *
-   * @param text 文本
-   * @param color 颜色（如 #FF0000 或 red）
-   * @returns WebGAL 文本增强语法字符串
-   */
-  buildColoredText(text: string, color: string): string {
-    return this.build(text, { style: `color:${color}` });
-  },
-
-  /**
-   * 构建斜体文本
-   *
-   * @param text 文本
-   * @returns WebGAL 文本增强语法字符串
-   */
-  buildItalicText(text: string): string {
-    return this.build(text, {
-      styleAllText: "font-style:italic",
-      style: "color:inherit", // 需要 style= 来触发文本增强语法
-    });
-  },
-
-  /**
-   * 构建带样式的文本
-   */
-  buildStyledText(text: string, options: {
-    color?: string;
-    italic?: boolean;
-    fontSize?: string;
-    ruby?: string;
-  }): string {
-    const styleAllTextParts: string[] = [];
-    const styleParts: string[] = [];
-
-    if (options.italic) {
-      styleAllTextParts.push("font-style:italic");
-    }
-
-    if (options.fontSize) {
-      styleAllTextParts.push(`font-size:${options.fontSize}`);
-    }
-
-    if (options.color) {
-      styleParts.push(`color:${options.color}`);
-    }
-
-    return this.build(text, {
-      styleAllText: styleAllTextParts.length > 0 ? styleAllTextParts.join(";") : undefined,
-      style: styleParts.length > 0 ? styleParts.join(";") : "color:inherit",
-      ruby: options.ruby,
-    });
-  },
-};
-
-/**
- * TTS 配置选项
- */
 export type RealtimeTTSConfig = {
   /** 是否启用 TTS */
   enabled: boolean;
@@ -307,7 +174,6 @@ const DEFAULT_REALTIME_GAME_CONFIG: RealtimeGameConfig = {
   typingSoundSeUrl: "",
 };
 
-const IMAGE_MESSAGE_FIGURE_ID = "image_message";
 const DEFAULT_DICE_SOUND_FILE = "nettimato-rolling-dice-1.wav";
 const DEFAULT_DICE_SOUND_FOLDER = "se";
 const DICE_MERGE_WAIT_MS = 260;
@@ -322,10 +188,6 @@ const REALTIME_RENDERER_INIT_ABORT_ERROR = "__tc_realtime_init_aborted__";
 const DEFAULT_TYPING_SOUND_SE_FILE = "select07.mp3";
 const BLACK_TEMPLATE_DIR = "WebGAL Black";
 const BLACK_TEMPLATE_ID = "805c5f5a-8f52-461f-8931-613676d6a086";
-const WORKFLOW_START_KEY = "start";
-const WORKFLOW_END_NODE_VALUE_PREFIX = "end:";
-const WORKFLOW_END_NODE_LIST_KEY = "endNodes";
-const WORKFLOW_END_NODE_LINK_KEY_PREFIX = "endNode:";
 
 type RenderMessageOptions = {
   bypassDiceMerge?: boolean;
@@ -338,287 +200,6 @@ type PendingDiceMergeEntry = {
   syncToFile: boolean;
   timer: NodeJS.Timeout;
 };
-
-type WorkflowLink = {
-  targetId: number;
-  condition?: string;
-};
-
-type WorkflowTransitionOption = {
-  label: string;
-  targetScene: string;
-};
-
-type WorkflowGraph = {
-  startRoomIds: number[];
-  links: Record<number, WorkflowLink[]>;
-  endNodeIds: number[];
-  endNodeIncomingRoomIds: Record<number, number[]>;
-};
-
-function hasFileExtension(fileName: string): boolean {
-  const dotIndex = fileName.lastIndexOf(".");
-  return dotIndex > 0 && dotIndex < fileName.length - 1;
-}
-
-function hashString(input: string): string {
-  let hash = 5381;
-  for (let i = 0; i < input.length; i += 1) {
-    hash = (hash * 33) ^ input.charCodeAt(i);
-  }
-  return (hash >>> 0).toString(36);
-}
-
-function getSafeExtensionFromUrl(url: string, defaultExt: string): string {
-  try {
-    const urlWithoutParams = String(url ?? "").split("?")[0].split("#")[0];
-    const lastSegment = urlWithoutParams.substring(urlWithoutParams.lastIndexOf("/") + 1);
-    const dotIndex = lastSegment.lastIndexOf(".");
-    if (dotIndex > 0 && dotIndex < lastSegment.length - 1) {
-      const ext = lastSegment.substring(dotIndex + 1).toLowerCase();
-      if (/^[a-z0-9]{1,8}$/.test(ext)) {
-        return ext;
-      }
-    }
-    return defaultExt;
-  }
-  catch {
-    return defaultExt;
-  }
-}
-
-type GameConfigEntry = {
-  key: string;
-  value: string;
-};
-
-function sanitizeGameConfigValue(value: string): string {
-  return String(value ?? "").replace(/[\r\n;]/g, " ").trim();
-}
-
-function parseGameConfig(rawConfig: string): GameConfigEntry[] {
-  return String(rawConfig ?? "")
-    .replace(/\r/g, "")
-    .split(";")
-    .map(commandText => commandText.trim())
-    .filter(commandText => commandText.length > 0)
-    .map((commandText) => {
-      const index = commandText.indexOf(":");
-      if (index <= 0) {
-        return null;
-      }
-      const key = commandText.slice(0, index).trim();
-      const value = commandText.slice(index + 1).trim();
-      if (!key) {
-        return null;
-      }
-      return {
-        key,
-        value,
-      } satisfies GameConfigEntry;
-    })
-    .filter((entry): entry is GameConfigEntry => Boolean(entry));
-}
-
-function serializeGameConfig(entries: GameConfigEntry[]): string {
-  return entries
-    .map(({ key, value }) => `${key}:${sanitizeGameConfigValue(value)};`)
-    .join("\n");
-}
-
-function upsertGameConfigEntry(entries: GameConfigEntry[], key: string, value: string): void {
-  const sanitizedKey = String(key ?? "").trim();
-  if (!sanitizedKey) {
-    return;
-  }
-  const sanitizedValue = sanitizeGameConfigValue(value);
-  const index = entries.findIndex(entry => entry.key === sanitizedKey);
-  if (index >= 0) {
-    entries[index] = {
-      key: sanitizedKey,
-      value: sanitizedValue,
-    };
-    return;
-  }
-  entries.push({
-    key: sanitizedKey,
-    value: sanitizedValue,
-  });
-}
-
-function normalizeWorkflowRoomIds(ids: number[]): number[] {
-  return Array.from(new Set(
-    ids.filter(id => Number.isFinite(id) && id > 0),
-  )).sort((a, b) => a - b);
-}
-
-function parseWorkflowLink(raw: unknown): WorkflowLink | null {
-  if (raw == null) {
-    return null;
-  }
-  const value = typeof raw === "number" ? String(raw) : String(raw ?? "").trim();
-  if (!value) {
-    return null;
-  }
-
-  let splitIndex = 0;
-  while (splitIndex < value.length) {
-    const charCode = value.charCodeAt(splitIndex);
-    if (charCode < 48 || charCode > 57) {
-      break;
-    }
-    splitIndex += 1;
-  }
-  if (splitIndex === 0) {
-    return null;
-  }
-  const targetId = Number(value.slice(0, splitIndex));
-  if (!Number.isFinite(targetId) || targetId <= 0) {
-    return null;
-  }
-  const condition = value.slice(splitIndex).trim() || undefined;
-  return {
-    targetId,
-    condition,
-  };
-}
-
-function parseWorkflowEndNodeId(raw: unknown): number | null {
-  const value = String(raw ?? "").trim();
-  if (!value) {
-    return null;
-  }
-  const normalized = value.startsWith(WORKFLOW_END_NODE_VALUE_PREFIX)
-    ? value.slice(WORKFLOW_END_NODE_VALUE_PREFIX.length)
-    : value;
-  const id = Number(normalized);
-  if (!Number.isFinite(id) || id <= 0) {
-    return null;
-  }
-  return id;
-}
-
-function parseWorkflowRoomMap(roomMap?: Record<string, Array<string>>): WorkflowGraph {
-  const result: WorkflowGraph = {
-    startRoomIds: [],
-    links: {},
-    endNodeIds: [],
-    endNodeIncomingRoomIds: {},
-  };
-  if (!roomMap) {
-    return result;
-  }
-
-  const parsedEndNodeIds: number[] = [];
-  const parsedEndNodeIncomingRoomIds: Record<number, number[]> = {};
-
-  Object.entries(roomMap).forEach(([key, value]) => {
-    if (key === WORKFLOW_START_KEY) {
-      result.startRoomIds = normalizeWorkflowRoomIds(
-        (Array.isArray(value) ? value : [])
-          .map((entry) => {
-            if (typeof entry === "number") {
-              return entry;
-            }
-            return Number(String(entry ?? "").trim());
-          })
-          .filter(id => Number.isFinite(id) && id > 0),
-      );
-      return;
-    }
-    if (key === WORKFLOW_END_NODE_LIST_KEY) {
-      const ids = (Array.isArray(value) ? value : [])
-        .map(entry => parseWorkflowEndNodeId(entry))
-        .filter((id): id is number => id != null);
-      parsedEndNodeIds.push(...ids);
-      return;
-    }
-    if (key.startsWith(WORKFLOW_END_NODE_LINK_KEY_PREFIX)) {
-      const endNodeId = Number(key.slice(WORKFLOW_END_NODE_LINK_KEY_PREFIX.length));
-      if (!Number.isFinite(endNodeId) || endNodeId <= 0) {
-        return;
-      }
-      const incomingRoomIds = normalizeWorkflowRoomIds(
-        (Array.isArray(value) ? value : [])
-          .map((entry) => {
-            if (typeof entry === "number") {
-              return entry;
-            }
-            return Number(String(entry ?? "").trim());
-          })
-          .filter(id => Number.isFinite(id) && id > 0),
-      );
-      parsedEndNodeIncomingRoomIds[endNodeId] = incomingRoomIds;
-      return;
-    }
-
-    const sourceRoomId = Number(key);
-    if (!Number.isFinite(sourceRoomId) || sourceRoomId <= 0) {
-      return;
-    }
-
-    const dedupeMap = new Map<string, WorkflowLink>();
-    const rawTargets = Array.isArray(value) ? value : [];
-    rawTargets.forEach((entry) => {
-      const link = parseWorkflowLink(entry);
-      if (!link) {
-        return;
-      }
-      const dedupeKey = `${link.targetId}|${link.condition ?? ""}`;
-      if (!dedupeMap.has(dedupeKey)) {
-        dedupeMap.set(dedupeKey, link);
-      }
-    });
-    const parsedLinks = Array.from(dedupeMap.values()).sort((a, b) => {
-      if (a.targetId !== b.targetId) {
-        return a.targetId - b.targetId;
-      }
-      return (a.condition ?? "").localeCompare(b.condition ?? "");
-    });
-    if (parsedLinks.length > 0) {
-      result.links[sourceRoomId] = parsedLinks;
-    }
-  });
-
-  const normalizedEndNodeIds = normalizeWorkflowRoomIds([
-    ...parsedEndNodeIds,
-    ...Object.keys(parsedEndNodeIncomingRoomIds)
-      .map(id => Number(id))
-      .filter(id => Number.isFinite(id) && id > 0),
-  ]);
-  const normalizedIncoming: Record<number, number[]> = {};
-  normalizedEndNodeIds.forEach((endNodeId) => {
-    normalizedIncoming[endNodeId] = normalizeWorkflowRoomIds(parsedEndNodeIncomingRoomIds[endNodeId] ?? []);
-  });
-  result.endNodeIds = normalizedEndNodeIds;
-  result.endNodeIncomingRoomIds = normalizedIncoming;
-
-  return result;
-}
-
-function sanitizeChooseOptionLabel(rawLabel: string): string {
-  return String(rawLabel ?? "")
-    .replace(/[\r\n|:;]/g, " ")
-    .trim();
-}
-
-function splitDiceContentToSteps(content: string): string[] {
-  const normalized = String(content ?? "").replace(/\r\n/g, "\n").replace(/\r/g, "\n");
-  return normalized
-    .split("\n")
-    .flatMap(line => line.split(/(?<!\\)\|/))
-    .map(line => line.trim())
-    .filter(line => line.length > 0);
-}
-
-function buildImageFileName(url: string, fileName: string | undefined, prefix: string): string {
-  const extension = getFileExtensionFromUrl(url, "webp");
-  const trimmed = fileName?.trim();
-  if (trimmed) {
-    return hasFileExtension(trimmed) ? trimmed : `${trimmed}.${extension}`;
-  }
-  return `${prefix}_${hashString(url)}.${extension}`;
-}
 
 async function loadImageElementFromBlob(blob: Blob): Promise<HTMLImageElement> {
   const objectUrl = URL.createObjectURL(blob);
@@ -681,198 +262,6 @@ async function uploadBlobToDirectory(blob: Blob, directory: string, fileName: st
   formData.append("targetDirectory", directory);
   await getTerreApis().assetsControllerUpload(formData);
   return fileName;
-}
-
-type FigureSlot = {
-  id: string;
-  basePosition: "left" | "center" | "right";
-  offsetX: number;
-  offsetY: number;
-};
-
-type ImageFigureMessageShape = {
-  width?: number;
-  height?: number;
-};
-
-type ImageFigureLayout = {
-  scale: number;
-  offsetY: number;
-};
-
-// 以 2560 参考宽度经验值换算，保证 5 个槽位有明确区分
-const FIGURE_SLOT_OFFSET_X = 420;
-const EFFECT_OFFSET_X = -200;
-const WEBGAL_STAGE_WIDTH = 2560;
-const WEBGAL_STAGE_HEIGHT = 1440;
-const EFFECT_SCREEN_WIDTH = WEBGAL_STAGE_WIDTH;
-const EFFECT_SCREEN_Y = WEBGAL_STAGE_HEIGHT * 0.25;
-// 展示图层使用固定档位缩放（不按原图像素自适应），避免小图被过度放大。
-const IMAGE_FIGURE_BASE_SCALE = 0.72;
-const IMAGE_FIGURE_LANDSCAPE_SCALE = 0.84;
-const IMAGE_FIGURE_SQUARE_SCALE = 0.62;
-const IMAGE_FIGURE_ULTRA_PORTRAIT_SCALE = 0.78;
-// 展示图层统一定位到屏幕上半区域，避免被对话框遮挡。
-const IMAGE_FIGURE_BASE_OFFSET_Y = -180;
-const IMAGE_FIGURE_LANDSCAPE_OFFSET_Y = -120;
-const IMAGE_FIGURE_SQUARE_OFFSET_Y = -150;
-const IMAGE_FIGURE_ULTRA_PORTRAIT_OFFSET_Y = -220;
-const IMAGE_FIGURE_SAFE_TOP_Y = 80;
-const IMAGE_FIGURE_SAFE_BOTTOM_Y = 1020;
-
-const FIGURE_SLOT_MAP: Record<FigurePositionKey, FigureSlot> = {
-  "left": {
-    id: String(FIGURE_POSITION_IDS.left),
-    basePosition: "left",
-    offsetX: -FIGURE_SLOT_OFFSET_X * 2,
-    offsetY: 0,
-  },
-  "left-center": {
-    id: String(FIGURE_POSITION_IDS["left-center"]),
-    basePosition: "left",
-    offsetX: -FIGURE_SLOT_OFFSET_X,
-    offsetY: 0,
-  },
-  "center": {
-    id: String(FIGURE_POSITION_IDS.center),
-    basePosition: "center",
-    offsetX: 0,
-    offsetY: 0,
-  },
-  "right-center": {
-    id: String(FIGURE_POSITION_IDS["right-center"]),
-    basePosition: "right",
-    offsetX: FIGURE_SLOT_OFFSET_X,
-    offsetY: 0,
-  },
-  "right": {
-    id: String(FIGURE_POSITION_IDS.right),
-    basePosition: "right",
-    offsetX: FIGURE_SLOT_OFFSET_X * 2,
-    offsetY: 0,
-  },
-};
-
-function resolveFigureSlot(position: FigurePositionKey): FigureSlot {
-  return FIGURE_SLOT_MAP[position];
-}
-
-function resolveSlotOffsetById(id: string): number | null {
-  for (const slot of Object.values(FIGURE_SLOT_MAP)) {
-    if (slot.id === id)
-      return slot.offsetX;
-  }
-  return null;
-}
-
-function resolveImageFigureLayout(imageMessage?: ImageFigureMessageShape | null): ImageFigureLayout {
-  const width = Number(imageMessage?.width ?? 0);
-  const height = Number(imageMessage?.height ?? 0);
-  if (width <= 0 || height <= 0) {
-    return { scale: IMAGE_FIGURE_BASE_SCALE, offsetY: IMAGE_FIGURE_BASE_OFFSET_Y };
-  }
-  const ratio = width / height;
-  if (ratio >= 1.3) {
-    return { scale: IMAGE_FIGURE_LANDSCAPE_SCALE, offsetY: IMAGE_FIGURE_LANDSCAPE_OFFSET_Y };
-  }
-  if (ratio >= 0.9) {
-    return { scale: IMAGE_FIGURE_SQUARE_SCALE, offsetY: IMAGE_FIGURE_SQUARE_OFFSET_Y };
-  }
-  if (ratio <= 0.6) {
-    return { scale: IMAGE_FIGURE_ULTRA_PORTRAIT_SCALE, offsetY: IMAGE_FIGURE_ULTRA_PORTRAIT_OFFSET_Y };
-  }
-  return { scale: IMAGE_FIGURE_BASE_SCALE, offsetY: IMAGE_FIGURE_BASE_OFFSET_Y };
-}
-
-function resolveImageFigureRenderedHeight(imageMessage: ImageFigureMessageShape | undefined, scale: number): number {
-  const width = Number(imageMessage?.width ?? 0);
-  const height = Number(imageMessage?.height ?? 0);
-  if (width > 0 && height > 0) {
-    const containScale = Math.min(WEBGAL_STAGE_WIDTH / width, WEBGAL_STAGE_HEIGHT / height);
-    return height * containScale * scale;
-  }
-  // 宽高缺失时按最保守高度估算，优先避免压到文本框区域。
-  return WEBGAL_STAGE_HEIGHT * scale;
-}
-
-function clampImageFigureLayoutToSafeZone(
-  imageMessage: ImageFigureMessageShape | undefined,
-  layout: ImageFigureLayout,
-): ImageFigureLayout {
-  if (IMAGE_FIGURE_SAFE_TOP_Y >= IMAGE_FIGURE_SAFE_BOTTOM_Y) {
-    return layout;
-  }
-  const safeHeight = IMAGE_FIGURE_SAFE_BOTTOM_Y - IMAGE_FIGURE_SAFE_TOP_Y;
-  let scale = layout.scale;
-  let renderedHeight = resolveImageFigureRenderedHeight(imageMessage, scale);
-  if (!Number.isFinite(renderedHeight) || renderedHeight <= 0) {
-    return layout;
-  }
-
-  if (renderedHeight > safeHeight) {
-    scale *= safeHeight / renderedHeight;
-    renderedHeight = safeHeight;
-  }
-
-  const baseCenterY = WEBGAL_STAGE_HEIGHT / 2 + layout.offsetY;
-  const minCenterY = IMAGE_FIGURE_SAFE_TOP_Y + renderedHeight / 2;
-  const maxCenterY = IMAGE_FIGURE_SAFE_BOTTOM_Y - renderedHeight / 2;
-  const centerY = minCenterY <= maxCenterY
-    ? Math.min(Math.max(baseCenterY, minCenterY), maxCenterY)
-    : baseCenterY;
-
-  return {
-    scale,
-    offsetY: centerY - WEBGAL_STAGE_HEIGHT / 2,
-  };
-}
-
-const DEFAULT_KEEP_OFFSET_PART = " -keepOffset";
-const DEFAULT_RESTORE_TRANSFORM_PART = " -restoreTransform";
-
-function buildFigureArgs(id: string, transform: string): string {
-  const parts: string[] = [];
-  const trimmedId = id.trim();
-  if (trimmedId) {
-    parts.push(`-id=${trimmedId}`);
-  }
-  if (transform) {
-    parts.push(transform);
-  }
-  return parts.join(" ");
-}
-
-type ClearFigureOptions = {
-  includeImage?: boolean;
-};
-
-function buildClearFigureLines(options: ClearFigureOptions = {}): string[] {
-  const { includeImage = false } = options;
-  const lines = FIGURE_POSITION_ORDER.map((position) => {
-    const slot = resolveFigureSlot(position);
-    return `changeFigure:none -id=${slot.id} -next;`;
-  });
-  if (includeImage) {
-    lines.push(`changeFigure:none -id=${IMAGE_MESSAGE_FIGURE_ID} -next;`);
-  }
-  return lines;
-}
-
-function buildDisableFigureEnterTransitionLines(): string[] {
-  const targets = new Set<string>();
-  FIGURE_POSITION_ORDER.forEach((position) => {
-    targets.add(resolveFigureSlot(position).id);
-  });
-  targets.add(IMAGE_MESSAGE_FIGURE_ID);
-  return Array.from(targets).map(target => `setTransition: -target=${target} -enter=none -keepOffset -next;`);
-}
-
-function buildSceneInitLines(): string[] {
-  return [
-    "changeBg:none -next;",
-    ...buildDisableFigureEnterTransitionLines(),
-    ...buildClearFigureLines({ includeImage: true }),
-  ];
 }
 
 type RendererContext = {

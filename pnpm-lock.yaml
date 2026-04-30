@@ -20,6 +20,9 @@ importers:
       '@react-router/node':
         specifier: ^7.12.0
         version: 7.12.0(react-router@7.12.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(typescript@5.8.2)
+      '@tuanchat/openapi-client':
+        specifier: workspace:*
+        version: link:packages/tuanchat-openapi-client
       detect-port:
         specifier: ^2.1.0
         version: 2.1.0
@@ -54,15 +57,33 @@ importers:
       '@blocksuite/affine':
         specifier: 0.22.4
         version: 0.22.4(@types/debug@4.1.12)(@types/node@20.19.27)(@types/react@19.2.7)(babel-plugin-macros@3.1.0)(change-case@5.4.4)(jiti@2.6.1)(lightningcss@1.30.2)(react@19.2.3)(terser@5.44.1)(tsx@4.21.0)(yaml@2.8.2)(yjs@13.6.29)
+      '@blocksuite/affine-block-embed':
+        specifier: 0.22.4
+        version: 0.22.4(@types/react@19.2.7)(change-case@5.4.4)(react@19.2.3)
       '@blocksuite/affine-block-root':
         specifier: 0.22.4
         version: 0.22.4(@types/debug@4.1.12)(@types/node@20.19.27)(@types/react@19.2.7)(babel-plugin-macros@3.1.0)(change-case@5.4.4)(jiti@2.6.1)(lightningcss@1.30.2)(react@19.2.3)(terser@5.44.1)(tsx@4.21.0)(yaml@2.8.2)
+      '@blocksuite/affine-block-surface':
+        specifier: 0.22.4
+        version: 0.22.4(@types/react@19.2.7)(change-case@5.4.4)(react@19.2.3)
       '@blocksuite/affine-components':
         specifier: 0.22.4
         version: 0.22.4(@types/react@19.2.7)(change-case@5.4.4)(react@19.2.3)
+      '@blocksuite/affine-model':
+        specifier: 0.22.4
+        version: 0.22.4
       '@blocksuite/affine-shared':
         specifier: 0.22.4
         version: 0.22.4(@types/react@19.2.7)(change-case@5.4.4)(react@19.2.3)
+      '@blocksuite/affine-widget-edgeless-selected-rect':
+        specifier: 0.22.4
+        version: 0.22.4(@types/react@19.2.7)(babel-plugin-macros@3.1.0)(change-case@5.4.4)(react@19.2.3)
+      '@blocksuite/affine-widget-edgeless-zoom-toolbar':
+        specifier: 0.22.4
+        version: 0.22.4(@types/react@19.2.7)(change-case@5.4.4)(react@19.2.3)
+      '@blocksuite/affine-widget-note-slicer':
+        specifier: 0.22.4
+        version: 0.22.4(@types/react@19.2.7)(babel-plugin-macros@3.1.0)(change-case@5.4.4)(react@19.2.3)
       '@blocksuite/global':
         specifier: 0.22.4
         version: 0.22.4
@@ -177,6 +198,9 @@ importers:
       electron-reload:
         specifier: 2.0.0-alpha.1
         version: 2.0.0-alpha.1
+      esbuild:
+        specifier: ^0.27.2
+        version: 0.27.2
       eslint:
         specifier: ^9.23.0
         version: 9.39.2(jiti@2.6.1)
@@ -228,6 +252,9 @@ importers:
       pixi.js:
         specifier: ^8.6.6
         version: 8.15.0
+      playwright:
+        specifier: ^1.58.2
+        version: 1.58.2
       qrcode:
         specifier: ^1.5.4
         version: 1.5.4
@@ -284,7 +311,7 @@ importers:
         version: 4.1.18
       ts-jest:
         specifier: ^29.4.5
-        version: 29.4.6(@babel/core@7.28.5)(@jest/transform@30.2.0)(@jest/types@30.2.0)(babel-jest@30.2.0(@babel/core@7.28.5))(jest-util@30.2.0)(jest@30.2.0(@types/node@20.19.27)(babel-plugin-macros@3.1.0))(typescript@5.8.2)
+        version: 29.4.6(@babel/core@7.28.5)(@jest/transform@30.2.0)(@jest/types@30.2.0)(babel-jest@30.2.0(@babel/core@7.28.5))(esbuild@0.27.2)(jest-util@30.2.0)(jest@30.2.0(@types/node@20.19.27)(babel-plugin-macros@3.1.0))(typescript@5.8.2)
       ts-md5:
         specifier: ^2.0.1
         version: 2.0.1
@@ -11278,7 +11305,7 @@ snapshots:
       '@types/lodash-es': 4.17.12
       lit: 3.3.2
       lodash-es: 4.17.22
-      minimatch: 10.1.1
+      minimatch: 10.2.5
       rxjs: 7.8.2
       yjs: 13.6.29
       zod: 3.25.76
@@ -16340,7 +16367,7 @@ snapshots:
       js-yaml: 4.1.1
       json5: 2.2.3
       lazy-val: 1.0.5
-      minimatch: 10.1.1
+      minimatch: 10.2.5
       plist: 3.1.0
       resedit: 1.7.2
       semver: 7.7.3
@@ -17121,7 +17148,7 @@ snapshots:
   config-file-ts@0.2.8-rc1:
     dependencies:
       glob: 10.5.0
-      typescript: 5.8.2
+      typescript: 5.9.3
 
   connect@3.7.0:
     dependencies:
@@ -22982,7 +23009,7 @@ snapshots:
       picomatch: 4.0.3
       typescript: 5.8.2
 
-  ts-jest@29.4.6(@babel/core@7.28.5)(@jest/transform@30.2.0)(@jest/types@30.2.0)(babel-jest@30.2.0(@babel/core@7.28.5))(jest-util@30.2.0)(jest@30.2.0(@types/node@20.19.27)(babel-plugin-macros@3.1.0))(typescript@5.8.2):
+  ts-jest@29.4.6(@babel/core@7.28.5)(@jest/transform@30.2.0)(@jest/types@30.2.0)(babel-jest@30.2.0(@babel/core@7.28.5))(esbuild@0.27.2)(jest-util@30.2.0)(jest@30.2.0(@types/node@20.19.27)(babel-plugin-macros@3.1.0))(typescript@5.8.2):
     dependencies:
       bs-logger: 0.2.6
       fast-json-stable-stringify: 2.1.0
@@ -23000,6 +23027,7 @@ snapshots:
       '@jest/transform': 30.2.0
       '@jest/types': 30.2.0
       babel-jest: 30.2.0(@babel/core@7.28.5)
+      esbuild: 0.27.2
       jest-util: 30.2.0
 
   ts-md5@2.0.1: {}

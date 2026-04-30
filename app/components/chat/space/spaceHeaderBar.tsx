@@ -1,5 +1,6 @@
 import type { OpenSpaceDetailPanelOptions, SpaceDetailTab } from "@/components/chat/chatPage.types";
 import { AddressBookIcon, ArchiveIcon, ArrowCounterClockwise, HouseIcon, PlusIcon, SignOutIcon, TrashIcon } from "@phosphor-icons/react";
+import { AnimatePresence, motion } from "motion/react";
 import React from "react";
 import toast from "react-hot-toast";
 import { useNavigate } from "react-router";
@@ -52,6 +53,8 @@ export default function SpaceHeaderBar({
   const [archiveTargetSpaceId, setArchiveTargetSpaceId] = React.useState<number | null>(null);
   const [isResetConfirmOpen, setIsResetConfirmOpen] = React.useState(false);
   const [isResettingSidebarTree, setIsResettingSidebarTree] = React.useState(false);
+  const [isOptionsMenuOpen, setIsOptionsMenuOpen] = React.useState(false);
+  const optionsMenuRef = React.useRef<HTMLDivElement | null>(null);
   const isDevOrTest = Boolean(import.meta.env?.DEV) || import.meta.env.MODE === "test";
   const archiveActionPending = updateArchiveStatus.isPending || recoverSpace.isPending;
   const archiveActionLabel = archived
@@ -75,6 +78,33 @@ export default function SpaceHeaderBar({
     spaceContext.setActiveRoomId?.(null);
     navigate("/chat/discover/material", { replace: true });
   }, [navigate, spaceContext]);
+
+  React.useEffect(() => {
+    if (!isOptionsMenuOpen) {
+      return;
+    }
+
+    const handlePointerDown = (event: PointerEvent) => {
+      if (optionsMenuRef.current?.contains(event.target as Node)) {
+        return;
+      }
+      setIsOptionsMenuOpen(false);
+    };
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setIsOptionsMenuOpen(false);
+      }
+    };
+
+    document.addEventListener("pointerdown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isOptionsMenuOpen]);
 
   const cleanupDissolvedSpaceDoc = React.useCallback(async (targetSpaceId: number) => {
     // 解散空间会级联解散房间；这里额外清理空间描述文档，避免本地残留引用。
@@ -188,6 +218,7 @@ export default function SpaceHeaderBar({
   };
 
   const handleOpenSpaceDetail = (tab: SpaceDetailTab) => {
+    setIsOptionsMenuOpen(false);
     onOpenSpaceDetailPanel(tab);
     onCloseLeftDrawer?.();
   };
@@ -196,6 +227,7 @@ export default function SpaceHeaderBar({
     if (!onResetSidebarTreeToDefault || isResettingSidebarTree) {
       return;
     }
+    setIsOptionsMenuOpen(false);
     setIsResetConfirmOpen(true);
   };
 
@@ -223,12 +255,13 @@ export default function SpaceHeaderBar({
   return (
     <>
       <div className="flex items-center justify-between h-10 gap-2 min-w-0 border-b border-gray-300 dark:border-gray-700 rounded-tl-xl px-2">
-        <div className="dropdown dropdown-bottom min-w-0">
+        <div ref={optionsMenuRef} className="dropdown dropdown-bottom min-w-0">
           <button
             type="button"
-            tabIndex={0}
             className="btn btn-ghost btn-sm px-0 min-w-0 gap-2 justify-start rounded-lg w-full"
             aria-label="空间选项"
+            aria-expanded={isOptionsMenuOpen}
+            onClick={() => setIsOptionsMenuOpen(current => !current)}
           >
             <HouseIcon className="size-4 opacity-70 inline-block" weight="fill" />
             <span className="text-base font-bold truncate leading-none min-w-0 flex-1 text-left">
@@ -239,131 +272,156 @@ export default function SpaceHeaderBar({
             )}
             <ChevronDown className="size-4 opacity-60 shrink-0" />
           </button>
-          <ul tabIndex={0} className="dropdown-content menu bg-base-100 rounded-box shadow-xl border border-base-300 z-40 w-56 p-2">
-            {canViewMembersDetail && (
-              <li>
-                <button
-                  type="button"
-                  className="gap-3"
-                  onClick={() => {
-                    handleOpenSpaceDetail("members");
-                  }}
-                >
-                  <MemberIcon className="size-4 opacity-70" />
-                  <span className="flex-1 text-left">空间成员</span>
-                </button>
-              </li>
-            )}
-            {canViewRolesDetail && (
-              <li>
-                <button
-                  type="button"
-                  className="gap-3"
-                  onClick={() => {
-                    handleOpenSpaceDetail("roles");
-                  }}
-                >
-                  <AddressBookIcon className="size-4 opacity-70" />
-                  <span className="flex-1 text-left">空间角色</span>
-                </button>
-              </li>
-            )}
-            {canViewTrpgDetail && (
-              <li>
-                <button
-                  type="button"
-                  className="gap-3"
-                  onClick={() => {
-                    handleOpenSpaceDetail("trpg");
-                  }}
-                >
-                  <DiceD6Icon className="size-4 opacity-70" />
-                  <span className="flex-1 text-left">跑团设置</span>
-                </button>
-              </li>
-            )}
-            {canViewWebgalDetail && (
-              <li>
-                <button
-                  type="button"
-                  className="gap-3"
-                  onClick={() => {
-                    handleOpenSpaceDetail("webgal");
-                  }}
-                >
-                  <WebgalIcon className="size-4 opacity-70" />
-                  <span className="flex-1 text-left">WebGAL 渲染</span>
-                </button>
-              </li>
-            )}
-            {isSpaceOwner && onAddCategory && (
-              <li>
-                <button
-                  type="button"
-                  className="gap-3"
-                  onClick={onAddCategory}
-                >
-                  <PlusIcon className="size-4 opacity-70" weight="bold" />
-                  <span className="flex-1 text-left">新增分类</span>
-                </button>
-              </li>
-            )}
-            {isSpaceOwner && (
-              <li>
-                <button
-                  type="button"
-                  className="gap-3"
-                  onClick={() => {
-                    handleOpenSpaceDetail("setting");
-                  }}
-                >
-                  <Setting className="size-4 opacity-70" />
-                  <span className="flex-1 text-left">空间资料</span>
-                </button>
-              </li>
-            )}
-            {isSpaceOwner && (
-              <li>
-                <button
-                  type="button"
-                  className="gap-3"
-                  disabled={spaceId <= 0 || archiveActionPending}
-                  onClick={handleArchiveAction}
-                >
-                  <ArchiveIcon className="size-4 opacity-70" />
-                  <span className="flex-1 text-left">{archiveActionLabel}</span>
-                </button>
-              </li>
-            )}
-            <li>
-              <button
-                type="button"
-                className="gap-3 text-error"
-                disabled={isSpaceOwner ? dissolveSpace.isPending || spaceId <= 0 : exitSpace.isPending || spaceId <= 0}
-                onClick={isSpaceOwner ? handleRequestDissolveSpace : handleRequestExitSpace}
+          <AnimatePresence initial={false}>
+            {isOptionsMenuOpen && (
+              <motion.ul
+                tabIndex={0}
+                className="dropdown-content menu bg-base-100 rounded-box shadow-xl border border-base-300 z-40 w-56 p-2"
+                initial={{ opacity: 0, scale: 0.96, y: -6 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.96, y: -6 }}
+                transition={{ type: "spring", stiffness: 520, damping: 34, mass: 0.55 }}
+                style={{ transformOrigin: "top left" }}
               >
-                {isSpaceOwner
-                  ? <TrashIcon className="size-4 opacity-80" />
-                  : <SignOutIcon className="size-4 opacity-80" />}
-                <span className="flex-1 text-left">
-                  {isSpaceOwner ? dissolveActionLabel : leaveActionLabel}
-                </span>
-              </button>
-            </li>
-            {canResetSidebarTree && (
-              <li>
-                <button
-                  type="button"
-                  className="gap-3 text-warning"
-                  disabled={isResettingSidebarTree}
-                  onClick={handleRequestResetSidebarTree}
-                >
-                  <ArrowCounterClockwise className="size-4 opacity-80" />
-                  <span className="flex-1 text-left">重置侧边树（开发）</span>
-                </button>
-              </li>
+                {canViewMembersDetail && (
+                  <li>
+                    <button
+                      type="button"
+                      className="gap-3"
+                      onClick={() => {
+                        handleOpenSpaceDetail("members");
+                      }}
+                    >
+                      <MemberIcon className="size-4 opacity-70" />
+                      <span className="flex-1 text-left">空间成员</span>
+                    </button>
+                  </li>
+                )}
+                {canViewRolesDetail && (
+                  <li>
+                    <button
+                      type="button"
+                      className="gap-3"
+                      onClick={() => {
+                        handleOpenSpaceDetail("roles");
+                      }}
+                    >
+                      <AddressBookIcon className="size-4 opacity-70" />
+                      <span className="flex-1 text-left">空间角色</span>
+                    </button>
+                  </li>
+                )}
+                {canViewTrpgDetail && (
+                  <li>
+                    <button
+                      type="button"
+                      className="gap-3"
+                      onClick={() => {
+                        handleOpenSpaceDetail("trpg");
+                      }}
+                    >
+                      <DiceD6Icon className="size-4 opacity-70" />
+                      <span className="flex-1 text-left">跑团设置</span>
+                    </button>
+                  </li>
+                )}
+                {canViewWebgalDetail && (
+                  <li>
+                    <button
+                      type="button"
+                      className="gap-3"
+                      onClick={() => {
+                        handleOpenSpaceDetail("webgal");
+                      }}
+                    >
+                      <WebgalIcon className="size-4 opacity-70" />
+                      <span className="flex-1 text-left">WebGAL 渲染</span>
+                    </button>
+                  </li>
+                )}
+                {isSpaceOwner && onAddCategory && (
+                  <li>
+                    <button
+                      type="button"
+                      className="gap-3"
+                      onClick={() => {
+                        setIsOptionsMenuOpen(false);
+                        onAddCategory();
+                      }}
+                    >
+                      <PlusIcon className="size-4 opacity-70" weight="bold" />
+                      <span className="flex-1 text-left">新增分类</span>
+                    </button>
+                  </li>
+                )}
+                {isSpaceOwner && (
+                  <li>
+                    <button
+                      type="button"
+                      className="gap-3"
+                      onClick={() => {
+                        handleOpenSpaceDetail("setting");
+                      }}
+                    >
+                      <Setting className="size-4 opacity-70" />
+                      <span className="flex-1 text-left">空间资料</span>
+                    </button>
+                  </li>
+                )}
+                {isSpaceOwner && (
+                  <li>
+                    <button
+                      type="button"
+                      className="gap-3"
+                      disabled={spaceId <= 0 || archiveActionPending}
+                      onClick={() => {
+                        setIsOptionsMenuOpen(false);
+                        handleArchiveAction();
+                      }}
+                    >
+                      <ArchiveIcon className="size-4 opacity-70" />
+                      <span className="flex-1 text-left">{archiveActionLabel}</span>
+                    </button>
+                  </li>
+                )}
+                <li>
+                  <button
+                    type="button"
+                    className="gap-3 text-error"
+                    disabled={isSpaceOwner ? dissolveSpace.isPending || spaceId <= 0 : exitSpace.isPending || spaceId <= 0}
+                    onClick={() => {
+                      setIsOptionsMenuOpen(false);
+                      if (isSpaceOwner) {
+                        handleRequestDissolveSpace();
+                        return;
+                      }
+                      handleRequestExitSpace();
+                    }}
+                  >
+                    {isSpaceOwner
+                      ? <TrashIcon className="size-4 opacity-80" />
+                      : <SignOutIcon className="size-4 opacity-80" />}
+                    <span className="flex-1 text-left">
+                      {isSpaceOwner ? dissolveActionLabel : leaveActionLabel}
+                    </span>
+                  </button>
+                </li>
+                {canResetSidebarTree && (
+                  <li>
+                    <button
+                      type="button"
+                      className="gap-3 text-warning"
+                      disabled={isResettingSidebarTree}
+                      onClick={handleRequestResetSidebarTree}
+                    >
+                      <ArrowCounterClockwise className="size-4 opacity-80" />
+                      <span className="flex-1 text-left">重置侧边树（开发）</span>
+                    </button>
+                  </li>
+                )}
+              </motion.ul>
             )}
-          </ul>
+          </AnimatePresence>
         </div>
         <div className="flex gap-2 shrink-0 mr-2">
           {onToggleLeftDrawer && (

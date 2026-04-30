@@ -47,14 +47,24 @@ function EditableMessageContent({
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState(content);
   const wasEditingRef = useRef(false);
-  const getEditorText = () => {
-    const raw = chatInputRef.current?.getRawElement();
+  const editContentRef = useRef(editContent);
+  const chatInputHandleRef = useRef(chatInputRef);
+  const getEditorText = useCallback(() => {
+    const raw = chatInputHandleRef.current.current?.getRawElement();
     if (!raw) {
-      return editContent;
+      return editContentRef.current;
     }
     const text = raw.textContent ?? "";
     return normalizeEditorText(text);
-  };
+  }, []);
+
+  useEffect(() => {
+    editContentRef.current = editContent;
+  }, [editContent]);
+
+  useEffect(() => {
+    chatInputHandleRef.current = chatInputRef;
+  }, [chatInputRef]);
 
   useEffect(() => {
     if (!isEditing) {

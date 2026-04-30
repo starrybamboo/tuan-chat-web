@@ -1,4 +1,5 @@
-import { Fragment, use, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { Initiative, InitiativeParam, SortDirection, SortKey } from "./initiativeListTypes";
+import { Fragment, use, useEffect, useMemo, useRef, useState } from "react";
 import toast from "react-hot-toast";
 import { useRoomExtra } from "@/components/chat/core/hooks";
 import { RoomContext } from "@/components/chat/core/roomContext";
@@ -10,170 +11,20 @@ import { buildMessageExtraForRequest } from "@/types/messageDraft";
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
 import { useGetRolesAbilitiesQueries, useUpdateRoleAbilityByRoleIdMutation } from "../../../../../api/hooks/abilityQueryHooks";
 import { useSendMessageMutation } from "../../../../../api/hooks/chatQueryHooks";
-
-interface Initiative {
-  name: string;
-  value: number;
-  // 新增：当前 HP 和最大 HP（可为空）
-  hp?: number | null;
-  maxHp?: number | null;
-  // 可选的自定义参数键值对（按配置的 key 存储）
-  extras?: Record<string, string | number | null>;
-  // 关联来源角色ID
-  roleId?: number;
-}
-
-interface InitiativeParam {
-  key: string;
-  label: string;
-  source: "manual" | "roleAttr";
-  attrKey?: string;
-}
-
-type SortKey = "name" | "value" | "hp" | "maxHp" | { paramKey: string };
-type SortDirection = "asc" | "desc";
-
-const RESERVED_KEYS = ["name", "value", "hp", "maxHp"] as const;
-
-const POKEMON_TYPE_CHART: Record<string, Record<string, number>> = {
-  普通: { 岩石: 0.5, 幽灵: 0, 钢: 0.5 },
-  火: { 火: 0.5, 水: 0.5, 草: 2, 冰: 2, 虫: 2, 岩石: 0.5, 龙: 0.5, 钢: 2 },
-  水: { 火: 2, 水: 0.5, 草: 0.5, 地面: 2, 岩石: 2, 龙: 0.5 },
-  电: { 水: 2, 电: 0.5, 草: 0.5, 地面: 0, 飞行: 2, 龙: 0.5 },
-  草: { 火: 0.5, 水: 2, 草: 0.5, 毒: 0.5, 地面: 2, 飞行: 0.5, 虫: 0.5, 岩石: 2, 龙: 0.5, 钢: 0.5 },
-  冰: { 火: 0.5, 水: 0.5, 草: 2, 冰: 0.5, 地面: 2, 飞行: 2, 龙: 2, 钢: 0.5 },
-  格斗: { 普通: 2, 冰: 2, 毒: 0.5, 飞行: 0.5, 超能力: 0.5, 虫: 0.5, 岩石: 2, 幽灵: 0, 恶: 2, 钢: 2, 妖精: 0.5 },
-  毒: { 草: 2, 毒: 0.5, 地面: 0.5, 岩石: 0.5, 幽灵: 0.5, 钢: 0, 妖精: 2 },
-  地面: { 火: 2, 电: 2, 草: 0.5, 毒: 2, 飞行: 0, 虫: 0.5, 岩石: 2, 钢: 2 },
-  飞行: { 电: 0.5, 草: 2, 格斗: 2, 虫: 2, 岩石: 0.5, 钢: 0.5 },
-  超能力: { 格斗: 2, 毒: 2, 超能力: 0.5, 恶: 0, 钢: 0.5 },
-  虫: { 火: 0.5, 草: 2, 格斗: 0.5, 毒: 0.5, 飞行: 0.5, 超能力: 2, 幽灵: 0.5, 恶: 2, 钢: 0.5, 妖精: 0.5 },
-  岩石: { 火: 2, 冰: 2, 格斗: 0.5, 地面: 0.5, 飞行: 2, 虫: 2, 钢: 0.5 },
-  幽灵: { 普通: 0, 超能力: 2, 幽灵: 2, 恶: 0.5 },
-  龙: { 龙: 2, 钢: 0.5, 妖精: 0 },
-  恶: { 格斗: 0.5, 超能力: 2, 幽灵: 2, 恶: 0.5, 妖精: 0.5 },
-  钢: { 火: 0.5, 水: 0.5, 电: 0.5, 冰: 2, 岩石: 2, 钢: 0.5, 妖精: 2 },
-  妖精: { 火: 0.5, 格斗: 2, 毒: 0.5, 龙: 2, 恶: 2, 钢: 0.5 },
-};
-
-const POKEMON_ATTACK_TYPES = Object.keys(POKEMON_TYPE_CHART);
-
-function normalizePokemonType(value: string | null | undefined): string | null {
-  if (!value)
-    return null;
-  const raw = value.trim();
-  if (!raw)
-    return null;
-  if (raw === "一般")
-    return "普通";
-  return raw;
-}
-
-function computePokemonDefensiveMatchups(type1Raw: string | null | undefined, type2Raw: string | null | undefined) {
-  const type1 = normalizePokemonType(type1Raw);
-  const type2 = normalizePokemonType(type2Raw);
-  const groups: Record<"4" | "2" | "0.5" | "0.25" | "0", string[]> = {
-    4: [],
-    2: [],
-    0.5: [],
-    0.25: [],
-    0: [],
-  };
-
-  if (!type1 && !type2) {
-    return groups;
-  }
-
-  for (const atkType of POKEMON_ATTACK_TYPES) {
-    const m1 = type1 ? (POKEMON_TYPE_CHART[atkType]?.[type1] ?? 1) : 1;
-    const m2 = type2 ? (POKEMON_TYPE_CHART[atkType]?.[type2] ?? 1) : 1;
-    const total = m1 * m2;
-
-    if (total === 4)
-      groups["4"].push(atkType);
-    else if (total === 2)
-      groups["2"].push(atkType);
-    else if (total === 0.5)
-      groups["0.5"].push(atkType);
-    else if (total === 0.25)
-      groups["0.25"].push(atkType);
-    else if (total === 0)
-      groups["0"].push(atkType);
-  }
-
-  return groups;
-}
-
-function slugifyLabel(label: string): string {
-  const base = label.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
-  return base || "field";
-}
-
-function makeUniqueKey(base: string, params: InitiativeParam[]): string {
-  let key = base;
-  let suffix = 2;
-  while (RESERVED_KEYS.includes(key as any) || params.some(p => p.key === key)) {
-    key = `${base}-${suffix}`;
-    suffix += 1;
-  }
-  return key;
-}
-
-const POKEMON_STAGE_MIN = -6;
-const POKEMON_STAGE_MAX = 6;
-
-function clampPokemonStageModifier(stageModifier: number): number {
-  if (!Number.isFinite(stageModifier))
-    return 0;
-  return Math.min(POKEMON_STAGE_MAX, Math.max(POKEMON_STAGE_MIN, stageModifier));
-}
-
-function applyPokemonStageModifier(baseValue: number, stageModifier: number): number {
-  if (!Number.isFinite(baseValue))
-    return 0;
-
-  const normalizedStageModifier = clampPokemonStageModifier(stageModifier);
-
-  if (normalizedStageModifier === 0)
-    return baseValue;
-
-  if (normalizedStageModifier > 0)
-    return baseValue * (2 + normalizedStageModifier) / 2;
-
-  return baseValue * 2 / (2 - normalizedStageModifier);
-}
-
-function getPokemonStageFactor(stageModifier: number): number {
-  const normalizedStageModifier = clampPokemonStageModifier(stageModifier);
-
-  if (normalizedStageModifier === 0)
-    return 1;
-
-  if (normalizedStageModifier > 0)
-    return (2 + normalizedStageModifier) / 2;
-
-  return 2 / (2 - normalizedStageModifier);
-}
-
-function formatPokemonBattleNumber(value: number): string {
-  if (!Number.isFinite(value))
-    return "0";
-  if (Number.isInteger(value))
-    return String(value);
-  return String(Math.round(value * 1000) / 1000);
-}
-
-function formatPokemonModifiedStat(label: string, baseValue: number, stageModifier: number, finalValue: number): string {
-  const normalizedStageModifier = clampPokemonStageModifier(stageModifier);
-  const finalText = formatPokemonBattleNumber(finalValue);
-  if (normalizedStageModifier === 0)
-    return `${label}${finalText}`;
-
-  const factor = getPokemonStageFactor(normalizedStageModifier);
-  const baseText = formatPokemonBattleNumber(baseValue);
-  const factorText = formatPokemonBattleNumber(factor);
-  return `${label}${finalText}（${baseText}*${factorText}）`;
-}
+import {
+  extractAgilityFromQuery as extractAgilityFromAbilityQuery,
+  extractAttrFromQuery as extractAttrFromAbilityQuery,
+  extractHpFromQuery as extractHpFromAbilityQuery,
+  extractPokemonInitiativeRoll as extractPokemonInitiativeRollFromAbilityQuery,
+  parseNullableNumber,
+  parseNumberOrZero,
+  stringifyRecord,
+} from "./initiativeListAbilityExtractors";
+import { makeUniqueKey, slugifyLabel } from "./initiativeListKeyUtils";
+import {
+  computePokemonDefensiveMatchups,
+  formatPokemonBattleNumber,
+} from "./initiativePokemonRules";
 
 /**
  * 先攻列表
@@ -277,29 +128,6 @@ export default function InitiativeList() {
 
   const abilityQueries = useGetRolesAbilitiesQueries(importableRoles.map(r => r.roleId));
 
-  const parseNullableNumber = (value: string) => {
-    const trimmed = value.trim();
-    if (!trimmed)
-      return null;
-    const num = Number(trimmed);
-    return Number.isFinite(num) ? num : null;
-  };
-
-  const parseNumberOrZero = (value: string) => {
-    const num = Number(value);
-    return Number.isFinite(num) ? num : 0;
-  };
-
-  const stringifyRecord = (obj?: Record<string, any>): Record<string, string> => {
-    const result: Record<string, string> = {};
-    if (!obj)
-      return result;
-    Object.entries(obj).forEach(([k, v]) => {
-      result[k] = String(v ?? "");
-    });
-    return result;
-  };
-
   const startEditing = (key: string, value: string) => {
     setEditingKey(key);
     setEditingValue(value);
@@ -332,178 +160,6 @@ export default function InitiativeList() {
     editingInputRef.current.select();
   }, [editingKey]);
 
-  const extractAgilityFromQuery = (query: ReturnType<typeof useGetRolesAbilitiesQueries>[number] | undefined): number | null => {
-    const res = query?.data;
-    if (!res?.success || !Array.isArray(res.data) || !spaceContext.ruleId)
-      return null;
-
-    const ruleId = spaceContext.ruleId;
-    const record = res.data.find(item => item.ruleId === ruleId);
-    if (!record)
-      return null;
-
-    const initiativeKeys = ["先攻", "先攻值", "initiative"];
-    const agilityKeys = ["敏捷", "敏", "dex", "agi", "速度", "spd"];
-    const lower = (s: string) => String(s).toLowerCase();
-
-    const tryPickScalar = (obj: any): number | null => {
-      if (obj == null)
-        return null;
-      if (typeof obj === "number")
-        return Number.isFinite(obj) ? obj : null;
-      if (typeof obj === "string") {
-        const num = Number(obj);
-        return Number.isFinite(num) ? num : null;
-      }
-      return null;
-    };
-
-    const search = (node: any, _candidates: string[], depth = 0): number | null => {
-      if (node == null || depth > 3)
-        return null;
-
-      // 对象：优先看有无 name/label 字段匹配，再看 key 匹配
-      if (typeof node === "object" && !Array.isArray(node)) {
-        const keys = Object.keys(node);
-
-        // 如果有 name/label/title 匹配候选，取 value/数值字段
-        const nameField = node.name ?? node.label ?? node.title;
-        if (typeof nameField === "string") {
-          const ln = lower(nameField);
-          if (_candidates.some(c => ln.includes(lower(c)))) {
-            const val = tryPickScalar(node.value ?? node.val ?? node.score ?? node.num);
-            if (val != null)
-              return val;
-          }
-        }
-
-        // 键名直接匹配候选时，读取其数值或深挖其子节点
-        for (const k of keys) {
-          const lk = lower(k);
-          if (_candidates.some(c => lk.includes(lower(c)))) {
-            const val = tryPickScalar(node[k]) ?? search(node[k], _candidates, depth + 1);
-            if (val != null)
-              return val;
-          }
-        }
-
-        // 深度遍历子节点
-        for (const k of keys) {
-          const found = search(node[k], _candidates, depth + 1);
-          if (found != null)
-            return found;
-        }
-      }
-
-      if (Array.isArray(node)) {
-        for (const item of node) {
-          const found = search(item, _candidates, depth + 1);
-          if (found != null)
-            return found;
-        }
-      }
-
-      return null;
-    };
-
-    const source: Record<string, any> = { ...(record.ability || {}), ...(record.basic || {}), ...(record as any).skill };
-
-    // 规则7（宝可梦trpg）：导入先攻按 1d20 + 速度/10（向下取整）。
-    if (ruleId === 7) {
-      const speedKeys = ["速度", "speed", "spd"];
-      const speed = search(source, speedKeys);
-      if (speed != null) {
-        const speedStageKeys = ["速度修正", "speedstage", "spdstage"];
-        const speedStage = search(source, speedStageKeys) ?? 0;
-        const finalSpeed = applyPokemonStageModifier(speed, speedStage);
-        const diceResult = Math.floor(Math.random() * 20) + 1;
-        return diceResult + Math.floor(finalSpeed / 10);
-      }
-    }
-
-    return search(source, initiativeKeys) ?? search(source, agilityKeys);
-  };
-
-  const extractPokemonInitiativeRoll = (
-    query: ReturnType<typeof useGetRolesAbilitiesQueries>[number] | undefined,
-  ): { total: number; diceResult: number; speedRollBonus: number; speedDisplay: string } | null => {
-    const res = query?.data;
-    if (!res?.success || !Array.isArray(res.data) || spaceContext.ruleId !== 7)
-      return null;
-
-    const record = res.data.find(item => item.ruleId === 7);
-    if (!record)
-      return null;
-
-    const source: Record<string, any> = { ...(record.ability || {}), ...(record.basic || {}), ...(record as any).skill };
-    const speedKeys = ["速度", "speed", "spd"];
-    const lower = (s: string) => String(s).toLowerCase();
-
-    const tryPickScalar = (obj: any): number | null => {
-      if (obj == null)
-        return null;
-      if (typeof obj === "number")
-        return Number.isFinite(obj) ? obj : null;
-      if (typeof obj === "string") {
-        const num = Number(obj);
-        return Number.isFinite(num) ? num : null;
-      }
-      return null;
-    };
-
-    const search = (node: any, candidates: string[], depth = 0): number | null => {
-      if (node == null || depth > 3)
-        return null;
-
-      if (typeof node === "object" && !Array.isArray(node)) {
-        const keys = Object.keys(node);
-
-        for (const k of keys) {
-          const lk = lower(k);
-          if (candidates.some(c => lk.includes(lower(c)))) {
-            const val = tryPickScalar(node[k]) ?? search(node[k], candidates, depth + 1);
-            if (val != null)
-              return val;
-          }
-        }
-
-        for (const k of keys) {
-          const found = search(node[k], candidates, depth + 1);
-          if (found != null)
-            return found;
-        }
-      }
-
-      if (Array.isArray(node)) {
-        for (const item of node) {
-          const found = search(item, candidates, depth + 1);
-          if (found != null)
-            return found;
-        }
-      }
-
-      return null;
-    };
-
-    const speed = search(source, speedKeys);
-    if (speed == null)
-      return null;
-
-    const speedStageKeys = ["速度修正", "speedstage", "spdstage"];
-    const speedStage = search(source, speedStageKeys) ?? 0;
-    const finalSpeed = applyPokemonStageModifier(speed, speedStage);
-    const speedDisplay = formatPokemonModifiedStat("速度", speed, speedStage, finalSpeed);
-
-    const diceResult = Math.floor(Math.random() * 20) + 1;
-    const speedRollBonus = Math.floor(finalSpeed / 10);
-    return {
-      total: diceResult + speedRollBonus,
-      diceResult,
-      speedRollBonus,
-      speedDisplay,
-    };
-  };
-
   const sendPokemonInitiativeDiceMessage = async (
     roleName: string,
     diceResult: number,
@@ -529,81 +185,6 @@ export default function InitiativeList() {
     }
   };
 
-  const extractAttrFromQuery = useCallback((
-    query: ReturnType<typeof useGetRolesAbilitiesQueries>[number] | undefined,
-    attrKey: string,
-  ): number | string | null => {
-    const res = query?.data;
-    if (!res?.success || !Array.isArray(res.data) || !spaceContext.ruleId)
-      return null;
-
-    const ruleId = spaceContext.ruleId;
-    const record = res.data.find(item => item.ruleId === ruleId);
-    if (!record)
-      return null;
-
-    const lowerKey = attrKey.toLowerCase();
-    const pick = (obj?: Record<string, any>) => {
-      if (!obj)
-        return undefined;
-      for (const [k, v] of Object.entries(obj)) {
-        if (String(k).toLowerCase() === lowerKey)
-          return v;
-      }
-      return undefined;
-    };
-
-    const val = pick(record.ability) ?? pick(record.basic);
-    if (val == null)
-      return null;
-    const num = Number(val);
-    return Number.isFinite(num) ? num : val;
-  }, [spaceContext.ruleId]);
-
-  const extractHpFromQuery = useCallback((
-    query: ReturnType<typeof useGetRolesAbilitiesQueries>[number] | undefined,
-  ): { hp: number | null; maxHp: number | null } | null => {
-    const res = query?.data;
-    if (!res?.success || !Array.isArray(res.data) || !spaceContext.ruleId)
-      return null;
-
-    const ruleId = spaceContext.ruleId;
-    const record = res.data.find(item => item.ruleId === ruleId);
-    if (!record)
-      return null;
-
-    const source: Record<string, any> = record.ability || {};
-    const entries = Object.entries(source);
-    if (!entries.length)
-      return { hp: null, maxHp: null };
-
-    const normalizeKey = (s: string) => String(s).toLowerCase().replace(/\s+/g, "").replace(/_/g, "");
-    const hpKeys = ["hp", "当前hp", "生命", "生命值", "体力", "血量", "health"].map(normalizeKey);
-    const maxHpKeys = ["最大hp", "maxhp", "hp上限", "最大生命", "最大生命值", "最大体力", "最大血量", "maxhealth"].map(normalizeKey);
-
-    const valueByKey = new Map<string, number>();
-    for (const [k, v] of entries) {
-      const num = Number(v);
-      if (!Number.isFinite(num))
-        continue;
-      valueByKey.set(normalizeKey(k), num);
-    }
-
-    const pickFirst = (keys: string[]) => {
-      for (const key of keys) {
-        const found = valueByKey.get(key);
-        if (found != null)
-          return found;
-      }
-      return null;
-    };
-
-    const hp = pickFirst(hpKeys);
-    const maxHp = pickFirst(maxHpKeys);
-
-    return { hp, maxHp };
-  }, [spaceContext.ruleId]);
-
   // 绑定了 roleId 的先攻项，会随角色 hp / 最大hp 变化自动同步。
   useEffect(() => {
     if (initiativeList.length === 0)
@@ -618,7 +199,7 @@ export default function InitiativeList() {
       if (roleIndex === -1)
         return item;
 
-      const hpData = extractHpFromQuery(abilityQueries[roleIndex]);
+      const hpData = extractHpFromAbilityQuery(spaceContext.ruleId, abilityQueries[roleIndex]);
       const currentHp = item.hp ?? null;
       const currentMaxHp = item.maxHp ?? null;
       const nextHp = hpData?.hp ?? currentHp;
@@ -628,7 +209,7 @@ export default function InitiativeList() {
       let levelChanged = false;
       let nextExtras = item.extras;
       if (isPokemonRule && levelParam) {
-        const levelValue = extractAttrFromQuery(abilityQueries[roleIndex], levelParam.attrKey || "等级");
+        const levelValue = extractAttrFromAbilityQuery(spaceContext.ruleId, abilityQueries[roleIndex], levelParam.attrKey || "等级");
         if (levelValue != null) {
           const currentLevel = item.extras?.[levelParam.key] ?? null;
           const normalizedLevel = typeof levelValue === "number" ? levelValue : String(levelValue);
@@ -656,7 +237,7 @@ export default function InitiativeList() {
 
     if (changed)
       setInitiativeList(nextList);
-  }, [abilityQueries, extractAttrFromQuery, extractHpFromQuery, importableRoles, initiativeList, isPokemonRule, levelParam, setInitiativeList]);
+  }, [abilityQueries, importableRoles, initiativeList, isPokemonRule, levelParam, setInitiativeList, spaceContext.ruleId]);
 
   // 仅导入单个角色
   const handleImportSingle = async (roleId: number) => {
@@ -677,8 +258,8 @@ export default function InitiativeList() {
       }
     }
 
-    const pokemonRoll = extractPokemonInitiativeRoll(query);
-    const agi = pokemonRoll?.total ?? extractAgilityFromQuery(query);
+    const pokemonRoll = extractPokemonInitiativeRollFromAbilityQuery(spaceContext.ruleId, query);
+    const agi = pokemonRoll?.total ?? extractAgilityFromAbilityQuery(spaceContext.ruleId, query);
     if (agi == null)
       return;
 
@@ -707,16 +288,6 @@ export default function InitiativeList() {
           if (Number.isFinite(maxActionPoint)) {
             UTILS.setRoleAbilityValue(roleAbility, actionPointKey, String(maxActionPoint), "ability", "auto");
 
-            const stringifyRecord = (obj?: Record<string, any>): Record<string, string> => {
-              const result: Record<string, string> = {};
-              if (!obj)
-                return result;
-              Object.entries(obj).forEach(([k, v]) => {
-                result[k] = String(v ?? "");
-              });
-              return result;
-            };
-
             try {
               await updateRoleAbilityByRoleIdAsync({
                 roleId,
@@ -734,7 +305,7 @@ export default function InitiativeList() {
       }
     }
 
-    const hpData = extractHpFromQuery(query);
+    const hpData = extractHpFromAbilityQuery(spaceContext.ruleId, query);
     const hp = hpData?.hp ?? null;
     const maxHp = hpData?.maxHp ?? null;
 
@@ -753,7 +324,7 @@ export default function InitiativeList() {
     const extras: Record<string, any> = {};
     params.forEach((param) => {
       if (param.source === "roleAttr" && param.attrKey) {
-        const val = extractAttrFromQuery(query, param.attrKey);
+        const val = extractAttrFromAbilityQuery(spaceContext.ruleId, query, param.attrKey);
         extras[param.key] = val ?? "";
       }
       else {
@@ -876,7 +447,7 @@ export default function InitiativeList() {
       const idx = importableRoles.findIndex(r => (r.roleName ?? "") === newItem.name);
       if (idx !== -1) {
         const q = abilityQueries[idx];
-        const maybe = extractAgilityFromQuery(q);
+        const maybe = extractAgilityFromAbilityQuery(spaceContext.ruleId, q);
         if (typeof maybe === "number" && Number.isFinite(maybe)) {
           computedValue = maybe;
         }
@@ -1037,16 +608,6 @@ export default function InitiativeList() {
 
         const nextActionPoint = Math.min(8, currentActionPoint + maxActionPoint);
         UTILS.setRoleAbilityValue(roleAbility, actionPointKey, String(nextActionPoint), "ability", "auto");
-
-        const stringifyRecord = (obj?: Record<string, any>): Record<string, string> => {
-          const result: Record<string, string> = {};
-          if (!obj)
-            return result;
-          Object.entries(obj).forEach(([k, v]) => {
-            result[k] = String(v ?? "");
-          });
-          return result;
-        };
 
         try {
           await updateRoleAbilityByRoleIdAsync({
@@ -1240,10 +801,10 @@ export default function InitiativeList() {
 
     importableRoles.forEach((role, idx) => {
       const query = abilityQueries[idx];
-      const actionPoint = extractAttrFromQuery(query, "行动点")
-        ?? extractAttrFromQuery(query, "行动值")
-        ?? extractAttrFromQuery(query, "AP")
-        ?? extractAttrFromQuery(query, "ap");
+      const actionPoint = extractAttrFromAbilityQuery(spaceContext.ruleId, query, "行动点")
+        ?? extractAttrFromAbilityQuery(spaceContext.ruleId, query, "行动值")
+        ?? extractAttrFromAbilityQuery(spaceContext.ruleId, query, "AP")
+        ?? extractAttrFromAbilityQuery(spaceContext.ruleId, query, "ap");
 
       if (actionPoint != null && String(actionPoint).trim() !== "") {
         result.set(role.roleId, String(actionPoint).trim());
@@ -1251,7 +812,7 @@ export default function InitiativeList() {
     });
 
     return result;
-  }, [abilityQueries, extractAttrFromQuery, importableRoles, isPokemonRule]);
+  }, [abilityQueries, importableRoles, isPokemonRule, spaceContext.ruleId]);
 
   const sortedList = useMemo(() => {
     const list = [...initiativeList];

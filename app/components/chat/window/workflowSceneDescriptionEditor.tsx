@@ -10,8 +10,9 @@ function normalizeSceneDefaultDescription(value?: string): string {
     !normalized
     || normalized === LEGACY_ROOM_DEFAULT_DESCRIPTION
     || normalized === LEGACY_SCENE_DEFAULT_DESCRIPTION
-  )
+  ) {
     return SCENE_DEFAULT_DESCRIPTION;
+  }
   return normalized;
 }
 

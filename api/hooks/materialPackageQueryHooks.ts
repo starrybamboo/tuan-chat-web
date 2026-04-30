@@ -1,5 +1,7 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
+import type { ApiResultPageBaseRespMaterialPackageResponse } from "@tuanchat/openapi-client/models/ApiResultPageBaseRespMaterialPackageResponse";
+import type { ApiResultPageBaseRespSpaceMaterialPackageResponse } from "@tuanchat/openapi-client/models/ApiResultPageBaseRespSpaceMaterialPackageResponse";
 import type { MaterialPackageCreateRequest } from "@tuanchat/openapi-client/models/MaterialPackageCreateRequest";
 import type { MaterialPackagePageRequest } from "@tuanchat/openapi-client/models/MaterialPackagePageRequest";
 import type { MaterialPackageUpdateRequest } from "@tuanchat/openapi-client/models/MaterialPackageUpdateRequest";
@@ -8,6 +10,31 @@ import type { SpaceMaterialPackageImportRequest } from "@tuanchat/openapi-client
 import type { SpaceMaterialPackagePageRequest } from "@tuanchat/openapi-client/models/SpaceMaterialPackagePageRequest";
 import type { SpaceMaterialPackageUpdateRequest } from "@tuanchat/openapi-client/models/SpaceMaterialPackageUpdateRequest";
 import { tuanchat } from "../instance";
+
+export const MATERIAL_PACKAGE_LIBRARY_PAGE_SIZE = 24;
+
+type MaterialPackagePageResult = ApiResultPageBaseRespMaterialPackageResponse | ApiResultPageBaseRespSpaceMaterialPackageResponse;
+
+export function getNextMaterialPackagePageRequest<TRequest extends { pageNo?: number; pageSize?: number }>(
+  request: TRequest,
+  lastPage: MaterialPackagePageResult,
+  allPages: MaterialPackagePageResult[],
+): TRequest | undefined {
+  if (lastPage.data?.isLast) {
+    return undefined;
+  }
+  if (lastPage.data?.list && lastPage.data.list.length === 0) {
+    return undefined;
+  }
+
+  const currentPageNo = lastPage.data?.pageNo ?? allPages.length;
+  const pageSize = lastPage.data?.pageSize ?? request.pageSize ?? MATERIAL_PACKAGE_LIBRARY_PAGE_SIZE;
+  return {
+    ...request,
+    pageNo: currentPageNo + 1,
+    pageSize,
+  };
+}
 
 export function useMyMaterialPackagesQuery(request: MaterialPackagePageRequest, enabled = true) {
   return useQuery({
@@ -22,6 +49,38 @@ export function usePublicMaterialPackagesQuery(request: MaterialPackagePageReque
   return useQuery({
     queryKey: ["materialPackage", "public", request],
     queryFn: () => tuanchat.materialPackageController.pagePublicPackages(request),
+    enabled,
+    staleTime: 10_000,
+  });
+}
+
+export function useMyMaterialPackagesInfiniteQuery(request: MaterialPackagePageRequest, enabled = true) {
+  const initialPageParam = {
+    ...request,
+    pageNo: request.pageNo ?? 1,
+    pageSize: request.pageSize ?? MATERIAL_PACKAGE_LIBRARY_PAGE_SIZE,
+  };
+  return useInfiniteQuery({
+    queryKey: ["materialPackage", "my", "infinite", initialPageParam],
+    queryFn: ({ pageParam }) => tuanchat.materialPackageController.pageMyPackages(pageParam),
+    initialPageParam,
+    getNextPageParam: (lastPage, allPages) => getNextMaterialPackagePageRequest(initialPageParam, lastPage, allPages),
+    enabled,
+    staleTime: 10_000,
+  });
+}
+
+export function usePublicMaterialPackagesInfiniteQuery(request: MaterialPackagePageRequest, enabled = true) {
+  const initialPageParam = {
+    ...request,
+    pageNo: request.pageNo ?? 1,
+    pageSize: request.pageSize ?? MATERIAL_PACKAGE_LIBRARY_PAGE_SIZE,
+  };
+  return useInfiniteQuery({
+    queryKey: ["materialPackage", "public", "infinite", initialPageParam],
+    queryFn: ({ pageParam }) => tuanchat.materialPackageController.pagePublicPackages(pageParam),
+    initialPageParam,
+    getNextPageParam: (lastPage, allPages) => getNextMaterialPackagePageRequest(initialPageParam, lastPage, allPages),
     enabled,
     staleTime: 10_000,
   });
@@ -69,6 +128,22 @@ export function useSpaceMaterialPackagesQuery(request: SpaceMaterialPackagePageR
   return useQuery({
     queryKey: ["spaceMaterialPackage", "page", request],
     queryFn: () => tuanchat.spaceMaterialPackageController.pagePackages(request),
+    enabled,
+    staleTime: 10_000,
+  });
+}
+
+export function useSpaceMaterialPackagesInfiniteQuery(request: SpaceMaterialPackagePageRequest, enabled = true) {
+  const initialPageParam = {
+    ...request,
+    pageNo: request.pageNo ?? 1,
+    pageSize: request.pageSize ?? MATERIAL_PACKAGE_LIBRARY_PAGE_SIZE,
+  };
+  return useInfiniteQuery({
+    queryKey: ["spaceMaterialPackage", "page", "infinite", initialPageParam],
+    queryFn: ({ pageParam }) => tuanchat.spaceMaterialPackageController.pagePackages(pageParam),
+    initialPageParam,
+    getNextPageParam: (lastPage, allPages) => getNextMaterialPackagePageRequest(initialPageParam, lastPage, allPages),
     enabled,
     staleTime: 10_000,
   });

@@ -345,19 +345,12 @@ function RoomHeaderBarImpl({
                     <>
                       <div
                         className="tooltip tooltip-bottom hover:text-info relative z-50"
-                        data-tip="房间成员"
-                        data-side-drawer-toggle="true"
-                        onClick={handleToggleMemberDrawer}
+                        data-tip={`切换到${useChatBubbleStyle ? "传统" : "气泡"}样式`}
+                        onClick={() => {
+                          toggleUseChatBubbleStyle();
+                        }}
                       >
-                        <MemberIcon className="size-6" />
-                      </div>
-                      <div
-                        className="tooltip tooltip-bottom hover:text-info relative z-50"
-                        data-tip="房间角色"
-                        data-side-drawer-toggle="true"
-                        onClick={handleToggleRoleDrawer}
-                      >
-                        <RoleListIcon className="size-6" />
+                        <Bubble2 className="size-6" />
                       </div>
                       <ToolbarDivider />
                       <div
@@ -377,14 +370,20 @@ function RoomHeaderBarImpl({
                       <ToolbarDivider />
                       <div
                         className="tooltip tooltip-bottom hover:text-info relative z-50"
-                        data-tip={`切换到${useChatBubbleStyle ? "传统" : "气泡"}样式`}
-                        onClick={() => {
-                          toggleUseChatBubbleStyle();
-                        }}
+                        data-tip="房间成员"
+                        data-side-drawer-toggle="true"
+                        onClick={handleToggleMemberDrawer}
                       >
-                        <Bubble2 className="size-6" />
+                        <MemberIcon className="size-6" />
                       </div>
-                      <ToolbarDivider />
+                      <div
+                        className="tooltip tooltip-bottom hover:text-info relative z-50"
+                        data-tip="房间角色"
+                        data-side-drawer-toggle="true"
+                        onClick={handleToggleRoleDrawer}
+                      >
+                        <RoleListIcon className="size-6" />
+                      </div>
                       <SearchBar className="w-64" />
                     </>
                   )}

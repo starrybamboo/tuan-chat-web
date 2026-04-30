@@ -11,11 +11,10 @@ import {
   useRenameSpaceUserDocMutation,
   useUpdateSpaceUserDocTagMutation,
 } from "api/hooks/spaceUserDocHooks";
-import { use, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { lazy, Suspense, use, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import toast from "react-hot-toast";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
 import { buildDescriptionDocId, parseDescriptionDocId } from "@/components/chat/infra/blocksuite/description/descriptionDocId";
-import BlocksuiteDescriptionEditor from "@/components/chat/shared/components/BlockSuite/blocksuiteDescriptionEditor";
 import { documentModalShellClassName, getDocumentModalFrameClassName } from "@/components/chat/shared/components/documentModalShell";
 import { copyDocToSpaceUserDoc } from "@/components/chat/utils/docCopy";
 import { getDocRefDragData, isDocRefDrag, setDocRefDragData } from "@/components/chat/utils/docRef";
@@ -27,6 +26,8 @@ import { buildFolderNodes, normalizeTagPath, UNTAGGED_KEY } from "./docFolderTag
 
 const LOCAL_TAG_STORAGE_KEY = "tc:space-user-doc-local-tags";
 const TAG_MAX_LENGTH = 64;
+
+const LazyBlocksuiteDescriptionEditor = lazy(() => import("@/components/chat/shared/components/BlockSuite/blocksuiteDescriptionEditor"));
 
 interface DocFolderForUserProps {
   onSendDocCard?: (payload: DocRefDragPayload) => Promise<void> | void;
@@ -811,28 +812,39 @@ export default function DocFolderForUser({ onSendDocCard }: DocFolderForUserProp
           <div className="flex-1 min-h-0 overflow-hidden">
             {openDocBlocksuiteId && (
               <div className="w-full h-full overflow-hidden bg-base-100">
-                <BlocksuiteDescriptionEditor
-                  workspaceId={`space:${spaceId}`}
-                  spaceId={spaceId}
-                  docId={openDocBlocksuiteId}
-                  readOnly={false}
-                  tcHeader={{ enabled: true, fallbackTitle: openDocTitle }}
-                  allowModeSwitch
-                  fullscreenEdgeless
-                  onTcHeaderChange={(payload: { header: BlocksuiteDocHeader }) => {
-                    if (openDocId == null)
-                      return;
-                    const nextTitle = (payload.header?.title ?? "").trim();
-                    if (!nextTitle)
-                      return;
-                    scheduleRenameFromEditor(openDocId, nextTitle);
-                  }}
-                />
+                <Suspense fallback={<DocFolderEditorFallback />}>
+                  <LazyBlocksuiteDescriptionEditor
+                    workspaceId={`space:${spaceId}`}
+                    spaceId={spaceId}
+                    docId={openDocBlocksuiteId}
+                    readOnly={false}
+                    tcHeader={{ enabled: true, fallbackTitle: openDocTitle }}
+                    allowModeSwitch
+                    fullscreenEdgeless
+                    onTcHeaderChange={(payload: { header: BlocksuiteDocHeader }) => {
+                      if (openDocId == null)
+                        return;
+                      const nextTitle = (payload.header?.title ?? "").trim();
+                      if (!nextTitle)
+                        return;
+                      scheduleRenameFromEditor(openDocId, nextTitle);
+                    }}
+                  />
+                </Suspense>
               </div>
             )}
           </div>
         </div>
       </ToastWindow>
+    </div>
+  );
+}
+
+function DocFolderEditorFallback() {
+  return (
+    <div className="flex h-full w-full items-center justify-center text-sm text-base-content/60">
+      <span className="loading loading-spinner loading-md"></span>
+      <span className="ml-2">正在加载文档编辑器...</span>
     </div>
   );
 }

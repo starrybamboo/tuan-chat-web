@@ -160,7 +160,7 @@ export default function ChatPageModals({
             : (
                 <CreateRoomWindow
                   spaceId={activeSpaceId || -1}
-                  spaceAvatar={activeSpaceAvatar}
+                  spaceAvatarThumbUrl={activeSpaceAvatar}
                   onSuccess={onRoomCreated}
                 />
               )}

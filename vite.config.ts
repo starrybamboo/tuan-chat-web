@@ -21,6 +21,35 @@ const REACT_COMPILER_EXCLUDED_SOURCE_SUFFIXES = [
   "/app/components/chat/infra/blocksuite/editors/extensions/embed/embedIframeNoCredentiallessElements.ts",
 ];
 
+function splitVendorChunk(id: string): string | undefined {
+  const normalizedId = id.replace(/\\/g, "/");
+  if (normalizedId.includes("vite/preload-helper")) {
+    return "vendor-runtime";
+  }
+  if (
+    normalizedId.includes("/app/components/common/dicer/")
+    && !normalizedId.includes("/app/components/common/dicer/utils/")
+    && !normalizedId.endsWith("/app/components/common/dicer/roleAbilityAliasMaps.ts")
+  ) {
+    return "dicer-runtime";
+  }
+
+  if (!normalizedId.includes("/node_modules/")) {
+    return undefined;
+  }
+
+  if (normalizedId.includes("/react-syntax-highlighter/") || normalizedId.includes("/refractor/")) {
+    return "vendor-markdown-highlight";
+  }
+  if (normalizedId.includes("/@ffmpeg/")) {
+    return "vendor-ffmpeg";
+  }
+  if (normalizedId.includes("/pixi.js/")) {
+    return "vendor-pixi";
+  }
+  return undefined;
+}
+
 /**
  * Fix CommonJS default export issues for modules like lodash that have no default export.
  * This plugin rewrites code like `import x from 'lodash/debounce'` to work with
@@ -561,6 +590,14 @@ export default defineConfig(() => {
     // 使用独立 cacheDir，避免浏览器/开发服务复用旧的 optimize deps 缓存（默认路径 node_modules/.vite），
     // 导致请求到不存在的 `chunk-*.js` 文件。
     cacheDir: "node_modules/.vite-tuan-chat-web",
+
+    build: {
+      rollupOptions: {
+        output: {
+          manualChunks: splitVendorChunk,
+        },
+      },
+    },
 
     server: {
       port: 5177,

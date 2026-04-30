@@ -1,17 +1,18 @@
 import type { VirtuosoHandle } from "react-virtuoso";
 import type { ChatMessageRequest, ChatMessageResponse, Message } from "../../../../api";
 import type { RoomContextType } from "@/components/chat/core/roomContext";
+import type { GalPatchProposal } from "@/components/chat/galgameAi";
 
 import type { ChatFrameMessageScope } from "@/components/chat/hooks/useChatFrameMessages";
 import { useQueryClient } from "@tanstack/react-query";
 import { tuanchat } from "api/instance";
-import { strToU8, zip } from "fflate";
 import React, { use, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { toast } from "react-hot-toast";
 // hooks (local)
 import RealtimeRenderOrchestrator from "@/components/chat/core/realtimeRenderOrchestrator";
 import { RoomContext } from "@/components/chat/core/roomContext";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
+import { buildGalPatchMutationPlan, executeGalPatchMutationPlan } from "@/components/chat/galgameAi";
 import useChatInputStatus from "@/components/chat/hooks/useChatInputStatus";
 import { useChatHistory } from "@/components/chat/infra/indexedDB/useChatHistory";
 import { resolveMessageDiffBaseCommitId } from "@/components/chat/message/diff/messageVersionDiff";
@@ -41,7 +42,6 @@ import { createRoomUiStore, RoomUiStoreProvider } from "@/components/chat/stores
 import useCommandExecutor from "@/components/common/dicer/cmdPre";
 import { useGlobalUserId, useGlobalWebSocket } from "@/components/globalContextProvider";
 
-import { PremiereExporter } from "@/webGAL";
 import {
   useBatchSendMessageMutation,
   useDeleteMessageMutation,
@@ -61,6 +61,9 @@ function RoomWindow({
   viewMode = false,
   hideSecondaryPanels = false,
   onCloseSubWindow,
+  galPatchProposal,
+  onGalPatchProposalApplied,
+  onGalPatchProposalDiscard,
 }: {
   roomId: number;
   spaceId: number;
@@ -70,6 +73,9 @@ function RoomWindow({
   viewMode?: boolean;
   hideSecondaryPanels?: boolean;
   onCloseSubWindow?: () => void;
+  galPatchProposal?: GalPatchProposal | null;
+  onGalPatchProposalApplied?: (proposal: GalPatchProposal) => void;
+  onGalPatchProposalDiscard?: (proposal: GalPatchProposal) => void;
 }) {
   const spaceContext = use(SpaceContext);
   const roomUiStoreRef = useRef<ReturnType<typeof createRoomUiStore> | null>(null);
@@ -227,6 +233,7 @@ function RoomWindow({
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isApplyingMessageHistory, setIsApplyingMessageHistory] = useState(false);
+  const [isApplyingGalPatchProposal, setIsApplyingGalPatchProposal] = useState(false);
   const [isReloadingAllMessages, setIsReloadingAllMessages] = useState(false);
   const noRole = curRoleId <= 0;
 
@@ -583,6 +590,10 @@ function RoomWindow({
     const loadToastId = toast.loading("正在处理导出...");
 
     try {
+      const [{ PremiereExporter }, { strToU8, zip }] = await Promise.all([
+        import("@/webGAL"),
+        import("fflate"),
+      ]);
       const exporter = new PremiereExporter({
         sequenceName: `Chat_${roomId}`,
         ttsApiUrl,
@@ -847,6 +858,134 @@ function RoomWindow({
     }
   }, [roomId, queryClient, backgroundUrl]);
 
+  const applyGalPatchUpdateMessage = useCallback(async (message: Message) => {
+    const existingResponse = historyMessages?.find(item => item.message.messageId === message.messageId);
+    if (existingResponse) {
+      roomUiStore.getState().pushMessageUndo({
+        type: "update",
+        before: existingResponse.message,
+        after: message,
+      });
+      await chatHistory?.addOrUpdateMessage({
+        ...existingResponse,
+        message,
+      });
+    }
+    else {
+      await chatHistory?.addOrUpdateMessage({ message } as ChatMessageResponse);
+    }
+
+    try {
+      const response = await updateMessageMutation.mutateAsync(message);
+      const committedMessage = response?.data ?? message;
+      await chatHistory?.addOrUpdateMessage({
+        ...(existingResponse ?? {}),
+        message: committedMessage,
+      } as ChatMessageResponse);
+      return committedMessage;
+    }
+    catch (error) {
+      if (existingResponse) {
+        await chatHistory?.addOrUpdateMessage(existingResponse);
+      }
+      throw error;
+    }
+  }, [chatHistory, historyMessages, roomUiStore, updateMessageMutation]);
+
+  const applyGalPatchDeleteMessage = useCallback(async (messageId: number) => {
+    const targetResponse = historyMessages?.find(item => item.message.messageId === messageId);
+    if (targetResponse) {
+      await chatHistory?.addOrUpdateMessage({
+        ...targetResponse,
+        message: {
+          ...targetResponse.message,
+          status: 1,
+          updateTime: new Date().toISOString(),
+        },
+      });
+    }
+
+    try {
+      const response = await deleteMessageMutation.mutateAsync(messageId);
+      if (targetResponse && targetResponse.message.status !== 1) {
+        roomUiStore.getState().pushMessageUndo({ type: "delete", before: targetResponse.message });
+      }
+      const committedMessage = response?.data ?? (targetResponse
+        ? {
+            ...targetResponse.message,
+            status: 1,
+          }
+        : null);
+      if (committedMessage) {
+        await chatHistory?.addOrUpdateMessage({
+          ...(targetResponse ?? {}),
+          message: committedMessage,
+        } as ChatMessageResponse);
+      }
+      return committedMessage;
+    }
+    catch (error) {
+      if (targetResponse) {
+        await chatHistory?.addOrUpdateMessage(targetResponse);
+      }
+      throw error;
+    }
+  }, [chatHistory, deleteMessageMutation, historyMessages, roomUiStore]);
+
+  const handleApplyGalPatchProposal = useCallback(async (proposal: GalPatchProposal) => {
+    if (isApplyingGalPatchProposal) {
+      return;
+    }
+    if (proposal.status !== "draft") {
+      toast.error("只能应用草稿状态的 proposal");
+      return;
+    }
+
+    const currentMessages = (mainHistoryMessages ?? []).map(message => message.message);
+    const plan = buildGalPatchMutationPlan({
+      proposal,
+      currentMessages,
+    });
+
+    const totalChangeCount = plan.insertMessages.length + plan.updateMessages.length + plan.deleteMessageIds.length;
+    if (totalChangeCount === 0) {
+      toast("没有可应用的变更", { icon: "ℹ️" });
+      onGalPatchProposalApplied?.(proposal);
+      return;
+    }
+
+    setIsApplyingGalPatchProposal(true);
+    const toastId = toast.loading("正在应用 proposal...");
+    try {
+      const result = await executeGalPatchMutationPlan(plan, {
+        sendMessages: sendMessageBatch,
+        updateMessage: applyGalPatchUpdateMessage,
+        deleteMessage: applyGalPatchDeleteMessage,
+      });
+      onGalPatchProposalApplied?.(proposal);
+      toast.success(`已应用：新增 ${result.inserted}，修改 ${result.updated}，删除 ${result.deleted}`, { id: toastId });
+      if (isRealtimeRenderActive) {
+        void rerenderHistoryInWebGAL();
+      }
+    }
+    catch (error) {
+      console.error("应用 Galgame proposal 失败", error);
+      toast.error("应用 proposal 失败，已保留当前预览", { id: toastId });
+    }
+    finally {
+      setIsApplyingGalPatchProposal(false);
+    }
+  }, [
+    applyGalPatchDeleteMessage,
+    applyGalPatchUpdateMessage,
+    isApplyingGalPatchProposal,
+    isRealtimeRenderActive,
+    mainHistoryMessages,
+    onGalPatchProposalApplied,
+    rerenderHistoryInWebGAL,
+    sendMessageBatch,
+  ]);
+
   const roomName = roomHeaderOverride?.title ?? room?.name;
   const spaceName = space?.name;
 
@@ -864,11 +1003,19 @@ function RoomWindow({
     sendMessageWithInsert,
     onExportPremiere: handleExportPremiere,
     showFullMessageDiff: isFullMessageDiffOpen,
+    galPatchProposal,
+    isApplyingGalPatchProposal,
+    onApplyGalPatchProposal: handleApplyGalPatchProposal,
+    onDiscardGalPatchProposal: onGalPatchProposalDiscard,
   }), [
+    galPatchProposal,
+    handleApplyGalPatchProposal,
     handleExecuteCommandRequest,
     handleExportPremiere,
     isFullMessageDiffOpen,
+    isApplyingGalPatchProposal,
     isCommandRequestConsumed,
+    onGalPatchProposalDiscard,
     setBackgroundUrl,
     setCurrentEffect,
     roomName,

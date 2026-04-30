@@ -58,6 +58,7 @@ export default function MessageAnnotationsBar({
             active={true}
             interactive={canEdit}
             compact={compact}
+            showActiveHighlight={false}
             onClick={canEdit ? () => onToggle?.(id) : undefined}
           />
         );

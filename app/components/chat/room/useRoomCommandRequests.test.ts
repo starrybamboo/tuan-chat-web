@@ -13,6 +13,7 @@ vi.mock("react", async () => {
     ...actual,
     default: actual,
     useCallback: <T extends (...args: any[]) => any>(fn: T) => fn,
+    useEffect: (fn: () => void | (() => void)) => fn(),
     useMemo: <T>(fn: () => T) => fn(),
     useRef: <T>(value: T) => ({ current: value }),
     useState: <T>(value: T | (() => T)) => [typeof value === "function" ? (value as () => T)() : value, vi.fn()] as const,

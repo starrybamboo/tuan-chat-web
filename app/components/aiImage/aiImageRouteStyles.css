@@ -1,0 +1,53 @@
+.ai-image-fade-scrollbar {
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+}
+
+.ai-image-fade-scrollbar::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.ai-image-fade-scrollbar:hover,
+.ai-image-fade-scrollbar:focus-within,
+.ai-image-fade-scrollbar:active {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(148, 163, 184, 0.42) transparent;
+}
+
+.ai-image-fade-scrollbar:hover::-webkit-scrollbar,
+.ai-image-fade-scrollbar:focus-within::-webkit-scrollbar,
+.ai-image-fade-scrollbar:active::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.ai-image-fade-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.ai-image-fade-scrollbar::-webkit-scrollbar-thumb {
+  background-color: transparent;
+  border: 2px solid transparent;
+  border-radius: 9999px;
+  background-clip: padding-box;
+}
+
+.ai-image-fade-scrollbar:hover::-webkit-scrollbar-thumb,
+.ai-image-fade-scrollbar:focus-within::-webkit-scrollbar-thumb,
+.ai-image-fade-scrollbar:active::-webkit-scrollbar-thumb {
+  background-color: rgba(148, 163, 184, 0.34);
+}
+
+.ai-image-fade-scrollbar::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+html.theme-switching .ai-image-shell,
+html.theme-switching .ai-image-shell *,
+html.theme-switching .ai-image-shell *::before,
+html.theme-switching .ai-image-shell *::after {
+  transition: none !important;
+  animation: none !important;
+}
