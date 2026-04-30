@@ -1,3 +1,6 @@
+import type { QueryClient } from "@tanstack/react-query";
+import type { CachedRoleAbility } from "./roleAbilityCacheData";
+
 import {useMutation, useQuery, useQueryClient, useQueries} from "@tanstack/react-query";
 import type {AbilityUpdateRequest} from "@tuanchat/openapi-client/models/AbilityUpdateRequest";
 import {tuanchat} from "../instance";
@@ -41,6 +44,118 @@ type FullRolePayload = {
 
 const USER_PROMPT_MAX_CHARS = 4000;
 const REPAIR_RAW_MAX_CHARS = 6000;
+export const ROLE_ABILITY_BY_RULE_STALE_TIME_MS = 60_000;
+
+function isSuccessfulApiResult(result: { success?: boolean } | null | undefined): boolean {
+    return result?.success === true;
+}
+
+export function shouldRetryRoleAbilityByRule(failureCount: number, error: any) {
+    const statusCode = error?.response?.status || error?.status;
+    if (statusCode && statusCode >= 400 && statusCode < 500) {
+        return false;
+    }
+    return failureCount < 2;
+}
+
+export async function loadRoleAbilityByRule(roleId: number, ruleId: number): Promise<CachedRoleAbility | null> {
+    try {
+        const res = await tuanchat.abilityController.getByRuleAndRole(ruleId, roleId);
+        if (res.success && res.data) {
+            return normalizeRoleAbilityCacheData(res.data, { roleId, ruleId });
+        }
+        return null;
+    } catch (error: any) {
+        const statusCode = error?.response?.status || error?.status;
+        if (statusCode && statusCode >= 400 && statusCode < 500) {
+            console.warn(`Ability not found for roleId: ${roleId}, ruleId: ${ruleId} (status: ${statusCode})`);
+            return null;
+        }
+        throw error;
+    }
+}
+
+export function fetchRoleAbilityByRuleWithCache(queryClient: QueryClient, roleId: number, ruleId: number) {
+    return queryClient.fetchQuery({
+        queryKey: roleAbilityByRuleQueryKey(roleId, ruleId),
+        queryFn: () => loadRoleAbilityByRule(roleId, ruleId),
+        staleTime: ROLE_ABILITY_BY_RULE_STALE_TIME_MS,
+        retry: shouldRetryRoleAbilityByRule,
+    });
+}
+
+type RoleAbilityFullMutationPayload = AbilitySetRequest | AbilityUpdateRequest2;
+
+function setRoleAbilityByRuleCache(queryClient: QueryClient, payload: RoleAbilityFullMutationPayload) {
+    const normalized = normalizeRoleAbilityCacheData(payload, {
+        roleId: payload.roleId,
+        ruleId: payload.ruleId,
+    });
+    if (!normalized) {
+        return;
+    }
+
+    queryClient.setQueryData(roleAbilityByRuleQueryKey(payload.roleId, payload.ruleId), (old: CachedRoleAbility | null | undefined) => ({
+        ...(old ?? {}),
+        ...normalized,
+        abilityId: old?.abilityId ?? normalized.abilityId,
+    }));
+}
+
+function patchStringRecord(
+    current: Record<string, string> | undefined,
+    fields: Record<string, string> | undefined,
+): Record<string, string> {
+    const next = { ...(current ?? {}) };
+    Object.entries(fields ?? {}).forEach(([key, value]) => {
+        if (value == null) {
+            delete next[key];
+            return;
+        }
+        next[key] = String(value);
+    });
+    return next;
+}
+
+function patchRoleAbilityFieldsCache(queryClient: QueryClient, payload: AbilityFieldUpdateRequest2) {
+    queryClient.setQueryData(roleAbilityByRuleQueryKey(payload.roleId, payload.ruleId), (old: CachedRoleAbility | null | undefined) => {
+        const base = normalizeRoleAbilityCacheData(old ?? {}, {
+            roleId: payload.roleId,
+            ruleId: payload.ruleId,
+        }) ?? {
+            abilityId: 0,
+            roleId: payload.roleId,
+            ruleId: payload.ruleId,
+            act: {},
+            basic: {},
+            ability: {},
+            skill: {},
+            actTemplate: {},
+            basicDefault: {},
+            abilityDefault: {},
+            skillDefault: {},
+        };
+
+        const act = patchStringRecord(base.act, payload.actFields);
+        const basic = patchStringRecord(base.basic, payload.basicFields);
+        const ability = patchStringRecord(base.ability, payload.abilityFields);
+        const skill = patchStringRecord(base.skill, payload.skillFields);
+
+        return {
+            ...base,
+            act,
+            basic,
+            ability,
+            skill,
+            record: patchStringRecord(base.record, payload.recordFields),
+            extra: patchStringRecord(base.extra, payload.extraFields),
+            actTemplate: act,
+            basicDefault: basic,
+            abilityDefault: ability,
+            skillDefault: skill,
+        };
+    });
+}
 
 function normalizeRuleText(input: unknown) {
     return String(input ?? "").trim().toLowerCase();
@@ -598,7 +713,10 @@ export function useSetRoleAbilityMutation() {
     return useMutation({
         mutationFn: (req: AbilitySetRequest) => tuanchat.abilityController.setRoleAbility(req),
         mutationKey: ["setRoleAbility"],
-        onSuccess: (_, variables) => {
+        onSuccess: (result, variables) => {
+            if (isSuccessfulApiResult(result)) {
+                setRoleAbilityByRuleCache(queryClient, variables);
+            }
             return invalidateRoleAbilityCaches(queryClient, { roleId: variables.roleId, ruleId: variables.ruleId });
         },
     });
@@ -630,7 +748,10 @@ export function useUpdateRoleAbilityByRoleIdMutation() {
     return useMutation({
         mutationFn: (req: AbilityUpdateRequest2) => tuanchat.abilityController.updateRoleAbility1(req),
         mutationKey: ["updateRoleAbilityByRoleId"],
-        onSuccess: (_, variables) => {
+        onSuccess: (result, variables) => {
+            if (isSuccessfulApiResult(result)) {
+                setRoleAbilityByRuleCache(queryClient, variables);
+            }
             return invalidateRoleAbilityCaches(queryClient, { roleId: variables.roleId, ruleId: variables.ruleId });
         }
     })
@@ -651,7 +772,10 @@ export function useUpdateKeyFieldByRoleIdMutation() {
     return useMutation({
         mutationFn:  (req: AbilityFieldUpdateRequest2) => tuanchat.abilityController.updateRoleAbilityField1(req),
         mutationKey: ["updateRoleAbilityByRoleId"],
-        onSuccess: (_, variables) => {
+        onSuccess: (result, variables) => {
+            if (isSuccessfulApiResult(result)) {
+                patchRoleAbilityFieldsCache(queryClient, variables);
+            }
             return invalidateRoleAbilityCaches(queryClient, { roleId: variables.roleId, ruleId: variables.ruleId });
         }
     })
@@ -662,35 +786,10 @@ export function useUpdateKeyFieldByRoleIdMutation() {
 export function useAbilityByRuleAndRole(roleId:number,ruleId: number){
     return useQuery({
       queryKey: roleAbilityByRuleQueryKey(roleId, ruleId),
-      queryFn: async () => {
-        try {
-          const res = await tuanchat.abilityController.getByRuleAndRole(ruleId, roleId);
-          if (res.success && res.data) {
-            return normalizeRoleAbilityCacheData(res.data, { roleId, ruleId });
-          }
-          return null;
-        } catch (error: any) {
-          // 如果是客户端错误（4xx）或特定的"能力不存在"情况，返回空能力对象而不是抛错
-          // 这样可以避免 React Query 的重试机制对不存在的资源进行多次请求
-          const statusCode = error?.response?.status || error?.status;
-          if (statusCode && statusCode >= 400 && statusCode < 500) {
-            console.warn(`Ability not found for roleId: ${roleId}, ruleId: ${ruleId} (status: ${statusCode})`);
-            return null;
-          }
-          // 对于服务端错误（5xx）或网络异常，重新抛错以触发重试机制
-          throw error;
-        }
-      },
+      queryFn: () => loadRoleAbilityByRule(roleId, ruleId),
+      staleTime: ROLE_ABILITY_BY_RULE_STALE_TIME_MS,
       // 仅对 4xx 客户端错误禁用重试；其他错误保留全局重试配置
-      retry: (failureCount, error: any) => {
-        const statusCode = error?.response?.status || error?.status;
-        // 如果是 4xx 客户端错误，不重试
-        if (statusCode && statusCode >= 400 && statusCode < 500) {
-          return false;
-        }
-        // 其他错误，保留默认重试逻辑
-        return failureCount < 2;
-      },
+      retry: shouldRetryRoleAbilityByRule,
     })
   }
 

@@ -1,3 +1,9 @@
+import type { QueryClient } from "@tanstack/react-query";
+
+import {
+  fetchSpaceExtraWithCache,
+  setSpaceExtraWithCache,
+} from "../../../../../api/hooks/chatQueryHooks";
 import { tuanchat } from "../../../../../api/instance";
 
 export type RealtimeRenderCloudSettings = {
@@ -49,13 +55,15 @@ function parseSettingsPayload(raw: string): RealtimeRenderCloudSettings | null {
   }
 }
 
-export async function getRealtimeRenderSettingsFromCloud(spaceId: number): Promise<RealtimeRenderCloudSettings | null> {
+export async function getRealtimeRenderSettingsFromCloud(spaceId: number, queryClient?: QueryClient | null): Promise<RealtimeRenderCloudSettings | null> {
   const normalizedSpaceId = normalizeSpaceId(spaceId);
   if (normalizedSpaceId == null) {
     return null;
   }
 
-  const response = await tuanchat.spaceController.getSpaceExtra(normalizedSpaceId, SPACE_EXTRA_KEY);
+  const response = queryClient
+    ? await fetchSpaceExtraWithCache(queryClient, normalizedSpaceId, SPACE_EXTRA_KEY)
+    : await tuanchat.spaceController.getSpaceExtra(normalizedSpaceId, SPACE_EXTRA_KEY);
   if (!response?.success || typeof response.data !== "string") {
     return null;
   }
@@ -68,15 +76,22 @@ export async function getRealtimeRenderSettingsFromCloud(spaceId: number): Promi
   return parseSettingsPayload(raw);
 }
 
-export async function setRealtimeRenderSettingsToCloud(spaceId: number, settings: RealtimeRenderCloudSettings): Promise<void> {
+export async function setRealtimeRenderSettingsToCloud(spaceId: number, settings: RealtimeRenderCloudSettings, queryClient?: QueryClient | null): Promise<void> {
   const normalizedSpaceId = normalizeSpaceId(spaceId);
   if (normalizedSpaceId == null) {
     return;
   }
 
-  await tuanchat.spaceController.setSpaceExtra({
+  const request = {
     spaceId: normalizedSpaceId,
     key: SPACE_EXTRA_KEY,
     value: JSON.stringify(settings),
-  });
+  };
+
+  if (queryClient) {
+    await setSpaceExtraWithCache(queryClient, request);
+    return;
+  }
+
+  await tuanchat.spaceController.setSpaceExtra(request);
 }

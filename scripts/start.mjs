@@ -91,14 +91,32 @@ else {
     [".ico", "image/x-icon"],
   ]);
 
-  const hashedAssetPattern = /[\\/]assets[\\/][^\\/]+-[A-Za-z0-9_-]{6,}\.[A-Za-z0-9]+$/;
+  const isHashedAssetPath = (filePath) => {
+    const segments = filePath.replaceAll("\\", "/").split("/");
+    if (segments.length < 2 || segments.at(-2) !== "assets") {
+      return false;
+    }
+
+    const fileName = segments.at(-1) ?? "";
+    const extensionStart = fileName.lastIndexOf(".");
+    const hashStart = fileName.lastIndexOf("-", extensionStart);
+    if (extensionStart <= 0 || hashStart <= 0) {
+      return false;
+    }
+
+    const hash = fileName.slice(hashStart + 1, extensionStart);
+    const extension = fileName.slice(extensionStart + 1);
+    return hash.length >= 6
+      && /^[\w-]+$/.test(hash)
+      && /^\w+$/.test(extension);
+  };
 
   const resolveCacheControl = (filePath, ext) => {
     if (ext === ".html") {
       return "no-cache";
     }
 
-    if (hashedAssetPattern.test(filePath)) {
+    if (isHashedAssetPath(filePath)) {
       return "public, max-age=31536000, immutable";
     }
 

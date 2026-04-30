@@ -4,19 +4,8 @@ import { formatLocalDateTime } from "@/utils/dateUtil";
 import { useQueryClient } from "@tanstack/react-query";
 import {useCallback, useEffect, useMemo, useRef, useState} from "react";
 import { useImmer } from "use-immer";
-import { handleUnauthorized } from "@/utils/auth/unauthorized";
 import { recoverAuthTokenFromSession } from "./authRecovery";
-import type {
-    ChatStatusEvent,
-    ChatStatusType,
-    DirectMessageEvent,
-    FriendRequestAcceptedPush,
-    MemberChangePush, RoleChangePush, RoomExtraChangeEvent, RoomDndMapChangeEvent, UserNotificationPush,
-  } from "./wsModels";
-import type { NewFriendRequestPush } from "./wsModels";
-import type { SpaceSidebarTreeUpdatedPush } from "./wsModels";
-import type { RoomDismissPush } from "./wsModels";
-import {tuanchat} from "./instance";
+import type { ChatStatusEvent, DirectMessageEvent } from "./wsModels";
 import {
   useGetUserSessionsQuery,
   useUpdateReadPosition1Mutation
@@ -25,20 +14,10 @@ import type {MessageSessionResponse} from "@tuanchat/openapi-client/models/Messa
 import type {ApiResultListMessageSessionResponse} from "@tuanchat/openapi-client/models/ApiResultListMessageSessionResponse";
 import type { ApiResultRoom } from "@tuanchat/openapi-client/models/ApiResultRoom";
 import type { ApiResultRoomListResponse } from "@tuanchat/openapi-client/models/ApiResultRoomListResponse";
-import { MessageType } from "./wsModels";
-import { triggerAudioAutoPlay } from "@/components/chat/infra/audioMessage/audioMessageAutoPlayRuntime";
-import { resolveAudioAutoPlayPurposeFromAnnotationTransition } from "@/components/chat/infra/audioMessage/audioMessageAutoPlayPolicy";
-import { useAudioMessageAutoPlayStore } from "@/components/chat/stores/audioMessageAutoPlayStore";
-import { applyRoomDndMapChange, roomDndMapQueryKey } from "@/components/chat/shared/map/roomDndMapApi";
-import { getSoundMessageExtra } from "@/types/messageExtra";
-import {
-  prependNotificationToCaches,
-} from "@/components/notification/notificationHooks";
-import { FEEDBACK_ISSUE_TARGET_TYPE } from "@/components/feedback/feedbackTypes";
-import { buildCommentPageQueryKey } from "./hooks/commentQueryHooks";
 import type { CrossTabNotificationGuard } from "@/utils/crossTabNotificationGuard";
 import { createCrossTabNotificationGuard } from "@/utils/crossTabNotificationGuard";
-import { invalidateMemberChangeQueries, invalidateRoleChangeQueries } from "./wsInvalidation";
+import type { ChatStatus, OptimisticDirectMessagePending, WsMessage } from "./webSocketRuntimeTypes";
+import { useWebSocketMessageHandlers } from "./useWebSocketMessageHandlers";
 import { useWebSocketNotifications } from "./useWebSocketNotifications";
 
 /**
@@ -46,15 +25,6 @@ import { useWebSocketNotifications } from "./useWebSocketNotifications";
  * @param userId
  * @param status (0:空闲, 1:正在输入, 2:等待扮演, 3:暂离)
  */
-export interface ChatStatus {
-  userId: number;
-  status: ChatStatusType;
-}
-interface WsMessage<T> {
-  type: number;
-  data?: T;
-}
-
 /**
  * @property connect 连接WebSocket
  * @property send 发送消息 发送聊天消息到指定房间(type: 3) 聊天状态控制 (type: 4)
@@ -116,11 +86,7 @@ export function useWebSocket() {
   const receivedMessagesRef = useRef<Record<number, ChatMessageResponse[]>>({});
   const [receivedDirectMessages, updateReceivedDirectMessages] = useImmer<Record<number, DirectMessageEvent[]>>({});
   const optimisticDirectMessageIdRef = useRef<number>(OPTIMISTIC_DIRECT_MESSAGE_ID_BASE);
-  const optimisticDirectMessageRequestMapRef = useRef<Map<number, {
-    channelId: number;
-    request: MessageDirectSendRequest;
-    createdAt: number;
-  }>>(new Map());
+  const optimisticDirectMessageRequestMapRef = useRef<Map<number, OptimisticDirectMessagePending>>(new Map());
 
   const queryClient = useQueryClient();
   const crossTabNotificationGuardRef = useRef<CrossTabNotificationGuard | null>(null);
@@ -543,382 +509,27 @@ export function useWebSocket() {
     resolveSelfUserId,
   });
 
-  /**
-   * 对收到的消息，按照type进行分类处理
-   */
-  const onMessage = useCallback((message: WsMessage<any>) => {
-    const wsMessageHandlers: Record<number, () => void> = {
-      1: () => {
-        handleDirectChatMessage(message.data as DirectMessageEvent);
-      },
-      4: () => {
-        handleChatMessage(message.data as ChatMessageResponse);
-      },
-      11: () => {
-        const event = message as MemberChangePush;
-        invalidateMemberChangeQueries(queryClient, event.data);
-        // 如果是加入群组，要更新订阅信息，以及所有的房间信息
-        if (event.data.changeType === 1){
-          // getUserSessions 的 queryKey 只有 ['getUserSessions']，这里带 roomId 会导致无法命中缓存。
-          queryClient.invalidateQueries({ queryKey: ['getUserSessions'] });
-          queryClient.invalidateQueries({ queryKey: ['getRoomSession'] });
-        }
-        // 如果是加入或者退出群组，要更新所有的房间信息
-        if (event.data.changeType === 1 || event.data.changeType === 2){
-          // 延迟500ms，防止数据更新不及时
-          setTimeout(()=>{
-            queryClient.invalidateQueries({ queryKey: ["getUserSpaces"] });
-            queryClient.invalidateQueries({ queryKey: ["getUserRooms"] });
-          },500)
-        }
-      },
-      12: () => {
-        const event = message as RoleChangePush
-        invalidateRoleChangeQueries(queryClient, event.data);
-      },
-      14: () => {
-        const event = message as RoomDismissPush;
-        cleanupRoomDescriptionDocOnDissolve(event.data.roomId);
-        queryClient.invalidateQueries({ queryKey: ["getUserSpaces"] });
-        queryClient.invalidateQueries({ queryKey: ["getUserRooms"] });
-      },
-      15: () => {
-        const event = message.data as RoomExtraChangeEvent;
-        queryClient.invalidateQueries({queryKey: ['getRoomExtra',event.roomId,event.key]});
-        console.log("Room extra change:", event);
-      },
-      16: () => {
-        const { roomId } = message.data;
-        queryClient.invalidateQueries({ queryKey: ['getRoomExtra', roomId] });
-        queryClient.invalidateQueries({ queryKey: ['getRoomInfo', roomId] });
-      },
-      17: () => {
-        handleChatStatusChange(message.data as ChatStatusEvent);
-      },
-      19: () => {
-        const event = message.data as RoomDndMapChangeEvent;
-        queryClient.setQueryData(roomDndMapQueryKey(event.roomId), (prev) => {
-          return applyRoomDndMapChange(prev as any, event);
-        });
-      },
-      21: () => {
-        const event = message as NewFriendRequestPush;
-        console.info("New friend request push:", event.data);
-        // 当前前端可能尚未接入好友申请列表，这里先做“缓存刷新钩子”，未来接入后能自动生效。
-        queryClient.invalidateQueries({ queryKey: ["friendReqPage"] });
-        queryClient.invalidateQueries({ queryKey: ["friendRequestPage"] });
-        queryClient.invalidateQueries({ queryKey: ["friendRequests"] });
-        notifyNewFriendRequest(event);
-      },
-      22: () => {
-        const event = message as SpaceSidebarTreeUpdatedPush;
-        const spaceId = event?.data?.spaceId;
-        if (typeof spaceId === "number" && Number.isFinite(spaceId) && spaceId > 0) {
-          queryClient.invalidateQueries({ queryKey: ["getSpaceSidebarTree", spaceId] });
-        }
-      },
-      23: () => {
-        const event = message as UserNotificationPush;
-        const notification = event?.data;
-        if (!notification) {
-          return;
-        }
-        prependNotificationToCaches(queryClient, notification);
-
-        const feedbackIssueId = typeof notification.payload?.feedbackIssueId === "number"
-          ? notification.payload.feedbackIssueId
-          : (typeof notification.resourceId === "number" ? notification.resourceId : null);
-        const hasCommentChange = typeof notification.payload?.commentId === "number";
-
-        queryClient.invalidateQueries({ queryKey: ["feedbackIssues"] });
-        if (feedbackIssueId != null && feedbackIssueId > 0) {
-          queryClient.invalidateQueries({ queryKey: ["feedbackIssueDetail", feedbackIssueId] });
-          if (hasCommentChange) {
-            queryClient.invalidateQueries({
-              queryKey: buildCommentPageQueryKey({
-                targetId: feedbackIssueId,
-                targetType: FEEDBACK_ISSUE_TARGET_TYPE,
-              }),
-            });
-          }
-        }
-
-        void notifyNewUserNotification(notification);
-      },
-      24: () => {
-        const event = message as FriendRequestAcceptedPush;
-        console.info("Friend request accepted push:", event.data);
-        queryClient.invalidateQueries({ queryKey: ["friendList"] });
-        queryClient.invalidateQueries({ queryKey: ["friendRequestPage"] });
-        queryClient.invalidateQueries({ queryKey: ["friendCheck"] });
-      },
-      100: () => {
-        try {
-          closingRef.current = true;
-          wsRef.current?.close();
-        }
-        catch {
-          // ignore
-        }
-
-        void recoverAuthTokenFromSession(import.meta.env.VITE_API_BASE_URL).then((recoveredToken) => {
-          if (recoveredToken) {
-            closingRef.current = false;
-            reconnectAttempts.current = 0;
-            connect();
-            return;
-          }
-          handleUnauthorized({ source: "ws" });
-        });
-      },
-    };
-
-    const handler = wsMessageHandlers[message.type];
-    if (handler) {
-      handler();
-      return;
-    }
-
-    const msgType = message.type;
-    const firstTime = !unhandledWsTypes.current.has(msgType);
-    unhandledWsTypes.current.add(msgType);
-    if (firstTime) {
-      console.warn(
-        `[WS] Unhandled message type: ${msgType}. 已记录到 window.__TC_WS_DEBUG__，请补齐前端处理逻辑。`,
-        message,
-      );
-    }
-    syncWsDebugToWindow();
-  }, []);
-
-  /**
-   * 处理群聊消息
-   * @param chatMessageResponse
-   */
-  const handleChatMessage = (chatMessageResponse: ChatMessageResponse) => {
-    if (!(chatMessageResponse?.message.createTime) && chatMessageResponse != undefined) {
-      chatMessageResponse.message.createTime = formatLocalDateTime(new Date());
-    }
-    if (chatMessageResponse != undefined && chatMessageResponse) {
-      const roomId = chatMessageResponse.message.roomId;
-      console.log(WS_MESSAGE_DEBUG_PREFIX, "handleChatMessage.incoming", {
-        roomId,
-        messageId: chatMessageResponse.message.messageId,
-        syncId: chatMessageResponse.message.syncId,
-        position: chatMessageResponse.message.position ?? null,
-        replyMessageId: chatMessageResponse.message.replyMessageId ?? null,
-        messageType: chatMessageResponse.message.messageType,
-      });
-      if (chatMessageResponse.message.status === 0) {
-        updateLatestSyncId(roomId, chatMessageResponse.message.syncId)
-      }
-
-      // WS 层只负责接收增量消息并去重；补洞统一由 useChatFrameMessages 处理，
-      // 避免两处并行补洞导致历史消息被重复回灌、引发列表短时抖动。
-      const messagesToAdd: ChatMessageResponse[] = [chatMessageResponse];
-      const mergedRoomMessages = [...(receivedMessagesRef.current[roomId] ?? [])];
-      let replacedCount = 0;
-      let appendedCount = 0;
-
-      // --- 音频自动播放同步：在把消息写入本地缓存前先记录自动播放/停止事件 ---
-      for (const msg of messagesToAdd) {
-        const m = msg?.message;
-        if (!m)
-          continue;
-        const existedIndex = typeof m.messageId === "number"
-          ? mergedRoomMessages.findIndex(item => item?.message?.messageId === m.messageId)
-          : -1;
-        const previousMessage = existedIndex >= 0 ? mergedRoomMessages[existedIndex]?.message : undefined;
-
-        // (1) SOUND 自动播放：仅在音频 annotation 首次出现时触发，避免更新误播
-        if (m.messageType === MessageType.SOUND) {
-          const sound = getSoundMessageExtra(m.extra);
-            const url = typeof sound?.url === "string" ? sound.url.trim() : "";
-            if (url && typeof m.messageId === "number") {
-              const purpose = resolveAudioAutoPlayPurposeFromAnnotationTransition(previousMessage, m);
-              if (purpose) {
-                triggerAudioAutoPlay({
-                  source: "ws",
-                  roomId: m.roomId,
-                  messageId: m.messageId,
-                  purpose,
-                  url,
-                });
-              }
-            }
-          }
-
-        // (2) KP 停止全员 BGM：SYSTEM 且内容包含停止指令
-        if (m.messageType === MessageType.SYSTEM) {
-          const content = (m.content ?? "").toString();
-          if (
-            content.includes("[ֹͣBGM]")
-            || content.includes("[停止全员BGM]")
-            || content.includes("[停止BGM]")
-          ) {
-            useAudioMessageAutoPlayStore.getState().markBgmStopFromWs(m.roomId);
-          }
-        }
-
-        if (existedIndex >= 0) {
-          mergedRoomMessages[existedIndex] = msg;
-          replacedCount += 1;
-        }
-        else {
-          mergedRoomMessages.push(msg);
-          appendedCount += 1;
-        }
-      }
-
-      receivedMessagesRef.current = {
-        ...receivedMessagesRef.current,
-        [roomId]: mergedRoomMessages,
-      };
-
-      updateReceivedMessages(draft => {
-        draft[roomId] = mergedRoomMessages;
-        console.log(WS_MESSAGE_DEBUG_PREFIX, "handleChatMessage.afterMerge", {
-          roomId,
-          roomMessageLength: mergedRoomMessages.length,
-          appendedCount,
-          replacedCount,
-          mergedMessageIds: messagesToAdd.map(item => item?.message?.messageId ?? null),
-        });
-      });
-      // 更新发送用户的输入状态（设置为空闲，避免重复状态更新）
-      const sendingUserId = chatMessageResponse.message.userId;
-      if (sendingUserId) {
-        // 使用延迟设置为空闲，避免与其他窗口的状态更新冲突
-        setTimeout(() => {
-          handleChatStatusChange({roomId, userId: sendingUserId, status:"idle"});
-        }, 500); // 延迟500ms再设置为空闲
-      }
-
-      void notifyNewGroupMessage(chatMessageResponse);
-    }
-  };
-  /**
-   * 处理私聊消息
-   */
-  const handleDirectChatMessage = (message: DirectMessageEvent) => {
-    const {receiverId, senderId} = message;
-    // receivedDirectMessages 需要按“对端 contactId”分组。
-    const selfUserId = resolveSelfUserId(message.userId);
-    const channelId = selfUserId === senderId
-      ? receiverId
-      : (selfUserId === receiverId ? senderId : senderId);
-
-    const normalizedIncomingContent = message.content ?? "";
-    const normalizedIncomingReplyId = message.replyMessageId ?? null;
-    const normalizedIncomingExtra = (() => {
-      try {
-        return JSON.stringify(message.extra ?? {});
-      }
-      catch {
-        return "{}";
-      }
-    })();
-
-    let matchedOptimisticMessageId: number | null = null;
-    let matchedCreatedAt = Number.POSITIVE_INFINITY;
-    if (message.senderId === selfUserId && channelId > 0) {
-      for (const [optimisticMessageId, pending] of optimisticDirectMessageRequestMapRef.current.entries()) {
-        const request = pending.request;
-        if (pending.channelId !== channelId) {
-          continue;
-        }
-        if (request.receiverId !== message.receiverId) {
-          continue;
-        }
-        if (request.messageType !== message.messageType) {
-          continue;
-        }
-        if ((request.replyMessageId ?? null) !== normalizedIncomingReplyId) {
-          continue;
-        }
-        if ((request.content ?? "") !== normalizedIncomingContent) {
-          continue;
-        }
-        const normalizedRequestExtra = (() => {
-          try {
-            return JSON.stringify(request.extra ?? {});
-          }
-          catch {
-            return "{}";
-          }
-        })();
-        if (normalizedRequestExtra !== normalizedIncomingExtra) {
-          continue;
-        }
-        if (pending.createdAt < matchedCreatedAt) {
-          matchedOptimisticMessageId = optimisticMessageId;
-          matchedCreatedAt = pending.createdAt;
-        }
-      }
-    }
-
-    let isNewMessage = false;
-    updateReceivedDirectMessages((draft)=>{
-      const channelMessages = draft[channelId] ?? [];
-      if (!(channelId in draft)) {
-        draft[channelId] = channelMessages;
-      }
-
-      if (matchedOptimisticMessageId !== null) {
-        const optimisticIndex = channelMessages.findIndex(item => item.messageId === matchedOptimisticMessageId);
-        if (optimisticIndex >= 0) {
-          channelMessages.splice(optimisticIndex, 1);
-        }
-        optimisticDirectMessageRequestMapRef.current.delete(matchedOptimisticMessageId);
-      }
-
-      // 去重，比如撤回操作就会出现相同消息id的情况。
-      const existingIndex = channelMessages.findIndex(
-          msg => message.messageId === msg.messageId,
-      );
-      if (existingIndex !== -1) {
-        // 更新已存在的消息
-        channelMessages[existingIndex] = message;
-      }
-      else {
-        isNewMessage = true;
-        channelMessages.push(message);
-      }
-    });
-
-    if (isNewMessage) {
-      // 收件箱列表/私聊列表依赖 getInboxMessagePage，WS 来了也要让 Query 缓存同步，避免发送方必须刷新。
-      queryClient.invalidateQueries({ queryKey: ["getInboxMessagePage"] });
-      queryClient.invalidateQueries({ queryKey: ["inboxMessageWithUser"] });
-
-      // 兼容旧服务端：若通过私聊系统文案通知“好友申请同意”，也刷新相关缓存。
-      if ((message?.content ?? "").trim() === "好友申请同意") {
-        queryClient.invalidateQueries({ queryKey: ["friendList"] });
-        queryClient.invalidateQueries({ queryKey: ["friendRequestPage"] });
-        queryClient.invalidateQueries({ queryKey: ["friendCheck"] });
-      }
-
-      if (message.senderId !== selfUserId) {
-        void notifyNewDirectMessage(message, selfUserId);
-      }
-    }
-  };
-  /**
-   * 处理群聊成员状态变动
-   */
-  const handleChatStatusChange = useCallback((chatStatusEvent: ChatStatusEvent) => {
-    const {roomId, userId, status} = chatStatusEvent
-    updateChatStatus(draft => {
-      if (!draft[roomId]) draft[roomId] = [];
-      const userIndex = draft[roomId].findIndex(u => u.userId === userId);
-      if (status === "idle") { // Idle -> remove
-        if (userIndex !== -1) draft[roomId].splice(userIndex, 1);
-      } else {
-        if (userIndex !== -1) draft[roomId][userIndex].status = status;
-        else draft[roomId].push({ userId, status });
-      }
-    });
-  }, [updateChatStatus]);
+  const { handleChatStatusChange, onMessage } = useWebSocketMessageHandlers({
+    queryClient,
+    wsRef,
+    closingRef,
+    reconnectAttempts,
+    receivedMessagesRef,
+    optimisticDirectMessageRequestMapRef,
+    unhandledWsTypes,
+    connect,
+    cleanupRoomDescriptionDocOnDissolve,
+    notifyNewDirectMessage,
+    notifyNewFriendRequest,
+    notifyNewGroupMessage,
+    notifyNewUserNotification,
+    resolveSelfUserId,
+    syncWsDebugToWindow,
+    updateChatStatus,
+    updateLatestSyncId,
+    updateReceivedDirectMessages,
+    updateReceivedMessages,
+  });
   /**
    * 心跳逻辑
    */

@@ -1,3 +1,4 @@
+import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "react-hot-toast";
 
@@ -11,8 +12,9 @@ import {
   useGetRoomNpcRoleQuery,
   useGetRoomRoleQuery,
 } from "../../../../api/hooks/chatQueryHooks";
-import { tuanchat } from "../../../../api/instance";
+import { fetchRoleAvatarsWithCache } from "../../../../api/hooks/RoleAndAvatarHooks";
 import { useGetUserRolesQuery } from "../../../../api/queryHooks";
+import { isInitialQueryReady } from "./roomPrewarmReadiness";
 
 type UseRoomRoleStateParams = {
   roomId: number;
@@ -29,6 +31,7 @@ type UseRoomRoleStateResult = {
   curAvatarId: number;
   setCurAvatarId: (avatarId: number) => void;
   ensureRuntimeAvatarIdForRole: (roleId: number) => Promise<number>;
+  isRoleDataReady: boolean;
 };
 
 type ResolveCurrentRoomRoleIdParams = {
@@ -72,6 +75,7 @@ export default function useRoomRoleState({
   isSpaceOwner,
   isSpectator,
 }: UseRoomRoleStateParams): UseRoomRoleStateResult {
+  const queryClient = useQueryClient();
   const userRolesQuery = useGetUserRolesQuery(userId ?? -1);
   const userRoles = useMemo(() => userRolesQuery.data?.data ?? [], [userRolesQuery.data?.data]);
 
@@ -193,7 +197,7 @@ export default function useRoomRoleState({
     }
 
     try {
-      const avatars = (await tuanchat.avatarController.getRoleAvatars(roleId))?.data ?? [];
+      const avatars = (await fetchRoleAvatarsWithCache(queryClient, roleId))?.data ?? [];
       const picked = pickDefaultAvatarId(avatars);
       if (picked > 0) {
         setRuntimeAvatarIdMap(prev => ({ ...prev, [roleId]: picked }));
@@ -206,7 +210,7 @@ export default function useRoomRoleState({
 
     setRuntimeAvatarIdMap(prev => ({ ...prev, [roleId]: -1 }));
     return -1;
-  }, [pickDefaultAvatarId, roleDefaultAvatarIdMap]);
+  }, [pickDefaultAvatarId, queryClient, roleDefaultAvatarIdMap]);
 
   const getEffectiveAvatarIdForRole = useCallback((roleId: number): number => {
     if (roleId < 0) {
@@ -266,6 +270,10 @@ export default function useRoomRoleState({
   const setCurAvatarId = useCallback((avatarId: number) => {
     setCurAvatarIdForRole(curRoleId, avatarId);
   }, [curRoleId, setCurAvatarIdForRole]);
+  const shouldWaitForUserRoles = !isSpectator && !isSpaceOwner && typeof userId === "number" && userId > 0;
+  const isRoleDataReady = isInitialQueryReady(roomRolesQuery)
+    && isInitialQueryReady(roomNpcRolesQuery)
+    && (!shouldWaitForUserRoles || isInitialQueryReady(userRolesQuery));
 
   return {
     roomAllRoles,
@@ -275,5 +283,6 @@ export default function useRoomRoleState({
     curAvatarId,
     setCurAvatarId,
     ensureRuntimeAvatarIdForRole,
+    isRoleDataReady,
   };
 }

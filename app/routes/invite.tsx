@@ -1,5 +1,5 @@
-import { useSpaceInvitedMutation } from "api/hooks/chatQueryHooks";
-import { tuanchat } from "api/instance";
+import { useQueryClient } from "@tanstack/react-query";
+import { fetchUserRoomsWithCache, useSpaceInvitedMutation } from "api/hooks/chatQueryHooks";
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router";
 import { useGlobalUserId } from "@/components/globalContextProvider";
@@ -7,6 +7,7 @@ import { useGlobalUserId } from "@/components/globalContextProvider";
 export default function InvitePage() {
   const { code } = useParams<{ code: string }>();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const userId = useGlobalUserId();
   const [isProcessing, setIsProcessing] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -59,8 +60,7 @@ export default function InvitePage() {
           return;
         }
 
-        // 获取用户在该空间下的所有群组（这里用不了useQuery就直接用tuanchat了）
-        const { data: roomList } = await tuanchat.roomController.getUserRooms(spaceId);
+        const { data: roomList } = await fetchUserRoomsWithCache(queryClient, spaceId);
         const roomsData = roomList?.rooms;
         if (roomsData && roomsData.length > 0) {
           const firstRoomId = roomsData[0].roomId;
@@ -98,7 +98,7 @@ export default function InvitePage() {
     return () => {
       cancelled = true;
     };
-  }, [code, userId, navigate, attempt]);
+  }, [attempt, code, navigate, queryClient, userId]);
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4">

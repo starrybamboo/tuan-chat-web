@@ -1,5 +1,5 @@
 import type { Route } from "./+types/root";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClientProvider } from "@tanstack/react-query";
 
 import React from "react";
 import { toast, Toaster } from "react-hot-toast";
@@ -17,6 +17,7 @@ import { installMediaDebugBridge } from "@/components/chat/infra/media/mediaDebu
 import { useDrawerPreferenceStore } from "@/components/chat/stores/drawerPreferenceStore";
 import { ToastWindowRenderer } from "@/components/common/toastWindow/toastWindowRenderer";
 import { GlobalContextProvider } from "@/components/globalContextProvider";
+import { queryClient } from "@/queryClient";
 import { consumeAuthToast } from "@/utils/auth/unauthorized";
 import { createSeoMeta, getCanonicalHref } from "@/utils/seo";
 import "./app.css";
@@ -130,17 +131,6 @@ if (typeof window !== "undefined" && import.meta.env.MODE === "test" && !(window
     characterData: true,
   });
 }
-
-const queryClient = new QueryClient(
-  {
-    defaultOptions: {
-      queries: {
-        retry: 2, // 请求失败重试次数
-        staleTime: 1000 * 60 * 5,
-      },
-    },
-  },
-);
 
 export const links: Route.LinksFunction = () => (
   import.meta.env.VITE_ENABLE_GOOGLE_FONTS === "true"

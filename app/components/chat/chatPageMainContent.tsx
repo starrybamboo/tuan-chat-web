@@ -2,7 +2,6 @@ import React from "react";
 import { useSearchParams } from "react-router";
 
 import { useChatPageLayoutContext } from "@/components/chat/chatPageLayoutContext";
-import { useBlocksuiteFramePrewarm } from "@/components/chat/infra/blocksuite/useBlocksuiteFramePrewarm";
 import FriendsPage from "@/components/privateChat/FriendsPage";
 import RightChatView from "@/components/privateChat/RightChatView";
 
@@ -38,18 +37,6 @@ function ChatPageChatContent() {
   const [searchParams] = useSearchParams();
   const previewParam = searchParams.get("preview");
   const isPreviewMode = previewParam === "1" || previewParam === "true";
-  const shouldPrewarmBlocksuiteFrame = !isPrivateChatMode
-    && typeof activeSpaceId === "number"
-    && activeSpaceId > 0
-    && typeof activeRoomId === "number"
-    && Number.isFinite(activeRoomId);
-
-  // 文档 warm frame 较重，先让聊天首屏完成，再在 idle 时预热。
-  useBlocksuiteFramePrewarm({
-    enabled: shouldPrewarmBlocksuiteFrame,
-    prewarmKey: shouldPrewarmBlocksuiteFrame ? `${activeSpaceId}:${activeRoomId}` : null,
-    startDelayMs: 2500,
-  });
 
   if (isPrivateChatMode) {
     return activeRoomId

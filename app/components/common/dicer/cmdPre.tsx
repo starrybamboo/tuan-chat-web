@@ -1,6 +1,8 @@
+import type { QueryClient } from "@tanstack/react-query";
 import type { ChatMessageRequest, ChatMessageResponse, RoleAbility, RoleAvatar, UserRole } from "../../../../api";
 import type { RoomContextType } from "@/components/chat/core/roomContext";
 import type { DicerMessageVisibility } from "@/components/common/dicer/commandMessageVisibility";
+import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef } from "react";
 import toast from "react-hot-toast";
 import { useParams } from "react-router";
@@ -16,12 +18,12 @@ import UTILS from "@/components/common/dicer/utils/utils";
 import { buildMessageExtraForRequest } from "@/types/messageDraft";
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
 import {
+  fetchRoleAbilityByRuleWithCache,
   useSetRoleAbilityMutation,
   useUpdateRoleAbilityByRoleIdMutation,
 } from "../../../../api/hooks/abilityQueryHooks";
 import { useBatchSendMessageMutation, useGetSpaceInfoQuery, useSendMessageMutation, useSetSpaceExtraMutation } from "../../../../api/hooks/chatQueryHooks";
-import { useGetRoleQuery } from "../../../../api/hooks/RoleAndAvatarHooks";
-import { tuanchat } from "../../../../api/instance";
+import { fetchRoleAvatarsWithCache, useGetRoleQuery } from "../../../../api/hooks/RoleAndAvatarHooks";
 
 initAliasMapOnce();
 
@@ -85,13 +87,12 @@ function writeCacheValue<T>(value: T, ttlMs: number): ExpiringCacheEntry<T> {
   };
 }
 
-async function getOrFetchRoleAbility(ruleId: number, roleId: number): Promise<RoleAbility> {
+async function getOrFetchRoleAbility(queryClient: QueryClient, ruleId: number, roleId: number): Promise<RoleAbility> {
   const cached = getCachedDicerRoleAbility(ruleId, roleId);
   if (cached) {
     return cached;
   }
-  const abilityQuery = await tuanchat.abilityController.getByRuleAndRole(ruleId, roleId);
-  const ability = (abilityQuery.data || {}) as RoleAbility;
+  const ability = (await fetchRoleAbilityByRuleWithCache(queryClient, roleId, ruleId) || {}) as RoleAbility;
   setCachedDicerRoleAbility(ruleId, roleId, {
     ...ability,
     roleId: ability.roleId ?? roleId,
@@ -104,12 +105,12 @@ async function getOrFetchRoleAbility(ruleId: number, roleId: number): Promise<Ro
   };
 }
 
-async function getCachedDicerAvatars(dicerRoleId: number): Promise<RoleAvatar[]> {
+async function getCachedDicerAvatars(queryClient: QueryClient, dicerRoleId: number): Promise<RoleAvatar[]> {
   const cached = readCacheValue(dicerAvatarCache.get(dicerRoleId));
   if (cached) {
     return cached;
   }
-  const avatars = (await tuanchat.avatarController.getRoleAvatars(dicerRoleId))?.data ?? [];
+  const avatars = (await fetchRoleAvatarsWithCache(queryClient, dicerRoleId))?.data ?? [];
   dicerAvatarCache.set(dicerRoleId, writeCacheValue(avatars, DICER_AVATAR_CACHE_TTL_MS));
   return avatars;
 }
@@ -133,13 +134,13 @@ function normalizeCopywritingMap(raw: unknown): Record<string, string[]> {
   return normalized;
 }
 
-async function getCachedDicerCopywritingMap(ruleId: number, dicerRoleId: number): Promise<Record<string, string[]>> {
+async function getCachedDicerCopywritingMap(queryClient: QueryClient, ruleId: number, dicerRoleId: number): Promise<Record<string, string[]>> {
   const cacheKey = `${ruleId}:${dicerRoleId}`;
   const cached = readCacheValue(dicerCopywritingCache.get(cacheKey));
   if (cached) {
     return cached;
   }
-  const ability = (await tuanchat.abilityController.getByRuleAndRole(ruleId, dicerRoleId))?.data;
+  const ability = await fetchRoleAbilityByRuleWithCache(queryClient, dicerRoleId, ruleId);
   const rawCopywriting = (ability as any)?.extra?.copywriting;
   let parsedRaw: unknown = rawCopywriting;
   if (typeof rawCopywriting === "string") {
@@ -196,6 +197,7 @@ export function getCommandList(ruleId: number): Map<string, CommandInfo> {
 export default function useCommandExecutor(roleId: number, ruleId: number, roomContext: RoomContextType) {
   const { spaceId: _, roomId: urlRoomId } = useParams();
   const roomId = Number(urlRoomId);
+  const queryClient = useQueryClient();
 
   const role = useGetRoleQuery(roleId).data?.data;
   const space = useGetSpaceInfoQuery(roomContext.spaceId ?? -1).data?.data;
@@ -236,13 +238,14 @@ export default function useCommandExecutor(roleId: number, ruleId: number, roomC
         } as RoomContextType, {
           spaceSnapshot: space ?? null,
           currentRoleSnapshot: role ?? null,
+          queryClient,
         });
         if (cancelled) {
           return;
         }
         await Promise.all([
-          getCachedDicerAvatars(dicerRoleId),
-          getCachedDicerCopywritingMap(normalizedRuleId, dicerRoleId),
+          getCachedDicerAvatars(queryClient, dicerRoleId),
+          getCachedDicerCopywritingMap(queryClient, normalizedRuleId, dicerRoleId),
         ]);
       }
       catch (error) {
@@ -259,6 +262,7 @@ export default function useCommandExecutor(roleId: number, ruleId: number, roomC
     ruleId,
     role,
     space,
+    queryClient,
   ]);
 
   const getNextOptimisticPosition = () => {
@@ -528,6 +532,7 @@ export default function useCommandExecutor(roleId: number, ruleId: number, roomC
       const dicerRoleIdPromise = UTILS.getDicerRoleId(roomContext, {
         spaceSnapshot: space ?? null,
         currentRoleSnapshot: role ?? null,
+        queryClient,
       });
       const [cmdPart, ...args] = parseCommand(command);
       const operator: UserRole = {
@@ -547,7 +552,7 @@ export default function useCommandExecutor(roleId: number, ruleId: number, roomC
       // 获取角色的能力列表
       const getRoleAbility = async (roleId: number): Promise<RoleAbility> => {
         try {
-          return await getOrFetchRoleAbility(ruleId, roleId);
+          return await getOrFetchRoleAbility(queryClient, ruleId, roleId);
         }
         catch (e) {
           console.error(`获取角色能力失败：${e instanceof Error ? e.message : String(e)},roleId:${roleId},ruleId:${ruleId}`);
@@ -745,13 +750,13 @@ export default function useCommandExecutor(roleId: number, ruleId: number, roomC
         const commandMessageMetaPromise = sendCommandMessageWithOptimistic(commandDiceRequest, pendingOptimisticCommandMessage);
         // 先准备最终骰娘文案，再创建乐观消息，避免“先发结果、后补风味文案”的二次跳变。
         const dicerRoleId = await dicerRoleIdPromise;
-        const avatarsPromise = getCachedDicerAvatars(dicerRoleId)
+        const avatarsPromise = getCachedDicerAvatars(queryClient, dicerRoleId)
           .catch((error) => {
             console.error("获取骰娘头像失败:", error);
             return [] as RoleAvatar[];
           });
         const copywritingMapPromise = copywritingKey
-          ? getCachedDicerCopywritingMap(ruleId, dicerRoleId)
+          ? getCachedDicerCopywritingMap(queryClient, ruleId, dicerRoleId)
               .catch((error) => {
                 console.error("获取骰娘文案失败:", error);
                 return {} as Record<string, string[]>;

@@ -1,6 +1,7 @@
 // 跑团设置页面：集中管理空间规则与空间骰娘，成员可见，空间拥有者可编辑。
 import {
   useGetSpaceInfoQuery,
+  useSetSpaceExtraMutation,
   useUpdateSpaceMutation,
 } from "api/hooks/chatQueryHooks";
 import { useGetRoleQuery } from "api/hooks/RoleAndAvatarHooks";
@@ -10,7 +11,6 @@ import toast from "react-hot-toast";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
 import { useResolvedRoleAvatarUrl } from "@/components/common/roleAccess.shared";
 import DiceMaidenLinkModal from "@/components/Role/DiceMaidenLinkModal";
-import { tuanchat } from "../../../../api/instance";
 
 function SpaceTrpgSettingWindow() {
   const spaceContext = React.use(SpaceContext);
@@ -100,6 +100,7 @@ function SpaceTrpgSettingWindow() {
   }, [currentDicerId, linkedDicerData]);
 
   const updateSpaceMutation = useUpdateSpaceMutation();
+  const setSpaceExtraMutation = useSetSpaceExtraMutation();
   const saveNow = async (params?: { ruleId?: number; dicerRoleId?: number }) => {
     if (!canEdit)
       return;
@@ -127,7 +128,7 @@ function SpaceTrpgSettingWindow() {
       });
     });
 
-    const extraPromise = tuanchat.spaceController.setSpaceExtra({
+    const extraPromise = setSpaceExtraMutation.mutateAsync({
       spaceId,
       key: "dicerRoleId",
       value: String(dicerRoleId),

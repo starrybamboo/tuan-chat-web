@@ -1,9 +1,25 @@
+import type { QueryClient } from "@tanstack/react-query";
+
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { tuanchat } from "../instance";
 import type { RepositoryPageByUserRequest } from "@tuanchat/openapi-client/models/RepositoryPageByUserRequest";
 import type { RepositoryForkPageRequest } from "@tuanchat/openapi-client/models/RepositoryForkPageRequest";
 import type { RepositoryPageRequest } from "@tuanchat/openapi-client/models/RepositoryPageRequest";
 import type { RepositoryUpdateRequest } from "@tuanchat/openapi-client/models/RepositoryUpdateRequest";
+
+export const REPOSITORY_DETAIL_STALE_TIME_MS = 300_000;
+
+export function repositoryDetailQueryKey(repositoryId: number): readonly ["repositoryDetail", number] {
+    return ["repositoryDetail", repositoryId];
+}
+
+export function fetchRepositoryDetailWithCache(queryClient: QueryClient, repositoryId: number) {
+    return queryClient.fetchQuery({
+        queryKey: repositoryDetailQueryKey(repositoryId),
+        queryFn: () => tuanchat.repositoryController.getById(repositoryId),
+        staleTime: REPOSITORY_DETAIL_STALE_TIME_MS,
+    });
+}
 
 //========================item (物品相关) ==================================
 /**
@@ -119,7 +135,7 @@ function useUpdateRepositoryMutation() {
             queryClient.invalidateQueries({ queryKey: ['repositoryList'] });
             // 注意：RepositoryUpdateRequest中应该有repositoryId字段，如果没有请根据实际情况调整
             if ('repositoryId' in variables) {
-                queryClient.invalidateQueries({ queryKey: ['repositoryDetail', variables.repositoryId] });
+                queryClient.invalidateQueries({ queryKey: repositoryDetailQueryKey(variables.repositoryId) });
             }
         }
     });
@@ -317,10 +333,10 @@ function useRepositoryDetailQuery(repositoryId: number) {
 
 export function useRepositoryDetailByIdQuery(repositoryId: number) {
     return useQuery({
-        queryKey: ['repositoryDetail', repositoryId],
+        queryKey: repositoryDetailQueryKey(repositoryId),
         queryFn: () => tuanchat.repositoryController.getById(repositoryId),
         enabled: !!repositoryId,
-        staleTime: 300000 // 5分钟缓存
+        staleTime: REPOSITORY_DETAIL_STALE_TIME_MS // 5分钟缓存
     });
 }
 
@@ -335,11 +351,17 @@ function useUploadRepositoryRoleAvatarMutation() {
                 return undefined;
             }
             const avatarId = res.data;
-            await tuanchat.avatarController.updateRoleAvatar({
+            const updateRes = await tuanchat.avatarController.updateRoleAvatar({
                 avatarId,
                 avatarUrl,
                 spriteUrl
             });
+            if (updateRes?.data) {
+                queryClient.setQueryData(["getRoleAvatar", avatarId], updateRes);
+            }
+            if (typeof id === "number" && Number.isFinite(id) && id > 0) {
+                queryClient.invalidateQueries({ queryKey: ["getRoleAvatars", id] });
+            }
             return avatarId;
         },
         mutationKey: ['uploadRepositoryRoleAvatar'],

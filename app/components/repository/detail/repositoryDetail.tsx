@@ -1,7 +1,7 @@
 import type { RepositoryData } from "./constants";
 import type { RepositorySpaceCandidate } from "./repositoryDetail.helpers";
 import { useQueryClient } from "@tanstack/react-query";
-import { useGetUserRoomsQuery, useGetUserSpacesQuery } from "api/hooks/chatQueryHooks";
+import { fetchUserRoomsWithCache, useGetUserRoomsQuery, useGetUserSpacesQuery } from "api/hooks/chatQueryHooks";
 import { useRepositoryDetailByIdQuery } from "api/hooks/repositoryQueryHooks";
 import { useRuleListQuery } from "api/hooks/ruleQueryHooks";
 import { tuanchat } from "api/instance";
@@ -280,7 +280,7 @@ export default function RepositoryDetailComponent({
   // ===== 事件处理函数 =====
   const navigateToSpace = async (spaceId: number) => {
     try {
-      const roomsData = await tuanchat.roomController.getUserRooms(spaceId);
+      const roomsData = await fetchUserRoomsWithCache(queryClient, spaceId);
       const rooms = roomsData?.data?.rooms;
       if (rooms && rooms.length > 0) {
         const firstRoomId = rooms[0].roomId;
