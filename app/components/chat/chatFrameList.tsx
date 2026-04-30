@@ -1,5 +1,6 @@
 import type { VirtuosoHandle } from "react-virtuoso";
 import type { ChatMessageResponse } from "../../../api";
+import { Check, X } from "@phosphor-icons/react";
 import React, { memo, useCallback, useEffect, useRef, useState } from "react";
 import { Virtuoso } from "react-virtuoso";
 import { addDroppedFilesToComposer, isFileDrag } from "@/components/chat/utils/dndUpload";
@@ -112,6 +113,72 @@ const UnreadIndicator = memo(({
   );
 });
 
+interface GalPatchProposalToolbarProps {
+  added: number;
+  deleted: number;
+  modified: number;
+  moved: number;
+  metadataChanged: number;
+  isApplying: boolean;
+  onApply: () => void;
+  onDiscard?: () => void;
+}
+
+const GalPatchProposalToolbar = memo(({
+  added,
+  deleted,
+  modified,
+  moved,
+  metadataChanged,
+  isApplying,
+  onApply,
+  onDiscard,
+}: GalPatchProposalToolbarProps) => {
+  const total = added + deleted + modified + moved + metadataChanged;
+  const details = [
+    added > 0 ? `新增 ${added}` : "",
+    modified > 0 ? `修改 ${modified}` : "",
+    deleted > 0 ? `删除 ${deleted}` : "",
+    moved > 0 ? `移动 ${moved}` : "",
+    metadataChanged > 0 ? `元数据 ${metadataChanged}` : "",
+  ].filter(Boolean).join(" / ");
+
+  return (
+    <div className="pointer-events-none absolute inset-x-0 bottom-4 z-40 flex justify-center px-3">
+      <div className="pointer-events-auto flex max-w-full items-center gap-3 rounded-lg border border-base-300/70 bg-base-100/90 px-3 py-2 text-sm text-base-content shadow-lg backdrop-blur-md">
+        <div className="min-w-0">
+          <div className="font-medium leading-5">改动预览</div>
+          <div className="truncate text-xs text-base-content/60">
+            {total > 0 ? details : "没有可应用的变更"}
+          </div>
+        </div>
+        <div className="flex shrink-0 items-center gap-2">
+          {onDiscard && (
+            <button
+              type="button"
+              className="btn btn-ghost btn-sm gap-1"
+              onClick={onDiscard}
+              disabled={isApplying}
+            >
+              <X className="size-4" />
+              取消
+            </button>
+          )}
+          <button
+            type="button"
+            className="btn btn-success btn-sm gap-1 text-success-content"
+            onClick={onApply}
+            disabled={isApplying || total === 0}
+          >
+            {isApplying ? <span className="loading loading-spinner loading-xs" /> : <Check className="size-4" />}
+            应用
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+});
+
 interface DragHandlers {
   handleDragOver: (event: React.DragEvent<HTMLDivElement>) => void;
   handleDrop: (event: React.DragEvent<HTMLDivElement>) => void;
@@ -161,6 +228,7 @@ interface ChatFrameListProps {
   setIsForwardWindowOpen: (open: boolean) => void;
   handleBatchDelete: () => void;
   isSpaceOwner: boolean;
+  galPatchProposalToolbar?: GalPatchProposalToolbarProps | null;
 }
 
 export default function ChatFrameList({
@@ -188,6 +256,7 @@ export default function ChatFrameList({
   setIsForwardWindowOpen,
   handleBatchDelete,
   isSpaceOwner,
+  galPatchProposalToolbar,
 }: ChatFrameListProps) {
   const { handleDragOver, handleDrop } = useChatFrameListDragHandlers(roomId);
   const computeItemKey = useCallback((index: number, item: ChatMessageResponse) => getChatFrameItemKey(index, item), []);
@@ -286,6 +355,9 @@ export default function ChatFrameList({
           isAtBottom={isAtBottom}
           onScrollToBottom={scrollToBottom}
         />
+        {galPatchProposalToolbar && (
+          <GalPatchProposalToolbar {...galPatchProposalToolbar} />
+        )}
       </div>
     </>
   );

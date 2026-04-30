@@ -1,10 +1,9 @@
+import { describe, expect, it } from "vitest";
+
 import type { ChatMessageResponse } from "@tuanchat/openapi-client/models/ChatMessageResponse";
 import type { Message } from "@tuanchat/openapi-client/models/Message";
 
-import { describe, expect, it } from "vitest";
-
 import { MessageType } from "../../../../api/wsModels";
-
 import { GAL_NARRATOR, projectGalMessages } from "./authoringProjection";
 import { buildGalProposalMessagePreview } from "./galProposalMessagePreview";
 import { createGalPatchProposal } from "./storyPatch";
@@ -103,5 +102,35 @@ describe("buildGalProposalMessagePreview", () => {
     });
 
     expect(buildGalProposalMessagePreview({ historyMessages, proposal })).toBeNull();
+  });
+
+  it("当前消息已变化时用当前内容作为 diff before", () => {
+    const baseMessage = createMessage({ messageId: 1, content: "A" });
+    const proposal = createGalPatchProposal({
+      proposalId: "p1",
+      spaceId: "5",
+      roomId: "10",
+      baseSnapshot: projectGalMessages([baseMessage], []),
+      patch: {
+        operations: [
+          { op: "replace_content", messageId: "1", content: "B" },
+        ],
+      },
+      context: {
+        roomId: "10",
+        narrator: GAL_NARRATOR,
+        roles: [{ roleId: "7", avatarVariants: [] }],
+        annotations: [],
+      },
+      now: new Date("2026-04-28T00:00:00.000Z"),
+    });
+
+    const preview = buildGalProposalMessagePreview({
+      historyMessages: [response(createMessage({ messageId: 1, content: "C" }))],
+      proposal,
+    });
+
+    expect(preview?.messages[0]?.message.content).toBe("B");
+    expect(preview?.baseMessageByPreviewId.get(1)?.message.content).toBe("C");
   });
 });

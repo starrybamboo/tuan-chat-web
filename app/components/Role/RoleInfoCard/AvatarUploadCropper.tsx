@@ -267,8 +267,8 @@ export function CharacterCopper({
       uploadUtils.uploadOriginalImg(spriteFile, scene),
       uploadUtils.uploadImg(spriteFile, scene),
       uploadUtils.uploadOriginalImg(avatarFile, scene),
-      uploadUtils.uploadImg(avatarFile, scene, 60, 512),
-      uploadUtils.uploadImg(avatarFile, scene, 60, 128),
+      uploadUtils.uploadImgByPreset(avatarFile, "avatar", scene),
+      uploadUtils.uploadImgByPreset(avatarFile, "avatarThumb", scene),
     ]);
 
     await Promise.resolve(mutate?.({
@@ -414,8 +414,8 @@ export function CharacterCopper({
         if (shouldUploadAvatar) {
           [avatarOriginalUrl, copperedDownloadUrl, copperedThumbDownloadUrl] = await Promise.all([
             uploadUtils.uploadOriginalImg(copperedImgFile, scene),
-            uploadUtils.uploadImg(copperedImgFile, scene, 60, 512),
-            uploadUtils.uploadImg(copperedImgFile, scene, 60, 128),
+            uploadUtils.uploadImgByPreset(copperedImgFile, "avatar", scene),
+            uploadUtils.uploadImgByPreset(copperedImgFile, "avatarThumb", scene),
           ]);
           setCopperedDownloadUrl?.(copperedDownloadUrl);
         }

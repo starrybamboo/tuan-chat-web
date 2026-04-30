@@ -6,6 +6,7 @@ interface AnnotationChipProps {
   interactive?: boolean;
   onClick?: () => void;
   compact?: boolean;
+  showActiveHighlight?: boolean;
 }
 
 // Use a frosted surface so chips stay legible even on image-heavy backgrounds.
@@ -35,6 +36,7 @@ export default function AnnotationChip({
   interactive = true,
   onClick,
   compact = false,
+  showActiveHighlight = true,
 }: AnnotationChipProps) {
   const Icon = annotation.icon;
   const hasLabel = !annotation.hideLabel;
@@ -45,7 +47,7 @@ export default function AnnotationChip({
     ? (isFigurePositionTag ? (compact ? "px-1.5 min-w-[28px]" : "px-2 min-w-[36px]") : (compact ? "px-2 min-w-[40px]" : "px-3 min-w-[52px]"))
     : (compact ? "w-8" : "w-10");
   const interactiveClass = interactive ? "active:scale-95" : "";
-  const activeClass = active ? "ring-2 ring-primary/35 shadow-md" : "";
+  const activeClass = active && showActiveHighlight ? "ring-2 ring-primary/35 shadow-md" : "";
 
   return (
     <button

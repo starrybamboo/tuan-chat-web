@@ -44,11 +44,11 @@ function ChatPageChatContent() {
     && typeof activeRoomId === "number"
     && Number.isFinite(activeRoomId);
 
-  // 进入真实房间后立即预热共享 warm frame，文档卡片/文档抽屉可直接 claim，避免首开再走整帧冷启动。
+  // 文档 warm frame 较重，先让聊天首屏完成，再在 idle 时预热。
   useBlocksuiteFramePrewarm({
     enabled: shouldPrewarmBlocksuiteFrame,
-    eager: true,
     prewarmKey: shouldPrewarmBlocksuiteFrame ? `${activeSpaceId}:${activeRoomId}` : null,
+    startDelayMs: 2500,
   });
 
   if (isPrivateChatMode) {

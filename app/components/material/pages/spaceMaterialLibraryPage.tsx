@@ -5,9 +5,10 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import { useNavigate, useSearchParams } from "react-router";
 import {
+  MATERIAL_PACKAGE_LIBRARY_PAGE_SIZE,
   useCreateSpaceMaterialPackageMutation,
   useDeleteSpaceMaterialPackageMutation,
-  useSpaceMaterialPackagesQuery,
+  useSpaceMaterialPackagesInfiniteQuery,
   useUpdateSpaceMaterialPackageMutation,
 } from "../../../../api/hooks/materialPackageQueryHooks";
 import MaterialEditorDropLayer from "../components/materialEditorDropLayer";
@@ -39,18 +40,18 @@ export default function SpaceMaterialLibraryPage({
 
   const pageRequest = useMemo(() => ({
     pageNo: 1,
-    pageSize: 100,
+    pageSize: MATERIAL_PACKAGE_LIBRARY_PAGE_SIZE,
     spaceId,
     keyword: keyword.trim() || undefined,
   }), [keyword, spaceId]);
 
-  const packagesQuery = useSpaceMaterialPackagesQuery(pageRequest, spaceId > 0);
+  const packagesQuery = useSpaceMaterialPackagesInfiniteQuery(pageRequest, spaceId > 0);
   const createMutation = useCreateSpaceMaterialPackageMutation();
   const updateMutation = useUpdateSpaceMaterialPackageMutation();
   const deleteMutation = useDeleteSpaceMaterialPackageMutation();
   const packages = useMemo(() => (
-    packagesQuery.data?.data?.list ?? []
-  ), [packagesQuery.data?.data?.list]);
+    packagesQuery.data?.pages.flatMap(page => page.data?.list ?? []) ?? []
+  ), [packagesQuery.data?.pages]);
   const selectedPackageId = useMemo(() => {
     const value = Number(searchParams.get("spacePackageId"));
     if (!Number.isFinite(value) || value <= 0) {
@@ -105,13 +106,25 @@ export default function SpaceMaterialLibraryPage({
   }, [isCreating, selectedPackageId]);
 
   useEffect(() => {
-    if (!packagesQuery.isFetched || packagesQuery.isFetching || selectedPackageId === null) {
+    if (!packagesQuery.isFetched || selectedPackageId === null || selectedPackage) {
       return;
     }
-    if (!packages.some(item => item.spacePackageId === selectedPackageId)) {
-      updateSelectedLocation(null);
+    if (packagesQuery.hasNextPage) {
+      if (!packagesQuery.isFetching && !packagesQuery.isFetchingNextPage) {
+        void packagesQuery.fetchNextPage();
+      }
+      return;
     }
-  }, [packages, packagesQuery.isFetched, packagesQuery.isFetching, selectedPackageId, updateSelectedLocation]);
+    if (packagesQuery.isFetching || packagesQuery.isFetchingNextPage) {
+      return;
+    }
+    updateSelectedLocation(null);
+  }, [
+    packagesQuery,
+    selectedPackage,
+    selectedPackageId,
+    updateSelectedLocation,
+  ]);
 
   const handleCreate = async (draft: {
     name: string;
@@ -207,6 +220,11 @@ export default function SpaceMaterialLibraryPage({
     setIsCreating(false);
     updateSelectedLocation(null);
   };
+  const handleLoadMore = useCallback(() => {
+    if (packagesQuery.hasNextPage && !packagesQuery.isFetchingNextPage) {
+      void packagesQuery.fetchNextPage();
+    }
+  }, [packagesQuery]);
   const editorBackProps = embedded
     ? {}
     : {
@@ -277,8 +295,11 @@ export default function SpaceMaterialLibraryPage({
       emptyTitle="当前空间还没有局内素材包"
       emptyDescription="你可以先新建一个局内素材包，或者从局外素材库整包导入，把它当作当前空间的本地素材工作区。"
       loading={packagesQuery.isLoading}
+      loadingMore={packagesQuery.isFetchingNextPage}
+      hasMore={Boolean(packagesQuery.hasNextPage)}
       skeletonPrefix="space-material-skeleton"
       onKeywordChange={setKeyword}
+      onLoadMore={handleLoadMore}
       onOpenItem={(index) => {
         const item = packages[index];
         if (typeof item?.spacePackageId === "number") {

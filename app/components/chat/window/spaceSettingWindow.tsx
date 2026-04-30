@@ -71,8 +71,8 @@ function SpaceSettingWindow({ onClose }: { onClose: () => void }) {
     setFormData({
       name: space.name || "",
       description: space.description || "",
-      avatar: space.avatar || "",
-      originalAvatar: space.originalAvatar || space.avatar || "",
+      avatar: space.avatarThumbUrl || space.avatar || "",
+      originalAvatar: space.originalAvatar || space.avatar || space.avatarThumbUrl || "",
     });
     didInitFormRef.current = true;
 
@@ -80,8 +80,8 @@ function SpaceSettingWindow({ onClose }: { onClose: () => void }) {
     lastSavedSnapshotRef.current = buildSnapshot({
       name: space.name || "",
       description: space.description || "",
-      avatar: space.avatar || "",
-      originalAvatar: space.originalAvatar || space.avatar || "",
+      avatar: space.avatarThumbUrl || space.avatar || "",
+      originalAvatar: space.originalAvatar || space.avatar || space.avatarThumbUrl || "",
     });
     dirtyRef.current = false;
   }, [space, buildSnapshot]);
@@ -122,6 +122,7 @@ function SpaceSettingWindow({ onClose }: { onClose: () => void }) {
         name: data.name,
         description: data.description,
         avatar: data.avatar,
+        avatarThumbUrl: data.avatar,
         originalAvatar: data.originalAvatar,
       }, {
         onSuccess: () => resolve(),

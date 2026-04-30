@@ -1,6 +1,8 @@
+import { resolveApiBaseUrl } from "../../../../api/instance";
+
 export function resolveBackendNovelApiUrl(novelApiPath: string) {
   const path = `/api/novelapi${novelApiPath}`;
-  const envBase = String(import.meta.env.VITE_API_BASE_URL || "").trim();
+  const envBase = String(resolveApiBaseUrl(import.meta.env.VITE_API_BASE_URL) || "").trim();
   if (!envBase)
     return path;
 
@@ -12,6 +14,10 @@ export function resolveBackendNovelApiUrl(novelApiPath: string) {
       return `${normalized}/novelapi${novelApiPath}`;
     return `${normalized}${path}`;
   };
+
+  if (envBase.startsWith("/")) {
+    return appendPath(envBase);
+  }
 
   try {
     const baseUrl = typeof window === "undefined"

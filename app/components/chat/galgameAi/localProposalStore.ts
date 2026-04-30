@@ -5,12 +5,12 @@ const STORE_NAME = "proposals";
 const ACTIVE_KEY_PREFIX = "tc:gal-patch-proposal:active:";
 
 export type GalPatchProposalStore = {
-  save(proposal: GalPatchProposal): Promise<void>;
-  get(proposalId: string): Promise<GalPatchProposal | null>;
-  setActive(roomId: string, proposalId: string | null): Promise<void>;
-  getActive(roomId: string): Promise<GalPatchProposal | null>;
-  updateStatus(proposalId: string, status: GalPatchProposal["status"]): Promise<GalPatchProposal | null>;
-  delete(proposalId: string): Promise<void>;
+  save: (proposal: GalPatchProposal) => Promise<void>;
+  get: (proposalId: string) => Promise<GalPatchProposal | null>;
+  setActive: (roomId: string, proposalId: string | null) => Promise<void>;
+  getActive: (roomId: string) => Promise<GalPatchProposal | null>;
+  updateStatus: (proposalId: string, status: GalPatchProposal["status"]) => Promise<GalPatchProposal | null>;
+  delete: (proposalId: string) => Promise<void>;
 };
 
 function canUseIndexedDb() {

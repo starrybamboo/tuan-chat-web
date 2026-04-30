@@ -1,13 +1,12 @@
-import type { Message } from "@tuanchat/openapi-client/models/Message";
-
 import { describe, expect, it } from "vitest";
 
-import { MessageType } from "../../../../api/wsModels";
+import type { Message } from "@tuanchat/openapi-client/models/Message";
 
+import { MessageType } from "../../../../api/wsModels";
+import { GAL_NARRATOR } from "./authoringProjection";
 import { getGalAuthoringContext } from "./galAuthoringService";
 import { MemoryGalPatchProposalStore } from "./localProposalStore";
 import { createGalPatchProposal } from "./storyPatch";
-import { GAL_NARRATOR } from "./authoringProjection";
 
 function createMessage(overrides: Partial<Message>): Message {
   return {

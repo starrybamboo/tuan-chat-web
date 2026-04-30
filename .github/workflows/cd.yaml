@@ -32,9 +32,9 @@ jobs:
     env:
       DEPLOY_TARGET: ${{ (github.event_name == 'workflow_dispatch' && inputs.deploy_env == 'test' && '/www/wwwroot/tuan-chat-web-test') || (github.event_name == 'workflow_dispatch' && inputs.deploy_env == 'production' && '/www/wwwroot/tuan-chat-web') || (github.ref_name == 'dev' && '/www/wwwroot/tuan-chat-web-test') || '/www/wwwroot/tuan-chat-web' }}
       BUILD_MODE: ${{ (github.event_name == 'workflow_dispatch' && inputs.deploy_env == 'test' && 'test') || (github.event_name == 'workflow_dispatch' && inputs.deploy_env == 'production' && 'production') || (github.ref_name == 'dev' && 'test') || 'production' }}
-      # 后端统一为 test 环境：前端无论 prod/test 构建都连接 test 后端。
-      BACKEND_API_BASE_URL: https://test.tuan.chat/api
-      BACKEND_WS_URL: wss://test.tuan.chat/ws
+      # 前端走同源反代，避免浏览器为跨域鉴权请求触发 CORS preflight。
+      BACKEND_API_BASE_URL: /api
+      BACKEND_WS_URL: /ws
       BACKEND_TTS_URL: https://test.tuan.chat/tts
     steps:
       - uses: actions/checkout@v4 # 将目标分支 checkout 到运行环境
@@ -102,6 +102,99 @@ jobs:
             if [[ "${ASSET_FILE_COUNT}" -le 0 ]]; then
               echo "部署校验失败：assets 目录为空" >&2
               exit 1
+            fi
+
+            CACHE_CONF_BASENAME="tuan-chat-web-static-cache.conf"
+            CACHE_CONF_CANDIDATES=(
+              "/www/server/panel/vhost/nginx/${CACHE_CONF_BASENAME}"
+              "/etc/nginx/conf.d/${CACHE_CONF_BASENAME}"
+            )
+            CACHE_CONF_CONTENT="$(cat <<'NGINX'
+map "$host:$uri" $tuan_chat_asset_cache_control {
+    default "";
+    ~^(tuan\.chat|test\.tuan\.chat):/assets/.+ "public, max-age=31536000, immutable";
+}
+
+add_header Cache-Control $tuan_chat_asset_cache_control always;
+NGINX
+)"
+
+            install_nginx_cache_conf() {
+              local installed_conf=""
+              local candidate
+
+              for candidate in "${CACHE_CONF_CANDIDATES[@]}"; do
+                local candidate_dir
+                candidate_dir="$(dirname "$candidate")"
+
+                if [[ "$candidate" == /www/server/panel/vhost/nginx/* && ! -d "$candidate_dir" ]]; then
+                  continue
+                fi
+
+                mkdir -p "$candidate_dir"
+                printf '%s\n' "$CACHE_CONF_CONTENT" > "$candidate"
+
+                if nginx -t && nginx -T 2>/dev/null | grep -Fq "$candidate"; then
+                  systemctl reload nginx
+                  installed_conf="$candidate"
+                  break
+                fi
+
+                rm -f "$candidate"
+              done
+
+              if [[ -z "$installed_conf" ]]; then
+                echo "⚠️ 未找到会被当前 Nginx 加载的 conf.d/vhost 目录，无法自动更新 Cache-Control；请手动将 assets 配置为 public, max-age=31536000, immutable" >&2
+                return 1
+              fi
+
+              echo "$installed_conf"
+            }
+
+            install_nginx_cache_conf_with_sudo() {
+              local installed_conf=""
+              local candidate
+
+              for candidate in "${CACHE_CONF_CANDIDATES[@]}"; do
+                local candidate_dir
+                candidate_dir="$(dirname "$candidate")"
+
+                if [[ "$candidate" == /www/server/panel/vhost/nginx/* && ! -d "$candidate_dir" ]]; then
+                  continue
+                fi
+
+                sudo mkdir -p "$candidate_dir"
+                printf '%s\n' "$CACHE_CONF_CONTENT" | sudo tee "$candidate" >/dev/null
+
+                if sudo nginx -t && sudo nginx -T 2>/dev/null | grep -Fq "$candidate"; then
+                  sudo systemctl reload nginx
+                  installed_conf="$candidate"
+                  break
+                fi
+
+                sudo rm -f "$candidate"
+              done
+
+              if [[ -z "$installed_conf" ]]; then
+                echo "⚠️ 未找到会被当前 Nginx 加载的 conf.d/vhost 目录，无法自动更新 Cache-Control；请手动将 assets 配置为 public, max-age=31536000, immutable" >&2
+                return 1
+              fi
+
+              echo "$installed_conf"
+            }
+
+            if [[ "$(id -u)" == "0" ]]; then
+              CACHE_CONF="$(install_nginx_cache_conf || true)"
+              if [[ -n "$CACHE_CONF" ]]; then
+                echo "✅ Nginx 静态资源缓存头已更新：$CACHE_CONF"
+              fi
+            elif command -v sudo >/dev/null 2>&1 && sudo -n true >/dev/null 2>&1; then
+              CACHE_CONF="$(install_nginx_cache_conf_with_sudo || true)"
+              if [[ -n "$CACHE_CONF" ]]; then
+                echo "✅ Nginx 静态资源缓存头已更新：$CACHE_CONF"
+              fi
+            else
+              echo "⚠️ 当前部署账号无 root/sudo 权限，无法自动更新 Nginx Cache-Control；请手动将 assets 配置为 public, max-age=31536000, immutable" >&2
             fi
 
             rm -rf "$STAGING"

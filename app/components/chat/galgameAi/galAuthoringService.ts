@@ -1,18 +1,17 @@
-import type { TuanChat } from "@tuanchat/openapi-client/TuanChat";
 import type { ChatMessageResponse } from "@tuanchat/openapi-client/models/ChatMessageResponse";
 import type { Message } from "@tuanchat/openapi-client/models/Message";
 import type { RoleAvatar } from "@tuanchat/openapi-client/models/RoleAvatar";
 import type { Room } from "@tuanchat/openapi-client/models/Room";
 import type { Space } from "@tuanchat/openapi-client/models/Space";
 import type { UserRole } from "@tuanchat/openapi-client/models/UserRole";
+import type { TuanChat } from "@tuanchat/openapi-client/TuanChat";
 
 import { mergeAnnotationCatalog } from "@/components/chat/message/annotations/annotationCatalog";
-
-import { tuanchat } from "../../../../api/instance";
 
 import type { GalAuthoringContext, GalReference } from "./authoringTypes";
 import type { GalPatchProposalStore } from "./localProposalStore";
 
+import { tuanchat } from "../../../../api/instance";
 import { buildGalAnnotations, buildGalAuthoringContext } from "./authoringProjection";
 import { createGalPatchProposalSummary } from "./localProposalStore";
 

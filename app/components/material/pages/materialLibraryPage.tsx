@@ -1,12 +1,13 @@
 import type { MaterialPackageContent } from "@tuanchat/openapi-client/models/MaterialPackageContent";
-import { lazy, Suspense, useEffect, useMemo, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import { useNavigate } from "react-router";
 import {
+  MATERIAL_PACKAGE_LIBRARY_PAGE_SIZE,
   useCreateMaterialPackageMutation,
   useDeleteMaterialPackageMutation,
-  useMyMaterialPackagesQuery,
-  usePublicMaterialPackagesQuery,
+  useMyMaterialPackagesInfiniteQuery,
+  usePublicMaterialPackagesInfiniteQuery,
   useUpdateMaterialPackageMutation,
 } from "../../../../api/hooks/materialPackageQueryHooks";
 import { buildMaterialPackageEditorDraft } from "../components/materialPackageEditorDraft";
@@ -52,28 +53,29 @@ export default function MaterialLibraryPage({
   const activeTab = mode ?? internalActiveTab;
   const myRequest = useMemo(() => ({
     pageNo: 1,
-    pageSize: 100,
+    pageSize: MATERIAL_PACKAGE_LIBRARY_PAGE_SIZE,
     keyword: keyword.trim() || undefined,
   }), [keyword]);
   const publicRequest = useMemo(() => ({
     pageNo: 1,
-    pageSize: 100,
+    pageSize: MATERIAL_PACKAGE_LIBRARY_PAGE_SIZE,
     keyword: keyword.trim() || undefined,
   }), [keyword]);
 
-  const myPackagesQuery = useMyMaterialPackagesQuery(myRequest, activeTab === "mine");
-  const publicPackagesQuery = usePublicMaterialPackagesQuery(publicRequest, activeTab === "public");
+  const myPackagesQuery = useMyMaterialPackagesInfiniteQuery(myRequest, activeTab === "mine");
+  const publicPackagesQuery = usePublicMaterialPackagesInfiniteQuery(publicRequest, activeTab === "public");
   const createMutation = useCreateMaterialPackageMutation();
   const updateMutation = useUpdateMaterialPackageMutation();
   const deleteMutation = useDeleteMaterialPackageMutation();
 
+  const activePackagesQuery = activeTab === "mine" ? myPackagesQuery : publicPackagesQuery;
   const packages = useMemo(() => (
     activeTab === "mine"
-      ? (myPackagesQuery.data?.data?.list ?? [])
-      : (publicPackagesQuery.data?.data?.list ?? [])
-  ), [activeTab, myPackagesQuery.data?.data?.list, publicPackagesQuery.data?.data?.list]);
+      ? (myPackagesQuery.data?.pages.flatMap(page => page.data?.list ?? []) ?? [])
+      : (publicPackagesQuery.data?.pages.flatMap(page => page.data?.list ?? []) ?? [])
+  ), [activeTab, myPackagesQuery.data?.pages, publicPackagesQuery.data?.pages]);
   const selectedPackage = packages.find(item => item.packageId === selectedPackageId);
-  const loading = activeTab === "mine" ? myPackagesQuery.isLoading : publicPackagesQuery.isLoading;
+  const loading = activePackagesQuery.isLoading;
   const editorOpen = isCreating || Boolean(selectedPackage);
   const detailBackLabel = activeTab === "mine" ? "返回我的素材包" : "返回素材广场";
   const packageCardItems = packages.map(item => buildGlobalMaterialPackageCardModel(item, activeTab));
@@ -96,10 +98,30 @@ export default function MaterialLibraryPage({
   }, [initialTab, mode]);
 
   useEffect(() => {
-    if (selectedPackageId !== null && !packages.some(item => item.packageId === selectedPackageId)) {
+    if (
+      selectedPackageId !== null
+      && !selectedPackage
+      && activePackagesQuery.isFetched
+      && !activePackagesQuery.hasNextPage
+      && !activePackagesQuery.isFetching
+      && !activePackagesQuery.isFetchingNextPage
+    ) {
       queueMicrotask(() => setSelectedPackageId(null));
     }
-  }, [packages, selectedPackageId]);
+  }, [
+    activePackagesQuery.hasNextPage,
+    activePackagesQuery.isFetched,
+    activePackagesQuery.isFetching,
+    activePackagesQuery.isFetchingNextPage,
+    selectedPackage,
+    selectedPackageId,
+  ]);
+
+  const handleLoadMore = useCallback(() => {
+    if (activePackagesQuery.hasNextPage && !activePackagesQuery.isFetchingNextPage) {
+      void activePackagesQuery.fetchNextPage();
+    }
+  }, [activePackagesQuery]);
 
   const handleSelectTab = (tab: GlobalTab) => {
     if (mode) {
@@ -296,10 +318,13 @@ export default function MaterialLibraryPage({
         ? "可以先新建一个素材包，开始组织你的素材与消息模板。"
         : "换个关键词试试，或者稍后再来看看新的公开内容。"}
       loading={loading}
+      loadingMore={activePackagesQuery.isFetchingNextPage}
+      hasMore={Boolean(activePackagesQuery.hasNextPage)}
       embedded={embedded}
       showEmbeddedHeaderActions={activeTab !== "mine"}
       skeletonPrefix="material-skeleton"
       onKeywordChange={setKeyword}
+      onLoadMore={handleLoadMore}
       onOpenItem={(index) => {
         const item = packages[index];
         if (typeof item?.packageId === "number") {

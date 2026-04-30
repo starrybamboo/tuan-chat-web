@@ -3,6 +3,7 @@
  */
 
 import type { Crop, PixelCrop } from "react-image-crop";
+import type { ImageCompressionPreset } from "@/utils/imgCompressUtils";
 
 import React, { useRef, useState } from "react";
 import { ReactCrop } from "react-image-crop";
@@ -37,6 +38,7 @@ interface ImgUploaderWithCopperProps {
   children: React.ReactNode;
   fileName?: string;
   mutate?: (data: any) => void;
+  copperedCompressionPreset?: ImageCompressionPreset;
   /**
    * 固定裁剪比例（例如头像传 1 表示 1:1）。不传则为自由裁剪。
    */
@@ -52,6 +54,7 @@ interface ImgUploaderWithCopperProps {
  * @param {React.ReactNode} props.children 触发上传的子元素
  * @param {string} props.fileName 没什么用的参数，为了兼容旧代码。在图床使用hash作为文件名。
  * @param {(data: any) => void} [props.mutate] 可选的更新函数
+ * @param {ImageCompressionPreset} [props.copperedCompressionPreset] 裁剪图上传时使用的压缩预设
  * @param {number} [props.aspect] 固定裁剪比例（例如头像 1:1）
  * @constructor
  */
@@ -62,6 +65,7 @@ export function ImgUploaderWithCopper({
   children,
   fileName,
   mutate,
+  copperedCompressionPreset,
   aspect,
 }: ImgUploaderWithCopperProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -236,7 +240,12 @@ export function ImgUploaderWithCopper({
       if (setCopperedDownloadUrl) {
         const copperedImgFile = await getCopperedImg();
         setStatusMessage("上传裁剪后图片中...");
-        copperedDownloadUrl = await uploadUtils.uploadImg(copperedImgFile, 2, 70, 768);
+        copperedDownloadUrl = copperedCompressionPreset
+          ? await uploadUtils.uploadImgByPreset(copperedImgFile, copperedCompressionPreset, 2)
+          : await uploadUtils.uploadImg(copperedImgFile, 2, {
+              maxWidthOrHeight: 768,
+              quality: 0.7,
+            });
         setCopperedDownloadUrl(copperedDownloadUrl);
       }
       if (mutate !== undefined) {

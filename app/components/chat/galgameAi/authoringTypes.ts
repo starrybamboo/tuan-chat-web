@@ -1,16 +1,16 @@
-import type { Message } from "@tuanchat/openapi-client/models/Message";
 import type { ChatMessageRequest } from "@tuanchat/openapi-client/models/ChatMessageRequest";
+import type { Message } from "@tuanchat/openapi-client/models/Message";
 
-export type GalMessagePurpose =
-  | "dialogue"
-  | "narration"
-  | "background"
-  | "cg"
-  | "se"
-  | "bgm"
-  | "control"
-  | "choice"
-  | "unknown";
+export type GalMessagePurpose
+  = | "dialogue"
+    | "narration"
+    | "background"
+    | "cg"
+    | "se"
+    | "bgm"
+    | "control"
+    | "choice"
+    | "unknown";
 
 export type GalAnnotation = {
   id: string;
@@ -81,10 +81,10 @@ export type GalNarrator = {
   kind: "narrator";
 };
 
-export type GalReference =
-  | { kind: "message"; messageId: string }
-  | { kind: "role"; roleId: string }
-  | { kind: "room"; roomId: string };
+export type GalReference
+  = | { kind: "message"; messageId: string }
+    | { kind: "role"; roleId: string }
+    | { kind: "room"; roomId: string };
 
 export type GalStoryFlow = {
   rawRoomMap: Record<string, string[]>;
@@ -111,53 +111,53 @@ export type GalAuthoringContext = {
   activeProposal?: GalPatchProposalSummary;
 };
 
-export type GalStoryPatchOperation =
+export type GalStoryPatchOperation
+  = | {
+    op: "replace_content";
+    messageId: string;
+    content: string;
+  }
   | {
-      op: "replace_content";
-      messageId: string;
-      content: string;
-    }
+    op: "insert_before";
+    beforeMessageId: string;
+    message: GalPatchMessageInput;
+  }
   | {
-      op: "insert_before";
-      beforeMessageId: string;
-      message: GalPatchMessageInput;
-    }
+    op: "insert_after";
+    afterMessageId: string;
+    message: GalPatchMessageInput;
+  }
   | {
-      op: "insert_after";
-      afterMessageId: string;
-      message: GalPatchMessageInput;
-    }
+    op: "delete";
+    messageId: string;
+  }
   | {
-      op: "delete";
-      messageId: string;
-    }
+    op: "move";
+    messageId: string;
+    beforeMessageId?: string;
+    afterMessageId?: string;
+  }
   | {
-      op: "move";
-      messageId: string;
-      beforeMessageId?: string;
-      afterMessageId?: string;
-    }
+    op: "update_annotations";
+    messageId: string;
+    annotations: string[];
+  }
   | {
-      op: "update_annotations";
-      messageId: string;
-      annotations: string[];
-    }
+    op: "update_role";
+    messageId: string;
+    roleId: string;
+    customRoleName?: string;
+  }
   | {
-      op: "update_role";
-      messageId: string;
-      roleId: string;
-      customRoleName?: string;
-    }
+    op: "update_avatar";
+    messageId: string;
+    avatarId?: string;
+  }
   | {
-      op: "update_avatar";
-      messageId: string;
-      avatarId?: string;
-    }
-  | {
-      op: "replace_message";
-      messageId: string;
-      message: GalPatchMessageInput;
-    };
+    op: "replace_message";
+    messageId: string;
+    message: GalPatchMessageInput;
+  };
 
 export type GalPatchMessageInput = {
   messageType: number;
@@ -180,26 +180,26 @@ export type GalDocumentFingerprint = {
   signature: string;
 };
 
-export type GalStoryDiffItem =
+export type GalStoryDiffItem
+  = | {
+    kind: "added";
+    message: GalMessageView;
+  }
   | {
-      kind: "added";
-      message: GalMessageView;
-    }
+    kind: "deleted";
+    before: GalMessageView;
+  }
   | {
-      kind: "deleted";
-      before: GalMessageView;
-    }
+    kind: "modified";
+    before: GalMessageView;
+    after: GalMessageView;
+    fields: string[];
+  }
   | {
-      kind: "modified";
-      before: GalMessageView;
-      after: GalMessageView;
-      fields: string[];
-    }
-  | {
-      kind: "moved";
-      before: GalMessageView;
-      after: GalMessageView;
-    };
+    kind: "moved";
+    before: GalMessageView;
+    after: GalMessageView;
+  };
 
 export type GalStoryDiff = {
   items: GalStoryDiffItem[];
@@ -259,16 +259,16 @@ export type ApplyGalPatchResult = {
   validationErrors: GalPatchValidationError[];
 };
 
-export type GalMessageWriteChange =
+export type GalMessageWriteChange
+  = | {
+    kind: "insert";
+    message: ChatMessageRequest;
+  }
   | {
-      kind: "insert";
-      message: ChatMessageRequest;
-    }
+    kind: "update";
+    message: Message;
+  }
   | {
-      kind: "update";
-      message: Message;
-    }
-  | {
-      kind: "delete";
-      messageId: number;
-    };
+    kind: "delete";
+    messageId: number;
+  };

@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Gal Proposal Diff Preview</title>
+    <script type="module">
+      import React from "react";
+      import { createRoot } from "react-dom/client";
+      import "/app/app.css";
+      import MessageTextDiffPreview from "/app/components/chat/message/diff/MessageTextDiffPreview.tsx";
+      import { buildMessageTextDiff } from "/app/components/chat/message/diff/messageTextDiff.ts";
+
+      const items = [
+        {
+          role: "旁白",
+          time: "20:14",
+          before: "雨声压住了街角的脚步。林澈在门前停了很久，终于推开那扇旧木门。",
+          after: "雨声压住了街角的脚步。林澈在门前停了很久，终于推开那扇挂着铜铃的旧木门。",
+        },
+        {
+          role: "林澈",
+          time: "20:16",
+          before: "你还在这里？我以为你已经走了。",
+          after: "你还在这里？我以为你不会再等我了。",
+        },
+        {
+          role: "系统",
+          time: "20:17",
+          before: "[bgm: rain_loop]",
+          after: "",
+        },
+        {
+          role: "沈青",
+          time: "20:18",
+          content: "门外那个人，不是来找你的。",
+        },
+      ];
+
+      function MessageShell({ item }) {
+        const hasDiff = "before" in item;
+        const diff = hasDiff ? buildMessageTextDiff(item.before, item.after) : null;
+        return React.createElement(
+          "article",
+          {
+            className: "group w-full max-w-3xl",
+          },
+          [
+            React.createElement(
+              "div",
+              {
+                key: "meta",
+                className: "mb-1 flex items-center gap-2 text-sm text-base-content/70",
+              },
+              [
+                React.createElement("span", { key: "role", className: "font-medium text-base-content/90" }, item.role),
+                React.createElement("span", { key: "time", className: "text-xs text-base-content/45" }, item.time),
+              ],
+            ),
+            hasDiff
+              ? React.createElement(MessageTextDiffPreview, {
+                  key: "diff",
+                  diff,
+                })
+              : React.createElement(
+                  "div",
+                  {
+                    key: "bubble",
+                    className: "rounded-lg bg-base-200 px-3 py-2 text-sm leading-6 text-base-content shadow-sm",
+                  },
+                  item.content,
+                ),
+          ],
+        );
+      }
+
+      function Preview() {
+        return React.createElement(
+          "main",
+          {
+            className: "min-h-screen bg-base-300 px-8 py-7 text-base-content",
+          },
+          React.createElement(
+            "div",
+            {
+              className: "mx-auto flex max-w-5xl flex-col gap-3",
+            },
+            [
+              React.createElement(
+                "div",
+                {
+                  key: "header",
+                  className: "mb-2 flex items-center justify-between border-b border-base-content/10 pb-3",
+                },
+                [
+                  React.createElement(
+                    "div",
+                    { key: "room", className: "text-sm font-medium text-base-content/80" },
+                    "旧码头 / 第三幕",
+                  ),
+                  React.createElement(
+                    "div",
+                    { key: "hint", className: "text-xs text-base-content/45" },
+                    "消息列表内 diff 预览",
+                  ),
+                ],
+              ),
+              ...items.map((item, index) => React.createElement(MessageShell, { key: index, item })),
+            ],
+          ),
+        );
+      }
+
+      createRoot(document.getElementById("root")).render(React.createElement(Preview));
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+  </body>
+</html>

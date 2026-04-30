@@ -105,14 +105,15 @@ function RoomSettingWindow({ onClose, roomId: propRoomId, defaultTab = "role" }:
       return;
 
     const title = (header?.title ?? room?.name ?? "").trim();
-    const imageUrl = (header?.imageUrl ?? room?.avatar ?? "").trim();
-    const originalImageUrl = (header?.originalImageUrl ?? room?.originalAvatar ?? room?.avatar ?? "").trim();
+    const imageUrl = (header?.imageUrl ?? room?.avatarThumbUrl ?? room?.avatar ?? "").trim();
+    const originalImageUrl = (header?.originalImageUrl ?? room?.originalAvatar ?? room?.avatar ?? room?.avatarThumbUrl ?? "").trim();
 
     updateRoomMutation.mutate({
       roomId: propRoomId,
       name: title,
       description: room?.description ?? "",
       avatar: imageUrl,
+      avatarThumbUrl: imageUrl,
       originalAvatar: originalImageUrl || imageUrl,
     }, {
       onSuccess: () => {
@@ -121,7 +122,7 @@ function RoomSettingWindow({ onClose, roomId: propRoomId, defaultTab = "role" }:
         }
       },
     });
-  }, [onClose, propRoomId, room?.avatar, room?.description, room?.name, room?.originalAvatar, updateRoomMutation]);
+  }, [onClose, propRoomId, room?.avatar, room?.avatarThumbUrl, room?.description, room?.name, room?.originalAvatar, updateRoomMutation]);
 
   const scheduleRoomRedundantSync = useCallback((header: BlocksuiteDocHeader) => {
     if (typeof window === "undefined")
@@ -205,7 +206,7 @@ function RoomSettingWindow({ onClose, roomId: propRoomId, defaultTab = "role" }:
                             mode="page"
                             allowModeSwitch
                             fullscreenEdgeless
-                            tcHeader={{ enabled: true, fallbackTitle: room?.name ?? "", fallbackImageUrl: room?.avatar ?? "" }}
+                            tcHeader={{ enabled: true, fallbackTitle: room?.name ?? "", fallbackImageUrl: room?.avatarThumbUrl ?? room?.avatar ?? "" }}
                             onTcHeaderChange={({ header }) => {
                               scheduleRoomRedundantSync(header);
                             }}

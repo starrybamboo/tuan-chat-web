@@ -1,9 +1,11 @@
 import { Md5 } from "ts-md5";
 
+import type { ImageCompressionOptions, ImageCompressionPreset } from "@/utils/imgCompressUtils";
+
 import { isAudioUploadDebugEnabled } from "@/utils/audioDebugFlags";
 import { transcodeAudioFileToOpusOrThrow } from "@/utils/audioTranscodeUtils";
 import { assertAudioUploadInputSizeOrThrow, buildDefaultAudioUploadTranscodeOptions } from "@/utils/audioUploadPolicy";
-import { compressImage } from "@/utils/imgCompressUtils";
+import { compressImage, DEFAULT_IMAGE_COMPRESSION_OPTIONS, IMAGE_COMPRESSION_PRESETS } from "@/utils/imgCompressUtils";
 import { transcodeVideoFileToWebmOrThrow } from "@/utils/videoTranscodeUtils";
 
 import { tuanchat } from "../../api/instance";
@@ -81,8 +83,8 @@ export class UploadUtils {
     return createdPromise;
   }
 
-  private static buildImagePrepareKey(quality: number, maxSize: number): string {
-    return `${quality}|${maxSize}`;
+  private static buildImagePrepareKey(options: ImageCompressionOptions): string {
+    return JSON.stringify(options);
   }
 
   private static normalizeAudioMaxDuration(maxDuration: number): number {
@@ -96,9 +98,19 @@ export class UploadUtils {
     return String(UploadUtils.normalizeAudioMaxDuration(maxDuration));
   }
 
-  public async preprocessImageForUpload(file: File, quality = 0.7, maxSize = 2560): Promise<File> {
-    const prepared = await this.prepareImageForUpload(file, quality, maxSize);
+  public async preprocessImageForUpload(
+    file: File,
+    options: ImageCompressionOptions = DEFAULT_IMAGE_COMPRESSION_OPTIONS,
+  ): Promise<File> {
+    const prepared = await this.prepareImageForUpload(file, options);
     return prepared.processedFile;
+  }
+
+  public async preprocessImageForUploadByPreset(
+    file: File,
+    preset: ImageCompressionPreset,
+  ): Promise<File> {
+    return await this.preprocessImageForUpload(file, IMAGE_COMPRESSION_PRESETS[preset]);
   }
 
   public async preprocessVideoForUpload(file: File): Promise<File> {
@@ -205,8 +217,11 @@ export class UploadUtils {
     return "mp4";
   }
 
-  private async prepareImageForUpload(file: File, quality = 0.7, maxSize = 2560): Promise<PreparedImagePayload> {
-    const prepareKey = UploadUtils.buildImagePrepareKey(quality, maxSize);
+  private async prepareImageForUpload(
+    file: File,
+    options: ImageCompressionOptions = DEFAULT_IMAGE_COMPRESSION_OPTIONS,
+  ): Promise<PreparedImagePayload> {
+    const prepareKey = UploadUtils.buildImagePrepareKey(options);
     return await UploadUtils.getOrCreateNestedPromise(
       UploadUtils.imagePrepareCache,
       file,
@@ -222,7 +237,7 @@ export class UploadUtils {
             processedFile = file;
           }
           else {
-            processedFile = await compressImage(file, quality, maxSize);
+            processedFile = await compressImage(file, options);
             const compressedSize = processedFile.size;
             const compressionRatio = Number.parseFloat(((1 - compressedSize / originalSize) * 100).toFixed(1));
             console.warn(
@@ -548,10 +563,9 @@ export class UploadUtils {
   async uploadDualImage(
     file: File,
     scene: 1 | 2 | 3 | 4 = 1,
-    quality = 0.7,
-    maxSize = 2560,
+    options: ImageCompressionOptions = DEFAULT_IMAGE_COMPRESSION_OPTIONS,
   ): Promise<UploadedDualImageResult> {
-    const { processedFile, isGif } = await this.prepareImageForUpload(file, quality, maxSize);
+    const { processedFile, isGif } = await this.prepareImageForUpload(file, options);
     const originalSize = file.size;
 
     if (processedFile === file) {
@@ -575,6 +589,14 @@ export class UploadUtils {
     };
   }
 
+  async uploadDualImageByPreset(
+    file: File,
+    preset: ImageCompressionPreset,
+    scene: 1 | 2 | 3 | 4 = 1,
+  ): Promise<UploadedDualImageResult> {
+    return await this.uploadDualImage(file, scene, IMAGE_COMPRESSION_PRESETS[preset]);
+  }
+
   /**
    * 上传原始图片，不走压缩流程。
    * 适用于需要保留裁剪后无压缩版本的场景。
@@ -588,12 +610,23 @@ export class UploadUtils {
    * 上传图片
    * @param file img文件
    * @param scene 上传场景1.聊天室,2.表情包，3.角色差分 4.仓库图片
-   * @param quality 质量
-   * @param maxSize 最大的宽高（px）
+   * @param options 压缩配置，quality 使用 0~1 小数
    */
-  async uploadImg(file: File, scene: 1 | 2 | 3 | 4 = 1, quality = 0.7, maxSize = 2560): Promise<string> {
-    const { processedFile, isGif } = await this.prepareImageForUpload(file, quality, maxSize);
+  async uploadImg(
+    file: File,
+    scene: 1 | 2 | 3 | 4 = 1,
+    options: ImageCompressionOptions = DEFAULT_IMAGE_COMPRESSION_OPTIONS,
+  ): Promise<string> {
+    const { processedFile, isGif } = await this.prepareImageForUpload(file, options);
     return await this.uploadImageFileCandidate(processedFile, scene, isGif);
+  }
+
+  async uploadImgByPreset(
+    file: File,
+    preset: ImageCompressionPreset,
+    scene: 1 | 2 | 3 | 4 = 1,
+  ): Promise<string> {
+    return await this.uploadImg(file, scene, IMAGE_COMPRESSION_PRESETS[preset]);
   }
 
   /**

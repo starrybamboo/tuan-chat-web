@@ -1,13 +1,12 @@
-import React from "react";
+import type { ReactNode } from "react";
+
 import ReactMarkdown from "react-markdown";
 import { useNavigate } from "react-router";
-// eslint-disable-next-line ts/ban-ts-comment
-// @ts-expect-error
-import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import rehypeRaw from "rehype-raw";
 import rehypeSanitize from "rehype-sanitize";
 import remarkGfm from "remark-gfm";
 import LinkComponent from "./linkHandler";
+import { MarkdownSyntaxHighlighter } from "./markdownSyntaxHighlighter";
 // 由于tailwind的preflight.css覆盖了原本的html样式，这里需要重新定义样式
 const MARKDOWN_STYLES = `
   [&_h1]:text-4xl [&_h1]:font-bold [&_h1]:my-6
@@ -159,12 +158,13 @@ export function MarkDownViewer({
             const match = /language-(\w+)/.exec(className || "");
             return match
               ? (
-                  <SyntaxHighlighter
+                  <MarkdownSyntaxHighlighter
                     {...rest}
-                    children={String(children).replace(/\n$/, "")}
+                    className={className}
                     language={match[1]}
-                    // style={dark}
-                  />
+                  >
+                    {String(children).replace(/\n$/, "")}
+                  </MarkdownSyntaxHighlighter>
                 )
               : (
                   <code {...rest} className={className}>
@@ -184,7 +184,7 @@ export function MarkDownViewer({
 
             if (embedMatches.length > 0) {
               let lastIndex = 0;
-              const parts: React.ReactNode[] = [];
+              const parts: ReactNode[] = [];
 
               for (const match of embedMatches) {
                 // 添加匹配前的文本

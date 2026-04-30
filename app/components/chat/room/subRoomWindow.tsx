@@ -1,7 +1,6 @@
 import type { DocRefDragPayload } from "@/components/chat/utils/docRef";
 import { CheckerboardIcon, FileTextIcon, PulseIcon, SwordIcon } from "@phosphor-icons/react";
 import React from "react";
-import DocFolderForUser from "@/components/chat/room/drawers/docFolderForUser";
 import InitiativeList from "@/components/chat/room/drawers/initiativeList";
 import StateDrawer from "@/components/chat/room/drawers/stateDrawer";
 import DNDMap from "@/components/chat/shared/map/DNDMap";
@@ -13,6 +12,8 @@ import { OpenAbleDrawer } from "@/components/common/openableDrawer";
 import { WebgalIcon, XMarkICon } from "@/icons";
 
 type SubPane = "map" | "initiative" | "state" | "webgal" | "doc";
+
+const LazyDocFolderForUser = React.lazy(() => import("@/components/chat/room/drawers/docFolderForUser"));
 
 function isSubRoomDrawerState(state: string): state is "map" | "initiative" | "state" | "webgal" | "doc" {
   return state === "map" || state === "initiative" || state === "state" || state === "webgal" || state === "doc";
@@ -202,7 +203,9 @@ function SubRoomWindowImpl({ onSendDocCard }: SubRoomWindowProps) {
           )}
           {activePane === "doc" && (
             <div className="h-full overflow-hidden">
-              <DocFolderForUser onSendDocCard={onSendDocCard} />
+              <React.Suspense fallback={<SubRoomWindowFallback text="正在加载文档..." />}>
+                <LazyDocFolderForUser onSendDocCard={onSendDocCard} />
+              </React.Suspense>
             </div>
           )}
           {activePane === "webgal" && (
@@ -220,3 +223,12 @@ function SubRoomWindowImpl({ onSendDocCard }: SubRoomWindowProps) {
 
 const SubRoomWindow = React.memo(SubRoomWindowImpl);
 export default SubRoomWindow;
+
+function SubRoomWindowFallback({ text }: { text: string }) {
+  return (
+    <div className="flex h-full w-full items-center justify-center text-sm text-base-content/60">
+      <span className="loading loading-spinner loading-md"></span>
+      <span className="ml-2">{text}</span>
+    </div>
+  );
+}

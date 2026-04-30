@@ -1,4 +1,5 @@
 import React from "react";
+import "@/components/common/scrollbar.css";
 
 export interface ToastWindowFrameProps {
   isOpen: boolean;

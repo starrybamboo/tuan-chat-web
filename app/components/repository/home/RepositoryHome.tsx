@@ -12,6 +12,9 @@ interface ContentCardProps {
   // 可选的图片
   image?: string;
   imageAlt?: string;
+  imageLoading?: "eager" | "lazy";
+  imageDecoding?: "async" | "auto" | "sync";
+  imageFetchPriority?: "high" | "low" | "auto";
   // 标题
   title?: string;
   ruleId?: number; // 规则ID
@@ -79,6 +82,9 @@ export function ContentCard({
   titleSuffix,
   bottomSlot,
   hoverHint,
+  imageLoading = "lazy",
+  imageDecoding = "async",
+  imageFetchPriority = "auto",
   imageOnLoad,
 }: ContentCardProps & { imageOnLoad?: () => void }) {
   const [failedImage, setFailedImage] = useState<string | null>(null);
@@ -143,6 +149,9 @@ export function ContentCard({
               src={image}
               alt={imageAlt || title || "Content image"}
               className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.04]"
+              loading={imageLoading}
+              decoding={imageDecoding}
+              fetchPriority={imageFetchPriority}
               onLoad={() => {
                 if (failedImage === image) {
                   setFailedImage(null);

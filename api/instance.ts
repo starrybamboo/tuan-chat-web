@@ -8,6 +8,11 @@ export type CreateTuanChatClientOptions = {
 
 let tuanchat = new TuanChat(undefined, AuthHttpRequest);
 
+function normalizeSameOriginBaseUrl(url: URL): string {
+  const pathname = url.pathname.replace(/\/$/, "");
+  return pathname || "";
+}
+
 export function resolveApiBaseUrl(envBaseUrl: string | undefined): string | undefined {
   if (typeof window === 'undefined') {
     return envBaseUrl;
@@ -20,6 +25,10 @@ export function resolveApiBaseUrl(envBaseUrl: string | undefined): string | unde
 
   try {
     const url = new URL(envBaseUrl, window.location.href);
+    if (url.origin === window.location.origin) {
+      return normalizeSameOriginBaseUrl(url);
+    }
+
     const isLoopback = url.hostname === 'localhost' || url.hostname === '127.0.0.1' || url.hostname === '[::1]';
     const isSecureContext = window.isSecureContext;
 

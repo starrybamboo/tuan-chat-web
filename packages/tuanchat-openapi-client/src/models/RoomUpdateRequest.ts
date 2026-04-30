@@ -19,6 +19,10 @@ export type RoomUpdateRequest = {
      */
     avatar?: string;
     /**
+     * 房间头像缩略图的url
+     */
+    avatarThumbUrl?: string;
+    /**
      * 房间头像原图
      */
     originalAvatar?: string;

@@ -1,0 +1,83 @@
+.div-textarea {
+  position: relative;
+}
+
+.div-textarea[data-has-text="false"]::before {
+  content: attr(data-placeholder);
+  opacity: 0.6;
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  padding: 0.5rem;
+  white-space: pre-wrap;
+}
+
+.chatInputTextarea {
+  word-break: break-all;
+  word-wrap: break-word;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 639px) {
+  .chatInputTextarea {
+    font-size: 0.875rem;
+  }
+
+  .chatInputTextarea.div-textarea[data-has-text="false"]::before {
+    font-size: inherit;
+  }
+}
+
+@media (max-width: 480px) {
+  .chatInputTextarea {
+    font-size: 0.8125rem;
+  }
+
+  .chatInputTextarea.div-textarea[data-has-text="false"]::before {
+    font-size: inherit;
+  }
+}
+
+@keyframes jump {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-3px);
+  }
+}
+
+.jump_icon {
+  transition: color 150ms ease;
+}
+
+.jump_icon:hover {
+  color: var(--color-info);
+  animation: jump 0.4s ease-in-out;
+}
+
+@keyframes highlight-fade-out {
+  from {
+    background-color: hsla(207, 90%, 54%, 0.4);
+  }
+
+  to {
+    background-color: transparent;
+  }
+}
+
+.highlight-animation {
+  border-radius: 0.5rem;
+  animation: highlight-fade-out 3s ease-out;
+}
+
+body.avatar-sampler-active,
+body.avatar-sampler-active * {
+  cursor:
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'><path fill='%23000' d='M20.7 4.6l6.7 6.7-3 3-1.4-1.4-9.6 9.6v4.5h-4.5l9.6-9.6-1.4-1.4 3-3zM7 25h2v2H7z'/></svg>")
+      0 31,
+    crosshair;
+}

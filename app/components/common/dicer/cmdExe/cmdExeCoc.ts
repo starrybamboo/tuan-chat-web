@@ -1,57 +1,8 @@
 import { CommandExecutor, RuleNameSpace } from "@/components/common/dicer/cmd";
 import { executeStShowCommand } from "@/components/common/dicer/cmdExe/cmdExePublic";
 import { parseDiceExpression, rollDice } from "@/components/common/dicer/dice";
+import { COC_ABILITY_ALIASES } from "@/components/common/dicer/roleAbilityAliasMaps";
 import UTILS from "@/components/common/dicer/utils/utils";
-
-// 属性名中英文对照表
-// noinspection NonAsciiCharacters
-const ABILITY_MAP: { [key: string]: string } = {
-  str: "力量",
-  dex: "敏捷",
-  pow: "意志",
-  con: "体质",
-  app: "外貌",
-  edu: "教育",
-  siz: "体型",
-  int: "智力",
-  灵感: "智力",
-  san: "san",
-  理智: "san",
-  理智值: "san",
-  san值: "san",
-  luck: "幸运",
-  运气: "幸运",
-  mp: "mp",
-  魔法: "mp",
-  魔法值: "mp",
-  魔法值上限: "mpm",
-  mpmax: "mpm",
-  体力: "hp",
-  hp: "hp",
-  体力值: "hp",
-  生命值: "hp",
-  最大生命值: "hpm",
-  hpmax: "hpm",
-  理智值上限: "sanm",
-  理智上限: "sanm",
-  sanmax: "sanm",
-  cm: "克苏鲁神话",
-  克苏鲁: "克苏鲁神话",
-  信誉: "信用评级",
-  信用: "信用评级",
-  计算机: "计算机使用",
-  电脑: "计算机使用",
-  驾驶: "汽车驾驶",
-  汽车: "汽车驾驶",
-  图书馆: "图书馆使用",
-  开锁: "锁匠",
-  撬锁: "锁匠",
-  领航: "导航",
-  重型操作: "操作重型机械",
-  重型机械: "操作重型机械",
-  重型: "操作重型机械",
-  侦察: "侦查",
-};
 
 // 因变量映射表
 // noinspection NonAsciiCharacters
@@ -90,7 +41,7 @@ const executorCoc = new RuleNameSpace(
   "coc7",
   ["coc", "coc7th"],
   "COC7版规则的指令集",
-  new Map<string, string>(Object.entries(ABILITY_MAP)),
+  new Map<string, string>(Object.entries(COC_ABILITY_ALIASES)),
   new Map<string, (ability: RoleAbility) => { type: string; value: string | number }>(Object.entries(DEPENDENT_VALUE_MAP)),
 );
 
@@ -178,8 +129,8 @@ const cmdRc = new CommandExecutor(
     if (!name) {
       throw new Error("错误：缺少技能名称");
     }
-    if (ABILITY_MAP[name.toLowerCase()]) {
-      name = ABILITY_MAP[name.toLowerCase()];
+    if (COC_ABILITY_ALIASES[name.toLowerCase()]) {
+      name = COC_ABILITY_ALIASES[name.toLowerCase()];
     }
     if (!curAbility?.ability && !curAbility?.skill && !curAbility?.basic && unsignedNumbers.length === 0) {
       cpi.replyMessage(`未设置角色能力？`);
@@ -281,9 +232,9 @@ const cmdRcb = new CommandExecutor(
       cpi.replyMessage("错误：缺少技能名称或手动技能值");
       return false;
     }
-    // 处理属性简写映射（如ABILITY_MAP定义了“str”→“力量”）
-    if (name && ABILITY_MAP[name.toLowerCase()]) {
-      name = ABILITY_MAP[name.toLowerCase()];
+    // 处理属性简写映射（如 COC_ABILITY_ALIASES 定义了“str”→“力量”）
+    if (name && COC_ABILITY_ALIASES[name.toLowerCase()]) {
+      name = COC_ABILITY_ALIASES[name.toLowerCase()];
     }
 
     // 从角色数据中获取技能基础值
@@ -393,8 +344,8 @@ const cmdRcp = new CommandExecutor(
       cpi.replyMessage("错误：缺少技能名称或手动技能值");
       return false;
     }
-    if (name && ABILITY_MAP[name.toLowerCase()]) {
-      name = ABILITY_MAP[name.toLowerCase()];
+    if (name && COC_ABILITY_ALIASES[name.toLowerCase()]) {
+      name = COC_ABILITY_ALIASES[name.toLowerCase()];
     }
 
     const baseSkillValue = name ? (UTILS.getRoleAbilityValue(curAbility, name) || "") : "";
@@ -556,8 +507,8 @@ const cmdRch = new CommandExecutor(
       cpi.replyMessage("错误：缺少技能名称或手动技能值");
       return false;
     }
-    if (name && ABILITY_MAP[name.toLowerCase()]) {
-      name = ABILITY_MAP[name.toLowerCase()];
+    if (name && COC_ABILITY_ALIASES[name.toLowerCase()]) {
+      name = COC_ABILITY_ALIASES[name.toLowerCase()];
     }
 
     const baseSkillValue = name ? (UTILS.getRoleAbilityValue(curAbility, name) || "") : "";
@@ -636,8 +587,8 @@ const cmdEn = new CommandExecutor(
     if (!name) {
       throw new Error("错误：缺少技能名称");
     }
-    if (ABILITY_MAP[name.toLowerCase()]) {
-      name = ABILITY_MAP[name.toLowerCase()];
+    if (COC_ABILITY_ALIASES[name.toLowerCase()]) {
+      name = COC_ABILITY_ALIASES[name.toLowerCase()];
     }
     if (!curAbility?.ability && !curAbility?.skill && !curAbility?.basic && unsignedNumbers.length === 0) {
       cpi.replyMessage(`未设置角色能力？`);
@@ -923,7 +874,7 @@ const cmdSt = new CommandExecutor(
 
       // 统一转换为小写进行比较
       const normalizedKey = rawKey.toLowerCase();
-      const key = ABILITY_MAP[normalizedKey] || rawKey;
+      const key = COC_ABILITY_ALIASES[normalizedKey] || rawKey;
 
       const currentValue = Number.parseInt(UTILS.getRoleAbilityValue(curAbility, key) ?? "0"); // 原有值（默认0）
       let newValue: number;

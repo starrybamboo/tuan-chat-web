@@ -9,7 +9,6 @@ import { parseDescriptionDocId } from "@/components/chat/infra/blocksuite/descri
 import { prewarmRemoteSnapshot } from "@/components/chat/infra/blocksuite/description/descriptionDocRemote";
 import { readBlocksuiteDocHeader, subscribeBlocksuiteDocHeader } from "@/components/chat/infra/blocksuite/document/docHeader";
 import { recordDocCardShareObservation } from "@/components/chat/infra/blocksuite/shared/docCardShareObservability";
-import BlocksuiteDescriptionEditor from "@/components/chat/shared/components/BlockSuite/blocksuiteDescriptionEditor";
 import { documentModalShellClassName, getDocumentModalFrameClassName } from "@/components/chat/shared/components/documentModalShell";
 import { setDocRefDragData } from "@/components/chat/utils/docRef";
 import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
@@ -23,6 +22,8 @@ interface DocCardPayload {
   imageUrl?: string;
   excerpt?: string;
 }
+
+const LazyBlocksuiteDescriptionEditor = React.lazy(() => import("@/components/chat/shared/components/BlockSuite/blocksuiteDescriptionEditor"));
 
 function getDocCardPreviewErrorMessage(error: unknown): string {
   if (error instanceof Error) {
@@ -401,18 +402,20 @@ function DocCardMessageImpl({ messageResponse }: { messageResponse: ChatMessageR
               : null}
 
             <div className="flex-1 min-h-0 overflow-hidden">
-              {(!isDisabled && typeof previewSpaceId === "number" && previewSpaceId > 0) && (
+              {(isOpen && !isDisabled && typeof previewSpaceId === "number" && previewSpaceId > 0) && (
                 <div className="w-full h-full overflow-hidden bg-base-100">
-                  <BlocksuiteDescriptionEditor
-                    workspaceId={`space:${previewSpaceId}`}
-                    spaceId={previewSpaceId}
-                    docId={docId}
-                    readOnly
-                    tcHeader={{ enabled: true, fallbackTitle: title, fallbackImageUrl: coverUrl }}
-                    allowModeSwitch
-                    fullscreenEdgeless
-                    className="h-full min-h-0"
-                  />
+                  <React.Suspense fallback={<DocCardEditorFallback />}>
+                    <LazyBlocksuiteDescriptionEditor
+                      workspaceId={`space:${previewSpaceId}`}
+                      spaceId={previewSpaceId}
+                      docId={docId}
+                      readOnly
+                      tcHeader={{ enabled: true, fallbackTitle: title, fallbackImageUrl: coverUrl }}
+                      allowModeSwitch
+                      fullscreenEdgeless
+                      className="h-full min-h-0"
+                    />
+                  </React.Suspense>
                 </div>
               )}
             </div>
@@ -425,3 +428,12 @@ function DocCardMessageImpl({ messageResponse }: { messageResponse: ChatMessageR
 
 const DocCardMessage = React.memo(DocCardMessageImpl);
 export default DocCardMessage;
+
+function DocCardEditorFallback() {
+  return (
+    <div className="flex h-full w-full items-center justify-center text-sm text-base-content/60">
+      <span className="loading loading-spinner loading-md"></span>
+      <span className="ml-2">正在加载文档预览...</span>
+    </div>
+  );
+}

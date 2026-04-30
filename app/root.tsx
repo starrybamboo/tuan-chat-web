@@ -20,7 +20,6 @@ import { GlobalContextProvider } from "@/components/globalContextProvider";
 import { consumeAuthToast } from "@/utils/auth/unauthorized";
 import { createSeoMeta, getCanonicalHref } from "@/utils/seo";
 import "./app.css";
-import "./animation.css";
 
 // Patch customElements.define to avoid "already defined" errors from BlockSuite or other libraries during HMR/re-mounts.
 if (typeof window !== "undefined" && window.customElements) {
@@ -81,15 +80,14 @@ if (typeof window !== "undefined" && import.meta.env.DEV) {
   };
 }
 
-// React Scan 在 test 与本地开发环境可启用；生产环境始终关闭。
-// test 环境始终启用；本地开发默认启用，可通过 VITE_ENABLE_REACT_SCAN=false 手动关闭。
+// React Scan 在 test 与本地开发环境始终启用；生产环境始终关闭。
 const isTestBuild = import.meta.env.MODE === "test";
 const TEST_ENV_SPLASH_SESSION_KEY = "tc:test-env-splash:2026-02-20";
 const shouldEnableReactScan
   = typeof window !== "undefined"
     && (
       isTestBuild
-      || (import.meta.env.DEV && import.meta.env.VITE_ENABLE_REACT_SCAN !== "false")
+      || import.meta.env.DEV
     );
 
 if (shouldEnableReactScan) {

@@ -10,15 +10,15 @@ import {
   useUpdateRoleWithLocalMutation,
   useUploadAvatarMutation,
 } from "api/hooks/RoleAndAvatarHooks";
-import { useState } from "react";
+import { lazy, Suspense, useState } from "react";
 import toast from "react-hot-toast";
-import { initAliasMapOnce } from "@/components/common/dicer/aliasRegistry";
-import RulesSection from "../rules/RulesSection";
 import { ROLE_DESCRIPTION_MAX_LENGTH, ROLE_DESCRIPTION_TOO_LONG_MESSAGE } from "./constants";
 import CreatePageHeader from "./CreatePageHeader";
 import BasicInfoStep from "./steps/BasicInfoStep";
-import { completeRoleCreation, evaluateCharacterDataExpressions } from "./utils/roleCreationHelpers";
+import { completeRoleCreation } from "./utils/roleCreationHelpers";
 import { useCharacterData } from "./utils/useCharacterData";
+
+const LazyRulesSection = lazy(() => import("../rules/RulesSection"));
 
 interface RoleCreationFlowProps {
   onBack?: () => void;
@@ -81,10 +81,12 @@ export default function RoleCreationFlow({
       return;
     }
 
-    initAliasMapOnce();
-
     setIsSaving(true);
     try {
+      const beforeSetRoleAbility = characterData.ruleId > 0
+        ? await loadRoleAbilityExpressionEvaluator()
+        : undefined;
+
       await completeRoleCreation(
         {
           characterData,
@@ -97,9 +99,7 @@ export default function RoleCreationFlow({
           setSelectedRoleId,
           onComplete,
         },
-        {
-          beforeSetRoleAbility: evaluateCharacterDataExpressions,
-        },
+        beforeSetRoleAbility,
       );
     }
     catch (error) {
@@ -166,22 +166,29 @@ export default function RoleCreationFlow({
         {!hideRuleSelection && (
           <div className="card bg-base-100 shadow-xs rounded-2xl border-2 border-base-content/10">
             <div className="card-body p-4 md:p-5 space-y-3">
-              <RulesSection
-                large={false}
-                currentRuleId={characterData.ruleId}
-                autoSelectFirst={false}
-                title="全部规则模板"
-                description="选择规则用于角色创建"
-                controlsInHeader
-                pageSize={16}
-                gridMode="four"
-                dense
-                onRuleChange={handleRuleChange}
-              />
+              <Suspense fallback={<div className="skeleton h-24 w-full rounded-lg" />}>
+                <LazyRulesSection
+                  large={false}
+                  currentRuleId={characterData.ruleId}
+                  autoSelectFirst={false}
+                  title="全部规则模板"
+                  description="选择规则用于角色创建"
+                  controlsInHeader
+                  pageSize={16}
+                  gridMode="four"
+                  dense
+                  onRuleChange={handleRuleChange}
+                />
+              </Suspense>
             </div>
           </div>
         )}
       </div>
     </div>
   );
+}
+
+async function loadRoleAbilityExpressionEvaluator() {
+  const { evaluateCharacterDataExpressions } = await import("./utils/roleAbilityExpressionEvaluator");
+  return evaluateCharacterDataExpressions;
 }

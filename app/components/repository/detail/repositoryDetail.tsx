@@ -23,6 +23,7 @@ import {
   resolvePreviewRoomId,
   resolveRepositoryPrimaryAction,
 } from "./repositoryDetail.helpers";
+import "@/components/common/message/messageAnimations.css";
 // import IssueTab from "./issueTab";
 
 interface RepositoryDetailComponentProps {

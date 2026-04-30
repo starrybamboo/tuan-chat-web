@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "react-hot-toast";
 
 import { isCommand } from "@/components/common/dicer/cmdPre";
@@ -95,8 +95,18 @@ export default function useRoomCommandRequests({
   isSubmitting,
   commandExecutor,
 }: UseRoomCommandRequestsParams): UseRoomCommandRequestsResult {
-  const [consumedVersion, setConsumedVersion] = useState(0);
-  const consumedRequestKeys = useMemo(() => readConsumedRequestKeys(userId), [consumedVersion, userId]);
+  const [consumedRequestKeys, setConsumedRequestKeys] = useState(() => readConsumedRequestKeys(userId));
+  const consumedRequestKeysRef = useRef(consumedRequestKeys);
+
+  useEffect(() => {
+    consumedRequestKeysRef.current = consumedRequestKeys;
+  }, [consumedRequestKeys]);
+
+  useEffect(() => {
+    const reloadedRequestKeys = readConsumedRequestKeys(userId);
+    consumedRequestKeysRef.current = reloadedRequestKeys;
+    queueMicrotask(() => setConsumedRequestKeys(reloadedRequestKeys));
+  }, [userId]);
 
   const containsCommandRequestAllToken = useCallback((text: string) => {
     const raw = String(text ?? "");
@@ -134,8 +144,8 @@ export default function useRoomCommandRequests({
 
   const isCommandRequestConsumed = useCallback((requestMessageId: number) => {
     const requestKey = buildRequestConsumeKey(roomId, requestMessageId);
-    return consumedRequestKeys.has(requestKey);
-  }, [consumedRequestKeys, roomId]);
+    return consumedRequestKeysRef.current.has(requestKey);
+  }, [roomId]);
 
   const handleExecuteCommandRequest = useCallback((payload: CommandRequestPayload) => {
     const { command, threadId, requestMessageId } = payload;
@@ -154,14 +164,17 @@ export default function useRoomCommandRequests({
       return;
     }
     const requestKey = buildRequestConsumeKey(roomId, requestMessageId);
-    if (consumedRequestKeys.has(requestKey)) {
+    const currentConsumedRequestKeys = consumedRequestKeysRef.current;
+    if (currentConsumedRequestKeys.has(requestKey)) {
       toast.error("该检定请求已执行");
       return;
     }
 
-    consumedRequestKeys.add(requestKey);
-    writeConsumedRequestKeys(userId, consumedRequestKeys);
-    setConsumedVersion(version => version + 1);
+    const nextConsumedRequestKeys = new Set(currentConsumedRequestKeys);
+    nextConsumedRequestKeys.add(requestKey);
+    consumedRequestKeysRef.current = nextConsumedRequestKeys;
+    writeConsumedRequestKeys(userId, nextConsumedRequestKeys);
+    setConsumedRequestKeys(nextConsumedRequestKeys);
 
     void commandExecutor({
       command: rawCommand,
@@ -169,7 +182,7 @@ export default function useRoomCommandRequests({
       threadId,
       replyMessageId: requestMessageId,
     });
-  }, [commandExecutor, consumedRequestKeys, isSpaceOwner, isSubmitting, noRole, notMember, roomId, userId]);
+  }, [commandExecutor, isSpaceOwner, isSubmitting, noRole, notMember, roomId, userId]);
 
   return {
     containsCommandRequestAllToken,

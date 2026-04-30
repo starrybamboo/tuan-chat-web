@@ -8,11 +8,11 @@ import { useGlobalUserId } from "@/components/globalContextProvider";
 
 interface CreateRoomWindowProps {
   spaceId: number;
-  spaceAvatar?: string;
+  spaceAvatarThumbUrl?: string;
   onSuccess?: (roomId?: number) => void;
 }
 
-export default function CreateRoomWindow({ spaceId, spaceAvatar, onSuccess }: CreateRoomWindowProps) {
+export default function CreateRoomWindow({ spaceId, spaceAvatarThumbUrl, onSuccess }: CreateRoomWindowProps) {
   const userId = useGlobalUserId();
   const getUserInfo = useGetUserInfoQuery(Number(userId));
   const userInfo = getUserInfo.data?.data;
@@ -22,8 +22,8 @@ export default function CreateRoomWindow({ spaceId, spaceAvatar, onSuccess }: Cr
   const createRoomMutation = useCreateRoomMutation(spaceId);
   const getSpaceInfo = useGetSpaceInfoQuery(spaceId);
   const spaceInfo = getSpaceInfo.data?.data;
-  const defaultRoomAvatar = String(spaceInfo?.avatar ?? spaceAvatar ?? "");
-  const defaultRoomOriginalAvatar = String(spaceInfo?.originalAvatar ?? spaceInfo?.avatar ?? spaceAvatar ?? "");
+  const defaultRoomAvatar = String(spaceInfo?.avatarThumbUrl ?? spaceInfo?.avatar ?? spaceAvatarThumbUrl ?? "");
+  const defaultRoomOriginalAvatar = String(spaceInfo?.originalAvatar ?? spaceInfo?.avatar ?? spaceInfo?.avatarThumbUrl ?? spaceAvatarThumbUrl ?? "");
   const defaultRoomName = userInfo?.username ? `${String(userInfo.username)}的房间` : "";
 
   // 创建房间的头像
@@ -65,6 +65,7 @@ export default function CreateRoomWindow({ spaceId, spaceAvatar, onSuccess }: Cr
     createRoomMutation.mutate({
       spaceId,
       avatar: roomAvatar,
+      avatarThumbUrl: roomAvatar,
       originalAvatar: roomOriginalAvatar || roomAvatar,
       roomName,
       userIdList: userIds,
@@ -92,7 +93,7 @@ export default function CreateRoomWindow({ spaceId, spaceAvatar, onSuccess }: Cr
           }}
           fileName={`new-room-avatar-${roomAvatarUploadId}`}
           aspect={1}
-          copperedCompressionPreset="spaceAvatar"
+          copperedCompressionPreset="avatarThumb"
         >
           <div className="relative group overflow-hidden rounded-lg">
             <img

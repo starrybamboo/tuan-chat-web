@@ -47,9 +47,22 @@ export function shouldShowRoomSidebarSplitLayout(params: {
 
 export function shouldStretchRoomSidebarMaterialSection(params: {
   hasMaterialPackages: boolean;
+  isRoomDocSectionExpanded: boolean;
   isMaterialSectionExpanded: boolean;
 }) {
-  return params.hasMaterialPackages && params.isMaterialSectionExpanded;
+  return params.hasMaterialPackages && params.isRoomDocSectionExpanded && params.isMaterialSectionExpanded;
+}
+
+export function getRoomSidebarMaterialSectionClassName(params: {
+  fillSectionClassName: string;
+  isRoomDocSectionExpanded: boolean;
+  isMaterialSectionExpanded: boolean;
+  stretchMaterialSection: boolean;
+}) {
+  if (params.stretchMaterialSection) {
+    return params.fillSectionClassName;
+  }
+  return !params.isRoomDocSectionExpanded || !params.isMaterialSectionExpanded ? "mt-auto" : undefined;
 }
 
 interface ChatRoomListPanelProps {
@@ -255,6 +268,7 @@ export default function ChatRoomListPanel(props: ChatRoomListPanelProps) {
   });
   const stretchMaterialSection = shouldStretchRoomSidebarMaterialSection({
     hasMaterialPackages: hasMaterialSidebarPackages,
+    isRoomDocSectionExpanded,
     isMaterialSectionExpanded,
   });
   const activeMaterialController = useMaterialEditorActionStore((state) => {
@@ -480,6 +494,12 @@ export default function ChatRoomListPanel(props: ChatRoomListPanelProps) {
   });
   const fillSectionClassName = "flex min-h-0 flex-1 flex-col";
   const fillSectionContentClassName = "min-h-0 flex-1 overflow-y-auto overflow-x-hidden";
+  const materialSectionClassName = getRoomSidebarMaterialSectionClassName({
+    fillSectionClassName,
+    isRoomDocSectionExpanded,
+    isMaterialSectionExpanded,
+    stretchMaterialSection,
+  });
   const handleOpenMaterialDetail = () => {
     onOpenSpaceDetailPanel("material");
     onCloseLeftDrawer();
@@ -586,7 +606,7 @@ export default function ChatRoomListPanel(props: ChatRoomListPanelProps) {
                               actionTitle="局内素材包"
                               onAction={handleOpenMaterialDetail}
                               actionIcon={<PackageIcon className="size-4" weight="regular" />}
-                              className={stretchMaterialSection ? fillSectionClassName : (isMaterialSectionExpanded ? undefined : "mt-auto")}
+                              className={materialSectionClassName}
                               contentClassName={stretchMaterialSection ? fillSectionContentClassName : undefined}
                             >
                               {materialSectionContent}

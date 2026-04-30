@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 
+import { AnimatePresence, motion } from "motion/react";
 import { AddIcon, ChevronDown } from "@/icons";
 
 interface SidebarSectionProps {
@@ -56,7 +57,7 @@ export default function SidebarSection({
           }}
           title={isExpanded ? "折叠" : "展开"}
         >
-          <ChevronDown className={`size-5 ${isExpanded ? "" : "-rotate-90"}`} />
+          <ChevronDown className={`size-4 ${isExpanded ? "" : "-rotate-90"}`} />
         </button>
 
         <span className="flex-1 cursor-pointer truncate select-none">{title}</span>
@@ -79,7 +80,24 @@ export default function SidebarSection({
         )}
       </div>
 
-      {isExpanded && <div className={`mt-0.5 space-y-1 ${contentClassName ?? ""}`}>{children}</div>}
+      <AnimatePresence initial={false}>
+        {isExpanded && (
+          <motion.div
+            key="sidebar-section-content"
+            initial={{ opacity: 0, height: 0, y: -4 }}
+            animate={{ opacity: 1, height: "auto", y: 0 }}
+            exit={{ opacity: 0, height: 0, y: -4 }}
+            transition={{
+              height: { type: "spring", stiffness: 520, damping: 42, mass: 0.7 },
+              opacity: { duration: 0.12 },
+              y: { type: "spring", stiffness: 520, damping: 36, mass: 0.6 },
+            }}
+            className="overflow-hidden"
+          >
+            <div className={`mt-0.5 space-y-1 ${contentClassName ?? ""}`}>{children}</div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </section>
   );
 }

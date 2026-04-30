@@ -3,6 +3,16 @@
     "app/root.tsx",
     "app/routes.ts",
     "app/routes/**/*.{ts,tsx}",
+    "app/**/*.test.{ts,tsx}",
+    "app/**/*.e2e.test.{ts,tsx}",
+    "app/**/*.e2e.harness.{ts,tsx}",
+    "api/**/*.test.{ts,tsx}",
+    "packages/**/*.test.{ts,tsx}",
+    "apps/mobile/src/app/**/*.{ts,tsx}",
+    "apps/mobile/src/**/*.test.{ts,tsx}",
+    "apps/mobile/scripts/**/*.js",
+    "apps/mobile/app.json",
+    "apps/mobile/metro.config.js",
     "electron/main.js",
     "electron/preload.js",
     "scripts/**/*.mjs",
@@ -12,6 +22,8 @@
   "project": [
     "app/**/*.{ts,tsx}",
     "api/**/*.{ts,tsx}",
+    "apps/mobile/src/**/*.{ts,tsx}",
+    "apps/mobile/scripts/**/*.js",
     "electron/**/*.{js,ts}",
     "scripts/**/*.{js,mjs,ts}"
   ],
@@ -20,9 +32,33 @@
     "dist/**",
     "node_modules/**",
     "release/**",
+    "apps/mobile/.tmp/**",
     "api/core/request.ts",
     "api/novelai/core/request.ts",
     "api/hooks/RoleAndAvatarHooks.tsx",
     "app/components/chat/infra/blocksuite/spaceWorkspaceRegistry.ts"
+  ],
+  "ignoreDependencies": [
+    "@babel/plugin-proposal-class-properties",
+    "@babel/plugin-proposal-decorators",
+    "@babel/preset-env",
+    "@expo/metro-config",
+    "@react-navigation/bottom-tabs",
+    "@react-navigation/elements",
+    "babel-plugin-react-compiler",
+    "daisyui",
+    "eslint-plugin-react",
+    "expo-device",
+    "expo-glass-effect",
+    "expo-status-bar",
+    "expo-updates",
+    "expo-web-browser",
+    "lint-staged"
+  ],
+  "ignoreBinaries": [
+    "powershell"
+  ],
+  "ignoreUnresolved": [
+    "metro-minify-terser"
   ]
 }

@@ -46,7 +46,7 @@ const COMPARE_STYLE_TAGS_BY_ID: Record<string, AiImageStyleTagConfig> = {
       "0.6:: kedama milk ::",
       "0.5:: nanashi_(nlo) ::",
       "0.45:: ruhika ::",
-    ]
+    ],
   },
   清新: {
     tags: [
@@ -65,7 +65,7 @@ const COMPARE_STYLE_TAGS_BY_ID: Record<string, AiImageStyleTagConfig> = {
       "0.78:: ebifurya ::",
       "0.82:: gweda ::",
       "0.6:: shinkai_makoto ::",
-    ]
+    ],
   },
   精致: {
     tags: [
@@ -84,7 +84,7 @@ const COMPARE_STYLE_TAGS_BY_ID: Record<string, AiImageStyleTagConfig> = {
       "0.7:: tianliang duohe fangdongye ::",
       "0.6:: ishikei ::",
       "0.78:: irua ::",
-    ]
+    ],
   },
   灵动: {
     tags: [
@@ -105,7 +105,7 @@ const COMPARE_STYLE_TAGS_BY_ID: Record<string, AiImageStyleTagConfig> = {
       "0.5:: yagi_(ningen) ::",
       "0.6:: modare ::",
       "0.4:: peach_candy ::",
-    ]
+    ],
   },
   柔和: {
     tags: [
@@ -124,7 +124,7 @@ const COMPARE_STYLE_TAGS_BY_ID: Record<string, AiImageStyleTagConfig> = {
       "0.7:: saipaco ::",
       "0.6:: sukoyaka_(100hituzi) ::",
       "0.72:: kaedeko_(kaedelic) ::",
-    ]
+    ],
   },
   细腻: {
     tags: [
@@ -143,7 +143,7 @@ const COMPARE_STYLE_TAGS_BY_ID: Record<string, AiImageStyleTagConfig> = {
       "0.5:: chaosexceed ::",
       "0.6:: dishwasher1910 ::",
       "0.8:: saipaco ::",
-    ]
+    ],
   },
 };
 

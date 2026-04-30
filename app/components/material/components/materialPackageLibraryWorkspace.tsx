@@ -6,6 +6,7 @@ import {
   PlusIcon,
   SparkleIcon,
 } from "@phosphor-icons/react";
+import { useEffect, useRef } from "react";
 import { ContentCard } from "@/components/repository/home/RepositoryHome";
 
 interface MaterialPackageLibraryAction {
@@ -37,11 +38,14 @@ interface MaterialPackageLibraryWorkspaceProps {
   emptyTitle: string;
   emptyDescription: string;
   loading: boolean;
+  loadingMore?: boolean;
+  hasMore?: boolean;
   embedded?: boolean;
   showEmbeddedHeaderActions?: boolean;
   skeletonPrefix: string;
   onKeywordChange: (value: string) => void;
   onOpenItem: (index: number) => void;
+  onLoadMore?: () => void;
 }
 
 const paletteList = [
@@ -92,9 +96,11 @@ function ActionIcon({
 
 function MaterialCard({
   item,
+  imagePriority,
   onClick,
 }: {
   item: MaterialPackageLibraryCardModel;
+  imagePriority: "high" | "low";
   onClick: () => void;
 }) {
   const placeholderPalette = getPlaceholderPalette(item.placeholderSeed);
@@ -114,6 +120,8 @@ function MaterialCard({
       badgeLabel={item.badgeLabel}
       hoverMetadata={metadata}
       imageAspect="square"
+      imageLoading={imagePriority === "high" ? "eager" : "lazy"}
+      imageFetchPriority={imagePriority}
       hoverHint="点击查看素材包"
       placeholder={(
         <div className={`flex h-full w-full items-center justify-center bg-linear-to-br ${placeholderPalette}`}>
@@ -180,16 +188,48 @@ export default function MaterialPackageLibraryWorkspace({
   emptyTitle,
   emptyDescription,
   loading,
+  loadingMore = false,
+  hasMore = false,
   embedded = false,
   showEmbeddedHeaderActions = true,
   skeletonPrefix,
   onKeywordChange,
   onOpenItem,
+  onLoadMore,
 }: MaterialPackageLibraryWorkspaceProps) {
   const topBarInfo = loading ? "加载中" : `${items.length} 个素材包`;
+  const scrollRootRef = useRef<HTMLDivElement | null>(null);
+  const loadMoreTriggerRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!hasMore || loadingMore || !onLoadMore) {
+      return;
+    }
+
+    const root = scrollRootRef.current;
+    const trigger = loadMoreTriggerRef.current;
+    if (!trigger || typeof IntersectionObserver === "undefined") {
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some(entry => entry.isIntersecting)) {
+          onLoadMore();
+        }
+      },
+      {
+        root,
+        rootMargin: "360px 0px",
+        threshold: 0,
+      },
+    );
+    observer.observe(trigger);
+    return () => observer.disconnect();
+  }, [hasMore, loadingMore, onLoadMore, items.length]);
 
   return (
-    <div className={`h-full min-h-0 overflow-y-auto text-base-content ${embedded ? "bg-base-300/40" : "bg-[radial-gradient(circle_at_top_left,oklch(var(--p)/0.1),transparent_26%),linear-gradient(180deg,oklch(var(--b2)/0.98),oklch(var(--b1)/1))] border-t border-base-300"}`}>
+    <div ref={scrollRootRef} className={`h-full min-h-0 overflow-y-auto text-base-content ${embedded ? "bg-base-300/40" : "bg-[radial-gradient(circle_at_top_left,oklch(var(--p)/0.1),transparent_26%),linear-gradient(180deg,oklch(var(--b2)/0.98),oklch(var(--b1)/1))] border-t border-base-300"}`}>
       {embedded && (
         <div className="sticky top-0 z-20 border-y border-gray-300 bg-base-200/95 backdrop-blur dark:border-gray-700">
           <div className="mx-auto flex w-full max-w-6xl flex-col gap-3 px-4 py-3 sm:h-12 sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:px-6 sm:py-0">
@@ -328,10 +368,32 @@ export default function MaterialPackageLibraryWorkspace({
               <MaterialCard
                 key={item.key}
                 item={item}
+                imagePriority={index < 8 ? "high" : "low"}
                 onClick={() => onOpenItem(index)}
               />
             ))}
           </div>
+
+          {!loading && (hasMore || loadingMore) && (
+            <div ref={loadMoreTriggerRef} className="flex min-h-14 items-center justify-center py-2">
+              {loadingMore
+                ? (
+                    <div className="inline-flex items-center gap-2 text-sm text-base-content/60">
+                      <span className="loading loading-spinner loading-sm"></span>
+                      <span>继续加载...</span>
+                    </div>
+                  )
+                : (
+                    <button
+                      type="button"
+                      className="btn btn-ghost btn-sm"
+                      onClick={onLoadMore}
+                    >
+                      加载更多
+                    </button>
+                  )}
+            </div>
+          )}
 
           {!loading && items.length === 0 && (
             <div className="rounded-[26px] border border-dashed border-base-300 bg-base-100/55 px-5 py-12 text-center sm:px-6 sm:py-14">

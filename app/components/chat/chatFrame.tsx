@@ -73,6 +73,9 @@ interface ChatFrameProps {
   onExportPremiere?: (selectedMessages: ChatMessageResponse[]) => void | Promise<void>;
   showFullMessageDiff?: boolean;
   galPatchProposal?: GalPatchProposal | null;
+  isApplyingGalPatchProposal?: boolean;
+  onApplyGalPatchProposal?: (proposal: GalPatchProposal) => void | Promise<void>;
+  onDiscardGalPatchProposal?: (proposal: GalPatchProposal) => void;
 }
 
 function ChatFrame(props: ChatFrameProps) {
@@ -95,6 +98,9 @@ function ChatFrame(props: ChatFrameProps) {
     onExportPremiere,
     showFullMessageDiff = false,
     galPatchProposal = null,
+    isApplyingGalPatchProposal = false,
+    onApplyGalPatchProposal,
+    onDiscardGalPatchProposal,
   } = props;
   const roomContext = use(RoomContext);
   const spaceContext = use(SpaceContext);
@@ -498,6 +504,23 @@ function ChatFrame(props: ChatFrameProps) {
     }
     void onExportPremiere(selectedMessages);
   }, [onExportPremiere, selectedMessages]);
+  const handleApplyGalPatchProposal = useCallback(() => {
+    if (!galPatchProposal) {
+      return;
+    }
+    if (!onApplyGalPatchProposal) {
+      toast.error("当前没有可用的 proposal 应用入口");
+      return;
+    }
+    void onApplyGalPatchProposal(galPatchProposal);
+  }, [galPatchProposal, onApplyGalPatchProposal]);
+
+  const handleDiscardGalPatchProposal = useCallback(() => {
+    if (!galPatchProposal || !onDiscardGalPatchProposal) {
+      return;
+    }
+    onDiscardGalPatchProposal(galPatchProposal);
+  }, [galPatchProposal, onDiscardGalPatchProposal]);
 
   const {
     handleForward,
@@ -598,6 +621,14 @@ function ChatFrame(props: ChatFrameProps) {
         onExportFile: handleExportFile,
         onExportPremiere: onExportPremiere ? handleExportPremiere : undefined,
         onCancelSelection: exitSelection,
+        galPatchProposalToolbar: galPatchProposal
+          ? {
+              ...galPatchProposal.summary,
+              isApplying: isApplyingGalPatchProposal,
+              onApply: handleApplyGalPatchProposal,
+              onDiscard: onDiscardGalPatchProposal ? handleDiscardGalPatchProposal : undefined,
+            }
+          : null,
       }}
       overlaysProps={{
         isForwardWindowOpen,
