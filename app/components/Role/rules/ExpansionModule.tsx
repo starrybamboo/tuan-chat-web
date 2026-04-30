@@ -1,6 +1,7 @@
 import { useAbilityByRuleAndRole, useSetRoleAbilityMutation, useUpdateRoleAbilityByRoleIdMutation } from "api/hooks/abilityQueryHooks";
 import { useGetRoleQuery } from "api/hooks/RoleAndAvatarHooks";
 import { useRuleDetailQuery } from "api/hooks/ruleQueryHooks";
+import { DownloadSimpleIcon, SparkleIcon } from "@phosphor-icons/react";
 import { CloseIcon, EditIcon, SaveIcon, WrenchIcon } from "app/icons";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import ImportWithStCmd from "@/components/Role/rules/ImportWithStCmd";
@@ -407,8 +408,9 @@ export default function ExpansionModule({
                 <button
                   type="button"
                   onClick={onOpenStImportModal}
-                  className={`${desktopQuickToolButtonClass} bg-info/70 text-info-content`}
+                  className={`${desktopQuickToolButtonClass} inline-flex items-center gap-2 bg-info/70 text-info-content`}
                 >
+                  <DownloadSimpleIcon className="size-4" weight="bold" aria-hidden="true" />
                   ST导入
                 </button>
               )}
@@ -416,8 +418,9 @@ export default function ExpansionModule({
                 <button
                   type="button"
                   onClick={onOpenAIGenerateModal}
-                  className={`${desktopQuickToolButtonClass} bg-info/70 text-info-content`}
+                  className={`${desktopQuickToolButtonClass} inline-flex items-center gap-2 bg-info/70 text-info-content`}
                 >
+                  <SparkleIcon className="size-4" weight="fill" aria-hidden="true" />
                   AI生成
                 </button>
               )}
