@@ -27,6 +27,7 @@ export interface CharacterDetailLeftPanelProps {
   onAvatarSelect: (avatarId: number) => void;
   onAvatarDelete: (avatarId: number) => void;
   onAvatarUpload: (data: any) => void;
+  onAvatarTitleSave?: (avatarId: number, title: string) => void;
   onBaseRoleSave: (updatedRole: Role) => void;
   onAudioRoleUpdate: (updatedRole: Role) => void;
   onAudioDelete: () => void;
@@ -91,8 +92,10 @@ export default function CharacterDetailLeftPanel({
             maxDescriptionLength={maxDescriptionLength}
             onBaseRoleSave={onBaseRoleSave}
             align="center"
-            nameClassName="truncate text-center text-xl font-bold"
-            descriptionDisplayClassName="text-base wrap-break-words max-w-full line-clamp-6 overflow-hidden text-ellipsis"
+            nameClassName="truncate text-xl font-bold"
+            nameDisplayClassName="py-2"
+            descriptionDisplayClassName="w-full text-base wrap-break-words max-w-full line-clamp-6 overflow-hidden text-ellipsis"
+            descriptionButtonClassName="py-3"
           />
         </div>
 

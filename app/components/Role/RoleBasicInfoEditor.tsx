@@ -49,8 +49,11 @@ export default function RoleBasicInfoEditor({
 
   const textAlignClassName = align === "center" ? "text-center" : "text-left";
   const nameUnderlineClassName = align === "center"
-    ? "after:left-1/2 after:-translate-x-1/2 hover:after:w-10"
-    : "after:left-0 after:translate-x-0 hover:after:w-12";
+    ? "after:left-1/2 after:-translate-x-1/2"
+    : "after:left-0 after:translate-x-0";
+  const descriptionAlignClassName = align === "center"
+    ? "justify-center"
+    : "justify-start";
   const descriptionLength = descriptionDraft.length;
   const descriptionCounterClassName = descriptionLength > maxDescriptionLength ? "text-error" : "text-base-content/60";
 
@@ -101,7 +104,7 @@ export default function RoleBasicInfoEditor({
             <button
               type="button"
               onClick={startEditing}
-              className={`relative w-full rounded-md px-1 py-1 transition-colors hover:text-primary ${textAlignClassName} ${nameClassName} ${nameDisplayClassName} after:absolute after:bottom-0 after:h-0.5 after:w-0 after:rounded-full after:bg-primary after:transition-all after:duration-200 ${nameUnderlineClassName}`}
+              className={`relative inline-block max-w-full rounded-md px-1 py-1 transition-colors hover:text-primary ${textAlignClassName} ${nameClassName} ${nameDisplayClassName} after:absolute after:bottom-0 after:h-0.5 after:w-0 after:rounded-full after:bg-primary after:transition-all after:duration-200 hover:after:w-full ${align === "center" ? "mx-auto" : ""} ${nameUnderlineClassName}`}
             >
               {displayValue || "未命名角色"}
             </button>
@@ -156,9 +159,11 @@ export default function RoleBasicInfoEditor({
             <button
               type="button"
               onClick={() => setIsDescriptionEditing(true)}
-              className={`w-full rounded-md px-2 py-2 transition hover:bg-base-200/80 ${textAlignClassName} ${descriptionDisplayClassName} ${descriptionButtonClassName}`}
+              className={`flex w-full items-start rounded-md px-2 py-2 transition hover:bg-base-200/80 ${descriptionAlignClassName} ${textAlignClassName} ${descriptionButtonClassName}`}
             >
-              {localRole.description || "暂无描述"}
+              <span className={descriptionDisplayClassName}>
+                {localRole.description || "暂无描述"}
+              </span>
             </button>
           ))}
     </div>
