@@ -1,3 +1,4 @@
+import { DownloadSimpleIcon, SparkleIcon } from "@phosphor-icons/react";
 import { useAbilityByRuleAndRole, useSetRoleAbilityMutation, useUpdateRoleAbilityByRoleIdMutation } from "api/hooks/abilityQueryHooks";
 import { useGetRoleQuery } from "api/hooks/RoleAndAvatarHooks";
 import { useRuleDetailQuery } from "api/hooks/ruleQueryHooks";
@@ -360,14 +361,17 @@ export default function ExpansionModule({
   };
 
   const hasQuickTools = Boolean(onOpenStImportModal || onOpenAIGenerateModal);
+  const hasDesktopQuickTools = hasQuickTools && !isSmall;
+  const desktopConfigButtonClass = "md:h-10 md:min-h-10 md:px-4 md:text-sm md:font-medium";
+  const desktopQuickToolButtonClass = "btn btn-sm h-10 min-h-10 rounded-lg px-4 text-sm font-medium";
 
   const tabButtons = !isDiceMaiden
     ? (
         <div className={`flex min-w-0 items-center gap-1 md:gap-2 rounded-lg ${isSmall ? "w-full" : ""}`}>
-          <div className={`flex min-w-0 flex-1 flex-nowrap gap-1 md:flex-wrap md:justify-start md:gap-2 ${isSmall ? "" : "md:justify-center"}`}>
+          <div className={`flex min-w-0 flex-1 flex-nowrap gap-1 md:flex-nowrap md:justify-start md:gap-3 ${isSmall ? "" : ""}`}>
             <button
               type="button"
-              className={`btn ${isSmall ? "btn-sm" : "btn-md"} h-10 min-h-10 flex-none px-3 text-sm whitespace-nowrap md:h-auto md:min-h-0 md:px-4 md:text-sm rounded-lg ${activeTab === "basic" ? "btn-primary" : "btn-ghost"}`}
+              className={`btn ${isSmall ? "btn-sm" : "btn-md"} h-10 min-h-10 flex-none px-3 text-sm whitespace-nowrap rounded-lg ${isSmall ? "" : desktopConfigButtonClass} ${activeTab === "basic" ? "btn-primary" : "btn-ghost"}`}
               onClick={() => setActiveTab("basic")}
             >
               <span className="md:hidden">基础</span>
@@ -375,7 +379,7 @@ export default function ExpansionModule({
             </button>
             <button
               type="button"
-              className={`btn ${isSmall ? "btn-sm" : "btn-md"} h-10 min-h-10 flex-none px-3 text-sm whitespace-nowrap md:h-auto md:min-h-0 md:px-4 md:text-sm rounded-lg ${activeTab === "ability" ? "btn-primary" : "btn-ghost"}`}
+              className={`btn ${isSmall ? "btn-sm" : "btn-md"} h-10 min-h-10 flex-none px-3 text-sm whitespace-nowrap rounded-lg ${isSmall ? "" : desktopConfigButtonClass} ${activeTab === "ability" ? "btn-primary" : "btn-ghost"}`}
               onClick={() => setActiveTab("ability")}
             >
               <span className="md:hidden">能力</span>
@@ -383,7 +387,7 @@ export default function ExpansionModule({
             </button>
             <button
               type="button"
-              className={`btn ${isSmall ? "btn-sm" : "btn-md"} h-10 min-h-10 flex-none px-3 text-sm whitespace-nowrap md:h-auto md:min-h-0 md:px-4 md:text-sm rounded-lg ${activeTab === "skill" ? "btn-primary" : "btn-ghost"}`}
+              className={`btn ${isSmall ? "btn-sm" : "btn-md"} h-10 min-h-10 flex-none px-3 text-sm whitespace-nowrap rounded-lg ${isSmall ? "" : desktopConfigButtonClass} ${activeTab === "skill" ? "btn-primary" : "btn-ghost"}`}
               onClick={() => setActiveTab("skill")}
             >
               <span className="md:hidden">技能</span>
@@ -391,13 +395,37 @@ export default function ExpansionModule({
             </button>
             <button
               type="button"
-              className={`btn ${isSmall ? "btn-sm" : "btn-md"} h-10 min-h-10 flex-none px-3 text-sm whitespace-nowrap md:h-auto md:min-h-0 md:px-4 md:text-sm rounded-lg ${activeTab === "act" ? "btn-primary" : "btn-ghost"}`}
+              className={`btn ${isSmall ? "btn-sm" : "btn-md"} h-10 min-h-10 flex-none px-3 text-sm whitespace-nowrap rounded-lg ${isSmall ? "" : desktopConfigButtonClass} ${activeTab === "act" ? "btn-primary" : "btn-ghost"}`}
               onClick={() => setActiveTab("act")}
             >
               <span className="md:hidden">表演</span>
               <span className="hidden md:inline">表演配置</span>
             </button>
           </div>
+          {hasDesktopQuickTools && (
+            <div className="hidden shrink-0 items-center gap-2 md:flex">
+              {onOpenStImportModal && (
+                <button
+                  type="button"
+                  onClick={onOpenStImportModal}
+                  className={`${desktopQuickToolButtonClass} inline-flex items-center gap-2 bg-info/70 text-info-content`}
+                >
+                  <DownloadSimpleIcon className="size-4" weight="bold" aria-hidden="true" />
+                  ST导入
+                </button>
+              )}
+              {onOpenAIGenerateModal && (
+                <button
+                  type="button"
+                  onClick={onOpenAIGenerateModal}
+                  className={`${desktopQuickToolButtonClass} inline-flex items-center gap-2 bg-info/70 text-info-content`}
+                >
+                  <SparkleIcon className="size-4" weight="fill" aria-hidden="true" />
+                  AI生成
+                </button>
+              )}
+            </div>
+          )}
           {hasQuickTools && (
             <div className={`dropdown md:hidden ${isSmall ? "" : "dropdown-end"}`}>
               <button

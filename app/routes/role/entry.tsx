@@ -1,69 +1,39 @@
 import type { Role } from "@/components/Role/types";
-import { useEffect, useState } from "react";
-import { useNavigate, useOutletContext, useSearchParams } from "react-router";
+import { useNavigate, useSearchParams } from "react-router";
 
-import AICreateRole from "@/components/Role/RoleCreation/AICreateRole";
 import CreateDiceMaiden from "@/components/Role/RoleCreation/CreateDicerRole";
-// 导入您的创建组件
 import CreateEntry from "@/components/Role/RoleCreation/CreateEntry";
 import CreateRoleBySelf from "@/components/Role/RoleCreation/CreateRoleBySelf";
-import STCreateRole from "@/components/Role/RoleCreation/STCreateRole";
 import RuleEditorRoute from "@/components/Role/RuleEditor/RuleEditorRoute";
 import { setRoleRule } from "@/utils/roleRuleStorage";
 
-interface RoleContext {
-  setRoles: React.Dispatch<React.SetStateAction<Role[]>>;
+type CreateMode = "normal" | "dice" | "rule" | "entry";
+
+function resolveCreateMode(typeParam: string | null): CreateMode {
+  if (typeParam === "normal" || typeParam === "dice" || typeParam === "rule") {
+    return typeParam;
+  }
+  return "entry";
 }
 
 export default function RoleCreationPage() {
-  // 注意：我们甚至不需要从 context 中解构 roles，因为用不到它
-  const { setRoles } = useOutletContext<RoleContext>();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-
-  const [mode, setMode] = useState<"self" | "dice" | "AI" | "ST" | "entry" | "rule">("entry");
+  const mode = resolveCreateMode(searchParams.get("type"));
 
   const handleBackToEntry = () => {
     navigate("/role");
-    setMode("entry");
   };
-
-  // 检测URL参数，如果有type参数则直接进入创建表单
-  useEffect(() => {
-    const typeParam = searchParams.get("type");
-    if (typeParam === "normal") {
-      queueMicrotask(() => setMode("self"));
-    }
-    else if (typeParam === "dice") {
-      queueMicrotask(() => setMode("dice"));
-    }
-    else if (typeParam === "rule") {
-      queueMicrotask(() => setMode("rule"));
-    }
-    else {
-      // 当 query 被清理/无效时，回退到入口
-      queueMicrotask(() => setMode("entry"));
-    }
-  }, [searchParams]);
 
   // 当一个角色被创建并保存后，导航到它的详情页
   const handleCreationComplete = (newRole: Role, ruleId?: number) => {
-    // 这里我们可以手动更新一下 roles 状态，以便 Sidebar 立即显示新角色
-    setRoles(prevRoles => [newRole, ...prevRoles]);
-    // 如果提供了规则ID，保存到存储并导航到具体规则页面
-    if (ruleId) {
-      setRoleRule(newRole.id, ruleId);
-      navigate(`/role/${newRole.id}?rule=${ruleId}`);
-    }
-    else {
-      // 默认规则ID为1，也保存到存储
-      setRoleRule(newRole.id, 1);
-      navigate(`/role/${newRole.id}`);
-    }
+    const resolvedRuleId = ruleId || 1;
+    setRoleRule(newRole.id, resolvedRuleId);
+    navigate(`/role/${newRole.id}?rule=${resolvedRuleId}`);
   };
 
   // 根据 mode 返回不同的创建组件
-  if (mode === "self") {
+  if (mode === "normal") {
     return (
       <CreateRoleBySelf
         onBack={handleBackToEntry}
@@ -79,22 +49,10 @@ export default function RoleCreationPage() {
       />
     );
   }
-  if (mode === "AI") {
-    return <AICreateRole onBack={handleBackToEntry} onComplete={handleCreationComplete} />;
-  }
-  if (mode === "ST") {
-    return <STCreateRole onBack={handleBackToEntry} onComplete={handleCreationComplete} />;
-  }
   if (mode === "rule") {
     return <RuleEditorRoute onBack={handleBackToEntry} />;
   }
 
   // 默认渲染创建入口
-  return (
-    <CreateEntry
-      AICreate={() => setMode("AI")}
-      createBySelf={() => setMode("self")}
-      STCreate={() => setMode("ST")}
-    />
-  );
+  return <CreateEntry />;
 }
