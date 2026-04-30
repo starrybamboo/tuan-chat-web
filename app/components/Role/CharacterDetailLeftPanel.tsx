@@ -99,7 +99,7 @@ export default function CharacterDetailLeftPanel({
           />
         </div>
 
-        <p className="text-center text-xs text-base-content/60">
+        <p className="-mt-1 mb-4 text-center text-xs text-base-content/60">
           角色ID号：
           {localRole.id}
         </p>
