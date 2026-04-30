@@ -116,6 +116,11 @@ else {
     res.end(buf);
   };
 
+  const isPathInside = (root, target) => {
+    const relative = path.relative(root, target);
+    return relative === "" || (!relative.startsWith("..") && !path.isAbsolute(relative));
+  };
+
   const server = createServer(async (req, res) => {
     try {
       const reqUrl = new URL(req.url || "/", `http://${req.headers.host || "localhost"}`);
@@ -124,8 +129,8 @@ else {
       // Normalize and prevent path traversal.
       const rel = pathname.replace(/^\/+/, "");
       const fileCandidate = path.join(clientRoot, rel);
-      const normalized = path.normalize(fileCandidate);
-      if (!normalized.startsWith(clientRoot)) {
+      const normalized = path.resolve(fileCandidate);
+      if (!isPathInside(clientRoot, normalized)) {
         res.writeHead(403);
         res.end("Forbidden");
         return;
