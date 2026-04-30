@@ -81,6 +81,32 @@ VITE_TERRE_WS=ws://localhost:3001/api/webgalsync
 
 测试环境可使用 `.env.test`（已提供），默认域名为 `https://test.tuan.chat`，并且会开启 `VITE_ENABLE_REACT_SCAN=true`。
 
+### 自动测试登录态
+
+需要跑依赖登录态的浏览器/e2e 测试时，不要反复走登录页 UI。先在本机创建 `.env.development.local`（该文件已被 gitignore 忽略，不会提交）：
+
+```plain text
+TC_E2E_USER_ID=10001
+TC_E2E_PASSWORD=<本地测试账号密码>
+TC_E2E_LOGIN_METHOD=userId
+TC_E2E_API_BASE_URL=http://localhost:8081
+TC_E2E_APP_ORIGIN=http://localhost:5177
+```
+
+后端可用后运行：
+
+```bash
+pnpm test:e2e:auth-state
+```
+
+脚本会调用 `/user/login`，并把 Playwright 可复用的登录态写到 `.tmp/e2e-auth-state.json`。测试里直接复用该文件：
+
+```ts
+const context = await browser.newContext({
+  storageState: ".tmp/e2e-auth-state.json",
+});
+```
+
 ### IDE设置
 
 #### Vscode 设置
