@@ -1,15 +1,11 @@
 import type { Route } from "./+types/role";
-import type { Role } from "@/components/Role/types"; // 确保路径正确
 import { CaretRightIcon } from "@phosphor-icons/react";
-import { useQueryClient } from "@tanstack/react-query";
-import { seedRoleAvatarQueryCaches, useGetUserRolesByTypeQuery } from "api/hooks/RoleAndAvatarHooks";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { Outlet, useParams } from "react-router"; // 引入 Outlet 和 useParams
 import { Drawer } from "vaul";
-import { tuanchat } from "@/../api/instance";
-import { useGlobalContext } from "@/components/globalContextProvider";
-import { hydrateRoleList } from "@/components/Role/roleListData";
 import { Sidebar } from "@/components/Role/Sidebar/Sidebar"; // 确保路径正确
+import { useRoleUiStore } from "@/components/Role/stores/roleUiStore";
+import { useRoleListModel } from "@/components/Role/useRoleListModel";
 import { createSeoMeta } from "@/utils/seo";
 
 export function meta(_args: Route.MetaArgs) {
@@ -22,14 +18,10 @@ export function meta(_args: Route.MetaArgs) {
 }
 
 export default function RoleLayout() {
-  const [roles, setRoles] = useState<Role[]>([]);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
-  const rolesRef = useRef<Role[]>([]);
-  const queryClient = useQueryClient();
-  const userId = useGlobalContext().userId;
-  const diceRolesQuery = useGetUserRolesByTypeQuery(userId ?? -1, 1);
-  const normalRolesQuery = useGetUserRolesByTypeQuery(userId ?? -1, 0);
+  const rolesModel = useRoleListModel();
+  const isSidebarCollapsed = useRoleUiStore(state => state.sidebarCollapsed);
+  const toggleSidebarCollapsed = useRoleUiStore(state => state.toggleSidebarCollapsed);
   const [isDesktop, setIsDesktop] = useState(() => {
     if (typeof window === "undefined") {
       return true;
@@ -61,54 +53,15 @@ export default function RoleLayout() {
     return () => mediaQuery.removeEventListener("change", handleChange);
   }, []);
 
-  useEffect(() => {
-    rolesRef.current = roles;
-  }, [roles]);
-
-  useEffect(() => {
-    const roleQueriesReady = !diceRolesQuery.isLoading && !normalRolesQuery.isLoading;
-    if (!roleQueriesReady || (!diceRolesQuery.isSuccess && !normalRolesQuery.isSuccess)) {
-      return;
-    }
-
-    let isCancelled = false;
-
-    void hydrateRoleList({
-      previousRoles: rolesRef.current,
-      diceRoles: diceRolesQuery.data ?? [],
-      normalRoles: normalRolesQuery.data ?? [],
-      queryClient,
-      seedRoleAvatarQueryCaches,
-      fetchRoleAvatar: avatarId => tuanchat.avatarController.getRoleAvatar(avatarId),
-    }).then((nextRoles) => {
-      if (isCancelled) {
-        return;
-      }
-      setRoles(nextRoles);
-    });
-
-    return () => {
-      isCancelled = true;
-    };
-  }, [
-    diceRolesQuery.data,
-    diceRolesQuery.isLoading,
-    diceRolesQuery.isSuccess,
-    normalRolesQuery.data,
-    normalRolesQuery.isLoading,
-    normalRolesQuery.isSuccess,
-    queryClient,
-  ]);
-
   return (
     <div className="relative flex h-full w-full min-w-0 overflow-hidden bg-base-100 md:bg-base-200">
       {/* 桌面端侧边栏 - 可收起 */}
       {isDesktop && (
         <div className={`transition-all duration-300 bg-base-200 border-r border-base-300 ${isSidebarCollapsed ? "w-0 overflow-hidden" : "w-80"}`}>
           <Sidebar
-            roles={roles}
-            setRoles={setRoles}
+            roles={rolesModel.roles}
             selectedRoleId={selectedRoleId}
+            onNavigate={() => setIsDrawerOpen(false)}
           />
         </div>
       )}
@@ -118,7 +71,7 @@ export default function RoleLayout() {
         <div className={`fixed top-24 -translate-y-1/2 z-50 transition-all duration-300 ${isSidebarCollapsed ? "left-0" : "left-80"}`}>
           <button
             type="button"
-            onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+            onClick={toggleSidebarCollapsed}
             className="w-6 h-12 cursor-pointer bg-base-300 transition-all duration-200 rounded-r-full flex items-center justify-center group"
           >
             <svg
@@ -168,9 +121,9 @@ export default function RoleLayout() {
               <Drawer.Description className="sr-only">浏览并管理当前账号下的角色列表。</Drawer.Description>
               <div className="flex-1 overflow-y-auto ">
                 <Sidebar
-                  roles={roles}
-                  setRoles={setRoles}
+                  roles={rolesModel.roles}
                   selectedRoleId={selectedRoleId}
+                  onNavigate={() => setIsDrawerOpen(false)}
                 />
               </div>
             </Drawer.Content>
@@ -184,7 +137,7 @@ export default function RoleLayout() {
           <div className="w-full max-w-5xl mx-auto min-h-full md:p-6">
             {/* Outlet 是子路由的渲染位置 */}
             {/* 通过 context 将状态传递给子路由 */}
-            <Outlet context={{ roles, setRoles }} />
+            <Outlet />
           </div>
         </div>
       </div>

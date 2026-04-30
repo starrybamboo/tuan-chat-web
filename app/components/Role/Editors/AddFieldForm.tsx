@@ -11,6 +11,7 @@ interface AddFieldFormProps {
   layout?: "inline" | "stacked";
   showTitle?: boolean;
   title?: string;
+  enableArrowNavigation?: boolean;
 }
 
 const defaultPlaceholder = { key: "字段名", value: "字段值" };
@@ -27,6 +28,7 @@ export default function AddFieldForm({
   layout = "inline",
   showTitle = true,
   title = "添加新字段",
+  enableArrowNavigation = false,
 }: AddFieldFormProps) {
   const [newFieldKey, setNewFieldKey] = useState("");
   const [newFieldValue, setNewFieldValue] = useState("");
@@ -160,6 +162,7 @@ export default function AddFieldForm({
                 handleEnterToAdd(e);
               }}
               placeholder={placeholder.key || "字段名"}
+              data-arrow-nav-control={enableArrowNavigation ? "true" : undefined}
               className="grow focus:outline-none border-none outline-none bg-transparent"
             />
           </label>
@@ -174,17 +177,20 @@ export default function AddFieldForm({
                   handleCtrlEnterToAdd(e);
                 }}
                 placeholder={placeholder.value || "字段值"}
+                data-arrow-nav-control={enableArrowNavigation ? "true" : undefined}
                 className="textarea grow focus:outline-none border-none outline-none bg-transparent min-h-32 pr-20 pb-12"
               />
             </label>
-            <button
-              type="button"
-              onClick={handleAddField}
-              disabled={!canAdd}
-              className="btn btn-primary btn-xs absolute bottom-2 right-2"
-            >
-              ✓ 添加
-            </button>
+            <div className="tooltip tooltip-bottom absolute bottom-2 right-2" data-tip="Ctrl + ↩︎ 添加">
+              <button
+                type="button"
+                onClick={handleAddField}
+                disabled={!canAdd}
+                className="btn btn-primary btn-xs"
+              >
+                ✓ 添加
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -207,7 +213,8 @@ export default function AddFieldForm({
             handleEnterToAdd(e);
           }}
           placeholder={placeholder.key || "字段名"}
-          className="text-sm font-medium bg-transparent border-none focus:outline-none outline-none w-24 flex-shrink-0"
+          data-arrow-nav-control={enableArrowNavigation ? "true" : undefined}
+          className="text-sm font-medium bg-transparent border-none focus:outline-none outline-none w-24 shrink-0"
         />
         <div className="w-px h-4 bg-base-content/20"></div>
         <input
@@ -220,17 +227,19 @@ export default function AddFieldForm({
             handleEnterToAdd(e);
           }}
           placeholder={placeholder.value || "字段值"}
+          data-arrow-nav-control={enableArrowNavigation ? "true" : undefined}
           className="grow focus:outline-none border-none outline-none"
         />
-        <button
-          type="button"
-          onClick={handleAddField}
-          disabled={!canAdd}
-          className="btn btn-xs btn-primary"
-          title="添加字段"
-        >
-          ✓ 添加
-        </button>
+        <div className="tooltip tooltip-bottom" data-tip="↩︎ 回车">
+          <button
+            type="button"
+            onClick={handleAddField}
+            disabled={!canAdd}
+            className="btn btn-xs btn-primary"
+          >
+            ✓ 添加
+          </button>
+        </div>
       </label>
     </div>
   );

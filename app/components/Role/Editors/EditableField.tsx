@@ -10,8 +10,10 @@ interface EditableFieldProps {
   onRename: (oldKey: string, newKey: string) => void;
   className?: string;
   valueInputClassName?: string;
+  editingBackgroundClassName?: string;
   showDeleteButton?: boolean;
   size?: "default" | "compact";
+  enableArrowNavigation?: boolean;
 }
 
 /**
@@ -28,8 +30,10 @@ export default function EditableField({
   onRename,
   className = "",
   valueInputClassName,
+  editingBackgroundClassName = "bg-base-100 md:bg-base-200/50",
   showDeleteButton = true,
   size = "default",
+  enableArrowNavigation = false,
 }: EditableFieldProps) {
   const [editingFieldKey, setEditingFieldKey] = useState<string | null>(null);
   const [tempFieldKey, setTempFieldKey] = useState("");
@@ -232,11 +236,11 @@ export default function EditableField({
       <label className={`
         relative flex items-center gap-2 rounded-lg transition-all duration-200 border
         focus-within:border-primary focus-within:ring-1 focus-within:ring-primary/20
-        bg-base-100 border-base-content/20
+        border-base-content/20 ${editingBackgroundClassName}
         ${isCompact ? "py-1 px-2" : "py-2 px-3"}
         max-md:flex-col max-md:items-stretch max-md:h-auto max-md:gap-0
         w-full
-        md:input md:input-ghost md:bg-base-200/50 md:border-transparent md:h-10
+        md:input md:input-ghost md:border-transparent md:h-10
       `}
       >
         {/* 字段名编辑 */}
@@ -261,6 +265,7 @@ export default function EditableField({
                       setEditingFieldKey(null);
                     }
                   }}
+                  data-arrow-nav-control={enableArrowNavigation ? "true" : undefined}
                   className={`
                     bg-transparent border-none focus:outline-none outline-none font-medium
                     ${isCompact ? "text-[10px] md:text-xs" : "text-xs md:text-sm"}
@@ -298,6 +303,7 @@ export default function EditableField({
           value={String(value)}
           onChange={e => onValueChange(fieldKey, e.target.value)}
           onBlur={e => onValueCommit?.(fieldKey, e.currentTarget.value)}
+          data-arrow-nav-control={enableArrowNavigation ? "true" : undefined}
           onKeyDown={(e) => {
             if (!onValueCommit)
               return;

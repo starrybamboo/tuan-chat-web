@@ -93,13 +93,13 @@ export default function CharacterDetailLeftPanel({
             onBaseRoleSave={onBaseRoleSave}
             align="center"
             nameClassName="truncate text-xl font-bold"
-            nameDisplayClassName="py-2"
+            descriptionEditorClassName="pt-6"
             descriptionDisplayClassName="w-full text-base wrap-break-words max-w-full line-clamp-6 overflow-hidden text-ellipsis"
             descriptionButtonClassName="py-3"
           />
         </div>
 
-        <p className="-mt-1 mb-4 text-center text-xs text-base-content/60">
+        <p className="text-center text-xs text-base-content/60">
           角色ID号：
           {localRole.id}
         </p>

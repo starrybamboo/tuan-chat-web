@@ -1,8 +1,8 @@
 import {
   useUpdateKeyFieldByRoleIdMutation,
-  useUpdateRoleAbilityByRoleIdMutation,
 } from "api/hooks/abilityQueryHooks";
-import { useCallback, useEffect, useReducer, useRef, useState } from "react";
+import type { KeyboardEvent } from "react";
+import { useEffect, useReducer } from "react";
 import AddFieldForm from "../Editors/AddFieldForm";
 import EditableField from "../Editors/EditableField";
 
@@ -36,8 +36,14 @@ type DataAction
 function dataReducer(state: NumericalData, action: DataAction): NumericalData {
   switch (action.type) {
     case "SYNC_PROPS":
+      if (areNumericalDataEqual(state, action.payload)) {
+        return state;
+      }
       return action.payload;
     case "UPDATE_FIELD":
+      if (state[action.payload.key] === action.payload.value) {
+        return state;
+      }
       return {
         ...state,
         [action.payload.key]: action.payload.value,
@@ -65,6 +71,15 @@ function dataReducer(state: NumericalData, action: DataAction): NumericalData {
   }
 }
 
+function areNumericalDataEqual(a: NumericalData, b: NumericalData) {
+  const aKeys = Object.keys(a);
+  const bKeys = Object.keys(b);
+  if (aKeys.length !== bKeys.length) {
+    return false;
+  }
+  return aKeys.every(key => a[key] === b[key]);
+}
+
 /**
  * 数值编辑器组件
  * 使用 useReducer 管理本地数据状态,通过 useEffect 同步 props 变化
@@ -80,15 +95,10 @@ export default function NumericalEditor({
   hideTitleOnMobile = false,
   syncValueChanges = false,
 }: NumericalEditorProps) {
-  const { mutate: updateFiledAbility } = useUpdateRoleAbilityByRoleIdMutation();
   const { mutate: updateKeyField } = useUpdateKeyFieldByRoleIdMutation();
-  const [internalIsEditing, setInternalIsEditing] = useState(false);
-  const [isTransitioning, setIsTransitioning] = useState(false);
-  const isEditingControlled = typeof controlledIsEditing === "boolean";
-  const isEditing = isEditingControlled ? controlledIsEditing : internalIsEditing;
-  const prevIsEditingRef = useRef(isEditing);
-  const headerClassName = hideTitleOnMobile && isEditingControlled
-    ? "flex justify-between items-center md:mb-4"
+  void controlledIsEditing;
+  const headerClassName = hideTitleOnMobile
+    ? "hidden md:flex justify-between items-center md:mb-4"
     : "flex justify-between items-center mb-4";
 
   // 使用 useReducer 管理本地数据
@@ -99,61 +109,20 @@ export default function NumericalEditor({
     dispatch({ type: "SYNC_PROPS", payload: data });
   }, [data]);
 
-  // 处理字段值更新
-  const handleExitEditing = useCallback(() => {
-    setIsTransitioning(true);
-
-    // 更新前端状态
-    onChange(localData);
-
-    // 数据本身就是字符串格式，直接使用
-
-    // 根据字段类型构建更新对象
-    const updatedAbility: any = {
-      roleId,
-      ruleId,
-    };
-
-    // 根据fieldType设置对应的字段
-    switch (fieldType) {
-      case "basic":
-        updatedAbility.basic = localData;
-        break;
-      case "ability":
-        updatedAbility.ability = localData;
-        break;
-      case "skill":
-        updatedAbility.skill = localData;
-        break;
-    }
-
-    updateFiledAbility(updatedAbility, {
-      onSuccess: () => {
-        setTimeout(() => {
-          setInternalIsEditing(false);
-          setIsTransitioning(false);
-        }, 300);
-      },
-      onError: () => {
-        setIsTransitioning(false);
-      },
-    });
-  }, [fieldType, localData, onChange, roleId, ruleId, updateFiledAbility]);
-
-  // 受控编辑模式下：顶部总编辑从开到关时，自动提交当前数值编辑
-  useEffect(() => {
-    if (!isEditingControlled)
-      return;
-
-    const wasEditing = prevIsEditingRef.current;
-    if (wasEditing && !isEditing) {
-      handleExitEditing();
-    }
-    prevIsEditingRef.current = isEditing;
-  }, [handleExitEditing, isEditing, isEditingControlled]);
+  const buildFieldUpdateRequest = (fields: Record<string, string | null>) => ({
+    roleId,
+    ruleId,
+    ...(fieldType === "basic" && { basicFields: fields }),
+    ...(fieldType === "ability" && { abilityFields: fields }),
+    ...(fieldType === "skill" && { skillFields: fields }),
+  });
 
   // 处理字段值更新
   const handleFieldUpdate = (fieldKey: string, newValue: string) => {
+    if (localData[fieldKey] === newValue) {
+      return;
+    }
+
     const updatedData = {
       ...localData,
       [fieldKey]: newValue,
@@ -168,6 +137,28 @@ export default function NumericalEditor({
     if (syncValueChanges) {
       onChange(updatedData);
     }
+  };
+
+  const handleFieldCommit = (fieldKey: string, newValue: string) => {
+    if (!syncValueChanges && String(data[fieldKey] ?? "") === newValue) {
+      return;
+    }
+
+    const updatedData = {
+      ...localData,
+      [fieldKey]: newValue,
+    };
+
+    dispatch({
+      type: "UPDATE_FIELD",
+      payload: { key: fieldKey, value: newValue },
+    });
+
+    updateKeyField(buildFieldUpdateRequest({ [fieldKey]: newValue }), {
+      onSuccess: () => {
+        onChange(updatedData);
+      },
+    });
   };
 
   // 添加新字段
@@ -185,16 +176,7 @@ export default function NumericalEditor({
     });
 
     // 使用 API 更新字段 (根据 AbilityFieldUpdateRequest 定义)
-    const fieldUpdateRequest = {
-      roleId,
-      ruleId,
-      // 根据字段类型使用对应的字段
-      ...(fieldType === "basic" && { basicFields: { [newFieldKey]: newFieldValue } }),
-      ...(fieldType === "ability" && { abilityFields: { [newFieldKey]: newFieldValue } }),
-      ...(fieldType === "skill" && { skillFields: { [newFieldKey]: newFieldValue } }),
-    };
-
-    updateKeyField(fieldUpdateRequest, {
+    updateKeyField(buildFieldUpdateRequest({ [newFieldKey]: newFieldValue }), {
       onSuccess: () => {
         onChange(updatedData);
       },
@@ -211,16 +193,7 @@ export default function NumericalEditor({
     dispatch({ type: "DELETE_FIELD", payload: fieldKey });
 
     // 使用 API 删除字段（传 null 表示删除）
-    const fieldUpdateRequest = {
-      roleId,
-      ruleId,
-      // 根据字段类型使用对应的字段
-      ...(fieldType === "basic" && { basicFields: { [fieldKey]: null as any } }),
-      ...(fieldType === "ability" && { abilityFields: { [fieldKey]: null as any } }),
-      ...(fieldType === "skill" && { skillFields: { [fieldKey]: null as any } }),
-    };
-
-    updateKeyField(fieldUpdateRequest, {
+    updateKeyField(buildFieldUpdateRequest({ [fieldKey]: null }), {
       onSuccess: () => {
         onChange(updatedData);
       },
@@ -246,82 +219,90 @@ export default function NumericalEditor({
     });
 
     // 删除旧字段，添加新字段
-    const fieldUpdateRequest = {
-      roleId,
-      ruleId,
-      // 根据字段类型使用对应的字段
-      ...(fieldType === "basic" && {
-        basicFields: {
-          [oldKey]: null as any, // 删除旧字段，类型断言因为API支持null
-          [newKey]: String(value), // 添加新字段
-        },
-      }),
-      ...(fieldType === "ability" && {
-        abilityFields: {
-          [oldKey]: null as any,
-          [newKey]: String(value),
-        },
-      }),
-      ...(fieldType === "skill" && {
-        skillFields: {
-          [oldKey]: null as any,
-          [newKey]: String(value),
-        },
-      }),
-    };
-
-    updateKeyField(fieldUpdateRequest, {
+    updateKeyField(buildFieldUpdateRequest({
+      [oldKey]: null,
+      [newKey]: String(value),
+    }), {
       onSuccess: () => {
         onChange(updatedData);
       },
     });
   };
+
+  const handleArrowNavigation = (e: KeyboardEvent<HTMLDivElement>) => {
+    if (!["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(e.key)) {
+      return;
+    }
+    if (e.nativeEvent.isComposing || e.ctrlKey || e.metaKey || e.altKey || e.shiftKey) {
+      return;
+    }
+
+    const target = e.target;
+    if (!(target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement)) {
+      return;
+    }
+    if (target.dataset.arrowNavControl !== "true") {
+      return;
+    }
+
+    const controls = Array.from(
+      e.currentTarget.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>('[data-arrow-nav-control="true"]'),
+    ).filter(el => !el.disabled && el.offsetParent !== null);
+    const currentIndex = controls.indexOf(target);
+    if (currentIndex === -1) {
+      return;
+    }
+
+    const currentRect = target.getBoundingClientRect();
+    const currentCenterX = currentRect.left + currentRect.width / 2;
+    const currentCenterY = currentRect.top + currentRect.height / 2;
+    const direction = e.key.replace("Arrow", "");
+
+    const next = controls
+      .filter((el, index) => index !== currentIndex)
+      .map((el) => {
+        const rect = el.getBoundingClientRect();
+        const centerX = rect.left + rect.width / 2;
+        const centerY = rect.top + rect.height / 2;
+        const dx = centerX - currentCenterX;
+        const dy = centerY - currentCenterY;
+
+        if (direction === "Right" && dx <= 1)
+          return null;
+        if (direction === "Left" && dx >= -1)
+          return null;
+        if (direction === "Down" && dy <= 1)
+          return null;
+        if (direction === "Up" && dy >= -1)
+          return null;
+
+        const score = direction === "Left" || direction === "Right"
+          ? Math.abs(dx) + Math.abs(dy) * 3
+          : Math.abs(dy) + Math.abs(dx) * 1.5;
+        return { el, score };
+      })
+      .filter((item): item is { el: HTMLInputElement | HTMLTextAreaElement; score: number } => item !== null)
+      .sort((a, b) => a.score - b.score)[0]?.el;
+
+    if (!next) {
+      return;
+    }
+
+    e.preventDefault();
+    next.focus();
+    next.select();
+  };
+
   return (
-    <div className={`space-y-6 bg-base-200 rounded-lg p-4 duration-300 transition-opacity ${
-      isTransitioning ? "opacity-50" : ""
-    } ${isEditing ? "ring-2 ring-primary" : ""}`}
-    >
+    <div className="space-y-6 bg-base-200 rounded-lg p-4">
       <div className={headerClassName}>
         <h3 className={`card-title text-lg items-center gap-2 ${hideTitleOnMobile ? "hidden md:flex" : "flex"}`}>
           {title}
         </h3>
-        {!isEditingControlled && (
-          <button
-            type="button"
-            onClick={isEditing ? handleExitEditing : () => setInternalIsEditing(true)}
-            className={`btn btn-sm ${isEditing ? "btn-primary" : "btn-accent"
-            } ${isTransitioning ? "scale-95" : ""
-            }`}
-            disabled={isTransitioning}
-          >
-            {isTransitioning
-              ? (
-                  <span className="loading loading-spinner loading-xs"></span>
-                )
-              : isEditing
-                ? (
-                    <span className="flex items-center gap-1">
-                      <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
-                        <path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-                      </svg>
-                      保存
-                    </span>
-                  )
-                : (
-                    <span className="flex items-center gap-1">
-                      <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
-                        <path d="M11 4H4v14a2 2 0 002 2h12a2 2 0 002-2v-7" stroke="currentColor" strokeWidth="2" />
-                        <path d="M18.5 2.5a2.12 2.12 0 013 3L12 15l-4 1 1-4z" stroke="currentColor" strokeWidth="2" />
-                      </svg>
-                      编辑
-                    </span>
-                  )}
-          </button>
-        )}
       </div>
 
       <div className="bg-base-200 rounded-lg">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-6" onKeyDown={handleArrowNavigation}>
           {Object.entries(localData).map(([key, value]) => {
             const strVal = String(value ?? "");
 
@@ -363,27 +344,28 @@ export default function NumericalEditor({
                 <EditableField
                   fieldKey={key}
                   value={value}
-                  isEditing={isEditing}
+                  isEditing
                   onValueChange={handleFieldUpdate}
+                  onValueCommit={handleFieldCommit}
                   onDelete={handleDeleteField}
                   onRename={handleRenameField}
-                  className={isEditing ? "form-control" : "flex flex-col gap-1 flex-shrink-0"}
+                  className="form-control"
+                  editingBackgroundClassName="bg-base-100"
+                  enableArrowNavigation
                 />
               </div>
             );
           })}
 
-          {/* 添加新字段区域 */}
-          {isEditing && (
-            <div className="col-span-full">
-              <AddFieldForm
-                onAddField={handleAddField}
-                existingKeys={Object.keys(localData)}
-                layout="inline"
-                className="col-span-full pt-2 mt-2"
-              />
-            </div>
-          )}
+          <div className="col-span-full">
+            <AddFieldForm
+              onAddField={handleAddField}
+              existingKeys={Object.keys(localData)}
+              layout="inline"
+              className="col-span-full pt-2 mt-2"
+              enableArrowNavigation
+            />
+          </div>
         </div>
       </div>
     </div>

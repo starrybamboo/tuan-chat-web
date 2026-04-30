@@ -1,19 +1,13 @@
-import type { Role } from "@/components/Role/types";
 import { useEffect } from "react";
 // --- CHANGED --- 引入更多 react-router hooks
-import { Navigate, useNavigate, useOutletContext, useParams, useSearchParams } from "react-router";
+import { Navigate, useNavigate, useParams, useSearchParams } from "react-router";
 import CharacterDetail from "@/components/Role/CharacterDetail";
+import { useRoleListModel } from "@/components/Role/useRoleListModel";
 import { getRoleRule, setRoleRule } from "@/utils/roleRuleStorage";
-
-// 定义从 Outlet Context 接收的数据类型
-interface RoleContext {
-  roles: Role[];
-  setRoles: React.Dispatch<React.SetStateAction<Role[]>>;
-}
 
 export default function RoleDetailPage() {
   const { roleId } = useParams<{ roleId: string }>();
-  const { roles, setRoles } = useOutletContext<RoleContext>();
+  const { roles, isLoading } = useRoleListModel();
 
   // --- ADDED --- 路由和搜索参数的管理 hooks
   const [searchParams] = useSearchParams();
@@ -46,7 +40,7 @@ export default function RoleDetailPage() {
   }
 
   const currentRole = roles.find(r => r.id === numericRoleId);
-  if (!currentRole) {
+  if (!currentRole && isLoading) {
     // 角色数据加载中，显示骨架屏
     return (
       <div className="p-4">
@@ -105,14 +99,9 @@ export default function RoleDetailPage() {
     );
   }
 
-  const handleSave = (updatedRole: Role) => {
-    setRoles(prev =>
-      prev.map(role =>
-        role.id === updatedRole.id ? updatedRole : role,
-      ),
-    );
-    // isEditing 的状态现在由 CharacterDetail 自己管理
-  };
+  if (!currentRole) {
+    return <Navigate to="/role" replace />;
+  }
 
   // --- ADDED --- 创建一个函数来处理 URL 的变更
   const handleRuleChange = (newRuleId: number) => {
@@ -127,8 +116,7 @@ export default function RoleDetailPage() {
   return (
     <CharacterDetail
       role={currentRole}
-      // onSave 依然需要，用于更新全局状态
-      onSave={handleSave}
+      onSave={() => {}}
       // --- ADDED --- 将解析出的 ruleId 和 URL 修改函数传递下去
       selectedRuleId={selectedRuleId}
       onRuleChange={handleRuleChange}

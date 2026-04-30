@@ -243,6 +243,7 @@ export default function NumericalEditorSmall({
                     onRename={handleRenameField}
                     size="compact"
                     className="w-full col-span-4"
+                    editingBackgroundClassName="bg-base-100"
                   />
                 </div>
               </div>

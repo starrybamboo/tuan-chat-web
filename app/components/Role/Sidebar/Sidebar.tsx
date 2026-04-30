@@ -2,59 +2,48 @@ import type { Rule } from "@tuanchat/openapi-client/models/Rule";
 import type { Role } from "../types";
 import { useDeleteRolesMutation } from "api/hooks/RoleAndAvatarHooks";
 import { useDeleteRuleMutation, useRuleListQuery } from "api/hooks/ruleQueryHooks";
-// import { useCreateRoleMutation, useDeleteRolesMutation, useGetInfiniteUserRolesQuery, useUpdateRoleWithLocalMutation, useUploadAvatarMutation } from "api/queryHooks";
 import { useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import { Link, NavLink, useNavigate, useSearchParams } from "react-router";
 import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
 import { getRoleRule } from "@/utils/roleRuleStorage";
 import { useGlobalContext } from "../../globalContextProvider";
+import { useRoleUiStore } from "../stores/roleUiStore";
 import { RoleListItem } from "./RoleListItem";
 
-// ... SidebarProps 接口不再需要 setSelectedRoleId 和 onEnterCreateEntry
 interface SidebarProps {
-  roles: Role[]; // 角色数据数组
-  setRoles: React.Dispatch<React.SetStateAction<Role[]>>;
+  roles: Role[];
   selectedRoleId: number | null;
-  // setSelectedRoleId: (id: number | null) => void;
-  // setIsEditing: (value: boolean) => void;
-  // onEnterCreateEntry?: () => void; // 进入创建入口（显示 CreateEntry）
+  onNavigate?: () => void;
 }
 
 export function Sidebar({
   roles,
-  setRoles,
   selectedRoleId,
-  // setSelectedRoleId,
-  // setIsEditing,
-  // onEnterCreateEntry,
+  onNavigate,
 }: SidebarProps) {
-  // 已不再直接在 Sidebar 内创建角色
-  const [searchQuery, setSearchQuery] = useState("");
-  // 折叠状态：用于"全部"视图中的分组折叠
-  const [isDiceCollapsed, setIsDiceCollapsed] = useState(true);
-  const [isNormalCollapsed, setIsNormalCollapsed] = useState(false);
-  const [isRuleCollapsed, setIsRuleCollapsed] = useState(true);
+  const searchQuery = useRoleUiStore(state => state.sidebarSearchQuery);
+  const setSearchQuery = useRoleUiStore(state => state.setSidebarSearchQuery);
+  const collapsedSidebarGroups = useRoleUiStore(state => state.collapsedSidebarGroups);
+  const toggleSidebarGroup = useRoleUiStore(state => state.toggleSidebarGroup);
+  const isSelectionMode = useRoleUiStore(state => state.selectionMode);
+  const setSelectionMode = useRoleUiStore(state => state.setSelectionMode);
+  const selectedRoles = useRoleUiStore(state => state.selectedRoleIds);
+  const toggleRoleSelection = useRoleUiStore(state => state.toggleSelectedRoleId);
+  const clearSelectedRoleIds = useRoleUiStore(state => state.clearSelectedRoleIds);
+  const isDiceCollapsed = collapsedSidebarGroups.dice;
+  const isNormalCollapsed = collapsedSidebarGroups.normal;
+  const isRuleCollapsed = collapsedSidebarGroups.rule;
   const [searchParams] = useSearchParams();
-  // 获取用户数据
   const userId = useGlobalContext().userId;
   const ruleListQuery = useRuleListQuery();
-  // 创建角色接口
-  // const { mutateAsync: createRole } = useCreateRoleMutation();
-  // 上传头像接口
-  // const { mutateAsync: uploadAvatar } = useUploadAvatarMutation();
-  // 删除角色接口
-  const { mutate: deleteRole } = useDeleteRolesMutation();
+  const deleteRolesMutation = useDeleteRolesMutation();
   const { mutateAsync: deleteRule } = useDeleteRuleMutation();
-  // 更新角色接口
-  // const { mutate: updateRole } = useUpdateRoleWithLocalMutation(onSave);
 
-  // 删除弹窗状态
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState<boolean>(false);
   const [deleteCharacterId, setDeleteCharacterId] = useState<number | null>(null);
   const [deleteRuleId, setDeleteRuleId] = useState<number | null>(null);
   const [deletingRuleId, setDeletingRuleId] = useState<number | null>(null);
-  // 删除角色
   const handleDelete = (id: number) => {
     setDeleteConfirmOpen(true);
     setDeleteCharacterId(id);
@@ -66,62 +55,6 @@ export function Sidebar({
     setDeleteRuleId(null);
   };
 
-  // 创建新角色
-  // const handleCreate = async () => {
-  //   if (isCreatingRole)
-  //     return; // 防止重复点击
-
-  //   setIsCreatingRole(true);
-  //   try {
-  //     const data = await createRole({ roleName: "新角色", description: "新角色描述" });
-  //     if (data === undefined) {
-  //       console.error("角色创建失败");
-  //       return;
-  //     }
-  //     const res = await uploadAvatar({
-  //       avatarUrl: ROLE_DEFAULT_AVATAR_URL,
-  //       spriteUrl: ROLE_DEFAULT_AVATAR_URL,
-  //       roleId: data,
-  //     });
-  //     if (res?.data?.avatarId) {
-  //       const newRole: Role = {
-  //         id: data,
-  //         name: "新角色",
-  //         description: "新角色描述",
-  //         avatar: res.data.avatarUrl,
-  //         avatarId: res.data.avatarId,
-  //       };
-  //       setRoles(prev => [newRole, ...prev]);
-  //       setSelectedRoleId(newRole.id);
-  //       updateRole(newRole);
-  //     }
-  //   }
-  //   catch (error) {
-  //     console.error("创建角色时发生错误:", error);
-  //   }
-  //   finally {
-  //     setIsCreatingRole(false);
-  //   }
-  // };
-
-  // 进入创建入口：清空当前选中角色并通知上层展示 CreateEntry
-  // const handleCreate = () => {
-  //   setSelectedRoleId(null);
-  //   setIsEditing(false);
-  //   onEnterCreateEntry?.();
-  //   // 关闭抽屉（移动端）
-  //   const drawerCheckbox = document.getElementById("character-drawer") as HTMLInputElement | null;
-  //   if (drawerCheckbox)
-  //     drawerCheckbox.checked = false;
-  // };
-
-  const closeDrawerOnMobile = () => {
-    const drawerCheckbox = document.getElementById("character-drawer") as HTMLInputElement | null;
-    if (drawerCheckbox)
-      drawerCheckbox.checked = false;
-  };
-
-  // 过滤角色列表（按搜索）
   const filteredRoles = roles
     .filter(role => role.name.toLowerCase().includes(searchQuery.toLowerCase())
       || role.description.toLowerCase().includes(searchQuery.toLowerCase()));
@@ -149,27 +82,9 @@ export function Sidebar({
 
   const activeRuleId = Number(searchParams.get("ruleId") ?? 0);
 
-  const [isSelectionMode, setIsSelectionMode] = useState(false);
-  const [selectedRoles, setSelectedRoles] = useState<Set<number>>(() => new Set());
-
   // 切换选择模式
   const toggleSelectionMode = () => {
-    setIsSelectionMode(!isSelectionMode);
-    setSelectedRoles(new Set());
-  };
-
-  // 切换角色选择状态
-  const toggleRoleSelection = (roleId: number) => {
-    setSelectedRoles((prev) => {
-      const newSelection = new Set(prev);
-      if (newSelection.has(roleId)) {
-        newSelection.delete(roleId);
-      }
-      else {
-        newSelection.add(roleId);
-      }
-      return newSelection;
-    });
+    setSelectionMode(!isSelectionMode);
   };
 
   // 批量删除角色
@@ -202,6 +117,7 @@ export function Sidebar({
           if (activeRuleId === deleteRuleId) {
             navigate("/role?type=rule&mode=entry", { replace: true });
           }
+          onNavigate?.();
         }
         else {
           toast.error(res?.errMsg || "规则删除失败");
@@ -222,20 +138,42 @@ export function Sidebar({
     if (deleteCharacterId !== null) {
       // 单个删除逻辑
       const roleId = deleteCharacterId;
+      setDeleteConfirmOpen(false);
+      setDeleteCharacterId(null);
+      setDeleteRuleId(null);
       if (roleId) {
-        // 更新状态
-        setRoles(roles.filter(c => c.id !== roleId));
-        deleteRole([roleId]);
+        try {
+          await deleteRolesMutation.mutateAsync([roleId]);
+          if (selectedRoleId === roleId) {
+            navigate("/role", { replace: true });
+          }
+        }
+        catch (error) {
+          console.error("删除角色失败:", error);
+          toast.error("角色删除失败");
+        }
       }
+      return;
     }
     else if (selectedRoles.size > 0) {
       // 批量删除逻辑
       const roleIds = Array.from(selectedRoles);
-      // 更新状态
-      setRoles(roles.filter(c => !selectedRoles.has(c.id)));
-      deleteRole(roleIds);
-      setSelectedRoles(new Set());
-      setIsSelectionMode(false);
+      setDeleteConfirmOpen(false);
+      setDeleteCharacterId(null);
+      setDeleteRuleId(null);
+      clearSelectedRoleIds();
+      setSelectionMode(false);
+      try {
+        await deleteRolesMutation.mutateAsync(roleIds);
+        if (selectedRoleId && roleIds.includes(selectedRoleId)) {
+          navigate("/role", { replace: true });
+        }
+      }
+      catch (error) {
+        console.error("批量删除角色失败:", error);
+        toast.error("角色删除失败");
+      }
+      return;
     }
 
     // 关闭弹窗
@@ -283,7 +221,7 @@ export function Sidebar({
               type="text"
               className="grow"
               value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
+                  onChange={e => setSearchQuery(e.target.value)}
             />
           </label>
           {isSelectionMode
@@ -374,7 +312,7 @@ export function Sidebar({
                 <button
                   type="button"
                   className="flex items-center gap-2 w-full p-2 rounded-lg hover:bg-base-100 transition-colors"
-                  onClick={() => setIsRuleCollapsed(!isRuleCollapsed)}
+                  onClick={() => toggleSidebarGroup("rule")}
                 >
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
@@ -400,7 +338,7 @@ export function Sidebar({
                     <Link
                       to="/role?type=rule&mode=entry"
                       className="flex items-center gap-3 p-3 rounded-lg cursor-pointer group hover:bg-base-100 transition-all duration-150"
-                      onClick={closeDrawerOnMobile}
+                      onClick={onNavigate}
                       title="新建规则模板"
                     >
                       <div className="avatar shrink-0 px-1">
@@ -449,7 +387,7 @@ export function Sidebar({
                           className={`block rounded-lg px-1 ${
                             isRuleActive ? "bg-primary/10 text-primary" : ""
                           }`}
-                          onClick={closeDrawerOnMobile}
+                          onClick={onNavigate}
                         >
                           <div
                             className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer group transition-all duration-150 ${
@@ -515,7 +453,7 @@ export function Sidebar({
                 <button
                   type="button"
                   className="flex items-center gap-2 w-full p-2 rounded-lg hover:bg-base-100 transition-colors"
-                  onClick={() => setIsDiceCollapsed(!isDiceCollapsed)}
+                  onClick={() => toggleSidebarGroup("dice")}
                 >
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
@@ -542,7 +480,7 @@ export function Sidebar({
                     <Link
                       to="/role?type=dice"
                       className="flex items-center gap-3 p-3 rounded-lg cursor-pointer group hover:bg-base-100 transition-all duration-150"
-                      onClick={closeDrawerOnMobile}
+                      onClick={onNavigate}
                       title="创建骰娘角色"
                     >
                       <div className="avatar shrink-0 px-1">
@@ -587,7 +525,7 @@ export function Sidebar({
                               toggleRoleSelection(role.id);
                             }
                             else {
-                              closeDrawerOnMobile();
+                              onNavigate?.();
                             }
                           }}
                         >
@@ -609,7 +547,7 @@ export function Sidebar({
                 <button
                   type="button"
                   className="flex items-center gap-2 w-full p-2 rounded-lg hover:bg-base-100 transition-colors"
-                  onClick={() => setIsNormalCollapsed(!isNormalCollapsed)}
+                  onClick={() => toggleSidebarGroup("normal")}
                 >
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
@@ -635,7 +573,7 @@ export function Sidebar({
                     <Link
                       to="/role?type=normal"
                       className="flex items-center gap-3 p-3 rounded-lg cursor-pointer group hover:bg-base-100 transition-all duration-150"
-                      onClick={closeDrawerOnMobile}
+                      onClick={onNavigate}
                       title="创建普通角色"
                     >
                       <div className="avatar shrink-0 px-1">
@@ -677,7 +615,7 @@ export function Sidebar({
                               toggleRoleSelection(role.id);
                             }
                             else {
-                              closeDrawerOnMobile();
+                              onNavigate?.();
                             }
                           }}
                         >

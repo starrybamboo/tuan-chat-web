@@ -32,7 +32,12 @@ import {
 import type { Role } from '@/components/Role/types';
 import { ROLE_DEFAULT_AVATAR_URL } from '@/constants/defaultAvatar';
 import { shouldRetryRoleQueryError } from "@/utils/roleApiError";
-import { seedUserRoleListQueryCache, seedUserRoleQueryCache } from "../roleQueryCache";
+import {
+  optimisticRemoveUserRolesFromListQueryCache,
+  rollbackUserRoleListQueryCache,
+  seedUserRoleListQueryCache,
+  seedUserRoleQueryCache,
+} from "../roleQueryCache";
 import { invalidateRoleCreateQueries, invalidateUserRoleListQueries } from "./roleMutationInvalidation";
 
 export function seedRoleAvatarQueryCaches(queryClient: any, avatar: RoleAvatar, roleId?: number): void {
@@ -316,13 +321,21 @@ export function useDeleteRolesMutation(onSuccess?: () => void) {
       }
       return res;
     },
-    onSuccess: () => {
-      invalidateUserRoleListQueries(queryClient);
-      queryClient.invalidateQueries({ queryKey: ["roomRole"] });
+    onMutate: async (roleIds) => {
+      const snapshots = await optimisticRemoveUserRolesFromListQueryCache(queryClient, roleIds);
+      return { snapshots };
     },
-    onError: (error) => {
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["roomRole"] });
+      onSuccess?.();
+    },
+    onError: (error, _roleIds, context) => {
+      rollbackUserRoleListQueryCache(queryClient, context?.snapshots);
       console.error("删除角色失败:", error);
-    }
+    },
+    onSettled: () => {
+      invalidateUserRoleListQueries(queryClient);
+    },
   });
 }
 
@@ -1565,4 +1578,3 @@ export function useRoleAbility(roleId: number) {
   );
   return abilityQuery;
 }
-

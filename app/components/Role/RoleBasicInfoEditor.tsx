@@ -127,7 +127,7 @@ export default function RoleBasicInfoEditor({
                 value={descriptionDraft}
                 onChange={event => setDescriptionDraft(event.target.value)}
                 placeholder="角色描述"
-                className={`min-h-24 w-full resize-none rounded-md border border-base-content/15 bg-base-100 px-2 py-2 text-sm transition focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 ${textAlignClassName} ${descriptionTextareaClassName}`}
+                className={`min-h-32 h-full w-full resize-none rounded-md border border-base-content/15 bg-base-100 px-2 py-2 text-sm transition focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 ${textAlignClassName} ${descriptionTextareaClassName}`}
                 maxLength={maxDescriptionLength}
               />
               <div className="mt-2 flex items-center justify-between gap-3">
@@ -159,7 +159,7 @@ export default function RoleBasicInfoEditor({
             <button
               type="button"
               onClick={() => setIsDescriptionEditing(true)}
-              className={`flex w-full items-start rounded-md px-2 py-2 transition hover:bg-base-200/80 ${descriptionAlignClassName} ${textAlignClassName} ${descriptionButtonClassName}`}
+              className={`flex w-full items-start rounded-md px-2 transition hover:bg-base-200/80 ${descriptionAlignClassName} ${textAlignClassName} ${descriptionButtonClassName}`}
             >
               <span className={descriptionDisplayClassName}>
                 {localRole.description || "暂无描述"}

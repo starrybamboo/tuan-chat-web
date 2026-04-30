@@ -6,9 +6,9 @@ import {
   useGenerateRoleByRuleMutation,
   useUpdateRoleAbilityByRoleIdMutation,
 } from "api/hooks/abilityQueryHooks";
-import { useGetRoleAvatarsQuery, useGetRoleQuery, useUpdateRoleWithLocalMutation } from "api/hooks/RoleAndAvatarHooks";
+import { useGetRoleAvatarsQuery, useGetRoleQuery, useUpdateAvatarNameMutation, useUpdateRoleWithLocalMutation } from "api/hooks/RoleAndAvatarHooks";
 import { useRuleDetailQuery } from "api/hooks/ruleQueryHooks";
-import { CloseIcon, EditIcon, SaveIcon, SlidersIcon } from "app/icons";
+import { CloseIcon, SlidersIcon } from "app/icons";
 import { useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import { Link } from "react-router";
@@ -47,13 +47,8 @@ function CharacterDetailInner({
   canKickOut = false,
   onKickOut,
 }: CharacterDetailProps) {
-  // --- MOVED --- isEditing 状态现在是组件的本地状态，非常清晰！
-  const [isEditing, setIsEditing] = useState(false);
-
   // 初始化角色数据
   const [localRole, setLocalRole] = useState<Role>(role);
-  // 编辑状态过渡
-  const [isTransitioning, setIsTransitioning] = useState(false);
 
   // 头像选择状态 - 只保留 ID,URL 通过计算得出
   const [selectedAvatarId, setSelectedAvatarId] = useState<number>(role.avatarId);
@@ -139,6 +134,7 @@ function CharacterDetailInner({
   // 接口部分
   // 发送post数据部分,保存角色数据
   const { mutate: updateRole } = useUpdateRoleWithLocalMutation(onSave);
+  const updateAvatarNameMutation = useUpdateAvatarNameMutation(role.id);
 
   // 处理规则变更
   // --- CHANGED --- handleRuleChange 现在只调用从 prop 传来的函数
@@ -315,11 +311,15 @@ function CharacterDetailInner({
     description: cleanText(sourceRole.description),
   });
 
-  const saveRoleBase = (nextRole: Role, options?: { withTransition?: boolean; afterSave?: () => void }) => {
-    if (options?.withTransition) {
-      setIsTransitioning(true);
-    }
+  const saveRoleBase = (nextRole: Role) => {
     const cleanedRole = buildCleanedRole(nextRole);
+    const previousRole = localRole;
+    setLocalRole(prev => prev.name === cleanedRole.name
+      && prev.description === cleanedRole.description
+      && prev.avatarId === cleanedRole.avatarId
+      && prev.voiceUrl === cleanedRole.voiceUrl
+      ? prev
+      : cleanedRole);
     updateRole(cleanedRole, {
       onSuccess: () => {
         setLocalRole(prev => prev.name === cleanedRole.name
@@ -328,32 +328,14 @@ function CharacterDetailInner({
           && prev.voiceUrl === cleanedRole.voiceUrl
           ? prev
           : cleanedRole);
-        if (options?.withTransition) {
-          setTimeout(() => {
-            options.afterSave?.();
-            setIsTransitioning(false);
-          }, 300);
-          return;
-        }
-        options?.afterSave?.();
       },
       onError: () => {
-        if (options?.withTransition) {
-          setIsTransitioning(false);
-        }
-      },
-    });
-  };
-
-  const handleStartEditingAll = () => {
-    setIsEditing(true);
-  };
-
-  const handleSaveAll = () => {
-    saveRoleBase(localRole, {
-      withTransition: true,
-      afterSave: () => {
-        setIsEditing(false);
+        setLocalRole(prev => prev.name === cleanedRole.name
+          && prev.description === cleanedRole.description
+          && prev.avatarId === cleanedRole.avatarId
+          && prev.voiceUrl === cleanedRole.voiceUrl
+          ? previousRole
+          : prev);
       },
     });
   };
@@ -406,6 +388,17 @@ function CharacterDetailInner({
     // 上传完成后由查询缓存自动刷新，这里不再输出调试日志
   };
 
+  const handleAvatarTitleSave = (avatarId: number, title: string) => {
+    const targetAvatar = roleAvatars.find(avatar => avatar.avatarId === avatarId);
+    if (!targetAvatar) {
+      return;
+    }
+    updateAvatarNameMutation.mutate({
+      avatar: targetAvatar,
+      name: title,
+    });
+  };
+
   const rightPanel = (
     <>
       {/* 扩展模块（右侧） */}
@@ -441,7 +434,7 @@ function CharacterDetailInner({
           )
         : (
             <ExpansionModule
-              isEditing={isEditing}
+              isEditing={false}
               roleId={localRole.id}
               ruleId={selectedRuleId}
               isStImportModalOpen={isStImportModalOpen}
@@ -454,11 +447,9 @@ function CharacterDetailInner({
   );
 
   return (
-    <div className={`w-full min-w-0 overflow-x-hidden transition-opacity duration-300 p-4 ease-in-out ${isTransitioning ? "opacity-50" : ""
-    }`}
-    >
+    <div className="w-full min-w-0 overflow-x-hidden p-4">
 
-      {/* 顶部头部区域（包含总编辑入口） */}
+      {/* 顶部头部区域 */}
       <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between md:gap-3">
         <div className="flex w-full items-start justify-between gap-2 px-6 md:w-auto md:items-center md:justify-start md:gap-4 md:px-0">
           {layout !== "popup" && (
@@ -492,46 +483,16 @@ function CharacterDetailInner({
                     踢出角色
                   </button>
                 )
-              : (
-                  <>
-                    {isDiceMaiden && (
-                      <div className="tooltip tooltip-bottom md:hidden" data-tip="查看和导出骰娘文案配置的JSON格式">
-                        <button
-                          type="button"
-                          onClick={() => setIsDicerConfigJsonModalOpen(true)}
-                          className="btn rounded-lg bg-info/70 text-info-content btn-md px-4"
-                        >
-                          配置
-                        </button>
-                      </div>
-                    )}
-                    {isEditing
-                      ? (
-                          <button
-                            type="button"
-                            onClick={handleSaveAll}
-                            className={`btn btn-primary btn-md rounded-lg px-4 md:hidden ${isTransitioning ? "scale-95" : ""}`}
-                            disabled={isTransitioning}
-                          >
-                            {isTransitioning
-                              ? (
-                                  <span className="loading loading-spinner loading-xs"></span>
-                                )
-                              : (
-                                  <span>保存</span>
-                                )}
-                          </button>
-                        )
-                      : (
-                          <button
-                            type="button"
-                            onClick={handleStartEditingAll}
-                            className="btn btn-accent btn-md rounded-lg px-4 md:hidden"
-                          >
-                            <span>编辑</span>
-                          </button>
-                        )}
-                  </>
+              : isDiceMaiden && (
+                  <div className="tooltip tooltip-bottom md:hidden" data-tip="查看和导出骰娘文案配置的JSON格式">
+                    <button
+                      type="button"
+                      onClick={() => setIsDicerConfigJsonModalOpen(true)}
+                      className="btn rounded-lg bg-info/70 text-info-content btn-md px-4"
+                    >
+                      配置
+                    </button>
+                  </div>
                 )}
           </div>
         </div>
@@ -550,38 +511,6 @@ function CharacterDetailInner({
               </button>
             </div>
           )}
-          {isEditing
-            ? (
-                <div className={`tooltip tooltip-bottom ${layout === "popup" ? "" : "hidden md:block"}`} data-tip="保存当前修改">
-                  <button
-                    type="button"
-                    onClick={handleSaveAll}
-                    className={`btn btn-primary btn-sm md:btn-lg rounded-lg ${isTransitioning ? "scale-95" : ""}`}
-                    disabled={isTransitioning}
-                  >
-                    {isTransitioning
-                      ? (
-                          <span className="loading loading-spinner loading-xs"></span>
-                        )
-                      : (
-                          <span className="flex items-center gap-1">
-                            <SaveIcon className="w-4 h-4" />
-                            保存
-                          </span>
-                        )}
-                  </button>
-                </div>
-              )
-            : (
-                <div className={`tooltip tooltip-bottom ${layout === "popup" ? "" : "hidden md:block"}`} data-tip="编辑角色信息">
-                  <button type="button" onClick={handleStartEditingAll} className="btn btn-accent btn-sm md:btn-lg rounded-lg">
-                    <span className="flex items-center gap-1">
-                      <EditIcon className="w-4 h-4" />
-                      编辑
-                    </span>
-                  </button>
-                </div>
-              )}
         </div>
       </div>
 
@@ -611,6 +540,7 @@ function CharacterDetailInner({
                 onAvatarSelect={handleAvatarSelect}
                 onAvatarDelete={handleAvatarDelete}
                 onAvatarUpload={handleAvatarUpload}
+                onAvatarTitleSave={handleAvatarTitleSave}
                 onBaseRoleSave={saveRoleBase}
                 onAudioRoleUpdate={(updatedRole) => {
                   setLocalRole(updatedRole);
@@ -650,6 +580,7 @@ function CharacterDetailInner({
                 onAvatarSelect={handleAvatarSelect}
                 onAvatarDelete={handleAvatarDelete}
                 onAvatarUpload={handleAvatarUpload}
+                onAvatarTitleSave={handleAvatarTitleSave}
                 onBaseRoleSave={saveRoleBase}
                 onAudioRoleUpdate={(updatedRole) => {
                   setLocalRole(updatedRole);
