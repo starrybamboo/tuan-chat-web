@@ -1,11 +1,10 @@
 import type { Role } from "../types";
 import { Plus } from "@phosphor-icons/react";
-import { useCreateRoleMutation, useUploadAvatarMutation } from "api/hooks/RoleAndAvatarHooks";
 import { useState } from "react";
 import toast from "react-hot-toast";
-import { ROLE_DEFAULT_AVATAR_URL } from "@/constants/defaultAvatar";
 import { ROLE_DESCRIPTION_MAX_LENGTH, ROLE_DESCRIPTION_TOO_LONG_MESSAGE, ROLE_NAME_MAX_LENGTH } from "./constants";
 import CreatePageHeader from "./CreatePageHeader";
+import { useCreateRoleWithAbilityMutation } from "./hooks/useCreateRoleWithAbilityMutation";
 
 interface CreateDicerRoleProps {
   onBack?: () => void;
@@ -17,8 +16,7 @@ export default function CreateDicerRole({ onBack, onComplete }: CreateDicerRoleP
   const [description, setDescription] = useState("");
   const [isSaving, setIsSaving] = useState(false);
 
-  const { mutateAsync: createRole } = useCreateRoleMutation();
-  const { mutateAsync: uploadAvatar } = useUploadAvatarMutation();
+  const createRoleWithAbility = useCreateRoleWithAbilityMutation();
 
   const handleSubmit = async () => {
     const trimmedName = name.trim();
@@ -35,36 +33,12 @@ export default function CreateDicerRole({ onBack, onComplete }: CreateDicerRoleP
 
     setIsSaving(true);
     try {
-      // 1. 创建骰娘角色（type=1）
-      const roleId = await createRole({
+      const newRole = await createRoleWithAbility.mutateAsync({
         roleName: trimmedName,
         description: trimmedDescription,
         type: 1,
+        ruleId: 1,
       });
-
-      if (!roleId || roleId <= 0) {
-        throw new Error("创建角色失败");
-      }
-
-      // 2. 上传默认头像
-      const avatarResult = await uploadAvatar({
-        roleId,
-        avatarUrl: ROLE_DEFAULT_AVATAR_URL,
-        spriteUrl: ROLE_DEFAULT_AVATAR_URL,
-      });
-
-      // 3. 构建新角色对象
-      const newRole: Role = {
-        id: roleId,
-        name: trimmedName,
-        description: trimmedDescription,
-        avatar: avatarResult?.data?.avatarUrl || ROLE_DEFAULT_AVATAR_URL,
-        avatarId: avatarResult?.data?.avatarId || 0,
-        type: 1,
-        extra: {},
-      };
-
-      // 4. 通知完成
       onComplete?.(newRole, 1); // 默认规则ID为1
     }
     catch (error) {

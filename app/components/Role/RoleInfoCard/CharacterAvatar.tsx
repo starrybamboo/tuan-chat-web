@@ -61,7 +61,7 @@ export default function CharacterAvatar({
           setChangeAvatarConfirmOpen(true);
         }}
       >
-        <div className="rounded-xl ring-primary ring-offset-base-100 w-full ring ring-offset-2 relative">
+        <div className="relative w-full overflow-hidden rounded-xl ring ring-primary ring-offset-2 ring-offset-base-100">
           <div className={`absolute inset-0 transition-all flex items-center justify-center z-1 ${
             editable ? "bg-black/0 group-hover:bg-black/10" : "bg-black/5"
           }`}
@@ -69,7 +69,7 @@ export default function CharacterAvatar({
           <img
             src={selectedAvatarUrl || ROLE_DEFAULT_AVATAR_URL}
             alt="Character Avatar"
-            className={`object-cover transition-transform duration-300 ${editable ? "group-hover:scale-105" : ""}`}
+            className={`h-full w-full object-contain transition-transform duration-300 ${editable ? "group-hover:scale-105" : ""}`}
           />
         </div>
       </div>

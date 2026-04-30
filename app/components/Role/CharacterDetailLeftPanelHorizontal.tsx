@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import type { CharacterDetailLeftPanelProps } from "./CharacterDetailLeftPanel";
 import { ChevronRightIcon, DiceFiveIcon, GearOutline, MicrophoneIcon } from "app/icons";
+import { DoubleClickEditableText } from "@/components/common/DoubleClickEditableText";
 import RoleBasicInfoEditor from "./RoleBasicInfoEditor";
 import CharacterAvatar from "./RoleInfoCard/CharacterAvatar";
 
@@ -25,16 +26,24 @@ export default function CharacterDetailLeftPanelHorizontal({
   onAvatarSelect,
   onAvatarDelete,
   onAvatarUpload,
+  onAvatarTitleSave,
   onBaseRoleSave,
 }: CharacterDetailLeftPanelProps) {
+  const selectedAvatar = roleAvatars.find(avatar => avatar.avatarId === selectedAvatarId);
+  const selectedAvatarTitleRaw = selectedAvatar?.avatarTitle;
+  const selectedAvatarTitle = typeof selectedAvatarTitleRaw === "string"
+    ? selectedAvatarTitleRaw
+    : selectedAvatarTitleRaw?.label;
+
   const renderCompactActionButton = ({
+    id,
     title,
     subtitle,
     subtitleClassName,
-    actionLabel,
     icon,
     onClick,
   }: {
+    id: string;
     title: string;
     subtitle: string;
     subtitleClassName: string;
@@ -43,6 +52,7 @@ export default function CharacterDetailLeftPanelHorizontal({
     onClick: () => void;
   }) => (
     <button
+      key={id}
       type="button"
       className="flex min-w-0 items-center justify-between gap-3 rounded-xl border border-base-content/10 bg-base-100/70 px-3 py-2.5 text-left transition-colors hover:bg-base-300/50"
       onClick={onClick}
@@ -58,14 +68,14 @@ export default function CharacterDetailLeftPanelHorizontal({
           </div>
         </div>
       </div>
-      <div className="flex shrink-0 items-center gap-1 whitespace-nowrap pl-2 text-base-content/50">
-        <span className="text-xs">{actionLabel}</span>
+      <div className="flex shrink-0 items-center whitespace-nowrap pl-2 text-base-content/50">
         <ChevronRightIcon className="h-4 w-4" />
       </div>
     </button>
   );
 
   const actionCards: Array<{
+    id: string;
     title: string;
     subtitle: string;
     subtitleClassName: string;
@@ -74,6 +84,7 @@ export default function CharacterDetailLeftPanelHorizontal({
     icon: ReactNode;
   }> = [
     {
+      id: "rule",
       title: "当前规则",
       subtitle: currentRuleName || "未选择规则",
       subtitleClassName: "text-primary",
@@ -87,6 +98,7 @@ export default function CharacterDetailLeftPanelHorizontal({
     },
     ...(!isDiceMaiden
       ? [{
+          id: "dicer",
           title: "关联骰娘",
           subtitle: currentDicerRoleId
             ? dicerRoleError || linkedDicerRoleName || `ID: ${currentDicerRoleId}`
@@ -102,6 +114,7 @@ export default function CharacterDetailLeftPanelHorizontal({
         }]
       : []),
     {
+      id: "audio",
       title: "上传音频",
       subtitle: localRole.voiceUrl ? "已上传音频" : "用于AI生成角色音色",
       subtitleClassName: "text-secondary",
@@ -199,32 +212,71 @@ export default function CharacterDetailLeftPanelHorizontal({
           />
         </div>
 
-        <div className="hidden h-full min-w-0 md:grid md:grid-cols-[15rem_minmax(15rem,1fr)_minmax(14.5rem,15.5rem)] md:gap-4">
-          <div className="flex h-full items-center justify-center">
+        <div className="hidden h-full min-w-0 md:grid md:grid-cols-[15rem_minmax(15rem,1fr)_minmax(0,15.5rem)] md:gap-4">
+          <div className="grid h-full min-w-0 grid-rows-[auto_minmax(0,1fr)]">
+            <div className="min-w-0">
+              {isQueryLoading
+                ? <div className="skeleton ml-6 h-8 w-36 rounded-md" />
+                : (
+                    <DoubleClickEditableText
+                      value={selectedAvatarTitle ?? ""}
+                      onCommit={(nextTitle) => {
+                        if (!selectedAvatar?.avatarId || !onAvatarTitleSave) {
+                          return;
+                        }
+                        onAvatarTitleSave(selectedAvatar.avatarId, nextTitle);
+                      }}
+                      trigger="click"
+                      commitOnBlur
+                      commitOnEnter
+                      invalidBehavior="keepEditing"
+                      placeholder="未命名头像"
+                      validate={nextTitle => nextTitle.length > maxRoleNameLength ? `头像标题不能超过${maxRoleNameLength}字` : null}
+                      inputProps={{
+                        maxLength: maxRoleNameLength,
+                      }}
+                      className="block w-full"
+                      inputClassName="w-full rounded-md border border-base-content/15 bg-base-100 px-3 py-2 text-left text-xl font-semibold"
+                      renderDisplay={({ displayValue, startEditing }) => (
+                        <button
+                          type="button"
+                          onClick={startEditing}
+                          className="relative inline-block max-w-full rounded-md pl-6 py-1 text-left text-xl font-semibold transition-colors hover:text-primary after:absolute after:bottom-0 after:left-6 after:h-0.5 after:w-0 after:rounded-full after:bg-primary after:transition-all after:duration-200 hover:after:w-full"
+                        >
+                          {displayValue || "未命名头像"}
+                        </button>
+                      )}
+                    />
+                  )}
+            </div>
+            <div className="divider my-0 mx-4" />
+
             {isQueryLoading
               ? (
-                  <div className="flex flex-col items-center gap-3">
-                    <div className="skeleton h-44 w-44 rounded-xl"></div>
+                  <div className="flex min-h-0 items-center justify-center p-6">
+                    <div className="skeleton aspect-square w-48 rounded-xl ring ring-primary/20 ring-offset-2 ring-offset-base-100"></div>
                   </div>
                 )
               : (
-                  <CharacterAvatar
-                    role={localRole}
-                    roleAvatars={roleAvatars}
-                    selectedAvatarId={selectedAvatarId}
-                    selectedAvatarUrl={selectedAvatarUrl}
-                    selectedSpriteUrl={selectedSpriteUrl}
-                    avatarSizeClassName="w-54"
-                    onchange={onAvatarChange}
-                    onAvatarSelect={onAvatarSelect}
-                    onAvatarDelete={onAvatarDelete}
-                    onAvatarUpload={onAvatarUpload}
-                    useUrlState={false}
-                  />
+                  <div className="flex min-h-0 items-center justify-center p-6">
+                    <CharacterAvatar
+                      role={localRole}
+                      roleAvatars={roleAvatars}
+                      selectedAvatarId={selectedAvatarId}
+                      selectedAvatarUrl={selectedAvatarUrl}
+                      selectedSpriteUrl={selectedSpriteUrl}
+                      avatarSizeClassName="w-48"
+                      onchange={onAvatarChange}
+                      onAvatarSelect={onAvatarSelect}
+                      onAvatarDelete={onAvatarDelete}
+                      onAvatarUpload={onAvatarUpload}
+                      useUrlState={false}
+                    />
+                  </div>
                 )}
           </div>
 
-          <div className="grid h-full min-w-60 grid-rows-[auto_auto_minmax(0,1fr)_auto]">
+          <div className="grid h-full min-h-0 min-w-0 grid-rows-[auto_auto_minmax(0,1fr)_auto]">
             <div className="min-w-0">
               <RoleBasicInfoEditor
                 localRole={localRole}
@@ -233,29 +285,29 @@ export default function CharacterDetailLeftPanelHorizontal({
                 onBaseRoleSave={onBaseRoleSave}
                 showDescription={false}
                 className="space-y-0"
-                nameClassName="truncate text-left text-2xl font-semibold"
+                nameClassName="truncate text-left text-xl font-semibold"
                 nameDisplayClassName="rounded-none px-0 py-0"
               />
             </div>
 
             <div className="divider my-0" />
 
-            <div className="flex min-h-0 flex-col pt-1">
+            <div className="max-h-full flex flex-col overflow-hidden pt-6">
               <RoleBasicInfoEditor
                 localRole={localRole}
                 maxRoleNameLength={maxRoleNameLength}
                 maxDescriptionLength={maxDescriptionLength}
                 onBaseRoleSave={onBaseRoleSave}
                 showName={false}
-                className="flex h-full flex-col space-y-0"
-                descriptionDisplayClassName="min-h-36 text-sm leading-6 wrap-break-words line-clamp-6 overflow-hidden text-ellipsis"
-                descriptionButtonClassName="flex h-full items-start rounded-none px-0 py-0 text-left"
+                className="flex min-h-0 flex-col overflow-hidden space-y-0"
+                descriptionDisplayClassName="block max-h-48 text-sm leading-6 whitespace-pre-wrap wrap-break-words"
+                descriptionButtonClassName="min-h-0 overflow-y-auto overscroll-contain rounded-none px-0 py-0 text-left"
                 descriptionEditorClassName="flex min-h-0 flex-1 flex-col"
-                descriptionTextareaClassName="min-h-32 flex-1"
+                descriptionTextareaClassName="min-h-24 flex-1"
               />
             </div>
 
-            <div className="self-end pt-2 text-xs text-base-content/60">
+            <div className="self-end text-xs text-base-content/60 pb-6">
               角色ID号：
               {localRole.id}
             </div>

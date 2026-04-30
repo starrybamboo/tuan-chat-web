@@ -1,31 +1,21 @@
-import type { Dispatch, SetStateAction } from "react";
 import type { Role } from "../types";
 import type { CharacterData } from "./types";
-import type { SetSelectedRoleIdFn } from "./utils/roleCreationHelpers";
 
 import { Plus } from "@phosphor-icons/react";
-import { useSetRoleAbilityMutation } from "api/hooks/abilityQueryHooks";
-import {
-  useCreateRoleMutation,
-  useUpdateRoleWithLocalMutation,
-  useUploadAvatarMutation,
-} from "api/hooks/RoleAndAvatarHooks";
 import { useState } from "react";
 import toast from "react-hot-toast";
 import { initAliasMapOnce } from "@/components/common/dicer/aliasRegistry";
 import RulesSection from "../rules/RulesSection";
 import { ROLE_DESCRIPTION_MAX_LENGTH, ROLE_DESCRIPTION_TOO_LONG_MESSAGE } from "./constants";
 import CreatePageHeader from "./CreatePageHeader";
+import { useCreateRoleWithAbilityMutation } from "./hooks/useCreateRoleWithAbilityMutation";
 import BasicInfoStep from "./steps/BasicInfoStep";
-import { completeRoleCreation, evaluateCharacterDataExpressions } from "./utils/roleCreationHelpers";
+import { evaluateCharacterDataExpressions } from "./utils/roleCreationHelpers";
 import { useCharacterData } from "./utils/useCharacterData";
 
 interface RoleCreationFlowProps {
   onBack?: () => void;
   onComplete?: (role: Role, ruleId?: number) => void;
-  setRoles?: Dispatch<SetStateAction<Role[]>>;
-  setSelectedRoleId?: SetSelectedRoleIdFn;
-  onSave?: (updatedRole: Role) => void;
   title?: string;
   description?: string;
   roleCreateDefaults?: {
@@ -39,9 +29,6 @@ interface RoleCreationFlowProps {
 export default function RoleCreationFlow({
   onBack,
   onComplete,
-  setRoles,
-  setSelectedRoleId,
-  onSave,
   title,
   description,
   roleCreateDefaults,
@@ -56,10 +43,7 @@ export default function RoleCreationFlow({
     handleRuleChange,
   } = useCharacterData({ initialData: initialCharacterData });
 
-  const { mutateAsync: createRole } = useCreateRoleMutation();
-  const { mutateAsync: uploadAvatar } = useUploadAvatarMutation();
-  const { mutate: setRoleAbility } = useSetRoleAbilityMutation();
-  const { mutate: updateRole } = useUpdateRoleWithLocalMutation(onSave || (() => {}));
+  const createRoleWithAbility = useCreateRoleWithAbilityMutation();
 
   const hasBasicInfo = characterData.name.trim().length > 0 && characterData.description.trim().length > 0;
   const isDescriptionTooLong = characterData.description.trim().length > ROLE_DESCRIPTION_MAX_LENGTH;
@@ -85,22 +69,21 @@ export default function RoleCreationFlow({
 
     setIsSaving(true);
     try {
-      await completeRoleCreation(
-        {
-          characterData,
-          createRole,
-          roleCreateDefaults,
-          uploadAvatar,
-          setRoleAbility,
-          updateRole,
-          setRoles,
-          setSelectedRoleId,
-          onComplete,
-        },
-        {
-          beforeSetRoleAbility: evaluateCharacterDataExpressions,
-        },
-      );
+      const processedData = characterData.ruleId > 0
+        ? evaluateCharacterDataExpressions(characterData)
+        : characterData;
+      const role = await createRoleWithAbility.mutateAsync({
+        roleName: processedData.name.trim(),
+        description: processedData.description.trim(),
+        type: roleCreateDefaults?.type,
+        spaceId: roleCreateDefaults?.spaceId,
+        ruleId: processedData.ruleId,
+        act: processedData.act,
+        basic: processedData.basic,
+        ability: processedData.ability,
+        skill: processedData.skill,
+      });
+      onComplete?.(role, processedData.ruleId);
     }
     catch (error) {
       console.error("创建角色失败", error);
