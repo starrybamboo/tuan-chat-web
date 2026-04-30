@@ -36,7 +36,7 @@ jobs:
       # 前端走同源反代，避免浏览器为跨域鉴权请求触发 CORS preflight。
       BACKEND_API_BASE_URL: /api
       BACKEND_WS_URL: /ws
-      BACKEND_TTS_URL: https://test.tuan.chat/tts
+      BACKEND_TTS_URL: ${{ (github.event_name == 'workflow_dispatch' && inputs.deploy_env == 'test' && 'https://test.tuan.chat/tts') || (github.event_name == 'workflow_dispatch' && inputs.deploy_env == 'production' && 'https://tuan.chat/tts') || (github.ref_name == 'dev' && 'https://test.tuan.chat/tts') || 'https://tuan.chat/tts' }}
     steps:
       - uses: actions/checkout@v4 # 将目标分支 checkout 到运行环境
         with:
@@ -111,7 +111,6 @@ jobs:
             set -euo pipefail
 
             PUBLIC_HOST="${PUBLIC_HOST:?}"
-            HOST_RE="${PUBLIC_HOST//./\\.}"
             SNIPPET="/www/server/panel/vhost/snippets/tuan-chat-web-static-cache-locations.conf"
             OLD_GLOBAL_CONFS=(
               "/www/server/panel/vhost/nginx/tuan-chat-web-static-cache.conf"
@@ -137,6 +136,24 @@ jobs:
             }
 
             trap 'rm -rf "$BACKUP_DIR"' EXIT
+
+            has_server_name() {
+              local conf="$1"
+              awk -v host="$PUBLIC_HOST" '
+                /^[[:space:]]*server_name[[:space:]]/ {
+                  line = $0
+                  sub(/[[:space:]]*#.*/, "", line)
+                  sub(/;.*/, "", line)
+                  count = split(line, parts, /[[:space:]]+/)
+                  for (i = 2; i <= count; i++) {
+                    if (parts[i] == host) {
+                      found = 1
+                    }
+                  }
+                }
+                END { exit found ? 0 : 1 }
+              ' "$conf"
+            }
 
             mkdir -p "$(dirname "$SNIPPET")"
             cat > "$SNIPPET" <<'NGINX'
@@ -174,7 +191,7 @@ jobs:
             patched_count=0
             shopt -s nullglob
             for conf in /www/server/panel/vhost/nginx/*.conf /etc/nginx/conf.d/*.conf; do
-              if ! grep -Eq "^[[:space:]]*server_name[[:space:]][^;]*${HOST_RE}([[:space:];]|$)" "$conf"; then
+              if ! has_server_name "$conf"; then
                 continue
               fi
 
@@ -183,16 +200,27 @@ jobs:
               printf '%s' "$conf" > "${backup}.path"
 
               awk \
-                -v host_re="$HOST_RE" \
+                -v host="$PUBLIC_HOST" \
                 -v begin="$MARKER_BEGIN" \
                 -v include_line="$INCLUDE_LINE" \
                 -v end="$MARKER_END" '
+                function has_server_name(line, host, parts, count, i) {
+                  sub(/[[:space:]]*#.*/, "", line)
+                  sub(/;.*/, "", line)
+                  count = split(line, parts, /[[:space:]]+/)
+                  for (i = 2; i <= count; i++) {
+                    if (parts[i] == host) {
+                      return 1
+                    }
+                  }
+                  return 0
+                }
                 index($0, begin) > 0 { skipping = 1; next }
                 index($0, end) > 0 { skipping = 0; next }
                 skipping { next }
                 {
                   print
-                  if ($0 ~ "^[[:space:]]*server_name[[:space:]][^;]*" host_re "([[:space:];]|$)") {
+                  if ($0 ~ "^[[:space:]]*server_name[[:space:]]" && has_server_name($0, host)) {
                     print "    " begin
                     print "    " include_line
                     print "    " end
