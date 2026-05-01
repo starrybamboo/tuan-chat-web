@@ -62,7 +62,7 @@ type SubmittedInputSnapshot = {
 type SubmittedComposerSnapshot = {
   imgFiles: File[];
   emojiUrls: string[];
-  emojiMetaByUrl: Record<string, { width?: number; height?: number; size?: number; fileName?: string; originalUrl?: string }>;
+  emojiMetaByUrl: Record<string, { fileId?: number; width?: number; height?: number; mediaType?: string; size?: number; fileName?: string; originalUrl?: string }>;
   fileAttachments: File[];
   audioFile: File | null;
   tempAnnotations: string[];

@@ -13,8 +13,10 @@ import { getImageSize } from "@/utils/getImgSize";
 import { MessageType } from "../../../../api/wsModels";
 
 type EmojiAttachmentMeta = {
+  fileId?: number;
   width?: number;
   height?: number;
+  mediaType?: string;
   size?: number;
   fileName?: string;
   originalUrl?: string;
@@ -153,6 +155,8 @@ export async function buildMessageDraftsFromComposerSnapshot({
     uploadedImages.push({
       originalUrl: meta?.originalUrl ?? emojiUrl,
       url: emojiUrl,
+      fileId: meta?.fileId,
+      mediaType: meta?.mediaType,
       width,
       height,
       size,

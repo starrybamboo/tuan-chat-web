@@ -10,8 +10,10 @@ export type MessageDraftIdentity = Pick<MessageDraft, "avatarId" | "customRoleNa
 
 export type UploadedImageMessageDraftAsset = {
   background?: boolean;
+  fileId?: number;
   fileName: string;
   height: number;
+  mediaType?: string;
   originalUrl?: string;
   size: number;
   url: string;
@@ -19,7 +21,9 @@ export type UploadedImageMessageDraftAsset = {
 };
 
 export type UploadedSoundMessageDraftAsset = {
+  fileId?: number;
   fileName: string;
+  mediaType?: string;
   purpose?: string;
   second?: number;
   size: number;
@@ -27,14 +31,18 @@ export type UploadedSoundMessageDraftAsset = {
 };
 
 export type UploadedVideoMessageDraftAsset = {
+  fileId?: number;
   fileName: string;
+  mediaType?: string;
   second?: number;
   size: number;
   url: string;
 };
 
 export type UploadedFileMessageDraftAsset = {
+  fileId?: number;
   fileName: string;
+  mediaType?: string;
   size: number;
   url: string;
 };
@@ -158,6 +166,8 @@ function pickPayload(rawExtra: unknown, ...keys: string[]): MessageExtraRecord {
 function normalizeImagePayload(rawExtra: unknown, options?: { defaultBackground?: boolean }): MessageExtraRecord {
   const image = pickPayload(rawExtra, "imageMessage");
   return compactRecord({
+    fileId: toPositiveNumber(image.fileId),
+    mediaType: toTrimmedString(image.mediaType),
     originalUrl: toTrimmedString(image.originalUrl),
     url: toTrimmedString(image.url),
     fileName: toTrimmedString(image.fileName),
@@ -171,6 +181,8 @@ function normalizeImagePayload(rawExtra: unknown, options?: { defaultBackground?
 function normalizeSoundPayload(rawExtra: unknown, options?: { defaultSecond?: number }): MessageExtraRecord {
   const sound = pickPayload(rawExtra, "soundMessage");
   return compactRecord({
+    fileId: toPositiveNumber(sound.fileId),
+    mediaType: toTrimmedString(sound.mediaType),
     url: toTrimmedString(sound.url),
     fileName: toTrimmedString(sound.fileName),
     size: toPositiveNumber(sound.size),
@@ -183,6 +195,8 @@ function normalizeSoundPayload(rawExtra: unknown, options?: { defaultSecond?: nu
 function normalizeVideoPayload(rawExtra: unknown): MessageExtraRecord {
   const video = pickPayload(rawExtra, "videoMessage");
   return compactRecord({
+    fileId: toPositiveNumber(video.fileId),
+    mediaType: toTrimmedString(video.mediaType),
     url: toTrimmedString(video.url),
     fileName: toTrimmedString(video.fileName),
     size: toPositiveNumber(video.size),
@@ -193,6 +207,8 @@ function normalizeVideoPayload(rawExtra: unknown): MessageExtraRecord {
 function normalizeFilePayload(rawExtra: unknown): MessageExtraRecord {
   const file = pickPayload(rawExtra, "fileMessage");
   return compactRecord({
+    fileId: toPositiveNumber(file.fileId),
+    mediaType: toTrimmedString(file.mediaType),
     url: toTrimmedString(file.url),
     fileName: toTrimmedString(file.fileName),
     size: toPositiveNumber(file.size),
@@ -522,6 +538,8 @@ export function buildMessageDraftsFromUploadedMedia({
       messageType: MESSAGE_TYPE.IMG,
       extra: {
         imageMessage: {
+          ...(typeof image.fileId === "number" ? { fileId: image.fileId } : {}),
+          ...(image.mediaType ? { mediaType: image.mediaType } : {}),
           ...(image.originalUrl ? { originalUrl: image.originalUrl } : {}),
           url: image.url,
           width: image.width,
@@ -543,6 +561,8 @@ export function buildMessageDraftsFromUploadedMedia({
       messageType: MESSAGE_TYPE.SOUND,
       extra: {
         soundMessage: {
+          ...(typeof uploadedSoundMessage.fileId === "number" ? { fileId: uploadedSoundMessage.fileId } : {}),
+          ...(uploadedSoundMessage.mediaType ? { mediaType: uploadedSoundMessage.mediaType } : {}),
           url: uploadedSoundMessage.url,
           fileName: uploadedSoundMessage.fileName,
           size: uploadedSoundMessage.size,
@@ -562,6 +582,8 @@ export function buildMessageDraftsFromUploadedMedia({
       messageType: MESSAGE_TYPE.VIDEO,
       extra: {
         videoMessage: {
+          ...(typeof video.fileId === "number" ? { fileId: video.fileId } : {}),
+          ...(video.mediaType ? { mediaType: video.mediaType } : {}),
           url: video.url,
           fileName: video.fileName,
           size: video.size,
@@ -580,6 +602,8 @@ export function buildMessageDraftsFromUploadedMedia({
       messageType: MESSAGE_TYPE.FILE,
       extra: {
         fileMessage: {
+          ...(typeof file.fileId === "number" ? { fileId: file.fileId } : {}),
+          ...(file.mediaType ? { mediaType: file.mediaType } : {}),
           url: file.url,
           fileName: file.fileName,
           size: file.size,
