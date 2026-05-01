@@ -1,6 +1,6 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { toast } from "react-hot-toast";
-import { UploadUtils } from "@/utils/UploadUtils";
+import { uploadMediaFile } from "@/utils/mediaUpload";
 import { useUploadResourceMutation } from "../../../../api/hooks/resourceQueryHooks";
 
 interface UploadModalProps {
@@ -18,7 +18,6 @@ export function UploadModal({ isOpen, onClose, onSuccess }: UploadModalProps) {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isDragOver, setIsDragOver] = useState(false);
 
-  const uploadUtils = useMemo(() => new UploadUtils(), []);
   const uploadResourceMutation = useUploadResourceMutation();
 
   // 重置表单
@@ -112,26 +111,12 @@ export function UploadModal({ isOpen, onClose, onSuccess }: UploadModalProps) {
     try {
       setIsUploading(true);
       toast.loading("正在上传文件...", { id: "resource-upload" });
-      let url: string;
-      let originalUrl: string | undefined;
-
-      // 根据类型上传
-      if (selectedType === "5") {
-        // ͼƬ
-        const uploadedImage = await uploadUtils.uploadDualImage(selectedFile, 1);
-        url = uploadedImage.url;
-        originalUrl = uploadedImage.originalUrl;
-      }
-      else {
-        // 音频
-        url = await uploadUtils.uploadAudio(selectedFile, 1);
-      }
+      const uploadedFile = await uploadMediaFile(selectedFile);
 
       // 调用接口保存资源
       await uploadResourceMutation.mutateAsync({
         type: selectedType,
-        url,
-        ...(originalUrl ? { originalUrl } : {}),
+        fileId: uploadedFile.fileId,
         name: resourceName,
         isPublic,
         isAi: isAI,

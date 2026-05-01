@@ -1,4 +1,5 @@
 import type { RoleAvatar } from "../../api";
+import { avatarThumbUrl, avatarUrl, imageHighUrl, imageOriginalUrl } from "@/utils/mediaUrl";
 
 import { getFileExtensionFromUrl, uploadFile } from "./fileOperator";
 import { buildImageFileName, hasFileExtension, hashString } from "./realtimeRendererFileNames";
@@ -30,6 +31,23 @@ export function deleteAvatarScopedCacheEntries(cache: Map<string, string>, avata
       cache.delete(key);
     }
   }
+}
+
+function resolveRoleSpriteUrl(avatar: RoleAvatar | undefined): string {
+  if (!avatar) {
+    return "";
+  }
+  return imageHighUrl(avatar.spriteFileId)
+    || imageOriginalUrl(avatar.spriteFileId)
+    || avatarUrl(avatar.avatarFileId);
+}
+
+function resolveRoleMiniAvatarUrl(avatar: RoleAvatar | undefined): string {
+  if (!avatar) {
+    return "";
+  }
+  return avatarThumbUrl(avatar.avatarFileId)
+    || avatarUrl(avatar.avatarFileId);
 }
 
 export async function uploadSpriteAsset(
@@ -185,9 +203,9 @@ export async function getAndUploadSpriteAsset(
     return null;
   }
 
-  const spriteUrl = avatar.spriteUrl || avatar.avatarUrl;
+  const spriteUrl = resolveRoleSpriteUrl(avatar);
   if (!spriteUrl) {
-    console.warn(`[RealtimeRenderer] 头像没有 spriteUrl 或 avatarUrl: avatarId=${avatarId}`);
+    console.warn(`[RealtimeRenderer] 头像没有可用的 spriteFileId 或 avatarFileId: avatarId=${avatarId}`);
     return null;
   }
 
@@ -206,16 +224,17 @@ export async function getAndUploadMiniAvatarAsset(
   }
 
   const avatar = getCachedRoleAvatar(avatarId);
-  if (!avatar?.avatarUrl) {
+  const miniAvatarUrl = resolveRoleMiniAvatarUrl(avatar);
+  if (!miniAvatarUrl) {
     return null;
   }
 
   try {
     const roleFigureDir = getRoleFigureDirName(roleId);
     const path = `games/${context.gameName}/game/figure/${roleFigureDir}/`;
-    const fileExtension = getFileExtensionFromUrl(avatar.avatarUrl, "webp");
+    const fileExtension = getFileExtensionFromUrl(miniAvatarUrl, "webp");
     const miniAvatarName = `mini_${avatarId}`;
-    const fileName = await uploadFile(avatar.avatarUrl, path, `${miniAvatarName}.${fileExtension}`);
+    const fileName = await uploadFile(miniAvatarUrl, path, `${miniAvatarName}.${fileExtension}`);
     const relativePath = `${roleFigureDir}/${fileName}`;
     context.uploadedMiniAvatarsMap.set(cacheKey, relativePath);
     return relativePath;

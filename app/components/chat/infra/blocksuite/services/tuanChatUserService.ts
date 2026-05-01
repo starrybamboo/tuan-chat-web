@@ -6,6 +6,7 @@ import { signal } from "@preact/signals-core";
 
 import { fetchUserInfoWithCache } from "@tuanchat/query/users";
 import { tuanchat } from "api/instance";
+import { avatarThumbUrl } from "@/utils/mediaUrl";
 
 type CacheEntry = {
   userInfo$: Signal<AffineUserInfo | null>;
@@ -102,7 +103,7 @@ export function createTuanChatUserService(params?: {
         entry.userInfo$.value = {
           id,
           name: user.username ?? String(user.userId),
-          avatar: user.avatar ?? null,
+          avatar: avatarThumbUrl(user.avatarFileId) || null,
           removed: false,
         };
         entry.lastFetchedAt = Date.now();

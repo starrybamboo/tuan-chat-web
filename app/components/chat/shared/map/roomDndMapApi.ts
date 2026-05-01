@@ -1,4 +1,5 @@
 import { tuanchat } from "api/instance";
+import { imageHighUrl, imageOriginalUrl } from "@/utils/mediaUrl";
 
 export type RoomDndMapToken = {
   roleId: number;
@@ -8,8 +9,8 @@ export type RoomDndMapToken = {
 
 export type RoomDndMapSnapshot = {
   roomId: number;
-  mapImgUrl: string;
-  originalMapImgUrl?: string;
+  mapFileId?: number;
+  mapMediaType?: string;
   gridRows: number;
   gridCols: number;
   gridColor: string;
@@ -22,7 +23,7 @@ type RoomDndMapChangeOp = "map_upsert" | "map_clear" | "token_upsert" | "token_r
 export type RoomDndMapChangeEvent = {
   roomId: number;
   op: RoomDndMapChangeOp;
-  map?: Partial<Pick<RoomDndMapSnapshot, "mapImgUrl" | "originalMapImgUrl" | "gridRows" | "gridCols" | "gridColor">>;
+  map?: Partial<Pick<RoomDndMapSnapshot, "mapFileId" | "mapMediaType" | "gridRows" | "gridCols" | "gridColor">>;
   token?: RoomDndMapToken;
   clearTokens?: boolean;
   updatedAt?: number;
@@ -30,8 +31,7 @@ export type RoomDndMapChangeEvent = {
 
 export type RoomDndMapUpsertPayload = {
   roomId: number;
-  mapImgUrl?: string;
-  originalMapImgUrl?: string;
+  mapFileId?: number;
   gridRows?: number;
   gridCols?: number;
   gridColor?: string;
@@ -71,6 +71,18 @@ export async function upsertRoomDndMap(payload: RoomDndMapUpsertPayload): Promis
   return (res as any)?.data ?? null;
 }
 
+export function getRoomDndMapImageUrl(map: Pick<RoomDndMapSnapshot, "mapFileId" | "mapMediaType"> | null | undefined) {
+  return map?.mapMediaType === "image" || map?.mapFileId
+    ? imageHighUrl(map?.mapFileId)
+    : "";
+}
+
+export function getRoomDndMapOriginalImageUrl(map: Pick<RoomDndMapSnapshot, "mapFileId" | "mapMediaType"> | null | undefined) {
+  return map?.mapMediaType === "image" || map?.mapFileId
+    ? imageOriginalUrl(map?.mapFileId)
+    : "";
+}
+
 export async function clearRoomDndMap(roomId: number): Promise<boolean> {
   await tuanchat.roomDndMapController.clearRoomMap({ roomId });
   return true;
@@ -102,8 +114,6 @@ export function applyRoomDndMapChange(
     ? { ...prev, tokens: [...(prev.tokens ?? [])] }
     : {
         roomId: change.roomId,
-        mapImgUrl: "",
-        originalMapImgUrl: "",
         gridRows: 10,
         gridCols: 10,
         gridColor: "#808080",
@@ -111,11 +121,11 @@ export function applyRoomDndMapChange(
       };
 
   if (change.op === "map_upsert") {
-    if (change.map?.mapImgUrl !== undefined) {
-      current.mapImgUrl = change.map.mapImgUrl ?? "";
+    if (change.map?.mapFileId !== undefined) {
+      current.mapFileId = change.map.mapFileId;
     }
-    if (change.map?.originalMapImgUrl !== undefined) {
-      current.originalMapImgUrl = change.map.originalMapImgUrl ?? current.mapImgUrl;
+    if (change.map?.mapMediaType !== undefined) {
+      current.mapMediaType = change.map.mapMediaType;
     }
     if (change.map?.gridRows !== undefined) {
       current.gridRows = change.map.gridRows ?? current.gridRows;
@@ -137,11 +147,8 @@ export function applyRoomDndMapChange(
         && token.colIndex < current.gridCols
       ));
     }
-    if (change.map?.mapImgUrl !== undefined && !current.mapImgUrl) {
+    if (change.map?.mapFileId !== undefined && !current.mapFileId) {
       return null;
-    }
-    if (!current.originalMapImgUrl) {
-      current.originalMapImgUrl = current.mapImgUrl;
     }
     if (typeof change.updatedAt === "number") {
       current.updatedAt = change.updatedAt;

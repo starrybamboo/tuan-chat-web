@@ -10,13 +10,14 @@ import { confirmToast } from "@/components/common/comfirmToast";
 import { useResolvedRoleAvatarUrl } from "@/components/common/roleAccess.shared";
 import { ImgUploader } from "@/components/common/uploader/imgUploader";
 import { useIsMobile } from "@/utils/getScreenSize";
-import { UploadUtils } from "@/utils/UploadUtils";
+import { uploadMediaFile } from "@/utils/mediaUpload";
 import { useGetRoomNpcRoleQuery, useGetRoomRoleQuery } from "../../../../../api/hooks/chatQueryHooks";
 
 import {
   applyRoomDndMapChange,
   clearRoomDndMap,
   fetchRoomDndMap,
+  getRoomDndMapImageUrl,
   removeRoomDndMapToken,
   roomDndMapQueryKey,
   upsertRoomDndMap,
@@ -164,7 +165,6 @@ export default function DNDMap({ roomId: roomIdProp, spaceId: spaceIdProp, varia
   const spaceId = spaceIdProp ?? roomContext.spaceId;
   const queryClient = useQueryClient();
   const isMobile = useIsMobile();
-  const uploadUtil = useMemo(() => new UploadUtils(), []);
   const [selectedRoleId, setSelectedRoleId] = useState<number | null>(null);
   const overlayRef = useRef<HTMLDivElement>(null);
 
@@ -186,6 +186,7 @@ export default function DNDMap({ roomId: roomIdProp, spaceId: spaceIdProp, varia
   const gridRows = map?.gridRows ?? DEFAULT_GRID_ROWS;
   const gridCols = map?.gridCols ?? DEFAULT_GRID_COLS;
   const gridColor = map?.gridColor ?? DEFAULT_GRID_COLOR;
+  const mapImageUrl = getRoomDndMapImageUrl(map);
 
   const tokens = useMemo(() => map?.tokens ?? [], [map?.tokens]);
   const tokenByRoleId = useMemo(() => {
@@ -213,7 +214,7 @@ export default function DNDMap({ roomId: roomIdProp, spaceId: spaceIdProp, varia
     return roomRoles.filter(role => !tokenByRoleId.has(role.roleId));
   }, [roomRoles, tokenByRoleId]);
 
-  const { containerRef, imageRef, rect } = useContainedImageRect(map?.mapImgUrl ?? "");
+  const { containerRef, imageRef, rect } = useContainedImageRect(mapImageUrl);
   const gridOverlayStyle = useMemo(() => {
     return buildGridOverlayStyle(gridRows, gridCols, gridColor);
   }, [gridColor, gridCols, gridRows]);
@@ -239,8 +240,8 @@ export default function DNDMap({ roomId: roomIdProp, spaceId: spaceIdProp, varia
           roomId,
           op: "map_upsert",
           map: {
-            mapImgUrl: payload.mapImgUrl,
-            originalMapImgUrl: payload.originalMapImgUrl,
+            mapFileId: payload.mapFileId,
+            mapMediaType: payload.mapFileId ? "image" : undefined,
             gridRows: payload.gridRows,
             gridCols: payload.gridCols,
             gridColor: payload.gridColor,
@@ -318,15 +319,14 @@ export default function DNDMap({ roomId: roomIdProp, spaceId: spaceIdProp, varia
       return;
     }
     try {
-      const uploadedImage = await uploadUtil.uploadDualImage(file);
-      if (!uploadedImage.url) {
+      const uploadedImage = await uploadMediaFile(file);
+      if (!uploadedImage.fileId) {
         toast.error("上传失败，请重试");
         return;
       }
       mapUpsertMutation.mutate({
         roomId,
-        mapImgUrl: uploadedImage.url,
-        originalMapImgUrl: uploadedImage.originalUrl,
+        mapFileId: uploadedImage.fileId,
         gridRows: map?.gridRows ?? DEFAULT_GRID_ROWS,
         gridCols: map?.gridCols ?? DEFAULT_GRID_COLS,
         gridColor: map?.gridColor ?? DEFAULT_GRID_COLOR,
@@ -489,7 +489,7 @@ export default function DNDMap({ roomId: roomIdProp, spaceId: spaceIdProp, varia
     );
   }
 
-  if (!map?.mapImgUrl) {
+  if (!mapImageUrl) {
     return (
       <div className="w-full h-full flex items-center justify-center bg-base-200">
         <div className="text-center space-y-2">
@@ -510,7 +510,7 @@ export default function DNDMap({ roomId: roomIdProp, spaceId: spaceIdProp, varia
       >
         <img
           ref={imageRef}
-          src={map.mapImgUrl}
+          src={mapImageUrl}
           alt="地图"
           className="w-full h-full object-contain"
         />

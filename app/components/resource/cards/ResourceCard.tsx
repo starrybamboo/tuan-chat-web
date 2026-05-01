@@ -2,6 +2,7 @@ import type { ResourceResponse } from "@tuanchat/openapi-client/models/ResourceR
 import { useState } from "react";
 import { toast } from "react-hot-toast";
 import { UserAvatarByUser } from "../../common/userAccess";
+import { mediaPreviewUrl } from "@/utils/mediaUrl";
 import { AddToCollectionModal } from "../modals/AddToCollectionModal";
 import { EditResourceModal } from "../modals/EditResourceModal";
 import AudioWavePlayer from "../utils/AudioWavePlayer";
@@ -29,6 +30,7 @@ export function ResourceCard({
 }: ResourceCardProps) {
   const [isCollectionModalOpen, setIsCollectionModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const resourceUrl = mediaPreviewUrl(resource.fileId, resource.mediaType);
 
   const handleDeleteClick = () => {
     if (onDelete && resource.resourceId) {
@@ -53,7 +55,7 @@ export function ResourceCard({
             ? (
                 <div className="aspect-[4/3]">
                   <MoreBetterImg
-                    src={resource.url}
+                    src={resourceUrl}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
                   />
                 </div>
@@ -61,7 +63,7 @@ export function ResourceCard({
             : (
                 <div className="aspect-[4/3] pt-8 pb-3 px-3 flex flex-col justify-center">
                   <AudioWavePlayer
-                    audioUrl={resource.url ? resource.url : ""}
+                    audioUrl={resourceUrl}
                     audioName={resource.name}
                     displayName={false}
                     onDelete={() => handleDeleteClick()}

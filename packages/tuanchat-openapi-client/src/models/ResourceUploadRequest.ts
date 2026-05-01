@@ -11,13 +11,9 @@ export type ResourceUploadRequest = {
      */
     type: string;
     /**
-     * 对应的oss url
+     * 资源媒体文件 ID
      */
-    url: string;
-    /**
-     * 原图oss url
-     */
-    originalUrl?: string;
+    fileId: number;
     /**
      * 资源名称
      */

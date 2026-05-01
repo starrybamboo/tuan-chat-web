@@ -15,17 +15,9 @@ export type RoomUpdateRequest = {
      */
     name?: string;
     /**
-     * 房间头像
+     * 房间头像媒体文件 ID
      */
-    avatar?: string;
-    /**
-     * 房间头像缩略图的url
-     */
-    avatarThumbUrl?: string;
-    /**
-     * 房间头像原图
-     */
-    originalAvatar?: string;
+    avatarFileId?: number;
     /**
      * 场景简要描述，概述本房间的剧情走向
      */

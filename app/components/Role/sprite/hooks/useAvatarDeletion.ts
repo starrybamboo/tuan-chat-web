@@ -6,6 +6,7 @@ import type { RoleAvatar } from "api";
 import { useBatchDeleteRoleAvatarsWithOptimisticMutation, useDeleteRoleAvatarWithOptimisticMutation } from "api/hooks/RoleAndAvatarHooks";
 
 import type { Role } from "../../types";
+import { getEffectiveAvatarUrl } from "../utils";
 
 type UseAvatarDeletionProps = {
   role: Role | undefined;
@@ -92,7 +93,7 @@ export function useAvatarDeletion({
     }
 
     const isCurrentRoleAvatar = avatarToDelete.avatarId === role.avatarId
-      || (role.avatar && (!role.avatarId || role.avatarId === 0) && avatarToDelete.avatarUrl === role.avatar);
+      || (role.avatar && (!role.avatarId || role.avatarId === 0) && getEffectiveAvatarUrl(avatarToDelete) === role.avatar);
     const isCurrentlySelected = avatarToDelete.avatarId === selectedAvatarId;
 
     setIsDeleting(true);
@@ -106,7 +107,7 @@ export function useAvatarDeletion({
           // Step 1a: Update character's avatar if needed
           if (isCurrentRoleAvatar && onAvatarChange) {
             await onAvatarChange(
-              replacementAvatar.avatarUrl || "",
+              getEffectiveAvatarUrl(replacementAvatar) || "",
               replacementAvatar.avatarId || 0,
             );
 
@@ -178,7 +179,7 @@ export function useAvatarDeletion({
     try {
       // Check if current avatar is in the deletion list
       const roleAvatarByUrl = role.avatar && (!role.avatarId || role.avatarId === 0)
-        ? avatars.find(a => a.avatarUrl === role.avatar)
+        ? avatars.find(a => getEffectiveAvatarUrl(a) === role.avatar)
         : null;
       const isDeletingCurrentAvatar = avatarIds.includes(role.avatarId)
         || avatarIds.includes(selectedAvatarId)
@@ -197,7 +198,7 @@ export function useAvatarDeletion({
             || (roleAvatarByUrl?.avatarId ? avatarIds.includes(roleAvatarByUrl.avatarId) : false);
           if (shouldUpdateRoleAvatar && onAvatarChange) {
             await Promise.resolve(onAvatarChange(
-              replacementAvatar.avatarUrl || "",
+              getEffectiveAvatarUrl(replacementAvatar) || "",
               replacementAvatar.avatarId || 0,
             ));
 

@@ -5,6 +5,7 @@ import { BehaviorSubject } from "rxjs";
 
 import type { OssUploadHeaders } from "@/utils/ossUploadTarget";
 
+import { normalizeMimeType } from "@/utils/mediaMime";
 import { resolveOssUploadTarget } from "@/utils/ossUploadTarget";
 import { tuanchat } from "api/instance";
 
@@ -164,6 +165,7 @@ export class BlocksuiteRemoteImageBlobSource implements BlobSource {
     try {
       const ossData = await tuanchat.ossController.getUploadUrl({
         fileName: buildBlocksuiteRemoteImageFileName(key),
+        contentType: normalizeMimeType(blob.type) || "image/png",
         scene: this._scene,
         dedupCheck: true,
       });

@@ -7,6 +7,7 @@ import { DoubleClickEditableText } from "@/components/common/DoubleClickEditable
 import { BaselineDeleteOutline } from "@/icons";
 import { CharacterCopper } from "../../RoleInfoCard/AvatarUploadCropper";
 import { useAvatarDeletion } from "../hooks/useAvatarDeletion";
+import { getEffectiveAvatarUrl } from "../utils";
 
 interface SpriteListGridProps {
   /** 头像/立绘列表 */
@@ -300,10 +301,11 @@ export function SpriteListGrid({
           {avatars.map((avatar, index) => {
             const avatarName = getAvatarName(avatar, index);
             const isSelected = isMultiSelectMode ? selectedIndices.has(index) : index === selectedIndex;
+            const displayAvatarUrl = getEffectiveAvatarUrl(avatar);
             const isAppliedAvatar = Boolean(
               role?.avatarId
                 ? avatar.avatarId === role.avatarId
-                : (role?.avatar ? avatar.avatarUrl === role.avatar : false),
+                : (role?.avatar ? displayAvatarUrl === role.avatar : false),
             );
 
             return (
@@ -327,10 +329,10 @@ export function SpriteListGrid({
                     }`}
                     title={isMultiSelectMode ? `选择头像 ${index + 1}` : `切换到立绘 ${index + 1}`}
                   >
-                    {avatar.avatarUrl
+                    {displayAvatarUrl
                       ? (
                           <img
-                            src={avatar.avatarUrl}
+                            src={displayAvatarUrl}
                             alt={`头像 ${index + 1}`}
                             className="w-full h-full object-cover pointer-events-none"
                             loading="lazy"

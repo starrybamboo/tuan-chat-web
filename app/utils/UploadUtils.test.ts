@@ -49,6 +49,7 @@ describe("uploadUtils.uploadVideo", () => {
     expect(hashSpy).toHaveBeenCalledWith(transcodedFile);
     expect(getUploadUrlMock).toHaveBeenCalledWith({
       fileName: `hash_webm_${transcodedFile.size}.webm`,
+      contentType: "video/webm",
       scene: 1,
       dedupCheck: true,
     });
@@ -83,6 +84,7 @@ describe("uploadUtils.uploadVideo", () => {
     expect(transcodeVideoFileToWebmOrThrow).not.toHaveBeenCalled();
     expect(getUploadUrlMock).toHaveBeenCalledWith({
       fileName: `hash_direct_${file.size}.mkv`,
+      contentType: "video/x-matroska",
       scene: 1,
       dedupCheck: true,
     });
@@ -118,6 +120,7 @@ describe("uploadUtils.uploadVideo", () => {
     expect(transcodeMock).toHaveBeenCalledTimes(1);
     expect(getUploadUrlMock).toHaveBeenCalledWith({
       fileName: `hash_oom_${file.size}.mkv`,
+      contentType: "video/x-matroska",
       scene: 1,
       dedupCheck: true,
     });
@@ -170,6 +173,7 @@ describe("uploadUtils.uploadVideo", () => {
 
     expect(getUploadUrlMock).toHaveBeenCalledWith({
       fileName: `hash_img_${file.size}.png`,
+      contentType: "image/png",
       scene: 1,
       dedupCheck: true,
     });

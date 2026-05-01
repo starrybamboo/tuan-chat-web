@@ -44,7 +44,7 @@ export type NovelAiImportedSettings = {
 };
 
 export type NovelAiImageMetadataResult = {
-  source: "png-text" | "stealth";
+  source: "png-text" | "stealth" | "webp-xmp";
   raw: Record<string, unknown>;
   settings: NovelAiImportedSettings;
 };
@@ -102,10 +102,33 @@ function readUint32Be(bytes: Uint8Array, offset: number) {
   ) >>> 0;
 }
 
+function readUint32Le(bytes: Uint8Array, offset: number) {
+  if (offset + 4 > bytes.length)
+    return null;
+  return (
+    bytes[offset]
+    | (bytes[offset + 1] << 8)
+    | (bytes[offset + 2] << 16)
+    | (bytes[offset + 3] << 24)
+  ) >>> 0;
+}
+
 function hasPngSignature(bytes: Uint8Array) {
   if (bytes.length < PNG_SIGNATURE.length)
     return false;
   return PNG_SIGNATURE.every((value, index) => bytes[index] === value);
+}
+
+function hasWebpSignature(bytes: Uint8Array) {
+  return bytes.length >= 12
+    && bytes[0] === 0x52
+    && bytes[1] === 0x49
+    && bytes[2] === 0x46
+    && bytes[3] === 0x46
+    && bytes[8] === 0x57
+    && bytes[9] === 0x45
+    && bytes[10] === 0x42
+    && bytes[11] === 0x50;
 }
 
 function decodeLatin1(bytes: Uint8Array) {
@@ -140,6 +163,15 @@ function writeUint32Be(value: number) {
   ]);
 }
 
+function writeUint32Le(value: number) {
+  return new Uint8Array([
+    value & 0xFF,
+    (value >>> 8) & 0xFF,
+    (value >>> 16) & 0xFF,
+    (value >>> 24) & 0xFF,
+  ]);
+}
+
 function crc32(bytes: Uint8Array) {
   let crc = 0xFFFFFFFF;
   for (let index = 0; index < bytes.length; index += 1) {
@@ -171,6 +203,111 @@ function makeInternationalTextChunk(key: string, value: string) {
       valueBytes,
     ),
   );
+}
+
+type WebpChunk = {
+  type: string;
+  data: Uint8Array;
+  raw: Uint8Array;
+};
+
+function parseWebpChunks(bytes: Uint8Array): WebpChunk[] | null {
+  if (!hasWebpSignature(bytes))
+    return null;
+
+  const chunks: WebpChunk[] = [];
+  let offset = 12;
+  while (offset + 8 <= bytes.length) {
+    const type = decodeLatin1(bytes.subarray(offset, offset + 4));
+    const size = readUint32Le(bytes, offset + 4);
+    if (size == null)
+      break;
+
+    const dataStart = offset + 8;
+    const dataEnd = dataStart + size;
+    const paddedEnd = dataEnd + (size % 2);
+    if (dataEnd > bytes.length || paddedEnd > bytes.length)
+      break;
+
+    chunks.push({
+      type,
+      data: bytes.subarray(dataStart, dataEnd),
+      raw: bytes.subarray(offset, paddedEnd),
+    });
+    offset = paddedEnd;
+  }
+
+  return chunks;
+}
+
+function makeWebpChunk(type: string, data: Uint8Array) {
+  const padding = data.length % 2 ? new Uint8Array([0]) : new Uint8Array();
+  return concatBytes(
+    encodeUtf8(type).subarray(0, 4),
+    writeUint32Le(data.length),
+    data,
+    padding,
+  );
+}
+
+function bytesToBase64(bytes: Uint8Array) {
+  let binary = "";
+  const chunkSize = 0x8000;
+  for (let offset = 0; offset < bytes.length; offset += chunkSize) {
+    const chunk = bytes.subarray(offset, offset + chunkSize);
+    binary += String.fromCharCode(...chunk);
+  }
+  return btoa(binary);
+}
+
+function base64ToBytes(value: string) {
+  const binary = atob(value);
+  const bytes = new Uint8Array(binary.length);
+  for (let index = 0; index < binary.length; index += 1)
+    bytes[index] = binary.charCodeAt(index);
+  return bytes;
+}
+
+const WEBP_NOVELAI_XMP_MARKER = "TC_NOVELAI_METADATA_BASE64:";
+
+function buildNovelAiWebpXmp(metadata: NovelAiImageMetadataResult) {
+  const rawJson = JSON.stringify(buildNovelAiPngTextEntries(metadata));
+  const encoded = bytesToBase64(encodeUtf8(rawJson));
+  return `<?xpacket begin="" id="W5M0MpCehiHzreSzNTczkc9d"?>
+<x:xmpmeta xmlns:x="adobe:ns:meta/">
+  <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+    <rdf:Description xmlns:tc="https://tuan.chat/ns/novelai/1.0/">
+      <tc:NovelAI>${WEBP_NOVELAI_XMP_MARKER}${encoded}</tc:NovelAI>
+    </rdf:Description>
+  </rdf:RDF>
+</x:xmpmeta>
+<?xpacket end="w"?>`;
+}
+
+function parseNovelAiWebpXmp(data: Uint8Array): NovelAiImageMetadataResult | null {
+  const text = decodeUtf8(data);
+  const match = new RegExp(`${WEBP_NOVELAI_XMP_MARKER}([A-Za-z0-9+/=]+)`).exec(text);
+  if (!match)
+    return null;
+
+  try {
+    const rawValue = JSON.parse(decodeUtf8(base64ToBytes(match[1])));
+    const rawRecord = asRecord(rawValue);
+    if (!rawRecord)
+      return null;
+    const normalizedRaw = normalizeRawMetadata(rawRecord);
+    const settings = normalizeNovelAiMetadata(normalizedRaw);
+    if (!settings)
+      return null;
+    return {
+      source: "webp-xmp",
+      raw: normalizedRaw,
+      settings,
+    };
+  }
+  catch {
+    return null;
+  }
 }
 
 function parseTextChunk(chunkType: string, chunkData: Uint8Array) {
@@ -763,6 +900,21 @@ export function extractNovelAiMetadataFromPngBytes(bytes: Uint8Array): NovelAiIm
   };
 }
 
+export function extractNovelAiMetadataFromWebpBytes(bytes: Uint8Array): NovelAiImageMetadataResult | null {
+  const chunks = parseWebpChunks(bytes);
+  if (!chunks)
+    return null;
+
+  for (const chunk of chunks) {
+    if (chunk.type !== "XMP ")
+      continue;
+    const result = parseNovelAiWebpXmp(chunk.data);
+    if (result)
+      return result;
+  }
+  return null;
+}
+
 function collectStealthBytes(image: NovelAiStealthImageData) {
   const { width, height, data } = image;
   if (!Number.isInteger(width) || !Number.isInteger(height) || width <= 0 || height <= 0)
@@ -885,4 +1037,29 @@ export function embedNovelAiMetadataIntoPngBytes(
   }
 
   return inserted ? concatBytes(...outputChunks) : imageBytes;
+}
+
+export function embedNovelAiMetadataIntoWebpBytes(
+  imageBytes: Uint8Array,
+  metadata: NovelAiImageMetadataResult | null,
+): Uint8Array {
+  if (!metadata || !hasWebpSignature(imageBytes))
+    return imageBytes;
+
+  const chunks = parseWebpChunks(imageBytes);
+  if (!chunks?.length)
+    return imageBytes;
+
+  const xmpBytes = encodeUtf8(buildNovelAiWebpXmp(metadata));
+  const xmpChunk = makeWebpChunk("XMP ", xmpBytes);
+  const keptChunks = chunks
+    .filter(chunk => chunk.type !== "XMP " || !parseNovelAiWebpXmp(chunk.data))
+    .map(chunk => chunk.raw);
+  const body = concatBytes(...keptChunks, xmpChunk);
+  return concatBytes(
+    encodeUtf8("RIFF"),
+    writeUint32Le(4 + body.length),
+    encodeUtf8("WEBP"),
+    body,
+  );
 }

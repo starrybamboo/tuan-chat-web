@@ -24,13 +24,14 @@ import toast from "react-hot-toast";
 import { Drawer } from "vaul";
 import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
 import { isMobileScreen } from "@/utils/getScreenSize";
+import { imageHighUrl, imageOriginalUrl } from "@/utils/mediaUrl";
 import { useAvatarDeletion } from "./hooks/useAvatarDeletion";
 import { AvatarLibraryTab } from "./Tabs/AvatarLibraryTab";
 import { AvatarSettingsTab } from "./Tabs/AvatarSettingsTab";
 import { PreviewTab } from "./Tabs/PreviewTab";
 import { SpriteCropper } from "./Tabs/SpriteCropper";
 import { SpriteListGrid } from "./Tabs/SpriteListGrid";
-import { getEffectiveSpriteUrl } from "./utils";
+import { getEffectiveAvatarUrl, getEffectiveSpriteUrl } from "./utils";
 
 export type SettingsTab = "cropper" | "avatarCropper" | "preview" | "setting" | "library" | "trash";
 
@@ -191,7 +192,7 @@ export function SpriteSettingsPopup({
   // 当前选中的立绘 URL
   const currentSpriteUrl = currentAvatar ? (getEffectiveSpriteUrl(currentAvatar) || null) : null;
   const currentAvatarCropSourceUrl = currentAvatar
-    ? (String(currentAvatar.spriteUrl ?? "").trim() || String(currentAvatar.spriteOriginalUrl ?? "").trim() || null)
+    ? (imageHighUrl(currentAvatar.spriteFileId) || imageOriginalUrl(currentAvatar.spriteFileId) || null)
     : null;
 
   // ========== 上传和删除功能 ==========
@@ -872,12 +873,7 @@ export function SpriteSettingsPopup({
                         : (
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                               {trashItems.map((avatar, index) => {
-                                const displayUrl = avatar.avatarUrl
-                                  || avatar.avatarOriginalUrl
-                                  || avatar.spriteUrl
-                                  || avatar.spriteOriginalUrl
-                                  || avatar.originUrl
-                                  || "";
+                                const displayUrl = getEffectiveAvatarUrl(avatar) || getEffectiveSpriteUrl(avatar);
                                 const title = typeof avatar.avatarTitle === "string"
                                   ? avatar.avatarTitle
                                   : avatar.avatarTitle?.label;

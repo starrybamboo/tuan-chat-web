@@ -11,6 +11,7 @@ import { useNavigate, useSearchParams } from "react-router";
 import { useGetUserSpacesQuery } from "api/hooks/chatQueryHooks";
 import RepositoryDetailComponent from "@/components/repository/detail/repositoryDetail";
 import { ContentCard } from "@/components/repository/home/RepositoryHome";
+import { avatarThumbUrl } from "@/utils/mediaUrl";
 
 type DiscoverArchivedSpacesMode = "square" | "my";
 
@@ -454,7 +455,7 @@ export default function DiscoverArchivedSpacesView({ mode }: DiscoverArchivedSpa
                         const repository = group.repository;
                         const name = repository?.repositoryName ?? group.latestSpace?.name ?? `仓库 #${repositoryId}`;
                         const description = String(repository?.description ?? group.latestSpace?.description ?? "").trim();
-                        const image = repository?.image ?? group.latestSpace?.avatar ?? DEFAULT_REPOSITORY_IMAGE;
+                        const image = repository?.image ?? avatarThumbUrl(group.latestSpace?.avatarFileId) ?? DEFAULT_REPOSITORY_IMAGE;
                         const latestSpace = group.latestSpace;
                         const isExpanded = expandedRepoIds.includes(repositoryId);
                         const latestArchiveLabel = latestSpace?.name ? `最新归档：${latestSpace.name}` : null;

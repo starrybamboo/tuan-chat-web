@@ -1,15 +1,43 @@
 import type { RoleAvatar } from "api";
 
+import { avatarOriginalUrl, avatarThumbUrl, avatarUrl, imageHighUrl, imageOriginalUrl } from "@/utils/mediaUrl";
+
 import type { Transform } from "./TransformControl";
 
+export function getEffectiveAvatarOriginalUrl(avatar: RoleAvatar | null | undefined): string {
+  const resolvedAvatarOriginalUrl = avatarOriginalUrl(avatar?.avatarFileId);
+  if (resolvedAvatarOriginalUrl) {
+    return resolvedAvatarOriginalUrl;
+  }
+
+  return getEffectiveAvatarUrl(avatar);
+}
+
+export function getEffectiveAvatarUrl(avatar: RoleAvatar | null | undefined): string {
+  const resolvedAvatarUrl = avatarUrl(avatar?.avatarFileId);
+  if (resolvedAvatarUrl) {
+    return resolvedAvatarUrl;
+  }
+
+  const resolvedAvatarOriginalUrl = avatarOriginalUrl(avatar?.avatarFileId);
+  if (resolvedAvatarOriginalUrl) {
+    return resolvedAvatarOriginalUrl;
+  }
+
+  return imageOriginalUrl(avatar?.originFileId);
+}
+
+export function getEffectiveAvatarThumbUrl(avatar: RoleAvatar | null | undefined): string {
+  return avatarThumbUrl(avatar?.avatarFileId) || getEffectiveAvatarUrl(avatar);
+}
+
 export function getEffectiveSpriteOriginalUrl(avatar: RoleAvatar | null | undefined): string {
-  const spriteOriginalUrl = String(avatar?.spriteOriginalUrl ?? "").trim();
+  const spriteOriginalUrl = imageOriginalUrl(avatar?.spriteFileId);
   if (spriteOriginalUrl) {
     return spriteOriginalUrl;
   }
 
-  // 兼容旧数据：仍允许退回旧的未裁剪源图字段。
-  const originUrl = String(avatar?.originUrl ?? "").trim();
+  const originUrl = imageOriginalUrl(avatar?.originFileId);
   if (originUrl) {
     return originUrl;
   }
@@ -18,29 +46,28 @@ export function getEffectiveSpriteOriginalUrl(avatar: RoleAvatar | null | undefi
 }
 
 export function getEffectiveSpriteUrl(avatar: RoleAvatar | null | undefined): string {
-  const spriteUrl = String(avatar?.spriteUrl ?? "").trim();
+  const spriteUrl = imageHighUrl(avatar?.spriteFileId);
   if (spriteUrl) {
     return spriteUrl;
   }
 
-  const spriteOriginalUrl = String(avatar?.spriteOriginalUrl ?? "").trim();
+  const spriteOriginalUrl = imageOriginalUrl(avatar?.spriteFileId);
   if (spriteOriginalUrl) {
     return spriteOriginalUrl;
   }
 
   // 无立绘时：使用头像作为默认立绘
-  const avatarUrl = String(avatar?.avatarUrl ?? "").trim();
-  if (avatarUrl) {
-    return avatarUrl;
+  const resolvedAvatarUrl = avatarUrl(avatar?.avatarFileId);
+  if (resolvedAvatarUrl) {
+    return resolvedAvatarUrl;
   }
 
-  const avatarOriginalUrl = String(avatar?.avatarOriginalUrl ?? "").trim();
-  if (avatarOriginalUrl) {
-    return avatarOriginalUrl;
+  const resolvedAvatarOriginalUrl = avatarOriginalUrl(avatar?.avatarFileId);
+  if (resolvedAvatarOriginalUrl) {
+    return resolvedAvatarOriginalUrl;
   }
 
-  // 兜底：仍可用原图（如果存在）
-  const originUrl = String(avatar?.originUrl ?? "").trim();
+  const originUrl = imageOriginalUrl(avatar?.originFileId);
   if (originUrl) {
     return originUrl;
   }

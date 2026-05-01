@@ -44,13 +44,13 @@ export type Message = {
      */
     avatarId?: number;
     /**
-     * 消息头像URL
+     * 消息头像媒体文件 ID
      */
-    avatarUrl?: string;
+    avatarFileId?: number;
     /**
-     * 消息头像缩略图URL
+     * 消息头像媒体类型
      */
-    avatarThumbUrl?: string;
+    avatarMediaType?: string;
     /**
      * webgal相关的演出设置
      */

@@ -23,8 +23,8 @@ export default function MessageBubble({ message, isOwn }: MessageBubbleProps) {
   const senderUser = {
     userId: message.senderId,
     username: message.senderUsername,
-    avatar: message.senderAvatar,
-    avatarThumbUrl: message.senderAvatarThumbUrl,
+    avatarFileId: message.senderAvatarFileId,
+    avatarMediaType: message.senderAvatarMediaType,
   };
   const messageTimeLabel = formatMessageTimeLabel(message.createTime || null);
 

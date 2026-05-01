@@ -12,7 +12,7 @@ type CreateRoleFn = (payload: {
   spaceId?: number;
 }) => Promise<number | undefined | null>;
 
-type UploadAvatarFn = (payload: { avatarUrl: string; spriteUrl: string; roleId: number }) => Promise<{ data?: { avatarId?: number; avatarUrl?: string } } | undefined>;
+type UploadAvatarFn = (payload: { roleId: number }) => Promise<{ data?: { avatarId?: number; avatarFileId?: number } } | undefined>;
 
 type SetRoleAbilityFn = (payload: {
   ruleId: number;
@@ -74,15 +74,13 @@ export async function completeRoleCreation(
     throw new Error("角色创建失败");
 
   let avatarId: number | undefined;
-  let avatarUrl: string | undefined;
   try {
-    const avatarRes = await uploadAvatar({ avatarUrl: ROLE_DEFAULT_AVATAR_URL, spriteUrl: ROLE_DEFAULT_AVATAR_URL, roleId });
+    const avatarRes = await uploadAvatar({ roleId });
     const responseAvatarId = avatarRes?.data?.avatarId;
     avatarId = typeof responseAvatarId === "number" ? responseAvatarId : undefined;
-    avatarUrl = avatarRes?.data?.avatarUrl;
   }
   catch (error) {
-    console.warn("默认头像上传失败", error);
+    console.warn("默认头像创建失败", error);
   }
 
   if (characterData.ruleId > 0) {
@@ -102,7 +100,7 @@ export async function completeRoleCreation(
     id: roleId,
     name: trimmedName,
     description: trimmedDescription,
-    avatar: avatarUrl || ROLE_DEFAULT_AVATAR_URL,
+    avatar: ROLE_DEFAULT_AVATAR_URL,
     avatarId: avatarId ?? 0,
     type: roleCreateDefaults?.type,
   };

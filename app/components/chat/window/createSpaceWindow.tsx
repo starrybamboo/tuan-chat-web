@@ -7,6 +7,7 @@ import checkBack from "@/components/common/autoContrastText";
 import { MemberSelect } from "@/components/common/memberSelect";
 import { ImgUploaderWithCopper } from "@/components/common/uploader/imgUploaderWithCropper";
 import { useGlobalUserId } from "@/components/globalContextProvider";
+import { avatarThumbUrl } from "@/utils/mediaUrl";
 
 interface CreateSpaceWindowProps {
   onSuccess?: () => void;
@@ -17,8 +18,8 @@ export default function CreateSpaceWindow({ onSuccess }: CreateSpaceWindowProps)
   const getUserInfo = useGetUserInfoQuery(Number(userId));
   const userInfo = getUserInfo.data?.data;
   const spaceAvatarThumbUploadId = useId().replace(/:/g, "");
-  const defaultSpaceAvatar = String(userInfo?.avatarThumbUrl ?? userInfo?.avatar ?? "");
-  const defaultSpaceOriginalAvatar = String(userInfo?.originalAvatar ?? userInfo?.avatar ?? "");
+  const defaultSpaceAvatarFileId = userInfo?.avatarFileId;
+  const defaultSpaceAvatar = avatarThumbUrl(defaultSpaceAvatarFileId);
   const defaultSpaceName = userInfo?.username ? `${String(userInfo.username)}的空间` : "";
 
   // 创建空间
@@ -26,11 +27,10 @@ export default function CreateSpaceWindow({ onSuccess }: CreateSpaceWindowProps)
 
   // 创建空间的头像
   const [spaceAvatarThumbDraft, setSpaceAvatarThumbDraft] = useState<string | null>(null);
-  const [spaceOriginalAvatarDraft, setSpaceOriginalAvatarDraft] = useState<string | null>(null);
+  const [spaceAvatarFileIdDraft, setSpaceAvatarFileIdDraft] = useState<number | undefined>();
   // 创建空间的名称
   const [spaceNameDraft, setSpaceNameDraft] = useState<string | null>(null);
   const spaceAvatarThumb = spaceAvatarThumbDraft ?? defaultSpaceAvatar;
-  const spaceOriginalAvatar = spaceOriginalAvatarDraft ?? defaultSpaceOriginalAvatar;
   const spaceName = spaceNameDraft ?? defaultSpaceName;
 
   // 当前选择的空间规则Id
@@ -67,9 +67,7 @@ export default function CreateSpaceWindow({ onSuccess }: CreateSpaceWindowProps)
   async function createSpace(userIds: number[]) {
     createSpaceMutation.mutate({
       userIdList: userIds,
-      avatar: spaceAvatarThumb,
-      avatarThumbUrl: spaceAvatarThumb,
-      originalAvatar: spaceOriginalAvatar || spaceAvatarThumb,
+      avatarFileId: spaceAvatarFileIdDraft ?? defaultSpaceAvatarFileId,
       spaceName,
       ruleId: selectedRuleId,
     }, {
@@ -87,11 +85,13 @@ export default function CreateSpaceWindow({ onSuccess }: CreateSpaceWindowProps)
       {/* 头像上传 */}
       <div className="flex justify-center mb-6">
         <ImgUploaderWithCopper
-          setOriginalDownloadUrl={(url) => {
-            setSpaceOriginalAvatarDraft(url);
-          }}
           setCopperedDownloadUrl={(url) => {
             setSpaceAvatarThumbDraft(url);
+          }}
+          mutate={(payload) => {
+            if (typeof payload?.avatarFileId === "number") {
+              setSpaceAvatarFileIdDraft(payload.avatarFileId);
+            }
           }}
           fileName={`new-space-avatar-${spaceAvatarThumbUploadId}`}
           aspect={1}

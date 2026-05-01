@@ -21,29 +21,17 @@ export type RoleAvatar = {
      */
     category?: string;
     /**
-     * 头像的url
+     * 头像媒体文件 ID
      */
-    avatarUrl?: string;
+    avatarFileId?: number;
     /**
-     * 头像缩略图的url
+     * 立绘媒体文件 ID
      */
-    avatarThumbUrl?: string;
+    spriteFileId?: number;
     /**
-     * 立绘的url
+     * 用户上传源图媒体文件 ID
      */
-    spriteUrl?: string;
-    /**
-     * 头像裁剪后的原图url（不压缩）
-     */
-    avatarOriginalUrl?: string;
-    /**
-     * 立绘裁剪后的原图url（不压缩）
-     */
-    spriteOriginalUrl?: string;
-    /**
-     * 用户上传的未裁剪源图url（兼容旧链路）
-     */
-    originUrl?: string;
+    originFileId?: number;
     spriteTransform?: SpriteTransform;
 };
 

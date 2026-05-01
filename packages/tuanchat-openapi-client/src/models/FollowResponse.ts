@@ -19,12 +19,12 @@ export type FollowResponse = {
      */
     username?: string;
     /**
-     * 头像 URL
+     * 头像媒体文件 ID
      */
-    avatar?: string;
+    avatarFileId?: number;
     /**
-     * 头像缩略图 URL
+     * 头像媒体类型
      */
-    avatarThumbUrl?: string;
+    avatarMediaType?: string;
 };
 

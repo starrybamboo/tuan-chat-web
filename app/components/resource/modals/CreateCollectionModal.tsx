@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useCreateResourceCollectionMutation } from "../../../../api/hooks/resourceQueryHooks";
-import { UploadUtils } from "../../../utils/UploadUtils";
+import { uploadMediaFile } from "@/utils/mediaUpload";
+import { imageMediumUrl } from "@/utils/mediaUrl";
 
 interface CreateCollectionModalProps {
   isOpen: boolean;
@@ -15,13 +16,12 @@ export function CreateCollectionModal({ isOpen, onClose, onSuccess, resourceType
   const [isPublic, setIsPublic] = useState(true);
   const [isCreating, setIsCreating] = useState(false);
   const [coverImage, setCoverImage] = useState<string | undefined>(undefined);
-  const [coverOriginalImage, setCoverOriginalImage] = useState<string | undefined>(undefined);
+  const [coverFileId, setCoverFileId] = useState<number | undefined>(undefined);
   const [coverImageFile, setCoverImageFile] = useState<File | undefined>(undefined);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [isDragOver, setIsDragOver] = useState(false);
 
   const createCollectionMutation = useCreateResourceCollectionMutation();
-  const uploadUtils = new UploadUtils();
 
   // 重置表单
   const resetForm = () => {
@@ -29,7 +29,7 @@ export function CreateCollectionModal({ isOpen, onClose, onSuccess, resourceType
     setDescription("");
     setIsPublic(false);
     setCoverImage(undefined);
-    setCoverOriginalImage(undefined);
+    setCoverFileId(undefined);
     setCoverImageFile(undefined);
   };
 
@@ -79,9 +79,9 @@ export function CreateCollectionModal({ isOpen, onClose, onSuccess, resourceType
     try {
       setIsUploadingImage(true);
       setCoverImageFile(file);
-      const uploadedImage = await uploadUtils.uploadDualImage(file, 4);
-      setCoverImage(uploadedImage.url);
-      setCoverOriginalImage(uploadedImage.originalUrl);
+      const uploadedImage = await uploadMediaFile(file);
+      setCoverFileId(uploadedImage.fileId);
+      setCoverImage(imageMediumUrl(uploadedImage.fileId));
     }
     catch (error) {
       console.error("图片上传失败:", error);
@@ -112,7 +112,7 @@ export function CreateCollectionModal({ isOpen, onClose, onSuccess, resourceType
   // 重置封面图片
   const resetCoverImage = () => {
     setCoverImage(undefined);
-    setCoverOriginalImage(undefined);
+    setCoverFileId(undefined);
     setCoverImageFile(undefined);
     const input = document.getElementById("coverImageInput") as HTMLInputElement;
     if (input)
@@ -133,8 +133,7 @@ export function CreateCollectionModal({ isOpen, onClose, onSuccess, resourceType
         description,
         isPublic,
         resourceListType: resourceType,
-        coverImageUrl: coverImage, // 添加封面图片
-        originalCoverImageUrl: coverOriginalImage,
+        coverFileId,
       });
 
       // 重置表单

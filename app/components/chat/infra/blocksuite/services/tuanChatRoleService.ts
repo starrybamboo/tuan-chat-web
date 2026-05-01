@@ -9,6 +9,7 @@ import type { UserRole } from "@tuanchat/openapi-client/models/UserRole";
 
 import { fetchRoleWithCache } from "api/hooks/RoleAndAvatarHooks";
 import { tuanchat } from "api/instance";
+import { avatarThumbUrl } from "@/utils/mediaUrl";
 
 export type BlocksuiteRoleInfo = {
   id: string;
@@ -65,7 +66,7 @@ function toRoleInfo(id: string, role: UserRole): BlocksuiteRoleInfo {
   return {
     id,
     name: role.roleName?.trim() || `角色${id}`,
-    avatar: role.avatarThumbUrl?.trim() || role.avatarUrl?.trim() || null,
+    avatar: avatarThumbUrl(role.avatarFileId) || null,
     description: role.description?.trim() || null,
     type: role.type,
     removed: false,

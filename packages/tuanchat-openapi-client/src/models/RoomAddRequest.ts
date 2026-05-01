@@ -16,16 +16,8 @@ export type RoomAddRequest = {
      */
     roomName?: string;
     /**
-     * 房间头像
+     * 房间头像媒体文件 ID
      */
-    avatar?: string;
-    /**
-     * 房间头像缩略图的url
-     */
-    avatarThumbUrl?: string;
-    /**
-     * 房间头像原图
-     */
-    originalAvatar?: string;
+    avatarFileId?: number;
 };
 

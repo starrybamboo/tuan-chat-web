@@ -46,11 +46,9 @@ export default function CreateDicerRole({ onBack, onComplete }: CreateDicerRoleP
         throw new Error("创建角色失败");
       }
 
-      // 2. 上传默认头像
+      // 2. 创建默认头像记录
       const avatarResult = await uploadAvatar({
         roleId,
-        avatarUrl: ROLE_DEFAULT_AVATAR_URL,
-        spriteUrl: ROLE_DEFAULT_AVATAR_URL,
       });
 
       // 3. 构建新角色对象
@@ -58,7 +56,7 @@ export default function CreateDicerRole({ onBack, onComplete }: CreateDicerRoleP
         id: roleId,
         name: trimmedName,
         description: trimmedDescription,
-        avatar: avatarResult?.data?.avatarUrl || ROLE_DEFAULT_AVATAR_URL,
+        avatar: ROLE_DEFAULT_AVATAR_URL,
         avatarId: avatarResult?.data?.avatarId || 0,
         type: 1,
         extra: {},

@@ -1,6 +1,8 @@
 import type { QueryClient } from "@tanstack/react-query";
 import type { UserRole } from "@tuanchat/openapi-client/models/UserRole";
 
+import { avatarThumbUrl as buildAvatarThumbUrl, avatarUrl as buildAvatarUrl } from "@/utils/mediaUrl";
+
 function hasRoleId(role?: UserRole | null): role is UserRole & { roleId: number } {
   return typeof role?.roleId === "number" && role.roleId > 0;
 }
@@ -22,8 +24,6 @@ export function seedUserRoleQueryCache(queryClient: QueryClient, role?: UserRole
       data: {
         ...previousData,
         ...role,
-        avatarUrl: role.avatarUrl ?? previousData.avatarUrl,
-        avatarThumbUrl: role.avatarThumbUrl ?? previousData.avatarThumbUrl,
       },
     };
   });
@@ -32,8 +32,8 @@ export function seedUserRoleQueryCache(queryClient: QueryClient, role?: UserRole
     return;
   }
 
-  const avatarUrl = role.avatarUrl?.trim() ?? "";
-  const avatarThumbUrl = role.avatarThumbUrl?.trim() ?? "";
+  const avatarUrl = buildAvatarUrl(role.avatarFileId);
+  const avatarThumbUrl = buildAvatarThumbUrl(role.avatarFileId);
   if (!avatarUrl && !avatarThumbUrl) {
     return;
   }
@@ -50,8 +50,10 @@ export function seedUserRoleQueryCache(queryClient: QueryClient, role?: UserRole
         ...previousData,
         avatarId: role.avatarId,
         roleId: role.roleId,
-        avatarUrl: resolvedAvatarUrl,
-        avatarThumbUrl: resolvedAvatarThumbUrl,
+        avatarFileId: role.avatarFileId,
+        avatarMediaType: role.avatarMediaType,
+        avatar: resolvedAvatarUrl,
+        avatarThumb: resolvedAvatarThumbUrl,
       },
     };
   });

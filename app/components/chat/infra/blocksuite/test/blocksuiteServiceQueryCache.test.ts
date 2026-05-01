@@ -6,6 +6,7 @@ import { listBlocksuiteRoomIdsForSpace } from "../services/blocksuiteRoomService
 import { listBlocksuiteSpaceMemberIds } from "../services/blocksuiteSpaceMemberService";
 import { createTuanChatRoleService } from "../services/tuanChatRoleService";
 import { createTuanChatUserService } from "../services/tuanChatUserService";
+import { avatarThumbUrl } from "@/utils/mediaUrl";
 
 const {
   getMemberListMock,
@@ -82,7 +83,7 @@ describe("blocksuite service React Query cache", () => {
       data: {
         userId: 12,
         username: "Alice",
-        avatar: "alice.png",
+        avatarFileId: 12001,
       },
     });
 
@@ -97,7 +98,7 @@ describe("blocksuite service React Query cache", () => {
     expect(secondService.getCachedUserInfo("12")).toMatchObject({
       id: "12",
       name: "Alice",
-      avatar: "alice.png",
+      avatar: avatarThumbUrl(12001),
     });
   });
 
@@ -108,7 +109,7 @@ describe("blocksuite service React Query cache", () => {
       data: {
         roleId: 34,
         roleName: "旁白",
-        avatarUrl: "role.png",
+        avatarFileId: 34001,
         description: "narrator",
         type: 2,
       },
@@ -125,7 +126,7 @@ describe("blocksuite service React Query cache", () => {
     expect(secondService.getCachedRoleInfo("34")).toMatchObject({
       id: "34",
       name: "旁白",
-      avatar: "role.png",
+      avatar: avatarThumbUrl(34001),
       description: "narrator",
     });
   });

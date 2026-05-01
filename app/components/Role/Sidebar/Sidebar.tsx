@@ -10,8 +10,10 @@ import toast from "react-hot-toast";
 import { Link, NavLink, useNavigate, useSearchParams } from "react-router";
 import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
 import { ROLE_DEFAULT_AVATAR_URL } from "@/constants/defaultAvatar";
+import { avatarThumbUrl as buildAvatarThumbUrl, avatarUrl as buildAvatarUrl } from "@/utils/mediaUrl";
 import { getRoleRule } from "@/utils/roleRuleStorage";
 import { useGlobalUserId } from "../../globalContextProvider";
+import { getEffectiveAvatarThumbUrl, getEffectiveAvatarUrl } from "../sprite/utils";
 import { RoleListItem } from "./RoleListItem";
 
 // ... SidebarProps 接口不再需要 setSelectedRoleId 和 onEnterCreateEntry
@@ -73,24 +75,24 @@ export function Sidebar({
   };
 
   const loadRoles = useCallback(async () => {
-    type RoleListAvatarFields = UserRole & {
-      avatarUrl?: string;
-      avatarThumbUrl?: string;
-    };
-
-    const convertRole = (role: RoleListAvatarFields) => ({
+    const convertRole = (role: UserRole) => {
+      const resolvedAvatarUrl = buildAvatarUrl(role.avatarFileId);
+      const resolvedAvatarThumbUrl = buildAvatarThumbUrl(role.avatarFileId) || resolvedAvatarUrl;
+      return {
       id: role.roleId || 0,
       name: role.roleName || "",
       description: role.description || "无描述",
-      avatar: role.avatarUrl || "",
-      avatarThumb: role.avatarThumbUrl || role.avatarUrl || "",
+      avatar: resolvedAvatarUrl,
+      avatarThumb: resolvedAvatarThumbUrl,
       avatarId: role.avatarId || 0,
+      avatarFileId: role.avatarFileId,
       voiceUrl: role.voiceUrl || undefined, // 添加 voiceUrl 字段
       // 透传类型，便于侧边栏分类（若后端无该字段则为 0）
       type: (role as unknown as { type?: number; diceMaiden?: boolean }).type
         ?? (((role as unknown as { diceMaiden?: boolean }).diceMaiden) ? 1 : 0),
       extra: role.extra || {}, // 添加 extra 字段
-    });
+      };
+    };
 
     // 有query数据时
     const diceUserRoles = diceRolesQuery.data ?? [];
@@ -106,8 +108,7 @@ export function Sidebar({
         seedRoleAvatarQueryCaches(queryClient, {
           avatarId: role.avatarId,
           roleId: role.id,
-          avatarUrl: role.avatar,
-          avatarThumbUrl: role.avatarThumb || role.avatar,
+          avatarFileId: role.avatarFileId,
         } as RoleAvatar, role.id);
       });
 
@@ -137,17 +138,18 @@ export function Sidebar({
         }
 
         const cachedAvatar = queryClient.getQueryData<{ data?: RoleAvatar }>(["getRoleAvatar", role.avatarId])?.data;
-        if (cachedAvatar?.avatarUrl || cachedAvatar?.avatarThumbUrl) {
-          const avatarUrl = cachedAvatar.avatarUrl || ROLE_DEFAULT_AVATAR_URL;
-          const avatarThumbUrl = cachedAvatar.avatarThumbUrl || avatarUrl;
+        const cachedAvatarUrl = getEffectiveAvatarUrl(cachedAvatar);
+        if (cachedAvatarUrl) {
+          const avatarUrl = cachedAvatarUrl || ROLE_DEFAULT_AVATAR_URL;
+          const avatarThumbUrl = getEffectiveAvatarThumbUrl(cachedAvatar) || avatarUrl;
           return { id: role.id, avatar: avatarUrl, avatarThumb: avatarThumbUrl };
         }
 
         try {
           const res = await fetchRoleAvatarWithCache(queryClient, role.avatarId);
           if (res.success && res.data) {
-            const avatarUrl = res.data.avatarUrl || ROLE_DEFAULT_AVATAR_URL;
-            const avatarThumbUrl = res.data.avatarThumbUrl || avatarUrl;
+            const avatarUrl = getEffectiveAvatarUrl(res.data) || ROLE_DEFAULT_AVATAR_URL;
+            const avatarThumbUrl = getEffectiveAvatarThumbUrl(res.data) || avatarUrl;
             seedRoleAvatarQueryCaches(queryClient, res.data, role.id);
             return { id: role.id, avatar: avatarUrl, avatarThumb: avatarThumbUrl };
           }

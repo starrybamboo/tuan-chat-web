@@ -16,6 +16,7 @@ import { EmptyState } from "../../resource/ui/EmptyState";
 import { LoadingState } from "../../resource/ui/LoadingState";
 import { Pagination } from "../../resource/ui/Pagination";
 import MoreBetterImg from "../../resource/utils/MoreBetterImg";
+import { mediaPreviewUrl } from "@/utils/mediaUrl";
 
 type TabType = "myResources" | "publicResources" | "myCollections" | "publicCollections";
 
@@ -166,8 +167,9 @@ export function ResourceSelectorModal({
   };
 
   const handleConfirmSelect = () => {
-    if (selectedResource?.url) {
-      onSelect(selectedResource.url);
+    const selectedResourceUrl = mediaPreviewUrl(selectedResource?.fileId, selectedResource?.mediaType);
+    if (selectedResourceUrl) {
+      onSelect(selectedResourceUrl);
       // 重置状态
       setSelectedResource(null);
       setSelectedCollectionId(null);
@@ -335,6 +337,7 @@ export function ResourceSelectorModal({
                           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
                             {filteredItems.map((item) => {
                               const resource = item as ResourceResponse;
+                              const resourceUrl = mediaPreviewUrl(resource.fileId, resource.mediaType);
                               return (
                                 <div
                                   key={resource.resourceId}
@@ -351,7 +354,7 @@ export function ResourceSelectorModal({
                                       ? (
                                           <div className="aspect-[4/3]">
                                             <MoreBetterImg
-                                              src={resource.url}
+                                              src={resourceUrl}
                                               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
                                             />
                                           </div>
@@ -427,6 +430,7 @@ export function ResourceSelectorModal({
                               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
                                 {filteredItems.map((item) => {
                                   const resource = item as ResourceResponse;
+                                  const resourceUrl = mediaPreviewUrl(resource.fileId, resource.mediaType);
                                   return (
                                     <div
                                       key={resource.resourceId}
@@ -443,7 +447,7 @@ export function ResourceSelectorModal({
                                           ? (
                                               <div className="aspect-[4/3]">
                                                 <MoreBetterImg
-                                                  src={resource.url}
+                                                  src={resourceUrl}
                                                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
                                                 />
                                               </div>

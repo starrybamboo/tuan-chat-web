@@ -13,6 +13,7 @@ import BlocksuiteDescriptionEditor from "@/components/chat/shared/components/Blo
 import {
   BLOCKSUITE_FULL_PANEL_EDITOR_CLASS,
 } from "@/components/chat/shared/components/BlockSuite/blocksuiteDescriptionEditor.shared";
+import { avatarThumbUrl } from "@/utils/mediaUrl";
 import Author from "./author";
 import {
   findRecoverableRepositorySpace,
@@ -484,7 +485,7 @@ export default function RepositoryDetailComponent({
                           tcHeader={{
                             enabled: true,
                             fallbackTitle: linkedSpace?.name ?? repositoryData.repositoryName,
-                            fallbackImageUrl: linkedSpace?.avatar ?? repositoryData.image,
+                            fallbackImageUrl: avatarThumbUrl(linkedSpace?.avatarFileId) || repositoryData.image,
                           }}
                         />
                       )

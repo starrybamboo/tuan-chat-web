@@ -1,5 +1,6 @@
 import type { CollectionList } from "@tuanchat/openapi-client/models/CollectionList";
 import { UserAvatarByUser } from "@/components/common/userAccess";
+import { imageMediumUrl } from "@/utils/mediaUrl";
 
 interface ResourceCollectionCardProps {
   collectionList: CollectionList;
@@ -23,6 +24,7 @@ export function ResourceCollectionCard({
       onClick(collectionList.collectionListId);
     }
   };
+  const coverImageUrl = imageMediumUrl(collectionList.coverFileId);
 
   return (
     <div
@@ -31,10 +33,10 @@ export function ResourceCollectionCard({
     >
       {/* 收藏列表封面 */}
       <div className="relative h-48 bg-base-200">
-        {collectionList.coverImageUrl
+        {coverImageUrl
           ? (
               <img
-                src={collectionList.coverImageUrl}
+                src={coverImageUrl}
                 alt={collectionList.collectionListName}
                 className="w-full h-full object-cover transition-transform duration-200 rounded-t-lg"
                 onError={(e) => {

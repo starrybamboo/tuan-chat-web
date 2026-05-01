@@ -17,6 +17,7 @@ import type { ChatMessageResponse, RoleAvatar, Room, UserRole } from "../../api"
 import type { RealtimeTTSConfig } from "./realtimeRenderer";
 
 import { fetchRoleAvatarWithCache } from "../../api/hooks/RoleAndAvatarHooks";
+import { avatarUrl, imageHighUrl } from "@/utils/mediaUrl";
 import { onWebgalAvatarUpdated } from "./avatarSync";
 import {
   collectMessageAssetWarmupPlan,
@@ -439,7 +440,7 @@ function useRealtimeRender({
       try {
         const avatarResponse = await fetchRoleAvatarWithCache(queryClient, avatarId);
         if (avatarResponse.data) {
-          console.warn(`[useRealtimeRender] 成功获取头像 ${avatarId}:`, avatarResponse.data.avatarUrl || avatarResponse.data.spriteUrl);
+          console.warn(`[useRealtimeRender] 成功获取头像 ${avatarId}:`, avatarUrl(avatarResponse.data.avatarFileId) || imageHighUrl(avatarResponse.data.spriteFileId));
         }
       }
       catch (error) {

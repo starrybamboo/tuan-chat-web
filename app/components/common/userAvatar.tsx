@@ -2,6 +2,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react
 import { createPortal } from "react-dom";
 import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
 import { UserDetail } from "@/components/common/userDetail";
+import { avatarThumbUrl as buildAvatarThumbUrl, avatarUrl as buildAvatarUrl } from "@/utils/mediaUrl";
 import { useGetUserInfoQuery } from "../../../api/hooks/UserHooks";
 
 // 如果是 import 的sizeMap 就不能在className中用了, 于是复制了一份, 够丑的 :(
@@ -60,10 +61,11 @@ export default function UserAvatarComponent({
   const userQuery = useGetUserInfoQuery(userId, {
     enabled: shouldFetchUserInfo,
   });
+  const queryAvatarFileId = userQuery.data?.data?.avatarFileId;
   const resolvedAvatar = providedAvatarThumbUrl
     || providedAvatarUrl
-    || userQuery.data?.data?.avatarThumbUrl
-    || userQuery.data?.data?.avatar
+    || buildAvatarThumbUrl(queryAvatarFileId)
+    || buildAvatarUrl(queryAvatarFileId)
     || undefined;
   const resolvedUsername = providedUsername || userQuery.data?.data?.username || "";
   // 控制用户详情的toastWindow
