@@ -45,8 +45,7 @@ describe("role avatar cache helpers", () => {
     seedRoleAvatarQueryCaches(queryClient, {
       avatarId: 123,
       roleId: 45,
-      avatarUrl: "avatar.png",
-      avatarThumbUrl: "thumb.png",
+      avatarFileId: 123,
     });
 
     expect(queryClient.getQueryData(roleAvatarQueryKey(123))).toMatchObject({
@@ -54,8 +53,7 @@ describe("role avatar cache helpers", () => {
       data: {
         avatarId: 123,
         roleId: 45,
-        avatarUrl: "avatar.png",
-        avatarThumbUrl: "thumb.png",
+        avatarFileId: 123,
       },
     });
 

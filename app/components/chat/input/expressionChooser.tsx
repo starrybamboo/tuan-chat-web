@@ -8,6 +8,7 @@ import { canManageRoomRoles, hasHostPrivileges } from "@/components/chat/utils/m
 import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
 import { RoleAvatarByRole } from "@/components/common/roleAccess";
 import RoleAvatarComponent from "@/components/common/roleAvatar";
+import { getEffectiveAvatarThumbUrl, getEffectiveAvatarUrl } from "@/components/Role/sprite/utils";
 import { RoleDetailPagePopup } from "@/components/common/roleDetailPagePopup";
 import { RoleTypeBadge } from "@/components/common/roleTypeBadge";
 import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
@@ -398,8 +399,8 @@ export function ExpressionChooser({
                             >
                               <RoleAvatarComponent
                                 avatarId={avatar.avatarId || -1}
-                                avatarUrl={avatar.avatarUrl}
-                                avatarThumbUrl={avatar.avatarThumbUrl}
+                                avatarUrl={getEffectiveAvatarUrl(avatar)}
+                                avatarThumbUrl={getEffectiveAvatarThumbUrl(avatar)}
                                 roleId={selectedRoleId}
                                 width={avatarSize}
                                 isRounded={false}

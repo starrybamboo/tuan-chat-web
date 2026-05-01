@@ -36,13 +36,13 @@ export type SpaceMaterialPackageResponse = {
      */
     description?: string;
     /**
-     * 素材包封面URL
+     * 素材包封面媒体文件 ID
      */
-    coverUrl?: string;
+    coverFileId?: number;
     /**
-     * 素材包封面原图URL
+     * 素材包封面媒体类型
      */
-    originalCoverUrl?: string;
+    coverMediaType?: string;
     /**
      * 文件夹节点数量
      */

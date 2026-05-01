@@ -15,8 +15,12 @@ export type UserInfo = {
      */
     username?: string;
     /**
-     * 头像
+     * 头像媒体文件 ID
      */
-    avatar?: string;
+    avatarFileId?: number;
+    /**
+     * 头像媒体类型
+     */
+    avatarMediaType?: string;
 };
 

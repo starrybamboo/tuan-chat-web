@@ -29,8 +29,6 @@ export type ReadonlyRenderableMessage = Pick<
   | "roleId"
   | "avatarId"
   | "customRoleName"
-  | "avatarUrl"
-  | "avatarThumbUrl"
 > & Partial<Pick<Message, "messageId" | "roomId" | "status">> & {
   extra?: Record<string, any>;
   webgal?: Record<string, any>;

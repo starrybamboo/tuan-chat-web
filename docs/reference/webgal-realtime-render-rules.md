@@ -14,7 +14,7 @@
 2. 场景粒度：按 `room` 建立场景文件，命名为 `{roomName}_{roomId}.txt`。  
 3. 启动阶段：`useRealtimeRender.start()` 会先并发补齐角色默认头像元数据，再完成 renderer 初始化、场景创建、资源预载、WebSocket 建连。  
 4. 历史导入：编排器在 renderer `isActive` 后触发历史消息渲染（不再要求 `status === connected`）；历史导入前会先并发补齐消息涉及的头像元数据，并预热本轮需要的立绘 / 小头像资源。  
-5. 增量更新：新消息进入后优先走增量追加；出现重排/插入/删除/更新时走全量重建。  
+5. 增量更新：新消息进入后优先走增量追加；同序更新先尝试局部 self / suffix 重渲染，无法安全局部处理时再全量重建；插入/删除/重排仍走全量重建。  
 6. 场景初始化会先写入 `setTransition`（`-enter=none -keepOffset`）到所有实时渲染立绘目标（含 `image_message`），用于覆盖 WebGAL 默认进场动画。  
 
 ## 2. 流程图（roomMap）到场景跳转规则
@@ -120,7 +120,7 @@
 - 默认在 `miniAvatarEnabled=true` 时对普通对话输出
 - 旁白/黑屏文字默认清空为 `miniAvatar:none;`
 - 骰子消息可通过 payload 的 `showMiniAvatar` 覆盖
-- `figure.mini-avatar` 标注可在单条消息上强制显示小头像，使用角色 `avatarUrl`
+- `figure.mini-avatar` 标注可在单条消息上强制显示小头像，使用角色头像资源（优先缩略图，回退到 `avatarUrl`）
 - 历史渲染与单条消息更新前会预热本轮命中的小头像资源，避免首次命中时在渲染热路径内懒上传
 
 2. TTS 生成条件（全部满足才生成）
@@ -157,7 +157,7 @@
 
 4. 增量/全量策略
 - 仅尾部追加：逐条 `renderMessage`
-- 顺序相同但内容有更新：全量重建（`resetScene + renderHistory`）
+- 顺序相同但内容有更新：先尝试局部 `self` 更新或从首个受影响消息起做 `suffix` 重渲染；只有无法安全局部处理时才全量重建
 - 非追加的插入/删除/重排：全量重建
 - 全量重建走 350ms 防抖，避免抖动
 - 单条 `renderMessage` 在 `syncToFile=true` 时会将同一条消息产生的多行脚本合并为一次文件同步，避免重复整文件写回
@@ -168,7 +168,7 @@
 ## 7. WebSocket 与文件写入边界
 
 1. 渲染核心是“写场景文件”，可以在 websocket 未连接时执行。  
-2. `sendSyncMessage` 在 websocket 不可用时会入队，连上后自动发送。  
+2. 当前 `autoJumpEnabled` 恒为 `false`，所以 `sendSyncMessage` 不会实际发出同步消息。  
 3. `jumpToMessage` 依赖 websocket 在线；离线时返回 `false`。  
 
 ## 8. 行号映射与可回跳规则

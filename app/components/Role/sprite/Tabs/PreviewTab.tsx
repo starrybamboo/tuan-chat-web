@@ -8,7 +8,7 @@ import { RenderPreview } from "@/components/Role/Preview/RenderPreview";
 import { isMobileScreen } from "@/utils/getScreenSize";
 import { withOssResizeProcess } from "@/utils/ossImageProcess";
 import { CharacterCopper } from "../../RoleInfoCard/AvatarUploadCropper";
-import { getEffectiveSpriteUrl, parseTransformFromAvatar, toSpriteTransformPayload } from "../utils";
+import { getEffectiveAvatarThumbUrl, getEffectiveAvatarUrl, getEffectiveSpriteUrl, parseTransformFromAvatar, toSpriteTransformPayload } from "../utils";
 
 interface RenderTransform {
   scale: number;
@@ -19,12 +19,9 @@ interface RenderTransform {
 }
 
 interface ReplaceAvatarPayload {
-  avatarUrl: string;
-  avatarThumbUrl?: string;
-  spriteUrl: string;
-  avatarOriginalUrl?: string;
-  spriteOriginalUrl?: string;
-  originUrl?: string;
+  avatarFileId?: number;
+  spriteFileId?: number;
+  originFileId?: number;
   transform?: Transform;
 }
 
@@ -64,7 +61,7 @@ export function PreviewTab({
   const [previewMode, setPreviewMode] = useState<"sprite" | "avatar" | "render">("render");
 
   const spriteUrl = currentAvatar ? (getEffectiveSpriteUrl(currentAvatar) || null) : null;
-  const avatarUrl = currentAvatar?.avatarUrl || null;
+  const avatarUrl = currentAvatar ? (getEffectiveAvatarUrl(currentAvatar) || null) : null;
 
   const MAX_PREVIEW_WIDTH = 1440;
 
@@ -277,12 +274,9 @@ export function PreviewTab({
         ...currentAvatar,
         roleId: roleIdForMutation,
         avatarId: currentAvatar.avatarId,
-        avatarUrl: payload.avatarUrl || currentAvatar.avatarUrl || "",
-        avatarThumbUrl: payload.avatarThumbUrl || payload.avatarUrl || currentAvatar.avatarThumbUrl || currentAvatar.avatarUrl || "",
-        spriteUrl: payload.spriteUrl || currentAvatar.spriteUrl || "",
-        avatarOriginalUrl: payload.avatarOriginalUrl ?? currentAvatar.avatarOriginalUrl,
-        spriteOriginalUrl: payload.spriteOriginalUrl ?? currentAvatar.spriteOriginalUrl,
-        originUrl: payload.originUrl ?? currentAvatar.originUrl,
+        avatarFileId: payload.avatarFileId ?? currentAvatar.avatarFileId,
+        spriteFileId: payload.spriteFileId ?? currentAvatar.spriteFileId,
+        originFileId: payload.originFileId ?? currentAvatar.originFileId,
         spriteTransform: toSpriteTransformPayload(nextTransform),
       });
       toast.success("头像已修改");
@@ -302,7 +296,7 @@ export function PreviewTab({
   // 处理应用头像（真正更改角色头像）
   const handleApplyAvatar = () => {
     if (currentAvatar && onAvatarChange) {
-      onAvatarChange(currentAvatar.avatarUrl || "", currentAvatar.avatarId || 0);
+      onAvatarChange(getEffectiveAvatarThumbUrl(currentAvatar) || getEffectiveAvatarUrl(currentAvatar), currentAvatar.avatarId || 0);
     }
     onApply?.();
   };

@@ -33,6 +33,8 @@ import {
 } from "api";
 import type { Role } from '@/components/Role/types';
 import { ROLE_DEFAULT_AVATAR_URL } from '@/constants/defaultAvatar';
+import { uploadMediaFile } from "@/utils/mediaUpload";
+import { avatarThumbUrl as buildAvatarThumbUrl, avatarUrl as buildAvatarUrl } from "@/utils/mediaUrl";
 import { shouldRetryRoleQueryError } from "@/utils/roleApiError";
 import { seedUserRoleListQueryCache, seedUserRoleQueryCache } from "../roleQueryCache";
 import { invalidateRoleAbilityCaches } from "./abilityMutationInvalidation";
@@ -95,6 +97,14 @@ function setRoleAvatarDetailCache(queryClient: QueryClient, avatar: RoleAvatar):
       ...avatar,
     },
   }));
+}
+
+function getRoleAvatarUrl(avatar?: Pick<RoleAvatar, "avatarFileId"> | null): string {
+  return buildAvatarUrl(avatar?.avatarFileId);
+}
+
+function getRoleAvatarThumbUrl(avatar?: Pick<RoleAvatar, "avatarFileId"> | null): string {
+  return buildAvatarThumbUrl(avatar?.avatarFileId);
 }
 
 function sortRoleAvatarsById<T extends { avatarId?: number }>(avatars: T[]): T[] {
@@ -163,8 +173,8 @@ export function seedRoleAvatarQueryCaches(queryClient: QueryClient, avatar: Role
   }
 
   if (resolvedRoleId) {
-    const avatarUrl = avatar.avatarUrl || ROLE_DEFAULT_AVATAR_URL;
-    const avatarThumbUrl = avatar.avatarThumbUrl || avatarUrl;
+    const avatarUrl = getRoleAvatarUrl(avatar) || ROLE_DEFAULT_AVATAR_URL;
+    const avatarThumbUrl = getRoleAvatarThumbUrl(avatar) || avatarUrl;
     queryClient.setQueryData(["roleAvatar", resolvedRoleId], {
       avatar: avatarUrl,
       avatarThumb: avatarThumbUrl,
@@ -566,8 +576,8 @@ export function useCopyRoleMutation() {
           const avatarRes = await fetchRoleAvatarWithCache(queryClient, copiedAvatarId);
           if (avatarRes?.success && avatarRes.data) {
             seedRoleAvatarQueryCaches(queryClient, avatarRes.data, copiedRole.roleId);
-            avatarUrl = avatarRes.data.avatarUrl || avatarUrl;
-            avatarThumb = avatarRes.data.avatarThumbUrl || avatarUrl;
+            avatarUrl = getRoleAvatarUrl(avatarRes.data) || avatarUrl;
+            avatarThumb = getRoleAvatarThumbUrl(avatarRes.data) || avatarUrl;
           }
         }
         catch (error) {
@@ -826,17 +836,7 @@ export function useApplyCropMutation() {
           type: 'image/png'
         });
 
-        // 使用UploadUtils上传图片，场景3表示角色差分
-        const { UploadUtils } = await import('../../app/utils/UploadUtils');
-        const uploadUtils = new UploadUtils();
-        const [newSpriteOriginalUrl, newSpriteUrl] = await Promise.all([
-          uploadUtils.uploadOriginalImg(croppedFile, 3),
-          uploadUtils.uploadImg(croppedFile, 3, {
-            maxWidthOrHeight: 2560,
-            quality: 0.9,
-          }),
-        ]);
-
+        const newSprite = await uploadMediaFile(croppedFile);
 
         // 直接使用传入的transform参数或默认值
         const finalTransform: Transform = transform || {
@@ -847,16 +847,12 @@ export function useApplyCropMutation() {
           rotation: 0
         };
 
-        // 使用新的spriteUrl和transform参数更新头像记录
+        // 使用新的 spriteFileId 和 transform 参数更新头像记录
         const updateRes = await tuanchat.avatarController.updateRoleAvatar({
+          ...currentAvatar,
           roleId: roleId,
           avatarId,
-          avatarUrl: currentAvatar.avatarUrl, // 保持原有的avatarUrl
-          avatarThumbUrl: currentAvatar.avatarThumbUrl,
-          spriteUrl: newSpriteUrl, // 使用新的spriteUrl
-          spriteOriginalUrl: newSpriteOriginalUrl,
-          avatarOriginalUrl: currentAvatar.avatarOriginalUrl,
-          originUrl: currentAvatar.originUrl,
+          spriteFileId: newSprite.fileId,
           spriteTransform: toSpriteTransformPayload(finalTransform),
         });
 
@@ -869,9 +865,7 @@ export function useApplyCropMutation() {
           ...currentAvatar,
           roleId,
           avatarId,
-          avatarUrl: currentAvatar.avatarUrl,
-          spriteUrl: newSpriteUrl,
-          spriteOriginalUrl: newSpriteOriginalUrl,
+          spriteFileId: newSprite.fileId,
           spriteTransform: toSpriteTransformPayload(finalTransform),
         };
         upsertRoleAvatarQueryCaches(queryClient, nextAvatar, roleId);
@@ -915,29 +909,14 @@ export function useApplyCropAvatarMutation() {
           type: 'image/png'
         });
 
-        // 使用UploadUtils上传图片，场景2表示头像
-        const { UploadUtils } = await import('../../app/utils/UploadUtils');
-        const uploadUtils = new UploadUtils();
-        const [newAvatarOriginalUrl, newAvatarUrl, newAvatarThumbUrl] = await Promise.all([
-          uploadUtils.uploadOriginalImg(croppedFile, 2),
-          uploadUtils.uploadImg(croppedFile, 2, {
-            maxWidthOrHeight: 2560,
-            quality: 0.9,
-          }),
-          uploadUtils.uploadImg(croppedFile, 2, {
-            maxWidthOrHeight: 128,
-            quality: 0.8,
-          }),
-        ]);
+        const newAvatar = await uploadMediaFile(croppedFile);
 
-
-        // 使用新的avatarUrl更新头像记录，保持原有的spriteUrl和Transform参数
+        // 使用新的 avatarFileId 更新头像记录，保留原有立绘与 Transform。
         const updateRes = await tuanchat.avatarController.updateRoleAvatar({
+          ...currentAvatar,
           roleId: roleId,
           avatarId,
-          avatarUrl: newAvatarUrl, // 使用新的avatarUrl
-          avatarThumbUrl: newAvatarThumbUrl,
-          avatarOriginalUrl: newAvatarOriginalUrl,
+          avatarFileId: newAvatar.fileId,
         });
 
         if (!updateRes.success) {
@@ -990,11 +969,9 @@ export function useUpdateAvatarTransformMutation() {
         // 直接使用transform参数
         const t = transform;
         const updateRes = await tuanchat.avatarController.updateRoleAvatar({
+          ...currentAvatar,
           roleId: roleId,
           avatarId,
-          avatarUrl: currentAvatar.avatarUrl,
-          avatarThumbUrl: currentAvatar.avatarThumbUrl,
-          spriteUrl: currentAvatar.spriteUrl,
           spriteTransform: toSpriteTransformPayload(t),
         });
 
@@ -1018,8 +995,6 @@ export function useUpdateAvatarTransformMutation() {
         ...variables.currentAvatar,
         roleId: variables.roleId,
         avatarId: variables.avatarId,
-        avatarUrl: variables.currentAvatar.avatarUrl,
-        spriteUrl: variables.currentAvatar.spriteUrl,
         spriteTransform: toSpriteTransformPayload(variables.transform),
       };
       upsertRoleAvatarQueryCaches(queryClient, nextAvatar, variables.roleId);
@@ -1035,36 +1010,28 @@ export function useUpdateAvatarTransformMutation() {
 export function useUploadAvatarMutation() {
   const queryClient = useQueryClient();
   return useMutation<ApiResultRoleAvatar | undefined, Error, {
-    avatarUrl: string;
-    avatarThumbUrl?: string;
-    spriteUrl: string;
+    avatarFileId?: number;
+    spriteFileId?: number;
     roleId: number;
-    avatarOriginalUrl?: string;
-    spriteOriginalUrl?: string;
-    originUrl?: string;
+    originFileId?: number;
     transform?: Transform;
     autoApply?: boolean;
     autoNameFirst?: boolean;
   }>({
     mutationKey: ["uploadAvatar"],
     mutationFn: async ({
-      avatarUrl,
-      avatarThumbUrl,
-      spriteUrl,
+      avatarFileId,
+      spriteFileId,
       roleId,
-      avatarOriginalUrl,
-      spriteOriginalUrl,
-      originUrl,
+      originFileId,
       transform,
       autoApply = true,
       autoNameFirst = false,
     }) => {
-      if (!avatarUrl || !roleId || !spriteUrl) {
-        console.error("参数错误：avatarUrl 或 roleId 为空");
+      if (!roleId) {
+        console.error("参数错误：roleId 为空");
         return undefined;
       }
-
-      const resolvedAvatarThumbUrl = avatarThumbUrl || avatarUrl;
 
       try {
         const res = await tuanchat.avatarController.setRoleAvatar({
@@ -1090,12 +1057,9 @@ export function useUploadAvatarMutation() {
           const uploadRes = await tuanchat.avatarController.updateRoleAvatar({
             roleId: roleId,
             avatarId,
-            avatarUrl,
-            avatarThumbUrl: resolvedAvatarThumbUrl,
-            spriteUrl,
-            avatarOriginalUrl,
-            spriteOriginalUrl,
-            originUrl,
+            avatarFileId,
+            spriteFileId,
+            originFileId,
             spriteTransform: toSpriteTransformPayload(t),
           });
           if (!uploadRes.success) {
@@ -1146,12 +1110,9 @@ export function useUploadAvatarMutation() {
           const nextAvatar: RoleAvatar = uploadRes.data ?? {
             roleId,
             avatarId,
-            avatarUrl,
-            avatarThumbUrl: resolvedAvatarThumbUrl,
-            spriteUrl,
-            avatarOriginalUrl,
-            spriteOriginalUrl,
-            originUrl,
+            avatarFileId,
+            spriteFileId,
+            originFileId,
             spriteTransform: toSpriteTransformPayload(t),
           };
           upsertRoleAvatarQueryCaches(queryClient, nextAvatar, roleId);
@@ -1249,7 +1210,7 @@ export function useRoleAvatarQuery(avatarId: number) {
           res.success
           && res.data !== null
         )
-          return res.data?.avatarUrl;
+          return getRoleAvatarUrl(res.data) || undefined;
       }
       catch (error) {
         console.error(`${avatarId} 的头像时出错`, error);
@@ -1273,7 +1234,7 @@ export function useRoleAvatars(roleId: number) {
           res.success
           && Array.isArray(res.data)
           && res.data.length > 0
-          && res.data[0]?.avatarUrl !== undefined
+          && res.data[0]?.avatarFileId !== undefined
         ) {
           return res.data;
         }

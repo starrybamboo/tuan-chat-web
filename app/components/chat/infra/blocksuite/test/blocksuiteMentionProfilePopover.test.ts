@@ -83,7 +83,7 @@ describe("blocksuiteMentionProfilePopover", () => {
         user: {
           userId: 12,
           username: "Alice",
-          avatar: "https://example.com/avatar.png",
+          avatarFileId: 12,
           description: "这是一个用户简介。",
           activeStatus: "1",
         },
@@ -109,7 +109,7 @@ describe("blocksuiteMentionProfilePopover", () => {
           userId: 1,
           roleName: "艾拉",
           description: "调查员角色",
-          avatarThumbUrl: "https://example.com/role.png",
+          avatarFileId: 34,
           type: 2,
         },
         isLoading: false,

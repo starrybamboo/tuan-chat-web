@@ -79,7 +79,7 @@ export function ResourceCollectionList({ type, isPublic, searchText: _searchText
       description: updatedCollection.description,
       isPublic: updatedCollection.isPublic,
       resourceListType: updatedCollection.resourceListType,
-      coverImageUrl: updatedCollection.coverImageUrl,
+      coverFileId: updatedCollection.coverFileId,
     }, {
       onSuccess: () => {
         toast.success("收藏列表更新成功");

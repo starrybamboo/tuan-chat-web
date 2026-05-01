@@ -12,13 +12,13 @@ export type RoomDndMapResponse = {
      */
     roomId?: number;
     /**
-     * Map image url
+     * 地图图片媒体文件 ID
      */
-    mapImgUrl?: string;
+    mapFileId?: number;
     /**
-     * Original map image url
+     * 地图图片媒体类型
      */
-    originalMapImgUrl?: string;
+    mapMediaType?: string;
     /**
      * Grid rows
      */

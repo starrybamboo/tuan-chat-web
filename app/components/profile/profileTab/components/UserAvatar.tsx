@@ -1,8 +1,9 @@
 import type { UserInfoResponse } from "../../../../../api";
-import React, { useRef, useState } from "react";
+import React, { useState } from "react";
 
 import { ImgUploaderWithCopper } from "@/components/common/uploader/imgUploaderWithCropper";
 import UserStatusDot from "@/components/common/userStatusBadge.jsx";
+import { avatarThumbUrl } from "@/utils/mediaUrl";
 
 interface UserAvatarProps {
   user: UserInfoResponse | undefined;
@@ -10,7 +11,7 @@ interface UserAvatarProps {
   loginUserId: number;
   isLoading: boolean;
   size?: "sm" | "lg";
-  onAvatarUpdate: (payload: { avatarUrl: string; originalAvatarUrl?: string }) => void;
+  onAvatarUpdate: (payload: { avatarFileId: number }) => void;
 }
 
 export const UserAvatar: React.FC<UserAvatarProps> = ({
@@ -23,7 +24,6 @@ export const UserAvatar: React.FC<UserAvatarProps> = ({
 }) => {
   const [imageError, setImageError] = useState(false);
   const [imageLoading, setImageLoading] = useState(false);
-  const latestOriginalAvatarRef = useRef("");
 
   // 处理图片加载错误
   const handleImageError = () => {
@@ -73,13 +73,14 @@ export const UserAvatar: React.FC<UserAvatarProps> = ({
   // 渲染头像图片内容（不包含交互层）
   const renderAvatarImage = () => {
     // 修改：优化渲染逻辑
-    const hasAvatar = user.avatar && !imageError;
+    const avatarSrc = avatarThumbUrl(user.avatarFileId);
+    const hasAvatar = avatarSrc && !imageError;
 
     if (hasAvatar) {
       return (
         <div className="relative w-full h-full">
           <img
-            src={user.avatar}
+            src={avatarSrc}
             alt={user?.username}
             className={`object-cover transition-all duration-300 ${
               canEdit ? "group-hover:brightness-75" : ""
@@ -127,16 +128,10 @@ export const UserAvatar: React.FC<UserAvatarProps> = ({
         {canEdit
           ? (
               <ImgUploaderWithCopper
-                setOriginalDownloadUrl={(url) => {
-                  latestOriginalAvatarRef.current = url;
-                }}
-                setCopperedDownloadUrl={(url) => {
-                  const originalAvatarUrl = latestOriginalAvatarRef.current || url;
-                  latestOriginalAvatarRef.current = "";
-                  onAvatarUpdate({
-                    avatarUrl: url,
-                    originalAvatarUrl,
-                  });
+                mutate={(payload) => {
+                  if (payload?.avatarFileId) {
+                    onAvatarUpdate({ avatarFileId: payload.avatarFileId });
+                  }
                 }}
                 fileName={`userId-${user?.userId}`}
                 aspect={1}

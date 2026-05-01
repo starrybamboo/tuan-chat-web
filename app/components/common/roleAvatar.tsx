@@ -6,6 +6,7 @@ import { RoleDetailPagePopup } from "@/components/common/roleDetailPagePopup";
 import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
 import { ROLE_DEFAULT_AVATAR_URL } from "@/constants/defaultAvatar";
 import { getScreenSize } from "@/utils/getScreenSize";
+import { avatarThumbUrl as buildAvatarThumbUrl, avatarUrl as buildAvatarUrl } from "@/utils/mediaUrl";
 import {
   useGetRoleAvatarQuery,
   useGetRoleAvatarsQuery,
@@ -93,8 +94,8 @@ export default function RoleAvatarComponent({
   const fallbackAvatar = shouldUseFallback ? fallbackAvatarsQuery.data?.data?.[0] : undefined;
   const defaultAvatarUrl = (hasExplicitAvatarId || useDefaultAvatarFallback) ? ROLE_DEFAULT_AVATAR_URL : "";
   const fetchedAvatarUrl = hasExplicitAvatarId
-    ? (roleAvatar?.avatarThumbUrl || roleAvatar?.avatarUrl)
-    : (fallbackAvatar?.avatarThumbUrl || fallbackAvatar?.avatarUrl);
+    ? (buildAvatarThumbUrl(roleAvatar?.avatarFileId) || buildAvatarUrl(roleAvatar?.avatarFileId))
+    : (buildAvatarThumbUrl(fallbackAvatar?.avatarFileId) || buildAvatarUrl(fallbackAvatar?.avatarFileId));
   const displayAvatarUrl = providedAvatarThumbUrl || providedAvatarUrl || fetchedAvatarUrl || defaultAvatarUrl;
   const roleIdTrue = roleId ?? roleAvatar?.roleId ?? fallbackAvatar?.roleId;
   const hasAvatar = Boolean(displayAvatarUrl);

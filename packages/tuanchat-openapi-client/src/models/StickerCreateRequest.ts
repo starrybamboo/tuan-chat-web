@@ -8,13 +8,9 @@ export type StickerCreateRequest = {
      */
     name: string;
     /**
-     * 图片URL
+     * 表情图片媒体文件 ID
      */
-    imageUrl: string;
-    /**
-     * 原图URL
-     */
-    originalImageUrl?: string;
+    fileId: number;
     /**
      * 文件大小(bytes)
      */

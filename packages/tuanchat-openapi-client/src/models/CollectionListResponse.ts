@@ -19,13 +19,13 @@ export type CollectionListResponse = {
      */
     username?: string;
     /**
-     * 头像 URL
+     * 头像媒体文件 ID
      */
-    avatar?: string;
+    avatarFileId?: number;
     /**
-     * 头像缩略图 URL
+     * 头像媒体类型
      */
-    avatarThumbUrl?: string;
+    avatarMediaType?: string;
     /**
      * 列表名称
      */
@@ -43,13 +43,13 @@ export type CollectionListResponse = {
      */
     resourceListType?: string;
     /**
-     * 列表封面图片
+     * 列表封面媒体文件 ID
      */
-    coverImageUrl?: string;
+    coverFileId?: number;
     /**
-     * 列表封面原图
+     * 列表封面媒体类型
      */
-    originalCoverImageUrl?: string;
+    coverMediaType?: string;
     /**
      * 创建时间
      */

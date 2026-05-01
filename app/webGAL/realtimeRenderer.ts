@@ -27,6 +27,7 @@ import {
 import { isFigurePosition, MESSAGE_TYPE } from "@/types/voiceRenderTypes";
 import { buildWebgalChooseScriptLines, extractWebgalChoosePayload } from "@/types/webgalChoose";
 import { extractWebgalDicePayload, isLikelyAnkoDiceContent, isLikelyTrpgDiceContent } from "@/types/webgalDice";
+import { avatarOriginalUrl, avatarThumbUrl, avatarUrl as buildAvatarUrl, imageHighUrl, imageOriginalUrl } from "@/utils/mediaUrl";
 import { checkGameExist, getTerreApis } from "@/webGAL/index";
 import { getTerreBaseUrl, getTerreWsUrl } from "@/webGAL/terreConfig";
 
@@ -141,6 +142,25 @@ const REALTIME_RENDERER_INIT_ABORT_ERROR = "__tc_realtime_init_aborted__";
 const DEFAULT_TYPING_SOUND_SE_FILE = "select07.mp3";
 const BLACK_TEMPLATE_DIR = "WebGAL Black";
 const BLACK_TEMPLATE_ID = "805c5f5a-8f52-461f-8931-613676d6a086";
+
+function resolveRoleSpriteUrl(avatar: RoleAvatar | undefined): string {
+  if (!avatar) {
+    return "";
+  }
+    return imageHighUrl(avatar.spriteFileId)
+    || imageOriginalUrl(avatar.spriteFileId)
+    || buildAvatarUrl(avatar.avatarFileId)
+    || avatarOriginalUrl(avatar.avatarFileId);
+}
+
+function resolveRoleMiniAvatarUrl(avatar: RoleAvatar | undefined): string {
+  if (!avatar) {
+    return "";
+  }
+  return avatarThumbUrl(avatar.avatarFileId)
+    || buildAvatarUrl(avatar.avatarFileId)
+    || avatarOriginalUrl(avatar.avatarFileId);
+}
 
 type RenderMessageOptions = {
   bypassDiceMerge?: boolean;
@@ -639,7 +659,7 @@ export class RealtimeRenderer {
       if (!avatar) {
         continue;
       }
-      const spriteUrl = avatar.spriteUrl || avatar.avatarUrl;
+      const spriteUrl = resolveRoleSpriteUrl(avatar);
       const targetKey = buildRoleAvatarCacheKey(roleId, avatarId);
       if (spriteUrl && !seenSpriteTargets.has(targetKey) && !this.uploadedSpritesMap.has(targetKey)) {
         seenSpriteTargets.add(targetKey);
@@ -653,7 +673,7 @@ export class RealtimeRenderer {
         });
       }
 
-      if (this.miniAvatarEnabled && avatar.avatarUrl && !seenMiniAvatarTargets.has(targetKey) && !this.uploadedMiniAvatarsMap.has(targetKey)) {
+      if (this.miniAvatarEnabled && resolveRoleMiniAvatarUrl(avatar) && !seenMiniAvatarTargets.has(targetKey) && !this.uploadedMiniAvatarsMap.has(targetKey)) {
         seenMiniAvatarTargets.add(targetKey);
         preloadTasks.push({
           kind: "mini-avatar",
@@ -837,7 +857,7 @@ export class RealtimeRenderer {
     upsertGameConfigEntry(configEntries, "TypingSoundInterval", String(typingSoundInterval));
     upsertGameConfigEntry(configEntries, "TypingSoundPunctuationPause", String(typingSoundPunctuationPause));
 
-    const avatarUrl = String(primaryRoom?.originalAvatar ?? primaryRoom?.avatar ?? "").trim();
+    const avatarUrl = avatarOriginalUrl(primaryRoom?.avatarFileId) || buildAvatarUrl(primaryRoom?.avatarFileId);
     const titleImageUrl = String(this.gameConfig.titleImageUrl ?? "").trim();
     const originalTitleImageUrl = String(this.gameConfig.originalTitleImageUrl ?? this.gameConfig.titleImageUrl ?? "").trim();
     const startupLogoUrl = String(this.gameConfig.startupLogoUrl ?? "").trim();

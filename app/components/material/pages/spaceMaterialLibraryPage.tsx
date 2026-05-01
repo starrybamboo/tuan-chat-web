@@ -129,6 +129,7 @@ export default function SpaceMaterialLibraryPage({
   const handleCreate = async (draft: {
     name: string;
     description: string;
+    coverFileId?: number;
     coverUrl: string;
     originalCoverUrl: string;
     isPublic: boolean;
@@ -138,8 +139,7 @@ export default function SpaceMaterialLibraryPage({
       spaceId,
       name: draft.name,
       description: draft.description,
-      coverUrl: draft.coverUrl,
-      originalCoverUrl: draft.originalCoverUrl,
+      coverFileId: draft.coverFileId,
       content: draft.content,
     });
     toast.success("局内素材包已创建");
@@ -150,6 +150,7 @@ export default function SpaceMaterialLibraryPage({
   const handleUpdate = async (draft: {
     name: string;
     description: string;
+    coverFileId?: number;
     coverUrl: string;
     originalCoverUrl: string;
     isPublic: boolean;
@@ -164,8 +165,7 @@ export default function SpaceMaterialLibraryPage({
       spaceId,
       name: draft.name,
       description: draft.description,
-      coverUrl: draft.coverUrl,
-      originalCoverUrl: draft.originalCoverUrl,
+      coverFileId: draft.coverFileId,
       content: draft.content,
     });
   };

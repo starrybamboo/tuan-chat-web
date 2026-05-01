@@ -5,6 +5,7 @@ import checkBack from "@/components/common/autoContrastText";
 import { MemberSelect } from "@/components/common/memberSelect";
 import { ImgUploaderWithCopper } from "@/components/common/uploader/imgUploaderWithCropper";
 import { useGlobalUserId } from "@/components/globalContextProvider";
+import { avatarThumbUrl } from "@/utils/mediaUrl";
 
 interface CreateRoomWindowProps {
   spaceId: number;
@@ -22,17 +23,16 @@ export default function CreateRoomWindow({ spaceId, spaceAvatarThumbUrl, onSucce
   const createRoomMutation = useCreateRoomMutation(spaceId);
   const getSpaceInfo = useGetSpaceInfoQuery(spaceId);
   const spaceInfo = getSpaceInfo.data?.data;
-  const defaultRoomAvatar = String(spaceInfo?.avatarThumbUrl ?? spaceInfo?.avatar ?? spaceAvatarThumbUrl ?? "");
-  const defaultRoomOriginalAvatar = String(spaceInfo?.originalAvatar ?? spaceInfo?.avatar ?? spaceInfo?.avatarThumbUrl ?? spaceAvatarThumbUrl ?? "");
+  const defaultRoomAvatarFileId = spaceInfo?.avatarFileId;
+  const defaultRoomAvatar = avatarThumbUrl(defaultRoomAvatarFileId) || spaceAvatarThumbUrl || "";
   const defaultRoomName = userInfo?.username ? `${String(userInfo.username)}的房间` : "";
 
   // 创建房间的头像
   const [roomAvatarDraft, setRoomAvatarDraft] = useState<string | null>(null);
-  const [roomOriginalAvatarDraft, setRoomOriginalAvatarDraft] = useState<string | null>(null);
+  const [roomAvatarFileIdDraft, setRoomAvatarFileIdDraft] = useState<number | undefined>();
   // 创建房间的名称
   const [roomNameDraft, setRoomNameDraft] = useState<string | null>(null);
   const roomAvatar = roomAvatarDraft ?? defaultRoomAvatar;
-  const roomOriginalAvatar = roomOriginalAvatarDraft ?? defaultRoomOriginalAvatar;
   const roomName = roomNameDraft ?? defaultRoomName;
 
   // 房间头像文字颜色
@@ -64,9 +64,7 @@ export default function CreateRoomWindow({ spaceId, spaceAvatarThumbUrl, onSucce
   async function createRoom(spaceId: number, userIds: number[]) {
     createRoomMutation.mutate({
       spaceId,
-      avatar: roomAvatar,
-      avatarThumbUrl: roomAvatar,
-      originalAvatar: roomOriginalAvatar || roomAvatar,
+      avatarFileId: roomAvatarFileIdDraft ?? defaultRoomAvatarFileId,
       roomName,
       userIdList: userIds,
     }, {
@@ -85,11 +83,13 @@ export default function CreateRoomWindow({ spaceId, spaceAvatarThumbUrl, onSucce
       {/* 头像上传 */}
       <div className="flex justify-center mb-6">
         <ImgUploaderWithCopper
-          setOriginalDownloadUrl={(url) => {
-            setRoomOriginalAvatarDraft(url);
-          }}
           setCopperedDownloadUrl={(url) => {
             setRoomAvatarDraft(url);
+          }}
+          mutate={(payload) => {
+            if (typeof payload?.avatarFileId === "number") {
+              setRoomAvatarFileIdDraft(payload.avatarFileId);
+            }
           }}
           fileName={`new-room-avatar-${roomAvatarUploadId}`}
           aspect={1}

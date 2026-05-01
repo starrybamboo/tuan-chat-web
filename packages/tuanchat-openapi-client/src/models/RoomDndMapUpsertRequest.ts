@@ -8,13 +8,9 @@ export type RoomDndMapUpsertRequest = {
      */
     roomId: number;
     /**
-     * Map image url
+     * 地图图片媒体文件 ID
      */
-    mapImgUrl?: string;
-    /**
-     * Original map image url
-     */
-    originalMapImgUrl?: string;
+    mapFileId?: number;
     /**
      * Grid rows
      */

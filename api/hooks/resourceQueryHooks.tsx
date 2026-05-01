@@ -81,7 +81,7 @@ export function useUploadResourceMutation() {
                 const optimisticResource = {
                     resourceId: Date.now(), // 临时ID
                     name: newResource.name,
-                    url: newResource.url,
+                    fileId: newResource.fileId,
                     type: newResource.type,
                     isPublic: newResource.isPublic,
                     isAi: newResource.isAi || false,
@@ -343,7 +343,7 @@ export function useCreateResourceCollectionMutation() {
                     description: newCollection.description,
                     isPublic: newCollection.isPublic,
                     createTime: new Date().toISOString(),
-                    coverImageUrl: newCollection.coverImageUrl,
+                    coverFileId: newCollection.coverFileId,
                     isCreating: true // 标记为正在创建
                 };
                 

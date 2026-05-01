@@ -15,17 +15,9 @@ export type SpaceUpdateRequest = {
      */
     name?: string;
     /**
-     * 空间头像
+     * 空间头像媒体文件 ID
      */
-    avatar?: string;
-    /**
-     * 空间头像缩略图的url
-     */
-    avatarThumbUrl?: string;
-    /**
-     * 空间头像原图
-     */
-    originalAvatar?: string;
+    avatarFileId?: number;
     /**
      * 空间描述
      */

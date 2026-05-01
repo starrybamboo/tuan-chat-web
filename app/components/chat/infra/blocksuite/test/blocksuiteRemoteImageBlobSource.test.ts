@@ -84,6 +84,7 @@ describe("blocksuiteRemoteImageBlobSource", () => {
     expect(await (await source.get("image-key=="))?.text()).toBe("png");
     expect(getUploadUrlMock).toHaveBeenCalledWith({
       fileName: buildBlocksuiteRemoteImageFileName("image-key=="),
+      contentType: "image/png",
       scene: 1,
       dedupCheck: true,
     });

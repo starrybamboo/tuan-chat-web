@@ -59,9 +59,7 @@ export default function RoomDescriptionDropdown({ room }: RoomDescriptionDropdow
       await updateRoomMutation.mutateAsync({
         roomId,
         name: room?.name,
-        avatar: room?.avatarThumbUrl ?? room?.avatar,
-        avatarThumbUrl: room?.avatarThumbUrl ?? room?.avatar,
-        originalAvatar: room?.originalAvatar ?? room?.avatar ?? room?.avatarThumbUrl,
+        avatarFileId: room?.avatarFileId,
         description: draft,
       });
       toast.success("房间描述已保存");

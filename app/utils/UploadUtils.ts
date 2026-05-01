@@ -7,6 +7,7 @@ import { isAudioUploadDebugEnabled } from "@/utils/audioDebugFlags";
 import { transcodeAudioFileToOpusOrThrow } from "@/utils/audioTranscodeUtils";
 import { assertAudioUploadInputSizeOrThrow, buildDefaultAudioUploadTranscodeOptions } from "@/utils/audioUploadPolicy";
 import { compressImage, DEFAULT_IMAGE_COMPRESSION_OPTIONS, IMAGE_COMPRESSION_PRESETS } from "@/utils/imgCompressUtils";
+import { inferMediaTypeFromMimeType, normalizeFileMimeType } from "@/utils/mediaMime";
 import { resolveOssUploadTarget } from "@/utils/ossUploadTarget";
 import { transcodeVideoFileToWebmOrThrow } from "@/utils/videoTranscodeUtils";
 
@@ -135,7 +136,7 @@ export class UploadUtils {
       mpeg: "video/mpeg",
     };
 
-    if (file.type.startsWith("video/")) {
+    if (inferMediaTypeFromMimeType(file.type) === "video") {
       return file;
     }
 
@@ -220,27 +221,28 @@ export class UploadUtils {
     file: File,
     options: ImageCompressionOptions = DEFAULT_IMAGE_COMPRESSION_OPTIONS,
   ): Promise<PreparedImagePayload> {
+    const normalizedFile = await normalizeFileMimeType(file, { expectedMediaType: "image" });
     const prepareKey = UploadUtils.buildImagePrepareKey(options);
     return await UploadUtils.getOrCreateNestedPromise(
       UploadUtils.imagePrepareCache,
       file,
       prepareKey,
       async () => {
-        let processedFile = file;
-        const originalSize = file.size;
+        let processedFile = normalizedFile;
+        const originalSize = normalizedFile.size;
 
-        const isGif = await this.isGifFile(file);
-        if (file.type.startsWith("image/")) {
+        const isGif = await this.isGifFile(normalizedFile);
+        if (normalizedFile.type.startsWith("image/")) {
           if (isGif) {
-            console.warn(`[图片上传] GIF 文件跳过压缩: ${file.name} (${(originalSize / 1024).toFixed(2)} KB)`);
-            processedFile = file;
+            console.warn(`[图片上传] GIF 文件跳过压缩: ${normalizedFile.name} (${(originalSize / 1024).toFixed(2)} KB)`);
+            processedFile = normalizedFile;
           }
           else {
-            processedFile = await compressImage(file, options);
+            processedFile = await compressImage(normalizedFile, options);
             const compressedSize = processedFile.size;
             const compressionRatio = Number.parseFloat(((1 - compressedSize / originalSize) * 100).toFixed(1));
             console.warn(
-              `[图片上传] 压缩完成: ${file.name}\n`
+              `[图片上传] 压缩完成: ${normalizedFile.name}\n`
               + `  原始大小: ${(originalSize / 1024).toFixed(2)} KB\n`
               + `  压缩后: ${(compressedSize / 1024).toFixed(2)} KB\n`
               + `  压缩率: ${compressionRatio}% ${compressionRatio > 0 ? "✅" : "⚠️"}`,
@@ -255,12 +257,13 @@ export class UploadUtils {
 
   private async prepareVideoForUpload(file: File): Promise<File> {
     return await UploadUtils.getOrCreatePromise(UploadUtils.videoPrepareCache, file, async () => {
-      const normalizedVideoFile = this.normalizeVideoInputFileOrThrow(file);
+      const normalizedVideoFile = await normalizeFileMimeType(file, { expectedMediaType: "video" });
+      const ensuredVideoFile = this.normalizeVideoInputFileOrThrow(normalizedVideoFile);
       // 小体积常见格式优先直传，避免浏览器 ffmpeg.wasm 内存峰值导致 OOM。
-      if (this.shouldBypassVideoTranscode(normalizedVideoFile)) {
-        return normalizedVideoFile;
+      if (this.shouldBypassVideoTranscode(ensuredVideoFile)) {
+        return ensuredVideoFile;
       }
-      return await transcodeVideoFileToWebmOrThrow(normalizedVideoFile, {
+      return await transcodeVideoFileToWebmOrThrow(ensuredVideoFile, {
         maxHeight: 1080,
         maxFps: 30,
         crf: 34,
@@ -269,11 +272,12 @@ export class UploadUtils {
   }
 
   private async prepareAudioForUpload(file: File, maxDuration = 30): Promise<File> {
-    if (!file.type.startsWith("audio/")) {
+    const normalizedFile = await normalizeFileMimeType(file, { expectedMediaType: "audio" });
+    if (inferMediaTypeFromMimeType(normalizedFile.type) !== "audio") {
       throw new Error("只支持音频文件格式");
     }
 
-    assertAudioUploadInputSizeOrThrow(file.size);
+    assertAudioUploadInputSizeOrThrow(normalizedFile.size);
     const normalizedMaxDuration = UploadUtils.normalizeAudioMaxDuration(maxDuration);
     const prepareKey = UploadUtils.buildAudioPrepareKey(normalizedMaxDuration);
 
@@ -286,15 +290,15 @@ export class UploadUtils {
         const debugPrefix = "[tc-audio-upload]";
         if (debugEnabled) {
           console.warn(`${debugPrefix} UploadUtils.uploadAudio input`, {
-            name: file.name,
-            type: file.type,
-            size: file.size,
+            name: normalizedFile.name,
+            type: normalizedFile.type,
+            size: normalizedFile.size,
             maxDuration: normalizedMaxDuration > 0 ? normalizedMaxDuration : null,
           });
         }
 
-        const transcodeOptions = buildDefaultAudioUploadTranscodeOptions(file.size, normalizedMaxDuration);
-        const processedFile = await transcodeAudioFileToOpusOrThrow(file, transcodeOptions);
+        const transcodeOptions = buildDefaultAudioUploadTranscodeOptions(normalizedFile.size, normalizedMaxDuration);
+        const processedFile = await transcodeAudioFileToOpusOrThrow(normalizedFile, transcodeOptions);
         if (debugEnabled) {
           console.warn(`${debugPrefix} processed`, {
             name: processedFile.name,
@@ -339,17 +343,18 @@ export class UploadUtils {
    */
   async uploadAudio(file: File, scene: 1 | 2 | 3 | 4 = 1, maxDuration = 30): Promise<string> {
     // 检查文件类型
-    if (!file.type.startsWith("audio/")) {
+    const normalizedInput = await normalizeFileMimeType(file, { expectedMediaType: "audio" });
+    if (inferMediaTypeFromMimeType(normalizedInput.type) !== "audio") {
       throw new Error("只支持音频文件格式");
     }
 
     const debugEnabled = isAudioUploadDebugEnabled();
     const debugPrefix = "[tc-audio-upload]";
-    const processedFile = await this.prepareAudioForUpload(file, maxDuration);
+    const processedFile = await this.prepareAudioForUpload(normalizedInput, maxDuration);
     if (debugEnabled) {
       console.warn(`${debugPrefix} upload prepared file`, {
         scene,
-        input: { name: file.name, size: file.size, type: file.type },
+        input: { name: normalizedInput.name, size: normalizedInput.size, type: normalizedInput.type },
         prepared: { name: processedFile.name, size: processedFile.size, type: processedFile.type },
       });
     }
@@ -368,6 +373,7 @@ export class UploadUtils {
 
     const ossData = await tuanchat.ossController.getUploadUrl({
       fileName: newFileName,
+      contentType: processedFile.type || "application/octet-stream",
       scene,
       dedupCheck: true,
     });
@@ -402,19 +408,21 @@ export class UploadUtils {
    * - 用于“语音参考文件”等不适合被统一转码的场景
    */
   async uploadAudioOriginal(file: File, scene: 1 | 2 | 3 | 4 = 1): Promise<string> {
-    if (!file.type.startsWith("audio/")) {
+    const normalizedInput = await normalizeFileMimeType(file, { expectedMediaType: "audio" });
+    if (inferMediaTypeFromMimeType(normalizedInput.type) !== "audio") {
       throw new Error("只支持音频文件格式");
     }
 
-    assertAudioUploadInputSizeOrThrow(file.size);
+    assertAudioUploadInputSizeOrThrow(normalizedInput.size);
 
-    const hash = await this.calculateFileHash(file);
-    const fileSize = file.size;
-    const extension = this.getAudioExtension(file);
+    const hash = await this.calculateFileHash(normalizedInput);
+    const fileSize = normalizedInput.size;
+    const extension = this.getAudioExtension(normalizedInput);
     const newFileName = `${hash}_${fileSize}.${extension}`;
 
     const ossData = await tuanchat.ossController.getUploadUrl({
       fileName: newFileName,
+      contentType: normalizedInput.type || "application/octet-stream",
       scene,
       dedupCheck: true,
     });
@@ -424,7 +432,7 @@ export class UploadUtils {
     }
 
     if (ossData.data.uploadUrl) {
-      await this.executeUpload(ossData.data.uploadUrl, file, ossData.data.uploadHeaders);
+      await this.executeUpload(ossData.data.uploadUrl, normalizedInput, ossData.data.uploadHeaders);
     }
 
     return ossData.data.downloadUrl;
@@ -439,7 +447,8 @@ export class UploadUtils {
     file: File,
     scene: 1 | 2 | 3 | 4 = 1,
   ): Promise<{ url: string; fileName: string; size: number }> {
-    const normalizedVideoFile = this.normalizeVideoInputFileOrThrow(file);
+    const normalizedInput = await normalizeFileMimeType(file, { expectedMediaType: "video" });
+    const normalizedVideoFile = this.normalizeVideoInputFileOrThrow(normalizedInput);
 
     let uploadCandidate = normalizedVideoFile;
     try {
@@ -466,6 +475,7 @@ export class UploadUtils {
 
     const ossData = await tuanchat.ossController.getUploadUrl({
       fileName: newFileName,
+      contentType: uploadCandidate.type || "application/octet-stream",
       scene,
       dedupCheck: true,
     });
@@ -489,14 +499,16 @@ export class UploadUtils {
    * 上传通用文件（用于聊天文件消息）
    */
   async uploadFile(file: File, scene: 1 | 2 | 3 | 4 = 1): Promise<string> {
-    const hash = await this.calculateFileHash(file);
-    const fileSize = file.size;
-    const extensionMatch = (file.name || "").toLowerCase().match(/\.([a-z0-9]+)$/);
+    const normalizedFile = await normalizeFileMimeType(file);
+    const hash = await this.calculateFileHash(normalizedFile);
+    const fileSize = normalizedFile.size;
+    const extensionMatch = (normalizedFile.name || "").toLowerCase().match(/\.([a-z0-9]+)$/);
     const extension = extensionMatch?.[1] || "bin";
     const newFileName = `${hash}_${fileSize}.${extension}`;
 
     const ossData = await tuanchat.ossController.getUploadUrl({
       fileName: newFileName,
+      contentType: normalizedFile.type || "application/octet-stream",
       scene,
       dedupCheck: true,
     });
@@ -506,7 +518,7 @@ export class UploadUtils {
     }
 
     if (ossData.data.uploadUrl) {
-      await this.executeUpload(ossData.data.uploadUrl, file, ossData.data.uploadHeaders);
+      await this.executeUpload(ossData.data.uploadUrl, normalizedFile, ossData.data.uploadHeaders);
     }
 
     return ossData.data.downloadUrl;
@@ -537,13 +549,15 @@ export class UploadUtils {
   }
 
   private async uploadImageFileCandidate(file: File, scene: 1 | 2 | 3 | 4 = 1, isGif = false): Promise<string> {
-    const hash = await this.calculateFileHash(file);
-    const fileSize = file.size;
-    const extension = this.getImageExtension(file, isGif);
+    const normalizedFile = await normalizeFileMimeType(file, { expectedMediaType: "image" });
+    const hash = await this.calculateFileHash(normalizedFile);
+    const fileSize = normalizedFile.size;
+    const extension = this.getImageExtension(normalizedFile, isGif);
     const newFileName = `${hash}_${fileSize}.${extension}`;
 
     const ossData = await tuanchat.ossController.getUploadUrl({
       fileName: newFileName,
+      contentType: normalizedFile.type || "application/octet-stream",
       scene,
       dedupCheck: true,
     });
@@ -553,7 +567,7 @@ export class UploadUtils {
     }
 
     if (ossData.data.uploadUrl) {
-      await this.executeUpload(ossData.data.uploadUrl, file, ossData.data.uploadHeaders);
+      await this.executeUpload(ossData.data.uploadUrl, normalizedFile, ossData.data.uploadHeaders);
     }
 
     return ossData.data.downloadUrl;

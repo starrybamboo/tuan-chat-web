@@ -344,7 +344,7 @@ export function useRepositoryDetailByIdQuery(repositoryId: number) {
 function useUploadRepositoryRoleAvatarMutation() {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: async ({ avatarUrl, spriteUrl, id }: { avatarUrl: string; spriteUrl: string; id: number }) => {
+        mutationFn: async ({ avatarFileId, spriteFileId, id }: { avatarFileId?: number; spriteFileId?: number; id: number }) => {
             const res = await tuanchat.avatarController.setRoleAvatar({});
             if (!res.success || !res.data) {
                 console.error("头像创建失败", res);
@@ -353,8 +353,8 @@ function useUploadRepositoryRoleAvatarMutation() {
             const avatarId = res.data;
             const updateRes = await tuanchat.avatarController.updateRoleAvatar({
                 avatarId,
-                avatarUrl,
-                spriteUrl
+                avatarFileId,
+                spriteFileId,
             });
             if (updateRes?.data) {
                 queryClient.setQueryData(["getRoleAvatar", avatarId], updateRes);

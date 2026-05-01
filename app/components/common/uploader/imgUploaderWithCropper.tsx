@@ -11,7 +11,8 @@ import { ReactCrop } from "react-image-crop";
 import { useScreenSize } from "@/components/common/customHooks/useScreenSize";
 import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
 import { canvasPreview, createCenteredAspectCrop, getCroppedImageFile, useDebounceEffect } from "@/utils/imgCropper";
-import { UploadUtils } from "@/utils/UploadUtils";
+import { uploadMediaFile } from "@/utils/mediaUpload";
+import { imageHighUrl, imageLowUrl, imageMediumUrl, imageOriginalUrl } from "@/utils/mediaUrl";
 import "react-image-crop/dist/ReactCrop.css";
 
 // 原先强制 1:1，现在改成自由裁剪：初始化给一个居中稍大的默认矩形（不锁定比例）
@@ -45,6 +46,16 @@ interface ImgUploaderWithCopperProps {
   aspect?: number;
 }
 
+function imageUrlByPreset(fileId: number | undefined, preset?: ImageCompressionPreset) {
+  if (!fileId)
+    return "";
+  if (preset === "avatarThumb" || preset === "smallThumbnail")
+    return imageLowUrl(fileId);
+  if (preset === "contentImage" || preset === "hdCover" || preset === "videoCover")
+    return imageHighUrl(fileId);
+  return imageMediumUrl(fileId);
+}
+
 /**
  * 图片上传组件，带裁剪
  * @param {object} props 组件属性
@@ -69,7 +80,6 @@ export function ImgUploaderWithCopper({
   aspect,
 }: ImgUploaderWithCopperProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const uploadUtils = new UploadUtils();
   // 控制弹窗的显示与隐藏
   const [isOpen, setIsOpen] = useState(false);
 
@@ -223,33 +233,39 @@ export function ImgUploaderWithCopper({
       let downloadUrl = "";
       let originalDownloadUrl = "";
       let copperedDownloadUrl = "";
+      let originalFileId: number | undefined;
+      let displayFileId: number | undefined;
+      let copperedFileId: number | undefined;
       if (setOriginalDownloadUrl) {
-        const uploadedImage = await uploadUtils.uploadDualImage(fileWithNewName);
-        originalDownloadUrl = uploadedImage.originalUrl;
+        originalFileId = (await uploadMediaFile(fileWithNewName)).fileId;
+        originalDownloadUrl = imageOriginalUrl(originalFileId);
         setOriginalDownloadUrl(originalDownloadUrl);
       }
       if (setDownloadUrl) {
-        if (originalDownloadUrl) {
-          downloadUrl = originalDownloadUrl;
+        if (originalFileId) {
+          displayFileId = originalFileId;
         }
         else {
-          downloadUrl = await uploadUtils.uploadImg(fileWithNewName);
+          displayFileId = (await uploadMediaFile(fileWithNewName)).fileId;
         }
+        downloadUrl = imageHighUrl(displayFileId);
         setDownloadUrl(downloadUrl);
       }
-      if (setCopperedDownloadUrl) {
+      if (setCopperedDownloadUrl || mutate) {
         const copperedImgFile = await getCopperedImg();
         setStatusMessage("上传裁剪后图片中...");
-        copperedDownloadUrl = copperedCompressionPreset
-          ? await uploadUtils.uploadImgByPreset(copperedImgFile, copperedCompressionPreset, 2)
-          : await uploadUtils.uploadImg(copperedImgFile, 2, {
-              maxWidthOrHeight: 768,
-              quality: 0.7,
-            });
-        setCopperedDownloadUrl(copperedDownloadUrl);
+        copperedFileId = (await uploadMediaFile(copperedImgFile)).fileId;
+        copperedDownloadUrl = imageUrlByPreset(copperedFileId, copperedCompressionPreset);
+        setCopperedDownloadUrl?.(copperedDownloadUrl);
       }
       if (mutate !== undefined) {
-        mutate({ avatarUrl: copperedDownloadUrl, spriteUrl: downloadUrl });
+        mutate({
+          avatarFileId: copperedFileId,
+          spriteFileId: displayFileId,
+          originFileId: originalFileId,
+          avatarUrl: copperedDownloadUrl,
+          spriteUrl: downloadUrl,
+        });
       }
       setStatusMessage("上传完成");
     }
