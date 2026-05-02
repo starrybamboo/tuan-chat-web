@@ -6,6 +6,7 @@ const MEDIA_EXT: Partial<Record<MediaType, string>> = {
   video: "webm",
 };
 
+const DEFAULT_MEDIA_CDN_BASE_URL = "https://tuan.chat";
 const FALLBACK_MEDIA_TYPE: MediaType = "image";
 const MEDIA_FILE_URL_PATTERN = /^(?<prefix>.*?\/media\/v1\/files\/)(?<shard>\d{3})\/(?<fileId>\d+)(?:\/(?:(?<mediaType>image|audio|video)\/(?<quality>low|medium|high)\.[^/?#]+|original))(?:[?#].*)?$/;
 
@@ -14,7 +15,7 @@ function normalizeCdnBaseUrl() {
   if (envBase) {
     return envBase.replace(/\/$/, "");
   }
-  return "";
+  return DEFAULT_MEDIA_CDN_BASE_URL;
 }
 
 export function mediaShard(fileId: number | string) {
