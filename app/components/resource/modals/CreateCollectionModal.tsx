@@ -311,7 +311,7 @@ export function CreateCollectionModal({ isOpen, onClose, onSuccess, resourceType
                   <span>
                     此素材集将用于存储
                     {resourceType === "5"
-                      ? "ͼƬ"
+                      ? "图片"
                       : "音频"}
                     资源
                   </span>

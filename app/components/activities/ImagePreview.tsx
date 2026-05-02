@@ -1,5 +1,6 @@
 import React, { useCallback, useState } from "react";
 import { RotateLeftIcon, RotateRightIcon } from "@/icons";
+import { imageHighUrlFromUrl, imageMediumUrlFromUrl } from "@/utils/mediaUrl";
 
 interface ImagePreviewProps {
   images: string[];
@@ -87,7 +88,7 @@ const ImagePreview: React.FC<ImagePreviewProps> = ({
 
   // 放大模式
   if (enlargedIndex !== null) {
-    const currentImage = images[enlargedIndex];
+    const currentImage = imageHighUrlFromUrl(images[enlargedIndex]);
     const hasPrev = enlargedIndex > 0;
     const hasNext = enlargedIndex < images.length - 1;
 
@@ -101,7 +102,7 @@ const ImagePreview: React.FC<ImagePreviewProps> = ({
           <img
             key={`pic-${enlargedIndex}`}
             src={currentImage}
-            alt={`ͼƬ ${enlargedIndex + 1}`}
+            alt={`图片 ${enlargedIndex + 1}`}
             className="w-full h-full object-contain"
             style={{
               transform: `rotate(${rotation}deg)`,
@@ -176,8 +177,8 @@ const ImagePreview: React.FC<ImagePreviewProps> = ({
         {images.slice(0, maxPreview).map((img: string, idx: number) => (
           <div key={img} className="relative">
             <img
-              src={img}
-              alt={`ͼƬ ${idx + 1}`}
+              src={imageMediumUrlFromUrl(img)}
+              alt={`图片 ${idx + 1}`}
               className="w-full aspect-square object-cover rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
               onClick={() => handleImageClick(idx)}
             />

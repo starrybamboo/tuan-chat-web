@@ -7,6 +7,7 @@ const MEDIA_EXT: Partial<Record<MediaType, string>> = {
 };
 
 const FALLBACK_MEDIA_TYPE: MediaType = "image";
+const MEDIA_FILE_URL_PATTERN = /^(?<prefix>.*?\/media\/v1\/files\/)(?<shard>\d{3})\/(?<fileId>\d+)(?:\/(?:(?<mediaType>image|audio|video)\/(?<quality>low|medium|high)\.[^/?#]+|original))(?:[?#].*)?$/;
 
 function normalizeCdnBaseUrl() {
   const envBase = String(import.meta.env.VITE_MEDIA_CDN_BASE_URL ?? "").trim();
@@ -55,6 +56,33 @@ export function mediaFileUrl(
   return mediaUrl(fileId, normalizeMediaType(mediaType), quality);
 }
 
+export function mediaFileUrlWithQuality(
+  rawUrl: string | null | undefined,
+  mediaType: MediaType,
+  quality: MediaQuality,
+) {
+  const value = String(rawUrl ?? "").trim();
+  if (!value) {
+    return "";
+  }
+  const match = value.match(MEDIA_FILE_URL_PATTERN);
+  const groups = match?.groups;
+  if (!groups?.prefix || !groups.shard || !groups.fileId) {
+    return value;
+  }
+
+  const ext = MEDIA_EXT[mediaType];
+  const base = `${groups.prefix}${groups.shard}/${groups.fileId}`;
+  if (quality === "original" || !ext) {
+    return `${base}/original`;
+  }
+  return `${base}/${mediaType}/${quality}.${ext}`;
+}
+
+export function imageUrlWithQuality(rawUrl: string | null | undefined, quality: MediaQuality) {
+  return mediaFileUrlWithQuality(rawUrl, "image", quality);
+}
+
 export function mediaPreviewUrl(
   fileId: number | string | null | undefined,
   mediaType: string | null | undefined,
@@ -97,6 +125,10 @@ export const imageLowUrl = (fileId?: number | string | null) => mediaUrl(fileId,
 export const imageMediumUrl = (fileId?: number | string | null) => mediaUrl(fileId, "image", "medium");
 export const imageHighUrl = (fileId?: number | string | null) => mediaUrl(fileId, "image", "high");
 export const imageOriginalUrl = (fileId?: number | string | null) => mediaUrl(fileId, "image", "original");
+export const imageLowUrlFromUrl = (url?: string | null) => imageUrlWithQuality(url, "low");
+export const imageMediumUrlFromUrl = (url?: string | null) => imageUrlWithQuality(url, "medium");
+export const imageHighUrlFromUrl = (url?: string | null) => imageUrlWithQuality(url, "high");
+export const imageOriginalUrlFromUrl = (url?: string | null) => imageUrlWithQuality(url, "original");
 export const avatarThumbUrl = (fileId?: number | string | null) => mediaUrl(fileId, "image", "low");
 export const avatarUrl = (fileId?: number | string | null) => mediaUrl(fileId, "image", "medium");
 export const avatarOriginalUrl = (fileId?: number | string | null) => mediaUrl(fileId, "image", "original");

@@ -89,11 +89,11 @@ interface PrivateMessage extends BaseMessage<{
     status: number;
     extra?: {
         diceResult?: { result: string; hidden?: boolean };
-        fileMessage?: { size: number; url: string; fileName: string };
-        imageMessage?: { background: boolean; width: number; height: number };
+        fileMessage?: { fileId?: number; mediaType?: string; size: number; url: string; fileName: string };
+        imageMessage?: { fileId?: number; mediaType?: string; background: boolean; width: number; height: number; url?: string; originalUrl?: string; fileName?: string; size?: number };
         forwardMessage?: { messageList: any[] };
-        soundMessage?: { second: number; url?: string; fileName?: string; size?: number; purpose?: string; volume?: number };
-        videoMessage?: { second?: number; url?: string; fileName?: string; size?: number };
+        soundMessage?: { fileId?: number; mediaType?: string; second: number; url?: string; fileName?: string; size?: number; purpose?: string; volume?: number };
+        videoMessage?: { fileId?: number; mediaType?: string; second?: number; url?: string; fileName?: string; size?: number };
         clueMessage?: { img: string; name: string; description: string };
         commandRequest?: { command: string; allowAll?: boolean; allowedRoleIds?: number[] };
     };

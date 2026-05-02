@@ -89,10 +89,12 @@ export function usePrivateMessageSender({ webSocketUtils, userId, currentContact
               messageType: MESSAGE_TYPE.IMG,
               extra: buildMessageExtraForRequest(MESSAGE_TYPE.IMG, {
                 imageMessage: {
+                  fileId: uploadedImage.fileId,
+                  mediaType: uploadedImage.mediaType,
                   size: size > 0 ? size : imgFiles[i].size,
                   originalUrl: uploadedImage.originalUrl,
                   url: uploadedImage.url,
-                  fileName: uploadedImage.url.split("/").pop() || `${userId}-${Date.now()}`,
+                  fileName: imgFiles[i].name || `${userId}-${Date.now()}`,
                   width,
                   height,
                 },

@@ -2,6 +2,7 @@ import type { Message } from "../../../../../api";
 
 import { getImageMessageExtra } from "@/types/messageExtra";
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
+import { imageLowUrlFromUrl, mediaFileUrl } from "@/utils/mediaUrl";
 
 import { getMessagePreviewText } from "./getMessagePreviewText";
 
@@ -26,7 +27,8 @@ export function MessagePreviewContent({
 
   if (withMediaPreview && message.messageType === MESSAGE_TYPE.IMG) {
     const imageMessage = getImageMessageExtra(message.extra);
-    const imgUrl = typeof imageMessage?.url === "string" ? imageMessage.url : "";
+    const imgUrl = mediaFileUrl(imageMessage?.fileId, imageMessage?.mediaType, "low")
+      || (typeof imageMessage?.url === "string" ? imageLowUrlFromUrl(imageMessage.url) : "");
     const width = typeof imageMessage?.width === "number" ? imageMessage.width : undefined;
     const height = typeof imageMessage?.height === "number" ? imageMessage.height : undefined;
 

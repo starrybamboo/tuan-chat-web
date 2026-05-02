@@ -24,6 +24,7 @@ import { ImgUploader } from "@/components/common/uploader/imgUploader";
 import { useGlobalUserId } from "@/components/globalContextProvider";
 import { useMaterialEditorActionStore } from "@/components/material/stores/materialEditorActionStore";
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
+import { imageMediumUrlFromUrl } from "@/utils/mediaUrl";
 import { useGetUserRolesQuery } from "../../../../api/hooks/RoleAndAvatarHooks";
 import { MaterialComposerProvider } from "./materialComposerContext";
 import MaterialMessageComposer from "./materialMessageComposer";
@@ -234,6 +235,7 @@ export default function MaterialPackageWorkbench({
   }, [availableRoles, curAvatarIdMap, fallbackRoleId]);
   const fieldClassName = "w-full rounded-md border border-base-300 bg-base-200/80 px-3 py-2.5 text-sm text-base-content placeholder:text-base-content/35 transition focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary disabled:cursor-not-allowed disabled:opacity-60";
   const textareaClassName = "w-full rounded-md border border-base-300 bg-base-200/80 px-3 py-3 text-sm text-base-content placeholder:text-base-content/35 transition focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary disabled:cursor-not-allowed disabled:opacity-60";
+  const displayCoverUrl = imageMediumUrlFromUrl(draft.coverUrl);
 
   useEffect(() => {
     const folderKeys = collectFolderKeys(rootNodes);
@@ -658,10 +660,10 @@ export default function MaterialPackageWorkbench({
                 }}
               >
                 <div className="flex size-10 items-center justify-center overflow-hidden rounded-md border border-base-300/60 bg-base-100">
-                  {draft.coverUrl
+                  {displayCoverUrl
                     ? (
                         <img
-                          src={draft.coverUrl}
+                          src={displayCoverUrl}
                           alt={draft.name || "素材包封面"}
                           draggable={false}
                           className="h-full w-full object-cover"
@@ -783,10 +785,10 @@ export default function MaterialPackageWorkbench({
                   {!readOnly && <span className="text-[11px] text-base-content/40">推荐尺寸 1:1，支持 JPG/PNG，小于 2MB</span>}
                 </div>
                 <div className="flex flex-1 flex-col justify-center overflow-hidden rounded-[22px] border border-base-300 bg-base-950/90 shadow-inner">
-                  {draft.coverUrl
+                  {displayCoverUrl
                     ? (
                         <img
-                          src={draft.coverUrl}
+                          src={displayCoverUrl}
                           alt={draft.name || "素材包封面"}
                           className="aspect-square w-full object-cover"
                         />

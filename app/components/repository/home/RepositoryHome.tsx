@@ -4,6 +4,7 @@ import { useRuleListQuery } from "api/hooks/ruleQueryHooks";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router";
 import Pagination from "@/components/common/pagination";
+import { imageMediumUrlFromUrl } from "@/utils/mediaUrl";
 
 const EMPTY_STRING_LIST: string[] = [];
 
@@ -88,7 +89,8 @@ export function ContentCard({
   imageOnLoad,
 }: ContentCardProps & { imageOnLoad?: () => void }) {
   const [failedImage, setFailedImage] = useState<string | null>(null);
-  const hasImageError = Boolean(image && failedImage === image);
+  const displayImage = imageMediumUrlFromUrl(image);
+  const hasImageError = Boolean(displayImage && failedImage === displayImage);
 
   // 根据大小设置基础样式
   const sizeClasses = {
@@ -111,7 +113,7 @@ export function ContentCard({
   };
   const resolvedBadgeLabel = badgeLabel ?? (ruleId && RuleName ? RuleName : undefined);
   const shouldRenderVisual = type === "image" || type === "mixed";
-  const shouldShowImage = Boolean(image && !hasImageError && shouldRenderVisual);
+  const shouldShowImage = Boolean(displayImage && !hasImageError && shouldRenderVisual);
   const shouldShowPlaceholder = Boolean(!shouldShowImage && placeholder && shouldRenderVisual);
   const shouldShowHoverMeta = Boolean(authorName || createTime || minPeople || maxPeople || minTime || maxTime || hoverMetadata.length > 0);
 
@@ -146,19 +148,19 @@ export function ContentCard({
         <figure className={`relative overflow-hidden rounded-md border border-gray-300 dark:border-gray-700 bg-base-200 ${aspectClasses[imageAspect]}`}>
           {shouldShowImage && (
             <img
-              src={image}
+              src={displayImage}
               alt={imageAlt || title || "Content image"}
               className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.04]"
               loading={imageLoading}
               decoding={imageDecoding}
               fetchPriority={imageFetchPriority}
               onLoad={() => {
-                if (failedImage === image) {
+                if (failedImage === displayImage) {
                   setFailedImage(null);
                 }
                 imageOnLoad?.();
               }}
-              onError={() => setFailedImage(image ?? null)}
+              onError={() => setFailedImage(displayImage ?? null)}
             />
           )}
           {shouldShowPlaceholder && (
@@ -417,7 +419,7 @@ export default function RepositoryHome() {
   useEffect(() => {
     if (repositoryList.isSuccess && currentItems.length > 0) {
       const imageUrls = currentItems
-        .map((item: RepositoryCard) => item.image)
+        .map((item: RepositoryCard) => imageMediumUrlFromUrl(item.image))
         .filter((url): url is string => typeof url === "string" && url.length > 0 && url !== "null"); // 过滤掉空值
       preloadImages(imageUrls).then(() => {
         setImagesReady(true);

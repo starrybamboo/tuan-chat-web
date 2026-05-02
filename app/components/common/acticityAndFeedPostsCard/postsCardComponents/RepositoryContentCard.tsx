@@ -1,4 +1,5 @@
 import React from "react";
+import { imageMediumUrlFromUrl } from "@/utils/mediaUrl";
 
 interface RepositoryContentCardProps {
   name: string;
@@ -29,7 +30,7 @@ const RepositoryContentCard: React.FC<RepositoryContentCardProps> = ({
           {repositoryImage
             ? (
                 <img
-                  src={repositoryImage}
+                  src={imageMediumUrlFromUrl(repositoryImage)}
                   alt={name || "仓库图片"}
                   className="w-full h-full object-cover rounded-lg"
                 />

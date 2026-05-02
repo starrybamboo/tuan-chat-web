@@ -857,7 +857,7 @@ export class RealtimeRenderer {
     upsertGameConfigEntry(configEntries, "TypingSoundInterval", String(typingSoundInterval));
     upsertGameConfigEntry(configEntries, "TypingSoundPunctuationPause", String(typingSoundPunctuationPause));
 
-    const avatarUrl = avatarOriginalUrl(primaryRoom?.avatarFileId) || buildAvatarUrl(primaryRoom?.avatarFileId);
+    const avatarUrl = buildAvatarUrl(primaryRoom?.avatarFileId) || avatarOriginalUrl(primaryRoom?.avatarFileId);
     const titleImageUrl = String(this.gameConfig.titleImageUrl ?? "").trim();
     const originalTitleImageUrl = String(this.gameConfig.originalTitleImageUrl ?? this.gameConfig.titleImageUrl ?? "").trim();
     const startupLogoUrl = String(this.gameConfig.startupLogoUrl ?? "").trim();

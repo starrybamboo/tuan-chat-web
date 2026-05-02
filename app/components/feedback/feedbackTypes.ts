@@ -120,7 +120,7 @@ export function isFeedbackDeveloper(userId?: number | null) {
 }
 
 export function getFeedbackAuthorAvatar(author?: FeedbackIssueAuthor | null) {
-  return author?.avatar || author?.avatarThumbUrl || "";
+  return author?.avatarThumbUrl || author?.avatar || "";
 }
 
 export function getFeedbackAuthorName(author?: FeedbackIssueAuthor | null) {

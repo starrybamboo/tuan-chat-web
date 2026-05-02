@@ -3,6 +3,8 @@ import React, { useMemo } from "react";
 import { PreviewMessage } from "@/components/chat/message/preview/previewMessage";
 import RoleAvatarComponent from "@/components/common/roleAvatar";
 import { isImageMessageBackground } from "@/types/messageAnnotations";
+import { getImageMessageExtra } from "@/types/messageExtra";
+import { imageHighUrlFromUrl, mediaFileUrl } from "@/utils/mediaUrl";
 import { useGetRoleQuery } from "../../../api/hooks/RoleAndAvatarHooks";
 import BetterImg from "../common/betterImg";
 
@@ -140,12 +142,14 @@ function ChatMessageItem({
   const renderMessageContent = () => {
     if (message.messageType === 2) {
       // 图片消息
-      const imgMsg = message.extra?.imageMessage;
+      const imgMsg = getImageMessageExtra(message.extra);
+      const imgUrl = mediaFileUrl(imgMsg?.fileId, imgMsg?.mediaType, "high")
+        || (typeof imgMsg?.url === "string" ? imageHighUrlFromUrl(imgMsg.url) : "");
       const isBackground = isImageMessageBackground(message.annotations, imgMsg);
       return (
         <div className="text-xs text-base-content/70">
           <BetterImg
-            src={imgMsg?.url}
+            src={imgUrl}
             className="max-h-24 max-w-32 rounded"
           />
           {isBackground && <span className="ml-1">(已设为背景)</span>}

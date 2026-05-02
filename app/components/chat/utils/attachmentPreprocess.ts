@@ -25,10 +25,6 @@ export function preheatChatMediaPreprocess({
   videoFiles = [],
   audioFiles = [],
 }: ChatMediaPreprocessInput): void {
-  for (const imageFile of imageFiles) {
-    runBestEffortPreprocess(uploadUtils.preprocessImageForUpload(imageFile), "图片", imageFile);
-  }
-
   for (const videoFile of videoFiles) {
     runBestEffortPreprocess(uploadUtils.preprocessVideoForUpload(videoFile), "视频", videoFile);
   }
