@@ -5,16 +5,21 @@ import {
   buildBlocksuiteRemoteImageFileName,
 } from "../space/runtime/blocksuiteRemoteImageBlobSource";
 
-const { getUploadUrlMock } = vi.hoisted(() => ({
-  getUploadUrlMock: vi.fn(),
+const { requestMock, uploadMediaFileMock } = vi.hoisted(() => ({
+  requestMock: vi.fn(),
+  uploadMediaFileMock: vi.fn(),
 }));
 
 vi.mock("api/instance", () => ({
   tuanchat: {
-    ossController: {
-      getUploadUrl: getUploadUrlMock,
+    request: {
+      request: requestMock,
     },
   },
+}));
+
+vi.mock("@/utils/mediaUpload", () => ({
+  uploadMediaFile: uploadMediaFileMock,
 }));
 
 vi.mock("@blocksuite/sync", () => {
@@ -57,17 +62,18 @@ describe("blocksuiteRemoteImageBlobSource", () => {
     vi.unstubAllGlobals();
   });
 
-  it("图片写入后会先缓存本地，再异步上传到 MinIO", async () => {
-    const fetchMock = vi.mocked(globalThis.fetch);
-    fetchMock.mockResolvedValue(new Response(null, { status: 200 }));
-    getUploadUrlMock.mockResolvedValue({
+  it("图片写入后会先缓存本地，再异步上传到媒体服务并绑定远程索引", async () => {
+    uploadMediaFileMock.mockResolvedValue({
+      fileId: 42,
+      mediaType: "image",
+      uploadRequired: true,
+    });
+    requestMock.mockResolvedValue({
       success: true,
       data: {
-        uploadUrl: "https://upload.example/blocksuite-image",
-        downloadUrl: "https://download.example/blocksuite-image",
-        uploadHeaders: {
-          "Cache-Control": "public, max-age=31536000, immutable",
-        },
+        fileId: 42,
+        mediaType: "image",
+        status: "ready",
       },
     });
 
@@ -82,25 +88,25 @@ describe("blocksuiteRemoteImageBlobSource", () => {
 
     expect(key).toBe("image-key==");
     expect(await (await source.get("image-key=="))?.text()).toBe("png");
-    expect(getUploadUrlMock).toHaveBeenCalledWith({
-      fileName: buildBlocksuiteRemoteImageFileName("image-key=="),
-      contentType: "image/png",
-      scene: 1,
-      dedupCheck: true,
-    });
 
     await vi.waitFor(() => {
-      expect(fetchMock).toHaveBeenCalledWith(
-        "https://upload.example/blocksuite-image",
+      expect(uploadMediaFileMock).toHaveBeenCalledWith(
         expect.objectContaining({
-          method: "PUT",
-          body: imageBlob,
-          headers: expect.objectContaining({
-            "Cache-Control": "public, max-age=31536000, immutable",
-            "Content-Type": "image/png",
-          }),
+          name: buildBlocksuiteRemoteImageFileName("image-key==", "image/png"),
+          type: "image/png",
         }),
+        { scene: 1 },
       );
+      expect(requestMock).toHaveBeenCalledWith(expect.objectContaining({
+        method: "POST",
+        url: "/media/aliases",
+        body: {
+          namespace: "space:test:remote-image",
+          aliasKey: "image-key==",
+          fileId: 42,
+          expectedMediaType: "image",
+        },
+      }));
       expect(latestState?.uploading).toBe(false);
       expect(latestState?.needUpload).toBe(false);
     });
@@ -116,11 +122,12 @@ describe("blocksuiteRemoteImageBlobSource", () => {
         "Content-Type": "image/png",
       },
     }));
-    getUploadUrlMock.mockResolvedValue({
+    requestMock.mockResolvedValue({
       success: true,
       data: {
-        uploadUrl: "",
-        downloadUrl: "https://download.example/blocksuite-image",
+        fileId: 42,
+        mediaType: "image",
+        status: "ready",
       },
     });
 
@@ -132,28 +139,42 @@ describe("blocksuiteRemoteImageBlobSource", () => {
     expect(await firstBlob?.text()).toBe("remote-image");
     expect(await secondBlob?.text()).toBe("remote-image");
     expect(firstBlob?.type).toBe("image/png");
-    expect(getUploadUrlMock).toHaveBeenCalledTimes(1);
+    expect(requestMock).toHaveBeenCalledTimes(1);
+    expect(requestMock).toHaveBeenCalledWith(expect.objectContaining({
+      method: "GET",
+      url: "/media/aliases",
+      query: {
+        namespace: "space:test:remote-image",
+        aliasKey: "remote-key==",
+      },
+    }));
+    expect(fetchMock).toHaveBeenCalledWith("https://tuan.chat/media/v1/files/042/42/original");
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
-  it("非图片 blob 只走本地缓存，不触发 MinIO 上传", async () => {
+  it("非图片 blob 只走本地缓存，不触发媒体服务上传", async () => {
     const source = new BlocksuiteRemoteImageBlobSource({ dbPrefix: "space:test" });
 
     await source.set("text-key", new Blob(["plain-text"], { type: "text/plain" }));
 
-    expect(getUploadUrlMock).not.toHaveBeenCalled();
+    expect(uploadMediaFileMock).not.toHaveBeenCalled();
+    expect(requestMock).not.toHaveBeenCalled();
     expect(await (await source.get("text-key"))?.text()).toBe("plain-text");
   });
 
   it("上传失败后会标记 needUpload，并支持手动重试", async () => {
-    const fetchMock = vi.mocked(globalThis.fetch);
-    fetchMock.mockRejectedValueOnce(new Error("network"));
-    fetchMock.mockResolvedValueOnce(new Response(null, { status: 200 }));
-    getUploadUrlMock.mockResolvedValue({
+    uploadMediaFileMock.mockRejectedValueOnce(new Error("network"));
+    uploadMediaFileMock.mockResolvedValueOnce({
+      fileId: 42,
+      mediaType: "image",
+      uploadRequired: true,
+    });
+    requestMock.mockResolvedValue({
       success: true,
       data: {
-        uploadUrl: "https://upload.example/retry-image",
-        downloadUrl: "https://download.example/retry-image",
+        fileId: 42,
+        mediaType: "image",
+        status: "ready",
       },
     });
 
@@ -171,7 +192,8 @@ describe("blocksuiteRemoteImageBlobSource", () => {
     });
 
     await expect(source.upload("retry-key==")).resolves.toBe(true);
-    expect(getUploadUrlMock).toHaveBeenCalledTimes(2);
+    expect(uploadMediaFileMock).toHaveBeenCalledTimes(2);
+    expect(requestMock).toHaveBeenCalledTimes(1);
     expect(latestState?.needUpload).toBe(false);
     expect(latestState?.errorMessage).toBeNull();
 
