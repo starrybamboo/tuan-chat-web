@@ -15,17 +15,13 @@ export type Space = {
      */
     name?: string;
     /**
-     * 空间头像
+     * 空间头像媒体文件 ID
      */
-    avatar?: string;
+    avatarFileId?: number;
     /**
-     * 空间头像缩略图的url
+     * 空间头像媒体类型
      */
-    avatarThumbUrl?: string;
-    /**
-     * 空间头像原图
-     */
-    originalAvatar?: string;
+    avatarMediaType?: string;
     /**
      * 空间描述
      */

@@ -4,6 +4,7 @@ import { useCallback, useMemo, useState } from "react";
 import { toast } from "react-hot-toast";
 import { useScreenSize } from "@/components/common/customHooks/useScreenSize";
 import { UserAvatarByUser } from "@/components/common/userAccess";
+import { imageMediumUrl } from "@/utils/mediaUrl";
 import { useGetResourcesInCollectionQuery } from "../../../../api/hooks/resourceQueryHooks";
 import { CollectionResourceCard } from "../cards/CollectionResourceCard";
 
@@ -236,15 +237,16 @@ function CoverImage({
   collectionList: CollectionList;
   isMobile?: boolean;
 }) {
+  const coverImageUrl = imageMediumUrl(collectionList.coverFileId);
   return (
     <div className={`bg-base-200 rounded-lg overflow-hidden ${
       isMobile ? "aspect-video" : "aspect-square"
     }`}
     >
-      {collectionList.coverImageUrl
+      {coverImageUrl
         ? (
             <img
-              src={collectionList.coverImageUrl}
+              src={coverImageUrl}
               alt={collectionList.collectionListName}
               className="w-full h-full object-cover"
               onError={(e) => {

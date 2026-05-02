@@ -34,6 +34,9 @@ describe("uploadUtils.uploadVideo", () => {
       data: {
         uploadUrl: "https://upload.example/video",
         downloadUrl: "https://cdn.example/video.webm",
+        uploadHeaders: {
+          "Cache-Control": "public, max-age=31536000, immutable",
+        },
       },
     });
 
@@ -46,10 +49,13 @@ describe("uploadUtils.uploadVideo", () => {
     expect(hashSpy).toHaveBeenCalledWith(transcodedFile);
     expect(getUploadUrlMock).toHaveBeenCalledWith({
       fileName: `hash_webm_${transcodedFile.size}.webm`,
+      contentType: "video/webm",
       scene: 1,
       dedupCheck: true,
     });
-    expect(uploadSpy).toHaveBeenCalledWith("https://upload.example/video", transcodedFile);
+    expect(uploadSpy).toHaveBeenCalledWith("https://upload.example/video", transcodedFile, {
+      "Cache-Control": "public, max-age=31536000, immutable",
+    });
     expect(result).toEqual({
       url: "https://cdn.example/video.webm",
       fileName: "clip.webm",
@@ -78,10 +84,11 @@ describe("uploadUtils.uploadVideo", () => {
     expect(transcodeVideoFileToWebmOrThrow).not.toHaveBeenCalled();
     expect(getUploadUrlMock).toHaveBeenCalledWith({
       fileName: `hash_direct_${file.size}.mkv`,
+      contentType: "video/x-matroska",
       scene: 1,
       dedupCheck: true,
     });
-    expect(uploadSpy).toHaveBeenCalledWith("https://upload.example/video-direct", file);
+    expect(uploadSpy).toHaveBeenCalledWith("https://upload.example/video-direct", file, undefined);
     expect(result).toEqual({
       url: "https://cdn.example/video-direct.mkv",
       fileName: "movie.mkv",
@@ -113,11 +120,12 @@ describe("uploadUtils.uploadVideo", () => {
     expect(transcodeMock).toHaveBeenCalledTimes(1);
     expect(getUploadUrlMock).toHaveBeenCalledWith({
       fileName: `hash_oom_${file.size}.mkv`,
+      contentType: "video/x-matroska",
       scene: 1,
       dedupCheck: true,
     });
     expect(warnSpy).toHaveBeenCalled();
-    expect(uploadSpy).toHaveBeenCalledWith("https://upload.example/video2", file);
+    expect(uploadSpy).toHaveBeenCalledWith("https://upload.example/video2", file, undefined);
     expect(result).toEqual({
       url: "https://cdn.example/video2.mkv",
       fileName: "sample.mkv",
@@ -165,6 +173,7 @@ describe("uploadUtils.uploadVideo", () => {
 
     expect(getUploadUrlMock).toHaveBeenCalledWith({
       fileName: `hash_img_${file.size}.png`,
+      contentType: "image/png",
       scene: 1,
       dedupCheck: true,
     });

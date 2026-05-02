@@ -12,17 +12,13 @@ export type UserProfileInfoResponse = {
     userId: number;
     username?: string;
     /**
-     * 头像的url
+     * 头像媒体文件 ID
      */
-    avatar?: string;
+    avatarFileId?: number;
     /**
-     * 头像原图的url
+     * 头像媒体类型
      */
-    originalAvatar?: string;
-    /**
-     * 头像缩略图的url
-     */
-    avatarThumbUrl?: string;
+    avatarMediaType?: string;
     /**
      * 1 在线 0 离线
      */

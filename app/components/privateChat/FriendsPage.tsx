@@ -15,6 +15,7 @@ import { useGetUserInfoByUsernameQuery, useGetUserInfoQuery } from "api/hooks/Us
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 import { BaselineDeleteOutline, ChevronRight, HomeIcon, Search, SearchFilled, XMarkICon } from "@/icons";
+import { avatarThumbUrl } from "@/utils/mediaUrl";
 
 type FriendsTab = "all" | "pending" | "add" | "blacklist";
 type AddFriendSearchMode = "id" | "username";
@@ -313,7 +314,7 @@ export default function FriendsPage({
                         <div className="avatar w-12">
                           <img
                             className="rounded-full"
-                            src={friend?.avatar}
+                            src={avatarThumbUrl(friend?.avatarFileId)}
                             alt={friend?.username}
                           />
                         </div>
@@ -428,7 +429,7 @@ export default function FriendsPage({
                                 <div className="avatar w-9">
                                   <img
                                     className="rounded-full"
-                                    src={user?.avatar}
+                                    src={avatarThumbUrl(user?.avatarFileId)}
                                     alt={user?.username}
                                   />
                                 </div>
@@ -496,7 +497,7 @@ export default function FriendsPage({
                                 <div className="avatar w-12">
                                   <img
                                     className="rounded-full"
-                                    src={friend?.avatar}
+                                    src={avatarThumbUrl(friend?.avatarFileId)}
                                     alt={friend?.username}
                                   />
                                 </div>
@@ -640,7 +641,7 @@ export default function FriendsPage({
                                 <div className="avatar w-10">
                                   <img
                                     className="rounded-full"
-                                    src={searchUserInfo?.avatar}
+                                    src={avatarThumbUrl(searchUserInfo?.avatarFileId)}
                                     alt={searchUserInfo?.username}
                                   />
                                 </div>

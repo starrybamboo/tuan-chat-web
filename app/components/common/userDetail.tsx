@@ -4,6 +4,7 @@ import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponen
 import UserStatusDot from "@/components/common/userStatusBadge.jsx";
 import TagManagement from "@/components/common/userTags";
 import { useGlobalUserId } from "@/components/globalContextProvider";
+import { avatarThumbUrl } from "@/utils/mediaUrl";
 import { useGetUserFollowersQuery, useGetUserFollowingsQuery } from "../../../api/hooks/userFollowQueryHooks";
 import { useGetUserProfileQuery } from "../../../api/hooks/UserHooks";
 import { FollowButton } from "./Follow/FollowButton";
@@ -58,7 +59,7 @@ export function UserDetail({ userId }: UserDetailProps) {
                       rel="noopener noreferrer"
                     >
                       <img
-                        src={user?.avatar || undefined}
+                        src={avatarThumbUrl(user?.avatarFileId) || undefined}
                         alt={user?.username}
                         className="mask mask-circle w-16 h-16 object-cover"
                       />

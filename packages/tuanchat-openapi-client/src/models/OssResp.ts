@@ -14,5 +14,9 @@ export type OssResp = {
      * 成功后能够下载的url
      */
     downloadUrl?: string;
+    /**
+     * 上传到临时url时必须携带的请求头
+     */
+    uploadHeaders?: Record<string, string>;
 };
 

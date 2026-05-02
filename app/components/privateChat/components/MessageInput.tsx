@@ -4,6 +4,7 @@ import BetterImg from "@/components/common/betterImg";
 import { ImgUploader } from "@/components/common/uploader/imgUploader";
 import { useGlobalWebSocket } from "@/components/globalContextProvider";
 import { EmojiIcon, Image2Fill } from "@/icons";
+import { mediaFileUrl } from "@/utils/mediaUrl";
 import { usePrivateMessageSender } from "../hooks/usePrivateMessageSender";
 
 export default function MessageInput({ userId, currentContactUserId }: { userId: number; currentContactUserId: number | null }) {
@@ -175,20 +176,22 @@ function Emoji({
   setEmojiMetaByUrl: (url: string, meta: { width?: number; height?: number; size?: number; fileName?: string; originalUrl?: string }) => void;
 }) {
   const onChoose = async (emoji: StickerType) => {
+    const emojiUrl = mediaFileUrl(emoji?.fileId, emoji?.mediaType, "low");
+    const originalEmojiUrl = mediaFileUrl(emoji?.fileId, emoji?.mediaType, "original") || emojiUrl;
     // 添加到表情列表
     updateEmojiUrls((draft) => {
-      const newUrl = emoji?.imageUrl;
+      const newUrl = emojiUrl;
       if (newUrl && !draft.includes(newUrl)) {
         draft.push(newUrl);
       }
     });
-    if (emoji?.imageUrl) {
-      setEmojiMetaByUrl(emoji.imageUrl, {
+    if (emojiUrl) {
+      setEmojiMetaByUrl(emojiUrl, {
         width: emoji.width,
         height: emoji.height,
         size: emoji.fileSize,
         fileName: emoji.name,
-        originalUrl: emoji.originalImageUrl ?? emoji.imageUrl,
+        originalUrl: originalEmojiUrl,
       });
     }
   };

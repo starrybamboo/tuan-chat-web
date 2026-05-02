@@ -66,8 +66,8 @@ export default function SearchedMessage({
                 user={{
                   userId: message.message.userId,
                   username: outOfCharacterUserQuery.data?.data?.username,
-                  avatar: outOfCharacterUserQuery.data?.data?.avatar,
-                  avatarThumbUrl: outOfCharacterUserQuery.data?.data?.avatarThumbUrl,
+                  avatarFileId: outOfCharacterUserQuery.data?.data?.avatarFileId,
+                  avatarMediaType: outOfCharacterUserQuery.data?.data?.avatarMediaType,
                 }}
                 width={8}
                 isRounded={true}
@@ -78,8 +78,6 @@ export default function SearchedMessage({
           : (
               <RoleAvatarComponent
                 avatarId={message.message.avatarId ?? -1}
-                avatarUrl={message.message.avatarUrl}
-                avatarThumbUrl={message.message.avatarThumbUrl}
                 width={8}
                 isRounded={true}
                 stopToastWindow

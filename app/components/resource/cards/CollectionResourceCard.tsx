@@ -1,4 +1,5 @@
 import type { ResourceResponse } from "@tuanchat/openapi-client/models/ResourceResponse";
+import { mediaPreviewUrl } from "@/utils/mediaUrl";
 import AudioWavePlayer from "../utils/AudioWavePlayer";
 import MoreBetterImg from "../utils/MoreBetterImg";
 
@@ -28,6 +29,7 @@ export function CollectionResourceCard({
   onRemoveResource,
   isMobile = false,
 }: CollectionResourceCardProps) {
+  const resourceUrl = mediaPreviewUrl(resource.fileId, resource.mediaType);
   const handleRemoveClick = () => {
     if (resource.resourceId) {
       onRemoveResource(resource.resourceId);
@@ -51,7 +53,7 @@ export function CollectionResourceCard({
         return (
           <div className="aspect-[4/3] pt-8 pb-3 px-3 flex flex-col justify-center">
             <AudioWavePlayer
-              audioUrl={resource.url ? resource.url : ""}
+              audioUrl={resourceUrl}
               audioName={resource.name || "音频文件"}
               displayName={false}
               className=""
@@ -65,7 +67,7 @@ export function CollectionResourceCard({
         return (
           <div className="aspect-[4/3]">
             <MoreBetterImg
-              src={resource.url}
+              src={resourceUrl}
               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
             />
           </div>

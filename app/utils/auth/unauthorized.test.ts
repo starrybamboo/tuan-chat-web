@@ -1,5 +1,7 @@
 import { vi } from "vitest";
 
+import { queryClient } from "@/queryClient";
+
 import { consumeAuthToast, handleUnauthorized } from "./unauthorized";
 
 class MemoryStorage implements Storage {
@@ -64,6 +66,7 @@ describe("handleUnauthorized", () => {
   const previousWindow = Object.getOwnPropertyDescriptor(globalThis, "window");
 
   afterEach(() => {
+    queryClient.clear();
     if (previousWindow) {
       Object.defineProperty(globalThis, "window", previousWindow);
       return;
@@ -75,11 +78,13 @@ describe("handleUnauthorized", () => {
     const location = installMockWindow("/login");
     window.localStorage.setItem("token", "token-value");
     window.localStorage.setItem("uid", "1001");
+    queryClient.setQueryData(["getUserSpaces"], { success: true, data: [{ spaceId: 1 }] });
 
     handleUnauthorized({ source: "http" });
 
     expect(window.localStorage.getItem("token")).toBeNull();
     expect(window.localStorage.getItem("uid")).toBeNull();
+    expect(queryClient.getQueryData(["getUserSpaces"])).toBeUndefined();
     expect(window.sessionStorage.getItem("tc:auth:toast")).toBeNull();
     expect(window.sessionStorage.getItem("tc:auth:lastUnauthorizedAt")).toBeNull();
     expect(location.assign).not.toHaveBeenCalled();

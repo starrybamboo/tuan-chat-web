@@ -28,13 +28,13 @@ export type MessageDirectResponse = {
      */
     senderUsername?: string;
     /**
-     * 发送者头像 URL
+     * 发送者头像媒体文件 ID
      */
-    senderAvatar?: string;
+    senderAvatarFileId?: number;
     /**
-     * 发送者头像缩略图 URL
+     * 发送者头像媒体类型
      */
-    senderAvatarThumbUrl?: string;
+    senderAvatarMediaType?: string;
     /**
      * 接收者ID
      */
@@ -44,13 +44,13 @@ export type MessageDirectResponse = {
      */
     receiverUsername?: string;
     /**
-     * 接收者头像 URL
+     * 接收者头像媒体文件 ID
      */
-    receiverAvatar?: string;
+    receiverAvatarFileId?: number;
     /**
-     * 接收者头像缩略图 URL
+     * 接收者头像媒体类型
      */
-    receiverAvatarThumbUrl?: string;
+    receiverAvatarMediaType?: string;
     /**
      * 消息内容
      */

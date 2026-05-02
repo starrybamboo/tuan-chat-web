@@ -3,13 +3,11 @@ import type { QueryClient } from "@tanstack/react-query";
 /**
  * WebGAL 实时渲染器，负责将聊天消息写入场景并提供预览控制。
  */
-import type { InferRequest } from "@/tts/engines/index/apiClient";
 import type { FigureAnimationSettings } from "@/types/voiceRenderTypes";
 import type { WebgalDiceRenderPayload } from "@/types/webgalDice";
 
 import { compareChatMessageResponsesByOrder } from "@/components/chat/shared/messageOrder";
 import { stripDiceResultTokens } from "@/components/common/dicer/diceTable";
-import { createTTSApi, ttsApi } from "@/tts/engines/index/apiClient";
 import {
   ANNOTATION_IDS,
   getEffectDurationMs,
@@ -29,6 +27,7 @@ import {
 import { isFigurePosition, MESSAGE_TYPE } from "@/types/voiceRenderTypes";
 import { buildWebgalChooseScriptLines, extractWebgalChoosePayload } from "@/types/webgalChoose";
 import { extractWebgalDicePayload, isLikelyAnkoDiceContent, isLikelyTrpgDiceContent } from "@/types/webgalDice";
+import { avatarOriginalUrl, avatarThumbUrl, avatarUrl as buildAvatarUrl, imageHighUrl, imageOriginalUrl } from "@/utils/mediaUrl";
 import { checkGameExist, getTerreApis } from "@/webGAL/index";
 import { getTerreBaseUrl, getTerreWsUrl } from "@/webGAL/terreConfig";
 
@@ -43,8 +42,14 @@ import { getTerreBaseUrl, getTerreWsUrl } from "@/webGAL/terreConfig";
  * 4. 增量更新：新消息来时只更新对应房间的场景内容
  */
 import type { ChatMessageResponse, RoleAvatar, Room, UserRole } from "../../api";
-import type { ImageFigureMessageShape } from "./realtimeRendererFigureLayout";
-import type { WorkflowGraph, WorkflowTransitionOption } from "./realtimeRendererWorkflow";
+import type { RealtimeAssetUploadContext } from "./realtimeRendererAssetUploads";
+import type { RealtimeGameConfig, RealtimeTTSConfig } from "./realtimeRendererConfig";
+import type {
+  RoomFigureRenderState,
+  RoomRenderStateSnapshot,
+  RoomRenderStateStores,
+} from "./realtimeRendererStateSnapshots";
+import type { WorkflowGraph } from "./realtimeRendererWorkflow";
 
 import { checkFileExist, getAsyncMsg, getFileExtensionFromUrl, readTextFile, uploadFile } from "./fileOperator";
 import {
@@ -53,10 +58,34 @@ import {
   runWithConcurrencyLimit,
 } from "./realtimeRenderAssetWarmup";
 import {
+  buildRoleAvatarCacheKey,
+  deleteAvatarScopedCacheEntries,
+  getAndUploadMiniAvatarAsset,
+  getAndUploadSpriteAsset,
+  uploadBackgroundAsset,
+  uploadBgmAsset,
+  uploadImageFigureAsset,
+  uploadSoundEffectAsset,
+  uploadSpriteAsset,
+  uploadVideoAsset,
+} from "./realtimeRendererAssetUploads";
+import { DEFAULT_REALTIME_GAME_CONFIG } from "./realtimeRendererConfig";
+import {
+  buildMergedTrpgDiceMessage,
+  canMergeTrpgDicePair,
+  DEFAULT_DICE_SOUND_FILE,
+  DEFAULT_DICE_SOUND_FOLDER,
+  DICE_MERGE_WAIT_MS,
+  getDiceContentFromMessage,
+  isPotentialTrpgDiceMessage,
+  TRPG_DICE_PIXI_EFFECT,
+} from "./realtimeRendererDice";
+import {
   buildClearFigureLines,
   buildFigureArgs,
+  buildImageFigureTransformString,
+  buildRoleFigureTransformString,
   buildSceneInitLines,
-  clampImageFigureLayoutToSafeZone,
   DEFAULT_KEEP_OFFSET_PART,
   DEFAULT_RESTORE_TRANSFORM_PART,
   EFFECT_OFFSET_X,
@@ -65,120 +94,45 @@ import {
   IMAGE_MESSAGE_FIGURE_ID,
 
   resolveFigureSlot,
-  resolveImageFigureLayout,
   resolveSlotOffsetById,
 } from "./realtimeRendererFigureLayout";
-import {
-  buildImageFileName,
-  getSafeExtensionFromUrl,
-  hasFileExtension,
-  hashString,
-} from "./realtimeRendererFileNames";
+import { getSafeExtensionFromUrl, hashString } from "./realtimeRendererFileNames";
 import {
   parseGameConfig,
   sanitizeGameConfigValue,
   serializeGameConfig,
   upsertGameConfigEntry,
 } from "./realtimeRendererGameConfig";
+import { createSquarePngBlobFromUrl, uploadBlobToDirectory } from "./realtimeRendererImageAssets";
+import {
+  applyRoomRenderStateSnapshot,
+  buildMessageStateKey,
+  captureRoomRenderStateSnapshot,
+  clearMessageRenderStateSnapshotsForRoom,
+  getMessageRenderStateSnapshot,
+  pruneRoomStateFromLine,
+  recordMessageRenderStateSnapshot,
+} from "./realtimeRendererStateSnapshots";
 import { TextEnhanceSyntax } from "./realtimeRendererTextEnhance";
 import {
-  normalizeWorkflowRoomIds,
+  buildRealtimeTtsCacheKey,
+  fetchVoiceFilesFromRoleMap,
+  generateAndUploadVocal,
+  resolveRealtimeTtsEmotionVector,
+} from "./realtimeRendererTts";
+import {
   parseWorkflowRoomMap,
-  sanitizeChooseOptionLabel,
   splitDiceContentToSteps,
 
 } from "./realtimeRendererWorkflow";
+import {
+  buildStartSceneContent,
+  buildWorkflowTransitionLineWithEnd,
+  getWorkflowEndSceneName,
+} from "./realtimeRendererWorkflowScenes";
 
-export type RealtimeTTSConfig = {
-  /** 是否启用 TTS */
-  enabled: boolean;
-  /** TTS 引擎：目前仅支持 IndexTTS */
-  engine?: "index";
-  /** TTS API 地址（如 http://localhost:9000） */
-  apiUrl?: string;
-  /** 情感模式: 0=同音色参考,1=情感参考音频,2=情感向量,3=情感描述文本 */
-  emotionMode?: number;
-  /** 情感权重 */
-  emotionWeight?: number;
-  /** 温度 */
-  temperature?: number;
-  /** top_p */
-  topP?: number;
-  /** 单段最大 token 数 */
-  maxTokensPerSegment?: number;
-};
+export type { RealtimeGameConfig, RealtimeTTSConfig } from "./realtimeRendererConfig";
 
-export type RealtimeGameConfig = {
-  /** 未设置标题背景图 URL 时，是否将群聊头像同步为标题背景图（Title_img） */
-  coverFromRoomAvatarEnabled: boolean;
-  /** 标题背景图 URL（Title_img，优先于“标题背景图使用群聊头像”） */
-  titleImageUrl: string;
-  /** 标题背景图原图 URL（本地打包优先使用） */
-  originalTitleImageUrl: string;
-  /** 未设置启动图 URL 时，是否将群聊头像同步为启动图（Game_Logo） */
-  startupLogoFromRoomAvatarEnabled: boolean;
-  /** 启动图 URL（Game_Logo，优先于“启动图使用群聊头像”） */
-  startupLogoUrl: string;
-  /** 启动图原图 URL（本地打包优先使用） */
-  originalStartupLogoUrl: string;
-  /** 是否将群聊头像同步为游戏图标（icons/*） */
-  gameIconFromRoomAvatarEnabled: boolean;
-  /** 是否将空间名称+spaceId 同步为游戏名（Game_name） */
-  gameNameFromRoomNameEnabled: boolean;
-  /** 游戏简介（Description） */
-  description: string;
-  /** 游戏包名（Package_name） */
-  packageName: string;
-  /** 底层模板（none=默认模板，black=WebGAL Black） */
-  baseTemplate: "none" | "black";
-  /** 是否开启紧急回避（Show_panic） */
-  showPanicEnabled: boolean;
-  /** 是否允许玩家打开完整设置（Allow_Full_Settings） */
-  allowOpenFullSettings: boolean;
-  /** 是否启用角色发言聚焦（Enable_Speaker_Focus） */
-  speakerFocusEnabled: boolean;
-  /** 默认语言（Default_Language） */
-  defaultLanguage: "" | "zh_CN" | "zh_TW" | "en" | "ja" | "fr" | "de";
-  /** 是否开启鉴赏模式（Enable_Appreciation） */
-  enableAppreciation: boolean;
-  /** 是否开启打字音（TypingSoundEnabled） */
-  typingSoundEnabled: boolean;
-  /** 打字音播放间隔（每隔多少个字符播放一次） */
-  typingSoundInterval: number;
-  /** 标点符号额外停顿（毫秒） */
-  typingSoundPunctuationPause: number;
-  /** 打字音效文件 URL（将上传同步为 TypingSoundSe） */
-  typingSoundSeUrl: string;
-};
-
-const DEFAULT_REALTIME_GAME_CONFIG: RealtimeGameConfig = {
-  coverFromRoomAvatarEnabled: true,
-  titleImageUrl: "",
-  originalTitleImageUrl: "",
-  startupLogoFromRoomAvatarEnabled: false,
-  startupLogoUrl: "",
-  originalStartupLogoUrl: "",
-  gameIconFromRoomAvatarEnabled: true,
-  gameNameFromRoomNameEnabled: true,
-  description: "",
-  packageName: "",
-  baseTemplate: "none",
-  showPanicEnabled: false,
-  allowOpenFullSettings: true,
-  speakerFocusEnabled: true,
-  defaultLanguage: "",
-  enableAppreciation: true,
-  typingSoundEnabled: false,
-  typingSoundInterval: 1.5,
-  typingSoundPunctuationPause: 100,
-  typingSoundSeUrl: "",
-};
-
-const DEFAULT_DICE_SOUND_FILE = "nettimato-rolling-dice-1.wav";
-const DEFAULT_DICE_SOUND_FOLDER = "se";
-const DICE_MERGE_WAIT_MS = 260;
-const TRPG_DICE_PIXI_EFFECT = "effect.trpgDiceBurst";
-const DICE_COMMAND_PATTERN = /^\.|(?:^|\s)\d*\s*d\s*(?:100|%)(?:\s|$)/i;
 // 该标记文件用于判断 realtime_* 临时工程是否已经应用了当前模板/脚本升级。
 // 不能使用点文件名；Terre 当前通过 Express serve-static 暴露 /games/...，
 // dotfile 默认会返回 404，导致版本探测持续误判。
@@ -188,6 +142,25 @@ const REALTIME_RENDERER_INIT_ABORT_ERROR = "__tc_realtime_init_aborted__";
 const DEFAULT_TYPING_SOUND_SE_FILE = "select07.mp3";
 const BLACK_TEMPLATE_DIR = "WebGAL Black";
 const BLACK_TEMPLATE_ID = "805c5f5a-8f52-461f-8931-613676d6a086";
+
+function resolveRoleSpriteUrl(avatar: RoleAvatar | undefined): string {
+  if (!avatar) {
+    return "";
+  }
+    return imageHighUrl(avatar.spriteFileId)
+    || imageOriginalUrl(avatar.spriteFileId)
+    || buildAvatarUrl(avatar.avatarFileId)
+    || avatarOriginalUrl(avatar.avatarFileId);
+}
+
+function resolveRoleMiniAvatarUrl(avatar: RoleAvatar | undefined): string {
+  if (!avatar) {
+    return "";
+  }
+  return avatarThumbUrl(avatar.avatarFileId)
+    || buildAvatarUrl(avatar.avatarFileId)
+    || avatarOriginalUrl(avatar.avatarFileId);
+}
 
 type RenderMessageOptions = {
   bypassDiceMerge?: boolean;
@@ -201,77 +174,9 @@ type PendingDiceMergeEntry = {
   timer: NodeJS.Timeout;
 };
 
-async function loadImageElementFromBlob(blob: Blob): Promise<HTMLImageElement> {
-  const objectUrl = URL.createObjectURL(blob);
-  try {
-    return await new Promise((resolve, reject) => {
-      const image = new Image();
-      image.onload = () => resolve(image);
-      image.onerror = () => reject(new Error("图片解码失败"));
-      image.src = objectUrl;
-    });
-  }
-  finally {
-    URL.revokeObjectURL(objectUrl);
-  }
-}
-
-async function createSquarePngBlobFromUrl(url: string, size: number): Promise<Blob> {
-  const response = await fetch(url);
-  if (!response.ok) {
-    throw new Error(`下载头像失败: ${response.status} ${response.statusText}`);
-  }
-  const sourceBlob = await response.blob();
-  const image = await loadImageElementFromBlob(sourceBlob);
-  const canvas = document.createElement("canvas");
-  canvas.width = size;
-  canvas.height = size;
-  const ctx = canvas.getContext("2d");
-  if (!ctx) {
-    throw new Error("创建图标画布失败");
-  }
-
-  ctx.clearRect(0, 0, size, size);
-  ctx.imageSmoothingEnabled = true;
-  ctx.imageSmoothingQuality = "high";
-
-  const scale = Math.max(size / image.width, size / image.height);
-  const drawWidth = image.width * scale;
-  const drawHeight = image.height * scale;
-  const offsetX = (size - drawWidth) / 2;
-  const offsetY = (size - drawHeight) / 2;
-  ctx.drawImage(image, offsetX, offsetY, drawWidth, drawHeight);
-
-  const iconBlob = await new Promise<Blob>((resolve, reject) => {
-    canvas.toBlob((result) => {
-      if (!result) {
-        reject(new Error("生成 PNG 图标失败"));
-        return;
-      }
-      resolve(result);
-    }, "image/png");
-  });
-
-  return iconBlob;
-}
-
-async function uploadBlobToDirectory(blob: Blob, directory: string, fileName: string): Promise<string> {
-  const file = new File([blob], fileName, { type: blob.type || "application/octet-stream" });
-  const formData = new FormData();
-  formData.append("files", file);
-  formData.append("targetDirectory", directory);
-  await getTerreApis().assetsControllerUpload(formData);
-  return fileName;
-}
-
 type RendererContext = {
   lineNumber: number;
   text: string;
-};
-
-type RoomFigureRenderState = {
-  fileName: string;
-  transform: string;
 };
 
 type InitProgress = {
@@ -291,13 +196,6 @@ type SharedUploadCache = {
   uploadedVocalsMap: Map<string, string>;
   uploadedSoundEffectsMap: Map<string, string>;
   annotationEffectSoundCache: Map<string, string>;
-};
-
-type RoomRenderStateSnapshot = {
-  figureStates: Array<[string, RoomFigureRenderState]>;
-  lastFigureSlotId: string | null;
-  miniAvatarVisible: boolean;
-  spriteState: string[];
 };
 
 export class RealtimeRenderer {
@@ -599,72 +497,39 @@ export class RealtimeRenderer {
     }
   }
 
-  private buildMessageStateKey(roomId: number, messageId: number): string {
-    return `${roomId}_${messageId}`;
-  }
-
-  private captureRoomRenderStateSnapshot(roomId: number): RoomRenderStateSnapshot {
-    const renderedFigureState = this.renderedFigureStateMap.get(roomId);
+  private getRoomRenderStateStores(): RoomRenderStateStores {
     return {
-      figureStates: renderedFigureState ? Array.from(renderedFigureState.entries()).map(([slotId, state]) => [slotId, { ...state }]) : [],
-      lastFigureSlotId: this.lastFigureSlotIdMap.get(roomId) ?? null,
-      miniAvatarVisible: this.renderedMiniAvatarVisibleMap.get(roomId) === true,
-      spriteState: Array.from(this.currentSpriteStateMap.get(roomId) ?? []),
+      currentSpriteStateMap: this.currentSpriteStateMap,
+      lastFigureSlotIdMap: this.lastFigureSlotIdMap,
+      messageLineMap: this.messageLineMap,
+      messageRenderStateSnapshotMap: this.messageRenderStateSnapshotMap,
+      renderedFigureStateMap: this.renderedFigureStateMap,
+      renderedMiniAvatarVisibleMap: this.renderedMiniAvatarVisibleMap,
     };
   }
 
-  private applyRoomRenderStateSnapshot(roomId: number, snapshot?: RoomRenderStateSnapshot): void {
-    if (!snapshot) {
-      this.renderedFigureStateMap.set(roomId, new Map());
-      this.lastFigureSlotIdMap.delete(roomId);
-      this.renderedMiniAvatarVisibleMap.delete(roomId);
-      this.currentSpriteStateMap.set(roomId, new Set());
-      return;
-    }
+  private captureRoomRenderStateSnapshot(roomId: number): RoomRenderStateSnapshot {
+    return captureRoomRenderStateSnapshot(this.getRoomRenderStateStores(), roomId);
+  }
 
-    this.renderedFigureStateMap.set(
-      roomId,
-      new Map(snapshot.figureStates.map(([slotId, state]) => [slotId, { ...state }])),
-    );
-    if (snapshot.lastFigureSlotId) {
-      this.lastFigureSlotIdMap.set(roomId, snapshot.lastFigureSlotId);
-    }
-    else {
-      this.lastFigureSlotIdMap.delete(roomId);
-    }
-    this.renderedMiniAvatarVisibleMap.set(roomId, snapshot.miniAvatarVisible);
-    this.currentSpriteStateMap.set(roomId, new Set(snapshot.spriteState));
+  private applyRoomRenderStateSnapshot(roomId: number, snapshot?: RoomRenderStateSnapshot): void {
+    applyRoomRenderStateSnapshot(this.getRoomRenderStateStores(), roomId, snapshot);
   }
 
   private recordMessageRenderStateSnapshot(roomId: number, messageId: number): void {
-    this.messageRenderStateSnapshotMap.set(
-      this.buildMessageStateKey(roomId, messageId),
-      this.captureRoomRenderStateSnapshot(roomId),
-    );
+    recordMessageRenderStateSnapshot(this.getRoomRenderStateStores(), roomId, messageId);
   }
 
   private getMessageRenderStateSnapshot(roomId: number, messageId: number): RoomRenderStateSnapshot | undefined {
-    return this.messageRenderStateSnapshotMap.get(this.buildMessageStateKey(roomId, messageId));
+    return getMessageRenderStateSnapshot(this.getRoomRenderStateStores(), roomId, messageId);
   }
 
   private clearMessageRenderStateSnapshotsForRoom(roomId: number): void {
-    const roomPrefix = `${roomId}_`;
-    for (const key of Array.from(this.messageRenderStateSnapshotMap.keys())) {
-      if (key.startsWith(roomPrefix)) {
-        this.messageRenderStateSnapshotMap.delete(key);
-      }
-    }
+    clearMessageRenderStateSnapshotsForRoom(this.getRoomRenderStateStores(), roomId);
   }
 
   private pruneRoomStateFromLine(roomId: number, startLine: number): void {
-    const roomPrefix = `${roomId}_`;
-    for (const [key, range] of Array.from(this.messageLineMap.entries())) {
-      if (!key.startsWith(roomPrefix) || range.startLine < startLine) {
-        continue;
-      }
-      this.messageLineMap.delete(key);
-      this.messageRenderStateSnapshotMap.delete(key);
-    }
+    pruneRoomStateFromLine(this.getRoomRenderStateStores(), roomId, startLine);
   }
 
   /**
@@ -794,8 +659,8 @@ export class RealtimeRenderer {
       if (!avatar) {
         continue;
       }
-      const spriteUrl = avatar.spriteUrl || avatar.avatarUrl;
-      const targetKey = this.buildRoleAvatarCacheKey(roleId, avatarId);
+      const spriteUrl = resolveRoleSpriteUrl(avatar);
+      const targetKey = buildRoleAvatarCacheKey(roleId, avatarId);
       if (spriteUrl && !seenSpriteTargets.has(targetKey) && !this.uploadedSpritesMap.has(targetKey)) {
         seenSpriteTargets.add(targetKey);
         preloadTasks.push({
@@ -808,7 +673,7 @@ export class RealtimeRenderer {
         });
       }
 
-      if (this.miniAvatarEnabled && avatar.avatarUrl && !seenMiniAvatarTargets.has(targetKey) && !this.uploadedMiniAvatarsMap.has(targetKey)) {
+      if (this.miniAvatarEnabled && resolveRoleMiniAvatarUrl(avatar) && !seenMiniAvatarTargets.has(targetKey) && !this.uploadedMiniAvatarsMap.has(targetKey)) {
         seenMiniAvatarTargets.add(targetKey);
         preloadTasks.push({
           kind: "mini-avatar",
@@ -873,129 +738,12 @@ export class RealtimeRenderer {
     });
   }
 
-  private getValidWorkflowStartRoomIds(): number[] {
-    return normalizeWorkflowRoomIds(
-      this.workflowGraph.startRoomIds.filter(roomId => this.roomMap.has(roomId)),
-    );
-  }
-
-  private buildRoomChoiceFallback(rooms: Room[]): string {
-    const branchOptions = rooms
-      .filter(room => room.roomId)
-      .map(room => `${room.name?.replace(/\n/g, "") || "房间"}:${this.getSceneName(room.roomId!)}.txt`)
-      .join("|");
-    return branchOptions
-      ? `choose:${branchOptions};`
-      : "changeBg:none;";
-  }
-
-  private buildStartSceneContent(rooms: Room[]): string {
-    const startRoomIds = this.getValidWorkflowStartRoomIds();
-    if (startRoomIds.length === 1) {
-      return `changeScene:${this.getSceneName(startRoomIds[0])}.txt;`;
-    }
-    if (startRoomIds.length > 1) {
-      const options = startRoomIds
-        .map((roomId) => {
-          const room = this.roomMap.get(roomId);
-          const label = sanitizeChooseOptionLabel(room?.name?.trim() || `房间${roomId}`);
-          if (!label) {
-            return null;
-          }
-          return `${label}:${this.getSceneName(roomId)}.txt`;
-        })
-        .filter((option): option is string => Boolean(option));
-      if (options.length > 0) {
-        return `choose:${options.join("|")};`;
-      }
-    }
-    return this.buildRoomChoiceFallback(rooms);
-  }
-
-  private buildWorkflowTransitionCommand(options: WorkflowTransitionOption[]): string | null {
-    if (options.length === 0) {
-      return null;
-    }
-    if (options.length === 1) {
-      return `changeScene:${options[0].targetScene};`;
-    }
-    return `choose:${options.map(option => `${option.label}:${option.targetScene}`).join("|")};`;
-  }
-
-  private buildWorkflowRoomTransitionOptions(roomId: number): WorkflowTransitionOption[] {
-    const links = this.workflowGraph.links[roomId] ?? [];
-    if (links.length === 0) {
-      return [];
-    }
-
-    const options = links
-      .map((link) => {
-        if (!this.roomMap.has(link.targetId)) {
-          return null;
-        }
-        const targetScene = `${this.getSceneName(link.targetId)}.txt`;
-        const fallbackLabel = this.roomMap.get(link.targetId)?.name?.trim() || `房间${link.targetId}`;
-        const rawLabel = link.condition?.trim() || fallbackLabel;
-        const label = sanitizeChooseOptionLabel(rawLabel);
-        if (!label) {
-          return null;
-        }
-        return {
-          label,
-          targetScene,
-        };
-      })
-      .filter((option): option is WorkflowTransitionOption => Boolean(option));
-    return options;
-  }
-
-  private buildWorkflowTransitionLine(roomId: number): string | null {
-    const options = this.buildWorkflowRoomTransitionOptions(roomId);
-    return this.buildWorkflowTransitionCommand(options);
-  }
-
-  private getWorkflowEndNodeIdsForRoom(roomId: number): number[] {
-    return this.workflowGraph.endNodeIds.filter((endNodeId) => {
-      const incomingRoomIds = this.workflowGraph.endNodeIncomingRoomIds[endNodeId] ?? [];
-      return incomingRoomIds.includes(roomId);
-    });
-  }
-
-  private getWorkflowEndSceneName(endNodeId: number): string {
-    return `__tc_end_${endNodeId}`;
-  }
-
-  private buildWorkflowEndOptionLabel(endNodeId: number, endOptionCount: number): string {
-    const fallback = endOptionCount > 1 ? `结束${endNodeId}` : "结束";
-    const normalized = sanitizeChooseOptionLabel(fallback);
-    return normalized || `结束${endNodeId}`;
-  }
-
-  private buildWorkflowTransitionLineWithEnd(roomId: number): string | null {
-    const roomOptions = this.buildWorkflowRoomTransitionOptions(roomId);
-    const endNodeIds = this.getWorkflowEndNodeIdsForRoom(roomId);
-    const endOptions = endNodeIds
-      .map((endNodeId) => {
-        const label = this.buildWorkflowEndOptionLabel(endNodeId, endNodeIds.length);
-        if (!label) {
-          return null;
-        }
-        return {
-          label,
-          targetScene: `${this.getWorkflowEndSceneName(endNodeId)}.txt`,
-        };
-      })
-      .filter((option): option is WorkflowTransitionOption => Boolean(option));
-
-    return this.buildWorkflowTransitionCommand([...roomOptions, ...endOptions]);
-  }
-
   private async ensureWorkflowEndScenes(): Promise<void> {
     for (const endNodeId of this.workflowGraph.endNodeIds) {
       if (this.readyWorkflowEndSceneIds.has(endNodeId)) {
         continue;
       }
-      const sceneName = this.getWorkflowEndSceneName(endNodeId);
+      const sceneName = getWorkflowEndSceneName(endNodeId);
       try {
         await getTerreApis().manageGameControllerEditTextFile({
           path: `games/${this.gameName}/game/scene/${sceneName}.txt`,
@@ -1011,7 +759,12 @@ export class RealtimeRenderer {
 
   private async appendWorkflowTransitionIfNeeded(roomId: number): Promise<void> {
     await this.ensureWorkflowEndScenes();
-    const transitionLine = this.buildWorkflowTransitionLineWithEnd(roomId);
+    const transitionLine = buildWorkflowTransitionLineWithEnd({
+      roomId,
+      workflowGraph: this.workflowGraph,
+      roomMap: this.roomMap,
+      getSceneName: targetRoomId => this.getSceneName(targetRoomId),
+    });
     if (!transitionLine) {
       return;
     }
@@ -1104,7 +857,7 @@ export class RealtimeRenderer {
     upsertGameConfigEntry(configEntries, "TypingSoundInterval", String(typingSoundInterval));
     upsertGameConfigEntry(configEntries, "TypingSoundPunctuationPause", String(typingSoundPunctuationPause));
 
-    const avatarUrl = String(primaryRoom?.originalAvatar ?? primaryRoom?.avatar ?? "").trim();
+    const avatarUrl = avatarOriginalUrl(primaryRoom?.avatarFileId) || buildAvatarUrl(primaryRoom?.avatarFileId);
     const titleImageUrl = String(this.gameConfig.titleImageUrl ?? "").trim();
     const originalTitleImageUrl = String(this.gameConfig.originalTitleImageUrl ?? this.gameConfig.titleImageUrl ?? "").trim();
     const startupLogoUrl = String(this.gameConfig.startupLogoUrl ?? "").trim();
@@ -1287,7 +1040,12 @@ export class RealtimeRenderer {
     }
 
     // 生成 start.txt 入口场景（优先使用流程图开始节点）
-    const startContent = this.buildStartSceneContent(rooms);
+    const startContent = buildStartSceneContent({
+      rooms,
+      workflowGraph: this.workflowGraph,
+      roomMap: this.roomMap,
+      getSceneName: roomId => this.getSceneName(roomId),
+    });
 
     await getTerreApis().manageGameControllerEditTextFile({
       path: `games/${this.gameName}/game/scene/start.txt`,
@@ -1550,27 +1308,22 @@ export class RealtimeRenderer {
     this.queryClient = queryClient;
   }
 
-  private getRoleFigureDirName(roleId: number): string {
-    const normalizedRoleId = Number.isFinite(roleId) && roleId > 0 ? Math.floor(roleId) : 0;
-    return normalizedRoleId > 0 ? `role_${normalizedRoleId}` : "role_unknown";
-  }
-
-  private buildRoleAvatarCacheKey(roleId: number, avatarId: number): string {
-    return `${this.getRoleFigureDirName(roleId)}_${avatarId}`;
-  }
-
-  private deleteAvatarScopedCacheEntries(cache: Map<string, string>, avatarId: number): void {
-    const suffix = `_${avatarId}`;
-    for (const key of Array.from(cache.keys())) {
-      if (key.endsWith(suffix)) {
-        cache.delete(key);
-      }
-    }
+  private getAssetUploadContext(): RealtimeAssetUploadContext {
+    return {
+      gameName: this.gameName,
+      uploadedSpritesMap: this.uploadedSpritesMap,
+      uploadedBackgroundsMap: this.uploadedBackgroundsMap,
+      uploadedImageFiguresMap: this.uploadedImageFiguresMap,
+      uploadedBgmsMap: this.uploadedBgmsMap,
+      uploadedVideosMap: this.uploadedVideosMap,
+      uploadedMiniAvatarsMap: this.uploadedMiniAvatarsMap,
+      uploadedSoundEffectsMap: this.uploadedSoundEffectsMap,
+    };
   }
 
   public invalidateAvatarCaches(avatarId: number): void {
-    this.deleteAvatarScopedCacheEntries(this.uploadedSpritesMap, avatarId);
-    this.deleteAvatarScopedCacheEntries(this.uploadedMiniAvatarsMap, avatarId);
+    deleteAvatarScopedCacheEntries(this.uploadedSpritesMap, avatarId);
+    deleteAvatarScopedCacheEntries(this.uploadedMiniAvatarsMap, avatarId);
   }
 
   private getCachedRoleAvatar(avatarId: number): RoleAvatar | undefined {
@@ -1647,345 +1400,35 @@ export class RealtimeRenderer {
    * 从角色的 voiceUrl 获取参考音频文件
    */
   public async fetchVoiceFilesFromRoles(): Promise<void> {
-    for (const [roleId, role] of this.roleMap) {
-      if (role.voiceUrl && !this.voiceFileMap.has(roleId)) {
-        try {
-          const response = await fetch(role.voiceUrl);
-          if (response.ok) {
-            const blob = await response.blob();
-            const file = new File(
-              [blob],
-              role.voiceUrl.split("/").pop() ?? `${roleId}_ref_vocal.wav`,
-              { type: blob.type || "audio/wav" },
-            );
-            this.voiceFileMap.set(roleId, file);
-            console.warn(`[RealtimeRenderer] 获取角色 ${roleId} 的参考音频成功`);
-          }
-        }
-        catch (error) {
-          console.warn(`[RealtimeRenderer] 获取角色 ${roleId} 的参考音频失败:`, error);
-        }
-      }
-    }
-  }
-
-  /**
-   * 简单的字符串哈希函数（用于 TTS 缓存）
-   */
-  private simpleHash(str: string): string {
-    let hash = 5381;
-    for (let i = 0; i < str.length; i++) {
-      const char = str.charCodeAt(i);
-      hash = (hash * 33) ^ char;
-    }
-    return (hash >>> 0).toString(16).padStart(8, "0")
-      + ((hash * 0x811C9DC5) >>> 0).toString(16).padStart(8, "0");
-  }
-
-  /**
-   * 将 avatarTitle 转换为情感向量
-   */
-  private convertAvatarTitleToEmotionVector(avatarTitle: Record<string, string>): number[] {
-    const emotionOrder = ["喜", "怒", "哀", "惧", "厌恶", "低落", "惊喜", "平静"];
-    const MAX_SUM = 0.5;
-
-    let emotionVector = emotionOrder.map((emotion) => {
-      const value = avatarTitle[emotion];
-      const numValue = value ? Number.parseFloat(value) * 0.5 : 0.0;
-      return Math.max(0.0, Math.min(1.4, numValue));
-    });
-
-    const currentSum = emotionVector.reduce((sum, val) => sum + val, 0);
-    if (currentSum > MAX_SUM) {
-      const scaleFactor = MAX_SUM / currentSum;
-      emotionVector = emotionVector.map(val => val * scaleFactor);
-    }
-
-    return emotionVector.map(val => Math.round(val * 10000) / 10000);
-  }
-
-  /**
-   * 将 File 转换为 base64
-   */
-  private async fileToBase64(file: File): Promise<string> {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => {
-        const result = reader.result as string;
-        const base64 = result.includes(",") ? result.split(",")[1] : result;
-        resolve(base64);
-      };
-      reader.onerror = reject;
-      reader.readAsDataURL(file);
-    });
-  }
-
-  /**
-   * 生成语音并上传到 WebGAL
-   * @param text 要生成语音的文本
-   * @param roleId 角色 ID（用于获取参考音频）
-   * @param avatarTitle 头像标题（用于情感向量）
-   * @param customEmotionVector 自定义情感向量（优先于 avatarTitle）
-   * @returns 上传后的文件名，如果失败则返回 null
-   */
-  private async generateAndUploadVocal(
-    text: string,
-    roleId: number,
-    avatarTitle?: Record<string, string>,
-    customEmotionVector?: number[],
-  ): Promise<string | null> {
-    if (!this.ttsConfig.enabled) {
-      return null;
-    }
-
-    // 获取参考音频
-    const refVocal = this.voiceFileMap.get(roleId);
-    if (!refVocal) {
-      console.warn(`[RealtimeRenderer] 角色 ${roleId} 没有参考音频，跳过 TTS`);
-      return null;
-    }
-
-    // 生成缓存 key（优先使用自定义情感向量）
-    const emotionVector = customEmotionVector && customEmotionVector.length > 0
-      ? customEmotionVector
-      : (avatarTitle ? this.convertAvatarTitleToEmotionVector(avatarTitle) : []);
-    const cacheKey = this.simpleHash(`tts_${text}_${refVocal.name}_${JSON.stringify(emotionVector)}`);
-    const fileName = `${cacheKey}.webm`;
-
-    // 检查内存缓存
-    if (this.uploadedVocalsMap.has(cacheKey)) {
-      return this.uploadedVocalsMap.get(cacheKey) || null;
-    }
-
-    // 检查是否正在生成（避免重复生成）
-    if (this.ttsGeneratingMap.has(cacheKey)) {
-      return this.ttsGeneratingMap.get(cacheKey) || null;
-    }
-
-    // 检查文件是否已存在于服务器
-    try {
-      const exists = await checkFileExist(`games/${this.gameName}/game/vocal/`, fileName);
-      if (exists) {
-        this.uploadedVocalsMap.set(cacheKey, fileName);
-        return fileName;
-      }
-    }
-    catch {
-      // 忽略检查错误，继续生成
-    }
-
-    // 创建生成 Promise
-    const generatePromise = (async (): Promise<string | null> => {
-      try {
-        const refAudioBase64 = await this.fileToBase64(refVocal);
-
-        const ttsRequest: InferRequest = {
-          text,
-          prompt_audio_base64: refAudioBase64,
-          emo_mode: this.ttsConfig.emotionMode ?? 2,
-          emo_weight: this.ttsConfig.emotionWeight ?? 0.8,
-          emo_vector: emotionVector.length > 0 ? emotionVector : undefined,
-          emo_random: false,
-          temperature: this.ttsConfig.temperature ?? 0.8,
-          top_p: this.ttsConfig.topP ?? 0.8,
-          max_text_tokens_per_segment: this.ttsConfig.maxTokensPerSegment ?? 120,
-          return_audio_base64: true,
-        };
-
-        console.warn(`[RealtimeRenderer] 正在生成语音: "${text.substring(0, 20)}..."`);
-        // 使用自定义 API URL 或默认的全局 ttsApi
-        const api = this.ttsConfig.apiUrl ? createTTSApi(this.ttsConfig.apiUrl) : ttsApi;
-        const response = await api.infer(ttsRequest);
-
-        if (response.code === 0 && response.data?.audio_base64) {
-          // 将 base64 转换为 Blob 并上传
-          const byteCharacters = atob(response.data.audio_base64);
-          const byteNumbers = Array.from({ length: byteCharacters.length }, (_, i) => byteCharacters.charCodeAt(i));
-          const byteArray = new Uint8Array(byteNumbers);
-          const audioBlob = new Blob([byteArray], { type: "audio/wav" });
-          const audioUrl = URL.createObjectURL(audioBlob);
-
-          try {
-            const uploadedFileName = await uploadFile(
-              audioUrl,
-              `games/${this.gameName}/game/vocal/`,
-              fileName,
-            );
-            URL.revokeObjectURL(audioUrl);
-
-            this.uploadedVocalsMap.set(cacheKey, uploadedFileName);
-            console.warn(`[RealtimeRenderer] 语音生成并上传成功: ${uploadedFileName}`);
-            return uploadedFileName;
-          }
-          catch (uploadError) {
-            console.error("[RealtimeRenderer] 语音上传失败:", uploadError);
-            URL.revokeObjectURL(audioUrl);
-            return null;
-          }
-        }
-        else {
-          console.error("[RealtimeRenderer] TTS 生成失败:", response.msg);
-          return null;
-        }
-      }
-      catch (error) {
-        console.error("[RealtimeRenderer] TTS 生成过程中发生错误:", error);
-        return null;
-      }
-      finally {
-        this.ttsGeneratingMap.delete(cacheKey);
-      }
-    })();
-
-    this.ttsGeneratingMap.set(cacheKey, generatePromise);
-    return generatePromise;
-  }
-
-  /**
-   * 根据 RoleAvatar 生成 transform 字符串（支持偏移量）
-   */
-  private buildFigureTransformString(
-    avatar: RoleAvatar | undefined,
-    offsetX = 0,
-    offsetY = 0,
-  ): string {
-    if (!avatar && offsetX === 0 && offsetY === 0) {
-      return "";
-    }
-
-    const spriteTransform = avatar?.spriteTransform;
-    const rotationRad = spriteTransform?.rotation
-      ? (spriteTransform.rotation * Math.PI / 180)
-      : 0;
-
-    const transform = {
-      position: {
-        x: (spriteTransform?.positionX ?? 0) + offsetX,
-        y: (spriteTransform?.positionY ?? 0) + offsetY,
-      },
-      scale: {
-        x: spriteTransform?.scale ?? 1,
-        y: spriteTransform?.scale ?? 1,
-      },
-      alpha: spriteTransform?.alpha ?? 1,
-      rotation: rotationRad,
-    };
-    return `-transform=${JSON.stringify(transform)}`;
-  }
-
-  /**
-   * 构建展示图层 transform（独立于角色立绘，避免图片按原尺寸铺满画面）。
-   */
-  private buildImageFigureTransformString(
-    imageMessage: ImageFigureMessageShape | undefined,
-    offsetX = 0,
-  ): string {
-    const presetLayout = resolveImageFigureLayout(imageMessage);
-    const layout = clampImageFigureLayoutToSafeZone(imageMessage, presetLayout);
-    const transform = {
-      position: {
-        x: offsetX,
-        y: layout.offsetY,
-      },
-      scale: {
-        x: layout.scale,
-        y: layout.scale,
-      },
-      alpha: 1,
-      rotation: 0,
-    };
-    return `-transform=${JSON.stringify(transform)}`;
+    await fetchVoiceFilesFromRoleMap(this.roleMap, this.voiceFileMap);
   }
 
   /**
    * 上传立绘
    */
   private async uploadSprite(avatarId: number, spriteUrl: string, roleId: number): Promise<string | null> {
-    const cacheKey = this.buildRoleAvatarCacheKey(roleId, avatarId);
-    if (this.uploadedSpritesMap.has(cacheKey)) {
-      return this.uploadedSpritesMap.get(cacheKey) || null;
-    }
-
-    try {
-      const roleFigureDir = this.getRoleFigureDirName(roleId);
-      const path = `games/${this.gameName}/game/figure/${roleFigureDir}/`;
-      const fileExtension = getFileExtensionFromUrl(spriteUrl, "webp");
-      const spriteName = `sprite_${avatarId}`;
-      const fileName = await uploadFile(spriteUrl, path, `${spriteName}.${fileExtension}`);
-      const relativePath = `${roleFigureDir}/${fileName}`;
-      this.uploadedSpritesMap.set(cacheKey, relativePath);
-      return relativePath;
-    }
-    catch (error) {
-      console.error("上传立绘失败:", error);
-      return null;
-    }
+    return uploadSpriteAsset(this.getAssetUploadContext(), avatarId, spriteUrl, roleId);
   }
 
   /**
    * 上传背景
    */
   private async uploadBackground(url: string): Promise<string | null> {
-    if (this.uploadedBackgroundsMap.has(url)) {
-      return this.uploadedBackgroundsMap.get(url) || null;
-    }
-
-    try {
-      const path = `games/${this.gameName}/game/background/`;
-      const targetName = buildImageFileName(url, undefined, "bg");
-      const fileName = await uploadFile(url, path, targetName);
-      this.uploadedBackgroundsMap.set(url, fileName);
-      return fileName;
-    }
-    catch (error) {
-      console.error("上传背景失败:", error);
-      return null;
-    }
+    return uploadBackgroundAsset(this.getAssetUploadContext(), url);
   }
 
   /**
    * 上传图片消息（作为常驻展示图层）
    */
   private async uploadImageFigure(url: string, fileName?: string): Promise<string | null> {
-    if (this.uploadedImageFiguresMap.has(url)) {
-      return this.uploadedImageFiguresMap.get(url) || null;
-    }
-
-    try {
-      const path = `games/${this.gameName}/game/figure/`;
-      const targetName = buildImageFileName(url, fileName, "img");
-      const uploadedName = await uploadFile(url, path, targetName);
-      this.uploadedImageFiguresMap.set(url, uploadedName);
-      return uploadedName;
-    }
-    catch (error) {
-      console.error("上传图片立绘失败:", error);
-      return null;
-    }
+    return uploadImageFigureAsset(this.getAssetUploadContext(), url, fileName);
   }
 
   /**
    * 上传视频资源
    */
   private async uploadVideo(url: string, fileName?: string): Promise<string | null> {
-    if (this.uploadedVideosMap.has(url)) {
-      return this.uploadedVideosMap.get(url) || null;
-    }
-
-    try {
-      const path = `games/${this.gameName}/game/video/`;
-      const trimmedName = fileName?.trim();
-      const targetName = trimmedName
-        ? (hasFileExtension(trimmedName) ? trimmedName : `${trimmedName}.webm`)
-        : `video_${hashString(url)}.webm`;
-      const uploadedName = await uploadFile(url, path, targetName);
-      this.uploadedVideosMap.set(url, uploadedName);
-      return uploadedName;
-    }
-    catch (error) {
-      console.error("上传视频失败:", error);
-      return null;
-    }
+    return uploadVideoAsset(this.getAssetUploadContext(), url, fileName);
   }
 
   private getRenderedFigureState(roomId: number): Map<string, RoomFigureRenderState> {
@@ -2002,41 +1445,14 @@ export class RealtimeRenderer {
    * 上传背景音乐
    */
   private async uploadBgm(url: string): Promise<string | null> {
-    if (this.uploadedBgmsMap.has(url)) {
-      return this.uploadedBgmsMap.get(url) || null;
-    }
-
-    try {
-      const path = `games/${this.gameName}/game/bgm/`;
-      const fileName = await uploadFile(url, path);
-      this.uploadedBgmsMap.set(url, fileName);
-      return fileName;
-    }
-    catch (error) {
-      console.error("上传背景音乐失败:", error);
-      return null;
-    }
+    return uploadBgmAsset(this.getAssetUploadContext(), url);
   }
 
   /**
    * 上传音效到 vocal 文件夹
    */
   private async uploadSoundEffect(url: string): Promise<string | null> {
-    if (this.uploadedSoundEffectsMap.has(url)) {
-      return this.uploadedSoundEffectsMap.get(url) || null;
-    }
-
-    try {
-      // WebGAL 的 playEffect 使用 vocal 文件夹
-      const path = `games/${this.gameName}/game/vocal/`;
-      const fileName = await uploadFile(url, path);
-      this.uploadedSoundEffectsMap.set(url, fileName);
-      return fileName;
-    }
-    catch (error) {
-      console.error("上传音效失败:", error);
-      return null;
-    }
+    return uploadSoundEffectAsset(this.getAssetUploadContext(), url);
   }
 
   private resolveDiceSound(payload: WebgalDiceRenderPayload | null, useDefault: boolean): { url: string; volume?: number } | null {
@@ -2107,63 +1523,24 @@ export class RealtimeRenderer {
    * 获取立绘文件名（如果未上传则上传）
    */
   private async getAndUploadSprite(avatarId: number, roleId: number): Promise<string | null> {
-    const cacheKey = this.buildRoleAvatarCacheKey(roleId, avatarId);
-    // 已上传的直接返回
-    if (this.uploadedSpritesMap.has(cacheKey)) {
-      return this.uploadedSpritesMap.get(cacheKey) || null;
-    }
-
-    // 获取头像信息
-    const avatar = this.getCachedRoleAvatar(avatarId);
-    if (!avatar) {
-      console.warn(`[RealtimeRenderer] 头像信息未找到: avatarId=${avatarId}`);
-      return null;
-    }
-
-    const spriteUrl = avatar.spriteUrl || avatar.avatarUrl;
-    if (!spriteUrl) {
-      console.warn(`[RealtimeRenderer] 头像没有 spriteUrl 或 avatarUrl: avatarId=${avatarId}`);
-      return null;
-    }
-
-    return this.uploadSprite(avatarId, spriteUrl, roleId);
+    return getAndUploadSpriteAsset(
+      this.getAssetUploadContext(),
+      avatarId,
+      roleId,
+      targetAvatarId => this.getCachedRoleAvatar(targetAvatarId),
+    );
   }
 
   /**
    * 获取小头像文件名（如果未上传则上传）
    */
   private async getAndUploadMiniAvatar(avatarId: number, roleId: number): Promise<string | null> {
-    const cacheKey = this.buildRoleAvatarCacheKey(roleId, avatarId);
-    // 已上传的直接返回
-    if (this.uploadedMiniAvatarsMap.has(cacheKey)) {
-      return this.uploadedMiniAvatarsMap.get(cacheKey) || null;
-    }
-
-    // 获取头像信息
-    const avatar = this.getCachedRoleAvatar(avatarId);
-    if (!avatar) {
-      return null;
-    }
-
-    const avatarUrl = avatar.avatarUrl;
-    if (!avatarUrl) {
-      return null;
-    }
-
-    try {
-      const roleFigureDir = this.getRoleFigureDirName(roleId);
-      const path = `games/${this.gameName}/game/figure/${roleFigureDir}/`;
-      const fileExtension = getFileExtensionFromUrl(avatarUrl, "webp");
-      const miniAvatarName = `mini_${avatarId}`;
-      const fileName = await uploadFile(avatarUrl, path, `${miniAvatarName}.${fileExtension}`);
-      const relativePath = `${roleFigureDir}/${fileName}`;
-      this.uploadedMiniAvatarsMap.set(cacheKey, relativePath);
-      return relativePath;
-    }
-    catch (error) {
-      console.error("上传小头像失败:", error);
-      return null;
-    }
+    return getAndUploadMiniAvatarAsset(
+      this.getAssetUploadContext(),
+      avatarId,
+      roleId,
+      targetAvatarId => this.getCachedRoleAvatar(targetAvatarId),
+    );
   }
 
   public async preloadMessageAssets(messages: ChatMessageResponse[]): Promise<void> {
@@ -2236,85 +1613,6 @@ export class RealtimeRenderer {
     }
   }
 
-  private getDiceContentFromMessage(msg: ChatMessageResponse["message"], payload?: WebgalDiceRenderPayload | null): string {
-    return payload?.content ?? msg.extra?.diceResult?.result ?? (msg.extra as any)?.result ?? msg.content ?? "";
-  }
-
-  private isPotentialTrpgDiceMessage(msg: ChatMessageResponse["message"]): boolean {
-    if ((msg.messageType as number) !== MESSAGE_TYPE.DICE) {
-      return false;
-    }
-    const payload = extractWebgalDicePayload(msg.webgal);
-    if (payload?.mode === "trpg") {
-      return true;
-    }
-    const content = this.getDiceContentFromMessage(msg, payload);
-    const normalized = String(content ?? "").trim();
-    if (!normalized) {
-      return false;
-    }
-    return isLikelyTrpgDiceContent(normalized) || DICE_COMMAND_PATTERN.test(normalized);
-  }
-
-  private canMergeTrpgDicePair(command: ChatMessageResponse, reply: ChatMessageResponse): boolean {
-    const commandMessage = command.message;
-    const replyMessage = reply.message;
-    if ((commandMessage.messageType as number) !== MESSAGE_TYPE.DICE || (replyMessage.messageType as number) !== MESSAGE_TYPE.DICE) {
-      return false;
-    }
-    if (!commandMessage.messageId || replyMessage.replyMessageId !== commandMessage.messageId) {
-      return false;
-    }
-    return this.isPotentialTrpgDiceMessage(commandMessage) || this.isPotentialTrpgDiceMessage(replyMessage);
-  }
-
-  private buildMergedTrpgDiceMessage(command: ChatMessageResponse, reply: ChatMessageResponse): ChatMessageResponse {
-    const commandMessage = command.message;
-    const replyMessage = reply.message;
-    const commandPayload = extractWebgalDicePayload(commandMessage.webgal);
-    const replyPayload = extractWebgalDicePayload(replyMessage.webgal);
-    const commandContent = this.getDiceContentFromMessage(commandMessage, commandPayload).trim();
-    const replyContent = this.getDiceContentFromMessage(replyMessage, replyPayload).trim();
-    const mergedLines: string[] = [];
-    if (commandContent) {
-      mergedLines.push(`[玩家掷骰](style=color:#9AB9FF) ${commandContent}`);
-    }
-    if (replyContent) {
-      mergedLines.push(`[骰子结果](style=color:#FFC88C) ${replyContent}`);
-    }
-    const mergedContent = mergedLines.join("\n").trim() || replyContent || commandContent;
-    const replyWebgal = (replyMessage.webgal && typeof replyMessage.webgal === "object")
-      ? (replyMessage.webgal as Record<string, any>)
-      : {};
-    const rawDiceRender = (replyWebgal.diceRender && typeof replyWebgal.diceRender === "object")
-      ? (replyWebgal.diceRender as Record<string, any>)
-      : {};
-    const mergedExtra = {
-      ...(replyMessage.extra ?? {}),
-      diceResult: {
-        result: mergedContent,
-      },
-    };
-
-    return {
-      ...reply,
-      message: {
-        ...replyMessage,
-        content: mergedContent,
-        webgal: {
-          ...replyWebgal,
-          diceRender: {
-            ...rawDiceRender,
-            mode: "trpg",
-            content: mergedContent,
-            twoStep: false,
-          },
-        },
-        extra: mergedExtra,
-      },
-    };
-  }
-
   private async tryRenderMergedTrpgDiceMessage(
     message: ChatMessageResponse,
     roomId: number,
@@ -2333,15 +1631,15 @@ export class RealtimeRenderer {
       }
       clearTimeout(pendingEntry.timer);
       this.pendingDiceMergeMap.delete(pendingKey);
-      if (this.canMergeTrpgDicePair(pendingEntry.message, message)) {
-        const mergedMessage = this.buildMergedTrpgDiceMessage(pendingEntry.message, message);
+      if (canMergeTrpgDicePair(pendingEntry.message, message)) {
+        const mergedMessage = buildMergedTrpgDiceMessage(pendingEntry.message, message);
         await this.renderMessage(mergedMessage, roomId, syncToFile, { bypassDiceMerge: true });
         return true;
       }
       await this.renderMessage(pendingEntry.message, pendingEntry.roomId, pendingEntry.syncToFile, { bypassDiceMerge: true });
     }
 
-    if (!this.isPotentialTrpgDiceMessage(msg)) {
+    if (!isPotentialTrpgDiceMessage(msg)) {
       return false;
     }
     const key = this.getDiceMergeKey(roomId, msg.messageId);
@@ -2476,7 +1774,7 @@ export class RealtimeRenderer {
             const imageSlot = resolveFigureSlot("center");
             const figureFileName = await this.uploadImageFigure(imageSourceUrl, imageMessage.fileName);
             if (figureFileName) {
-              const transform = this.buildImageFigureTransformString(imageMessage, imageSlot.offsetX);
+              const transform = buildImageFigureTransformString(imageMessage, imageSlot.offsetX);
               const figureArgs = buildFigureArgs(IMAGE_MESSAGE_FIGURE_ID, transform);
               await this.appendLine(
                 targetRoomId,
@@ -2641,7 +1939,7 @@ export class RealtimeRenderer {
       const isDiceMessage = (msg.messageType as number) === MESSAGE_TYPE.DICE;
       const dicePayload = isDiceMessage ? extractWebgalDicePayload(msg.webgal) : null;
       const diceContent = isDiceMessage
-        ? this.getDiceContentFromMessage(msg, dicePayload)
+        ? getDiceContentFromMessage(msg, dicePayload)
         : "";
       const hasDiceScriptLines = Boolean(isDiceMessage && dicePayload?.lines && dicePayload.lines.length > 0);
       const autoDiceMode = isDiceMessage
@@ -2764,7 +2062,7 @@ export class RealtimeRenderer {
       // 不再自动清除立绘，立绘需要手动清除
         const figureSlot = resolveFigureSlot(figurePosition);
         this.lastFigureSlotIdMap.set(targetRoomId, figureSlot.id);
-        const transform = this.buildFigureTransformString(avatar, figureSlot.offsetX, 0);
+        const transform = buildRoleFigureTransformString(avatar, figureSlot.offsetX, 0);
         const renderedState = this.getRenderedFigureState(targetRoomId);
         const previous = renderedState.get(figureSlot.id);
         const shouldUpdateFigure
@@ -2987,12 +2285,17 @@ export class RealtimeRenderer {
           && !isDiceMessage
           && !renderContent.startsWith(".") // 跳过指令
           && !renderContent.startsWith("。")) {
-          vocalFileName = await this.generateAndUploadVocal(
-            processedContent,
+          vocalFileName = await generateAndUploadVocal({
+            text: processedContent,
             roleId,
-            avatar?.avatarTitle,
+            avatarTitle: avatar?.avatarTitle,
             customEmotionVector,
-          );
+            getTtsConfig: () => this.ttsConfig,
+            voiceFileMap: this.voiceFileMap,
+            uploadedVocalsMap: this.uploadedVocalsMap,
+            ttsGeneratingMap: this.ttsGeneratingMap,
+            gameName: this.gameName,
+          });
         }
 
         // 添加对话行（包含语音和 -notend/-concat 参数）
@@ -3034,8 +2337,8 @@ export class RealtimeRenderer {
       }
       const current = messages[index];
       const next = messages[index + 1];
-      if (next && this.canMergeTrpgDicePair(current, next)) {
-        const mergedMessage = this.buildMergedTrpgDiceMessage(current, next);
+      if (next && canMergeTrpgDicePair(current, next)) {
+        const mergedMessage = buildMergedTrpgDiceMessage(current, next);
         await this.renderMessage(mergedMessage, targetRoomId, false, { bypassDiceMerge: true });
         if (this.disposed) {
           console.warn("[RealtimeRenderer] 渲染中止：实例已销毁");
@@ -3085,7 +2388,7 @@ export class RealtimeRenderer {
     let effectiveStartIndex = startIndex;
     if (
       effectiveStartIndex > 0
-      && this.canMergeTrpgDicePair(messages[effectiveStartIndex - 1], messages[effectiveStartIndex])
+      && canMergeTrpgDicePair(messages[effectiveStartIndex - 1], messages[effectiveStartIndex])
     ) {
       effectiveStartIndex -= 1;
     }
@@ -3106,7 +2409,7 @@ export class RealtimeRenderer {
       return;
     }
 
-    const startLineRange = this.messageLineMap.get(this.buildMessageStateKey(targetRoomId, startMessageId));
+    const startLineRange = this.messageLineMap.get(buildMessageStateKey(targetRoomId, startMessageId));
     if (!startLineRange) {
       await this.resetScene(targetRoomId);
       await this.renderHistory(messages, targetRoomId);
@@ -3132,8 +2435,8 @@ export class RealtimeRenderer {
       }
       const current = messages[index];
       const next = messages[index + 1];
-      if (next && this.canMergeTrpgDicePair(current, next)) {
-        const mergedMessage = this.buildMergedTrpgDiceMessage(current, next);
+      if (next && canMergeTrpgDicePair(current, next)) {
+        const mergedMessage = buildMergedTrpgDiceMessage(current, next);
         await this.renderMessage(mergedMessage, targetRoomId, false, { bypassDiceMerge: true });
         index += 1;
         continue;
@@ -3292,16 +2595,14 @@ export class RealtimeRenderer {
         ? messageAvatarId
         : (roleAvatarId > 0 ? roleAvatarId : 0);
       const avatar = effectiveAvatarId > 0 ? this.getCachedRoleAvatar(effectiveAvatarId) : undefined;
-      const emotionVector = customEmotionVector && customEmotionVector.length > 0
-        ? customEmotionVector
-        : (avatar?.avatarTitle ? this.convertAvatarTitleToEmotionVector(avatar.avatarTitle) : []);
+      const emotionVector = resolveRealtimeTtsEmotionVector(avatar?.avatarTitle, customEmotionVector);
 
       // 处理文本内容用于生成 cacheKey（支持 WebGAL 文本拓展语法）
       const processedContent = TextEnhanceSyntax.processContent(msg.content);
 
       const refVocal = this.voiceFileMap.get(msg.roleId);
       if (refVocal) {
-        const cacheKey = this.simpleHash(`tts_${processedContent}_${refVocal.name}_${JSON.stringify(emotionVector)}`);
+        const cacheKey = buildRealtimeTtsCacheKey(processedContent, refVocal.name, emotionVector);
         this.uploadedVocalsMap.delete(cacheKey);
       }
     }

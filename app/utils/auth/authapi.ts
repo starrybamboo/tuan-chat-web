@@ -1,5 +1,6 @@
 import type { UserLoginRequest, UserRegisterRequest } from "api";
 
+import { resetTuanChatQueryCache } from "@/queryClient";
 import { extractOpenApiErrorMessage } from "@/utils/openApiResult";
 
 import { tuanchat } from "../../../api/instance";
@@ -30,6 +31,7 @@ export async function loginUser(
 
     // Sa-Token：登录成功后返回 tokenValue，需要本地持久化
     if (response?.data) {
+      resetTuanChatQueryCache();
       localStorage.setItem("token", response.data);
 
       // 由于 tokenValue 无法反推出 uid，这里额外缓存 uid
@@ -86,6 +88,7 @@ export async function logoutUser() {
   // 先清理本地，保证 UI 立即生效
   localStorage.removeItem("token");
   localStorage.removeItem("uid");
+  resetTuanChatQueryCache();
 
   if (!token)
     return;

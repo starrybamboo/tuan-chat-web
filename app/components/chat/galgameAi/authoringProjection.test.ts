@@ -120,8 +120,8 @@ describe("galgame authoring projection", () => {
           avatarId: 71,
           avatarTitle: { zh: "微笑" },
           category: "表情",
-          avatarUrl: "https://static.example.com/avatar.png",
-          spriteUrl: "https://static.example.com/sprite.png",
+          avatarFileId: 71,
+          spriteFileId: 72,
         },
       ]],
     ]);

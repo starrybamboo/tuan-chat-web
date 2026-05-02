@@ -1,6 +1,7 @@
 import type { ChatMessageResponse, Room, UserRole } from "../../../../api";
 import type { SideDrawerState } from "@/components/chat/stores/sideDrawerStore";
 
+import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { toast } from "react-hot-toast";
 import {
@@ -64,7 +65,13 @@ export default function RealtimeRenderOrchestrator({
   chatHistoryLoading,
   onApiChange,
 }: Props) {
+  const queryClient = useQueryClient();
   const ensureHydrated = useRealtimeRenderStore(state => state.ensureHydrated);
+  const setRealtimeRenderQueryClient = useRealtimeRenderStore(state => state.setQueryClient);
+  useEffect(() => {
+    setRealtimeRenderQueryClient(queryClient);
+  }, [queryClient, setRealtimeRenderQueryClient]);
+
   useEffect(() => {
     void ensureHydrated(spaceId);
   }, [ensureHydrated, spaceId]);

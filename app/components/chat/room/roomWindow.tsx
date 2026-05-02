@@ -5,6 +5,7 @@ import type { GalPatchProposal } from "@/components/chat/galgameAi";
 
 import type { ChatFrameMessageScope } from "@/components/chat/hooks/useChatFrameMessages";
 import { useQueryClient } from "@tanstack/react-query";
+import { fetchUserInfoWithCache } from "@tuanchat/query/users";
 import { tuanchat } from "api/instance";
 import React, { use, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { toast } from "react-hot-toast";
@@ -14,9 +15,11 @@ import { RoomContext } from "@/components/chat/core/roomContext";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
 import { buildGalPatchMutationPlan, executeGalPatchMutationPlan } from "@/components/chat/galgameAi";
 import useChatInputStatus from "@/components/chat/hooks/useChatInputStatus";
+import { useBlocksuiteFramePrewarm } from "@/components/chat/infra/blocksuite/useBlocksuiteFramePrewarm";
 import { useChatHistory } from "@/components/chat/infra/indexedDB/useChatHistory";
 import { resolveMessageDiffBaseCommitId } from "@/components/chat/message/diff/messageVersionDiff";
 import RoomDocRefDropLayer from "@/components/chat/room/roomDocRefDropLayer";
+import { isInitialQueryReady, isRoomBlocksuitePrewarmReady } from "@/components/chat/room/roomPrewarmReadiness";
 import RoomSideDrawerGuards from "@/components/chat/room/roomSideDrawerGuards";
 import RoomWindowLayout from "@/components/chat/room/roomWindowLayout";
 import RoomWindowOverlays from "@/components/chat/room/roomWindowOverlays";
@@ -34,11 +37,12 @@ import useRoomMessageScroll from "@/components/chat/room/useRoomMessageScroll";
 import useRoomOverlaysController from "@/components/chat/room/useRoomOverlaysController";
 import useRoomRoleState from "@/components/chat/room/useRoomRoleState";
 import { compareChatMessageResponsesByOrder } from "@/components/chat/shared/messageOrder";
-import { StateRuntimeProvider } from "@/components/chat/state/stateRuntimeContext";
+import { StateRuntimeProvider, useStateRuntimeContext } from "@/components/chat/state/stateRuntimeContext";
 import { useAudioMessageAutoPlayStore } from "@/components/chat/stores/audioMessageAutoPlayStore";
 import { useChatInputUiStore } from "@/components/chat/stores/chatInputUiStore";
 import { useEntityHeaderOverrideStore } from "@/components/chat/stores/entityHeaderOverrideStore";
 import { createRoomUiStore, RoomUiStoreProvider } from "@/components/chat/stores/roomUiStore";
+import { useSideDrawerStore } from "@/components/chat/stores/sideDrawerStore";
 import useCommandExecutor from "@/components/common/dicer/cmdPre";
 import { useGlobalUserId, useGlobalWebSocket } from "@/components/globalContextProvider";
 
@@ -51,6 +55,44 @@ import {
   useUpdateMessageMutation,
 } from "../../../../api/hooks/chatQueryHooks";
 import { useRepositoryDetailByIdQuery } from "../../../../api/hooks/repositoryQueryHooks";
+import { fetchRoleAvatarWithCache, fetchRoleWithCache } from "../../../../api/hooks/RoleAndAvatarHooks";
+
+interface RoomBlocksuiteFramePrewarmProps {
+  historyLoading: boolean;
+  membersReady: boolean;
+  prewarmKey: string;
+  roomInfoReady: boolean;
+  rolesReady: boolean;
+  spaceInfoReady: boolean;
+}
+
+function RoomBlocksuiteFramePrewarm({
+  historyLoading,
+  membersReady,
+  prewarmKey,
+  roomInfoReady,
+  rolesReady,
+  spaceInfoReady,
+}: RoomBlocksuiteFramePrewarmProps) {
+  const runtime = useStateRuntimeContext();
+  const shouldPrewarm = isRoomBlocksuitePrewarmReady({
+    abilityLoading: runtime.isAbilityLoading,
+    historyLoading,
+    membersReady,
+    roomInfoReady,
+    rolesReady,
+    spaceInfoReady,
+  });
+
+  // warm frame 体积较大，只在聊天关键数据首载完成后交给 idle 队列。
+  useBlocksuiteFramePrewarm({
+    enabled: shouldPrewarm,
+    prewarmKey: shouldPrewarm ? prewarmKey : null,
+    startDelayMs: 1000,
+  });
+
+  return null;
+}
 
 function RoomWindow({
   roomId,
@@ -83,6 +125,7 @@ function RoomWindow({
     roomUiStoreRef.current = createRoomUiStore();
   }
   const roomUiStore = roomUiStoreRef.current;
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     useAudioMessageAutoPlayStore.getState().setActiveRoomId(roomId);
@@ -91,8 +134,10 @@ function RoomWindow({
     };
   }, [roomId]);
 
-  const space = useGetSpaceInfoQuery(spaceId).data?.data;
-  const room = useGetRoomInfoQuery(roomId).data?.data;
+  const spaceQuery = useGetSpaceInfoQuery(spaceId);
+  const roomQuery = useGetRoomInfoQuery(roomId);
+  const space = spaceQuery.data?.data;
+  const room = roomQuery.data?.data;
   const repositoryId = typeof space?.repositoryId === "number" && Number.isFinite(space.repositoryId)
     ? space.repositoryId
     : 0;
@@ -138,6 +183,7 @@ function RoomWindow({
     curMember,
     isSpectator,
     notMember,
+    isMemberDataReady,
   } = useRoomMemberState({
     roomId,
     userId,
@@ -151,6 +197,7 @@ function RoomWindow({
     curAvatarId,
     setCurAvatarId,
     ensureRuntimeAvatarIdForRole,
+    isRoleDataReady,
   } = useRoomRoleState({
     roomId,
     userId,
@@ -174,6 +221,14 @@ function RoomWindow({
   const mainHistoryMessages = useRoomMainHistoryMessages({
     historyMessages,
   });
+  const sideDrawerState = useSideDrawerStore(state => state.state);
+  const visibleRoleIdsForStateDrawer = React.useMemo(() => {
+    if (sideDrawerState !== "state") {
+      return undefined;
+    }
+    return roomAllRoles.map(role => role.roleId).filter(roleId => roleId > 0);
+  }, [roomAllRoles, sideDrawerState]);
+  const roomPrewarmKey = `${spaceId}:${roomId}`;
   const virtuosoRef = useRef<VirtuosoHandle | null>(null);
   const { scrollToGivenMessage } = useRoomMessageScroll({
     targetMessageId,
@@ -323,6 +378,7 @@ function RoomWindow({
     sendMessageWithInsert,
     sendMessageBatch,
     ensureRuntimeAvatarIdForRole,
+    queryClient,
     roomUiStoreApi: roomUiStore,
   });
   const {
@@ -528,8 +584,6 @@ function RoomWindow({
     };
   }, [handleRedoLastMessageAction, handleUndoLastMessageAction]);
 
-  const queryClient = useQueryClient();
-
   const handleClearAndReloadAllMessages = useCallback(async () => {
     if (!chatHistory || isReloadingAllMessages) {
       return;
@@ -613,13 +667,10 @@ function RoomWindow({
           return cached.data;
         }
 
-        // 2. 调用 API
         try {
-          const res = await tuanchat.avatarController.getRoleAvatar(avatarId);
+          const res = await fetchRoleAvatarWithCache(queryClient, avatarId);
           if (res.data) {
             avatarCache.set(avatarId, res.data);
-            // Optionally update query cache
-            queryClient.setQueryData(queryKey, res);
             return res.data;
           }
         }
@@ -648,12 +699,10 @@ function RoomWindow({
           return cached.data.roleName;
         }
 
-        // 调用 API
         try {
-          const res = await tuanchat.roleController.getRole(roleId);
+          const res = await fetchRoleWithCache(queryClient, roleId);
           if (res.data?.roleName) {
             roleNameCache.set(roleId, res.data.roleName);
-            queryClient.setQueryData(queryKey, res);
             return res.data.roleName;
           }
         }
@@ -677,10 +726,9 @@ function RoomWindow({
             roleData = cached.data;
           }
           else {
-            const res = await tuanchat.roleController.getRole(roleId);
+            const res = await fetchRoleWithCache(queryClient, roleId);
             if (res.data) {
               roleData = res.data;
-              queryClient.setQueryData(queryKey, res);
             }
           }
 
@@ -708,7 +756,7 @@ function RoomWindow({
         if (userNameCache.has(userId))
           return userNameCache.get(userId);
 
-        const queryKey = ["getUser", userId];
+        const queryKey = ["getUserInfo", userId];
         const cached = queryClient.getQueryData<{ data: any }>(queryKey);
         if (cached?.data?.username) { // UserInfoResponse usually has 'username' or 'name' or 'nickname'
           const name = cached.data.username;
@@ -717,12 +765,11 @@ function RoomWindow({
         }
 
         try {
-          const res = await tuanchat.userController.getUserInfo(userId);
+          const res = await fetchUserInfoWithCache(queryClient, tuanchat, userId);
           // Check return type UserInfoResponse
           if (res.data) {
             const name = res.data.username || "Unknown";
             userNameCache.set(userId, name);
-            queryClient.setQueryData(queryKey, res);
             return name;
           }
         }
@@ -740,9 +787,8 @@ function RoomWindow({
           return cached.data;
         try {
           // Reuse existing RoleController API
-          const res = await tuanchat.roleController.getRole(roleId);
+          const res = await fetchRoleWithCache(queryClient, roleId);
           if (res.data) {
-            queryClient.setQueryData(queryKey, res);
             return res.data;
           }
         }
@@ -1074,8 +1120,16 @@ function RoomWindow({
           messages={mainHistoryMessages}
           ruleId={space?.ruleId ?? -1}
           currentRoleId={curRoleId}
-          visibleRoleIds={roomAllRoles.map(role => role.roleId).filter(roleId => roleId > 0)}
+          visibleRoleIds={visibleRoleIdsForStateDrawer}
         >
+          <RoomBlocksuiteFramePrewarm
+            prewarmKey={roomPrewarmKey}
+            spaceInfoReady={isInitialQueryReady(spaceQuery)}
+            roomInfoReady={isInitialQueryReady(roomQuery)}
+            membersReady={isMemberDataReady}
+            rolesReady={isRoleDataReady}
+            historyLoading={Boolean(chatHistory?.loading)}
+          />
           <RealtimeRenderOrchestrator
             spaceId={spaceId}
             spaceName={spaceName}

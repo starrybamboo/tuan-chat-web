@@ -15,5 +15,19 @@ export type InitiativeParam = {
   attrKey?: string;
 };
 
+export type InitiativeDraft = {
+  name: string;
+  value: string;
+  hp: string;
+  maxHp: string;
+};
+
+export type InitiativeParamDraft = {
+  key: string;
+  label: string;
+  source: InitiativeParam["source"];
+  attrKey: string;
+};
+
 export type SortKey = "name" | "value" | "hp" | "maxHp" | { paramKey: string };
 export type SortDirection = "asc" | "desc";

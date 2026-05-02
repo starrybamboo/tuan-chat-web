@@ -1,4 +1,5 @@
 import UTILS from "@/components/common/dicer/utils/utils";
+
 import type { CharacterData } from "../types";
 
 export function evaluateCharacterDataExpressions(data: CharacterData): CharacterData {

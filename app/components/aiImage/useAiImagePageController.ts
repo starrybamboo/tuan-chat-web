@@ -119,7 +119,6 @@ export function useAiImagePageController() {
   const [prompt, setPrompt] = useState("");
   const [negativePrompt, setNegativePrompt] = useState("");
 
-
   const [v4UseCoords, setV4UseCoords] = useState<boolean>(false);
   const [v4UseOrder, setV4UseOrder] = useState<boolean>(true);
   const [v4Chars, setV4Chars] = useState<V4CharEditorRow[]>([]);

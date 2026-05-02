@@ -8,6 +8,10 @@ export type UploadUrlRequest = {
      */
     fileName: string;
     /**
+     * 前端识别到的 MIME 类型；为空或 octet-stream 时后端会按文件名后缀兜底推断
+     */
+    contentType?: string;
+    /**
      * 上传场景1.聊天室,2.表情包，3.角色差分 4.模组图片
      */
     scene: number;

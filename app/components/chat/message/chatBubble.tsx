@@ -941,8 +941,6 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
                       : (
                           <RoleAvatarComponent
                             avatarId={message.avatarId ?? 0}
-                            avatarUrl={message.avatarUrl}
-                            avatarThumbUrl={message.avatarThumbUrl}
                             roleId={message.roleId ?? undefined}
                             width={isMobile ? 10 : 12}
                             isRounded={true}
@@ -1077,8 +1075,6 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
                         : (
                             <RoleAvatarComponent
                               avatarId={message.avatarId ?? 0}
-                              avatarUrl={message.avatarUrl}
-                              avatarThumbUrl={message.avatarThumbUrl}
                               roleId={message.roleId ?? undefined}
                               width={isMobile ? 10 : 20}
                               isRounded={false}

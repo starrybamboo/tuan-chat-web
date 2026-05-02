@@ -2,6 +2,8 @@ import { useMemo } from "react";
 
 import type { Space } from "../../../../api";
 
+import { avatarThumbUrl } from "@/utils/mediaUrl";
+
 type UseChatPageActiveSpaceInfoParams = {
   activeSpaceId?: number | null;
   activeSpaceInfo?: Space | null;
@@ -26,7 +28,7 @@ export default function useChatPageActiveSpaceInfo({
 
   return {
     activeSpace,
-    activeSpaceAvatar: activeSpace?.avatar,
+    activeSpaceAvatar: avatarThumbUrl(activeSpace?.avatarFileId),
     activeSpaceIsArchived: activeSpace?.status === 2,
     activeSpaceNameForUi: activeSpace?.name,
   };

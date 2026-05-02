@@ -83,7 +83,7 @@ async function getBlocksuiteRoomIdsForSpace(
       return null;
 
     try {
-      const ids = await listBlocksuiteRoomIdsForSpace(spaceId);
+      const ids = await listBlocksuiteRoomIdsForSpace(spaceId, context.queryClient);
       context.roomIdsCache.set(spaceId, { at: Date.now(), ids });
       return ids;
     }

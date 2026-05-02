@@ -136,12 +136,19 @@ export default function MaterialLibraryPage({
   const handleCreate = async (draft: {
     name: string;
     description: string;
+    coverFileId?: number;
     coverUrl: string;
     originalCoverUrl: string;
     isPublic: boolean;
     content: MaterialPackageContent;
   }) => {
-    const result = await createMutation.mutateAsync(draft);
+    const result = await createMutation.mutateAsync({
+      name: draft.name,
+      description: draft.description,
+      coverFileId: draft.coverFileId,
+      isPublic: draft.isPublic,
+      content: draft.content,
+    });
     const createdId = result.data?.packageId ?? null;
     toast.success("素材包已创建");
     setIsCreating(false);
@@ -154,6 +161,7 @@ export default function MaterialLibraryPage({
   const handleUpdate = async (draft: {
     name: string;
     description: string;
+    coverFileId?: number;
     coverUrl: string;
     originalCoverUrl: string;
     isPublic: boolean;
@@ -164,7 +172,11 @@ export default function MaterialLibraryPage({
     }
     await updateMutation.mutateAsync({
       packageId: selectedPackage.packageId,
-      ...draft,
+      name: draft.name,
+      description: draft.description,
+      coverFileId: draft.coverFileId,
+      isPublic: draft.isPublic,
+      content: draft.content,
     });
   };
 
@@ -186,8 +198,7 @@ export default function MaterialLibraryPage({
     const result = await createMutation.mutateAsync({
       name: selectedPackage.name?.trim() || "未命名素材包",
       description: selectedPackage.description ?? "",
-      coverUrl: selectedPackage.coverUrl ?? "",
-      originalCoverUrl: selectedPackage.originalCoverUrl ?? selectedPackage.coverUrl ?? "",
+      coverFileId: selectedPackage.coverFileId,
       isPublic: false,
       content: (selectedPackage.content ?? createEmptyMaterialPackageContent()) as MaterialPackageContent,
     });

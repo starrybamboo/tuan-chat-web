@@ -10,7 +10,8 @@ import useSearchParamsState from "@/components/common/customHooks/useSearchParam
 import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
 import { isMobileScreen } from "@/utils/getScreenSize";
 import { canvasPreview, createFullImageCrop, createTopCenteredSquareCrop, getCroppedImageFile, useCropPreview } from "@/utils/imgCropper";
-import { UploadUtils } from "@/utils/UploadUtils";
+import { uploadMediaFile } from "@/utils/mediaUpload";
+import { avatarUrl as buildAvatarUrl, imageHighUrl } from "@/utils/mediaUrl";
 import { AvatarPreview } from "../Preview/AvatarPreview";
 import { RenderPreview } from "../Preview/RenderPreview";
 import { TransformControl } from "../sprite/TransformControl";
@@ -82,9 +83,6 @@ export function CharacterCopper({
 }: ImgUploaderWithCopperProps) {
   // 文件输入框引用
   const fileInputRef = useRef<HTMLInputElement>(null);
-  // 上传工具实例
-  const uploadUtilsRef = useRef(new UploadUtils());
-  const uploadUtils = uploadUtilsRef.current;
   // 控制弹窗的显示状态
   const searchKey = stateKey ?? "characterCopperPop";
   const [isOpen, setIsOpen] = useSearchParamsState<boolean>(searchKey, false);
@@ -98,9 +96,8 @@ export function CharacterCopper({
   // 存储用户最初选择的原始图片文件（未裁剪）
   const originalFileRef = useRef<File | null>(null);
 
-  // originUrl：用户最初上传的未裁剪源图 URL，用于兼容旧链路
-  const [originUrl, setOriginUrl] = useState("");
-  const originUrlPromiseRef = useRef<Promise<string> | null>(null);
+  const [originFileId, setOriginFileId] = useState<number | undefined>();
+  const originUploadPromiseRef = useRef<Promise<number | undefined> | null>(null);
 
   // 提交状态
   const [isSubmiting, setisSubmiting] = useState(false);
@@ -178,8 +175,8 @@ export function CharacterCopper({
 
     // 清除原图与 originUrl
     originalFileRef.current = null;
-    setOriginUrl("");
-    originUrlPromiseRef.current = null;
+    setOriginFileId(undefined);
+    originUploadPromiseRef.current = null;
   }
 
   // 使用防抖 Hook 更新预览画布（已集成在 useCropPreview 中）
@@ -215,17 +212,17 @@ export function CharacterCopper({
     imgFile.current = file;
     originalFileRef.current = file;
 
-    // 选择文件后立即上传未裁剪源图，避免提交很快时还没拿到兼容字段。
-    setOriginUrl("");
-    originUrlPromiseRef.current = (async () => {
+    // 选择文件后立即上传未裁剪源图，提交很快时也能拿到 originFileId。
+    setOriginFileId(undefined);
+    originUploadPromiseRef.current = (async () => {
       try {
-        const uploadedOriginUrl = await uploadUtils.uploadOriginalImg(file, scene);
-        setOriginUrl(uploadedOriginUrl);
-        return uploadedOriginUrl;
+        const uploadedOrigin = await uploadMediaFile(file);
+        setOriginFileId(uploadedOrigin.fileId);
+        return uploadedOrigin.fileId;
       }
       catch (error) {
-        console.error("originUrl 上传失败:", error);
-        return "";
+        console.error("originFileId 上传失败:", error);
+        return undefined;
       }
     })();
 
@@ -234,7 +231,7 @@ export function CharacterCopper({
     reader.addEventListener("load", () =>
       setImgSrc(reader.result?.toString() || ""));
     reader.readAsDataURL(file);
-  }, [scene, setIsOpen, setCrop, uploadUtils]);
+  }, [setIsOpen, setCrop]);
 
   const uploadFileWithDefaults = useCallback(async (file: File, index: number, total: number, baseName: string, toastId: string) => {
     if (!file.type.startsWith("image/")) {
@@ -255,36 +252,30 @@ export function CharacterCopper({
     await canvasPreview(img, avatarCanvas, avatarPixelCrop, 1, 0, { previewMode: false });
     const avatarFile = await getCroppedImageFile(avatarCanvas, `${fileBaseName}-cropped.png`);
 
-    let originUrl = "";
+    let originFileId: number | undefined;
     try {
-      originUrl = await uploadUtils.uploadOriginalImg(file, scene);
+      originFileId = (await uploadMediaFile(file)).fileId;
     }
     catch (error) {
-      console.error("originUrl 上传失败:", error);
+      console.error("originFileId 上传失败:", error);
     }
 
-    const [spriteOriginalUrl, spriteUrl, avatarOriginalUrl, avatarUrl, avatarThumbUrl] = await Promise.all([
-      uploadUtils.uploadOriginalImg(spriteFile, scene),
-      uploadUtils.uploadImg(spriteFile, scene),
-      uploadUtils.uploadOriginalImg(avatarFile, scene),
-      uploadUtils.uploadImgByPreset(avatarFile, "avatar", scene),
-      uploadUtils.uploadImgByPreset(avatarFile, "avatarThumb", scene),
+    const [spriteUpload, avatarUpload] = await Promise.all([
+      uploadMediaFile(spriteFile),
+      uploadMediaFile(avatarFile),
     ]);
 
     await Promise.resolve(mutate?.({
-      avatarUrl,
-      avatarThumbUrl,
-      spriteUrl,
-      avatarOriginalUrl,
-      spriteOriginalUrl,
-      originUrl: originUrl || undefined,
+      avatarFileId: avatarUpload.fileId,
+      spriteFileId: spriteUpload.fileId,
+      originFileId,
       transform: createDefaultTransform(),
     }, {
       batch: true,
       index,
       total,
     }));
-  }, [loadImageFromFile, mutate, scene, uploadUtils]);
+  }, [loadImageFromFile, mutate]);
 
   const handleFiles = useCallback(async (files: File[]) => {
     const imageFiles = files.filter(file => file.type.startsWith("image/"));
@@ -402,47 +393,39 @@ export function CharacterCopper({
       else if (currentStep === 2) {
         // 第二步：上传原始图片和裁剪后的头像
         const copperedImgFile = await getCroppedFile(`${fileName}-cropped.png`);
-        let spriteOriginalUrl = "";
-        let avatarOriginalUrl = "";
+        let spriteFileId: number | undefined;
+        let avatarFileId: number | undefined;
         if (shouldUploadSprite) {
-          [spriteOriginalUrl, downloadUrl] = await Promise.all([
-            uploadUtils.uploadOriginalImg(fileWithNewName, scene),
-            uploadUtils.uploadImg(fileWithNewName, scene),
-          ]);
+          spriteFileId = (await uploadMediaFile(fileWithNewName)).fileId;
+          downloadUrl = imageHighUrl(spriteFileId);
           setDownloadUrl?.(downloadUrl);
         }
         if (shouldUploadAvatar) {
-          [avatarOriginalUrl, copperedDownloadUrl, copperedThumbDownloadUrl] = await Promise.all([
-            uploadUtils.uploadOriginalImg(copperedImgFile, scene),
-            uploadUtils.uploadImgByPreset(copperedImgFile, "avatar", scene),
-            uploadUtils.uploadImgByPreset(copperedImgFile, "avatarThumb", scene),
-          ]);
+          avatarFileId = (await uploadMediaFile(copperedImgFile)).fileId;
+          copperedDownloadUrl = buildAvatarUrl(avatarFileId);
+          copperedThumbDownloadUrl = copperedDownloadUrl;
           setCopperedDownloadUrl?.(copperedDownloadUrl);
         }
 
-        // 确保 originUrl 已经上传完成（若用户很快提交，这里会等待）
-        let resolvedOriginUrl = originUrl;
-        if (!resolvedOriginUrl && originUrlPromiseRef.current) {
-          resolvedOriginUrl = await originUrlPromiseRef.current;
+        let resolvedOriginFileId = originFileId;
+        if (!resolvedOriginFileId && originUploadPromiseRef.current) {
+          resolvedOriginFileId = await originUploadPromiseRef.current;
         }
-        if (!resolvedOriginUrl && originalFileRef.current) {
+        if (!resolvedOriginFileId && originalFileRef.current) {
           try {
-            resolvedOriginUrl = await uploadUtils.uploadOriginalImg(originalFileRef.current, scene);
-            setOriginUrl(resolvedOriginUrl);
+            resolvedOriginFileId = (await uploadMediaFile(originalFileRef.current)).fileId;
+            setOriginFileId(resolvedOriginFileId);
           }
           catch (error) {
-            console.error("originUrl 二次上传失败:", error);
+            console.error("originFileId 二次上传失败:", error);
           }
         }
 
         if (mutate !== undefined) {
           await Promise.resolve(mutate({
-            avatarUrl: copperedDownloadUrl,
-            avatarThumbUrl: copperedThumbDownloadUrl || undefined,
-            spriteUrl: downloadUrl,
-            avatarOriginalUrl: avatarOriginalUrl || undefined,
-            spriteOriginalUrl: spriteOriginalUrl || undefined,
-            originUrl: resolvedOriginUrl || undefined,
+            avatarFileId,
+            spriteFileId,
+            originFileId: resolvedOriginFileId,
             transform,
           }));
         }

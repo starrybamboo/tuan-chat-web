@@ -3,12 +3,14 @@ import type { BlobSource, BlobState } from "@blocksuite/sync";
 import { IndexedDBBlobSource } from "@blocksuite/sync";
 import { BehaviorSubject } from "rxjs";
 
+import type { OssUploadHeaders } from "@/utils/ossUploadTarget";
+
+import { normalizeMimeType } from "@/utils/mediaMime";
+import { resolveOssUploadTarget } from "@/utils/ossUploadTarget";
 import { tuanchat } from "api/instance";
 
 const DEFAULT_BLOCKSUITE_IMAGE_SCENE = 1 as const;
 const DEFAULT_UPLOAD_TIMEOUT_MS = 120_000;
-const DEV_OSS_UPLOAD_PROXY_PATH = "/api/oss-upload-proxy";
-const IMMUTABLE_UPLOAD_CACHE_CONTROL = "public, max-age=31536000, immutable";
 
 function createDefaultBlobState(): BlobState {
   return {
@@ -34,11 +36,6 @@ function toErrorMessage(prefix: string, error: unknown): string {
   const detail = error instanceof Error ? error.message : String(error ?? "");
   return detail ? `${prefix}: ${detail}` : prefix;
 }
-
-type UploadTarget = {
-  targetUrl: string;
-  headers: Record<string, string>;
-};
 
 export function buildBlocksuiteRemoteImageFileName(key: string): string {
   return `blocksuite-image-${normalizeBlobKey(key)}.bin`;
@@ -168,6 +165,7 @@ export class BlocksuiteRemoteImageBlobSource implements BlobSource {
     try {
       const ossData = await tuanchat.ossController.getUploadUrl({
         fileName: buildBlocksuiteRemoteImageFileName(key),
+        contentType: normalizeMimeType(blob.type) || "image/png",
         scene: this._scene,
         dedupCheck: true,
       });
@@ -179,7 +177,7 @@ export class BlocksuiteRemoteImageBlobSource implements BlobSource {
       }
 
       if (uploadUrl) {
-        await this._putBlob(uploadUrl, blob);
+        await this._putBlob(uploadUrl, blob, ossData.data?.uploadHeaders);
       }
 
       this._nextState(key, {
@@ -245,8 +243,8 @@ export class BlocksuiteRemoteImageBlobSource implements BlobSource {
     }
   }
 
-  private async _putBlob(url: string, blob: Blob): Promise<void> {
-    const { targetUrl, headers } = this._resolveUploadTarget(url, blob);
+  private async _putBlob(url: string, blob: Blob, uploadHeaders?: OssUploadHeaders): Promise<void> {
+    const { targetUrl, headers } = resolveOssUploadTarget(url, blob, uploadHeaders);
     const controller = new AbortController();
     const timeout = globalThis.setTimeout(() => controller.abort(), DEFAULT_UPLOAD_TIMEOUT_MS);
 
@@ -265,45 +263,5 @@ export class BlocksuiteRemoteImageBlobSource implements BlobSource {
     finally {
       globalThis.clearTimeout(timeout);
     }
-  }
-
-  private _resolveUploadTarget(url: string, blob: Blob): UploadTarget {
-    const headers: Record<string, string> = {
-      "Cache-Control": IMMUTABLE_UPLOAD_CACHE_CONTROL,
-    };
-    if (blob.type) {
-      headers["Content-Type"] = blob.type;
-    }
-
-    if (!(import.meta as any)?.env?.DEV || typeof window === "undefined") {
-      return {
-        targetUrl: url,
-        headers,
-      };
-    }
-
-    try {
-      const target = new URL(url, window.location.href);
-      if (target.origin === window.location.origin) {
-        return {
-          targetUrl: url,
-          headers,
-        };
-      }
-    }
-    catch {
-      return {
-        targetUrl: url,
-        headers,
-      };
-    }
-
-    return {
-      targetUrl: DEV_OSS_UPLOAD_PROXY_PATH,
-      headers: {
-        "X-TC-OSS-Upload-Url": encodeURIComponent(url),
-        ...headers,
-      },
-    };
   }
 }

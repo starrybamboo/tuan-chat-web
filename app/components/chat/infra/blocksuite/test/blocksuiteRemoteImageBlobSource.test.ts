@@ -65,6 +65,9 @@ describe("blocksuiteRemoteImageBlobSource", () => {
       data: {
         uploadUrl: "https://upload.example/blocksuite-image",
         downloadUrl: "https://download.example/blocksuite-image",
+        uploadHeaders: {
+          "Cache-Control": "public, max-age=31536000, immutable",
+        },
       },
     });
 
@@ -81,6 +84,7 @@ describe("blocksuiteRemoteImageBlobSource", () => {
     expect(await (await source.get("image-key=="))?.text()).toBe("png");
     expect(getUploadUrlMock).toHaveBeenCalledWith({
       fileName: buildBlocksuiteRemoteImageFileName("image-key=="),
+      contentType: "image/png",
       scene: 1,
       dedupCheck: true,
     });
@@ -91,6 +95,10 @@ describe("blocksuiteRemoteImageBlobSource", () => {
         expect.objectContaining({
           method: "PUT",
           body: imageBlob,
+          headers: expect.objectContaining({
+            "Cache-Control": "public, max-age=31536000, immutable",
+            "Content-Type": "image/png",
+          }),
         }),
       );
       expect(latestState?.uploading).toBe(false);

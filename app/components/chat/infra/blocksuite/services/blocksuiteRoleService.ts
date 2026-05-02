@@ -1,5 +1,11 @@
+import type { QueryClient } from "@tanstack/react-query";
+
 import type { UserRole } from "@tuanchat/openapi-client/models/UserRole";
 
+import {
+  fetchRoomNpcRoleWithCache,
+  fetchSpaceRepositoryRoleWithCache,
+} from "api/hooks/chatQueryHooks";
 import { tuanchat } from "api/instance";
 
 import { parseSpaceDocId } from "../space/spaceDocId";
@@ -36,13 +42,15 @@ function normalizeRoleList(roles: Array<UserRole | null | undefined>): Blocksuit
   return Array.from(deduped.values());
 }
 
-async function listBlocksuiteRoomMentionRoles(roomId: number): Promise<BlocksuiteMentionRoleEntry[]> {
+async function listBlocksuiteRoomMentionRoles(roomId: number, queryClient?: QueryClient): Promise<BlocksuiteMentionRoleEntry[]> {
   if (!Number.isFinite(roomId) || roomId <= 0) {
     return [];
   }
 
   try {
-    const roomNpcRoleResult = await tuanchat.roomRoleController.roomNpcRole(roomId);
+    const roomNpcRoleResult = queryClient
+      ? await fetchRoomNpcRoleWithCache(queryClient, roomId)
+      : await tuanchat.roomRoleController.roomNpcRole(roomId);
     return normalizeRoleList(roomNpcRoleResult.data ?? []);
   }
   catch {
@@ -50,31 +58,34 @@ async function listBlocksuiteRoomMentionRoles(roomId: number): Promise<Blocksuit
   }
 }
 
-async function listBlocksuiteSpaceMentionRoles(spaceId: number): Promise<BlocksuiteMentionRoleEntry[]> {
+async function listBlocksuiteSpaceMentionRoles(spaceId: number, queryClient?: QueryClient): Promise<BlocksuiteMentionRoleEntry[]> {
   if (!Number.isFinite(spaceId) || spaceId <= 0) {
     return [];
   }
 
-  const response = await tuanchat.spaceRepositoryController.spaceRole(spaceId);
+  const response = queryClient
+    ? await fetchSpaceRepositoryRoleWithCache(queryClient, spaceId)
+    : await tuanchat.spaceRepositoryController.spaceRole(spaceId);
   return normalizeRoleList(response.data ?? []);
 }
 
 export async function listBlocksuiteMentionRoles(params: {
   spaceId?: number;
   currentDocId?: string;
+  queryClient?: QueryClient;
 }): Promise<BlocksuiteMentionRoleEntry[]> {
-  const { spaceId, currentDocId } = params;
+  const { spaceId, currentDocId, queryClient } = params;
   const docDescriptor = currentDocId ? parseSpaceDocId(currentDocId) : null;
 
   if (docDescriptor?.kind === "room_description") {
-    const roomRoles = await listBlocksuiteRoomMentionRoles(docDescriptor.roomId);
+    const roomRoles = await listBlocksuiteRoomMentionRoles(docDescriptor.roomId, queryClient);
     if (roomRoles.length > 0) {
       return roomRoles;
     }
   }
 
   try {
-    return await listBlocksuiteSpaceMentionRoles(Number(spaceId));
+    return await listBlocksuiteSpaceMentionRoles(Number(spaceId), queryClient);
   }
   catch {
     return [];

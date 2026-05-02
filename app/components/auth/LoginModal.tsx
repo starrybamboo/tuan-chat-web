@@ -1,4 +1,4 @@
-import { QueryClient, useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { useSearchParams } from "react-router";
 import {
@@ -14,8 +14,6 @@ import { LoggedInView } from "./LoggedInView";
 import { LoginForm } from "./LoginForm";
 import { RegisterForm } from "./RegisterForm";
 import { useVerificationCodeCooldown } from "./useVerificationCodeCooldown";
-
-const queryClient = new QueryClient();
 
 type AuthMode = "login" | "register" | "forgot";
 
@@ -45,6 +43,7 @@ function resolveForgotPasswordErrorMessage(error: unknown): string {
 
 // 登录弹窗组件
 export default function LoginModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
+  const queryClient = useQueryClient();
   const [searchParams, setSearchParams] = useSearchParams();
   const mode = resolveAuthMode(searchParams.get("mode"));
   const [username, setUsername] = useState("");

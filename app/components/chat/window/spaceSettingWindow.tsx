@@ -9,6 +9,7 @@ import toast from "react-hot-toast";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
 import { buildSpaceDocId } from "@/components/chat/infra/blocksuite/space/spaceDocId";
 import BlocksuiteDescriptionEditor from "@/components/chat/shared/components/BlockSuite/blocksuiteDescriptionEditor";
+import { avatarThumbUrl, extractMediaFileIdFromUrl } from "@/utils/mediaUrl";
 
 function SpaceSettingWindow({ onClose }: { onClose: () => void }) {
   const spaceContext = React.use(SpaceContext);
@@ -33,7 +34,7 @@ function SpaceSettingWindow({ onClose }: { onClose: () => void }) {
     name: "",
     description: "",
     avatar: "",
-    originalAvatar: "",
+    avatarFileId: undefined as number | undefined,
   });
 
   // 自动保存状态管理（防抖 + 并发合并 + 失败重试）
@@ -52,7 +53,7 @@ function SpaceSettingWindow({ onClose }: { onClose: () => void }) {
       name: data.name,
       description: data.description,
       avatar: data.avatar,
-      originalAvatar: data.originalAvatar,
+      avatarFileId: data.avatarFileId,
     });
   }, []);
 
@@ -71,8 +72,8 @@ function SpaceSettingWindow({ onClose }: { onClose: () => void }) {
     setFormData({
       name: space.name || "",
       description: space.description || "",
-      avatar: space.avatarThumbUrl || space.avatar || "",
-      originalAvatar: space.originalAvatar || space.avatar || space.avatarThumbUrl || "",
+      avatar: avatarThumbUrl(space.avatarFileId),
+      avatarFileId: space.avatarFileId,
     });
     didInitFormRef.current = true;
 
@@ -80,8 +81,8 @@ function SpaceSettingWindow({ onClose }: { onClose: () => void }) {
     lastSavedSnapshotRef.current = buildSnapshot({
       name: space.name || "",
       description: space.description || "",
-      avatar: space.avatarThumbUrl || space.avatar || "",
-      originalAvatar: space.originalAvatar || space.avatar || space.avatarThumbUrl || "",
+      avatar: avatarThumbUrl(space.avatarFileId),
+      avatarFileId: space.avatarFileId,
     });
     dirtyRef.current = false;
   }, [space, buildSnapshot]);
@@ -90,11 +91,11 @@ function SpaceSettingWindow({ onClose }: { onClose: () => void }) {
     setFormData((prev) => {
       const nextName = header.title;
       const nextAvatar = header.imageUrl;
-      const nextOriginalAvatar = header.originalImageUrl || prev.originalAvatar;
-      if (prev.name === nextName && prev.avatar === nextAvatar && prev.originalAvatar === nextOriginalAvatar) {
+      const nextAvatarFileId = extractMediaFileIdFromUrl(header.imageUrl) ?? prev.avatarFileId;
+      if (prev.name === nextName && prev.avatar === nextAvatar && prev.avatarFileId === nextAvatarFileId) {
         return prev;
       }
-      return { ...prev, name: nextName, avatar: nextAvatar, originalAvatar: nextOriginalAvatar };
+      return { ...prev, name: nextName, avatar: nextAvatar, avatarFileId: nextAvatarFileId };
     });
   }, []);
 
@@ -121,9 +122,7 @@ function SpaceSettingWindow({ onClose }: { onClose: () => void }) {
         spaceId,
         name: data.name,
         description: data.description,
-        avatar: data.avatar,
-        avatarThumbUrl: data.avatar,
-        originalAvatar: data.originalAvatar,
+        avatarFileId: data.avatarFileId,
       }, {
         onSuccess: () => resolve(),
         onError: err => reject(err),
@@ -293,7 +292,7 @@ function SpaceSettingWindow({ onClose }: { onClose: () => void }) {
                   mode="page"
                   allowModeSwitch
                   fullscreenEdgeless
-                  tcHeader={{ enabled: true, fallbackTitle: space?.name ?? "", fallbackImageUrl: space?.avatar ?? "" }}
+                  tcHeader={{ enabled: true, fallbackTitle: space?.name ?? "", fallbackImageUrl: avatarThumbUrl(space?.avatarFileId) }}
                   onTcHeaderChange={({ header }) => {
                     handleBlocksuiteHeaderChange(header);
                   }}

@@ -6,15 +6,18 @@ import type { ChatMessageResponse } from "@tuanchat/openapi-client/models/ChatMe
 import type { UserNotificationItem } from "@/components/notification/notificationTypes";
 import type { DirectMessageEvent, NewFriendRequestPush } from "./wsModels";
 
+import { fetchUserInfoWithCache } from "@tuanchat/query/users";
 import {
   readFeedbackDesktopEnabledFromLocalStorage,
   readFeedbackInAppEnabledFromLocalStorage,
   readGroupMessagePopupEnabledFromLocalStorage,
 } from "@/components/settings/notificationPreferences";
 import { showDesktopNotification } from "@/utils/desktopNotification";
+import { avatarThumbUrl } from "@/utils/mediaUrl";
 import { isRunningInsideNativeAppWebView, postNativeAppNotification } from "@/utils/nativeAppBridge";
 import { useCallback } from "react";
 import toast from "react-hot-toast";
+import { fetchRoomInfoWithCache } from "./hooks/chatQueryHooks";
 import { tuanchat } from "./instance";
 import {
   DirectMessageToastContent,
@@ -58,7 +61,7 @@ export function useWebSocketNotifications({
       const userInfo = isReceived ? req?.fromUser : req?.toUser;
       const displayName = userInfo?.username
         || (isReceived ? (req?.fromId != null ? `用户${req.fromId}` : "某位用户") : (req?.toId != null ? `用户${req.toId}` : "某位用户"));
-      const avatar = userInfo?.avatar;
+      const avatar = avatarThumbUrl(userInfo?.avatarFileId);
       const verifyMsg = (req?.verifyMsg ?? event?.data?.verifyMsg ?? "").trim();
 
       if (isRunningInsideNativeAppWebView()) {
@@ -133,13 +136,16 @@ export function useWebSocketNotifications({
     const toastId = `direct-msg-${message.messageId}`;
     let senderInfo = queryClient.getQueryData<ApiResultUserInfoResponse>(["getUserInfo", message.senderId])?.data;
     const senderNameFromMessage = message.senderUsername?.trim() || "";
-    const senderAvatarFromMessage = message.senderAvatarThumbUrl?.trim() || message.senderAvatar?.trim() || "";
+    const senderAvatarFileId = (message as { senderAvatarFileId?: number }).senderAvatarFileId;
+    const senderAvatarFromMessage = avatarThumbUrl(senderAvatarFileId)
+      || message.senderAvatarThumbUrl?.trim()
+      || message.senderAvatar?.trim()
+      || "";
 
     if (!senderInfo && (!senderNameFromMessage || !senderAvatarFromMessage)) {
       try {
-        const userResp = await tuanchat.userController.getUserInfo(message.senderId);
+        const userResp = await fetchUserInfoWithCache(queryClient, tuanchat, message.senderId);
         senderInfo = userResp.data;
-        queryClient.setQueryData(["getUserInfo", message.senderId], userResp);
       }
       catch {
         // ignore
@@ -147,7 +153,7 @@ export function useWebSocketNotifications({
     }
 
     const displayName = senderNameFromMessage || senderInfo?.username || `用户${message.senderId}`;
-    const avatar = senderAvatarFromMessage || senderInfo?.avatarThumbUrl || senderInfo?.avatar;
+    const avatar = senderAvatarFromMessage || avatarThumbUrl(senderInfo?.avatarFileId);
     const previewText = getDirectMessagePreview(message);
     const targetPath = `/chat/private/${message.senderId}`;
 
@@ -255,10 +261,9 @@ export function useWebSocketNotifications({
 
     if (roomSpaceId == null) {
       try {
-        const roomInfoResp = await tuanchat.roomController.getRoomInfo(message.roomId);
+        const roomInfoResp = await fetchRoomInfoWithCache(queryClient, message.roomId);
         const roomInfo = roomInfoResp.data;
         if (roomInfo) {
-          queryClient.setQueryData(["getRoomInfo", message.roomId], roomInfoResp);
           roomName = (roomInfo.name ?? "").trim() || roomName;
           if (typeof roomInfo.spaceId === "number" && roomInfo.spaceId > 0) {
             roomSpaceId = roomInfo.spaceId;
@@ -273,9 +278,8 @@ export function useWebSocketNotifications({
     let senderInfo = queryClient.getQueryData<ApiResultUserInfoResponse>(["getUserInfo", message.userId])?.data;
     if (!senderInfo) {
       try {
-        const userResp = await tuanchat.userController.getUserInfo(message.userId);
+        const userResp = await fetchUserInfoWithCache(queryClient, tuanchat, message.userId);
         senderInfo = userResp.data;
-        queryClient.setQueryData(["getUserInfo", message.userId], userResp);
       }
       catch {
         // ignore
@@ -283,7 +287,7 @@ export function useWebSocketNotifications({
     }
 
     const senderName = senderInfo?.username || `用户${message.userId}`;
-    const senderAvatar = senderInfo?.avatar || senderInfo?.avatarThumbUrl;
+    const senderAvatar = avatarThumbUrl(senderInfo?.avatarFileId);
     const previewText = getGroupMessagePreview(chatMessageResponse);
     const targetPath = roomSpaceId == null ? null : `/chat/${roomSpaceId}/${message.roomId}`;
     const notificationTitle = `${roomName} · ${senderName}`;

@@ -1,8 +1,9 @@
 import type { Route } from "./+types/detail";
 // import { DEFAULT_REPOSITORY_DATA } from "@/components/repository/detail/constants";
 
-import { tuanchat } from "api/instance";
+import { fetchRepositoryDetailWithCache } from "api/hooks/repositoryQueryHooks";
 import RepositoryDetailComponent from "@/components/repository/detail/repositoryDetail";
+import { queryClient } from "@/queryClient";
 import { createSeoMeta } from "@/utils/seo";
 // import { useLocation } from "react-router";
 
@@ -31,7 +32,7 @@ export async function clientLoader({ params }: Route.ClientLoaderArgs) {
   }
 
   try {
-    const response = await tuanchat.repositoryController.getById(repositoryId);
+    const response = await fetchRepositoryDetailWithCache(queryClient, repositoryId);
     return response.data ?? null;
   }
   catch {

@@ -32,10 +32,11 @@ jobs:
     env:
       DEPLOY_TARGET: ${{ (github.event_name == 'workflow_dispatch' && inputs.deploy_env == 'test' && '/www/wwwroot/tuan-chat-web-test') || (github.event_name == 'workflow_dispatch' && inputs.deploy_env == 'production' && '/www/wwwroot/tuan-chat-web') || (github.ref_name == 'dev' && '/www/wwwroot/tuan-chat-web-test') || '/www/wwwroot/tuan-chat-web' }}
       BUILD_MODE: ${{ (github.event_name == 'workflow_dispatch' && inputs.deploy_env == 'test' && 'test') || (github.event_name == 'workflow_dispatch' && inputs.deploy_env == 'production' && 'production') || (github.ref_name == 'dev' && 'test') || 'production' }}
+      PUBLIC_HOST: ${{ (github.event_name == 'workflow_dispatch' && inputs.deploy_env == 'test' && 'test.tuan.chat') || (github.event_name == 'workflow_dispatch' && inputs.deploy_env == 'production' && 'tuan.chat') || (github.ref_name == 'dev' && 'test.tuan.chat') || 'tuan.chat' }}
       # 前端走同源反代，避免浏览器为跨域鉴权请求触发 CORS preflight。
       BACKEND_API_BASE_URL: /api
       BACKEND_WS_URL: /ws
-      BACKEND_TTS_URL: https://test.tuan.chat/tts
+      BACKEND_TTS_URL: ${{ (github.event_name == 'workflow_dispatch' && inputs.deploy_env == 'test' && 'https://test.tuan.chat/tts') || (github.event_name == 'workflow_dispatch' && inputs.deploy_env == 'production' && 'https://tuan.chat/tts') || (github.ref_name == 'dev' && 'https://test.tuan.chat/tts') || 'https://tuan.chat/tts' }}
     steps:
       - uses: actions/checkout@v4 # 将目标分支 checkout 到运行环境
         with:
@@ -104,97 +105,170 @@ jobs:
               exit 1
             fi
 
-            CACHE_CONF_BASENAME="tuan-chat-web-static-cache.conf"
-            CACHE_CONF_CANDIDATES=(
-              "/www/server/panel/vhost/nginx/${CACHE_CONF_BASENAME}"
-              "/etc/nginx/conf.d/${CACHE_CONF_BASENAME}"
+            CACHE_INSTALLER="$STAGING/install-nginx-cache.sh"
+            cat > "$CACHE_INSTALLER" <<'BASH'
+            #!/usr/bin/env bash
+            set -euo pipefail
+
+            PUBLIC_HOST="${PUBLIC_HOST:?}"
+            SNIPPET="/www/server/panel/vhost/snippets/tuan-chat-web-static-cache-locations.conf"
+            OLD_GLOBAL_CONFS=(
+              "/www/server/panel/vhost/nginx/tuan-chat-web-static-cache.conf"
+              "/etc/nginx/conf.d/tuan-chat-web-static-cache.conf"
             )
-            CACHE_CONF_CONTENT="$(cat <<'NGINX'
-map "$host:$uri" $tuan_chat_asset_cache_control {
-    default "";
-    ~^(tuan\.chat|test\.tuan\.chat):/assets/.+ "public, max-age=31536000, immutable";
-}
+            INCLUDE_LINE="include ${SNIPPET};"
+            MARKER_BEGIN="# BEGIN tuan-chat-web static cache include"
+            MARKER_END="# END tuan-chat-web static cache include"
+            BACKUP_DIR="$(mktemp -d)"
 
-add_header Cache-Control $tuan_chat_asset_cache_control always;
-NGINX
-)"
-
-            install_nginx_cache_conf() {
-              local installed_conf=""
-              local candidate
-
-              for candidate in "${CACHE_CONF_CANDIDATES[@]}"; do
-                local candidate_dir
-                candidate_dir="$(dirname "$candidate")"
-
-                if [[ "$candidate" == /www/server/panel/vhost/nginx/* && ! -d "$candidate_dir" ]]; then
-                  continue
-                fi
-
-                mkdir -p "$candidate_dir"
-                printf '%s\n' "$CACHE_CONF_CONTENT" > "$candidate"
-
-                if nginx -t && nginx -T 2>/dev/null | grep -Fq "$candidate"; then
-                  systemctl reload nginx
-                  installed_conf="$candidate"
-                  break
-                fi
-
-                rm -f "$candidate"
+            restore_backups() {
+              shopt -s nullglob
+              for backup in "$BACKUP_DIR"/vhost-*.bak; do
+                local target
+                target="$(cat "${backup}.path")"
+                cp -p "$backup" "$target"
               done
-
-              if [[ -z "$installed_conf" ]]; then
-                echo "⚠️ 未找到会被当前 Nginx 加载的 conf.d/vhost 目录，无法自动更新 Cache-Control；请手动将 assets 配置为 public, max-age=31536000, immutable" >&2
-                return 1
-              fi
-
-              echo "$installed_conf"
+              for backup in "$BACKUP_DIR"/old-global-*.bak; do
+                local target
+                target="$(cat "${backup}.path")"
+                cp -p "$backup" "$target"
+              done
             }
 
-            install_nginx_cache_conf_with_sudo() {
-              local installed_conf=""
-              local candidate
+            trap 'rm -rf "$BACKUP_DIR"' EXIT
 
-              for candidate in "${CACHE_CONF_CANDIDATES[@]}"; do
-                local candidate_dir
-                candidate_dir="$(dirname "$candidate")"
+            has_server_name() {
+              local conf="$1"
+              awk -v host="$PUBLIC_HOST" '
+                /^[[:space:]]*server_name[[:space:]]/ {
+                  line = $0
+                  sub(/[[:space:]]*#.*/, "", line)
+                  sub(/;.*/, "", line)
+                  count = split(line, parts, /[[:space:]]+/)
+                  for (i = 2; i <= count; i++) {
+                    if (parts[i] == host) {
+                      found = 1
+                    }
+                  }
+                }
+                END { exit found ? 0 : 1 }
+              ' "$conf"
+            }
 
-                if [[ "$candidate" == /www/server/panel/vhost/nginx/* && ! -d "$candidate_dir" ]]; then
-                  continue
-                fi
+            mkdir -p "$(dirname "$SNIPPET")"
+            cat > "$SNIPPET" <<'NGINX'
+            # Managed by tuan-chat-web CD. Include this file inside the site server block.
+            add_header Cache-Control "no-cache" always;
 
-                sudo mkdir -p "$candidate_dir"
-                printf '%s\n' "$CACHE_CONF_CONTENT" | sudo tee "$candidate" >/dev/null
+            location ^~ /assets/ {
+                expires off;
+                add_header Cache-Control "public, max-age=31536000, immutable" always;
+                try_files $uri =404;
+            }
 
-                if sudo nginx -t && sudo nginx -T 2>/dev/null | grep -Fq "$candidate"; then
-                  sudo systemctl reload nginx
-                  installed_conf="$candidate"
-                  break
-                fi
+            location = /index.html {
+                expires off;
+                add_header Cache-Control "no-cache" always;
+            }
 
-                sudo rm -f "$candidate"
-              done
+            location = /__spa-fallback.html {
+                expires off;
+                add_header Cache-Control "no-cache" always;
+            }
+            NGINX
 
-              if [[ -z "$installed_conf" ]]; then
-                echo "⚠️ 未找到会被当前 Nginx 加载的 conf.d/vhost 目录，无法自动更新 Cache-Control；请手动将 assets 配置为 public, max-age=31536000, immutable" >&2
-                return 1
+            old_global_index=0
+            for old_global_conf in "${OLD_GLOBAL_CONFS[@]}"; do
+              if [[ -f "$old_global_conf" ]]; then
+                backup="$BACKUP_DIR/old-global-${old_global_index}.bak"
+                cp -p "$old_global_conf" "$backup"
+                printf '%s' "$old_global_conf" > "${backup}.path"
+                rm -f "$old_global_conf"
+                old_global_index=$((old_global_index + 1))
+              fi
+            done
+
+            patched_count=0
+            shopt -s nullglob
+            for conf in /www/server/panel/vhost/nginx/*.conf /etc/nginx/conf.d/*.conf; do
+              if ! has_server_name "$conf"; then
+                continue
               fi
 
-              echo "$installed_conf"
-            }
+              backup="$BACKUP_DIR/vhost-${patched_count}.bak"
+              cp -p "$conf" "$backup"
+              printf '%s' "$conf" > "${backup}.path"
+
+              awk \
+                -v host="$PUBLIC_HOST" \
+                -v begin="$MARKER_BEGIN" \
+                -v include_line="$INCLUDE_LINE" \
+                -v end="$MARKER_END" '
+                function has_server_name(line, host, parts, count, i) {
+                  sub(/[[:space:]]*#.*/, "", line)
+                  sub(/;.*/, "", line)
+                  count = split(line, parts, /[[:space:]]+/)
+                  for (i = 2; i <= count; i++) {
+                    if (parts[i] == host) {
+                      return 1
+                    }
+                  }
+                  return 0
+                }
+                index($0, begin) > 0 { skipping = 1; next }
+                index($0, end) > 0 { skipping = 0; next }
+                skipping { next }
+                {
+                  print
+                  if ($0 ~ "^[[:space:]]*server_name[[:space:]]" && has_server_name($0, host)) {
+                    print "    " begin
+                    print "    " include_line
+                    print "    " end
+                  }
+                }
+              ' "$conf" > "${conf}.tmp"
+              mv "${conf}.tmp" "$conf"
+              patched_count=$((patched_count + 1))
+            done
+
+            if [[ "$patched_count" -le 0 ]]; then
+              echo "未找到 server_name=${PUBLIC_HOST} 的 Nginx vhost 配置，无法安装缓存策略。" >&2
+              restore_backups
+              exit 1
+            fi
+
+            if ! nginx -t; then
+              echo "Nginx 配置校验失败，已回滚缓存策略变更。" >&2
+              restore_backups
+              nginx -t || true
+              exit 1
+            fi
+
+            if ! nginx -T 2>/dev/null | grep -Fq "$SNIPPET"; then
+              echo "Nginx 配置未加载缓存片段：$SNIPPET" >&2
+              restore_backups
+              nginx -t || true
+              exit 1
+            fi
+
+            if command -v systemctl >/dev/null 2>&1 && systemctl is-active --quiet nginx; then
+              systemctl reload nginx
+            else
+              nginx -s reload
+            fi
+
+            echo "✅ Nginx 缓存策略已更新：host=${PUBLIC_HOST}, snippet=${SNIPPET}, patched=${patched_count}"
+            BASH
+            sed -i 's/^            //' "$CACHE_INSTALLER"
+            chmod +x "$CACHE_INSTALLER"
 
             if [[ "$(id -u)" == "0" ]]; then
-              CACHE_CONF="$(install_nginx_cache_conf || true)"
-              if [[ -n "$CACHE_CONF" ]]; then
-                echo "✅ Nginx 静态资源缓存头已更新：$CACHE_CONF"
-              fi
+              PUBLIC_HOST="${{ env.PUBLIC_HOST }}" "$CACHE_INSTALLER"
             elif command -v sudo >/dev/null 2>&1 && sudo -n true >/dev/null 2>&1; then
-              CACHE_CONF="$(install_nginx_cache_conf_with_sudo || true)"
-              if [[ -n "$CACHE_CONF" ]]; then
-                echo "✅ Nginx 静态资源缓存头已更新：$CACHE_CONF"
-              fi
+              sudo env PUBLIC_HOST="${{ env.PUBLIC_HOST }}" "$CACHE_INSTALLER"
             else
-              echo "⚠️ 当前部署账号无 root/sudo 权限，无法自动更新 Nginx Cache-Control；请手动将 assets 配置为 public, max-age=31536000, immutable" >&2
+              echo "当前部署账号无 root/sudo 权限，无法更新 Nginx Cache-Control；为避免继续发布错误缓存头，本次部署失败。" >&2
+              exit 1
             fi
 
             rm -rf "$STAGING"

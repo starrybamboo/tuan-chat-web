@@ -11,6 +11,12 @@ export interface RoomRenderState {
   errorMessage?: string;
 }
 
+export interface BatchProgress {
+  current: number;
+  total: number;
+  roomName?: string;
+}
+
 export type CollapsibleSectionKey = "renderLayer" | "ttsLayer" | "gameLayer" | "workflowLayer";
 export type SpaceWebgalSettingsTab = "render" | "roomContent";
 

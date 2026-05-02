@@ -3,7 +3,8 @@ import type { MaterialEditorActionScope } from "@/components/chat/chatPage.types
 import { ArrowLeftIcon } from "@phosphor-icons/react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import toast from "react-hot-toast";
-import { UploadUtils } from "@/utils/UploadUtils";
+import { uploadMediaFile } from "@/utils/mediaUpload";
+import { imageMediumUrl, imageOriginalUrl } from "@/utils/mediaUrl";
 import { createEmptyMaterialPackageContent } from "./materialPackageEditorShared";
 import { ensureMaterialPackageContent } from "./materialPackageTreeUtils";
 import MaterialPackageWorkbench from "./materialPackageWorkbench";
@@ -37,6 +38,7 @@ function normalizeDraft(draft: MaterialPackageDraft): MaterialPackageDraft {
   return {
     name: draft.name ?? "",
     description: draft.description ?? "",
+    coverFileId: draft.coverFileId,
     coverUrl: draft.coverUrl ?? "",
     originalCoverUrl: draft.originalCoverUrl ?? draft.coverUrl ?? "",
     isPublic: draft.isPublic ?? false,
@@ -49,6 +51,7 @@ function buildSavePayload(draft: MaterialPackageDraft): MaterialPackageDraft {
     ...draft,
     name: draft.name.trim(),
     description: draft.description.trim(),
+    coverFileId: draft.coverFileId,
     coverUrl: draft.coverUrl.trim(),
     originalCoverUrl: (draft.originalCoverUrl || draft.coverUrl).trim(),
     content: ensureMaterialPackageContent(draft.content),
@@ -85,7 +88,6 @@ export default function MaterialPackageEditor({
   onDelete,
   onExtraAction,
 }: MaterialPackageEditorProps) {
-  const uploadUtilsRef = useRef(new UploadUtils());
   const [draft, setDraft] = useState(() => normalizeDraft(initialDraft));
   const [isCoverUploading, setIsCoverUploading] = useState(false);
   const [autoSaveState, setAutoSaveState] = useState<AutoSaveState>("idle");
@@ -147,11 +149,12 @@ export default function MaterialPackageEditor({
     toast.loading("封面上传中...", { id: toastId });
 
     try {
-      const uploadedImage = await uploadUtilsRef.current.uploadDualImage(file, 1);
+      const uploadedImage = await uploadMediaFile(file);
       setDraft(previous => ({
         ...previous,
-        coverUrl: uploadedImage.url,
-        originalCoverUrl: uploadedImage.originalUrl,
+        coverFileId: uploadedImage.fileId,
+        coverUrl: imageMediumUrl(uploadedImage.fileId),
+        originalCoverUrl: imageOriginalUrl(uploadedImage.fileId),
       }));
       toast.success("封面上传成功", { id: toastId });
     }

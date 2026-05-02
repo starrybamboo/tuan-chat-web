@@ -13,6 +13,7 @@ import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponen
 import UserAvatarComponent from "@/components/common/userAvatar";
 import { useGlobalUserId } from "@/components/globalContextProvider";
 import { ChevronRightIcon, CloseIcon } from "@/icons";
+import { avatarThumbUrl } from "@/utils/mediaUrl";
 import {
   DEFAULT_COMMENT_CHILD_LIMIT,
   DEFAULT_COMMENT_MAX_LEVEL,
@@ -205,8 +206,7 @@ export default function CommentComponent({
             <UserAvatarComponent
               userId={commentVO.userId || -1}
               username={commentVO.userInfo?.username}
-              avatar={commentVO.userInfo?.avatar}
-              avatarThumbUrl={commentVO.userInfo?.avatarThumbUrl}
+              avatar={avatarThumbUrl(commentVO.userInfo?.avatarFileId)}
               width={10}
               isRounded={true}
               withName={false}
@@ -294,8 +294,7 @@ export default function CommentComponent({
             <UserAvatarComponent
               userId={commentVO.userId || -1}
               username={commentVO.userInfo?.username}
-              avatar={commentVO.userInfo?.avatar}
-              avatarThumbUrl={commentVO.userInfo?.avatarThumbUrl}
+              avatar={avatarThumbUrl(commentVO.userInfo?.avatarFileId)}
               width={8}
               isRounded={true}
               withName={false}

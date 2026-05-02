@@ -1,10 +1,15 @@
+import type { QueryClient } from "@tanstack/react-query";
+
+import { fetchSpaceMembersWithCache } from "@tuanchat/query/members";
 import { tuanchat } from "api/instance";
 
-export async function listBlocksuiteSpaceMemberIds(spaceId: number): Promise<number[]> {
+export async function listBlocksuiteSpaceMemberIds(spaceId: number, queryClient?: QueryClient): Promise<number[]> {
   if (!Number.isFinite(spaceId) || spaceId <= 0)
     return [];
 
-  const response = await tuanchat.spaceMemberController.getMemberList(spaceId);
+  const response = queryClient
+    ? await fetchSpaceMembersWithCache(queryClient, tuanchat, spaceId)
+    : await tuanchat.spaceMemberController.getMemberList(spaceId);
   const members = (response.data ?? []).filter(member => member.userId != null);
 
   return members

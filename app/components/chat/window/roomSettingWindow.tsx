@@ -15,6 +15,7 @@ import BlocksuiteDescriptionEditor from "@/components/chat/shared/components/Blo
 import RoleList from "@/components/chat/shared/components/roleLists";
 import { useGlobalUserId } from "@/components/globalContextProvider";
 import { BaselineArrowBackIosNew, RoleListIcon, Setting } from "@/icons";
+import { avatarThumbUrl, extractMediaFileIdFromUrl } from "@/utils/mediaUrl";
 import { SpaceContext } from "../core/spaceContext";
 
 function RoomSettingWindow({ onClose, roomId: propRoomId, defaultTab = "role" }: {
@@ -105,16 +106,13 @@ function RoomSettingWindow({ onClose, roomId: propRoomId, defaultTab = "role" }:
       return;
 
     const title = (header?.title ?? room?.name ?? "").trim();
-    const imageUrl = (header?.imageUrl ?? room?.avatarThumbUrl ?? room?.avatar ?? "").trim();
-    const originalImageUrl = (header?.originalImageUrl ?? room?.originalAvatar ?? room?.avatar ?? room?.avatarThumbUrl ?? "").trim();
+    const avatarFileId = extractMediaFileIdFromUrl(header?.imageUrl) ?? room?.avatarFileId;
 
     updateRoomMutation.mutate({
       roomId: propRoomId,
       name: title,
       description: room?.description ?? "",
-      avatar: imageUrl,
-      avatarThumbUrl: imageUrl,
-      originalAvatar: originalImageUrl || imageUrl,
+      avatarFileId,
     }, {
       onSuccess: () => {
         if (opts?.closeAfter) {
@@ -122,7 +120,7 @@ function RoomSettingWindow({ onClose, roomId: propRoomId, defaultTab = "role" }:
         }
       },
     });
-  }, [onClose, propRoomId, room?.avatar, room?.avatarThumbUrl, room?.description, room?.name, room?.originalAvatar, updateRoomMutation]);
+  }, [onClose, propRoomId, room?.avatarFileId, room?.description, room?.name, updateRoomMutation]);
 
   const scheduleRoomRedundantSync = useCallback((header: BlocksuiteDocHeader) => {
     if (typeof window === "undefined")
@@ -206,7 +204,7 @@ function RoomSettingWindow({ onClose, roomId: propRoomId, defaultTab = "role" }:
                             mode="page"
                             allowModeSwitch
                             fullscreenEdgeless
-                            tcHeader={{ enabled: true, fallbackTitle: room?.name ?? "", fallbackImageUrl: room?.avatarThumbUrl ?? room?.avatar ?? "" }}
+                            tcHeader={{ enabled: true, fallbackTitle: room?.name ?? "", fallbackImageUrl: avatarThumbUrl(room?.avatarFileId) }}
                             onTcHeaderChange={({ header }) => {
                               scheduleRoomRedundantSync(header);
                             }}

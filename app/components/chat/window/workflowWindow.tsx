@@ -31,6 +31,7 @@ import { computeInitialRoomNodePositions, computePositionForNewWorkflowNode } fr
 import WorkflowSceneDescriptionEditor from "@/components/chat/window/workflowSceneDescriptionEditor";
 import WorkflowStartNode from "@/components/chat/window/workflowStartNode";
 import SceneNode from "@/components/repository/detail/ContentTab/scene/react flow/NewSceneNode";
+import { avatarThumbUrl } from "@/utils/mediaUrl";
 import { SpaceContext } from "../core/spaceContext";
 import { useEntityHeaderOverrideStore } from "../stores/entityHeaderOverrideStore";
 import "@xyflow/react/dist/style.css";
@@ -148,7 +149,7 @@ export default function WorkflowWindow() {
     allRoomIds.forEach((roomId) => {
       const info = roomInfoMap.get(roomId);
       const override = headerOverrides[`room:${roomId}`];
-      const avatar = override?.imageUrl?.trim() || info?.avatar?.trim() || "/favicon.ico";
+      const avatar = override?.imageUrl?.trim() || avatarThumbUrl(info?.avatarFileId) || "/favicon.ico";
       avatars.set(roomId, avatar);
     });
     return avatars;

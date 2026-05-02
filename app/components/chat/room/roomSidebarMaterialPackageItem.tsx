@@ -7,6 +7,7 @@ import { buildMaterialSidebarTree } from "@/components/chat/room/materialSidebar
 import { setMaterialItemDragData } from "@/components/chat/utils/materialItemDrag";
 import { setSubWindowDragPayload } from "@/components/chat/utils/subWindowDragPayload";
 import { parseNodePath, serializeNodePath } from "@/components/material/components/materialPackageTreeUtils";
+import { imageMediumUrl } from "@/utils/mediaUrl";
 
 interface RoomSidebarMaterialPackageItemProps {
   materialPackageId: number;
@@ -248,7 +249,7 @@ export default function RoomSidebarMaterialPackageItem({
   onOpenNodeDetail,
 }: RoomSidebarMaterialPackageItemProps) {
   const packageName = materialPackage?.name?.trim() || `素材包 #${materialPackageId}`;
-  const coverUrl = materialPackage?.coverUrl?.trim() || "";
+  const coverUrl = imageMediumUrl(materialPackage?.coverFileId);
   const normalizedActiveNodePathKey = useMemo(() => {
     const normalized = serializeNodePath(parseNodePath(activeNodePathKey ?? ""));
     return normalized || null;
