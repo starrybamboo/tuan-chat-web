@@ -3,14 +3,24 @@ import type { BlobSource, BlobState } from "@blocksuite/sync";
 import { IndexedDBBlobSource } from "@blocksuite/sync";
 import { BehaviorSubject } from "rxjs";
 
-import type { OssUploadHeaders } from "@/utils/ossUploadTarget";
-
 import { normalizeMimeType } from "@/utils/mediaMime";
-import { resolveOssUploadTarget } from "@/utils/ossUploadTarget";
+import { mediaFileUrl } from "@/utils/mediaUrl";
+import { uploadMediaFile } from "@/utils/mediaUpload";
 import { tuanchat } from "api/instance";
 
 const DEFAULT_BLOCKSUITE_IMAGE_SCENE = 1 as const;
-const DEFAULT_UPLOAD_TIMEOUT_MS = 120_000;
+
+type ApiResult<T> = {
+  success?: boolean;
+  errMsg?: string;
+  data?: T;
+};
+
+type MediaFileAliasResponse = {
+  fileId?: number;
+  mediaType?: string;
+  status?: string;
+};
 
 function createDefaultBlobState(): BlobState {
   return {
@@ -32,13 +42,28 @@ function isRemoteImageBlob(blob: Blob): boolean {
   return blob.type.startsWith("image/");
 }
 
+function extensionFromMimeType(mimeType: string) {
+  switch (mimeType) {
+    case "image/jpeg":
+      return "jpg";
+    case "image/webp":
+      return "webp";
+    case "image/gif":
+      return "gif";
+    case "image/png":
+      return "png";
+    default:
+      return "bin";
+  }
+}
+
 function toErrorMessage(prefix: string, error: unknown): string {
   const detail = error instanceof Error ? error.message : String(error ?? "");
   return detail ? `${prefix}: ${detail}` : prefix;
 }
 
-export function buildBlocksuiteRemoteImageFileName(key: string): string {
-  return `blocksuite-image-${normalizeBlobKey(key)}.bin`;
+export function buildBlocksuiteRemoteImageFileName(key: string, mimeType = "image/png"): string {
+  return `blocksuite-image-${normalizeBlobKey(key)}.${extensionFromMimeType(mimeType)}`;
 }
 
 export class BlocksuiteRemoteImageBlobSource implements BlobSource {
@@ -163,22 +188,12 @@ export class BlocksuiteRemoteImageBlobSource implements BlobSource {
     });
 
     try {
-      const ossData = await tuanchat.ossController.getUploadUrl({
-        fileName: buildBlocksuiteRemoteImageFileName(key),
-        contentType: normalizeMimeType(blob.type) || "image/png",
-        scene: this._scene,
-        dedupCheck: true,
+      const mimeType = normalizeMimeType(blob.type) || "image/png";
+      const file = new File([blob], buildBlocksuiteRemoteImageFileName(key, mimeType), {
+        type: mimeType,
       });
-
-      const uploadUrl = ossData.data?.uploadUrl?.trim();
-      const downloadUrl = ossData.data?.downloadUrl?.trim();
-      if (!downloadUrl) {
-        throw new Error("获取图片下载地址失败");
-      }
-
-      if (uploadUrl) {
-        await this._putBlob(uploadUrl, blob, ossData.data?.uploadHeaders);
-      }
+      const uploaded = await uploadMediaFile(file, { scene: this._scene });
+      await this._upsertAlias(key, uploaded.fileId);
 
       this._nextState(key, {
         uploading: false,
@@ -204,19 +219,11 @@ export class BlocksuiteRemoteImageBlobSource implements BlobSource {
     });
 
     try {
-      const ossData = await tuanchat.ossController.getUploadUrl({
-        fileName: buildBlocksuiteRemoteImageFileName(key),
-        scene: this._scene,
-        dedupCheck: true,
-      });
-
-      const uploadUrl = ossData.data?.uploadUrl?.trim();
-      const downloadUrl = ossData.data?.downloadUrl?.trim();
-
-      // dedup miss 说明远端对象不存在，不把它视为错误。
-      if (!downloadUrl || uploadUrl) {
+      const alias = await this._getAlias(key);
+      if (!alias?.fileId) {
         return null;
       }
+      const downloadUrl = mediaFileUrl(alias.fileId, alias.mediaType, "original");
 
       const response = await fetch(downloadUrl);
       if (!response.ok) {
@@ -243,25 +250,35 @@ export class BlocksuiteRemoteImageBlobSource implements BlobSource {
     }
   }
 
-  private async _putBlob(url: string, blob: Blob, uploadHeaders?: OssUploadHeaders): Promise<void> {
-    const { targetUrl, headers } = resolveOssUploadTarget(url, blob, uploadHeaders);
-    const controller = new AbortController();
-    const timeout = globalThis.setTimeout(() => controller.abort(), DEFAULT_UPLOAD_TIMEOUT_MS);
-
-    try {
-      const response = await fetch(targetUrl, {
-        method: "PUT",
-        body: blob,
-        headers,
-        signal: controller.signal,
-      });
-
-      if (!response.ok) {
-        throw new Error(`文件传输失败: ${response.status}`);
-      }
+  private async _upsertAlias(key: string, fileId: number): Promise<void> {
+    const result = await tuanchat.request.request<ApiResult<MediaFileAliasResponse>>({
+      method: "POST",
+      url: "/media/aliases",
+      body: {
+        namespace: this.name,
+        aliasKey: key,
+        fileId,
+        expectedMediaType: "image",
+      },
+      mediaType: "application/json",
+    });
+    if (!result.success || !result.data?.fileId) {
+      throw new Error(result.errMsg || "绑定图片远程索引失败");
     }
-    finally {
-      globalThis.clearTimeout(timeout);
+  }
+
+  private async _getAlias(key: string): Promise<MediaFileAliasResponse | null> {
+    const result = await tuanchat.request.request<ApiResult<MediaFileAliasResponse | null>>({
+      method: "GET",
+      url: "/media/aliases",
+      query: {
+        namespace: this.name,
+        aliasKey: key,
+      },
+    });
+    if (!result.success) {
+      throw new Error(result.errMsg || "查询图片远程索引失败");
     }
+    return result.data ?? null;
   }
 }

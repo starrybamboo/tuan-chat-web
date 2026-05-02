@@ -7,6 +7,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { ThemedText } from "@/components/themed-text";
 import { DEFAULT_TUANCHAT_API_BASE_URL } from "@/lib/api";
+import { avatarThumbUrl } from "@/lib/media-url";
 
 import { getErrorMessage } from "./mobileChatUtils";
 
@@ -625,7 +626,7 @@ export function MobileChatDrawer({
                           <SpaceRailButton
                             key={String(space.spaceId ?? label)}
                             active={space.spaceId === currentSpaceId}
-                            avatarUrl={space.avatar}
+                            avatarUrl={avatarThumbUrl(space.avatarFileId)}
                             label={label}
                             onPress={() => {
                               onSelectSpace(space.spaceId ?? null);
