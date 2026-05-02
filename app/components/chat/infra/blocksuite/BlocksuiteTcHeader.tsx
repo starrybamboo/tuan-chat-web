@@ -8,7 +8,7 @@ import { setBlocksuiteDocHeader } from "@/components/chat/infra/blocksuite/docum
 import { ResizableImg } from "@/components/common/resizableImg";
 import toastWindow from "@/components/common/toastWindow/toastWindow";
 import { ImgUploaderWithCopper } from "@/components/common/uploader/imgUploaderWithCropper";
-import { imageMediumUrlFromUrl } from "@/utils/mediaUrl";
+import { imageMediumUrl, imageMediumUrlFromUrl } from "@/utils/mediaUrl";
 
 interface BlocksuiteTcHeaderProps {
   docId: string;
@@ -47,9 +47,9 @@ export function BlocksuiteTcHeader(props: BlocksuiteTcHeaderProps) {
 
   const canEditTcHeader = !readOnly;
   const tcHeaderImageUrl = tcHeaderState?.header.imageUrl ?? fallbackImageUrl ?? "";
-  const tcHeaderDisplayImageUrl = imageMediumUrlFromUrl(tcHeaderImageUrl);
+  const tcHeaderDisplayImageUrl = imageMediumUrl(tcHeaderState?.header.imageFileId) || imageMediumUrlFromUrl(tcHeaderImageUrl);
   const tcHeaderTitle = tcHeaderState?.header.title ?? fallbackTitle ?? "";
-  const hasTcHeaderImage = Boolean(tcHeaderImageUrl.trim());
+  const hasTcHeaderImage = Boolean(tcHeaderDisplayImageUrl || tcHeaderImageUrl.trim());
   const copperedCompressionPreset = useMemo(() => {
     const parsed = parseDescriptionDocId(docId);
     return parsed && ["space", "room", "space_user_doc", "space_doc"].includes(parsed.entityType) ? "avatarThumb" : undefined;
@@ -93,6 +93,16 @@ export function BlocksuiteTcHeader(props: BlocksuiteTcHeaderProps) {
                     if (!store)
                       return;
                     setBlocksuiteDocHeader(store, { imageUrl: url });
+                  }}
+                  mutate={(data) => {
+                    const store = storeRef.current;
+                    if (!store)
+                      return;
+                    setBlocksuiteDocHeader(store, {
+                      imageFileId: typeof data?.avatarFileId === "number" ? data.avatarFileId : undefined,
+                      originalImageFileId: typeof data?.originFileId === "number" ? data.originFileId : undefined,
+                      imageMediaType: "image",
+                    });
                   }}
                   fileName={`blocksuite-header-${docId.replaceAll(":", "-")}`}
                   aspect={1}

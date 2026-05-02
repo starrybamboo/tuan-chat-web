@@ -47,6 +47,10 @@ export type Repository = {
      */
     image?: string;
     /**
+     * Cover media file id
+     */
+    coverFileId?: number;
+    /**
      * Original cover image
      */
     originalImage?: string;

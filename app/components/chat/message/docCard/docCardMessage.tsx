@@ -14,13 +14,16 @@ import { setDocRefDragData } from "@/components/chat/utils/docRef";
 import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
 import { getDocCardExtra } from "@/types/messageExtra";
 import { useIsMobile } from "@/utils/getScreenSize";
-import { imageMediumUrlFromUrl } from "@/utils/mediaUrl";
+import { imageMediumUrl, imageMediumUrlFromUrl } from "@/utils/mediaUrl";
 
 interface DocCardPayload {
   docId: string;
   spaceId?: number;
   title?: string;
   imageUrl?: string;
+  imageFileId?: number;
+  originalImageFileId?: number;
+  imageMediaType?: string;
   excerpt?: string;
 }
 
@@ -49,6 +52,13 @@ function extractDocCardPayload(extra: unknown): DocCardPayload | null {
 
   const title = typeof obj?.title === "string" ? obj.title.trim() : "";
   const imageUrl = typeof obj?.imageUrl === "string" ? obj.imageUrl.trim() : "";
+  const imageFileId = typeof obj?.imageFileId === "number" && Number.isFinite(obj.imageFileId) && obj.imageFileId > 0
+    ? obj.imageFileId
+    : undefined;
+  const originalImageFileId = typeof obj?.originalImageFileId === "number" && Number.isFinite(obj.originalImageFileId) && obj.originalImageFileId > 0
+    ? obj.originalImageFileId
+    : undefined;
+  const imageMediaType = typeof obj?.imageMediaType === "string" ? obj.imageMediaType.trim() : "";
   const excerpt = typeof obj?.excerpt === "string" ? obj.excerpt.trim() : "";
 
   return {
@@ -56,6 +66,9 @@ function extractDocCardPayload(extra: unknown): DocCardPayload | null {
     ...(spaceId ? { spaceId } : {}),
     ...(title ? { title } : {}),
     ...(imageUrl ? { imageUrl } : {}),
+    ...(imageFileId ? { imageFileId } : {}),
+    ...(originalImageFileId ? { originalImageFileId } : {}),
+    ...(imageMediaType ? { imageMediaType } : {}),
     ...(excerpt ? { excerpt: excerpt.slice(0, 512) } : {}),
   };
 }
@@ -73,9 +86,19 @@ function DocCardMessageImpl({ messageResponse }: { messageResponse: ChatMessageR
     : currentSpaceId;
   const isSupportedDocId = Boolean(docId && parseDescriptionDocId(docId));
 
-  const [preview, setPreview] = useState<{ title: string; imageUrl: string; excerpt: string }>({
+  const [preview, setPreview] = useState<{
+    title: string;
+    imageUrl: string;
+    imageFileId?: number;
+    originalImageFileId?: number;
+    imageMediaType?: string;
+    excerpt: string;
+  }>({
     title: payload?.title ?? "",
     imageUrl: payload?.imageUrl ?? "",
+    imageFileId: payload?.imageFileId,
+    originalImageFileId: payload?.originalImageFileId,
+    imageMediaType: payload?.imageMediaType,
     excerpt: payload?.excerpt ?? "",
   });
   const [previewLoadState, setPreviewLoadState] = useState<{
@@ -134,13 +157,24 @@ function DocCardMessageImpl({ messageResponse }: { messageResponse: ChatMessageR
     setPreview({
       title: payload?.title ?? "",
       imageUrl: payload?.imageUrl ?? "",
+      imageFileId: payload?.imageFileId,
+      originalImageFileId: payload?.originalImageFileId,
+      imageMediaType: payload?.imageMediaType,
       excerpt: payload?.excerpt ?? "",
     });
     setPreviewLoadState({
       status: "idle",
       errorMessage: "",
     });
-  }, [docId, payload?.excerpt, payload?.imageUrl, payload?.title]);
+  }, [
+    docId,
+    payload?.excerpt,
+    payload?.imageFileId,
+    payload?.imageMediaType,
+    payload?.imageUrl,
+    payload?.originalImageFileId,
+    payload?.title,
+  ]);
 
   useEffect(() => {
     if (!prewarmDocKey) {
@@ -211,6 +245,7 @@ function DocCardMessageImpl({ messageResponse }: { messageResponse: ChatMessageR
           previewSpaceId,
           hasHeaderTitle: Boolean(header?.title),
           hasHeaderImageUrl: Boolean(header?.imageUrl),
+          hasHeaderImageFileId: Boolean(header?.imageFileId),
         });
         if (!cancelled) {
           setPreviewLoadState({
@@ -218,10 +253,13 @@ function DocCardMessageImpl({ messageResponse }: { messageResponse: ChatMessageR
             errorMessage: "",
           });
         }
-        if (header && (header.title || header.imageUrl)) {
+        if (header && (header.title || header.imageUrl || header.imageFileId)) {
           setPreview(prev => ({
             title: header.title || prev.title || payload?.title || docId,
             imageUrl: header.imageUrl || prev.imageUrl || payload?.imageUrl || "",
+            imageFileId: header.imageFileId ?? prev.imageFileId ?? payload?.imageFileId,
+            originalImageFileId: header.originalImageFileId ?? prev.originalImageFileId ?? payload?.originalImageFileId,
+            imageMediaType: header.imageMediaType ?? prev.imageMediaType ?? payload?.imageMediaType,
             excerpt: prev.excerpt,
           }));
         }
@@ -235,10 +273,14 @@ function DocCardMessageImpl({ messageResponse }: { messageResponse: ChatMessageR
             previewSpaceId,
             hasTitle: Boolean(h.title),
             hasImageUrl: Boolean(h.imageUrl),
+            hasImageFileId: Boolean(h.imageFileId),
           });
           setPreview(prev => ({
             title: h.title || prev.title || payload?.title || docId,
             imageUrl: h.imageUrl || prev.imageUrl || payload?.imageUrl || "",
+            imageFileId: h.imageFileId ?? prev.imageFileId ?? payload?.imageFileId,
+            originalImageFileId: h.originalImageFileId ?? prev.originalImageFileId ?? payload?.originalImageFileId,
+            imageMediaType: h.imageMediaType ?? prev.imageMediaType ?? payload?.imageMediaType,
             excerpt: prev.excerpt,
           }));
         });
@@ -264,11 +306,24 @@ function DocCardMessageImpl({ messageResponse }: { messageResponse: ChatMessageR
       cancelled = true;
       cleanup();
     };
-  }, [docId, isSupportedDocId, message.messageId, payload?.imageUrl, payload?.title, previewSpaceId]);
+  }, [
+    docId,
+    isSupportedDocId,
+    message.messageId,
+    payload?.imageFileId,
+    payload?.imageMediaType,
+    payload?.imageUrl,
+    payload?.originalImageFileId,
+    payload?.title,
+    previewSpaceId,
+  ]);
 
   const title = preview.title || payload?.title || (docId ? `文档：${docId}` : "文档");
   const coverUrl = preview.imageUrl || payload?.imageUrl || "";
-  const displayCoverUrl = imageMediumUrlFromUrl(coverUrl);
+  const coverFileId = preview.imageFileId ?? payload?.imageFileId;
+  const originalCoverFileId = preview.originalImageFileId ?? payload?.originalImageFileId;
+  const imageMediaType = preview.imageMediaType ?? payload?.imageMediaType;
+  const displayCoverUrl = imageMediumUrl(coverFileId) || imageMediumUrlFromUrl(coverUrl);
   const excerpt = preview.excerpt;
 
   const disabledReason = !payload
@@ -338,6 +393,9 @@ function DocCardMessageImpl({ messageResponse }: { messageResponse: ChatMessageR
               ...(spaceId ? { spaceId } : {}),
               ...(title ? { title } : {}),
               ...(coverUrl ? { imageUrl: coverUrl } : {}),
+              ...(coverFileId ? { imageFileId: coverFileId } : {}),
+              ...(originalCoverFileId ? { originalImageFileId: originalCoverFileId } : {}),
+              ...(imageMediaType ? { imageMediaType } : {}),
               ...(excerpt ? { excerpt } : {}),
             });
           }}
@@ -412,7 +470,7 @@ function DocCardMessageImpl({ messageResponse }: { messageResponse: ChatMessageR
                       spaceId={previewSpaceId}
                       docId={docId}
                       readOnly
-                      tcHeader={{ enabled: true, fallbackTitle: title, fallbackImageUrl: coverUrl }}
+                      tcHeader={{ enabled: true, fallbackTitle: title, fallbackImageUrl: displayCoverUrl || coverUrl }}
                       allowModeSwitch
                       fullscreenEdgeless
                       className="h-full min-h-0"

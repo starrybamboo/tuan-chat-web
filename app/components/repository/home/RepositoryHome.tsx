@@ -4,7 +4,7 @@ import { useRuleListQuery } from "api/hooks/ruleQueryHooks";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router";
 import Pagination from "@/components/common/pagination";
-import { imageMediumUrlFromUrl } from "@/utils/mediaUrl";
+import { imageMediumUrl, imageMediumUrlFromUrl } from "@/utils/mediaUrl";
 
 const EMPTY_STRING_LIST: string[] = [];
 
@@ -363,7 +363,7 @@ export default function RepositoryHome() {
         id: `repository-${repository.repositoryId}`,
         rule: RuleList.data?.find(rule => rule.ruleId === repository.ruleId)?.ruleName ?? "",
         title: String(repository.repositoryName ?? ""),
-        image: (repository.image && repository.image !== null && repository.image !== "null") ? String(repository.image) : undefined, // 更严格的空值检查
+        image: imageMediumUrl(repository.coverFileId) || ((repository.image && repository.image !== null && repository.image !== "null") ? String(repository.image) : undefined),
         content: repository.description,
         type: "mixed" as const,
         authorName: repository.authorName,

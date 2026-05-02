@@ -446,8 +446,12 @@ export default function SpaceWebgalRenderWindow({ spaceId }: SpaceWebgalRenderWi
     setIsTypingSoundSeUploading(true);
     toast.loading("正在上传打字音效...", { id: "space-webgal-typing-se-upload" });
     try {
-      const uploadedUrl = await uploadUtilsRef.current.uploadAudioOriginal(file, 1);
-      setGameConfig({ typingSoundSeUrl: uploadedUrl.trim() });
+      const uploadedAudio = await uploadUtilsRef.current.uploadAudioOriginalAsset(file, 1);
+      setGameConfig({
+        typingSoundSeUrl: uploadedAudio.originalUrl.trim(),
+        typingSoundSeFileId: uploadedAudio.fileId,
+        typingSoundSeMediaType: uploadedAudio.mediaType,
+      });
       toast.success("打字音效上传成功", { id: "space-webgal-typing-se-upload" });
     }
     catch (error) {
@@ -459,7 +463,7 @@ export default function SpaceWebgalRenderWindow({ spaceId }: SpaceWebgalRenderWi
   }, [setGameConfig]);
 
   const handleClearTypingSoundSe = useCallback(() => {
-    setGameConfig({ typingSoundSeUrl: "" });
+    setGameConfig({ typingSoundSeUrl: "", typingSoundSeFileId: undefined, typingSoundSeMediaType: undefined });
     if (typingSoundSeFileInputRef.current) {
       typingSoundSeFileInputRef.current.value = "";
     }
@@ -490,7 +494,9 @@ export default function SpaceWebgalRenderWindow({ spaceId }: SpaceWebgalRenderWi
       const uploadedImage = await uploadUtilsRef.current.uploadDualImage(file, 1);
       setGameConfig({
         titleImageUrl: uploadedImage.url.trim(),
+        titleImageFileId: uploadedImage.fileId,
         originalTitleImageUrl: uploadedImage.originalUrl.trim(),
+        originalTitleImageFileId: uploadedImage.fileId,
       });
       toast.success("标题背景图上传成功", { id: "space-webgal-title-image-upload" });
     }
@@ -503,7 +509,12 @@ export default function SpaceWebgalRenderWindow({ spaceId }: SpaceWebgalRenderWi
   }, [setGameConfig]);
 
   const handleClearTitleImage = useCallback(() => {
-    setGameConfig({ titleImageUrl: "", originalTitleImageUrl: "" });
+    setGameConfig({
+      titleImageUrl: "",
+      titleImageFileId: undefined,
+      originalTitleImageUrl: "",
+      originalTitleImageFileId: undefined,
+    });
     if (titleImageFileInputRef.current) {
       titleImageFileInputRef.current.value = "";
     }
@@ -534,7 +545,9 @@ export default function SpaceWebgalRenderWindow({ spaceId }: SpaceWebgalRenderWi
       const uploadedImage = await uploadUtilsRef.current.uploadDualImage(file, 1);
       setGameConfig({
         startupLogoUrl: uploadedImage.url.trim(),
+        startupLogoFileId: uploadedImage.fileId,
         originalStartupLogoUrl: uploadedImage.originalUrl.trim(),
+        originalStartupLogoFileId: uploadedImage.fileId,
       });
       toast.success("启动图上传成功", { id: "space-webgal-startup-logo-upload" });
     }
@@ -547,7 +560,12 @@ export default function SpaceWebgalRenderWindow({ spaceId }: SpaceWebgalRenderWi
   }, [setGameConfig]);
 
   const handleClearStartupLogo = useCallback(() => {
-    setGameConfig({ startupLogoUrl: "", originalStartupLogoUrl: "" });
+    setGameConfig({
+      startupLogoUrl: "",
+      startupLogoFileId: undefined,
+      originalStartupLogoUrl: "",
+      originalStartupLogoFileId: undefined,
+    });
     if (startupLogoFileInputRef.current) {
       startupLogoFileInputRef.current.value = "";
     }

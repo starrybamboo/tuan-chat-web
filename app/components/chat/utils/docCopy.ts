@@ -52,6 +52,9 @@ export async function copyDocToSpaceDoc(params: {
   sourceSpaceId?: number;
   title?: string;
   imageUrl?: string;
+  imageFileId?: number;
+  originalImageFileId?: number;
+  imageMediaType?: string;
 }): Promise<{ newDocEntityId: number; newDocId: string; title: string }> {
   const createTitle = (params.title ?? "").trim();
   const title = createTitle ? `${createTitle}（副本）` : "新文档（副本）";
@@ -100,7 +103,13 @@ export async function copyDocToSpaceDoc(params: {
   try {
     const store = registry.getOrCreateSpaceDoc({ spaceId: params.spaceId, docId: newDocId }) as any;
     (store as any)?.load?.();
-    setBlocksuiteDocHeader(store, { title, imageUrl: params.imageUrl });
+    setBlocksuiteDocHeader(store, {
+      title,
+      imageUrl: params.imageUrl,
+      imageFileId: params.imageFileId,
+      originalImageFileId: params.originalImageFileId,
+      imageMediaType: params.imageMediaType,
+    });
   }
   catch {
     // ignore
@@ -129,6 +138,9 @@ export async function copyDocToSpaceUserDoc(params: {
   sourceSpaceId?: number;
   title?: string;
   imageUrl?: string;
+  imageFileId?: number;
+  originalImageFileId?: number;
+  imageMediaType?: string;
   tag?: string;
 }): Promise<{ newDocEntityId: number; newDocId: string; title: string }> {
   const createTitle = (params.title ?? "").trim();
@@ -183,7 +195,13 @@ export async function copyDocToSpaceUserDoc(params: {
   try {
     const store = registry.getOrCreateSpaceDoc({ spaceId: params.spaceId, docId: newDocId }) as any;
     (store as any)?.load?.();
-    setBlocksuiteDocHeader(store, { title, imageUrl: params.imageUrl });
+    setBlocksuiteDocHeader(store, {
+      title,
+      imageUrl: params.imageUrl,
+      imageFileId: params.imageFileId,
+      originalImageFileId: params.originalImageFileId,
+      imageMediaType: params.imageMediaType,
+    });
   }
   catch {
     // ignore

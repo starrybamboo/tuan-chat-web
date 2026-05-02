@@ -382,7 +382,7 @@ export default function DocFolderForUser({ onSendDocCard }: DocFolderForUserProp
 
   const handleDropDocRefToTag = useCallback(async (params: {
     tagKey: string;
-    docRef: { docId: string; spaceId?: number; title?: string; imageUrl?: string };
+    docRef: DocRefDragPayload;
   }) => {
     if (!spaceId || spaceId <= 0) {
       toast.error("未选择空间");
@@ -433,6 +433,9 @@ export default function DocFolderForUser({ onSendDocCard }: DocFolderForUserProp
         sourceSpaceId: params.docRef.spaceId,
         title: params.docRef.title,
         imageUrl: params.docRef.imageUrl,
+        imageFileId: params.docRef.imageFileId,
+        originalImageFileId: params.docRef.originalImageFileId,
+        imageMediaType: params.docRef.imageMediaType,
         ...(tag ? { tag } : {}),
       });
       if (tag)

@@ -1,6 +1,7 @@
 import React, { useMemo } from "react";
 import { Link, useNavigate } from "react-router";
 import Pagination from "@/components/common/pagination";
+import { imageMediumUrl } from "@/utils/mediaUrl";
 
 import { useGlobalUserId } from "@/components/globalContextProvider";
 import { ContentCard } from "@/components/repository/home/RepositoryHome";
@@ -51,7 +52,7 @@ const UserRepositoriesList: React.FC<UserRepositoriesListProps> = ({
         id: `user-repository-${repository.repositoryId}`,
         rule: ruleListQuery.data?.find(rule => rule.ruleId === repository.ruleId)?.ruleName ?? "",
         title: repository.repositoryName,
-        image: (repository.image && true && repository.image !== "null") ? repository.image : undefined,
+        image: imageMediumUrl(repository.coverFileId) || ((repository.image && true && repository.image !== "null") ? repository.image : undefined),
         content: repository.description,
         type: "mixed" as const,
         authorName: repository.authorName,

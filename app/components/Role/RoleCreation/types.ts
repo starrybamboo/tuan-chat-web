@@ -3,7 +3,8 @@ export type CharacterData = {
   id?: number;
   name: string;
   description: string;
-  voiceUrl?: string;
+  voiceUrl?: string | null;
+  voiceFileId?: number | null;
   avatar?: string;
   avatarId?: number;
   // 规则ID（后端规则主键）

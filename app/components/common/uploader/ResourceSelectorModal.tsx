@@ -76,7 +76,7 @@ function CollectionCard({ collection, onSelect }: CollectionCardProps) {
 interface ResourceSelectorModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSelect: (resourceUrl: string) => void;
+  onSelect: (resourceUrl: string, resource?: ResourceResponse) => void;
   title?: string;
   resourceType?: "5" | "6"; // 5: ͼƬ, 6: 音频，默认图片
 }
@@ -169,7 +169,7 @@ export function ResourceSelectorModal({
   const handleConfirmSelect = () => {
     const selectedResourceUrl = mediaPreviewUrl(selectedResource?.fileId, selectedResource?.mediaType);
     if (selectedResourceUrl) {
-      onSelect(selectedResourceUrl);
+      onSelect(selectedResourceUrl, selectedResource ?? undefined);
       // 重置状态
       setSelectedResource(null);
       setSelectedCollectionId(null);

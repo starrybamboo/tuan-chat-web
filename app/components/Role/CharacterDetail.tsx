@@ -295,11 +295,12 @@ function CharacterDetailInner({
   };
 
   // 处理音频上传成功
-  const handleAudioUploadSuccess = (audioUrl: string) => {
+  const handleAudioUploadSuccess = (audio: { audioUrl: string; voiceFileId: number }) => {
     // 更新本地角色状态，添加音频URL
     const updatedRole = {
       ...localRole,
-      voiceUrl: audioUrl,
+      voiceUrl: audio.audioUrl,
+      voiceFileId: audio.voiceFileId,
     };
     setLocalRole(updatedRole);
 
@@ -716,7 +717,7 @@ function CharacterDetailInner({
                   updateRole(updatedRole);
                 }}
                 onAudioDelete={() => {
-                  const updatedRole = { ...localRole, voiceUrl: undefined };
+                  const updatedRole = { ...localRole, voiceUrl: null, voiceFileId: null };
                   setLocalRole(updatedRole);
                   updateRole(updatedRole);
                 }}
@@ -758,7 +759,7 @@ function CharacterDetailInner({
                     updateRole(updatedRole);
                   }}
                   onAudioDelete={() => {
-                    const updatedRole = { ...localRole, voiceUrl: undefined };
+                    const updatedRole = { ...localRole, voiceUrl: null, voiceFileId: null };
                     setLocalRole(updatedRole);
                     updateRole(updatedRole);
                   }}
@@ -795,7 +796,7 @@ function CharacterDetailInner({
                     updateRole(updatedRole);
                   }}
                   onAudioDelete={() => {
-                    const updatedRole = { ...localRole, voiceUrl: undefined };
+                    const updatedRole = { ...localRole, voiceUrl: null, voiceFileId: null };
                     setLocalRole(updatedRole);
                     updateRole(updatedRole);
                   }}

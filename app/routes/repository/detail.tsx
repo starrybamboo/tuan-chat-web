@@ -4,6 +4,7 @@ import type { Route } from "./+types/detail";
 import { fetchRepositoryDetailWithCache } from "api/hooks/repositoryQueryHooks";
 import RepositoryDetailComponent from "@/components/repository/detail/repositoryDetail";
 import { queryClient } from "@/queryClient";
+import { imageMediumUrl } from "@/utils/mediaUrl";
 import { createSeoMeta } from "@/utils/seo";
 // import { useLocation } from "react-router";
 
@@ -12,6 +13,7 @@ interface RepositorySeoData {
   description?: string | null;
   authorName?: string | null;
   image?: string | null;
+  coverFileId?: number | null;
 }
 
 function buildRepositorySeoDescription(repository: RepositorySeoData | null | undefined, repositoryId?: string) {
@@ -42,7 +44,7 @@ export async function clientLoader({ params }: Route.ClientLoaderArgs) {
 
 export function meta({ data, params }: Route.MetaArgs) {
   const repositoryName = data?.repositoryName?.trim() || (params.id ? `模组 #${params.id}` : "模组详情");
-  const repositoryImage = typeof data?.image === "string" ? data.image.trim() : "";
+  const repositoryImage = imageMediumUrl(data?.coverFileId) || (typeof data?.image === "string" ? data.image.trim() : "");
 
   return createSeoMeta({
     title: repositoryName,
