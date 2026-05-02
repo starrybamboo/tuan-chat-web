@@ -20,6 +20,8 @@ import {
 } from "@/types/messageExtra";
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
 import { extractWebgalChoosePayload } from "@/types/webgalChoose";
+import type { MediaQuality, MediaType } from "@/utils/imgCompressUtils";
+import { mediaFileUrl, mediaFileUrlWithQuality, normalizeMediaType } from "@/utils/mediaUrl";
 
 export type ReadonlyRenderableMessage = Pick<
   Message,
@@ -53,6 +55,21 @@ function formatFileSize(bytes?: number) {
     unitIndex += 1;
   }
   return `${value.toFixed(1)}${units[unitIndex]}`;
+}
+
+function resolveMediaPayloadUrl(
+  payload: { fileId?: number; mediaType?: string; url?: string } | undefined,
+  quality: MediaQuality,
+  expectedMediaType?: MediaType,
+) {
+  const resolvedMediaType = payload?.mediaType ? normalizeMediaType(payload.mediaType) : expectedMediaType;
+  const mediaUrl = mediaFileUrl(payload?.fileId, resolvedMediaType, quality);
+  const fallbackUrl = typeof payload?.url === "string"
+    ? resolvedMediaType
+      ? mediaFileUrlWithQuality(payload.url, resolvedMediaType, quality)
+      : payload.url
+    : "";
+  return mediaUrl || fallbackUrl;
 }
 
 export default function MessageContentRenderer({
@@ -89,7 +106,7 @@ export default function MessageContentRenderer({
         </div>
       );
     case MESSAGE_TYPE.IMG: {
-      const imgUrl = typeof imagePayload?.url === "string" ? imagePayload.url : "";
+      const imgUrl = resolveMediaPayloadUrl(imagePayload, "high", "image");
       const imgWidth = typeof imagePayload?.width === "number" ? imagePayload.width : undefined;
       const imgHeight = typeof imagePayload?.height === "number" ? imagePayload.height : undefined;
 
@@ -116,7 +133,7 @@ export default function MessageContentRenderer({
     }
     case MESSAGE_TYPE.FILE: {
       const fileMessage = getFileMessageExtra(message.extra);
-      const fileUrl = typeof fileMessage?.url === "string" ? fileMessage.url : "";
+      const fileUrl = resolveMediaPayloadUrl(fileMessage, "original");
       const fileName = fileMessage?.fileName || message.content || "文件";
       const sizeLabel = formatFileSize(fileMessage?.size);
       const contentNode = (
@@ -143,7 +160,7 @@ export default function MessageContentRenderer({
     }
     case MESSAGE_TYPE.VIDEO: {
       const videoMessage = getVideoMessageExtra(message.extra);
-      const videoUrl = typeof videoMessage?.url === "string" ? videoMessage.url : "";
+      const videoUrl = resolveMediaPayloadUrl(videoMessage, "high", "video");
       return (
         <div className="flex min-w-0 w-full max-w-[420px] flex-col gap-2">
           {videoUrl
@@ -185,7 +202,7 @@ export default function MessageContentRenderer({
     }
     case MESSAGE_TYPE.SOUND: {
       const soundMessage = getSoundMessageExtra(message.extra);
-      const audioUrl = typeof soundMessage?.url === "string" ? soundMessage.url : "";
+      const audioUrl = resolveMediaPayloadUrl(soundMessage, "high", "audio");
       const duration = soundMessage?.second;
       const purpose = resolveRenderedSoundMessagePurpose({
         annotations: effectiveAnnotations,

@@ -2,6 +2,8 @@ import type { MessageDirectResponse } from "../../../../api";
 import BetterImg from "@/components/common/betterImg";
 import { UserAvatarByUser } from "@/components/common/userAccess";
 import { getImageMessageExtra, getVideoMessageExtra } from "@/types/messageExtra";
+import type { MediaQuality, MediaType } from "@/utils/imgCompressUtils";
+import { mediaFileUrl, mediaFileUrlWithQuality, normalizeMediaType } from "@/utils/mediaUrl";
 
 interface MessageBubbleProps {
   message: MessageDirectResponse; // 消息内容
@@ -17,6 +19,21 @@ function formatMessageTimeLabel(createTime?: string | null) {
     return "";
   }
   return parsed.toLocaleString("zh-CN", { hour12: false });
+}
+
+function resolveMediaPayloadUrl(
+  payload: { fileId?: number; mediaType?: string; url?: string } | undefined,
+  quality: MediaQuality,
+  expectedMediaType?: MediaType,
+) {
+  const resolvedMediaType = payload?.mediaType ? normalizeMediaType(payload.mediaType) : expectedMediaType;
+  const mediaUrl = mediaFileUrl(payload?.fileId, resolvedMediaType, quality);
+  const fallbackUrl = typeof payload?.url === "string"
+    ? resolvedMediaType
+      ? mediaFileUrlWithQuality(payload.url, resolvedMediaType, quality)
+      : payload.url
+    : "";
+  return mediaUrl || fallbackUrl;
 }
 
 export default function MessageBubble({ message, isOwn }: MessageBubbleProps) {
@@ -35,7 +52,7 @@ export default function MessageBubble({ message, isOwn }: MessageBubbleProps) {
       return (
         <div data-message-id={message.messageId}>
           <BetterImg
-            src={imgData?.url}
+            src={resolveMediaPayloadUrl(imgData, "high", "image")}
             size={{ width: imgData?.width, height: imgData?.height }}
             className="max-h-[40vh] max-w-[245px] rounded-lg"
           />
@@ -45,7 +62,7 @@ export default function MessageBubble({ message, isOwn }: MessageBubbleProps) {
 
     if (message.messageType === 14) {
       const videoMessage = getVideoMessageExtra(message.extra);
-      const videoUrl = typeof videoMessage?.url === "string" ? videoMessage.url : "";
+      const videoUrl = resolveMediaPayloadUrl(videoMessage, "high", "video");
       if (videoUrl) {
         return (
           <div data-message-id={message.messageId}>

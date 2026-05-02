@@ -4,6 +4,14 @@
 /* eslint-disable */
 export type FileMessage = {
     /**
+     * 媒体文件 ID
+     */
+    fileId?: number;
+    /**
+     * 媒体类型：image/audio/video/document/other
+     */
+    mediaType?: string;
+    /**
      * 大小（字节）
      */
     size: number;

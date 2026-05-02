@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { imageHighUrlFromUrl } from "@/utils/mediaUrl";
 import { markObservedWebgalAsset, primeWebgalAssetCache } from "@/webGAL/browserAssetCache";
 
 interface ImgWithHoverProps extends React.ImgHTMLAttributes<HTMLImageElement> {
@@ -34,6 +35,7 @@ export default function ImgWithHoverToScale({
   const [previewSize, setPreviewSize] = useState({ width: 300, height: 300 }); // 默认尺寸
   const hoverTimer = useRef<NodeJS.Timeout | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const previewSrc = typeof src === "string" ? imageHighUrlFromUrl(src) : src;
 
   const handleMouseEnter = () => {
     if (!enableScale) {
@@ -42,9 +44,9 @@ export default function ImgWithHoverToScale({
     setIsHovering(true);
 
     // 预加载图像以获取准确尺寸
-    if (src) {
+    if (previewSrc) {
       const img = new Image();
-      img.src = src;
+      img.src = previewSrc;
       img.onload = () => {
         // 设置预览图像的尺寸
         setPreviewSize({
@@ -131,7 +133,7 @@ export default function ImgWithHoverToScale({
   };
 
   // 创建预览元素
-  const previewElement = showPreview && src && enableScale
+  const previewElement = showPreview && previewSrc && enableScale
     ? (
         createPortal(
           <div
@@ -143,7 +145,7 @@ export default function ImgWithHoverToScale({
             }}
           >
             <img
-              src={src}
+              src={previewSrc}
               alt={alt}
               style={{
                 width: previewSize.width,

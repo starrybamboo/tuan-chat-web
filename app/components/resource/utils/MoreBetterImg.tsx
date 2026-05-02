@@ -1,6 +1,7 @@
 import React, { useRef } from "react";
 import { ResizableImg } from "@/components/common/resizableImg";
 import toastWindow from "@/components/common/toastWindow/toastWindow";
+import { imageMediumUrlFromUrl, imageHighUrlFromUrl } from "@/utils/mediaUrl";
 
 /**
  * 更更好的img组件，没有object-contain,可以更方便的resize
@@ -20,10 +21,11 @@ function MoreBetterImg({ src, className, onClose, size, transparent = true }: {
 }) {
   const imgRef = useRef<HTMLImageElement>(null);
   const imgSrc = typeof src === "string" || !src ? src : URL.createObjectURL(src);
+  const displayImgSrc = typeof imgSrc === "string" ? imageMediumUrlFromUrl(imgSrc) : imgSrc;
 
   const openToastWindow = () => {
     toastWindow(
-      onClose => <ResizableImg src={imgSrc ?? ""} size={size} onClose={onClose} />,
+      onClose => <ResizableImg src={displayImgSrc ?? ""} size={size} onClose={onClose} />,
       {
         fullScreen: true,
         transparent,
@@ -35,7 +37,7 @@ function MoreBetterImg({ src, className, onClose, size, transparent = true }: {
     <>
       <img
         ref={imgRef}
-        src={imgSrc}
+        src={displayImgSrc}
         width={size?.width}
         height={size?.height}
         className={`${className}`}

@@ -3,7 +3,7 @@ import React, { useEffect, useRef, useState } from "react";
 import StickerWindow from "@/components/chat/window/StickerWindow";
 import { ImgUploader } from "@/components/common/uploader/imgUploader";
 import { EmojiIconWhite, Image2Fill, XMarkICon } from "@/icons";
-import { avatarThumbUrl } from "@/utils/mediaUrl";
+import { avatarThumbUrl, imageMediumUrlFromUrl } from "@/utils/mediaUrl";
 import { UploadUtils } from "@/utils/UploadUtils";
 import { usePublishMomentFeedMutation } from "../../../../api/hooks/activitiesFeedQuerryHooks";
 import { useGetUserInfoQuery } from "../../../../api/hooks/UserHooks";
@@ -258,7 +258,7 @@ const PublishPostCard: React.FC<PublishBoxProps> = ({ loginUserId }) => {
                       className="block w-16 h-16 sm:w-20 sm:h-20 rounded-md overflow-hidden border border-base-300 bg-base-200/30"
                     >
                       <img
-                        src={img.url}
+                        src={imageMediumUrlFromUrl(img.url)}
                         alt={img.name ?? `img-${idx}`}
                         className="w-full h-full object-cover"
                         loading="lazy"

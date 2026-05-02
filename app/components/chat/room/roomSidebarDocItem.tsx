@@ -5,7 +5,7 @@ import type { DraggingItem, DropTarget } from "./useRoomSidebarDragState";
 import { FileTextIcon } from "@phosphor-icons/react";
 import { setDocRefDragData } from "@/components/chat/utils/docRef";
 import { setSubWindowDragPayload } from "@/components/chat/utils/subWindowDragPayload";
-import { withOssResizeProcess } from "@/utils/ossImageProcess";
+import { imageLowUrlFromUrl } from "@/utils/mediaUrl";
 
 const DOC_DRAG_MIME = "application/x-tuanchat-doc-id";
 
@@ -61,7 +61,7 @@ export default function RoomSidebarDocItem({
 
   const title = docOverrideTitle || (docMetaMap.get(docId)?.title ?? (node as any)?.fallbackTitle ?? docId);
   const coverUrl = docOverrideImageUrl || docFallbackImageUrl;
-  const displayCoverUrl = coverUrl ? withOssResizeProcess(coverUrl, 128) : "";
+  const displayCoverUrl = imageLowUrlFromUrl(coverUrl);
   const isActive = activeDocId === docId;
 
   return (

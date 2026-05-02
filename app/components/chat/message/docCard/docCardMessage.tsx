@@ -14,6 +14,7 @@ import { setDocRefDragData } from "@/components/chat/utils/docRef";
 import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
 import { getDocCardExtra } from "@/types/messageExtra";
 import { useIsMobile } from "@/utils/getScreenSize";
+import { imageMediumUrlFromUrl } from "@/utils/mediaUrl";
 
 interface DocCardPayload {
   docId: string;
@@ -267,6 +268,7 @@ function DocCardMessageImpl({ messageResponse }: { messageResponse: ChatMessageR
 
   const title = preview.title || payload?.title || (docId ? `文档：${docId}` : "文档");
   const coverUrl = preview.imageUrl || payload?.imageUrl || "";
+  const displayCoverUrl = imageMediumUrlFromUrl(coverUrl);
   const excerpt = preview.excerpt;
 
   const disabledReason = !payload
@@ -344,9 +346,9 @@ function DocCardMessageImpl({ messageResponse }: { messageResponse: ChatMessageR
         >
           <div className="flex gap-3 p-3">
             <div className="relative w-24 h-20 rounded-lg overflow-hidden border border-base-300 bg-base-200 flex-shrink-0">
-              {coverUrl
+              {displayCoverUrl
                 ? (
-                    <img src={coverUrl} alt={title} draggable={false} className="w-full h-full object-cover" />
+                    <img src={displayCoverUrl} alt={title} draggable={false} className="w-full h-full object-cover" />
                   )
                 : (
                     <div className="w-full h-full flex items-center justify-center">
