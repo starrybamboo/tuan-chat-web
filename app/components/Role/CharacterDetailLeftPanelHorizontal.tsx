@@ -293,7 +293,7 @@ export default function CharacterDetailLeftPanelHorizontal({
                     <div>
                       <h3 className="font-semibold text-sm">上传音频</h3>
                       <p className="text-secondary font-medium text-sm">
-                        {localRole.voiceUrl ? "已上传音频" : "用于AI生成角色音色"}
+                        {localRole.voiceFileId || localRole.voiceUrl ? "已上传音频" : "用于AI生成角色音色"}
                       </p>
                     </div>
                   </div>

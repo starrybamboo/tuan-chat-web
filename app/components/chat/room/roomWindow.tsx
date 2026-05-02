@@ -45,6 +45,7 @@ import { createRoomUiStore, RoomUiStoreProvider } from "@/components/chat/stores
 import { useSideDrawerStore } from "@/components/chat/stores/sideDrawerStore";
 import useCommandExecutor from "@/components/common/dicer/cmdPre";
 import { useGlobalUserId, useGlobalWebSocket } from "@/components/globalContextProvider";
+import { mediaFileUrl } from "@/utils/mediaUrl";
 
 import {
   useBatchSendMessageMutation,
@@ -732,9 +733,10 @@ function RoomWindow({
             }
           }
 
-          if (roleData?.voiceUrl) {
+          const roleVoiceUrl = mediaFileUrl(roleData?.voiceFileId, "audio", "original") || roleData?.voiceUrl;
+          if (roleVoiceUrl) {
             // Fetch the file
-            const fileRes = await fetch(roleData.voiceUrl);
+            const fileRes = await fetch(roleVoiceUrl);
             const blob = await fileRes.blob();
             const file = new File([blob], "ref.wav", { type: blob.type });
             roleVocalCache.set(roleId, file);

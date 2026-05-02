@@ -106,7 +106,7 @@ function RoomSettingWindow({ onClose, roomId: propRoomId, defaultTab = "role" }:
       return;
 
     const title = (header?.title ?? room?.name ?? "").trim();
-    const avatarFileId = extractMediaFileIdFromUrl(header?.imageUrl) ?? room?.avatarFileId;
+    const avatarFileId = header?.imageFileId ?? extractMediaFileIdFromUrl(header?.imageUrl) ?? room?.avatarFileId;
 
     updateRoomMutation.mutate({
       roomId: propRoomId,

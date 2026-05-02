@@ -1,8 +1,7 @@
-import type { Route } from "./+types/activities";
 import ActivitiesPage from "@/components/activities/activitiesPage";
 import { createSeoMeta } from "@/utils/seo";
 
-export function meta(_args: Route.MetaArgs) {
+export function meta() {
   return createSeoMeta({
     title: "动态",
     description: "查看团剧共创中的动态流与更新。",

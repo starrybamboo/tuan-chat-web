@@ -5,6 +5,9 @@ import type { DescriptionEntityType } from "@/components/chat/infra/blocksuite/d
 type EntityHeaderOverride = {
   title: string;
   imageUrl: string;
+  imageFileId?: number;
+  originalImageFileId?: number;
+  imageMediaType?: string;
   updatedAt: number;
 };
 
@@ -13,7 +16,13 @@ type EntityHeaderOverrideKey = `${DescriptionEntityType}:${number}`;
 type EntityHeaderOverrideState = {
   headers: Record<string, EntityHeaderOverride>;
   hydrateFromLocalStorage: () => void;
-  setHeader: (params: { entityType: DescriptionEntityType; entityId: number; header: { title: string; imageUrl: string } }) => void;
+  setHeader: (params: { entityType: DescriptionEntityType; entityId: number; header: {
+    title: string;
+    imageUrl: string;
+    imageFileId?: number;
+    originalImageFileId?: number;
+    imageMediaType?: string;
+  } }) => void;
   clearHeader: (params: { entityType: DescriptionEntityType; entityId: number }) => void;
 };
 
@@ -61,10 +70,20 @@ function tryReadFromLocalStorage(): Record<string, EntityHeaderOverride> {
         continue;
       const title = typeof (v as any).title === "string" ? (v as any).title : "";
       const imageUrl = typeof (v as any).imageUrl === "string" ? (v as any).imageUrl : "";
+      const imageFileId = typeof (v as any).imageFileId === "number" && (v as any).imageFileId > 0 ? (v as any).imageFileId : undefined;
+      const originalImageFileId = typeof (v as any).originalImageFileId === "number" && (v as any).originalImageFileId > 0 ? (v as any).originalImageFileId : undefined;
+      const imageMediaType = typeof (v as any).imageMediaType === "string" ? (v as any).imageMediaType : "";
       const updatedAt = typeof (v as any).updatedAt === "number" ? (v as any).updatedAt : 0;
-      if (!title && !imageUrl)
+      if (!title && !imageUrl && !imageFileId)
         continue;
-      map[k] = { title, imageUrl, updatedAt };
+      map[k] = {
+        title,
+        imageUrl,
+        ...(imageFileId ? { imageFileId } : {}),
+        ...(originalImageFileId ? { originalImageFileId } : {}),
+        ...(imageMediaType ? { imageMediaType } : {}),
+        updatedAt,
+      };
     }
     return map;
   }
@@ -117,22 +136,37 @@ export const useEntityHeaderOverrideStore = create<EntityHeaderOverrideState>(se
 
     const title = String(header.title ?? "").trim();
     const imageUrl = String(header.imageUrl ?? "").trim();
+    const imageFileId = typeof header.imageFileId === "number" && header.imageFileId > 0 ? header.imageFileId : undefined;
+    const originalImageFileId = typeof header.originalImageFileId === "number" && header.originalImageFileId > 0 ? header.originalImageFileId : undefined;
+    const imageMediaType = String(header.imageMediaType ?? "").trim();
     const key = buildKey(entityType, entityId);
 
     set((prev) => {
       const existing = prev.headers[key];
       const nextHeaders = { ...prev.headers };
-      if (!title && !imageUrl) {
+      if (!title && !imageUrl && !imageFileId) {
         if (!existing) {
           return prev;
         }
         delete nextHeaders[key];
       }
       else {
-        if (existing && existing.title === title && existing.imageUrl === imageUrl) {
+        if (existing
+          && existing.title === title
+          && existing.imageUrl === imageUrl
+          && existing.imageFileId === imageFileId
+          && existing.originalImageFileId === originalImageFileId
+          && (existing.imageMediaType ?? "") === imageMediaType) {
           return prev;
         }
-        nextHeaders[key] = { title, imageUrl, updatedAt: Date.now() };
+        nextHeaders[key] = {
+          title,
+          imageUrl,
+          ...(imageFileId ? { imageFileId } : {}),
+          ...(originalImageFileId ? { originalImageFileId } : {}),
+          ...(imageMediaType ? { imageMediaType } : {}),
+          updatedAt: Date.now(),
+        };
       }
 
       const pruned = prune(nextHeaders);

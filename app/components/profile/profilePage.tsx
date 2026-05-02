@@ -1,4 +1,4 @@
-import { ClockIcon, HouseIcon, ImageIcon } from "@phosphor-icons/react";
+import { HouseIcon, ImageIcon } from "@phosphor-icons/react";
 import React, { useEffect, useRef, useState } from "react";
 import { NavLink, Outlet, useLocation, useParams } from "react-router";
 
@@ -15,14 +15,6 @@ function ProfilePage() {
       to: `/profile/${userId}`,
       icon: (
         <HouseIcon className="h-5 w-5" />
-      ),
-    },
-    {
-      id: "activities",
-      name: "动态",
-      to: `/profile/${userId}/activities`,
-      icon: (
-        <ClockIcon className="h-5 w-5" />
       ),
     },
     {

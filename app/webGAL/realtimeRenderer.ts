@@ -27,7 +27,7 @@ import {
 import { isFigurePosition, MESSAGE_TYPE } from "@/types/voiceRenderTypes";
 import { buildWebgalChooseScriptLines, extractWebgalChoosePayload } from "@/types/webgalChoose";
 import { extractWebgalDicePayload, isLikelyAnkoDiceContent, isLikelyTrpgDiceContent } from "@/types/webgalDice";
-import { avatarOriginalUrl, avatarThumbUrl, avatarUrl as buildAvatarUrl, imageHighUrl, imageOriginalUrl } from "@/utils/mediaUrl";
+import { avatarOriginalUrl, avatarThumbUrl, avatarUrl as buildAvatarUrl, imageHighUrl, imageOriginalUrl, mediaFileUrl } from "@/utils/mediaUrl";
 import { checkGameExist, getTerreApis } from "@/webGAL/index";
 import { getTerreBaseUrl, getTerreWsUrl } from "@/webGAL/terreConfig";
 
@@ -858,11 +858,16 @@ export class RealtimeRenderer {
     upsertGameConfigEntry(configEntries, "TypingSoundPunctuationPause", String(typingSoundPunctuationPause));
 
     const avatarUrl = buildAvatarUrl(primaryRoom?.avatarFileId) || avatarOriginalUrl(primaryRoom?.avatarFileId);
-    const titleImageUrl = String(this.gameConfig.titleImageUrl ?? "").trim();
-    const originalTitleImageUrl = String(this.gameConfig.originalTitleImageUrl ?? this.gameConfig.titleImageUrl ?? "").trim();
-    const startupLogoUrl = String(this.gameConfig.startupLogoUrl ?? "").trim();
-    const originalStartupLogoUrl = String(this.gameConfig.originalStartupLogoUrl ?? this.gameConfig.startupLogoUrl ?? "").trim();
-    const typingSoundSeUrl = String(this.gameConfig.typingSoundSeUrl ?? "").trim();
+    const titleImageUrl = mediaFileUrl(this.gameConfig.titleImageFileId, "image", "high")
+      || String(this.gameConfig.titleImageUrl ?? "").trim();
+    const originalTitleImageUrl = mediaFileUrl(this.gameConfig.originalTitleImageFileId ?? this.gameConfig.titleImageFileId, "image", "original")
+      || String(this.gameConfig.originalTitleImageUrl ?? this.gameConfig.titleImageUrl ?? "").trim();
+    const startupLogoUrl = mediaFileUrl(this.gameConfig.startupLogoFileId, "image", "high")
+      || String(this.gameConfig.startupLogoUrl ?? "").trim();
+    const originalStartupLogoUrl = mediaFileUrl(this.gameConfig.originalStartupLogoFileId ?? this.gameConfig.startupLogoFileId, "image", "original")
+      || String(this.gameConfig.originalStartupLogoUrl ?? this.gameConfig.startupLogoUrl ?? "").trim();
+    const typingSoundSeUrl = mediaFileUrl(this.gameConfig.typingSoundSeFileId, this.gameConfig.typingSoundSeMediaType || "audio", "original")
+      || String(this.gameConfig.typingSoundSeUrl ?? "").trim();
     const roomId = Number(primaryRoom?.roomId ?? 0);
 
     if (titleImageUrl) {

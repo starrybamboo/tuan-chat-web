@@ -9,7 +9,8 @@ export type Role = {
   avatarThumb?: string;
   avatarId: number;
   type?: number; // 角色类型：0=普通角色，1=骰娘
-  voiceUrl?: string;
+  voiceUrl?: string | null;
+  voiceFileId?: number | null;
   extra?: Record<string, string>;
   // 规则ID（后端规则主键）
   ruleId?: number;

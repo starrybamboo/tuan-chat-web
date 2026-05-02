@@ -20,10 +20,23 @@ type UseSpaceDocMetaStateParams = {
   canViewDocs: boolean;
   docMetasFromSidebarTree: MinimalDocMeta[];
   isSidebarTreeReady?: boolean;
-  onDocHeaderChange?: (payload: { docId: string; title: string; imageUrl: string }) => void;
+  onDocHeaderChange?: (payload: {
+    docId: string;
+    title: string;
+    imageUrl: string;
+    imageFileId?: number;
+    originalImageFileId?: number;
+    imageMediaType?: string;
+  }) => void;
 };
 
-type DocHeaderOverrideMap = Record<string, { title?: string; imageUrl?: string }>;
+type DocHeaderOverrideMap = Record<string, {
+  title?: string;
+  imageUrl?: string;
+  imageFileId?: number;
+  originalImageFileId?: number;
+  imageMediaType?: string;
+}>;
 
 function applyDocHeaderOverrides(list: MinimalDocMeta[], headerOverrides: DocHeaderOverrideMap): MinimalDocMeta[] {
   return list.map((meta) => {
@@ -34,9 +47,21 @@ function applyDocHeaderOverrides(list: MinimalDocMeta[], headerOverrides: DocHea
 
     const overrideTitle = typeof override.title === "string" ? override.title.trim() : "";
     const overrideImageUrl = typeof override.imageUrl === "string" ? override.imageUrl.trim() : "";
+    const overrideImageFileId = typeof override.imageFileId === "number" && override.imageFileId > 0 ? override.imageFileId : undefined;
+    const overrideOriginalImageFileId = typeof override.originalImageFileId === "number" && override.originalImageFileId > 0
+      ? override.originalImageFileId
+      : undefined;
+    const overrideImageMediaType = typeof override.imageMediaType === "string" ? override.imageMediaType.trim() : "";
     const nextTitle = overrideTitle || meta.title;
     const nextImageUrl = overrideImageUrl || meta.imageUrl;
-    if (nextTitle === meta.title && nextImageUrl === meta.imageUrl) {
+    const nextImageFileId = overrideImageFileId ?? meta.imageFileId;
+    const nextOriginalImageFileId = overrideOriginalImageFileId ?? meta.originalImageFileId;
+    const nextImageMediaType = overrideImageMediaType || meta.imageMediaType;
+    if (nextTitle === meta.title
+      && nextImageUrl === meta.imageUrl
+      && nextImageFileId === meta.imageFileId
+      && nextOriginalImageFileId === meta.originalImageFileId
+      && nextImageMediaType === meta.imageMediaType) {
       return meta;
     }
 
@@ -44,6 +69,9 @@ function applyDocHeaderOverrides(list: MinimalDocMeta[], headerOverrides: DocHea
       id: meta.id,
       ...(nextTitle ? { title: nextTitle } : {}),
       ...(nextImageUrl ? { imageUrl: nextImageUrl } : {}),
+      ...(nextImageFileId ? { imageFileId: nextImageFileId } : {}),
+      ...(nextOriginalImageFileId ? { originalImageFileId: nextOriginalImageFileId } : {}),
+      ...(nextImageMediaType ? { imageMediaType: nextImageMediaType } : {}),
     };
   });
 }
@@ -66,6 +94,12 @@ function isSameDocMetaList(a: MinimalDocMeta[] | null, b: MinimalDocMeta[] | nul
     if ((left.title ?? "") !== (right.title ?? ""))
       return false;
     if ((left.imageUrl ?? "") !== (right.imageUrl ?? ""))
+      return false;
+    if ((left.imageFileId ?? 0) !== (right.imageFileId ?? 0))
+      return false;
+    if ((left.originalImageFileId ?? 0) !== (right.originalImageFileId ?? 0))
+      return false;
+    if ((left.imageMediaType ?? "") !== (right.imageMediaType ?? ""))
       return false;
   }
 
@@ -93,10 +127,13 @@ export default function useSpaceDocMetaState({
           continue;
         const title = typeof meta?.title === "string" && meta.title.trim().length > 0 ? meta.title : undefined;
         const imageUrl = typeof meta?.imageUrl === "string" && meta.imageUrl.trim().length > 0 ? meta.imageUrl : undefined;
+        const imageFileId = typeof meta?.imageFileId === "number" && meta.imageFileId > 0 ? meta.imageFileId : undefined;
+        const originalImageFileId = typeof meta?.originalImageFileId === "number" && meta.originalImageFileId > 0 ? meta.originalImageFileId : undefined;
+        const imageMediaType = typeof meta?.imageMediaType === "string" && meta.imageMediaType.trim().length > 0 ? meta.imageMediaType : undefined;
 
         const existing = map.get(id);
         if (!existing) {
-          map.set(id, { id, title, imageUrl });
+          map.set(id, { id, title, imageUrl, imageFileId, originalImageFileId, imageMediaType });
           continue;
         }
         if (!existing.title && title) {
@@ -104,6 +141,15 @@ export default function useSpaceDocMetaState({
         }
         if (!existing.imageUrl && imageUrl) {
           existing.imageUrl = imageUrl;
+        }
+        if (!existing.imageFileId && imageFileId) {
+          existing.imageFileId = imageFileId;
+        }
+        if (!existing.originalImageFileId && originalImageFileId) {
+          existing.originalImageFileId = originalImageFileId;
+        }
+        if (!existing.imageMediaType && imageMediaType) {
+          existing.imageMediaType = imageMediaType;
         }
       }
     }
@@ -216,8 +262,18 @@ export default function useSpaceDocMetaState({
 
     const title = String(payload?.header?.title ?? "").trim();
     const imageUrl = String(payload?.header?.imageUrl ?? "").trim();
-    useDocHeaderOverrideStore.getState().setHeader({ docId, header: { title, imageUrl } });
-    onDocHeaderChange?.({ docId, title, imageUrl });
+    const imageFileId = typeof payload?.header?.imageFileId === "number" && payload.header.imageFileId > 0
+      ? payload.header.imageFileId
+      : undefined;
+    const originalImageFileId = typeof payload?.header?.originalImageFileId === "number" && payload.header.originalImageFileId > 0
+      ? payload.header.originalImageFileId
+      : undefined;
+    const imageMediaType = String(payload?.header?.imageMediaType ?? "").trim();
+    useDocHeaderOverrideStore.getState().setHeader({
+      docId,
+      header: { title, imageUrl, imageFileId, originalImageFileId, imageMediaType },
+    });
+    onDocHeaderChange?.({ docId, title, imageUrl, imageFileId, originalImageFileId, imageMediaType });
 
     setSpaceDocMetas((prev) => {
       if (!Array.isArray(prev) || prev.length === 0)
@@ -229,7 +285,14 @@ export default function useSpaceDocMetaState({
 
       const currentTitle = typeof prev[idx]?.title === "string" ? prev[idx]!.title!.trim() : "";
       const currentImageUrl = typeof prev[idx]?.imageUrl === "string" ? prev[idx]!.imageUrl!.trim() : "";
-      if (currentTitle === title && currentImageUrl === imageUrl)
+      const currentImageFileId = prev[idx]?.imageFileId;
+      const currentOriginalImageFileId = prev[idx]?.originalImageFileId;
+      const currentImageMediaType = typeof prev[idx]?.imageMediaType === "string" ? prev[idx]!.imageMediaType!.trim() : "";
+      if (currentTitle === title
+        && currentImageUrl === imageUrl
+        && currentImageFileId === imageFileId
+        && currentOriginalImageFileId === originalImageFileId
+        && currentImageMediaType === imageMediaType)
         return prev;
 
       const next = [...prev];
@@ -237,6 +300,9 @@ export default function useSpaceDocMetaState({
         id: next[idx]!.id,
         ...(title ? { title } : {}),
         ...(imageUrl ? { imageUrl } : {}),
+        ...(imageFileId ? { imageFileId } : {}),
+        ...(originalImageFileId ? { originalImageFileId } : {}),
+        ...(imageMediaType ? { imageMediaType } : {}),
       };
       return next;
     });

@@ -280,6 +280,9 @@ function normalizeDocCardPayload(rawExtra: unknown): MessageExtraRecord {
     spaceId: toPositiveNumber(docCard.spaceId),
     title: toTrimmedString(docCard.title),
     imageUrl: toTrimmedString(docCard.imageUrl),
+    imageFileId: toPositiveNumber(docCard.imageFileId),
+    originalImageFileId: toPositiveNumber(docCard.originalImageFileId),
+    imageMediaType: toTrimmedString(docCard.imageMediaType),
     excerpt: toTrimmedString(docCard.excerpt),
   });
 }

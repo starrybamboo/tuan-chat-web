@@ -87,6 +87,7 @@ export function Sidebar({
       avatarId: role.avatarId || 0,
       avatarFileId: role.avatarFileId,
       voiceUrl: role.voiceUrl || undefined, // 添加 voiceUrl 字段
+      voiceFileId: (role as any).voiceFileId || undefined,
       // 透传类型，便于侧边栏分类（若后端无该字段则为 0）
       type: (role as unknown as { type?: number; diceMaiden?: boolean }).type
         ?? (((role as unknown as { diceMaiden?: boolean }).diceMaiden) ? 1 : 0),

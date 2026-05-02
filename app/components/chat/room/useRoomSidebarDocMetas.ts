@@ -45,10 +45,20 @@ export default function useRoomSidebarDocMetas({
 
       const title = typeof m?.title === "string" && m.title.trim().length > 0 ? m.title : undefined;
       const imageUrl = typeof m?.imageUrl === "string" && m.imageUrl.trim().length > 0 ? m.imageUrl : undefined;
+      const imageFileId = typeof m?.imageFileId === "number" && m.imageFileId > 0 ? m.imageFileId : undefined;
+      const originalImageFileId = typeof m?.originalImageFileId === "number" && m.originalImageFileId > 0 ? m.originalImageFileId : undefined;
+      const imageMediaType = typeof m?.imageMediaType === "string" && m.imageMediaType.trim().length > 0 ? m.imageMediaType : undefined;
 
       const existing = merged.get(id);
       if (!existing) {
-        merged.set(id, { id, ...(title ? { title } : {}), ...(imageUrl ? { imageUrl } : {}) });
+        merged.set(id, {
+          id,
+          ...(title ? { title } : {}),
+          ...(imageUrl ? { imageUrl } : {}),
+          ...(imageFileId ? { imageFileId } : {}),
+          ...(originalImageFileId ? { originalImageFileId } : {}),
+          ...(imageMediaType ? { imageMediaType } : {}),
+        });
         continue;
       }
       if (!existing.title && title) {
@@ -56,6 +66,15 @@ export default function useRoomSidebarDocMetas({
       }
       if (!existing.imageUrl && imageUrl) {
         existing.imageUrl = imageUrl;
+      }
+      if (!existing.imageFileId && imageFileId) {
+        existing.imageFileId = imageFileId;
+      }
+      if (!existing.originalImageFileId && originalImageFileId) {
+        existing.originalImageFileId = originalImageFileId;
+      }
+      if (!existing.imageMediaType && imageMediaType) {
+        existing.imageMediaType = imageMediaType;
       }
     }
 

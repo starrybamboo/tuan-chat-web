@@ -19,6 +19,9 @@ export default function RepositoryCoverImage({
   const setRepositoryOriginalImage = useCallback((originalImage: string) => {
     setValue("originalImage", originalImage);
   }, [setValue]);
+  const setRepositoryCoverFileId = useCallback((coverFileId?: number) => {
+    setValue("coverFileId", coverFileId);
+  }, [setValue]);
   const uniqueRepositoryAvatarName = `repository_avatar_${useId().replace(/:/g, "")}`;
 
   return (
@@ -42,6 +45,14 @@ export default function RepositoryCoverImage({
                   onChange(url);
                   setRepositoryAvatarUrl(url);
                   setRepositoryImage(url);
+                }}
+                mutate={(data) => {
+                  const coverFileId = typeof data?.avatarFileId === "number"
+                    ? data.avatarFileId
+                    : typeof data?.fileId === "number"
+                      ? data.fileId
+                      : undefined;
+                  setRepositoryCoverFileId(coverFileId);
                 }}
               >
                 <div className="h-96 w-full bg-base-300 rounded-lg border-2 border-dashed border-base-content/30 hover:border-primary hover:bg-base-200 transition-colors cursor-pointer flex flex-col items-center justify-center group">

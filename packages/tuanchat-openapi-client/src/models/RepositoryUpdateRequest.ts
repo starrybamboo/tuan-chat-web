@@ -44,6 +44,10 @@ export type RepositoryUpdateRequest = {
      */
     image?: string;
     /**
+     * 封面媒体文件 ID
+     */
+    coverFileId?: number;
+    /**
      * 封面原图
      */
     originalImage?: string;

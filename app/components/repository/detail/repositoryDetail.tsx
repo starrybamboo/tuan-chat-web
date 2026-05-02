@@ -13,7 +13,7 @@ import BlocksuiteDescriptionEditor from "@/components/chat/shared/components/Blo
 import {
   BLOCKSUITE_FULL_PANEL_EDITOR_CLASS,
 } from "@/components/chat/shared/components/BlockSuite/blocksuiteDescriptionEditor.shared";
-import { avatarThumbUrl, imageMediumUrlFromUrl } from "@/utils/mediaUrl";
+import { avatarThumbUrl, imageMediumUrl, imageMediumUrlFromUrl } from "@/utils/mediaUrl";
 import Author from "./author";
 import {
   findRecoverableRepositorySpace,
@@ -138,7 +138,8 @@ export default function RepositoryDetailComponent({
       description: repository.description,
       userId: repository.userId,
       authorName: repository.authorName,
-      image: (repository.image && repository.image !== null && repository.image !== "null") ? String(repository.image) : "",
+      image: imageMediumUrl((repository as any).coverFileId) || ((repository.image && repository.image !== null && repository.image !== "null") ? String(repository.image) : ""),
+      coverFileId: (repository as any).coverFileId,
       createTime: repository.createTime,
       updateTime: repository.updateTime,
       minPeople: repository.minPeople,

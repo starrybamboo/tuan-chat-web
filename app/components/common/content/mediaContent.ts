@@ -1,6 +1,11 @@
+import type { MediaQuality, MediaType } from "@/utils/imgCompressUtils";
+
+import { mediaFileUrl } from "@/utils/mediaUrl";
+
 const IMAGE_MARKDOWN_RE = /!\[[^\]]*\]\(([^)]+)\)/g;
 const VIDEO_TOKEN_RE = /\{\{\s*video\s*:\s*([^\s}]+)\s*\}\}/gi;
 const MARKDOWN_LINK_RE = /\[([^\]]+)\]\(([^)]+)\)/g;
+const TC_MEDIA_TOKEN_RE = /^tc-media:\/\/(?:(image|audio|video|document|other)\/)?(\d+)$/i;
 
 const MEDIA_IMAGE_PREVIEW_TEXT = "含图片";
 const MEDIA_VIDEO_PREVIEW_TEXT = "含视频";
@@ -40,6 +45,27 @@ export function buildImageMarkdown(url: string, altText = "image") {
 
 export function buildVideoToken(url: string) {
   return `{{video:${String(url ?? "").trim()}}}`;
+}
+
+export function buildMediaReferenceToken(fileId: number | string, mediaType: MediaType) {
+  return `tc-media://${mediaType}/${String(fileId).trim()}`;
+}
+
+export function resolveMediaContentSource(
+  source: string | null | undefined,
+  fallbackMediaType: MediaType,
+  quality: MediaQuality = "high",
+) {
+  const value = String(source ?? "").trim();
+  if (!value) {
+    return "";
+  }
+  const match = value.match(TC_MEDIA_TOKEN_RE);
+  if (!match) {
+    return value;
+  }
+  const mediaType = (match[1] || fallbackMediaType) as MediaType;
+  return mediaFileUrl(match[2], mediaType, quality);
 }
 
 export function composeMediaContent(parts?: LegacyMediaContentParts) {

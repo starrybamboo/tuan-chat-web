@@ -8,6 +8,7 @@ import {
   DEFAULT_LANGUAGE_OPTIONS,
   SectionCollapseToggle,
 } from "./spaceWebgalRenderWindowParts";
+import { mediaFileUrl } from "@/utils/mediaUrl";
 
 interface SpaceWebgalGameConfigSectionProps {
   expanded: boolean;
@@ -80,6 +81,16 @@ export function SpaceWebgalGameConfigSection({
   handleStartupLogoFileChange,
   handleClearStartupLogo,
 }: SpaceWebgalGameConfigSectionProps) {
+  const typingSoundSeSrc = mediaFileUrl(gameConfig.typingSoundSeFileId, gameConfig.typingSoundSeMediaType || "audio", "original")
+    || gameConfig.typingSoundSeUrl;
+  const titleImagePreviewSrc = mediaFileUrl(gameConfig.titleImageFileId, "image", "medium")
+    || gameConfig.titleImageUrl;
+  const startupLogoPreviewSrc = mediaFileUrl(gameConfig.startupLogoFileId, "image", "medium")
+    || gameConfig.startupLogoUrl;
+  const hasTypingSoundSe = Boolean(typingSoundSeSrc);
+  const hasTitleImage = Boolean(titleImagePreviewSrc);
+  const hasStartupLogo = Boolean(startupLogoPreviewSrc);
+
   return (
     <div className={`rounded-lg border border-base-300 bg-base-100 ${expanded ? "p-4" : "px-4 py-2"}`}>
       <div className={`flex items-center justify-between gap-2${expanded ? " mb-3" : ""}`}>
@@ -283,16 +294,16 @@ export function SpaceWebgalGameConfigSection({
                         type="button"
                         className="btn btn-sm btn-ghost"
                         onClick={handleClearTypingSoundSe}
-                        disabled={isTypingSoundSeUploading || !gameConfig.typingSoundSeUrl}
+                        disabled={isTypingSoundSeUploading || !hasTypingSoundSe}
                       >
                         恢复默认
                       </button>
                       <span className="text-xs text-base-content/70">
-                        {gameConfig.typingSoundSeUrl ? "已设置自定义打字音" : "使用默认打字音"}
+                        {hasTypingSoundSe ? "已设置自定义打字音" : "使用默认打字音"}
                       </span>
                     </div>
-                    {gameConfig.typingSoundSeUrl && (
-                      <audio className="mt-2 h-8 w-full max-w-sm" controls preload="none" src={gameConfig.typingSoundSeUrl} />
+                    {hasTypingSoundSe && (
+                      <audio className="mt-2 h-8 w-full max-w-sm" controls preload="none" src={typingSoundSeSrc} />
                     )}
                     <input
                       ref={typingSoundSeFileInputRef}
@@ -415,18 +426,18 @@ export function SpaceWebgalGameConfigSection({
                   type="button"
                   className="btn btn-sm btn-ghost"
                   onClick={handleClearTitleImage}
-                  disabled={isTitleImageUploading || !gameConfig.titleImageUrl}
+                  disabled={isTitleImageUploading || !hasTitleImage}
                 >
                   清空
                 </button>
                 <span className="text-xs text-base-content/70">
-                  {gameConfig.titleImageUrl ? "已设置标题背景图" : "未设置标题背景图（可用上方头像兜底）"}
+                  {hasTitleImage ? "已设置标题背景图" : "未设置标题背景图（可用上方头像兜底）"}
                 </span>
               </div>
-              {gameConfig.titleImageUrl && (
+              {hasTitleImage && (
                 <div className="mt-2 h-20 w-36 overflow-hidden rounded-md border border-base-300">
                   <img
-                    src={gameConfig.titleImageUrl}
+                    src={titleImagePreviewSrc}
                     alt="标题背景图预览"
                     className="h-full w-full object-cover"
                     loading="lazy"
@@ -463,18 +474,18 @@ export function SpaceWebgalGameConfigSection({
                   type="button"
                   className="btn btn-sm btn-ghost"
                   onClick={handleClearStartupLogo}
-                  disabled={isStartupLogoUploading || !gameConfig.startupLogoUrl}
+                  disabled={isStartupLogoUploading || !hasStartupLogo}
                 >
                   清空
                 </button>
                 <span className="text-xs text-base-content/70">
-                  {gameConfig.startupLogoUrl ? "已设置启动图" : "未设置启动图（可用上方头像兜底）"}
+                  {hasStartupLogo ? "已设置启动图" : "未设置启动图（可用上方头像兜底）"}
                 </span>
               </div>
-              {gameConfig.startupLogoUrl && (
+              {hasStartupLogo && (
                 <div className="mt-2 h-20 w-36 overflow-hidden rounded-md border border-base-300">
                   <img
-                    src={gameConfig.startupLogoUrl}
+                    src={startupLogoPreviewSrc}
                     alt="启动图预览"
                     className="h-full w-full object-cover"
                     loading="lazy"

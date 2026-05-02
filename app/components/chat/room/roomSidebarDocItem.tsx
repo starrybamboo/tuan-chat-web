@@ -5,7 +5,7 @@ import type { DraggingItem, DropTarget } from "./useRoomSidebarDragState";
 import { FileTextIcon } from "@phosphor-icons/react";
 import { setDocRefDragData } from "@/components/chat/utils/docRef";
 import { setSubWindowDragPayload } from "@/components/chat/utils/subWindowDragPayload";
-import { imageLowUrlFromUrl } from "@/utils/mediaUrl";
+import { imageLowUrl, imageLowUrlFromUrl } from "@/utils/mediaUrl";
 
 const DOC_DRAG_MIME = "application/x-tuanchat-doc-id";
 
@@ -21,7 +21,13 @@ interface RoomSidebarDocItemProps {
   setDropTarget: (next: DropTarget | null) => void;
   handleDrop: () => void;
   setContextMenu: (next: SidebarTreeContextMenuState) => void;
-  docHeaderOverrides: Record<string, { title?: string; imageUrl?: string }>;
+  docHeaderOverrides: Record<string, {
+    title?: string;
+    imageUrl?: string;
+    imageFileId?: number;
+    originalImageFileId?: number;
+    imageMediaType?: string;
+  }>;
   docMetaMap: Map<string, MinimalDocMeta>;
   activeSpaceId: number | null;
   activeDocId?: string | null;
@@ -55,13 +61,27 @@ export default function RoomSidebarDocItem({
   const docOverride = docHeaderOverrides[docId];
   const docOverrideTitle = typeof docOverride?.title === "string" ? docOverride.title.trim() : "";
   const docOverrideImageUrl = typeof docOverride?.imageUrl === "string" ? docOverride.imageUrl.trim() : "";
+  const docOverrideImageFileId = typeof docOverride?.imageFileId === "number" && docOverride.imageFileId > 0 ? docOverride.imageFileId : undefined;
+  const docOverrideOriginalImageFileId = typeof docOverride?.originalImageFileId === "number" && docOverride.originalImageFileId > 0 ? docOverride.originalImageFileId : undefined;
+  const docOverrideImageMediaType = typeof docOverride?.imageMediaType === "string" ? docOverride.imageMediaType.trim() : "";
   const docFallbackImageUrl = typeof (node as any)?.fallbackImageUrl === "string"
     ? String((node as any).fallbackImageUrl).trim()
     : "";
+  const docFallbackImageFileId = typeof (node as any)?.fallbackImageFileId === "number" && (node as any).fallbackImageFileId > 0
+    ? (node as any).fallbackImageFileId
+    : undefined;
+  const docFallbackOriginalImageFileId = typeof (node as any)?.fallbackOriginalImageFileId === "number" && (node as any).fallbackOriginalImageFileId > 0
+    ? (node as any).fallbackOriginalImageFileId
+    : undefined;
+  const docFallbackImageMediaType = typeof (node as any)?.fallbackImageMediaType === "string" ? String((node as any).fallbackImageMediaType).trim() : "";
+  const docMeta = docMetaMap.get(docId);
 
-  const title = docOverrideTitle || (docMetaMap.get(docId)?.title ?? (node as any)?.fallbackTitle ?? docId);
+  const title = docOverrideTitle || (docMeta?.title ?? (node as any)?.fallbackTitle ?? docId);
   const coverUrl = docOverrideImageUrl || docFallbackImageUrl;
-  const displayCoverUrl = imageLowUrlFromUrl(coverUrl);
+  const coverFileId = docOverrideImageFileId ?? docMeta?.imageFileId ?? docFallbackImageFileId;
+  const originalCoverFileId = docOverrideOriginalImageFileId ?? docMeta?.originalImageFileId ?? docFallbackOriginalImageFileId;
+  const imageMediaType = docOverrideImageMediaType || docMeta?.imageMediaType || docFallbackImageMediaType;
+  const displayCoverUrl = imageLowUrl(coverFileId) || imageLowUrlFromUrl(coverUrl);
   const isActive = activeDocId === docId;
 
   return (
@@ -122,6 +142,9 @@ export default function RoomSidebarDocItem({
           ...(typeof activeSpaceId === "number" && activeSpaceId > 0 ? { spaceId: activeSpaceId } : {}),
           ...(title ? { title } : {}),
           ...(coverUrl ? { imageUrl: coverUrl } : {}),
+          ...(coverFileId ? { imageFileId: coverFileId } : {}),
+          ...(originalCoverFileId ? { originalImageFileId: originalCoverFileId } : {}),
+          ...(imageMediaType ? { imageMediaType } : {}),
         });
         if (!canEdit) {
           return;
@@ -143,7 +166,7 @@ export default function RoomSidebarDocItem({
       }}
     >
       <div className="mask mask-squircle size-8 bg-base-100 border border-base-300/60 flex items-center justify-center relative overflow-hidden">
-        {coverUrl
+        {displayCoverUrl
           ? (
               <>
                 <img

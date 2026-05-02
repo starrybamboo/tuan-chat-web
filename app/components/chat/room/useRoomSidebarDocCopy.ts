@@ -70,12 +70,18 @@ export default function useRoomSidebarDocCopy({
         sourceSpaceId: docRef.spaceId,
         title: docRef.title,
         imageUrl: docRef.imageUrl,
+        imageFileId: docRef.imageFileId,
+        originalImageFileId: docRef.originalImageFileId,
+        imageMediaType: docRef.imageMediaType,
       });
 
       const newMeta: MinimalDocMeta = {
         id: res.newDocId,
         title: res.title,
         ...(docRef.imageUrl ? { imageUrl: docRef.imageUrl } : {}),
+        ...(docRef.imageFileId ? { imageFileId: docRef.imageFileId } : {}),
+        ...(docRef.originalImageFileId ? { originalImageFileId: docRef.originalImageFileId } : {}),
+        ...(docRef.imageMediaType ? { imageMediaType: docRef.imageMediaType } : {}),
       };
       appendExtraDocMeta(newMeta);
 
@@ -95,6 +101,9 @@ export default function useRoomSidebarDocCopy({
           targetId: res.newDocId,
           fallbackTitle: res.title,
           ...(docRef.imageUrl ? { fallbackImageUrl: docRef.imageUrl } : {}),
+          ...(docRef.imageFileId ? { fallbackImageFileId: docRef.imageFileId } : {}),
+          ...(docRef.originalImageFileId ? { fallbackOriginalImageFileId: docRef.originalImageFileId } : {}),
+          ...(docRef.imageMediaType ? { fallbackImageMediaType: docRef.imageMediaType } : {}),
         });
       }
 
@@ -114,6 +123,15 @@ export default function useRoomSidebarDocCopy({
           }
           if (!existing.imageUrl && m.imageUrl) {
             existing.imageUrl = m.imageUrl;
+          }
+          if (!existing.imageFileId && m.imageFileId) {
+            existing.imageFileId = m.imageFileId;
+          }
+          if (!existing.originalImageFileId && m.originalImageFileId) {
+            existing.originalImageFileId = m.originalImageFileId;
+          }
+          if (!existing.imageMediaType && m.imageMediaType) {
+            existing.imageMediaType = m.imageMediaType;
           }
         }
         return [...map.values()];

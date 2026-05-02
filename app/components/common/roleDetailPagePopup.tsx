@@ -22,6 +22,7 @@ function toRoleViewModel(roleId: number, raw: any): Role {
     avatarId: raw?.avatarId ?? 0,
     type: raw?.type ?? 0,
     voiceUrl: raw?.voiceUrl ?? undefined,
+    voiceFileId: raw?.voiceFileId ?? undefined,
     extra: raw?.extra ?? {},
   };
 }
