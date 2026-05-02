@@ -15,9 +15,13 @@ export type FriendResponse = {
      */
     username?: string;
     /**
-     * 好友头像
+     * 好友头像媒体文件 ID
      */
-    avatar?: string;
+    avatarFileId?: number;
+    /**
+     * 好友头像媒体类型
+     */
+    avatarMediaType?: string;
     /**
      * 1 在线 0 离线
      */

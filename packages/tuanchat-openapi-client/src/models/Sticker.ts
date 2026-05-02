@@ -9,8 +9,8 @@ export type Sticker = {
     stickerId?: number;
     userId?: number;
     name?: string;
-    imageUrl?: string;
-    originalImageUrl?: string;
+    fileId?: number;
+    mediaType?: string;
     fileSize?: number;
     width?: number;
     height?: number;

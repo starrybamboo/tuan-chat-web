@@ -23,12 +23,8 @@ export type ResourceCollectionCreateRequest = {
      */
     resourceListType?: string;
     /**
-     * 列表封面图片
+     * 列表封面媒体文件 ID
      */
-    coverImageUrl?: string;
-    /**
-     * 列表封面原图
-     */
-    originalCoverImageUrl?: string;
+    coverFileId?: number;
 };
 

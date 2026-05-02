@@ -7,6 +7,7 @@ import MaterialPackageEditor from "@/components/material/components/materialPack
 import MaterialPackageEditorInlinePage from "@/components/material/components/materialPackageEditorInlinePage";
 import { createEmptyMaterialPackageContent } from "@/components/material/components/materialPackageEditorShared";
 import { buildSpaceMaterialPackageEditorValueKey } from "@/components/material/components/materialPackageEditorValueKey";
+import { imageMediumUrl, imageOriginalUrl } from "@/utils/mediaUrl";
 import {
   useDeleteSpaceMaterialPackageMutation,
   useSpaceMaterialPackagesQuery,
@@ -24,8 +25,9 @@ function buildDraft(pkg?: SpaceMaterialPackageResponse) {
   return {
     name: pkg?.name ?? "",
     description: pkg?.description ?? "",
-    coverUrl: pkg?.coverUrl ?? "",
-    originalCoverUrl: pkg?.originalCoverUrl ?? pkg?.coverUrl ?? "",
+    coverFileId: pkg?.coverFileId,
+    coverUrl: imageMediumUrl(pkg?.coverFileId),
+    originalCoverUrl: imageOriginalUrl(pkg?.coverFileId),
     isPublic: false,
     content: (pkg?.content ?? createEmptyMaterialPackageContent()) as MaterialPackageContent,
   };
@@ -53,6 +55,7 @@ export default function SpaceMaterialSubWindow({
   const handleUpdate = async (draft: {
     name: string;
     description: string;
+    coverFileId?: number;
     coverUrl: string;
     originalCoverUrl: string;
     isPublic: boolean;
@@ -67,8 +70,7 @@ export default function SpaceMaterialSubWindow({
       spaceId,
       name: draft.name,
       description: draft.description,
-      coverUrl: draft.coverUrl,
-      originalCoverUrl: draft.originalCoverUrl,
+      coverFileId: draft.coverFileId,
       content: draft.content,
     });
   };

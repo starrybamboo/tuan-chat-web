@@ -5,6 +5,7 @@ import {
   useGetUserMomentFeedInfiniteQuery,
 } from "../../../../api/hooks/activitiesFeedQuerryHooks";
 import { useGetUserInfoQuery } from "../../../../api/hooks/UserHooks";
+import { avatarThumbUrl } from "@/utils/mediaUrl";
 
 interface ActivitiesTabProps {
   userId: number;
@@ -103,7 +104,7 @@ const ActivitiesTab: React.FC<ActivitiesTabProps> = ({ userId }) => {
                   : (
                       <div className="flex flex-col items-center space-y-4">
                         <img
-                          src={userData?.avatar || "favicon.ico"}
+                          src={avatarThumbUrl(userData?.avatarFileId) || "favicon.ico"}
                           alt="用户头像"
                           className="w-20 h-20 rounded-full object-cover border-2 border-base-300"
                         />

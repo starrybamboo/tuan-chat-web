@@ -5,6 +5,7 @@ import { ArrowSquareOut, CircleNotch, UserCircle } from "@phosphor-icons/react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { getScreenSize } from "@/utils/getScreenSize";
+import { avatarThumbUrl } from "@/utils/mediaUrl";
 import { useGetRoleQuery } from "../../../../../../api/hooks/RoleAndAvatarHooks";
 import { useGetUserProfileQuery } from "../../../../../../api/hooks/UserHooks";
 import { RoleDetailPagePopup } from "../../../../common/roleDetailPagePopup";
@@ -49,7 +50,7 @@ export function BlocksuiteMentionProfileCardView(props:
     const { roleId, href, role, isLoading, isError, onOpenRoleDetail } = props;
     const roleName = role?.roleName?.trim() || "未知角色";
     const description = role?.description?.trim() || "这个角色还没有填写简介。";
-    const avatar = role?.avatarThumbUrl?.trim() || role?.avatarUrl?.trim() || "";
+    const avatar = avatarThumbUrl(role?.avatarFileId);
     const typeLabel = getRoleTypeLabel(role?.type);
     const isNpc = isNpcRole(role);
     const shouldOpenPopup = isNpc || !href;
@@ -170,7 +171,7 @@ export function BlocksuiteMentionProfileCardView(props:
   const { userId, href, user, isLoading, isError } = props;
   const username = user?.username?.trim() || "未知用户";
   const description = user?.description?.trim() || "这个人还没有填写个人简介。";
-  const avatar = user?.avatarThumbUrl?.trim() || user?.avatar?.trim() || "";
+  const avatar = avatarThumbUrl(user?.avatarFileId);
 
   return (
     <div className="flex h-full flex-col bg-base-100 text-base-content">

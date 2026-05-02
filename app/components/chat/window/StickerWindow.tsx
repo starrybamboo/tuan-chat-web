@@ -4,7 +4,8 @@ import { useState } from "react";
 import { toast } from "react-hot-toast";
 import { ImgUploader } from "@/components/common/uploader/imgUploader";
 import { getImageSize } from "@/utils/getImgSize";
-import { UploadUtils } from "@/utils/UploadUtils";
+import { mediaFileUrl } from "@/utils/mediaUrl";
+import { uploadMediaFile } from "@/utils/mediaUpload";
 
 const SUPPORTED_STICKER_FORMATS = new Set(["jpg", "jpeg", "png", "gif", "webp"]);
 
@@ -15,13 +16,7 @@ function normalizeStickerFormat(format?: string | null): string | null {
   return SUPPORTED_STICKER_FORMATS.has(next) ? next : null;
 }
 
-function resolveStickerFormat(file: File, imageUrl: string): string | null {
-  const cleanUrl = imageUrl.split("?")[0].split("#")[0];
-  const fromUrl = normalizeStickerFormat(cleanUrl.split(".").pop());
-  if (fromUrl) {
-    return fromUrl;
-  }
-
+function resolveStickerFormat(file: File): string | null {
   const fromType = normalizeStickerFormat(file.type.split("/").pop());
   if (fromType) {
     return fromType;
@@ -47,7 +42,6 @@ export default function StickerWindow({ onChoose }:
 
   // 新增表情
   const createStickerMutation = useCreateStickerMutation();
-  const uploadUtils = new UploadUtils();
   const handleAddSticker = async (newImg: File) => {
     if (!newImg) {
       return;
@@ -58,8 +52,8 @@ export default function StickerWindow({ onChoose }:
       return;
     }
     try {
-      const uploadedImage = await uploadUtils.uploadDualImage(newImg, 2);
-      const format = resolveStickerFormat(newImg, uploadedImage.url);
+      const uploadedImage = await uploadMediaFile(newImg);
+      const format = resolveStickerFormat(newImg);
 
       if (!format) {
         toast.error("表情仅支持 jpg/jpeg/png/gif/webp");
@@ -69,8 +63,7 @@ export default function StickerWindow({ onChoose }:
       const measured = await getImageSize(newImg);
       const stickerCreateRequest = {
         name: newImg.name,
-        imageUrl: uploadedImage.url,
-        originalImageUrl: uploadedImage.originalUrl,
+        fileId: uploadedImage.fileId,
         fileSize: measured.size > 0 ? measured.size : newImg.size,
         width: measured.width > 0 ? measured.width : undefined,
         height: measured.height > 0 ? measured.height : undefined,
@@ -125,7 +118,7 @@ export default function StickerWindow({ onChoose }:
                   className={`aspect-square cursor-pointer rounded-lg p-1 transition-transform relative ${deleteButtonVisible ? "" : "hover:scale-105"}`}
                 >
                   <img
-                    src={sticker.imageUrl}
+                    src={mediaFileUrl(sticker.fileId, sticker.mediaType, "low")}
                     alt={sticker.name}
                     className="w-full h-full object-contain"
                     loading="lazy"

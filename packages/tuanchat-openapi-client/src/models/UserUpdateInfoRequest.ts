@@ -15,17 +15,9 @@ export type UserUpdateInfoRequest = {
      */
     username?: string;
     /**
-     * 头像URL
+     * 头像媒体文件 ID
      */
-    avatar?: string;
-    /**
-     * 头像原图URL
-     */
-    originalAvatar?: string;
-    /**
-     * 头像缩略图URL
-     */
-    avatarThumbUrl?: string;
+    avatarFileId?: number;
     /**
      * 用户描述信息,个人签名
      */

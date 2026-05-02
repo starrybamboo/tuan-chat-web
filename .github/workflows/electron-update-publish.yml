@@ -4,6 +4,12 @@ on:
   push:
     branches: [ "main" ]
   workflow_dispatch:
+    inputs:
+      webgal_terre_release_url:
+        description: "WebGAL_Terre release zip 下载地址；留空则使用 secret WEBGAL_TERRE_RELEASE_URL"
+        required: false
+        default: ""
+        type: string
 
 permissions:
   contents: read
@@ -32,6 +38,12 @@ jobs:
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+
+      - name: Resolve WebGAL Terre runtime
+        shell: pwsh
+        env:
+          WEBGAL_TERRE_RELEASE_URL: ${{ (github.event_name == 'workflow_dispatch' && inputs.webgal_terre_release_url) || secrets.WEBGAL_TERRE_RELEASE_URL }}
+        run: .\scripts\resolve-webgal-terre-release.ps1
 
       - name: Build NSIS package
         shell: pwsh

@@ -3,6 +3,7 @@ import type { MaterialPackageContent } from "@tuanchat/openapi-client/models/Mat
 export type MaterialPackageDraft = {
   name: string;
   description: string;
+  coverFileId?: number;
   coverUrl: string;
   originalCoverUrl: string;
   isPublic: boolean;

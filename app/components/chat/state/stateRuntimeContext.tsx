@@ -8,8 +8,11 @@ import React from "react";
 import { getNormalizedStateEventExtra } from "@/types/stateEvent";
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
 import { roleAbilityByRuleQueryKey } from "../../../../api/hooks/abilityMutationInvalidation";
-import { normalizeRoleAbilityCacheData } from "../../../../api/hooks/roleAbilityCacheData";
-import { tuanchat } from "../../../../api/instance";
+import {
+  loadRoleAbilityByRule,
+  ROLE_ABILITY_BY_RULE_STALE_TIME_MS,
+  shouldRetryRoleAbilityByRule,
+} from "../../../../api/hooks/abilityQueryHooks";
 import { EMPTY_STATE_DEFINITION_RESOLVER } from "./stateDefinitionResolver";
 import { buildStateRuntime } from "./stateRuntime";
 
@@ -20,6 +23,7 @@ export type StateRuntimeContextValue = StateRuntime & {
 };
 
 const StateRuntimeContext = React.createContext<StateRuntimeContextValue | null>(null);
+const EMPTY_VISIBLE_ROLE_IDS: number[] = [];
 
 type StateRuntimeProviderProps = PropsWithChildren<{
   messages: ChatMessageResponse[];
@@ -64,7 +68,7 @@ export function StateRuntimeProvider({
   messages,
   ruleId,
   currentRoleId,
-  visibleRoleIds = [],
+  visibleRoleIds = EMPTY_VISIBLE_ROLE_IDS,
   resolver = EMPTY_STATE_DEFINITION_RESOLVER,
 }: StateRuntimeProviderProps) {
   const roleIds = React.useMemo(
@@ -75,27 +79,9 @@ export function StateRuntimeProvider({
     queries: roleIds.map(roleId => ({
       queryKey: roleAbilityByRuleQueryKey(roleId, ruleId),
       enabled: roleId > 0 && ruleId > 0,
-      staleTime: 60_000,
-      retry: (failureCount: number, error: any) => {
-        const statusCode = error?.response?.status || error?.status;
-        if (statusCode && statusCode >= 400 && statusCode < 500) {
-          return false;
-        }
-        return failureCount < 2;
-      },
-      queryFn: async (): Promise<RoleAbility | null> => {
-        try {
-          const response = await tuanchat.abilityController.getByRuleAndRole(ruleId, roleId);
-          return normalizeRoleAbilityCacheData(response.data, { roleId, ruleId }) as RoleAbility | null;
-        }
-        catch (error: any) {
-          const statusCode = error?.response?.status || error?.status;
-          if (statusCode && statusCode >= 400 && statusCode < 500) {
-            return null;
-          }
-          throw error;
-        }
-      },
+      staleTime: ROLE_ABILITY_BY_RULE_STALE_TIME_MS,
+      retry: shouldRetryRoleAbilityByRule,
+      queryFn: (): Promise<RoleAbility | null> => loadRoleAbilityByRule(roleId, ruleId),
     })),
   });
 

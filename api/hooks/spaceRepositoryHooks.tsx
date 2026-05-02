@@ -1,4 +1,8 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  SPACE_ROLE_STALE_TIME_MS,
+  spaceRepositoryRoleQueryKey,
+} from "./chatQueryHooks";
 import { tuanchat } from "../instance";
 import { seedUserRoleListQueryCache } from "../roleQueryCache";
 
@@ -9,13 +13,13 @@ import { seedUserRoleListQueryCache } from "../roleQueryCache";
 export function useGetSpaceRepositoryRoleQuery(spaceId: number) {
   const queryClient = useQueryClient();
   return useQuery({
-    queryKey: ["spaceRepositoryRole", spaceId],
+    queryKey: spaceRepositoryRoleQueryKey(spaceId),
     queryFn: async () => {
       const res = await tuanchat.spaceRepositoryController.spaceRole(spaceId);
       seedUserRoleListQueryCache(queryClient, res.data);
       return res;
     },
-    staleTime: 10000, // 缓存时间
+    staleTime: SPACE_ROLE_STALE_TIME_MS,
   });
 }
 

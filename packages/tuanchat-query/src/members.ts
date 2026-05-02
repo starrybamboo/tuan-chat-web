@@ -1,3 +1,5 @@
+import type { QueryClient } from "@tanstack/react-query";
+
 import { useQuery } from "@tanstack/react-query";
 
 import type { TuanChat } from "@tuanchat/openapi-client/TuanChat";
@@ -35,5 +37,13 @@ export function useGetRoomMembersQuery(client: MemberClient, roomId: number, opt
     staleTime: options?.staleTime ?? 300_000,
     refetchOnMount: options?.refetchOnMount,
     enabled: (options?.enabled ?? true) && roomId > 0,
+  });
+}
+
+export function fetchSpaceMembersWithCache(queryClient: QueryClient, client: MemberClient, spaceId: number, options?: MemberQueryOptions) {
+  return queryClient.fetchQuery({
+    queryKey: getSpaceMembersQueryKey(spaceId),
+    queryFn: () => client.spaceMemberController.getMemberList(spaceId),
+    staleTime: options?.staleTime ?? 300_000,
   });
 }

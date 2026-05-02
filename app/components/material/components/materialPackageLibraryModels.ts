@@ -1,5 +1,6 @@
 import type { MaterialPackageResponse } from "@tuanchat/openapi-client/models/MaterialPackageResponse";
 import type { SpaceMaterialPackageResponse } from "@tuanchat/openapi-client/models/SpaceMaterialPackageResponse";
+import { imageMediumUrl } from "@/utils/mediaUrl";
 
 export type MaterialPackageLibraryPlaceholderIcon = "house" | "package";
 
@@ -41,7 +42,7 @@ export function buildGlobalMaterialPackageCardModel(
       ? `已被导入 ${normalizeCount(item.importCount)} 次`
       : `贡献人 · ${normalizeName(item.username, "未知")}`,
     description: item.description?.trim() ?? "",
-    coverUrl: item.coverUrl,
+    coverUrl: imageMediumUrl(item.coverFileId),
     badgeLabel: activeTab === "mine" ? "我的素材" : "公开素材",
     placeholderSeed: `${name}${item.packageId ?? ""}`,
     placeholderIcon: "package",
@@ -65,7 +66,7 @@ export function buildSpaceMaterialPackageCardModel(
       ? `来源局外素材包 #${item.sourcePackageId}`
       : "当前空间的本地素材包",
     description: item.description?.trim() ?? "",
-    coverUrl: item.coverUrl,
+    coverUrl: imageMediumUrl(item.coverFileId),
     badgeLabel: item.sourcePackageId ? "导入副本" : "局内素材",
     placeholderSeed: `${name}${item.spacePackageId ?? ""}`,
     placeholderIcon: "house",

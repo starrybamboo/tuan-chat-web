@@ -2,14 +2,15 @@ import type { ChatMessageResponse } from "../../../../../api";
 import type { ExportOptions } from "@/utils/exportChatMessages";
 import { ExportIcon } from "@phosphor-icons/react";
 import { useQueryClient } from "@tanstack/react-query";
+import { fetchUserInfoWithCache } from "@tuanchat/query/users";
 import { use, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import { RoomContext } from "@/components/chat/core/roomContext";
 import { compareChatMessageResponsesByOrder } from "@/components/chat/shared/messageOrder";
 import { filterVisibleChatMessages } from "@/components/chat/utils/hiddenDiceVisibility";
 import { exportChatMessages } from "@/utils/exportChatMessages";
-import { shouldRetryRoleQueryError } from "@/utils/roleApiError";
-import { useGetRolesQueries } from "../../../../../api/hooks/RoleAndAvatarHooks";
+import { fetchRoomInfoWithCache, fetchSpaceInfoWithCache } from "../../../../../api/hooks/chatQueryHooks";
+import { fetchRoleWithCache, useGetRolesQueries } from "../../../../../api/hooks/RoleAndAvatarHooks";
 import { tuanchat } from "../../../../../api/instance";
 
 /**
@@ -76,11 +77,7 @@ export default function ExportChatDrawer({ messages, onClose }: ExportChatDrawer
 
       // 获取空间信息
       if (roomContext.spaceId) {
-        const spaceInfo = await queryClient.fetchQuery({
-          queryKey: ["getSpaceInfo", roomContext.spaceId],
-          queryFn: () => tuanchat.spaceController.getSpaceInfo(roomContext.spaceId ?? 0),
-          staleTime: 5 * 60 * 1000, // 5分钟缓存
-        });
+        const spaceInfo = await fetchSpaceInfoWithCache(queryClient, roomContext.spaceId);
         if (spaceInfo.data?.spaceId && spaceInfo.data?.name) {
           spaceName = spaceInfo.data.name;
         }
@@ -88,11 +85,7 @@ export default function ExportChatDrawer({ messages, onClose }: ExportChatDrawer
 
       // 获取房间信息
       if (roomContext.roomId) {
-        const roomInfo = await queryClient.fetchQuery({
-          queryKey: ["getRoomInfo", roomContext.roomId],
-          queryFn: () => tuanchat.roomController.getRoomInfo(roomContext.roomId ?? 0),
-          staleTime: 5 * 60 * 1000, // 5分钟缓存
-        });
+        const roomInfo = await fetchRoomInfoWithCache(queryClient, roomContext.roomId);
         if (roomInfo.data?.roomId && roomInfo.data?.name) {
           roomName = roomInfo.data.name;
         }
@@ -116,12 +109,7 @@ export default function ExportChatDrawer({ messages, onClose }: ExportChatDrawer
         if (roleId <= 0 || allRoleMap.has(roleId)) {
           continue;
         }
-        const roleInfo = await queryClient.fetchQuery({
-          queryKey: ["getRole", roleId],
-          queryFn: () => tuanchat.roleController.getRole(roleId),
-          staleTime: 5 * 60 * 1000, // 5分钟缓存
-          retry: shouldRetryRoleQueryError,
-        });
+        const roleInfo = await fetchRoleWithCache(queryClient, roleId);
         if (roleInfo.data?.roleId && roleInfo.data?.roleName) {
           allRoleMap.set(roleInfo.data.roleId, roleInfo.data.roleName);
         }
@@ -136,11 +124,7 @@ export default function ExportChatDrawer({ messages, onClose }: ExportChatDrawer
 
       // 获取所有用户的信息
       for (const userId of userIds) {
-        const userInfo = await queryClient.fetchQuery({
-          queryKey: ["getUserInfo", userId],
-          queryFn: () => tuanchat.userController.getUserInfo(userId),
-          staleTime: 5 * 60 * 1000, // 5分钟缓存
-        });
+        const userInfo = await fetchUserInfoWithCache(queryClient, tuanchat, userId);
         if (userInfo.data?.userId && userInfo.data?.username) {
           userMap.set(userInfo.data.userId, userInfo.data.username);
         }

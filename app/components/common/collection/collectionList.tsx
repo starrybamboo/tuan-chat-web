@@ -3,6 +3,7 @@ import { useGetCollectionListQuery, useGetUserCollectionListsQuery } from "api/h
 import { useState } from "react";
 import { Arrowleft, Arrowright, BaselineDeleteOutline, Edit2Outline, EllipsisVertical, LockKeyhole, LockKeyholeOpen,
 } from "@/icons";
+import { imageMediumUrl } from "@/utils/mediaUrl";
 
 function CollectionListItem({ c, selectedId, onSelect }: { c: CollectionListType; selectedId?: number; onSelect?: (id: number) => void }) {
   const [showMoreOptions, setShowMoreOptions] = useState(false);
@@ -63,7 +64,7 @@ export default function CollectionList({ selectedId, onSelect, onAddCollection }
   const [selectId, setSelectId] = useState(0);
   const { data: collectionListDetail } = useGetCollectionListQuery(selectId);
   const description = collectionListDetail?.data?.description;
-  const imageUrl = collectionListDetail?.data?.coverImageUrl;
+  const imageUrl = imageMediumUrl(collectionListDetail?.data?.coverFileId);
 
   // 封面图，暂时用社区头像代替
   const tuanPicsUrls = [

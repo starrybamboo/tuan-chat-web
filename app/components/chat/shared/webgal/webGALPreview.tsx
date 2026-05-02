@@ -3,6 +3,7 @@
  * 以 iframe 形式嵌入到聊天室侧边栏
  */
 
+import { useQueryClient } from "@tanstack/react-query";
 import { use, useCallback, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
@@ -26,10 +27,16 @@ export default function WebGALPreview({
 }: WebGALPreviewProps) {
   const spaceContext = use(SpaceContext);
   const spaceId = spaceContext.spaceId ?? null;
+  const queryClient = useQueryClient();
   const navigate = useNavigate();
   const location = useLocation();
 
   const ensureHydrated = useRealtimeRenderStore(state => state.ensureHydrated);
+  const setRealtimeRenderQueryClient = useRealtimeRenderStore(state => state.setQueryClient);
+  useEffect(() => {
+    setRealtimeRenderQueryClient(queryClient);
+  }, [queryClient, setRealtimeRenderQueryClient]);
+
   useEffect(() => {
     void ensureHydrated(spaceId);
   }, [ensureHydrated, spaceId]);

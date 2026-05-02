@@ -8,6 +8,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react
 import toast from "react-hot-toast";
 import { ReactCrop } from "react-image-crop";
 import { isMobileScreen } from "@/utils/getScreenSize";
+import { imageHighUrl, imageOriginalUrl } from "@/utils/mediaUrl";
 import {
   canvasPreview,
   canvasToBlob,
@@ -78,11 +79,11 @@ export function SpriteCropper({
   const [sourceMode, setSourceMode] = useState<"sprite" | "origin">("sprite");
 
   const getStrictSpriteOriginalUrl = useCallback((avatar?: RoleAvatar): string => {
-    return String(avatar?.spriteOriginalUrl ?? "").trim();
+    return imageOriginalUrl(avatar?.spriteFileId);
   }, []);
 
   const getStrictSpriteSourceUrl = useCallback((avatar?: RoleAvatar): string => {
-    const spriteUrl = String(avatar?.spriteUrl ?? "").trim();
+    const spriteUrl = imageHighUrl(avatar?.spriteFileId);
     const spriteOriginalUrl = getStrictSpriteOriginalUrl(avatar);
     if (sourceMode === "origin") {
       return spriteOriginalUrl;
@@ -93,7 +94,7 @@ export function SpriteCropper({
   // 头像裁剪必须来自立绘链路；立绘裁剪保持现有兼容策略。
   const filteredAvatars = roleAvatars.filter((avatar) => {
     if (isAvatarMode) {
-      return Boolean(String(avatar?.spriteUrl ?? "").trim() || getStrictSpriteOriginalUrl(avatar));
+      return Boolean(imageHighUrl(avatar?.spriteFileId) || getStrictSpriteOriginalUrl(avatar));
     }
     return Boolean(getEffectiveSpriteUrl(avatar)) || Boolean(getEffectiveSpriteOriginalUrl(avatar));
   });

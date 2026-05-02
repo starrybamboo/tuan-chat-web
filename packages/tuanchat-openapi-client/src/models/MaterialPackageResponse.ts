@@ -20,13 +20,13 @@ export type MaterialPackageResponse = {
      */
     username?: string;
     /**
-     * 作者头像
+     * 作者头像媒体文件 ID
      */
-    avatar?: string;
+    avatarFileId?: number;
     /**
-     * 作者头像缩略图
+     * 作者头像媒体类型
      */
-    avatarThumbUrl?: string;
+    avatarMediaType?: string;
     /**
      * 素材包名称
      */
@@ -36,13 +36,13 @@ export type MaterialPackageResponse = {
      */
     description?: string;
     /**
-     * 素材包封面URL
+     * 素材包封面媒体文件 ID
      */
-    coverUrl?: string;
+    coverFileId?: number;
     /**
-     * 素材包封面原图URL
+     * 素材包封面媒体类型
      */
-    originalCoverUrl?: string;
+    coverMediaType?: string;
     /**
      * 是否公开
      */

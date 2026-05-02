@@ -7,6 +7,7 @@ import toast from "react-hot-toast";
 import { CollapsibleAlert } from "@/components/common/CollapsibleAlert";
 import { DoubleClickEditableText } from "@/components/common/DoubleClickEditableText";
 import MoodRegulator from "@/components/common/MoodRegulator";
+import { getEffectiveAvatarUrl, getEffectiveSpriteUrl } from "../utils";
 
 interface AvatarSettingsTabProps {
   /** 有立绘的头像列表 */
@@ -136,12 +137,7 @@ export function AvatarSettingsTab({
   const avatarDisplayUrl = useMemo(() => {
     if (!currentAvatar)
       return "";
-    return currentAvatar.avatarUrl
-      || currentAvatar.avatarOriginalUrl
-      || currentAvatar.spriteUrl
-      || currentAvatar.spriteOriginalUrl
-      || currentAvatar.originUrl
-      || "";
+    return getEffectiveAvatarUrl(currentAvatar) || getEffectiveSpriteUrl(currentAvatar);
   }, [currentAvatar]);
 
   return (

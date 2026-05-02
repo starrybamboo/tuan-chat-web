@@ -143,7 +143,7 @@ export default function CreateDicerRole({ onBack, onComplete }: CreateDicerRoleP
                     </span>
                   </div>
                   <textarea
-                    className="textarea textarea-bordered bg-base-200 rounded-md min-h-[120px] resize-y w-full transition focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                    className="textarea textarea-bordered bg-base-200 rounded-md min-h-30 resize-y w-full transition focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
                     placeholder="描述这个骰娘的背景故事、性格特点、说话风格等"
                     value={description}
                     onChange={e => setDescription(e.target.value)}

@@ -15,6 +15,7 @@ import UserAvatarComponent from "@/components/common/userAvatar";
 import SlidableChatPreview from "@/components/community/slidableChatPreview";
 import { useGlobalUserId } from "@/components/globalContextProvider";
 import { CommentOutline } from "@/icons";
+import { avatarThumbUrl } from "@/utils/mediaUrl";
 import { useDeleteMomentFeedMutation } from "../../../../api/hooks/activitiesFeedQuerryHooks";
 import { useGetUserInfoQuery } from "../../../../api/hooks/UserHooks";
 
@@ -84,7 +85,7 @@ const PostsCard: React.FC<PostsCardProps> = ({
   const userData = userInfoData?.data;
   const userDisplayData = {
     name: userData?.username || "未知用户",
-    avatar: userData?.avatar || "favicon.ico",
+    avatar: avatarThumbUrl(userData?.avatarFileId) || "favicon.ico",
   };
 
   const deleteMutation = useDeleteMomentFeedMutation();

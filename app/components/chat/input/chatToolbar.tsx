@@ -19,6 +19,7 @@ import {
   SendIcon,
 } from "@/icons";
 import { ALLOWED_IMG_TYPES } from "@/utils/allowedImgFiles";
+import { mediaFileUrl } from "@/utils/mediaUrl";
 
 interface ChatToolbarProps {
   /** 当前房间（用于BGM个人开关/ֹͣȫԱBGM） */
@@ -402,19 +403,21 @@ function ChatToolbar({
                   className="dropdown-content menu bg-base-100 rounded-box z-9999 w-56 md:w-96 p-2 shadow-sm overflow-y-auto mb-6"
                 >
                   <StickerWindow onChoose={async (emoji) => {
+                    const emojiUrl = mediaFileUrl(emoji?.fileId, emoji?.mediaType, "low");
+                    const originalEmojiUrl = mediaFileUrl(emoji?.fileId, emoji?.mediaType, "original") || emojiUrl;
                     updateEmojiUrls((draft) => {
-                      const newUrl = emoji?.imageUrl;
+                      const newUrl = emojiUrl;
                       if (newUrl && !draft.includes(newUrl)) {
                         draft.push(newUrl);
                       }
                     });
-                    if (emoji?.imageUrl) {
-                      resolvedSetEmojiMetaByUrl(emoji.imageUrl, {
+                    if (emojiUrl) {
+                      resolvedSetEmojiMetaByUrl(emojiUrl, {
                         width: emoji.width,
                         height: emoji.height,
                         size: emoji.fileSize,
                         fileName: emoji.name,
-                        originalUrl: emoji.originalImageUrl ?? emoji.imageUrl,
+                        originalUrl: originalEmojiUrl,
                       });
                     }
                   }}

@@ -6,6 +6,7 @@ import toast from "react-hot-toast";
 import { useNavigate, useSearchParams } from "react-router";
 import { RoomContext } from "@/components/chat/core/roomContext";
 import { extractRoomJumpPayload } from "@/components/chat/utils/roomJump";
+import { avatarThumbUrl } from "@/utils/mediaUrl";
 import { useGetUserRoomsQuery } from "../../../../../api/hooks/chatQueryHooks";
 
 function normalizeName(value: string | undefined): string {
@@ -116,7 +117,7 @@ function RoomJumpMessageImpl({ messageResponse }: { messageResponse: ChatMessage
   const displayRoomName = targetRoom?.name?.trim() || payload?.roomName || (targetRoomId ? `群聊 #${targetRoomId}` : "未知群聊");
   const displaySpaceName = payload?.spaceName?.trim() || (targetSpaceId ? `空间 #${targetSpaceId}` : "未知空间");
   const categoryLabel = payload?.categoryName?.trim() || "";
-  const displayAvatar = targetRoom?.avatar?.trim() || "/favicon.ico";
+  const displayAvatar = avatarThumbUrl(targetRoom?.avatarFileId) || "/favicon.ico";
   const titleDiffersFromRoomName = title.trim() !== displayRoomName.trim();
   const actionHint = isDisabled
     ? (disabledReason || "无法跳转")

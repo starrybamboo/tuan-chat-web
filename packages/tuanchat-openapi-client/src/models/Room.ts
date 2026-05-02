@@ -23,17 +23,13 @@ export type Room = {
      */
     name?: string;
     /**
-     * 房间头像
+     * 房间头像媒体文件 ID
      */
-    avatar?: string;
+    avatarFileId?: number;
     /**
-     * 房间头像缩略图的url
+     * 房间头像媒体类型
      */
-    avatarThumbUrl?: string;
-    /**
-     * 房间头像原图
-     */
-    originalAvatar?: string;
+    avatarMediaType?: string;
     /**
      * 场景简要描述，概述本房间的剧情走向
      */

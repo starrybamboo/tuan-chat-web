@@ -17,6 +17,7 @@ import {
   extractOpenApiErrorMessage,
   unwrapOpenApiResultData,
 } from "@/utils/openApiResult";
+import { avatarThumbUrl, avatarUrl } from "@/utils/mediaUrl";
 
 import { tuanchat } from "../../../api/instance";
 
@@ -33,8 +34,8 @@ function normalizeFeedbackAuthor(author?: FeedbackIssueAuthorResponse | null): F
   return {
     userId: Number(author.userId ?? 0),
     username: typeof author.username === "string" && author.username.trim() ? author.username.trim() : "未知用户",
-    avatar: author.avatar ?? null,
-    avatarThumbUrl: author.avatarThumbUrl ?? null,
+    avatar: avatarUrl(author.avatarFileId) || null,
+    avatarThumbUrl: avatarThumbUrl(author.avatarFileId) || null,
   };
 }
 

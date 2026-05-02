@@ -1,30 +1,29 @@
-import type { Initiative, InitiativeParam, SortDirection, SortKey } from "./initiativeListTypes";
-import { Fragment, use, useEffect, useMemo, useRef, useState } from "react";
+import type { Initiative, InitiativeDraft, InitiativeParam, InitiativeParamDraft, SortDirection, SortKey } from "./initiativeListTypes";
+import { useQueryClient } from "@tanstack/react-query";
+import { use, useEffect, useMemo, useRef, useState } from "react";
 import toast from "react-hot-toast";
 import { useRoomExtra } from "@/components/chat/core/hooks";
 import { RoomContext } from "@/components/chat/core/roomContext";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
 import UTILS from "@/components/common/dicer/utils/utils";
-import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
 import { useGlobalUserId } from "@/components/globalContextProvider";
 import { buildMessageExtraForRequest } from "@/types/messageDraft";
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
 import { useGetRolesAbilitiesQueries, useUpdateRoleAbilityByRoleIdMutation } from "../../../../../api/hooks/abilityQueryHooks";
 import { useSendMessageMutation } from "../../../../../api/hooks/chatQueryHooks";
+import { InitiativeImportDialog } from "./initiativeImportDialog";
 import {
   extractAgilityFromQuery as extractAgilityFromAbilityQuery,
   extractAttrFromQuery as extractAttrFromAbilityQuery,
   extractHpFromQuery as extractHpFromAbilityQuery,
   extractPokemonInitiativeRoll as extractPokemonInitiativeRollFromAbilityQuery,
-  parseNullableNumber,
-  parseNumberOrZero,
   stringifyRecord,
 } from "./initiativeListAbilityExtractors";
+import { InitiativeListControls } from "./initiativeListControls";
+import { usePokemonInitiativeMetadata, useSortedInitiativeList } from "./initiativeListDerived";
 import { makeUniqueKey, slugifyLabel } from "./initiativeListKeyUtils";
-import {
-  computePokemonDefensiveMatchups,
-  formatPokemonBattleNumber,
-} from "./initiativePokemonRules";
+import { InitiativeListTable } from "./initiativeListTable";
+import { formatPokemonBattleNumber } from "./initiativePokemonRules";
 
 /**
  * 先攻列表
@@ -32,6 +31,7 @@ import {
 export default function InitiativeList() {
   const roomContext = use(RoomContext);
   const spaceContext = use(SpaceContext);
+  const queryClient = useQueryClient();
   const roomId = roomContext.roomId ?? -1;
   const currentUserId = useGlobalUserId();
   const initiativeRuleScope = typeof spaceContext.ruleId === "number"
@@ -46,22 +46,17 @@ export default function InitiativeList() {
 
   const [initiativeList, setInitiativeList] = useRoomExtra<Initiative[]>(roomId, initiativeListKey, []);
   const [params, setParams] = useRoomExtra<InitiativeParam[]>(roomId, initiativeParamsKey, []);
-  const [newItem, setNewItem] = useState({ name: "", value: "", hp: "", maxHp: "" });
+  const [newItem, setNewItem] = useState<InitiativeDraft>({ name: "", value: "", hp: "", maxHp: "" });
   const [newExtras, setNewExtras] = useState<Record<string, string>>({});
   const [showParamEditor, setShowParamEditor] = useState(false);
-  const [newParam, setNewParam] = useState<{
-    key: string;
-    label: string;
-    source: InitiativeParam["source"];
-    attrKey: string;
-  }>({ key: "", label: "", source: "manual", attrKey: "" });
+  const [newParam, setNewParam] = useState<InitiativeParamDraft>({ key: "", label: "", source: "manual", attrKey: "" });
   const [editingKey, setEditingKey] = useState<string | null>(null);
   const [editingValue, setEditingValue] = useState("");
   const editingInputRef = useRef<HTMLInputElement | null>(null);
   const [isImportPopupOpen, setIsImportPopupOpen] = useState(false);
   const [sortKey, setSortKey] = useState<SortKey>("value");
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
-  const spaceOwner = spaceContext.isSpaceOwner;
+  const spaceOwner = Boolean(spaceContext.isSpaceOwner);
   const curUserId = currentUserId ?? -1;
   const sendMessageMutation = useSendMessageMutation(roomId);
   const { mutateAsync: updateRoleAbilityByRoleIdAsync } = useUpdateRoleAbilityByRoleIdMutation();
@@ -168,7 +163,7 @@ export default function InitiativeList() {
     total: number,
   ) => {
     try {
-      const dicerRoleId = await UTILS.getDicerRoleId(roomContext);
+      const dicerRoleId = await UTILS.getDicerRoleId(roomContext, { queryClient });
       const result = `${roleName}的先攻掷骰：\n`
         + `1d20 = ${diceResult}，${speedDisplay}/${10} = ${speedRollBonus}\n`
         + `先攻：${diceResult} + ${speedRollBonus} = ${total}`;
@@ -404,7 +399,7 @@ export default function InitiativeList() {
         skill: stringifyRecord(roleAbility.skill as Record<string, any>),
       });
 
-      const dicerRoleId = await UTILS.getDicerRoleId(roomContext);
+      const dicerRoleId = await UTILS.getDicerRoleId(roomContext, { queryClient });
       const result = `${item.name}已从宝可梦先攻表移除，属性修正清零：\n${changedLines.join("\n")}`;
       sendMessageMutation.mutate({
         roomId,
@@ -657,815 +652,100 @@ export default function InitiativeList() {
     );
   };
 
-  const resolveField = (item: Initiative, key: SortKey): number | string | null => {
-    if (key === "name")
-      return item.name ?? "";
-    if (key === "value")
-      return item.value ?? null;
-    if (key === "hp")
-      return item.hp ?? null;
-    if (key === "maxHp")
-      return item.maxHp ?? null;
-    const paramKey = (key as { paramKey: string }).paramKey;
-    const val = item.extras?.[paramKey];
-    if (val == null)
-      return null;
-    if (typeof val === "number")
-      return val;
-    const num = Number(val);
-    return Number.isFinite(num) ? num : String(val);
+  const {
+    pokemonDefensiveByRoleId,
+    pokemonTraitByRoleId,
+    pokemonStatusByRoleId,
+    pokemonItemByRoleId,
+    pokemonActionPointByRoleId,
+  } = usePokemonInitiativeMetadata({
+    abilityQueries,
+    importableRoles,
+    isPokemonRule,
+    ruleId: spaceContext.ruleId,
+  });
+  const sortedList = useSortedInitiativeList(initiativeList, sortKey, sortDirection, spaceOwner);
+
+  const handleOpenImportPopup = () => {
+    setIsImportPopupOpen(true);
   };
 
-  const activeSortKey = spaceOwner ? sortKey : "value";
-  const activeSortDirection = spaceOwner ? sortDirection : "desc";
+  const handleCloseImportPopup = () => {
+    setIsImportPopupOpen(false);
+  };
 
-  const pokemonDefensiveByRoleId = useMemo(() => {
-    const result = new Map<number, Record<"4" | "2" | "0.5" | "0.25" | "0", string[]>>();
-    if (!isPokemonRule)
-      return result;
-
-    importableRoles.forEach((role, idx) => {
-      const query = abilityQueries[idx];
-      const res = query?.data;
-      if (!res?.success || !Array.isArray(res.data) || !spaceContext.ruleId)
-        return;
-
-      const record = res.data.find(item => item.ruleId === spaceContext.ruleId);
-      if (!record)
-        return;
-
-      const source: Record<string, any> = { ...(record.ability || {}), ...(record.basic || {}), ...(record as any).skill };
-      const type1 = source.属性1 ?? source.type1 ?? source.属性 ?? source.type;
-      const type2 = source.属性2 ?? source.type2;
-
-      result.set(role.roleId, computePokemonDefensiveMatchups(type1, type2));
-    });
-
-    return result;
-  }, [abilityQueries, importableRoles, isPokemonRule, spaceContext.ruleId]);
-
-  const pokemonTraitByRoleId = useMemo(() => {
-    const result = new Map<number, string>();
-    if (!isPokemonRule)
-      return result;
-
-    importableRoles.forEach((role, idx) => {
-      const query = abilityQueries[idx];
-      const res = query?.data;
-      if (!res?.success || !Array.isArray(res.data) || !spaceContext.ruleId)
-        return;
-
-      const record = res.data.find(item => item.ruleId === spaceContext.ruleId);
-      if (!record)
-        return;
-
-      const source: Record<string, any> = { ...(record.ability || {}), ...(record.basic || {}), ...(record as any).skill };
-      const trait = source.特性 ?? source.ability;
-
-      if (trait != null && String(trait).trim() !== "") {
-        result.set(role.roleId, String(trait).trim());
-      }
-    });
-
-    return result;
-  }, [abilityQueries, importableRoles, isPokemonRule, spaceContext.ruleId]);
-
-  const pokemonStatusByRoleId = useMemo(() => {
-    const result = new Map<number, string>();
-    if (!isPokemonRule)
-      return result;
-
-    importableRoles.forEach((role, idx) => {
-      const query = abilityQueries[idx];
-      const res = query?.data;
-      if (!res?.success || !Array.isArray(res.data) || !spaceContext.ruleId)
-        return;
-
-      const record = res.data.find(item => item.ruleId === spaceContext.ruleId);
-      if (!record)
-        return;
-
-      const source: Record<string, any> = { ...(record.ability || {}), ...(record.basic || {}), ...(record as any).skill };
-      const status = source.状态;
-      if (status == null)
-        return;
-
-      const text = String(status).trim();
-      if (!text || text === "0")
-        return;
-
-      const statusNumber = Number(text);
-      if (Number.isFinite(statusNumber) && statusNumber === 0)
-        return;
-
-      result.set(role.roleId, text);
-    });
-
-    return result;
-  }, [abilityQueries, importableRoles, isPokemonRule, spaceContext.ruleId]);
-
-  const pokemonItemByRoleId = useMemo(() => {
-    const result = new Map<number, string>();
-    if (!isPokemonRule)
-      return result;
-
-    importableRoles.forEach((role, idx) => {
-      const query = abilityQueries[idx];
-      const res = query?.data;
-      if (!res?.success || !Array.isArray(res.data) || !spaceContext.ruleId)
-        return;
-
-      const record = res.data.find(item => item.ruleId === spaceContext.ruleId);
-      if (!record)
-        return;
-
-      const source: Record<string, any> = { ...(record.ability || {}), ...(record.basic || {}), ...(record as any).skill };
-      const itemTextRaw = source.道具;
-      if (itemTextRaw == null)
-        return;
-
-      const text = String(itemTextRaw).trim();
-      if (!text)
-        return;
-
-      result.set(role.roleId, text);
-    });
-
-    return result;
-  }, [abilityQueries, importableRoles, isPokemonRule, spaceContext.ruleId]);
-
-  const pokemonActionPointByRoleId = useMemo(() => {
-    const result = new Map<number, string>();
-    if (!isPokemonRule)
-      return result;
-
-    importableRoles.forEach((role, idx) => {
-      const query = abilityQueries[idx];
-      const actionPoint = extractAttrFromAbilityQuery(spaceContext.ruleId, query, "行动点")
-        ?? extractAttrFromAbilityQuery(spaceContext.ruleId, query, "行动值")
-        ?? extractAttrFromAbilityQuery(spaceContext.ruleId, query, "AP")
-        ?? extractAttrFromAbilityQuery(spaceContext.ruleId, query, "ap");
-
-      if (actionPoint != null && String(actionPoint).trim() !== "") {
-        result.set(role.roleId, String(actionPoint).trim());
-      }
-    });
-
-    return result;
-  }, [abilityQueries, importableRoles, isPokemonRule, spaceContext.ruleId]);
-
-  const sortedList = useMemo(() => {
-    const list = [...initiativeList];
-    list.sort((a, b) => {
-      const aVal = resolveField(a, activeSortKey);
-      const bVal = resolveField(b, activeSortKey);
-
-      if (aVal == null && bVal == null)
-        return 0;
-      if (aVal == null)
-        return 1;
-      if (bVal == null)
-        return -1;
-
-      const dir = activeSortDirection === "asc" ? 1 : -1;
-
-      const aNum = typeof aVal === "number" ? aVal : Number(aVal);
-      const bNum = typeof bVal === "number" ? bVal : Number(bVal);
-
-      const aIsNum = Number.isFinite(aNum);
-      const bIsNum = Number.isFinite(bNum);
-
-      if (aIsNum && bIsNum) {
-        if (aNum === bNum)
-          return 0;
-        return aNum > bNum ? dir : -dir;
-      }
-
-      const aStr = String(aVal).toLowerCase();
-      const bStr = String(bVal).toLowerCase();
-      if (aStr === bStr)
-        return 0;
-      return aStr > bStr ? dir : -dir;
-    });
-    return list;
-  }, [initiativeList, activeSortKey, activeSortDirection]);
+  const handleToggleParamEditor = () => {
+    setShowParamEditor(prev => !prev);
+  };
 
   return (
     <div className="flex flex-col bg-transparent">
-      {/* 卡片容器 */}
       <div className="w-full p-3">
         <div className="rounded-xl border border-base-300 bg-base-300 shadow-none">
-          {/* 头部：标题 + 统计 */}
-          <div className="flex items-center justify-between px-4 py-3 border-b border-base-200">
-            <div className="flex items-center gap-2 min-w-0">
-              <span className="text-sm font-semibold text-base-content truncate">先攻列表</span>
-              <span className="text-xs text-base-content/60 truncate">
-                共
-                {" "}
-                {initiativeList.length}
-                {" "}
-                项
-              </span>
-            </div>
+          <InitiativeListControls
+            initiativeCount={initiativeList.length}
+            isPokemonRule={isPokemonRule}
+            spaceOwner={spaceOwner}
+            importableRoleCount={importableRoles.length}
+            isAdvancingRound={isAdvancingRound}
+            showParamEditor={showParamEditor}
+            params={params}
+            displayParams={displayParams}
+            newItem={newItem}
+            newExtras={newExtras}
+            newParam={newParam}
+            sortKey={sortKey}
+            sortDirection={sortDirection}
+            onNextRound={() => void handleNextRound()}
+            onOpenImportPopup={handleOpenImportPopup}
+            onToggleParamEditor={handleToggleParamEditor}
+            onAddParam={handleAddParam}
+            onRemoveParam={handleRemoveParam}
+            onAddItem={handleAdd}
+            setNewItem={setNewItem}
+            setNewExtras={setNewExtras}
+            setNewParam={setNewParam}
+            setSortKey={setSortKey}
+            setSortDirection={setSortDirection}
+          />
 
-            <div className="flex items-center gap-2">
-              {isPokemonRule && spaceOwner && (
-                <button
-                  type="button"
-                  className="btn btn-xs btn-outline"
-                  onClick={() => void handleNextRound()}
-                  disabled={isAdvancingRound}
-                >
-                  {isAdvancingRound ? "结算中..." : "下一轮"}
-                </button>
-              )}
-              {importableRoles.length > 0 && (
-                <button
-                  type="button"
-                  className="btn btn-xs btn-outline"
-                  onClick={() => setIsImportPopupOpen(true)}
-                >
-                  导入先攻
-                </button>
-              )}
-              {spaceOwner && (
-                <button
-                  type="button"
-                  className={`btn btn-square btn-ghost btn-xs border border-base-300 ${showParamEditor ? "bg-base-200" : ""}`}
-                  title="添加自定义参数"
-                  onClick={() => setShowParamEditor(v => !v)}
-                >
-                  +
-                </button>
-              )}
-            </div>
-          </div>
-
-          {/* 内容区 */}
-          <div className="px-4 py-3 space-y-3">
-            {showParamEditor && spaceOwner && (
-              <div className="rounded-md border border-base-200 bg-base-100 p-3 space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-semibold text-base-content">自定义参数</span>
-                  <span className="text-[11px] text-base-content/60">影响当前房间的列</span>
-                </div>
-                <div className="flex flex-wrap gap-2 items-center">
-                  <input
-                    type="text"
-                    placeholder="显示名称 (必填)"
-                    value={newParam.label}
-                    onChange={(e) => {
-                      const nextLabel = e.target.value;
-                      const baseKey = slugifyLabel(nextLabel);
-                      const nextKey = makeUniqueKey(baseKey, params);
-                      setNewParam({ ...newParam, label: nextLabel, key: nextKey });
-                    }}
-                    className="input input-sm bg-base-50 border border-base-300 text-base-content placeholder:text-base-content/40 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 rounded-md min-w-32"
-                  />
-                  <span className="text-xs text-base-content/60 px-2">
-                    键名：
-                    {newParam.key || "(自动生成)"}
-                  </span>
-                  <select
-                    className="select select-sm bg-base-50 border border-base-300 text-sm"
-                    value={newParam.source}
-                    onChange={e => setNewParam({ ...newParam, source: e.target.value as typeof newParam.source })}
-                  >
-                    <option value="manual">可编辑</option>
-                    <option value="roleAttr">来自角色属性</option>
-                  </select>
-                  {newParam.source === "roleAttr" && (
-                    <input
-                      type="text"
-                      placeholder="角色属性键 (必填)"
-                      value={newParam.attrKey}
-                      onChange={e => setNewParam({ ...newParam, attrKey: e.target.value })}
-                      className="input input-sm bg-base-50 border border-base-300 text-base-content placeholder:text-base-content/40 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 rounded-md min-w-28"
-                    />
-                  )}
-                  <button
-                    type="button"
-                    className="btn btn-sm bg-primary text-primary-content border-none hover:bg-primary/90"
-                    onClick={handleAddParam}
-                    disabled={!newParam.label.trim() || (newParam.source === "roleAttr" && !newParam.attrKey.trim())}
-                  >
-                    添加
-                  </button>
-                </div>
-                <div className="flex flex-col gap-1">
-                  {params.length === 0 && (
-                    <div className="text-xs text-base-content/60">暂无自定义参数。</div>
-                  )}
-                  {params.map(param => (
-                    <div key={param.key} className="flex items-center justify-between px-3 py-2 rounded-md bg-base-200">
-                      <div className="flex flex-col text-sm">
-                        <span className="font-medium text-base-content">{param.label || param.key}</span>
-                        <span className="text-[11px] text-base-content/60">
-                          键：
-                          {param.key}
-                        </span>
-                        <span className="text-[11px] text-base-content/50">{param.source === "roleAttr" ? `来源: 角色属性 ${param.attrKey ?? ""}` : "来源: 固定/可编辑"}</span>
-                      </div>
-                      {spaceOwner && (
-                        <button
-                          type="button"
-                          className="btn btn-ghost btn-xs text-error"
-                          onClick={() => handleRemoveParam(param.key)}
-                        >
-                          删除
-                        </button>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* 添加表单 */}
-            <div className="flex flex-col gap-1">
-              <div className="relative flex flex-wrap gap-2">
-                <input
-                  type="text"
-                  placeholder="角色名"
-                  value={newItem.name}
-                  onChange={e => setNewItem({ ...newItem, name: e.target.value })}
-                  className="input input-md bg-base-100 border border-base-400 text-base-content placeholder:text-base-content/40 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 rounded-md flex-[1_1_80px] "
-                />
-                {/* 当前 HP / 最大 HP / 先攻 输入顺序 */}
-                <input
-                  type="text"
-                  placeholder="先攻"
-                  value={newItem.value}
-                  onChange={e => setNewItem({ ...newItem, value: e.target.value })}
-                  className="input input-md bg-base-100 border border-base-400 text-base-content placeholder:text-base-content/40 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 rounded-md flex-[1_1_80px] "
-                />
-                <input
-                  type="text"
-                  placeholder="当前HP"
-                  value={newItem.hp}
-                  onChange={e => setNewItem({ ...newItem, hp: e.target.value })}
-                  className="input input-md bg-base-100 border border-base-400 text-base-content placeholder:text-base-content/40 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 rounded-md flex-[1_1_80px] "
-                />
-                <input
-                  type="text"
-                  placeholder="最大HP"
-                  value={newItem.maxHp}
-                  onChange={e => setNewItem({ ...newItem, maxHp: e.target.value })}
-                  className="input input-md bg-base-100 border border-base-400 text-base-content placeholder:text-base-content/40 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 rounded-md flex-[1_1_80px] "
-                />
-
-                {displayParams.map(param => (
-                  <input
-                    key={param.key}
-                    type="text"
-                    placeholder={param.label}
-                    value={newExtras[param.key] ?? ""}
-                    onChange={e => setNewExtras({ ...newExtras, [param.key]: e.target.value })}
-                    className="input input-md bg-base-100 border border-base-400 text-base-content placeholder:text-base-content/40 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 rounded-md flex-[1_1_80px]"
-                    disabled={param.source === "roleAttr"}
-                  />
-                ))}
-              </div>
-              <button
-                type="button"
-                onClick={handleAdd}
-                className="btn btn-md rounded px-5 bg-primary text-primary-content border-none hover:bg-primary/90 shadow-sm w-full disabled:bg-base-300 disabled:text-base-content/40"
-                disabled={
-                  !newItem.name
-                  || (newItem.hp.trim() !== "" && Number.isNaN(Number(newItem.hp)))
-                  || (newItem.maxHp.trim() !== "" && Number.isNaN(Number(newItem.maxHp)))
-                }
-              >
-                添加
-              </button>
-            </div>
-
-            {/* 排序控制（仅空间主持人可用） */}
-            {spaceOwner && (
-              <div className="flex flex-wrap items-center gap-2 p-2">
-                {[{ key: "name" as SortKey, label: "名称" }, { key: "hp" as SortKey, label: "当前HP" }, { key: "maxHp" as SortKey, label: "最大HP" }, { key: "value" as SortKey, label: "先攻" }, ...params.map(p => ({ key: { paramKey: p.key } as SortKey, label: p.label }))].map((entry) => {
-                  const active = (typeof entry.key === "string" && entry.key === sortKey)
-                    || (typeof entry.key === "object" && typeof sortKey === "object" && entry.key.paramKey === sortKey.paramKey);
-                  const arrow = active ? (sortDirection === "asc" ? "↑" : "↓") : "↕";
-                  return (
-                    <button
-                      key={typeof entry.key === "string" ? entry.key : entry.key.paramKey}
-                      type="button"
-                      className={`btn btn-ghost btn-xs border border-base-300 ${active ? "bg-base-200" : ""}`}
-                      onClick={() => {
-                        // 切换排序：同列时切换方向，不同列默认升序
-                        if (active) {
-                          setSortDirection(prev => (prev === "asc" ? "desc" : "asc"));
-                        }
-                        else {
-                          setSortKey(entry.key);
-                          setSortDirection("asc");
-                        }
-                      }}
-                    >
-                      {entry.label}
-                      <span className="ml-1 text-[11px]">{arrow}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-
-            {/* 分割线 */}
-            <div className="h-px bg-base-200" />
-
-            {/* 编辑提示 */}
-            <div className="text-[11px] text-base-content/50 px-1">
-              提示：双击名称或数值可以进行编辑。
-            </div>
-
-            {/* 列表 */}
-            <div className="overflow-x-auto">
-              <table className="table table-sm">
-                <thead>
-                  <tr>
-                    {isPokemonRule && <th className="text-xs font-semibold text-base-content/70">等级</th>}
-                    <th className="text-xs font-semibold text-base-content/70">角色名</th>
-                    <th className="text-xs font-semibold text-base-content/70">HP</th>
-                    {isPokemonRule && <th className="text-xs font-semibold text-base-content/70">行动点</th>}
-                    <th className="text-xs font-semibold text-base-content/70">先攻</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {initiativeList.length === 0
-                    ? (
-                        <tr>
-                          <td colSpan={isPokemonRule ? 5 : 3} className="text-xs text-base-content/50 text-center py-4">
-                            暂无先攻记录，添加一个吧。
-                          </td>
-                        </tr>
-                      )
-                    : (
-                        sortedList.map((item, _index) => {
-                          const hp = item.hp ?? null;
-                          const maxHp = item.maxHp ?? null;
-                          const levelValue = levelParam ? item.extras?.[levelParam.key] : null;
-                          const defensiveMatchup = typeof item.roleId === "number"
-                            ? pokemonDefensiveByRoleId.get(item.roleId)
-                            : undefined;
-                          const traitText = typeof item.roleId === "number"
-                            ? (pokemonTraitByRoleId.get(item.roleId) ?? "--")
-                            : "--";
-                          const itemText = typeof item.roleId === "number"
-                            ? pokemonItemByRoleId.get(item.roleId)
-                            : undefined;
-                          const statusText = typeof item.roleId === "number"
-                            ? pokemonStatusByRoleId.get(item.roleId)
-                            : undefined;
-                          const actionPointText = typeof item.roleId === "number"
-                            ? (pokemonActionPointByRoleId.get(item.roleId) ?? "--")
-                            : "--";
-                          const multiplierText = (() => {
-                            if (!defensiveMatchup)
-                              return "--";
-                            const order: Array<"4" | "2" | "0.5" | "0.25" | "0"> = ["4", "2", "0.5", "0.25", "0"];
-                            const spacing = "\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0";
-                            const segments = order
-                              .filter(multiplier => defensiveMatchup[multiplier].length > 0)
-                              .map(multiplier => `${multiplier}：${defensiveMatchup[multiplier].join("/")}`);
-                            return segments.length > 0 ? segments.join(spacing) : "--";
-                          })();
-                          const rowKey = item.name || `${_index}`;
-                          const nameEditKey = `${rowKey}:name`;
-                          const hpEditKey = `${rowKey}:hp`;
-                          const maxHpEditKey = `${rowKey}:maxHp`;
-                          const valueEditKey = `${rowKey}:value`;
-
-                          return (
-                            <Fragment key={rowKey}>
-                              <tr className="group hover">
-                                {isPokemonRule && (
-                                  <td className="align-top">
-                                    <div className="text-sm tabular-nums min-h-6 leading-6 px-1">{levelValue != null && levelValue !== "" ? String(levelValue) : "--"}</div>
-                                  </td>
-                                )}
-                                <td className="align-top">
-                                  {editingKey === nameEditKey
-                                    ? (
-                                        <input
-                                          ref={getEditingRef(nameEditKey)}
-                                          type="text"
-                                          value={editingValue}
-                                          onChange={e => setEditingValue(e.target.value)}
-                                          onBlur={() => {
-                                            commitEditing(nameEditKey, val => updateItem(item, { name: val }));
-                                          }}
-                                          onKeyDown={(e) => {
-                                            if (e.key === "Enter") {
-                                              e.preventDefault();
-                                              commitEditing(nameEditKey, val => updateItem(item, { name: val }));
-                                            }
-                                            if (e.key === "Escape") {
-                                              e.preventDefault();
-                                              stopEditing();
-                                            }
-                                          }}
-                                          className="input input-xs bg-base-100 border border-base-300 text-sm font-medium text-base-content w-full min-h-6 leading-6 min-w-0"
-                                        />
-                                      )
-                                    : (
-                                        <button
-                                          type="button"
-                                          className="text-left text-sm font-medium text-base-content w-full min-h-6 leading-6 truncate px-1 min-w-0"
-                                          onDoubleClick={() => startEditing(nameEditKey, item.name)}
-                                          title="双击编辑"
-                                        >
-                                          {item.name}
-                                        </button>
-                                      )}
-                                </td>
-                                <td className="align-top">
-                                  <div className="flex items-center gap-0.5 text-xs text-base-content/70 leading-5">
-                                    {editingKey === hpEditKey
-                                      ? (
-                                          <input
-                                            ref={getEditingRef(hpEditKey)}
-                                            type="number"
-                                            value={editingValue}
-                                            onChange={e => setEditingValue(e.target.value)}
-                                            onBlur={() => {
-                                              commitEditing(hpEditKey, val => updateItem(item, { hp: parseNullableNumber(val) }));
-                                            }}
-                                            onKeyDown={(e) => {
-                                              if (e.key === "Enter") {
-                                                e.preventDefault();
-                                                commitEditing(hpEditKey, val => updateItem(item, { hp: parseNullableNumber(val) }));
-                                              }
-                                              if (e.key === "Escape") {
-                                                e.preventDefault();
-                                                stopEditing();
-                                              }
-                                            }}
-                                            className="input input-xs bg-base-100 border border-base-300 text-right tabular-nums min-h-6 leading-6"
-                                          />
-                                        )
-                                      : (
-                                          <button
-                                            type="button"
-                                            className="text-right tabular-nums min-h-6 leading-6 px-1 rounded-md border border-base-300 bg-base-100"
-                                            onDoubleClick={() => startEditing(hpEditKey, hp != null ? String(hp) : "")}
-                                            title="双击编辑"
-                                          >
-                                            {hp != null ? String(hp) : "--"}
-                                          </button>
-                                        )}
-                                    <span className="px-1">/</span>
-                                    {editingKey === maxHpEditKey
-                                      ? (
-                                          <input
-                                            ref={getEditingRef(maxHpEditKey)}
-                                            type="number"
-                                            value={editingValue}
-                                            onChange={e => setEditingValue(e.target.value)}
-                                            onBlur={() => {
-                                              commitEditing(maxHpEditKey, val => updateItem(item, { maxHp: parseNullableNumber(val) }));
-                                            }}
-                                            onKeyDown={(e) => {
-                                              if (e.key === "Enter") {
-                                                e.preventDefault();
-                                                commitEditing(maxHpEditKey, val => updateItem(item, { maxHp: parseNullableNumber(val) }));
-                                              }
-                                              if (e.key === "Escape") {
-                                                e.preventDefault();
-                                                stopEditing();
-                                              }
-                                            }}
-                                            className="input input-xs bg-base-100 border border-base-300 text-right tabular-nums min-h-6 leading-6"
-                                          />
-                                        )
-                                      : (
-                                          <button
-                                            type="button"
-                                            className="text-right tabular-nums min-h-6 leading-6 px-1 rounded-md border border-base-300 bg-base-100"
-                                            onDoubleClick={() => startEditing(maxHpEditKey, maxHp != null ? String(maxHp) : "")}
-                                            title="双击编辑"
-                                          >
-                                            {maxHp != null ? String(maxHp) : "--"}
-                                          </button>
-                                        )}
-                                  </div>
-
-                                  {displayParams.length > 0 && (
-                                    <div className="mt-1 flex flex-wrap items-center gap-0.5 text-xs text-base-content/70 leading-5">
-                                      {displayParams.map(param => (
-                                        <div key={param.key} className="flex items-center gap-0.5">
-                                          <span className="whitespace-nowrap" title={param.label}>{param.label}</span>
-                                          {editingKey === `${rowKey}:extra:${param.key}`
-                                            ? (
-                                                <input
-                                                  ref={getEditingRef(`${rowKey}:extra:${param.key}`)}
-                                                  type="text"
-                                                  value={editingValue}
-                                                  onChange={e => setEditingValue(e.target.value)}
-                                                  onBlur={() => {
-                                                    commitEditing(`${rowKey}:extra:${param.key}`, val => updateItemExtras(item, param.key, val));
-                                                  }}
-                                                  onKeyDown={(e) => {
-                                                    if (e.key === "Enter") {
-                                                      e.preventDefault();
-                                                      commitEditing(`${rowKey}:extra:${param.key}`, val => updateItemExtras(item, param.key, val));
-                                                    }
-                                                    if (e.key === "Escape") {
-                                                      e.preventDefault();
-                                                      stopEditing();
-                                                    }
-                                                  }}
-                                                  className="input input-xs bg-base-100 border border-base-300 text-right tabular-nums min-h-6 leading-6"
-                                                />
-                                              )
-                                            : (
-                                                <button
-                                                  type="button"
-                                                  className="text-right tabular-nums min-h-6 leading-6 px-1 rounded-md border border-base-300 bg-base-100"
-                                                  onDoubleClick={() => startEditing(`${rowKey}:extra:${param.key}`, (item.extras?.[param.key] ?? "").toString())}
-                                                  title="双击编辑"
-                                                >
-                                                  {(item.extras?.[param.key] ?? "--").toString()}
-                                                </button>
-                                              )}
-                                        </div>
-                                      ))}
-                                    </div>
-                                  )}
-                                </td>
-                                {isPokemonRule && (
-                                  <td className="align-top">
-                                    <div className="text-sm tabular-nums min-h-6 leading-6 px-1">
-                                      {actionPointText}
-                                    </div>
-                                  </td>
-                                )}
-                                <td className="align-top">
-                                  <div className="flex items-center gap-2 text-xs text-base-content/70 leading-6">
-                                    {editingKey === valueEditKey
-                                      ? (
-                                          <input
-                                            ref={getEditingRef(valueEditKey)}
-                                            type="number"
-                                            value={editingValue}
-                                            onChange={e => setEditingValue(e.target.value)}
-                                            onBlur={() => {
-                                              commitEditing(valueEditKey, val => updateItem(item, { value: parseNumberOrZero(val) }));
-                                            }}
-                                            onKeyDown={(e) => {
-                                              if (e.key === "Enter") {
-                                                e.preventDefault();
-                                                commitEditing(valueEditKey, val => updateItem(item, { value: parseNumberOrZero(val) }));
-                                              }
-                                              if (e.key === "Escape") {
-                                                e.preventDefault();
-                                                stopEditing();
-                                              }
-                                            }}
-                                            className="input input-xs bg-base-100 border border-base-300 text-right tabular-nums min-h-6 leading-6"
-                                          />
-                                        )
-                                      : (
-                                          <button
-                                            type="button"
-                                            className="text-right tabular-nums min-h-6 leading-6 px-1 rounded-md border border-base-300 bg-base-100"
-                                            onDoubleClick={() => startEditing(valueEditKey, item.value.toString())}
-                                            title="双击编辑"
-                                          >
-                                            {item.value.toString()}
-                                          </button>
-                                        )}
-
-                                    <button
-                                      type="button"
-                                      onClick={() => void handleDelete(item)}
-                                      className="btn btn-ghost btn-square btn-xs text-error hover:bg-error/5 border-none px-2 opacity-0 group-hover:opacity-100 transition-opacity"
-                                      title="删除"
-                                    >
-                                      ✕
-                                    </button>
-                                  </div>
-                                </td>
-                              </tr>
-                              {isPokemonRule && (
-                                <tr key={`${rowKey}:multiplier`}>
-                                  <td colSpan={5} className="pt-0 pb-1">
-                                    <div className="text-[11px] text-base-content/60 px-1 whitespace-normal wrap-break-word">
-                                      属性克制倍率
-                                      {"\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0"}
-                                      {multiplierText}
-                                    </div>
-                                  </td>
-                                </tr>
-                              )}
-                              {isPokemonRule && (
-                                <tr key={`${rowKey}:trait`}>
-                                  <td colSpan={5} className="pt-0 pb-1">
-                                    <div className="text-[11px] text-base-content/60 px-1 whitespace-normal wrap-break-word">
-                                      特性
-                                      {"\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0"}
-                                      {traitText}
-                                    </div>
-                                  </td>
-                                </tr>
-                              )}
-                              {isPokemonRule && itemText && (
-                                <tr key={`${rowKey}:item`}>
-                                  <td colSpan={5} className="pt-0 pb-1">
-                                    <div className="text-[11px] text-base-content/60 px-1 whitespace-normal wrap-break-word">
-                                      道具
-                                      {"\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0"}
-                                      {itemText}
-                                    </div>
-                                  </td>
-                                </tr>
-                              )}
-                              {isPokemonRule && statusText && (
-                                <tr key={`${rowKey}:status`}>
-                                  <td colSpan={5} className="pt-0 pb-1">
-                                    <div className="text-[11px] text-base-content/60 px-1 whitespace-normal wrap-break-word">
-                                      状态
-                                      {"\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0"}
-                                      {statusText}
-                                    </div>
-                                  </td>
-                                </tr>
-                              )}
-                            </Fragment>
-                          );
-                        })
-                      )}
-                </tbody>
-              </table>
-            </div>
+          <div className="px-4 pb-3">
+            <InitiativeListTable
+              initiativeList={initiativeList}
+              sortedList={sortedList}
+              displayParams={displayParams}
+              levelParam={levelParam}
+              isPokemonRule={isPokemonRule}
+              editingKey={editingKey}
+              editingValue={editingValue}
+              pokemonDefensiveByRoleId={pokemonDefensiveByRoleId}
+              pokemonTraitByRoleId={pokemonTraitByRoleId}
+              pokemonStatusByRoleId={pokemonStatusByRoleId}
+              pokemonItemByRoleId={pokemonItemByRoleId}
+              pokemonActionPointByRoleId={pokemonActionPointByRoleId}
+              getEditingRef={getEditingRef}
+              setEditingValue={setEditingValue}
+              startEditing={startEditing}
+              stopEditing={stopEditing}
+              commitEditing={commitEditing}
+              updateItem={updateItem}
+              updateItemExtras={updateItemExtras}
+              handleDelete={handleDelete}
+            />
           </div>
         </div>
       </div>
 
-      {/* 移动端下的分割线，与其他模块对齐 */}
       <div className="h-px bg-base-300 md:hidden"></div>
 
-      {/* 导入角色敏捷 */}
-      <ToastWindow
+      <InitiativeImportDialog
         isOpen={isImportPopupOpen}
-        onClose={() => setIsImportPopupOpen(false)}
-        fullScreen={false}
-      >
-        <div className="p-4 space-y-4 min-w-65 max-w-sm">
-          <h3 className="text-base font-semibold">从角色导入先攻（敏捷）</h3>
-          <p className="text-xs text-base-content/60">
-            选择一个角色，从其当前规则的能力/基础属性中自动识别“敏捷”等字段并填入先攻列表。
-          </p>
-          <div className="flex flex-col gap-2">
-            {importableRoles.map((role, idx) => {
-              const q = abilityQueries[idx];
-              const loading = q.isLoading;
-              const hasData = !!q.data && q.data.success;
-              const name = role.roleName ?? `角色${role.roleId}`;
-              // 优先通过 ID 判断是否已导入，没有 ID 则通过名字判断（兼容旧数据）
-              const isImported = initiativeList.some((i) => {
-                if (typeof i.roleId === "number") {
-                  return i.roleId === role.roleId;
-                }
-                return i.name === name;
-              });
-
-              return (
-                <div
-                  key={role.roleId}
-                  className="flex items-center justify-between gap-2 rounded-md px-3 py-2 bg-base-100 border border-base-200"
-                >
-                  <div className="flex flex-col">
-                    <span className="text-sm font-medium">
-                      {name}
-                    </span>
-                    <span className="text-[11px] text-base-content/60">
-                      {loading
-                        ? "正在加载能力数据..."
-                        : hasData
-                          ? "已加载，点击导入"
-                          : "尚无该规则的能力数据"}
-                    </span>
-                  </div>
-                  <button
-                    type="button"
-                    className="btn btn-xs btn-primary"
-                    disabled={loading || !hasData}
-                    onClick={() => void handleImportSingle(role.roleId)}
-                  >
-                    {isImported ? "再次导入" : "导入"}
-                  </button>
-                </div>
-              );
-            })}
-            {importableRoles.length === 0 && (
-              <div className="text-xs text-base-content/60 text-center py-4">
-                暂无可导入的角色。
-              </div>
-            )}
-          </div>
-        </div>
-      </ToastWindow>
+        importableRoles={importableRoles}
+        abilityQueries={abilityQueries}
+        initiativeList={initiativeList}
+        onClose={handleCloseImportPopup}
+        onImportSingle={roleId => void handleImportSingle(roleId)}
+      />
     </div>
   );
 }

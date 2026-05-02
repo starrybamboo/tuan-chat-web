@@ -24,6 +24,7 @@ import { FeedControllerService } from './services/FeedControllerService';
 import { FriendControllerService } from './services/FriendControllerService';
 import { MarkControllerService } from './services/MarkControllerService';
 import { MaterialPackageControllerService } from './services/MaterialPackageControllerService';
+import { MediaControllerService } from './services/MediaControllerService';
 import { MessageDirectControllerService } from './services/MessageDirectControllerService';
 import { MessageSessionService } from './services/MessageSessionService';
 import { NotificationControllerService } from './services/NotificationControllerService';
@@ -74,6 +75,7 @@ export class TuanChat {
     public readonly friendController: FriendControllerService;
     public readonly markController: MarkControllerService;
     public readonly materialPackageController: MaterialPackageControllerService;
+    public readonly mediaController: MediaControllerService;
     public readonly messageDirectController: MessageDirectControllerService;
     public readonly messageSession: MessageSessionService;
     public readonly notificationController: NotificationControllerService;
@@ -135,6 +137,7 @@ export class TuanChat {
         this.friendController = new FriendControllerService(this.request);
         this.markController = new MarkControllerService(this.request);
         this.materialPackageController = new MaterialPackageControllerService(this.request);
+        this.mediaController = new MediaControllerService(this.request);
         this.messageDirectController = new MessageDirectControllerService(this.request);
         this.messageSession = new MessageSessionService(this.request);
         this.notificationController = new NotificationControllerService(this.request);

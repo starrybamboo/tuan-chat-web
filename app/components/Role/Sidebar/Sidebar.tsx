@@ -1,5 +1,4 @@
 import type { Rule } from "@tuanchat/openapi-client/models/Rule";
-import type { RoleAvatar, UserRole } from "api";
 import type { Role } from "../types";
 import { useDeleteRolesMutation } from "api/hooks/RoleAndAvatarHooks";
 import { useDeleteRuleMutation, useRuleListQuery } from "api/hooks/ruleQueryHooks";
@@ -222,7 +221,7 @@ export function Sidebar({
               type="text"
               className="grow"
               value={searchQuery}
-                  onChange={e => setSearchQuery(e.target.value)}
+              onChange={e => setSearchQuery(e.target.value)}
             />
           </label>
           {isSelectionMode

@@ -1,3 +1,5 @@
+import type { QueryClient } from "@tanstack/react-query";
+
 import { useQuery } from "@tanstack/react-query";
 
 import type { TuanChat } from "@tuanchat/openapi-client/TuanChat";
@@ -5,6 +7,7 @@ import type { TuanChat } from "@tuanchat/openapi-client/TuanChat";
 export type ResourceQueryOptions = {
   enabled?: boolean;
   staleTime?: number;
+  retry?: boolean | number;
 };
 
 type SpaceClient = Pick<TuanChat, "spaceController" | "roomController">;
@@ -27,6 +30,7 @@ export function useGetUserSpacesQuery(client: SpaceClient, options?: ResourceQue
     queryFn: () => client.spaceController.getUserSpaces(),
     staleTime: options?.staleTime ?? 300_000,
     enabled: options?.enabled ?? true,
+    retry: options?.retry,
   });
 }
 
@@ -36,6 +40,7 @@ export function useGetUserActiveSpacesQuery(client: SpaceClient, options?: Resou
     queryFn: () => client.spaceController.getUserActiveSpaces(),
     staleTime: options?.staleTime ?? 300_000,
     enabled: options?.enabled ?? true,
+    retry: options?.retry,
   });
 }
 
@@ -45,5 +50,14 @@ export function useGetUserRoomsQuery(client: SpaceClient, spaceId: number, optio
     queryFn: () => client.roomController.getUserRooms(spaceId),
     staleTime: options?.staleTime ?? 300_000,
     enabled: options?.enabled ?? spaceId !== -1,
+    retry: options?.retry,
+  });
+}
+
+export function fetchUserRoomsWithCache(queryClient: QueryClient, client: SpaceClient, spaceId: number, options?: ResourceQueryOptions) {
+  return queryClient.fetchQuery({
+    queryKey: getUserRoomsQueryKey(spaceId),
+    queryFn: () => client.roomController.getUserRooms(spaceId),
+    staleTime: options?.staleTime ?? 300_000,
   });
 }

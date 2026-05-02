@@ -7,6 +7,7 @@ import { html } from "lit";
 import type { BlocksuiteEditorAssemblyContext } from "../blocksuiteEditorAssemblyContext";
 import type { BlocksuiteExtensionBundle } from "./types";
 
+import { avatarThumbUrl } from "@/utils/mediaUrl";
 import { listBlocksuiteMentionRoles } from "../../services/blocksuiteRoleService";
 import { listBlocksuiteSpaceMemberIds } from "../../services/blocksuiteSpaceMemberService";
 import { BlocksuiteRoleServiceExtension } from "../../services/tuanChatRoleService";
@@ -124,7 +125,7 @@ async function resolveBlocksuiteMentionCandidateIds(
   if (!context.spaceId || context.spaceId <= 0)
     return [];
 
-  const memberIds = await listBlocksuiteSpaceMemberIds(context.spaceId);
+  const memberIds = await listBlocksuiteSpaceMemberIds(context.spaceId, context.queryClient);
   if (signal.aborted)
     return [];
 
@@ -278,6 +279,7 @@ async function loadBlocksuiteMentionRoleEntries(
       const roles = await listBlocksuiteMentionRoles({
         spaceId: context.spaceId,
         currentDocId: context.currentDocId,
+        queryClient: context.queryClient,
       });
       context.roleService.seedRoles(roles);
       context.roleEntriesCache.set(cacheKey, { at: Date.now(), roles });
@@ -350,7 +352,7 @@ export async function buildBlocksuiteRoleMentionMenuGroup(
     items: roles.map((role) => {
       const roleId = String(role.roleId);
       const name = role.roleName?.trim() || `角色${roleId}`;
-      const avatar = role.avatarThumbUrl?.trim() || role.avatarUrl?.trim() || null;
+      const avatar = avatarThumbUrl(role.avatarFileId) || null;
 
       return {
         key: `role:${roleId}`,

@@ -2,8 +2,10 @@ import { gzipSync, strToU8 } from "fflate";
 
 import {
   embedNovelAiMetadataIntoPngBytes,
+  embedNovelAiMetadataIntoWebpBytes,
   extractNovelAiMetadataFromPngBytes,
   extractNovelAiMetadataFromStealthPixels,
+  extractNovelAiMetadataFromWebpBytes,
   normalizeNovelAiMetadata,
 } from "./novelaiImageMetadata";
 
@@ -13,6 +15,15 @@ function uint32Be(value: number) {
     (value >>> 16) & 0xFF,
     (value >>> 8) & 0xFF,
     value & 0xFF,
+  ]);
+}
+
+function uint32Le(value: number) {
+  return new Uint8Array([
+    value & 0xFF,
+    (value >>> 8) & 0xFF,
+    (value >>> 16) & 0xFF,
+    (value >>> 24) & 0xFF,
   ]);
 }
 
@@ -47,6 +58,16 @@ function makeChunk(type: string, data: Uint8Array) {
     data,
     new Uint8Array(4),
   );
+}
+
+function makeWebpChunk(type: string, data: Uint8Array) {
+  const padding = data.length % 2 ? new Uint8Array([0]) : new Uint8Array();
+  return concatBytes(asciiBytes(type), uint32Le(data.length), data, padding);
+}
+
+function buildMinimalWebp() {
+  const body = makeWebpChunk("VP8 ", asciiBytes("fake-vp8-data"));
+  return concatBytes(asciiBytes("RIFF"), uint32Le(4 + body.length), asciiBytes("WEBP"), body);
 }
 
 function buildPngWithTextChunks(entries: Record<string, string>) {
@@ -349,6 +370,43 @@ describe("novelaiImageMetadata", () => {
       negativePrompt: "bad hands",
       seed: 777,
       sampler: "k_euler",
+    });
+  });
+
+  it("embeds and extracts NovelAI metadata from WebP XMP chunk", () => {
+    const sourceMetadataBytes = buildPngWithTextChunks({
+      Source: "NovelAI",
+      Comment: JSON.stringify({
+        input: "blue archive style",
+        model: "nai-diffusion-4-5-curated",
+        action: "generate",
+        parameters: {
+          seed: 123456,
+          width: 1024,
+          height: 1536,
+          steps: 28,
+          scale: 5.5,
+          negative_prompt: "lowres",
+        },
+      }),
+    });
+    const metadata = extractNovelAiMetadataFromPngBytes(sourceMetadataBytes);
+    const webpBytes = buildMinimalWebp();
+
+    const embedded = extractNovelAiMetadataFromWebpBytes(
+      embedNovelAiMetadataIntoWebpBytes(webpBytes, metadata),
+    );
+
+    expect(embedded?.source).toBe("webp-xmp");
+    expect(embedded?.settings).toMatchObject({
+      mode: "txt2img",
+      prompt: "blue archive style",
+      negativePrompt: "lowres",
+      seed: 123456,
+      width: 1024,
+      height: 1536,
+      steps: 28,
+      scale: 5.5,
     });
   });
 });

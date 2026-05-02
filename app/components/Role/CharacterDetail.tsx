@@ -20,6 +20,7 @@ import AudioUploadModal from "./RoleInfoCard/AudioUploadModal";
 import DicerConfigJsonModal from "./rules/DicerConfigJsonModal";
 import ExpansionModule from "./rules/ExpansionModule";
 import RulesSection from "./rules/RulesSection";
+import { getEffectiveAvatarThumbUrl, getEffectiveAvatarUrl, getEffectiveSpriteUrl } from "./sprite/utils";
 // import Section from "./Section";
 
 interface CharacterDetailProps {
@@ -104,8 +105,8 @@ function CharacterDetailInner({
       : undefined;
 
     return {
-      selectedAvatarUrl: avatarFromList?.avatarUrl ?? localRole.avatar ?? ROLE_DEFAULT_AVATAR_URL,
-      selectedSpriteUrl: avatarFromList?.spriteUrl ?? "",
+      selectedAvatarUrl: getEffectiveAvatarUrl(avatarFromList) || localRole.avatar || ROLE_DEFAULT_AVATAR_URL,
+      selectedSpriteUrl: getEffectiveSpriteUrl(avatarFromList),
     };
   }, [localRole.avatarId, localRole.avatar, roleAvatars]);
   // 描述的最大储存量
@@ -343,8 +344,8 @@ function CharacterDetailInner({
   // 更新url和avatarId,方便更改服务器数据
   const handleAvatarChange = (previewUrl: string, avatarId: number) => {
     const selectedAvatar = roleAvatars.find(item => item.avatarId === avatarId);
-    const nextAvatarUrl = selectedAvatar?.avatarUrl || previewUrl;
-    const nextAvatarThumb = selectedAvatar?.avatarThumbUrl || nextAvatarUrl;
+    const nextAvatarUrl = getEffectiveAvatarUrl(selectedAvatar) || previewUrl;
+    const nextAvatarThumb = getEffectiveAvatarThumbUrl(selectedAvatar) || nextAvatarUrl;
     const updatedRole = {
       ...localRole,
       avatar: nextAvatarUrl,

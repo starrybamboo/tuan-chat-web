@@ -23,13 +23,13 @@ export type ResourceResponse = {
      */
     typeDescription?: string;
     /**
-     * 对应的oss url
+     * 资源媒体文件 ID
      */
-    url?: string;
+    fileId?: number;
     /**
-     * 对应的原图oss url
+     * 资源媒体类型
      */
-    originalUrl?: string;
+    mediaType?: string;
     /**
      * 资源名称
      */
@@ -43,13 +43,13 @@ export type ResourceResponse = {
      */
     username?: string;
     /**
-     * 头像 URL
+     * 上传用户头像媒体文件 ID
      */
-    avatar?: string;
+    avatarFileId?: number;
     /**
-     * 头像缩略图 URL
+     * 上传用户头像媒体类型
      */
-    avatarThumbUrl?: string;
+    avatarMediaType?: string;
     /**
      * 是不是ai
      */
