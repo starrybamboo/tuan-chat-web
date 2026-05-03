@@ -32,7 +32,7 @@ import { compositeFocusedInpaintResult, prepareFocusedInpaintPayload } from "@/c
 const DEFAULT_INPAINT_PROMPT = "very aesthetic, masterpiece, no text";
 const DEFAULT_INPAINT_NEGATIVE_PROMPT = "nsfw, lowres, artistic error, film grain, scan artifacts, worst quality, bad quality, jpeg artifacts, very displeasing, chromatic aberration, dithering, halftone, screentone, multiple views, logo, too many watermarks, negative space, blank page";
 
-export type GenerateImageResponse = {
+type GenerateImageResponse = {
   dataUrls: string[];
   seed: number;
   width: number;
@@ -40,7 +40,7 @@ export type GenerateImageResponse = {
   model: string;
 };
 
-export type GenerateRequestOverrides = {
+type GenerateRequestOverrides = {
   prompt?: string;
   negativePrompt?: string;
   mode?: AiImageHistoryMode;

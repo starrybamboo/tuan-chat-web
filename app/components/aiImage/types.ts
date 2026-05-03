@@ -175,17 +175,3 @@ export type CurrentResultCard = {
   index: number;
   row: AiImageHistoryRow | null;
 };
-
-export type HistoryRowKeySource = {
-  id?: number | null;
-  createdAt: number;
-  seed: number;
-  batchIndex?: number | null;
-};
-
-export type PreviewMetaSource = {
-  toolLabel?: string;
-  seed: number;
-  width: number;
-  height: number;
-};

@@ -11,12 +11,7 @@ type QueuedComposerFiles = {
   files: File[];
 };
 
-export type QueueMaterialComposerFilesOptions = {
-  showSuccessToast?: boolean;
-  showEmptyToast?: boolean;
-};
-
-export type MaterialAssetUploadKind = "image" | "audio" | "video" | "file";
+type MaterialAssetUploadKind = "image" | "audio" | "video" | "file";
 
 export const MATERIAL_COMPOSER_ROOM_ID = 2147483001;
 

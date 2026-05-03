@@ -23,7 +23,7 @@ import { extractWebgalChoosePayload } from "@/types/webgalChoose";
 import type { MediaQuality, MediaType } from "@/utils/imgCompressUtils";
 import { mediaFileUrl, mediaFileUrlWithQuality, normalizeMediaType } from "@/utils/mediaUrl";
 
-export type ReadonlyRenderableMessage = Pick<
+type ReadonlyRenderableMessage = Pick<
   Message,
   | "messageType"
   | "content"

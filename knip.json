@@ -36,6 +36,7 @@
     "api/core/request.ts",
     "api/novelai/core/request.ts",
     "api/hooks/RoleAndAvatarHooks.tsx",
+    "app/shims/lzStringCompat.ts",
     "app/components/chat/infra/blocksuite/spaceWorkspaceRegistry.ts"
   ],
   "ignoreDependencies": [
@@ -43,16 +44,10 @@
     "@babel/plugin-proposal-decorators",
     "@babel/preset-env",
     "@expo/metro-config",
-    "@react-navigation/bottom-tabs",
-    "@react-navigation/elements",
     "babel-plugin-react-compiler",
     "daisyui",
     "eslint-plugin-react",
-    "expo-device",
-    "expo-glass-effect",
-    "expo-status-bar",
     "expo-updates",
-    "expo-web-browser",
     "lint-staged"
   ],
   "ignoreBinaries": [
