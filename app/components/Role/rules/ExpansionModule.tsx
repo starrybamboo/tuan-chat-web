@@ -2,8 +2,8 @@ import { DownloadSimpleIcon, SparkleIcon } from "@phosphor-icons/react";
 import { useAbilityByRuleAndRole, useSetRoleAbilityMutation, useUpdateRoleAbilityByRoleIdMutation } from "api/hooks/abilityQueryHooks";
 import { useGetRoleQuery } from "api/hooks/RoleAndAvatarHooks";
 import { useRuleDetailQuery } from "api/hooks/ruleQueryHooks";
-import { CloseIcon, SaveIcon, WrenchIcon } from "app/icons";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { CloseIcon, WrenchIcon } from "app/icons";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import ImportWithStCmd from "@/components/Role/rules/ImportWithStCmd";
 import CopywritingEditor from "../Editors/CopywritingEditor";
 import Section from "../Editors/Section";
@@ -11,6 +11,8 @@ import { ConfigurationSection } from "./ConfigurationSection";
 import NumericalEditorSmall from "./NumericalEditorSmall";
 import PerformanceEditor from "./PerformanceEditor";
 import PerformanceEditorSmall from "./PerformanceEditorSmall";
+
+const COPYWRITING_AUTOSAVE_DELAY_MS = 800;
 
 interface ExpansionModuleProps {
   roleId: number;
@@ -57,6 +59,10 @@ export default function ExpansionModule({
   const setRoleAbilityMutation = useSetRoleAbilityMutation();
   const { mutate: updateFieldAbility } = useUpdateRoleAbilityByRoleIdMutation();
   const [copywritingSaveMsg, setCopywritingSaveMsg] = useState<string>("");
+  const copywritingAutosaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const copywritingStatusTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const copywritingSaveVersionRef = useRef(0);
+  const lastSavedCopywritingRef = useRef<string>("");
 
   // 初始化能力数据 - 现在不再自动创建,需要用户手动触发
   // useEffect(() => {
@@ -158,11 +164,20 @@ export default function ExpansionModule({
     setLocalEdits(prev => ({ ...prev, copywritingTemplates: newData }));
   };
 
-  // 保存骰娘文案到 ability.extra.copywriting（序列化为字符串）
-  const handleCopywritingSave = useCallback(() => {
-    const copywritingData = localEdits.copywritingTemplates ?? renderData?.copywritingTemplates ?? {};
-    const serializedData = JSON.stringify(copywritingData);
+  const baseCopywritingSerialized = useMemo(
+    () => JSON.stringify(abilityQuery.data?.extraCopywriting ?? {}),
+    [abilityQuery.data?.extraCopywriting],
+  );
 
+  useEffect(() => {
+    if (localEdits.copywritingTemplates !== undefined) {
+      return;
+    }
+    lastSavedCopywritingRef.current = baseCopywritingSerialized;
+  }, [baseCopywritingSerialized, localEdits.copywritingTemplates]);
+
+  // 保存骰娘文案到 ability.extra.copywriting（序列化为字符串）
+  const saveCopywritingTemplates = useCallback((serializedData: string) => {
     const payload = {
       roleId,
       ruleId: selectedRuleId,
@@ -174,20 +189,86 @@ export default function ExpansionModule({
         copywriting: serializedData,
       },
     };
+    const saveVersion = copywritingSaveVersionRef.current + 1;
+    copywritingSaveVersionRef.current = saveVersion;
+    if (copywritingStatusTimerRef.current) {
+      clearTimeout(copywritingStatusTimerRef.current);
+      copywritingStatusTimerRef.current = null;
+    }
+    setCopywritingSaveMsg("保存中...");
 
     updateFieldAbility(payload, {
       onSuccess: () => {
-        // 保存成功后清空本地编辑状态，让数据从后端重新加载。
-        setLocalEdits(prev => ({ ...prev, copywritingTemplates: undefined }));
+        if (copywritingSaveVersionRef.current !== saveVersion) {
+          return;
+        }
+        lastSavedCopywritingRef.current = serializedData;
+        // 只有当前本地值与本次保存完全一致时才清空，避免旧响应覆盖连续输入。
+        setLocalEdits((prev) => {
+          if (prev.copywritingTemplates === undefined) {
+            return prev;
+          }
+          if (JSON.stringify(prev.copywritingTemplates) !== serializedData) {
+            return prev;
+          }
+          return { ...prev, copywritingTemplates: undefined };
+        });
+        setCopywritingSaveMsg("已自动保存");
+        copywritingStatusTimerRef.current = setTimeout(() => {
+          setCopywritingSaveMsg(prev => (prev === "已自动保存" ? "" : prev));
+          copywritingStatusTimerRef.current = null;
+        }, 1500);
       },
       onError: (e: any) => {
+        if (copywritingSaveVersionRef.current !== saveVersion) {
+          return;
+        }
         console.error("保存骰娘文案失败:", e);
         console.error("错误详情:", e?.body || e?.message || e);
         setCopywritingSaveMsg(`保存失败: ${e?.body?.message || e?.message || "请稍后重试"}`);
-        setTimeout(() => setCopywritingSaveMsg(""), 3000);
+        copywritingStatusTimerRef.current = setTimeout(() => {
+          setCopywritingSaveMsg("");
+          copywritingStatusTimerRef.current = null;
+        }, 3000);
       },
     });
-  }, [localEdits.copywritingTemplates, renderData?.copywritingTemplates, roleId, selectedRuleId, updateFieldAbility]);
+  }, [roleId, selectedRuleId, updateFieldAbility]);
+
+  useEffect(() => {
+    const copywritingData = localEdits.copywritingTemplates;
+    if (copywritingData === undefined) {
+      return;
+    }
+    const serializedData = JSON.stringify(copywritingData);
+    if (serializedData === lastSavedCopywritingRef.current) {
+      return;
+    }
+    if (copywritingAutosaveTimerRef.current) {
+      clearTimeout(copywritingAutosaveTimerRef.current);
+    }
+    copywritingAutosaveTimerRef.current = setTimeout(() => {
+      saveCopywritingTemplates(serializedData);
+      copywritingAutosaveTimerRef.current = null;
+    }, COPYWRITING_AUTOSAVE_DELAY_MS);
+
+    return () => {
+      if (copywritingAutosaveTimerRef.current) {
+        clearTimeout(copywritingAutosaveTimerRef.current);
+        copywritingAutosaveTimerRef.current = null;
+      }
+    };
+  }, [localEdits.copywritingTemplates, saveCopywritingTemplates]);
+
+  useEffect(() => {
+    return () => {
+      if (copywritingAutosaveTimerRef.current) {
+        clearTimeout(copywritingAutosaveTimerRef.current);
+      }
+      if (copywritingStatusTimerRef.current) {
+        clearTimeout(copywritingStatusTimerRef.current);
+      }
+    };
+  }, []);
 
   // 检查是否规则未创建
   const isRuleNotCreated = !abilityQuery.isLoading && !abilityQuery.isFetching && !abilityQuery.data && ruleDetailQuery.data;
@@ -513,16 +594,6 @@ export default function ExpansionModule({
                                             {copywritingSaveMsg && (
                                               <span className="text-sm text-base-content/70">{copywritingSaveMsg}</span>
                                             )}
-                                            <button
-                                              type="button"
-                                              onClick={handleCopywritingSave}
-                                              className={`btn ${isSmall ? "btn-xs" : "btn-sm"} btn-primary`}
-                                            >
-                                              <span className="flex items-center gap-1">
-                                                <SaveIcon className="w-4 h-4" />
-                                                保存
-                                              </span>
-                                            </button>
                                           </div>
                                         </div>
                                         <CopywritingEditor
@@ -558,16 +629,6 @@ export default function ExpansionModule({
                                           {copywritingSaveMsg && (
                                             <span className="text-sm text-base-content/70">{copywritingSaveMsg}</span>
                                           )}
-                                          <button
-                                            type="button"
-                                            onClick={handleCopywritingSave}
-                                            className={`btn ${isSmall ? "btn-xs" : "btn-sm"} btn-primary`}
-                                          >
-                                            <span className="flex items-center gap-1">
-                                              <SaveIcon className="w-4 h-4" />
-                                              保存
-                                            </span>
-                                          </button>
                                         </div>
                                       </div>
                                       <CopywritingEditor

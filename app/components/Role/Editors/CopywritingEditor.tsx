@@ -49,27 +49,6 @@ export default function CopywritingEditor({ value, onChange }: CopywritingEditor
     }
   }, [createEntryKey, groups]);
 
-  // 当传入为空时，自动填充一组默认示例文案（仅一次）
-  useEffect(() => {
-    if (!value || Object.keys(value).length === 0) {
-      const demo: Record<string, string[]> = {
-        成功: [
-          "骰子转动如星辰，结果令人满意！",
-          "太棒了！你的运气站在你这边。",
-        ],
-        失败: [
-          "骰子有点调皮，这次没有如愿。",
-          "别灰心，下一次一定可以！",
-        ],
-        问候: [
-          "欢迎来到掷骰时间，准备好了吗？",
-          "骰娘在线，请下达你的指令~",
-        ],
-      };
-      onChange(demo);
-    }
-  }, [value, onChange]);
-
   const addGroup = useCallback(() => {
     const name = groupNameInput.trim();
     if (!name)
