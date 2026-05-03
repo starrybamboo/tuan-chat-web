@@ -1,11 +1,14 @@
-import type { UserRole } from "@tuanchat/openapi-client/models/UserRole";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+
+import type { UserRoleWithAvatarUrls } from "api/roleQueryCache";
+
 import { tuanchat } from "@/../api/instance";
-import { seedRoleAvatarQueryCaches } from "api/hooks/RoleAndAvatarHooks";
-import { seedUserRoleQueryCache, upsertUserRoleListQueryCache } from "api/roleQueryCache";
-import { invalidateRoleCreateQueries } from "api/hooks/roleMutationInvalidation";
-import { ROLE_DEFAULT_AVATAR_URL } from "@/constants/defaultAvatar";
 import { useGlobalContext } from "@/components/globalContextProvider";
+import { ROLE_DEFAULT_AVATAR_URL } from "@/constants/defaultAvatar";
+import { invalidateRoleCreateQueries } from "api/hooks/roleMutationInvalidation";
+import { seedUserRoleQueryCache, upsertUserRoleListQueryCache } from "api/roleQueryCache";
+import { ensureCreatedRoleDefaultAvatar } from "./createRoleDefaultAvatar";
+
 import type { Role } from "../../types";
 
 export type CreateRoleWithAbilityInput = {
@@ -39,26 +42,15 @@ export function useCreateRoleWithAbilityMutation() {
       }
 
       let avatarId = 0;
-      let avatarUrl = ROLE_DEFAULT_AVATAR_URL;
-      let avatarThumb = ROLE_DEFAULT_AVATAR_URL;
+      const avatarUrl = ROLE_DEFAULT_AVATAR_URL;
+      const avatarThumb = ROLE_DEFAULT_AVATAR_URL;
 
       try {
         const avatarCreateRes = await tuanchat.avatarController.setRoleAvatar({ roleId });
         const createdAvatarId = avatarCreateRes?.data;
         if (avatarCreateRes.success && createdAvatarId) {
-          const avatarUpdateRes = await tuanchat.avatarController.updateRoleAvatar({
-            roleId,
-            avatarId: createdAvatarId,
-            avatarUrl: ROLE_DEFAULT_AVATAR_URL,
-            avatarThumbUrl: ROLE_DEFAULT_AVATAR_URL,
-            spriteUrl: ROLE_DEFAULT_AVATAR_URL,
-          });
           avatarId = createdAvatarId;
-          avatarUrl = avatarUpdateRes?.data?.avatarUrl || avatarUrl;
-          avatarThumb = avatarUpdateRes?.data?.avatarThumbUrl || avatarUrl;
-          if (avatarUpdateRes?.data) {
-            seedRoleAvatarQueryCaches(queryClient, avatarUpdateRes.data, roleId);
-          }
+          await ensureCreatedRoleDefaultAvatar(queryClient, roleId, createdAvatarId);
           await tuanchat.roleController.updateRole({
             roleId,
             avatarId,
@@ -91,7 +83,7 @@ export function useCreateRoleWithAbilityMutation() {
         extra: {},
       };
 
-      const userRole: UserRole = {
+      const userRole: UserRoleWithAvatarUrls = {
         userId: userId ?? 0,
         roleId,
         roleName: input.roleName,
@@ -110,7 +102,6 @@ export function useCreateRoleWithAbilityMutation() {
     onSuccess: (role, variables) => {
       invalidateRoleCreateQueries(queryClient, variables.spaceId);
       queryClient.invalidateQueries({ queryKey: ["getRole", role.id] });
-      queryClient.invalidateQueries({ queryKey: ["getRoleAvatars", role.id] });
       queryClient.invalidateQueries({ queryKey: ["listRoleAbility", role.id] });
       queryClient.invalidateQueries({ queryKey: ["roleAbilityByRule", role.id, variables.ruleId] });
     },
