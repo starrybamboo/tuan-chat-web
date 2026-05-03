@@ -5,6 +5,7 @@ import {
   hasClearBackgroundAnnotation,
   isImageMessageBackground,
 } from "@/types/messageAnnotations";
+import { imageHighUrlFromUrl } from "@/utils/mediaUrl";
 
 import type { ChatMessageResponse } from "../../../../api";
 
@@ -122,7 +123,7 @@ export default function useChatFrameVisualEffects({
     // 从清除背景之后（或从头）开始寻找新的背景图片
     for (const bg of imgNode) {
       if (bg.index <= currentMessageIndex && bg.index > lastClearIndex) {
-        newBgUrl = bg.imageMessage?.url ?? null;
+        newBgUrl = bg.imageMessage?.url ? imageHighUrlFromUrl(bg.imageMessage.url) : null;
       }
       else if (bg.index > currentMessageIndex) {
         break;

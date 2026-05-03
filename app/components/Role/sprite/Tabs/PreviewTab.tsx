@@ -5,8 +5,6 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 import toast from "react-hot-toast";
 import { AvatarPreview } from "@/components/Role/Preview/AvatarPreview";
 import { RenderPreview } from "@/components/Role/Preview/RenderPreview";
-import { isMobileScreen } from "@/utils/getScreenSize";
-import { withOssResizeProcess } from "@/utils/ossImageProcess";
 import { CharacterCopper } from "../../RoleInfoCard/AvatarUploadCropper";
 import { getEffectiveAvatarThumbUrl, getEffectiveAvatarUrl, getEffectiveSpriteUrl, parseTransformFromAvatar, toSpriteTransformPayload } from "../utils";
 
@@ -62,25 +60,8 @@ export function PreviewTab({
 
   const spriteUrl = currentAvatar ? (getEffectiveSpriteUrl(currentAvatar) || null) : null;
   const avatarUrl = currentAvatar ? (getEffectiveAvatarUrl(currentAvatar) || null) : null;
-
-  const MAX_PREVIEW_WIDTH = 1440;
-
-  // Sprite 预览使用 OSS resize，减少首次加载体积（最大宽度限制为 1440）
-  const spritePreviewUrl = useMemo(() => {
-    if (!spriteUrl)
-      return null;
-
-    const desiredWidth = isMobileScreen() ? 960 : 1440;
-    const width = Math.min(MAX_PREVIEW_WIDTH, desiredWidth);
-    return withOssResizeProcess(spriteUrl, width);
-  }, [spriteUrl]);
-
-  // Render 预览也使用 resize 后的 URL（同样限制到 1440，便于做对比实验）
-  const renderSpriteRequestUrl = useMemo(() => {
-    if (!spriteUrl)
-      return null;
-    return withOssResizeProcess(spriteUrl, MAX_PREVIEW_WIDTH);
-  }, [spriteUrl]);
+  const spritePreviewUrl = spriteUrl;
+  const renderSpriteRequestUrl = spriteUrl;
 
   // Canvas ref for render preview
   const previewCanvasRef = useRef<HTMLCanvasElement>(null);

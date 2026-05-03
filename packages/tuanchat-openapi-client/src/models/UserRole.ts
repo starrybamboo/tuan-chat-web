@@ -48,6 +48,10 @@ export type UserRole = {
     type: number;
     voiceUrl?: string;
     /**
+     * 角色语音媒体文件 ID
+     */
+    voiceFileId?: number;
+    /**
      * 角色扩展属性
      */
     extra?: Record<string, string>;

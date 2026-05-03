@@ -22,14 +22,22 @@ export type RealtimeGameConfig = {
   coverFromRoomAvatarEnabled: boolean;
   /** 标题背景图 URL（Title_img，优先于“标题背景图使用群聊头像”） */
   titleImageUrl: string;
+  /** 标题背景图媒体文件 ID */
+  titleImageFileId?: number;
   /** 标题背景图原图 URL（本地打包优先使用） */
   originalTitleImageUrl: string;
+  /** 标题背景图原图媒体文件 ID */
+  originalTitleImageFileId?: number;
   /** 未设置启动图 URL 时，是否将群聊头像同步为启动图（Game_Logo） */
   startupLogoFromRoomAvatarEnabled: boolean;
   /** 启动图 URL（Game_Logo，优先于“启动图使用群聊头像”） */
   startupLogoUrl: string;
+  /** 启动图媒体文件 ID */
+  startupLogoFileId?: number;
   /** 启动图原图 URL（本地打包优先使用） */
   originalStartupLogoUrl: string;
+  /** 启动图原图媒体文件 ID */
+  originalStartupLogoFileId?: number;
   /** 是否将群聊头像同步为游戏图标（icons/*） */
   gameIconFromRoomAvatarEnabled: boolean;
   /** 是否将空间名称+spaceId 同步为游戏名（Game_name） */
@@ -58,6 +66,10 @@ export type RealtimeGameConfig = {
   typingSoundPunctuationPause: number;
   /** 打字音效文件 URL（将上传同步为 TypingSoundSe） */
   typingSoundSeUrl: string;
+  /** 打字音效媒体文件 ID */
+  typingSoundSeFileId?: number;
+  /** 打字音效媒体类型 */
+  typingSoundSeMediaType?: string;
 };
 
 export const DEFAULT_REALTIME_GAME_CONFIG: RealtimeGameConfig = {

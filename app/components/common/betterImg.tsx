@@ -1,6 +1,7 @@
 import React, { useRef } from "react";
 import { ResizableImg } from "@/components/common/resizableImg";
 import toastWindow from "@/components/common/toastWindow/toastWindow";
+import { imageHighUrlFromUrl } from "@/utils/mediaUrl";
 import { markObservedWebgalAsset, primeWebgalAssetCache } from "@/webGAL/browserAssetCache";
 
 /**
@@ -20,17 +21,18 @@ function BetterImg({ src, className, onClose, size, transparent = true }: {
 }) {
   const imgRef = useRef<HTMLImageElement>(null);
   const imgSrc = typeof src === "string" || !src ? src : URL.createObjectURL(src);
+  const displayImgSrc = typeof imgSrc === "string" ? imageHighUrlFromUrl(imgSrc) : imgSrc;
   const handleLoad = () => {
-    if (typeof imgSrc !== "string") {
+    if (typeof displayImgSrc !== "string") {
       return;
     }
-    markObservedWebgalAsset(imgSrc);
-    void primeWebgalAssetCache(imgSrc);
+    markObservedWebgalAsset(displayImgSrc);
+    void primeWebgalAssetCache(displayImgSrc);
   };
 
   const openToastWindow = () => {
     toastWindow(
-      onClose => <ResizableImg src={imgSrc ?? ""} size={size} onClose={onClose} />,
+      onClose => <ResizableImg src={displayImgSrc ?? ""} size={size} onClose={onClose} />,
       {
         fullScreen: true,
         transparent,
@@ -42,7 +44,7 @@ function BetterImg({ src, className, onClose, size, transparent = true }: {
     <div className="relative group inline-block w-fit max-w-full">
       <img
         ref={imgRef}
-        src={imgSrc}
+        src={displayImgSrc}
         width={size?.width}
         className={`block w-auto max-w-full cursor-zoom-in object-contain hover:scale-101 ${className ?? ""}`}
         alt="img"

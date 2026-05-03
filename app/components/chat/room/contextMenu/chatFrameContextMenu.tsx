@@ -108,7 +108,10 @@ export default function ChatFrameContextMenu({
     const spaceId = typeof maybe?.spaceId === "number" ? maybe.spaceId : undefined;
     const title = typeof maybe?.title === "string" ? maybe.title : undefined;
     const imageUrl = typeof maybe?.imageUrl === "string" ? maybe.imageUrl : undefined;
-    return { docId, spaceId, title, imageUrl };
+    const imageFileId = typeof maybe?.imageFileId === "number" && maybe.imageFileId > 0 ? maybe.imageFileId : undefined;
+    const originalImageFileId = typeof maybe?.originalImageFileId === "number" && maybe.originalImageFileId > 0 ? maybe.originalImageFileId : undefined;
+    const imageMediaType = typeof maybe?.imageMediaType === "string" ? maybe.imageMediaType : undefined;
+    return { docId, spaceId, title, imageUrl, imageFileId, originalImageFileId, imageMediaType };
   }, [message?.message]);
 
   const canCopyDoc = useMemo(() => {
@@ -146,6 +149,9 @@ export default function ChatFrameContextMenu({
     sourceSpaceId?: number;
     title?: string;
     imageUrl?: string;
+    imageFileId?: number;
+    originalImageFileId?: number;
+    imageMediaType?: string;
   }) => {
     const { newDocEntityId, newDocId, title } = await copyDocToSpaceUserDoc({
       spaceId: params.spaceId,
@@ -153,6 +159,9 @@ export default function ChatFrameContextMenu({
       sourceSpaceId: params.sourceSpaceId,
       title: params.title,
       imageUrl: params.imageUrl,
+      imageFileId: params.imageFileId,
+      originalImageFileId: params.originalImageFileId,
+      imageMediaType: params.imageMediaType,
     });
     queryClient.invalidateQueries({ queryKey: ["listSpaceUserDocs", params.spaceId] });
 
@@ -164,6 +173,9 @@ export default function ChatFrameContextMenu({
     docId: string;
     title: string;
     imageUrl?: string;
+    imageFileId?: number;
+    originalImageFileId?: number;
+    imageMediaType?: string;
   }) => {
     const { parseSidebarTree } = await import("@/components/chat/room/sidebarTree");
     const getRes = await tuanchat.spaceSidebarTreeController.getSidebarTree(params.spaceId);
@@ -193,6 +205,9 @@ export default function ChatFrameContextMenu({
         targetId: params.docId,
         fallbackTitle: params.title,
         ...(params.imageUrl ? { fallbackImageUrl: params.imageUrl } : {}),
+        ...(params.imageFileId ? { fallbackImageFileId: params.imageFileId } : {}),
+        ...(params.originalImageFileId ? { fallbackOriginalImageFileId: params.originalImageFileId } : {}),
+        ...(params.imageMediaType ? { fallbackImageMediaType: params.imageMediaType } : {}),
       });
     }
 
@@ -225,6 +240,9 @@ export default function ChatFrameContextMenu({
         targetId: params.docId,
         fallbackTitle: params.title,
         ...(params.imageUrl ? { fallbackImageUrl: params.imageUrl } : {}),
+        ...(params.imageFileId ? { fallbackImageFileId: params.imageFileId } : {}),
+        ...(params.originalImageFileId ? { fallbackOriginalImageFileId: params.originalImageFileId } : {}),
+        ...(params.imageMediaType ? { fallbackImageMediaType: params.imageMediaType } : {}),
       });
     }
 
@@ -251,6 +269,9 @@ export default function ChatFrameContextMenu({
         sourceSpaceId: ok.sourceSpaceId,
         title: docCard?.title,
         imageUrl: docCard?.imageUrl,
+        imageFileId: docCard?.imageFileId,
+        originalImageFileId: docCard?.originalImageFileId,
+        imageMediaType: docCard?.imageMediaType,
       });
       toast.success("已复制到我的文档", { id: toastId });
       setSideDrawerState("doc");
@@ -259,7 +280,16 @@ export default function ChatFrameContextMenu({
       console.error("[DocCopy] copyToMyDocs failed", err);
       toast.error(err instanceof Error ? err.message : "复制失败", { id: toastId });
     }
-  }, [copyToSpaceUserDoc, docCard?.imageUrl, docCard?.title, ensureCanCopyDoc, setSideDrawerState]);
+  }, [
+    copyToSpaceUserDoc,
+    docCard?.imageFileId,
+    docCard?.imageMediaType,
+    docCard?.imageUrl,
+    docCard?.originalImageFileId,
+    docCard?.title,
+    ensureCanCopyDoc,
+    setSideDrawerState,
+  ]);
 
   const handleCopyToKpSidebarTree = useCallback(async () => {
     if (!spaceContext.isSpaceOwner) {
@@ -279,12 +309,18 @@ export default function ChatFrameContextMenu({
         sourceSpaceId: ok.sourceSpaceId,
         title: docCard?.title,
         imageUrl: docCard?.imageUrl,
+        imageFileId: docCard?.imageFileId,
+        originalImageFileId: docCard?.originalImageFileId,
+        imageMediaType: docCard?.imageMediaType,
       });
       await appendDocToSidebarTree({
         spaceId: ok.spaceId,
         docId: res.newDocId,
         title: res.title,
         imageUrl: docCard?.imageUrl,
+        imageFileId: docCard?.imageFileId,
+        originalImageFileId: docCard?.originalImageFileId,
+        imageMediaType: docCard?.imageMediaType,
       });
       queryClient.invalidateQueries({ queryKey: ["getSpaceSidebarTree", ok.spaceId] });
       toast.success("已复制到空间侧边栏", { id: toastId });
@@ -294,7 +330,18 @@ export default function ChatFrameContextMenu({
       console.error("[DocCopy] copyToKpSidebarTree failed", err);
       toast.error(err instanceof Error ? err.message : "复制失败", { id: toastId });
     }
-  }, [appendDocToSidebarTree, docCard?.imageUrl, docCard?.title, ensureCanCopyDoc, navigate, queryClient, spaceContext.isSpaceOwner]);
+  }, [
+    appendDocToSidebarTree,
+    docCard?.imageFileId,
+    docCard?.imageMediaType,
+    docCard?.imageUrl,
+    docCard?.originalImageFileId,
+    docCard?.title,
+    ensureCanCopyDoc,
+    navigate,
+    queryClient,
+    spaceContext.isSpaceOwner,
+  ]);
   if (!contextMenu)
     return null;
 

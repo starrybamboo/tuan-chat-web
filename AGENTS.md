@@ -1,5 +1,6 @@
 ﻿- 使用 pnpm 而不是 npm
 - 修改完成后执行 `pnpm typecheck`
+- 项目可按全新项目处理：即使已经上线，也可以在前后端都可控的前提下直接调整架构，很多场景无需做兼容处理，可通过脚本清理有问题的数据。
 - input 样式：不要使用 daisy UI，参考使用 `transition focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary`
 - 默认情况下，圆角使用 `rounded-md`
 - 用中文回答我

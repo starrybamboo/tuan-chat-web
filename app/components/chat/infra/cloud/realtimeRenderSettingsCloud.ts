@@ -14,10 +14,14 @@ export type RealtimeRenderCloudSettings = {
   baseTemplate?: string;
   coverFromRoomAvatarEnabled?: boolean;
   titleImageUrl?: string;
+  titleImageFileId?: number;
   originalTitleImageUrl?: string;
+  originalTitleImageFileId?: number;
   startupLogoFromRoomAvatarEnabled?: boolean;
   startupLogoUrl?: string;
+  startupLogoFileId?: number;
   originalStartupLogoUrl?: string;
+  originalStartupLogoFileId?: number;
   gameIconFromRoomAvatarEnabled?: boolean;
   gameNameFromRoomNameEnabled?: boolean;
   description?: string;
@@ -31,6 +35,8 @@ export type RealtimeRenderCloudSettings = {
   typingSoundInterval?: number;
   typingSoundPunctuationPause?: number;
   typingSoundSeUrl?: string;
+  typingSoundSeFileId?: number;
+  typingSoundSeMediaType?: string;
 };
 
 const SPACE_EXTRA_KEY = "webgalRealtimeRenderSettings";

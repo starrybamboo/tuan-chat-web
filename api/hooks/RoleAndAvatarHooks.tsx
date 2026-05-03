@@ -286,16 +286,18 @@ function patchUserRoleRecord(role: UserRole, next: any, resolvedRoleId: number):
     return role;
   }
 
+  const hasNextField = (field: string) => Object.prototype.hasOwnProperty.call(next ?? {}, field);
   return {
     ...role,
     roleName: next?.name ?? role.roleName,
     description: next?.description ?? role.description,
     avatarId: typeof next?.avatarId === "number" ? next.avatarId : role.avatarId,
-    voiceUrl: next?.voiceUrl ?? role.voiceUrl,
+    voiceUrl: hasNextField("voiceUrl") ? next.voiceUrl : role.voiceUrl,
+    voiceFileId: hasNextField("voiceFileId") ? next.voiceFileId : (role as any).voiceFileId,
     extra: next?.extra ?? role.extra,
     type: typeof next?.type === "number" ? next.type : role.type,
     diceMaiden: typeof next?.type === "number" ? next.type === 1 : role.diceMaiden,
-  };
+  } as UserRole;
 }
 
 function patchUserRoleQueryCache(old: any, next: any, resolvedRoleId: number) {
@@ -330,7 +332,8 @@ function patchGetRoleQueryCache(old: any, next: any, resolvedRoleId: number) {
       roleName: next?.name ?? old.data.roleName,
       description: next?.description ?? old.data.description,
       avatarId: typeof next?.avatarId === "number" ? next.avatarId : old.data.avatarId,
-      voiceUrl: next?.voiceUrl ?? old.data.voiceUrl,
+      voiceUrl: Object.prototype.hasOwnProperty.call(next ?? {}, "voiceUrl") ? next.voiceUrl : old.data.voiceUrl,
+      voiceFileId: Object.prototype.hasOwnProperty.call(next ?? {}, "voiceFileId") ? next.voiceFileId : old.data.voiceFileId,
       extra: next?.extra ?? old.data.extra,
       type: typeof next?.type === "number" ? next.type : old.data.type,
       diceMaiden: typeof next?.type === "number" ? next.type === 1 : old.data.diceMaiden,
@@ -423,6 +426,7 @@ export function useUpdateRoleWithLocalMutation(onSave: (localRole: Role) => void
           description: data.description,
           avatarId: data.avatarId,
           voiceUrl: data.voiceUrl,
+          voiceFileId: data.voiceFileId,
           extra: data.extra,
         });
         return updateRes;
@@ -684,6 +688,7 @@ export function useCopyRoleMutation() {
         avatarId: copiedAvatarId,
         type: copiedRole.type,
         voiceUrl: copiedRole.voiceUrl || sourceRole.voiceUrl,
+        voiceFileId: (copiedRole as any).voiceFileId || sourceRole.voiceFileId,
         extra: copiedRole.extra ?? sourceRole.extra,
       };
     },

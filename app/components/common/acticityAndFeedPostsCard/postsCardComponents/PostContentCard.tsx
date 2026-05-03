@@ -1,4 +1,5 @@
 import React from "react";
+import { imageMediumUrlFromUrl } from "@/utils/mediaUrl";
 
 interface PostContentCardProps {
   title: string;
@@ -28,7 +29,7 @@ const PostContentCard: React.FC<PostContentCardProps> = ({
           {coverImage
             ? (
                 <img
-                  src={coverImage}
+                  src={imageMediumUrlFromUrl(coverImage)}
                   alt={title || "帖子封面"}
                   className="w-full h-full object-cover rounded-lg"
                 />

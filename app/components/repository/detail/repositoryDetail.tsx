@@ -13,7 +13,7 @@ import BlocksuiteDescriptionEditor from "@/components/chat/shared/components/Blo
 import {
   BLOCKSUITE_FULL_PANEL_EDITOR_CLASS,
 } from "@/components/chat/shared/components/BlockSuite/blocksuiteDescriptionEditor.shared";
-import { avatarThumbUrl } from "@/utils/mediaUrl";
+import { avatarThumbUrl, imageMediumUrl, imageMediumUrlFromUrl } from "@/utils/mediaUrl";
 import Author from "./author";
 import {
   findRecoverableRepositorySpace,
@@ -138,7 +138,8 @@ export default function RepositoryDetailComponent({
       description: repository.description,
       userId: repository.userId,
       authorName: repository.authorName,
-      image: (repository.image && repository.image !== null && repository.image !== "null") ? String(repository.image) : "",
+      image: imageMediumUrl((repository as any).coverFileId) || ((repository.image && repository.image !== null && repository.image !== "null") ? String(repository.image) : ""),
+      coverFileId: (repository as any).coverFileId,
       createTime: repository.createTime,
       updateTime: repository.updateTime,
       minPeople: repository.minPeople,
@@ -168,6 +169,7 @@ export default function RepositoryDetailComponent({
   );
 
   const repositoryImage = repositoryData?.image?.trim() ?? "";
+  const displayRepositoryImage = imageMediumUrlFromUrl(repositoryImage);
 
   const showErrorToast = (message: string) => {
     setErrorToastMessage(message);
@@ -184,7 +186,7 @@ export default function RepositoryDetailComponent({
   };
 
   useEffect(() => {
-    if (!repositoryImage) {
+    if (!displayRepositoryImage) {
       setImageLoading(false);
       setImageError(false);
       return;
@@ -208,7 +210,7 @@ export default function RepositoryDetailComponent({
     };
     image.onload = handleLoad;
     image.onerror = handleError;
-    image.src = repositoryImage;
+    image.src = displayRepositoryImage;
 
     if (image.complete) {
       if (image.naturalWidth > 0)
@@ -222,7 +224,7 @@ export default function RepositoryDetailComponent({
       image.onload = null;
       image.onerror = null;
     };
-  }, [repositoryImage]);
+  }, [displayRepositoryImage]);
 
   useEffect(() => {
     return () => {
@@ -422,7 +424,7 @@ export default function RepositoryDetailComponent({
               <div className="w-full md:w-1/4 flex flex-col gap-4 md:sticky md:top-0 md:self-start">
                 <div className="p-4 flex flex-col gap-4 bg-base-200 rounded-lg border-2 border-base-300 ">
                   <div className="w-full flex items-center justify-center relative rounded-md overflow-hidden">
-                    {repositoryImage
+                    {displayRepositoryImage
                       ? (
                           <>
                             {imageLoading && (
@@ -442,7 +444,7 @@ export default function RepositoryDetailComponent({
                             )}
                             <img
                               className={`aspect-square object-cover w-full z-0 ${imageLoading || imageError ? "opacity-0" : "opacity-100"} transition-opacity duration-300`}
-                              src={repositoryImage}
+                              src={displayRepositoryImage}
                               onLoad={() => setImageLoading(false)}
                               onError={() => {
                                 setImageLoading(false);

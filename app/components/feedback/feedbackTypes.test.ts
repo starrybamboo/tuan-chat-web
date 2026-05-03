@@ -14,22 +14,22 @@ import {
 } from "@/components/feedback/feedbackTypes";
 
 describe("feedbackTypes", () => {
-  it("作者头像优先使用 avatar 字段，避免历史缩略图覆盖当前头像", () => {
+  it("作者头像展示优先使用缩略图，避免列表和详情拉取较大的头像", () => {
     expect(getFeedbackAuthorAvatar({
       userId: 7,
       username: "tester",
       avatar: "https://img.example.com/current.webp",
       avatarThumbUrl: "https://img.example.com/legacy-thumb.webp",
-    })).toBe("https://img.example.com/current.webp");
+    })).toBe("https://img.example.com/legacy-thumb.webp");
   });
 
-  it("缺少 avatar 时回退到 avatarThumbUrl", () => {
+  it("缺少缩略图时回退到 avatar", () => {
     expect(getFeedbackAuthorAvatar({
       userId: 8,
       username: "tester",
-      avatar: "",
-      avatarThumbUrl: "https://img.example.com/thumb-only.webp",
-    })).toBe("https://img.example.com/thumb-only.webp");
+      avatar: "https://img.example.com/avatar-only.webp",
+      avatarThumbUrl: "",
+    })).toBe("https://img.example.com/avatar-only.webp");
   });
 
   it("状态标签与新流程一致", () => {

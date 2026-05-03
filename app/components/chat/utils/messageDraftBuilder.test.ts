@@ -153,6 +153,43 @@ describe("messageDraftBuilder", () => {
     expect(uploadUtils.uploadFile).not.toHaveBeenCalled();
   });
 
+  it("表情消息会保留媒体 fileId 和 mediaType", async () => {
+    const uploadUtils = createUploadUtilsMock();
+    const emojiUrl = "/media/v1/files/077/77/image/low.webp";
+
+    const drafts = await buildMessageDraftsFromComposerSnapshot({
+      inputText: "",
+      imgFiles: [],
+      emojiUrls: [emojiUrl],
+      emojiMetaByUrl: {
+        [emojiUrl]: {
+          fileId: 77,
+          mediaType: "image",
+          width: 128,
+          height: 96,
+          size: 2048,
+          fileName: "ok.webp",
+          originalUrl: "/media/v1/files/077/77/original",
+        },
+      },
+      fileAttachments: [],
+      audioFile: null,
+      composerAnnotations: [],
+      tempAnnotations: [],
+      uploadUtils,
+    });
+
+    expect(drafts).toHaveLength(1);
+    expect(drafts[0]?.extra).toMatchObject({
+      imageMessage: {
+        fileId: 77,
+        mediaType: "image",
+        url: emojiUrl,
+        originalUrl: "/media/v1/files/077/77/original",
+      },
+    });
+  });
+
   it("纯空白输入会保留原样生成文本草稿", async () => {
     const uploadUtils = createUploadUtilsMock();
 

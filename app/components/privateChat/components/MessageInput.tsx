@@ -173,7 +173,7 @@ function Emoji({
 }: {
   children: React.ReactNode;
   updateEmojiUrls: (recipe: (draft: string[]) => void) => void;
-  setEmojiMetaByUrl: (url: string, meta: { width?: number; height?: number; size?: number; fileName?: string; originalUrl?: string }) => void;
+  setEmojiMetaByUrl: (url: string, meta: { fileId?: number; width?: number; height?: number; mediaType?: string; size?: number; fileName?: string; originalUrl?: string }) => void;
 }) {
   const onChoose = async (emoji: StickerType) => {
     const emojiUrl = mediaFileUrl(emoji?.fileId, emoji?.mediaType, "low");
@@ -187,8 +187,10 @@ function Emoji({
     });
     if (emojiUrl) {
       setEmojiMetaByUrl(emojiUrl, {
+        fileId: emoji.fileId,
         width: emoji.width,
         height: emoji.height,
+        mediaType: emoji.mediaType,
         size: emoji.fileSize,
         fileName: emoji.name,
         originalUrl: originalEmojiUrl,

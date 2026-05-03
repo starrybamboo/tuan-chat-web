@@ -8,6 +8,7 @@ import { setBlocksuiteDocHeader } from "@/components/chat/infra/blocksuite/docum
 import { ResizableImg } from "@/components/common/resizableImg";
 import toastWindow from "@/components/common/toastWindow/toastWindow";
 import { ImgUploaderWithCopper } from "@/components/common/uploader/imgUploaderWithCropper";
+import { imageMediumUrl, imageMediumUrlFromUrl } from "@/utils/mediaUrl";
 
 interface BlocksuiteTcHeaderProps {
   docId: string;
@@ -46,25 +47,25 @@ export function BlocksuiteTcHeader(props: BlocksuiteTcHeaderProps) {
 
   const canEditTcHeader = !readOnly;
   const tcHeaderImageUrl = tcHeaderState?.header.imageUrl ?? fallbackImageUrl ?? "";
+  const tcHeaderDisplayImageUrl = imageMediumUrl(tcHeaderState?.header.imageFileId) || imageMediumUrlFromUrl(tcHeaderImageUrl);
   const tcHeaderTitle = tcHeaderState?.header.title ?? fallbackTitle ?? "";
-  const hasTcHeaderImage = Boolean(tcHeaderImageUrl.trim());
+  const hasTcHeaderImage = Boolean(tcHeaderDisplayImageUrl || tcHeaderImageUrl.trim());
   const copperedCompressionPreset = useMemo(() => {
     const parsed = parseDescriptionDocId(docId);
     return parsed && ["space", "room", "space_user_doc", "space_doc"].includes(parsed.entityType) ? "avatarThumb" : undefined;
   }, [docId]);
 
   const handleOpenTcHeaderImagePreview = useCallback(() => {
-    const imageUrl = tcHeaderImageUrl.trim();
-    if (!imageUrl)
+    if (!tcHeaderDisplayImageUrl)
       return;
     toastWindow(
-      onClose => <ResizableImg src={imageUrl} onClose={onClose} />,
+      onClose => <ResizableImg src={tcHeaderDisplayImageUrl} onClose={onClose} />,
       {
         fullScreen: true,
         transparent: true,
       },
     );
-  }, [tcHeaderImageUrl]);
+  }, [tcHeaderDisplayImageUrl]);
 
   const handleTcHeaderImagePreviewKeyDown = useCallback((event: ReactKeyboardEvent<HTMLDivElement>) => {
     if (event.key !== "Enter" && event.key !== " ")
@@ -93,15 +94,25 @@ export function BlocksuiteTcHeader(props: BlocksuiteTcHeaderProps) {
                       return;
                     setBlocksuiteDocHeader(store, { imageUrl: url });
                   }}
+                  mutate={(data) => {
+                    const store = storeRef.current;
+                    if (!store)
+                      return;
+                    setBlocksuiteDocHeader(store, {
+                      imageFileId: typeof data?.avatarFileId === "number" ? data.avatarFileId : undefined,
+                      originalImageFileId: typeof data?.originFileId === "number" ? data.originFileId : undefined,
+                      imageMediaType: "image",
+                    });
+                  }}
                   fileName={`blocksuite-header-${docId.replaceAll(":", "-")}`}
                   aspect={1}
                   copperedCompressionPreset={copperedCompressionPreset}
                 >
                   <div className={`tc-blocksuite-tc-header-avatar${hasTcHeaderImage ? "" : " tc-blocksuite-tc-header-avatar-empty"}`} aria-label="更换头像">
                     {hasTcHeaderImage
-                      ? (
+                        ? (
                           <img
-                            src={tcHeaderImageUrl}
+                            src={tcHeaderDisplayImageUrl}
                             alt={tcHeaderTitle || "文档封面"}
                             className="tc-blocksuite-tc-header-avatar-img"
                           />
@@ -132,7 +143,7 @@ export function BlocksuiteTcHeader(props: BlocksuiteTcHeaderProps) {
                   {hasTcHeaderImage
                     ? (
                         <img
-                          src={tcHeaderImageUrl}
+                          src={tcHeaderDisplayImageUrl}
                           alt={tcHeaderTitle || "文档封面"}
                           className="tc-blocksuite-tc-header-avatar-img"
                         />

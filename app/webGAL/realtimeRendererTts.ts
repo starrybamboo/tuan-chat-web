@@ -1,6 +1,7 @@
 import type { InferRequest } from "@/tts/engines/index/apiClient";
 
 import { createTTSApi, ttsApi } from "@/tts/engines/index/apiClient";
+import { mediaFileUrl } from "@/utils/mediaUrl";
 
 import type { RealtimeTTSConfig } from "./realtimeRendererConfig";
 
@@ -8,6 +9,7 @@ import { checkFileExist, uploadFile } from "./fileOperator";
 
 type RoleWithVoiceUrl = {
   voiceUrl?: string | null;
+  voiceFileId?: number | null;
 };
 
 type GenerateAndUploadVocalOptions = {
@@ -89,14 +91,15 @@ export async function fetchVoiceFilesFromRoleMap(
   voiceFileMap: Map<number, File>,
 ): Promise<void> {
   for (const [roleId, role] of roleMap) {
-    if (role.voiceUrl && !voiceFileMap.has(roleId)) {
+    const voiceUrl = mediaFileUrl(role.voiceFileId, "audio", "original") || role.voiceUrl;
+    if (voiceUrl && !voiceFileMap.has(roleId)) {
       try {
-        const response = await fetch(role.voiceUrl);
+        const response = await fetch(voiceUrl);
         if (response.ok) {
           const blob = await response.blob();
           const file = new File(
             [blob],
-            role.voiceUrl.split("/").pop() ?? `${roleId}_ref_vocal.wav`,
+            voiceUrl.split("/").pop() ?? `${roleId}_ref_vocal.wav`,
             { type: blob.type || "audio/wav" },
           );
           voiceFileMap.set(roleId, file);

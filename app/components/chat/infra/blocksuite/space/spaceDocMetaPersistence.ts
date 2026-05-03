@@ -42,12 +42,22 @@ function sanitizeDocMetaList(input: unknown): MinimalDocMeta[] {
     }
     const title = typeof (item as any)?.title === "string" ? (item as any).title.trim() : "";
     const imageUrl = typeof (item as any)?.imageUrl === "string" ? (item as any).imageUrl.trim() : "";
+    const imageFileId = typeof (item as any)?.imageFileId === "number" && (item as any).imageFileId > 0
+      ? (item as any).imageFileId
+      : undefined;
+    const originalImageFileId = typeof (item as any)?.originalImageFileId === "number" && (item as any).originalImageFileId > 0
+      ? (item as any).originalImageFileId
+      : undefined;
+    const imageMediaType = typeof (item as any)?.imageMediaType === "string" ? (item as any).imageMediaType.trim() : "";
     const existing = map.get(id);
     if (!existing) {
       map.set(id, {
         id,
         ...(title ? { title } : {}),
         ...(imageUrl ? { imageUrl } : {}),
+        ...(imageFileId ? { imageFileId } : {}),
+        ...(originalImageFileId ? { originalImageFileId } : {}),
+        ...(imageMediaType ? { imageMediaType } : {}),
       });
       continue;
     }
@@ -56,6 +66,15 @@ function sanitizeDocMetaList(input: unknown): MinimalDocMeta[] {
     }
     if (!existing.imageUrl && imageUrl) {
       existing.imageUrl = imageUrl;
+    }
+    if (!existing.imageFileId && imageFileId) {
+      existing.imageFileId = imageFileId;
+    }
+    if (!existing.originalImageFileId && originalImageFileId) {
+      existing.originalImageFileId = originalImageFileId;
+    }
+    if (!existing.imageMediaType && imageMediaType) {
+      existing.imageMediaType = imageMediaType;
     }
   }
 

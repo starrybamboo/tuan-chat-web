@@ -34,12 +34,12 @@ export default [
         route(":roleId?", "routes/role/roleId.tsx"), // -> /role/:roleId?
       ]),
     ]),
-    route("activities", "routes/activities.tsx"),
+    // 动态模块已下线，保留页面文件但不再注册入口路由。
 
     ...prefix("profile/:userId", [
       layout("routes/profile/profile.tsx", [
         index("routes/profile/homeTab.tsx"),
-        route("activities", "routes/profile/activitiesTab.tsx"),
+        // 动态模块已下线，个人主页不再暴露动态 Tab 路由。
         route("works", "routes/profile/profileWorks.tsx"),
       ]),
     ]),

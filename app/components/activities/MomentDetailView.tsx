@@ -4,7 +4,7 @@ import LikeIconButton from "@/components/common/likeIconButton";
 import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
 import { UserDetail } from "@/components/common/userDetail";
 import { CommentOutline, XMarkICon } from "@/icons";
-import { avatarThumbUrl } from "@/utils/mediaUrl";
+import { avatarThumbUrl, imageMediumUrlFromUrl } from "@/utils/mediaUrl";
 import { useDeleteMomentFeedMutation, useGetMomentByIdQuery } from "../../../api/hooks/activitiesFeedQuerryHooks";
 import { useGetUserInfoQuery } from "../../../api/hooks/UserHooks";
 
@@ -203,7 +203,7 @@ const MomentDetailView: React.FC<MomentDetailViewProps> = ({
                     <div className="flex items-center gap-3">
                       {feed.repositoryVO.imageUrl && (
                         <img
-                          src={feed.repositoryVO.imageUrl}
+                          src={imageMediumUrlFromUrl(feed.repositoryVO.imageUrl)}
                           alt={feed.repositoryVO.repositoryName}
                           className="w-12 h-12 rounded-lg object-cover"
                         />
@@ -242,8 +242,8 @@ const MomentDetailView: React.FC<MomentDetailViewProps> = ({
                           className="aspect-square overflow-hidden rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
                         >
                           <img
-                            src={img}
-                            alt={`ͼƬ ${idx + 1}`}
+                            src={imageMediumUrlFromUrl(img)}
+                            alt={`图片 ${idx + 1}`}
                             className="w-full h-full object-cover"
                           />
                         </div>

@@ -9,6 +9,10 @@ export type DocRefDragPayload = {
   title?: string;
   /** 发送时的封面兜底（预览加载前展示） */
   imageUrl?: string;
+  /** 发送时的封面媒体文件 ID */
+  imageFileId?: number;
+  originalImageFileId?: number;
+  imageMediaType?: string;
   /** 发送时的摘要兜底（预览加载前展示） */
   excerpt?: string;
 };
@@ -25,6 +29,9 @@ function normalizePayload(raw: any): DocRefDragPayload | null {
 
   const title = typeof raw?.title === "string" ? raw.title.trim() : "";
   const imageUrl = typeof raw?.imageUrl === "string" ? raw.imageUrl.trim() : "";
+  const imageFileId = typeof raw?.imageFileId === "number" && Number.isFinite(raw.imageFileId) && raw.imageFileId > 0 ? raw.imageFileId : undefined;
+  const originalImageFileId = typeof raw?.originalImageFileId === "number" && Number.isFinite(raw.originalImageFileId) && raw.originalImageFileId > 0 ? raw.originalImageFileId : undefined;
+  const imageMediaType = typeof raw?.imageMediaType === "string" ? raw.imageMediaType.trim() : "";
   const excerpt = typeof raw?.excerpt === "string" ? raw.excerpt.trim() : "";
 
   return {
@@ -32,6 +39,9 @@ function normalizePayload(raw: any): DocRefDragPayload | null {
     ...(spaceId ? { spaceId } : {}),
     ...(title ? { title } : {}),
     ...(imageUrl ? { imageUrl } : {}),
+    ...(imageFileId ? { imageFileId } : {}),
+    ...(originalImageFileId ? { originalImageFileId } : {}),
+    ...(imageMediaType ? { imageMediaType } : {}),
     ...(excerpt ? { excerpt: excerpt.slice(0, 512) } : {}),
   };
 }

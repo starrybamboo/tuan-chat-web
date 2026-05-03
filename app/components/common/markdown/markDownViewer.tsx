@@ -5,6 +5,8 @@ import { useNavigate } from "react-router";
 import rehypeRaw from "rehype-raw";
 import rehypeSanitize from "rehype-sanitize";
 import remarkGfm from "remark-gfm";
+import { resolveMediaContentSource } from "@/components/common/content/mediaContent";
+import { imageHighUrlFromUrl } from "@/utils/mediaUrl";
 import LinkComponent from "./linkHandler";
 import { MarkdownSyntaxHighlighter } from "./markdownSyntaxHighlighter";
 // 由于tailwind的preflight.css覆盖了原本的html样式，这里需要重新定义样式
@@ -70,7 +72,7 @@ function MediaEmbed({ type, src }: { type: string; src: string }) {
         <div className="my-4 overflow-hidden rounded-2xl border border-base-300 bg-base-200/20">
           <div className="aspect-video overflow-hidden bg-base-200">
             <video
-              src={src}
+              src={resolveMediaContentSource(src, "video", "high") || src}
               controls={true}
               preload="metadata"
               className="h-full w-full object-contain"
@@ -153,6 +155,15 @@ export function MarkDownViewer({
         remarkPlugins={[remarkGfm]}
         components={{
           a: (props: any) => <LinkComponent {...props} navigate={navigate} />,
+          img(props) {
+            const { src, ...rest } = props;
+            return (
+              <img
+                {...rest}
+                src={typeof src === "string" ? resolveMediaContentSource(src, "image", "high") || imageHighUrlFromUrl(src) : src}
+              />
+            );
+          },
           code(props) {
             const { children, className, node, ...rest } = props;
             const match = /language-(\w+)/.exec(className || "");

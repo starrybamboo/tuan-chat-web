@@ -17,8 +17,10 @@ type UsePrivateMessageSenderProps = {
 };
 
 type EmojiAttachmentMeta = {
+  fileId?: number;
   width?: number;
   height?: number;
+  mediaType?: string;
   size?: number;
   fileName?: string;
   originalUrl?: string;
@@ -87,10 +89,12 @@ export function usePrivateMessageSender({ webSocketUtils, userId, currentContact
               messageType: MESSAGE_TYPE.IMG,
               extra: buildMessageExtraForRequest(MESSAGE_TYPE.IMG, {
                 imageMessage: {
+                  fileId: uploadedImage.fileId,
+                  mediaType: uploadedImage.mediaType,
                   size: size > 0 ? size : imgFiles[i].size,
                   originalUrl: uploadedImage.originalUrl,
                   url: uploadedImage.url,
-                  fileName: uploadedImage.url.split("/").pop() || `${userId}-${Date.now()}`,
+                  fileName: imgFiles[i].name || `${userId}-${Date.now()}`,
                   width,
                   height,
                 },
@@ -141,6 +145,8 @@ export function usePrivateMessageSender({ webSocketUtils, userId, currentContact
             messageType: MESSAGE_TYPE.IMG,
             extra: buildMessageExtraForRequest(MESSAGE_TYPE.IMG, {
               imageMessage: {
+                fileId: meta?.fileId,
+                mediaType: meta?.mediaType,
                 size: size > 0 ? size : 0,
                 fileName: meta?.fileName || emojiUrl.split("/").pop() || `${userId}-${Date.now()}`,
                 width,

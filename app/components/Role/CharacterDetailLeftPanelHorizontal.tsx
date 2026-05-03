@@ -116,7 +116,7 @@ export default function CharacterDetailLeftPanelHorizontal({
     {
       id: "audio",
       title: "上传音频",
-      subtitle: localRole.voiceUrl ? "已上传音频" : "用于AI生成角色音色",
+      subtitle: localRole.voiceFileId || localRole.voiceUrl ? "已上传音频" : "用于AI生成角色音色",
       subtitleClassName: "text-secondary",
       actionLabel: "上传",
       onClick: onOpenAudioModal,

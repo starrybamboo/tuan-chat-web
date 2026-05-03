@@ -5,7 +5,7 @@ import { UploadUtils } from "@/utils/UploadUtils";
 interface AudioUploadModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSuccess?: (audioUrl: string) => void; // 上传成功的回调，返回音频URL
+  onSuccess?: (audio: { audioUrl: string; voiceFileId: number; mediaType: string }) => void;
 }
 
 /**
@@ -95,12 +95,16 @@ export default function AudioUploadModal({
       toast.loading("正在上传音频文件...", { id: "audio-upload" });
 
       // 语音参考文件：上传原始音频（不做 Opus 转码），避免影响后续音色参考质量/兼容性
-      const audioUrl = await uploadUtils.uploadAudioOriginal(selectedAudioFile, 1);
+      const uploadedAudio = await uploadUtils.uploadAudioOriginalAsset(selectedAudioFile, 1);
 
       toast.success("音频文件上传成功！", { id: "audio-upload" });
 
       // 调用成功回调
-      onSuccess?.(audioUrl);
+      onSuccess?.({
+        audioUrl: uploadedAudio.originalUrl,
+        voiceFileId: uploadedAudio.fileId,
+        mediaType: uploadedAudio.mediaType,
+      });
 
       // 清理状态并关闭弹窗
       setSelectedAudioFile(null);

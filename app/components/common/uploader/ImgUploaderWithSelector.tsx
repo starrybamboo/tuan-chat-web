@@ -35,11 +35,11 @@ export function ImgUploaderWithSelector({
 }: ImgUploaderWithSelectorProps) {
   const [showResourceModal, setShowResourceModal] = useState(false);
 
-  const handleResourceSelect = (resourceUrl: string) => {
+  const handleResourceSelect = (resourceUrl: string, resource?: { fileId?: number; mediaType?: string }) => {
     // 当从资源库选择图片时，直接使用该URL
     setCopperedDownloadUrl?.(resourceUrl);
     setDownloadUrl?.(resourceUrl);
-    mutate?.({ url: resourceUrl });
+    mutate?.({ url: resourceUrl, fileId: resource?.fileId, mediaType: resource?.mediaType });
   };
 
   return (

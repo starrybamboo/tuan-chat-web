@@ -11,6 +11,9 @@ export type SidebarLeafNode = {
   fallbackTitle?: string;
   /** 文档封面/缩略图缓存（用于 sidebarTree 首屏快速展示） */
   fallbackImageUrl?: string;
+  fallbackImageFileId?: number;
+  fallbackOriginalImageFileId?: number;
+  fallbackImageMediaType?: string;
 };
 
 export type SidebarCategoryNode = {
@@ -25,7 +28,14 @@ export type SidebarTree = {
   categories: SidebarCategoryNode[];
 };
 
-export type MinimalDocMeta = { id: string; title?: string; imageUrl?: string };
+export type MinimalDocMeta = {
+  id: string;
+  title?: string;
+  imageUrl?: string;
+  imageFileId?: number;
+  originalImageFileId?: number;
+  imageMediaType?: string;
+};
 
 function isSidebarVisibleDocId(docId: string): boolean {
   return parseSpaceDocId(docId)?.kind === "independent";
@@ -47,7 +57,14 @@ export function extractDocMetasFromSidebarTree(tree: SidebarTree | null | undefi
       if (seen.has(id))
         continue;
       seen.add(id);
-      list.push({ id, title: node.fallbackTitle, imageUrl: node.fallbackImageUrl });
+      list.push({
+        id,
+        title: node.fallbackTitle,
+        imageUrl: node.fallbackImageUrl,
+        imageFileId: node.fallbackImageFileId,
+        originalImageFileId: node.fallbackOriginalImageFileId,
+        imageMediaType: node.fallbackImageMediaType,
+      });
     }
   }
 
@@ -81,7 +98,13 @@ export function collectExistingDocIds(tree: SidebarTree | null | undefined): Set
 export function applySidebarDocFallbackCache(params: {
   tree: SidebarTree;
   docMetaMap: Map<string, MinimalDocMeta>;
-  docHeaderOverrides: Record<string, { title?: string; imageUrl?: string }>;
+  docHeaderOverrides: Record<string, {
+    title?: string;
+    imageUrl?: string;
+    imageFileId?: number;
+    originalImageFileId?: number;
+    imageMediaType?: string;
+  }>;
 }): SidebarTree {
   const base = JSON.parse(JSON.stringify(params.tree)) as SidebarTree;
   for (const cat of base.categories ?? []) {
@@ -98,15 +121,31 @@ export function applySidebarDocFallbackCache(params: {
 
       const overrideTitle = typeof override?.title === "string" ? override.title.trim() : "";
       const overrideImageUrl = typeof override?.imageUrl === "string" ? override.imageUrl.trim() : "";
+      const overrideImageFileId = typeof override?.imageFileId === "number" && override.imageFileId > 0 ? override.imageFileId : undefined;
+      const overrideOriginalImageFileId = typeof override?.originalImageFileId === "number" && override.originalImageFileId > 0 ? override.originalImageFileId : undefined;
+      const overrideImageMediaType = typeof override?.imageMediaType === "string" ? override.imageMediaType.trim() : "";
 
       const metaTitle = typeof meta?.title === "string" ? meta.title.trim() : "";
       const metaImageUrl = typeof meta?.imageUrl === "string" ? meta.imageUrl.trim() : "";
+      const metaImageFileId = typeof meta?.imageFileId === "number" && meta.imageFileId > 0 ? meta.imageFileId : undefined;
+      const metaOriginalImageFileId = typeof meta?.originalImageFileId === "number" && meta.originalImageFileId > 0 ? meta.originalImageFileId : undefined;
+      const metaImageMediaType = typeof meta?.imageMediaType === "string" ? meta.imageMediaType.trim() : "";
 
       const currentFallbackTitle = typeof (node as any)?.fallbackTitle === "string" ? String((node as any).fallbackTitle).trim() : "";
       const currentFallbackImageUrl = typeof (node as any)?.fallbackImageUrl === "string" ? String((node as any).fallbackImageUrl).trim() : "";
+      const currentFallbackImageFileId = typeof (node as any)?.fallbackImageFileId === "number" && (node as any).fallbackImageFileId > 0
+        ? (node as any).fallbackImageFileId
+        : undefined;
+      const currentFallbackOriginalImageFileId = typeof (node as any)?.fallbackOriginalImageFileId === "number" && (node as any).fallbackOriginalImageFileId > 0
+        ? (node as any).fallbackOriginalImageFileId
+        : undefined;
+      const currentFallbackImageMediaType = typeof (node as any)?.fallbackImageMediaType === "string" ? String((node as any).fallbackImageMediaType).trim() : "";
 
       const nextTitle = overrideTitle || metaTitle || currentFallbackTitle || docId;
       const nextImageUrl = overrideImageUrl || metaImageUrl || currentFallbackImageUrl;
+      const nextImageFileId = overrideImageFileId || metaImageFileId || currentFallbackImageFileId;
+      const nextOriginalImageFileId = overrideOriginalImageFileId || metaOriginalImageFileId || currentFallbackOriginalImageFileId;
+      const nextImageMediaType = overrideImageMediaType || metaImageMediaType || currentFallbackImageMediaType;
 
       (node as any).fallbackTitle = nextTitle;
       if (nextImageUrl) {
@@ -114,6 +153,24 @@ export function applySidebarDocFallbackCache(params: {
       }
       else {
         delete (node as any).fallbackImageUrl;
+      }
+      if (nextImageFileId) {
+        (node as any).fallbackImageFileId = nextImageFileId;
+      }
+      else {
+        delete (node as any).fallbackImageFileId;
+      }
+      if (nextOriginalImageFileId) {
+        (node as any).fallbackOriginalImageFileId = nextOriginalImageFileId;
+      }
+      else {
+        delete (node as any).fallbackOriginalImageFileId;
+      }
+      if (nextImageMediaType) {
+        (node as any).fallbackImageMediaType = nextImageMediaType;
+      }
+      else {
+        delete (node as any).fallbackImageMediaType;
       }
     }
   }
@@ -157,13 +214,20 @@ function buildRoomNode(roomId: number, fallbackTitle?: string): SidebarLeafNode 
   };
 }
 
-function buildDocNode(docId: string, fallbackTitle?: string, fallbackImageUrl?: string): SidebarLeafNode {
+function buildDocNode(docId: string, fallbackTitle?: string, fallbackImageUrl?: string, fallback?: {
+  imageFileId?: number;
+  originalImageFileId?: number;
+  imageMediaType?: string;
+}): SidebarLeafNode {
   return {
     nodeId: `doc:${docId}`,
     type: "doc",
     targetId: docId,
     fallbackTitle,
     fallbackImageUrl,
+    ...(fallback?.imageFileId ? { fallbackImageFileId: fallback.imageFileId } : {}),
+    ...(fallback?.originalImageFileId ? { fallbackOriginalImageFileId: fallback.originalImageFileId } : {}),
+    ...(fallback?.imageMediaType ? { fallbackImageMediaType: fallback.imageMediaType } : {}),
   };
 }
 
@@ -252,7 +316,11 @@ export function buildDefaultSidebarTree(params: {
     const docItems: SidebarLeafNode[] = params.docMetas
       .filter(m => typeof m?.id === "string" && m.id.length > 0 && isSidebarVisibleDocId(m.id))
       .map(m => ({
-        ...buildDocNode(m.id, m.title ?? m.id, m.imageUrl),
+        ...buildDocNode(m.id, m.title ?? m.id, m.imageUrl, {
+          imageFileId: m.imageFileId,
+          originalImageFileId: m.originalImageFileId,
+          imageMediaType: m.imageMediaType,
+        }),
       }));
     categories.push({
       categoryId: "cat:docs",
@@ -343,7 +411,10 @@ export function normalizeSidebarTree(params: {
 
       const title = raw?.fallbackTitle ?? meta?.title ?? docId;
       const imageUrl = raw?.fallbackImageUrl ?? meta?.imageUrl;
-      return buildDocNode(docId, title, imageUrl);
+      const imageFileId = raw?.fallbackImageFileId ?? meta?.imageFileId;
+      const originalImageFileId = raw?.fallbackOriginalImageFileId ?? meta?.originalImageFileId;
+      const imageMediaType = raw?.fallbackImageMediaType ?? meta?.imageMediaType;
+      return buildDocNode(docId, title, imageUrl, { imageFileId, originalImageFileId, imageMediaType });
     }
 
     return null;

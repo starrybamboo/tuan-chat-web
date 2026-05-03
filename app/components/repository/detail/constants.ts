@@ -14,6 +14,7 @@ export const DEFAULT_REPOSITORY_DATA = {
   minPeople: null as number | null,
   maxPeople: null as number | null,
   image: "",
+  coverFileId: undefined as number | undefined,
   createTime: null as string | null,
   updateTime: null as string | null,
   readMe: null as string | null,
