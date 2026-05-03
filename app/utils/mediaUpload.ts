@@ -47,10 +47,15 @@ export type UploadedMediaFile = {
   uploadRequired: boolean;
 };
 
+export type UploadMediaFileOptions = {
+  scene?: number;
+};
+
 const IMAGE_ORIGINAL_MAX_BYTES = 2 * 1024 * 1024;
 const AUDIO_ORIGINAL_MAX_BYTES = 20 * 1024 * 1024;
 const VIDEO_ORIGINAL_MAX_BYTES = 200 * 1024 * 1024;
 const OTHER_ORIGINAL_MAX_BYTES = 20 * 1024 * 1024;
+type ImageMediaProfile = (typeof MEDIA_COMPRESSION_PROFILES.image)[keyof typeof MEDIA_COMPRESSION_PROFILES.image];
 
 export function inferMediaType(file: File): MediaType {
   return inferMediaTypeFromMimeType(file.type);
@@ -75,6 +80,114 @@ function ensureFileType(file: File, type: string, extension: string) {
   });
 }
 
+function buildDerivedImageFileName(file: File, quality: MediaQuality) {
+  const baseName = file.name.replace(/(\.[^.]+)?$/, "");
+  return `${baseName}_${quality}.webp`;
+}
+
+async function createDrawableImage(file: File): Promise<ImageBitmap | HTMLImageElement> {
+  if (typeof globalThis.createImageBitmap === "function") {
+    return await globalThis.createImageBitmap(file);
+  }
+  if (typeof document === "undefined") {
+    throw new Error("当前环境不支持图片派生文件生成");
+  }
+
+  return await new Promise<HTMLImageElement>((resolve, reject) => {
+    const image = new Image();
+    const url = URL.createObjectURL(file);
+    image.onload = () => {
+      URL.revokeObjectURL(url);
+      resolve(image);
+    };
+    image.onerror = () => {
+      URL.revokeObjectURL(url);
+      reject(new Error("图片解码失败"));
+    };
+    image.src = url;
+  });
+}
+
+async function canvasToBlob(canvas: HTMLCanvasElement, type: string, quality: number): Promise<Blob> {
+  return await new Promise((resolve, reject) => {
+    canvas.toBlob((blob) => {
+      if (blob) {
+        resolve(blob);
+        return;
+      }
+      reject(new Error("图片派生文件生成失败"));
+    }, type, quality);
+  });
+}
+
+async function rasterizeImageToWebp(file: File, quality: Exclude<MediaQuality, "original">, profile: ImageMediaProfile): Promise<File> {
+  if (typeof document === "undefined") {
+    throw new Error("当前环境不支持图片派生文件生成");
+  }
+
+  const image = await createDrawableImage(file);
+  try {
+    const sourceWidth = Math.max(1, "naturalWidth" in image ? image.naturalWidth : image.width);
+    const sourceHeight = Math.max(1, "naturalHeight" in image ? image.naturalHeight : image.height);
+    const maxSize = Math.max(1, profile.maxWidthOrHeight);
+    const scale = Math.min(1, maxSize / Math.max(sourceWidth, sourceHeight));
+    const targetWidth = Math.max(1, Math.round(sourceWidth * scale));
+    const targetHeight = Math.max(1, Math.round(sourceHeight * scale));
+    const canvas = document.createElement("canvas");
+    canvas.width = targetWidth;
+    canvas.height = targetHeight;
+    const context = canvas.getContext("2d");
+    if (!context) {
+      throw new Error("当前环境不支持图片派生文件生成");
+    }
+    context.drawImage(image, 0, 0, targetWidth, targetHeight);
+
+    const candidateQualities = [
+      profile.quality,
+      Math.max(0.05, profile.quality * 0.85),
+      Math.max(0.05, profile.quality * 0.7),
+      Math.max(0.05, profile.quality * 0.55),
+      Math.max(0.05, profile.quality * 0.4),
+    ];
+    let best: File | null = null;
+    for (const candidateQuality of candidateQualities) {
+      const blob = await canvasToBlob(canvas, "image/webp", candidateQuality);
+      const next = new File([blob], buildDerivedImageFileName(file, quality), {
+        type: "image/webp",
+        lastModified: file.lastModified,
+      });
+      if (!best || next.size < best.size) {
+        best = next;
+      }
+      if (next.size <= profile.maxSizeKB * 1024) {
+        return next;
+      }
+    }
+
+    if (best && best.size <= profile.maxSizeKB * 1024) {
+      return best;
+    }
+    throw new Error(`${quality} 图片派生文件超过 ${profile.maxSizeKB}KB`);
+  }
+  finally {
+    if ("close" in image && typeof image.close === "function") {
+      image.close();
+    }
+  }
+}
+
+async function buildImageVariantFile(
+  file: File,
+  quality: Exclude<MediaQuality, "original">,
+  profile: ImageMediaProfile,
+): Promise<File> {
+  if (file.type === "image/gif") {
+    // GIF 的 original 可以保留动画；展示档统一取首帧生成 WebP，满足媒体库固定三档路径。
+    return await rasterizeImageToWebp(file, quality, profile);
+  }
+  return await compressImage(file, profile);
+}
+
 async function extractImageMetadata(file: File) {
   const bytes = new Uint8Array(await file.arrayBuffer());
   const novelAi = extractNovelAiMetadataFromPngBytes(bytes) || extractNovelAiMetadataFromWebpBytes(bytes);
@@ -90,20 +203,18 @@ async function extractImageMetadata(file: File) {
 async function generateImageUploadFiles(file: File): Promise<GeneratedMediaUploadFiles> {
   const normalizedFile = await normalizeFileMimeType(file, { expectedMediaType: "image" });
 
-  if (normalizedFile.type === "image/gif") {
-    throw new Error("新媒体链路暂不支持 GIF 派生文件，请继续使用旧上传入口或上传静态图片");
-  }
-
   const imageMetadata = await extractImageMetadata(normalizedFile);
   const original = normalizedFile.size <= IMAGE_ORIGINAL_MAX_BYTES
     ? normalizedFile
-    : await compressImage(normalizedFile, MEDIA_COMPRESSION_PROFILES.image.high);
+    : normalizedFile.type === "image/gif"
+      ? await rasterizeImageToWebp(normalizedFile, "high", MEDIA_COMPRESSION_PROFILES.image.high)
+      : await compressImage(normalizedFile, MEDIA_COMPRESSION_PROFILES.image.high);
   assertMaxBytes(original, IMAGE_ORIGINAL_MAX_BYTES, "图片 original");
 
   const [low, medium, high] = await Promise.all([
-    compressImage(original, MEDIA_COMPRESSION_PROFILES.image.low),
-    compressImage(original, MEDIA_COMPRESSION_PROFILES.image.medium),
-    compressImage(original, MEDIA_COMPRESSION_PROFILES.image.high),
+    buildImageVariantFile(original, "low", MEDIA_COMPRESSION_PROFILES.image.low),
+    buildImageVariantFile(original, "medium", MEDIA_COMPRESSION_PROFILES.image.medium),
+    buildImageVariantFile(original, "high", MEDIA_COMPRESSION_PROFILES.image.high),
   ]);
 
   return {
@@ -217,12 +328,13 @@ async function putMediaTarget(target: MediaUploadTarget, file: File) {
   }
 }
 
-async function prepareMediaUpload(payload: GeneratedMediaUploadFiles) {
+async function prepareMediaUpload(payload: GeneratedMediaUploadFiles, options: UploadMediaFileOptions = {}) {
   const result = await tuanchat.request.request<ApiResult<MediaPrepareUploadResponse>>({
     method: "POST",
     url: "/media/prepare-upload",
     body: {
       fileName: payload.original.name,
+      scene: options.scene,
       sha256: await calculateFileSha256(payload.original),
       sizeBytes: payload.original.size,
       mimeType: normalizeMimeType(payload.original.type) || "application/octet-stream",
@@ -248,9 +360,9 @@ async function completeMediaUpload(sessionId: number) {
   }
 }
 
-export async function uploadMediaFile(file: File): Promise<UploadedMediaFile> {
+export async function uploadMediaFile(file: File, options: UploadMediaFileOptions = {}): Promise<UploadedMediaFile> {
   const payload = await generateMediaUploadFiles(file);
-  const prepared = await prepareMediaUpload(payload);
+  const prepared = await prepareMediaUpload(payload, options);
   if (!prepared.uploadRequired) {
     return {
       fileId: prepared.fileId!,

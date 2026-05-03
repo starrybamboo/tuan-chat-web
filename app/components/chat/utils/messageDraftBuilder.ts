@@ -13,8 +13,10 @@ import { getImageSize } from "@/utils/getImgSize";
 import { MessageType } from "../../../../api/wsModels";
 
 type EmojiAttachmentMeta = {
+  fileId?: number;
   width?: number;
   height?: number;
+  mediaType?: string;
   size?: number;
   fileName?: string;
   originalUrl?: string;
@@ -128,6 +130,8 @@ export async function buildMessageDraftsFromComposerSnapshot({
     const uploadedImage = await uploadUtils.uploadDualImage(imgFile, 1);
     const { width, height, size } = await getImageSize(imgFile);
     uploadedImages.push({
+      fileId: uploadedImage.fileId,
+      mediaType: uploadedImage.mediaType,
       originalUrl: uploadedImage.originalUrl,
       url: uploadedImage.url,
       width,
@@ -151,6 +155,8 @@ export async function buildMessageDraftsFromComposerSnapshot({
     }
 
     uploadedImages.push({
+      fileId: meta?.fileId,
+      mediaType: meta?.mediaType,
       originalUrl: meta?.originalUrl ?? emojiUrl,
       url: emojiUrl,
       width,
@@ -167,6 +173,8 @@ export async function buildMessageDraftsFromComposerSnapshot({
     }
     const uploadedVideo = await uploadUtils.uploadVideo(attachment, 1);
     uploadedVideos.push({
+      fileId: uploadedVideo.fileId,
+      mediaType: uploadedVideo.mediaType,
       url: uploadedVideo.url,
       fileName: uploadedVideo.fileName,
       size: uploadedVideo.size,
@@ -177,8 +185,11 @@ export async function buildMessageDraftsFromComposerSnapshot({
   let uploadedSoundMessage: UploadedSoundMessageDraftAsset | null = null;
 
   if (audioFile) {
+    const uploadedAudio = await uploadUtils.uploadAudioAsset(audioFile, 1, 0);
     uploadedSoundMessage = {
-      url: await uploadUtils.uploadAudio(audioFile, 1, 0),
+      fileId: uploadedAudio.fileId,
+      mediaType: uploadedAudio.mediaType,
+      url: uploadedAudio.url,
       fileName: audioFile.name,
       size: audioFile.size,
       // 历史发送逻辑会在探测失败时兜底 1 秒，避免后端音频校验因为 second 缺失而失败。

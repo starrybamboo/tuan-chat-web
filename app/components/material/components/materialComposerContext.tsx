@@ -15,10 +15,13 @@ import {
 } from "./materialComposerShared";
 
 interface EmojiAttachmentMeta {
+  fileId?: number;
   width?: number;
   height?: number;
+  mediaType?: string;
   size?: number;
   fileName?: string;
+  originalUrl?: string;
 }
 
 interface QueueFilesOptions {
@@ -97,10 +100,13 @@ function isSameEmojiMetaMap(
   return currentKeys.every((key) => {
     const left = current[key];
     const right = next[key];
-    return left?.width === right?.width
+    return left?.fileId === right?.fileId
+      && left?.width === right?.width
       && left?.height === right?.height
+      && left?.mediaType === right?.mediaType
       && left?.size === right?.size
-      && left?.fileName === right?.fileName;
+      && left?.fileName === right?.fileName
+      && left?.originalUrl === right?.originalUrl;
   });
 }
 

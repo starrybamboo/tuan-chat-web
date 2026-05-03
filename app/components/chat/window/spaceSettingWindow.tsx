@@ -90,8 +90,8 @@ function SpaceSettingWindow({ onClose }: { onClose: () => void }) {
   const handleBlocksuiteHeaderChange = useCallback((header: BlocksuiteDocHeader) => {
     setFormData((prev) => {
       const nextName = header.title;
-      const nextAvatar = header.imageUrl;
-      const nextAvatarFileId = extractMediaFileIdFromUrl(header.imageUrl) ?? prev.avatarFileId;
+      const nextAvatarFileId = header.imageFileId ?? extractMediaFileIdFromUrl(header.imageUrl) ?? prev.avatarFileId;
+      const nextAvatar = avatarThumbUrl(nextAvatarFileId) || header.imageUrl;
       if (prev.name === nextName && prev.avatar === nextAvatar && prev.avatarFileId === nextAvatarFileId) {
         return prev;
       }

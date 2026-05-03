@@ -22,7 +22,11 @@ export type RoleUpdateRequest = {
      * 角色头像
      */
     avatarId?: number;
-    voiceUrl?: string;
+    voiceUrl?: string | null;
+    /**
+     * 角色语音媒体文件 ID
+     */
+    voiceFileId?: number | null;
     /**
      * 角色类型,0:角色,1:骰娘,2:NPC
      */

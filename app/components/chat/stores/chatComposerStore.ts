@@ -26,8 +26,10 @@ function isSameStringList(a: string[], b: string[]): boolean {
 }
 
 type EmojiAttachmentMeta = {
+  fileId?: number;
   width?: number;
   height?: number;
+  mediaType?: string;
   size?: number;
   fileName?: string;
   originalUrl?: string;
@@ -111,8 +113,10 @@ export const useChatComposerStore = create<ChatComposerState>(set => ({
     if (!url)
       return state;
     const prevMeta = state.emojiMetaByUrl[url];
-    if (prevMeta?.width === meta.width
+    if (prevMeta?.fileId === meta.fileId
+      && prevMeta?.width === meta.width
       && prevMeta?.height === meta.height
+      && prevMeta?.mediaType === meta.mediaType
       && prevMeta?.size === meta.size
       && prevMeta?.fileName === meta.fileName
       && prevMeta?.originalUrl === meta.originalUrl) {

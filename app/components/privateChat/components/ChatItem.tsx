@@ -119,7 +119,7 @@ export default function ChatItem({
     if (!msg)
       return "";
     if (msg.messageType === 2)
-      return "[ͼƬ]";
+      return "[图片]";
     if (msg.messageType === 14)
       return "[视频]";
     if (msg.messageType === 3)

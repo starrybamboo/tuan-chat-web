@@ -2,6 +2,7 @@ import type { ChangeEvent, ClipboardEvent } from "react";
 import { useEffect, useRef, useState } from "react";
 import {
   buildImageMarkdown,
+  buildMediaReferenceToken,
   buildVideoToken,
 } from "@/components/common/content/mediaContent";
 import { ImgUploader } from "@/components/common/uploader/imgUploader";
@@ -78,8 +79,8 @@ export default function TextMediaEditor({
 
     setUploadingCount(current => current + 1);
     try {
-      const url = await uploadUtils.uploadImg(file);
-      appendBlockAtCursor(buildImageMarkdown(url, file.name || "image"));
+      const uploadedImage = await uploadUtils.uploadDualImage(file);
+      appendBlockAtCursor(buildImageMarkdown(buildMediaReferenceToken(uploadedImage.fileId, uploadedImage.mediaType), file.name || "image"));
     }
     finally {
       setUploadingCount(current => Math.max(0, current - 1));
@@ -94,7 +95,7 @@ export default function TextMediaEditor({
     setUploadingCount(current => current + 1);
     try {
       const uploadedVideo = await uploadUtils.uploadVideo(file);
-      appendBlockAtCursor(buildVideoToken(uploadedVideo.url));
+      appendBlockAtCursor(buildVideoToken(buildMediaReferenceToken(uploadedVideo.fileId, uploadedVideo.mediaType)));
     }
     finally {
       setUploadingCount(current => Math.max(0, current - 1));

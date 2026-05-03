@@ -182,7 +182,13 @@ export default function ChatPage() {
     saveSidebarTree: handleSaveSidebarTree,
   } = useChatPageSidebarTree({ activeSpaceId });
   const sidebarTreeRef = useRef(sidebarTree);
-  const pendingDocFallbackByIdRef = useRef(new Map<string, { title: string; imageUrl: string }>());
+  const pendingDocFallbackByIdRef = useRef(new Map<string, {
+    title: string;
+    imageUrl: string;
+    imageFileId?: number;
+    originalImageFileId?: number;
+    imageMediaType?: string;
+  }>());
   const docFallbackPersistTimerRef = useRef<number | null>(null);
 
   useEffect(() => {
@@ -205,6 +211,9 @@ export default function ChatPage() {
     for (const [docId, header] of pendingEntries) {
       const title = String(header.title ?? "").trim();
       const imageUrl = String(header.imageUrl ?? "").trim();
+      const imageFileId = typeof header.imageFileId === "number" && header.imageFileId > 0 ? header.imageFileId : undefined;
+      const originalImageFileId = typeof header.originalImageFileId === "number" && header.originalImageFileId > 0 ? header.originalImageFileId : undefined;
+      const imageMediaType = String(header.imageMediaType ?? "").trim();
       for (const category of nextTree.categories ?? []) {
         for (const item of category.items ?? []) {
           if (item?.type !== "doc") {
@@ -227,6 +236,36 @@ export default function ChatPage() {
             delete item.fallbackImageUrl;
             changed = true;
           }
+          if (imageFileId) {
+            if (item.fallbackImageFileId !== imageFileId) {
+              item.fallbackImageFileId = imageFileId;
+              changed = true;
+            }
+          }
+          else if (item.fallbackImageFileId) {
+            delete item.fallbackImageFileId;
+            changed = true;
+          }
+          if (originalImageFileId) {
+            if (item.fallbackOriginalImageFileId !== originalImageFileId) {
+              item.fallbackOriginalImageFileId = originalImageFileId;
+              changed = true;
+            }
+          }
+          else if (item.fallbackOriginalImageFileId) {
+            delete item.fallbackOriginalImageFileId;
+            changed = true;
+          }
+          if (imageMediaType) {
+            if (String(item.fallbackImageMediaType ?? "") !== imageMediaType) {
+              item.fallbackImageMediaType = imageMediaType;
+              changed = true;
+            }
+          }
+          else if (item.fallbackImageMediaType) {
+            delete item.fallbackImageMediaType;
+            changed = true;
+          }
         }
       }
     }
@@ -237,7 +276,14 @@ export default function ChatPage() {
     pendingDocFallbackByIdRef.current.clear();
   }, [handleSaveSidebarTree]);
 
-  const handleDocHeaderChangeForSidebarFallback = useCallback((payload: { docId: string; title: string; imageUrl: string }) => {
+  const handleDocHeaderChangeForSidebarFallback = useCallback((payload: {
+    docId: string;
+    title: string;
+    imageUrl: string;
+    imageFileId?: number;
+    originalImageFileId?: number;
+    imageMediaType?: string;
+  }) => {
     if (!activeSpaceId || activeSpaceId <= 0) {
       return;
     }
@@ -248,6 +294,9 @@ export default function ChatPage() {
     pendingDocFallbackByIdRef.current.set(docId, {
       title: String(payload.title ?? "").trim(),
       imageUrl: String(payload.imageUrl ?? "").trim(),
+      imageFileId: typeof payload.imageFileId === "number" && payload.imageFileId > 0 ? payload.imageFileId : undefined,
+      originalImageFileId: typeof payload.originalImageFileId === "number" && payload.originalImageFileId > 0 ? payload.originalImageFileId : undefined,
+      imageMediaType: String(payload.imageMediaType ?? "").trim() || undefined,
     });
     if (docFallbackPersistTimerRef.current != null) {
       window.clearTimeout(docFallbackPersistTimerRef.current);

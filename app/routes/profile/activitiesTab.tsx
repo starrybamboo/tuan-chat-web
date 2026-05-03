@@ -1,8 +1,13 @@
-import type { Route } from "./+types/activitiesTab";
 import ActivitiesTab from "@/components/profile/profileTab/activitiesTab";
 import { createSeoMeta } from "@/utils/seo";
 
-export function meta({ params }: Route.MetaArgs) {
+type ProfileActivitiesRouteParams = {
+  params: {
+    userId?: string;
+  };
+};
+
+export function meta({ params }: ProfileActivitiesRouteParams) {
   return createSeoMeta({
     title: `用户 ${params.userId} 的动态`,
     description: `查看团剧共创用户 ${params.userId} 的公开动态更新。`,
@@ -12,7 +17,7 @@ export function meta({ params }: Route.MetaArgs) {
   });
 }
 
-export default function ProfileActivities({ params }: Route.ComponentProps) {
+export default function ProfileActivities({ params }: ProfileActivitiesRouteParams) {
   const userId = Number(params.userId);
 
   return <ActivitiesTab userId={userId} />;

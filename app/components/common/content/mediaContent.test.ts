@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   buildImageMarkdown,
+  buildMediaReferenceToken,
   buildMediaContentPreview,
   buildVideoToken,
   composeMediaContent,
@@ -25,8 +26,8 @@ describe("mediaContent", () => {
 
   it("正文为空但只有媒体时仍视为有效内容", () => {
     const content = [
-      buildImageMarkdown("https://img.example.com/repro.webp", "截图"),
-      buildVideoToken("https://video.example.com/repro.webm"),
+      buildImageMarkdown(buildMediaReferenceToken(1001, "image"), "截图"),
+      buildVideoToken(buildMediaReferenceToken(1002, "video")),
     ].join("\n\n");
 
     expect(hasMeaningfulMediaContent(content)).toBe(true);

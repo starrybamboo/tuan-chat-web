@@ -1,17 +1,15 @@
 import { Md5 } from "ts-md5";
 
-import type { ImageCompressionOptions, ImageCompressionPreset } from "@/utils/imgCompressUtils";
-import type { OssUploadHeaders } from "@/utils/ossUploadTarget";
+import type { ImageCompressionOptions, ImageCompressionPreset, MediaQuality, MediaType } from "@/utils/imgCompressUtils";
 
 import { isAudioUploadDebugEnabled } from "@/utils/audioDebugFlags";
 import { transcodeAudioFileToOpusOrThrow } from "@/utils/audioTranscodeUtils";
 import { assertAudioUploadInputSizeOrThrow, buildDefaultAudioUploadTranscodeOptions } from "@/utils/audioUploadPolicy";
-import { compressImage, DEFAULT_IMAGE_COMPRESSION_OPTIONS, IMAGE_COMPRESSION_PRESETS } from "@/utils/imgCompressUtils";
+import { BUSINESS_MEDIA_QUALITY, compressImage, DEFAULT_IMAGE_COMPRESSION_OPTIONS, IMAGE_COMPRESSION_PRESETS } from "@/utils/imgCompressUtils";
+import { mediaFileUrl } from "@/utils/mediaUrl";
+import { uploadMediaFile } from "@/utils/mediaUpload";
 import { inferMediaTypeFromMimeType, normalizeFileMimeType } from "@/utils/mediaMime";
-import { resolveOssUploadTarget } from "@/utils/ossUploadTarget";
 import { transcodeVideoFileToWebmOrThrow } from "@/utils/videoTranscodeUtils";
-
-import { tuanchat } from "../../api/instance";
 
 type PreparedImagePayload = {
   processedFile: File;
@@ -19,8 +17,20 @@ type PreparedImagePayload = {
 };
 
 export type UploadedDualImageResult = {
+  fileId: number;
+  mediaType: MediaType;
   originalSize: number;
   originalUrl: string;
+  url: string;
+};
+
+export type UploadedMediaAssetResult = {
+  fileId: number;
+  fileName: string;
+  mediaType: MediaType;
+  originalUrl: string;
+  size: number;
+  uploadRequired: boolean;
   url: string;
 };
 
@@ -29,6 +39,36 @@ export class UploadUtils {
   private static readonly videoPrepareCache = new WeakMap<File, Promise<File>>();
   private static readonly audioPrepareCache = new WeakMap<File, Map<string, Promise<File>>>();
   private static readonly defaultEnableBrowserVideoTranscode = true;
+
+  private static resolvePresetQuality(preset: ImageCompressionPreset): MediaQuality {
+    return BUSINESS_MEDIA_QUALITY[preset]?.quality ?? "high";
+  }
+
+  private async uploadMediaAsset(
+    file: File,
+    scene: 1 | 2 | 3 | 4 = 1,
+    quality: MediaQuality = "high",
+  ): Promise<UploadedMediaAssetResult> {
+    const uploaded = await uploadMediaFile(file, { scene });
+    const originalUrl = mediaFileUrl(uploaded.fileId, uploaded.mediaType, "original");
+    return {
+      fileId: uploaded.fileId,
+      fileName: file.name,
+      mediaType: uploaded.mediaType,
+      originalUrl,
+      size: file.size,
+      uploadRequired: uploaded.uploadRequired,
+      url: mediaFileUrl(uploaded.fileId, uploaded.mediaType, quality) || originalUrl,
+    };
+  }
+
+  private async normalizeImageInputOrThrow(file: File): Promise<File> {
+    const normalizedFile = await normalizeFileMimeType(file, { expectedMediaType: "image" });
+    if (inferMediaTypeFromMimeType(normalizedFile.type) !== "image") {
+      throw new Error("只支持图片文件格式");
+    }
+    return normalizedFile;
+  }
 
   private static getOrCreateNestedPromise<T>(
     cache: WeakMap<File, Map<string, Promise<T>>>,
@@ -191,32 +231,6 @@ export class UploadUtils {
     return false;
   }
 
-  private getVideoExtension(file: File): string {
-    const type = (file.type || "").toLowerCase();
-    if (type === "video/webm")
-      return "webm";
-    if (type === "video/mp4")
-      return "mp4";
-    if (type === "video/quicktime")
-      return "mov";
-    if (type === "video/x-matroska")
-      return "mkv";
-    if (type === "video/x-msvideo")
-      return "avi";
-    if (type === "video/x-ms-wmv")
-      return "wmv";
-    if (type === "video/x-flv")
-      return "flv";
-    if (type === "video/mpeg")
-      return "mpeg";
-
-    const match = (file.name || "").toLowerCase().match(/\.([a-z0-9]+)$/);
-    if (match?.[1])
-      return match[1];
-
-    return "mp4";
-  }
-
   private async prepareImageForUpload(
     file: File,
     options: ImageCompressionOptions = DEFAULT_IMAGE_COMPRESSION_OPTIONS,
@@ -313,28 +327,6 @@ export class UploadUtils {
     );
   }
 
-  private getAudioExtension(file: File): string {
-    const type = (file.type || "").toLowerCase();
-    if (type === "audio/mpeg")
-      return "mp3";
-    if (type === "audio/wav" || type === "audio/x-wav")
-      return "wav";
-    if (type === "audio/mp4")
-      return "m4a";
-    if (type === "audio/aac")
-      return "aac";
-    if (type === "audio/ogg")
-      return "ogg";
-    if (type === "audio/webm")
-      return "webm";
-
-    const match = (file.name || "").toLowerCase().match(/\.([a-z0-9]+)$/);
-    if (match?.[1])
-      return match[1];
-
-    return "audio";
-  }
-
   /**
    * 上传音频文件
    * @param file 音频文件
@@ -342,6 +334,10 @@ export class UploadUtils {
    * @param maxDuration 最大时长（秒），默认30秒
    */
   async uploadAudio(file: File, scene: 1 | 2 | 3 | 4 = 1, maxDuration = 30): Promise<string> {
+    return (await this.uploadAudioAsset(file, scene, maxDuration)).url;
+  }
+
+  async uploadAudioAsset(file: File, scene: 1 | 2 | 3 | 4 = 1, maxDuration = 30): Promise<UploadedMediaAssetResult> {
     // 检查文件类型
     const normalizedInput = await normalizeFileMimeType(file, { expectedMediaType: "audio" });
     if (inferMediaTypeFromMimeType(normalizedInput.type) !== "audio") {
@@ -359,48 +355,20 @@ export class UploadUtils {
       });
     }
 
-    // 1. 计算文件内容的哈希值
-    const hash = await this.calculateFileHash(processedFile);
-
-    // 2. 获取文件大小
-    const fileSize = processedFile.size;
-
-    // 3. 构造新的唯一文件名：hash_size.webm（WebM 容器 + Opus 编码）
-    const newFileName = `${hash}_${fileSize}.webm`;
-
     if (debugEnabled)
-      console.warn(`${debugPrefix} oss`, { fileName: newFileName });
+      console.warn(`${debugPrefix} media-service`, { fileName: processedFile.name });
 
-    const ossData = await tuanchat.ossController.getUploadUrl({
-      fileName: newFileName,
-      contentType: processedFile.type || "application/octet-stream",
-      scene,
-      dedupCheck: true,
-    });
-
-    if (!ossData.data?.downloadUrl) {
-      throw new Error("获取下载地址失败");
-    }
+    const uploaded = await this.uploadMediaAsset(processedFile, scene, "high");
     if (debugEnabled)
-      console.warn(`${debugPrefix} uploadUrl`, ossData.data.uploadUrl);
-
-    if (ossData.data.uploadUrl) {
-      await this.executeUpload(ossData.data.uploadUrl, processedFile, ossData.data.uploadHeaders);
-    }
-    else if (debugEnabled) {
-      console.warn(`${debugPrefix} dedup hit: skip upload`, { fileName: newFileName });
-    }
-
-    if (debugEnabled)
-      console.warn(`${debugPrefix} downloadUrl`, ossData.data.downloadUrl);
+      console.warn(`${debugPrefix} downloadUrl`, uploaded.url);
 
     if (debugEnabled) {
-      const url = ossData.data.downloadUrl;
+      const url = uploaded.url;
       if (!/\.webm(?:\?|#|$)/i.test(url)) {
-        console.warn(`${debugPrefix} unexpected downloadUrl extension (expect .webm)`, { url, fileName: newFileName });
+        console.warn(`${debugPrefix} unexpected downloadUrl extension (expect .webm)`, { url, fileName: processedFile.name });
       }
     }
-    return ossData.data.downloadUrl;
+    return uploaded;
   }
 
   /**
@@ -408,34 +376,17 @@ export class UploadUtils {
    * - 用于“语音参考文件”等不适合被统一转码的场景
    */
   async uploadAudioOriginal(file: File, scene: 1 | 2 | 3 | 4 = 1): Promise<string> {
+    return (await this.uploadAudioOriginalAsset(file, scene)).originalUrl;
+  }
+
+  async uploadAudioOriginalAsset(file: File, scene: 1 | 2 | 3 | 4 = 1): Promise<UploadedMediaAssetResult> {
     const normalizedInput = await normalizeFileMimeType(file, { expectedMediaType: "audio" });
     if (inferMediaTypeFromMimeType(normalizedInput.type) !== "audio") {
       throw new Error("只支持音频文件格式");
     }
 
     assertAudioUploadInputSizeOrThrow(normalizedInput.size);
-
-    const hash = await this.calculateFileHash(normalizedInput);
-    const fileSize = normalizedInput.size;
-    const extension = this.getAudioExtension(normalizedInput);
-    const newFileName = `${hash}_${fileSize}.${extension}`;
-
-    const ossData = await tuanchat.ossController.getUploadUrl({
-      fileName: newFileName,
-      contentType: normalizedInput.type || "application/octet-stream",
-      scene,
-      dedupCheck: true,
-    });
-
-    if (!ossData.data?.downloadUrl) {
-      throw new Error("获取下载地址失败");
-    }
-
-    if (ossData.data.uploadUrl) {
-      await this.executeUpload(ossData.data.uploadUrl, normalizedInput, ossData.data.uploadHeaders);
-    }
-
-    return ossData.data.downloadUrl;
+    return await this.uploadMediaAsset(normalizedInput, scene, "original");
   }
 
   /**
@@ -446,7 +397,7 @@ export class UploadUtils {
   async uploadVideo(
     file: File,
     scene: 1 | 2 | 3 | 4 = 1,
-  ): Promise<{ url: string; fileName: string; size: number }> {
+  ): Promise<UploadedMediaAssetResult> {
     const normalizedInput = await normalizeFileMimeType(file, { expectedMediaType: "video" });
     const normalizedVideoFile = this.normalizeVideoInputFileOrThrow(normalizedInput);
 
@@ -468,109 +419,19 @@ export class UploadUtils {
       uploadCandidate = normalizedVideoFile;
     }
 
-    const hash = await this.calculateFileHash(uploadCandidate);
-    const fileSize = uploadCandidate.size;
-    const extension = this.getVideoExtension(uploadCandidate);
-    const newFileName = `${hash}_${fileSize}.${extension}`;
-
-    const ossData = await tuanchat.ossController.getUploadUrl({
-      fileName: newFileName,
-      contentType: uploadCandidate.type || "application/octet-stream",
-      scene,
-      dedupCheck: true,
-    });
-
-    if (!ossData.data?.downloadUrl) {
-      throw new Error("获取下载地址失败");
-    }
-
-    if (ossData.data.uploadUrl) {
-      await this.executeUpload(ossData.data.uploadUrl, uploadCandidate, ossData.data.uploadHeaders);
-    }
-
-    return {
-      url: ossData.data.downloadUrl,
-      fileName: uploadCandidate.name,
-      size: fileSize,
-    };
+    return await this.uploadMediaAsset(uploadCandidate, scene, "high");
   }
 
   /**
    * 上传通用文件（用于聊天文件消息）
    */
   async uploadFile(file: File, scene: 1 | 2 | 3 | 4 = 1): Promise<string> {
+    return (await this.uploadFileAsset(file, scene)).originalUrl;
+  }
+
+  async uploadFileAsset(file: File, scene: 1 | 2 | 3 | 4 = 1): Promise<UploadedMediaAssetResult> {
     const normalizedFile = await normalizeFileMimeType(file);
-    const hash = await this.calculateFileHash(normalizedFile);
-    const fileSize = normalizedFile.size;
-    const extensionMatch = (normalizedFile.name || "").toLowerCase().match(/\.([a-z0-9]+)$/);
-    const extension = extensionMatch?.[1] || "bin";
-    const newFileName = `${hash}_${fileSize}.${extension}`;
-
-    const ossData = await tuanchat.ossController.getUploadUrl({
-      fileName: newFileName,
-      contentType: normalizedFile.type || "application/octet-stream",
-      scene,
-      dedupCheck: true,
-    });
-
-    if (!ossData.data?.downloadUrl) {
-      throw new Error("获取下载地址失败");
-    }
-
-    if (ossData.data.uploadUrl) {
-      await this.executeUpload(ossData.data.uploadUrl, normalizedFile, ossData.data.uploadHeaders);
-    }
-
-    return ossData.data.downloadUrl;
-  }
-
-  private getImageExtension(file: File, isGif = false): string {
-    if (isGif) {
-      return "gif";
-    }
-
-    if (file.type === "image/webp") {
-      return "webp";
-    }
-
-    if (file.type === "image/jpeg") {
-      return "jpg";
-    }
-
-    if (file.type.startsWith("image/")) {
-      const subType = file.type.split("/")[1];
-      if (subType) {
-        return subType;
-      }
-    }
-
-    const extensionMatch = (file.name || "").toLowerCase().match(/\.([a-z0-9]+)$/);
-    return extensionMatch?.[1] || "img";
-  }
-
-  private async uploadImageFileCandidate(file: File, scene: 1 | 2 | 3 | 4 = 1, isGif = false): Promise<string> {
-    const normalizedFile = await normalizeFileMimeType(file, { expectedMediaType: "image" });
-    const hash = await this.calculateFileHash(normalizedFile);
-    const fileSize = normalizedFile.size;
-    const extension = this.getImageExtension(normalizedFile, isGif);
-    const newFileName = `${hash}_${fileSize}.${extension}`;
-
-    const ossData = await tuanchat.ossController.getUploadUrl({
-      fileName: newFileName,
-      contentType: normalizedFile.type || "application/octet-stream",
-      scene,
-      dedupCheck: true,
-    });
-
-    if (!ossData.data?.downloadUrl) {
-      throw new Error("获取下载地址失败");
-    }
-
-    if (ossData.data.uploadUrl) {
-      await this.executeUpload(ossData.data.uploadUrl, normalizedFile, ossData.data.uploadHeaders);
-    }
-
-    return ossData.data.downloadUrl;
+    return await this.uploadMediaAsset(normalizedFile, scene, "original");
   }
 
   async uploadDualImage(
@@ -578,27 +439,15 @@ export class UploadUtils {
     scene: 1 | 2 | 3 | 4 = 1,
     options: ImageCompressionOptions = DEFAULT_IMAGE_COMPRESSION_OPTIONS,
   ): Promise<UploadedDualImageResult> {
-    const { processedFile, isGif } = await this.prepareImageForUpload(file, options);
+    const normalizedFile = await this.normalizeImageInputOrThrow(file);
     const originalSize = file.size;
-
-    if (processedFile === file) {
-      const originalUrl = await this.uploadImageFileCandidate(file, scene, isGif);
-      return {
-        originalSize,
-        originalUrl,
-        url: originalUrl,
-      };
-    }
-
-    const [originalUrl, url] = await Promise.all([
-      this.uploadImageFileCandidate(file, scene, false),
-      this.uploadImageFileCandidate(processedFile, scene, isGif),
-    ]);
-
+    const uploaded = await this.uploadMediaAsset(normalizedFile, scene, "high");
     return {
+      fileId: uploaded.fileId,
+      mediaType: uploaded.mediaType,
       originalSize,
-      originalUrl,
-      url,
+      originalUrl: uploaded.originalUrl,
+      url: uploaded.url,
     };
   }
 
@@ -607,7 +456,16 @@ export class UploadUtils {
     preset: ImageCompressionPreset,
     scene: 1 | 2 | 3 | 4 = 1,
   ): Promise<UploadedDualImageResult> {
-    return await this.uploadDualImage(file, scene, IMAGE_COMPRESSION_PRESETS[preset]);
+    const normalizedFile = await this.normalizeImageInputOrThrow(file);
+    const originalSize = file.size;
+    const uploaded = await this.uploadMediaAsset(normalizedFile, scene, UploadUtils.resolvePresetQuality(preset));
+    return {
+      fileId: uploaded.fileId,
+      mediaType: uploaded.mediaType,
+      originalSize,
+      originalUrl: uploaded.originalUrl,
+      url: uploaded.url,
+    };
   }
 
   /**
@@ -615,8 +473,8 @@ export class UploadUtils {
    * 适用于需要保留裁剪后无压缩版本的场景。
    */
   async uploadOriginalImg(file: File, scene: 1 | 2 | 3 | 4 = 1): Promise<string> {
-    const isGif = await this.isGifFile(file);
-    return await this.uploadImageFileCandidate(file, scene, isGif);
+    const normalizedFile = await this.normalizeImageInputOrThrow(file);
+    return (await this.uploadMediaAsset(normalizedFile, scene, "original")).originalUrl;
   }
 
   /**
@@ -630,8 +488,8 @@ export class UploadUtils {
     scene: 1 | 2 | 3 | 4 = 1,
     options: ImageCompressionOptions = DEFAULT_IMAGE_COMPRESSION_OPTIONS,
   ): Promise<string> {
-    const { processedFile, isGif } = await this.prepareImageForUpload(file, options);
-    return await this.uploadImageFileCandidate(processedFile, scene, isGif);
+    const normalizedFile = await this.normalizeImageInputOrThrow(file);
+    return (await this.uploadMediaAsset(normalizedFile, scene, "high")).url;
   }
 
   async uploadImgByPreset(
@@ -639,7 +497,8 @@ export class UploadUtils {
     preset: ImageCompressionPreset,
     scene: 1 | 2 | 3 | 4 = 1,
   ): Promise<string> {
-    return await this.uploadImg(file, scene, IMAGE_COMPRESSION_PRESETS[preset]);
+    const normalizedFile = await this.normalizeImageInputOrThrow(file);
+    return (await this.uploadMediaAsset(normalizedFile, scene, UploadUtils.resolvePresetQuality(preset))).url;
   }
 
   /**
@@ -720,38 +579,6 @@ export class UploadUtils {
 
       reader.readAsArrayBuffer(file);
     });
-  }
-
-  private async uploadWithTimeout(url: string, file: File, headers?: OssUploadHeaders): Promise<Response> {
-    const controller = new AbortController();
-    const t = globalThis.setTimeout(() => controller.abort(), 120_000);
-
-    try {
-      return await fetch(url, {
-        method: "PUT",
-        body: file,
-        signal: controller.signal,
-        headers,
-      });
-    }
-    finally {
-      globalThis.clearTimeout(t);
-    }
-  }
-
-  private async executeUpload(url: string, file: File, uploadHeaders?: OssUploadHeaders): Promise<void> {
-    const { targetUrl, headers, viaDevProxy } = resolveOssUploadTarget(url, file, uploadHeaders);
-    const response = await this.uploadWithTimeout(targetUrl, file, headers);
-    if (!response.ok) {
-      if (response.status === 413) {
-        const prefix = viaDevProxy ? "文件传输失败(开发代理)" : "文件传输失败";
-        throw new Error(`${prefix}: 413（请求体过大）`);
-      }
-      if (viaDevProxy) {
-        throw new Error(`文件传输失败(开发代理): ${response.status}`);
-      }
-      throw new Error(`文件传输失败: ${response.status}`);
-    }
   }
 
   /**

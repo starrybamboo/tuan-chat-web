@@ -324,6 +324,7 @@ export default function useRoomImportActions({
       hasExcerpt: Boolean(payload?.excerpt?.trim()),
       hasTitle: Boolean(payload?.title?.trim()),
       hasImageUrl: Boolean(payload?.imageUrl?.trim()),
+      hasImageFileId: Boolean(payload?.imageFileId),
     });
     if (!docId) {
       toast.error("未检测到可用文档");
@@ -401,6 +402,9 @@ export default function useRoomImportActions({
           spaceId: sourceSpaceId,
           ...(payload?.title ? { title: payload.title } : {}),
           ...(payload?.imageUrl ? { imageUrl: payload.imageUrl } : {}),
+          ...(payload?.imageFileId ? { imageFileId: payload.imageFileId } : {}),
+          ...(payload?.originalImageFileId ? { originalImageFileId: payload.originalImageFileId } : {}),
+          ...(payload?.imageMediaType ? { imageMediaType: payload.imageMediaType } : {}),
           ...(excerpt ? { excerpt } : {}),
         },
       } as any,
