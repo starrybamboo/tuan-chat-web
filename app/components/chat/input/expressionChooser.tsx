@@ -8,13 +8,14 @@ import { canManageRoomRoles, hasHostPrivileges } from "@/components/chat/utils/m
 import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
 import { RoleAvatarByRole } from "@/components/common/roleAccess";
 import RoleAvatarComponent from "@/components/common/roleAvatar";
-import { getEffectiveAvatarThumbUrl, getEffectiveAvatarUrl } from "@/components/Role/sprite/utils";
 import { RoleDetailPagePopup } from "@/components/common/roleDetailPagePopup";
 import { RoleTypeBadge } from "@/components/common/roleTypeBadge";
 import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
+import { getEffectiveAvatarThumbUrl, getEffectiveAvatarUrl } from "@/components/Role/sprite/utils";
 import { AddRingLight, AddRoleIcon, ExpandCornersIcon, EyedropperIcon, IdentificationCardIcon, NarratorIcon } from "@/icons";
 import { getScreenSize } from "@/utils/getScreenSize";
 import { useGetRoleAvatarsQuery } from "../../../../api/hooks/RoleAndAvatarHooks";
+import { resolveExpressionChooserRoleAvatars } from "./expressionChooserAvatars";
 
 export function ExpressionChooser({
   roleId,
@@ -61,8 +62,17 @@ export function ExpressionChooser({
   const canAddRole = canManageRoomRoles(currentMemberType);
 
   const selectedRoleId = roleId;
+  const availableRoles = roomContext.roomRolesThatUserOwn;
+  const selectedRole = useMemo(
+    () => availableRoles.find(role => role.roleId === selectedRoleId),
+    [availableRoles, selectedRoleId],
+  );
   const roleAvatarsQuery = useGetRoleAvatarsQuery(selectedRoleId);
-  const roleAvatars = useMemo(() => roleAvatarsQuery.data?.data ?? [], [roleAvatarsQuery.data]);
+  const fetchedRoleAvatars = useMemo(() => roleAvatarsQuery.data?.data ?? [], [roleAvatarsQuery.data]);
+  const roleAvatars = useMemo(
+    () => resolveExpressionChooserRoleAvatars(fetchedRoleAvatars, selectedRole),
+    [fetchedRoleAvatars, selectedRole],
+  );
   const DEFAULT_CATEGORY = "默认";
   const avatarCategoryGroups = useMemo(() => {
     const groups = new Map<string, RoleAvatar[]>();
@@ -87,11 +97,6 @@ export function ExpressionChooser({
     return { groups, orderedCategories };
   }, [roleAvatars]);
 
-  const availableRoles = roomContext.roomRolesThatUserOwn;
-  const selectedRole = useMemo(
-    () => availableRoles.find(role => role.roleId === selectedRoleId),
-    [availableRoles, selectedRoleId],
-  );
   const manageRole = useMemo(
     () => availableRoles.find(role => role.roleId === manageRoleId),
     [availableRoles, manageRoleId],
