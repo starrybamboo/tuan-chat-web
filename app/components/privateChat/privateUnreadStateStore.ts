@@ -1,6 +1,6 @@
 import { create } from "zustand";
 
-export type PrivateUnreadState = {
+type PrivateUnreadState = {
   optimisticReadSyncMap: Record<number, number>;
   markContactAsRead: (contactId: number, syncId: number) => void;
   reset: () => void;

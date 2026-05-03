@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 
 export const LEGACY_ROOM_DEFAULT_DESCRIPTION = "房间默认描述";
-export const LEGACY_SCENE_DEFAULT_DESCRIPTION = "场景默认描述";
+const LEGACY_SCENE_DEFAULT_DESCRIPTION = "场景默认描述";
 export const SCENE_DEFAULT_DESCRIPTION = "场景简要描述";
 
 function normalizeSceneDefaultDescription(value?: string): string {
