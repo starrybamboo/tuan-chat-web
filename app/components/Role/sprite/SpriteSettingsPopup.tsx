@@ -19,10 +19,11 @@ import {
 } from "@phosphor-icons/react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useClearDeletedRoleAvatarsMutation, useGetDeletedRoleAvatarsQuery, useRestoreRoleAvatarMutation, useUploadAvatarMutation } from "api/hooks/RoleAndAvatarHooks";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import toast from "react-hot-toast";
 import { Drawer } from "vaul";
 import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
+import { ensureRoleAvatarDefaultMedia } from "@/components/Role/RoleCreation/hooks/createRoleDefaultAvatar";
 import { isMobileScreen } from "@/utils/getScreenSize";
 import { imageHighUrl, imageOriginalUrl } from "@/utils/mediaUrl";
 import { useAvatarDeletion } from "./hooks/useAvatarDeletion";
@@ -269,6 +270,7 @@ export function SpriteSettingsPopup({
   }, [onAvatarChange, onSpriteIndexChange, spritesAvatars, internalIndex]);
 
   const queryClient = useQueryClient();
+  const repairedDefaultAvatarIdsRef = useRef<Set<number>>(new Set());
   const trashQuery = useGetDeletedRoleAvatarsQuery(role?.id ?? 0, { enabled: Boolean(role?.id) });
   const trashItems = useMemo(
     () => trashQuery.data?.data ?? [],
@@ -340,6 +342,25 @@ export function SpriteSettingsPopup({
     onDeleteSuccess: handleAvatarDeleted,
     onBatchDeleteSuccess: handleBatchDeleted,
   });
+
+  useEffect(() => {
+    if (!isOpen || !role?.id) {
+      return;
+    }
+    const avatarToRepair = spritesAvatars.find(avatar => (
+      Boolean(avatar.avatarId) && !avatar.avatarFileId && !avatar.spriteFileId
+    ));
+    const avatarId = avatarToRepair?.avatarId;
+    if (!avatarId || repairedDefaultAvatarIdsRef.current.has(avatarId)) {
+      return;
+    }
+
+    repairedDefaultAvatarIdsRef.current.add(avatarId);
+    void ensureRoleAvatarDefaultMedia(queryClient, role.id, avatarId)
+      .catch((error) => {
+        console.error("补齐默认头像立绘失败:", error);
+      });
+  }, [isOpen, queryClient, role?.id, spritesAvatars]);
   const { handleBatchDelete, isDeleting: isDeletingAvatar } = deletionHook;
 
   // 展示预览（仅同步外部索引，不关闭弹窗）
