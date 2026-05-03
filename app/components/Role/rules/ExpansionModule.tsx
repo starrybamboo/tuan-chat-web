@@ -227,8 +227,8 @@ export default function ExpansionModule({
     }
   };
 
-  // 检查加载状态
-  const isLoading = ruleDetailQuery.isLoading || abilityQuery.isLoading || abilityQuery.isFetching || !renderData;
+  // 后台刷新时继续展示当前缓存，避免字段保存后整块切回骨架屏。
+  const isLoading = ruleDetailQuery.isLoading || abilityQuery.isLoading || !renderData;
 
   // 2. 使用 useEffect 监听 isLoading 的变化
   useEffect(() => {
@@ -337,6 +337,7 @@ export default function ExpansionModule({
             abilityData={renderData.actTemplate}
             roleId={roleId}
             ruleId={selectedRuleId}
+            isEditing={isRuleEditing}
           />
         )
       : (
