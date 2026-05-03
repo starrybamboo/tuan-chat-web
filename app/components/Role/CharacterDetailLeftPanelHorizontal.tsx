@@ -142,9 +142,9 @@ export default function CharacterDetailLeftPanelHorizontal({
                   onBaseRoleSave={onBaseRoleSave}
                   showDescription={false}
                   align="center"
-                  className="w-full space-y-0"
+                  className="w-full space-y-0 text-center"
                   nameClassName="max-w-full truncate text-center text-xl font-semibold"
-                  nameDisplayClassName="px-1 py-0.5"
+                  nameDisplayClassName="block w-full px-1 py-0.5"
                 />
               )}
               {isQueryLoading
