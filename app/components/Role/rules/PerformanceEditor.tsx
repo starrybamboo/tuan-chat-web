@@ -17,7 +17,6 @@ interface PerformanceEditorProps {
   abilityData: Record<string, string>;
   roleId: number;
   ruleId: number;
-  isEditing?: boolean;
   hideTitleOnMobile?: boolean;
 }
 
@@ -32,7 +31,6 @@ export default function PerformanceEditor({
   abilityData,
   roleId,
   ruleId,
-  isEditing = false,
   hideTitleOnMobile = false,
 }: PerformanceEditorProps) {
   // 接入api
@@ -236,51 +234,36 @@ export default function PerformanceEditor({
                 gridRow: `span ${rowSpan}`,
               }}
             >
-              {isEditing
-                ? (
-                    <PerformanceField
-                      fieldKey={key}
-                      value={fields[key] || ""}
-                      onValueChange={handleValueChange}
-                      onDelete={handleDeleteField}
-                      onRename={handleRename}
-                      placeholder="请输入表演描述..."
-                      rowSpan={rowSpan}
-                      enableArrowNavigation
-                      commitOnBlur={false}
-                    />
-                  )
-                : (
-                    <div className="card bg-base-100 shadow-sm p-2 h-full">
-                      <div className="divider">{key}</div>
-                      <div className="text-base-content mt-0.5 flex justify-center p-2">
-                        <div className="text-left break-all">
-                          {fields[key] || <span className="text-base-content/50">未设置</span>}
-                        </div>
-                      </div>
-                    </div>
-                  )}
+              <PerformanceField
+                fieldKey={key}
+                value={fields[key] || ""}
+                onValueChange={handleValueChange}
+                onDelete={handleDeleteField}
+                onRename={handleRename}
+                placeholder="请输入表演描述..."
+                rowSpan={rowSpan}
+                enableArrowNavigation
+                commitOnBlur={false}
+              />
             </div>
           );
         })}
 
         {/* 添加新字段区域 - 占满整行 */}
-        {isEditing && (
-          <div className="col-span-full">
-            <AddFieldForm
-              onAddField={handleAddField}
-              existingKeys={shortFields}
-              layout="stacked"
-              placeholder={{
-                key: "字段名（如：性格特点、背景故事等）",
-                value: "请输入表演描述...",
-              }}
-              title="添加新表演字段"
-              showTitle={true}
-              enableArrowNavigation
-            />
-          </div>
-        )}
+        <div className="col-span-full">
+          <AddFieldForm
+            onAddField={handleAddField}
+            existingKeys={shortFields}
+            layout="stacked"
+            placeholder={{
+              key: "字段名（如：性格特点、背景故事等）",
+              value: "请输入表演描述...",
+            }}
+            title="添加新表演字段"
+            showTitle={true}
+            enableArrowNavigation
+          />
+        </div>
       </div>
     </div>
   );

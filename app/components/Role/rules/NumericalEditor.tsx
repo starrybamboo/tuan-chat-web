@@ -30,7 +30,6 @@ interface NumericalEditorProps {
   onChange: (data: NumericalData) => void;
   roleId: number;
   ruleId: number;
-  isEditing?: boolean;
   title?: string;
   fieldType: FieldType; // 新增:指定要更新的字段类型
   hideTitleOnMobile?: boolean;
@@ -116,7 +115,6 @@ export default function NumericalEditor({
   onChange,
   roleId,
   ruleId,
-  isEditing: controlledIsEditing,
   title = "数值数据",
   fieldType,
   hideTitleOnMobile = false,
@@ -458,7 +456,7 @@ export default function NumericalEditor({
                 <EditableField
                   fieldKey={key}
                   value={value}
-                  isEditing={Boolean(controlledIsEditing)}
+                  isEditing
                   onValueChange={handleFieldUpdate}
                   onValueCommit={handleFieldCommit}
                   onDelete={handleDeleteField}
@@ -472,17 +470,15 @@ export default function NumericalEditor({
             );
           })}
 
-          {controlledIsEditing && (
-            <div className="col-span-full">
-              <AddFieldForm
-                onAddField={handleAddField}
-                existingKeys={reservedKeys}
-                layout="inline"
-                className="col-span-full pt-2 mt-2"
-                enableArrowNavigation
-              />
-            </div>
-          )}
+          <div className="col-span-full">
+            <AddFieldForm
+              onAddField={handleAddField}
+              existingKeys={reservedKeys}
+              layout="inline"
+              className="col-span-full pt-2 mt-2"
+              enableArrowNavigation
+            />
+          </div>
         </div>
       </div>
     </div>

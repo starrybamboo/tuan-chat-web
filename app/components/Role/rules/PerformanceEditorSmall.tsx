@@ -15,7 +15,6 @@ interface PerformanceEditorSmallProps {
   abilityData: Record<string, string>;
   roleId: number;
   ruleId: number;
-  isEditing?: boolean;
 }
 
 export default function PerformanceEditorSmall({
@@ -24,7 +23,6 @@ export default function PerformanceEditorSmall({
   abilityData: _abilityData,
   roleId,
   ruleId,
-  isEditing = false,
 }: PerformanceEditorSmallProps) {
   const { mutate: updateKeyField } = useUpdateKeyFieldByRoleIdMutation();
   const { mutate: updateFieldValue } = useUpdateRoleAbilityByRoleIdMutation();
@@ -215,50 +213,35 @@ export default function PerformanceEditorSmall({
                   gridRow: `span ${rowSpan}`,
                 }}
               >
-                {isEditing
-                  ? (
-                      <PerformanceField
-                        fieldKey={key}
-                        value={fields[key] || ""}
-                        onValueChange={handleValueChange}
-                        onDelete={handleDeleteField}
-                        onRename={handleRename}
-                        placeholder="请输入表演描述..."
-                        rowSpan={rowSpan}
-                        size="compact"
-                        enableArrowNavigation
-                        commitOnBlur={false}
-                      />
-                    )
-                  : (
-                      <div className="rounded-md bg-base-200/40 px-2 py-1 h-full">
-                        <div className="text-[10px] font-semibold text-base-content/60">
-                          {key}
-                        </div>
-                        <div className="text-[11px] text-base-content/80 wrap-break-words mt-1">
-                          {fields[key] || "未设置"}
-                        </div>
-                      </div>
-                    )}
+                <PerformanceField
+                  fieldKey={key}
+                  value={fields[key] || ""}
+                  onValueChange={handleValueChange}
+                  onDelete={handleDeleteField}
+                  onRename={handleRename}
+                  placeholder="请输入表演描述..."
+                  rowSpan={rowSpan}
+                  size="compact"
+                  enableArrowNavigation
+                  commitOnBlur={false}
+                />
               </div>
             );
           })}
         </div>
 
-        {isEditing && (
-          <AddFieldForm
-            onAddField={handleAddField}
-            existingKeys={fieldKeys}
-            layout="inline"
-            showTitle={false}
-            className="border-t-0 pt-2"
-            placeholder={{
-              key: "字段名",
-              value: "字段值",
-            }}
-            enableArrowNavigation
-          />
-        )}
+        <AddFieldForm
+          onAddField={handleAddField}
+          existingKeys={fieldKeys}
+          layout="inline"
+          showTitle={false}
+          className="border-t-0 pt-2"
+          placeholder={{
+            key: "字段名",
+            value: "字段值",
+          }}
+          enableArrowNavigation
+        />
       </div>
     </div>
   );

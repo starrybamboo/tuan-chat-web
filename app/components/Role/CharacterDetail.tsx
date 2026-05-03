@@ -435,7 +435,6 @@ function CharacterDetailInner({
           )
         : (
             <ExpansionModule
-              isEditing={false}
               roleId={localRole.id}
               ruleId={selectedRuleId}
               isStImportModalOpen={isStImportModalOpen}

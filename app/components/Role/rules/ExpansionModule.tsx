@@ -2,8 +2,8 @@ import { DownloadSimpleIcon, SparkleIcon } from "@phosphor-icons/react";
 import { useAbilityByRuleAndRole, useSetRoleAbilityMutation, useUpdateRoleAbilityByRoleIdMutation } from "api/hooks/abilityQueryHooks";
 import { useGetRoleQuery } from "api/hooks/RoleAndAvatarHooks";
 import { useRuleDetailQuery } from "api/hooks/ruleQueryHooks";
-import { CloseIcon, EditIcon, SaveIcon, WrenchIcon } from "app/icons";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { CloseIcon, SaveIcon, WrenchIcon } from "app/icons";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import ImportWithStCmd from "@/components/Role/rules/ImportWithStCmd";
 import CopywritingEditor from "../Editors/CopywritingEditor";
 import Section from "../Editors/Section";
@@ -13,7 +13,6 @@ import PerformanceEditor from "./PerformanceEditor";
 import PerformanceEditorSmall from "./PerformanceEditorSmall";
 
 interface ExpansionModuleProps {
-  isEditing?: boolean;
   roleId: number;
   /**
    * 可选, 会默认选中对应的ruleId, 且不再展示选择规则的部分组件
@@ -32,7 +31,6 @@ interface ExpansionModuleProps {
  * 负责展示规则选择、表演字段和数值约束
  */
 export default function ExpansionModule({
-  isEditing: globalIsEditing,
   roleId,
   ruleId,
   onLoadingChange, // 1. 在 props 中解构出 onLoadingChange
@@ -42,9 +40,6 @@ export default function ExpansionModule({
   onOpenAIGenerateModal,
   size = "default",
 }: ExpansionModuleProps) {
-  const isEditingControlled = typeof globalIsEditing === "boolean";
-  const isRuleEditing = Boolean(globalIsEditing);
-
   // ״̬
   const selectedRuleId = ruleId ?? 1;
 
@@ -62,9 +57,6 @@ export default function ExpansionModule({
   const setRoleAbilityMutation = useSetRoleAbilityMutation();
   const { mutate: updateFieldAbility } = useUpdateRoleAbilityByRoleIdMutation();
   const [copywritingSaveMsg, setCopywritingSaveMsg] = useState<string>("");
-  const [isCopywritingPreview, setIsCopywritingPreview] = useState<boolean>(true);
-  const prevGlobalIsEditingRef = useRef(globalIsEditing);
-  const showCopywritingPreview = isEditingControlled ? !globalIsEditing : isCopywritingPreview;
 
   // 初始化能力数据 - 现在不再自动创建,需要用户手动触发
   // useEffect(() => {
@@ -185,8 +177,7 @@ export default function ExpansionModule({
 
     updateFieldAbility(payload, {
       onSuccess: () => {
-        // 保存成功后切换回预览模式，并清空本地编辑状态让数据从后端重新加载
-        setIsCopywritingPreview(true);
+        // 保存成功后清空本地编辑状态，让数据从后端重新加载。
         setLocalEdits(prev => ({ ...prev, copywritingTemplates: undefined }));
       },
       onError: (e: any) => {
@@ -197,18 +188,6 @@ export default function ExpansionModule({
       },
     });
   }, [localEdits.copywritingTemplates, renderData?.copywritingTemplates, roleId, selectedRuleId, updateFieldAbility]);
-
-  // 受控编辑模式下：顶部总编辑从开到关时，自动提交骰娘文案编辑
-  useEffect(() => {
-    if (!isEditingControlled)
-      return;
-
-    const wasEditing = prevGlobalIsEditingRef.current === true;
-    if (wasEditing && !globalIsEditing && localEdits.copywritingTemplates !== undefined) {
-      handleCopywritingSave();
-    }
-    prevGlobalIsEditingRef.current = globalIsEditing;
-  }, [globalIsEditing, handleCopywritingSave, isEditingControlled, localEdits.copywritingTemplates]);
 
   // 检查是否规则未创建
   const isRuleNotCreated = !abilityQuery.isLoading && !abilityQuery.isFetching && !abilityQuery.data && ruleDetailQuery.data;
@@ -263,7 +242,6 @@ export default function ExpansionModule({
               onDataChange={handleBasicChange}
               roleId={roleId}
               ruleId={selectedRuleId}
-              isEditing={isRuleEditing}
               fieldType="basic"
               customLabel="基础属性"
               hideExternalTitlesOnMobile
@@ -292,7 +270,6 @@ export default function ExpansionModule({
               onDataChange={handleAbilityChange}
               roleId={roleId}
               ruleId={selectedRuleId}
-              isEditing={isRuleEditing}
               fieldType="ability"
               customLabel="能力"
               hideExternalTitlesOnMobile
@@ -321,7 +298,6 @@ export default function ExpansionModule({
               onDataChange={handleSkillChange}
               roleId={roleId}
               ruleId={selectedRuleId}
-              isEditing={isRuleEditing}
               fieldType="skill"
               customLabel="技能"
               hideExternalTitlesOnMobile
@@ -337,7 +313,6 @@ export default function ExpansionModule({
             abilityData={renderData.actTemplate}
             roleId={roleId}
             ruleId={selectedRuleId}
-            isEditing={isRuleEditing}
           />
         )
       : (
@@ -354,7 +329,6 @@ export default function ExpansionModule({
               abilityData={renderData.actTemplate}
               roleId={roleId}
               ruleId={selectedRuleId}
-              isEditing={isRuleEditing}
               hideTitleOnMobile
             />
           </Section>
@@ -539,77 +513,22 @@ export default function ExpansionModule({
                                             {copywritingSaveMsg && (
                                               <span className="text-sm text-base-content/70">{copywritingSaveMsg}</span>
                                             )}
-                                            {!isEditingControlled && (
-                                              <button
-                                                type="button"
-                                                onClick={isCopywritingPreview ? () => setIsCopywritingPreview(false) : handleCopywritingSave}
-                                                className={`btn ${isSmall ? "btn-xs" : "btn-sm"} ${
-                                                  isCopywritingPreview ? "btn-accent" : "btn-primary"
-                                                }`}
-                                              >
-                                                {isCopywritingPreview
-                                                  ? (
-                                                      <span className="flex items-center gap-1">
-                                                        <EditIcon className="w-4 h-4" />
-                                                        编辑
-                                                      </span>
-                                                    )
-                                                  : (
-                                                      <span className="flex items-center gap-1">
-                                                        <SaveIcon className="w-4 h-4" />
-                                                        保存
-                                                      </span>
-                                                    )}
-                                              </button>
-                                            )}
+                                            <button
+                                              type="button"
+                                              onClick={handleCopywritingSave}
+                                              className={`btn ${isSmall ? "btn-xs" : "btn-sm"} btn-primary`}
+                                            >
+                                              <span className="flex items-center gap-1">
+                                                <SaveIcon className="w-4 h-4" />
+                                                保存
+                                              </span>
+                                            </button>
                                           </div>
                                         </div>
-                                        {showCopywritingPreview
-                                          ? (
-                                              <div className="space-y-4">
-                                                {Object.keys(renderData.copywritingTemplates || {}).length === 0
-                                                  ? (
-                                                      <div className="text-base-content/60">暂无文案可预览</div>
-                                                    )
-                                                  : (
-                                                      Object.entries(renderData.copywritingTemplates || {}).map(([group, items]) => (
-                                                        <div key={group} className="collapse collapse-arrow bg-base-200 rounded-xl">
-                                                          <input type="checkbox" defaultChecked />
-                                                          <div className="collapse-title font-semibold">
-                                                            {group}
-                                                            <span className="badge badge-sm badge-primary ml-2">{items?.length || 0}</span>
-                                                          </div>
-                                                          <div className="collapse-content">
-                                                            {(!items || items.length === 0)
-                                                              ? (
-                                                                  <div className="text-base-content/50 text-sm">该分组暂无文案</div>
-                                                                )
-                                                              : (
-                                                                  <ul className="list bg-base-100 rounded-lg">
-                                                                    {items.map((line, index) => (
-                                                                      <li key={`${group}-${line.substring(0, 50)}-${line.length}`} className="list-row">
-                                                                        <div className="text-xs font-mono opacity-50 tabular-nums">
-                                                                          {String(index + 1).padStart(2, "0")}
-                                                                        </div>
-                                                                        <div className="text-sm whitespace-pre-wrap wrap-break-words">
-                                                                          {line}
-                                                                        </div>
-                                                                      </li>
-                                                                    ))}
-                                                                  </ul>
-                                                                )}
-                                                          </div>
-                                                        </div>
-                                                      ))
-                                                    )}
-                                              </div>
-                                            )
-                                          : (
-                                              <CopywritingEditor
-                                                value={renderData.copywritingTemplates}
-                                                onChange={handleCopywritingChange}
-                                              />
-                                            )}
+                                        <CopywritingEditor
+                                          value={renderData.copywritingTemplates}
+                                          onChange={handleCopywritingChange}
+                                        />
                                       </Section>
                                     )
                                   : (
@@ -639,77 +558,22 @@ export default function ExpansionModule({
                                           {copywritingSaveMsg && (
                                             <span className="text-sm text-base-content/70">{copywritingSaveMsg}</span>
                                           )}
-                                          {!isEditingControlled && (
-                                            <button
-                                              type="button"
-                                              onClick={isCopywritingPreview ? () => setIsCopywritingPreview(false) : handleCopywritingSave}
-                                              className={`btn ${isSmall ? "btn-xs" : "btn-sm"} ${
-                                                isCopywritingPreview ? "btn-accent" : "btn-primary"
-                                              }`}
-                                            >
-                                              {isCopywritingPreview
-                                                ? (
-                                                    <span className="flex items-center gap-1">
-                                                      <EditIcon className="w-4 h-4" />
-                                                      编辑
-                                                    </span>
-                                                  )
-                                                : (
-                                                    <span className="flex items-center gap-1">
-                                                      <SaveIcon className="w-4 h-4" />
-                                                      保存
-                                                    </span>
-                                                  )}
-                                            </button>
-                                          )}
+                                          <button
+                                            type="button"
+                                            onClick={handleCopywritingSave}
+                                            className={`btn ${isSmall ? "btn-xs" : "btn-sm"} btn-primary`}
+                                          >
+                                            <span className="flex items-center gap-1">
+                                              <SaveIcon className="w-4 h-4" />
+                                              保存
+                                            </span>
+                                          </button>
                                         </div>
                                       </div>
-                                      {showCopywritingPreview
-                                        ? (
-                                            <div className="space-y-4">
-                                              {Object.keys(renderData.copywritingTemplates || {}).length === 0
-                                                ? (
-                                                    <div className="text-base-content/60">暂无文案可预览</div>
-                                                  )
-                                                : (
-                                                    Object.entries(renderData.copywritingTemplates || {}).map(([group, items]) => (
-                                                      <div key={group} className="collapse collapse-arrow bg-base-200 rounded-xl">
-                                                        <input type="checkbox" defaultChecked />
-                                                        <div className="collapse-title font-semibold">
-                                                          {group}
-                                                          <span className="badge badge-sm badge-primary ml-2">{items?.length || 0}</span>
-                                                        </div>
-                                                        <div className="collapse-content">
-                                                          {(!items || items.length === 0)
-                                                            ? (
-                                                                <div className="text-base-content/50 text-sm">该分组暂无文案</div>
-                                                              )
-                                                            : (
-                                                                <ul className="list bg-base-100 rounded-lg">
-                                                                  {items.map((line, index) => (
-                                                                    <li key={`${group}-${line.substring(0, 50)}-${line.length}`} className="list-row">
-                                                                      <div className="text-xs font-mono opacity-50 tabular-nums">
-                                                                        {String(index + 1).padStart(2, "0")}
-                                                                      </div>
-                                                                      <div className="text-sm whitespace-pre-wrap wrap-break-words">
-                                                                        {line}
-                                                                      </div>
-                                                                    </li>
-                                                                  ))}
-                                                                </ul>
-                                                              )}
-                                                        </div>
-                                                      </div>
-                                                    ))
-                                                  )}
-                                            </div>
-                                          )
-                                        : (
-                                            <CopywritingEditor
-                                              value={renderData.copywritingTemplates}
-                                              onChange={handleCopywritingChange}
-                                            />
-                                          )}
+                                      <CopywritingEditor
+                                        value={renderData.copywritingTemplates}
+                                        onChange={handleCopywritingChange}
+                                      />
                                     </Section>
                                   )
                                 : (
