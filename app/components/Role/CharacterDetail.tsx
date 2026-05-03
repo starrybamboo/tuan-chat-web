@@ -458,7 +458,7 @@ function CharacterDetailInner({
               ← 返回
             </Link>
           )}
-          <div className="order-1 min-w-0 md:order-0 md:flex-none">
+          <div className="order-1 hidden min-w-0 md:order-0 md:block md:flex-none">
             <h1 className="font-semibold text-2xl md:text-3xl md:my-2">
               {localRole.name || "未命名角色"}
             </h1>

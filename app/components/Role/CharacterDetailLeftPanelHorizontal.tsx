@@ -133,7 +133,20 @@ export default function CharacterDetailLeftPanelHorizontal({
       <div className="card-body p-4 md:h-80">
         <div className="md:hidden">
           <div className="grid grid-cols-4 gap-2">
-            <div className={`col-start-1 col-span-2 row-start-1 ${isDiceMaiden ? "row-span-2" : "row-span-3"} flex items-center justify-center`}>
+            <div className={`col-start-1 col-span-2 row-start-1 ${isDiceMaiden ? "row-span-2" : "row-span-3"} flex min-w-0 flex-col items-center justify-start gap-2`}>
+              {!isQueryLoading && (
+                <RoleBasicInfoEditor
+                  localRole={localRole}
+                  maxRoleNameLength={maxRoleNameLength}
+                  maxDescriptionLength={maxDescriptionLength}
+                  onBaseRoleSave={onBaseRoleSave}
+                  showDescription={false}
+                  align="center"
+                  className="w-full space-y-0"
+                  nameClassName="max-w-full truncate text-center text-xl font-semibold"
+                  nameDisplayClassName="px-1 py-0.5"
+                />
+              )}
               {isQueryLoading
                 ? (
                     <div className="flex flex-col items-center gap-3">
@@ -201,14 +214,19 @@ export default function CharacterDetailLeftPanelHorizontal({
               <ChevronRightIcon className="w-4 h-4 shrink-0 text-base-content/50" />
             </button>
           </div>
+
+          <div className="divider my-3" />
+
           <RoleBasicInfoEditor
             localRole={localRole}
             maxRoleNameLength={maxRoleNameLength}
             maxDescriptionLength={maxDescriptionLength}
             onBaseRoleSave={onBaseRoleSave}
-            className="mt-4"
-            nameClassName="text-left text-xl font-semibold"
-            descriptionDisplayClassName="text-sm wrap-break-words line-clamp-5 overflow-hidden text-ellipsis"
+            showName={false}
+            className="space-y-0"
+            descriptionDisplayClassName="text-sm leading-6 whitespace-pre-wrap wrap-break-words line-clamp-5 overflow-hidden text-ellipsis"
+            descriptionButtonClassName="px-0 py-0"
+            descriptionEditorClassName="space-y-0"
           />
         </div>
 
