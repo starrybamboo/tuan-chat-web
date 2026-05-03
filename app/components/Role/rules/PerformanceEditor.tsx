@@ -2,7 +2,8 @@ import {
   useUpdateKeyFieldByRoleIdMutation,
   useUpdateRoleAbilityByRoleIdMutation,
 } from "api/hooks/abilityQueryHooks";
-import { useCallback, useEffect, useRef, useState } from "react";
+import type { FocusEvent, KeyboardEvent } from "react";
+import { useRef } from "react";
 import { useIsMobile } from "@/utils/getScreenSize";
 import { getGridSpan, getGridSpanMobile } from "@/utils/gridSpan";
 
@@ -31,21 +32,15 @@ export default function PerformanceEditor({
   abilityData,
   roleId,
   ruleId,
-  isEditing: controlledIsEditing,
+  isEditing = false,
   hideTitleOnMobile = false,
 }: PerformanceEditorProps) {
   // 接入api
-  const { mutate: updateFiledAbility } = useUpdateRoleAbilityByRoleIdMutation();
+  const { mutate: updateFieldValue } = useUpdateRoleAbilityByRoleIdMutation();
   const { mutate: updateKeyField } = useUpdateKeyFieldByRoleIdMutation();
-  // 是否编辑
-  const [internalIsEditing, setInternalIsEditing] = useState(false);
-  // 编辑状态过渡
-  const [isTransitioning, setIsTransitioning] = useState(false);
-  const isEditingControlled = typeof controlledIsEditing === "boolean";
-  const isEditing = isEditingControlled ? controlledIsEditing : internalIsEditing;
-  const prevIsEditingRef = useRef(isEditing);
-  const headerClassName = hideTitleOnMobile && isEditingControlled
-    ? "flex justify-between items-center md:mb-4"
+  const pendingChangesRef = useRef<Record<string, string>>({});
+  const headerClassName = hideTitleOnMobile
+    ? "hidden md:flex justify-between items-center md:mb-4"
     : "flex justify-between items-center mb-4";
   // 是否移动端
   const isMobile = useIsMobile();
@@ -54,113 +49,175 @@ export default function PerformanceEditor({
   const shortFields = Object.keys(abilityData || fields)
     .filter(key => key !== "携带物品" && !longFieldKeys.includes(key));
 
-  const handleSaveAndExit = useCallback(() => {
-    setIsTransitioning(true);
-    updateFiledAbility(buildRoleAbilitySectionUpdatePayload(roleId, ruleId, "act", fields), {
-      onSuccess: () => {
-        setTimeout(() => {
-          setInternalIsEditing(false);
-          setIsTransitioning(false);
-        }, 300);
-      },
-      onError: () => {
-        setIsTransitioning(false);
-      },
-    });
-  }, [fields, roleId, ruleId, updateFiledAbility]);
-
-  // 受控编辑模式下：顶部总编辑从开到关时，自动提交表演字段编辑
-  useEffect(() => {
-    if (!isEditingControlled)
-      return;
-
-    const wasEditing = prevIsEditingRef.current;
-    if (wasEditing && !isEditing) {
-      queueMicrotask(() => handleSaveAndExit());
-    }
-    prevIsEditingRef.current = isEditing;
-  }, [handleSaveAndExit, isEditing, isEditingControlled]);
-
   const handleDeleteField = (key: string) => {
-    updateKeyField(buildRoleAbilityFieldKeyPayload(roleId, ruleId, "act", {
-      [key]: null,
-    }));
+    takePendingValue(key);
+    commitPendingChanges();
     const nextFields = { ...fields };
     delete nextFields[key];
     onChange(nextFields);
+    updateKeyField(buildRoleAbilityFieldKeyPayload(roleId, ruleId, "act", {
+      [key]: null,
+    }));
   };
 
   const handleAddField = (key: string, value: string) => {
-    if (key.trim()) {
-      onChange({ ...fields, [key.trim()]: value });
-    }
+    const nextKey = key.trim();
+    if (!nextKey || nextKey in fields)
+      return;
+
+    commitPendingChanges();
+    onChange({ ...fields, [nextKey]: value });
+    updateFieldValue(buildRoleAbilitySectionUpdatePayload(roleId, ruleId, "act", {
+      [nextKey]: value,
+    }));
   };
 
   const handleValueChange = (key: string, value: string) => {
     onChange({ ...fields, [key]: value });
+    pendingChangesRef.current = {
+      ...pendingChangesRef.current,
+      [key]: value,
+    };
+  };
+
+  const commitPendingChanges = () => {
+    const pendingChanges = pendingChangesRef.current;
+    if (Object.keys(pendingChanges).length === 0) {
+      return;
+    }
+    pendingChangesRef.current = {};
+    updateFieldValue(buildRoleAbilitySectionUpdatePayload(roleId, ruleId, "act", {
+      ...pendingChanges,
+    }));
+  };
+
+  const takePendingValue = (key: string) => {
+    const pendingValue = pendingChangesRef.current[key];
+    if (Object.prototype.hasOwnProperty.call(pendingChangesRef.current, key)) {
+      const remainingChanges = { ...pendingChangesRef.current };
+      delete remainingChanges[key];
+      pendingChangesRef.current = remainingChanges;
+    }
+    return pendingValue;
   };
 
   const handleRename = (oldKey: string, newKey: string) => {
+    if (!newKey.trim() || newKey === oldKey || newKey in fields) {
+      return;
+    }
+    const pendingValue = takePendingValue(oldKey);
+    commitPendingChanges();
     const newFields = { ...fields };
-    newFields[newKey] = newFields[oldKey];
+    newFields[newKey] = pendingValue ?? newFields[oldKey];
     delete newFields[oldKey];
     onChange(newFields);
     updateKeyField(buildRoleAbilityFieldKeyPayload(roleId, ruleId, "act", {
       [oldKey]: newKey,
-    }));
+    }), {
+      onSuccess: () => {
+        if (pendingValue === undefined) {
+          return;
+        }
+        updateFieldValue(buildRoleAbilitySectionUpdatePayload(roleId, ruleId, "act", {
+          [newKey]: pendingValue,
+        }));
+      },
+    });
+  };
+
+  const handleGridBlur = (e: FocusEvent<HTMLDivElement>) => {
+    const nextTarget = e.relatedTarget;
+    if (nextTarget instanceof Node && e.currentTarget.contains(nextTarget)) {
+      return;
+    }
+    commitPendingChanges();
+  };
+
+  const handleArrowNavigation = (e: KeyboardEvent<HTMLDivElement>) => {
+    if (!["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(e.key)) {
+      return;
+    }
+    if (e.nativeEvent.isComposing || e.ctrlKey || e.metaKey || e.altKey || e.shiftKey) {
+      return;
+    }
+
+    const target = e.target;
+    if (!(target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement)) {
+      return;
+    }
+    if (target.dataset.arrowNavControl !== "true") {
+      return;
+    }
+
+    const controls = Array.from(
+      e.currentTarget.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>("[data-arrow-nav-control=\"true\"]"),
+    ).filter(el => !el.disabled && el.offsetParent !== null);
+    const currentIndex = controls.indexOf(target);
+    if (currentIndex === -1) {
+      return;
+    }
+
+    const currentRect = target.getBoundingClientRect();
+    const currentCenterX = currentRect.left + currentRect.width / 2;
+    const currentCenterY = currentRect.top + currentRect.height / 2;
+    const direction = e.key.replace("Arrow", "");
+
+    const next = controls
+      .filter((el, index) => index !== currentIndex)
+      .map((el) => {
+        const rect = el.getBoundingClientRect();
+        const centerX = rect.left + rect.width / 2;
+        const centerY = rect.top + rect.height / 2;
+        const dx = centerX - currentCenterX;
+        const dy = centerY - currentCenterY;
+
+        const rowThreshold = Math.max(8, currentRect.height / 2);
+        const colThreshold = Math.max(8, currentRect.width / 2);
+
+        if ((direction === "Right" || direction === "Left") && Math.abs(dy) > rowThreshold)
+          return null;
+        if ((direction === "Up" || direction === "Down") && Math.abs(dx) > colThreshold)
+          return null;
+        if (direction === "Right" && dx <= 1)
+          return null;
+        if (direction === "Left" && dx >= -1)
+          return null;
+        if (direction === "Down" && dy <= 1)
+          return null;
+        if (direction === "Up" && dy >= -1)
+          return null;
+
+        const score = direction === "Left" || direction === "Right"
+          ? Math.abs(dx)
+          : Math.abs(dy);
+        return { el, score };
+      })
+      .filter((item): item is { el: HTMLInputElement | HTMLTextAreaElement; score: number } => item !== null)
+      .sort((a, b) => a.score - b.score)[0]
+      ?.el;
+
+    if (!next) {
+      return;
+    }
+
+    e.preventDefault();
+    next.focus();
+    next.select();
   };
 
   return (
-    <div className={`space-y-6 bg-base-200 rounded-lg p-4 transition-opacity duration-300 ${
-      isTransitioning ? "opacity-50" : ""
-    } ${
-      isEditing ? "ring-2 ring-primary" : ""
-    }`}
-    >
+    <div className="space-y-6 bg-base-200 rounded-lg p-4">
       <div className={headerClassName}>
         <h3 className={`card-title text-lg items-center gap-2 ml-1 ${hideTitleOnMobile ? "hidden md:flex" : "flex"}`}>
           基本信息
         </h3>
-        {!isEditingControlled && (
-          <button
-            type="button"
-            onClick={isEditing ? handleSaveAndExit : () => setInternalIsEditing(true)}
-            className={`btn btn-sm ${
-              isEditing ? "btn-primary" : "btn-accent"
-            } ${
-              isTransitioning ? "scale-95" : ""
-            }`}
-            disabled={isTransitioning}
-          >
-            {isTransitioning
-              ? (
-                  <span className="loading loading-spinner loading-xs"></span>
-                )
-              : isEditing
-                ? (
-                    <span className="flex items-center gap-1">
-                      <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
-                        <path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-                      </svg>
-                      保存
-                    </span>
-                  )
-                : (
-                    <span className="flex items-center gap-1">
-                      <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
-                        <path d="M11 4H4v14a2 2 0 002 2h12a2 2 0 002-2v-7" stroke="currentColor" strokeWidth="2" />
-                        <path d="M18.5 2.5a2.12 2.12 0 013 3L12 15l-4 1 1-4z" stroke="currentColor" strokeWidth="2" />
-                      </svg>
-                      编辑
-                    </span>
-                  )}
-          </button>
-        )}
       </div>
 
       {/* 表演字段区域 - 响应式布局 */}
       <div
         className="grid gap-4 grid-cols-2 md:grid-cols-4"
+        onBlur={handleGridBlur}
+        onKeyDown={handleArrowNavigation}
         style={{
           gridAutoFlow: "dense",
           gridAutoRows: "minmax(80px, auto)",
@@ -189,6 +246,8 @@ export default function PerformanceEditor({
                       onRename={handleRename}
                       placeholder="请输入表演描述..."
                       rowSpan={rowSpan}
+                      enableArrowNavigation
+                      commitOnBlur={false}
                     />
                   )
                 : (
@@ -218,6 +277,7 @@ export default function PerformanceEditor({
               }}
               title="添加新表演字段"
               showTitle={true}
+              enableArrowNavigation
             />
           </div>
         )}

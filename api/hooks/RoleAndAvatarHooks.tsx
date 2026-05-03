@@ -151,7 +151,10 @@ export function seedRoleAvatarQueryCaches(queryClient: QueryClient, avatar: Role
   if (roleId) {
     queryClient.setQueryData(["getRoleAvatars", roleId], (old: any) => {
       if (!old) {
-        return old;
+        return {
+          success: true,
+          data: [avatar],
+        };
       }
 
       const upsertAvatar = (list: RoleAvatar[]) => {
@@ -425,8 +428,78 @@ export function useUpdateRoleWithLocalMutation(onSave: (localRole: Role) => void
         return updateRes;
       }
     },
-    onSuccess: (result, variables) => {
+    onMutate: async (variables) => {
+      const resolvedRoleId = variables?.roleId ?? variables?.id;
+      if (!resolvedRoleId) {
+        return { snapshots: [] };
+      }
+
+      const roleListQueries = queryClient.getQueryCache().findAll({
+        predicate: query => [
+          "getUserRolesByType",
+          "getUserRolesByTypes",
+          "getUserRoles",
+          "roleInfinite",
+          "roleInfiniteByType",
+        ].includes(String(query.queryKey[0])),
+      });
+      const snapshotQueryKeys = [
+        roleQueryKey(resolvedRoleId),
+        ["roleAvatar", resolvedRoleId] as const,
+        ...roleListQueries.map(query => query.queryKey),
+      ];
+      const snapshots = snapshotQueryKeys.map(queryKey => ({
+        queryKey,
+        data: queryClient.getQueryData(queryKey),
+      }));
+
+      await Promise.all([
+        queryClient.cancelQueries({ queryKey: roleQueryKey(resolvedRoleId) }),
+        queryClient.cancelQueries({ queryKey: ["roleAvatar", resolvedRoleId] }),
+        queryClient.cancelQueries({ queryKey: ["getUserRolesByType"] }),
+        queryClient.cancelQueries({ queryKey: ["getUserRolesByTypes"] }),
+        queryClient.cancelQueries({ queryKey: ["getUserRoles"] }),
+        queryClient.cancelQueries({ queryKey: ["roleInfinite"] }),
+        queryClient.cancelQueries({ queryKey: ["roleInfiniteByType"] }),
+      ]);
+
+      queryClient.setQueryData(
+        roleQueryKey(resolvedRoleId),
+        (old: any) => patchGetRoleQueryCache(old, variables, resolvedRoleId),
+      );
+      queryClient.setQueriesData(
+        { queryKey: ["getUserRolesByType"] },
+        (old: any) => patchUserRoleQueryCache(old, variables, resolvedRoleId),
+      );
+      queryClient.setQueriesData(
+        { queryKey: ["getUserRolesByTypes"] },
+        (old: any) => patchUserRoleQueryCache(old, variables, resolvedRoleId),
+      );
+      queryClient.setQueriesData(
+        { queryKey: ["getUserRoles"] },
+        (old: any) => patchUserRoleQueryCache(old, variables, resolvedRoleId),
+      );
+      if (variables?.avatar) {
+        queryClient.setQueryData(["roleAvatar", resolvedRoleId], {
+          avatar: variables.avatar,
+          avatarThumb: variables.avatarThumb || variables.avatar,
+          avatarId: variables.avatarId,
+        });
+      }
+
+      return { snapshots };
+    },
+    onSuccess: (result, variables, context) => {
       if (!isSuccessfulApiResult(result)) {
+        context?.snapshots.forEach(({ queryKey, data }) => {
+          queryClient.setQueryData(queryKey, data);
+        });
+        const resolvedRoleId = variables?.roleId ?? variables?.id;
+        if (resolvedRoleId) {
+          queryClient.invalidateQueries({ queryKey: roleQueryKey(resolvedRoleId) });
+          queryClient.invalidateQueries({ queryKey: ["roleAvatar", resolvedRoleId] });
+        }
+        queryClient.invalidateQueries({ queryKey: ["roleInfinite"] });
         return;
       }
       const resolvedRoleId = variables?.roleId ?? variables?.id;
@@ -463,7 +536,10 @@ export function useUpdateRoleWithLocalMutation(onSave: (localRole: Role) => void
       }
       queryClient.invalidateQueries({ queryKey: ["roomRole"] });
     },
-    onError: (error: any) => {
+    onError: (error: any, _variables, context) => {
+      context?.snapshots.forEach(({ queryKey, data }) => {
+        queryClient.setQueryData(queryKey, data);
+      });
       console.error("Mutation failed:", error);
       if (error.response && error.response.data) {
         console.error("Server response:", error.response.data);
