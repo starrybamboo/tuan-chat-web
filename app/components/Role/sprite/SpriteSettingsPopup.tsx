@@ -9,7 +9,6 @@ import {
   FunnelIcon,
   GearIcon,
   ImageIcon,
-  PackageIcon,
   TrashIcon,
   UserCircleIcon,
   UserFocusIcon,
@@ -27,14 +26,13 @@ import { ensureRoleAvatarDefaultMedia } from "@/components/Role/RoleCreation/hoo
 import { isMobileScreen } from "@/utils/getScreenSize";
 import { imageHighUrl, imageOriginalUrl } from "@/utils/mediaUrl";
 import { useAvatarDeletion } from "./hooks/useAvatarDeletion";
-import { AvatarLibraryTab } from "./Tabs/AvatarLibraryTab";
 import { AvatarSettingsTab } from "./Tabs/AvatarSettingsTab";
 import { PreviewTab } from "./Tabs/PreviewTab";
 import { SpriteCropper } from "./Tabs/SpriteCropper";
 import { SpriteListGrid } from "./Tabs/SpriteListGrid";
 import { getEffectiveAvatarUrl, getEffectiveSpriteUrl } from "./utils";
 
-export type SettingsTab = "cropper" | "avatarCropper" | "preview" | "setting" | "library" | "trash";
+export type SettingsTab = "cropper" | "avatarCropper" | "preview" | "setting" | "trash";
 
 interface SpriteSettingsPopupProps {
   isOpen: boolean;
@@ -463,8 +461,6 @@ export function SpriteSettingsPopup({
       return "头像校正";
     if (activeTab === "setting")
       return "头像设置";
-    if (activeTab === "library")
-      return "素材库";
     return "回收站";
   }, [activeTab]);
 
@@ -676,19 +672,6 @@ export function SpriteSettingsPopup({
           <span>头像设置</span>
         </button>
 
-        {/* 素材库 Tab */}
-        <button
-          type="button"
-          onClick={() => handleTabChange("library")}
-          className={`flex items-center gap-1.5 sm:gap-2 px-2.5 py-2 sm:px-3 rounded-lg text-xs sm:text-sm transition-colors whitespace-nowrap ${
-            activeTab === "library"
-              ? "bg-primary text-primary-content"
-              : "hover:bg-base-300"
-          }`}
-        >
-          <PackageIcon className="h-4 w-4 sm:h-5 sm:w-5 shrink-0" aria-hidden="true" />
-          <span>素材库</span>
-        </button>
         {/* 回收站 Tab */}
         <button
           type="button"
@@ -855,11 +838,6 @@ export function SpriteSettingsPopup({
                 selectedIndex={internalIndex}
                 onApply={handleApply}
               />
-            )}
-
-            {/* 素材库内容 */}
-            {activeTab === "library" && (
-              <AvatarLibraryTab />
             )}
 
             {/* 回收站内容 */}
