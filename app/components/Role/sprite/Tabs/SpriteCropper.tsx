@@ -8,13 +8,13 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react
 import toast from "react-hot-toast";
 import { ReactCrop } from "react-image-crop";
 import { isMobileScreen } from "@/utils/getScreenSize";
-import { imageHighUrl, imageOriginalUrl } from "@/utils/mediaUrl";
 import {
   canvasPreview,
   canvasToBlob,
   createTopCenteredSquareCrop,
   useCropPreview,
 } from "@/utils/imgCropper";
+import { imageHighUrl, imageOriginalUrl } from "@/utils/mediaUrl";
 import { AvatarPreview } from "../../Preview/AvatarPreview";
 import { RenderPreview } from "../../Preview/RenderPreview";
 import { TransformControl } from "../TransformControl";

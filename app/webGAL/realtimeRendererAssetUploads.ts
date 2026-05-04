@@ -1,5 +1,6 @@
-import type { RoleAvatar } from "../../api";
 import { avatarThumbUrl, avatarUrl, imageHighUrl, imageOriginalUrl } from "@/utils/mediaUrl";
+
+import type { RoleAvatar } from "../../api";
 
 import { getFileExtensionFromUrl, uploadFile } from "./fileOperator";
 import { buildImageFileName, hasFileExtension, hashString } from "./realtimeRendererFileNames";

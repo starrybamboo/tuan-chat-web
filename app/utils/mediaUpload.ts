@@ -1,12 +1,11 @@
 import type { MediaQuality, MediaType } from "@/utils/imgCompressUtils";
 import type { OssUploadHeaders } from "@/utils/ossUploadTarget";
 
-import { MEDIA_COMPRESSION_PROFILES, compressImage } from "@/utils/imgCompressUtils";
+import { transcodeAudioFileToOpusOrThrow } from "@/utils/audioTranscodeUtils";
+import { compressImage, MEDIA_COMPRESSION_PROFILES } from "@/utils/imgCompressUtils";
 import { inferMediaTypeFromMimeType, normalizeFileMimeType, normalizeMimeType } from "@/utils/mediaMime";
 import { extractNovelAiMetadataFromPngBytes, extractNovelAiMetadataFromWebpBytes } from "@/utils/novelaiImageMetadata";
 import { resolveOssUploadTarget } from "@/utils/ossUploadTarget";
-
-import { transcodeAudioFileToOpusOrThrow } from "@/utils/audioTranscodeUtils";
 import { transcodeVideoFileToWebmOrThrow } from "@/utils/videoTranscodeUtils";
 
 import { tuanchat } from "../../api/instance";

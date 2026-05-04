@@ -1,5 +1,7 @@
-import type { RoleAvatar } from "api";
 import { describe, expect, it, vi } from "vitest";
+
+import type { RoleAvatar } from "api";
+
 import { hydrateRoleList, mergeRoleList } from "./roleListData";
 
 function createQueryClientMock(cachedAvatar?: RoleAvatar) {
@@ -48,8 +50,7 @@ describe("roleListData", () => {
   it("能在没有侧边栏参与的情况下独立补齐角色头像", async () => {
     const cachedAvatar: RoleAvatar = {
       avatarId: 55,
-      avatarUrl: "https://example.com/avatar.png",
-      avatarThumbUrl: "https://example.com/avatar-thumb.png",
+      avatarFileId: 1001,
     };
     const queryClient = createQueryClientMock(cachedAvatar);
     const seedRoleAvatarQueryCaches = vi.fn();
@@ -76,8 +77,8 @@ describe("roleListData", () => {
       expect.objectContaining({
         id: 7,
         name: "调查员",
-        avatar: "https://example.com/avatar.png",
-        avatarThumb: "https://example.com/avatar-thumb.png",
+        avatar: "/media/v1/files/001/1001/image/medium.webp",
+        avatarThumb: "/media/v1/files/001/1001/image/low.webp",
       }),
     ]);
     expect(queryClient.getQueryData).toHaveBeenCalledWith(["getRoleAvatar", 55]);

@@ -1,10 +1,12 @@
 import { useQueries, useQueryClient } from "@tanstack/react-query";
-import { seedRoleAvatarQueryCaches, useGetUserRolesByTypeQuery } from "api/hooks/RoleAndAvatarHooks";
 import { useMemo } from "react";
+
 import { tuanchat } from "@/../api/instance";
 import { useGlobalContext } from "@/components/globalContextProvider";
 import { ROLE_DEFAULT_AVATAR_URL } from "@/constants/defaultAvatar";
-import { mapUserRoleToRole } from "./roleListData";
+import { seedRoleAvatarQueryCaches, useGetUserRolesByTypeQuery } from "api/hooks/RoleAndAvatarHooks";
+
+import { mapUserRoleToRole, resolveRoleAvatarUrls } from "./roleListData";
 
 export function useRoleListModel() {
   const queryClient = useQueryClient();
@@ -45,8 +47,9 @@ export function useRoleListModel() {
       if (!avatar) {
         return role;
       }
-      const avatarUrl = avatar.avatarUrl || ROLE_DEFAULT_AVATAR_URL;
-      const avatarThumb = avatar.avatarThumbUrl || avatarUrl;
+      const avatarUrls = resolveRoleAvatarUrls(avatar);
+      const avatarUrl = avatarUrls.avatarUrl || ROLE_DEFAULT_AVATAR_URL;
+      const avatarThumb = avatarUrls.avatarThumbUrl || avatarUrl;
       return {
         ...role,
         avatar: avatarUrl,

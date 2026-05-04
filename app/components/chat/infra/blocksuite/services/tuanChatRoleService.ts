@@ -7,9 +7,9 @@ import { signal } from "@preact/signals-core";
 
 import type { UserRole } from "@tuanchat/openapi-client/models/UserRole";
 
+import { avatarThumbUrl } from "@/utils/mediaUrl";
 import { fetchRoleWithCache } from "api/hooks/RoleAndAvatarHooks";
 import { tuanchat } from "api/instance";
-import { avatarThumbUrl } from "@/utils/mediaUrl";
 
 export type BlocksuiteRoleInfo = {
   id: string;

@@ -1,6 +1,7 @@
+import { avatarThumbUrl, avatarUrl } from "@/utils/mediaUrl";
+
 import type { UserInfoResponse } from "../../../api";
 
-import { avatarThumbUrl, avatarUrl } from "@/utils/mediaUrl";
 import { useGetUserInfoQuery } from "../../../api/hooks/UserHooks";
 
 export type UserAvatarSource = Pick<UserInfoResponse, "userId" | "username" | "avatarFileId" | "avatarMediaType">;

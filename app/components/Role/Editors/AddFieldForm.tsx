@@ -15,6 +15,7 @@ interface AddFieldFormProps {
 }
 
 const defaultPlaceholder = { key: "字段名", value: "字段值" };
+type AddFieldStatus = "empty" | "duplicate" | "ready";
 
 /**
  * 添加字段表单组件
@@ -30,23 +31,38 @@ export default function AddFieldForm({
   title = "添加新字段",
   enableArrowNavigation = false,
 }: AddFieldFormProps) {
-  const [newFieldKey, setNewFieldKey] = useState("");
-  const [newFieldValue, setNewFieldValue] = useState("");
+  const [keyDraft, setKeyDraft] = useState("");
   const keyInputRef = useRef<HTMLInputElement | null>(null);
   const valueInputRef = useRef<HTMLInputElement | null>(null);
   const valueTextareaRef = useRef<HTMLTextAreaElement | null>(null);
 
+  const readFieldDraft = () => {
+    const key = keyInputRef.current?.value ?? "";
+    const value = valueInputRef.current?.value ?? valueTextareaRef.current?.value ?? "";
+    return { key, value };
+  };
+
+  const trimmedKeyDraft = keyDraft.trim();
+  const fieldStatus: AddFieldStatus = !trimmedKeyDraft
+    ? "empty"
+    : existingKeys.includes(trimmedKeyDraft) ? "duplicate" : "ready";
+
   const handleAddField = () => {
-    if (!newFieldKey.trim() || existingKeys.includes(newFieldKey)) {
+    const { key, value } = readFieldDraft();
+    const trimmedKey = key.trim();
+    if (!trimmedKey || existingKeys.includes(trimmedKey)) {
       return; // 字段名不能为空或重复
     }
 
-    onAddField(newFieldKey, newFieldValue);
-    setNewFieldKey("");
-    setNewFieldValue("");
+    onAddField(trimmedKey, value);
+    if (keyInputRef.current)
+      keyInputRef.current.value = "";
+    if (valueInputRef.current)
+      valueInputRef.current.value = "";
+    if (valueTextareaRef.current)
+      valueTextareaRef.current.value = "";
+    setKeyDraft("");
   };
-
-  const canAdd = newFieldKey.trim() && !existingKeys.includes(newFieldKey);
 
   const focusKeyInput = () => {
     const el = keyInputRef.current;
@@ -119,7 +135,7 @@ export default function AddFieldForm({
     if (e?.nativeEvent?.isComposing)
       return;
 
-    if (!canAdd)
+    if (fieldStatus !== "ready")
       return;
 
     e.preventDefault();
@@ -137,12 +153,16 @@ export default function AddFieldForm({
     if (!e.ctrlKey)
       return;
 
-    if (!canAdd)
+    if (fieldStatus !== "ready")
       return;
 
     e.preventDefault();
     handleAddField();
   };
+
+  const canAdd = fieldStatus === "ready";
+  const inlineAddTip = fieldStatus === "duplicate" ? "key 已存在" : "↩︎ 回车";
+  const stackedAddTip = fieldStatus === "duplicate" ? "key 已存在" : "Ctrl + ↩︎ 添加";
 
   if (layout === "stacked") {
     return (
@@ -155,8 +175,7 @@ export default function AddFieldForm({
             <input
               ref={keyInputRef}
               type="text"
-              value={newFieldKey}
-              onChange={e => setNewFieldKey(e.target.value)}
+              onChange={e => setKeyDraft(e.currentTarget.value)}
               onKeyDown={(e) => {
                 handleKeyInputArrowSwitch(e);
                 handleEnterToAdd(e);
@@ -170,8 +189,6 @@ export default function AddFieldForm({
             <label className="textarea flex items-center w-full gap-2 rounded-md transition focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary focus-within:outline-none bg-base-100 p-0">
               <textarea
                 ref={valueTextareaRef}
-                value={newFieldValue}
-                onChange={e => setNewFieldValue(e.target.value)}
                 onKeyDown={(e) => {
                   handleValueInputArrowSwitch(e);
                   handleCtrlEnterToAdd(e);
@@ -181,7 +198,7 @@ export default function AddFieldForm({
                 className="textarea grow focus:outline-none border-none outline-none bg-transparent min-h-32 pr-20 pb-12"
               />
             </label>
-            <div className="tooltip tooltip-bottom absolute bottom-2 right-2" data-tip="Ctrl + ↩︎ 添加">
+            <div className="tooltip tooltip-top absolute bottom-2 right-2" data-tip={stackedAddTip}>
               <button
                 type="button"
                 onClick={handleAddField}
@@ -206,8 +223,7 @@ export default function AddFieldForm({
         <input
           ref={keyInputRef}
           type="text"
-          value={newFieldKey}
-          onChange={e => setNewFieldKey(e.target.value)}
+          onChange={e => setKeyDraft(e.currentTarget.value)}
           onKeyDown={(e) => {
             handleKeyInputArrowSwitch(e);
             handleEnterToAdd(e);
@@ -220,8 +236,6 @@ export default function AddFieldForm({
         <input
           ref={valueInputRef}
           type="text"
-          value={newFieldValue}
-          onChange={e => setNewFieldValue(e.target.value)}
           onKeyDown={(e) => {
             handleValueInputArrowSwitch(e);
             handleEnterToAdd(e);
@@ -230,7 +244,7 @@ export default function AddFieldForm({
           data-arrow-nav-control={enableArrowNavigation ? "true" : undefined}
           className="grow focus:outline-none border-none outline-none"
         />
-        <div className="tooltip tooltip-bottom" data-tip="↩︎ 回车">
+        <div className="tooltip tooltip-top" data-tip={inlineAddTip}>
           <button
             type="button"
             onClick={handleAddField}

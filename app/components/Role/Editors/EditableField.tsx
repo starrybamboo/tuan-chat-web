@@ -14,6 +14,7 @@ interface EditableFieldProps {
   showDeleteButton?: boolean;
   size?: "default" | "compact";
   enableArrowNavigation?: boolean;
+  commitOnBlur?: boolean;
 }
 
 /**
@@ -34,6 +35,7 @@ export default function EditableField({
   showDeleteButton = true,
   size = "default",
   enableArrowNavigation = false,
+  commitOnBlur = true,
 }: EditableFieldProps) {
   const [editingFieldKey, setEditingFieldKey] = useState<string | null>(null);
   const [tempFieldKey, setTempFieldKey] = useState("");
@@ -302,7 +304,7 @@ export default function EditableField({
           type="text"
           value={String(value)}
           onChange={e => onValueChange(fieldKey, e.target.value)}
-          onBlur={e => onValueCommit?.(fieldKey, e.currentTarget.value)}
+          onBlur={e => commitOnBlur && onValueCommit?.(fieldKey, e.currentTarget.value)}
           data-arrow-nav-control={enableArrowNavigation ? "true" : undefined}
           onKeyDown={(e) => {
             if (!onValueCommit)

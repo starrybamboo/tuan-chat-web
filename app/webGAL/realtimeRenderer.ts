@@ -147,7 +147,7 @@ function resolveRoleSpriteUrl(avatar: RoleAvatar | undefined): string {
   if (!avatar) {
     return "";
   }
-    return imageHighUrl(avatar.spriteFileId)
+  return imageHighUrl(avatar.spriteFileId)
     || imageOriginalUrl(avatar.spriteFileId)
     || buildAvatarUrl(avatar.avatarFileId)
     || avatarOriginalUrl(avatar.avatarFileId);

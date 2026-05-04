@@ -1,12 +1,13 @@
 import { QueryClient } from "@tanstack/react-query";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { avatarThumbUrl } from "@/utils/mediaUrl";
+
 import { listBlocksuiteMentionRoles } from "../services/blocksuiteRoleService";
 import { listBlocksuiteRoomIdsForSpace } from "../services/blocksuiteRoomService";
 import { listBlocksuiteSpaceMemberIds } from "../services/blocksuiteSpaceMemberService";
 import { createTuanChatRoleService } from "../services/tuanChatRoleService";
 import { createTuanChatUserService } from "../services/tuanChatUserService";
-import { avatarThumbUrl } from "@/utils/mediaUrl";
 
 const {
   getMemberListMock,

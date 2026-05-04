@@ -26,7 +26,7 @@ function roleRuleKey(roleId: number, ruleId: number) {
   return `${roleId}:${ruleId}`;
 }
 
-export const useRoleUiStore = create<RoleUiState>((set) => ({
+export const useRoleUiStore = create<RoleUiState>(set => ({
   activeAbilityTabByRoleRule: {},
   sidebarSearchQuery: "",
   sidebarCollapsed: false,

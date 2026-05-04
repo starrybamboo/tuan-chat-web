@@ -13,11 +13,12 @@ import { useCallback, useEffect, useRef, useState } from "react";
  */
 import type { RealtimeWebgalGameConfig } from "@/components/chat/stores/realtimeRenderStore";
 
+import { avatarUrl, imageHighUrl } from "@/utils/mediaUrl";
+
 import type { ChatMessageResponse, RoleAvatar, Room, UserRole } from "../../api";
 import type { RealtimeTTSConfig } from "./realtimeRenderer";
 
 import { fetchRoleAvatarWithCache } from "../../api/hooks/RoleAndAvatarHooks";
-import { avatarUrl, imageHighUrl } from "@/utils/mediaUrl";
 import { onWebgalAvatarUpdated } from "./avatarSync";
 import {
   collectMessageAssetWarmupPlan,

@@ -4,6 +4,7 @@ import type { ResourceResponse } from "@tuanchat/openapi-client/models/ResourceR
 import { useState } from "react";
 import { toast } from "react-hot-toast";
 
+import { mediaPreviewUrl } from "@/utils/mediaUrl";
 import {
   useGetPublicResourceCollectionsByTypeQuery,
   useGetPublicResourcesByTypeQuery,
@@ -16,7 +17,6 @@ import { EmptyState } from "../../resource/ui/EmptyState";
 import { LoadingState } from "../../resource/ui/LoadingState";
 import { Pagination } from "../../resource/ui/Pagination";
 import MoreBetterImg from "../../resource/utils/MoreBetterImg";
-import { mediaPreviewUrl } from "@/utils/mediaUrl";
 
 type TabType = "myResources" | "publicResources" | "myCollections" | "publicCollections";
 

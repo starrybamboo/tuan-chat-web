@@ -6,6 +6,7 @@ import type { RoleAvatar } from "api";
 import { useBatchDeleteRoleAvatarsWithOptimisticMutation, useDeleteRoleAvatarWithOptimisticMutation } from "api/hooks/RoleAndAvatarHooks";
 
 import type { Role } from "../../types";
+
 import { getEffectiveAvatarUrl } from "../utils";
 
 type UseAvatarDeletionProps = {

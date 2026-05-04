@@ -4,9 +4,9 @@ import type { QueryClient } from "@tanstack/react-query";
 
 import { signal } from "@preact/signals-core";
 
+import { avatarThumbUrl } from "@/utils/mediaUrl";
 import { fetchUserInfoWithCache } from "@tuanchat/query/users";
 import { tuanchat } from "api/instance";
-import { avatarThumbUrl } from "@/utils/mediaUrl";
 
 type CacheEntry = {
   userInfo$: Signal<AffineUserInfo | null>;

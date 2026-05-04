@@ -48,11 +48,8 @@ function CharacterDetailInner({
   canKickOut = false,
   onKickOut,
 }: CharacterDetailProps) {
-  // 初始化角色数据
-  const [localRole, setLocalRole] = useState<Role>(role);
-
   // 头像选择状态 - 只保留 ID,URL 通过计算得出
-  const [selectedAvatarId, setSelectedAvatarId] = useState<number>(role.avatarId);
+  const [selectedAvatarIdOverride, setSelectedAvatarIdOverride] = useState<number | null>(null);
 
   // 获取角色所有头像
   const { data: roleAvatarsResponse, isLoading: isQueryLoading } = useGetRoleAvatarsQuery(role.id);
@@ -60,14 +57,32 @@ function CharacterDetailInner({
   const { data: currentRoleData } = useGetRoleQuery(role.id);
   const queryClient = useQueryClient();
 
+  const displayRole = useMemo<Role>(() => {
+    const queriedRole = currentRoleData?.data;
+    if (!queriedRole) {
+      return role;
+    }
+
+    return {
+      ...role,
+      name: queriedRole.roleName ?? role.name,
+      description: queriedRole.description ?? role.description,
+      avatarId: queriedRole.avatarId ?? role.avatarId,
+      type: queriedRole.type ?? role.type,
+      voiceUrl: queriedRole.voiceUrl ?? role.voiceUrl,
+      voiceFileId: queriedRole.voiceFileId ?? role.voiceFileId,
+      extra: queriedRole.extra ?? role.extra,
+    };
+  }, [currentRoleData?.data, role]);
+
   // 获取当前关联的骰娘ID
   const currentDicerRoleId = useMemo(() => {
-    const extra = localRole.extra;
+    const extra = displayRole.extra;
     if (!extra || !extra.dicerRoleId)
       return undefined;
     const id = Number(extra.dicerRoleId);
     return (Number.isNaN(id) || id <= 0) ? undefined : id;
-  }, [localRole.extra]);
+  }, [displayRole.extra]);
 
   // 查询关联的骰娘信息
   const { data: linkedDicerRoleData } = useGetRoleQuery(currentDicerRoleId || 0);
@@ -98,17 +113,19 @@ function CharacterDetailInner({
 
   // 通过 useMemo 派生展示用的头像/立绘 URL
   const { selectedAvatarUrl, selectedSpriteUrl } = useMemo(() => {
+    const selectedAvatarId = selectedAvatarIdOverride ?? displayRole.avatarId;
     const avatarFromList = (
-      localRole.avatarId && localRole.avatarId !== 0
+      selectedAvatarId && selectedAvatarId !== 0
     )
-      ? roleAvatars.find(item => item.avatarId === localRole.avatarId)
+      ? roleAvatars.find(item => item.avatarId === selectedAvatarId)
       : undefined;
 
     return {
-      selectedAvatarUrl: getEffectiveAvatarUrl(avatarFromList) || localRole.avatar || ROLE_DEFAULT_AVATAR_URL,
+      selectedAvatarUrl: getEffectiveAvatarUrl(avatarFromList) || displayRole.avatar || ROLE_DEFAULT_AVATAR_URL,
       selectedSpriteUrl: getEffectiveSpriteUrl(avatarFromList),
     };
-  }, [localRole.avatarId, localRole.avatar, roleAvatars]);
+  }, [displayRole.avatar, displayRole.avatarId, roleAvatars, selectedAvatarIdOverride]);
+  const selectedAvatarId = selectedAvatarIdOverride ?? displayRole.avatarId;
   // 描述的最大储存量
   const MAX_DESCRIPTION_LENGTH = 140;
   const MAX_ROLE_NAME_LENGTH = 50;
@@ -173,7 +190,7 @@ function CharacterDetailInner({
   }) => {
     const currentAbility = abilityQuery.data;
     const payload = {
-      roleId: localRole.id,
+      roleId: displayRole.id,
       ruleId: selectedRuleId,
       act: { ...(currentAbility?.actTemplate ?? {}), ...(data.act ?? {}) },
       basic: { ...(currentAbility?.basicDefault ?? {}), ...(data.basic ?? {}) },
@@ -199,7 +216,7 @@ function CharacterDetailInner({
   // 处理骰娘配置保存
   const handleDicerConfigSave = async (data: Record<string, string[]>) => {
     const payload = {
-      roleId: localRole.id,
+      roleId: displayRole.id,
       ruleId: selectedRuleId,
       act: {},
       basic: {},
@@ -226,7 +243,7 @@ function CharacterDetailInner({
   const handleDicerConfigReset = () => {
     // 重置为空对象，让其从规则模板中重新加载
     const payload = {
-      roleId: localRole.id,
+      roleId: displayRole.id,
       ruleId: selectedRuleId,
       act: {},
       basic: {},
@@ -250,7 +267,7 @@ function CharacterDetailInner({
 
   // 处理骰娘关联确认
   const handleDiceMaidenLinkConfirm = (dicerRoleId: number) => {
-    const newExtra = { ...localRole.extra };
+    const newExtra = { ...displayRole.extra };
 
     if (dicerRoleId === 0) {
       // 清除绑定
@@ -262,10 +279,9 @@ function CharacterDetailInner({
     }
 
     const updatedRole = {
-      ...localRole,
+      ...displayRole,
       extra: newExtra,
     };
-    setLocalRole(updatedRole);
 
     // 使用updateRole保存到后端
     updateRole(updatedRole, {
@@ -282,11 +298,10 @@ function CharacterDetailInner({
   const handleAudioUploadSuccess = (audio: { audioUrl: string; voiceFileId: number }) => {
     // 更新本地角色状态，添加音频URL
     const updatedRole = {
-      ...localRole,
+      ...displayRole,
       voiceUrl: audio.audioUrl,
       voiceFileId: audio.voiceFileId,
     };
-    setLocalRole(updatedRole);
 
     // 使用updateRole保存到后端
     updateRole(updatedRole, {
@@ -315,29 +330,9 @@ function CharacterDetailInner({
 
   const saveRoleBase = (nextRole: Role) => {
     const cleanedRole = buildCleanedRole(nextRole);
-    const previousRole = localRole;
-    setLocalRole(prev => prev.name === cleanedRole.name
-      && prev.description === cleanedRole.description
-      && prev.avatarId === cleanedRole.avatarId
-      && prev.voiceUrl === cleanedRole.voiceUrl
-      ? prev
-      : cleanedRole);
     updateRole(cleanedRole, {
-      onSuccess: () => {
-        setLocalRole(prev => prev.name === cleanedRole.name
-          && prev.description === cleanedRole.description
-          && prev.avatarId === cleanedRole.avatarId
-          && prev.voiceUrl === cleanedRole.voiceUrl
-          ? prev
-          : cleanedRole);
-      },
       onError: () => {
-        setLocalRole(prev => prev.name === cleanedRole.name
-          && prev.description === cleanedRole.description
-          && prev.avatarId === cleanedRole.avatarId
-          && prev.voiceUrl === cleanedRole.voiceUrl
-          ? previousRole
-          : prev);
+        toast.error("角色保存失败");
       },
     });
   };
@@ -348,20 +343,19 @@ function CharacterDetailInner({
     const nextAvatarUrl = getEffectiveAvatarUrl(selectedAvatar) || previewUrl;
     const nextAvatarThumb = getEffectiveAvatarThumbUrl(selectedAvatar) || nextAvatarUrl;
     const updatedRole = {
-      ...localRole,
+      ...displayRole,
       avatar: nextAvatarUrl,
       avatarThumb: nextAvatarThumb,
       avatarId,
     };
-    setLocalRole(updatedRole);
-    setSelectedAvatarId(avatarId); // 更新选中ID,URL会自动通过useMemo计算
+    setSelectedAvatarIdOverride(avatarId); // 更新选中ID,URL会自动通过useMemo计算
     const cleanedRole = buildCleanedRole(updatedRole);
     updateRole(cleanedRole);
   };
 
   // 处理头像选择 - 简化为只更新ID
   const handleAvatarSelect = (avatarId: number) => {
-    setSelectedAvatarId(avatarId);
+    setSelectedAvatarIdOverride(avatarId);
   };
 
   // 处理头像删除 - 使用 React Query 的乐观更新
@@ -381,7 +375,7 @@ function CharacterDetailInner({
 
     // 如果删除的是当前选中的头像，重置为默认
     if (avatarId === selectedAvatarId) {
-      setSelectedAvatarId(0);
+      setSelectedAvatarIdOverride(0);
     }
   };
 
@@ -436,7 +430,7 @@ function CharacterDetailInner({
           )
         : (
             <ExpansionModule
-              roleId={localRole.id}
+              roleId={displayRole.id}
               ruleId={selectedRuleId}
               isStImportModalOpen={isStImportModalOpen}
               onStImportModalClose={() => setIsStImportModalOpen(false)}
@@ -460,7 +454,7 @@ function CharacterDetailInner({
           )}
           <div className="order-1 hidden min-w-0 md:order-0 md:block md:flex-none">
             <h1 className="font-semibold text-2xl md:text-3xl md:my-2">
-              {localRole.name || "未命名角色"}
+              {displayRole.name || "未命名角色"}
             </h1>
             <p className="truncate text-base-content/60 md:block">
               <span className="md:hidden">{currentRuleData?.ruleName || "未选择规则"}</span>
@@ -485,16 +479,16 @@ function CharacterDetailInner({
                   </button>
                 )
               : isDiceMaiden && (
-                  <div className="tooltip tooltip-bottom md:hidden" data-tip="查看和导出骰娘文案配置的JSON格式">
-                    <button
-                      type="button"
-                      onClick={() => setIsDicerConfigJsonModalOpen(true)}
-                      className="btn rounded-lg bg-info/70 text-info-content btn-md px-4"
-                    >
-                      配置
-                    </button>
-                  </div>
-                )}
+                <div className="tooltip tooltip-bottom md:hidden" data-tip="查看和导出骰娘文案配置的JSON格式">
+                  <button
+                    type="button"
+                    onClick={() => setIsDicerConfigJsonModalOpen(true)}
+                    className="btn rounded-lg bg-info/70 text-info-content btn-md px-4"
+                  >
+                    配置
+                  </button>
+                </div>
+              )}
           </div>
         </div>
         <div className={`${layout === "popup" ? "flex" : "hidden md:flex"} w-full items-center justify-center gap-1.5 md:w-auto md:justify-end md:gap-2`}>
@@ -523,7 +517,7 @@ function CharacterDetailInner({
               <CharacterDetailLeftPanelHorizontal
                 isQueryLoading={isQueryLoading}
                 isDiceMaiden={isDiceMaiden}
-                localRole={localRole}
+                localRole={displayRole}
                 roleAvatars={roleAvatars}
                 selectedAvatarId={selectedAvatarId}
                 selectedAvatarUrl={selectedAvatarUrl}
@@ -543,13 +537,9 @@ function CharacterDetailInner({
                 onAvatarUpload={handleAvatarUpload}
                 onAvatarTitleSave={handleAvatarTitleSave}
                 onBaseRoleSave={saveRoleBase}
-                onAudioRoleUpdate={(updatedRole) => {
-                  setLocalRole(updatedRole);
-                  updateRole(updatedRole);
-                }}
+                onAudioRoleUpdate={updatedRole => updateRole(updatedRole)}
                 onAudioDelete={() => {
-                  const updatedRole = { ...localRole, voiceUrl: null, voiceFileId: null };
-                  setLocalRole(updatedRole);
+                  const updatedRole = { ...displayRole, voiceUrl: null, voiceFileId: null };
                   updateRole(updatedRole);
                 }}
               />
@@ -563,7 +553,7 @@ function CharacterDetailInner({
               <CharacterDetailLeftPanelHorizontal
                 isQueryLoading={isQueryLoading}
                 isDiceMaiden={isDiceMaiden}
-                localRole={localRole}
+                localRole={displayRole}
                 roleAvatars={roleAvatars}
                 selectedAvatarId={selectedAvatarId}
                 selectedAvatarUrl={selectedAvatarUrl}
@@ -583,13 +573,9 @@ function CharacterDetailInner({
                 onAvatarUpload={handleAvatarUpload}
                 onAvatarTitleSave={handleAvatarTitleSave}
                 onBaseRoleSave={saveRoleBase}
-                onAudioRoleUpdate={(updatedRole) => {
-                  setLocalRole(updatedRole);
-                  updateRole(updatedRole);
-                }}
+                onAudioRoleUpdate={updatedRole => updateRole(updatedRole)}
                 onAudioDelete={() => {
-                  const updatedRole = { ...localRole, voiceUrl: null, voiceFileId: null };
-                  setLocalRole(updatedRole);
+                  const updatedRole = { ...displayRole, voiceUrl: null, voiceFileId: null };
                   updateRole(updatedRole);
                 }}
               />

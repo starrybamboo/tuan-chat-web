@@ -1,8 +1,11 @@
+import { createRoleAbilityAliasMapSet } from "@/components/common/dicer/roleAbilityAliasMaps";
 import UTILS from "@/components/common/dicer/utils/utils";
 
 import type { CharacterData } from "../types";
 
 export function evaluateCharacterDataExpressions(data: CharacterData): CharacterData {
+  UTILS.initAliasMap(createRoleAbilityAliasMapSet());
+
   const nextData: CharacterData = {
     ...data,
     act: { ...data.act },

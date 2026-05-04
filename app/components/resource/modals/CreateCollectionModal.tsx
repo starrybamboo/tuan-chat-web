@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { useCreateResourceCollectionMutation } from "../../../../api/hooks/resourceQueryHooks";
 import { uploadMediaFile } from "@/utils/mediaUpload";
 import { imageMediumUrl } from "@/utils/mediaUrl";
+import { useCreateResourceCollectionMutation } from "../../../../api/hooks/resourceQueryHooks";
 
 interface CreateCollectionModalProps {
   isOpen: boolean;

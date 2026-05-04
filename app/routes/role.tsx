@@ -134,7 +134,7 @@ export default function RoleLayout() {
 
       {/* 主内容区域 */}
       <div className="flex-1 w-full min-w-0 overflow-hidden min-h-0 border-t border-gray-300 dark:border-gray-700">
-        <div className="h-full min-h-0 overflow-y-auto overflow-x-hidden">
+        <div className="h-full min-h-0 overflow-y-auto overflow-x-hidden [scrollbar-gutter:stable]">
           <div className="w-full max-w-5xl mx-auto min-h-full md:p-6">
             {/* Outlet 是子路由的渲染位置 */}
             {/* 通过 context 将状态传递给子路由 */}

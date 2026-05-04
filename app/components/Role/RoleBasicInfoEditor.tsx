@@ -1,5 +1,5 @@
 import type { Role } from "./types";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { DoubleClickEditableText } from "@/components/common/DoubleClickEditableText";
 
 interface RoleBasicInfoEditorProps {
@@ -40,13 +40,6 @@ export default function RoleBasicInfoEditor({
   const [isDescriptionEditing, setIsDescriptionEditing] = useState(false);
   const [descriptionDraft, setDescriptionDraft] = useState(localRole.description ?? "");
 
-  useEffect(() => {
-    if (isDescriptionEditing) {
-      return;
-    }
-    setDescriptionDraft(localRole.description ?? "");
-  }, [isDescriptionEditing, localRole.description]);
-
   const textAlignClassName = align === "center" ? "text-center" : "text-left";
   const nameUnderlineClassName = align === "center"
     ? "after:left-1/2 after:-translate-x-1/2"
@@ -69,12 +62,18 @@ export default function RoleBasicInfoEditor({
     setIsDescriptionEditing(false);
   };
 
+  const handleDescriptionStartEditing = () => {
+    setDescriptionDraft(localRole.description ?? "");
+    setIsDescriptionEditing(true);
+  };
+
   const handleDescriptionSave = () => {
     const nextDescription = descriptionDraft;
     setIsDescriptionEditing(false);
     if (nextDescription === (localRole.description ?? "")) {
       return;
     }
+    setDescriptionDraft(nextDescription);
     onBaseRoleSave({
       ...localRole,
       description: nextDescription,
@@ -158,7 +157,7 @@ export default function RoleBasicInfoEditor({
         : (
             <button
               type="button"
-              onClick={() => setIsDescriptionEditing(true)}
+              onClick={handleDescriptionStartEditing}
               className={`flex w-full items-start rounded-md px-2 transition hover:bg-base-200/80 ${descriptionAlignClassName} ${textAlignClassName} ${descriptionButtonClassName}`}
             >
               <span className={descriptionDisplayClassName}>

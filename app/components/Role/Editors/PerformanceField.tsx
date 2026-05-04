@@ -10,6 +10,8 @@ interface PerformanceFieldProps {
   placeholder?: string;
   rowSpan?: number; // 用于根据网格跨行数决定高度
   size?: "default" | "compact";
+  enableArrowNavigation?: boolean;
+  commitOnBlur?: boolean;
 }
 
 /**
@@ -26,6 +28,8 @@ export default function PerformanceField({
   placeholder = "请输入描述...",
   rowSpan = 1,
   size = "default",
+  enableArrowNavigation = false,
+  commitOnBlur = true,
 }: PerformanceFieldProps) {
   const [editingFieldKey, setEditingFieldKey] = useState<string | null>(null);
   const [tempFieldKey, setTempFieldKey] = useState("");
@@ -66,6 +70,7 @@ export default function PerformanceField({
                       setEditingFieldKey(null);
                     }
                   }}
+                  data-arrow-nav-control={enableArrowNavigation ? "true" : undefined}
                   className={`grow focus:outline-none border-none outline-none bg-transparent font-semibold ${isCompact ? "text-xs" : "text-base"}`}
                   autoFocus
                 />
@@ -107,7 +112,8 @@ export default function PerformanceField({
           placeholder={placeholder}
           value={value === "0" ? "" : String(value ?? "")}
           onChange={e => onValueChange(fieldKey, e.target.value)}
-          onBlur={e => onValueCommit?.(fieldKey, e.currentTarget.value)}
+          onBlur={e => commitOnBlur && onValueCommit?.(fieldKey, e.currentTarget.value)}
+          data-arrow-nav-control={enableArrowNavigation ? "true" : undefined}
         />
       </label>
     </div>
