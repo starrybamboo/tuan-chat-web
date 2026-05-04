@@ -114,7 +114,6 @@ export default function MessageBubble({ message, isOwn }: MessageBubbleProps) {
             user={senderUser}
             width={10}
             isRounded={true}
-            uniqueKey={`${message.senderId}${message.messageId}`}
           />
           <div className={`text-xs text-base-content/70 absolute left-12 -bottom-4 opacity-0 message-time-${message.messageId} transition-opacity duration-200`}>
             {messageTimeLabel}
@@ -152,7 +151,6 @@ export default function MessageBubble({ message, isOwn }: MessageBubbleProps) {
             user={senderUser}
             width={10}
             isRounded={true}
-            uniqueKey={`${message.senderId}${message.messageId}`}
           />
           <div className={`text-xs text-base-content/70 absolute right-12 -bottom-4 opacity-0 message-time-${message.messageId} transition-opacity duration-200`}>
             {messageTimeLabel}

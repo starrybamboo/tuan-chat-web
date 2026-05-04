@@ -178,7 +178,7 @@ function normalizeImagePayload(rawExtra: unknown, options?: { defaultBackground?
   });
 }
 
-function normalizeSoundPayload(rawExtra: unknown, options?: { defaultSecond?: number }): MessageExtraRecord {
+function normalizeSoundPayload(rawExtra: unknown): MessageExtraRecord {
   const sound = pickPayload(rawExtra, "soundMessage");
   return compactRecord({
     fileId: toPositiveNumber(sound.fileId),
@@ -186,7 +186,7 @@ function normalizeSoundPayload(rawExtra: unknown, options?: { defaultSecond?: nu
     url: toTrimmedString(sound.url),
     fileName: toTrimmedString(sound.fileName),
     size: toPositiveNumber(sound.size),
-    second: toPositiveNumber(sound.second ?? sound.duration) ?? options?.defaultSecond,
+    second: toPositiveNumber(sound.second),
     purpose: toTrimmedString(sound.purpose)?.toLowerCase(),
     volume: toFiniteNumber(sound.volume),
   });
@@ -413,7 +413,7 @@ function normalizeMessageExtraForRequest(messageType: number, rawExtra: unknown)
     case MESSAGE_TYPE.IMG:
       return compactRecord({ imageMessage: normalizeImagePayload(rawExtra, { defaultBackground: false }) });
     case MESSAGE_TYPE.SOUND:
-      return compactRecord({ soundMessage: normalizeSoundPayload(rawExtra, { defaultSecond: 1 }) });
+      return compactRecord({ soundMessage: normalizeSoundPayload(rawExtra) });
     case MESSAGE_TYPE.VIDEO:
       return compactRecord({ videoMessage: normalizeVideoPayload(rawExtra) });
     case MESSAGE_TYPE.FILE:

@@ -113,9 +113,8 @@ describe("messageMediaQuickActions", () => {
     expect(isSoundMessageMarkedAsBgm(next)).toBe(true);
   });
 
-  it("音频快捷操作可取消旧消息残留的 BGM purpose", () => {
+  it("音频快捷操作可取消 BGM purpose", () => {
     const next = toggleSoundMessageBgm(createSoundMessage({
-      content: "[播放BGM]",
       extra: {
         soundMessage: {
           url: "https://static.example.com/bgm.mp3",
@@ -129,7 +128,7 @@ describe("messageMediaQuickActions", () => {
 
     expect(next?.annotations).not.toContain(ANNOTATION_IDS.BGM);
     expect(next?.extra?.soundMessage?.purpose).toBeUndefined();
-    expect(next?.content).toBe("");
+    expect(next?.content).toBe("audio");
     expect(isSoundMessageMarkedAsBgm(next)).toBe(false);
   });
 });

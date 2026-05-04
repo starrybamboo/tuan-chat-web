@@ -9,7 +9,7 @@ const ST_TEST_DATA = `.st 力量50str50敏捷50dex50意志40pow40体质50con50�
 function createTemplateKeys() {
   return {
     basic: new Set(["体型", "体质", "力量", "外貌", "幸运", "意志", "敏捷", "教育", "智力"]),
-    ability: new Set(["hp", "mp", "sanֵ", "护甲"]),
+    ability: new Set(["hp", "mp", "san", "护甲"]),
     skill: new Set([
       "会计",
       "估价",

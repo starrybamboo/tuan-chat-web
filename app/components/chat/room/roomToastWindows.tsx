@@ -11,8 +11,6 @@ const LazyAddNpcRoleWindow = React.lazy(async () => {
   return { default: module.AddNpcRoleWindow };
 });
 
-const LazyRenderWindow = React.lazy(() => import("@/components/chat/window/renderWindow"));
-
 interface RoomToastWindowsProps {
   isRoleHandleOpen: boolean;
   setIsRoleAddWindowOpen: (open: boolean) => void;
@@ -20,9 +18,6 @@ interface RoomToastWindowsProps {
   isNpcRoleHandleOpen: boolean;
   setIsNpcRoleAddWindowOpen: (open: boolean) => void;
   handleAddNpcRole: (roleId: number) => void;
-
-  isRenderWindowOpen: boolean;
-  setIsRenderWindowOpen: (open: boolean) => void;
 }
 
 export default function RoomToastWindows({
@@ -32,8 +27,6 @@ export default function RoomToastWindows({
   isNpcRoleHandleOpen,
   setIsNpcRoleAddWindowOpen,
   handleAddNpcRole,
-  isRenderWindowOpen,
-  setIsRenderWindowOpen,
 }: RoomToastWindowsProps) {
   return (
     <>
@@ -55,17 +48,6 @@ export default function RoomToastWindows({
         {isNpcRoleHandleOpen && (
           <React.Suspense fallback={<RoomToastWindowFallback />}>
             <LazyAddNpcRoleWindow handleAddRole={handleAddNpcRole}></LazyAddNpcRoleWindow>
-          </React.Suspense>
-        )}
-      </ToastWindow>
-
-      <ToastWindow
-        isOpen={isRenderWindowOpen}
-        onClose={() => setIsRenderWindowOpen(false)}
-      >
-        {isRenderWindowOpen && (
-          <React.Suspense fallback={<RoomToastWindowFallback />}>
-            <LazyRenderWindow></LazyRenderWindow>
           </React.Suspense>
         )}
       </ToastWindow>

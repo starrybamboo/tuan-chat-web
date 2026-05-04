@@ -13,7 +13,7 @@ vi.mock("@/components/chat/infra/blocksuite/manager/store", () => ({
 }));
 
 vi.mock("@/components/chat/infra/blocksuite/space/runtime/remoteDocSource", () => ({
-  RemoteSnapshotDocSource: class {
+  RemoteYjsLogDocSource: class {
     pull = vi.fn();
     push = vi.fn();
   },

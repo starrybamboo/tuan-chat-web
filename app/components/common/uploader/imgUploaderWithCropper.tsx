@@ -59,11 +59,11 @@ function imageUrlByPreset(fileId: number | undefined, preset?: ImageCompressionP
 /**
  * 图片上传组件，带裁剪
  * @param {object} props 组件属性
- * @param {(url: string) => void} [props.setDownloadUrl] 兼容旧调用方的原图回调，如果没填就不会向oss上传原图
+ * @param {(url: string) => void} [props.setDownloadUrl] 上传展示图完成后的回调
  * @param {(url: string) => void} [props.setOriginalDownloadUrl] 上传原图完成后的回调，会返回未压缩原图地址
  * @param {(url: string) => void} [props.setCopperedDownloadUrl] 上传裁剪图完成后的回调，同上。
  * @param {React.ReactNode} props.children 触发上传的子元素
- * @param {string} props.fileName 没什么用的参数，为了兼容旧代码。在图床使用hash作为文件名。
+ * @param {string} props.fileName 上传与下载时使用的文件名
  * @param {(data: any) => void} [props.mutate] 可选的更新函数
  * @param {ImageCompressionPreset} [props.copperedCompressionPreset] 裁剪图上传时使用的压缩预设
  * @param {number} [props.aspect] 固定裁剪比例（例如头像 1:1）

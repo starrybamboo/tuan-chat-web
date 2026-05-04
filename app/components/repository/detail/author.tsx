@@ -1,4 +1,3 @@
-// import { useAddRepositoryMutation, useAddMutation, useRepositoryInfoQuery } from "api/hooks/repositoryQueryHooks";
 import { useGetUserProfileQuery } from "api/hooks/UserHooks";
 import { useCallback, useState } from "react";
 import { FollowButton } from "@/components/common/Follow/FollowButton";

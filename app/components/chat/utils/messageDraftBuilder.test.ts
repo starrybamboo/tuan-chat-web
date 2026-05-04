@@ -13,10 +13,16 @@ function createUploadUtilsMock() {
       fileName: file.name,
       size: file.size,
     })),
+    uploadAudioAsset: vi.fn(async (file: File) => ({
+      fileId: 123,
+      mediaType: "audio",
+      url: `https://static.example.com/${file.name}`,
+    })),
     uploadFile: vi.fn(async (file: File) => `https://static.example.com/${file.name}`),
     uploadAudio: vi.fn(),
   } as unknown as UploadUtils & {
     uploadVideo: ReturnType<typeof vi.fn>;
+    uploadAudioAsset: ReturnType<typeof vi.fn>;
     uploadFile: ReturnType<typeof vi.fn>;
   };
 }
@@ -227,5 +233,37 @@ describe("messageDraftBuilder", () => {
     });
 
     expect(drafts).toEqual([]);
+  });
+
+  it("音频时长探测失败时不再补默认 1 秒", async () => {
+    const uploadUtils = createUploadUtilsMock();
+    const audioFile = new File(["audio"], "voice.webm", { type: "audio/webm" });
+
+    Object.defineProperty(globalThis, "document", {
+      configurable: true,
+      writable: true,
+      value: {
+        createElement: vi.fn((tagName: string) => {
+          if (tagName === "audio") {
+            return createMockMediaElement(Number.NaN);
+          }
+          throw new Error(`Unexpected element request: ${tagName}`);
+        }),
+      },
+    });
+
+    await expect(buildMessageDraftsFromComposerSnapshot({
+      inputText: "",
+      imgFiles: [],
+      emojiUrls: [],
+      emojiMetaByUrl: {},
+      fileAttachments: [],
+      audioFile,
+      composerAnnotations: [],
+      tempAnnotations: [],
+      uploadUtils,
+    })).rejects.toThrow("无法读取音频时长");
+
+    expect(uploadUtils.uploadAudioAsset).not.toHaveBeenCalled();
   });
 });

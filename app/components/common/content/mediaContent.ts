@@ -11,7 +11,7 @@ const MEDIA_IMAGE_PREVIEW_TEXT = "含图片";
 const MEDIA_VIDEO_PREVIEW_TEXT = "含视频";
 const MEDIA_IMAGE_VIDEO_PREVIEW_TEXT = "含图片与视频";
 
-type LegacyMediaContentParts = {
+type MediaContentParts = {
   text?: string | null;
   images?: string[] | null;
   videos?: string[] | null;
@@ -68,7 +68,7 @@ export function resolveMediaContentSource(
   return mediaFileUrl(match[2], mediaType, quality);
 }
 
-export function composeMediaContent(parts?: LegacyMediaContentParts) {
+export function composeMediaContent(parts?: MediaContentParts) {
   const blocks: string[] = [];
   const text = normalizeMediaContent(parts?.text);
   if (text) {
