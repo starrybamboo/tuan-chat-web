@@ -19,8 +19,8 @@ describe("feedbackTypes", () => {
       userId: 7,
       username: "tester",
       avatar: "https://img.example.com/current.webp",
-      avatarThumbUrl: "https://img.example.com/legacy-thumb.webp",
-    })).toBe("https://img.example.com/legacy-thumb.webp");
+      avatarThumbUrl: "https://img.example.com/thumb.webp",
+    })).toBe("https://img.example.com/thumb.webp");
   });
 
   it("缺少缩略图时回退到 avatar", () => {

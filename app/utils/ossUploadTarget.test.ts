@@ -22,7 +22,7 @@ describe("ossUploadTarget", () => {
     });
   });
 
-  it("没有服务端上传头时保留旧版 immutable 默认值", () => {
+  it("没有服务端上传头时补齐 immutable 缓存头", () => {
     const blob = new Blob(["audio"], { type: "audio/webm" });
 
     const headers = buildOssUploadHeaders(blob);

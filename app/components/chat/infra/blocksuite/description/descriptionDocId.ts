@@ -72,7 +72,5 @@ export function parseDescriptionDocId(docId: string): {
     return null;
   }
 
-  // Legacy/space-internal docId: `space:description` (no numeric entityId embedded)
-  // 这种 docId 无法映射到远端存储主键，因此返回 null。
   return null;
 }

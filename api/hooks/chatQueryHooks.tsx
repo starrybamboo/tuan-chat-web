@@ -46,8 +46,6 @@ import {
     useGetUserRoomsQuery as useSharedGetUserRoomsQuery,
     useGetUserSpacesQuery as useSharedGetUserSpacesQuery,
 } from "@tuanchat/query/spaces";
-import { transferLeaderWithFallback } from "./transferLeaderRequest";
-import { updateSpaceMemberTypeWithFallback } from "./updateSpaceMemberTypeRequest";
 import { seedUserRoleListQueryCache } from "../roleQueryCache";
 
 export const ROOM_INFO_STALE_TIME_MS = 300_000;
@@ -99,7 +97,7 @@ function getApiResultErrorMessage(result: { errMsg?: string } | null | undefined
 }
 
 export async function updateSpaceMemberTypeWithSuccessGuard(requestBody: SpaceMemberTypeUpdateRequest) {
-    const result = await updateSpaceMemberTypeWithFallback(requestBody);
+    const result = await tuanchat.spaceMemberController.updateMemberType(requestBody);
     if (!isSuccessfulApiResult(result)) {
         throw new Error(getApiResultErrorMessage(result, "更新空间成员身份失败"));
     }
@@ -802,7 +800,7 @@ queryClient.invalidateQueries({ queryKey: ['getUserActiveSpaces'] });
 export function useTransferLeader() {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: transferLeaderWithFallback,
+        mutationFn: (req: LeaderTransferRequest) => tuanchat.spaceMemberController.transferLeader(req),
         mutationKey: ['transferLeader'],
         onSuccess: (_, variables) => {
             queryClient.invalidateQueries({ queryKey: ['getSpaceMemberList', variables.spaceId] });

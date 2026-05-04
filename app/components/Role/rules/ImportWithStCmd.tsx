@@ -80,7 +80,7 @@ export default function ImportWithStCmd({ ruleId, roleId, onImportSuccess }: Imp
       教育: "edu",
       体型: "siz",
       智力: "int",
-      sanֵ: "san",
+      san: "san",
       幸运: "luck",
       魔法: "mp",
       体力: "hp",

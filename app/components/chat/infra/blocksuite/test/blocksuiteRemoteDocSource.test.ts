@@ -13,7 +13,7 @@ import {
 import { pushRemoteUpdate } from "@/components/chat/infra/blocksuite/description/descriptionDocRemote";
 import { NonRetryableBlocksuiteDocError } from "@/components/chat/infra/blocksuite/shared/blocksuiteDocError";
 
-import { RemoteSnapshotDocSource } from "../space/runtime/remoteDocSource";
+import { RemoteYjsLogDocSource } from "../space/runtime/remoteDocSource";
 
 vi.mock("@/components/chat/infra/blocksuite/description/descriptionDocDb", () => ({
   addUpdate: vi.fn(),
@@ -120,7 +120,7 @@ describe("blocksuiteRemoteDocSource", () => {
       .mockReturnValueOnce(firstPush.promise)
       .mockResolvedValueOnce(createPushResponse(2));
 
-    const source = new RemoteSnapshotDocSource();
+    const source = new RemoteYjsLogDocSource();
     const task = (source as any).flushOfflineUpdates(docId);
     await Promise.resolve();
 
@@ -143,7 +143,7 @@ describe("blocksuiteRemoteDocSource", () => {
       .mockReturnValueOnce(firstPush.promise)
       .mockResolvedValueOnce(createPushResponse(2));
 
-    const source = new RemoteSnapshotDocSource();
+    const source = new RemoteYjsLogDocSource();
     const firstTask = (source as any).flushOfflineUpdates(docId);
     await Promise.resolve();
 
@@ -167,7 +167,7 @@ describe("blocksuiteRemoteDocSource", () => {
       .mockReturnValueOnce(firstPush.promise)
       .mockResolvedValueOnce(createPushResponse(2));
 
-    const source = new RemoteSnapshotDocSource();
+    const source = new RemoteYjsLogDocSource();
     const task = (source as any).flushOfflineUpdates(docId);
     await Promise.resolve();
 
@@ -184,7 +184,7 @@ describe("blocksuiteRemoteDocSource", () => {
     queue.set(docId, [createRecord(1, 1)]);
     mockedPushRemoteUpdate.mockRejectedValueOnce(new Error("network"));
 
-    const source = new RemoteSnapshotDocSource();
+    const source = new RemoteYjsLogDocSource();
     await (source as any).flushOfflineUpdates(docId);
 
     expect(mockedDeleteUpdatesByIds).not.toHaveBeenCalled();
@@ -192,7 +192,7 @@ describe("blocksuiteRemoteDocSource", () => {
   });
 
   it("队列为空时不会调用远端上传", async () => {
-    const source = new RemoteSnapshotDocSource();
+    const source = new RemoteYjsLogDocSource();
     await (source as any).flushOfflineUpdates(docId);
 
     expect(mockedPushRemoteUpdate).not.toHaveBeenCalled();

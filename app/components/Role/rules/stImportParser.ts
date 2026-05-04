@@ -72,7 +72,6 @@ const ST_ABILITY_FALLBACK_KEYS = new Set([
   "hp",
   "mp",
   "san",
-  "sanֵ",
   "hpm",
   "mpm",
   "sanm",

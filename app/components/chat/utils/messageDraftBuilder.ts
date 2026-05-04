@@ -185,6 +185,11 @@ export async function buildMessageDraftsFromComposerSnapshot({
   let uploadedSoundMessage: UploadedSoundMessageDraftAsset | null = null;
 
   if (audioFile) {
+    const audioSecond = await getMessageDraftMediaDuration(audioFile);
+    if (audioSecond == null) {
+      throw new Error("无法读取音频时长，请换用可识别的音频文件后重试。");
+    }
+
     const uploadedAudio = await uploadUtils.uploadAudioAsset(audioFile, 1, 0);
     uploadedSoundMessage = {
       fileId: uploadedAudio.fileId,
@@ -192,8 +197,7 @@ export async function buildMessageDraftsFromComposerSnapshot({
       url: uploadedAudio.url,
       fileName: audioFile.name,
       size: audioFile.size,
-      // 历史发送逻辑会在探测失败时兜底 1 秒，避免后端音频校验因为 second 缺失而失败。
-      second: await getMessageDraftMediaDuration(audioFile) ?? 1,
+      second: audioSecond,
       purpose: composerAudioPurpose,
     };
   }

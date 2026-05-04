@@ -36,11 +36,6 @@ export function parseSpaceDocId(docId: string): SpaceDocDescriptor | null {
     return { kind: "space_description", spaceId };
   }
 
-  // Legacy/space-internal docId: `space:description` (no numeric spaceId embedded)
-  // Keep for backward-compat parsing only.
-  if (docId === "space:description")
-    return null;
-
   if (type === "room" && rest.join(":") === "description") {
     const roomId = Number(idRaw);
     if (!Number.isFinite(roomId) || roomId <= 0)

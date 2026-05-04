@@ -30,8 +30,6 @@ interface RoomWindowOverlaysProps {
   isNpcRoleHandleOpen: boolean;
   setIsNpcRoleAddWindowOpen: (isOpen: boolean) => void;
   handleAddNpcRole: (roleId: number) => Promise<void> | void;
-  isRenderWindowOpen: boolean;
-  setIsRenderWindowOpen: (isOpen: boolean) => void;
 }
 
 export default function RoomWindowOverlays({
@@ -49,8 +47,6 @@ export default function RoomWindowOverlays({
   isNpcRoleHandleOpen,
   setIsNpcRoleAddWindowOpen,
   handleAddNpcRole,
-  isRenderWindowOpen,
-  setIsRenderWindowOpen,
 }: RoomWindowOverlaysProps) {
   return (
     <>
@@ -76,8 +72,6 @@ export default function RoomWindowOverlays({
         isNpcRoleHandleOpen={isNpcRoleHandleOpen}
         setIsNpcRoleAddWindowOpen={setIsNpcRoleAddWindowOpen}
         handleAddNpcRole={handleAddNpcRole}
-        isRenderWindowOpen={isRenderWindowOpen}
-        setIsRenderWindowOpen={setIsRenderWindowOpen}
       />
     </>
   );

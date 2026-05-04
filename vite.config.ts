@@ -262,24 +262,6 @@ function electronDevPingPlugin(): Plugin {
   };
 }
 
-function authRecoveryCompatPlugin(): Plugin {
-  const legacyPath = "/api/core/authRecovery.ts";
-  const nextPath = "/api/authRecovery.ts";
-
-  return {
-    name: "tc-auth-recovery-compat",
-    apply: "serve",
-    configureServer(server) {
-      server.middlewares.use((req, _res, next) => {
-        if (req.url?.startsWith(legacyPath)) {
-          req.url = `${nextPath}${req.url.slice(legacyPath.length)}`;
-        }
-        next();
-      });
-    },
-  };
-}
-
 export default defineConfig(() => {
   // const _isDev = command === "serve";
   // const env = loadEnv(mode, process.cwd(), "");
@@ -297,7 +279,6 @@ export default defineConfig(() => {
   return {
     plugins: [
       tailwindcss(),
-      authRecoveryCompatPlugin(),
       fixCjsDefaultExportPlugin(),
       ossUploadProxyPlugin(),
       electronDevPingPlugin(),
@@ -428,14 +409,6 @@ export default defineConfig(() => {
         "@lit/react",
       ],
       alias: [
-        {
-          find: /^api\/core\/authRecovery$/,
-          replacement: resolve(__dirname, "api/authRecovery.ts"),
-        },
-        {
-          find: /^\/api\/core\/authRecovery\.ts$/,
-          replacement: resolve(__dirname, "api/authRecovery.ts"),
-        },
         // BlockSuite packages export TypeScript sources (`./src/*.ts`) by default.
         // In Vite dev this can lead to:
         // - decorators not being applied (custom elements not defined) -> "Illegal constructor"

@@ -51,20 +51,6 @@ export function AvatarSettingsTab({
     }
     return currentAvatar.avatarTitle as Record<string, string>;
   }, [currentAvatar]);
-  const normalizedAvatarTitleRecord = useMemo<Record<string, string>>(() => {
-    if (Object.keys(avatarTitleRecord).length === 0) {
-      return avatarTitleRecord;
-    }
-    const normalized = { ...avatarTitleRecord };
-    // 兼容历史错误键名（ϲ/ŭ），避免已有数据丢失
-    if (normalized["喜"] == null && normalized["ϲ"] != null) {
-      normalized["喜"] = normalized["ϲ"];
-    }
-    if (normalized["怒"] == null && normalized["ŭ"] != null) {
-      normalized["怒"] = normalized["ŭ"];
-    }
-    return normalized;
-  }, [avatarTitleRecord]);
   // 情绪调节器兜底标签
   const DEFAULT_MOOD_LABELS = useMemo(
     () => ["喜", "怒", "哀", "惧", "厌恶", "低落", "惊喜", "平静"],
@@ -82,14 +68,14 @@ export function AvatarSettingsTab({
     if (currentAvatar) {
       const defaultMoodMap: Record<string, string> = {};
       moodLabels.forEach((label) => {
-        defaultMoodMap[label] = normalizedAvatarTitleRecord[label] || "";
+        defaultMoodMap[label] = avatarTitleRecord[label] || "";
       });
-      queueMicrotask(() => setPendingMoodMap({ ...defaultMoodMap, label: normalizedAvatarTitleRecord.label || "" }));
-      queueMicrotask(() => setEditingName(normalizedAvatarTitleRecord.label || ""));
+      queueMicrotask(() => setPendingMoodMap({ ...defaultMoodMap, label: avatarTitleRecord.label || "" }));
+      queueMicrotask(() => setEditingName(avatarTitleRecord.label || ""));
       queueMicrotask(() => setEditingCategory(currentAvatar.category?.trim() || DEFAULT_CATEGORY));
       moodControlRef.current?.setValue(defaultMoodMap);
     }
-  }, [currentAvatar, normalizedAvatarTitleRecord, moodLabels, DEFAULT_CATEGORY]);
+  }, [currentAvatar, avatarTitleRecord, moodLabels, DEFAULT_CATEGORY]);
 
   // 情绪变更回调（仅更新本地暂存）
   const handleMoodChange = useCallback((moodMap: Record<string, string>) => {
@@ -103,7 +89,7 @@ export function AvatarSettingsTab({
       const moodKeySet = new Set(moodLabels);
       const baseMood: Record<string, string> = {};
       moodKeySet.forEach((key) => {
-        baseMood[key] = normalizedAvatarTitleRecord[key] || "";
+        baseMood[key] = avatarTitleRecord[key] || "";
       });
 
       const nextMoodMap: Record<string, string> = { ...baseMood };
@@ -114,7 +100,7 @@ export function AvatarSettingsTab({
 
       const nextAvatarTitle: Record<string, string> = {
         ...nextMoodMap,
-        label: editingName.trim() || normalizedAvatarTitleRecord.label || "未命名",
+        label: editingName.trim() || avatarTitleRecord.label || "未命名",
       };
       const nextCategory = editingCategory.trim() || DEFAULT_CATEGORY;
 
@@ -132,7 +118,7 @@ export function AvatarSettingsTab({
         toast.error("保存失败，请稍后重试");
       }
     }
-  }, [currentAvatar, currentSpriteAvatar, pendingMoodMap, editingName, editingCategory, updateAvatar, normalizedAvatarTitleRecord, moodLabels]);
+  }, [currentAvatar, currentSpriteAvatar, pendingMoodMap, editingName, editingCategory, updateAvatar, avatarTitleRecord, moodLabels]);
 
   const avatarDisplayUrl = useMemo(() => {
     if (!currentAvatar)
@@ -222,7 +208,7 @@ export function AvatarSettingsTab({
                       controlRef={moodControlRef}
                       onChange={handleMoodChange}
                       labels={moodLabels}
-                      defaultValue={Object.keys(normalizedAvatarTitleRecord).length ? normalizedAvatarTitleRecord : undefined}
+                      defaultValue={Object.keys(avatarTitleRecord).length ? avatarTitleRecord : undefined}
                       fallbackDefaultLabels={true}
                     />
                   </div>

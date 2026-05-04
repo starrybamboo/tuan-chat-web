@@ -34,8 +34,6 @@ type UseRoomOverlaysControllerResult = {
   setIsRoleAddWindowOpen: (isOpen: boolean) => void;
   isNpcRoleHandleOpen: boolean;
   setIsNpcRoleAddWindowOpen: (isOpen: boolean) => void;
-  isRenderWindowOpen: boolean;
-  setIsRenderWindowOpen: (isOpen: boolean) => void;
   handleAddRole: (roleId: number) => Promise<void> | void;
   handleAddNpcRole: (roleId: number) => Promise<void> | void;
   handleImportChatItems: (items: ImportChatItem[], onProgress?: (sent: number, total: number) => void) => Promise<void>;
@@ -47,7 +45,6 @@ export default function useRoomOverlaysController({
   roomId,
   handleImportChatText,
 }: UseRoomOverlaysControllerParams): UseRoomOverlaysControllerResult {
-  const [isRenderWindowOpen, setIsRenderWindowOpen] = useSearchParamsState<boolean>("renderPop", false);
   const [isImportChatTextOpen, setIsImportChatTextOpen] = useSearchParamsState<boolean>("importChatTextPop", false);
   const [isRoleHandleOpen, setIsRoleAddWindowOpen] = useSearchParamsState<boolean>("roleAddPop", false);
   const [isNpcRoleHandleOpen, setIsNpcRoleAddWindowOpen] = useSearchParamsState<boolean>("npcRoleAddPop", false);
@@ -92,8 +89,6 @@ export default function useRoomOverlaysController({
     setIsRoleAddWindowOpen,
     isNpcRoleHandleOpen,
     setIsNpcRoleAddWindowOpen,
-    isRenderWindowOpen,
-    setIsRenderWindowOpen,
     handleAddRole,
     handleAddNpcRole,
     handleImportChatItems,

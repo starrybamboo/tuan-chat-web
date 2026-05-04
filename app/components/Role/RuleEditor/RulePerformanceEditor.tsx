@@ -177,7 +177,7 @@ export default function RulePerformanceEditor({
   };
 
   const handleStartEditing = () => {
-    // 开始编辑时，以当前 props 为基准重置一次，避免编辑旧数据
+    // 开始编辑时，以当前 props 为基准重置一次，避免沿用上次编辑缓存。
     dispatch({ type: "SYNC_PROPS", payload: data ?? {} });
     setIsEditing(true);
   };

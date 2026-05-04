@@ -30,12 +30,10 @@ import { blocksuiteWsClient } from "@/components/chat/infra/blocksuite/space/run
 function parseRemoteKeyFromDocId(docId: string) {
   return parseDescriptionDocId(docId);
 }
-
 function shouldSkipRemoteCompaction(docId: string) {
   const key = parseRemoteKeyFromDocId(docId);
   return key?.entityType === "space_doc";
 }
-
 function snapshotCursor(snapshot: StoredSnapshot | null) {
   if (!snapshot)
     return 0;
@@ -58,7 +56,7 @@ const COMPACT_DEBOUNCE_MS = 12_000;
  * - stateVector diff 在前端完成：pull 时把 snapshot + updates 合并为 mergedUpdate，再 diffUpdate(mergedUpdate, stateVector)。
  * - 定期合并 snapshot：当检测到 updates 积累较多时，客户端会写回 v2 snapshot 并调用 compact 删除旧 updates。
  */
-class RemoteYjsLogDocSource implements DocSource {
+export class RemoteYjsLogDocSource implements DocSource {
   name = "remote-yjs-log";
 
   private readonly flushDebouncers = new Map<string, ReturnType<typeof debounce>>();
@@ -401,6 +399,3 @@ class RemoteYjsLogDocSource implements DocSource {
     }
   }
 }
-
-// Backward-compat name: existing call sites can switch gradually.
-export class RemoteSnapshotDocSource extends RemoteYjsLogDocSource {}

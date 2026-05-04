@@ -43,8 +43,8 @@ describe("messageDraft request normalization", () => {
     expect(request.customRoleName).toBe("旁白");
   });
 
-  it("音频草稿在缺少 second 时回退到 1 秒，避免后端校验失败", () => {
-    const request = buildChatMessageRequestFromDraft({
+  it("音频草稿缺少 second 时直接抛出前端错误", () => {
+    expect(() => buildChatMessageRequestFromDraft({
       messageType: MESSAGE_TYPE.SOUND,
       extra: {
         soundMessage: {
@@ -56,17 +56,7 @@ describe("messageDraft request normalization", () => {
       },
     } as any, {
       roomId: 1,
-    });
-
-    expect(request.extra).toEqual({
-      soundMessage: {
-        url: "https://static.example.com/a.mp3",
-        fileName: "a.mp3",
-        size: 4096,
-        second: 1,
-        purpose: "bgm",
-      },
-    });
+    })).toThrow("音频素材缺少必要字段");
   });
 
   it("保留 roomJump 的包装层，但内部字段统一裁剪", () => {

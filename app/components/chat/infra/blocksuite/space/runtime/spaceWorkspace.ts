@@ -27,7 +27,7 @@ import { BLOCKSUITE_STORE_EXTENSIONS } from "@/components/chat/infra/blocksuite/
 import { NonRetryableBlocksuiteDocError } from "@/components/chat/infra/blocksuite/shared/blocksuiteDocError";
 import { BlocksuiteRemoteImageBlobSource } from "@/components/chat/infra/blocksuite/space/runtime/blocksuiteRemoteImageBlobSource";
 import { blocksuiteWsClient } from "@/components/chat/infra/blocksuite/space/runtime/blocksuiteWsClient";
-import { RemoteSnapshotDocSource } from "@/components/chat/infra/blocksuite/space/runtime/remoteDocSource";
+import { RemoteYjsLogDocSource } from "@/components/chat/infra/blocksuite/space/runtime/remoteDocSource";
 
 /**
  * SpaceWorkspace 是本项目最核心的 Blocksuite 数据运行时：
@@ -37,7 +37,7 @@ import { RemoteSnapshotDocSource } from "@/components/chat/infra/blocksuite/spac
  *
  * 这一层负责本地 IndexedDB、远端快照、WS 更新、最小 block tree 初始化。
  */
-const remoteSnapshotDocSource = new RemoteSnapshotDocSource();
+const remoteSnapshotDocSource = new RemoteYjsLogDocSource();
 const REMOTE_RESTORE_ORIGIN = "tc:remote-restore";
 const REMOTE_WS_ORIGIN = "tc:remote-ws";
 const INITIAL_REMOTE_PULL_RETRY_DELAY_MS = [0, 400, 1200, 2800] as const;

@@ -389,8 +389,6 @@ function RoomWindow({
     setIsRoleAddWindowOpen,
     isNpcRoleHandleOpen,
     setIsNpcRoleAddWindowOpen,
-    isRenderWindowOpen,
-    setIsRenderWindowOpen,
     handleAddRole,
     handleAddNpcRole,
     handleImportChatItems,
@@ -872,7 +870,7 @@ function RoomWindow({
         });
       }
       else {
-        // --- XML Only Mode (Legacy) ---
+        // --- XML Only Mode ---
         const xmlContent = exporter.generateXML();
         const downloadBlob = (content: string, filename: string, type: string) => {
           const blob = new Blob([content], { type });
@@ -1182,8 +1180,6 @@ function RoomWindow({
               isNpcRoleHandleOpen={isNpcRoleHandleOpen}
               setIsNpcRoleAddWindowOpen={setIsNpcRoleAddWindowOpen}
               handleAddNpcRole={handleAddNpcRole}
-              isRenderWindowOpen={isRenderWindowOpen}
-              setIsRenderWindowOpen={setIsRenderWindowOpen}
             />
           )}
           {isApplyingMessageHistory && (

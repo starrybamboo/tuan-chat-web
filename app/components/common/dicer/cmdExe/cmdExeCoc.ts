@@ -654,7 +654,7 @@ const cmdSc = new CommandExecutor(
         cpi.replyMessage(`未设置角色能力`);
         return false;
       }
-      currentSan = Number.parseInt(curAbility.ability.san) || Number.parseInt(curAbility.ability["sanֵ"]);
+      currentSan = Number.parseInt(curAbility.ability.san);
       if (Number.isNaN(currentSan)) {
         cpi.replyMessage(`未找到角色的san值`);
         return false;
@@ -720,10 +720,6 @@ const cmdSc = new CommandExecutor(
     }
     // 更新角色卡中的san值
     curAbility.ability.san = String(newSan);
-    // 兼容旧数据：如果存在旧的sanֵ字段，也同步更新
-    if (curAbility.ability["sanֵ"]) {
-      curAbility.ability["sanֵ"] = String(newSan);
-    }
 
     await cpi.setRoleAbilityList(mentioned[0].roleId, curAbility);
 

@@ -5,7 +5,7 @@ import { MarkerType } from "@xyflow/react";
 import type { Room } from "@tuanchat/openapi-client/models/Room";
 import type { Space } from "@tuanchat/openapi-client/models/Space";
 
-import { LEGACY_ROOM_DEFAULT_DESCRIPTION, SCENE_DEFAULT_DESCRIPTION } from "@/components/chat/window/workflowSceneDescriptionEditor";
+import { SCENE_DEFAULT_DESCRIPTION } from "@/components/chat/window/workflowSceneDescriptionEditor";
 
 export type RoomLink = {
   targetId: number;
@@ -35,7 +35,7 @@ export const END_NODE_LINK_KEY_PREFIX = "endNode:";
 
 export function normalizeSceneDefaultDescription(value?: string): string {
   const normalized = String(value ?? "").trim();
-  if (!normalized || normalized === LEGACY_ROOM_DEFAULT_DESCRIPTION)
+  if (!normalized)
     return SCENE_DEFAULT_DESCRIPTION;
   return normalized;
 }

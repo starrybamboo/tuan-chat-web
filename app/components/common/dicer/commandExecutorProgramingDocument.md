@@ -72,7 +72,7 @@
 
 #### 2. **灵活的别名系统**
 
-- 支持属性别名映射（如"力量"↔"str"，"理智"↔"sanֵ"）
+- 支持属性别名映射（如"力量"↔"str"，"理智"↔"san"）
 - 因变量自动计算（如COC中的最大生命值 `hpm = (体型+体质)/10`）
 - 多语言友好，用户可使用中英文混合输入
 
@@ -1603,7 +1603,7 @@ const cmdSet = new CommandExecutor("set", [], "设置属性", [], "",
 const updates = [
   { key: "力量", value: "75" },
   { key: "敏捷", value: "80" },
-  { key: "sanֵ", value: "65" }
+  { key: "san", value: "65" }
 ];
 
 const ability = cpi.getRoleAbilityList(roleId);
@@ -2228,13 +2228,13 @@ const ABILITY_MAP: { [key: string]: string } = {
   edu: "教育",
   siz: "体型",
   int: "智力",
-  san: "sanֵ",
+  san: "san",
   luck: "幸运",
   mp: "魔法",
   // 衍生属性的别名
   体力: "hp",
   生命值: "hp",
-  理智: "sanֵ",
+  理智: "san",
   运气: "幸运",
   // 技能别名
   计算机: "计算机使用",
@@ -2576,16 +2576,16 @@ executorCoc.addCmd(cmdSt);
     体质: 0->60
   }
 
-.st 力量+10 sanֵ-5
+.st 力量+10 san-5
 → {
     力量: 70+10->80
-    sanֵ: 65-5->60
+    san: 65-5->60
   }
 
-.st show 力量 敏捷 sanֵ
+.st show 力量 敏捷 san
 → 力量: 80
   敏捷: 80
-  sanֵ: 60
+  san: 60
 ```
 
 ### 第三部分：工具函数

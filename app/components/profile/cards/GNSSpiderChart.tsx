@@ -75,7 +75,7 @@ function getGNSPreference(extra: unknown): GNSPreference | null {
   if (!source) {
     return null;
   }
-  return normalizePreference(source.gnsPreference) ?? normalizePreference(source.userPreference);
+  return normalizePreference(source.gnsPreference);
 }
 
 /**

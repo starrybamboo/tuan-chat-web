@@ -12,7 +12,7 @@ import {
 } from "@/components/common/content/mediaContent";
 
 describe("mediaContent", () => {
-  it("会将旧的文本、图片和视频片段拼成统一 content 字符串", () => {
+  it("会将文本、图片和视频片段拼成统一 content 字符串", () => {
     expect(composeMediaContent({
       text: "第一步\n第二步",
       images: ["https://img.example.com/repro.webp"],

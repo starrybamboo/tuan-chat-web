@@ -106,7 +106,7 @@
         </div>
         <div class="arch-layer data">
           <div class="arch-layer-title">SpaceWorkspace Data Runtime</div>
-          <div class="arch-grid arch-grid-3"><div class="arch-box highlight">space/runtime/spaceWorkspace.ts<br><small>root Y.Doc -> subdoc -> Store 的核心数据底座</small></div><div class="arch-box">RemoteSnapshotDocSource<br><small>snapshot / updates 合并、compaction、离线 flush</small></div><div class="arch-box">blocksuiteWsClient.ts<br><small>join / leave / update / awareness / ack</small></div></div>
+          <div class="arch-grid arch-grid-3"><div class="arch-box highlight">space/runtime/spaceWorkspace.ts<br><small>root Y.Doc -> subdoc -> Store 的核心数据底座</small></div><div class="arch-box">RemoteYjsLogDocSource<br><small>snapshot / updates 合并、compaction、离线 flush</small></div><div class="arch-box">blocksuiteWsClient.ts<br><small>join / leave / update / awareness / ack</small></div></div>
           <div class="arch-subgroup">
             <div class="arch-subgroup-box"><div class="arch-subgroup-title">本地与元信息</div><div class="arch-grid arch-grid-3"><div class="arch-box tech">descriptionDocDb.ts<br><small>IndexedDB updates 队列</small></div><div class="arch-box tech">spaceDocMetaPersistence.ts<br><small>doc meta 本地缓存</small></div><div class="arch-box tech">InMemoryWorkspaceMeta<br><small>title / tags / createDate</small></div></div></div>
             <div class="arch-subgroup-box"><div class="arch-subgroup-title">BlockSuite 底层对象</div><div class="arch-grid arch-grid-3"><div class="arch-box tech">Y.Doc / subdoc / blocks map</div><div class="arch-box tech">DocEngine + BlobEngine</div><div class="arch-box tech">IndexedDBDocSource + AwarenessStore</div></div></div>

@@ -177,14 +177,6 @@ export function applySidebarDocFallbackCache(params: {
   return base;
 }
 
-type SidebarTreeV1 = {
-  schemaVersion: 1;
-  categories: Array<{
-    categoryId: "TEXT" | "VOICE" | "DOC";
-    items: SidebarLeafNode[];
-  }>;
-};
-
 function normalizeRoomId(v: unknown): number | null {
   if (typeof v === "number" && Number.isFinite(v)) {
     return v;
@@ -236,38 +228,6 @@ function generateCategoryId(): string {
   return `cat:${Date.now().toString(36)}:${Math.random().toString(36).slice(2, 8)}`;
 }
 
-function migrateV1ToV2(treeV1: SidebarTreeV1): SidebarTree {
-  const byId = new Map<string, SidebarLeafNode[]>();
-  for (const c of treeV1.categories ?? []) {
-    if (!c)
-      continue;
-    byId.set(c.categoryId, Array.isArray(c.items) ? c.items : []);
-  }
-
-  // VOICE 直接并入频道分类，避免丢失旧数据
-  const rooms = [...(byId.get("TEXT") ?? []), ...(byId.get("VOICE") ?? [])]
-    .filter(n => n?.type === "room");
-  const docs = (byId.get("DOC") ?? []).filter(n => n?.type === "doc");
-
-  const categories: SidebarCategoryNode[] = [
-    {
-      categoryId: "cat:channels",
-      name: "频道",
-      items: rooms,
-    },
-    {
-      categoryId: "cat:docs",
-      name: "文档",
-      items: docs,
-    },
-  ];
-
-  return {
-    schemaVersion: 2,
-    categories,
-  };
-}
-
 export function parseSidebarTree(treeJson: string | null | undefined): SidebarTree | null {
   if (!treeJson || treeJson.trim().length === 0) {
     return null;
@@ -277,11 +237,6 @@ export function parseSidebarTree(treeJson: string | null | undefined): SidebarTr
 
     if (obj?.schemaVersion === 2 && Array.isArray(obj.categories)) {
       return obj as SidebarTree;
-    }
-
-    // 兼容旧 schemaVersion=1：自动迁移到 v2
-    if (obj?.schemaVersion === 1 && Array.isArray(obj.categories)) {
-      return migrateV1ToV2(obj as SidebarTreeV1);
     }
 
     return null;
@@ -367,9 +322,6 @@ export function normalizeSidebarTree(params: {
   const inputTree = params.tree as any;
   if (inputTree?.schemaVersion === 2) {
     base = inputTree as SidebarTree;
-  }
-  else if (inputTree?.schemaVersion === 1) {
-    base = migrateV1ToV2(inputTree as SidebarTreeV1);
   }
   else {
     base = buildDefaultSidebarTree({

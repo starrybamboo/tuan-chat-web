@@ -94,7 +94,7 @@ const sharedRemoteState = getSharedRemoteState();
 
 // De-dupe back-to-back GETs caused by:
 // - pre-hydration fetch in BlocksuiteDescriptionEditor
-// - sync engine pull (RemoteSnapshotDocSource)
+// - sync engine pull (RemoteYjsLogDocSource)
 // Also mitigates React StrictMode double-mount in dev.
 const SNAPSHOT_CACHE_TTL_MS = 1500;
 const snapshotCache = sharedRemoteState.snapshotCache;
