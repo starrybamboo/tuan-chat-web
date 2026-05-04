@@ -1,8 +1,17 @@
 import type { RoleAvatar, UserRole } from "api";
-import type { Role } from "./types";
+
 import { ROLE_DEFAULT_AVATAR_URL } from "@/constants/defaultAvatar";
+import { avatarThumbUrl as buildAvatarThumbUrl, avatarUrl as buildAvatarUrl } from "@/utils/mediaUrl";
+
+import type { Role } from "./types";
 
 export type RoleListAvatarFields = UserRole & {
+  avatarUrl?: string;
+  avatarThumbUrl?: string;
+};
+
+type RoleAvatarUrlSource = {
+  avatarFileId?: number;
   avatarUrl?: string;
   avatarThumbUrl?: string;
 };
@@ -12,12 +21,12 @@ type CachedRoleAvatarRecord = {
 };
 
 type QueryClientLike = {
-  getQueryData<T>(queryKey: unknown[]): T | undefined;
-  fetchQuery<T>(options: {
+  getQueryData: <T>(queryKey: unknown[]) => T | undefined;
+  fetchQuery: <T>(options: {
     queryKey: unknown[];
     queryFn: () => Promise<T>;
     staleTime?: number;
-  }): Promise<T>;
+  }) => Promise<T>;
 };
 
 type HydrateRoleListOptions = {
@@ -29,13 +38,23 @@ type HydrateRoleListOptions = {
   fetchRoleAvatar: (avatarId: number) => Promise<{ success: boolean; data?: RoleAvatar }>;
 };
 
+export function resolveRoleAvatarUrls(source?: RoleAvatarUrlSource | null) {
+  const avatarUrl = source?.avatarUrl || buildAvatarUrl(source?.avatarFileId);
+  const avatarThumbUrl = source?.avatarThumbUrl || buildAvatarThumbUrl(source?.avatarFileId) || avatarUrl;
+  return {
+    avatarUrl,
+    avatarThumbUrl,
+  };
+}
+
 export function mapUserRoleToRole(role: RoleListAvatarFields): Role {
+  const { avatarUrl, avatarThumbUrl } = resolveRoleAvatarUrls(role);
   return {
     id: role.roleId || 0,
     name: role.roleName || "",
     description: role.description || "无描述",
-    avatar: role.avatarUrl || "",
-    avatarThumb: role.avatarThumbUrl || role.avatarUrl || "",
+    avatar: avatarUrl,
+    avatarThumb: avatarThumbUrl,
     avatarId: role.avatarId || 0,
     voiceUrl: role.voiceUrl || undefined,
     type: role.type ?? (role.diceMaiden ? 1 : 0),
@@ -87,8 +106,6 @@ export async function hydrateRoleList({
     seedRoleAvatarQueryCaches(queryClient, {
       avatarId: role.avatarId,
       roleId: role.id,
-      avatarUrl: role.avatar,
-      avatarThumbUrl: role.avatarThumb || role.avatar,
     }, role.id);
   }
 
@@ -101,9 +118,10 @@ export async function hydrateRoleList({
       }
 
       const cachedAvatar = queryClient.getQueryData<CachedRoleAvatarRecord>(["getRoleAvatar", role.avatarId])?.data;
-      if (cachedAvatar?.avatarUrl || cachedAvatar?.avatarThumbUrl) {
-        const avatarUrl = cachedAvatar.avatarUrl || ROLE_DEFAULT_AVATAR_URL;
-        const avatarThumbUrl = cachedAvatar.avatarThumbUrl || avatarUrl;
+      const cachedAvatarUrls = resolveRoleAvatarUrls(cachedAvatar);
+      if (cachedAvatarUrls.avatarUrl || cachedAvatarUrls.avatarThumbUrl) {
+        const avatarUrl = cachedAvatarUrls.avatarUrl || ROLE_DEFAULT_AVATAR_URL;
+        const avatarThumbUrl = cachedAvatarUrls.avatarThumbUrl || avatarUrl;
         return { id: role.id, avatar: avatarUrl, avatarThumb: avatarThumbUrl };
       }
 
@@ -115,8 +133,9 @@ export async function hydrateRoleList({
         });
 
         if (response.success && response.data) {
-          const avatarUrl = response.data.avatarUrl || ROLE_DEFAULT_AVATAR_URL;
-          const avatarThumbUrl = response.data.avatarThumbUrl || avatarUrl;
+          const responseAvatarUrls = resolveRoleAvatarUrls(response.data);
+          const avatarUrl = responseAvatarUrls.avatarUrl || ROLE_DEFAULT_AVATAR_URL;
+          const avatarThumbUrl = responseAvatarUrls.avatarThumbUrl || avatarUrl;
           seedRoleAvatarQueryCaches(queryClient, response.data, role.id);
           return { id: role.id, avatar: avatarUrl, avatarThumb: avatarThumbUrl };
         }

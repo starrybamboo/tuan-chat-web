@@ -1,8 +1,8 @@
 import type { ResourceResponse } from "@tuanchat/openapi-client/models/ResourceResponse";
 import { useState } from "react";
 import { toast } from "react-hot-toast";
-import { UserAvatarByUser } from "../../common/userAccess";
 import { mediaPreviewUrl } from "@/utils/mediaUrl";
+import { UserAvatarByUser } from "../../common/userAccess";
 import { AddToCollectionModal } from "../modals/AddToCollectionModal";
 import { EditResourceModal } from "../modals/EditResourceModal";
 import AudioWavePlayer from "../utils/AudioWavePlayer";

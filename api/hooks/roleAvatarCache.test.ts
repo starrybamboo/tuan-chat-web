@@ -67,6 +67,27 @@ describe("role avatar cache helpers", () => {
     expect(getRoleAvatarMock).not.toHaveBeenCalled();
   });
 
+  it("seedRoleAvatarQueryCaches 会在头像列表缓存不存在时创建 getRoleAvatars 列表", () => {
+    const queryClient = createQueryClient();
+
+    seedRoleAvatarQueryCaches(queryClient, {
+      avatarId: 123,
+      roleId: 45,
+      avatarFileId: 123,
+    }, 45);
+
+    expect(queryClient.getQueryData(["getRoleAvatars", 45])).toMatchObject({
+      success: true,
+      data: [
+        {
+          avatarId: 123,
+          roleId: 45,
+          avatarFileId: 123,
+        },
+      ],
+    });
+  });
+
   it("deleteRoleAvatarWithSuccessGuard 在业务失败时会抛错", async () => {
     deleteRoleAvatarMock.mockResolvedValueOnce({ success: false, errMsg: "denied" });
 

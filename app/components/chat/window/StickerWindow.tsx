@@ -4,8 +4,8 @@ import { useState } from "react";
 import { toast } from "react-hot-toast";
 import { ImgUploader } from "@/components/common/uploader/imgUploader";
 import { getImageSize } from "@/utils/getImgSize";
-import { mediaFileUrl } from "@/utils/mediaUrl";
 import { uploadMediaFile } from "@/utils/mediaUpload";
+import { mediaFileUrl } from "@/utils/mediaUrl";
 
 const SUPPORTED_STICKER_FORMATS = new Set(["jpg", "jpeg", "png", "gif", "webp"]);
 

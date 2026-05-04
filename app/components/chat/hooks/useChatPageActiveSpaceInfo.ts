@@ -1,8 +1,8 @@
 import { useMemo } from "react";
 
-import type { Space } from "../../../../api";
-
 import { avatarThumbUrl } from "@/utils/mediaUrl";
+
+import type { Space } from "../../../../api";
 
 type UseChatPageActiveSpaceInfoParams = {
   activeSpaceId?: number | null;

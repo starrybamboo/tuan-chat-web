@@ -45,6 +45,7 @@ type UseAiImageDimensionsStateOptions = {
   showSuccessToast: (message: string) => void;
   readImagePixels: (dataUrl: string) => Promise<ReadImagePixelsResult>;
   readImageSize: (dataUrl: string) => Promise<ReadImageSizeResult>;
+  onSourceImageChange?: () => void;
 };
 
 export function useAiImageDimensionsState({
@@ -52,6 +53,7 @@ export function useAiImageDimensionsState({
   showSuccessToast,
   readImagePixels,
   readImageSize,
+  onSourceImageChange,
 }: UseAiImageDimensionsStateOptions) {
   const [simpleMode, setSimpleMode] = useState<AiImageHistoryMode>("txt2img");
   const [proMode, setProMode] = useState<AiImageHistoryMode>("txt2img");
@@ -191,6 +193,7 @@ export function useAiImageDimensionsState({
   const clearSourceImageForUi = useCallback((targetUiMode: UiMode) => {
     setModeForUi(targetUiMode, "txt2img");
     clearInfillMaskForUi(targetUiMode);
+    onSourceImageChange?.();
     if (targetUiMode === "simple") {
       setSimpleSourceImageDataUrl("");
       setSimpleSourceImageBase64("");
@@ -200,7 +203,7 @@ export function useAiImageDimensionsState({
     setProSourceImageDataUrl("");
     setProSourceImageBase64("");
     setProSourceImageSize(null);
-  }, [clearInfillMaskForUi, setModeForUi]);
+  }, [clearInfillMaskForUi, onSourceImageChange, setModeForUi]);
 
   const applySourceImageForUi = useCallback((targetUiMode: UiMode, sourceImage: ImportedSourceImagePayload, successMessage?: string) => {
     const nextSourceImageSize = sourceImage.width && sourceImage.height
@@ -221,7 +224,8 @@ export function useAiImageDimensionsState({
     syncSourceImageSizeForUi(targetUiMode, sourceImage.width, sourceImage.height);
     if (successMessage)
       showSuccessToast(successMessage);
-  }, [clearInfillMaskForUi, setModeForUi, showSuccessToast, syncSourceImageSizeForUi]);
+    onSourceImageChange?.();
+  }, [clearInfillMaskForUi, onSourceImageChange, setModeForUi, showSuccessToast, syncSourceImageSizeForUi]);
 
   const commitRoundedDimensionsForUi = useCallback((targetUiMode: UiMode) => {
     if (targetUiMode === "simple") {

@@ -312,11 +312,8 @@ export function useAiImagePageController() {
     showSuccessToast,
     readImagePixels,
     readImageSize,
+    onSourceImageChange: () => setInfillAppendPrompt(""),
   });
-
-  useEffect(() => {
-    setInfillAppendPrompt("");
-  }, [sourceImageDataUrl]);
 
   const {
     results,

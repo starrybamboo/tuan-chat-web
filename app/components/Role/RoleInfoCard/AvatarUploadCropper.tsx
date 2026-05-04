@@ -72,7 +72,6 @@ export function CharacterCopper({
   setCopperedDownloadUrl,
   children,
   fileName,
-  scene,
   mutate,
   triggerClassName,
   wrapperClassName,
@@ -377,7 +376,6 @@ export function CharacterCopper({
     try {
       let downloadUrl = "";
       let copperedDownloadUrl = "";
-      let copperedThumbDownloadUrl = "";
 
       if (currentStep === 1) {
         // 第一步：只保存裁剪后的图片用于第二步使用
@@ -403,7 +401,6 @@ export function CharacterCopper({
         if (shouldUploadAvatar) {
           avatarFileId = (await uploadMediaFile(copperedImgFile)).fileId;
           copperedDownloadUrl = buildAvatarUrl(avatarFileId);
-          copperedThumbDownloadUrl = copperedDownloadUrl;
           setCopperedDownloadUrl?.(copperedDownloadUrl);
         }
 

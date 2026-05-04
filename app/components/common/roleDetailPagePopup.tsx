@@ -57,13 +57,9 @@ export function RoleDetailPagePopup({
   const isRoleLoading = shouldFetchRole ? roleQuery.isLoading : false;
   const isRoleMissing = !isRoleLoading && !fetchedRole;
 
-  const [role, setRole] = useState<Role | null>(null);
   const storedRuleId = useMemo(() => getRoleRule(roleId), [roleId]);
-
-  useEffect(() => {
-    if (!fetchedRole)
-      return;
-    queueMicrotask(() => setRole(toRoleViewModel(roleId, fetchedRole)));
+  const role = useMemo(() => {
+    return fetchedRole ? toRoleViewModel(roleId, fetchedRole) : null;
   }, [fetchedRole, roleId]);
 
   const [selectedRuleId, setSelectedRuleId] = useState<number>(() => {
@@ -88,10 +84,6 @@ export function RoleDetailPagePopup({
 
   const handleRuleChange = (newRuleId: number) => {
     setSelectedRuleId(newRuleId);
-  };
-
-  const handleSave = (updatedRole: Role) => {
-    setRole(updatedRole);
   };
 
   const deleteRoleMutation = useDeleteRole1Mutation();
@@ -157,7 +149,7 @@ export function RoleDetailPagePopup({
 
   if (isRoleMissing) {
     return (
-      <div className="bg-base-100 flex flex-col gap-3 w-[960px] max-w-[90vw]">
+      <div className="bg-base-100 flex flex-col gap-3 w-240 max-w-[90vw]">
         <div className="card card-compact border border-base-200 shadow-sm">
           <div className="card-body gap-3">
             <div className="flex items-center justify-between gap-4">
@@ -206,10 +198,10 @@ export function RoleDetailPagePopup({
   }
 
   return (
-    <div className="bg-base-100 flex flex-col gap-3 w-[960px] max-w-[90vw]">
+    <div className="bg-base-100 flex flex-col gap-3 w-240 max-w-[90vw]">
       <CharacterDetail
         role={role}
-        onSave={handleSave}
+        onSave={() => {}}
         selectedRuleId={selectedRuleId}
         onRuleChange={handleRuleChange}
         layout="popup"

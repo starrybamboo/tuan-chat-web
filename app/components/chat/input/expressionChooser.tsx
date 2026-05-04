@@ -15,7 +15,6 @@ import { getEffectiveAvatarThumbUrl, getEffectiveAvatarUrl } from "@/components/
 import { AddRingLight, AddRoleIcon, ExpandCornersIcon, EyedropperIcon, IdentificationCardIcon, NarratorIcon } from "@/icons";
 import { getScreenSize } from "@/utils/getScreenSize";
 import { useGetRoleAvatarsQuery } from "../../../../api/hooks/RoleAndAvatarHooks";
-import { resolveExpressionChooserRoleAvatars } from "./expressionChooserAvatars";
 
 export function ExpressionChooser({
   roleId,
@@ -62,17 +61,8 @@ export function ExpressionChooser({
   const canAddRole = canManageRoomRoles(currentMemberType);
 
   const selectedRoleId = roleId;
-  const availableRoles = roomContext.roomRolesThatUserOwn;
-  const selectedRole = useMemo(
-    () => availableRoles.find(role => role.roleId === selectedRoleId),
-    [availableRoles, selectedRoleId],
-  );
   const roleAvatarsQuery = useGetRoleAvatarsQuery(selectedRoleId);
-  const fetchedRoleAvatars = useMemo(() => roleAvatarsQuery.data?.data ?? [], [roleAvatarsQuery.data]);
-  const roleAvatars = useMemo(
-    () => resolveExpressionChooserRoleAvatars(fetchedRoleAvatars, selectedRole),
-    [fetchedRoleAvatars, selectedRole],
-  );
+  const roleAvatars = useMemo(() => roleAvatarsQuery.data?.data ?? [], [roleAvatarsQuery.data]);
   const DEFAULT_CATEGORY = "默认";
   const avatarCategoryGroups = useMemo(() => {
     const groups = new Map<string, RoleAvatar[]>();
@@ -97,6 +87,11 @@ export function ExpressionChooser({
     return { groups, orderedCategories };
   }, [roleAvatars]);
 
+  const availableRoles = roomContext.roomRolesThatUserOwn;
+  const selectedRole = useMemo(
+    () => availableRoles.find(role => role.roleId === selectedRoleId),
+    [availableRoles, selectedRoleId],
+  );
   const manageRole = useMemo(
     () => availableRoles.find(role => role.roleId === manageRoleId),
     [availableRoles, manageRoleId],

@@ -12,12 +12,12 @@ import type {
 } from "@/components/feedback/feedbackTypes";
 import type { FeedbackIssueAuthorResponse } from "api";
 
+import { avatarThumbUrl, avatarUrl } from "@/utils/mediaUrl";
 import {
   compactRequestBody,
   extractOpenApiErrorMessage,
   unwrapOpenApiResultData,
 } from "@/utils/openApiResult";
-import { avatarThumbUrl, avatarUrl } from "@/utils/mediaUrl";
 
 import { tuanchat } from "../../../api/instance";
 

@@ -4,10 +4,11 @@ import { UserServiceExtension } from "@blocksuite/affine/shared/services";
 import { ZERO_WIDTH_FOR_EMBED_NODE } from "@blocksuite/std/inline";
 import { html } from "lit";
 
+import { avatarThumbUrl } from "@/utils/mediaUrl";
+
 import type { BlocksuiteEditorAssemblyContext } from "../blocksuiteEditorAssemblyContext";
 import type { BlocksuiteExtensionBundle } from "./types";
 
-import { avatarThumbUrl } from "@/utils/mediaUrl";
 import { listBlocksuiteMentionRoles } from "../../services/blocksuiteRoleService";
 import { listBlocksuiteSpaceMemberIds } from "../../services/blocksuiteSpaceMemberService";
 import { BlocksuiteRoleServiceExtension } from "../../services/tuanChatRoleService";

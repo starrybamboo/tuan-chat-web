@@ -95,11 +95,24 @@ function setRoleAbilityByRuleCache(queryClient: QueryClient, payload: RoleAbilit
         return;
     }
 
-    queryClient.setQueryData(roleAbilityByRuleQueryKey(payload.roleId, payload.ruleId), (old: CachedRoleAbility | null | undefined) => ({
-        ...(old ?? {}),
-        ...normalized,
-        abilityId: old?.abilityId ?? normalized.abilityId,
-    }));
+    queryClient.setQueryData(roleAbilityByRuleQueryKey(payload.roleId, payload.ruleId), (old: CachedRoleAbility | null | undefined) => {
+        const shouldPatchSection = (section: "act" | "basic" | "ability" | "skill") =>
+            Object.prototype.hasOwnProperty.call(payload, section);
+
+        return {
+            ...(old ?? {}),
+            ...normalized,
+            abilityId: old?.abilityId ?? normalized.abilityId,
+            act: shouldPatchSection("act") ? normalized.act : (old?.act ?? normalized.act),
+            basic: shouldPatchSection("basic") ? normalized.basic : (old?.basic ?? normalized.basic),
+            ability: shouldPatchSection("ability") ? normalized.ability : (old?.ability ?? normalized.ability),
+            skill: shouldPatchSection("skill") ? normalized.skill : (old?.skill ?? normalized.skill),
+            actTemplate: shouldPatchSection("act") ? normalized.actTemplate : (old?.actTemplate ?? normalized.actTemplate),
+            basicDefault: shouldPatchSection("basic") ? normalized.basicDefault : (old?.basicDefault ?? normalized.basicDefault),
+            abilityDefault: shouldPatchSection("ability") ? normalized.abilityDefault : (old?.abilityDefault ?? normalized.abilityDefault),
+            skillDefault: shouldPatchSection("skill") ? normalized.skillDefault : (old?.skillDefault ?? normalized.skillDefault),
+        };
+    });
 }
 
 function patchStringRecord(
@@ -112,7 +125,13 @@ function patchStringRecord(
             delete next[key];
             return;
         }
-        next[key] = String(value);
+        const renamedKey = String(value);
+        if (!renamedKey || renamedKey === key) {
+            return;
+        }
+        const currentValue = next[key] ?? "";
+        delete next[key];
+        next[renamedKey] = currentValue;
     });
     return next;
 }
@@ -748,6 +767,17 @@ export function useUpdateRoleAbilityByRoleIdMutation() {
     return useMutation({
         mutationFn: (req: AbilityUpdateRequest2) => tuanchat.abilityController.updateRoleAbility1(req),
         mutationKey: ["updateRoleAbilityByRoleId"],
+        onMutate: async (variables) => {
+            await queryClient.cancelQueries({ queryKey: roleAbilityByRuleQueryKey(variables.roleId, variables.ruleId) });
+            const previousAbilityByRule = queryClient.getQueryData(roleAbilityByRuleQueryKey(variables.roleId, variables.ruleId));
+            setRoleAbilityByRuleCache(queryClient, variables);
+            return { previousAbilityByRule };
+        },
+        onError: (_error, variables, context) => {
+            if (context?.previousAbilityByRule !== undefined) {
+                queryClient.setQueryData(roleAbilityByRuleQueryKey(variables.roleId, variables.ruleId), context.previousAbilityByRule);
+            }
+        },
         onSuccess: (result, variables) => {
             if (isSuccessfulApiResult(result)) {
                 setRoleAbilityByRuleCache(queryClient, variables);
@@ -772,6 +802,17 @@ export function useUpdateKeyFieldByRoleIdMutation() {
     return useMutation({
         mutationFn:  (req: AbilityFieldUpdateRequest2) => tuanchat.abilityController.updateRoleAbilityField1(req),
         mutationKey: ["updateRoleAbilityByRoleId"],
+        onMutate: async (variables) => {
+            await queryClient.cancelQueries({ queryKey: roleAbilityByRuleQueryKey(variables.roleId, variables.ruleId) });
+            const previousAbilityByRule = queryClient.getQueryData(roleAbilityByRuleQueryKey(variables.roleId, variables.ruleId));
+            patchRoleAbilityFieldsCache(queryClient, variables);
+            return { previousAbilityByRule };
+        },
+        onError: (_error, variables, context) => {
+            if (context?.previousAbilityByRule !== undefined) {
+                queryClient.setQueryData(roleAbilityByRuleQueryKey(variables.roleId, variables.ruleId), context.previousAbilityByRule);
+            }
+        },
         onSuccess: (result, variables) => {
             if (isSuccessfulApiResult(result)) {
                 patchRoleAbilityFieldsCache(queryClient, variables);
@@ -823,5 +864,3 @@ export function useGenerateRoleByRuleMutation() {
         }
     })
 }
-
-

@@ -5,10 +5,10 @@ import type { Space } from "@tuanchat/openapi-client/models/Space";
 
 import { ArrowLeftIcon, CompassIcon, PackageIcon } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
+import { useGetUserSpacesQuery } from "api/hooks/chatQueryHooks";
 import { tuanchat } from "api/instance";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router";
-import { useGetUserSpacesQuery } from "api/hooks/chatQueryHooks";
 import RepositoryDetailComponent from "@/components/repository/detail/repositoryDetail";
 import { ContentCard } from "@/components/repository/home/RepositoryHome";
 import { avatarThumbUrl } from "@/utils/mediaUrl";
