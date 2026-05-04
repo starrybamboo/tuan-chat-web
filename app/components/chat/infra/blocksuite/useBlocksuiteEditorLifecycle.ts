@@ -17,9 +17,8 @@ import type { BlocksuiteEditorHandle, BlocksuiteTcHeaderState } from "./blocksui
 
 import {
   LATE_REMOTE_HYDRATION_WAIT_MS,
-  shouldEnsureTcHeaderFallback,
+  shouldUseRemoteFirstHydration,
   waitForRemoteHydrationSettled,
-  waitForRemoteSnapshotDecision,
 } from "./blocksuiteEditorLifecycleHydration";
 
 function warnNonFatalBlocksuiteError(message: string, error: unknown) {
@@ -146,27 +145,6 @@ export function useBlocksuiteEditorLifecycle(params: UseBlocksuiteEditorLifecycl
         const workspace = runtime.getOrCreateWorkspace(workspaceId);
         docRuntimeRef.current = { workspace, docId };
 
-        // 对描述文档优先尝试远端快照，尽量在创建 store 前恢复首屏内容。
-        const remoteSnapshotDecision = await waitForRemoteSnapshotDecision({
-          docId,
-          signal: abort.signal,
-        });
-        if (abort.signal.aborted)
-          return;
-
-        if (remoteSnapshotDecision.state === "snapshot-hit" && remoteSnapshotDecision.update?.length) {
-          try {
-            // 启动期只做单次 merge 恢复，避免 replace 语义丢弃本地未同步内容。
-            (workspace as any)?.restoreDocFromUpdate?.({
-              docId,
-              update: remoteSnapshotDecision.update,
-            });
-          }
-          catch (error) {
-            warnNonFatalBlocksuiteError("[BlocksuiteDescriptionEditor] Failed to apply startup remote snapshot", error);
-          }
-        }
-
         // store 创建前先确保文档元信息存在，便于 runtime 后续正确关联文档。
         runtime.ensureDocMeta({ workspaceId, docId });
         markBlocksuiteOpenSession(instanceIdRef.current ?? "", "store-create-start");
@@ -204,18 +182,20 @@ export function useBlocksuiteEditorLifecycle(params: UseBlocksuiteEditorLifecycl
               applyHeaderState(header);
             });
 
-            if (shouldEnsureTcHeaderFallback({
-              tcHeaderEnabled,
-              hydrationState: remoteSnapshotDecision.state,
-            })) {
+            const applyFallbackHeader = () => {
               // 当前 hydration 状态足够稳定，可以立即补兜底 header。
               applyHeaderState(ensureBlocksuiteDocHeader(store, {
                 title: tcHeaderFallbackRef.current.title,
                 imageUrl: tcHeaderFallbackRef.current.imageUrl,
               }));
+            };
+
+            if (!shouldUseRemoteFirstHydration(docId)) {
+              applyFallbackHeader();
             }
             else {
-              // 如果远端 hydration 仍在继续，延后补兜底 header，避免和真实远端内容抢写。
+              // description 文档统一交给后台 hydration 拉云端；
+              // 只有 hydration 真正完成后，才允许补 tcHeader fallback，避免把本地 fallback 混进待同步队列。
               void waitForRemoteHydrationSettled({
                 workspace: workspace as any,
                 docId,
@@ -226,10 +206,7 @@ export function useBlocksuiteEditorLifecycle(params: UseBlocksuiteEditorLifecycl
                   return;
 
                 try {
-                  applyHeaderState(ensureBlocksuiteDocHeader(store, {
-                    title: tcHeaderFallbackRef.current.title,
-                    imageUrl: tcHeaderFallbackRef.current.imageUrl,
-                  }));
+                  applyFallbackHeader();
                 }
                 catch (error) {
                   warnNonFatalBlocksuiteError("[BlocksuiteDescriptionEditor] Failed to finalize tcHeader state", error);

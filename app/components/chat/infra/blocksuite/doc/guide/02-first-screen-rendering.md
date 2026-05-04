@@ -6,7 +6,7 @@
 
 1. 宿主先显示 skeleton 和 iframe 外壳
 2. iframe bootstrap browser runtime
-3. runtime 在创建 store 前先判断远端 snapshot
+3. runtime 创建 store，并把 description 文档的远端 hydration 交给 workspace 后台完成
 4. editor 创建并挂入 DOM
 5. 等内容稳定后回传 `render-ready`
 6. 宿主再隐藏 skeleton
@@ -27,8 +27,8 @@ sequenceDiagram
     Frame->>Route: 解析初始参数
     Route->>Route: ensureBlocksuiteBrowserRuntime()
     Route->>Runtime: 渲染 runtime
-    Runtime->>Workspace: 远端 snapshot 决策
     Runtime->>Workspace: 创建 store
+    Runtime->>Workspace: 后台远端 hydration
     Runtime->>Editor: 创建 editor DOM
     Editor-->>Runtime: 已挂载
     Runtime-->>Host: render-ready
@@ -66,21 +66,15 @@ sequenceDiagram
 - 注册 core custom elements
 - patch `customElements.define`
 
-## 4. 创建 store 前先判断远端 snapshot
+## 4. store 创建后交给 workspace 后台做远端 hydration
 
-[useBlocksuiteEditorLifecycle.ts](../../useBlocksuiteEditorLifecycle.ts) 会先调用 [blocksuiteEditorLifecycleHydration.ts](../../blocksuiteEditorLifecycleHydration.ts) 的 `waitForRemoteSnapshotDecision()`。
+[useBlocksuiteEditorLifecycle.ts](../../useBlocksuiteEditorLifecycle.ts) 不再在启动前额外抢一次 snapshot。
 
-返回值可能是：
+description 文档打开后，会由 workspace 内部的后台远端 hydration 拉取云端内容：
 
-- `snapshot-hit`
-- `empty`
-- `error`
-- `timed-out`
-
-目的：
-
-- 有远端内容时优先恢复，减少首屏空白和回填闪烁
-- 远端明确为空时，才初始化最小骨架
+- 启动链路不再额外发一轮首屏 snapshot 请求
+- 首屏 warning 不再由“1.2 秒放弃等待、8 秒后请求自身超时”这种双阶段时序触发
+- `tcHeader fallback` 只会在后台 hydration 完成后才允许写入，避免把本地兜底内容混进待同步队列
 
 ## 5. editor 挂入 DOM 后，才允许 `render-ready`
 
