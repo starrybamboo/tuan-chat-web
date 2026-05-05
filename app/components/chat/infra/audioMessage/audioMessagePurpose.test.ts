@@ -12,7 +12,6 @@ describe("audioMessagePurpose", () => {
     expect(resolveRenderedSoundMessagePurpose({
       annotations: [ANNOTATION_IDS.SE],
       payloadPurpose: "bgm",
-      content: "[播放BGM]",
     })).toBe("se");
   });
 

@@ -48,7 +48,7 @@ export type UserRole = {
     type: number;
     voiceUrl?: string;
     /**
-     * 角色语音媒体文件 ID
+     * 角色语音媒体文件 ID；替代 voiceUrl
      */
     voiceFileId?: number;
     /**

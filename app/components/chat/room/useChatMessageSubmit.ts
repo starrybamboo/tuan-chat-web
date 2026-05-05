@@ -16,6 +16,7 @@ import { isCommand } from "@/components/common/dicer/cmdPre";
 import { normalizeAnnotations } from "@/types/messageAnnotations";
 import { buildChatMessageRequestFromDraft } from "@/types/messageDraft";
 import { UploadUtils } from "@/utils/UploadUtils";
+import { mediaFileUrl } from "@/utils/mediaUrl";
 
 import type { ChatMessageRequest, ChatMessageResponse, UserRole } from "../../../../api";
 
@@ -62,7 +63,7 @@ type SubmittedInputSnapshot = {
 type SubmittedComposerSnapshot = {
   imgFiles: File[];
   emojiUrls: string[];
-  emojiMetaByUrl: Record<string, { fileId?: number; width?: number; height?: number; mediaType?: string; size?: number; fileName?: string; originalUrl?: string }>;
+  emojiMetaByUrl: Record<string, { fileId?: number; width?: number; height?: number; mediaType?: string; size?: number; fileName?: string }>;
   fileAttachments: File[];
   audioFile: File | null;
   tempAnnotations: string[];
@@ -440,16 +441,20 @@ export default function useChatMessageSubmit({
           return;
         }
 
-        const requestExtra = request.extra as { soundMessage?: { url?: string } } | undefined;
-        const createdExtra = createdMessage.extra as { soundMessage?: { url?: string } } | undefined;
-        const requestUrl = typeof requestExtra?.soundMessage?.url === "string" ? requestExtra.soundMessage.url.trim() : "";
-        const createdUrl = typeof createdExtra?.soundMessage?.url === "string" ? createdExtra.soundMessage.url.trim() : "";
+        const requestExtra = request.extra as { soundMessage?: { fileId?: number; mediaType?: string } } | undefined;
+        const createdExtra = createdMessage.extra as { soundMessage?: { fileId?: number; mediaType?: string } } | undefined;
+        const requestUrl = mediaFileUrl(requestExtra?.soundMessage?.fileId, requestExtra?.soundMessage?.mediaType, "high");
+        const createdUrl = mediaFileUrl(createdExtra?.soundMessage?.fileId, createdExtra?.soundMessage?.mediaType, "high");
+        const autoplayUrl = requestUrl || createdUrl;
+        if (!autoplayUrl) {
+          return;
+        }
         triggerAudioAutoPlay({
           source: "localSend",
           roomId,
           messageId: createdMessage.messageId,
           purpose: autoPlayPurpose,
-          url: requestUrl || createdUrl,
+          url: autoplayUrl,
         });
       });
 

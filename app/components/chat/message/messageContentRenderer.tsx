@@ -21,7 +21,7 @@ import {
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
 import { extractWebgalChoosePayload } from "@/types/webgalChoose";
 import type { MediaQuality, MediaType } from "@/utils/imgCompressUtils";
-import { mediaFileUrl, mediaFileUrlWithQuality, normalizeMediaType } from "@/utils/mediaUrl";
+import { mediaFileUrl, normalizeMediaType } from "@/utils/mediaUrl";
 
 type ReadonlyRenderableMessage = Pick<
   Message,
@@ -58,18 +58,12 @@ function formatFileSize(bytes?: number) {
 }
 
 function resolveMediaPayloadUrl(
-  payload: { fileId?: number; mediaType?: string; url?: string } | undefined,
+  payload: { fileId?: number; mediaType?: string } | undefined,
   quality: MediaQuality,
   expectedMediaType?: MediaType,
 ) {
   const resolvedMediaType = payload?.mediaType ? normalizeMediaType(payload.mediaType) : expectedMediaType;
-  const mediaUrl = mediaFileUrl(payload?.fileId, resolvedMediaType, quality);
-  const fallbackUrl = typeof payload?.url === "string"
-    ? resolvedMediaType
-      ? mediaFileUrlWithQuality(payload.url, resolvedMediaType, quality)
-      : payload.url
-    : "";
-  return mediaUrl || fallbackUrl;
+  return mediaFileUrl(payload?.fileId, resolvedMediaType, quality);
 }
 
 export default function MessageContentRenderer({
@@ -207,7 +201,6 @@ export default function MessageContentRenderer({
       const purpose = resolveRenderedSoundMessagePurpose({
         annotations: effectiveAnnotations,
         payloadPurpose: soundMessage?.purpose,
-        content: message.content,
       });
       return (
         <div className="flex flex-col gap-2">

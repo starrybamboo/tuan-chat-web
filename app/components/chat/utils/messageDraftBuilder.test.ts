@@ -9,14 +9,16 @@ function createUploadUtilsMock() {
   return {
     uploadImg: vi.fn(),
     uploadVideo: vi.fn(async (file: File) => ({
-      url: `https://static.example.com/${file.name}`,
+      fileId: 456,
       fileName: file.name,
+      mediaType: "video",
       size: file.size,
     })),
     uploadAudioAsset: vi.fn(async (file: File) => ({
       fileId: 123,
       mediaType: "audio",
-      url: `https://static.example.com/${file.name}`,
+      fileName: file.name,
+      size: file.size,
     })),
     uploadFile: vi.fn(async (file: File) => `https://static.example.com/${file.name}`),
     uploadAudio: vi.fn(),
@@ -148,7 +150,8 @@ describe("messageDraftBuilder", () => {
     expect(drafts[0]?.messageType).toBe(MessageType.VIDEO);
     expect(drafts[0]?.extra).toMatchObject({
       videoMessage: {
-        url: "https://static.example.com/clip.mp4",
+        fileId: 456,
+        mediaType: "video",
         fileName: "clip.mp4",
         size: videoFile.size,
         second: 7,
@@ -175,7 +178,6 @@ describe("messageDraftBuilder", () => {
           height: 96,
           size: 2048,
           fileName: "ok.webp",
-          originalUrl: "/media/v1/files/077/77/original",
         },
       },
       fileAttachments: [],
@@ -190,8 +192,6 @@ describe("messageDraftBuilder", () => {
       imageMessage: {
         fileId: 77,
         mediaType: "image",
-        url: emojiUrl,
-        originalUrl: "/media/v1/files/077/77/original",
       },
     });
   });

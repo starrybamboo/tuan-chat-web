@@ -44,7 +44,7 @@ export type RepositoryUpdateRequest = {
      */
     image?: string;
     /**
-     * 封面媒体文件 ID
+     * 封面媒体文件 ID；替代 image/originalImage
      */
     coverFileId?: number;
     /**

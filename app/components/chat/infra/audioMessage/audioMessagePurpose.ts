@@ -25,7 +25,6 @@ export function getSoundMessagePurposeFromAnnotations(annotations?: string[] | n
 export function resolveRenderedSoundMessagePurpose(params: {
   annotations?: string[] | null;
   payloadPurpose?: unknown;
-  content?: unknown;
 }): RenderedSoundMessagePurpose {
   const purposeFromAnnotations = getSoundMessagePurposeFromAnnotations(params.annotations);
   if (purposeFromAnnotations) {
@@ -37,13 +36,6 @@ export function resolveRenderedSoundMessagePurpose(params: {
     return purposeFromPayload;
   }
 
-  const contentText = typeof params.content === "string" ? params.content : "";
-  if (contentText.includes("[播放BGM]")) {
-    return "bgm";
-  }
-  if (contentText.includes("[播放音效]")) {
-    return "se";
-  }
   return "voice";
 }
 

@@ -2,8 +2,6 @@ import type { Room } from "api";
 
 import { parseSpaceDocId } from "@/components/chat/infra/blocksuite/space/spaceDocId";
 
-const LEGACY_MATERIALS_CATEGORY_ID = "cat:materials";
-
 export type SidebarLeafNode = {
   nodeId: string;
   type: "room" | "doc";
@@ -376,9 +374,6 @@ export function normalizeSidebarTree(params: {
   for (const c of base.categories ?? []) {
     if (!c)
       continue;
-    if (c.categoryId === LEGACY_MATERIALS_CATEGORY_ID) {
-      continue;
-    }
     let categoryId = typeof c.categoryId === "string" && c.categoryId.trim().length > 0
       ? c.categoryId
       : generateCategoryId();

@@ -15,7 +15,8 @@ describe("messageDraft request normalization", () => {
       messageType: MESSAGE_TYPE.IMG,
       extra: {
         imageMessage: {
-          url: " https://static.example.com/a.png ",
+          fileId: "42",
+          mediaType: " image ",
           fileName: " cover.png ",
           width: "1920",
           height: 1080,
@@ -32,7 +33,8 @@ describe("messageDraft request normalization", () => {
 
     expect(request.extra).toEqual({
       imageMessage: {
-        url: "https://static.example.com/a.png",
+        fileId: 42,
+        mediaType: "image",
         fileName: "cover.png",
         width: 1920,
         height: 1080,
@@ -48,7 +50,8 @@ describe("messageDraft request normalization", () => {
       messageType: MESSAGE_TYPE.SOUND,
       extra: {
         soundMessage: {
-          url: "https://static.example.com/a.mp3",
+          fileId: 43,
+          mediaType: "audio",
           fileName: "a.mp3",
           size: 4096,
           purpose: "BGM",
@@ -108,7 +111,8 @@ describe("messageDraft request normalization", () => {
       content: "资料包",
       extra: {
         fileMessage: {
-          url: " https://static.example.com/rules.pdf ",
+          fileId: "44",
+          mediaType: " document ",
           fileName: " rules.pdf ",
           size: "4096",
         },
@@ -119,7 +123,8 @@ describe("messageDraft request normalization", () => {
 
     expect(request.extra).toEqual({
       fileMessage: {
-        url: "https://static.example.com/rules.pdf",
+        fileId: 44,
+        mediaType: "document",
         fileName: "rules.pdf",
         size: 4096,
       },
@@ -179,7 +184,8 @@ describe("messageDraft request normalization", () => {
   it("乐观匹配也只接受非扁平 extra", () => {
     expect(normalizeMessageExtraForMatch(MESSAGE_TYPE.IMG, {
       imageMessage: {
-        url: "https://static.example.com/a.png",
+        fileId: 45,
+        mediaType: "image",
         fileName: "a.png",
         width: 512,
         height: 512,
@@ -188,7 +194,8 @@ describe("messageDraft request normalization", () => {
       },
     })).toEqual({
       imageMessage: {
-        url: "https://static.example.com/a.png",
+        fileId: 45,
+        mediaType: "image",
         fileName: "a.png",
         width: 512,
         height: 512,
@@ -202,7 +209,7 @@ describe("messageDraft request normalization", () => {
     expect(() => buildChatMessageRequestFromDraft({
       messageType: MESSAGE_TYPE.IMG,
       extra: {
-        url: "https://static.example.com/a.png",
+        fileId: 45,
         fileName: "a.png",
         width: 512,
         height: 512,
@@ -218,7 +225,7 @@ describe("messageDraft request normalization", () => {
       messageType: MESSAGE_TYPE.IMG,
       extra: {
         imageMessage: {
-          url: "https://static.example.com/a.png",
+          fileId: 45,
         },
       },
     } as any, {
@@ -271,7 +278,8 @@ describe("messageDraft request normalization", () => {
       textAnnotations: ["text-annotation"],
       videoAnnotations: ["video-annotation"],
       uploadedImages: [{
-        url: "https://static.example.com/cover.png",
+        fileId: 101,
+        mediaType: "image",
         width: 640,
         height: 360,
         size: 2048,
@@ -279,20 +287,23 @@ describe("messageDraft request normalization", () => {
         background: true,
       }],
       uploadedSoundMessage: {
-        url: "https://static.example.com/voice.webm",
+        fileId: 102,
+        mediaType: "audio",
         fileName: "voice.webm",
         size: 4096,
         second: 2,
         purpose: "bgm",
       },
       uploadedVideos: [{
-        url: "https://static.example.com/clip.mp4",
+        fileId: 103,
+        mediaType: "video",
         fileName: "clip.mp4",
         size: 8192,
         second: 12,
       }],
       uploadedFiles: [{
-        url: "https://static.example.com/rules.pdf",
+        fileId: 104,
+        mediaType: "document",
         fileName: "rules.pdf",
         size: 16384,
       }],
@@ -305,7 +316,8 @@ describe("messageDraft request normalization", () => {
       messageType: MESSAGE_TYPE.IMG,
       extra: {
         imageMessage: {
-          url: "https://static.example.com/cover.png",
+          fileId: 101,
+          mediaType: "image",
           width: 640,
           height: 360,
           size: 2048,
@@ -322,7 +334,8 @@ describe("messageDraft request normalization", () => {
       messageType: MESSAGE_TYPE.SOUND,
       extra: {
         soundMessage: {
-          url: "https://static.example.com/voice.webm",
+          fileId: 102,
+          mediaType: "audio",
           fileName: "voice.webm",
           size: 4096,
           second: 2,
@@ -338,7 +351,8 @@ describe("messageDraft request normalization", () => {
       messageType: MESSAGE_TYPE.VIDEO,
       extra: {
         videoMessage: {
-          url: "https://static.example.com/clip.mp4",
+          fileId: 103,
+          mediaType: "video",
           fileName: "clip.mp4",
           size: 8192,
           second: 12,
@@ -353,7 +367,8 @@ describe("messageDraft request normalization", () => {
       messageType: MESSAGE_TYPE.FILE,
       extra: {
         fileMessage: {
-          url: "https://static.example.com/rules.pdf",
+          fileId: 104,
+          mediaType: "document",
           fileName: "rules.pdf",
           size: 16384,
         },

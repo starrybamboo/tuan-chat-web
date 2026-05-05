@@ -122,7 +122,7 @@ E. 插入自定义 blot（候选被选中时）
 
 F. 删除 embed 的兜底
 - 捕获 Backspace：
-  - 若光标前一个 leaf 是 .ql-mention-span，直接 editor.deleteText(prevIndex, 1, 'user') 并阻止默认行为。
+  - 若光标前一个 leaf 是 `.entity-mention`，直接 `editor.deleteText(prevIndex, 1, 'user')` 并阻止默认行为。
 
 Delta 样例（简化）：
 ```json

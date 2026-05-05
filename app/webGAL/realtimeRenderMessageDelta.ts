@@ -85,8 +85,8 @@ function isSceneStatefulMessage(
   }
 
   if (messageType === MESSAGE_TYPE.SOUND) {
-    const soundMessage = message.extra?.soundMessage ?? (message.extra as any);
-    return Boolean(soundMessage?.purpose === "bgm" || message.content?.includes("[播放BGM]"));
+    const soundMessage = message.extra?.soundMessage;
+    return soundMessage?.purpose === "bgm";
   }
 
   if (messageType === MESSAGE_TYPE.EFFECT) {

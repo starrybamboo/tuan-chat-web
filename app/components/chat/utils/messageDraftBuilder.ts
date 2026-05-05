@@ -19,7 +19,6 @@ type EmojiAttachmentMeta = {
   mediaType?: string;
   size?: number;
   fileName?: string;
-  originalUrl?: string;
 };
 
 type BuildMessageDraftsFromComposerSnapshotParams = {
@@ -132,8 +131,6 @@ export async function buildMessageDraftsFromComposerSnapshot({
     uploadedImages.push({
       fileId: uploadedImage.fileId,
       mediaType: uploadedImage.mediaType,
-      originalUrl: uploadedImage.originalUrl,
-      url: uploadedImage.url,
       width,
       height,
       size,
@@ -143,6 +140,9 @@ export async function buildMessageDraftsFromComposerSnapshot({
 
   for (const emojiUrl of emojiUrls) {
     const meta = emojiMetaByUrl[emojiUrl];
+    if (typeof meta?.fileId !== "number") {
+      throw new Error("表情素材缺少媒体文件 ID，请重新选择表情。");
+    }
     let width = meta?.width ?? -1;
     let height = meta?.height ?? -1;
     let size = meta?.size ?? -1;
@@ -155,10 +155,8 @@ export async function buildMessageDraftsFromComposerSnapshot({
     }
 
     uploadedImages.push({
-      fileId: meta?.fileId,
-      mediaType: meta?.mediaType,
-      originalUrl: meta?.originalUrl ?? emojiUrl,
-      url: emojiUrl,
+      fileId: meta.fileId,
+      mediaType: meta?.mediaType || "image",
       width,
       height,
       size,
@@ -175,7 +173,6 @@ export async function buildMessageDraftsFromComposerSnapshot({
     uploadedVideos.push({
       fileId: uploadedVideo.fileId,
       mediaType: uploadedVideo.mediaType,
-      url: uploadedVideo.url,
       fileName: uploadedVideo.fileName,
       size: uploadedVideo.size,
       second: await getMessageDraftMediaDuration(attachment),
@@ -194,7 +191,6 @@ export async function buildMessageDraftsFromComposerSnapshot({
     uploadedSoundMessage = {
       fileId: uploadedAudio.fileId,
       mediaType: uploadedAudio.mediaType,
-      url: uploadedAudio.url,
       fileName: audioFile.name,
       size: audioFile.size,
       second: audioSecond,

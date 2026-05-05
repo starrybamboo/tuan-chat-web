@@ -11,7 +11,7 @@ type UseMaterialMessageComposerSubmitParams = {
   inputText: string;
   imgFiles: File[];
   emojiUrls: string[];
-  emojiMetaByUrl: Record<string, { fileId?: number; width?: number; height?: number; mediaType?: string; size?: number; fileName?: string; originalUrl?: string }>;
+  emojiMetaByUrl: Record<string, { fileId?: number; width?: number; height?: number; mediaType?: string; size?: number; fileName?: string }>;
   fileAttachments: File[];
   audioFile: File | null;
   composerAnnotations: string[];

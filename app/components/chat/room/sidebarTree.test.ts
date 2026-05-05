@@ -39,40 +39,7 @@ describe("sidebarTree", () => {
     });
   });
 
-  it("normalizeSidebarTree 会过滤遗留的素材包分类", () => {
-    const tree = normalizeSidebarTree({
-      tree: {
-        schemaVersion: 2,
-        categories: [
-          {
-            categoryId: "cat:materials",
-            name: "素材包",
-            items: [
-              {
-                nodeId: "material-package:201",
-                type: "material-package",
-                targetId: 201,
-                fallbackTitle: "角色卡",
-              },
-            ],
-          },
-        ],
-      } as any,
-      roomsInSpace: [],
-      docMetas: [],
-      includeDocs: false,
-    });
-
-    expect(tree.categories).toEqual([
-      {
-        categoryId: "cat:channels",
-        name: "频道",
-        items: [],
-      },
-    ]);
-  });
-
-  it("normalizeSidebarTree 会过滤遗留的素材包节点但保留其他分类", () => {
+  it("normalizeSidebarTree 会过滤未知类型节点但保留其他分类", () => {
     const tree = normalizeSidebarTree({
       tree: {
         schemaVersion: 2,

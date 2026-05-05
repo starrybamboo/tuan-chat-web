@@ -26,29 +26,15 @@ type EntityHeaderOverrideState = {
   clearHeader: (params: { entityType: DescriptionEntityType; entityId: number }) => void;
 };
 
-const STORAGE_KEY = "tc:entityHeaderOverride:v1";
+const STORAGE_KEY = "tc:entityHeaderOverride:v2";
 const MAX_ENTRIES = 300;
 
 function canUseLocalStorage(): boolean {
   return typeof window !== "undefined" && typeof window.localStorage !== "undefined";
 }
 
-function isSpaceHeaderKey(key: string): boolean {
-  return key.startsWith("space:");
-}
-
 function buildKey(entityType: DescriptionEntityType, entityId: number): EntityHeaderOverrideKey {
   return `${entityType}:${entityId}`;
-}
-
-function sanitizeHeaders(headers: Record<string, EntityHeaderOverride>): Record<string, EntityHeaderOverride> {
-  const out: Record<string, EntityHeaderOverride> = {};
-  for (const [k, v] of Object.entries(headers)) {
-    if (isSpaceHeaderKey(k))
-      continue;
-    out[k] = v;
-  }
-  return out;
 }
 
 function tryReadFromLocalStorage(): Record<string, EntityHeaderOverride> {
@@ -64,9 +50,6 @@ function tryReadFromLocalStorage(): Record<string, EntityHeaderOverride> {
     const map: Record<string, EntityHeaderOverride> = {};
     for (const [k, v] of Object.entries(parsed)) {
       if (typeof k !== "string" || !v || typeof v !== "object")
-        continue;
-      // 迁移：space 覆盖已弃用，读取阶段直接剔除。
-      if (isSpaceHeaderKey(k))
         continue;
       const title = typeof (v as any).title === "string" ? (v as any).title : "";
       const imageUrl = typeof (v as any).imageUrl === "string" ? (v as any).imageUrl : "";
@@ -96,7 +79,7 @@ function writeToLocalStorage(headers: Record<string, EntityHeaderOverride>) {
   if (!canUseLocalStorage())
     return;
   try {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(sanitizeHeaders(headers)));
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(headers));
   }
   catch {
     // ignore
@@ -104,7 +87,7 @@ function writeToLocalStorage(headers: Record<string, EntityHeaderOverride>) {
 }
 
 function prune(headers: Record<string, EntityHeaderOverride>): Record<string, EntityHeaderOverride> {
-  const entries = Object.entries(sanitizeHeaders(headers));
+  const entries = Object.entries(headers);
   if (entries.length <= MAX_ENTRIES)
     return Object.fromEntries(entries);
   entries.sort((a, b) => (b[1]?.updatedAt ?? 0) - (a[1]?.updatedAt ?? 0));
@@ -121,7 +104,6 @@ export const useEntityHeaderOverrideStore = create<EntityHeaderOverrideState>(se
       return;
     hasHydrated = true;
     const next = prune(tryReadFromLocalStorage());
-    // 回写一次，清理本地 JSON 中历史的 space:* 覆盖键。
     writeToLocalStorage(next);
     if (Object.keys(next).length > 0) {
       set({ headers: next });

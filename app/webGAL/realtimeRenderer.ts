@@ -1752,7 +1752,7 @@ export class RealtimeRenderer {
       if (msg.messageType === 2) {
         const imageMessage = msg.extra?.imageMessage;
         if (imageMessage) {
-          const imageSourceUrl = String(imageMessage.originalUrl ?? imageMessage.url ?? "").trim();
+          const imageSourceUrl = mediaFileUrl(imageMessage.fileId, imageMessage.mediaType, "original");
           const isBackground = isImageMessageBackground(msg.annotations, imageMessage);
           if (isBackground) {
             const bgFileName = await this.uploadBackground(imageSourceUrl);
@@ -1798,13 +1798,10 @@ export class RealtimeRenderer {
       // 处理视频消息（Type 14）
       if ((msg.messageType as number) === MESSAGE_TYPE.VIDEO) {
         const messageExtra = msg.extra as ({
-          videoMessage?: { url?: string; fileName?: string };
-          url?: string;
-          fileName?: string;
+          videoMessage?: { fileId?: number; mediaType?: string; fileName?: string };
         } | undefined);
-        const videoMsg = messageExtra?.videoMessage
-          ?? (messageExtra?.url ? messageExtra : undefined);
-        const url = videoMsg?.url;
+        const videoMsg = messageExtra?.videoMessage;
+        const url = mediaFileUrl(videoMsg?.fileId, videoMsg?.mediaType, "high");
         if (!url) {
           finalizeMessageLineRange();
           return;
@@ -1825,21 +1822,18 @@ export class RealtimeRenderer {
       }
 
       // 处理音频消息（BGM 或 音效）
-      let soundMsg = msg.extra?.soundMessage;
-      if (!soundMsg && msg.messageType === 7 && (msg.extra as any)?.url) {
-        soundMsg = msg.extra as any;
-      }
+      const soundMsg = msg.extra?.soundMessage;
 
       if (soundMsg) {
-        const url = soundMsg.url;
+        const url = mediaFileUrl(soundMsg.fileId, soundMsg.mediaType, "high");
         if (!url) {
           finalizeMessageLineRange();
           return;
         }
 
         // 判断是 BGM 还是音效
-        const isMarkedBgm = msg.content.includes("[播放BGM]") || soundMsg.purpose === "bgm";
-        const isMarkedSE = msg.content.includes("[播放音效]") || soundMsg.purpose === "se";
+        const isMarkedBgm = soundMsg.purpose === "bgm";
+        const isMarkedSE = soundMsg.purpose === "se";
 
         if (isMarkedBgm) {
         // 处理 BGM

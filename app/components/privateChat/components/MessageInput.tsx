@@ -173,11 +173,10 @@ function Emoji({
 }: {
   children: React.ReactNode;
   updateEmojiUrls: (recipe: (draft: string[]) => void) => void;
-  setEmojiMetaByUrl: (url: string, meta: { fileId?: number; width?: number; height?: number; mediaType?: string; size?: number; fileName?: string; originalUrl?: string }) => void;
+  setEmojiMetaByUrl: (url: string, meta: { fileId?: number; width?: number; height?: number; mediaType?: string; size?: number; fileName?: string }) => void;
 }) {
   const onChoose = async (emoji: StickerType) => {
     const emojiUrl = mediaFileUrl(emoji?.fileId, emoji?.mediaType, "low");
-    const originalEmojiUrl = mediaFileUrl(emoji?.fileId, emoji?.mediaType, "original") || emojiUrl;
     // 添加到表情列表
     updateEmojiUrls((draft) => {
       const newUrl = emojiUrl;
@@ -193,7 +192,6 @@ function Emoji({
         mediaType: emoji.mediaType,
         size: emoji.fileSize,
         fileName: emoji.name,
-        originalUrl: originalEmojiUrl,
       });
     }
   };

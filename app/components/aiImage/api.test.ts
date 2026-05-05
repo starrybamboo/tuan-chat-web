@@ -139,7 +139,6 @@ describe("aiImage api", () => {
     });
     expect(requestBody.parameters.add_original_image).toBe(false);
     expect(requestBody.parameters.autoSmea).toBe(false);
-    expect(requestBody.parameters.legacy_uc).toBe(false);
     expect(requestBody.parameters.normalize_reference_strength_multiple).toBe(true);
     expect(requestBody.parameters.image_format).toBe("png");
     expect(requestBody.parameters.stream).toBe("msgpack");

@@ -197,6 +197,6 @@ export const MODEL_DESCRIPTIONS: Record<string, string> = {
   "nai-diffusion-3": "Balanced anime image model with classic NAI controls.",
   "nai-diffusion-furry": "Optimized for furry and kemono content.",
   "safe-diffusion": "A safer general-purpose diffusion model.",
-  "nai-diffusion-2": "NAI Diffusion V2 legacy model.",
+  "nai-diffusion-2": "NAI Diffusion V2 model.",
   "nai-diffusion": "Original NAI Diffusion model.",
 };

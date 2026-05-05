@@ -32,7 +32,6 @@ type EmojiAttachmentMeta = {
   mediaType?: string;
   size?: number;
   fileName?: string;
-  originalUrl?: string;
 };
 
 type ChatComposerState = {
@@ -118,8 +117,7 @@ export const useChatComposerStore = create<ChatComposerState>(set => ({
       && prevMeta?.height === meta.height
       && prevMeta?.mediaType === meta.mediaType
       && prevMeta?.size === meta.size
-      && prevMeta?.fileName === meta.fileName
-      && prevMeta?.originalUrl === meta.originalUrl) {
+      && prevMeta?.fileName === meta.fileName) {
       return state;
     }
     return {

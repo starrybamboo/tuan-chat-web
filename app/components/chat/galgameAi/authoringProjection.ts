@@ -53,7 +53,6 @@ export function inferGalMessagePurpose(message: Pick<Message, "messageType" | "r
     const purpose = resolveRenderedSoundMessagePurpose({
       annotations,
       payloadPurpose: extra?.soundMessage?.purpose,
-      content: message.content,
     });
     return purpose === "bgm" || purpose === "se" ? purpose : "unknown";
   }

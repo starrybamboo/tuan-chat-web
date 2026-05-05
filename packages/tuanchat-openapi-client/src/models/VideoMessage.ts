@@ -6,23 +6,15 @@ export type VideoMessage = {
     /**
      * 媒体文件 ID
      */
-    fileId?: number;
+    fileId: number;
     /**
      * 媒体类型：image/audio/video/document/other
      */
-    mediaType?: string;
+    mediaType: string;
     /**
      * 大小（字节）
      */
     size: number;
-    /**
-     * 下载地址
-     */
-    url: string;
-    /**
-     * 原图地址
-     */
-    originalUrl?: string;
     /**
      * 文件名（带后缀）
      */

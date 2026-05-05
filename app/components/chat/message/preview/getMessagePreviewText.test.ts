@@ -116,7 +116,7 @@ describe("getMessagePreviewText", () => {
     const msg = createBaseMessage({
       messageType: MESSAGE_TYPE.SOUND,
       annotations: [ANNOTATION_IDS.SE],
-      content: "[播放BGM]",
+      content: "",
       extra: { soundMessage: { fileName: "mystery.mp3", purpose: "bgm" } } as any,
     });
     expect(getMessagePreviewText(msg)).toBe("[语音] mystery.mp3");

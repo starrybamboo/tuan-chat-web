@@ -5,6 +5,7 @@ import {
   getFigurePositionFromAnnotations,
   isImageMessageBackground,
 } from "@/types/messageAnnotations";
+import { mediaFileUrl } from "@/utils/mediaUrl";
 
 import type { ChatMessageResponse } from "../../api";
 
@@ -468,12 +469,7 @@ export class PremiereExporter {
         bgUrl = (msg.webgal as any).bgUrl;
       }
       else if (isBgAnnotation) {
-        bgUrl = msg.extra?.imageMessage?.url;
-        if (!bgUrl) {
-          const match = msg.content.match(/https?:\/\/[^\s)]+/);
-          if (match)
-            bgUrl = match[0];
-        }
+        bgUrl = mediaFileUrl(msg.extra?.imageMessage?.fileId, msg.extra?.imageMessage?.mediaType, "high");
       }
 
       // Check if this is a "pure background switch" (Has BG, No Text, No Voice logic triggered yet)
