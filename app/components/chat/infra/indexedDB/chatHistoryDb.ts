@@ -3,13 +3,15 @@ import type { ChatMessageResponse } from "../../../../../api";
 const DB_NAME = "chatHistoryDB";
 const STORE_NAME = "messages";
 const ROOM_ID_INDEX = "roomId_idx";
+// v6: 旧正式环境缓存里可能仍有迁移前的媒体消息 payload，升级时丢弃本地消息缓存并以服务端历史为准。
+const DB_VERSION = 6;
 
 /**
  * 打开或创建IndexedDB，并设置好对象存储和索引
  */
 function openChatDB(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
-    const request = indexedDB.open(DB_NAME, 5);
+    const request = indexedDB.open(DB_NAME, DB_VERSION);
 
     request.onupgradeneeded = (event) => {
       const db = (event.target as IDBOpenDBRequest).result;
