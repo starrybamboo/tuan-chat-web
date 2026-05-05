@@ -345,7 +345,8 @@ describe("useChatMessageSubmit", () => {
         annotations: [ANNOTATION_IDS.BGM],
         extra: {
           soundMessage: {
-            url: "https://static.example.com/bgm.mp3",
+            fileId: 12,
+            mediaType: "audio",
             fileName: "bgm.mp3",
             size: 1024,
             second: 3,
@@ -373,7 +374,8 @@ describe("useChatMessageSubmit", () => {
       messageType: MessageType.SOUND,
       extra: {
         soundMessage: {
-          url: "https://static.example.com/bgm.mp3",
+          fileId: 12,
+          mediaType: "audio",
           fileName: "bgm.mp3",
           size: 1024,
           second: 3,
@@ -410,7 +412,7 @@ describe("useChatMessageSubmit", () => {
       roomId: 1,
       messageId: 10,
       purpose: "bgm",
-      url: "https://static.example.com/bgm.mp3",
+      url: "https://tuan.chat/media/v1/files/012/12/audio/high.webm",
     });
   });
 

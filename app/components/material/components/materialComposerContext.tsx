@@ -21,7 +21,6 @@ interface EmojiAttachmentMeta {
   mediaType?: string;
   size?: number;
   fileName?: string;
-  originalUrl?: string;
 }
 
 interface QueueFilesOptions {
@@ -105,8 +104,7 @@ function isSameEmojiMetaMap(
       && left?.height === right?.height
       && left?.mediaType === right?.mediaType
       && left?.size === right?.size
-      && left?.fileName === right?.fileName
-      && left?.originalUrl === right?.originalUrl;
+      && left?.fileName === right?.fileName;
   });
 }
 

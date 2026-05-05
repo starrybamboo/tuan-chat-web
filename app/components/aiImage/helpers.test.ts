@@ -9,9 +9,7 @@ import {
   generatedItemKey,
   getClosestValidImageSize,
   getNovelAiFreeGenerationViolation,
-  historyRowKey,
   historyRowResultMatchKey,
-  historyRowToGeneratedItem,
   mergeTagString,
   resolveEditorImageMode,
   resolveHistoryRowClickMode,
@@ -46,32 +44,12 @@ describe("aiImage helpers", () => {
     expect(first).not.toBe(second);
   });
 
-  it("falls back to dataUrl matching for legacy history rows without batch ids", () => {
+  it("uses an empty batch key when history rows do not expose batch ids", () => {
     expect(historyRowResultMatchKey({
-      dataUrl: "data:image/png;base64,legacy",
+      dataUrl: "data:image/png;base64,current",
       batchId: undefined,
       batchIndex: undefined,
-    })).toBe("data:data:image/png;base64,legacy");
-  });
-
-  it("reuses the shared history row key when legacy rows become preview items", () => {
-    const row = {
-      id: undefined,
-      dataUrl: "data:image/png;base64,legacy-row",
-      batchId: "",
-      batchIndex: 1,
-      createdAt: 42,
-      seed: 31415,
-      mode: "txt2img" as const,
-      prompt: "1girl",
-      negativePrompt: "lowres",
-      width: 832,
-      height: 1216,
-      model: "nai-diffusion-4-curated-preview",
-    };
-
-    expect(historyRowKey(row)).toBe("temp:42-31415-1");
-    expect(generatedItemKey(historyRowToGeneratedItem(row))).toBe("batch:temp:42-31415-1:1");
+    })).toBe("batch::0");
   });
 
   it("builds a director tool history row from the source history context", () => {

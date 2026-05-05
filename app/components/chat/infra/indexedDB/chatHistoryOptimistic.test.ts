@@ -32,7 +32,8 @@ describe("chatHistoryOptimistic", () => {
         position: 100,
         extra: {
           imageMessage: {
-            url: "https://example.com/a.png",
+            fileId: 42,
+            mediaType: "image",
             width: 100,
             height: 100,
           },
@@ -44,7 +45,8 @@ describe("chatHistoryOptimistic", () => {
         position: 501,
         extra: {
           imageMessage: {
-            url: "https://example.com/a.png",
+            fileId: 42,
+            mediaType: "image",
             width: 100,
             height: 100,
           },

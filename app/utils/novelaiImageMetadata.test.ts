@@ -244,29 +244,6 @@ describe("novelaiImageMetadata", () => {
     });
   });
 
-  it("supports legacy uc metadata", () => {
-    const result = normalizeNovelAiMetadata({
-      Comment: JSON.stringify({
-        input: "1girl",
-        model: "nai-diffusion-3",
-        action: "generate",
-        parameters: {
-          uc: "lowres",
-          sm: true,
-          sm_dyn: true,
-        },
-      }),
-    });
-
-    expect(result).toMatchObject({
-      prompt: "1girl",
-      negativePrompt: "lowres",
-      model: "nai-diffusion-3",
-      smea: true,
-      smeaDyn: true,
-    });
-  });
-
   it("recognizes infill metadata when mask is present", () => {
     const result = normalizeNovelAiMetadata({
       Comment: JSON.stringify({

@@ -566,7 +566,7 @@ function extractV4Characters(root: Record<string, unknown>) {
         const center = readCenter(record.center ?? record.centers);
         return {
           prompt: String(record.prompt ?? record.char_caption ?? ""),
-          negativePrompt: String(record.uc ?? record.negativePrompt ?? record.negative_prompt ?? ""),
+          negativePrompt: String(record.negativePrompt ?? record.negative_prompt ?? ""),
           centerX: center.centerX,
           centerY: center.centerY,
         } satisfies NovelAiImportedCharacterPrompt;
@@ -740,8 +740,6 @@ export function normalizeNovelAiMetadata(raw: unknown): NovelAiImportedSettings 
   const negativePrompt = stripEmptyString(readString(mergedRoot, [
     ["parameters", "negative_prompt"],
     ["negative_prompt"],
-    ["parameters", "uc"],
-    ["uc"],
     ["parameters", "v4_negative_prompt", "caption", "base_caption"],
     ["v4_negative_prompt", "caption", "base_caption"],
   ]));

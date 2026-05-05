@@ -599,13 +599,10 @@ app.whenReady().then(async () => {
 
     if (isNAI3 || isNAI4) {
       parameters.params_version = 3;
-      parameters.legacy = false;
-      parameters.legacy_v3_extend = false;
       parameters.noise_schedule = noiseSchedule;
       if (mode === "infill") {
         parameters.add_original_image = false;
         parameters.autoSmea = false;
-        parameters.legacy_uc = false;
         parameters.normalize_reference_strength_multiple = true;
         parameters.image_format = "png";
         parameters.stream = "msgpack";

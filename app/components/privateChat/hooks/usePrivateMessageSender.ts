@@ -23,7 +23,6 @@ type EmojiAttachmentMeta = {
   mediaType?: string;
   size?: number;
   fileName?: string;
-  originalUrl?: string;
 };
 
 export function usePrivateMessageSender({ webSocketUtils, userId, currentContactUserId }: UsePrivateMessageSenderProps) {
@@ -82,28 +81,24 @@ export function usePrivateMessageSender({ webSocketUtils, userId, currentContact
           const uploadedImage = await uploadUtils.uploadDualImage(imgFiles[i]);
           const { width, height, size } = await getImageSize(imgFiles[i]);
 
-          if (uploadedImage.url && uploadedImage.url !== "") {
-            const imageMessage: MessageDirectSendRequest = {
-              receiverId: currentContactUserId,
-              content: "",
-              messageType: MESSAGE_TYPE.IMG,
-              extra: buildMessageExtraForRequest(MESSAGE_TYPE.IMG, {
-                imageMessage: {
-                  fileId: uploadedImage.fileId,
-                  mediaType: uploadedImage.mediaType,
-                  size: size > 0 ? size : imgFiles[i].size,
-                  originalUrl: uploadedImage.originalUrl,
-                  url: uploadedImage.url,
-                  fileName: imgFiles[i].name || `${userId}-${Date.now()}`,
-                  width,
-                  height,
-                },
-              }),
-            };
-            const sent = await sendDirectMessageWithOptimistic(imageMessage);
-            if (!sent) {
-              throw new Error("发送图片消息失败");
-            }
+          const imageMessage: MessageDirectSendRequest = {
+            receiverId: currentContactUserId,
+            content: "",
+            messageType: MESSAGE_TYPE.IMG,
+            extra: buildMessageExtraForRequest(MESSAGE_TYPE.IMG, {
+              imageMessage: {
+                fileId: uploadedImage.fileId,
+                mediaType: uploadedImage.mediaType,
+                size: size > 0 ? size : imgFiles[i].size,
+                fileName: imgFiles[i].name || `${userId}-${Date.now()}`,
+                width,
+                height,
+              },
+            }),
+          };
+          const sent = await sendDirectMessageWithOptimistic(imageMessage);
+          if (!sent) {
+            throw new Error("发送图片消息失败");
           }
         }
         updateImgFiles([]);
@@ -128,6 +123,9 @@ export function usePrivateMessageSender({ webSocketUtils, userId, currentContact
       if (emojiUrls.length > 0) {
         for (const emojiUrl of emojiUrls) {
           const meta = emojiMetaByUrl[emojiUrl];
+          if (typeof meta?.fileId !== "number") {
+            throw new Error("表情素材缺少媒体文件 ID，请重新选择表情。");
+          }
           let width = meta?.width ?? -1;
           let height = meta?.height ?? -1;
           let size = meta?.size ?? -1;
@@ -146,13 +144,11 @@ export function usePrivateMessageSender({ webSocketUtils, userId, currentContact
             extra: buildMessageExtraForRequest(MESSAGE_TYPE.IMG, {
               imageMessage: {
                 fileId: meta?.fileId,
-                mediaType: meta?.mediaType,
+                mediaType: meta?.mediaType || "image",
                 size: size > 0 ? size : 0,
                 fileName: meta?.fileName || emojiUrl.split("/").pop() || `${userId}-${Date.now()}`,
                 width,
                 height,
-                originalUrl: meta?.originalUrl ?? emojiUrl,
-                url: emojiUrl,
               },
             }),
           };

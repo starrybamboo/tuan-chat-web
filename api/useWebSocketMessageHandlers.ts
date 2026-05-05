@@ -25,6 +25,7 @@ import { prependNotificationToCaches } from "@/components/notification/notificat
 import { getSoundMessageExtra } from "@/types/messageExtra";
 import { handleUnauthorized } from "@/utils/auth/unauthorized";
 import { formatLocalDateTime } from "@/utils/dateUtil";
+import { mediaFileUrl } from "@/utils/mediaUrl";
 import { useCallback } from "react";
 import { recoverAuthTokenFromSession } from "./authRecovery";
 import { buildCommentPageQueryKey } from "./hooks/commentQueryHooks";
@@ -146,7 +147,7 @@ export function useWebSocketMessageHandlers({
 
       if (m.messageType === MessageType.SOUND) {
         const sound = getSoundMessageExtra(m.extra);
-        const url = typeof sound?.url === "string" ? sound.url.trim() : "";
+        const url = mediaFileUrl(sound?.fileId, sound?.mediaType, "high");
         if (url && typeof m.messageId === "number") {
           const purpose = resolveAudioAutoPlayPurposeFromAnnotationTransition(previousMessage, m);
           if (purpose) {

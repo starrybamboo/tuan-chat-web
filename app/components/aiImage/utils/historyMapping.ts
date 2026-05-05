@@ -16,7 +16,7 @@ export function historyRowToGeneratedItem(row: AiImageHistoryRow): GeneratedImag
     width: row.width,
     height: row.height,
     model: row.model,
-    batchId: row.batchId || historyRowKey(row),
+    batchId: String(row.batchId || "").trim(),
     batchIndex: row.batchIndex ?? 0,
     batchSize: row.batchSize ?? 1,
     toolLabel: row.toolLabel,
@@ -71,16 +71,12 @@ export function buildDirectorToolHistoryRow(args: {
 
 export function generatedItemKey(item: Pick<GeneratedImageItem, "batchId" | "batchIndex" | "dataUrl">) {
   const batchId = String(item.batchId || "").trim();
-  if (batchId)
-    return `batch:${batchId}:${item.batchIndex}`;
-  return `data:${item.dataUrl}`;
+  return `batch:${batchId}:${item.batchIndex}`;
 }
 
 export function historyRowResultMatchKey(row: Pick<AiImageHistoryRow, "batchId" | "batchIndex" | "dataUrl">) {
   const batchId = String(row.batchId || "").trim();
-  if (batchId)
-    return `batch:${batchId}:${row.batchIndex ?? 0}`;
-  return `data:${row.dataUrl}`;
+  return `batch:${batchId}:${row.batchIndex ?? 0}`;
 }
 
 export function historyImageDragFileName(dataUrl: string, seed: number, batchIndex?: number) {

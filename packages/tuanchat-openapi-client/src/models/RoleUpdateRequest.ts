@@ -24,7 +24,7 @@ export type RoleUpdateRequest = {
     avatarId?: number;
     voiceUrl?: string | null;
     /**
-     * 角色语音媒体文件 ID
+     * 角色语音媒体文件 ID；替代 voiceUrl
      */
     voiceFileId?: number | null;
     /**

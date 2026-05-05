@@ -36,7 +36,6 @@ export function isSoundMessageMarkedAsBgm(message?: Message | null): boolean {
   return resolveRenderedSoundMessagePurpose({
     annotations: message.annotations,
     payloadPurpose: message.extra.soundMessage.purpose,
-    content: message.content,
   }) === "bgm";
 }
 

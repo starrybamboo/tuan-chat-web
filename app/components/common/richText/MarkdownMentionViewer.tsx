@@ -4,7 +4,7 @@ import { renderInlineHtmlUsingWysiwyg } from "./htmlTagWysiwyg";
 import { markdownToHtmlWithEntities, rawMarkdownToHtml } from "./markdownToHtml";
 import MentionPreview from "./MentionPreview";
 
-const MENTION_SELECTOR = "span.entity-mention[data-label][data-category], span.ql-mention-span[data-label][data-category]";
+const MENTION_SELECTOR = "span.entity-mention[data-label][data-category]";
 
 interface MarkdownMentionViewerProps {
   markdown: string;

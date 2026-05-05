@@ -47,7 +47,7 @@ export type Repository = {
      */
     image?: string;
     /**
-     * Cover media file id
+     * 仓库封面媒体文件 ID；替代 image/originalImage
      */
     coverFileId?: number;
     /**

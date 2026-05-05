@@ -99,7 +99,6 @@ export function getMessagePreviewText(message?: Message | null): string {
       const purpose = resolveRenderedSoundMessagePurpose({
         annotations: message.annotations,
         payloadPurpose: soundMessage?.purpose,
-        content: message.content,
       });
       const tag = purpose === "bgm" ? "BGM" : "语音";
       return withTag(tag, fileName);

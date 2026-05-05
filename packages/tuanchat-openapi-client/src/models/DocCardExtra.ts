@@ -20,11 +20,11 @@ export type DocCardExtra = {
      */
     imageUrl?: string;
     /**
-     * 封面媒体文件 ID
+     * 封面媒体文件 ID；替代 imageUrl
      */
     imageFileId?: number;
     /**
-     * 原始封面媒体文件 ID
+     * 原始封面媒体文件 ID；替代 originalImageUrl
      */
     originalImageFileId?: number;
     /**

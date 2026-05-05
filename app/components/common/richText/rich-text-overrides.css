@@ -248,8 +248,7 @@
 .mention-preview .preview-html p {
   margin: 0.45em 0;
 }
-.mention-preview .preview-html .entity-mention,
-.mention-preview .preview-html .ql-mention-span {
+.mention-preview .preview-html .entity-mention {
   display: inline-block;
   padding: 0 4px;
   border-radius: 4px;
@@ -258,18 +257,15 @@
   background: #eef2ff;
   color: #4338ca;
 }
-.mention-preview .preview-html .entity-mention[data-category="人物"],
-.mention-preview .preview-html .ql-mention-span[data-category="人物"] {
+.mention-preview .preview-html .entity-mention[data-category="人物"] {
   background: #fef3c7;
   color: #92400e;
 }
-.mention-preview .preview-html .entity-mention[data-category="地点"],
-.mention-preview .preview-html .ql-mention-span[data-category="地点"] {
+.mention-preview .preview-html .entity-mention[data-category="地点"] {
   background: #d1fae5;
   color: #065f46;
 }
-.mention-preview .preview-html .entity-mention[data-category="物品"],
-.mention-preview .preview-html .ql-mention-span[data-category="物品"] {
+.mention-preview .preview-html .entity-mention[data-category="物品"] {
   background: #e0f2fe;
   color: #075985;
 }

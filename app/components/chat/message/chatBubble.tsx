@@ -1250,7 +1250,8 @@ export const ChatBubble = React.memo(ChatBubbleComponent, (prevProps, nextProps)
       if (!prevExtra.imageMessage || !nextExtra.imageMessage) {
         return false;
       }
-      if (prevExtra.imageMessage.url !== nextExtra.imageMessage.url
+      if (prevExtra.imageMessage.fileId !== nextExtra.imageMessage.fileId
+        || prevExtra.imageMessage.mediaType !== nextExtra.imageMessage.mediaType
         || prevExtra.imageMessage.background !== nextExtra.imageMessage.background
         || prevExtra.imageMessage.width !== nextExtra.imageMessage.width
         || prevExtra.imageMessage.height !== nextExtra.imageMessage.height) {
@@ -1265,7 +1266,8 @@ export const ChatBubble = React.memo(ChatBubbleComponent, (prevProps, nextProps)
       else if (!prevExtra.fileMessage || !nextExtra.fileMessage) {
         return false;
       }
-      else if (prevExtra.fileMessage.url !== nextExtra.fileMessage.url) {
+      else if (prevExtra.fileMessage.fileId !== nextExtra.fileMessage.fileId
+        || prevExtra.fileMessage.mediaType !== nextExtra.fileMessage.mediaType) {
         return false;
       }
     }

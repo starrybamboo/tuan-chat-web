@@ -119,7 +119,8 @@ describe("roomMessageBatchCommit", () => {
         annotations: [ANNOTATION_IDS.BGM],
         extra: {
           soundMessage: {
-            url: "https://static.example.com/bgm.mp3",
+            fileId: 30,
+            mediaType: "audio",
             fileName: "bgm.mp3",
             second: 3,
             purpose: "bgm",
@@ -143,7 +144,8 @@ describe("roomMessageBatchCommit", () => {
       annotations: [],
       extra: {
         soundMessage: {
-          url: "https://static.example.com/bgm.mp3",
+          fileId: 30,
+          mediaType: "audio",
           fileName: "bgm.mp3",
           second: 3,
         },
