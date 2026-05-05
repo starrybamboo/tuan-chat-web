@@ -77,8 +77,8 @@ describe("roleListData", () => {
       expect.objectContaining({
         id: 7,
         name: "调查员",
-        avatar: "/media/v1/files/001/1001/image/medium.webp",
-        avatarThumb: "/media/v1/files/001/1001/image/low.webp",
+        avatar: "https://tuan.chat/media/v1/files/001/1001/image/medium.webp",
+        avatarThumb: "https://tuan.chat/media/v1/files/001/1001/image/low.webp",
       }),
     ]);
     expect(queryClient.getQueryData).toHaveBeenCalledWith(["getRoleAvatar", 55]);
