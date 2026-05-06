@@ -7,6 +7,7 @@ import type {
   BlocksuiteFrameToHostPayload,
 } from "./shared/frameProtocol";
 
+import { setBlocksuiteReportSink } from "./shared/blocksuiteReporter";
 import { isBlocksuiteDebugEnabled } from "./shared/debugFlags";
 import {
   isBlocksuiteDocMode,
@@ -113,6 +114,22 @@ export function useBlocksuiteFrameProtocol() {
       payload,
     });
   }, [instanceId]);
+
+  useEffect(() => {
+    if (typeof window === "undefined")
+      return;
+
+    setBlocksuiteReportSink((entry) => {
+      postToParent({
+        type: "report",
+        entry,
+      });
+    });
+
+    return () => {
+      setBlocksuiteReportSink(null);
+    };
+  }, [postToParent]);
 
   useEffect(() => {
     if (typeof window === "undefined")

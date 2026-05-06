@@ -1,4 +1,5 @@
 import type { DocMode } from "@blocksuite/affine/model";
+import type { BlocksuiteReportEntry } from "./blocksuiteReporter";
 
 import type { DescriptionEntityType } from "@/components/chat/infra/blocksuite/description/descriptionDocId";
 import type { BlocksuiteDocHeader } from "@/components/chat/infra/blocksuite/document/docHeader";
@@ -70,6 +71,10 @@ export type BlocksuiteFrameToHostPayload
   | {
     type: "debug-log";
     entry: unknown;
+  }
+  | {
+    type: "report";
+    entry: BlocksuiteReportEntry;
   };
 
 export type BlocksuiteFrameMessage

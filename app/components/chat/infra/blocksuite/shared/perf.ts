@@ -1,4 +1,4 @@
-import { isBlocksuiteDebugEnabled } from "./debugFlags";
+import { getBlocksuiteNoErrorCode, reportBlocksuiteError, reportBlocksuiteEvent } from "./blocksuiteReporter";
 
 type BlocksuitePerfMarkName
   = | "host-open-start"
@@ -58,12 +58,23 @@ function now() {
   return Date.now();
 }
 
-function recordDebugLog(message: string, payload?: Record<string, unknown>) {
-  try {
-    const fn = (globalThis as any).__tcBlocksuiteDebugLog as undefined | ((entry: any) => void);
-    fn?.({ source: "BlocksuitePerf", message, payload });
-  }
-  catch {
+function resolvePerfPhase(mark: BlocksuitePerfMarkName): string {
+  switch (mark) {
+    case "host-open-start":
+      return "host-open";
+    case "frame-entry-start":
+      return "frame-entry";
+    case "frame-bootstrap-start":
+    case "frame-bootstrap-ready":
+      return "frame-bootstrap";
+    case "store-create-start":
+      return "store-create";
+    case "editor-create-start":
+      return "editor-create";
+    case "render-ready":
+      return "render-ready";
+    case "open-failed":
+      return "startup-failed";
   }
 }
 
@@ -85,6 +96,20 @@ export function startBlocksuiteOpenSession(params: {
     },
   };
   owner.__tcBlocksuitePerfSessions!.set(params.instanceId, session);
+
+  reportBlocksuiteEvent({
+    instanceId: params.instanceId,
+    workspaceId: params.workspaceId,
+    docId: params.docId,
+    phase: resolvePerfPhase("host-open-start"),
+    errorCode: getBlocksuiteNoErrorCode(),
+    name: "blocksuite-open-start",
+    message: "Blocksuite editor host open started",
+    details: {
+      mark: "host-open-start",
+      frameKind: session.frameKind,
+    },
+  });
 }
 
 export function markBlocksuiteOpenSession(instanceId: string, mark: BlocksuitePerfMarkName) {
@@ -96,10 +121,25 @@ export function markBlocksuiteOpenSession(instanceId: string, mark: BlocksuitePe
   if (!session)
     return;
 
-  session.marks[mark] = now();
+  const at = now();
+  session.marks[mark] = at;
+
+  reportBlocksuiteEvent({
+    instanceId: session.instanceId,
+    workspaceId: session.workspaceId,
+    docId: session.docId,
+    phase: resolvePerfPhase(mark),
+    errorCode: getBlocksuiteNoErrorCode(),
+    name: "blocksuite-open-mark",
+    message: mark,
+    details: {
+      mark,
+      at,
+    },
+  });
 }
 
-export function failBlocksuiteOpenSession(instanceId: string, errorMessage: string) {
+export function failBlocksuiteOpenSession(instanceId: string, errorMessage: string, error?: unknown) {
   if (!instanceId)
     return;
 
@@ -109,15 +149,23 @@ export function failBlocksuiteOpenSession(instanceId: string, errorMessage: stri
     return;
 
   session.marks["open-failed"] = now();
-
-  if (isBlocksuiteDebugEnabled()) {
-    recordDebugLog("open-failed", {
-      instanceId,
-      docId: session.docId,
-      workspaceId: session.workspaceId,
-      errorMessage,
-    });
-  }
+  reportBlocksuiteError({
+    instanceId,
+    workspaceId: session.workspaceId,
+    docId: session.docId,
+    phase: resolvePerfPhase("open-failed"),
+    errorCode: "startup-failed",
+    name: "blocksuite-open-failed",
+    message: errorMessage,
+    error,
+    toast: {
+      id: `blocksuite-startup:${instanceId}`,
+      message: errorMessage,
+    },
+    details: {
+      mark: "open-failed",
+    },
+  });
 }
 
 export function finishBlocksuiteOpenSession(instanceId: string) {
@@ -161,13 +209,16 @@ export function finishBlocksuiteOpenSession(instanceId: string) {
   ];
   owner.__tcBlocksuitePerfSessions?.delete(instanceId);
 
-  if (import.meta.env.DEV) {
-    console.warn("[BlocksuitePerf]", owner.__tcBlocksuitePerfLast);
-  }
-
-  if (isBlocksuiteDebugEnabled()) {
-    recordDebugLog("open-summary", owner.__tcBlocksuitePerfLast as unknown as Record<string, unknown>);
-  }
+  reportBlocksuiteEvent({
+    instanceId: session.instanceId,
+    workspaceId: session.workspaceId,
+    docId: session.docId,
+    phase: resolvePerfPhase("render-ready"),
+    errorCode: getBlocksuiteNoErrorCode(),
+    name: "blocksuite-open-summary",
+    message: "Blocksuite editor open summary",
+    details: owner.__tcBlocksuitePerfLast as unknown as Record<string, unknown>,
+  });
 
   return owner.__tcBlocksuitePerfLast;
 }
