@@ -2,9 +2,11 @@ import type { DocMode } from "@blocksuite/affine/model";
 import type { RefObject } from "react";
 
 import { useCallback, useEffect, useRef } from "react";
+import { toast } from "react-hot-toast";
 
 import type { DescriptionEntityType } from "@/components/chat/infra/blocksuite/description/descriptionDocId";
 import type { BlocksuiteDocHeader } from "@/components/chat/infra/blocksuite/document/docHeader";
+import type { BlocksuiteReportEntry } from "@/components/chat/infra/blocksuite/shared/blocksuiteReporter";
 import type {
   BlocksuiteFrameMessage,
   BlocksuiteFrameSyncParams,
@@ -250,6 +252,27 @@ export function useBlocksuiteFrameBridge(params: UseBlocksuiteFrameBridgeParams)
       }
     };
 
+    const handleReportSideEffect = (message: Extract<BlocksuiteFrameToHostPayload, { type: "report" }>) => {
+      const entry = message.entry as BlocksuiteReportEntry | null | undefined;
+      if (!entry || typeof entry !== "object")
+        return;
+
+      if (entry.kind === "error" && entry.toast?.message) {
+        toast.error(entry.toast.message, {
+          id: entry.toast.id ?? `blocksuite:${entry.instanceId}:${entry.phase}:${entry.errorCode}`,
+        });
+      }
+
+      if (isBlocksuiteDebugEnabled()) {
+        if (entry.kind === "error") {
+          console.error("[BlocksuiteFrameReport]", entry);
+        }
+        else {
+          console.warn("[BlocksuiteFrameReport]", entry);
+        }
+      }
+    };
+
     const dispatchFrameMessage = (message: BlocksuiteFrameMessage) => {
       if (message.type === "mode" && isBlocksuiteDocMode(message.mode)) {
         const next = message.mode as DocMode;
@@ -292,6 +315,11 @@ export function useBlocksuiteFrameBridge(params: UseBlocksuiteFrameBridgeParams)
 
       if (message.type === "render-ready") {
         handleRenderReadySideEffect();
+        return;
+      }
+
+      if (message.type === "report") {
+        handleReportSideEffect(message);
         return;
       }
 
