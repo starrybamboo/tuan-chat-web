@@ -79,6 +79,7 @@ export default function Topbar() {
   const switchRef = useRef<HTMLDivElement | null>(null);
   const queryClient = useQueryClient(); // 使用 hook 获取 QueryClient 实例
   const [isBugQqOpen, setIsBugQqOpen] = useState(false);
+  const [bugReportExportStatus, setBugReportExportStatus] = useState<{ ok: boolean; message: string } | null>(null);
   const userDropdownRef = useRef<HTMLDivElement>(null);
 
   // 点击处理：如果点击发生在 switchRef 内部，则不重复触发；否则查找内部 input 并触发它
@@ -184,18 +185,43 @@ export default function Topbar() {
     window.location.reload();
   };
 
-  const handleExportBugReport = useCallback(() => {
+  const exportBugReportLog = useCallback(() => {
     const result = exportDiagnosticConsoleFile();
     if (!result.ok) {
-      toast.error(`控制台日志导出失败：${result.error}`);
+      return {
+        ok: false,
+        message: `控制台日志下载失败：${result.error}`,
+      };
+    }
+
+    return {
+      ok: true,
+      message: `已自动下载控制台日志：${result.fileName}`,
+    };
+  }, []);
+
+  const handleOpenBugReport = useCallback(() => {
+    const status = exportBugReportLog();
+    setBugReportExportStatus(status);
+    if (!status.ok) {
+      toast.error(status.message);
+    }
+    setIsBugQqOpen(true);
+  }, [exportBugReportLog]);
+
+  const handleExportBugReport = useCallback(() => {
+    const status = exportBugReportLog();
+    setBugReportExportStatus(status);
+    if (!status.ok) {
+      toast.error(status.message);
       return;
     }
 
     toast.success(
-      `已导出控制台日志：${result.fileName}。反馈时请一起附上复现步骤和截图/录屏。`,
+      `${status.message}。反馈时请一起附上复现步骤和截图/录屏。`,
       { duration: 7000 },
     );
-  }, []);
+  }, [exportBugReportLog]);
 
   const navItems = [
     { to: "/chat/discover/material", label: "聊天", icon: ChatsIcon },
@@ -265,12 +291,12 @@ export default function Topbar() {
               <div className="mx-2 border h-5 opacity-40" />
             </div>
             <div className="flex items-center gap-1">
-              <div className="tooltip tooltip-bottom" data-tip="打开 QQ 群反馈 Bug">
+              <div className="tooltip tooltip-bottom" data-tip="下载日志并打开 QQ 群反馈">
                 <motion.button
                   type="button"
-                  aria-label="Bug反馈：打开 QQ 群"
+                  aria-label="Bug反馈：下载日志并打开 QQ 群"
                   className="btn btn-error btn-sm gap-1 px-2 shadow-sm"
-                  onClick={() => setIsBugQqOpen(true)}
+                  onClick={handleOpenBugReport}
                   {...interactiveButtonMotionProps}
                 >
                   <BugBeetleIcon className="size-5" weight="fill" />
@@ -421,7 +447,7 @@ export default function Topbar() {
           <div className="flex flex-col gap-1">
             <div className="text-lg font-bold">Bug反馈（QQ）</div>
             <div className="text-sm opacity-70">
-              扫码加群后，请直接在群里反馈问题。
+              控制台日志已开始下载。扫码加群后，请直接在群里反馈问题。
             </div>
           </div>
 
@@ -436,8 +462,9 @@ export default function Topbar() {
 
           <div className="rounded-md border border-error/30 bg-error/10 p-3 text-sm leading-6">
             <span className="badge badge-error badge-sm mr-2">Bug反馈</span>
-            在群里反馈时，请说明具体复现步骤、出问题的页面或房间，并附上截图/录屏。
-            如果方便，也请先导出控制台日志文件后一并发到群里。
+            {bugReportExportStatus?.message ?? "已尝试自动下载控制台日志。"}
+            {" "}
+            在群里反馈时，请把这个日志文件一起发送，并说明具体复现步骤、出问题的页面或房间，最好附上截图/录屏。
           </div>
 
           <div className="flex flex-col sm:flex-row gap-2">
@@ -447,7 +474,7 @@ export default function Topbar() {
               onClick={handleExportBugReport}
             >
               <BugBeetleIcon className="size-5" weight="fill" />
-              导出控制台日志
+              重新下载日志
             </button>
             <button
               type="button"
