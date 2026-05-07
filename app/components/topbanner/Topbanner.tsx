@@ -265,12 +265,12 @@ export default function Topbar() {
               <div className="mx-2 border h-5 opacity-40" />
             </div>
             <div className="flex items-center gap-1">
-              <div className="tooltip tooltip-bottom" data-tip="导出控制台日志，反馈时一起发送">
+              <div className="tooltip tooltip-bottom" data-tip="打开 QQ 群反馈 Bug">
                 <motion.button
                   type="button"
-                  aria-label="Bug反馈：导出控制台日志"
+                  aria-label="Bug反馈：打开 QQ 群"
                   className="btn btn-error btn-sm gap-1 px-2 shadow-sm"
-                  onClick={handleExportBugReport}
+                  onClick={() => setIsBugQqOpen(true)}
                   {...interactiveButtonMotionProps}
                 >
                   <BugBeetleIcon className="size-5" weight="fill" />
@@ -421,7 +421,7 @@ export default function Topbar() {
           <div className="flex flex-col gap-1">
             <div className="text-lg font-bold">Bug反馈（QQ）</div>
             <div className="text-sm opacity-70">
-              扫码加群反馈 Bug（也可以用 Discord 反馈）
+              扫码加群后，请直接在群里反馈问题。
             </div>
           </div>
 
@@ -434,9 +434,28 @@ export default function Topbar() {
             />
           </div>
 
-          <div className="text-sm">
+          <div className="rounded-md border border-error/30 bg-error/10 p-3 text-sm leading-6">
             <span className="badge badge-error badge-sm mr-2">Bug反馈</span>
-            进群后请尽量附上：复现步骤、截图/录屏，以及右上角导出的控制台日志文件。
+            在群里反馈时，请说明具体复现步骤、出问题的页面或房间，并附上截图/录屏。
+            如果方便，也请先导出控制台日志文件后一并发到群里。
+          </div>
+
+          <div className="flex flex-col sm:flex-row gap-2">
+            <button
+              type="button"
+              className="btn btn-error flex-1 gap-2"
+              onClick={handleExportBugReport}
+            >
+              <BugBeetleIcon className="size-5" weight="fill" />
+              导出控制台日志
+            </button>
+            <button
+              type="button"
+              className="btn btn-ghost flex-1"
+              onClick={() => setIsBugQqOpen(false)}
+            >
+              稍后再说
+            </button>
           </div>
         </div>
       </ToastWindow>
