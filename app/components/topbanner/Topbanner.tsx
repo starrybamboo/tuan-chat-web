@@ -446,7 +446,7 @@ export default function Topbar() {
           <div className="rounded-md border border-error/30 bg-error/10 p-3 text-sm leading-6">
             <span className="badge badge-error badge-sm mr-2">Bug反馈</span>
             {bugReportExportStatus?.message ?? "已尝试自动下载控制台日志。"}
-            {" "}
+            <br />
             请加群提交日志反馈 bug，并尽量说明具体场景和复现步骤；提供截图或录屏能够加快解决 bug 的速度。
           </div>
         </div>
