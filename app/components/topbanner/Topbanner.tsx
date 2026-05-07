@@ -209,20 +209,6 @@ export default function Topbar() {
     setIsBugQqOpen(true);
   }, [exportBugReportLog]);
 
-  const handleExportBugReport = useCallback(() => {
-    const status = exportBugReportLog();
-    setBugReportExportStatus(status);
-    if (!status.ok) {
-      toast.error(status.message);
-      return;
-    }
-
-    toast.success(
-      `${status.message}。反馈时请一起附上复现步骤和截图/录屏。`,
-      { duration: 7000 },
-    );
-  }, [exportBugReportLog]);
-
   const navItems = [
     { to: "/chat/discover/material", label: "聊天", icon: ChatsIcon },
     { to: "/role", label: "角色", icon: IdentificationCardIcon },
@@ -446,9 +432,6 @@ export default function Topbar() {
         <div className="p-6 w-[92vw] max-w-md flex flex-col gap-4">
           <div className="flex flex-col gap-1">
             <div className="text-lg font-bold">Bug反馈（QQ）</div>
-            <div className="text-sm opacity-70">
-              控制台日志已开始下载。扫码加群后，请直接在群里反馈问题。
-            </div>
           </div>
 
           <div className="w-full flex justify-center">
@@ -464,25 +447,7 @@ export default function Topbar() {
             <span className="badge badge-error badge-sm mr-2">Bug反馈</span>
             {bugReportExportStatus?.message ?? "已尝试自动下载控制台日志。"}
             {" "}
-            在群里反馈时，请把这个日志文件一起发送，并说明具体复现步骤、出问题的页面或房间，最好附上截图/录屏。
-          </div>
-
-          <div className="flex flex-col sm:flex-row gap-2">
-            <button
-              type="button"
-              className="btn btn-error flex-1 gap-2"
-              onClick={handleExportBugReport}
-            >
-              <BugBeetleIcon className="size-5" weight="fill" />
-              重新下载日志
-            </button>
-            <button
-              type="button"
-              className="btn btn-ghost flex-1"
-              onClick={() => setIsBugQqOpen(false)}
-            >
-              稍后再说
-            </button>
+            请加群提交日志反馈 bug，并尽量说明具体场景和复现步骤；提供截图或录屏能够加快解决 bug 的速度。
           </div>
         </div>
       </ToastWindow>
