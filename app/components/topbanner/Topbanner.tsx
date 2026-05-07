@@ -11,7 +11,7 @@ import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponen
 import UserAvatarComponent from "@/components/common/userAvatar";
 import NotificationBell from "@/components/notification/notificationBell";
 import UpdatesToastWindow from "@/components/topbanner/updatesWindow";
-import { DiscordIcon, QQIcon, WebgalIcon } from "@/icons";
+import { QQIcon, WebgalIcon } from "@/icons";
 import { checkAuthStatus, logoutUser } from "@/utils/auth/authapi";
 import { exportDiagnosticConsoleFile } from "@/utils/diagnosticConsole";
 import { isElectronEnv } from "@/utils/isElectronEnv";
@@ -288,18 +288,6 @@ export default function Topbar() {
                   <BugBeetleIcon className="size-5" weight="fill" />
                   <span className="hidden sm:inline text-sm whitespace-nowrap">Bug反馈</span>
                 </motion.button>
-              </div>
-              <div className="tooltip tooltip-bottom" data-tip="Discord：Bug反馈">
-                <motion.a
-                  href="https://discord.gg/JbfkEqR6Wp"
-                  target="_blank"
-                  rel="noreferrer noopener"
-                  aria-label="Discord Bug反馈"
-                  className="btn btn-ghost btn-square btn-sm hover:bg-base-200 transition-colors duration-200"
-                  {...interactiveButtonMotionProps}
-                >
-                  <DiscordIcon className="size-6 opacity-80" />
-                </motion.a>
               </div>
               <div className="tooltip tooltip-bottom" data-tip="QQ：扫码反馈 Bug">
                 <motion.button
