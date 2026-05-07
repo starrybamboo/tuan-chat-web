@@ -1,7 +1,8 @@
-import { ChatsIcon, CheckCircleIcon, GearSixIcon, IdentificationCardIcon, PaintBrushBroadIcon, SignOutIcon, UserIcon } from "@phosphor-icons/react";
+import { BugBeetleIcon, ChatsIcon, CheckCircleIcon, GearSixIcon, IdentificationCardIcon, PaintBrushBroadIcon, SignOutIcon, UserIcon } from "@phosphor-icons/react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { motion, useAnimationControls } from "motion/react";
 import { lazy, Suspense, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { toast } from "react-hot-toast";
 import { Link, useLocation, useNavigate } from "react-router";
 import WebgalStarter from "@/components/chat/shared/webgal/webgalStarter";
 import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
@@ -12,6 +13,7 @@ import NotificationBell from "@/components/notification/notificationBell";
 import UpdatesToastWindow from "@/components/topbanner/updatesWindow";
 import { DiscordIcon, QQIcon, WebgalIcon } from "@/icons";
 import { checkAuthStatus, logoutUser } from "@/utils/auth/authapi";
+import { exportDiagnosticConsoleFile } from "@/utils/diagnosticConsole";
 import { isElectronEnv } from "@/utils/isElectronEnv";
 import { isDevOrTestEnvironment } from "@/utils/runtimeEnvironment";
 import { useGetUserInfoQuery } from "../../../api/hooks/UserHooks";
@@ -182,6 +184,19 @@ export default function Topbar() {
     window.location.reload();
   };
 
+  const handleExportBugReport = useCallback(() => {
+    const result = exportDiagnosticConsoleFile();
+    if (!result.ok) {
+      toast.error(`控制台日志导出失败：${result.error}`);
+      return;
+    }
+
+    toast.success(
+      `已导出控制台日志：${result.fileName}。反馈时请一起附上复现步骤和截图/录屏。`,
+      { duration: 7000 },
+    );
+  }, []);
+
   const navItems = [
     { to: "/chat/discover/material", label: "聊天", icon: ChatsIcon },
     { to: "/role", label: "角色", icon: IdentificationCardIcon },
@@ -250,7 +265,18 @@ export default function Topbar() {
               <div className="mx-2 border h-5 opacity-40" />
             </div>
             <div className="flex items-center gap-1">
-              {/* <span className="hidden sm:inline text-xs opacity-70 select-none">Bug反馈</span> */}
+              <div className="tooltip tooltip-bottom" data-tip="导出控制台日志，反馈时一起发送">
+                <motion.button
+                  type="button"
+                  aria-label="Bug反馈：导出控制台日志"
+                  className="btn btn-error btn-sm gap-1 px-2 shadow-sm"
+                  onClick={handleExportBugReport}
+                  {...interactiveButtonMotionProps}
+                >
+                  <BugBeetleIcon className="size-5" weight="fill" />
+                  <span className="hidden sm:inline text-sm whitespace-nowrap">Bug反馈</span>
+                </motion.button>
+              </div>
               <div className="tooltip tooltip-bottom" data-tip="Discord：Bug反馈">
                 <motion.a
                   href="https://discord.gg/JbfkEqR6Wp"
@@ -410,7 +436,7 @@ export default function Topbar() {
 
           <div className="text-sm">
             <span className="badge badge-error badge-sm mr-2">Bug反馈</span>
-            进群后请尽量附上：复现步骤、截图/录屏、设备与浏览器信息。
+            进群后请尽量附上：复现步骤、截图/录屏，以及右上角导出的控制台日志文件。
           </div>
         </div>
       </ToastWindow>
