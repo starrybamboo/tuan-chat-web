@@ -19,8 +19,13 @@ import { ToastWindowRenderer } from "@/components/common/toastWindow/toastWindow
 import { GlobalContextProvider } from "@/components/globalContextProvider";
 import { queryClient } from "@/queryClient";
 import { consumeAuthToast } from "@/utils/auth/unauthorized";
+import { installDiagnosticConsoleCapture } from "@/utils/diagnosticConsole";
 import { createSeoMeta, getCanonicalHref } from "@/utils/seo";
 import "./app.css";
+
+if (typeof window !== "undefined") {
+  installDiagnosticConsoleCapture();
+}
 
 // Patch customElements.define to avoid "already defined" errors from BlockSuite or other libraries during HMR/re-mounts.
 if (typeof window !== "undefined" && window.customElements) {
