@@ -277,64 +277,66 @@ jobs:
           echo "UPDATE_SERVER_PATH=${UPDATE_SERVER_PATH}" >> "$GITHUB_ENV"
           echo "使用更新发布目录：${UPDATE_SERVER_PATH}"
 
-      - name: Upload update files（SSH 私钥）
-        if: ${{ env.UPDATE_SERVER_AUTH_MODE == 'key' }}
-        uses: appleboy/scp-action@v1
-        with:
-          host: ${{ env.UPDATE_SERVER_HOST }}
-          username: ${{ env.UPDATE_SERVER_USERNAME }}
-          key: ${{ env.UPDATE_SERVER_PRIVATE_KEY }}
-          port: ${{ env.UPDATE_SERVER_PORT }}
-          source: dist-update/*
-          target: ${{ env.UPDATE_SERVER_PATH }}
-          strip_components: 1
-          overwrite: true
+      - name: 准备更新发布 SSH 客户端
+        run: |
+          set -euo pipefail
 
-      - name: Upload update files（SSH 密码）
-        if: ${{ env.UPDATE_SERVER_AUTH_MODE == 'password' }}
-        uses: appleboy/scp-action@v1
-        with:
-          host: ${{ env.UPDATE_SERVER_HOST }}
-          username: ${{ env.UPDATE_SERVER_USERNAME }}
-          password: ${{ env.UPDATE_SERVER_PASSWORD }}
-          port: ${{ env.UPDATE_SERVER_PORT }}
-          source: dist-update/*
-          target: ${{ env.UPDATE_SERVER_PATH }}
-          strip_components: 1
-          overwrite: true
+          if [[ "${UPDATE_SERVER_AUTH_MODE}" == "key" ]]; then
+            KEY_PATH="${RUNNER_TEMP}/update-server-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}.key"
+            umask 077
+            printf '%s\n' "${UPDATE_SERVER_PRIVATE_KEY}" > "$KEY_PATH"
+            chmod 600 "$KEY_PATH"
+            echo "UPDATE_SERVER_KEY_PATH=${KEY_PATH}" >> "$GITHUB_ENV"
+          elif ! command -v sshpass >/dev/null 2>&1; then
+            sudo apt-get update
+            sudo apt-get install -y sshpass
+          fi
 
-      - name: Verify remote files（SSH 私钥）
-        if: ${{ env.UPDATE_SERVER_AUTH_MODE == 'key' }}
-        uses: appleboy/ssh-action@v1
-        with:
-          host: ${{ env.UPDATE_SERVER_HOST }}
-          username: ${{ env.UPDATE_SERVER_USERNAME }}
-          key: ${{ env.UPDATE_SERVER_PRIVATE_KEY }}
-          port: ${{ env.UPDATE_SERVER_PORT }}
-          script: |
-            set -euo pipefail
-            TARGET="${{ env.UPDATE_SERVER_PATH }}"
+      - name: 上传并校验更新文件
+        env:
+          UPDATE_SERVER_STAGING: /tmp/tuan-chat-web-updates-${{ github.run_id }}-${{ github.run_attempt }}
+        run: |
+          set -euo pipefail
 
-            test -f "${TARGET}/latest.yml"
-            find "${TARGET}" -maxdepth 1 -type f -name "*.exe" | grep -q .
-            find "${TARGET}" -maxdepth 1 -type f -name "*.exe.blockmap" | grep -q .
+          SSH_DEST="${UPDATE_SERVER_USERNAME}@${UPDATE_SERVER_HOST}"
+          SSH_CMD=(
+            ssh
+            -o StrictHostKeyChecking=no
+            -o UserKnownHostsFile=/dev/null
+            -o ServerAliveInterval=30
+            -o ServerAliveCountMax=6
+            -o ConnectTimeout=10
+            -p "${UPDATE_SERVER_PORT}"
+          )
 
-            echo "✅ 增量更新文件已发布到 ${TARGET}"
+          if [[ "${UPDATE_SERVER_AUTH_MODE}" == "key" ]]; then
+            SSH_CMD+=(-i "${UPDATE_SERVER_KEY_PATH}")
+          else
+            SSH_CMD=(sshpass -p "${UPDATE_SERVER_PASSWORD}" "${SSH_CMD[@]}")
+          fi
 
-      - name: Verify remote files（SSH 密码）
-        if: ${{ env.UPDATE_SERVER_AUTH_MODE == 'password' }}
-        uses: appleboy/ssh-action@v1
-        with:
-          host: ${{ env.UPDATE_SERVER_HOST }}
-          username: ${{ env.UPDATE_SERVER_USERNAME }}
-          password: ${{ env.UPDATE_SERVER_PASSWORD }}
-          port: ${{ env.UPDATE_SERVER_PORT }}
-          script: |
-            set -euo pipefail
-            TARGET="${{ env.UPDATE_SERVER_PATH }}"
+          "${SSH_CMD[@]}" "${SSH_DEST}" "rm -rf '${UPDATE_SERVER_STAGING}' && mkdir -p '${UPDATE_SERVER_STAGING}' '${UPDATE_SERVER_PATH}'"
 
-            test -f "${TARGET}/latest.yml"
-            find "${TARGET}" -maxdepth 1 -type f -name "*.exe" | grep -q .
-            find "${TARGET}" -maxdepth 1 -type f -name "*.exe.blockmap" | grep -q .
+          # 直接流式传输产物，避免 scp-action 上传大 exe 时长时间卡住。
+          tar -C dist-update -czf - . |
+            "${SSH_CMD[@]}" "${SSH_DEST}" "tar -xzf - -C '${UPDATE_SERVER_STAGING}'"
 
-            echo "✅ 增量更新文件已发布到 ${TARGET}"
+          "${SSH_CMD[@]}" "${SSH_DEST}" "bash -s -- '${UPDATE_SERVER_STAGING}' '${UPDATE_SERVER_PATH}'" <<'REMOTE'
+          set -euo pipefail
+
+          STAGING="$1"
+          TARGET="$2"
+
+          test -f "${STAGING}/latest.yml"
+          find "${STAGING}" -maxdepth 1 -type f -name "*.exe" | grep -q .
+          find "${STAGING}" -maxdepth 1 -type f -name "*.exe.blockmap" | grep -q .
+
+          rsync -a --delete-delay "${STAGING}/" "${TARGET}/"
+
+          test -f "${TARGET}/latest.yml"
+          find "${TARGET}" -maxdepth 1 -type f -name "*.exe" | grep -q .
+          find "${TARGET}" -maxdepth 1 -type f -name "*.exe.blockmap" | grep -q .
+
+          rm -rf "${STAGING}"
+          echo "✅ 增量更新文件已发布到 ${TARGET}"
+          REMOTE
