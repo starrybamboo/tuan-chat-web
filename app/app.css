@@ -12,10 +12,10 @@
 @source "../electron/**/*.jsx";
 @source "../electron/**/*.ts";
 @source "../electron/**/*.tsx";
-@plugin "daisyui" {
+@plugin "../node_modules/daisyui/index.js" {
   themes: false;
 }
-@plugin "daisyui/theme" {
+@plugin "../node_modules/daisyui/theme/index.js" {
   name: "light";
   default: false;
   prefersdark: false;
@@ -30,7 +30,7 @@
   --noise: 0;
 }
 
-@plugin "daisyui/theme" {
+@plugin "../node_modules/daisyui/theme/index.js" {
   name: "dark";
   default: true;
   prefersdark: true;

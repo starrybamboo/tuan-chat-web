@@ -13,7 +13,6 @@ import { pipeline } from "node:stream/promises";
 import { fetch as undiciFetch } from "undici";
 import { defineConfig } from "vite";
 import babel from "vite-plugin-babel";
-import tsconfigPaths from "vite-tsconfig-paths";
 
 const REACT_COMPILER_EXCLUDED_SOURCE_SUFFIXES = [
   "/app/components/chat/infra/blocksuite/spec/tcMentionElement.client.ts",
@@ -337,7 +336,6 @@ export default defineConfig(() => {
       }),
 
       reactRouter(),
-      tsconfigPaths(),
       babel({
         filter: (id) => {
           const normalizedId = id.split("?")[0].replace(/\\/g, "/");
@@ -371,6 +369,8 @@ export default defineConfig(() => {
     ],
     base: "/",
     resolve: {
+      tsconfigPaths: true,
+
       // Keep compatibility with upstream playground sources that import "*.js" while
       // the actual file may be TypeScript (e.g. setup.js -> setup.ts).
       // This mirrors the upstream playground Vite config.
@@ -628,10 +628,6 @@ export default defineConfig(() => {
         "safe-buffer",
         "pngjs",
       ],
-    },
-
-    esbuild: {
-      target: "es2022",
     },
 
     optimizeDeps: {
