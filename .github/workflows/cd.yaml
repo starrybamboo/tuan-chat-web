@@ -33,11 +33,6 @@ jobs:
       DEPLOY_TARGET: ${{ (github.event_name == 'workflow_dispatch' && inputs.deploy_env == 'test' && '/www/wwwroot/tuan-chat-web-test') || (github.event_name == 'workflow_dispatch' && inputs.deploy_env == 'production' && '/www/wwwroot/tuan-chat-web') || (github.ref_name == 'dev' && '/www/wwwroot/tuan-chat-web-test') || '/www/wwwroot/tuan-chat-web' }}
       BUILD_MODE: ${{ (github.event_name == 'workflow_dispatch' && inputs.deploy_env == 'test' && 'test') || (github.event_name == 'workflow_dispatch' && inputs.deploy_env == 'production' && 'production') || (github.ref_name == 'dev' && 'test') || 'production' }}
       PUBLIC_HOST: ${{ (github.event_name == 'workflow_dispatch' && inputs.deploy_env == 'test' && 'test.tuan.chat') || (github.event_name == 'workflow_dispatch' && inputs.deploy_env == 'production' && 'tuan.chat') || (github.ref_name == 'dev' && 'test.tuan.chat') || 'tuan.chat' }}
-      # 优先读取当前前端部署专用的 SERVER_* / SSH_*，并兼容 Electron 发布沿用的 UPDATE_SERVER_*。
-      DEPLOY_SERVER_HOST: ${{ secrets.SERVER_HOST || secrets.SSH_HOST || secrets.UPDATE_SERVER_HOST || '38.14.195.6' }}
-      DEPLOY_SERVER_PORT: ${{ secrets.SERVER_PORT || secrets.SSH_PORT || secrets.UPDATE_SERVER_PORT || '22' }}
-      DEPLOY_SERVER_USERNAME: ${{ secrets.SERVER_USERNAME || secrets.SSH_USERNAME || secrets.UPDATE_SERVER_USERNAME }}
-      DEPLOY_SERVER_PASSWORD: ${{ secrets.SERVER_PASSWORD || secrets.SSH_PASSWORD || secrets.UPDATE_SERVER_PASSWORD }}
       # 前端走同源反代，避免浏览器为跨域鉴权请求触发 CORS preflight。
       BACKEND_API_BASE_URL: /api
       BACKEND_WS_URL: /ws
@@ -54,9 +49,61 @@ jobs:
           cache: pnpm
           cache-dependency-path: pnpm-lock.yaml
 
-      - name: 校验部署凭据与端口
+      - name: 解析部署连接信息
+        env:
+          SERVER_HOST_SECRET: ${{ secrets.SERVER_HOST }}
+          SERVER_PORT_SECRET: ${{ secrets.SERVER_PORT }}
+          SERVER_USERNAME_SECRET: ${{ secrets.SERVER_USERNAME }}
+          SERVER_PASSWORD_SECRET: ${{ secrets.SERVER_PASSWORD }}
+          SSH_HOST_SECRET: ${{ secrets.SSH_HOST }}
+          SSH_PORT_SECRET: ${{ secrets.SSH_PORT }}
+          SSH_USERNAME_SECRET: ${{ secrets.SSH_USERNAME }}
+          SSH_PASSWORD_SECRET: ${{ secrets.SSH_PASSWORD }}
+          UPDATE_SERVER_HOST_SECRET: ${{ secrets.UPDATE_SERVER_HOST }}
+          UPDATE_SERVER_PORT_SECRET: ${{ secrets.UPDATE_SERVER_PORT }}
+          UPDATE_SERVER_USERNAME_SECRET: ${{ secrets.UPDATE_SERVER_USERNAME }}
+          UPDATE_SERVER_PASSWORD_SECRET: ${{ secrets.UPDATE_SERVER_PASSWORD }}
         run: |
           set -euo pipefail
+
+          # 避免 GitHub 表达式在“Secret 已存在但为空”时提前短路，统一在 shell 中显式做回退。
+          DEPLOY_SERVER_HOST="${SERVER_HOST_SECRET:-}"
+          if [[ -z "${DEPLOY_SERVER_HOST}" ]]; then
+            DEPLOY_SERVER_HOST="${SSH_HOST_SECRET:-}"
+          fi
+          if [[ -z "${DEPLOY_SERVER_HOST}" ]]; then
+            DEPLOY_SERVER_HOST="${UPDATE_SERVER_HOST_SECRET:-}"
+          fi
+          if [[ -z "${DEPLOY_SERVER_HOST}" ]]; then
+            DEPLOY_SERVER_HOST="38.14.195.6"
+          fi
+
+          DEPLOY_SERVER_PORT="${SERVER_PORT_SECRET:-}"
+          if [[ -z "${DEPLOY_SERVER_PORT}" ]]; then
+            DEPLOY_SERVER_PORT="${SSH_PORT_SECRET:-}"
+          fi
+          if [[ -z "${DEPLOY_SERVER_PORT}" ]]; then
+            DEPLOY_SERVER_PORT="${UPDATE_SERVER_PORT_SECRET:-}"
+          fi
+          if [[ -z "${DEPLOY_SERVER_PORT}" ]]; then
+            DEPLOY_SERVER_PORT="22"
+          fi
+
+          DEPLOY_SERVER_USERNAME="${SERVER_USERNAME_SECRET:-}"
+          if [[ -z "${DEPLOY_SERVER_USERNAME}" ]]; then
+            DEPLOY_SERVER_USERNAME="${SSH_USERNAME_SECRET:-}"
+          fi
+          if [[ -z "${DEPLOY_SERVER_USERNAME}" ]]; then
+            DEPLOY_SERVER_USERNAME="${UPDATE_SERVER_USERNAME_SECRET:-}"
+          fi
+
+          DEPLOY_SERVER_PASSWORD="${SERVER_PASSWORD_SECRET:-}"
+          if [[ -z "${DEPLOY_SERVER_PASSWORD}" ]]; then
+            DEPLOY_SERVER_PASSWORD="${SSH_PASSWORD_SECRET:-}"
+          fi
+          if [[ -z "${DEPLOY_SERVER_PASSWORD}" ]]; then
+            DEPLOY_SERVER_PASSWORD="${UPDATE_SERVER_PASSWORD_SECRET:-}"
+          fi
 
           test -n "${DEPLOY_SERVER_HOST}" || { echo "缺少部署主机：请配置 SERVER_HOST / SSH_HOST / UPDATE_SERVER_HOST"; exit 1; }
           test -n "${DEPLOY_SERVER_PORT}" || { echo "缺少部署端口：请配置 SERVER_PORT / SSH_PORT / UPDATE_SERVER_PORT"; exit 1; }
@@ -64,6 +111,12 @@ jobs:
           test -n "${DEPLOY_SERVER_PASSWORD}" || { echo "缺少部署密码：请配置 SERVER_PASSWORD / SSH_PASSWORD / UPDATE_SERVER_PASSWORD"; exit 1; }
 
           echo "::add-mask::${DEPLOY_SERVER_PASSWORD}"
+          {
+            echo "DEPLOY_SERVER_HOST=${DEPLOY_SERVER_HOST}"
+            echo "DEPLOY_SERVER_PORT=${DEPLOY_SERVER_PORT}"
+            echo "DEPLOY_SERVER_USERNAME=${DEPLOY_SERVER_USERNAME}"
+            echo "DEPLOY_SERVER_PASSWORD=${DEPLOY_SERVER_PASSWORD}"
+          } >> "$GITHUB_ENV"
           echo "部署连接：${DEPLOY_SERVER_HOST}:${DEPLOY_SERVER_PORT} -> ${DEPLOY_TARGET}"
 
       - name: 预检部署服务器 TCP 连通性
