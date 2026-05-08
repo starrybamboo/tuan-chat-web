@@ -206,453 +206,271 @@ jobs:
           VITE_ENABLE_REACT_SCAN: ${{ env.BUILD_MODE == 'test' && 'true' || 'false' }}
         run: pnpm build --mode $BUILD_MODE
 
-      - name: 上传构建产物到服务器临时目录（SSH 私钥）
-        if: ${{ env.DEPLOY_SERVER_AUTH_MODE == 'key' }}
-        uses: appleboy/scp-action@v1
-        with:
-          host: ${{ env.DEPLOY_SERVER_HOST }}
-          username: ${{ env.DEPLOY_SERVER_USERNAME }}
-          key: ${{ env.DEPLOY_SERVER_PRIVATE_KEY }}
-          port: ${{ env.DEPLOY_SERVER_PORT }}
-          source: build/client/**
-          target: /tmp/tuan-chat-web-release-${{ github.run_id }}-${{ github.run_attempt }}
-          overwrite: true
-          strip_components: 2
+      - name: 准备部署 SSH 客户端
+        run: |
+          set -euo pipefail
 
-      - name: 上传构建产物到服务器临时目录（SSH 密码）
-        if: ${{ env.DEPLOY_SERVER_AUTH_MODE == 'password' }}
-        uses: appleboy/scp-action@v1
-        with:
-          host: ${{ env.DEPLOY_SERVER_HOST }}
-          username: ${{ env.DEPLOY_SERVER_USERNAME }}
-          password: ${{ env.DEPLOY_SERVER_PASSWORD }}
-          port: ${{ env.DEPLOY_SERVER_PORT }}
-          source: build/client/**
-          target: /tmp/tuan-chat-web-release-${{ github.run_id }}-${{ github.run_attempt }}
-          overwrite: true
-          strip_components: 2
+          if [[ "${DEPLOY_SERVER_AUTH_MODE}" == "key" ]]; then
+            KEY_PATH="${RUNNER_TEMP}/deploy-server-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}.key"
+            umask 077
+            printf '%s\n' "${DEPLOY_SERVER_PRIVATE_KEY}" > "$KEY_PATH"
+            chmod 600 "$KEY_PATH"
+            echo "DEPLOY_SERVER_KEY_PATH=${KEY_PATH}" >> "$GITHUB_ENV"
+          elif ! command -v sshpass >/dev/null 2>&1; then
+            sudo apt-get update
+            sudo apt-get install -y sshpass
+          fi
 
-      - name: 发布到站点目录并校验（SSH 私钥）
-        if: ${{ env.DEPLOY_SERVER_AUTH_MODE == 'key' }}
-        uses: appleboy/ssh-action@v1
-        with:
-          host: ${{ env.DEPLOY_SERVER_HOST }}
-          username: ${{ env.DEPLOY_SERVER_USERNAME }}
-          key: ${{ env.DEPLOY_SERVER_PRIVATE_KEY }}
-          port: ${{ env.DEPLOY_SERVER_PORT }}
-          script: |
-            set -euo pipefail
-            TARGET="${{ env.DEPLOY_TARGET }}"
-            STAGING="/tmp/tuan-chat-web-release-${{ github.run_id }}-${{ github.run_attempt }}"
+      - name: 上传构建产物到服务器临时目录
+        env:
+          DEPLOY_STAGING: /tmp/tuan-chat-web-release-${{ github.run_id }}-${{ github.run_attempt }}
+        run: |
+          set -euo pipefail
 
-            # 先校验临时目录，避免坏包覆盖线上目录。
-            test -f "$STAGING/index.html"
-            test -d "$STAGING/assets"
+          SSH_DEST="${DEPLOY_SERVER_USERNAME}@${DEPLOY_SERVER_HOST}"
+          SSH_CMD=(
+            ssh
+            -o StrictHostKeyChecking=no
+            -o UserKnownHostsFile=/dev/null
+            -o ServerAliveInterval=30
+            -o ServerAliveCountMax=6
+            -o ConnectTimeout=10
+            -p "${DEPLOY_SERVER_PORT}"
+          )
 
-            mkdir -p "$TARGET"
+          if [[ "${DEPLOY_SERVER_AUTH_MODE}" == "key" ]]; then
+            SSH_CMD+=(-i "${DEPLOY_SERVER_KEY_PATH}")
+          else
+            SSH_CMD=(sshpass -p "${DEPLOY_SERVER_PASSWORD}" "${SSH_CMD[@]}")
+          fi
 
-            # 以新包为准进行同步，保留系统目录与 Electron 更新目录。
-            rsync -a --delete-delay \
-              --exclude '.well-known' \
-              --exclude '.user.ini' \
-              --exclude 'updates' \
-              "$STAGING"/ "$TARGET"/
+          "${SSH_CMD[@]}" "${SSH_DEST}" "rm -rf '${DEPLOY_STAGING}' && mkdir -p '${DEPLOY_STAGING}'"
 
-            test -f "$TARGET/index.html"
-            test -d "$TARGET/assets"
+          # 直接通过 tar 流上传，绕开 scp-action 在跨境链路上长时间卡死的问题。
+          tar -C build/client -czf - . |
+            "${SSH_CMD[@]}" "${SSH_DEST}" "tar -xzf - -C '${DEPLOY_STAGING}'"
 
-            ASSET_FILE_COUNT="$(find "$TARGET/assets" -type f | wc -l)"
-            if [[ "${ASSET_FILE_COUNT}" -le 0 ]]; then
-              echo "部署校验失败：assets 目录为空" >&2
-              exit 1
-            fi
+          STAGING_ASSET_COUNT="$("${SSH_CMD[@]}" "${SSH_DEST}" "test -f '${DEPLOY_STAGING}/index.html' && test -d '${DEPLOY_STAGING}/assets' && find '${DEPLOY_STAGING}/assets' -type f | wc -l")"
+          echo "暂存目录校验通过：${DEPLOY_STAGING}，assets 文件数=${STAGING_ASSET_COUNT}"
 
-            CACHE_INSTALLER="$STAGING/install-nginx-cache.sh"
-            cat > "$CACHE_INSTALLER" <<'BASH'
-            #!/usr/bin/env bash
-            set -euo pipefail
+      - name: 发布到站点目录并校验
+        env:
+          DEPLOY_STAGING: /tmp/tuan-chat-web-release-${{ github.run_id }}-${{ github.run_attempt }}
+        run: |
+          set -euo pipefail
 
-            PUBLIC_HOST="${PUBLIC_HOST:?}"
-            SNIPPET="/www/server/panel/vhost/snippets/tuan-chat-web-static-cache-locations.conf"
-            OLD_GLOBAL_CONFS=(
-              "/www/server/panel/vhost/nginx/tuan-chat-web-static-cache.conf"
-              "/etc/nginx/conf.d/tuan-chat-web-static-cache.conf"
-            )
-            INCLUDE_LINE="include ${SNIPPET};"
-            MARKER_BEGIN="# BEGIN tuan-chat-web static cache include"
-            MARKER_END="# END tuan-chat-web static cache include"
-            BACKUP_DIR="$(mktemp -d)"
+          SSH_DEST="${DEPLOY_SERVER_USERNAME}@${DEPLOY_SERVER_HOST}"
+          SSH_CMD=(
+            ssh
+            -o StrictHostKeyChecking=no
+            -o UserKnownHostsFile=/dev/null
+            -o ServerAliveInterval=30
+            -o ServerAliveCountMax=6
+            -o ConnectTimeout=10
+            -p "${DEPLOY_SERVER_PORT}"
+          )
 
-            restore_backups() {
-              shopt -s nullglob
-              for backup in "$BACKUP_DIR"/vhost-*.bak; do
-                local target
-                target="$(cat "${backup}.path")"
-                cp -p "$backup" "$target"
-              done
-              for backup in "$BACKUP_DIR"/old-global-*.bak; do
-                local target
-                target="$(cat "${backup}.path")"
-                cp -p "$backup" "$target"
-              done
-            }
+          if [[ "${DEPLOY_SERVER_AUTH_MODE}" == "key" ]]; then
+            SSH_CMD+=(-i "${DEPLOY_SERVER_KEY_PATH}")
+          else
+            SSH_CMD=(sshpass -p "${DEPLOY_SERVER_PASSWORD}" "${SSH_CMD[@]}")
+          fi
 
-            trap 'rm -rf "$BACKUP_DIR"' EXIT
+          "${SSH_CMD[@]}" "${SSH_DEST}" "bash -s -- '${DEPLOY_TARGET}' '${DEPLOY_STAGING}' '${PUBLIC_HOST}'" <<'REMOTE'
+          set -euo pipefail
 
-            has_server_name() {
-              local conf="$1"
-              awk -v host="$PUBLIC_HOST" '
-                /^[[:space:]]*server_name[[:space:]]/ {
-                  line = $0
-                  sub(/[[:space:]]*#.*/, "", line)
-                  sub(/;.*/, "", line)
-                  count = split(line, parts, /[[:space:]]+/)
-                  for (i = 2; i <= count; i++) {
-                    if (parts[i] == host) {
-                      found = 1
-                    }
-                  }
-                }
-                END { exit found ? 0 : 1 }
-              ' "$conf"
-            }
+          TARGET="$1"
+          STAGING="$2"
+          PUBLIC_HOST="$3"
 
-            mkdir -p "$(dirname "$SNIPPET")"
-            cat > "$SNIPPET" <<'NGINX'
-            # Managed by tuan-chat-web CD. Include this file inside the site server block.
-            add_header Cache-Control "no-cache" always;
+          # 先校验临时目录，避免坏包覆盖线上目录。
+          test -f "$STAGING/index.html"
+          test -d "$STAGING/assets"
 
-            location ^~ /assets/ {
-                expires off;
-                add_header Cache-Control "public, max-age=31536000, immutable" always;
-                try_files $uri =404;
-            }
+          mkdir -p "$TARGET"
 
-            location = /index.html {
-                expires off;
-                add_header Cache-Control "no-cache" always;
-            }
+          # 以新包为准进行同步，保留系统目录与 Electron 更新目录。
+          rsync -a --delete-delay \
+            --exclude '.well-known' \
+            --exclude '.user.ini' \
+            --exclude 'updates' \
+            "$STAGING"/ "$TARGET"/
 
-            location = /__spa-fallback.html {
-                expires off;
-                add_header Cache-Control "no-cache" always;
-            }
-            NGINX
+          test -f "$TARGET/index.html"
+          test -d "$TARGET/assets"
 
-            old_global_index=0
-            for old_global_conf in "${OLD_GLOBAL_CONFS[@]}"; do
-              if [[ -f "$old_global_conf" ]]; then
-                backup="$BACKUP_DIR/old-global-${old_global_index}.bak"
-                cp -p "$old_global_conf" "$backup"
-                printf '%s' "$old_global_conf" > "${backup}.path"
-                rm -f "$old_global_conf"
-                old_global_index=$((old_global_index + 1))
-              fi
-            done
+          ASSET_FILE_COUNT="$(find "$TARGET/assets" -type f | wc -l)"
+          if [[ "${ASSET_FILE_COUNT}" -le 0 ]]; then
+            echo "部署校验失败：assets 目录为空" >&2
+            exit 1
+          fi
 
-            patched_count=0
+          CACHE_INSTALLER="$STAGING/install-nginx-cache.sh"
+          cat > "$CACHE_INSTALLER" <<'BASH'
+          #!/usr/bin/env bash
+          set -euo pipefail
+
+          PUBLIC_HOST="${PUBLIC_HOST:?}"
+          SNIPPET="/www/server/panel/vhost/snippets/tuan-chat-web-static-cache-locations.conf"
+          OLD_GLOBAL_CONFS=(
+            "/www/server/panel/vhost/nginx/tuan-chat-web-static-cache.conf"
+            "/etc/nginx/conf.d/tuan-chat-web-static-cache.conf"
+          )
+          INCLUDE_LINE="include ${SNIPPET};"
+          MARKER_BEGIN="# BEGIN tuan-chat-web static cache include"
+          MARKER_END="# END tuan-chat-web static cache include"
+          BACKUP_DIR="$(mktemp -d)"
+
+          restore_backups() {
             shopt -s nullglob
-            for conf in /www/server/panel/vhost/nginx/*.conf /etc/nginx/conf.d/*.conf; do
-              if ! has_server_name "$conf"; then
-                continue
-              fi
-
-              backup="$BACKUP_DIR/vhost-${patched_count}.bak"
-              cp -p "$conf" "$backup"
-              printf '%s' "$conf" > "${backup}.path"
-
-              awk \
-                -v host="$PUBLIC_HOST" \
-                -v begin="$MARKER_BEGIN" \
-                -v include_line="$INCLUDE_LINE" \
-                -v end="$MARKER_END" '
-                function has_server_name(line, host, parts, count, i) {
-                  sub(/[[:space:]]*#.*/, "", line)
-                  sub(/;.*/, "", line)
-                  count = split(line, parts, /[[:space:]]+/)
-                  for (i = 2; i <= count; i++) {
-                    if (parts[i] == host) {
-                      return 1
-                    }
-                  }
-                  return 0
-                }
-                index($0, begin) > 0 { skipping = 1; next }
-                index($0, end) > 0 { skipping = 0; next }
-                skipping { next }
-                {
-                  print
-                  if ($0 ~ "^[[:space:]]*server_name[[:space:]]" && has_server_name($0, host)) {
-                    print "    " begin
-                    print "    " include_line
-                    print "    " end
-                  }
-                }
-              ' "$conf" > "${conf}.tmp"
-              mv "${conf}.tmp" "$conf"
-              patched_count=$((patched_count + 1))
+            for backup in "$BACKUP_DIR"/vhost-*.bak; do
+              local target
+              target="$(cat "${backup}.path")"
+              cp -p "$backup" "$target"
             done
-
-            if [[ "$patched_count" -le 0 ]]; then
-              echo "未找到 server_name=${PUBLIC_HOST} 的 Nginx vhost 配置，无法安装缓存策略。" >&2
-              restore_backups
-              exit 1
-            fi
-
-            if ! nginx -t; then
-              echo "Nginx 配置校验失败，已回滚缓存策略变更。" >&2
-              restore_backups
-              nginx -t || true
-              exit 1
-            fi
-
-            if ! nginx -T 2>/dev/null | grep -Fq "$SNIPPET"; then
-              echo "Nginx 配置未加载缓存片段：$SNIPPET" >&2
-              restore_backups
-              nginx -t || true
-              exit 1
-            fi
-
-            if command -v systemctl >/dev/null 2>&1 && systemctl is-active --quiet nginx; then
-              systemctl reload nginx
-            else
-              nginx -s reload
-            fi
-
-            echo "✅ Nginx 缓存策略已更新：host=${PUBLIC_HOST}, snippet=${SNIPPET}, patched=${patched_count}"
-            BASH
-            sed -i 's/^            //' "$CACHE_INSTALLER"
-            chmod +x "$CACHE_INSTALLER"
-
-            if [[ "$(id -u)" == "0" ]]; then
-              PUBLIC_HOST="${{ env.PUBLIC_HOST }}" "$CACHE_INSTALLER"
-            elif command -v sudo >/dev/null 2>&1 && sudo -n true >/dev/null 2>&1; then
-              sudo env PUBLIC_HOST="${{ env.PUBLIC_HOST }}" "$CACHE_INSTALLER"
-            else
-              echo "当前部署账号无 root/sudo 权限，无法更新 Nginx Cache-Control；为避免继续发布错误缓存头，本次部署失败。" >&2
-              exit 1
-            fi
-
-            rm -rf "$STAGING"
-            echo "✅ 部署校验通过：index.html 存在，assets 文件数=${ASSET_FILE_COUNT}"
-
-      - name: 发布到站点目录并校验（SSH 密码）
-        if: ${{ env.DEPLOY_SERVER_AUTH_MODE == 'password' }}
-        uses: appleboy/ssh-action@v1
-        with:
-          host: ${{ env.DEPLOY_SERVER_HOST }}
-          username: ${{ env.DEPLOY_SERVER_USERNAME }}
-          password: ${{ env.DEPLOY_SERVER_PASSWORD }}
-          port: ${{ env.DEPLOY_SERVER_PORT }}
-          script: |
-            set -euo pipefail
-            TARGET="${{ env.DEPLOY_TARGET }}"
-            STAGING="/tmp/tuan-chat-web-release-${{ github.run_id }}-${{ github.run_attempt }}"
-
-            # 先校验临时目录，避免坏包覆盖线上目录。
-            test -f "$STAGING/index.html"
-            test -d "$STAGING/assets"
-
-            mkdir -p "$TARGET"
-
-            # 以新包为准进行同步，保留系统目录与 Electron 更新目录。
-            rsync -a --delete-delay \
-              --exclude '.well-known' \
-              --exclude '.user.ini' \
-              --exclude 'updates' \
-              "$STAGING"/ "$TARGET"/
-
-            test -f "$TARGET/index.html"
-            test -d "$TARGET/assets"
-
-            ASSET_FILE_COUNT="$(find "$TARGET/assets" -type f | wc -l)"
-            if [[ "${ASSET_FILE_COUNT}" -le 0 ]]; then
-              echo "部署校验失败：assets 目录为空" >&2
-              exit 1
-            fi
-
-            CACHE_INSTALLER="$STAGING/install-nginx-cache.sh"
-            cat > "$CACHE_INSTALLER" <<'BASH'
-            #!/usr/bin/env bash
-            set -euo pipefail
-
-            PUBLIC_HOST="${PUBLIC_HOST:?}"
-            SNIPPET="/www/server/panel/vhost/snippets/tuan-chat-web-static-cache-locations.conf"
-            OLD_GLOBAL_CONFS=(
-              "/www/server/panel/vhost/nginx/tuan-chat-web-static-cache.conf"
-              "/etc/nginx/conf.d/tuan-chat-web-static-cache.conf"
-            )
-            INCLUDE_LINE="include ${SNIPPET};"
-            MARKER_BEGIN="# BEGIN tuan-chat-web static cache include"
-            MARKER_END="# END tuan-chat-web static cache include"
-            BACKUP_DIR="$(mktemp -d)"
-
-            restore_backups() {
-              shopt -s nullglob
-              for backup in "$BACKUP_DIR"/vhost-*.bak; do
-                local target
-                target="$(cat "${backup}.path")"
-                cp -p "$backup" "$target"
-              done
-              for backup in "$BACKUP_DIR"/old-global-*.bak; do
-                local target
-                target="$(cat "${backup}.path")"
-                cp -p "$backup" "$target"
-              done
-            }
-
-            trap 'rm -rf "$BACKUP_DIR"' EXIT
-
-            has_server_name() {
-              local conf="$1"
-              awk -v host="$PUBLIC_HOST" '
-                /^[[:space:]]*server_name[[:space:]]/ {
-                  line = $0
-                  sub(/[[:space:]]*#.*/, "", line)
-                  sub(/;.*/, "", line)
-                  count = split(line, parts, /[[:space:]]+/)
-                  for (i = 2; i <= count; i++) {
-                    if (parts[i] == host) {
-                      found = 1
-                    }
-                  }
-                }
-                END { exit found ? 0 : 1 }
-              ' "$conf"
-            }
-
-            mkdir -p "$(dirname "$SNIPPET")"
-            cat > "$SNIPPET" <<'NGINX'
-            # Managed by tuan-chat-web CD. Include this file inside the site server block.
-            add_header Cache-Control "no-cache" always;
-
-            location ^~ /assets/ {
-                expires off;
-                add_header Cache-Control "public, max-age=31536000, immutable" always;
-                try_files $uri =404;
-            }
-
-            location = /index.html {
-                expires off;
-                add_header Cache-Control "no-cache" always;
-            }
-
-            location = /__spa-fallback.html {
-                expires off;
-                add_header Cache-Control "no-cache" always;
-            }
-            NGINX
-
-            old_global_index=0
-            for old_global_conf in "${OLD_GLOBAL_CONFS[@]}"; do
-              if [[ -f "$old_global_conf" ]]; then
-                backup="$BACKUP_DIR/old-global-${old_global_index}.bak"
-                cp -p "$old_global_conf" "$backup"
-                printf '%s' "$old_global_conf" > "${backup}.path"
-                rm -f "$old_global_conf"
-                old_global_index=$((old_global_index + 1))
-              fi
+            for backup in "$BACKUP_DIR"/old-global-*.bak; do
+              local target
+              target="$(cat "${backup}.path")"
+              cp -p "$backup" "$target"
             done
+          }
 
-            patched_count=0
-            shopt -s nullglob
-            for conf in /www/server/panel/vhost/nginx/*.conf /etc/nginx/conf.d/*.conf; do
-              if ! has_server_name "$conf"; then
-                continue
-              fi
+          trap 'rm -rf "$BACKUP_DIR"' EXIT
 
-              backup="$BACKUP_DIR/vhost-${patched_count}.bak"
-              cp -p "$conf" "$backup"
-              printf '%s' "$conf" > "${backup}.path"
-
-              awk \
-                -v host="$PUBLIC_HOST" \
-                -v begin="$MARKER_BEGIN" \
-                -v include_line="$INCLUDE_LINE" \
-                -v end="$MARKER_END" '
-                function has_server_name(line, host, parts, count, i) {
-                  sub(/[[:space:]]*#.*/, "", line)
-                  sub(/;.*/, "", line)
-                  count = split(line, parts, /[[:space:]]+/)
-                  for (i = 2; i <= count; i++) {
-                    if (parts[i] == host) {
-                      return 1
-                    }
-                  }
-                  return 0
-                }
-                index($0, begin) > 0 { skipping = 1; next }
-                index($0, end) > 0 { skipping = 0; next }
-                skipping { next }
-                {
-                  print
-                  if ($0 ~ "^[[:space:]]*server_name[[:space:]]" && has_server_name($0, host)) {
-                    print "    " begin
-                    print "    " include_line
-                    print "    " end
+          has_server_name() {
+            local conf="$1"
+            awk -v host="$PUBLIC_HOST" '
+              /^[[:space:]]*server_name[[:space:]]/ {
+                line = $0
+                sub(/[[:space:]]*#.*/, "", line)
+                sub(/;.*/, "", line)
+                count = split(line, parts, /[[:space:]]+/)
+                for (i = 2; i <= count; i++) {
+                  if (parts[i] == host) {
+                    found = 1
                   }
                 }
-              ' "$conf" > "${conf}.tmp"
-              mv "${conf}.tmp" "$conf"
-              patched_count=$((patched_count + 1))
-            done
+              }
+              END { exit found ? 0 : 1 }
+            ' "$conf"
+          }
 
-            if [[ "$patched_count" -le 0 ]]; then
-              echo "未找到 server_name=${PUBLIC_HOST} 的 Nginx vhost 配置，无法安装缓存策略。" >&2
-              restore_backups
-              exit 1
+          mkdir -p "$(dirname "$SNIPPET")"
+          cat > "$SNIPPET" <<'NGINX'
+          # Managed by tuan-chat-web CD. Include this file inside the site server block.
+          add_header Cache-Control "no-cache" always;
+
+          location ^~ /assets/ {
+              expires off;
+              add_header Cache-Control "public, max-age=31536000, immutable" always;
+              try_files $uri =404;
+          }
+
+          location = /index.html {
+              expires off;
+              add_header Cache-Control "no-cache" always;
+          }
+
+          location = /__spa-fallback.html {
+              expires off;
+              add_header Cache-Control "no-cache" always;
+          }
+          NGINX
+
+          old_global_index=0
+          for old_global_conf in "${OLD_GLOBAL_CONFS[@]}"; do
+            if [[ -f "$old_global_conf" ]]; then
+              backup="$BACKUP_DIR/old-global-${old_global_index}.bak"
+              cp -p "$old_global_conf" "$backup"
+              printf '%s' "$old_global_conf" > "${backup}.path"
+              rm -f "$old_global_conf"
+              old_global_index=$((old_global_index + 1))
+            fi
+          done
+
+          patched_count=0
+          shopt -s nullglob
+          for conf in /www/server/panel/vhost/nginx/*.conf /etc/nginx/conf.d/*.conf; do
+            if ! has_server_name "$conf"; then
+              continue
             fi
 
-            if ! nginx -t; then
-              echo "Nginx 配置校验失败，已回滚缓存策略变更。" >&2
-              restore_backups
-              nginx -t || true
-              exit 1
-            fi
+            backup="$BACKUP_DIR/vhost-${patched_count}.bak"
+            cp -p "$conf" "$backup"
+            printf '%s' "$conf" > "${backup}.path"
 
-            if ! nginx -T 2>/dev/null | grep -Fq "$SNIPPET"; then
-              echo "Nginx 配置未加载缓存片段：$SNIPPET" >&2
-              restore_backups
-              nginx -t || true
-              exit 1
-            fi
+            awk \
+              -v host="$PUBLIC_HOST" \
+              -v begin="$MARKER_BEGIN" \
+              -v include_line="$INCLUDE_LINE" \
+              -v end="$MARKER_END" '
+              function has_server_name(line, host, parts, count, i) {
+                sub(/[[:space:]]*#.*/, "", line)
+                sub(/;.*/, "", line)
+                count = split(line, parts, /[[:space:]]+/)
+                for (i = 2; i <= count; i++) {
+                  if (parts[i] == host) {
+                    return 1
+                  }
+                }
+                return 0
+              }
+              index($0, begin) > 0 { skipping = 1; next }
+              index($0, end) > 0 { skipping = 0; next }
+              skipping { next }
+              {
+                print
+                if ($0 ~ "^[[:space:]]*server_name[[:space:]]" && has_server_name($0, host)) {
+                  print "    " begin
+                  print "    " include_line
+                  print "    " end
+                }
+              }
+            ' "$conf" > "${conf}.tmp"
+            mv "${conf}.tmp" "$conf"
+            patched_count=$((patched_count + 1))
+          done
 
-            if command -v systemctl >/dev/null 2>&1 && systemctl is-active --quiet nginx; then
-              systemctl reload nginx
-            else
-              nginx -s reload
-            fi
+          if [[ "$patched_count" -le 0 ]]; then
+            echo "未找到 server_name=${PUBLIC_HOST} 的 Nginx vhost 配置，无法安装缓存策略。" >&2
+            restore_backups
+            exit 1
+          fi
 
-            echo "✅ Nginx 缓存策略已更新：host=${PUBLIC_HOST}, snippet=${SNIPPET}, patched=${patched_count}"
-            BASH
-            sed -i 's/^            //' "$CACHE_INSTALLER"
-            chmod +x "$CACHE_INSTALLER"
+          if ! nginx -t; then
+            echo "Nginx 配置校验失败，已回滚缓存策略变更。" >&2
+            restore_backups
+            nginx -t || true
+            exit 1
+          fi
 
-            if [[ "$(id -u)" == "0" ]]; then
-              PUBLIC_HOST="${{ env.PUBLIC_HOST }}" "$CACHE_INSTALLER"
-            elif command -v sudo >/dev/null 2>&1 && sudo -n true >/dev/null 2>&1; then
-              sudo env PUBLIC_HOST="${{ env.PUBLIC_HOST }}" "$CACHE_INSTALLER"
-            else
-              echo "当前部署账号无 root/sudo 权限，无法更新 Nginx Cache-Control；为避免继续发布错误缓存头，本次部署失败。" >&2
-              exit 1
-            fi
+          if ! nginx -T 2>/dev/null | grep -Fq "$SNIPPET"; then
+            echo "Nginx 配置未加载缓存片段：$SNIPPET" >&2
+            restore_backups
+            nginx -t || true
+            exit 1
+          fi
 
-            rm -rf "$STAGING"
-            echo "✅ 部署校验通过：index.html 存在，assets 文件数=${ASSET_FILE_COUNT}"
+          if command -v systemctl >/dev/null 2>&1 && systemctl is-active --quiet nginx; then
+            systemctl reload nginx
+          else
+            nginx -s reload
+          fi
 
-#        uses: burnett01/rsync-deployments@7.0.2 # 使用专门的 rsync action
-#        with:
-#          # rsync 的参数开关
-#          # -a: 归档模式，保持文件权限、所有者等信息
-#          # -v: 详细模式，显示传输过程
-#          # -z: 压缩传输
-#          # --delete: 删除目标目录中源目录没有的文件，保持完全同步
-#
-#          # 源路径和目标路径
-#          path: ./build/client/ # ԴĿ¼
-#          remote_path: /www/wwwroot/tuan-chat-web-test # 目标目录
-#
-#          # SSH 连接信息
-#          remote_host: 38.14.195.6
-#          remote_user: ${{ secrets.SSH_USERNAME }}
-#          remote_key: ${{ secrets.SSH_PRIVATE_KEY }}
+          echo "✅ Nginx 缓存策略已更新：host=${PUBLIC_HOST}, snippet=${SNIPPET}, patched=${patched_count}"
+          BASH
+          sed -i 's/^          //' "$CACHE_INSTALLER"
+          chmod +x "$CACHE_INSTALLER"
+
+          if [[ "$(id -u)" == "0" ]]; then
+            PUBLIC_HOST="${PUBLIC_HOST}" "$CACHE_INSTALLER"
+          elif command -v sudo >/dev/null 2>&1 && sudo -n true >/dev/null 2>&1; then
+            sudo env PUBLIC_HOST="${PUBLIC_HOST}" "$CACHE_INSTALLER"
+          else
+            echo "当前部署账号无 root/sudo 权限，无法更新 Nginx Cache-Control；为避免继续发布错误缓存头，本次部署失败。" >&2
+            exit 1
+          fi
+
+          rm -rf "$STAGING"
+          echo "✅ 部署校验通过：index.html 存在，assets 文件数=${ASSET_FILE_COUNT}"
+          REMOTE
