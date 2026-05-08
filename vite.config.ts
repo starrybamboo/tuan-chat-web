@@ -1,9 +1,9 @@
 import type { Plugin } from "vite";
 
 import * as babelCore from "@babel/core";
-import { reactRouter } from "@react-router/dev/vite";
 import tailwindcss from "@tailwindcss/vite";
 import { vanillaExtractPlugin } from "@vanilla-extract/vite-plugin";
+import react from "@vitejs/plugin-react";
 import { Buffer } from "node:buffer";
 import { existsSync, realpathSync } from "node:fs";
 import { resolve } from "node:path";
@@ -335,7 +335,7 @@ export default defineConfig(() => {
         unstable_mode: "transform",
       }),
 
-      reactRouter(),
+      react(),
       babel({
         filter: (id) => {
           const normalizedId = id.split("?")[0].replace(/\\/g, "/");
@@ -385,7 +385,7 @@ export default defineConfig(() => {
         "react/compiler-runtime",
         "react/jsx-runtime",
         "react/jsx-dev-runtime",
-        "react-router",
+        "@tanstack/react-router",
         "zustand",
 
         // Ensure BlockSuite/Yjs are singletons. Multiple module instances can
@@ -409,6 +409,10 @@ export default defineConfig(() => {
         "@lit/react",
       ],
       alias: [
+        {
+          find: /^react-router$/,
+          replacement: resolve(__dirname, "app/router/reactRouterCompat.tsx"),
+        },
         // BlockSuite packages export TypeScript sources (`./src/*.ts`) by default.
         // In Vite dev this can lead to:
         // - decorators not being applied (custom elements not defined) -> "Illegal constructor"
@@ -565,6 +569,7 @@ export default defineConfig(() => {
     cacheDir: "node_modules/.vite-tuan-chat-web",
 
     build: {
+      outDir: "build/client",
       rollupOptions: {
         output: {
           manualChunks: splitVendorChunk,
@@ -645,8 +650,9 @@ export default defineConfig(() => {
         "react/jsx-runtime",
         "react/jsx-dev-runtime",
 
-        // Ensure React Router runtime is pre-bundled with the same React instance.
-        "react-router",
+        // Ensure TanStack Router runtime is pre-bundled with the same React instance.
+        "@tanstack/react-router",
+        "@tanstack/router-devtools",
         "zustand",
 
         // Pixi has a very large module graph; without pre-bundling it can trigger
