@@ -66,44 +66,59 @@ jobs:
         run: |
           set -euo pipefail
 
-          # 避免 GitHub 表达式在“Secret 已存在但为空”时提前短路，统一在 shell 中显式做回退。
-          DEPLOY_SERVER_HOST="${SERVER_HOST_SECRET:-}"
-          if [[ -z "${DEPLOY_SERVER_HOST}" ]]; then
-            DEPLOY_SERVER_HOST="${SSH_HOST_SECRET:-}"
-          fi
-          if [[ -z "${DEPLOY_SERVER_HOST}" ]]; then
-            DEPLOY_SERVER_HOST="${UPDATE_SERVER_HOST_SECRET:-}"
-          fi
-          if [[ -z "${DEPLOY_SERVER_HOST}" ]]; then
-            DEPLOY_SERVER_HOST="38.14.195.6"
-          fi
+          trim_secret() {
+            local value="$1"
+            value="${value//$'\r'/}"
+            value="${value//$'\n'/}"
+            value="${value#"${value%%[![:space:]]*}"}"
+            value="${value%"${value##*[![:space:]]}"}"
+            printf '%s' "$value"
+          }
 
-          DEPLOY_SERVER_PORT="${SERVER_PORT_SECRET:-}"
-          if [[ -z "${DEPLOY_SERVER_PORT}" ]]; then
-            DEPLOY_SERVER_PORT="${SSH_PORT_SECRET:-}"
-          fi
-          if [[ -z "${DEPLOY_SERVER_PORT}" ]]; then
-            DEPLOY_SERVER_PORT="${UPDATE_SERVER_PORT_SECRET:-}"
-          fi
-          if [[ -z "${DEPLOY_SERVER_PORT}" ]]; then
-            DEPLOY_SERVER_PORT="22"
-          fi
+          pick_first_non_blank() {
+            local raw trimmed
+            for raw in "$@"; do
+              trimmed="$(trim_secret "$raw")"
+              if [[ -n "$trimmed" ]]; then
+                printf '%s' "$trimmed"
+                return 0
+              fi
+            done
+            return 1
+          }
 
-          DEPLOY_SERVER_USERNAME="${SERVER_USERNAME_SECRET:-}"
-          if [[ -z "${DEPLOY_SERVER_USERNAME}" ]]; then
-            DEPLOY_SERVER_USERNAME="${SSH_USERNAME_SECRET:-}"
-          fi
-          if [[ -z "${DEPLOY_SERVER_USERNAME}" ]]; then
-            DEPLOY_SERVER_USERNAME="${UPDATE_SERVER_USERNAME_SECRET:-}"
-          fi
+          # 避免 GitHub Expression 在 secret 为空、纯空白或带换行时提前短路，统一在 shell 中显式回退。
+          DEPLOY_SERVER_HOST="$(
+            pick_first_non_blank \
+              "${SERVER_HOST_SECRET:-}" \
+              "${SSH_HOST_SECRET:-}" \
+              "${UPDATE_SERVER_HOST_SECRET:-}" \
+              "38.14.195.6"
+          )"
 
-          DEPLOY_SERVER_PASSWORD="${SERVER_PASSWORD_SECRET:-}"
-          if [[ -z "${DEPLOY_SERVER_PASSWORD}" ]]; then
-            DEPLOY_SERVER_PASSWORD="${SSH_PASSWORD_SECRET:-}"
-          fi
-          if [[ -z "${DEPLOY_SERVER_PASSWORD}" ]]; then
-            DEPLOY_SERVER_PASSWORD="${UPDATE_SERVER_PASSWORD_SECRET:-}"
-          fi
+          DEPLOY_SERVER_PORT="$(
+            pick_first_non_blank \
+              "${SERVER_PORT_SECRET:-}" \
+              "${SSH_PORT_SECRET:-}" \
+              "${UPDATE_SERVER_PORT_SECRET:-}" \
+              "22"
+          )"
+
+          DEPLOY_SERVER_USERNAME="$(
+            pick_first_non_blank \
+              "${SERVER_USERNAME_SECRET:-}" \
+              "${SSH_USERNAME_SECRET:-}" \
+              "${UPDATE_SERVER_USERNAME_SECRET:-}" \
+              || true
+          )"
+
+          DEPLOY_SERVER_PASSWORD="$(
+            pick_first_non_blank \
+              "${SERVER_PASSWORD_SECRET:-}" \
+              "${SSH_PASSWORD_SECRET:-}" \
+              "${UPDATE_SERVER_PASSWORD_SECRET:-}" \
+              || true
+          )"
 
           test -n "${DEPLOY_SERVER_HOST}" || { echo "缺少部署主机：请配置 SERVER_HOST / SSH_HOST / UPDATE_SERVER_HOST"; exit 1; }
           test -n "${DEPLOY_SERVER_PORT}" || { echo "缺少部署端口：请配置 SERVER_PORT / SSH_PORT / UPDATE_SERVER_PORT"; exit 1; }
@@ -370,4 +385,3 @@ jobs:
 #          remote_host: 38.14.195.6
 #          remote_user: ${{ secrets.SSH_USERNAME }}
 #          remote_key: ${{ secrets.SSH_PRIVATE_KEY }}
-
