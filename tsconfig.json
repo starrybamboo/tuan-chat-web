@@ -9,6 +9,7 @@
     "moduleResolution": "bundler",
     "paths": {
       "*": ["./*"],
+      "react-router": ["./app/router/reactRouterCompat.tsx"],
       "@/*": ["./app/*"],
       "@tuanchat/domain": ["./packages/tuanchat-domain/src/index.ts"],
       "@tuanchat/domain/*": ["./packages/tuanchat-domain/src/*"],

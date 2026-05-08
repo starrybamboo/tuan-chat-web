@@ -11,7 +11,7 @@ process.chdir(projectRoot);
 
 const args = process.argv.slice(2);
 const hasOpen = args.some(arg => arg === "--open" || arg.startsWith("--open="));
-const finalArgs = ["dev"];
+const finalArgs = [];
 
 if (!hasOpen)
   finalArgs.push("--open");
@@ -36,11 +36,11 @@ if (args.includes("--force"))
   removeDirIfExists(isolatedCacheDir);
 
 const bin = process.platform === "win32"
-  ? join(projectRoot, "node_modules", ".bin", "react-router.cmd")
-  : join(projectRoot, "node_modules", ".bin", "react-router");
+  ? join(projectRoot, "node_modules", ".bin", "vite.cmd")
+  : join(projectRoot, "node_modules", ".bin", "vite");
 
 const binExists = existsSync(bin);
-const child = spawn(binExists ? bin : "react-router", finalArgs, {
+const child = spawn(binExists ? bin : "vite", finalArgs, {
   stdio: "inherit",
   // Windows 下直接 spawn .cmd 可能抛 EINVAL，这里统一走 shell。
   shell: process.platform === "win32" || !binExists,
