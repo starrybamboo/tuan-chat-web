@@ -13,7 +13,7 @@ import { resolveCommandMessageVisibility } from "@/components/common/dicer/comma
 import { buildDicerReplyContent, selectWeightedCopywritingSuffix } from "@/components/common/dicer/dicerReplyPreparation";
 import { syncOptimisticReplyMessageIds } from "@/components/common/dicer/optimisticReplyMessageLink";
 import { getCachedDicerRoleAbility, setCachedDicerRoleAbility } from "@/components/common/dicer/roleAbilityCache";
-import { buildRuntimeRoleValuesByRoleId, mergeRuntimeRoleValuesIntoAbility } from "@/components/common/dicer/runtimeAbilityBridge";
+import { buildRuntimeStateValues, mergeRuntimeRoleValuesIntoAbility } from "@/components/common/dicer/runtimeAbilityBridge";
 import UTILS from "@/components/common/dicer/utils/utils";
 import { buildMessageExtraForRequest } from "@/types/messageDraft";
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
@@ -569,10 +569,12 @@ export default function useCommandExecutor(roleId: number, ruleId: number, roomC
       for (const [mentionedRoleId, ability] of mentionedRoleEntries) {
         mentionedRoles.set(mentionedRoleId, ability);
       }
-      const runtimeRoleValuesByRoleId = buildRuntimeRoleValuesByRoleId(
+      const runtimeStateValues = buildRuntimeStateValues(
         roomContext.chatHistory?.messages,
         Object.fromEntries(mentionedRoleEntries),
       );
+      const runtimeRoomValues = runtimeStateValues.room;
+      const runtimeRoleValuesByRoleId = runtimeStateValues.rolesByRoleId;
 
       // 初始化 Space dicerData 缓存
       let spaceExtra: Record<string, any> = {};
@@ -612,9 +614,15 @@ export default function useCommandExecutor(roleId: number, ruleId: number, roomC
       };
 
       const getRoleAbilityList = (roleId: number): RoleAbility => {
-        const ability = mergeRuntimeRoleValuesIntoAbility(
+        const roleRuntimeMergedAbility = mergeRuntimeRoleValuesIntoAbility(
           mentionedRoles.get(roleId),
           runtimeRoleValuesByRoleId[roleId],
+        );
+        // 房间级状态变量作为共享兜底注入，避免覆盖角色自身或角色运行态变量。
+        const ability = mergeRuntimeRoleValuesIntoAbility(
+          roleRuntimeMergedAbility,
+          runtimeRoomValues,
+          { overrideExisting: false },
         );
         ability.roleId = ability.roleId ?? roleId;
         ability.ruleId = ability.ruleId ?? ruleId;
