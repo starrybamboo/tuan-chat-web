@@ -2,6 +2,7 @@ import bundledCoreJsUrl from "@ffmpeg/core?url";
 import bundledCoreWasmUrl from "@ffmpeg/core/wasm?url";
 import bundledWorkerUrl from "@ffmpeg/ffmpeg/worker?worker&url";
 
+import { copyBytesToBlobPart } from "@/utils/blobParts";
 import { resolvePersistentFfmpegAssetBlobUrl } from "@/utils/ffmpegAssetCache";
 import {
   getFfmpegCoreBaseUrlCandidates,
@@ -423,7 +424,7 @@ async function runVideoTranscodeOnce(params: {
       throw new TypeError("FFmpeg 输出数据类型异常");
     }
 
-    const outBlob = new Blob([outData], { type: "video/webm" });
+    const outBlob = new Blob([copyBytesToBlobPart(outData)], { type: "video/webm" });
     return new File([outBlob], outputName, { type: "video/webm" });
   }
   finally {

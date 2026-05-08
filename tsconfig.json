@@ -4,11 +4,11 @@
     "jsx": "react-jsx",
     "lib": ["DOM", "DOM.Iterable", "ES2022", "ESNext"],
     "useDefineForClassFields": false,
-    "baseUrl": ".",
     "rootDirs": [".", "./.react-router/types"],
     "module": "ES2022",
     "moduleResolution": "bundler",
     "paths": {
+      "*": ["./*"],
       "@/*": ["./app/*"],
       "@tuanchat/domain": ["./packages/tuanchat-domain/src/index.ts"],
       "@tuanchat/domain/*": ["./packages/tuanchat-domain/src/*"],
@@ -18,7 +18,7 @@
       "@tuanchat/query/*": ["./packages/tuanchat-query/src/*"]
     },
     "resolveJsonModule": true,
-    "types": ["node", "vite/client", "jest"],
+    "types": ["node", "vite/client", "vitest/globals"],
     "strict": true,
     "noEmit": true,
     "esModuleInterop": true,

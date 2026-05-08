@@ -13,6 +13,26 @@ export default defineConfig({
         replacement: path.resolve(__dirname, "./packages/tuanchat-openapi-client/src/$1"),
       },
       {
+        find: /^@tuanchat\/query$/,
+        replacement: path.resolve(__dirname, "./packages/tuanchat-query/src/index.ts"),
+      },
+      {
+        find: /^@tuanchat\/query\/(.*)$/,
+        replacement: path.resolve(__dirname, "./packages/tuanchat-query/src/$1"),
+      },
+      {
+        find: /^api$/,
+        replacement: path.resolve(__dirname, "./api/index.ts"),
+      },
+      {
+        find: /^api\/(.*)$/,
+        replacement: path.resolve(__dirname, "./api/$1"),
+      },
+      {
+        find: /^app\/(.*)$/,
+        replacement: path.resolve(__dirname, "./app/$1"),
+      },
+      {
         find: /^@\//,
         replacement: `${path.resolve(__dirname, "./app")}/`,
       },
@@ -28,5 +48,10 @@ export default defineConfig({
     minThreads: 1,
     maxThreads: 1,
     testTimeout: 30_000,
+    server: {
+      deps: {
+        inline: [/^@blocksuite\//, /[\\/]node_modules[\\/]@blocksuite[\\/]/],
+      },
+    },
   },
 });

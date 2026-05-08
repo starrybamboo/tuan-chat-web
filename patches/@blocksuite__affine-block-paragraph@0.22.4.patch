@@ -1,0 +1,19 @@
+diff --git a/package.json b/package.json
+index 14b01d80a1b147d4233f741b10a5000ebe543cfc..9bd2265933b76dda30e28143c32ab705deacf193 100644
+--- a/package.json
++++ b/package.json
+@@ -31,10 +31,10 @@
+     "zod": "^3.23.8"
+   },
+   "exports": {
+-    ".": "./src/index.ts",
+-    "./turbo-painter": "./src/turbo/paragraph-painter.worker.ts",
+-    "./store": "./src/store.ts",
+-    "./view": "./src/view.ts"
++    ".": "./dist/index.js",
++    "./turbo-painter": "./dist/turbo/paragraph-painter.worker.js",
++    "./store": "./dist/store.js",
++    "./view": "./dist/view.js"
+   },
+   "files": [
+     "src",

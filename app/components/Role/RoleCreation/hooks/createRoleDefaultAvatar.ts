@@ -3,6 +3,7 @@ import type { RoleAvatar } from "api";
 
 import { tuanchat } from "@/../api/instance";
 import { ROLE_DEFAULT_AVATAR_URL } from "@/constants/defaultAvatar";
+import { copyBytesToBlobPart } from "@/utils/blobParts";
 import { uploadMediaFile } from "@/utils/mediaUpload";
 import { seedRoleAvatarQueryCaches } from "api/hooks/RoleAndAvatarHooks";
 
@@ -66,7 +67,7 @@ async function createCanvasDefaultAvatarFile(): Promise<File | null> {
 
 async function createFallbackDefaultAvatarFile(): Promise<File> {
   const bytes = bytesFromBase64(FALLBACK_DEFAULT_AVATAR_PNG_BASE64);
-  return new File([bytes], "role-default-avatar.png", { type: "image/png" });
+  return new File([copyBytesToBlobPart(bytes)], "role-default-avatar.png", { type: "image/png" });
 }
 
 async function fetchDefaultAvatarFile(): Promise<File | null> {

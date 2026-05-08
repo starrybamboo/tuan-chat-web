@@ -1,0 +1,17 @@
+diff --git a/package.json b/package.json
+index fbe36f57f49ad4441ff35c914774433163b81fba..7d32dee8647e148a37b13885152f6cc365b2e18d 100644
+--- a/package.json
++++ b/package.json
+@@ -40,9 +40,9 @@
+     "zod": "^3.23.8"
+   },
+   "exports": {
+-    ".": "./src/index.ts",
+-    "./view": "./src/view.ts",
+-    "./store": "./src/store.ts"
++    ".": "./dist/index.js",
++    "./view": "./dist/view.js",
++    "./store": "./dist/store.js"
+   },
+   "files": [
+     "src",

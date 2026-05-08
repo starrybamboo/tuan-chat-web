@@ -3,6 +3,7 @@ import bundledCoreWasmUrl from "@ffmpeg/core/wasm?url";
 import bundledWorkerUrl from "@ffmpeg/ffmpeg/worker?worker&url";
 
 import { isAudioUploadDebugEnabled } from "@/utils/audioDebugFlags";
+import { copyBytesToBlobPart } from "@/utils/blobParts";
 import { resolvePersistentFfmpegAssetBlobUrl } from "@/utils/ffmpegAssetCache";
 import {
   getFfmpegCoreBaseUrlCandidates,
@@ -410,7 +411,7 @@ export async function transcodeAudioFileToOpusOrThrow(inputFile: File, options: 
         throw new TypeError("FFmpeg 输出数据类型异常");
 
       const outBytes: Uint8Array = outData;
-      const outBlob = new Blob([outBytes], { type: "audio/webm" });
+      const outBlob = new Blob([copyBytesToBlobPart(outBytes)], { type: "audio/webm" });
       const outName = ensureOpusWebmFileName(inputFile.name);
       const outFile = new File([outBlob], outName, { type: "audio/webm" });
       if (debugEnabled)

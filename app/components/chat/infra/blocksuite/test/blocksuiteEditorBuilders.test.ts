@@ -1,4 +1,3 @@
-import { DocTitleViewExtension } from "@blocksuite/affine/fragments/doc-title/view";
 import { Subject } from "rxjs";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import * as Y from "yjs";
@@ -38,6 +37,99 @@ import {
 vi.mock("../manager/view", () => ({
   getEdgelessSpecs: () => [],
   getPageSpecs: () => [],
+}));
+
+vi.mock("../editors/extensions/embed/embedIframeNoCredentiallessElements", () => ({
+  ensureEmbedIframeNoCredentiallessElementsDefined: vi.fn(),
+}));
+
+vi.mock("@blocksuite/affine/fragments/doc-title/view", () => ({
+  DocTitleViewExtension: { name: "affine-doc-title-fragment" },
+}));
+
+vi.mock("@blocksuite/affine-shared/adapters", () => ({
+  ImageProxyService: Symbol("ImageProxyService"),
+}));
+
+vi.mock("@blocksuite/affine-shared/consts", () => ({
+  REFERENCE_NODE: "#",
+}));
+
+vi.mock("@blocksuite/affine-shared/utils", () => ({
+  isFuzzyMatch: (value: string, query: string) => value.toLowerCase().includes(query.toLowerCase()),
+}));
+
+vi.mock("@blocksuite/affine-shared/services", () => {
+  class MockDocDisplayMetaService {
+    std: any;
+    titleMap = new Map();
+    disposables: Array<unknown> = [];
+
+    constructor(std: any) {
+      this.std = std;
+    }
+  }
+
+  return {
+    DocDisplayMetaProvider: Symbol("DocDisplayMetaProvider"),
+    DocDisplayMetaService: MockDocDisplayMetaService,
+    EmbedIframeConfigExtension: (config: unknown) => ({ kind: "embed-iframe-config", config }),
+    EmbedOptionProvider: Symbol("EmbedOptionProvider"),
+    LinkPreviewServiceIdentifier: Symbol("LinkPreviewServiceIdentifier"),
+    TelemetryProvider: Symbol("TelemetryProvider"),
+  };
+});
+
+vi.mock("@blocksuite/affine/shared/services", () => ({
+  DocModeProvider: Symbol("DocModeProvider"),
+  EditorSettingExtension: (config: unknown) => ({ kind: "editor-setting", config }),
+  FeatureFlagService: Symbol("FeatureFlagService"),
+  ParseDocUrlExtension: (config: unknown) => ({ kind: "parse-doc-url", config }),
+  QuickSearchExtension: (config: { openQuickSearch: () => Promise<unknown> }) => ({
+    setup: (di: { addImpl: (token: unknown, impl: { openQuickSearch: () => Promise<unknown> }) => void }) => {
+      di.addImpl("quick-search", config);
+    },
+  }),
+  UserServiceExtension: Symbol("UserServiceExtension"),
+}));
+
+vi.mock("@blocksuite/affine/widgets/linked-doc", () => ({
+  LinkedWidgetConfigExtension: (config: unknown) => ({ kind: "linked-widget", config }),
+}));
+
+vi.mock("@blocksuite/affine-components/icons", () => ({
+  LinkedDocIcon: "linked-doc-icon",
+  LinkedEdgelessIcon: "linked-edgeless-icon",
+}));
+
+vi.mock("@blocksuite/std", () => ({
+  BlockViewIdentifier: (flavour: string) => `block-view:${flavour}`,
+  EditorLifeCycleExtension: class {},
+  StdIdentifier: Symbol("StdIdentifier"),
+}));
+
+vi.mock("@blocksuite/std/inline", () => ({
+  ZERO_WIDTH_FOR_EMBED_NODE: "#",
+}));
+
+vi.mock("@blocksuite/affine/model", () => ({
+  EmbedIframeStyles: { embed: true },
+}));
+
+vi.mock("@blocksuite/affine-model", () => ({
+  EmbedIframeBlockSchema: {
+    model: {
+      flavour: "affine:embed-iframe",
+    },
+  },
+}));
+
+vi.mock("@blocksuite/affine/blocks/embed-doc", () => ({
+  EmbedSyncedDocConfigExtension: (config: unknown) => ({ kind: "embed-synced-doc", config }),
+}));
+
+vi.mock("@blocksuite/affine/inlines/reference", () => ({
+  RefNodeSlotsProvider: Symbol("RefNodeSlotsProvider"),
 }));
 
 vi.mock("../services/blocksuiteRoleService", () => ({
@@ -114,8 +206,9 @@ describe("blocksuiteEditorBuilders", () => {
   });
 
   it("core builder 能在 disableDocTitle 时过滤 doc title extension", () => {
+    const docTitleExtension = { name: "affine-doc-title-fragment" };
     const dummyExtension = { name: "other-extension" };
-    const pageSpecs = [DocTitleViewExtension, dummyExtension];
+    const pageSpecs = [docTitleExtension, dummyExtension];
 
     expect(filterBlocksuiteDocTitlePageSpecs(pageSpecs, true)).toEqual([dummyExtension]);
     expect(filterBlocksuiteDocTitlePageSpecs(pageSpecs, false)).toEqual(pageSpecs);

@@ -1,0 +1,15 @@
+diff --git a/package.json b/package.json
+index bed67759a8d7e0bb31f883d2295b1dc44600ccbb..ce0c0ff8bed225c34e864afb3f851d27a533f619 100644
+--- a/package.json
++++ b/package.json
+@@ -25,8 +25,8 @@
+     "rxjs": "^7.8.1"
+   },
+   "exports": {
+-    ".": "./src/index.ts",
+-    "./view": "./src/view.ts"
++    ".": "./dist/index.js",
++    "./view": "./dist/view.js"
+   },
+   "files": [
+     "src",

@@ -25,6 +25,7 @@ import {
   triggerBlobDownload,
   triggerBrowserDownload,
 } from "@/components/aiImage/helpers";
+import { copyBytesToBlobPart } from "@/utils/blobParts";
 
 type UseAiImagePreviewActionsOptions = {
   uiMode: "simple" | "pro";
@@ -260,7 +261,7 @@ export function useAiImagePreviewActions({
       return acc;
     }, {});
     const archive = zipSync(archiveEntries);
-    triggerBlobDownload(new Blob([archive], { type: "application/zip" }), `nai_history_${Date.now()}.zip`);
+    triggerBlobDownload(new Blob([copyBytesToBlobPart(archive)], { type: "application/zip" }), `nai_history_${Date.now()}.zip`);
   }, [history]);
 
   return {
