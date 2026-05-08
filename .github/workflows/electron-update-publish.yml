@@ -159,6 +159,25 @@ jobs:
             return 1
           }
 
+          normalize_private_key() {
+            local value="$1"
+            value="${value//$'\r'/}"
+            printf '%s' "$value"
+          }
+
+          pick_first_private_key() {
+            local raw normalized compact
+            for raw in "$@"; do
+              normalized="$(normalize_private_key "$raw")"
+              compact="${normalized//[$' \t\n']/}"
+              if [[ -n "$compact" ]]; then
+                printf '%s' "$normalized"
+                return 0
+              fi
+            done
+            return 1
+          }
+
           UPDATE_SERVER_HOST="$(
             pick_first_non_blank \
               "${UPDATE_SERVER_HOST_SECRET:-}" \
@@ -184,7 +203,7 @@ jobs:
           )"
 
           UPDATE_SERVER_PRIVATE_KEY="$(
-            pick_first_non_blank \
+            pick_first_private_key \
               "${UPDATE_SERVER_PRIVATE_KEY_SECRET:-}" \
               "${SERVER_PRIVATE_KEY_SECRET:-}" \
               "${SSH_PRIVATE_KEY_SECRET:-}" \
