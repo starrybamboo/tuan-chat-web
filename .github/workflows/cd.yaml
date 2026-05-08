@@ -54,14 +54,17 @@ jobs:
           SERVER_HOST_SECRET: ${{ secrets.SERVER_HOST }}
           SERVER_PORT_SECRET: ${{ secrets.SERVER_PORT }}
           SERVER_USERNAME_SECRET: ${{ secrets.SERVER_USERNAME }}
+          SERVER_PRIVATE_KEY_SECRET: ${{ secrets.SERVER_PRIVATE_KEY }}
           SERVER_PASSWORD_SECRET: ${{ secrets.SERVER_PASSWORD }}
           SSH_HOST_SECRET: ${{ secrets.SSH_HOST }}
           SSH_PORT_SECRET: ${{ secrets.SSH_PORT }}
           SSH_USERNAME_SECRET: ${{ secrets.SSH_USERNAME }}
+          SSH_PRIVATE_KEY_SECRET: ${{ secrets.SSH_PRIVATE_KEY }}
           SSH_PASSWORD_SECRET: ${{ secrets.SSH_PASSWORD }}
           UPDATE_SERVER_HOST_SECRET: ${{ secrets.UPDATE_SERVER_HOST }}
           UPDATE_SERVER_PORT_SECRET: ${{ secrets.UPDATE_SERVER_PORT }}
           UPDATE_SERVER_USERNAME_SECRET: ${{ secrets.UPDATE_SERVER_USERNAME }}
+          UPDATE_SERVER_PRIVATE_KEY_SECRET: ${{ secrets.UPDATE_SERVER_PRIVATE_KEY }}
           UPDATE_SERVER_PASSWORD_SECRET: ${{ secrets.UPDATE_SERVER_PASSWORD }}
         run: |
           set -euo pipefail
@@ -112,6 +115,14 @@ jobs:
               || true
           )"
 
+          DEPLOY_SERVER_PRIVATE_KEY="$(
+            pick_first_non_blank \
+              "${SERVER_PRIVATE_KEY_SECRET:-}" \
+              "${SSH_PRIVATE_KEY_SECRET:-}" \
+              "${UPDATE_SERVER_PRIVATE_KEY_SECRET:-}" \
+              || true
+          )"
+
           DEPLOY_SERVER_PASSWORD="$(
             pick_first_non_blank \
               "${SERVER_PASSWORD_SECRET:-}" \
@@ -120,19 +131,41 @@ jobs:
               || true
           )"
 
+          if [[ -n "${DEPLOY_SERVER_PRIVATE_KEY}" ]]; then
+            DEPLOY_SERVER_AUTH_MODE="key"
+            DEPLOY_SERVER_PASSWORD=""
+          else
+            DEPLOY_SERVER_AUTH_MODE="password"
+          fi
+
           test -n "${DEPLOY_SERVER_HOST}" || { echo "缺少部署主机：请配置 SERVER_HOST / SSH_HOST / UPDATE_SERVER_HOST"; exit 1; }
           test -n "${DEPLOY_SERVER_PORT}" || { echo "缺少部署端口：请配置 SERVER_PORT / SSH_PORT / UPDATE_SERVER_PORT"; exit 1; }
           test -n "${DEPLOY_SERVER_USERNAME}" || { echo "缺少部署用户名：请配置 SERVER_USERNAME / SSH_USERNAME / UPDATE_SERVER_USERNAME"; exit 1; }
-          test -n "${DEPLOY_SERVER_PASSWORD}" || { echo "缺少部署密码：请配置 SERVER_PASSWORD / SSH_PASSWORD / UPDATE_SERVER_PASSWORD"; exit 1; }
+          if [[ "${DEPLOY_SERVER_AUTH_MODE}" == "key" ]]; then
+            test -n "${DEPLOY_SERVER_PRIVATE_KEY}" || { echo "缺少部署私钥：请配置 SERVER_PRIVATE_KEY / SSH_PRIVATE_KEY / UPDATE_SERVER_PRIVATE_KEY"; exit 1; }
+          else
+            test -n "${DEPLOY_SERVER_PASSWORD}" || { echo "缺少部署密码：请配置 SERVER_PASSWORD / SSH_PASSWORD / UPDATE_SERVER_PASSWORD"; exit 1; }
+          fi
 
-          echo "::add-mask::${DEPLOY_SERVER_PASSWORD}"
+          if [[ -n "${DEPLOY_SERVER_PASSWORD}" ]]; then
+            echo "::add-mask::${DEPLOY_SERVER_PASSWORD}"
+          fi
+          PRIVATE_KEY_EOF="__DEPLOY_SERVER_PRIVATE_KEY__"
           {
+            echo "DEPLOY_SERVER_AUTH_MODE=${DEPLOY_SERVER_AUTH_MODE}"
             echo "DEPLOY_SERVER_HOST=${DEPLOY_SERVER_HOST}"
             echo "DEPLOY_SERVER_PORT=${DEPLOY_SERVER_PORT}"
             echo "DEPLOY_SERVER_USERNAME=${DEPLOY_SERVER_USERNAME}"
-            echo "DEPLOY_SERVER_PASSWORD=${DEPLOY_SERVER_PASSWORD}"
+            if [[ -n "${DEPLOY_SERVER_PRIVATE_KEY}" ]]; then
+              echo "DEPLOY_SERVER_PRIVATE_KEY<<${PRIVATE_KEY_EOF}"
+              printf '%s\n' "${DEPLOY_SERVER_PRIVATE_KEY}"
+              echo "${PRIVATE_KEY_EOF}"
+            fi
+            if [[ -n "${DEPLOY_SERVER_PASSWORD}" ]]; then
+              echo "DEPLOY_SERVER_PASSWORD=${DEPLOY_SERVER_PASSWORD}"
+            fi
           } >> "$GITHUB_ENV"
-          echo "部署连接：${DEPLOY_SERVER_HOST}:${DEPLOY_SERVER_PORT} -> ${DEPLOY_TARGET}"
+          echo "部署连接：${DEPLOY_SERVER_HOST}:${DEPLOY_SERVER_PORT} -> ${DEPLOY_TARGET}（认证方式：${DEPLOY_SERVER_AUTH_MODE}）"
 
       - name: 预检部署服务器 TCP 连通性
         run: |
@@ -154,7 +187,21 @@ jobs:
           VITE_ENABLE_REACT_SCAN: ${{ env.BUILD_MODE == 'test' && 'true' || 'false' }}
         run: pnpm build --mode $BUILD_MODE
 
-      - name: 上传构建产物到服务器临时目录
+      - name: 上传构建产物到服务器临时目录（SSH 私钥）
+        if: ${{ env.DEPLOY_SERVER_AUTH_MODE == 'key' }}
+        uses: appleboy/scp-action@v1
+        with:
+          host: ${{ env.DEPLOY_SERVER_HOST }}
+          username: ${{ env.DEPLOY_SERVER_USERNAME }}
+          key: ${{ env.DEPLOY_SERVER_PRIVATE_KEY }}
+          port: ${{ env.DEPLOY_SERVER_PORT }}
+          source: build/client/**
+          target: /tmp/tuan-chat-web-release-${{ github.run_id }}-${{ github.run_attempt }}
+          overwrite: true
+          strip_components: 2
+
+      - name: 上传构建产物到服务器临时目录（SSH 密码）
+        if: ${{ env.DEPLOY_SERVER_AUTH_MODE == 'password' }}
         uses: appleboy/scp-action@v1
         with:
           host: ${{ env.DEPLOY_SERVER_HOST }}
@@ -166,7 +213,212 @@ jobs:
           overwrite: true
           strip_components: 2
 
-      - name: 发布到站点目录并校验
+      - name: 发布到站点目录并校验（SSH 私钥）
+        if: ${{ env.DEPLOY_SERVER_AUTH_MODE == 'key' }}
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ env.DEPLOY_SERVER_HOST }}
+          username: ${{ env.DEPLOY_SERVER_USERNAME }}
+          key: ${{ env.DEPLOY_SERVER_PRIVATE_KEY }}
+          port: ${{ env.DEPLOY_SERVER_PORT }}
+          script: |
+            set -euo pipefail
+            TARGET="${{ env.DEPLOY_TARGET }}"
+            STAGING="/tmp/tuan-chat-web-release-${{ github.run_id }}-${{ github.run_attempt }}"
+
+            # 先校验临时目录，避免坏包覆盖线上目录。
+            test -f "$STAGING/index.html"
+            test -d "$STAGING/assets"
+
+            mkdir -p "$TARGET"
+
+            # 以新包为准进行同步，保留系统目录与 Electron 更新目录。
+            rsync -a --delete-delay \
+              --exclude '.well-known' \
+              --exclude '.user.ini' \
+              --exclude 'updates' \
+              "$STAGING"/ "$TARGET"/
+
+            test -f "$TARGET/index.html"
+            test -d "$TARGET/assets"
+
+            ASSET_FILE_COUNT="$(find "$TARGET/assets" -type f | wc -l)"
+            if [[ "${ASSET_FILE_COUNT}" -le 0 ]]; then
+              echo "部署校验失败：assets 目录为空" >&2
+              exit 1
+            fi
+
+            CACHE_INSTALLER="$STAGING/install-nginx-cache.sh"
+            cat > "$CACHE_INSTALLER" <<'BASH'
+            #!/usr/bin/env bash
+            set -euo pipefail
+
+            PUBLIC_HOST="${PUBLIC_HOST:?}"
+            SNIPPET="/www/server/panel/vhost/snippets/tuan-chat-web-static-cache-locations.conf"
+            OLD_GLOBAL_CONFS=(
+              "/www/server/panel/vhost/nginx/tuan-chat-web-static-cache.conf"
+              "/etc/nginx/conf.d/tuan-chat-web-static-cache.conf"
+            )
+            INCLUDE_LINE="include ${SNIPPET};"
+            MARKER_BEGIN="# BEGIN tuan-chat-web static cache include"
+            MARKER_END="# END tuan-chat-web static cache include"
+            BACKUP_DIR="$(mktemp -d)"
+
+            restore_backups() {
+              shopt -s nullglob
+              for backup in "$BACKUP_DIR"/vhost-*.bak; do
+                local target
+                target="$(cat "${backup}.path")"
+                cp -p "$backup" "$target"
+              done
+              for backup in "$BACKUP_DIR"/old-global-*.bak; do
+                local target
+                target="$(cat "${backup}.path")"
+                cp -p "$backup" "$target"
+              done
+            }
+
+            trap 'rm -rf "$BACKUP_DIR"' EXIT
+
+            has_server_name() {
+              local conf="$1"
+              awk -v host="$PUBLIC_HOST" '
+                /^[[:space:]]*server_name[[:space:]]/ {
+                  line = $0
+                  sub(/[[:space:]]*#.*/, "", line)
+                  sub(/;.*/, "", line)
+                  count = split(line, parts, /[[:space:]]+/)
+                  for (i = 2; i <= count; i++) {
+                    if (parts[i] == host) {
+                      found = 1
+                    }
+                  }
+                }
+                END { exit found ? 0 : 1 }
+              ' "$conf"
+            }
+
+            mkdir -p "$(dirname "$SNIPPET")"
+            cat > "$SNIPPET" <<'NGINX'
+            # Managed by tuan-chat-web CD. Include this file inside the site server block.
+            add_header Cache-Control "no-cache" always;
+
+            location ^~ /assets/ {
+                expires off;
+                add_header Cache-Control "public, max-age=31536000, immutable" always;
+                try_files $uri =404;
+            }
+
+            location = /index.html {
+                expires off;
+                add_header Cache-Control "no-cache" always;
+            }
+
+            location = /__spa-fallback.html {
+                expires off;
+                add_header Cache-Control "no-cache" always;
+            }
+            NGINX
+
+            old_global_index=0
+            for old_global_conf in "${OLD_GLOBAL_CONFS[@]}"; do
+              if [[ -f "$old_global_conf" ]]; then
+                backup="$BACKUP_DIR/old-global-${old_global_index}.bak"
+                cp -p "$old_global_conf" "$backup"
+                printf '%s' "$old_global_conf" > "${backup}.path"
+                rm -f "$old_global_conf"
+                old_global_index=$((old_global_index + 1))
+              fi
+            done
+
+            patched_count=0
+            shopt -s nullglob
+            for conf in /www/server/panel/vhost/nginx/*.conf /etc/nginx/conf.d/*.conf; do
+              if ! has_server_name "$conf"; then
+                continue
+              fi
+
+              backup="$BACKUP_DIR/vhost-${patched_count}.bak"
+              cp -p "$conf" "$backup"
+              printf '%s' "$conf" > "${backup}.path"
+
+              awk \
+                -v host="$PUBLIC_HOST" \
+                -v begin="$MARKER_BEGIN" \
+                -v include_line="$INCLUDE_LINE" \
+                -v end="$MARKER_END" '
+                function has_server_name(line, host, parts, count, i) {
+                  sub(/[[:space:]]*#.*/, "", line)
+                  sub(/;.*/, "", line)
+                  count = split(line, parts, /[[:space:]]+/)
+                  for (i = 2; i <= count; i++) {
+                    if (parts[i] == host) {
+                      return 1
+                    }
+                  }
+                  return 0
+                }
+                index($0, begin) > 0 { skipping = 1; next }
+                index($0, end) > 0 { skipping = 0; next }
+                skipping { next }
+                {
+                  print
+                  if ($0 ~ "^[[:space:]]*server_name[[:space:]]" && has_server_name($0, host)) {
+                    print "    " begin
+                    print "    " include_line
+                    print "    " end
+                  }
+                }
+              ' "$conf" > "${conf}.tmp"
+              mv "${conf}.tmp" "$conf"
+              patched_count=$((patched_count + 1))
+            done
+
+            if [[ "$patched_count" -le 0 ]]; then
+              echo "未找到 server_name=${PUBLIC_HOST} 的 Nginx vhost 配置，无法安装缓存策略。" >&2
+              restore_backups
+              exit 1
+            fi
+
+            if ! nginx -t; then
+              echo "Nginx 配置校验失败，已回滚缓存策略变更。" >&2
+              restore_backups
+              nginx -t || true
+              exit 1
+            fi
+
+            if ! nginx -T 2>/dev/null | grep -Fq "$SNIPPET"; then
+              echo "Nginx 配置未加载缓存片段：$SNIPPET" >&2
+              restore_backups
+              nginx -t || true
+              exit 1
+            fi
+
+            if command -v systemctl >/dev/null 2>&1 && systemctl is-active --quiet nginx; then
+              systemctl reload nginx
+            else
+              nginx -s reload
+            fi
+
+            echo "✅ Nginx 缓存策略已更新：host=${PUBLIC_HOST}, snippet=${SNIPPET}, patched=${patched_count}"
+            BASH
+            sed -i 's/^            //' "$CACHE_INSTALLER"
+            chmod +x "$CACHE_INSTALLER"
+
+            if [[ "$(id -u)" == "0" ]]; then
+              PUBLIC_HOST="${{ env.PUBLIC_HOST }}" "$CACHE_INSTALLER"
+            elif command -v sudo >/dev/null 2>&1 && sudo -n true >/dev/null 2>&1; then
+              sudo env PUBLIC_HOST="${{ env.PUBLIC_HOST }}" "$CACHE_INSTALLER"
+            else
+              echo "当前部署账号无 root/sudo 权限，无法更新 Nginx Cache-Control；为避免继续发布错误缓存头，本次部署失败。" >&2
+              exit 1
+            fi
+
+            rm -rf "$STAGING"
+            echo "✅ 部署校验通过：index.html 存在，assets 文件数=${ASSET_FILE_COUNT}"
+
+      - name: 发布到站点目录并校验（SSH 密码）
+        if: ${{ env.DEPLOY_SERVER_AUTH_MODE == 'password' }}
         uses: appleboy/ssh-action@v1
         with:
           host: ${{ env.DEPLOY_SERVER_HOST }}
