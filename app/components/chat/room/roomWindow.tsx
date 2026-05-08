@@ -45,6 +45,7 @@ import { createRoomUiStore, RoomUiStoreProvider } from "@/components/chat/stores
 import { useSideDrawerStore } from "@/components/chat/stores/sideDrawerStore";
 import useCommandExecutor from "@/components/common/dicer/cmdPre";
 import { useGlobalUserId, useGlobalWebSocket } from "@/components/globalContextProvider";
+import { copyBytesToBlobPart } from "@/utils/blobParts";
 import { mediaFileUrl } from "@/utils/mediaUrl";
 
 import {
@@ -857,7 +858,7 @@ function RoomWindow({
             toast.error("压缩失败");
             return;
           }
-          const blob = new Blob([data], { type: "application/zip" });
+          const blob = new Blob([copyBytesToBlobPart(data)], { type: "application/zip" });
           const url = URL.createObjectURL(blob);
           const a = document.createElement("a");
           a.href = url;

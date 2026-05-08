@@ -2,6 +2,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import antfu from "@antfu/eslint-config";
 import pluginQuery from "@tanstack/eslint-plugin-query";
+import oxlint from "eslint-plugin-oxlint";
 import reactHooks from "eslint-plugin-react-hooks";
 import tailwindcss from "eslint-plugin-tailwindcss";
 
@@ -28,6 +29,9 @@ export default antfu(
       "**/*.md",
       "eslint-report.json",
       "android/**",
+      ".pnpm-patch-work/**",
+      "patches/**",
+      "apps/mobile/.tmp/**",
       "build/**",
       "dist/**",
       "release/**",
@@ -158,4 +162,6 @@ export default antfu(
       "no-control-regex": "off",
     },
   },
-);
+)
+  // Keep ESLint only for rules not already enforced by oxlint.
+  .append(...oxlint.buildFromOxlintConfigFile("./.oxlintrc.json"));

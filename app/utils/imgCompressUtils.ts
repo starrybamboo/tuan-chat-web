@@ -1,5 +1,6 @@
 import bundledImageCompressionLibUrl from "browser-image-compression/dist/browser-image-compression.js?url";
 
+import { copyBytesToBlobPart } from "@/utils/blobParts";
 import {
   embedNovelAiMetadataIntoWebpBytes,
   extractNovelAiMetadataFromPngBytes,
@@ -186,7 +187,7 @@ async function preserveWebpNovelAiMetadata(
     throw new Error(`保留 NovelAI 元数据后图片超过 ${maxSizeKB}KB，已阻止上传`);
   }
 
-  return new File([embeddedBytes], outputFile.name, {
+  return new File([copyBytesToBlobPart(embeddedBytes)], outputFile.name, {
     type: "image/webp",
     lastModified: outputFile.lastModified,
   });

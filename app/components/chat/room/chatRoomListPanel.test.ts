@@ -4,7 +4,7 @@ import {
   getRoomSidebarMaterialSectionClassName,
   shouldShowRoomSidebarSplitLayout,
   shouldStretchRoomSidebarMaterialSection,
-} from "./chatRoomListPanel";
+} from "./chatRoomListPanelLayout";
 
 describe("chatRoomListPanel layout guards", () => {
   it("空素材包时不会启用上下分栏", () => {

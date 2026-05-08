@@ -173,7 +173,7 @@ export default function ImportChatMessagesWindow({
       speakerName: m.speakerName,
       roleId: mapping[m.speakerName] as number,
       content: m.content,
-      figurePosition: (figurePositionMap[m.speakerName] ?? undefined) ?? undefined,
+      figurePosition: figurePositionMap[m.speakerName] ?? undefined,
     }));
 
     setIsImporting(true);

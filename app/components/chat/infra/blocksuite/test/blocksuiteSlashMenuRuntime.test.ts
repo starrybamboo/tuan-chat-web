@@ -1,9 +1,13 @@
 import type { SlashMenuContext, SlashMenuItem } from "@blocksuite/affine/widgets/slash-menu";
 
 import { SlashMenuExtension } from "@blocksuite/affine/widgets/slash-menu";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import { groupBlocksuiteSlashMenuItems, resolveBlocksuiteSlashMenuItems } from "../manager/slashMenuRuntime";
+
+vi.mock("@blocksuite/affine/widgets/slash-menu", () => ({
+  SlashMenuExtension: Symbol("SlashMenuExtension"),
+}));
 
 function createSlashMenuContext(items: SlashMenuItem[]): SlashMenuContext {
   return {
