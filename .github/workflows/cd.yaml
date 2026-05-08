@@ -90,6 +90,25 @@ jobs:
             return 1
           }
 
+          normalize_private_key() {
+            local value="$1"
+            value="${value//$'\r'/}"
+            printf '%s' "$value"
+          }
+
+          pick_first_private_key() {
+            local raw normalized compact
+            for raw in "$@"; do
+              normalized="$(normalize_private_key "$raw")"
+              compact="${normalized//[$' \t\n']/}"
+              if [[ -n "$compact" ]]; then
+                printf '%s' "$normalized"
+                return 0
+              fi
+            done
+            return 1
+          }
+
           # 避免 GitHub Expression 在 secret 为空、纯空白或带换行时提前短路，统一在 shell 中显式回退。
           DEPLOY_SERVER_HOST="$(
             pick_first_non_blank \
@@ -116,7 +135,7 @@ jobs:
           )"
 
           DEPLOY_SERVER_PRIVATE_KEY="$(
-            pick_first_non_blank \
+            pick_first_private_key \
               "${SERVER_PRIVATE_KEY_SECRET:-}" \
               "${SSH_PRIVATE_KEY_SECRET:-}" \
               "${UPDATE_SERVER_PRIVATE_KEY_SECRET:-}" \
