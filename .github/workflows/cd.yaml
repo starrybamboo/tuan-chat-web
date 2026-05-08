@@ -2,8 +2,8 @@ name: TuanChat 自动构建与部署
 
 on:
   push:
-    branches: [ "main", "dev" ]
-  workflow_dispatch:  # 允许手动触发
+    branches: ["main", "dev"]
+  workflow_dispatch: # 允许手动触发
     inputs:
       deploy_env:
         description: "部署环境（auto=按分支，dev=>test，main=>production）"
@@ -33,6 +33,11 @@ jobs:
       DEPLOY_TARGET: ${{ (github.event_name == 'workflow_dispatch' && inputs.deploy_env == 'test' && '/www/wwwroot/tuan-chat-web-test') || (github.event_name == 'workflow_dispatch' && inputs.deploy_env == 'production' && '/www/wwwroot/tuan-chat-web') || (github.ref_name == 'dev' && '/www/wwwroot/tuan-chat-web-test') || '/www/wwwroot/tuan-chat-web' }}
       BUILD_MODE: ${{ (github.event_name == 'workflow_dispatch' && inputs.deploy_env == 'test' && 'test') || (github.event_name == 'workflow_dispatch' && inputs.deploy_env == 'production' && 'production') || (github.ref_name == 'dev' && 'test') || 'production' }}
       PUBLIC_HOST: ${{ (github.event_name == 'workflow_dispatch' && inputs.deploy_env == 'test' && 'test.tuan.chat') || (github.event_name == 'workflow_dispatch' && inputs.deploy_env == 'production' && 'tuan.chat') || (github.ref_name == 'dev' && 'test.tuan.chat') || 'tuan.chat' }}
+      # 优先读取当前前端部署专用的 SERVER_* / SSH_*，并兼容 Electron 发布沿用的 UPDATE_SERVER_*。
+      DEPLOY_SERVER_HOST: ${{ secrets.SERVER_HOST || secrets.SSH_HOST || secrets.UPDATE_SERVER_HOST || '38.14.195.6' }}
+      DEPLOY_SERVER_PORT: ${{ secrets.SERVER_PORT || secrets.SSH_PORT || secrets.UPDATE_SERVER_PORT || '22' }}
+      DEPLOY_SERVER_USERNAME: ${{ secrets.SERVER_USERNAME || secrets.SSH_USERNAME || secrets.UPDATE_SERVER_USERNAME }}
+      DEPLOY_SERVER_PASSWORD: ${{ secrets.SERVER_PASSWORD || secrets.SSH_PASSWORD || secrets.UPDATE_SERVER_PASSWORD }}
       # 前端走同源反代，避免浏览器为跨域鉴权请求触发 CORS preflight。
       BACKEND_API_BASE_URL: /api
       BACKEND_WS_URL: /ws
@@ -49,6 +54,27 @@ jobs:
           cache: pnpm
           cache-dependency-path: pnpm-lock.yaml
 
+      - name: 校验部署凭据与端口
+        run: |
+          set -euo pipefail
+
+          test -n "${DEPLOY_SERVER_HOST}" || { echo "缺少部署主机：请配置 SERVER_HOST / SSH_HOST / UPDATE_SERVER_HOST"; exit 1; }
+          test -n "${DEPLOY_SERVER_PORT}" || { echo "缺少部署端口：请配置 SERVER_PORT / SSH_PORT / UPDATE_SERVER_PORT"; exit 1; }
+          test -n "${DEPLOY_SERVER_USERNAME}" || { echo "缺少部署用户名：请配置 SERVER_USERNAME / SSH_USERNAME / UPDATE_SERVER_USERNAME"; exit 1; }
+          test -n "${DEPLOY_SERVER_PASSWORD}" || { echo "缺少部署密码：请配置 SERVER_PASSWORD / SSH_PASSWORD / UPDATE_SERVER_PASSWORD"; exit 1; }
+
+          echo "::add-mask::${DEPLOY_SERVER_PASSWORD}"
+          echo "部署连接：${DEPLOY_SERVER_HOST}:${DEPLOY_SERVER_PORT} -> ${DEPLOY_TARGET}"
+
+      - name: 预检部署服务器 TCP 连通性
+        run: |
+          set -euo pipefail
+
+          if ! timeout 10 bash -lc "</dev/tcp/${DEPLOY_SERVER_HOST}/${DEPLOY_SERVER_PORT}"; then
+            echo "部署服务器 ${DEPLOY_SERVER_HOST}:${DEPLOY_SERVER_PORT} 当前不可达，请检查 SSH 服务、防火墙或 Secret 配置。" >&2
+            exit 1
+          fi
+
       - name: install
         run: pnpm install --frozen-lockfile
 
@@ -63,10 +89,10 @@ jobs:
       - name: 上传构建产物到服务器临时目录
         uses: appleboy/scp-action@v1
         with:
-          # 优先使用新版 SERVER_* secrets；保留 SSH_* 兼容旧配置
-          host: 38.14.195.6
-          username: ${{ secrets.SERVER_USERNAME || secrets.SSH_USERNAME }}
-          password: ${{ secrets.SERVER_PASSWORD || secrets.SSH_PASSWORD }}
+          host: ${{ env.DEPLOY_SERVER_HOST }}
+          username: ${{ env.DEPLOY_SERVER_USERNAME }}
+          password: ${{ env.DEPLOY_SERVER_PASSWORD }}
+          port: ${{ env.DEPLOY_SERVER_PORT }}
           source: build/client/**
           target: /tmp/tuan-chat-web-release-${{ github.run_id }}-${{ github.run_attempt }}
           overwrite: true
@@ -75,9 +101,10 @@ jobs:
       - name: 发布到站点目录并校验
         uses: appleboy/ssh-action@v1
         with:
-          host: 38.14.195.6
-          username: ${{ secrets.SERVER_USERNAME || secrets.SSH_USERNAME }}
-          password: ${{ secrets.SERVER_PASSWORD || secrets.SSH_PASSWORD }}
+          host: ${{ env.DEPLOY_SERVER_HOST }}
+          username: ${{ env.DEPLOY_SERVER_USERNAME }}
+          password: ${{ env.DEPLOY_SERVER_PASSWORD }}
+          port: ${{ env.DEPLOY_SERVER_PORT }}
           script: |
             set -euo pipefail
             TARGET="${{ env.DEPLOY_TARGET }}"
@@ -273,6 +300,7 @@ jobs:
 
             rm -rf "$STAGING"
             echo "✅ 部署校验通过：index.html 存在，assets 文件数=${ASSET_FILE_COUNT}"
+
 #        uses: burnett01/rsync-deployments@7.0.2 # 使用专门的 rsync action
 #        with:
 #          # rsync 的参数开关
@@ -289,5 +317,4 @@ jobs:
 #          remote_host: 38.14.195.6
 #          remote_user: ${{ secrets.SSH_USERNAME }}
 #          remote_key: ${{ secrets.SSH_PRIVATE_KEY }}
-
 
