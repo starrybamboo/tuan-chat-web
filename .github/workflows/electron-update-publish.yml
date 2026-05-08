@@ -2,7 +2,7 @@ name: Electron 增量更新发布
 
 on:
   push:
-    branches: [ "main" ]
+    branches: ["main"]
   workflow_dispatch:
     inputs:
       webgal_terre_release_url:
@@ -109,11 +109,6 @@ jobs:
     runs-on: ubuntu-latest
     needs: build-windows-installer
     env:
-      # 优先使用 UPDATE_*；未配置时回退到 CD 同款 SERVER_*/SSH_*。
-      UPDATE_SERVER_HOST: ${{ secrets.UPDATE_SERVER_HOST || '38.14.195.6' }}
-      UPDATE_SERVER_PORT: ${{ secrets.UPDATE_SERVER_PORT || '22' }}
-      UPDATE_SERVER_USERNAME: ${{ secrets.UPDATE_SERVER_USERNAME || secrets.SERVER_USERNAME || secrets.SSH_USERNAME }}
-      UPDATE_SERVER_PASSWORD: ${{ secrets.UPDATE_SERVER_PASSWORD || secrets.SERVER_PASSWORD || secrets.SSH_PASSWORD }}
       # 兼容旧配置：允许把 UPDATE_SERVER_PATH 填成站点根目录，流程会自动补成 <root>/updates。
       UPDATE_SERVER_PATH_RAW: ${{ secrets.UPDATE_SERVER_PATH || '/www/wwwroot/tuan-chat-web' }}
     steps:
@@ -123,13 +118,136 @@ jobs:
           name: electron-update-files
           path: dist-update
 
+      - name: 解析更新发布连接信息
+        env:
+          SERVER_HOST_SECRET: ${{ secrets.SERVER_HOST }}
+          SERVER_PORT_SECRET: ${{ secrets.SERVER_PORT }}
+          SERVER_USERNAME_SECRET: ${{ secrets.SERVER_USERNAME }}
+          SERVER_PRIVATE_KEY_SECRET: ${{ secrets.SERVER_PRIVATE_KEY }}
+          SERVER_PASSWORD_SECRET: ${{ secrets.SERVER_PASSWORD }}
+          SSH_HOST_SECRET: ${{ secrets.SSH_HOST }}
+          SSH_PORT_SECRET: ${{ secrets.SSH_PORT }}
+          SSH_USERNAME_SECRET: ${{ secrets.SSH_USERNAME }}
+          SSH_PRIVATE_KEY_SECRET: ${{ secrets.SSH_PRIVATE_KEY }}
+          SSH_PASSWORD_SECRET: ${{ secrets.SSH_PASSWORD }}
+          UPDATE_SERVER_HOST_SECRET: ${{ secrets.UPDATE_SERVER_HOST }}
+          UPDATE_SERVER_PORT_SECRET: ${{ secrets.UPDATE_SERVER_PORT }}
+          UPDATE_SERVER_USERNAME_SECRET: ${{ secrets.UPDATE_SERVER_USERNAME }}
+          UPDATE_SERVER_PRIVATE_KEY_SECRET: ${{ secrets.UPDATE_SERVER_PRIVATE_KEY }}
+          UPDATE_SERVER_PASSWORD_SECRET: ${{ secrets.UPDATE_SERVER_PASSWORD }}
+        run: |
+          set -euo pipefail
+
+          trim_secret() {
+            local value="$1"
+            value="${value//$'\r'/}"
+            value="${value//$'\n'/}"
+            value="${value#"${value%%[![:space:]]*}"}"
+            value="${value%"${value##*[![:space:]]}"}"
+            printf '%s' "$value"
+          }
+
+          pick_first_non_blank() {
+            local raw trimmed
+            for raw in "$@"; do
+              trimmed="$(trim_secret "$raw")"
+              if [[ -n "$trimmed" ]]; then
+                printf '%s' "$trimmed"
+                return 0
+              fi
+            done
+            return 1
+          }
+
+          UPDATE_SERVER_HOST="$(
+            pick_first_non_blank \
+              "${UPDATE_SERVER_HOST_SECRET:-}" \
+              "${SERVER_HOST_SECRET:-}" \
+              "${SSH_HOST_SECRET:-}" \
+              "38.14.195.6"
+          )"
+
+          UPDATE_SERVER_PORT="$(
+            pick_first_non_blank \
+              "${UPDATE_SERVER_PORT_SECRET:-}" \
+              "${SERVER_PORT_SECRET:-}" \
+              "${SSH_PORT_SECRET:-}" \
+              "22"
+          )"
+
+          UPDATE_SERVER_USERNAME="$(
+            pick_first_non_blank \
+              "${UPDATE_SERVER_USERNAME_SECRET:-}" \
+              "${SERVER_USERNAME_SECRET:-}" \
+              "${SSH_USERNAME_SECRET:-}" \
+              || true
+          )"
+
+          UPDATE_SERVER_PRIVATE_KEY="$(
+            pick_first_non_blank \
+              "${UPDATE_SERVER_PRIVATE_KEY_SECRET:-}" \
+              "${SERVER_PRIVATE_KEY_SECRET:-}" \
+              "${SSH_PRIVATE_KEY_SECRET:-}" \
+              || true
+          )"
+
+          UPDATE_SERVER_PASSWORD="$(
+            pick_first_non_blank \
+              "${UPDATE_SERVER_PASSWORD_SECRET:-}" \
+              "${SERVER_PASSWORD_SECRET:-}" \
+              "${SSH_PASSWORD_SECRET:-}" \
+              || true
+          )"
+
+          if [[ -n "${UPDATE_SERVER_PRIVATE_KEY}" ]]; then
+            UPDATE_SERVER_AUTH_MODE="key"
+            UPDATE_SERVER_PASSWORD=""
+          else
+            UPDATE_SERVER_AUTH_MODE="password"
+          fi
+
+          test -n "${UPDATE_SERVER_HOST}" || { echo "缺少更新发布主机：请配置 UPDATE_SERVER_HOST / SERVER_HOST / SSH_HOST"; exit 1; }
+          test -n "${UPDATE_SERVER_PORT}" || { echo "缺少更新发布端口：请配置 UPDATE_SERVER_PORT / SERVER_PORT / SSH_PORT"; exit 1; }
+          test -n "${UPDATE_SERVER_USERNAME}" || { echo "缺少更新发布用户名：请配置 UPDATE_SERVER_USERNAME / SERVER_USERNAME / SSH_USERNAME"; exit 1; }
+          if [[ "${UPDATE_SERVER_AUTH_MODE}" == "key" ]]; then
+            test -n "${UPDATE_SERVER_PRIVATE_KEY}" || { echo "缺少更新发布私钥：请配置 UPDATE_SERVER_PRIVATE_KEY / SERVER_PRIVATE_KEY / SSH_PRIVATE_KEY"; exit 1; }
+          else
+            test -n "${UPDATE_SERVER_PASSWORD}" || { echo "缺少更新发布密码：请配置 UPDATE_SERVER_PASSWORD / SERVER_PASSWORD / SSH_PASSWORD"; exit 1; }
+          fi
+
+          if [[ -n "${UPDATE_SERVER_PASSWORD}" ]]; then
+            echo "::add-mask::${UPDATE_SERVER_PASSWORD}"
+          fi
+
+          PRIVATE_KEY_EOF="__UPDATE_SERVER_PRIVATE_KEY__"
+          {
+            echo "UPDATE_SERVER_AUTH_MODE=${UPDATE_SERVER_AUTH_MODE}"
+            echo "UPDATE_SERVER_HOST=${UPDATE_SERVER_HOST}"
+            echo "UPDATE_SERVER_PORT=${UPDATE_SERVER_PORT}"
+            echo "UPDATE_SERVER_USERNAME=${UPDATE_SERVER_USERNAME}"
+            if [[ -n "${UPDATE_SERVER_PRIVATE_KEY}" ]]; then
+              echo "UPDATE_SERVER_PRIVATE_KEY<<${PRIVATE_KEY_EOF}"
+              printf '%s\n' "${UPDATE_SERVER_PRIVATE_KEY}"
+              echo "${PRIVATE_KEY_EOF}"
+            fi
+            if [[ -n "${UPDATE_SERVER_PASSWORD}" ]]; then
+              echo "UPDATE_SERVER_PASSWORD=${UPDATE_SERVER_PASSWORD}"
+            fi
+          } >> "$GITHUB_ENV"
+
+          echo "更新发布连接：${UPDATE_SERVER_HOST}:${UPDATE_SERVER_PORT}（认证方式：${UPDATE_SERVER_AUTH_MODE}）"
+
       - name: Validate publish secrets
         run: |
           set -euo pipefail
 
           test -n "${UPDATE_SERVER_HOST}" || { echo "缺少 secret: UPDATE_SERVER_HOST"; exit 1; }
           test -n "${UPDATE_SERVER_USERNAME}" || { echo "缺少 secret: UPDATE_SERVER_USERNAME"; exit 1; }
-          test -n "${UPDATE_SERVER_PASSWORD}" || { echo "缺少 secret: UPDATE_SERVER_PASSWORD"; exit 1; }
+          if [[ "${UPDATE_SERVER_AUTH_MODE}" == "password" ]]; then
+            test -n "${UPDATE_SERVER_PASSWORD}" || { echo "缺少 secret: UPDATE_SERVER_PASSWORD"; exit 1; }
+          else
+            test -n "${UPDATE_SERVER_PRIVATE_KEY}" || { echo "缺少 secret: UPDATE_SERVER_PRIVATE_KEY / SSH_PRIVATE_KEY"; exit 1; }
+          fi
           test -n "${UPDATE_SERVER_PATH_RAW}" || { echo "缺少 secret: UPDATE_SERVER_PATH"; exit 1; }
 
           if [[ "${UPDATE_SERVER_PATH_RAW}" == */updates ]]; then
@@ -140,7 +258,21 @@ jobs:
           echo "UPDATE_SERVER_PATH=${UPDATE_SERVER_PATH}" >> "$GITHUB_ENV"
           echo "使用更新发布目录：${UPDATE_SERVER_PATH}"
 
-      - name: Upload update files
+      - name: Upload update files（SSH 私钥）
+        if: ${{ env.UPDATE_SERVER_AUTH_MODE == 'key' }}
+        uses: appleboy/scp-action@v1
+        with:
+          host: ${{ env.UPDATE_SERVER_HOST }}
+          username: ${{ env.UPDATE_SERVER_USERNAME }}
+          key: ${{ env.UPDATE_SERVER_PRIVATE_KEY }}
+          port: ${{ env.UPDATE_SERVER_PORT }}
+          source: dist-update/*
+          target: ${{ env.UPDATE_SERVER_PATH }}
+          strip_components: 1
+          overwrite: true
+
+      - name: Upload update files（SSH 密码）
+        if: ${{ env.UPDATE_SERVER_AUTH_MODE == 'password' }}
         uses: appleboy/scp-action@v1
         with:
           host: ${{ env.UPDATE_SERVER_HOST }}
@@ -152,7 +284,26 @@ jobs:
           strip_components: 1
           overwrite: true
 
-      - name: Verify remote files
+      - name: Verify remote files（SSH 私钥）
+        if: ${{ env.UPDATE_SERVER_AUTH_MODE == 'key' }}
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ env.UPDATE_SERVER_HOST }}
+          username: ${{ env.UPDATE_SERVER_USERNAME }}
+          key: ${{ env.UPDATE_SERVER_PRIVATE_KEY }}
+          port: ${{ env.UPDATE_SERVER_PORT }}
+          script: |
+            set -euo pipefail
+            TARGET="${{ env.UPDATE_SERVER_PATH }}"
+
+            test -f "${TARGET}/latest.yml"
+            find "${TARGET}" -maxdepth 1 -type f -name "*.exe" | grep -q .
+            find "${TARGET}" -maxdepth 1 -type f -name "*.exe.blockmap" | grep -q .
+
+            echo "✅ 增量更新文件已发布到 ${TARGET}"
+
+      - name: Verify remote files（SSH 密码）
+        if: ${{ env.UPDATE_SERVER_AUTH_MODE == 'password' }}
         uses: appleboy/ssh-action@v1
         with:
           host: ${{ env.UPDATE_SERVER_HOST }}
