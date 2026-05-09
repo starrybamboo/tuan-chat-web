@@ -37,14 +37,14 @@ function isSelectionCollapsed(textarea: HTMLTextAreaElement) {
 function ReadOnlyNode({ node }: { node: UserReadMeMessageNode }) {
   if (node.messageType === MESSAGE_TYPE.INTRO_TEXT) {
     return (
-      <div className="rounded-md bg-black px-4 py-3 text-white">
+      <div className="rounded-md bg-black px-4 py-2 text-white">
         <TextEnhanceRenderer content={node.content} className="whitespace-pre-wrap break-words text-white" />
       </div>
     );
   }
 
   return (
-    <div className="whitespace-pre-wrap break-words px-1 py-1 text-base-content/90">
+    <div className="whitespace-pre-wrap break-words px-1 py-0.5 text-base-content/90">
       <TextEnhanceRenderer content={node.content} />
     </div>
   );
@@ -87,7 +87,7 @@ function EditableNode({
         rows={1}
         placeholder=""
         spellCheck={false}
-        className={`block w-full resize-none overflow-hidden border border-transparent bg-transparent px-1 py-2 text-base leading-7 caret-primary transition focus:border-transparent focus:outline-none focus:ring-0 ${
+        className={`block w-full resize-none overflow-hidden border border-transparent bg-transparent px-1 py-1 text-base leading-7 caret-primary transition focus:border-transparent focus:outline-none focus:ring-0 ${
           node.messageType === MESSAGE_TYPE.INTRO_TEXT
             ? "rounded-md bg-black text-white placeholder:text-white/30"
             : "rounded-md text-base-content"
@@ -335,8 +335,8 @@ export default function UserReadMeMessageEditor({
           <span>{errorMessage || "加载失败"}</span>
         </div>
       )}
-      <div className="flex-1 overflow-y-auto px-4 py-4">
-        <div className="mx-auto flex w-full max-w-3xl flex-col gap-2">
+      <div className="flex-1 overflow-y-auto px-4 py-3">
+        <div className="mx-auto flex w-full max-w-3xl flex-col gap-1">
           {isOwner
             ? nodes.map(node => (
                 <EditableNode
@@ -353,7 +353,7 @@ export default function UserReadMeMessageEditor({
           {isOwner && (
             <button
               type="button"
-              className="mt-3 h-10 rounded-md border border-dashed border-transparent bg-transparent text-sm text-base-content/35 transition hover:border-base-300/70 hover:text-base-content/60 focus:outline-none focus:ring-0"
+              className="mt-1 h-10 rounded-md border border-dashed border-transparent bg-transparent text-sm text-base-content/35 transition hover:border-base-300/70 hover:text-base-content/60 focus:outline-none focus:ring-0"
               onClick={handleAppendParagraph}
               aria-label="追加段落"
             >
