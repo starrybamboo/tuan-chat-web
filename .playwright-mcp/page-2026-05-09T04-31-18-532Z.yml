@@ -1,0 +1,21 @@
+- generic [ref=e5]:
+    - button "✕" [ref=e6] [cursor=pointer]
+    - generic [ref=e7]:
+        - heading "登录" [level=2] [ref=e8]
+        - generic [ref=e9]:
+            - generic [ref=e10]:
+                - generic [ref=e12]: 登录方式
+                - generic [ref=e13]:
+                    - button "用户名登录" [ref=e14] [cursor=pointer]
+                    - button "用户ID登录" [ref=e15] [cursor=pointer]
+            - generic [ref=e17]:
+                - generic: 用户名
+                - textbox "用户名" [ref=e18]:
+                    - /placeholder: 请输入用户名
+            - generic [ref=e20]:
+                - generic: 密码
+                - textbox "密码" [ref=e21]:
+                    - /placeholder: 请输入密码
+            - button "登录" [ref=e23] [cursor=pointer]
+        - paragraph [ref=e25]: 还没有账号？立即注册
+        - paragraph [ref=e26]: 忘记密码？找回密码
