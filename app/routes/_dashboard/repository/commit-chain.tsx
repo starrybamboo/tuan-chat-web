@@ -19,6 +19,6 @@ export const Route = createFileRoute("/_dashboard/repository/commit-chain")({
   component: RepositoryCommitChainRoute,
 });
 
-export default function RepositoryCommitChainRoute() {
+function RepositoryCommitChainRoute() {
   return <RepositoryCommitChainPage />;
 }

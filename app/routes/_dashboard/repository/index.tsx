@@ -19,7 +19,7 @@ export const Route = createFileRoute("/_dashboard/repository/")({
   component: Home,
 });
 
-export default function Home() {
+function Home() {
   return (
     <div className="bg-base-200 h-full w-full overflow-x-hidden">
       <RepositoryWithTabs />

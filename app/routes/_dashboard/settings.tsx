@@ -19,7 +19,7 @@ export const Route = createFileRoute("/_dashboard/settings")({
   component: Settings,
 });
 
-export default function Settings() {
+function Settings() {
   return (
     <div className="h-full bg-base-200 overflow-auto">
       <SettingsPage></SettingsPage>

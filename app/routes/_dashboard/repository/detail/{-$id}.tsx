@@ -66,6 +66,6 @@ export const Route = createFileRoute("/_dashboard/repository/detail/{-$id}")({
   component: RepositoryDetail,
 });
 
-export default function RepositoryDetail() {
+function RepositoryDetail() {
   return <RepositoryDetailComponent />;
 }

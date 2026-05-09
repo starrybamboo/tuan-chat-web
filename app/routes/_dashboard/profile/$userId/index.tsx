@@ -20,7 +20,7 @@ export const Route = createFileRoute("/_dashboard/profile/$userId/")({
   component: ProfileHome,
 });
 
-export default function ProfileHome() {
+function ProfileHome() {
   const { userId: urlUserId } = useParams({ strict: false });
   const userId = Number(urlUserId);
 

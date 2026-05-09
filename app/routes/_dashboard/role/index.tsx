@@ -20,7 +20,7 @@ export const Route = createFileRoute("/_dashboard/role/")({
   component: RoleCreationPage,
 });
 
-export default function RoleCreationPage() {
+function RoleCreationPage() {
   const location = useLocation();
   const router = useRouter();
   const searchParams = new URLSearchParams(location.searchStr);

@@ -2,7 +2,7 @@ import type {
   RouteMetaArgs,
 } from "@/routes/routeTypes";
 import { QueryClientProvider } from "@tanstack/react-query";
-import { createRootRoute, HeadContent, Outlet, Scripts, ScrollRestoration, useLocation, useNavigate } from "@tanstack/react-router";
+import { createRootRoute, HeadContent, Outlet, Scripts, useLocation, useNavigate } from "@tanstack/react-router";
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 
 import React from "react";
@@ -135,7 +135,7 @@ function CanonicalLink() {
   return <link rel="canonical" href={canonicalHref} />;
 }
 
-export function HydrateFallback() {
+function HydrateFallback() {
   return (
     <div className="min-h-screen bg-base-200 flex items-center justify-center">
       <div className="flex items-center gap-2 text-base-content/70">
@@ -146,7 +146,7 @@ export function HydrateFallback() {
   );
 }
 
-export function Layout({ children }: { children: React.ReactNode }) {
+function Layout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="zh-CN" data-theme="dark">
       <head>
@@ -157,14 +157,13 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <QueryClientProvider client={queryClient}>
           {children}
         </QueryClientProvider>
-        <ScrollRestoration />
         <Scripts />
       </body>
     </html>
   );
 }
 
-export default function App() {
+function App() {
   const location = useLocation();
   const isScrollSequenceStandalone = location.pathname === "/scroll-sequence-demo"
     || location.pathname === "/scroll-sequence-motion-demo";
@@ -295,7 +294,7 @@ function isRouteErrorResponse(error: unknown): error is { status: number; status
     && typeof (error as { status?: unknown }).status === "number";
 }
 
-export function ErrorBoundary({ error }: { error: Error }) {
+function ErrorBoundary({ error }: { error: Error }) {
   const navigate = useNavigate();
   let message = "Oops! Something went wrong.";
   let details = "An unexpected error occurred. Please try again later.";

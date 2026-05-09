@@ -20,7 +20,7 @@ export const Route = createFileRoute("/_dashboard/profile/$userId/works")({
   component: ProfileWorks,
 });
 
-export default function ProfileWorks() {
+function ProfileWorks() {
   const { userId: userIdParam } = useParams({ strict: false });
   const userId = Number(userIdParam);
 

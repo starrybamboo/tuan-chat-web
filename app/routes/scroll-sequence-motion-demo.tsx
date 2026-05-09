@@ -18,6 +18,6 @@ export const Route = createFileRoute("/scroll-sequence-motion-demo")({
   component: ScrollSequenceMotionDemoPage,
 });
 
-export default function ScrollSequenceMotionDemoPage() {
+function ScrollSequenceMotionDemoPage() {
   return <Navigate to="/scroll-sequence-demo" replace />;
 }

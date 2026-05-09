@@ -18,7 +18,7 @@ export const Route = createFileRoute("/_dashboard/activities")({
   component: Activities,
 });
 
-export default function Activities() {
+function Activities() {
   return (
     <div className="bg-base-200 h-full w-full overflow-y-auto overflow-x-hidden">
       <ActivitiesPage />

@@ -5,6 +5,6 @@ export const Route = createFileRoute("/_dashboard/chat/_chat-layout/")({
   component: Chat,
 });
 
-export default function Chat() {
+function Chat() {
   return <ChatPageMainContent />;
 }

@@ -5,6 +5,6 @@ export const Route = createFileRoute("/_dashboard/chat/_chat-layout/$spaceId/$ro
   component: ChatRoomSettingRoute,
 });
 
-export default function ChatRoomSettingRoute() {
+function ChatRoomSettingRoute() {
   return <ChatPageRoomSettingContent />;
 }

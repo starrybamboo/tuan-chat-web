@@ -22,7 +22,7 @@ export const Route = createFileRoute("/_dashboard/chat/_chat-layout")({
   component: ChatLayoutRoute,
 });
 
-export default function ChatLayoutRoute() {
+function ChatLayoutRoute() {
   return (
     <div className="bg-base-200 h-full w-full overflow-y-auto overflow-x-visible">
       <ChatPage />

@@ -25,7 +25,7 @@ export const Route = createFileRoute("/_dashboard/role")({
   component: RoleLayout,
 });
 
-export default function RoleLayout() {
+function RoleLayout() {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const rolesModel = useRoleListModel();
   const isSidebarCollapsed = useRoleUiStore(state => state.sidebarCollapsed);

@@ -18,6 +18,6 @@ export const Route = createFileRoute("/_dashboard/notifications")({
   component: Notifications,
 });
 
-export default function Notifications() {
+function Notifications() {
   return <NotificationPage />;
 }

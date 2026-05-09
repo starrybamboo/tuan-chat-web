@@ -9,7 +9,7 @@ export const Route = createFileRoute("/_dashboard/role/{-$roleId}")({
   component: RoleDetailPage,
 });
 
-export default function RoleDetailPage() {
+function RoleDetailPage() {
   const { roleId } = useParams({ strict: false }) as { roleId?: string };
   const location = useLocation();
   const router = useRouter();

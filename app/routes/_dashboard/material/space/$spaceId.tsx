@@ -19,7 +19,7 @@ export const Route = createFileRoute("/_dashboard/material/space/$spaceId")({
   component: SpaceMaterialRoute,
 });
 
-export default function SpaceMaterialRoute() {
+function SpaceMaterialRoute() {
   const { spaceId: spaceIdParam } = useParams({ strict: false });
   const spaceId = Number(spaceIdParam);
   return (

@@ -20,7 +20,7 @@ export const Route = createFileRoute("/_dashboard/chat/discover/")({
   component: ChatDiscoverRoute,
 });
 
-export default function ChatDiscoverRoute() {
+function ChatDiscoverRoute() {
   return (
     <div className="bg-base-200 h-full w-full overflow-y-auto overflow-x-visible">
       <DiscoverPage section="repository" mode="square" />

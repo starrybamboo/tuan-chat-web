@@ -24,6 +24,6 @@ export const Route = createFileRoute("/_dashboard/")({
   component: Home,
 });
 
-export default function Home() {
+function Home() {
   return null;
 }

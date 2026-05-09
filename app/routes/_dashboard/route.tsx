@@ -19,7 +19,7 @@ export const Route = createFileRoute("/_dashboard")({
   component: DashBoard,
 });
 
-export default function DashBoard() {
+function DashBoard() {
   return (
     <div className="h-dvh w-full min-w-0 grid grid-rows-[auto_1fr]">
       <Topbar></Topbar>

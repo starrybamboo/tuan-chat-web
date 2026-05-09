@@ -20,7 +20,7 @@ export const Route = createFileRoute("/_dashboard/profile/$userId")({
   component: Profile,
 });
 
-export default function Profile() {
+function Profile() {
   return (
     <div className="bg-base-200 h-full w-full overflow-y-auto overflow-x-hidden">
       <ProfilePage />
