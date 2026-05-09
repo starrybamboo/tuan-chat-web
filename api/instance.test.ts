@@ -2,14 +2,14 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { resolveApiBaseUrl } from "./instance";
 
-function stubWindowLocation(origin: string) {
+function stubWindowLocation(origin: string, isSecureContext = true) {
   vi.stubGlobal("window", {
     location: {
       href: `${origin}/chat/discover/material`,
       origin,
       protocol: new URL(origin).protocol,
     },
-    isSecureContext: true,
+    isSecureContext,
   });
 }
 
@@ -28,6 +28,12 @@ describe("resolveApiBaseUrl", () => {
     stubWindowLocation("https://tuan.chat");
 
     expect(resolveApiBaseUrl("https://test.tuan.chat/api")).toBe("https://test.tuan.chat/api");
+  });
+
+  it("会在本地 HTTP 开发页保留本机后端地址", () => {
+    stubWindowLocation("http://localhost:5177", true);
+
+    expect(resolveApiBaseUrl("http://localhost:8081")).toBe("http://localhost:8081");
   });
 
   it("会在 HTTPS 页面把不安全的 API 地址回退到当前站点", () => {

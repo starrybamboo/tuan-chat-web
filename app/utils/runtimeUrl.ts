@@ -56,8 +56,12 @@ function createRuntimeUrl(rawUrl: string, runtimeWindow: RuntimeWindowLike): URL
   }
 }
 
-function isSecurePage(runtimeWindow: RuntimeWindowLike): boolean {
-  return runtimeWindow.isSecureContext === true || runtimeWindow.location.protocol === "https:";
+function isHttpsPage(runtimeWindow: RuntimeWindowLike): boolean {
+  return runtimeWindow.location.protocol === "https:";
+}
+
+function isSecureRuntimeContext(runtimeWindow: RuntimeWindowLike): boolean {
+  return runtimeWindow.isSecureContext === true || isHttpsPage(runtimeWindow);
 }
 
 function getCurrentHost(runtimeWindow: RuntimeWindowLike): string {
@@ -82,12 +86,12 @@ function buildCurrentOriginWebSocketUrl(
   search: string = "",
 ): URL {
   const current = buildCurrentOriginUrl(runtimeWindow, pathname, search);
-  current.protocol = isSecurePage(runtimeWindow) ? "wss:" : "ws:";
+  current.protocol = isHttpsPage(runtimeWindow) ? "wss:" : "ws:";
   return current;
 }
 
 function warnOnInsecureLoopbackRequest(url: URL, runtimeWindow: RuntimeWindowLike) {
-  if (!LOOPBACK_HOSTNAMES.has(url.hostname) || isSecurePage(runtimeWindow)) {
+  if (!LOOPBACK_HOSTNAMES.has(url.hostname) || isSecureRuntimeContext(runtimeWindow)) {
     return;
   }
 
@@ -133,7 +137,7 @@ export function resolveRuntimeApiBaseUrl(envBaseUrl: string | undefined): string
 
   warnOnInsecureLoopbackRequest(url, runtimeWindow);
 
-  if (isSecurePage(runtimeWindow) && url.protocol === "http:") {
+  if (isHttpsPage(runtimeWindow) && url.protocol === "http:") {
     return toNormalizedSameOriginPath(url);
   }
 
@@ -158,7 +162,7 @@ export function resolveRuntimeMediaBaseUrl(
     return fallbackAbsoluteUrl;
   }
 
-  if (isSecurePage(runtimeWindow) && url.protocol === "http:") {
+  if (isHttpsPage(runtimeWindow) && url.protocol === "http:") {
     return toCurrentOriginAbsoluteUrl(url, runtimeWindow);
   }
 
@@ -197,7 +201,7 @@ export function resolveRuntimeWebSocketBaseUrl(
     return toCurrentOriginWebSocketBaseUrl(url, runtimeWindow, normalizedFallbackPath);
   }
 
-  if (isSecurePage(runtimeWindow) && url.protocol === "ws:") {
+  if (isHttpsPage(runtimeWindow) && url.protocol === "ws:") {
     return toCurrentOriginWebSocketBaseUrl(url, runtimeWindow, normalizedFallbackPath);
   }
 

@@ -270,10 +270,11 @@ export default defineConfig(() => {
     return existsSync(abs) ? realpathSync(abs) : abs;
   };
 
-  // Some BlockSuite dist outputs ship ES2023 auto-accessor syntax:
-  // `accessor foo = ...` which Rollup (and some tooling) may fail to parse.
-  // Downlevel it in Vite's transform pipeline.
-  const blocksuiteAutoAccessorRE = /@blocksuite[\\/](?:std|affine-model|affine-block-[^\\/]+)[\\/]dist[\\/].*\.js(?:\?.*)?$/;
+  // Some BlockSuite packages still ship auto-accessor syntax through either:
+  // - prebuilt `dist/*.js`
+  // - exported `src/*.ts`
+  // Browsers that don't support `accessor foo = ...` will fail at parse time.
+  const blocksuiteAutoAccessorRE = /@blocksuite[\\/][^\\/]+[\\/](?:dist[\\/].*\.js|src[\\/].*\.[jt]sx?)(?:\?.*)?$/;
 
   return {
     plugins: [
@@ -282,15 +283,17 @@ export default defineConfig(() => {
       ossUploadProxyPlugin(),
       electronDevPingPlugin(),
 
-      // Downlevel BlockSuite ES2023 auto-accessor syntax in dist outputs.
-      // Example crashing syntax: `accessor color = ...` (brush.js), `accessor elements = ...` (v-line.js).
+      // Downlevel BlockSuite auto-accessor syntax before Vite/rolldown emits browser bundles.
+      // Example crashing syntax:
+      // - `accessor menu = ...` from dist context-menu files
+      // - `protected override accessor blockContainerStyles = ...` from src TypeScript exports
       {
         name: "tc-downlevel-blocksuite-auto-accessor",
         enforce: "pre",
         async transform(code, id) {
           if (!blocksuiteAutoAccessorRE.test(id))
             return null;
-          if (!/^\s*accessor\s+/m.test(code))
+          if (!/\b(?:override\s+)?accessor\s+[A-Za-z_$]/.test(code))
             return null;
 
           const filename = id.split("?")[0];
@@ -308,6 +311,12 @@ export default defineConfig(() => {
                   bugfixes: true,
                   modules: false,
                   loose: true,
+                },
+              ],
+              [
+                "@babel/preset-typescript",
+                {
+                  allowDeclareFields: true,
                 },
               ],
             ],
@@ -631,128 +640,11 @@ export default defineConfig(() => {
     },
 
     optimizeDeps: {
-      // Prevent Vite from auto-optimizing discovered deps (which can accidentally
-      // pull in vanilla-extract `*.css.ts` sources from node_modules).
+      // 临时下掉依赖预打包优化：让开发期按真实解析结果全量加载，
+      // 避免手工 include/exclude 与 BlockSuite/Lit 单例 alias 混用时产生重复实例。
+      // Vite 8 中 noDiscovery=true 且 include 为空即禁用 deps optimizer。
       noDiscovery: true,
-
-      // Explicitly pre-bundle only the deps we know are safe/needed.
-      // IMPORTANT: do NOT pre-bundle BlockSuite/AFFiNE packages.
-      include: [
-        // Ensure React JSX runtime is properly converted to ESM for browser.
-        "react",
-        "react-dom",
-        "react/compiler-runtime",
-        "react/jsx-runtime",
-        "react/jsx-dev-runtime",
-
-        // Ensure React Router runtime is pre-bundled with the same React instance.
-        "react-router",
-        "zustand",
-
-        // Pixi has a very large module graph; without pre-bundling it can trigger
-        // browser resource exhaustion (ERR_INSUFFICIENT_RESOURCES) in dev.
-        "pixi.js",
-
-        // BlockSuite/AFFiNE transitive deps:
-        // Pre-bundle these to reduce the amount of /node_modules/* requests in dev.
-        // (We still exclude @blocksuite/* themselves to keep single-instance guarantees.)
-        "zod",
-        "yjs",
-        "rxjs",
-        "@preact/signals-core",
-
-        // Markdown/code highlighting (CJS interop)
-        "lowlight",
-        "react-syntax-highlighter",
-
-        // NOTE: Avoid pre-bundling lit/@lit and @blocksuite/* here.
-        // They are extremely sensitive to duplicate module instances
-        // (e.g. Lit's ReactiveElement / custom element constructors).
-        // Mixing Vite pre-bundled deps with our alias-to-dist strategy can lead to
-        // runtime errors like: "Failed to construct 'HTMLElement': Illegal constructor".
-
-        // Fix CJS/ESM interop for packages that are imported as ESM but are CJS.n
-        // This prevents runtime errors like:
-        // ".../style-to-js/cjs/index.js ... does not provide an export named 'default'".
-        "style-to-js",
-        "debug",
-        "extend",
-        "bind-event-listener",
-        "bytes",
-        "dagre",
-        "qrcode",
-        "fast-diff",
-        "pngjs",
-        "safe-buffer",
-        "cssesc",
-        "deepmerge",
-        "picocolors",
-        "eventemitter3",
-
-        // Fix CJS/ESM interop for upstream deps used by the playground.
-        "lodash",
-        "lodash/debounce",
-        "lodash/throttle",
-        "lodash/memoize",
-        "lodash/isObject",
-        "lodash.ismatch",
-        "lodash/isPlainObject",
-        "use-sync-external-store/shim/with-selector",
-        "use-sync-external-store/shim/with-selector.js",
-        "use-sync-external-store/shim/index.js",
-        "use-sync-external-store/shim",
-        "simple-xml-to-json",
-        "react-fast-compare",
-
-        // Fix CJS/ESM interop for minimatch/glob transitive deps.
-        "brace-expansion",
-        "screenfull",
-      ],
-
-      // IMPORTANT: do NOT pre-bundle `@blocksuite/affine-*` packages.
-      // Many of them include `*.css.ts` (vanilla-extract) sources.
-      exclude: [
-        // BlockSuite/lit are intentionally excluded to prevent duplicate instances
-        // between Vite pre-bundled deps and our alias-to-dist resolution.
-        "@blocksuite/global",
-        "@blocksuite/store",
-        "@blocksuite/std",
-        "@blocksuite/sync",
-        "lit",
-        "lit-element",
-        "lit-html",
-        "@lit/context",
-        "@lit/reactive-element",
-        "@lit/react",
-
-        "@blocksuite/affine",
-        "@blocksuite/affine-ext-loader",
-        "@blocksuite/affine-shared",
-        "@blocksuite/affine-components",
-        "@blocksuite/affine-inline-preset",
-        "@blocksuite/affine-inline-preset/store",
-        "@blocksuite/affine-inline-preset/view",
-        "@blocksuite/affine-block-root",
-        "@blocksuite/affine-block-root/store",
-        "@blocksuite/affine-block-root/view",
-        "@blocksuite/affine-block-note",
-        "@blocksuite/affine-block-note/store",
-        "@blocksuite/affine-block-note/view",
-        "@blocksuite/affine-block-paragraph",
-        "@blocksuite/affine-block-paragraph/store",
-        "@blocksuite/affine-block-paragraph/view",
-        "@blocksuite/affine-block-surface",
-        "@blocksuite/affine-block-surface/store",
-        "@blocksuite/affine-block-surface/view",
-
-        // Common transitive deps that also ship `src/*.ts` + `*.css.ts`
-        "@blocksuite/affine-block-frame",
-        "@blocksuite/affine-gfx-shape",
-        "@blocksuite/affine-inline-latex",
-        "@blocksuite/data-view",
-
-        "@blocksuite/integration-test",
-      ],
+      include: [],
     },
   };
 });

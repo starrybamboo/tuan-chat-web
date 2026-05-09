@@ -60,10 +60,18 @@ class TCEmbedEdgelessIframeBlockComponent extends toGfxBlockComponent(
 
   override blockDraggable = false;
 
-  override accessor blockContainerStyles = {
+  private _blockContainerStyles = {
     margin: "0",
     backgroundColor: "transparent",
   };
+
+  override get blockContainerStyles() {
+    return this._blockContainerStyles;
+  }
+
+  override set blockContainerStyles(value) {
+    this._blockContainerStyles = value;
+  }
 
   get edgelessSlots() {
     return this.std.get(EdgelessLegacySlotIdentifier);
