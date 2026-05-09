@@ -7,8 +7,7 @@ export type BlocksuiteDescriptionEditorProps = {
   workspaceId: string;
   spaceId?: number;
   docId: string;
-  instanceId?: string;
-  /** 请求后台预热或复用共享 warm frame，减少首次打开 Blocksuite 的冷启动等待。 */
+  /** 提前拉取远端文档快照，减少首次打开时的等待。 */
   intentPrewarm?: boolean;
   readOnly?: boolean;
   mode?: DocMode;
@@ -26,7 +25,6 @@ export type BlocksuiteDescriptionEditorProps = {
     header: BlocksuiteDocHeader;
   }) => void;
   onModeChange?: (mode: DocMode) => void;
-  onNavigate?: (to: string) => boolean | void;
   className?: string;
 };
 
