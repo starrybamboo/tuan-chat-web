@@ -18,6 +18,21 @@ export type StoredSnapshot = {
   snapshotServerTime?: number;
   /** 可选：该快照对应的 stateVector（用于调试/后续优化；客户端仍可自行计算） */
   stateVectorB64?: string;
+} | {
+  // v3: BlockNote document snapshot
+  v: 3;
+  format: "blocknote";
+  updateB64: string;
+  updatedAt: number;
+  header?: {
+    title?: string;
+    imageUrl?: string;
+    originalImageUrl?: string;
+    imageFileId?: number;
+    originalImageFileId?: number;
+    imageMediaType?: string;
+  };
+  excerpt?: string;
 };
 
 type RemoteKey = {
@@ -204,6 +219,13 @@ function isStoredSnapshot(v: any): v is StoredSnapshot {
       && typeof v.updatedAt === "number"
       && (typeof v.snapshotServerTime === "undefined" || typeof v.snapshotServerTime === "number")
       && (typeof v.stateVectorB64 === "undefined" || typeof v.stateVectorB64 === "string");
+  }
+  if (v.v === 3) {
+    return typeof v.updateB64 === "string"
+      && typeof v.updatedAt === "number"
+      && v.format === "blocknote"
+      && (typeof v.excerpt === "undefined" || typeof v.excerpt === "string")
+      && (typeof v.header === "undefined" || typeof v.header === "object");
   }
   return false;
 }

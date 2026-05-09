@@ -4,10 +4,11 @@ import { FileTextIcon, WarningCircleIcon } from "@phosphor-icons/react";
 import React, { use, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import toast from "react-hot-toast";
 
+import { readBlockNoteHeader } from "@/components/chat/infra/blocksuite/document/blockNoteSnapshot";
+import { getCachedDocSnapshot, subscribeCachedDocSnapshot } from "@/components/chat/infra/blocksuite/document/docSnapshotCache";
 import { RoomContext } from "@/components/chat/core/roomContext";
 import { parseDescriptionDocId } from "@/components/chat/infra/blocksuite/description/descriptionDocId";
-import { prewarmRemoteSnapshot } from "@/components/chat/infra/blocksuite/description/descriptionDocRemote";
-import { readBlocksuiteDocHeader, subscribeBlocksuiteDocHeader } from "@/components/chat/infra/blocksuite/document/docHeader";
+import { getRemoteSnapshot, prewarmRemoteSnapshot } from "@/components/chat/infra/blocksuite/description/descriptionDocRemote";
 import { recordDocCardShareObservation } from "@/components/chat/infra/blocksuite/shared/docCardShareObservability";
 import { documentModalShellClassName, getDocumentModalFrameClassName } from "@/components/chat/shared/components/documentModalShell";
 import { setDocRefDragData } from "@/components/chat/utils/docRef";
@@ -199,91 +200,85 @@ function DocCardMessageImpl({ messageResponse }: { messageResponse: ChatMessageR
   useEffect(() => {
     if (!docId || !isSupportedDocId)
       return;
-    if (typeof previewSpaceId !== "number" || previewSpaceId <= 0)
-      return;
 
     let cancelled = false;
-    let unsubHeader: (() => void) | null = null;
+    const applySnapshot = (source: "cache" | "network", snapshot: unknown) => {
+      const header = readBlockNoteHeader(snapshot as any);
+      if (!cancelled) {
+        setPreviewLoadState({
+          status: "ready",
+          errorMessage: "",
+        });
+      }
 
-    const cleanup = () => {
-      try {
-        unsubHeader?.();
+      if (!header) {
+        return;
       }
-      catch {
-        // ignore
-      }
-      unsubHeader = null;
+
+      recordDocCardShareObservation("preview-header-sync", {
+        docId,
+        messageId: message.messageId,
+        previewSpaceId,
+        source,
+        hasTitle: Boolean(header.title),
+        hasImageUrl: Boolean(header.imageUrl),
+        hasImageFileId: Boolean(header.imageFileId),
+      });
+
+      setPreview((prev) => {
+        const next = {
+          title: header.title || prev.title || payload?.title || docId,
+          imageUrl: header.imageUrl || prev.imageUrl || payload?.imageUrl || "",
+          imageFileId: header.imageFileId ?? prev.imageFileId ?? payload?.imageFileId,
+          originalImageFileId: header.originalImageFileId ?? prev.originalImageFileId ?? payload?.originalImageFileId,
+          imageMediaType: header.imageMediaType ?? prev.imageMediaType ?? payload?.imageMediaType,
+          excerpt: prev.excerpt,
+        };
+
+        if (next.title === prev.title
+          && next.imageUrl === prev.imageUrl
+          && next.imageFileId === prev.imageFileId
+          && next.originalImageFileId === prev.originalImageFileId
+          && next.imageMediaType === prev.imageMediaType) {
+          return prev;
+        }
+
+        return next;
+      });
     };
+
+    const cachedSnapshot = getCachedDocSnapshot(docId);
+    if (cachedSnapshot) {
+      applySnapshot("cache", cachedSnapshot);
+    }
+
+    const unsubscribe = subscribeCachedDocSnapshot(docId, snapshot => applySnapshot("cache", snapshot));
 
     (async () => {
       try {
-        const registry = await import("@/components/chat/infra/blocksuite/space/spaceWorkspaceRegistry");
         if (!cancelled) {
-          setPreviewLoadState({
-            status: "loading",
-            errorMessage: "",
-          });
+          setPreviewLoadState(prev => (prev.status === "ready" && !prev.errorMessage)
+            ? prev
+            : {
+                status: "loading",
+                errorMessage: "",
+              });
         }
         recordDocCardShareObservation("preview-store-load-start", {
           docId,
           messageId: message.messageId,
           previewSpaceId,
         });
-        const store = registry.getOrCreateSpaceDoc({ spaceId: previewSpaceId, docId }) as any;
-
-        try {
-          (store as any)?.load?.();
-        }
-        catch {
-          // ignore
-        }
-
-        const header = readBlocksuiteDocHeader(store);
+        const header = await getRemoteSnapshot(docRemoteKey!);
         recordDocCardShareObservation("preview-store-load-success", {
           docId,
           messageId: message.messageId,
           previewSpaceId,
-          hasHeaderTitle: Boolean(header?.title),
-          hasHeaderImageUrl: Boolean(header?.imageUrl),
-          hasHeaderImageFileId: Boolean(header?.imageFileId),
+          hasHeaderTitle: Boolean(readBlockNoteHeader(header)?.title),
+          hasHeaderImageUrl: Boolean(readBlockNoteHeader(header)?.imageUrl),
+          hasHeaderImageFileId: Boolean(readBlockNoteHeader(header)?.imageFileId),
         });
-        if (!cancelled) {
-          setPreviewLoadState({
-            status: "ready",
-            errorMessage: "",
-          });
-        }
-        if (header && (header.title || header.imageUrl || header.imageFileId)) {
-          setPreview(prev => ({
-            title: header.title || prev.title || payload?.title || docId,
-            imageUrl: header.imageUrl || prev.imageUrl || payload?.imageUrl || "",
-            imageFileId: header.imageFileId ?? prev.imageFileId ?? payload?.imageFileId,
-            originalImageFileId: header.originalImageFileId ?? prev.originalImageFileId ?? payload?.originalImageFileId,
-            imageMediaType: header.imageMediaType ?? prev.imageMediaType ?? payload?.imageMediaType,
-            excerpt: prev.excerpt,
-          }));
-        }
-
-        unsubHeader = subscribeBlocksuiteDocHeader(store, (h) => {
-          if (!h)
-            return;
-          recordDocCardShareObservation("preview-header-sync", {
-            docId,
-            messageId: message.messageId,
-            previewSpaceId,
-            hasTitle: Boolean(h.title),
-            hasImageUrl: Boolean(h.imageUrl),
-            hasImageFileId: Boolean(h.imageFileId),
-          });
-          setPreview(prev => ({
-            title: h.title || prev.title || payload?.title || docId,
-            imageUrl: h.imageUrl || prev.imageUrl || payload?.imageUrl || "",
-            imageFileId: h.imageFileId ?? prev.imageFileId ?? payload?.imageFileId,
-            originalImageFileId: h.originalImageFileId ?? prev.originalImageFileId ?? payload?.originalImageFileId,
-            imageMediaType: h.imageMediaType ?? prev.imageMediaType ?? payload?.imageMediaType,
-            excerpt: prev.excerpt,
-          }));
-        });
+        applySnapshot("network", header);
       }
       catch (error) {
         const errorMessage = getDocCardPreviewErrorMessage(error);
@@ -304,10 +299,11 @@ function DocCardMessageImpl({ messageResponse }: { messageResponse: ChatMessageR
 
     return () => {
       cancelled = true;
-      cleanup();
+      unsubscribe();
     };
   }, [
     docId,
+    docRemoteKey,
     isSupportedDocId,
     message.messageId,
     payload?.imageFileId,

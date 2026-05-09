@@ -10,8 +10,9 @@ import type { MaterialItemDragPayload } from "@/components/chat/utils/materialIt
 import type { RoomRefDragPayload } from "@/components/chat/utils/roomRef";
 import type { FigurePosition } from "@/types/voiceRenderTypes";
 
+import { isStoredBlockNoteSnapshot, readBlockNoteExcerpt } from "@/components/chat/infra/blocksuite/document/blockNoteSnapshot";
+import { getCachedDocSnapshot } from "@/components/chat/infra/blocksuite/document/docSnapshotCache";
 import { parseDescriptionDocId } from "@/components/chat/infra/blocksuite/description/descriptionDocId";
-import { extractDocExcerptFromStore } from "@/components/chat/infra/blocksuite/document/docExcerpt";
 import { recordDocCardShareObservation } from "@/components/chat/infra/blocksuite/shared/docCardShareObservability";
 import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
 import { IMPORT_SPECIAL_ROLE_ID } from "@/components/chat/utils/importChatText";
@@ -88,26 +89,9 @@ export default function useRoomImportActions({
       return;
     }
 
-    const [{ getSpaceWorkspaceIfExists }, { setRemoteSnapshot }, { uint8ArrayToBase64 }] = await Promise.all([
-      import("@/components/chat/infra/blocksuite/space/spaceWorkspaceRegistry"),
+    const [{ getRemoteSnapshot, setRemoteSnapshot }] = await Promise.all([
       import("@/components/chat/infra/blocksuite/description/descriptionDocRemote"),
-      import("@/components/chat/infra/blocksuite/shared/base64"),
     ]);
-
-    const workspace = getSpaceWorkspaceIfExists(targetSpaceId) as {
-      getDoc?: (targetDocId: string) => { ready?: boolean } | null;
-      encodeDocAsUpdate?: (targetDocId: string) => Uint8Array;
-    } | null;
-
-    const currentDoc = workspace?.getDoc?.(docId) ?? null;
-    if (!workspace || !currentDoc?.ready || typeof workspace.encodeDocAsUpdate !== "function") {
-      recordDocCardShareObservation("share-sync-skip", {
-        docId,
-        spaceId: targetSpaceId,
-        reason: !workspace ? "workspace-missing" : (!currentDoc?.ready ? "doc-not-ready" : "encode-unavailable"),
-      });
-      return;
-    }
 
     recordDocCardShareObservation("share-sync-start", {
       docId,
@@ -117,12 +101,23 @@ export default function useRoomImportActions({
       docType: parsed.docType,
     });
 
-    const update = workspace.encodeDocAsUpdate(docId);
-    if (!(update instanceof Uint8Array) || update.length === 0) {
+    const cachedSnapshot = getCachedDocSnapshot(docId);
+    const snapshot = isStoredBlockNoteSnapshot(cachedSnapshot)
+      ? {
+          ...cachedSnapshot,
+          updatedAt: Date.now(),
+        }
+      : await getRemoteSnapshot({
+          entityType: parsed.entityType,
+          entityId: parsed.entityId,
+          docType: parsed.docType,
+        });
+
+    if (!isStoredBlockNoteSnapshot(snapshot)) {
       recordDocCardShareObservation("share-sync-skip", {
         docId,
         spaceId: targetSpaceId,
-        reason: "empty-update",
+        reason: "snapshot-missing",
       });
       return;
     }
@@ -133,8 +128,7 @@ export default function useRoomImportActions({
         entityId: parsed.entityId,
         docType: parsed.docType,
         snapshot: {
-          v: 1,
-          updateB64: uint8ArrayToBase64(update),
+          ...snapshot,
           updatedAt: Date.now(),
         },
       });
@@ -144,7 +138,7 @@ export default function useRoomImportActions({
         entityType: parsed.entityType,
         entityId: parsed.entityId,
         docType: parsed.docType,
-        updateBytes: update.length,
+        updateBytes: snapshot.updateB64.length,
       });
     }
     catch (error) {
@@ -371,17 +365,9 @@ export default function useRoomImportActions({
 
     if (!excerpt) {
       try {
-        const { getOrCreateSpaceDoc } = await import("@/components/chat/infra/blocksuite/space/spaceWorkspaceRegistry");
-
-        const store = getOrCreateSpaceDoc({ spaceId: sourceSpaceId, docId }) as any;
-        try {
-          store?.load?.();
-        }
-        catch {
-          // ignore
-        }
-
-        excerpt = extractDocExcerptFromStore(store, { maxChars: 220 });
+        const snapshot = getCachedDocSnapshot(docId)
+          ?? await import("@/components/chat/infra/blocksuite/description/descriptionDocRemote").then(({ getRemoteSnapshot }) => getRemoteSnapshot(parseDescriptionDocId(docId)!));
+        excerpt = readBlockNoteExcerpt(snapshot);
       }
       catch {
         // ignore
