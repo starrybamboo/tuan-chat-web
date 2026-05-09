@@ -4,7 +4,7 @@ import { useDeleteRolesMutation } from "api/hooks/RoleAndAvatarHooks";
 import { useDeleteRuleMutation, useRuleListQuery } from "api/hooks/ruleQueryHooks";
 import { useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
-import { Link, NavLink, useNavigate, useSearchParams } from "react-router";
+import { Link, NavLink, useNavigate, useSearchParams } from "@/router/native";
 import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
 import { getRoleRule } from "@/utils/roleRuleStorage";
 import { useGlobalContext } from "../../globalContextProvider";

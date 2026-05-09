@@ -497,9 +497,6 @@ importers:
       react-markdown:
         specifier: ^10.1.0
         version: 10.1.0(@types/react@19.2.7)(react@19.2.3)
-      react-router:
-        specifier: ^7.15.0
-        version: 7.15.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
       react-scan:
         specifier: ^0.4.3
         version: 0.4.3(@types/react@19.2.7)(react-dom@19.2.3(react@19.2.3))(react-router@7.15.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(react@19.2.3)(rollup@4.55.1)
@@ -18265,7 +18262,8 @@ snapshots:
 
   cookie-es@3.1.1: {}
 
-  cookie@1.1.1: {}
+  cookie@1.1.1:
+    optional: true
 
   core-js-compat@3.47.0:
     dependencies:
@@ -22919,6 +22917,7 @@ snapshots:
       set-cookie-parser: 2.7.2
     optionalDependencies:
       react-dom: 19.2.3(react@19.2.3)
+    optional: true
 
   react-scan@0.4.3(@types/react@19.2.7)(react-dom@19.2.3(react@19.2.3))(react-router@7.15.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(react@19.2.3)(rollup@4.55.1):
     dependencies:
@@ -23393,7 +23392,8 @@ snapshots:
 
   set-blocking@2.0.0: {}
 
-  set-cookie-parser@2.7.2: {}
+  set-cookie-parser@2.7.2:
+    optional: true
 
   set-function-length@1.2.2:
     dependencies:

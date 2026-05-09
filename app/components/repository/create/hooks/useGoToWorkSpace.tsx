@@ -1,5 +1,5 @@
 import { useCallback } from "react";
-import { useNavigate } from "react-router";
+import { useNavigate } from "@/router/native";
 
 export function useGoToWorkSpace() {
   const navigate = useNavigate();

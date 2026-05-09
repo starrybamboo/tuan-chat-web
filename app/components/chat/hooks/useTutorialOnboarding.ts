@@ -1,4 +1,4 @@
-import type { NavigateFunction } from "react-router";
+import type { NavigateFunction } from "@/router/native";
 
 import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useRef, useState } from "react";

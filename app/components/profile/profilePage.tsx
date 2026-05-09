@@ -1,6 +1,6 @@
 import { HouseIcon, ImageIcon } from "@phosphor-icons/react";
 import React, { useEffect, useRef, useState } from "react";
-import { NavLink, Outlet, useLocation, useParams } from "react-router";
+import { NavLink, Outlet, useLocation, useParams } from "@/router/native";
 
 function ProfilePage() {
   const { userId } = useParams();

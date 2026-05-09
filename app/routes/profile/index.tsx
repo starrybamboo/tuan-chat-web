@@ -1,7 +1,7 @@
 import type { RouteMetaArgs } from "@/router/routeTypes";
 import { createFileRoute } from "@tanstack/react-router";
 import HomeTab from "@/components/profile/profileTab/homeTab";
-import { useParams } from "@/router/reactRouterCompat";
+import { useParams } from "@/router/native";
 import { createSeoMeta } from "@/utils/seo";
 
 export function meta({ params }: RouteMetaArgs) {

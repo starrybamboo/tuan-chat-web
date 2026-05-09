@@ -3,44 +3,45 @@ import {
   Outlet as TanStackOutlet,
   Scripts as TanStackScripts,
   ScrollRestoration as TanStackScrollRestoration,
-  useLocation as useTanStackLocation,
   useMatchRoute,
   useRouter,
   useRouterState,
+  useLocation as useTanStackLocation,
 } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo } from "react";
 
-type CompatNavigateOptions = {
+interface NavigateOptions {
   replace?: boolean;
   state?: unknown;
-};
+}
 
-type CompatToObject = {
+interface ToObject {
   pathname?: string;
   search?: string;
   hash?: string;
-};
+}
 
-type CompatTo = string | CompatToObject;
+type To = string | ToObject;
 
-export type NavigateFunction = (to: CompatTo | number, options?: CompatNavigateOptions) => void;
+export type NavigateFunction = (to: To | number, options?: NavigateOptions) => void;
 
-type CompatLinkProps = Omit<React.ComponentPropsWithoutRef<"a">, "href"> & {
+type LinkProps = Omit<React.ComponentPropsWithoutRef<"a">, "href"> & {
   ref?: React.Ref<HTMLAnchorElement>;
-  to: CompatTo;
+  to: To;
   replace?: boolean;
 };
 
-type CompatNavLinkProps = Omit<CompatLinkProps, "className"> & {
+type NavLinkProps = Omit<LinkProps, "className"> & {
   className?: string | ((state: { isActive: boolean; isPending: boolean }) => string);
+  to: To;
   end?: boolean;
 };
 
-type CompatNavigateProps = {
-  to: CompatTo;
+interface NavigateProps {
+  to: To;
   replace?: boolean;
   state?: unknown;
-};
+}
 
 type SetSearchParamsAction
   = | URLSearchParams
@@ -49,7 +50,7 @@ type SetSearchParamsAction
     | Record<string, string>
     | ((prev: URLSearchParams) => URLSearchParams | string | string[][] | Record<string, string>);
 
-type SetSearchParams = (nextInit: SetSearchParamsAction, options?: CompatNavigateOptions) => void;
+type SetSearchParams = (nextInit: SetSearchParamsAction, options?: NavigateOptions) => void;
 
 function normalizeSearch(search: string | undefined) {
   if (!search) {
@@ -65,7 +66,7 @@ function normalizeHash(hash: string | undefined) {
   return hash.startsWith("#") ? hash : `#${hash}`;
 }
 
-function normalizeHref(currentHref: string, to: CompatTo) {
+function normalizeHref(currentHref: string, to: To) {
   const currentUrl = new URL(currentHref, "http://tanstack.local");
   if (typeof to === "string") {
     return new URL(to, currentUrl).toString().replace("http://tanstack.local", "");
@@ -118,7 +119,7 @@ export function Link({
   onClick,
   target,
   ...props
-}: CompatLinkProps) {
+}: LinkProps) {
   const navigate = useNavigate();
   const location = useLocation();
   const href = useMemo(
@@ -153,7 +154,7 @@ export function NavLink({
   end = false,
   target,
   ...props
-}: CompatNavLinkProps) {
+}: NavLinkProps) {
   const navigate = useNavigate();
   const location = useLocation();
   const href = useMemo(
@@ -187,7 +188,7 @@ export function NavLink({
   );
 }
 
-export function Navigate({ to, replace = false, state }: CompatNavigateProps) {
+export function Navigate({ to, replace = false, state }: NavigateProps) {
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -205,7 +206,7 @@ export function useNavigate(): NavigateFunction {
   const router = useRouter();
   const location = useLocation();
 
-  return useCallback((to: CompatTo | number, options?: CompatNavigateOptions) => {
+  return useCallback((to: To | number, options?: NavigateOptions) => {
     if (typeof to === "number") {
       router.history.go(to);
       return;
@@ -253,8 +254,8 @@ export function useParams<T extends Record<string, string | undefined> = Record<
 }
 
 export function useSearchParams(): [URLSearchParams, SetSearchParams] {
-  const router = useRouter();
   const location = useLocation();
+  const navigate = useNavigate();
   const searchText = typeof location.search === "string" ? location.search : "";
   const hashText = typeof location.hash === "string" ? location.hash : "";
   const pathnameText = typeof location.pathname === "string" ? location.pathname : "/";
@@ -270,12 +271,8 @@ export function useSearchParams(): [URLSearchParams, SetSearchParams] {
     const nextSearchParams = toUrlSearchParams(resolvedValue as Exclude<SetSearchParamsAction, ((prev: URLSearchParams) => unknown)>);
     const queryString = nextSearchParams.toString();
     const href = `${pathnameText}${queryString ? `?${queryString}` : ""}${hashText}`;
-    if (options?.replace) {
-      router.history.replace(href, options.state);
-      return;
-    }
-    router.history.push(href, options?.state);
-  }, [hashText, pathnameText, router, searchText]);
+    navigate(href, options);
+  }, [hashText, navigate, pathnameText, searchText]);
 
   return [searchParams, setSearchParams];
 }

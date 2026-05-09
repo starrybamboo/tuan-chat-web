@@ -1,30 +1,30 @@
 export type RouteParams = Record<string, string | undefined>;
 
-export interface RouteMetaArgs<
+export type RouteMetaArgs<
   TData = unknown,
   TParams extends RouteParams = RouteParams,
-> {
+> = {
   data?: TData | null | undefined;
   params: TParams;
-}
+};
 
-export interface RouteClientLoaderArgs<
+export type RouteClientLoaderArgs<
   TParams extends RouteParams = RouteParams,
-> {
+> = {
   params: TParams;
-}
+};
 
-export interface RouteLinkDescriptor {
+export type RouteLinkDescriptor = {
   rel: string;
   href: string;
   crossOrigin?: string;
-}
+};
 
 export type RouteLinksFunction = () => RouteLinkDescriptor[];
 
-export interface RouteErrorBoundaryProps<
+export type RouteErrorBoundaryProps<
   TParams extends RouteParams = RouteParams,
-> {
+> = {
   error: Error;
   params: TParams;
-}
+};

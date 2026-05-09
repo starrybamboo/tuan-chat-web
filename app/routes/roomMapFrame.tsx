@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMemo } from "react";
 
 import DNDMap from "@/components/chat/shared/map/DNDMap";
-import { useParams } from "@/router/reactRouterCompat";
+import { useParams } from "@/router/native";
 
 export const Route = createFileRoute("/room-map/$spaceId/$roomId")({
   component: RoomMapFrameRoute,

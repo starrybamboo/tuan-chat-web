@@ -1,4 +1,4 @@
-import { Link } from "react-router";
+import { Link } from "@/router/native";
 import { SidebarSimpleIcon } from "@/icons";
 
 export type ChatDiscoverNavItem = "repository-square" | "repository-my" | "material-public" | "material-mine";

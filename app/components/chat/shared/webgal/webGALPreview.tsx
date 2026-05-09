@@ -5,7 +5,7 @@
 
 import { useQueryClient } from "@tanstack/react-query";
 import { use, useCallback, useEffect } from "react";
-import { useLocation, useNavigate } from "react-router";
+import { useLocation, useNavigate } from "@/router/native";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
 import { resolveWebGALPreviewState } from "@/components/chat/shared/webgal/webGalPreviewState";
 import { useRealtimeRenderStore } from "@/components/chat/stores/realtimeRenderStore";

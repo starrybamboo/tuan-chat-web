@@ -1,6 +1,6 @@
 import type { RouteMetaArgs } from "@/router/routeTypes";
 import { createFileRoute } from "@tanstack/react-router";
-import { Outlet } from "@/router/reactRouterCompat";
+import { Outlet } from "@/router/native";
 import Topbar from "@/components/topbanner/Topbanner";
 import { createSeoMeta } from "@/utils/seo";
 

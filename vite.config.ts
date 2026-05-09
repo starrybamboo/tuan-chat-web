@@ -433,10 +433,6 @@ export default defineConfig(() => {
         "@lit/react",
       ],
       alias: [
-        {
-          find: /^react-router$/,
-          replacement: resolve(__dirname, "app/router/reactRouterCompat.tsx"),
-        },
         // BlockSuite packages export TypeScript sources (`./src/*.ts`) by default.
         // In Vite dev this can lead to:
         // - decorators not being applied (custom elements not defined) -> "Illegal constructor"
@@ -647,7 +643,7 @@ export default defineConfig(() => {
       },
     },
 
-    // React Router dev loads route modules in SSR. Some upstream packages (e.g. BlockSuite)
+    // TanStack Start dev still evaluates route modules in a server-like context. Some upstream packages (e.g. BlockSuite)
     // export TypeScript sources in `exports`, which Node cannot execute if externalized.
     // Force Vite SSR to bundle/transpile them to avoid runtime syntax errors like:
     // "SyntaxError: Unexpected identifier 'lineStyle'".

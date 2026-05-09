@@ -1,7 +1,7 @@
 import { useGetSpaceInfoQuery, useGetSpaceMembersQuery, useGetUserActiveSpacesQuery, useGetUserRoomsQuery } from "api/hooks/chatQueryHooks";
 import { useSpaceMaterialPackagesQuery } from "api/hooks/materialPackageQueryHooks";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Outlet, useSearchParams } from "react-router";
+import { Outlet, useSearchParams } from "@/router/native";
 import { ChatPageOverlays, ChatPagePanels } from "@/components/chat/chatPageContainers";
 import { ChatPageLayoutProvider } from "@/components/chat/chatPageLayoutProvider";
 import { ChatPageDocContent } from "@/components/chat/chatPageMainContent";

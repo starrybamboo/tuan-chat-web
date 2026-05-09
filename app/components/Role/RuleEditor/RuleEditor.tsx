@@ -3,7 +3,7 @@ import { ApiError } from "@tuanchat/openapi-client/core/ApiError";
 import { useAllRuleListQuery, useCreateRuleMutation, useGetRuleDetailQuery, useUpdateRuleMutation } from "api/hooks/ruleQueryHooks";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import toast from "react-hot-toast";
-import { useLocation, useNavigate } from "react-router";
+import { useLocation, useNavigate } from "@/router/native";
 import { useGlobalUserId } from "@/components/globalContextProvider";
 import { EditIcon, SaveIcon } from "@/icons";
 import Section from "../Editors/Section";

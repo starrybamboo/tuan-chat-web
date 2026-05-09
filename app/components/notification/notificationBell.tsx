@@ -3,7 +3,7 @@ import type { UserNotificationItem } from "@/components/notification/notificatio
 import { BellIcon } from "@phosphor-icons/react";
 import { motion } from "motion/react";
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
-import { Link, useNavigate } from "react-router";
+import { Link, useNavigate } from "@/router/native";
 import { interactiveButtonMotionProps } from "@/components/common/motion/interactiveButtonMotion";
 import {
   useMarkAllNotificationsReadMutation,

@@ -1,7 +1,7 @@
 import type { RouteMetaArgs } from "@/router/routeTypes";
 import { createFileRoute } from "@tanstack/react-router";
 
-import { Navigate, useParams } from "@/router/reactRouterCompat";
+import { Navigate, useParams } from "@/router/native";
 import { createSeoMeta } from "@/utils/seo";
 
 export function meta(_args: RouteMetaArgs) {

@@ -1,5 +1,5 @@
 import { useRef } from "react";
-import { useNavigate } from "react-router";
+import { useNavigate } from "@/router/native";
 import { resolveUserDisplayName, useResolvedUserInfo } from "@/components/common/userAccess.shared";
 import { XMarkICon } from "@/icons";
 import { getScreenSize } from "@/utils/getScreenSize";

@@ -1,6 +1,6 @@
 import type { FeedbackIssueDetail, FeedbackIssueListFilters } from "@/components/feedback/feedbackTypes";
 import { startTransition, useDeferredValue, useMemo, useState } from "react";
-import { useNavigate, useParams } from "react-router";
+import { useNavigate, useParams } from "@/router/native";
 import FeedbackComposer from "@/components/feedback/feedbackComposer";
 import { useFeedbackIssuesInfiniteQuery } from "@/components/feedback/feedbackHooks";
 import FeedbackIssueDetailView from "@/components/feedback/feedbackIssueDetail";

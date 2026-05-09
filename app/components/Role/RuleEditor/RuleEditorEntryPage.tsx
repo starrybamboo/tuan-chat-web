@@ -1,7 +1,7 @@
 import { Plus } from "@phosphor-icons/react";
 import { useGetRuleDetailQuery } from "api/hooks/ruleQueryHooks";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate } from "react-router";
+import { useNavigate } from "@/router/native";
 
 import { useGlobalUserId } from "@/components/globalContextProvider";
 import CreatePageHeader from "@/components/Role/RoleCreation/CreatePageHeader";

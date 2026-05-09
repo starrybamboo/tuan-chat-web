@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 
 import ReactMarkdown from "react-markdown";
-import { useNavigate } from "react-router";
+import { useNavigate } from "@/router/native";
 import rehypeRaw from "rehype-raw";
 import rehypeSanitize from "rehype-sanitize";
 import remarkGfm from "remark-gfm";
