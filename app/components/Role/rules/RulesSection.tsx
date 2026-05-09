@@ -1,10 +1,10 @@
 // RulesSection.tsx
 
 import { Plus } from "@phosphor-icons/react";
+import { useRouter } from "@tanstack/react-router";
 import { useDebounce } from "ahooks";
 import { useRulePageSuspenseQuery } from "api/hooks/ruleQueryHooks";
 import { Suspense, useCallback, useDeferredValue, useEffect, useState } from "react";
-import { Link } from "@/utils/navigation";
 
 interface RulesListProps {
   pageNum: number;
@@ -56,6 +56,7 @@ export default function RulesSection({
   description,
   controlsInHeader = false,
 }: RulesSectionProps) {
+  const router = useRouter();
   // 内部状态管理 - 完全自治
   const [pageNum, setPageNum] = useState(1);
   const [keyword, setKeyword] = useState("");
@@ -159,10 +160,14 @@ export default function RulesSection({
           <div className="card-body">
             <div className="flex justify-between">
               <h3 className="card-title flex items-center gap-2">⚙️ 选择规则系统</h3>
-              <Link to="/role?type=rule&mode=entry" className="btn btn-sm btn-primary">
+              <button
+                type="button"
+                className="btn btn-sm btn-primary"
+                onClick={() => router.history.push("/role?type=rule&mode=entry")}
+              >
                 <Plus className="size-4" weight="bold" />
                 自定义规则
-              </Link>
+              </button>
             </div>
             <div className="mt-4 space-y-4">
               {searchBar}

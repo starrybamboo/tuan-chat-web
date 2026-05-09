@@ -1,10 +1,10 @@
 import type { ReactNode } from "react";
+import { useRouter } from "@tanstack/react-router";
 import { useRepositoryListQuery } from "api/hooks/repositoryQueryHooks";
 import { useRuleListQuery } from "api/hooks/ruleQueryHooks";
 import { useEffect, useMemo, useState } from "react";
 import Pagination from "@/components/common/pagination";
 import { imageMediumUrl, imageMediumUrlFromUrl } from "@/utils/mediaUrl";
-import { useAppNavigate as useNavigate } from "@/utils/navigation";
 
 const EMPTY_STRING_LIST: string[] = [];
 
@@ -310,7 +310,7 @@ export function ContentCard({
 
 // 示例使用的模块首页组件
 export default function RepositoryHome() {
-  const navigate = useNavigate();
+  const router = useRouter();
 
   interface RepositoryCard {
     id: string;
@@ -553,26 +553,24 @@ export default function RepositoryHome() {
                         console.error("仓库ID为空，无法跳转");
                         return;
                       }
-                      navigate(`/repository/detail/${card.repositoryId}`, {
-                        state: {
-                          repositoryData: {
-                            repositoryId: card.repositoryId,
-                            ruleId: card.ruleId, // 所用的规则id
-                            ruleName: card.rule, // 所用的规则名称
-                            repositoryName: card.title,
-                            description: card.content,
-                            userId: card.userId, // 上传者
-                            authorName: card.authorName, // 作者
-                            image: card.image, // 仓库封面
-                            createTime: card.createTime, // 创建时间
-                            updateTime: card.updateTime, // 修改时间
-                            minPeople: card.minPeople, // 仓库需要人数
-                            maxPeople: card.maxPeople,
-                            minTime: card.minTime, // 仓库可能需要花费时间
-                            maxTime: card.maxTime,
-                            parent: card.parent, // 从哪个仓库fork来
-                            readMe: card.readMe, // md字段
-                          },
+                      router.history.push(`/repository/detail/${card.repositoryId}`, {
+                        repositoryData: {
+                          repositoryId: card.repositoryId,
+                          ruleId: card.ruleId, // 所用的规则id
+                          ruleName: card.rule, // 所用的规则名称
+                          repositoryName: card.title,
+                          description: card.content,
+                          userId: card.userId, // 上传者
+                          authorName: card.authorName, // 作者
+                          image: card.image, // 仓库封面
+                          createTime: card.createTime, // 创建时间
+                          updateTime: card.updateTime, // 修改时间
+                          minPeople: card.minPeople, // 仓库需要人数
+                          maxPeople: card.maxPeople,
+                          minTime: card.minTime, // 仓库可能需要花费时间
+                          maxTime: card.maxTime,
+                          parent: card.parent, // 从哪个仓库fork来
+                          readMe: card.readMe, // md字段
                         },
                       });
                     }}

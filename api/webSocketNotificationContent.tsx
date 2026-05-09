@@ -1,6 +1,6 @@
 import type { ChatMessageResponse } from "@tuanchat/openapi-client/models/ChatMessageResponse";
 
-import { useAppNavigate as useNavigate } from "@/utils/navigation";
+import { useRouter } from "@tanstack/react-router";
 import toast from "react-hot-toast";
 
 import type { DirectMessageEvent } from "./wsModels";
@@ -17,7 +17,7 @@ export function FriendRequestToastContent({
   avatar?: string;
   verifyMsg?: string;
 }) {
-  const navigate = useNavigate();
+  const router = useRouter();
 
   return (
     <div
@@ -26,13 +26,13 @@ export function FriendRequestToastContent({
       tabIndex={0}
       onClick={() => {
         toast.dismiss(toastId);
-        navigate("/chat/private?tab=pending");
+        router.history.push("/chat/private?tab=pending");
       }}
       onKeyDown={(e) => {
         if (e.key === "Enter" || e.key === " ") {
           e.preventDefault();
           toast.dismiss(toastId);
-          navigate("/chat/private?tab=pending");
+          router.history.push("/chat/private?tab=pending");
         }
       }}
     >
@@ -72,11 +72,11 @@ export function DirectMessageToastContent({
   avatar?: string;
   previewText: string;
 }) {
-  const navigate = useNavigate();
+  const router = useRouter();
 
   const jumpToPrivateChat = () => {
     toast.dismiss(toastId);
-    navigate(`/chat/private/${senderId}`);
+    router.history.push(`/chat/private/${senderId}`);
   };
 
   return (
@@ -128,12 +128,12 @@ export function GroupMessageToastContent({
   senderAvatar?: string;
   previewText: string;
 }) {
-  const navigate = useNavigate();
+  const router = useRouter();
 
   const jumpToGroupChat = () => {
     toast.dismiss(toastId);
     if (targetPath) {
-      navigate(targetPath);
+      router.history.push(targetPath);
     }
   };
 
@@ -183,12 +183,12 @@ export function NotificationToastContent({
   content: string;
   targetPath: string | null;
 }) {
-  const navigate = useNavigate();
+  const router = useRouter();
 
   const jumpToNotificationTarget = () => {
     toast.dismiss(toastId);
     if (targetPath) {
-      navigate(targetPath);
+      router.history.push(targetPath);
     }
   };
 

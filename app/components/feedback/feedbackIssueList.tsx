@@ -1,4 +1,5 @@
 import type { FeedbackIssueListFilters, FeedbackIssueListItem, FeedbackIssueStatus } from "@/components/feedback/feedbackTypes";
+import { Link } from "@tanstack/react-router";
 import {
   FEEDBACK_ISSUE_STATUS_COMPLETED,
   FEEDBACK_ISSUE_STATUS_OPTIONS,
@@ -12,7 +13,6 @@ import {
   getFeedbackIssueTypeLabel,
   toArchiveFilterValue,
 } from "@/components/feedback/feedbackTypes";
-import { Link } from "@/utils/navigation";
 
 function FeedbackStateDot({
   status,
@@ -276,7 +276,8 @@ export default function FeedbackIssueList({
                           {getStateText(issue)}
                           {" · "}
                           <Link
-                            to={`/profile/${issue.author?.userId ?? 0}`}
+                            to="/profile/$userId"
+                            params={{ userId: String(issue.author?.userId ?? 0) }}
                             className="hover:text-primary"
                             onClick={event => event.stopPropagation()}
                           >

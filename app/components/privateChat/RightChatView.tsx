@@ -1,7 +1,7 @@
+import { useParams } from "@tanstack/react-router";
 import { useGetInboxMessageWithUserQuery, useUpdateReadPositionMutation } from "api/hooks/MessageDirectQueryHooks";
 import { useEffect, useMemo } from "react";
 import { useGlobalUserId } from "@/components/globalContextProvider";
-import { useAllParams as useParams } from "@/utils/navigation";
 import ContextMenu from "./components/ContextMenu";
 import MessageInput from "./components/MessageInput";
 import MessageWindow from "./components/MessageWindow";
@@ -13,8 +13,8 @@ import { getLatestIncomingSync } from "./privateUnreadUtils";
 
 export default function RightChatView({ setIsOpenLeftDrawer }: { setIsOpenLeftDrawer: (isOpen: boolean) => void }) {
   const userId = useGlobalUserId() || -1;
-  const { targetUserId: urlTargetUserId, roomId: urlRoomId } = useParams();
-  const currentContactUserId = urlRoomId ? Number.parseInt(urlRoomId) : (urlTargetUserId ? Number.parseInt(urlTargetUserId) : null);
+  const { roomId: urlRoomId } = useParams({ strict: false });
+  const currentContactUserId = urlRoomId ? Number.parseInt(urlRoomId) : null;
 
   // 历史消息hook（全局）
   const { historyMessages, refetch } = useGetInboxMessageWithUserQuery(userId, currentContactUserId || -1);

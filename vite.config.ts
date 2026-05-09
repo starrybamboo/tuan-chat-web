@@ -1,6 +1,5 @@
 import type { Plugin } from "vite";
 
-import * as babelCore from "@babel/core";
 import tailwindcss from "@tailwindcss/vite";
 import { tanstackStart } from "@tanstack/react-start/plugin/vite";
 import { vanillaExtractPlugin } from "@vanilla-extract/vite-plugin";
@@ -268,11 +267,6 @@ export default defineConfig(() => {
     return existsSync(abs) ? realpathSync(abs) : abs;
   };
 
-  // Some BlockSuite packages and our local BlockSuite customizations still use ES2023 auto-accessors.
-  // Older Chromium builds and parts of the Vite pipeline may fail to parse `accessor foo = ...`.
-  // Downlevel only the affected files, and only when the source actually contains `accessor`.
-  const autoAccessorRE = /(?:@blocksuite[\\/][^\\/]+[\\/](?:dist|src)|app[\\/]components[\\/]chat[\\/]infra[\\/]blocksuite)[\\/].*\.(?:[cm]?[jt]s|tsx?)(?:\?.*)?$/;
-
   return {
     plugins: [
       ...tanstackStart({
@@ -295,62 +289,9 @@ export default defineConfig(() => {
       ossUploadProxyPlugin(),
       electronDevPingPlugin(),
 
-      // Downlevel BlockSuite ES2023 auto-accessor syntax before the normal Vite TS/JS transforms kick in.
-      {
-        name: "tc-downlevel-blocksuite-auto-accessor",
-        enforce: "pre",
-        async transform(code, id) {
-          if (!autoAccessorRE.test(id))
-            return null;
-          if (!/^\s*(?:override\s+)?accessor\s+/m.test(code))
-            return null;
-
-          const filename = id.split("?")[0];
-          const isTypeScriptFile = /\.[cm]?tsx?$/.test(filename);
-          const isTsxFile = filename.endsWith(".tsx");
-          const result = await babelCore.transformAsync(code, {
-            filename,
-            // BlockSuite 发布包的 *.map 指向了未随 npm 分发的 src/* 文件。
-            // 一旦继续传递 sourcemap，Rollup 在报告 warning 时会反复尝试回溯并产生日志噪音。
-            // 这里显式关闭输入/输出 sourcemap，保持构建可读性。
-            sourceMaps: false,
-            presets: [
-              ...(isTypeScriptFile
-                ? [[
-                    "@babel/preset-typescript",
-                    {
-                      allExtensions: true,
-                      isTSX: isTsxFile,
-                    },
-                  ] as const]
-                : []),
-              [
-                "@babel/preset-env",
-                {
-                  targets: { esmodules: true },
-                  bugfixes: true,
-                  modules: false,
-                  loose: true,
-                },
-              ],
-            ],
-            plugins: [
-              ["@babel/plugin-proposal-decorators", { version: "2023-05" }],
-              ["@babel/plugin-proposal-class-properties", { loose: true }],
-            ],
-          });
-
-          if (!result?.code)
-            return null;
-          // 防止上游文件尾部 `//# sourceMappingURL=...` 继续触发 sourcemap 回溯。
-          const codeWithoutSourceMapUrl = result.code.replace(/\n\/\/# sourceMappingURL=.*$/gm, "");
-          return { code: codeWithoutSourceMapUrl, map: null };
-        },
-      },
-
       // NOTE:
-      // Some upstream packages (e.g. BlockSuite/AFFiNE) ship vanilla-extract sources
-      // or runtime that can reference `document`. In production builds, `emitCss`
+      // Some upstream packages ship vanilla-extract sources or runtime that can
+      // reference `document`. In production builds, `emitCss`
       // evaluates style modules and may crash with `document is not defined`.
       //
       // Using `transform` avoids executing those modules at build time.
@@ -399,8 +340,6 @@ export default defineConfig(() => {
       // This mirrors the upstream playground Vite config.
       extensions: [".ts", ".tsx", ".js", ".jsx", ".mjs", ".json"],
 
-      // Ensure we don't end up with nested copies like `lit/node_modules/lit-html`,
-      // which increases module count and can exhaust browser/dev-server resources on Windows.
       dedupe: [
         "react",
         "react-dom",
@@ -411,13 +350,6 @@ export default defineConfig(() => {
         "react/jsx-dev-runtime",
         "@tanstack/react-router",
         "zustand",
-        "yjs",
-        "lit",
-        "lit-element",
-        "lit-html",
-        "@lit/context",
-        "@lit/reactive-element",
-        "@lit/react",
       ],
       alias: [
         // 音频转码依赖 ffmpeg.wasm：固定到 ESM 入口，避免 Vite 在 Windows 下解析 package exports 失败
@@ -450,57 +382,6 @@ export default defineConfig(() => {
           replacement: nm("node_modules/@ffmpeg/util/dist/esm/index.js"),
         },
 
-        // Force Lit ecosystem to resolve to a single physical copy.
-        // This helps avoid runtime warnings like "Multiple versions of Lit loaded"
-        // when the same version is loaded from different paths (e.g. pnpm virtual store).
-        {
-          find: /^lit$/,
-          replacement: nm("node_modules/lit/index.js"),
-        },
-        {
-          find: /^lit\/(.+)$/,
-          replacement: `${nm("node_modules/lit")}/$1`,
-        },
-        {
-          find: /^lit-html$/,
-          replacement: nm("node_modules/lit-html/lit-html.js"),
-        },
-        {
-          find: /^lit-html\/(.+)$/,
-          replacement: `${nm("node_modules/lit-html")}/$1`,
-        },
-        {
-          find: /^lit-element$/,
-          replacement: nm("node_modules/lit-element/index.js"),
-        },
-        {
-          find: /^lit-element\/(.+)$/,
-          replacement: `${nm("node_modules/lit-element")}/$1`,
-        },
-        {
-          find: /^@lit\/reactive-element$/,
-          replacement: nm("node_modules/@lit/reactive-element/reactive-element.js"),
-        },
-        {
-          find: /^@lit\/reactive-element\/(.+)$/,
-          replacement: `${nm("node_modules/@lit/reactive-element")}/$1`,
-        },
-        {
-          find: /^@lit\/context$/,
-          replacement: nm("node_modules/@lit/context/index.js"),
-        },
-        {
-          find: /^@lit\/context\/(.+)$/,
-          replacement: `${nm("node_modules/@lit/context")}/$1`,
-        },
-        {
-          find: /^@lit\/react$/,
-          replacement: nm("node_modules/@lit/react/index.js"),
-        },
-        {
-          find: /^@lit\/react\/(.+)$/,
-          replacement: `${nm("node_modules/@lit/react")}/$1`,
-        },
         {
           find: "@",
           replacement: resolve(__dirname, "app"),
@@ -543,12 +424,10 @@ export default defineConfig(() => {
       strictPort: true,
       host: "0.0.0.0",
       // Pre-transform requested modules more aggressively in dev.
-      // This often helps heavy ESM graphs (like BlockSuite) on first open.
       preTransformRequests: true,
-      // Warm up the current document editor snapshot path in dev.
+      // Warm up the current document editor path in dev.
       warmup: {
         clientFiles: [
-          // blocknote editor host
           "app/components/chat/shared/components/BlockSuite/blocksuiteDescriptionEditor.tsx",
           "app/components/chat/infra/blocksuite/document/blockNoteSnapshot.ts",
           "app/components/chat/infra/blocksuite/document/docSnapshotCache.ts",
@@ -565,7 +444,6 @@ export default defineConfig(() => {
         "qrcode",
       ],
       noExternal: [
-        /^@toeverything\//,
         "lodash",
         "fast-diff",
         "use-sync-external-store",
@@ -598,7 +476,6 @@ export default defineConfig(() => {
         // browser resource exhaustion (ERR_INSUFFICIENT_RESOURCES) in dev.
         "pixi.js",
         "zod",
-        "yjs",
         "rxjs",
         "@preact/signals-core",
 
@@ -644,14 +521,6 @@ export default defineConfig(() => {
         "screenfull",
       ],
 
-      exclude: [
-        "lit",
-        "lit-element",
-        "lit-html",
-        "@lit/context",
-        "@lit/reactive-element",
-        "@lit/react",
-      ],
     },
   };
 });

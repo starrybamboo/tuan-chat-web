@@ -1,5 +1,6 @@
 import type { MarkTarget } from "../../../api";
 import type { FeedbackIssueStatus } from "@/components/feedback/feedbackTypes";
+import { Link } from "@tanstack/react-router";
 import toast from "react-hot-toast";
 import {
   useFeedbackIssueDetailQuery,
@@ -22,7 +23,6 @@ import {
   getFeedbackIssueTypeLabel,
   isFeedbackDeveloper,
 } from "@/components/feedback/feedbackTypes";
-import { Link } from "@/utils/navigation";
 
 function readErrorMessage(error: unknown) {
   if (error instanceof Error && error.message.trim()) {
@@ -295,7 +295,8 @@ export default function FeedbackIssueDetail({
                   <FeedbackDetailAuthor avatar={avatar} authorName={authorName} />
                   <div className="flex flex-col">
                     <Link
-                      to={`/profile/${issue.author?.userId ?? 0}`}
+                      to="/profile/$userId"
+                      params={{ userId: String(issue.author?.userId ?? 0) }}
                       className="font-medium text-base-content hover:text-primary transition-colors hover:underline hover:underline-offset-2"
                     >
                       {authorName}

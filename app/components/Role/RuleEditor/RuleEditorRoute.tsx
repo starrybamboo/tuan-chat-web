@@ -1,8 +1,8 @@
+import { useLocation, useRouter } from "@tanstack/react-router";
 import { ApiError } from "api";
 import { useGetRuleDetailQuery } from "api/hooks/ruleQueryHooks";
 import { useEffect, useMemo, useRef } from "react";
 import toast from "react-hot-toast";
-import { useAppNavigate as useNavigate, useUrlSearchParams as useSearchParams } from "@/utils/navigation";
 
 import RuleEditor from "./RuleEditor";
 import RuleEditorEntryPage from "./RuleEditorEntryPage";
@@ -12,8 +12,9 @@ interface RuleEditorRouteProps {
 }
 
 export default function RuleEditorRoute({ onBack }: RuleEditorRouteProps) {
-  const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
+  const location = useLocation();
+  const router = useRouter();
+  const searchParams = new URLSearchParams(location.searchStr);
 
   const modeParam = searchParams.get("mode");
   const ruleIdParam = searchParams.get("ruleId");
@@ -78,12 +79,12 @@ export default function RuleEditorRoute({ onBack }: RuleEditorRouteProps) {
     didCanonicalizeRef.current = true;
 
     if (parsed.view === "entry") {
-      navigate("/role?type=rule&mode=entry", { replace: true });
+      router.history.replace("/role?type=rule&mode=entry");
       return;
     }
 
-    navigate("/role?type=rule&mode=create", { replace: true });
-  }, [navigate, parsed.view, parsed.shouldCanonicalize]);
+    router.history.replace("/role?type=rule&mode=create");
+  }, [parsed.view, parsed.shouldCanonicalize, router]);
 
   // mode=edit 但 ruleId 缺失/非法 or 未知 mode：统一回退到入口页
   useEffect(() => {
@@ -100,16 +101,16 @@ export default function RuleEditorRoute({ onBack }: RuleEditorRouteProps) {
         toast.error(`无效的 ruleId 参数：${parsed.invalidParam}`);
       }
 
-      navigate("/role?type=rule&mode=entry", { replace: true });
+      router.history.replace("/role?type=rule&mode=entry");
       return;
     }
 
     if (parsed.view === "invalid-mode") {
       didFallbackRef.current = true;
       toast.error(`无效的 mode 参数：${parsed.invalidMode}`);
-      navigate("/role?type=rule&mode=entry", { replace: true });
+      router.history.replace("/role?type=rule&mode=entry");
     }
-  }, [navigate, parsed]);
+  }, [parsed, router]);
 
   const ruleDetailQuery = useGetRuleDetailQuery(parsed.view === "edit" ? parsed.ruleId : 0);
 
@@ -133,7 +134,7 @@ export default function RuleEditorRoute({ onBack }: RuleEditorRouteProps) {
         toast.error(`获取规则失败：${msg}`);
       }
 
-      navigate("/role?type=rule&mode=entry", { replace: true });
+      router.history.replace("/role?type=rule&mode=entry");
       return;
     }
 
@@ -147,10 +148,10 @@ export default function RuleEditorRoute({ onBack }: RuleEditorRouteProps) {
         const code = typeof res?.errCode === "number" ? res.errCode : 200;
         const msg = res?.errMsg || "找不到对应的规则";
         toast.error(`找不到规则（${code}）：${msg}`);
-        navigate("/role?type=rule&mode=entry", { replace: true });
+        router.history.replace("/role?type=rule&mode=entry");
       }
     }
-  }, [navigate, parsed.view, ruleDetailQuery.data, ruleDetailQuery.error, ruleDetailQuery.isError, ruleDetailQuery.isSuccess]);
+  }, [parsed.view, router, ruleDetailQuery.data, ruleDetailQuery.error, ruleDetailQuery.isError, ruleDetailQuery.isSuccess]);
 
   if (parsed.view === "create" && parsed.shouldCanonicalize) {
     // 正在 replace 到规范 URL

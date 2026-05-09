@@ -1,10 +1,9 @@
 import { HouseIcon, ImageIcon } from "@phosphor-icons/react";
-import { Link, Outlet, useLocation } from "@tanstack/react-router";
+import { Link, Outlet, useLocation, useParams } from "@tanstack/react-router";
 import React, { useEffect, useRef, useState } from "react";
-import { useAllParams as useParams } from "@/utils/navigation";
 
 function ProfilePage() {
-  const { userId } = useParams();
+  const { userId } = useParams({ strict: false });
   const location = useLocation();
   const navRef = useRef<HTMLDivElement>(null);
   const [underline, setUnderline] = useState({ left: 0, width: 0 });

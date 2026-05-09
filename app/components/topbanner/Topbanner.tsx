@@ -1,6 +1,6 @@
 import { ChatsIcon, CheckCircleIcon, GearSixIcon, IdentificationCardIcon, PaintBrushBroadIcon, SignOutIcon, UserIcon } from "@phosphor-icons/react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Link, useLocation } from "@tanstack/react-router";
+import { Link, useLocation, useRouter } from "@tanstack/react-router";
 import { motion, useAnimationControls } from "motion/react";
 import { lazy, Suspense, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import WebgalStarter from "@/components/chat/shared/webgal/webgalStarter";
@@ -13,7 +13,6 @@ import UpdatesToastWindow from "@/components/topbanner/updatesWindow";
 import { DiscordIcon, QQIcon, WebgalIcon } from "@/icons";
 import { checkAuthStatus, logoutUser } from "@/utils/auth/authapi";
 import { isElectronEnv } from "@/utils/isElectronEnv";
-import { useAppNavigate as useNavigate } from "@/utils/navigation";
 import { isDevOrTestEnvironment } from "@/utils/runtimeEnvironment";
 import { useGetUserInfoQuery } from "../../../api/hooks/UserHooks";
 import ThemeSwitch from "../themeSwitch";
@@ -93,7 +92,7 @@ export default function Topbar() {
     }
   };
 
-  const navigate = useNavigate();
+  const router = useRouter();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -167,7 +166,7 @@ export default function Topbar() {
 
   // 处理用户菜单导航并关闭下拉菜单
   const handleUserNavigation = (path: string) => {
-    navigate(path);
+    router.history.push(path);
     setIsUserDropdownOpen(false);
     // 强制移除焦点
     (document.activeElement as HTMLElement)?.blur();

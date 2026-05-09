@@ -1,11 +1,10 @@
 import type { Role } from "@/components/Role/types";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useLocation, useRouter } from "@tanstack/react-router";
 
 import CreateDiceMaiden from "@/components/Role/RoleCreation/CreateDicerRole";
 import CreateEntry from "@/components/Role/RoleCreation/CreateEntry";
 import CreateRoleBySelf from "@/components/Role/RoleCreation/CreateRoleBySelf";
 import RuleEditorRoute from "@/components/Role/RuleEditor/RuleEditorRoute";
-import { useAppNavigate as useNavigate, useUrlSearchParams as useSearchParams } from "@/utils/navigation";
 import { setRoleRule } from "@/utils/roleRuleStorage";
 
 type CreateMode = "normal" | "dice" | "rule" | "entry";
@@ -22,19 +21,20 @@ export const Route = createFileRoute("/_dashboard/role/")({
 });
 
 export default function RoleCreationPage() {
-  const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
+  const location = useLocation();
+  const router = useRouter();
+  const searchParams = new URLSearchParams(location.searchStr);
   const mode = resolveCreateMode(searchParams.get("type"));
 
   const handleBackToEntry = () => {
-    navigate("/role");
+    router.history.push("/role");
   };
 
   // 当一个角色被创建并保存后，导航到它的详情页
   const handleCreationComplete = (newRole: Role, ruleId?: number) => {
     const resolvedRuleId = ruleId || 1;
     setRoleRule(newRole.id, resolvedRuleId);
-    navigate(`/role/${newRole.id}?rule=${resolvedRuleId}`);
+    router.history.push(`/role/${newRole.id}?rule=${resolvedRuleId}`);
   };
 
   // 根据 mode 返回不同的创建组件

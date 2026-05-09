@@ -1,3 +1,4 @@
+import { useRouter } from "@tanstack/react-router";
 import React, { useCallback, useRef, useState } from "react";
 import toast from "react-hot-toast";
 import ImagePreview from "@/components/activities/ImagePreview";
@@ -15,7 +16,6 @@ import SlidableChatPreview from "@/components/community/slidableChatPreview";
 import { useGlobalUserId } from "@/components/globalContextProvider";
 import { CommentOutline } from "@/icons";
 import { avatarThumbUrl } from "@/utils/mediaUrl";
-import { useAppNavigate as useNavigate } from "@/utils/navigation";
 import { useDeleteMomentFeedMutation } from "../../../../api/hooks/activitiesFeedQuerryHooks";
 import { useGetUserInfoQuery } from "../../../../api/hooks/UserHooks";
 
@@ -40,7 +40,7 @@ const PostsCard: React.FC<PostsCardProps> = ({
   displayType = "default",
   contentTypeNumber,
 }) => {
-  const navigate = useNavigate();
+  const router = useRouter();
   const isFeed = displayType === "feed";
   const loginUserId = useGlobalUserId() ?? -1;
 
@@ -183,27 +183,25 @@ const PostsCard: React.FC<PostsCardProps> = ({
           repositoryId={res.repositoryId}
           onClick={() => {
             if (res?.repositoryId) {
-              navigate(`/repository/detail/${res.repositoryId}`, {
-                state: {
-                  // TODO
-                  repositoryData: {
-                    repositoryId: res.repositoryId,
-                    // ruleId: repository.ruleId,
-                    // ruleName: repository.rule,
-                    repositoryName: res.name,
-                    description: res.description,
-                    userId,
-                    // authorName: repository.authorName,
-                    image: res.repositoryImage,
-                    // createTime: repository.createTime,
-                    // updateTime: repository.updateTime,
-                    // minPeople: repository.minPeople,
-                    // maxPeople: repository.maxPeople,
-                    // minTime: repository.minTime,
-                    // maxTime: repository.maxTime,
-                    // parent: repository.parentRepositoryId,
-                    // instruction: repository.instruction,
-                  },
+              router.history.push(`/repository/detail/${res.repositoryId}`, {
+                // TODO
+                repositoryData: {
+                  repositoryId: res.repositoryId,
+                  // ruleId: repository.ruleId,
+                  // ruleName: repository.rule,
+                  repositoryName: res.name,
+                  description: res.description,
+                  userId,
+                  // authorName: repository.authorName,
+                  image: res.repositoryImage,
+                  // createTime: repository.createTime,
+                  // updateTime: repository.updateTime,
+                  // minPeople: repository.minPeople,
+                  // maxPeople: repository.maxPeople,
+                  // minTime: repository.minTime,
+                  // maxTime: repository.maxTime,
+                  // parent: repository.parentRepositoryId,
+                  // instruction: repository.instruction,
                 },
               });
             }

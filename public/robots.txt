@@ -10,7 +10,6 @@ Disallow: /role
 Disallow: /invite/
 Disallow: /doc/
 Disallow: /material/space/
-Disallow: /blocksuite-frame
 Disallow: /room-map/
 
 Sitemap: https://tuan.chat/sitemap.xml

@@ -1,16 +1,15 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, useParams } from "@tanstack/react-router";
 import { fetchUserRoomsWithCache, useSpaceInvitedMutation } from "api/hooks/chatQueryHooks";
 import { useEffect, useRef, useState } from "react";
 import { useGlobalUserId } from "@/components/globalContextProvider";
-import { useAppNavigate as useNavigate, useAllParams as useParams } from "@/utils/navigation";
 
 export const Route = createFileRoute("/invite/$code")({
   component: InvitePage,
 });
 
 export default function InvitePage() {
-  const { code } = useParams() as { code?: string };
+  const { code } = useParams({ strict: false }) as { code?: string };
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const userId = useGlobalUserId();
@@ -38,7 +37,7 @@ export default function InvitePage() {
       }
 
       if (!userId) {
-        navigate(`/login?redirect=/invite/${encodeURIComponent(code)}`);
+        navigate({ to: `/login?redirect=/invite/${encodeURIComponent(code)}` });
         return;
       }
 
@@ -69,10 +68,10 @@ export default function InvitePage() {
         const roomsData = roomList?.rooms;
         if (roomsData && roomsData.length > 0) {
           const firstRoomId = roomsData[0].roomId;
-          navigate(`/chat/${spaceId}/${firstRoomId}`);
+          navigate({ to: `/chat/${spaceId}/${firstRoomId}` });
         }
         else {
-          navigate(`/chat/${spaceId}`);
+          navigate({ to: `/chat/${spaceId}` });
         }
       }
       catch (err: any) {
@@ -140,7 +139,7 @@ export default function InvitePage() {
               <button
                 className="btn"
                 type="button"
-                onClick={() => navigate("/")}
+                onClick={() => navigate({ to: "/" })}
               >
                 返回首页
               </button>

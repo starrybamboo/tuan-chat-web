@@ -1,4 +1,5 @@
 import type { ChatDiscoverNavItem } from "@/components/chat/discover/chatDiscoverNavPanel";
+import { useLocation, useRouter } from "@tanstack/react-router";
 import { useGetUserActiveSpacesQuery } from "api/hooks/chatQueryHooks";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import ChatPageLayout from "@/components/chat/chatPageLayout";
@@ -15,7 +16,6 @@ import { useDrawerPreferenceStore } from "@/components/chat/stores/drawerPrefere
 import { useLocalStorage } from "@/components/common/customHooks/useLocalStorage";
 import { useScreenSize } from "@/components/common/customHooks/useScreenSize";
 import { useGlobalUserId, useGlobalWebSocket } from "@/components/globalContextProvider";
-import { useAppNavigate as useNavigate, useUrlSearchParams as useSearchParams } from "@/utils/navigation";
 import { scheduleNonCriticalTask } from "@/utils/scheduleNonCriticalTask";
 
 const EMPTY_ARRAY: never[] = [];
@@ -49,8 +49,9 @@ function DiscoverContentFallback({ text }: { text: string }) {
 export default function DiscoverPage(props: DiscoverPageProps) {
   const { section } = props;
   const screenSize = useScreenSize();
-  const navigate = useNavigate();
-  const [searchParam] = useSearchParams();
+  const location = useLocation();
+  const router = useRouter();
+  const searchParam = useMemo(() => new URLSearchParams(location.searchStr), [location.searchStr]);
   const globalUserId = useGlobalUserId();
   const userId = globalUserId ?? -1;
   const webSocketUtils = useGlobalWebSocket();
@@ -117,7 +118,13 @@ export default function DiscoverPage(props: DiscoverPageProps) {
   const { handleOpenPrivate, setActiveRoomId, setActiveSpaceId } = useChatPageNavigation({
     activeSpaceId,
     isOpenLeftDrawer,
-    navigate,
+    navigate: (to, options) => {
+      if (options?.replace) {
+        router.history.replace(to);
+        return;
+      }
+      router.history.push(to);
+    },
     screenSize,
     searchParam,
     setStoredChatIds,
@@ -133,8 +140,8 @@ export default function DiscoverPage(props: DiscoverPageProps) {
   });
 
   const handleCreateSpace = useCallback(() => {
-    navigate("/chat?addSpacePop=true");
-  }, [navigate]);
+    router.history.push("/chat?addSpacePop=true");
+  }, [router]);
   const activeSpace = useMemo(() => {
     if (activeSpaceId == null)
       return null;

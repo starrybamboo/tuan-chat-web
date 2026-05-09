@@ -1,11 +1,11 @@
 import type { Rule } from "@tuanchat/openapi-client/models/Rule";
 import type { Role } from "../types";
+import { useLocation, useRouter } from "@tanstack/react-router";
 import { useDeleteRolesMutation } from "api/hooks/RoleAndAvatarHooks";
 import { useDeleteRuleMutation, useRuleListQuery } from "api/hooks/ruleQueryHooks";
 import { useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
-import { Link, NavLink, useAppNavigate as useNavigate, useUrlSearchParams as useSearchParams } from "@/utils/navigation";
 import { getRoleRule } from "@/utils/roleRuleStorage";
 import { useGlobalContext } from "../../globalContextProvider";
 import { useRoleUiStore } from "../stores/roleUiStore";
@@ -34,7 +34,9 @@ export function Sidebar({
   const isDiceCollapsed = collapsedSidebarGroups.dice;
   const isNormalCollapsed = collapsedSidebarGroups.normal;
   const isRuleCollapsed = collapsedSidebarGroups.rule;
-  const [searchParams] = useSearchParams();
+  const location = useLocation();
+  const router = useRouter();
+  const searchParams = useMemo(() => new URLSearchParams(location.searchStr), [location.searchStr]);
   const userId = useGlobalContext().userId;
   const ruleListQuery = useRuleListQuery();
   const deleteRolesMutation = useDeleteRolesMutation();
@@ -93,8 +95,6 @@ export function Sidebar({
     setDeleteCharacterId(null);
   };
 
-  const navigate = useNavigate();
-
   const handleDeleteRule = async (ruleId: number) => {
     setDeleteCharacterId(null);
     setDeleteRuleId(ruleId);
@@ -115,7 +115,7 @@ export function Sidebar({
           toast.success("规则删除成功");
           await ruleListQuery.refetch();
           if (activeRuleId === deleteRuleId) {
-            navigate("/role?type=rule&mode=entry", { replace: true });
+            router.history.replace("/role?type=rule&mode=entry");
           }
           onNavigate?.();
         }
@@ -145,7 +145,7 @@ export function Sidebar({
         try {
           await deleteRolesMutation.mutateAsync([roleId]);
           if (selectedRoleId === roleId) {
-            navigate("/role", { replace: true });
+            router.history.replace("/role");
           }
         }
         catch (error) {
@@ -166,7 +166,7 @@ export function Sidebar({
       try {
         await deleteRolesMutation.mutateAsync(roleIds);
         if (selectedRoleId && roleIds.includes(selectedRoleId)) {
-          navigate("/role", { replace: true });
+          router.history.replace("/role");
         }
       }
       catch (error) {
@@ -187,9 +187,9 @@ export function Sidebar({
     // 避免在初始加载时（roles 为空）错误触发跳转
     if (roles.length > 0 && selectedRoleId && !roles.find(c => c.id === selectedRoleId)) {
       // 当前选中角色被删掉了，跳转
-      navigate("/role", { replace: true });
+      router.history.replace("/role");
     }
-  }, [roles, selectedRoleId, navigate]);
+  }, [roles, router, selectedRoleId]);
 
   const deleteDialogTitle = deleteRuleId !== null ? "确认删除规则" : "确认删除角色";
   const deleteDialogMessage = deleteRuleId !== null
@@ -335,10 +335,13 @@ export function Sidebar({
                 </button>
                 {!isRuleCollapsed && (
                   <div className="ml-2">
-                    <Link
-                      to="/role?type=rule&mode=entry"
+                    <button
+                      type="button"
                       className="flex items-center gap-3 p-3 rounded-lg cursor-pointer group hover:bg-base-100 transition-all duration-150"
-                      onClick={onNavigate}
+                      onClick={() => {
+                        router.history.push("/role?type=rule&mode=entry");
+                        onNavigate?.();
+                      }}
                       title="新建规则模板"
                     >
                       <div className="avatar shrink-0 px-1">
@@ -363,7 +366,7 @@ export function Sidebar({
                         <h3 className="font-medium truncate">新建规则</h3>
                         <p className="text-xs text-base-content/70 mt-1 truncate">创建自定义规则模板</p>
                       </div>
-                    </Link>
+                    </button>
 
                     {ruleListQuery.isLoading && (
                       <div className="text-xs text-base-content/60 px-3 py-2">正在加载规则...</div>
@@ -381,13 +384,16 @@ export function Sidebar({
                         && searchParams.get("mode") === "edit"
                         && activeRuleId === currentRuleId;
                       return (
-                        <Link
+                        <button
+                          type="button"
                           key={`my-${currentRuleId}`}
-                          to={`/role?type=rule&mode=edit&ruleId=${currentRuleId}`}
                           className={`block rounded-lg px-1 ${
                             isRuleActive ? "bg-primary/10 text-primary" : ""
                           }`}
-                          onClick={onNavigate}
+                          onClick={() => {
+                            router.history.push(`/role?type=rule&mode=edit&ruleId=${currentRuleId}`);
+                            onNavigate?.();
+                          }}
                         >
                           <div
                             className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer group transition-all duration-150 ${
@@ -441,7 +447,7 @@ export function Sidebar({
                               </svg>
                             </button>
                           </div>
-                        </Link>
+                        </button>
                       );
                     })}
                   </div>
@@ -477,10 +483,13 @@ export function Sidebar({
                 {!isDiceCollapsed && (
                   <div className="ml-2">
                     {/* 创建骰娘入口 */}
-                    <Link
-                      to="/role?type=dice"
+                    <button
+                      type="button"
                       className="flex items-center gap-3 p-3 rounded-lg cursor-pointer group hover:bg-base-100 transition-all duration-150"
-                      onClick={onNavigate}
+                      onClick={() => {
+                        router.history.push("/role?type=dice");
+                        onNavigate?.();
+                      }}
                       title="创建骰娘角色"
                     >
                       <div className="avatar shrink-0 px-1">
@@ -507,17 +516,16 @@ export function Sidebar({
                         <h3 className="font-medium truncate">创建骰娘</h3>
                         <p className="text-xs text-base-content/70 mt-1 truncate">创建跑团骰娘</p>
                       </div>
-                    </Link>
+                    </button>
                     {/* 骰娘角色列表 */}
                     {diceRoles.map((role) => {
                       const storedRuleId = getRoleRule(role.id) || 1;
-                      const roleUrl = `/role/${role.id}?rule=${storedRuleId}`;
                       return (
-                        <NavLink
+                        <button
+                          type="button"
                           key={role.id}
-                          to={roleUrl}
-                          className={({ isActive }) => `block rounded-lg px-1 ${
-                            isActive && !isSelectionMode ? "bg-primary/10 text-primary" : ""
+                          className={`block rounded-lg px-1 ${
+                            (selectedRoleId === role.id && !isSelectionMode) ? "bg-primary/10 text-primary" : ""
                           }`}
                           onClick={(e) => {
                             if (isSelectionMode) {
@@ -525,6 +533,7 @@ export function Sidebar({
                               toggleRoleSelection(role.id);
                             }
                             else {
+                              router.history.push(`/role/${role.id}?rule=${storedRuleId}`);
                               onNavigate?.();
                             }
                           }}
@@ -535,7 +544,7 @@ export function Sidebar({
                             onDelete={() => handleDelete(role.id)}
                             isSelectionMode={isSelectionMode}
                           />
-                        </NavLink>
+                        </button>
                       );
                     })}
                   </div>
@@ -570,10 +579,13 @@ export function Sidebar({
                 </button>
                 {!isNormalCollapsed && (
                   <div className="ml-2">
-                    <Link
-                      to="/role?type=normal"
+                    <button
+                      type="button"
                       className="flex items-center gap-3 p-3 rounded-lg cursor-pointer group hover:bg-base-100 transition-all duration-150"
-                      onClick={onNavigate}
+                      onClick={() => {
+                        router.history.push("/role?type=normal");
+                        onNavigate?.();
+                      }}
                       title="创建普通角色"
                     >
                       <div className="avatar shrink-0 px-1">
@@ -597,17 +609,16 @@ export function Sidebar({
                         <h3 className="font-medium truncate">创建普通角色</h3>
                         <p className="text-xs text-base-content/70 mt-1 truncate">创建普通游戏角色</p>
                       </div>
-                    </Link>
+                    </button>
 
                     {normalRoles.map((role) => {
                       const storedRuleId = getRoleRule(role.id) || 1;
-                      const roleUrl = `/role/${role.id}?rule=${storedRuleId}`;
                       return (
-                        <NavLink
+                        <button
+                          type="button"
                           key={role.id}
-                          to={roleUrl}
-                          className={({ isActive }) => `block rounded-lg px-1 ${
-                            isActive && !isSelectionMode ? "bg-primary/10 text-primary" : ""
+                          className={`block rounded-lg px-1 ${
+                            (selectedRoleId === role.id && !isSelectionMode) ? "bg-primary/10 text-primary" : ""
                           }`}
                           onClick={(e) => {
                             if (isSelectionMode) {
@@ -615,6 +626,7 @@ export function Sidebar({
                               toggleRoleSelection(role.id);
                             }
                             else {
+                              router.history.push(`/role/${role.id}?rule=${storedRuleId}`);
                               onNavigate?.();
                             }
                           }}
@@ -625,7 +637,7 @@ export function Sidebar({
                             onDelete={() => handleDelete(role.id)}
                             isSelectionMode={isSelectionMode}
                           />
-                        </NavLink>
+                        </button>
                       );
                     })}
                   </div>

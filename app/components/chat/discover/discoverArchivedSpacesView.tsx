@@ -2,16 +2,16 @@ import type { ApiResultListSpace } from "@tuanchat/openapi-client/models/ApiResu
 import type { ApiResultPageBaseRespRepository } from "@tuanchat/openapi-client/models/ApiResultPageBaseRespRepository";
 import type { Repository } from "@tuanchat/openapi-client/models/Repository";
 import type { Space } from "@tuanchat/openapi-client/models/Space";
-
 import { ArrowLeftIcon, CompassIcon, PackageIcon } from "@phosphor-icons/react";
+
 import { useQuery } from "@tanstack/react-query";
+import { useLocation, useRouter } from "@tanstack/react-router";
 import { useGetUserSpacesQuery } from "api/hooks/chatQueryHooks";
 import { tuanchat } from "api/instance";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import RepositoryDetailComponent from "@/components/repository/detail/repositoryDetail";
 import { ContentCard } from "@/components/repository/home/RepositoryHome";
 import { avatarThumbUrl } from "@/utils/mediaUrl";
-import { useAppNavigate as useNavigate, useUrlSearchParams as useSearchParams } from "@/utils/navigation";
 
 type DiscoverArchivedSpacesMode = "square" | "my";
 
@@ -82,8 +82,9 @@ interface ArchivedRepositoryGroup {
 }
 
 export default function DiscoverArchivedSpacesView({ mode }: DiscoverArchivedSpacesViewProps) {
-  const navigate = useNavigate();
-  const [searchParams, setSearchParams] = useSearchParams();
+  const location = useLocation();
+  const router = useRouter();
+  const searchParams = useMemo(() => new URLSearchParams(location.searchStr), [location.searchStr]);
   const [keyword, setKeyword] = useState("");
   const [expandedRepoIds, setExpandedRepoIds] = useState<number[]>([]);
   const [isRepositoryViewModeOpen, setIsRepositoryViewModeOpen] = useState(false);
@@ -100,15 +101,17 @@ export default function DiscoverArchivedSpacesView({ mode }: DiscoverArchivedSpa
       return;
     const next = new URLSearchParams(searchParams);
     next.set("repositoryId", String(repositoryId));
-    setSearchParams(next);
-  }, [searchParams, setSearchParams]);
+    const query = next.toString();
+    router.history.replace(`${location.pathname}${query ? `?${query}` : ""}${location.hash}`);
+  }, [location.hash, location.pathname, router, searchParams]);
 
   const closeRepositoryPanel = useCallback(() => {
     const next = new URLSearchParams(searchParams);
     next.delete("repositoryId");
-    setSearchParams(next);
+    const query = next.toString();
+    router.history.replace(`${location.pathname}${query ? `?${query}` : ""}${location.hash}`);
     setIsRepositoryViewModeOpen(false);
-  }, [searchParams, setSearchParams]);
+  }, [location.hash, location.pathname, router, searchParams]);
 
   const rootRepositoryQuery = useQuery({
     queryKey: ["discoverRootRepositories"],
@@ -517,7 +520,7 @@ export default function DiscoverArchivedSpacesView({ mode }: DiscoverArchivedSpa
                                               event.stopPropagation();
                                               if (!targetSpaceId)
                                                 return;
-                                              navigate(`/chat/${targetSpaceId}`);
+                                              router.history.push(`/chat/${targetSpaceId}`);
                                             }}
                                             disabled={!targetSpaceId}
                                           >

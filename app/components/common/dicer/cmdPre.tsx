@@ -3,6 +3,7 @@ import type { ChatMessageRequest, ChatMessageResponse, RoleAbility, RoleAvatar, 
 import type { RoomContextType } from "@/components/chat/core/roomContext";
 import type { DicerMessageVisibility } from "@/components/common/dicer/commandMessageVisibility";
 import { useQueryClient } from "@tanstack/react-query";
+import { useParams } from "@tanstack/react-router";
 import { useEffect, useRef } from "react";
 import toast from "react-hot-toast";
 import { getNextAppendPosition } from "@/components/chat/shared/messageOrder";
@@ -16,7 +17,6 @@ import { buildRuntimeRoleValuesByRoleId, mergeRuntimeRoleValuesIntoAbility } fro
 import UTILS from "@/components/common/dicer/utils/utils";
 import { buildMessageExtraForRequest } from "@/types/messageDraft";
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
-import { useAllParams as useParams } from "@/utils/navigation";
 import {
   fetchRoleAbilityByRuleWithCache,
   useSetRoleAbilityMutation,
@@ -195,7 +195,7 @@ export function getCommandList(ruleId: number): Map<string, CommandInfo> {
  * @param roomContext
  */
 export default function useCommandExecutor(roleId: number, ruleId: number, roomContext: RoomContextType) {
-  const { spaceId: _, roomId: urlRoomId } = useParams();
+  const { spaceId: _, roomId: urlRoomId } = useParams({ strict: false });
   const roomId = Number(urlRoomId);
   const queryClient = useQueryClient();
 

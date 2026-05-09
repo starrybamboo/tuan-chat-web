@@ -1,5 +1,6 @@
 import type { OpenSpaceDetailPanelOptions, SpaceDetailTab } from "@/components/chat/chatPage.types";
 import { AddressBookIcon, ArchiveIcon, ArrowCounterClockwise, HouseIcon, PlusIcon, SignOutIcon, TrashIcon } from "@phosphor-icons/react";
+import { useRouter } from "@tanstack/react-router";
 import { AnimatePresence, motion } from "motion/react";
 import React from "react";
 import toast from "react-hot-toast";
@@ -9,7 +10,6 @@ import { canInviteSpectators } from "@/components/chat/utils/memberPermissions";
 import { canViewSpaceDetailTab } from "@/components/chat/utils/spaceDetailPermissions";
 import ConfirmModal from "@/components/common/comfirmModel";
 import { AddIcon, ChevronDown, DiceD6Icon, MemberIcon, Setting, SidebarSimpleIcon, WebgalIcon } from "@/icons";
-import { useAppNavigate as useNavigate } from "@/utils/navigation";
 import { useDissolveSpaceMutation, useExitSpaceMutation, useRecoverSpaceMutation, useUpdateSpaceArchiveStatusMutation } from "../../../../api/hooks/chatQueryHooks";
 
 interface SpaceHeaderBarProps {
@@ -37,7 +37,7 @@ export default function SpaceHeaderBar({
   onToggleLeftDrawer,
   isLeftDrawerOpen,
 }: SpaceHeaderBarProps) {
-  const navigate = useNavigate();
+  const router = useRouter();
   const spaceContext = React.use(SpaceContext);
   const spaceId = Number(spaceContext.spaceId ?? -1);
   const dissolveSpace = useDissolveSpaceMutation();
@@ -76,8 +76,8 @@ export default function SpaceHeaderBar({
     }
     spaceContext.setActiveSpaceId?.(null);
     spaceContext.setActiveRoomId?.(null);
-    navigate("/chat/discover/material", { replace: true });
-  }, [navigate, spaceContext]);
+    router.history.replace("/chat/discover/material");
+  }, [router, spaceContext]);
 
   React.useEffect(() => {
     if (!isOptionsMenuOpen) {

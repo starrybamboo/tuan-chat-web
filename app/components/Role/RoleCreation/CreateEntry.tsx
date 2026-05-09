@@ -1,5 +1,5 @@
 import { BookOpenIcon, DiceFiveIcon, UserIcon } from "@phosphor-icons/react";
-import { Link } from "@/utils/navigation";
+import { useRouter } from "@tanstack/react-router";
 
 // 空状态组件
 export default function CreateEntry({
@@ -7,6 +7,7 @@ export default function CreateEntry({
 }: {
   animationTrigger?: number; // 动画触发器，每次变化时重新触发动画
 }) {
+  const router = useRouter();
   const cardClassName = "bg-base-100 rounded-xl p-6 shadow-sm border border-base-200 hover:shadow-lg transition-all duration-200 h-auto md:h-100 cursor-pointer transform hover:scale-105";
 
   return (
@@ -20,9 +21,10 @@ export default function CreateEntry({
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mx-auto max-w-3xl">
           {/* 创建普通角色卡片 */}
-          <Link
-            to="/role?type=normal"
+          <button
+            type="button"
             className={cardClassName}
+            onClick={() => router.history.push("/role?type=normal")}
           >
             <div className="w-16 h-16 mx-auto mb-4 rounded-full border-2 border-dashed border-primary/40 bg-primary/5 text-primary/60 flex items-center justify-center">
               <UserIcon className="w-8 h-8" weight="bold" />
@@ -31,12 +33,13 @@ export default function CreateEntry({
             <p className="text-sm text-base-content/70 text-center leading-relaxed">
               创建普通游戏角色，用于日常对话和互动
             </p>
-          </Link>
+          </button>
 
           {/* 创建骰娘卡片 */}
-          <Link
-            to="/role?type=dice"
+          <button
+            type="button"
             className={cardClassName}
+            onClick={() => router.history.push("/role?type=dice")}
           >
             <div className="w-16 h-16 mx-auto mb-4 rounded-full border-2 border-dashed border-success/40 bg-success/5 text-success/60 flex items-center justify-center">
               <DiceFiveIcon className="w-8 h-8" weight="bold" />
@@ -45,12 +48,13 @@ export default function CreateEntry({
             <p className="text-sm text-base-content/70 text-center leading-relaxed">
               创建跑团骰娘，用于TRPG游戏
             </p>
-          </Link>
+          </button>
 
           {/* 规则编辑器入口卡片（全页选择页） */}
-          <Link
-            to="/role?type=rule&mode=entry"
+          <button
+            type="button"
             className={`${cardClassName} flex flex-col justify-start items-stretch`}
+            onClick={() => router.history.push("/role?type=rule&mode=entry")}
           >
             <div className="w-16 h-16 mx-auto mb-4 rounded-full border-2 border-dashed border-info/40 bg-info/5 text-info/60 flex items-center justify-center">
               <BookOpenIcon className="w-8 h-8" weight="bold" />
@@ -59,7 +63,7 @@ export default function CreateEntry({
             <p className="text-sm text-base-content/70 text-center leading-relaxed">
               创建或编辑规则，用于普通角色模板
             </p>
-          </Link>
+          </button>
 
           {/* 占位符
           <div className="bg-base-100 rounded-xl p-6 shadow-sm border-2 border-dashed border-base-300 h-auto md:h-100">

@@ -1,6 +1,5 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useParams } from "@tanstack/react-router";
 import ActivitiesTab from "@/components/profile/profileTab/activitiesTab";
-import { useAllParams as useParams } from "@/utils/navigation";
 import { createSeoMeta } from "@/utils/seo";
 
 interface ProfileActivitiesRouteParams {
@@ -27,7 +26,7 @@ export const Route = createFileRoute("/_dashboard/profile/$userId/activities")({
 });
 
 export default function ProfileActivities() {
-  const { userId } = useParams() as { userId?: string };
+  const { userId } = useParams({ strict: false });
 
   return <ActivitiesTab userId={Number(userId)} />;
 }

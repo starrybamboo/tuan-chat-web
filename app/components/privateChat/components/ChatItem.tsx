@@ -1,8 +1,8 @@
+import { useRouter } from "@tanstack/react-router";
 import { useRef } from "react";
 import { resolveUserDisplayName, useResolvedUserInfo } from "@/components/common/userAccess.shared";
 import { XMarkICon } from "@/icons";
 import { getScreenSize } from "@/utils/getScreenSize";
-import { useAppNavigate as useNavigate } from "@/utils/navigation";
 
 interface MessageDirectType {
   messageId?: number;
@@ -56,7 +56,7 @@ export default function ChatItem({
   const resolvedUser = useResolvedUserInfo(user, id);
   const avatarSrc = resolvedUser.avatarThumbUrl || resolvedUser.avatar || "";
   const displayName = resolveUserDisplayName({ username: resolvedUser.username }, `用户${id}`);
-  const navigate = useNavigate();
+  const router = useRouter();
 
   // 初始化未读消息数
   let showedUnreadMessageNumber = unreadMessageNumber;
@@ -99,7 +99,7 @@ export default function ChatItem({
     if (currentContactUserId === id) {
       return;
     }
-    navigate(`/chat/private/${id}`);
+    router.history.push(`/chat/private/${id}`);
     updateReadlinePosition(id);
     if (getScreenSize() === "sm") {
       setTimeout(() => {

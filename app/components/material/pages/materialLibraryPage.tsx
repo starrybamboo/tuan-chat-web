@@ -1,7 +1,7 @@
 import type { MaterialPackageContent } from "@tuanchat/openapi-client/models/MaterialPackageContent";
+import { useRouter } from "@tanstack/react-router";
 import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
-import { useAppNavigate as useNavigate } from "@/utils/navigation";
 import {
   MATERIAL_PACKAGE_LIBRARY_PAGE_SIZE,
   useCreateMaterialPackageMutation,
@@ -44,7 +44,7 @@ export default function MaterialLibraryPage({
   mode,
   embedded = false,
 }: MaterialLibraryPageProps) {
-  const navigate = useNavigate();
+  const router = useRouter();
   const [internalActiveTab, setInternalActiveTab] = useState<GlobalTab>(mode ?? initialTab ?? "mine");
   const [keyword, setKeyword] = useState("");
   const [selectedPackageId, setSelectedPackageId] = useState<number | null>(null);
@@ -209,7 +209,7 @@ export default function MaterialLibraryPage({
     if (mode === "public" && embedded) {
       setIsCreating(false);
       setSelectedPackageId(null);
-      navigate("/chat/discover/material/my");
+      router.history.push("/chat/discover/material/my");
       return;
     }
 
@@ -247,7 +247,7 @@ export default function MaterialLibraryPage({
 
   const handleNavigateToMine = () => {
     if (mode === "public" && embedded) {
-      navigate("/chat/discover/material/my");
+      router.history.push("/chat/discover/material/my");
       return;
     }
 

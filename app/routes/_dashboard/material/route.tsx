@@ -1,7 +1,6 @@
 import type { RouteMetaArgs } from "@/routes/routeTypes";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useLocation } from "@tanstack/react-router";
 import MaterialLibraryPage from "@/components/material/pages/materialLibraryPage";
-import { useUrlSearchParams as useSearchParams } from "@/utils/navigation";
 import { createSeoMeta } from "@/utils/seo";
 
 export function meta(_args: RouteMetaArgs) {
@@ -21,7 +20,8 @@ export const Route = createFileRoute("/_dashboard/material")({
 });
 
 export default function MaterialRoute() {
-  const [searchParams] = useSearchParams();
+  const location = useLocation();
+  const searchParams = new URLSearchParams(location.searchStr);
   const tab = searchParams.get("tab");
   const initialTab = tab === "public" || tab === "mine" ? tab : undefined;
 

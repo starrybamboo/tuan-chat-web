@@ -1,4 +1,5 @@
 import type { FriendResponse } from "@tuanchat/openapi-client/models/FriendResponse";
+import { useRouter } from "@tanstack/react-router";
 import {
   useAcceptFriendRequestMutation,
   useCheckFriendQuery,
@@ -12,7 +13,6 @@ import { useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import { HomeIcon, Search, XMarkICon } from "@/icons";
 import { avatarThumbUrl } from "@/utils/mediaUrl";
-import { useAppNavigate as useNavigate } from "@/utils/navigation";
 
 type AddFriendSearchMode = "id" | "username";
 
@@ -42,7 +42,7 @@ export default function UserSearch() {
   const [searchUserId, setSearchUserId] = useState<number>(-1);
   const [searchUsername, setSearchUsername] = useState<string>("");
   const [searching, setSearching] = useState(false);
-  const navigate = useNavigate();
+  const router = useRouter();
   // 获取并缓存好友列表
   const friendListQuery = useGetFriendListQuery({ pageNo: 1, pageSize: 100 });
   const friendUserInfos: FriendResponse[] = useMemo(
@@ -236,7 +236,7 @@ export default function UserSearch() {
                           return;
                         }
                         setSearching(false);
-                        navigate(`/chat/private/${searchUserInfo?.userId}`);
+                        router.history.push(`/chat/private/${searchUserInfo?.userId}`);
                       }}
                     >
                       <div className="flex items-center gap-2">
@@ -317,7 +317,7 @@ export default function UserSearch() {
                           className="w-8 h-8 flex items-center justify-center rounded-box hover:bg-base-100"
                           onClick={(e) => {
                             e.stopPropagation();
-                            navigate(`/profile/${searchUserInfo?.userId}`);
+                            router.history.push(`/profile/${searchUserInfo?.userId}`);
                           }}
                         >
                           <HomeIcon className="size-5" />
@@ -340,7 +340,7 @@ export default function UserSearch() {
                     <div
                       key={friend?.userId || index}
                       className="flex items-center justify-between cursor-pointer hover:bg-base-300 p-2 rounded-md border-t-2 border-base-300"
-                      onClick={() => navigate(`/chat/private/${friend?.userId}`)}
+                      onClick={() => router.history.push(`/chat/private/${friend?.userId}`)}
                     >
                       <div className="flex items-center gap-2">
                         <img
@@ -357,7 +357,7 @@ export default function UserSearch() {
                         className="w-8 h-8 flex items-center justify-center rounded-box hover:bg-base-100"
                         onClick={(e) => {
                           e.stopPropagation();
-                          navigate(`/profile/${friend?.userId}`);
+                          router.history.push(`/profile/${friend?.userId}`);
                         }}
                       >
                         <HomeIcon className="size-5" />

@@ -12,7 +12,7 @@ export function meta(_args: RouteMetaArgs) {
   });
 }
 
-export const Route = createFileRoute("/_dashboard/repository")({
+export const Route = createFileRoute("/_dashboard/repository/")({
   head: () => ({
     meta: meta({ params: {} }),
   }),

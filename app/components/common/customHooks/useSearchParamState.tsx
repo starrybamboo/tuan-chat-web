@@ -1,5 +1,5 @@
+import { useLocation, useRouter } from "@tanstack/react-router";
 import React from "react";
-import { useUrlSearchParams as useSearchParams } from "@/utils/navigation";
 
 /**
  * 用于便捷的改变url中的searchParam
@@ -8,7 +8,9 @@ import { useUrlSearchParams as useSearchParams } from "@/utils/navigation";
  * @param shortenUrl 默认为true，当url与defaultValue相同的时候，url中不会显示这个值。如果defaultValue会变动，请将此值设置为false
  */
 export default function useSearchParamsState<T>(key: string, defaultValue: T, shortenUrl: boolean = true) {
-  const [searchParams, setSearchParams] = useSearchParams();
+  const location = useLocation();
+  const router = useRouter();
+  const searchParams = React.useMemo(() => new URLSearchParams(location.searchStr), [location.searchStr]);
   const valueStr = searchParams.get(key);
   const value = React.useMemo(() => {
     if (valueStr == null) {
@@ -17,22 +19,22 @@ export default function useSearchParamsState<T>(key: string, defaultValue: T, sh
     return JSON.parse(valueStr) as T;
   }, [defaultValue, valueStr]);
   const setValue = (newValue: T) => {
-    setSearchParams((prev) => {
-      const shouldDrop = newValue === defaultValue && shortenUrl;
-      const nextSerialized = shouldDrop ? null : JSON.stringify(newValue);
-      const currentSerialized = prev.get(key);
-      if ((nextSerialized == null && currentSerialized == null) || (nextSerialized != null && currentSerialized === nextSerialized)) {
-        return prev;
-      }
-      const next = new URLSearchParams(prev);
-      if (shouldDrop) {
-        next.delete(key);
-      }
-      else {
-        next.set(key, nextSerialized as string);
-      }
-      return next;
-    });
+    const prev = new URLSearchParams(location.searchStr);
+    const shouldDrop = newValue === defaultValue && shortenUrl;
+    const nextSerialized = shouldDrop ? null : JSON.stringify(newValue);
+    const currentSerialized = prev.get(key);
+    if ((nextSerialized == null && currentSerialized == null) || (nextSerialized != null && currentSerialized === nextSerialized)) {
+      return;
+    }
+    if (shouldDrop) {
+      prev.delete(key);
+    }
+    else {
+      prev.set(key, nextSerialized as string);
+    }
+    const nextQuery = prev.toString();
+    const nextPath = `${location.pathname}${nextQuery ? `?${nextQuery}` : ""}${location.hash}`;
+    router.history.replace(nextPath);
   };
   return [value, setValue] as const;
 }

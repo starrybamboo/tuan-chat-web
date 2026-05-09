@@ -1,8 +1,7 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useLocation, useRouter } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import LoginModal from "@/components/auth/LoginModal";
 import { normalizeAuthRedirectPath } from "@/utils/auth/redirect";
-import { useAppNavigate as useNavigate, useUrlSearchParams as useSearchParams } from "@/utils/navigation";
 import { createSeoMeta } from "@/utils/seo";
 
 export function meta() {
@@ -22,8 +21,9 @@ export const Route = createFileRoute("/login")({
 });
 
 export default function LoginPage() {
-  const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
+  const location = useLocation();
+  const router = useRouter();
+  const searchParams = new URLSearchParams(location.searchStr);
   const redirect = normalizeAuthRedirectPath(searchParams.get("redirect"));
   const [isOpen, setIsOpen] = useState(true);
 
@@ -37,7 +37,7 @@ export default function LoginPage() {
         isOpen={isOpen}
         onClose={() => {
           setIsOpen(false);
-          navigate(redirect, { replace: true });
+          router.history.replace(redirect);
         }}
       />
     </div>

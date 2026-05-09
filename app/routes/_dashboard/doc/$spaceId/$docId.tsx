@@ -1,7 +1,5 @@
 import type { RouteMetaArgs } from "@/routes/routeTypes";
-import { createFileRoute } from "@tanstack/react-router";
-
-import { Navigate, useAllParams as useParams } from "@/utils/navigation";
+import { createFileRoute, Navigate, useParams } from "@tanstack/react-router";
 import { createSeoMeta } from "@/utils/seo";
 
 export function meta(_args: RouteMetaArgs) {
@@ -21,7 +19,7 @@ export const Route = createFileRoute("/_dashboard/doc/$spaceId/$docId")({
 });
 
 export default function DocRoute() {
-  const { spaceId, docId } = useParams();
+  const { spaceId, docId } = useParams({ strict: false });
   const sid = Number(spaceId);
   const rawDocId = typeof docId === "string" ? docId : "";
 
@@ -42,5 +40,14 @@ export default function DocRoute() {
   }
 
   // 统一文档入口到 Chat 布局：保留左侧侧边栏，只替换主区域内容。
-  return <Navigate to={`/chat/${sid}/doc/${encodeURIComponent(decoded)}`} replace />;
+  return (
+    <Navigate
+      to="/chat/$spaceId/doc/$docId"
+      params={{
+        spaceId: String(sid),
+        docId: encodeURIComponent(decoded),
+      }}
+      replace
+    />
+  );
 }
