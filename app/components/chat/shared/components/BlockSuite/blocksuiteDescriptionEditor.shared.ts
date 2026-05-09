@@ -1,8 +1,6 @@
 import type { DescriptionEntityType } from "@/components/chat/infra/blocksuite/description/descriptionDocId";
 import type { BlocksuiteDocHeader } from "@/components/chat/infra/blocksuite/document/docHeader";
 
-export type DocMode = "page" | "edgeless";
-
 export type BlocksuiteDescriptionEditorProps = {
   workspaceId: string;
   spaceId?: number;
@@ -10,13 +8,13 @@ export type BlocksuiteDescriptionEditorProps = {
   /** 提前拉取远端文档快照，减少首次打开时的等待。 */
   intentPrewarm?: boolean;
   readOnly?: boolean;
-  mode?: DocMode;
-  allowModeSwitch?: boolean;
-  fullscreenEdgeless?: boolean;
   tcHeader?: {
     enabled?: boolean;
     fallbackTitle?: string;
     fallbackImageUrl?: string;
+    fallbackImageFileId?: number;
+    fallbackOriginalImageFileId?: number;
+    fallbackImageMediaType?: string;
   };
   onTcHeaderChange?: (payload: {
     docId: string;
@@ -24,7 +22,6 @@ export type BlocksuiteDescriptionEditorProps = {
     entityId?: number;
     header: BlocksuiteDocHeader;
   }) => void;
-  onModeChange?: (mode: DocMode) => void;
   className?: string;
 };
 

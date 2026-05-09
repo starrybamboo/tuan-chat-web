@@ -201,10 +201,12 @@ function RoomSettingWindow({ onClose, roomId: propRoomId, defaultTab = "role" }:
                             workspaceId={`space:${(room?.spaceId ?? spaceId)!}`}
                             spaceId={(room?.spaceId ?? spaceId)!}
                             docId={buildSpaceDocId({ kind: "room_description", roomId: propRoomId })}
-                            mode="page"
-                            allowModeSwitch
-                            fullscreenEdgeless
-                            tcHeader={{ enabled: true, fallbackTitle: room?.name ?? "", fallbackImageUrl: avatarThumbUrl(room?.avatarFileId) }}
+                            tcHeader={{
+                              enabled: true,
+                              fallbackTitle: room?.name ?? "",
+                              fallbackImageUrl: avatarThumbUrl(room?.avatarFileId),
+                              fallbackImageFileId: room?.avatarFileId,
+                            }}
                             onTcHeaderChange={({ header }) => {
                               scheduleRoomRedundantSync(header);
                             }}

@@ -130,6 +130,10 @@ interface ChatPageDocContentProps {
   docId?: string | null;
   canViewDocs?: boolean;
   tcHeaderTitle?: string;
+  tcHeaderImageUrl?: string;
+  tcHeaderImageFileId?: number;
+  tcHeaderOriginalImageFileId?: number;
+  tcHeaderImageMediaType?: string;
 }
 
 export function ChatPageDocContent(props: ChatPageDocContentProps = {}) {
@@ -164,10 +168,15 @@ export function ChatPageDocContent(props: ChatPageDocContentProps = {}) {
                     workspaceId={`space:${resolvedSpaceId ?? -1}`}
                     spaceId={resolvedSpaceId ?? -1}
                     docId={resolvedDocId}
-                    tcHeader={{ enabled: true, fallbackTitle: tcHeaderTitle }}
+                    tcHeader={{
+                      enabled: true,
+                      fallbackTitle: tcHeaderTitle,
+                      fallbackImageUrl: props.tcHeaderImageUrl,
+                      fallbackImageFileId: props.tcHeaderImageFileId,
+                      fallbackOriginalImageFileId: props.tcHeaderOriginalImageFileId,
+                      fallbackImageMediaType: props.tcHeaderImageMediaType,
+                    }}
                     onTcHeaderChange={onDocTcHeaderChange}
-                    allowModeSwitch
-                    fullscreenEdgeless
                   />
                 </React.Suspense>
               </div>

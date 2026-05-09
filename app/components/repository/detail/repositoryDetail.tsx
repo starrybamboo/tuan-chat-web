@@ -483,11 +483,11 @@ export default function RepositoryDetailComponent({
                           docId={buildSpaceDocId({ kind: "space_description", spaceId: linkedSpaceId })}
                           className={BLOCKSUITE_FULL_PANEL_EDITOR_CLASS}
                           readOnly
-                          mode="page"
                           tcHeader={{
                             enabled: true,
                             fallbackTitle: linkedSpace?.name ?? repositoryData.repositoryName,
                             fallbackImageUrl: avatarThumbUrl(linkedSpace?.avatarFileId) || repositoryData.image,
+                            fallbackImageFileId: linkedSpace?.avatarFileId,
                           }}
                         />
                       )
