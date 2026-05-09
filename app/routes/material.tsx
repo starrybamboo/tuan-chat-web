@@ -1,7 +1,7 @@
-import type { RouteMetaArgs } from "@/router/routeTypes";
+import type { RouteMetaArgs } from "@/routes/routeTypes";
 import { createFileRoute } from "@tanstack/react-router";
 import MaterialLibraryPage from "@/components/material/pages/materialLibraryPage";
-import { useUrlSearchParams as useSearchParams } from "@/router/utils";
+import { useUrlSearchParams as useSearchParams } from "@/utils/navigation";
 import { createSeoMeta } from "@/utils/seo";
 
 export function meta(_args: RouteMetaArgs) {

@@ -3,7 +3,7 @@ import type { SpaceMaterialPackageResponse } from "@tuanchat/openapi-client/mode
 import type { MaterialItemDragPayload } from "@/components/chat/utils/materialItemDrag";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
-import { useAppNavigate as useNavigate, useUrlSearchParams as useSearchParams } from "@/router/utils";
+import { useAppNavigate as useNavigate, useUrlSearchParams as useSearchParams } from "@/utils/navigation";
 import {
   MATERIAL_PACKAGE_LIBRARY_PAGE_SIZE,
   useCreateSpaceMaterialPackageMutation,

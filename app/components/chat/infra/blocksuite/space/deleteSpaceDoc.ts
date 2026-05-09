@@ -47,12 +47,18 @@ export async function deleteSpaceDoc(params: { spaceId: number; docId: string })
   }
 
   try {
-    const [{ removeSpaceDocMetaCacheEntry, removePendingSpaceDocTitleSync }, { useDocHeaderOverrideStore }] = await Promise.all([
+    const [
+      { removeSpaceDocMetaCacheEntry, removePendingSpaceDocTitleSync },
+      { useDocHeaderOverrideStore },
+      { setCachedDocSnapshot },
+    ] = await Promise.all([
       import("@/components/chat/infra/blocksuite/space/spaceDocMetaPersistence"),
       import("@/components/chat/stores/docHeaderOverrideStore"),
+      import("@/components/chat/infra/blocksuite/document/docSnapshotCache"),
     ]);
 
     removeSpaceDocMetaCacheEntry({ spaceId: params.spaceId, docId: params.docId });
+    setCachedDocSnapshot(params.docId, null);
     useDocHeaderOverrideStore.getState().clearHeader({ docId: params.docId });
 
     if (remoteKey?.entityType === "space_doc") {
@@ -61,31 +67,5 @@ export async function deleteSpaceDoc(params: { spaceId: number; docId: string })
   }
   catch {
     // ignore
-  }
-
-  const { getSpaceWorkspaceIfExists } = await import("@/components/chat/infra/blocksuite/space/spaceWorkspaceRegistry");
-  const ws = getSpaceWorkspaceIfExists(params.spaceId);
-  if (!ws) {
-    return;
-  }
-
-  // 尽量使用 blocksuite 提供的删除能力；不同版本 API 可能不同，因此做一次 runtime 兼容。
-  const metaAny = ws.meta as any;
-  if (typeof metaAny.removeDocMeta === "function") {
-    metaAny.removeDocMeta(params.docId);
-  }
-  else if (typeof metaAny.deleteDocMeta === "function") {
-    metaAny.deleteDocMeta(params.docId);
-  }
-  else if (typeof metaAny.removeMeta === "function") {
-    metaAny.removeMeta(params.docId);
-  }
-
-  const wsAny = ws as any;
-  if (typeof wsAny.removeDoc === "function") {
-    wsAny.removeDoc(params.docId);
-  }
-  else if (typeof wsAny.deleteDoc === "function") {
-    wsAny.deleteDoc(params.docId);
   }
 }

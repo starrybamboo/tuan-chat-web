@@ -1,8 +1,6 @@
 import type React from "react";
 import {
   Outlet as TanStackOutlet,
-  Scripts as TanStackScripts,
-  ScrollRestoration as TanStackScrollRestoration,
   useMatchRoute,
   useRouter,
   useRouterState,
@@ -24,6 +22,14 @@ interface ToObject {
 type To = string | ToObject;
 
 export type NavigateFunction = (to: To | number, options?: NavigateOptions) => void;
+
+type CompatLocation = ReturnType<typeof useTanStackLocation> & {
+  pathname: string;
+  search: string;
+  hash: string;
+  href: string;
+  key: string;
+};
 
 type CompatLinkProps = Omit<React.ComponentPropsWithoutRef<"a">, "href"> & {
   ref?: React.Ref<HTMLAnchorElement>;
@@ -61,6 +67,7 @@ function isActivePath(currentPathname: string, targetPathname: string, end: bool
   if (end) {
     return currentPathname === targetPathname;
   }
+
   return currentPathname === targetPathname
     || currentPathname.startsWith(targetPathname.endsWith("/") ? targetPathname : `${targetPathname}/`);
 }
@@ -69,6 +76,7 @@ function normalizeSearch(search: string | undefined) {
   if (!search) {
     return "";
   }
+
   return search.startsWith("?") ? search : `?${search}`;
 }
 
@@ -76,11 +84,13 @@ function normalizeHash(hash: string | undefined) {
   if (!hash) {
     return "";
   }
+
   return hash.startsWith("#") ? hash : `#${hash}`;
 }
 
 function normalizeHref(currentHref: string, to: To) {
   const currentUrl = new URL(currentHref, "http://tanstack.local");
+
   if (typeof to === "string") {
     return new URL(to, currentUrl).toString().replace("http://tanstack.local", "");
   }
@@ -95,6 +105,7 @@ function normalizeHref(currentHref: string, to: To) {
   if ("hash" in to) {
     nextUrl.hash = normalizeHash(to.hash);
   }
+
   return nextUrl.toString().replace("http://tanstack.local", "");
 }
 
@@ -108,7 +119,12 @@ function toUrlSearchParams(value: Exclude<SetSearchParamsAction, ((prev: URLSear
   if (Array.isArray(value)) {
     return new URLSearchParams(value);
   }
+
   return new URLSearchParams(Object.entries(value));
+}
+
+function toTanStackPattern(pattern: string) {
+  return pattern.replace(/:(\w+)/g, (_, key: string) => `$${key}`);
 }
 
 export function useAppNavigate(): NavigateFunction {
@@ -120,11 +136,13 @@ export function useAppNavigate(): NavigateFunction {
       router.history.go(to);
       return;
     }
+
     const href = normalizeHref(location.href, to);
     if (options?.replace) {
       router.history.replace(href, options.state);
       return;
     }
+
     router.history.push(href, options?.state);
   }, [location.href, router]);
 }
@@ -155,6 +173,7 @@ export function Link({
         if (!shouldHandleAnchorClick(event) || target === "_blank") {
           return;
         }
+
         event.preventDefault();
         navigate(to, { replace });
       }}
@@ -198,6 +217,7 @@ export function NavLink({
         if (!shouldHandleAnchorClick(event) || target === "_blank") {
           return;
         }
+
         event.preventDefault();
         navigate(to, { replace });
       }}
@@ -221,8 +241,8 @@ export function Outlet() {
 
 export function useAllParams<T extends Record<string, string | undefined> = Record<string, string | undefined>>() {
   const matches = useRouterState({
-    select: state => state.matches as any[],
-  }) as any[];
+    select: state => state.matches as Array<{ params?: Record<string, string | undefined> }>,
+  });
 
   return useMemo(() => {
     const mergedParams: Record<string, string | undefined> = {};
@@ -233,14 +253,15 @@ export function useAllParams<T extends Record<string, string | undefined> = Reco
   }, [matches]);
 }
 
-export function useLocation() {
-  const location = useTanStackLocation() as any;
-  const locationState = location?.state as Record<string, unknown> | undefined;
-  const pathname = typeof location?.pathname === "string" ? location.pathname : "/";
-  const search = typeof location?.searchStr === "string"
+export function useLocation(): CompatLocation {
+  const location = useTanStackLocation() as ReturnType<typeof useTanStackLocation> & {
+    state?: Record<string, unknown>;
+  };
+  const pathname = typeof location.pathname === "string" ? location.pathname : "/";
+  const search = typeof location.searchStr === "string"
     ? location.searchStr
-    : (typeof location?.search === "string" ? location.search : "");
-  const hash = typeof location?.hash === "string"
+    : (typeof location.search === "string" ? location.search : "");
+  const hash = typeof location.hash === "string"
     ? (location.hash.startsWith("#") ? location.hash : `#${location.hash}`)
     : "";
   const href = `${pathname}${search}${hash}`;
@@ -251,7 +272,7 @@ export function useLocation() {
     search,
     hash,
     href,
-    key: typeof locationState?.__TSR_key === "string" ? locationState.__TSR_key : "",
+    key: typeof location.state?.__TSR_key === "string" ? location.state.__TSR_key : "",
   };
 }
 
@@ -281,15 +302,7 @@ export function useUrlSearchParams(): [URLSearchParams, SetSearchParams] {
 
 export function usePathMatch(pattern: string) {
   const matchRoute = useMatchRoute();
-  return matchRoute({ to: pattern, fuzzy: false }) ?? null;
-}
-
-export function ScrollRestoration() {
-  return <TanStackScrollRestoration />;
-}
-
-export function Scripts() {
-  return <TanStackScripts />;
+  return matchRoute({ to: toTanStackPattern(pattern), fuzzy: false }) ?? null;
 }
 
 export function isRouteErrorResponse(error: unknown): error is { status: number; statusText?: string; data?: any } {

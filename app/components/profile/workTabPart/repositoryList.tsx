@@ -4,8 +4,8 @@ import Pagination from "@/components/common/pagination";
 import { useGlobalUserId } from "@/components/globalContextProvider";
 import { ContentCard } from "@/components/repository/home/RepositoryHome";
 
-import { useAppNavigate as useNavigate } from "@/router/utils";
 import { imageMediumUrl } from "@/utils/mediaUrl";
+import { useAppNavigate as useNavigate } from "@/utils/navigation";
 import { useRepositoryListByUserQuery } from "../../../../api/hooks/repositoryQueryHooks";
 import { useRuleListQuery } from "../../../../api/hooks/ruleQueryHooks";
 

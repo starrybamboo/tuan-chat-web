@@ -1,7 +1,7 @@
 import type { ChatMessageResponse } from "@tuanchat/openapi-client/models/ChatMessageResponse";
 
+import { useAppNavigate as useNavigate } from "@/utils/navigation";
 import toast from "react-hot-toast";
-import { useNavigate } from "react-router";
 
 import type { DirectMessageEvent } from "./wsModels";
 import { MessageType } from "./wsModels";

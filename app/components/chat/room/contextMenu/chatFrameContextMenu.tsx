@@ -10,8 +10,8 @@ import {
 import { useSideDrawerStore } from "@/components/chat/stores/sideDrawerStore";
 import { copyDocToSpaceDoc, copyDocToSpaceUserDoc } from "@/components/chat/utils/docCopy";
 import { useGlobalUserId } from "@/components/globalContextProvider";
-import { useAppNavigate as useNavigate } from "@/router/utils";
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
+import { useAppNavigate as useNavigate } from "@/utils/navigation";
 import { tuanchat } from "../../../../../api/instance";
 
 interface ContextMenuProps {

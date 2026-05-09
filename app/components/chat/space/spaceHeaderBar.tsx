@@ -9,7 +9,7 @@ import { canInviteSpectators } from "@/components/chat/utils/memberPermissions";
 import { canViewSpaceDetailTab } from "@/components/chat/utils/spaceDetailPermissions";
 import ConfirmModal from "@/components/common/comfirmModel";
 import { AddIcon, ChevronDown, DiceD6Icon, MemberIcon, Setting, SidebarSimpleIcon, WebgalIcon } from "@/icons";
-import { useAppNavigate as useNavigate } from "@/router/utils";
+import { useAppNavigate as useNavigate } from "@/utils/navigation";
 import { useDissolveSpaceMutation, useExitSpaceMutation, useRecoverSpaceMutation, useUpdateSpaceArchiveStatusMutation } from "../../../../api/hooks/chatQueryHooks";
 
 interface SpaceHeaderBarProps {

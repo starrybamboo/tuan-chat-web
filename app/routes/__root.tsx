@@ -1,6 +1,6 @@
 import type {
   RouteMetaArgs,
-} from "@/router/routeTypes";
+} from "@/routes/routeTypes";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { createRootRoute, HeadContent, Outlet, Scripts, ScrollRestoration, useLocation } from "@tanstack/react-router";
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
@@ -12,11 +12,11 @@ import { useDrawerPreferenceStore } from "@/components/chat/stores/drawerPrefere
 import { ToastWindowRenderer } from "@/components/common/toastWindow/toastWindowRenderer";
 import { GlobalContextProvider } from "@/components/globalContextProvider";
 import { queryClient } from "@/queryClient";
+import { consumeAuthToast } from "@/utils/auth/unauthorized";
 import {
   isRouteErrorResponse,
   useAppNavigate as useNavigate,
-} from "@/router/utils";
-import { consumeAuthToast } from "@/utils/auth/unauthorized";
+} from "@/utils/navigation";
 import { createSeoMeta, getCanonicalHref } from "@/utils/seo";
 import "@/app.css";
 
@@ -79,32 +79,8 @@ if (typeof window !== "undefined" && import.meta.env.DEV) {
   };
 }
 
-// React Scan 在 test 与本地开发环境始终启用；生产环境始终关闭。
 const isTestBuild = import.meta.env.MODE === "test";
 const TEST_ENV_SPLASH_SESSION_KEY = "tc:test-env-splash:2026-02-20";
-const shouldEnableReactScan
-  = typeof window !== "undefined"
-    && (
-      isTestBuild
-      || import.meta.env.DEV
-    );
-
-if (shouldEnableReactScan) {
-  void import("react-scan")
-    .then(({ scan }) => {
-      scan(
-        {
-          enabled: true,
-          showToolbar: true,
-          // test 站点是 production build，需要显式强制开启。
-          dangerouslyForceRunInProduction: isTestBuild,
-        },
-      );
-    })
-    .catch(() => {
-      // ignore
-    });
-}
 
 if (typeof window !== "undefined" && import.meta.env.MODE === "test" && !(window as any).__tcTestTitleTagInstalled) {
   // test 环境为标签页标题追加标识，避免与正式环境混淆。

@@ -287,7 +287,7 @@ export default defineConfig(() => {
           entry: "start",
         },
         router: {
-          virtualRouteConfig: "app/router/virtualRoutes.ts",
+          virtualRouteConfig: "app/virtualRoutes.ts",
         },
       }),
       tailwindcss(),
@@ -399,9 +399,8 @@ export default defineConfig(() => {
       // This mirrors the upstream playground Vite config.
       extensions: [".ts", ".tsx", ".js", ".jsx", ".mjs", ".json"],
 
-      // BlockSuite pulls in lit/lit-html. Ensure we don't end up with nested copies like
-      // `lit/node_modules/lit-html`, which increases module count and can exhaust
-      // browser/dev-server resources on Windows.
+      // Ensure we don't end up with nested copies like `lit/node_modules/lit-html`,
+      // which increases module count and can exhaust browser/dev-server resources on Windows.
       dedupe: [
         "react",
         "react-dom",
@@ -412,19 +411,7 @@ export default defineConfig(() => {
         "react/jsx-dev-runtime",
         "@tanstack/react-router",
         "zustand",
-
-        // Ensure BlockSuite/Yjs are singletons. Multiple module instances can
-        // break DI tokens (e.g. StoreSelectionExtension) and instance checks
-        // (e.g. "store is invalid").
         "yjs",
-        "@blocksuite/global",
-        "@blocksuite/store",
-        "@blocksuite/std",
-        "@blocksuite/sync",
-        "@blocksuite/affine",
-        "@blocksuite/affine-model",
-        "@blocksuite/affine-shared",
-
         "lit",
         "lit-element",
         "lit-html",
@@ -433,11 +420,6 @@ export default defineConfig(() => {
         "@lit/react",
       ],
       alias: [
-        // BlockSuite packages export TypeScript sources (`./src/*.ts`) by default.
-        // In Vite dev this can lead to:
-        // - decorators not being applied (custom elements not defined) -> "Illegal constructor"
-        // - mixed module instances (src vs dist) -> DI token mismatch / Yjs store issues
-        // Force them to use prebuilt dist outputs.
         // 音频转码依赖 ffmpeg.wasm：固定到 ESM 入口，避免 Vite 在 Windows 下解析 package exports 失败
         {
           find: /^@ffmpeg\/ffmpeg$/,
@@ -466,74 +448,6 @@ export default defineConfig(() => {
         {
           find: /^@ffmpeg\/util$/,
           replacement: nm("node_modules/@ffmpeg/util/dist/esm/index.js"),
-        },
-        {
-          find: /^@blocksuite\/std$/,
-          replacement: nm("node_modules/@blocksuite/std/dist/index.js"),
-        },
-        {
-          find: /^@blocksuite\/std\/(.+)$/,
-          replacement: `${nm("node_modules/@blocksuite/std/dist")}/$1`,
-        },
-        {
-          find: /^@blocksuite\/store$/,
-          replacement: nm("node_modules/@blocksuite/store/dist/index.js"),
-        },
-        {
-          find: /^@blocksuite\/store\/(.+)$/,
-          replacement: `${nm("node_modules/@blocksuite/store/dist")}/$1`,
-        },
-        {
-          find: /^@blocksuite\/global$/,
-          replacement: nm("node_modules/@blocksuite/global/dist/index.js"),
-        },
-        {
-          find: /^@blocksuite\/global\/(.+)$/,
-          replacement: `${nm("node_modules/@blocksuite/global/dist")}/$1`,
-        },
-        {
-          find: /^@blocksuite\/sync$/,
-          replacement: nm("node_modules/@blocksuite/sync/dist/index.js"),
-        },
-        {
-          find: /^@blocksuite\/sync\/(.+)$/,
-          replacement: `${nm("node_modules/@blocksuite/sync/dist")}/$1`,
-        },
-        {
-          find: /^@blocksuite\/affine$/,
-          replacement: nm("node_modules/@blocksuite/affine/dist/index.js"),
-        },
-        {
-          find: /^@blocksuite\/affine\/(.+)$/,
-          replacement: `${nm("node_modules/@blocksuite/affine/dist")}/$1`,
-        },
-        {
-          find: /^@blocksuite\/affine-model$/,
-          replacement: nm("node_modules/@blocksuite/affine-model/dist/index.js"),
-        },
-        {
-          find: /^@blocksuite\/affine-model\/(.+)$/,
-          replacement: `${nm("node_modules/@blocksuite/affine-model/dist")}/$1`,
-        },
-        {
-          find: /^@blocksuite\/affine-shared$/,
-          replacement: nm("node_modules/@blocksuite/affine-shared/dist/index.js"),
-        },
-        {
-          find: /^@blocksuite\/affine-shared\/(.+)$/,
-          replacement: `${nm("node_modules/@blocksuite/affine-shared/dist")}/$1`,
-        },
-
-        // Some BlockSuite packages export vanilla-extract `*.css.ts` sources in `exports`.
-        // In production/SSR builds this can crash with `document is not defined`.
-        // Force them to use prebuilt dist outputs.
-        {
-          find: /^@blocksuite\/affine-block-note$/,
-          replacement: nm("node_modules/@blocksuite/affine-block-note/dist/index.js"),
-        },
-        {
-          find: /^@blocksuite\/affine-block-note\/(.+)$/,
-          replacement: `${nm("node_modules/@blocksuite/affine-block-note/dist")}/$1`,
         },
 
         // Force Lit ecosystem to resolve to a single physical copy.
@@ -643,10 +557,6 @@ export default defineConfig(() => {
       },
     },
 
-    // TanStack Start dev still evaluates route modules in a server-like context. Some upstream packages (e.g. BlockSuite)
-    // export TypeScript sources in `exports`, which Node cannot execute if externalized.
-    // Force Vite SSR to bundle/transpile them to avoid runtime syntax errors like:
-    // "SyntaxError: Unexpected identifier 'lineStyle'".
     ssr: {
       // `dagre` is pure CommonJS (module.exports). If we bundle it into SSR ESM,
       // it may be evaluated without a CJS wrapper and crash with `module is not defined`.
@@ -655,7 +565,6 @@ export default defineConfig(() => {
         "qrcode",
       ],
       noExternal: [
-        /^@blocksuite\//,
         /^@toeverything\//,
         "lodash",
         "fast-diff",
@@ -671,7 +580,6 @@ export default defineConfig(() => {
       noDiscovery: true,
 
       // Explicitly pre-bundle only the deps we know are safe/needed.
-      // IMPORTANT: do NOT pre-bundle BlockSuite/AFFiNE packages.
       include: [
         // Ensure React JSX runtime is properly converted to ESM for browser.
         "react",
@@ -689,10 +597,6 @@ export default defineConfig(() => {
         // Pixi has a very large module graph; without pre-bundling it can trigger
         // browser resource exhaustion (ERR_INSUFFICIENT_RESOURCES) in dev.
         "pixi.js",
-
-        // BlockSuite/AFFiNE transitive deps:
-        // Pre-bundle these to reduce the amount of /node_modules/* requests in dev.
-        // (We still exclude @blocksuite/* themselves to keep single-instance guarantees.)
         "zod",
         "yjs",
         "rxjs",
@@ -701,12 +605,6 @@ export default defineConfig(() => {
         // Markdown/code highlighting (CJS interop)
         "lowlight",
         "react-syntax-highlighter",
-
-        // NOTE: Avoid pre-bundling lit/@lit and @blocksuite/* here.
-        // They are extremely sensitive to duplicate module instances
-        // (e.g. Lit's ReactiveElement / custom element constructors).
-        // Mixing Vite pre-bundled deps with our alias-to-dist strategy can lead to
-        // runtime errors like: "Failed to construct 'HTMLElement': Illegal constructor".
 
         // Fix CJS/ESM interop for packages that are imported as ESM but are CJS.n
         // This prevents runtime errors like:
@@ -746,48 +644,13 @@ export default defineConfig(() => {
         "screenfull",
       ],
 
-      // IMPORTANT: do NOT pre-bundle `@blocksuite/affine-*` packages.
-      // Many of them include `*.css.ts` (vanilla-extract) sources.
       exclude: [
-        // BlockSuite/lit are intentionally excluded to prevent duplicate instances
-        // between Vite pre-bundled deps and our alias-to-dist resolution.
-        "@blocksuite/global",
-        "@blocksuite/store",
-        "@blocksuite/std",
-        "@blocksuite/sync",
         "lit",
         "lit-element",
         "lit-html",
         "@lit/context",
         "@lit/reactive-element",
         "@lit/react",
-
-        "@blocksuite/affine",
-        "@blocksuite/affine-ext-loader",
-        "@blocksuite/affine-shared",
-        "@blocksuite/affine-components",
-        "@blocksuite/affine-inline-preset",
-        "@blocksuite/affine-inline-preset/store",
-        "@blocksuite/affine-inline-preset/view",
-        "@blocksuite/affine-block-root",
-        "@blocksuite/affine-block-root/store",
-        "@blocksuite/affine-block-root/view",
-        "@blocksuite/affine-block-note",
-        "@blocksuite/affine-block-note/store",
-        "@blocksuite/affine-block-note/view",
-        "@blocksuite/affine-block-paragraph",
-        "@blocksuite/affine-block-paragraph/store",
-        "@blocksuite/affine-block-paragraph/view",
-        "@blocksuite/affine-block-surface",
-        "@blocksuite/affine-block-surface/store",
-        "@blocksuite/affine-block-surface/view",
-
-        // Common transitive deps that also ship `src/*.ts` + `*.css.ts`
-        "@blocksuite/affine-block-frame",
-        "@blocksuite/affine-gfx-shape",
-        "@blocksuite/affine-inline-latex",
-        "@blocksuite/data-view",
-
       ],
     },
   };

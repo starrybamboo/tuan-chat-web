@@ -15,7 +15,7 @@ import { useDrawerPreferenceStore } from "@/components/chat/stores/drawerPrefere
 import { useLocalStorage } from "@/components/common/customHooks/useLocalStorage";
 import { useScreenSize } from "@/components/common/customHooks/useScreenSize";
 import { useGlobalUserId, useGlobalWebSocket } from "@/components/globalContextProvider";
-import { useAppNavigate as useNavigate, useUrlSearchParams as useSearchParams } from "@/router/utils";
+import { useAppNavigate as useNavigate, useUrlSearchParams as useSearchParams } from "@/utils/navigation";
 import { scheduleNonCriticalTask } from "@/utils/scheduleNonCriticalTask";
 
 const EMPTY_ARRAY: never[] = [];

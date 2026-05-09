@@ -12,8 +12,8 @@ import BlocksuiteDescriptionEditor from "@/components/chat/shared/components/Blo
 import {
   BLOCKSUITE_FULL_PANEL_EDITOR_CLASS,
 } from "@/components/chat/shared/components/BlockSuite/blocksuiteDescriptionEditor.shared";
-import { useAppNavigate as useNavigate, useAllParams as useParams } from "@/router/utils";
 import { avatarThumbUrl, imageMediumUrl, imageMediumUrlFromUrl } from "@/utils/mediaUrl";
+import { useAppNavigate as useNavigate, useAllParams as useParams } from "@/utils/navigation";
 import Author from "./author";
 import {
   findRecoverableRepositorySpace,

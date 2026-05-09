@@ -1,6 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { useUrlSearchParams as useSearchParams } from "@/router/utils";
 import {
   requestForgotPasswordByEmail,
   sendEmailVerificationCode,
@@ -8,6 +7,7 @@ import {
 } from "@/utils/auth/accountSecurityApi";
 import { checkAuthStatus, loginUser, logoutUser, registerUser } from "@/utils/auth/authapi";
 import { normalizeAuthRedirectPath } from "@/utils/auth/redirect";
+import { useUrlSearchParams as useSearchParams } from "@/utils/navigation";
 import { AlertMessage } from "./AlertMessage";
 import { ForgotPasswordForm } from "./ForgotPasswordForm";
 import { LoggedInView } from "./LoggedInView";

@@ -112,6 +112,59 @@ export function writeSpaceDocMetaCache(spaceId: number, list: MinimalDocMeta[] |
   }
 }
 
+export function upsertSpaceDocMetaCacheEntry(params: {
+  spaceId: number;
+  docId: string;
+  title?: string;
+  imageUrl?: string;
+  imageFileId?: number;
+  originalImageFileId?: number;
+  imageMediaType?: string;
+}): void {
+  const normalizedSpaceId = Number(params.spaceId);
+  const normalizedDocId = typeof params.docId === "string" ? params.docId.trim() : "";
+  if (!Number.isFinite(normalizedSpaceId) || normalizedSpaceId <= 0 || parseSpaceDocId(normalizedDocId)?.kind !== "independent") {
+    return;
+  }
+
+  const current = readSpaceDocMetaCache(normalizedSpaceId);
+  const idx = current.findIndex(meta => meta.id === normalizedDocId);
+  const title = typeof params.title === "string" ? params.title.trim() : "";
+  const imageUrl = typeof params.imageUrl === "string" ? params.imageUrl.trim() : "";
+  const imageFileId = typeof params.imageFileId === "number" && params.imageFileId > 0 ? params.imageFileId : undefined;
+  const originalImageFileId = typeof params.originalImageFileId === "number" && params.originalImageFileId > 0
+    ? params.originalImageFileId
+    : undefined;
+  const imageMediaType = typeof params.imageMediaType === "string" ? params.imageMediaType.trim() : "";
+
+  const nextMeta: MinimalDocMeta = {
+    id: normalizedDocId,
+    ...(title ? { title } : {}),
+    ...(imageUrl ? { imageUrl } : {}),
+    ...(imageFileId ? { imageFileId } : {}),
+    ...(originalImageFileId ? { originalImageFileId } : {}),
+    ...(imageMediaType ? { imageMediaType } : {}),
+  };
+
+  if (idx < 0) {
+    writeSpaceDocMetaCache(normalizedSpaceId, [...current, nextMeta]);
+    return;
+  }
+
+  const prev = current[idx];
+  if (prev?.title === nextMeta.title
+    && prev?.imageUrl === nextMeta.imageUrl
+    && prev?.imageFileId === nextMeta.imageFileId
+    && prev?.originalImageFileId === nextMeta.originalImageFileId
+    && prev?.imageMediaType === nextMeta.imageMediaType) {
+    return;
+  }
+
+  const next = [...current];
+  next[idx] = nextMeta;
+  writeSpaceDocMetaCache(normalizedSpaceId, next);
+}
+
 export function removeSpaceDocMetaCacheEntry(params: { spaceId: number; docId: string }): void {
   const normalizedSpaceId = Number(params.spaceId);
   const normalizedDocId = typeof params.docId === "string" ? params.docId.trim() : "";
