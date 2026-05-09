@@ -1,5 +1,6 @@
 // AI 生图页面：对齐 NovelAI Image 的桌面端布局与交互；当前保留免费单张 txt2img，并开放预览区 Inpaint。
 import { UploadSimpleIcon } from "@phosphor-icons/react";
+import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { AiImageSidebar } from "@/components/aiImage/AiImageSidebar";
@@ -15,6 +16,10 @@ import "@/components/aiImage/aiImageRouteStyles.css";
 const AI_IMAGE_SIDEBAR_MIN_RATIO = 0.18;
 const AI_IMAGE_SIDEBAR_MAX_RATIO = 0.23;
 const AI_IMAGE_SIDEBAR_DEFAULT_RATIO = 0.2;
+
+export const Route = createFileRoute("/_dashboard/ai-image")({
+  component: AiImagePage,
+});
 
 function clampAiImageSidebarWidth(nextWidth: number, containerWidth: number) {
   const minWidth = Math.round(containerWidth * AI_IMAGE_SIDEBAR_MIN_RATIO);

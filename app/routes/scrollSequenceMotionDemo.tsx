@@ -1,4 +1,5 @@
 import type { RouteMetaArgs } from "@/router/routeTypes";
+import { createFileRoute } from "@tanstack/react-router";
 
 import { Navigate } from "@/router/reactRouterCompat";
 import { createSeoMeta } from "@/utils/seo";
@@ -11,6 +12,13 @@ export function meta(_args: RouteMetaArgs) {
     index: false,
   });
 }
+
+export const Route = createFileRoute("/scroll-sequence-motion-demo")({
+  head: () => ({
+    meta: meta({ params: {} }),
+  }),
+  component: ScrollSequenceMotionDemoPage,
+});
 
 export default function ScrollSequenceMotionDemoPage() {
   return <Navigate to="/scroll-sequence-demo" replace />;

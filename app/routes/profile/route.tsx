@@ -1,4 +1,5 @@
 import type { RouteMetaArgs } from "@/router/routeTypes";
+import { createFileRoute } from "@tanstack/react-router";
 import ProfilePage from "@/components/profile/profilePage";
 import { createSeoMeta } from "@/utils/seo";
 
@@ -11,6 +12,13 @@ export function meta({ params }: RouteMetaArgs) {
     type: "profile",
   });
 }
+
+export const Route = createFileRoute("/_dashboard/profile/$userId")({
+  head: ({ params }) => ({
+    meta: meta({ params }),
+  }),
+  component: Profile,
+});
 
 export default function Profile() {
   return (

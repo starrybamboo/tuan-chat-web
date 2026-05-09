@@ -1,9 +1,12 @@
-import React from "react";
-import ReactDOM from "react-dom/client";
-import { AppRouterProvider } from "@/router";
+import { StrictMode, startTransition } from "react";
+import { hydrateRoot } from "react-dom/client";
+import { StartClient } from "@tanstack/react-start/client";
 
-ReactDOM.createRoot(document.getElementById("root")!).render(
-  <React.StrictMode>
-    <AppRouterProvider />
-  </React.StrictMode>,
-);
+startTransition(() => {
+  hydrateRoot(
+    document,
+    <StrictMode>
+      <StartClient />
+    </StrictMode>,
+  );
+});

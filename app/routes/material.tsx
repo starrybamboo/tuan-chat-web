@@ -1,4 +1,5 @@
 import type { RouteMetaArgs } from "@/router/routeTypes";
+import { createFileRoute } from "@tanstack/react-router";
 import MaterialLibraryPage from "@/components/material/pages/materialLibraryPage";
 import { useSearchParams } from "@/router/reactRouterCompat";
 import { createSeoMeta } from "@/utils/seo";
@@ -11,6 +12,13 @@ export function meta(_args: RouteMetaArgs) {
     index: false,
   });
 }
+
+export const Route = createFileRoute("/_dashboard/material")({
+  head: () => ({
+    meta: meta({ params: {} }),
+  }),
+  component: MaterialRoute,
+});
 
 export default function MaterialRoute() {
   const [searchParams] = useSearchParams();

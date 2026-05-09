@@ -4,6 +4,7 @@ import * as babelCore from "@babel/core";
 import tailwindcss from "@tailwindcss/vite";
 import { vanillaExtractPlugin } from "@vanilla-extract/vite-plugin";
 import react from "@vitejs/plugin-react";
+import { tanstackStart } from "@tanstack/react-start/plugin/vite";
 import { Buffer } from "node:buffer";
 import { existsSync, realpathSync } from "node:fs";
 import { resolve } from "node:path";
@@ -278,6 +279,18 @@ export default defineConfig(() => {
 
   return {
     plugins: [
+      ...tanstackStart({
+        srcDirectory: "app",
+        client: {
+          entry: "main",
+        },
+        start: {
+          entry: "start",
+        },
+        router: {
+          virtualRouteConfig: "app/router/virtualRoutes.ts",
+        },
+      }),
       tailwindcss(),
       fixCjsDefaultExportPlugin(),
       ossUploadProxyPlugin(),
@@ -595,8 +608,21 @@ export default defineConfig(() => {
     // 导致请求到不存在的 `chunk-*.js` 文件。
     cacheDir: "node_modules/.vite-tuan-chat-web",
 
+    environments: {
+      client: {
+        build: {
+          outDir: "build/client",
+        },
+      },
+      server: {
+        build: {
+          outDir: "build/server",
+        },
+      },
+    },
+
     build: {
-      outDir: "build/client",
+      outDir: "build",
       rollupOptions: {
         output: {
           manualChunks: splitVendorChunk,

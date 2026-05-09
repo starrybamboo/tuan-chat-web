@@ -1,3 +1,4 @@
+import { createFileRoute } from "@tanstack/react-router";
 import FeedbackPage from "@/components/feedback/feedbackPage";
 import { createSeoMeta } from "@/utils/seo";
 
@@ -9,6 +10,13 @@ export function meta() {
     index: false,
   });
 }
+
+export const Route = createFileRoute("/_dashboard/feedback/{-$issueId}")({
+  head: () => ({
+    meta: meta(),
+  }),
+  component: Feedback,
+});
 
 export default function Feedback() {
   return <FeedbackPage />;

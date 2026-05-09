@@ -1,4 +1,5 @@
 import type { Role } from "@/components/Role/types";
+import { createFileRoute } from "@tanstack/react-router";
 
 import CreateDiceMaiden from "@/components/Role/RoleCreation/CreateDicerRole";
 import CreateEntry from "@/components/Role/RoleCreation/CreateEntry";
@@ -15,6 +16,10 @@ function resolveCreateMode(typeParam: string | null): CreateMode {
   }
   return "entry";
 }
+
+export const Route = createFileRoute("/_dashboard/role/")({
+  component: RoleCreationPage,
+});
 
 export default function RoleCreationPage() {
   const navigate = useNavigate();

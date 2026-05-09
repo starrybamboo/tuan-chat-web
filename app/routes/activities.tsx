@@ -1,3 +1,4 @@
+import { createFileRoute } from "@tanstack/react-router";
 import ActivitiesPage from "@/components/activities/activitiesPage";
 import { createSeoMeta } from "@/utils/seo";
 
@@ -9,6 +10,13 @@ export function meta() {
     index: false,
   });
 }
+
+export const Route = createFileRoute("/_dashboard/activities")({
+  head: () => ({
+    meta: meta(),
+  }),
+  component: Activities,
+});
 
 export default function Activities() {
   return (

@@ -1,3 +1,4 @@
+import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import LoginModal from "@/components/auth/LoginModal";
 import { useNavigate, useSearchParams } from "@/router/reactRouterCompat";
@@ -12,6 +13,13 @@ export function meta() {
     index: false,
   });
 }
+
+export const Route = createFileRoute("/login")({
+  head: () => ({
+    meta: meta(),
+  }),
+  component: LoginPage,
+});
 
 export default function LoginPage() {
   const navigate = useNavigate();
