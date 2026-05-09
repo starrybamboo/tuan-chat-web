@@ -311,9 +311,6 @@ importers:
       '@blocksuite/global':
         specifier: 0.22.4
         version: 0.22.4(patch_hash=bxrlaw55xttaf6t6r2wkqfophy)
-      '@blocksuite/integration-test':
-        specifier: 0.22.4
-        version: 0.22.4(@types/debug@4.1.12)(@types/node@20.19.27)(@types/react@19.2.7)(babel-plugin-macros@3.1.0)(change-case@5.4.4)(jiti@2.7.0)(lightningcss@1.32.0)(react@19.2.3)(terser@5.44.1)(tsx@4.21.0)(yaml@2.8.2)
       '@blocksuite/std':
         specifier: 0.22.4
         version: 0.22.4(patch_hash=p24pizk6z6il53crj7mo3dvxhm)
@@ -353,9 +350,6 @@ importers:
       '@tanstack/react-query':
         specifier: ^5.69.0
         version: 5.90.16(react@19.2.3)
-      '@toeverything/theme':
-        specifier: 1.1.23
-        version: 1.1.23
       '@tuanchat/domain':
         specifier: workspace:*
         version: link:packages/tuanchat-domain
@@ -1721,9 +1715,6 @@ packages:
         optional: true
       react:
         optional: true
-
-  '@blocksuite/integration-test@0.22.4':
-    resolution: {integrity: sha512-i2NAYexf1wRHiQaU+GbXRT/xaO5rZWJuLTQkHvBLuCaclvu5GBFYQ+JZ6yHpUrZKWWN7+s6dKegx/byJsyGHJA==}
 
   '@blocksuite/std@0.22.4':
     resolution: {integrity: sha512-xfw3cDE+JHR7XynOydolKoqtNpneYt5BZfPlGnNX7pqX4nS/fbylzVFEx7wlaLOTn4G+qG8dlVHT6YEtazjPvw==}
@@ -5751,10 +5742,6 @@ packages:
 
   entities@6.0.1:
     resolution: {integrity: sha512-aN97NXWF6AWBTahfVOIrB/NShkzi5H7F9r1s9mD3cDj4Ko5f2qhhVoYMibXF7GlLveb/D2ioWay8lxI97Ven3g==}
-    engines: {node: '>=0.12'}
-
-  entities@7.0.0:
-    resolution: {integrity: sha512-FDWG5cmEYf2Z00IkYRhbFrwIwvdFKH07uV8dvNy0omp/Qb1xcyCWp2UDtcwJF4QZZvk0sLudP6/hAu42TaqVhQ==}
     engines: {node: '>=0.12'}
 
   entities@7.0.1:
@@ -13810,45 +13797,6 @@ snapshots:
       lit: 3.3.2
       react: 19.2.3
 
-  '@blocksuite/integration-test@0.22.4(@types/debug@4.1.12)(@types/node@20.19.27)(@types/react@19.2.7)(babel-plugin-macros@3.1.0)(change-case@5.4.4)(jiti@2.7.0)(lightningcss@1.32.0)(react@19.2.3)(terser@5.44.1)(tsx@4.21.0)(yaml@2.8.2)':
-    dependencies:
-      '@blocksuite/affine': 0.22.4(patch_hash=xy2wh5bsox37v5ljozzgd7j4xq)(@types/debug@4.1.12)(@types/node@20.19.27)(@types/react@19.2.7)(babel-plugin-macros@3.1.0)(change-case@5.4.4)(jiti@2.7.0)(lightningcss@1.32.0)(react@19.2.3)(terser@5.44.1)(tsx@4.21.0)(yaml@2.8.2)(yjs@13.6.29)
-      '@blocksuite/icons': 2.2.17(@types/react@19.2.7)(change-case@5.4.4)(lit@3.3.2)(react@19.2.3)
-      '@floating-ui/dom': 1.7.4
-      '@lit/context': 1.1.6
-      '@lottiefiles/dotlottie-wc': 0.5.3
-      '@preact/signals-core': 1.12.1
-      '@toeverything/theme': 1.1.23
-      '@vanilla-extract/css': 1.18.0(babel-plugin-macros@3.1.0)
-      lit: 3.3.2
-      rxjs: 7.8.2
-      yjs: 13.6.29
-      zod: 3.25.76
-    transitivePeerDependencies:
-      - '@edge-runtime/vm'
-      - '@types/debug'
-      - '@types/node'
-      - '@types/react'
-      - '@vitest/browser'
-      - '@vitest/ui'
-      - babel-plugin-macros
-      - change-case
-      - happy-dom
-      - jiti
-      - jsdom
-      - less
-      - lightningcss
-      - msw
-      - react
-      - sass
-      - sass-embedded
-      - stylus
-      - sugarss
-      - supports-color
-      - terser
-      - tsx
-      - yaml
-
   '@blocksuite/std@0.22.4(patch_hash=p24pizk6z6il53crj7mo3dvxhm)':
     dependencies:
       '@atlaskit/pragmatic-drag-and-drop': 1.7.7
@@ -17303,7 +17251,7 @@ snapshots:
     dependencies:
       '@babel/parser': 7.29.2
       '@vue/shared': 3.5.26
-      entities: 7.0.0
+      entities: 7.0.1
       estree-walker: 2.0.2
       source-map-js: 1.2.1
 
@@ -18300,7 +18248,7 @@ snapshots:
   config-file-ts@0.2.8-rc1:
     dependencies:
       glob: 10.5.0
-      typescript: 5.9.3
+      typescript: 5.8.2
 
   connect@3.7.0:
     dependencies:
@@ -18740,8 +18688,6 @@ snapshots:
   entities@4.5.0: {}
 
   entities@6.0.1: {}
-
-  entities@7.0.0: {}
 
   entities@7.0.1: {}
 
