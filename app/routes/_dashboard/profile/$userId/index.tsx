@@ -1,7 +1,6 @@
 import type { RouteMetaArgs } from "@/routes/routeTypes";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useParams } from "@tanstack/react-router";
 import HomeTab from "@/components/profile/profileTab/homeTab";
-import { useAllParams as useParams } from "@/utils/navigation";
 import { createSeoMeta } from "@/utils/seo";
 
 export function meta({ params }: RouteMetaArgs) {
@@ -22,7 +21,7 @@ export const Route = createFileRoute("/_dashboard/profile/$userId/")({
 });
 
 export default function ProfileHome() {
-  const { userId: urlUserId } = useParams();
+  const { userId: urlUserId } = useParams({ strict: false });
   const userId = Number(urlUserId);
 
   return <HomeTab userId={userId} />;

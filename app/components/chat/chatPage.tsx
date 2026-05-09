@@ -1,4 +1,4 @@
-import { Outlet } from "@tanstack/react-router";
+import { Outlet, useLocation } from "@tanstack/react-router";
 import { useGetSpaceInfoQuery, useGetSpaceMembersQuery, useGetUserActiveSpacesQuery, useGetUserRoomsQuery } from "api/hooks/chatQueryHooks";
 import { useSpaceMaterialPackagesQuery } from "api/hooks/materialPackageQueryHooks";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -38,7 +38,6 @@ import { useLocalStorage } from "@/components/common/customHooks/useLocalStorage
 import { useScreenSize } from "@/components/common/customHooks/useScreenSize";
 import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
 import { useGlobalUserId, useGlobalWebSocket } from "@/components/globalContextProvider";
-import { useUrlSearchParams as useSearchParams } from "@/utils/navigation";
 
 const EMPTY_ARRAY: never[] = [];
 interface CachedDocRoute {
@@ -50,6 +49,7 @@ interface CachedDocRoute {
  * Chat 页面
  */
 export default function ChatPage() {
+  const location = useLocation();
   const {
     urlSpaceId,
     urlRoomId,
@@ -64,7 +64,7 @@ export default function ChatPage() {
     isSpaceDetailRoute,
     navigate,
   } = useChatPageRoute();
-  const [searchParam] = useSearchParams();
+  const searchParam = useMemo(() => new URLSearchParams(location.searchStr), [location.searchStr]);
   const screenSize = useScreenSize();
   const {
     isOpenLeftDrawer,

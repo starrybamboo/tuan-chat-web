@@ -44,11 +44,6 @@ export default defineConfig({
     include: ["**/*.test.ts"],
     exclude: ["**/*.e2e.test.ts", "node_modules", "dist"],
     maxThreads: 16,
-    server: {
-      deps: {
-        inline: [/^@blocksuite\//, /[\\/]node_modules[\\/]@blocksuite[\\/]/],
-      },
-    },
     coverage: {
       provider: "v8",
       reportsDirectory: "coverage",

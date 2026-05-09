@@ -1,12 +1,12 @@
 import type { ChatMessageResponse } from "../../../../../api";
-
 import { ArrowRightIcon, ChatCircleIcon } from "@phosphor-icons/react";
+
+import { useLocation, useRouter } from "@tanstack/react-router";
 import React, { use, useCallback, useMemo } from "react";
 import toast from "react-hot-toast";
 import { RoomContext } from "@/components/chat/core/roomContext";
 import { extractRoomJumpPayload } from "@/components/chat/utils/roomJump";
 import { avatarThumbUrl } from "@/utils/mediaUrl";
-import { useAppNavigate as useNavigate, useUrlSearchParams as useSearchParams } from "@/utils/navigation";
 import { useGetUserRoomsQuery } from "../../../../../api/hooks/chatQueryHooks";
 
 function normalizeName(value: string | undefined): string {
@@ -20,8 +20,9 @@ interface ResolveTargetResult {
 
 function RoomJumpMessageImpl({ messageResponse }: { messageResponse: ChatMessageResponse }) {
   const roomContext = use(RoomContext);
-  const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
+  const location = useLocation();
+  const router = useRouter();
+  const searchParams = useMemo(() => new URLSearchParams(location.searchStr), [location.searchStr]);
   const payload = useMemo(() => extractRoomJumpPayload(messageResponse.message.extra), [messageResponse.message.extra]);
 
   const currentSpaceId = roomContext.spaceId ?? undefined;
@@ -145,8 +146,8 @@ function RoomJumpMessageImpl({ messageResponse }: { messageResponse: ChatMessage
 
     const query = searchParams.toString();
     const targetPath = `/chat/${targetSpaceId}/${resolvedTarget.roomId}${query ? `?${query}` : ""}`;
-    navigate(targetPath);
-  }, [currentRoomId, currentSpaceId, disabledReason, navigate, resolvedTarget.roomId, resolvedTarget.reason, searchParams, targetSpaceId]);
+    router.history.push(targetPath);
+  }, [currentRoomId, currentSpaceId, disabledReason, resolvedTarget.roomId, resolvedTarget.reason, router, searchParams, targetSpaceId]);
 
   return (
     <div className="flex w-full max-w-sm py-1">

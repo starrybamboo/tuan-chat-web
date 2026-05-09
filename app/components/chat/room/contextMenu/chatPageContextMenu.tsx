@@ -1,10 +1,10 @@
+import { useRouter } from "@tanstack/react-router";
 import { useDissolveRoomMutation } from "api/hooks/chatQueryHooks";
 import { use, useState } from "react";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
 import { buildSpaceDocId } from "@/components/chat/infra/blocksuite/space/spaceDocId";
 import { canManageMemberPermissions } from "@/components/chat/utils/memberPermissions";
 import ConfirmModal from "@/components/common/comfirmModel";
-import { useAppNavigate as useNavigate } from "@/utils/navigation";
 import { useSubscribeRoomMutation, useUnsubscribeRoomMutation } from "../../../../../api/hooks/messageSessionQueryHooks";
 
 interface ChatPageContextMenuProps {
@@ -24,7 +24,7 @@ export default function ChatPageContextMenu({
   onInvitePlayer,
   onOpenRoomSetting,
 }: ChatPageContextMenuProps) {
-  const navigate = useNavigate();
+  const router = useRouter();
   const spaceContext = use(SpaceContext);
 
   const subscribeRoomMutation = useSubscribeRoomMutation();
@@ -147,7 +147,7 @@ export default function ChatPageContextMenu({
               // 如果解散的是当前正在浏览的房间，跳回空间根路由，避免停留在已删除房间。
               if (spaceContext?.spaceId && activeRoomId === activeDissolveRoomId) {
                 spaceContext.setActiveRoomId?.(null);
-                navigate(`/chat/${spaceContext.spaceId}`, { replace: true });
+                router.history.replace(`/chat/${spaceContext.spaceId}`);
               }
             },
           });

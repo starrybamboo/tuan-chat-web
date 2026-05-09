@@ -1,9 +1,9 @@
+import { useLocation } from "@tanstack/react-router";
 import React from "react";
 import { useChatPageLayoutContext } from "@/components/chat/chatPageLayoutContext";
 
 import FriendsPage from "@/components/privateChat/FriendsPage";
 import RightChatView from "@/components/privateChat/RightChatView";
-import { useUrlSearchParams as useSearchParams } from "@/utils/navigation";
 
 // 私聊首页只需要私聊组件，群聊/文档工作台进入对应分支后再加载。
 const LazyRoomWindow = React.lazy(() => import("@/components/chat/room/roomWindow"));
@@ -34,7 +34,8 @@ function ChatPageChatContent() {
     activeSpaceId,
     targetMessageId,
   } = useChatPageLayoutContext();
-  const [searchParams] = useSearchParams();
+  const location = useLocation();
+  const searchParams = React.useMemo(() => new URLSearchParams(location.searchStr), [location.searchStr]);
   const previewParam = searchParams.get("preview");
   const isPreviewMode = previewParam === "1" || previewParam === "true";
 

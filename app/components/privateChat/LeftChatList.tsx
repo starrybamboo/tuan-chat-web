@@ -1,8 +1,8 @@
 import { ChatCircleIcon, UserCirclePlusIcon, UserListIcon } from "@phosphor-icons/react";
+import { useParams, useRouter } from "@tanstack/react-router";
 import { useGlobalUserId, useGlobalWebSocket } from "@/components/globalContextProvider";
 import { SidebarSimpleIcon } from "@/icons";
 import { getScreenSize } from "@/utils/getScreenSize";
-import { useAppNavigate as useNavigate, useAllParams as useParams } from "@/utils/navigation";
 import ChatList from "./components/ChatList";
 import ContextMenuCommon from "./components/ContextMenuCommon";
 import { useContextMenuCommon } from "./hooks/useContextMenuCommon";
@@ -19,11 +19,9 @@ export default function LeftChatList({ setIsOpenLeftDrawer }: { setIsOpenLeftDra
 
   const userId = useGlobalUserId() || -1;
   const webSocketUtils = useGlobalWebSocket();
-  const { targetUserId: urlTargetUserId, roomId: urlRoomId } = useParams();
-  const navigate = useNavigate();
-  const currentContactUserId = urlRoomId
-    ? Number.parseInt(urlRoomId)
-    : (urlTargetUserId ? Number.parseInt(urlTargetUserId) : null);
+  const { roomId: urlRoomId } = useParams({ strict: false });
+  const router = useRouter();
+  const currentContactUserId = urlRoomId ? Number.parseInt(urlRoomId) : null;
 
   // 私聊列表相关数据和操作
   const {
@@ -98,7 +96,7 @@ export default function LeftChatList({ setIsOpenLeftDrawer }: { setIsOpenLeftDra
               aria-label="好友列表"
               title="好友列表"
               onClick={() => {
-                navigate("/chat/private?tab=all");
+                router.history.push("/chat/private?tab=all");
                 if (isSmallScreen) {
                   setTimeout(() => {
                     setIsOpenLeftDrawer(false);
@@ -114,7 +112,7 @@ export default function LeftChatList({ setIsOpenLeftDrawer }: { setIsOpenLeftDra
               aria-label="添加好友"
               title="添加好友"
               onClick={() => {
-                navigate("/chat/private?tab=add");
+                router.history.push("/chat/private?tab=add");
                 if (isSmallScreen) {
                   setTimeout(() => {
                     setIsOpenLeftDrawer(false);

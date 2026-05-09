@@ -1,7 +1,7 @@
 import { ArrowClockwiseIcon, ArrowLeftIcon, GitCommitIcon } from "@phosphor-icons/react";
+import { useNavigate, useParams, useRouter } from "@tanstack/react-router";
 import { useRepositoryCommitChainQuery, useRepositoryDetailByIdQuery } from "api/hooks/repositoryQueryHooks";
 import { useMemo } from "react";
-import { useAppNavigate as useNavigate, useAllParams as useParams } from "@/utils/navigation";
 
 const COMMIT_TYPE_LABELS: Record<number, string> = {
   0: "快照提交",
@@ -33,7 +33,8 @@ function formatCommitType(commitType?: number): string {
 
 export default function RepositoryCommitChainPage() {
   const navigate = useNavigate();
-  const params = useParams();
+  const router = useRouter();
+  const params = useParams({ strict: false });
   const repositoryId = useMemo(() => parseRepositoryId(params.id), [params.id]);
 
   const repositoryQuery = useRepositoryDetailByIdQuery(repositoryId);
@@ -52,7 +53,7 @@ export default function RepositoryCommitChainPage() {
           <button
             type="button"
             className="btn btn-sm mt-4"
-            onClick={() => navigate("/repository")}
+            onClick={() => navigate({ to: "/repository" })}
           >
             返回仓库列表
           </button>
@@ -67,7 +68,7 @@ export default function RepositoryCommitChainPage() {
         <button
           type="button"
           className="btn btn-sm btn-ghost gap-1"
-          onClick={() => navigate(-1)}
+          onClick={() => router.history.go(-1)}
         >
           <ArrowLeftIcon size={16} />
           返回

@@ -1,11 +1,11 @@
+import { useRouter } from "@tanstack/react-router";
 import { useCallback } from "react";
-import { useAppNavigate as useNavigate } from "@/utils/navigation";
 
 export function useGoToWorkSpace() {
-  const navigate = useNavigate();
+  const router = useRouter();
   const goToWorkSpace = useCallback(() => {
-    navigate("/create");
-  }, [navigate]);
+    router.history.push("/create");
+  }, [router]);
 
   return { goToWorkSpace };
 }

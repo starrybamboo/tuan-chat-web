@@ -1,7 +1,7 @@
 import type { UserInfoResponse } from "../../../../../api";
+import { useRouter } from "@tanstack/react-router";
 import React from "react";
 import { FollowButton } from "@/components/common/Follow/FollowButton";
-import { Link } from "@/utils/navigation";
 
 interface ProfileEditingActions {
   isEditingProfile: boolean;
@@ -25,6 +25,7 @@ export const UserActions: React.FC<UserActionsProps> = ({
   profileEditing,
   variant = "desktop",
 }) => {
+  const router = useRouter();
   if (isLoading)
     return null;
 
@@ -89,9 +90,10 @@ export const UserActions: React.FC<UserActionsProps> = ({
     return (
       <div className="flex-col">
         <FollowButton userId={user?.userId || -1} />
-        <Link
-          to={`/chat/private/${userId}`}
+        <button
+          type="button"
           className="flex btn btn-sm btn-ghost mt-4 bg-base-100 border-gray-300"
+          onClick={() => router.history.push(`/chat/private/${userId}`)}
         >
           <svg
             width="14"
@@ -110,7 +112,7 @@ export const UserActions: React.FC<UserActionsProps> = ({
               <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"></path>
             </g>
           </svg>
-        </Link>
+        </button>
       </div>
     );
   }
@@ -118,33 +120,32 @@ export const UserActions: React.FC<UserActionsProps> = ({
   return (
     <div className="flex-col w-full mt-4">
       <FollowButton userId={user?.userId || 0} className="w-full" />
-      <Link to={`/chat/private/${userId}`} className="flex w-full flex-shrink-0 mt-4">
-        <button
-          type="button"
-          className="btn flex border w-full border-gray-300 rounded-3 hover:text-primary transition-colors h-8 cursor-pointer"
+      <button
+        type="button"
+        className="btn flex border w-full border-gray-300 rounded-3 hover:text-primary transition-colors h-8 cursor-pointer mt-4"
+        onClick={() => router.history.push(`/chat/private/${userId}`)}
+      >
+        <svg
+          aria-label="私信"
+          width="16"
+          height="16"
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 24 24"
+          className="flex-shrink-0"
         >
-          <svg
-            aria-label="私信"
-            width="16"
-            height="16"
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 24 24"
-            className="flex-shrink-0"
+          <g
+            strokeLinejoin="round"
+            strokeLinecap="round"
+            strokeWidth="2"
+            fill="none"
+            stroke="currentColor"
           >
-            <g
-              strokeLinejoin="round"
-              strokeLinecap="round"
-              strokeWidth="2"
-              fill="none"
-              stroke="currentColor"
-            >
-              <rect width="20" height="16" x="2" y="4" rx="2"></rect>
-              <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"></path>
-            </g>
-          </svg>
-          <span className="text-sm">私信</span>
-        </button>
-      </Link>
+            <rect width="20" height="16" x="2" y="4" rx="2"></rect>
+            <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"></path>
+          </g>
+        </svg>
+        <span className="text-sm">私信</span>
+      </button>
     </div>
   );
 };

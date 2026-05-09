@@ -4,13 +4,12 @@
  */
 
 import { useQueryClient } from "@tanstack/react-query";
-import { useLocation } from "@tanstack/react-router";
+import { useLocation, useRouter } from "@tanstack/react-router";
 import { use, useCallback, useEffect } from "react";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
 import { resolveWebGALPreviewState } from "@/components/chat/shared/webgal/webGalPreviewState";
 import { useRealtimeRenderStore } from "@/components/chat/stores/realtimeRenderStore";
 import { useSideDrawerStore } from "@/components/chat/stores/sideDrawerStore";
-import { useAppNavigate as useNavigate } from "@/utils/navigation";
 import { getTerreBaseUrl } from "@/webGAL/terreConfig";
 
 interface WebGALPreviewProps {
@@ -29,7 +28,7 @@ export default function WebGALPreview({
   const spaceContext = use(SpaceContext);
   const spaceId = spaceContext.spaceId ?? null;
   const queryClient = useQueryClient();
-  const navigate = useNavigate();
+  const router = useRouter();
   const location = useLocation();
 
   const ensureHydrated = useRealtimeRenderStore(state => state.ensureHydrated);
@@ -59,8 +58,8 @@ export default function WebGALPreview({
       return;
     }
     setSideDrawerState("none");
-    navigate(`/chat/${spaceId}/webgal${queryWithoutTab()}`);
-  }, [canOpenSpaceWebgalSettings, navigate, queryWithoutTab, setSideDrawerState, spaceId]);
+    router.history.push(`/chat/${spaceId}/webgal${queryWithoutTab()}`);
+  }, [canOpenSpaceWebgalSettings, queryWithoutTab, router, setSideDrawerState, spaceId]);
   const previewState = resolveWebGALPreviewState({
     previewUrl,
     realtimeStatus,

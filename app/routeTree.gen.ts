@@ -9,479 +9,487 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as scrollSequenceMotionDemoRouteImport } from './routes/scrollSequenceMotionDemo'
-import { Route as scrollSequenceDemoRouteImport } from './routes/scrollSequenceDemo'
-import { Route as loginRouteImport } from './routes/login'
-import { Route as blocksuiteFrameRouteImport } from './routes/blocksuiteFrame'
-import { Route as dashboardRouteImport } from './routes/_dashboard'
-import { Route as repositoryIndexRouteImport } from './routes/repository/index'
-import { Route as inviteRouteImport } from './routes/invite'
-import { Route as settingsRouteImport } from './routes/settings'
-import { Route as resourceRouteImport } from './routes/resource'
-import { Route as notificationsRouteImport } from './routes/notifications'
-import { Route as materialRouteImport } from './routes/material'
-import { Route as collectionRouteImport } from './routes/collection'
-import { Route as aiImageRouteImport } from './routes/aiImage'
-import { Route as activitiesRouteImport } from './routes/activities'
-import { Route as homeRouteImport } from './routes/home'
-import { Route as roleRouteRouteImport } from './routes/role/route'
-import { Route as chatDiscoverIndexRouteImport } from './routes/chat/discover/index'
-import { Route as roleIndexRouteImport } from './routes/role/index'
-import { Route as roomMapFrameRouteImport } from './routes/roomMapFrame'
-import { Route as roleRoleIdRouteImport } from './routes/role/$roleId'
-import { Route as repositoryCreateRouteImport } from './routes/repository/create'
-import { Route as feedbackRouteImport } from './routes/feedback'
-import { Route as profileRouteRouteImport } from './routes/profile/route'
-import { Route as chatRouteRouteImport } from './routes/chat/route'
-import { Route as repositoryDetailIndexRouteImport } from './routes/repository/detail/index'
-import { Route as chatDiscoverMaterialIndexRouteImport } from './routes/chat/discover/material/index'
-import { Route as profileIndexRouteImport } from './routes/profile/index'
-import { Route as chatIndexRouteImport } from './routes/chat/index'
-import { Route as repositoryCommitChainRouteImport } from './routes/repository/commit-chain'
-import { Route as profileWorksRouteImport } from './routes/profile/works'
-import { Route as profileActivitiesTabRouteImport } from './routes/profile/activitiesTab'
-import { Route as spaceMaterialRouteImport } from './routes/spaceMaterial'
-import { Route as docRouteImport } from './routes/doc'
-import { Route as chatDiscoverMyRouteImport } from './routes/chat/discover/my'
-import { Route as chatDiscoverMaterialMyRouteImport } from './routes/chat/discover/material/my'
-import { Route as chatSpaceRouteImport } from './routes/chat/space'
-import { Route as chatDocRouteImport } from './routes/chat/doc'
-import { Route as chatRoomSettingRouteImport } from './routes/chat/room-setting'
+import { Route as ScrollSequenceMotionDemoRouteImport } from './routes/scroll-sequence-motion-demo'
+import { Route as ScrollSequenceDemoRouteImport } from './routes/scroll-sequence-demo'
+import { Route as LoginRouteImport } from './routes/login'
+import { Route as DashboardRouteRouteImport } from './routes/_dashboard/route'
+import { Route as DashboardIndexRouteImport } from './routes/_dashboard/index'
+import { Route as InviteCodeRouteImport } from './routes/invite/$code'
+import { Route as DashboardSettingsRouteImport } from './routes/_dashboard/settings'
+import { Route as DashboardResourceRouteImport } from './routes/_dashboard/resource'
+import { Route as DashboardNotificationsRouteImport } from './routes/_dashboard/notifications'
+import { Route as DashboardCollectionRouteImport } from './routes/_dashboard/collection'
+import { Route as DashboardAiImageRouteImport } from './routes/_dashboard/ai-image'
+import { Route as DashboardActivitiesRouteImport } from './routes/_dashboard/activities'
+import { Route as DashboardRoleRouteRouteImport } from './routes/_dashboard/role/route'
+import { Route as DashboardMaterialRouteRouteImport } from './routes/_dashboard/material/route'
+import { Route as DashboardRoleIndexRouteImport } from './routes/_dashboard/role/index'
+import { Route as DashboardRepositoryIndexRouteImport } from './routes/_dashboard/repository/index'
+import { Route as RoomMapSpaceIdRoomIdRouteImport } from './routes/room-map/$spaceId/$roomId'
+import { Route as DashboardRoleChar123RoleIdChar125RouteImport } from './routes/_dashboard/role/{-$roleId}'
+import { Route as DashboardRepositoryCreateRouteImport } from './routes/_dashboard/repository/create'
+import { Route as DashboardRepositoryCommitChainRouteImport } from './routes/_dashboard/repository/commit-chain'
+import { Route as DashboardFeedbackChar123IssueIdChar125RouteImport } from './routes/_dashboard/feedback/{-$issueId}'
+import { Route as DashboardProfileUserIdRouteRouteImport } from './routes/_dashboard/profile/$userId/route'
+import { Route as DashboardChatChatLayoutRouteRouteImport } from './routes/_dashboard/chat/_chat-layout/route'
+import { Route as DashboardProfileUserIdIndexRouteImport } from './routes/_dashboard/profile/$userId/index'
+import { Route as DashboardChatDiscoverIndexRouteImport } from './routes/_dashboard/chat/discover/index'
+import { Route as DashboardChatChatLayoutIndexRouteImport } from './routes/_dashboard/chat/_chat-layout/index'
+import { Route as DashboardRepositoryDetailChar123IdChar125RouteImport } from './routes/_dashboard/repository/detail/{-$id}'
+import { Route as DashboardProfileUserIdWorksRouteImport } from './routes/_dashboard/profile/$userId/works'
+import { Route as DashboardProfileUserIdActivitiesRouteImport } from './routes/_dashboard/profile/$userId/activities'
+import { Route as DashboardMaterialSpaceSpaceIdRouteImport } from './routes/_dashboard/material/space/$spaceId'
+import { Route as DashboardDocSpaceIdDocIdRouteImport } from './routes/_dashboard/doc/$spaceId/$docId'
+import { Route as DashboardChatDiscoverMyRouteImport } from './routes/_dashboard/chat/discover/my'
+import { Route as DashboardChatDiscoverMaterialIndexRouteImport } from './routes/_dashboard/chat/discover/material/index'
+import { Route as DashboardChatDiscoverMaterialMyRouteImport } from './routes/_dashboard/chat/discover/material/my'
+import { Route as DashboardChatChatLayoutSpaceIdChar123RoomIdChar125Char123MessageIdChar125RouteImport } from './routes/_dashboard/chat/_chat-layout/$spaceId.{-$roomId}.{-$messageId}'
+import { Route as DashboardChatChatLayoutSpaceIdDocDocIdRouteImport } from './routes/_dashboard/chat/_chat-layout/$spaceId.doc.$docId'
+import { Route as DashboardChatChatLayoutSpaceIdRoomIdSettingRouteImport } from './routes/_dashboard/chat/_chat-layout/$spaceId.$roomId.setting'
 
-const scrollSequenceMotionDemoRoute =
-  scrollSequenceMotionDemoRouteImport.update({
+const ScrollSequenceMotionDemoRoute =
+  ScrollSequenceMotionDemoRouteImport.update({
     id: '/scroll-sequence-motion-demo',
     path: '/scroll-sequence-motion-demo',
     getParentRoute: () => rootRouteImport,
   } as any)
-const scrollSequenceDemoRoute = scrollSequenceDemoRouteImport.update({
+const ScrollSequenceDemoRoute = ScrollSequenceDemoRouteImport.update({
   id: '/scroll-sequence-demo',
   path: '/scroll-sequence-demo',
   getParentRoute: () => rootRouteImport,
 } as any)
-const loginRoute = loginRouteImport.update({
+const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
-const blocksuiteFrameRoute = blocksuiteFrameRouteImport.update({
-  id: '/blocksuite-frame',
-  path: '/blocksuite-frame',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const dashboardRoute = dashboardRouteImport.update({
+const DashboardRouteRoute = DashboardRouteRouteImport.update({
   id: '/_dashboard',
   getParentRoute: () => rootRouteImport,
 } as any)
-const repositoryIndexRoute = repositoryIndexRouteImport.update({
-  id: '/repository',
-  path: '/repository',
-  getParentRoute: () => dashboardRoute,
+const DashboardIndexRoute = DashboardIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => DashboardRouteRoute,
 } as any)
-const inviteRoute = inviteRouteImport.update({
+const InviteCodeRoute = InviteCodeRouteImport.update({
   id: '/invite/$code',
   path: '/invite/$code',
   getParentRoute: () => rootRouteImport,
 } as any)
-const settingsRoute = settingsRouteImport.update({
+const DashboardSettingsRoute = DashboardSettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
-  getParentRoute: () => dashboardRoute,
+  getParentRoute: () => DashboardRouteRoute,
 } as any)
-const resourceRoute = resourceRouteImport.update({
+const DashboardResourceRoute = DashboardResourceRouteImport.update({
   id: '/resource',
   path: '/resource',
-  getParentRoute: () => dashboardRoute,
+  getParentRoute: () => DashboardRouteRoute,
 } as any)
-const notificationsRoute = notificationsRouteImport.update({
+const DashboardNotificationsRoute = DashboardNotificationsRouteImport.update({
   id: '/notifications',
   path: '/notifications',
-  getParentRoute: () => dashboardRoute,
+  getParentRoute: () => DashboardRouteRoute,
 } as any)
-const materialRoute = materialRouteImport.update({
-  id: '/material',
-  path: '/material',
-  getParentRoute: () => dashboardRoute,
-} as any)
-const collectionRoute = collectionRouteImport.update({
+const DashboardCollectionRoute = DashboardCollectionRouteImport.update({
   id: '/collection',
   path: '/collection',
-  getParentRoute: () => dashboardRoute,
+  getParentRoute: () => DashboardRouteRoute,
 } as any)
-const aiImageRoute = aiImageRouteImport.update({
+const DashboardAiImageRoute = DashboardAiImageRouteImport.update({
   id: '/ai-image',
   path: '/ai-image',
-  getParentRoute: () => dashboardRoute,
+  getParentRoute: () => DashboardRouteRoute,
 } as any)
-const activitiesRoute = activitiesRouteImport.update({
+const DashboardActivitiesRoute = DashboardActivitiesRouteImport.update({
   id: '/activities',
   path: '/activities',
-  getParentRoute: () => dashboardRoute,
+  getParentRoute: () => DashboardRouteRoute,
 } as any)
-const homeRoute = homeRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => dashboardRoute,
-} as any)
-const roleRouteRoute = roleRouteRouteImport.update({
+const DashboardRoleRouteRoute = DashboardRoleRouteRouteImport.update({
   id: '/role',
   path: '/role',
-  getParentRoute: () => dashboardRoute,
+  getParentRoute: () => DashboardRouteRoute,
 } as any)
-const chatDiscoverIndexRoute = chatDiscoverIndexRouteImport.update({
-  id: '/chat/discover',
-  path: '/chat/discover',
-  getParentRoute: () => dashboardRoute,
+const DashboardMaterialRouteRoute = DashboardMaterialRouteRouteImport.update({
+  id: '/material',
+  path: '/material',
+  getParentRoute: () => DashboardRouteRoute,
 } as any)
-const roleIndexRoute = roleIndexRouteImport.update({
+const DashboardRoleIndexRoute = DashboardRoleIndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => roleRouteRoute,
+  getParentRoute: () => DashboardRoleRouteRoute,
 } as any)
-const roomMapFrameRoute = roomMapFrameRouteImport.update({
+const DashboardRepositoryIndexRoute =
+  DashboardRepositoryIndexRouteImport.update({
+    id: '/repository/',
+    path: '/repository/',
+    getParentRoute: () => DashboardRouteRoute,
+  } as any)
+const RoomMapSpaceIdRoomIdRoute = RoomMapSpaceIdRoomIdRouteImport.update({
   id: '/room-map/$spaceId/$roomId',
   path: '/room-map/$spaceId/$roomId',
   getParentRoute: () => rootRouteImport,
 } as any)
-const roleRoleIdRoute = roleRoleIdRouteImport.update({
-  id: '/{-$roleId}',
-  path: '/{-$roleId}',
-  getParentRoute: () => roleRouteRoute,
-} as any)
-const repositoryCreateRoute = repositoryCreateRouteImport.update({
-  id: '/repository/create',
-  path: '/repository/create',
-  getParentRoute: () => dashboardRoute,
-} as any)
-const feedbackRoute = feedbackRouteImport.update({
-  id: '/feedback/{-$issueId}',
-  path: '/feedback/{-$issueId}',
-  getParentRoute: () => dashboardRoute,
-} as any)
-const profileRouteRoute = profileRouteRouteImport.update({
-  id: '/profile/$userId',
-  path: '/profile/$userId',
-  getParentRoute: () => dashboardRoute,
-} as any)
-const chatRouteRoute = chatRouteRouteImport.update({
-  id: '/chat/_chat-layout',
-  path: '/chat',
-  getParentRoute: () => dashboardRoute,
-} as any)
-const repositoryDetailIndexRoute = repositoryDetailIndexRouteImport.update({
-  id: '/repository/detail/{-$id}',
-  path: '/repository/detail/{-$id}',
-  getParentRoute: () => dashboardRoute,
-} as any)
-const chatDiscoverMaterialIndexRoute =
-  chatDiscoverMaterialIndexRouteImport.update({
-    id: '/material',
-    path: '/material',
-    getParentRoute: () => chatDiscoverIndexRoute,
+const DashboardRoleChar123RoleIdChar125Route =
+  DashboardRoleChar123RoleIdChar125RouteImport.update({
+    id: '/{-$roleId}',
+    path: '/{-$roleId}',
+    getParentRoute: () => DashboardRoleRouteRoute,
   } as any)
-const profileIndexRoute = profileIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => profileRouteRoute,
+const DashboardRepositoryCreateRoute =
+  DashboardRepositoryCreateRouteImport.update({
+    id: '/repository/create',
+    path: '/repository/create',
+    getParentRoute: () => DashboardRouteRoute,
+  } as any)
+const DashboardRepositoryCommitChainRoute =
+  DashboardRepositoryCommitChainRouteImport.update({
+    id: '/repository/commit-chain',
+    path: '/repository/commit-chain',
+    getParentRoute: () => DashboardRouteRoute,
+  } as any)
+const DashboardFeedbackChar123IssueIdChar125Route =
+  DashboardFeedbackChar123IssueIdChar125RouteImport.update({
+    id: '/feedback/{-$issueId}',
+    path: '/feedback/{-$issueId}',
+    getParentRoute: () => DashboardRouteRoute,
+  } as any)
+const DashboardProfileUserIdRouteRoute =
+  DashboardProfileUserIdRouteRouteImport.update({
+    id: '/profile/$userId',
+    path: '/profile/$userId',
+    getParentRoute: () => DashboardRouteRoute,
+  } as any)
+const DashboardChatChatLayoutRouteRoute =
+  DashboardChatChatLayoutRouteRouteImport.update({
+    id: '/chat/_chat-layout',
+    path: '/chat',
+    getParentRoute: () => DashboardRouteRoute,
+  } as any)
+const DashboardProfileUserIdIndexRoute =
+  DashboardProfileUserIdIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => DashboardProfileUserIdRouteRoute,
+  } as any)
+const DashboardChatDiscoverIndexRoute =
+  DashboardChatDiscoverIndexRouteImport.update({
+    id: '/chat/discover/',
+    path: '/chat/discover/',
+    getParentRoute: () => DashboardRouteRoute,
+  } as any)
+const DashboardChatChatLayoutIndexRoute =
+  DashboardChatChatLayoutIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => DashboardChatChatLayoutRouteRoute,
+  } as any)
+const DashboardRepositoryDetailChar123IdChar125Route =
+  DashboardRepositoryDetailChar123IdChar125RouteImport.update({
+    id: '/repository/detail/{-$id}',
+    path: '/repository/detail/{-$id}',
+    getParentRoute: () => DashboardRouteRoute,
+  } as any)
+const DashboardProfileUserIdWorksRoute =
+  DashboardProfileUserIdWorksRouteImport.update({
+    id: '/works',
+    path: '/works',
+    getParentRoute: () => DashboardProfileUserIdRouteRoute,
+  } as any)
+const DashboardProfileUserIdActivitiesRoute =
+  DashboardProfileUserIdActivitiesRouteImport.update({
+    id: '/activities',
+    path: '/activities',
+    getParentRoute: () => DashboardProfileUserIdRouteRoute,
+  } as any)
+const DashboardMaterialSpaceSpaceIdRoute =
+  DashboardMaterialSpaceSpaceIdRouteImport.update({
+    id: '/space/$spaceId',
+    path: '/space/$spaceId',
+    getParentRoute: () => DashboardMaterialRouteRoute,
+  } as any)
+const DashboardDocSpaceIdDocIdRoute =
+  DashboardDocSpaceIdDocIdRouteImport.update({
+    id: '/doc/$spaceId/$docId',
+    path: '/doc/$spaceId/$docId',
+    getParentRoute: () => DashboardRouteRoute,
+  } as any)
+const DashboardChatDiscoverMyRoute = DashboardChatDiscoverMyRouteImport.update({
+  id: '/chat/discover/my',
+  path: '/chat/discover/my',
+  getParentRoute: () => DashboardRouteRoute,
 } as any)
-const chatIndexRoute = chatIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => chatRouteRoute,
-} as any)
-const repositoryCommitChainRoute = repositoryCommitChainRouteImport.update({
-  id: '/repository/commit-chain/{-$id}',
-  path: '/repository/commit-chain/{-$id}',
-  getParentRoute: () => dashboardRoute,
-} as any)
-const profileWorksRoute = profileWorksRouteImport.update({
-  id: '/works',
-  path: '/works',
-  getParentRoute: () => profileRouteRoute,
-} as any)
-const profileActivitiesTabRoute = profileActivitiesTabRouteImport.update({
-  id: '/activities',
-  path: '/activities',
-  getParentRoute: () => profileRouteRoute,
-} as any)
-const spaceMaterialRoute = spaceMaterialRouteImport.update({
-  id: '/material/space/$spaceId',
-  path: '/material/space/$spaceId',
-  getParentRoute: () => dashboardRoute,
-} as any)
-const docRoute = docRouteImport.update({
-  id: '/doc/$spaceId/$docId',
-  path: '/doc/$spaceId/$docId',
-  getParentRoute: () => dashboardRoute,
-} as any)
-const chatDiscoverMyRoute = chatDiscoverMyRouteImport.update({
-  id: '/my',
-  path: '/my',
-  getParentRoute: () => chatDiscoverIndexRoute,
-} as any)
-const chatDiscoverMaterialMyRoute = chatDiscoverMaterialMyRouteImport.update({
-  id: '/my',
-  path: '/my',
-  getParentRoute: () => chatDiscoverMaterialIndexRoute,
-} as any)
-const chatSpaceRoute = chatSpaceRouteImport.update({
-  id: '/$spaceId/{-$roomId}/{-$messageId}',
-  path: '/$spaceId/{-$roomId}/{-$messageId}',
-  getParentRoute: () => chatRouteRoute,
-} as any)
-const chatDocRoute = chatDocRouteImport.update({
-  id: '/$spaceId/doc/$docId',
-  path: '/$spaceId/doc/$docId',
-  getParentRoute: () => chatRouteRoute,
-} as any)
-const chatRoomSettingRoute = chatRoomSettingRouteImport.update({
-  id: '/$spaceId/$roomId/setting',
-  path: '/$spaceId/$roomId/setting',
-  getParentRoute: () => chatRouteRoute,
-} as any)
+const DashboardChatDiscoverMaterialIndexRoute =
+  DashboardChatDiscoverMaterialIndexRouteImport.update({
+    id: '/chat/discover/material/',
+    path: '/chat/discover/material/',
+    getParentRoute: () => DashboardRouteRoute,
+  } as any)
+const DashboardChatDiscoverMaterialMyRoute =
+  DashboardChatDiscoverMaterialMyRouteImport.update({
+    id: '/chat/discover/material/my',
+    path: '/chat/discover/material/my',
+    getParentRoute: () => DashboardRouteRoute,
+  } as any)
+const DashboardChatChatLayoutSpaceIdChar123RoomIdChar125Char123MessageIdChar125Route =
+  DashboardChatChatLayoutSpaceIdChar123RoomIdChar125Char123MessageIdChar125RouteImport.update(
+    {
+      id: '/$spaceId/{-$roomId}/{-$messageId}',
+      path: '/$spaceId/{-$roomId}/{-$messageId}',
+      getParentRoute: () => DashboardChatChatLayoutRouteRoute,
+    } as any,
+  )
+const DashboardChatChatLayoutSpaceIdDocDocIdRoute =
+  DashboardChatChatLayoutSpaceIdDocDocIdRouteImport.update({
+    id: '/$spaceId/doc/$docId',
+    path: '/$spaceId/doc/$docId',
+    getParentRoute: () => DashboardChatChatLayoutRouteRoute,
+  } as any)
+const DashboardChatChatLayoutSpaceIdRoomIdSettingRoute =
+  DashboardChatChatLayoutSpaceIdRoomIdSettingRouteImport.update({
+    id: '/$spaceId/$roomId/setting',
+    path: '/$spaceId/$roomId/setting',
+    getParentRoute: () => DashboardChatChatLayoutRouteRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
-  '/': typeof homeRoute
-  '/blocksuite-frame': typeof blocksuiteFrameRoute
-  '/login': typeof loginRoute
-  '/scroll-sequence-demo': typeof scrollSequenceDemoRoute
-  '/scroll-sequence-motion-demo': typeof scrollSequenceMotionDemoRoute
-  '/role': typeof roleRouteRouteWithChildren
-  '/activities': typeof activitiesRoute
-  '/ai-image': typeof aiImageRoute
-  '/collection': typeof collectionRoute
-  '/material': typeof materialRoute
-  '/notifications': typeof notificationsRoute
-  '/resource': typeof resourceRoute
-  '/settings': typeof settingsRoute
-  '/invite/$code': typeof inviteRoute
-  '/repository': typeof repositoryIndexRoute
-  '/chat': typeof chatRouteRouteWithChildren
-  '/profile/$userId': typeof profileRouteRouteWithChildren
-  '/feedback/{-$issueId}': typeof feedbackRoute
-  '/repository/create': typeof repositoryCreateRoute
-  '/role/{-$roleId}': typeof roleRoleIdRoute
-  '/room-map/$spaceId/$roomId': typeof roomMapFrameRoute
-  '/role/': typeof roleIndexRoute
-  '/chat/discover': typeof chatDiscoverIndexRouteWithChildren
-  '/chat/discover/my': typeof chatDiscoverMyRoute
-  '/doc/$spaceId/$docId': typeof docRoute
-  '/material/space/$spaceId': typeof spaceMaterialRoute
-  '/profile/$userId/activities': typeof profileActivitiesTabRoute
-  '/profile/$userId/works': typeof profileWorksRoute
-  '/repository/commit-chain/{-$id}': typeof repositoryCommitChainRoute
-  '/chat/': typeof chatIndexRoute
-  '/profile/$userId/': typeof profileIndexRoute
-  '/chat/discover/material': typeof chatDiscoverMaterialIndexRouteWithChildren
-  '/repository/detail/{-$id}': typeof repositoryDetailIndexRoute
-  '/chat/discover/material/my': typeof chatDiscoverMaterialMyRoute
-  '/chat/$spaceId/$roomId/setting': typeof chatRoomSettingRoute
-  '/chat/$spaceId/doc/$docId': typeof chatDocRoute
-  '/chat/$spaceId/{-$roomId}/{-$messageId}': typeof chatSpaceRoute
+  '/': typeof DashboardIndexRoute
+  '/login': typeof LoginRoute
+  '/scroll-sequence-demo': typeof ScrollSequenceDemoRoute
+  '/scroll-sequence-motion-demo': typeof ScrollSequenceMotionDemoRoute
+  '/material': typeof DashboardMaterialRouteRouteWithChildren
+  '/role': typeof DashboardRoleRouteRouteWithChildren
+  '/activities': typeof DashboardActivitiesRoute
+  '/ai-image': typeof DashboardAiImageRoute
+  '/collection': typeof DashboardCollectionRoute
+  '/notifications': typeof DashboardNotificationsRoute
+  '/resource': typeof DashboardResourceRoute
+  '/settings': typeof DashboardSettingsRoute
+  '/invite/$code': typeof InviteCodeRoute
+  '/chat': typeof DashboardChatChatLayoutRouteRouteWithChildren
+  '/profile/$userId': typeof DashboardProfileUserIdRouteRouteWithChildren
+  '/feedback/{-$issueId}': typeof DashboardFeedbackChar123IssueIdChar125Route
+  '/repository/commit-chain': typeof DashboardRepositoryCommitChainRoute
+  '/repository/create': typeof DashboardRepositoryCreateRoute
+  '/role/{-$roleId}': typeof DashboardRoleChar123RoleIdChar125Route
+  '/room-map/$spaceId/$roomId': typeof RoomMapSpaceIdRoomIdRoute
+  '/repository/': typeof DashboardRepositoryIndexRoute
+  '/role/': typeof DashboardRoleIndexRoute
+  '/chat/discover/my': typeof DashboardChatDiscoverMyRoute
+  '/doc/$spaceId/$docId': typeof DashboardDocSpaceIdDocIdRoute
+  '/material/space/$spaceId': typeof DashboardMaterialSpaceSpaceIdRoute
+  '/profile/$userId/activities': typeof DashboardProfileUserIdActivitiesRoute
+  '/profile/$userId/works': typeof DashboardProfileUserIdWorksRoute
+  '/repository/detail/{-$id}': typeof DashboardRepositoryDetailChar123IdChar125Route
+  '/chat/': typeof DashboardChatChatLayoutIndexRoute
+  '/chat/discover/': typeof DashboardChatDiscoverIndexRoute
+  '/profile/$userId/': typeof DashboardProfileUserIdIndexRoute
+  '/chat/discover/material/my': typeof DashboardChatDiscoverMaterialMyRoute
+  '/chat/discover/material/': typeof DashboardChatDiscoverMaterialIndexRoute
+  '/chat/$spaceId/$roomId/setting': typeof DashboardChatChatLayoutSpaceIdRoomIdSettingRoute
+  '/chat/$spaceId/doc/$docId': typeof DashboardChatChatLayoutSpaceIdDocDocIdRoute
+  '/chat/$spaceId/{-$roomId}/{-$messageId}': typeof DashboardChatChatLayoutSpaceIdChar123RoomIdChar125Char123MessageIdChar125Route
 }
 export interface FileRoutesByTo {
-  '/blocksuite-frame': typeof blocksuiteFrameRoute
-  '/login': typeof loginRoute
-  '/scroll-sequence-demo': typeof scrollSequenceDemoRoute
-  '/scroll-sequence-motion-demo': typeof scrollSequenceMotionDemoRoute
-  '/': typeof homeRoute
-  '/activities': typeof activitiesRoute
-  '/ai-image': typeof aiImageRoute
-  '/collection': typeof collectionRoute
-  '/material': typeof materialRoute
-  '/notifications': typeof notificationsRoute
-  '/resource': typeof resourceRoute
-  '/settings': typeof settingsRoute
-  '/invite/$code': typeof inviteRoute
-  '/repository': typeof repositoryIndexRoute
-  '/feedback/{-$issueId}': typeof feedbackRoute
-  '/repository/create': typeof repositoryCreateRoute
-  '/role/{-$roleId}': typeof roleRoleIdRoute
-  '/room-map/$spaceId/$roomId': typeof roomMapFrameRoute
-  '/role': typeof roleIndexRoute
-  '/chat/discover': typeof chatDiscoverIndexRouteWithChildren
-  '/chat/discover/my': typeof chatDiscoverMyRoute
-  '/doc/$spaceId/$docId': typeof docRoute
-  '/material/space/$spaceId': typeof spaceMaterialRoute
-  '/profile/$userId/activities': typeof profileActivitiesTabRoute
-  '/profile/$userId/works': typeof profileWorksRoute
-  '/repository/commit-chain/{-$id}': typeof repositoryCommitChainRoute
-  '/chat': typeof chatIndexRoute
-  '/profile/$userId': typeof profileIndexRoute
-  '/chat/discover/material': typeof chatDiscoverMaterialIndexRouteWithChildren
-  '/repository/detail/{-$id}': typeof repositoryDetailIndexRoute
-  '/chat/discover/material/my': typeof chatDiscoverMaterialMyRoute
-  '/chat/$spaceId/$roomId/setting': typeof chatRoomSettingRoute
-  '/chat/$spaceId/doc/$docId': typeof chatDocRoute
-  '/chat/$spaceId/{-$roomId}/{-$messageId}': typeof chatSpaceRoute
+  '/login': typeof LoginRoute
+  '/scroll-sequence-demo': typeof ScrollSequenceDemoRoute
+  '/scroll-sequence-motion-demo': typeof ScrollSequenceMotionDemoRoute
+  '/material': typeof DashboardMaterialRouteRouteWithChildren
+  '/activities': typeof DashboardActivitiesRoute
+  '/ai-image': typeof DashboardAiImageRoute
+  '/collection': typeof DashboardCollectionRoute
+  '/notifications': typeof DashboardNotificationsRoute
+  '/resource': typeof DashboardResourceRoute
+  '/settings': typeof DashboardSettingsRoute
+  '/invite/$code': typeof InviteCodeRoute
+  '/': typeof DashboardIndexRoute
+  '/feedback/{-$issueId}': typeof DashboardFeedbackChar123IssueIdChar125Route
+  '/repository/commit-chain': typeof DashboardRepositoryCommitChainRoute
+  '/repository/create': typeof DashboardRepositoryCreateRoute
+  '/role/{-$roleId}': typeof DashboardRoleChar123RoleIdChar125Route
+  '/room-map/$spaceId/$roomId': typeof RoomMapSpaceIdRoomIdRoute
+  '/repository': typeof DashboardRepositoryIndexRoute
+  '/role': typeof DashboardRoleIndexRoute
+  '/chat/discover/my': typeof DashboardChatDiscoverMyRoute
+  '/doc/$spaceId/$docId': typeof DashboardDocSpaceIdDocIdRoute
+  '/material/space/$spaceId': typeof DashboardMaterialSpaceSpaceIdRoute
+  '/profile/$userId/activities': typeof DashboardProfileUserIdActivitiesRoute
+  '/profile/$userId/works': typeof DashboardProfileUserIdWorksRoute
+  '/repository/detail/{-$id}': typeof DashboardRepositoryDetailChar123IdChar125Route
+  '/chat': typeof DashboardChatChatLayoutIndexRoute
+  '/chat/discover': typeof DashboardChatDiscoverIndexRoute
+  '/profile/$userId': typeof DashboardProfileUserIdIndexRoute
+  '/chat/discover/material/my': typeof DashboardChatDiscoverMaterialMyRoute
+  '/chat/discover/material': typeof DashboardChatDiscoverMaterialIndexRoute
+  '/chat/$spaceId/$roomId/setting': typeof DashboardChatChatLayoutSpaceIdRoomIdSettingRoute
+  '/chat/$spaceId/doc/$docId': typeof DashboardChatChatLayoutSpaceIdDocDocIdRoute
+  '/chat/$spaceId/{-$roomId}/{-$messageId}': typeof DashboardChatChatLayoutSpaceIdChar123RoomIdChar125Char123MessageIdChar125Route
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
-  '/_dashboard': typeof dashboardRouteWithChildren
-  '/blocksuite-frame': typeof blocksuiteFrameRoute
-  '/login': typeof loginRoute
-  '/scroll-sequence-demo': typeof scrollSequenceDemoRoute
-  '/scroll-sequence-motion-demo': typeof scrollSequenceMotionDemoRoute
-  '/_dashboard/role': typeof roleRouteRouteWithChildren
-  '/_dashboard/': typeof homeRoute
-  '/_dashboard/activities': typeof activitiesRoute
-  '/_dashboard/ai-image': typeof aiImageRoute
-  '/_dashboard/collection': typeof collectionRoute
-  '/_dashboard/material': typeof materialRoute
-  '/_dashboard/notifications': typeof notificationsRoute
-  '/_dashboard/resource': typeof resourceRoute
-  '/_dashboard/settings': typeof settingsRoute
-  '/invite/$code': typeof inviteRoute
-  '/_dashboard/repository': typeof repositoryIndexRoute
-  '/_dashboard/chat/_chat-layout': typeof chatRouteRouteWithChildren
-  '/_dashboard/profile/$userId': typeof profileRouteRouteWithChildren
-  '/_dashboard/feedback/{-$issueId}': typeof feedbackRoute
-  '/_dashboard/repository/create': typeof repositoryCreateRoute
-  '/_dashboard/role/{-$roleId}': typeof roleRoleIdRoute
-  '/room-map/$spaceId/$roomId': typeof roomMapFrameRoute
-  '/_dashboard/role/': typeof roleIndexRoute
-  '/_dashboard/chat/discover': typeof chatDiscoverIndexRouteWithChildren
-  '/_dashboard/chat/discover/my': typeof chatDiscoverMyRoute
-  '/_dashboard/doc/$spaceId/$docId': typeof docRoute
-  '/_dashboard/material/space/$spaceId': typeof spaceMaterialRoute
-  '/_dashboard/profile/$userId/activities': typeof profileActivitiesTabRoute
-  '/_dashboard/profile/$userId/works': typeof profileWorksRoute
-  '/_dashboard/repository/commit-chain/{-$id}': typeof repositoryCommitChainRoute
-  '/_dashboard/chat/_chat-layout/': typeof chatIndexRoute
-  '/_dashboard/profile/$userId/': typeof profileIndexRoute
-  '/_dashboard/chat/discover/material': typeof chatDiscoverMaterialIndexRouteWithChildren
-  '/_dashboard/repository/detail/{-$id}': typeof repositoryDetailIndexRoute
-  '/_dashboard/chat/discover/material/my': typeof chatDiscoverMaterialMyRoute
-  '/_dashboard/chat/_chat-layout/$spaceId/$roomId/setting': typeof chatRoomSettingRoute
-  '/_dashboard/chat/_chat-layout/$spaceId/doc/$docId': typeof chatDocRoute
-  '/_dashboard/chat/_chat-layout/$spaceId/{-$roomId}/{-$messageId}': typeof chatSpaceRoute
+  '/_dashboard': typeof DashboardRouteRouteWithChildren
+  '/login': typeof LoginRoute
+  '/scroll-sequence-demo': typeof ScrollSequenceDemoRoute
+  '/scroll-sequence-motion-demo': typeof ScrollSequenceMotionDemoRoute
+  '/_dashboard/material': typeof DashboardMaterialRouteRouteWithChildren
+  '/_dashboard/role': typeof DashboardRoleRouteRouteWithChildren
+  '/_dashboard/activities': typeof DashboardActivitiesRoute
+  '/_dashboard/ai-image': typeof DashboardAiImageRoute
+  '/_dashboard/collection': typeof DashboardCollectionRoute
+  '/_dashboard/notifications': typeof DashboardNotificationsRoute
+  '/_dashboard/resource': typeof DashboardResourceRoute
+  '/_dashboard/settings': typeof DashboardSettingsRoute
+  '/invite/$code': typeof InviteCodeRoute
+  '/_dashboard/': typeof DashboardIndexRoute
+  '/_dashboard/chat/_chat-layout': typeof DashboardChatChatLayoutRouteRouteWithChildren
+  '/_dashboard/profile/$userId': typeof DashboardProfileUserIdRouteRouteWithChildren
+  '/_dashboard/feedback/{-$issueId}': typeof DashboardFeedbackChar123IssueIdChar125Route
+  '/_dashboard/repository/commit-chain': typeof DashboardRepositoryCommitChainRoute
+  '/_dashboard/repository/create': typeof DashboardRepositoryCreateRoute
+  '/_dashboard/role/{-$roleId}': typeof DashboardRoleChar123RoleIdChar125Route
+  '/room-map/$spaceId/$roomId': typeof RoomMapSpaceIdRoomIdRoute
+  '/_dashboard/repository/': typeof DashboardRepositoryIndexRoute
+  '/_dashboard/role/': typeof DashboardRoleIndexRoute
+  '/_dashboard/chat/discover/my': typeof DashboardChatDiscoverMyRoute
+  '/_dashboard/doc/$spaceId/$docId': typeof DashboardDocSpaceIdDocIdRoute
+  '/_dashboard/material/space/$spaceId': typeof DashboardMaterialSpaceSpaceIdRoute
+  '/_dashboard/profile/$userId/activities': typeof DashboardProfileUserIdActivitiesRoute
+  '/_dashboard/profile/$userId/works': typeof DashboardProfileUserIdWorksRoute
+  '/_dashboard/repository/detail/{-$id}': typeof DashboardRepositoryDetailChar123IdChar125Route
+  '/_dashboard/chat/_chat-layout/': typeof DashboardChatChatLayoutIndexRoute
+  '/_dashboard/chat/discover/': typeof DashboardChatDiscoverIndexRoute
+  '/_dashboard/profile/$userId/': typeof DashboardProfileUserIdIndexRoute
+  '/_dashboard/chat/discover/material/my': typeof DashboardChatDiscoverMaterialMyRoute
+  '/_dashboard/chat/discover/material/': typeof DashboardChatDiscoverMaterialIndexRoute
+  '/_dashboard/chat/_chat-layout/$spaceId/$roomId/setting': typeof DashboardChatChatLayoutSpaceIdRoomIdSettingRoute
+  '/_dashboard/chat/_chat-layout/$spaceId/doc/$docId': typeof DashboardChatChatLayoutSpaceIdDocDocIdRoute
+  '/_dashboard/chat/_chat-layout/$spaceId/{-$roomId}/{-$messageId}': typeof DashboardChatChatLayoutSpaceIdChar123RoomIdChar125Char123MessageIdChar125Route
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
-    | '/blocksuite-frame'
     | '/login'
     | '/scroll-sequence-demo'
     | '/scroll-sequence-motion-demo'
+    | '/material'
     | '/role'
     | '/activities'
     | '/ai-image'
     | '/collection'
-    | '/material'
     | '/notifications'
     | '/resource'
     | '/settings'
     | '/invite/$code'
-    | '/repository'
     | '/chat'
     | '/profile/$userId'
     | '/feedback/{-$issueId}'
+    | '/repository/commit-chain'
     | '/repository/create'
     | '/role/{-$roleId}'
     | '/room-map/$spaceId/$roomId'
+    | '/repository/'
     | '/role/'
-    | '/chat/discover'
     | '/chat/discover/my'
     | '/doc/$spaceId/$docId'
     | '/material/space/$spaceId'
     | '/profile/$userId/activities'
     | '/profile/$userId/works'
-    | '/repository/commit-chain/{-$id}'
-    | '/chat/'
-    | '/profile/$userId/'
-    | '/chat/discover/material'
     | '/repository/detail/{-$id}'
+    | '/chat/'
+    | '/chat/discover/'
+    | '/profile/$userId/'
     | '/chat/discover/material/my'
+    | '/chat/discover/material/'
     | '/chat/$spaceId/$roomId/setting'
     | '/chat/$spaceId/doc/$docId'
     | '/chat/$spaceId/{-$roomId}/{-$messageId}'
   fileRoutesByTo: FileRoutesByTo
   to:
-    | '/blocksuite-frame'
     | '/login'
     | '/scroll-sequence-demo'
     | '/scroll-sequence-motion-demo'
-    | '/'
+    | '/material'
     | '/activities'
     | '/ai-image'
     | '/collection'
-    | '/material'
     | '/notifications'
     | '/resource'
     | '/settings'
     | '/invite/$code'
-    | '/repository'
+    | '/'
     | '/feedback/{-$issueId}'
+    | '/repository/commit-chain'
     | '/repository/create'
     | '/role/{-$roleId}'
     | '/room-map/$spaceId/$roomId'
+    | '/repository'
     | '/role'
-    | '/chat/discover'
     | '/chat/discover/my'
     | '/doc/$spaceId/$docId'
     | '/material/space/$spaceId'
     | '/profile/$userId/activities'
     | '/profile/$userId/works'
-    | '/repository/commit-chain/{-$id}'
-    | '/chat'
-    | '/profile/$userId'
-    | '/chat/discover/material'
     | '/repository/detail/{-$id}'
+    | '/chat'
+    | '/chat/discover'
+    | '/profile/$userId'
     | '/chat/discover/material/my'
+    | '/chat/discover/material'
     | '/chat/$spaceId/$roomId/setting'
     | '/chat/$spaceId/doc/$docId'
     | '/chat/$spaceId/{-$roomId}/{-$messageId}'
   id:
     | '__root__'
     | '/_dashboard'
-    | '/blocksuite-frame'
     | '/login'
     | '/scroll-sequence-demo'
     | '/scroll-sequence-motion-demo'
+    | '/_dashboard/material'
     | '/_dashboard/role'
-    | '/_dashboard/'
     | '/_dashboard/activities'
     | '/_dashboard/ai-image'
     | '/_dashboard/collection'
-    | '/_dashboard/material'
     | '/_dashboard/notifications'
     | '/_dashboard/resource'
     | '/_dashboard/settings'
     | '/invite/$code'
-    | '/_dashboard/repository'
+    | '/_dashboard/'
     | '/_dashboard/chat/_chat-layout'
     | '/_dashboard/profile/$userId'
     | '/_dashboard/feedback/{-$issueId}'
+    | '/_dashboard/repository/commit-chain'
     | '/_dashboard/repository/create'
     | '/_dashboard/role/{-$roleId}'
     | '/room-map/$spaceId/$roomId'
+    | '/_dashboard/repository/'
     | '/_dashboard/role/'
-    | '/_dashboard/chat/discover'
     | '/_dashboard/chat/discover/my'
     | '/_dashboard/doc/$spaceId/$docId'
     | '/_dashboard/material/space/$spaceId'
     | '/_dashboard/profile/$userId/activities'
     | '/_dashboard/profile/$userId/works'
-    | '/_dashboard/repository/commit-chain/{-$id}'
-    | '/_dashboard/chat/_chat-layout/'
-    | '/_dashboard/profile/$userId/'
-    | '/_dashboard/chat/discover/material'
     | '/_dashboard/repository/detail/{-$id}'
+    | '/_dashboard/chat/_chat-layout/'
+    | '/_dashboard/chat/discover/'
+    | '/_dashboard/profile/$userId/'
     | '/_dashboard/chat/discover/material/my'
+    | '/_dashboard/chat/discover/material/'
     | '/_dashboard/chat/_chat-layout/$spaceId/$roomId/setting'
     | '/_dashboard/chat/_chat-layout/$spaceId/doc/$docId'
     | '/_dashboard/chat/_chat-layout/$spaceId/{-$roomId}/{-$messageId}'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
-  dashboardRoute: typeof dashboardRouteWithChildren
-  blocksuiteFrameRoute: typeof blocksuiteFrameRoute
-  loginRoute: typeof loginRoute
-  scrollSequenceDemoRoute: typeof scrollSequenceDemoRoute
-  scrollSequenceMotionDemoRoute: typeof scrollSequenceMotionDemoRoute
-  inviteRoute: typeof inviteRoute
-  roomMapFrameRoute: typeof roomMapFrameRoute
+  DashboardRouteRoute: typeof DashboardRouteRouteWithChildren
+  LoginRoute: typeof LoginRoute
+  ScrollSequenceDemoRoute: typeof ScrollSequenceDemoRoute
+  ScrollSequenceMotionDemoRoute: typeof ScrollSequenceMotionDemoRoute
+  InviteCodeRoute: typeof InviteCodeRoute
+  RoomMapSpaceIdRoomIdRoute: typeof RoomMapSpaceIdRoomIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -490,402 +498,398 @@ declare module '@tanstack/react-router' {
       id: '/scroll-sequence-motion-demo'
       path: '/scroll-sequence-motion-demo'
       fullPath: '/scroll-sequence-motion-demo'
-      preLoaderRoute: typeof scrollSequenceMotionDemoRouteImport
+      preLoaderRoute: typeof ScrollSequenceMotionDemoRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/scroll-sequence-demo': {
       id: '/scroll-sequence-demo'
       path: '/scroll-sequence-demo'
       fullPath: '/scroll-sequence-demo'
-      preLoaderRoute: typeof scrollSequenceDemoRouteImport
+      preLoaderRoute: typeof ScrollSequenceDemoRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/login': {
       id: '/login'
       path: '/login'
       fullPath: '/login'
-      preLoaderRoute: typeof loginRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/blocksuite-frame': {
-      id: '/blocksuite-frame'
-      path: '/blocksuite-frame'
-      fullPath: '/blocksuite-frame'
-      preLoaderRoute: typeof blocksuiteFrameRouteImport
+      preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_dashboard': {
       id: '/_dashboard'
       path: ''
       fullPath: '/'
-      preLoaderRoute: typeof dashboardRouteImport
+      preLoaderRoute: typeof DashboardRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_dashboard/repository': {
-      id: '/_dashboard/repository'
-      path: '/repository'
-      fullPath: '/repository'
-      preLoaderRoute: typeof repositoryIndexRouteImport
-      parentRoute: typeof dashboardRoute
+    '/_dashboard/': {
+      id: '/_dashboard/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof DashboardIndexRouteImport
+      parentRoute: typeof DashboardRouteRoute
     }
     '/invite/$code': {
       id: '/invite/$code'
       path: '/invite/$code'
       fullPath: '/invite/$code'
-      preLoaderRoute: typeof inviteRouteImport
+      preLoaderRoute: typeof InviteCodeRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_dashboard/settings': {
       id: '/_dashboard/settings'
       path: '/settings'
       fullPath: '/settings'
-      preLoaderRoute: typeof settingsRouteImport
-      parentRoute: typeof dashboardRoute
+      preLoaderRoute: typeof DashboardSettingsRouteImport
+      parentRoute: typeof DashboardRouteRoute
     }
     '/_dashboard/resource': {
       id: '/_dashboard/resource'
       path: '/resource'
       fullPath: '/resource'
-      preLoaderRoute: typeof resourceRouteImport
-      parentRoute: typeof dashboardRoute
+      preLoaderRoute: typeof DashboardResourceRouteImport
+      parentRoute: typeof DashboardRouteRoute
     }
     '/_dashboard/notifications': {
       id: '/_dashboard/notifications'
       path: '/notifications'
       fullPath: '/notifications'
-      preLoaderRoute: typeof notificationsRouteImport
-      parentRoute: typeof dashboardRoute
-    }
-    '/_dashboard/material': {
-      id: '/_dashboard/material'
-      path: '/material'
-      fullPath: '/material'
-      preLoaderRoute: typeof materialRouteImport
-      parentRoute: typeof dashboardRoute
+      preLoaderRoute: typeof DashboardNotificationsRouteImport
+      parentRoute: typeof DashboardRouteRoute
     }
     '/_dashboard/collection': {
       id: '/_dashboard/collection'
       path: '/collection'
       fullPath: '/collection'
-      preLoaderRoute: typeof collectionRouteImport
-      parentRoute: typeof dashboardRoute
+      preLoaderRoute: typeof DashboardCollectionRouteImport
+      parentRoute: typeof DashboardRouteRoute
     }
     '/_dashboard/ai-image': {
       id: '/_dashboard/ai-image'
       path: '/ai-image'
       fullPath: '/ai-image'
-      preLoaderRoute: typeof aiImageRouteImport
-      parentRoute: typeof dashboardRoute
+      preLoaderRoute: typeof DashboardAiImageRouteImport
+      parentRoute: typeof DashboardRouteRoute
     }
     '/_dashboard/activities': {
       id: '/_dashboard/activities'
       path: '/activities'
       fullPath: '/activities'
-      preLoaderRoute: typeof activitiesRouteImport
-      parentRoute: typeof dashboardRoute
-    }
-    '/_dashboard/': {
-      id: '/_dashboard/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof homeRouteImport
-      parentRoute: typeof dashboardRoute
+      preLoaderRoute: typeof DashboardActivitiesRouteImport
+      parentRoute: typeof DashboardRouteRoute
     }
     '/_dashboard/role': {
       id: '/_dashboard/role'
       path: '/role'
       fullPath: '/role'
-      preLoaderRoute: typeof roleRouteRouteImport
-      parentRoute: typeof dashboardRoute
+      preLoaderRoute: typeof DashboardRoleRouteRouteImport
+      parentRoute: typeof DashboardRouteRoute
     }
-    '/_dashboard/chat/discover': {
-      id: '/_dashboard/chat/discover'
-      path: '/chat/discover'
-      fullPath: '/chat/discover'
-      preLoaderRoute: typeof chatDiscoverIndexRouteImport
-      parentRoute: typeof dashboardRoute
+    '/_dashboard/material': {
+      id: '/_dashboard/material'
+      path: '/material'
+      fullPath: '/material'
+      preLoaderRoute: typeof DashboardMaterialRouteRouteImport
+      parentRoute: typeof DashboardRouteRoute
     }
     '/_dashboard/role/': {
       id: '/_dashboard/role/'
       path: '/'
       fullPath: '/role/'
-      preLoaderRoute: typeof roleIndexRouteImport
-      parentRoute: typeof roleRouteRoute
+      preLoaderRoute: typeof DashboardRoleIndexRouteImport
+      parentRoute: typeof DashboardRoleRouteRoute
+    }
+    '/_dashboard/repository/': {
+      id: '/_dashboard/repository/'
+      path: '/repository'
+      fullPath: '/repository/'
+      preLoaderRoute: typeof DashboardRepositoryIndexRouteImport
+      parentRoute: typeof DashboardRouteRoute
     }
     '/room-map/$spaceId/$roomId': {
       id: '/room-map/$spaceId/$roomId'
       path: '/room-map/$spaceId/$roomId'
       fullPath: '/room-map/$spaceId/$roomId'
-      preLoaderRoute: typeof roomMapFrameRouteImport
+      preLoaderRoute: typeof RoomMapSpaceIdRoomIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_dashboard/role/{-$roleId}': {
       id: '/_dashboard/role/{-$roleId}'
       path: '/{-$roleId}'
       fullPath: '/role/{-$roleId}'
-      preLoaderRoute: typeof roleRoleIdRouteImport
-      parentRoute: typeof roleRouteRoute
+      preLoaderRoute: typeof DashboardRoleChar123RoleIdChar125RouteImport
+      parentRoute: typeof DashboardRoleRouteRoute
     }
     '/_dashboard/repository/create': {
       id: '/_dashboard/repository/create'
       path: '/repository/create'
       fullPath: '/repository/create'
-      preLoaderRoute: typeof repositoryCreateRouteImport
-      parentRoute: typeof dashboardRoute
+      preLoaderRoute: typeof DashboardRepositoryCreateRouteImport
+      parentRoute: typeof DashboardRouteRoute
+    }
+    '/_dashboard/repository/commit-chain': {
+      id: '/_dashboard/repository/commit-chain'
+      path: '/repository/commit-chain'
+      fullPath: '/repository/commit-chain'
+      preLoaderRoute: typeof DashboardRepositoryCommitChainRouteImport
+      parentRoute: typeof DashboardRouteRoute
     }
     '/_dashboard/feedback/{-$issueId}': {
       id: '/_dashboard/feedback/{-$issueId}'
       path: '/feedback/{-$issueId}'
       fullPath: '/feedback/{-$issueId}'
-      preLoaderRoute: typeof feedbackRouteImport
-      parentRoute: typeof dashboardRoute
+      preLoaderRoute: typeof DashboardFeedbackChar123IssueIdChar125RouteImport
+      parentRoute: typeof DashboardRouteRoute
     }
     '/_dashboard/profile/$userId': {
       id: '/_dashboard/profile/$userId'
       path: '/profile/$userId'
       fullPath: '/profile/$userId'
-      preLoaderRoute: typeof profileRouteRouteImport
-      parentRoute: typeof dashboardRoute
+      preLoaderRoute: typeof DashboardProfileUserIdRouteRouteImport
+      parentRoute: typeof DashboardRouteRoute
     }
     '/_dashboard/chat/_chat-layout': {
       id: '/_dashboard/chat/_chat-layout'
       path: '/chat'
       fullPath: '/chat'
-      preLoaderRoute: typeof chatRouteRouteImport
-      parentRoute: typeof dashboardRoute
-    }
-    '/_dashboard/repository/detail/{-$id}': {
-      id: '/_dashboard/repository/detail/{-$id}'
-      path: '/repository/detail/{-$id}'
-      fullPath: '/repository/detail/{-$id}'
-      preLoaderRoute: typeof repositoryDetailIndexRouteImport
-      parentRoute: typeof dashboardRoute
-    }
-    '/_dashboard/chat/discover/material': {
-      id: '/_dashboard/chat/discover/material'
-      path: '/material'
-      fullPath: '/chat/discover/material'
-      preLoaderRoute: typeof chatDiscoverMaterialIndexRouteImport
-      parentRoute: typeof chatDiscoverIndexRoute
+      preLoaderRoute: typeof DashboardChatChatLayoutRouteRouteImport
+      parentRoute: typeof DashboardRouteRoute
     }
     '/_dashboard/profile/$userId/': {
       id: '/_dashboard/profile/$userId/'
       path: '/'
       fullPath: '/profile/$userId/'
-      preLoaderRoute: typeof profileIndexRouteImport
-      parentRoute: typeof profileRouteRoute
+      preLoaderRoute: typeof DashboardProfileUserIdIndexRouteImport
+      parentRoute: typeof DashboardProfileUserIdRouteRoute
+    }
+    '/_dashboard/chat/discover/': {
+      id: '/_dashboard/chat/discover/'
+      path: '/chat/discover'
+      fullPath: '/chat/discover/'
+      preLoaderRoute: typeof DashboardChatDiscoverIndexRouteImport
+      parentRoute: typeof DashboardRouteRoute
     }
     '/_dashboard/chat/_chat-layout/': {
       id: '/_dashboard/chat/_chat-layout/'
       path: '/'
       fullPath: '/chat/'
-      preLoaderRoute: typeof chatIndexRouteImport
-      parentRoute: typeof chatRouteRoute
+      preLoaderRoute: typeof DashboardChatChatLayoutIndexRouteImport
+      parentRoute: typeof DashboardChatChatLayoutRouteRoute
     }
-    '/_dashboard/repository/commit-chain/{-$id}': {
-      id: '/_dashboard/repository/commit-chain/{-$id}'
-      path: '/repository/commit-chain/{-$id}'
-      fullPath: '/repository/commit-chain/{-$id}'
-      preLoaderRoute: typeof repositoryCommitChainRouteImport
-      parentRoute: typeof dashboardRoute
+    '/_dashboard/repository/detail/{-$id}': {
+      id: '/_dashboard/repository/detail/{-$id}'
+      path: '/repository/detail/{-$id}'
+      fullPath: '/repository/detail/{-$id}'
+      preLoaderRoute: typeof DashboardRepositoryDetailChar123IdChar125RouteImport
+      parentRoute: typeof DashboardRouteRoute
     }
     '/_dashboard/profile/$userId/works': {
       id: '/_dashboard/profile/$userId/works'
       path: '/works'
       fullPath: '/profile/$userId/works'
-      preLoaderRoute: typeof profileWorksRouteImport
-      parentRoute: typeof profileRouteRoute
+      preLoaderRoute: typeof DashboardProfileUserIdWorksRouteImport
+      parentRoute: typeof DashboardProfileUserIdRouteRoute
     }
     '/_dashboard/profile/$userId/activities': {
       id: '/_dashboard/profile/$userId/activities'
       path: '/activities'
       fullPath: '/profile/$userId/activities'
-      preLoaderRoute: typeof profileActivitiesTabRouteImport
-      parentRoute: typeof profileRouteRoute
+      preLoaderRoute: typeof DashboardProfileUserIdActivitiesRouteImport
+      parentRoute: typeof DashboardProfileUserIdRouteRoute
     }
     '/_dashboard/material/space/$spaceId': {
       id: '/_dashboard/material/space/$spaceId'
-      path: '/material/space/$spaceId'
+      path: '/space/$spaceId'
       fullPath: '/material/space/$spaceId'
-      preLoaderRoute: typeof spaceMaterialRouteImport
-      parentRoute: typeof dashboardRoute
+      preLoaderRoute: typeof DashboardMaterialSpaceSpaceIdRouteImport
+      parentRoute: typeof DashboardMaterialRouteRoute
     }
     '/_dashboard/doc/$spaceId/$docId': {
       id: '/_dashboard/doc/$spaceId/$docId'
       path: '/doc/$spaceId/$docId'
       fullPath: '/doc/$spaceId/$docId'
-      preLoaderRoute: typeof docRouteImport
-      parentRoute: typeof dashboardRoute
+      preLoaderRoute: typeof DashboardDocSpaceIdDocIdRouteImport
+      parentRoute: typeof DashboardRouteRoute
     }
     '/_dashboard/chat/discover/my': {
       id: '/_dashboard/chat/discover/my'
-      path: '/my'
+      path: '/chat/discover/my'
       fullPath: '/chat/discover/my'
-      preLoaderRoute: typeof chatDiscoverMyRouteImport
-      parentRoute: typeof chatDiscoverIndexRoute
+      preLoaderRoute: typeof DashboardChatDiscoverMyRouteImport
+      parentRoute: typeof DashboardRouteRoute
+    }
+    '/_dashboard/chat/discover/material/': {
+      id: '/_dashboard/chat/discover/material/'
+      path: '/chat/discover/material'
+      fullPath: '/chat/discover/material/'
+      preLoaderRoute: typeof DashboardChatDiscoverMaterialIndexRouteImport
+      parentRoute: typeof DashboardRouteRoute
     }
     '/_dashboard/chat/discover/material/my': {
       id: '/_dashboard/chat/discover/material/my'
-      path: '/my'
+      path: '/chat/discover/material/my'
       fullPath: '/chat/discover/material/my'
-      preLoaderRoute: typeof chatDiscoverMaterialMyRouteImport
-      parentRoute: typeof chatDiscoverMaterialIndexRoute
+      preLoaderRoute: typeof DashboardChatDiscoverMaterialMyRouteImport
+      parentRoute: typeof DashboardRouteRoute
     }
     '/_dashboard/chat/_chat-layout/$spaceId/{-$roomId}/{-$messageId}': {
       id: '/_dashboard/chat/_chat-layout/$spaceId/{-$roomId}/{-$messageId}'
       path: '/$spaceId/{-$roomId}/{-$messageId}'
       fullPath: '/chat/$spaceId/{-$roomId}/{-$messageId}'
-      preLoaderRoute: typeof chatSpaceRouteImport
-      parentRoute: typeof chatRouteRoute
+      preLoaderRoute: typeof DashboardChatChatLayoutSpaceIdChar123RoomIdChar125Char123MessageIdChar125RouteImport
+      parentRoute: typeof DashboardChatChatLayoutRouteRoute
     }
     '/_dashboard/chat/_chat-layout/$spaceId/doc/$docId': {
       id: '/_dashboard/chat/_chat-layout/$spaceId/doc/$docId'
       path: '/$spaceId/doc/$docId'
       fullPath: '/chat/$spaceId/doc/$docId'
-      preLoaderRoute: typeof chatDocRouteImport
-      parentRoute: typeof chatRouteRoute
+      preLoaderRoute: typeof DashboardChatChatLayoutSpaceIdDocDocIdRouteImport
+      parentRoute: typeof DashboardChatChatLayoutRouteRoute
     }
     '/_dashboard/chat/_chat-layout/$spaceId/$roomId/setting': {
       id: '/_dashboard/chat/_chat-layout/$spaceId/$roomId/setting'
       path: '/$spaceId/$roomId/setting'
       fullPath: '/chat/$spaceId/$roomId/setting'
-      preLoaderRoute: typeof chatRoomSettingRouteImport
-      parentRoute: typeof chatRouteRoute
+      preLoaderRoute: typeof DashboardChatChatLayoutSpaceIdRoomIdSettingRouteImport
+      parentRoute: typeof DashboardChatChatLayoutRouteRoute
     }
   }
 }
 
-interface roleRouteRouteChildren {
-  roleRoleIdRoute: typeof roleRoleIdRoute
-  roleIndexRoute: typeof roleIndexRoute
+interface DashboardMaterialRouteRouteChildren {
+  DashboardMaterialSpaceSpaceIdRoute: typeof DashboardMaterialSpaceSpaceIdRoute
 }
 
-const roleRouteRouteChildren: roleRouteRouteChildren = {
-  roleRoleIdRoute: roleRoleIdRoute,
-  roleIndexRoute: roleIndexRoute,
-}
-
-const roleRouteRouteWithChildren = roleRouteRoute._addFileChildren(
-  roleRouteRouteChildren,
-)
-
-interface chatRouteRouteChildren {
-  chatIndexRoute: typeof chatIndexRoute
-  chatRoomSettingRoute: typeof chatRoomSettingRoute
-  chatDocRoute: typeof chatDocRoute
-  chatSpaceRoute: typeof chatSpaceRoute
-}
-
-const chatRouteRouteChildren: chatRouteRouteChildren = {
-  chatIndexRoute: chatIndexRoute,
-  chatRoomSettingRoute: chatRoomSettingRoute,
-  chatDocRoute: chatDocRoute,
-  chatSpaceRoute: chatSpaceRoute,
-}
-
-const chatRouteRouteWithChildren = chatRouteRoute._addFileChildren(
-  chatRouteRouteChildren,
-)
-
-interface profileRouteRouteChildren {
-  profileActivitiesTabRoute: typeof profileActivitiesTabRoute
-  profileWorksRoute: typeof profileWorksRoute
-  profileIndexRoute: typeof profileIndexRoute
-}
-
-const profileRouteRouteChildren: profileRouteRouteChildren = {
-  profileActivitiesTabRoute: profileActivitiesTabRoute,
-  profileWorksRoute: profileWorksRoute,
-  profileIndexRoute: profileIndexRoute,
-}
-
-const profileRouteRouteWithChildren = profileRouteRoute._addFileChildren(
-  profileRouteRouteChildren,
-)
-
-interface chatDiscoverMaterialIndexRouteChildren {
-  chatDiscoverMaterialMyRoute: typeof chatDiscoverMaterialMyRoute
-}
-
-const chatDiscoverMaterialIndexRouteChildren: chatDiscoverMaterialIndexRouteChildren =
+const DashboardMaterialRouteRouteChildren: DashboardMaterialRouteRouteChildren =
   {
-    chatDiscoverMaterialMyRoute: chatDiscoverMaterialMyRoute,
+    DashboardMaterialSpaceSpaceIdRoute: DashboardMaterialSpaceSpaceIdRoute,
   }
 
-const chatDiscoverMaterialIndexRouteWithChildren =
-  chatDiscoverMaterialIndexRoute._addFileChildren(
-    chatDiscoverMaterialIndexRouteChildren,
+const DashboardMaterialRouteRouteWithChildren =
+  DashboardMaterialRouteRoute._addFileChildren(
+    DashboardMaterialRouteRouteChildren,
   )
 
-interface chatDiscoverIndexRouteChildren {
-  chatDiscoverMyRoute: typeof chatDiscoverMyRoute
-  chatDiscoverMaterialIndexRoute: typeof chatDiscoverMaterialIndexRouteWithChildren
+interface DashboardRoleRouteRouteChildren {
+  DashboardRoleChar123RoleIdChar125Route: typeof DashboardRoleChar123RoleIdChar125Route
+  DashboardRoleIndexRoute: typeof DashboardRoleIndexRoute
 }
 
-const chatDiscoverIndexRouteChildren: chatDiscoverIndexRouteChildren = {
-  chatDiscoverMyRoute: chatDiscoverMyRoute,
-  chatDiscoverMaterialIndexRoute: chatDiscoverMaterialIndexRouteWithChildren,
+const DashboardRoleRouteRouteChildren: DashboardRoleRouteRouteChildren = {
+  DashboardRoleChar123RoleIdChar125Route:
+    DashboardRoleChar123RoleIdChar125Route,
+  DashboardRoleIndexRoute: DashboardRoleIndexRoute,
 }
 
-const chatDiscoverIndexRouteWithChildren =
-  chatDiscoverIndexRoute._addFileChildren(chatDiscoverIndexRouteChildren)
+const DashboardRoleRouteRouteWithChildren =
+  DashboardRoleRouteRoute._addFileChildren(DashboardRoleRouteRouteChildren)
 
-interface dashboardRouteChildren {
-  roleRouteRoute: typeof roleRouteRouteWithChildren
-  homeRoute: typeof homeRoute
-  activitiesRoute: typeof activitiesRoute
-  aiImageRoute: typeof aiImageRoute
-  collectionRoute: typeof collectionRoute
-  materialRoute: typeof materialRoute
-  notificationsRoute: typeof notificationsRoute
-  resourceRoute: typeof resourceRoute
-  settingsRoute: typeof settingsRoute
-  repositoryIndexRoute: typeof repositoryIndexRoute
-  chatRouteRoute: typeof chatRouteRouteWithChildren
-  profileRouteRoute: typeof profileRouteRouteWithChildren
-  feedbackRoute: typeof feedbackRoute
-  repositoryCreateRoute: typeof repositoryCreateRoute
-  chatDiscoverIndexRoute: typeof chatDiscoverIndexRouteWithChildren
-  docRoute: typeof docRoute
-  spaceMaterialRoute: typeof spaceMaterialRoute
-  repositoryCommitChainRoute: typeof repositoryCommitChainRoute
-  repositoryDetailIndexRoute: typeof repositoryDetailIndexRoute
+interface DashboardChatChatLayoutRouteRouteChildren {
+  DashboardChatChatLayoutIndexRoute: typeof DashboardChatChatLayoutIndexRoute
+  DashboardChatChatLayoutSpaceIdRoomIdSettingRoute: typeof DashboardChatChatLayoutSpaceIdRoomIdSettingRoute
+  DashboardChatChatLayoutSpaceIdDocDocIdRoute: typeof DashboardChatChatLayoutSpaceIdDocDocIdRoute
+  DashboardChatChatLayoutSpaceIdChar123RoomIdChar125Char123MessageIdChar125Route: typeof DashboardChatChatLayoutSpaceIdChar123RoomIdChar125Char123MessageIdChar125Route
 }
 
-const dashboardRouteChildren: dashboardRouteChildren = {
-  roleRouteRoute: roleRouteRouteWithChildren,
-  homeRoute: homeRoute,
-  activitiesRoute: activitiesRoute,
-  aiImageRoute: aiImageRoute,
-  collectionRoute: collectionRoute,
-  materialRoute: materialRoute,
-  notificationsRoute: notificationsRoute,
-  resourceRoute: resourceRoute,
-  settingsRoute: settingsRoute,
-  repositoryIndexRoute: repositoryIndexRoute,
-  chatRouteRoute: chatRouteRouteWithChildren,
-  profileRouteRoute: profileRouteRouteWithChildren,
-  feedbackRoute: feedbackRoute,
-  repositoryCreateRoute: repositoryCreateRoute,
-  chatDiscoverIndexRoute: chatDiscoverIndexRouteWithChildren,
-  docRoute: docRoute,
-  spaceMaterialRoute: spaceMaterialRoute,
-  repositoryCommitChainRoute: repositoryCommitChainRoute,
-  repositoryDetailIndexRoute: repositoryDetailIndexRoute,
+const DashboardChatChatLayoutRouteRouteChildren: DashboardChatChatLayoutRouteRouteChildren =
+  {
+    DashboardChatChatLayoutIndexRoute: DashboardChatChatLayoutIndexRoute,
+    DashboardChatChatLayoutSpaceIdRoomIdSettingRoute:
+      DashboardChatChatLayoutSpaceIdRoomIdSettingRoute,
+    DashboardChatChatLayoutSpaceIdDocDocIdRoute:
+      DashboardChatChatLayoutSpaceIdDocDocIdRoute,
+    DashboardChatChatLayoutSpaceIdChar123RoomIdChar125Char123MessageIdChar125Route:
+      DashboardChatChatLayoutSpaceIdChar123RoomIdChar125Char123MessageIdChar125Route,
+  }
+
+const DashboardChatChatLayoutRouteRouteWithChildren =
+  DashboardChatChatLayoutRouteRoute._addFileChildren(
+    DashboardChatChatLayoutRouteRouteChildren,
+  )
+
+interface DashboardProfileUserIdRouteRouteChildren {
+  DashboardProfileUserIdActivitiesRoute: typeof DashboardProfileUserIdActivitiesRoute
+  DashboardProfileUserIdWorksRoute: typeof DashboardProfileUserIdWorksRoute
+  DashboardProfileUserIdIndexRoute: typeof DashboardProfileUserIdIndexRoute
 }
 
-const dashboardRouteWithChildren = dashboardRoute._addFileChildren(
-  dashboardRouteChildren,
+const DashboardProfileUserIdRouteRouteChildren: DashboardProfileUserIdRouteRouteChildren =
+  {
+    DashboardProfileUserIdActivitiesRoute:
+      DashboardProfileUserIdActivitiesRoute,
+    DashboardProfileUserIdWorksRoute: DashboardProfileUserIdWorksRoute,
+    DashboardProfileUserIdIndexRoute: DashboardProfileUserIdIndexRoute,
+  }
+
+const DashboardProfileUserIdRouteRouteWithChildren =
+  DashboardProfileUserIdRouteRoute._addFileChildren(
+    DashboardProfileUserIdRouteRouteChildren,
+  )
+
+interface DashboardRouteRouteChildren {
+  DashboardMaterialRouteRoute: typeof DashboardMaterialRouteRouteWithChildren
+  DashboardRoleRouteRoute: typeof DashboardRoleRouteRouteWithChildren
+  DashboardActivitiesRoute: typeof DashboardActivitiesRoute
+  DashboardAiImageRoute: typeof DashboardAiImageRoute
+  DashboardCollectionRoute: typeof DashboardCollectionRoute
+  DashboardNotificationsRoute: typeof DashboardNotificationsRoute
+  DashboardResourceRoute: typeof DashboardResourceRoute
+  DashboardSettingsRoute: typeof DashboardSettingsRoute
+  DashboardIndexRoute: typeof DashboardIndexRoute
+  DashboardChatChatLayoutRouteRoute: typeof DashboardChatChatLayoutRouteRouteWithChildren
+  DashboardProfileUserIdRouteRoute: typeof DashboardProfileUserIdRouteRouteWithChildren
+  DashboardFeedbackChar123IssueIdChar125Route: typeof DashboardFeedbackChar123IssueIdChar125Route
+  DashboardRepositoryCommitChainRoute: typeof DashboardRepositoryCommitChainRoute
+  DashboardRepositoryCreateRoute: typeof DashboardRepositoryCreateRoute
+  DashboardRepositoryIndexRoute: typeof DashboardRepositoryIndexRoute
+  DashboardChatDiscoverMyRoute: typeof DashboardChatDiscoverMyRoute
+  DashboardDocSpaceIdDocIdRoute: typeof DashboardDocSpaceIdDocIdRoute
+  DashboardRepositoryDetailChar123IdChar125Route: typeof DashboardRepositoryDetailChar123IdChar125Route
+  DashboardChatDiscoverIndexRoute: typeof DashboardChatDiscoverIndexRoute
+  DashboardChatDiscoverMaterialMyRoute: typeof DashboardChatDiscoverMaterialMyRoute
+  DashboardChatDiscoverMaterialIndexRoute: typeof DashboardChatDiscoverMaterialIndexRoute
+}
+
+const DashboardRouteRouteChildren: DashboardRouteRouteChildren = {
+  DashboardMaterialRouteRoute: DashboardMaterialRouteRouteWithChildren,
+  DashboardRoleRouteRoute: DashboardRoleRouteRouteWithChildren,
+  DashboardActivitiesRoute: DashboardActivitiesRoute,
+  DashboardAiImageRoute: DashboardAiImageRoute,
+  DashboardCollectionRoute: DashboardCollectionRoute,
+  DashboardNotificationsRoute: DashboardNotificationsRoute,
+  DashboardResourceRoute: DashboardResourceRoute,
+  DashboardSettingsRoute: DashboardSettingsRoute,
+  DashboardIndexRoute: DashboardIndexRoute,
+  DashboardChatChatLayoutRouteRoute:
+    DashboardChatChatLayoutRouteRouteWithChildren,
+  DashboardProfileUserIdRouteRoute:
+    DashboardProfileUserIdRouteRouteWithChildren,
+  DashboardFeedbackChar123IssueIdChar125Route:
+    DashboardFeedbackChar123IssueIdChar125Route,
+  DashboardRepositoryCommitChainRoute: DashboardRepositoryCommitChainRoute,
+  DashboardRepositoryCreateRoute: DashboardRepositoryCreateRoute,
+  DashboardRepositoryIndexRoute: DashboardRepositoryIndexRoute,
+  DashboardChatDiscoverMyRoute: DashboardChatDiscoverMyRoute,
+  DashboardDocSpaceIdDocIdRoute: DashboardDocSpaceIdDocIdRoute,
+  DashboardRepositoryDetailChar123IdChar125Route:
+    DashboardRepositoryDetailChar123IdChar125Route,
+  DashboardChatDiscoverIndexRoute: DashboardChatDiscoverIndexRoute,
+  DashboardChatDiscoverMaterialMyRoute: DashboardChatDiscoverMaterialMyRoute,
+  DashboardChatDiscoverMaterialIndexRoute:
+    DashboardChatDiscoverMaterialIndexRoute,
+}
+
+const DashboardRouteRouteWithChildren = DashboardRouteRoute._addFileChildren(
+  DashboardRouteRouteChildren,
 )
 
 const rootRouteChildren: RootRouteChildren = {
-  dashboardRoute: dashboardRouteWithChildren,
-  blocksuiteFrameRoute: blocksuiteFrameRoute,
-  loginRoute: loginRoute,
-  scrollSequenceDemoRoute: scrollSequenceDemoRoute,
-  scrollSequenceMotionDemoRoute: scrollSequenceMotionDemoRoute,
-  inviteRoute: inviteRoute,
-  roomMapFrameRoute: roomMapFrameRoute,
+  DashboardRouteRoute: DashboardRouteRouteWithChildren,
+  LoginRoute: LoginRoute,
+  ScrollSequenceDemoRoute: ScrollSequenceDemoRoute,
+  ScrollSequenceMotionDemoRoute: ScrollSequenceMotionDemoRoute,
+  InviteCodeRoute: InviteCodeRoute,
+  RoomMapSpaceIdRoomIdRoute: RoomMapSpaceIdRoomIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

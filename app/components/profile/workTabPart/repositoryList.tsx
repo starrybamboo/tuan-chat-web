@@ -1,11 +1,10 @@
-import { Link } from "@tanstack/react-router";
+import { Link, useRouter } from "@tanstack/react-router";
 import React, { useMemo } from "react";
 import Pagination from "@/components/common/pagination";
 import { useGlobalUserId } from "@/components/globalContextProvider";
 import { ContentCard } from "@/components/repository/home/RepositoryHome";
 
 import { imageMediumUrl } from "@/utils/mediaUrl";
-import { useAppNavigate as useNavigate } from "@/utils/navigation";
 import { useRepositoryListByUserQuery } from "../../../../api/hooks/repositoryQueryHooks";
 import { useRuleListQuery } from "../../../../api/hooks/ruleQueryHooks";
 
@@ -27,7 +26,7 @@ const UserRepositoriesList: React.FC<UserRepositoriesListProps> = ({
   onPageChange,
   isLoading,
 }) => {
-  const navigate = useNavigate();
+  const router = useRouter();
   const currentUserId = useGlobalUserId() ?? -1;
   const totalPages = Math.ceil(totalRecords / 10);
 
@@ -160,26 +159,24 @@ const UserRepositoriesList: React.FC<UserRepositoriesListProps> = ({
                 console.error("仓库ID为空，无法跳转");
                 return;
               }
-              navigate(`/repository/detail/${repository.repositoryId}`, {
-                state: {
-                  repositoryData: {
-                    repositoryId: repository.repositoryId,
-                    ruleId: repository.ruleId,
-                    ruleName: repository.rule,
-                    repositoryName: repository.title,
-                    description: repository.content,
-                    userId: repository.userId,
-                    authorName: repository.authorName,
-                    image: repository.image,
-                    createTime: repository.createTime,
-                    updateTime: repository.updateTime,
-                    minPeople: repository.minPeople,
-                    maxPeople: repository.maxPeople,
-                    minTime: repository.minTime,
-                    maxTime: repository.maxTime,
-                    parent: repository.parent,
-                    instruction: repository.instruction,
-                  },
+              router.history.push(`/repository/detail/${repository.repositoryId}`, {
+                repositoryData: {
+                  repositoryId: repository.repositoryId,
+                  ruleId: repository.ruleId,
+                  ruleName: repository.rule,
+                  repositoryName: repository.title,
+                  description: repository.content,
+                  userId: repository.userId,
+                  authorName: repository.authorName,
+                  image: repository.image,
+                  createTime: repository.createTime,
+                  updateTime: repository.updateTime,
+                  minPeople: repository.minPeople,
+                  maxPeople: repository.maxPeople,
+                  minTime: repository.minTime,
+                  maxTime: repository.maxTime,
+                  parent: repository.parent,
+                  instruction: repository.instruction,
                 },
               });
             }}

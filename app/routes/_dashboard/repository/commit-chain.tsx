@@ -12,7 +12,7 @@ export function meta(_args: RouteMetaArgs) {
   });
 }
 
-export const Route = createFileRoute("/_dashboard/repository/commit-chain/{-$id}")({
+export const Route = createFileRoute("/_dashboard/repository/commit-chain")({
   head: () => ({
     meta: meta({ params: {} }),
   }),

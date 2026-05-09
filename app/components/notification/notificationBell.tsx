@@ -1,7 +1,7 @@
 import type { UserNotificationItem } from "@/components/notification/notificationTypes";
 
 import { BellIcon } from "@phosphor-icons/react";
-import { Link } from "@tanstack/react-router";
+import { Link, useRouter } from "@tanstack/react-router";
 import { motion } from "motion/react";
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { interactiveButtonMotionProps } from "@/components/common/motion/interactiveButtonMotion";
@@ -11,13 +11,12 @@ import {
   useNotificationsInfiniteQuery,
   useNotificationUnreadCountQuery,
 } from "@/components/notification/notificationHooks";
-import { useAppNavigate as useNavigate } from "@/utils/navigation";
 import { scheduleNonCriticalTask } from "@/utils/scheduleNonCriticalTask";
 
 const LazyNotificationList = lazy(() => import("@/components/notification/notificationList"));
 
 export default function NotificationBell() {
-  const navigate = useNavigate();
+  const router = useRouter();
   const dropdownRef = useRef<HTMLDivElement | null>(null);
   const [isOpen, setIsOpen] = useState(false);
   const [busyNotificationId, setBusyNotificationId] = useState<number | null>(null);
@@ -79,7 +78,7 @@ export default function NotificationBell() {
       if (!item.isRead) {
         await markReadMutation.mutateAsync({ notificationIdList: [item.notificationId] });
       }
-      navigate(item.targetPath);
+      router.history.push(item.targetPath);
       setIsOpen(false);
     }
     finally {

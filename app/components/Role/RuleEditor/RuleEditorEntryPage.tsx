@@ -1,11 +1,11 @@
 import { Plus } from "@phosphor-icons/react";
+import { useRouter } from "@tanstack/react-router";
 import { useGetRuleDetailQuery } from "api/hooks/ruleQueryHooks";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useGlobalUserId } from "@/components/globalContextProvider";
 
+import { useGlobalUserId } from "@/components/globalContextProvider";
 import CreatePageHeader from "@/components/Role/RoleCreation/CreatePageHeader";
 import RulesSection from "@/components/Role/rules/RulesSection";
-import { useAppNavigate as useNavigate } from "@/utils/navigation";
 
 interface RuleEditorEntryPageProps {
   onBack?: () => void;
@@ -17,7 +17,7 @@ const RULE_DESCRIPTION_MAX_LENGTH = 200;
 type RuleScope = "all" | "mine";
 
 export default function RuleEditorEntryPage({ onBack }: RuleEditorEntryPageProps) {
-  const navigate = useNavigate();
+  const router = useRouter();
   const userId = useGlobalUserId();
   const [scope, setScope] = useState<RuleScope>("all");
   const [ruleName, setRuleName] = useState("");
@@ -47,13 +47,11 @@ export default function RuleEditorEntryPage({ onBack }: RuleEditorEntryPageProps
       return;
     }
 
-    navigate("/role?type=rule&mode=create", {
-      state: {
-        prefillRuleName: trimmedRuleName,
-        prefillRuleDescription: trimmedRuleDescription,
-        prefillTemplateRuleId: selectedTemplateRuleId > 0 ? selectedTemplateRuleId : undefined,
-        skipCreateBaseInfo: true,
-      },
+    router.history.push("/role?type=rule&mode=create", {
+      prefillRuleName: trimmedRuleName,
+      prefillRuleDescription: trimmedRuleDescription,
+      prefillTemplateRuleId: selectedTemplateRuleId > 0 ? selectedTemplateRuleId : undefined,
+      skipCreateBaseInfo: true,
     });
   };
 

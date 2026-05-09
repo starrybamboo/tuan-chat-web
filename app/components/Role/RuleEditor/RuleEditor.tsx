@@ -1,11 +1,11 @@
 import type { Rule } from "@tuanchat/openapi-client/models/Rule";
+import { useLocation, useRouter } from "@tanstack/react-router";
 import { ApiError } from "@tuanchat/openapi-client/core/ApiError";
 import { useAllRuleListQuery, useCreateRuleMutation, useGetRuleDetailQuery, useUpdateRuleMutation } from "api/hooks/ruleQueryHooks";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import toast from "react-hot-toast";
 import { useGlobalUserId } from "@/components/globalContextProvider";
 import { EditIcon, SaveIcon } from "@/icons";
-import { useLocation, useAppNavigate as useNavigate } from "@/utils/navigation";
 import Section from "../Editors/Section";
 import RuleCloneModal from "./RuleCloneModal";
 import RuleExpansionModule from "./RuleExpansionModule";
@@ -87,8 +87,8 @@ export default function RuleEditor({
   ruleDetail,
   onBack,
 }: RuleEditorProps) {
-  const navigate = useNavigate();
   const location = useLocation();
+  const router = useRouter();
   const userId = useGlobalUserId();
   const createRuleMutation = useCreateRuleMutation();
   const updateRuleMutation = useUpdateRuleMutation();
@@ -115,6 +115,13 @@ export default function RuleEditor({
     && createPrefillState.prefillTemplateRuleId > 0
     ? createPrefillState.prefillTemplateRuleId
     : 0;
+  const locationSignature = useMemo(() => {
+    return JSON.stringify({
+      pathname: location.pathname,
+      search: location.searchStr,
+      state: location.state ?? null,
+    });
+  }, [location.pathname, location.searchStr, location.state]);
   const prefillTemplateQuery = useGetRuleDetailQuery(mode === "create" ? prefillTemplateRuleId : 0);
   const allRuleListQuery = useAllRuleListQuery(100, mode === "create");
   const trimmedRuleName = (ruleEdit.ruleName ?? "").trim();
@@ -165,8 +172,8 @@ export default function RuleEditor({
       return;
     }
 
-    navigate("/role");
-  }, [isSavingRule, navigate, onBack]);
+    router.history.push("/role");
+  }, [isSavingRule, onBack, router]);
 
   useEffect(() => {
     queueMicrotask(() => setIsEditing(mode === "create"));
@@ -274,7 +281,7 @@ export default function RuleEditor({
           if (isCreate) {
             const newRuleId = res?.data;
             if (typeof newRuleId === "number" && newRuleId > 0) {
-              navigate(`/role?type=rule&mode=edit&ruleId=${newRuleId}`, { replace: true });
+              router.history.replace(`/role?type=rule&mode=edit&ruleId=${newRuleId}`);
             }
           }
         }, 300);
@@ -324,7 +331,7 @@ export default function RuleEditor({
     isRuleNameDuplicated,
     isSavingRule,
     mode,
-    navigate,
+    router,
     ruleDetail?.authorId,
     ruleEdit,
     ruleId,
@@ -365,7 +372,7 @@ export default function RuleEditor({
       return;
     }
 
-    if (appliedPrefillLocationKeyRef.current === location.key) {
+    if (appliedPrefillLocationKeyRef.current === locationSignature) {
       return;
     }
 
@@ -379,8 +386,8 @@ export default function RuleEditor({
       ruleDescription: prefillRuleDescription,
     })));
 
-    appliedPrefillLocationKeyRef.current = location.key;
-  }, [location.key, mode, prefillRuleDescription, prefillRuleName]);
+    appliedPrefillLocationKeyRef.current = locationSignature;
+  }, [locationSignature, mode, prefillRuleDescription, prefillRuleName]);
 
   useEffect(() => {
     if (mode !== "create") {
@@ -392,7 +399,7 @@ export default function RuleEditor({
       return;
     }
 
-    if (appliedTemplateLocationKeyRef.current === location.key) {
+    if (appliedTemplateLocationKeyRef.current === locationSignature) {
       return;
     }
 
@@ -412,9 +419,9 @@ export default function RuleEditor({
       ruleDescription: (prev.ruleDescription ?? "").trim() || prefillRuleDescription || templateRule.ruleDescription || "",
     })));
 
-    appliedTemplateLocationKeyRef.current = location.key;
+    appliedTemplateLocationKeyRef.current = locationSignature;
   }, [
-    location.key,
+    locationSignature,
     mode,
     prefillRuleDescription,
     prefillRuleName,
@@ -646,7 +653,7 @@ export default function RuleEditor({
 
         <div className="lg:col-span-3 space-y-6">
           <RuleExpansionModule
-            key={`rule-expansion-${mode}-${ruleId ?? "new"}-${location.key}`}
+            key={`rule-expansion-${mode}-${ruleId ?? "new"}-${locationSignature}`}
             localRule={ruleEdit}
             onRuleChange={setRuleEdit}
             cloneVersion={cloneVersion}

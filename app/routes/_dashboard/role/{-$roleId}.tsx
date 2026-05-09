@@ -1,9 +1,8 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Navigate, useLocation, useParams, useRouter } from "@tanstack/react-router";
 
 import { useEffect } from "react";
 import CharacterDetail from "@/components/Role/CharacterDetail";
 import { useRoleListModel } from "@/components/Role/useRoleListModel";
-import { Navigate, useAppNavigate as useNavigate, useAllParams as useParams, useUrlSearchParams as useSearchParams } from "@/utils/navigation";
 import { getRoleRule, setRoleRule } from "@/utils/roleRuleStorage";
 
 export const Route = createFileRoute("/_dashboard/role/{-$roleId}")({
@@ -11,11 +10,12 @@ export const Route = createFileRoute("/_dashboard/role/{-$roleId}")({
 });
 
 export default function RoleDetailPage() {
-  const { roleId } = useParams() as { roleId?: string };
+  const { roleId } = useParams({ strict: false }) as { roleId?: string };
+  const location = useLocation();
+  const router = useRouter();
   const { roles, isLoading } = useRoleListModel();
 
-  const [searchParams] = useSearchParams();
-  const navigate = useNavigate();
+  const searchParams = new URLSearchParams(location.searchStr);
 
   const numericRoleId = roleId ? Number.parseInt(roleId, 10) : Number.NaN;
 
@@ -28,9 +28,9 @@ export default function RoleDetailPage() {
     if (!urlRuleId && storedRuleId && numericRoleId) {
       const newSearchParams = new URLSearchParams(searchParams);
       newSearchParams.set("rule", storedRuleId.toString());
-      navigate(`?${newSearchParams.toString()}`, { replace: true });
+      router.history.replace(`/role/${numericRoleId}?${newSearchParams.toString()}`);
     }
-  }, [urlRuleId, storedRuleId, searchParams, navigate, numericRoleId]);
+  }, [numericRoleId, router, searchParams, storedRuleId, urlRuleId]);
 
   if (!roleId || Number.isNaN(numericRoleId)) {
     return <Navigate to="/role" replace />;
@@ -107,7 +107,7 @@ export default function RoleDetailPage() {
     // 保存到浏览器存储
     setRoleRule(numericRoleId, newRuleId);
     // 使用 replace: true 避免在浏览器历史中留下太多记录
-    navigate(`?${newSearchParams.toString()}`, { replace: true });
+    router.history.replace(`/role/${numericRoleId}?${newSearchParams.toString()}`);
   };
 
   return (

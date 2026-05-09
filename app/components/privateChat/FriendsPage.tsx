@@ -1,4 +1,5 @@
 import type { FriendResponse } from "@tuanchat/openapi-client/models/FriendResponse";
+import { useLocation, useRouter } from "@tanstack/react-router";
 import {
   useAcceptFriendRequestMutation,
   useBlockFriendMutation,
@@ -15,7 +16,6 @@ import { useGetUserInfoByUsernameQuery, useGetUserInfoQuery } from "api/hooks/Us
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { BaselineDeleteOutline, ChevronRight, HomeIcon, Search, SearchFilled, XMarkICon } from "@/icons";
 import { avatarThumbUrl } from "@/utils/mediaUrl";
-import { useAppNavigate as useNavigate, useUrlSearchParams as useSearchParams } from "@/utils/navigation";
 
 type FriendsTab = "all" | "pending" | "add" | "blacklist";
 type AddFriendSearchMode = "id" | "username";
@@ -25,8 +25,9 @@ export default function FriendsPage({
 }: {
   setIsOpenLeftDrawer: (isOpen: boolean) => void;
 }) {
-  const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
+  const location = useLocation();
+  const router = useRouter();
+  const searchParams = useMemo(() => new URLSearchParams(location.searchStr), [location.searchStr]);
 
   const [tab, setTab] = useState<FriendsTab>("all");
   const [friendKeyword, setFriendKeyword] = useState("");
@@ -297,7 +298,7 @@ export default function FriendsPage({
                   <div
                     key={friend?.userId || index}
                     className="w-full text-left flex items-center justify-between hover:bg-base-300 rounded-md h-16"
-                    onClick={() => navigate(`/chat/private/${friend?.userId}`)}
+                    onClick={() => router.history.push(`/chat/private/${friend?.userId}`)}
                     role="button"
                     tabIndex={0}
                     onKeyDown={(e) => {
@@ -305,7 +306,7 @@ export default function FriendsPage({
                         return;
                       if (e.key === "Enter" || e.key === " ") {
                         e.preventDefault();
-                        navigate(`/chat/private/${friend?.userId}`);
+                        router.history.push(`/chat/private/${friend?.userId}`);
                       }
                     }}
                   >
@@ -334,7 +335,7 @@ export default function FriendsPage({
                           className="btn btn-ghost btn-xs btn-square"
                           onClick={(e) => {
                             e.stopPropagation();
-                            navigate(`/profile/${friend?.userId}`);
+                            router.history.push(`/profile/${friend?.userId}`);
                           }}
                           aria-label="查看主页"
                           title="前往主页"
@@ -514,7 +515,7 @@ export default function FriendsPage({
                                 <button
                                   type="button"
                                   className="btn btn-ghost btn-xs btn-square"
-                                  onClick={() => navigate(`/profile/${friend?.userId}`)}
+                                  onClick={() => router.history.push(`/profile/${friend?.userId}`)}
                                   aria-label="查看主页"
                                   title="前往主页"
                                 >
@@ -634,7 +635,7 @@ export default function FriendsPage({
                                   return;
                                 }
                                 setSearching(false);
-                                navigate(`/chat/private/${searchUserInfo?.userId}`);
+                                router.history.push(`/chat/private/${searchUserInfo?.userId}`);
                               }}
                             >
                               <div className="flex items-center gap-3 min-w-0">
@@ -756,7 +757,7 @@ export default function FriendsPage({
                                   className="btn btn-ghost btn-sm btn-square"
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    navigate(`/profile/${searchUserInfo?.userId}`);
+                                    router.history.push(`/profile/${searchUserInfo?.userId}`);
                                   }}
                                   aria-label="查看主页"
                                   title="前往主页"

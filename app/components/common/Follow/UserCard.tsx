@@ -1,7 +1,7 @@
 import type { FollowResponse } from "../../../../api";
+import { Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { resolveUserDisplayName, useResolvedUserInfo } from "@/components/common/userAccess.shared";
-import { Link } from "@/utils/navigation";
 import { FollowButton } from "./FollowButton";
 
 interface UserCardProps {
@@ -27,7 +27,8 @@ export function UserCard({ user }: UserCardProps) {
               : (
 
                   <Link
-                    to={`/profile/${userId}`}
+                    to="/profile/$userId"
+                    params={{ userId: String(userId) }}
                     target="_blank"
                     rel="noopener noreferrer"
                   >

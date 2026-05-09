@@ -1,6 +1,7 @@
 import type { RepositoryData } from "./constants";
 import type { RepositorySpaceCandidate } from "./repositoryDetail.helpers";
 import { useQueryClient } from "@tanstack/react-query";
+import { useParams, useRouter } from "@tanstack/react-router";
 import { fetchUserRoomsWithCache, useGetUserRoomsQuery, useGetUserSpacesQuery } from "api/hooks/chatQueryHooks";
 import { useRepositoryDetailByIdQuery } from "api/hooks/repositoryQueryHooks";
 import { useRuleListQuery } from "api/hooks/ruleQueryHooks";
@@ -13,7 +14,6 @@ import {
   BLOCKSUITE_FULL_PANEL_EDITOR_CLASS,
 } from "@/components/chat/shared/components/BlockSuite/blocksuiteDescriptionEditor.shared";
 import { avatarThumbUrl, imageMediumUrl, imageMediumUrlFromUrl } from "@/utils/mediaUrl";
-import { useAppNavigate as useNavigate, useAllParams as useParams } from "@/utils/navigation";
 import Author from "./author";
 import {
   findRecoverableRepositorySpace,
@@ -59,9 +59,9 @@ export default function RepositoryDetailComponent({
   viewModeOpen,
   onViewModeOpenChange,
 }: RepositoryDetailComponentProps) {
-  const navigate = useNavigate();
+  const router = useRouter();
   const queryClient = useQueryClient();
-  const params = useParams();
+  const params = useParams({ strict: false });
   const routeRepositoryId = Number(params.id);
   const repositoryId = useMemo(() => {
     if (typeof propRepositoryId === "number" && Number.isFinite(propRepositoryId) && propRepositoryId > 0) {
@@ -287,14 +287,14 @@ export default function RepositoryDetailComponent({
       const rooms = roomsData?.data?.rooms;
       if (rooms && rooms.length > 0) {
         const firstRoomId = rooms[0].roomId;
-        navigate(`/chat/${spaceId}/${firstRoomId}`);
+        router.history.push(`/chat/${spaceId}/${firstRoomId}`);
         return;
       }
     }
     catch (error) {
       console.error("获取群组列表失败:", error);
     }
-    navigate(`/chat/${spaceId}`);
+    router.history.push(`/chat/${spaceId}`);
   };
   const refreshUserSpaceCaches = async () => {
     // 空间列表在多个页面使用两套 queryKey，克隆后需要一起失效+重取。

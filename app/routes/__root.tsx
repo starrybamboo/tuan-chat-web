@@ -2,7 +2,7 @@ import type {
   RouteMetaArgs,
 } from "@/routes/routeTypes";
 import { QueryClientProvider } from "@tanstack/react-query";
-import { createRootRoute, HeadContent, Outlet, Scripts, ScrollRestoration, useLocation } from "@tanstack/react-router";
+import { createRootRoute, HeadContent, Outlet, Scripts, ScrollRestoration, useLocation, useNavigate } from "@tanstack/react-router";
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 
 import React from "react";
@@ -13,10 +13,6 @@ import { ToastWindowRenderer } from "@/components/common/toastWindow/toastWindow
 import { GlobalContextProvider } from "@/components/globalContextProvider";
 import { queryClient } from "@/queryClient";
 import { consumeAuthToast } from "@/utils/auth/unauthorized";
-import {
-  isRouteErrorResponse,
-  useAppNavigate as useNavigate,
-} from "@/utils/navigation";
 import { createSeoMeta, getCanonicalHref } from "@/utils/seo";
 import "@/app.css";
 
@@ -292,6 +288,13 @@ export const Route = createRootRoute({
   pendingComponent: HydrateFallback,
 });
 
+function isRouteErrorResponse(error: unknown): error is { status: number; statusText?: string; data?: { message?: string } } {
+  return typeof error === "object"
+    && error !== null
+    && "status" in error
+    && typeof (error as { status?: unknown }).status === "number";
+}
+
 export function ErrorBoundary({ error }: { error: Error }) {
   const navigate = useNavigate();
   let message = "Oops! Something went wrong.";
@@ -303,7 +306,7 @@ export function ErrorBoundary({ error }: { error: Error }) {
     details
       = error.status === 404
         ? "页面不存在"
-        : error.data?.message || error.statusText;
+        : error.data?.message || error.statusText || "请求失败";
   }
   else if (import.meta.env.DEV && error && error instanceof Error) {
     details = error.message;
@@ -355,7 +358,7 @@ export function ErrorBoundary({ error }: { error: Error }) {
             <button
               className="btn btn-primary btn-wide"
               // Use replace: true to avoid the error page in browser history
-              onClick={() => navigate("/", { replace: true })}
+              onClick={() => navigate({ to: "/", replace: true })}
               type="button"
             >
               返回主页

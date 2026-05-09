@@ -1,9 +1,9 @@
 import type { MaterialPackageContent } from "@tuanchat/openapi-client/models/MaterialPackageContent";
 import type { SpaceMaterialPackageResponse } from "@tuanchat/openapi-client/models/SpaceMaterialPackageResponse";
 import type { MaterialItemDragPayload } from "@/components/chat/utils/materialItemDrag";
+import { useLocation, useRouter } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
-import { useAppNavigate as useNavigate, useUrlSearchParams as useSearchParams } from "@/utils/navigation";
 import {
   MATERIAL_PACKAGE_LIBRARY_PAGE_SIZE,
   useCreateSpaceMaterialPackageMutation,
@@ -32,8 +32,9 @@ export default function SpaceMaterialLibraryPage({
   spaceId,
   embedded = false,
 }: SpaceMaterialLibraryPageProps) {
-  const navigate = useNavigate();
-  const [searchParams, setSearchParams] = useSearchParams();
+  const location = useLocation();
+  const router = useRouter();
+  const searchParams = useMemo(() => new URLSearchParams(location.searchStr), [location.searchStr]);
   const [keyword, setKeyword] = useState("");
   const [isCreating, setIsCreating] = useState(false);
   const [isImportOpen, setIsImportOpen] = useState(false);
@@ -96,8 +97,9 @@ export default function SpaceMaterialLibraryPage({
     else {
       nextSearchParams.delete("materialPathKey");
     }
-    setSearchParams(nextSearchParams);
-  }, [searchParams, setSearchParams]);
+    const query = nextSearchParams.toString();
+    router.history.replace(`${location.pathname}${query ? `?${query}` : ""}${location.hash}`);
+  }, [location.hash, location.pathname, router, searchParams]);
 
   useEffect(() => {
     if (selectedPackageId !== null && isCreating) {
@@ -234,11 +236,11 @@ export default function SpaceMaterialLibraryPage({
   const showEmbeddedStructureSidebar = !embedded;
 
   const handleNavigateToPublic = () => {
-    navigate("/material?tab=public");
+    router.history.push("/material?tab=public");
   };
 
   const handleNavigateToMine = () => {
-    navigate("/material?tab=mine");
+    router.history.push("/material?tab=mine");
   };
 
   const sidebarNode = (

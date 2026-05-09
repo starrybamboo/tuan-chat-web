@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useLocation, useRouter } from "@tanstack/react-router";
+import { useCallback, useMemo, useState } from "react";
 import {
   requestForgotPasswordByEmail,
   sendEmailVerificationCode,
@@ -7,7 +8,6 @@ import {
 } from "@/utils/auth/accountSecurityApi";
 import { checkAuthStatus, loginUser, logoutUser, registerUser } from "@/utils/auth/authapi";
 import { normalizeAuthRedirectPath } from "@/utils/auth/redirect";
-import { useUrlSearchParams as useSearchParams } from "@/utils/navigation";
 import { AlertMessage } from "./AlertMessage";
 import { ForgotPasswordForm } from "./ForgotPasswordForm";
 import { LoggedInView } from "./LoggedInView";
@@ -43,8 +43,10 @@ function resolveForgotPasswordErrorMessage(error: unknown): string {
 
 // 登录弹窗组件
 export default function LoginModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
+  const location = useLocation();
+  const router = useRouter();
   const queryClient = useQueryClient();
-  const [searchParams, setSearchParams] = useSearchParams();
+  const searchParams = useMemo(() => new URLSearchParams(location.searchStr), [location.searchStr]);
   const mode = resolveAuthMode(searchParams.get("mode"));
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
@@ -70,13 +72,18 @@ export default function LoginModal({ isOpen, onClose }: { isOpen: boolean; onClo
 
   const redirectParam = searchParams.get("redirect");
 
+  const replaceSearchParams = useCallback((nextSearchParams: URLSearchParams) => {
+    const nextQuery = nextSearchParams.toString();
+    router.history.replace(`${location.pathname}${nextQuery ? `?${nextQuery}` : ""}${location.hash}`);
+  }, [location.hash, location.pathname, router]);
+
   function applyMode(nextMode: AuthMode) {
     const nextSearchParams = new URLSearchParams();
     nextSearchParams.set("mode", nextMode);
     if (redirectParam) {
       nextSearchParams.set("redirect", redirectParam);
     }
-    setSearchParams(nextSearchParams);
+    replaceSearchParams(nextSearchParams);
   }
 
   function resetFormState() {

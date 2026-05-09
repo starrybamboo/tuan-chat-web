@@ -1,5 +1,6 @@
 import type { UserNotificationItem } from "@/components/notification/notificationTypes";
 
+import { useRouter } from "@tanstack/react-router";
 import { startTransition, useMemo, useState } from "react";
 import { useGlobalUserId } from "@/components/globalContextProvider";
 import {
@@ -9,10 +10,9 @@ import {
   useNotificationUnreadCountQuery,
 } from "@/components/notification/notificationHooks";
 import NotificationList from "@/components/notification/notificationList";
-import { useAppNavigate as useNavigate } from "@/utils/navigation";
 
 export default function NotificationPage() {
-  const navigate = useNavigate();
+  const router = useRouter();
   const userId = useGlobalUserId();
   const [unreadOnly, setUnreadOnly] = useState(false);
   const [busyNotificationId, setBusyNotificationId] = useState<number | null>(null);
@@ -35,7 +35,7 @@ export default function NotificationPage() {
         await markReadMutation.mutateAsync({ notificationIdList: [item.notificationId] });
       }
       startTransition(() => {
-        navigate(item.targetPath);
+        router.history.push(item.targetPath);
       });
     }
     finally {

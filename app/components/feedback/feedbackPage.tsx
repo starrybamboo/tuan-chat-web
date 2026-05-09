@@ -1,11 +1,11 @@
 import type { FeedbackIssueDetail, FeedbackIssueListFilters } from "@/components/feedback/feedbackTypes";
+import { useParams, useRouter } from "@tanstack/react-router";
 import { startTransition, useDeferredValue, useMemo, useState } from "react";
 import FeedbackComposer from "@/components/feedback/feedbackComposer";
 import { useFeedbackIssuesInfiniteQuery } from "@/components/feedback/feedbackHooks";
 import FeedbackIssueDetailView from "@/components/feedback/feedbackIssueDetail";
 import FeedbackIssueList from "@/components/feedback/feedbackIssueList";
 import { useGlobalUserId } from "@/components/globalContextProvider";
-import { useAppNavigate as useNavigate, useAllParams as useParams } from "@/utils/navigation";
 
 function parseIssueId(rawIssueId?: string) {
   const issueId = Number(rawIssueId);
@@ -16,8 +16,8 @@ function parseIssueId(rawIssueId?: string) {
 }
 
 export default function FeedbackPage() {
-  const { issueId: rawIssueId } = useParams();
-  const navigate = useNavigate();
+  const { issueId: rawIssueId } = useParams({ strict: false });
+  const router = useRouter();
   const userId = useGlobalUserId();
   const selectedIssueId = parseIssueId(rawIssueId);
 
@@ -48,19 +48,19 @@ export default function FeedbackPage() {
 
   const handleSelectIssue = (nextIssueId: number) => {
     startTransition(() => {
-      navigate(`/feedback/${nextIssueId}`);
+      router.history.push(`/feedback/${nextIssueId}`);
     });
   };
 
   const handleCreated = (issue: FeedbackIssueDetail) => {
     startTransition(() => {
-      navigate(`/feedback/${issue.feedbackIssueId}`);
+      router.history.push(`/feedback/${issue.feedbackIssueId}`);
     });
   };
 
   const handleBack = () => {
     startTransition(() => {
-      navigate("/feedback");
+      router.history.push("/feedback");
     });
   };
 

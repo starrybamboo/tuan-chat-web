@@ -1,10 +1,10 @@
+import { useRouter } from "@tanstack/react-router";
 import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
 import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
 import UserStatusDot from "@/components/common/userStatusBadge.jsx";
 import TagManagement from "@/components/common/userTags";
 import { useGlobalUserId } from "@/components/globalContextProvider";
 import { avatarThumbUrl } from "@/utils/mediaUrl";
-import { Link } from "@/utils/navigation";
 import { useGetUserFollowersQuery, useGetUserFollowingsQuery } from "../../../api/hooks/userFollowQueryHooks";
 import { useGetUserProfileQuery } from "../../../api/hooks/UserHooks";
 import { FollowButton } from "./Follow/FollowButton";
@@ -20,6 +20,7 @@ interface UserDetailProps {
  * @param {string} props.userId - 用户ID，组件内会自动调api来获取用户信息
  */
 export function UserDetail({ userId }: UserDetailProps) {
+  const router = useRouter();
   const userQuery = useGetUserProfileQuery(userId);
   const loginUserId = useGlobalUserId() ?? -1;
 
@@ -143,20 +144,19 @@ export function UserDetail({ userId }: UserDetailProps) {
             <div className="flex items-center gap-2 ml-auto">
               <FollowButton userId={user?.userId || 0} />
 
-              <Link to={`/chat/private/${userId}`} className="flex-shrink-0">
-                <button
-                  type="button"
-                  className="btn btn-sm flex items-center h-8 px-3 border border-gray-300 hover:text-primary"
-                >
-                  <svg aria-label="私信" width="12" height="12" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="flex-shrink-0">
-                    <g strokeLinejoin="round" strokeLinecap="round" strokeWidth="2" fill="none" stroke="currentColor">
-                      <rect width="20" height="16" x="2" y="4" rx="2"></rect>
-                      <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"></path>
-                    </g>
-                  </svg>
-                  <span className="text-sm">私信</span>
-                </button>
-              </Link>
+              <button
+                type="button"
+                className="btn btn-sm flex items-center h-8 px-3 border border-gray-300 hover:text-primary flex-shrink-0"
+                onClick={() => router.history.push(`/chat/private/${userId}`)}
+              >
+                <svg aria-label="私信" width="12" height="12" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="flex-shrink-0">
+                  <g strokeLinejoin="round" strokeLinecap="round" strokeWidth="2" fill="none" stroke="currentColor">
+                    <rect width="20" height="16" x="2" y="4" rx="2"></rect>
+                    <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"></path>
+                  </g>
+                </svg>
+                <span className="text-sm">私信</span>
+              </button>
             </div>
 
           )}

@@ -6,24 +6,24 @@ import { createSeoMeta } from "@/utils/seo";
 
 export function meta(_args: RouteMetaArgs) {
   return createSeoMeta({
-    title: "公开归档发现",
-    description: "浏览团剧共创公开归档的团剧模组与共创内容，快速发现适合开团的作品。",
-    path: "/chat/discover",
+    title: "素材广场",
+    description: "浏览团剧共创公开素材包与创作资源，为你的模组和设定寻找可复用素材。",
+    path: "/chat/discover/material",
     index: true,
   });
 }
 
-export const Route = createFileRoute("/_dashboard/chat/discover")({
+export const Route = createFileRoute("/_dashboard/chat/discover/material/")({
   head: () => ({
     meta: meta({ params: {} }),
   }),
-  component: ChatDiscoverRoute,
+  component: ChatDiscoverMaterialRoute,
 });
 
-export default function ChatDiscoverRoute() {
+export default function ChatDiscoverMaterialRoute() {
   return (
     <div className="bg-base-200 h-full w-full overflow-y-auto overflow-x-visible">
-      <DiscoverPage section="repository" mode="square" />
+      <DiscoverPage section="material" mode="public" />
     </div>
   );
 }

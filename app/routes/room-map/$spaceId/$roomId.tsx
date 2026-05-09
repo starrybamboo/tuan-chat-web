@@ -1,15 +1,14 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useParams } from "@tanstack/react-router";
 import { useMemo } from "react";
 
 import DNDMap from "@/components/chat/shared/map/DNDMap";
-import { useAllParams as useParams } from "@/utils/navigation";
 
 export const Route = createFileRoute("/room-map/$spaceId/$roomId")({
   component: RoomMapFrameRoute,
 });
 
 export default function RoomMapFrameRoute() {
-  const params = useParams();
+  const params = useParams({ strict: false });
   const roomId = useMemo(() => Number(params.roomId), [params.roomId]);
   const spaceId = useMemo(() => Number(params.spaceId), [params.spaceId]);
 

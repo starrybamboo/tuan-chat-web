@@ -1,5 +1,6 @@
 import type { ChatMessageResponse, Message } from "../../../../../api";
 import { useQueryClient } from "@tanstack/react-query";
+import { useRouter } from "@tanstack/react-router";
 import { use, useCallback, useEffect, useMemo, useRef } from "react";
 import toast from "react-hot-toast";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
@@ -11,7 +12,6 @@ import { useSideDrawerStore } from "@/components/chat/stores/sideDrawerStore";
 import { copyDocToSpaceDoc, copyDocToSpaceUserDoc } from "@/components/chat/utils/docCopy";
 import { useGlobalUserId } from "@/components/globalContextProvider";
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
-import { useAppNavigate as useNavigate } from "@/utils/navigation";
 import { tuanchat } from "../../../../../api/instance";
 
 interface ContextMenuProps {
@@ -51,7 +51,7 @@ export default function ChatFrameContextMenu({
   const currentUserId = useGlobalUserId();
   const spaceContext = use(SpaceContext);
   const queryClient = useQueryClient();
-  const navigate = useNavigate();
+  const router = useRouter();
 
   const setSideDrawerState = useSideDrawerStore(state => state.setState);
 
@@ -324,7 +324,7 @@ export default function ChatFrameContextMenu({
       });
       queryClient.invalidateQueries({ queryKey: ["getSpaceSidebarTree", ok.spaceId] });
       toast.success("已复制到空间侧边栏", { id: toastId });
-      navigate(`/chat/${ok.spaceId}/doc/${res.newDocEntityId}`);
+      router.history.push(`/chat/${ok.spaceId}/doc/${res.newDocEntityId}`);
     }
     catch (err) {
       console.error("[DocCopy] copyToKpSidebarTree failed", err);
@@ -338,8 +338,8 @@ export default function ChatFrameContextMenu({
     docCard?.originalImageFileId,
     docCard?.title,
     ensureCanCopyDoc,
-    navigate,
     queryClient,
+    router,
     spaceContext.isSpaceOwner,
   ]);
   if (!contextMenu)

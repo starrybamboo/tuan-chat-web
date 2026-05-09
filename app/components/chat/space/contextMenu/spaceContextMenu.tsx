@@ -1,8 +1,8 @@
+import { useRouter } from "@tanstack/react-router";
 import React, { useState } from "react";
 import toast from "react-hot-toast";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
 import ConfirmModal from "@/components/common/comfirmModel";
-import { useAppNavigate as useNavigate } from "@/utils/navigation";
 import { useDissolveSpaceMutation, useExitSpaceMutation, useRecoverSpaceMutation, useUpdateSpaceArchiveStatusMutation } from "../../../../../api/hooks/chatQueryHooks";
 
 interface SpaceContextMenuProps {
@@ -13,7 +13,7 @@ interface SpaceContextMenuProps {
 }
 
 export default function SpaceContextMenu({ contextMenu, isSpaceOwner, isArchived, onClose }: SpaceContextMenuProps) {
-  const navigate = useNavigate();
+  const router = useRouter();
   const spaceContext = React.use(SpaceContext);
 
   const dissolveSpace = useDissolveSpaceMutation();
@@ -184,7 +184,7 @@ export default function SpaceContextMenu({ contextMenu, isSpaceOwner, isArchived
                 spaceContext.setActiveRoomId?.(null);
               }
 
-              navigate("/chat/discover/material", { replace: true });
+              router.history.replace("/chat/discover/material");
             },
           });
         }}
