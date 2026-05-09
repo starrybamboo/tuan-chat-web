@@ -12,7 +12,6 @@ import useChatPageAutoNavigation from "@/components/chat/hooks/useChatPageAutoNa
 import useChatPageContextMenus from "@/components/chat/hooks/useChatPageContextMenus";
 import useChatPageCreateInCategory from "@/components/chat/hooks/useChatPageCreateInCategory";
 import useChatPageDetailPanels from "@/components/chat/hooks/useChatPageDetailPanels";
-import useChatPageDocTitle from "@/components/chat/hooks/useChatPageDocTitle";
 import useChatPageLeftDrawer from "@/components/chat/hooks/useChatPageLeftDrawer";
 import useChatPageMemberActions from "@/components/chat/hooks/useChatPageMemberActions";
 import useChatPageNavigation from "@/components/chat/hooks/useChatPageNavigation";
@@ -480,13 +479,58 @@ export default function ChatPage() {
     onDocHeaderChange: handleDocHeaderChangeForSidebarFallback,
   });
   const spaceDocMetasList = spaceDocMetas ?? EMPTY_ARRAY;
+  const activeDocTcHeaderFallback = useMemo(() => {
+    if (!activeDocId) {
+      return {
+        title: "",
+        imageUrl: "",
+        imageFileId: undefined as number | undefined,
+        originalImageFileId: undefined as number | undefined,
+        imageMediaType: undefined as string | undefined,
+      };
+    }
 
-  const activeDocTitleForTcHeader = useChatPageDocTitle({
-    activeDocId,
-    activeDocHeaderOverride,
-    docMetasFromSidebarTree,
-    spaceDocMetas,
-  });
+    const overrideTitle = typeof activeDocHeaderOverride?.title === "string" ? activeDocHeaderOverride.title.trim() : "";
+    const overrideImageUrl = typeof activeDocHeaderOverride?.imageUrl === "string" ? activeDocHeaderOverride.imageUrl.trim() : "";
+    const overrideImageFileId = typeof activeDocHeaderOverride?.imageFileId === "number" && activeDocHeaderOverride.imageFileId > 0
+      ? activeDocHeaderOverride.imageFileId
+      : undefined;
+    const overrideOriginalImageFileId = typeof activeDocHeaderOverride?.originalImageFileId === "number" && activeDocHeaderOverride.originalImageFileId > 0
+      ? activeDocHeaderOverride.originalImageFileId
+      : undefined;
+    const overrideImageMediaType = typeof activeDocHeaderOverride?.imageMediaType === "string" ? activeDocHeaderOverride.imageMediaType.trim() : "";
+
+    const stateMeta = (spaceDocMetas ?? []).find(meta => meta.id === activeDocId);
+    const treeMeta = (docMetasFromSidebarTree ?? []).find(meta => meta.id === activeDocId);
+
+    const title = overrideTitle
+      || stateMeta?.title?.trim()
+      || treeMeta?.title?.trim()
+      || "文档";
+    const imageUrl = overrideImageUrl
+      || stateMeta?.imageUrl?.trim()
+      || treeMeta?.imageUrl?.trim()
+      || "";
+    const imageFileId = overrideImageFileId
+      ?? (typeof stateMeta?.imageFileId === "number" && stateMeta.imageFileId > 0 ? stateMeta.imageFileId : undefined)
+      ?? (typeof treeMeta?.imageFileId === "number" && treeMeta.imageFileId > 0 ? treeMeta.imageFileId : undefined);
+    const originalImageFileId = overrideOriginalImageFileId
+      ?? (typeof stateMeta?.originalImageFileId === "number" && stateMeta.originalImageFileId > 0 ? stateMeta.originalImageFileId : undefined)
+      ?? (typeof treeMeta?.originalImageFileId === "number" && treeMeta.originalImageFileId > 0 ? treeMeta.originalImageFileId : undefined);
+    const imageMediaType = overrideImageMediaType
+      || stateMeta?.imageMediaType?.trim()
+      || treeMeta?.imageMediaType?.trim()
+      || undefined;
+
+    return {
+      title,
+      imageUrl,
+      imageFileId,
+      originalImageFileId,
+      imageMediaType,
+    };
+  }, [activeDocHeaderOverride, activeDocId, docMetasFromSidebarTree, spaceDocMetas]);
+  const activeDocTitleForTcHeader = activeDocTcHeaderFallback.title;
   const [cachedDocRoute, setCachedDocRoute] = useState<CachedDocRoute | null>(null);
 
   useEffect(() => {
@@ -806,6 +850,10 @@ export default function ChatPage() {
             docId={docRouteForRender.docId}
             canViewDocs={canViewSubWindowDoc}
             tcHeaderTitle={activeDocTitleForTcHeader}
+            tcHeaderImageUrl={activeDocTcHeaderFallback.imageUrl}
+            tcHeaderImageFileId={activeDocTcHeaderFallback.imageFileId}
+            tcHeaderOriginalImageFileId={activeDocTcHeaderFallback.originalImageFileId}
+            tcHeaderImageMediaType={activeDocTcHeaderFallback.imageMediaType}
           />
         </div>
       )}

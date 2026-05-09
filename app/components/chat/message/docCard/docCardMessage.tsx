@@ -466,9 +466,14 @@ function DocCardMessageImpl({ messageResponse }: { messageResponse: ChatMessageR
                       spaceId={previewSpaceId}
                       docId={docId}
                       readOnly
-                      tcHeader={{ enabled: true, fallbackTitle: title, fallbackImageUrl: displayCoverUrl || coverUrl }}
-                      allowModeSwitch
-                      fullscreenEdgeless
+                      tcHeader={{
+                        enabled: true,
+                        fallbackTitle: title,
+                        fallbackImageUrl: displayCoverUrl || coverUrl,
+                        fallbackImageFileId: coverFileId,
+                        fallbackOriginalImageFileId: originalCoverFileId,
+                        fallbackImageMediaType: imageMediaType,
+                      }}
                       className="h-full min-h-0"
                     />
                   </React.Suspense>

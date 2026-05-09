@@ -207,12 +207,24 @@ export default function ChatPageSubWindow({
   const resolvedRoomId = roomId ?? availableRoomId;
   const resolvedDocId = docId ?? availableDocId;
   const docTitleById = useMemo(() => {
-    const map = new Map<string, string>();
+    const map = new Map<string, {
+      title: string;
+      imageUrl?: string;
+      imageFileId?: number;
+      originalImageFileId?: number;
+      imageMediaType?: string;
+    }>();
     for (const item of docMetas) {
       if (!item?.id) {
         continue;
       }
-      map.set(item.id, item.title?.trim() || "文档");
+      map.set(item.id, {
+        title: item.title?.trim() || "文档",
+        imageUrl: item.imageUrl?.trim() || undefined,
+        imageFileId: typeof item.imageFileId === "number" && item.imageFileId > 0 ? item.imageFileId : undefined,
+        originalImageFileId: typeof item.originalImageFileId === "number" && item.originalImageFileId > 0 ? item.originalImageFileId : undefined,
+        imageMediaType: item.imageMediaType?.trim() || undefined,
+      });
     }
     return map;
   }, [docMetas]);
@@ -535,9 +547,14 @@ export default function ChatPageSubWindow({
                               workspaceId={`space:${activeSpaceId}`}
                               spaceId={activeSpaceId}
                               docId={resolvedDocId}
-                              tcHeader={{ enabled: true, fallbackTitle: docTitleById.get(resolvedDocId) ?? "文档" }}
-                              allowModeSwitch
-                              fullscreenEdgeless
+                              tcHeader={{
+                                enabled: true,
+                                fallbackTitle: docTitleById.get(resolvedDocId)?.title ?? "文档",
+                                fallbackImageUrl: docTitleById.get(resolvedDocId)?.imageUrl,
+                                fallbackImageFileId: docTitleById.get(resolvedDocId)?.imageFileId,
+                                fallbackOriginalImageFileId: docTitleById.get(resolvedDocId)?.originalImageFileId,
+                                fallbackImageMediaType: docTitleById.get(resolvedDocId)?.imageMediaType,
+                              }}
                             />
                           </React.Suspense>
                         </div>

@@ -822,8 +822,6 @@ export default function DocFolderForUser({ onSendDocCard }: DocFolderForUserProp
                     docId={openDocBlocksuiteId}
                     readOnly={false}
                     tcHeader={{ enabled: true, fallbackTitle: openDocTitle }}
-                    allowModeSwitch
-                    fullscreenEdgeless
                     onTcHeaderChange={(payload: { header: BlocksuiteDocHeader }) => {
                       if (openDocId == null)
                         return;

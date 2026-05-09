@@ -287,10 +287,12 @@ function SpaceSettingWindow({ onClose }: { onClose: () => void }) {
                   workspaceId={`space:${spaceId}`}
                   spaceId={spaceId}
                   docId={buildSpaceDocId({ kind: "space_description", spaceId })}
-                  mode="page"
-                  allowModeSwitch
-                  fullscreenEdgeless
-                  tcHeader={{ enabled: true, fallbackTitle: space?.name ?? "", fallbackImageUrl: avatarThumbUrl(space?.avatarFileId) }}
+                  tcHeader={{
+                    enabled: true,
+                    fallbackTitle: space?.name ?? "",
+                    fallbackImageUrl: avatarThumbUrl(space?.avatarFileId),
+                    fallbackImageFileId: space?.avatarFileId,
+                  }}
                   onTcHeaderChange={({ header }) => {
                     handleBlocksuiteHeaderChange(header);
                   }}

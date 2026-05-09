@@ -1,4 +1,5 @@
-import type { BlocksuiteDescriptionEditorProps, DocMode } from "./blocksuiteDescriptionEditor.shared";
+import type { BlocksuiteDescriptionEditorProps } from "./blocksuiteDescriptionEditor.shared";
+import type { StoredSnapshot } from "@/components/chat/infra/blocksuite/description/descriptionDocRemote";
 import type { BlockNoteDocBlock } from "@/components/chat/infra/blocksuite/document/blockNoteSnapshot";
 import type { BlocksuiteDocHeader } from "@/components/chat/infra/blocksuite/document/docHeader";
 
@@ -13,6 +14,7 @@ import { getRemoteSnapshot, prewarmRemoteSnapshot, setRemoteSnapshot } from "@/c
 import { createBlockNoteSnapshot, decodeBlockNoteBlocks, readBlockNoteHeader } from "@/components/chat/infra/blocksuite/document/blockNoteSnapshot";
 import { normalizeBlocksuiteDocHeader } from "@/components/chat/infra/blocksuite/document/docHeader";
 import { getCachedDocSnapshot, setCachedDocSnapshot } from "@/components/chat/infra/blocksuite/document/docSnapshotCache";
+import { blocksuiteWsClient } from "@/components/chat/infra/blocksuite/space/runtime/blocksuiteWsClient";
 import { ResizableImg } from "@/components/common/resizableImg";
 import toastWindow from "@/components/common/toastWindow/toastWindow";
 import { ImgUploaderWithCopper } from "@/components/common/uploader/imgUploaderWithCropper";
@@ -29,6 +31,9 @@ const EMPTY_DOCUMENT: BlockNoteDocBlock[] = [
     content: "",
   },
 ];
+
+const REMOTE_SNAPSHOT_POLL_INTERVAL_MS = 3000;
+const REALTIME_SYNC_NOTICE_KIND = "blocknote-snapshot-sync";
 
 function isSameHeader(a: BlocksuiteDocHeader, b: BlocksuiteDocHeader) {
   return a.title === b.title
@@ -60,6 +65,9 @@ function resolveHeader(
   fallback?: {
     fallbackTitle?: string;
     fallbackImageUrl?: string;
+    fallbackImageFileId?: number;
+    fallbackOriginalImageFileId?: number;
+    fallbackImageMediaType?: string;
   },
 ) {
   const normalized = normalizeBlocksuiteDocHeader(header);
@@ -67,10 +75,58 @@ function resolveHeader(
     title: normalized.title || String(fallback?.fallbackTitle ?? "").trim(),
     imageUrl: normalized.imageUrl || String(fallback?.fallbackImageUrl ?? "").trim(),
     originalImageUrl: normalized.originalImageUrl,
-    imageFileId: normalized.imageFileId,
-    originalImageFileId: normalized.originalImageFileId,
-    imageMediaType: normalized.imageMediaType,
+    imageFileId: normalized.imageFileId ?? fallback?.fallbackImageFileId,
+    originalImageFileId: normalized.originalImageFileId ?? fallback?.fallbackOriginalImageFileId,
+    imageMediaType: normalized.imageMediaType ?? fallback?.fallbackImageMediaType,
   });
+}
+
+function buildFallbackHeader(tcHeader?: BlocksuiteDescriptionEditorProps["tcHeader"]) {
+  return {
+    fallbackTitle: tcHeader?.fallbackTitle,
+    fallbackImageUrl: tcHeader?.fallbackImageUrl,
+    fallbackImageFileId: tcHeader?.fallbackImageFileId,
+    fallbackOriginalImageFileId: tcHeader?.fallbackOriginalImageFileId,
+    fallbackImageMediaType: tcHeader?.fallbackImageMediaType,
+  };
+}
+
+function createRealtimeSyncClientId() {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return crypto.randomUUID();
+  }
+  return `blocknote-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+}
+
+function encodeRealtimeSyncNotice(payload: { clientId: string; updatedAt: number }): Uint8Array {
+  return new TextEncoder().encode(JSON.stringify({
+    kind: REALTIME_SYNC_NOTICE_KIND,
+    clientId: payload.clientId,
+    updatedAt: payload.updatedAt,
+  }));
+}
+
+function decodeRealtimeSyncNotice(update: Uint8Array): { clientId: string; updatedAt: number } | null {
+  try {
+    const parsed = JSON.parse(new TextDecoder().decode(update)) as {
+      kind?: unknown;
+      clientId?: unknown;
+      updatedAt?: unknown;
+    };
+    if (parsed.kind !== REALTIME_SYNC_NOTICE_KIND) {
+      return null;
+    }
+    if (typeof parsed.clientId !== "string" || typeof parsed.updatedAt !== "number" || !Number.isFinite(parsed.updatedAt)) {
+      return null;
+    }
+    return {
+      clientId: parsed.clientId,
+      updatedAt: parsed.updatedAt,
+    };
+  }
+  catch {
+    return null;
+  }
 }
 
 function useAppTheme() {
@@ -110,10 +166,7 @@ function BlockNoteDocHeaderPanel(props: {
   header: BlocksuiteDocHeader;
   fallbackTitle?: string;
   fallbackImageUrl?: string;
-  allowModeSwitch: boolean;
-  currentMode: DocMode;
   onHeaderChange: (patch: Partial<BlocksuiteDocHeader>) => void;
-  onToggleMode: () => void;
 }) {
   const {
     docId,
@@ -121,10 +174,7 @@ function BlockNoteDocHeaderPanel(props: {
     header,
     fallbackTitle,
     fallbackImageUrl,
-    allowModeSwitch,
-    currentMode,
     onHeaderChange,
-    onToggleMode,
   } = props;
 
   const displayTitle = header.title || String(fallbackTitle ?? "").trim();
@@ -214,15 +264,6 @@ function BlockNoteDocHeaderPanel(props: {
             onChange={event => onHeaderChange({ title: event.target.value })}
             onBlur={event => onHeaderChange({ title: event.target.value.trim() })}
           />
-          {allowModeSwitch && (
-            <button
-              type="button"
-              className="shrink-0 rounded-md border border-base-300 bg-base-100 px-3 py-1.5 text-sm text-base-content transition hover:border-base-content/30 hover:bg-base-200"
-              onClick={onToggleMode}
-            >
-              {currentMode === "page" ? "切换画布" : "退出画布"}
-            </button>
-          )}
         </div>
 
         {!readOnly && (
@@ -244,22 +285,14 @@ function BlockNoteDescriptionEditorClient(props: BlocksuiteDescriptionEditorProp
     workspaceId: _workspaceId,
     docId,
     intentPrewarm = false,
-    mode: forcedMode = "page",
     readOnly = false,
-    allowModeSwitch = false,
-    fullscreenEdgeless = false,
     tcHeader,
     onTcHeaderChange,
     className,
-    onModeChange,
   } = props;
 
   const remoteKey = useMemo(() => parseDescriptionDocId(docId), [docId]);
-  const fallbackHeader = useMemo(() => resolveHeader(null, {
-    fallbackTitle: tcHeader?.fallbackTitle,
-    fallbackImageUrl: tcHeader?.fallbackImageUrl,
-  }), [tcHeader?.fallbackImageUrl, tcHeader?.fallbackTitle]);
-  const [currentMode, setCurrentMode] = useState<DocMode>(forcedMode);
+  const fallbackHeader = useMemo(() => resolveHeader(null, buildFallbackHeader(tcHeader)), [tcHeader]);
   const [header, setHeader] = useState<BlocksuiteDocHeader>(fallbackHeader);
   const [initialBlocks, setInitialBlocks] = useState<BlockNoteDocBlock[]>(EMPTY_DOCUMENT);
   const [editorSeed, setEditorSeed] = useState(0);
@@ -269,31 +302,24 @@ function BlockNoteDescriptionEditorClient(props: BlocksuiteDescriptionEditorProp
   const headerRef = useRef(header);
   const saveTimerRef = useRef<number | null>(null);
   const lastPersistedDigestRef = useRef("");
+  const lastLocalDigestRef = useRef("");
+  const lastAppliedDigestRef = useRef("");
   const lastNotifiedHeaderDigestRef = useRef("");
+  const refreshInFlightRef = useRef<Promise<void> | null>(null);
+  const realtimeClientId = useMemo(() => createRealtimeSyncClientId(), []);
 
   useEffect(() => {
     headerRef.current = header;
   }, [header]);
 
   useEffect(() => {
-    setCurrentMode(forcedMode);
-  }, [docId, forcedMode]);
-
-  useEffect(() => {
-    if (typeof document === "undefined") {
-      return;
-    }
-    const isFullscreen = allowModeSwitch && fullscreenEdgeless && currentMode === "edgeless";
-    if (!isFullscreen) {
-      return;
-    }
-
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.body.style.overflow = previousOverflow;
-    };
-  }, [allowModeSwitch, currentMode, fullscreenEdgeless]);
+    const resetDigest = `__doc:${docId}:pending__`;
+    lastPersistedDigestRef.current = resetDigest;
+    lastLocalDigestRef.current = resetDigest;
+    lastAppliedDigestRef.current = resetDigest;
+    lastNotifiedHeaderDigestRef.current = resetDigest;
+    refreshInFlightRef.current = null;
+  }, [docId]);
 
   useEffect(() => {
     if (!intentPrewarm || !remoteKey) {
@@ -301,6 +327,78 @@ function BlockNoteDescriptionEditorClient(props: BlocksuiteDescriptionEditorProp
     }
     void prewarmRemoteSnapshot(remoteKey);
   }, [intentPrewarm, remoteKey]);
+
+  const applySnapshotToEditor = useCallback((nextSnapshot: StoredSnapshot | null | undefined, options?: {
+    allowOverwriteDirty?: boolean;
+    persistAsCurrent?: boolean;
+  }) => {
+    const nextDigest = nextSnapshot ? buildSnapshotDigest(nextSnapshot) : "";
+    if (!options?.allowOverwriteDirty
+      && !readOnly
+      && lastLocalDigestRef.current
+      && lastLocalDigestRef.current !== lastPersistedDigestRef.current
+      && nextDigest !== lastLocalDigestRef.current) {
+      return false;
+    }
+
+    if (lastAppliedDigestRef.current === nextDigest) {
+      if (options?.persistAsCurrent) {
+        lastPersistedDigestRef.current = nextDigest;
+        lastLocalDigestRef.current = nextDigest;
+      }
+      if (typeof nextSnapshot !== "undefined") {
+        setCachedDocSnapshot(docId, nextSnapshot ?? null);
+      }
+      return false;
+    }
+
+    const nextBlocks = decodeBlockNoteBlocks(nextSnapshot);
+    const normalizedBlocks = nextBlocks.length > 0 ? nextBlocks : EMPTY_DOCUMENT;
+    const nextHeader = resolveHeader(readBlockNoteHeader(nextSnapshot), buildFallbackHeader(tcHeader));
+
+    setInitialBlocks(normalizedBlocks);
+    setHeader(prev => (isSameHeader(prev, nextHeader) ? prev : nextHeader));
+    setEditorSeed(prev => prev + 1);
+    lastAppliedDigestRef.current = nextDigest;
+    if (options?.persistAsCurrent) {
+      lastPersistedDigestRef.current = nextDigest;
+      lastLocalDigestRef.current = nextDigest;
+    }
+    if (typeof nextSnapshot !== "undefined") {
+      setCachedDocSnapshot(docId, nextSnapshot ?? null);
+    }
+    return true;
+  }, [docId, readOnly, tcHeader]);
+
+  const refreshRemoteSnapshot = useCallback(async (options?: {
+    allowOverwriteDirty?: boolean;
+  }) => {
+    if (!remoteKey) {
+      return;
+    }
+    const inflight = refreshInFlightRef.current;
+    if (inflight) {
+      return inflight;
+    }
+
+    const task = (async () => {
+      const remoteSnapshot = await getRemoteSnapshot(remoteKey);
+      applySnapshotToEditor(remoteSnapshot, {
+        allowOverwriteDirty: options?.allowOverwriteDirty,
+        persistAsCurrent: true,
+      });
+    })();
+
+    refreshInFlightRef.current = task;
+    try {
+      await task;
+    }
+    finally {
+      if (refreshInFlightRef.current === task) {
+        refreshInFlightRef.current = null;
+      }
+    }
+  }, [applySnapshotToEditor, remoteKey]);
 
   useEffect(() => {
     let cancelled = false;
@@ -323,23 +421,11 @@ function BlockNoteDescriptionEditorClient(props: BlocksuiteDescriptionEditorProp
       if (cancelled) {
         return;
       }
-
-      const nextBlocks = decodeBlockNoteBlocks(nextSnapshot);
-      const normalizedBlocks = nextBlocks.length > 0 ? nextBlocks : EMPTY_DOCUMENT;
-      const nextHeader = resolveHeader(readBlockNoteHeader(nextSnapshot), {
-        fallbackTitle: tcHeader?.fallbackTitle,
-        fallbackImageUrl: tcHeader?.fallbackImageUrl,
+      applySnapshotToEditor(nextSnapshot, {
+        allowOverwriteDirty: true,
+        persistAsCurrent: true,
       });
-
-      setInitialBlocks(normalizedBlocks);
-      setHeader(prev => (isSameHeader(prev, nextHeader) ? prev : nextHeader));
-      lastPersistedDigestRef.current = nextSnapshot ? buildSnapshotDigest(nextSnapshot) : "";
-      setEditorSeed(prev => prev + 1);
       setIsReady(true);
-
-      if (nextSnapshot) {
-        setCachedDocSnapshot(docId, nextSnapshot);
-      }
     })();
 
     return () => {
@@ -349,7 +435,11 @@ function BlockNoteDescriptionEditorClient(props: BlocksuiteDescriptionEditorProp
         saveTimerRef.current = null;
       }
     };
-  }, [docId, remoteKey, tcHeader?.fallbackImageUrl, tcHeader?.fallbackTitle]);
+  }, [
+    applySnapshotToEditor,
+    docId,
+    remoteKey,
+  ]);
 
   const uploadFile = useCallback(async (file: File) => {
     const uploaded = await uploadMediaFile(file);
@@ -371,6 +461,7 @@ function BlockNoteDescriptionEditorClient(props: BlocksuiteDescriptionEditorProp
 
     setCachedDocSnapshot(docId, snapshot);
     const nextDigest = buildSnapshotDigest(snapshot);
+    lastLocalDigestRef.current = nextDigest;
     if (lastPersistedDigestRef.current === nextDigest) {
       return;
     }
@@ -391,11 +482,25 @@ function BlockNoteDescriptionEditorClient(props: BlocksuiteDescriptionEditorProp
         snapshot,
       }).then(() => {
         lastPersistedDigestRef.current = nextDigest;
+        lastLocalDigestRef.current = nextDigest;
+        lastAppliedDigestRef.current = nextDigest;
+        blocksuiteWsClient.pushUpdate(
+          {
+            entityType: remoteKey.entityType,
+            entityId: remoteKey.entityId,
+            docType: remoteKey.docType,
+          },
+          encodeRealtimeSyncNotice({
+            clientId: realtimeClientId,
+            updatedAt: snapshot.updatedAt,
+          }),
+          realtimeClientId,
+        );
       }).catch(() => {
         // keep cache optimistic; next change or reopen will retry
       });
     }, 500);
-  }, [docId, readOnly, remoteKey]);
+  }, [docId, readOnly, remoteKey, realtimeClientId]);
 
   const handleEditorChange = useCallback(() => {
     queueSnapshotPersist(editor.document as BlockNoteDocBlock[]);
@@ -409,11 +514,58 @@ function BlockNoteDescriptionEditorClient(props: BlocksuiteDescriptionEditorProp
   }, [editor, header, isReady, queueSnapshotPersist]);
 
   useEffect(() => {
+    if (!remoteKey || typeof window === "undefined") {
+      return;
+    }
+
+    blocksuiteWsClient.joinDoc({
+      entityType: remoteKey.entityType,
+      entityId: remoteKey.entityId,
+      docType: remoteKey.docType,
+    });
+
+    const unsubscribe = blocksuiteWsClient.onUpdate({
+      entityType: remoteKey.entityType,
+      entityId: remoteKey.entityId,
+      docType: remoteKey.docType,
+    }, ({ update }) => {
+      const notice = decodeRealtimeSyncNotice(update);
+      if (notice?.clientId === realtimeClientId) {
+        return;
+      }
+      void refreshRemoteSnapshot();
+    });
+
+    return () => {
+      unsubscribe();
+      blocksuiteWsClient.leaveDoc({
+        entityType: remoteKey.entityType,
+        entityId: remoteKey.entityId,
+        docType: remoteKey.docType,
+      });
+    };
+  }, [realtimeClientId, refreshRemoteSnapshot, remoteKey]);
+
+  useEffect(() => {
+    if (!remoteKey || typeof window === "undefined") {
+      return;
+    }
+
+    const intervalId = window.setInterval(() => {
+      void refreshRemoteSnapshot();
+    }, REMOTE_SNAPSHOT_POLL_INTERVAL_MS);
+
+    return () => {
+      window.clearInterval(intervalId);
+    };
+  }, [refreshRemoteSnapshot, remoteKey]);
+
+  useEffect(() => {
     if (!onTcHeaderChange || !remoteKey) {
       return;
     }
 
-    const nextDigest = buildHeaderDigest(header);
+    const nextDigest = `${docId}:${buildHeaderDigest(header)}`;
     if (lastNotifiedHeaderDigestRef.current === nextDigest) {
       return;
     }
@@ -429,9 +581,7 @@ function BlockNoteDescriptionEditorClient(props: BlocksuiteDescriptionEditorProp
   const wrapperClassName = [
     "relative w-full min-h-0",
     className ?? "",
-    allowModeSwitch && fullscreenEdgeless && currentMode === "edgeless"
-      ? "fixed inset-0 z-50 bg-base-200 p-4"
-      : "h-full",
+    "h-full",
   ].filter(Boolean).join(" ");
 
   return (
@@ -449,33 +599,18 @@ function BlockNoteDescriptionEditorClient(props: BlocksuiteDescriptionEditorProp
             header={header}
             fallbackTitle={tcHeader.fallbackTitle}
             fallbackImageUrl={tcHeader.fallbackImageUrl}
-            allowModeSwitch={allowModeSwitch}
-            currentMode={currentMode}
             onHeaderChange={(patch) => {
               const nextHeader = resolveHeader({
                 ...headerRef.current,
                 ...patch,
-              }, {
-                fallbackTitle: tcHeader.fallbackTitle,
-                fallbackImageUrl: tcHeader.fallbackImageUrl,
-              });
+              }, buildFallbackHeader(tcHeader));
               setHeader(prev => (isSameHeader(prev, nextHeader) ? prev : nextHeader));
-            }}
-            onToggleMode={() => {
-              if (!allowModeSwitch) {
-                return;
-              }
-              setCurrentMode((prev) => {
-                const nextMode: DocMode = prev === "page" ? "edgeless" : "page";
-                onModeChange?.(nextMode);
-                return nextMode;
-              });
             }}
           />
         )}
 
         <div className="min-h-0 flex-1 overflow-hidden">
-          <div className={`mx-auto flex h-full min-h-0 w-full flex-col ${currentMode === "page" ? "max-w-4xl" : "max-w-none"}`}>
+          <div className="mx-auto flex h-full min-h-0 w-full max-w-4xl flex-col">
             <BlockNoteView
               editor={editor}
               theme={theme}
@@ -499,13 +634,7 @@ function BlockNoteDescriptionEditorClient(props: BlocksuiteDescriptionEditorProp
 }
 
 export default function BlocksuiteDescriptionEditor(props: BlocksuiteDescriptionEditorProps) {
-  const [isMounted, setIsMounted] = useState(false);
-
-  useEffect(() => {
-    setIsMounted(true);
-  }, []);
-
-  if (!isMounted) {
+  if (typeof window === "undefined") {
     return (
       <div className={props.className ?? BLOCKSUITE_FULL_PANEL_EDITOR_CLASS}>
         <BlocksuiteFrameSkeleton
