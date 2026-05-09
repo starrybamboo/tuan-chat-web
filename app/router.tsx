@@ -1,5 +1,5 @@
 import { QueryClientProvider } from "@tanstack/react-query";
-import { TanStackRouterDevtools } from "@tanstack/router-devtools";
+import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 import {
   RouterProvider,
   createRootRoute,
@@ -8,46 +8,45 @@ import {
 } from "@tanstack/react-router";
 import RootApp, {
   ErrorBoundary as RootErrorBoundary,
-} from "@/root";
+} from "@/routes/__root";
 import { queryClient } from "@/queryClient";
-import BlocksuiteFrameRoute, { meta as blocksuiteFrameMeta } from "@/routes/blocksuiteFrame";
-import ChatDiscoverMaterialMyRoute, { meta as chatDiscoverMaterialMyMeta } from "@/routes/chatDiscoverMaterialMy";
-import ChatDiscoverMaterialRoute, { meta as chatDiscoverMaterialMeta } from "@/routes/chatDiscoverMaterial";
-import ChatDiscoverMyRoute, { meta as chatDiscoverMyMeta } from "@/routes/chatDiscoverMy";
-import ChatDiscoverRoute, { meta as chatDiscoverMeta } from "@/routes/chatDiscover";
-import ChatDocRoute from "@/routes/chatDoc";
+import BlocksuiteFrameRoute from "@/routes/blocksuiteFrame";
+import ChatDiscoverMaterialMyRoute from "@/routes/chat/discover/material/my";
+import ChatDiscoverMaterialRoute from "@/routes/chat/discover/material";
+import ChatDiscoverMyRoute from "@/routes/chat/discover/my";
+import ChatDiscoverRoute from "@/routes/chat/discover";
+import ChatDocRoute from "@/routes/chat/doc";
 import ChatIndexRoute from "@/routes/chat";
-import ChatLayoutRoute, { meta as chatLayoutMeta } from "@/routes/chatLayout";
-import ChatRoomSettingRoute from "@/routes/chatRoomSetting";
-import ChatSpaceRoute from "@/routes/chatSpace";
-import CollectionRoute, { meta as collectionMeta } from "@/routes/collection";
-import DashBoardRoute, { meta as dashBoardMeta } from "@/routes/dashBoard";
-import DocRoute, { meta as docMeta } from "@/routes/doc";
-import FeedbackRoute, { meta as feedbackMeta } from "@/routes/feedback";
-import HomeRoute, { meta as homeMeta } from "@/routes/home";
+import ChatLayoutRoute from "@/routes/chat/route";
+import ChatRoomSettingRoute from "@/routes/chat/room-setting";
+import ChatSpaceRoute from "@/routes/chat/space";
+import CollectionRoute from "@/routes/collection";
+import DashBoardRoute from "@/routes/_dashboard";
+import DocRoute from "@/routes/doc";
+import FeedbackRoute from "@/routes/feedback";
+import HomeRoute from "@/routes/home";
 import InviteRoute from "@/routes/invite";
-import LoginRoute, { meta as loginMeta } from "@/routes/login";
-import MaterialRoute, { meta as materialMeta } from "@/routes/material";
-import NotificationsRoute, { meta as notificationsMeta } from "@/routes/notifications";
-import ProfileHomeRoute, { meta as profileHomeMeta } from "@/routes/profile/homeTab";
-import ProfileLayoutRoute, { meta as profileLayoutMeta } from "@/routes/profile/profile";
-import ProfileWorksRoute, { meta as profileWorksMeta } from "@/routes/profile/profileWorks";
-import RepositoryCommitChainRoute, { meta as repositoryCommitChainMeta } from "@/routes/repository/commitChain";
-import RepositoryCreateRoute, { meta as repositoryCreateMeta } from "@/routes/repository/create";
+import LoginRoute from "@/routes/login";
+import MaterialRoute from "@/routes/material";
+import NotificationsRoute from "@/routes/notifications";
+import ProfileHomeRoute from "@/routes/profile";
+import ProfileLayoutRoute from "@/routes/profile/route";
+import ProfileWorksRoute from "@/routes/profile/works";
+import RepositoryCommitChainRoute from "@/routes/repository/commit-chain";
+import RepositoryCreateRoute from "@/routes/repository/create";
 import RepositoryDetailRoute, {
   clientLoader as repositoryDetailLoader,
-  meta as repositoryDetailMeta,
 } from "@/routes/repository/detail";
-import RepositoryIndexRoute, { meta as repositoryIndexMeta } from "@/routes/repository/index";
-import ResourceRoute, { meta as resourceMeta } from "@/routes/resource";
-import RoleEntryRoute from "@/routes/role/entry";
-import RoleDetailRoute from "@/routes/role/roleId";
-import RoleLayoutRoute, { meta as roleLayoutMeta } from "@/routes/role";
+import RepositoryIndexRoute from "@/routes/repository/index";
+import ResourceRoute from "@/routes/resource";
+import RoleEntryRoute from "@/routes/role";
+import RoleDetailRoute from "@/routes/role/$roleId";
+import RoleLayoutRoute from "@/routes/role/route";
 import RoomMapFrameRoute from "@/routes/roomMapFrame";
-import ScrollSequenceDemoRoute, { meta as scrollSequenceDemoMeta } from "@/routes/scrollSequenceDemo";
-import ScrollSequenceMotionDemoRoute, { meta as scrollSequenceMotionDemoMeta } from "@/routes/scrollSequenceMotionDemo";
-import SettingsRoute, { meta as settingsMeta } from "@/routes/settings";
-import SpaceMaterialRoute, { meta as spaceMaterialMeta } from "@/routes/spaceMaterial";
+import ScrollSequenceDemoRoute from "@/routes/scrollSequenceDemo";
+import ScrollSequenceMotionDemoRoute from "@/routes/scrollSequenceMotionDemo";
+import SettingsRoute from "@/routes/settings";
+import SpaceMaterialRoute from "@/routes/spaceMaterial";
 import AiImageRoute from "@/routes/aiImage";
 import { isDevOrTestEnvironment } from "@/utils/runtimeEnvironment";
 

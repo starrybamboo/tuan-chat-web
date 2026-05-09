@@ -1,8 +1,8 @@
-import type { Route } from "./+types/settings";
+import type { RouteMetaArgs } from "@/router/routeTypes";
 import SettingsPage from "@/components/settings/settingsPage";
 import { createSeoMeta } from "@/utils/seo";
 
-export function meta(_args: Route.MetaArgs) {
+export function meta(_args: RouteMetaArgs) {
   return createSeoMeta({
     title: "设置",
     description: "配置团剧共创账号与应用偏好。",

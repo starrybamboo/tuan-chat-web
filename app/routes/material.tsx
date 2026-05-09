@@ -1,9 +1,9 @@
-import type { Route } from "./+types/material";
-import { useSearchParams } from "react-router";
+import type { RouteMetaArgs } from "@/router/routeTypes";
 import MaterialLibraryPage from "@/components/material/pages/materialLibraryPage";
+import { useSearchParams } from "@/router/reactRouterCompat";
 import { createSeoMeta } from "@/utils/seo";
 
-export function meta(_args: Route.MetaArgs) {
+export function meta(_args: RouteMetaArgs) {
   return createSeoMeta({
     title: "素材库",
     description: "管理和浏览团剧共创中的局外素材库。",

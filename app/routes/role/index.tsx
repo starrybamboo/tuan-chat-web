@@ -1,10 +1,10 @@
 import type { Role } from "@/components/Role/types";
-import { useNavigate, useSearchParams } from "react-router";
 
 import CreateDiceMaiden from "@/components/Role/RoleCreation/CreateDicerRole";
 import CreateEntry from "@/components/Role/RoleCreation/CreateEntry";
 import CreateRoleBySelf from "@/components/Role/RoleCreation/CreateRoleBySelf";
 import RuleEditorRoute from "@/components/Role/RuleEditor/RuleEditorRoute";
+import { useNavigate, useSearchParams } from "@/router/reactRouterCompat";
 import { setRoleRule } from "@/utils/roleRuleStorage";
 
 type CreateMode = "normal" | "dice" | "rule" | "entry";

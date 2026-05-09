@@ -1,9 +1,9 @@
-import type { Route } from "./+types/dashBoard";
-import { Outlet } from "react-router";
+import type { RouteMetaArgs } from "@/router/routeTypes";
+import { Outlet } from "@/router/reactRouterCompat";
 import Topbar from "@/components/topbanner/Topbanner";
 import { createSeoMeta } from "@/utils/seo";
 
-export function meta(_args: Route.MetaArgs) {
+export function meta(_args: RouteMetaArgs) {
   return createSeoMeta({
     title: "团剧共创工作台",
     description: "团剧共创主应用工作台。",

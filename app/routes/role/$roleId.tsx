@@ -1,27 +1,18 @@
 import { useEffect } from "react";
-// --- CHANGED --- 引入更多 react-router hooks
-import { Navigate, useNavigate, useParams, useSearchParams } from "react-router";
 import CharacterDetail from "@/components/Role/CharacterDetail";
 import { useRoleListModel } from "@/components/Role/useRoleListModel";
+import { Navigate, useNavigate, useParams, useSearchParams } from "@/router/reactRouterCompat";
 import { getRoleRule, setRoleRule } from "@/utils/roleRuleStorage";
 
 export default function RoleDetailPage() {
   const { roleId } = useParams<{ roleId: string }>();
   const { roles, isLoading } = useRoleListModel();
 
-  // --- ADDED --- 路由和搜索参数的管理 hooks
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
 
-  // --- REMOVED --- isEditing 状态将移动到 CharacterDetail 内部
-  // const [isEditing, setIsEditing] = useState(false);
-
-  // --- REMOVED --- 这个 useEffect 是多余的，因为组件重新挂载会自动重置状态
-  // useEffect(() => { ... }, [numericRoleId]);
-
   const numericRoleId = roleId ? Number.parseInt(roleId, 10) : Number.NaN;
 
-  // --- ADDED --- 从 URL search params 解析 ruleId,如果没有则从存储中获取
   const urlRuleId = searchParams.get("rule");
   const storedRuleId = getRoleRule(numericRoleId || 0);
   const selectedRuleId = urlRuleId ? Number(urlRuleId) : (storedRuleId || 1);

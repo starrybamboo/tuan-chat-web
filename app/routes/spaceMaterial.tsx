@@ -1,8 +1,9 @@
-import type { Route } from "./+types/spaceMaterial";
+import type { RouteMetaArgs } from "@/router/routeTypes";
 import SpaceMaterialLibraryPage from "@/components/material/pages/spaceMaterialLibraryPage";
+import { useParams } from "@/router/reactRouterCompat";
 import { createSeoMeta } from "@/utils/seo";
 
-export function meta(args: Route.MetaArgs) {
+export function meta(args: RouteMetaArgs) {
   return createSeoMeta({
     title: `空间 ${args.params.spaceId} 的局内素材包`,
     description: "查看当前空间的局内素材包与资源配置。",
@@ -11,8 +12,9 @@ export function meta(args: Route.MetaArgs) {
   });
 }
 
-export default function SpaceMaterialRoute({ params }: Route.ComponentProps) {
-  const spaceId = Number(params.spaceId);
+export default function SpaceMaterialRoute() {
+  const { spaceId: spaceIdParam } = useParams<{ spaceId: string }>();
+  const spaceId = Number(spaceIdParam);
   return (
     <div className="h-full overflow-auto bg-base-200">
       <SpaceMaterialLibraryPage spaceId={Number.isFinite(spaceId) ? spaceId : -1} />

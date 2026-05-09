@@ -4,7 +4,6 @@
     "jsx": "react-jsx",
     "lib": ["DOM", "DOM.Iterable", "ES2022", "ESNext"],
     "useDefineForClassFields": false,
-    "rootDirs": [".", "./.react-router/types"],
     "module": "ES2022",
     "moduleResolution": "bundler",
     "paths": {
@@ -29,8 +28,7 @@
   "include": [
     "**/*",
     "**/.server/**/*",
-    "**/.client/**/*",
-    ".react-router/types/**/*"
+    "**/.client/**/*"
   ],
   "exclude": [
     "node_modules",

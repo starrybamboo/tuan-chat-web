@@ -1,15 +1,15 @@
-import type { Route } from "./+types/role";
+import type { RouteMetaArgs } from "@/router/routeTypes";
 import { CaretRightIcon } from "@phosphor-icons/react";
 import { useEffect, useState } from "react";
-import { Outlet, useParams } from "react-router"; // 引入 Outlet 和 useParams
 import { Drawer } from "vaul";
-import { Sidebar } from "@/components/Role/Sidebar/Sidebar"; // 确保路径正确
+import { Sidebar } from "@/components/Role/Sidebar/Sidebar";
 import { useRoleUiStore } from "@/components/Role/stores/roleUiStore";
 import { useRoleListModel } from "@/components/Role/useRoleListModel";
+import { Outlet, useParams } from "@/router/reactRouterCompat";
 import { createSeoMeta } from "@/utils/seo";
 import "@/components/Role/roleRouteStyles.css";
 
-export function meta(_args: Route.MetaArgs) {
+export function meta(_args: RouteMetaArgs) {
   return createSeoMeta({
     title: "角色管理",
     description: "创建和管理你在团剧共创中的角色资料。",
@@ -30,10 +30,8 @@ export default function RoleLayout() {
     return window.matchMedia("(min-width: 1024px)").matches;
   });
 
-  // 使用 useParams hook 从 URL 中获取 roleId
   const { roleId } = useParams<{ roleId: string }>();
 
-  // 将字符串类型的 roleId 转换为 number 或 null
   const selectedRoleId = roleId ? Number.parseInt(roleId, 10) : null;
 
   useEffect(() => {

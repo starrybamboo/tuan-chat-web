@@ -1,9 +1,9 @@
-import type { Route } from "./+types/homeTab";
-import { useParams } from "react-router";
+import type { RouteMetaArgs } from "@/router/routeTypes";
 import HomeTab from "@/components/profile/profileTab/homeTab";
+import { useParams } from "@/router/reactRouterCompat";
 import { createSeoMeta } from "@/utils/seo";
 
-export function meta({ params }: Route.MetaArgs) {
+export function meta({ params }: RouteMetaArgs) {
   return createSeoMeta({
     title: `用户 ${params.userId} 的主页`,
     description: `查看团剧共创用户 ${params.userId} 的公开主页、简介与作品。`,

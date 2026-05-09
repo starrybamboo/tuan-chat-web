@@ -1,4 +1,8 @@
-import type { Route } from "./+types/root";
+import type {
+  RouteErrorBoundaryProps,
+  RouteLinksFunction,
+  RouteMetaArgs,
+} from "@/router/routeTypes";
 import { QueryClientProvider } from "@tanstack/react-query";
 
 import React from "react";
@@ -12,7 +16,7 @@ import {
   ScrollRestoration,
   useLocation,
   useNavigate,
-} from "react-router";
+} from "@/router/reactRouterCompat";
 import { installMediaDebugBridge } from "@/components/chat/infra/media/mediaDebug";
 import { useDrawerPreferenceStore } from "@/components/chat/stores/drawerPreferenceStore";
 import { ToastWindowRenderer } from "@/components/common/toastWindow/toastWindowRenderer";
@@ -20,7 +24,7 @@ import { GlobalContextProvider } from "@/components/globalContextProvider";
 import { queryClient } from "@/queryClient";
 import { consumeAuthToast } from "@/utils/auth/unauthorized";
 import { createSeoMeta, getCanonicalHref } from "@/utils/seo";
-import "./app.css";
+import "@/app.css";
 
 // Patch customElements.define to avoid "already defined" errors from BlockSuite or other libraries during HMR/re-mounts.
 if (typeof window !== "undefined" && window.customElements) {
@@ -132,7 +136,7 @@ if (typeof window !== "undefined" && import.meta.env.MODE === "test" && !(window
   });
 }
 
-export const links: Route.LinksFunction = () => (
+export const links: RouteLinksFunction = () => (
   import.meta.env.VITE_ENABLE_GOOGLE_FONTS === "true"
     ? [
         { rel: "preconnect", href: "https://fonts.googleapis.com" },
@@ -149,7 +153,7 @@ export const links: Route.LinksFunction = () => (
     : []
 );
 
-export function meta(_args: Route.MetaArgs) {
+export function meta(_args: RouteMetaArgs) {
   return createSeoMeta({
     title: "团剧共创",
     description: "团剧共创是面向团剧、模组与设定创作的协作平台，可用于发现公开模组、浏览素材库、管理角色和作品。",
@@ -314,7 +318,7 @@ export default function App() {
   );
 }
 
-export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
+export function ErrorBoundary({ error }: RouteErrorBoundaryProps) {
   const navigate = useNavigate();
   let message = "Oops! Something went wrong.";
   let details = "An unexpected error occurred. Please try again later.";

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router";
 import LoginModal from "@/components/auth/LoginModal";
+import { useNavigate, useSearchParams } from "@/router/reactRouterCompat";
 import { normalizeAuthRedirectPath } from "@/utils/auth/redirect";
 import { createSeoMeta } from "@/utils/seo";
 

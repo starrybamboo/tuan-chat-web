@@ -1,9 +1,9 @@
-import type { Route } from "./+types/scrollSequenceMotionDemo";
+import type { RouteMetaArgs } from "@/router/routeTypes";
 
-import { Navigate } from "react-router";
+import { Navigate } from "@/router/reactRouterCompat";
 import { createSeoMeta } from "@/utils/seo";
 
-export function meta(_args: Route.MetaArgs) {
+export function meta(_args: RouteMetaArgs) {
   return createSeoMeta({
     title: "团剧共创展示页",
     description: "使用 Motion 实现的团剧共创沉浸式展示页。",

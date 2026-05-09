@@ -1,7 +1,6 @@
 {
   "entry": [
-    "app/root.tsx",
-    "app/routes.ts",
+    "app/routes/__root.tsx",
     "app/routes/**/*.{ts,tsx}",
     "app/**/*.test.{ts,tsx}",
     "app/**/*.e2e.test.{ts,tsx}",
@@ -17,7 +16,6 @@
     "electron/preload.js",
     "scripts/**/*.mjs",
     "vite.config.ts",
-    "react-router.config.ts"
   ],
   "project": [
     "app/**/*.{ts,tsx}",
