@@ -1,6 +1,5 @@
 import type { Rule } from "@tuanchat/openapi-client/models/Rule";
 import type { Role } from "../types";
-import { BookOpenIcon, DiceFiveIcon, UserIcon } from "@phosphor-icons/react";
 import { useLocation, useRouter } from "@tanstack/react-router";
 import { useDeleteRolesMutation } from "api/hooks/RoleAndAvatarHooks";
 import { useDeleteRuleMutation, useRuleListQuery } from "api/hooks/ruleQueryHooks";
@@ -11,7 +10,6 @@ import { getRoleRule } from "@/utils/roleRuleStorage";
 import { useGlobalContext } from "../../globalContextProvider";
 import { useRoleUiStore } from "../stores/roleUiStore";
 import { RoleListItem } from "./RoleListItem";
-import { SidebarCard } from "./SidebarCard";
 
 interface SidebarProps {
   roles: Role[];
@@ -19,60 +17,12 @@ interface SidebarProps {
   onNavigate?: () => void;
 }
 
-type SidebarCreateCardAccent = "primary" | "success" | "info";
-
-interface SidebarCreateCardProps {
-  title: string;
-  description: string;
-  buttonTitle: string;
-  accent: SidebarCreateCardAccent;
-  icon: typeof UserIcon;
-  onClick: () => void;
-}
-
-const createCardAccentClassNames: Record<SidebarCreateCardAccent, string> = {
-  primary: "border-primary/40 bg-primary/5 text-primary/60 group-hover:border-primary/60 group-hover:text-primary/80",
-  success: "border-success/40 bg-success/5 text-success/60 group-hover:border-success/60 group-hover:text-success/80",
-  info: "border-info/40 bg-info/5 text-info/60 group-hover:border-info/60 group-hover:text-info/80",
-};
-
 function handleKeyboardClick(event: React.KeyboardEvent<HTMLElement>, onClick: () => void) {
   if (event.key !== "Enter" && event.key !== " ") {
     return;
   }
   event.preventDefault();
   onClick();
-}
-
-function SidebarCreateCard({
-  title,
-  description,
-  buttonTitle,
-  accent,
-  icon: Icon,
-  onClick,
-}: SidebarCreateCardProps) {
-  return (
-    <button
-      type="button"
-      className="block w-full rounded-lg px-1 text-left"
-      onClick={onClick}
-      title={buttonTitle}
-    >
-      <SidebarCard
-        leading={(
-          <div className="avatar shrink-0 px-1">
-            <div className={`flex h-12 w-12 items-center justify-center rounded-full border-2 border-dashed transition-colors duration-150 md:h-14 md:w-14 ${createCardAccentClassNames[accent]}`}>
-              <Icon className="h-7 w-7" weight="bold" />
-            </div>
-          </div>
-        )}
-        title={title}
-        description={description}
-        descriptionClassName="mt-1 line-clamp-2 break-words text-xs leading-5 text-base-content/70 whitespace-normal"
-      />
-    </button>
-  );
 }
 
 export function Sidebar({
@@ -141,10 +91,6 @@ export function Sidebar({
   }, [ruleListQuery.data, searchQuery, userId]);
 
   const activeRuleId = Number(searchParams.get("ruleId") ?? 0);
-  const navigateTo = (to: string) => {
-    router.history.push(to);
-    onNavigate?.();
-  };
 
   // 切换选择模式
   const toggleSelectionMode = () => {
@@ -397,14 +343,43 @@ export function Sidebar({
                 </button>
                 {!isRuleCollapsed && (
                   <div className="ml-2">
-                    <SidebarCreateCard
-                      title="新建规则"
-                      description="创建或编辑规则，用于普通角色模板"
-                      buttonTitle="新建规则模板"
-                      accent="info"
-                      icon={BookOpenIcon}
-                      onClick={() => navigateTo("/role?type=rule&mode=entry")}
-                    />
+                    <div
+                      role="button"
+                      tabIndex={0}
+                      className="flex items-center gap-3 p-3 rounded-lg cursor-pointer group hover:bg-base-100 transition-all duration-150"
+                      onClick={() => {
+                        router.history.push("/role?type=rule&mode=entry");
+                        onNavigate?.();
+                      }}
+                      onKeyDown={event => handleKeyboardClick(event, () => {
+                        router.history.push("/role?type=rule&mode=entry");
+                        onNavigate?.();
+                      })}
+                      title="新建规则模板"
+                    >
+                      <div className="avatar shrink-0 px-1">
+                        <div className="w-12 h-12 md:w-14 md:h-14 rounded-full border-2 border-dashed border-info/40 group-hover:border-info/60 bg-info/5 text-info/60 group-hover:text-info/80 transition-colors duration-150 relative">
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            className="w-7 h-7 absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2.1"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          >
+                            <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5" />
+                            <path d="M12 8v8" />
+                            <path d="M8 12h8" />
+                          </svg>
+                        </div>
+                      </div>
+                      <div className="flex-1 min-w-0 overflow-hidden">
+                        <h3 className="font-medium truncate">新建规则</h3>
+                        <p className="text-xs text-base-content/70 mt-1 truncate">创建自定义规则模板</p>
+                      </div>
+                    </div>
 
                     {ruleListQuery.isLoading && (
                       <div className="text-xs text-base-content/60 px-3 py-2">正在加载规则...</div>
@@ -438,39 +413,58 @@ export function Sidebar({
                             onNavigate?.();
                           })}
                         >
-                          <SidebarCard
-                            active={isRuleActive}
-                            leading={(
-                              <div className="avatar shrink-0">
-                                <div className="flex h-12 w-12 items-center justify-center rounded-full border-2 border-base-content/10 bg-base-100 text-base-content/70 md:h-14 md:w-14">
-                                  <BookOpenIcon className="h-6 w-6" weight="regular" />
-                                </div>
-                              </div>
-                            )}
-                            title={rule.ruleName || "未命名规则"}
-                            description={`#${currentRuleId} · ${(rule.ruleDescription || "暂无描述").trim() || "暂无描述"}`}
-                            descriptionClassName="mt-1 truncate text-xs text-base-content/70"
-                            action={(
-                              <button
-                                type="button"
-                                className="btn btn-ghost btn-xs text-error hover:bg-error/10 md:opacity-0 md:group-hover:opacity-100 opacity-70 rounded-full p-1"
-                                disabled={deletingRuleId === currentRuleId}
-                                onClick={(e) => {
-                                  e.preventDefault();
-                                  e.stopPropagation();
-                                  void handleDeleteRule(currentRuleId);
-                                }}
-                                title="删除规则"
-                              >
-                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16">
-                                  <path
-                                    fill="currentColor"
-                                    d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"
-                                  />
+                          <div
+                            className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer group transition-all duration-150 ${
+                              isRuleActive ? "bg-base-100" : "hover:bg-base-100"
+                            }`}
+                          >
+                            <div className="avatar shrink-0">
+                              <div className="w-12 h-12 md:w-14 md:h-14 rounded-full border-2 border-base-content/10 bg-base-100 text-base-content/70 relative">
+                                <svg
+                                  xmlns="http://www.w3.org/2000/svg"
+                                  className="w-6 h-6 absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
+                                  viewBox="0 0 24 24"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  strokeWidth="2"
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                >
+                                  <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5" />
+                                  <path d="M8 7h8" />
+                                  <path d="M8 11h8" />
+                                  <path d="M8 15h5" />
                                 </svg>
-                              </button>
-                            )}
-                          />
+                              </div>
+                            </div>
+                            <div className="flex-1 min-w-0 overflow-hidden">
+                              <h3 className="font-medium truncate">{rule.ruleName || "未命名规则"}</h3>
+                              <p className="text-xs text-base-content/70 mt-1 truncate">
+                                #
+                                {currentRuleId}
+                                {" · "}
+                                {(rule.ruleDescription || "暂无描述").trim() || "暂无描述"}
+                              </p>
+                            </div>
+                            <button
+                              type="button"
+                              className="btn btn-ghost btn-xs text-error hover:bg-error/10 md:opacity-0 md:group-hover:opacity-100 opacity-70 rounded-full p-1"
+                              disabled={deletingRuleId === currentRuleId}
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                void handleDeleteRule(currentRuleId);
+                              }}
+                              title="删除规则"
+                            >
+                              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16">
+                                <path
+                                  fill="currentColor"
+                                  d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"
+                                />
+                              </svg>
+                            </button>
+                          </div>
                         </div>
                       );
                     })}
@@ -506,14 +500,46 @@ export function Sidebar({
                 </button>
                 {!isDiceCollapsed && (
                   <div className="ml-2">
-                    <SidebarCreateCard
-                      title="创建骰娘"
-                      description="创建跑团骰娘，用于TRPG游戏"
-                      buttonTitle="创建骰娘角色"
-                      accent="success"
-                      icon={DiceFiveIcon}
-                      onClick={() => navigateTo("/role?type=dice")}
-                    />
+                    {/* 创建骰娘入口 */}
+                    <div
+                      role="button"
+                      tabIndex={0}
+                      className="flex items-center gap-3 p-3 rounded-lg cursor-pointer group hover:bg-base-100 transition-all duration-150"
+                      onClick={() => {
+                        router.history.push("/role?type=dice");
+                        onNavigate?.();
+                      }}
+                      onKeyDown={event => handleKeyboardClick(event, () => {
+                        router.history.push("/role?type=dice");
+                        onNavigate?.();
+                      })}
+                      title="创建骰娘角色"
+                    >
+                      <div className="avatar shrink-0 px-1">
+                        <div className="w-12 h-12 md:w-14 md:h-14 rounded-full border-2 border-dashed border-success/40 group-hover:border-success/60 bg-success/5 text-success/60 group-hover:text-success/80 transition-colors duration-150 relative">
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            className="w-7 h-7 absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2.2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          >
+                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                            <circle cx="8.5" cy="8.5" r="1.5" />
+                            <circle cx="15.5" cy="8.5" r="1.5" />
+                            <circle cx="8.5" cy="15.5" r="1.5" />
+                            <circle cx="15.5" cy="15.5" r="1.5" />
+                          </svg>
+                        </div>
+                      </div>
+                      <div className="flex-1 min-w-0 overflow-hidden">
+                        <h3 className="font-medium truncate">创建骰娘</h3>
+                        <p className="text-xs text-base-content/70 mt-1 truncate">创建跑团骰娘</p>
+                      </div>
+                    </div>
                     {/* 骰娘角色列表 */}
                     {diceRoles.map((role) => {
                       const storedRuleId = getRoleRule(role.id) || 1;
@@ -585,14 +611,42 @@ export function Sidebar({
                 </button>
                 {!isNormalCollapsed && (
                   <div className="ml-2">
-                    <SidebarCreateCard
+                    <div
+                      role="button"
+                      tabIndex={0}
+                      className="flex items-center gap-3 p-3 rounded-lg cursor-pointer group hover:bg-base-100 transition-all duration-150"
+                      onClick={() => {
+                        router.history.push("/role?type=normal");
+                        onNavigate?.();
+                      }}
+                      onKeyDown={event => handleKeyboardClick(event, () => {
+                        router.history.push("/role?type=normal");
+                        onNavigate?.();
+                      })}
                       title="创建普通角色"
-                      description="创建普通游戏角色，用于日常对话和互动"
-                      buttonTitle="创建普通角色"
-                      accent="primary"
-                      icon={UserIcon}
-                      onClick={() => navigateTo("/role?type=normal")}
-                    />
+                    >
+                      <div className="avatar shrink-0 px-1">
+                        <div className="w-12 h-12 md:w-14 md:h-14 rounded-full border-2 border-dashed border-primary/40 group-hover:border-primary/60 bg-primary/5 text-primary/60 group-hover:text-primary/80 transition-colors duration-150 relative">
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            className="w-7 h-7 absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2.2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          >
+                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                            <circle cx="12" cy="7" r="4" />
+                          </svg>
+                        </div>
+                      </div>
+                      <div className="flex-1 min-w-0 overflow-hidden">
+                        <h3 className="font-medium truncate">创建普通角色</h3>
+                        <p className="text-xs text-base-content/70 mt-1 truncate">创建普通游戏角色</p>
+                      </div>
+                    </div>
 
                     {normalRoles.map((role) => {
                       const storedRuleId = getRoleRule(role.id) || 1;
