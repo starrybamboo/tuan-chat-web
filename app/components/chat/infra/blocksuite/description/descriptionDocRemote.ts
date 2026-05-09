@@ -246,6 +246,16 @@ function tryParseSnapshot(raw: unknown): StoredSnapshot | null {
   }
 
   if (typeof raw === "object") {
+    const nestedSnapshot = (raw as {
+      snapshot?: unknown;
+      docSnapshot?: unknown;
+    }).snapshot ?? (raw as {
+      snapshot?: unknown;
+      docSnapshot?: unknown;
+    }).docSnapshot;
+    if (typeof nestedSnapshot !== "undefined") {
+      return tryParseSnapshot(nestedSnapshot);
+    }
     return isStoredSnapshot(raw) ? (raw as StoredSnapshot) : null;
   }
 
