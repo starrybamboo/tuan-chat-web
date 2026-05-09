@@ -1,6 +1,5 @@
 import { createFileRoute, Navigate, useLocation, useParams, useRouter } from "@tanstack/react-router";
 
-import { useEffect } from "react";
 import CharacterDetail from "@/components/Role/CharacterDetail";
 import { useRoleListModel } from "@/components/Role/useRoleListModel";
 import { getRoleRule, setRoleRule } from "@/utils/roleRuleStorage";
@@ -22,21 +21,12 @@ function RoleDetailPage() {
   const urlRuleId = searchParams.get("rule");
   const storedRuleId = getRoleRule(numericRoleId || 0);
   const selectedRuleId = urlRuleId ? Number(urlRuleId) : (storedRuleId || 1);
-
-  // 如果URL中没有规则参数但存储中有,则更新URL
-  useEffect(() => {
-    if (!urlRuleId && storedRuleId && numericRoleId) {
-      const newSearchParams = new URLSearchParams(searchParams);
-      newSearchParams.set("rule", storedRuleId.toString());
-      router.history.replace(`/role/${numericRoleId}?${newSearchParams.toString()}`);
-    }
-  }, [numericRoleId, router, searchParams, storedRuleId, urlRuleId]);
+  const currentRole = roles.find(r => r.id === numericRoleId);
 
   if (!roleId || Number.isNaN(numericRoleId)) {
     return <Navigate to="/role" replace />;
   }
 
-  const currentRole = roles.find(r => r.id === numericRoleId);
   if (!currentRole && isLoading) {
     // 角色数据加载中，显示骨架屏
     return (
