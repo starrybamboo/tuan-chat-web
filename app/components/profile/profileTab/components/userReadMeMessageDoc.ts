@@ -12,6 +12,28 @@ import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
 export type UserReadMeNodeMessageType = typeof MESSAGE_TYPE.TEXT | typeof MESSAGE_TYPE.INTRO_TEXT;
 
 /**
+ * ReadMe 线性节点当前允许的行内样式集合。
+ * 保持能力边界足够小，避免向完整富文本 schema 演化。
+ */
+export const USER_README_INLINE_MARK_TYPES = ["bold", "italic", "code", "highlight"] as const;
+
+/**
+ * 单个行内样式的类型标识。
+ */
+export type UserReadMeInlineMarkType = (typeof USER_README_INLINE_MARK_TYPES)[number];
+
+/**
+ * 线性节点上的行内样式区间。
+ * 使用字符区间而不是嵌套 inline tree，保持 message-stream 模型简单可控。
+ */
+export type UserReadMeInlineMark = {
+  markId: string;
+  type: UserReadMeInlineMarkType;
+  start: number;
+  end: number;
+};
+
+/**
  * ReadMe 在线性文档视图中的单个节点。
  * 它保留 message 的核心形状，但只使用极小字段子集。
  */
@@ -54,6 +76,171 @@ export type UserReadMeNodeMergeResult = {
   focus: NodeFocusTarget;
 };
 
+function buildStableNodeExtra(node: Pick<UserReadMeMessageNode, "content" | "extra">) {
+  if (!isRecord(node.extra)) {
+    return undefined;
+  }
+
+  const nextExtra: Record<string, unknown> = { ...node.extra };
+  const inlineMarks = getUserReadMeInlineMarks(node);
+  if (inlineMarks.length > 0) {
+    nextExtra.inlineMarks = inlineMarks;
+  }
+  else {
+    delete nextExtra.inlineMarks;
+  }
+
+  return Object.keys(nextExtra).length > 0 ? nextExtra : undefined;
+}
+
+function isInlineMarkType(value: unknown): value is UserReadMeInlineMarkType {
+  return typeof value === "string" && USER_README_INLINE_MARK_TYPES.includes(value as UserReadMeInlineMarkType);
+}
+
+function normalizeInlineMark(value: unknown, contentLength: number): UserReadMeInlineMark | null {
+  if (!isRecord(value) || !isInlineMarkType(value.type)) {
+    return null;
+  }
+
+  const rawStart = typeof value.start === "number" ? value.start : Number.NaN;
+  const rawEnd = typeof value.end === "number" ? value.end : Number.NaN;
+  if (!Number.isFinite(rawStart) || !Number.isFinite(rawEnd)) {
+    return null;
+  }
+
+  const start = Math.max(0, Math.min(Math.floor(rawStart), contentLength));
+  const end = Math.max(start, Math.min(Math.floor(rawEnd), contentLength));
+  if (end <= start) {
+    return null;
+  }
+
+  return {
+    markId: typeof value.markId === "string" && value.markId.trim() ? value.markId : createUserReadMeNodeId(),
+    type: value.type,
+    start,
+    end,
+  };
+}
+
+/**
+ * 规范化行内样式区间，移除非法范围并合并同类型重叠区间。
+ */
+export function normalizeUserReadMeInlineMarks(
+  marks: UserReadMeInlineMark[] | undefined,
+  contentLength: number,
+): UserReadMeInlineMark[] {
+  const normalized = (marks ?? [])
+    .map(mark => normalizeInlineMark(mark, contentLength))
+    .filter((mark): mark is UserReadMeInlineMark => mark !== null)
+    .sort((left, right) => {
+      if (left.start !== right.start) {
+        return left.start - right.start;
+      }
+      if (left.end !== right.end) {
+        return left.end - right.end;
+      }
+      return left.type.localeCompare(right.type);
+    });
+
+  const merged: UserReadMeInlineMark[] = [];
+  for (const mark of normalized) {
+    const previous = merged[merged.length - 1];
+    if (!previous || previous.type !== mark.type || previous.end < mark.start) {
+      merged.push(mark);
+      continue;
+    }
+    previous.end = Math.max(previous.end, mark.end);
+  }
+  return merged;
+}
+
+/**
+ * 从节点 extra 中读取并规范化行内样式区间。
+ */
+export function getUserReadMeInlineMarks(node: Pick<UserReadMeMessageNode, "content" | "extra">): UserReadMeInlineMark[] {
+  const rawMarks = Array.isArray(node.extra?.inlineMarks) ? node.extra.inlineMarks : undefined;
+  return normalizeUserReadMeInlineMarks(rawMarks as UserReadMeInlineMark[] | undefined, node.content.length);
+}
+
+/**
+ * 写回节点行内样式区间，并在空集合时清理冗余 extra 字段。
+ */
+export function setUserReadMeInlineMarks(
+  node: UserReadMeMessageNode,
+  marks: UserReadMeInlineMark[],
+): UserReadMeMessageNode {
+  const nextMarks = normalizeUserReadMeInlineMarks(marks, node.content.length);
+  const nextExtra = isRecord(node.extra) ? { ...node.extra } : {};
+
+  if (nextMarks.length > 0) {
+    nextExtra.inlineMarks = nextMarks;
+  }
+  else {
+    delete nextExtra.inlineMarks;
+  }
+
+  return Object.keys(nextExtra).length > 0
+    ? { ...node, extra: nextExtra }
+    : { ...node, extra: undefined };
+}
+
+/**
+ * 在指定文本范围内切换单种行内样式。
+ * 已完全覆盖则移除，否则新增并交由规范化逻辑合并。
+ */
+export function toggleUserReadMeInlineMark(
+  node: UserReadMeMessageNode,
+  params: {
+    type: UserReadMeInlineMarkType;
+    start: number;
+    end: number;
+  },
+): UserReadMeMessageNode {
+  const start = Math.max(0, Math.min(params.start, node.content.length));
+  const end = Math.max(start, Math.min(params.end, node.content.length));
+  if (end <= start) {
+    return node;
+  }
+
+  const marks = getUserReadMeInlineMarks(node);
+  const sameTypeMarks = marks.filter(mark => mark.type === params.type);
+  const selectionFullyCovered = sameTypeMarks.some(mark => mark.start <= start && mark.end >= end);
+
+  if (selectionFullyCovered) {
+    const nextMarks = marks.flatMap((mark) => {
+      if (mark.type !== params.type || mark.end <= start || mark.start >= end) {
+        return [mark];
+      }
+
+      const fragments: UserReadMeInlineMark[] = [];
+      if (mark.start < start) {
+        fragments.push({
+          ...mark,
+          end: start,
+        });
+      }
+      if (mark.end > end) {
+        fragments.push({
+          ...mark,
+          start: end,
+        });
+      }
+      return fragments;
+    });
+    return setUserReadMeInlineMarks(node, nextMarks);
+  }
+
+  return setUserReadMeInlineMarks(node, [
+    ...marks,
+    {
+      markId: createUserReadMeNodeId(),
+      type: params.type,
+      start,
+      end,
+    },
+  ]);
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
@@ -72,14 +259,26 @@ function normalizeNode(value: unknown): UserReadMeMessageNode | null {
   const annotations = Array.isArray(value.annotations)
     ? value.annotations.filter((item): item is string => typeof item === "string" && item.trim().length > 0)
     : undefined;
-  const extra = isRecord(value.extra) ? value.extra : undefined;
+  const extra = isRecord(value.extra) ? { ...value.extra } : undefined;
+  const inlineMarks = normalizeUserReadMeInlineMarks(
+    Array.isArray(extra?.inlineMarks) ? extra.inlineMarks as UserReadMeInlineMark[] : undefined,
+    content.length,
+  );
+  if (extra) {
+    if (inlineMarks.length > 0) {
+      extra.inlineMarks = inlineMarks;
+    }
+    else {
+      delete extra.inlineMarks;
+    }
+  }
 
   return {
     nodeId: rawNodeId || createUserReadMeNodeId(),
     messageType: normalizeNodeMessageType(value.messageType),
     content,
     ...(annotations && annotations.length > 0 ? { annotations } : {}),
-    ...(extra ? { extra } : {}),
+    ...(extra && Object.keys(extra).length > 0 ? { extra } : {}),
   };
 }
 
@@ -146,12 +345,27 @@ function decodeMessageNodes(updateB64: string): UserReadMeMessageNode[] {
  * 生成一个新的 ReadMe 节点。
  */
 export function createUserReadMeNode(overrides: Partial<UserReadMeMessageNode> = {}): UserReadMeMessageNode {
+  const extra = isRecord(overrides.extra) ? { ...overrides.extra } : undefined;
+  const content = typeof overrides.content === "string" ? overrides.content : "";
+  const inlineMarks = normalizeUserReadMeInlineMarks(
+    Array.isArray(extra?.inlineMarks) ? extra.inlineMarks as UserReadMeInlineMark[] : undefined,
+    content.length,
+  );
+  if (extra) {
+    if (inlineMarks.length > 0) {
+      extra.inlineMarks = inlineMarks;
+    }
+    else {
+      delete extra.inlineMarks;
+    }
+  }
+
   return {
     nodeId: typeof overrides.nodeId === "string" && overrides.nodeId.trim() ? overrides.nodeId : createUserReadMeNodeId(),
     messageType: normalizeNodeMessageType(overrides.messageType),
-    content: typeof overrides.content === "string" ? overrides.content : "",
+    content,
     ...(Array.isArray(overrides.annotations) && overrides.annotations.length > 0 ? { annotations: overrides.annotations } : {}),
-    ...(isRecord(overrides.extra) ? { extra: overrides.extra } : {}),
+    ...(extra && Object.keys(extra).length > 0 ? { extra } : {}),
   };
 }
 
@@ -167,7 +381,7 @@ export function createUserReadMeSnapshot(
     messageType: normalizeNodeMessageType(node.messageType),
     content: node.content,
     ...(Array.isArray(node.annotations) && node.annotations.length > 0 ? { annotations: node.annotations } : {}),
-    ...(isRecord(node.extra) ? { extra: node.extra } : {}),
+    ...(buildStableNodeExtra(node) ? { extra: buildStableNodeExtra(node) } : {}),
   }));
 
   return {
@@ -231,7 +445,7 @@ export function serializeUserReadMeNodes(nodes: UserReadMeMessageNode[]): string
     messageType: normalizeNodeMessageType(node.messageType),
     content: node.content,
     annotations: node.annotations ?? [],
-    extra: node.extra ?? null,
+    extra: buildStableNodeExtra(node) ?? null,
   })));
 }
 
@@ -260,14 +474,38 @@ export function splitUserReadMeNode(
   const selectionEnd = Math.max(selectionStart, Math.min(params.selectionEnd, current.content.length));
   const before = current.content.slice(0, selectionStart);
   const after = current.content.slice(selectionEnd);
+  const currentMarks = getUserReadMeInlineMarks(current);
+  const beforeMarks = currentMarks.flatMap((mark) => {
+    if (mark.start >= selectionStart) {
+      return [];
+    }
+    return [{
+      ...mark,
+      end: Math.min(mark.end, selectionStart),
+    }];
+  });
+  const afterMarks = currentMarks.flatMap((mark) => {
+    if (mark.end <= selectionEnd) {
+      return [];
+    }
+    return [{
+      ...mark,
+      start: Math.max(0, mark.start - selectionEnd),
+      end: mark.end - selectionEnd,
+    }];
+  });
+  const currentNode = setUserReadMeInlineMarks({ ...current, content: before }, beforeMarks);
   const nextNode = createUserReadMeNode({
     messageType: current.messageType,
     annotations: current.annotations,
-    extra: current.extra,
     content: after,
+    extra: {
+      ...(isRecord(current.extra) ? current.extra : {}),
+      inlineMarks: afterMarks,
+    },
   });
   const nextNodes = [...nodes];
-  nextNodes.splice(index, 1, { ...current, content: before }, nextNode);
+  nextNodes.splice(index, 1, currentNode, nextNode);
 
   return {
     nodes: nextNodes,
@@ -293,11 +531,19 @@ export function mergeUserReadMeNodeBackward(
   const previous = nodes[index - 1];
   const current = nodes[index];
   const mergedContent = previous.content + current.content;
+  const mergedMarks = [
+    ...getUserReadMeInlineMarks(previous),
+    ...getUserReadMeInlineMarks(current).map(mark => ({
+      ...mark,
+      start: mark.start + previous.content.length,
+      end: mark.end + previous.content.length,
+    })),
+  ];
   const nextNodes = [...nodes];
-  nextNodes.splice(index - 1, 2, {
+  nextNodes.splice(index - 1, 2, setUserReadMeInlineMarks({
     ...previous,
     content: mergedContent,
-  });
+  }, mergedMarks));
 
   return {
     nodes: nextNodes,
@@ -323,11 +569,19 @@ export function mergeUserReadMeNodeForward(
   const current = nodes[index];
   const next = nodes[index + 1];
   const mergedContent = current.content + next.content;
+  const mergedMarks = [
+    ...getUserReadMeInlineMarks(current),
+    ...getUserReadMeInlineMarks(next).map(mark => ({
+      ...mark,
+      start: mark.start + current.content.length,
+      end: mark.end + current.content.length,
+    })),
+  ];
   const nextNodes = [...nodes];
-  nextNodes.splice(index, 2, {
+  nextNodes.splice(index, 2, setUserReadMeInlineMarks({
     ...current,
     content: mergedContent,
-  });
+  }, mergedMarks));
 
   return {
     nodes: nextNodes,
