@@ -17,6 +17,14 @@ interface SidebarProps {
   onNavigate?: () => void;
 }
 
+function handleKeyboardClick(event: React.KeyboardEvent<HTMLElement>, onClick: () => void) {
+  if (event.key !== "Enter" && event.key !== " ") {
+    return;
+  }
+  event.preventDefault();
+  onClick();
+}
+
 export function Sidebar({
   roles,
   selectedRoleId,
@@ -384,9 +392,10 @@ export function Sidebar({
                         && searchParams.get("mode") === "edit"
                         && activeRuleId === currentRuleId;
                       return (
-                        <button
-                          type="button"
+                        <div
                           key={`my-${currentRuleId}`}
+                          role="button"
+                          tabIndex={0}
                           className={`block rounded-lg px-1 ${
                             isRuleActive ? "bg-primary/10 text-primary" : ""
                           }`}
@@ -394,6 +403,10 @@ export function Sidebar({
                             router.history.push(`/role?type=rule&mode=edit&ruleId=${currentRuleId}`);
                             onNavigate?.();
                           }}
+                          onKeyDown={event => handleKeyboardClick(event, () => {
+                            router.history.push(`/role?type=rule&mode=edit&ruleId=${currentRuleId}`);
+                            onNavigate?.();
+                          })}
                         >
                           <div
                             className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer group transition-all duration-150 ${
@@ -447,7 +460,7 @@ export function Sidebar({
                               </svg>
                             </button>
                           </div>
-                        </button>
+                        </div>
                       );
                     })}
                   </div>
@@ -521,9 +534,10 @@ export function Sidebar({
                     {diceRoles.map((role) => {
                       const storedRuleId = getRoleRule(role.id) || 1;
                       return (
-                        <button
-                          type="button"
+                        <div
                           key={role.id}
+                          role="button"
+                          tabIndex={0}
                           className={`block rounded-lg px-1 ${
                             (selectedRoleId === role.id && !isSelectionMode) ? "bg-primary/10 text-primary" : ""
                           }`}
@@ -537,6 +551,14 @@ export function Sidebar({
                               onNavigate?.();
                             }
                           }}
+                          onKeyDown={event => handleKeyboardClick(event, () => {
+                            if (isSelectionMode) {
+                              toggleRoleSelection(role.id);
+                              return;
+                            }
+                            router.history.push(`/role/${role.id}?rule=${storedRuleId}`);
+                            onNavigate?.();
+                          })}
                         >
                           <RoleListItem
                             role={role}
@@ -544,7 +566,7 @@ export function Sidebar({
                             onDelete={() => handleDelete(role.id)}
                             isSelectionMode={isSelectionMode}
                           />
-                        </button>
+                        </div>
                       );
                     })}
                   </div>
@@ -614,9 +636,10 @@ export function Sidebar({
                     {normalRoles.map((role) => {
                       const storedRuleId = getRoleRule(role.id) || 1;
                       return (
-                        <button
-                          type="button"
+                        <div
                           key={role.id}
+                          role="button"
+                          tabIndex={0}
                           className={`block rounded-lg px-1 ${
                             (selectedRoleId === role.id && !isSelectionMode) ? "bg-primary/10 text-primary" : ""
                           }`}
@@ -630,6 +653,14 @@ export function Sidebar({
                               onNavigate?.();
                             }
                           }}
+                          onKeyDown={event => handleKeyboardClick(event, () => {
+                            if (isSelectionMode) {
+                              toggleRoleSelection(role.id);
+                              return;
+                            }
+                            router.history.push(`/role/${role.id}?rule=${storedRuleId}`);
+                            onNavigate?.();
+                          })}
                         >
                           <RoleListItem
                             role={role}
@@ -637,7 +668,7 @@ export function Sidebar({
                             onDelete={() => handleDelete(role.id)}
                             isSelectionMode={isSelectionMode}
                           />
-                        </button>
+                        </div>
                       );
                     })}
                   </div>
