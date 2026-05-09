@@ -443,6 +443,20 @@ export default defineConfig(() => {
           replacement: resolve(__dirname, "app/shims/lzStringCompat.ts"),
         },
         {
+          // fast-deep-equal 的根入口和 react/es6 子路径都是 CJS。
+          // BlockNote 等依赖会把它当成 ESM default 导入，Vite dev 下会直接炸。
+          find: /^fast-deep-equal$/,
+          replacement: resolve(__dirname, "app/shims/fastDeepEqualCompat.ts"),
+        },
+        {
+          find: /^fast-deep-equal\/react\.js$/,
+          replacement: resolve(__dirname, "app/shims/fastDeepEqualCompat.ts"),
+        },
+        {
+          find: /^fast-deep-equal\/es6\/react\.js$/,
+          replacement: resolve(__dirname, "app/shims/fastDeepEqualCompat.ts"),
+        },
+        {
           find: /^@ffmpeg\/util$/,
           replacement: nm("node_modules/@ffmpeg/util/dist/esm/index.js"),
         },
