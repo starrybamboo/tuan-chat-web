@@ -2,9 +2,9 @@ import type { Plugin } from "vite";
 
 import * as babelCore from "@babel/core";
 import tailwindcss from "@tailwindcss/vite";
+import { tanstackStart } from "@tanstack/react-start/plugin/vite";
 import { vanillaExtractPlugin } from "@vanilla-extract/vite-plugin";
 import react from "@vitejs/plugin-react";
-import { tanstackStart } from "@tanstack/react-start/plugin/vite";
 import { Buffer } from "node:buffer";
 import { existsSync, realpathSync } from "node:fs";
 import { resolve } from "node:path";
@@ -15,11 +15,7 @@ import { fetch as undiciFetch } from "undici";
 import { defineConfig } from "vite";
 import babel from "vite-plugin-babel";
 
-const REACT_COMPILER_EXCLUDED_SOURCE_SUFFIXES = [
-  "/app/components/chat/infra/blocksuite/spec/tcMentionElement.client.ts",
-  "/app/components/chat/infra/blocksuite/editors/tcAffineEditorContainer.ts",
-  "/app/components/chat/infra/blocksuite/editors/extensions/embed/embedIframeNoCredentiallessElements.ts",
-];
+const REACT_COMPILER_EXCLUDED_SOURCE_SUFFIXES: string[] = [];
 
 function splitVendorChunk(id: string): string | undefined {
   const normalizedId = id.replace(/\\/g, "/");
@@ -284,6 +280,9 @@ export default defineConfig(() => {
         client: {
           entry: "main",
         },
+        spa: {
+          enabled: true,
+        },
         start: {
           entry: "start",
         },
@@ -425,7 +424,6 @@ export default defineConfig(() => {
         "@blocksuite/affine",
         "@blocksuite/affine-model",
         "@blocksuite/affine-shared",
-        "@blocksuite/integration-test",
 
         "lit",
         "lit-element",
@@ -637,31 +635,14 @@ export default defineConfig(() => {
       // Pre-transform requested modules more aggressively in dev.
       // This often helps heavy ESM graphs (like BlockSuite) on first open.
       preTransformRequests: true,
-      // Warm up the most expensive routes/modules in dev to reduce the first-load latency.
-      // This does NOT change module resolution (unlike optimizeDeps for @blocksuite/*).
+      // Warm up the current document editor snapshot path in dev.
       warmup: {
         clientFiles: [
-          // iframe route entry
-          "app/routes/blocksuiteFrame.tsx",
-
-          // iframe host
+          // blocknote editor host
           "app/components/chat/shared/components/BlockSuite/blocksuiteDescriptionEditor.tsx",
-
-          // route client chunk + browser runtime
-          "app/components/chat/infra/blocksuite/BlocksuiteRouteFrameClient.tsx",
-          "app/components/chat/infra/blocksuite/BlocksuiteDescriptionEditorRuntime.browser.tsx",
-          "app/components/chat/infra/blocksuite/bootstrap/browser.ts",
-          "app/components/chat/infra/blocksuite/runtime/runtimeLoader.browser.ts",
-          "app/components/chat/infra/blocksuite/editors/createBlocksuiteEditor.browser.ts",
-          "app/components/chat/infra/blocksuite/space/spaceWorkspaceRegistry.ts",
-
-          // core bootstrap modules
-          "app/components/chat/infra/blocksuite/spec/coreElements.browser.ts",
-          "app/components/chat/infra/blocksuite/styles/frameBase.css",
-          "app/components/chat/infra/blocksuite/styles/tcHeader.css",
-
-          // common doc sources/providers
-          "app/components/chat/infra/blocksuite/space/runtime/remoteDocSource.ts",
+          "app/components/chat/infra/blocksuite/document/blockNoteSnapshot.ts",
+          "app/components/chat/infra/blocksuite/document/docSnapshotCache.ts",
+          "app/components/chat/infra/blocksuite/description/descriptionDocRemote.ts",
         ],
       },
     },
@@ -811,7 +792,6 @@ export default defineConfig(() => {
         "@blocksuite/affine-inline-latex",
         "@blocksuite/data-view",
 
-        "@blocksuite/integration-test",
       ],
     },
   };
