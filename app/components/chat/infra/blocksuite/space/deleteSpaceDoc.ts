@@ -2,7 +2,7 @@ import type { DescriptionDocType, DescriptionEntityType } from "@/components/cha
 
 export async function deleteSpaceDoc(params: { spaceId: number; docId: string }) {
   // SSR-safe: this function is only meaningful in the browser.
-  // Avoid importing Blocksuite runtime modules at module scope because React Router dev (Vite)
+  // Avoid importing Blocksuite runtime modules at module scope because TanStack Start dev (Vite)
   // may evaluate modules in an SSR context where `document` is not defined.
   if (typeof window === "undefined") {
     return;

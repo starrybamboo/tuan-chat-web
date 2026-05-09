@@ -1,7 +1,7 @@
 import { ArrowClockwiseIcon, ArrowLeftIcon, GitCommitIcon } from "@phosphor-icons/react";
 import { useRepositoryCommitChainQuery, useRepositoryDetailByIdQuery } from "api/hooks/repositoryQueryHooks";
 import { useMemo } from "react";
-import { useNavigate, useParams } from "react-router";
+import { useNavigate, useParams } from "@/router/native";
 
 const COMMIT_TYPE_LABELS: Record<number, string> = {
   0: "快照提交",

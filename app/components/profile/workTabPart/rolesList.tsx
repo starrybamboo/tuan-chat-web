@@ -1,6 +1,6 @@
 import type { UserRole } from "../../../../api";
 import React from "react";
-import { Link } from "react-router";
+import { Link } from "@/router/native";
 import Pagination from "@/components/common/pagination";
 import { useGlobalUserId } from "@/components/globalContextProvider";
 import UserRoleCard from "@/components/profile/cards/userRoleCard";

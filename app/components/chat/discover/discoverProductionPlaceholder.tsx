@@ -1,4 +1,4 @@
-import { Link } from "react-router";
+import { Link } from "@/router/native";
 
 interface DiscoverProductionPlaceholderProps {
   title?: string;

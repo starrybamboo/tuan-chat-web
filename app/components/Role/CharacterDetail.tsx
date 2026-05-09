@@ -11,7 +11,7 @@ import { useRuleDetailQuery } from "api/hooks/ruleQueryHooks";
 import { CloseIcon, SlidersIcon } from "app/icons";
 import { useMemo, useState } from "react";
 import toast from "react-hot-toast";
-import { Link } from "react-router";
+import { Link } from "@/router/native";
 import { ROLE_DEFAULT_AVATAR_URL } from "@/constants/defaultAvatar";
 import CharacterDetailLeftPanelHorizontal from "./CharacterDetailLeftPanelHorizontal";
 import DiceMaidenLinkModal from "./DiceMaidenLinkModal";

@@ -12,13 +12,13 @@ vi.mock("@tanstack/react-router", () => ({
   useRouterState: vi.fn(),
 }));
 
-import { Scripts } from "./reactRouterCompat";
+import { Scripts } from "./native";
 
-describe("reactRouterCompat.Scripts", () => {
+describe("native router Scripts", () => {
   it("透传 TanStack Start 的客户端脚本注入", () => {
     const html = renderToStaticMarkup(React.createElement(Scripts));
 
-    expect(html).toContain('type="module"');
-    expect(html).toContain('src="/assets/entry.js"');
+    expect(html).toContain("type=\"module\"");
+    expect(html).toContain("src=\"/assets/entry.js\"");
   });
 });

@@ -1,6 +1,6 @@
 import { useGetInboxMessageWithUserQuery, useUpdateReadPositionMutation } from "api/hooks/MessageDirectQueryHooks";
 import { useEffect, useMemo } from "react";
-import { useParams } from "react-router";
+import { useParams } from "@/router/native";
 import { useGlobalUserId } from "@/components/globalContextProvider";
 import ContextMenu from "./components/ContextMenu";
 import MessageInput from "./components/MessageInput";

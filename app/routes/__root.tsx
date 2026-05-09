@@ -14,7 +14,7 @@ import {
   ScrollRestoration,
   useLocation,
   useNavigate,
-} from "@/router/reactRouterCompat";
+} from "@/router/native";
 import { installMediaDebugBridge } from "@/components/chat/infra/media/mediaDebug";
 import { useDrawerPreferenceStore } from "@/components/chat/stores/drawerPreferenceStore";
 import { ToastWindowRenderer } from "@/components/common/toastWindow/toastWindowRenderer";

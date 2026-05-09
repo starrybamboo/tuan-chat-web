@@ -1,4 +1,4 @@
-import { Link } from "react-router";
+import { Link } from "@/router/native";
 import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
 import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
 import UserStatusDot from "@/components/common/userStatusBadge.jsx";

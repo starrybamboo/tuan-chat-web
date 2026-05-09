@@ -1,5 +1,5 @@
 import { ChatCircleIcon, UserCirclePlusIcon, UserListIcon } from "@phosphor-icons/react";
-import { useNavigate, useParams } from "react-router";
+import { useNavigate, useParams } from "@/router/native";
 import { useGlobalUserId, useGlobalWebSocket } from "@/components/globalContextProvider";
 import { SidebarSimpleIcon } from "@/icons";
 import { getScreenSize } from "@/utils/getScreenSize";

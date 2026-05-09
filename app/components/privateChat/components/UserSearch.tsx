@@ -10,7 +10,7 @@ import {
 import { useGetUserInfoByUsernameQuery, useGetUserInfoQuery } from "api/hooks/UserHooks";
 import { useMemo, useState } from "react";
 import toast from "react-hot-toast";
-import { useNavigate } from "react-router";
+import { useNavigate } from "@/router/native";
 import { HomeIcon, Search, XMarkICon } from "@/icons";
 import { avatarThumbUrl } from "@/utils/mediaUrl";
 

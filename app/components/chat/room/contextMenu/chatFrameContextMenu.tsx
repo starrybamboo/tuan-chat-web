@@ -2,7 +2,7 @@ import type { ChatMessageResponse, Message } from "../../../../../api";
 import { useQueryClient } from "@tanstack/react-query";
 import { use, useCallback, useEffect, useMemo, useRef } from "react";
 import toast from "react-hot-toast";
-import { useNavigate } from "react-router";
+import { useNavigate } from "@/router/native";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
 import {
   isImageMessageMarkedAsBackground,

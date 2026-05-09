@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useParams } from "@/router/reactRouterCompat";
+import { useParams } from "@/router/native";
 import ActivitiesTab from "@/components/profile/profileTab/activitiesTab";
 import { createSeoMeta } from "@/utils/seo";
 

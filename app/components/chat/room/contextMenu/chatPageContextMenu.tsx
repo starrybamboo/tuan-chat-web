@@ -1,6 +1,6 @@
 import { useDissolveRoomMutation } from "api/hooks/chatQueryHooks";
 import { use, useState } from "react";
-import { useNavigate } from "react-router";
+import { useNavigate } from "@/router/native";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
 import { buildSpaceDocId } from "@/components/chat/infra/blocksuite/space/spaceDocId";
 import { canManageMemberPermissions } from "@/components/chat/utils/memberPermissions";

@@ -1,7 +1,5 @@
 import type { RouteMetaArgs } from "@/router/routeTypes";
-import { createFileRoute } from "@tanstack/react-router";
-import { useEffect } from "react";
-import { useNavigate } from "@/router/reactRouterCompat";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 import { createSeoMeta } from "@/utils/seo";
 
 export function meta(_args: RouteMetaArgs) {
@@ -14,6 +12,12 @@ export function meta(_args: RouteMetaArgs) {
 }
 
 export const Route = createFileRoute("/_dashboard/")({
+  beforeLoad: () => {
+    throw redirect({
+      to: "/chat/discover/material",
+      replace: true,
+    });
+  },
   head: () => ({
     meta: meta({ params: {} }),
   }),
@@ -21,11 +25,5 @@ export const Route = createFileRoute("/_dashboard/")({
 });
 
 export default function Home() {
-  const navigate = useNavigate();
-
-  useEffect(() => {
-    navigate("/chat/discover/material", { replace: true });
-  }, [navigate]);
-
   return null;
 }

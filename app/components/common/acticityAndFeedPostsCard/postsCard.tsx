@@ -1,6 +1,6 @@
 import React, { useCallback, useRef, useState } from "react";
 import toast from "react-hot-toast";
-import { useNavigate } from "react-router";
+import { useNavigate } from "@/router/native";
 import ImagePreview from "@/components/activities/ImagePreview";
 import MomentDetailView from "@/components/activities/MomentDetailView";
 import { parseEventType } from "@/components/common/acticityAndFeedPostsCard/eventTypes";

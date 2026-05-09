@@ -6,7 +6,7 @@ import { Drawer } from "vaul";
 import { Sidebar } from "@/components/Role/Sidebar/Sidebar";
 import { useRoleUiStore } from "@/components/Role/stores/roleUiStore";
 import { useRoleListModel } from "@/components/Role/useRoleListModel";
-import { Outlet, useParams } from "@/router/reactRouterCompat";
+import { Outlet, useParams } from "@/router/native";
 import { createSeoMeta } from "@/utils/seo";
 import "@/components/Role/roleRouteStyles.css";
 

@@ -1,5 +1,5 @@
 import React, { useMemo } from "react";
-import { Link, useNavigate } from "react-router";
+import { Link, useNavigate } from "@/router/native";
 import Pagination from "@/components/common/pagination";
 import { imageMediumUrl } from "@/utils/mediaUrl";
 
