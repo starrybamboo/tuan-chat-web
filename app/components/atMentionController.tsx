@@ -1,8 +1,8 @@
 import type {
   RefObject,
 } from "react";
+import type { UserRole } from "../../api";
 import type { ChatInputAreaHandle } from "@/components/chat/input/chatInputArea";
-import type { ChatMentionCandidate } from "@/components/chat/input/chatMention";
 import React, {
   useCallback,
   useEffect,
@@ -11,16 +11,14 @@ import React, {
   useRef,
   useState,
 } from "react";
-import { filterChatMentionCandidates, getChatMentionDisplayName } from "@/components/chat/input/chatMention";
 import { Mounter } from "@/components/common/mounter";
 import { RoleAvatarByRole } from "@/components/common/roleAccess";
-import { UserAvatarByUser } from "@/components/common/userAccess";
 import { getEditorRange, getSelectionCoords } from "@/utils/getSelectionCoords";
 
 // 定义 props 类型
 interface AtMentionProps {
   chatInputRef: RefObject<ChatInputAreaHandle | null>;
-  mentionCandidates: ChatMentionCandidate[];
+  allRoles: UserRole[];
 }
 
 // 定义将通过 ref 暴露的句柄（Handle）类型
@@ -33,7 +31,7 @@ export interface AtMentionHandle {
   onInput: () => void; // 处理输入事件
 }
 
-function AtMentionController({ ref, chatInputRef, mentionCandidates }: AtMentionProps & { ref?: React.RefObject<AtMentionHandle | null> }) {
+function AtMentionController({ ref, chatInputRef, allRoles }: AtMentionProps & { ref?: React.RefObject<AtMentionHandle | null> }) {
   // 1. 将所有 @ 相关的状态移动到这里
   const [showDialog, setShowDialog] = useState(false);
   const [dialogPosition, setDialogPosition] = useState({ x: 0, y: 0 });
@@ -82,7 +80,7 @@ function AtMentionController({ ref, chatInputRef, mentionCandidates }: AtMention
     }
   }, [chatInputRef, closeDialog]);
 
-  const handleSelectMention = useCallback((candidate: ChatMentionCandidate) => {
+  const handleSelectRole = useCallback((role: UserRole) => {
     const sel = window.getSelection();
     if (!sel || sel.rangeCount === 0 || !chatInputRef.current)
       return;
@@ -101,17 +99,11 @@ function AtMentionController({ ref, chatInputRef, mentionCandidates }: AtMention
     range.deleteContents();
 
     const span = document.createElement("span");
-    const displayName = getChatMentionDisplayName(candidate);
-    span.textContent = `@${displayName}` + "\u00A0"; // 非断行空格
+    span.textContent = `@${role.roleName}` + "\u00A0"; // 非断行空格
     span.className = "inline text-blue-500 bg-transparent px-0 py-0 border-none";
     span.contentEditable = "false";
     span.style.display = "inline-block";
-    if (candidate.kind === "role") {
-      span.dataset.role = JSON.stringify(candidate.role);
-    }
-    else {
-      span.dataset.member = JSON.stringify(candidate.member);
-    }
+    span.dataset.role = JSON.stringify(role);
 
     chatInputRef.current.insertNodeAtCursor(span, { moveCursorToEnd: true });
     setShowDialog(false);
@@ -140,14 +132,14 @@ function AtMentionController({ ref, chatInputRef, mentionCandidates }: AtMention
   }, [chatInputRef]);
 
   // 3. 派生状态
-  const filteredCandidates = useMemo(() => {
+  const filteredRoles = useMemo(() => {
     if (!showDialog)
       return [];
-    return filterChatMentionCandidates(mentionCandidates, searchKey);
-  }, [mentionCandidates, searchKey, showDialog]);
+    return allRoles.filter(r => r.roleId === -9999 || (r.roleName ?? "").includes(searchKey));
+  }, [allRoles, searchKey, showDialog]);
 
   const handleMentionKeyDown = useCallback((e: Pick<KeyboardEvent, "key" | "preventDefault" | "stopPropagation">) => {
-    if (!showDialog || filteredCandidates.length === 0)
+    if (!showDialog || filteredRoles.length === 0)
       return false;
 
     switch (e.key) {
@@ -159,8 +151,8 @@ function AtMentionController({ ref, chatInputRef, mentionCandidates }: AtMention
       case "Enter":
         e.preventDefault();
         e.stopPropagation();
-        if (filteredCandidates[selectedIndex]) {
-          handleSelectMention(filteredCandidates[selectedIndex]);
+        if (filteredRoles[selectedIndex]) {
+          handleSelectRole(filteredRoles[selectedIndex]);
         }
         return true;
       case "ArrowUp":
@@ -173,12 +165,12 @@ function AtMentionController({ ref, chatInputRef, mentionCandidates }: AtMention
       case "Down":
         e.preventDefault();
         e.stopPropagation();
-        setSelectedIndex(prev => Math.min(prev + 1, filteredCandidates.length - 1));
+        setSelectedIndex(prev => Math.min(prev + 1, filteredRoles.length - 1));
         return true;
       default:
         return false;
     }
-  }, [closeDialog, filteredCandidates, handleSelectMention, selectedIndex, showDialog]);
+  }, [closeDialog, filteredRoles, handleSelectRole, selectedIndex, showDialog]);
 
   // 4. 相关的 Effects
   useEffect(() => {
@@ -263,7 +255,7 @@ function AtMentionController({ ref, chatInputRef, mentionCandidates }: AtMention
   }), [checkDialogTrigger, closeDialog, handleMentionKeyDown, showDialog]);
 
   // 6. 渲染 JSX（弹出窗口）
-  if (!showDialog || dialogPosition.x <= 0 || filteredCandidates.length === 0) {
+  if (!showDialog || dialogPosition.x <= 0 || filteredRoles.length === 0) {
     return null; // 不打开时，不渲染任何东西
   }
 
@@ -279,28 +271,28 @@ function AtMentionController({ ref, chatInputRef, mentionCandidates }: AtMention
         onMouseDown={e => e.preventDefault()}
       >
         <ul ref={listRef} className="menu bg-base-100 shadow-xl rounded-box border border-base-200 p-1 menu-sm sm:menu-md">
-          {filteredCandidates.map((candidate, index) => {
-            const mentionNote = candidate.note;
-            const isAtAll = candidate.kind === "role" && candidate.role.roleId === -9999;
+          {filteredRoles.map((role, index) => {
+            const roleNote = role.extra?.mentionNote;
+            const isAtAll = role.roleId === -9999;
             const isSelected = index === selectedIndex;
 
             if (isAtAll) {
               return (
-                <li key={candidate.key} className="mb-1">
+                <li key={role.roleId} className="mb-1">
                   <a
                     data-at-mention-index={index}
                     aria-selected={isSelected}
                     className={`flex-col items-center justify-center py-2 bg-base-200/50 border border-base-300/50 ${isSelected ? "active !bg-primary !border-primary !text-primary-content" : ""}`}
-                    onClick={() => handleSelectMention(candidate)}
+                    onClick={() => handleSelectRole(role)}
                   >
-                    <span className="font-bold">{getChatMentionDisplayName(candidate)}</span>
-                    {mentionNote && (
+                    <span className="font-bold">{role.roleName}</span>
+                    {roleNote && (
                       <span
                         className={`text-xs ${
                           isSelected ? "text-primary-content/80" : "text-base-content/60"
                         }`}
                       >
-                        {mentionNote}
+                        {roleNote}
                       </span>
                     )}
                   </a>
@@ -309,40 +301,28 @@ function AtMentionController({ ref, chatInputRef, mentionCandidates }: AtMention
             }
 
             return (
-              <li key={candidate.key}>
+              <li key={role.roleId}>
                 <a
                   data-at-mention-index={index}
                   aria-selected={isSelected}
                   className={`gap-3 py-2 ${isSelected ? "active !bg-primary !text-primary-content" : ""}`}
-                  onClick={() => handleSelectMention(candidate)}
+                  onClick={() => handleSelectRole(role)}
                 >
-                  {candidate.kind === "role"
-                    ? (
-                        <RoleAvatarByRole
-                          role={candidate.role}
-                          width={8}
-                          isRounded={true}
-                          stopToastWindow={true}
-                        />
-                      )
-                    : (
-                        <UserAvatarByUser
-                          user={candidate.member}
-                          width={8}
-                          isRounded={true}
-                          stopToastWindow={true}
-                          clickEnterProfilePage={false}
-                        />
-                      )}
+                  <RoleAvatarByRole
+                    role={role}
+                    width={8}
+                    isRounded={true}
+                    stopToastWindow={true}
+                  />
                   <div className="flex flex-col gap-0.5 items-start flex-1 min-w-0">
-                    <span className="font-medium truncate w-full">{getChatMentionDisplayName(candidate)}</span>
-                    {mentionNote && (
+                    <span className="font-medium truncate w-full">{role.roleName}</span>
+                    {roleNote && (
                       <span
                         className={`text-xs truncate w-full ${
                           isSelected ? "text-primary-content/90" : "text-base-content"
                         }`}
                       >
-                        {mentionNote}
+                        {roleNote}
                       </span>
                     )}
                   </div>

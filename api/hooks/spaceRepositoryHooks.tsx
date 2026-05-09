@@ -20,6 +20,7 @@ export function useGetSpaceRepositoryRoleQuery(spaceId: number) {
       return res;
     },
     staleTime: SPACE_ROLE_STALE_TIME_MS,
+    enabled: spaceId > 0,
   });
 }
 
