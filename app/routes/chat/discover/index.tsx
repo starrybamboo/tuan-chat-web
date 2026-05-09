@@ -1,9 +1,9 @@
-import type { Route } from "./+types/chatDiscover";
+import type { RouteMetaArgs } from "@/router/routeTypes";
 
 import DiscoverPage from "@/components/chat/discover/discoverPage";
 import { createSeoMeta } from "@/utils/seo";
 
-export function meta(_args: Route.MetaArgs) {
+export function meta(_args: RouteMetaArgs) {
   return createSeoMeta({
     title: "公开归档发现",
     description: "浏览团剧共创公开归档的团剧模组与共创内容，快速发现适合开团的作品。",

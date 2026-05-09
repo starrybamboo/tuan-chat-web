@@ -1,6 +1,6 @@
 import type { MotionValue } from "motion/react";
 import type { RefObject } from "react";
-import type { Route } from "./+types/scrollSequenceDemo";
+import type { RouteMetaArgs } from "@/router/routeTypes";
 
 import type { ProceduralRenderer } from "./scrollSequenceDemoShared";
 import { motion, useMotionValueEvent, useScroll, useSpring, useTransform } from "motion/react";
@@ -105,7 +105,7 @@ function useFlowMaxOffset(
   return maxOffset;
 }
 
-export function meta(_args: Route.MetaArgs) {
+export function meta(_args: RouteMetaArgs) {
   return createSeoMeta({
     title: "团剧共创展示页",
     description: "使用 Motion 实现的团剧共创沉浸式展示页。",

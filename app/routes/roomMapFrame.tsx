@@ -1,7 +1,7 @@
 import { useMemo } from "react";
-import { useParams } from "react-router";
 
 import DNDMap from "@/components/chat/shared/map/DNDMap";
+import { useParams } from "@/router/reactRouterCompat";
 
 export default function RoomMapFrameRoute() {
   const params = useParams();

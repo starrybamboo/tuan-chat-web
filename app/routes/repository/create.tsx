@@ -1,8 +1,8 @@
-import type { Route } from "./+types/create";
+import type { RouteMetaArgs } from "@/router/routeTypes";
 import RepositoryCreateMain from "@/components/repository/create/RepositoryCreateMain";
 import { createSeoMeta } from "@/utils/seo";
 
-export function meta(_args: Route.MetaArgs) {
+export function meta(_args: RouteMetaArgs) {
   return createSeoMeta({
     title: "创建模组仓库",
     description: "在团剧共创中创建新的模组仓库。",

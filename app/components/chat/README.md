@@ -19,7 +19,7 @@ Chat 模块是 TuanChat 的核心功能模块，提供了完整的 TRPG（桌面
 
 ## 路由约定（ChatPage）
 
-路由定义位于 `app/routes.ts`：
+路由定义位于 `app/router.tsx`，对应页面模块位于 `app/routes/chat/`：
 
 - `/chat/:spaceId?/:roomId?/:messageId?`
 
@@ -1570,7 +1570,6 @@ await chatHistory.loadHistory(roomId, 100);
 参考链接
 
 - https://speakerdeck.com/steipete/building-a-sustainable-codebase-7-years-and-counting
-
 
 
 

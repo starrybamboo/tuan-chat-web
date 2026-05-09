@@ -1,9 +1,9 @@
-import type { Route } from "./+types/resource";
+import type { RouteMetaArgs } from "@/router/routeTypes";
 import ResourcePage from "@/components/resource/pages/resourcePage";
 import { createSeoMeta } from "@/utils/seo";
 import "@/components/resource/resourceRouteStyles.css";
 
-export function meta(_args: Route.MetaArgs) {
+export function meta(_args: RouteMetaArgs) {
   return createSeoMeta({
     title: "资源管理",
     description: "管理团剧共创中的资源文件与素材引用。",

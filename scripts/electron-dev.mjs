@@ -230,11 +230,10 @@ const port = hasPortArg && Number.isFinite(requestedPort) && requestedPort > 0
 
 const devServerUrl = `http://localhost:${port}`;
 
-const reactRouterEntry = join(projectRoot, "node_modules", "@react-router", "dev", "bin.js");
-const reactRouterBin = resolveBin("react-router");
+const viteBin = resolveBin("vite");
 const electronExecutable = resolveElectronExecutable();
 
-const devArgs = ["dev"];
+const devArgs = [];
 
 // 不要默认 --open（Electron 会自己打开窗口）；如果用户传了则尊重。
 // 强制端口：让 Electron 直接使用这个 URL，基本不需要扫描。
@@ -258,19 +257,12 @@ const devEnv = {
 
 console.log(`[electron:dev] starting dev server at ${devServerUrl}`);
 
-const devChild = existsSync(reactRouterEntry)
-  ? spawn(process.execPath, [reactRouterEntry, ...devArgs], {
-      stdio: "inherit",
-      shell: false,
-      cwd: projectRoot,
-      env: devEnv,
-    })
-  : spawn(reactRouterBin, devArgs, {
-      stdio: "inherit",
-      shell: process.platform === "win32" || reactRouterBin === "react-router",
-      cwd: projectRoot,
-      env: devEnv,
-    });
+const devChild = spawn(viteBin, devArgs, {
+  stdio: "inherit",
+  shell: process.platform === "win32" || viteBin === "vite",
+  cwd: projectRoot,
+  env: devEnv,
+});
 
 let electronChild = null;
 let shuttingDown = false;

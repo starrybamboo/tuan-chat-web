@@ -1,8 +1,8 @@
-import type { Route } from "./+types/profile";
+import type { RouteMetaArgs } from "@/router/routeTypes";
 import ProfilePage from "@/components/profile/profilePage";
 import { createSeoMeta } from "@/utils/seo";
 
-export function meta({ params }: Route.MetaArgs) {
+export function meta({ params }: RouteMetaArgs) {
   return createSeoMeta({
     title: `用户 ${params.userId} 的主页`,
     description: `查看团剧共创用户 ${params.userId} 的公开主页、简介与作品。`,

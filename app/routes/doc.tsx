@@ -1,9 +1,9 @@
-import type { Route } from "./+types/doc";
+import type { RouteMetaArgs } from "@/router/routeTypes";
 
-import { Navigate, useParams } from "react-router";
+import { Navigate, useParams } from "@/router/reactRouterCompat";
 import { createSeoMeta } from "@/utils/seo";
 
-export function meta(_args: Route.MetaArgs) {
+export function meta(_args: RouteMetaArgs) {
   return createSeoMeta({
     title: "文档",
     description: "团剧共创文档入口页。",

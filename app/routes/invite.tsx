@@ -1,8 +1,8 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { fetchUserRoomsWithCache, useSpaceInvitedMutation } from "api/hooks/chatQueryHooks";
 import { useEffect, useRef, useState } from "react";
-import { useNavigate, useParams } from "react-router";
 import { useGlobalUserId } from "@/components/globalContextProvider";
+import { useNavigate, useParams } from "@/router/reactRouterCompat";
 
 export default function InvitePage() {
   const { code } = useParams<{ code: string }>();

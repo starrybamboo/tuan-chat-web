@@ -1,4 +1,7 @@
-import type { Route } from "./+types/detail";
+import type {
+  RouteClientLoaderArgs,
+  RouteMetaArgs,
+} from "@/router/routeTypes";
 // import { DEFAULT_REPOSITORY_DATA } from "@/components/repository/detail/constants";
 
 import { fetchRepositoryDetailWithCache } from "api/hooks/repositoryQueryHooks";
@@ -6,7 +9,6 @@ import RepositoryDetailComponent from "@/components/repository/detail/repository
 import { queryClient } from "@/queryClient";
 import { imageMediumUrl } from "@/utils/mediaUrl";
 import { createSeoMeta } from "@/utils/seo";
-// import { useLocation } from "react-router";
 
 interface RepositorySeoData {
   repositoryName?: string | null;
@@ -27,7 +29,7 @@ function buildRepositorySeoDescription(repository: RepositorySeoData | null | un
   return `${repositoryName}${authorName ? `，作者 ${authorName}` : ""}。在团剧共创查看模组介绍、设定与可 Fork 内容。`;
 }
 
-export async function clientLoader({ params }: Route.ClientLoaderArgs) {
+export async function clientLoader({ params }: RouteClientLoaderArgs) {
   const repositoryId = Number(params.id);
   if (!Number.isFinite(repositoryId) || repositoryId <= 0) {
     return null;
@@ -42,7 +44,7 @@ export async function clientLoader({ params }: Route.ClientLoaderArgs) {
   }
 }
 
-export function meta({ data, params }: Route.MetaArgs) {
+export function meta({ data, params }: RouteMetaArgs<RepositorySeoData | null>) {
   const repositoryName = data?.repositoryName?.trim() || (params.id ? `模组 #${params.id}` : "模组详情");
   const repositoryImage = imageMediumUrl(data?.coverFileId) || (typeof data?.image === "string" ? data.image.trim() : "");
 
@@ -56,11 +58,5 @@ export function meta({ data, params }: Route.MetaArgs) {
 }
 
 export default function RepositoryDetail() {
-  // const location = useLocation();
-
-  // 优先使用从路由状态传递的数据，如果没有则使用默认数据
-  // const passedData = location.state?.repositoryData;
-  // const data = passedData || DEFAULT_REPOSITORY_DATA;
-
   return <RepositoryDetailComponent />;
 }

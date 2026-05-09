@@ -75,6 +75,7 @@ function fixCjsDefaultExportPlugin(): Plugin {
         "safe-buffer",
         "dayjs",
         "dayjs/dayjs.min.js",
+        "fast-deep-equal",
         "react-fast-compare",
         "screenfull",
       ];
@@ -665,7 +666,7 @@ export default defineConfig(() => {
 
         // Ensure TanStack Router runtime is pre-bundled with the same React instance.
         "@tanstack/react-router",
-        "@tanstack/router-devtools",
+        "@tanstack/react-router-devtools",
         "zustand",
 
         // Pixi has a very large module graph; without pre-bundling it can trigger

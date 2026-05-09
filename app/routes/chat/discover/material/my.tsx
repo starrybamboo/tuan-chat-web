@@ -1,9 +1,9 @@
-import type { Route } from "./+types/chatDiscoverMaterialMy";
+import type { RouteMetaArgs } from "@/router/routeTypes";
 
 import DiscoverPage from "@/components/chat/discover/discoverPage";
 import { createSeoMeta } from "@/utils/seo";
 
-export function meta(_args: Route.MetaArgs) {
+export function meta(_args: RouteMetaArgs) {
   return createSeoMeta({
     title: "我的素材包",
     description: "查看当前账号在团剧共创中的个人素材包。",
