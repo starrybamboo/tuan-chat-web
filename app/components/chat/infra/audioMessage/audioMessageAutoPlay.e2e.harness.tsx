@@ -1,5 +1,5 @@
 import React from "react";
-import { createRoot } from "react-dom/client";
+import ReactDOMClient from "react-dom/client";
 
 import { useAudioMessageAutoPlayStore } from "../../stores/audioMessageAutoPlayStore";
 import { triggerAudioAutoPlay } from "./audioMessageAutoPlayRuntime";
@@ -9,6 +9,8 @@ import {
   requestPlayBgmMessage,
   unregisterBgmMessageController,
 } from "./audioMessageBgmCoordinator";
+
+const { createRoot } = ReactDOMClient;
 
 const ACTIVE_ROOM_ID = 1001;
 const OTHER_ROOM_ID = 1002;

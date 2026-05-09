@@ -14,11 +14,19 @@ type CompatNavigateOptions = {
   state?: unknown;
 };
 
-export type NavigateFunction = (to: string | number, options?: CompatNavigateOptions) => void;
+type CompatToObject = {
+  pathname?: string;
+  search?: string;
+  hash?: string;
+};
+
+type CompatTo = string | CompatToObject;
+
+export type NavigateFunction = (to: CompatTo | number, options?: CompatNavigateOptions) => void;
 
 type CompatLinkProps = Omit<React.ComponentPropsWithoutRef<"a">, "href"> & {
   ref?: React.Ref<HTMLAnchorElement>;
-  to: string;
+  to: CompatTo;
   replace?: boolean;
 };
 
@@ -28,7 +36,7 @@ type CompatNavLinkProps = Omit<CompatLinkProps, "className"> & {
 };
 
 type CompatNavigateProps = {
-  to: string;
+  to: CompatTo;
   replace?: boolean;
   state?: unknown;
 };
@@ -42,8 +50,37 @@ type SetSearchParamsAction
 
 type SetSearchParams = (nextInit: SetSearchParamsAction, options?: CompatNavigateOptions) => void;
 
-function normalizeHref(currentHref: string, to: string) {
-  return new URL(to, `http://tanstack.local${currentHref}`).toString().replace("http://tanstack.local", "");
+function normalizeSearch(search: string | undefined) {
+  if (!search) {
+    return "";
+  }
+  return search.startsWith("?") ? search : `?${search}`;
+}
+
+function normalizeHash(hash: string | undefined) {
+  if (!hash) {
+    return "";
+  }
+  return hash.startsWith("#") ? hash : `#${hash}`;
+}
+
+function normalizeHref(currentHref: string, to: CompatTo) {
+  const currentUrl = new URL(currentHref, "http://tanstack.local");
+  if (typeof to === "string") {
+    return new URL(to, currentUrl).toString().replace("http://tanstack.local", "");
+  }
+
+  const nextUrl = new URL(currentUrl.toString());
+  if (typeof to.pathname === "string" && to.pathname.length > 0) {
+    nextUrl.pathname = new URL(to.pathname, currentUrl).pathname;
+  }
+  if ("search" in to) {
+    nextUrl.search = normalizeSearch(to.search);
+  }
+  if ("hash" in to) {
+    nextUrl.hash = normalizeHash(to.hash);
+  }
+  return nextUrl.toString().replace("http://tanstack.local", "");
 }
 
 function toUrlSearchParams(value: Exclude<SetSearchParamsAction, ((prev: URLSearchParams) => unknown)>) {
@@ -167,7 +204,7 @@ export function useNavigate(): NavigateFunction {
   const router = useRouter();
   const location = useLocation();
 
-  return useCallback((to: string | number, options?: CompatNavigateOptions) => {
+  return useCallback((to: CompatTo | number, options?: CompatNavigateOptions) => {
     if (typeof to === "number") {
       router.history.go(to);
       return;
@@ -184,8 +221,18 @@ export function useNavigate(): NavigateFunction {
 export function useLocation() {
   const location = useTanStackLocation() as any;
   const locationState = location?.state as Record<string, unknown> | undefined;
+  const pathname = typeof location?.pathname === "string" ? location.pathname : "/";
+  const search = typeof location?.searchStr === "string"
+    ? location.searchStr
+    : (typeof location?.search === "string" ? location.search : "");
+  const hash = typeof location?.hash === "string" ? location.hash : "";
+  const href = `${pathname}${search}${hash}`;
   return {
     ...location,
+    pathname,
+    search,
+    hash,
+    href,
     key: typeof locationState?.__TSR_key === "string" ? locationState.__TSR_key : "",
   };
 }

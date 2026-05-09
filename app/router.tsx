@@ -1,3 +1,4 @@
+import { QueryClientProvider } from "@tanstack/react-query";
 import { TanStackRouterDevtools } from "@tanstack/router-devtools";
 import {
   RouterProvider,
@@ -8,6 +9,7 @@ import {
 import RootApp, {
   ErrorBoundary as RootErrorBoundary,
 } from "@/root";
+import { queryClient } from "@/queryClient";
 import BlocksuiteFrameRoute, { meta as blocksuiteFrameMeta } from "@/routes/blocksuiteFrame";
 import ChatDiscoverMaterialMyRoute, { meta as chatDiscoverMaterialMyMeta } from "@/routes/chatDiscoverMaterialMy";
 import ChatDiscoverMaterialRoute, { meta as chatDiscoverMaterialMeta } from "@/routes/chatDiscoverMaterial";
@@ -51,10 +53,10 @@ import { isDevOrTestEnvironment } from "@/utils/runtimeEnvironment";
 
 function AppDocument() {
   return (
-    <>
+    <QueryClientProvider client={queryClient}>
       <RootApp />
       {import.meta.env.DEV ? <TanStackRouterDevtools position="bottom-right" /> : null}
-    </>
+    </QueryClientProvider>
   );
 }
 
@@ -337,6 +339,7 @@ const routeTree = rootRoute.addChildren([
 export const router = createRouter({
   routeTree,
   defaultPreload: "intent",
+  scrollRestoration: true,
 });
 
 declare module "@tanstack/react-router" {

@@ -1,7 +1,9 @@
 import React from "react";
-import { createRoot } from "react-dom/client";
+import ReactDOMClient from "react-dom/client";
 
 import SidebarSection from "@/components/chat/room/sidebarSection";
+
+const { createRoot } = ReactDOMClient;
 
 function SidebarSectionHarness() {
   const [isExpanded, setIsExpanded] = React.useState(true);

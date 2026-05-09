@@ -270,10 +270,10 @@ export default defineConfig(() => {
     return existsSync(abs) ? realpathSync(abs) : abs;
   };
 
-  // Some BlockSuite dist outputs ship ES2023 auto-accessor syntax:
-  // `accessor foo = ...` which Rollup (and some tooling) may fail to parse.
-  // Downlevel it in Vite's transform pipeline.
-  const blocksuiteAutoAccessorRE = /@blocksuite[\\/](?:std|affine-model|affine-block-[^\\/]+)[\\/]dist[\\/].*\.js(?:\?.*)?$/;
+  // Some BlockSuite packages and our local BlockSuite customizations still use ES2023 auto-accessors.
+  // Older Chromium builds and parts of the Vite pipeline may fail to parse `accessor foo = ...`.
+  // Downlevel only the affected files, and only when the source actually contains `accessor`.
+  const autoAccessorRE = /(?:@blocksuite[\\/][^\\/]+[\\/](?:dist|src)|app[\\/]components[\\/]chat[\\/]infra[\\/]blocksuite)[\\/].*\.(?:[cm]?[jt]s|tsx?)(?:\?.*)?$/;
 
   return {
     plugins: [
@@ -282,18 +282,19 @@ export default defineConfig(() => {
       ossUploadProxyPlugin(),
       electronDevPingPlugin(),
 
-      // Downlevel BlockSuite ES2023 auto-accessor syntax in dist outputs.
-      // Example crashing syntax: `accessor color = ...` (brush.js), `accessor elements = ...` (v-line.js).
+      // Downlevel BlockSuite ES2023 auto-accessor syntax before the normal Vite TS/JS transforms kick in.
       {
         name: "tc-downlevel-blocksuite-auto-accessor",
         enforce: "pre",
         async transform(code, id) {
-          if (!blocksuiteAutoAccessorRE.test(id))
+          if (!autoAccessorRE.test(id))
             return null;
-          if (!/^\s*accessor\s+/m.test(code))
+          if (!/^\s*(?:override\s+)?accessor\s+/m.test(code))
             return null;
 
           const filename = id.split("?")[0];
+          const isTypeScriptFile = /\.[cm]?tsx?$/.test(filename);
+          const isTsxFile = /\.tsx$/.test(filename);
           const result = await babelCore.transformAsync(code, {
             filename,
             // BlockSuite 发布包的 *.map 指向了未随 npm 分发的 src/* 文件。
@@ -301,6 +302,15 @@ export default defineConfig(() => {
             // 这里显式关闭输入/输出 sourcemap，保持构建可读性。
             sourceMaps: false,
             presets: [
+              ...(isTypeScriptFile
+                ? [[
+                    "@babel/preset-typescript",
+                    {
+                      allExtensions: true,
+                      isTSX: isTsxFile,
+                    },
+                  ] as const]
+                : []),
               [
                 "@babel/preset-env",
                 {
@@ -382,6 +392,8 @@ export default defineConfig(() => {
       dedupe: [
         "react",
         "react-dom",
+        "react-dom/client",
+        "scheduler",
         "react/compiler-runtime",
         "react/jsx-runtime",
         "react/jsx-dev-runtime",
@@ -646,6 +658,7 @@ export default defineConfig(() => {
         // Ensure React JSX runtime is properly converted to ESM for browser.
         "react",
         "react-dom",
+        "react-dom/client",
         "react/compiler-runtime",
         "react/jsx-runtime",
         "react/jsx-dev-runtime",
