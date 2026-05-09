@@ -1,7 +1,9 @@
 import React from "react";
-import { createRoot } from "react-dom/client";
+import ReactDOMClient from "react-dom/client";
 
 import RoomSidebarCategoryHeader from "@/components/chat/room/roomSidebarCategoryHeader";
+
+const { createRoot } = ReactDOMClient;
 
 function RoomSidebarCategoryHeaderHarness() {
   const [isCollapsed, setIsCollapsed] = React.useState(false);

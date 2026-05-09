@@ -1,7 +1,7 @@
 import type { Room } from "../../../../api";
 
 import React from "react";
-import { createRoot } from "react-dom/client";
+import ReactDOMClient from "react-dom/client";
 
 import useChatPageContextMenus from "@/components/chat/hooks/useChatPageContextMenus";
 import RoomSidebarRoomItem from "@/components/chat/room/roomSidebarRoomItem";
@@ -9,6 +9,7 @@ import SidebarSection from "@/components/chat/room/sidebarSection";
 
 const SPACE_ID = 1;
 const ROOM_ID = 1001;
+const { createRoot } = ReactDOMClient;
 
 const room: Room = {
   roomId: ROOM_ID,
