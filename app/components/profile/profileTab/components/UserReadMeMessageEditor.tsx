@@ -37,7 +37,7 @@ function isSelectionCollapsed(textarea: HTMLTextAreaElement) {
 function ReadOnlyNode({ node }: { node: UserReadMeMessageNode }) {
   if (node.messageType === MESSAGE_TYPE.INTRO_TEXT) {
     return (
-      <div className="rounded-md bg-black px-4 py-3 text-white shadow-inner">
+      <div className="rounded-md bg-black px-4 py-3 text-white">
         <TextEnhanceRenderer content={node.content} className="whitespace-pre-wrap break-words text-white" />
       </div>
     );
@@ -87,7 +87,7 @@ function EditableNode({
         rows={1}
         placeholder=""
         spellCheck={false}
-        className={`block w-full resize-none overflow-hidden border border-transparent bg-transparent px-1 py-2 text-base leading-7 transition focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 ${
+        className={`block w-full resize-none overflow-hidden border border-transparent bg-transparent px-1 py-2 text-base leading-7 caret-primary transition focus:border-transparent focus:outline-none focus:ring-0 ${
           node.messageType === MESSAGE_TYPE.INTRO_TEXT
             ? "rounded-md bg-black text-white placeholder:text-white/30"
             : "rounded-md text-base-content"
@@ -321,16 +321,16 @@ export default function UserReadMeMessageEditor({
 
   if (loadState === "loading") {
     return (
-      <div className="flex h-full min-h-40 items-center justify-center rounded-md border border-base-300/70 bg-base-100/80">
+      <div className="flex h-full min-h-40 items-center justify-center rounded-md bg-base-100/50">
         <span className="loading loading-spinner loading-md text-base-content/50"></span>
       </div>
     );
   }
 
   return (
-    <section className="flex h-full min-h-0 flex-col rounded-md border border-base-300/70 bg-base-100/85 shadow-sm">
+    <section className="flex h-full min-h-0 flex-col rounded-md bg-transparent">
       {loadState === "error" && (
-        <div className="flex items-center gap-2 border-b border-base-300/60 px-4 py-2 text-sm text-warning">
+        <div className="flex items-center gap-2 px-4 py-2 text-sm text-warning">
           <WarningCircleIcon className="h-4 w-4" />
           <span>{errorMessage || "加载失败"}</span>
         </div>
@@ -353,7 +353,7 @@ export default function UserReadMeMessageEditor({
           {isOwner && (
             <button
               type="button"
-              className="mt-2 h-10 rounded-md border border-dashed border-base-300 bg-base-100/70 text-sm text-base-content/45 transition hover:border-primary hover:text-base-content/70 focus:outline-none focus:ring-2 focus:ring-primary/20"
+              className="mt-3 h-10 rounded-md border border-dashed border-transparent bg-transparent text-sm text-base-content/35 transition hover:border-base-300/70 hover:text-base-content/60 focus:outline-none focus:ring-0"
               onClick={handleAppendParagraph}
               aria-label="追加段落"
             >
