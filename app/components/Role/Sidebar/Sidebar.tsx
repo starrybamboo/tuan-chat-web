@@ -69,6 +69,7 @@ function SidebarCreateCard({
         )}
         title={title}
         description={description}
+        descriptionClassName="mt-1 line-clamp-2 break-words text-xs leading-5 text-base-content/70 whitespace-normal"
       />
     </button>
   );
