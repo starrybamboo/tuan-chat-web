@@ -207,7 +207,6 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
 export default function App() {
   const location = useLocation();
-  const isBlocksuiteFrame = location.pathname.startsWith("/blocksuite-frame");
   const isScrollSequenceStandalone = location.pathname === "/scroll-sequence-demo"
     || location.pathname === "/scroll-sequence-motion-demo";
   const [isTestEnvSplashOpen, setIsTestEnvSplashOpen] = React.useState(false);
@@ -220,18 +219,16 @@ export default function App() {
   }, []);
 
   React.useEffect(() => {
-    if (isBlocksuiteFrame)
-      return;
     try {
       useDrawerPreferenceStore.getState().hydrateFromLocalStorage();
     }
     catch {
       // ignore
     }
-  }, [isBlocksuiteFrame]);
+  }, []);
 
   React.useEffect(() => {
-    if (typeof window === "undefined" || !isTestBuild || isBlocksuiteFrame)
+    if (typeof window === "undefined" || !isTestBuild)
       return;
     try {
       if (window.sessionStorage.getItem(TEST_ENV_SPLASH_SESSION_KEY) === "1")
@@ -241,7 +238,7 @@ export default function App() {
       // ignore
     }
     setIsTestEnvSplashOpen(true);
-  }, [isBlocksuiteFrame]);
+  }, []);
 
   const closeTestEnvSplash = React.useCallback(() => {
     setIsTestEnvSplashOpen(false);
@@ -252,19 +249,6 @@ export default function App() {
       // ignore
     }
   }, []);
-
-  // blocksuite iframe 页面只需要渲染路由内容本身：
-  // - 避免重复初始化全局 provider（尤其是 websocket）
-  // - 减少 iframe 冷启动成本
-  if (isBlocksuiteFrame) {
-    return (
-      <>
-        <Outlet />
-        <div id="modal-root"></div>
-        <ToastWindowRenderer />
-      </>
-    );
-  }
 
   if (isScrollSequenceStandalone) {
     return (

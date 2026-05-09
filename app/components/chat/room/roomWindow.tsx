@@ -15,11 +15,9 @@ import { RoomContext } from "@/components/chat/core/roomContext";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
 import { buildGalPatchMutationPlan, executeGalPatchMutationPlan } from "@/components/chat/galgameAi";
 import useChatInputStatus from "@/components/chat/hooks/useChatInputStatus";
-import { useBlocksuiteFramePrewarm } from "@/components/chat/infra/blocksuite/useBlocksuiteFramePrewarm";
 import { useChatHistory } from "@/components/chat/infra/indexedDB/useChatHistory";
 import { resolveMessageDiffBaseCommitId } from "@/components/chat/message/diff/messageVersionDiff";
 import RoomDocRefDropLayer from "@/components/chat/room/roomDocRefDropLayer";
-import { isInitialQueryReady, isRoomBlocksuitePrewarmReady } from "@/components/chat/room/roomPrewarmReadiness";
 import RoomSideDrawerGuards from "@/components/chat/room/roomSideDrawerGuards";
 import RoomWindowLayout from "@/components/chat/room/roomWindowLayout";
 import RoomWindowOverlays from "@/components/chat/room/roomWindowOverlays";
@@ -37,7 +35,7 @@ import useRoomMessageScroll from "@/components/chat/room/useRoomMessageScroll";
 import useRoomOverlaysController from "@/components/chat/room/useRoomOverlaysController";
 import useRoomRoleState from "@/components/chat/room/useRoomRoleState";
 import { compareChatMessageResponsesByOrder } from "@/components/chat/shared/messageOrder";
-import { StateRuntimeProvider, useStateRuntimeContext } from "@/components/chat/state/stateRuntimeContext";
+import { StateRuntimeProvider } from "@/components/chat/state/stateRuntimeContext";
 import { useAudioMessageAutoPlayStore } from "@/components/chat/stores/audioMessageAutoPlayStore";
 import { useChatInputUiStore } from "@/components/chat/stores/chatInputUiStore";
 import { useEntityHeaderOverrideStore } from "@/components/chat/stores/entityHeaderOverrideStore";
@@ -58,43 +56,6 @@ import {
 } from "../../../../api/hooks/chatQueryHooks";
 import { useRepositoryDetailByIdQuery } from "../../../../api/hooks/repositoryQueryHooks";
 import { fetchRoleAvatarWithCache, fetchRoleWithCache } from "../../../../api/hooks/RoleAndAvatarHooks";
-
-interface RoomBlocksuiteFramePrewarmProps {
-  historyLoading: boolean;
-  membersReady: boolean;
-  prewarmKey: string;
-  roomInfoReady: boolean;
-  rolesReady: boolean;
-  spaceInfoReady: boolean;
-}
-
-function RoomBlocksuiteFramePrewarm({
-  historyLoading,
-  membersReady,
-  prewarmKey,
-  roomInfoReady,
-  rolesReady,
-  spaceInfoReady,
-}: RoomBlocksuiteFramePrewarmProps) {
-  const runtime = useStateRuntimeContext();
-  const shouldPrewarm = isRoomBlocksuitePrewarmReady({
-    abilityLoading: runtime.isAbilityLoading,
-    historyLoading,
-    membersReady,
-    roomInfoReady,
-    rolesReady,
-    spaceInfoReady,
-  });
-
-  // warm frame 体积较大，只在聊天关键数据首载完成后交给 idle 队列。
-  useBlocksuiteFramePrewarm({
-    enabled: shouldPrewarm,
-    prewarmKey: shouldPrewarm ? prewarmKey : null,
-    startDelayMs: 1000,
-  });
-
-  return null;
-}
 
 function RoomWindow({
   roomId,
@@ -230,7 +191,6 @@ function RoomWindow({
     }
     return roomAllRoles.map(role => role.roleId).filter(roleId => roleId > 0);
   }, [roomAllRoles, sideDrawerState]);
-  const roomPrewarmKey = `${spaceId}:${roomId}`;
   const virtuosoRef = useRef<VirtuosoHandle | null>(null);
   const { scrollToGivenMessage } = useRoomMessageScroll({
     targetMessageId,
@@ -1123,14 +1083,6 @@ function RoomWindow({
           currentRoleId={curRoleId}
           visibleRoleIds={visibleRoleIdsForStateDrawer}
         >
-          <RoomBlocksuiteFramePrewarm
-            prewarmKey={roomPrewarmKey}
-            spaceInfoReady={isInitialQueryReady(spaceQuery)}
-            roomInfoReady={isInitialQueryReady(roomQuery)}
-            membersReady={isMemberDataReady}
-            rolesReady={isRoleDataReady}
-            historyLoading={Boolean(chatHistory?.loading)}
-          />
           <RealtimeRenderOrchestrator
             spaceId={spaceId}
             spaceName={spaceName}
