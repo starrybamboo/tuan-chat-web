@@ -1,6 +1,7 @@
 import type React from "react";
 import {
   Outlet as TanStackOutlet,
+  Scripts as TanStackScripts,
   ScrollRestoration as TanStackScrollRestoration,
   useLocation as useTanStackLocation,
   useMatchRoute,
@@ -297,7 +298,7 @@ export function Links() {
 }
 
 export function Scripts() {
-  return null;
+  return <TanStackScripts />;
 }
 
 export function isRouteErrorResponse(error: unknown): error is { status: number; statusText?: string; data?: any } {
