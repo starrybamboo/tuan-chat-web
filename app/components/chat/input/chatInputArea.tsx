@@ -1,6 +1,5 @@
 import type { UserRole } from "../../../../api";
 import React, { useImperativeHandle, useRef } from "react";
-import { extractChatInputMentionSnapshot } from "@/components/chat/input/chatMention";
 import { getEditorRange } from "@/utils/getSelectionCoords";
 
 // --- 外部接口 ---
@@ -102,7 +101,32 @@ function ChatInputArea({ ref, ...props }: ChatInputAreaProps & { ref?: React.Ref
    * [内部] 从 DOM 提取 @提及 和纯文本
    */
   const extractMentionsAndTextInternal = (): { mentionedRoles: UserRole[]; textWithoutMentions: string } => {
-    return extractChatInputMentionSnapshot(internalTextareaRef.current);
+    const editorDiv = internalTextareaRef.current;
+    if (!editorDiv)
+      return { mentionedRoles: [], textWithoutMentions: "" };
+
+    const clone = editorDiv.cloneNode(true) as HTMLDivElement;
+    const mentionedRoles: UserRole[] = [];
+    const mentionSpans = clone.querySelectorAll<HTMLSpanElement>("span[data-role]");
+
+    mentionSpans.forEach((span) => {
+      const roleData = span.dataset.role;
+      if (roleData) {
+        try {
+          const role: UserRole = JSON.parse(roleData);
+          if (!mentionedRoles.some(r => r.roleId === role.roleId)) {
+            mentionedRoles.push(role);
+          }
+        }
+        catch (e) {
+          console.error("Failed to parse role data", e);
+        }
+      }
+      span.parentNode?.removeChild(span);
+    });
+
+    const text = (clone.textContent ?? "").replace(/\u00A0/g, " "); // 将提及 span 留下的非断行空格转换回普通空格
+    return { mentionedRoles, textWithoutMentions: text };
   };
 
   /**

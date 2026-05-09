@@ -1061,7 +1061,6 @@ function RoomWindow({
     setCurRoleId,
     setCurAvatarId,
     mentionRoles: roomAllRoles,
-    spaceMembers: spaceContext.spaceMembers,
     selectableRoles: roomRolesThatUserOwn,
     chatInputRef: chatInputRef as any,
     atMentionRef: atMentionRef as any,

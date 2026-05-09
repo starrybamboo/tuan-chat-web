@@ -1,19 +1,19 @@
+import type { UserRole } from "api";
 import type { BlocksuiteDescriptionEditorProps } from "./blocksuiteDescriptionEditor.shared";
 import type { StoredSnapshot } from "@/components/chat/infra/blocksuite/description/descriptionDocRemote";
 import type { BlockNoteDocBlock } from "@/components/chat/infra/blocksuite/document/blockNoteSnapshot";
 import type { BlocksuiteDocHeader } from "@/components/chat/infra/blocksuite/document/docHeader";
-import type { UserRole } from "api";
 
-import { useQueries, useQueryClient } from "@tanstack/react-query";
 import { zh } from "@blocknote/core/locales";
 import { SuggestionMenuController, useCreateBlockNote } from "@blocknote/react";
 import { BlockNoteView } from "@blocknote/shadcn";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ROLE_DETAIL_STALE_TIME_MS } from "api/hooks/RoleAndAvatarHooks";
+import { useQueries, useQueryClient } from "@tanstack/react-query";
 import { useGetSpaceMembersQuery } from "api/hooks/chatQueryHooks";
+import { ROLE_DETAIL_STALE_TIME_MS } from "api/hooks/RoleAndAvatarHooks";
 import { useGetSpaceRepositoryRoleQuery } from "api/hooks/spaceRepositoryHooks";
 import { tuanchat } from "api/instance";
 import { seedUserRoleQueryCache } from "api/roleQueryCache";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { parseDescriptionDocId } from "@/components/chat/infra/blocksuite/description/descriptionDocId";
 import { getRemoteSnapshot, prewarmRemoteSnapshot, setRemoteSnapshot } from "@/components/chat/infra/blocksuite/description/descriptionDocRemote";
@@ -24,8 +24,8 @@ import { blocksuiteWsClient } from "@/components/chat/infra/blocksuite/space/run
 import { uploadMediaFile } from "@/utils/mediaUpload";
 import { mediaPreviewUrl } from "@/utils/mediaUrl";
 import { BLOCKSUITE_FULL_PANEL_EDITOR_CLASS, getCurrentAppTheme } from "./blocksuiteDescriptionEditor.shared";
-import { buildBlocksuiteMentionCandidates, filterBlocksuiteMentionCandidates } from "./blocksuiteMention";
 import { BlocksuiteFrameSkeleton } from "./BlocksuiteFrameSkeleton";
+import { buildBlocksuiteMentionCandidates, filterBlocksuiteMentionCandidates } from "./blocksuiteMention";
 import { TcHeader } from "./TcHeader";
 
 import "@blocknote/shadcn/style.css";
@@ -250,7 +250,7 @@ function BlockNoteDescriptionEditorClient(props: BlocksuiteDescriptionEditorProp
     setHeader(fallbackHeader);
     headerRef.current = fallbackHeader;
     setInitialBlocks(EMPTY_DOCUMENT);
-  }, [docId]);
+  }, [docId, fallbackHeader]);
 
   useEffect(() => {
     if (!intentPrewarm || !remoteKey) {
@@ -391,6 +391,18 @@ function BlockNoteDescriptionEditorClient(props: BlocksuiteDescriptionEditorProp
     uploadFile,
     defaultStyles: true,
   }, [docId, editorSeed]);
+  const getMentionItems = useCallback(async (query: string) => {
+    return filterBlocksuiteMentionCandidates(mentionCandidates, query).map(candidate => ({
+      title: candidate.label,
+      subtext: candidate.subtext,
+      group: candidate.group,
+      badge: candidate.badge,
+      aliases: candidate.keywords,
+      onItemClick: () => {
+        editor.insertInlineContent(`@${candidate.insertText} `);
+      },
+    }));
+  }, [editor, mentionCandidates]);
 
   const queueSnapshotPersist = useCallback((blocks: BlockNoteDocBlock[], headerOverride?: BlocksuiteDocHeader) => {
     const loadedSnapshot = loadedSnapshotRef.current;
@@ -573,7 +585,14 @@ function BlockNoteDescriptionEditorClient(props: BlocksuiteDescriptionEditorProp
               comments={false}
               onChange={handleEditorChange}
               className="h-full min-h-0 overflow-y-auto px-4 py-4 [&_.bn-container]:h-full [&_.bn-editor]:min-h-full [&_.bn-editor]:rounded-md [&_.bn-editor]:bg-transparent [&_.bn-editor]:px-2 [&_.bn-editor]:py-2"
-            />
+            >
+              {!readOnly && legacySnapshotVersion == null && (
+                <SuggestionMenuController
+                  triggerCharacter="@"
+                  getItems={getMentionItems}
+                />
+              )}
+            </BlockNoteView>
           </div>
         </div>
       </div>
