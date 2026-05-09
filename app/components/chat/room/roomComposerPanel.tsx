@@ -1,13 +1,13 @@
-import type { UserRole } from "../../../../api";
+import type { SpaceMember, UserRole } from "../../../../api";
 import type { AtMentionHandle } from "@/components/atMentionController";
 import type { ChatInputAreaHandle } from "@/components/chat/input/chatInputArea";
 import type { WebgalChoosePayload } from "@/types/webgalChoose";
 
 import React from "react";
 import AtMentionController from "@/components/atMentionController";
-import { SpaceContext } from "@/components/chat/core/spaceContext";
 import { getComposerAnnotations, setComposerAnnotations as persistComposerAnnotations } from "@/components/chat/infra/indexedDB/composerAnnotationsDb";
 import ChatInputArea from "@/components/chat/input/chatInputArea";
+import { buildChatMentionCandidates } from "@/components/chat/input/chatMention";
 import ChatToolbarFromStore from "@/components/chat/input/chatToolbarFromStore";
 import CommandPanelFromStore from "@/components/chat/input/commandPanelFromStore";
 import TextStyleToolbar from "@/components/chat/input/textStyleToolbar";
@@ -70,6 +70,8 @@ interface RoomComposerPanelProps {
 
   /** 输入框 @ 提及候选（应包含房间内全部可提及角色，含 NPC） */
   mentionRoles: UserRole[];
+  /** 当前空间成员列表，用于 @ 成员。 */
+  spaceMembers: SpaceMember[];
   /** 当前用户可切换的身份列表（玩家拥有角色 + NPC；旁白由 roleId=-1 表示） */
   selectableRoles: UserRole[];
 
@@ -115,6 +117,7 @@ function RoomComposerPanelImpl({
   setCurRoleId,
   setCurAvatarId,
   mentionRoles: mentionRolesProp,
+  spaceMembers,
   selectableRoles,
   chatInputRef,
   atMentionRef,
@@ -135,8 +138,6 @@ function RoomComposerPanelImpl({
   const composerAnnotationsLoadingKeyRef = React.useRef<string | null>(null);
   const screenSize = useScreenSize();
   const toolbarLayout: "inline" | "stacked" = screenSize === "sm" ? "stacked" : "inline";
-  const spaceContext = React.use(SpaceContext);
-  const spaceMembers = spaceContext.spaceMembers;
   const resolveDefaultFigurePosition = React.useCallback((role?: UserRole) => {
     if (!role) {
       return undefined;
@@ -169,6 +170,12 @@ function RoomComposerPanelImpl({
     };
     return [atAllRole, ...mentionRolesProp];
   }, [isKP, mentionRolesProp]);
+  const mentionCandidates = React.useMemo(() => {
+    return buildChatMentionCandidates({
+      roles: mentionRoles,
+      spaceMembers,
+    });
+  }, [mentionRoles, spaceMembers]);
 
   const prevImgFilesCountRef = React.useRef(imgFilesCount);
   const prevFileAttachmentsCountRef = React.useRef(fileAttachmentsCount);
@@ -596,7 +603,7 @@ function RoomComposerPanelImpl({
             <AtMentionController
               ref={atMentionRef}
               chatInputRef={chatInputRef as any}
-              allRoles={mentionRoles}
+              mentionCandidates={mentionCandidates}
             >
             </AtMentionController>
           </div>
