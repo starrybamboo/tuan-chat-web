@@ -19,7 +19,7 @@ export const Route = createFileRoute("/_dashboard/collection")({
   component: Collection,
 });
 
-export default function Collection() {
+function Collection() {
   return (
     <div className="h-full bg-base-200 overflow-auto">
       <CollectionPage></CollectionPage>

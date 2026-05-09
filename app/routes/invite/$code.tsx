@@ -8,7 +8,7 @@ export const Route = createFileRoute("/invite/$code")({
   component: InvitePage,
 });
 
-export default function InvitePage() {
+function InvitePage() {
   const { code } = useParams({ strict: false }) as { code?: string };
   const navigate = useNavigate();
   const queryClient = useQueryClient();

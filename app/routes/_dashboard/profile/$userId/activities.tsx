@@ -25,7 +25,7 @@ export const Route = createFileRoute("/_dashboard/profile/$userId/activities")({
   component: ProfileActivities,
 });
 
-export default function ProfileActivities() {
+function ProfileActivities() {
   const { userId } = useParams({ strict: false });
 
   return <ActivitiesTab userId={Number(userId)} />;

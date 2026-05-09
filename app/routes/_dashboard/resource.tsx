@@ -20,7 +20,7 @@ export const Route = createFileRoute("/_dashboard/resource")({
   component: Resource,
 });
 
-export default function Resource() {
+function Resource() {
   return (
     <div className="h-full bg-base-200 overflow-auto">
       <ResourcePage />

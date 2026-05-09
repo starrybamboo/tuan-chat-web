@@ -5,6 +5,6 @@ export const Route = createFileRoute("/_dashboard/chat/_chat-layout/$spaceId/doc
   component: ChatDocRoute,
 });
 
-export default function ChatDocRoute() {
+function ChatDocRoute() {
   return <ChatPageDocContent />;
 }

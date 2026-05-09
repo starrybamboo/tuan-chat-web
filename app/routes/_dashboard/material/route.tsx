@@ -19,7 +19,7 @@ export const Route = createFileRoute("/_dashboard/material")({
   component: MaterialRoute,
 });
 
-export default function MaterialRoute() {
+function MaterialRoute() {
   const location = useLocation();
   const searchParams = new URLSearchParams(location.searchStr);
   const tab = searchParams.get("tab");

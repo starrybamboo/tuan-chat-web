@@ -27,7 +27,7 @@ function clampAiImageSidebarWidth(nextWidth: number, containerWidth: number) {
   return Math.min(maxWidth, Math.max(minWidth, nextWidth));
 }
 
-export default function AiImagePage() {
+function AiImagePage() {
   const controller = useAiImagePageController();
   const {
     handlePageImageDragEnter,

@@ -18,6 +18,6 @@ export const Route = createFileRoute("/_dashboard/feedback/{-$issueId}")({
   component: Feedback,
 });
 
-export default function Feedback() {
+function Feedback() {
   return <FeedbackPage />;
 }

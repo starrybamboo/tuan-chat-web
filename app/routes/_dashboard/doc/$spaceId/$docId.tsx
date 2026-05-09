@@ -18,7 +18,7 @@ export const Route = createFileRoute("/_dashboard/doc/$spaceId/$docId")({
   component: DocRoute,
 });
 
-export default function DocRoute() {
+function DocRoute() {
   const { spaceId, docId } = useParams({ strict: false });
   const sid = Number(spaceId);
   const rawDocId = typeof docId === "string" ? docId : "";

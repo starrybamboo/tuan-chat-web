@@ -20,7 +20,7 @@ export const Route = createFileRoute("/_dashboard/chat/discover/material/")({
   component: ChatDiscoverMaterialRoute,
 });
 
-export default function ChatDiscoverMaterialRoute() {
+function ChatDiscoverMaterialRoute() {
   return (
     <div className="bg-base-200 h-full w-full overflow-y-auto overflow-x-visible">
       <DiscoverPage section="material" mode="public" />

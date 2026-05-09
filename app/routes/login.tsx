@@ -20,7 +20,7 @@ export const Route = createFileRoute("/login")({
   component: LoginPage,
 });
 
-export default function LoginPage() {
+function LoginPage() {
   const location = useLocation();
   const router = useRouter();
   const searchParams = new URLSearchParams(location.searchStr);

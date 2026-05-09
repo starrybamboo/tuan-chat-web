@@ -19,7 +19,7 @@ export const Route = createFileRoute("/_dashboard/repository/create")({
   component: RepositoryCreate,
 });
 
-export default function RepositoryCreate() {
+function RepositoryCreate() {
   return (
     <div className="bg-base-100 overflow-auto">
       {/* 这里添加创建仓库的表单 */}

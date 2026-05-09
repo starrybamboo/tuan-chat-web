@@ -122,7 +122,7 @@ export const Route = createFileRoute("/scroll-sequence-demo")({
   component: ScrollSequenceDemoPage,
 });
 
-export default function ScrollSequenceDemoPage() {
+function ScrollSequenceDemoPage() {
   useNativeDocumentScroll();
 
   const heroSectionRef = useRef<HTMLElement>(null);
