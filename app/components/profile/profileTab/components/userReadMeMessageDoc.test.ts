@@ -7,10 +7,12 @@ import {
   createUserReadMeNode,
   createUserReadMeSnapshot,
   decodeUserReadMeNodes,
+  getUserReadMeInlineMarks,
   mergeUserReadMeNodeBackward,
   mergeUserReadMeNodeForward,
   serializeUserReadMeNodes,
   splitUserReadMeNode,
+  toggleUserReadMeInlineMark,
 } from "./userReadMeMessageDoc";
 
 describe("userReadMeMessageDoc", () => {
@@ -73,6 +75,34 @@ describe("userReadMeMessageDoc", () => {
     expect(result.focus.caret).toBe(0);
   });
 
+  it("splits inline marks together with content", () => {
+    const nodes = [
+      createUserReadMeNode({
+        nodeId: "a",
+        content: "hello world",
+        extra: {
+          inlineMarks: [
+            { markId: "m1", type: "bold", start: 0, end: 5 },
+            { markId: "m2", type: "italic", start: 6, end: 11 },
+          ],
+        },
+      }),
+    ];
+
+    const result = splitUserReadMeNode(nodes, {
+      nodeId: "a",
+      selectionStart: 5,
+      selectionEnd: 5,
+    });
+
+    expect(getUserReadMeInlineMarks(result.nodes[0])).toEqual([
+      { markId: "m1", type: "bold", start: 0, end: 5 },
+    ]);
+    expect(getUserReadMeInlineMarks(result.nodes[1])).toEqual([
+      { markId: "m2", type: "italic", start: 1, end: 6 },
+    ]);
+  });
+
   it("merges backward and preserves caret at the join point", () => {
     const nodes = [
       createUserReadMeNode({ nodeId: "a", content: "hello" }),
@@ -88,6 +118,37 @@ describe("userReadMeMessageDoc", () => {
       nodeId: "a",
       caret: 5,
     });
+  });
+
+  it("merges backward and shifts inline marks from the removed node", () => {
+    const nodes = [
+      createUserReadMeNode({
+        nodeId: "a",
+        content: "hello",
+        extra: {
+          inlineMarks: [
+            { markId: "m1", type: "bold", start: 0, end: 5 },
+          ],
+        },
+      }),
+      createUserReadMeNode({
+        nodeId: "b",
+        content: " world",
+        extra: {
+          inlineMarks: [
+            { markId: "m2", type: "italic", start: 1, end: 6 },
+          ],
+        },
+      }),
+    ];
+
+    const result = mergeUserReadMeNodeBackward(nodes, "b");
+
+    expect(result).not.toBeNull();
+    expect(getUserReadMeInlineMarks(result!.nodes[0])).toEqual([
+      { markId: "m1", type: "bold", start: 0, end: 5 },
+      { markId: "m2", type: "italic", start: 6, end: 11 },
+    ]);
   });
 
   it("merges forward and preserves caret at the original node end", () => {
@@ -113,5 +174,28 @@ describe("userReadMeMessageDoc", () => {
     ];
 
     expect(serializeUserReadMeNodes(nodes)).toBe(serializeUserReadMeNodes([...nodes]));
+  });
+
+  it("toggles inline marks on and off within a text selection", () => {
+    const node = createUserReadMeNode({
+      nodeId: "a",
+      content: "hello world",
+    });
+
+    const bolded = toggleUserReadMeInlineMark(node, {
+      type: "bold",
+      start: 0,
+      end: 5,
+    });
+    expect(getUserReadMeInlineMarks(bolded)).toEqual([
+      expect.objectContaining({ type: "bold", start: 0, end: 5 }),
+    ]);
+
+    const unbolded = toggleUserReadMeInlineMark(bolded, {
+      type: "bold",
+      start: 0,
+      end: 5,
+    });
+    expect(getUserReadMeInlineMarks(unbolded)).toEqual([]);
   });
 });
