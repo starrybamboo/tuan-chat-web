@@ -8,7 +8,7 @@ import type { UserRole } from "@tuanchat/openapi-client/models/UserRole";
 import { resolveRenderedSoundMessagePurpose } from "@/components/chat/infra/audioMessage/audioMessagePurpose";
 import { ANNOTATION_IDS, getSceneEffectFromAnnotations, hasAnnotation, hasClearBackgroundAnnotation, hasClearBgmAnnotation, hasClearFigureAnnotation, hasClearImageAnnotation, isImageMessageBackground, isImageMessageShown, normalizeAnnotations } from "@/types/messageAnnotations";
 
-import type { GalAnnotation, GalAuthoringContext, GalDocumentFingerprint, GalMessagePurpose, GalMessageView, GalNarrator, GalReference, GalRoleAvatarVariant, GalRoomContext, GalRoomRole, GalSpaceContext, GalStoryFlow } from "./authoringTypes";
+import type { GalAnnotation, GalAuthoringContext, GalDocumentFingerprint, GalMessagePurpose, GalMessageView, GalNarrator, GalReference, GalReferenceRoomContext, GalRoleAvatarVariant, GalRoomContext, GalRoomRole, GalSpaceContext, GalStoryFlow } from "./authoringTypes";
 
 import { MessageType } from "../../../../api/wsModels";
 
@@ -24,6 +24,14 @@ export const GAL_NARRATOR: GalNarrator = {
 
 export function toGalId(value: number | string | undefined | null) {
   return value == null ? undefined : String(value);
+}
+
+function toPositiveGalId(value: number | string | undefined | null) {
+  if (value == null) {
+    return undefined;
+  }
+  const parsed = typeof value === "number" ? value : Number(value);
+  return Number.isFinite(parsed) && parsed > 0 ? String(value) : undefined;
 }
 
 function toRecord(value: unknown): Record<string, unknown> | undefined {
@@ -94,7 +102,7 @@ export function inferGalMessagePurpose(message: Pick<Message, "messageType" | "r
 
 export function projectGalMessage(message: Message, roleNameById: Map<number, string | undefined>): GalMessageView {
   const roleId = message.roleId != null && message.roleId <= 0 ? GAL_NARRATOR.roleId : toGalId(message.roleId);
-  const avatarId = toGalId(message.avatarId);
+  const avatarId = toPositiveGalId(message.avatarId);
   return {
     messageId: String(message.messageId),
     position: message.position,
@@ -230,6 +238,7 @@ export function buildGalAuthoringContext(params: {
   roleAvatarsByRoleId: Map<number, RoleAvatar[]>;
   annotations: GalAnnotation[];
   attachmentRefs?: GalReference[];
+  referenceRooms?: GalReferenceRoomContext[];
   includeFlow?: boolean;
   activeProposal?: GalAuthoringContext["activeProposal"];
 }): GalAuthoringContext {
@@ -256,6 +265,7 @@ export function buildGalAuthoringContext(params: {
     annotations: params.annotations,
     ...(params.includeFlow ? { flow: projectGalStoryFlow(params.space) } : {}),
     attachmentRefs: params.attachmentRefs ?? [],
+    ...(params.referenceRooms && params.referenceRooms.length > 0 ? { referenceRooms: params.referenceRooms } : {}),
     ...(params.activeProposal ? { activeProposal: params.activeProposal } : {}),
   };
 }

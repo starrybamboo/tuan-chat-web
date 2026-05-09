@@ -31,6 +31,7 @@ export default function RepliedMessage({ replyMessage, className }: {
     roleName: role?.roleName,
     customRoleName: replyMessage.customRoleName,
     isIntroText,
+    zeroRoleIsNarrator: true,
   });
   const isDeleted = replyMessage.status === 1;
   const namePrefix = !isDeleted && displayRoleName ? `${displayRoleName}: ` : "";

@@ -33,6 +33,10 @@ export default function RoomDocRefDropLayer({
     const el = target as HTMLElement | null;
     return Boolean(el?.closest?.("[data-sub-window-drop-zone]"));
   }, []);
+  const isCopilotContextDropZone = useCallback((target: EventTarget | null) => {
+    const el = target as HTMLElement | null;
+    return Boolean(el?.closest?.("[data-tc-copilot-context-drop-zone]"));
+  }, []);
   const updateDragOverlayLabel = useCallback((next: string | null) => {
     if (dragOverlayLabelRef.current === next)
       return;
@@ -46,7 +50,8 @@ export default function RoomDocRefDropLayer({
     const isRoomRef = isRoomRefDrag(event.dataTransfer);
     const isFile = isFileDrag(event.dataTransfer);
     const inSubWindowDropZone = isSubWindowDropZone(event.target);
-    if (inSubWindowDropZone) {
+    const inCopilotContextDropZone = isCopilotContextDropZone(event.target);
+    if (inSubWindowDropZone || inCopilotContextDropZone) {
       updateDragOverlayLabel(null);
       return;
     }
@@ -88,7 +93,7 @@ export default function RoomDocRefDropLayer({
       return;
     }
     updateDragOverlayLabel(null);
-  }, [getDragOverTargetZone, isSubWindowDropZone, updateDragOverlayLabel]);
+  }, [getDragOverTargetZone, isCopilotContextDropZone, isSubWindowDropZone, updateDragOverlayLabel]);
 
   const handleDragLeave = useCallback((event: React.DragEvent<HTMLDivElement>) => {
     const relatedTarget = event.relatedTarget as Node | null;
@@ -106,7 +111,8 @@ export default function RoomDocRefDropLayer({
     const isRoomRef = isRoomRefDrag(event.dataTransfer);
     const isFile = isFileDrag(event.dataTransfer);
     const inSubWindowDropZone = isSubWindowDropZone(event.target);
-    if (inSubWindowDropZone) {
+    const inCopilotContextDropZone = isCopilotContextDropZone(event.target);
+    if (inSubWindowDropZone || inCopilotContextDropZone) {
       return;
     }
     if (!getDragOverTargetZone(event.target)) {
@@ -141,7 +147,7 @@ export default function RoomDocRefDropLayer({
     event.preventDefault();
     event.stopPropagation();
     void onSendDocCard(docRef);
-  }, [getDragOverTargetZone, isSubWindowDropZone, onSendDocCard, onSendMaterialItem, onSendRoomJump, updateDragOverlayLabel]);
+  }, [getDragOverTargetZone, isCopilotContextDropZone, isSubWindowDropZone, onSendDocCard, onSendMaterialItem, onSendRoomJump, updateDragOverlayLabel]);
 
   useEffect(() => {
     const handleGlobalDragEnd = () => {

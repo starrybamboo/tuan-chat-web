@@ -3,12 +3,12 @@ import type { AiGatewayRelayRequest } from "@tuanchat/openapi-client/models/AiGa
 import { tuanchat } from "../../api/instance";
 
 type AiGatewayModel = AiGatewayRelayRequest["model"];
-const FRONTEND_LLM_MODEL: AiGatewayModel = "gpt-5.1";
+const FRONTEND_LLM_MODEL: AiGatewayModel = "gpt-5.4-mini";
 
 export async function relayAiGatewayText(params: {
   prompt: string;
 }) {
-  // 前端统一走 gpt-5.1，避免各处模型分叉导致未配置模型报错。
+  // 前端统一走当前上游可用的基础文本模型，避免各处模型分叉导致未配置模型报错。
   const result = await tuanchat.aiGatewayController.relay({
     model: FRONTEND_LLM_MODEL,
     prompt: params.prompt,

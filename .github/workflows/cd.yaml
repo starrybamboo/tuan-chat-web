@@ -108,13 +108,13 @@ jobs:
             done
             return 1
           }
-
           # 避免 GitHub Expression 在 secret 为空、纯空白或带换行时提前短路，统一在 shell 中显式回退。
           DEPLOY_SERVER_HOST="$(
             pick_first_non_blank \
               "${SERVER_HOST_SECRET:-}" \
               "${SSH_HOST_SECRET:-}" \
               "${UPDATE_SERVER_HOST_SECRET:-}" \
+              "38.14.195.6"
               "38.14.195.6"
           )"
 
@@ -141,7 +141,6 @@ jobs:
               "${UPDATE_SERVER_PRIVATE_KEY_SECRET:-}" \
               || true
           )"
-
           DEPLOY_SERVER_PASSWORD="$(
             pick_first_non_blank \
               "${SERVER_PASSWORD_SECRET:-}" \

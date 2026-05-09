@@ -34,6 +34,7 @@ function SidebarRoomContextMenuHarness() {
           onToggleExpanded={() => {}}
           className="flex min-h-0 flex-col"
           contentClassName="mt-0.5 min-h-0 flex-1 overflow-y-auto overflow-x-hidden"
+          fillContent
         >
           <div data-testid="extra-wrapper" className="rounded-lg border border-base-300 p-2">
             <div data-testid="extra-wrapper-inner" className="space-y-1 rounded-md bg-base-200/40 p-1">

@@ -1,4 +1,5 @@
 import type { MediaQuality, MediaType } from "@/utils/imgCompressUtils";
+import { resolveRuntimeMediaBaseUrl } from "@/utils/runtimeUrl";
 
 const MEDIA_EXT: Partial<Record<MediaType, string>> = {
   image: "webp",
@@ -10,12 +11,20 @@ const DEFAULT_MEDIA_CDN_BASE_URL = "https://tuan.chat";
 const FALLBACK_MEDIA_TYPE: MediaType = "image";
 const MEDIA_FILE_URL_PATTERN = /^(?<prefix>.*?\/media\/v1\/files\/)(?<shard>\d{3})\/(?<fileId>\d+)(?:\/(?:(?<mediaType>image|audio|video)\/(?<quality>low|medium|high)\.[^/?#]+|original))(?:[?#].*)?$/;
 
+// 迁移裁剪后的备份里，图片不再保留 high，音视频只保留 low。
+function resolveAvailableQuality(mediaType: MediaType, quality: MediaQuality): MediaQuality {
+  if (mediaType === "audio" || mediaType === "video") {
+    return "low";
+  }
+  if (mediaType === "image" && quality === "high") {
+    return "medium";
+  }
+  return quality;
+}
+
 function normalizeCdnBaseUrl() {
   const envBase = String(import.meta.env.VITE_MEDIA_CDN_BASE_URL ?? "").trim();
-  if (envBase) {
-    return envBase.replace(/\/$/, "");
-  }
-  return DEFAULT_MEDIA_CDN_BASE_URL;
+  return resolveRuntimeMediaBaseUrl(envBase, DEFAULT_MEDIA_CDN_BASE_URL);
 }
 
 export function mediaShard(fileId: number | string) {
@@ -39,14 +48,15 @@ export function mediaUrl(
   }
   const shard = mediaShard(fileId);
   const base = `${normalizeCdnBaseUrl()}/media/v1/files/${shard}/${fileId}`;
-  if (quality === "original") {
+  const resolvedQuality = resolveAvailableQuality(mediaType, quality);
+  if (resolvedQuality === "original") {
     return `${base}/original`;
   }
   const ext = MEDIA_EXT[mediaType];
   if (!ext) {
     return `${base}/original`;
   }
-  return `${base}/${mediaType}/${quality}.${ext}`;
+  return `${base}/${mediaType}/${resolvedQuality}.${ext}`;
 }
 
 export function mediaFileUrl(
@@ -74,10 +84,11 @@ export function mediaFileUrlWithQuality(
 
   const ext = MEDIA_EXT[mediaType];
   const base = `${groups.prefix}${groups.shard}/${groups.fileId}`;
-  if (quality === "original" || !ext) {
+  const resolvedQuality = resolveAvailableQuality(mediaType, quality);
+  if (resolvedQuality === "original" || !ext) {
     return `${base}/original`;
   }
-  return `${base}/${mediaType}/${quality}.${ext}`;
+  return `${base}/${mediaType}/${resolvedQuality}.${ext}`;
 }
 
 export function imageUrlWithQuality(rawUrl: string | null | undefined, quality: MediaQuality) {

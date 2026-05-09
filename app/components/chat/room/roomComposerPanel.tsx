@@ -433,19 +433,18 @@ function RoomComposerPanelImpl({
     onToggleRunMode,
     toolbarLayout,
   ]);
-  const headerToolbarControls = (webgalLinkMode || runModeEnabled)
-    ? (
-        <ChatToolbarFromStore
-          {...toolbarCommonProps}
-          showWebgalLinkToggle={false}
-          showRunModeToggle={false}
-          showMainActions={false}
-          showSendButton={false}
-          showWebgalControls={true}
-          showRunControls={true}
-        />
-      )
-    : null;
+  const headerToolbarControls = (
+    <ChatToolbarFromStore
+      {...toolbarCommonProps}
+      showWebgalLinkToggle={false}
+      showRunModeToggle={false}
+      showMainActions={false}
+      showSendButton={false}
+      showWebgalControls={true}
+      showRunControls={true}
+      showCopilotControl={true}
+    />
+  );
 
   const shouldShowComposerAnnotations = !isSpectator || composerAnnotations.length > 0;
   const composerAnnotationsBar = shouldShowComposerAnnotations

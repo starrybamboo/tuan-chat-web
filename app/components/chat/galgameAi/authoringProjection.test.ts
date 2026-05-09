@@ -80,7 +80,7 @@ describe("galgame authoring projection", () => {
   it("投影消息时过滤删除消息并把旁白映射为 narrator", () => {
     const messages = projectGalMessages([
       createMessage({ messageId: 2, position: 2, roleId: 7, content: "第二句" }),
-      createMessage({ messageId: 1, position: 1, roleId: 0, content: "第一句" }),
+      createMessage({ messageId: 1, position: 1, roleId: 0, avatarId: -1, content: "第一句" }),
       createMessage({ messageId: 3, position: 3, status: 1, content: "已删除" }),
     ], [
       {
@@ -97,6 +97,7 @@ describe("galgame authoring projection", () => {
       roleName: "旁白",
       purpose: "narration",
     });
+    expect(messages[0]?.avatarId).toBeUndefined();
     expect(messages[1]).toMatchObject({
       roleId: "7",
       roleName: "千夏",

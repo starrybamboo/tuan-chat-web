@@ -11,9 +11,21 @@ import {
   mediaUrl,
 } from "./mediaUrl";
 
+function stubWindowLocation(origin: string) {
+  vi.stubGlobal("window", {
+    location: {
+      href: `${origin}/chat/discover/material`,
+      origin,
+      protocol: new URL(origin).protocol,
+    },
+    isSecureContext: true,
+  });
+}
+
 describe("mediaUrl", () => {
   afterEach(() => {
     vi.unstubAllEnvs();
+    vi.unstubAllGlobals();
   });
 
   it("根据 fileId 推导线上分片路径和图片三档 URL", () => {
@@ -29,8 +41,15 @@ describe("mediaUrl", () => {
     expect(mediaUrl(1001, "image", "low")).toBe("https://cdn.example.com/media/v1/files/001/1001/image/low.webp");
   });
 
+  it("会在 HTTPS 页面把不安全 CDN 地址回退到当前站点", () => {
+    stubWindowLocation("https://tuan.chat");
+    vi.stubEnv("VITE_MEDIA_CDN_BASE_URL", "http://101.126.143.129");
+
+    expect(mediaUrl(1001, "image", "low")).toBe("https://tuan.chat/media/v1/files/001/1001/image/low.webp");
+  });
+
   it("将已有媒体 URL 改写为适合展示场景的图片档位", () => {
-    expect(imageHighUrlFromUrl("/media/v1/files/007/7/original")).toBe("/media/v1/files/007/7/image/high.webp");
+    expect(imageHighUrlFromUrl("/media/v1/files/007/7/original")).toBe("/media/v1/files/007/7/image/medium.webp");
     expect(imageMediumUrlFromUrl("/media/v1/files/007/7/image/high.webp")).toBe("/media/v1/files/007/7/image/medium.webp");
     expect(imageLowUrlFromUrl("https://cdn.example.com/media/v1/files/007/7/original?token=old")).toBe("https://cdn.example.com/media/v1/files/007/7/image/low.webp");
     expect(imageOriginalUrlFromUrl("/media/v1/files/007/7/image/low.webp")).toBe("/media/v1/files/007/7/original");
@@ -43,7 +62,7 @@ describe("mediaUrl", () => {
   });
 
   it("按媒体类型改写已有音视频媒体 URL", () => {
-    expect(mediaFileUrlWithQuality("/media/v1/files/009/9/original", "audio", "high")).toBe("/media/v1/files/009/9/audio/high.webm");
-    expect(mediaFileUrlWithQuality("/media/v1/files/010/10/video/low.webm", "video", "medium")).toBe("/media/v1/files/010/10/video/medium.webm");
+    expect(mediaFileUrlWithQuality("/media/v1/files/009/9/original", "audio", "high")).toBe("/media/v1/files/009/9/audio/low.webm");
+    expect(mediaFileUrlWithQuality("/media/v1/files/010/10/video/low.webm", "video", "medium")).toBe("/media/v1/files/010/10/video/low.webm");
   });
 });

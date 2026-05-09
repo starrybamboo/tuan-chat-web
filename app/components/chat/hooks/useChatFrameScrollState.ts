@@ -7,13 +7,46 @@ import type { UseChatHistoryReturn } from "@/components/chat/infra/indexedDB/use
 
 import type { ChatMessageResponse } from "../../../../api";
 
+function getLatestHistoryMessageSyncId(historyMessages: ChatMessageResponse[]): number | null {
+  const lastMessage = historyMessages[historyMessages.length - 1];
+  const lastSyncId = typeof lastMessage?.message?.syncId === "number"
+    ? lastMessage.message.syncId
+    : null;
+  return lastSyncId;
+}
+
+export function resolveReadSyncIdOnRoomExit(params: {
+  enableUnreadIndicator: boolean;
+  historyMessages: ChatMessageResponse[];
+  isAtBottom: boolean;
+  lastSyncedMessageSyncId: number | null;
+}): number | null {
+  const {
+    enableUnreadIndicator,
+    historyMessages,
+    isAtBottom,
+    lastSyncedMessageSyncId,
+  } = params;
+
+  if (!enableUnreadIndicator || !isAtBottom) {
+    return null;
+  }
+
+  const latestHistorySyncId = getLatestHistoryMessageSyncId(historyMessages);
+  if (latestHistorySyncId == null || latestHistorySyncId === lastSyncedMessageSyncId) {
+    return null;
+  }
+
+  return latestHistorySyncId;
+}
+
 type UseChatFrameScrollStateParams = {
   enableUnreadIndicator: boolean;
   historyMessages: ChatMessageResponse[];
   roomId: number;
   chatHistory?: UseChatHistoryReturn;
   unreadMessagesNumber: Record<number, number>;
-  updateLastReadSyncId: (roomId: number) => void;
+  updateLastReadSyncId: (roomId: number, lastReadSyncId?: number) => void;
   virtuosoRef: { current: VirtuosoHandle | null };
   messageIndexToVirtuosoIndex: (messageIndex: number) => number;
 };
@@ -38,21 +71,21 @@ export default function useChatFrameScrollState({
   const isAtBottomRef = useRef(true);
   const lastAutoSyncUnreadRef = useRef<number | null>(null);
   const lastSyncedMessageSyncIdRef = useRef<number | null>(null);
+  const latestHistorySyncIdRef = useRef<number | null>(null);
   const isAtTopRef = useRef(false);
 
   const unreadMessageNumber = enableUnreadIndicator
     ? (unreadMessagesNumber[roomId] ?? 0)
     : 0;
 
+  latestHistorySyncIdRef.current = getLatestHistoryMessageSyncId(historyMessages);
+
   useEffect(() => {
     if (!enableUnreadIndicator) {
       return;
     }
     if (isAtBottomRef.current) {
-      const lastMessage = historyMessages[historyMessages.length - 1];
-      const lastSyncId = typeof lastMessage?.message?.syncId === "number"
-        ? lastMessage.message.syncId
-        : null;
+      const lastSyncId = latestHistorySyncIdRef.current;
       if (lastSyncId != null && lastSyncedMessageSyncIdRef.current === lastSyncId) {
         return;
       }
@@ -79,6 +112,22 @@ export default function useChatFrameScrollState({
     lastAutoSyncUnreadRef.current = unreadMessageNumber;
     updateLastReadSyncId(roomId);
   }, [enableUnreadIndicator, roomId, unreadMessageNumber, updateLastReadSyncId]);
+
+  useEffect(() => {
+    return () => {
+      const syncIdToMarkRead = resolveReadSyncIdOnRoomExit({
+        enableUnreadIndicator,
+        historyMessages,
+        isAtBottom: isAtBottomRef.current,
+        lastSyncedMessageSyncId: lastSyncedMessageSyncIdRef.current,
+      });
+      if (syncIdToMarkRead == null) {
+        return;
+      }
+      lastSyncedMessageSyncIdRef.current = syncIdToMarkRead;
+      updateLastReadSyncId(roomId, syncIdToMarkRead);
+    };
+  }, [enableUnreadIndicator, historyMessages, roomId, updateLastReadSyncId]);
 
   const scrollToBottom = useCallback(() => {
     virtuosoRef.current?.scrollToIndex(messageIndexToVirtuosoIndex(historyMessages.length - 1));
