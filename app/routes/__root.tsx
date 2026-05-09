@@ -2,19 +2,15 @@ import type {
   RouteMetaArgs,
 } from "@/router/routeTypes";
 import { QueryClientProvider } from "@tanstack/react-query";
-import { createRootRoute, HeadContent } from "@tanstack/react-router";
+import { createRootRoute, HeadContent, Outlet, Scripts, ScrollRestoration, useLocation } from "@tanstack/react-router";
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 
 import React from "react";
 import { toast, Toaster } from "react-hot-toast";
 import {
   isRouteErrorResponse,
-  Outlet,
-  Scripts,
-  ScrollRestoration,
-  useLocation,
-  useNavigate,
-} from "@/router/native";
+  useAppNavigate as useNavigate,
+} from "@/router/utils";
 import { installMediaDebugBridge } from "@/components/chat/infra/media/mediaDebug";
 import { useDrawerPreferenceStore } from "@/components/chat/stores/drawerPreferenceStore";
 import { ToastWindowRenderer } from "@/components/common/toastWindow/toastWindowRenderer";

@@ -5,7 +5,7 @@ import type { DicerMessageVisibility } from "@/components/common/dicer/commandMe
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef } from "react";
 import toast from "react-hot-toast";
-import { useParams } from "@/router/native";
+import { useAllParams as useParams } from "@/router/utils";
 import { getNextAppendPosition } from "@/components/chat/shared/messageOrder";
 import { initAliasMapOnce, RULES } from "@/components/common/dicer/aliasRegistry";
 import executorPublic from "@/components/common/dicer/cmdExe/cmdExePublic";

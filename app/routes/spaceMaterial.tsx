@@ -1,7 +1,7 @@
 import type { RouteMetaArgs } from "@/router/routeTypes";
 import { createFileRoute } from "@tanstack/react-router";
 import SpaceMaterialLibraryPage from "@/components/material/pages/spaceMaterialLibraryPage";
-import { useParams } from "@/router/native";
+import { useAllParams as useParams } from "@/router/utils";
 import { createSeoMeta } from "@/utils/seo";
 
 export function meta(args: RouteMetaArgs) {
@@ -21,7 +21,7 @@ export const Route = createFileRoute("/_dashboard/material/space/$spaceId")({
 });
 
 export default function SpaceMaterialRoute() {
-  const { spaceId: spaceIdParam } = useParams<{ spaceId: string }>();
+  const { spaceId: spaceIdParam } = useParams() as { spaceId?: string };
   const spaceId = Number(spaceIdParam);
   return (
     <div className="h-full overflow-auto bg-base-200">

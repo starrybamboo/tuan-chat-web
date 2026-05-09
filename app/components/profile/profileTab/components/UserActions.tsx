@@ -1,6 +1,6 @@
 import type { UserInfoResponse } from "../../../../../api";
 import React from "react";
-import { Link } from "@/router/native";
+import { Link } from "@/router/utils";
 import { FollowButton } from "@/components/common/Follow/FollowButton";
 
 interface ProfileEditingActions {

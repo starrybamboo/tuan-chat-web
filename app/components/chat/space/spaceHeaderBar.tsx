@@ -3,7 +3,7 @@ import { AddressBookIcon, ArchiveIcon, ArrowCounterClockwise, HouseIcon, PlusIco
 import { AnimatePresence, motion } from "motion/react";
 import React from "react";
 import toast from "react-hot-toast";
-import { useNavigate } from "@/router/native";
+import { useAppNavigate as useNavigate } from "@/router/utils";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
 import { prepareSpaceDocsForArchive } from "@/components/chat/infra/blocksuite/space/prepareSpaceDocsForArchive";
 import { canInviteSpectators } from "@/components/chat/utils/memberPermissions";

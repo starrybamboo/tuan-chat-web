@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { useSearchParams } from "@/router/native";
+import { useUrlSearchParams as useSearchParams } from "@/router/utils";
 import {
   requestForgotPasswordByEmail,
   sendEmailVerificationCode,

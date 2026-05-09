@@ -3,14 +3,14 @@ import { useQueryClient } from "@tanstack/react-query";
 import { fetchUserRoomsWithCache, useSpaceInvitedMutation } from "api/hooks/chatQueryHooks";
 import { useEffect, useRef, useState } from "react";
 import { useGlobalUserId } from "@/components/globalContextProvider";
-import { useNavigate, useParams } from "@/router/native";
+import { useAppNavigate as useNavigate, useAllParams as useParams } from "@/router/utils";
 
 export const Route = createFileRoute("/invite/$code")({
   component: InvitePage,
 });
 
 export default function InvitePage() {
-  const { code } = useParams<{ code: string }>();
+  const { code } = useParams() as { code?: string };
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const userId = useGlobalUserId();

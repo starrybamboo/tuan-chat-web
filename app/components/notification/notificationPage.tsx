@@ -1,7 +1,7 @@
 import type { UserNotificationItem } from "@/components/notification/notificationTypes";
 
 import { startTransition, useMemo, useState } from "react";
-import { useNavigate } from "@/router/native";
+import { useAppNavigate as useNavigate } from "@/router/utils";
 import { useGlobalUserId } from "@/components/globalContextProvider";
 import {
   useMarkAllNotificationsReadMutation,

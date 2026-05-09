@@ -3,14 +3,14 @@ import {
   Outlet as TanStackOutlet,
   Scripts as TanStackScripts,
   ScrollRestoration as TanStackScrollRestoration,
+  useLocation as useTanStackLocation,
   useMatchRoute,
   useRouter,
   useRouterState,
-  useLocation as useTanStackLocation,
 } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo } from "react";
 
-interface NavigateOptions {
+export interface NavigateOptions {
   replace?: boolean;
   state?: unknown;
 }
@@ -25,19 +25,26 @@ type To = string | ToObject;
 
 export type NavigateFunction = (to: To | number, options?: NavigateOptions) => void;
 
-type LinkProps = Omit<React.ComponentPropsWithoutRef<"a">, "href"> & {
+type CompatLocation = ReturnType<typeof useTanStackLocation> & {
+  pathname: string;
+  search: string;
+  hash: string;
+  href: string;
+  key: string;
+};
+
+type CompatLinkProps = Omit<React.ComponentPropsWithoutRef<"a">, "href"> & {
   ref?: React.Ref<HTMLAnchorElement>;
   to: To;
   replace?: boolean;
 };
 
-type NavLinkProps = Omit<LinkProps, "className"> & {
+type CompatNavLinkProps = Omit<CompatLinkProps, "className"> & {
   className?: string | ((state: { isActive: boolean; isPending: boolean }) => string);
-  to: To;
   end?: boolean;
 };
 
-interface NavigateProps {
+interface CompatNavigateProps {
   to: To;
   replace?: boolean;
   state?: unknown;
@@ -51,6 +58,20 @@ type SetSearchParamsAction
     | ((prev: URLSearchParams) => URLSearchParams | string | string[][] | Record<string, string>);
 
 type SetSearchParams = (nextInit: SetSearchParamsAction, options?: NavigateOptions) => void;
+
+function shouldHandleAnchorClick(event: React.MouseEvent<HTMLAnchorElement>) {
+  return !event.defaultPrevented
+    && event.button === 0
+    && !(event.metaKey || event.altKey || event.ctrlKey || event.shiftKey);
+}
+
+function isActivePath(currentPathname: string, targetPathname: string, end: boolean) {
+  if (end) {
+    return currentPathname === targetPathname;
+  }
+  return currentPathname === targetPathname
+    || currentPathname.startsWith(targetPathname.endsWith("/") ? targetPathname : `${targetPathname}/`);
+}
 
 function normalizeSearch(search: string | undefined) {
   if (!search) {
@@ -98,18 +119,22 @@ function toUrlSearchParams(value: Exclude<SetSearchParamsAction, ((prev: URLSear
   return new URLSearchParams(Object.entries(value));
 }
 
-function shouldHandleAnchorClick(event: React.MouseEvent<HTMLAnchorElement>) {
-  return !event.defaultPrevented
-    && event.button === 0
-    && !(event.metaKey || event.altKey || event.ctrlKey || event.shiftKey);
-}
+export function useAppNavigate(): NavigateFunction {
+  const router = useRouter();
+  const location = useLocation();
 
-function isActivePath(currentPathname: string, targetPathname: string, end: boolean) {
-  if (end) {
-    return currentPathname === targetPathname;
-  }
-  return currentPathname === targetPathname
-    || currentPathname.startsWith(targetPathname.endsWith("/") ? targetPathname : `${targetPathname}/`);
+  return useCallback((to: To | number, options?: NavigateOptions) => {
+    if (typeof to === "number") {
+      router.history.go(to);
+      return;
+    }
+    const href = normalizeHref(location.href, to);
+    if (options?.replace) {
+      router.history.replace(href, options.state);
+      return;
+    }
+    router.history.push(href, options?.state);
+  }, [location.href, router]);
 }
 
 export function Link({
@@ -119,8 +144,8 @@ export function Link({
   onClick,
   target,
   ...props
-}: LinkProps) {
-  const navigate = useNavigate();
+}: CompatLinkProps) {
+  const navigate = useAppNavigate();
   const location = useLocation();
   const href = useMemo(
     () => normalizeHref(`${location.pathname}${location.search}${location.hash}`, to),
@@ -154,8 +179,8 @@ export function NavLink({
   end = false,
   target,
   ...props
-}: NavLinkProps) {
-  const navigate = useNavigate();
+}: CompatNavLinkProps) {
+  const navigate = useAppNavigate();
   const location = useLocation();
   const href = useMemo(
     () => normalizeHref(`${location.pathname}${location.search}${location.hash}`, to),
@@ -188,8 +213,8 @@ export function NavLink({
   );
 }
 
-export function Navigate({ to, replace = false, state }: NavigateProps) {
-  const navigate = useNavigate();
+export function Navigate({ to, replace = false, state }: CompatNavigateProps) {
+  const navigate = useAppNavigate();
 
   useEffect(() => {
     navigate(to, { replace, state });
@@ -202,44 +227,7 @@ export function Outlet() {
   return <TanStackOutlet />;
 }
 
-export function useNavigate(): NavigateFunction {
-  const router = useRouter();
-  const location = useLocation();
-
-  return useCallback((to: To | number, options?: NavigateOptions) => {
-    if (typeof to === "number") {
-      router.history.go(to);
-      return;
-    }
-    const href = normalizeHref(`${location.pathname}${location.search}${location.hash}`, to);
-    if (options?.replace) {
-      router.history.replace(href, options.state);
-      return;
-    }
-    router.history.push(href, options?.state);
-  }, [location.hash, location.pathname, location.search, router]);
-}
-
-export function useLocation() {
-  const location = useTanStackLocation() as any;
-  const locationState = location?.state as Record<string, unknown> | undefined;
-  const pathname = typeof location?.pathname === "string" ? location.pathname : "/";
-  const search = typeof location?.searchStr === "string"
-    ? location.searchStr
-    : (typeof location?.search === "string" ? location.search : "");
-  const hash = typeof location?.hash === "string" ? location.hash : "";
-  const href = `${pathname}${search}${hash}`;
-  return {
-    ...location,
-    pathname,
-    search,
-    hash,
-    href,
-    key: typeof locationState?.__TSR_key === "string" ? locationState.__TSR_key : "",
-  };
-}
-
-export function useParams<T extends Record<string, string | undefined> = Record<string, string | undefined>>() {
+export function useAllParams<T extends Record<string, string | undefined> = Record<string, string | undefined>>() {
   const matches = useRouterState({
     select: state => state.matches as any[],
   }) as any[];
@@ -253,12 +241,34 @@ export function useParams<T extends Record<string, string | undefined> = Record<
   }, [matches]);
 }
 
-export function useSearchParams(): [URLSearchParams, SetSearchParams] {
+export function useLocation(): CompatLocation {
+  const location = useTanStackLocation() as any;
+  const locationState = location?.state as Record<string, unknown> | undefined;
+  const pathname = typeof location?.pathname === "string" ? location.pathname : "/";
+  const search = typeof location?.searchStr === "string"
+    ? location.searchStr
+    : (typeof location?.search === "string" ? location.search : "");
+  const hash = typeof location?.hash === "string"
+    ? (location.hash.startsWith("#") ? location.hash : `#${location.hash}`)
+    : "";
+  const href = `${pathname}${search}${hash}`;
+
+  return {
+    ...location,
+    pathname,
+    search,
+    hash,
+    href,
+    key: typeof locationState?.__TSR_key === "string" ? locationState.__TSR_key : "",
+  } as CompatLocation;
+}
+
+export function useUrlSearchParams(): [URLSearchParams, SetSearchParams] {
   const location = useLocation();
-  const navigate = useNavigate();
+  const navigate = useAppNavigate();
   const searchText = typeof location.search === "string" ? location.search : "";
   const hashText = typeof location.hash === "string" ? location.hash : "";
-  const pathnameText = typeof location.pathname === "string" ? location.pathname : "/";
+  const pathnameText = location.pathname;
 
   const searchParams = useMemo(
     () => new URLSearchParams(searchText.startsWith("?") ? searchText.slice(1) : searchText),
@@ -277,21 +287,13 @@ export function useSearchParams(): [URLSearchParams, SetSearchParams] {
   return [searchParams, setSearchParams];
 }
 
-export function useMatch(pattern: string) {
+export function usePathMatch(pattern: string) {
   const matchRoute = useMatchRoute();
   return matchRoute({ to: pattern, fuzzy: false }) ?? null;
 }
 
 export function ScrollRestoration() {
   return <TanStackScrollRestoration />;
-}
-
-export function Meta() {
-  return null;
-}
-
-export function Links() {
-  return null;
 }
 
 export function Scripts() {

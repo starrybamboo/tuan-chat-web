@@ -1,6 +1,6 @@
 import { useEffect, useMemo } from "react";
 import toast from "react-hot-toast";
-import { useMatch, useNavigate, useParams } from "@/router/native";
+import { usePathMatch as useMatch, useAppNavigate as useNavigate, useAllParams as useParams } from "@/router/utils";
 
 import type { SpaceDetailTab } from "@/components/chat/chatPage.types";
 
