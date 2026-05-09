@@ -2,12 +2,18 @@ import type { BlocksuiteDescriptionEditorProps } from "./blocksuiteDescriptionEd
 import type { StoredSnapshot } from "@/components/chat/infra/blocksuite/description/descriptionDocRemote";
 import type { BlockNoteDocBlock } from "@/components/chat/infra/blocksuite/document/blockNoteSnapshot";
 import type { BlocksuiteDocHeader } from "@/components/chat/infra/blocksuite/document/docHeader";
+import type { UserRole } from "api";
 
+import { useQueries, useQueryClient } from "@tanstack/react-query";
 import { zh } from "@blocknote/core/locales";
-import { useCreateBlockNote } from "@blocknote/react";
+import { SuggestionMenuController, useCreateBlockNote } from "@blocknote/react";
 import { BlockNoteView } from "@blocknote/shadcn";
-import { FileTextIcon } from "@phosphor-icons/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { ROLE_DETAIL_STALE_TIME_MS } from "api/hooks/RoleAndAvatarHooks";
+import { useGetSpaceMembersQuery } from "api/hooks/chatQueryHooks";
+import { useGetSpaceRepositoryRoleQuery } from "api/hooks/spaceRepositoryHooks";
+import { tuanchat } from "api/instance";
+import { seedUserRoleQueryCache } from "api/roleQueryCache";
 
 import { parseDescriptionDocId } from "@/components/chat/infra/blocksuite/description/descriptionDocId";
 import { getRemoteSnapshot, prewarmRemoteSnapshot, setRemoteSnapshot } from "@/components/chat/infra/blocksuite/description/descriptionDocRemote";
@@ -15,13 +21,12 @@ import { createBlockNoteSnapshot, decodeBlockNoteBlocks, isStoredBlockNoteSnapsh
 import { normalizeBlocksuiteDocHeader } from "@/components/chat/infra/blocksuite/document/docHeader";
 import { getCachedDocSnapshot, setCachedDocSnapshot } from "@/components/chat/infra/blocksuite/document/docSnapshotCache";
 import { blocksuiteWsClient } from "@/components/chat/infra/blocksuite/space/runtime/blocksuiteWsClient";
-import { ResizableImg } from "@/components/common/resizableImg";
-import toastWindow from "@/components/common/toastWindow/toastWindow";
-import { ImgUploaderWithCopper } from "@/components/common/uploader/imgUploaderWithCropper";
 import { uploadMediaFile } from "@/utils/mediaUpload";
-import { imageMediumUrl, imageMediumUrlFromUrl, mediaPreviewUrl } from "@/utils/mediaUrl";
+import { mediaPreviewUrl } from "@/utils/mediaUrl";
 import { BLOCKSUITE_FULL_PANEL_EDITOR_CLASS, getCurrentAppTheme } from "./blocksuiteDescriptionEditor.shared";
+import { buildBlocksuiteMentionCandidates, filterBlocksuiteMentionCandidates } from "./blocksuiteMention";
 import { BlocksuiteFrameSkeleton } from "./BlocksuiteFrameSkeleton";
+import { TcHeader } from "./TcHeader";
 
 import "@blocknote/shadcn/style.css";
 
@@ -160,129 +165,10 @@ function useAppTheme() {
   return theme;
 }
 
-function BlockNoteDocHeaderPanel(props: {
-  docId: string;
-  readOnly: boolean;
-  header: BlocksuiteDocHeader;
-  fallbackTitle?: string;
-  fallbackImageUrl?: string;
-  onHeaderChange: (patch: Partial<BlocksuiteDocHeader>) => void;
-}) {
-  const {
-    docId,
-    readOnly,
-    header,
-    fallbackTitle,
-    fallbackImageUrl,
-    onHeaderChange,
-  } = props;
-
-  const displayTitle = header.title || String(fallbackTitle ?? "").trim();
-  const rawImageUrl = header.imageUrl || String(fallbackImageUrl ?? "").trim();
-  const displayImageUrl = imageMediumUrl(header.imageFileId) || imageMediumUrlFromUrl(rawImageUrl);
-  const hasImage = Boolean(displayImageUrl || rawImageUrl);
-  const uploaderPreset = useMemo(() => {
-    const parsed = parseDescriptionDocId(docId);
-    return parsed && ["space", "room", "space_user_doc", "space_doc"].includes(parsed.entityType) ? "avatarThumb" : undefined;
-  }, [docId]);
-
-  const openPreview = useCallback(() => {
-    if (!displayImageUrl) {
-      return;
-    }
-    toastWindow(
-      onClose => <ResizableImg src={displayImageUrl} onClose={onClose} />,
-      {
-        fullScreen: true,
-        transparent: true,
-      },
-    );
-  }, [displayImageUrl]);
-
-  const avatarNode = (
-    <div className={`group relative flex h-18 w-18 shrink-0 overflow-hidden rounded-md border border-base-300 bg-base-200 ${hasImage ? "" : "items-center justify-center"}`}>
-      {hasImage
-        ? (
-            <img
-              src={displayImageUrl}
-              alt={displayTitle || "文档封面"}
-              className="h-full w-full object-cover"
-            />
-          )
-        : (
-            <FileTextIcon className="size-7 text-base-content/45" weight="bold" />
-          )}
-      <div className="pointer-events-none absolute inset-0 bg-black/0 transition group-hover:bg-black/10" />
-      {!readOnly && (
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-black/45 px-2 py-1 text-center text-[11px] text-white opacity-0 transition group-hover:opacity-100">
-          更换
-        </div>
-      )}
-    </div>
-  );
-
-  return (
-    <div className="flex items-start gap-3 border-b border-base-300 px-4 py-4">
-      {readOnly
-        ? (
-            <button
-              type="button"
-              className="cursor-pointer"
-              onClick={hasImage ? openPreview : undefined}
-              disabled={!hasImage}
-            >
-              {avatarNode}
-            </button>
-          )
-        : (
-            <ImgUploaderWithCopper
-              key={`blocknote-header:${docId}`}
-              fileName={`blocknote-header-${docId.replaceAll(":", "-")}`}
-              aspect={1}
-              copperedCompressionPreset={uploaderPreset}
-              setOriginalDownloadUrl={url => onHeaderChange({ originalImageUrl: url })}
-              setCopperedDownloadUrl={url => onHeaderChange({ imageUrl: url })}
-              mutate={(data) => {
-                onHeaderChange({
-                  imageFileId: typeof data?.avatarFileId === "number" ? data.avatarFileId : undefined,
-                  originalImageFileId: typeof data?.originFileId === "number" ? data.originFileId : undefined,
-                  imageMediaType: "image",
-                });
-              }}
-            >
-              {avatarNode}
-            </ImgUploaderWithCopper>
-          )}
-
-      <div className="flex min-w-0 flex-1 flex-col gap-3">
-        <div className="flex items-start gap-3">
-          <input
-            value={displayTitle}
-            disabled={readOnly}
-            placeholder="标题"
-            className="min-w-0 flex-1 border border-transparent bg-transparent px-0 py-1 text-xl font-semibold text-base-content transition focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 disabled:cursor-default disabled:text-base-content"
-            onChange={event => onHeaderChange({ title: event.target.value })}
-            onBlur={event => onHeaderChange({ title: event.target.value.trim() })}
-          />
-        </div>
-
-        {!readOnly && (
-          <input
-            value={rawImageUrl}
-            placeholder="封面链接"
-            className="w-full rounded-md border border-base-300 bg-base-100 px-3 py-2 text-sm text-base-content transition focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
-            onChange={event => onHeaderChange({ imageUrl: event.target.value })}
-            onBlur={event => onHeaderChange({ imageUrl: event.target.value.trim() })}
-          />
-        )}
-      </div>
-    </div>
-  );
-}
-
 function BlockNoteDescriptionEditorClient(props: BlocksuiteDescriptionEditorProps) {
   const {
     workspaceId: _workspaceId,
+    spaceId,
     docId,
     intentPrewarm = false,
     readOnly = false,
@@ -291,6 +177,8 @@ function BlockNoteDescriptionEditorClient(props: BlocksuiteDescriptionEditorProp
     className,
   } = props;
 
+  const queryClient = useQueryClient();
+  const normalizedSpaceId = spaceId ?? -1;
   const remoteKey = useMemo(() => parseDescriptionDocId(docId), [docId]);
   const fallbackHeader = useMemo(() => resolveHeader(null, buildFallbackHeader(tcHeader)), [tcHeader]);
   const [header, setHeader] = useState<BlocksuiteDocHeader>(fallbackHeader);
@@ -309,6 +197,42 @@ function BlockNoteDescriptionEditorClient(props: BlocksuiteDescriptionEditorProp
   const lastNotifiedHeaderDigestRef = useRef("");
   const refreshInFlightRef = useRef<Promise<void> | null>(null);
   const realtimeClientId = useMemo(() => createRealtimeSyncClientId(), []);
+  const spaceMembersQuery = useGetSpaceMembersQuery(normalizedSpaceId);
+  const spaceRepositoryRolesQuery = useGetSpaceRepositoryRoleQuery(normalizedSpaceId);
+  const spaceMembers = useMemo(() => spaceMembersQuery.data?.data ?? [], [spaceMembersQuery.data?.data]);
+  const spaceRoleIds = useMemo(() => {
+    const roleIds = (spaceRepositoryRolesQuery.data?.data ?? [])
+      .map(role => role.roleId)
+      .filter((roleId): roleId is number => typeof roleId === "number" && roleId > 0);
+    return Array.from(new Set(roleIds));
+  }, [spaceRepositoryRolesQuery.data?.data]);
+  const mentionRoleQueries = useQueries({
+    queries: spaceRoleIds.map(roleId => ({
+      queryKey: ["blocksuiteMentionRole", roleId] as const,
+      queryFn: async () => {
+        const res = await tuanchat.roleController.getRole(roleId);
+        seedUserRoleQueryCache(queryClient, res.data);
+        return res;
+      },
+      staleTime: ROLE_DETAIL_STALE_TIME_MS,
+      enabled: roleId > 0,
+    })),
+  });
+  const mentionRoles = useMemo(() => {
+    return mentionRoleQueries.flatMap((query) => {
+      const role = query.data?.data;
+      if (!role || typeof role.roleId !== "number" || role.roleId <= 0) {
+        return [];
+      }
+      return [role as UserRole];
+    });
+  }, [mentionRoleQueries]);
+  const mentionCandidates = useMemo(() => {
+    return buildBlocksuiteMentionCandidates({
+      roles: mentionRoles,
+      spaceMembers,
+    });
+  }, [mentionRoles, spaceMembers]);
 
   useEffect(() => {
     headerRef.current = header;
@@ -613,7 +537,7 @@ function BlockNoteDescriptionEditorClient(props: BlocksuiteDescriptionEditorProp
           </div>
         )}
         {tcHeader?.enabled && (
-          <BlockNoteDocHeaderPanel
+          <TcHeader
             docId={docId}
             readOnly={readOnly}
             header={header}
