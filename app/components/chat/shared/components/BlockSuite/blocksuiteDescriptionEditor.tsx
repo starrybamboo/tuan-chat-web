@@ -11,7 +11,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { parseDescriptionDocId } from "@/components/chat/infra/blocksuite/description/descriptionDocId";
 import { getRemoteSnapshot, prewarmRemoteSnapshot, setRemoteSnapshot } from "@/components/chat/infra/blocksuite/description/descriptionDocRemote";
-import { createBlockNoteSnapshot, decodeBlockNoteBlocks, readBlockNoteHeader } from "@/components/chat/infra/blocksuite/document/blockNoteSnapshot";
+import { createBlockNoteSnapshot, decodeBlockNoteBlocks, isStoredBlockNoteSnapshot, readBlockNoteHeader } from "@/components/chat/infra/blocksuite/document/blockNoteSnapshot";
 import { normalizeBlocksuiteDocHeader } from "@/components/chat/infra/blocksuite/document/docHeader";
 import { getCachedDocSnapshot, setCachedDocSnapshot } from "@/components/chat/infra/blocksuite/document/docSnapshotCache";
 import { blocksuiteWsClient } from "@/components/chat/infra/blocksuite/space/runtime/blocksuiteWsClient";
@@ -297,9 +297,11 @@ function BlockNoteDescriptionEditorClient(props: BlocksuiteDescriptionEditorProp
   const [initialBlocks, setInitialBlocks] = useState<BlockNoteDocBlock[]>(EMPTY_DOCUMENT);
   const [editorSeed, setEditorSeed] = useState(0);
   const [isReady, setIsReady] = useState(false);
+  const [legacySnapshotVersion, setLegacySnapshotVersion] = useState<number | null>(null);
   const theme = useAppTheme();
   const hasExplicitHeight = hasExplicitHeightClass(className);
   const headerRef = useRef(header);
+  const loadedSnapshotRef = useRef<StoredSnapshot | null>(null);
   const saveTimerRef = useRef<number | null>(null);
   const lastPersistedDigestRef = useRef("");
   const lastLocalDigestRef = useRef("");
@@ -314,11 +316,16 @@ function BlockNoteDescriptionEditorClient(props: BlocksuiteDescriptionEditorProp
 
   useEffect(() => {
     const resetDigest = `__doc:${docId}:pending__`;
+    loadedSnapshotRef.current = null;
     lastPersistedDigestRef.current = resetDigest;
     lastLocalDigestRef.current = resetDigest;
     lastAppliedDigestRef.current = resetDigest;
     lastNotifiedHeaderDigestRef.current = resetDigest;
     refreshInFlightRef.current = null;
+    setLegacySnapshotVersion(null);
+    setHeader(fallbackHeader);
+    headerRef.current = fallbackHeader;
+    setInitialBlocks(EMPTY_DOCUMENT);
   }, [docId]);
 
   useEffect(() => {
@@ -333,6 +340,7 @@ function BlockNoteDescriptionEditorClient(props: BlocksuiteDescriptionEditorProp
     persistAsCurrent?: boolean;
   }) => {
     const nextDigest = nextSnapshot ? buildSnapshotDigest(nextSnapshot) : "";
+    const isBlockNoteSnapshot = isStoredBlockNoteSnapshot(nextSnapshot);
     if (!options?.allowOverwriteDirty
       && !readOnly
       && lastLocalDigestRef.current
@@ -352,11 +360,18 @@ function BlockNoteDescriptionEditorClient(props: BlocksuiteDescriptionEditorProp
       return false;
     }
 
-    const nextBlocks = decodeBlockNoteBlocks(nextSnapshot);
+    loadedSnapshotRef.current = nextSnapshot ?? null;
+    setLegacySnapshotVersion(nextSnapshot && !isBlockNoteSnapshot ? nextSnapshot.v : null);
+
+    const nextBlocks = isBlockNoteSnapshot ? decodeBlockNoteBlocks(nextSnapshot) : EMPTY_DOCUMENT;
     const normalizedBlocks = nextBlocks.length > 0 ? nextBlocks : EMPTY_DOCUMENT;
-    const nextHeader = resolveHeader(readBlockNoteHeader(nextSnapshot), buildFallbackHeader(tcHeader));
+    const nextHeader = resolveHeader(
+      isBlockNoteSnapshot ? readBlockNoteHeader(nextSnapshot) : null,
+      buildFallbackHeader(tcHeader),
+    );
 
     setInitialBlocks(normalizedBlocks);
+    headerRef.current = nextHeader;
     setHeader(prev => (isSameHeader(prev, nextHeader) ? prev : nextHeader));
     setEditorSeed(prev => prev + 1);
     lastAppliedDigestRef.current = nextDigest;
@@ -453,10 +468,15 @@ function BlockNoteDescriptionEditorClient(props: BlocksuiteDescriptionEditorProp
     defaultStyles: true,
   }, [docId, editorSeed]);
 
-  const queueSnapshotPersist = useCallback((blocks: BlockNoteDocBlock[]) => {
+  const queueSnapshotPersist = useCallback((blocks: BlockNoteDocBlock[], headerOverride?: BlocksuiteDocHeader) => {
+    const loadedSnapshot = loadedSnapshotRef.current;
+    if (loadedSnapshot && !isStoredBlockNoteSnapshot(loadedSnapshot)) {
+      return;
+    }
+
     const snapshot = createBlockNoteSnapshot({
       blocks,
-      header: headerRef.current,
+      header: headerOverride ?? headerRef.current,
     });
 
     setCachedDocSnapshot(docId, snapshot);
@@ -505,13 +525,6 @@ function BlockNoteDescriptionEditorClient(props: BlocksuiteDescriptionEditorProp
   const handleEditorChange = useCallback(() => {
     queueSnapshotPersist(editor.document as BlockNoteDocBlock[]);
   }, [editor, queueSnapshotPersist]);
-
-  useEffect(() => {
-    if (!isReady) {
-      return;
-    }
-    queueSnapshotPersist(editor.document as BlockNoteDocBlock[]);
-  }, [editor, header, isReady, queueSnapshotPersist]);
 
   useEffect(() => {
     if (!remoteKey || typeof window === "undefined") {
@@ -592,6 +605,13 @@ function BlockNoteDescriptionEditorClient(props: BlocksuiteDescriptionEditorProp
       />
 
       <div className={`flex h-full min-h-0 flex-col overflow-hidden rounded-md border border-base-300 bg-base-100 ${!isReady ? "invisible" : ""}`}>
+        {legacySnapshotVersion != null && (
+          <div className="border-b border-warning/20 bg-warning/10 px-4 py-3 text-sm text-base-content/80">
+            当前文档仍是旧版 Blocksuite 快照（v
+            {legacySnapshotVersion}
+            ），BlockNote 暂不支持直接读取；已停止自动覆盖远端内容。
+          </div>
+        )}
         {tcHeader?.enabled && (
           <BlockNoteDocHeaderPanel
             docId={docId}
@@ -604,7 +624,11 @@ function BlockNoteDescriptionEditorClient(props: BlocksuiteDescriptionEditorProp
                 ...headerRef.current,
                 ...patch,
               }, buildFallbackHeader(tcHeader));
+              headerRef.current = nextHeader;
               setHeader(prev => (isSameHeader(prev, nextHeader) ? prev : nextHeader));
+              if (isReady) {
+                queueSnapshotPersist(editor.document as BlockNoteDocBlock[], nextHeader);
+              }
             }}
           />
         )}
@@ -614,14 +638,14 @@ function BlockNoteDescriptionEditorClient(props: BlocksuiteDescriptionEditorProp
             <BlockNoteView
               editor={editor}
               theme={theme}
-              editable={!readOnly}
-              formattingToolbar={!readOnly}
-              linkToolbar={!readOnly}
-              slashMenu={!readOnly}
-              sideMenu={!readOnly}
-              filePanel={!readOnly}
-              tableHandles={!readOnly}
-              emojiPicker={!readOnly}
+              editable={!readOnly && legacySnapshotVersion == null}
+              formattingToolbar={!readOnly && legacySnapshotVersion == null}
+              linkToolbar={!readOnly && legacySnapshotVersion == null}
+              slashMenu={!readOnly && legacySnapshotVersion == null}
+              sideMenu={!readOnly && legacySnapshotVersion == null}
+              filePanel={!readOnly && legacySnapshotVersion == null}
+              tableHandles={!readOnly && legacySnapshotVersion == null}
+              emojiPicker={!readOnly && legacySnapshotVersion == null}
               comments={false}
               onChange={handleEditorChange}
               className="h-full min-h-0 overflow-y-auto px-4 py-4 [&_.bn-container]:h-full [&_.bn-editor]:min-h-full [&_.bn-editor]:rounded-md [&_.bn-editor]:bg-transparent [&_.bn-editor]:px-2 [&_.bn-editor]:py-2"

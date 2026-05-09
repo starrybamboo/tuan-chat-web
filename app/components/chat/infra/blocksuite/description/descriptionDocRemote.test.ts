@@ -123,6 +123,28 @@ describe("descriptionDocRemote", () => {
     expect(getDocMock).toHaveBeenCalledTimes(2);
   });
 
+  it("能兼容后端把快照包在 snapshot 字段里的返回结构", async () => {
+    const snapshot = {
+      v: 3 as const,
+      format: "blocknote" as const,
+      updateB64: "eyJ0eXBlIjoicGFyYWdyYXBoIiwiY29udGVudCI6IiJ9",
+      updatedAt: Date.now(),
+    };
+    const params = {
+      entityType: "room" as const,
+      entityId: 45,
+      docType: "description" as const,
+    };
+    getDocMock.mockResolvedValueOnce({
+      data: {
+        snapshot: JSON.stringify(snapshot),
+      },
+    });
+
+    await expect(descriptionDocRemote.getRemoteSnapshot(params)).resolves.toEqual(snapshot);
+    expect(getDocMock).toHaveBeenCalledTimes(1);
+  });
+
   it("远端快照请求超时后会取消请求，且不会阻塞下一次读取", async () => {
     const params = {
       entityType: "room" as const,
