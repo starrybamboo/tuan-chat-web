@@ -1,4 +1,4 @@
-import { Link } from "@/router/utils";
+import { Link } from "@tanstack/react-router";
 import { SidebarSimpleIcon } from "@/icons";
 
 export type ChatDiscoverNavItem = "repository-square" | "repository-my" | "material-public" | "material-mine";

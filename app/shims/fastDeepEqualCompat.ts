@@ -113,7 +113,7 @@ function equal(a: unknown, b: unknown): boolean {
     return true;
   }
 
-  return a !== a && b !== b;
+  return Number.isNaN(a) && Number.isNaN(b);
 }
 
 export { equal };

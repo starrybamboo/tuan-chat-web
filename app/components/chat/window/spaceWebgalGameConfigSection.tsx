@@ -1,6 +1,7 @@
 import type { ChangeEvent, Dispatch, RefObject, SetStateAction } from "react";
 import type { RealtimeGameConfig } from "@/webGAL/realtimeRenderer";
 
+import { mediaFileUrl } from "@/utils/mediaUrl";
 import {
   BASE_TEMPLATE_OPTIONS,
   ConfigHelpButton,
@@ -8,7 +9,6 @@ import {
   DEFAULT_LANGUAGE_OPTIONS,
   SectionCollapseToggle,
 } from "./spaceWebgalRenderWindowParts";
-import { mediaFileUrl } from "@/utils/mediaUrl";
 
 interface SpaceWebgalGameConfigSectionProps {
   expanded: boolean;

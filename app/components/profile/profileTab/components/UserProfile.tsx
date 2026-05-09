@@ -76,7 +76,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({
                     editingUsername.length > 30 ? "input-error" : ""
                   }`}
                   maxLength={30}
-                  autoFocus={!isMobile}
+
                   placeholder="请输入用户名"
                 />
               </div>

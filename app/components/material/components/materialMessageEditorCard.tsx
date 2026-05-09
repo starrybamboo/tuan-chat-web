@@ -228,7 +228,7 @@ export default function MaterialMessageEditorCard({
       ...current,
       content,
       extra: {
-        ...(current.extra ?? {}),
+        ...current.extra,
         diceResult: { result: content },
       },
     }));
@@ -249,9 +249,9 @@ export default function MaterialMessageEditorCard({
         ...current,
         annotations: nextAnnotations,
         extra: {
-          ...(current.extra ?? {}),
+          ...current.extra,
           imageMessage: {
-            ...(((current.extra ?? {}) as Record<string, any>).imageMessage ?? {}),
+            ...((current.extra ?? {}) as Record<string, any>).imageMessage,
             background: nextBackground,
           },
         },
@@ -467,7 +467,7 @@ export default function MaterialMessageEditorCard({
           }
         }}
         placeholder="输入角色名"
-        autoFocus
+
       />
       <button type="button" className={`btn ${useChatBubbleStyle ? "btn-xs" : "btn-sm"} btn-primary`} onClick={handleRoleNameSave}>✓</button>
       <button type="button" className={`btn ${useChatBubbleStyle ? "btn-xs" : "btn-sm"} btn-ghost`} onClick={() => setIsEditingRoleName(false)}>✕</button>

@@ -1,7 +1,7 @@
 import React, { useRef } from "react";
 import { ResizableImg } from "@/components/common/resizableImg";
 import toastWindow from "@/components/common/toastWindow/toastWindow";
-import { imageMediumUrlFromUrl, imageHighUrlFromUrl } from "@/utils/mediaUrl";
+import { imageMediumUrlFromUrl } from "@/utils/mediaUrl";
 
 /**
  * 更更好的img组件，没有object-contain,可以更方便的resize

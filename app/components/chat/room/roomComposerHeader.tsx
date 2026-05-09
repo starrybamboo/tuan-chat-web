@@ -204,7 +204,7 @@ export default function RoomComposerHeader({
                 <input
                   className="input input-xs input-bordered bg-base-200 border-base-300 px-2 shadow-sm focus:outline-none focus:border-info w-full max-w-48"
                   value={editingName}
-                  autoFocus
+
                   onClick={(event) => {
                     event.preventDefault();
                     event.stopPropagation();

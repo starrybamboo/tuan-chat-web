@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { getCachedDocSnapshot } from "@/components/chat/infra/blocksuite/document/docSnapshotCache";
 import { getRemoteSnapshot, setRemoteSnapshot } from "@/components/chat/infra/blocksuite/description/descriptionDocRemote";
+import { getCachedDocSnapshot } from "@/components/chat/infra/blocksuite/document/docSnapshotCache";
 import { tuanchat } from "api/instance";
 
 import { prepareSpaceDocsForArchive } from "./prepareSpaceDocsForArchive";

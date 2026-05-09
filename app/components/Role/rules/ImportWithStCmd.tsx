@@ -150,10 +150,10 @@ function useHandleStCmd(ruleId: number, roleId: number): (cmd: string) => Promis
     const draft: StAbilityDraft = {
       abilityId: currentAbility?.abilityId,
       // 保持历史行为：只基于现有能力组进行覆盖，不自动灌入规则模板。
-      act: { ...(currentAbility?.act ?? {}) },
-      basic: { ...(currentAbility?.basic ?? {}) },
-      ability: { ...(currentAbility?.ability ?? {}) },
-      skill: { ...(currentAbility?.skill ?? {}) },
+      act: { ...currentAbility?.act },
+      basic: { ...currentAbility?.basic },
+      ability: { ...currentAbility?.ability },
+      skill: { ...currentAbility?.skill },
     };
     const shouldUpdate = (draft.abilityId ?? 0) > 0;
     return { draft, shouldUpdate };

@@ -5,7 +5,6 @@ import type { DicerMessageVisibility } from "@/components/common/dicer/commandMe
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef } from "react";
 import toast from "react-hot-toast";
-import { useAllParams as useParams } from "@/router/utils";
 import { getNextAppendPosition } from "@/components/chat/shared/messageOrder";
 import { initAliasMapOnce, RULES } from "@/components/common/dicer/aliasRegistry";
 import executorPublic from "@/components/common/dicer/cmdExe/cmdExePublic";
@@ -15,6 +14,7 @@ import { syncOptimisticReplyMessageIds } from "@/components/common/dicer/optimis
 import { getCachedDicerRoleAbility, setCachedDicerRoleAbility } from "@/components/common/dicer/roleAbilityCache";
 import { buildRuntimeRoleValuesByRoleId, mergeRuntimeRoleValuesIntoAbility } from "@/components/common/dicer/runtimeAbilityBridge";
 import UTILS from "@/components/common/dicer/utils/utils";
+import { useAllParams as useParams } from "@/router/utils";
 import { buildMessageExtraForRequest } from "@/types/messageDraft";
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
 import {

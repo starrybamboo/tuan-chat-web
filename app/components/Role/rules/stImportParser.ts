@@ -86,10 +86,10 @@ type StFieldType = "basic" | "ability" | "skill";
 function cloneDraft(draft: StAbilityDraft): StAbilityDraft {
   return {
     abilityId: draft.abilityId,
-    act: { ...(draft.act ?? {}) },
-    basic: { ...(draft.basic ?? {}) },
-    ability: { ...(draft.ability ?? {}) },
-    skill: { ...(draft.skill ?? {}) },
+    act: { ...draft.act },
+    basic: { ...draft.basic },
+    ability: { ...draft.ability },
+    skill: { ...draft.skill },
   };
 }
 

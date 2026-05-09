@@ -158,7 +158,7 @@ export default function MarkdownMentionViewer(props: MarkdownMentionViewerProps)
         .replace(/&/g, "&amp;")
         .replace(/</g, "&lt;")
         .replace(/>/g, "&gt;");
-      return `<pre style=\"margin:0;white-space:pre-wrap;\">${esc}</pre>`;
+      return `<pre style="margin:0;white-space:pre-wrap;">${esc}</pre>`;
     }
   }, [markdown, effectiveEntitiesMap]);
 

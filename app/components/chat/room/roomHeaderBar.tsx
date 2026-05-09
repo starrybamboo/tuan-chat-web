@@ -1,7 +1,7 @@
 import type { Room } from "@tuanchat/openapi-client/models/Room";
 import { ArrowSquareIn, Broom, DotsThreeVerticalIcon, ExportIcon } from "@phosphor-icons/react";
+import { useLocation } from "@tanstack/react-router";
 import React from "react";
-import { useLocation } from "@/router/utils";
 import SearchBar from "@/components/chat/input/inlineSearch";
 import MobileSearchPage from "@/components/chat/input/mobileSearchPage";
 import RoomDescriptionDropdown from "@/components/chat/room/roomDescriptionDropdown";

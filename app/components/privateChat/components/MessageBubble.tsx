@@ -1,8 +1,8 @@
 import type { MessageDirectResponse } from "../../../../api";
+import type { MediaQuality, MediaType } from "@/utils/imgCompressUtils";
 import BetterImg from "@/components/common/betterImg";
 import { UserAvatarByUser } from "@/components/common/userAccess";
 import { getImageMessageExtra, getVideoMessageExtra } from "@/types/messageExtra";
-import type { MediaQuality, MediaType } from "@/utils/imgCompressUtils";
 import { mediaFileUrl, normalizeMediaType } from "@/utils/mediaUrl";
 
 interface MessageBubbleProps {

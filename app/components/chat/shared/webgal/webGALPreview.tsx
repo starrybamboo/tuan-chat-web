@@ -3,14 +3,14 @@
  * 以 iframe 形式嵌入到聊天室侧边栏
  */
 
-import { useLocation } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
+import { useLocation } from "@tanstack/react-router";
 import { use, useCallback, useEffect } from "react";
-import { useAppNavigate as useNavigate } from "@/router/utils";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
 import { resolveWebGALPreviewState } from "@/components/chat/shared/webgal/webGalPreviewState";
 import { useRealtimeRenderStore } from "@/components/chat/stores/realtimeRenderStore";
 import { useSideDrawerStore } from "@/components/chat/stores/sideDrawerStore";
+import { useAppNavigate as useNavigate } from "@/router/utils";
 import { getTerreBaseUrl } from "@/webGAL/terreConfig";
 
 interface WebGALPreviewProps {

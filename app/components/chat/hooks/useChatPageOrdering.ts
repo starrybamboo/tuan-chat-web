@@ -155,7 +155,7 @@ export default function useChatPageOrdering({
     setRoomOrderByUserAndSpace(prev => ({
       ...prev,
       [userKey]: {
-        ...(prev[userKey] ?? {}),
+        ...prev[userKey],
         [spaceKey]: nextOrder,
       },
     }));

@@ -76,7 +76,7 @@ export function buildMergedTrpgDiceMessage(command: ChatMessageResponse, reply: 
     ? (replyWebgal.diceRender as Record<string, unknown>)
     : {};
   const mergedExtra = {
-    ...(replyMessage.extra ?? {}),
+    ...replyMessage.extra,
     diceResult: {
       result: mergedContent,
     },

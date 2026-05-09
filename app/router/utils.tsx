@@ -3,10 +3,10 @@ import {
   Outlet as TanStackOutlet,
   Scripts as TanStackScripts,
   ScrollRestoration as TanStackScrollRestoration,
-  useLocation as useTanStackLocation,
   useMatchRoute,
   useRouter,
   useRouterState,
+  useLocation as useTanStackLocation,
 } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo } from "react";
 
@@ -24,14 +24,6 @@ interface ToObject {
 type To = string | ToObject;
 
 export type NavigateFunction = (to: To | number, options?: NavigateOptions) => void;
-
-type CompatLocation = ReturnType<typeof useTanStackLocation> & {
-  pathname: string;
-  search: string;
-  hash: string;
-  href: string;
-  key: string;
-};
 
 type CompatLinkProps = Omit<React.ComponentPropsWithoutRef<"a">, "href"> & {
   ref?: React.Ref<HTMLAnchorElement>;
@@ -241,7 +233,7 @@ export function useAllParams<T extends Record<string, string | undefined> = Reco
   }, [matches]);
 }
 
-export function useLocation(): CompatLocation {
+export function useLocation() {
   const location = useTanStackLocation() as any;
   const locationState = location?.state as Record<string, unknown> | undefined;
   const pathname = typeof location?.pathname === "string" ? location.pathname : "/";
@@ -260,7 +252,7 @@ export function useLocation(): CompatLocation {
     hash,
     href,
     key: typeof locationState?.__TSR_key === "string" ? locationState.__TSR_key : "",
-  } as CompatLocation;
+  };
 }
 
 export function useUrlSearchParams(): [URLSearchParams, SetSearchParams] {

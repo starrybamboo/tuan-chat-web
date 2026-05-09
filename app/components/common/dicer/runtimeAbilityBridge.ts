@@ -6,13 +6,13 @@ type RuntimeRoleValues = Record<string, number>;
 
 function cloneAbility(ability: RoleAbility | null | undefined): RoleAbility {
   return {
-    ...(ability ?? {}),
-    act: { ...(ability?.act ?? {}) },
-    basic: { ...(ability?.basic ?? {}) },
-    ability: { ...(ability?.ability ?? {}) },
-    skill: { ...(ability?.skill ?? {}) },
-    record: { ...(ability?.record ?? {}) },
-    extra: { ...(ability?.extra ?? {}) },
+    ...ability,
+    act: { ...ability?.act },
+    basic: { ...ability?.basic },
+    ability: { ...ability?.ability },
+    skill: { ...ability?.skill },
+    record: { ...ability?.record },
+    extra: { ...ability?.extra },
   };
 }
 
@@ -32,7 +32,7 @@ function applyRuntimeValue(nextAbility: RoleAbility, key: string, value: number)
   }
 
   nextAbility.skill = {
-    ...(nextAbility.skill ?? {}),
+    ...nextAbility.skill,
     [key]: normalizedValue,
   };
 }

@@ -124,7 +124,7 @@ export function usePrivateMessageSender({ webSocketUtils, userId, currentContact
         for (const emojiUrl of emojiUrls) {
           const meta = emojiMetaByUrl[emojiUrl];
           if (typeof meta?.fileId !== "number") {
-            throw new Error("表情素材缺少媒体文件 ID，请重新选择表情。");
+            throw new TypeError("表情素材缺少媒体文件 ID，请重新选择表情。");
           }
           let width = meta?.width ?? -1;
           let height = meta?.height ?? -1;

@@ -1,4 +1,5 @@
 import type { QueryClient } from "@tanstack/react-query";
+
 import type { RoleAvatar } from "api";
 
 import { tuanchat } from "@/../api/instance";

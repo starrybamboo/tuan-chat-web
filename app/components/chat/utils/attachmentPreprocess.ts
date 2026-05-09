@@ -21,7 +21,7 @@ function runBestEffortPreprocess(task: Promise<unknown>, kind: "图片" | "视�
 }
 
 export function preheatChatMediaPreprocess({
-  imageFiles = [],
+  imageFiles: _imageFiles = [],
   videoFiles = [],
   audioFiles = [],
 }: ChatMediaPreprocessInput): void {

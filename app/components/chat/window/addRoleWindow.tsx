@@ -133,6 +133,7 @@ export function AddRoleWindow({
 
       <div role="tablist" className="tabs tabs-boxed mb-4 mx-auto w-fit">
         <a
+          tabIndex={0}
           role="tab"
           className={`tab ${activeTab === "my" ? "tab-active" : ""}`}
           onClick={() => setActiveTab("my")}
@@ -140,6 +141,7 @@ export function AddRoleWindow({
           我的角色
         </a>
         <a
+          tabIndex={0}
           role="tab"
           className={`tab ${activeTab === "space" ? "tab-active" : ""}`}
           onClick={() => setActiveTab("space")}

@@ -1,6 +1,7 @@
 // import type { Transform } from "./sprite/TransformControl";
 import type { Role } from "./types";
 import { useQueryClient } from "@tanstack/react-query";
+import { Link } from "@tanstack/react-router";
 import {
   useAbilityByRuleAndRole,
   useGenerateRoleByRuleMutation,
@@ -11,7 +12,6 @@ import { useRuleDetailQuery } from "api/hooks/ruleQueryHooks";
 import { CloseIcon, SlidersIcon } from "app/icons";
 import { useMemo, useState } from "react";
 import toast from "react-hot-toast";
-import { Link } from "@/router/utils";
 import { ROLE_DEFAULT_AVATAR_URL } from "@/constants/defaultAvatar";
 import CharacterDetailLeftPanelHorizontal from "./CharacterDetailLeftPanelHorizontal";
 import DiceMaidenLinkModal from "./DiceMaidenLinkModal";
@@ -192,10 +192,10 @@ function CharacterDetailInner({
     const payload = {
       roleId: displayRole.id,
       ruleId: selectedRuleId,
-      act: { ...(currentAbility?.actTemplate ?? {}), ...(data.act ?? {}) },
-      basic: { ...(currentAbility?.basicDefault ?? {}), ...(data.basic ?? {}) },
-      ability: { ...(currentAbility?.abilityDefault ?? {}), ...(data.ability ?? {}) },
-      skill: { ...(currentAbility?.skillDefault ?? {}), ...(data.skill ?? {}) },
+      act: { ...currentAbility?.actTemplate, ...data.act },
+      basic: { ...currentAbility?.basicDefault, ...data.basic },
+      ability: { ...currentAbility?.abilityDefault, ...data.ability },
+      skill: { ...currentAbility?.skillDefault, ...data.skill },
     };
 
     updateFieldAbility(payload, {

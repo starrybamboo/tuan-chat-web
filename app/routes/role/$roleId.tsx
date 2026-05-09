@@ -1,10 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-import { Navigate } from "@/router/utils";
 import { useEffect } from "react";
 import CharacterDetail from "@/components/Role/CharacterDetail";
 import { useRoleListModel } from "@/components/Role/useRoleListModel";
-import { useAppNavigate as useNavigate, useAllParams as useParams, useUrlSearchParams as useSearchParams } from "@/router/utils";
+import { Navigate, useAppNavigate as useNavigate, useAllParams as useParams, useUrlSearchParams as useSearchParams } from "@/router/utils";
 import { getRoleRule, setRoleRule } from "@/utils/roleRuleStorage";
 
 export const Route = createFileRoute("/_dashboard/role/{-$roleId}")({

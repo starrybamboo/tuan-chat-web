@@ -1,8 +1,8 @@
 import { ChatsIcon, CheckCircleIcon, GearSixIcon, IdentificationCardIcon, PaintBrushBroadIcon, SignOutIcon, UserIcon } from "@phosphor-icons/react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { Link, useLocation } from "@tanstack/react-router";
 import { motion, useAnimationControls } from "motion/react";
 import { lazy, Suspense, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
-import { Link, useAppNavigate as useNavigate, useLocation } from "@/router/utils";
 import WebgalStarter from "@/components/chat/shared/webgal/webgalStarter";
 import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
 import { interactiveButtonMotionProps } from "@/components/common/motion/interactiveButtonMotion";
@@ -11,6 +11,7 @@ import UserAvatarComponent from "@/components/common/userAvatar";
 import NotificationBell from "@/components/notification/notificationBell";
 import UpdatesToastWindow from "@/components/topbanner/updatesWindow";
 import { DiscordIcon, QQIcon, WebgalIcon } from "@/icons";
+import { useAppNavigate as useNavigate } from "@/router/utils";
 import { checkAuthStatus, logoutUser } from "@/utils/auth/authapi";
 import { isElectronEnv } from "@/utils/isElectronEnv";
 import { isDevOrTestEnvironment } from "@/utils/runtimeEnvironment";

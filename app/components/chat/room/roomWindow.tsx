@@ -146,7 +146,7 @@ function RoomWindow({
     curMember,
     isSpectator,
     notMember,
-    isMemberDataReady,
+    isMemberDataReady: _isMemberDataReady,
   } = useRoomMemberState({
     roomId,
     userId,
@@ -160,7 +160,7 @@ function RoomWindow({
     curAvatarId,
     setCurAvatarId,
     ensureRuntimeAvatarIdForRole,
-    isRoleDataReady,
+    isRoleDataReady: _isRoleDataReady,
   } = useRoomRoleState({
     roomId,
     userId,
@@ -886,7 +886,7 @@ function RoomWindow({
       const response = await updateMessageMutation.mutateAsync(message);
       const committedMessage = response?.data ?? message;
       await chatHistory?.addOrUpdateMessage({
-        ...(existingResponse ?? {}),
+        ...existingResponse,
         message: committedMessage,
       } as ChatMessageResponse);
       return committedMessage;
@@ -925,7 +925,7 @@ function RoomWindow({
         : null);
       if (committedMessage) {
         await chatHistory?.addOrUpdateMessage({
-          ...(targetResponse ?? {}),
+          ...targetResponse,
           message: committedMessage,
         } as ChatMessageResponse);
       }

@@ -2,8 +2,8 @@ import { describe, expect, it } from "vitest";
 
 import {
   buildImageMarkdown,
-  buildMediaReferenceToken,
   buildMediaContentPreview,
+  buildMediaReferenceToken,
   buildVideoToken,
   composeMediaContent,
   formatMediaContentSummary,

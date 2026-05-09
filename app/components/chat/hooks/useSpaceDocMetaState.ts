@@ -292,8 +292,9 @@ export default function useSpaceDocMetaState({
         && currentImageUrl === imageUrl
         && currentImageFileId === imageFileId
         && currentOriginalImageFileId === originalImageFileId
-        && currentImageMediaType === imageMediaType)
+        && currentImageMediaType === imageMediaType) {
         return prev;
+      }
 
       const next = [...prev];
       next[idx] = {

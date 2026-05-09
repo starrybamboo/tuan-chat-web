@@ -967,7 +967,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
                                   setIsEditingRoleName(false);
                               }}
                               placeholder="输入角色名"
-                              autoFocus
+
                             />
                             <button type="button" className="btn btn-xs btn-primary" onClick={handleRoleNameSave}>✓</button>
                             <button type="button" className="btn btn-xs btn-ghost" onClick={() => setIsEditingRoleName(false)}>✕</button>
@@ -1105,7 +1105,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
                                   setIsEditingRoleName(false);
                               }}
                               placeholder="输入角色名"
-                              autoFocus
+
                             />
                             <button type="button" className="btn btn-sm btn-primary" onClick={handleRoleNameSave}>✓</button>
                             <button type="button" className="btn btn-sm btn-ghost" onClick={() => setIsEditingRoleName(false)}>✕</button>

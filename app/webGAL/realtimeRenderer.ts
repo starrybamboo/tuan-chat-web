@@ -2046,7 +2046,7 @@ export class RealtimeRenderer {
 
       const annotationFigureAnimation = getFigureAnimationFromAnnotations(msg.annotations);
       const figureAnimation = voiceRenderSettings?.figureAnimation
-        ? { ...(annotationFigureAnimation ?? {}), ...voiceRenderSettings.figureAnimation }
+        ? { ...annotationFigureAnimation, ...voiceRenderSettings.figureAnimation }
         : annotationFigureAnimation;
 
       // 黑屏文字默认保持；如需不保持，添加“不暂停”标注（dialog.notend）

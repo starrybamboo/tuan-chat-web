@@ -1,6 +1,7 @@
 import { HouseIcon, ImageIcon } from "@phosphor-icons/react";
+import { Link, Outlet, useLocation } from "@tanstack/react-router";
 import React, { useEffect, useRef, useState } from "react";
-import { Link, Outlet, useAllParams as useParams, useLocation } from "@/router/utils";
+import { useAllParams as useParams } from "@/router/utils";
 
 function ProfilePage() {
   const { userId } = useParams();

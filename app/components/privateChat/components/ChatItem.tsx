@@ -1,7 +1,7 @@
 import { useRef } from "react";
-import { useAppNavigate as useNavigate } from "@/router/utils";
 import { resolveUserDisplayName, useResolvedUserInfo } from "@/components/common/userAccess.shared";
 import { XMarkICon } from "@/icons";
+import { useAppNavigate as useNavigate } from "@/router/utils";
 import { getScreenSize } from "@/utils/getScreenSize";
 
 interface MessageDirectType {

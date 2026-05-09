@@ -10,9 +10,9 @@ import type { MaterialItemDragPayload } from "@/components/chat/utils/materialIt
 import type { RoomRefDragPayload } from "@/components/chat/utils/roomRef";
 import type { FigurePosition } from "@/types/voiceRenderTypes";
 
+import { parseDescriptionDocId } from "@/components/chat/infra/blocksuite/description/descriptionDocId";
 import { isStoredBlockNoteSnapshot, readBlockNoteExcerpt } from "@/components/chat/infra/blocksuite/document/blockNoteSnapshot";
 import { getCachedDocSnapshot } from "@/components/chat/infra/blocksuite/document/docSnapshotCache";
-import { parseDescriptionDocId } from "@/components/chat/infra/blocksuite/description/descriptionDocId";
 import { recordDocCardShareObservation } from "@/components/chat/infra/blocksuite/shared/docCardShareObservability";
 import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
 import { IMPORT_SPECIAL_ROLE_ID } from "@/components/chat/utils/importChatText";

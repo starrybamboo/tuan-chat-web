@@ -1,11 +1,11 @@
 import type { ReactNode } from "react";
 
 import ReactMarkdown from "react-markdown";
-import { useAppNavigate as useNavigate } from "@/router/utils";
 import rehypeRaw from "rehype-raw";
 import rehypeSanitize from "rehype-sanitize";
 import remarkGfm from "remark-gfm";
 import { resolveMediaContentSource } from "@/components/common/content/mediaContent";
+import { useAppNavigate as useNavigate } from "@/router/utils";
 import { imageHighUrlFromUrl } from "@/utils/mediaUrl";
 import LinkComponent from "./linkHandler";
 import { MarkdownSyntaxHighlighter } from "./markdownSyntaxHighlighter";

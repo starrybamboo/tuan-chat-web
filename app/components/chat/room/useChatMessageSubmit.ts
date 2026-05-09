@@ -15,8 +15,8 @@ import { isRoomJumpCommandText, parseRoomJumpCommand } from "@/components/chat/u
 import { isCommand } from "@/components/common/dicer/cmdPre";
 import { normalizeAnnotations } from "@/types/messageAnnotations";
 import { buildChatMessageRequestFromDraft } from "@/types/messageDraft";
-import { UploadUtils } from "@/utils/UploadUtils";
 import { mediaFileUrl } from "@/utils/mediaUrl";
+import { UploadUtils } from "@/utils/UploadUtils";
 
 import type { ChatMessageRequest, ChatMessageResponse, UserRole } from "../../../../api";
 

@@ -307,7 +307,7 @@ export default defineConfig(() => {
 
           const filename = id.split("?")[0];
           const isTypeScriptFile = /\.[cm]?tsx?$/.test(filename);
-          const isTsxFile = /\.tsx$/.test(filename);
+          const isTsxFile = filename.endsWith(".tsx");
           const result = await babelCore.transformAsync(code, {
             filename,
             // BlockSuite 发布包的 *.map 指向了未随 npm 分发的 src/* 文件。

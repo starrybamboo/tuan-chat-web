@@ -79,7 +79,6 @@ describe("d&D 5e 指令集测试", () => {
         return Number.NaN;
       }
       try {
-        // eslint-disable-next-line no-eval
         return eval(expr);
       }
       catch {

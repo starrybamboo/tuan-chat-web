@@ -133,7 +133,7 @@ export default function SidebarTreeOverlays(props: SidebarTreeOverlaysProps) {
                   onCategoryEditorNameChange(e.target.value);
                 }}
                 placeholder="请输入分类名称"
-                autoFocus
+
               />
               {categoryEditorError && (
                 <div className="text-error text-sm">{categoryEditorError}</div>

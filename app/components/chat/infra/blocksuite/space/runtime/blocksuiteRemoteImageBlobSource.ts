@@ -4,8 +4,8 @@ import { IndexedDBBlobSource } from "@blocksuite/sync";
 import { BehaviorSubject } from "rxjs";
 
 import { normalizeMimeType } from "@/utils/mediaMime";
-import { mediaFileUrl } from "@/utils/mediaUrl";
 import { uploadMediaFile } from "@/utils/mediaUpload";
+import { mediaFileUrl } from "@/utils/mediaUrl";
 import { tuanchat } from "api/instance";
 
 const DEFAULT_BLOCKSUITE_IMAGE_SCENE = 1 as const;

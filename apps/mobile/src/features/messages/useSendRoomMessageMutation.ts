@@ -1,20 +1,19 @@
 import type { MessageDraft } from "@tuanchat/domain/message-draft";
+import type { ChatMessageRequest } from "@tuanchat/openapi-client/models/ChatMessageRequest";
 
 import { useQueryClient } from "@tanstack/react-query";
 import {
   buildChatMessageRequestFromDraft,
 } from "@tuanchat/domain/message-draft";
 import { MESSAGE_TYPE } from "@tuanchat/domain/message-type";
-import { parseSimpleStateCommand } from "@tuanchat/domain/state-command";
-
-import type { ChatMessageRequest } from "@tuanchat/openapi-client/models/ChatMessageRequest";
-
-import { mobileApiClient } from "@/lib/api";
 import { extractOpenApiErrorMessage } from "@tuanchat/domain/open-api-result";
+import { parseSimpleStateCommand } from "@tuanchat/domain/state-command";
 import {
   getRoomMessagesQueryKey,
   useSendMessageMutation as useSharedSendMessageMutation,
 } from "@tuanchat/query/chat";
+
+import { mobileApiClient } from "@/lib/api";
 
 type SendMessageContext = {
   customRoleName?: string;

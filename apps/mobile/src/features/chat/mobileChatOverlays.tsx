@@ -341,7 +341,7 @@ export function MobileChatSearchSheet({
                   <TextInput
                     autoCapitalize="none"
                     autoCorrect={false}
-                    autoFocus={visible}
+
                     onChangeText={onChangeQuery}
                     placeholder="搜索聊天记录..."
                     placeholderTextColor={theme.textSecondary}

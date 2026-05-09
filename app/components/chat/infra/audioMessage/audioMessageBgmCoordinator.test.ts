@@ -41,11 +41,15 @@ describe("audioMessageBgmCoordinator", () => {
     createdAudios.length = 0;
     frameTime = 0;
     vi.resetModules();
-    vi.stubGlobal("Audio", vi.fn(function MockAudio() {
-      const audio = createMockAudioElement();
-      createdAudios.push(audio);
-      return audio as any;
-    }));
+    class MockAudio {
+      constructor() {
+        const audio = createMockAudioElement();
+        createdAudios.push(audio);
+        return audio as any;
+      }
+    }
+
+    vi.stubGlobal("Audio", MockAudio);
     vi.stubGlobal("requestAnimationFrame", vi.fn((callback: FrameRequestCallback) => {
       frameTime += 100;
       queueMicrotask(() => callback(frameTime));

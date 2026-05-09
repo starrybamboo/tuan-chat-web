@@ -2,8 +2,9 @@ import type { PartialBlock } from "@blocknote/core";
 
 import type { StoredSnapshot } from "@/components/chat/infra/blocksuite/description/descriptionDocRemote";
 import type { BlocksuiteDocHeader } from "@/components/chat/infra/blocksuite/document/docHeader";
-import { base64ToString, stringToBase64 } from "@/components/chat/infra/blocksuite/shared/base64";
+
 import { normalizeBlocksuiteDocHeader } from "@/components/chat/infra/blocksuite/document/docHeader";
+import { base64ToString, stringToBase64 } from "@/components/chat/infra/blocksuite/shared/base64";
 
 export type BlockNoteDocBlock = PartialBlock<any, any, any>;
 

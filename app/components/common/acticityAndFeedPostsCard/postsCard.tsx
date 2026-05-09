@@ -1,6 +1,5 @@
 import React, { useCallback, useRef, useState } from "react";
 import toast from "react-hot-toast";
-import { useAppNavigate as useNavigate } from "@/router/utils";
 import ImagePreview from "@/components/activities/ImagePreview";
 import MomentDetailView from "@/components/activities/MomentDetailView";
 import { parseEventType } from "@/components/common/acticityAndFeedPostsCard/eventTypes";
@@ -15,6 +14,7 @@ import UserAvatarComponent from "@/components/common/userAvatar";
 import SlidableChatPreview from "@/components/community/slidableChatPreview";
 import { useGlobalUserId } from "@/components/globalContextProvider";
 import { CommentOutline } from "@/icons";
+import { useAppNavigate as useNavigate } from "@/router/utils";
 import { avatarThumbUrl } from "@/utils/mediaUrl";
 import { useDeleteMomentFeedMutation } from "../../../../api/hooks/activitiesFeedQuerryHooks";
 import { useGetUserInfoQuery } from "../../../../api/hooks/UserHooks";

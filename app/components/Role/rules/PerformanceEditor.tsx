@@ -1,8 +1,8 @@
+import type { FocusEvent, KeyboardEvent } from "react";
 import {
   useUpdateKeyFieldByRoleIdMutation,
   useUpdateRoleAbilityByRoleIdMutation,
 } from "api/hooks/abilityQueryHooks";
-import type { FocusEvent, KeyboardEvent } from "react";
 import { useRef } from "react";
 import { useIsMobile } from "@/utils/getScreenSize";
 import { getGridSpan, getGridSpanMobile } from "@/utils/gridSpan";

@@ -1,8 +1,7 @@
-import type { NavigateFunction } from "@/router/utils";
-
 import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import type { NavigateFunction } from "@/router/utils";
 import type { TutorialBootstrapResponse } from "api/hooks/tutorialOnboardingHooks";
 
 import {

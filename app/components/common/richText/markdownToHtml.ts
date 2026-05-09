@@ -90,7 +90,7 @@ export function rawMarkdownToHtml(md: string): string {
       continue;
     }
     // ===== 嵌套列表解析（树构建：子列表嵌入父 <li> 内） =====
-    if (/^[ \t]{0,30}(?:\d+\.\s+|[\-*+]\s+)/.test(line)) {
+    if (/^[ \t]{0,30}(?:\d+\.\s+|[-*+]\s+)/.test(line)) {
       type ListNode = { indent: number; ordered: boolean; content: string; children: ListNode[] };
       const root: ListNode[] = [];
       const stack: { indent: number; nodes: ListNode[] }[] = [{ indent: -1, nodes: root }];
@@ -114,7 +114,7 @@ export function rawMarkdownToHtml(md: string): string {
           rest = rest.slice(orderedHead[0].length);
         }
         else {
-          const bulletHead = /^[\-*+]\s+/.exec(rest);
+          const bulletHead = /^[-*+]\s+/.exec(rest);
           if (bulletHead) {
             rest = rest.slice(bulletHead[0].length);
           }
@@ -228,13 +228,13 @@ function _enhanceMentionsInHtml(raw: string, categories: string[] = ["人物", "
   if (typeof document === "undefined") {
     const catAlt = categories.map(c => c.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|");
     const re = new RegExp(`@(${catAlt})([^\\s<>{}]+)`, "g");
-    return raw.replace(re, (_m, cat, name) => `<span class=\"${MENTION_CLASS}\" data-label=\"${name}\" data-category=\"${cat}\">${name}</span>`);
+    return raw.replace(re, (_m, cat, name) => `<span class="${MENTION_CLASS}" data-label="${name}" data-category="${cat}">${name}</span>`);
   }
   const container = document.createElement("div");
   container.innerHTML = raw;
   const catSet = new Set(categories);
   const catAlt = categories.map(c => c.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|");
-  const mentionRe = new RegExp(`@(${catAlt})([^\s<>\u3000\u00A0\t\r\n]+)`, "g");
+  const mentionRe = new RegExp(`@(${catAlt})([^s<>\u3000\u00A0\t\r\n]+)`, "g");
   const skip = (n: Node | null): boolean => {
     while (n) {
       if (n instanceof HTMLElement) {
