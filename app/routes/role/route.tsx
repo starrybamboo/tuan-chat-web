@@ -6,7 +6,7 @@ import { Drawer } from "vaul";
 import { Sidebar } from "@/components/Role/Sidebar/Sidebar";
 import { useRoleUiStore } from "@/components/Role/stores/roleUiStore";
 import { useRoleListModel } from "@/components/Role/useRoleListModel";
-import { Outlet, useParams } from "@/router/native";
+import { Outlet, useAllParams as useParams } from "@/router/utils";
 import { createSeoMeta } from "@/utils/seo";
 import "@/components/Role/roleRouteStyles.css";
 
@@ -38,7 +38,7 @@ export default function RoleLayout() {
     return window.matchMedia("(min-width: 1024px)").matches;
   });
 
-  const { roleId } = useParams<{ roleId: string }>();
+  const { roleId } = useParams() as { roleId?: string };
 
   const selectedRoleId = roleId ? Number.parseInt(roleId, 10) : null;
 

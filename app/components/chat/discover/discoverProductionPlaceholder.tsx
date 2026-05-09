@@ -1,4 +1,4 @@
-import { Link } from "@/router/native";
+import { Link } from "@/router/utils";
 
 interface DiscoverProductionPlaceholderProps {
   title?: string;

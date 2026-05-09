@@ -3,9 +3,10 @@
  * 以 iframe 形式嵌入到聊天室侧边栏
  */
 
+import { useLocation } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { use, useCallback, useEffect } from "react";
-import { useLocation, useNavigate } from "@/router/native";
+import { useAppNavigate as useNavigate } from "@/router/utils";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
 import { resolveWebGALPreviewState } from "@/components/chat/shared/webgal/webGalPreviewState";
 import { useRealtimeRenderStore } from "@/components/chat/stores/realtimeRenderStore";
@@ -48,11 +49,11 @@ export default function WebGALPreview({
   const isWebgalPaneActive = sideDrawerState === "webgal";
   const canOpenSpaceWebgalSettings = typeof spaceId === "number" && Number.isFinite(spaceId) && spaceId > 0;
   const queryWithoutTab = useCallback(() => {
-    const nextSearchParams = new URLSearchParams(location.search);
+    const nextSearchParams = new URLSearchParams(location.searchStr);
     nextSearchParams.delete("tab");
     const qs = nextSearchParams.toString();
     return qs ? `?${qs}` : "";
-  }, [location.search]);
+  }, [location.searchStr]);
   const handleOpenSpaceWebgalSettings = useCallback(() => {
     if (!canOpenSpaceWebgalSettings) {
       return;

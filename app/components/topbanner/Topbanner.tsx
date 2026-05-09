@@ -2,7 +2,7 @@ import { ChatsIcon, CheckCircleIcon, GearSixIcon, IdentificationCardIcon, PaintB
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { motion, useAnimationControls } from "motion/react";
 import { lazy, Suspense, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
-import { Link, useLocation, useNavigate } from "@/router/native";
+import { Link, useAppNavigate as useNavigate, useLocation } from "@/router/utils";
 import WebgalStarter from "@/components/chat/shared/webgal/webgalStarter";
 import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
 import { interactiveButtonMotionProps } from "@/components/common/motion/interactiveButtonMotion";

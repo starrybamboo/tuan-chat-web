@@ -1,5 +1,5 @@
 import React from "react";
-import { useSearchParams } from "@/router/native";
+import { useUrlSearchParams as useSearchParams } from "@/router/utils";
 
 import { useChatPageLayoutContext } from "@/components/chat/chatPageLayoutContext";
 import FriendsPage from "@/components/privateChat/FriendsPage";

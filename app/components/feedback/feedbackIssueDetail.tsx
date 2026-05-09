@@ -1,7 +1,7 @@
 import type { MarkTarget } from "../../../api";
 import type { FeedbackIssueStatus } from "@/components/feedback/feedbackTypes";
 import toast from "react-hot-toast";
-import { Link } from "@/router/native";
+import { Link } from "@/router/utils";
 import {
   useFeedbackIssueDetailQuery,
   useUpdateFeedbackIssueArchiveMutation,

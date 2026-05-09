@@ -4,7 +4,7 @@ import { Plus } from "@phosphor-icons/react";
 import { useDebounce } from "ahooks";
 import { useRulePageSuspenseQuery } from "api/hooks/ruleQueryHooks";
 import { Suspense, useCallback, useDeferredValue, useEffect, useState } from "react";
-import { Link } from "@/router/native";
+import { Link } from "@/router/utils";
 
 interface RulesListProps {
   pageNum: number;

@@ -1,5 +1,5 @@
 import { BookOpenIcon, DiceFiveIcon, UserIcon } from "@phosphor-icons/react";
-import { Link } from "@/router/native";
+import { Link } from "@/router/utils";
 
 // 空状态组件
 export default function CreateEntry({

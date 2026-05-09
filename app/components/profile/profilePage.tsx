@@ -1,6 +1,6 @@
 import { HouseIcon, ImageIcon } from "@phosphor-icons/react";
 import React, { useEffect, useRef, useState } from "react";
-import { NavLink, Outlet, useLocation, useParams } from "@/router/native";
+import { Link, Outlet, useAllParams as useParams, useLocation } from "@/router/utils";
 
 function ProfilePage() {
   const { userId } = useParams();
@@ -75,21 +75,18 @@ function ProfilePage() {
         />
 
         {TABS.map(tab => (
-          <NavLink
+          <Link
             key={tab.id}
             to={tab.to}
             onClick={scrollToTop}
-            end={tab.id === "home"}
-            className={({ isActive }) =>
-              `px-4 py-3 font-semibold transition-all duration-300 ease-out cursor-pointer flex items-center gap-2 no-underline ${
-                isActive
-                  ? "text-primary"
-                  : "text-base-content"
-              }`}
+            activeOptions={{ exact: tab.id === "home" }}
+            className="px-4 py-3 font-semibold transition-all duration-300 ease-out cursor-pointer flex items-center gap-2 no-underline"
+            activeProps={{ className: "text-primary" }}
+            inactiveProps={{ className: "text-base-content" }}
           >
             {tab.icon}
             {tab.name}
-          </NavLink>
+          </Link>
         ))}
       </div>
 

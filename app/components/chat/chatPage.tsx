@@ -1,7 +1,7 @@
+import { Outlet } from "@tanstack/react-router";
 import { useGetSpaceInfoQuery, useGetSpaceMembersQuery, useGetUserActiveSpacesQuery, useGetUserRoomsQuery } from "api/hooks/chatQueryHooks";
 import { useSpaceMaterialPackagesQuery } from "api/hooks/materialPackageQueryHooks";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Outlet, useSearchParams } from "@/router/native";
 import { ChatPageOverlays, ChatPagePanels } from "@/components/chat/chatPageContainers";
 import { ChatPageLayoutProvider } from "@/components/chat/chatPageLayoutProvider";
 import { ChatPageDocContent } from "@/components/chat/chatPageMainContent";
@@ -39,6 +39,7 @@ import { useLocalStorage } from "@/components/common/customHooks/useLocalStorage
 import { useScreenSize } from "@/components/common/customHooks/useScreenSize";
 import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
 import { useGlobalUserId, useGlobalWebSocket } from "@/components/globalContextProvider";
+import { useUrlSearchParams as useSearchParams } from "@/router/utils";
 
 const EMPTY_ARRAY: never[] = [];
 interface CachedDocRoute {
