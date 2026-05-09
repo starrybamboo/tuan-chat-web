@@ -3,6 +3,10 @@ import type { GalPatchProposal, GalPatchProposalSummary } from "./authoringTypes
 const DB_NAME = "tuanChatGalPatchProposalDB";
 const STORE_NAME = "proposals";
 const ACTIVE_KEY_PREFIX = "tc:gal-patch-proposal:active:";
+const CLIENT_BLOCKING_VALIDATION_ERROR_CODES = new Set([
+  "message_not_found",
+  "missing_move_anchor",
+]);
 
 export type GalPatchProposalStore = {
   save: (proposal: GalPatchProposal) => Promise<void>;
@@ -71,6 +75,19 @@ function summarizeProposal(proposal: GalPatchProposal): GalPatchProposalSummary 
   };
 }
 
+export function normalizePersistedGalPatchProposal(proposal: GalPatchProposal): GalPatchProposal {
+  const validationErrors = proposal.validationErrors.filter(error =>
+    CLIENT_BLOCKING_VALIDATION_ERROR_CODES.has(error.code),
+  );
+  if (validationErrors.length === proposal.validationErrors.length) {
+    return proposal;
+  }
+  return {
+    ...proposal,
+    validationErrors,
+  };
+}
+
 export class IndexedDbGalPatchProposalStore implements GalPatchProposalStore {
   async save(proposal: GalPatchProposal): Promise<void> {
     if (!canUseIndexedDb()) {
@@ -84,7 +101,7 @@ export class IndexedDbGalPatchProposalStore implements GalPatchProposalStore {
       return null;
     }
     const proposal = await withStore<GalPatchProposal>("readonly", store => store.get(proposalId));
-    return proposal ?? null;
+    return proposal ? normalizePersistedGalPatchProposal(proposal) : null;
   }
 
   async setActive(roomId: string, proposalId: string | null): Promise<void> {
@@ -139,7 +156,8 @@ export class MemoryGalPatchProposalStore implements GalPatchProposalStore {
   }
 
   async get(proposalId: string): Promise<GalPatchProposal | null> {
-    return this.proposals.get(proposalId) ?? null;
+    const proposal = this.proposals.get(proposalId);
+    return proposal ? normalizePersistedGalPatchProposal(proposal) : null;
   }
 
   async setActive(roomId: string, proposalId: string | null): Promise<void> {
@@ -157,7 +175,7 @@ export class MemoryGalPatchProposalStore implements GalPatchProposalStore {
   }
 
   async updateStatus(proposalId: string, status: GalPatchProposal["status"]): Promise<GalPatchProposal | null> {
-    const proposal = this.proposals.get(proposalId);
+    const proposal = await this.get(proposalId);
     if (!proposal) {
       return null;
     }
@@ -183,3 +201,5 @@ export class MemoryGalPatchProposalStore implements GalPatchProposalStore {
 export function createGalPatchProposalSummary(proposal: GalPatchProposal): GalPatchProposalSummary {
   return summarizeProposal(proposal);
 }
+
+export const galPatchProposalStore: GalPatchProposalStore = new IndexedDbGalPatchProposalStore();

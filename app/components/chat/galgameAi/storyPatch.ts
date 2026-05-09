@@ -30,74 +30,21 @@ function normalizeRoleId(roleId: string | undefined) {
   return roleId === "0" ? GAL_NARRATOR.roleId : roleId;
 }
 
-function hasRole(context: GalPatchValidationContext, roleId: string | undefined) {
-  const normalizedRoleId = normalizeRoleId(roleId);
-  if (!normalizedRoleId || normalizedRoleId === context.narrator.roleId) {
-    return true;
-  }
-  return context.roles.some(role => role.roleId === normalizedRoleId);
-}
-
-function getRole(context: GalPatchValidationContext, roleId: string | undefined) {
-  const normalizedRoleId = normalizeRoleId(roleId);
-  return context.roles.find(role => role.roleId === normalizedRoleId);
-}
-
-function hasAvatar(context: GalPatchValidationContext, roleId: string | undefined, avatarId: string | undefined) {
+function normalizeAvatarId(avatarId: string | undefined) {
   if (!avatarId) {
-    return true;
+    return undefined;
   }
-  const normalizedRoleId = normalizeRoleId(roleId);
-  if (!normalizedRoleId || normalizedRoleId === context.narrator.roleId) {
-    return false;
+  const parsed = Number(avatarId);
+  if (Number.isFinite(parsed) && parsed <= 0) {
+    return undefined;
   }
-  const role = getRole(context, normalizedRoleId);
-  return role?.avatarId === avatarId || role?.avatarVariants.some(avatar => avatar.avatarId === avatarId) === true;
-}
-
-function validateAnnotations(context: GalPatchValidationContext, annotations: string[], operationIndex: number): GalPatchValidationError[] {
-  const knownIds = new Set(context.annotations.map(annotation => annotation.id));
-  return annotations
-    .filter(id => !knownIds.has(id))
-    .map(id => ({
-      code: "unknown_annotation",
-      message: `annotation 不存在: ${id}`,
-      operationIndex,
-    }));
-}
-
-function validatePatchMessageInput(
-  input: GalPatchMessageInput,
-  context: GalPatchValidationContext,
-  operationIndex: number,
-): GalPatchValidationError[] {
-  const errors: GalPatchValidationError[] = [];
-  const roleId = normalizeRoleId(input.roleId);
-  if (!hasRole(context, roleId)) {
-    errors.push({
-      code: "unknown_role",
-      message: `角色不属于当前房间: ${input.roleId}`,
-      operationIndex,
-    });
-  }
-  if (!hasAvatar(context, roleId, input.avatarId)) {
-    errors.push({
-      code: "unknown_avatar",
-      message: `avatarId 不属于该角色: ${input.avatarId}`,
-      operationIndex,
-    });
-  }
-  if (input.annotations) {
-    errors.push(...validateAnnotations(context, input.annotations, operationIndex));
-  }
-  return errors;
+  return avatarId;
 }
 
 function validateOperation(
   operation: GalStoryPatchOperation,
   index: number,
   snapshot: SnapshotIndex,
-  context: GalPatchValidationContext,
 ): GalPatchValidationError[] {
   const errors: GalPatchValidationError[] = [];
   const assertMessageExists = (messageId: string | undefined, fieldLabel: string) => {
@@ -145,44 +92,6 @@ function validateOperation(
       break;
   }
 
-  if (operation.op === "insert_before" || operation.op === "insert_after" || operation.op === "replace_message") {
-    errors.push(...validatePatchMessageInput(operation.message, context, index));
-  }
-  if (operation.op === "update_annotations") {
-    errors.push(...validateAnnotations(context, operation.annotations, index));
-  }
-  if (operation.op === "update_role") {
-    const current = snapshot.byId.get(operation.messageId);
-    const roleId = normalizeRoleId(operation.roleId);
-    if (!hasRole(context, roleId)) {
-      errors.push({
-        code: "unknown_role",
-        message: `角色不属于当前房间: ${operation.roleId}`,
-        operationIndex: index,
-        messageId: operation.messageId,
-      });
-    }
-    if (current?.avatarId && !hasAvatar(context, roleId, current.avatarId)) {
-      errors.push({
-        code: "avatar_role_mismatch",
-        message: `当前 avatarId 不属于目标角色: ${current.avatarId}`,
-        operationIndex: index,
-        messageId: operation.messageId,
-      });
-    }
-  }
-  if (operation.op === "update_avatar") {
-    const current = snapshot.byId.get(operation.messageId);
-    if (!hasAvatar(context, current?.roleId, operation.avatarId)) {
-      errors.push({
-        code: "unknown_avatar",
-        message: `avatarId 不属于该角色: ${operation.avatarId}`,
-        operationIndex: index,
-        messageId: operation.messageId,
-      });
-    }
-  }
-
   return errors;
 }
 
@@ -191,8 +100,18 @@ export function validateGalStoryPatch(
   patch: GalStoryPatch,
   context: GalPatchValidationContext,
 ): GalPatchValidationError[] {
-  const snapshot = indexSnapshot(baseSnapshot);
-  return patch.operations.flatMap((operation, index) => validateOperation(operation, index, snapshot, context));
+  const errors: GalPatchValidationError[] = [];
+  let messages = baseSnapshot.map(cloneMessage);
+
+  patch.operations.forEach((operation, index) => {
+    const operationErrors = validateOperation(operation, index, indexSnapshot(messages));
+    errors.push(...operationErrors);
+    if (operationErrors.length === 0) {
+      messages = applyOperation(messages, operation, index, context);
+    }
+  });
+
+  return errors;
 }
 
 function buildMessageFromInput(
@@ -204,6 +123,7 @@ function buildMessageFromInput(
   },
 ): GalMessageView {
   const roleId = normalizeRoleId(input.roleId);
+  const avatarId = normalizeAvatarId(input.avatarId);
   return {
     messageId: params.messageId,
     position: params.position,
@@ -212,7 +132,7 @@ function buildMessageFromInput(
     purpose: input.purpose ?? "unknown",
     ...(roleId ? { roleId } : {}),
     ...(input.customRoleName ? { customRoleName: input.customRoleName } : {}),
-    ...(input.avatarId ? { avatarId: input.avatarId } : {}),
+    ...(avatarId ? { avatarId } : {}),
     content: input.content ?? "",
     annotations: input.annotations ?? [],
     ...(input.webgal ? { webgal: { ...input.webgal } } : {}),
@@ -234,7 +154,12 @@ function getInsertPosition(ordered: GalMessageView[], anchorId: string, side: "b
   return next ? (anchor.position + next.position) / 2 : anchor.position + 1;
 }
 
-function applyOperation(messages: GalMessageView[], operation: GalStoryPatchOperation, index: number, roomId: string) {
+function applyOperation(
+  messages: GalMessageView[],
+  operation: GalStoryPatchOperation,
+  index: number,
+  context: GalPatchValidationContext,
+) {
   const ordered = [...messages].sort((a, b) => a.position - b.position);
   switch (operation.op) {
     case "replace_content":
@@ -243,7 +168,7 @@ function applyOperation(messages: GalMessageView[], operation: GalStoryPatchOper
       const position = getInsertPosition(ordered, operation.beforeMessageId, "before");
       return [...messages, buildMessageFromInput(operation.message, {
         messageId: `new:${index}`,
-        roomId,
+        roomId: context.roomId,
         position,
       })];
     }
@@ -251,7 +176,7 @@ function applyOperation(messages: GalMessageView[], operation: GalStoryPatchOper
       const position = getInsertPosition(ordered, operation.afterMessageId, "after");
       return [...messages, buildMessageFromInput(operation.message, {
         messageId: `new:${index}`,
-        roomId,
+        roomId: context.roomId,
         position,
       })];
     }
@@ -284,7 +209,7 @@ function applyOperation(messages: GalMessageView[], operation: GalStoryPatchOper
         : message);
     }
     case "update_avatar":
-      return messages.map(message => message.messageId === operation.messageId ? { ...message, avatarId: operation.avatarId } : message);
+      return messages.map(message => message.messageId === operation.messageId ? { ...message, avatarId: normalizeAvatarId(operation.avatarId) } : message);
     case "replace_message":
       return messages.map(message => message.messageId === operation.messageId
         ? buildMessageFromInput(operation.message, {
@@ -370,7 +295,7 @@ export function applyGalStoryPatch(
   }
 
   const projectedSnapshot = patch.operations.reduce(
-    (messages, operation, index) => applyOperation(messages, operation, index, context.roomId),
+    (messages, operation, index) => applyOperation(messages, operation, index, context),
     baseSnapshot.map(cloneMessage),
   ).sort((a, b) => a.position - b.position);
   const diff = buildGalStoryDiff(baseSnapshot, projectedSnapshot);

@@ -1,7 +1,9 @@
+import { QueryClient } from "@tanstack/react-query";
 import { describe, expect, it } from "vitest";
 
 import type { Message } from "@tuanchat/openapi-client/models/Message";
 
+import { roleAvatarsQueryKey } from "../../../../api/hooks/RoleAndAvatarHooks";
 import { MessageType } from "../../../../api/wsModels";
 import { GAL_NARRATOR } from "./authoringProjection";
 import { getGalAuthoringContext } from "./galAuthoringService";
@@ -24,6 +26,88 @@ function createMessage(overrides: Partial<Message>): Message {
 }
 
 describe("getGalAuthoringContext", () => {
+  it("优先复用本地快照，避免重复请求已加载的上下文", async () => {
+    const failRequest = async () => {
+      throw new Error("不应请求远端上下文");
+    };
+
+    const context = await getGalAuthoringContext({
+      spaceId: 5,
+      roomId: 10,
+      client: {
+        spaceController: { getSpaceInfo: failRequest },
+        roomController: {
+          getRoomInfo: failRequest,
+          getUserRooms: failRequest,
+        },
+        chatController: { getAllMessage: failRequest },
+        roomRoleController: {
+          roomRole: failRequest,
+          roomNpcRole: failRequest,
+        },
+        avatarController: { getRoleAvatars: failRequest },
+      } as any,
+      localSnapshot: {
+        space: { spaceId: 5, name: "本地工程" },
+        room: { spaceId: 5, roomId: 10, name: "本地房间" },
+        rooms: [{ spaceId: 5, roomId: 10, name: "本地房间" }],
+        messages: [createMessage({ messageId: 9, position: 1, roleId: 7, content: "本地缓存消息" })],
+        roomRoles: [{ userId: 1, roleId: 7, roleName: "千夏", avatarId: 70, type: 1 }],
+        roleAvatarsByRoleId: new Map([
+          [7, [{ roleId: 7, avatarId: 71, category: "表情" } as any]],
+        ]),
+      },
+    });
+
+    expect(context.space.name).toBe("本地工程");
+    expect(context.room.name).toBe("本地房间");
+    expect(context.messages.map(message => message.content)).toEqual(["本地缓存消息"]);
+    expect(context.roles.roomRoles[0].avatarVariants).toEqual([
+      expect.objectContaining({ avatarId: "71", category: "表情" }),
+    ]);
+  });
+
+  it("复用 React Query 中已有的角色差分缓存", async () => {
+    const queryClient = new QueryClient();
+    queryClient.setQueryData(roleAvatarsQueryKey(7), {
+      data: [
+        {
+          roleId: 7,
+          avatarId: 71,
+          avatarTitle: { zh: "微笑" },
+          category: "表情",
+        },
+      ],
+    });
+
+    const context = await getGalAuthoringContext({
+      spaceId: 5,
+      roomId: 10,
+      queryClient,
+      client: {
+        spaceController: { getSpaceInfo: async () => ({ data: { spaceId: 5 } }) },
+        roomController: {
+          getRoomInfo: async () => ({ data: { spaceId: 5, roomId: 10 } }),
+          getUserRooms: async () => ({ data: { rooms: [{ spaceId: 5, roomId: 10 }] } }),
+        },
+        chatController: { getAllMessage: async () => ({ data: [] }) },
+        roomRoleController: {
+          roomRole: async () => ({ data: [{ userId: 1, roleId: 7, roleName: "千夏", type: 1 }] }),
+          roomNpcRole: async () => ({ data: [] }),
+        },
+        avatarController: {
+          getRoleAvatars: async () => {
+            throw new Error("已有缓存时不应请求角色差分");
+          },
+        },
+      } as any,
+    });
+
+    expect(context.roles.roomRoles[0].avatarVariants).toEqual([
+      expect.objectContaining({ avatarId: "71", avatarTitle: { zh: "微笑" } }),
+    ]);
+  });
+
   it("聚合空间、房间、消息、房间角色和角色差分", async () => {
     const client = {
       spaceController: {
@@ -185,6 +269,68 @@ describe("getGalAuthoringContext", () => {
       proposalId: "p1",
       status: "draft",
       modified: 1,
+    });
+  });
+
+  it("解析参考房间为只读 referenceRooms", async () => {
+    const context = await getGalAuthoringContext({
+      spaceId: 5,
+      roomId: 10,
+      referenceRoomIds: [11],
+      client: {
+        spaceController: { getSpaceInfo: async () => ({ data: { spaceId: 5 } }) },
+        roomController: {
+          getRoomInfo: async (roomId: number) => ({
+            data: {
+              spaceId: 5,
+              roomId,
+              name: roomId === 11 ? "雨夜前奏" : "当前房间",
+            },
+          }),
+          getUserRooms: async () => ({
+            data: {
+              rooms: [
+                { spaceId: 5, roomId: 10, name: "当前房间" },
+                { spaceId: 5, roomId: 11, name: "雨夜前奏" },
+              ],
+            },
+          }),
+        },
+        chatController: {
+          getAllMessage: async (roomId: number) => ({
+            data: roomId === 11
+              ? [
+                  { message: createMessage({ roomId: 11, messageId: 21, position: 1, roleId: 0, content: "雨声压低了脚步。" }) },
+                ]
+              : [
+                  { message: createMessage({ roomId: 10, messageId: 1, position: 1, roleId: 7, content: "当前对白" }) },
+                ],
+          }),
+        },
+        roomRoleController: {
+          roomRole: async (roomId: number) => ({
+            data: roomId === 11 ? [] : [{ userId: 1, roleId: 7, roleName: "千夏", type: 1 }],
+          }),
+          roomNpcRole: async () => ({ data: [] }),
+        },
+        avatarController: { getRoleAvatars: async () => ({ data: [] }) },
+      } as any,
+    });
+
+    expect(context.referenceRooms).toHaveLength(1);
+    expect(context.referenceRooms?.[0]).toMatchObject({
+      refId: "room:11",
+      room: {
+        roomId: "11",
+        name: "雨夜前奏",
+      },
+      messages: [
+        {
+          messageId: "21",
+          roleId: "narrator",
+          content: "雨声压低了脚步。",
+        },
+      ],
     });
   });
 });

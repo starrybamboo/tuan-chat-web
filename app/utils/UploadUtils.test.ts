@@ -18,7 +18,7 @@ describe("uploadUtils media service adapter", () => {
     delete (globalThis as any).__TC_VIDEO_UPLOAD_ENABLE_TRANSCODE;
   });
 
-  it("视频上传会先走现有转码预处理，再交给媒体服务并返回 high 变体", async () => {
+  it("视频上传会先走现有转码预处理，再交给媒体服务并返回可用低档位地址", async () => {
     const utils = new UploadUtils();
     const file = new File([new Uint8Array(1024)], "clip.mp4", { type: "video/mp4" });
     const transcodedFile = new File([new Uint8Array(256)], "clip.webm", { type: "video/webm" });
@@ -39,10 +39,10 @@ describe("uploadUtils media service adapter", () => {
       fileId: 42,
       fileName: "clip.webm",
       mediaType: "video",
-      originalUrl: "https://tuan.chat/media/v1/files/042/42/original",
+      originalUrl: "https://tuan.chat/media/v1/files/042/42/video/low.webm",
       size: transcodedFile.size,
       uploadRequired: true,
-      url: "https://tuan.chat/media/v1/files/042/42/video/high.webm",
+      url: "https://tuan.chat/media/v1/files/042/42/video/low.webm",
     });
   });
 
@@ -61,7 +61,7 @@ describe("uploadUtils media service adapter", () => {
 
     expect(transcodeVideoFileToWebmOrThrow).not.toHaveBeenCalled();
     expect(uploadMediaFileMock).toHaveBeenCalledWith(file, { scene: 1 });
-    expect(result.url).toBe("https://tuan.chat/media/v1/files/043/43/video/high.webm");
+    expect(result.url).toBe("https://tuan.chat/media/v1/files/043/43/video/low.webm");
     expect(result.fileId).toBe(43);
   });
 
@@ -83,7 +83,7 @@ describe("uploadUtils media service adapter", () => {
     expect(transcodeMock).toHaveBeenCalledTimes(1);
     expect(warnSpy).toHaveBeenCalled();
     expect(uploadMediaFileMock).toHaveBeenCalledWith(file, { scene: 1 });
-    expect(result.url).toBe("https://tuan.chat/media/v1/files/044/44/video/high.webm");
+    expect(result.url).toBe("https://tuan.chat/media/v1/files/044/44/video/low.webm");
     warnSpy.mockRestore();
   });
 
@@ -98,7 +98,7 @@ describe("uploadUtils media service adapter", () => {
     expect(uploadMediaFile).not.toHaveBeenCalled();
   });
 
-  it("图片上传通过媒体服务返回 high 变体地址", async () => {
+  it("图片上传通过媒体服务返回可用中档位地址", async () => {
     const utils = new UploadUtils();
     const file = new File([new Uint8Array([1, 2, 3, 4])], "same.png", { type: "image/png" });
     const uploadMediaFileMock = uploadMediaFile as ReturnType<typeof vi.fn>;
@@ -111,7 +111,7 @@ describe("uploadUtils media service adapter", () => {
     const result = await utils.uploadImg(file, 1);
 
     expect(uploadMediaFileMock).toHaveBeenCalledWith(file, { scene: 1 });
-    expect(result).toBe("https://tuan.chat/media/v1/files/045/45/image/high.webp");
+    expect(result).toBe("https://tuan.chat/media/v1/files/045/45/image/medium.webp");
   });
 
   it("图片上传入口会拒绝无法识别为图片的文件", async () => {

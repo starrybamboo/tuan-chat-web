@@ -412,7 +412,7 @@ describe("useChatMessageSubmit", () => {
       roomId: 1,
       messageId: 10,
       purpose: "bgm",
-      url: "https://tuan.chat/media/v1/files/012/12/audio/high.webm",
+      url: "https://tuan.chat/media/v1/files/012/12/audio/low.webm",
     });
   });
 

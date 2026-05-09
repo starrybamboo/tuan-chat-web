@@ -87,6 +87,7 @@
   },
   "dependencies": {
     "@react-router/node": "^7.15.0",
+    "@tuanchat/galgame-ai-contract": "workspace:*",
     "@tuanchat/openapi-client": "workspace:*",
     "detect-port": "^2.1.0",
     "electron-updater": "^6.7.3",

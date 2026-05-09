@@ -33,6 +33,14 @@ export default defineConfig({
         replacement: path.resolve(__dirname, "./app/$1"),
       },
       {
+        find: /^@tuanchat\/galgame-ai-contract$/,
+        replacement: path.resolve(__dirname, "./packages/galgame-ai-contract/src/index.ts"),
+      },
+      {
+        find: /^@tuanchat\/galgame-ai-contract\/(.*)$/,
+        replacement: path.resolve(__dirname, "./packages/galgame-ai-contract/src/$1"),
+      },
+      {
         find: /^@\//,
         replacement: `${path.resolve(__dirname, "./app")}/`,
       },
@@ -42,7 +50,7 @@ export default defineConfig({
     globals: true,
     environment: "node",
     include: ["**/*.test.ts"],
-    exclude: ["**/*.e2e.test.ts", "node_modules", "dist"],
+    exclude: ["**/*.e2e.test.ts", "**/node_modules/**", "**/dist/**"],
     maxThreads: 16,
     server: {
       deps: {

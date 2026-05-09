@@ -127,6 +127,63 @@ describe("gal patch mutation adapter", () => {
     });
   });
 
+  it("把角色和 annotation 更新转换为 update mutation 字段", () => {
+    const currentMessages = [
+      createMessage({
+        messageId: 1,
+        roleId: 7,
+        customRoleName: "千夏",
+        annotations: [],
+      }),
+    ];
+    const proposal = createGalPatchProposal({
+      proposalId: "p1",
+      spaceId: "5",
+      roomId: "10",
+      baseSnapshot: projectGalMessages(currentMessages, []),
+      patch: {
+        operations: [
+          {
+            op: "update_role",
+            messageId: "1",
+            roleId: "8",
+            customRoleName: "雨中的人",
+          },
+          {
+            op: "update_annotations",
+            messageId: "1",
+            annotations: ["figure.pos.left"],
+          },
+        ],
+      },
+      context: {
+        roomId: "10",
+        narrator: GAL_NARRATOR,
+        roles: [
+          { roleId: "7", avatarVariants: [] },
+          { roleId: "8", avatarVariants: [] },
+        ],
+        annotations: [
+          { id: "figure.pos.left", label: "左", source: "builtin" },
+        ],
+      },
+      now: new Date("2026-04-28T00:00:00.000Z"),
+    });
+
+    const plan = buildGalPatchMutationPlan({ proposal, currentMessages });
+
+    expect(plan.updateMessages).toEqual([
+      expect.objectContaining({
+        messageId: 1,
+        roleId: 8,
+        customRoleName: "雨中的人",
+        annotations: ["figure.pos.left"],
+      }),
+    ]);
+    expect(plan.insertMessages).toEqual([]);
+    expect(plan.deleteMessageIds).toEqual([]);
+  });
+
   it("当前部分消息变化时仍完整生成 proposal mutation", () => {
     const baseMessages = [
       createMessage({ messageId: 1, position: 1, content: "旧" }),
@@ -189,5 +246,62 @@ describe("gal patch mutation adapter", () => {
       }),
     ]);
     expect(plan.deleteMessageIds).toEqual([2]);
+  });
+
+  it("只为接受的消息行生成 mutation", () => {
+    const currentMessages = [
+      createMessage({ messageId: 1, position: 1, content: "旧" }),
+      createMessage({ messageId: 2, position: 2, content: "删除我" }),
+    ];
+    const proposal = createGalPatchProposal({
+      proposalId: "p1",
+      spaceId: "5",
+      roomId: "10",
+      baseSnapshot: projectGalMessages(currentMessages, []),
+      patch: {
+        operations: [
+          {
+            op: "replace_content",
+            messageId: "1",
+            content: "新",
+          },
+          {
+            op: "insert_after",
+            afterMessageId: "1",
+            message: {
+              messageType: MessageType.TEXT,
+              roleId: "narrator",
+              purpose: "narration",
+              content: "接受的新增",
+            },
+          },
+          {
+            op: "delete",
+            messageId: "2",
+          },
+        ],
+      },
+      context: {
+        roomId: "10",
+        narrator: GAL_NARRATOR,
+        roles: [{ roleId: "7", avatarVariants: [] }],
+        annotations: [],
+      },
+      now: new Date("2026-04-28T00:00:00.000Z"),
+    });
+
+    const plan = buildGalPatchMutationPlan({
+      proposal,
+      currentMessages,
+      acceptedMessageIds: ["1", "new:1"],
+    });
+
+    expect(plan.updateMessages).toEqual([
+      expect.objectContaining({ messageId: 1, content: "新" }),
+    ]);
+    expect(plan.insertMessages).toEqual([
+      expect.objectContaining({ content: "接受的新增" }),
+    ]);
+    expect(plan.deleteMessageIds).toEqual([]);
   });
 });

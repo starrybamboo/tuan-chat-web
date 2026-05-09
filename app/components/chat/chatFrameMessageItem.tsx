@@ -16,6 +16,8 @@ interface ChatFrameMessageItemProps {
   baseVersionMessage?: ChatMessageResponse | null;
   showFullMessageDiff?: boolean;
   showAddedMessageDiff?: boolean;
+  messageAction?: React.ReactNode;
+  disableInsertAction?: boolean;
   onExecuteCommandRequest?: (payload: {
     command: string;
     threadId?: number;
@@ -42,6 +44,8 @@ export default function ChatFrameMessageItem({
   baseVersionMessage,
   showFullMessageDiff,
   showAddedMessageDiff,
+  messageAction,
+  disableInsertAction = false,
   onExecuteCommandRequest,
   isCommandRequestConsumed,
   onEditWebgalChoose,
@@ -79,11 +83,14 @@ export default function ChatFrameMessageItem({
       {movable && (
         <div
           className={`absolute left-0 ${useChatBubbleStyle ? "top-[12px]" : "top-[30px]"}
-                      opacity-0 transition-opacity flex items-center pr-2 cursor-move
+                      opacity-45 transition-opacity flex items-center pr-2 cursor-move
                       group-hover:opacity-100 z-100`}
           draggable={movable}
           onDragStart={onDragStart}
           onDragEnd={onDragEnd}
+          title="拖动消息，可拖到 AI 对话作为上下文"
+          aria-label="拖动消息"
+          data-message-drag-handle="true"
         >
           <DraggableIcon className="size-6"></DraggableIcon>
         </div>
@@ -97,9 +104,10 @@ export default function ChatFrameMessageItem({
         baseVersionMessage={baseVersionMessage}
         showFullMessageDiff={showFullMessageDiff}
         showAddedMessageDiff={showAddedMessageDiff}
+        messageAction={messageAction}
       />
-      {!isSelecting && (
-        <div className="relative h-4 -mt-2 group/insert select-none">
+      {!isSelecting && !disableInsertAction && (
+        <div className="relative h-4 -mt-2 group/insert select-none" data-message-insert-action="true">
           <button
             type="button"
             className="absolute inset-0 z-20 cursor-pointer w-full"

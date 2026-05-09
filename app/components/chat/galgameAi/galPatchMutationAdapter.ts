@@ -109,15 +109,20 @@ function getProjectedChangedFields(base: GalMessageView, projected: GalMessageVi
 export function buildGalPatchMutationPlan(params: {
   proposal: GalPatchProposal;
   currentMessages: Message[];
+  acceptedMessageIds?: Iterable<string>;
 }): GalPatchMutationPlan {
   const baseById = new Map(params.proposal.baseSnapshot.map(message => [message.messageId, message]));
   const projectedById = new Map(params.proposal.projectedSnapshot.map(message => [message.messageId, message]));
   const originalById = new Map(params.currentMessages.map(message => [String(message.messageId), message]));
+  const acceptedMessageIds = params.acceptedMessageIds ? new Set(params.acceptedMessageIds) : null;
   const insertMessages: ChatMessageRequest[] = [];
   const updateMessages: Message[] = [];
   const deleteMessageIds: number[] = [];
 
   for (const projected of params.proposal.projectedSnapshot) {
+    if (acceptedMessageIds && !acceptedMessageIds.has(projected.messageId)) {
+      continue;
+    }
     if (!baseById.has(projected.messageId)) {
       insertMessages.push(toInsertRequest(projected));
       continue;
@@ -137,6 +142,9 @@ export function buildGalPatchMutationPlan(params: {
   }
 
   for (const base of params.proposal.baseSnapshot) {
+    if (acceptedMessageIds && !acceptedMessageIds.has(base.messageId)) {
+      continue;
+    }
     if (!projectedById.has(base.messageId)) {
       const id = Number(base.messageId);
       if (Number.isFinite(id) && originalById.has(base.messageId)) {

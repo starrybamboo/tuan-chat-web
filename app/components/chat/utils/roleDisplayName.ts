@@ -5,6 +5,7 @@ type RoleDisplayNameParams = {
   draftRoleName?: string | null;
   isIntroText?: boolean;
   isSpectator?: boolean;
+  zeroRoleIsNarrator?: boolean;
   fallback?: string;
   spectatorLabel?: string;
 };
@@ -16,6 +17,7 @@ export function getDisplayRoleName({
   draftRoleName,
   isIntroText = false,
   isSpectator = false,
+  zeroRoleIsNarrator = false,
   fallback = "未选择角色",
   spectatorLabel = "观战",
 }: RoleDisplayNameParams): string {
@@ -32,6 +34,9 @@ export function getDisplayRoleName({
   const preferred = (customRoleName ?? draftRoleName ?? "").trim();
   if (preferred) {
     return preferred;
+  }
+  if (normalizedRoleId === 0 && zeroRoleIsNarrator) {
+    return "";
   }
   const baseName = (roleName ?? "").trim();
   if (baseName) {

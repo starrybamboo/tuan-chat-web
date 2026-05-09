@@ -6,6 +6,7 @@ interface MessageTextDiffPreviewProps {
   diff: MessageTextDiff | null;
   isStreaming?: boolean;
   emptyAfterText?: string;
+  footerAction?: React.ReactNode;
   onAccept?: () => void;
   onCancel?: () => void;
 }
@@ -35,6 +36,7 @@ export default function MessageTextDiffPreview({
   diff,
   isStreaming = false,
   emptyAfterText = "暂无内容",
+  footerAction,
   onAccept,
   onCancel,
 }: MessageTextDiffPreviewProps) {
@@ -67,8 +69,9 @@ export default function MessageTextDiffPreview({
         </section>
       </div>
 
-      {(onCancel || onAccept) && (
+      {(footerAction || onCancel || onAccept) && (
         <div className="mt-3 flex justify-end gap-2">
+          {footerAction}
           {onCancel && (
             <button type="button" className="btn btn-ghost btn-xs" onClick={onCancel}>
               拒绝

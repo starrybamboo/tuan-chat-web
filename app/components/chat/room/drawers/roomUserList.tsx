@@ -151,13 +151,14 @@ export default function RoomUserList({ type}: { type: string }) {
         {isRole
           ? (
               <>
-                <RoleList roles={roomRoles} className={getScreenSize() === "sm" ? "w-full" : "w-full max-w-md"} />
+                <RoleList roles={roomRoles} className={getScreenSize() === "sm" ? "w-full" : "w-full max-w-md"} sourceRoomId={roomId} />
                 <RoleList
                   roles={npcRoles}
                   className={getScreenSize() === "sm" ? "w-full" : "w-full max-w-md"}
                   isNpcRole={true}
                   allowKickOut={true}
                   kickOutByManagerOnly={true}
+                  sourceRoomId={roomId}
                 />
               </>
             )

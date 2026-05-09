@@ -1,6 +1,7 @@
-import { CheckerboardIcon, FileTextIcon, FilmSlateIcon, ListChecks, PulseIcon, SwordIcon } from "@phosphor-icons/react";
+import { CheckerboardIcon, FileTextIcon, FilmSlateIcon, ListChecks, PulseIcon, Sparkle, SwordIcon } from "@phosphor-icons/react";
 import { useRealtimeRenderStore } from "@/components/chat/stores/realtimeRenderStore";
 import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
+import { useRoomUiStore } from "@/components/chat/stores/roomUiStore";
 import { useSideDrawerStore } from "@/components/chat/stores/sideDrawerStore";
 import { BranchIcon, WebgalIcon } from "@/icons";
 
@@ -17,6 +18,7 @@ interface ChatToolbarDockProps {
   onOpenFullMessageDiff?: () => void;
   isFullMessageDiffOpen?: boolean;
   showRunControls?: boolean;
+  showCopilotControl?: boolean;
 }
 
 export default function ChatToolbarDock({
@@ -29,12 +31,20 @@ export default function ChatToolbarDock({
   onOpenFullMessageDiff,
   isFullMessageDiffOpen = false,
   showRunControls,
+  showCopilotControl = false,
 }: ChatToolbarDockProps) {
   const webgalLinkMode = useRoomPreferenceStore(state => state.webgalLinkMode);
   const runModeEnabled = useRoomPreferenceStore(state => state.runModeEnabled);
   const isRealtimeRenderActive = useRealtimeRenderStore(state => state.isActive);
+  const setThreadRootMessageId = useRoomUiStore(state => state.setThreadRootMessageId);
+  const setComposerTarget = useRoomUiStore(state => state.setComposerTarget);
   const sideDrawerState = useSideDrawerStore(state => state.state);
   const setSideDrawerState = useSideDrawerStore(state => state.setState);
+  const handleToggleCopilotDrawer = () => {
+    setComposerTarget("main");
+    setThreadRootMessageId(undefined);
+    setSideDrawerState(sideDrawerState === "copilot" ? "none" : "copilot");
+  };
 
   return (
     <div
@@ -42,6 +52,19 @@ export default function ChatToolbarDock({
         isInline && showRunControls && isRunModeOnly ? "min-h-8" : ""
       }`}
     >
+      {showCopilotControl && (
+        <div
+          className={`tooltip tooltip-top mt-0.5 md:mt-1 ${sideDrawerState === "copilot" ? "text-info" : "hover:text-info"}`}
+          data-tip={sideDrawerState === "copilot" ? "关闭 AI 对话" : "AI 对话"}
+          data-side-drawer-toggle="true"
+          aria-label={sideDrawerState === "copilot" ? "关闭 AI 对话" : "打开 AI 对话"}
+          title={sideDrawerState === "copilot" ? "关闭 AI 对话" : "AI 对话"}
+          onClick={handleToggleCopilotDrawer}
+        >
+          <Sparkle className="size-6 cursor-pointer" />
+        </div>
+      )}
+
       {/* WebGAL 导演控制台 */}
       {showWebgalControls && webgalLinkMode && onOpenWebgalChooseModal && (
         <div

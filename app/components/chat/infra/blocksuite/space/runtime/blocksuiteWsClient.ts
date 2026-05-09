@@ -1,5 +1,6 @@
 import { base64ToUint8Array, uint8ArrayToBase64 } from "@/components/chat/infra/blocksuite/shared/base64";
 import { handleUnauthorized } from "@/utils/auth/unauthorized";
+import { appendUrlQueryParam, resolveRuntimeWebSocketBaseUrl } from "@/utils/runtimeUrl";
 import { recoverAuthTokenFromSession } from "api/authRecovery";
 
 export type BlocksuiteDocKey = {
@@ -13,7 +14,7 @@ type WsMessage<T = any> = {
   data?: T;
 };
 
-const WS_URL = import.meta.env.VITE_API_WS_URL as string;
+const WS_URL = resolveRuntimeWebSocketBaseUrl(import.meta.env.VITE_API_WS_URL as string);
 
 // Keep these numbers in sync with TuanChat WSReqTypeEnum / WSRespTypeEnum.
 const WS_REQ_HEARTBEAT = 2;
@@ -76,7 +77,11 @@ class BlocksuiteWsClient {
       return;
     }
 
-    const wsUrl = `${WS_URL}?token=${encodeURIComponent(token)}`;
+    if (!WS_URL) {
+      return;
+    }
+
+    const wsUrl = appendUrlQueryParam(WS_URL, "token", token);
 
     this.ws = new WebSocket(wsUrl);
 

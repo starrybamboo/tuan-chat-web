@@ -1,4 +1,5 @@
 import type { Room } from "@tuanchat/openapi-client/models/Room";
+import type { GalAuthoringLocalSnapshot, GalPatchProposal } from "@/components/chat/galgameAi";
 import type { DocRefDragPayload } from "@/components/chat/utils/docRef";
 import React from "react";
 import ChatFrame from "@/components/chat/chatFrame";
@@ -13,6 +14,7 @@ type ChatFrameProps = React.ComponentProps<typeof ChatFrame>;
 type RoomComposerPanelProps = React.ComponentProps<typeof RoomComposerPanel>;
 
 interface RoomWindowLayoutProps {
+  spaceId: number;
   roomId: number;
   roomName?: string;
   room?: Room | null;
@@ -30,9 +32,12 @@ interface RoomWindowLayoutProps {
   onClearAndReloadAllMessages?: () => void | Promise<void>;
   isReloadingAllMessages?: boolean;
   onSendDocCard?: (payload: DocRefDragPayload) => Promise<void> | void;
+  galAuthoringLocalSnapshot?: GalAuthoringLocalSnapshot;
+  onGalPatchProposalGenerated?: (proposal: GalPatchProposal) => void;
 }
 
 export default function RoomWindowLayout({
+  spaceId,
   roomId,
   roomName,
   room,
@@ -49,6 +54,8 @@ export default function RoomWindowLayout({
   onClearAndReloadAllMessages,
   isReloadingAllMessages = false,
   onSendDocCard,
+  galAuthoringLocalSnapshot,
+  onGalPatchProposalGenerated,
 }: RoomWindowLayoutProps) {
   const setComposerTarget = useRoomUiStore(state => state.setComposerTarget);
 
@@ -95,7 +102,15 @@ export default function RoomWindowLayout({
               {!hideComposer && <RoomComposerPanel {...composerPanelProps} />}
             </div>
 
-            {!hideSecondaryPanels && <RoomSideDrawers onSendDocCard={onSendDocCard} />}
+            {!hideSecondaryPanels && (
+              <RoomSideDrawers
+                spaceId={spaceId}
+                roomId={roomId}
+                galAuthoringLocalSnapshot={galAuthoringLocalSnapshot}
+                onSendDocCard={onSendDocCard}
+                onGalPatchProposalGenerated={onGalPatchProposalGenerated}
+              />
+            )}
           </div>
         </div>
 
