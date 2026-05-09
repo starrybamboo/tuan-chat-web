@@ -148,7 +148,7 @@ function HydrateFallback() {
 
 function Layout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="zh-CN" data-theme="dark">
+    <html lang="zh-CN" data-theme="dark" suppressHydrationWarning>
       <head>
         <HeadContent />
         <CanonicalLink />
