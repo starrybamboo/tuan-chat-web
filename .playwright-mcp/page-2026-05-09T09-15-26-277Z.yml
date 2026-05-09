@@ -1,567 +1,567 @@
 - generic [ref=e1]:
-  - generic [ref=e2]:
-    - generic [ref=e4]:
-      - generic [ref=e5]:
-        - link "Logo" [ref=e7] [cursor=pointer]:
-          - /url: /chat/discover/material
-          - img "Logo" [ref=e8]
-        - generic [ref=e10]:
-          - link "聊天" [ref=e11] [cursor=pointer]:
-            - /url: /chat/discover/material
-            - img [ref=e12]
-            - generic [ref=e14]: 聊天
-          - link "角色" [active] [ref=e15] [cursor=pointer]:
-            - /url: /role
-            - img [ref=e16]
-            - generic [ref=e18]: 角色
-          - link "AI生图" [ref=e19] [cursor=pointer]:
-            - /url: /ai-image
-            - img [ref=e20]
-            - generic [ref=e22]: AI生图
-          - link "反馈" [ref=e23] [cursor=pointer]:
-            - /url: /feedback
-            - img [ref=e24]
-            - generic [ref=e26]: 反馈
-      - generic [ref=e27]:
-        - generic [ref=e28]:
-          - generic [ref=e29]:
-            - text: Discord：Bug反馈
-            - link "Discord Bug反馈" [ref=e30] [cursor=pointer]:
-              - /url: https://discord.gg/JbfkEqR6Wp
-              - img [ref=e31]
-          - generic [ref=e33]:
-            - text: QQ：扫码反馈 Bug
-            - button "QQ Bug反馈" [ref=e34] [cursor=pointer]:
-              - img [ref=e35]
-        - button "通知中心" [ref=e38] [cursor=pointer]:
-          - img [ref=e40]
-        - button "Avatar" [ref=e43] [cursor=pointer]:
-          - img "Avatar" [ref=e47]
-    - generic [ref=e578]:
-      - generic [ref=e580]:
-        - generic [ref=e581]:
-          - generic [ref=e582]:
-            - img [ref=e583]
-            - textbox [ref=e587]
-          - button "进入选择模式" [ref=e588] [cursor=pointer]:
-            - img [ref=e589]
-        - generic [ref=e593]:
-          - button "规则 (1)" [ref=e595]:
-            - img [ref=e596]
-            - generic [ref=e598]: 规则
-            - generic [ref=e599]: (1)
-          - button "骰娘 (2)" [ref=e601]:
-            - img [ref=e602]
-            - generic [ref=e604]: 骰娘
-            - generic [ref=e605]: (2)
-          - generic [ref=e606]:
-            - button "角色 (14)" [ref=e607]:
-              - img [ref=e608]
-              - generic [ref=e610]: 角色
-              - generic [ref=e611]: (14)
-            - generic [ref=e612]:
-              - button "创建普通角色 创建普通游戏角色" [ref=e613] [cursor=pointer]:
-                - img [ref=e616]
-                - generic [ref=e619]:
-                  - heading "创建普通角色" [level=3] [ref=e620]
-                  - paragraph [ref=e621]: 创建普通游戏角色
-              - button "32 测试 32 测试 1一二三四五六七八九十一二三四五六七八九十一二三四..." [ref=e622]:
-                - generic [ref=e623] [cursor=pointer]:
-                  - img "32 测试" [ref=e626]
-                  - generic [ref=e627]:
-                    - heading "32 测试" [level=3] [ref=e628]
-                    - paragraph [ref=e629]: 1一二三四五六七八九十一二三四五六七八九十一二三四...
-                  - button [ref=e630]:
-                    - img [ref=e631]
-              - button "changeTest changeTest 123" [ref=e633]:
-                - generic [ref=e634] [cursor=pointer]:
-                  - img "changeTest" [ref=e637]
-                  - generic [ref=e638]:
-                    - heading "changeTest" [level=3] [ref=e639]
-                    - paragraph [ref=e640]: "123"
-                  - button [ref=e641]:
-                    - img [ref=e642]
-              - button "web worker web worker web worker" [ref=e644]:
-                - generic [ref=e645] [cursor=pointer]:
-                  - img "web worker" [ref=e648]
-                  - generic [ref=e649]:
-                    - heading "web worker" [level=3] [ref=e650]
-                    - paragraph [ref=e651]: web worker
-                  - button [ref=e652]:
-                    - img [ref=e653]
-              - button "新角色 新角色 新角色" [ref=e655]:
-                - generic [ref=e656] [cursor=pointer]:
-                  - img "新角色" [ref=e659]
-                  - generic [ref=e660]:
-                    - heading "新角色" [level=3] [ref=e661]
-                    - paragraph [ref=e662]: 新角色
-                  - button [ref=e663]:
-                    - img [ref=e664]
-              - button "贝阿朵利切 贝阿朵利切 黄金魔女" [ref=e666]:
-                - generic [ref=e667] [cursor=pointer]:
-                  - img "贝阿朵利切" [ref=e670]
-                  - generic [ref=e671]:
-                    - heading "贝阿朵利切" [level=3] [ref=e672]
-                    - paragraph [ref=e673]: 黄金魔女
-                  - button [ref=e674]:
-                    - img [ref=e675]
-              - button "JK一名 JK一名 一个活泼可爱的女高中生" [ref=e677]:
-                - generic [ref=e678] [cursor=pointer]:
-                  - img "JK一名" [ref=e681]
-                  - generic [ref=e682]:
-                    - heading "JK一名" [level=3] [ref=e683]
-                    - paragraph [ref=e684]: 一个活泼可爱的女高中生
-                  - button [ref=e685]:
-                    - img [ref=e686]
-              - button "小木曾雪菜 小木曾雪菜 新角色描述" [ref=e688]:
-                - generic [ref=e689] [cursor=pointer]:
-                  - img "小木曾雪菜" [ref=e692]
-                  - generic [ref=e693]:
-                    - heading "小木曾雪菜" [level=3] [ref=e694]
-                    - paragraph [ref=e695]: 新角色描述
-                  - button [ref=e696]:
-                    - img [ref=e697]
-              - button "新角色 新角色 新角色描述" [ref=e699]:
-                - generic [ref=e700] [cursor=pointer]:
-                  - img "新角色" [ref=e703]
-                  - generic [ref=e704]:
-                    - heading "新角色" [level=3] [ref=e705]
-                    - paragraph [ref=e706]: 新角色描述
-                  - button [ref=e707]:
-                    - img [ref=e708]
-              - button "会长 会长 默认" [ref=e710]:
-                - generic [ref=e711] [cursor=pointer]:
-                  - img "会长" [ref=e714]
-                  - generic [ref=e715]:
-                    - heading "会长" [level=3] [ref=e716]
-                    - paragraph [ref=e717]: 默认
-                  - button [ref=e718]:
-                    - img [ref=e719]
-              - button "吉尔Gil 吉尔Gil 懒得写了" [ref=e721]:
-                - generic [ref=e722] [cursor=pointer]:
-                  - img "吉尔Gil" [ref=e725]
-                  - generic [ref=e726]:
-                    - heading "吉尔Gil" [level=3] [ref=e727]
-                    - paragraph [ref=e728]: 懒得写了
-                  - button [ref=e729]:
-                    - img [ref=e730]
-              - button "奶卡丘 奶卡丘 十万伏特" [ref=e732]:
-                - generic [ref=e733] [cursor=pointer]:
-                  - img "奶卡丘" [ref=e736]
-                  - generic [ref=e737]:
-                    - heading "奶卡丘" [level=3] [ref=e738]
-                    - paragraph [ref=e739]: 十万伏特
-                  - button [ref=e740]:
-                    - img [ref=e741]
-              - button "冬马和纱 冬马和纱 无描述" [ref=e743]:
-                - generic [ref=e744] [cursor=pointer]:
-                  - img "冬马和纱" [ref=e747]
-                  - generic [ref=e748]:
-                    - heading "冬马和纱" [level=3] [ref=e749]
-                    - paragraph [ref=e750]: 无描述
-                  - button [ref=e751]:
-                    - img [ref=e752]
-              - button "baka baka 北宇治FightO!!!" [ref=e754]:
-                - generic [ref=e755] [cursor=pointer]:
-                  - img "baka" [ref=e758]
-                  - generic [ref=e759]:
-                    - heading "baka" [level=3] [ref=e760]
-                    - paragraph [ref=e761]: 北宇治FightO!!!
-                  - button [ref=e762]:
-                    - img [ref=e763]
-              - button "12 12 山水花鸟江月风云雷电星辰日夜春秋冬夏天地乾坤日月星..." [ref=e765]:
-                - generic [ref=e766] [cursor=pointer]:
-                  - img "12" [ref=e769]
-                  - generic [ref=e770]:
-                    - heading "12" [level=3] [ref=e771]
-                    - paragraph [ref=e772]: 山水花鸟江月风云雷电星辰日夜春秋冬夏天地乾坤日月星...
-                  - button [ref=e773]:
-                    - img [ref=e774]
-      - button [ref=e777] [cursor=pointer]:
-        - img [ref=e778]
-      - generic [ref=e784]:
-        - heading "创建新角色" [level=1] [ref=e785]
-        - paragraph [ref=e786]: 选择一种角色类型开始创建
-        - generic [ref=e787]:
-          - button "创建普通角色 创建普通游戏角色，用于日常对话和互动" [ref=e788] [cursor=pointer]:
-            - img [ref=e790]
-            - heading "创建普通角色" [level=3] [ref=e792]
-            - paragraph [ref=e793]: 创建普通游戏角色，用于日常对话和互动
-          - button "创建骰娘 创建跑团骰娘，用于TRPG游戏" [ref=e794] [cursor=pointer]:
-            - img [ref=e796]
-            - heading "创建骰娘" [level=3] [ref=e798]
-            - paragraph [ref=e799]: 创建跑团骰娘，用于TRPG游戏
-          - button "规则编辑器 创建或编辑规则，用于普通角色模板" [ref=e800] [cursor=pointer]:
-            - img [ref=e802]
-            - heading "规则编辑器" [level=3] [ref=e804]
-            - paragraph [ref=e805]: 创建或编辑规则，用于普通角色模板
-        - paragraph [ref=e806]: 💡 提示：也可以从现有角色页面点击"转换为骰娘"快速创建骰娘角色
-  - generic [ref=e141]:
-    - contentinfo:
-      - generic [ref=e142]:
-        - button [ref=e144] [cursor=pointer]:
-          - img [ref=e145]
-        - generic [ref=e147]:
-          - button [ref=e149] [cursor=pointer]:
-            - generic [ref=e150]: TANSTACK
-            - generic [ref=e151]: TanStack Router v1
-          - generic [ref=e154]:
-            - button "Router 18 items" [ref=e155] [cursor=pointer]:
-              - img [ref=e157]
-              - text: Router
-              - generic [ref=e159]: 18 items
-            - generic [ref=e160]:
-              - generic [ref=e807]:
-                - button "state 9 items" [ref=e808] [cursor=pointer]:
-                  - img [ref=e810]
-                  - text: state
-                  - generic [ref=e812]: 9 items
-                - generic [ref=e813]:
-                  - generic [ref=e814]:
-                    - generic [ref=e815]: "status:"
-                    - text: "\"idle\""
-                  - generic [ref=e816]:
-                    - generic [ref=e817]: "loadedAt:"
-                    - text: "1778318124030"
-                  - generic [ref=e818]:
-                    - generic [ref=e819]: "isLoading:"
-                    - text: "false"
-                  - generic [ref=e820]:
-                    - generic [ref=e821]: "isTransitioning:"
-                    - text: "false"
-                  - button "matches 4 items" [ref=e823] [cursor=pointer]:
-                    - img [ref=e825]
-                    - text: matches
-                    - generic [ref=e827]: 4 items
-                  - button "location 8 items" [ref=e829] [cursor=pointer]:
-                    - img [ref=e831]
-                    - text: location
-                    - generic [ref=e833]: 8 items
-                  - button "resolvedLocation 8 items" [ref=e835] [cursor=pointer]:
-                    - img [ref=e837]
-                    - text: resolvedLocation
-                    - generic [ref=e839]: 8 items
-                  - generic [ref=e840]:
-                    - generic [ref=e841]: "statusCode:"
-                    - text: "200"
-                  - button "redirect 3 items" [ref=e843] [cursor=pointer]:
-                    - img [ref=e845]
-                    - text: redirect
-                    - generic [ref=e847]: 3 items
-              - button "routesById 38 items" [ref=e849] [cursor=pointer]:
-                - img [ref=e851]
-                - text: routesById
-                - generic [ref=e853]: 38 items
-              - button "routesByPath 33 items" [ref=e855] [cursor=pointer]:
-                - img [ref=e857]
-                - text: routesByPath
-                - generic [ref=e859]: 33 items
-              - generic [ref=e860]:
-                - button "options 14 items" [ref=e861] [cursor=pointer]:
-                  - img [ref=e863]
-                  - text: options
-                  - generic [ref=e865]: 14 items
-                - generic [ref=e866]:
-                  - generic [ref=e867]:
-                    - generic [ref=e868]: "defaultPreloadDelay:"
-                    - text: "50"
-                  - generic [ref=e869]:
-                    - generic [ref=e870]: "defaultPendingMs:"
-                    - text: "1000"
-                  - generic [ref=e871]:
-                    - generic [ref=e872]: "defaultPendingMinMs:"
-                    - text: "500"
-                  - generic [ref=e874]: "context:"
-                  - button "routeTree 12 items" [ref=e876] [cursor=pointer]:
-                    - img [ref=e878]
-                    - text: routeTree
-                    - generic [ref=e880]: 12 items
-                  - generic [ref=e881]:
-                    - generic [ref=e882]: "defaultPreload:"
-                    - text: "\"intent\""
-                  - generic [ref=e883]:
-                    - generic [ref=e884]: "scrollRestoration:"
-                    - text: "true"
-                  - generic [ref=e885]:
-                    - generic [ref=e886]: "caseSensitive:"
-                    - text: "false"
-                  - generic [ref=e887]:
-                    - generic [ref=e888]: "notFoundMode:"
-                    - text: "\"fuzzy\""
-                  - button "protocolAllowlist 4 items" [ref=e890] [cursor=pointer]:
-                    - img [ref=e892]
-                    - text: protocolAllowlist
-                    - generic [ref=e894]: 4 items
-                  - generic [ref=e895]:
-                    - generic [ref=e896]: "defaultSsr:"
-                    - text: "false"
-                  - generic [ref=e897]:
-                    - generic [ref=e898]: "basepath:"
-                    - text: "\"\""
-                  - button "serializationAdapters 1 item" [ref=e900] [cursor=pointer]:
-                    - img [ref=e902]
-                    - text: serializationAdapters
-                    - generic [ref=e904]: 1 item
-                  - button "ssr 1 item" [ref=e906] [cursor=pointer]:
-                    - img [ref=e908]
-                    - text: ssr
-                    - generic [ref=e910]: 1 item
-              - generic [ref=e912]: "shouldViewTransition:"
-              - generic [ref=e913]:
-                - generic [ref=e914]: "isViewTransitionTypesSupported:"
-                - text: "true"
-              - generic [ref=e915]:
-                - generic [ref=e916]: "isScrollRestoring:"
-                - text: "true"
-              - generic [ref=e917]:
-                - generic [ref=e918]: "isScrollRestorationSetup:"
-                - text: "true"
-              - generic [ref=e919]:
-                - generic [ref=e920]: "routeBranchCache:"
-                - text: "{}"
-              - generic [ref=e921]:
-                - generic [ref=e922]: "isServer:"
-                - text: "false"
-              - button "protocolAllowlist 4 items" [ref=e924] [cursor=pointer]:
-                - img [ref=e926]
-                - text: protocolAllowlist
-                - generic [ref=e928]: 4 items
-              - generic [ref=e929]:
-                - generic [ref=e930]: "origin:"
-                - text: "\"http://127.0.0.1:5177\""
-              - generic [ref=e931]:
-                - generic [ref=e932]: "resolvePathCache:"
-                - text: "{}"
-              - button "processedTree 5 items" [ref=e934] [cursor=pointer]:
-                - img [ref=e936]
-                - text: processedTree
-                - generic [ref=e938]: 5 items
-              - generic [ref=e940]: "rewrite:"
-              - button "ssr 1 item" [ref=e942] [cursor=pointer]:
-                - img [ref=e944]
-                - text: ssr
-                - generic [ref=e946]: 1 item
-              - generic [ref=e948]: "pendingBuiltLocation:"
-              - generic [ref=e950]: "commitLocationPromise:"
-        - generic [ref=e306]:
-          - generic [ref=e308]: Pathname
-          - code [ref=e310]: /role
-          - generic [ref=e311]:
-            - generic [ref=e312]:
-              - button "Routes" [disabled] [ref=e313] [cursor=pointer]
-              - button "Matches" [ref=e314] [cursor=pointer]
-              - button "History" [ref=e315] [cursor=pointer]
-            - generic [ref=e317]: age / staleTime / gcTime
-          - generic [ref=e319]:
-            - button "Open match details for __root__" [ref=e320] [cursor=pointer]:
-              - generic [ref=e323]:
-                - code [ref=e324]: __root__
-                - code
-            - generic [ref=e325]:
-              - generic [ref=e326]:
-                - button "Open match details for /_dashboard" [ref=e327] [cursor=pointer]:
-                  - generic [ref=e330]:
-                    - code [ref=e331]: _dashboard
-                    - code
-                - generic [ref=e332]:
-                  - generic [ref=e333]:
-                    - button "Open match details for /_dashboard/material" [ref=e334]:
-                      - generic [ref=e336]:
-                        - button "➔" [ref=e337] [cursor=pointer]
-                        - generic [ref=e338]:
-                          - code [ref=e339]: material
-                          - code
-                    - button "Open match details for /_dashboard/material/space/$spaceId" [ref=e342]:
-                      - generic [ref=e345]:
-                        - code [ref=e346]: space/$spaceId
-                        - code
-                  - generic [ref=e347]:
-                    - button "Open match details for /_dashboard/role" [ref=e348] [cursor=pointer]:
-                      - generic [ref=e350]:
-                        - button "➔" [ref=e351]
-                        - generic [ref=e352]:
-                          - code [ref=e353]: role
-                          - code
-                    - generic [ref=e354]:
-                      - 'button "Open match details for /_dashboard/role/{-$roleId}" [ref=e356]':
-                        - generic [ref=e358]:
-                          - button "➔" [ref=e359] [cursor=pointer]
-                          - generic [ref=e360]:
-                            - code [ref=e361]: "{-$roleId}"
-                            - code
-                      - button "Open match details for /_dashboard/role/" [ref=e363] [cursor=pointer]:
-                        - generic [ref=e365]:
-                          - button "➔" [ref=e366]
-                          - generic [ref=e367]:
-                            - code [ref=e368]: /
-                            - code
-                  - button "Open match details for /_dashboard/activities" [ref=e370]:
-                    - generic [ref=e372]:
-                      - button "➔" [ref=e373] [cursor=pointer]
-                      - generic [ref=e374]:
-                        - code [ref=e375]: activities
-                        - code
-                  - button "Open match details for /_dashboard/ai-image" [ref=e377]:
-                    - generic [ref=e379]:
-                      - button "➔" [ref=e380] [cursor=pointer]
-                      - generic [ref=e381]:
-                        - code [ref=e382]: ai-image
-                        - code
-                  - button "Open match details for /_dashboard/collection" [ref=e384]:
-                    - generic [ref=e386]:
-                      - button "➔" [ref=e387] [cursor=pointer]
-                      - generic [ref=e388]:
-                        - code [ref=e389]: collection
-                        - code
-                  - button "Open match details for /_dashboard/notifications" [ref=e391]:
-                    - generic [ref=e393]:
-                      - button "➔" [ref=e394] [cursor=pointer]
-                      - generic [ref=e395]:
-                        - code [ref=e396]: notifications
-                        - code
-                  - button "Open match details for /_dashboard/resource" [ref=e398]:
-                    - generic [ref=e400]:
-                      - button "➔" [ref=e401] [cursor=pointer]
-                      - generic [ref=e402]:
-                        - code [ref=e403]: resource
-                        - code
-                  - button "Open match details for /_dashboard/settings" [ref=e405]:
-                    - generic [ref=e407]:
-                      - button "➔" [ref=e408] [cursor=pointer]
-                      - generic [ref=e409]:
-                        - code [ref=e410]: settings
-                        - code
-                  - button "Open match details for /_dashboard/" [ref=e412]:
-                    - generic [ref=e414]:
-                      - button "➔" [ref=e415] [cursor=pointer]
-                      - generic [ref=e416]:
-                        - code [ref=e417]: /
-                        - code
-                  - generic [ref=e418]:
-                    - button "Open match details for /_dashboard/chat/_chat-layout" [ref=e419]:
-                      - generic [ref=e421]:
-                        - button "➔" [ref=e422] [cursor=pointer]
-                        - generic [ref=e423]:
-                          - code [ref=e424]: chat
-                          - code
-                    - generic [ref=e425]:
-                      - button "Open match details for /_dashboard/chat/_chat-layout/" [ref=e427]:
-                        - generic [ref=e429]:
-                          - button "➔" [ref=e430] [cursor=pointer]
-                          - generic [ref=e431]:
-                            - code [ref=e432]: /
-                            - code
-                      - button "Open match details for /_dashboard/chat/_chat-layout/$spaceId/$roomId/setting" [ref=e434]:
-                        - generic [ref=e437]:
-                          - code [ref=e438]: $spaceId/$roomId/setting
-                          - code
-                      - button "Open match details for /_dashboard/chat/_chat-layout/$spaceId/doc/$docId" [ref=e440]:
-                        - generic [ref=e443]:
-                          - code [ref=e444]: $spaceId/doc/$docId
-                          - code
-                      - 'button "Open match details for /_dashboard/chat/_chat-layout/$spaceId/{-$roomId}/{-$messageId}" [ref=e446]':
-                        - generic [ref=e449]:
-                          - code [ref=e450]: "$spaceId/{-$roomId}/{-$messageId}"
-                          - code
-                  - generic [ref=e451]:
-                    - button "Open match details for /_dashboard/profile/$userId" [ref=e452]:
-                      - generic [ref=e455]:
-                        - code [ref=e456]: profile/$userId
-                        - code
-                    - generic [ref=e457]:
-                      - button "Open match details for /_dashboard/profile/$userId/activities" [ref=e459]:
-                        - generic [ref=e462]:
-                          - code [ref=e463]: activities
-                          - code
-                      - button "Open match details for /_dashboard/profile/$userId/works" [ref=e465]:
-                        - generic [ref=e468]:
-                          - code [ref=e469]: works
-                          - code
-                      - button "Open match details for /_dashboard/profile/$userId/" [ref=e471]:
-                        - generic [ref=e474]:
-                          - code [ref=e475]: /
-                          - code
-                  - 'button "Open match details for /_dashboard/feedback/{-$issueId}" [ref=e477]':
-                    - generic [ref=e479]:
-                      - button "➔" [ref=e480] [cursor=pointer]
-                      - generic [ref=e481]:
-                        - code [ref=e482]: "feedback/{-$issueId}"
-                        - code
-                  - button "Open match details for /_dashboard/repository/commit-chain" [ref=e484]:
-                    - generic [ref=e486]:
-                      - button "➔" [ref=e487] [cursor=pointer]
-                      - generic [ref=e488]:
-                        - code [ref=e489]: repository/commit-chain
-                        - code
-                  - button "Open match details for /_dashboard/repository/create" [ref=e491]:
-                    - generic [ref=e493]:
-                      - button "➔" [ref=e494] [cursor=pointer]
-                      - generic [ref=e495]:
-                        - code [ref=e496]: repository/create
-                        - code
-                  - button "Open match details for /_dashboard/repository/" [ref=e498]:
-                    - generic [ref=e500]:
-                      - button "➔" [ref=e501] [cursor=pointer]
-                      - generic [ref=e502]:
-                        - code [ref=e503]: repository/
-                        - code
-                  - button "Open match details for /_dashboard/chat/discover/my" [ref=e505]:
-                    - generic [ref=e507]:
-                      - button "➔" [ref=e508] [cursor=pointer]
-                      - generic [ref=e509]:
-                        - code [ref=e510]: chat/discover/my
-                        - code
-                  - button "Open match details for /_dashboard/doc/$spaceId/$docId" [ref=e512]:
-                    - generic [ref=e515]:
-                      - code [ref=e516]: doc/$spaceId/$docId
-                      - code
-                  - 'button "Open match details for /_dashboard/repository/detail/{-$id}" [ref=e518]':
-                    - generic [ref=e520]:
-                      - button "➔" [ref=e521] [cursor=pointer]
-                      - generic [ref=e522]:
-                        - code [ref=e523]: "repository/detail/{-$id}"
-                        - code
-                  - button "Open match details for /_dashboard/chat/discover/" [ref=e525]:
-                    - generic [ref=e527]:
-                      - button "➔" [ref=e528] [cursor=pointer]
-                      - generic [ref=e529]:
-                        - code [ref=e530]: chat/discover/
-                        - code
-                  - button "Open match details for /_dashboard/chat/discover/material/my" [ref=e532]:
-                    - generic [ref=e534]:
-                      - button "➔" [ref=e535] [cursor=pointer]
-                      - generic [ref=e536]:
-                        - code [ref=e537]: chat/discover/material/my
-                        - code
-                  - button "Open match details for /_dashboard/chat/discover/material/" [ref=e539]:
-                    - generic [ref=e541]:
-                      - button "➔" [ref=e542] [cursor=pointer]
-                      - generic [ref=e543]:
-                        - code [ref=e544]: chat/discover/material/
-                        - code
-              - button "Open match details for /login" [ref=e546]:
-                - generic [ref=e548]:
-                  - button "➔" [ref=e549] [cursor=pointer]
-                  - generic [ref=e550]:
-                    - code [ref=e551]: login
-                    - code
-              - button "Open match details for /scroll-sequence-demo" [ref=e553]:
-                - generic [ref=e555]:
-                  - button "➔" [ref=e556] [cursor=pointer]
-                  - generic [ref=e557]:
-                    - code [ref=e558]: scroll-sequence-demo
-                    - code
-              - button "Open match details for /scroll-sequence-motion-demo" [ref=e560]:
-                - generic [ref=e562]:
-                  - button "➔" [ref=e563] [cursor=pointer]
-                  - generic [ref=e564]:
-                    - code [ref=e565]: scroll-sequence-motion-demo
-                    - code
-              - button "Open match details for /invite/$code" [ref=e567]:
-                - generic [ref=e570]:
-                  - code [ref=e571]: invite/$code
-                  - code
-              - button "Open match details for /room-map/$spaceId/$roomId" [ref=e573]:
-                - generic [ref=e576]:
-                  - code [ref=e577]: room-map/$spaceId/$roomId
-                  - code
+    - generic [ref=e2]:
+        - generic [ref=e4]:
+            - generic [ref=e5]:
+                - link "Logo" [ref=e7] [cursor=pointer]:
+                    - /url: /chat/discover/material
+                    - img "Logo" [ref=e8]
+                - generic [ref=e10]:
+                    - link "聊天" [ref=e11] [cursor=pointer]:
+                        - /url: /chat/discover/material
+                        - img [ref=e12]
+                        - generic [ref=e14]: 聊天
+                    - link "角色" [active] [ref=e15] [cursor=pointer]:
+                        - /url: /role
+                        - img [ref=e16]
+                        - generic [ref=e18]: 角色
+                    - link "AI生图" [ref=e19] [cursor=pointer]:
+                        - /url: /ai-image
+                        - img [ref=e20]
+                        - generic [ref=e22]: AI生图
+                    - link "反馈" [ref=e23] [cursor=pointer]:
+                        - /url: /feedback
+                        - img [ref=e24]
+                        - generic [ref=e26]: 反馈
+            - generic [ref=e27]:
+                - generic [ref=e28]:
+                    - generic [ref=e29]:
+                        - text: Discord：Bug反馈
+                        - link "Discord Bug反馈" [ref=e30] [cursor=pointer]:
+                            - /url: https://discord.gg/JbfkEqR6Wp
+                            - img [ref=e31]
+                    - generic [ref=e33]:
+                        - text: QQ：扫码反馈 Bug
+                        - button "QQ Bug反馈" [ref=e34] [cursor=pointer]:
+                            - img [ref=e35]
+                - button "通知中心" [ref=e38] [cursor=pointer]:
+                    - img [ref=e40]
+                - button "Avatar" [ref=e43] [cursor=pointer]:
+                    - img "Avatar" [ref=e47]
+        - generic [ref=e578]:
+            - generic [ref=e580]:
+                - generic [ref=e581]:
+                    - generic [ref=e582]:
+                        - img [ref=e583]
+                        - textbox [ref=e587]
+                    - button "进入选择模式" [ref=e588] [cursor=pointer]:
+                        - img [ref=e589]
+                - generic [ref=e593]:
+                    - button "规则 (1)" [ref=e595]:
+                        - img [ref=e596]
+                        - generic [ref=e598]: 规则
+                        - generic [ref=e599]: (1)
+                    - button "骰娘 (2)" [ref=e601]:
+                        - img [ref=e602]
+                        - generic [ref=e604]: 骰娘
+                        - generic [ref=e605]: (2)
+                    - generic [ref=e606]:
+                        - button "角色 (14)" [ref=e607]:
+                            - img [ref=e608]
+                            - generic [ref=e610]: 角色
+                            - generic [ref=e611]: (14)
+                        - generic [ref=e612]:
+                            - button "创建普通角色 创建普通游戏角色" [ref=e613] [cursor=pointer]:
+                                - img [ref=e616]
+                                - generic [ref=e619]:
+                                    - heading "创建普通角色" [level=3] [ref=e620]
+                                    - paragraph [ref=e621]: 创建普通游戏角色
+                            - button "32 测试 32 测试 1一二三四五六七八九十一二三四五六七八九十一二三四..." [ref=e622]:
+                                - generic [ref=e623] [cursor=pointer]:
+                                    - img "32 测试" [ref=e626]
+                                    - generic [ref=e627]:
+                                        - heading "32 测试" [level=3] [ref=e628]
+                                        - paragraph [ref=e629]: 1一二三四五六七八九十一二三四五六七八九十一二三四...
+                                    - button [ref=e630]:
+                                        - img [ref=e631]
+                            - button "changeTest changeTest 123" [ref=e633]:
+                                - generic [ref=e634] [cursor=pointer]:
+                                    - img "changeTest" [ref=e637]
+                                    - generic [ref=e638]:
+                                        - heading "changeTest" [level=3] [ref=e639]
+                                        - paragraph [ref=e640]: "123"
+                                    - button [ref=e641]:
+                                        - img [ref=e642]
+                            - button "web worker web worker web worker" [ref=e644]:
+                                - generic [ref=e645] [cursor=pointer]:
+                                    - img "web worker" [ref=e648]
+                                    - generic [ref=e649]:
+                                        - heading "web worker" [level=3] [ref=e650]
+                                        - paragraph [ref=e651]: web worker
+                                    - button [ref=e652]:
+                                        - img [ref=e653]
+                            - button "新角色 新角色 新角色" [ref=e655]:
+                                - generic [ref=e656] [cursor=pointer]:
+                                    - img "新角色" [ref=e659]
+                                    - generic [ref=e660]:
+                                        - heading "新角色" [level=3] [ref=e661]
+                                        - paragraph [ref=e662]: 新角色
+                                    - button [ref=e663]:
+                                        - img [ref=e664]
+                            - button "贝阿朵利切 贝阿朵利切 黄金魔女" [ref=e666]:
+                                - generic [ref=e667] [cursor=pointer]:
+                                    - img "贝阿朵利切" [ref=e670]
+                                    - generic [ref=e671]:
+                                        - heading "贝阿朵利切" [level=3] [ref=e672]
+                                        - paragraph [ref=e673]: 黄金魔女
+                                    - button [ref=e674]:
+                                        - img [ref=e675]
+                            - button "JK一名 JK一名 一个活泼可爱的女高中生" [ref=e677]:
+                                - generic [ref=e678] [cursor=pointer]:
+                                    - img "JK一名" [ref=e681]
+                                    - generic [ref=e682]:
+                                        - heading "JK一名" [level=3] [ref=e683]
+                                        - paragraph [ref=e684]: 一个活泼可爱的女高中生
+                                    - button [ref=e685]:
+                                        - img [ref=e686]
+                            - button "小木曾雪菜 小木曾雪菜 新角色描述" [ref=e688]:
+                                - generic [ref=e689] [cursor=pointer]:
+                                    - img "小木曾雪菜" [ref=e692]
+                                    - generic [ref=e693]:
+                                        - heading "小木曾雪菜" [level=3] [ref=e694]
+                                        - paragraph [ref=e695]: 新角色描述
+                                    - button [ref=e696]:
+                                        - img [ref=e697]
+                            - button "新角色 新角色 新角色描述" [ref=e699]:
+                                - generic [ref=e700] [cursor=pointer]:
+                                    - img "新角色" [ref=e703]
+                                    - generic [ref=e704]:
+                                        - heading "新角色" [level=3] [ref=e705]
+                                        - paragraph [ref=e706]: 新角色描述
+                                    - button [ref=e707]:
+                                        - img [ref=e708]
+                            - button "会长 会长 默认" [ref=e710]:
+                                - generic [ref=e711] [cursor=pointer]:
+                                    - img "会长" [ref=e714]
+                                    - generic [ref=e715]:
+                                        - heading "会长" [level=3] [ref=e716]
+                                        - paragraph [ref=e717]: 默认
+                                    - button [ref=e718]:
+                                        - img [ref=e719]
+                            - button "吉尔Gil 吉尔Gil 懒得写了" [ref=e721]:
+                                - generic [ref=e722] [cursor=pointer]:
+                                    - img "吉尔Gil" [ref=e725]
+                                    - generic [ref=e726]:
+                                        - heading "吉尔Gil" [level=3] [ref=e727]
+                                        - paragraph [ref=e728]: 懒得写了
+                                    - button [ref=e729]:
+                                        - img [ref=e730]
+                            - button "奶卡丘 奶卡丘 十万伏特" [ref=e732]:
+                                - generic [ref=e733] [cursor=pointer]:
+                                    - img "奶卡丘" [ref=e736]
+                                    - generic [ref=e737]:
+                                        - heading "奶卡丘" [level=3] [ref=e738]
+                                        - paragraph [ref=e739]: 十万伏特
+                                    - button [ref=e740]:
+                                        - img [ref=e741]
+                            - button "冬马和纱 冬马和纱 无描述" [ref=e743]:
+                                - generic [ref=e744] [cursor=pointer]:
+                                    - img "冬马和纱" [ref=e747]
+                                    - generic [ref=e748]:
+                                        - heading "冬马和纱" [level=3] [ref=e749]
+                                        - paragraph [ref=e750]: 无描述
+                                    - button [ref=e751]:
+                                        - img [ref=e752]
+                            - button "baka baka 北宇治FightO!!!" [ref=e754]:
+                                - generic [ref=e755] [cursor=pointer]:
+                                    - img "baka" [ref=e758]
+                                    - generic [ref=e759]:
+                                        - heading "baka" [level=3] [ref=e760]
+                                        - paragraph [ref=e761]: 北宇治FightO!!!
+                                    - button [ref=e762]:
+                                        - img [ref=e763]
+                            - button "12 12 山水花鸟江月风云雷电星辰日夜春秋冬夏天地乾坤日月星..." [ref=e765]:
+                                - generic [ref=e766] [cursor=pointer]:
+                                    - img "12" [ref=e769]
+                                    - generic [ref=e770]:
+                                        - heading "12" [level=3] [ref=e771]
+                                        - paragraph [ref=e772]: 山水花鸟江月风云雷电星辰日夜春秋冬夏天地乾坤日月星...
+                                    - button [ref=e773]:
+                                        - img [ref=e774]
+            - button [ref=e777] [cursor=pointer]:
+                - img [ref=e778]
+            - generic [ref=e784]:
+                - heading "创建新角色" [level=1] [ref=e785]
+                - paragraph [ref=e786]: 选择一种角色类型开始创建
+                - generic [ref=e787]:
+                    - button "创建普通角色 创建普通游戏角色，用于日常对话和互动" [ref=e788] [cursor=pointer]:
+                        - img [ref=e790]
+                        - heading "创建普通角色" [level=3] [ref=e792]
+                        - paragraph [ref=e793]: 创建普通游戏角色，用于日常对话和互动
+                    - button "创建骰娘 创建跑团骰娘，用于TRPG游戏" [ref=e794] [cursor=pointer]:
+                        - img [ref=e796]
+                        - heading "创建骰娘" [level=3] [ref=e798]
+                        - paragraph [ref=e799]: 创建跑团骰娘，用于TRPG游戏
+                    - button "规则编辑器 创建或编辑规则，用于普通角色模板" [ref=e800] [cursor=pointer]:
+                        - img [ref=e802]
+                        - heading "规则编辑器" [level=3] [ref=e804]
+                        - paragraph [ref=e805]: 创建或编辑规则，用于普通角色模板
+                - paragraph [ref=e806]: 💡 提示：也可以从现有角色页面点击"转换为骰娘"快速创建骰娘角色
+    - generic [ref=e141]:
+        - contentinfo:
+            - generic [ref=e142]:
+                - button [ref=e144] [cursor=pointer]:
+                    - img [ref=e145]
+                - generic [ref=e147]:
+                    - button [ref=e149] [cursor=pointer]:
+                        - generic [ref=e150]: TANSTACK
+                        - generic [ref=e151]: TanStack Router v1
+                    - generic [ref=e154]:
+                        - button "Router 18 items" [ref=e155] [cursor=pointer]:
+                            - img [ref=e157]
+                            - text: Router
+                            - generic [ref=e159]: 18 items
+                        - generic [ref=e160]:
+                            - generic [ref=e807]:
+                                - button "state 9 items" [ref=e808] [cursor=pointer]:
+                                    - img [ref=e810]
+                                    - text: state
+                                    - generic [ref=e812]: 9 items
+                                - generic [ref=e813]:
+                                    - generic [ref=e814]:
+                                        - generic [ref=e815]: "status:"
+                                        - text: "\"idle\""
+                                    - generic [ref=e816]:
+                                        - generic [ref=e817]: "loadedAt:"
+                                        - text: "1778318124030"
+                                    - generic [ref=e818]:
+                                        - generic [ref=e819]: "isLoading:"
+                                        - text: "false"
+                                    - generic [ref=e820]:
+                                        - generic [ref=e821]: "isTransitioning:"
+                                        - text: "false"
+                                    - button "matches 4 items" [ref=e823] [cursor=pointer]:
+                                        - img [ref=e825]
+                                        - text: matches
+                                        - generic [ref=e827]: 4 items
+                                    - button "location 8 items" [ref=e829] [cursor=pointer]:
+                                        - img [ref=e831]
+                                        - text: location
+                                        - generic [ref=e833]: 8 items
+                                    - button "resolvedLocation 8 items" [ref=e835] [cursor=pointer]:
+                                        - img [ref=e837]
+                                        - text: resolvedLocation
+                                        - generic [ref=e839]: 8 items
+                                    - generic [ref=e840]:
+                                        - generic [ref=e841]: "statusCode:"
+                                        - text: "200"
+                                    - button "redirect 3 items" [ref=e843] [cursor=pointer]:
+                                        - img [ref=e845]
+                                        - text: redirect
+                                        - generic [ref=e847]: 3 items
+                            - button "routesById 38 items" [ref=e849] [cursor=pointer]:
+                                - img [ref=e851]
+                                - text: routesById
+                                - generic [ref=e853]: 38 items
+                            - button "routesByPath 33 items" [ref=e855] [cursor=pointer]:
+                                - img [ref=e857]
+                                - text: routesByPath
+                                - generic [ref=e859]: 33 items
+                            - generic [ref=e860]:
+                                - button "options 14 items" [ref=e861] [cursor=pointer]:
+                                    - img [ref=e863]
+                                    - text: options
+                                    - generic [ref=e865]: 14 items
+                                - generic [ref=e866]:
+                                    - generic [ref=e867]:
+                                        - generic [ref=e868]: "defaultPreloadDelay:"
+                                        - text: "50"
+                                    - generic [ref=e869]:
+                                        - generic [ref=e870]: "defaultPendingMs:"
+                                        - text: "1000"
+                                    - generic [ref=e871]:
+                                        - generic [ref=e872]: "defaultPendingMinMs:"
+                                        - text: "500"
+                                    - generic [ref=e874]: "context:"
+                                    - button "routeTree 12 items" [ref=e876] [cursor=pointer]:
+                                        - img [ref=e878]
+                                        - text: routeTree
+                                        - generic [ref=e880]: 12 items
+                                    - generic [ref=e881]:
+                                        - generic [ref=e882]: "defaultPreload:"
+                                        - text: "\"intent\""
+                                    - generic [ref=e883]:
+                                        - generic [ref=e884]: "scrollRestoration:"
+                                        - text: "true"
+                                    - generic [ref=e885]:
+                                        - generic [ref=e886]: "caseSensitive:"
+                                        - text: "false"
+                                    - generic [ref=e887]:
+                                        - generic [ref=e888]: "notFoundMode:"
+                                        - text: "\"fuzzy\""
+                                    - button "protocolAllowlist 4 items" [ref=e890] [cursor=pointer]:
+                                        - img [ref=e892]
+                                        - text: protocolAllowlist
+                                        - generic [ref=e894]: 4 items
+                                    - generic [ref=e895]:
+                                        - generic [ref=e896]: "defaultSsr:"
+                                        - text: "false"
+                                    - generic [ref=e897]:
+                                        - generic [ref=e898]: "basepath:"
+                                        - text: "\"\""
+                                    - button "serializationAdapters 1 item" [ref=e900] [cursor=pointer]:
+                                        - img [ref=e902]
+                                        - text: serializationAdapters
+                                        - generic [ref=e904]: 1 item
+                                    - button "ssr 1 item" [ref=e906] [cursor=pointer]:
+                                        - img [ref=e908]
+                                        - text: ssr
+                                        - generic [ref=e910]: 1 item
+                            - generic [ref=e912]: "shouldViewTransition:"
+                            - generic [ref=e913]:
+                                - generic [ref=e914]: "isViewTransitionTypesSupported:"
+                                - text: "true"
+                            - generic [ref=e915]:
+                                - generic [ref=e916]: "isScrollRestoring:"
+                                - text: "true"
+                            - generic [ref=e917]:
+                                - generic [ref=e918]: "isScrollRestorationSetup:"
+                                - text: "true"
+                            - generic [ref=e919]:
+                                - generic [ref=e920]: "routeBranchCache:"
+                                - text: "{}"
+                            - generic [ref=e921]:
+                                - generic [ref=e922]: "isServer:"
+                                - text: "false"
+                            - button "protocolAllowlist 4 items" [ref=e924] [cursor=pointer]:
+                                - img [ref=e926]
+                                - text: protocolAllowlist
+                                - generic [ref=e928]: 4 items
+                            - generic [ref=e929]:
+                                - generic [ref=e930]: "origin:"
+                                - text: "\"http://127.0.0.1:5177\""
+                            - generic [ref=e931]:
+                                - generic [ref=e932]: "resolvePathCache:"
+                                - text: "{}"
+                            - button "processedTree 5 items" [ref=e934] [cursor=pointer]:
+                                - img [ref=e936]
+                                - text: processedTree
+                                - generic [ref=e938]: 5 items
+                            - generic [ref=e940]: "rewrite:"
+                            - button "ssr 1 item" [ref=e942] [cursor=pointer]:
+                                - img [ref=e944]
+                                - text: ssr
+                                - generic [ref=e946]: 1 item
+                            - generic [ref=e948]: "pendingBuiltLocation:"
+                            - generic [ref=e950]: "commitLocationPromise:"
+                - generic [ref=e306]:
+                    - generic [ref=e308]: Pathname
+                    - code [ref=e310]: /role
+                    - generic [ref=e311]:
+                        - generic [ref=e312]:
+                            - button "Routes" [disabled] [ref=e313] [cursor=pointer]
+                            - button "Matches" [ref=e314] [cursor=pointer]
+                            - button "History" [ref=e315] [cursor=pointer]
+                        - generic [ref=e317]: age / staleTime / gcTime
+                    - generic [ref=e319]:
+                        - button "Open match details for __root__" [ref=e320] [cursor=pointer]:
+                            - generic [ref=e323]:
+                                - code [ref=e324]: __root__
+                                - code
+                        - generic [ref=e325]:
+                            - generic [ref=e326]:
+                                - button "Open match details for /_dashboard" [ref=e327] [cursor=pointer]:
+                                    - generic [ref=e330]:
+                                        - code [ref=e331]: _dashboard
+                                        - code
+                                - generic [ref=e332]:
+                                    - generic [ref=e333]:
+                                        - button "Open match details for /_dashboard/material" [ref=e334]:
+                                            - generic [ref=e336]:
+                                                - button "➔" [ref=e337] [cursor=pointer]
+                                                - generic [ref=e338]:
+                                                    - code [ref=e339]: material
+                                                    - code
+                                        - button "Open match details for /_dashboard/material/space/$spaceId" [ref=e342]:
+                                            - generic [ref=e345]:
+                                                - code [ref=e346]: space/$spaceId
+                                                - code
+                                    - generic [ref=e347]:
+                                        - button "Open match details for /_dashboard/role" [ref=e348] [cursor=pointer]:
+                                            - generic [ref=e350]:
+                                                - button "➔" [ref=e351]
+                                                - generic [ref=e352]:
+                                                    - code [ref=e353]: role
+                                                    - code
+                                        - generic [ref=e354]:
+                                            - 'button "Open match details for /_dashboard/role/{-$roleId}" [ref=e356]':
+                                                - generic [ref=e358]:
+                                                    - button "➔" [ref=e359] [cursor=pointer]
+                                                    - generic [ref=e360]:
+                                                        - code [ref=e361]: "{-$roleId}"
+                                                        - code
+                                            - button "Open match details for /_dashboard/role/" [ref=e363] [cursor=pointer]:
+                                                - generic [ref=e365]:
+                                                    - button "➔" [ref=e366]
+                                                    - generic [ref=e367]:
+                                                        - code [ref=e368]: /
+                                                        - code
+                                    - button "Open match details for /_dashboard/activities" [ref=e370]:
+                                        - generic [ref=e372]:
+                                            - button "➔" [ref=e373] [cursor=pointer]
+                                            - generic [ref=e374]:
+                                                - code [ref=e375]: activities
+                                                - code
+                                    - button "Open match details for /_dashboard/ai-image" [ref=e377]:
+                                        - generic [ref=e379]:
+                                            - button "➔" [ref=e380] [cursor=pointer]
+                                            - generic [ref=e381]:
+                                                - code [ref=e382]: ai-image
+                                                - code
+                                    - button "Open match details for /_dashboard/collection" [ref=e384]:
+                                        - generic [ref=e386]:
+                                            - button "➔" [ref=e387] [cursor=pointer]
+                                            - generic [ref=e388]:
+                                                - code [ref=e389]: collection
+                                                - code
+                                    - button "Open match details for /_dashboard/notifications" [ref=e391]:
+                                        - generic [ref=e393]:
+                                            - button "➔" [ref=e394] [cursor=pointer]
+                                            - generic [ref=e395]:
+                                                - code [ref=e396]: notifications
+                                                - code
+                                    - button "Open match details for /_dashboard/resource" [ref=e398]:
+                                        - generic [ref=e400]:
+                                            - button "➔" [ref=e401] [cursor=pointer]
+                                            - generic [ref=e402]:
+                                                - code [ref=e403]: resource
+                                                - code
+                                    - button "Open match details for /_dashboard/settings" [ref=e405]:
+                                        - generic [ref=e407]:
+                                            - button "➔" [ref=e408] [cursor=pointer]
+                                            - generic [ref=e409]:
+                                                - code [ref=e410]: settings
+                                                - code
+                                    - button "Open match details for /_dashboard/" [ref=e412]:
+                                        - generic [ref=e414]:
+                                            - button "➔" [ref=e415] [cursor=pointer]
+                                            - generic [ref=e416]:
+                                                - code [ref=e417]: /
+                                                - code
+                                    - generic [ref=e418]:
+                                        - button "Open match details for /_dashboard/chat/_chat-layout" [ref=e419]:
+                                            - generic [ref=e421]:
+                                                - button "➔" [ref=e422] [cursor=pointer]
+                                                - generic [ref=e423]:
+                                                    - code [ref=e424]: chat
+                                                    - code
+                                        - generic [ref=e425]:
+                                            - button "Open match details for /_dashboard/chat/_chat-layout/" [ref=e427]:
+                                                - generic [ref=e429]:
+                                                    - button "➔" [ref=e430] [cursor=pointer]
+                                                    - generic [ref=e431]:
+                                                        - code [ref=e432]: /
+                                                        - code
+                                            - button "Open match details for /_dashboard/chat/_chat-layout/$spaceId/$roomId/setting" [ref=e434]:
+                                                - generic [ref=e437]:
+                                                    - code [ref=e438]: $spaceId/$roomId/setting
+                                                    - code
+                                            - button "Open match details for /_dashboard/chat/_chat-layout/$spaceId/doc/$docId" [ref=e440]:
+                                                - generic [ref=e443]:
+                                                    - code [ref=e444]: $spaceId/doc/$docId
+                                                    - code
+                                            - 'button "Open match details for /_dashboard/chat/_chat-layout/$spaceId/{-$roomId}/{-$messageId}" [ref=e446]':
+                                                - generic [ref=e449]:
+                                                    - code [ref=e450]: "$spaceId/{-$roomId}/{-$messageId}"
+                                                    - code
+                                    - generic [ref=e451]:
+                                        - button "Open match details for /_dashboard/profile/$userId" [ref=e452]:
+                                            - generic [ref=e455]:
+                                                - code [ref=e456]: profile/$userId
+                                                - code
+                                        - generic [ref=e457]:
+                                            - button "Open match details for /_dashboard/profile/$userId/activities" [ref=e459]:
+                                                - generic [ref=e462]:
+                                                    - code [ref=e463]: activities
+                                                    - code
+                                            - button "Open match details for /_dashboard/profile/$userId/works" [ref=e465]:
+                                                - generic [ref=e468]:
+                                                    - code [ref=e469]: works
+                                                    - code
+                                            - button "Open match details for /_dashboard/profile/$userId/" [ref=e471]:
+                                                - generic [ref=e474]:
+                                                    - code [ref=e475]: /
+                                                    - code
+                                    - 'button "Open match details for /_dashboard/feedback/{-$issueId}" [ref=e477]':
+                                        - generic [ref=e479]:
+                                            - button "➔" [ref=e480] [cursor=pointer]
+                                            - generic [ref=e481]:
+                                                - code [ref=e482]: "feedback/{-$issueId}"
+                                                - code
+                                    - button "Open match details for /_dashboard/repository/commit-chain" [ref=e484]:
+                                        - generic [ref=e486]:
+                                            - button "➔" [ref=e487] [cursor=pointer]
+                                            - generic [ref=e488]:
+                                                - code [ref=e489]: repository/commit-chain
+                                                - code
+                                    - button "Open match details for /_dashboard/repository/create" [ref=e491]:
+                                        - generic [ref=e493]:
+                                            - button "➔" [ref=e494] [cursor=pointer]
+                                            - generic [ref=e495]:
+                                                - code [ref=e496]: repository/create
+                                                - code
+                                    - button "Open match details for /_dashboard/repository/" [ref=e498]:
+                                        - generic [ref=e500]:
+                                            - button "➔" [ref=e501] [cursor=pointer]
+                                            - generic [ref=e502]:
+                                                - code [ref=e503]: repository/
+                                                - code
+                                    - button "Open match details for /_dashboard/chat/discover/my" [ref=e505]:
+                                        - generic [ref=e507]:
+                                            - button "➔" [ref=e508] [cursor=pointer]
+                                            - generic [ref=e509]:
+                                                - code [ref=e510]: chat/discover/my
+                                                - code
+                                    - button "Open match details for /_dashboard/doc/$spaceId/$docId" [ref=e512]:
+                                        - generic [ref=e515]:
+                                            - code [ref=e516]: doc/$spaceId/$docId
+                                            - code
+                                    - 'button "Open match details for /_dashboard/repository/detail/{-$id}" [ref=e518]':
+                                        - generic [ref=e520]:
+                                            - button "➔" [ref=e521] [cursor=pointer]
+                                            - generic [ref=e522]:
+                                                - code [ref=e523]: "repository/detail/{-$id}"
+                                                - code
+                                    - button "Open match details for /_dashboard/chat/discover/" [ref=e525]:
+                                        - generic [ref=e527]:
+                                            - button "➔" [ref=e528] [cursor=pointer]
+                                            - generic [ref=e529]:
+                                                - code [ref=e530]: chat/discover/
+                                                - code
+                                    - button "Open match details for /_dashboard/chat/discover/material/my" [ref=e532]:
+                                        - generic [ref=e534]:
+                                            - button "➔" [ref=e535] [cursor=pointer]
+                                            - generic [ref=e536]:
+                                                - code [ref=e537]: chat/discover/material/my
+                                                - code
+                                    - button "Open match details for /_dashboard/chat/discover/material/" [ref=e539]:
+                                        - generic [ref=e541]:
+                                            - button "➔" [ref=e542] [cursor=pointer]
+                                            - generic [ref=e543]:
+                                                - code [ref=e544]: chat/discover/material/
+                                                - code
+                            - button "Open match details for /login" [ref=e546]:
+                                - generic [ref=e548]:
+                                    - button "➔" [ref=e549] [cursor=pointer]
+                                    - generic [ref=e550]:
+                                        - code [ref=e551]: login
+                                        - code
+                            - button "Open match details for /scroll-sequence-demo" [ref=e553]:
+                                - generic [ref=e555]:
+                                    - button "➔" [ref=e556] [cursor=pointer]
+                                    - generic [ref=e557]:
+                                        - code [ref=e558]: scroll-sequence-demo
+                                        - code
+                            - button "Open match details for /scroll-sequence-motion-demo" [ref=e560]:
+                                - generic [ref=e562]:
+                                    - button "➔" [ref=e563] [cursor=pointer]
+                                    - generic [ref=e564]:
+                                        - code [ref=e565]: scroll-sequence-motion-demo
+                                        - code
+                            - button "Open match details for /invite/$code" [ref=e567]:
+                                - generic [ref=e570]:
+                                    - code [ref=e571]: invite/$code
+                                    - code
+                            - button "Open match details for /room-map/$spaceId/$roomId" [ref=e573]:
+                                - generic [ref=e576]:
+                                    - code [ref=e577]: room-map/$spaceId/$roomId
+                                    - code
