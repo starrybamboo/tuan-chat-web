@@ -9,7 +9,6 @@ import { getCachedDocSnapshot, setCachedDocSnapshot } from "@/components/chat/in
 import { TextEnhanceRenderer } from "@/components/common/textEnhanceRenderer";
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
 import {
-  createUserReadMeNode,
   createUserReadMeSnapshot,
   decodeUserReadMeNodes,
   ensureUserReadMeNodes,
@@ -310,15 +309,6 @@ export default function UserReadMeMessageEditor({
     };
   }, [docId, isOwner, loadState, nodes, serializedNodes, userId]);
 
-  const handleAppendParagraph = useCallback(() => {
-    const nextNode = createUserReadMeNode();
-    setNodes(prev => [...prev, nextNode]);
-    requestFocus({
-      nodeId: nextNode.nodeId,
-      caret: 0,
-    });
-  }, [requestFocus]);
-
   if (loadState === "loading") {
     return (
       <div className="flex h-full min-h-40 items-center justify-center rounded-md bg-base-100/50">
@@ -350,16 +340,6 @@ export default function UserReadMeMessageEditor({
             : nodes.filter(node => node.content.trim().length > 0).map(node => (
                 <ReadOnlyNode key={node.nodeId} node={node} />
               ))}
-          {isOwner && (
-            <button
-              type="button"
-              className="mt-1 h-10 rounded-md border border-dashed border-transparent bg-transparent text-sm text-base-content/35 transition hover:border-base-300/70 hover:text-base-content/60 focus:outline-none focus:ring-0"
-              onClick={handleAppendParagraph}
-              aria-label="追加段落"
-            >
-              +
-            </button>
-          )}
         </div>
       </div>
     </section>
