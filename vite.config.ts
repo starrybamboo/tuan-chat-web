@@ -280,9 +280,6 @@ export default defineConfig(() => {
         start: {
           entry: "start",
         },
-        router: {
-          virtualRouteConfig: "app/virtualRoutes.ts",
-        },
       }),
       tailwindcss(),
       fixCjsDefaultExportPlugin(),
