@@ -31,7 +31,7 @@ function readNumber(map: Y.Map<unknown>, key: string): number | undefined {
   return Number.isFinite(n) && n > 0 ? n : undefined;
 }
 
-function normalizeHeader(raw: Partial<BlocksuiteDocHeader> | null | undefined): BlocksuiteDocHeader {
+export function normalizeBlocksuiteDocHeader(raw: Partial<BlocksuiteDocHeader> | null | undefined): BlocksuiteDocHeader {
   return {
     title: String(raw?.title ?? "").trim(),
     imageUrl: String(raw?.imageUrl ?? "").trim(),
@@ -49,7 +49,7 @@ export function readBlocksuiteDocHeader(store: any): BlocksuiteDocHeader | null 
 
   try {
     const map = doc.getMap<unknown>(HEADER_MAP_KEY);
-    return normalizeHeader({
+    return normalizeBlocksuiteDocHeader({
       title: readString(map, "title"),
       imageUrl: readString(map, "imageUrl"),
       originalImageUrl: readString(map, "originalImageUrl"),
@@ -68,11 +68,11 @@ export function ensureBlocksuiteDocHeader(store: any, fallback?: Partial<Blocksu
   if (!doc)
     return null;
 
-  const desired = normalizeHeader(fallback);
+  const desired = normalizeBlocksuiteDocHeader(fallback);
 
   try {
     const map = doc.getMap<unknown>(HEADER_MAP_KEY);
-    const current = normalizeHeader({
+    const current = normalizeBlocksuiteDocHeader({
       title: readString(map, "title"),
       imageUrl: readString(map, "imageUrl"),
       originalImageUrl: readString(map, "originalImageUrl"),
@@ -120,7 +120,7 @@ export function setBlocksuiteDocHeader(store: any, patch: Partial<BlocksuiteDocH
   if (!doc)
     return null;
 
-  const incoming = normalizeHeader(patch);
+  const incoming = normalizeBlocksuiteDocHeader(patch);
   const hasTitle = Object.prototype.hasOwnProperty.call(patch, "title");
   const hasImageUrl = Object.prototype.hasOwnProperty.call(patch, "imageUrl");
   const hasOriginalImageUrl = Object.prototype.hasOwnProperty.call(patch, "originalImageUrl");
@@ -130,7 +130,7 @@ export function setBlocksuiteDocHeader(store: any, patch: Partial<BlocksuiteDocH
 
   try {
     const map = doc.getMap<unknown>(HEADER_MAP_KEY);
-    const current = normalizeHeader({
+    const current = normalizeBlocksuiteDocHeader({
       title: readString(map, "title"),
       imageUrl: readString(map, "imageUrl"),
       originalImageUrl: readString(map, "originalImageUrl"),
@@ -138,7 +138,7 @@ export function setBlocksuiteDocHeader(store: any, patch: Partial<BlocksuiteDocH
       originalImageFileId: readNumber(map, "originalImageFileId"),
       imageMediaType: readString(map, "imageMediaType"),
     });
-    const next = normalizeHeader({
+    const next = normalizeBlocksuiteDocHeader({
       title: hasTitle ? incoming.title : current.title,
       imageUrl: hasImageUrl ? incoming.imageUrl : current.imageUrl,
       originalImageUrl: hasOriginalImageUrl ? incoming.originalImageUrl : current.originalImageUrl,
@@ -190,7 +190,7 @@ export function subscribeBlocksuiteDocHeader(
 
   const emit = () => {
     try {
-      onChange(normalizeHeader({
+      onChange(normalizeBlocksuiteDocHeader({
         title: readString(map, "title"),
         imageUrl: readString(map, "imageUrl"),
         originalImageUrl: readString(map, "originalImageUrl"),

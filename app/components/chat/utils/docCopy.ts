@@ -1,49 +1,56 @@
+import type { StoredSnapshot } from "@/components/chat/infra/blocksuite/description/descriptionDocRemote";
+
+import { cloneBlockNoteSnapshotWithHeader, createBlockNoteSnapshot, decodeBlockNoteBlocks, isStoredBlockNoteSnapshot } from "@/components/chat/infra/blocksuite/document/blockNoteSnapshot";
+import { getCachedDocSnapshot, setCachedDocSnapshot } from "@/components/chat/infra/blocksuite/document/docSnapshotCache";
+import { normalizeBlocksuiteDocHeader } from "@/components/chat/infra/blocksuite/document/docHeader";
+import { parseDescriptionDocId } from "@/components/chat/infra/blocksuite/description/descriptionDocId";
+import { getRemoteSnapshot, setRemoteSnapshot } from "@/components/chat/infra/blocksuite/description/descriptionDocRemote";
 import { tuanchat } from "../../../../api/instance";
 
-async function getDocUpdateForCopy(params: {
-  sourceSpaceId: number;
-  docId: string;
-}): Promise<Uint8Array> {
-  const [registry, { parseDescriptionDocId }, { getRemoteSnapshot }, { base64ToUint8Array }] = await Promise.all([
-    import("@/components/chat/infra/blocksuite/space/spaceWorkspaceRegistry"),
-    import("@/components/chat/infra/blocksuite/description/descriptionDocId"),
-    import("@/components/chat/infra/blocksuite/description/descriptionDocRemote"),
-    import("@/components/chat/infra/blocksuite/shared/base64"),
-  ]);
-
-  const ws = registry.getOrCreateSpaceWorkspace(params.sourceSpaceId) as any;
-
-  // 优先尝试把“源文档的远端快照”恢复到本地 workspace，确保跨端/跨用户复制可用。
-  try {
-    const key = parseDescriptionDocId(params.docId);
-    if (key) {
-      const remote = await getRemoteSnapshot(key);
-      if (remote?.updateB64) {
-        const update = base64ToUint8Array(remote.updateB64);
-        if (typeof ws?.restoreDocFromUpdate === "function") {
-          ws.restoreDocFromUpdate({ docId: params.docId, update });
-        }
-      }
-    }
-  }
-  catch {
-    // ignore: 仍可能从本地 IndexedDB 拿到内容
+async function getSnapshotForCopy(docId: string): Promise<StoredSnapshot | null> {
+  const cached = getCachedDocSnapshot(docId);
+  if (cached) {
+    return cached;
   }
 
-  // 确保 doc 在本地 workspace 里已 load，避免 encode 只拿到空初始化状态
-  try {
-    const store = registry.getOrCreateSpaceDoc({ spaceId: params.sourceSpaceId, docId: params.docId }) as any;
-    (store as any)?.load?.();
-  }
-  catch {
-    // ignore
+  const key = parseDescriptionDocId(docId);
+  if (!key) {
+    return null;
   }
 
-  if (typeof ws?.encodeDocAsUpdate !== "function") {
-    throw new TypeError("Blocksuite workspace 不支持导出文档快照");
+  return await getRemoteSnapshot(key);
+}
+
+function buildCopiedSnapshot(
+  sourceSnapshot: StoredSnapshot | null,
+  header: {
+    title: string;
+    imageUrl?: string;
+    imageFileId?: number;
+    originalImageFileId?: number;
+    imageMediaType?: string;
+  },
+) {
+  const normalizedHeader = normalizeBlocksuiteDocHeader({
+    title: header.title,
+    imageUrl: header.imageUrl,
+    imageFileId: header.imageFileId,
+    originalImageFileId: header.originalImageFileId,
+    imageMediaType: header.imageMediaType,
+  });
+
+  if (isStoredBlockNoteSnapshot(sourceSnapshot)) {
+    return cloneBlockNoteSnapshotWithHeader(sourceSnapshot, normalizedHeader)
+      ?? createBlockNoteSnapshot({
+        blocks: decodeBlockNoteBlocks(sourceSnapshot),
+        header: normalizedHeader,
+      });
   }
 
-  return ws.encodeDocAsUpdate(params.docId) as Uint8Array;
+  return createBlockNoteSnapshot({
+    blocks: decodeBlockNoteBlocks(sourceSnapshot),
+    header: normalizedHeader,
+  });
 }
 
 export async function copyDocToSpaceDoc(params: {
@@ -58,75 +65,49 @@ export async function copyDocToSpaceDoc(params: {
 }): Promise<{ newDocEntityId: number; newDocId: string; title: string }> {
   const createTitle = (params.title ?? "").trim();
   const title = createTitle ? `${createTitle}（副本）` : "新文档（副本）";
-  const sourceSpaceId = typeof params.sourceSpaceId === "number" && params.sourceSpaceId > 0
-    ? params.sourceSpaceId
-    : params.spaceId;
-  const sourceUpdate = await getDocUpdateForCopy({
-    sourceSpaceId,
-    docId: params.sourceDocId,
-  });
+  const sourceSnapshot = await getSnapshotForCopy(params.sourceDocId);
 
   let createdDocId: number | null = null;
   try {
-    const resp = await tuanchat.spaceDocController.createDoc({
+    const response = await tuanchat.spaceDocController.createDoc({
       spaceId: params.spaceId,
       title,
     });
-    const id = Number((resp as any)?.data?.docId);
-    if (Number.isFinite(id) && id > 0) {
-      createdDocId = id;
+    const docId = Number((response as any)?.data?.docId);
+    if (Number.isFinite(docId) && docId > 0) {
+      createdDocId = docId;
     }
   }
-  catch (err) {
-    console.error("[SpaceDoc] create failed", err);
+  catch (error) {
+    console.error("[SpaceDoc] create failed", error);
   }
 
   if (!createdDocId) {
     throw new Error("创建文档失败");
   }
 
-  const [{ buildSpaceDocId }, { setRemoteSnapshot }, { uint8ArrayToBase64 }, registry, { setBlocksuiteDocHeader }] = await Promise.all([
+  const [{ buildSpaceDocId }, registry] = await Promise.all([
     import("@/components/chat/infra/blocksuite/space/spaceDocId"),
-    import("@/components/chat/infra/blocksuite/description/descriptionDocRemote"),
-    import("@/components/chat/infra/blocksuite/shared/base64"),
     import("@/components/chat/infra/blocksuite/space/spaceWorkspaceRegistry"),
-    import("@/components/chat/infra/blocksuite/document/docHeader"),
   ]);
 
   const newDocId = buildSpaceDocId({ kind: "independent", docId: createdDocId });
+  const snapshot = buildCopiedSnapshot(sourceSnapshot, {
+    title,
+    imageUrl: params.imageUrl,
+    imageFileId: params.imageFileId,
+    originalImageFileId: params.originalImageFileId,
+    imageMediaType: params.imageMediaType,
+  });
 
-  const ws = registry.getOrCreateSpaceWorkspace(params.spaceId) as any;
-  if (typeof ws?.restoreDocFromUpdate === "function") {
-    ws.restoreDocFromUpdate({ docId: newDocId, update: sourceUpdate });
-  }
-
-  try {
-    const store = registry.getOrCreateSpaceDoc({ spaceId: params.spaceId, docId: newDocId }) as any;
-    (store as any)?.load?.();
-    setBlocksuiteDocHeader(store, {
-      title,
-      imageUrl: params.imageUrl,
-      imageFileId: params.imageFileId,
-      originalImageFileId: params.originalImageFileId,
-      imageMediaType: params.imageMediaType,
-    });
-  }
-  catch {
-    // ignore
-  }
-
+  setCachedDocSnapshot(newDocId, snapshot);
   registry.ensureSpaceDocMeta({ spaceId: params.spaceId, docId: newDocId, title });
 
-  const fullUpdate = typeof ws?.encodeDocAsUpdate === "function" ? (ws.encodeDocAsUpdate(newDocId) as Uint8Array) : sourceUpdate;
   await setRemoteSnapshot({
     entityType: "space_doc",
     entityId: createdDocId,
     docType: "description",
-    snapshot: {
-      v: 1,
-      updateB64: uint8ArrayToBase64(fullUpdate),
-      updatedAt: Date.now(),
-    },
+    snapshot,
   });
 
   return { newDocEntityId: createdDocId, newDocId, title };
@@ -145,13 +126,7 @@ export async function copyDocToSpaceUserDoc(params: {
 }): Promise<{ newDocEntityId: number; newDocId: string; title: string }> {
   const createTitle = (params.title ?? "").trim();
   const title = createTitle ? `${createTitle}（副本）` : "新文档（副本）";
-  const sourceSpaceId = typeof params.sourceSpaceId === "number" && params.sourceSpaceId > 0
-    ? params.sourceSpaceId
-    : params.spaceId;
-  const sourceUpdate = await getDocUpdateForCopy({
-    sourceSpaceId,
-    docId: params.sourceDocId,
-  });
+  const sourceSnapshot = await getSnapshotForCopy(params.sourceDocId);
 
   const createDocWithRetry = async (): Promise<number> => {
     let lastErr = "";
@@ -176,49 +151,32 @@ export async function copyDocToSpaceUserDoc(params: {
   };
 
   const newEntityId = await createDocWithRetry();
-
-  const [{ buildDescriptionDocId }, { setRemoteSnapshot }, { uint8ArrayToBase64 }, registry, { setBlocksuiteDocHeader }] = await Promise.all([
+  const [{ buildDescriptionDocId }, registry] = await Promise.all([
     import("@/components/chat/infra/blocksuite/description/descriptionDocId"),
-    import("@/components/chat/infra/blocksuite/description/descriptionDocRemote"),
-    import("@/components/chat/infra/blocksuite/shared/base64"),
     import("@/components/chat/infra/blocksuite/space/spaceWorkspaceRegistry"),
-    import("@/components/chat/infra/blocksuite/document/docHeader"),
   ]);
 
-  const newDocId = buildDescriptionDocId({ entityType: "space_user_doc", entityId: newEntityId, docType: "description" });
+  const newDocId = buildDescriptionDocId({
+    entityType: "space_user_doc",
+    entityId: newEntityId,
+    docType: "description",
+  });
+  const snapshot = buildCopiedSnapshot(sourceSnapshot, {
+    title,
+    imageUrl: params.imageUrl,
+    imageFileId: params.imageFileId,
+    originalImageFileId: params.originalImageFileId,
+    imageMediaType: params.imageMediaType,
+  });
 
-  const ws = registry.getOrCreateSpaceWorkspace(params.spaceId) as any;
-  if (typeof ws?.restoreDocFromUpdate === "function") {
-    ws.restoreDocFromUpdate({ docId: newDocId, update: sourceUpdate });
-  }
-
-  try {
-    const store = registry.getOrCreateSpaceDoc({ spaceId: params.spaceId, docId: newDocId }) as any;
-    (store as any)?.load?.();
-    setBlocksuiteDocHeader(store, {
-      title,
-      imageUrl: params.imageUrl,
-      imageFileId: params.imageFileId,
-      originalImageFileId: params.originalImageFileId,
-      imageMediaType: params.imageMediaType,
-    });
-  }
-  catch {
-    // ignore
-  }
-
+  setCachedDocSnapshot(newDocId, snapshot);
   registry.ensureSpaceDocMeta({ spaceId: params.spaceId, docId: newDocId, title });
 
-  const fullUpdate = typeof ws?.encodeDocAsUpdate === "function" ? (ws.encodeDocAsUpdate(newDocId) as Uint8Array) : sourceUpdate;
   await setRemoteSnapshot({
     entityType: "space_user_doc",
     entityId: newEntityId,
     docType: "description",
-    snapshot: {
-      v: 1,
-      updateB64: uint8ArrayToBase64(fullUpdate),
-      updatedAt: Date.now(),
-    },
+    snapshot,
   });
 
   return { newDocEntityId: newEntityId, newDocId, title };
