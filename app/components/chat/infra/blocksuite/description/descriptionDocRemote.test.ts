@@ -145,6 +145,26 @@ describe("descriptionDocRemote", () => {
     expect(getDocMock).toHaveBeenCalledTimes(1);
   });
 
+  it("能解析 message-stream 快照", async () => {
+    const snapshot = {
+      v: 4 as const,
+      format: "message-stream" as const,
+      updateB64: "W10=",
+      updatedAt: Date.now(),
+    };
+    const params = {
+      entityType: "user" as const,
+      entityId: 91,
+      docType: "readme" as const,
+    };
+    getDocMock.mockResolvedValueOnce({
+      data: JSON.stringify(snapshot),
+    });
+
+    await expect(descriptionDocRemote.getRemoteSnapshot(params)).resolves.toEqual(snapshot);
+    expect(getDocMock).toHaveBeenCalledTimes(1);
+  });
+
   it("远端快照请求超时后会取消请求，且不会阻塞下一次读取", async () => {
     const params = {
       entityType: "room" as const,
