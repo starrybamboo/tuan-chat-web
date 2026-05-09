@@ -8,7 +8,6 @@ import { SignalWatcher, WithDisposable } from "@blocksuite/global/lit";
 import { ShadowlessElement } from "@blocksuite/std";
 import { ZERO_WIDTH_FOR_EMBED_NODE, ZERO_WIDTH_FOR_EMPTY_LINE } from "@blocksuite/std/inline";
 import { css, html } from "lit";
-import { property } from "lit/decorators.js";
 
 import type { BlocksuiteFrameToHostPayload } from "../shared/frameProtocol";
 
@@ -40,6 +39,12 @@ export function ensureTCAffineMentionDefined(): void {
   class TCAffineMention extends SignalWatcher(
     WithDisposable(ShadowlessElement),
   ) {
+    static override properties = {
+      delta: { type: Object },
+      selected: { type: Boolean },
+      std: { attribute: false },
+    };
+
     static override styles = css`
       .affine-mention {
         color: ${unsafeCSSVarV2("text/primary")};
@@ -334,17 +339,14 @@ export function ensureTCAffineMentionDefined(): void {
       return this.renderUserMention(target?.id);
     }
 
-    @property({ type: Object })
-    accessor delta: DeltaInsert<AffineTextAttributes> = {
+    delta: DeltaInsert<AffineTextAttributes> = {
       insert: ZERO_WIDTH_FOR_EMPTY_LINE,
       attributes: {},
     };
 
-    @property({ type: Boolean })
-    accessor selected = false;
+    selected = false;
 
-    @property({ attribute: false })
-    accessor std!: BlockStdScope;
+    std!: BlockStdScope;
   }
 
   customElements.define("affine-mention", TCAffineMention as any);

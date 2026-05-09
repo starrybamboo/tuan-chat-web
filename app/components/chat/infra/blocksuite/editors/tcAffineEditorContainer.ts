@@ -9,7 +9,6 @@ import { ThemeProvider } from "@blocksuite/affine/shared/services";
 import { BlockStdScope, ShadowlessElement } from "@blocksuite/affine/std";
 import { computed, signal } from "@preact/signals-core";
 import { css, html } from "lit";
-import { property } from "lit/decorators.js";
 import { keyed } from "lit/directives/keyed.js";
 import { when } from "lit/directives/when.js";
 
@@ -26,6 +25,12 @@ export const TC_AFFINE_EDITOR_CONTAINER_TAG = "tc-affine-editor-container";
 class TCAffineEditorContainer extends SignalWatcher(
   WithDisposable(ShadowlessElement),
 ) {
+  static override properties = {
+    autofocus: { attribute: false },
+    disableDocTitle: { attribute: false },
+    onDocLinkClicked: { attribute: false },
+  };
+
   static override styles = css`
     .affine-page-viewport {
       position: relative;
@@ -268,14 +273,11 @@ class TCAffineEditorContainer extends SignalWatcher(
     this._docLinkSubscriptionStd = null;
   }
 
-  @property({ attribute: false })
-  override accessor autofocus = false;
+  override autofocus = false;
 
-  @property({ attribute: false })
-  accessor disableDocTitle = false;
+  disableDocTitle = false;
 
-  @property({ attribute: false })
-  accessor onDocLinkClicked: ((event: { pageId: string; host?: unknown }) => void) | null = null;
+  onDocLinkClicked: ((event: { pageId: string; host?: unknown }) => void) | null = null;
 }
 
 export function ensureTCAffineEditorContainerDefined() {
