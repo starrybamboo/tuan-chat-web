@@ -10,6 +10,7 @@ import toast from "react-hot-toast";
 
 import { getRemoteSnapshot, setRemoteSnapshot } from "@/components/chat/infra/blocksuite/description/descriptionDocRemote";
 import { getCachedDocSnapshot, setCachedDocSnapshot } from "@/components/chat/infra/blocksuite/document/docSnapshotCache";
+import { FloatingSelectionToolbar, useFloatingSelectionToolbar } from "@/components/common/floatingSelectionToolbar";
 import { TextEnhanceRenderer } from "@/components/common/textEnhanceRenderer";
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
 import { getEditorRange } from "@/utils/getSelectionCoords";
@@ -335,29 +336,37 @@ function ReadOnlyNode({ node }: { node: UserReadMeMessageNode }) {
   );
 }
 
-function InlineToolbar({
-  disabled,
+function InlineMarkSelectionToolbar({
+  visible,
+  position,
+  toolbarRef,
   onApply,
 }: {
-  disabled: boolean;
+  visible: boolean;
+  position: { x: number; y: number } | null;
+  toolbarRef: React.RefObject<HTMLDivElement | null>;
   onApply: (type: UserReadMeInlineMarkType) => void;
 }) {
   return (
-    <div className="mb-2 flex items-center gap-1 px-1">
+    <FloatingSelectionToolbar
+      visible={visible}
+      position={position}
+      toolbarRef={toolbarRef}
+      className="text-style-toolbar"
+    >
       {INLINE_MARK_BUTTONS.map(button => (
         <button
           key={button.type}
           type="button"
-          disabled={disabled}
           title={`${button.title} ${button.shortcut}`}
-          className="flex h-8 min-w-8 items-center justify-center rounded-md border border-transparent px-2 text-xs text-base-content/60 transition hover:border-base-300 hover:bg-base-200/60 hover:text-base-content disabled:cursor-default disabled:opacity-30"
+          className="btn btn-ghost btn-xs h-6 min-h-0 gap-0.5 px-1.5 text-base-content/80"
           onMouseDown={event => event.preventDefault()}
           onClick={() => onApply(button.type)}
         >
           {INLINE_MARK_LABELS[button.type]}
         </button>
       ))}
-    </div>
+    </FloatingSelectionToolbar>
   );
 }
 
@@ -448,6 +457,24 @@ export default function UserReadMeMessageEditor({
   const readyRef = useRef(false);
   const lastSavedSerializedRef = useRef("");
   const saveErrorToastRef = useRef(0);
+  const resolveEditorElement = useCallback((range: Range) => {
+    for (const [nodeId, editor] of editorMapRef.current) {
+      if (!editor.contains(range.commonAncestorContainer)) {
+        continue;
+      }
+      setActiveNodeId(prev => prev === nodeId ? prev : nodeId);
+      return editor;
+    }
+    return null;
+  }, []);
+  const {
+    toolbarRef,
+    isFloatingVisible,
+    toolbarPos,
+  } = useFloatingSelectionToolbar({
+    visible: isOwner,
+    resolveEditorElement,
+  });
 
   const serializedNodes = useMemo(() => serializeUserReadMeNodes(nodes), [nodes]);
 
@@ -779,8 +806,10 @@ export default function UserReadMeMessageEditor({
       <div className="flex-1 overflow-y-auto px-4 py-3">
         <div className="mx-auto flex w-full max-w-3xl flex-col gap-1">
           {isOwner && (
-            <InlineToolbar
-              disabled={!activeNodeId}
+            <InlineMarkSelectionToolbar
+              visible={isFloatingVisible}
+              position={toolbarPos}
+              toolbarRef={toolbarRef}
               onApply={handleApplyInlineMark}
             />
           )}
@@ -792,6 +821,7 @@ export default function UserReadMeMessageEditor({
                   registerEditor={registerEditor}
                   onFocus={setActiveNodeId}
                   onSelectionChange={(nodeId, selection) => {
+                    setActiveNodeId(nodeId);
                     if (selection) {
                       selectionMapRef.current.set(nodeId, selection);
                     }
