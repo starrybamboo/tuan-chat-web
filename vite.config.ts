@@ -436,6 +436,10 @@ export default defineConfig(() => {
       ],
       alias: [
         {
+          find: /^@\/routeTree\.gen$/,
+          replacement: resolve(__dirname, "app/routeTree.gen.ts"),
+        },
+        {
           find: /^react-router$/,
           replacement: resolve(__dirname, "app/router/reactRouterCompat.tsx"),
         },
