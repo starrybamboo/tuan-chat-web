@@ -1,8 +1,13 @@
+import { createFileRoute } from "@tanstack/react-router";
 import { useEffect } from "react";
 import CharacterDetail from "@/components/Role/CharacterDetail";
 import { useRoleListModel } from "@/components/Role/useRoleListModel";
 import { Navigate, useNavigate, useParams, useSearchParams } from "@/router/reactRouterCompat";
 import { getRoleRule, setRoleRule } from "@/utils/roleRuleStorage";
+
+export const Route = createFileRoute("/_dashboard/role/{-$roleId}")({
+  component: RoleDetailPage,
+});
 
 export default function RoleDetailPage() {
   const { roleId } = useParams<{ roleId: string }>();

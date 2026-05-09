@@ -1,6 +1,7 @@
 import type { MotionValue } from "motion/react";
 import type { RefObject } from "react";
 import type { RouteMetaArgs } from "@/router/routeTypes";
+import { createFileRoute } from "@tanstack/react-router";
 
 import type { ProceduralRenderer } from "./scrollSequenceDemoShared";
 import { motion, useMotionValueEvent, useScroll, useSpring, useTransform } from "motion/react";
@@ -113,6 +114,13 @@ export function meta(_args: RouteMetaArgs) {
     index: false,
   });
 }
+
+export const Route = createFileRoute("/scroll-sequence-demo")({
+  head: () => ({
+    meta: meta({ params: {} }),
+  }),
+  component: ScrollSequenceDemoPage,
+});
 
 export default function ScrollSequenceDemoPage() {
   useNativeDocumentScroll();

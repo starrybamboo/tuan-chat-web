@@ -2,6 +2,7 @@ import type {
   RouteClientLoaderArgs,
   RouteMetaArgs,
 } from "@/router/routeTypes";
+import { createFileRoute } from "@tanstack/react-router";
 // import { DEFAULT_REPOSITORY_DATA } from "@/components/repository/detail/constants";
 
 import { fetchRepositoryDetailWithCache } from "api/hooks/repositoryQueryHooks";
@@ -56,6 +57,14 @@ export function meta({ data, params }: RouteMetaArgs<RepositorySeoData | null>) 
     image: repositoryImage || undefined,
   });
 }
+
+export const Route = createFileRoute("/_dashboard/repository/detail/{-$id}")({
+  loader: ({ params }) => clientLoader({ params }),
+  head: ({ loaderData, params }) => ({
+    meta: meta({ data: loaderData, params }),
+  }),
+  component: RepositoryDetail,
+});
 
 export default function RepositoryDetail() {
   return <RepositoryDetailComponent />;

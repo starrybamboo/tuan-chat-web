@@ -1,4 +1,5 @@
 import type { RouteMetaArgs } from "@/router/routeTypes";
+import { createFileRoute } from "@tanstack/react-router";
 
 import ChatPage from "@/components/chat/chatPage";
 import { createSeoMeta } from "@/utils/seo";
@@ -13,6 +14,13 @@ export function meta(_args: RouteMetaArgs) {
     index: false,
   });
 }
+
+export const Route = createFileRoute("/_dashboard/chat/_chat-layout")({
+  head: () => ({
+    meta: meta({ params: {} }),
+  }),
+  component: ChatLayoutRoute,
+});
 
 export default function ChatLayoutRoute() {
   return (

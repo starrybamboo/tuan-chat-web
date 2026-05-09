@@ -1,4 +1,5 @@
 import type { RouteMetaArgs } from "@/router/routeTypes";
+import { createFileRoute } from "@tanstack/react-router";
 import RepositoryCreateMain from "@/components/repository/create/RepositoryCreateMain";
 import { createSeoMeta } from "@/utils/seo";
 
@@ -10,6 +11,13 @@ export function meta(_args: RouteMetaArgs) {
     index: false,
   });
 }
+
+export const Route = createFileRoute("/_dashboard/repository/create")({
+  head: () => ({
+    meta: meta({ params: {} }),
+  }),
+  component: RepositoryCreate,
+});
 
 export default function RepositoryCreate() {
   return (

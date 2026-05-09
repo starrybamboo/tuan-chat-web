@@ -1,3 +1,4 @@
+import { createFileRoute } from "@tanstack/react-router";
 import NotificationPage from "@/components/notification/notificationPage";
 import { createSeoMeta } from "@/utils/seo";
 
@@ -9,6 +10,13 @@ export function meta() {
     index: false,
   });
 }
+
+export const Route = createFileRoute("/_dashboard/notifications")({
+  head: () => ({
+    meta: meta(),
+  }),
+  component: Notifications,
+});
 
 export default function Notifications() {
   return <NotificationPage />;

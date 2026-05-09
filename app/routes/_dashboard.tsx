@@ -1,4 +1,5 @@
 import type { RouteMetaArgs } from "@/router/routeTypes";
+import { createFileRoute } from "@tanstack/react-router";
 import { Outlet } from "@/router/reactRouterCompat";
 import Topbar from "@/components/topbanner/Topbanner";
 import { createSeoMeta } from "@/utils/seo";
@@ -11,6 +12,13 @@ export function meta(_args: RouteMetaArgs) {
     index: false,
   });
 }
+
+export const Route = createFileRoute("/_dashboard")({
+  head: () => ({
+    meta: meta({ params: {} }),
+  }),
+  component: DashBoard,
+});
 
 export default function DashBoard() {
   return (

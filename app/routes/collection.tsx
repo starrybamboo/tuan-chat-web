@@ -1,4 +1,5 @@
 import type { RouteMetaArgs } from "@/router/routeTypes";
+import { createFileRoute } from "@tanstack/react-router";
 import CollectionPage from "@/components/common/collection/collectionPage";
 import { createSeoMeta } from "@/utils/seo";
 
@@ -10,6 +11,13 @@ export function meta(_args: RouteMetaArgs) {
     index: false,
   });
 }
+
+export const Route = createFileRoute("/_dashboard/collection")({
+  head: () => ({
+    meta: meta({ params: {} }),
+  }),
+  component: Collection,
+});
 
 export default function Collection() {
   return (

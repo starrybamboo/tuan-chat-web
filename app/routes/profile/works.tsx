@@ -1,4 +1,5 @@
 import type { RouteMetaArgs } from "@/router/routeTypes";
+import { createFileRoute } from "@tanstack/react-router";
 import WorksTab from "@/components/profile/profileTab/worksTab";
 import { useParams } from "@/router/reactRouterCompat";
 import { createSeoMeta } from "@/utils/seo";
@@ -12,6 +13,13 @@ export function meta({ params }: RouteMetaArgs) {
     type: "profile",
   });
 }
+
+export const Route = createFileRoute("/_dashboard/profile/$userId/works")({
+  head: ({ params }) => ({
+    meta: meta({ params }),
+  }),
+  component: ProfileWorks,
+});
 
 export default function ProfileWorks() {
   const { userId: userIdParam } = useParams<{ userId: string }>();

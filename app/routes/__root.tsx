@@ -1,16 +1,14 @@
 import type {
-  RouteErrorBoundaryProps,
-  RouteLinksFunction,
   RouteMetaArgs,
 } from "@/router/routeTypes";
 import { QueryClientProvider } from "@tanstack/react-query";
+import { createRootRoute, HeadContent } from "@tanstack/react-router";
+import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 
 import React from "react";
 import { toast, Toaster } from "react-hot-toast";
 import {
   isRouteErrorResponse,
-  Links,
-  Meta,
   Outlet,
   Scripts,
   ScrollRestoration,
@@ -136,14 +134,14 @@ if (typeof window !== "undefined" && import.meta.env.MODE === "test" && !(window
   });
 }
 
-export const links: RouteLinksFunction = () => (
+export const links = () => (
   import.meta.env.VITE_ENABLE_GOOGLE_FONTS === "true"
     ? [
         { rel: "preconnect", href: "https://fonts.googleapis.com" },
         {
           rel: "preconnect",
           href: "https://fonts.gstatic.com",
-          crossOrigin: "anonymous",
+          crossOrigin: "anonymous" as const,
         },
         {
           rel: "stylesheet",
@@ -184,14 +182,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="zh-CN" data-theme="dark">
       <head>
-        <meta charSet="utf-8" />
-        <meta
-          name="viewport"
-          content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content"
-        />
-        <meta name="theme-color" content="#101828" />
-        <Meta />
-        <Links />
+        <HeadContent />
         <CanonicalLink />
       </head>
       <body>
@@ -272,6 +263,7 @@ export default function App() {
       <Toaster />
       {/* ToastWindow渲染器，可以访问Router上下文 */}
       <ToastWindowRenderer />
+      {import.meta.env.DEV ? <TanStackRouterDevtools position="bottom-right" /> : null}
       {isTestEnvSplashOpen && (
         <div className="modal modal-open" role="dialog" aria-modal="true" aria-label="测试环境提示">
           <div className="modal-box max-w-2xl">
@@ -302,7 +294,33 @@ export default function App() {
   );
 }
 
-export function ErrorBoundary({ error }: RouteErrorBoundaryProps) {
+function RootRouteComponent() {
+  return (
+    <Layout>
+      <App />
+    </Layout>
+  );
+}
+
+export const Route = createRootRoute({
+  head: () => ({
+    meta: [
+      { charSet: "utf-8" },
+      {
+        name: "viewport",
+        content: "width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content",
+      },
+      { name: "theme-color", content: "#101828" },
+      ...meta({ params: {} }),
+    ],
+    links: links(),
+  }),
+  component: RootRouteComponent,
+  errorComponent: ErrorBoundary,
+  pendingComponent: HydrateFallback,
+});
+
+export function ErrorBoundary({ error }: { error: Error }) {
   const navigate = useNavigate();
   let message = "Oops! Something went wrong.";
   let details = "An unexpected error occurred. Please try again later.";

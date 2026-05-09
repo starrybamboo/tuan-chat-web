@@ -1,4 +1,5 @@
 import type { RouteMetaArgs } from "@/router/routeTypes";
+import { createFileRoute } from "@tanstack/react-router";
 import RepositoryCommitChainPage from "@/components/repository/commitChain/RepositoryCommitChainPage";
 import { createSeoMeta } from "@/utils/seo";
 
@@ -10,6 +11,13 @@ export function meta(_args: RouteMetaArgs) {
     index: false,
   });
 }
+
+export const Route = createFileRoute("/_dashboard/repository/commit-chain/{-$id}")({
+  head: () => ({
+    meta: meta({ params: {} }),
+  }),
+  component: RepositoryCommitChainRoute,
+});
 
 export default function RepositoryCommitChainRoute() {
   return <RepositoryCommitChainPage />;

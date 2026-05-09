@@ -1,4 +1,5 @@
 import type { RouteMetaArgs } from "@/router/routeTypes";
+import { createFileRoute } from "@tanstack/react-router";
 import ResourcePage from "@/components/resource/pages/resourcePage";
 import { createSeoMeta } from "@/utils/seo";
 import "@/components/resource/resourceRouteStyles.css";
@@ -11,6 +12,13 @@ export function meta(_args: RouteMetaArgs) {
     index: false,
   });
 }
+
+export const Route = createFileRoute("/_dashboard/resource")({
+  head: () => ({
+    meta: meta({ params: {} }),
+  }),
+  component: Resource,
+});
 
 export default function Resource() {
   return (

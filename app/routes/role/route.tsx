@@ -1,5 +1,6 @@
 import type { RouteMetaArgs } from "@/router/routeTypes";
 import { CaretRightIcon } from "@phosphor-icons/react";
+import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Drawer } from "vaul";
 import { Sidebar } from "@/components/Role/Sidebar/Sidebar";
@@ -17,6 +18,13 @@ export function meta(_args: RouteMetaArgs) {
     index: false,
   });
 }
+
+export const Route = createFileRoute("/_dashboard/role")({
+  head: () => ({
+    meta: meta({ params: {} }),
+  }),
+  component: RoleLayout,
+});
 
 export default function RoleLayout() {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);

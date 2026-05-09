@@ -1,8 +1,13 @@
+import { createFileRoute } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { fetchUserRoomsWithCache, useSpaceInvitedMutation } from "api/hooks/chatQueryHooks";
 import { useEffect, useRef, useState } from "react";
 import { useGlobalUserId } from "@/components/globalContextProvider";
 import { useNavigate, useParams } from "@/router/reactRouterCompat";
+
+export const Route = createFileRoute("/invite/$code")({
+  component: InvitePage,
+});
 
 export default function InvitePage() {
   const { code } = useParams<{ code: string }>();

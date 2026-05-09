@@ -87,6 +87,7 @@
   "dependencies": {
     "@tanstack/react-router": "^1.169.2",
     "@tanstack/react-router-devtools": "1.166.13",
+    "@tanstack/react-start": "^1.167.65",
     "@tuanchat/openapi-client": "workspace:*",
     "detect-port": "^2.1.0",
     "electron-updater": "^6.7.3",

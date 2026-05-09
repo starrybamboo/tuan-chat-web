@@ -1,4 +1,5 @@
 import type { RouteMetaArgs } from "@/router/routeTypes";
+import { createFileRoute } from "@tanstack/react-router";
 
 import { Navigate, useParams } from "@/router/reactRouterCompat";
 import { createSeoMeta } from "@/utils/seo";
@@ -11,6 +12,13 @@ export function meta(_args: RouteMetaArgs) {
     index: false,
   });
 }
+
+export const Route = createFileRoute("/_dashboard/doc/$spaceId/$docId")({
+  head: () => ({
+    meta: meta({ params: {} }),
+  }),
+  component: DocRoute,
+});
 
 export default function DocRoute() {
   const { spaceId, docId } = useParams();

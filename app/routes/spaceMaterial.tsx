@@ -1,4 +1,5 @@
 import type { RouteMetaArgs } from "@/router/routeTypes";
+import { createFileRoute } from "@tanstack/react-router";
 import SpaceMaterialLibraryPage from "@/components/material/pages/spaceMaterialLibraryPage";
 import { useParams } from "@/router/reactRouterCompat";
 import { createSeoMeta } from "@/utils/seo";
@@ -11,6 +12,13 @@ export function meta(args: RouteMetaArgs) {
     index: false,
   });
 }
+
+export const Route = createFileRoute("/_dashboard/material/space/$spaceId")({
+  head: ({ params }) => ({
+    meta: meta({ params }),
+  }),
+  component: SpaceMaterialRoute,
+});
 
 export default function SpaceMaterialRoute() {
   const { spaceId: spaceIdParam } = useParams<{ spaceId: string }>();
