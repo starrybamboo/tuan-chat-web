@@ -5,8 +5,8 @@ import React, { use, useCallback, useMemo } from "react";
 import toast from "react-hot-toast";
 import { RoomContext } from "@/components/chat/core/roomContext";
 import { extractRoomJumpPayload } from "@/components/chat/utils/roomJump";
-import { useAppNavigate as useNavigate, useUrlSearchParams as useSearchParams } from "@/router/utils";
 import { avatarThumbUrl } from "@/utils/mediaUrl";
+import { useAppNavigate as useNavigate, useUrlSearchParams as useSearchParams } from "@/utils/navigation";
 import { useGetUserRoomsQuery } from "../../../../../api/hooks/chatQueryHooks";
 
 function normalizeName(value: string | undefined): string {

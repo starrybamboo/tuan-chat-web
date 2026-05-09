@@ -14,8 +14,8 @@ import UserAvatarComponent from "@/components/common/userAvatar";
 import SlidableChatPreview from "@/components/community/slidableChatPreview";
 import { useGlobalUserId } from "@/components/globalContextProvider";
 import { CommentOutline } from "@/icons";
-import { useAppNavigate as useNavigate } from "@/router/utils";
 import { avatarThumbUrl } from "@/utils/mediaUrl";
+import { useAppNavigate as useNavigate } from "@/utils/navigation";
 import { useDeleteMomentFeedMutation } from "../../../../api/hooks/activitiesFeedQuerryHooks";
 import { useGetUserInfoQuery } from "../../../../api/hooks/UserHooks";
 

@@ -1,7 +1,7 @@
 import type { UserInfoResponse } from "../../../../../api";
 import React from "react";
 import { FollowButton } from "@/components/common/Follow/FollowButton";
-import { Link } from "@/router/utils";
+import { Link } from "@/utils/navigation";
 
 interface ProfileEditingActions {
   isEditingProfile: boolean;

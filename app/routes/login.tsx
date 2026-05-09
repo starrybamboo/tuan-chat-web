@@ -1,8 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import LoginModal from "@/components/auth/LoginModal";
-import { useAppNavigate as useNavigate, useUrlSearchParams as useSearchParams } from "@/router/utils";
 import { normalizeAuthRedirectPath } from "@/utils/auth/redirect";
+import { useAppNavigate as useNavigate, useUrlSearchParams as useSearchParams } from "@/utils/navigation";
 import { createSeoMeta } from "@/utils/seo";
 
 export function meta() {

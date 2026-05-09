@@ -11,7 +11,7 @@ import {
   useNotificationsInfiniteQuery,
   useNotificationUnreadCountQuery,
 } from "@/components/notification/notificationHooks";
-import { useAppNavigate as useNavigate } from "@/router/utils";
+import { useAppNavigate as useNavigate } from "@/utils/navigation";
 import { scheduleNonCriticalTask } from "@/utils/scheduleNonCriticalTask";
 
 const LazyNotificationList = lazy(() => import("@/components/notification/notificationList"));

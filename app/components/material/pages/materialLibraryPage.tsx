@@ -1,7 +1,7 @@
 import type { MaterialPackageContent } from "@tuanchat/openapi-client/models/MaterialPackageContent";
 import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
-import { useAppNavigate as useNavigate } from "@/router/utils";
+import { useAppNavigate as useNavigate } from "@/utils/navigation";
 import {
   MATERIAL_PACKAGE_LIBRARY_PAGE_SIZE,
   useCreateMaterialPackageMutation,

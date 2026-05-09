@@ -1,4 +1,4 @@
-import type { RouteMetaArgs } from "@/router/routeTypes";
+import type { RouteMetaArgs } from "@/routes/routeTypes";
 import { CaretRightIcon } from "@phosphor-icons/react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
@@ -6,7 +6,7 @@ import { Drawer } from "vaul";
 import { Sidebar } from "@/components/Role/Sidebar/Sidebar";
 import { useRoleUiStore } from "@/components/Role/stores/roleUiStore";
 import { useRoleListModel } from "@/components/Role/useRoleListModel";
-import { Outlet, useAllParams as useParams } from "@/router/utils";
+import { Outlet, useAllParams as useParams } from "@/utils/navigation";
 import { createSeoMeta } from "@/utils/seo";
 import "@/components/Role/roleRouteStyles.css";
 

@@ -9,7 +9,7 @@ import {
   useNotificationUnreadCountQuery,
 } from "@/components/notification/notificationHooks";
 import NotificationList from "@/components/notification/notificationList";
-import { useAppNavigate as useNavigate } from "@/router/utils";
+import { useAppNavigate as useNavigate } from "@/utils/navigation";
 
 export default function NotificationPage() {
   const navigate = useNavigate();

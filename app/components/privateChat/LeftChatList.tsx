@@ -1,8 +1,8 @@
 import { ChatCircleIcon, UserCirclePlusIcon, UserListIcon } from "@phosphor-icons/react";
 import { useGlobalUserId, useGlobalWebSocket } from "@/components/globalContextProvider";
 import { SidebarSimpleIcon } from "@/icons";
-import { useAppNavigate as useNavigate, useAllParams as useParams } from "@/router/utils";
 import { getScreenSize } from "@/utils/getScreenSize";
+import { useAppNavigate as useNavigate, useAllParams as useParams } from "@/utils/navigation";
 import ChatList from "./components/ChatList";
 import ContextMenuCommon from "./components/ContextMenuCommon";
 import { useContextMenuCommon } from "./hooks/useContextMenuCommon";

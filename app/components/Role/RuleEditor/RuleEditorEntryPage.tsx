@@ -5,7 +5,7 @@ import { useGlobalUserId } from "@/components/globalContextProvider";
 
 import CreatePageHeader from "@/components/Role/RoleCreation/CreatePageHeader";
 import RulesSection from "@/components/Role/rules/RulesSection";
-import { useAppNavigate as useNavigate } from "@/router/utils";
+import { useAppNavigate as useNavigate } from "@/utils/navigation";
 
 interface RuleEditorEntryPageProps {
   onBack?: () => void;

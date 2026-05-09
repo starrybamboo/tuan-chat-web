@@ -12,7 +12,7 @@ import {
   getFeedbackIssueTypeLabel,
   toArchiveFilterValue,
 } from "@/components/feedback/feedbackTypes";
-import { Link } from "@/router/utils";
+import { Link } from "@/utils/navigation";
 
 function FeedbackStateDot({
   status,

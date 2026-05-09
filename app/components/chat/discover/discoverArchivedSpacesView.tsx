@@ -10,8 +10,8 @@ import { tuanchat } from "api/instance";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import RepositoryDetailComponent from "@/components/repository/detail/repositoryDetail";
 import { ContentCard } from "@/components/repository/home/RepositoryHome";
-import { useAppNavigate as useNavigate, useUrlSearchParams as useSearchParams } from "@/router/utils";
 import { avatarThumbUrl } from "@/utils/mediaUrl";
+import { useAppNavigate as useNavigate, useUrlSearchParams as useSearchParams } from "@/utils/navigation";
 
 type DiscoverArchivedSpacesMode = "square" | "my";
 

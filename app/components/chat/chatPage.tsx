@@ -25,7 +25,6 @@ import useChatPageSpaceHandle from "@/components/chat/hooks/useChatPageSpaceHand
 import useChatPageSubWindow from "@/components/chat/hooks/useChatPageSubWindow";
 import useChatUnreadIndicators from "@/components/chat/hooks/useChatUnreadIndicators";
 import useSpaceDocMetaState from "@/components/chat/hooks/useSpaceDocMetaState";
-import useSpaceDocMetaSync from "@/components/chat/hooks/useSpaceDocMetaSync";
 import useSpaceSidebarTreeActions from "@/components/chat/hooks/useSpaceSidebarTreeActions";
 import useTutorialOnboarding from "@/components/chat/hooks/useTutorialOnboarding";
 import { parseSpaceDocId } from "@/components/chat/infra/blocksuite/space/spaceDocId";
@@ -39,7 +38,7 @@ import { useLocalStorage } from "@/components/common/customHooks/useLocalStorage
 import { useScreenSize } from "@/components/common/customHooks/useScreenSize";
 import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
 import { useGlobalUserId, useGlobalWebSocket } from "@/components/globalContextProvider";
-import { useUrlSearchParams as useSearchParams } from "@/router/utils";
+import { useUrlSearchParams as useSearchParams } from "@/utils/navigation";
 
 const EMPTY_ARRAY: never[] = [];
 interface CachedDocRoute {
@@ -170,12 +169,6 @@ export default function ChatPage() {
     spaces,
   });
   const activeDocHeaderOverride = useDocHeaderOverrideStore(state => (activeDocId ? state.headers[activeDocId] : undefined));
-
-  useSpaceDocMetaSync({
-    spaceId: activeSpaceId,
-    spaceName: activeSpace?.name,
-    rooms,
-  });
 
   const {
     sidebarTree,

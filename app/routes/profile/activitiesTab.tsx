@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import ActivitiesTab from "@/components/profile/profileTab/activitiesTab";
-import { useAllParams as useParams } from "@/router/utils";
+import { useAllParams as useParams } from "@/utils/navigation";
 import { createSeoMeta } from "@/utils/seo";
 
 interface ProfileActivitiesRouteParams {

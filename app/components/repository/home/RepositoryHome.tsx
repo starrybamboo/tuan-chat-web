@@ -3,8 +3,8 @@ import { useRepositoryListQuery } from "api/hooks/repositoryQueryHooks";
 import { useRuleListQuery } from "api/hooks/ruleQueryHooks";
 import { useEffect, useMemo, useState } from "react";
 import Pagination from "@/components/common/pagination";
-import { useAppNavigate as useNavigate } from "@/router/utils";
 import { imageMediumUrl, imageMediumUrlFromUrl } from "@/utils/mediaUrl";
+import { useAppNavigate as useNavigate } from "@/utils/navigation";
 
 const EMPTY_STRING_LIST: string[] = [];
 

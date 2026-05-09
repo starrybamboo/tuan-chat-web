@@ -4,7 +4,7 @@ import toast from "react-hot-toast";
 import type { SpaceDetailTab } from "@/components/chat/chatPage.types";
 
 import { getDocRouteInfo, getSpaceDetailRouteTab, parsePositiveNumber } from "@/components/chat/hooks/chatPageRouteUtils";
-import { usePathMatch as useMatch, useAppNavigate as useNavigate, useAllParams as useParams } from "@/router/utils";
+import { usePathMatch as useMatch, useAppNavigate as useNavigate, useAllParams as useParams } from "@/utils/navigation";
 
 type ChatPageRouteState = {
   urlSpaceId?: string;

@@ -11,8 +11,8 @@ import { useGetUserInfoByUsernameQuery, useGetUserInfoQuery } from "api/hooks/Us
 import { useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import { HomeIcon, Search, XMarkICon } from "@/icons";
-import { useAppNavigate as useNavigate } from "@/router/utils";
 import { avatarThumbUrl } from "@/utils/mediaUrl";
+import { useAppNavigate as useNavigate } from "@/utils/navigation";
 
 type AddFriendSearchMode = "id" | "username";
 

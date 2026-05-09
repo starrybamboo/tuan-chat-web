@@ -1,7 +1,7 @@
 import type {
   RouteClientLoaderArgs,
   RouteMetaArgs,
-} from "@/router/routeTypes";
+} from "@/routes/routeTypes";
 import { createFileRoute } from "@tanstack/react-router";
 // import { DEFAULT_REPOSITORY_DATA } from "@/components/repository/detail/constants";
 

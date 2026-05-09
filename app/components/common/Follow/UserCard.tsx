@@ -1,7 +1,7 @@
 import type { FollowResponse } from "../../../../api";
 import { useState } from "react";
 import { resolveUserDisplayName, useResolvedUserInfo } from "@/components/common/userAccess.shared";
-import { Link } from "@/router/utils";
+import { Link } from "@/utils/navigation";
 import { FollowButton } from "./FollowButton";
 
 interface UserCardProps {

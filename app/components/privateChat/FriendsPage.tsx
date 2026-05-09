@@ -14,8 +14,8 @@ import {
 import { useGetUserInfoByUsernameQuery, useGetUserInfoQuery } from "api/hooks/UserHooks";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { BaselineDeleteOutline, ChevronRight, HomeIcon, Search, SearchFilled, XMarkICon } from "@/icons";
-import { useAppNavigate as useNavigate, useUrlSearchParams as useSearchParams } from "@/router/utils";
 import { avatarThumbUrl } from "@/utils/mediaUrl";
+import { useAppNavigate as useNavigate, useUrlSearchParams as useSearchParams } from "@/utils/navigation";
 
 type FriendsTab = "all" | "pending" | "add" | "blacklist";
 type AddFriendSearchMode = "id" | "username";

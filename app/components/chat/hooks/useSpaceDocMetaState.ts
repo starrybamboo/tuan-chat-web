@@ -371,31 +371,12 @@ export default function useSpaceDocMetaState({
   }, [flushPendingSpaceDocTitleSyncQueue]);
 
   const loadSpaceDocMetas = useCallback(async (): Promise<MinimalDocMeta[]> => {
-    if (typeof window === "undefined")
+    if (typeof window === "undefined" || !activeSpaceId || activeSpaceId <= 0) {
       return [];
-    if (!activeSpaceId || activeSpaceId <= 0)
-      return [];
+    }
 
-    try {
-      const registry = await import("@/components/chat/infra/blocksuite/space/spaceWorkspaceRegistry");
-      const ws = registry.getOrCreateSpaceWorkspace(activeSpaceId) as any;
-      const metas = (ws?.meta?.docMetas ?? []) as any[];
-      const headerOverrides = useDocHeaderOverrideStore.getState().headers;
-      const list = metas
-        .filter((m) => {
-          const id = typeof m?.id === "string" ? m.id : "";
-          return id.length > 0 && parseSpaceDocId(id)?.kind === "independent";
-        })
-        .map((m) => {
-          const id = String(m.id);
-          const title = typeof m?.title === "string" ? m.title : undefined;
-          return { id, title } satisfies MinimalDocMeta;
-        });
-      return applyDocHeaderOverrides(list, headerOverrides);
-    }
-    catch {
-      return [];
-    }
+    const headerOverrides = useDocHeaderOverrideStore.getState().headers;
+    return applyDocHeaderOverrides(readSpaceDocMetaCache(activeSpaceId), headerOverrides);
   }, [activeSpaceId]);
 
   useEffect(() => {

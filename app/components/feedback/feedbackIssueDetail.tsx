@@ -22,7 +22,7 @@ import {
   getFeedbackIssueTypeLabel,
   isFeedbackDeveloper,
 } from "@/components/feedback/feedbackTypes";
-import { Link } from "@/router/utils";
+import { Link } from "@/utils/navigation";
 
 function readErrorMessage(error: unknown) {
   if (error instanceof Error && error.message.trim()) {

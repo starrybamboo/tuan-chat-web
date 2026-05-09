@@ -14,9 +14,9 @@ import { syncOptimisticReplyMessageIds } from "@/components/common/dicer/optimis
 import { getCachedDicerRoleAbility, setCachedDicerRoleAbility } from "@/components/common/dicer/roleAbilityCache";
 import { buildRuntimeRoleValuesByRoleId, mergeRuntimeRoleValuesIntoAbility } from "@/components/common/dicer/runtimeAbilityBridge";
 import UTILS from "@/components/common/dicer/utils/utils";
-import { useAllParams as useParams } from "@/router/utils";
 import { buildMessageExtraForRequest } from "@/types/messageDraft";
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
+import { useAllParams as useParams } from "@/utils/navigation";
 import {
   fetchRoleAbilityByRuleWithCache,
   useSetRoleAbilityMutation,

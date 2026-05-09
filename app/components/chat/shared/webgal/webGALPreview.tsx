@@ -10,7 +10,7 @@ import { SpaceContext } from "@/components/chat/core/spaceContext";
 import { resolveWebGALPreviewState } from "@/components/chat/shared/webgal/webGalPreviewState";
 import { useRealtimeRenderStore } from "@/components/chat/stores/realtimeRenderStore";
 import { useSideDrawerStore } from "@/components/chat/stores/sideDrawerStore";
-import { useAppNavigate as useNavigate } from "@/router/utils";
+import { useAppNavigate as useNavigate } from "@/utils/navigation";
 import { getTerreBaseUrl } from "@/webGAL/terreConfig";
 
 interface WebGALPreviewProps {

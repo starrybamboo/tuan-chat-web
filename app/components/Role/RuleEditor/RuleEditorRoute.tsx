@@ -2,7 +2,7 @@ import { ApiError } from "api";
 import { useGetRuleDetailQuery } from "api/hooks/ruleQueryHooks";
 import { useEffect, useMemo, useRef } from "react";
 import toast from "react-hot-toast";
-import { useAppNavigate as useNavigate, useUrlSearchParams as useSearchParams } from "@/router/utils";
+import { useAppNavigate as useNavigate, useUrlSearchParams as useSearchParams } from "@/utils/navigation";
 
 import RuleEditor from "./RuleEditor";
 import RuleEditorEntryPage from "./RuleEditorEntryPage";

@@ -5,7 +5,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import toast from "react-hot-toast";
 import { useGlobalUserId } from "@/components/globalContextProvider";
 import { EditIcon, SaveIcon } from "@/icons";
-import { useLocation, useAppNavigate as useNavigate } from "@/router/utils";
+import { useLocation, useAppNavigate as useNavigate } from "@/utils/navigation";
 import Section from "../Editors/Section";
 import RuleCloneModal from "./RuleCloneModal";
 import RuleExpansionModule from "./RuleExpansionModule";

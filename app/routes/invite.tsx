@@ -3,7 +3,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { fetchUserRoomsWithCache, useSpaceInvitedMutation } from "api/hooks/chatQueryHooks";
 import { useEffect, useRef, useState } from "react";
 import { useGlobalUserId } from "@/components/globalContextProvider";
-import { useAppNavigate as useNavigate, useAllParams as useParams } from "@/router/utils";
+import { useAppNavigate as useNavigate, useAllParams as useParams } from "@/utils/navigation";
 
 export const Route = createFileRoute("/invite/$code")({
   component: InvitePage,

@@ -5,16 +5,13 @@
     "tsBuildInfoFile": "node_modules/.cache/tsc/typecheck.tsbuildinfo",
     "paths": {
       "*": ["./*"],
-      "react-router": ["./app/router/reactRouterCompat.tsx"],
       "@/*": ["./app/*"],
       "@tuanchat/domain": ["./packages/tuanchat-domain/src/index.ts"],
       "@tuanchat/domain/*": ["./packages/tuanchat-domain/src/*"],
       "@tuanchat/openapi-client": ["./packages/tuanchat-openapi-client/src/index.ts"],
       "@tuanchat/openapi-client/*": ["./packages/tuanchat-openapi-client/src/*"],
       "@tuanchat/query": ["./packages/tuanchat-query/src/index.ts"],
-      "@tuanchat/query/*": ["./packages/tuanchat-query/src/*"],
-      "@blocksuite/integration-test": ["./app/types/blocksuite-integration-test.d.ts"],
-      "@blocksuite/integration-test/*": ["./app/types/blocksuite-integration-test.d.ts"]
+      "@tuanchat/query/*": ["./packages/tuanchat-query/src/*"]
     }
   },
   "include": [

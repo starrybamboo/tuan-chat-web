@@ -5,7 +5,7 @@ import { useFeedbackIssuesInfiniteQuery } from "@/components/feedback/feedbackHo
 import FeedbackIssueDetailView from "@/components/feedback/feedbackIssueDetail";
 import FeedbackIssueList from "@/components/feedback/feedbackIssueList";
 import { useGlobalUserId } from "@/components/globalContextProvider";
-import { useAppNavigate as useNavigate, useAllParams as useParams } from "@/router/utils";
+import { useAppNavigate as useNavigate, useAllParams as useParams } from "@/utils/navigation";
 
 function parseIssueId(rawIssueId?: string) {
   const issueId = Number(rawIssueId);

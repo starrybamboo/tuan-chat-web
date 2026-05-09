@@ -6,6 +6,7 @@ import toast from "react-hot-toast";
 import type { MinimalDocMeta, SidebarLeafNode, SidebarTree } from "@/components/chat/room/sidebarTree";
 
 import { buildSpaceDocId } from "@/components/chat/infra/blocksuite/space/spaceDocId";
+import { upsertSpaceDocMetaCacheEntry } from "@/components/chat/infra/blocksuite/space/spaceDocMetaPersistence";
 import { buildDefaultSidebarTree } from "@/components/chat/room/sidebarTree";
 import { tuanchat } from "api/instance";
 
@@ -135,14 +136,8 @@ export default function useSpaceSidebarTreeActions({
       ? baseDocMetas
       : [...baseDocMetas, { id: docId, title }];
 
-    try {
-      const registry = await import("@/components/chat/infra/blocksuite/space/spaceWorkspaceRegistry");
-      registry.ensureSpaceDocMeta({ spaceId: activeSpaceId, docId, title });
-      setSpaceDocMetas(nextDocMetas);
-    }
-    catch {
-      // ignore
-    }
+    upsertSpaceDocMetaCacheEntry({ spaceId: activeSpaceId, docId, title });
+    setSpaceDocMetas(nextDocMetas);
 
     const base = buildTreeBaseForWrite(nextDocMetas);
     const next = appendNodeToCategory({

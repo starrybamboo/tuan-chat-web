@@ -1,5 +1,5 @@
 import React from "react";
-import { useUrlSearchParams as useSearchParams } from "@/router/utils";
+import { useUrlSearchParams as useSearchParams } from "@/utils/navigation";
 
 /**
  * 用于便捷的改变url中的searchParam
